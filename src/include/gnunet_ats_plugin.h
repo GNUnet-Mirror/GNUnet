@@ -36,12 +36,10 @@
 
 struct ATS_Address;
 
-
 /*
  * Solver API
  * ----------
  */
-
 
 /**
  * Change the preference for a peer
@@ -193,7 +191,6 @@ typedef void
 (*GAS_solver_stop_get_preferred_address) (void *solver,
     const struct GNUNET_PeerIdentity *peer);
 
-
 /**
  * Solver functions
  *
@@ -210,25 +207,21 @@ struct GNUNET_ATS_SolverFunctions
    */
   GAS_solver_address_add s_add;
 
-
   /**
    * Update the properties of an address in the solver
    */
   GAS_solver_address_property_changed s_address_update_property;
-
 
   /**
    * Update the session of an address in the solver
    */
   GAS_solver_address_session_changed s_address_update_session;
 
-
   /**
    * Notify the solver that in address is (not) actively used by transport
    * to communicate with a remote peer
    */
   GAS_solver_address_inuse_changed s_address_update_inuse;
-
 
   /**
    * Notify solver that the network an address is located in has changed
@@ -245,13 +238,12 @@ struct GNUNET_ATS_SolverFunctions
   GAS_solver_get_preferred_address s_get;
 
   /**
-  * Tell solver stop notifying ATS about changes for this peers
-  *
-  * The solver must only notify about changes for peers with pending address
-  * requests!
-  */
+   * Tell solver stop notifying ATS about changes for this peers
+   *
+   * The solver must only notify about changes for peers with pending address
+   * requests!
+   */
   GAS_solver_stop_get_preferred_address s_get_stop;
-
 
   /**
    * Delete an address in the solver
@@ -260,18 +252,15 @@ struct GNUNET_ATS_SolverFunctions
    */
   GAS_solver_address_delete s_del;
 
-
   /**
    * Change relative preference for quality in solver
    */
   GAS_solver_address_change_preference s_pref;
 
-
   /**
    * Give feedback about the current assignment
    */
   GAS_solver_address_feedback_preference s_feedback;
-
 
   /**
    * Start a bulk operation
@@ -284,7 +273,6 @@ struct GNUNET_ATS_SolverFunctions
    */
   GAS_solver_bulk_start s_bulk_start;
 
-
   /**
    * Bulk operation done
    *
@@ -294,29 +282,89 @@ struct GNUNET_ATS_SolverFunctions
   GAS_solver_bulk_stop s_bulk_stop;
 };
 
-
 /**
  * Operation codes for solver information callback
+ *
+ * Order of calls is expected to be:
+ * GAS_OP_SOLVE_START
+ *
+ * GAS_OP_SOLVE_STOP
+ * GAS_OP_SOLVE_UPDATE_NOTIFICATION_START
+ * GAS_OP_SOLVE_UPDATE_NOTIFICATION_STOP
+ *
  */
 enum GAS_Solver_Operation
 {
+  /**
+   * A solution iteration has been started
+   */
   GAS_OP_SOLVE_START,
+
+  /**
+   * A solution iteration has been finished
+   */
   GAS_OP_SOLVE_STOP,
+
+  /**
+   * The setup of the problem as a preparation to solve it was started
+   */
   GAS_OP_SOLVE_SETUP_START,
+
+  /**
+   * The setup of the problem as a preparation to solve is finished
+   */
   GAS_OP_SOLVE_SETUP_STOP,
-  GAS_OP_SOLVE_LP_START,
-  GAS_OP_SOLVE_LP_STOP,
-  GAS_OP_SOLVE_MLP_START,
-  GAS_OP_SOLVE_MLP_STOP
+
+  /**
+   * Solving of the LP problem was started
+   * MLP solver only
+   */
+  GAS_OP_SOLVE_MLP_LP_START,
+
+  /**
+   * Solving of the LP problem is done
+   * MLP solver only
+   */
+  GAS_OP_SOLVE_MLP_LP_STOP,
+
+  /**
+   * Solving of the MLP problem was started
+   * MLP solver only
+   */
+  GAS_OP_SOLVE_MLP_MLP_START,
+
+  /**
+   * Solving of the MLP problem is done
+   * MLP solver only
+   */
+  GAS_OP_SOLVE_MLP_MLP_STOP,
+
+  /**
+   * After the problem was finished, start notifications about changes
+   * to addresses
+   */
+  GAS_OP_SOLVE_UPDATE_NOTIFICATION_START,
+
+  /**
+   * After the problem was finished, notifications about changes to addresses
+   * are done
+   */
+  GAS_OP_SOLVE_UPDATE_NOTIFICATION_STOP
 };
 
-
 /**
- * Status of the operation
+ * Status of a GAS_Solver_Operation operation
  */
 enum GAS_Solver_Status
 {
+  /**
+   * Success
+   */
   GAS_STAT_SUCCESS,
+
+  /**
+   * Failure
+   */
   GAS_STAT_FAIL
 };
 
@@ -325,13 +373,33 @@ enum GAS_Solver_Status
  */
 enum GAS_Solver_Additional_Information
 {
+  /**
+   * No more specific information
+   */
   GAS_INFO_NONE,
-  GAS_INFO_FULL,
-  GAS_INFO_UPDATED,
-  GAS_INFO_PROP_ALL,
-  GAS_INFO_PROP_SINGLE
-};
 
+  /**
+   * A full solution process is performed
+   * Quite specific to the MLP solver
+   */
+  GAS_INFO_FULL,
+
+  /**
+   * An existing solution was reused
+   * Quite specific to the MLP solver
+   */
+  GAS_INFO_UPDATED,
+
+  /**
+   * The proportional solver had to recalculate for a single network
+   */
+  GAS_INFO_PROP_SINGLE,
+
+  /**
+   * The proportional solver had to recalculate for all networks
+   */
+  GAS_INFO_PROP_ALL
+};
 
 /**
  * Callback to call with additional information
@@ -345,11 +413,8 @@ enum GAS_Solver_Additional_Information
  * @param pref_rel the normalized preference value for this kind over all clients
  */
 typedef void
-(*GAS_solver_information_callback) (void *cls,
-    enum GAS_Solver_Operation op,
-    enum GAS_Solver_Status stat,
-    enum GAS_Solver_Additional_Information);
-
+(*GAS_solver_information_callback) (void *cls, enum GAS_Solver_Operation op,
+    enum GAS_Solver_Status stat, enum GAS_Solver_Additional_Information);
 
 /**
  * Callback to call from solver when bandwidth for address has changed
@@ -383,7 +448,6 @@ typedef const double *
 typedef const double *
 (*GAS_get_properties) (void *cls, const struct ATS_Address *address);
 
-
 /**
  * The ATS service will pass a pointer to a struct
  * of this type as the first and only argument to the
@@ -396,54 +460,45 @@ struct GNUNET_ATS_PluginEnvironment
    */
   const struct GNUNET_CONFIGURATION_Handle *cfg;
 
-
   /**
    * Statistics handle to be used by the solver
    */
   const struct GNUNET_STATISTICS_Handle *stats;
-
 
   /**
    * Hashmap containing all addresses available
    */
   struct GNUNET_CONTAINER_MultiPeerMap *addresses;
 
-
   /**
    * ATS addresses callback to be notified about bandwidth assignment changes
    */
   GAS_bandwidth_changed_cb bandwidth_changed_cb;
-
 
   /**
    * ATS addresses closure to be notified about bandwidth assignment changes
    */
   void *bw_changed_cb_cls;
 
-
   /**
    * ATS addresses function to obtain preference values
    */
   GAS_get_preferences get_preferences;
-
 
   /**
    * ATS addresses function closure to obtain preference values
    */
   void *get_preference_cls;
 
-
   /**
    * ATS addresses function to obtain property values
    */
   GAS_get_properties get_property;
 
-
   /**
    * ATS addresses function closure to obtain property values
    */
   void *get_property_cls;
-
 
   /**
    * Callback for solver to call with status information,
@@ -462,25 +517,21 @@ struct GNUNET_ATS_PluginEnvironment
    */
   struct GNUNET_ATS_SolverFunctions sf;
 
-
   /**
    *  Available networks
    */
   int networks[GNUNET_ATS_NetworkTypeCount];
-
 
   /**
    * Number of networks available
    */
   int network_count;
 
-
   /**
    * Array of configured outbound quotas
    * Order according to networks in network array
    */
   unsigned long long out_quota[GNUNET_ATS_NetworkTypeCount];
-
 
   /**
    * Array of configured inbound quotas
