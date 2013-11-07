@@ -418,12 +418,11 @@ derive_symmertic (struct GNUNET_CRYPTO_SymmetricSessionKey *key,
  * Pick a connection on which send the next data message.
  *
  * @param t Tunnel on which to send the message.
- * @param fwd Is this a fwd message?
  *
  * @return The connection on which to send the next message.
  */
 static struct MeshConnection *
-tunnel_get_connection (struct MeshTunnel3 *t, int fwd)
+tunnel_get_connection (struct MeshTunnel3 *t)
 {
   struct MeshTConnection *iter;
   struct MeshConnection *best;
@@ -439,7 +438,7 @@ tunnel_get_connection (struct MeshTunnel3 *t, int fwd)
          GNUNET_h2s (GMC_get_id (iter->c)), GMC_get_state (iter->c));
     if (MESH_CONNECTION_READY == GMC_get_state (iter->c))
     {
-      qn = GMC_get_qn (iter->c, fwd);
+      qn = GMC_get_qn (iter->c, GMC_is_origin (iter->c, GNUNET_YES));
       LOG (GNUNET_ERROR_TYPE_DEBUG, "    q_n %u, \n", qn);
       if (qn < lowest_q)
       {
@@ -562,12 +561,10 @@ send_kx (struct MeshTunnel3 *t,
     return;
   }
 
-  fwd = GMC_is_origin (t->connection_head->c, GNUNET_YES);
-
   msg = (struct GNUNET_MESH_KX *) cbuf;
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_KX);
   msg->header.size = htons (sizeof (struct GNUNET_MESH_KX) + size);
-  c = tunnel_get_connection (t, fwd);
+  c = tunnel_get_connection (t);
   if (NULL == c)
   {
     GNUNET_break (GNUNET_YES == t->destroy);
@@ -589,6 +586,7 @@ send_kx (struct MeshTunnel3 *t,
       GNUNET_break (0);
   }
 
+  fwd = GMC_is_origin (t->connection_head->c, GNUNET_YES);
   GMC_send_prebuilt_message (&msg->header, c, fwd);
 }
 
@@ -1820,7 +1818,7 @@ GMT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   msg->iv = iv;
   encrypted_size = t_encrypt (t, &msg[1], message, size, iv);
   msg->header.size = htons (sizeof (struct GNUNET_MESH_Encrypted) + encrypted_size);
-  c = tunnel_get_connection (t, fwd);
+  c = tunnel_get_connection (t);
   if (NULL == c)
   {
     GNUNET_break (GNUNET_YES == t->destroy);
