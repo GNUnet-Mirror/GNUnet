@@ -88,6 +88,35 @@ struct IBFMessage
   /* rest: strata */
 };
 
+struct BFMessage
+{
+  /**
+   * Type: GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_BF
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Padding, must be 0.
+   */
+  uint8_t reserved;
+
+  /**
+   * Offset of the bloomfilter in the rest of the message
+   */
+  uint16_t offset GNUNET_PACKED;
+
+  /**
+   * mutator used with this bloomfilter.
+   */
+  uint64_t my_element_count;
+  
+  /**
+   * mutator used with this bloomfilter.
+   */
+  uint32_t my_mutator;
+
+  /* rest: bloomfilter */
+};
 
 GNUNET_NETWORK_STRUCT_END
 

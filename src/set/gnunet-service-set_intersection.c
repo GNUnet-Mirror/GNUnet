@@ -30,50 +30,17 @@
 #include "set_protocol.h"
 #include <gcrypt.h>
 
-
-/**
- * Number of IBFs in a strata estimator.
- */
-#define SE_STRATA_COUNT 32
-/**
- * Size of the IBFs in the strata estimator.
- */
-#define SE_IBF_SIZE 80
-/**
- * hash num parameter for the difference digests and strata estimators
- */
-#define SE_IBF_HASH_NUM 4
-
-/**
- * Number of buckets that can be transmitted in one message.
- */
-#define MAX_BUCKETS_PER_MESSAGE ((1<<15) / IBF_BUCKET_SIZE)
-
-/**
- * The maximum size of an ibf we use is 2^(MAX_IBF_ORDER).
- * Choose this value so that computing the IBF is still cheaper
- * than transmitting all values.
- */
-#define MAX_IBF_ORDER (16)
-
-/**
- * Number of buckets used in the ibf per estimated
- * difference.
- */
-#define IBF_ALPHA 4
-
-
 /**
  * Current phase we are in for a intersection operation.
  */
 enum IntersectionOperationPhase
 {
   /**
-   * We sent the request message, and expect a BF
+   * We get our tunnel but received no message as of now
    */
   PHASE_EXPECT_INITIAL,
   /**
-   * We sent the request message, and expect a BF
+   * We expect a BF + the number of the other peers elements
    */
   PHASE_BF_EXCHANGE,
   /**
@@ -109,12 +76,12 @@ struct OperationState
   /**
    * The bf we currently receive
    */
-  struct BloomFilter *remote_bf;
+  struct GNUNET_CONTAINER_BloomFilter *remote_bf;
 
   /**
    * BF of the set's element.
    */
-  struct BloomFilter *local_bf;
+  struct GNUNET_CONTAINER_BloomFilter *local_bf;
 
   /**
    * Current state of the operation.
@@ -132,7 +99,17 @@ struct OperationState
    * belongs to.
    */
   struct Set *set;
+  
+  /**
+   * Maps element-id-hashes to 'elements in our set'.
+   */
+  struct GNUNET_CONTAINER_MultiHashMap *contained_elements;
 
+  /**
+   * Iterator for sending elements on the key to element mapping to the client.
+   */
+  struct GNUNET_CONTAINER_MultiHashMap32Iterator *full_result_iter;
+  
   /**
    * Evaluate operations are held in
    * a linked list.
@@ -153,62 +130,10 @@ struct OperationState
 
 
 /**
- * The key entry is used to associate an ibf key with
- * an element.
- */
-struct KeyEntry
-{
-  /**
-   * IBF key for the entry, derived from the current salt.
-   */
-  struct IBF_Key ibf_key;
-
-  /**
-   * The actual element associated with the key
-   */
-  struct ElementEntry *element;
-
-  /**
-   * Element that collides with this element
-   * on the ibf key
-   */
-  struct KeyEntry *next_colliding;
-};
-
-
-/**
- * Used as a closure for sending elements
- * with a specific IBF key.
- */
-struct SendElementClosure
-{
-  /**
-   * The IBF key whose matching elements should be
-   * sent.
-   */
-  struct IBF_Key ibf_key;
-
-  /**
-   * Operation for which the elements
-   * should be sent.
-   */
-  struct OperationState *eo;
-};
-
-
-/**
  * Extra state required for efficient set intersection.
  */
 struct SetState
 {
-  /**
-   * The strata estimator is only generated once for
-   * each set.
-   * The IBF keys are derived from the element hashes with
-   * salt=0.
-   */
-  struct StrataEstimator *se;
-
   /**
    * Evaluate operations are held in
    * a linked list.
@@ -221,38 +146,6 @@ struct SetState
    */
   struct OperationState *ops_tail;
 };
-
-
-/**
- * Iterator over hash map entries.
- *
- * @param cls closure
- * @param key current key code
- * @param value value in the hash map
- * @return GNUNET_YES if we should continue to
- *         iterate,
- *         GNUNET_NO if not.
- */
-static int
-destroy_key_to_element_iter (void *cls,
-                             uint32_t key,
-                             void *value)
-{
-  struct KeyEntry *k = value;
-
-  while (NULL != k)
-  {
-    struct KeyEntry *k_tmp = k;
-    k = k->next_colliding;
-    if (GNUNET_YES == k_tmp->element->remote)
-    {
-      GNUNET_free (k_tmp->element);
-      k_tmp->element = NULL;
-    }
-    GNUNET_free (k_tmp);
-  }
-  return GNUNET_YES;
-}
 
 
 /**
@@ -320,171 +213,47 @@ fail_intersection_operation (struct OperationState *eo)
 
 
 /**
- * Derive the IBF key from a hash code and
- * a salt.
- *
- * @param src the hash code
- * @param salt salt to use
- * @return the derived IBF key
- */
-static struct IBF_Key
-get_ibf_key (struct GNUNET_HashCode *src, uint16_t salt)
-{
-  struct IBF_Key key;
-
-  GNUNET_CRYPTO_hkdf (&key, sizeof (key),
-		      GCRY_MD_SHA512, GCRY_MD_SHA256,
-                      src, sizeof *src,
-		      &salt, sizeof (salt),
-		      NULL, 0);
-  return key;
-}
-
-
-/**
  * Send a request for the evaluate operation to a remote peer
  *
  * @param eo operation with the other peer
  */
 static void
-send_operation_request (struct OperationState *eo)
+send_operation_request (struct Operation *op)
 {
   struct GNUNET_MQ_Envelope *ev;
   struct OperationRequestMessage *msg;
 
   ev = GNUNET_MQ_msg_nested_mh (msg, GNUNET_MESSAGE_TYPE_SET_P2P_OPERATION_REQUEST,
-                                eo->spec->context_msg);
+                                op->spec->context_msg);
 
   if (NULL == ev)
   {
     /* the context message is too large */
     GNUNET_break (0);
-    GNUNET_SERVER_client_disconnect (eo->spec->set->client);
+    GNUNET_SERVER_client_disconnect (op->spec->set->client);
     return;
   }
-  msg->operation = htonl (GNUNET_SET_OPERATION_UNION);
-  msg->app_id = eo->spec->app_id;
-  msg->salt = htonl (eo->spec->salt);
-  GNUNET_MQ_send (eo->mq, ev);
+  msg->operation = htonl (GNUNET_SET_OPERATION_INTERSECTION);
+  msg->app_id = op->spec->app_id;
+  msg->salt = htonl (op->spec->salt);
+  GNUNET_MQ_send (op->mq, ev);
 
-  if (NULL != eo->spec->context_msg)
+  if (NULL != op->spec->context_msg)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "sent op request with context message\n");
   else
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "sent op request without context message\n");
 
-  if (NULL != eo->spec->context_msg)
+  if (NULL != op->spec->context_msg)
   {
-    GNUNET_free (eo->spec->context_msg);
-    eo->spec->context_msg = NULL;
+    GNUNET_free (op->spec->context_msg);
+    op->spec->context_msg = NULL;
   }
 
 }
 
 
 /**
- * Iterator to create the mapping between ibf keys
- * and element entries.
- *
- * @param cls closure
- * @param key current key code
- * @param value value in the hash map
- * @return GNUNET_YES if we should continue to
- *         iterate,
- *         GNUNET_NO if not.
- */
-static int
-op_register_element_iterator (void *cls,
-                         uint32_t key,
-                         void *value)
-{
-  struct KeyEntry *const new_k = cls;
-  struct KeyEntry *old_k = value;
-
-  GNUNET_assert (NULL != old_k);
-  do
-  {
-    if (old_k->ibf_key.key_val == new_k->ibf_key.key_val)
-    {
-      new_k->next_colliding = old_k->next_colliding;
-      old_k->next_colliding = new_k;
-      return GNUNET_NO;
-    }
-    old_k = old_k->next_colliding;
-  } while (NULL != old_k);
-  return GNUNET_YES;
-}
-
-
-/**
- * Insert an element into the intersection operation's
- * key-to-element mapping. Takes ownership of 'ee'.
- * Note that this does not insert the element in the set,
- * only in the operation's key-element mapping.
- * This is done to speed up re-tried operations, if some elements
- * were transmitted, and then the IBF fails to decode.
- *
- * @param eo the intersection operation
- * @param ee the element entry
- */
-static void
-op_register_element (struct OperationState *eo, struct ElementEntry *ee)
-{
-  int ret;
-  struct IBF_Key ibf_key;
-  struct KeyEntry *k;
-
-  ibf_key = get_ibf_key (&ee->element_hash, eo->spec->salt);
-  k = GNUNET_new (struct KeyEntry);
-  k->element = ee;
-  k->ibf_key = ibf_key;
-  ret = GNUNET_CONTAINER_multihashmap32_get_multiple (eo->key_to_element,
-                                                      (uint32_t) ibf_key.key_val,
-                                                      op_register_element_iterator, k);
-
-  /* was the element inserted into a colliding bucket? */
-  if (GNUNET_SYSERR == ret)
-    return;
-
-  GNUNET_CONTAINER_multihashmap32_put (eo->key_to_element, (uint32_t) ibf_key.key_val, k,
-                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-}
-
-
-
-/**
- * Iterator for initializing the
- * key-to-element mapping of a intersection operation
- *
- * @param cls the intersection operation
- * @param key unised
- * @param value the element entry to insert
- *        into the key-to-element mapping
- * @return GNUNET_YES to continue iterating,
- *         GNUNET_NO to stop
- */
-static int
-init_key_to_element_iterator (void *cls,
-                              const struct GNUNET_HashCode *key,
-                              void *value)
-{
-  struct OperationState *eo = cls;
-  struct ElementEntry *e = value;
-
-  /* make sure that the element belongs to the set at the time
-   * of creating the operation */
-  if ( (e->generation_added > eo->generation_created) ||
-       ( (GNUNET_YES == e->removed) &&
-         (e->generation_removed < eo->generation_created)))
-    return GNUNET_YES;
-
-  GNUNET_assert (GNUNET_NO == e->remote);
-
-  op_register_element (eo, e);
-  return GNUNET_YES;
-}
-
-/**
- * Handle an IBF message from a remote peer.
+ * Handle an BF message from a remote peer.
  *
  * @param cls the intersection operation
  * @param mh the header of the message
@@ -579,6 +348,57 @@ send_client_done_and_destroy (struct OperationState *eo)
   intersection_operation_destroy (eo);
 }
 
+/**
+ * Send a bloomfilter to our peer.
+ * that the operation is over.
+ * After the result done message has been sent to the client,
+ * destroy the evaluate operation.
+ *
+ * @param eo intersection operation
+ */
+static void
+send_bloomfilter (struct OperationState *eo){
+  //get number of all elements still in the set
+  
+  // send the bloomfilter
+  unsigned int buckets_sent = 0;
+  struct BloomFilter *bf;
+  //TODO:
+  // add all our elements to the bloomfilter
+  // create new bloomfilter for all our elements & count elements
+  //GNUNET_CONTAINER_multihashmap32_remove
+  //eo->local_bf = GNUNET_CONTAINER_multihashmap32_iterate(eo->set->elements, add);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "sending bf of size %u\n", 1<<ibf_order);
+
+  bf = eo->local_bf;
+
+  while (buckets_sent < (1 << bf_order))
+  {
+    unsigned int buckets_in_message;
+    struct GNUNET_MQ_Envelope *ev;
+    struct IBFMessage *msg;
+
+    buckets_in_message = (1 << bf_order) - buckets_sent;
+    /* limit to maximum */
+    if (buckets_in_message > MAX_BUCKETS_PER_MESSAGE)
+      buckets_in_message = MAX_BUCKETS_PER_MESSAGE;
+
+    ev = GNUNET_MQ_msg_extra (msg, buckets_in_message * IBF_BUCKET_SIZE,
+                               GNUNET_MESSAGE_TYPE_SET_P2P_BF);
+    msg->reserved = 0;
+    msg->order = bf_order;
+    msg->offset = htons (buckets_sent);
+    ibf_write_slice (ibf, buckets_sent,
+                     buckets_in_message, &msg[1]);
+    buckets_sent += buckets_in_message;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ibf chunk size %u, %u/%u sent\n",
+                buckets_in_message, buckets_sent, 1<<ibf_order);
+    GNUNET_MQ_send (eo->mq, ev);
+  }
+
+  eo->phase = PHASE_EXPECT_BF;
+}
 
 /**
  * Handle a done message from a remote peer
@@ -615,78 +435,46 @@ handle_p2p_done (void *cls, const struct GNUNET_MessageHeader *mh)
 
 
 /**
- * Evaluate a intersection operation with
+ * Evaluate a union operation with
  * a remote peer.
  *
- * @param spec specification of the operation the evaluate
- * @param tunnel tunnel already connected to the partner peer
- * @param tc tunnel context, passed here so all new incoming
- *        messages are directly going to the intersection operations
- * @return a handle to the operation
+ * @param op operation to evaluate
  */
 static void
-intersection_evaluate (struct OperationSpecification *spec,
-                struct GNUNET_MESH_Tunnel *tunnel,
-                struct TunnelContext *tc)
+intersection_evaluate (struct Operation *op)
 {
-  struct OperationState *eo;
-
-  eo = GNUNET_new (struct OperationState);
-  tc->vt = _GSS_intersection_vt ();
-  tc->op = eo;
-  eo->generation_created = spec->set->current_generation++;
-  eo->set = spec->set;
-  eo->spec = spec;
-  eo->tunnel = tunnel;
-  eo->mq = GNUNET_MESH_mq_create (tunnel);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "evaluating intersection operation, (app %s)\n",
-              GNUNET_h2s (&eo->spec->app_id));
-
+  op->state = GNUNET_new (struct OperationState);
   /* we started the operation, thus we have to send the operation request */
-  eo->phase = PHASE_EXPECT_SE;
-
-  GNUNET_CONTAINER_DLL_insert (eo->set->state->ops_head,
-                               eo->set->state->ops_tail,
-                               eo);
-
-  send_initial_bloomfilter (eo);
+  op->state->phase = PHASE_BF_EXCHANGE;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "evaluating intersection operation");
+  send_operation_request (op);
 }
 
 
 /**
- * Accept an intersection operation request from a remote peer
+ * Accept an union operation request from a remote peer.
+ * Only initializes the private operation state.
  *
- * @param spec all necessary information about the operation
- * @param tunnel open tunnel to the partner's peer
- * @param tc tunnel context, passed here so all new incoming
- *        messages are directly going to the intersection operations
- * @return operation
+ * @param op operation that will be accepted as a union operation
  */
 static void
-intersection_accept (struct OperationSpecification *spec,
-              struct GNUNET_MESH_Tunnel *tunnel,
-              struct TunnelContext *tc)
+intersection_accept (struct Operation *op)
 {
-  struct OperationState *eo;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "accepting set intersection operation\n");
-
-  eo = GNUNET_new (struct OperationState);
-  tc->vt = _GSS_intersection_vt ();
-  tc->op = eo;
-  eo->set = spec->set;
-  eo->generation_created = eo->set->current_generation++;
-  eo->spec = spec;
-  eo->tunnel = tunnel;
-  eo->mq = GNUNET_MESH_mq_create (tunnel);
-  /* transfer ownership of mq and socket from incoming to eo */
-  GNUNET_CONTAINER_DLL_insert (eo->set->state->ops_head,
-                               eo->set->state->ops_tail,
-                               eo);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "accepting set union operation\n");
+  op->state = GNUNET_new (struct OperationState);
+  
+  op->state->contained_elements = GNUNET_CONTAINER_multihashmap_create(1, GNUNET_YES);
+  
+  if (NULL != op->state->remote_bf){
+    // run the set through the remote bloomfilter
+    ;
+  }
+  
+  // 
+  op->state->local_bf;
+  
   /* kick off the operation */
-  send_bloomfilter (eo);
+  send_bloomfilter (op);
 }
 
 
@@ -703,8 +491,6 @@ intersection_set_create (void)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "intersection set created\n");
 
   set_state = GNUNET_new (struct SetState);
-
-  //TODO: actually create that thing
   
   return set_state;
 }
@@ -719,7 +505,7 @@ intersection_set_create (void)
 static void
 intersection_add (struct SetState *set_state, struct ElementEntry *ee)
 {
-  //TODO
+  //nothing to do here
 }
 
 
@@ -731,15 +517,6 @@ intersection_add (struct SetState *set_state, struct ElementEntry *ee)
 static void
 intersection_set_destroy (struct SetState *set_state)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "destroying intersection set\n");
-  /* important to destroy operations before the rest of the set */
-  while (NULL != set_state->ops_head)
-    intersection_operation_destroy (set_state->ops_head);
-  if (NULL != set_state->se)
-  {
-    //TODO: actually destroy that thing
-    set_state->se = NULL;
-  }
   GNUNET_free (set_state);
 }
 
@@ -753,7 +530,7 @@ intersection_set_destroy (struct SetState *set_state)
 static void
 intersection_remove (struct SetState *set_state, struct ElementEntry *element)
 {
-  //TODO
+  //nothing to do here
 }
 
 
@@ -773,7 +550,10 @@ intersection_handle_p2p_message (struct OperationState *eo,
               ntohs (mh->type), ntohs (mh->size));
   switch (ntohs (mh->type))
   {
-    case GNUNET_MESSAGE_TYPE_SET_P2P_BF:
+    /* this message handler is not active until after we received an
+     * operation request message, thus the ops request is not handled here
+     */
+    case GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_BF:
       handle_p2p_bf (eo, mh);
       break;
     case GNUNET_MESSAGE_TYPE_SET_P2P_DONE:
@@ -786,20 +566,55 @@ intersection_handle_p2p_message (struct OperationState *eo,
   return GNUNET_OK;
 }
 
+/**
+ * Signal to the client that the operation has finished and
+ * destroy the operation.
+ *
+ * @param cls operation to destroy
+ */
+static void
+send_done_and_destroy (void *cls)
+{
+  struct Operation *op = cls;
+  struct GNUNET_MQ_Envelope *ev;
+  struct GNUNET_SET_ResultMessage *rm;
+  ev = GNUNET_MQ_msg (rm, GNUNET_MESSAGE_TYPE_SET_RESULT);
+  rm->request_id = htonl (op->spec->client_request_id);
+  rm->result_status = htons (GNUNET_SET_STATUS_DONE);
+  rm->element_type = htons (0);
+  GNUNET_MQ_send (op->spec->set->client_mq, ev);
+  _GSS_operation_destroy (op);
+}
+
+/**
+ * Send a result message to the client indicating
+ * that the operation is over.
+ * After the result done message has been sent to the client,
+ * destroy the evaluate operation.
+ *
+ * @param op union operation
+ */
+static void
+finish_and_destroy (struct Operation *op)
+{
+  GNUNET_assert (GNUNET_NO == op->state->client_done_sent);
+
+  if (GNUNET_SET_RESULT_FULL == op->spec->result_mode)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "sending full result set\n");
+    GNUNET_assert (NULL == op->state->full_result_iter); 
+    op->state->full_result_iter =
+        GNUNET_CONTAINER_multihashmap32_iterator_create (op->state->contained_elements);
+    return;
+  }
+  send_done_and_destroy (op);
+}
+
 
 static void
-intersection_peer_disconnect (struct OperationState *op)
+intersection_peer_disconnect (struct Operation *op)
 {
-  /* Are we already disconnected? */
-  if (NULL == op->tunnel)
-    return;
-  op->tunnel = NULL;
-  if (NULL != op->mq)
-  {
-    GNUNET_MQ_destroy (op->mq);
-    op->mq = NULL;
-  }
-  if (PHASE_FINISHED != op->phase)
+  if (PHASE_FINISHED != op->state->phase)
   {
     struct GNUNET_MQ_Envelope *ev;
     struct GNUNET_SET_ResultMessage *msg;
@@ -810,21 +625,46 @@ intersection_peer_disconnect (struct OperationState *op)
     msg->element_type = htons (0);
     GNUNET_MQ_send (op->spec->set->client_mq, ev);
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "other peer disconnected prematurely\n");
-    intersection_operation_destroy (op);
+    _GSS_operation_destroy (op);
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "other peer disconnected (finished)\n");
-  if (GNUNET_NO == op->client_done_sent)
-    send_client_done_and_destroy (op);
+  if (GNUNET_NO == op->state->client_done_sent)
+    finish_and_destroy (op);
 }
 
 
+/**
+ * Destroy the union operation.  Only things specific to the union operation are destroyed.
+ * 
+ * @param op union operation to destroy
+ */
 static void
-intersection_op_cancel (struct SetState *set_state, uint32_t op_id)
+intersection_op_cancel (struct Operation *op)
 {
-  /* FIXME: implement */
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "destroying intersection op\n");
+  /* check if the op was canceled twice */
+  GNUNET_assert (NULL != op->state);
+  if (NULL != op->state->remote_bf)
+  {
+    GNUNET_CONTAINER_bloomfilter_free (op->state->remote_bf);
+    op->state->remote_bf = NULL;
+  }
+  if (NULL != op->state->local_bf)
+  {
+    GNUNET_CONTAINER_bloomfilter_free (op->state->local_bf);
+    op->state->local_bf = NULL;
+  }
+  if (NULL != op->state->contained_elements)
+  {
+    // no need to free the elements, they are still part of the set
+    GNUNET_CONTAINER_multihashmap_destroy (op->state->contained_elements);
+    op->state->contained_elements = NULL;
+  }
+  GNUNET_free (op->state);
+  op->state = NULL;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "destroying intersection op done\n");
 }
-
 
 const struct SetVT *
 _GSS_intersection_vt ()

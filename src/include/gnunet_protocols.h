@@ -1817,12 +1817,12 @@ extern "C"
 /**
  * Strata estimator.
  */
-#define GNUNET_MESSAGE_TYPE_SET_P2P_SE 582
+#define GNUNET_MESSAGE_TYPE_SET_UNION_P2P_SE 582
 
 /**
  * Invertible bloom filter.
  */
-#define GNUNET_MESSAGE_TYPE_SET_P2P_IBF 583
+#define GNUNET_MESSAGE_TYPE_SET_UNION_P2P_IBF 583
 
 /**
  * Actual set elements.

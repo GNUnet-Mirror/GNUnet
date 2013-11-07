@@ -609,7 +609,7 @@ send_ibf (struct Operation *op, uint16_t ibf_order)
       buckets_in_message = MAX_BUCKETS_PER_MESSAGE;
 
     ev = GNUNET_MQ_msg_extra (msg, buckets_in_message * IBF_BUCKET_SIZE,
-                               GNUNET_MESSAGE_TYPE_SET_P2P_IBF);
+                               GNUNET_MESSAGE_TYPE_SET_UNION_P2P_IBF);
     msg->reserved = 0;
     msg->order = ibf_order;
     msg->offset = htons (buckets_sent);
@@ -638,7 +638,7 @@ send_strata_estimator (struct Operation *op)
 
   ev = GNUNET_MQ_msg_header_extra (strata_msg,
                                    SE_STRATA_COUNT * IBF_BUCKET_SIZE * SE_IBF_SIZE,
-                                   GNUNET_MESSAGE_TYPE_SET_P2P_SE);
+                                   GNUNET_MESSAGE_TYPE_SET_UNION_P2P_SE);
   strata_estimator_write (op->state->se, &strata_msg[1]);
   GNUNET_MQ_send (op->mq, ev);
   op->state->phase = PHASE_EXPECT_IBF;
@@ -1299,10 +1299,10 @@ union_handle_p2p_message (struct Operation *op,
               ntohs (mh->type), ntohs (mh->size));
   switch (ntohs (mh->type))
   {
-    case GNUNET_MESSAGE_TYPE_SET_P2P_IBF:
+    case GNUNET_MESSAGE_TYPE_SET_UNION_P2P_IBF:
       handle_p2p_ibf (op, mh);
       break;
-    case GNUNET_MESSAGE_TYPE_SET_P2P_SE:
+    case GNUNET_MESSAGE_TYPE_SET_UNION_P2P_SE:
       handle_p2p_strata_estimator (op, mh);
       break;
     case GNUNET_MESSAGE_TYPE_SET_P2P_ELEMENTS:
