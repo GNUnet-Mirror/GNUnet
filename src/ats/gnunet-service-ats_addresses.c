@@ -1742,6 +1742,7 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   GNUNET_assert(NULL != ah->addresses);
 
   /* Figure out configured solution method */
+  plugin_short = NULL;
   if (GNUNET_SYSERR
       == GNUNET_CONFIGURATION_get_value_string (cfg, "ats", "MODE", &mode_str))
   {

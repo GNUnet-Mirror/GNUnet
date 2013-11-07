@@ -346,6 +346,28 @@ struct Network
 };
 
 /**
+ * Address information stored in the solver
+ */
+struct AddressSolverInformation
+{
+  struct Network *network;
+
+  /**
+   * Inbound quota
+   *
+   */
+  unsigned long long calculated_quota_in_NBO;
+
+  /**
+   * Outbound quota
+   *
+   */
+  unsigned long long calculated_quota_out_NBO;
+
+
+};
+
+/**
  * Wrapper for addresses to store them in network's linked list
  */
 struct AddressWrapper
@@ -533,9 +555,11 @@ static void
 distribute_bandwidth (struct GAS_PROPORTIONAL_Handle *s,
     struct Network *net, struct ATS_Address *address_except)
 {
+  struct AddressSolverInformation *asi;
+  struct AddressWrapper *cur;
+
   unsigned long long remaining_quota_in = 0;
   unsigned long long quota_out_used = 0;
-
   unsigned long long remaining_quota_out = 0;
   unsigned long long quota_in_used = 0;
   uint32_t min_bw = ntohl (GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT.value__);
@@ -544,10 +568,9 @@ distribute_bandwidth (struct GAS_PROPORTIONAL_Handle *s,
   double cur_pref; /* Important: has to be double not float due to precision */
   const double *t = NULL; /* Important: has to be double not float due to precision */
   int c;
-
   unsigned long long assigned_quota_in = 0;
   unsigned long long assigned_quota_out = 0;
-  struct AddressWrapper *cur;
+
 
   LOG(GNUNET_ERROR_TYPE_DEBUG,
       "Recalculate quota for network type `%s' for %u addresses (in/out): %llu/%llu \n",
@@ -637,16 +660,9 @@ distribute_bandwidth (struct GAS_PROPORTIONAL_Handle *s,
       assigned_quota_out = UINT32_MAX;
 
     /* Compare to current bandwidth assigned */
-    if ((assigned_quota_in != ntohl (cur->addr->assigned_bw_in.value__))
-        || (assigned_quota_out != ntohl (cur->addr->assigned_bw_out.value__)))
-    {
-      cur->addr->assigned_bw_in.value__ = htonl (assigned_quota_in);
-      cur->addr->assigned_bw_out.value__ = htonl (assigned_quota_out);
-      /* Notify on change */
-      if ((GNUNET_YES == cur->addr->active) && (cur->addr != address_except))
-        s->bw_changed (s->bw_changed_cls, cur->addr);
-    }
-
+    asi = cur->addr->solver_information;
+    asi->calculated_quota_in_NBO = htonl (assigned_quota_in);
+    asi->calculated_quota_out_NBO = htonl (assigned_quota_out);
   }
   LOG(GNUNET_ERROR_TYPE_DEBUG,
       "Total bandwidth assigned is (in/out): %llu /%llu\n", quota_in_used,
@@ -700,11 +716,12 @@ find_best_address_it (void *cls,
   struct FindBestAddressCtx *fba_ctx = (struct FindBestAddressCtx *) cls;
   struct ATS_Address *current = (struct ATS_Address *) value;
   struct GNUNET_TIME_Absolute now;
-  struct Network *net = (struct Network *) current->solver_information;
+  struct AddressSolverInformation *asi;
   const double *norm_prop_cur;
   const double *norm_prop_prev;
   int index;
 
+  asi = current->solver_information;
   now = GNUNET_TIME_absolute_get ();
 
   if (current->blocked_until.abs_value_us
@@ -716,7 +733,7 @@ find_best_address_it (void *cls,
         GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_difference (now, current->blocked_until), GNUNET_YES));
     return GNUNET_OK;
   }
-  if (GNUNET_NO == is_bandwidth_available_in_network (net))
+  if (GNUNET_NO == is_bandwidth_available_in_network (asi->network))
     return GNUNET_OK; /* There's no bandwidth available in this network */
   if (NULL != fba_ctx->best)
   {
@@ -795,6 +812,26 @@ find_best_address_it (void *cls,
  *  Helper functions
  *  ---------------------------
  */
+static void
+propagate_bandwidth (struct GAS_PROPORTIONAL_Handle *s,
+    struct Network *net, struct ATS_Address *address_except)
+{
+  struct AddressWrapper *cur;
+  struct AddressSolverInformation *asi;
+  for (cur = net->head; NULL != cur; cur = cur->next)
+  {
+      asi = cur->addr->solver_information;
+      if ( (cur->addr->assigned_bw_in.value__ != asi->calculated_quota_in_NBO) ||
+           (cur->addr->assigned_bw_out.value__ != asi->calculated_quota_out_NBO) )
+      {
+        cur->addr->assigned_bw_in.value__ = asi->calculated_quota_in_NBO;
+        cur->addr->assigned_bw_out.value__ = asi->calculated_quota_in_NBO;
+        /* Notify on change */
+        if ((GNUNET_YES == cur->addr->active) && (cur->addr != address_except))
+          s->bw_changed (s->bw_changed_cls, cur->addr);
+      }
+  }
+}
 
 /**
  * Distribibute bandwidth
@@ -803,10 +840,9 @@ find_best_address_it (void *cls,
  * @param n the network, can be NULL for all network
  * @param address_except do not notify for this address
  */
-
-static void distribute_bandwidth_in_network (struct GAS_PROPORTIONAL_Handle *s,
-    struct Network *n,
-    struct ATS_Address *address_except)
+static void
+distribute_bandwidth_in_network (struct GAS_PROPORTIONAL_Handle *s,
+    struct Network *n, struct ATS_Address *address_except)
 {
   if (GNUNET_YES == s->bulk_lock)
   {
@@ -817,22 +853,42 @@ static void distribute_bandwidth_in_network (struct GAS_PROPORTIONAL_Handle *s,
   if (NULL != n)
   {
     if (NULL != s->env->info_cb)
-      s->env->info_cb (s->env->info_cb_cls, GAS_OP_SOLVE_START, GAS_STAT_SUCCESS, GAS_INFO_PROP_SINGLE);
-    distribute_bandwidth (s, n, address_except);
+      s->env->info_cb(s->env->info_cb_cls, GAS_OP_SOLVE_START,
+          GAS_STAT_SUCCESS, GAS_INFO_PROP_SINGLE);
+    distribute_bandwidth(s, n, address_except);
     if (NULL != s->env->info_cb)
-      s->env->info_cb (s->env->info_cb_cls, GAS_OP_SOLVE_STOP, GAS_STAT_SUCCESS, GAS_INFO_PROP_SINGLE);
+      s->env->info_cb(s->env->info_cb_cls, GAS_OP_SOLVE_STOP,
+          GAS_STAT_SUCCESS, GAS_INFO_PROP_SINGLE);
+    if (NULL != s->env->info_cb)
+      s->env->info_cb(s->env->info_cb_cls, GAS_OP_SOLVE_UPDATE_NOTIFICATION_START,
+          GAS_STAT_SUCCESS, GAS_INFO_PROP_SINGLE);
+    propagate_bandwidth(s, n, address_except);
+    if (NULL != s->env->info_cb)
+      s->env->info_cb(s->env->info_cb_cls, GAS_OP_SOLVE_UPDATE_NOTIFICATION_STOP,
+          GAS_STAT_SUCCESS, GAS_INFO_PROP_SINGLE);
   }
   else
   {
     int i;
     if (NULL != s->env->info_cb)
-      s->env->info_cb (s->env->info_cb_cls, GAS_OP_SOLVE_START, GAS_STAT_SUCCESS, GAS_INFO_PROP_ALL);
+      s->env->info_cb(s->env->info_cb_cls, GAS_OP_SOLVE_START,
+          GAS_STAT_SUCCESS, GAS_INFO_PROP_ALL);
     for (i = 0; i < s->network_count; i++)
-      distribute_bandwidth (s, &s->network_entries[i], NULL );
+      distribute_bandwidth(s, &s->network_entries[i], NULL);
     if (NULL != s->env->info_cb)
-      s->env->info_cb (s->env->info_cb_cls, GAS_OP_SOLVE_STOP, GAS_STAT_SUCCESS, GAS_INFO_PROP_ALL);
+      s->env->info_cb(s->env->info_cb_cls, GAS_OP_SOLVE_STOP,
+          GAS_STAT_SUCCESS, GAS_INFO_PROP_ALL);
+    for (i = 0; i < s->network_count; i++)
+    {
+      if (NULL != s->env->info_cb)
+        s->env->info_cb(s->env->info_cb_cls, GAS_OP_SOLVE_UPDATE_NOTIFICATION_START,
+            GAS_STAT_SUCCESS, GAS_INFO_PROP_ALL);
+      propagate_bandwidth(s, &s->network_entries[i], address_except);
+      if (NULL != s->env->info_cb)
+        s->env->info_cb(s->env->info_cb_cls, GAS_OP_SOLVE_UPDATE_NOTIFICATION_STOP,
+            GAS_STAT_SUCCESS, GAS_INFO_PROP_ALL);
+    }
   }
-
 }
 
 /**
@@ -1053,6 +1109,8 @@ GAS_proportional_get_preferred_address (void *solver,
   struct Network *net_cur;
   struct ATS_Address *prev;
   struct FindBestAddressCtx fba_ctx;
+  struct AddressSolverInformation *asi;
+  struct AddressSolverInformation *asi_prev;
 
   GNUNET_assert(s != NULL);
   GNUNET_assert(peer != NULL);
@@ -1083,7 +1141,8 @@ GAS_proportional_get_preferred_address (void *solver,
   LOG(GNUNET_ERROR_TYPE_INFO, "Suggesting %s address %p for peer `%s'\n",
       (GNUNET_NO == fba_ctx.best->active) ? "inactive" : "active", fba_ctx.best,
       GNUNET_i2s (peer));
-  net_cur = (struct Network *) fba_ctx.best->solver_information;
+  asi = fba_ctx.best->solver_information;
+  net_cur = asi->network ;
   if (NULL == fba_ctx.best)
   {
     LOG(GNUNET_ERROR_TYPE_ERROR,
@@ -1106,7 +1165,8 @@ GAS_proportional_get_preferred_address (void *solver,
   prev = get_active_address (s, s->addresses, peer);
   if (NULL != prev)
   {
-    net_prev = (struct Network *) prev->solver_information;
+    asi_prev = prev->solver_information;
+    net_prev = (struct Network *) asi_prev->network;
     prev->active = GNUNET_NO; /* No active any longer */
     prev->assigned_bw_in = BANDWIDTH_ZERO; /* no bandwidth assigned */
     prev->assigned_bw_out = BANDWIDTH_ZERO; /* no bandwidth assigned */
@@ -1115,7 +1175,7 @@ GAS_proportional_get_preferred_address (void *solver,
     distribute_bandwidth_in_network (s, net_prev, NULL);
   }
 
-  if (GNUNET_NO == (is_bandwidth_available_in_network (fba_ctx.best->solver_information)))
+  if (GNUNET_NO == (is_bandwidth_available_in_network (net_cur)))
   {
     GNUNET_break(0); /* This should never happen*/
     return NULL ;
@@ -1139,6 +1199,7 @@ GAS_proportional_stop_get_preferred_address (void *solver,
 {
   struct GAS_PROPORTIONAL_Handle *s = solver;
   struct ATS_Address *cur;
+  struct AddressSolverInformation *asi;
   struct Network *cur_net;
 
   if (GNUNET_YES
@@ -1152,7 +1213,8 @@ GAS_proportional_stop_get_preferred_address (void *solver,
   if (NULL != cur)
   {
     /* Disabling current address */
-    cur_net = (struct Network *) cur->solver_information;
+    asi = cur->solver_information;
+    cur_net = asi->network ;
     cur->active = GNUNET_NO; /* No active any longer */
     cur->assigned_bw_in = BANDWIDTH_ZERO; /* no bandwidth assigned */
     cur->assigned_bw_out = BANDWIDTH_ZERO; /* no bandwidth assigned */
@@ -1177,6 +1239,7 @@ GAS_proportional_address_delete (void *solver, struct ATS_Address *address,
   struct GAS_PROPORTIONAL_Handle *s = solver;
   struct Network *net;
   struct AddressWrapper *aw;
+  struct AddressSolverInformation *asi;
   const struct ATS_Address *new_address;
 
 
@@ -1187,8 +1250,8 @@ GAS_proportional_address_delete (void *solver, struct ATS_Address *address,
    *   - decrease number of active addreses
    *   - update quotas
    */
-
-  net = (struct Network *) address->solver_information;
+  asi = address->solver_information;
+  net = asi->network;
 
   if (GNUNET_NO == session_only)
   {
@@ -1318,12 +1381,14 @@ GAS_proportional_address_property_changed (void *solver,
 {
   struct GAS_PROPORTIONAL_Handle *s;
   struct Network *n;
+  struct AddressSolverInformation *asi;
 
   GNUNET_assert(NULL != solver);
   GNUNET_assert(NULL != address);
 
   s = (struct GAS_PROPORTIONAL_Handle *) solver;
-  n = (struct Network *) address->solver_information;
+  asi = address->solver_information;
+  n = asi->network;
 
   if (NULL == n)
   {
@@ -1404,7 +1469,9 @@ GAS_proportional_address_change_network (void *solver,
     struct ATS_Address *address, uint32_t current_network, uint32_t new_network)
 {
   struct GAS_PROPORTIONAL_Handle *s = (struct GAS_PROPORTIONAL_Handle *) solver;
+  struct AddressSolverInformation *asi;
   int save_active = GNUNET_NO;
+
   struct Network *new_net = NULL;
 
   if (current_network == new_network)
@@ -1448,7 +1515,8 @@ GAS_proportional_address_change_network (void *solver,
   }
 
   /* Add to new network and update*/
-  address->solver_information = new_net;
+  asi = address->solver_information;
+  asi->network = new_net;
   GAS_proportional_address_add (solver, address, new_network);
   if (GNUNET_YES == save_active)
   {
@@ -1488,6 +1556,7 @@ GAS_proportional_address_add (void *solver, struct ATS_Address *address,
   struct GAS_PROPORTIONAL_Handle *s = solver;
   struct Network *net = NULL;
   struct AddressWrapper *aw = NULL;
+  struct AddressSolverInformation *asi;
 
   GNUNET_assert(NULL != s);
   net = get_network (s, network);
@@ -1501,7 +1570,12 @@ GAS_proportional_address_add (void *solver, struct ATS_Address *address,
   aw->addr = address;
   GNUNET_CONTAINER_DLL_insert(net->head, net->tail, aw);
   addresse_increment (s, net, GNUNET_YES, GNUNET_NO);
-  aw->addr->solver_information = net;
+
+  asi = GNUNET_malloc (sizeof (struct AddressSolverInformation));
+  asi->network = net;
+  asi->calculated_quota_in_NBO = 0;
+  asi->calculated_quota_out_NBO = 0;
+  aw->addr->solver_information = asi;
 
   if (GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains (s->requests, &address->peer))
   {
