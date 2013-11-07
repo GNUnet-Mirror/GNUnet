@@ -929,6 +929,11 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK              286
 
 /**
+ * Local NACK for rejected channels.
+ */
+#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_NACK             287
+
+/**
  * Local information about all tunnels of service. DEPRECATED
  */
 #define GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNELS     287
