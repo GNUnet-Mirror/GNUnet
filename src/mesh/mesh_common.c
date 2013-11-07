@@ -151,6 +151,11 @@ GNUNET_MESH_DEBUG_M2S (uint16_t m)
     case 275: return "GNUNET_MESSAGE_TYPE_MESH_CHANNEL_ACK";
 
       /**
+       * Confirm the creation of a channel.
+       */
+    case 276: return "GNUNET_MESSAGE_TYPE_MESH_CHANNEL_NACK";
+
+      /**
        * Encrypted payload.
        */
     case 280: return "GNUNET_MESSAGE_TYPE_MESH_ENCRYPTED";
