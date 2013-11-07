@@ -756,7 +756,10 @@ rekey (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  *
  * @param t Tunnel on which the data came.
  * @param msg Data message.
- * @param fwd Is this FWD data? (root -> dest)
+ * @param fwd Is this message fwd? This only is meaningful in loopback channels.
+ *            #GNUNET_YES if message is FWD on the respective channel (loopback)
+ *            #GNUNET_NO if message is BCK on the respective channel (loopback)
+ *            #GNUNET_SYSERR if message on a one-ended channel (remote)
  */
 void
 handle_data (struct MeshTunnel3 *t,
@@ -797,6 +800,17 @@ handle_data (struct MeshTunnel3 *t,
   GMCH_handle_data (ch, msg, fwd);
 }
 
+
+/**
+ * Demultiplex data ACKs per channel and update appropriate channel buffer info.
+ *
+ * @param t Tunnel on which the DATA ACK came.
+ * @param msg DATA ACK message.
+ * @param fwd Is this message fwd? This only is meaningful in loopback channels.
+ *            #GNUNET_YES if message is FWD on the respective channel (loopback)
+ *            #GNUNET_NO if message is BCK on the respective channel (loopback)
+ *            #GNUNET_SYSERR if message on a one-ended channel (remote)
+ */
 void
 handle_data_ack (struct MeshTunnel3 *t,
                  const struct GNUNET_MESH_DataACK *msg,
@@ -827,10 +841,16 @@ handle_data_ack (struct MeshTunnel3 *t,
   GMCH_handle_data_ack (ch, msg, fwd);
 }
 
+
+/**
+ * Handle channel create.
+ *
+ * @param t Tunnel on which the data came.
+ * @param msg Data message.
+ */
 void
 handle_ch_create (struct MeshTunnel3 *t,
-                  const struct GNUNET_MESH_ChannelCreate *msg,
-                  int fwd)
+                  const struct GNUNET_MESH_ChannelCreate *msg)
 {
   struct MeshChannel *ch;
   size_t size;
@@ -852,11 +872,22 @@ handle_ch_create (struct MeshTunnel3 *t,
   }
   else
   {
-    ch = GMCH_handle_create (t, msg, fwd);
+    ch = GMCH_handle_create (t, msg);
   }
   GMT_add_channel (t, ch);
 }
 
+
+/**
+ * Handle a CHANNEL ACK (SYNACK/ACK).
+ *
+ * @param t Tunnel on which the CHANNEL ACK came.
+ * @param msg CHANNEL ACK message.
+ * @param fwd Is this message fwd? This only is meaningful in loopback channels.
+ *            #GNUNET_YES if message is FWD on the respective channel (loopback)
+ *            #GNUNET_NO if message is BCK on the respective channel (loopback)
+ *            #GNUNET_SYSERR if message on a one-ended channel (remote)
+ */
 void
 handle_ch_ack (struct MeshTunnel3 *t,
                const struct GNUNET_MESH_ChannelManage *msg,
@@ -887,6 +918,18 @@ handle_ch_ack (struct MeshTunnel3 *t,
   GMCH_handle_ack (ch, msg, fwd);
 }
 
+
+
+/**
+ * Handle a channel destruction message.
+ *
+ * @param t Tunnel on which the message came.
+ * @param msg Channel destroy message.
+ * @param fwd Is this message fwd? This only is meaningful in loopback channels.
+ *            #GNUNET_YES if message is FWD on the respective channel (loopback)
+ *            #GNUNET_NO if message is BCK on the respective channel (loopback)
+ *            #GNUNET_SYSERR if message on a one-ended channel (remote)
+ */
 void
 handle_ch_destroy (struct MeshTunnel3 *t,
                    const struct GNUNET_MESH_ChannelManage *msg,
@@ -1017,7 +1060,10 @@ handle_pong (struct MeshTunnel3 *t,
  *
  * @param t Tunnel this message came on.
  * @param msgh Message header.
- * @param fwd Is this message fwd?
+ * @param fwd Is this message fwd? This only is meaningful in loopback channels.
+ *            #GNUNET_YES if message is FWD on the respective channel (loopback)
+ *            #GNUNET_NO if message is BCK on the respective channel (loopback)
+ *            #GNUNET_SYSERR if message on a one-ended channel (remote)
  */
 static void
 handle_decrypted (struct MeshTunnel3 *t,
@@ -1044,8 +1090,7 @@ handle_decrypted (struct MeshTunnel3 *t,
 
     case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_CREATE:
       handle_ch_create (t,
-                        (struct GNUNET_MESH_ChannelCreate *) msgh,
-                        fwd);
+                        (struct GNUNET_MESH_ChannelCreate *) msgh);
       break;
 
     case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_ACK:
@@ -1078,12 +1123,10 @@ handle_decrypted (struct MeshTunnel3 *t,
  *
  * @param t Tunnel this message came on.
  * @param msg Encrypted message.
- * @param fwd Is this message fwd?
  */
 void
 GMT_handle_encrypted (struct MeshTunnel3 *t,
-                      const struct GNUNET_MESH_Encrypted *msg,
-                      int fwd)
+                      const struct GNUNET_MESH_Encrypted *msg)
 {
   size_t size = ntohs (msg->header.size);
   size_t payload_size = size - sizeof (struct GNUNET_MESH_Encrypted);
@@ -1097,7 +1140,7 @@ GMT_handle_encrypted (struct MeshTunnel3 *t,
   while (off < decrypted_size)
   {
     msgh = (struct GNUNET_MessageHeader *) &cbuf[off];
-    handle_decrypted (t, msgh, fwd);
+    handle_decrypted (t, msgh, GNUNET_SYSERR);
     off += ntohs (msgh->size);
   }
 }

@@ -220,12 +220,10 @@ GMT_get_channel (struct MeshTunnel3 *t, MESH_ChannelNumber chid);
  *
  * @param t Tunnel this message came on.
  * @param msg Message header.
- * @param fwd Is this message fwd?
  */
 void
 GMT_handle_encrypted (struct MeshTunnel3 *t,
-                      const struct GNUNET_MESH_Encrypted *msg,
-                      int fwd);
+                      const struct GNUNET_MESH_Encrypted *msg);
 
 /**
  * Demultiplex an encapsulated KX message by message type.

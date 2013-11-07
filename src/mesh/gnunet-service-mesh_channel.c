@@ -923,8 +923,7 @@ handle_loopback (struct MeshChannel *ch,
 
     case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_CREATE:
       GMCH_handle_create (ch->t,
-                          (struct GNUNET_MESH_ChannelCreate *) msgh,
-                          fwd);
+                          (struct GNUNET_MESH_ChannelCreate *) msgh);
       break;
 
     case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_ACK:
@@ -1444,12 +1443,16 @@ GMCH_handle_local_create (struct MeshClient *c,
   return GNUNET_OK;
 }
 
+
 /**
  * Handler for mesh network payload traffic.
  *
  * @param ch Channel for the message.
  * @param msg Unencryted data message.
- * @param fwd Is this FWD traffic? #GNUNET_YES : #GNUNET_NO;
+ * @param fwd Is this message fwd? This only is meaningful in loopback channels.
+ *            #GNUNET_YES if message is FWD on the respective channel (loopback)
+ *            #GNUNET_NO if message is BCK on the respective channel (loopback)
+ *            #GNUNET_SYSERR if message on a one-ended channel (remote)
  */
 void
 GMCH_handle_data (struct MeshChannel *ch,
@@ -1459,6 +1462,18 @@ GMCH_handle_data (struct MeshChannel *ch,
   struct MeshChannelReliability *rel;
   struct MeshClient *c;
   uint32_t mid;
+
+  /* If this is a remote (non-loopback) channel, find 'fwd'. */
+  if (GNUNET_SYSERR == fwd)
+  {
+    if (NULL != ch->dest && NULL != ch->root)
+    {
+      /* It is a loopback channel after all... */
+      GNUNET_break (0);
+      return;
+    }
+    fwd = (NULL != ch->dest) ? GNUNET_YES : GNUNET_NO;
+  }
 
   /*  Initialize FWD/BCK data */
   c   = fwd ? ch->dest     : ch->root;
@@ -1520,7 +1535,10 @@ GMCH_handle_data (struct MeshChannel *ch,
  *
  * @param ch Channel on which we got this message.
  * @param msg Data message.
- * @param fwd Is this a fwd ACK? (dest->orig)
+ * @param fwd Is this message fwd? This only is meaningful in loopback channels.
+ *            #GNUNET_YES if message is FWD on the respective channel (loopback)
+ *            #GNUNET_NO if message is BCK on the respective channel (loopback)
+ *            #GNUNET_SYSERR if message on a one-ended channel (remote)
  */
 void
 GMCH_handle_data_ack (struct MeshChannel *ch,
@@ -1533,9 +1551,21 @@ GMCH_handle_data_ack (struct MeshChannel *ch,
   uint32_t ack;
   int work;
 
+  /* If this is a remote (non-loopback) channel, find 'fwd'. */
+  if (GNUNET_SYSERR == fwd)
+  {
+    if (NULL != ch->dest && NULL != ch->root)
+    {
+      /* It is a loopback channel after all... */
+      GNUNET_break (0);
+      return;
+    }
+    fwd = (NULL != ch->dest) ? GNUNET_YES : GNUNET_NO;
+  }
+
   ack = ntohl (msg->mid);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! %s ACK %u\n",
-              (GNUNET_YES == fwd) ? "FWD" : "BCK", ack);
+       (GNUNET_YES == fwd) ? "FWD" : "BCK", ack);
 
   if (GNUNET_YES == fwd)
   {
@@ -1602,14 +1632,14 @@ GMCH_handle_data_ack (struct MeshChannel *ch,
 /**
  * Handler for channel create messages.
  *
+ * Does not have fwd parameter because it's always 'FWD': channel is incoming.
+ *
  * @param t Tunnel this channel will be in.
- * @param msg Message.
- * @param fwd Is this FWD traffic? #GNUNET_YES : #GNUNET_NO;
+ * @param msg Channel crate message.
  */
 struct MeshChannel *
 GMCH_handle_create (struct MeshTunnel3 *t,
-                    const struct GNUNET_MESH_ChannelCreate *msg,
-                    int fwd)
+                    const struct GNUNET_MESH_ChannelCreate *msg)
 {
   MESH_ChannelNumber chid;
   struct MeshChannel *ch;
@@ -1650,7 +1680,7 @@ GMCH_handle_create (struct MeshTunnel3 *t,
     LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! Not Reliable\n");
 
   GMCH_send_create (ch);
-  channel_send_ack (ch, fwd);
+  channel_send_ack (ch, GNUNET_YES);
 
   return ch;
 }
@@ -1661,13 +1691,28 @@ GMCH_handle_create (struct MeshTunnel3 *t,
  *
  * @param ch Channel.
  * @param msg Message.
- * @param fwd Is this FWD traffic? #GNUNET_YES : #GNUNET_NO;
+ * @param fwd Is this message fwd? This only is meaningful in loopback channels.
+ *            #GNUNET_YES if message is FWD on the respective channel (loopback)
+ *            #GNUNET_NO if message is BCK on the respective channel (loopback)
+ *            #GNUNET_SYSERR if message on a one-ended channel (remote)
  */
 void
 GMCH_handle_ack (struct MeshChannel *ch,
                  const struct GNUNET_MESH_ChannelManage *msg,
                  int fwd)
 {
+  /* If this is a remote (non-loopback) channel, find 'fwd'. */
+  if (GNUNET_SYSERR == fwd)
+  {
+    if (NULL != ch->dest && NULL != ch->root)
+    {
+      /* It is a loopback channel after all... */
+      GNUNET_break (0);
+      return;
+    }
+    fwd = (NULL != ch->dest) ? GNUNET_YES : GNUNET_NO;
+  }
+
   channel_confirm (ch, !fwd);
 }
 
@@ -1677,7 +1722,10 @@ GMCH_handle_ack (struct MeshChannel *ch,
  *
  * @param ch Channel to be destroyed of.
  * @param msg Message.
- * @param fwd Is this FWD traffic? #GNUNET_YES : #GNUNET_NO;
+ * @param fwd Is this message fwd? This only is meaningful in loopback channels.
+ *            #GNUNET_YES if message is FWD on the respective channel (loopback)
+ *            #GNUNET_NO if message is BCK on the respective channel (loopback)
+ *            #GNUNET_SYSERR if message on a one-ended channel (remote)
  */
 void
 GMCH_handle_destroy (struct MeshChannel *ch,
@@ -1685,6 +1733,18 @@ GMCH_handle_destroy (struct MeshChannel *ch,
                      int fwd)
 {
   struct MeshTunnel3 *t;
+
+  /* If this is a remote (non-loopback) channel, find 'fwd'. */
+  if (GNUNET_SYSERR == fwd)
+  {
+    if (NULL != ch->dest && NULL != ch->root)
+    {
+      /* It is a loopback channel after all... */
+      GNUNET_break (0);
+      return;
+    }
+    fwd = (NULL != ch->dest) ? GNUNET_YES : GNUNET_NO;
+  }
 
   GMCH_debug (ch);
   if ( (fwd && NULL == ch->dest) || (!fwd && NULL == ch->root) )

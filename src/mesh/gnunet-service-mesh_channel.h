@@ -240,7 +240,10 @@ GMCH_handle_local_create (struct MeshClient *c,
  *
  * @param ch Channel for the message.
  * @param msg Unencryted data message.
- * @param fwd Is this FWD traffic? #GNUNET_YES : #GNUNET_NO;
+ * @param fwd Is this message fwd? This only is meaningful in loopback channels.
+ *            #GNUNET_YES if message is FWD on the respective channel (loopback)
+ *            #GNUNET_NO if message is BCK on the respective channel (loopback)
+ *            #GNUNET_SYSERR if message on a one-ended channel (remote)
  */
 void
 GMCH_handle_data (struct MeshChannel *ch,
@@ -252,7 +255,10 @@ GMCH_handle_data (struct MeshChannel *ch,
  *
  * @param ch Channel on which we got this message.
  * @param msg Data message.
- * @param fwd Is this a fwd ACK? (dest->orig)
+ * @param fwd Is this message fwd? This only is meaningful in loopback channels.
+ *            #GNUNET_YES if message is FWD on the respective channel (loopback)
+ *            #GNUNET_NO if message is BCK on the respective channel (loopback)
+ *            #GNUNET_SYSERR if message on a one-ended channel (remote)
  */
 void
 GMCH_handle_data_ack (struct MeshChannel *ch,
@@ -262,21 +268,24 @@ GMCH_handle_data_ack (struct MeshChannel *ch,
 /**
  * Handler for channel create messages.
  *
+ * Does not have fwd parameter because it's always 'FWD': channel is incoming.
+ *
  * @param t Tunnel this channel will be in.
- * @param msg Message.
- * @param fwd Is this FWD traffic? #GNUNET_YES : #GNUNET_NO;
+ * @param msg Channel crate message.
  */
 struct MeshChannel *
 GMCH_handle_create (struct MeshTunnel3 *t,
-                    const struct GNUNET_MESH_ChannelCreate *msg,
-                    int fwd);
+                    const struct GNUNET_MESH_ChannelCreate *msg);
 
 /**
  * Handler for channel ack messages.
  *
  * @param ch Channel this channel is to be created in.
  * @param msg Message.
- * @param fwd Is this FWD traffic? #GNUNET_YES : #GNUNET_NO;
+ * @param fwd Is this message fwd? This only is meaningful in loopback channels.
+ *            #GNUNET_YES if message is FWD on the respective channel (loopback)
+ *            #GNUNET_NO if message is BCK on the respective channel (loopback)
+ *            #GNUNET_SYSERR if message on a one-ended channel (remote)
  */
 void
 GMCH_handle_ack (struct MeshChannel *ch,
@@ -288,7 +297,10 @@ GMCH_handle_ack (struct MeshChannel *ch,
  *
  * @param ch Channel this channel is to be destroyed of.
  * @param msg Message.
- * @param fwd Is this FWD traffic? #GNUNET_YES : #GNUNET_NO;
+ * @param fwd Is this message fwd? This only is meaningful in loopback channels.
+ *            #GNUNET_YES if message is FWD on the respective channel (loopback)
+ *            #GNUNET_NO if message is BCK on the respective channel (loopback)
+ *            #GNUNET_SYSERR if message on a one-ended channel (remote)
  */
 void
 GMCH_handle_destroy (struct MeshChannel *ch,

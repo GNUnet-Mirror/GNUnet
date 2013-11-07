@@ -1440,7 +1440,7 @@ handle_mesh_encrypted (const struct GNUNET_PeerIdentity *peer,
       return GNUNET_OK;
     }
     fc->last_pid_recv = pid;
-    GMT_handle_encrypted (c->t, msg, fwd);
+    GMT_handle_encrypted (c->t, msg);
     GMC_send_ack (c, fwd);
     return GNUNET_OK;
   }
