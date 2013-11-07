@@ -941,6 +941,7 @@ handle_pong (struct MeshTunnel3 *t,
   t->rekey_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_free (t->kx_ctx);
   t->kx_ctx = NULL;
+  t->state = MESH_TUNNEL3_READY;
   send_queued_data (t, GNUNET_YES);
   send_queued_data (t, GNUNET_NO);
 }
@@ -1175,7 +1176,10 @@ GMT_change_state (struct MeshTunnel3* t, enum MeshTunnel3State state)
   {
     rekey_tunnel (t, NULL);
   }
-  t->state = state;
+  else
+  {
+    t->state = state;
+  }
   if (MESH_TUNNEL3_READY == state && 3 <= GMT_count_connections (t))
   {
     GMP_stop_search (t->peer);
