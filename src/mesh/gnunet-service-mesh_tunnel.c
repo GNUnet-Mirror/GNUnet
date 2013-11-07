@@ -544,7 +544,7 @@ send_kx (struct MeshTunnel3 *t,
   LOG (GNUNET_ERROR_TYPE_DEBUG, "GMT KX on Tunnel %s\n", GMT_2s (t));
 
   /* Avoid loopback. */
-  if (myid == GMP_get_short_id (t->peer))
+  if (GMT_is_loopback (t))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  loopback!\n");
     GNUNET_break (0);
@@ -865,7 +865,7 @@ handle_ch_create (struct MeshTunnel3 *t,
 
   /* Check channel */
   ch = GMT_get_channel (t, ntohl (msg->chid));
-  if (NULL != ch)
+  if (NULL != ch && ! GMT_is_loopback (t))
   {
     /* Probably a retransmission, safe to ignore */
     LOG (GNUNET_ERROR_TYPE_DEBUG, "   already exists...\n");
@@ -1845,7 +1845,7 @@ GMT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "GMT Send on Tunnel %s\n", GMT_2s (t));
 
-  if (myid == GMP_get_short_id (t->peer))
+  if (GMT_is_loopback (t))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  loopback!\n");
     handle_decrypted (t, message, fwd);
@@ -1894,7 +1894,7 @@ GMT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
 int
 GMT_is_loopback (const struct MeshTunnel3 *t)
 {
-  return (myid == GMP_get_short_id(t->peer));
+  return (myid == GMP_get_short_id (t->peer));
 }
 
 
