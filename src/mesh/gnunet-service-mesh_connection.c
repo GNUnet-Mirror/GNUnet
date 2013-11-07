@@ -1214,7 +1214,8 @@ GMC_handle_confirm (void *cls, const struct GNUNET_PeerIdentity *peer,
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  Connection (SYN)ACK for us!\n");
     connection_change_state (c, MESH_CONNECTION_READY);
-    GMT_change_state (c->t, MESH_TUNNEL3_READY);
+    if (MESH_TUNNEL3_WAITING == GMT_get_state (c->t))
+      GMT_change_state (c->t, MESH_TUNNEL3_READY);
     send_connection_ack (c, GNUNET_YES);
     return GNUNET_OK;
   }
