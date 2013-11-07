@@ -1736,10 +1736,12 @@ GMCH_handle_create (struct MeshTunnel3 *t,
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  no client has port registered\n");
     if (is_loopback (ch))
     {
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "  loopback: destroy on handler\n");
       channel_send_nack (ch);
     }
     else
     {
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "  not loopback: destroy now\n");
       channel_send_nack (ch);
       channel_destroy (ch);
     }
