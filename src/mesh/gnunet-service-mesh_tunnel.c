@@ -1172,7 +1172,7 @@ GMT_change_state (struct MeshTunnel3* t, enum MeshTunnel3State state)
               "Tunnel %s state is now %s\n",
               GMP_2s (t->peer),
               GMT_state2s (state));
-  if (myid != GMP_get_short_id(t->peer) &&
+  if (myid != GMP_get_short_id (t->peer) &&
       MESH_TUNNEL3_WAITING == t->state && MESH_TUNNEL3_READY == state)
   {
     rekey_tunnel (t, NULL);
@@ -1732,6 +1732,13 @@ GMT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
     return;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "GMT Send on Tunnel %s\n", GMT_2s (t));
+
+  if (myid == GMP_get_short_id (t->peer))
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  loopback!\n");
+    handle_decrypted (t, message, fwd);
+    return;
+  }
 
   iv = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_NONCE, UINT64_MAX);
   msg = (struct GNUNET_MESH_Encrypted *) cbuf;
