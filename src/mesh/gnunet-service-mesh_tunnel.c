@@ -291,6 +291,82 @@ ping_encryption_size (void)
 
 
 /**
+ * Get the channel's buffer. ONLY FOR NON-LOOPBACK CHANNELS!!
+ *
+ * @param tch Tunnel's channel handle.
+ *
+ * @return Amount of messages the channel can still buffer towards the client.
+ */
+static unsigned int
+get_channel_buffer (const struct MeshTChannel *tch)
+{
+  int fwd;
+
+  /* If channel is outgoing, is origin in the FWD direction and fwd is YES */
+  fwd = GMCH_is_origin (tch->ch, GNUNET_YES);
+
+  return GMCH_get_buffer (tch->ch, fwd);
+}
+
+
+/**
+ * Get the channel's allowance status.
+ *
+ * @param tch Tunnel's channel handle.
+ *
+ * @return #GNUNET_YES if we allowed the client to send data to us.
+ */
+static int
+get_channel_allowed (const struct MeshTChannel *tch)
+{
+  int fwd;
+
+  /* If channel is outgoing, is origin in the FWD direction and fwd is YES */
+  fwd = GMCH_is_origin (tch->ch, GNUNET_YES);
+
+  return GMCH_get_allowed (tch->ch, fwd);
+}
+
+
+/**
+ * Get the connection's buffer.
+ *
+ * @param tc Tunnel's connection handle.
+ *
+ * @return Amount of messages the connection can still buffer.
+ */
+static unsigned int
+get_connection_buffer (const struct MeshTConnection *tc)
+{
+  int fwd;
+
+  /* If connection is outgoing, is origin in the FWD direction and fwd is YES */
+  fwd = GMC_is_origin (tc->c, GNUNET_YES);
+
+  return GMC_get_buffer (tc->c, fwd);
+}
+
+
+/**
+ * Get the connection's allowance.
+ *
+ * @param tc Tunnel's connection handle.
+ *
+ * @return Amount of messages we have allowed the next peer to send us.
+ */
+static unsigned int
+get_connection_allowed (const struct MeshTConnection *tc)
+{
+  int fwd;
+
+  /* If connection is outgoing, is origin in the FWD direction and fwd is YES */
+  fwd = GMC_is_origin (tc->c, GNUNET_YES);
+
+  return GMC_get_allowed (tc->c, fwd);
+}
+
+
+/**
  * Check that a ephemeral key message s well formed and correctly signed.
  *
  * @param t Tunnel on which the message came.
@@ -454,11 +530,10 @@ tunnel_get_connection (struct MeshTunnel3 *t)
 /**
  * Send all cached messages that we can, tunnel is online.
  *
- * @param t Tunnel that holds the messages.
- * @param fwd Is this fwd?
+ * @param t Tunnel that holds the messages. Cannot be loopback.
  */
 static void
-send_queued_data (struct MeshTunnel3 *t, int fwd)
+send_queued_data (struct MeshTunnel3 *t)
 {
   struct MeshTunnelQueue *tq;
   struct MeshTunnelQueue *next;
@@ -468,11 +543,13 @@ send_queued_data (struct MeshTunnel3 *t, int fwd)
               "GMT_send_queued_data on tunnel %s\n",
               GMT_2s (t));
 
-  if (NULL == t->channel_head ||
-      GNUNET_NO == GMCH_is_origin (t->channel_head->ch, fwd))
+  if (GMT_is_loopback (t))
+  {
+    GNUNET_break (0);
     return;
+  }
 
-  room = GMT_get_buffer (t, fwd);
+  room = GMT_get_connections_buffer (t);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  buffer space: %u\n", room);
   for (tq = t->tq_head; NULL != tq && room > 0; tq = next)
   {
@@ -481,7 +558,7 @@ send_queued_data (struct MeshTunnel3 *t, int fwd)
     room--;
     GNUNET_CONTAINER_DLL_remove (t->tq_head, t->tq_tail, tq);
     GMCH_send_prebuilt_message ((struct GNUNET_MessageHeader *) &tq[1],
-                                tq->ch, fwd);
+                                tq->ch, GMCH_is_origin (tq->ch, GNUNET_YES));
 
     GNUNET_free (tq);
   }
@@ -1049,8 +1126,7 @@ handle_pong (struct MeshTunnel3 *t,
   GNUNET_free (t->kx_ctx);
   t->kx_ctx = NULL;
   t->state = MESH_TUNNEL3_READY;
-  send_queued_data (t, GNUNET_YES);
-  send_queued_data (t, GNUNET_NO);
+  send_queued_data (t);
 }
 
 
@@ -1590,52 +1666,60 @@ enum MeshTunnel3State
 GMT_get_state (struct MeshTunnel3 *t)
 {
   if (NULL == t)
+  {
+    GNUNET_break (0);
     return (enum MeshTunnel3State) -1;
+  }
   return t->state;
 }
 
+
 /**
- * Get the total buffer space for a tunnel.
- *
- * If terminal, use the biggest channel buffer (or 64) if no channel exists.
- * If not terminal, use the sum of all connection buffers.
+ * Get the maximum buffer space for a tunnel towards a local client.
  *
  * @param t Tunnel.
- * @param fwd Is this for FWD traffic?
  *
- * @return Buffer space offered by all entities (c/ch) in the tunnel.
+ * @return Biggest buffer space offered by any channel in the tunnel.
  */
 unsigned int
-GMT_get_buffer (struct MeshTunnel3 *t, int fwd)
+GMT_get_channels_buffer (struct MeshTunnel3 *t)
+{
+  struct MeshTChannel *iter;
+  unsigned int buffer;
+  unsigned int ch_buf;
+
+  if (NULL == t->channel_head)
+  {
+    /* Probably getting buffer for a channel create/handshake. */
+    return 64;
+  }
+
+  buffer = 0;
+  for (iter = t->channel_head; NULL != iter; iter = iter->next)
+  {
+    ch_buf = get_channel_buffer (iter);
+    if (ch_buf > buffer)
+      buffer = ch_buf;
+  }
+  return buffer;
+}
+
+
+/**
+ * Get the total buffer space for a tunnel for P2P traffic.
+ *
+ * @param t Tunnel.
+ *
+ * @return Buffer space offered by all connections in the tunnel.
+ */
+unsigned int
+GMT_get_connections_buffer (struct MeshTunnel3 *t)
 {
   struct MeshTConnection *iter;
   unsigned int buffer;
 
   iter = t->connection_head;
   buffer = 0;
-
-  /* If terminal, return biggest channel buffer */
-  if (NULL == iter || GMC_is_terminal (iter->c, fwd))
-  {
-    struct MeshTChannel *iter_ch;
-    unsigned int ch_buf;
-
-    if (NULL == t->channel_head)
-    {
-      /* Probably getting buffer for a channel create/handshake. */
-      return 64;
-    }
-
-    for (iter_ch = t->channel_head; NULL != iter_ch; iter_ch = iter_ch->next)
-    {
-      ch_buf = GMCH_get_buffer (iter_ch->ch, fwd);
-      if (ch_buf > buffer)
-        buffer = ch_buf;
-    }
-    return buffer;
-  }
-
-  /* If not terminal, return sum of connection buffers */
   while (NULL != iter)
   {
     if (GMC_get_state (iter->c) != MESH_CONNECTION_READY)
@@ -1644,7 +1728,7 @@ GMT_get_buffer (struct MeshTunnel3 *t, int fwd)
       continue;
     }
 
-    buffer += GMC_get_buffer (iter->c, fwd);
+    buffer += get_connection_buffer (iter);
     iter = iter->next;
   }
 
@@ -1694,10 +1778,9 @@ GMT_get_next_chid (struct MeshTunnel3 *t)
  * Send ACK on one or more channels due to buffer in connections.
  *
  * @param t Channel which has some free buffer space.
- * @param fwd Is this for FWD traffic? (ACK goes to root)
  */
 void
-GMT_unchoke_channels (struct MeshTunnel3 *t, int fwd)
+GMT_unchoke_channels (struct MeshTunnel3 *t)
 {
   struct MeshTChannel *iter;
   unsigned int buffer;
@@ -1717,7 +1800,7 @@ GMT_unchoke_channels (struct MeshTunnel3 *t, int fwd)
   }
 
   /* Get buffer space */
-  buffer = GMT_get_buffer (t, fwd);
+  buffer = GMT_get_connections_buffer (t);
   if (0 == buffer)
   {
     return;
@@ -1727,7 +1810,7 @@ GMT_unchoke_channels (struct MeshTunnel3 *t, int fwd)
   choked_n = 0;
   for (iter = t->channel_head; NULL != iter; iter = iter->next)
   {
-    if (GNUNET_NO == GMCH_get_allowed (iter->ch, fwd))
+    if (GNUNET_NO == get_channel_allowed (iter))
     {
       choked[choked_n++] = iter->ch;
     }
@@ -1738,7 +1821,7 @@ GMT_unchoke_channels (struct MeshTunnel3 *t, int fwd)
   {
     unsigned int r = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
                                                choked_n);
-    GMCH_allow_client (choked[r], fwd);
+    GMCH_allow_client (choked[r], GMCH_is_origin (choked[r], GNUNET_YES));
     choked_n--;
     buffer--;
     choked[r] = choked[choked_n];
@@ -1752,10 +1835,9 @@ GMT_unchoke_channels (struct MeshTunnel3 *t, int fwd)
  * Iterates all connections of the tunnel and sends ACKs appropriately.
  *
  * @param t Tunnel.
- * @param fwd Is this in for FWD traffic? (ACK goes dest->root)
  */
 void
-GMT_send_acks (struct MeshTunnel3 *t, int fwd)
+GMT_send_connection_acks (struct MeshTunnel3 *t)
 {
   struct MeshTConnection *iter;
   uint32_t allowed;
@@ -1764,35 +1846,28 @@ GMT_send_acks (struct MeshTunnel3 *t, int fwd)
   unsigned int cs;
   unsigned int buffer;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Tunnel send %s ACKs on %s\n",
-       fwd ? "FWD" : "BCK", GMT_2s (t));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, 
+       "Tunnel send connection ACKs on %s\n",
+       GMT_2s (t));
 
   if (NULL == t)
   {
     GNUNET_break (0);
     return;
   }
-  if (NULL == t->channel_head ||
-      GNUNET_NO == GMCH_is_origin (t->channel_head->ch, !fwd))
-  {
-    GNUNET_break (0);
-    return;
-  }
 
-  buffer = GMT_get_buffer (t, fwd);
+  buffer = GMT_get_channels_buffer (t);
 
   /* Count connections, how many messages are already allowed */
   cs = GMT_count_connections (t);
   for (allowed = 0, iter = t->connection_head; NULL != iter; iter = iter->next)
   {
-    allowed += GMC_get_allowed (iter->c, fwd);
+    allowed += get_connection_allowed (iter);
   }
 
   /* Make sure there is no overflow */
   if (allowed > buffer)
   {
-    GNUNET_break (0);
     return;
   }
 
@@ -1804,11 +1879,11 @@ GMT_send_acks (struct MeshTunnel3 *t, int fwd)
     allow_per_connection = to_allow/cs;
     to_allow -= allow_per_connection;
     cs--;
-    if (GMC_get_allowed (iter->c, fwd) > 64 / 3)
+    if (get_connection_allowed (iter) > 64 / 3)
     {
       continue;
     }
-    GMC_allow (iter->c, buffer, fwd);
+    GMC_allow (iter->c, buffer, GMC_is_origin (iter->c, GNUNET_YES));
   }
 
   GNUNET_break (to_allow == 0);
@@ -1970,5 +2045,8 @@ GMT_get_path_cost (const struct MeshTunnel3 *t,
 const char *
 GMT_2s (const struct MeshTunnel3 *t)
 {
+  if (NULL == t)
+    return "(NULL)";
+
   return GMP_2s (t->peer);
 }

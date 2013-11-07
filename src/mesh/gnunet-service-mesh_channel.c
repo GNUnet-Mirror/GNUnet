@@ -890,6 +890,15 @@ channel_set_options (struct MeshChannel *ch, uint32_t options)
                  GNUNET_YES : GNUNET_NO;
 }
 
+static int
+is_loopback (const struct MeshChannel *ch)
+{
+  if (NULL != ch->t)
+    return GMT_is_loopback (ch->t);
+
+  return (NULL != ch->root && NULL != ch->dest);
+}
+
 
 /**
  * Handle a loopback message: call the appropriate handler for the message type.
@@ -1253,7 +1262,7 @@ GMCH_debug (struct MeshChannel *ch)
  * Mark client as ready and send him any buffered data we could have for him.
  *
  * @param ch Channel.
- * @param fwd Is this a "FWD ACK"? (FWD ACKs are sent by root and go BCK)
+ * @param fwd Is this a "FWD ACK"? (FWD ACKs are sent by dest and go BCK)
  */
 void
 GMCH_handle_local_ack (struct MeshChannel *ch, int fwd)
@@ -1266,7 +1275,17 @@ GMCH_handle_local_ack (struct MeshChannel *ch, int fwd)
 
   rel->client_ready = GNUNET_YES;
   send_client_buffered_data (ch, c, fwd);
-  GMT_send_acks (ch->t, fwd);
+  if (is_loopback (ch))
+  {
+    unsigned int buffer;
+
+    buffer = GMCH_get_buffer (ch, fwd);
+    if (0 < buffer)
+      GMCH_allow_client (ch, fwd);
+
+    return;
+  }
+  GMT_send_connection_acks (ch->t);
 }
 
 
@@ -1324,7 +1343,15 @@ GMCH_handle_local_data (struct MeshChannel *ch,
     channel_save_copy (ch, &payload->header, fwd);
   GMCH_send_prebuilt_message (&payload->header, ch, fwd);
 
-  if (GMT_get_buffer (ch->t, fwd) > 0)
+  if (is_loopback (ch))
+  {
+    if (GMCH_get_buffer (ch, fwd) > 0);
+      send_client_ack (ch, fwd);
+
+    return GNUNET_OK;
+  }
+
+  if (GMT_get_connections_buffer (ch->t) > 0)
   {
     send_client_ack (ch, fwd);
   }
@@ -1466,7 +1493,7 @@ GMCH_handle_data (struct MeshChannel *ch,
   /* If this is a remote (non-loopback) channel, find 'fwd'. */
   if (GNUNET_SYSERR == fwd)
   {
-    if (NULL != ch->dest && NULL != ch->root)
+    if (is_loopback (ch))
     {
       /* It is a loopback channel after all... */
       GNUNET_break (0);
@@ -1554,7 +1581,7 @@ GMCH_handle_data_ack (struct MeshChannel *ch,
   /* If this is a remote (non-loopback) channel, find 'fwd'. */
   if (GNUNET_SYSERR == fwd)
   {
-    if (NULL != ch->dest && NULL != ch->root)
+    if (is_loopback (ch))
     {
       /* It is a loopback channel after all... */
       GNUNET_break (0);
@@ -1704,7 +1731,7 @@ GMCH_handle_ack (struct MeshChannel *ch,
   /* If this is a remote (non-loopback) channel, find 'fwd'. */
   if (GNUNET_SYSERR == fwd)
   {
-    if (NULL != ch->dest && NULL != ch->root)
+    if (is_loopback (ch))
     {
       /* It is a loopback channel after all... */
       GNUNET_break (0);
@@ -1737,7 +1764,7 @@ GMCH_handle_destroy (struct MeshChannel *ch,
   /* If this is a remote (non-loopback) channel, find 'fwd'. */
   if (GNUNET_SYSERR == fwd)
   {
-    if (NULL != ch->dest && NULL != ch->root)
+    if (is_loopback (ch))
     {
       /* It is a loopback channel after all... */
       GNUNET_break (0);

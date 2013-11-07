@@ -279,17 +279,24 @@ enum MeshTunnel3State
 GMT_get_state (struct MeshTunnel3 *t);
 
 /**
- * Get the total buffer space for a tunnel.
- * 
- * FIXME get a ch parameter in case of loopback tunnels
+ * Get the maximum buffer space for a tunnel towards a local client.
  *
  * @param t Tunnel.
- * @param fwd Is this for FWD traffic?
+ *
+ * @return Biggest buffer space offered by any channel in the tunnel.
+ */
+unsigned int
+GMT_get_channels_buffer (struct MeshTunnel3 *t);
+
+/**
+ * Get the total buffer space for a tunnel for P2P traffic.
+ *
+ * @param t Tunnel.
  *
  * @return Buffer space offered by all connections in the tunnel.
  */
 unsigned int
-GMT_get_buffer (struct MeshTunnel3 *t, int fwd);
+GMT_get_connections_buffer (struct MeshTunnel3 *t);
 
 /**
  * Get the tunnel's destination.
@@ -315,10 +322,9 @@ GMT_get_next_chid (struct MeshTunnel3 *t);
  * Send ACK on one or more channels due to buffer in connections.
  *
  * @param t Channel which has some free buffer space.
- * @param fwd Is this for FWD traffic? (ACK goes to root)
  */
 void
-GMT_unchoke_channels (struct MeshTunnel3 *t, int fwd);
+GMT_unchoke_channels (struct MeshTunnel3 *t);
 
 /**
  * Send ACK on one or more connections due to buffer space to the client.
@@ -326,10 +332,9 @@ GMT_unchoke_channels (struct MeshTunnel3 *t, int fwd);
  * Iterates all connections of the tunnel and sends ACKs appropriately.
  *
  * @param t Tunnel which has some free buffer space.
- * @param fwd Is this in for FWD traffic? (ACK goes dest->root)
  */
 void
-GMT_send_acks (struct MeshTunnel3 *t, int fwd);
+GMT_send_connection_acks (struct MeshTunnel3 *t);
 
 /**
  * Sends an already built message on a tunnel, encrypting it and

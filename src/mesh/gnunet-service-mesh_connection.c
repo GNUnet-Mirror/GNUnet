@@ -1818,7 +1818,7 @@ GMC_send_ack (struct MeshConnection *c, int fwd)
   if (GMC_is_terminal (c, fwd))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  getting from all channels\n");
-    buffer = GMT_get_buffer (c->t, fwd);
+    buffer = GMT_get_channels_buffer (c->t);
   }
   else
   {
@@ -1835,7 +1835,7 @@ GMC_send_ack (struct MeshConnection *c, int fwd)
     if (0 < buffer)
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG, "  really sending!\n");
-      GMT_unchoke_channels (c->t, fwd);
+      GMT_unchoke_channels (c->t);
     }
   }
   else
