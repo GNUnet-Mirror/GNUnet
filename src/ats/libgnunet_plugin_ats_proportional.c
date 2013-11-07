@@ -1490,7 +1490,6 @@ GAS_proportional_address_add (void *solver, struct ATS_Address *address,
   struct AddressWrapper *aw = NULL;
 
   GNUNET_assert(NULL != s);
-
   net = get_network (s, network);
   if (NULL == net)
   {

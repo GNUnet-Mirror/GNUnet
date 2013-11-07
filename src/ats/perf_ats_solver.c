@@ -844,7 +844,7 @@ perf_run ()
     {
       cur_addr = perf_create_address (cp, ca);
       /* Add address */
-      ph.env.sf.s_add (ph.solver, cur_addr, GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, GNUNET_ATS_NetworkTypeCount + 1));
+      ph.env.sf.s_add (ph.solver, cur_addr, GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, GNUNET_ATS_NetworkTypeCount));
       ph.current_a = ca + 1;
       perf_address_initial_update (ph.solver, ph.addresses, cur_addr);
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,

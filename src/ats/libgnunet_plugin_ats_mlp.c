@@ -1266,6 +1266,12 @@ GAS_mlp_address_add (void *solver,
   GNUNET_assert (NULL != solver);
   GNUNET_assert (NULL != address);
 
+  if (GNUNET_ATS_NetworkTypeCount >= network)
+  {
+   GNUNET_break (0);
+   return;
+  }
+
   if (NULL == address->solver_information)
   {
       address->solver_information = GNUNET_new (struct MLP_information);
@@ -1428,6 +1434,12 @@ GAS_mlp_address_change_network (void *solver,
 
   GNUNET_assert (NULL != solver);
   GNUNET_assert (NULL != address);
+
+  if (GNUNET_ATS_NetworkTypeCount >= new_network)
+  {
+   GNUNET_break (0);
+   return;
+  }
 
   if (NULL == mlpi)
   {
