@@ -650,7 +650,6 @@ send_kx (struct MeshTunnel3 *t,
     case GNUNET_MESSAGE_TYPE_MESH_KX_EPHEMERAL:
     case GNUNET_MESSAGE_TYPE_MESH_KX_PING:
     case GNUNET_MESSAGE_TYPE_MESH_KX_PONG:
-      msg->cid = *GMC_get_id (c);
       msg->reserved = htonl (0);
       memcpy (&msg[1], message, size);
       break;

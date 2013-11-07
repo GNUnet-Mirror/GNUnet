@@ -2225,6 +2225,7 @@ GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   switch (type)
   {
     struct GNUNET_MESH_Encrypted *emsg;
+    struct GNUNET_MESH_KX        *kmsg;
     struct GNUNET_MESH_ACK       *amsg;
     struct GNUNET_MESH_Poll      *pmsg;
     struct GNUNET_MESH_ConnectionDestroy *dmsg;
@@ -2251,6 +2252,11 @@ GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
       {
         GMC_start_poll (c, fwd);
       }
+      break;
+
+    case GNUNET_MESSAGE_TYPE_MESH_KX:
+      kmsg = (struct GNUNET_MESH_KX *) data;
+      kmsg->cid = c->id;
       break;
 
     case GNUNET_MESSAGE_TYPE_MESH_ACK:
