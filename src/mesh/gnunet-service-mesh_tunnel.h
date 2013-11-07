@@ -340,7 +340,7 @@ GMT_send_acks (struct MeshTunnel3 *t, int fwd);
  * @param message Message to send. Function modifies it.
  * @param t Tunnel on which this message is transmitted.
  * @param ch Channel on which this message is transmitted.
- * @param fwd Is this a fwd message?
+ * @param fwd Is this a fwd message on @c ch?
  */
 void
 GMT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,

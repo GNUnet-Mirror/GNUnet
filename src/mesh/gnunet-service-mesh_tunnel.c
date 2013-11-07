@@ -499,13 +499,11 @@ send_queued_data (struct MeshTunnel3 *t, int fwd)
  * @param t Tunnel to hold the message.
  * @param ch Channel the message is about.
  * @param msg Message itself (copy will be made).
- * @param fwd Is this fwd?
  */
 static void
 queue_data (struct MeshTunnel3 *t,
             struct MeshChannel *ch,
-            const struct GNUNET_MessageHeader *msg,
-            int fwd)
+            const struct GNUNET_MessageHeader *msg)
 {
   struct MeshTunnelQueue *tq;
   uint16_t size = ntohs (msg->size);
@@ -513,7 +511,6 @@ queue_data (struct MeshTunnel3 *t,
   if (MESH_TUNNEL3_READY == t->state)
   {
     GNUNET_break (0);
-    GMT_send_prebuilt_message (msg, t, ch, fwd);
     return;
   }
 
@@ -1782,7 +1779,7 @@ GMT_send_acks (struct MeshTunnel3 *t, int fwd)
  * @param message Message to send. Function modifies it.
  * @param t Tunnel on which this message is transmitted.
  * @param ch Channel on which this message is transmitted.
- * @param fwd Is this a fwd message?
+ * @param fwd Is this a fwd message on @c ch?
  */
 void
 GMT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
@@ -1800,7 +1797,7 @@ GMT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
 
   if (MESH_TUNNEL3_READY != t->state)
   {
-    queue_data (t, ch, message, fwd);
+    queue_data (t, ch, message);
     return;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "GMT Send on Tunnel %s\n", GMT_2s (t));
@@ -1840,6 +1837,7 @@ GMT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
       GNUNET_break (0);
   }
 
+  fwd = GMC_is_origin (c, GNUNET_YES);
   GMC_send_prebuilt_message (&msg->header, c, fwd);
 }
 
