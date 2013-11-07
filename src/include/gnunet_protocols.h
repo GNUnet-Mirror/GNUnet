@@ -899,6 +899,11 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_MESH_CHANNEL_ACK            275
 
 /**
+ * Reject the creation of a channel
+ */
+#define GNUNET_MESSAGE_TYPE_MESH_CHANNEL_NACK           276
+
+/**
  * Encrypted data going forward. DEPRECATED
  */
 #define GNUNET_MESSAGE_TYPE_MESH_FWD                    280
