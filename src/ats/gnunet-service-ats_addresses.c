@@ -1273,6 +1273,116 @@ GAS_addresses_handle_backoff_reset (struct GAS_Addresses_Handle *handle,
 								   &reset_address_it, NULL));
 }
 
+/**
+ * Evaluathe current bandwidth assignment
+ */
+void
+GAS_addresses_evaluate_assignment (struct GAS_Addresses_Handle *ah)
+{
+  GNUNET_assert (NULL != ah);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Current assignment has quality: Not implemented!\n");
+
+}
+
+/**
+ * Solver information callback
+ *
+ * @param cls,
+ * @param op the operation
+ * @param stat operation status
+ * @param add additional information
+ */
+
+static void
+solver_info_cb (void *cls,
+    enum GAS_Solver_Operation op,
+    enum GAS_Solver_Status stat,
+    enum GAS_Solver_Additional_Information add)
+{
+  char *add_info;
+
+  switch (add) {
+    case GAS_INFO_NONE:
+      add_info = "GAS_INFO_NONE";
+      break;
+    case GAS_INFO_FULL:
+      add_info = "GAS_INFO_MLP_FULL";
+      break;
+    case GAS_INFO_UPDATED:
+      add_info = "GAS_INFO_MLP_UPDATED";
+      break;
+    case GAS_INFO_PROP_ALL:
+      add_info = "GAS_INFO_PROP_ALL";
+      break;
+    case GAS_INFO_PROP_SINGLE:
+      add_info = "GAS_INFO_PROP_SINGLE";
+      break;
+    default:
+      add_info = "INVALID";
+      break;
+  }
+  switch (op)
+  {
+    case GAS_OP_SOLVE_START:
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+          "Solver notifies `%s' with result `%s' `%s'\n", "GAS_OP_SOLVE_START",
+          (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL", add_info);
+      return;
+    case GAS_OP_SOLVE_STOP:
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+          "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_STOP",
+          (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL", add_info);
+      return;
+
+    case GAS_OP_SOLVE_SETUP_START:
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+          "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_SETUP_START",
+          (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL");
+      return;
+
+    case GAS_OP_SOLVE_SETUP_STOP:
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+          "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_SETUP_STOP",
+          (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL");
+      return;
+
+    case GAS_OP_SOLVE_MLP_LP_START:
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+          "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_LP_START",
+          (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL");
+      return;
+    case GAS_OP_SOLVE_MLP_LP_STOP:
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+          "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_LP_STOP",
+          (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL");
+      return;
+
+    case GAS_OP_SOLVE_MLP_MLP_START:
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+          "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_MLP_START",
+          (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL");
+      return;
+    case GAS_OP_SOLVE_MLP_MLP_STOP:
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+          "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_MLP_STOP",
+          (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL");
+      return;
+    case GAS_OP_SOLVE_UPDATE_NOTIFICATION_START:
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+          "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_UPDATE_NOTIFICATION_START",
+          (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL");
+      return;
+    case GAS_OP_SOLVE_UPDATE_NOTIFICATION_STOP:
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+          "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_UPDATE_NOTIFICATION_STOP",
+          (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL");
+      GAS_addresses_evaluate_assignment (cls);
+      return;
+    default:
+      break;
+    }
+}
+
 
 /**
  * The preference changed for a peer
@@ -1677,6 +1787,8 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   }
 
   load_quotas (cfg, quotas_in, quotas_out, GNUNET_ATS_NetworkTypeCount);
+  ah->env.info_cb = &solver_info_cb;
+  ah->env.info_cb_cls = &ah;
   ah->env.bandwidth_changed_cb = &bandwidth_changed_cb;
   ah->env.bw_changed_cb_cls = ah;
   ah->env.get_preferences = &get_preferences_cb;
