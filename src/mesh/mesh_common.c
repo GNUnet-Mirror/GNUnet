@@ -86,19 +86,24 @@ GNUNET_MESH_DEBUG_M2S (uint16_t m)
     case 260: return "GNUNET_MESSAGE_TYPE_MESH_DATA";
 
       /**
-       * Transport data back in the mesh (end->origin) FIXME
+       * Key exchange encapsulation.
        */
-    case 262: return "GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN";
+    case 262: return "GNUNET_MESSAGE_TYPE_MESH_KX";
 
       /**
-       * Send origin an ACK that UNICAST arrived FIXME
+       * New ephemeral key.
        */
-    case 263: return "GNUNET_MESSAGE_TYPE_MESH_UNICAST_ACK";
+    case 263: return "GNUNET_MESSAGE_TYPE_MESH_KX_EPHEMERAL";
 
       /**
-       * Send origin an ACK that TO_ORIGIN arrived FIXME
+       * Challenge to test peer's session key.
        */
-    case 264: return "GNUNET_MESSAGE_TYPE_MESH_TO_ORIG_ACK";
+    case 264: return "GNUNET_MESSAGE_TYPE_MESH_KX_PING";
+
+      /**
+       * Answer to session key challenge.
+       */
+    case 265: return "GNUNET_MESSAGE_TYPE_MESH_KX_PONG";
 
       /**
        * Request the destuction of a path
