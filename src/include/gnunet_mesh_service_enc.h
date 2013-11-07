@@ -219,8 +219,11 @@ GNUNET_MESH_disconnect (struct GNUNET_MESH_Handle *handle);
 
 
 /**
- * Create a new channel (we're initiator and will be allowed to add/remove peers
- * and to broadcast).
+ * Create a new channel towards a remote peer.
+ *
+ * If the destination port is not open by any peer or the destination peer
+ * does not accept the channel, #GNUNET_MESH_ChannelEndHandler will be called
+ * for this channel.
  *
  * @param h mesh handle
  * @param channel_ctx client's channel context to associate with the channel
