@@ -838,7 +838,7 @@ rekey (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  *            #GNUNET_NO if message is BCK on the respective channel (loopback)
  *            #GNUNET_SYSERR if message on a one-ended channel (remote)
  */
-void
+static void
 handle_data (struct MeshTunnel3 *t,
              const struct GNUNET_MESH_Data *msg,
              int fwd)
@@ -888,7 +888,7 @@ handle_data (struct MeshTunnel3 *t,
  *            #GNUNET_NO if message is BCK on the respective channel (loopback)
  *            #GNUNET_SYSERR if message on a one-ended channel (remote)
  */
-void
+static void
 handle_data_ack (struct MeshTunnel3 *t,
                  const struct GNUNET_MESH_DataACK *msg,
                  int fwd)
@@ -925,7 +925,7 @@ handle_data_ack (struct MeshTunnel3 *t,
  * @param t Tunnel on which the data came.
  * @param msg Data message.
  */
-void
+static void
 handle_ch_create (struct MeshTunnel3 *t,
                   const struct GNUNET_MESH_ChannelCreate *msg)
 {
@@ -955,6 +955,43 @@ handle_ch_create (struct MeshTunnel3 *t,
 }
 
 
+
+/**
+ * Handle channel NACK.
+ *
+ * @param t Tunnel on which the data came.
+ * @param msg Data message.
+ */
+static void
+handle_ch_nack (struct MeshTunnel3 *t,
+                const struct GNUNET_MESH_ChannelManage *msg)
+{
+  struct MeshChannel *ch;
+  size_t size;
+
+  /* Check size */
+  size = ntohs (msg->header.size);
+  if (size != sizeof (struct GNUNET_MESH_ChannelManage))
+  {
+    GNUNET_break (0);
+    return;
+  }
+
+  /* Check channel */
+  ch = GMT_get_channel (t, ntohl (msg->chid));
+  if (NULL != ch && ! GMT_is_loopback (t))
+  {
+    GNUNET_STATISTICS_update (stats, "# channel NACK on unknown channel",
+                              1, GNUNET_NO);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "WARNING channel %u unknown\n",
+         ntohl (msg->chid));
+    return;
+  }
+
+  GMCH_handle_nack (ch);
+}
+
+
 /**
  * Handle a CHANNEL ACK (SYNACK/ACK).
  *
@@ -965,7 +1002,7 @@ handle_ch_create (struct MeshTunnel3 *t,
  *            #GNUNET_NO if message is BCK on the respective channel (loopback)
  *            #GNUNET_SYSERR if message on a one-ended channel (remote)
  */
-void
+static void
 handle_ch_ack (struct MeshTunnel3 *t,
                const struct GNUNET_MESH_ChannelManage *msg,
                int fwd)
@@ -1007,7 +1044,7 @@ handle_ch_ack (struct MeshTunnel3 *t,
  *            #GNUNET_NO if message is BCK on the respective channel (loopback)
  *            #GNUNET_SYSERR if message on a one-ended channel (remote)
  */
-void
+static void
 handle_ch_destroy (struct MeshTunnel3 *t,
                    const struct GNUNET_MESH_ChannelManage *msg,
                    int fwd)
@@ -1167,6 +1204,11 @@ handle_decrypted (struct MeshTunnel3 *t,
     case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_CREATE:
       handle_ch_create (t,
                         (struct GNUNET_MESH_ChannelCreate *) msgh);
+      break;
+
+    case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_NACK:
+      handle_ch_nack (t,
+                      (struct GNUNET_MESH_ChannelManage *) msgh);
       break;
 
     case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_ACK:

@@ -278,6 +278,16 @@ GMCH_handle_create (struct MeshTunnel3 *t,
                     const struct GNUNET_MESH_ChannelCreate *msg);
 
 /**
+ * Handler for channel NACK messages.
+ *
+ * NACK messages always go dest -> root, no need for 'fwd' or 'msg' parameter.
+ *
+ * @param ch Channel.
+ */
+void
+GMCH_handle_nack (struct MeshChannel *ch);
+
+/**
  * Handler for channel ack messages.
  *
  * @param ch Channel this channel is to be created in.

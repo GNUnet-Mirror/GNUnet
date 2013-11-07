@@ -482,6 +482,23 @@ send_client_ack (struct MeshChannel *ch, int fwd)
 
 
 /**
+ * Notify the root that the destination rejected the channel.
+ *
+ * @param ch Rejected channel.
+ */
+static void
+send_client_nack (struct MeshChannel *ch)
+{
+  if (NULL == ch->root)
+  {
+    GNUNET_break (0);
+    return;
+  }
+  GML_send_nack (ch->root, ch->lid_root);
+}
+
+
+/**
  * Destroy all reliable messages queued for a channel,
  * during a channel destruction.
  * Frees the reliability structure itself.
@@ -715,6 +732,27 @@ channel_send_ack (struct MeshChannel *ch, int fwd)
 
 
 /**
+ * Notify that a channel create didn't succeed.
+ *
+ * @param ch The channel to reject.
+ */
+static void
+channel_send_nack (struct MeshChannel *ch)
+{
+  struct GNUNET_MESH_ChannelManage msg;
+
+  msg.header.size = htons (sizeof (msg));
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CHANNEL_NACK);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "  sending channel NACK for channel %s\n",
+       GMCH_2s (ch));
+
+  msg.chid = htonl (ch->gid);
+  GMCH_send_prebuilt_message (&msg.header, ch, GNUNET_NO);
+}
+
+
+/**
  * Channel was ACK'd by remote peer, mark as ready and cancel retransmission.
  *
  * @param ch Channel to mark as ready.
@@ -939,6 +977,10 @@ handle_loopback (struct MeshChannel *ch,
       GMCH_handle_ack (ch,
                        (struct GNUNET_MESH_ChannelManage *) msgh,
                        fwd);
+      break;
+
+    case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_NACK:
+      GMCH_handle_nack (ch);
       break;
 
     case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_DESTROY:
@@ -1692,7 +1734,15 @@ GMCH_handle_create (struct MeshTunnel3 *t,
   {
     /* TODO send reject */
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  no client has port registered\n");
-    channel_destroy (ch);
+    if (is_loopback (ch))
+    {
+      channel_send_nack (ch);
+    }
+    else
+    {
+      channel_send_nack (ch);
+      channel_destroy (ch);
+    }
     return NULL;
   }
   else
@@ -1710,6 +1760,21 @@ GMCH_handle_create (struct MeshTunnel3 *t,
   channel_send_ack (ch, GNUNET_YES);
 
   return ch;
+}
+
+
+/**
+ * Handler for channel NACK messages.
+ *
+ * NACK messages always go dest -> root, no need for 'fwd' or 'msg' parameter.
+ *
+ * @param ch Channel.
+ */
+void
+GMCH_handle_nack (struct MeshChannel *ch)
+{
+  send_client_nack (ch);
+  channel_destroy (ch);
 }
 
 

@@ -287,7 +287,7 @@ struct GNUNET_MESH_ChannelCreate
 struct GNUNET_MESH_ChannelManage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_MESH_CHANNEL_{ACK|DESTROY}
+   * Type: GNUNET_MESSAGE_TYPE_MESH_CHANNEL_{ACK|NACK|DESTROY}
    */
   struct GNUNET_MessageHeader header;
 

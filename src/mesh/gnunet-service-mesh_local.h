@@ -160,6 +160,15 @@ void
 GML_send_ack (struct MeshClient *c, MESH_ChannelNumber id);
 
 /**
+ * Build a local channel NACK message and send it to a local client.
+ *
+ * @param c Client to whom send the NACK.
+ * @param id Channel ID to use
+ */
+void
+GML_send_nack (struct MeshClient *c, MESH_ChannelNumber id);
+
+/**
  * Notify the appropriate client that a new incoming channel was created.
  *
  * @param c Client to notify.

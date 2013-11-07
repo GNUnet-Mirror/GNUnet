@@ -486,7 +486,7 @@ destroy_channel (struct GNUNET_MESH_Channel *ch, int call_cleaner)
       continue;
     /* Clients should have aborted their requests already.
      * Management traffic should be ok, as clients can't cancel that */
-    GNUNET_break (GNUNET_NO == th_is_payload(th));
+    GNUNET_break (GNUNET_NO == th_is_payload (th));
     GNUNET_CONTAINER_DLL_remove (h->th_head, h->th_tail, th);
 
     /* clean up request */
@@ -966,37 +966,37 @@ process_ack (struct GNUNET_MESH_Handle *h,
  * @param h Mesh handle.
  * @param message Message itself.
  */
-static void
-process_get_channels (struct GNUNET_MESH_Handle *h,
-                     const struct GNUNET_MessageHeader *message)
-{
-  struct GNUNET_MESH_LocalMonitor *msg;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Get Channels messasge received\n");
-
-  if (NULL == h->channels_cb)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "  ignored\n");
-    return;
-  }
-
-  msg = (struct GNUNET_MESH_LocalMonitor *) message;
-  if (ntohs (message->size) !=
-      (sizeof (struct GNUNET_MESH_LocalMonitor) +
-       sizeof (struct GNUNET_PeerIdentity)))
-  {
-    GNUNET_break_op (0);
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Get channels message: size %hu - expected %u\n",
-                ntohs (message->size),
-                sizeof (struct GNUNET_MESH_LocalMonitor));
-    return;
-  }
-  h->channels_cb (h->channels_cls,
-                  ntohl (msg->channel_id),
-                  &msg->owner,
-                  &msg->destination);
-}
+// static void
+// process_get_channels (struct GNUNET_MESH_Handle *h,
+//                      const struct GNUNET_MessageHeader *message)
+// {
+//   struct GNUNET_MESH_LocalMonitor *msg;
+// 
+//   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Get Channels messasge received\n");
+// 
+//   if (NULL == h->channels_cb)
+//   {
+//     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "  ignored\n");
+//     return;
+//   }
+// 
+//   msg = (struct GNUNET_MESH_LocalMonitor *) message;
+//   if (ntohs (message->size) !=
+//       (sizeof (struct GNUNET_MESH_LocalMonitor) +
+//        sizeof (struct GNUNET_PeerIdentity)))
+//   {
+//     GNUNET_break_op (0);
+//     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+//                 "Get channels message: size %hu - expected %u\n",
+//                 ntohs (message->size),
+//                 sizeof (struct GNUNET_MESH_LocalMonitor));
+//     return;
+//   }
+//   h->channels_cb (h->channels_cls,
+//                   ntohl (msg->channel_id),
+//                   &msg->owner,
+//                   &msg->destination);
+// }
 
 
 
@@ -1006,43 +1006,43 @@ process_get_channels (struct GNUNET_MESH_Handle *h,
  * @param h Mesh handle.
  * @param message Message itself.
  */
-static void
-process_show_channel (struct GNUNET_MESH_Handle *h,
-                     const struct GNUNET_MessageHeader *message)
-{
-  struct GNUNET_MESH_LocalMonitor *msg;
-  size_t esize;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Show Channel messasge received\n");
-
-  if (NULL == h->channel_cb)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "  ignored\n");
-    return;
-  }
-
-  /* Verify message sanity */
-  msg = (struct GNUNET_MESH_LocalMonitor *) message;
-  esize = sizeof (struct GNUNET_MESH_LocalMonitor);
-  if (ntohs (message->size) != esize)
-  {
-    GNUNET_break_op (0);
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Show channel message: size %hu - expected %u\n",
-                ntohs (message->size),
-                esize);
-
-    h->channel_cb (h->channel_cls, NULL, NULL);
-    h->channel_cb = NULL;
-    h->channel_cls = NULL;
-
-    return;
-  }
-
-  h->channel_cb (h->channel_cls,
-                 &msg->destination,
-                 &msg->owner);
-}
+// static void
+// process_show_channel (struct GNUNET_MESH_Handle *h,
+//                      const struct GNUNET_MessageHeader *message)
+// {
+//   struct GNUNET_MESH_LocalMonitor *msg;
+//   size_t esize;
+// 
+//   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Show Channel messasge received\n");
+// 
+//   if (NULL == h->channel_cb)
+//   {
+//     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "  ignored\n");
+//     return;
+//   }
+// 
+//   /* Verify message sanity */
+//   msg = (struct GNUNET_MESH_LocalMonitor *) message;
+//   esize = sizeof (struct GNUNET_MESH_LocalMonitor);
+//   if (ntohs (message->size) != esize)
+//   {
+//     GNUNET_break_op (0);
+//     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+//                 "Show channel message: size %hu - expected %u\n",
+//                 ntohs (message->size),
+//                 esize);
+// 
+//     h->channel_cb (h->channel_cls, NULL, NULL);
+//     h->channel_cb = NULL;
+//     h->channel_cls = NULL;
+// 
+//     return;
+//   }
+// 
+//   h->channel_cb (h->channel_cls,
+//                  &msg->destination,
+//                  &msg->owner);
+// }
 
 
 /**
@@ -1076,21 +1076,21 @@ msg_received (void *cls, const struct GNUNET_MessageHeader *msg)
     break;
     /* Notify of a channel disconnection */
   case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_DESTROY:
+  case GNUNET_MESSAGE_TYPE_MESH_LOCAL_NACK:
     process_channel_destroy (h, (struct GNUNET_MESH_ChannelMessage *) msg);
     break;
-    /* Notify of a new data packet in the channel */
   case GNUNET_MESSAGE_TYPE_MESH_LOCAL_DATA:
     process_incoming_data (h, msg);
     break;
   case GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK:
     process_ack (h, msg);
     break;
-  case GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_CHANNELS:
-    process_get_channels (h, msg);
-    break;
-  case GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_CHANNEL:
-    process_show_channel (h, msg);
-    break;
+//   case GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_CHANNELS: DEPRECATED
+//     process_get_channels (h, msg);
+//     break;
+//   case GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_CHANNEL: DEPRECATED
+//     process_show_channel (h, msg);
+//     break;
   default:
     /* We shouldn't get any other packages, log and ignore */
     LOG (GNUNET_ERROR_TYPE_WARNING,

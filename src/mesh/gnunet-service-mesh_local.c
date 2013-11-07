@@ -947,6 +947,32 @@ GML_send_ack (struct MeshClient *c, MESH_ChannelNumber id)
 
 
 /**
+ * Build a local channel NACK message and send it to a local client.
+ *
+ * @param c Client to whom send the NACK.
+ * @param id Channel ID to use
+ */
+void
+GML_send_nack (struct MeshClient *c, MESH_ChannelNumber id)
+{
+  struct GNUNET_MESH_LocalAck msg;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+              "send local nack on %X towards %p\n",
+              id, c);
+
+  msg.header.size = htons (sizeof (msg));
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_NACK);
+  msg.channel_id = htonl (id);
+  GNUNET_SERVER_notification_context_unicast (nc,
+                                              c->handle,
+                                              &msg.header,
+                                              GNUNET_NO);
+
+}
+
+
+/**
  * Notify the client that a new incoming channel was created.
  *
  * @param c Client to notify.
