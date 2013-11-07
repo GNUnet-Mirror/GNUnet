@@ -40,9 +40,23 @@ static struct GNUNET_MESH_Channel *ch;
 
 static int result = GNUNET_OK;
 
+static int got_data = GNUNET_NO;
+
 static GNUNET_SCHEDULER_TaskIdentifier abort_task;
 
 static GNUNET_SCHEDULER_TaskIdentifier shutdown_task;
+
+static struct GNUNET_MESH_TransmitHandle *mth;
+
+
+/**
+ * Connect to other client and send data
+ *
+ * @param cls Closue (unused).
+ * @param tc TaskContext.
+ */
+static void
+do_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
@@ -108,6 +122,7 @@ data_callback (void *cls, struct GNUNET_MESH_Channel *channel,
                const struct GNUNET_MessageHeader *message)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Data callback! Shutting down.\n");
+  got_data = GNUNET_YES;
   if (GNUNET_SCHEDULER_NO_TASK != shutdown_task)
     GNUNET_SCHEDULER_cancel (shutdown_task);
   shutdown_task =
@@ -150,7 +165,7 @@ inbound_channel (void *cls, struct GNUNET_MESH_Channel *channel,
 
 
 /**
- * Function called whenever an inbound channel is destroyed.  Should clean up
+ * Function called whenever an channel is destroyed.  Should clean up
  * any associated state.
  *
  * @param cls closure (set from GNUNET_MESH_connect)
@@ -159,7 +174,7 @@ inbound_channel (void *cls, struct GNUNET_MESH_Channel *channel,
  *                    with the channel is stored
  */
 static void
-inbound_end (void *cls, const struct GNUNET_MESH_Channel *channel,
+channel_end (void *cls, const struct GNUNET_MESH_Channel *channel,
              void *channel_ctx)
 {
   long id = (long) cls;
@@ -167,6 +182,18 @@ inbound_end (void *cls, const struct GNUNET_MESH_Channel *channel,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "incoming channel closed at peer %ld\n",
               id);
+  if (NULL != mth)
+  {
+    GNUNET_MESH_notify_transmit_ready_cancel (mth);
+    mth = NULL;
+  }
+  if (GNUNET_NO == got_data)
+  {
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (
+                                  GNUNET_TIME_UNIT_SECONDS,
+                                  2),
+                                  &do_connect, NULL);
+  }
 }
 
 
@@ -202,6 +229,7 @@ do_send (void *cls, size_t size, void *buf)
 {
   struct GNUNET_MessageHeader *m = buf;
 
+  mth = NULL;
   if (NULL == buf)
   {
     GNUNET_break (0);
@@ -229,10 +257,10 @@ do_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "CONNECT BY PORT\n");
   ch = GNUNET_MESH_channel_create (mesh_peer_1, NULL, &id, 1,
                                   GNUNET_YES, GNUNET_NO);
-  GNUNET_MESH_notify_transmit_ready (ch, GNUNET_NO,
-                                     GNUNET_TIME_UNIT_FOREVER_REL,
-                                     sizeof (struct GNUNET_MessageHeader),
-                                     &do_send, NULL);
+  mth = GNUNET_MESH_notify_transmit_ready (ch, GNUNET_NO,
+                                           GNUNET_TIME_UNIT_FOREVER_REL,
+                                           sizeof (struct GNUNET_MessageHeader),
+                                           &do_send, NULL);
 }
 
 
@@ -258,14 +286,14 @@ run (void *cls,
   mesh_peer_1 = GNUNET_MESH_connect (cfg,       /* configuration */
                                      (void *) 1L,     /* cls */
                                      &inbound_channel,   /* inbound new hndlr */
-                                     &inbound_end,      /* inbound end hndlr */
+                                     &channel_end,      /* channel end hndlr */
                                      handlers1, /* traffic handlers */
                                      NULL);     /* ports offered */
 
   mesh_peer_2 = GNUNET_MESH_connect (cfg,       /* configuration */
                                      (void *) 2L,     /* cls */
                                      &inbound_channel,   /* inbound new hndlr */
-                                     &inbound_end,      /* inbound end hndlr */
+                                     &channel_end,      /* channel end hndlr */
                                      handlers2, /* traffic handlers */
                                      ports);     /* ports offered */
   if (NULL == mesh_peer_1 || NULL == mesh_peer_2)
