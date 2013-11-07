@@ -435,6 +435,7 @@ solver_info_cb (void *cls,
       add_info = "GAS_INFO_PROP_SINGLE";
       break;
     default:
+      add_info = "INVALID";
       break;
   }
 
@@ -518,7 +519,7 @@ solver_info_cb (void *cls,
           ph.current_result->s_setup, ph.current_result->e_setup);
       return;
 
-    case GAS_OP_SOLVE_LP_START:
+    case GAS_OP_SOLVE_MLP_LP_START:
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
           "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_LP_START",
           (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL");
@@ -529,7 +530,7 @@ solver_info_cb (void *cls,
       }
       ph.current_result->s_lp = GNUNET_TIME_absolute_get ();
       return;
-    case GAS_OP_SOLVE_LP_STOP:
+    case GAS_OP_SOLVE_MLP_LP_STOP:
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
           "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_LP_STOP",
           (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL");
@@ -543,7 +544,7 @@ solver_info_cb (void *cls,
           ph.current_result->s_lp, ph.current_result->e_lp);
       return;
 
-    case GAS_OP_SOLVE_MLP_START:
+    case GAS_OP_SOLVE_MLP_MLP_START:
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
           "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_MLP_START",
           (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL");
@@ -554,7 +555,7 @@ solver_info_cb (void *cls,
       }
       ph.current_result->s_mlp = GNUNET_TIME_absolute_get ();
       return;
-    case GAS_OP_SOLVE_MLP_STOP:
+    case GAS_OP_SOLVE_MLP_MLP_STOP:
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
           "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_MLP_STOP",
           (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL");
@@ -567,7 +568,16 @@ solver_info_cb (void *cls,
       ph.current_result->d_mlp = GNUNET_TIME_absolute_get_difference (
       ph.current_result->s_mlp, ph.current_result->e_mlp);
       return;
-
+    case GAS_OP_SOLVE_UPDATE_NOTIFICATION_START:
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+          "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_UPDATE_NOTIFICATION_START",
+          (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL");
+      return;
+    case GAS_OP_SOLVE_UPDATE_NOTIFICATION_STOP:
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+          "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_UPDATE_NOTIFICATION_STOP",
+          (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL");
+      return;
     default:
       break;
     }
@@ -616,6 +626,8 @@ write_gnuplot_script (char * data_fn, int full)
         template = GNUPLOT_RIL_UPDATE_TEMPLATE;
       break;
     default:
+      GNUNET_break (0);
+      return;
       break;
   }
   if (GNUNET_SYSERR == GNUNET_DISK_file_write(f, template, strlen(template)))
@@ -674,6 +686,8 @@ evaluate ()
   char * str_d_lp;
   char * str_d_mlp;
 
+  f_full = NULL;
+  f_update = NULL;
   if (ph.create_plot)
   {
     GNUNET_asprintf (&data_fn_full, "perf_%s_full_%u_%u_%u.data", ph.ats_string, ph.N_peers_start, ph.N_peers_end, ph.N_address);
@@ -787,13 +801,13 @@ evaluate ()
 
   if (GNUNET_YES == ph.create_plot)
   {
-    if (GNUNET_SYSERR == GNUNET_DISK_file_close(f_full))
+    if ((NULL == f_full) || (GNUNET_SYSERR == GNUNET_DISK_file_close(f_full)))
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot close log file `%s'\n", data_fn_full);
     GNUNET_free (data_fn_full);
   }
   if ((ph.create_plot) && (GNUNET_YES == ph.measure_updates))
   {
-    if (GNUNET_SYSERR == GNUNET_DISK_file_close(f_update))
+      if ((NULL == f_update) || (GNUNET_SYSERR == GNUNET_DISK_file_close(f_update)))
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot close log file `%s'\n", data_fn_update);
     GNUNET_free (data_fn_update);
   }
