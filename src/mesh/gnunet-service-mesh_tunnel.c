@@ -1172,7 +1172,8 @@ GMT_change_state (struct MeshTunnel3* t, enum MeshTunnel3State state)
               "Tunnel %s state is now %s\n",
               GMP_2s (t->peer),
               GMT_state2s (state));
-  if (MESH_TUNNEL3_WAITING == t->state && MESH_TUNNEL3_READY == state)
+  if (myid != GMP_get_short_id(t->peer) &&
+      MESH_TUNNEL3_WAITING == t->state && MESH_TUNNEL3_READY == state)
   {
     rekey_tunnel (t, NULL);
   }
