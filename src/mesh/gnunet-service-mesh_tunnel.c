@@ -951,7 +951,8 @@ handle_ch_create (struct MeshTunnel3 *t,
   {
     ch = GMCH_handle_create (t, msg);
   }
-  GMT_add_channel (t, ch);
+  if (NULL != ch)
+    GMT_add_channel (t, ch);
 }
 
 
@@ -1470,6 +1471,8 @@ void
 GMT_add_channel (struct MeshTunnel3 *t, struct MeshChannel *ch)
 {
   struct MeshTChannel *aux;
+
+  GNUNET_assert (NULL != ch);
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Adding channel %p to tunnel %p\n", ch, t);
 
