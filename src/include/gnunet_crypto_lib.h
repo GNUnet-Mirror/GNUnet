@@ -446,14 +446,14 @@ GNUNET_CRYPTO_symmetric_create_session_key (struct GNUNET_CRYPTO_SymmetricSessio
  * Encrypt a block using a symmetric sessionkey.
  *
  * @param block the block to encrypt
- * @param len the size of the block
+ * @param size the size of the @a block
  * @param sessionkey the key used to encrypt
  * @param iv the initialization vector to use, use INITVALUE
  *        for streams.
  * @return the size of the encrypted block, -1 for errors
  */
 ssize_t
-GNUNET_CRYPTO_symmetric_encrypt (const void *block, size_t len,
+GNUNET_CRYPTO_symmetric_encrypt (const void *block, size_t size,
                                  const struct GNUNET_CRYPTO_SymmetricSessionKey *sessionkey,
                                  const struct GNUNET_CRYPTO_SymmetricInitializationVector *iv,
                                  void *result);
