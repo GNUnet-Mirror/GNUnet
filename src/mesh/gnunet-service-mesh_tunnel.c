@@ -672,8 +672,9 @@ send_kx (struct MeshTunnel3 *t,
 static void
 send_ephemeral (struct MeshTunnel3 *t)
 {
-  kx_msg.sender_status = htonl (t->state);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "%s()\n", __FUNCTION__);
 
+  kx_msg.sender_status = htonl (t->state);
   send_kx (t, &kx_msg.header);
 }
 
@@ -687,12 +688,20 @@ send_ping (struct MeshTunnel3 *t)
 {
   struct GNUNET_MESH_KX_Ping msg;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "%s()\n", __FUNCTION__);
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_KX_PING);
   msg.iv = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
   msg.target = *GMP_get_id (t->peer);
   msg.nonce = t->kx_ctx->challenge;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  sending %u\n", msg.nonce);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  towards %s\n", GNUNET_i2s (&msg.target));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  using e %s\n", GNUNET_h2s (&t->e_key));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  using iv %u\n", msg.iv);
   t_encrypt (t, &msg.target, &msg.target, ping_encryption_size(), msg.iv);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  e sending %u\n", msg.nonce);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  e towards %s\n", GNUNET_i2s (&msg.target));
 
   send_kx (t, &msg.header);
 }
@@ -709,6 +718,7 @@ send_pong (struct MeshTunnel3 *t, uint32_t challenge)
 {
   struct GNUNET_MESH_KX_Pong msg;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "%s()\n", __FUNCTION__);
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_KX_PONG);
   msg.iv = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
@@ -1091,10 +1101,12 @@ handle_ephemeral (struct MeshTunnel3 *t,
     return;
   }
   derive_key_material (&km, &msg->ephemeral_key);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  km is %s\n", GNUNET_h2s (&km));
   derive_symmertic (&t->e_key, &my_full_id, GMP_get_id (t->peer), &km);
   derive_symmertic (&t->d_key, GMP_get_id (t->peer), &my_full_id, &km);
   if (MESH_TUNNEL3_KEY_SENT == t->state)
   {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  our key was sent, send ping\n");
     send_ping (t);
     t->state = MESH_TUNNEL3_PING_SENT;
   }
@@ -1114,13 +1126,23 @@ handle_ping (struct MeshTunnel3 *t,
 {
   struct GNUNET_MESH_KX_Ping res;
 
+  if (ntohs (msg->header.size) != sizeof (res))
+  {
+    GNUNET_break_op (0);
+    return;
+  }
+
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  ping message\n");
-  t_decrypt (t, &res.target, &msg->target, ping_encryption_size(), msg->iv);
-  if (0 != memcmp (&my_full_id, &msg->target, sizeof (my_full_id)))
+  t_decrypt (t, &res.target, &msg->target, ping_encryption_size (), msg->iv);
+  if (0 != memcmp (&my_full_id, &res.target, sizeof (my_full_id)))
   {
     GNUNET_break (0);
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  at %s\n", GNUNET_i2s (&my_full_id));
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  for %s\n", GNUNET_i2s (&msg->target));
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  e got %u\n", msg->nonce);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  e towards %s\n", GNUNET_i2s (&msg->target));
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  using d %s\n", GNUNET_h2s (&t->d_key));
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  using iv %u\n", msg->iv);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  got %u\n", res.nonce);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  towards %s\n", GNUNET_i2s (&res.target));
     return;
   }
 
@@ -2018,7 +2040,7 @@ GMT_is_loopback (const struct MeshTunnel3 *t)
 
 
 /**
- * Is the tunnel using this path already?
+ * Is the tunnel this path already?
  *
  * @param t Tunnel.
  * @param p Path.
