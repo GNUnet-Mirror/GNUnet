@@ -244,10 +244,16 @@ GMT_state2s (enum MeshTunnel3State s)
       return "MESH_TUNNEL3_SEARCHING";
     case MESH_TUNNEL3_WAITING:
       return "MESH_TUNNEL3_WAITING";
+    case MESH_TUNNEL3_KEY_SENT:
+      return "MESH_TUNNEL3_KEY_SENT";
+    case MESH_TUNNEL3_PING_SENT:
+      return "MESH_TUNNEL3_PING_SENT";
     case MESH_TUNNEL3_READY:
       return "MESH_TUNNEL3_READY";
     case MESH_TUNNEL3_RECONNECTING:
       return "MESH_TUNNEL3_RECONNECTING";
+    case MESH_TUNNEL3_REKEY:
+      return "MESH_TUNNEL3_REKEY";
 
     default:
       sprintf (buf, "%u (UNKNOWN STATE)", s);
@@ -522,6 +528,72 @@ queue_data (struct MeshTunnel3 *t,
 
 
 /**
+ * Sends key exchange message on a tunnel, choosing the best connection.
+ * Should not be called on loopback tunnels.
+ *
+ * @param t Tunnel on which this message is transmitted.
+ * @param message Message to send. Function modifies it.
+ */
+static void
+send_kx (struct MeshTunnel3 *t,
+         const struct GNUNET_MessageHeader *message)
+{
+  struct MeshConnection *c;
+  struct GNUNET_MESH_KX *msg;
+  size_t size = ntohs (message->size);
+  char cbuf[sizeof (struct GNUNET_MESH_KX) + size];
+  uint16_t type;
+  int fwd;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "GMT KX on Tunnel %s\n", GMT_2s (t));
+
+  /* Avoid loopback. */
+  if (myid == GMP_get_short_id (t->peer))
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  loopback!\n");
+    GNUNET_break (0);
+    return;
+  }
+
+  /* Must have a connection. */
+  if (NULL == t->connection_head)
+  {
+    GNUNET_break (0);
+    return;
+  }
+
+  fwd = GMC_is_origin (t->connection_head->c, GNUNET_YES);
+
+  msg = (struct GNUNET_MESH_KX *) cbuf;
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_KX);
+  msg->header.size = htons (sizeof (struct GNUNET_MESH_KX) + size);
+  c = tunnel_get_connection (t, fwd);
+  if (NULL == c)
+  {
+    GNUNET_break (GNUNET_YES == t->destroy);
+    return;
+  }
+  type = ntohs (message->type);
+  switch (type)
+  {
+    case GNUNET_MESSAGE_TYPE_MESH_KX_EPHEMERAL:
+    case GNUNET_MESSAGE_TYPE_MESH_KX_PING:
+    case GNUNET_MESSAGE_TYPE_MESH_KX_PONG:
+      msg->cid = *GMC_get_id (c);
+      msg->reserved = htonl (0);
+      memcpy (&msg[1], message, size);
+      break;
+    default:
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "unkown type %s\n",
+           GNUNET_MESH_DEBUG_M2S (type));
+      GNUNET_break (0);
+  }
+
+  GMC_send_prebuilt_message (&msg->header, c, fwd);
+}
+
+
+/**
  * Send the ephemeral key on a tunnel.
  *
  * @param t Tunnel on which to send the key.
@@ -531,8 +603,7 @@ send_ephemeral (struct MeshTunnel3 *t)
 {
   kx_msg.sender_status = htonl (t->state);
 
-  /* When channel is NULL, fwd is irrelevant. */
-  GMT_send_prebuilt_message (&kx_msg.header, t, NULL, GNUNET_YES);
+  send_kx (t, &kx_msg.header);
 }
 
 /**
@@ -552,8 +623,7 @@ send_ping (struct MeshTunnel3 *t)
   msg.nonce = t->kx_ctx->challenge;
   t_encrypt (t, &msg.target, &msg.target, ping_encryption_size(), msg.iv);
 
-  /* When channel is NULL, fwd is irrelevant. */
-  GMT_send_prebuilt_message (&msg.header, t, NULL, GNUNET_YES);
+  send_kx (t, &msg.header);
 }
 
 
@@ -574,8 +644,7 @@ send_pong (struct MeshTunnel3 *t, uint32_t challenge)
   msg.nonce = challenge;
   t_encrypt (t, &msg.nonce, &msg.nonce, sizeof (msg.nonce), msg.iv);
 
-  /* When channel is NULL, fwd is irrelevant. */
-  GMT_send_prebuilt_message (&msg.header, t, NULL, GNUNET_YES);
+  send_kx (t, &msg.header);
 }
 
 
@@ -1055,7 +1124,7 @@ GMT_handle_kx (struct MeshTunnel3 *t,
   LOG (GNUNET_ERROR_TYPE_DEBUG, "kx message received\n", type);
   switch (type)
   {
-    case GNUNET_MESSAGE_TYPE_MESH_KX:
+    case GNUNET_MESSAGE_TYPE_MESH_KX_EPHEMERAL:
       handle_ephemeral (t, (struct GNUNET_MESH_KX_Ephemeral *) message);
       break;
 
@@ -1102,7 +1171,7 @@ GMT_init (const struct GNUNET_CONFIGURATION_Handle *c,
 
   my_private_key = key;
   kx_msg.header.size = htons (sizeof (kx_msg));
-  kx_msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_KX);
+  kx_msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_KX_EPHEMERAL);
   kx_msg.purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_MESH_KX);
   kx_msg.purpose.size = htonl (ephemeral_purpose_size ());
   kx_msg.origin_identity = my_full_id;
@@ -1175,7 +1244,12 @@ GMT_change_state (struct MeshTunnel3* t, enum MeshTunnel3State state)
   if (myid != GMP_get_short_id (t->peer) &&
       MESH_TUNNEL3_WAITING == t->state && MESH_TUNNEL3_READY == state)
   {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  triggered rekey\n");
     rekey_tunnel (t, NULL);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Tunnel %s state is now %s\n",
+         GMP_2s (t->peer),
+         GMT_state2s (t->state));
   }
   else
   {
@@ -1722,8 +1796,8 @@ GMT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   struct GNUNET_MESH_Encrypted *msg;
   size_t size = ntohs (message->size);
   size_t encrypted_size;
-  char *cbuf[sizeof (struct GNUNET_MESH_Encrypted) + size + 64];
-  uint64_t iv;
+  char cbuf[sizeof (struct GNUNET_MESH_Encrypted) + size];
+  uint32_t iv;
   uint16_t type;
 
   if (MESH_TUNNEL3_READY != t->state)
@@ -1740,10 +1814,10 @@ GMT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
     return;
   }
 
-  iv = GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_NONCE, UINT64_MAX);
+  iv = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
   msg = (struct GNUNET_MESH_Encrypted *) cbuf;
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_ENCRYPTED);
-  msg->iv = GNUNET_htonll (iv);
+  msg->iv = iv;
   encrypted_size = t_encrypt (t, &msg[1], message, size, iv);
   msg->header.size = htons (sizeof (struct GNUNET_MESH_Encrypted) + encrypted_size);
   c = tunnel_get_connection (t, fwd);
