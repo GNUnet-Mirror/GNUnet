@@ -1486,6 +1486,7 @@ libgnunet_plugin_ats_ril_init (void *cls)
   if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (env->cfg, "ats", "RIL_ALGORITHM", &string))
   {
     solver->parameters.algorithm = !strcmp (string, "SARSA") ? RIL_ALGO_SARSA : RIL_ALGO_Q;
+    GNUNET_free (string);
   }
   else
   {
@@ -1494,6 +1495,7 @@ libgnunet_plugin_ats_ril_init (void *cls)
   if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (env->cfg, "ats", "RIL_DISCOUNT_BETA", &string))
   {
     solver->parameters.beta = strtod (string, NULL);
+    GNUNET_free (string);
   }
   else
   {
@@ -1503,6 +1505,7 @@ libgnunet_plugin_ats_ril_init (void *cls)
       == GNUNET_CONFIGURATION_get_value_string (env->cfg, "ats", "RIL_GRADIENT_STEP_SIZE", &string))
   {
     solver->parameters.alpha = strtod (string, NULL);
+    GNUNET_free (string);
   }
   else
   {
@@ -1511,6 +1514,7 @@ libgnunet_plugin_ats_ril_init (void *cls)
   if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (env->cfg, "ats", "RIL_TRACE_DECAY", &string))
   {
     solver->parameters.lambda = strtod (string, NULL);
+    GNUNET_free (string);
   }
   else
   {
@@ -1519,6 +1523,7 @@ libgnunet_plugin_ats_ril_init (void *cls)
   if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (env->cfg, "ats", "RIL_EXPLORE_RATIO", &string))
   {
     solver->parameters.explore_ratio = strtod (string, NULL);
+    GNUNET_free (string);
   }
   else
   {
