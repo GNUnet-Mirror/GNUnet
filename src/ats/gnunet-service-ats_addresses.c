@@ -1287,7 +1287,7 @@ GAS_addresses_evaluate_assignment (struct GAS_Addresses_Handle *ah)
 /**
  * Solver information callback
  *
- * @param cls,
+ * @param cls the closure
  * @param op the operation
  * @param stat operation status
  * @param add additional information
