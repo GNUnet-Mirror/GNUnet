@@ -441,7 +441,7 @@ t_decrypt (struct MeshTunnel3 *t,
 {
   struct GNUNET_CRYPTO_SymmetricInitializationVector siv;
 
-  GNUNET_CRYPTO_symmetric_derive_iv (&siv, &t->e_key, &iv, sizeof (uint32_t), NULL);
+  GNUNET_CRYPTO_symmetric_derive_iv (&siv, &t->d_key, &iv, sizeof (uint32_t), NULL);
   return GNUNET_CRYPTO_symmetric_decrypt (src, size, &t->d_key, &siv, dst);
 }
 
@@ -540,8 +540,8 @@ send_queued_data (struct MeshTunnel3 *t)
   unsigned int room;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-              "GMT_send_queued_data on tunnel %s\n",
-              GMT_2s (t));
+       "GMT_send_queued_data on tunnel %s\n",
+       GMT_2s (t));
 
   if (GMT_is_loopback (t))
   {
@@ -697,8 +697,6 @@ send_ping (struct MeshTunnel3 *t)
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  sending %u\n", msg.nonce);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  towards %s\n", GNUNET_i2s (&msg.target));
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  using e %s\n", GNUNET_h2s (&t->e_key));
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  using iv %u\n", msg.iv);
   t_encrypt (t, &msg.target, &msg.target, ping_encryption_size(), msg.iv);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  e sending %u\n", msg.nonce);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  e towards %s\n", GNUNET_i2s (&msg.target));
@@ -723,7 +721,9 @@ send_pong (struct MeshTunnel3 *t, uint32_t challenge)
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_KX_PONG);
   msg.iv = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
   msg.nonce = challenge;
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  sending %u\n", msg.nonce);
   t_encrypt (t, &msg.nonce, &msg.nonce, sizeof (msg.nonce), msg.iv);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  e sending %u\n", msg.nonce);
 
   send_kx (t, &msg.header);
 }
@@ -1139,14 +1139,12 @@ handle_ping (struct MeshTunnel3 *t,
     GNUNET_break (0);
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  e got %u\n", msg->nonce);
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  e towards %s\n", GNUNET_i2s (&msg->target));
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  using d %s\n", GNUNET_h2s (&t->d_key));
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  using iv %u\n", msg->iv);
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  got %u\n", res.nonce);
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  towards %s\n", GNUNET_i2s (&res.target));
     return;
   }
 
-  send_pong (t, res.iv);
+  send_pong (t, res.nonce);
 }
 
 
@@ -1175,8 +1173,8 @@ handle_pong (struct MeshTunnel3 *t,
   if (challenge != t->kx_ctx->challenge)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Wrong PONG challenge: %u. Expected: %u.\n",
-         challenge, t->kx_ctx->challenge);
+         "Wrong PONG challenge: %u (e: %u). Expected: %u.\n",
+         challenge, msg->nonce, t->kx_ctx->challenge);
     GNUNET_break_op (0);
     return;
   }
