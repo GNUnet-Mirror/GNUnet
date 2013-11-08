@@ -459,6 +459,53 @@ intersection_evaluate (struct Operation *op)
 
 
 /**
+ * Alice's version:
+ * 
+ * fills the contained-elements hashmap with all relevant 
+ * elements and adds their mutated hashes to our local bloomfilter with mutator+1
+ * 
+ * @param cls closure
+ * @param key current key code
+ * @param value value in the hash map
+ * @return #GNUNET_YES if we should continue to
+ *         iterate,
+ *         #GNUNET_NO if not.
+ */
+static int 
+intersection_iterator_set_to_contained_alice (void *cls,
+                                      const struct GNUNET_HashCode *key,
+                                      void *value){
+  struct ElementEntry *ee = value;
+  struct Operation *op = cls;
+  struct GNUNET_HashCode mutated_hash;
+  
+  //only consider this element, if it is valid for us
+  if ((op->generation_created >= ee->generation_removed) 
+       || (op->generation_created < ee->generation_added))
+    return GNUNET_YES;
+  
+  // not contained according to bob's bloomfilter
+  GNUNET_BLOCK_mingle_hash(&ee->element_hash, op->spec->salt, &mutated_hash);
+  if (GNUNET_NO == GNUNET_CONTAINER_bloomfilter_test (op->state->remote_bf, 
+                                                      &mutated_hash))
+    return GNUNET_YES;
+  
+  op->state->contained_elements_count++;  
+  GNUNET_CONTAINER_multihashmap_put (op->state->contained_elements, 
+                                     &ee->element_hash, ee,
+                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+  
+  // create our own bloomfilter with salt+1
+  GNUNET_BLOCK_mingle_hash(&ee->element_hash, op->spec->salt+1, &mutated_hash);
+  GNUNET_CONTAINER_bloomfilter_add (op->state->local_bf, 
+                                    &mutated_hash);
+  
+  return GNUNET_YES;
+}
+
+/**
+ * Bob's version:
+ * 
  * fills the contained-elements hashmap with all relevant 
  * elements and adds their mutated hashes to our local bloomfilter
  * 
@@ -469,7 +516,8 @@ intersection_evaluate (struct Operation *op)
  *         iterate,
  *         #GNUNET_NO if not.
  */
-static int intersection_iterator_set_to_contained (void *cls,
+static int 
+intersection_iterator_set_to_contained_bob (void *cls,
                                       const struct GNUNET_HashCode *key,
                                       void *value){
   struct ElementEntry *ee = value;
@@ -495,8 +543,10 @@ static int intersection_iterator_set_to_contained (void *cls,
   return GNUNET_YES;
 }
 
-
 /**
+ * removes element from a hashmap if it is not contained within the
+ * provided remote bloomfilter.
+ * 
  * @param cls closure
  * @param key current key code
  * @param value value in the hash map
@@ -504,7 +554,8 @@ static int intersection_iterator_set_to_contained (void *cls,
  *         iterate,
  *         #GNUNET_NO if not.
  */
-static int intersection_iterator_element_removal (void *cls,
+static int
+intersection_iterator_element_removal (void *cls,
                                       const struct GNUNET_HashCode *key,
                                       void *value){
   struct ElementEntry *ee = value;
@@ -525,6 +576,34 @@ static int intersection_iterator_element_removal (void *cls,
 }
 
 /**
+ * removes element from a hashmap if it is not contained within the
+ * provided remote bloomfilter.
+ * 
+ * @param cls closure
+ * @param key current key code
+ * @param value value in the hash map
+ * @return #GNUNET_YES if we should continue to
+ *         iterate,
+ *         #GNUNET_NO if not.
+ */
+static int
+intersection_iterator_create_bf (void *cls,
+                                      const struct GNUNET_HashCode *key,
+                                      void *value){
+  struct ElementEntry *ee = value;
+  struct Operation *op = cls;
+  struct GNUNET_HashCode mutated_hash;
+  
+  GNUNET_BLOCK_mingle_hash(&ee->element_hash, op->spec->salt, &mutated_hash);
+  
+  GNUNET_CONTAINER_bloomfilter_add (op->state->local_bf, 
+                                    &mutated_hash);
+  
+  return GNUNET_YES;
+}
+
+
+/**
  * Accept an union operation request from a remote peer.
  * Only initializes the private operation state.
  *
@@ -539,7 +618,7 @@ intersection_accept (struct Operation *op)
   op->state->contained_elements = GNUNET_CONTAINER_multihashmap_create(1, GNUNET_YES);
   
   GNUNET_CONTAINER_multihashmap_iterate(op->spec->set->elements, 
-                                        &intersection_iterator_set_to_contained,
+                                        &intersection_iterator_set_to_contained_bob,
                                         op);
   
   
