@@ -2088,7 +2088,7 @@ mhd_error_log_callback (void *cls,
  * Lookup (or create) an SSL MHD instance for a particular domain.
  *
  * @param domain the domain the SSL daemon has to serve
- * @return NULL on errro
+ * @return NULL on error
  */
 static struct MhdHttpList *
 lookup_ssl_httpd (const char* domain)
@@ -2096,6 +2096,11 @@ lookup_ssl_httpd (const char* domain)
   struct MhdHttpList *hd;
   struct ProxyGNSCertificate *pgc;
 
+  if (NULL == domain)
+  {
+    GNUNET_break (0);
+    return NULL;
+  }
   for (hd = mhd_httpd_head; NULL != hd; hd = hd->next)
     if ( (NULL != hd->domain) &&
 	 (0 == strcmp (hd->domain, domain)) )
@@ -2545,6 +2550,14 @@ do_s5r_read (void *cls,
 	struct sockaddr_in *in;
 
 	s5r->port = ntohs (*port);
+        if (HTTPS_PORT == s5r->port)
+        {
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                      _("SSL connection to plain IPv4 address requested\n"));
+          signal_socks_failure (s5r,
+                                SOCKS5_STATUS_CONNECTION_NOT_ALLOWED_BY_RULE);
+          return;
+        }
 	alen = sizeof (struct in_addr);
 	if (s5r->rbuf_len < sizeof (struct Socks5ClientRequestMessage) +
 	    alen + sizeof (uint16_t))
@@ -2566,6 +2579,14 @@ do_s5r_read (void *cls,
 	struct sockaddr_in6 *in;
 
 	s5r->port = ntohs (*port);
+        if (HTTPS_PORT == s5r->port)
+        {
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                      _("SSL connection to plain IPv4 address requested\n"));
+          signal_socks_failure (s5r,
+                                SOCKS5_STATUS_CONNECTION_NOT_ALLOWED_BY_RULE);
+          return;
+        }
 	alen = sizeof (struct in6_addr);
 	if (s5r->rbuf_len < sizeof (struct Socks5ClientRequestMessage) +
 	    alen + sizeof (uint16_t))
