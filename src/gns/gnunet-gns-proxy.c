@@ -1760,6 +1760,7 @@ mhd_log_callback (void *cls,
       return s5r;
     }
   }
+  GNUNET_break (0);
   return NULL;
 }
 
