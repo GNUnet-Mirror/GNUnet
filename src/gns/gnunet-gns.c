@@ -215,7 +215,7 @@ lookup_with_keys (const struct GNUNET_CRYPTO_EcdsaPublicKey *pkey,
   {
     fprintf (stderr,
 	     _("Please specify name to lookup!\n"));
-    GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
 }
