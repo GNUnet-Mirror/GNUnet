@@ -960,7 +960,7 @@ process_ack (struct GNUNET_MESH_Handle *h,
 }
 
 
-/**
+/*
  * Process a local reply about info on all channels, pass info to the user.
  *
  * @param h Mesh handle.
@@ -1000,7 +1000,7 @@ process_ack (struct GNUNET_MESH_Handle *h,
 
 
 
-/**
+/*
  * Process a local monitor_channel reply, pass info to the user.
  *
  * @param h Mesh handle.
