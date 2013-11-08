@@ -506,7 +506,7 @@ message_sent (void *cls,
   fc = fwd ? &c->fwd_fc : &c->bck_fc;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "!  sent %s\n", GNUNET_MESH_DEBUG_M2S (type));
   LOG (GNUNET_ERROR_TYPE_DEBUG, "!  C_P- %p %u\n", c, c->pending_messages);
-  if (NULL != q->cont)
+  if (NULL != q && NULL != q->cont)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "!  calling cont\n");
     q->cont (q->cont_cls, c, q, type, fwd, size);
@@ -2373,8 +2373,8 @@ GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
       LOG (GNUNET_ERROR_TYPE_DEBUG, "  Q_N+ %p %u\n", fc, fc->queue_n);
       fc->queue_n++;
       LOG (GNUNET_ERROR_TYPE_DEBUG, "pid %u\n", ntohl (emsg->pid));
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "last pid %u\n", fc->last_pid_sent);
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "     ack %u\n", fc->last_ack_recv);
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "last pid sent %u\n", fc->last_pid_sent);
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "     ack recv %u\n", fc->last_ack_recv);
       if (GMC_is_pid_bigger (fc->last_pid_sent + 1, fc->last_ack_recv))
       {
         GMC_start_poll (c, fwd);
