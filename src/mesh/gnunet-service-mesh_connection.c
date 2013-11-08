@@ -506,10 +506,13 @@ message_sent (void *cls,
   fc = fwd ? &c->fwd_fc : &c->bck_fc;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "!  sent %s\n", GNUNET_MESH_DEBUG_M2S (type));
   LOG (GNUNET_ERROR_TYPE_DEBUG, "!  C_P- %p %u\n", c, c->pending_messages);
-  if (NULL != q && NULL != q->cont)
+  if (NULL != q)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "!  calling cont\n");
-    q->cont (q->cont_cls, c, q, type, fwd, size);
+    if (NULL != q->cont)
+    {
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "!  calling cont\n");
+      q->cont (q->cont_cls, c, q, type, fwd, size);
+    }
     GNUNET_free (q);
   }
   c->pending_messages--;
@@ -2439,6 +2442,7 @@ GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   q = GNUNET_new (struct MeshConnectionQueue);
   q->q = GMP_queue_add (get_hop (c, fwd), data, type, size, c, fwd,
                         &message_sent, q);
+  GNUNET_assert (NULL != q->q);
   q->cont = cont;
   q->cont_cls = cont_cls;
   return q;
@@ -2462,10 +2466,9 @@ void
 GMC_cancel (struct MeshConnectionQueue *q)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG, "!  GMC cancel message\n");
-  /* queue destroy calls message_sent, which calls q->cont */
-  GMP_queue_destroy (q->q, GNUNET_YES);
 
-  GNUNET_free (q);
+  /* queue destroy calls message_sent, which calls q->cont and frees q */
+  GMP_queue_destroy (q->q, GNUNET_YES);
 }
 
 
