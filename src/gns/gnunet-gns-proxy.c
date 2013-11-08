@@ -1485,7 +1485,6 @@ create_response (void *cls,
                  size_t *upload_data_size,
                  void **con_cls)
 {
-  /* struct MhdHttpList* hd = cls;  */
   struct Socks5Request *s5r = *con_cls;
   char *curlurl;
   char ipstring[INET6_ADDRSTRLEN];
