@@ -1437,9 +1437,7 @@ GNUNET_CRYPTO_ecc_ecdh (const struct GNUNET_CRYPTO_EcdhePrivateKey *priv,
   GNUNET_assert (0 ==
                  gcry_mpi_print (GCRYMPI_FMT_STD, xbuf, rsize, &rsize,
                                  result_x));
-  GNUNET_assert (rsize == sizeof (xbuf));
-  mpi_print (xbuf, sizeof (xbuf), result_x);
-  GNUNET_CRYPTO_hash (xbuf, sizeof (xbuf), key_material);
+  GNUNET_CRYPTO_hash (xbuf, rsize, key_material);
   gcry_mpi_release (result_x);
   return GNUNET_OK;
 }
