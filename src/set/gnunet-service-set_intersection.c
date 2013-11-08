@@ -104,6 +104,11 @@ struct OperationState
    * Maps element-id-hashes to 'elements in our set'.
    */
   struct GNUNET_CONTAINER_MultiHashMap *contained_elements;
+  
+  /**
+   * Current element count contained within contained_elements
+   */
+  uint64_t contained_elements_count;
 
   /**
    * Iterator for sending elements on the key to element mapping to the client.
@@ -357,7 +362,7 @@ send_client_done_and_destroy (struct OperationState *eo)
  * @param eo intersection operation
  */
 static void
-send_bloomfilter (struct OperationState *eo){
+send_bloomfilter (struct Operation *op){
   //get number of all elements still in the set
   
   // send the bloomfilter
@@ -368,6 +373,8 @@ send_bloomfilter (struct OperationState *eo){
   // create new bloomfilter for all our elements & count elements
   //GNUNET_CONTAINER_multihashmap32_remove
   //eo->local_bf = GNUNET_CONTAINER_multihashmap32_iterate(eo->set->elements, add);
+  
+  op->state->local_bf;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "sending bf of size %u\n", 1<<ibf_order);
 
@@ -397,7 +404,7 @@ send_bloomfilter (struct OperationState *eo){
     GNUNET_MQ_send (eo->mq, ev);
   }
 
-  eo->phase = PHASE_EXPECT_BF;
+  eo->phase = PHASE_BF_EXCHANGE;
 }
 
 /**
@@ -452,6 +459,72 @@ intersection_evaluate (struct Operation *op)
 
 
 /**
+ * fills the contained-elements hashmap with all relevant 
+ * elements and adds their mutated hashes to our local bloomfilter
+ * 
+ * @param cls closure
+ * @param key current key code
+ * @param value value in the hash map
+ * @return #GNUNET_YES if we should continue to
+ *         iterate,
+ *         #GNUNET_NO if not.
+ */
+static int intersection_iterator_set_to_contained (void *cls,
+                                      const struct GNUNET_HashCode *key,
+                                      void *value){
+  struct ElementEntry *ee = value;
+  struct Operation *op = cls;
+  struct GNUNET_HashCode mutated_hash;
+  
+  //only consider this element, if it is valid for us
+  if ((op->generation_created >= ee->generation_removed) 
+       || (op->generation_created < ee->generation_added))
+    return GNUNET_YES;
+  
+  GNUNET_CONTAINER_multihashmap_put (op->state->contained_elements, 
+                                     &ee->element_hash, ee,
+                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+  
+  op->state->contained_elements_count++;
+  
+  GNUNET_BLOCK_mingle_hash(&ee->element_hash, op->spec->salt, &mutated_hash);
+  
+  GNUNET_CONTAINER_bloomfilter_add (op->state->local_bf, 
+                                    &mutated_hash);
+  
+  return GNUNET_YES;
+}
+
+
+/**
+ * @param cls closure
+ * @param key current key code
+ * @param value value in the hash map
+ * @return #GNUNET_YES if we should continue to
+ *         iterate,
+ *         #GNUNET_NO if not.
+ */
+static int intersection_iterator_element_removal (void *cls,
+                                      const struct GNUNET_HashCode *key,
+                                      void *value){
+  struct ElementEntry *ee = value;
+  struct Operation *op = cls;
+  struct GNUNET_HashCode mutated_hash;
+  
+  GNUNET_BLOCK_mingle_hash(&ee->element_hash, op->spec->salt, &mutated_hash);
+  
+  if (GNUNET_NO == GNUNET_CONTAINER_bloomfilter_test (op->state->remote_bf, 
+                                     &mutated_hash)){
+    op->state->contained_elements_count--;
+    GNUNET_CONTAINER_multihashmap_remove (op->state->contained_elements, 
+                                     &ee->element_hash,
+                                     ee);
+  }
+  
+  return GNUNET_YES;
+}
+
+/**
  * Accept an union operation request from a remote peer.
  * Only initializes the private operation state.
  *
@@ -464,6 +537,13 @@ intersection_accept (struct Operation *op)
   op->state = GNUNET_new (struct OperationState);
   
   op->state->contained_elements = GNUNET_CONTAINER_multihashmap_create(1, GNUNET_YES);
+  
+  GNUNET_CONTAINER_multihashmap_iterate(op->spec->set->elements, 
+                                        &intersection_iterator_set_to_contained,
+                                        op);
+  
+  
+  op->state->local_bf = GNUNET_CONTAINER_bloomfilter_init(NULL, sizeof(struct GNUNET_HashCode), GNUNET_CONSTANTS_BLOOMFILTER_K);
   
   if (NULL != op->state->remote_bf){
     // run the set through the remote bloomfilter
