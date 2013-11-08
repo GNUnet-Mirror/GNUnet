@@ -835,11 +835,12 @@ connection_poll (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   LOG (GNUNET_ERROR_TYPE_DEBUG, " *** Polling!\n");
   LOG (GNUNET_ERROR_TYPE_DEBUG, " *** connection [%s]\n", GMC_2s (c));
   LOG (GNUNET_ERROR_TYPE_DEBUG, " ***   %s\n",
-              fc == &c->fwd_fc ? "FWD" : "BCK");
+       fc == &c->fwd_fc ? "FWD" : "BCK");
 
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_POLL);
   msg.header.size = htons (sizeof (msg));
-  LOG (GNUNET_ERROR_TYPE_DEBUG, " *** pid (%u)!\n", fc->last_pid_sent);
+  msg.pid = htonl (fc->last_pid_sent);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, " *** last pid sent: %u!\n", fc->last_pid_sent);
   GMC_send_prebuilt_message (&msg.header, c, fc == &c->fwd_fc);
   fc->poll_time = GNUNET_TIME_STD_BACKOFF (fc->poll_time);
   fc->poll_task = GNUNET_SCHEDULER_add_delayed (fc->poll_time,
@@ -1702,8 +1703,9 @@ GMC_handle_poll (void *cls, const struct GNUNET_PeerIdentity *peer,
   int fwd;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "\n\n");
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Got a POLL packet from %s!\n",
-              GNUNET_i2s (peer));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Got a POLL packet from %s!\n",
+       GNUNET_i2s (peer));
 
   msg = (struct GNUNET_MESH_Poll *) message;
 
@@ -2282,7 +2284,6 @@ GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
     case GNUNET_MESSAGE_TYPE_MESH_POLL:
       pmsg = (struct GNUNET_MESH_Poll *) data;
       pmsg->cid = c->id;
-      pmsg->pid = htonl (fwd ? c->fwd_fc.last_pid_sent : c->bck_fc.last_pid_sent);
       LOG (GNUNET_ERROR_TYPE_DEBUG, " poll %u\n", ntohl (pmsg->pid));
       droppable = GNUNET_NO;
       break;
