@@ -332,7 +332,7 @@ identity_master_cb (void *cls,
   if (NULL == ego)
   {
     fprintf (stderr,
-	     _("Ego for `master-zone' not found, cannot perform lookup.  Did you run gnunet-gns-import.sh?\n"));
+	     _("Ego for `gns-master' not found, cannot perform lookup.  Did you run gnunet-gns-import.sh?\n"));
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
@@ -403,7 +403,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   else
   {
     id_op = GNUNET_IDENTITY_get (identity,
-				 "master-zone",
+				 "gns-master",
 				 &identity_master_cb,
 				 NULL);
     GNUNET_assert (NULL != id_op);
