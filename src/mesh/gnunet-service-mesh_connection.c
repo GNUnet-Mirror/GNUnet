@@ -2442,7 +2442,12 @@ GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   q = GNUNET_new (struct MeshConnectionQueue);
   q->q = GMP_queue_add (get_hop (c, fwd), data, type, size, c, fwd,
                         &message_sent, q);
-  GNUNET_assert (NULL != q->q);
+  if (NULL == q->q)
+  {
+    GNUNET_break (0);
+    GNUNET_free (q);
+    return NULL;
+  }
   q->cont = cont;
   q->cont_cls = cont_cls;
   return q;
