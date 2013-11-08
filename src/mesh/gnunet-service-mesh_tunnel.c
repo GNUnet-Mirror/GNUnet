@@ -2007,6 +2007,7 @@ GMT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   switch (type)
   {
     case GNUNET_MESSAGE_TYPE_MESH_DATA:
+    case GNUNET_MESSAGE_TYPE_MESH_DATA_ACK:
     case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_CREATE:
     case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_DESTROY:
     case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_ACK:

@@ -1629,7 +1629,8 @@ GMCH_handle_data_ack (struct MeshChannel *ch,
       GNUNET_break (0);
       return;
     }
-    fwd = (NULL != ch->dest) ? GNUNET_YES : GNUNET_NO;
+    /* Inverted: if message came 'FWD' is a 'BCK ACK'. */
+    fwd = (NULL != ch->dest) ? GNUNET_NO : GNUNET_YES;
   }
 
   ack = ntohl (msg->mid);
@@ -1646,7 +1647,7 @@ GMCH_handle_data_ack (struct MeshChannel *ch,
   }
   if (NULL == rel)
   {
-    GNUNET_break (0);
+    GNUNET_break_op (0);
     return;
   }
 

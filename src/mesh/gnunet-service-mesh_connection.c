@@ -445,7 +445,6 @@ message_sent (void *cls,
 
   fc = fwd ? &c->fwd_fc : &c->bck_fc;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "!  sent %s\n", GNUNET_MESH_DEBUG_M2S (type));
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "!  Q_N- %p %u\n", fc, fc->queue_n);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "!  C_P- %p %u\n", c, c->pending_messages);
   c->pending_messages--;
   if (GNUNET_YES == c->destroy && 0 == c->pending_messages)
@@ -459,6 +458,7 @@ message_sent (void *cls,
   {
     case GNUNET_MESSAGE_TYPE_MESH_ENCRYPTED:
       fc->last_pid_sent++;
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "!  Q_N- %p %u\n", fc, fc->queue_n);
       fc->queue_n--;
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            "!   accounting pid %u\n",
@@ -604,6 +604,7 @@ send_connection_ack (struct MeshConnection *connection, int fwd)
                  GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK,
                  sizeof (struct GNUNET_MESH_ConnectionACK),
                  connection, fwd, &message_sent, NULL);
+  connection->pending_messages++;
   if (MESH_TUNNEL3_NEW == GMT_get_state (t))
     GMT_change_state (t, MESH_TUNNEL3_WAITING);
   if (MESH_CONNECTION_READY != connection->state)
@@ -1724,12 +1725,12 @@ GMC_handle_poll (void *cls, const struct GNUNET_PeerIdentity *peer,
   id = GNUNET_PEER_search (peer);
   if (GMP_get_short_id (get_next_hop (c)) == id)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  FWD ACK\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  FWD FC\n");
     fc = &c->fwd_fc;
   }
   else if (GMP_get_short_id (get_prev_hop (c)) == id)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  BCK ACK\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  BCK FC\n");
     fc = &c->bck_fc;
   }
   else
@@ -1739,10 +1740,9 @@ GMC_handle_poll (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
 
   pid = ntohl (msg->pid);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  PID %u, OLD %u\n",
-              pid, fc->last_pid_recv);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  PID %u, OLD %u\n", pid, fc->last_pid_recv);
   fc->last_pid_recv = pid;
-  fwd = fc == &c->fwd_fc;
+  fwd = fc == &c->bck_fc;
   GMC_send_ack (c, fwd);
 
   return GNUNET_OK;
@@ -2230,7 +2230,7 @@ GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   data = GNUNET_malloc (size);
   memcpy (data, message, size);
   type = ntohs (message->type);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Send %s (%u) on connection %s\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Send %s (%u bytes) on connection %s\n",
               GNUNET_MESH_DEBUG_M2S (type), size, GMC_2s (c));
 
   fc = fwd ? &c->fwd_fc : &c->bck_fc;

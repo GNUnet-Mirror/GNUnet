@@ -1008,26 +1008,15 @@ GMP_queue_add (struct MeshPeer *peer, void *cls, uint16_t type, size_t size,
   queue->fwd = fwd;
   queue->callback = cont;
   queue->callback_cls = cont_cls;
-  if (100 <= priority)
-  {
-    struct MeshPeerQueue *copy;
-    struct MeshPeerQueue *next;
-
-    for (copy = peer->queue_head; NULL != copy; copy = next)
-    {
-      next = copy->next;
-      if (copy->type == type && copy->c == c && copy->fwd == fwd)
-      {
-        /* Example: also a FWD ACK for connection XYZ */
-        queue_destroy (copy, GNUNET_YES);
-      }
-    }
-    GNUNET_CONTAINER_DLL_insert (peer->queue_head, peer->queue_tail, queue);
-  }
-  else
+  if (100 > priority)
   {
     GNUNET_CONTAINER_DLL_insert_tail (peer->queue_head, peer->queue_tail, queue);
     peer->queue_n++;
+  }
+  else
+  {
+    GNUNET_CONTAINER_DLL_insert (peer->queue_head, peer->queue_tail, queue);
+    call_core = GNUNET_YES;
   }
 
   if (NULL == peer->core_transmit && GNUNET_YES == call_core)
