@@ -1255,8 +1255,31 @@ GMCH_send_data_ack (struct MeshChannel *ch, int fwd)
 void
 GMCH_allow_client (struct MeshChannel *ch, int fwd)
 {
+  struct MeshChannelReliability *rel;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "GMCH allow\n");
+
   if (MESH_CHANNEL_READY != ch->state)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " not ready yet!\n");
     return;
+  }
+
+  if (GNUNET_YES == ch->reliable)
+  {
+    rel = fwd ? ch->root_rel : ch->dest_rel;
+    if (NULL == rel)
+    {
+      GNUNET_break (0);
+      return;
+    }
+    if (64 <= rel->n_sent)
+    {
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           " too many pending messages! Wait for ACK.\n");
+      return;
+    }
+  }
 
   send_client_ack (ch, fwd);
 }
