@@ -660,7 +660,8 @@ send_kx (struct MeshTunnel3 *t,
   }
 
   fwd = GMC_is_origin (t->connection_head->c, GNUNET_YES);
-  GMC_send_prebuilt_message (&msg->header, c, fwd);
+  /* TODO save handle and cancel in case of a unneeded retransmission */
+  GMC_send_prebuilt_message (&msg->header, c, fwd, NULL, NULL);
 }
 
 
@@ -2021,7 +2022,8 @@ GMT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   }
 
   fwd = GMC_is_origin (c, GNUNET_YES);
-  GMC_send_prebuilt_message (&msg->header, c, fwd);
+  /* FIXME allow channels to cancel */
+  GMC_send_prebuilt_message (&msg->header, c, fwd, NULL, NULL);
 }
 
 /**

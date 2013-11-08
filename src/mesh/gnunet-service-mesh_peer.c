@@ -743,67 +743,6 @@ search_handler (void *cls, const struct MeshPeerPath *path)
 
 
 /**
- * Free a transmission that was already queued with all resources
- * associated to the request.
- *
- * @param queue Queue handler to cancel.
- * @param clear_cls Is it necessary to free associated cls?
- */
-static void
-queue_destroy (struct MeshPeerQueue *queue, int clear_cls)
-{
-  struct MeshPeer *peer;
-
-  peer = queue->peer;
-  GNUNET_assert (NULL != queue->c);
-
-  if (GNUNET_YES == clear_cls)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "#   queue destroy type %s\n",
-                GNUNET_MESH_DEBUG_M2S (queue->type));
-    switch (queue->type)
-    {
-      case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_DESTROY:
-      case GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY:
-        LOG (GNUNET_ERROR_TYPE_INFO, "destroying a DESTROY message\n");
-        /* fall through */
-      case GNUNET_MESSAGE_TYPE_MESH_ENCRYPTED:
-      case GNUNET_MESSAGE_TYPE_MESH_ACK:
-      case GNUNET_MESSAGE_TYPE_MESH_POLL:
-      case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK:
-      case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE:
-      case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_BROKEN:
-        LOG (GNUNET_ERROR_TYPE_DEBUG, "#   prebuilt message\n");;
-        GNUNET_free_non_null (queue->cls);
-        break;
-
-      default:
-        GNUNET_break (0);
-        LOG (GNUNET_ERROR_TYPE_ERROR, "#   type %s unknown!\n",
-                    GNUNET_MESH_DEBUG_M2S (queue->type));
-    }
-  }
-  GNUNET_CONTAINER_DLL_remove (peer->queue_head, peer->queue_tail, queue);
-
-  if (queue->type != GNUNET_MESSAGE_TYPE_MESH_ACK &&
-      queue->type != GNUNET_MESSAGE_TYPE_MESH_POLL)
-  {
-    peer->queue_n--;
-  }
-
-  if (NULL != queue->callback)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "#   Calling callback\n");
-    queue->callback (queue->callback_cls,
-                     queue->c, queue->type,
-                     queue->fwd, queue->size,
-                     GNUNET_TIME_absolute_get_duration (queue->start_waiting));
-  }
-
-  GNUNET_free (queue);
-}
-
-/**
  * Core callback to write a queued packet to core buffer
  *
  * @param cls Closure (peer info).
@@ -912,7 +851,7 @@ queue_send (void *cls, size_t size, void *buf)
   }
 
   /* Free queue, but cls was freed by send_core_* */
-  queue_destroy (queue, GNUNET_NO);
+  GMP_queue_destroy (queue, GNUNET_NO);
 
   /* If more data in queue, send next */
   queue = peer_get_first_message (peer);
@@ -953,6 +892,69 @@ queue_send (void *cls, size_t size, void *buf)
 /********************************    API    ***********************************/
 /******************************************************************************/
 
+
+/**
+ * Free a transmission that was already queued with all resources
+ * associated to the request.
+ *
+ * @param queue Queue handler to cancel.
+ * @param clear_cls Is it necessary to free associated cls?
+ */
+void
+GMP_queue_destroy (struct MeshPeerQueue *queue, int clear_cls)
+{
+  struct MeshPeer *peer;
+
+  peer = queue->peer;
+  GNUNET_assert (NULL != queue->c);
+
+  if (GNUNET_YES == clear_cls)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "#   queue destroy type %s\n",
+                GNUNET_MESH_DEBUG_M2S (queue->type));
+    switch (queue->type)
+    {
+      case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_DESTROY:
+      case GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY:
+        LOG (GNUNET_ERROR_TYPE_INFO, "destroying a DESTROY message\n");
+        /* fall through */
+      case GNUNET_MESSAGE_TYPE_MESH_ENCRYPTED:
+      case GNUNET_MESSAGE_TYPE_MESH_ACK:
+      case GNUNET_MESSAGE_TYPE_MESH_POLL:
+      case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK:
+      case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE:
+      case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_BROKEN:
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "#   prebuilt message\n");;
+        GNUNET_free_non_null (queue->cls);
+        break;
+
+      default:
+        GNUNET_break (0);
+        LOG (GNUNET_ERROR_TYPE_ERROR, "#   type %s unknown!\n",
+                    GNUNET_MESH_DEBUG_M2S (queue->type));
+    }
+  }
+  GNUNET_CONTAINER_DLL_remove (peer->queue_head, peer->queue_tail, queue);
+
+  if (queue->type != GNUNET_MESSAGE_TYPE_MESH_ACK &&
+      queue->type != GNUNET_MESSAGE_TYPE_MESH_POLL)
+  {
+    peer->queue_n--;
+  }
+
+  if (NULL != queue->callback)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "#   Calling callback\n");
+    queue->callback (queue->callback_cls,
+                     queue->c, queue->type,
+                     queue->fwd, queue->size,
+                     GNUNET_TIME_absolute_get_duration (queue->start_waiting));
+  }
+
+  GNUNET_free (queue);
+}
+
+
 /**
  * @brief Queue and pass message to core when possible.
  *
@@ -965,8 +967,11 @@ queue_send (void *cls, size_t size, void *buf)
  * @param fwd Is this a message going root->dest? (FWD ACK are NOT FWD!)
  * @param cont Continuation to be called once CORE has taken the message.
  * @param cont_cls Closure for @c cont.
+ *
+ * @return Handle to cancel the message before it is sent. Once cont is called
+ *         message has been sent and therefore the handle is no longer valid.
  */
-void
+struct MeshPeerQueue *
 GMP_queue_add (struct MeshPeer *peer, void *cls, uint16_t type, size_t size,
                struct MeshConnection *c, int fwd,
                GMP_sent cont, void *cont_cls)
@@ -985,7 +990,7 @@ GMP_queue_add (struct MeshPeer *peer, void *cls, uint16_t type, size_t size,
   {
     /* We are not connected to this peer, ignore request. */
     GNUNET_break_op (0);
-    return;
+    return NULL;
   }
 
   priority = 0;
@@ -1042,6 +1047,7 @@ GMP_queue_add (struct MeshPeer *peer, void *cls, uint16_t type, size_t size,
                 GMP_2s (peer));
 
   }
+  return queue;
 }
 
 
@@ -1067,7 +1073,7 @@ GMP_queue_cancel (struct MeshPeer *peer, struct MeshConnection *c)
       LOG (GNUNET_ERROR_TYPE_DEBUG,
                   "GMP_cancel_queue %s\n",
                   GNUNET_MESH_DEBUG_M2S (q->type));
-      queue_destroy (q, GNUNET_YES);
+      GMP_queue_destroy (q, GNUNET_YES);
 
       /* Get next from prev, q->next might be already freed:
        * queue destroy -> callback -> GMC_destroy -> cancel_queues -> here

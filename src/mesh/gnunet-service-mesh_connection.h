@@ -72,11 +72,30 @@ enum MeshConnectionState
  */
 struct MeshConnection;
 
+/**
+ * Handle for messages queued but not yet sent.
+ */
+struct MeshConnectionQueue;
+
 #include "mesh_path.h"
 #include "gnunet-service-mesh_channel.h"
 #include "gnunet-service-mesh_peer.h"
 
 
+
+/**
+ * Callback called when a queued message is sent.
+ *
+ * @param cls Closure.
+ * @param c Connection this message was on.
+ * @param type Type of message sent.
+ * @param fwd Was this a FWD going message?
+ * @param size Size of the message.
+ */
+typedef void (*GMC_sent) (void *cls,
+                          struct MeshConnection *c,
+                          struct MeshConnectionQueue *q,
+                          uint16_t type, int fwd, size_t size);
 
 /**
  * Core handler for connection creation.
@@ -211,10 +230,11 @@ GMC_handle_keepalive (void *cls, const struct GNUNET_PeerIdentity *peer,
  * the direction and the position of the peer.
  *
  * @param c Which connection to send the hop-by-hop ACK.
- * @param fwd Is this a fwd ACK? (will go dest->root)
+ * @param fwd Is this a fwd ACK? (will go dest->root).
+ * @param force Send the ACK even if suboptimal (e.g. requested by POLL).
  */
 void
-GMC_send_ack (struct MeshConnection *c, int fwd);
+GMC_send_ack (struct MeshConnection *c, int fwd, int force);
 
 /**
  * Initialize the connections subsystem
@@ -408,6 +428,22 @@ int
 GMC_is_sendable (struct MeshConnection *c, int fwd);
 
 /**
+ * Cancel a previously sent message while it's in the queue.
+ *
+ * ONLY can be called before the continuation given to the send function
+ * is called. Once the continuation is called, the message is no longer in the
+ * queue.
+ *
+ * If the send function was given no continuation, GMC_cancel should
+ * NOT be called, since it's not possible to determine if the message has
+ * already been sent.
+ *
+ * @param q Handle to the queue.
+ */
+void
+GMC_cancel (struct MeshConnectionQueue *q);
+
+/**
  * Sends an already built message on a connection, properly registering
  * all used resources.
  *
@@ -415,11 +451,16 @@ GMC_is_sendable (struct MeshConnection *c, int fwd);
  *                If message is not hop-by-hop, decrements TTL of copy.
  * @param c Connection on which this message is transmitted.
  * @param fwd Is this a fwd message?
+ * @param cont Continuation called once message is sent. Can be NULL.
+ * @param cont_cls Closure for @c cont.
+ *
+ * @return Handle to cancel the message before it's sent. NULL on error.
+ *         Invalid on @c cont call.
  */
-void
+struct MeshConnectionQueue *
 GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
-                           struct MeshConnection *c,
-                           int fwd);
+                           struct MeshConnection *c, int fwd,
+                           GMC_sent cont, void *cont_cls);
 
 /**
  * Sends a CREATE CONNECTION message for a path to a peer.

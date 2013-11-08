@@ -45,6 +45,11 @@ extern "C"
  */
 struct MeshPeer;
 
+/**
+ * Struct containing info about a queued transmission to this peer
+ */
+struct MeshPeerQueue;
+
 #include "gnunet-service-mesh_connection.h"
 
 /**
@@ -115,6 +120,16 @@ void
 GMP_connect (struct MeshPeer *peer);
 
 /**
+ * Free a transmission that was already queued with all resources
+ * associated to the request.
+ *
+ * @param queue Queue handler to cancel.
+ * @param clear_cls Is it necessary to free associated cls?
+ */
+void
+GMP_queue_destroy (struct MeshPeerQueue *queue, int clear_cls);
+
+/**
  * @brief Queue and pass message to core when possible.
  *
  * @param peer Peer towards which to queue the message.
@@ -126,8 +141,11 @@ GMP_connect (struct MeshPeer *peer);
  * @param fwd Is this a message going root->dest? (FWD ACK are NOT FWD!)
  * @param cont Continuation to be called once CORE has taken the message.
  * @param cont_cls Closure for @c cont.
+ *
+ * @return Handle to cancel the message before it is sent. Once cont is called
+ *         message has been sent and therefore the handle is no longer valid.
  */
-void
+struct MeshPeerQueue *
 GMP_queue_add (struct MeshPeer *peer, void *cls, uint16_t type, size_t size,
                struct MeshConnection *c, int fwd,
                GMP_sent cont, void *cont_cls);
