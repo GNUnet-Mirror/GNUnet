@@ -108,7 +108,7 @@ struct OperationState
   /**
    * Current element count contained within contained_elements
    */
-  uint64_t contained_elements_count;
+  uint32_t contained_elements_count;
 
   /**
    * Iterator for sending elements on the key to element mapping to the client.
@@ -353,6 +353,7 @@ send_client_done_and_destroy (struct OperationState *eo)
   intersection_operation_destroy (eo);
 }
 
+
 /**
  * Send a bloomfilter to our peer.
  * that the operation is over.
@@ -362,49 +363,27 @@ send_client_done_and_destroy (struct OperationState *eo)
  * @param eo intersection operation
  */
 static void
-send_bloomfilter (struct Operation *op){
-  //get number of all elements still in the set
-  
-  // send the bloomfilter
-  unsigned int buckets_sent = 0;
+send_bloomfilter (struct Operation *op)
+{
   struct BloomFilter *bf;
-  //TODO:
-  // add all our elements to the bloomfilter
-  // create new bloomfilter for all our elements & count elements
-  //GNUNET_CONTAINER_multihashmap32_remove
-  //eo->local_bf = GNUNET_CONTAINER_multihashmap32_iterate(eo->set->elements, add);
+  struct GNUNET_MQ_Envelope *ev;
+  struct BFMessage *msg;
   
-  op->state->local_bf;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "sending bf of size %u\n", 1<<ibf_order);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "sending bf of size %u\n", );
+  
+  ev = GNUNET_MQ_msg(msg, GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_BF);
+  msg->reserved = 0;
+  msg->sender_mutator = htonl (op->spec->salt);
+  msg->sender_element_count = htonl (op->state->contained_elements_count);
+  GNUNET_assert(GNUNET_SYSERR != GNUNET_CONTAINER_bloomfilter_get_raw_data(
+          op->state->local_bf, 
+          &msg->bf_data,
+          GNUNET_CRYPTO_HASH_LENGTH));
+  
+  GNUNET_MQ_send (op->mq, ev);
 
-  bf = eo->local_bf;
-
-  while (buckets_sent < (1 << bf_order))
-  {
-    unsigned int buckets_in_message;
-    struct GNUNET_MQ_Envelope *ev;
-    struct IBFMessage *msg;
-
-    buckets_in_message = (1 << bf_order) - buckets_sent;
-    /* limit to maximum */
-    if (buckets_in_message > MAX_BUCKETS_PER_MESSAGE)
-      buckets_in_message = MAX_BUCKETS_PER_MESSAGE;
-
-    ev = GNUNET_MQ_msg_extra (msg, buckets_in_message * IBF_BUCKET_SIZE,
-                               GNUNET_MESSAGE_TYPE_SET_P2P_BF);
-    msg->reserved = 0;
-    msg->order = bf_order;
-    msg->offset = htons (buckets_sent);
-    ibf_write_slice (ibf, buckets_sent,
-                     buckets_in_message, &msg[1]);
-    buckets_sent += buckets_in_message;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ibf chunk size %u, %u/%u sent\n",
-                buckets_in_message, buckets_sent, 1<<ibf_order);
-    GNUNET_MQ_send (eo->mq, ev);
-  }
-
-  eo->phase = PHASE_BF_EXCHANGE;
+  op->state->phase = PHASE_BF_EXCHANGE;
 }
 
 /**
@@ -616,22 +595,13 @@ intersection_accept (struct Operation *op)
   op->state = GNUNET_new (struct OperationState);
   
   op->state->contained_elements = GNUNET_CONTAINER_multihashmap_create(1, GNUNET_YES);
+  op->state-> = GNUNET_CONTAINER_multihashmap_create(1, GNUNET_YES);
+  
+  op->state->local_bf = GNUNET_CONTAINER_bloomfilter_init(NULL, , GNUNET_CONSTANTS_BLOOMFILTER_K);
   
   GNUNET_CONTAINER_multihashmap_iterate(op->spec->set->elements, 
                                         &intersection_iterator_set_to_contained_bob,
                                         op);
-  
-  
-  op->state->local_bf = GNUNET_CONTAINER_bloomfilter_init(NULL, sizeof(struct GNUNET_HashCode), GNUNET_CONSTANTS_BLOOMFILTER_K);
-  
-  if (NULL != op->state->remote_bf){
-    // run the set through the remote bloomfilter
-    ;
-  }
-  
-  // 
-  op->state->local_bf;
-  
   /* kick off the operation */
   send_bloomfilter (op);
 }

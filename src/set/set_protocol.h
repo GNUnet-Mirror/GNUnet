@@ -101,21 +101,19 @@ struct BFMessage
   uint8_t reserved;
 
   /**
-   * Offset of the bloomfilter in the rest of the message
-   */
-  uint16_t offset GNUNET_PACKED;
-
-  /**
    * mutator used with this bloomfilter.
    */
-  uint64_t my_element_count;
+  uint64_t sender_element_count;
   
   /**
    * mutator used with this bloomfilter.
    */
-  uint32_t my_mutator;
+  uint32_t sender_mutator;
 
-  /* rest: bloomfilter */
+  /**
+   * the sender's bloomfilter
+   */
+  char sender_bf_data[GNUNET_CRYPTO_HASH_LENGTH];
 };
 
 GNUNET_NETWORK_STRUCT_END
