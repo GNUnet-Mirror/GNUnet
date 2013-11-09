@@ -970,9 +970,9 @@ GNUNET_IDENTITY_disconnect (struct GNUNET_IDENTITY_Handle *h)
     GNUNET_CONTAINER_multihashmap_destroy (h->egos);
     h->egos = NULL;
   }
-  GNUNET_break (NULL == h->op_head);
   while (NULL != (op = h->op_head))
   {
+    GNUNET_break (NULL == op->cont);
     GNUNET_CONTAINER_DLL_remove (h->op_head,
 				 h->op_tail,
 				 op);
