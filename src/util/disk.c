@@ -289,7 +289,7 @@ GNUNET_DISK_file_seek (const struct GNUNET_DISK_FileHandle * h, off_t offset,
 int
 GNUNET_DISK_file_size (const char *filename,
 		       uint64_t * size,
-                       int include_symbolic_links, 
+                       int include_symbolic_links,
 		       int single_file_mode)
 {
   struct GetFileSizeData gfsd;
@@ -1385,7 +1385,7 @@ GNUNET_DISK_directory_iterator_start (enum GNUNET_SCHEDULER_Priority prio,
  *
  * @param unused not used
  * @param fn directory to remove
- * @return GNUNET_OK
+ * @return #GNUNET_OK
  */
 static int
 remove_helper (void *unused, const char *fn)
@@ -1399,15 +1399,19 @@ remove_helper (void *unused, const char *fn)
  * Remove all files in a directory (rm -rf). Call with
  * caution.
  *
- *
  * @param filename the file to remove
- * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
 GNUNET_DISK_directory_remove (const char *filename)
 {
   struct stat istat;
 
+  if (NULL == filename)
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
   if (0 != LSTAT (filename, &istat))
     return GNUNET_NO;           /* file may not exist... */
   (void) CHMOD (filename, S_IWUSR | S_IRUSR | S_IXUSR);
