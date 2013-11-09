@@ -196,7 +196,8 @@ report_uri (void *cls,
 		    ? po->publish_tmp_file
 		    : NULL);
   GNUNET_FS_uri_destroy (po->publish_uri);
-  if (GNUNET_YES != po->do_index)
+  if ( (GNUNET_YES != po->do_index) &&
+       (NULL != po->publish_tmp_file) )
     (void) GNUNET_DISK_directory_remove (po->publish_tmp_file);
   GNUNET_free_non_null (po->publish_tmp_file);
   GNUNET_free (po);
