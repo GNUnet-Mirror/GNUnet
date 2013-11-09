@@ -265,6 +265,7 @@ lookup_with_public_key (const struct GNUNET_CRYPTO_EcdsaPublicKey *pkey)
   GNUNET_assert (NULL != pkey);
   pkeym = GNUNET_new (struct GNUNET_CRYPTO_EcdsaPublicKey);
   *pkeym = *pkey;
+  GNUNET_break (NULL == id_op);
   id_op = GNUNET_IDENTITY_get (identity,
 			       "gns-short",
 			       &identity_shorten_cb,
@@ -402,6 +403,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   }
   else
   {
+    GNUNET_break (NULL == id_op);
     id_op = GNUNET_IDENTITY_get (identity,
 				 "gns-master",
 				 &identity_master_cb,
