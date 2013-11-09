@@ -573,8 +573,8 @@ receive_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   char mbuf[msize];
   struct GNUNET_MessageHeader *msg = (struct GNUNET_MessageHeader *) mbuf;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Received message of type %u and size %u\n",
-       ntohs (cmsg->type), msize);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Received message of type %u and size %u from %s service.\n",
+       ntohs (cmsg->type), msize, client->service_name);
   client->receive_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_assert (GNUNET_YES == client->msg_complete);
   GNUNET_assert (client->received_pos >= msize);
@@ -1148,6 +1148,14 @@ client_notify (void *cls, size_t size, void *buf)
   GNUNET_assert (size >= th->size);
   ret = th->notify (th->notify_cls, size, buf);
   GNUNET_free (th);
+  if (sizeof (struct GNUNET_MessageHeader) <= ret)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Transmitting message of type %u and size %u to %s service.\n",
+         ntohs (((struct GNUNET_MessageHeader *) buf)->type),
+         ntohs (((struct GNUNET_MessageHeader *) buf)->size),
+         client->service_name);
+  }
   return ret;
 }
 
