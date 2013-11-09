@@ -69,12 +69,12 @@ struct GNUNET_PSYC_Channel
   /**
    * Head of operations to transmit.
    */
-  struct OperationHandle *transmit_head;
+  struct OperationHandle *tmit_head;
 
   /**
    * Tail of operations to transmit.
    */
-  struct OperationHandle *transmit_tail;
+  struct OperationHandle *tmit_tail;
 
   /**
    * Message to send on reconnect.
@@ -116,6 +116,16 @@ struct GNUNET_PSYC_Channel
    * Buffer space available for transmitting the next data fragment.
    */
   uint16_t tmit_buf_avail;
+
+  /**
+   * Is transmission paused?
+   */
+  uint8_t tmit_paused;
+
+  /**
+   * Are we still waiting for a PSYC_TRANSMIT_ACK?
+   */
+  uint8_t tmit_ack_pending;
 };
 
 
@@ -243,6 +253,11 @@ static void
 transmit_next (struct GNUNET_PSYC_Channel *ch);
 
 
+/**
+ * Request data from client to transmit.
+ *
+ * @param mst Master handle.
+ */
 static void
 master_transmit_data (struct GNUNET_PSYC_Master *mst)
 {
@@ -268,12 +283,13 @@ master_transmit_data (struct GNUNET_PSYC_Master *mst)
   default:
     mst->tmit->status = GNUNET_PSYC_DATA_CANCEL;
     data_size = 0;
-    LOG (GNUNET_ERROR_TYPE_ERROR, "MasterTransmitNotify returned error\n");
+    LOG (GNUNET_ERROR_TYPE_ERROR, "MasterTransmitNotify returned error.\n");
   }
 
   if ((GNUNET_PSYC_DATA_CONT == mst->tmit->status && 0 == data_size))
   {
     /* Transmission paused, nothing to send. */
+    ch->tmit_paused = GNUNET_YES;
     GNUNET_free (op);
   }
   else
@@ -281,7 +297,8 @@ master_transmit_data (struct GNUNET_PSYC_Master *mst)
     GNUNET_assert (data_size <= ch->tmit_buf_avail);
     pdata->header.size = htons (sizeof (*pdata) + data_size);
     pdata->status = htons (mst->tmit->status);
-    GNUNET_CONTAINER_DLL_insert_tail (ch->transmit_head, ch->transmit_tail, op);
+    GNUNET_CONTAINER_DLL_insert_tail (ch->tmit_head, ch->tmit_tail, op);
+    ch->tmit_ack_pending = GNUNET_YES;
     transmit_next (ch);
   }
 }
@@ -305,7 +322,6 @@ message_handler (void *cls,
   struct CountersResult *cres;
   struct TransmitAck *tack;
 
-
   if (NULL == msg)
   {
     reschedule_connect (ch);
@@ -317,7 +333,8 @@ message_handler (void *cls,
   uint16_t type = ntohs (msg->type);
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Received message of type %d from PSYC service\n", type);
+       "Received message of type %d and size %u from PSYC service\n",
+       type, size);
 
   switch (type)
   {
@@ -328,10 +345,16 @@ message_handler (void *cls,
   case GNUNET_MESSAGE_TYPE_PSYC_TRANSMIT_ACK:
     size_eq = sizeof (struct TransmitAck);
     break;
+  case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_METHOD:
+    size_min = sizeof (struct GNUNET_PSYC_MessageMethod);
+  case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MODIFIER:
+    size_min = sizeof (struct GNUNET_PSYC_MessageModifier);
+  case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_DATA:
+    size_min = sizeof (struct GNUNET_PSYC_MessageData);
   }
 
   if (! ((0 < size_eq && size == size_eq)
-         || (0 < size_min && size >= size_min)))
+         || (0 < size_min && size_min <= size)))
   {
     GNUNET_break (0);
     reschedule_connect (ch);
@@ -370,13 +393,27 @@ message_handler (void *cls,
       else
       {
         ch->tmit_buf_avail = ntohs (tack->buf_avail);
-        master_transmit_data (mst);
+        ch->tmit_ack_pending = GNUNET_NO;
+        if (GNUNET_NO == ch->tmit_paused)
+          master_transmit_data (mst);
       }
     }
     else
     {
       /* TODO: slave */
     }
+    break;
+
+  case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_METHOD:
+
+    break;
+
+  case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MODIFIER:
+
+    break;
+
+  case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_DATA:
+
     break;
   }
 
@@ -397,9 +434,9 @@ static size_t
 send_next_message (void *cls, size_t size, void *buf)
 {
   struct GNUNET_PSYC_Channel *ch = cls;
-  struct OperationHandle *op = ch->transmit_head;
+  struct OperationHandle *op = ch->tmit_head;
   size_t ret;
-
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "send_next_message()\n");
   ch->th = NULL;
   if (NULL == op->msg)
     return 0;
@@ -409,15 +446,12 @@ send_next_message (void *cls, size_t size, void *buf)
     reschedule_connect (ch);
     return 0;
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Sending message of type %d to PSYC service\n",
-       ntohs (op->msg->type));
   memcpy (buf, op->msg, ret);
 
-  GNUNET_CONTAINER_DLL_remove (ch->transmit_head, ch->transmit_tail, op);
+  GNUNET_CONTAINER_DLL_remove (ch->tmit_head, ch->tmit_tail, op);
   GNUNET_free (op);
 
-  if (NULL != ch->transmit_head)
+  if (NULL != ch->tmit_head)
     transmit_next (ch);
 
   if (GNUNET_NO == ch->in_receive)
@@ -438,10 +472,11 @@ send_next_message (void *cls, size_t size, void *buf)
 static void
 transmit_next (struct GNUNET_PSYC_Channel *ch)
 {
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "transmit_next()\n");
   if (NULL != ch->th || NULL == ch->client)
     return;
 
-  struct OperationHandle *op = ch->transmit_head;
+  struct OperationHandle *op = ch->tmit_head;
   if (NULL == op)
     return;
 
@@ -472,14 +507,14 @@ reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   ch->client = GNUNET_CLIENT_connect ("psyc", ch->cfg);
   GNUNET_assert (NULL != ch->client);
 
-  if (NULL == ch->transmit_head ||
-      ch->transmit_head->msg->type != ch->reconnect_msg->type)
+  if (NULL == ch->tmit_head ||
+      ch->tmit_head->msg->type != ch->reconnect_msg->type)
   {
     uint16_t reconn_size = ntohs (ch->reconnect_msg->size);
     struct OperationHandle *op = GNUNET_malloc (sizeof (*op) + reconn_size);
     memcpy (&op[1], ch->reconnect_msg, reconn_size);
     op->msg = (struct GNUNET_MessageHeader *) &op[1];
-    GNUNET_CONTAINER_DLL_insert (ch->transmit_head, ch->transmit_tail, op);
+    GNUNET_CONTAINER_DLL_insert (ch->tmit_head, ch->tmit_tail, op);
   }
   transmit_next (ch);
 }
@@ -496,7 +531,7 @@ disconnect (void *c)
   struct GNUNET_PSYC_Channel *ch = c;
 
   GNUNET_assert (NULL != ch);
-  if (ch->transmit_head != ch->transmit_tail)
+  if (ch->tmit_head != ch->tmit_tail)
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
          "Disconnecting while there are still outstanding messages!\n");
@@ -654,7 +689,7 @@ send_modifier (void *cls, struct GNUNET_ENV_Modifier *mod)
   memcpy (&pmod[1], mod->name, name_size);
   memcpy ((char *) &pmod[1] + name_size, mod->value, mod->value_size);
 
-  GNUNET_CONTAINER_DLL_insert_tail (ch->transmit_head, ch->transmit_tail, op);
+  GNUNET_CONTAINER_DLL_insert_tail (ch->tmit_head, ch->tmit_tail, op);
   return GNUNET_YES;
 }
 
@@ -699,7 +734,7 @@ GNUNET_PSYC_master_transmit (struct GNUNET_PSYC_Master *master,
   pmeth->mod_count = GNUNET_ntohll (GNUNET_ENV_environment_get_mod_count (env));
   memcpy (&pmeth[1], method_name, size);
 
-  GNUNET_CONTAINER_DLL_insert_tail (ch->transmit_head, ch->transmit_tail, op);
+  GNUNET_CONTAINER_DLL_insert_tail (ch->tmit_head, ch->tmit_tail, op);
   GNUNET_ENV_environment_iterate (env, send_modifier, master);
   transmit_next (ch);
 
@@ -720,7 +755,12 @@ GNUNET_PSYC_master_transmit (struct GNUNET_PSYC_Master *master,
 void
 GNUNET_PSYC_master_transmit_resume (struct GNUNET_PSYC_MasterTransmitHandle *th)
 {
-  master_transmit_data (th->master);
+  struct GNUNET_PSYC_Channel *ch = &th->master->ch;
+  if (GNUNET_NO == ch->tmit_ack_pending)
+  {
+    ch->tmit_paused = GNUNET_NO;
+    master_transmit_data (th->master);
+  }
 }
 
 
@@ -938,8 +978,8 @@ GNUNET_PSYC_channel_slave_add (struct GNUNET_PSYC_Channel *channel,
   slvadd->header.size = htons (sizeof (*slvadd));
   slvadd->announced_at = GNUNET_htonll (announced_at);
   slvadd->effective_since = GNUNET_htonll (effective_since);
-  GNUNET_CONTAINER_DLL_insert_tail (channel->transmit_head,
-                                    channel->transmit_tail,
+  GNUNET_CONTAINER_DLL_insert_tail (channel->tmit_head,
+                                    channel->tmit_tail,
                                     op);
   transmit_next (channel);
 }
@@ -979,8 +1019,8 @@ GNUNET_PSYC_channel_slave_remove (struct GNUNET_PSYC_Channel *channel,
   slvrm->header.type = GNUNET_MESSAGE_TYPE_PSYC_CHANNEL_SLAVE_RM;
   slvrm->header.size = htons (sizeof (*slvrm));
   slvrm->announced_at = GNUNET_htonll (announced_at);
-  GNUNET_CONTAINER_DLL_insert_tail (channel->transmit_head,
-                                    channel->transmit_tail,
+  GNUNET_CONTAINER_DLL_insert_tail (channel->tmit_head,
+                                    channel->tmit_tail,
                                     op);
   transmit_next (channel);
 }

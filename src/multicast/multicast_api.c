@@ -363,11 +363,12 @@ schedule_origin_to_all (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
 
   size_t buf_size = GNUNET_MULTICAST_FRAGMENT_MAX_SIZE;
   struct GNUNET_MULTICAST_MessageHeader *msg
-    = GNUNET_malloc (sizeof (*msg) + buf_size);
+    = GNUNET_malloc (buf_size);
+  buf_size -= sizeof (*msg);
   int ret = mh->notify (mh->notify_cls, &buf_size, &msg[1]);
 
   if (! (GNUNET_YES == ret || GNUNET_NO == ret)
-      || buf_size > GNUNET_MULTICAST_FRAGMENT_MAX_SIZE)
+      || sizeof (*msg) + buf_size > GNUNET_MULTICAST_FRAGMENT_MAX_SIZE)
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
          "MasterTransmitNotify() returned error or invalid message size.\n");
@@ -379,15 +380,15 @@ schedule_origin_to_all (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
     return; /* Transmission paused. */
 
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_MULTICAST_MESSAGE);
-  msg->header.size = htons (buf_size);
+  msg->header.size = htons (sizeof (*msg) + buf_size);
   msg->message_id = mh->message_id;
   msg->group_generation = mh->group_generation;
 
   /* FIXME: add fragment ID and signature in the service instead of here */
   msg->fragment_id = orig->next_fragment_id++;
   msg->fragment_offset = mh->fragment_offset;
-  mh->fragment_offset += buf_size;
-  msg->purpose.size = htonl (buf_size
+  mh->fragment_offset += sizeof (*msg) + buf_size;
+  msg->purpose.size = htonl (sizeof (*msg) + buf_size
                              - sizeof (msg->header)
                              - sizeof (msg->hop_counter)
                              - sizeof (msg->signature));
