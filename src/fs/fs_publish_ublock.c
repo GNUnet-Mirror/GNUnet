@@ -150,8 +150,8 @@ ublock_put_cont (void *cls,
  * @param bo per-block options
  * @param options publication options
  * @param cont continuation
- * @param cont_cls closure for cont
- * @return NULL on error ('cont' will still be called)
+ * @param cont_cls closure for @a cont
+ * @return NULL on error (@a cont will still be called)
  */
 struct GNUNET_FS_PublishUblockContext *
 GNUNET_FS_publish_ublock_ (struct GNUNET_FS_Handle *h,
@@ -236,6 +236,7 @@ GNUNET_FS_publish_ublock_ (struct GNUNET_FS_Handle *h,
 			     ulen + slen + mdsize,
 			     &skey, &iv,
                              &ub_enc[1]);
+  GNUNET_free (ub_plain);
   ub_enc->purpose.size = htonl (ulen + slen + mdsize +
 				sizeof (struct UBlock)
 				- sizeof (struct GNUNET_CRYPTO_EcdsaSignature));
