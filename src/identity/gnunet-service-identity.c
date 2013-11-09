@@ -161,6 +161,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     GNUNET_CONTAINER_DLL_remove (ego_head, ego_tail, e);
     GNUNET_free (e->pk);
+    GNUNET_free (e->identifier);
     GNUNET_free (e);
   }
 }
@@ -821,13 +822,13 @@ process_ego_file (void *cls,
   ego = GNUNET_new (struct Ego);
   ego->pk = GNUNET_CRYPTO_ecdsa_key_create_from_file (filename);
   if (NULL == ego->pk)
-    {
-      GNUNET_free (ego);
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		  _("Failed to parse ego information in `%s'\n"),
-		  filename);
-      return GNUNET_OK;
-    }
+  {
+    GNUNET_free (ego);
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _("Failed to parse ego information in `%s'\n"),
+                filename);
+    return GNUNET_OK;
+  }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Loaded ego `%s'\n",
 	      fn + 1);
