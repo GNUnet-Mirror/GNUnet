@@ -254,7 +254,7 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     return;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Received message of type %d from PSYCstore service\n",
+       "Received message of type %d from PSYCstore service.\n",
        ntohs (msg->type));
   uint16_t size = ntohs (msg->size);
   uint16_t type = ntohs (msg->type);
@@ -287,13 +287,16 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     op = find_op_by_id (h, ntohl (opres->op_id));
     if (NULL == op)
     {
-      LOG (GNUNET_ERROR_TYPE_ERROR,
-           "Received result message (type %d) "
-           "with an unknown operation ID: %ld\n",
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "No callback registered for operation with ID %ld.\n",
            type, ntohl (opres->op_id));
     }
     else
     {
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Received result message (type %d) with operation ID: %ld\n",
+           type, op->op_id);
+
       GNUNET_CONTAINER_DLL_remove (h->op_head, h->op_tail, op);
       if (NULL != op->res_cb)
       {
@@ -338,10 +341,9 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     op = find_op_by_id (h, ntohl (cres->op_id));
     if (NULL == op)
     {
-      LOG (GNUNET_ERROR_TYPE_ERROR,
-           "Received counters result message (type %d) "
-           "with an unknown operation ID: %ld\n",
-           ntohl (cres->op_id));
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "No callback registered for operation with ID %ld.\n",
+           type, ntohl (cres->op_id));
     }
     else
     {
@@ -387,9 +389,8 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     op = find_op_by_id (h, ntohl (fres->op_id));
     if (NULL == op)
     {
-      LOG (GNUNET_ERROR_TYPE_ERROR,
-           "Received fragment result message (type %d) "
-           "with an unknown operation ID: %ld\n",
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "No callback registered for operation with ID %ld.\n",
            type, ntohl (fres->op_id));
     }
     else
@@ -429,9 +430,8 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     op = find_op_by_id (h, ntohl (sres->op_id));
     if (NULL == op)
     {
-      LOG (GNUNET_ERROR_TYPE_ERROR,
-           "Received state result message (type %d) "
-           "with an unknown operation ID: %ld\n",
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "No callback registered for operation with ID %ld.\n",
            type, ntohl (sres->op_id));
     }
     else
@@ -479,8 +479,8 @@ send_next_message (void *cls, size_t size, void *buf)
     return 0;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Sending message of type %d to PSYCstore service\n",
-       ntohs (op->msg->type));
+       "Sending message of type %d to PSYCstore service. ID: %u\n",
+       ntohs (op->msg->type), op->op_id);
   memcpy (buf, op->msg, ret);
 
   GNUNET_CONTAINER_DLL_remove (h->transmit_head, h->transmit_tail, op);

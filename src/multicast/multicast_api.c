@@ -383,7 +383,7 @@ schedule_origin_to_all (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
   msg->message_id = mh->message_id;
   msg->group_generation = mh->group_generation;
 
-  /* FIXME: add fragment ID and signature in the service */
+  /* FIXME: add fragment ID and signature in the service instead of here */
   msg->fragment_id = orig->next_fragment_id++;
   msg->fragment_offset = mh->fragment_offset;
   mh->fragment_offset += buf_size;

@@ -2172,12 +2172,12 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_REGISTER 730
 
 /**
- * Client -> Server meessage to reject/hangup a call
+ * Client -> Server message to reject/hangup a call
  */
 #define GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_PICK_UP 731
 
 /**
- * Client -> Server meessage to reject/hangup a call
+ * Client -> Server message to reject/hangup a call
  */
 #define GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_HANG_UP 732
 
