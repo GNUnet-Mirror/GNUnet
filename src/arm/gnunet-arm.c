@@ -417,7 +417,9 @@ init_callback (void *cls,
 
   if (GNUNET_ARM_REQUEST_SENT_OK != rs)
   {
-    GNUNET_asprintf (&msg, _("Failed to send a request to start the `%s' service: %%s\n"), init);
+    GNUNET_asprintf (&msg,
+                     _("Failed to send a request to start the `%s' service: %%s\n"),
+                     init);
     FPRINTF (stdout, msg, req_string (rs));
     GNUNET_free (msg);
     GNUNET_SCHEDULER_shutdown ();
@@ -436,6 +438,7 @@ init_callback (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Service %s [re]started successfully\n",
 	      init);
+  GNUNET_free (init);
   init = NULL;
   GNUNET_SCHEDULER_add_now (&action_loop, NULL);
 }
@@ -482,7 +485,9 @@ term_callback (void *cls,
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Service %s stopped successfully\n", term);
+	      "Service %s stopped successfully\n",
+              term);
+  GNUNET_free (term);
   term = NULL;
   GNUNET_SCHEDULER_add_now (&action_loop, NULL);
 }
