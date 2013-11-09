@@ -418,6 +418,14 @@ message_handler (void *cls,
       return;
     }
     op = h->op_head;
+    if (NULL == op)
+    {
+      GNUNET_break (0);
+      reschedule_connect (h);
+      return;
+    }
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Received SET_DEFAULT message from identity service\n");
     GNUNET_CONTAINER_DLL_remove (h->op_head,
 				 h->op_tail,
 				 op);
@@ -889,6 +897,8 @@ GNUNET_IDENTITY_cancel (struct GNUNET_IDENTITY_Operation *op)
        (NULL == h->client) )
   {
     /* request not active, can simply remove */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Client aborted non-head operation, simply removing it\n");
     GNUNET_CONTAINER_DLL_remove (h->op_head,
 				 h->op_tail,
 				 op);
@@ -898,6 +908,8 @@ GNUNET_IDENTITY_cancel (struct GNUNET_IDENTITY_Operation *op)
   if (NULL != h->th)
   {
     /* request active but not yet with service, can still abort */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Client aborted head operation prior to transmission, aborting it\n");
     GNUNET_CLIENT_notify_transmit_ready_cancel (h->th);
     h->th = NULL;
     GNUNET_CONTAINER_DLL_remove (h->op_head,
@@ -908,6 +920,8 @@ GNUNET_IDENTITY_cancel (struct GNUNET_IDENTITY_Operation *op)
     return;
   }
   /* request active with service, simply ensure continuations are not called */
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Client aborted active request, NULLing continuation\n");
   op->cont = NULL;
   op->cb = NULL;
 }
