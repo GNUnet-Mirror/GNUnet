@@ -504,7 +504,10 @@ message_sent (void *cls,
   double usecsperbyte;
 
   fc = fwd ? &c->fwd_fc : &c->bck_fc;
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "!  sent %s\n", GNUNET_MESH_DEBUG_M2S (type));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "!  sent %s %s\n",
+       fwd ? "FWD" : "BCK",
+       GNUNET_MESH_DEBUG_M2S (type));
   LOG (GNUNET_ERROR_TYPE_DEBUG, "!  C_P- %p %u\n", c, c->pending_messages);
   if (NULL != q)
   {
@@ -1484,8 +1487,8 @@ handle_mesh_encrypted (const struct GNUNET_PeerIdentity *peer,
   }
   type = ntohs (msg->header.type);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "\n\n");
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "got a %s message from %s\n",
-              GNUNET_MESH_DEBUG_M2S (type), GNUNET_i2s (peer));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "got a %s message (#%u) from %s\n",
+       GNUNET_MESH_DEBUG_M2S (type), ntohl (msg->pid), GNUNET_i2s (peer));
 
   /* Check connection */
   c = connection_get (&msg->cid);
@@ -2372,7 +2375,7 @@ GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
       }
       emsg->cid = c->id;
       emsg->ttl = htonl (ttl - 1);
-      emsg->pid = htonl (fwd ? c->fwd_fc.next_pid++ : c->bck_fc.next_pid++);
+      emsg->pid = htonl (fc->next_pid++);
       LOG (GNUNET_ERROR_TYPE_DEBUG, "  Q_N+ %p %u\n", fc, fc->queue_n);
       fc->queue_n++;
       LOG (GNUNET_ERROR_TYPE_DEBUG, "pid %u\n", ntohl (emsg->pid));
@@ -2432,7 +2435,10 @@ GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
                 "queue full: %u/%u\n",
                 fc->queue_n, fc->queue_max);
     if (GNUNET_MESSAGE_TYPE_MESH_ENCRYPTED == type)
+    {
       fc->queue_n--;
+      fc->next_pid--;
+    }
     return NULL; /* Drop this message */
   }
 
