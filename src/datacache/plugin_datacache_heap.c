@@ -156,7 +156,7 @@ struct PutContext
  * @param cls the 'struct PutContext'
  * @param key the key for the value(s)
  * @param value an existing value
- * @return GNUNET_YES if not found (to continue to iterate)
+ * @return #GNUNET_YES if not found (to continue to iterate)
  */
 static int
 put_cb (void *cls,
@@ -198,13 +198,13 @@ put_cb (void *cls,
 /**
  * Store an item in the datastore.
  *
- * @param cls closure (our "struct Plugin")
+ * @param cls closure (our `struct Plugin`)
  * @param key key to store data under
  * @param size number of bytes in data
  * @param data data to store
  * @param type type of the value
  * @param discard_time when to discard the value in any case
- * @param path_info_len number of entries in 'path_info'
+ * @param path_info_len number of entries in @a path_info
  * @param path_info a path through the network
    * @return 0 if duplicate, -1 on error, number of bytes used otherwise
  */
@@ -356,7 +356,7 @@ heap_plugin_get (void *cls, const struct GNUNET_HashCode * key,
  * from the datacache right now.
  *
  * @param cls closure (our "struct Plugin")
- * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 static int
 heap_plugin_del (void *cls)
@@ -383,8 +383,8 @@ heap_plugin_del (void *cls)
 /**
  * Entry point for the plugin.
  *
- * @param cls closure (the "struct GNUNET_DATACACHE_PluginEnvironmnet")
- * @return the plugin's closure (our "struct Plugin")
+ * @param cls closure (the `struct GNUNET_DATACACHE_PluginEnvironmnet`)
+ * @return the plugin's closure (our `struct Plugin`)
  */
 void *
 libgnunet_plugin_datacache_heap_init (void *cls)
@@ -427,6 +427,7 @@ libgnunet_plugin_datacache_heap_done (void *cls)
 		   GNUNET_CONTAINER_multihashmap_remove (plugin->map,
 							 &val->key,
 							 val));
+    GNUNET_free_non_null (val->path_info);
     GNUNET_free (val);
   }
   GNUNET_CONTAINER_heap_destroy (plugin->heap);

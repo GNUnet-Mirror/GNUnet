@@ -233,9 +233,9 @@ GNUNET_DATACACHE_destroy (struct GNUNET_DATACACHE_Handle *h)
  * @param data data to store
  * @param type type of the value
  * @param discard_time when to discard the value in any case
- * @param path_info_len number of entries in 'path_info'
+ * @param path_info_len number of entries in @a path_info
  * @param path_info a path through the network
- * @return GNUNET_OK on success, GNUNET_SYSERR on error, GNUNET_NO if duplicate
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error, #GNUNET_NO if duplicate
  */
 int
 GNUNET_DATACACHE_put (struct GNUNET_DATACACHE_Handle *h,
