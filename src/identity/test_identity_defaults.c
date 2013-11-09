@@ -213,6 +213,8 @@ notification_cb (void *cls,
 {
   if (NULL == ego)
     return; /* skip first call */
+  if (NULL == identifier)
+    return; /* deletion / shutdown */
   op = GNUNET_IDENTITY_set (h,
 			    "test-service",
 			    ego,

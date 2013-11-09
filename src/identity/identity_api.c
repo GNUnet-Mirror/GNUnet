@@ -952,13 +952,6 @@ GNUNET_IDENTITY_disconnect (struct GNUNET_IDENTITY_Handle *h)
   struct GNUNET_IDENTITY_Operation *op;
 
   GNUNET_assert (NULL != h);
-  while (NULL != (op = h->op_head))
-  {
-    GNUNET_CONTAINER_DLL_remove (h->op_head,
-				 h->op_tail,
-				 op);
-    GNUNET_free (op);
-  }
   if (h->reconnect_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (h->reconnect_task);
@@ -976,6 +969,14 @@ GNUNET_IDENTITY_disconnect (struct GNUNET_IDENTITY_Handle *h)
 					   h);
     GNUNET_CONTAINER_multihashmap_destroy (h->egos);
     h->egos = NULL;
+  }
+  GNUNET_break (NULL == h->op_head);
+  while (NULL != (op = h->op_head))
+  {
+    GNUNET_CONTAINER_DLL_remove (h->op_head,
+				 h->op_tail,
+				 op);
+    GNUNET_free (op);
   }
   if (NULL != h->client)
   {
