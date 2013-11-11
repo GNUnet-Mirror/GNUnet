@@ -529,7 +529,7 @@ agent_modify_eligibility (struct RIL_Peer_Agent *agent, enum RIL_E_Modification 
       e[i] = 1;
       break;
     case RIL_E_SET:
-      e[i] = agent->envi->discount_variable * agent->envi->parameters.lambda;
+      e[i] *= agent->envi->discount_variable * agent->envi->parameters.lambda;
       break;
     case RIL_E_ZERO:
       e[i] = 0;
