@@ -91,7 +91,7 @@ struct OperationSpecification
   uint32_t salt;
 
   /**
-   * ID used to identify responses to a client.
+   * ID used to identify an operation between service and client 
    */
   uint32_t client_request_id;
 
@@ -168,16 +168,12 @@ typedef void (*OpCreateImpl) (struct Operation *op);
 typedef int (*MsgHandlerImpl) (struct Operation *op,
                                const struct GNUNET_MessageHeader *msg);
 
-typedef void (*CancelImpl) (struct Operation *op);
-
-
 /**
- * Signature of functions that implement sending all the set's
- * elements to the client.
+ * Signature of functions that implement operation cancellation
  *
- * @param set set that should be iterated over
+ * @param op operation state
  */
-typedef void (*IterateImpl) (struct Set *set);
+typedef void (*CancelImpl) (struct Operation *op);
 
 
 /**
@@ -233,11 +229,6 @@ struct SetVT
    * its ID.
    */
   CancelImpl cancel;
-
-  /**
-   * Callback for iterating over all set elements.
-   */
-  IterateImpl iterate;
 };
 
 
@@ -285,6 +276,8 @@ struct ElementEntry
   /**
    * GNUNET_YES if the element is a remote element, and does not belong
    * to the operation's set.
+   * 
+   * //TODO: Move to Union, unless additional set-operations are implemented ever
    */
   int remote;
 };
@@ -295,6 +288,8 @@ struct Operation
   /**
    * V-Table for the operation belonging
    * to the tunnel contest.
+   * 
+   * Used for all operation specific operations after receiving the ops request
    */
   const struct SetVT *vt;
 
@@ -311,6 +306,8 @@ struct Operation
   /**
    * GNUNET_YES if this is not a "real" set operation yet, and we still
    * need to wait for the other peer to give us more details.
+   * 
+   * //TODO: replace with state-enum
    */
   int is_incoming;
 
@@ -372,6 +369,9 @@ struct Set
   /**
    * Virtual table for this set.
    * Determined by the operation type of this set.
+   * 
+   * Used only for Add/remove of elements and when receiving an incoming 
+   * operation from a remote peer.
    */
   const struct SetVT *vt;
 
@@ -421,6 +421,13 @@ struct Set
 };
 
 
+/**
+ * Destroy the given operation.  Call the implementation-specific cancel function
+ * of the operation.  Disconnects from the remote peer.
+ * Does not disconnect the client, as there may be multiple operations per set.
+ *
+ * @param op operation to destroy
+ */
 void
 _GSS_operation_destroy (struct Operation *op);
 
@@ -428,6 +435,8 @@ _GSS_operation_destroy (struct Operation *op);
 /**
  * Get the table with implementing functions for
  * set union.
+ * 
+ * @return the operation specific VTable
  */
 const struct SetVT *
 _GSS_union_vt (void);
@@ -436,6 +445,8 @@ _GSS_union_vt (void);
 /**
  * Get the table with implementing functions for
  * set intersection.
+ * 
+ * @return the operation specific VTable
  */
 const struct SetVT *
 _GSS_intersection_vt (void);

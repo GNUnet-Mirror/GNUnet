@@ -74,22 +74,35 @@ enum UnionOperationPhase
    */
   PHASE_EXPECT_SE,
   /**
-   * We sent the strata estimator, and expect an IBF
+   * We sent the strata estimator, and expect an IBF. This phase is entered once 
+   * upon initialization and later via PHASE_EXPECT_ELEMENTS_AND_REQUESTS.
+   * 
+   * After receiving the complete IBF, we enter PHASE_EXPECT_ELEMENTS
    */
   PHASE_EXPECT_IBF,
   /**
-   * We know what type of IBF the other peer wants to send us,
-   * and expect the remaining parts
+   * Continuation for multi part IBFs.
    */
   PHASE_EXPECT_IBF_CONT,
   /**
    * We are sending request and elements,
    * and thus only expect elements from the other peer.
+   * 
+   * We are currently decoding an IBF until it can no longer be decoded,
+   * we currently send requests and expect elements
+   * The remote peer is in PHASE_EXPECT_ELEMENTS_AND_REQUESTS
    */
   PHASE_EXPECT_ELEMENTS,
   /**
    * We are expecting elements and requests, and send
    * requested elements back to the other peer.
+   * 
+   * We are in this phase if we have SENT an IBF for the remote peer to decode.
+   * We expect requests, send elements or could receive an new IBF, which takes
+   * us via PHASE_EXPECT_IBF to phase PHASE_EXPECT_ELEMENTS
+   * 
+   * The remote peer is thus in:
+   * PHASE_EXPECT_ELEMENTS 
    */
   PHASE_EXPECT_ELEMENTS_AND_REQUESTS,
   /**
@@ -106,16 +119,6 @@ enum UnionOperationPhase
  */
 struct OperationState
 {
-  /**
-   * Tunnel to the remote peer.
-   */
-  struct GNUNET_MESH_Tunnel *tunnel;
-
-  /**
-   * Message queue for the peer.
-   */
-  struct GNUNET_MQ_Handle *mq;
-
   /**
    * Number of ibf buckets received
    */
@@ -1195,6 +1198,7 @@ static void
 union_evaluate (struct Operation *op)
 {
   op->state = GNUNET_new (struct OperationState);
+  // copy the current generation's strata estimator for this operation
   op->state->se = strata_estimator_dup (op->spec->set->state->se);
   /* we started the operation, thus we have to send the operation request */
   op->state->phase = PHASE_EXPECT_SE;
@@ -1222,7 +1226,10 @@ union_accept (struct Operation *op)
 
 /**
  * Create a new set supporting the union operation
- *
+ * 
+ * We maintain one strata estimator per set and then manipulate it over the
+ * lifetime of the set, as recreating a strata estimator would be expensive.
+ * 
  * @return the newly created set
  */
 static struct SetState *
@@ -1321,7 +1328,12 @@ union_handle_p2p_message (struct Operation *op,
   return GNUNET_OK;
 }
 
-
+/**
+ * handler for peer-disconnects, notifies the client 
+ * about the aborted operation in case the op was not concluded
+ * 
+ * @param op the destroyed operation
+ */
 static void
 union_peer_disconnect (struct Operation *op)
 {
@@ -1339,12 +1351,19 @@ union_peer_disconnect (struct Operation *op)
     _GSS_operation_destroy (op);
     return;
   }
+  // else: the session has already been concluded
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "other peer disconnected (finished)\n");
   if (GNUNET_NO == op->state->client_done_sent)
     finish_and_destroy (op);
 }
 
 
+/**
+ * Get the table with implementing functions for
+ * set union.
+ * 
+ * @return the operation specific VTable
+ */
 const struct SetVT *
 _GSS_union_vt ()
 {

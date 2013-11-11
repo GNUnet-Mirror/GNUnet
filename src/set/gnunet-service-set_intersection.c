@@ -58,22 +58,6 @@ enum IntersectionOperationPhase
 struct OperationState
 {
   /**
-   * Tunnel to the remote peer.
-   */
-  struct GNUNET_MESH_Tunnel *tunnel;
-
-  /**
-   * Detail information about the set operation,
-   * including the set to use.
-   */
-  struct OperationSpecification *spec;
-
-  /**
-   * Message queue for the peer.
-   */
-  struct GNUNET_MQ_Handle *mq;
-
-  /**
    * The bf we currently receive
    */
   struct GNUNET_CONTAINER_BloomFilter *remote_bf;
@@ -93,12 +77,6 @@ struct OperationState
    * was created.
    */
   unsigned int generation_created;
-
-  /**
-   * Set state of the set that this operation
-   * belongs to.
-   */
-  struct Set *set;
   
   /**
    * Maps element-id-hashes to 'elements in our set'.
@@ -133,24 +111,6 @@ struct OperationState
   int client_done_sent;
 };
 
-
-/**
- * Extra state required for efficient set intersection.
- */
-struct SetState
-{
-  /**
-   * Evaluate operations are held in
-   * a linked list.
-   */
-  struct OperationState *ops_head;
-
-  /**
-   * Evaluate operations are held in
-   * a linked list.
-   */
-  struct OperationState *ops_tail;
-};
 
 
 /**
@@ -739,7 +699,11 @@ finish_and_destroy (struct Operation *op)
   send_done_and_destroy (op);
 }
 
-
+/**
+ * handler for peer-disconnects, notifies the client about the aborted operation
+ * 
+ * @param op the destroyed operation
+ */
 static void
 intersection_peer_disconnect (struct Operation *op)
 {
