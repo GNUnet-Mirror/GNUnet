@@ -338,7 +338,7 @@ tokenizer_cb (void *cls, void *client,
   char *config;
   char *xconfig;
   char *evstr;
-  char *str;
+  //char *str;
   size_t config_size;
   uLongf ul_config_size;
   size_t xconfig_size;
@@ -407,7 +407,8 @@ tokenizer_cb (void *cls, void *client,
   if (NULL != evstr)
   {
 #if WINDOWS
-    GNUNET_break (0 == putenv (GNUNET_TESTING_PREFIX "="));
+    static char *evar = GNUNET_TESTING_PREFIX "=";
+    GNUNET_break (0 == putenv (evar));
 #else
     GNUNET_break (0 == unsetenv (GNUNET_TESTING_PREFIX));
 #endif
@@ -417,11 +418,11 @@ tokenizer_cb (void *cls, void *client,
                                     NULL);
   if (NULL != evstr)
   {
-    GNUNET_assert (0 < GNUNET_asprintf (&str, 
+    static char evar[2* PATH_MAX];
+
+    GNUNET_assert (0 < GNUNET_snprintf (evar, sizeof (evar),
                                         GNUNET_TESTING_PREFIX "=%s", evstr));
-    putenv (str);
-    /* do not free str will be consumed by putenv */
-    str = NULL;
+    putenv (evar);
     /* do not free evstr */
     evstr = NULL;
   }
@@ -444,11 +445,15 @@ tokenizer_cb (void *cls, void *client,
   }
   LOG_DEBUG ("Staring testbed with config: %s\n", config);
   binary = GNUNET_OS_get_libexec_binary_path ("gnunet-service-testbed");
-  /* expose testbed configuration through env variable */
-  GNUNET_assert (0 < GNUNET_asprintf (&evstr, "%s=%s", ENV_TESTBED_CONFIG, config));
-  GNUNET_assert (0 == putenv (evstr)); /* Do NOT free evstr; it is consumed by
-                                          putenv */
-  evstr = NULL;
+  {
+    static char evar[2 * PATH_MAX];
+
+    /* expose testbed configuration through env variable */
+    GNUNET_assert (0 < GNUNET_snprintf (evar, sizeof (evar),
+                                        "%s=%s", ENV_TESTBED_CONFIG, config));
+    GNUNET_assert (0 == putenv (evar));
+    evstr = NULL;
+  }
   testbed =
       GNUNET_OS_start_process (PIPE_CONTROL,
                                GNUNET_OS_INHERIT_STD_ERR /*verbose? */ , NULL,
