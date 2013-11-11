@@ -234,32 +234,11 @@ listener_destroy (struct Listener *listener)
 
 
 /**
- * Iterator over hash map entries to free
- * element entries.
- *
- * @param cls closure
- * @param key current key code
- * @param value value in the hash map
- * @return GNUNET_YES if we should continue to
- *         iterate,
- *         GNUNET_NO if not.
- */
-static int
-destroy_elements_iterator (void *cls,
-                           const struct GNUNET_HashCode * key,
-                           void *value)
-{
-  struct ElementEntry *ee = value;
-
-  GNUNET_free (ee);
-  return GNUNET_YES;
-}
-
-
-/**
  * Collect and destroy elements that are not needed anymore, because
  * their lifetime (as determined by their generation) does not overlap with any active
  * set operation.
+ * 
+ * We hereby replace the old element hashmap with a new one, instead of removing elements.
  */
 void
 collect_generation_garbage (struct Set *set)
@@ -273,20 +252,20 @@ collect_generation_garbage (struct Set *set)
   new_elements = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_NO);
   iter = GNUNET_CONTAINER_multihashmap_iterator_create (set->elements);
   while (GNUNET_OK ==
-         (res = GNUNET_CONTAINER_multihashmap_iterator_next (iter, NULL, (const void **) &ee)))
+         (res = GNUNET_CONTAINER_multihashmap_iterator_next (iter, NULL, (const void **) &ee))) 
   {
     if (GNUNET_NO == ee->removed)
       goto still_needed;
     for (op = set->ops_head; NULL != op; op = op->next)
-      if ( (op->generation_created >= ee->generation_added) &&
-           (op->generation_created < ee->generation_removed) )
+      if ((op->generation_created >= ee->generation_added) &&
+          (op->generation_created < ee->generation_removed))
         goto still_needed;
     GNUNET_free (ee);
     continue;
 still_needed:
-      // we don't expect collisions, thus the replace option
-      GNUNET_CONTAINER_multihashmap_put (new_elements, &ee->element_hash, ee,
-                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
+    // we don't expect collisions, thus the replace option
+    GNUNET_CONTAINER_multihashmap_put (new_elements, &ee->element_hash, ee,
+                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
   }
   GNUNET_CONTAINER_multihashmap_iterator_destroy (iter);
   GNUNET_CONTAINER_multihashmap_destroy (set->elements);
@@ -351,6 +330,29 @@ _GSS_operation_destroy (struct Operation *op)
 
 
 /**
+ * Iterator over hash map entries to free
+ * element entries.
+ *
+ * @param cls closure
+ * @param key current key code
+ * @param value value in the hash map
+ * @return GNUNET_YES if we should continue to
+ *         iterate,
+ *         GNUNET_NO if not.
+ */
+static int
+destroy_elements_iterator (void *cls,
+                           const struct GNUNET_HashCode * key,
+                           void *value)
+{
+  struct ElementEntry *ee = value;
+
+  GNUNET_free (ee);
+  return GNUNET_YES;
+}
+
+
+/**
  * Destroy a set, and free all resources associated with it.
  *
  * @param set the set to destroy
@@ -362,7 +364,6 @@ set_destroy (struct Set *set)
    * The client's destroy callback will destroy the set again.
    * We do this so that the tunnel end handler still has a valid set handle
    * to destroy. */
-  // TODO: use client context
   if (NULL != set->client)
   {
     struct GNUNET_SERVER_Client *client = set->client;
@@ -388,6 +389,7 @@ set_destroy (struct Set *set)
   GNUNET_CONTAINER_DLL_remove (sets_head, sets_tail, set);
   if (NULL != set->elements)
   {
+    // free all elements in the hashtable, before destroying the table
     GNUNET_CONTAINER_multihashmap_iterate (set->elements,
                                            destroy_elements_iterator, NULL);
     GNUNET_CONTAINER_multihashmap_destroy (set->elements);
@@ -489,8 +491,8 @@ listener_get_by_target (enum GNUNET_SET_OperationType op,
 
 
 /**
- * Suggest the given request to the listener,
- * who can accept or reject the request.
+ * Suggest the given request to the listener. The listening client can then
+ * accept or reject the remote request.
  *
  * @param incoming the incoming peer with the request to suggest
  * @param listener the listener to suggest the request to
