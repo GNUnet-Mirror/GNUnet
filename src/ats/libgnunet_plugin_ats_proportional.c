@@ -491,6 +491,7 @@ libgnunet_plugin_ats_proportional_done (void *cls)
       next = cur->next;
       GNUNET_CONTAINER_DLL_remove(s->network_entries[c].head,
           s->network_entries[c].tail, cur);
+      GNUNET_free_non_null (cur->addr->solver_information);
       GNUNET_free(cur);
     }
     GNUNET_free(s->network_entries[c].stat_total);
@@ -1274,6 +1275,7 @@ GAS_proportional_address_delete (void *solver, struct ATS_Address *address,
       return;
     }
     GNUNET_CONTAINER_DLL_remove(net->head, net->tail, aw);
+    GNUNET_free_non_null (aw->addr->solver_information);
     GNUNET_free(aw);
   }
   else
