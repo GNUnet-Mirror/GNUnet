@@ -675,6 +675,7 @@ channel_retransmit_message (void *cls,
 //     LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! ALREADY IN QUEUE %u\n", copy->mid);
 //   }
 
+  copy->timestamp = GNUNET_TIME_absolute_get();
   rel->retry_timer = GNUNET_TIME_STD_BACKOFF (rel->retry_timer);
   rel->retry_task = GNUNET_SCHEDULER_add_delayed (rel->retry_timer,
                                                   &channel_retransmit_message,
@@ -705,9 +706,9 @@ rel_message_free (struct MeshReliableMessage *copy, int update_time)
   if (update_time)
   {
     time = GNUNET_TIME_absolute_get_duration (copy->timestamp);
-    rel->expected_delay.rel_value_us *= 19;
+    rel->expected_delay.rel_value_us *= 7;
     rel->expected_delay.rel_value_us += time.rel_value_us;
-    rel->expected_delay.rel_value_us /= 20;
+    rel->expected_delay.rel_value_us /= 8;
     rel->n_sent--;
     LOG (GNUNET_ERROR_TYPE_DEBUG, "!!!  took %s\n",
                 GNUNET_STRINGS_relative_time_to_string (time, GNUNET_NO));
