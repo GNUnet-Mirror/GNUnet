@@ -30,6 +30,16 @@
 
 
 /**
+ * Flag for listing public key.
+ */
+static int list_keys;
+
+/**
+ * Flag for listing public key.
+ */
+static int list_keys_count;
+
+/**
  * Flag for printing public key.
  */
 static int print_public_key;
@@ -97,6 +107,77 @@ create_keys (const char *fn)
 }
 
 
+static void
+print_key (const char *filename)
+{
+  struct GNUNET_DISK_FileHandle *fd;
+  struct GNUNET_CRYPTO_EddsaPrivateKey private_key;
+  struct GNUNET_CRYPTO_EddsaPublicKey public_key;
+  char *hostkeys_data;
+  char *hostkey_str;
+  uint64_t fs;
+  unsigned int total_hostkeys;
+  unsigned int c;
+
+  if (GNUNET_YES != GNUNET_DISK_file_test (filename))
+  {
+    fprintf (stderr, _("Hostkeys file not found: %s\n"), filename);
+    return;
+  }
+
+  /* Check hostkey file size, read entire thing into memory */
+  if (GNUNET_OK != GNUNET_DISK_file_size (filename, &fs, GNUNET_YES, GNUNET_YES))
+    fs = 0;
+  if (0 == fs)
+  {
+    fprintf (stderr, _("Hostkeys file is empty: %s\n"), filename);
+    return;       /* File is empty */
+  }
+  if (0 != (fs % GNUNET_TESTING_HOSTKEYFILESIZE))
+  {
+    fprintf (stderr,
+         _("Incorrect hostkey file format: %s\n"), filename);
+    return;
+  }
+  fd = GNUNET_DISK_file_open (filename, GNUNET_DISK_OPEN_READ,
+                                         GNUNET_DISK_PERM_NONE);
+  if (NULL == fd)
+  {
+    GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "open", filename);
+    return;
+  }
+  hostkeys_data = GNUNET_malloc (fs);
+  if (fs != GNUNET_DISK_file_read(fd, hostkeys_data, fs))
+  {
+    fprintf (stderr,
+         _("Could not readk hostkey file: %s\n"), filename);
+    GNUNET_free (hostkeys_data);
+    return;
+  }
+  GNUNET_DISK_file_close (fd);
+
+  if (NULL == hostkeys_data)
+    return;
+  total_hostkeys = fs / GNUNET_TESTING_HOSTKEYFILESIZE;
+  for (c = 0; (c < total_hostkeys) && (c < list_keys_count); c++)
+  {
+    memcpy (&private_key,
+            hostkeys_data + (c * GNUNET_TESTING_HOSTKEYFILESIZE),
+            GNUNET_TESTING_HOSTKEYFILESIZE);
+    GNUNET_CRYPTO_eddsa_key_get_public (&private_key, &public_key);
+    hostkey_str = GNUNET_CRYPTO_eddsa_public_key_to_string (&public_key);
+    if (NULL != hostkey_str)
+    {
+      fprintf (stderr, "%4u: %s\n", c, hostkey_str);
+      GNUNET_free (hostkey_str);
+    }
+    else
+      fprintf (stderr, "%4u: %s\n", c, "invalid");
+  }
+  GNUNET_free (hostkeys_data);
+}
+
+
 /**
  * Main function that will be run by the scheduler.
  *
@@ -117,6 +198,11 @@ run (void *cls, char *const *args, const char *cfgfile,
     FPRINTF (stderr,
              "%s",
              _("No hostkey file specified on command line\n"));
+    return;
+  }
+  if (list_keys)
+  {
+    print_key(args[0]);
     return;
   }
   if (make_keys > 0)
@@ -163,7 +249,14 @@ run (void *cls, char *const *args, const char *cfgfile,
 int
 main (int argc, char *const *argv)
 {
+  list_keys_count = UINT32_MAX;
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
+    { 'i', "iterate", "FILE",
+      gettext_noop ("list keys included in a file (for testing)"),
+      0, &GNUNET_GETOPT_set_one, &list_keys },
+    { 'e', "end=", "COUNT",
+      gettext_noop ("number of keys to list included in a file (for testing)"),
+      1, &GNUNET_GETOPT_set_uint, &list_keys_count },
     { 'g', "generate-keys", "COUNT",
       gettext_noop ("create COUNT public-private key pairs (for testing)"),
       1, &GNUNET_GETOPT_set_uint, &make_keys },
