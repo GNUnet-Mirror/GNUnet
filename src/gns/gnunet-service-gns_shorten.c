@@ -380,7 +380,7 @@ process_auth_records (void *cls,
 
   for (i=0; i < rd_count; i++)
   {
-    if (GNUNET_GNSRECORD_TYPE_PSEU == rd[i].record_type)
+    if (GNUNET_GNSRECORD_TYPE_NICK == rd[i].record_type)
     {
       char pseu[rd[i].data_size + 1];
 

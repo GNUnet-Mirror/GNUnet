@@ -135,6 +135,11 @@ static char *typestring;
 static char *expirationstring;
 
 /**
+ * Desired nick name.
+ */
+static char *nickstring;
+
+/**
  * Global return value
  */
 static int ret;
@@ -521,7 +526,7 @@ testservice_task (void *cls,
 	     "namestore");
     return;
   }
-  if (! (add|del|list|(NULL != uri)|(NULL != reverse_pkey)) )
+  if (! (add|del|list|(NULL != nickstring)|(NULL != uri)|(NULL != reverse_pkey)) )
   {
     /* nothing more to be done */
     fprintf (stderr,
@@ -705,6 +710,7 @@ testservice_task (void *cls,
       rd.expiration_time = etime_abs.abs_value_us;
     else
       rd.expiration_time = GNUNET_TIME_UNIT_FOREVER_ABS.abs_value_us;
+
     if (1 != shadow)
       rd.flags |= GNUNET_GNSRECORD_RF_SHADOW_RECORD;
     add_qe_uri = GNUNET_NAMESTORE_records_store (ns,
@@ -714,6 +720,31 @@ testservice_task (void *cls,
 						 &rd,
 						 &add_continuation,
 						 &add_qe_uri);
+  }
+  if (NULL != nickstring)
+  {
+    if (0 == strlen(nickstring))
+    {
+      fprintf (stderr,
+               _("Invalid nick `%s'\n"),
+               nickstring);
+      GNUNET_SCHEDULER_shutdown ();
+      ret = 1;
+      return;
+    }
+    memset (&rd, 0, sizeof (rd));
+    rd.data = nickstring;
+    rd.data_size = strlen(nickstring);
+    rd.record_type = GNUNET_GNSRECORD_TYPE_NICK;
+    rd.expiration_time = GNUNET_TIME_UNIT_FOREVER_ABS.abs_value_us;
+    rd.flags |= GNUNET_GNSRECORD_RF_PRIVATE;
+    add_qe_uri = GNUNET_NAMESTORE_records_store (ns,
+                                                 &zone_pkey,
+                                                 "+",
+                                                 1,
+                                                 &rd,
+                                                 &add_continuation,
+                                                 &add_qe_uri);
   }
   if (monitor)
   {
@@ -777,6 +808,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 	     _("You must specify which zone should be accessed\n"));
     return;
   }
+
   if ( (NULL != args[0]) && (NULL == uri) )
     uri = GNUNET_strdup (args[0]);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
@@ -814,6 +846,9 @@ main (int argc, char *const *argv)
     {'e', "expiration", "TIME",
      gettext_noop ("expiration time for record to use (for adding only), \"never\" is possible"), 1,
      &GNUNET_GETOPT_set_string, &expirationstring},
+    {'i', "nick", "NICKNAME",
+     gettext_noop ("set the desired nick name for the zone"), 1,
+     &GNUNET_GETOPT_set_string, &nickstring},
     {'m', "monitor", NULL,
      gettext_noop ("monitor changes in the namestore"), 0,
      &GNUNET_GETOPT_set_one, &monitor},

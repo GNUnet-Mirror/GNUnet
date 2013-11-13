@@ -51,9 +51,9 @@ extern "C"
 #define GNUNET_GNSRECORD_TYPE_PKEY 65536
 
 /**
- * Record type for GNS zone transfer ("PSEU").
+ * Record type for GNS nick names ("NICK").
  */
-#define GNUNET_GNSRECORD_TYPE_PSEU 65537
+#define GNUNET_GNSRECORD_TYPE_NICK 65537
 
 /**
  * Record type for GNS legacy hostnames ("LEHO").

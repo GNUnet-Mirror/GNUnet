@@ -57,7 +57,7 @@ gns_value_to_string (void *cls,
     if (data_size != sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey))
       return NULL;
     return GNUNET_CRYPTO_ecdsa_public_key_to_string (data);
-  case GNUNET_GNSRECORD_TYPE_PSEU:
+  case GNUNET_GNSRECORD_TYPE_NICK:
     return GNUNET_strndup (data, data_size);
   case GNUNET_GNSRECORD_TYPE_LEHO:
     return GNUNET_strndup (data, data_size);
@@ -157,7 +157,7 @@ gns_string_to_value (void *cls,
     *data_size = sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey);
     return GNUNET_OK;
 
-  case GNUNET_GNSRECORD_TYPE_PSEU:
+  case GNUNET_GNSRECORD_TYPE_NICK:
     *data = GNUNET_strdup (s);
     *data_size = strlen (s);
     return GNUNET_OK;
@@ -246,7 +246,7 @@ static struct {
   uint32_t number;
 } name_map[] = {
   { "PKEY",  GNUNET_GNSRECORD_TYPE_PKEY },
-  { "PSEU",  GNUNET_GNSRECORD_TYPE_PSEU },
+  { "NICK",  GNUNET_GNSRECORD_TYPE_NICK },
   { "LEHO",  GNUNET_GNSRECORD_TYPE_LEHO },
   { "VPN", GNUNET_GNSRECORD_TYPE_VPN },
   { "GNS2DNS", GNUNET_GNSRECORD_TYPE_GNS2DNS },
