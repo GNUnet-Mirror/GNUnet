@@ -1078,6 +1078,7 @@ handle_gns_cname_result (struct GNS_ResolverHandle *rh,
     /* tigger shortening */
     if (NULL != rh->shorten_key)
       GNS_shorten_start (rh->ac_tail->label,
+                         NULL,
 			 &ac->authority_info.gns_authority,
 			 rh->shorten_key);
     /* add AC to tail */
@@ -1333,12 +1334,14 @@ handle_gns_resolution_result (void *cls,
   struct VpnContext *vpn_ctx;
   const struct GNUNET_TUN_GnsVpnRecord *vpn;
   const char *vname;
+  const char *suggested_label;
   struct GNUNET_HashCode vhash;
   int af;
   char scratch[UINT16_MAX];
   size_t scratch_off;
   size_t scratch_start;
   size_t off;
+  int c2;
   struct GNUNET_GNSRECORD_Data rd_new[rd_count];
   unsigned int rd_off;
 
@@ -1612,7 +1615,17 @@ handle_gns_resolution_result (void *cls,
           /* tigger shortening */
           if (NULL != rh->shorten_key)
           {
-            GNS_shorten_start (rh->ac_tail->label,
+            suggested_label = NULL;
+            for (c2 = 0; c2< rd_count; c2++)
+            {
+              if ((GNUNET_GNSRECORD_TYPE_NICK ==rd[c2].record_type) &&
+                  (rd[i].data_size > 0) &&
+                  (((const char *) rd[c2].data)[rd[c2].data_size -1] == '\0'))
+                suggested_label = (const char *) rd->data;
+            }
+            if (NULL != suggested_label)
+              GNS_shorten_start (rh->ac_tail->label,
+                               suggested_label,
                                &pub,
                                rh->shorten_key);
           }
@@ -1684,9 +1697,21 @@ handle_gns_resolution_result (void *cls,
       ac->label = resolver_lookup_get_next_label (rh);
       /* tigger shortening */
       if (NULL != rh->shorten_key)
-	GNS_shorten_start (rh->ac_tail->label,
+      {
+        suggested_label = NULL;
+        for (c2 = 0; c2< rd_count; c2++)
+        {
+          if ((GNUNET_GNSRECORD_TYPE_NICK ==rd[c2].record_type) &&
+              (rd[c2].data_size > 0) &&
+              ((const char *) rd[c2].data)[rd[c2].data_size -1] == '\0')
+            suggested_label = (const char *) rd[c2].data;
+        }
+        if (NULL != suggested_label)
+          GNS_shorten_start (rh->ac_tail->label,
+	                   suggested_label,
 			   &ac->authority_info.gns_authority,
 			   rh->shorten_key);
+      }
       /* add AC to tail */
       GNUNET_CONTAINER_DLL_insert_tail (rh->ac_head,
 					rh->ac_tail,

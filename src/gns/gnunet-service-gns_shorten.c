@@ -74,6 +74,11 @@ struct GetPseuAuthorityHandle
   char label[GNUNET_DNSPARSER_MAX_LABEL_LENGTH + 1];
 
   /**
+   * Suggested label based on NICK record
+   */
+  char * suggested_label;
+
+  /**
    * Label we are currently trying out (during #perform_pseu_lookup).
    */
   char *current_label;
@@ -236,7 +241,7 @@ process_pseu_block_ns (void *cls,
 
 
 /**
- * Lookup in the namestore for the shorten zone the given label.
+ * Lookup in the namecache for the shorten zone the given label.
  *
  * @param gph the handle to our shorten operation
  * @param label the label to lookup
@@ -476,6 +481,25 @@ process_auth_discovery_dht_result (void* cls,
   }
 }
 
+static void suggested_lookup_cb (void *cls,
+                                const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
+                                const char *label,
+                                unsigned int rd_count,
+                                const struct GNUNET_GNSRECORD_Data *rd)
+{
+  struct GetPseuAuthorityHandle* gph = cls;
+  gph->namestore_task = NULL;
+  if ((0 == strcmp (label, gph->suggested_label)) && (0 == rd_count) && (NULL == rd))
+  {
+
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Shortening to suggested name `%s' possible\n",
+                gph->suggested_label);
+    process_pseu_result (gph, gph->suggested_label);
+  }
+}
+
+
 
 /**
  * Callback called by namestore for a zone to name result.  We're
@@ -495,7 +519,9 @@ process_zone_to_name_discover (void *cls,
 			       const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct GetPseuAuthorityHandle* gph = cls;
+#if 0
   struct GNUNET_HashCode lookup_key;
+#endif
 
   gph->namestore_task = NULL;
   if (0 != rd_len)
@@ -507,7 +533,13 @@ process_zone_to_name_discover (void *cls,
     free_get_pseu_authority_handle (gph);
     return;
   }
-  /* record does not yet exist, go into DHT to find PSEU record */
+  /* record does not yet exist, check if suggested label is available */
+
+  if (NULL != gph->suggested_label)
+    gph->namestore_task = GNUNET_NAMESTORE_records_lookup (namestore_handle, zone_key,
+        gph->suggested_label, &suggested_lookup_cb, gph);
+
+#if 0
   GNUNET_GNSRECORD_query_from_public_key (&gph->target_zone,
 					  GNUNET_GNS_TLD_PLUS,
 					  &lookup_key);
@@ -527,6 +559,7 @@ process_zone_to_name_discover (void *cls,
 					  NULL, 0,
 					  &process_auth_discovery_dht_result,
 					  gph);
+#endif
 }
 
 
@@ -536,11 +569,13 @@ process_zone_to_name_discover (void *cls,
  * @a original_label as one possible suggestion.
  *
  * @param original_label original label for the zone
+ * @param suggested_label suggested label for the zone
  * @param pub public key of the zone to shorten
  * @param shorten_zone private key of the target zone for the new record
  */
 void
 GNS_shorten_start (const char *original_label,
+                   const char *suggested_label,
 		   const struct GNUNET_CRYPTO_EcdsaPublicKey *pub,
 		   const struct GNUNET_CRYPTO_EcdsaPrivateKey *shorten_zone)
 {
@@ -558,6 +593,7 @@ GNS_shorten_start (const char *original_label,
   gph = GNUNET_new (struct GetPseuAuthorityHandle);
   gph->shorten_zone_key = *shorten_zone;
   gph->target_zone = *pub;
+  gph->suggested_label = GNUNET_strdup (suggested_label);
   strcpy (gph->label, original_label);
   GNUNET_CONTAINER_DLL_insert (gph_head, gph_tail, gph);
   /* first, check if we *already* have a record for this zone */

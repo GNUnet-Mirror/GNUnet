@@ -62,8 +62,9 @@ GNS_shorten_done (void);
  */
 void
 GNS_shorten_start (const char *original_label,
-		   const struct GNUNET_CRYPTO_EcdsaPublicKey *pub,
-		   const struct GNUNET_CRYPTO_EcdsaPrivateKey *shorten_zone);
+                   const char *suggested_label,
+                   const struct GNUNET_CRYPTO_EcdsaPublicKey *pub,
+                   const struct GNUNET_CRYPTO_EcdsaPrivateKey *shorten_zone);
 
 
 #endif
