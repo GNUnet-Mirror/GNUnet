@@ -81,9 +81,14 @@ GNUNET_MESH_DEBUG_M2S (uint16_t m)
     case 259: return "GNUNET_MESSAGE_TYPE_MESH_PATH_CHANGED";
 
       /**
-       * Transport data in the mesh (origin->end) unicast
+       * Transport payload data.
        */
     case 260: return "GNUNET_MESSAGE_TYPE_MESH_DATA";
+
+    /**
+     * Confirm receipt of payload data.
+     */
+    case 261: return "GNUNET_MESSAGE_TYPE_MESH_DATA_ACK";
 
       /**
        * Key exchange encapsulation.
