@@ -27,6 +27,7 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_dnsparser_lib.h"
+#include "gnunet_gns_service.h"
 #include "gnunet_namecache_service.h"
 #include "gnunet_namestore_service.h"
 #include "gnunet_namestore_plugin.h"
@@ -61,6 +62,11 @@ struct ZoneIteration
    * Namestore client which intiated this zone iteration
    */
   struct NamestoreClient *client;
+
+  /**
+   * The nick to add to the records
+   */
+  struct GNUNET_GNSRECORD_Data *nick;
 
   /**
    * Key of the zone we are iterating over.
@@ -391,6 +397,109 @@ client_lookup (struct GNUNET_SERVER_Client *client)
 }
 
 
+static void lookup_nick_it (void *cls,
+     const struct GNUNET_CRYPTO_EcdsaPrivateKey *private_key,
+     const char *label,
+     unsigned int rd_count,
+     const struct GNUNET_GNSRECORD_Data *rd)
+{
+  struct GNUNET_GNSRECORD_Data **res = (cls);
+
+  int c;
+  if (0 != strcmp (label, GNUNET_GNS_MASTERZONE_STR))
+  {
+    GNUNET_break (0);
+    return;
+  }
+  for (c = 0; c < rd_count; c++)
+  {
+    if (GNUNET_GNSRECORD_TYPE_NICK == rd[c].record_type)
+    {
+      (*res) = GNUNET_malloc (rd[c].data_size + sizeof (struct GNUNET_GNSRECORD_Data));
+      (*res)->data = &(*res)[1];
+      memcpy ((char *)(*res)->data, rd[c].data, rd[c].data_size);
+      (*res)->data_size = rd[c].data_size;
+      (*res)->expiration_time = rd[c].expiration_time;
+      (*res)->flags = rd[c].flags;
+      (*res)->record_type = GNUNET_GNSRECORD_TYPE_NICK;
+      return;
+    }
+  }
+  (*res) = NULL;
+}
+
+
+static struct GNUNET_GNSRECORD_Data *
+get_nick_record (const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone)
+{
+  struct GNUNET_CRYPTO_EcdsaPublicKey pub;
+  struct GNUNET_GNSRECORD_Data *nick;
+  int res;
+
+  res = GSN_database->lookup_records (GSN_database->cls, zone,
+      GNUNET_GNS_MASTERZONE_STR, &lookup_nick_it, &nick);
+
+  if ((NULL == nick) || (GNUNET_OK != res))
+  {
+    GNUNET_CRYPTO_ecdsa_key_get_public (zone, &pub);
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "No nick name set for zone `%s'\n",
+        GNUNET_CRYPTO_ecdsa_public_key_to_string (&pub));
+    return NULL;
+  }
+
+  return nick;
+}
+
+
+static void merge_records (unsigned int rdc1,
+                           const struct GNUNET_GNSRECORD_Data *rd1,
+                           unsigned int rdc2,
+                           const struct GNUNET_GNSRECORD_Data *rd2,
+                           unsigned int *rdc_res,
+                           struct GNUNET_GNSRECORD_Data **rd_res)
+{
+  int c;
+  size_t req;
+  char *data;
+  int record_offset;
+  size_t data_offset;
+  (*rdc_res) = rdc1 + rdc2;
+
+  if (0 == rdc1 + rdc2)
+  {
+    (*rd_res) = NULL;
+    return;
+  }
+
+  req = 0;
+  for (c=0; c< rdc1; c++)
+    req += sizeof (struct GNUNET_GNSRECORD_Data) + rd1[c].data_size;
+  for (c=0; c< rdc2; c++)
+    req += sizeof (struct GNUNET_GNSRECORD_Data) + rd2[c].data_size;
+  (*rd_res) = GNUNET_malloc (req);
+  data = (char *) &(*rd_res)[rdc1 + rdc2];
+  data_offset = 0;
+
+  for (c=0; c< rdc1; c++)
+  {
+    (*rd_res)[c] = rd1[c];
+    (*rd_res)[c].data = (void *) &data[data_offset];
+    memcpy ((void *) (*rd_res)[c].data, rd1[c].data, rd1[c].data_size);
+    data_offset += (*rd_res)[c].data_size;
+  }
+  record_offset = rdc1;
+  for (c=0; c< rdc2; c++)
+  {
+    (*rd_res)[c+record_offset] = rd2[c];
+    (*rd_res)[c+record_offset].data = (void *) &data[data_offset];
+    memcpy ((void *) (*rd_res)[c+record_offset].data, rd2[c].data, rd2[c].data_size);
+    data_offset += (*rd_res)[c+record_offset].data_size;
+  }
+  GNUNET_assert (req == (sizeof (struct GNUNET_GNSRECORD_Data)) * (*rdc_res) + data_offset);
+}
+
+
+
 /**
  * Generate a 'struct LookupNameResponseMessage' and send it to the
  * given client using the given notification context.
@@ -413,14 +522,29 @@ send_lookup_response (struct GNUNET_SERVER_NotificationContext *nc,
 		      const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct RecordResultMessage *zir_msg;
+  struct GNUNET_GNSRECORD_Data *nick;
+  struct GNUNET_GNSRECORD_Data *res;
+  unsigned int res_count;
   size_t name_len;
   size_t rd_ser_len;
   size_t msg_size;
   char *name_tmp;
   char *rd_ser;
 
+  nick = get_nick_record (zone_key);
+  if ((NULL != nick) && (0 != strcmp(name, GNUNET_GNS_MASTERZONE_STR)))
+  {
+    merge_records (rd_count,rd, 1, nick, &res_count, &res);
+    GNUNET_free (nick);
+  }
+  else
+  {
+    res_count = rd_count;
+    res = (struct GNUNET_GNSRECORD_Data *) rd;
+  }
+
   name_len = strlen (name) + 1;
-  rd_ser_len = GNUNET_GNSRECORD_records_get_size (rd_count, rd);
+  rd_ser_len = GNUNET_GNSRECORD_records_get_size (res_count, res);
   msg_size = sizeof (struct RecordResultMessage) + name_len + rd_ser_len;
   (void) client_lookup (client);
   zir_msg = GNUNET_malloc (msg_size);
@@ -428,13 +552,13 @@ send_lookup_response (struct GNUNET_SERVER_NotificationContext *nc,
   zir_msg->gns_header.header.size = htons (msg_size);
   zir_msg->gns_header.r_id = htonl (request_id);
   zir_msg->name_len = htons (name_len);
-  zir_msg->rd_count = htons (rd_count);
+  zir_msg->rd_count = htons (res_count);
   zir_msg->rd_len = htons (rd_ser_len);
   zir_msg->private_key = *zone_key;
   name_tmp = (char *) &zir_msg[1];
   memcpy (name_tmp, name, name_len);
   rd_ser = &name_tmp[name_len];
-  GNUNET_GNSRECORD_records_serialize (rd_count, rd, rd_ser_len, rd_ser);
+  GNUNET_GNSRECORD_records_serialize (res_count, res, rd_ser_len, rd_ser);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Sending `%s' message with %u records and size %u\n",
 	      "RECORD_RESULT",
@@ -444,6 +568,8 @@ send_lookup_response (struct GNUNET_SERVER_NotificationContext *nc,
 					      client,
 					      &zir_msg->gns_header.header,
 					      GNUNET_NO);
+  if (rd != res)
+    GNUNET_free (res);
   GNUNET_free (zir_msg);
 }
 
@@ -573,25 +699,51 @@ struct RecordLookupContext
   size_t rd_ser_len;
 
   char *res_rd;
+
+  struct GNUNET_GNSRECORD_Data *nick;
 };
 
-static void lookup_it (void *cls,
-                       const struct GNUNET_CRYPTO_EcdsaPrivateKey *private_key,
-                       const char *label,
-                       unsigned int rd_count,
-                       const struct GNUNET_GNSRECORD_Data *rd)
+
+
+static void
+lookup_it (void *cls, const struct GNUNET_CRYPTO_EcdsaPrivateKey *private_key,
+    const char *label, unsigned int rd_count,
+    const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct RecordLookupContext *rlc = cls;
+  struct GNUNET_GNSRECORD_Data *rd_res;
+  unsigned int rdc_res;
 
   if (0 == strcmp (label, rlc->label))
   {
     rlc->found = GNUNET_YES;
     if (0 != rd_count)
     {
-      rlc->rd_ser_len = GNUNET_GNSRECORD_records_get_size (rd_count, rd);
-      rlc->res_rd_count = rd_count;
-      rlc->res_rd = GNUNET_malloc (rlc->rd_ser_len);
-      GNUNET_GNSRECORD_records_serialize (rd_count, rd, rlc->rd_ser_len , rlc->res_rd);
+      if ((NULL != rlc->nick) && (0 != strcmp(label, GNUNET_GNS_MASTERZONE_STR)))
+      {
+        /* Merge */
+        rd_res = NULL;
+        rdc_res = 0;
+        merge_records (rd_count, rd,
+                       1, rlc->nick,
+                       &rdc_res, &rd_res);
+
+        rlc->rd_ser_len = GNUNET_GNSRECORD_records_get_size (rdc_res, rd_res);
+        rlc->res_rd_count = rdc_res;
+        rlc->res_rd = GNUNET_malloc (rlc->rd_ser_len);
+        GNUNET_GNSRECORD_records_serialize (rdc_res, rd_res, rlc->rd_ser_len , rlc->res_rd);
+
+        GNUNET_free  (rd_res);
+        GNUNET_free  (rlc->nick);
+        rlc->nick = NULL;
+      }
+      else
+      {
+        rlc->rd_ser_len = GNUNET_GNSRECORD_records_get_size (rd_count, rd);
+        rlc->res_rd_count = rd_count;
+        rlc->res_rd = GNUNET_malloc (rlc->rd_ser_len);
+        GNUNET_GNSRECORD_records_serialize (rd_count, rd, rlc->rd_ser_len , rlc->res_rd);
+      }
     }
     else
     {
@@ -601,6 +753,9 @@ static void lookup_it (void *cls,
     }
   }
 }
+
+
+
 
 
 /**
@@ -666,8 +821,8 @@ handle_record_lookup (void *cls,
   rlc.label = name_tmp;
   rlc.found = GNUNET_NO;
   rlc.res_rd_count = 0;
-  rlc.rd_ser_len = 0;
   rlc.res_rd = NULL;
+  rlc.nick = get_nick_record (&ll_msg->zone);
 
   res = GSN_database->lookup_records (GSN_database->cls,
         &ll_msg->zone, name_tmp, &lookup_it, &rlc);
@@ -1188,6 +1343,8 @@ handle_iteration_start (void *cls,
   zi->offset = 0;
   zi->client = nc;
   zi->zone = zis_msg->zone;
+
+
   GNUNET_CONTAINER_DLL_insert (nc->op_head, nc->op_tail, zi);
   run_zone_iteration_round (zi);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);

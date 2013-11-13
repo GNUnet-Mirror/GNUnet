@@ -33,6 +33,7 @@
 #include "gnunet_dnsparser_lib.h"
 #include "gnunet_arm_service.h"
 #include "gnunet_signatures.h"
+#include "gnunet_gns_service.h"
 #include "gnunet_namestore_service.h"
 #include "namestore.h"
 
@@ -1063,6 +1064,34 @@ GNUNET_NAMESTORE_records_store (struct GNUNET_NAMESTORE_Handle *h,
   GNUNET_CONTAINER_DLL_insert_tail (h->pending_head, h->pending_tail, pe);
   do_transmit (h);
   return qe;
+}
+
+/**
+ * Set the desired nick name for a zone
+ *
+ * @param h handle to the namestore
+ * @param pkey private key of the zone
+ * @param nick the nick name to set
+ * @param cont continuation to call when done
+ * @param cont_cls closure for 'cont'
+ * @return handle to abort the request
+ */
+struct GNUNET_NAMESTORE_QueueEntry *
+GNUNET_NAMESTORE_set_nick (struct GNUNET_NAMESTORE_Handle *h,
+                           const struct GNUNET_CRYPTO_EcdsaPrivateKey *pkey,
+                           const char *nick,
+                           GNUNET_NAMESTORE_ContinuationWithStatus cont,
+                           void *cont_cls)
+{
+  struct GNUNET_GNSRECORD_Data rd;
+
+  memset (&rd, 0, sizeof (rd));
+  rd.data = nick;
+  rd.data_size = strlen (nick) +1;
+  rd.record_type = GNUNET_GNSRECORD_TYPE_NICK;
+  rd.expiration_time = GNUNET_TIME_UNIT_FOREVER_ABS.abs_value_us;
+  rd.flags |= GNUNET_GNSRECORD_RF_PRIVATE;
+  return GNUNET_NAMESTORE_records_store(h, pkey, GNUNET_GNS_MASTERZONE_STR, 1, &rd, cont, cont_cls);
 }
 
 

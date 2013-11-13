@@ -31,6 +31,7 @@
 #include <gnunet_dnsparser_lib.h>
 #include <gnunet_identity_service.h>
 #include <gnunet_gnsrecord_lib.h>
+#include <gnunet_gns_service.h>
 #include <gnunet_namestore_service.h>
 
 
@@ -732,19 +733,8 @@ testservice_task (void *cls,
       ret = 1;
       return;
     }
-    memset (&rd, 0, sizeof (rd));
-    rd.data = nickstring;
-    rd.data_size = strlen(nickstring);
-    rd.record_type = GNUNET_GNSRECORD_TYPE_NICK;
-    rd.expiration_time = GNUNET_TIME_UNIT_FOREVER_ABS.abs_value_us;
-    rd.flags |= GNUNET_GNSRECORD_RF_PRIVATE;
-    add_qe_uri = GNUNET_NAMESTORE_records_store (ns,
-                                                 &zone_pkey,
-                                                 "+",
-                                                 1,
-                                                 &rd,
-                                                 &add_continuation,
-                                                 &add_qe_uri);
+    add_qe_uri = GNUNET_NAMESTORE_set_nick(ns, &zone_pkey, nickstring,
+        &add_continuation, &add_qe_uri);
   }
   if (monitor)
   {
