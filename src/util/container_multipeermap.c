@@ -245,8 +245,11 @@ static unsigned int
 idx_of (const struct GNUNET_CONTAINER_MultiPeerMap *map,
         const struct GNUNET_PeerIdentity *key)
 {
-  GNUNET_assert (map != NULL);
-  return (*(unsigned int *) key) % map->map_length;
+  unsigned int kx;
+
+  GNUNET_assert (NULL != map);
+  memcpy (&kx, key, sizeof (kx));
+  return kx % map->map_length;
 }
 
 
