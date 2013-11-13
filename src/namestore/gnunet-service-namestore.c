@@ -824,6 +824,7 @@ handle_record_lookup (void *cls,
   rlc.found = GNUNET_NO;
   rlc.res_rd_count = 0;
   rlc.res_rd = NULL;
+  rlc.rd_ser_len = 0;
   rlc.nick = get_nick_record (&ll_msg->zone);
 
   res = GSN_database->lookup_records (GSN_database->cls,
