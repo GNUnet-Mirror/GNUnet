@@ -150,7 +150,7 @@ void lookup_it (void *cls,
         endbadly_task = GNUNET_SCHEDULER_add_now (&endbadly, NULL );
         return;
       }
-      if (rd[c].flags != GNUNET_GNSRECORD_RF_PRIVATE)
+      if (0 != (rd[c].flags & GNUNET_GNSRECORD_RF_PRIVATE))
       {
         GNUNET_break(0);
         GNUNET_SCHEDULER_cancel (endbadly_task);

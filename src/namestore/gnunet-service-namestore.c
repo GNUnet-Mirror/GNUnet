@@ -534,6 +534,7 @@ send_lookup_response (struct GNUNET_SERVER_NotificationContext *nc,
   nick = get_nick_record (zone_key);
   if ((NULL != nick) && (0 != strcmp(name, GNUNET_GNS_MASTERZONE_STR)))
   {
+    nick->flags = (nick->flags | GNUNET_GNSRECORD_RF_PRIVATE) ^ GNUNET_GNSRECORD_RF_PRIVATE;
     merge_records (rd_count,rd, 1, nick, &res_count, &res);
     GNUNET_free (nick);
   }
@@ -724,6 +725,7 @@ lookup_it (void *cls, const struct GNUNET_CRYPTO_EcdsaPrivateKey *private_key,
         /* Merge */
         rd_res = NULL;
         rdc_res = 0;
+        rlc->nick->flags = (rlc->nick->flags | GNUNET_GNSRECORD_RF_PRIVATE) ^ GNUNET_GNSRECORD_RF_PRIVATE;
         merge_records (rd_count, rd,
                        1, rlc->nick,
                        &rdc_res, &rd_res);
