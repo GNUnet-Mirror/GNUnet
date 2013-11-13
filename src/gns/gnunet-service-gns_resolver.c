@@ -1077,10 +1077,13 @@ handle_gns_cname_result (struct GNS_ResolverHandle *rh,
     ac->label = resolver_lookup_get_next_label (rh);
     /* tigger shortening */
     if (NULL != rh->shorten_key)
+    {
+      GNUNET_break (0); /* FIXME suggested label*/
       GNS_shorten_start (rh->ac_tail->label,
                          NULL,
 			 &ac->authority_info.gns_authority,
 			 rh->shorten_key);
+    }
     /* add AC to tail */
     GNUNET_CONTAINER_DLL_insert_tail (rh->ac_head,
 				      rh->ac_tail,
