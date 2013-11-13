@@ -134,6 +134,22 @@ typedef void (*GNUNET_NAMESTORE_RecordMonitor) (void *cls,
 						unsigned int rd_count,
 						const struct GNUNET_GNSRECORD_Data *rd);
 
+/**
+ * Set the desired nick name for a zone
+ *
+ * @param h handle to the namestore
+ * @param pkey private key of the zone
+ * @param nick the nick name to set
+ * @param cont continuation to call when done
+ * @param cont_cls closure for 'cont'
+ * @return handle to abort the request
+ */
+struct GNUNET_NAMESTORE_QueueEntry *
+GNUNET_NAMESTORE_set_nick (struct GNUNET_NAMESTORE_Handle *h,
+                           const struct GNUNET_CRYPTO_EcdsaPrivateKey *pkey,
+                           const char *nick,
+                           GNUNET_NAMESTORE_ContinuationWithStatus cont,
+                           void *cont_cls);
 
 /**
  * Lookup an item in the namestore.
