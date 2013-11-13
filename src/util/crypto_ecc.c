@@ -550,7 +550,7 @@ GNUNET_CRYPTO_ecdhe_key_create ()
 
   if (0 != (rc = gcry_sexp_build (&s_keyparam, NULL,
                                   "(genkey(ecc(curve \"" CURVE "\")"
-                                  "(flags noparam)))")))
+                                  "(flags)))")))
   {
     LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
     return NULL;
@@ -600,7 +600,7 @@ GNUNET_CRYPTO_ecdsa_key_create ()
 
   if (0 != (rc = gcry_sexp_build (&s_keyparam, NULL,
                                   "(genkey(ecc(curve \"" CURVE "\")"
-                                  "(flags noparam)))")))
+                                  "(flags)))")))
   {
     LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
     return NULL;
@@ -649,7 +649,7 @@ GNUNET_CRYPTO_eddsa_key_create ()
 
   if (0 != (rc = gcry_sexp_build (&s_keyparam, NULL,
                                   "(genkey(ecc(curve \"" CURVE "\")"
-                                  "(flags noparam eddsa)))")))
+                                  "(flags eddsa)))")))
   {
     LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_sexp_build", rc);
     return NULL;
