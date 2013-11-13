@@ -348,6 +348,7 @@ client_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     return;
   }
   arm_msg = (const struct GNUNET_ARM_Message *) msg;
+  GNUNET_break (0 == ntohl (arm_msg->reserved));
   id = GNUNET_ntohll (arm_msg->request_id);
   cm = find_cm_by_id (h, id);
   if (NULL == cm)
@@ -529,6 +530,7 @@ transmit_arm_message (void *cls, size_t size, void *buf)
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Transmitting control message with %u bytes of type %u to arm with id %llu\n",
        (unsigned int) msize, (unsigned int) ntohs (cm->msg->header.type), request_id);
+  arm_msg->reserved = htonl (0);
   arm_msg->request_id = GNUNET_htonll (request_id);
   memcpy (buf, cm->msg, msize);
   /* Otherwise we won't be able to find it later! */
@@ -712,6 +714,7 @@ control_message_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *t
 {
   struct ARMControlMessage *cm = cls;
   struct GNUNET_ARM_Message *arm_msg;
+
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Control message timed out\n");
   arm_msg = cm->msg;
@@ -908,6 +911,7 @@ change_service (struct GNUNET_ARM_Handle *h, const char *service_name,
   msg = GNUNET_malloc (sizeof (struct GNUNET_ARM_Message) + slen);
   msg->header.size = htons (sizeof (struct GNUNET_ARM_Message) + slen);
   msg->header.type = htons (type);
+  msg->reserved = htonl (0);
   memcpy (&msg[1], service_name, slen);
   cm->msg = msg;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -1068,6 +1072,7 @@ GNUNET_ARM_request_service_list (struct GNUNET_ARM_Handle *h,
   msg = GNUNET_malloc (sizeof (struct GNUNET_ARM_Message));
   msg->header.size = htons (sizeof (struct GNUNET_ARM_Message));
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_ARM_LIST);
+  msg->reserved = htonl (0);
   cm->msg = msg;
   GNUNET_CONTAINER_DLL_insert_tail (h->control_pending_head,
                                     h->control_pending_tail, cm);

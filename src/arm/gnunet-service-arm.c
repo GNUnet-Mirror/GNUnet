@@ -731,31 +731,34 @@ handle_start (void *cls, struct GNUNET_SERVER_Client *client,
   size -= sizeof (struct GNUNET_ARM_Message);
   servicename = (const char *) &amsg[1];
   if ((size == 0) || (servicename[size - 1] != '\0'))
-    {
-      GNUNET_break (0);
-      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-      return;
-    }
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
   if (GNUNET_YES == in_shutdown)
-    {
-      signal_result (client, servicename, request_id, GNUNET_ARM_RESULT_IN_SHUTDOWN);
-      GNUNET_SERVER_receive_done (client, GNUNET_OK);
-      return;
-    }
+  {
+    signal_result (client, servicename, request_id, 
+		   GNUNET_ARM_RESULT_IN_SHUTDOWN);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
   sl = find_service (servicename);
   if (NULL == sl)
-    {
-      signal_result (client, servicename, request_id, GNUNET_ARM_RESULT_IS_NOT_KNOWN);
-      GNUNET_SERVER_receive_done (client, GNUNET_OK);
-      return;
-    }
+  {
+    signal_result (client, servicename, request_id, 
+		   GNUNET_ARM_RESULT_IS_NOT_KNOWN);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
   sl->is_default = GNUNET_YES;
-  if (sl->proc != NULL)
-    {
-      signal_result (client, servicename, request_id, GNUNET_ARM_RESULT_IS_STARTED_ALREADY);
-      GNUNET_SERVER_receive_done (client, GNUNET_OK);
-      return;
-    }
+  if (NULL != sl->proc)
+  {
+    signal_result (client, servicename, request_id,
+		   GNUNET_ARM_RESULT_IS_STARTED_ALREADY);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
   start_process (sl, client, request_id);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
@@ -806,7 +809,8 @@ handle_stop (void *cls, struct GNUNET_SERVER_Client *client,
       return;
     }
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-	      _("Preparing to stop `%s'\n"), servicename);
+	      _("Preparing to stop `%s'\n"), 
+	      servicename);
   if (0 == strcasecmp (servicename, "arm"))
   {
     broadcast_status (servicename, GNUNET_ARM_SERVICE_STOPPING, NULL);
@@ -831,22 +835,22 @@ handle_stop (void *cls, struct GNUNET_SERVER_Client *client,
       GNUNET_SERVER_receive_done (client, GNUNET_OK);
       return;
     }
-  if (sl->killing_client != NULL)
-    {
-      /* killing already in progress */
-      signal_result (client, servicename, request_id,
-          GNUNET_ARM_RESULT_IS_STOPPING_ALREADY);
-      GNUNET_SERVER_receive_done (client, GNUNET_OK);
-      return;
-    }
-  if (sl->proc == NULL)
-    {
-      /* process is down */
-      signal_result (client, servicename, request_id,
-          GNUNET_ARM_RESULT_IS_STOPPED_ALREADY);
-      GNUNET_SERVER_receive_done (client, GNUNET_OK);
-      return;
-    }
+  if (NULL != sl->killing_client)
+  {
+    /* killing already in progress */
+    signal_result (client, servicename, request_id,
+		   GNUNET_ARM_RESULT_IS_STOPPING_ALREADY);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
+  if (NULL == sl->proc)
+  {
+    /* process is down */
+    signal_result (client, servicename, request_id,
+		   GNUNET_ARM_RESULT_IS_STOPPED_ALREADY);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Sending kill signal to service `%s', waiting for process to die.\n",
 	      servicename);
@@ -884,10 +888,11 @@ handle_list (void *cls, struct GNUNET_SERVER_Client *client,
     return;
 
   request = (struct GNUNET_ARM_Message *) message;
+  GNUNET_break (0 == ntohl (request->reserved));
   count = 0;
   string_list_size = 0;
   /* first count the running processes get their name's size */
-  for (sl = running_head; sl != NULL; sl = sl->next)
+  for (sl = running_head; NULL != sl; sl = sl->next)
   {
     if (sl->proc != NULL)
     {
@@ -903,6 +908,7 @@ handle_list (void *cls, struct GNUNET_SERVER_Client *client,
   msg = GNUNET_malloc (total_size);
   msg->arm_msg.header.size = total_size;
   msg->arm_msg.header.type = GNUNET_MESSAGE_TYPE_ARM_LIST_RESULT;
+  msg->arm_msg.reserved = htonl (0);
   msg->arm_msg.request_id = GNUNET_ntohll (request->request_id);
   msg->count = count;
 

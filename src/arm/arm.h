@@ -57,12 +57,17 @@ struct GNUNET_ARM_StatusMessage
 struct GNUNET_ARM_Message
 {
   /**
-   * Reply to client, type is GNUNET_MESSAGE_TYPE_ARM_RESULT or
-   * GNUNET_MESSAGE_TYPE_ARM_LIST_RESULT.
+   * Reply to client, type is #GNUNET_MESSAGE_TYPE_ARM_RESULT or
+   * #GNUNET_MESSAGE_TYPE_ARM_LIST_RESULT.
    * OR
-   * Request from client, type is GNUNET_MESSAGE_TYPE_ARM_REQUEST
+   * Request from client, type is #GNUNET_MESSAGE_TYPE_ARM_REQUEST
    */
   struct GNUNET_MessageHeader header;
+
+  /** 
+   * For alignment.
+   */
+  uint32_t reserved;
 
   /**
    * ID of a request that is being replied to.
