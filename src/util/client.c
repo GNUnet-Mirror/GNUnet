@@ -570,7 +570,7 @@ receive_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       (const struct GNUNET_MessageHeader *) client->received_buf;
   void *handler_cls = client->receiver_handler_cls;
   uint16_t msize = ntohs (cmsg->size);
-  char mbuf[msize];
+  char mbuf[msize] GNUNET_ALIGN;
   struct GNUNET_MessageHeader *msg = (struct GNUNET_MessageHeader *) mbuf;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Received message of type %u and size %u from %s service.\n",
