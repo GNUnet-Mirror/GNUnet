@@ -587,9 +587,9 @@ GNS_shorten_start (const char *original_label,
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Starting shortening process for `%s' with old label `%s'\n",
+	      "Starting shortening process for `%s' with old label `%s' and suggested nickname `%s'\n",
 	      GNUNET_GNSRECORD_z2s (pub),
-	      original_label);
+	      original_label, suggested_label);
   gph = GNUNET_new (struct GetPseuAuthorityHandle);
   gph->shorten_zone_key = *shorten_zone;
   gph->target_zone = *pub;
