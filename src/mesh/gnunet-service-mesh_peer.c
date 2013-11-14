@@ -25,7 +25,7 @@
 #include "gnunet_core_service.h"
 #include "gnunet_statistics_service.h"
 
-#include "mesh_protocol_enc.h"
+#include "mesh_protocol.h"
 
 #include "gnunet-service-mesh_peer.h"
 #include "gnunet-service-mesh_dht.h"

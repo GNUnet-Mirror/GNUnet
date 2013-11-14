@@ -30,8 +30,8 @@
 #include "gnunet_statistics_service.h"
 
 #include "mesh_path.h"
-#include "mesh_protocol_enc.h"
-#include "mesh_enc.h"
+#include "mesh_protocol.h"
+#include "mesh.h"
 #include "gnunet-service-mesh_connection.h"
 #include "gnunet-service-mesh_peer.h"
 #include "gnunet-service-mesh_tunnel.h"

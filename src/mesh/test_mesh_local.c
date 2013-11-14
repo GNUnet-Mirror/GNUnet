@@ -28,7 +28,7 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_dht_service.h"
 #include "gnunet_testing_lib.h"
-#include "gnunet_mesh_service_enc.h"
+#include "gnunet_mesh_service.h"
 
 struct GNUNET_TESTING_Peer *me;
 

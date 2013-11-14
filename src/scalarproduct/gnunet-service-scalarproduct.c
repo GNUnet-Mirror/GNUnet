@@ -203,9 +203,9 @@ struct ServiceSession
   struct GNUNET_SERVER_TransmitHandle * client_transmit_handle;
 
   /**
-   * tunnel-handle associated with our mesh handle
+   * channel-handle associated with our mesh handle
    */
-  struct GNUNET_MESH_Tunnel * tunnel;
+  struct GNUNET_MESH_Channel * channel;
 
   /**
    * Handle to a task that sends a msg to the our client
@@ -783,10 +783,10 @@ handle_client_disconnect (void *cls,
 
   if (!(session->role == BOB && session->state == FINALIZED)) {
     //we MUST terminate any client message underway
-    if (session->service_transmit_handle && session->tunnel)
+    if (session->service_transmit_handle && session->channel)
       GNUNET_MESH_notify_transmit_ready_cancel (session->service_transmit_handle);
-    if (session->tunnel && session->state == WAITING_FOR_SERVICE_RESPONSE)
-      GNUNET_MESH_tunnel_destroy (session->tunnel);
+    if (session->channel && session->state == WAITING_FOR_SERVICE_RESPONSE)
+      GNUNET_MESH_channel_destroy (session->channel);
   }
   if (GNUNET_SCHEDULER_NO_TASK != session->client_notification_task) {
     GNUNET_SCHEDULER_cancel (session->client_notification_task);
@@ -1014,7 +1014,7 @@ prepare_service_response_multipart (void *cls)
   session->transferred += todo_count;
   session->msg = (struct GNUNET_MessageHeader *) msg;
   session->service_transmit_handle =
-          GNUNET_MESH_notify_transmit_ready (session->tunnel,
+          GNUNET_MESH_notify_transmit_ready (session->channel,
                                              GNUNET_YES,
                                              GNUNET_TIME_UNIT_FOREVER_REL,
                                              msg_length,
@@ -1152,7 +1152,7 @@ prepare_service_response (gcry_mpi_t s,
 
   session->msg = (struct GNUNET_MessageHeader *) msg;
   session->service_transmit_handle =
-          GNUNET_MESH_notify_transmit_ready (session->tunnel,
+          GNUNET_MESH_notify_transmit_ready (session->channel,
                                              GNUNET_YES,
                                              GNUNET_TIME_UNIT_FOREVER_REL,
                                              msg_length,
@@ -1476,13 +1476,13 @@ prepare_service_request_multipart (void *cls)
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, _ ("Transmitting service request.\n"));
 
   //transmit via mesh messaging
-  session->service_transmit_handle = GNUNET_MESH_notify_transmit_ready (session->tunnel, GNUNET_YES,
+  session->service_transmit_handle = GNUNET_MESH_notify_transmit_ready (session->channel, GNUNET_YES,
                                                                         GNUNET_TIME_UNIT_FOREVER_REL,
                                                                         msg_length,
                                                                         &do_send_message,
                                                                         session);
   if (!session->service_transmit_handle) {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _ ("Could not send service-request multipart message to tunnel!\n"));
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _ ("Could not send service-request multipart message to channel!\n"));
     GNUNET_free (msg);
     session->msg = NULL;
     session->client_notification_task =
@@ -1522,7 +1522,7 @@ prepare_service_request (void *cls,
 
   session->service_request_task = GNUNET_SCHEDULER_NO_TASK;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _ ("Successfully created new tunnel to peer (%s)!\n"), GNUNET_i2s (&session->peer));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _ ("Successfully created new channel to peer (%s)!\n"), GNUNET_i2s (&session->peer));
 
   msg_length = sizeof (struct GNUNET_SCALARPRODUCT_service_request)
           +session->mask_length
@@ -1603,13 +1603,13 @@ prepare_service_request (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, _ ("Transmitting service request.\n"));
 
   //transmit via mesh messaging
-  session->service_transmit_handle = GNUNET_MESH_notify_transmit_ready (session->tunnel, GNUNET_YES,
+  session->service_transmit_handle = GNUNET_MESH_notify_transmit_ready (session->channel, GNUNET_YES,
                                                                         GNUNET_TIME_UNIT_FOREVER_REL,
                                                                         msg_length,
                                                                         &do_send_message,
                                                                         session);
   if (!session->service_transmit_handle) {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _ ("Could not send message to tunnel!\n"));
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _ ("Could not send message to channel!\n"));
     GNUNET_free (msg);
     session->msg = NULL;
     session->client_notification_task =
@@ -1710,7 +1710,7 @@ handle_client_request (void *cls,
 
   if (GNUNET_MESSAGE_TYPE_SCALARPRODUCT_CLIENT_TO_ALICE == msg_type) {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                _ ("Got client-request-session with key %s, preparing tunnel to remote service.\n"),
+                _ ("Got client-request-session with key %s, preparing channel to remote service.\n"),
                 GNUNET_h2s (&session->key));
 
     session->role = ALICE;
@@ -1746,15 +1746,15 @@ handle_client_request (void *cls,
     // get our peer ID
     memcpy (&session->peer, &msg->peer, sizeof (struct GNUNET_PeerIdentity));
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                _ ("Creating new tunnel for session with key %s.\n"),
+                _ ("Creating new channel for session with key %s.\n"),
                 GNUNET_h2s (&session->key));
-    session->tunnel = GNUNET_MESH_tunnel_create (my_mesh, session,
+    session->channel = GNUNET_MESH_channel_create (my_mesh, session,
                                                  &session->peer,
                                                  GNUNET_APPLICATION_TYPE_SCALARPRODUCT,
                                                  GNUNET_NO,
                                                  GNUNET_YES);
-    //prepare_service_request, tunnel_peer_disconnect_handler,
-    if (!session->tunnel) {
+    //prepare_service_request, channel_peer_disconnect_handler,
+    if (!session->channel) {
       GNUNET_break (0);
       GNUNET_free (session->vector);
       GNUNET_free (session);
@@ -1809,26 +1809,26 @@ handle_client_request (void *cls,
 
 
 /**
- * Function called for inbound tunnels.
+ * Function called for inbound channels.
  *
  * @param cls closure
- * @param tunnel new handle to the tunnel
- * @param initiator peer that started the tunnel
+ * @param channel new handle to the channel
+ * @param initiator peer that started the channel
  * @param port unused
- * @return session associated with the tunnel
+ * @return session associated with the channel
  */
 static void *
-tunnel_incoming_handler (void *cls,
-                         struct GNUNET_MESH_Tunnel *tunnel,
+channel_incoming_handler (void *cls,
+                         struct GNUNET_MESH_Channel *channel,
                          const struct GNUNET_PeerIdentity *initiator,
                          uint32_t port)
 {
   struct ServiceSession * c = GNUNET_new (struct ServiceSession);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _ ("New incoming tunnel from peer %s.\n"), GNUNET_i2s (initiator));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _ ("New incoming channel from peer %s.\n"), GNUNET_i2s (initiator));
   
   c->peer = *initiator;
-  c->tunnel = tunnel;
+  c->channel = channel;
   c->role = BOB;
   c->state = WAITING_FOR_SERVICE_REQUEST;
   return c;
@@ -1836,22 +1836,22 @@ tunnel_incoming_handler (void *cls,
 
 
 /**
- * Function called whenever a tunnel is destroyed.  Should clean up
+ * Function called whenever a channel is destroyed.  Should clean up
  * any associated state.
  *
- * It must NOT call GNUNET_MESH_tunnel_destroy on the tunnel.
+ * It must NOT call GNUNET_MESH_channel_destroy on the channel.
  *
  * @param cls closure (set from GNUNET_MESH_connect)
- * @param tunnel connection to the other end (henceforth invalid)
- * @param tunnel_ctx place where local state associated
- *                   with the tunnel is stored
+ * @param channel connection to the other end (henceforth invalid)
+ * @param channel_ctx place where local state associated
+ *                   with the channel is stored
  */
 static void
-tunnel_destruction_handler (void *cls,
-                            const struct GNUNET_MESH_Tunnel *tunnel,
-                            void *tunnel_ctx)
+channel_destruction_handler (void *cls,
+                            const struct GNUNET_MESH_Channel *channel,
+                            void *channel_ctx)
 {
-  struct ServiceSession * session = tunnel_ctx;
+  struct ServiceSession * session = channel_ctx;
   struct ServiceSession * client_session;
   struct ServiceSession * curr;
 
@@ -1863,7 +1863,7 @@ tunnel_destruction_handler (void *cls,
     // as we have only one peer connected in each session, just remove the session
     
     if ((SERVICE_RESPONSE_RECEIVED > session->state) && (!do_shutdown)) {
-      session->tunnel = NULL;
+      session->channel = NULL;
       // if this happened before we received the answer, we must terminate the session
       session->client_notification_task =
               GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
@@ -1985,16 +1985,16 @@ compute_scalar_product (struct ServiceSession * session)
  * Handle a multipart-chunk of a request from another service to calculate a scalarproduct with us.
  *
  * @param cls closure (set from #GNUNET_MESH_connect)
- * @param tunnel connection to the other end
- * @param tunnel_ctx place to store local state associated with the tunnel
+ * @param channel connection to the other end
+ * @param channel_ctx place to store local state associated with the channel
  * @param message the actual message
  * @return #GNUNET_OK to keep the connection open,
  *         #GNUNET_SYSERR to close it (signal serious error)
  */
 static int
 handle_service_request_multipart (void *cls,
-                                  struct GNUNET_MESH_Tunnel * tunnel,
-                                  void **tunnel_ctx,
+                                  struct GNUNET_MESH_Channel * channel,
+                                  void **channel_ctx,
                                   const struct GNUNET_MessageHeader * message)
 {
   struct ServiceSession * session;
@@ -2007,7 +2007,7 @@ handle_service_request_multipart (void *cls,
   int32_t i = -1;
 
   // are we in the correct state?
-  session = (struct ServiceSession *) * tunnel_ctx;
+  session = (struct ServiceSession *) * channel_ctx;
   if ((BOB != session->role) || (WAITING_FOR_MULTIPART_TRANSMISSION != session->state)) {
     goto except;
   }
@@ -2077,16 +2077,16 @@ except:
  * Handle a request from another service to calculate a scalarproduct with us.
  *
  * @param cls closure (set from #GNUNET_MESH_connect)
- * @param tunnel connection to the other end
- * @param tunnel_ctx place to store local state associated with the tunnel
+ * @param channel connection to the other end
+ * @param channel_ctx place to store local state associated with the channel
  * @param message the actual message
  * @return #GNUNET_OK to keep the connection open,
  *         #GNUNET_SYSERR to close it (signal serious error)
  */
 static int
 handle_service_request (void *cls,
-                        struct GNUNET_MESH_Tunnel * tunnel,
-                        void **tunnel_ctx,
+                        struct GNUNET_MESH_Channel * channel,
+                        void **channel_ctx,
                         const struct GNUNET_MessageHeader * message)
 {
   struct ServiceSession * session;
@@ -2102,7 +2102,7 @@ handle_service_request (void *cls,
   int32_t i = -1;
   enum SessionState needed_state;
 
-  session = (struct ServiceSession *) * tunnel_ctx;
+  session = (struct ServiceSession *) * channel_ctx;
   if (WAITING_FOR_SERVICE_REQUEST != session->state) {
     goto invalid_msg;
   }
@@ -2147,7 +2147,7 @@ handle_service_request (void *cls,
   session->total = element_count;
   session->used = used_elements;
   session->transferred = contained_elements;
-  session->tunnel = tunnel;
+  session->channel = channel;
 
   // session key
   memcpy (&session->key, &msg->key, sizeof (struct GNUNET_HashCode));
@@ -2226,16 +2226,16 @@ invalid_msg:
  * Handle a multipart chunk of a response we got from another service we wanted to calculate a scalarproduct with.
  *
  * @param cls closure (set from #GNUNET_MESH_connect)
- * @param tunnel connection to the other end
- * @param tunnel_ctx place to store local state associated with the tunnel
+ * @param channel connection to the other end
+ * @param channel_ctx place to store local state associated with the channel
  * @param message the actual message
  * @return #GNUNET_OK to keep the connection open,
  *         #GNUNET_SYSERR to close it (signal serious error)
  */
 static int
 handle_service_response_multipart (void *cls,
-                                   struct GNUNET_MESH_Tunnel * tunnel,
-                                   void **tunnel_ctx,
+                                   struct GNUNET_MESH_Channel * channel,
+                                   void **channel_ctx,
                                    const struct GNUNET_MessageHeader * message)
 {
   struct ServiceSession * session;
@@ -2250,7 +2250,7 @@ handle_service_response_multipart (void *cls,
 
   GNUNET_assert (NULL != message);
   // are we in the correct state?
-  session = (struct ServiceSession *) * tunnel_ctx;
+  session = (struct ServiceSession *) * channel_ctx;
   if ((ALICE != session->role) || (WAITING_FOR_MULTIPART_TRANSMISSION != session->state)) {
     goto invalid_msg;
   }
@@ -2295,13 +2295,13 @@ invalid_msg:
   // send message with product to client
   if (ALICE == session->role){
     session->state = FINALIZED;
-    session->tunnel = NULL;
+    session->channel = NULL;
     session->client_notification_task =
           GNUNET_SCHEDULER_add_now (&prepare_client_response,
                                     session);
   }
-  // the tunnel has done its job, terminate our connection and the tunnel
-  // the peer will be notified that the tunnel was destroyed via tunnel_destruction_handler
+  // the channel has done its job, terminate our connection and the channel
+  // the peer will be notified that the channel was destroyed via channel_destruction_handler
   // just close the connection, as recommended by Christian
   return GNUNET_SYSERR;
 }
@@ -2311,16 +2311,16 @@ invalid_msg:
  * Handle a response we got from another service we wanted to calculate a scalarproduct with.
  *
  * @param cls closure (set from #GNUNET_MESH_connect)
- * @param tunnel connection to the other end
- * @param tunnel_ctx place to store local state associated with the tunnel
+ * @param channel connection to the other end
+ * @param channel_ctx place to store local state associated with the channel
  * @param message the actual message
  * @return #GNUNET_OK to keep the connection open,
  *         #GNUNET_SYSERR to close it (we are done)
  */
 static int
 handle_service_response (void *cls,
-                         struct GNUNET_MESH_Tunnel * tunnel,
-                         void **tunnel_ctx,
+                         struct GNUNET_MESH_Channel * channel,
+                         void **channel_ctx,
                          const struct GNUNET_MessageHeader * message)
 {
   struct ServiceSession * session;
@@ -2334,7 +2334,7 @@ handle_service_response (void *cls,
   int rc;
 
   GNUNET_assert (NULL != message);
-  session = (struct ServiceSession *) * tunnel_ctx;
+  session = (struct ServiceSession *) * channel_ctx;
   // are we in the correct state?
   if (WAITING_FOR_SERVICE_RESPONSE != session->state) {
     goto invalid_msg;
@@ -2399,13 +2399,13 @@ invalid_msg:
   // send message with product to client
   if (ALICE == session->role){
     session->state = FINALIZED;
-    session->tunnel = NULL;
+    session->channel = NULL;
     session->client_notification_task =
           GNUNET_SCHEDULER_add_now (&prepare_client_response,
                                     session);
   }
-  // the tunnel has done its job, terminate our connection and the tunnel
-  // the peer will be notified that the tunnel was destroyed via tunnel_destruction_handler
+  // the channel has done its job, terminate our connection and the channel
+  // the peer will be notified that the channel was destroyed via channel_destruction_handler
   // just close the connection, as recommended by Christian
   return GNUNET_SYSERR;
 }
@@ -2426,11 +2426,11 @@ shutdown_task (void *cls,
 
   do_shutdown = GNUNET_YES;
 
-  // terminate all owned open tunnels.
+  // terminate all owned open channels.
   for (session = from_client_head; NULL != session; session = session->next) {
-    if ((FINALIZED != session->state) && (NULL != session->tunnel)) {
-      GNUNET_MESH_tunnel_destroy (session->tunnel);
-      session->tunnel = NULL;
+    if ((FINALIZED != session->state) && (NULL != session->channel)) {
+      GNUNET_MESH_channel_destroy (session->channel);
+      session->channel = NULL;
     }
     if (GNUNET_SCHEDULER_NO_TASK != session->client_notification_task) {
       GNUNET_SCHEDULER_cancel (session->client_notification_task);
@@ -2446,9 +2446,9 @@ shutdown_task (void *cls,
     }
   }
   for (session = from_service_head; NULL != session; session = session->next)
-    if (NULL != session->tunnel) {
-      GNUNET_MESH_tunnel_destroy (session->tunnel);
-      session->tunnel = NULL;
+    if (NULL != session->channel) {
+      GNUNET_MESH_channel_destroy (session->channel);
+      session->channel = NULL;
     }
 
   if (my_mesh) {
@@ -2498,8 +2498,8 @@ run (void *cls,
                 GNUNET_CRYPTO_get_peer_identity (c,
                                                  &me));
   my_mesh = GNUNET_MESH_connect (c, NULL,
-                                 &tunnel_incoming_handler,
-                                 &tunnel_destruction_handler,
+                                 &channel_incoming_handler,
+                                 &channel_destruction_handler,
                                  mesh_handlers, ports);
   if (!my_mesh) {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _ ("Connect to MESH failed\n"));

@@ -118,7 +118,7 @@ get_tunnels (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     return;
   }
-  GNUNET_MESH_get_tunnels (mh, &tunnels_callback, NULL);
+//   GNUNET_MESH_get_tunnels (mh, &tunnels_callback, NULL);
   if (GNUNET_YES != monitor_connections)
   {
     GNUNET_SCHEDULER_shutdown();
@@ -148,7 +148,7 @@ show_tunnel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_SCHEDULER_shutdown();
     return;
   }
-  GNUNET_MESH_show_tunnel (mh, &pid, 0, tunnel_callback, NULL);
+//   GNUNET_MESH_show_tunnel (mh, &pid, 0, tunnel_callback, NULL);
 }
 
 

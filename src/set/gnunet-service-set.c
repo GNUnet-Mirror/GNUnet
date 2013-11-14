@@ -316,16 +316,16 @@ _GSS_operation_destroy (struct Operation *op)
     op->mq = NULL;
   }
 
-  if (NULL != op->tunnel)
+  if (NULL != op->channel)
   {
-    GNUNET_MESH_tunnel_destroy (op->tunnel);
-    op->tunnel = NULL;
+    GNUNET_MESH_channel_destroy (op->channel);
+    op->channel = NULL;
   }
 
   collect_generation_garbage (set);
 
-  /* We rely on the tunnel end handler to free 'op'. When 'op->tunnel' was NULL,
-   * there was a tunnel end handler that will free 'op' on the call stack. */
+  /* We rely on the channel end handler to free 'op'. When 'op->channel' was NULL,
+   * there was a channel end handler that will free 'op' on the call stack. */
 }
 
 
@@ -362,7 +362,7 @@ set_destroy (struct Set *set)
 {
   /* If the client is not dead yet, destroy it.
    * The client's destroy callback will destroy the set again.
-   * We do this so that the tunnel end handler still has a valid set handle
+   * We do this so that the channel end handler still has a valid set handle
    * to destroy. */
   if (NULL != set->client)
   {
@@ -532,8 +532,8 @@ incoming_suggest (struct Operation *incoming, struct Listener *listener)
  *
  * @param op the operation state
  * @param mh the received message
- * @return GNUNET_OK if the tunnel should be kept alive,
- *         GNUNET_SYSERR to destroy the tunnel
+ * @return GNUNET_OK if the channel should be kept alive,
+ *         GNUNET_SYSERR to destroy the channel
  */
 static int
 handle_incoming_msg (struct Operation *op,
@@ -805,8 +805,8 @@ handle_client_reject (void *cls,
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "peer request rejected by client\n");
   
-  GNUNET_MESH_tunnel_destroy (incoming->tunnel);
-  //tunnel destruction handler called immediately upon destruction
+  GNUNET_MESH_channel_destroy (incoming->channel);
+  //channel destruction handler called immediately upon destruction
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
@@ -935,12 +935,12 @@ handle_client_evaluate (void *cls,
   op->vt = set->vt;
   GNUNET_CONTAINER_DLL_insert (set->ops_head, set->ops_tail, op);
 
-  op->tunnel = GNUNET_MESH_tunnel_create (mesh, op, &msg->target_peer,
+  op->channel = GNUNET_MESH_channel_create (mesh, op, &msg->target_peer,
                                           GNUNET_APPLICATION_TYPE_SET,
                                           GNUNET_YES,
                                           GNUNET_YES);
 
-  op->mq = GNUNET_MESH_mq_create (op->tunnel);
+  op->mq = GNUNET_MESH_mq_create (op->channel);
 
   set->vt->evaluate (op);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -1111,7 +1111,7 @@ shutdown_task (void *cls,
   while (NULL != sets_head)
     set_destroy (sets_head);
 
-  /* it's important to destroy mesh at the end, as all tunnels
+  /* it's important to destroy mesh at the end, as all channels
    * must be destroyed before the mesh handle! */
   if (NULL != mesh)
   {
@@ -1127,9 +1127,9 @@ shutdown_task (void *cls,
  * Timeout happens iff:
  *  - we suggested an operation to our listener, 
  *    but did not receive a response in time
- *  - we got the tunnel from a peer but no GNUNET_MESSAGE_TYPE_SET_P2P_OPERATION_REQUEST
+ *  - we got the channel from a peer but no GNUNET_MESSAGE_TYPE_SET_P2P_OPERATION_REQUEST
  *  - shutdown (obviously)
- * @param cls tunnel context
+ * @param cls channel context
  * @param tc context information (why was this task triggered now)
  */
 static void
@@ -1150,16 +1150,16 @@ incoming_timeout_cb (void *cls,
 
 /**
  * Terminates an incoming operation in case we have not yet received an
- * operation request. Called by the tunnel destruction handler.
+ * operation request. Called by the channel destruction handler.
  * 
- * @param op the tunnel context
+ * @param op the channel context
  */
 static void
 handle_incoming_disconnect (struct Operation *op)
 {
   GNUNET_assert (GNUNET_YES == op->is_incoming);
   
-  if (NULL == op->tunnel)
+  if (NULL == op->channel)
     return;
 
   incoming_destroy (op);
@@ -1167,25 +1167,25 @@ handle_incoming_disconnect (struct Operation *op)
 
 
 /**
- * Method called whenever another peer has added us to a tunnel
+ * Method called whenever another peer has added us to a channel
  * the other peer initiated.
  * Only called (once) upon reception of data with a message type which was
  * subscribed to in GNUNET_MESH_connect. 
  * 
- * The tunnel context represents the operation itself and gets added to a DLL,
+ * The channel context represents the operation itself and gets added to a DLL,
  * from where it gets looked up when our local listener client responds 
  * to a proposed/suggested operation or connects and associates with this operation.
  *
  * @param cls closure
- * @param tunnel new handle to the tunnel
- * @param initiator peer that started the tunnel
- * @param port Port this tunnel is for.
- * @return initial tunnel context for the tunnel
+ * @param channel new handle to the channel
+ * @param initiator peer that started the channel
+ * @param port Port this channel is for.
+ * @return initial channel context for the channel
  *         (can be NULL -- that's not an error)
  */
 static void *
-tunnel_new_cb (void *cls,
-               struct GNUNET_MESH_Tunnel *tunnel,
+channel_new_cb (void *cls,
+               struct GNUNET_MESH_Channel *channel,
                const struct GNUNET_PeerIdentity *initiator,
                uint32_t port)
 {
@@ -1195,15 +1195,15 @@ tunnel_new_cb (void *cls,
     .peer_disconnect = handle_incoming_disconnect
   };
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "new incoming tunnel\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "new incoming channel\n");
 
   GNUNET_assert (port == GNUNET_APPLICATION_TYPE_SET);
   incoming = GNUNET_new (struct Operation);
   incoming->is_incoming = GNUNET_YES;
   incoming->state = GNUNET_new (struct OperationState);
   incoming->state->peer = *initiator;
-  incoming->tunnel = tunnel;
-  incoming->mq = GNUNET_MESH_mq_create (incoming->tunnel);
+  incoming->channel = channel;
+  incoming->mq = GNUNET_MESH_mq_create (incoming->channel);
   incoming->vt = &incoming_vt;
   incoming->state->timeout_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES, incoming_timeout_cb, incoming);
@@ -1214,72 +1214,72 @@ tunnel_new_cb (void *cls,
 
 
 /**
- * Function called whenever a tunnel is destroyed.  Should clean up
+ * Function called whenever a channel is destroyed.  Should clean up
  * any associated state.
- * GNUNET_MESH_tunnel_destroy. It must NOT call GNUNET_MESH_tunnel_destroy on
- * the tunnel.
+ * GNUNET_MESH_channel_destroy. It must NOT call GNUNET_MESH_channel_destroy on
+ * the channel.
  * 
  * The peer_disconnect function is part of a a virtual table set initially either 
- * when a peer creates a new tunnel with us (tunnel_new_cb), or once we create
- * a new tunnel ourselves (evaluate). 
+ * when a peer creates a new channel with us (channel_new_cb), or once we create
+ * a new channel ourselves (evaluate). 
  * 
  * Once we know the exact type of operation (union/intersection), the vt is 
  * replaced with an operation specific instance (_GSS_[op]_vt).
  *
  * @param cls closure (set from GNUNET_MESH_connect)
- * @param tunnel connection to the other end (henceforth invalid)
- * @param tunnel_ctx place where local state associated
- *                   with the tunnel is stored
+ * @param channel connection to the other end (henceforth invalid)
+ * @param channel_ctx place where local state associated
+ *                   with the channel is stored
  */
 static void
-tunnel_end_cb (void *cls,
-               const struct GNUNET_MESH_Tunnel *tunnel, void *tunnel_ctx)
+channel_end_cb (void *cls,
+               const struct GNUNET_MESH_Channel *channel, void *channel_ctx)
 {
-  struct Operation *op = tunnel_ctx;
+  struct Operation *op = channel_ctx;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "tunnel end cb called\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "channel end cb called\n");
 
-  op->tunnel = NULL;
+  op->channel = NULL;
 
   if (NULL != op->vt)
     op->vt->peer_disconnect (op);
   /* mesh will never call us with the context again! */
-  GNUNET_free (tunnel_ctx);
+  GNUNET_free (channel_ctx);
 }
 
 
 /**
  * Functions with this signature are called whenever any message is
- * received via the mesh tunnel.
+ * received via the mesh channel.
  *
  * The msg_handler is a virtual table set in initially either when a peer 
- * creates a new tunnel with us (tunnel_new_cb), or once we create a new tunnel 
+ * creates a new channel with us (channel_new_cb), or once we create a new channel 
  * ourselves (evaluate). 
  * 
  * Once we know the exact type of operation (union/intersection), the vt is 
  * replaced with an operation specific instance (_GSS_[op]_vt).
  *
  * @param cls Closure (set from GNUNET_MESH_connect).
- * @param tunnel Connection to the other end.
- * @param tunnel_ctx Place to store local state associated with the tunnel.
+ * @param channel Connection to the other end.
+ * @param channel_ctx Place to store local state associated with the channel.
  * @param message The actual message.
  *
- * @return GNUNET_OK to keep the tunnel open,
+ * @return GNUNET_OK to keep the channel open,
  *         GNUNET_SYSERR to close it (signal serious error).
  */
 static int
 dispatch_p2p_message (void *cls,
-                      struct GNUNET_MESH_Tunnel *tunnel,
-                      void **tunnel_ctx,
+                      struct GNUNET_MESH_Channel *channel,
+                      void **channel_ctx,
                       const struct GNUNET_MessageHeader *message)
 {
-  struct Operation *op = *tunnel_ctx;
+  struct Operation *op = *channel_ctx;
   int ret;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "dispatching mesh message (type: %u)\n",
               ntohs (message->type));
-  /* do this before the handler, as the handler might kill the tunnel */
-  GNUNET_MESH_receive_done (tunnel);
+  /* do this before the handler, as the handler might kill the channel */
+  GNUNET_MESH_receive_done (channel);
   ret = op->vt->msg_handler (op, message);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "handled mesh message (type: %u)\n",
               ntohs (message->type));
@@ -1336,7 +1336,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   GNUNET_SERVER_disconnect_notify (server, &handle_client_disconnect, NULL);
   GNUNET_SERVER_add_handlers (server, server_handlers);
 
-  mesh = GNUNET_MESH_connect (cfg, NULL, tunnel_new_cb, tunnel_end_cb,
+  mesh = GNUNET_MESH_connect (cfg, NULL, channel_new_cb, channel_end_cb,
                               mesh_handlers, mesh_ports);
   if (NULL == mesh)
   {

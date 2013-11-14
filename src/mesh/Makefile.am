@@ -20,12 +20,6 @@ plugindir = $(libdir)/gnunet
 
 AM_CLFAGS = -g
 
-EXP_LIB = \
- libgnunetmeshenc.la
-
-EXP_LIBEXEC = \
- gnunet-service-mesh-enc
-
 libexec_PROGRAMS = \
  gnunet-service-mesh $(EXP_LIBEXEC)
 
@@ -58,19 +52,7 @@ libgnunetmesh_la_LIBADD = \
   $(LTLIBINTL)
 libgnunetmesh_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) $(WINFLAGS) \
-  -version-info 3:0:0
-
-
-libgnunetmeshenc_la_SOURCES = \
-  mesh_api_enc.c mesh_common.c
-libgnunetmeshenc_la_LIBADD = \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(XLIB) \
-  $(LTLIBINTL)
-libgnunetmeshenc_la_LDFLAGS = \
-  $(GN_LIB_LDFLAGS) $(WINFLAGS) \
-  -version-info 1:0:0
-
+  -version-info 4:0:0
 
 gnunet_mesh_SOURCES = \
   gnunet-mesh.c
@@ -81,9 +63,15 @@ gnunet_mesh_DEPENDENCIES = \
   libgnunetmesh.la
 
 gnunet_service_mesh_SOURCES = \
- gnunet-service-mesh.c \
+ gnunet-service-mesh_tunnel.c \
+ gnunet-service-mesh_connection.c \
+ gnunet-service-mesh_channel.c \
+ gnunet-service-mesh_local.c \
+ gnunet-service-mesh_peer.c \
+ gnunet-service-mesh_dht.c \
  mesh_path.c \
- mesh_common.c
+ mesh_common.c \
+ gnunet-service-mesh.c
 gnunet_service_mesh_CFLAGS = $(AM_CFLAGS)
 gnunet_service_mesh_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
@@ -101,33 +89,6 @@ if LINUX
   gnunet_service_mesh_LDFLAGS = -lrt
 endif
 
-gnunet_service_mesh_enc_SOURCES = \
- gnunet-service-mesh_tunnel.c \
- gnunet-service-mesh_connection.c \
- gnunet-service-mesh_channel.c \
- gnunet-service-mesh_local.c \
- gnunet-service-mesh_peer.c \
- gnunet-service-mesh_dht.c \
- mesh_path.c \
- mesh_common.c \
- gnunet-service-mesh-enc.c
-gnunet_service_mesh_enc_CFLAGS = $(AM_CFLAGS)
-gnunet_service_mesh_enc_LDADD = \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/core/libgnunetcore.la \
-  $(top_builddir)/src/dht/libgnunetdht.la \
-  $(top_builddir)/src/statistics/libgnunetstatistics.la \
-  $(top_builddir)/src/block/libgnunetblock.la
-gnunet_service_mesh_enc_DEPENDENCIES = \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/core/libgnunetcore.la \
-  $(top_builddir)/src/dht/libgnunetdht.la \
-  $(top_builddir)/src/statistics/libgnunetstatistics.la \
-  $(top_builddir)/src/block/libgnunetblock.la
-if LINUX
-  gnunet_service_mesh_enc_LDFLAGS = -lrt
-endif
-
 
 if HAVE_TESTING
  noinst_LIBRARIES = libgnunetmeshtest.a $(noinst_LIB_EXP)
@@ -138,9 +99,9 @@ libgnunetmeshtest_a_SOURCES = \
 libgnunetmeshtest_a_LIBADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/testbed/libgnunettestbed.la \
- $(top_builddir)/src/mesh/libgnunetmeshenc.la
+ $(top_builddir)/src/mesh/libgnunetmesh.la
 libgnunetmeshtest_a_DEPENDENCIES = \
-  libgnunetmeshenc.la
+  libgnunetmesh.la
 
 if HAVE_TESTING
 check_PROGRAMS = \
@@ -161,11 +122,11 @@ ld_mesh_test_lib = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/mesh/libgnunetmeshtest.a \
-  $(top_builddir)/src/mesh/libgnunetmeshenc.la \
+  $(top_builddir)/src/mesh/libgnunetmesh.la \
   $(top_builddir)/src/testbed/libgnunettestbed.la
 
 dep_mesh_test_lib = \
-  libgnunetmeshenc.la \
+  libgnunetmesh.la \
   libgnunetmeshtest.a
 
 test_mesh_single_SOURCES = \

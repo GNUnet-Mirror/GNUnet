@@ -26,7 +26,13 @@
 #ifndef MESH_PROTOCOL_H_
 #define MESH_PROTOCOL_H_
 
+#include "platform.h"
+#include "gnunet_util_lib.h"
+#include "mesh.h"
+
 #ifdef __cplusplus
+
+struct GNUNET_MESH_TunnelMessage;
 extern "C"
 {
 #if 0
@@ -42,42 +48,254 @@ extern "C"
 GNUNET_NETWORK_STRUCT_BEGIN
 
 /**
- * Message for mesh path creation.
+ * Message for mesh connection creation.
+ * TODO onionify path, add random tunnel ID
  */
-struct GNUNET_MESH_CreateTunnel
+struct GNUNET_MESH_ConnectionCreate
 {
     /**
-     * Type: GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE
+     * Type: GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE
      *
      * Size: sizeof(struct GNUNET_MESH_ManipulatePath) +
-     *       path_length * sizeof (struct GNUNET_PeerIdentity)
+     *              path_length * sizeof (struct GNUNET_PeerIdentity)
      */
   struct GNUNET_MessageHeader header;
 
     /**
-     * Global id of the tunnel this path belongs to,
-     * unique in conjunction with the origin.
+     * ID of the connection
      */
-  uint32_t tid GNUNET_PACKED;
+  struct GNUNET_HashCode cid;
 
     /**
-     * Tunnel options (GNUNET_MESH_OPTION_*).
-     */
-  uint32_t opt GNUNET_PACKED;
-
-    /**
-     * Destination port.
-     */
-  uint32_t port GNUNET_PACKED;
-
-    /**
-     * FIXME do not add the first hop
      * path_length structs defining the *whole* path from the origin [0] to the
      * final destination [path_length-1].
      */
   /* struct GNUNET_PeerIdentity peers[path_length]; */
 };
 
+/**
+ * Message for ack'ing a connection
+ */
+struct GNUNET_MESH_ConnectionACK
+{
+    /**
+     * Type: GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK
+     */
+  struct GNUNET_MessageHeader header;
+
+    /**
+     * Always 0.
+     */
+  uint32_t reserved GNUNET_PACKED;
+
+    /**
+     * ID of the connection.
+     */
+  struct GNUNET_HashCode cid;
+
+  /* TODO: signature */
+};
+
+
+/**
+ * Message for encapsulation of a Key eXchange message in a connection.
+ */
+struct GNUNET_MESH_KX
+{
+    /**
+     * Type: GNUNET_MESSAGE_TYPE_MESH_KX.
+     */
+  struct GNUNET_MessageHeader header;
+
+    /**
+     * Always 0.
+     */
+  uint32_t reserved GNUNET_PACKED;
+
+    /**
+     * ID of the connection.
+     */
+  struct GNUNET_HashCode cid;
+
+  /* Specific KX message follows. */
+};
+
+
+/**
+ * Message transmitted with the signed ephemeral key of a peer.  The
+ * session key is then derived from the two ephemeral keys (ECDHE).
+ *
+ * As far as possible, same as CORE's EphemeralKeyMessage.
+ */
+struct GNUNET_MESH_KX_Ephemeral
+{
+
+  /**
+   * Message type is GNUNET_MESSAGE_TYPE_MESH_KX_EPHEMERAL.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Status of the sender (should be in "enum PeerStateMachine"), nbo.
+   */
+  int32_t sender_status GNUNET_PACKED;
+
+  /**
+   * An ECC signature of the 'origin' asserting the validity of
+   * the given ephemeral key.
+   */
+  struct GNUNET_CRYPTO_EddsaSignature signature;
+
+  /**
+   * Information about what is being signed.
+   */
+  struct GNUNET_CRYPTO_EccSignaturePurpose purpose;
+
+  /**
+   * At what time was this key created (beginning of validity).
+   */
+  struct GNUNET_TIME_AbsoluteNBO creation_time;
+
+  /**
+   * When does the given ephemeral key expire (end of validity).
+   */
+  struct GNUNET_TIME_AbsoluteNBO expiration_time;
+
+  /**
+   * Ephemeral public ECC key (always for NIST P-521) encoded in a format suitable
+   * for network transmission as created using 'gcry_sexp_sprint'.
+   */
+  struct GNUNET_CRYPTO_EcdhePublicKey ephemeral_key;
+
+  /**
+   * Public key of the signing peer (persistent version, not the ephemeral public key).
+   */
+  struct GNUNET_PeerIdentity origin_identity;
+};
+
+
+/**
+ * We're sending an (encrypted) PING to the other peer to check if he
+ * can decrypt.  The other peer should respond with a PONG with the
+ * same content, except this time encrypted with the receiver's key.
+ */
+struct GNUNET_MESH_KX_Ping
+{
+  /**
+   * Message type is GNUNET_MESSAGE_TYPE_MESH_KX_PING.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Seed for the IV
+   */
+  uint32_t iv GNUNET_PACKED;
+
+  /**
+   * Intended target of the PING, used primarily to check
+   * that decryption actually worked.
+   */
+  struct GNUNET_PeerIdentity target;
+
+  /**
+   * Random number chosen to make reply harder.
+   */
+  uint32_t nonce GNUNET_PACKED;
+};
+
+
+/**
+ * Response to a PING.  Includes data from the original PING.
+ */
+struct GNUNET_MESH_KX_Pong
+{
+  /**
+   * Message type is GNUNET_MESSAGE_TYPE_MESH_KX_PONG.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Seed for the IV
+   */
+  uint32_t iv GNUNET_PACKED;
+
+  /**
+   * Same nonce as in the reve.
+   */
+  uint32_t nonce GNUNET_PACKED;
+};
+
+
+/**
+ * Tunnel(ed) message.
+ */
+struct GNUNET_MESH_Encrypted
+{
+  /**
+   * Type: GNUNET_MESSAGE_TYPE_MESH_ENCRYPTED
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Initialization Vector for payload encryption.
+   */
+  uint32_t iv GNUNET_PACKED;
+
+  /**
+   * ID of the connection.
+   */
+  struct GNUNET_HashCode cid;
+
+  /**
+   * ID of the packet (hop by hop).
+   */
+  uint32_t pid GNUNET_PACKED;
+
+  /**
+   * Number of hops to live.
+   */
+  uint32_t ttl GNUNET_PACKED;
+
+  /**
+   * Encrypted content follows.
+   */
+};
+
+struct GNUNET_MESH_ChannelCreate
+{
+  /**
+   * Type: GNUNET_MESSAGE_TYPE_MESH_CHANNEL_CREATE
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * ID of the channel
+   */
+  MESH_ChannelNumber chid GNUNET_PACKED;
+
+  /**
+   * Destination port.
+   */
+  uint32_t port GNUNET_PACKED;
+
+  /**
+   * Channel options.
+   */
+  uint32_t opt GNUNET_PACKED;
+};
+
+struct GNUNET_MESH_ChannelManage
+{
+  /**
+   * Type: GNUNET_MESSAGE_TYPE_MESH_CHANNEL_{ACK|NACK|DESTROY}
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * ID of the channel
+   */
+  MESH_ChannelNumber chid GNUNET_PACKED;
+};
 
 /**
  * Message for mesh data traffic.
@@ -91,29 +309,14 @@ struct GNUNET_MESH_Data
   struct GNUNET_MessageHeader header;
 
     /**
-     * TID of the tunnel
+     * Unique ID of the payload message
      */
-  uint32_t tid GNUNET_PACKED;
-
-    /**
-     * Number of hops to live
-     */
-  uint32_t ttl GNUNET_PACKED;
-
-    /**
-     * ID of the packet
-     */
-  uint32_t pid GNUNET_PACKED;
-
-    /**
-     * OID of the tunnel
-     */
-  struct GNUNET_PeerIdentity oid;
-
-  /**
-   * Unique ID of the payload message
-   */
   uint32_t mid GNUNET_PACKED;
+
+    /**
+     * ID of the channel
+     */
+  MESH_ChannelNumber chid GNUNET_PACKED;
 
     /**
      * Payload follows
@@ -132,14 +335,9 @@ struct GNUNET_MESH_DataACK
   struct GNUNET_MessageHeader header;
 
   /**
-   * TID of the tunnel
+   * ID of the channel
    */
-  uint32_t tid GNUNET_PACKED;
-
-  /**
-   * OID of the tunnel
-   */
-  struct GNUNET_PeerIdentity oid;
+  MESH_ChannelNumber chid GNUNET_PACKED;
 
   /**
    * Bitfield of already-received newer messages
@@ -156,7 +354,7 @@ struct GNUNET_MESH_DataACK
 
 
 /**
- * Message to acknowledge mesh data traffic.
+ * Message to acknowledge mesh encrypted traffic.
  */
 struct GNUNET_MESH_ACK
 {
@@ -166,19 +364,14 @@ struct GNUNET_MESH_ACK
   struct GNUNET_MessageHeader header;
 
     /**
-     * TID of the tunnel
-     */
-  uint32_t tid GNUNET_PACKED;
-
-    /**
-     * OID of the tunnel
-     */
-  struct GNUNET_PeerIdentity oid;
-
-    /**
      * Maximum packet ID authorized.
      */
-  uint32_t pid GNUNET_PACKED;
+  uint32_t ack GNUNET_PACKED;
+
+    /**
+     * ID of the connection.
+     */
+  struct GNUNET_HashCode cid;
 };
 
 
@@ -193,74 +386,37 @@ struct GNUNET_MESH_Poll
   struct GNUNET_MessageHeader header;
 
   /**
-   * TID of the tunnel
-   */
-  uint32_t tid GNUNET_PACKED;
-
-  /**
-   * OID of the tunnel
-   */
-  struct GNUNET_PeerIdentity oid;
-
-  /**
    * Last packet sent.
    */
   uint32_t pid GNUNET_PACKED;
-};
-
-/**
- * Message for ack'ing a path
- */
-struct GNUNET_MESH_PathACK
-{
-    /**
-     * Type: GNUNET_MESSAGE_TYPE_MESH_PATH_ACK
-     */
-  struct GNUNET_MessageHeader header;
 
     /**
-     * TID of the tunnel
+     * ID of the connection.
      */
-  uint32_t tid GNUNET_PACKED;
+  struct GNUNET_HashCode cid;
 
-    /**
-     * OID of the tunnel
-     */
-  struct GNUNET_PeerIdentity oid;
-
-    /**
-     * ID of the endpoint
-     */
-  struct GNUNET_PeerIdentity peer_id;
-
-    /**
-     * Initial ACK value for payload.
-     */
-  uint32_t ack GNUNET_PACKED;
-
-  /* TODO: signature */
 };
 
 
 /**
  * Message for notifying a disconnection in a path
  */
-struct GNUNET_MESH_PathBroken
+struct GNUNET_MESH_ConnectionBroken
 {
     /**
-     * Type: GNUNET_MESSAGE_TYPE_MESH_PATH_BROKEN
+     * Type: GNUNET_MESSAGE_TYPE_MESH_CONNECTION_BROKEN
      */
   struct GNUNET_MessageHeader header;
 
     /**
-     * TID of the tunnel
+     * Always 0.
      */
-  uint32_t tid GNUNET_PACKED;
+  uint32_t reserved GNUNET_PACKED;
 
     /**
-     * OID of the tunnel
+     * ID of the connection.
      */
-  struct GNUNET_PeerIdentity oid;
+  struct GNUNET_HashCode cid;
 
     /**
      * ID of the endpoint
@@ -277,48 +433,48 @@ struct GNUNET_MESH_PathBroken
 
 
 /**
- * Message to destroy a tunnel
+ * Message to destroy a connection.
  */
-struct GNUNET_MESH_TunnelDestroy
+struct GNUNET_MESH_ConnectionDestroy
 {
     /**
-     * Type: GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY
+     * Type: GNUNET_MESSAGE_TYPE_MESH_CONNECTION_DESTROY
      */
   struct GNUNET_MessageHeader header;
 
     /**
-     * TID of the tunnel
+     * Always 0.
      */
-  uint32_t tid GNUNET_PACKED;
+  uint32_t reserved GNUNET_PACKED;
 
     /**
-     * OID of the tunnel
+     * ID of the connection.
      */
-  struct GNUNET_PeerIdentity oid;
+  struct GNUNET_HashCode cid;
 
   /* TODO: signature */
 };
 
 
 /**
- * Message to destroy a tunnel
+ * Message to keep a connection alive.
  */
-struct GNUNET_MESH_TunnelKeepAlive
+struct GNUNET_MESH_ConnectionKeepAlive
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_MESH_PATH_(FWD|BCK)_KEEPALIVE
+   * Type: GNUNET_MESSAGE_TYPE_MESH_(FWD|BCK)_KEEPALIVE
    */
   struct GNUNET_MessageHeader header;
 
   /**
-   * TID of the tunnel
+   * Always 0.
    */
-  uint32_t tid GNUNET_PACKED;
+  uint32_t reserved GNUNET_PACKED;
 
   /**
-   * OID of the tunnel
+   * ID of the connection.
    */
-  struct GNUNET_PeerIdentity oid;
+  struct GNUNET_HashCode cid;
 };
 
 

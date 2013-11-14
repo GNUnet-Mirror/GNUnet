@@ -34,7 +34,7 @@ extern "C"
 #endif
 
 #include "gnunet_testbed_service.h"
-#include "gnunet_mesh_service_enc.h"
+#include "gnunet_mesh_service.h"
 
 /**
  * Test context for a MESH Test.

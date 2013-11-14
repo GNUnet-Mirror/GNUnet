@@ -86,8 +86,8 @@ enum LineStatus
 
 
 /**
- * A line connects a local client with a mesh tunnel (or, if it is an
- * open line, is waiting for a mesh tunnel).
+ * A line connects a local client with a mesh channel (or, if it is an
+ * open line, is waiting for a mesh channel).
  */
 struct Line
 {
@@ -102,14 +102,14 @@ struct Line
   struct Line *prev;
 
   /**
-   * Handle for the reliable tunnel (contol data)
+   * Handle for the reliable channel (contol data)
    */
-  struct GNUNET_MESH_Tunnel *tunnel_reliable;
+  struct GNUNET_MESH_Channel *channel_reliable;
 
   /**
-   * Handle for unreliable tunnel (audio data)
+   * Handle for unreliable channel (audio data)
    */
-  struct GNUNET_MESH_Tunnel *tunnel_unreliable;
+  struct GNUNET_MESH_Channel *channel_unreliable;
 
   /**
    * Transmit handle for pending audio messages
@@ -307,14 +307,14 @@ handle_client_pickup_message (void *cls,
 
 
 /**
- * Destroy the mesh tunnels of a line.
+ * Destroy the mesh channels of a line.
  *
- * @param line line to shutdown tunnels of
+ * @param line line to shutdown channels of
  */
 static void
-destroy_line_mesh_tunnels (struct Line *line)
+destroy_line_mesh_channels (struct Line *line)
 {
-  struct GNUNET_MESH_Tunnel *t;
+  struct GNUNET_MESH_Channel *t;
 
   if (NULL != line->reliable_mq)
   {
@@ -326,15 +326,15 @@ destroy_line_mesh_tunnels (struct Line *line)
     GNUNET_MESH_notify_transmit_ready_cancel (line->unreliable_mth);
     line->unreliable_mth = NULL;
   }
-  if (NULL != (t = line->tunnel_unreliable))
+  if (NULL != (t = line->channel_unreliable))
   {
-    line->tunnel_unreliable = NULL;
-    GNUNET_MESH_tunnel_destroy (t);
+    line->channel_unreliable = NULL;
+    GNUNET_MESH_channel_destroy (t);
   }
-  if (NULL != (t = line->tunnel_reliable))
+  if (NULL != (t = line->channel_reliable))
   {
-    line->tunnel_reliable = NULL;
-    GNUNET_MESH_tunnel_destroy (t);
+    line->channel_reliable = NULL;
+    GNUNET_MESH_channel_destroy (t);
   }
 }
 
@@ -363,7 +363,7 @@ mq_done_finish_caller_shutdown (void *cls)
     break;
   case LS_CALLEE_SHUTDOWN:
     line->status = LS_CALLEE_LISTEN;
-    destroy_line_mesh_tunnels (line);
+    destroy_line_mesh_channels (line);
     return;
   case LS_CALLER_CALLING:
     line->status = LS_CALLER_SHUTDOWN;
@@ -372,7 +372,7 @@ mq_done_finish_caller_shutdown (void *cls)
     line->status = LS_CALLER_SHUTDOWN;
     break;
   case LS_CALLER_SHUTDOWN:
-    destroy_line_mesh_tunnels (line);
+    destroy_line_mesh_channels (line);
     break;
   }
 }
@@ -490,13 +490,13 @@ handle_client_call_message (void *cls,
                                line);
   line->remote_line = ntohl (msg->line);
   line->status = LS_CALLER_CALLING;
-  line->tunnel_reliable = GNUNET_MESH_tunnel_create (mesh,
+  line->channel_reliable = GNUNET_MESH_channel_create (mesh,
                                                      line,
                                                      &msg->target,
                                                      GNUNET_APPLICATION_TYPE_CONVERSATION_CONTROL,
                                                      GNUNET_NO,
                                                      GNUNET_YES);
-  line->reliable_mq = GNUNET_MESH_mq_create (line->tunnel_reliable);
+  line->reliable_mq = GNUNET_MESH_mq_create (line->channel_reliable);
   line->local_line = local_line_cnt++;
   e = GNUNET_MQ_msg (ring, GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_PHONE_RING);
   ring->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_CONVERSATION_RING);
@@ -606,7 +606,7 @@ handle_client_audio_message (void *cls,
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
-  if (NULL == line->tunnel_unreliable)
+  if (NULL == line->channel_unreliable)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO | GNUNET_ERROR_TYPE_BULK,
                 _("Mesh audio channel not ready; audio data dropped\n"));
@@ -629,7 +629,7 @@ handle_client_audio_message (void *cls,
   memcpy (line->audio_data,
           &msg[1],
           size);
-  line->unreliable_mth = GNUNET_MESH_notify_transmit_ready (line->tunnel_unreliable,
+  line->unreliable_mth = GNUNET_MESH_notify_transmit_ready (line->channel_unreliable,
                                                             GNUNET_NO,
                                                             GNUNET_TIME_UNIT_FOREVER_REL,
                                                             sizeof (struct MeshAudioMessage)
@@ -642,16 +642,16 @@ handle_client_audio_message (void *cls,
 
 /**
  * We are done signalling shutdown to the other peer.
- * Destroy the tunnel.
+ * Destroy the channel.
  *
- * @param cls the `struct GNUNET_MESH_tunnel` to destroy
+ * @param cls the `struct GNUNET_MESH_channel` to destroy
  */
 static void
-mq_done_destroy_tunnel (void *cls)
+mq_done_destroy_channel (void *cls)
 {
-  struct GNUNET_MESH_Tunnel *tunnel = cls;
+  struct GNUNET_MESH_Channel *channel = cls;
 
-  GNUNET_MESH_tunnel_destroy (tunnel);
+  GNUNET_MESH_channel_destroy (channel);
 }
 
 
@@ -659,15 +659,15 @@ mq_done_destroy_tunnel (void *cls)
  * Function to handle a ring message incoming over mesh
  *
  * @param cls closure, NULL
- * @param tunnel the tunnel over which the message arrived
- * @param tunnel_ctx the tunnel context, can be NULL
+ * @param channel the channel over which the message arrived
+ * @param channel_ctx the channel context, can be NULL
  * @param message the incoming message
  * @return #GNUNET_OK
  */
 static int
 handle_mesh_ring_message (void *cls,
-                          struct GNUNET_MESH_Tunnel *tunnel,
-                          void **tunnel_ctx,
+                          struct GNUNET_MESH_Channel *channel,
+                          void **channel_ctx,
                           const struct GNUNET_MessageHeader *message)
 {
   const struct MeshPhoneRingMessage *msg;
@@ -701,17 +701,17 @@ handle_mesh_ring_message (void *cls,
                 ntohl (msg->remote_line));
     e = GNUNET_MQ_msg (busy, GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_PHONE_BUSY);
     GNUNET_MQ_notify_sent (e,
-                           &mq_done_destroy_tunnel,
-                           tunnel);
+                           &mq_done_destroy_channel,
+                           channel);
     GNUNET_MQ_send (line->reliable_mq, e);
-    GNUNET_MESH_receive_done (tunnel); /* needed? */
+    GNUNET_MESH_receive_done (channel); /* needed? */
     return GNUNET_OK;
   }
   line->status = LS_CALLEE_RINGING;
   line->remote_line = ntohl (msg->source_line);
-  line->tunnel_reliable = tunnel;
-  line->reliable_mq = GNUNET_MESH_mq_create (line->tunnel_reliable);
-  *tunnel_ctx = line;
+  line->channel_reliable = channel;
+  line->reliable_mq = GNUNET_MESH_mq_create (line->channel_reliable);
+  *channel_ctx = line;
   cring.header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_RING);
   cring.header.size = htons (sizeof (cring));
   cring.reserved = htonl (0);
@@ -722,7 +722,7 @@ handle_mesh_ring_message (void *cls,
                                               line->client,
                                               &cring.header,
                                               GNUNET_NO);
-  GNUNET_MESH_receive_done (tunnel);
+  GNUNET_MESH_receive_done (channel);
   return GNUNET_OK;
 }
 
@@ -731,18 +731,18 @@ handle_mesh_ring_message (void *cls,
  * Function to handle a hangup message incoming over mesh
  *
  * @param cls closure, NULL
- * @param tunnel the tunnel over which the message arrived
- * @param tunnel_ctx the tunnel context, can be NULL
+ * @param channel the channel over which the message arrived
+ * @param channel_ctx the channel context, can be NULL
  * @param message the incoming message
  * @return #GNUNET_OK
  */
 static int
 handle_mesh_hangup_message (void *cls,
-                            struct GNUNET_MESH_Tunnel *tunnel,
-                            void **tunnel_ctx,
+                            struct GNUNET_MESH_Channel *channel,
+                            void **channel_ctx,
                             const struct GNUNET_MessageHeader *message)
 {
-  struct Line *line = *tunnel_ctx;
+  struct Line *line = *channel_ctx;
   const struct MeshPhoneHangupMessage *msg;
   const char *reason;
   size_t len = ntohs (message->size) - sizeof (struct MeshPhoneHangupMessage);
@@ -761,10 +761,10 @@ handle_mesh_hangup_message (void *cls,
   if (NULL == line)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "HANGUP message received for non-existing line, dropping tunnel.\n");
+                "HANGUP message received for non-existing line, dropping channel.\n");
     return GNUNET_SYSERR;
   }
-  *tunnel_ctx = NULL;
+  *channel_ctx = NULL;
   switch (line->status)
   {
   case LS_CALLEE_LISTEN:
@@ -772,15 +772,15 @@ handle_mesh_hangup_message (void *cls,
     return GNUNET_SYSERR;
   case LS_CALLEE_RINGING:
     line->status = LS_CALLEE_LISTEN;
-    destroy_line_mesh_tunnels (line);
+    destroy_line_mesh_channels (line);
     break;
   case LS_CALLEE_CONNECTED:
     line->status = LS_CALLEE_LISTEN;
-    destroy_line_mesh_tunnels (line);
+    destroy_line_mesh_channels (line);
     break;
   case LS_CALLEE_SHUTDOWN:
     line->status = LS_CALLEE_LISTEN;
-    destroy_line_mesh_tunnels (line);
+    destroy_line_mesh_channels (line);
     return GNUNET_OK;
   case LS_CALLER_CALLING:
     line->status = LS_CALLER_SHUTDOWN;
@@ -805,7 +805,7 @@ handle_mesh_hangup_message (void *cls,
                                               line->client,
                                               &hup->header,
                                               GNUNET_NO);
-  GNUNET_MESH_receive_done (tunnel);
+  GNUNET_MESH_receive_done (channel);
   return GNUNET_OK;
 }
 
@@ -814,19 +814,19 @@ handle_mesh_hangup_message (void *cls,
  * Function to handle a pickup message incoming over mesh
  *
  * @param cls closure, NULL
- * @param tunnel the tunnel over which the message arrived
- * @param tunnel_ctx the tunnel context, can be NULL
+ * @param channel the channel over which the message arrived
+ * @param channel_ctx the channel context, can be NULL
  * @param message the incoming message
  * @return #GNUNET_OK
  */
 static int
 handle_mesh_pickup_message (void *cls,
-                            struct GNUNET_MESH_Tunnel *tunnel,
-                            void **tunnel_ctx,
+                            struct GNUNET_MESH_Channel *channel,
+                            void **channel_ctx,
                             const struct GNUNET_MessageHeader *message)
 {
   const struct MeshPhonePickupMessage *msg;
-  struct Line *line = *tunnel_ctx;
+  struct Line *line = *channel_ctx;
   const char *metadata;
   size_t len = ntohs (message->size) - sizeof (struct MeshPhonePickupMessage);
   char buf[len + sizeof (struct ClientPhonePickupMessage)];
@@ -844,10 +844,10 @@ handle_mesh_pickup_message (void *cls,
   if (NULL == line)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "PICKUP message received for non-existing line, dropping tunnel.\n");
+                "PICKUP message received for non-existing line, dropping channel.\n");
     return GNUNET_SYSERR;
   }
-  GNUNET_MESH_receive_done (tunnel);
+  GNUNET_MESH_receive_done (channel);
   switch (line->status)
   {
   case LS_CALLEE_LISTEN:
@@ -856,13 +856,13 @@ handle_mesh_pickup_message (void *cls,
   case LS_CALLEE_RINGING:
   case LS_CALLEE_CONNECTED:
     GNUNET_break_op (0);
-    destroy_line_mesh_tunnels (line);
+    destroy_line_mesh_channels (line);
     line->status = LS_CALLEE_LISTEN;
     return GNUNET_SYSERR;
   case LS_CALLEE_SHUTDOWN:
     GNUNET_break_op (0);
     line->status = LS_CALLEE_LISTEN;
-    destroy_line_mesh_tunnels (line);
+    destroy_line_mesh_channels (line);
     break;
   case LS_CALLER_CALLING:
     line->status = LS_CALLER_CONNECTED;
@@ -886,13 +886,13 @@ handle_mesh_pickup_message (void *cls,
                                               line->client,
                                               &pick->header,
                                               GNUNET_NO);
-  line->tunnel_unreliable = GNUNET_MESH_tunnel_create (mesh,
+  line->channel_unreliable = GNUNET_MESH_channel_create (mesh,
                                                        line,
                                                        &line->target,
                                                        GNUNET_APPLICATION_TYPE_CONVERSATION_AUDIO,
                                                        GNUNET_YES,
                                                        GNUNET_NO);
-  if (NULL == line->tunnel_unreliable)
+  if (NULL == line->channel_unreliable)
   {
     GNUNET_break (0);
   }
@@ -904,30 +904,30 @@ handle_mesh_pickup_message (void *cls,
  * Function to handle a busy message incoming over mesh
  *
  * @param cls closure, NULL
- * @param tunnel the tunnel over which the message arrived
- * @param tunnel_ctx the tunnel context, can be NULL
+ * @param channel the channel over which the message arrived
+ * @param channel_ctx the channel context, can be NULL
  * @param message the incoming message
  * @return #GNUNET_OK
  */
 static int
 handle_mesh_busy_message (void *cls,
-                          struct GNUNET_MESH_Tunnel *tunnel,
-                          void **tunnel_ctx,
+                          struct GNUNET_MESH_Channel *channel,
+                          void **channel_ctx,
                           const struct GNUNET_MessageHeader *message)
 {
-  struct Line *line = *tunnel_ctx;
+  struct Line *line = *channel_ctx;
   struct ClientPhoneBusyMessage busy;
 
   if (NULL == line)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "HANGUP message received for non-existing line, dropping tunnel.\n");
+                "HANGUP message received for non-existing line, dropping channel.\n");
     return GNUNET_SYSERR;
   }
   busy.header.size = sizeof (busy);
   busy.header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_BUSY);
-  GNUNET_MESH_receive_done (tunnel);
-  *tunnel_ctx = NULL;
+  GNUNET_MESH_receive_done (channel);
+  *channel_ctx = NULL;
   switch (line->status)
   {
   case LS_CALLEE_LISTEN:
@@ -970,43 +970,43 @@ handle_mesh_busy_message (void *cls,
  * Function to handle an audio message incoming over mesh
  *
  * @param cls closure, NULL
- * @param tunnel the tunnel over which the message arrived
- * @param tunnel_ctx the tunnel context, can be NULL
+ * @param channel the channel over which the message arrived
+ * @param channel_ctx the channel context, can be NULL
  * @param message the incoming message
  * @return #GNUNET_OK
  */
 static int
 handle_mesh_audio_message (void *cls,
-                           struct GNUNET_MESH_Tunnel *tunnel,
-                           void **tunnel_ctx,
+                           struct GNUNET_MESH_Channel *channel,
+                           void **channel_ctx,
                            const struct GNUNET_MessageHeader *message)
 {
   const struct MeshAudioMessage *msg;
-  struct Line *line = *tunnel_ctx;
+  struct Line *line = *channel_ctx;
   struct GNUNET_PeerIdentity sender;
   size_t msize = ntohs (message->size) - sizeof (struct MeshAudioMessage);
   char buf[msize + sizeof (struct ClientAudioMessage)];
   struct ClientAudioMessage *cam;
-  const union GNUNET_MESH_TunnelInfo *info;
+  const union GNUNET_MESH_ChannelInfo *info;
 
   msg = (const struct MeshAudioMessage *) message;
   if (NULL == line)
   {
-    info = GNUNET_MESH_tunnel_get_info (tunnel,
+    info = GNUNET_MESH_channel_get_info (channel,
                                         GNUNET_MESH_OPTION_PEER);
     if (NULL == info)
     {
       GNUNET_break (0);
       return GNUNET_OK;
     }
-    sender = info->peer;
+    sender = *(info->peer);
     for (line = lines_head; NULL != line; line = line->next)
       if ( (line->local_line == ntohl (msg->remote_line)) &&
            (LS_CALLEE_CONNECTED == line->status) &&
            (0 == memcmp (&line->target,
                          &sender,
                          sizeof (struct GNUNET_PeerIdentity))) &&
-           (NULL == line->tunnel_unreliable) )
+           (NULL == line->channel_unreliable) )
         break;
     if (NULL == line)
     {
@@ -1015,8 +1015,8 @@ handle_mesh_audio_message (void *cls,
                   ntohl (msg->remote_line));
       return GNUNET_SYSERR;
     }
-    line->tunnel_unreliable = tunnel;
-    *tunnel_ctx = line;
+    line->channel_unreliable = channel;
+    *channel_ctx = line;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Forwarding %u bytes of AUDIO data to client\n",
@@ -1029,69 +1029,69 @@ handle_mesh_audio_message (void *cls,
                                               line->client,
                                               &cam->header,
                                               GNUNET_YES);
-  GNUNET_MESH_receive_done (tunnel);
+  GNUNET_MESH_receive_done (channel);
   return GNUNET_OK;
 }
 
 
 /**
- * Method called whenever another peer has added us to a tunnel
+ * Method called whenever another peer has added us to a channel
  * the other peer initiated.
  *
  * @param cls closure
- * @param tunnel new handle to the tunnel
- * @param initiator peer that started the tunnel
+ * @param channel new handle to the channel
+ * @param initiator peer that started the channel
  * @param port port
- * @return initial tunnel context for the tunnel (can be NULL -- that's not an error)
+ * @return initial channel context for the channel (can be NULL -- that's not an error)
  */
 static void *
-inbound_tunnel (void *cls,
-                struct GNUNET_MESH_Tunnel *tunnel,
+inbound_channel (void *cls,
+                struct GNUNET_MESH_Channel *channel,
 		const struct GNUNET_PeerIdentity *initiator,
                 uint32_t port)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-	      _("Received incoming tunnel on port %u\n"),
+	      _("Received incoming channel on port %u\n"),
               (unsigned int) port);
   return NULL;
 }
 
 
 /**
- * Function called whenever an inbound tunnel is destroyed.  Should clean up
+ * Function called whenever an inbound channel is destroyed.  Should clean up
  * any associated state.
  *
  * @param cls closure (set from #GNUNET_MESH_connect)
- * @param tunnel connection to the other end (henceforth invalid)
- * @param tunnel_ctx place where local state associated
- *                   with the tunnel is stored
+ * @param channel connection to the other end (henceforth invalid)
+ * @param channel_ctx place where local state associated
+ *                   with the channel is stored
  */
 static void
 inbound_end (void *cls,
-             const struct GNUNET_MESH_Tunnel *tunnel,
-	     void *tunnel_ctx)
+             const struct GNUNET_MESH_Channel *channel,
+	     void *channel_ctx)
 {
-  struct Line *line = tunnel_ctx;
+  struct Line *line = channel_ctx;
   struct ClientPhoneHangupMessage hup;
 
   if (NULL == line)
     return;
-  if (line->tunnel_unreliable == tunnel)
+  if (line->channel_unreliable == channel)
   {
     if (NULL != line->unreliable_mth)
     {
       GNUNET_MESH_notify_transmit_ready_cancel (line->unreliable_mth);
       line->unreliable_mth = NULL;
     }
-    line->tunnel_unreliable = NULL;
+    line->channel_unreliable = NULL;
     return;
   }
-  if (line->tunnel_reliable != tunnel)
+  if (line->channel_reliable != channel)
     return;
-  line->tunnel_reliable = NULL;
+  line->channel_reliable = NULL;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Mesh tunnel destroyed by mesh\n");
+	      "Mesh channel destroyed by mesh\n");
   hup.header.size = sizeof (hup);
   hup.header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_HANG_UP);
   switch (line->status)
@@ -1120,7 +1120,7 @@ inbound_end (void *cls,
   case LS_CALLER_SHUTDOWN:
     break;
   }
-  destroy_line_mesh_tunnels (line);
+  destroy_line_mesh_channels (line);
 }
 
 
@@ -1147,7 +1147,7 @@ handle_client_disconnect (void *cls,
   GNUNET_CONTAINER_DLL_remove (lines_head,
                                lines_tail,
                                line);
-  destroy_line_mesh_tunnels (line);
+  destroy_line_mesh_channels (line);
   GNUNET_free_non_null (line->audio_data);
   GNUNET_free (line);
 }
@@ -1235,7 +1235,7 @@ run (void *cls,
                                                   &my_identity));
   mesh = GNUNET_MESH_connect (cfg,
 			      NULL,
-			      &inbound_tunnel,
+			      &inbound_channel,
 			      &inbound_end,
                               mesh_handlers,
                               ports);

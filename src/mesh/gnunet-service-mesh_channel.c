@@ -24,8 +24,8 @@
 
 #include "gnunet_statistics_service.h"
 
-#include "mesh_enc.h"
-#include "mesh_protocol_enc.h"
+#include "mesh.h"
+#include "mesh_protocol.h"
 
 #include "gnunet-service-mesh_channel.h"
 #include "gnunet-service-mesh_local.h"

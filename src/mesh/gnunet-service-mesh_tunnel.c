@@ -24,7 +24,7 @@
 #include "gnunet_signatures.h"
 #include "gnunet_statistics_service.h"
 
-#include "mesh_protocol_enc.h"
+#include "mesh_protocol.h"
 #include "mesh_path.h"
 
 #include "gnunet-service-mesh_tunnel.h"

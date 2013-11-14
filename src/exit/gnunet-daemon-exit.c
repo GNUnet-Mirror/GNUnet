@@ -184,22 +184,22 @@ struct RedirectInformation
 
 
 /**
- * Queue of messages to a tunnel.
+ * Queue of messages to a channel.
  */
-struct TunnelMessageQueue
+struct ChannelMessageQueue
 {
   /**
    * This is a doubly-linked list.
    */
-  struct TunnelMessageQueue *next;
+  struct ChannelMessageQueue *next;
 
   /**
    * This is a doubly-linked list.
    */
-  struct TunnelMessageQueue *prev;
+  struct ChannelMessageQueue *prev;
 
   /**
-   * Payload to send via the tunnel.
+   * Payload to send via the channel.
    */
   const void *payload;
 
@@ -212,32 +212,32 @@ struct TunnelMessageQueue
 
 /**
  * This struct is saved into connections_map to allow finding the
- * right tunnel given an IP packet from TUN.  It is also associated
- * with the tunnel's closure so we can find it again for the next
- * message from the tunnel.
+ * right channel given an IP packet from TUN.  It is also associated
+ * with the channel's closure so we can find it again for the next
+ * message from the channel.
  */
-struct TunnelState
+struct ChannelState
 {
   /**
-   * Mesh tunnel that is used for this connection.
+   * Mesh channel that is used for this connection.
    */
-  struct GNUNET_MESH_Tunnel *tunnel;
+  struct GNUNET_MESH_Channel *channel;
 
   /**
-   * Who is the other end of this tunnel.
+   * Who is the other end of this channel.
    * FIXME is this needed? Only used for debugging messages
    */
   struct GNUNET_PeerIdentity peer;
 
   /**
-   * Active tunnel transmission request (or NULL).
+   * Active channel transmission request (or NULL).
    */
   struct GNUNET_MESH_TransmitHandle *th;
 
   /**
-   * #GNUNET_NO if this is a tunnel for TCP/UDP,
-   * #GNUNET_YES if this is a tunnel for DNS,
-   * #GNUNET_SYSERR if the tunnel is not yet initialized.
+   * #GNUNET_NO if this is a channel for TCP/UDP,
+   * #GNUNET_YES if this is a channel for DNS,
+   * #GNUNET_SYSERR if the channel is not yet initialized.
    */
   int is_dns;
 
@@ -262,14 +262,14 @@ struct TunnelState
       struct LocalService *serv;
 
       /**
-       * Head of DLL of messages for this tunnel.
+       * Head of DLL of messages for this channel.
        */
-      struct TunnelMessageQueue *head;
+      struct ChannelMessageQueue *head;
 
       /**
-       * Tail of DLL of messages for this tunnel.
+       * Tail of DLL of messages for this channel.
        */
-      struct TunnelMessageQueue *tail;
+      struct ChannelMessageQueue *tail;
 
       /**
        * Primary redirection information for this connection.
@@ -375,7 +375,7 @@ static struct GNUNET_MESH_Handle *mesh_handle;
 
 /**
  * This hashmaps contains the mapping from peer, service-descriptor,
- * source-port and destination-port to a struct TunnelState
+ * source-port and destination-port to a struct ChannelState
  */
 static struct GNUNET_CONTAINER_MultiHashMap *connections_map;
 
@@ -400,9 +400,9 @@ static struct GNUNET_CONTAINER_MultiHashMap *udp_services;
 static struct GNUNET_CONTAINER_MultiHashMap *tcp_services;
 
 /**
- * Array of all open DNS requests from tunnels.
+ * Array of all open DNS requests from channels.
  */
-static struct TunnelState *tunnels[UINT16_MAX + 1];
+static struct ChannelState *channels[UINT16_MAX + 1];
 
 /**
  * Handle to the DNS Stub resolver.
@@ -462,10 +462,10 @@ static int ipv6_enabled;
 
 
 /**
- * We got a reply from DNS for a request of a MESH tunnel.  Send it
- * via the tunnel (after changing the request ID back).
+ * We got a reply from DNS for a request of a MESH channel.  Send it
+ * via the channel (after changing the request ID back).
  *
- * @param cls the 'struct TunnelState'
+ * @param cls the 'struct ChannelState'
  * @param size number of bytes available in buf
  * @param buf where to copy the reply
  * @return number of bytes written to buf
@@ -475,7 +475,7 @@ transmit_reply_to_mesh (void *cls,
 			size_t size,
 			void *buf)
 {
-  struct TunnelState *ts = cls;
+  struct ChannelState *ts = cls;
   size_t off;
   size_t ret;
   char *cbuf = buf;
@@ -523,26 +523,26 @@ process_dns_result (void *cls,
 		    const struct GNUNET_TUN_DnsHeader *dns,
 		    size_t r)
 {
-  struct TunnelState *ts;
+  struct ChannelState *ts;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Processing DNS result from stub resolver\n");
   GNUNET_assert (NULL == cls);
-  /* Handle case that this is a reply to a request from a MESH DNS tunnel */
-  ts = tunnels[dns->id];
+  /* Handle case that this is a reply to a request from a MESH DNS channel */
+  ts = channels[dns->id];
   if ( (NULL == ts) ||
        (ts->specifics.dns.rs != rs) )
     return;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Got a response from the stub resolver for DNS request received via MESH!\n");
-  tunnels[dns->id] = NULL;
+  channels[dns->id] = NULL;
   GNUNET_free_non_null (ts->specifics.dns.reply);
   ts->specifics.dns.reply = GNUNET_malloc (r);
   ts->specifics.dns.reply_length = r;
   memcpy (ts->specifics.dns.reply, dns, r);
   if (NULL != ts->th)
     GNUNET_MESH_notify_transmit_ready_cancel (ts->th);
-  ts->th = GNUNET_MESH_notify_transmit_ready (ts->tunnel,
+  ts->th = GNUNET_MESH_notify_transmit_ready (ts->channel,
 					      GNUNET_NO,
 					      GNUNET_TIME_UNIT_FOREVER_REL,
 					      sizeof (struct GNUNET_MessageHeader) + r,
@@ -555,19 +555,19 @@ process_dns_result (void *cls,
  * Process a request via mesh to perform a DNS query.
  *
  * @param cls closure, NULL
- * @param tunnel connection to the other end
- * @param tunnel_ctx pointer to our `struct TunnelState *`
+ * @param channel connection to the other end
+ * @param channel_ctx pointer to our `struct ChannelState *`
  * @param message the actual message
  *
  * @return #GNUNET_OK to keep the connection open,
  *         #GNUNET_SYSERR to close it (signal serious error)
  */
 static int
-receive_dns_request (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
-                     void **tunnel_ctx,
+receive_dns_request (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Channel *channel,
+                     void **channel_ctx,
                      const struct GNUNET_MessageHeader *message)
 {
-  struct TunnelState *ts = *tunnel_ctx;
+  struct ChannelState *ts = *channel_ctx;
   const struct GNUNET_TUN_DnsHeader *dns;
   size_t mlen = ntohs (message->size);
   size_t dlen = mlen - sizeof (struct GNUNET_MessageHeader);
@@ -583,7 +583,7 @@ receive_dns_request (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
   }
   if (GNUNET_SYSERR == ts->is_dns)
   {
-    /* tunnel is DNS from now on */
+    /* channel is DNS from now on */
     ts->is_dns = GNUNET_YES;
   }
   if (dlen < sizeof (struct GNUNET_TUN_DnsHeader))
@@ -593,11 +593,11 @@ receive_dns_request (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
   }
   dns = (const struct GNUNET_TUN_DnsHeader *) &message[1];
   ts->specifics.dns.original_id = dns->id;
-  if (tunnels[ts->specifics.dns.my_id] == ts)
-    tunnels[ts->specifics.dns.my_id] = NULL;
+  if (channels[ts->specifics.dns.my_id] == ts)
+    channels[ts->specifics.dns.my_id] = NULL;
   ts->specifics.dns.my_id = (uint16_t) GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
 						   UINT16_MAX + 1);
-  tunnels[ts->specifics.dns.my_id] = ts;
+  channels[ts->specifics.dns.my_id] = ts;
   memcpy (buf, dns, dlen);
   dout = (struct GNUNET_TUN_DnsHeader *) buf;
   dout->id = ts->specifics.dns.my_id;
@@ -676,7 +676,7 @@ hash_redirect_info (struct GNUNET_HashCode *hash,
  * @param state_key set to hash's state if non-NULL
  * @return NULL if we have no tracking information for this tuple
  */
-static struct TunnelState *
+static struct ChannelState *
 get_redirect_state (int af,
 		    int protocol,
 		    const void *destination_ip,
@@ -687,7 +687,7 @@ get_redirect_state (int af,
 {
   struct RedirectInformation ri;
   struct GNUNET_HashCode key;
-  struct TunnelState *state;
+  struct ChannelState *state;
 
   if ( ( (af == AF_INET) && (protocol == IPPROTO_ICMP) ) ||
        ( (af == AF_INET6) && (protocol == IPPROTO_ICMPV6) ) )
@@ -807,9 +807,9 @@ store_service (struct GNUNET_CONTAINER_MultiHashMap *service_map,
 
 
 /**
- * MESH is ready to receive a message for the tunnel.  Transmit it.
+ * MESH is ready to receive a message for the channel.  Transmit it.
  *
- * @param cls the 'struct TunnelState'.
+ * @param cls the 'struct ChannelState'.
  * @param size number of bytes available in buf
  * @param buf where to copy the message
  * @return number of bytes copied to buf
@@ -817,9 +817,9 @@ store_service (struct GNUNET_CONTAINER_MultiHashMap *service_map,
 static size_t
 send_to_peer_notify_callback (void *cls, size_t size, void *buf)
 {
-  struct TunnelState *s = cls;
-  struct GNUNET_MESH_Tunnel *tunnel = s->tunnel;
-  struct TunnelMessageQueue *tnq;
+  struct ChannelState *s = cls;
+  struct GNUNET_MESH_Channel *channel = s->channel;
+  struct ChannelMessageQueue *tnq;
 
   s->th = NULL;
   tnq = s->specifics.tcp_udp.head;
@@ -827,7 +827,7 @@ send_to_peer_notify_callback (void *cls, size_t size, void *buf)
     return 0;
   if (0 == size)
   {
-    s->th = GNUNET_MESH_notify_transmit_ready (tunnel,
+    s->th = GNUNET_MESH_notify_transmit_ready (channel,
 					       GNUNET_NO /* corking */,
 					       GNUNET_TIME_UNIT_FOREVER_REL,
 					       tnq->len,
@@ -843,36 +843,36 @@ send_to_peer_notify_callback (void *cls, size_t size, void *buf)
 			       tnq);
   GNUNET_free (tnq);
   if (NULL != (tnq = s->specifics.tcp_udp.head))
-    s->th = GNUNET_MESH_notify_transmit_ready (tunnel,
+    s->th = GNUNET_MESH_notify_transmit_ready (channel,
 					       GNUNET_NO /* corking */,
 					       GNUNET_TIME_UNIT_FOREVER_REL,
 					       tnq->len,
 					       &send_to_peer_notify_callback,
 					       s);
   GNUNET_STATISTICS_update (stats,
-			    gettext_noop ("# Bytes transmitted via mesh tunnels"),
+			    gettext_noop ("# Bytes transmitted via mesh channels"),
 			    size, GNUNET_NO);
   return size;
 }
 
 
 /**
- * Send the given packet via the mesh tunnel.
+ * Send the given packet via the mesh channel.
  *
- * @param s tunnel destination
+ * @param s channel destination
  * @param tnq message to queue
  */
 static void
-send_packet_to_mesh_tunnel (struct TunnelState *s,
-			    struct TunnelMessageQueue *tnq)
+send_packet_to_mesh_channel (struct ChannelState *s,
+			    struct ChannelMessageQueue *tnq)
 {
-  struct GNUNET_MESH_Tunnel *mesh_tunnel;
+  struct GNUNET_MESH_Channel *mesh_channel;
 
-  mesh_tunnel = s->tunnel;
+  mesh_channel = s->channel;
   GNUNET_assert (NULL != s);
   GNUNET_CONTAINER_DLL_insert_tail (s->specifics.tcp_udp.head, s->specifics.tcp_udp.tail, tnq);
   if (NULL == s->th)
-    s->th = GNUNET_MESH_notify_transmit_ready (mesh_tunnel,
+    s->th = GNUNET_MESH_notify_transmit_ready (mesh_channel,
                                                GNUNET_NO /* cork */,
 					       GNUNET_TIME_UNIT_FOREVER_REL,
 					       tnq->len,
@@ -899,8 +899,8 @@ icmp_from_helper (const struct GNUNET_TUN_IcmpHeader *icmp,
 		  const void *destination_ip,
 		  const void *source_ip)
 {
-  struct TunnelState *state;
-  struct TunnelMessageQueue *tnq;
+  struct ChannelState *state;
+  struct ChannelMessageQueue *tnq;
   struct GNUNET_EXIT_IcmpToVPNMessage *i2v;
   const struct GNUNET_TUN_IPv4Header *ipv4;
   const struct GNUNET_TUN_IPv6Header *ipv6;
@@ -1055,7 +1055,7 @@ icmp_from_helper (const struct GNUNET_TUN_IcmpHeader *icmp,
     return;
   }
   mlen = sizeof (struct GNUNET_EXIT_IcmpToVPNMessage) + pktlen - sizeof (struct GNUNET_TUN_IcmpHeader);
-  tnq = GNUNET_malloc (sizeof (struct TunnelMessageQueue) + mlen);
+  tnq = GNUNET_malloc (sizeof (struct ChannelMessageQueue) + mlen);
   tnq->payload = &tnq[1];
   tnq->len = mlen;
   i2v = (struct GNUNET_EXIT_IcmpToVPNMessage *) &tnq[1];
@@ -1065,7 +1065,7 @@ icmp_from_helper (const struct GNUNET_TUN_IcmpHeader *icmp,
   memcpy (&i2v->icmp_header,
 	  icmp,
 	  pktlen);
-  send_packet_to_mesh_tunnel (state, tnq);
+  send_packet_to_mesh_channel (state, tnq);
 }
 
 
@@ -1087,8 +1087,8 @@ udp_from_helper (const struct GNUNET_TUN_UdpHeader *udp,
 		 const void *destination_ip,
 		 const void *source_ip)
 {
-  struct TunnelState *state;
-  struct TunnelMessageQueue *tnq;
+  struct ChannelState *state;
+  struct ChannelMessageQueue *tnq;
   struct GNUNET_EXIT_UdpReplyMessage *urm;
   size_t mlen;
 
@@ -1131,7 +1131,7 @@ udp_from_helper (const struct GNUNET_TUN_UdpHeader *udp,
     return;
   }
   mlen = sizeof (struct GNUNET_EXIT_UdpReplyMessage) + pktlen - sizeof (struct GNUNET_TUN_UdpHeader);
-  tnq = GNUNET_malloc (sizeof (struct TunnelMessageQueue) + mlen);
+  tnq = GNUNET_malloc (sizeof (struct ChannelMessageQueue) + mlen);
   tnq->payload = &tnq[1];
   tnq->len = mlen;
   urm = (struct GNUNET_EXIT_UdpReplyMessage *) &tnq[1];
@@ -1142,7 +1142,7 @@ udp_from_helper (const struct GNUNET_TUN_UdpHeader *udp,
   memcpy (&urm[1],
 	  &udp[1],
 	  pktlen - sizeof (struct GNUNET_TUN_UdpHeader));
-  send_packet_to_mesh_tunnel (state, tnq);
+  send_packet_to_mesh_channel (state, tnq);
 }
 
 
@@ -1164,11 +1164,11 @@ tcp_from_helper (const struct GNUNET_TUN_TcpHeader *tcp,
 		 const void *destination_ip,
 		 const void *source_ip)
 {
-  struct TunnelState *state;
+  struct ChannelState *state;
   char buf[pktlen] GNUNET_ALIGN;
   struct GNUNET_TUN_TcpHeader *mtcp;
   struct GNUNET_EXIT_TcpDataMessage *tdm;
-  struct TunnelMessageQueue *tnq;
+  struct ChannelMessageQueue *tnq;
   size_t mlen;
 
   {
@@ -1220,7 +1220,7 @@ tcp_from_helper (const struct GNUNET_TUN_TcpHeader *tcp,
     return;
   }
 
-  tnq = GNUNET_malloc (sizeof (struct TunnelMessageQueue) + mlen);
+  tnq = GNUNET_malloc (sizeof (struct ChannelMessageQueue) + mlen);
   tnq->payload = &tnq[1];
   tnq->len = mlen;
   tdm = (struct GNUNET_EXIT_TcpDataMessage *) &tnq[1];
@@ -1230,7 +1230,7 @@ tcp_from_helper (const struct GNUNET_TUN_TcpHeader *tcp,
   memcpy (&tdm->tcp_header,
 	  buf,
 	  pktlen);
-  send_packet_to_mesh_tunnel (state, tnq);
+  send_packet_to_mesh_channel (state, tnq);
 }
 
 
@@ -1486,7 +1486,7 @@ setup_fresh_address (int af,
  * We are starting a fresh connection (TCP or UDP) and need
  * to pick a source port and IP address (within the correct
  * range and address family) to associate replies with the
- * connection / correct mesh tunnel.  This function generates
+ * connection / correct mesh channel.  This function generates
  * a "fresh" source IP and source port number for a connection
  * After picking a good source address, this function sets up
  * the state in the 'connections_map' and 'connections_heap'
@@ -1497,17 +1497,17 @@ setup_fresh_address (int af,
  * @param state skeleton state to setup a record for; should
  *              'state->specifics.tcp_udp.ri.remote_address' filled in so that
  *              this code can determine which AF/protocol is
- *              going to be used (the 'tunnel' should also
+ *              going to be used (the 'channel' should also
  *              already be set); after calling this function,
  *              heap_node and the local_address will be
  *              also initialized (heap_node != NULL can be
  *              used to test if a state has been fully setup).
  */
 static void
-setup_state_record (struct TunnelState *state)
+setup_state_record (struct ChannelState *state)
 {
   struct GNUNET_HashCode key;
-  struct TunnelState *s;
+  struct ChannelState *s;
 
   /* generate fresh, unique address */
   do
@@ -1549,7 +1549,7 @@ setup_state_record (struct TunnelState *state)
     s = GNUNET_CONTAINER_heap_remove_root (connections_heap);
     GNUNET_assert (state != s);
     s->specifics.tcp_udp.heap_node = NULL;
-    GNUNET_MESH_tunnel_destroy (s->tunnel);
+    GNUNET_MESH_channel_destroy (s->channel);
     GNUNET_assert (GNUNET_OK ==
 		   GNUNET_CONTAINER_multihashmap_remove (connections_map,
 							 &s->specifics.tcp_udp.state_key,
@@ -1837,19 +1837,19 @@ send_tcp_packet_via_tun (const struct SocketAddress *destination_address,
  * offered by this system.
  *
  * @param cls closure, NULL
- * @param tunnel connection to the other end
- * @param tunnel_ctx pointer to our `struct TunnelState *`
+ * @param channel connection to the other end
+ * @param channel_ctx pointer to our `struct ChannelState *`
  * @param message the actual message
  * @return #GNUNET_OK to keep the connection open,
  *         #GNUNET_SYSERR to close it (signal serious error)
  */
 static int
 receive_tcp_service (void *cls,
-                     struct GNUNET_MESH_Tunnel *tunnel,
-                     void **tunnel_ctx,
+                     struct GNUNET_MESH_Channel *channel,
+                     void **channel_ctx,
                      const struct GNUNET_MessageHeader *message)
 {
-  struct TunnelState *state = *tunnel_ctx;
+  struct ChannelState *state = *channel_ctx;
   const struct GNUNET_EXIT_TcpServiceStartMessage *start;
   uint16_t pkt_len = ntohs (message->size);
 
@@ -1865,7 +1865,7 @@ receive_tcp_service (void *cls,
   }
   if (GNUNET_SYSERR == state->is_dns)
   {
-    /* tunnel is UDP/TCP from now on */
+    /* channel is UDP/TCP from now on */
     state->is_dns = GNUNET_NO;
   }
   GNUNET_STATISTICS_update (stats,
@@ -1926,19 +1926,19 @@ receive_tcp_service (void *cls,
  * Process a request to forward TCP data to the Internet via this peer.
  *
  * @param cls closure, NULL
- * @param tunnel connection to the other end
- * @param tunnel_ctx pointer to our 'struct TunnelState *'
+ * @param channel connection to the other end
+ * @param channel_ctx pointer to our 'struct ChannelState *'
  * @param message the actual message
  *
  * @return GNUNET_OK to keep the connection open,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
 static int
-receive_tcp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
-                    void **tunnel_ctx GNUNET_UNUSED,
+receive_tcp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Channel *channel,
+                    void **channel_ctx GNUNET_UNUSED,
                     const struct GNUNET_MessageHeader *message)
 {
-  struct TunnelState *state = *tunnel_ctx;
+  struct ChannelState *state = *channel_ctx;
   const struct GNUNET_EXIT_TcpInternetStartMessage *start;
   uint16_t pkt_len = ntohs (message->size);
   const struct in_addr *v4;
@@ -1958,7 +1958,7 @@ receive_tcp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
   }
   if (GNUNET_SYSERR == state->is_dns)
   {
-    /* tunnel is UDP/TCP from now on */
+    /* channel is UDP/TCP from now on */
     state->is_dns = GNUNET_NO;
   }
   GNUNET_STATISTICS_update (stats,
@@ -2051,18 +2051,18 @@ receive_tcp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
  * connection via this peer.
  *
  * @param cls closure, NULL
- * @param tunnel connection to the other end
- * @param tunnel_ctx pointer to our 'struct TunnelState *'
+ * @param channel connection to the other end
+ * @param channel_ctx pointer to our 'struct ChannelState *'
  * @param message the actual message
  * @return #GNUNET_OK to keep the connection open,
  *         #GNUNET_SYSERR to close it (signal serious error)
  */
 static int
-receive_tcp_data (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
-		  void **tunnel_ctx GNUNET_UNUSED,
+receive_tcp_data (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Channel *channel,
+		  void **channel_ctx GNUNET_UNUSED,
 		  const struct GNUNET_MessageHeader *message)
 {
-  struct TunnelState *state = *tunnel_ctx;
+  struct ChannelState *state = *channel_ctx;
   const struct GNUNET_EXIT_TcpDataMessage *data;
   uint16_t pkt_len = ntohs (message->size);
 
@@ -2100,7 +2100,7 @@ receive_tcp_data (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Tunnel *tunnel,
   }
   if (GNUNET_SYSERR == state->is_dns)
   {
-    /* tunnel is UDP/TCP from now on */
+    /* channel is UDP/TCP from now on */
     state->is_dns = GNUNET_NO;
   }
 
@@ -2229,15 +2229,15 @@ send_icmp_packet_via_tun (const struct SocketAddress *destination_address,
 
 /**
  * Synthesize a plausible ICMP payload for an ICMPv4 error
- * response on the given tunnel.
+ * response on the given channel.
  *
- * @param state tunnel information
+ * @param state channel information
  * @param ipp IPv6 header to fill in (ICMP payload)
  * @param udp "UDP" header to fill in (ICMP payload); might actually
  *            also be the first 8 bytes of the TCP header
  */
 static void
-make_up_icmpv4_payload (struct TunnelState *state,
+make_up_icmpv4_payload (struct ChannelState *state,
 			struct GNUNET_TUN_IPv4Header *ipp,
 			struct GNUNET_TUN_UdpHeader *udp)
 {
@@ -2255,15 +2255,15 @@ make_up_icmpv4_payload (struct TunnelState *state,
 
 /**
  * Synthesize a plausible ICMP payload for an ICMPv6 error
- * response on the given tunnel.
+ * response on the given channel.
  *
- * @param state tunnel information
+ * @param state channel information
  * @param ipp IPv6 header to fill in (ICMP payload)
  * @param udp "UDP" header to fill in (ICMP payload); might actually
  *            also be the first 8 bytes of the TCP header
  */
 static void
-make_up_icmpv6_payload (struct TunnelState *state,
+make_up_icmpv6_payload (struct ChannelState *state,
 			struct GNUNET_TUN_IPv6Header *ipp,
 			struct GNUNET_TUN_UdpHeader *udp)
 {
@@ -2283,19 +2283,19 @@ make_up_icmpv6_payload (struct TunnelState *state,
  * Process a request to forward ICMP data to the Internet via this peer.
  *
  * @param cls closure, NULL
- * @param tunnel connection to the other end
- * @param tunnel_ctx pointer to our 'struct TunnelState *'
+ * @param channel connection to the other end
+ * @param channel_ctx pointer to our 'struct ChannelState *'
  * @param message the actual message
  * @return #GNUNET_OK to keep the connection open,
  *         #GNUNET_SYSERR to close it (signal serious error)
  */
 static int
 receive_icmp_remote (void *cls,
-                     struct GNUNET_MESH_Tunnel *tunnel,
-		     void **tunnel_ctx,
+                     struct GNUNET_MESH_Channel *channel,
+		     void **channel_ctx,
 		     const struct GNUNET_MessageHeader *message)
 {
-  struct TunnelState *state = *tunnel_ctx;
+  struct ChannelState *state = *channel_ctx;
   const struct GNUNET_EXIT_IcmpInternetMessage *msg;
   uint16_t pkt_len = ntohs (message->size);
   const struct in_addr *v4;
@@ -2311,7 +2311,7 @@ receive_icmp_remote (void *cls,
   }
   if (GNUNET_SYSERR == state->is_dns)
   {
-    /* tunnel is UDP/TCP from now on */
+    /* channel is UDP/TCP from now on */
     state->is_dns = GNUNET_NO;
   }
   GNUNET_STATISTICS_update (stats,
@@ -2332,7 +2332,7 @@ receive_icmp_remote (void *cls,
   if ( (NULL != state->specifics.tcp_udp.heap_node) &&
        (af != state->specifics.tcp_udp.ri.remote_address.af) )
   {
-    /* other peer switched AF on this tunnel; not allowed */
+    /* other peer switched AF on this channel; not allowed */
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
@@ -2489,7 +2489,7 @@ receive_icmp_remote (void *cls,
  * @return number of bytes of payload we created in buf
  */
 static uint16_t
-make_up_icmp_service_payload (struct TunnelState *state,
+make_up_icmp_service_payload (struct ChannelState *state,
 			      char *buf)
 {
   switch (state->specifics.tcp_udp.serv->address.af)
@@ -2534,19 +2534,19 @@ make_up_icmp_service_payload (struct TunnelState *state,
  * offered by this system.
  *
  * @param cls closure, NULL
- * @param tunnel connection to the other end
- * @param tunnel_ctx pointer to our 'struct TunnelState *'
+ * @param channel connection to the other end
+ * @param channel_ctx pointer to our 'struct ChannelState *'
  * @param message the actual message
  * @return #GNUNET_OK to keep the connection open,
  *         #GNUNET_SYSERR to close it (signal serious error)
  */
 static int
 receive_icmp_service (void *cls,
-                      struct GNUNET_MESH_Tunnel *tunnel,
-		      void **tunnel_ctx,
+                      struct GNUNET_MESH_Channel *channel,
+		      void **channel_ctx,
 		      const struct GNUNET_MessageHeader *message)
 {
-  struct TunnelState *state = *tunnel_ctx;
+  struct ChannelState *state = *channel_ctx;
   const struct GNUNET_EXIT_IcmpServiceMessage *msg;
   uint16_t pkt_len = ntohs (message->size);
   struct GNUNET_TUN_IcmpHeader icmp;
@@ -2560,7 +2560,7 @@ receive_icmp_service (void *cls,
   }
   if (GNUNET_SYSERR == state->is_dns)
   {
-    /* tunnel is UDP/TCP from now on */
+    /* channel is UDP/TCP from now on */
     state->is_dns = GNUNET_NO;
   }
   GNUNET_STATISTICS_update (stats,
@@ -2822,19 +2822,19 @@ send_udp_packet_via_tun (const struct SocketAddress *destination_address,
  * Process a request to forward UDP data to the Internet via this peer.
  *
  * @param cls closure, NULL
- * @param tunnel connection to the other end
- * @param tunnel_ctx pointer to our 'struct TunnelState *'
+ * @param channel connection to the other end
+ * @param channel_ctx pointer to our 'struct ChannelState *'
  * @param message the actual message
  * @return #GNUNET_OK to keep the connection open,
  *         #GNUNET_SYSERR to close it (signal serious error)
  */
 static int
 receive_udp_remote (void *cls,
-                    struct GNUNET_MESH_Tunnel *tunnel,
-                    void **tunnel_ctx,
+                    struct GNUNET_MESH_Channel *channel,
+                    void **channel_ctx,
                     const struct GNUNET_MessageHeader *message)
 {
-  struct TunnelState *state = *tunnel_ctx;
+  struct ChannelState *state = *channel_ctx;
   const struct GNUNET_EXIT_UdpInternetMessage *msg;
   uint16_t pkt_len = ntohs (message->size);
   const struct in_addr *v4;
@@ -2849,7 +2849,7 @@ receive_udp_remote (void *cls,
   }
   if (GNUNET_SYSERR == state->is_dns)
   {
-    /* tunnel is UDP/TCP from now on */
+    /* channel is UDP/TCP from now on */
     state->is_dns = GNUNET_NO;
   }
   GNUNET_STATISTICS_update (stats,
@@ -2933,19 +2933,19 @@ receive_udp_remote (void *cls,
  * offered by this system.
  *
  * @param cls closure, NULL
- * @param tunnel connection to the other end
- * @param tunnel_ctx pointer to our 'struct TunnelState *'
+ * @param channel connection to the other end
+ * @param channel_ctx pointer to our 'struct ChannelState *'
  * @param message the actual message
  * @return #GNUNET_OK to keep the connection open,
  *         #GNUNET_SYSERR to close it (signal serious error)
  */
 static int
 receive_udp_service (void *cls,
-                     struct GNUNET_MESH_Tunnel *tunnel,
-                     void **tunnel_ctx,
+                     struct GNUNET_MESH_Channel *channel,
+                     void **channel_ctx,
                      const struct GNUNET_MessageHeader *message)
 {
-  struct TunnelState *state = *tunnel_ctx;
+  struct ChannelState *state = *channel_ctx;
   const struct GNUNET_EXIT_UdpServiceMessage *msg;
   uint16_t pkt_len = ntohs (message->size);
 
@@ -2956,7 +2956,7 @@ receive_udp_service (void *cls,
   }
   if (GNUNET_SYSERR == state->is_dns)
   {
-    /* tunnel is UDP/TCP from now on */
+    /* channel is UDP/TCP from now on */
     state->is_dns = GNUNET_NO;
   }
   GNUNET_STATISTICS_update (stats,
@@ -3002,54 +3002,54 @@ receive_udp_service (void *cls,
 
 
 /**
- * Callback from GNUNET_MESH for new tunnels.
+ * Callback from GNUNET_MESH for new channels.
  *
  * @param cls closure
- * @param tunnel new handle to the tunnel
- * @param initiator peer that started the tunnel
+ * @param channel new handle to the channel
+ * @param initiator peer that started the channel
  * @param port destination port
- * @return initial tunnel context for the tunnel
+ * @return initial channel context for the channel
  */
 static void *
-new_tunnel (void *cls,
-            struct GNUNET_MESH_Tunnel *tunnel,
+new_channel (void *cls,
+            struct GNUNET_MESH_Channel *channel,
             const struct GNUNET_PeerIdentity *initiator,
             uint32_t port)
 {
-  struct TunnelState *s = GNUNET_new (struct TunnelState);
+  struct ChannelState *s = GNUNET_new (struct ChannelState);
 
   s->is_dns = GNUNET_SYSERR;
   s->peer = *initiator;
   GNUNET_STATISTICS_update (stats,
-			    gettext_noop ("# Inbound MESH tunnels created"),
+			    gettext_noop ("# Inbound MESH channels created"),
 			    1, GNUNET_NO);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Received inbound tunnel from `%s'\n",
+	      "Received inbound channel from `%s'\n",
 	      GNUNET_i2s (initiator));
-  s->tunnel = tunnel;
+  s->channel = channel;
   return s;
 }
 
 
 /**
- * Function called by mesh whenever an inbound tunnel is destroyed.
+ * Function called by mesh whenever an inbound channel is destroyed.
  * Should clean up any associated state.
  *
  * @param cls closure (set from #GNUNET_MESH_connect)
- * @param tunnel connection to the other end (henceforth invalid)
- * @param tunnel_ctx place where local state associated
- *                   with the tunnel is stored
+ * @param channel connection to the other end (henceforth invalid)
+ * @param channel_ctx place where local state associated
+ *                   with the channel is stored
  */
 static void
-clean_tunnel (void *cls,
-              const struct GNUNET_MESH_Tunnel *tunnel,
-              void *tunnel_ctx)
+clean_channel (void *cls,
+              const struct GNUNET_MESH_Channel *channel,
+              void *channel_ctx)
 {
-  struct TunnelState *s = tunnel_ctx;
-  struct TunnelMessageQueue *tnq;
+  struct ChannelState *s = channel_ctx;
+  struct ChannelMessageQueue *tnq;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Tunnel destroyed\n");
+       "Channel destroyed\n");
   if (GNUNET_SYSERR == s->is_dns)
   {
     GNUNET_free (s);
@@ -3057,8 +3057,8 @@ clean_tunnel (void *cls,
   }
   if (GNUNET_YES == s->is_dns)
   {
-    if (tunnels[s->specifics.dns.my_id] == s)
-      tunnels[s->specifics.dns.my_id] = NULL;
+    if (channels[s->specifics.dns.my_id] == s)
+      channels[s->specifics.dns.my_id] = NULL;
     GNUNET_free_non_null (s->specifics.dns.reply);
   }
   else
@@ -3703,8 +3703,8 @@ run (void *cls,
   connections_heap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
   mesh_handle
     = GNUNET_MESH_connect (cfg, NULL,
-			   &new_tunnel,
-			   &clean_tunnel, handlers,
+			   &new_channel,
+			   &clean_channel, handlers,
                            apptypes); // FIXME use ports
   if (NULL == mesh_handle)
   {

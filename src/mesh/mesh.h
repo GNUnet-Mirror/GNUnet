@@ -39,49 +39,19 @@ extern "C"
 #define MESH_DEBUG              GNUNET_YES
 
 #include "platform.h"
+#include "gnunet_common.h"
 #include "gnunet_util_lib.h"
+#include "gnunet_peer_lib.h"
 #include "gnunet_core_service.h"
 #include "gnunet_protocols.h"
 #include <gnunet_mesh_service.h>
 
 /******************************************************************************/
-/********************        MESH LOCAL MESSAGES      *************************/
-/******************************************************************************/
-/*  Any API call should be documented in the folowing table under API CALL.
- *  Also, any message type should be documented in the following table, with the
- * associated event.
- *
- * API CALL (GNUNET_MESH_*)             MESSAGE USED
- * ------------------------             ------------
- * connect                              GNUNET_MESH_ClientConnect
- * disconnect                           None (network level disconnect)
- *
- * tunnel_create                        GNUNET_MESH_TunnelMessage
- * tunnel_destroy                       GNUNET_MESH_TunnelMessage
- * tunnel_buffer                        GNUNET_MESH_TunnelMessage
- *
- * notify_transmit_ready                None (queue / GNUNET_CLIENT_ntf_tmt_rdy)
- * notify_transmit_ready_cancel         None (clear of internal data structures)
- *
- *
- * EVENT                                MESSAGE USED
- * -----                                ------------
- * data                                 GNUNET_MESH_Unicast OR
- *                                      GNUNET_MESH_Multicast OR
- *                                      GNUNET_MESH_ToOrigin
- * data ack                             GNUNET_MESH_LocalAck
- *
- * new incoming tunnel                  GNUNET_MESH_PeerControl
- * peer connects to a tunnel            FIXME
- * peer disconnects from a tunnel       FIXME
- */
-
-/******************************************************************************/
 /**************************       CONSTANTS      ******************************/
 /******************************************************************************/
 
-#define GNUNET_MESH_LOCAL_TUNNEL_ID_CLI         0x80000000
-#define GNUNET_MESH_LOCAL_TUNNEL_ID_SERV        0xB0000000
+#define GNUNET_MESH_LOCAL_CHANNEL_ID_CLI        0x80000000
+#define GNUNET_MESH_LOCAL_CHANNEL_ID_SERV       0xB0000000
 
 #define HIGH_PID                                0xFFFF0000
 #define LOW_PID                                 0x0000FFFF
@@ -112,38 +82,38 @@ struct GNUNET_MESH_ClientConnect
 
 
 /**
- * Type for tunnel numbering.
- * - Local tunnel numbers given by the service (incoming) are >= 0xB0000000
- * - Local tunnel numbers given by the client (created) are >= 0x80000000
- * - Global tunnel numbers are < 0x80000000
+ * Type for channel numbering.
+ * - Local channel numbers given by the service (incoming) are >= 0xB0000000
+ * - Local channel numbers given by the client (created) are >= 0x80000000
+ * - Global channel numbers are < 0x80000000
  */
-typedef uint32_t MESH_TunnelNumber;
+typedef uint32_t MESH_ChannelNumber;
 
 
 /**
- * Message for a client to create and destroy tunnels.
+ * Message for a client to create and destroy channels.
  */
-struct GNUNET_MESH_TunnelMessage
+struct GNUNET_MESH_ChannelMessage
 {
     /**
      * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_[CREATE|DESTROY]
      *
-     * Size: sizeof(struct GNUNET_MESH_TunnelMessage)
+     * Size: sizeof(struct GNUNET_MESH_ChannelMessage)
      */
   struct GNUNET_MessageHeader header;
 
     /**
-     * ID of a tunnel controlled by this client.
+     * ID of a channel controlled by this client.
      */
-  MESH_TunnelNumber tunnel_id GNUNET_PACKED;
+  MESH_ChannelNumber channel_id GNUNET_PACKED;
 
     /**
-     * Tunnel's peer
+     * Channel's peer
      */
   struct GNUNET_PeerIdentity peer;
 
     /**
-     * Port of the tunnel.
+     * Port of the channel.
      */
   uint32_t port GNUNET_PACKED;
 
@@ -165,9 +135,9 @@ struct GNUNET_MESH_LocalData
   struct GNUNET_MessageHeader header;
 
     /**
-     * TID of the tunnel
+     * ID of the channel
      */
-  uint32_t tid GNUNET_PACKED;
+  uint32_t id GNUNET_PACKED;
 
     /**
      * Payload follows
@@ -187,15 +157,15 @@ struct GNUNET_MESH_LocalAck
   struct GNUNET_MessageHeader header;
 
     /**
-     * ID of the tunnel allowed to send more data.
+     * ID of the channel allowed to send more data.
      */
-  MESH_TunnelNumber tunnel_id GNUNET_PACKED;
+  MESH_ChannelNumber channel_id GNUNET_PACKED;
 
 };
 
 
 /**
- * Message to inform the client about tunnels in the service.
+ * Message to inform the client about channels in the service.
  */
 struct GNUNET_MESH_LocalMonitor
 {
@@ -205,9 +175,9 @@ struct GNUNET_MESH_LocalMonitor
   struct GNUNET_MessageHeader header;
 
   /**
-   * ID of the tunnel allowed to send more data.
+   * ID of the channel allowed to send more data.
    */
-  MESH_TunnelNumber tunnel_id GNUNET_PACKED;
+  MESH_ChannelNumber channel_id GNUNET_PACKED;
 
   /**
    * Alignment.
@@ -215,12 +185,12 @@ struct GNUNET_MESH_LocalMonitor
   uint32_t reserved GNUNET_PACKED;
 
   /**
-   * ID of the owner of the tunnel (can be local peer).
+   * ID of the owner of the channel (can be local peer).
    */
   struct GNUNET_PeerIdentity owner;
 
   /**
-   * ID of the destination of the tunnel (can be local peer).
+   * ID of the destination of the channel (can be local peer).
    */
   struct GNUNET_PeerIdentity destination;
 };
@@ -228,40 +198,6 @@ struct GNUNET_MESH_LocalMonitor
 
 GNUNET_NETWORK_STRUCT_END
 
-/******************************************************************************/
-/************************        ENUMERATIONS      ****************************/
-/******************************************************************************/
-
-/**
- * All the states a tunnel can be in.
- */
-enum MeshTunnelState
-{
-    /**
-     * Uninitialized status, should never appear in operation.
-     */
-  MESH_TUNNEL_NEW,
-
-    /**
-     * Path to the peer not known yet
-     */
-  MESH_TUNNEL_SEARCHING,
-
-    /**
-     * Request sent, not yet answered.
-     */
-  MESH_TUNNEL_WAITING,
-
-    /**
-     * Peer connected and ready to accept data
-     */
-  MESH_TUNNEL_READY,
-
-    /**
-     * Peer connected previosly but not responding
-     */
-  MESH_TUNNEL_RECONNECTING
-};
 
 
 /**

@@ -25,7 +25,7 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "mesh_test_lib.h"
-#include "gnunet_mesh_service_enc.h"
+#include "gnunet_mesh_service.h"
 
 /**
  * Test context for a MESH Test.

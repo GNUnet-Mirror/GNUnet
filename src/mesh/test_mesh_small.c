@@ -25,7 +25,7 @@
 #include <stdio.h>
 #include "platform.h"
 #include "mesh_test_lib.h"
-#include "gnunet_mesh_service_enc.h"
+#include "gnunet_mesh_service.h"
 #include <gauger.h>
 
 

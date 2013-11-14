@@ -24,8 +24,8 @@
 
 #include "gnunet_statistics_service.h"
 
-#include "mesh_enc.h"
-#include "mesh_protocol_enc.h" // GNUNET_MESH_Data is shared
+#include "mesh.h"
+#include "mesh_protocol.h" /* GNUNET_MESH_Data is shared */
 
 #include "gnunet-service-mesh_local.h"
 

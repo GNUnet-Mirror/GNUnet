@@ -296,7 +296,7 @@ struct Operation
   /**
    * Tunnel to the peer.
    */
-  struct GNUNET_MESH_Tunnel *tunnel;
+  struct GNUNET_MESH_Channel *channel;
 
   /**
    * Message queue for the tunnel.
