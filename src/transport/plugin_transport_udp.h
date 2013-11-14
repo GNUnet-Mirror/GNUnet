@@ -57,10 +57,10 @@ GNUNET_NETWORK_STRUCT_BEGIN
  */
 struct IPv4UdpAddress
 {
-	/**
-	 * Optional options and flags for this address
-	 */
-	uint32_t options GNUNET_PACKED;
+  /**
+   * Optional options and flags for this address
+   */
+  uint32_t options GNUNET_PACKED;
 
   /**
    * IPv4 address, in network byte order.
@@ -79,10 +79,10 @@ struct IPv4UdpAddress
  */
 struct IPv6UdpAddress
 {
-	/**
-	 * Optional options and flags for this address
-	 */
-	uint32_t options GNUNET_PACKED;
+  /**
+   * Optional options and flags for this address
+   */
+  uint32_t options GNUNET_PACKED;
 
   /**
    * IPv6 address.
@@ -296,10 +296,16 @@ const char *
 udp_address_to_string (void *cls, const void *addr, size_t addrlen);
 
 void
-udp_broadcast_receive ();
+udp_broadcast_receive (struct Plugin *plugin,
+                       const char * buf,
+                       ssize_t size,
+                       const struct sockaddr *addr,
+                       size_t addrlen);
 
 void
-setup_broadcast (struct Plugin *plugin, struct sockaddr_in6 *server_addrv6, struct sockaddr_in *server_addrv4);
+setup_broadcast (struct Plugin *plugin,
+                 struct sockaddr_in6 *server_addrv6,
+                 struct sockaddr_in *server_addrv4);
 
 void
 stop_broadcast (struct Plugin *plugin);

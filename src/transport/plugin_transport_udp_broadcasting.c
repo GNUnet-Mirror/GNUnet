@@ -187,8 +187,13 @@ broadcast_ipv4_mst_cb (void *cls, void *client,
   return GNUNET_OK;
 }
 
+
 void
-udp_broadcast_receive (struct Plugin *plugin, const char * buf, ssize_t size, struct sockaddr *addr, size_t addrlen)
+udp_broadcast_receive (struct Plugin *plugin,
+                       const char * buf,
+                       ssize_t size,
+                       const struct sockaddr *addr,
+                       size_t addrlen)
 {
   struct GNUNET_ATS_Information ats;
 
@@ -235,6 +240,7 @@ udp_broadcast_receive (struct Plugin *plugin, const char * buf, ssize_t size, st
   }
 }
 
+
 static unsigned int
 prepare_beacon (struct Plugin *plugin, struct UDP_Beacon_Message *msg)
 {
@@ -258,6 +264,7 @@ prepare_beacon (struct Plugin *plugin, struct UDP_Beacon_Message *msg)
   memcpy (&msg[1], hello, hello_size);
   return msg_size;
 }
+
 
 static void
 udp_ipv4_broadcast_send (void *cls,
@@ -311,6 +318,7 @@ udp_ipv4_broadcast_send (void *cls,
       GNUNET_SCHEDULER_add_delayed (plugin->broadcast_interval,
                                     &udp_ipv4_broadcast_send, plugin);
 }
+
 
 static void
 udp_ipv6_broadcast_send (void *cls,
@@ -421,7 +429,7 @@ setup_broadcast (struct Plugin *plugin, struct sockaddr_in6 *server_addrv6, stru
     }
     else
     {
-      GNUNET_OS_network_interfaces_list (iface_proc, plugin);
+      GNUNET_OS_network_interfaces_list (&iface_proc, plugin);
       plugin->send_ipv4_broadcast_task =
           GNUNET_SCHEDULER_add_now (&udp_ipv4_broadcast_send, plugin);
 
@@ -483,6 +491,7 @@ setup_broadcast (struct Plugin *plugin, struct sockaddr_in6 *server_addrv6, stru
     }
   }
 }
+
 
 void
 stop_broadcast (struct Plugin *plugin)

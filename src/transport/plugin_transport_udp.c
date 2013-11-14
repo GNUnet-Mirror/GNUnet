@@ -2438,7 +2438,7 @@ udp_select_read (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *rsock)
   switch (ntohs (msg->type))
   {
   case GNUNET_MESSAGE_TYPE_TRANSPORT_BROADCAST_BEACON:
-    udp_broadcast_receive (plugin, &buf, size, addr, fromlen);
+    udp_broadcast_receive (plugin, buf, size, addr, fromlen);
     return;
 
   case GNUNET_MESSAGE_TYPE_TRANSPORT_UDP_MESSAGE:
@@ -2905,7 +2905,7 @@ setup_sockets (struct Plugin *plugin,
       sockets_created++;
     }
     else
-    {		
+    {
       LOG (GNUNET_ERROR_TYPE_ERROR,
       		"Failed to bind UDP socket to %s: %s\n",
       		GNUNET_a2s (server_addr, addrlen), STRERROR (eno));
