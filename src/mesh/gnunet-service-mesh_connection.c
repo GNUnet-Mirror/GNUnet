@@ -262,6 +262,11 @@ static unsigned long long max_msgs_queue;
  */
 static struct GNUNET_TIME_Relative refresh_connection_time;
 
+/**
+ * How often to send path create / ACKs.
+ */
+static struct GNUNET_TIME_Relative create_connection_time;
+
 
 /******************************************************************************/
 /********************************   STATIC  ***********************************/
@@ -802,13 +807,16 @@ static void
 connection_fwd_keepalive (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct MeshConnection *c = cls;
+  struct GNUNET_TIME_Relative delay;
 
   c->fwd_maintenance_task = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 
   connection_maintain (c, GNUNET_YES);
-  c->fwd_maintenance_task = GNUNET_SCHEDULER_add_delayed (refresh_connection_time,
+  delay = c->state == MESH_CONNECTION_READY ?
+          refresh_connection_time : create_connection_time;
+  c->fwd_maintenance_task = GNUNET_SCHEDULER_add_delayed (delay,
                                                           &connection_fwd_keepalive,
                                                           c);
 }
@@ -818,13 +826,16 @@ static void
 connection_bck_keepalive (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct MeshConnection *c = cls;
+  struct GNUNET_TIME_Relative delay;
 
   c->bck_maintenance_task = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 
   connection_maintain (c, GNUNET_NO);
-  c->bck_maintenance_task = GNUNET_SCHEDULER_add_delayed (refresh_connection_time,
+  delay = c->state == MESH_CONNECTION_READY ?
+          refresh_connection_time : create_connection_time;
+  c->bck_maintenance_task = GNUNET_SCHEDULER_add_delayed (delay,
                                                           &connection_bck_keepalive,
                                                           c);
 }
@@ -1043,12 +1054,12 @@ connection_reset_timeout (struct MeshConnection *c, int fwd)
   if (GNUNET_SCHEDULER_NO_TASK != *ti)
     GNUNET_SCHEDULER_cancel (*ti);
 
-  if (GMC_is_origin (c, fwd)) /* Endpoint */
+  if (GMC_is_origin (c, fwd)) /* Startpoint */
   {
     f  = fwd ? &connection_fwd_keepalive : &connection_bck_keepalive;
     *ti = GNUNET_SCHEDULER_add_delayed (refresh_connection_time, f, c);
   }
-  else /* Relay */
+  else /* Relay, endpoint. */
   {
     struct GNUNET_TIME_Relative delay;
 
@@ -1242,7 +1253,9 @@ GMC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
       connection_change_state (c, MESH_CONNECTION_ACK);
 
     /* Keep tunnel alive in direction dest->owner*/
-    connection_reset_timeout (c, GNUNET_NO);
+    c->bck_maintenance_task =
+            GNUNET_SCHEDULER_add_delayed (create_connection_time,
+                                          &connection_bck_keepalive, c);
   }
   else
   {
@@ -1274,6 +1287,7 @@ GMC_handle_confirm (void *cls, const struct GNUNET_PeerIdentity *peer,
   struct MeshConnection *c;
   struct MeshPeerPath *p;
   struct MeshPeer *pi;
+  enum MeshConnectionState oldstate;
   int fwd;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "\n\n");
@@ -1290,15 +1304,14 @@ GMC_handle_confirm (void *cls, const struct GNUNET_PeerIdentity *peer,
     return GNUNET_OK;
   }
 
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  via peer %s\n",
-              GNUNET_i2s (peer));
+  oldstate = c->state;
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  via peer %s\n", GNUNET_i2s (peer));
   pi = GMP_get (peer);
   if (get_next_hop (c) == pi)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  SYNACK\n");
     fwd = GNUNET_NO;
-    if (MESH_CONNECTION_SENT == c->state)
+    if (MESH_CONNECTION_SENT == oldstate)
       connection_change_state (c, MESH_CONNECTION_ACK);
   }
   else if (get_prev_hop (c) == pi)
@@ -1312,6 +1325,7 @@ GMC_handle_confirm (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_break_op (0);
     return GNUNET_OK;
   }
+
   connection_reset_timeout (c, fwd);
 
   /* Add path to peers? */
@@ -1328,21 +1342,43 @@ GMC_handle_confirm (void *cls, const struct GNUNET_PeerIdentity *peer,
   /* Message for us as creator? */
   if (GMC_is_origin (c, GNUNET_YES))
   {
+    if (GNUNET_NO != fwd)
+    {
+      GNUNET_break_op (0);
+      return GNUNET_OK;
+    }
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  Connection (SYN)ACK for us!\n");
-    connection_change_state (c, MESH_CONNECTION_READY);
+
+    /* If just created, cancel the short timeout and start a long one */
+    if (MESH_CONNECTION_SENT == oldstate)
+      connection_reset_timeout (c, GNUNET_YES);
+
+    /* Change tunnel state */
     if (MESH_TUNNEL3_WAITING == GMT_get_state (c->t))
       GMT_change_state (c->t, MESH_TUNNEL3_READY);
+
+    /* Send ACK (~TCP ACK)*/
     send_connection_ack (c, GNUNET_YES);
-    return GNUNET_OK;
   }
 
   /* Message for us as destination? */
   if (GMC_is_terminal (c, GNUNET_YES))
   {
+    if (GNUNET_YES != fwd)
+    {
+      GNUNET_break_op (0);
+      return GNUNET_OK;
+    }
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  Connection ACK for us!\n");
-    connection_change_state (c, MESH_CONNECTION_READY);
+
+    /* If just created, cancel the short timeout and start a long one */
+    if (MESH_CONNECTION_ACK == oldstate)
+      connection_reset_timeout (c, GNUNET_NO);
+
+    /* Change tunnel state */
     if (MESH_TUNNEL3_WAITING == GMT_get_state (c->t))
       GMT_change_state (c->t, MESH_TUNNEL3_READY);
+
     return GNUNET_OK;
   }
 
@@ -2011,6 +2047,7 @@ GMC_init (const struct GNUNET_CONFIGURATION_Handle *c)
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
+  create_connection_time = GNUNET_TIME_UNIT_SECONDS;
   connections = GNUNET_CONTAINER_multihashmap_create (1024, GNUNET_YES);
 }
 
@@ -2054,7 +2091,7 @@ GMC_new (const struct GNUNET_HashCode *cid,
   if (0 == own_pos)
   {
     c->fwd_maintenance_task =
-            GNUNET_SCHEDULER_add_delayed (refresh_connection_time,
+            GNUNET_SCHEDULER_add_delayed (create_connection_time,
                                           &connection_fwd_keepalive, c);
   }
   register_neighbors (c);
