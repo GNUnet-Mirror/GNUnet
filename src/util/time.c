@@ -385,6 +385,8 @@ GNUNET_TIME_relative_multiply (struct GNUNET_TIME_Relative rel,
 
   if (0 == factor)
     return GNUNET_TIME_UNIT_ZERO;
+  if (rel.rel_value_us == GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us)
+    return GNUNET_TIME_UNIT_FOREVER_REL;
   ret.rel_value_us = rel.rel_value_us * (unsigned long long) factor;
   if (ret.rel_value_us / factor != rel.rel_value_us)
   {
