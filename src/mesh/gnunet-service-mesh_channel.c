@@ -1227,7 +1227,7 @@ GMCH_send_data_ack (struct MeshChannel *ch, int fwd)
   rel = fwd ? ch->dest_rel : ch->root_rel;
   ack = rel->mid_recv - 1;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-              "!!! Send DATA_ACK for %u\n",
+              " !! Send DATA_ACK for %u\n",
               ack);
 
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_DATA_ACK);
@@ -1258,7 +1258,9 @@ GMCH_send_data_ack (struct MeshChannel *ch, int fwd)
          copy->mid, delta, mask, msg.futures);
   }
   msg.mid = htonl (ack);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! final futures %llX\n", msg.futures);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "!!! ACK for %u, futures %llX\n",
+       ack, msg.futures);
 
   GMCH_send_prebuilt_message (&msg.header, ch, !fwd);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "send_data_ack END\n");
@@ -1709,7 +1711,7 @@ GMCH_handle_data_ack (struct MeshChannel *ch,
       break;
     }
     work = GNUNET_YES;
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "!!!  id %u\n", copy->mid);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " !!  id %u\n", copy->mid);
     next = copy->next;
     rel_message_free (copy, GNUNET_YES);
   }
