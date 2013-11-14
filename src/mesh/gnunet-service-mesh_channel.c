@@ -1292,7 +1292,7 @@ GMCH_allow_client (struct MeshChannel *ch, int fwd)
       GNUNET_break (0);
       return;
     }
-    if (64 <= rel->mid_send - rel->head_sent->mid)
+    if (NULL != rel->head_sent && 64 <= rel->mid_send - rel->head_sent->mid)
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            " too big mid gap! Wait for ACK.\n");
