@@ -1711,7 +1711,7 @@ GMCH_handle_data_ack (struct MeshChannel *ch,
     work = GNUNET_YES;
     LOG (GNUNET_ERROR_TYPE_DEBUG, "!!!  id %u\n", copy->mid);
     next = copy->next;
-    rel_message_free (copy, copy->mid == ack);
+    rel_message_free (copy, GNUNET_YES);
   }
 
   /* ACK client if needed */
