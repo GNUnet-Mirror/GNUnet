@@ -197,6 +197,14 @@ run (void *cls, char *const *args, const char *cfgfile,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
+  if (NULL == name)
+  {
+    fprintf (stderr,
+             _("You must specify a name\n"));
+    return;
+  }
+
+
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                 &do_shutdown,
                                 NULL);
