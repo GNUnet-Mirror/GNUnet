@@ -2095,6 +2095,8 @@ GMC_destroy (struct MeshConnection *c)
   if (GNUNET_NO == GMC_is_origin (c, GNUNET_YES))
     path_destroy (c->path);
 
+  GNUNET_CONTAINER_multihashmap_remove (connections, &c->id, c);
+
   GNUNET_free (c);
 }
 
