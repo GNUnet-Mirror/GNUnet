@@ -2213,7 +2213,7 @@ ack_proc (void *cls, uint32_t id, const struct GNUNET_MessageHeader *msg)
 static void
 read_process_msg (struct Plugin *plugin,
 		  const struct GNUNET_MessageHeader *msg,
-		  const char *addr,
+		  const struct sockaddr *addr,
 		  socklen_t fromlen)
 {
   if (ntohs (msg->size) < sizeof (struct UDPMessage))
@@ -2222,14 +2222,14 @@ read_process_msg (struct Plugin *plugin,
     return;
   }
   process_udp_message (plugin, (const struct UDPMessage *) msg,
-                       (const struct sockaddr *) addr, fromlen);
+                       addr, fromlen);
 }
 
 
 static void
 read_process_ack (struct Plugin *plugin,
 		  const struct GNUNET_MessageHeader *msg,
-		  char *addr,
+		  const struct sockaddr *addr,
 		  socklen_t fromlen)
 {
   const struct GNUNET_MessageHeader *ack;
@@ -2282,7 +2282,7 @@ read_process_ack (struct Plugin *plugin,
     LOG (GNUNET_ERROR_TYPE_DEBUG,
 	 "UDP processes %u-byte acknowledgement from `%s' at `%s'\n",
 	 (unsigned int) ntohs (msg->size), GNUNET_i2s (&udp_ack->sender),
-	 GNUNET_a2s ((const struct sockaddr *) addr, fromlen));
+	 GNUNET_a2s (addr, fromlen));
     /* Expect more ACKs to arrive */
     return;
   }
@@ -2290,7 +2290,7 @@ read_process_ack (struct Plugin *plugin,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Message full ACK'ed\n",
        (unsigned int) ntohs (msg->size), GNUNET_i2s (&udp_ack->sender),
-       GNUNET_a2s ((const struct sockaddr *) addr, fromlen));
+       GNUNET_a2s (addr, fromlen));
 
   /* Remove fragmented message after successful sending */
   fragmented_message_done (s->frag_ctx, GNUNET_OK);
@@ -2300,7 +2300,7 @@ read_process_ack (struct Plugin *plugin,
 static void
 read_process_fragment (struct Plugin *plugin,
 		       const struct GNUNET_MessageHeader *msg,
-		       char *addr,
+		       const struct sockaddr *addr,
 		       socklen_t fromlen)
 {
   struct DefragContext *d_ctx;
@@ -2308,12 +2308,12 @@ read_process_fragment (struct Plugin *plugin,
   struct FindReceiveContext frc;
 
   frc.rc = NULL;
-  frc.addr = (const struct sockaddr *) addr;
+  frc.addr = addr;
   frc.addr_len = fromlen;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "UDP processes %u-byte fragment from `%s'\n",
        (unsigned int) ntohs (msg->size),
-       GNUNET_a2s ((const struct sockaddr *) addr, fromlen));
+       GNUNET_a2s (addr, fromlen));
   /* Lookup existing receive context for this address */
   GNUNET_CONTAINER_heap_iterate (plugin->defrag_ctxs,
                                  &find_receive_context,
@@ -2340,14 +2340,14 @@ read_process_fragment (struct Plugin *plugin,
     LOG (GNUNET_ERROR_TYPE_DEBUG,
 	 "Created new defragmentation context for %u-byte fragment from `%s'\n",
 	 (unsigned int) ntohs (msg->size),
-	 GNUNET_a2s ((const struct sockaddr *) addr, fromlen));
+	 GNUNET_a2s (addr, fromlen));
   }
   else
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
 	 "Found existing defragmentation context for %u-byte fragment from `%s'\n",
 	 (unsigned int) ntohs (msg->size),
-	 GNUNET_a2s ((const struct sockaddr *) addr, fromlen));
+	 GNUNET_a2s (addr, fromlen));
   }
 
   if (GNUNET_OK == GNUNET_DEFRAGMENT_process_fragment (d_ctx->defrag, msg))
@@ -2379,7 +2379,7 @@ static void
 udp_select_read (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *rsock)
 {
   socklen_t fromlen;
-  char addr[32];
+  struct sockaddr_storage addr;
   char buf[65536] GNUNET_ALIGN;
   ssize_t size;
   const struct GNUNET_MessageHeader *msg;
@@ -2387,7 +2387,7 @@ udp_select_read (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *rsock)
   fromlen = sizeof (addr);
   memset (&addr, 0, sizeof (addr));
   size = GNUNET_NETWORK_socket_recvfrom (rsock, buf, sizeof (buf),
-                                      (struct sockaddr *) &addr, &fromlen);
+                                         (struct sockaddr *) &addr, &fromlen);
 #if MINGW
   /* On SOCK_DGRAM UDP sockets recvfrom might fail with a
    * WSAECONNRESET error to indicate that previous sendto() (yes, sendto!)
@@ -2422,8 +2422,10 @@ udp_select_read (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *rsock)
   msg = (const struct GNUNET_MessageHeader *) buf;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "UDP received %u-byte message from `%s' type %i\n", (unsigned int) size,
-       GNUNET_a2s ((const struct sockaddr *) addr, fromlen), ntohs (msg->type));
+       "UDP received %u-byte message from `%s' type %u\n",
+       (unsigned int) size,
+       GNUNET_a2s ((const struct sockaddr *) &addr, fromlen),
+       ntohs (msg->type));
 
   if (size != ntohs (msg->size))
   {
@@ -2438,21 +2440,21 @@ udp_select_read (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *rsock)
   switch (ntohs (msg->type))
   {
   case GNUNET_MESSAGE_TYPE_TRANSPORT_BROADCAST_BEACON:
-    udp_broadcast_receive (plugin, buf, size, addr, fromlen);
+    udp_broadcast_receive (plugin, buf, size,
+                           (const struct sockaddr *) &addr, fromlen);
     return;
-
   case GNUNET_MESSAGE_TYPE_TRANSPORT_UDP_MESSAGE:
-    read_process_msg (plugin, msg, addr, fromlen);
+    read_process_msg (plugin, msg,
+                      (const struct sockaddr *) &addr, fromlen);
     return;
-
   case GNUNET_MESSAGE_TYPE_TRANSPORT_UDP_ACK:
-    read_process_ack (plugin, msg, addr, fromlen);
+    read_process_ack (plugin, msg,
+                      (const struct sockaddr *) &addr, fromlen);
     return;
-
   case GNUNET_MESSAGE_TYPE_FRAGMENT:
-    read_process_fragment (plugin, msg, addr, fromlen);
+    read_process_fragment (plugin, msg,
+                           (const struct sockaddr *) &addr, fromlen);
     return;
-
   default:
     GNUNET_break_op (0);
     return;
