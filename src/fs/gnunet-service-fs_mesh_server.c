@@ -81,9 +81,9 @@ struct MeshClient
   struct MeshClient *prev;
 
   /**
-   * Tunnel for communication.
+   * Channel for communication.
    */
-  struct GNUNET_MESH_Tunnel *tunnel;
+  struct GNUNET_MESH_Channel *channel;
 
   /**
    * Handle for active write operation, or NULL.
@@ -124,9 +124,9 @@ struct MeshClient
 
 
 /**
- * Listen tunnel for incoming requests.
+ * Listen channel for incoming requests.
  */
-static struct GNUNET_MESH_Handle *listen_tunnel;
+static struct GNUNET_MESH_Handle *listen_channel;
 
 /**
  * Head of DLL of mesh clients.
@@ -161,15 +161,15 @@ timeout_mesh_task (void *cls,
 		     const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct MeshClient *sc = cls;
-  struct GNUNET_MESH_Tunnel *tun;
+  struct GNUNET_MESH_Channel *tun;
 
   sc->timeout_task = GNUNET_SCHEDULER_NO_TASK;
-  tun = sc->tunnel;
-  sc->tunnel = NULL;
+  tun = sc->channel;
+  sc->channel = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Timeout for inactive mesh client %p\n",
 	      sc);
-  GNUNET_MESH_tunnel_destroy (tun);
+  GNUNET_MESH_channel_destroy (tun);
 }
 
 
@@ -201,7 +201,7 @@ continue_reading (struct MeshClient *sc)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Finished processing mesh request from client %p, ready to receive the next one\n",
 	      sc);
-  GNUNET_MESH_receive_done (sc->tunnel);
+  GNUNET_MESH_receive_done (sc->channel);
 }
 
 
@@ -228,7 +228,7 @@ write_continuation (void *cls,
 		    void *buf)
 {
   struct MeshClient *sc = cls;
-  struct GNUNET_MESH_Tunnel *tun;
+  struct GNUNET_MESH_Channel *tun;
   struct WriteQueueItem *wqi;
   size_t ret;
 
@@ -243,9 +243,9 @@ write_continuation (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Transmission of reply failed, terminating mesh\n");
-    tun = sc->tunnel;
-    sc->tunnel = NULL;
-    GNUNET_MESH_tunnel_destroy (tun);
+    tun = sc->channel;
+    sc->channel = NULL;
+    GNUNET_MESH_channel_destroy (tun);
     return 0;
   }
   GNUNET_CONTAINER_DLL_remove (sc->wqi_head,
@@ -274,7 +274,7 @@ static void
 continue_writing (struct MeshClient *sc)
 {
   struct WriteQueueItem *wqi;
-  struct GNUNET_MESH_Tunnel *tun;
+  struct GNUNET_MESH_Channel *tun;
 
   if (NULL != sc->wh)
   {
@@ -289,7 +289,7 @@ continue_writing (struct MeshClient *sc)
     continue_reading (sc);
     return;
   }
-  sc->wh = GNUNET_MESH_notify_transmit_ready (sc->tunnel, GNUNET_NO,
+  sc->wh = GNUNET_MESH_notify_transmit_ready (sc->channel, GNUNET_NO,
 					      GNUNET_TIME_UNIT_FOREVER_REL,
 					      wqi->msize,				
 					      &write_continuation,
@@ -298,9 +298,9 @@ continue_writing (struct MeshClient *sc)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Write failed; terminating mesh\n");
-    tun = sc->tunnel;
-    sc->tunnel = NULL;
-    GNUNET_MESH_tunnel_destroy (tun);
+    tun = sc->channel;
+    sc->channel = NULL;
+    GNUNET_MESH_channel_destroy (tun);
     return;
   }
 }
@@ -389,18 +389,18 @@ handle_datastore_reply (void *cls,
  * Do not call GNUNET_SERVER_mst_destroy in callback
  *
  * @param cls closure with the 'struct MeshClient'
- * @param tunnel tunnel handle
- * @param tunnel_ctx tunnel context
+ * @param channel channel handle
+ * @param channel_ctx channel context
  * @param message the actual message
  * @return GNUNET_OK on success, GNUNET_SYSERR to stop further processing
  */
 static int
 request_cb (void *cls,
-	    struct GNUNET_MESH_Tunnel *tunnel,
-	    void **tunnel_ctx,
+	    struct GNUNET_MESH_Channel *channel,
+	    void **channel_ctx,
 	    const struct GNUNET_MessageHeader *message)
 {
-  struct MeshClient *sc = *tunnel_ctx;
+  struct MeshClient *sc = *channel_ctx;
   const struct MeshQueryMessage *sqm;
 
   sqm = (const struct MeshQueryMessage *) message;
@@ -434,34 +434,34 @@ request_cb (void *cls,
  * Functions of this type are called upon new mesh connection from other peers.
  *
  * @param cls the closure from GNUNET_MESH_connect
- * @param tunnel the tunnel representing the mesh
+ * @param channel the channel representing the mesh
  * @param initiator the identity of the peer who wants to establish a mesh
  *            with us; NULL on binding error
  * @param port mesh port used for the incoming connection
- * @return initial tunnel context (our 'struct MeshClient')
+ * @return initial channel context (our 'struct MeshClient')
  */
 static void *
 accept_cb (void *cls,
-	   struct GNUNET_MESH_Tunnel *tunnel,
+	   struct GNUNET_MESH_Channel *channel,
 	   const struct GNUNET_PeerIdentity *initiator,
 	   uint32_t port)
 {
   struct MeshClient *sc;
 
-  GNUNET_assert (NULL != tunnel);
+  GNUNET_assert (NULL != channel);
   if (sc_count >= sc_count_max)
   {
     GNUNET_STATISTICS_update (GSF_stats,
 			      gettext_noop ("# mesh client connections rejected"), 1,
 			      GNUNET_NO);
-    GNUNET_MESH_tunnel_destroy (tunnel);
+    GNUNET_MESH_channel_destroy (channel);
     return NULL;
   }
   GNUNET_STATISTICS_update (GSF_stats,
 			    gettext_noop ("# mesh connections active"), 1,
 			    GNUNET_NO);
   sc = GNUNET_new (struct MeshClient);
-  sc->tunnel = tunnel;
+  sc->channel = channel;
   GNUNET_CONTAINER_DLL_insert (sc_head,
 			       sc_tail,
 			       sc);
@@ -477,23 +477,23 @@ accept_cb (void *cls,
 
 /**
  * Function called by mesh when a client disconnects.
- * Cleans up our 'struct MeshClient' of that tunnel.
+ * Cleans up our 'struct MeshClient' of that channel.
  *
  * @param cls NULL
- * @param tunnel tunnel of the disconnecting client
- * @param tunnel_ctx our 'struct MeshClient'
+ * @param channel channel of the disconnecting client
+ * @param channel_ctx our 'struct MeshClient'
  */
 static void
 cleaner_cb (void *cls,
-	    const struct GNUNET_MESH_Tunnel *tunnel,
-	    void *tunnel_ctx)
+	    const struct GNUNET_MESH_Channel *channel,
+	    void *channel_ctx)
 {
-  struct MeshClient *sc = tunnel_ctx;
+  struct MeshClient *sc = channel_ctx;
   struct WriteQueueItem *wqi;
 
   if (NULL == sc)
     return;
-  sc->tunnel = NULL;
+  sc->channel = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Terminating mesh connection with client %p\n",
 	      sc);
@@ -547,7 +547,7 @@ GSF_mesh_start_server ()
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Initializing mesh FS server with a limit of %llu connections\n",
 	      sc_count_max);
-  listen_tunnel = GNUNET_MESH_connect (GSF_cfg,
+  listen_channel = GNUNET_MESH_connect (GSF_cfg,
 				       NULL,
 				       &accept_cb,
 				       &cleaner_cb,
@@ -562,10 +562,10 @@ GSF_mesh_start_server ()
 void
 GSF_mesh_stop_server ()
 {
-  if (NULL != listen_tunnel)
+  if (NULL != listen_channel)
   {
-    GNUNET_MESH_disconnect (listen_tunnel);
-    listen_tunnel = NULL;
+    GNUNET_MESH_disconnect (listen_channel);
+    listen_channel = NULL;
   }
   GNUNET_assert (NULL == sc_head);
   GNUNET_assert (0 == sc_count);
