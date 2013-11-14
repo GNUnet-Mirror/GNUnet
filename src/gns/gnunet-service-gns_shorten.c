@@ -221,6 +221,9 @@ process_pseu_block_ns (void *cls,
   gph->namecache_task = NULL;
   if (NULL == block)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Namecache did not return information for label `%s' \n",
+                gph->current_label);
     process_pseu_lookup_ns (gph, 0, NULL);
     return;
   }
@@ -247,7 +250,7 @@ process_pseu_block_ns (void *cls,
  * @param label the label to lookup
  */
 static void
-perform_pseu_lookup (struct GetPseuAuthorityHandle *gph,
+perform_nick_lookup (struct GetPseuAuthorityHandle *gph,
 		     const char *label)
 {
   struct GNUNET_CRYPTO_EcdsaPublicKey pub;
@@ -298,7 +301,7 @@ process_pseu_lookup_ns (void *cls,
     }
     else
     {
-      perform_pseu_lookup (gph, gph->label);
+      perform_nick_lookup (gph, gph->label);
     }
     return;
   }
@@ -320,185 +323,6 @@ process_pseu_lookup_ns (void *cls,
 				      1, &new_pkey,
 				      &create_pkey_cont, gph);
 }
-
-
-/**
- * Process result of a DHT lookup for a PSEU record.
- *
- * @param gph the handle to our shorten operation
- * @param pseu the pseu result or NULL
- */
-static void
-process_pseu_result (struct GetPseuAuthorityHandle* gph,
-		     const char *pseu)
-{
-  if (NULL == pseu)
-  {
-    /* no PSEU found, try original label */
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "No PSEU found, trying original label `%s' instead.\n",
-		gph->label);
-    perform_pseu_lookup (gph, gph->label);
-    return;
-  }
-  /* check if 'pseu' is taken */
-  perform_pseu_lookup (gph, pseu);
-}
-
-
-/**
- * Handle timeout for DHT request during shortening.
- *
- * @param cls the request handle as closure
- * @param tc the task context
- */
-static void
-handle_auth_discovery_timeout (void *cls,
-                               const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct GetPseuAuthorityHandle *gph = cls;
-
-  gph->timeout_task = GNUNET_SCHEDULER_NO_TASK;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "DHT lookup for PSEU query in zone `%s' timed out.\n",
-              GNUNET_GNSRECORD_z2s (&gph->target_zone));
-  GNUNET_DHT_get_stop (gph->get_handle);
-  gph->get_handle = NULL;
-  process_pseu_result (gph, NULL);
-}
-
-
-/**
- * Handle decrypted records from DHT result.
- *
- * @param cls closure with our 'struct GetPseuAuthorityHandle'
- * @param rd_count number of entries in 'rd' array
- * @param rd array of records with data to store
- */
-static void
-process_auth_records (void *cls,
-		      unsigned int rd_count,
-		      const struct GNUNET_GNSRECORD_Data *rd)
-{
-  struct GetPseuAuthorityHandle *gph = cls;
-  unsigned int i;
-
-  for (i=0; i < rd_count; i++)
-  {
-    if (GNUNET_GNSRECORD_TYPE_NICK == rd[i].record_type)
-    {
-      char pseu[rd[i].data_size + 1];
-
-      /* found pseu */
-      memcpy (pseu,
-	      rd[i].data,
-	      rd[i].data_size);
-      pseu[rd[i].data_size] = '\0';
-      process_pseu_result (gph,
-			   pseu);
-      return;
-    }
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "No PSEU record found in DHT reply with %u records.\n",
-              rd_count);
-  process_pseu_result (gph, NULL);
-}
-
-
-/**
- * Function called when we find a PSEU entry in the DHT
- *
- * @param cls the request handle
- * @param exp lifetime
- * @param key the key the record was stored under
- * @param get_path get path
- * @param get_path_length @a get_path length
- * @param put_path put path
- * @param put_path_length @a put_path length
- * @param type the block type
- * @param size number of bytes in @a data
- * @param data the record data
- */
-static void
-process_auth_discovery_dht_result (void* cls,
-                                   struct GNUNET_TIME_Absolute exp,
-                                   const struct GNUNET_HashCode *key,
-                                   const struct GNUNET_PeerIdentity *get_path,
-                                   unsigned int get_path_length,
-                                   const struct GNUNET_PeerIdentity *put_path,
-                                   unsigned int put_path_length,
-                                   enum GNUNET_BLOCK_Type type,
-                                   size_t size,
-                                   const void *data)
-{
-  struct GetPseuAuthorityHandle *gph = cls;
-  const struct GNUNET_GNSRECORD_Block *block;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Got DHT result for PSEU request\n");
-  GNUNET_DHT_get_stop (gph->get_handle);
-  gph->get_handle = NULL;
-  GNUNET_SCHEDULER_cancel (gph->timeout_task);
-  gph->timeout_task = GNUNET_SCHEDULER_NO_TASK;
-
-  if (NULL == data)
-  {
-    /* is this allowed!? */
-    GNUNET_break (0);
-    process_pseu_result (gph, NULL);
-    return;
-  }
-  if (size < sizeof (struct GNUNET_GNSRECORD_Block))
-  {
-    /* how did this pass DHT block validation!? */
-    GNUNET_break (0);
-    process_pseu_result (gph, NULL);
-    return;
-  }
-  block = data;
-  if (size !=
-      ntohl (block->purpose.size) +
-      sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey) +
-      sizeof (struct GNUNET_CRYPTO_EcdsaSignature))
-  {
-    /* how did this pass DHT block validation!? */
-    GNUNET_break (0);
-    process_pseu_result (gph, NULL);
-    return;
-  }
-  if (GNUNET_OK !=
-      GNUNET_GNSRECORD_block_decrypt (block,
-				      &gph->target_zone,
-				      GNUNET_GNS_TLD_PLUS,
-				      &process_auth_records,
-				      gph))
-  {
-    /* other peer encrypted invalid block, complain */
-    GNUNET_break_op (0);
-    process_pseu_result (gph, NULL);
-    return;
-  }
-}
-
-static void suggested_lookup_cb (void *cls,
-                                const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
-                                const char *label,
-                                unsigned int rd_count,
-                                const struct GNUNET_GNSRECORD_Data *rd)
-{
-  struct GetPseuAuthorityHandle* gph = cls;
-  gph->namestore_task = NULL;
-  if ((0 == strcmp (label, gph->suggested_label)) && (0 == rd_count) && (NULL == rd))
-  {
-
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Shortening to suggested name `%s' possible\n",
-                gph->suggested_label);
-    process_pseu_result (gph, gph->suggested_label);
-  }
-}
-
 
 
 /**
@@ -533,33 +357,13 @@ process_zone_to_name_discover (void *cls,
     free_get_pseu_authority_handle (gph);
     return;
   }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Shortening continuing, no name not reserved in shorten zone\n");
+  }
   /* record does not yet exist, check if suggested label is available */
-
-  if (NULL != gph->suggested_label)
-    gph->namestore_task = GNUNET_NAMESTORE_records_lookup (namestore_handle, zone_key,
-        gph->suggested_label, &suggested_lookup_cb, gph);
-
-#if 0
-  GNUNET_GNSRECORD_query_from_public_key (&gph->target_zone,
-					  GNUNET_GNS_TLD_PLUS,
-					  &lookup_key);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Shortening searches in DHT for PSEU record under `%s' in zone `%s'\n",
-              GNUNET_h2s (&lookup_key),
-              GNUNET_GNSRECORD_z2s (&gph->target_zone));
-
-  gph->timeout_task = GNUNET_SCHEDULER_add_delayed (DHT_LOOKUP_TIMEOUT,
-						    &handle_auth_discovery_timeout,
-						    gph);
-  gph->get_handle = GNUNET_DHT_get_start (dht_handle,
-					  GNUNET_BLOCK_TYPE_GNS_NAMERECORD,
-					  &lookup_key,
-					  DHT_GNS_REPLICATION_LEVEL,
-					  GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
-					  NULL, 0,
-					  &process_auth_discovery_dht_result,
-					  gph);
-#endif
+  perform_nick_lookup (gph, gph->suggested_label);
 }
 
 
@@ -580,12 +384,20 @@ GNS_shorten_start (const char *original_label,
 		   const struct GNUNET_CRYPTO_EcdsaPrivateKey *shorten_zone)
 {
   struct GetPseuAuthorityHandle *gph;
+  struct GNUNET_CRYPTO_EcdsaPublicKey shorten_pub;
 
   if (strlen (original_label) > GNUNET_DNSPARSER_MAX_LABEL_LENGTH)
   {
     GNUNET_break (0);
     return;
   }
+  GNUNET_CRYPTO_ecdsa_key_get_public(shorten_zone, &shorten_pub);
+  if (0 == memcmp (&shorten_pub, pub, sizeof (pub)))
+  {
+    /* Do not shorten the shorten zone */
+    return;
+  }
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Starting shortening process for `%s' with old label `%s' and suggested nickname `%s'\n",
 	      GNUNET_GNSRECORD_z2s (pub),
