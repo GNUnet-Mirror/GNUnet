@@ -40,14 +40,19 @@ gnunet-namestore -p -z testego -a -n mybestfriendalice -t PKEY -V $DELEGATED_PKE
 
 # Delegate the name "short" to shortenzone
 gnunet-namestore -p -z testego -a -n short -t PKEY -V $SHORT -e never -c test_gns_lookup.conf
-
+# Adding label mail in ego's zone zone 
 gnunet-namestore -p -z testego  -a -n mail -t A -V $TEST_IP -e never -c test_gns_lookup.conf
 
 # Adding label www in Alice's delegatedego zone 
 gnunet-namestore -p -z delegatedego -a -n www -t A -V $TEST_IP -e never -c test_gns_lookup.conf
 
+# Delete namecache content
+gnunet-arm -c test_gns_lookup.conf -k namecache
+rm -rf `gnunet-config -c test_gns_lookup.conf -s namecache-sqlite -o FILENAME`
+
 # Force start of GNS
 gnunet-arm -c test_gns_lookup.conf -i gns
+
 # need to sleep here, to give PSEU record chance to be copied to DHT
 sleep 1
 RES_IP=`$DO_TIMEOUT gnunet-gns --raw -z testego -u $TEST_NAME -t A -c test_gns_lookup.conf`
