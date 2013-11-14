@@ -442,7 +442,7 @@ get_nick_record (const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone)
   if ((NULL == nick) || (GNUNET_OK != res))
   {
     GNUNET_CRYPTO_ecdsa_key_get_public (zone, &pub);
-    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "No nick name set for zone `%s'\n",
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO | GNUNET_ERROR_TYPE_BULK, "No nick name set for zone `%s'\n",
         GNUNET_CRYPTO_ecdsa_public_key_to_string (&pub));
     return NULL;
   }
@@ -536,12 +536,14 @@ send_lookup_response (struct GNUNET_SERVER_NotificationContext *nc,
   {
     nick->flags = (nick->flags | GNUNET_GNSRECORD_RF_PRIVATE) ^ GNUNET_GNSRECORD_RF_PRIVATE;
     merge_records (rd_count,rd, 1, nick, &res_count, &res);
+    //fprintf (stderr, "Merging %u records for `%s' with NICK records\n",rd_count, name);
     GNUNET_free (nick);
   }
   else
   {
     res_count = rd_count;
     res = (struct GNUNET_GNSRECORD_Data *) rd;
+    //fprintf (stderr, "Not merging %u records for `%s' with NICK records\n",rd_count, name);
   }
 
   name_len = strlen (name) + 1;
@@ -563,7 +565,7 @@ send_lookup_response (struct GNUNET_SERVER_NotificationContext *nc,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Sending `%s' message with %u records and size %u\n",
 	      "RECORD_RESULT",
-	      rd_count,
+	      res_count,
 	      msg_size);
   GNUNET_SERVER_notification_context_unicast (nc,
 					      client,
@@ -636,7 +638,7 @@ finish_cache_operation (void *cls,
 
 /**
  * We just touched the plaintext information about a name in our zone;
- * refresh the corresponding (encrypted) block in the namestore.
+ * refresh the corresponding (encrypted) block in the namecache.
  *
  * @param client client responsible for the request
  * @param rid request ID of the client
