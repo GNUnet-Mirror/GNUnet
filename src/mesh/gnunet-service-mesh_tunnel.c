@@ -744,10 +744,13 @@ rekey_tunnel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (NULL != tc && 0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
     return;
 
-  t->kx_ctx = GNUNET_new (struct MeshTunnelKXCtx);
-  t->kx_ctx->challenge = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE,
-                                                   UINT32_MAX);
-  t->kx_ctx->d_key_old = t->d_key;
+  if (NULL == t->kx_ctx)
+  {
+    t->kx_ctx = GNUNET_new (struct MeshTunnelKXCtx);
+    t->kx_ctx->challenge = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE,
+                                                     UINT32_MAX);
+    t->kx_ctx->d_key_old = t->d_key;
+  }
   send_ephemeral (t);
   if (MESH_TUNNEL3_READY == t->state || MESH_TUNNEL3_REKEY == t->state)
   {
