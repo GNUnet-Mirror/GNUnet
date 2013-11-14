@@ -2373,6 +2373,7 @@ GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
       if (0 == ttl)
       {
         GNUNET_break_op (0);
+        GNUNET_free (data);
         return NULL;
       }
       emsg->cid = c->id;
@@ -2441,6 +2442,7 @@ GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
       fc->queue_n--;
       fc->next_pid--;
     }
+    GNUNET_free (data);
     return NULL; /* Drop this message */
   }
 
@@ -2453,6 +2455,7 @@ GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   if (NULL == q->q)
   {
     GNUNET_break (0);
+    GNUNET_free (data);
     GNUNET_free (q);
     return NULL;
   }
