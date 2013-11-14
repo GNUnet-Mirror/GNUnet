@@ -246,8 +246,6 @@ GMT_state2s (enum MeshTunnel3State s)
       return "MESH_TUNNEL3_WAITING";
     case MESH_TUNNEL3_KEY_SENT:
       return "MESH_TUNNEL3_KEY_SENT";
-    case MESH_TUNNEL3_PING_SENT:
-      return "MESH_TUNNEL3_PING_SENT";
     case MESH_TUNNEL3_READY:
       return "MESH_TUNNEL3_READY";
     case MESH_TUNNEL3_RECONNECTING:
@@ -1109,7 +1107,7 @@ handle_ephemeral (struct MeshTunnel3 *t,
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  our key was sent, send ping\n");
     send_ping (t);
-    t->state = MESH_TUNNEL3_PING_SENT;
+    t->state = MESH_TUNNEL3_REKEY;
   }
 }
 

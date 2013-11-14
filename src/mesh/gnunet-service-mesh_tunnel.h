@@ -66,11 +66,6 @@ enum MeshTunnel3State
   MESH_TUNNEL3_KEY_SENT,
 
     /**
-     * Have peer's key, sent ping, waiting for pong.
-     */
-  MESH_TUNNEL3_PING_SENT,
-
-    /**
      * Peer connected and ready to accept data.
      */
   MESH_TUNNEL3_READY,
@@ -82,6 +77,8 @@ enum MeshTunnel3State
 
     /**
      * New ephemeral key and ping sent, waiting for pong.
+     * This means that we DO have the peer's ephemeral key, otherwise the
+     * state would be KEY_SENT.
      */
   MESH_TUNNEL3_REKEY,
 };
