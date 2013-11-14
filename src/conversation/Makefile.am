@@ -76,12 +76,14 @@ endif
 endif
 
 
-
 check_PROGRAMS = \
  test_conversation_api
 
+if HAVE_PULSE
+if HAVE_OPUS
 TESTS = $(check_PROGRAMS)
-
+endif
+endif
 
 gnunet_helper_audio_record_SOURCES = \
   gnunet-helper-audio-record.c
