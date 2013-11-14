@@ -96,6 +96,22 @@ struct MeshTunnel3;
 #include "gnunet-service-mesh_connection.h"
 #include "gnunet-service-mesh_peer.h"
 
+struct MeshTunnel3Queue;
+
+/**
+ * Callback called when a queued message is sent.
+ *
+ * @param cls Closure.
+ * @param t Tunnel this message was on.
+ * @param type Type of message sent.
+ * @param fwd Was this a FWD going message?
+ * @param size Size of the message.
+ */
+typedef void (*GMT_sent) (void *cls,
+                          struct MeshTunnel3 *t,
+                          struct MeshTunnel3Queue *q,
+                          uint16_t type, int fwd, size_t size);
+
 
 /******************************************************************************/
 /********************************    API    ***********************************/

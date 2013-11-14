@@ -113,11 +113,6 @@ struct MeshChannelReliability
   struct MeshReliableMessage        *tail_sent;
 
     /**
-     * Messages pending to send.
-     */
-  unsigned int                      n_sent;
-
-    /**
      * DLL of messages received out of order.
      */
   struct MeshReliableMessage        *head_recv;
@@ -431,8 +426,8 @@ send_client_buffered_data (struct MeshChannel *ch,
       struct GNUNET_MESH_Data *msg = (struct GNUNET_MESH_Data *) &copy[1];
 
       LOG (GNUNET_ERROR_TYPE_DEBUG,
-                  " have %u! now expecting %u\n",
-                  copy->mid, rel->mid_recv + 1);
+           " have %u! now expecting %u\n",
+           copy->mid, rel->mid_recv + 1);
       send_client_data (ch, msg, fwd);
       rel->n_recv--;
       rel->mid_recv++;
@@ -442,9 +437,9 @@ send_client_buffered_data (struct MeshChannel *ch,
     else
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG,
-                  " reliable && don't have %u, next is %u\n",
-                  rel->mid_recv,
-                  copy->mid);
+           " reliable && don't have %u, next is %u\n",
+           rel->mid_recv,
+           copy->mid);
       return;
     }
   }
@@ -702,14 +697,12 @@ rel_message_free (struct MeshReliableMessage *copy, int update_time)
 
   rel = copy->rel;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! Freeing %u\n", copy->mid);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "    n_sent %u\n", rel->n_sent);
   if (update_time)
   {
     time = GNUNET_TIME_absolute_get_duration (copy->timestamp);
     rel->expected_delay.rel_value_us *= 7;
     rel->expected_delay.rel_value_us += time.rel_value_us;
     rel->expected_delay.rel_value_us /= 8;
-    rel->n_sent--;
     LOG (GNUNET_ERROR_TYPE_DEBUG, "!!!  took %s\n",
                 GNUNET_STRINGS_relative_time_to_string (time, GNUNET_NO));
     LOG (GNUNET_ERROR_TYPE_DEBUG, "!!!  new expected delay %s\n",
@@ -842,8 +835,6 @@ channel_save_copy (struct MeshChannel *ch,
   copy->rel = rel;
   copy->type = type;
   memcpy (&copy[1], msg, size);
-  rel->n_sent++;
-  LOG (GNUNET_ERROR_TYPE_DEBUG, " n_sent %u\n", rel->n_sent);
   GNUNET_CONTAINER_DLL_insert_tail (rel->head_sent, rel->tail_sent, copy);
   if (GNUNET_SCHEDULER_NO_TASK == rel->retry_task)
   {
@@ -1227,36 +1218,37 @@ GMCH_send_data_ack (struct MeshChannel *ch, int fwd)
   struct MeshReliableMessage *copy;
   unsigned int delta;
   uint64_t mask;
-  uint16_t type;
+  uint32_t ack;
 
   if (GNUNET_NO == ch->reliable)
   {
     return;
   }
   rel = fwd ? ch->dest_rel : ch->root_rel;
+  ack = rel->mid_recv - 1;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
               "!!! Send DATA_ACK for %u\n",
-              rel->mid_recv - 1);
+              ack);
 
-  type = GNUNET_MESSAGE_TYPE_MESH_DATA_ACK;
-  msg.header.type = htons (type);
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_DATA_ACK);
   msg.header.size = htons (sizeof (msg));
   msg.chid = htonl (ch->gid);
-  msg.mid = htonl (rel->mid_recv - 1);
   msg.futures = 0;
   for (copy = rel->head_recv; NULL != copy; copy = copy->next)
   {
     if (copy->type != GNUNET_MESSAGE_TYPE_MESH_DATA)
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG,
-           "!!  Type %s\n",
+           "!!  Type %s, expected DATA\n",
            GNUNET_MESH_DEBUG_M2S (copy->type));
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-           "!!  expected %s\n",
-           GNUNET_MESH_DEBUG_M2S (type));
       continue;
     }
-    delta = copy->mid - rel->mid_recv;
+    if (copy->mid == ack + 1)
+    {
+      ack++;
+      continue;
+    }
+    delta = copy->mid - (ack + 1);
     if (63 < delta)
       break;
     mask = 0x1LL << delta;
@@ -1265,6 +1257,7 @@ GMCH_send_data_ack (struct MeshChannel *ch, int fwd)
          " !! setting bit for %u (delta %u) (%llX) -> %llX\n",
          copy->mid, delta, mask, msg.futures);
   }
+  msg.mid = htonl (ack);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! final futures %llX\n", msg.futures);
 
   GMCH_send_prebuilt_message (&msg.header, ch, !fwd);
@@ -1706,6 +1699,7 @@ GMCH_handle_data_ack (struct MeshChannel *ch,
     return;
   }
 
+  /* Free ACK'd copies: no need to retransmit those anymore */
   for (work = GNUNET_NO, copy = rel->head_sent; copy != NULL; copy = next)
   {
     if (GMC_is_pid_bigger (copy->mid, ack))
@@ -1719,8 +1713,9 @@ GMCH_handle_data_ack (struct MeshChannel *ch,
     next = copy->next;
     rel_message_free (copy, copy->mid == ack);
   }
+
   /* ACK client if needed */
-//   channel_send_ack (t, type, GNUNET_MESSAGE_TYPE_MESH_UNICAST_ACK == type);
+  GMCH_allow_client (ch, fwd);
 
   /* If some message was free'd, update the retransmission delay */
   if (GNUNET_YES == work)

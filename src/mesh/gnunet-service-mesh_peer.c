@@ -1117,11 +1117,16 @@ connection_get_first_message (struct MeshPeer *peer, struct MeshConnection *c)
     if (q->c != c)
       continue;
     if (queue_is_sendable (q))
+    {
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "  sendable!!\n");
       return q;
+    }
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  not sendable\n");
   }
 
   return NULL;
 }
+
 
 void
 GMP_queue_unlock (struct MeshPeer *peer, struct MeshConnection *c)
