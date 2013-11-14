@@ -50,6 +50,11 @@ struct OperationRequestMessage
   uint32_t salt;
 
   /**
+   * For Intersection: my element count
+   */
+  uint32_t element_count;
+  
+  /**
    * Application-specific identifier of the request.
    */
   struct GNUNET_HashCode app_id;
@@ -103,17 +108,21 @@ struct BFMessage
   /**
    * mutator used with this bloomfilter.
    */
-  uint64_t sender_element_count;
+  uint32_t sender_element_count GNUNET_PACKED;
   
   /**
    * mutator used with this bloomfilter.
    */
-  uint32_t sender_mutator;
+  uint32_t sender_mutator GNUNET_PACKED;
 
   /**
-   * the sender's bloomfilter
+   * Length of the bloomfilter data block
    */
-  char sender_bf_data[GNUNET_CRYPTO_HASH_LENGTH];
+  uint32_t bloomfilter_length GNUNET_PACKED;
+  
+  /**
+   * rest: the sender's bloomfilter
+   */
 };
 
 GNUNET_NETWORK_STRUCT_END

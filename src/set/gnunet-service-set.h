@@ -89,6 +89,11 @@ struct OperationSpecification
    * Salt to use for the operation.
    */
   uint32_t salt;
+  
+  /**
+   * Remote peers element count
+   */
+  uint32_t element_count;
 
   /**
    * ID used to identify an operation between service and client 

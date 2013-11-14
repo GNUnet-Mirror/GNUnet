@@ -1872,9 +1872,14 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_SET_ITER_DONE 589
 
 /**
+ * Information about the element count for intersection
+ */
+#define GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_ELEMENT_INFO 591
+
+/**
  * Bloom filter message for intersection exchange started by Bob.
  */
-#define GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_BF 591
+#define GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_BF 592
 
 /*******************************************************************************
  * TESTBED LOGGER message types

@@ -567,6 +567,7 @@ handle_incoming_msg (struct Operation *op,
   spec->app_id = msg->app_id;
   spec->salt = ntohl (msg->salt);
   spec->peer = op->state->peer;
+  spec->element_count = ntohl (msg->element_count);
 
   op->spec = spec;
 
@@ -1325,6 +1326,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     {dispatch_p2p_message, GNUNET_MESSAGE_TYPE_SET_P2P_DONE, 0},
     {dispatch_p2p_message, GNUNET_MESSAGE_TYPE_SET_P2P_ELEMENT_REQUESTS, 0},
     {dispatch_p2p_message, GNUNET_MESSAGE_TYPE_SET_UNION_P2P_SE, 0},
+    {dispatch_p2p_message, GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_ELEMENT_INFO, 0},
     {dispatch_p2p_message, GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_BF, 0},
     {NULL, 0, 0}
   };
