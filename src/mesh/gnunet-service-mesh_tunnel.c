@@ -751,7 +751,7 @@ rekey_tunnel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                                    UINT32_MAX);
   t->kx_ctx->d_key_old = t->d_key;
   send_ephemeral (t);
-  if (MESH_TUNNEL3_READY == t->state)
+  if (MESH_TUNNEL3_READY == t->state || MESH_TUNNEL3_REKEY == t->state)
   {
     send_ping (t);
     t->state = MESH_TUNNEL3_REKEY;
