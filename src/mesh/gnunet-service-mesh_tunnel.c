@@ -34,7 +34,7 @@
 
 #define LOG(level, ...) GNUNET_log_from(level,"mesh-tun",__VA_ARGS__)
 
-#define REKEY_WAIT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 30)
+#define REKEY_WAIT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 5)
 
 /******************************************************************************/
 /********************************   STRUCTS  **********************************/
