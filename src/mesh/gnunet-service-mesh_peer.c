@@ -924,6 +924,7 @@ GMP_queue_destroy (struct MeshPeerQueue *queue, int clear_cls)
       case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK:
       case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE:
       case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_BROKEN:
+      case GNUNET_MESSAGE_TYPE_MESH_KX:
         LOG (GNUNET_ERROR_TYPE_DEBUG, "#   prebuilt message\n");;
         GNUNET_free_non_null (queue->cls);
         break;
