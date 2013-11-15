@@ -652,7 +652,24 @@ GNUNET_CONVERSATION_call_stop (struct GNUNET_CONVERSATION_Call *call)
 void
 GNUNET_CONVERSATION_call_suspend (struct GNUNET_CONVERSATION_Call *call)
 {
-  GNUNET_break (0);
+  struct GNUNET_MQ_Envelope *e;
+  struct ClientPhoneSuspendMessage *suspend;
+
+  GNUNET_assert ( (CS_SUSPENDED_CALLEE == call->state) ||
+                  (CS_ACTIVE == call->state) );
+  if (CS_ACTIVE == call->state)
+  {
+    call->speaker->disable_speaker (call->speaker->cls);
+    call->mic->disable_microphone (call->mic->cls);
+  }
+  call->speaker = NULL;
+  call->mic = NULL;
+  e = GNUNET_MQ_msg (suspend, GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_SUSPEND);
+  GNUNET_MQ_send (call->mq, e);
+  if (CS_SUSPENDED_CALLER == call->state)
+    call->state = CS_SUSPENDED_BOTH;
+  else
+    call->state = CS_SUSPENDED_CALLER;
 }
 
 
@@ -671,7 +688,27 @@ GNUNET_CONVERSATION_call_resume (struct GNUNET_CONVERSATION_Call *call,
                                  struct GNUNET_SPEAKER_Handle *speaker,
                                  struct GNUNET_MICROPHONE_Handle *mic)
 {
-  GNUNET_break (0);
+  struct GNUNET_MQ_Envelope *e;
+  struct ClientPhoneResumeMessage *resume;
+
+  GNUNET_assert ( (CS_SUSPENDED_CALLER == call->state) ||
+                  (CS_SUSPENDED_BOTH == call->state) );
+  e = GNUNET_MQ_msg (resume, GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_RESUME);
+  GNUNET_MQ_send (call->mq, e);
+  call->speaker = speaker;
+  call->mic = mic;
+  if (CS_SUSPENDED_CALLER == call->state)
+  {
+    call->state = CS_ACTIVE;
+    call->speaker->enable_speaker (call->speaker->cls);
+    call->mic->enable_microphone (call->mic->cls,
+                                  &transmit_call_audio,
+                                  call);
+  }
+  else
+  {
+    call->state = CS_SUSPENDED_CALLEE;
+  }
 }
 
 
