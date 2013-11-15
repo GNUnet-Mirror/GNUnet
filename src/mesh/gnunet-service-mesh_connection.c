@@ -1077,26 +1077,27 @@ connection_reset_timeout (struct MeshConnection *c, int fwd)
  * Add the connection to the list of both neighbors.
  *
  * @param c Connection.
+ *
+ * @return #GNUNET_OK if everything went fine
+ *         #GNUNET_SYSERR if the was an error and @c c is malformed.
  */
-static void
+static int
 register_neighbors (struct MeshConnection *c)
 {
-  struct MeshPeer *peer;
+  struct MeshPeer *next_peer;
+  struct MeshPeer *prev_peer;
 
-  peer = get_next_hop (c);
-  if (GNUNET_NO == GMP_is_neighbor (peer))
-  {
-    GMC_destroy (c);
-    return;
-  }
-  GMP_add_connection (peer, c);
-  peer = get_prev_hop (c);
-  if (GNUNET_NO == GMP_is_neighbor (peer))
-  {
-    GMC_destroy (c);
-    return;
-  }
-  GMP_add_connection (peer, c);
+  next_peer = get_next_hop (c);
+  prev_peer = get_prev_hop (c);
+
+  if (GNUNET_NO == GMP_is_neighbor (next_peer)
+      || GNUNET_NO == GMP_is_neighbor (prev_peer))
+    return GNUNET_SYSERR;
+
+  GMP_add_connection (next_peer, c);
+  GMP_add_connection (prev_peer, c);
+
+  return GNUNET_OK;
 }
 
 
@@ -2102,7 +2103,12 @@ GMC_new (const struct GNUNET_HashCode *cid,
             GNUNET_SCHEDULER_add_delayed (create_connection_time,
                                           &connection_fwd_keepalive, c);
   }
-  register_neighbors (c);
+  if (GNUNET_OK != register_neighbors (c))
+  {
+    GMC_destroy (c);
+    return NULL;
+  }
+
   return c;
 }
 
