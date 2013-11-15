@@ -1197,7 +1197,7 @@ GMCH_send_data (struct MeshChannel *ch,
   }
   else
   {
-    GMT_send_prebuilt_message (&msg->header, ch->t, ch, fwd);
+    GMT_send_prebuilt_message (&msg->header, ch->t, ch, fwd, NULL, NULL);
   }
 }
 
@@ -1569,7 +1569,7 @@ GMCH_handle_local_create (struct MeshClient *c,
     msgcc.port = msg->port;
     msgcc.opt = msg->opt;
 
-    GMT_send_prebuilt_message (&msgcc.header, t, ch, GNUNET_YES);
+    GMT_send_prebuilt_message (&msgcc.header, t, ch, GNUNET_YES, NULL, NULL);
   }
   return GNUNET_OK;
 }
@@ -1948,7 +1948,7 @@ GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
     return;
   }
 
-  GMT_send_prebuilt_message (message, ch->t, ch, fwd);
+  GMT_send_prebuilt_message (message, ch->t, ch, fwd, NULL, NULL);
 }
 
 

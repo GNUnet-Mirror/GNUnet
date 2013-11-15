@@ -136,21 +136,21 @@ struct MeshTunnel3
   /**
    * Queued messages, to transmit once tunnel gets connected.
    */
-  struct MeshTunnelQueue *tq_head;
-  struct MeshTunnelQueue *tq_tail;
+  struct MeshTunnelDelayed *tq_head;
+  struct MeshTunnelDelayed *tq_tail;
 };
 
 
 /**
- * Struct used to queue messages in a tunnel.
+ * Struct used to save messages in a non-ready tunnel to send once connected.
  */
-struct MeshTunnelQueue
+struct MeshTunnelDelayed
 {
   /**
    * DLL
    */
-  struct MeshTunnelQueue *next;
-  struct MeshTunnelQueue *prev;
+  struct MeshTunnelDelayed *next;
+  struct MeshTunnelDelayed *prev;
 
   /**
    * Channel.
@@ -161,6 +161,28 @@ struct MeshTunnelQueue
    * Message to send.
    */
   /* struct GNUNET_MessageHeader *msg; */
+};
+
+
+/**
+ * Handle for messages queued but not yet sent.
+ */
+struct MeshTunnel3Queue
+{
+  /**
+   * Connection queue handle, to cancel if necessary.
+   */
+  struct MeshConnectionQueue *q;
+
+  /**
+   * Continuation to call once sent.
+   */
+  GMT_sent cont;
+
+  /**
+   * Closure for @c cont.
+   */
+  void *cont_cls;
 };
 
 
@@ -533,8 +555,8 @@ tunnel_get_connection (struct MeshTunnel3 *t)
 static void
 send_queued_data (struct MeshTunnel3 *t)
 {
-  struct MeshTunnelQueue *tq;
-  struct MeshTunnelQueue *next;
+  struct MeshTunnelDelayed *tq;
+  struct MeshTunnelDelayed *next;
   unsigned int room;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -580,7 +602,7 @@ queue_data (struct MeshTunnel3 *t,
             struct MeshChannel *ch,
             const struct GNUNET_MessageHeader *msg)
 {
-  struct MeshTunnelQueue *tq;
+  struct MeshTunnelDelayed *tq;
   uint16_t size = ntohs (msg->size);
 
   if (MESH_TUNNEL3_READY == t->state)
@@ -589,7 +611,7 @@ queue_data (struct MeshTunnel3 *t,
     return;
   }
 
-  tq = GNUNET_malloc (sizeof (struct MeshTunnelQueue) + size);
+  tq = GNUNET_malloc (sizeof (struct MeshTunnelDelayed) + size);
 
   tq->ch = ch;
   memcpy (&tq[1], msg, size);
@@ -1955,6 +1977,30 @@ GMT_send_connection_acks (struct MeshTunnel3 *t)
 
 
 /**
+ * Callback called when a queued message is sent.
+ *
+ * Calculates the average time and connection packet tracking.
+ *
+ * @param cls Closure (TunnelQueue handle).
+ * @param c Connection this message was on.
+ * @param type Type of message sent.
+ * @param fwd Was this a FWD going message?
+ * @param size Size of the message.
+ */
+static void 
+message_sent (void *cls,
+              struct MeshConnection *c,
+              struct MeshConnectionQueue *q,
+              uint16_t type, int fwd, size_t size)
+{
+  struct MeshTunnel3Queue *qt = cls;
+
+  GNUNET_assert (NULL != qt->cont);
+  qt->cont (qt->cont_cls, GMC_get_tunnel (c), qt, type, size);
+  GNUNET_free (qt);
+}
+
+/**
  * Sends an already built message on a tunnel, encrypting it and
  * choosing the best connection.
  *
@@ -1962,13 +2008,18 @@ GMT_send_connection_acks (struct MeshTunnel3 *t)
  * @param t Tunnel on which this message is transmitted.
  * @param ch Channel on which this message is transmitted.
  * @param fwd Is this a fwd message on @c ch?
+ * @param cont Continuation to call once message is really sent.
+ * @param cont_cls Closure for @c cont.
+ *
+ * @return Handle to cancel message. NULL if @c cont is NULL.
  */
-void
+struct MeshTunnel3Queue *
 GMT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
                            struct MeshTunnel3 *t,
-                           struct MeshChannel *ch,
-                           int fwd)
+                           struct MeshChannel *ch, int fwd,
+                           GMT_sent cont, void *cont_cls)
 {
+  struct MeshTunnel3Queue *q;
   struct MeshConnection *c;
   struct GNUNET_MESH_Encrypted *msg;
   size_t size = ntohs (message->size);
@@ -1980,7 +2031,8 @@ GMT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   if (MESH_TUNNEL3_READY != t->state)
   {
     queue_data (t, ch, message);
-    return;
+    /* FIXME */
+    return NULL;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "GMT Send on Tunnel %s\n", GMT_2s (t));
 
@@ -1988,7 +2040,8 @@ GMT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  loopback!\n");
     handle_decrypted (t, message, fwd);
-    return;
+    /* FIXME: call cont? */
+    return NULL; /* Already delivered, cannot cancel */
   }
 
   iv = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
@@ -2001,7 +2054,7 @@ GMT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   if (NULL == c)
   {
     GNUNET_break (GNUNET_YES == t->destroy);
-    return;
+    return NULL;
   }
   type = ntohs (message->type);
   switch (type)
@@ -2021,8 +2074,18 @@ GMT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   }
 
   fwd = GMC_is_origin (c, GNUNET_YES);
-  /* FIXME allow channels to cancel */
-  GMC_send_prebuilt_message (&msg->header, c, fwd, NULL, NULL);
+
+  if (NULL == cont)
+  {
+    (void) GMC_send_prebuilt_message (&msg->header, c, fwd, NULL, NULL);
+    return NULL;
+  }
+  q = GNUNET_new (struct MeshTunnel3Queue);
+  q->q = GMC_send_prebuilt_message (&msg->header, c, fwd, &message_sent, q);
+  q->cont = cont;
+  q->cont_cls = cont_cls;
+
+  return q;
 }
 
 /**

@@ -93,6 +93,9 @@ struct MeshTunnel3;
 #include "gnunet-service-mesh_connection.h"
 #include "gnunet-service-mesh_peer.h"
 
+/**
+ * Handle for messages queued but not yet sent.
+ */
 struct MeshTunnel3Queue;
 
 /**
@@ -101,13 +104,12 @@ struct MeshTunnel3Queue;
  * @param cls Closure.
  * @param t Tunnel this message was on.
  * @param type Type of message sent.
- * @param fwd Was this a FWD going message?
  * @param size Size of the message.
  */
 typedef void (*GMT_sent) (void *cls,
                           struct MeshTunnel3 *t,
                           struct MeshTunnel3Queue *q,
-                          uint16_t type, int fwd, size_t size);
+                          uint16_t type, size_t size);
 
 
 /******************************************************************************/
@@ -357,12 +359,16 @@ GMT_send_connection_acks (struct MeshTunnel3 *t);
  * @param t Tunnel on which this message is transmitted.
  * @param ch Channel on which this message is transmitted.
  * @param fwd Is this a fwd message on @c ch?
+ * @param cont Continuation to call once message is really sent.
+ * @param cls Closure for @c cont.
+ *
+ * @return Handle to cancel message. NULL if @c cont is NULL.
  */
-void
+struct MeshTunnel3Queue *
 GMT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
                            struct MeshTunnel3 *t,
-                           struct MeshChannel *ch,
-                           int fwd);
+                           struct MeshChannel *ch, int fwd,
+                           GMT_sent cont, void *cls);
 
 /**
  * Is the tunnel directed towards the local peer?
