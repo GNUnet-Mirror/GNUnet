@@ -825,9 +825,11 @@ GML_channel_remove (struct MeshClient *client,
                     struct MeshChannel *ch)
 {
   if (GNUNET_MESH_LOCAL_CHANNEL_ID_SERV <= chid)
-    GNUNET_CONTAINER_multihashmap32_remove (client->incoming_channels, chid, ch);
+    (void) GNUNET_CONTAINER_multihashmap32_remove (client->incoming_channels,
+                                                   chid, ch);
   else if (GNUNET_MESH_LOCAL_CHANNEL_ID_CLI <= chid)
-    GNUNET_CONTAINER_multihashmap32_remove (client->own_channels, chid, ch);
+    (void) GNUNET_CONTAINER_multihashmap32_remove (client->own_channels,
+                                                   chid, ch);
   else
     GNUNET_break (0);
 }
