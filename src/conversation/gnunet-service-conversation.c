@@ -673,7 +673,7 @@ handle_mesh_ring_message (void *cls,
   const struct MeshPhoneRingMessage *msg;
   struct Line *line;
   struct GNUNET_MQ_Envelope *e;
-  struct MeshPhoneBusyMessage *busy;
+  struct MeshPhoneHangupMessage *hang_up;
   struct ClientPhoneRingMessage cring;
 
   msg = (const struct MeshPhoneRingMessage *) message;
@@ -697,9 +697,9 @@ handle_mesh_ring_message (void *cls,
   if (NULL == line)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                _("No available phone for incoming call on line %u, sending BUSY signal\n"),
+                _("No available phone for incoming call on line %u, sending HANG_UP signal\n"),
                 ntohl (msg->remote_line));
-    e = GNUNET_MQ_msg (busy, GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_PHONE_BUSY);
+    e = GNUNET_MQ_msg (hang_up, GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_PHONE_HANG_UP);
     GNUNET_MQ_notify_sent (e,
                            &mq_done_destroy_channel,
                            channel);
@@ -714,7 +714,7 @@ handle_mesh_ring_message (void *cls,
   *channel_ctx = line;
   cring.header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_RING);
   cring.header.size = htons (sizeof (cring));
-  cring.reserved = htonl (0);
+  cring.cid = htonl (0 /* FIXME */);
   cring.caller_id = msg->caller_id;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Sending RING message to client\n");
@@ -901,7 +901,7 @@ handle_mesh_pickup_message (void *cls,
 
 
 /**
- * Function to handle a busy message incoming over mesh
+ * Function to handle a suspend message incoming over mesh
  *
  * @param cls closure, NULL
  * @param channel the channel over which the message arrived
@@ -910,22 +910,23 @@ handle_mesh_pickup_message (void *cls,
  * @return #GNUNET_OK
  */
 static int
-handle_mesh_busy_message (void *cls,
-                          struct GNUNET_MESH_Channel *channel,
-                          void **channel_ctx,
-                          const struct GNUNET_MessageHeader *message)
+handle_mesh_suspend_message (void *cls,
+                             struct GNUNET_MESH_Channel *channel,
+                             void **channel_ctx,
+                             const struct GNUNET_MessageHeader *message)
 {
   struct Line *line = *channel_ctx;
-  struct ClientPhoneBusyMessage busy;
+  struct ClientPhoneSuspendMessage suspend;
 
   if (NULL == line)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "HANGUP message received for non-existing line, dropping channel.\n");
+                "SUSPEND message received for non-existing line, dropping channel.\n");
     return GNUNET_SYSERR;
   }
-  busy.header.size = sizeof (busy);
-  busy.header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_BUSY);
+  suspend.header.size = sizeof (suspend);
+  suspend.header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_SUSPEND);
+  suspend.cid = htonl (0 /* FIXME */);
   GNUNET_MESH_receive_done (channel);
   *channel_ctx = NULL;
   switch (line->status)
@@ -944,10 +945,77 @@ handle_mesh_busy_message (void *cls,
     break;
   case LS_CALLER_CALLING:
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Sending BUSY message to client\n");
+                "Sending SUSPEND message to client\n");
     GNUNET_SERVER_notification_context_unicast (nc,
                                                 line->client,
-                                                &busy.header,
+                                                &suspend.header,
+                                                GNUNET_NO);
+    line->status = LS_CALLER_SHUTDOWN;
+    mq_done_finish_caller_shutdown (line);
+    break;
+  case LS_CALLER_CONNECTED:
+    GNUNET_break_op (0);
+    line->status = LS_CALLER_SHUTDOWN;
+    mq_done_finish_caller_shutdown (line);
+    break;
+  case LS_CALLER_SHUTDOWN:
+    GNUNET_break_op (0);
+    mq_done_finish_caller_shutdown (line);
+    break;
+  }
+  return GNUNET_OK;
+}
+
+
+/**
+ * Function to handle a resume message incoming over mesh
+ *
+ * @param cls closure, NULL
+ * @param channel the channel over which the message arrived
+ * @param channel_ctx the channel context, can be NULL
+ * @param message the incoming message
+ * @return #GNUNET_OK
+ */
+static int
+handle_mesh_resume_message (void *cls,
+                             struct GNUNET_MESH_Channel *channel,
+                             void **channel_ctx,
+                             const struct GNUNET_MessageHeader *message)
+{
+  struct Line *line = *channel_ctx;
+  struct ClientPhoneResumeMessage resume;
+
+  if (NULL == line)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "RESUME message received for non-existing line, dropping channel.\n");
+    return GNUNET_SYSERR;
+  }
+  resume.header.size = sizeof (resume);
+  resume.header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_RESUME);
+  resume.cid = htonl (0 /* FIXME */);
+  GNUNET_MESH_receive_done (channel);
+  *channel_ctx = NULL;
+  switch (line->status)
+  {
+  case LS_CALLEE_LISTEN:
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  case LS_CALLEE_RINGING:
+    GNUNET_break_op (0);
+    break;
+  case LS_CALLEE_CONNECTED:
+    GNUNET_break_op (0);
+    break;
+  case LS_CALLEE_SHUTDOWN:
+    GNUNET_break_op (0);
+    break;
+  case LS_CALLER_CALLING:
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Sending SUSPEND message to client\n");
+    GNUNET_SERVER_notification_context_unicast (nc,
+                                                line->client,
+                                                &resume.header,
                                                 GNUNET_NO);
     line->status = LS_CALLER_SHUTDOWN;
     mq_done_finish_caller_shutdown (line);
@@ -1216,9 +1284,12 @@ run (void *cls,
     {&handle_mesh_pickup_message,
      GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_PHONE_PICK_UP,
      0},
-    {&handle_mesh_busy_message,
-     GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_PHONE_BUSY,
-     sizeof (struct MeshPhoneBusyMessage)},
+    {&handle_mesh_suspend_message,
+     GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_PHONE_SUSPEND,
+     sizeof (struct MeshPhoneSuspendMessage)},
+    {&handle_mesh_resume_message,
+     GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_PHONE_RESUME,
+     sizeof (struct MeshPhoneResumeMessage)},
     {&handle_mesh_audio_message, GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_AUDIO,
      0},
     {NULL, 0, 0}

@@ -47,7 +47,8 @@ libgnunetspeaker_la_LDFLAGS = \
 
 
 libgnunetconversation_la_SOURCES = \
-  conversation_api.c
+  conversation_api.c \
+  conversation_api_call.c
 libgnunetconversation_la_LIBADD = \
   $(top_builddir)/src/gns/libgnunetgns.la \
   $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
