@@ -792,6 +792,7 @@ connection_maintain (struct MeshConnection *c, int fwd)
   {
     case MESH_CONNECTION_NEW:
       GNUNET_break (0);
+      /* fall-through */
     case MESH_CONNECTION_SENT:
       connection_recreate (c, fwd);
       break;
