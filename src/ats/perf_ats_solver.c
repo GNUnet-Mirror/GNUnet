@@ -915,7 +915,8 @@ perf_run ()
     {
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
           "Deleting addresses for peer %u\n", cp);
-      GNUNET_CONTAINER_multipeermap_remove (ph.addresses, &ph.peers[cp].id, cur);
+      GNUNET_assert (GNUNET_OK == GNUNET_CONTAINER_multipeermap_remove (ph.addresses,
+          &ph.peers[cp].id, cur));
       ph.env.sf.s_del (ph.solver, cur, GNUNET_NO);
       next = cur->next;
       GNUNET_CONTAINER_DLL_remove(ph.peers[cp].head, ph.peers[cp].tail, cur);
