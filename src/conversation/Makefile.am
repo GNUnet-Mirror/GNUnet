@@ -143,7 +143,6 @@ gnunet_conversation_test_LDFLAGS = \
 
 
 test_conversation_api_SOURCES = \
- test_conversation_api_call.c \
  test_conversation_api.c
 test_conversation_api_LDADD = \
   libgnunetconversation.la \
