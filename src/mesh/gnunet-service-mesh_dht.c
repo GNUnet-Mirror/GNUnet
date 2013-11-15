@@ -384,7 +384,7 @@ GMD_search (const struct GNUNET_PeerIdentity *peer_id,
 void
 GMD_search_stop (struct GMD_search_handle *h)
 {
-  GNUNET_CONTAINER_multihashmap32_remove (get_requests, h->peer_id, h);
+  (void) GNUNET_CONTAINER_multihashmap32_remove (get_requests, h->peer_id, h);
   GNUNET_DHT_get_stop (h->dhtget);
   GNUNET_free (h);
 }
