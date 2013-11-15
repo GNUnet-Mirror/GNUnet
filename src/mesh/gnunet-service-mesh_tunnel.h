@@ -352,6 +352,18 @@ void
 GMT_send_connection_acks (struct MeshTunnel3 *t);
 
 /**
+ * Cancel a previously sent message while it's in the queue.
+ *
+ * ONLY can be called before the continuation given to the send function
+ * is called. Once the continuation is called, the message is no longer in the
+ * queue.
+ *
+ * @param q Handle to the queue.
+ */
+void
+GMT_cancel (struct MeshTunnel3Queue *q);
+
+/**
  * Sends an already built message on a tunnel, encrypting it and
  * choosing the best connection.
  *

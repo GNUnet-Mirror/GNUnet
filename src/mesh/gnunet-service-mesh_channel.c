@@ -636,44 +636,14 @@ channel_retransmit_message (void *cls,
     return;
   }
 
-  /* Search the message to be retransmitted in the outgoing queue.
-   * Check only the queue for the connection that is going to be used,
-   * if the message is stuck in some other connection's queue we shouldn't
-   * act upon it:
-   * - cancelling it and sending the new one doesn't guarantee it's delivery,
-   *   the old connection could be temporary stalled or the queue happened to
-   *   be long at time of insertion.
-   * - not sending the new one could cause terrible delays the old connection
-   *   is stalled.
-   */
-//   FIXME access to queue elements is limited
   payload = (struct GNUNET_MESH_Data *) &copy[1];
   fwd = (rel == ch->root_rel);
-//   c = GMT_get_connection (ch->t, fwd);
-//   hop = connection_get_hop (c, fwd);
-//   for (q = hop->queue_head; NULL != q; q = q->next)
-//   {
-//     if (ntohs (payload->header.type) == q->type && ch == q->ch)
-//     {
-//       struct GNUNET_MESH_Data *queued_data = q->cls;
-// 
-//       if (queued_data->mid == payload->mid)
-//         break;
-//     }
-//   }
 
   /* Message not found in the queue that we are going to use. */
-//   if (NULL == q)
-//   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! RETRANSMIT %u\n", copy->mid);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! RETRANSMIT %u\n", copy->mid);
 
-    GMCH_send_prebuilt_message (&payload->header, ch, fwd);
-    GNUNET_STATISTICS_update (stats, "# data retransmitted", 1, GNUNET_NO);
-//   }
-//   else
-//   {
-//     LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! ALREADY IN QUEUE %u\n", copy->mid);
-//   }
+  GMCH_send_prebuilt_message (&payload->header, ch, fwd, GNUNET_YES);
+  GNUNET_STATISTICS_update (stats, "# data retransmitted", 1, GNUNET_NO);
 
   copy->timestamp = GNUNET_TIME_absolute_get();
   rel->retry_timer = GNUNET_TIME_STD_BACKOFF (rel->retry_timer);
@@ -742,7 +712,7 @@ channel_send_ack (struct MeshChannel *ch, int fwd)
               fwd ? "FWD" : "BCK", GMCH_2s (ch));
 
   msg.chid = htonl (ch->gid);
-  GMCH_send_prebuilt_message (&msg.header, ch, !fwd);
+  GMCH_send_prebuilt_message (&msg.header, ch, !fwd, GNUNET_NO);
 }
 
 
@@ -763,7 +733,7 @@ channel_send_nack (struct MeshChannel *ch)
        GMCH_2s (ch));
 
   msg.chid = htonl (ch->gid);
-  GMCH_send_prebuilt_message (&msg.header, ch, GNUNET_NO);
+  GMCH_send_prebuilt_message (&msg.header, ch, GNUNET_NO, GNUNET_NO);
 }
 
 
@@ -1183,12 +1153,12 @@ GMCH_send_destroy (struct MeshChannel *ch)
   if (NULL != ch->root)
     GML_send_channel_destroy (ch->root, ch->lid_root);
   else if (0 == ch->lid_root)
-    GMCH_send_prebuilt_message (&msg.header, ch, GNUNET_NO);
+    GMCH_send_prebuilt_message (&msg.header, ch, GNUNET_NO, GNUNET_NO);
 
   if (NULL != ch->dest)
     GML_send_channel_destroy (ch->dest, ch->lid_dest);
   else if (0 == ch->lid_dest)
-    GMCH_send_prebuilt_message (&msg.header, ch, GNUNET_YES);
+    GMCH_send_prebuilt_message (&msg.header, ch, GNUNET_YES, GNUNET_NO);
 }
 
 
@@ -1252,7 +1222,7 @@ GMCH_send_data_ack (struct MeshChannel *ch, int fwd)
        "!!! ACK for %u, futures %llX\n",
        ack, msg.futures);
 
-  GMCH_send_prebuilt_message (&msg.header, ch, !fwd);
+  GMCH_send_prebuilt_message (&msg.header, ch, !fwd, GNUNET_NO);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "send_data_ack END\n");
 }
 
@@ -1433,7 +1403,7 @@ GMCH_handle_local_data (struct MeshChannel *ch,
   payload->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_DATA);
   payload->chid = htonl (ch->gid);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  sending on channel...\n");
-  GMCH_send_prebuilt_message (&payload->header, ch, fwd);
+  GMCH_send_prebuilt_message (&payload->header, ch, fwd, GNUNET_NO);
 
   if (is_loopback (ch))
   {
@@ -1921,10 +1891,12 @@ GMCH_handle_destroy (struct MeshChannel *ch,
  * @param message Message to send. Function makes a copy of it.
  * @param ch Channel on which this message is transmitted.
  * @param fwd Is this a fwd message?
+ * @param retransmission Is this a retransmission? (Don't save a copy)
  */
 void
 GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
-                            struct MeshChannel *ch, int fwd)
+                            struct MeshChannel *ch, int fwd,
+                            int retransmission)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG, "GMCH Send %s %s on channel %s\n",
        fwd ? "FWD" : "BCK", GNUNET_MESH_DEBUG_M2S (ntohs (message->type)), 
@@ -1936,7 +1908,7 @@ GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
     return;
   }
 
-  if (GNUNET_YES == ch->reliable
+  if (GNUNET_YES == ch->reliable && GNUNET_NO == retransmission
       && ntohs (message->type) == GNUNET_MESSAGE_TYPE_MESH_DATA)
   {
     struct MeshReliableMessage *copy;

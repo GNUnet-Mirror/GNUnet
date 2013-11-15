@@ -578,7 +578,8 @@ send_queued_data (struct MeshTunnel3 *t)
     room--;
     GNUNET_CONTAINER_DLL_remove (t->tq_head, t->tq_tail, tq);
     GMCH_send_prebuilt_message ((struct GNUNET_MessageHeader *) &tq[1],
-                                tq->ch, GMCH_is_origin (tq->ch, GNUNET_YES));
+                                tq->ch, GMCH_is_origin (tq->ch, GNUNET_YES),
+                                GNUNET_NO);
 
     GNUNET_free (tq);
   }
@@ -1998,6 +1999,23 @@ message_sent (void *cls,
   GNUNET_assert (NULL != qt->cont);
   qt->cont (qt->cont_cls, GMC_get_tunnel (c), qt, type, size);
   GNUNET_free (qt);
+}
+
+
+/**
+ * Cancel a previously sent message while it's in the queue.
+ *
+ * ONLY can be called before the continuation given to the send function
+ * is called. Once the continuation is called, the message is no longer in the
+ * queue.
+ *
+ * @param q Handle to the queue.
+ */
+void
+GMT_cancel (struct MeshTunnel3Queue *q)
+{
+  GMC_cancel (q->q);
+  /* message_sent() will be called and free q */
 }
 
 /**

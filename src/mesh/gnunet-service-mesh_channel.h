@@ -314,15 +314,17 @@ GMCH_handle_destroy (struct MeshChannel *ch,
  * @param message Message to send. Function makes a copy of it.
  * @param ch Channel on which this message is transmitted.
  * @param fwd Is this a fwd message?
+ * @param retransmission Is this a retransmission? (Don't save a copy)
  */
 void
 GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
-                            struct MeshChannel *ch, int fwd);
+                            struct MeshChannel *ch, int fwd,
+                            int retransmission);
 
 /**
  * Get the static string for identification of the channel.
  *
- * @param ch Channel.
+ * @param ch Channel.i
  *
  * @return Static string with the channel IDs.
  */

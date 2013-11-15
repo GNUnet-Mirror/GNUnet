@@ -2547,10 +2547,6 @@ GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
  * is called. Once the continuation is called, the message is no longer in the
  * queue.
  *
- * If the send function was given no continuation, GMC_cancel should
- * NOT be called, since it's not possible to determine if the message has
- * already been sent.
- *
  * @param q Handle to the queue.
  */
 void
