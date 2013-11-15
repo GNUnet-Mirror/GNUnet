@@ -590,20 +590,6 @@ write_gnuplot_script (char * data_fn, int full)
   char * gfn;
   char *data;
   char *template;
-  if (GNUNET_YES == full)
-    GNUNET_asprintf (&gfn, "perf_%s_full_%u_%u_%u.gnuplot", ph.ats_string, ph.N_peers_start, ph.N_peers_end, ph.N_address);
-  else
-    GNUNET_asprintf (&gfn, "perf_%s_update_%u_%u_%u.gnuplot", ph.ats_string, ph.N_peers_start, ph.N_peers_end, ph.N_address);
-
-  f = GNUNET_DISK_file_open (gfn,
-      GNUNET_DISK_OPEN_WRITE | GNUNET_DISK_OPEN_CREATE,
-      GNUNET_DISK_PERM_USER_EXEC | GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE);
-  if (NULL == f)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot open gnuplot file `%s'\n", gfn);
-    GNUNET_free (gfn);
-    return;
-  }
 
   /* Write header */
   switch (ph.ats_mode) {
@@ -628,18 +614,34 @@ write_gnuplot_script (char * data_fn, int full)
     default:
       GNUNET_break (0);
       return;
-      break;
   }
+
+  if (GNUNET_YES == full)
+    GNUNET_asprintf (&gfn, "perf_%s_full_%u_%u_%u.gnuplot", ph.ats_string, ph.N_peers_start, ph.N_peers_end, ph.N_address);
+  else
+    GNUNET_asprintf (&gfn, "perf_%s_update_%u_%u_%u.gnuplot", ph.ats_string, ph.N_peers_start, ph.N_peers_end, ph.N_address);
+
+  f = GNUNET_DISK_file_open (gfn,
+      GNUNET_DISK_OPEN_WRITE | GNUNET_DISK_OPEN_CREATE,
+      GNUNET_DISK_PERM_USER_EXEC | GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE);
+  if (NULL == f)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot open gnuplot file `%s'\n", gfn);
+    GNUNET_free (gfn);
+    return;
+  }
+
   if (GNUNET_SYSERR == GNUNET_DISK_file_write(f, template, strlen(template)))
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot write data to plot file `%s'\n", gfn);
 
+  data = NULL;
   if (MODE_PROPORTIONAL == ph.ats_mode)
   {
     GNUNET_asprintf (&data, "plot '%s' using 1:%u with lines title 'Total time to solve'\n" \
                            "pause -1",
                            data_fn, 3);
   }
-  if (MODE_MLP == ph.ats_mode)
+  else if (MODE_MLP == ph.ats_mode)
   {
     GNUNET_asprintf (&data, "plot '%s' using 1:%u with lines title 'Total time to solve',\\\n" \
                             "'%s' using 1:%u with lines title 'Time to setup',\\\n"
@@ -651,16 +653,18 @@ write_gnuplot_script (char * data_fn, int full)
                            data_fn, 5,
                            data_fn, 6);
   }
-  if (MODE_RIL == ph.ats_mode)
+  else if (MODE_RIL == ph.ats_mode)
   {
     GNUNET_asprintf (&data, "plot '%s' using 1:%u with lines title 'Total time to solve'\n" \
                            "pause -1",
                            data_fn, 3);
   }
 
-  if (GNUNET_SYSERR == GNUNET_DISK_file_write(f, data, strlen(data)))
+  if ((NULL != data) && (GNUNET_SYSERR == GNUNET_DISK_file_write(f, data, strlen(data))))
+  {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot write data to plot file `%s'\n", gfn);
-  GNUNET_free (data);
+    GNUNET_free (data);
+  }
 
   if (GNUNET_SYSERR == GNUNET_DISK_file_close(f))
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot close gnuplot file `%s'\n", gfn);
@@ -688,6 +692,9 @@ evaluate ()
 
   f_full = NULL;
   f_update = NULL;
+
+  data_fn_full = NULL;
+
   if (ph.create_plot)
   {
     GNUNET_asprintf (&data_fn_full, "perf_%s_full_%u_%u_%u.data", ph.ats_string, ph.N_peers_start, ph.N_peers_end, ph.N_address);
@@ -697,14 +704,16 @@ evaluate ()
     if (NULL == f_full)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot open gnuplot file `%s'\n", data_fn_full);
+      GNUNET_free (data_fn_full);
       return;
     }
     data = "#peers;addresses;time total in us;#time setup in us;#time lp in us;#time mlp in us;\n";
     if (GNUNET_SYSERR == GNUNET_DISK_file_write(f_full, data, strlen(data)))
             GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot write data to log file `%s'\n", data_fn_full);
     write_gnuplot_script (data_fn_full, GNUNET_YES);
-
   }
+
+  data_fn_update = NULL;
   if ((ph.create_plot) && (GNUNET_YES == ph.measure_updates))
   {
     GNUNET_asprintf (&data_fn_update, "perf_%s_update_%u_%u_%u.data", ph.ats_string, ph.N_peers_start, ph.N_peers_end, ph.N_address);
@@ -714,6 +723,7 @@ evaluate ()
     if (NULL == f_update)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot open gnuplot file `%s'\n", data_fn_update);
+      GNUNET_free (data_fn_update);
       return;
     }
     data = "#peers;addresses;time total in us;#time setup in us;#time lp in us;#time mlp in us;\n";
@@ -769,6 +779,7 @@ evaluate ()
     else
       GNUNET_asprintf(&str_d_mlp, "-1");
 
+    data = NULL;
     if (GNUNET_YES == ph.create_plot)
     {
 
@@ -783,7 +794,7 @@ evaluate ()
         if (GNUNET_SYSERR == GNUNET_DISK_file_write(f_full, data, strlen(data)))
           GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot write data to log file `%s'\n", data_fn_full);
       }
-      if (cur->update == GNUNET_YES)
+      if ((cur->update == GNUNET_YES) && (NULL != f_update))
       {
         if (GNUNET_SYSERR == GNUNET_DISK_file_write(f_update, data, strlen(data)))
           GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot write data to log file `%s'\n", data_fn_update);
@@ -799,18 +810,15 @@ evaluate ()
     GNUNET_free (cur);
   }
 
-  if (GNUNET_YES == ph.create_plot)
-  {
-    if ((NULL == f_full) || (GNUNET_SYSERR == GNUNET_DISK_file_close(f_full)))
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot close log file `%s'\n", data_fn_full);
-    GNUNET_free (data_fn_full);
-  }
-  if ((ph.create_plot) && (GNUNET_YES == ph.measure_updates))
-  {
-      if ((NULL == f_update) || (GNUNET_SYSERR == GNUNET_DISK_file_close(f_update)))
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot close log file `%s'\n", data_fn_update);
-    GNUNET_free (data_fn_update);
-  }
+  if ((NULL != f_full) && (GNUNET_SYSERR == GNUNET_DISK_file_close (f_full)))
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Cannot close log file `%s'\n",
+        data_fn_full);
+  GNUNET_free_non_null (data_fn_full);
+
+  if ((NULL != f_update) && (GNUNET_SYSERR == GNUNET_DISK_file_close (f_update)))
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Cannot close log file `%s'\n",
+        data_fn_update);
+  GNUNET_free_non_null (data_fn_update);
 }
 
 static void
@@ -939,9 +947,10 @@ run (void *cls, char * const *args, const char *cfgfile,
   /* Extract test name */
   if (NULL == (sep  = (strstr (src_filename,".c"))))
   {
+    GNUNET_free (src_filename);
     GNUNET_break (0);
     ret = 1;
-    return;
+    return ;
   }
   sep[0] = '\0';
 
@@ -950,6 +959,7 @@ run (void *cls, char * const *args, const char *cfgfile,
 
   if (NULL == (solver = strstr (test_filename, src_filename)))
   {
+    GNUNET_free (src_filename);
     GNUNET_break (0);
     ret = 1;
     return ;
@@ -1001,8 +1011,7 @@ run (void *cls, char * const *args, const char *cfgfile,
 
   /* Load quotas */
   solver_cfg = GNUNET_CONFIGURATION_create();
-  GNUNET_CONFIGURATION_load ( solver_cfg, "perf_ats_solver.conf");
-  if (NULL == solver_cfg)
+  if ((NULL == solver_cfg) || (GNUNET_SYSERR == (GNUNET_CONFIGURATION_load ( solver_cfg, "perf_ats_solver.conf"))))
   {
     GNUNET_break(0);
     end_now (1);
