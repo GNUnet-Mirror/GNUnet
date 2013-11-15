@@ -2520,7 +2520,7 @@ GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   if (NULL == cont)
   {
     (void) GMP_queue_add (get_hop (c, fwd), data, type, size, c, fwd,
-                          &message_sent, q);
+                          &message_sent, NULL);
     return NULL;
   }
 
