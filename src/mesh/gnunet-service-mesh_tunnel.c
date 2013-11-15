@@ -741,11 +741,13 @@ rekey_tunnel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   t->rekey_task = GNUNET_SCHEDULER_NO_TASK;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Re-key Tunnel\n");
   if (NULL != tc && 0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
     return;
 
   if (NULL == t->kx_ctx)
   {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  new kx ctx\n");
     t->kx_ctx = GNUNET_new (struct MeshTunnelKXCtx);
     t->kx_ctx->challenge = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE,
                                                      UINT32_MAX);
@@ -766,6 +768,8 @@ rekey_tunnel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Unexpected state %u\n", t->state);
   }
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  next call in %s\n",
+       GNUNET_STRINGS_relative_time_to_string (REKEY_WAIT, GNUNET_YES));
   t->rekey_task = GNUNET_SCHEDULER_add_delayed (REKEY_WAIT, &rekey_tunnel, t);
 }
 
@@ -1138,7 +1142,7 @@ handle_ping (struct MeshTunnel3 *t,
   t_decrypt (t, &res.target, &msg->target, ping_encryption_size (), msg->iv);
   if (0 != memcmp (&my_full_id, &res.target, sizeof (my_full_id)))
   {
-    GNUNET_break (0);
+    GNUNET_break_op (0);
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  e got %u\n", msg->nonce);
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  e towards %s\n", GNUNET_i2s (&msg->target));
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  got %u\n", res.nonce);
