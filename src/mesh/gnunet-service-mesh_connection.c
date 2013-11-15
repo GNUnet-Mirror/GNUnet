@@ -1227,7 +1227,10 @@ GMC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
         LOG (GNUNET_ERROR_TYPE_DEBUG, "  Creating connection\n");
     c = GMC_new (cid, NULL, path_duplicate (path), own_pos);
     if (NULL == c)
+    {
+      path_destroy (path);
       return GNUNET_OK;
+    }
     connection_reset_timeout (c, GNUNET_YES);
   }
   else
@@ -2087,6 +2090,7 @@ GMC_new (const struct GNUNET_HashCode *cid,
   {
     GNUNET_break (0);
     GMC_destroy (c);
+    path_destroy (p);
     return NULL;
   }
   c->own_pos = own_pos;
