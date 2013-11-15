@@ -1277,12 +1277,13 @@ void
 GMCH_allow_client (struct MeshChannel *ch, int fwd)
 {
   struct MeshChannelReliability *rel;
+  unsigned int buffer;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "GMCH allow\n");
 
   if (MESH_CHANNEL_READY != ch->state)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, " not ready yet!\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " channel not ready yet!\n");
     return;
   }
 
@@ -1296,12 +1297,23 @@ GMCH_allow_client (struct MeshChannel *ch, int fwd)
     }
     if (NULL != rel->head_sent && 64 <= rel->mid_send - rel->head_sent->mid)
     {
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-           " too big mid gap! Wait for ACK.\n");
+      LOG (GNUNET_ERROR_TYPE_DEBUG, " too big MID gap! Wait for ACK.\n");
       return;
     }
   }
 
+  if (is_loopback (ch))
+    buffer = GMCH_get_buffer (ch, fwd);
+  else
+    buffer = GMT_get_connections_buffer (ch->t);
+
+  if (0 == buffer)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " no buffer space.\n");
+    return;
+  }
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, " buffer space %u, allowing\n", buffer);
   send_client_ack (ch, fwd);
 }
 
