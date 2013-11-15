@@ -1355,7 +1355,8 @@ GMC_handle_confirm (void *cls, const struct GNUNET_PeerIdentity *peer,
     if (MESH_CONNECTION_SENT == oldstate)
       connection_reset_timeout (c, GNUNET_YES);
 
-    /* Change tunnel state */
+    /* Change connection and tunnel state */
+    connection_change_state (c, MESH_CONNECTION_READY);
     if (MESH_TUNNEL3_WAITING == GMT_get_state (c->t))
       GMT_change_state (c->t, MESH_TUNNEL3_READY);
 
