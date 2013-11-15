@@ -973,10 +973,10 @@ handle_ch_create (struct MeshTunnel3 *t,
 
 
 /**
- * Handle channel NACK.
+ * Handle channel NACK: check correctness and call channel handler for NACKs.
  *
- * @param t Tunnel on which the data came.
- * @param msg Data message.
+ * @param t Tunnel on which the NACK came.
+ * @param msg NACK message.
  */
 static void
 handle_ch_nack (struct MeshTunnel3 *t,
@@ -995,7 +995,7 @@ handle_ch_nack (struct MeshTunnel3 *t,
 
   /* Check channel */
   ch = GMT_get_channel (t, ntohl (msg->chid));
-  if (NULL != ch && ! GMT_is_loopback (t))
+  if (NULL == ch)
   {
     GNUNET_STATISTICS_update (stats, "# channel NACK on unknown channel",
                               1, GNUNET_NO);
