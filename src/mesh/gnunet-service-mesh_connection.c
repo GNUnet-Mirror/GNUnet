@@ -1236,7 +1236,7 @@ GMC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
   else
   {
-    path = NULL;
+    path = c->path;
   }
   if (MESH_CONNECTION_NEW == c->state)
     connection_change_state (c, MESH_CONNECTION_SENT);
