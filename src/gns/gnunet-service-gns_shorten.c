@@ -79,7 +79,7 @@ struct GetPseuAuthorityHandle
   char * suggested_label;
 
   /**
-   * Label we are currently trying out (during #perform_pseu_lookup).
+   * Label we are currently trying out
    */
   char *current_label;
 
