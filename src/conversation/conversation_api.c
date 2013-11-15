@@ -811,7 +811,26 @@ GNUNET_CONVERSATION_phone_destroy (struct GNUNET_CONVERSATION_Phone *phone)
 void
 GNUNET_CONVERSATION_caller_suspend (struct GNUNET_CONVERSATION_Caller *caller)
 {
-  GNUNET_break (0);
+  struct GNUNET_CONVERSATION_Phone *phone = caller->phone;
+  struct GNUNET_MQ_Envelope *e;
+  struct ClientPhoneSuspendMessage *suspend;
+
+  GNUNET_assert ( (CS_ACTIVE == caller->state) ||
+                  (CS_CALLER_SUSPENDED == caller->state) );
+  if (CS_ACTIVE == caller->state)
+  {
+    caller->speaker->disable_speaker (caller->speaker->cls);
+    caller->mic->disable_microphone (caller->mic->cls);
+  }
+  caller->speaker = NULL;
+  caller->mic = NULL;
+  e = GNUNET_MQ_msg (suspend, GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_SUSPEND);
+  suspend->cid = caller->cid;
+  GNUNET_MQ_send (phone->mq, e);
+  if (CS_ACTIVE == caller->state)
+    caller->state = CS_CALLEE_SUSPENDED;
+  else
+    caller->state = CS_BOTH_SUSPENDED;
 }
 
 
@@ -827,7 +846,29 @@ GNUNET_CONVERSATION_caller_resume (struct GNUNET_CONVERSATION_Caller *caller,
                                    struct GNUNET_SPEAKER_Handle *speaker,
                                    struct GNUNET_MICROPHONE_Handle *mic)
 {
-  GNUNET_break (0);
+  struct GNUNET_CONVERSATION_Phone *phone = caller->phone;
+  struct GNUNET_MQ_Envelope *e;
+  struct ClientPhoneResumeMessage *resume;
+
+  GNUNET_assert ( (CS_CALLEE_SUSPENDED == caller->state) ||
+                  (CS_BOTH_SUSPENDED == caller->state) );
+  caller->speaker = speaker;
+  caller->mic = mic;
+  e = GNUNET_MQ_msg (resume, GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_RESUME);
+  resume->cid = caller->cid;
+  GNUNET_MQ_send (phone->mq, e);
+  if (CS_CALLEE_SUSPENDED == caller->state)
+  {
+    caller->state = CS_ACTIVE;
+    caller->speaker->enable_speaker (caller->speaker->cls);
+    caller->mic->enable_microphone (caller->mic->cls,
+                                    &transmit_phone_audio,
+                                    caller);
+  }
+  else
+  {
+    caller->state = CS_CALLER_SUSPENDED;
+  }
 }
 
 /* end of conversation_api.c */
