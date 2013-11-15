@@ -216,8 +216,19 @@ struct MeshConnection
  */
 struct MeshConnectionQueue
 {
+  /**
+   * Peer queue handle, to cancel if necessary.
+   */
   struct MeshPeerQueue *q;
+
+  /**
+   * Continuation to call once sent.
+   */
   GMC_sent cont;
+
+  /**
+   * Closure for @c cont.
+   */
   void *cont_cls;
 };
 
@@ -2389,7 +2400,8 @@ GMC_is_sendable (struct MeshConnection *c, int fwd)
  * @param cont Continuation called once message is sent. Can be NULL.
  * @param cont_cls Closure for @c cont.
  *
- * @return Handle to cancel the message before it's sent. NULL on error.
+ * @return Handle to cancel the message before it's sent.
+ *         NULL on error or if @c cont is NULL.
  *         Invalid on @c cont call.
  */
 struct MeshConnectionQueue *
@@ -2504,6 +2516,13 @@ GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  C_P+ %p %u\n", c, c->pending_messages);
   c->pending_messages++;
+
+  if (NULL == cont)
+  {
+    (void) GMP_queue_add (get_hop (c, fwd), data, type, size, c, fwd,
+                          &message_sent, q);
+    return NULL;
+  }
 
   q = GNUNET_new (struct MeshConnectionQueue);
   q->q = GMP_queue_add (get_hop (c, fwd), data, type, size, c, fwd,

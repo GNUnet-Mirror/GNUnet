@@ -454,7 +454,8 @@ GMC_cancel (struct MeshConnectionQueue *q);
  * @param cont Continuation called once message is sent. Can be NULL.
  * @param cont_cls Closure for @c cont.
  *
- * @return Handle to cancel the message before it's sent. NULL on error.
+ * @return Handle to cancel the message before it's sent.
+ *         NULL on error or if @c cont is NULL.
  *         Invalid on @c cont call.
  */
 struct MeshConnectionQueue *
