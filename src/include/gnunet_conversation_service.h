@@ -37,17 +37,10 @@
  * using a separate service; CONVERSATION is supposed to be just
  * the "bare bones" voice service.
  *
- * Meta data passing is supported so that advanced services
- * can identify themselves appropriately.
- *
  * As this is supposed to be a "secure" service, caller ID is of
  * course provided as part of the basic implementation, as only the
  * CONVERSATION service can know for sure who it is that we are
  * talking to.
- *
- * TODO:
- * - call waiting
- * - put on hold
  */
 #ifndef GNUNET_CONVERSATION_SERVICE_H
 #define GNUNET_CONVERSATION_SERVICE_H
@@ -70,8 +63,18 @@ extern "C"
 /**
  * Version of the conversation API.
  */
-#define GNUNET_CONVERSATION_VERSION 0x00000002
+#define GNUNET_CONVERSATION_VERSION 0x00000003
 
+/**
+ * Handle to identify a particular caller.  A caller is an entity that
+ * initiate a call to a phone.  This struct identifies the caller to
+ * the user operating the phone.  The entity that initiated the call
+ * will have a `struct GNUNET_CONVERSATION_Call`.
+ */
+struct GNUNET_CONVERSATION_Caller;
+
+
+GNUNET_NETWORK_STRUCT_BEGIN
 
 /**
  * A phone record specifies which peer is hosting a given user and
@@ -100,53 +103,24 @@ struct GNUNET_CONVERSATION_PhoneRecord
 
 };
 
+GNUNET_NETWORK_STRUCT_END
 
 /**
- * Information about the current status of a call.  Each call
- * progresses from ring over ready to terminated.  Steps may
- * be skipped.
+ * Information about active callers to a phone.
  */
-enum GNUNET_CONVERSATION_EventCode
+enum GNUNET_CONVERSATION_PhoneEventCode
 {
   /**
-   * The phone is ringing, caller ID is provided in the varargs as
-   * a `const char *`.  The caller ID will be a GNS name.
+   * We are the callee and the phone is ringing.
+   * We should accept the call or hang up.
    */
-  GNUNET_CONVERSATION_EC_RING,
+  GNUNET_CONVERSATION_EC_PHONE_RING,
 
   /**
-   * We are the caller and are now ringing the other party.
-   * The varargs will be empty.
+   * The conversation was terminated by the caller.
+   * We must no longer use the caller's handle.
    */
-  GNUNET_CONVERSATION_EC_RINGING,
-
-  /**
-   * We are ready to talk, metadata about the call may be supplied
-   * as a `const char *` in the varargs.
-   */
-  GNUNET_CONVERSATION_EC_READY,
-
-  /**
-   * We failed to locate a phone record in GNS.  After this invocation,
-   * the respective call handle will be automatically destroyed and the
-   * client must no longer call #GNUNET_CONVERSATION_call_stop.
-   */
-  GNUNET_CONVERSATION_EC_GNS_FAIL,
-
-  /**
-   * The phone is busy.  Varargs will be empty.   After this invocation,
-   * the respective call handle will be automatically destroyed and the
-   * client must no longer call #GNUNET_CONVERSATION_call_stop.
-   */
-  GNUNET_CONVERSATION_EC_BUSY,
-
-  /**
-   * The conversation was terminated, a reason may be supplied as a
-   * `const char *` in the varargs.  After this invocation, the
-   * respective call handle will be automatically destroyed and the
-   * client must no longer call #GNUNET_CONVERSATION_call_stop.
-   */
-  GNUNET_CONVERSATION_EC_TERMINATED
+  GNUNET_CONVERSATION_EC_PHONE_HUNG_UP
 
 };
 
@@ -155,12 +129,51 @@ enum GNUNET_CONVERSATION_EventCode
  * Function called with an event emitted by a phone.
  *
  * @param cls closure
- * @param code type of the event on the phone
- * @param ... additional information, depends on @a code
+ * @param code type of the event
+ * @param caller handle for the caller
+ * @param caller_id name of the caller in GNS
  */
-typedef void (*GNUNET_CONVERSATION_EventHandler)(void *cls,
-						 enum GNUNET_CONVERSATION_EventCode code,
-						 ...);
+typedef void (*GNUNET_CONVERSATION_PhoneEventHandler)(void *cls,
+                                                      enum GNUNET_CONVERSATION_PhoneEventCode code,
+                                                      struct GNUNET_CONVERSATION_Caller *caller,
+                                                      const char *caller_id);
+
+
+/**
+ * Information about the current status of a call.  Each call
+ * progresses from ring over ready to terminated.  Steps may
+ * be skipped.
+ */
+enum GNUNET_CONVERSATION_CallerEventCode
+{
+
+  /**
+   * We are the callee and the caller suspended the call.  Note that
+   * both sides can independently suspend and resume calls; a call is
+   * only "working" of both sides are active.
+   */
+  GNUNET_CONVERSATION_EC_CALLER_SUSPEND,
+
+  /**
+   * We are the callee and the caller resumed the call.  Note that
+   * both sides can independently suspend and resume calls; a call is
+   * only "working" of both sides are active.
+   */
+  GNUNET_CONVERSATION_EC_CALLER_RESUME
+
+};
+
+
+/**
+ * Function called with an event emitted by a caller.
+ * These events are only generated after the phone is
+ * picked up.
+ *
+ * @param cls closure
+ * @param code type of the event for this caller
+ */
+typedef void (*GNUNET_CONVERSATION_CallerEventHandler)(void *cls,
+                                                       enum GNUNET_CONVERSATION_CallerEventCode code);
 
 
 /**
@@ -189,7 +202,7 @@ struct GNUNET_CONVERSATION_Phone;
 struct GNUNET_CONVERSATION_Phone *
 GNUNET_CONVERSATION_phone_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                   const struct GNUNET_IDENTITY_Ego *ego,
-				  GNUNET_CONVERSATION_EventHandler event_handler,
+				  GNUNET_CONVERSATION_PhoneEventHandler event_handler,
 				  void *event_handler_cls);
 
 
@@ -207,31 +220,55 @@ GNUNET_CONVERSATION_phone_get_record (struct GNUNET_CONVERSATION_Phone *phone,
 
 
 /**
- * Picks up a (ringing) phone.  This will connect the speaker
+ * Picks up a (ringing) phone call.  This will connect the speaker
  * to the microphone of the other party, and vice versa.
  *
- * @param phone phone to pick up
- * @param metadata meta data to give to the other user about the pick up event
+ * @param caller handle that identifies which caller should be answered
+ * @param event_handler how to notify about events by the caller
+ * @param event_handler_cls closure for @a event_handler
  * @param speaker speaker to use
  * @param mic microphone to use
  */
 void
-GNUNET_CONVERSATION_phone_pick_up (struct GNUNET_CONVERSATION_Phone *phone,
-                                   const char *metadata,
+GNUNET_CONVERSATION_caller_pick_up (struct GNUNET_CONVERSATION_Caller *caller,
+                                    GNUNET_CONVERSATION_CallerEventHandler event_handler,
+                                    void *event_handler_cls,
+                                    struct GNUNET_SPEAKER_Handle *speaker,
+                                    struct GNUNET_MICROPHONE_Handle *mic);
+
+
+/**
+ * Pause conversation of an active call.  This will disconnect the speaker
+ * and the microphone.  The call can later be resumed with
+ * #GNUNET_CONVERSATION_caller_resume.
+ *
+ * @param phone phone to pause
+ */
+void
+GNUNET_CONVERSATION_caller_suspend (struct GNUNET_CONVERSATION_Caller *caller);
+
+
+/**
+ * Resume suspended conversation of a phone.
+ *
+ * @param phone phone to resume
+ * @param speaker speaker to use
+ * @param mic microphone to use
+ */
+void
+GNUNET_CONVERSATION_caller_resume (struct GNUNET_CONVERSATION_Caller *caller,
                                    struct GNUNET_SPEAKER_Handle *speaker,
                                    struct GNUNET_MICROPHONE_Handle *mic);
 
 
 /**
- * Hang up up a (possibly ringing) phone.  This will notify the other
- * party that we are no longer interested in talking with them.
+ * Hang up up a (possibly ringing or paused) phone.  This will notify
+ * the caller that we are no longer interested in talking with them.
  *
- * @param phone phone to pick up
- * @param reason text we give to the other party about why we terminated the conversation
+ * @param caller who should we hang up on
  */
 void
-GNUNET_CONVERSATION_phone_hang_up (struct GNUNET_CONVERSATION_Phone *phone,
-                                   const char *reason);
+GNUNET_CONVERSATION_caller_hang_up (struct GNUNET_CONVERSATION_Caller *caller);
 
 
 /**
@@ -243,10 +280,72 @@ void
 GNUNET_CONVERSATION_phone_destroy (struct GNUNET_CONVERSATION_Phone *phone);
 
 
+/* *********************** CALL API ************************ */
+
 /**
  * Handle for an outgoing call.
  */
 struct GNUNET_CONVERSATION_Call;
+
+
+/**
+ * Information about the current status of a call.
+ */
+enum GNUNET_CONVERSATION_CallEventCode
+{
+  /**
+   * We are the caller and are now ringing the other party (GNS lookup
+   * succeeded).
+   */
+  GNUNET_CONVERSATION_EC_CALL_RINGING,
+
+  /**
+   * We are the caller and are now ready to talk as the callee picked up.
+   */
+  GNUNET_CONVERSATION_EC_CALL_PICKED_UP,
+
+  /**
+   * We are the caller and failed to locate a phone record in GNS.
+   * After this invocation, the respective call handle will be
+   * automatically destroyed and the client must no longer call
+   * #GNUNET_CONVERSATION_call_stop or any other function on the
+   * call object.
+   */
+  GNUNET_CONVERSATION_EC_CALL_GNS_FAIL,
+
+  /**
+   * We are the caller and the callee called
+   * #GNUNET_CONVERSATION_caller_hang_up.  After this invocation, the
+   * respective call handle will be automatically destroyed and the
+   * client must no longer call #GNUNET_CONVERSATION_call_stop.
+   */
+  GNUNET_CONVERSATION_EC_CALL_HUNG_UP,
+
+  /**
+   * We are the caller and the callee suspended the call.  Note that
+   * both sides can independently suspend and resume calls; a call is
+   * only "working" of both sides are active.
+   */
+  GNUNET_CONVERSATION_EC_CALL_SUSPENDED,
+
+  /**
+   * We are the caller and the callee suspended the call.  Note that
+   * both sides can independently suspend and resume calls; a call is
+   * only "working" of both sides are active.
+   */
+  GNUNET_CONVERSATION_EC_CALL_RESUMED
+
+};
+
+
+/**
+ * Function called with an event emitted for a call.
+ *
+ * @param cls closure
+ * @param code type of the event on the call
+ */
+typedef void (*GNUNET_CONVERSATION_CallEventHandler)(void *cls,
+                                                     enum GNUNET_CONVERSATION_CallEventCode code);
 
 
 /**
@@ -269,20 +368,43 @@ GNUNET_CONVERSATION_call_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
 				const char *callee,
 				struct GNUNET_SPEAKER_Handle *speaker,
 				struct GNUNET_MICROPHONE_Handle *mic,
-				GNUNET_CONVERSATION_EventHandler event_handler,
+				GNUNET_CONVERSATION_CallEventHandler event_handler,
 				void *event_handler_cls);
+
+
+/**
+ * Pause a call.  Temporarily suspends the use of speaker and
+ * microphone.
+ *
+ * @param call call to pause
+ */
+void
+GNUNET_CONVERSATION_call_suspend (struct GNUNET_CONVERSATION_Call *call);
+
+
+/**
+ * Resumes a call after #GNUNET_CONVERSATION_call_pause.
+ *
+ * @param call call to resume
+ * @param speaker speaker to use (will be used automatically immediately once the
+ *        #GNUNET_CONVERSATION_EC_READY event is generated); we will NOT generate
+ *        a ring tone on the speaker
+ * @param mic microphone to use (will be used automatically immediately once the
+ *        #GNUNET_CONVERSATION_EC_READY event is generated)
+ */
+void
+GNUNET_CONVERSATION_call_resume (struct GNUNET_CONVERSATION_Call *call,
+                                 struct GNUNET_SPEAKER_Handle *speaker,
+                                 struct GNUNET_MICROPHONE_Handle *mic);
 
 
 /**
  * Terminate a call.  The call may be ringing or ready at this time.
  *
  * @param call call to terminate
- * @param reason if the call was active (ringing or ready) this will be the
- *        reason given to the other user for why we hung up
  */
 void
-GNUNET_CONVERSATION_call_stop (struct GNUNET_CONVERSATION_Call *call,
-			       const char *reason);
+GNUNET_CONVERSATION_call_stop (struct GNUNET_CONVERSATION_Call *call);
 
 
 #if 0				/* keep Emacsens' auto-indent happy */

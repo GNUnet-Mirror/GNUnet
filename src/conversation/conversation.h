@@ -82,9 +82,10 @@ struct ClientPhoneRingMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Always zero.
+   * CID, internal caller ID to identify which active call we are
+   * talking about.
    */
-  uint32_t reserved GNUNET_PACKED;
+  uint32_t cid GNUNET_PACKED;
 
   /**
    * Who is calling us?
@@ -95,14 +96,39 @@ struct ClientPhoneRingMessage
 
 
 /**
- * Service -> Client message for phone is busy.
+ * Service <-> Client message for phone was suspended.
  */
-struct ClientPhoneBusyMessage
+struct ClientPhoneSuspendMessage
 {
   /**
-   * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_BUSY
+   * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_SUSPEND
    */
   struct GNUNET_MessageHeader header;
+
+  /**
+   * CID, internal caller ID to identify which active call we are
+   * talking about.
+   */
+  uint32_t cid GNUNET_PACKED;
+
+};
+
+
+/**
+ * Service <-> Client message for phone was resumed.
+ */
+struct ClientPhoneResumeMessage
+{
+  /**
+   * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_RESUME
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * CID, internal caller ID to identify which active call we are
+   * talking about.
+   */
+  uint32_t cid GNUNET_PACKED;
 
 };
 
@@ -117,7 +143,11 @@ struct ClientPhonePickupMessage
    */
   struct GNUNET_MessageHeader header;
 
-  /* followed by variable length 0-terminated string with meta data */
+  /**
+   * CID, internal caller ID to identify which active call we are
+   * talking about.
+   */
+  uint32_t cid GNUNET_PACKED;
 
 };
 
@@ -133,7 +163,11 @@ struct ClientPhoneHangupMessage
    */
   struct GNUNET_MessageHeader header;
 
-  /* followed by variable length 0-terminated string with meta data */
+  /**
+   * CID, internal caller ID to identify which active call we are
+   * talking about.
+   */
+  uint32_t cid GNUNET_PACKED;
 
 };
 
@@ -147,6 +181,12 @@ struct ClientAudioMessage
    * Type is #GNUNET_MESSAGE_TYPE_CONVERSATION_CS_AUDIO
    */
   struct GNUNET_MessageHeader header;
+
+  /**
+   * CID, internal caller ID to identify which active call we are
+   * sending data to.
+   */
+  uint32_t cid GNUNET_PACKED;
 
   /* followed by audio data */
 
@@ -190,8 +230,6 @@ struct ClientPhonePickedupMessage
    * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_PICKED_UP
    */
   struct GNUNET_MessageHeader header;
-
-  /* followed by variable length 0-terminated string with meta data */
 
 };
 
@@ -259,7 +297,6 @@ struct MeshPhoneHangupMessage
    */
   struct GNUNET_MessageHeader header;
 
-  /* followed by variable-size 0-terminated reason string */
 };
 
 
@@ -273,17 +310,29 @@ struct MeshPhonePickupMessage
    */
   struct GNUNET_MessageHeader header;
 
-  /* followed by variable-size 0-terminated metadata string */
 };
 
 
 /**
- * Mesh message for phone busy.
+ * Mesh message for phone suspended.
  */
-struct MeshPhoneBusyMessage
+struct MeshPhoneSuspendMessage
 {
   /**
-   * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_PHONE_BUSY
+   * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_PHONE_SUSPEND
+   */
+  struct GNUNET_MessageHeader header;
+
+};
+
+
+/**
+ * Mesh message for phone resumed.
+ */
+struct MeshPhoneResumeMessage
+{
+  /**
+   * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_PHONE_RESUME
    */
   struct GNUNET_MessageHeader header;
 

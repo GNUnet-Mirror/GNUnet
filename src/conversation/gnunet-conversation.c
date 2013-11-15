@@ -86,14 +86,62 @@ enum ConversationState
 
 
 /**
+ * List of incoming calls
+ */
+struct CallList
+{
+
+  /**
+   * A DLL.
+   */
+  struct CallList *prev;
+
+  /**
+   * A DLL.
+   */
+  struct CallList *next;
+
+  /**
+   * Handle to hang up or activate.
+   */
+  struct GNUNET_CONVERSATION_Caller *caller;
+
+  /**
+   * String identifying the caller.
+   */
+  const char *caller_id;
+
+  /**
+   * Unique number of the call.
+   */
+  unsigned int caller_num;
+};
+
+
+/**
  * Phone handle
  */
 static struct GNUNET_CONVERSATION_Phone *phone;
 
 /**
- * Call handle
+ * Call handle (for active outgoing call).
  */
 static struct GNUNET_CONVERSATION_Call *call;
+
+/**
+ * Caller handle (for active incoming call).
+ */
+static struct CallList *cl_active;
+
+/**
+ * Head of calls waiting to be accepted.
+ */
+static struct CallList *cl_head;
+
+/**
+ * Tail of calls waiting to be accepted.
+ */
+static struct CallList *cl_tail;
 
 /**
  * Desired phone line.
@@ -151,6 +199,11 @@ static struct GNUNET_DISK_FileHandle *stdin_fh;
 static enum ConversationState state;
 
 /**
+ * Counts the number of incoming calls we have had so far.
+ */
+static unsigned int caller_num_gen;
+
+/**
  * GNS address for this phone.
  */
 static char *address;
@@ -165,50 +218,55 @@ static int verbose;
  * Function called with an event emitted by a phone.
  *
  * @param cls closure
- * @param code type of the event on the phone
- * @param ... additional information, depends on @a code
+ * @param code type of the event
+ * @param caller handle for the caller
+ * @param caller_id name of the caller in GNS
  */
 static void
 phone_event_handler (void *cls,
-                     enum GNUNET_CONVERSATION_EventCode code,
-                     ...)
+                     enum GNUNET_CONVERSATION_PhoneEventCode code,
+                     struct GNUNET_CONVERSATION_Caller *caller,
+                     const char *caller_id)
 {
-  va_list va;
-
-  va_start (va, code);
   switch (code)
   {
-  case GNUNET_CONVERSATION_EC_RING:
-    GNUNET_break (CS_LISTEN == state);
-    GNUNET_free_non_null (peer_name);
-    peer_name = GNUNET_strdup (va_arg (va, const char *));
+  case GNUNET_CONVERSATION_EC_PHONE_RING:
+    // FIXME: update state!
     FPRINTF (stdout,
-             _("Incoming call from `%s'.\nPlease /accept or /cancel the call.\n"),
-             peer_name);
-    state = CS_RING;
+             _("Incoming call from `%s'.\nPlease /accept #%u or /cancel %u the call.\n"),
+             caller_id,
+             caller_num_gen,
+             caller_num_gen);
     break;
-  case GNUNET_CONVERSATION_EC_RINGING:
-    GNUNET_break (0);
-    break;
-  case GNUNET_CONVERSATION_EC_READY:
-    GNUNET_break (0);
-    break;
-  case GNUNET_CONVERSATION_EC_GNS_FAIL:
-    GNUNET_break (0);
-    break;
-  case GNUNET_CONVERSATION_EC_BUSY:
-    GNUNET_break (0);
-    break;
-  case GNUNET_CONVERSATION_EC_TERMINATED:
-    GNUNET_break ( (CS_RING == state) ||
-                   (CS_ACCEPTED == state) );
+  case GNUNET_CONVERSATION_EC_PHONE_HUNG_UP:
+    // FIXME: update state!
     FPRINTF (stdout,
              _("Call terminated: %s\n"),
-             va_arg (va, const char *));
-    state = CS_LISTEN;
+             caller_id);
     break;
   }
-  va_end (va);
+}
+
+
+/**
+ * Function called with an event emitted by a caller.
+ *
+ * @param cls closure with the `struct CallList` of the caller
+ * @param code type of the event issued by the caller
+ */
+static void
+caller_event_handler (void *cls,
+                      enum GNUNET_CONVERSATION_CallerEventCode code)
+{
+  switch (code)
+  {
+  case GNUNET_CONVERSATION_EC_CALLER_SUSPEND:
+    // FIXME: notify user!
+    break;
+  case GNUNET_CONVERSATION_EC_CALLER_RESUME:
+    // FIXME: notify user!
+    break;
+  }
 }
 
 
@@ -257,26 +315,18 @@ start_phone ()
 
 
 /**
- * Function called with an event emitted by a phone.
+ * Function called with an event emitted by a call.
  *
  * @param cls closure
- * @param code type of the event on the phone
- * @param ... additional information, depends on @a code
+ * @param code type of the event on the call
  */
 static void
 call_event_handler (void *cls,
-                    enum GNUNET_CONVERSATION_EventCode code,
-                    ...)
+                    enum GNUNET_CONVERSATION_CallEventCode code)
 {
-  va_list va;
-
-  va_start (va, code);
   switch (code)
   {
-  case GNUNET_CONVERSATION_EC_RING:
-    GNUNET_break (0);
-    break;
-  case GNUNET_CONVERSATION_EC_RINGING:
+  case GNUNET_CONVERSATION_EC_CALL_RINGING:
     GNUNET_break (CS_RESOLVING == state);
     if (verbose)
       FPRINTF (stdout,
@@ -284,41 +334,37 @@ call_event_handler (void *cls,
                _("Resolved address. Now ringing other party.\n"));
     state = CS_RINGING;
     break;
-  case GNUNET_CONVERSATION_EC_READY:
+  case GNUNET_CONVERSATION_EC_CALL_PICKED_UP:
     GNUNET_break (CS_RINGING == state);
     FPRINTF (stdout,
-             _("Connection established to `%s': %s\n"),
-             peer_name,
-             va_arg (va, const char *));
+             _("Connection established to `%s'\n"),
+             peer_name);
     state = CS_CONNECTED;
     break;
-  case GNUNET_CONVERSATION_EC_GNS_FAIL:
+  case GNUNET_CONVERSATION_EC_CALL_GNS_FAIL:
     GNUNET_break (CS_RESOLVING == state);
     FPRINTF (stdout,
              _("Failed to resolve `%s'\n"),
              ego_name);
     call = NULL;
-    start_phone ();
+    state = CS_LISTEN;
     break;
-  case GNUNET_CONVERSATION_EC_BUSY:
-    GNUNET_break (CS_RINGING == state);
+  case GNUNET_CONVERSATION_EC_CALL_HUNG_UP:
     FPRINTF (stdout,
              "%s",
-             _("Line busy\n"));
+             _("Call terminated\n"));
     call = NULL;
-    start_phone ();
+    state = CS_LISTEN;
     break;
-  case GNUNET_CONVERSATION_EC_TERMINATED:
-    GNUNET_break ( (CS_RINGING == state) ||
-                   (CS_CONNECTED == state) );
-    FPRINTF (stdout,
-             _("Call terminated: %s\n"),
-             va_arg (va, const char *));
-    call = NULL;
-    start_phone ();
+  case GNUNET_CONVERSATION_EC_CALL_SUSPENDED:
+    // FIXME: notify user
+    // state = CS_SUSPENDED_CALL;
+    break;
+  case GNUNET_CONVERSATION_EC_CALL_RESUMED:
+    // FIXME: notify user
+    // state = CS_CONNECTED;
     break;
   }
-  va_end (va);
 }
 
 
@@ -417,7 +463,7 @@ do_call (const char *arg)
              _("Hanging up on incoming phone call from `%s' to call `%s'.\n"),
              peer_name,
              arg);
-    GNUNET_CONVERSATION_phone_hang_up (phone, NULL);
+    // GNUNET_CONVERSATION_caller_hang_up (caller);
     break;
   case CS_ACCEPTED:
     FPRINTF (stderr,
@@ -430,7 +476,8 @@ do_call (const char *arg)
     FPRINTF (stderr,
              _("Aborting call to `%s'\n"),
              peer_name);
-    GNUNET_CONVERSATION_call_stop (call, NULL);
+    // GNUNET_CONVERSATION_caller_hang_up (caller);
+    // GNUNET_CONVERSATION_call_stop (call);
     call = NULL;
     break;
   case CS_CONNECTED:
@@ -497,11 +544,12 @@ do_accept (const char *args)
              peer_name);
     return;
   }
-  GNUNET_assert (NULL != phone);
-  GNUNET_CONVERSATION_phone_pick_up (phone,
-                                     args,
-                                     speaker,
-                                     mic);
+  GNUNET_assert (NULL != cl_active);
+  GNUNET_CONVERSATION_caller_pick_up (cl_active->caller,
+                                      &caller_event_handler,
+                                      cl_active,
+                                      speaker,
+                                      mic);
   state = CS_ACCEPTED;
 }
 
@@ -604,14 +652,15 @@ do_reject (const char *args)
   }
   if (NULL == call)
   {
-    GNUNET_assert (NULL != phone);
-    GNUNET_CONVERSATION_phone_hang_up (phone,
-                                       args);
+#if 0
+    GNUNET_assert (NULL != caller);
+    GNUNET_CONVERSATION_caller_hang_up (caller);
+#endif
     state = CS_LISTEN;
   }
   else
   {
-    GNUNET_CONVERSATION_call_stop (call, args);
+    GNUNET_CONVERSATION_call_stop (call);
     call = NULL;
     start_phone ();
   }
@@ -699,7 +748,7 @@ do_stop_task (void *cls,
 {
   if (NULL != call)
   {
-    GNUNET_CONVERSATION_call_stop (call, NULL);
+    GNUNET_CONVERSATION_call_stop (call);
     call = NULL;
   }
   if (NULL != phone)

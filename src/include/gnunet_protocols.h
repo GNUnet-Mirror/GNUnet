@@ -2174,67 +2174,77 @@ extern "C"
 /**
  * Client -> Server message register a phone.
  */
-#define GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_REGISTER 730
+#define GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_REGISTER 731
 
 /**
  * Client -> Server message to reject/hangup a call
  */
-#define GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_PICK_UP 731
+#define GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_PICK_UP 732
 
 /**
  * Client -> Server message to reject/hangup a call
  */
-#define GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_HANG_UP 732
+#define GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_HANG_UP 733
 
 /**
  * Client <- Server message to indicate a ringing phone
  */
-#define GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_CALL 733
+#define GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_CALL 734
 
 /**
  * Client <- Server message to indicate a ringing phone
  */
-#define GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_RING 734
+#define GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_RING 735
+
+/**
+ * Client <-> Server message to suspend connection.
+ */
+#define GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_SUSPEND 736
+
+/**
+ * Client <-> Server message to resume connection.
+ */
+#define GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_RESUME 737
 
 /**
  * Client <-> Server message to send audio data.
  */
-#define GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_BUSY 735
+#define GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_PICKED_UP 738
 
 /**
  * Client <-> Server message to send audio data.
  */
-#define GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_PICKED_UP 736
-
-/**
- * Client <-> Server message to send audio data.
- */
-#define GNUNET_MESSAGE_TYPE_CONVERSATION_CS_AUDIO 737
+#define GNUNET_MESSAGE_TYPE_CONVERSATION_CS_AUDIO 739
 
 /**
  * Mesh: call initiation
  */
-#define GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_PHONE_RING 738
+#define GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_PHONE_RING 740
 
 /**
  * Mesh: hang up / refuse call
  */
-#define GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_PHONE_HANG_UP 739
+#define GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_PHONE_HANG_UP 741
 
 /**
  * Mesh: pick up phone (establish audio channel)
  */
-#define GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_PHONE_PICK_UP 740
+#define GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_PHONE_PICK_UP 742
 
 /**
- * Mesh: phone is busy (refuse nicely)
+ * Mesh: phone suspended.
  */
-#define GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_PHONE_BUSY 741
+#define GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_PHONE_SUSPEND 743
+
+/**
+ * Mesh: phone resumed.
+ */
+#define GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_PHONE_RESUME 744
 
 /**
  * Mesh: audio data
  */
-#define GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_AUDIO 742
+#define GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_AUDIO 745
 
 
 /*******************************************************************************
