@@ -158,12 +158,10 @@ main (int argc, char *const *argv)
   int ret;
   int r;
 
-  fprintf (stderr, "main()\n");
   r = GNUNET_SERVICE_run (argc, argv, "mesh", GNUNET_SERVICE_OPTION_NONE, &run,
                           NULL);
   GNUNET_free (my_private_key);
   ret = (GNUNET_OK == r) ? 0 : 1;
-  fprintf (stderr, "main() END\n");
 
   return ret;
 }

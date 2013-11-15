@@ -2282,6 +2282,10 @@ GMC_notify_broken (struct MeshConnection *c,
 {
   int fwd;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       " notify broken on %s due to %s disconnect\n",
+       GMC_2s (c), GMP_2s (peer));
+
   fwd = peer == get_prev_hop (c);
 
   if (GNUNET_YES == GMC_is_terminal (c, fwd))
