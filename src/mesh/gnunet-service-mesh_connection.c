@@ -380,6 +380,7 @@ connection_change_state (struct MeshConnection* c,
  *
  * @param cls Closure (FC).
  * @param c Connection this message was on.
+ * @param q Queue handler this call invalidates.
  * @param type Type of message sent.
  * @param fwd Was this a FWD going message?
  * @param size Size of the message.
@@ -919,6 +920,7 @@ connection_poll (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
  *
  * @param cls Closure (FC).
  * @param c Connection this message was on.
+ * @param q Queue handler this call invalidates.
  * @param type Type of message sent.
  * @param fwd Was this a FWD going message?
  * @param size Size of the message.

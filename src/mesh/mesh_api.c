@@ -16,7 +16,7 @@
 */
 
 /**
- * @file mesh/mesh_api_enc.c
+ * @file mesh/mesh_api.c
  * @brief mesh api: client implementation of new mesh service
  * @author Bartlomiej Polot
  */

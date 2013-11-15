@@ -19,7 +19,7 @@
 */
 
 /**
- * @file include/gnunet_mesh_service_enc.h
+ * @file include/gnunet_mesh_service.h
  * @brief mesh service; establish channels to distant peers
  * @author Christian Grothoff
  */
