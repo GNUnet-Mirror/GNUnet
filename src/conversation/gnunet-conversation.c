@@ -38,30 +38,37 @@
 
 
 /**
- * Possible states of the program.
+ * Possible states of the phone.
  */
-enum ConversationState
+enum PhoneState
 {
   /**
    * We're waiting for our own idenitty.
    */
-  CS_LOOKUP_EGO,
+  PS_LOOKUP_EGO,
 
   /**
    * We're listening for calls
    */
-  CS_LISTEN,
-
-  /**
-   * Our phone is ringing.
-   */
-  CS_RING,
+  PS_LISTEN,
 
   /**
    * We accepted an incoming phone call.
    */
-  CS_ACCEPTED,
+  PS_ACCEPTED,
 
+  /**
+   * Internal error
+   */
+  PS_ERROR
+};
+
+
+/**
+ * States for current outgoing call.
+ */
+enum CallState
+{
   /**
    * We are looking up some other participant.
    */
@@ -78,11 +85,12 @@ enum ConversationState
   CS_CONNECTED,
 
   /**
-   * Internal error
+   * The call is currently suspended (by us).
    */
-  CS_ERROR
+  CS_SUSPENDED
 
 };
+
 
 
 /**
@@ -109,13 +117,15 @@ struct CallList
   /**
    * String identifying the caller.
    */
-  const char *caller_id;
+  char *caller_id;
 
   /**
    * Unique number of the call.
    */
   unsigned int caller_num;
+
 };
+
 
 
 /**
@@ -194,9 +204,14 @@ static char *peer_name;
 static struct GNUNET_DISK_FileHandle *stdin_fh;
 
 /**
- * Our current state.
+ * Our phone's current state.
  */
-static enum ConversationState state;
+static enum PhoneState phone_state;
+
+/**
+ * Our call's current state.
+ */
+static enum CallState call_state;
 
 /**
  * Counts the number of incoming calls we have had so far.
@@ -228,21 +243,46 @@ phone_event_handler (void *cls,
                      struct GNUNET_CONVERSATION_Caller *caller,
                      const char *caller_id)
 {
+  struct CallList *cl;
+
   switch (code)
   {
   case GNUNET_CONVERSATION_EC_PHONE_RING:
-    // FIXME: update state!
     FPRINTF (stdout,
              _("Incoming call from `%s'.\nPlease /accept #%u or /cancel %u the call.\n"),
              caller_id,
              caller_num_gen,
              caller_num_gen);
+    cl = GNUNET_new (struct CallList);
+    cl->caller = caller;
+    cl->caller_id = GNUNET_strdup (caller_id);
+    cl->caller_num = caller_num_gen++;
+    GNUNET_CONTAINER_DLL_insert (cl_head,
+                                 cl_tail,
+                                 cl);
     break;
   case GNUNET_CONVERSATION_EC_PHONE_HUNG_UP:
-    // FIXME: update state!
+    for (cl = cl_head; NULL != cl; cl = cl->next)
+      if (caller == cl->caller)
+        break;
+    if (NULL == cl)
+    {
+      GNUNET_break (0);
+      return;
+    }
     FPRINTF (stdout,
-             _("Call terminated: %s\n"),
-             caller_id);
+             _("Call from `%s' terminated\n"),
+             cl->caller_id);
+    GNUNET_CONTAINER_DLL_remove (cl_head,
+                                 cl_tail,
+                                 cl);
+    GNUNET_free (cl->caller_id);
+    if (cl == cl_active)
+    {
+      cl_active = NULL;
+      phone_state = PS_LISTEN;
+    }
+    GNUNET_free (cl);
     break;
   }
 }
@@ -258,13 +298,19 @@ static void
 caller_event_handler (void *cls,
                       enum GNUNET_CONVERSATION_CallerEventCode code)
 {
+  struct CallList *cl = cls;
+
   switch (code)
   {
   case GNUNET_CONVERSATION_EC_CALLER_SUSPEND:
-    // FIXME: notify user!
+    FPRINTF (stdout,
+             _("Call from `%s' suspended by other user\n"),
+             cl->caller_id);
     break;
   case GNUNET_CONVERSATION_EC_CALLER_RESUME:
-    // FIXME: notify user!
+    FPRINTF (stdout,
+             _("Call from `%s' resumed by other user\n"),
+             cl->caller_id);
     break;
   }
 }
@@ -283,7 +329,7 @@ start_phone ()
     FPRINTF (stderr,
              _("Ego `%s' no longer available, phone is now down.\n"),
              ego_name);
-    state = CS_LOOKUP_EGO;
+    phone_state = PS_LOOKUP_EGO;
     return;
   }
   phone = GNUNET_CONVERSATION_phone_create (cfg,
@@ -295,7 +341,7 @@ start_phone ()
     FPRINTF (stderr,
              "%s",
              _("Failed to setup phone (internal error)\n"));
-    state = CS_ERROR;
+    phone_state = PS_ERROR;
   }
   else
   {
@@ -309,7 +355,7 @@ start_phone ()
       FPRINTF (stdout,
                _("Phone active on line %u\n"),
                (unsigned int) line);
-    state = CS_LISTEN;
+    phone_state = PS_LISTEN;
   }
 }
 
@@ -317,7 +363,7 @@ start_phone ()
 /**
  * Function called with an event emitted by a call.
  *
- * @param cls closure
+ * @param cls closure, NULL
  * @param code type of the event on the call
  */
 static void
@@ -327,42 +373,44 @@ call_event_handler (void *cls,
   switch (code)
   {
   case GNUNET_CONVERSATION_EC_CALL_RINGING:
-    GNUNET_break (CS_RESOLVING == state);
+    GNUNET_break (CS_RESOLVING == call_state);
     if (verbose)
       FPRINTF (stdout,
                "%s",
                _("Resolved address. Now ringing other party.\n"));
-    state = CS_RINGING;
+    call_state = CS_RINGING;
     break;
   case GNUNET_CONVERSATION_EC_CALL_PICKED_UP:
-    GNUNET_break (CS_RINGING == state);
+    GNUNET_break (CS_RINGING == call_state);
     FPRINTF (stdout,
              _("Connection established to `%s'\n"),
              peer_name);
-    state = CS_CONNECTED;
+    call_state = CS_CONNECTED;
     break;
   case GNUNET_CONVERSATION_EC_CALL_GNS_FAIL:
-    GNUNET_break (CS_RESOLVING == state);
+    GNUNET_break (CS_RESOLVING == call_state);
     FPRINTF (stdout,
              _("Failed to resolve `%s'\n"),
              ego_name);
     call = NULL;
-    state = CS_LISTEN;
     break;
   case GNUNET_CONVERSATION_EC_CALL_HUNG_UP:
     FPRINTF (stdout,
              "%s",
              _("Call terminated\n"));
     call = NULL;
-    state = CS_LISTEN;
     break;
   case GNUNET_CONVERSATION_EC_CALL_SUSPENDED:
-    // FIXME: notify user
-    // state = CS_SUSPENDED_CALL;
+    GNUNET_break (CS_CONNECTED == call_state);
+    FPRINTF (stdout,
+             _("Connection to `%s' suspended (by other user)\n"),
+             peer_name);
     break;
   case GNUNET_CONVERSATION_EC_CALL_RESUMED:
-    // FIXME: notify user
-    // state = CS_CONNECTED;
+    GNUNET_break (CS_CONNECTED == call_state);
+    FPRINTF (stdout,
+             _("Connection to `%s' resumed (by other user)\n"),
+             peer_name);
     break;
   }
 }
@@ -448,63 +496,40 @@ do_call (const char *arg)
              ego_name);
     return;
   }
-  switch (state)
+  if (NULL != call)
   {
-  case CS_LOOKUP_EGO:
+    FPRINTF (stderr,
+             _("You are calling someone else already, hang up first!\n"));
+    return;
+  }
+  switch (phone_state)
+  {
+  case PS_LOOKUP_EGO:
     FPRINTF (stderr,
              _("Ego `%s' not available\n"),
              ego_name);
     return;
-  case CS_LISTEN:
+  case PS_LISTEN:
     /* ok to call! */
     break;
-  case CS_RING:
-    FPRINTF (stdout,
-             _("Hanging up on incoming phone call from `%s' to call `%s'.\n"),
-             peer_name,
-             arg);
-    // GNUNET_CONVERSATION_caller_hang_up (caller);
-    break;
-  case CS_ACCEPTED:
+  case PS_ACCEPTED:
     FPRINTF (stderr,
-             _("You are already in a conversation with `%s', refusing to call `%s'.\n"),
-             peer_name,
-             arg);
-    return;
-  case CS_RESOLVING:
-  case CS_RINGING:
-    FPRINTF (stderr,
-             _("Aborting call to `%s'\n"),
+             _("You are answering call from `%s', hang up or suspend that call first!\n"),
              peer_name);
-    // GNUNET_CONVERSATION_caller_hang_up (caller);
-    // GNUNET_CONVERSATION_call_stop (call);
-    call = NULL;
-    break;
-  case CS_CONNECTED:
-    FPRINTF (stderr,
-             _("You are already in a conversation with `%s', refusing to call `%s'.\n"),
-             peer_name,
-             arg);
     return;
-  case CS_ERROR:
+  case PS_ERROR:
     /* ok to call */
     break;
   }
-  GNUNET_assert (NULL == call);
-  if (NULL != phone)
-  {
-    GNUNET_CONVERSATION_phone_destroy (phone);
-    phone = NULL;
-  }
   GNUNET_free_non_null (peer_name);
   peer_name = GNUNET_strdup (arg);
+  call_state = CS_RESOLVING;
   call = GNUNET_CONVERSATION_call_start (cfg,
                                          caller_id,
                                          arg,
                                          speaker,
                                          mic,
                                          &call_event_handler, NULL);
-  state = CS_RESOLVING;
 }
 
 
@@ -516,41 +541,67 @@ do_call (const char *arg)
 static void
 do_accept (const char *args)
 {
-  switch (state)
+  struct CallList *cl;
+  char buf[32];
+
+  if ( (NULL != call) &&
+       (CS_SUSPENDED != call_state) )
   {
-  case CS_LOOKUP_EGO:
-  case CS_LISTEN:
-  case CS_ERROR:
     FPRINTF (stderr,
-             _("There is no incoming call to be accepted!\n"));
-    return;
-  case CS_RING:
-    /* this is the expected state */
-    break;
-  case CS_ACCEPTED:
-    FPRINTF (stderr,
-             _("You are already in a conversation with `%s'.\n"),
-             peer_name);
-    return;
-  case CS_RESOLVING:
-  case CS_RINGING:
-    FPRINTF (stderr,
-             _("You are trying to call `%s', cannot accept incoming calls right now.\n"),
-             peer_name);
-    return;
-  case CS_CONNECTED:
-    FPRINTF (stderr,
-             _("You are already in a conversation with `%s'.\n"),
-             peer_name);
+             _("You are calling someone else already, hang up first!\n"));
     return;
   }
-  GNUNET_assert (NULL != cl_active);
-  GNUNET_CONVERSATION_caller_pick_up (cl_active->caller,
+  switch (phone_state)
+  {
+  case PS_LOOKUP_EGO:
+    GNUNET_break (0);
+    break;
+  case PS_LISTEN:
+    /* this is the expected state */
+    break;
+  case PS_ACCEPTED:
+    FPRINTF (stderr,
+             _("You are answering call from `%s', hang up or suspend that call first!\n"),
+             peer_name);
+    return;
+  case PS_ERROR:
+    GNUNET_break (0);
+    break;
+  }
+  cl = cl_head;
+  if (NULL == cl)
+  {
+    FPRINTF (stderr,
+             _("There is no incoming call to accept here!\n"));
+    return;
+  }
+  if ( (NULL != cl->next) || (NULL != args) )
+  {
+    for (cl = cl_head; NULL != cl; cl = cl->next)
+    {
+      GNUNET_snprintf (buf, sizeof (buf),
+                       "%u",
+                       cl->caller_num);
+      if (0 == strcmp (buf, args))
+        break;
+    }
+  }
+  if (NULL == cl)
+  {
+    FPRINTF (stderr,
+             _("There is no incoming call `%s' to accept right now!\n"),
+             args);
+    return;
+  }
+  cl_active = cl;
+  GNUNET_free_non_null (peer_name);
+  peer_name = GNUNET_strdup (cl->caller_id);
+  phone_state = PS_ACCEPTED;
+  GNUNET_CONVERSATION_caller_pick_up (cl->caller,
                                       &caller_event_handler,
-                                      cl_active,
+                                      cl,
                                       speaker,
                                       mic);
-  state = CS_ACCEPTED;
 }
 
 
@@ -583,45 +634,201 @@ do_address (const char *args)
 static void
 do_status (const char *args)
 {
-  switch (state)
+  struct CallList *cl;
+
+  switch (phone_state)
   {
-  case CS_LOOKUP_EGO:
+  case PS_LOOKUP_EGO:
     FPRINTF (stdout,
              _("We are currently trying to locate the private key for the ego `%s'.\n"),
              ego_name);
     break;
-  case CS_LISTEN:
+  case PS_LISTEN:
     FPRINTF (stdout,
              _("We are listening for incoming calls for ego `%s' on line %u.\n"),
              ego_name,
              line);
     break;
-  case CS_RING:
-    FPRINTF (stdout,
-             _("The phone is rining. `%s' is trying to call us.\n"),
-             peer_name);
-    break;
-  case CS_ACCEPTED:
-  case CS_CONNECTED:
+  case PS_ACCEPTED:
     FPRINTF (stdout,
              _("You are having a conversation with `%s'.\n"),
              peer_name);
     break;
-  case CS_RESOLVING:
-    FPRINTF (stdout,
-             _("We are trying to find the network address to call `%s'.\n"),
-             peer_name);
-    break;
-  case CS_RINGING:
-    FPRINTF (stdout,
-             _("We are calling `%s', his phone should be ringing.\n"),
-             peer_name);
-    break;
-  case CS_ERROR:
+  case PS_ERROR:
     FPRINTF (stdout,
              _("We had an internal error setting up our phone line. You can still make calls.\n"));
     break;
   }
+  if (NULL != call)
+  {
+    switch (call_state)
+    {
+    case CS_RESOLVING:
+      FPRINTF (stdout,
+               _("We are trying to find the network address to call `%s'.\n"),
+               peer_name);
+      break;
+    case CS_RINGING:
+      FPRINTF (stdout,
+               _("We are calling `%s', his phone should be ringing.\n"),
+               peer_name);
+      break;
+    case CS_CONNECTED:
+      FPRINTF (stdout,
+               _("You are having a conversation with `%s'.\n"),
+               peer_name);
+      break;
+    case CS_SUSPENDED:
+      /* ok to accept incoming call right now */
+      break;
+    }
+  }
+  if ( (NULL != cl_head) &&
+       ( (cl_head != cl_active) ||
+         (cl_head != cl_tail) ) )
+  {
+    FPRINTF (stdout,
+             "%s",
+             _("Calls waiting:\n"));
+    for (cl = cl_head; NULL != cl; cl = cl->next)
+    {
+      if (cl == cl_active)
+        continue;
+      FPRINTF (stdout,
+               _("#%u: `%s'\n"),
+               cl->caller_num,
+               cl->caller_id);
+    }
+    FPRINTF (stdout,
+             "%s",
+             "\n");
+  }
+}
+
+
+/**
+ * Suspending a call
+ *
+ * @param args arguments given to the command
+ */
+static void
+do_suspend (const char *args)
+{
+  if (NULL != call)
+  {
+    switch (call_state)
+    {
+    case CS_RESOLVING:
+    case CS_RINGING:
+    case CS_SUSPENDED:
+      FPRINTF (stderr,
+               "%s",
+               _("There is no call that could be suspended right now.\n"));
+      return;
+    case CS_CONNECTED:
+      call_state = CS_SUSPENDED;
+      GNUNET_CONVERSATION_call_suspend (call);
+      return;
+    }
+  }
+  switch (phone_state)
+  {
+  case PS_LOOKUP_EGO:
+  case PS_LISTEN:
+  case PS_ERROR:
+    FPRINTF (stderr,
+             "%s",
+             _("There is no call that could be suspended right now.\n"));
+    return;
+  case PS_ACCEPTED:
+    /* expected state, do rejection logic */
+    break;
+  }
+  GNUNET_assert (NULL != cl_active);
+  GNUNET_CONVERSATION_caller_suspend (cl_active->caller);
+  cl_active = NULL;
+  phone_state = PS_LISTEN;
+}
+
+
+/**
+ * Resuming a call
+ *
+ * @param args arguments given to the command
+ */
+static void
+do_resume (const char *args)
+{
+  struct CallList *cl;
+  char buf[32];
+
+  if (NULL != call)
+  {
+    switch (call_state)
+    {
+    case CS_RESOLVING:
+    case CS_RINGING:
+    case CS_CONNECTED:
+      FPRINTF (stderr,
+               "%s",
+               _("There is no call that could be resumed right now.\n"));
+      return;
+    case CS_SUSPENDED:
+      call_state = CS_CONNECTED;
+      GNUNET_CONVERSATION_call_resume (call,
+                                       speaker,
+                                       mic);
+      return;
+    }
+  }
+  switch (phone_state)
+  {
+  case PS_LOOKUP_EGO:
+  case PS_ERROR:
+    FPRINTF (stderr,
+             "%s",
+             _("There is no call that could be suspended right now.\n"));
+    return;
+  case PS_LISTEN:
+    /* expected state, do resume logic */
+    break;
+  case PS_ACCEPTED:
+    FPRINTF (stderr,
+             _("Already talking with `%s', cannot resume a call right now.\n"),
+             peer_name);
+    return;
+  }
+  GNUNET_assert (NULL == cl_active);
+  cl = cl_head;
+  if (NULL == cl)
+  {
+    FPRINTF (stderr,
+             _("There is no incoming call to resume here!\n"));
+    return;
+  }
+  if ( (NULL != cl->next) || (NULL != args) )
+  {
+    for (cl = cl_head; NULL != cl; cl = cl->next)
+    {
+      GNUNET_snprintf (buf, sizeof (buf),
+                       "%u",
+                       cl->caller_num);
+      if (0 == strcmp (buf, args))
+        break;
+    }
+  }
+  if (NULL == cl)
+  {
+    FPRINTF (stderr,
+             _("There is no incoming call `%s' to resume right now!\n"),
+             args);
+    return;
+  }
+  cl_active = cl;
+  GNUNET_CONVERSATION_caller_resume (cl_active->caller,
+                                     speaker,
+                                     mic);
+  phone_state = PS_ACCEPTED;
 }
 
 
@@ -633,37 +840,29 @@ do_status (const char *args)
 static void
 do_reject (const char *args)
 {
-  switch (state)
+  if (NULL != call)
   {
-  case CS_LOOKUP_EGO:
-  case CS_LISTEN:
-  case CS_ERROR:
+    GNUNET_CONVERSATION_call_stop (call);
+    call = NULL;
+    return;
+  }
+  switch (phone_state)
+  {
+  case PS_LOOKUP_EGO:
+  case PS_LISTEN:
+  case PS_ERROR:
     FPRINTF (stderr,
              "%s",
              _("There is no call that could be cancelled right now.\n"));
     return;
-  case CS_RING:
-  case CS_ACCEPTED:
-  case CS_RESOLVING:
-  case CS_RINGING:
-  case CS_CONNECTED:
+  case PS_ACCEPTED:
     /* expected state, do rejection logic */
     break;
   }
-  if (NULL == call)
-  {
-#if 0
-    GNUNET_assert (NULL != caller);
-    GNUNET_CONVERSATION_caller_hang_up (caller);
-#endif
-    state = CS_LISTEN;
-  }
-  else
-  {
-    GNUNET_CONVERSATION_call_stop (call);
-    call = NULL;
-    start_phone ();
-  }
+  GNUNET_assert (NULL != cl_active);
+  GNUNET_CONVERSATION_caller_hang_up (cl_active->caller);
+  cl_active = NULL;
+  phone_state = PS_LISTEN;
 }
 
 
@@ -676,9 +875,13 @@ static struct VoipCommand commands[] = {
   {"/call", &do_call,
    gettext_noop ("Use `/call USER.gnu' to call USER")},
   {"/accept", &do_accept,
-   gettext_noop ("Use `/accept MESSAGE' to accept an incoming call")},
+   gettext_noop ("Use `/accept #NUM' to accept incoming call #NUM")},
+  {"/suspend", &do_suspend,
+   gettext_noop ("Use `/suspend' to suspend the active call")},
+  {"/resume", &do_resume,
+   gettext_noop ("Use `/resume [#NUM]' to resume a call, #NUM is needed to resume incoming calls, no argument is needed to resume the current outgoing call.")},
   {"/cancel", &do_reject,
-   gettext_noop ("Use `/cancel MESSAGE' to reject or terminate a call")},
+   gettext_noop ("Use `/cancel' to reject or terminate a call")},
   {"/status", &do_status,
    gettext_noop ("Use `/status' to print status information")},
   {"/quit", &do_quit,
@@ -775,7 +978,7 @@ do_stop_task (void *cls,
   GNUNET_CONFIGURATION_destroy (cfg);
   cfg = NULL;
   GNUNET_free_non_null (peer_name);
-  state = CS_ERROR;
+  phone_state = PS_ERROR;
 }
 
 
