@@ -277,28 +277,29 @@ core_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
 static void
 core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
-  struct MeshPeer *pi;
+  struct MeshPeer *p;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Peer disconnected\n");
-  pi = GNUNET_CONTAINER_multipeermap_get (peers, peer);
-  if (NULL == pi)
+  p = GNUNET_CONTAINER_multipeermap_get (peers, peer);
+  if (NULL == p)
   {
     GNUNET_break (0);
     return;
   }
-
-  GNUNET_CONTAINER_multihashmap_iterate (pi->connections, &notify_broken, pi);
-  GNUNET_CONTAINER_multihashmap_destroy (pi->connections);
-  pi->connections = NULL;
-  if (NULL != pi->core_transmit)
-    {
-      GNUNET_CORE_notify_transmit_ready_cancel (pi->core_transmit);
-      pi->core_transmit = NULL;
-    }
-  if (myid == pi->id)
-  {
+  if (myid == p->id)
     LOG (GNUNET_ERROR_TYPE_DEBUG, "     (self)\n");
-  }
+  else
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "     %s\n", GMP_2s (p));
+
+
+  GNUNET_CONTAINER_multihashmap_iterate (p->connections, &notify_broken, p);
+  GNUNET_CONTAINER_multihashmap_destroy (p->connections);
+  p->connections = NULL;
+  if (NULL != p->core_transmit)
+    {
+      GNUNET_CORE_notify_transmit_ready_cancel (p->core_transmit);
+      p->core_transmit = NULL;
+    }
   GNUNET_STATISTICS_update (stats, "# peers", -1, GNUNET_NO);
 
   return;
@@ -1599,7 +1600,7 @@ GMP_remove_connection (struct MeshPeer *peer,
   if (NULL == peer || NULL == peer->connections)
   {
     GNUNET_break (0);
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
+    LOG (GNUNET_ERROR_TYPE_WARNING,
          "Peer %s is not a neighbor!\n",
          GMP_2s (peer));
     return GNUNET_SYSERR;
