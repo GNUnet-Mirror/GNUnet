@@ -1863,12 +1863,6 @@ GMT_unchoke_channels (struct MeshTunnel3 *t)
   if (NULL != t->channel_head)
     LOG (GNUNET_ERROR_TYPE_DEBUG, " head ch: %p\n", t->channel_head->ch);
 
-  if (NULL == t)
-  {
-    GNUNET_break (0);
-    return;
-  }
-
   /* Get buffer space */
   buffer = GMT_get_connections_buffer (t);
   if (0 == buffer)
