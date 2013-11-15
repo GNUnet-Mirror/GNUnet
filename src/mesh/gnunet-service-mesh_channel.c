@@ -1175,34 +1175,6 @@ GMCH_send_destroy (struct MeshChannel *ch)
 
 
 /**
- * Send data on a channel.
- *
- * If the destination is local, send it to client, otherwise encrypt and
- * send to next hop.
- *
- * @param ch Channel
- * @param msg Message.
- * @param fwd Is this a fwd (root->dest) message?
- */
-void
-GMCH_send_data (struct MeshChannel *ch,
-                const struct GNUNET_MESH_Data *msg,
-                int fwd)
-{
-  if (GMCH_is_terminal (ch, fwd))
-  {
-    GML_send_data (fwd ? ch->dest : ch->root,
-                   msg,
-                   fwd ? ch->lid_dest : ch->lid_root);
-  }
-  else
-  {
-    GMT_send_prebuilt_message (&msg->header, ch->t, ch, fwd, NULL, NULL);
-  }
-}
-
-
-/**
  * Send an end-to-end ACK message for the most recent in-sequence payload.
  *
  * If channel is not reliable, do nothing.

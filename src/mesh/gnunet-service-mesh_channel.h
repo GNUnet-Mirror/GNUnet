@@ -120,21 +120,6 @@ int
 GMCH_is_terminal (struct MeshChannel *ch, int fwd);
 
 /**
- * Send data on a channel.
- *
- * If the destination is local, send it to client, otherwise encrypt and
- * send to next hop.
- *
- * @param ch Channel
- * @param msg Message.
- * @param fwd Is this a fwd (root->dest) message?
- */
-void
-GMCH_send_data (struct MeshChannel *ch,
-                const struct GNUNET_MESH_Data *msg,
-                int fwd);
-
-/**
  * Send an end-to-end ACK message for the most recent in-sequence payload.
  *
  * If channel is not reliable, do nothing.
