@@ -624,6 +624,7 @@ reconnect_phone (struct GNUNET_CONVERSATION_Phone *phone)
  * @param ego ego to use for name resolution (when determining caller ID)
  * @param event_handler how to notify the owner of the phone about events
  * @param event_handler_cls closure for @a event_handler
+ * @return NULL on error (no valid line configured)
  */
 struct GNUNET_CONVERSATION_Phone *
 GNUNET_CONVERSATION_phone_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
@@ -639,6 +640,8 @@ GNUNET_CONVERSATION_phone_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                              "CONVERSATION",
                                              "LINE",
                                              &line))
+    return NULL;
+  if (line >= (1 << 31))
     return NULL;
   phone = GNUNET_new (struct GNUNET_CONVERSATION_Phone);
   if (GNUNET_OK !=
