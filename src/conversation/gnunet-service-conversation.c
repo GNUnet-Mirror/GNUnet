@@ -369,6 +369,8 @@ destroy_line_mesh_channels (struct Channel *ch)
   struct Line *line = ch->line;
   struct GNUNET_MESH_Channel *t;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Destroying mesh channels\n");
   if (NULL != ch->reliable_mq)
   {
     GNUNET_MQ_destroy (ch->reliable_mq);
@@ -1322,7 +1324,11 @@ inbound_end (void *cls,
   struct ClientPhoneHangupMessage hup;
 
   if (NULL == ch)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Mesh channel destroyed, but channel is unknown to us\n");
     return;
+  }
   line = ch->line;
   if (ch->channel_unreliable == channel)
   {
@@ -1332,10 +1338,15 @@ inbound_end (void *cls,
       ch->unreliable_mth = NULL;
     }
     ch->channel_unreliable = NULL;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Unreliable channel destroyed\n");
     return;
   }
   if (ch->channel_reliable != channel)
+  {
+    /* recursive call, I'm the one destroying 'ch' right now */
     return;
+  }
   ch->channel_reliable = NULL;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

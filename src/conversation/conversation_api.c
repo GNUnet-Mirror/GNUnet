@@ -553,10 +553,8 @@ phone_error_handler (void *cls,
 {
   struct GNUNET_CONVERSATION_Phone *phone = cls;
 
-  GNUNET_break (0);
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-              _("Internal MQ error %d\n"),
-              error);
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              _("Connection to conversation service lost, trying to reconnect\n"));
   reconnect_phone (phone);
 }
 
