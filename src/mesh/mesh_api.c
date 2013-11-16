@@ -1710,7 +1710,6 @@ mesh_mq_ntr (void *cls, size_t size,
   GNUNET_assert (msize <= size);
   memcpy (buf, msg, msize);
   GNUNET_MQ_impl_send_continue (mq);
-  GNUNET_MQ_impl_send_commit (mq);
   return msize;
 }
 

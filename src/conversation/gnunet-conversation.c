@@ -787,7 +787,7 @@ do_resume (const char *args)
   case PS_ERROR:
     FPRINTF (stderr,
              "%s",
-             _("There is no call that could be suspended right now.\n"));
+             _("There is no call that could be resumed right now.\n"));
     return;
   case PS_LISTEN:
     /* expected state, do resume logic */
@@ -1054,6 +1054,8 @@ handle_command (void *cls,
   ptr = &message[strlen (commands[i].command)];
   while (isspace ((int) *ptr))
     ptr++;
+  if ('\0' == ptr)
+    ptr = NULL;
   commands[i].Action (ptr);
 }
 

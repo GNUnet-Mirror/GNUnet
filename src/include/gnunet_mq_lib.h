@@ -389,9 +389,9 @@ GNUNET_MQ_queue_for_callbacks (GNUNET_MQ_SendImpl send,
 
 
 /**
- * Replace the handlers of a message queue with new handlers.
- * Takes effect immediately, even for messages that already have been received, but for
- * with the handler has not been called.
+ * Replace the handlers of a message queue with new handlers.  Takes
+ * effect immediately, even for messages that already have been
+ * received, but for with the handler has not been called.
  *
  * If the message queue does not support receiving messages,
  * this function has no effect.
@@ -505,16 +505,6 @@ GNUNET_MQ_impl_current (struct GNUNET_MQ_Handle *mq);
 void *
 GNUNET_MQ_impl_state (struct GNUNET_MQ_Handle *mq);
 
-
-/**
- * Mark the current message as irrevocably sent, but do not
- * proceed with sending the next message.
- * Will call the appropriate GNUNET_MQ_NotifyCallback, if any.
- *
- * @param mq message queue
- */
-void
-GNUNET_MQ_impl_send_commit (struct GNUNET_MQ_Handle *mq);
 
 /** @} */ /* end of group mq */
 

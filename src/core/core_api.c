@@ -1424,7 +1424,6 @@ core_mq_ntr (void *cls, size_t size,
     return 0;
   }
   memcpy (buf, mh, msg_size);
-  GNUNET_MQ_impl_send_commit (mq);
   GNUNET_MQ_impl_send_continue (mq);
   return msg_size;
 }
@@ -1448,7 +1447,7 @@ core_mq_send (struct GNUNET_MQ_Handle *mq,
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "core-mq", "Sending queued message (size %u)\n",
              ntohs (msg->size));
   mqs->th = GNUNET_CORE_notify_transmit_ready (mqs->core, GNUNET_YES, 0,
-                                               GNUNET_TIME_UNIT_FOREVER_REL, 
+                                               GNUNET_TIME_UNIT_FOREVER_REL,
                                                &mqs->target,
                                                ntohs (msg->size), core_mq_ntr, mq);
 }
@@ -1459,7 +1458,7 @@ core_mq_send (struct GNUNET_MQ_Handle *mq,
  * destruction of a message queue.
  * Implementations must not free @a mq, but should
  * take care of @a impl_state.
- * 
+ *
  * @param mq the message queue to destroy
  * @param impl_state state of the implementation
  */
@@ -1478,7 +1477,7 @@ core_mq_destroy (struct GNUNET_MQ_Handle *mq, void *impl_state)
 
 /**
  * Implementation function that cancels the currently sent message.
- * 
+ *
  * @param mq message queue
  * @param impl_state state specific to the implementation
  */
