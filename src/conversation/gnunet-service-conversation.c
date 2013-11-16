@@ -982,6 +982,7 @@ handle_mesh_hangup_message (void *cls,
   hup.header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_HANG_UP);
   hup.cid = ch->cid;
   status = ch->status;
+  GNUNET_MESH_receive_done (channel);
   destroy_line_mesh_channels (ch);
   switch (status)
   {
@@ -1002,7 +1003,6 @@ handle_mesh_hangup_message (void *cls,
                                               line->client,
                                               &hup.header,
                                               GNUNET_NO);
-  GNUNET_MESH_receive_done (channel);
   return GNUNET_OK;
 }
 
