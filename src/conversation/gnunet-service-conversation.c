@@ -978,7 +978,7 @@ handle_mesh_hangup_message (void *cls,
   }
   line = ch->line;
   *channel_ctx = NULL;
-  hup.header.size = sizeof (hup);
+  hup.header.size = htons (sizeof (hup));
   hup.header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_HANG_UP);
   hup.cid = ch->cid;
   status = ch->status;
@@ -1057,7 +1057,7 @@ handle_mesh_pickup_message (void *cls,
     mq_done_finish_caller_shutdown (ch);
     return GNUNET_SYSERR;
   }
-  pick.header.size = sizeof (pick);
+  pick.header.size = htons (sizeof (pick));
   pick.header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_PICKED_UP);
   pick.cid = ch->cid;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1107,7 +1107,7 @@ handle_mesh_suspend_message (void *cls,
     return GNUNET_SYSERR;
   }
   line = ch->line;
-  suspend.header.size = sizeof (suspend);
+  suspend.header.size = htons (sizeof (suspend));
   suspend.header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_SUSPEND);
   suspend.cid = ch->cid;
   GNUNET_MESH_receive_done (channel);
@@ -1165,7 +1165,7 @@ handle_mesh_resume_message (void *cls,
     return GNUNET_SYSERR;
   }
   line = ch->line;
-  resume.header.size = sizeof (resume);
+  resume.header.size = htons (sizeof (resume));
   resume.header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_RESUME);
   resume.cid = ch->cid;
   GNUNET_MESH_receive_done (channel);
@@ -1341,7 +1341,7 @@ inbound_end (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Mesh channel destroyed by mesh in state %d\n",
               ch->status);
-  hup.header.size = sizeof (hup);
+  hup.header.size = htons (sizeof (hup));
   hup.header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_HANG_UP);
   hup.cid = ch->cid;
   switch (ch->status)

@@ -332,6 +332,7 @@ start_phone ()
     phone_state = PS_LOOKUP_EGO;
     return;
   }
+  GNUNET_assert (NULL == phone);
   phone = GNUNET_CONVERSATION_phone_create (cfg,
                                             caller_id,
                                             &phone_event_handler, NULL);
@@ -374,10 +375,9 @@ call_event_handler (void *cls,
   {
   case GNUNET_CONVERSATION_EC_CALL_RINGING:
     GNUNET_break (CS_RESOLVING == call_state);
-    if (verbose)
-      FPRINTF (stdout,
-               "%s",
-               _("Resolved address. Now ringing other party.\n"));
+    FPRINTF (stdout,
+             _("Resolved address of `%s'. Now ringing other party.\n"),
+             peer_name);
     call_state = CS_RINGING;
     break;
   case GNUNET_CONVERSATION_EC_CALL_PICKED_UP:
@@ -524,6 +524,7 @@ do_call (const char *arg)
   GNUNET_free_non_null (peer_name);
   peer_name = GNUNET_strdup (arg);
   call_state = CS_RESOLVING;
+  GNUNET_assert (NULL == call);
   call = GNUNET_CONVERSATION_call_start (cfg,
                                          caller_id,
                                          arg,
@@ -1011,8 +1012,6 @@ do_stop_task (void *cls,
   mic = NULL;
   GNUNET_free (ego_name);
   ego_name = NULL;
-  GNUNET_CONFIGURATION_destroy (cfg);
-  cfg = NULL;
   GNUNET_free_non_null (peer_name);
   phone_state = PS_ERROR;
 }
@@ -1175,6 +1174,11 @@ main (int argc, char *const *argv)
 			    gettext_noop ("Enables having a conversation with other GNUnet users."),
 			    options, &run, NULL);
   GNUNET_free ((void *) argv);
+  if (NULL != cfg)
+  {
+    GNUNET_CONFIGURATION_destroy (cfg);
+    cfg = NULL;
+  }
   return (GNUNET_OK == ret) ? 0 : 1;
 }
 
