@@ -1408,6 +1408,19 @@ static void
 do_shutdown (void *cls,
              const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  struct Line *line;
+  struct Channel *ch;
+
+  while (NULL != (line = lines_head))
+  {
+    while (NULL != (ch = line->channel_head))
+      destroy_line_mesh_channels (ch);
+    GNUNET_CONTAINER_DLL_remove (lines_head,
+                                 lines_tail,
+                                 line);
+    GNUNET_SERVER_client_set_user_context (line->client, (void *) NULL);
+    GNUNET_free (line);
+  }
   if (NULL != mesh)
   {
     GNUNET_MESH_disconnect (mesh);
