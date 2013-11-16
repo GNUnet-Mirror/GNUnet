@@ -881,13 +881,13 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
   unsigned int i;
   uint16_t type;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Got a data message!\n");
-
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Got a data message!\n");
   dmsg = (struct GNUNET_MESH_LocalData *) message;
-
   ch = retrieve_channel (h, ntohl (dmsg->id));
   payload = (struct GNUNET_MessageHeader *) &dmsg[1];
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  %s data on channel %s [%X]\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "  %s data on channel %s [%X]\n",
        ch->chid >= GNUNET_MESH_LOCAL_CHANNEL_ID_SERV ? "fwd" : "bck",
        GNUNET_i2s (GNUNET_PEER_resolve2 (ch->peer)), ntohl (dmsg->id));
   if (NULL == ch)
@@ -917,6 +917,7 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
       {
         LOG (GNUNET_ERROR_TYPE_DEBUG,
              "callback completed successfully\n");
+        return;
       }
     }
   }
