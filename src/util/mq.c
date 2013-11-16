@@ -126,6 +126,11 @@ struct GNUNET_MQ_Handle
   struct GNUNET_CONTAINER_MultiHashMap32 *assoc_map;
 
   /**
+   * Task scheduled during #GNUNET_MQ_impl_send_continue.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier continue_task;
+
+  /**
    * Next id that should be used for the assoc_map,
    * initialized lazily to a random value together with
    * assoc_map
@@ -249,18 +254,21 @@ GNUNET_MQ_send (struct GNUNET_MQ_Handle *mq, struct GNUNET_MQ_Envelope *ev)
 
 
 /**
- * Call the send implementation for the next queued message,
- * if any.
- * Only useful for implementing message queues,
+ * Task run to call the send implementation for the next queued
+ * message, if any.  Only useful for implementing message queues,
  * results in undefined behavior if not used carefully.
  *
- * @param mq message queue to send the next message with
+ * @param cls message queue to send the next message with
+ * @param tc scheduler context
  */
-void
-GNUNET_MQ_impl_send_continue (struct GNUNET_MQ_Handle *mq)
+static void
+impl_send_continue (void *cls,
+                    const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  struct GNUNET_MQ_Handle *mq = cls;
   struct GNUNET_MQ_Envelope *current_envelope;
 
+  mq->continue_task = GNUNET_SCHEDULER_NO_TASK;
   /* call is only valid if we're actually currently sending
    * a message */
   current_envelope = mq->current_envelope;
@@ -280,6 +288,23 @@ GNUNET_MQ_impl_send_continue (struct GNUNET_MQ_Handle *mq)
   if (NULL != current_envelope->sent_cb)
     current_envelope->sent_cb (current_envelope->sent_cls);
   GNUNET_free (current_envelope);
+}
+
+
+/**
+ * Call the send implementation for the next queued message,
+ * if any.
+ * Only useful for implementing message queues,
+ * results in undefined behavior if not used carefully.
+ *
+ * @param mq message queue to send the next message with
+ */
+void
+GNUNET_MQ_impl_send_continue (struct GNUNET_MQ_Handle *mq)
+{
+  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == mq->continue_task);
+  mq->continue_task = GNUNET_SCHEDULER_add_now (&impl_send_continue,
+                                                mq);
 }
 
 
@@ -435,7 +460,6 @@ transmit_queued (void *cls, size_t size,
 }
 
 
-
 static void
 server_client_destroy_impl (struct GNUNET_MQ_Handle *mq,
                             void *impl_state)
@@ -447,6 +471,7 @@ server_client_destroy_impl (struct GNUNET_MQ_Handle *mq,
   GNUNET_SERVER_client_drop (state->client);
   GNUNET_free (state);
 }
+
 
 static void
 server_client_send_impl (struct GNUNET_MQ_Handle *mq,
@@ -513,13 +538,14 @@ handle_client_message (void *cls,
  * Transmit a queued message to the session's client.
  *
  * @param cls consensus session
- * @param size number of bytes available in buf
+ * @param size number of bytes available in @a buf
  * @param buf where the callee should write the message
  * @return number of bytes written to buf
  */
 static size_t
-connection_client_transmit_queued (void *cls, size_t size,
-                 void *buf)
+connection_client_transmit_queued (void *cls,
+                                   size_t size,
+                                   void *buf)
 {
   struct GNUNET_MQ_Handle *mq = cls;
   const struct GNUNET_MessageHeader *msg;
@@ -555,12 +581,12 @@ connection_client_transmit_queued (void *cls, size_t size,
 }
 
 
-
 static void
 connection_client_destroy_impl (struct GNUNET_MQ_Handle *mq, void *impl_state)
 {
   GNUNET_free (impl_state);
 }
+
 
 static void
 connection_client_send_impl (struct GNUNET_MQ_Handle *mq,
@@ -641,7 +667,6 @@ GNUNET_MQ_assoc_add (struct GNUNET_MQ_Handle *mq,
 }
 
 
-
 void *
 GNUNET_MQ_assoc_get (struct GNUNET_MQ_Handle *mq, uint32_t request_id)
 {
@@ -681,7 +706,11 @@ GNUNET_MQ_destroy (struct GNUNET_MQ_Handle *mq)
   {
     mq->destroy_impl (mq, mq->impl_state);
   }
-
+  if (GNUNET_SCHEDULER_NO_TASK != mq->continue_task)
+  {
+    GNUNET_SCHEDULER_cancel (mq->continue_task);
+    mq->continue_task = GNUNET_SCHEDULER_NO_TASK;
+  }
   while (NULL != mq->envelope_head)
   {
     struct GNUNET_MQ_Envelope *ev;

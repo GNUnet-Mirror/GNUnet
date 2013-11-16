@@ -261,7 +261,7 @@ handle_caller_name (void *cls,
   if (NULL == label)
     name = GNUNET_strdup (GNUNET_GNSRECORD_pkey_to_zkey (&caller->caller_id));
   else
-    GNUNET_asprintf (&name, "%.gnu", label);
+    GNUNET_asprintf (&name, "%s.gnu", label);
   caller->caller_id_str = name;
   caller->state = CS_RINGING;
   phone->event_handler (phone->event_handler_cls,
