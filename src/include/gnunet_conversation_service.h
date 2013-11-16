@@ -242,7 +242,7 @@ GNUNET_CONVERSATION_caller_pick_up (struct GNUNET_CONVERSATION_Caller *caller,
  * and the microphone.  The call can later be resumed with
  * #GNUNET_CONVERSATION_caller_resume.
  *
- * @param phone phone to pause
+ * @param caller call to suspend
  */
 void
 GNUNET_CONVERSATION_caller_suspend (struct GNUNET_CONVERSATION_Caller *caller);
@@ -251,7 +251,7 @@ GNUNET_CONVERSATION_caller_suspend (struct GNUNET_CONVERSATION_Caller *caller);
 /**
  * Resume suspended conversation of a phone.
  *
- * @param phone phone to resume
+ * @param caller call to resume
  * @param speaker speaker to use
  * @param mic microphone to use
  */
@@ -355,10 +355,10 @@ typedef void (*GNUNET_CONVERSATION_CallEventHandler)(void *cls,
  * @param caller_id identity of the caller
  * @param callee GNS name of the callee (used to locate the callee's record)
  * @param speaker speaker to use (will be used automatically immediately once the
- *        #GNUNET_CONVERSATION_EC_READY event is generated); we will NOT generate
+ *        #GNUNET_CONVERSATION_EC_CALL_PICKED_UP event is generated); we will NOT generate
  *        a ring tone on the speaker
  * @param mic microphone to use (will be used automatically immediately once the
- *        #GNUNET_CONVERSATION_EC_READY event is generated)
+ *        #GNUNET_CONVERSATION_EC_CALL_PICKED_UP event is generated)
  * @param event_handler how to notify the owner of the phone about events
  * @param event_handler_cls closure for @a event_handler
  */
@@ -383,14 +383,11 @@ GNUNET_CONVERSATION_call_suspend (struct GNUNET_CONVERSATION_Call *call);
 
 
 /**
- * Resumes a call after #GNUNET_CONVERSATION_call_pause.
+ * Resumes a call after #GNUNET_CONVERSATION_call_suspend.
  *
  * @param call call to resume
- * @param speaker speaker to use (will be used automatically immediately once the
- *        #GNUNET_CONVERSATION_EC_READY event is generated); we will NOT generate
- *        a ring tone on the speaker
- * @param mic microphone to use (will be used automatically immediately once the
- *        #GNUNET_CONVERSATION_EC_READY event is generated)
+ * @param speaker speaker to use
+ * @param mic microphone to use
  */
 void
 GNUNET_CONVERSATION_call_resume (struct GNUNET_CONVERSATION_Call *call,

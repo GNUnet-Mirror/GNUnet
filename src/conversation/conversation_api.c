@@ -117,7 +117,7 @@ struct GNUNET_CONVERSATION_Caller
   struct GNUNET_NAMESTORE_QueueEntry *qe;
 
   /**
-   * Identity of the person calling us (valid while in state #PS_RINGING).
+   * Identity of the person calling us.
    */
   struct GNUNET_CRYPTO_EcdsaPublicKey caller_id;
 
@@ -806,7 +806,7 @@ GNUNET_CONVERSATION_phone_destroy (struct GNUNET_CONVERSATION_Phone *phone)
  * and the microphone.  The call can later be resumed with
  * #GNUNET_CONVERSATION_caller_resume.
  *
- * @param phone phone to pause
+ * @param caller call to suspend
  */
 void
 GNUNET_CONVERSATION_caller_suspend (struct GNUNET_CONVERSATION_Caller *caller)
@@ -837,7 +837,7 @@ GNUNET_CONVERSATION_caller_suspend (struct GNUNET_CONVERSATION_Caller *caller)
 /**
  * Resume suspended conversation of a phone.
  *
- * @param phone phone to resume
+ * @param caller call to resume
  * @param speaker speaker to use
  * @param mic microphone to use
  */

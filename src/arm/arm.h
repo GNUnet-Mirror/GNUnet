@@ -60,11 +60,12 @@ struct GNUNET_ARM_Message
    * Reply to client, type is #GNUNET_MESSAGE_TYPE_ARM_RESULT or
    * #GNUNET_MESSAGE_TYPE_ARM_LIST_RESULT.
    * OR
-   * Request from client, type is #GNUNET_MESSAGE_TYPE_ARM_REQUEST
+   * Request from client, type is #GNUNET_MESSAGE_TYPE_ARM_START or
+   * #GNUNET_MESSAGE_TYPE_ARM_STOP.
    */
   struct GNUNET_MessageHeader header;
 
-  /** 
+  /**
    * For alignment.
    */
   uint32_t reserved;
@@ -87,12 +88,12 @@ struct GNUNET_ARM_ResultMessage
 {
 
   /**
-   * Reply to client, of type is GNUNET_MESSAGE_TYPE_ARM_RESULT, with an ID.
+   * Reply to client, of type is #GNUNET_MESSAGE_TYPE_ARM_RESULT, with an ID.
    */
   struct GNUNET_ARM_Message arm_msg;
 
   /**
-   * Result from the 'enum GNUNET_ARM_Result'
+   * Result from the `enum GNUNET_ARM_Result`
    */
   uint32_t result;
 };
@@ -106,7 +107,7 @@ struct GNUNET_ARM_ResultMessage
 struct GNUNET_ARM_ListResultMessage
 {
   /**
-   * Reply to client, of type is GNUNET_MESSAGE_TYPE_ARM_LIST_RESULT,
+   * Reply to client, of type is #GNUNET_MESSAGE_TYPE_ARM_LIST_RESULT,
    * with an ID.
    */
   struct GNUNET_ARM_Message arm_msg;
