@@ -971,15 +971,15 @@ process_ack (struct GNUNET_MESH_Handle *h,
 //                      const struct GNUNET_MessageHeader *message)
 // {
 //   struct GNUNET_MESH_LocalMonitor *msg;
-// 
+//
 //   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Get Channels messasge received\n");
-// 
+//
 //   if (NULL == h->channels_cb)
 //   {
 //     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "  ignored\n");
 //     return;
 //   }
-// 
+//
 //   msg = (struct GNUNET_MESH_LocalMonitor *) message;
 //   if (ntohs (message->size) !=
 //       (sizeof (struct GNUNET_MESH_LocalMonitor) +
@@ -1012,15 +1012,15 @@ process_ack (struct GNUNET_MESH_Handle *h,
 // {
 //   struct GNUNET_MESH_LocalMonitor *msg;
 //   size_t esize;
-// 
+//
 //   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Show Channel messasge received\n");
-// 
+//
 //   if (NULL == h->channel_cb)
 //   {
 //     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "  ignored\n");
 //     return;
 //   }
-// 
+//
 //   /* Verify message sanity */
 //   msg = (struct GNUNET_MESH_LocalMonitor *) message;
 //   esize = sizeof (struct GNUNET_MESH_LocalMonitor);
@@ -1031,14 +1031,14 @@ process_ack (struct GNUNET_MESH_Handle *h,
 //                 "Show channel message: size %hu - expected %u\n",
 //                 ntohs (message->size),
 //                 esize);
-// 
+//
 //     h->channel_cb (h->channel_cls, NULL, NULL);
 //     h->channel_cb = NULL;
 //     h->channel_cls = NULL;
-// 
+//
 //     return;
 //   }
-// 
+//
 //   h->channel_cb (h->channel_cls,
 //                  &msg->destination,
 //                  &msg->owner);
@@ -1591,6 +1591,7 @@ GNUNET_MESH_notify_transmit_ready_cancel (struct GNUNET_MESH_TransmitHandle *th)
   }
 }
 
+
 void
 GNUNET_MESH_receive_done (struct GNUNET_MESH_Channel *channel)
 {
@@ -1625,8 +1626,6 @@ GNUNET_MESH_get_channels (struct GNUNET_MESH_Handle *h,
   send_packet (h, &msg, NULL);
   h->channels_cb = callback;
   h->channels_cls = callback_cls;
-
-  return;
 }
 
 
@@ -1678,8 +1677,6 @@ GNUNET_MESH_show_channel (struct GNUNET_MESH_Handle *h,
   send_packet (h, &msg.header, NULL);
   h->channel_cb = callback;
   h->channel_cls = callback_cls;
-
-  return;
 }
 
 
@@ -1713,6 +1710,7 @@ mesh_mq_ntr (void *cls, size_t size,
   GNUNET_assert (msize <= size);
   memcpy (buf, msg, msize);
   GNUNET_MQ_impl_send_continue (mq);
+  GNUNET_MQ_impl_send_commit (mq);
   return msize;
 }
 
@@ -1732,7 +1730,6 @@ mesh_mq_send_impl (struct GNUNET_MQ_Handle *mq,
   struct MeshMQState *state = impl_state;
 
   GNUNET_assert (NULL == state->th);
-  GNUNET_MQ_impl_send_commit (mq);
   state->th =
       GNUNET_MESH_notify_transmit_ready (state->channel,
                                          /* FIXME: add option for corking */
