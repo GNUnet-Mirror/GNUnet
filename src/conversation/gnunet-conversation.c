@@ -249,7 +249,7 @@ phone_event_handler (void *cls,
   {
   case GNUNET_CONVERSATION_EC_PHONE_RING:
     FPRINTF (stdout,
-             _("Incoming call from `%s'.\nPlease /accept #%u or /cancel %u the call.\n"),
+             _("Incoming call from `%s'. Please /accept #%u or /cancel %u the call.\n"),
              caller_id,
              caller_num_gen,
              caller_num_gen);
@@ -1054,7 +1054,7 @@ handle_command (void *cls,
   ptr = &message[strlen (commands[i].command)];
   while (isspace ((int) *ptr))
     ptr++;
-  if ('\0' == ptr)
+  if ('\0' == *ptr)
     ptr = NULL;
   commands[i].Action (ptr);
 }
