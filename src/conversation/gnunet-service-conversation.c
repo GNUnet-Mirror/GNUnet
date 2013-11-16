@@ -968,6 +968,7 @@ handle_mesh_hangup_message (void *cls,
   struct Channel *ch = *channel_ctx;
   struct Line *line;
   struct ClientPhoneHangupMessage hup;
+  enum ChannelStatus status;
 
   if (NULL == ch)
   {
@@ -980,8 +981,9 @@ handle_mesh_hangup_message (void *cls,
   hup.header.size = sizeof (hup);
   hup.header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_HANG_UP);
   hup.cid = ch->cid;
+  status = ch->status;
   destroy_line_mesh_channels (ch);
-  switch (ch->status)
+  switch (status)
   {
   case CS_CALLEE_RINGING:
   case CS_CALLEE_CONNECTED:
