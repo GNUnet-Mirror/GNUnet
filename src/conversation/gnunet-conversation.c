@@ -840,6 +840,9 @@ do_resume (const char *args)
 static void
 do_reject (const char *args)
 {
+  struct CallList *cl;
+  char buf[32];
+
   if (NULL != call)
   {
     GNUNET_CONVERSATION_call_stop (call);
@@ -849,20 +852,53 @@ do_reject (const char *args)
   switch (phone_state)
   {
   case PS_LOOKUP_EGO:
-  case PS_LISTEN:
   case PS_ERROR:
     FPRINTF (stderr,
              "%s",
              _("There is no call that could be cancelled right now.\n"));
     return;
+  case PS_LISTEN:
+    /* look for active incoming calls to refuse */
+    cl = cl_head;
+    if (NULL == cl)
+    {
+      FPRINTF (stderr,
+               _("There is no incoming call to refuse here!\n"));
+      return;
+    }
+    if ( (NULL != cl->next) || (NULL != args) )
+    {
+      for (cl = cl_head; NULL != cl; cl = cl->next)
+      {
+        GNUNET_snprintf (buf, sizeof (buf),
+                         "%u",
+                         cl->caller_num);
+        if (0 == strcmp (buf, args))
+          break;
+      }
+    }
+    if (NULL == cl)
+    {
+      FPRINTF (stderr,
+               _("There is no incoming call `%s' to refuse right now!\n"),
+               args);
+      return;
+    }
+    GNUNET_CONVERSATION_caller_hang_up (cl->caller);
+    GNUNET_CONTAINER_DLL_remove (cl_head,
+                                 cl_tail,
+                                 cl);
+    GNUNET_free (cl->caller_id);
+    GNUNET_free (cl);
+    break;
   case PS_ACCEPTED:
     /* expected state, do rejection logic */
+    GNUNET_assert (NULL != cl_active);
+    GNUNET_CONVERSATION_caller_hang_up (cl_active->caller);
+    cl_active = NULL;
+    phone_state = PS_LISTEN;
     break;
   }
-  GNUNET_assert (NULL != cl_active);
-  GNUNET_CONVERSATION_caller_hang_up (cl_active->caller);
-  cl_active = NULL;
-  phone_state = PS_LISTEN;
 }
 
 

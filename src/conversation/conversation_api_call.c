@@ -610,10 +610,10 @@ GNUNET_CONVERSATION_call_stop (struct GNUNET_CONVERSATION_Call *call)
     call->mic->disable_microphone (call->mic->cls);
   if (CS_SHUTDOWN != call->state)
   {
+    call->state = CS_SHUTDOWN;
     e = GNUNET_MQ_msg (hang, GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_HANG_UP);
     GNUNET_MQ_notify_sent (e, &finish_stop, call);
     GNUNET_MQ_send (call->mq, e);
-    call->state = CS_SHUTDOWN;
     return;
   }
   if (NULL != call->mq)

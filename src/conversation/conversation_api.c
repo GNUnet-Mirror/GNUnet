@@ -355,11 +355,20 @@ handle_phone_hangup (void *cls,
     if (hang->cid == caller->cid)
       break;
   if (NULL == caller)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Received HANG_UP message for unknown caller ID %u\n",
+                (unsigned int) hang->cid);
     return;
+  }
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received HANG_UP message, terminating call with `%s'\n",
+              caller->caller_id_str);
   switch (caller->state)
   {
   case CS_RESOLVE:
+    /* application doesn't even know about call yet */
     GNUNET_NAMESTORE_cancel (caller->qe);
     caller->qe = NULL;
     break;

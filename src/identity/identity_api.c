@@ -87,19 +87,19 @@ struct GNUNET_IDENTITY_Operation
   const struct GNUNET_MessageHeader *msg;
 
   /**
-   * Continuation to invoke with the result of the transmission; 'cb'
+   * Continuation to invoke with the result of the transmission; @e cb
    * will be NULL in this case.
    */
   GNUNET_IDENTITY_Continuation cont;
 
   /**
    * Continuation to invoke with the result of the transmission for
-   * 'get' operations ('cont' will be NULL in this case).
+   * 'get' operations (@e cont will be NULL in this case).
    */
   GNUNET_IDENTITY_Callback cb;
 
   /**
-   * Closure for 'cont' or 'cb'.
+   * Closure for @e cont or @e cb.
    */
   void *cls;
 

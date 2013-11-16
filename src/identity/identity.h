@@ -68,8 +68,8 @@ struct GNUNET_IDENTITY_UpdateMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Number of bytes in identity name string including 0-termination, in NBO;
-   * 0 if the identity was deleted.
+   * Number of bytes in ego name string including 0-termination, in NBO;
+   * 0 if the ego was deleted.
    */
   uint16_t name_len GNUNET_PACKED;
 
@@ -83,7 +83,7 @@ struct GNUNET_IDENTITY_UpdateMessage
    */
   struct GNUNET_CRYPTO_EcdsaPrivateKey private_key;
 
-  /* followed by 0-terminated identity name */
+  /* followed by 0-terminated ego name */
 
 };
 

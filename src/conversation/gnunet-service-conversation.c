@@ -1337,7 +1337,8 @@ inbound_end (void *cls,
   ch->channel_reliable = NULL;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Mesh channel destroyed by mesh\n");
+	      "Mesh channel destroyed by mesh in state %d\n",
+              ch->status);
   hup.header.size = sizeof (hup);
   hup.header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_HANG_UP);
   hup.cid = ch->cid;
