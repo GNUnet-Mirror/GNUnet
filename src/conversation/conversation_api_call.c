@@ -456,6 +456,11 @@ call_error_handler (void *cls,
 {
   struct GNUNET_CONVERSATION_Call *call = cls;
 
+  if (CS_SHUTDOWN == call->state)
+  {
+    GNUNET_CONVERSATION_call_stop (call);
+    return;
+  }
   GNUNET_break (0);
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
               _("Internal MQ error %d\n"),
