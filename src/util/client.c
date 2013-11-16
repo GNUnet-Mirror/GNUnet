@@ -330,7 +330,7 @@ test_service_configuration (const char *service_name,
  */
 static struct GNUNET_CONNECTION_Handle *
 do_connect (const char *service_name,
-            const struct GNUNET_CONFIGURATION_Handle *cfg, 
+            const struct GNUNET_CONFIGURATION_Handle *cfg,
 	    unsigned int attempt)
 {
   struct GNUNET_CONNECTION_Handle *connection;
@@ -600,7 +600,7 @@ receive_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  */
 void
 GNUNET_CLIENT_receive (struct GNUNET_CLIENT_Connection *client,
-                       GNUNET_CLIENT_MessageHandler handler, 
+                       GNUNET_CLIENT_MessageHandler handler,
 		       void *handler_cls,
                        struct GNUNET_TIME_Relative timeout)
 {
@@ -816,7 +816,7 @@ struct GNUNET_CLIENT_TestHandle *
 GNUNET_CLIENT_service_test (const char *service,
                             const struct GNUNET_CONFIGURATION_Handle *cfg,
                             struct GNUNET_TIME_Relative timeout,
-                            GNUNET_CLIENT_TestResultCallback cb, 
+                            GNUNET_CLIENT_TestResultCallback cb,
 			    void *cb_cls)
 {
   struct GNUNET_CLIENT_TestHandle *th;
@@ -840,7 +840,7 @@ GNUNET_CLIENT_service_test (const char *service,
     unixpath = NULL;
     if ((GNUNET_OK ==
 	 GNUNET_CONFIGURATION_get_value_filename (cfg,
-						  service, 
+						  service,
 						  "UNIXPATH",
 						  &unixpath)) &&
 	(0 < strlen (unixpath)))  /* We have a non-NULL unixpath, does that mean it's valid? */
@@ -1030,7 +1030,7 @@ client_notify (void *cls, size_t size, void *buf);
  * @param tc unused
  */
 static void
-client_delayed_retry (void *cls, 
+client_delayed_retry (void *cls,
 		      const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_CLIENT_TransmitHandle *th = cls;
@@ -1064,6 +1064,7 @@ client_delayed_retry (void *cls,
          "Transmission failed %u times, trying again in %s.\n",
          MAX_ATTEMPTS - th->attempts_left,
          GNUNET_STRINGS_relative_time_to_string (delay, GNUNET_YES));
+    GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == th->reconnect_task);
     th->reconnect_task =
         GNUNET_SCHEDULER_add_delayed (delay, &client_delayed_retry, th);
     return;
@@ -1141,6 +1142,7 @@ client_notify (void *cls, size_t size, void *buf)
          MAX_ATTEMPTS - th->attempts_left,
          GNUNET_STRINGS_relative_time_to_string (delay, GNUNET_YES));
     client->th = th;
+    GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == th->reconnect_task);
     th->reconnect_task =
         GNUNET_SCHEDULER_add_delayed (delay, &client_delayed_retry, th);
     return 0;
@@ -1184,7 +1186,7 @@ GNUNET_CLIENT_notify_transmit_ready (struct GNUNET_CLIENT_Connection *client,
                                      size_t size,
                                      struct GNUNET_TIME_Relative timeout,
                                      int auto_retry,
-                                     GNUNET_CONNECTION_TransmitReadyNotify notify, 
+                                     GNUNET_CONNECTION_TransmitReadyNotify notify,
 				     void *notify_cls)
 {
   struct GNUNET_CLIENT_TransmitHandle *th;
@@ -1196,7 +1198,7 @@ GNUNET_CLIENT_notify_transmit_ready (struct GNUNET_CLIENT_Connection *client,
     GNUNET_break (0);
     return NULL;
   }
-  th = GNUNET_malloc (sizeof (struct GNUNET_CLIENT_TransmitHandle));
+  th = GNUNET_new (struct GNUNET_CLIENT_TransmitHandle);
   th->client = client;
   th->size = size;
   th->timeout = GNUNET_TIME_relative_to_absolute (timeout);
@@ -1209,8 +1211,10 @@ GNUNET_CLIENT_notify_transmit_ready (struct GNUNET_CLIENT_Connection *client,
   client->th = th;
   if (NULL == client->connection)
   {
+    GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == th->reconnect_task);
     th->reconnect_task =
-        GNUNET_SCHEDULER_add_delayed (client->back_off, &client_delayed_retry,
+        GNUNET_SCHEDULER_add_delayed (client->back_off,
+                                      &client_delayed_retry,
                                       th);
 
   }
