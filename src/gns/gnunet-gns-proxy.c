@@ -2037,7 +2037,7 @@ generate_gns_certificate (const char *name)
   GNUNET_break (GNUTLS_E_SUCCESS == gnutls_x509_crt_set_key (request, proxy_ca.key));
   pgc = GNUNET_new (struct ProxyGNSCertificate);
   gnutls_x509_crt_set_dn_by_oid (request, GNUTLS_OID_X520_COUNTRY_NAME,
-                                 0, "TNR", 2);
+                                 0, "ZZ", 2);
   gnutls_x509_crt_set_dn_by_oid (request, GNUTLS_OID_X520_ORGANIZATION_NAME,
                                  0, "GNU Name System", 4);
   gnutls_x509_crt_set_dn_by_oid (request, GNUTLS_OID_X520_COMMON_NAME,
