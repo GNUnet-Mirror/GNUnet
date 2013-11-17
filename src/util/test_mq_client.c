@@ -48,7 +48,7 @@ recv_cb (void *cls, struct GNUNET_SERVER_Client *argclient,
          const struct GNUNET_MessageHeader *message)
 {
   received++;
-  if ((received == 2) && (GNUNET_YES == notify))
+  if (received == 2)
   {
     GNUNET_SERVER_receive_done (argclient, GNUNET_NO);
     return;
@@ -93,14 +93,18 @@ static struct GNUNET_SERVER_MessageHandler handlers[] = {
   {NULL, NULL, 0, 0}
 };
 
-void send_cb (void *cls)
+
+static void
+send_cb (void *cls)
 {
   /* the notify should only be called once */
   GNUNET_assert (GNUNET_NO == notify);
   notify = GNUNET_YES;
 }
 
-void test_mq (struct GNUNET_CLIENT_Connection *client)
+
+static void
+test_mq (struct GNUNET_CLIENT_Connection *client)
 {
   struct GNUNET_MQ_Handle *mq;
   struct GNUNET_MQ_Envelope *mqm;
@@ -164,6 +168,7 @@ main (int argc, char *argv[])
                     NULL);
   ok = 1;
   GNUNET_SCHEDULER_run (&task, NULL);
+  GNUNET_assert (GNUNET_YES == notify);
   return ok;
 }
 
