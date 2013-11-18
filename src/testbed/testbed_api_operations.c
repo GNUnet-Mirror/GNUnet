@@ -881,6 +881,16 @@ adapt_parallelism (struct OperationQueue *queue)
     adaptive_queue_set_max_active (queue, queue->max_active); /* no change */
     return;
   }
+  if (1 == sd)
+    adaptive_queue_set_max_active (queue, queue->max_active - 1);
+  if (2 <= sd)
+    adaptive_queue_set_max_active (queue, queue->max_active / 2);
+  if (-1 == sd)
+    adaptive_queue_set_max_active (queue, queue->max_active + 1);
+  if (sd <= -2)
+    adaptive_queue_set_max_active (queue, queue->max_active * 2);
+
+#if 0                           /* old algorithm */
   if (sd < 0)
     sd = 0;
   GNUNET_assert (0 <= sd);
@@ -906,6 +916,7 @@ adapt_parallelism (struct OperationQueue *queue)
     return;
   }
   adaptive_queue_set_max_active (queue, queue->max_active / 2);
+#endif
 }
 
 
