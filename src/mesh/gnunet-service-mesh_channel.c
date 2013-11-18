@@ -848,45 +848,6 @@ channel_save_copy (struct MeshChannel *ch,
 
 
 /**
- * Destroy a channel and free all resources.
- *
- * @param ch Channel to destroy.
- */
-static void
-channel_destroy (struct MeshChannel *ch)
-{
-  struct MeshClient *c;
-
-  if (NULL == ch)
-    return;
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "destroying channel %s:%u\n",
-              GMT_2s (ch->t), ch->gid);
-  GMCH_debug (ch);
-
-  c = ch->root;
-  if (NULL != c)
-  {
-    GML_channel_remove (c, ch->lid_root, ch);
-  }
-
-  c = ch->dest;
-  if (NULL != c)
-  {
-    GML_channel_remove (c, ch->lid_dest, ch);
-  }
-
-  channel_rel_free_all (ch->root_rel);
-  channel_rel_free_all (ch->dest_rel);
-
-  GMT_remove_channel (ch->t, ch);
-  GNUNET_STATISTICS_update (stats, "# channels", -1, GNUNET_NO);
-
-  GNUNET_free (ch);
-}
-
-
-/**
  * Create a new channel.
  *
  * @param t Tunnel this channel is in.
@@ -1009,6 +970,53 @@ handle_loopback (struct MeshChannel *ch,
 /******************************************************************************/
 /********************************    API    ***********************************/
 /******************************************************************************/
+
+
+/**
+ * Destroy a channel and free all resources.
+ *
+ * @param ch Channel to destroy.
+ */
+void
+GMCH_destroy (struct MeshChannel *ch);
+
+/**
+ * Destroy a channel and free all resources.
+ *
+ * @param ch Channel to destroy.
+ */
+void
+GMCH_destroy (struct MeshChannel *ch)
+{
+  struct MeshClient *c;
+
+  if (NULL == ch)
+    return;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "destroying channel %s:%u\n",
+              GMT_2s (ch->t), ch->gid);
+  GMCH_debug (ch);
+
+  c = ch->root;
+  if (NULL != c)
+  {
+    GML_channel_remove (c, ch->lid_root, ch);
+  }
+
+  c = ch->dest;
+  if (NULL != c)
+  {
+    GML_channel_remove (c, ch->lid_dest, ch);
+  }
+
+  channel_rel_free_all (ch->root_rel);
+  channel_rel_free_all (ch->dest_rel);
+
+  GMT_remove_channel (ch->t, ch);
+  GNUNET_STATISTICS_update (stats, "# channels", -1, GNUNET_NO);
+
+  GNUNET_free (ch);
+}
 
 
 /**
@@ -1462,7 +1470,7 @@ GMCH_handle_local_destroy (struct MeshChannel *ch,
 
   t = ch->t;
   GMCH_send_destroy (ch);
-  channel_destroy (ch);
+  GMCH_destroy (ch);
   GMT_destroy_if_empty (t);
 }
 
@@ -1776,7 +1784,7 @@ GMCH_handle_create (struct MeshTunnel3 *t,
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG, "  not loopback: destroy now\n");
       channel_send_nack (ch);
-      channel_destroy (ch);
+      GMCH_destroy (ch);
     }
     return NULL;
   }
@@ -1809,7 +1817,7 @@ void
 GMCH_handle_nack (struct MeshChannel *ch)
 {
   send_client_nack (ch);
-  channel_destroy (ch);
+  GMCH_destroy (ch);
 }
 
 
@@ -1882,7 +1890,7 @@ GMCH_handle_destroy (struct MeshChannel *ch,
 
   t = ch->t;
   GMCH_send_destroy (ch);
-  channel_destroy (ch);
+  GMCH_destroy (ch);
   GMT_destroy_if_empty (t);
 }
 

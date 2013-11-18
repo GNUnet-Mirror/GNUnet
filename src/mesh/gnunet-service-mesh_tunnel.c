@@ -1639,8 +1639,11 @@ GMT_destroy_if_empty (struct MeshTunnel3 *t)
 void
 GMT_destroy (struct MeshTunnel3 *t)
 {
-  struct MeshTConnection *iter;
-  struct MeshTConnection *next;
+  struct MeshTConnection *iter_c;
+  struct MeshTConnection *next_c;
+  struct MeshTChannel *iter_ch;
+  struct MeshTChannel *next_ch;
+
 
   if (NULL == t)
     return;
@@ -1650,10 +1653,16 @@ GMT_destroy (struct MeshTunnel3 *t)
 //   if (GNUNET_YES != GNUNET_CONTAINER_multihashmap_remove (tunnels, &t->id, t))
 //     GNUNET_break (0);
 
-  for (iter = t->connection_head; NULL != iter; iter = next)
+  for (iter_c = t->connection_head; NULL != iter_c; iter_c = next_c)
   {
-    next = iter->next;
-    GMC_destroy (iter->c);
+    next_c = iter_c->next;
+    GMC_destroy (iter_c->c);
+  }
+  for (iter_ch = t->channel_head; NULL != iter_ch; iter_ch = next_ch)
+  {
+    next_ch = iter_ch->next;
+    GMCH_destroy (iter_ch->ch);
+    GNUNET_break (0);
   }
 
   GNUNET_STATISTICS_update (stats, "# tunnels", -1, GNUNET_NO);
