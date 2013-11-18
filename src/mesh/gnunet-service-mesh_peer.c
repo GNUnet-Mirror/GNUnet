@@ -520,12 +520,13 @@ peer_destroy (struct MeshPeer *peer)
   GNUNET_PEER_resolve (peer->id, &id);
   GNUNET_PEER_change_rc (peer->id, -1);
 
+  LOG (GNUNET_ERROR_TYPE_WARNING, "destroying peer %s\n", GNUNET_i2s (&id));
+
   if (GNUNET_YES !=
     GNUNET_CONTAINER_multipeermap_remove (peers, &id, peer))
   {
     GNUNET_break (0);
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-                "removing peer %s, not in peermap\n", GNUNET_i2s (&id));
+    LOG (GNUNET_ERROR_TYPE_WARNING, " not in peermap!!\n");
   }
   if (NULL != peer->search_h)
   {
@@ -610,8 +611,11 @@ peer_timeout (void *cls,
   struct MeshPeer *p = value;
   struct GNUNET_TIME_Absolute *abs = cls;
 
+  LOG (GNUNET_ERROR_TYPE_WARNING,
+       "peer %s timeout\n", GNUNET_i2s (key));
+
   if (p->last_contact.abs_value_us == abs->abs_value_us &&
-    GNUNET_NO == peer_is_used (p))
+      GNUNET_NO == peer_is_used (p))
   {
     peer_destroy (p);
     return GNUNET_NO;
