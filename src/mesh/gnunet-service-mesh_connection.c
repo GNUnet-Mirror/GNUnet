@@ -2077,6 +2077,7 @@ void
 GMC_shutdown (void)
 {
   GNUNET_CONTAINER_multihashmap_destroy (connections);
+  connections = NULL;
 }
 
 
@@ -2145,6 +2146,10 @@ GMC_destroy (struct MeshConnection *c)
     GNUNET_SCHEDULER_cancel (c->fwd_maintenance_task);
   if (GNUNET_SCHEDULER_NO_TASK != c->bck_maintenance_task)
     GNUNET_SCHEDULER_cancel (c->bck_maintenance_task);
+  if (GNUNET_SCHEDULER_NO_TASK != c->fwd_fc.poll_task)
+    GNUNET_SCHEDULER_cancel (c->fwd_fc.poll_task);
+  if (GNUNET_SCHEDULER_NO_TASK != c->bck_fc.poll_task)
+    GNUNET_SCHEDULER_cancel (c->bck_fc.poll_task);
 
   /* Unregister from neighbors */
   unregister_neighbors (c);
