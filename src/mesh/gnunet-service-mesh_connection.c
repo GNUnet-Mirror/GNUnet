@@ -2149,6 +2149,10 @@ GMC_destroy (struct MeshConnection *c)
     GNUNET_SCHEDULER_cancel (c->fwd_fc.poll_task);
   if (GNUNET_SCHEDULER_NO_TASK != c->bck_fc.poll_task)
     GNUNET_SCHEDULER_cancel (c->bck_fc.poll_task);
+  if (NULL != c->fwd_fc.poll_msg)
+    GMC_cancel (c->fwd_fc.poll_msg);
+  if (NULL != c->bck_fc.poll_msg)
+    GMC_cancel (c->bck_fc.poll_msg);
 
   /* Unregister from neighbors */
   unregister_neighbors (c);
