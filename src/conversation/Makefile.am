@@ -146,8 +146,16 @@ test_conversation_api_SOURCES = \
  test_conversation_api.c
 test_conversation_api_LDADD = \
   libgnunetconversation.la \
+  libgnunetspeaker.la \
+  libgnunetmicrophone.la \
+  $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
+  $(top_builddir)/src/namestore/libgnunetnamestore.la \
+  $(top_builddir)/src/identity/libgnunetidentity.la \
+  $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/util/libgnunetutil.la
 test_conversation_api_LDFLAGS = \
  $(GNUNET_LDFLAGS)  $(WINFLAGS) -export-dynamic
 
  pkgcfg_DATA = conversation.conf
+
+EXTRA_DIST = test_conversation.conf
