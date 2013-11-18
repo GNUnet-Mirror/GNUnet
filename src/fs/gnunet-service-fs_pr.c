@@ -901,7 +901,7 @@ process_reply (void *cls, const struct GNUNET_HashCode * key, void *value)
 
 
 /**
- * Context for the 'put_migration_continuation'.
+ * Context for put_migration_continuation().
  */
 struct PutMigrationContext
 {
@@ -929,7 +929,7 @@ struct PutMigrationContext
  * operation.
  *
  * @param cls closure
- * @param success GNUNET_SYSERR on failure
+ * @param success #GNUNET_SYSERR on failure
  * @param min_expiration minimum expiration time required for content to be stored
  * @param msg NULL on success, otherwise an error message
  */
@@ -1007,8 +1007,9 @@ put_migration_continuation (void *cls, int success,
  * to even consider processing the query at
  * all.
  *
- * @return GNUNET_YES if the load is too high to do anything (load high)
- *         GNUNET_NO to process normally (load normal or low)
+ * @param priority the priority of the item
+ * @return #GNUNET_YES if the load is too high to do anything (load high)
+ *         #GNUNET_NO to process normally (load normal or low)
  */
 static int
 test_put_load_too_high (uint32_t priority)
@@ -1038,9 +1039,9 @@ test_put_load_too_high (uint32_t priority)
  * @param exp when will this value expire
  * @param key key of the result
  * @param get_path peers on reply path (or NULL if not recorded)
- * @param get_path_length number of entries in get_path
+ * @param get_path_length number of entries in @a get_path
  * @param put_path peers on the PUT path (or NULL if not recorded)
- * @param put_path_length number of entries in get_path
+ * @param put_path_length number of entries in @a get_path
  * @param type type of the result
  * @param size number of bytes in data
  * @param data pointer to the result data

@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     (C) 2004, 2005, 2006, 2007, 2009, 2010, 2011 Christian Grothoff (and other contributing authors)
+     (C) 2004-2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -381,7 +381,7 @@ GNUNET_DATASTORE_disconnect (struct GNUNET_DATASTORE_Handle *h, int drop)
 /**
  * A request has timed out (before being transmitted to the service).
  *
- * @param cls the 'struct GNUNET_DATASTORE_QueueEntry'
+ * @param cls the `struct GNUNET_DATASTORE_QueueEntry`
  * @param tc scheduler context
  */
 static void
@@ -394,7 +394,12 @@ timeout_queue_entry (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                             GNUNET_NO);
   qe->task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_assert (GNUNET_NO == qe->was_transmitted);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Timeout of request in datastore queue\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Timeout of request in datastore queue\n");
+  /* response_proc's expect request at the head of the queue! */
+  GNUNET_CONTAINER_DLL_remove (h->queue_head, h->queue_tail, qe);
+  GNUNET_CONTAINER_DLL_insert (h->queue_head, h->queue_tail, qe);
+  GNUNET_assert (h->queue_head == qe);
   qe->response_proc (qe->h, NULL);
 }
 
@@ -410,7 +415,7 @@ timeout_queue_entry (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  *        (if other requests of higher priority are in the queue)
  * @param timeout timeout for the operation
  * @param response_proc function to call with replies (can be NULL)
- * @param qc client context (NOT a closure for response_proc)
+ * @param qc client context (NOT a closure for @a response_proc)
  * @return NULL if the queue is full
  */
 static struct GNUNET_DATASTORE_QueueEntry *
@@ -472,10 +477,12 @@ make_queue_entry (struct GNUNET_DATASTORE_Handle *h, size_t msize,
   {
     if ((pos->max_queue < h->queue_size) && (pos->was_transmitted == GNUNET_NO))
     {
-      GNUNET_assert (pos->response_proc != NULL);
+      GNUNET_assert (NULL != pos->response_proc);
       /* move 'pos' element to head so that it will be
        * killed on 'NULL' call below */
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "Dropping request from datastore queue\n");
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Dropping request from datastore queue\n");
+      /* response_proc's expect request at the head of the queue! */
       GNUNET_CONTAINER_DLL_remove (h->queue_head, h->queue_tail, pos);
       GNUNET_CONTAINER_DLL_insert (h->queue_head, h->queue_tail, pos);
       GNUNET_STATISTICS_update (h->stats,
@@ -1185,7 +1192,7 @@ process_result_message (void *cls, const struct GNUNET_MessageHeader *msg)
     h->retry_time = GNUNET_TIME_UNIT_ZERO;
     h->result_count = 0;
     process_queue (h);
-    if (rc.proc != NULL)
+    if (NULL != rc.proc)
       rc.proc (rc.proc_cls, NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS,
                0);
     return;
@@ -1279,7 +1286,7 @@ GNUNET_DATASTORE_get_for_replication (struct GNUNET_DATASTORE_Handle *h,
   qe = make_queue_entry (h, sizeof (struct GNUNET_MessageHeader),
                          queue_priority, max_queue_size, timeout,
                          &process_result_message, &qc);
-  if (qe == NULL)
+  if (NULL == qe)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Could not create queue entry for GET REPLICATION\n");
@@ -1342,7 +1349,7 @@ GNUNET_DATASTORE_get_zero_anonymity (struct GNUNET_DATASTORE_Handle *h,
   qe = make_queue_entry (h, sizeof (struct GetZeroAnonymityMessage),
                          queue_priority, max_queue_size, timeout,
                          &process_result_message, &qc);
-  if (qe == NULL)
+  if (NULL == qe)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Could not create queue entry for zero-anonymity procation\n");
