@@ -1333,6 +1333,10 @@ GAS_addresses_evaluate_assignment (struct GAS_Addresses_Handle *ah)
   float quality_application_requirements = 0.0;
   float guq = 0.0;
 
+  int include_requests;
+  int include_utilization;
+  int include_requirements;
+
   /* Variable related to requests */
   unsigned int requests_pending;
   unsigned int requests_fulfilled;
@@ -1362,9 +1366,15 @@ GAS_addresses_evaluate_assignment (struct GAS_Addresses_Handle *ah)
 
   }
   if (requests_pending > 0)
+  {
     quality_requests_fulfilled = (float) requests_fulfilled / requests_pending;
+    include_requests = GNUNET_YES;
+  }
   else
+  {
     quality_requests_fulfilled = 0.0;
+    include_requests = GNUNET_NO;
+  }
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "%u pending requests, %u requests fullfilled\n",
       requests_pending, requests_fulfilled);
 
@@ -1394,14 +1404,27 @@ GAS_addresses_evaluate_assignment (struct GAS_Addresses_Handle *ah)
     }
   }
   if (0 < network_count)
+  {
     quality_bandwidth_utilization_total /= network_count;
+    include_utilization = GNUNET_YES;
+  }
   else
+  {
     quality_bandwidth_utilization_total = 0.0;
+    include_utilization = GNUNET_NO;
+  }
 
   /* 3) How well does selection match application requirements */
+  /* TODO */
+  include_requirements = GNUNET_NO;
 
   /* GUQ */
-  guq = (quality_requests_fulfilled + quality_bandwidth_utilization_total + quality_application_requirements) /3;
+
+  if (include_requests + include_utilization + include_requirements > 0)
+    guq = (quality_requests_fulfilled + quality_bandwidth_utilization_total + quality_application_requirements) /
+      (include_requests + include_utilization + include_requirements);
+  else
+    guq = 0.0;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
       "Requests fulfilled %.3f bandwidth utilized %.3f application preferences met %.3f => %.3f\n",
