@@ -755,6 +755,8 @@ search_handler (void *cls, const struct MeshPeerPath *path)
  * @param buf Where the to write the message.
  *
  * @return number of bytes written to buf
+ * 
+ * FIXME add GNUNET_MESSAGE_TYPE_MESH_KEEPALIVE
  */
 static size_t
 queue_send (void *cls, size_t size, void *buf)
@@ -841,8 +843,7 @@ queue_send (void *cls, size_t size, void *buf)
       break;
     default:
       GNUNET_break (0);
-      LOG (GNUNET_ERROR_TYPE_WARNING, "*   type unknown: %u\n",
-                  queue->type);
+      LOG (GNUNET_ERROR_TYPE_WARNING, "*   type unknown: %u\n", queue->type);
       data_size = 0;
   }
 
