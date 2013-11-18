@@ -265,16 +265,6 @@ struct GAS_Addresses_Handle
   struct GNUNET_CONTAINER_MultiPeerMap *addresses;
 
   /**
-   * Configure WAN quota in
-   */
-  unsigned long long wan_quota_in;
-
-  /**
-   * Configure WAN quota out
-   */
-  unsigned long long wan_quota_out;
-
-  /**
    * Is ATS addresses running
    */
   int running;
@@ -1271,6 +1261,8 @@ GAS_addresses_handle_backoff_reset (struct GAS_Addresses_Handle *handle,
 								   &reset_address_it, NULL));
 }
 
+
+
 static int
 eval_count_active_it (void *cls, const struct GNUNET_PeerIdentity *id, void *obj)
 {
@@ -1286,6 +1278,44 @@ eval_count_active_it (void *cls, const struct GNUNET_PeerIdentity *id, void *obj
     return GNUNET_YES;
 }
 
+struct SummaryContext {
+  unsigned long long bandwidth_in_assigned[GNUNET_ATS_NetworkTypeCount];
+  unsigned long long bandwidth_out_assigned[GNUNET_ATS_NetworkTypeCount];
+  unsigned int addresses_in_network[GNUNET_ATS_NetworkTypeCount];
+};
+
+
+static int
+eval_sum_bw_used (void *cls, const struct GNUNET_PeerIdentity *id, void *obj)
+{
+  struct ATS_Address *addr = obj;
+  int networks[GNUNET_ATS_NetworkTypeCount] = GNUNET_ATS_NetworkType;
+  int net;
+  struct SummaryContext  *ctx = cls;
+
+  int c;
+
+  if (GNUNET_YES == addr->active)
+  {
+    net = get_performance_info (addr, GNUNET_ATS_NETWORK_TYPE);
+    for (c = 0; c < GNUNET_ATS_NetworkTypeCount; c++)
+    {
+      if (net == networks[c])
+      {
+        ctx->addresses_in_network[c] ++;
+        ctx->bandwidth_in_assigned[c] += ntohl (addr->assigned_bw_in.value__);
+        ctx->bandwidth_out_assigned[c] += ntohl (addr->assigned_bw_out.value__);
+      }
+    }
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Active address in  %s with (in/out) %llu/%llu Bps\n",
+        GNUNET_ATS_print_network_type(net),
+        ntohl (addr->assigned_bw_in.value__),
+        ntohl (addr->assigned_bw_out.value__));
+  }
+  return GNUNET_OK;
+}
+
+
 /**
  * Evaluate current bandwidth assignment
  *
@@ -1295,8 +1325,22 @@ void
 GAS_addresses_evaluate_assignment (struct GAS_Addresses_Handle *ah)
 {
   struct GAS_Addresses_Suggestion_Requests *cur;
+  int c;
+
+  float quality_requests_fulfilled = 0.0;
+  float quality_bandwidth_utilization[GNUNET_ATS_NetworkTypeCount];
+  float quality_bandwidth_utilization_total = 0.0;
+  float quality_application_requirements = 0.0;
+  float guq = 0.0;
+
+  /* Variable related to requests */
   unsigned int requests_pending;
   unsigned int requests_fulfilled;
+  unsigned int request_active;
+
+  /* Variable related to utilization */
+  struct SummaryContext sum;
+  int network_count;
 
   GNUNET_assert (NULL != ah);
   GNUNET_assert (NULL != ah->addresses);
@@ -1306,20 +1350,65 @@ GAS_addresses_evaluate_assignment (struct GAS_Addresses_Handle *ah)
   /* 1) How many requests could be fulfilled? */
   for (cur = ah->pending_requests_head; NULL != cur; cur = cur->next)
   {
-
+    request_active = GNUNET_NO;
     GNUNET_CONTAINER_multipeermap_get_multiple (ah->addresses,
-        &cur->id, &eval_count_active_it, &requests_fulfilled);
-    if (GNUNET_YES == requests_fulfilled)
+        &cur->id, &eval_count_active_it, &request_active);
+    if (GNUNET_YES == request_active)
       requests_fulfilled ++;
     requests_pending ++;
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Peer `%s': pending requests, %s\n",
+        GNUNET_i2s (&cur->id),
+        (GNUNET_YES == request_active) ? "active adress" : "no active address");
+
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%u pending requests, %u requests fullfilled\n",
+  if (requests_pending > 0)
+    quality_requests_fulfilled = (float) requests_fulfilled / requests_pending;
+  else
+    quality_requests_fulfilled = 0.0;
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "%u pending requests, %u requests fullfilled\n",
       requests_pending, requests_fulfilled);
 
-
   /* 2) How well is bandwidth utilized? */
+  network_count = 0;
+  for (c = 0; c < GNUNET_ATS_NetworkTypeCount; c++)
+  {
+    quality_bandwidth_utilization[c] = 0.0;
+    sum.addresses_in_network[c] = 0;
+    sum.bandwidth_in_assigned[c] = 0;
+    sum.bandwidth_out_assigned[c] = 0;
+  }
+  GNUNET_CONTAINER_multipeermap_iterate(ah->addresses,
+      &eval_sum_bw_used, &sum);
+  for (c = 0; c < GNUNET_ATS_NetworkTypeCount; c++)
+  {
+    quality_bandwidth_utilization[c] = (((float)sum.bandwidth_out_assigned[c] / ah->env.out_quota[c]) +
+        ((float)sum.bandwidth_in_assigned[c] / ah->env.in_quota[c])) / 2;
+
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Utilization for network `%s': %f\n",
+         GNUNET_ATS_print_network_type(ah->env.networks[c]),
+         quality_bandwidth_utilization[c]);
+    if (sum.addresses_in_network[c] > 0)
+    {
+      quality_bandwidth_utilization_total += quality_bandwidth_utilization[c];
+      network_count ++;
+    }
+  }
+  if (0 < network_count)
+    quality_bandwidth_utilization_total /= network_count;
+  else
+    quality_bandwidth_utilization_total = 0.0;
 
   /* 3) How well does selection match application requirements */
+
+  /* GUQ */
+  guq = (quality_requests_fulfilled + quality_bandwidth_utilization_total + quality_application_requirements) /3;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+      "Requests fulfilled %.3f bandwidth utilized %.3f application preferences met %.3f => %.3f\n",
+      quality_requests_fulfilled,
+      quality_bandwidth_utilization_total,
+      quality_application_requirements,
+      guq);
 }
 
 /**
