@@ -1249,7 +1249,7 @@ GMC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
   else
   {
-    path = c->path;
+    path = path_duplicate (c->path);
   }
   if (MESH_CONNECTION_NEW == c->state)
     connection_change_state (c, MESH_CONNECTION_SENT);
@@ -1282,9 +1282,10 @@ GMC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
     /* It's for somebody else! Retransmit. */
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  Retransmitting.\n");
     GMP_add_path (dest_peer, path_duplicate (path), GNUNET_NO);
-    GMP_add_path_to_origin (orig_peer, path, GNUNET_NO);
+    GMP_add_path_to_origin (orig_peer, path_duplicate (path), GNUNET_NO);
     GMC_send_prebuilt_message (message, c, GNUNET_YES, NULL, NULL);
   }
+  path_destroy (path);
   return GNUNET_OK;
 }
 
