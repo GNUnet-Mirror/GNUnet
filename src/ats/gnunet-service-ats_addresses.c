@@ -626,6 +626,34 @@ find_exact_address (struct GAS_Addresses_Handle *handle,
 }
 
 /**
+ * Function allowing the solver to obtain normalized preference
+ * values from solver
+ *
+ * @param cls unused
+ * @param id the peer to return the normalized properties for
+ * @return array of double values with |GNUNET_ATS_PreferenceCount| elements
+ */
+const double *
+get_preferences_cb (void *cls, const struct GNUNET_PeerIdentity *id)
+{
+  return GAS_normalization_get_preferences (id);
+}
+
+/**
+ * Function allowing the solver to obtain normalized property
+ * values for an address from solver
+ *
+ * @param cls unused
+ * @param address the address
+ * @return array of double values with |GNUNET_ATS_QualityPropertiesCount| elements
+ */
+const double *
+get_property_cb (void *cls, const struct ATS_Address *address)
+{
+  return GAS_normalization_get_properties ((struct ATS_Address *) address);
+}
+
+/**
  * Extract an ATS performance info from an address
  *
  * @param address the address
@@ -1278,9 +1306,23 @@ eval_count_active_it (void *cls, const struct GNUNET_PeerIdentity *id, void *obj
     return GNUNET_YES;
 }
 
+/**
+ * Summary context
+ */
 struct SummaryContext {
+  /**
+   * Sum of the utilized inbound bandwidth per network
+   */
   unsigned long long bandwidth_in_assigned[GNUNET_ATS_NetworkTypeCount];
+
+  /**
+   * Sum of the utilized outbound bandwidth per network
+   */
   unsigned long long bandwidth_out_assigned[GNUNET_ATS_NetworkTypeCount];
+
+  /**
+   * Sum addresses within a network
+   */
   unsigned int addresses_in_network[GNUNET_ATS_NetworkTypeCount];
 };
 
@@ -1312,6 +1354,40 @@ eval_sum_bw_used (void *cls, const struct GNUNET_PeerIdentity *id, void *obj)
         ntohl (addr->assigned_bw_in.value__),
         ntohl (addr->assigned_bw_out.value__));
   }
+  return GNUNET_OK;
+}
+
+/**
+ * Summary context
+ */
+struct RelativityContext {
+
+  struct GAS_Addresses_Handle *ah;
+};
+
+
+static int
+eval_preference_relativity (void *cls, const struct GNUNET_PeerIdentity *id, void *obj)
+{
+  struct RelativityContext *rc = cls;
+  struct ATS_Address *addr = obj;
+  int prefs[GNUNET_ATS_PreferenceCount] = GNUNET_ATS_PreferenceType ;
+  int c;
+  const double *preferences;
+
+  if (GNUNET_YES == addr->active)
+  {
+    preferences = get_preferences_cb (rc->ah->env.get_preference_cls, id);
+    for (c = 0; c < GNUNET_ATS_PreferenceCount; c++)
+    {
+      if (prefs[c] == GNUNET_ATS_PREFERENCE_END)
+        continue;
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Preference for peer `%s' type %s: %f\n",
+          GNUNET_i2s (id), GNUNET_ATS_print_preference_type(prefs[c]),
+          preferences[c]);
+    }
+  }
+
   return GNUNET_OK;
 }
 
@@ -1415,9 +1491,12 @@ GAS_addresses_evaluate_assignment (struct GAS_Addresses_Handle *ah)
   }
 
   /* 3) How well does selection match application requirements */
-  /* TODO */
-  include_requirements = GNUNET_NO;
-
+  for (cur = ah->pending_requests_head; NULL != cur; cur = cur->next)
+  {
+    GNUNET_CONTAINER_multipeermap_get_multiple (ah->addresses,
+        &cur->id, &eval_preference_relativity, ah);
+    include_requirements = GNUNET_NO;
+  }
   /* GUQ */
 
   if (include_requests + include_utilization + include_requirements > 0)
@@ -1577,33 +1656,7 @@ normalized_property_changed_cb (void *cls, struct ATS_Address *address,
   ah->env.sf.s_address_update_property (ah->solver, address, type, 0, prop_rel);
 }
 
-/**
- * Function allowing the solver to obtain normalized preference
- * values from solver
- *
- * @param cls unused
- * @param id the peer to return the normalized properties for
- * @return array of double values with |GNUNET_ATS_PreferenceCount| elements
- */
-const double *
-get_preferences_cb (void *cls, const struct GNUNET_PeerIdentity *id)
-{
-  return GAS_normalization_get_preferences (id);
-}
 
-/**
- * Function allowing the solver to obtain normalized property
- * values for an address from solver
- *
- * @param cls unused
- * @param address the address
- * @return array of double values with |GNUNET_ATS_QualityPropertiesCount| elements
- */
-const double *
-get_property_cb (void *cls, const struct ATS_Address *address)
-{
-  return GAS_normalization_get_properties ((struct ATS_Address *) address);
-}
 
 /**
  * Change the preference for a peer
