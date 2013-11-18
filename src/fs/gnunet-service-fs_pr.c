@@ -87,7 +87,7 @@ struct GSF_PendingRequest
   GSF_PendingRequestReplyHandler rh;
 
   /**
-   * Closure for 'rh'
+   * Closure for @e rh
    */
   void *rh_cls;
 
@@ -271,7 +271,7 @@ refresh_bloomfilter (struct GSF_PendingRequest *pr)
  * @param query key for the lookup
  * @param target preferred target for the request, NULL for none
  * @param bf_data raw data for bloom filter for known replies, can be NULL
- * @param bf_size number of bytes in bf_data
+ * @param bf_size number of bytes in @a bf_data
  * @param mingle mingle value for bf
  * @param anonymity_level desired anonymity level
  * @param priority maximum outgoing cummulative request priority to use
@@ -279,9 +279,9 @@ refresh_bloomfilter (struct GSF_PendingRequest *pr)
  * @param sender_pid peer ID to use for the sender when forwarding, 0 for none
  * @param origin_pid peer ID of origin of query (do not loop back)
  * @param replies_seen hash codes of known local replies
- * @param replies_seen_count size of the 'replies_seen' array
+ * @param replies_seen_count size of the @a replies_seen array
  * @param rh handle to call when we get a reply
- * @param rh_cls closure for rh
+ * @param rh_cls closure for @a rh
  * @return handle for the new pending request
  */
 struct GSF_PendingRequest *
@@ -416,7 +416,7 @@ GSF_pending_request_get_data_ (struct GSF_PendingRequest *pr)
  *
  * @param pra a pending request
  * @param prb another pending request
- * @return GNUNET_OK if the requests are compatible
+ * @return #GNUNET_OK if the requests are compatible
  */
 int
 GSF_pending_request_is_compatible_ (struct GSF_PendingRequest *pra,
@@ -494,9 +494,9 @@ GSF_pending_request_update_ (struct GSF_PendingRequest *pr,
  * transmission to other peers (or at least determine its size).
  *
  * @param pr request to generate the message for
- * @param buf_size number of bytes available in buf
+ * @param buf_size number of bytes available in @a buf
  * @param buf where to copy the message (can be NULL)
- * @return number of bytes needed (if > buf_size) or used
+ * @return number of bytes needed (if `>` @a buf_size) or used
  */
 size_t
 GSF_pending_request_get_message_ (struct GSF_PendingRequest *pr,
@@ -586,7 +586,7 @@ GSF_pending_request_get_message_ (struct GSF_PendingRequest *pr,
  * @param cls closure, unused
  * @param key current key code
  * @param value value in the hash map (pending request)
- * @return GNUNET_YES (we should continue to iterate)
+ * @return #GNUNET_YES (we should continue to iterate)
  */
 static int
 clean_request (void *cls, const struct GNUNET_HashCode * key, void *value)
@@ -794,7 +794,7 @@ update_request_performance_data (struct ProcessReplyClosure *prq,
  * @param cls response (struct ProcessReplyClosure)
  * @param key our query
  * @param value value in the hash map (info about the query)
- * @return GNUNET_YES (we should continue to iterate)
+ * @return #GNUNET_YES (we should continue to iterate)
  */
 static int
 process_reply (void *cls, const struct GNUNET_HashCode * key, void *value)
@@ -1043,7 +1043,7 @@ test_put_load_too_high (uint32_t priority)
  * @param put_path peers on the PUT path (or NULL if not recorded)
  * @param put_path_length number of entries in @a get_path
  * @param type type of the result
- * @param size number of bytes in data
+ * @param size number of bytes in @a data
  * @param data pointer to the result data
  */
 static void
