@@ -388,8 +388,9 @@ static void
 timeout_queue_entry (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_DATASTORE_QueueEntry *qe = cls;
+  struct GNUNET_DATASTORE_Handle *h = qe->h;
 
-  GNUNET_STATISTICS_update (qe->h->stats,
+  GNUNET_STATISTICS_update (h->stats,
                             gettext_noop ("# queue entry timeouts"), 1,
                             GNUNET_NO);
   qe->task = GNUNET_SCHEDULER_NO_TASK;
