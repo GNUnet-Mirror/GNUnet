@@ -45,24 +45,35 @@ static struct GNUNET_CONVERSATION_Call *call;
 
 static struct GNUNET_NAMESTORE_QueueEntry *qe;
 
+static struct GNUNET_CONVERSATION_Caller *active_caller;
+
 static char *gns_name;
+
+static char *gns_caller_id;
+
 
 static int
 enable_speaker (void *cls)
 {
   const char *origin = cls;
 
-  fprintf (stderr, "Speaker %s enabled\n", origin);
+  fprintf (stderr,
+           "Speaker %s enabled\n",
+           origin);
   return GNUNET_OK;
 }
+
 
 static void
 disable_speaker (void *cls)
 {
   const char *origin = cls;
 
-  fprintf (stderr, "Speaker %s disabled\n", origin);
+  fprintf (stderr,
+           "Speaker %s disabled\n",
+           origin);
 }
+
 
 static void
 play (void *cls,
@@ -71,8 +82,12 @@ play (void *cls,
 {
   const char *origin = cls;
 
-  fprintf (stderr, "Speaker %s plays %u bytes\n", origin, (unsigned int) data_size);
+  fprintf (stderr,
+           "Speaker %s plays %u bytes\n",
+           origin,
+           (unsigned int) data_size);
 }
+
 
 static void
 destroy_speaker (void *cls)
@@ -92,6 +107,15 @@ static struct GNUNET_SPEAKER_Handle caller_speaker = {
 };
 
 
+static struct GNUNET_SPEAKER_Handle phone_speaker = {
+  &enable_speaker,
+  &play,
+  &disable_speaker,
+  &destroy_speaker,
+  "caller"
+};
+
+
 static int
 enable_mic (void *cls,
             GNUNET_MICROPHONE_RecordedDataCallback rdc,
@@ -99,24 +123,32 @@ enable_mic (void *cls,
 {
   const char *origin = cls;
 
-  fprintf (stderr, "Mic %s enabled\n", origin);
+  fprintf (stderr,
+           "Mic %s enabled\n",
+           origin);
   return GNUNET_OK;
 }
+
 
 static void
 disable_mic (void *cls)
 {
   const char *origin = cls;
 
-  fprintf (stderr, "Mic %s disabled\n", origin);
+  fprintf (stderr,
+           "Mic %s disabled\n",
+           origin);
 }
+
 
 static void
 destroy_mic (void *cls)
 {
   const char *origin = cls;
 
-  fprintf (stderr, "Mic %s destroyed\n", origin);
+  fprintf (stderr,
+           "Mic %s destroyed\n",
+           origin);
 }
 
 
@@ -126,6 +158,15 @@ static struct GNUNET_MICROPHONE_Handle caller_mic = {
   &destroy_mic,
   "caller"
 };
+
+
+static struct GNUNET_MICROPHONE_Handle phone_mic = {
+  &enable_mic,
+  &disable_mic,
+  &destroy_mic,
+  "caller"
+};
+
 
 /**
  * Signature of the main function of a task.
@@ -172,22 +213,80 @@ end_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static void
+caller_event_handler (void *cls,
+                      enum GNUNET_CONVERSATION_CallerEventCode code)
+{
+  switch (code)
+  {
+  case GNUNET_CONVERSATION_EC_CALLER_SUSPEND:
+  case GNUNET_CONVERSATION_EC_CALLER_RESUME:
+    fprintf (stderr, "Unexpected caller code: %d\n", code);
+    break;
+  }
+}
+
+
+static void
 phone_event_handler (void *cls,
                      enum GNUNET_CONVERSATION_PhoneEventCode code,
                      struct GNUNET_CONVERSATION_Caller *caller,
                      const char *caller_id)
 {
-  fprintf (stderr, "Phone code: %d - %s\n", code, caller_id);
-  ok = 0;
-  GNUNET_SCHEDULER_shutdown ();
+  static enum GNUNET_CONVERSATION_PhoneEventCode expect
+    = GNUNET_CONVERSATION_EC_PHONE_RING;
+
+  GNUNET_break (0 == strcmp (caller_id,
+                             gns_caller_id));
+  GNUNET_break (code == expect);
+  switch (code)
+  {
+  case GNUNET_CONVERSATION_EC_PHONE_RING:
+    active_caller = caller;
+    GNUNET_CONVERSATION_caller_pick_up (caller,
+                                        &caller_event_handler,
+                                        NULL,
+                                        &phone_speaker,
+                                        &phone_mic);
+    expect = GNUNET_CONVERSATION_EC_PHONE_HUNG_UP;
+    break;
+  case GNUNET_CONVERSATION_EC_PHONE_HUNG_UP:
+    GNUNET_break (caller == active_caller);
+    active_caller = NULL;
+    ok = 0;
+    GNUNET_SCHEDULER_shutdown ();
+    break;
+  default:
+    fprintf (stderr, "Unexpected phone code: %d\n", code);
+    break;
+  }
 }
 
 
 static void
-caller_event_handler (void *cls,
-                      enum GNUNET_CONVERSATION_CallEventCode code)
+call_event_handler (void *cls,
+                    enum GNUNET_CONVERSATION_CallEventCode code)
 {
-  fprintf (stderr, "Caller code: %d\n", code);
+  static enum GNUNET_CONVERSATION_CallEventCode expect
+    = GNUNET_CONVERSATION_EC_CALL_RINGING;
+
+  GNUNET_break (code == expect);
+  switch (code)
+  {
+  case GNUNET_CONVERSATION_EC_CALL_RINGING:
+    expect = GNUNET_CONVERSATION_EC_CALL_PICKED_UP;
+    break;
+  case GNUNET_CONVERSATION_EC_CALL_PICKED_UP:
+    expect = -1;
+    GNUNET_CONVERSATION_call_stop (call);
+    call = NULL;
+    break;
+  case GNUNET_CONVERSATION_EC_CALL_GNS_FAIL:
+  case GNUNET_CONVERSATION_EC_CALL_HUNG_UP:
+  case GNUNET_CONVERSATION_EC_CALL_SUSPENDED:
+  case GNUNET_CONVERSATION_EC_CALL_RESUMED:
+    fprintf (stderr, "Unexpected call code: %d\n", code);
+    break;
+  }
 }
 
 
@@ -253,12 +352,16 @@ identity_cb (void *cls,
   }
   if (0 == strcmp (name, "caller-ego"))
   {
+    GNUNET_IDENTITY_ego_get_public_key (ego, &pub);
+    GNUNET_asprintf (&gns_caller_id,
+                     "%s",
+                     GNUNET_GNSRECORD_pkey_to_zkey (&pub));
     call = GNUNET_CONVERSATION_call_start (cfg,
                                            ego,
                                            gns_name,
                                            &caller_speaker,
                                            &caller_mic,
-                                           &caller_event_handler,
+                                           &call_event_handler,
                                            NULL);
     return;
   }
