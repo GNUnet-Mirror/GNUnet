@@ -292,16 +292,21 @@ struct GAS_Addresses_Handle
   /**
    * Address suggestion requests DLL head
    */
-  struct GAS_Addresses_Suggestion_Requests *r_head;
+  struct GAS_Addresses_Suggestion_Requests *pending_requests_head;
 
   /**
    * Address suggestion requests DLL tail
    */
-  struct GAS_Addresses_Suggestion_Requests *r_tail;
+  struct GAS_Addresses_Suggestion_Requests *pending_requests_tail;
 
-  /* Solver functions */
+  /**
+   * Solver functions
+   */
   struct GNUNET_ATS_PluginEnvironment env;
 
+  /**
+   * Solver plugin name as string
+   */
   char *plugin;
 };
 
@@ -1130,7 +1135,7 @@ void
 GAS_addresses_request_address_cancel (struct GAS_Addresses_Handle *handle,
     const struct GNUNET_PeerIdentity *peer)
 {
-  struct GAS_Addresses_Suggestion_Requests *cur = handle->r_head;
+  struct GAS_Addresses_Suggestion_Requests *cur = handle->pending_requests_head;
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Received request: `%s' for peer %s\n",
       "request_address_cancel", GNUNET_i2s (peer));
@@ -1153,7 +1158,7 @@ GAS_addresses_request_address_cancel (struct GAS_Addresses_Handle *handle,
   GAS_addresses_handle_backoff_reset (handle, peer);
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Removed request pending for peer `%s\n",
       GNUNET_i2s (peer));
-  GNUNET_CONTAINER_DLL_remove(handle->r_head, handle->r_tail, cur);
+  GNUNET_CONTAINER_DLL_remove(handle->pending_requests_head, handle->pending_requests_tail, cur);
   GNUNET_free(cur);
 }
 
@@ -1168,7 +1173,7 @@ void
 GAS_addresses_request_address (struct GAS_Addresses_Handle *handle,
     const struct GNUNET_PeerIdentity *peer)
 {
-  struct GAS_Addresses_Suggestion_Requests *cur = handle->r_head;
+  struct GAS_Addresses_Suggestion_Requests *cur = handle->pending_requests_head;
   struct ATS_Address *aa;
 
   GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Received `%s' for peer `%s'\n",
@@ -1189,15 +1194,8 @@ GAS_addresses_request_address (struct GAS_Addresses_Handle *handle,
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
         "Adding new address suggestion request for `%s'\n",
          GNUNET_i2s (peer));
-    GNUNET_CONTAINER_DLL_insert(handle->r_head, handle->r_tail, cur);
+    GNUNET_CONTAINER_DLL_insert(handle->pending_requests_head, handle->pending_requests_tail, cur);
   }
-
-  /*
-   * Debuging information about addresses
-   *
-   * GNUNET_CONTAINER_multihashmap_get_multiple(handle->addresses,
-   *  &peer->hashPubKey, &addrinfo_it, (void *) peer);
-   */
 
   /* Get prefered address from solver */
   aa = (struct ATS_Address *) handle->env.sf.s_get (handle->solver, peer);
@@ -1273,15 +1271,55 @@ GAS_addresses_handle_backoff_reset (struct GAS_Addresses_Handle *handle,
 								   &reset_address_it, NULL));
 }
 
+static int
+eval_count_active_it (void *cls, const struct GNUNET_PeerIdentity *id, void *obj)
+{
+  int *request_fulfilled = cls;
+  struct ATS_Address *addr = obj;
+
+  if (GNUNET_YES == addr->active)
+    (*request_fulfilled) = GNUNET_YES;
+
+  if (*request_fulfilled == GNUNET_YES)
+    return GNUNET_NO;
+  else
+    return GNUNET_YES;
+}
+
 /**
- * Evaluathe current bandwidth assignment
+ * Evaluate current bandwidth assignment
+ *
+ * @param ah address handle
  */
 void
 GAS_addresses_evaluate_assignment (struct GAS_Addresses_Handle *ah)
 {
-  GNUNET_assert (NULL != ah);
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Current assignment has quality: Not implemented!\n");
+  struct GAS_Addresses_Suggestion_Requests *cur;
+  unsigned int requests_pending;
+  unsigned int requests_fulfilled;
 
+  GNUNET_assert (NULL != ah);
+  GNUNET_assert (NULL != ah->addresses);
+
+  requests_pending = 0;
+  requests_fulfilled = 0;
+  /* 1) How many requests could be fulfilled? */
+  for (cur = ah->pending_requests_head; NULL != cur; cur = cur->next)
+  {
+
+    GNUNET_CONTAINER_multipeermap_get_multiple (ah->addresses,
+        &cur->id, &eval_count_active_it, &requests_fulfilled);
+    if (GNUNET_YES == requests_fulfilled)
+      requests_fulfilled ++;
+    requests_pending ++;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%u pending requests, %u requests fullfilled\n",
+      requests_pending, requests_fulfilled);
+
+
+  /* 2) How well is bandwidth utilized? */
+
+  /* 3) How well does selection match application requirements */
 }
 
 /**
@@ -1677,7 +1715,7 @@ bandwidth_changed_cb (void *cls, struct ATS_Address *address)
   GAS_performance_notify_all_clients (&address->peer, address->plugin,
       address->addr, address->addr_len, address->session_id, address->atsi,
       address->atsi_count, address->assigned_bw_out, address->assigned_bw_in);
-  cur = handle->r_head;
+  cur = handle->pending_requests_head;
   while (NULL != cur)
   {
     if (0 == memcmp (&address->peer, &cur->id, sizeof(cur->id)))
@@ -1789,7 +1827,7 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
   load_quotas (cfg, quotas_in, quotas_out, GNUNET_ATS_NetworkTypeCount);
   ah->env.info_cb = &solver_info_cb;
-  ah->env.info_cb_cls = &ah;
+  ah->env.info_cb_cls = ah;
   ah->env.bandwidth_changed_cb = &bandwidth_changed_cb;
   ah->env.bw_changed_cb_cls = ah;
   ah->env.get_preferences = &get_preferences_cb;
@@ -1914,9 +1952,9 @@ GAS_addresses_done (struct GAS_Addresses_Handle *handle)
   handle->running = GNUNET_NO;
   GNUNET_CONTAINER_multipeermap_destroy (handle->addresses);
   handle->addresses = NULL;
-  while (NULL != (cur = handle->r_head))
+  while (NULL != (cur = handle->pending_requests_head))
   {
-    GNUNET_CONTAINER_DLL_remove(handle->r_head, handle->r_tail, cur);
+    GNUNET_CONTAINER_DLL_remove(handle->pending_requests_head, handle->pending_requests_tail, cur);
     GNUNET_free(cur);
   }
 
