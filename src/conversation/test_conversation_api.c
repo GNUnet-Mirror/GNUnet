@@ -20,6 +20,11 @@
 /**
  * @file conversation/test_conversation_api.c
  * @brief testcase for conversation_api.c
+ *
+ * This test performs the operations of a call to a phone
+ * where the phone user picks up and then the call is
+ * terminated by the party that initiated the call.  The
+ * actual transmission of voice data is not tested.
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
