@@ -776,6 +776,16 @@ channel_confirm (struct MeshChannel *ch, int fwd)
     channel_send_ack (ch, !fwd);
 }
 
+
+/**
+ * Message has been sent: start retransmission timer.
+ *
+ * @param cls Closure (copy sent).
+ * @param t Tunnel.
+ * @param q Queue handler (no longer valid).
+ * @param type Type of message.
+ * @param size Size of the message.
+ */
 static void
 message_sent (void *cls,
               struct MeshTunnel3 *t,
@@ -1915,7 +1925,7 @@ GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
 
     copy = channel_save_copy (ch, message, fwd);
     copy->q = GMT_send_prebuilt_message (message, ch->t, ch, fwd,
-                                          &message_sent, copy);
+                                         &message_sent, copy);
   }
   else
     GMT_send_prebuilt_message (message, ch->t, ch, fwd, NULL, NULL);

@@ -741,6 +741,8 @@ send_broken (struct MeshConnection *c,
  *
  * @param c Connection to keep alive..
  * @param fwd Is this a FWD keepalive? (owner -> dest).
+ * 
+ * FIXME use only one type, register in GMC_send_prebuilt_message()
  */
 static void
 connection_keepalive (struct MeshConnection *c, int fwd)

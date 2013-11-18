@@ -2098,7 +2098,7 @@ GMT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
     (void) GMC_send_prebuilt_message (&msg->header, c, fwd, NULL, NULL);
     return NULL;
   }
-  q = GNUNET_new (struct MeshTunnel3Queue);
+  q = GNUNET_new (struct MeshTunnel3Queue); /* FIXME valgrind: leak*/
   q->q = GMC_send_prebuilt_message (&msg->header, c, fwd, &message_sent, q);
   q->cont = cont;
   q->cont_cls = cont_cls;
