@@ -1378,6 +1378,7 @@ GMC_handle_confirm (void *cls, const struct GNUNET_PeerIdentity *peer,
 
     /* Send ACK (~TCP ACK)*/
     send_connection_ack (c, GNUNET_YES);
+    return GNUNET_OK;
   }
 
   /* Message for us as destination? */
