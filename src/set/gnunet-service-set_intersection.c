@@ -313,24 +313,30 @@ intersection_operation_destroy (struct OperationState *eo)
 
 
 /**
- * Inform the client that the intersection operation has failed,
+ * Inform the client that the union operation has failed,
  * and proceed to destroy the evaluate operation.
  *
- * @param eo the intersection operation to fail
+ * @param op the intersection operation to fail
  */
 static void
-fail_intersection_operation (struct OperationState *eo)
+fail_intersection_operation (struct Operation *op)
 {
   struct GNUNET_MQ_Envelope *ev;
   struct GNUNET_SET_ResultMessage *msg;
 
+  if (op->state->my_elements)
+    GNUNET_CONTAINER_multihashmap_destroy(op->state->my_elements);
+  
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "intersection operation failed\n");
+
   ev = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_SET_RESULT);
   msg->result_status = htons (GNUNET_SET_STATUS_FAILURE);
-  msg->request_id = htonl (eo->spec->client_request_id);
+  msg->request_id = htonl (op->spec->client_request_id);
   msg->element_type = htons (0);
-  GNUNET_MQ_send (eo->spec->set->client_mq, ev);
-  intersection_operation_destroy (eo);
+  GNUNET_MQ_send (op->spec->set->client_mq, ev);
+  _GSS_operation_destroy (op);
 }
+
 
 
 /**
@@ -339,7 +345,7 @@ fail_intersection_operation (struct OperationState *eo)
  * @param eo the intersection operation to fail
  */
 static void
-finalize_intersection_operation (struct Operation *op)
+send_peer_done (struct Operation *op)
 {
   struct GNUNET_MQ_Envelope *ev;
 
@@ -418,7 +424,7 @@ handle_p2p_bf (void *cls, const struct GNUNET_MessageHeader *mh)
   switch (op->state->phase)
   {
   case PHASE_INITIAL:
-    // If we are alice and got our first msg
+    // If we are ot our first msg
     op->state->my_elements = GNUNET_CONTAINER_multihashmap_create (op->state->my_elements_count, GNUNET_YES);
 
     GNUNET_CONTAINER_multihashmap_iterate (op->spec->set->elements,
@@ -447,7 +453,7 @@ handle_p2p_bf (void *cls, const struct GNUNET_MessageHeader *mh)
   if ((op->state->phase == PHASE_MAYBE_FINISHED) 
        && (old_count == op->state->my_elements_count)){
     // In the last round we though we were finished, we now know this is correct
-    finalize_intersection_operation(op);
+    send_peer_done(op);
     return;
   }
   
@@ -579,7 +585,7 @@ finish_and_destroy (struct Operation *op)
     send_remaining_elements (op);
     return;
   }
-  send_done_and_destroy (op);
+  send_client_done_and_destroy (op);
 }
 
 /**
@@ -765,7 +771,7 @@ intersection_handle_p2p_message (struct Operation *op,
  * @param cls operation to destroy
  */
 static void
-send_done_and_destroy (void *cls)
+send_client_done_and_destroy (void *cls)
 {
   struct Operation *op = cls;
   struct GNUNET_MQ_Envelope *ev;
@@ -787,15 +793,15 @@ static void
 send_remaining_elements (void *cls)
 {
   struct Operation *op = cls;
-  struct KeyEntry *ke;
+  struct KeyEntry *remaining; //TODO rework this, key entry does not exist here
   int res;
 
-  res = GNUNET_CONTAINER_multihashmap32_iterator_next (op->state->full_result_iter, NULL, (const void **) &ke);
+  res = GNUNET_CONTAINER_multihashmap32_iterator_next (op->state->full_result_iter, NULL, (const void **) &remaining);
   res = GNUNET_NO;
   if (GNUNET_NO == res)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "sending done and destroy because iterator ran out\n");
-    send_done_and_destroy (op);
+    send_client_done_and_destroy (op);
     return;
   }
 
@@ -806,7 +812,7 @@ send_remaining_elements (void *cls)
     struct GNUNET_MQ_Envelope *ev;
     struct GNUNET_SET_ResultMessage *rm;
     struct GNUNET_SET_Element *element;
-    element = &ke->element->element;
+    element = &remaining->element->element;
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "sending element (size %u) to client (full set)\n", element->size);
     GNUNET_assert (0 != op->spec->client_request_id);
@@ -821,14 +827,14 @@ send_remaining_elements (void *cls)
     rm->request_id = htonl (op->spec->client_request_id);
     rm->element_type = element->type;
     memcpy (&rm[1], element->data, element->size);
-    if (ke->next_colliding == NULL)
+    if (remaining->next_colliding == NULL)
     {
       GNUNET_MQ_notify_sent (ev, send_remaining_elements, op);
       GNUNET_MQ_send (op->spec->set->client_mq, ev);
       break;
     }
     GNUNET_MQ_send (op->spec->set->client_mq, ev);
-    ke = ke->next_colliding;
+    remaining = remaining->next_colliding;
   }
 }
 
