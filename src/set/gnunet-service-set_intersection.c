@@ -30,6 +30,7 @@
 #include "set_protocol.h"
 #include <gcrypt.h>
 
+#define BLOOMFILTER_SIZE GNUNET_CRYPTO_HASH_LENGTH
 /**
  * Current phase we are in for a intersection operation.
  */
@@ -135,7 +136,7 @@ struct OperationState
  *         #GNUNET_NO if not.
  */
 static int 
-iterator_initialization_alice (void *cls,
+iterator_initialization_by_alice (void *cls,
                                       const struct GNUNET_HashCode *key,
                                       void *value){
   struct ElementEntry *ee = value;
@@ -167,8 +168,6 @@ iterator_initialization_alice (void *cls,
 }
 
 /**
- * Bob's version:
- * 
  * fills the contained-elements hashmap with all relevant 
  * elements and adds their mutated hashes to our local bloomfilter
  * 
@@ -234,7 +233,7 @@ iterator_element_count (void *cls,
 
 /**
  * removes element from a hashmap if it is not contained within the
- * provided remote bloomfilter.
+ * provided remote bloomfilter. Then, fill our new bloomfilter.
  * 
  * @param cls closure
  * @param key current key code
@@ -244,7 +243,7 @@ iterator_element_count (void *cls,
  *         #GNUNET_NO if not.
  */
 static int
-iterator_element_removal (void *cls,
+iterator_bf_round (void *cls,
                                       const struct GNUNET_HashCode *key,
                                       void *value){
   struct ElementEntry *ee = value;
@@ -259,31 +258,10 @@ iterator_element_removal (void *cls,
     GNUNET_CONTAINER_multihashmap_remove (op->state->my_elements, 
                                      &ee->element_hash,
                                      ee);
+    return GNUNET_YES;
   }
   
-  return GNUNET_YES;
-}
-
-/**
- * removes element from a hashmap if it is not contained within the
- * provided remote bloomfilter.
- * 
- * @param cls closure
- * @param key current key code
- * @param value value in the hash map
- * @return #GNUNET_YES if we should continue to
- *         iterate,
- *         #GNUNET_NO if not.
- */
-static int
-iterator_create_bf (void *cls,
-                                      const struct GNUNET_HashCode *key,
-                                      void *value){
-  struct ElementEntry *ee = value;
-  struct Operation *op = cls;
-  struct GNUNET_HashCode mutated_hash;
-  
-  GNUNET_BLOCK_mingle_hash(&ee->element_hash, op->spec->salt, &mutated_hash);
+  GNUNET_BLOCK_mingle_hash(&ee->element_hash, op->spec->salt+1, &mutated_hash);
   
   GNUNET_CONTAINER_bloomfilter_add (op->state->local_bf, 
                                     &mutated_hash);
@@ -356,6 +334,25 @@ fail_intersection_operation (struct OperationState *eo)
 
 
 /**
+ * Inform the peer that this operation is complete.
+ *
+ * @param eo the intersection operation to fail
+ */
+static void
+finalize_intersection_operation (struct Operation *op)
+{
+  struct GNUNET_MQ_Envelope *ev;
+
+  op->state->phase = PHASE_FINISHED;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Intersection succeeded, sending DONE\n");
+  GNUNET_CONTAINER_bloomfilter_free (op->state->local_bf);
+  op->state->local_bf = NULL;
+
+  ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_SET_P2P_DONE);
+  GNUNET_MQ_send (op->mq, ev);
+}
+
+/**
  * Send a request for the evaluate operation to a remote peer
  *
  * @param eo operation with the other peer
@@ -396,7 +393,6 @@ send_operation_request (struct Operation *op)
 
 }
 
-
 /**
  * Handle an BF message from a remote peer.
  *
@@ -408,50 +404,60 @@ handle_p2p_bf (void *cls, const struct GNUNET_MessageHeader *mh)
 {
   struct Operation *op = cls;
   struct BFMessage *msg = (struct BFMessage *) mh;
+  uint32_t old_count;
 
-  switch (op->state->phase){
+  old_count = op->state->my_elements_count;
+  op->spec->salt = ntohl (msg->sender_mutator);
+  
+  op->state->remote_bf = GNUNET_CONTAINER_bloomfilter_init (&msg[1],
+                                                            BLOOMFILTER_SIZE,
+                                                            ntohl (msg->bloomfilter_length));
+  op->state->local_bf = GNUNET_CONTAINER_bloomfilter_init (NULL,
+                                                           BLOOMFILTER_SIZE,
+                                                           GNUNET_CONSTANTS_BLOOMFILTER_K);
+  switch (op->state->phase)
+  {
   case PHASE_INITIAL:
-    op->state->phase = PHASE_BF_EXCHANGE;
-    op->state->my_elements = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_YES);
+    // If we are alice and got our first msg
+    op->state->my_elements = GNUNET_CONTAINER_multihashmap_create (op->state->my_elements_count, GNUNET_YES);
 
-    op->spec->salt = ntohl(msg->sender_mutator);
-    op->state->remote_bf = GNUNET_CONTAINER_bloomfilter_init (&msg[1], 
-                                                              GNUNET_CRYPTO_HASH_LENGTH, 
-                                                              ntohl(msg->bloomfilter_length));
-    op->state->local_bf = GNUNET_CONTAINER_bloomfilter_init (NULL, 
-                                                             GNUNET_CRYPTO_HASH_LENGTH, 
-                                                             GNUNET_CONSTANTS_BLOOMFILTER_K);
     GNUNET_CONTAINER_multihashmap_iterate (op->spec->set->elements,
-                                           &iterator_initialization_alice,
+                                           &iterator_initialization_by_alice,
                                            op);
-    // iterator_initialization_alice created a new BF with salt+1
-    // bob needs this information for decoding the next BF
-    // this behavior can be modified at will later on.
-    op->spec->salt++;
-    
-    GNUNET_CONTAINER_bloomfilter_free(op->state->remote_bf);
-    op->state->remote_bf = NULL;
-    
-    if (op->state->my_elements_count == ntohl(msg->sender_element_count))
-      op->state->phase = PHASE_MAYBE_FINISHED;
-    
-    send_bloomfilter (op);
-    
-    // if (the remote peer has less elements than us)
-    //    run our elements through his bloomfilter
-    // if (we have the same elements)
-    //    done;
-    // 
-    // evict elements we can exclude through the bloomfilter
-    //
-    // create a new bloomfilter over our remaining elements
-    // 
-    // send our new count and the bloomfilter back
-    case PHASE_BF_EXCHANGE:
-      break;
+    break;
+  case PHASE_BF_EXCHANGE:
+  case PHASE_MAYBE_FINISHED:
+    // if we are bob or alice and are continuing operation
+    GNUNET_CONTAINER_multihashmap_iterate (op->spec->set->elements,
+                                           &iterator_bf_round,
+                                           op);
+    break;
   default:
-    GNUNET_break_op(0);
+    GNUNET_break_op (0);
+    fail_intersection_operation(op);
   }
+  // the iterators created a new BF with salt+1
+  // the peer needs this information for decoding the next BF
+  // this behavior can be modified at will later on.
+  op->spec->salt++;
+  
+  GNUNET_CONTAINER_bloomfilter_free (op->state->remote_bf);
+  op->state->remote_bf = NULL;
+  
+  if ((op->state->phase == PHASE_MAYBE_FINISHED) 
+       && (old_count == op->state->my_elements_count)){
+    // In the last round we though we were finished, we now know this is correct
+    finalize_intersection_operation(op);
+    return;
+  }
+  
+  op->state->phase = PHASE_BF_EXCHANGE;
+  // maybe we are finished, but we do one more round to make certain
+  // we don't have false positives ...
+  if (op->state->my_elements_count == ntohl (msg->sender_element_count))
+      op->state->phase = PHASE_MAYBE_FINISHED;
+
+  send_bloomfilter (op);
 }
 
 
@@ -469,8 +475,8 @@ handle_p2p_element_info (void *cls, const struct GNUNET_MessageHeader *mh)
   uint32_t remote_element_count;
 
   remote_element_count = ntohl(msg->sender_element_count);
-  if (op->state->phase == PHASE_INITIAL
-      || op->state->my_elements_count > remote_element_count){
+  if ((op->state->phase == PHASE_INITIAL)
+      || (op->state->my_elements_count > remote_element_count)){
     GNUNET_break_op (0);
     fail_intersection_operation(op);
   }
@@ -478,20 +484,12 @@ handle_p2p_element_info (void *cls, const struct GNUNET_MessageHeader *mh)
   op->state->phase = PHASE_BF_EXCHANGE;
   op->state->my_elements = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_YES);
 
-  op->spec->salt = ntohl (msg->sender_mutator);
-  op->state->remote_bf = GNUNET_CONTAINER_bloomfilter_init (&msg[1],
-                                                            GNUNET_CRYPTO_HASH_LENGTH,
-                                                            ntohl (msg->bloomfilter_length));
   op->state->local_bf = GNUNET_CONTAINER_bloomfilter_init (NULL,
-                                                           GNUNET_CRYPTO_HASH_LENGTH,
+                                                           BLOOMFILTER_SIZE,
                                                            GNUNET_CONSTANTS_BLOOMFILTER_K);
   GNUNET_CONTAINER_multihashmap_iterate (op->spec->set->elements,
-                                         &iterator_initialization_alice,
+                                         &iterator_initialization,
                                          op);
-  // iterator_initialization_alice created a new BF with salt+1
-  // bob needs this information for decoding the next BF
-  // this behavior can be modified at will later on.
-  op->spec->salt++;
 
   GNUNET_CONTAINER_bloomfilter_free (op->state->remote_bf);
   op->state->remote_bf = NULL;
@@ -504,64 +502,6 @@ handle_p2p_element_info (void *cls, const struct GNUNET_MessageHeader *mh)
 
 
 /**
- * Send a result message to the client indicating
- * that there is a new element.
- *
- * @param eo intersection operation
- * @param element element to send
- */
-static void
-send_client_element (struct OperationState *eo,
-                     struct GNUNET_SET_Element *element)
-{
-  struct GNUNET_MQ_Envelope *ev;
-  struct GNUNET_SET_ResultMessage *rm;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "sending element (size %u) to client\n", element->size);
-  GNUNET_assert (0 != eo->spec->client_request_id);
-  ev = GNUNET_MQ_msg_extra (rm, element->size, GNUNET_MESSAGE_TYPE_SET_RESULT);
-  if (NULL == ev)
-  {
-    GNUNET_MQ_discard (ev);
-    GNUNET_break (0);
-    return;
-  }
-  rm->result_status = htons (GNUNET_SET_STATUS_OK);
-  rm->request_id = htonl (eo->spec->client_request_id);
-  rm->element_type = element->type;
-  memcpy (&rm[1], element->data, element->size);
-  GNUNET_MQ_send (eo->spec->set->client_mq, ev);
-}
-
-
-/**
- * Send a result message to the client indicating
- * that the operation is over.
- * After the result done message has been sent to the client,
- * destroy the evaluate operation.
- *
- * @param eo intersection operation
- */
-static void
-send_client_done_and_destroy (struct OperationState *eo)
-{
-  struct GNUNET_MQ_Envelope *ev;
-  struct GNUNET_SET_ResultMessage *rm;
-
-  GNUNET_assert (GNUNET_NO == eo->client_done_sent);
-
-  eo->client_done_sent = GNUNET_YES;
-
-  ev = GNUNET_MQ_msg (rm, GNUNET_MESSAGE_TYPE_SET_RESULT);
-  rm->request_id = htonl (eo->spec->client_request_id);
-  rm->result_status = htons (GNUNET_SET_STATUS_DONE);
-  rm->element_type = htons (0);
-  GNUNET_MQ_send (eo->spec->set->client_mq, ev);
-
-  intersection_operation_destroy (eo);
-}
-
-/**
  * Send a bloomfilter to our peer.
  * that the operation is over.
  * After the result done message has been sent to the client,
@@ -572,7 +512,6 @@ send_client_done_and_destroy (struct OperationState *eo)
 static void
 send_bloomfilter (struct Operation *op)
 {
-  struct BloomFilter *bf;
   struct GNUNET_MQ_Envelope *ev;
   struct BFMessage *msg;
   uint32_t bf_size;
@@ -590,7 +529,9 @@ send_bloomfilter (struct Operation *op)
   GNUNET_assert (GNUNET_SYSERR !=
                  GNUNET_CONTAINER_bloomfilter_get_raw_data (op->state->local_bf,
                                                             &msg->sender_bf_data,
-                                                            GNUNET_CRYPTO_HASH_LENGTH));
+                                                            BLOOMFILTER_SIZE));
+  GNUNET_CONTAINER_bloomfilter_free (op->state->local_bf);
+  op->state->local_bf = NULL;
   GNUNET_MQ_send (op->mq, ev);
 }
 
@@ -692,7 +633,7 @@ intersection_accept (struct Operation *op)
                                         &iterator_element_count,
                                         op);
   
-  // if we have more elements than our peer, he should start
+  // if Alice (the peer) has more elements than Bob (us), she should start
   if (op->spec->element_count < op->state->my_elements_count){
     op->state->phase = PHASE_INITIAL;
     send_element_count(op);
@@ -702,7 +643,7 @@ intersection_accept (struct Operation *op)
   // create a new bloomfilter in case we have fewer elements
   op->state->phase = PHASE_BF_EXCHANGE;
   op->state->local_bf = GNUNET_CONTAINER_bloomfilter_init (NULL,
-                                                           GNUNET_CRYPTO_HASH_LENGTH,
+                                                           BLOOMFILTER_SIZE,
                                                            GNUNET_CONSTANTS_BLOOMFILTER_K);
 
   GNUNET_CONTAINER_multihashmap_iterate (op->spec->set->elements,
