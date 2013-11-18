@@ -771,6 +771,7 @@ envi_reward_global (struct GAS_RIL_Handle *solver)
   ratio_in = ((double) in_assigned) / ((double) in_available);
   ratio_out = ((double) out_assigned) / ((double) out_available);
 
+  // global reward in [1,2]
   return ((ratio_in + ratio_out) / 2) + 1;
 }
 
@@ -789,18 +790,21 @@ envi_reward_local (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
   properties = solver->plugin_envi->get_property (solver->plugin_envi->get_property_cls,
       agent->address_inuse);
 
-  //preference matching from latency
+  // delay in [0,1]
   prop_index = ril_find_property_index (GNUNET_ATS_QUALITY_NET_DELAY);
   dl_norm = 2 - properties[prop_index]; //invert property as we want to maximize for lower latencies
 
+  // utilization in [0,1]
   bw_norm = ((ril_get_atsi (agent->address_inuse, GNUNET_ATS_UTILIZATION_IN)
       / ril_get_max_bw (agent, GNUNET_YES))
       + (ril_get_atsi (agent->address_inuse, GNUNET_ATS_UTILIZATION_OUT)
           / ril_get_max_bw (agent, GNUNET_NO))) / 2;
 
+  // preference matching in [0,4]
   pref_match += (preferences[GNUNET_ATS_PREFERENCE_LATENCY] * dl_norm);
   pref_match += (preferences[GNUNET_ATS_PREFERENCE_BANDWIDTH] * bw_norm);
 
+  // local reward in [1,2]
   return (pref_match / 4) +1;
 }
 
