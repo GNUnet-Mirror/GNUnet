@@ -2103,7 +2103,6 @@ GMC_new (const struct GNUNET_HashCode *cid,
   {
     GNUNET_break (0);
     GMC_destroy (c);
-    path_destroy (p);
     return NULL;
   }
   c->own_pos = own_pos;
