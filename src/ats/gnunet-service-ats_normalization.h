@@ -71,15 +71,15 @@ GAS_normalization_get_properties (struct ATS_Address *address);
 
 
 /**
- * Get the normalized preference values for a specific client
+ * Get the normalized preference values for a specific client and peer
  *
- * @param client the client
- * @param pref desired pref value
- * @return normalized value
+ * @param id the peer
+ * @param the peer
+ * @return the value
  */
 const double
 GAS_normalization_get_preferences_by_client (const void *client,
-    enum GNUNET_ATS_PreferenceKind pref);
+    struct GNUNET_PeerIdentity *peer, enum GNUNET_ATS_PreferenceKind pref);
 
 /**
  * Normalize an updated preference value

@@ -1342,6 +1342,7 @@ eval_count_active_it (void *cls, const struct GNUNET_PeerIdentity *id, void *obj
     return GNUNET_YES;
 }
 
+
 /**
  * Summary context
  */
@@ -1401,33 +1402,20 @@ struct RelativityContext {
   struct GAS_Addresses_Handle *ah;
 };
 
-#if 0
 static int
-eval_preference_relativity (void *cls, const struct GNUNET_PeerIdentity *id, void *obj)
+find_active_address (void *cls, const struct GNUNET_PeerIdentity *id, void *obj)
 {
-  struct RelativityContext *rc = cls;
+  struct ATS_Address **res = cls;
   struct ATS_Address *addr = obj;
-  int prefs[GNUNET_ATS_PreferenceCount] = GNUNET_ATS_PreferenceType ;
-  int c;
-  const double *preferences;
 
   if (GNUNET_YES == addr->active)
-  {
-    preferences = get_preferences_cb (rc->ah->env.get_preference_cls, id);
-    for (c = 0; c < GNUNET_ATS_PreferenceCount; c++)
-    {
-      if (prefs[c] == GNUNET_ATS_PREFERENCE_END)
-        continue;
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Preference for peer `%s' type %s: %f\n",
-          GNUNET_i2s (id), GNUNET_ATS_print_preference_type(prefs[c]),
-          preferences[c]);
-    }
-  }
+    (*res) = addr;
 
-  return GNUNET_OK;
+  if (NULL != (*res))
+    return GNUNET_NO;
+  else
+    return GNUNET_YES;
 }
-#endif
-
 
 /**
  * Evaluate current bandwidth assignment
@@ -1458,11 +1446,17 @@ GAS_addresses_evaluate_assignment (struct GAS_Addresses_Handle *ah)
 
   /* Variable related to utilization */
   struct SummaryContext sum;
+  struct ATS_Address *active_address;
   int network_count;
 
   /* Variables for preferences */
   int prefs[GNUNET_ATS_PreferenceCount] = GNUNET_ATS_PreferenceType;
   double pref_val;
+  double prop_val;
+  const double *norm_values;
+  double prefs_fulfill[GNUNET_ATS_PreferenceCount];
+  int prefs_clients[GNUNET_ATS_PreferenceCount];
+  int rels;
 
   GNUNET_assert (NULL != ah);
   GNUNET_assert (NULL != ah->addresses);
@@ -1540,25 +1534,80 @@ GAS_addresses_evaluate_assignment (struct GAS_Addresses_Handle *ah)
   }
   else
   {
-    for (pcur = ah->preference_clients_head; NULL != pcur; pcur = pcur->next)
+    for (c = 0; c < GNUNET_ATS_PreferenceCount; c++)
     {
-      /* V metrics*/
-      for (c = 0; c < GNUNET_ATS_PreferenceCount; c++)
-      {
+      prefs_fulfill[c] = 0.0;
+      prefs_clients[c] = 0;
+    }
 
-        if (prefs[c] == GNUNET_ATS_PREFERENCE_END)
-          continue;
-        pref_val = -1.0;
-        pref_val = GAS_normalization_get_preferences_by_client (pcur->client, prefs[c]);
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "normalized pref for client %p == %.3f\n",
-            pcur->client, pref_val);
-        if (-1.0 == pref_val)
+    for (cur = ah->pending_requests_head; NULL != cur; cur = cur->next)
+    {
+      active_address = NULL;
+      GNUNET_CONTAINER_multipeermap_get_multiple (ah->addresses,
+          &cur->id, &find_active_address, &active_address);
+
+      for (pcur = ah->preference_clients_head; NULL != pcur; pcur = pcur->next)
+      {
+        for (c = 0; c < GNUNET_ATS_PreferenceCount; c++)
         {
-          GNUNET_break (0);
-          continue;
+          if (prefs[c] == GNUNET_ATS_PREFERENCE_END)
+            continue;
+          pref_val = -1.0;
+          pref_val = GAS_normalization_get_preferences_by_client (pcur->client, &cur->id, prefs[c]);
+          if (-1.0 == pref_val)
+          {
+            GNUNET_break (0);
+            continue;
+          }
+
+          if (DEFAULT_REL_PREFERENCE == pref_val)
+          {
+            /* Default preference value */
+            continue;
+          }
+
+          if (NULL != active_address)
+          {
+            norm_values = GAS_normalization_get_properties (active_address);
+            prop_val = norm_values[c];
+            if ((norm_values[c] <= 1.0) || (norm_values[c] >= 2.0))
+                prop_val = DEFAULT_REL_QUALITY;
+          }
+          else
+          {
+            prop_val = DEFAULT_REL_QUALITY;
+          }
+
+          /* We now have preference values [1..2] and properties [1..2] */
+
+          GNUNET_log (GNUNET_ERROR_TYPE_INFO, "%u Client %p, Peer %s Property %s: pref: %.3f prop %.3f \n",
+              c,
+              pcur->client,
+              GNUNET_i2s (&cur->id),
+              GNUNET_ATS_print_preference_type(prefs[c]),
+              pref_val,
+              prop_val);
+
+          prefs_fulfill[c] += (pref_val * prop_val) / 2;
+          prefs_clients[c] ++;
         }
       }
     }
+    rels = 0;
+    for (c = 0; c < GNUNET_ATS_PreferenceCount; c++)
+    {
+      if (0 < prefs_clients[c])
+      {
+        prefs_fulfill[c] /= prefs_clients[c];
+        rels ++;
+        quality_application_requirements += prefs_fulfill[c];
+      }
+    }
+    if (rels > 0)
+      quality_application_requirements /= rels;
+    else
+      quality_application_requirements = 0.0;
+
     include_requirements = GNUNET_YES;
   }
   /* GUQ */

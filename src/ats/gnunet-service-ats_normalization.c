@@ -220,9 +220,7 @@ update_peers (struct GNUNET_PeerIdentity *id,
       "%u clients have a total relative preference for peer `%s''s `%s' of %.3f\n",
       count, GNUNET_i2s (id), GNUNET_ATS_print_preference_type (kind),
       f_rel_total);
-  if (NULL
-      != (rp = GNUNET_CONTAINER_multipeermap_get (preference_peers,
-						  id)))
+  if (NULL != (rp = GNUNET_CONTAINER_multipeermap_get (preference_peers, id)))
   {
     backup = rp->f_rel[kind];
     if (0 < count)
@@ -330,7 +328,7 @@ update_preference (struct PreferenceClient *c, struct PreferencePeer *p,
   case GNUNET_ATS_PREFERENCE_BANDWIDTH:
   case GNUNET_ATS_PREFERENCE_LATENCY:
     p->f_abs[kind] = (p->f_abs[kind] + score) / 2;
-    p->next_aging[kind] = GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get(),
+    p->next_aging[kind] = GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get (),
         PREF_AGING_INTERVAL);
     break;
   case GNUNET_ATS_PREFERENCE_END:
@@ -367,24 +365,26 @@ preference_aging (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       /* Aging absolute values: */
       for (i = 0; i < GNUNET_ATS_PreferenceCount; i++)
       {
-        if (0 == GNUNET_TIME_absolute_get_remaining(p->next_aging[i]).rel_value_us)
+        if (0
+            == GNUNET_TIME_absolute_get_remaining (p->next_aging[i]).rel_value_us)
         {
-          GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Aging preference for peer `%s'\n",
-              GNUNET_i2s (&p->id));
+          GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+              "Aging preference for peer `%s'\n", GNUNET_i2s (&p->id));
           backup = p->f_abs[i];
           if (p->f_abs[i] > DEFAULT_ABS_PREFERENCE)
             p->f_abs[i] *= PREF_AGING_FACTOR;
           if (p->f_abs[i] <= DEFAULT_ABS_PREFERENCE + PREF_EPSILON)
             p->f_abs[i] = DEFAULT_ABS_PREFERENCE;
-          if ((p->f_abs[i] != DEFAULT_ABS_PREFERENCE) && (backup != p->f_abs[i]))
+          if ((p->f_abs[i] != DEFAULT_ABS_PREFERENCE)
+              && (backup != p->f_abs[i]))
           {
             GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                 "Aged preference for peer `%s' from %.3f to %.3f\n",
                 GNUNET_i2s (&p->id), backup, p->f_abs[i]);
             recalculate_rel_preferences (p->client, p, i);
-            p->next_aging[i] = GNUNET_TIME_absolute_add(GNUNET_TIME_absolute_get(),
-                PREF_AGING_INTERVAL);
-            values_to_update ++;
+            p->next_aging[i] = GNUNET_TIME_absolute_add (
+                GNUNET_TIME_absolute_get (), PREF_AGING_INTERVAL);
+            values_to_update++;
           }
         }
       }
@@ -393,17 +393,17 @@ preference_aging (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if (values_to_update > 0)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-        "Rescheduling aging task due to %u elements to age\n", values_to_update);
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+        "Rescheduling aging task due to %u elements to age\n",
+        values_to_update);
     aging_task = GNUNET_SCHEDULER_add_delayed (PREF_AGING_INTERVAL,
-        &preference_aging, NULL);
+        &preference_aging, NULL );
   }
   else
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
         "No values to age left, not rescheduling aging task\n");
 
 }
-
 
 /**
  * Normalize an updated preference value
@@ -415,8 +415,7 @@ preference_aging (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  */
 void
 GAS_normalization_normalize_preference (void *src,
-    const struct GNUNET_PeerIdentity *peer,
-    enum GNUNET_ATS_PreferenceKind kind,
+    const struct GNUNET_PeerIdentity *peer, enum GNUNET_ATS_PreferenceKind kind,
     float score_abs)
 {
   struct PreferenceClient *c_cur;
@@ -448,9 +447,8 @@ GAS_normalization_normalize_preference (void *src,
   {
     c_cur = GNUNET_malloc (sizeof (struct PreferenceClient));
     c_cur->client = src;
-    GNUNET_CONTAINER_DLL_insert (pc_head, pc_tail, c_cur);
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-        "Adding new client %p \n", c_cur);
+    GNUNET_CONTAINER_DLL_insert(pc_head, pc_tail, c_cur);
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Adding new client %p \n", c_cur);
   }
 
   /* Find entry for peer */
@@ -476,20 +474,19 @@ GAS_normalization_normalize_preference (void *src,
     GNUNET_CONTAINER_DLL_insert(c_cur->p_head, c_cur->p_tail, p_cur);
   }
 
-  if (NULL == GNUNET_CONTAINER_multipeermap_get (preference_peers,
-						 peer))
+  if (NULL == GNUNET_CONTAINER_multipeermap_get (preference_peers, peer))
   {
     r_cur = GNUNET_malloc (sizeof (struct PeerRelative));
     r_cur->id = (*peer);
     for (i = 0; i < GNUNET_ATS_PreferenceCount; i++)
       r_cur->f_rel[i] = DEFAULT_REL_PREFERENCE;
-    GNUNET_CONTAINER_multipeermap_put (preference_peers, &r_cur->id,
-        r_cur, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+    GNUNET_CONTAINER_multipeermap_put (preference_peers, &r_cur->id, r_cur,
+        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
   }
 
   if (GNUNET_SCHEDULER_NO_TASK == aging_task)
     aging_task = GNUNET_SCHEDULER_add_delayed (PREF_AGING_INTERVAL,
-        &preference_aging, NULL);
+        &preference_aging, NULL );
 
   update_preference (c_cur, p_cur, kind, score_abs);
 }
@@ -509,9 +506,7 @@ GAS_normalization_get_preferences_by_peer (const struct GNUNET_PeerIdentity *id)
   GNUNET_assert(NULL != id);
 
   struct PeerRelative *rp;
-  if (NULL
-      == (rp = GNUNET_CONTAINER_multipeermap_get (preference_peers,
-						  id)))
+  if (NULL == (rp = GNUNET_CONTAINER_multipeermap_get (preference_peers, id)))
   {
     return defvalues.f_rel;
   }
@@ -519,17 +514,19 @@ GAS_normalization_get_preferences_by_peer (const struct GNUNET_PeerIdentity *id)
 }
 
 /**
- * Get the normalized preference values for a specific peer or
- * the default values if
+ * Get the normalized preference values for a specific client and peer
  *
  * @param id the peer
- * @return pointer to the values, can be indexed with GNUNET_ATS_PreferenceKind,
- * default preferences if peer does not exist
+ * @param the peer
+ * @return the value
  */
 const double
-GAS_normalization_get_preferences_by_client (const void *client, enum GNUNET_ATS_PreferenceKind pref)
+GAS_normalization_get_preferences_by_client (const void *client,
+    struct GNUNET_PeerIdentity *peer, enum GNUNET_ATS_PreferenceKind pref)
 {
   struct PreferenceClient *c_cur;
+  struct PreferencePeer *p_cur;
+
   /* Find preference client */
   for (c_cur = pc_head; NULL != c_cur; c_cur = c_cur->next)
   {
@@ -537,9 +534,17 @@ GAS_normalization_get_preferences_by_client (const void *client, enum GNUNET_ATS
       break;
   }
   if (NULL == c_cur)
-    return -1;
+    return -1.0;
 
-  return 1.0;
+  for (p_cur = c_cur->p_head; NULL != p_cur; p_cur = p_cur->next)
+  {
+    if (0 == memcmp (peer, &p_cur->id, sizeof (struct GNUNET_PeerIdentity)))
+      break;
+  }
+  if (NULL == p_cur)
+    return DEFAULT_REL_PREFERENCE; /* Not found, return default */
+
+  return p_cur->f_rel[pref];
 }
 
 /**
@@ -651,7 +656,6 @@ property_average (struct ATS_Address *address,
   return res;
 }
 
-
 struct FindMinMaxCtx
 {
   struct Property *p;
@@ -659,11 +663,8 @@ struct FindMinMaxCtx
   uint32_t max;
 };
 
-
 static int
-find_min_max_it (void *cls,
-		 const struct GNUNET_PeerIdentity *h,
-		 void *k)
+find_min_max_it (void *cls, const struct GNUNET_PeerIdentity *h, void *k)
 {
   struct FindMinMaxCtx *find_res = cls;
   struct ATS_Address *a = k;
@@ -677,11 +678,8 @@ find_min_max_it (void *cls,
   return GNUNET_OK;
 }
 
-
 static int
-normalize_address (void *cls,
-		   const struct GNUNET_PeerIdentity *h,
-		   void *k)
+normalize_address (void *cls, const struct GNUNET_PeerIdentity *h, void *k)
 {
   struct Property *p = cls;
   struct ATS_Address *address = k;
@@ -706,7 +704,6 @@ normalize_address (void *cls,
   return GNUNET_OK;
 }
 
-
 /**
  * Normalize avg_value to a range of values between [1.0, 2.0]
  * based on min max values currently known.
@@ -718,9 +715,7 @@ normalize_address (void *cls,
  */
 static void
 property_normalize (struct GNUNET_CONTAINER_MultiPeerMap *addresses,
-		    struct Property *p,
-		    struct ATS_Address *address,
-		    uint32_t avg_value)
+    struct Property *p, struct ATS_Address *address, uint32_t avg_value)
 {
   struct FindMinMaxCtx find_ctx;
   int addr_count;
@@ -730,7 +725,7 @@ property_normalize (struct GNUNET_CONTAINER_MultiPeerMap *addresses,
   find_ctx.max = 0;
   find_ctx.min = UINT32_MAX;
   addr_count = GNUNET_CONTAINER_multipeermap_iterate (addresses,
-						      &find_min_max_it, &find_ctx);
+      &find_min_max_it, &find_ctx);
   if (0 == addr_count)
   {
     GNUNET_break(0);
@@ -786,10 +781,10 @@ property_normalize (struct GNUNET_CONTAINER_MultiPeerMap *addresses,
  * @param atsi_count the number of atsi information in the array
  */
 void
-GAS_normalization_normalize_property (struct GNUNET_CONTAINER_MultiPeerMap *addresses,
-				      struct ATS_Address *address,
-				      const struct GNUNET_ATS_Information *atsi,
-				      uint32_t atsi_count)
+GAS_normalization_normalize_property (
+    struct GNUNET_CONTAINER_MultiPeerMap *addresses,
+    struct ATS_Address *address, const struct GNUNET_ATS_Information *atsi,
+    uint32_t atsi_count)
 {
   struct Property *cur_prop;
   int c1;
@@ -834,7 +829,6 @@ GAS_normalization_normalize_property (struct GNUNET_CONTAINER_MultiPeerMap *addr
   }
 }
 
-
 static void
 free_client (struct PreferenceClient *pc)
 {
@@ -849,7 +843,6 @@ free_client (struct PreferenceClient *pc)
   }
   GNUNET_free(pc);
 }
-
 
 /**
  * A performance client disconnected
@@ -871,10 +864,9 @@ GAS_normalization_preference_client_disconnect (void *client)
   if (NULL == c_cur)
     return;
 
-  GNUNET_CONTAINER_DLL_remove (pc_head, pc_tail, c_cur);
+  GNUNET_CONTAINER_DLL_remove(pc_head, pc_tail, c_cur);
   free_client (c_cur);
 }
-
 
 /**
  * Start the normalization component
@@ -916,7 +908,6 @@ GAS_normalization_start (GAS_Normalization_preference_changed_cb pref_ch_cb,
   aging_task = GNUNET_SCHEDULER_NO_TASK;
   return;
 }
-
 
 /**
  * Free a peer

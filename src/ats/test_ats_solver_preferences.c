@@ -83,7 +83,7 @@ static void *test_session;
 /**
  * Test ats info
  */
-struct GNUNET_ATS_Information test_ats_info[2];
+struct GNUNET_ATS_Information test_ats_info[3];
 
 /**
  * Test ats count
@@ -157,15 +157,13 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
 {
   int c;
   double pref_val;
-  int prefs[GNUNET_ATS_PreferenceCount] = GNUNET_ATS_PreferenceType;
-
   if (NULL == perf_ats)
     return;
   for (c = 1; c < GNUNET_ATS_PreferenceCount; c++)
   {
     pref_val = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 10);
     GNUNET_ATS_performance_change_preference (perf_ats,
-        &test_hello_address.peer, prefs[c], pref_val,
+        &test_hello_address.peer, GNUNET_ATS_PREFERENCE_LATENCY, pref_val,
         GNUNET_ATS_PREFERENCE_END);
   }
 }
@@ -235,7 +233,9 @@ run (void *cls, const struct GNUNET_CONFIGURATION_Handle *mycfg,
   test_ats_info[0].value = htonl (GNUNET_ATS_NET_WAN);
   test_ats_info[1].type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
   test_ats_info[1].value = htonl (1);
-  test_ats_count = 2;
+  test_ats_info[2].type = htonl (GNUNET_ATS_QUALITY_NET_DELAY);
+  test_ats_info[2].value = htonl (100);
+  test_ats_count = 3;
 
   /* Adding address without session */
   test_session = NULL;
