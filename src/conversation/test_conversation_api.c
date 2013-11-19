@@ -166,7 +166,7 @@ destroy_speaker (void *cls)
 }
 
 
-static struct GNUNET_SPEAKER_Handle caller_speaker = {
+static struct GNUNET_SPEAKER_Handle call_speaker = {
   &enable_speaker,
   &play,
   &disable_speaker,
@@ -180,7 +180,7 @@ static struct GNUNET_SPEAKER_Handle phone_speaker = {
   &play,
   &disable_speaker,
   &destroy_speaker,
-  "caller"
+  "phone"
 };
 
 
@@ -223,14 +223,15 @@ disable_mic (void *cls)
     phone_rdc = NULL;
     phone_rdc_cls = NULL;
     GNUNET_SCHEDULER_cancel (phone_task);
+    phone_task = GNUNET_SCHEDULER_NO_TASK;
   }
   else
   {
     call_rdc = NULL;
     call_rdc_cls = NULL;
     GNUNET_SCHEDULER_cancel (call_task);
+    call_task = GNUNET_SCHEDULER_NO_TASK;
   }
-
 }
 
 
@@ -245,7 +246,7 @@ destroy_mic (void *cls)
 }
 
 
-static struct GNUNET_MICROPHONE_Handle caller_mic = {
+static struct GNUNET_MICROPHONE_Handle call_mic = {
   &enable_mic,
   &disable_mic,
   &destroy_mic,
@@ -257,7 +258,7 @@ static struct GNUNET_MICROPHONE_Handle phone_mic = {
   &enable_mic,
   &disable_mic,
   &destroy_mic,
-  "caller"
+  "phone"
 };
 
 
@@ -450,8 +451,8 @@ identity_cb (void *cls,
     call = GNUNET_CONVERSATION_call_start (cfg,
                                            ego,
                                            gns_name,
-                                           &caller_speaker,
-                                           &caller_mic,
+                                           &call_speaker,
+                                           &call_mic,
                                            &call_event_handler,
                                            NULL);
     return;
