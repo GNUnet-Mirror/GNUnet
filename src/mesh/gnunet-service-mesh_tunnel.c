@@ -1650,8 +1650,9 @@ GMT_destroy (struct MeshTunnel3 *t)
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "destroying tunnel %s\n", GMP_2s (t->peer));
 
-//   if (GNUNET_YES != GNUNET_CONTAINER_multihashmap_remove (tunnels, &t->id, t))
-//     GNUNET_break (0);
+  GNUNET_break (GNUNET_YES ==
+                GNUNET_CONTAINER_multipeermap_remove (tunnels,
+                                                      GMP_get_id (t->peer), t));
 
   for (iter_c = t->connection_head; NULL != iter_c; iter_c = next_c)
   {
@@ -1672,6 +1673,7 @@ GMT_destroy (struct MeshTunnel3 *t)
     GNUNET_SCHEDULER_cancel (t->rekey_task);
 
   GNUNET_free (t);
+
 }
 
 
