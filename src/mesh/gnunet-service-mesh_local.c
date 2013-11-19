@@ -28,6 +28,7 @@
 #include "mesh_protocol.h" /* GNUNET_MESH_Data is shared */
 
 #include "gnunet-service-mesh_local.h"
+#include "gnunet-service-mesh_channel.h"
 
 #define LOG(level, ...) GNUNET_log_from(level,"mesh-loc",__VA_ARGS__)
 
