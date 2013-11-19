@@ -313,7 +313,7 @@ bandwidth_changed_cb (void *cls, struct ATS_Address *address)
 const double *
 get_preferences_cb (void *cls, const struct GNUNET_PeerIdentity *id)
 {
-  return GAS_normalization_get_preferences (id);
+  return GAS_normalization_get_preferences_by_peer (id);
 }
 
 

@@ -1460,6 +1460,10 @@ GAS_addresses_evaluate_assignment (struct GAS_Addresses_Handle *ah)
   struct SummaryContext sum;
   int network_count;
 
+  /* Variables for preferences */
+  int prefs[GNUNET_ATS_PreferenceCount] = GNUNET_ATS_PreferenceType;
+  double pref_val;
+
   GNUNET_assert (NULL != ah);
   GNUNET_assert (NULL != ah->addresses);
 
@@ -1530,12 +1534,32 @@ GAS_addresses_evaluate_assignment (struct GAS_Addresses_Handle *ah)
 
   /* 3) How well does selection match application requirements */
   include_requirements = GNUNET_NO;
-  for (pcur = ah->preference_clients_head; NULL != pcur; pcur = pcur->next)
+  if (0 == ah->pref_clients)
   {
-    /* V metrics*/
+    include_requirements = GNUNET_NO;
+  }
+  else
+  {
+    for (pcur = ah->preference_clients_head; NULL != pcur; pcur = pcur->next)
     {
-      /* V peers */
+      /* V metrics*/
+      for (c = 0; c < GNUNET_ATS_PreferenceCount; c++)
+      {
+
+        if (prefs[c] == GNUNET_ATS_PREFERENCE_END)
+          continue;
+        pref_val = -1.0;
+        pref_val = GAS_normalization_get_preferences_by_client (pcur->client, prefs[c]);
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "normalized pref for client %p == %.3f\n",
+            pcur->client, pref_val);
+        if (-1.0 == pref_val)
+        {
+          GNUNET_break (0);
+          continue;
+        }
+      }
     }
+    include_requirements = GNUNET_YES;
   }
   /* GUQ */
 

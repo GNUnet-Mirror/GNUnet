@@ -519,6 +519,30 @@ GAS_normalization_get_preferences_by_peer (const struct GNUNET_PeerIdentity *id)
 }
 
 /**
+ * Get the normalized preference values for a specific peer or
+ * the default values if
+ *
+ * @param id the peer
+ * @return pointer to the values, can be indexed with GNUNET_ATS_PreferenceKind,
+ * default preferences if peer does not exist
+ */
+const double
+GAS_normalization_get_preferences_by_client (const void *client, enum GNUNET_ATS_PreferenceKind pref)
+{
+  struct PreferenceClient *c_cur;
+  /* Find preference client */
+  for (c_cur = pc_head; NULL != c_cur; c_cur = c_cur->next)
+  {
+    if (client == c_cur->client)
+      break;
+  }
+  if (NULL == c_cur)
+    return -1;
+
+  return 1.0;
+}
+
+/**
  * Get the normalized properties values for a specific peer or
  * the default values if
  *
@@ -922,8 +946,6 @@ GAS_normalization_stop ()
 {
   struct PreferenceClient *pc;
   struct PreferenceClient *next_pc;
-  struct PreferencePeer *p;
-  struct PreferencePeer *next_p;
 
   if (GNUNET_SCHEDULER_NO_TASK != aging_task)
   {
