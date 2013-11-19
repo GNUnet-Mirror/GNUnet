@@ -181,8 +181,8 @@ typedef void (*GNUNET_SET_Continuation) (void *cls);
  * in the result set.
  *
  * @param cls closure
- * @param element a result element, only valid if status is GNUNET_SET_STATUS_OK
- * @param status see enum GNUNET_SET_Status
+ * @param element a result element, only valid if status is #GNUNET_SET_STATUS_OK
+ * @param status see `enum GNUNET_SET_Status`
  */
 typedef void (*GNUNET_SET_ResultIterator) (void *cls,
                                            const struct GNUNET_SET_Element *element,
@@ -194,7 +194,7 @@ typedef void (*GNUNET_SET_ResultIterator) (void *cls,
  * @param cls closure
  * @param element the current element, NULL if all elements have been
  *        iterated over
- * @return GNUNET_YES to continue iterating, GNUNET_NO to stop.
+ * @return #GNUNET_YES to continue iterating, #GNUNET_NO to stop.
  */
 typedef int (*GNUNET_SET_ElementIterator) (void *cls,
                                            const struct GNUNET_SET_Element *element);
@@ -202,13 +202,13 @@ typedef int (*GNUNET_SET_ElementIterator) (void *cls,
 
 /**
  * Called when another peer wants to do a set operation with the
- * local peer. If a listen error occurs, the 'request' is NULL.
+ * local peer. If a listen error occurs, the @a request is NULL.
  *
  * @param cls closure
  * @param other_peer the other peer
  * @param context_msg message with application specific information from
  *        the other peer
- * @param request request from the other peer (never NULL), use GNUNET_SET_accept
+ * @param request request from the other peer (never NULL), use GNUNET_SET_accept()
  *        to accept it, otherwise the request will be refused
  *        Note that we can't just return value from the listen callback,
  *        as it is also necessary to specify the set we want to do the
@@ -289,7 +289,7 @@ GNUNET_SET_destroy (struct GNUNET_SET_Handle *set);
 /**
  * Prepare a set operation to be evaluated with another peer.
  * The evaluation will not start until the client provides
- * a local set with GNUNET_SET_commit.
+ * a local set with GNUNET_SET_commit().
  *
  * @param other_peer peer with the other set
  * @param app_id hash for the application using the set
@@ -298,7 +298,7 @@ GNUNET_SET_destroy (struct GNUNET_SET_Handle *set);
  *        fail due to hash collisions, using a different salt for each operation
  *        makes it harder for an attacker to exploit this
  * @param result_mode specified how results will be returned,
- *        see 'GNUNET_SET_ResultMode'.
+ *        see `enum GNUNET_SET_ResultMode`.
  * @param result_cb called on error or success
  * @param result_cls closure for @a result_cb
  * @return a handle to cancel the operation
@@ -347,17 +347,17 @@ GNUNET_SET_listen_cancel (struct GNUNET_SET_ListenHandle *lh);
 
 
 /**
- * Accept a request we got via GNUNET_SET_listen.  Must be called during
- * GNUNET_SET_listen, as the 'struct GNUNET_SET_Request' becomes invalid
+ * Accept a request we got via GNUNET_SET_listen().  Must be called during
+ * GNUNET_SET_listen(), as the `struct GNUNET_SET_Request` becomes invalid
  * afterwards.
- * Call GNUNET_SET_commit to provide the local set to use for the operation,
+ * Call GNUNET_SET_commit() to provide the local set to use for the operation,
  * and to begin the exchange with the remote peer.
  *
  * @param request request to accept
  * @param result_mode specified how results will be returned,
- *        see 'GNUNET_SET_ResultMode'.
+ *        see `enum GNUNET_SET_ResultMode`.
  * @param result_cb callback for the results
- * @param result_cls closure for result_cb
+ * @param result_cls closure for @a result_cb
  * @return a handle to cancel the operation
  */
 struct GNUNET_SET_OperationHandle *
@@ -377,7 +377,7 @@ GNUNET_SET_accept (struct GNUNET_SET_Request *request,
  *
  * @param oh handle to the set operation
  * @param set the set to use for the operation
- * @return GNUNET_OK on success, GNUNET_SYSERR if the
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR if the
  *         set is invalid (e.g. the set service crashed)
  */
 int
