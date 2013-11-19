@@ -55,7 +55,7 @@ typedef void
  * with GNUNET_ATS_PreferenceKind, NULL if peer does not exist
  */
 const double *
-GAS_normalization_get_preferences (const struct GNUNET_PeerIdentity *id);
+GAS_normalization_get_preferences_by_peer (const struct GNUNET_PeerIdentity *id);
 
 
 /**
@@ -97,6 +97,14 @@ GAS_normalization_normalize_property (struct GNUNET_CONTAINER_MultiPeerMap *addr
 				      const struct GNUNET_ATS_Information *atsi,
 				      uint32_t atsi_count);
 
+
+/**
+ * A performance client disconnected
+ *
+ * @param client the disconnecting client
+ */
+void
+GAS_normalization_preference_client_disconnect (void *client);
 
 /**
  * Start the normalization component

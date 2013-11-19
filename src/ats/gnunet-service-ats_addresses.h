@@ -523,6 +523,18 @@ void
 GAS_addresses_handle_backoff_reset (struct GAS_Addresses_Handle *handle,
     const struct GNUNET_PeerIdentity *peer);
 
+
+/**
+ * A performance client disconnected
+ *
+ * @param handle address handle
+ * @param client the client
+ */
+
+void
+GAS_addresses_preference_client_disconnect (struct GAS_Addresses_Handle *handle,
+    void *client);
+
 /**
  * Change the preference for a peer
  *
@@ -533,7 +545,7 @@ GAS_addresses_handle_backoff_reset (struct GAS_Addresses_Handle *handle,
  * @param score_abs the new preference score
  */
 void
-GAS_addresses_change_preference (struct GAS_Addresses_Handle *handle,
+GAS_addresses_preference_change (struct GAS_Addresses_Handle *handle,
     void *client, const struct GNUNET_PeerIdentity *peer,
     enum GNUNET_ATS_PreferenceKind kind, float score_abs);
 

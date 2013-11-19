@@ -129,6 +129,7 @@ GAS_performance_remove_client (struct GNUNET_SERVER_Client *client)
   if (NULL == pc)
     return;
   GNUNET_CONTAINER_DLL_remove (pc_head, pc_tail, pc);
+  GAS_addresses_preference_client_disconnect (GSA_addresses, client);
   GNUNET_free (pc);
 }
 
@@ -639,7 +640,7 @@ GAS_handle_preference_change (void *cls,
                             1, GNUNET_NO);
   pi = (const struct PreferenceInformation *) &msg[1];
   for (i = 0; i < nump; i++)
-    GAS_addresses_change_preference (GSA_addresses,
+    GAS_addresses_preference_change (GSA_addresses,
                                      client,
                                      &msg->peer,
                                      (enum GNUNET_ATS_PreferenceKind)

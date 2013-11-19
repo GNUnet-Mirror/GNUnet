@@ -249,6 +249,27 @@ struct GAS_Addresses_Suggestion_Requests
   struct GNUNET_PeerIdentity id;
 };
 
+ /**
+  * Pending Address suggestion requests
+  */
+ struct GAS_Addresses_Preference_Clients
+ {
+   /**
+    * Next in DLL
+    */
+   struct GAS_Addresses_Preference_Clients *next;
+
+   /**
+    * Previous in DLL
+    */
+   struct GAS_Addresses_Preference_Clients *prev;
+
+   /**
+    * Peer ID
+    */
+   void *client;
+ };
+
 /**
  * Handle for ATS address component
  */
@@ -288,6 +309,16 @@ struct GAS_Addresses_Handle
    * Address suggestion requests DLL tail
    */
   struct GAS_Addresses_Suggestion_Requests *pending_requests_tail;
+
+  /**
+   * Address suggestion requests DLL head
+   */
+  struct GAS_Addresses_Preference_Clients *preference_clients_head;
+
+  /**
+   * Address suggestion requests DLL head
+   */
+  struct GAS_Addresses_Preference_Clients *preference_clients_tail;
 
   /**
    * Solver functions
@@ -636,7 +667,7 @@ find_exact_address (struct GAS_Addresses_Handle *handle,
 const double *
 get_preferences_cb (void *cls, const struct GNUNET_PeerIdentity *id)
 {
-  return GAS_normalization_get_preferences (id);
+  return GAS_normalization_get_preferences_by_peer (id);
 }
 
 /**
@@ -1365,7 +1396,7 @@ struct RelativityContext {
   struct GAS_Addresses_Handle *ah;
 };
 
-
+#if 0
 static int
 eval_preference_relativity (void *cls, const struct GNUNET_PeerIdentity *id, void *obj)
 {
@@ -1390,6 +1421,7 @@ eval_preference_relativity (void *cls, const struct GNUNET_PeerIdentity *id, voi
 
   return GNUNET_OK;
 }
+#endif
 
 
 /**
@@ -1401,6 +1433,7 @@ void
 GAS_addresses_evaluate_assignment (struct GAS_Addresses_Handle *ah)
 {
   struct GAS_Addresses_Suggestion_Requests *cur;
+  struct GAS_Addresses_Preference_Clients *pcur;
   int c;
 
   float quality_requests_fulfilled = 0.0;
@@ -1491,11 +1524,13 @@ GAS_addresses_evaluate_assignment (struct GAS_Addresses_Handle *ah)
   }
 
   /* 3) How well does selection match application requirements */
-  for (cur = ah->pending_requests_head; NULL != cur; cur = cur->next)
+  include_requirements = GNUNET_NO;
+  for (pcur = ah->preference_clients_head; NULL != pcur; pcur = pcur->next)
   {
-    GNUNET_CONTAINER_multipeermap_get_multiple (ah->addresses,
-        &cur->id, &eval_preference_relativity, ah);
-    include_requirements = GNUNET_NO;
+    /* V metrics*/
+    {
+      /* V peers */
+    }
   }
   /* GUQ */
 
@@ -1656,7 +1691,40 @@ normalized_property_changed_cb (void *cls, struct ATS_Address *address,
   ah->env.sf.s_address_update_property (ah->solver, address, type, 0, prop_rel);
 }
 
+static struct GAS_Addresses_Preference_Clients *
+find_preference_client (struct GAS_Addresses_Handle *handle, void *client)
+{
+  struct GAS_Addresses_Preference_Clients *cur;
 
+  for (cur = handle->preference_clients_head; NULL != cur; cur = cur->next)
+  {
+    if (cur->client == client)
+      return cur;
+  }
+  return NULL;
+}
+
+/**
+ * A performance client disconnected
+ *
+ * @param handle address handle
+ * @param client the client
+ */
+
+void
+GAS_addresses_preference_client_disconnect (struct GAS_Addresses_Handle *handle,
+    void *client)
+{
+  struct GAS_Addresses_Preference_Clients * pc;
+  if (NULL != (pc = find_preference_client (handle, client)))
+  {
+    GNUNET_CONTAINER_DLL_remove (handle->preference_clients_head,
+        handle->preference_clients_tail, pc);
+    GNUNET_free (pc);
+  }
+
+  GAS_normalization_preference_client_disconnect (client);
+}
 
 /**
  * Change the preference for a peer
@@ -1668,10 +1736,11 @@ normalized_property_changed_cb (void *cls, struct ATS_Address *address,
  * @param score_abs the new preference score
  */
 void
-GAS_addresses_change_preference (struct GAS_Addresses_Handle *handle,
+GAS_addresses_preference_change (struct GAS_Addresses_Handle *handle,
     void *client, const struct GNUNET_PeerIdentity *peer,
     enum GNUNET_ATS_PreferenceKind kind, float score_abs)
 {
+  struct GAS_Addresses_Preference_Clients * pc;
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
       "Received `%s' for peer `%s' for client %p\n", "CHANGE PREFERENCE",
       GNUNET_i2s (peer), client);
@@ -1687,6 +1756,14 @@ GAS_addresses_change_preference (struct GAS_Addresses_Handle *handle,
         "Received `%s' for unknown peer `%s' from client %p\n",
         "CHANGE PREFERENCE", GNUNET_i2s (peer), client);
     return;
+  }
+
+  if (NULL == find_preference_client (handle, client))
+  {
+    pc = GNUNET_malloc (sizeof (struct GAS_Addresses_Preference_Clients));
+    pc->client = client;
+    GNUNET_CONTAINER_DLL_insert (handle->preference_clients_head,
+        handle->preference_clients_tail, pc);
   }
 
   handle->env.sf.s_bulk_start (handle->solver);
@@ -2110,6 +2187,7 @@ void
 GAS_addresses_done (struct GAS_Addresses_Handle *handle)
 {
   struct GAS_Addresses_Suggestion_Requests *cur;
+  struct GAS_Addresses_Preference_Clients *pcur;
 
   GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Shutting down addresses\n");
   GNUNET_assert(NULL != handle);
@@ -2121,6 +2199,13 @@ GAS_addresses_done (struct GAS_Addresses_Handle *handle)
   {
     GNUNET_CONTAINER_DLL_remove(handle->pending_requests_head, handle->pending_requests_tail, cur);
     GNUNET_free(cur);
+  }
+
+  while (NULL != (pcur = handle->preference_clients_head))
+  {
+    GNUNET_CONTAINER_DLL_remove (handle->preference_clients_head,
+        handle->preference_clients_tail, pcur);
+    GNUNET_free (pcur);
   }
 
   GNUNET_PLUGIN_unload (handle->plugin, handle->solver);

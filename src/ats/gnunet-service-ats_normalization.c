@@ -404,6 +404,7 @@ preference_aging (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 }
 
+
 /**
  * Normalize an updated preference value
  *
@@ -502,7 +503,7 @@ GAS_normalization_normalize_preference (void *src,
  * default preferences if peer does not exist
  */
 const double *
-GAS_normalization_get_preferences (const struct GNUNET_PeerIdentity *id)
+GAS_normalization_get_preferences_by_peer (const struct GNUNET_PeerIdentity *id)
 {
   GNUNET_assert(NULL != preference_peers);
   GNUNET_assert(NULL != id);
@@ -809,6 +810,48 @@ GAS_normalization_normalize_property (struct GNUNET_CONTAINER_MultiPeerMap *addr
   }
 }
 
+
+static void
+free_client (struct PreferenceClient *pc)
+{
+  struct PreferencePeer *next_p;
+  struct PreferencePeer *p;
+  next_p = pc->p_head;
+  while (NULL != (p = next_p))
+  {
+    next_p = p->next;
+    GNUNET_CONTAINER_DLL_remove(pc->p_head, pc->p_tail, p);
+    GNUNET_free(p);
+  }
+  GNUNET_free(pc);
+}
+
+
+/**
+ * A performance client disconnected
+ *
+ * @param client the client
+ */
+
+void
+GAS_normalization_preference_client_disconnect (void *client)
+{
+  struct PreferenceClient *c_cur;
+  /* Find preference client */
+
+  for (c_cur = pc_head; NULL != c_cur; c_cur = c_cur->next)
+  {
+    if (client == c_cur->client)
+      break;
+  }
+  if (NULL == c_cur)
+    return;
+
+  GNUNET_CONTAINER_DLL_remove (pc_head, pc_tail, c_cur);
+  free_client (c_cur);
+}
+
+
 /**
  * Start the normalization component
  *
@@ -893,14 +936,7 @@ GAS_normalization_stop ()
   {
     next_pc = pc->next;
     GNUNET_CONTAINER_DLL_remove(pc_head, pc_tail, pc);
-    next_p = pc->p_head;
-    while (NULL != (p = next_p))
-    {
-      next_p = p->next;
-      GNUNET_CONTAINER_DLL_remove(pc->p_head, pc->p_tail, p);
-      GNUNET_free(p);
-    }
-    GNUNET_free(pc);
+    free_client (pc);
   }
 
   GNUNET_CONTAINER_multipeermap_iterate (preference_peers, &free_peer, NULL );
