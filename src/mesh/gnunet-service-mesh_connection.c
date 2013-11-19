@@ -947,6 +947,11 @@ poll_sent (void *cls,
 {
   struct MeshFlowControl *fc = cls;
 
+  if (2 == c->destroy)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " *** POLL canceled on shutdown\n");
+    return;
+  }
   LOG (GNUNET_ERROR_TYPE_DEBUG, " *** POLL sent, scheduling new one!\n");
   fc->poll_msg = NULL;
   fc->poll_time = GNUNET_TIME_STD_BACKOFF (fc->poll_time);
