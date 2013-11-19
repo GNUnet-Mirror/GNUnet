@@ -1321,6 +1321,44 @@ ril_step (struct GAS_RIL_Handle *solver)
   return GNUNET_YES;
 }
 
+static int
+ril_count_agents (struct GAS_RIL_Handle *solver)
+{
+  int c = 0;
+  struct RIL_Peer_Agent *cur_agent;
+
+  for (cur_agent = solver->agents_head; NULL != cur_agent; cur_agent = cur_agent->next)
+  {
+    c++;
+  }
+  return c;
+}
+
+static void
+agent_w_start (struct RIL_Peer_Agent *agent)
+{
+  int count;
+  struct RIL_Peer_Agent *other;
+  int i;
+  int k;
+
+  count = ril_count_agents(agent->envi);
+
+  if (0 == count)
+    return;
+
+  for (other = agent->envi->agents_head; NULL != other; other = other->next)
+  {
+    for (i = 0; i < agent->n; i++)
+    {
+      for (k = 0; k < agent->m; k++)
+      {
+        agent->W[i][k] += (other->W[i][k] / (double) count);
+      }
+    }
+  }
+}
+
 /**
  * Initialize an agent without addresses and its knowledge base
  *
@@ -1349,6 +1387,7 @@ agent_init (void *s, const struct GNUNET_PeerIdentity *peer)
   {
     agent->W[i] = (double *) GNUNET_malloc (sizeof (double) * agent->m);
   }
+  agent_w_start(agent);
   agent->a_old = RIL_ACTION_INVALID;
   agent->s_old = envi_get_state (solver, agent);
   agent->e = (double *) GNUNET_malloc (sizeof (double) * agent->m);
