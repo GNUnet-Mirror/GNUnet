@@ -1147,10 +1147,6 @@ agent_step (struct RIL_Peer_Agent *agent)
     break;
   }
 
-  //TODO delete this, debug test, faulty actions are 1357
-  a_next = 1;
-  LOG(GNUNET_ERROR_TYPE_INFO, "     a_next = %d\n", a_next);
-
   GNUNET_assert(RIL_ACTION_INVALID != a_next);
 
   agent_modify_eligibility (agent, RIL_E_ACCUMULATE);
