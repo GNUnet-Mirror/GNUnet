@@ -36,6 +36,8 @@
 
 #define FREQ GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 250)
 
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 25)
+
 static int ok = 1;
 
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
@@ -374,6 +376,9 @@ call_event_handler (void *cls,
     break;
   case GNUNET_CONVERSATION_EC_CALL_GNS_FAIL:
   case GNUNET_CONVERSATION_EC_CALL_HUNG_UP:
+    call = NULL;
+    fprintf (stderr, "Unexpected call code: %d\n", code);
+    break;
   case GNUNET_CONVERSATION_EC_CALL_SUSPENDED:
   case GNUNET_CONVERSATION_EC_CALL_RESUMED:
     fprintf (stderr, "Unexpected call code: %d\n", code);
@@ -475,8 +480,7 @@ run (void *cls,
      struct GNUNET_TESTING_Peer *peer)
 {
   cfg = c;
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                (GNUNET_TIME_UNIT_MINUTES, 1), &end_test,
+  GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_test,
                                 NULL);
   id = GNUNET_IDENTITY_connect (cfg,
                                 &identity_cb,
