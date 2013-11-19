@@ -54,6 +54,14 @@ struct MeshChannel;
 
 
 /**
+ * Destroy a channel and free all resources.
+ *
+ * @param ch Channel to destroy.
+ */
+void
+GMCH_destroy (struct MeshChannel *ch);
+
+/**
  * Get channel ID.
  *
  * @param ch Channel.

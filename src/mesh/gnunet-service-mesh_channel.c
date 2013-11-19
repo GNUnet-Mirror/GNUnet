@@ -971,15 +971,6 @@ handle_loopback (struct MeshChannel *ch,
 /********************************    API    ***********************************/
 /******************************************************************************/
 
-
-/**
- * Destroy a channel and free all resources.
- *
- * @param ch Channel to destroy.
- */
-void
-GMCH_destroy (struct MeshChannel *ch);
-
 /**
  * Destroy a channel and free all resources.
  *

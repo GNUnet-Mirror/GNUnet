@@ -1673,7 +1673,6 @@ GMT_destroy (struct MeshTunnel3 *t)
     GNUNET_SCHEDULER_cancel (t->rekey_task);
 
   GNUNET_free (t);
-
 }
 
 
