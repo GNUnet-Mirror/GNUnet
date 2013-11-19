@@ -254,12 +254,12 @@ handle_call_resume (void *cls,
     break;
   case CS_SUSPENDED_CALLEE:
     call->state = CS_ACTIVE;
-    call->event_handler (call->event_handler_cls,
-                         GNUNET_CONVERSATION_EC_CALL_RESUMED);
     call->speaker->enable_speaker (call->speaker->cls);
     call->mic->enable_microphone (call->mic->cls,
                                   &transmit_call_audio,
                                   call);
+    call->event_handler (call->event_handler_cls,
+                         GNUNET_CONVERSATION_EC_CALL_RESUMED);
     break;
   case CS_SUSPENDED_BOTH:
     call->state = CS_SUSPENDED_CALLER;
@@ -296,12 +296,12 @@ handle_call_picked_up (void *cls,
     break;
   case CS_RINGING:
     call->state = CS_ACTIVE;
-    call->event_handler (call->event_handler_cls,
-                         GNUNET_CONVERSATION_EC_CALL_PICKED_UP);
     call->speaker->enable_speaker (call->speaker->cls);
     call->mic->enable_microphone (call->mic->cls,
                                   &transmit_call_audio,
                                   call);
+    call->event_handler (call->event_handler_cls,
+                         GNUNET_CONVERSATION_EC_CALL_PICKED_UP);
     break;
   case CS_SUSPENDED_CALLER:
   case CS_SUSPENDED_CALLEE:

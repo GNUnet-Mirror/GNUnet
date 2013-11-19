@@ -34,6 +34,8 @@
 #include "gnunet_identity_service.h"
 #include "gnunet_namestore_service.h"
 
+#define FREQ GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 250)
+
 static int ok = 1;
 
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
@@ -55,6 +57,48 @@ static struct GNUNET_CONVERSATION_Caller *active_caller;
 static char *gns_name;
 
 static char *gns_caller_id;
+
+static GNUNET_MICROPHONE_RecordedDataCallback phone_rdc;
+
+static void *phone_rdc_cls;
+
+static GNUNET_MICROPHONE_RecordedDataCallback call_rdc;
+
+static void *call_rdc_cls;
+
+static GNUNET_SCHEDULER_TaskIdentifier phone_task;
+
+static GNUNET_SCHEDULER_TaskIdentifier call_task;
+
+
+static void
+phone_send (void *cls,
+            const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  static unsigned int i;
+  char buf[32];
+
+  GNUNET_assert (NULL != phone_rdc);
+  GNUNET_snprintf (buf, sizeof (buf), "phone-%u", i++);
+  phone_rdc (phone_rdc_cls, strlen (buf) + 1, buf);
+  phone_task = GNUNET_SCHEDULER_add_delayed (FREQ,
+                                             &phone_send, NULL);
+}
+
+
+static void
+call_send (void *cls,
+            const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  static unsigned int i;
+  char buf[32];
+
+  GNUNET_assert (NULL != call_rdc);
+  GNUNET_snprintf (buf, sizeof (buf), "call-%u", i++);
+  call_rdc (call_rdc_cls, strlen (buf) + 1, buf);
+  call_task = GNUNET_SCHEDULER_add_delayed (FREQ,
+                                            &call_send, NULL);
+}
 
 
 static int
@@ -86,11 +130,30 @@ play (void *cls,
       const void *data)
 {
   const char *origin = cls;
+  static unsigned int phone_i;
+  static unsigned int call_i;
+  char buf[32];
 
-  fprintf (stderr,
-           "Speaker %s plays %u bytes\n",
-           origin,
-           (unsigned int) data_size);
+  if (0 == strcmp (origin, "phone"))
+    GNUNET_snprintf (buf, sizeof (buf), "phone-%u", phone_i++);
+  else
+    GNUNET_snprintf (buf, sizeof (buf), "call-%u", call_i++);
+  if ( (data_size != strlen (buf) + 1) ||
+       (0 != strncmp (buf, data, data_size)) )
+  {
+    fprintf (stderr,
+             "Expected %s, received %.*s\n",
+             buf,
+             (int) data_size,
+             (const char *) data);
+  }
+  if ( (20 < call_i) &&
+       (20 < phone_i) )
+  {
+    /* time to hang up ... */
+    GNUNET_CONVERSATION_call_stop (call);
+    call = NULL;
+  }
 }
 
 
@@ -131,6 +194,18 @@ enable_mic (void *cls,
   fprintf (stderr,
            "Mic %s enabled\n",
            origin);
+  if (0 == strcmp (origin, "phone"))
+  {
+    phone_rdc = rdc;
+    phone_rdc_cls = rdc_cls;
+    phone_task = GNUNET_SCHEDULER_add_now (&phone_send, NULL);
+  }
+  else
+  {
+    call_rdc = rdc;
+    call_rdc_cls = rdc_cls;
+    call_task = GNUNET_SCHEDULER_add_now (&call_send, NULL);
+  }
   return GNUNET_OK;
 }
 
@@ -143,6 +218,19 @@ disable_mic (void *cls)
   fprintf (stderr,
            "Mic %s disabled\n",
            origin);
+  if (0 == strcmp (origin, "phone"))
+  {
+    phone_rdc = NULL;
+    phone_rdc_cls = NULL;
+    GNUNET_SCHEDULER_cancel (phone_task);
+  }
+  else
+  {
+    call_rdc = NULL;
+    call_rdc_cls = NULL;
+    GNUNET_SCHEDULER_cancel (call_task);
+  }
+
 }
 
 
@@ -282,8 +370,6 @@ call_event_handler (void *cls,
     break;
   case GNUNET_CONVERSATION_EC_CALL_PICKED_UP:
     expect = -1;
-    GNUNET_CONVERSATION_call_stop (call);
-    call = NULL;
     break;
   case GNUNET_CONVERSATION_EC_CALL_GNS_FAIL:
   case GNUNET_CONVERSATION_EC_CALL_HUNG_UP:
