@@ -31,7 +31,6 @@
  * peers that connect.
  *
  * TODO:
- * - handle p2p connect (trigger SET union, #3057)
  * - optimization: avoid sending revocation back to peer that we got it from;
  * - optimization: have randomized delay in sending revocations to other peers
  *                 to make it rare to traverse each link twice (NSE-style)
@@ -65,6 +64,16 @@ struct PeerEntry
    * What is the identity of the peer?
    */
   struct GNUNET_PeerIdentity id;
+
+  /**
+   * Tasked used to trigger the set union operation.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier transmit_task;
+
+  /**
+   * Handle to active set union operation (over revocation sets).
+   */
+  struct GNUNET_SET_OperationHandle *so;
 
 };
 
@@ -121,9 +130,21 @@ static struct GNUNET_SERVER_NotificationContext *nc;
 static struct GNUNET_DISK_FileHandle *revocation_db;
 
 /**
+ * Handle for us listening to incoming revocation set union requests.
+ */
+static struct GNUNET_SET_ListenHandle *revocation_union_listen_handle;
+
+/**
  * Amount of work required (W-bit collisions) for REVOCATION proofs, in collision-bits.
  */
 static unsigned long long revocation_work_required;
+
+/**
+ * Our application ID for set union operations.  Must be the
+ * same for all (compatible) peers.
+ */
+static struct GNUNET_HashCode revocation_set_union_app_id;
+
 
 
 /**
@@ -360,6 +381,105 @@ handle_p2p_revoke_message (void *cls,
 }
 
 
+
+/**
+ * Callback for set operation results. Called for each element in the
+ * result set.  Each element contains a revocation, which we should
+ * validate and then add to our revocation list (and set).
+ *
+ * @param cls closure
+ * @param element a result element, only valid if status is #GNUNET_SET_STATUS_OK
+ * @param status see `enum GNUNET_SET_Status`
+ */
+static void
+add_revocation (void *cls,
+                const struct GNUNET_SET_Element *element,
+                enum GNUNET_SET_Status status)
+{
+  struct PeerEntry *peer_entry = cls;
+  const struct RevokeMessage *rm;
+
+  switch (status)
+  {
+  case GNUNET_SET_STATUS_OK:
+    if (element->size != sizeof (struct RevokeMessage))
+    {
+      GNUNET_break_op (0);
+      return;
+    }
+    if (0 != element->type)
+    {
+      GNUNET_STATISTICS_update (stats,
+                                "# unsupported revocations received via set union",
+                                1, GNUNET_NO);
+      return;
+    }
+    rm = element->data;
+    (void) handle_p2p_revoke_message (NULL,
+                                      &peer_entry->id,
+                                      &rm->header);
+    GNUNET_STATISTICS_update (stats,
+                              "# revocation messages received via set union",
+                              1, GNUNET_NO);
+    break;
+  case GNUNET_SET_STATUS_TIMEOUT:
+  case GNUNET_SET_STATUS_FAILURE:
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _("Error computing revocation set union with %s\n"),
+                GNUNET_i2s (&peer_entry->id));
+    peer_entry->so = NULL;
+    GNUNET_STATISTICS_update (stats, "# revocation set unions failed",
+                              1, GNUNET_NO);
+    break;
+  case GNUNET_SET_STATUS_HALF_DONE:
+    break;
+  case GNUNET_SET_STATUS_DONE:
+    peer_entry->so = NULL;
+    GNUNET_STATISTICS_update (stats, "# revocation set unions completed",
+                              1, GNUNET_NO);
+    break;
+  default:
+    GNUNET_break (0);
+    break;
+ }
+}
+
+
+/**
+ * The timeout for performing the set union has expired,
+ * run the set operation on the revocation certificates.
+ *
+ * @param cls NULL
+ * @param tc scheduler context (unused)
+ */
+static void
+transmit_task_cb (void *cls,
+                  const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct PeerEntry *peer_entry = cls;
+  uint16_t salt;
+
+  salt = (uint16_t) GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                              UINT16_MAX);
+  peer_entry->transmit_task = GNUNET_SCHEDULER_NO_TASK;
+  peer_entry->so = GNUNET_SET_prepare (&peer_entry->id,
+                                       &revocation_set_union_app_id,
+                                       NULL, salt,
+                                       GNUNET_SET_RESULT_ADDED,
+                                       &add_revocation,
+                                       peer_entry);
+  if (GNUNET_OK !=
+      GNUNET_SET_commit (peer_entry->so,
+                         revocation_set))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _("SET service crashed, terminating revocation service\n"));
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+}
+
+
 /**
  * Method called whenever a peer connects. Sets up the PeerEntry and
  * schedules the initial revocation set exchange with this peer.
@@ -372,22 +492,38 @@ handle_core_connect (void *cls,
 		     const struct GNUNET_PeerIdentity *peer)
 {
   struct PeerEntry *peer_entry;
+  struct GNUNET_HashCode my_hash;
+  struct GNUNET_HashCode peer_hash;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer `%s' connected to us\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Peer `%s' connected to us\n",
               GNUNET_i2s (peer));
-  peer_entry = GNUNET_new (struct PeerEntry);
-  peer_entry->id = *peer;
+  peer_entry = GNUNET_CONTAINER_multipeermap_get (peers,
+                                                  peer);
+  if (NULL == peer_entry)
+  {
+    peer_entry = GNUNET_new (struct PeerEntry);
+    peer_entry->id = *peer;
+    GNUNET_assert (GNUNET_OK ==
+                   GNUNET_CONTAINER_multipeermap_put (peers, peer,
+                                                      peer_entry,
+                                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+  }
+  else
+  {
+    GNUNET_assert (NULL == peer_entry->mq);
+  }
   peer_entry->mq = GNUNET_CORE_mq_create (core_api, peer);
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONTAINER_multipeermap_put (peers, peer,
-                                                    peer_entry,
-                                                    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-  // GNUNET_break (0); // FIXME: implement revocation set union on connect!
-#if 0
-  peer_entry->transmit_task =
-      GNUNET_SCHEDULER_add_delayed (get_transmit_delay (-1), &transmit_task_cb,
+  GNUNET_CRYPTO_hash (&my_identity, sizeof (my_identity), &my_hash);
+  GNUNET_CRYPTO_hash (peer, sizeof (*peer), &peer_hash);
+  if (0 < GNUNET_CRYPTO_hash_cmp (&my_hash,
+                                  &peer_hash))
+  {
+    peer_entry->transmit_task =
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+                                    &transmit_task_cb,
                                     peer_entry);
-#endif
+  }
   GNUNET_STATISTICS_update (stats, "# peers connected", 1, GNUNET_NO);
 }
 
@@ -418,13 +554,16 @@ handle_core_disconnect (void *cls,
                  GNUNET_CONTAINER_multipeermap_remove (peers, peer,
                                                        pos));
   GNUNET_MQ_destroy (pos->mq);
-#if 0
   if (pos->transmit_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (pos->transmit_task);
     pos->transmit_task = GNUNET_SCHEDULER_NO_TASK;
   }
-#endif
+  if (NULL != pos->so)
+  {
+    GNUNET_SET_operation_cancel (pos->so);
+    pos->so = NULL;
+  }
   GNUNET_free (pos);
   GNUNET_STATISTICS_update (stats, "# peers connected", -1, GNUNET_NO);
 }
@@ -462,6 +601,11 @@ shutdown_task (void *cls,
   {
     GNUNET_SET_destroy (revocation_set);
     revocation_set = NULL;
+  }
+  if (NULL != revocation_union_listen_handle)
+  {
+    GNUNET_SET_listen_cancel (revocation_union_listen_handle);
+    revocation_union_listen_handle = NULL;
   }
   if (NULL != core_api)
   {
@@ -513,6 +657,52 @@ core_init (void *cls,
     return;
   }
   my_identity = *identity;
+}
+
+
+/**
+ * Called when another peer wants to do a set operation with the
+ * local peer. If a listen error occurs, the 'request' is NULL.
+ *
+ * @param cls closure
+ * @param other_peer the other peer
+ * @param context_msg message with application specific information from
+ *        the other peer
+ * @param request request from the other peer (never NULL), use GNUNET_SET_accept()
+ *        to accept it, otherwise the request will be refused
+ *        Note that we can't just return value from the listen callback,
+ *        as it is also necessary to specify the set we want to do the
+ *        operation with, whith sometimes can be derived from the context
+ *        message. It's necessary to specify the timeout.
+ */
+static void
+handle_revocation_union_request (void *cls,
+                                 const struct GNUNET_PeerIdentity *other_peer,
+                                 const struct GNUNET_MessageHeader *context_msg,
+                                 struct GNUNET_SET_Request *request)
+{
+  struct PeerEntry *peer_entry;
+
+  if (NULL == request)
+  {
+    GNUNET_break (0);
+    return;
+  }
+  peer_entry = GNUNET_CONTAINER_multipeermap_get (peers,
+                                                  other_peer);
+  if (NULL == peer_entry)
+  {
+    peer_entry = GNUNET_new (struct PeerEntry);
+    peer_entry->id = *other_peer;
+    GNUNET_assert (GNUNET_OK ==
+                   GNUNET_CONTAINER_multipeermap_put (peers, other_peer,
+                                                      peer_entry,
+                                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+  }
+  peer_entry->so = GNUNET_SET_accept (request,
+                                      GNUNET_SET_RESULT_ADDED,
+                                      &add_revocation,
+                                      peer_entry);
 }
 
 
@@ -584,7 +774,11 @@ run (void *cls,
   }
   revocation_set = GNUNET_SET_create (cfg,
 				      GNUNET_SET_OPERATION_UNION);
-
+  revocation_union_listen_handle = GNUNET_SET_listen (cfg,
+                                                      GNUNET_SET_OPERATION_UNION,
+                                                      &revocation_set_union_app_id,
+                                                      &handle_revocation_union_request,
+                                                      NULL);
   revocation_db = GNUNET_DISK_file_open (fn,
                                          GNUNET_DISK_OPEN_READWRITE |
                                          GNUNET_DISK_OPEN_CREATE,
@@ -667,6 +861,9 @@ int
 main (int argc,
       char *const *argv)
 {
+  GNUNET_CRYPTO_hash ("revocation-set-union-application-id",
+                      strlen ("revocation-set-union-application-id"),
+                      &revocation_set_union_app_id);
   return (GNUNET_OK ==
           GNUNET_SERVICE_run (argc, argv, "revocation", GNUNET_SERVICE_OPTION_NONE,
                               &run, NULL)) ? 0 : 1;
