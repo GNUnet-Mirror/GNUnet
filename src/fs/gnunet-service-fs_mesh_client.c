@@ -213,7 +213,7 @@ move_to_pending (void *cls,
 static void
 reset_mesh (struct MeshHandle *mh)
 {
-  const struct GNUNET_MESH_Channel *channel = mh->channel;
+  struct GNUNET_MESH_Channel *channel = mh->channel;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Resetting mesh channel to %s\n",
