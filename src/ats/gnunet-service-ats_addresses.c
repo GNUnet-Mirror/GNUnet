@@ -291,6 +291,11 @@ struct GAS_Addresses_Handle
   int running;
 
   /**
+   * Preferences clients
+   */
+  int pref_clients;
+
+  /**
    * Configured ATS solver
    */
   int ats_mode;
@@ -1721,8 +1726,10 @@ GAS_addresses_preference_client_disconnect (struct GAS_Addresses_Handle *handle,
     GNUNET_CONTAINER_DLL_remove (handle->preference_clients_head,
         handle->preference_clients_tail, pc);
     GNUNET_free (pc);
+    GNUNET_assert (handle->pref_clients > 0);
+    handle->pref_clients --;
+    GNUNET_STATISTICS_set (handle->stat, "# active performance clients", handle->pref_clients, GNUNET_NO);
   }
-
   GAS_normalization_preference_client_disconnect (client);
 }
 
@@ -1764,6 +1771,8 @@ GAS_addresses_preference_change (struct GAS_Addresses_Handle *handle,
     pc->client = client;
     GNUNET_CONTAINER_DLL_insert (handle->preference_clients_head,
         handle->preference_clients_tail, pc);
+    handle->pref_clients ++;
+    GNUNET_STATISTICS_set (handle->stat, "# active performance clients", handle->pref_clients, GNUNET_NO);
   }
 
   handle->env.sf.s_bulk_start (handle->solver);
@@ -2019,6 +2028,7 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   ah->stat = (struct GNUNET_STATISTICS_Handle *) stats;
   /* Initialize the addresses database */
   ah->addresses = GNUNET_CONTAINER_multipeermap_create (128, GNUNET_NO);
+  ah->pref_clients = 0;
   GNUNET_assert(NULL != ah->addresses);
 
   /* Figure out configured solution method */
@@ -2205,6 +2215,9 @@ GAS_addresses_done (struct GAS_Addresses_Handle *handle)
   {
     GNUNET_CONTAINER_DLL_remove (handle->preference_clients_head,
         handle->preference_clients_tail, pcur);
+    GNUNET_assert (handle->pref_clients > 0);
+    handle->pref_clients --;
+    GNUNET_STATISTICS_set (handle->stat, "# active performance clients", handle->pref_clients, GNUNET_NO);
     GNUNET_free (pcur);
   }
 

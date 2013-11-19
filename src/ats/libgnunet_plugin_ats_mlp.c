@@ -1800,8 +1800,9 @@ GAS_mlp_address_change_preference (void *solver,
     return;
   }
   p->f = get_peer_pref_value (mlp, peer);
+  /*
   LOG (GNUNET_ERROR_TYPE_ERROR, "PEER PREF: %s %.2f\n",
-      GNUNET_i2s(peer), p->f);
+      GNUNET_i2s(peer), p->f);*/
   mlp_create_problem_update_value (&mlp->p, p->r_c9, mlp->p.c_r, -p->f, __LINE__);
 
   /* Problem size changed: new address for peer with pending request */
