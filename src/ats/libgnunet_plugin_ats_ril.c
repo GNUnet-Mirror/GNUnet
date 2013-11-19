@@ -305,6 +305,11 @@ struct GAS_RIL_Handle
   double discount_integrated;
 
   /**
+   * State vector for networks for the current step
+   */
+  double *state_networks;
+
+  /**
    * Lock for bulk operations
    */
   int bulk_lock;
@@ -661,6 +666,22 @@ ril_network_get_assigned (struct GAS_RIL_Handle *solver, enum GNUNET_ATS_Network
   return sum;
 }
 
+static void
+envi_state_networks (struct GAS_RIL_Handle *solver)
+{
+  int i;
+  struct RIL_Network net;
+
+  for (i = 0; i < solver->networks_count; i++)
+  {
+    net = solver->network_entries[i];
+    solver->state_networks[i * RIL_FEATURES_NETWORK_COUNT + 0] = (double) ril_network_get_assigned(solver, net.type, GNUNET_YES);
+    solver->state_networks[i * RIL_FEATURES_NETWORK_COUNT + 1] = (double) net.bw_in_available;
+    solver->state_networks[i * RIL_FEATURES_NETWORK_COUNT + 2] = (double) ril_network_get_assigned(solver, net.type, GNUNET_NO);
+    solver->state_networks[i * RIL_FEATURES_NETWORK_COUNT + 3] = (double) net.bw_out_available;
+  }
+}
+
 /**
  * Allocates a state vector and fills it with the features present
  * @param solver the solver handle
@@ -672,18 +693,17 @@ envi_get_state (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
 {
   int i;
   int k;
-  struct RIL_Network net;
   double *state = GNUNET_malloc (sizeof (double) * agent->m);
   struct RIL_Address_Wrapped *cur_address;
   const double *properties;
 
+  //copy global networks state
   for (i = 0; i < solver->networks_count; i++)
   {
-    net = solver->network_entries[i];
-    state[i * RIL_FEATURES_NETWORK_COUNT + 0] = (double) ril_network_get_assigned(solver, net.type, GNUNET_YES);
-    state[i * RIL_FEATURES_NETWORK_COUNT + 1] = (double) net.bw_in_available;
-    state[i * RIL_FEATURES_NETWORK_COUNT + 2] = (double) ril_network_get_assigned(solver, net.type, GNUNET_NO);
-    state[i * RIL_FEATURES_NETWORK_COUNT + 3] = (double) net.bw_out_available;
+    state[i * RIL_FEATURES_NETWORK_COUNT + 0] = solver->state_networks[i * RIL_FEATURES_NETWORK_COUNT + 0];
+    state[i * RIL_FEATURES_NETWORK_COUNT + 1] = solver->state_networks[i * RIL_FEATURES_NETWORK_COUNT + 1];
+    state[i * RIL_FEATURES_NETWORK_COUNT + 2] = solver->state_networks[i * RIL_FEATURES_NETWORK_COUNT + 2];
+    state[i * RIL_FEATURES_NETWORK_COUNT + 3] = solver->state_networks[i * RIL_FEATURES_NETWORK_COUNT + 3];
   }
 
   i = i * RIL_FEATURES_NETWORK_COUNT; //first address feature
@@ -1292,6 +1312,9 @@ ril_step (struct GAS_RIL_Handle *solver)
   solver->discount_integrated = (1 - solver->discount_variable)
       / ((double) solver->parameters.beta);
 
+  //calculate network state vector
+  envi_state_networks(solver);
+
   //trigger one step per active agent
   for (cur = solver->agents_head; NULL != cur; cur = cur->next)
   {
@@ -1665,6 +1688,7 @@ libgnunet_plugin_ats_ril_init (void *cls)
   solver->networks_count = env->network_count;
   solver->network_entries = GNUNET_malloc (env->network_count * sizeof (struct RIL_Network));
   solver->step_count = 0;
+  solver->state_networks = GNUNET_malloc (solver->networks_count * RIL_FEATURES_NETWORK_COUNT * sizeof (double));
 
   for (c = 0; c < env->network_count; c++)
   {
@@ -1710,6 +1734,7 @@ libgnunet_plugin_ats_ril_done (void *cls)
     GNUNET_SCHEDULER_cancel (s->step_next_task_id);
   }
   GNUNET_free(s->network_entries);
+  GNUNET_free(s->state_networks);
   GNUNET_free(s);
 
   return NULL ;
