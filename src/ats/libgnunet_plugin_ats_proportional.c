@@ -879,16 +879,16 @@ distribute_bandwidth_in_network (struct GAS_PROPORTIONAL_Handle *s,
     if (NULL != s->env->info_cb)
       s->env->info_cb(s->env->info_cb_cls, GAS_OP_SOLVE_STOP,
           GAS_STAT_SUCCESS, GAS_INFO_PROP_ALL);
+    if (NULL != s->env->info_cb)
+      s->env->info_cb(s->env->info_cb_cls, GAS_OP_SOLVE_UPDATE_NOTIFICATION_START,
+          GAS_STAT_SUCCESS, GAS_INFO_PROP_ALL);
     for (i = 0; i < s->network_count; i++)
     {
-      if (NULL != s->env->info_cb)
-        s->env->info_cb(s->env->info_cb_cls, GAS_OP_SOLVE_UPDATE_NOTIFICATION_START,
-            GAS_STAT_SUCCESS, GAS_INFO_PROP_ALL);
       propagate_bandwidth(s, &s->network_entries[i], address_except);
-      if (NULL != s->env->info_cb)
-        s->env->info_cb(s->env->info_cb_cls, GAS_OP_SOLVE_UPDATE_NOTIFICATION_STOP,
-            GAS_STAT_SUCCESS, GAS_INFO_PROP_ALL);
     }
+    if (NULL != s->env->info_cb)
+      s->env->info_cb(s->env->info_cb_cls, GAS_OP_SOLVE_UPDATE_NOTIFICATION_STOP,
+          GAS_STAT_SUCCESS, GAS_INFO_PROP_ALL);
   }
 }
 
