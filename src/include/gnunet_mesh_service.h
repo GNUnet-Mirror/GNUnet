@@ -269,7 +269,7 @@ union GNUNET_MESH_ChannelInfo
   /**
    * Peer on the other side of the channel
    */
-  const struct GNUNET_PeerIdentity *peer;
+  const struct GNUNET_PeerIdentity peer;
 };
 
 
