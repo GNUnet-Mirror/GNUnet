@@ -45,6 +45,11 @@ static int list_keys_count;
 static int print_public_key;
 
 /**
+ * Flag for printing the output of random example operations.
+ */
+static int print_examples_flag;
+
+/**
  * Flag for printing hash of public key.
  */
 static int print_peer_identity;
@@ -104,6 +109,58 @@ create_keys (const char *fn)
     fprintf (stderr,
 	     _("\nError, %u keys not generated\n"), make_keys);
   fclose (f);
+}
+
+
+static void
+print_examples_ecdh (void)
+{
+  struct GNUNET_CRYPTO_EcdhePrivateKey *dh_priv1;
+  struct GNUNET_CRYPTO_EcdhePublicKey *dh_pub1;
+  struct GNUNET_CRYPTO_EcdhePrivateKey *dh_priv2;
+  struct GNUNET_CRYPTO_EcdhePublicKey *dh_pub2;
+  struct GNUNET_HashCode hash;
+  char buf[128];
+
+  dh_pub1 = GNUNET_new (struct GNUNET_CRYPTO_EcdhePublicKey);
+  dh_priv1 = GNUNET_CRYPTO_ecdhe_key_create ();
+  dh_pub2 = GNUNET_new (struct GNUNET_CRYPTO_EcdhePublicKey);
+  dh_priv2 = GNUNET_CRYPTO_ecdhe_key_create ();
+  GNUNET_CRYPTO_ecdhe_key_get_public (dh_priv1, dh_pub1);
+  GNUNET_CRYPTO_ecdhe_key_get_public (dh_priv2, dh_pub2);
+
+  GNUNET_assert (NULL != GNUNET_STRINGS_data_to_string (dh_priv1, 32, buf, 128));
+  printf ("ECDHE key 1:\n");
+  printf ("private: %s\n", buf);
+  GNUNET_assert (NULL != GNUNET_STRINGS_data_to_string (dh_pub1, 32, buf, 128));
+  printf ("public: %s\n", buf);
+
+  GNUNET_assert (NULL != GNUNET_STRINGS_data_to_string (dh_priv2, 32, buf, 128));
+  printf ("ECDHE key 2:\n");
+  printf ("private: %s\n", buf);
+  GNUNET_assert (NULL != GNUNET_STRINGS_data_to_string (dh_pub2, 32, buf, 128));
+  printf ("public: %s\n", buf);
+
+  GNUNET_assert (GNUNET_OK == GNUNET_CRYPTO_ecc_ecdh (dh_priv1, dh_pub2, &hash));
+  GNUNET_assert (NULL != GNUNET_STRINGS_data_to_string (&hash, 64, buf, 128));
+  printf ("ECDH shared secret: %s\n", buf);
+
+  GNUNET_free (dh_priv1);
+  GNUNET_free (dh_priv2);
+  GNUNET_free (dh_pub1);
+  GNUNET_free (dh_pub2);
+}
+
+
+/**
+ * Print some random example operations to stdout.
+ */
+static void
+print_examples (void)
+{
+  print_examples_ecdh ();
+  // print_examples_ecdsa ();
+  // print_examples_eddsa ();
 }
 
 
@@ -193,6 +250,11 @@ run (void *cls, char *const *args, const char *cfgfile,
   struct GNUNET_CRYPTO_EddsaPrivateKey *pk;
   struct GNUNET_CRYPTO_EddsaPublicKey pub;
 
+  if (print_examples_flag)
+  {
+    print_examples ();
+    return;
+  }
   if (NULL == args[0])
   {
     FPRINTF (stderr,
@@ -202,7 +264,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   }
   if (list_keys)
   {
-    print_key(args[0]);
+    print_key (args[0]);
     return;
   }
   if (make_keys > 0)
@@ -266,6 +328,9 @@ main (int argc, char *const *argv)
     { 'P', "print-peer-identity", NULL,
       gettext_noop ("print the hash of the public key in ASCII format"),
       0, &GNUNET_GETOPT_set_one, &print_peer_identity },
+    { 'E', "examples", NULL,
+      gettext_noop ("print examples of ECC operations (used for compatibility testing)"),
+      0, &GNUNET_GETOPT_set_one, &print_examples_flag },
     GNUNET_GETOPT_OPTION_END
   };
   int ret;
