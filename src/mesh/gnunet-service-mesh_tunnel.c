@@ -1663,7 +1663,7 @@ GMT_destroy (struct MeshTunnel3 *t)
   {
     next_ch = iter_ch->next;
     GMCH_destroy (iter_ch->ch);
-    GNUNET_break (0);
+    /* Should only happen on shutdown, but it's ok. */
   }
 
   GNUNET_STATISTICS_update (stats, "# tunnels", -1, GNUNET_NO);
