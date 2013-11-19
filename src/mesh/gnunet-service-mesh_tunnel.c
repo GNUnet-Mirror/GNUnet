@@ -1644,7 +1644,6 @@ GMT_destroy (struct MeshTunnel3 *t)
   struct MeshTChannel *iter_ch;
   struct MeshTChannel *next_ch;
 
-
   if (NULL == t)
     return;
 

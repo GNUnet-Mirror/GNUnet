@@ -100,9 +100,9 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   GML_shutdown ();
   GMD_shutdown ();
-  GMP_shutdown ();
   GMC_shutdown ();
   GMT_shutdown ();
+  GMP_shutdown ();
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "shut down\n");
 }
