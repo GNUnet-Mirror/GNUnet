@@ -867,6 +867,27 @@ rekey (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
+ * Called only on shutdown, destroy every tunnel.
+ *
+ * @param cls Closure (unused).
+ * @param key Current public key.
+ * @param value Value in the hash map (tunnel).
+ *
+ * @return #GNUNET_YES, so we should continue to iterate,
+ */
+static int
+destroy_iterator (void *cls,
+                const struct GNUNET_PeerIdentity *key,
+                void *value)
+{
+  struct MeshTunnel3 *t = value;
+
+  GMT_destroy (t);
+  return GNUNET_YES;
+}
+
+
+/**
  * Demultiplex data per channel and call appropriate channel handler.
  *
  * @param t Tunnel on which the data came.
@@ -1397,6 +1418,7 @@ GMT_shutdown (void)
     GNUNET_SCHEDULER_cancel (rekey_task);
     rekey_task = GNUNET_SCHEDULER_NO_TASK;
   }
+  GNUNET_CONTAINER_multipeermap_iterate (tunnels, &destroy_iterator, NULL);
   GNUNET_CONTAINER_multipeermap_destroy (tunnels);
 }
 
