@@ -213,10 +213,13 @@ move_to_pending (void *cls,
 static void
 reset_mesh (struct MeshHandle *mh)
 {
+  const struct GNUNET_MESH_Channel *channel = mh->channel;
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Resetting mesh channel to %s\n",
 	      GNUNET_i2s (&mh->target));
-  GNUNET_MESH_channel_destroy (mh->channel);
+  mh->channel = NULL;
+  GNUNET_MESH_channel_destroy (channel);
   GNUNET_CONTAINER_multihashmap_iterate (mh->waiting_map,
 					 &move_to_pending,
 					 mh);
@@ -342,7 +345,7 @@ transmit_sqm (void *cls,
   transmit_pending (mh);
   return sizeof (sqm);
 }
-	
+
 
 /**
  * Transmit pending requests via the mesh.
@@ -641,7 +644,7 @@ free_waiting_entry (void *cls,
  *
  * @param cls NULL
  * @param channel channel of the disconnecting client
- * @param channel_ctx our 'struct MeshClient'
+ * @param channel_ctx our `struct MeshClient`
  */
 static void
 cleaner_cb (void *cls,
@@ -651,6 +654,9 @@ cleaner_cb (void *cls,
   struct MeshHandle *mh = channel_ctx;
   struct GSF_MeshRequest *sr;
 
+  if (NULL == mh->channel)
+    return; /* being destroyed elsewhere */
+  GNUNET_assert (channel == mh->channel);
   mh->channel = NULL;
   while (NULL != (sr = mh->pending_head))
   {
@@ -703,8 +709,8 @@ GSF_mesh_start_client ()
  *
  * @param cls NULL
  * @param key target peer, unused
- * @param value the 'struct MeshHandle' to destroy
- * @return GNUNET_YES (continue to iterate)
+ * @param value the `struct MeshHandle` to destroy
+ * @return #GNUNET_YES (continue to iterate)
  */
 static int
 release_meshs (void *cls,
