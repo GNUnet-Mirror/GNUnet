@@ -1519,7 +1519,7 @@ GNUNET_MESH_channel_get_info (struct GNUNET_MESH_Channel *channel,
       ret = (const union GNUNET_MESH_ChannelInfo *) &channel->ooorder;
       break;
     case GNUNET_MESH_OPTION_PEER:
-      ret = (const union GNUNET_MESH_ChannelInfo *) &channel->peer;
+      ret = (const union GNUNET_MESH_ChannelInfo *) GNUNET_PEER_resolve2 (channel->peer);
       break;
     default:
       GNUNET_break (0);
