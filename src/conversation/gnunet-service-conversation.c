@@ -1239,7 +1239,7 @@ handle_mesh_audio_message (void *cls,
       GNUNET_break (0);
       return GNUNET_OK;
     }
-    sender = *(info->peer);
+    sender = info->peer;
     for (line = lines_head; NULL != line; line = line->next)
       if (line->local_line == ntohl (msg->remote_line))
       {
