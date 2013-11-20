@@ -101,6 +101,16 @@ struct AuthorityChain
   char *label;
 
   /**
+   * label/name suggested for shortening to the authority
+   */
+  char *suggested_shortening_label;
+
+  /**
+   * Do we already try to shorten this authority?
+   */
+  int shortening_started;
+
+  /**
    * #GNUNET_YES if the authority was a GNS authority,
    * #GNUNET_NO if the authority was a DNS authority.
    */
@@ -1075,15 +1085,8 @@ handle_gns_cname_result (struct GNS_ResolverHandle *rh,
     ac->gns_authority = GNUNET_YES;
     ac->authority_info.gns_authority = rh->ac_tail->authority_info.gns_authority;
     ac->label = resolver_lookup_get_next_label (rh);
-    /* tigger shortening */
-    if (NULL != rh->shorten_key)
-    {
-      GNUNET_break (0); /* FIXME suggested label*/
-      GNS_shorten_start (rh->ac_tail->label,
-                         NULL,
-			 &ac->authority_info.gns_authority,
-			 rh->shorten_key);
-    }
+    ac->suggested_shortening_label = NULL;
+    ac->shortening_started = GNUNET_NO;
     /* add AC to tail */
     GNUNET_CONTAINER_DLL_insert_tail (rh->ac_head,
 				      rh->ac_tail,
@@ -1332,27 +1335,30 @@ handle_gns_resolution_result (void *cls,
 {
   struct GNS_ResolverHandle *rh = cls;
   struct AuthorityChain *ac;
+  struct AuthorityChain *shorten_ac;
   unsigned int i;
   char *cname;
   struct VpnContext *vpn_ctx;
   const struct GNUNET_TUN_GnsVpnRecord *vpn;
   const char *vname;
-  const char *suggested_label;
   struct GNUNET_HashCode vhash;
   int af;
   char scratch[UINT16_MAX];
   size_t scratch_off;
   size_t scratch_start;
   size_t off;
-  int c2;
   struct GNUNET_GNSRECORD_Data rd_new[rd_count];
   unsigned int rd_off;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 	      "Resolution succeeded for `%s' in zone %s, got %u records\n",
 	      rh->ac_tail->label,
 	      GNUNET_GNSRECORD_z2s (&rh->ac_tail->authority_info.gns_authority),
 	      rd_count);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "%u \n\n",
+              rh->name_resolution_pos);
   if (0 == rh->name_resolution_pos)
   {
     /* top-level match, are we done yet? */
@@ -1439,13 +1445,14 @@ handle_gns_resolution_result (void *cls,
 	  }
 	default:
 	  break;
-	}
-      }
-    }
+	} /* end: switch */
+      } /* end: for rd */
+    } /* end: name_resolution_pos */
     /* convert relative names in record values to absolute names,
        using 'scratch' array for memory allocations */
     scratch_off = 0;
     rd_off = 0;
+    shorten_ac = rh->ac_tail;
     for (i=0;i<rd_count;i++)
     {
       rd_new[rd_off] = rd[i];
@@ -1604,6 +1611,22 @@ handle_gns_resolution_result (void *cls,
 	    GNUNET_DNSPARSER_free_srv (srv);
 	}
 	break;
+
+      case GNUNET_GNSRECORD_TYPE_NICK:
+        {
+          const char *nick;
+          nick = rd[i].data;
+          if ((GNUNET_GNSRECORD_TYPE_NICK ==rd[i].record_type) &&
+              (rd[i].data_size > 0) &&
+              (nick[rd[i].data_size -1] == '\0'))
+          {
+            GNUNET_break_op (0);
+            break;
+          }
+          if (NULL == shorten_ac->suggested_shortening_label)
+            shorten_ac->suggested_shortening_label = GNUNET_strdup (nick);
+          break;
+        }
       case GNUNET_GNSRECORD_TYPE_PKEY:
         {
 	  struct GNUNET_CRYPTO_EcdsaPublicKey pub;
@@ -1614,24 +1637,6 @@ handle_gns_resolution_result (void *cls,
 	    break;
 	  }
 	  memcpy (&pub, rd[i].data, rd[i].data_size);
-
-          /* tigger shortening */
-          if (NULL != rh->shorten_key)
-          {
-            suggested_label = NULL;
-            for (c2 = 0; c2< rd_count; c2++)
-            {
-              if ((GNUNET_GNSRECORD_TYPE_NICK ==rd[c2].record_type) &&
-                  (rd[i].data_size > 0) &&
-                  (((const char *) rd[c2].data)[rd[c2].data_size -1] == '\0'))
-                suggested_label = (const char *) rd->data;
-            }
-            if (NULL != suggested_label)
-              GNS_shorten_start (rh->ac_tail->label,
-                               suggested_label,
-                               &pub,
-                               rh->shorten_key);
-          }
           rd_off++;
           if (GNUNET_GNSRECORD_TYPE_PKEY != rh->record_type)
           {
@@ -1643,6 +1648,8 @@ handle_gns_resolution_result (void *cls,
             ac->gns_authority = GNUNET_YES;
             ac->authority_info.gns_authority = pub;
             ac->label = GNUNET_strdup (GNUNET_GNS_MASTERZONE_STR);
+            ac->suggested_shortening_label = NULL;
+            ac->shortening_started = GNUNET_NO;
             GNUNET_CONTAINER_DLL_insert_tail (rh->ac_head,
                                               rh->ac_tail,
                                               ac);
@@ -1662,7 +1669,24 @@ handle_gns_resolution_result (void *cls,
       default:
 	rd_off++;
 	break;
-      }
+      } /* end: switch */
+    } /* end: for rd_count */
+
+    /* trigger shortening */
+    if ((NULL != rh->shorten_key) &&
+        (NULL != shorten_ac) &&
+        (GNUNET_NO == shorten_ac->shortening_started) &&
+        (NULL != shorten_ac->suggested_shortening_label))
+    {
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    "Start shortening for label `%s' based on nick `%s'\n",
+                    shorten_ac->label,
+                    shorten_ac->suggested_shortening_label);
+        shorten_ac->shortening_started = GNUNET_YES;
+        GNS_shorten_start (shorten_ac->label,
+                         shorten_ac->suggested_shortening_label,
+                         &shorten_ac->authority_info.gns_authority,
+                         rh->shorten_key);
     }
 
     /* yes, we are done, return result */
@@ -1694,27 +1718,12 @@ handle_gns_resolution_result (void *cls,
       ac = GNUNET_new (struct AuthorityChain);
       ac->rh = rh;
       ac->gns_authority = GNUNET_YES;
+      ac->suggested_shortening_label = NULL;
+      ac->shortening_started = GNUNET_NO;
       memcpy (&ac->authority_info.gns_authority,
 	      rd[i].data,
 	      sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
       ac->label = resolver_lookup_get_next_label (rh);
-      /* tigger shortening */
-      if (NULL != rh->shorten_key)
-      {
-        suggested_label = NULL;
-        for (c2 = 0; c2< rd_count; c2++)
-        {
-          if ((GNUNET_GNSRECORD_TYPE_NICK ==rd[c2].record_type) &&
-              (rd[c2].data_size > 0) &&
-              ((const char *) rd[c2].data)[rd[c2].data_size -1] == '\0')
-            suggested_label = (const char *) rd[c2].data;
-        }
-        if (NULL != suggested_label)
-          GNS_shorten_start (rh->ac_tail->label,
-	                   suggested_label,
-			   &ac->authority_info.gns_authority,
-			   rh->shorten_key);
-      }
       /* add AC to tail */
       GNUNET_CONTAINER_DLL_insert_tail (rh->ac_head,
 					rh->ac_tail,
@@ -1923,10 +1932,10 @@ handle_dht_response (void *cls,
 
 
 /**
- * Process a record that was stored in the namestore.
+ * Process a record that was stored in the namecache.
  *
  * @param cls closure with the `struct GNS_ResolverHandle`
- * @param block block that was stored in the namestore
+ * @param block block that was stored in the namecache
  */
 static void
 handle_namestore_block_response (void *cls,
@@ -1948,7 +1957,7 @@ handle_namestore_block_response (void *cls,
        ( (NULL == block) ||
 	 (0 == GNUNET_TIME_absolute_get_remaining (GNUNET_TIME_absolute_ntoh (block->expiration_time)).rel_value_us) ) )
   {
-    /* Namestore knows nothing; try DHT lookup */
+    /* namecache knows nothing; try DHT lookup */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Starting DHT lookup for `%s' in zone %s\n",
 		ac->label,
@@ -2207,6 +2216,7 @@ start_resolver_lookup (struct GNS_ResolverHandle *rh)
   ac = GNUNET_new (struct AuthorityChain);
   ac->rh = rh;
   ac->label = resolver_lookup_get_next_label (rh);
+  ac->suggested_shortening_label = NULL;
   if (NULL == ac->label)
     /* name was just "gnu", so we default to label '+' */
     ac->label = GNUNET_strdup (GNUNET_GNS_MASTERZONE_STR);
@@ -2290,6 +2300,7 @@ GNS_resolver_lookup_cancel (struct GNS_ResolverHandle *rh)
 				 rh->ac_tail,
 				 ac);
     GNUNET_free (ac->label);
+    GNUNET_free_non_null (ac->suggested_shortening_label);
     GNUNET_free (ac);
   }
   if (NULL != rh->g2dc)
