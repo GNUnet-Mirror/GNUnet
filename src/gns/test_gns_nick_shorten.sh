@@ -80,3 +80,4 @@ then
 else
   echo "FAIL: Could not resolve $TEST_NAME_SHORT to proper IP, got $RES_IP_PSEU."
   exit 1
+fi  
