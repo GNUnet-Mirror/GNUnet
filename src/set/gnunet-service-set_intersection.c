@@ -270,49 +270,6 @@ iterator_bf_round (void *cls,
 }
 
 /**
- * Destroy a intersection operation, and free all resources
- * associated with it.
- *
- * @param eo the intersection operation to destroy
- */
-static void
-intersection_operation_destroy (struct OperationState *eo)
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "destroying intersection op\n");
-  GNUNET_CONTAINER_DLL_remove (eo->set->state->ops_head,
-                               eo->set->state->ops_tail,
-                               eo);
-  if (NULL != eo->mq)
-  {
-    GNUNET_MQ_destroy (eo->mq);
-    eo->mq = NULL;
-  }
-  if (NULL != eo->tunnel)
-  {
-    struct GNUNET_MESH_Tunnel *t = eo->tunnel;
-    eo->tunnel = NULL;
-    GNUNET_MESH_tunnel_destroy (t);
-  }
-  // TODO: destroy set elements?
-  if (NULL != eo->spec)
-  {
-    if (NULL != eo->spec->context_msg)
-    {
-      GNUNET_free (eo->spec->context_msg);
-      eo->spec->context_msg = NULL;
-    }
-    GNUNET_free (eo->spec);
-    eo->spec = NULL;
-  }
-  GNUNET_free (eo);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "destroying intersection op done\n");
-
-  /* FIXME: do a garbage collection of the set generations */
-}
-
-
-/**
  * Inform the client that the union operation has failed,
  * and proceed to destroy the evaluate operation.
  *
@@ -642,33 +599,26 @@ intersection_evaluate (struct Operation *op)
 static void
 intersection_accept (struct Operation *op)
 {
-  struct OperationRequestMessage * context = 1;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "accepting set union operation\n");
-  
   op->state = GNUNET_new (struct OperationState);
   op->state->my_elements = GNUNET_CONTAINER_multihashmap_create(1, GNUNET_YES);
-  
   GNUNET_CONTAINER_multihashmap_iterate(op->spec->set->elements, 
                                         &iterator_element_count,
                                         op);
-  
   // if Alice (the peer) has more elements than Bob (us), she should start
   if (op->spec->element_count < op->state->my_elements_count){
     op->state->phase = PHASE_INITIAL;
     send_element_count(op);
     return;
   }
-
   // create a new bloomfilter in case we have fewer elements
   op->state->phase = PHASE_BF_EXCHANGE;
   op->state->local_bf = GNUNET_CONTAINER_bloomfilter_init (NULL,
                                                            BLOOMFILTER_SIZE,
                                                            GNUNET_CONSTANTS_BLOOMFILTER_K);
-
   GNUNET_CONTAINER_multihashmap_iterate (op->spec->set->elements,
                                          &iterator_initialization,
                                          op);
-
   send_bloomfilter (op);
 }
 
@@ -783,7 +733,6 @@ send_client_done_and_destroy (void *cls)
   GNUNET_MQ_send (op->spec->set->client_mq, ev);
   _GSS_operation_destroy (op);
 }
-
 /**
  * Send all elements in the full result iterator.
  *
@@ -793,49 +742,33 @@ static void
 send_remaining_elements (void *cls)
 {
   struct Operation *op = cls;
-  struct KeyEntry *remaining; //TODO rework this, key entry does not exist here
+  struct ElementEntry *remaining; //TODO rework this, key entry does not exist here
+  struct GNUNET_MQ_Envelope *ev;
+  struct GNUNET_SET_ResultMessage *rm;
+  struct GNUNET_SET_Element *element;
   int res;
 
   res = GNUNET_CONTAINER_multihashmap32_iterator_next (op->state->full_result_iter, NULL, (const void **) &remaining);
-  res = GNUNET_NO;
-  if (GNUNET_NO == res)
-  {
+  if (GNUNET_NO == res) {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "sending done and destroy because iterator ran out\n");
     send_client_done_and_destroy (op);
     return;
   }
+  
+  element = &remaining->element;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "sending element (size %u) to client (full set)\n", element->size);
+  GNUNET_assert (0 != op->spec->client_request_id);
+  
+  ev = GNUNET_MQ_msg_extra (rm, element->size, GNUNET_MESSAGE_TYPE_SET_RESULT);
+  GNUNET_assert (NULL != ev);
+  
+  rm->result_status = htons (GNUNET_SET_STATUS_OK);
+  rm->request_id = htonl (op->spec->client_request_id);
+  rm->element_type = element->type;
+  memcpy (&rm[1], element->data, element->size);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "sending elements from key entry\n");
-
-  while (1)
-  {
-    struct GNUNET_MQ_Envelope *ev;
-    struct GNUNET_SET_ResultMessage *rm;
-    struct GNUNET_SET_Element *element;
-    element = &remaining->element->element;
-
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "sending element (size %u) to client (full set)\n", element->size);
-    GNUNET_assert (0 != op->spec->client_request_id);
-    ev = GNUNET_MQ_msg_extra (rm, element->size, GNUNET_MESSAGE_TYPE_SET_RESULT);
-    if (NULL == ev)
-    {
-      GNUNET_MQ_discard (ev);
-      GNUNET_break (0);
-      continue;
-    }
-    rm->result_status = htons (GNUNET_SET_STATUS_OK);
-    rm->request_id = htonl (op->spec->client_request_id);
-    rm->element_type = element->type;
-    memcpy (&rm[1], element->data, element->size);
-    if (remaining->next_colliding == NULL)
-    {
-      GNUNET_MQ_notify_sent (ev, send_remaining_elements, op);
-      GNUNET_MQ_send (op->spec->set->client_mq, ev);
-      break;
-    }
-    GNUNET_MQ_send (op->spec->set->client_mq, ev);
-    remaining = remaining->next_colliding;
-  }
+  GNUNET_MQ_notify_sent (ev, send_remaining_elements, op);
+  GNUNET_MQ_send (op->spec->set->client_mq, ev);
 }
 
 /**

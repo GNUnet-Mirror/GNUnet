@@ -1003,7 +1003,6 @@ send_remaining_elements (void *cls)
   int res;
 
   res = GNUNET_CONTAINER_multihashmap32_iterator_next (op->state->full_result_iter, NULL, (const void **) &ke);
-  res = GNUNET_NO;
   if (GNUNET_NO == res)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "sending done and destroy because iterator ran out\n");
