@@ -695,6 +695,7 @@ envi_get_state (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
   int k;
   double *state = GNUNET_malloc (sizeof (double) * agent->m);
   struct RIL_Address_Wrapped *cur_address;
+  const double *preferences;
   const double *properties;
 
   //copy global networks state
@@ -706,10 +707,19 @@ envi_get_state (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
     state[i * RIL_FEATURES_NETWORK_COUNT + 3] = solver->state_networks[i * RIL_FEATURES_NETWORK_COUNT + 3];
   }
 
-  i = i * RIL_FEATURES_NETWORK_COUNT; //first address feature
+  //get peer features
+  i = i * RIL_FEATURES_NETWORK_COUNT;
+  preferences = solver->plugin_envi->get_preferences (solver->plugin_envi->get_preference_cls,
+        &agent->peer);
+  for (k = 0; k < GNUNET_ATS_PreferenceCount; k++)
+  {
+    state[i++] = preferences[k];
+  }
 
+  //get address specific features
   for (cur_address = agent->addresses_head; NULL != cur_address; cur_address = cur_address->next)
   {
+    //when changing the number of address specific state features, change RIL_FEATURES_ADDRESS_COUNT macro
     state[i++] = cur_address->address_naked->active;
     state[i++] = cur_address->address_naked->active ? agent->bw_in : 0;
     state[i++] = cur_address->address_naked->active ? agent->bw_out : 0;
@@ -1334,8 +1344,6 @@ ril_step (struct GAS_RIL_Handle *solver)
   {
     if (cur->suggestion_issue) {
       solver->plugin_envi->bandwidth_changed_cb(solver->plugin_envi->bw_changed_cb_cls, cur->suggestion_address);
-      LOG(GNUNET_ERROR_TYPE_DEBUG, "\n    Suggest address: %s\n\n",
-                            cur->suggestion_address->addr);
       cur->suggestion_issue = GNUNET_NO;
     }
   }
@@ -1404,7 +1412,7 @@ agent_init (void *s, const struct GNUNET_PeerIdentity *peer)
   agent->bw_out = 0;
   agent->suggestion_issue = GNUNET_NO;
   agent->n = RIL_ACTION_TYPE_NUM;
-  agent->m = solver->networks_count * RIL_FEATURES_NETWORK_COUNT;
+  agent->m = (solver->networks_count * RIL_FEATURES_NETWORK_COUNT) + GNUNET_ATS_PreferenceCount;
   agent->W = (double **) GNUNET_malloc (sizeof (double *) * agent->n);
   for (i = 0; i < agent->n; i++)
   {
@@ -1992,8 +2000,8 @@ GAS_ril_address_session_changed (void *solver,
 void
 GAS_ril_address_inuse_changed (void *solver, struct ATS_Address *address, int in_use)
 {
-  /* Nothing to do here.
-   * Possible TODO? Future Work: Potentially add usage variable to state vector
+  /*
+   * TODO? Future Work: Potentially add usage variable to state vector
    */
   LOG(GNUNET_ERROR_TYPE_DEBUG,
       "API_address_inuse_changed() Usage for %s address of peer '%s' changed to %s\n",
