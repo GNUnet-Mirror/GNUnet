@@ -1603,7 +1603,7 @@ client_session_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
   GNUNET_log (TIMEOUT_LOG,
               "Session %p was idle for %s, disconnecting\n",
               s,
-	      GNUNET_STRINGS_relative_time_to_string (CLIENT_SESSION_TIMEOUT,
+	      GNUNET_STRINGS_relative_time_to_string (HTTP_CLIENT_SESSION_TIMEOUT,
 						      GNUNET_YES));
 
   /* call session destroy function */
@@ -1622,13 +1622,13 @@ client_start_session_timeout (struct Session *s)
 
  GNUNET_assert (NULL != s);
  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == s->timeout_task);
- s->timeout_task =  GNUNET_SCHEDULER_add_delayed (CLIENT_SESSION_TIMEOUT,
+ s->timeout_task =  GNUNET_SCHEDULER_add_delayed (HTTP_CLIENT_SESSION_TIMEOUT,
                                                   &client_session_timeout,
                                                   s);
  GNUNET_log (TIMEOUT_LOG,
              "Timeout for session %p set to %s\n",
              s,
-	     GNUNET_STRINGS_relative_time_to_string (CLIENT_SESSION_TIMEOUT,
+	     GNUNET_STRINGS_relative_time_to_string (HTTP_CLIENT_SESSION_TIMEOUT,
 						     GNUNET_YES));
 }
 
@@ -1646,13 +1646,13 @@ client_reschedule_session_timeout (struct Session *s)
  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != s->timeout_task);
 
  GNUNET_SCHEDULER_cancel (s->timeout_task);
- s->timeout_task =  GNUNET_SCHEDULER_add_delayed (CLIENT_SESSION_TIMEOUT,
+ s->timeout_task =  GNUNET_SCHEDULER_add_delayed (HTTP_CLIENT_SESSION_TIMEOUT,
                                                   &client_session_timeout,
                                                   s);
  GNUNET_log (TIMEOUT_LOG,
              "Timeout rescheduled for session %p set to %s\n",
              s,
-	     GNUNET_STRINGS_relative_time_to_string (CLIENT_SESSION_TIMEOUT,
+	     GNUNET_STRINGS_relative_time_to_string (HTTP_CLIENT_SESSION_TIMEOUT,
 						     GNUNET_YES));
 }
 

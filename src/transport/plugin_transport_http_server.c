@@ -1190,7 +1190,7 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                      "Session %p for peer `%s' fully connected\n",
                      s, GNUNET_i2s (&target));
-    to = (SERVER_SESSION_TIMEOUT.rel_value_us / 1000LL / 1000LL);
+    to = (HTTP_SERVER_SESSION_TIMEOUT.rel_value_us / 1000LL / 1000LL);
     server_mhd_connection_timeout (plugin, s, to);
   }
 
@@ -2013,7 +2013,7 @@ server_start (struct HTTP_Server_Plugin *plugin)
                    "MHD can set timeout per connection! Default time out %u sec.\n",
                    timeout);
 #else
-  timeout = SERVER_SESSION_TIMEOUT.rel_value_us / 1000LL / 1000LL;
+  timeout = HTTP_SERVER_SESSION_TIMEOUT.rel_value_us / 1000LL / 1000LL;
   GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, plugin->name,
                    "MHD cannot set timeout per connection! Default time out %u sec.\n",
                    timeout);
@@ -2889,7 +2889,7 @@ server_session_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
   GNUNET_log (TIMEOUT_LOG,
               "Session %p was idle for %s, disconnecting\n",
               s,
-	      GNUNET_STRINGS_relative_time_to_string (SERVER_SESSION_TIMEOUT,
+	      GNUNET_STRINGS_relative_time_to_string (HTTP_SERVER_SESSION_TIMEOUT,
 						      GNUNET_YES));
 
   /* call session destroy function */
@@ -2907,13 +2907,13 @@ server_start_session_timeout (struct Session *s)
 {
  GNUNET_assert (NULL != s);
  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == s->timeout_task);
- s->timeout_task =  GNUNET_SCHEDULER_add_delayed (SERVER_SESSION_TIMEOUT,
+ s->timeout_task =  GNUNET_SCHEDULER_add_delayed (HTTP_SERVER_SESSION_TIMEOUT,
                                                   &server_session_timeout,
                                                   s);
  GNUNET_log (TIMEOUT_LOG,
              "Timeout for session %p set to %s\n",
              s,
-	     GNUNET_STRINGS_relative_time_to_string (SERVER_SESSION_TIMEOUT,
+	     GNUNET_STRINGS_relative_time_to_string (HTTP_SERVER_SESSION_TIMEOUT,
 						     GNUNET_YES));
 }
 
@@ -2930,13 +2930,13 @@ server_reschedule_session_timeout (struct Session *s)
  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != s->timeout_task);
 
  GNUNET_SCHEDULER_cancel (s->timeout_task);
- s->timeout_task =  GNUNET_SCHEDULER_add_delayed (SERVER_SESSION_TIMEOUT,
+ s->timeout_task =  GNUNET_SCHEDULER_add_delayed (HTTP_SERVER_SESSION_TIMEOUT,
                                                   &server_session_timeout,
                                                   s);
  GNUNET_log (TIMEOUT_LOG,
              "Timeout rescheduled for session %p set to %s\n",
              s,
-	     GNUNET_STRINGS_relative_time_to_string (SERVER_SESSION_TIMEOUT,
+	     GNUNET_STRINGS_relative_time_to_string (HTTP_SERVER_SESSION_TIMEOUT,
 						     GNUNET_YES));
 }
 
