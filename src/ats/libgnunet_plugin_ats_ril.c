@@ -40,6 +40,7 @@
 #define RIL_DEFAULT_GRADIENT_STEP_SIZE 0.3
 #define RIL_DEFAULT_TRACE_DECAY 0.5
 #define RIL_DEFAULT_EXPLORE_RATIO 0.1
+#define RIL_DEFAULT_GLOBAL_REWARD_SHARE 0.5
 
 /**
  * ATS reinforcement learning solver
@@ -107,9 +108,14 @@ struct RIL_Learning_Parameters
   double lambda;
 
   /**
-   *
+   * Ratio, whith what probability an agent should explore in the e-greed policy
    */
   double explore_ratio;
+
+  /**
+   * How big the share of the global part of the reward signal is
+   */
+  double reward_global_share;
 
   /**
    * Minimal interval time between steps in milliseconds
@@ -891,9 +897,10 @@ envi_get_reward (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
     return 0;
   }
 
-  reward += envi_reward_global (solver);
-  reward += envi_reward_local (solver, agent);
-  return reward * 0.5;
+  reward += envi_reward_global (solver) * (solver->parameters.reward_global_share);
+  reward += envi_reward_local (solver, agent) * (1 - solver->parameters.reward_global_share);
+
+  return reward;
 }
 
 /**
@@ -1677,6 +1684,15 @@ libgnunet_plugin_ats_ril_init (void *cls)
   else
   {
     solver->parameters.explore_ratio = RIL_DEFAULT_EXPLORE_RATIO;
+  }
+  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (env->cfg, "ats", "RIL_GLOBAL_REWARD_SHARE", &string))
+  {
+    solver->parameters.reward_global_share = strtod (string, NULL);
+    GNUNET_free (string);
+  }
+  else
+  {
+    solver->parameters.reward_global_share = RIL_DEFAULT_GLOBAL_REWARD_SHARE;
   }
 
   env->sf.s_add = &GAS_ril_address_add;
