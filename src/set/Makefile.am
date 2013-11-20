@@ -45,12 +45,14 @@ gnunet_set_ibf_profiler_LDADD = \
 gnunet_service_set_SOURCES = \
  gnunet-service-set.c \
  gnunet-service-set_union.c \
+ gnunet-service-set_intersection.c \
  ibf.c \
  strata_estimator.c
 gnunet_service_set_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/core/libgnunetcore.la \
   $(top_builddir)/src/mesh/libgnunetmesh.la \
+  $(top_builddir)/src/block/libgnunetblock.la \
   $(GN_LIBINTL)
 
 libgnunetset_la_SOURCES = \

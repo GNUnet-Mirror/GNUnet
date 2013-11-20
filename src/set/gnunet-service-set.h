@@ -93,7 +93,7 @@ struct OperationSpecification
   /**
    * Remote peers element count
    */
-  uint32_t element_count;
+  uint32_t remote_element_count;
 
   /**
    * ID used to identify an operation between service and client 

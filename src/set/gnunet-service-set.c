@@ -567,7 +567,7 @@ handle_incoming_msg (struct Operation *op,
   spec->app_id = msg->app_id;
   spec->salt = ntohl (msg->salt);
   spec->peer = op->state->peer;
-  spec->element_count = ntohl (msg->element_count);
+  spec->remote_element_count = ntohl (msg->element_count);
 
   op->spec = spec;
 
