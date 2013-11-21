@@ -778,15 +778,29 @@ GML_shutdown (void)
 struct MeshChannel *
 GML_channel_get (struct MeshClient *c, MESH_ChannelNumber chid)
 {
+  struct GNUNET_CONTAINER_MultiHashMap32 *map;
+
   if (0 == (chid & GNUNET_MESH_LOCAL_CHANNEL_ID_CLI))
   {
     GNUNET_break_op (0);
     LOG (GNUNET_ERROR_TYPE_DEBUG, "CHID %X not a local chid\n", chid);
     return NULL;
   }
+
   if (chid >= GNUNET_MESH_LOCAL_CHANNEL_ID_SERV)
-    return GNUNET_CONTAINER_multihashmap32_get (c->incoming_channels, chid);
-  return GNUNET_CONTAINER_multihashmap32_get (c->own_channels, chid);
+    map = c->incoming_channels;
+  else if (chid >= GNUNET_MESH_LOCAL_CHANNEL_ID_CLI)
+    map = c->own_channels;
+
+  if (NULL == map)
+  {
+    GNUNET_break (0);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Client %s does no t have a valid map for CHID %X\n",
+         GML_2s (c), chid);
+    return NULL;
+  }
+  return GNUNET_CONTAINER_multihashmap32_get (map, chid);
 }
 
 
