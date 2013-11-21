@@ -429,6 +429,7 @@ handle_channel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
 
   /* Retrieve tunnel */
   chid = ntohl (msg->channel_id);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  for channel %X\n", chid);
   ch = GML_channel_get (c, chid);
   if (NULL == ch)
   {
@@ -488,6 +489,7 @@ handle_data (void *cls, struct GNUNET_SERVER_Client *client,
 
   /* Channel exists? */
   chid = ntohl (msg->id);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  on channel %X\n", chid);
   fwd = chid < GNUNET_MESH_LOCAL_CHANNEL_ID_SERV;
   ch = GML_channel_get (c, chid);
   if (NULL == ch)
