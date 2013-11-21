@@ -1355,10 +1355,6 @@ handle_gns_resolution_result (void *cls,
 	      rh->ac_tail->label,
 	      GNUNET_GNSRECORD_z2s (&rh->ac_tail->authority_info.gns_authority),
 	      rd_count);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "%u \n\n",
-              rh->name_resolution_pos);
   if (0 == rh->name_resolution_pos)
   {
     /* top-level match, are we done yet? */
