@@ -30,7 +30,7 @@
 
 #define RIL_ACTION_INVALID -1
 #define RIL_FEATURES_ADDRESS_COUNT (3 + GNUNET_ATS_QualityPropertiesCount)
-#define RIL_FEATURES_NETWORK_COUNT 4
+#define RIL_FEATURES_NETWORK_COUNT 6
 #define RIL_INTERVAL_EXPONENT 10
 
 #define RIL_DEFAULT_STEP_TIME_MIN GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 500)
@@ -677,14 +677,26 @@ envi_state_networks (struct GAS_RIL_Handle *solver)
 {
   int i;
   struct RIL_Network net;
+  unsigned long long assigned_in;
+  unsigned long long assigned_out;
+  int overutilized_in;
+  int overutilized_out;
 
   for (i = 0; i < solver->networks_count; i++)
   {
     net = solver->network_entries[i];
-    solver->global_state_networks[i * RIL_FEATURES_NETWORK_COUNT + 0] = (double) ril_network_get_assigned(solver, net.type, GNUNET_YES);
+
+    assigned_in = ril_network_get_assigned(solver, net.type, GNUNET_YES);
+    assigned_out = ril_network_get_assigned(solver, net.type, GNUNET_NO);
+    overutilized_in = assigned_in > net.bw_in_available;
+    overutilized_out = assigned_out > net.bw_out_available;
+
+    solver->global_state_networks[i * RIL_FEATURES_NETWORK_COUNT + 0] = (double) assigned_in;
     solver->global_state_networks[i * RIL_FEATURES_NETWORK_COUNT + 1] = (double) net.bw_in_available;
-    solver->global_state_networks[i * RIL_FEATURES_NETWORK_COUNT + 2] = (double) ril_network_get_assigned(solver, net.type, GNUNET_NO);
-    solver->global_state_networks[i * RIL_FEATURES_NETWORK_COUNT + 3] = (double) net.bw_out_available;
+    solver->global_state_networks[i * RIL_FEATURES_NETWORK_COUNT + 2] = (double) overutilized_in;
+    solver->global_state_networks[i * RIL_FEATURES_NETWORK_COUNT + 3] = (double) assigned_out;
+    solver->global_state_networks[i * RIL_FEATURES_NETWORK_COUNT + 4] = (double) net.bw_out_available;
+    solver->global_state_networks[i * RIL_FEATURES_NETWORK_COUNT + 5] = (double) overutilized_out;
   }
 }
 
@@ -705,16 +717,12 @@ envi_get_state (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
   const double *properties;
 
   //copy global networks state
-  for (i = 0; i < solver->networks_count; i++)
+  for (i = 0; i < solver->networks_count * RIL_FEATURES_NETWORK_COUNT; i++)
   {
-    state[i * RIL_FEATURES_NETWORK_COUNT + 0] = solver->global_state_networks[i * RIL_FEATURES_NETWORK_COUNT + 0];
-    state[i * RIL_FEATURES_NETWORK_COUNT + 1] = solver->global_state_networks[i * RIL_FEATURES_NETWORK_COUNT + 1];
-    state[i * RIL_FEATURES_NETWORK_COUNT + 2] = solver->global_state_networks[i * RIL_FEATURES_NETWORK_COUNT + 2];
-    state[i * RIL_FEATURES_NETWORK_COUNT + 3] = solver->global_state_networks[i * RIL_FEATURES_NETWORK_COUNT + 3];
+    state[i] = solver->global_state_networks[i];
   }
 
   //get peer features
-  i = i * RIL_FEATURES_NETWORK_COUNT;
   preferences = solver->plugin_envi->get_preferences (solver->plugin_envi->get_preference_cls,
         &agent->peer);
   for (k = 0; k < GNUNET_ATS_PreferenceCount; k++)
