@@ -1,6 +1,6 @@
 #!/bin/bash
 trap "gnunet-arm -e -c test_gns_lookup.conf" SIGINT
-which timeout &> /dev/null && DO_TIMEOUT="timeout 5"
+which timeout &> /dev/null && DO_TIMEOUT="timeout 30"
 
 # This test tests shortening functionality based on NICK records:
 # 

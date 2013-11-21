@@ -1,7 +1,7 @@
 #!/bin/bash
 trap "gnunet-arm -e -c test_gns_lookup.conf" SIGINT
 rm -r `gnunet-config -c test_gns_lookup.conf -s PATHS -o GNUNET_HOME -f`
-which timeout &> /dev/null && DO_TIMEOUT="timeout 5"
+which timeout &> /dev/null && DO_TIMEOUT="timeout 30"
 TEST_IP="127.0.0.1"
 gnunet-arm -s -c test_gns_lookup.conf
 gnunet-identity -C testego -c test_gns_lookup.conf
@@ -13,7 +13,6 @@ gnunet-arm -e -c test_gns_lookup.conf
 
 if [ "$RES_IP" == "$TEST_IP" ]
 then
-  echo "PASS: Resolved correct IP address, got $RES_IP"
   exit 0
 else
   echo "FAIL: Failed to resolve to proper IP, got $RES_IP."
