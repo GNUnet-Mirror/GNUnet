@@ -221,13 +221,13 @@ libgnunet_plugin_block_gns_la_DEPENDENCIES = \
 
 
 check_SCRIPTS = \
-  test_gns_delegated_lookup.sh \
   test_gns_lookup.sh \
   test_gns_ipv6_lookup.sh\
   test_gns_txt_lookup.sh\
   test_gns_mx_lookup.sh \
   test_gns_gns2dns_lookup.sh \
   test_gns_dht_lookup.sh\
+  test_gns_delegated_lookup.sh \
   test_gns_nick_shorten.sh\
   test_gns_plus_lookup.sh\
   test_gns_zkey_lookup.sh\
