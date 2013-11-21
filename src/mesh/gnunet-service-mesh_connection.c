@@ -2079,12 +2079,35 @@ GMC_init (const struct GNUNET_CONFIGURATION_Handle *c)
   connections = GNUNET_CONTAINER_multihashmap_create (1024, GNUNET_YES);
 }
 
+
+/**
+ * Destroy each connection on shutdown.
+ *
+ * @param cls Closure (unused).
+ * @param key Current key code (CID, unused).
+ * @param value Value in the hash map (connection)
+ *
+ * @return #GNUNET_YES, because we should continue to iterate,
+ */
+static int
+shutdown_iterator (void *cls,
+                   const struct GNUNET_HashCode *key,
+                   void *value)
+{
+  struct MeshConnection *c = value;
+
+  GMC_destroy (c);
+  return GNUNET_YES;
+}
+
+
 /**
  * Shut down the connections subsystem.
  */
 void
 GMC_shutdown (void)
 {
+  GNUNET_CONTAINER_multihashmap_iterate (connections, &shutdown_iterator, NULL);
   GNUNET_CONTAINER_multihashmap_destroy (connections);
   connections = NULL;
 }
