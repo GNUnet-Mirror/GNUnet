@@ -317,7 +317,7 @@ ego_callback (void *cls,
   {
     FPRINTF (stdout,
              _("Ego `%s' not found.\n"),
-             test_ego);
+             revoke_ego);
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
