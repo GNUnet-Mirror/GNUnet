@@ -362,6 +362,85 @@ handle_client_listener_error (void *cls, enum GNUNET_MQ_Error error)
 }
 
 
+/**
+ * Destroy the set handle if no operations are left, mark the set
+ * for destruction otherwise.
+ *
+ * @param set set handle to destroy
+ */
+static int
+set_destroy (struct GNUNET_SET_Handle *set)
+{
+  if (NULL != set->ops_head)
+  {
+    set->destroy_requested = GNUNET_YES;
+    return GNUNET_NO;
+  }
+  GNUNET_CLIENT_disconnect (set->client);
+  set->client = NULL;
+  GNUNET_MQ_destroy (set->mq);
+  set->mq = NULL;
+  GNUNET_free (set);
+  return GNUNET_YES;
+}
+
+
+
+
+/**
+ * Cancel the given set operation.  We need to send an explicit cancel message,
+ * as all operations one one set communicate using one handle.
+ *
+ * In contrast to GNUNET_SET_operation_cancel, this function indicates whether
+ * the set of the operation has been destroyed because all operations are done and
+ * the set's destruction was requested before.
+ *
+ * @param oh set operation to cancel
+ * @return GNUNET_YES if the set of the operation was destroyed
+ */
+static int
+set_operation_cancel (struct GNUNET_SET_OperationHandle *oh)
+{
+  int ret = GNUNET_NO;
+
+  if (NULL != oh->conclude_mqm)
+    GNUNET_MQ_discard (oh->conclude_mqm);
+
+  /* is the operation already commited? */
+  if (NULL != oh->set)
+  {
+    struct GNUNET_SET_OperationHandle *h_assoc;
+    struct GNUNET_MQ_Envelope *mqm;
+
+    GNUNET_CONTAINER_DLL_remove (oh->set->ops_head, oh->set->ops_tail, oh);
+    h_assoc = GNUNET_MQ_assoc_remove (oh->set->mq, oh->request_id);
+    GNUNET_assert ((h_assoc == NULL) || (h_assoc == oh));
+    mqm = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_SET_CANCEL);
+    GNUNET_MQ_send (oh->set->mq, mqm);
+
+    if (GNUNET_YES == oh->set->destroy_requested)
+      ret = set_destroy (oh->set);
+  }
+
+  GNUNET_free (oh);
+  
+  return ret;
+}
+
+
+/**
+ * Cancel the given set operation.  We need to send an explicit cancel message,
+ * as all operations one one set communicate using one handle.
+ *
+ * @param oh set operation to cancel
+ */
+void
+GNUNET_SET_operation_cancel (struct GNUNET_SET_OperationHandle *oh)
+{
+  (void) set_operation_cancel (oh);
+}
+
+
 static void
 handle_client_set_error (void *cls, enum GNUNET_MQ_Error error)
 {
@@ -372,9 +451,9 @@ handle_client_set_error (void *cls, enum GNUNET_MQ_Error error)
     if (NULL != set->ops_head->result_cb)
       set->ops_head->result_cb (set->ops_head->result_cls, NULL,
                                 GNUNET_SET_STATUS_FAILURE);
-    GNUNET_SET_operation_cancel (set->ops_head);
+    if (GNUNET_YES == set_operation_cancel (set->ops_head))
+      return; /* stop if the set is destroyed */
   }
-
   set->invalid = GNUNET_YES;
 }
 
@@ -496,20 +575,13 @@ GNUNET_SET_remove_element (struct GNUNET_SET_Handle *set,
 
 /**
  * Destroy the set handle, and free all associated resources.
+ *
+ * @param set set handle to destroy
  */
 void
 GNUNET_SET_destroy (struct GNUNET_SET_Handle *set)
 {
-  if (NULL != set->ops_head)
-  {
-    set->destroy_requested = GNUNET_YES;
-    return;
-  }
-  GNUNET_CLIENT_disconnect (set->client);
-  set->client = NULL;
-  GNUNET_MQ_destroy (set->mq);
-  set->mq = NULL;
-  GNUNET_free (set);
+  (void) set_destroy (set);
 }
 
 
@@ -685,38 +757,6 @@ GNUNET_SET_accept (struct GNUNET_SET_Request *request,
   oh->request_id_addr = &msg->request_id;
 
   return oh;
-}
-
-
-/**
- * Cancel the given set operation.  We need to send an explicit cancel message,
- * as all operations one one set communicate using one handle.
- *
- * @param oh set operation to cancel
- */
-void
-GNUNET_SET_operation_cancel (struct GNUNET_SET_OperationHandle *oh)
-{
-  if (NULL != oh->conclude_mqm)
-    GNUNET_MQ_discard (oh->conclude_mqm);
-
-  /* is the operation already commited? */
-  if (NULL != oh->set)
-  {
-    struct GNUNET_SET_OperationHandle *h_assoc;
-    struct GNUNET_MQ_Envelope *mqm;
-
-    GNUNET_CONTAINER_DLL_remove (oh->set->ops_head, oh->set->ops_tail, oh);
-    h_assoc = GNUNET_MQ_assoc_remove (oh->set->mq, oh->request_id);
-    GNUNET_assert ((h_assoc == NULL) || (h_assoc == oh));
-    mqm = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_SET_CANCEL);
-    GNUNET_MQ_send (oh->set->mq, mqm);
-
-    if (GNUNET_YES == oh->set->destroy_requested)
-      GNUNET_SET_destroy (oh->set);
-  }
-
-  GNUNET_free (oh);
 }
 
 
