@@ -108,7 +108,7 @@ struct RIL_Learning_Parameters
   double lambda;
 
   /**
-   * Ratio, whith what probability an agent should explore in the e-greed policy
+   * Ratio, with what probability an agent should explore in the e-greed policy
    */
   double explore_ratio;
 
@@ -296,11 +296,6 @@ struct GAS_RIL_Handle
   GNUNET_SCHEDULER_TaskIdentifier step_next_task_id;
 
   /**
-   * Whether a step is already scheduled
-   */
-  int step_task_pending;
-
-  /**
    * Variable discount factor, dependent on time between steps
    */
   double global_discount_variable;
@@ -345,6 +340,11 @@ struct GAS_RIL_Handle
    */
   struct RIL_Peer_Agent * agents_head;
   struct RIL_Peer_Agent * agents_tail;
+
+  /**
+   * Shutdown
+   */
+  int done;
 };
 
 /*
@@ -926,14 +926,14 @@ envi_get_reward (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
   }
   if (overutilized > 0)
   {
-    //return -1. * (double) overutilized;
+    return -1. * (double) overutilized / 1024;
     return -1;
   }
 
   reward += envi_reward_global (solver) * (solver->parameters.reward_global_share);
   reward += envi_reward_local (solver, agent) * (1 - solver->parameters.reward_global_share);
 
-  return reward;
+  return (reward - 1.) * 100;
 }
 
 /**
@@ -1237,7 +1237,7 @@ agent_step (struct RIL_Peer_Agent *agent)
   agent->step_count += 1;
 }
 
-static int
+static void
 ril_step (struct GAS_RIL_Handle *solver);
 
 /**
@@ -1252,7 +1252,7 @@ ril_step_scheduler_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *t
 {
   struct GAS_RIL_Handle *solver = cls;
 
-  solver->step_task_pending = GNUNET_NO;
+  solver->step_next_task_id = GNUNET_SCHEDULER_NO_TASK;
   ril_step (solver);
 }
 
@@ -1370,11 +1370,6 @@ ril_step_schedule_next (struct GAS_RIL_Handle *solver)
   double offset;
   struct GNUNET_TIME_Relative time_next;
 
-  if (solver->step_task_pending)
-  {
-    GNUNET_SCHEDULER_cancel (solver->step_next_task_id);
-  }
-
   used_ratio = ril_get_used_resource_ratio (solver);
 
   GNUNET_assert(
@@ -1389,18 +1384,20 @@ ril_step_schedule_next (struct GAS_RIL_Handle *solver)
   GNUNET_assert(y <= (double ) solver->parameters.step_time_max.rel_value_us);
   GNUNET_assert(y >= (double ) solver->parameters.step_time_min.rel_value_us);
 
-  time_next = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MICROSECONDS, (unsigned int) y);
+  time_next = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MICROSECONDS, (unsigned long long) y);
 
-  solver->step_next_task_id = GNUNET_SCHEDULER_add_delayed (time_next, &ril_step_scheduler_task,
-      solver);
-  solver->step_task_pending = GNUNET_YES;
+  if ((GNUNET_SCHEDULER_NO_TASK == solver->step_next_task_id) && (GNUNET_NO == solver->done))
+  {
+    solver->step_next_task_id = GNUNET_SCHEDULER_add_delayed (time_next, &ril_step_scheduler_task,
+          solver);
+  }
 }
 
 /**
  * Triggers one step per agent
  * @param solver
  */
-static int
+static void
 ril_step (struct GAS_RIL_Handle *solver)
 {
   struct RIL_Peer_Agent *cur;
@@ -1411,7 +1408,7 @@ ril_step (struct GAS_RIL_Handle *solver)
   if (GNUNET_YES == solver->bulk_lock)
   {
     solver->bulk_changes++;
-    return GNUNET_NO;
+    return;
   }
 
   ril_inform (solver, GAS_OP_SOLVE_START, GAS_STAT_SUCCESS);
@@ -1426,9 +1423,9 @@ ril_step (struct GAS_RIL_Handle *solver)
   //calculate tau, i.e. how many real valued time units have passed, one time unit is one minimum time step
   time_now = GNUNET_TIME_absolute_get ();
   time_delta = GNUNET_TIME_absolute_get_difference (solver->step_time_last, time_now);
+  solver->step_time_last = time_now;
   tau = ((double) time_delta.rel_value_us)
       / ((double) solver->parameters.step_time_min.rel_value_us);
-  solver->step_time_last = time_now;
 
   //calculate reward discounts (once per step for all agents)
   solver->global_discount_variable = pow (M_E, ((-1.) * ((double) solver->parameters.beta) * tau));
@@ -1468,8 +1465,6 @@ ril_step (struct GAS_RIL_Handle *solver)
     }
   }
   ril_inform (solver, GAS_OP_SOLVE_UPDATE_NOTIFICATION_STOP, GAS_STAT_SUCCESS);
-
-  return GNUNET_YES;
 }
 
 static int
@@ -1532,7 +1527,7 @@ agent_init (void *s, const struct GNUNET_PeerIdentity *peer)
   agent->peer = *peer;
   agent->step_count = 0;
   agent->is_active = GNUNET_NO;
-  agent->bw_in = 1024;
+  agent->bw_in = 1024; //TODO? put min_bw
   agent->bw_out = 1024;
   agent->suggestion_issue = GNUNET_NO;
   agent->n = RIL_ACTION_TYPE_NUM;
@@ -1806,6 +1801,7 @@ libgnunet_plugin_ats_ril_init (void *cls)
   solver->network_entries = GNUNET_malloc (env->network_count * sizeof (struct RIL_Network));
   solver->step_count = 0;
   solver->global_state_networks = GNUNET_malloc (solver->networks_count * RIL_FEATURES_NETWORK_COUNT * sizeof (double));
+  solver->done = GNUNET_NO;
 
   for (c = 0; c < env->network_count; c++)
   {
@@ -1816,10 +1812,10 @@ libgnunet_plugin_ats_ril_init (void *cls)
     LOG(GNUNET_ERROR_TYPE_INFO, "Quotas for %s network:  IN %llu - OUT %llu\n", GNUNET_ATS_print_network_type(cur->type), cur->bw_in_available/1024, cur->bw_out_available/1024);
   }
 
-  solver->step_next_task_id = GNUNET_SCHEDULER_add_delayed (
-      GNUNET_TIME_relative_multiply (GNUNET_TIME_relative_get_millisecond_ (), 1000),
-      &ril_step_scheduler_task, solver);
-  solver->step_task_pending = GNUNET_YES;
+//  solver->step_next_task_id = GNUNET_SCHEDULER_add_delayed (
+//      GNUNET_TIME_relative_multiply (GNUNET_TIME_relative_get_millisecond_ (), 1000),
+//      &ril_step_scheduler_task, solver);
+//  solver->step_next_task_id = GNUNET_SCHEDULER_add_now(&ril_step_scheduler_task, solver);
 
   LOG(GNUNET_ERROR_TYPE_INFO, "Parameters:\n");
   LOG(GNUNET_ERROR_TYPE_INFO, "Algorithm = %s, alpha = %f, beta = %f, lambda = %f\n",
@@ -1848,6 +1844,8 @@ libgnunet_plugin_ats_ril_done (void *cls)
 
   LOG(GNUNET_ERROR_TYPE_DEBUG, "API_done() Shutting down RIL solver\n");
 
+  s->done = GNUNET_YES;
+
   cur_agent = s->agents_head;
   while (NULL != cur_agent)
   {
@@ -1857,7 +1855,7 @@ libgnunet_plugin_ats_ril_done (void *cls)
     cur_agent = next_agent;
   }
 
-  if (s->step_task_pending)
+  if (GNUNET_SCHEDULER_NO_TASK != s->step_next_task_id)
   {
     GNUNET_SCHEDULER_cancel (s->step_next_task_id);
   }
@@ -1865,7 +1863,7 @@ libgnunet_plugin_ats_ril_done (void *cls)
   GNUNET_free(s->global_state_networks);
   GNUNET_free(s);
 
-  return NULL ;
+  return NULL;
 }
 
 /**
