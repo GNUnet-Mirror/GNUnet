@@ -429,6 +429,13 @@ run (void *cls,
   }
   if (NULL != revoke_ego)
   {
+    if ( !perform && (NULL == filename) )
+    {
+        FPRINTF (stderr,
+                 "%s",
+                 _("No filename to store revocation certificate given.\n"));
+        return;
+    }
     /* main code here */
     el = GNUNET_IDENTITY_ego_lookup (cfg,
                                      revoke_ego,
@@ -492,10 +499,10 @@ main (int argc, char *const *argv)
      gettext_noop ("use NAME for the name of the revocation file"),
      1, &GNUNET_GETOPT_set_string, &filename},
     {'R', "revoke", "NAME",
-     gettext_noop ("revoke the private key associated with the ego NAME "),
+     gettext_noop ("revoke the private key associated for the the private key associated with the ego NAME "),
      1, &GNUNET_GETOPT_set_string, &revoke_ego},
     {'p', "perform", NULL,
-     gettext_noop ("actually perform the revocation revocation file, otherwise we just do the precomputation"),
+     gettext_noop ("actually perform revocation, otherwise we just do the precomputation"),
      0, &GNUNET_GETOPT_set_one, &perform},
     {'t', "test", "KEY",
      gettext_noop ("test if the public key KEY has been revoked"),
