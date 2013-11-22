@@ -493,6 +493,16 @@ test_ats_solver_preferences_ril_LDADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/ats/libgnunetats.la \
 	$(top_builddir)/src/statistics/libgnunetstatistics.la
+	
+test_ats_solver_convergence_ril_SOURCES = \
+ test_ats_solver_convergence.c \
+ test_ats_api_common.c test_ats_api_common.h
+test_ats_solver_convergence_ril_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/testing/libgnunettesting.la \
+  $(top_builddir)/src/hello/libgnunethello.la \
+  $(top_builddir)/src/ats/libgnunetats.la \
+	$(top_builddir)/src/statistics/libgnunetstatistics.la
 
 EXTRA_DIST = \
   ats.h \
