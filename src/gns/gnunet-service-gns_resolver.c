@@ -2006,12 +2006,12 @@ handle_namestore_block_response (void *cls,
 
 
 /**
- * Lookup tail of our authority chain in the namestore.
+ * Lookup tail of our authority chain in the namecache.
  *
  * @param rh query we are processing
  */
 static void
-recursive_gns_resolution_namestore (struct GNS_ResolverHandle *rh)
+recursive_gns_resolution_namecache (struct GNS_ResolverHandle *rh)
 {
   struct AuthorityChain *ac = rh->ac_tail;
   struct GNUNET_HashCode query;
@@ -2054,7 +2054,7 @@ handle_revocation_result (void *cls,
     GNS_resolver_lookup_cancel (rh);
     return;
   }
-  recursive_gns_resolution_namestore (rh);
+  recursive_gns_resolution_namecache (rh);
 }
 
 
