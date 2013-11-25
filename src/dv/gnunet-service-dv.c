@@ -249,7 +249,15 @@ struct DirectNeighbor
    */
   unsigned int pm_queue_size;
 
+  /**
+   * Elements in consensus
+   */
   unsigned int consensus_elements;
+
+  /**
+   * Direct one hop route
+   */
+  struct Route *direct_route;
 
   /**
    * Flag set within 'check_target_removed' to trigger full global route refresh.
@@ -846,11 +854,11 @@ handle_direct_connect (struct DirectNeighbor *neighbor)
     GNUNET_free (route);
   }
 
-  route = GNUNET_new (struct Route);
-  route->next_hop = neighbor;
-  route->target.peer= neighbor->peer;
-  route->target.distance = DIRECT_NEIGHBOR_COST;
-  allocate_route (route, DIRECT_NEIGHBOR_COST);
+  neighbor->direct_route = GNUNET_new (struct Route);
+  neighbor->direct_route->next_hop = neighbor;
+  neighbor->direct_route->target.peer= neighbor->peer;
+  neighbor->direct_route->target.distance = DIRECT_NEIGHBOR_COST;
+  allocate_route (neighbor->direct_route, DIRECT_NEIGHBOR_COST);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Adding direct route to %s\n",
@@ -1096,6 +1104,14 @@ handle_direct_disconnect (struct DirectNeighbor *neighbor)
     GNUNET_CORE_notify_transmit_ready_cancel (neighbor->cth);
     neighbor->cth = NULL;
   }
+
+  if (NULL != neighbor->direct_route)
+  {
+    release_route(neighbor->direct_route);
+    GNUNET_free (neighbor->direct_route);
+    neighbor->direct_route = NULL;
+  }
+
   if (NULL != neighbor->neighbor_table_consensus)
   {
     GNUNET_CONTAINER_multipeermap_iterate (neighbor->neighbor_table_consensus,
@@ -1709,6 +1725,7 @@ handle_core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
   neighbor->connected = GNUNET_NO;
   if (DIRECT_NEIGHBOR_COST == neighbor->distance)
   {
+
     GNUNET_STATISTICS_update (stats,
 			      "# peers connected (1-hop)",
 			      -1, GNUNET_NO);
