@@ -827,7 +827,7 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *task_cls)
   GNUNET_SIGNAL_handler_uninstall (shc_int);
   GNUNET_SIGNAL_handler_uninstall (shc_term);
 #if (SIGTERM != GNUNET_TERM_SIG)
-  GNUNET_SIGNAL_handler_install (shc_gterm);
+  GNUNET_SIGNAL_handler_uninstall (shc_gterm);
 #endif
 #ifndef MINGW
   GNUNET_SIGNAL_handler_uninstall (shc_pipe);
