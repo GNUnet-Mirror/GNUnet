@@ -249,6 +249,8 @@ struct DirectNeighbor
    */
   unsigned int pm_queue_size;
 
+  unsigned int consensus_elements;
+
   /**
    * Flag set within 'check_target_removed' to trigger full global route refresh.
    */
@@ -684,9 +686,11 @@ get_consensus_slot (uint32_t distance)
   while ( (i < cs->array_length) &&
 	  (NULL != cs->targets[i]) ) i++;
   if (i == cs->array_length)
+  {
     GNUNET_array_grow (cs->targets,
 		       cs->array_length,
 		       cs->array_length * 2 + 2);
+  }
   return i;
 }
 
@@ -747,6 +751,11 @@ move_route (struct Route *route,
  * Initialize this neighbors 'my_set' and when done give
  * it to the pending set operation for execution.
  *
+ * Add a single element to the set per call:
+ *
+ * If we reached the last element of a consensus element: increase distance
+ *
+ *
  * @param cls the neighbor for which we are building the set
  */
 static void
@@ -754,15 +763,19 @@ build_set (void *cls)
 {
   struct DirectNeighbor *neighbor = cls;
   struct GNUNET_SET_Element element;
+  struct Target *target;
 
+  target = NULL;
   while ( (DEFAULT_FISHEYE_DEPTH - 1 > neighbor->consensus_insertion_distance) &&
 	  (consensi[neighbor->consensus_insertion_distance].array_length == neighbor->consensus_insertion_offset) )
   {
+    /* If we reached the last element of a consensus array element: increase distance and start with next array */
     neighbor->consensus_insertion_offset = 0;
     neighbor->consensus_insertion_distance++;
+
     /* skip over NULL entries */
     while ( (DEFAULT_FISHEYE_DEPTH - 1 > neighbor->consensus_insertion_distance) &&
-	    (consensi[neighbor->consensus_insertion_distance].array_length < neighbor->consensus_insertion_offset) &&
+	    (consensi[neighbor->consensus_insertion_distance].array_length  > neighbor->consensus_insertion_offset) &&
 	    (NULL == consensi[neighbor->consensus_insertion_distance].targets[neighbor->consensus_insertion_offset]) )
       neighbor->consensus_insertion_offset++;
   }
@@ -770,28 +783,38 @@ build_set (void *cls)
   {
     /* we have added all elements to the set, run the operation */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Finished building my SET, committing\n");
+		"Finished building my SET for peer `%s' with %u elements, committing\n",
+		GNUNET_i2s(&neighbor->peer),
+		neighbor->consensus_elements);
     GNUNET_SET_commit (neighbor->set_op,
 		       neighbor->my_set);
     GNUNET_SET_destroy (neighbor->my_set);
     neighbor->my_set = NULL;
     return;
   }
+
+  target = &consensi[neighbor->consensus_insertion_distance].targets[neighbor->consensus_insertion_offset]->target;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Adding peer `%s' with distance %u to SET\n",
+              GNUNET_i2s (&target->peer),
+              ntohl (target->distance));
   element.size = sizeof (struct Target);
   element.type = htons (0); /* do we need this? */
-  element.data = &consensi[neighbor->consensus_insertion_distance].targets[neighbor->consensus_insertion_offset++]->target;
+  element.data = target;
+  neighbor->consensus_elements++;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Adding element to SET\n");
+  GNUNET_SET_add_element (neighbor->my_set,
+                          &element,
+                          &build_set, neighbor);
 
+  /* Find next non-NULL entry */
+  neighbor->consensus_insertion_offset++;
   /* skip over NULL entries */
   while ( (DEFAULT_FISHEYE_DEPTH - 1 > neighbor->consensus_insertion_distance) &&
-	  (consensi[neighbor->consensus_insertion_distance].array_length < neighbor->consensus_insertion_offset) &&
+	  (consensi[neighbor->consensus_insertion_distance].array_length > neighbor->consensus_insertion_offset) &&
 	  (NULL == consensi[neighbor->consensus_insertion_distance].targets[neighbor->consensus_insertion_offset]) )
     neighbor->consensus_insertion_offset++;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Adding element to SET\n");
-  GNUNET_SET_add_element (neighbor->my_set,
-			  &element,
-			  &build_set, neighbor);
-
 }
 
 
@@ -822,6 +845,18 @@ handle_direct_connect (struct DirectNeighbor *neighbor)
     release_route (route);
     GNUNET_free (route);
   }
+
+  route = GNUNET_new (struct Route);
+  route->next_hop = neighbor;
+  route->target.peer= neighbor->peer;
+  route->target.distance = DIRECT_NEIGHBOR_COST;
+  allocate_route (route, DIRECT_NEIGHBOR_COST);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Adding direct route to %s\n",
+              GNUNET_i2s (&route->target.peer));
+
+
   /* construct session ID seed as XOR of both peer's identities */
   GNUNET_CRYPTO_hash (&my_identity, sizeof (my_identity), &h1);
   GNUNET_CRYPTO_hash (&neighbor->peer, sizeof (struct GNUNET_PeerIdentity), &h2);
@@ -1127,10 +1162,11 @@ handle_ats_update (void *cls,
   if (GNUNET_NO == active)
   	return;
   distance = get_atsi_distance (ats, ats_count);
+  /*
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "ATS says distance to %s is %u\n",
 	      GNUNET_i2s (&address->peer),
-	      (unsigned int) distance);
+	      (unsigned int) distance);*/
   /* check if entry exists */
   neighbor = GNUNET_CONTAINER_multipeermap_get (direct_neighbors,
 						&address->peer);
@@ -1436,6 +1472,9 @@ listen_set_union (void *cls,
 					GNUNET_SET_RESULT_ADDED,
 					&handle_set_union_result,
 					neighbor);
+  neighbor->consensus_insertion_offset = 0;
+  neighbor->consensus_insertion_distance = 0;
+  neighbor->consensus_elements = 0;
   build_set (neighbor);
 }
 
@@ -1465,6 +1504,9 @@ initiate_set_union (void *cls,
                                          GNUNET_SET_RESULT_ADDED,
                                          &handle_set_union_result,
                                          neighbor);
+  neighbor->consensus_insertion_offset = 0;
+  neighbor->consensus_insertion_distance = 0;
+  neighbor->consensus_elements = 0;
   build_set (neighbor);
 }
 
