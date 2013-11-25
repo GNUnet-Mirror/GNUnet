@@ -509,7 +509,7 @@ send_ack (struct MeshConnection *c, unsigned int buffer, int fwd, int force)
  * @param size Size of the message.
  * @param wait Time spent waiting for core (only the time for THIS message)
  */
-static void 
+static void
 message_sent (void *cls,
               struct MeshConnection *c, uint16_t type,
               int fwd, size_t size,
@@ -664,7 +664,7 @@ get_hop (struct MeshConnection *c, int fwd)
  *         #GNUNET_NO for BCK.
  *         #GNUNET_SYSERR for errors.
  */
-static int 
+static int
 is_fwd (const struct MeshConnection *c,
         const struct GNUNET_PeerIdentity *sender)
 {
@@ -741,7 +741,7 @@ send_broken (struct MeshConnection *c,
  *
  * @param c Connection to keep alive..
  * @param fwd Is this a FWD keepalive? (owner -> dest).
- * 
+ *
  * FIXME use only one type, register in GMC_send_prebuilt_message()
  */
 static void
@@ -888,7 +888,7 @@ connection_unlock_queue (struct MeshConnection *c, int fwd)
 
 /**
  * Cancel all transmissions that belong to a certain connection.
- * 
+ *
  * If the connection is scheduled for destruction and no more messages are left,
  * the connection will be destroyed by the continuation call.
  *
@@ -963,7 +963,7 @@ poll_sent (void *cls,
   fc->poll_task = GNUNET_SCHEDULER_add_delayed (fc->poll_time,
                                                 &connection_poll, fc);
   LOG (GNUNET_ERROR_TYPE_DEBUG, " task %u\n", fc->poll_task);
-  
+
 }
 
 /**
@@ -2704,7 +2704,7 @@ GMC_start_poll (struct MeshConnection *c, int fwd)
   fc = fwd ? &c->fwd_fc : &c->bck_fc;
   LOG (GNUNET_ERROR_TYPE_DEBUG, " *** POLL %s requested\n",
        fwd ? "FWD" : "BCK");
-  if (GNUNET_SCHEDULER_NO_TASK != fc->poll_task && NULL != fc->poll_msg)
+  if (GNUNET_SCHEDULER_NO_TASK != fc->poll_task || NULL != fc->poll_msg)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, " ***   not needed (%u, %p)\n",
          fc->poll_task, fc->poll_msg);
