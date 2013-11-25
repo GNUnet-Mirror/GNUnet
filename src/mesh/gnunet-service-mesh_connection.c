@@ -901,6 +901,9 @@ connection_cancel_queues (struct MeshConnection *c, int fwd)
   struct MeshFlowControl *fc;
   struct MeshPeer *peer;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       " *** Cancel %s queues for connection %s\n",
+       fwd ? "FWD" : "BCK", GMC_2s (c));
   if (NULL == c)
   {
     GNUNET_break (0);
@@ -912,6 +915,7 @@ connection_cancel_queues (struct MeshConnection *c, int fwd)
   {
     GNUNET_SCHEDULER_cancel (fc->poll_task);
     fc->poll_task = GNUNET_SCHEDULER_NO_TASK;
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " *** Cancel POLL in ccq for fc %p\n", fc);
   }
   peer = get_hop (c, fwd);
   GMP_queue_cancel (peer, c);
@@ -952,11 +956,14 @@ poll_sent (void *cls,
     LOG (GNUNET_ERROR_TYPE_DEBUG, " *** POLL canceled on shutdown\n");
     return;
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, " *** POLL sent, scheduling new one!\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       " *** POLL sent for , scheduling new one!\n");
   fc->poll_msg = NULL;
   fc->poll_time = GNUNET_TIME_STD_BACKOFF (fc->poll_time);
   fc->poll_task = GNUNET_SCHEDULER_add_delayed (fc->poll_time,
                                                 &connection_poll, fc);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, " task %u\n", fc->poll_task);
+  
 }
 
 /**
@@ -2167,10 +2174,17 @@ GMC_destroy (struct MeshConnection *c)
   c->destroy = 2;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "destroying connection %s\n", GMC_2s (c));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, " fc's f: %p, b: %p\n",
+       &c->fwd_fc, &c->bck_fc);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, " fc tasks f: %u, b: %u\n",
+       c->fwd_fc.poll_task, c->bck_fc.poll_task);
 
   /* Cancel all traffic */
   connection_cancel_queues (c, GNUNET_YES);
   connection_cancel_queues (c, GNUNET_NO);
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, " fc tasks f: %u, b: %u\n",
+       c->fwd_fc.poll_task, c->bck_fc.poll_task);
 
   /* Cancel maintainance task (keepalive/timeout) */
   if (GNUNET_SCHEDULER_NO_TASK != c->fwd_maintenance_task)
@@ -2178,13 +2192,25 @@ GMC_destroy (struct MeshConnection *c)
   if (GNUNET_SCHEDULER_NO_TASK != c->bck_maintenance_task)
     GNUNET_SCHEDULER_cancel (c->bck_maintenance_task);
   if (GNUNET_SCHEDULER_NO_TASK != c->fwd_fc.poll_task)
+  {
     GNUNET_SCHEDULER_cancel (c->fwd_fc.poll_task);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " *** POLL FWD canceled\n");
+  }
   if (GNUNET_SCHEDULER_NO_TASK != c->bck_fc.poll_task)
+  {
     GNUNET_SCHEDULER_cancel (c->bck_fc.poll_task);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " *** POLL BCK canceled\n");
+  }
   if (NULL != c->fwd_fc.poll_msg)
+  {
     GMC_cancel (c->fwd_fc.poll_msg);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " *** POLL msg FWD canceled\n");
+  }
   if (NULL != c->bck_fc.poll_msg)
+  {
     GMC_cancel (c->bck_fc.poll_msg);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " *** POLL msg BCK canceled\n");
+  }
 
   /* Unregister from neighbors */
   unregister_neighbors (c);
@@ -2676,10 +2702,15 @@ GMC_start_poll (struct MeshConnection *c, int fwd)
   struct MeshFlowControl *fc;
 
   fc = fwd ? &c->fwd_fc : &c->bck_fc;
+  LOG (GNUNET_ERROR_TYPE_DEBUG, " *** POLL %s requested\n",
+       fwd ? "FWD" : "BCK");
   if (GNUNET_SCHEDULER_NO_TASK != fc->poll_task && NULL != fc->poll_msg)
   {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " ***   not needed (%u, %p)\n",
+         fc->poll_task, fc->poll_msg);
     return;
   }
+  LOG (GNUNET_ERROR_TYPE_DEBUG, " *** POLL started on request\n");
   fc->poll_task = GNUNET_SCHEDULER_add_delayed (fc->poll_time,
                                                 &connection_poll,
                                                 fc);
