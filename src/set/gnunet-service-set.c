@@ -1198,7 +1198,13 @@ channel_new_cb (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "new incoming channel\n");
 
-  GNUNET_assert (port == GNUNET_APPLICATION_TYPE_SET);
+  if (GNUNET_APPLICATION_TYPE_SET != port)
+  {
+    GNUNET_break (0);
+    GNUNET_MESH_channel_destroy (channel);
+    return;
+  }
+
   incoming = GNUNET_new (struct Operation);
   incoming->is_incoming = GNUNET_YES;
   incoming->state = GNUNET_new (struct OperationState);
