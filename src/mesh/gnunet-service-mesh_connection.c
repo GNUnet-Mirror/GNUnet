@@ -2016,6 +2016,12 @@ GMC_send_ack (struct MeshConnection *c, int fwd, int force)
     return;
   }
 
+  if (GNUNET_NO != c->destroy)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  being destroyed, why bother...\n");
+    return;
+  }
+
   /* Get available buffer space */
   if (GMC_is_terminal (c, fwd))
   {
