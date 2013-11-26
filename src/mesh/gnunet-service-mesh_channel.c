@@ -1747,7 +1747,6 @@ GMCH_handle_create (struct MeshTunnel3 *t,
   MESH_ChannelNumber chid;
   struct MeshChannel *ch;
   struct MeshClient *c;
-  uint32_t port;
 
   chid = ntohl (msg->chid);
 
@@ -1761,9 +1760,9 @@ GMCH_handle_create (struct MeshTunnel3 *t,
   channel_set_options (ch, ntohl (msg->opt));
 
   /* Find a destination client */
-  port = ntohl (msg->port);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "   port %u\n", port);
-  c = GML_client_get_by_port (port);
+  ch->port = ntohl (msg->port);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "   port %u\n", ch->port);
+  c = GML_client_get_by_port (ch->port);
   if (NULL == c)
   {
     /* TODO send reject */
@@ -1948,8 +1947,8 @@ GMCH_2s (const struct MeshChannel *ch)
   if (NULL == ch)
     return "(NULL Channel)";
 
-  sprintf (buf, "%s:%X (%X / %X)",
-           GMT_2s (ch->t), ch->gid, ch->lid_root, ch->lid_dest);
+  sprintf (buf, "%s:%u gid:%X (%X / %X)",
+           GMT_2s (ch->t), ch->port, ch->gid, ch->lid_root, ch->lid_dest);
 
   return buf;
 }
