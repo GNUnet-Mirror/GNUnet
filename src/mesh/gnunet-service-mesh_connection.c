@@ -1566,7 +1566,9 @@ handle_mesh_encrypted (const struct GNUNET_PeerIdentity *peer,
   if (NULL == c)
   {
     GNUNET_STATISTICS_update (stats, "# unknown connection", 1, GNUNET_NO);
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "WARNING connection unknown\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "WARNING connection %s unknown\n",
+         GNUNET_h2s (&msg->cid));
     return GNUNET_OK;
   }
 
