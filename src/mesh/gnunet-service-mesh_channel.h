@@ -147,14 +147,6 @@ void
 GMCH_send_create (struct MeshChannel *ch);
 
 /**
- * Notify a client that the channel is no longer valid.
- *
- * @param ch Channel that is destroyed.
- */
-void
-GMCH_send_destroy (struct MeshChannel *ch);
-
-/**
  * Allow a client to send us more data, in case it was choked.
  *
  * @param ch Channel.

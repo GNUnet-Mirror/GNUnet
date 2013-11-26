@@ -504,6 +504,38 @@ send_client_nack (struct MeshChannel *ch)
 
 
 /**
+ * Notify a client that the channel is no longer valid.
+ *
+ * @param ch Channel that is destroyed.
+ * @param local_only Should we try to send it to other peers?
+ */
+static void
+send_destroy (struct MeshChannel *ch, int local_only)
+{
+  struct GNUNET_MESH_ChannelManage msg;
+
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CHANNEL_DESTROY);
+  msg.header.size = htons (sizeof (msg));
+  msg.chid = htonl (ch->gid);
+
+  /* If root is not NULL, notify.
+   * If it's NULL, check lid_root. When a local destroy comes in, root
+   * is set to NULL but lid_root is left untouched. In this case, do nothing,
+   * the client is the one who reuqested the channel to be destroyed.
+   */
+  if (NULL != ch->root)
+    GML_send_channel_destroy (ch->root, ch->lid_root);
+  else if (0 == ch->lid_root && GNUNET_NO == local_only)
+    GMCH_send_prebuilt_message (&msg.header, ch, GNUNET_NO, GNUNET_NO);
+
+  if (NULL != ch->dest)
+    GML_send_channel_destroy (ch->dest, ch->lid_dest);
+  else if (0 == ch->lid_dest && GNUNET_NO == local_only)
+    GMCH_send_prebuilt_message (&msg.header, ch, GNUNET_YES, GNUNET_NO);
+}
+
+
+/**
  * Destroy all reliable messages queued for a channel,
  * during a channel destruction.
  * Frees the reliability structure itself.
@@ -1140,36 +1172,6 @@ GMCH_send_create (struct MeshChannel *ch)
 
 }
 
-/**
- * Notify a client that the channel is no longer valid.
- *
- * @param ch Channel that is destroyed.
- */
-void
-GMCH_send_destroy (struct MeshChannel *ch)
-{
-  struct GNUNET_MESH_ChannelManage msg;
-
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CHANNEL_DESTROY);
-  msg.header.size = htons (sizeof (msg));
-  msg.chid = htonl (ch->gid);
-
-  /* If root is not NULL, notify.
-   * If it's NULL, check lid_root. When a local destroy comes in, root
-   * is set to NULL but lid_root is left untouched. In this case, do nothing,
-   * the client is the one who reuqested the channel to be destroyed.
-   */
-  if (NULL != ch->root)
-    GML_send_channel_destroy (ch->root, ch->lid_root);
-  else if (0 == ch->lid_root)
-    GMCH_send_prebuilt_message (&msg.header, ch, GNUNET_NO, GNUNET_NO);
-
-  if (NULL != ch->dest)
-    GML_send_channel_destroy (ch->dest, ch->lid_dest);
-  else if (0 == ch->lid_dest)
-    GMCH_send_prebuilt_message (&msg.header, ch, GNUNET_YES, GNUNET_NO);
-}
-
 
 /**
  * Send an end-to-end ACK message for the most recent in-sequence payload.
@@ -1462,7 +1464,7 @@ GMCH_handle_local_destroy (struct MeshChannel *ch,
   }
 
   t = ch->t;
-  GMCH_send_destroy (ch);
+  send_destroy (ch, GNUNET_NO);
   GMCH_destroy (ch);
   GMT_destroy_if_empty (t);
 }
@@ -1881,7 +1883,7 @@ GMCH_handle_destroy (struct MeshChannel *ch,
   }
 
   t = ch->t;
-  GMCH_send_destroy (ch);
+  send_destroy (ch, GNUNET_YES);
   GMCH_destroy (ch);
   GMT_destroy_if_empty (t);
 }
