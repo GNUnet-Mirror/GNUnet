@@ -56,11 +56,25 @@ gnunet_service_revocation_LDADD = \
 gnunet_service_revocation_DEPENDENCIES = \
   libgnunetrevocation.la
 
+test_revocation_SOURCES = \
+ test_revocation.c
+test_revocation_LDADD = \
+ $(top_builddir)/src/identity/libgnunetidentity.la \
+ $(top_builddir)/src/revocation/libgnunetrevocation.la \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/testbed/libgnunettestbed.la
+
+check_PROGRAMS = \
+ test_revocation 
+
+
 check_SCRIPTS = \
 	test_local_revocation.sh
 
 if ENABLE_TEST_RUN
- TESTS = $(check_SCRIPTS)
+ TESTS = \
+ $(check_SCRIPTS) \
+ $(check_PROGRAMS)
 endif
 
 EXTRA_DIST = test_revocation.conf
