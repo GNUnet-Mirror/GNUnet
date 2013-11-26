@@ -1274,7 +1274,7 @@ GMC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
   if (c->own_pos == size - 1)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  It's for us!\n");
-    GMP_add_path_to_origin (orig_peer, path, GNUNET_YES);
+    GMP_add_path_to_origin (orig_peer, path_duplicate (path), GNUNET_YES);
 
     add_to_peer (c, orig_peer);
     if (MESH_TUNNEL3_NEW == GMT_get_state (c->t))
