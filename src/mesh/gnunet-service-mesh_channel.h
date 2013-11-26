@@ -209,10 +209,12 @@ GMCH_handle_local_data (struct MeshChannel *ch,
  *
  * @param ch Channel.
  * @param c Client that requested the destruction (to avoid notifying him).
+ * @param is_root Is the request coming from root?
  */
 void
 GMCH_handle_local_destroy (struct MeshChannel *ch,
-                           struct MeshClient *c);
+                           struct MeshClient *c,
+                           int is_root);
 
 /**
  * Handle a channel create requested by a client.

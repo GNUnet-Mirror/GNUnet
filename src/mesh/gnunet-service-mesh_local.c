@@ -214,7 +214,7 @@ channel_destroy_iterator (void *cls,
               " Channel %s destroy, due to client %s shutdown.\n",
               GMCH_2s (ch), GML_2s (c));
 
-  GMCH_handle_local_destroy (ch, c);
+  GMCH_handle_local_destroy (ch, c, key < GNUNET_MESH_LOCAL_CHANNEL_ID_SERV);
   return GNUNET_OK;
 }
 
@@ -439,7 +439,7 @@ handle_channel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
     return;
   }
 
-  GMCH_handle_local_destroy (ch, c);
+  GMCH_handle_local_destroy (ch, c, chid < GNUNET_MESH_LOCAL_CHANNEL_ID_SERV);
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
   return;

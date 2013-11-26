@@ -1155,7 +1155,7 @@ GMCH_send_destroy (struct MeshChannel *ch)
   msg.chid = htonl (ch->gid);
 
   /* If root is not NULL, notify.
-   * If it's NULL, check lid_root. When a local destroy comes in, root 
+   * If it's NULL, check lid_root. When a local destroy comes in, root
    * is set to NULL but lid_root is left untouched. In this case, do nothing,
    * the client is the one who reuqested the channel to be destroyed.
    */
@@ -1438,21 +1438,23 @@ GMCH_handle_local_data (struct MeshChannel *ch,
  *
  * @param ch Channel.
  * @param c Client that requested the destruction (to avoid notifying him).
+ * @param is_root Is the request coming from root?
  */
 void
 GMCH_handle_local_destroy (struct MeshChannel *ch,
-                           struct MeshClient *c)
+                           struct MeshClient *c,
+                           int is_root)
 {
   struct MeshTunnel3 *t;
 
   /* Cleanup after the tunnel */
-  if (c == ch->dest)
+  if (GNUNET_NO == is_root && c == ch->dest)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, " Client %s is destination.\n", GML_2s (c));
     GML_client_delete_channel (c, ch, ch->lid_dest);
     ch->dest = NULL;
   }
-  if (c == ch->root)
+  if (GNUNET_YES == is_root && c == ch->root)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, " Client %s is owner.\n", GML_2s (c));
     GML_client_delete_channel (c, ch, ch->lid_root);
@@ -1908,7 +1910,7 @@ GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
                             int retransmission)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG, "GMCH Send %s %s on channel %s\n",
-       fwd ? "FWD" : "BCK", GNUNET_MESH_DEBUG_M2S (ntohs (message->type)), 
+       fwd ? "FWD" : "BCK", GNUNET_MESH_DEBUG_M2S (ntohs (message->type)),
        GMCH_2s (ch));
 
   if (GMT_is_loopback (ch->t))
