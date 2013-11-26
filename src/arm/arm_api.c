@@ -759,6 +759,7 @@ arm_service_report (void *cls,
   unsigned char test_is_active;
   char *cbinary;
   char *binary;
+  char *quotedbinary;
   char *config;
   char *loprefix;
   char *lopostfix;
@@ -817,6 +818,9 @@ arm_service_report (void *cls,
       cm->h->cfg, "arm", "CONFIG", &config))
     config = NULL;
   binary = GNUNET_OS_get_libexec_binary_path (cbinary);
+  GNUNET_asprintf (&quotedbinary,
+		   "\"%s\"",
+		   binary);
   GNUNET_free (cbinary);
   if ((GNUNET_YES == GNUNET_CONFIGURATION_have_value (
           cm->h->cfg, "TESTING", "WEAKRANDOM")) &&
@@ -829,12 +833,12 @@ arm_service_report (void *cls,
     /* we're clearly running a test, don't daemonize */
     if (NULL == config)
       proc = do_start_process (GNUNET_NO, cm->std_inheritance,
-			       NULL, loprefix, binary,
+			       NULL, loprefix, quotedbinary,
 			       /* no daemonization! */
 			       lopostfix, NULL);
     else
       proc = do_start_process (GNUNET_NO, cm->std_inheritance,
-			       NULL, loprefix, binary, "-c", config,
+			       NULL, loprefix, quotedbinary, "-c", config,
 			       /* no daemonization! */
 			       lopostfix, NULL);
   }
@@ -842,14 +846,15 @@ arm_service_report (void *cls,
   {
     if (NULL == config)
       proc = do_start_process (GNUNET_NO, cm->std_inheritance,
-			       NULL, loprefix, binary,
+			       NULL, loprefix, quotedbinary,
 			       "-d", lopostfix, NULL);
     else
       proc = do_start_process (GNUNET_NO, cm->std_inheritance,
-			       NULL, loprefix, binary, "-c", config,
+			       NULL, loprefix, quotedbinary, "-c", config,
 			       "-d", lopostfix, NULL);
   }
   GNUNET_free (binary);
+  GNUNET_free (quotedbinary);
   GNUNET_free_non_null (config);
   GNUNET_free (loprefix);
   GNUNET_free (lopostfix);

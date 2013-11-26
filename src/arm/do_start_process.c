@@ -50,37 +50,45 @@ do_start_process (int pipe_control, unsigned int std_inheritance,
   const char *last;
   struct GNUNET_OS_Process *proc;
   char *binary_path;
+  int quote_on;
+  unsigned int i;
+  size_t len;
 
   argv_size = 1;
   va_start (ap, first_arg);
   arg = first_arg;
   last = NULL;
-/* *INDENT-OFF* */
   do
+  {
+    rpos = arg;
+    quote_on = 0;
+    while ('\0' != *rpos)
     {
-/* *INDENT-ON* */
-  rpos = arg;
-  while ('\0' != *rpos)
-    {
-      if (' ' == *rpos)
-	{
-	  if (last != NULL)
-	    argv_size++;
-	  last = NULL;
-	  while (' ' == *rpos)
-	    rpos++;
-	}
-      if ((last == NULL) && (*rpos != '\0'))
+      if ('"' == *rpos)
+      {
+	if (1 == quote_on)
+	  quote_on = 0;
+	else
+	  quote_on = 1;
+      }	
+      if ( (' ' == *rpos) && (0 == quote_on) )
+      {
+	if (NULL != last)
+	  argv_size++;
+	last = NULL;
+	rpos++;
+	while (' ' == *rpos)
+	  rpos++;
+      }
+      if ( (NULL == last) && ('\0' != *rpos) ) // FIXME: == or !=?
 	last = rpos;
-      if (*rpos != '\0')
+      if ('\0' != *rpos)
 	rpos++;
     }
-  if (last != NULL)
-    argv_size++;
-/* *INDENT-OFF* */
-    }
+    if (NULL != last)
+      argv_size++;
+  }
   while (NULL != (arg = (va_arg (ap, const char*))));
-/* *INDENT-ON* */
   va_end (ap);
 
   argv = GNUNET_malloc (argv_size * sizeof (char *));
@@ -88,39 +96,53 @@ do_start_process (int pipe_control, unsigned int std_inheritance,
   va_start (ap, first_arg);
   arg = first_arg;
   last = NULL;
-/* *INDENT-OFF* */
   do
-    {
-/* *INDENT-ON* */
-  cp = GNUNET_strdup (arg);
-  pos = cp;
-  while ('\0' != *pos)
-    {
-      if (' ' == *pos)
-	{
-	  *pos = '\0';
-	  if (last != NULL)
-	    argv[argv_size++] = GNUNET_strdup (last);
-	  last = NULL;
+  {
+    cp = GNUNET_strdup (arg);
+    quote_on = 0;
+    pos = cp;
+    while ('\0' != *pos)
+    {	
+      if ('"' == *pos)
+      {
+	if (1 == quote_on)
+	  quote_on = 0;
+	else
+	  quote_on = 1;
+      }
+      if ( (' ' == *pos) && (0 == quote_on) )
+      {
+	*pos = '\0';
+	if (NULL != last)
+	  argv[argv_size++] = GNUNET_strdup (last);
+	last = NULL;
+	pos++;
+	while (' ' == *pos)
 	  pos++;
-	  while (' ' == *pos)
-	    pos++;
-	}
-      if ((last == NULL) && (*pos != '\0'))
+      }
+      if ( (NULL == last) && ('\0' != *pos)) // FIXME: == or !=?
 	last = pos;
-      if (*pos != '\0')
+      if ('\0' != *pos)
 	pos++;
     }
-  if (last != NULL)
-    argv[argv_size++] = GNUNET_strdup (last);
-  last = NULL;
-  GNUNET_free (cp);
-/* *INDENT-OFF* */
-    }
+    if (NULL != last)
+      argv[argv_size++] = GNUNET_strdup (last);
+    last = NULL;
+    GNUNET_free (cp);
+  }
   while (NULL != (arg = (va_arg (ap, const char*))));
-/* *INDENT-ON* */
   va_end (ap);
   argv[argv_size] = NULL;
+  
+  for(i = 0; i < argv_size; i++)
+  {
+    len = strlen (argv[i]);
+    if ( (argv[i][0] == '"') && (argv[i][len-1] == '"'))
+    {
+      memmove (&argv[i][0], &argv[i][1], len - 2);
+      argv[i][len-2] = '\0';  
+    }
+  }
   binary_path = argv[0];
   proc = GNUNET_OS_start_process_v (pipe_control, std_inheritance, lsocks,
 				    binary_path, argv);
