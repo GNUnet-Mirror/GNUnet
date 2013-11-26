@@ -1201,7 +1201,7 @@ union_evaluate (struct Operation *op)
   op->state->se = strata_estimator_dup (op->spec->set->state->se);
   /* we started the operation, thus we have to send the operation request */
   op->state->phase = PHASE_EXPECT_SE;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "evaluating union operation");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "evaluating union operation\n");
   send_operation_request (op);
 }
 
