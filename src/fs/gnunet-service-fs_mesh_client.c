@@ -219,7 +219,8 @@ reset_mesh (struct MeshHandle *mh)
 	      "Resetting mesh channel to %s\n",
 	      GNUNET_i2s (&mh->target));
   mh->channel = NULL;
-  GNUNET_MESH_channel_destroy (channel);
+  if (NULL != channel)
+    GNUNET_MESH_channel_destroy (channel);
   GNUNET_CONTAINER_multihashmap_iterate (mh->waiting_map,
 					 &move_to_pending,
 					 mh);
@@ -294,9 +295,9 @@ reset_mesh_async (struct MeshHandle *mh)
  * query via a mesh.
  *
  * @param cls the struct MeshHandle for which we did the write call
- * @param size the number of bytes that can be written to 'buf'
+ * @param size the number of bytes that can be written to @a buf
  * @param buf where to write the message
- * @return number of bytes written to 'buf'
+ * @return number of bytes written to @a buf
  */
 static size_t
 transmit_sqm (void *cls,
@@ -435,7 +436,7 @@ handle_reply (void *cls,
  * @param channel channel handle
  * @param channel_ctx channel context
  * @param message the actual message
- * @return GNUNET_OK on success, GNUNET_SYSERR to stop further processing
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR to stop further processing
  */
 static int
 reply_cb (void *cls,
@@ -549,7 +550,7 @@ get_mesh (const struct GNUNET_PeerIdentity *target)
  * @param query hash to query for the block
  * @param type desired type for the block
  * @param proc function to call with result
- * @param proc_cls closure for 'proc'
+ * @param proc_cls closure for @a proc
  * @return handle to cancel the operation
  */
 struct GSF_MeshRequest *
