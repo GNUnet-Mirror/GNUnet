@@ -771,6 +771,8 @@ process_channel_created (struct GNUNET_MESH_Handle *h,
   }
   if (NULL != h->new_channel)
   {
+    void *ctx;
+
     ch = create_channel (h, chid);
     ch->allow_send = GNUNET_NO;
     ch->peer = GNUNET_PEER_intern (&msg->peer);
@@ -794,7 +796,9 @@ process_channel_created (struct GNUNET_MESH_Handle *h,
       ch->ooorder = GNUNET_NO;
 
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  created channel %p\n", ch);
-    ch->ctx = h->new_channel (h->cls, ch, &msg->peer, ch->port);
+    ctx = h->new_channel (h->cls, ch, &msg->peer, ch->port);
+    if (NULL != ctx)
+      ch->ctx = ctx;
     LOG (GNUNET_ERROR_TYPE_DEBUG, "User notified\n");
   }
   else
