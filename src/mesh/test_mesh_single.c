@@ -19,8 +19,8 @@
 */
 
 /**
- * @file mesh/test_mesh_local.c
- * @brief test mesh local: test of mesh channels with just one peer
+ * @file mesh/test_mesh_single.c
+ * @brief test mesh single: test of mesh channels with just one client
  * @author Bartlomiej Polot
  */
 
@@ -41,7 +41,7 @@ static struct GNUNET_MESH_Channel *ch1;
 
 static struct GNUNET_MESH_Channel *ch2;
 
-static int result = GNUNET_OK;
+static int result;
 
 static GNUNET_SCHEDULER_TaskIdentifier abort_task;
 
@@ -75,6 +75,11 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (NULL != mesh)
   {
     GNUNET_MESH_disconnect (mesh);
+    mesh = NULL;
+  }
+  else
+  {
+    GNUNET_break (0);
   }
 }
 
@@ -94,6 +99,16 @@ do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     shutdown_task = GNUNET_SCHEDULER_NO_TASK;
   }
   do_shutdown (cls, tc);
+}
+
+
+static void
+finish (void)
+{
+  if (GNUNET_SCHEDULER_NO_TASK != shutdown_task)
+    GNUNET_SCHEDULER_cancel (shutdown_task);
+  shutdown_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+                                                &do_shutdown, NULL);
 }
 
 
@@ -126,17 +141,15 @@ data_callback (void *cls, struct GNUNET_MESH_Channel *channel,
       my_channel = ch2;
     GNUNET_MESH_notify_transmit_ready (my_channel, GNUNET_NO,
                                        GNUNET_TIME_UNIT_FOREVER_REL,
-                                       sizeof (struct GNUNET_MessageHeader) + DATA_SIZE,
+                                       sizeof (struct GNUNET_MessageHeader)
+                                       + DATA_SIZE,
                                        &do_send, NULL);
     GNUNET_MESH_receive_done (channel);
     return GNUNET_OK;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != shutdown_task)
-    GNUNET_SCHEDULER_cancel (shutdown_task);
-  shutdown_task =
-    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &do_shutdown,
-                                  NULL);
-  GNUNET_MESH_receive_done (channel);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "All data OK. Destroying channel.\n");
+  GNUNET_MESH_channel_destroy (ch1);
+  ch1 = NULL;
   return GNUNET_OK;
 }
 
@@ -149,7 +162,8 @@ data_callback (void *cls, struct GNUNET_MESH_Channel *channel,
  * @param channel new handle to the channel
  * @param initiator peer that started the channel
  * @param port port number
- * @return initial channel context for the channel (can be NULL -- that's not an error)
+ * @return initial channel context for the channel
+ *         (can be NULL -- that's not an error)
  */
 static void *
 inbound_channel (void *cls, struct GNUNET_MESH_Channel *channel,
@@ -174,7 +188,7 @@ inbound_channel (void *cls, struct GNUNET_MESH_Channel *channel,
  *                   with the channel is stored
  */
 static void
-inbound_end (void *cls, const struct GNUNET_MESH_Channel *channel,
+channel_end (void *cls, const struct GNUNET_MESH_Channel *channel,
              void *channel_ctx)
 {
   long id = (long) cls;
@@ -182,6 +196,13 @@ inbound_end (void *cls, const struct GNUNET_MESH_Channel *channel,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "incoming channel closed at peer %ld\n",
               id);
+  if (REPETITIONS == repetition && channel == ch2)
+  {
+    ch2 = NULL;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "everything fine! finishing!\n");
+    result = GNUNET_OK;
+    finish ();
+  }
 }
 
 
@@ -231,14 +252,14 @@ static void
 do_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_PeerIdentity id;
+  size_t size = sizeof (struct GNUNET_MessageHeader) + DATA_SIZE;
 
   GNUNET_TESTING_peer_get_identity (me, &id);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "CONNECT BY PORT\n");
   ch1 = GNUNET_MESH_channel_create (mesh, NULL, &id, 1, GNUNET_YES, GNUNET_NO);
   GNUNET_MESH_notify_transmit_ready (ch1, GNUNET_NO,
                                      GNUNET_TIME_UNIT_FOREVER_REL,
-                                     sizeof (struct GNUNET_MessageHeader) + DATA_SIZE,
-                                     &do_send, NULL);
+                                     size, &do_send, NULL);
 }
 
 
@@ -264,7 +285,7 @@ run (void *cls,
   mesh = GNUNET_MESH_connect (cfg,       /* configuration */
                               (void *) 1L,     /* cls */
                               &inbound_channel,   /* inbound new hndlr */
-                              &inbound_end,      /* inbound end hndlr */
+                              &channel_end,      /* inbound end hndlr */
                               handlers1, /* traffic handlers */
                               ports);     /* ports offered */
 
@@ -288,6 +309,7 @@ run (void *cls,
 int
 main (int argc, char *argv[])
 {
+  result = GNUNET_NO;
   if (0 != GNUNET_TESTING_peer_run ("test-mesh-local",
                                     "test_mesh.conf",
                                     &run, NULL))
@@ -299,4 +321,4 @@ main (int argc, char *argv[])
   return (result == GNUNET_OK) ? 0 : 1;
 }
 
-/* end of test_mesh_local_1.c */
+/* end of test_mesh_single.c */
