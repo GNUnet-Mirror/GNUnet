@@ -485,8 +485,11 @@ destroy_channel (struct GNUNET_MESH_Channel *ch, int call_cleaner)
     if (th->channel != ch)
       continue;
     /* Clients should have aborted their requests already.
-     * Management traffic should be ok, as clients can't cancel that */
-    GNUNET_break (GNUNET_NO == th_is_payload (th));
+     * Management traffic should be ok, as clients can't cancel that.
+     * If the service crashed and we are reconnecting, it's ok.
+     */
+    GNUNET_break (GNUNET_NO == th_is_payload (th)
+                  || GNUNET_NO == h->in_receive);
     GNUNET_CONTAINER_DLL_remove (h->th_head, h->th_tail, th);
 
     /* clean up request */
@@ -653,8 +656,6 @@ send_connect (struct GNUNET_MESH_Handle *h)
 static int
 do_reconnect (struct GNUNET_MESH_Handle *h)
 {
-  struct GNUNET_MESH_Channel *ch;
-
   LOG (GNUNET_ERROR_TYPE_DEBUG, "*****************************\n");
   LOG (GNUNET_ERROR_TYPE_DEBUG, "*******   RECONNECT   *******\n");
   LOG (GNUNET_ERROR_TYPE_DEBUG, "*****************************\n");
@@ -693,37 +694,6 @@ do_reconnect (struct GNUNET_MESH_Handle *h)
     h->reconnect_time = GNUNET_TIME_UNIT_MILLISECONDS;
   }
   send_connect (h);
-  /* Rebuild all channels */
-  for (ch = h->channels_head; NULL != ch; ch = ch->next)
-  {
-    struct GNUNET_MESH_ChannelMessage tmsg;
-    uint32_t options;
-
-    if (ch->chid >= GNUNET_MESH_LOCAL_CHANNEL_ID_SERV)
-    {
-      /* Channel was created by service (incoming channel) */
-      /* TODO: Notify service of missing channel, to request
-       * creator to recreate path (find a path to him via DHT?)
-       */
-      continue;
-    }
-    ch->allow_send = GNUNET_NO;
-    tmsg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CHANNEL_CREATE);
-    tmsg.header.size = htons (sizeof (struct GNUNET_MESH_ChannelMessage));
-    tmsg.channel_id = htonl (ch->chid);
-    tmsg.port = htonl (ch->port);
-    GNUNET_PEER_resolve (ch->peer, &tmsg.peer);
-
-    options = 0;
-    if (GNUNET_YES == ch->nobuffer)
-      options |= GNUNET_MESH_OPTION_NOBUFFER;
-
-    if (GNUNET_YES == ch->reliable)
-      options |= GNUNET_MESH_OPTION_RELIABLE;
-
-    tmsg.opt = htonl (options);
-    send_packet (h, &tmsg.header, ch);
-  }
   return GNUNET_YES;
 }
 
@@ -756,8 +726,17 @@ reconnect_cbk (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 reconnect (struct GNUNET_MESH_Handle *h)
 {
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Requested RECONNECT\n");
+  struct GNUNET_MESH_Channel *ch;
+  struct GNUNET_MESH_Channel *next;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Requested RECONNECT, destroying all channels\n");
   h->in_receive = GNUNET_NO;
+  for (ch = h->channels_head; NULL != ch; ch = next)
+  {
+    next = ch->next;
+    destroy_channel (ch, GNUNET_YES);
+  }
   if (GNUNET_SCHEDULER_NO_TASK == h->reconnect_task)
     h->reconnect_task = GNUNET_SCHEDULER_add_delayed (h->reconnect_time,
                                                       &reconnect_cbk, h);
