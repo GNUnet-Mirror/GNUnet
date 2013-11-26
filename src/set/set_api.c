@@ -711,8 +711,17 @@ void
 GNUNET_SET_listen_cancel (struct GNUNET_SET_ListenHandle *lh)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG, "canceling listener\n");
-  GNUNET_MQ_destroy (lh->mq);
-  GNUNET_CLIENT_disconnect (lh->client);
+  /* listener's connection may have failed, thus mq/client could be NULL */
+  if (NULL != lh->mq)
+  {
+    GNUNET_MQ_destroy (lh->mq);
+    lh->mq = NULL;
+  }
+  if (NULL != lh->client)
+  {
+    GNUNET_CLIENT_disconnect (lh->client);
+    lh->client = NULL;
+  }
   GNUNET_free (lh);
 }
 
