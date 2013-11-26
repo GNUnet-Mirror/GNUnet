@@ -862,7 +862,7 @@ handle_direct_connect (struct DirectNeighbor *neighbor)
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Adding direct route to %s\n",
-              GNUNET_i2s (&route->target.peer));
+              GNUNET_i2s (&neighbor->direct_route->target.peer));
 
 
   /* construct session ID seed as XOR of both peer's identities */
@@ -1107,7 +1107,7 @@ handle_direct_disconnect (struct DirectNeighbor *neighbor)
 
   if (NULL != neighbor->direct_route)
   {
-    release_route(neighbor->direct_route);
+    release_route (neighbor->direct_route);
     GNUNET_free (neighbor->direct_route);
     neighbor->direct_route = NULL;
   }
