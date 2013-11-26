@@ -56,6 +56,12 @@ gnunet_service_revocation_LDADD = \
 gnunet_service_revocation_DEPENDENCIES = \
   libgnunetrevocation.la
 
+check_SCRIPTS = \
+	test_local_revocation.sh
+
+if ENABLE_TEST_RUN
+ TESTS = $(check_SCRIPTS)
+endif
 
 EXTRA_DIST = test_revocation.conf
 
