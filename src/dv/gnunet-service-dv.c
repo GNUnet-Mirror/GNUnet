@@ -772,7 +772,6 @@ build_set (void *cls)
   struct DirectNeighbor *neighbor = cls;
   struct GNUNET_SET_Element element;
   struct Target *target;
-
   target = NULL;
   while ( (DEFAULT_FISHEYE_DEPTH - 1 > neighbor->consensus_insertion_distance) &&
 	  (consensi[neighbor->consensus_insertion_distance].array_length == neighbor->consensus_insertion_offset) )
@@ -780,7 +779,6 @@ build_set (void *cls)
     /* If we reached the last element of a consensus array element: increase distance and start with next array */
     neighbor->consensus_insertion_offset = 0;
     neighbor->consensus_insertion_distance++;
-
     /* skip over NULL entries */
     while ( (DEFAULT_FISHEYE_DEPTH - 1 > neighbor->consensus_insertion_distance) &&
 	    (consensi[neighbor->consensus_insertion_distance].array_length  > neighbor->consensus_insertion_offset) &&
@@ -802,19 +800,9 @@ build_set (void *cls)
   }
 
   target = &consensi[neighbor->consensus_insertion_distance].targets[neighbor->consensus_insertion_offset]->target;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Adding peer `%s' with distance %u to SET\n",
-              GNUNET_i2s (&target->peer),
-              ntohl (target->distance));
   element.size = sizeof (struct Target);
   element.type = htons (0); /* do we need this? */
   element.data = target;
-  neighbor->consensus_elements++;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Adding element to SET\n");
-  GNUNET_SET_add_element (neighbor->my_set,
-                          &element,
-                          &build_set, neighbor);
 
   /* Find next non-NULL entry */
   neighbor->consensus_insertion_offset++;
@@ -822,7 +810,25 @@ build_set (void *cls)
   while ( (DEFAULT_FISHEYE_DEPTH - 1 > neighbor->consensus_insertion_distance) &&
 	  (consensi[neighbor->consensus_insertion_distance].array_length > neighbor->consensus_insertion_offset) &&
 	  (NULL == consensi[neighbor->consensus_insertion_distance].targets[neighbor->consensus_insertion_offset]) )
+  {
     neighbor->consensus_insertion_offset++;
+  }
+
+  if ( (0 != memcmp(&target->peer, &my_identity, sizeof (my_identity))) &&
+       (0 != memcmp(&target->peer, &neighbor->peer, sizeof (neighbor->peer))) )
+  {
+    /* Add target if it is not the neighbor or this peer */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Adding peer `%s' with distance %u to SET\n",
+                GNUNET_i2s (&target->peer),
+                ntohl (target->distance));
+    GNUNET_SET_add_element (neighbor->my_set,
+                            &element,
+                            &build_set, neighbor);
+    neighbor->consensus_elements++;
+  }
+  else
+    build_set(neighbor);
 }
 
 
@@ -881,18 +887,31 @@ handle_direct_connect (struct DirectNeighbor *neighbor)
 		  &my_identity,
 		  sizeof (struct GNUNET_PeerIdentity)))
   {
-    neighbor->initiate_task = GNUNET_SCHEDULER_add_now (&initiate_set_union,
+    if (NULL != neighbor->listen_handle)
+    {
+      GNUNET_break (0);
+    }
+    else
+      neighbor->initiate_task = GNUNET_SCHEDULER_add_now (&initiate_set_union,
 							neighbor);
   }
   else
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Starting SET listen operation\n");
-    neighbor->listen_handle = GNUNET_SET_listen (cfg,
-						 GNUNET_SET_OPERATION_UNION,
-						 &neighbor->real_session_id,
-						 &listen_set_union,
-						 neighbor);
+    if (NULL != neighbor->listen_handle)
+    {
+      GNUNET_break (0);
+    }
+    else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Starting SET listen operation with peer `%s'\n",
+                  GNUNET_i2s(&neighbor->peer));
+      neighbor->listen_handle = GNUNET_SET_listen (cfg,
+                                                   GNUNET_SET_OPERATION_UNION,
+                                                   &neighbor->real_session_id,
+                                                   &listen_set_union,
+                                                   neighbor);
+    }
   }
 }
 
@@ -1354,10 +1373,32 @@ handle_set_union_result (void *cls,
 {
   struct DirectNeighbor *neighbor = cls;
   struct Target *target;
+  char *status_str;
+
+  switch (status) {
+    case GNUNET_SET_STATUS_OK:
+      status_str = "GNUNET_SET_STATUS_OK";
+      break;
+    case GNUNET_SET_STATUS_TIMEOUT:
+      status_str = "GNUNET_SET_STATUS_TIMEOUT";
+      break;
+    case GNUNET_SET_STATUS_FAILURE:
+      status_str = "GNUNET_SET_STATUS_FAILURE";
+      break;
+    case GNUNET_SET_STATUS_HALF_DONE:
+      status_str = "GNUNET_SET_STATUS_HALF_DONE";
+      break;
+    case GNUNET_SET_STATUS_DONE:
+      status_str = "GNUNET_SET_STATUS_DONE";
+      break;
+    default:
+      status_str = "UNDEFINED";
+      break;
+  }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Got SET union result: %d\n",
-	      status);
+	      "Got SET union result: %s\n",
+	      status_str);
   switch (status)
   {
   case GNUNET_SET_STATUS_OK:
@@ -1368,6 +1409,8 @@ handle_set_union_result (void *cls,
     }
     target = GNUNET_new (struct Target);
     memcpy (target, element->data, sizeof (struct Target));
+    if (NULL == neighbor->neighbor_table_consensus)
+      neighbor->neighbor_table_consensus = GNUNET_CONTAINER_multipeermap_create (10, GNUNET_NO);
     if (GNUNET_YES !=
 	GNUNET_CONTAINER_multipeermap_put (neighbor->neighbor_table_consensus,
 					   &target->peer,
@@ -1412,6 +1455,8 @@ handle_set_union_result (void *cls,
 					     NULL);
     }
     /* add targets that appeared (and check for improved routes) */
+    if (NULL == neighbor->neighbor_table_consensus)
+      neighbor->neighbor_table_consensus = GNUNET_CONTAINER_multipeermap_create (10, GNUNET_NO);
     GNUNET_CONTAINER_multipeermap_iterate (neighbor->neighbor_table_consensus,
 					   &check_target_added,
 					   neighbor);
@@ -1470,7 +1515,7 @@ listen_set_union (void *cls,
   if (NULL == request)
     return; /* why??? */
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Starting to create consensus with %s!\n",
+	      "Starting to create consensus with %s\n",
 	      GNUNET_i2s (&neighbor->peer));
   if (NULL != neighbor->set_op)
   {
@@ -1509,7 +1554,8 @@ initiate_set_union (void *cls,
   struct DirectNeighbor *neighbor = cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Initiating SET union\n");
+	      "Initiating SET union with peer `%s'\n",
+	      GNUNET_i2s (&neighbor->peer));
   neighbor->initiate_task = GNUNET_SCHEDULER_NO_TASK;
   neighbor->my_set = GNUNET_SET_create (cfg,
 					GNUNET_SET_OPERATION_UNION);
