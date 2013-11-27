@@ -82,9 +82,14 @@ struct MeshTunnel3
   struct MeshPeer *peer;
 
     /**
-     * State of the tunnel.
+     * State of the tunnel connectivity.
      */
-  enum MeshTunnel3State state;
+  enum MeshTunnel3CState cstate;
+
+  /**
+   * State of the tunnel encryption.
+   */
+  enum MeshTunnel3EState estate;
 
   /**
    * Key eXchange context.
@@ -247,18 +252,18 @@ static struct GNUNET_TIME_Relative rekey_period;
 /******************************************************************************/
 
 /**
- * Get string description for tunnel state.
+ * Get string description for tunnel connectivity state.
  *
- * @param s Tunnel state.
+ * @param cs Tunnel state.
  *
  * @return String representation.
  */
 static const char *
-GMT_state2s (enum MeshTunnel3State s)
+cstate2s (enum MeshTunnel3CState cs)
 {
   static char buf[128];
 
-  switch (s)
+  switch (cs)
   {
     case MESH_TUNNEL3_NEW:
       return "MESH_TUNNEL3_NEW";
@@ -266,19 +271,63 @@ GMT_state2s (enum MeshTunnel3State s)
       return "MESH_TUNNEL3_SEARCHING";
     case MESH_TUNNEL3_WAITING:
       return "MESH_TUNNEL3_WAITING";
-    case MESH_TUNNEL3_KEY_SENT:
-      return "MESH_TUNNEL3_KEY_SENT";
     case MESH_TUNNEL3_READY:
       return "MESH_TUNNEL3_READY";
-    case MESH_TUNNEL3_RECONNECTING:
-      return "MESH_TUNNEL3_RECONNECTING";
-    case MESH_TUNNEL3_REKEY:
-      return "MESH_TUNNEL3_REKEY";
 
     default:
-      sprintf (buf, "%u (UNKNOWN STATE)", s);
+      sprintf (buf, "%u (UNKNOWN STATE)", cs);
       return buf;
   }
+  return "";
+}
+
+
+/**
+ * Get string description for tunnel encryption state.
+ *
+ * @param es Tunnel state.
+ *
+ * @return String representation.
+ */
+static const char *
+estate2s (enum MeshTunnel3EState es)
+{
+  static char buf[128];
+
+  switch (es)
+  {
+    case MESH_TUNNEL3_KEY_UNINITIALIZED:
+      return "MESH_TUNNEL3_KEY_UNINITIALIZED";
+    case MESH_TUNNEL3_KEY_SENT:
+      return "MESH_TUNNEL3_KEY_SENT";
+    case MESH_TUNNEL3_KEY_PING:
+      return "MESH_TUNNEL3_KEY_PING";
+    case MESH_TUNNEL3_KEY_OK:
+      return "MESH_TUNNEL3_KEY_OK";
+
+    default:
+      sprintf (buf, "%u (UNKNOWN STATE)", es);
+      return buf;
+  }
+  return "";
+}
+
+
+/**
+ * @brief Check if tunnel is ready to send traffic.
+ *
+ * Tunnel must be connected and with encryption correctly set up.
+ *
+ * @param t Tunnel to check.
+ *
+ * @return #GNUNET_YES if ready, #GNUNET_NO otherwise
+ */
+static int
+is_ready (struct MeshTunnel3 *t)
+{
+  return (MESH_TUNNEL3_READY == t->cstate
+          && MESH_TUNNEL3_KEY_OK == t->estate)
+         || GMT_is_loopback (t);
 }
 
 
@@ -531,7 +580,7 @@ tunnel_get_connection (struct MeshTunnel3 *t)
   for (iter = t->connection_head; NULL != iter; iter = iter->next)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  connection %s: %u\n",
-         GNUNET_h2s (GMC_get_id (iter->c)), GMC_get_state (iter->c));
+         GMC_2s (iter->c), GMC_get_state (iter->c));
     if (MESH_CONNECTION_READY == GMC_get_state (iter->c))
     {
       qn = GMC_get_qn (iter->c, GMC_is_origin (iter->c, GNUNET_YES));
@@ -543,6 +592,7 @@ tunnel_get_connection (struct MeshTunnel3 *t)
       }
     }
   }
+  LOG (GNUNET_ERROR_TYPE_DEBUG, " selected: connection %s\n", GMC_2s (best));
   return best;
 }
 
@@ -566,6 +616,13 @@ send_queued_data (struct MeshTunnel3 *t)
   if (GMT_is_loopback (t))
   {
     GNUNET_break (0);
+    return;
+  }
+
+  if (GNUNET_NO == is_ready (t))
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  not ready yet: %s/%s\n",
+         estate2s (t->estate), cstate2s (t->cstate));
     return;
   }
 
@@ -606,7 +663,9 @@ queue_data (struct MeshTunnel3 *t,
   struct MeshTunnelDelayed *tq;
   uint16_t size = ntohs (msg->size);
 
-  if (MESH_TUNNEL3_READY == t->state)
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "queue data on Tunnel %s\n", GMT_2s (t));
+
+  if (GNUNET_YES == is_ready (t))
   {
     GNUNET_break (0);
     return;
@@ -696,7 +755,7 @@ send_ephemeral (struct MeshTunnel3 *t)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG, "%s()\n", __FUNCTION__);
 
-  kx_msg.sender_status = htonl (t->state);
+  kx_msg.sender_status = htonl (t->estate);
   send_kx (t, &kx_msg.header);
 }
 
@@ -777,18 +836,20 @@ rekey_tunnel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     t->kx_ctx->d_key_old = t->d_key;
   }
   send_ephemeral (t);
-  if (MESH_TUNNEL3_READY == t->state || MESH_TUNNEL3_REKEY == t->state)
+  switch (t->estate)
   {
-    send_ping (t);
-    t->state = MESH_TUNNEL3_REKEY;
-  }
-  else if (MESH_TUNNEL3_WAITING == t->state)
-  {
-    t->state = MESH_TUNNEL3_KEY_SENT;
-  }
-  else
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Unexpected state %u\n", t->state);
+    case MESH_TUNNEL3_KEY_UNINITIALIZED:
+      t->estate = MESH_TUNNEL3_KEY_SENT;
+      break;
+    case MESH_TUNNEL3_KEY_SENT:
+      break;
+    case MESH_TUNNEL3_KEY_PING:
+    case MESH_TUNNEL3_KEY_OK:
+      send_ping (t);
+      t->estate = MESH_TUNNEL3_KEY_PING;
+      break;
+    default:
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "Unexpected state %u\n", t->estate);
   }
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  next call in %s\n",
@@ -932,7 +993,7 @@ handle_data (struct MeshTunnel3 *t,
     return;
   }
 
-  GMT_change_state (t, MESH_TUNNEL3_READY);
+  GMT_change_cstate (t, MESH_TUNNEL3_READY);
   GMCH_handle_data (ch, msg, fwd);
 }
 
@@ -1154,11 +1215,11 @@ handle_ephemeral (struct MeshTunnel3 *t,
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  km is %s\n", GNUNET_h2s (&km));
   derive_symmertic (&t->e_key, &my_full_id, GMP_get_id (t->peer), &km);
   derive_symmertic (&t->d_key, GMP_get_id (t->peer), &my_full_id, &km);
-  if (MESH_TUNNEL3_KEY_SENT == t->state)
+  if (MESH_TUNNEL3_KEY_SENT == t->estate)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  our key was sent, send ping\n");
     send_ping (t);
-    t->state = MESH_TUNNEL3_REKEY;
+    t->estate = MESH_TUNNEL3_KEY_PING;
   }
 }
 
@@ -1232,8 +1293,7 @@ handle_pong (struct MeshTunnel3 *t,
   t->rekey_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_free (t->kx_ctx);
   t->kx_ctx = NULL;
-  t->state = MESH_TUNNEL3_READY;
-  send_queued_data (t);
+  GMT_change_estate (t, MESH_TUNNEL3_KEY_OK);
 }
 
 
@@ -1450,42 +1510,63 @@ GMT_new (struct MeshPeer *destination)
 
 
 /**
- * Change the tunnel state.
+ * Change the tunnel's connection state.
  *
- * @param t Tunnel whose state to change.
- * @param state New state.
+ * @param t Tunnel whose connection state to change.
+ * @param cstate New connection state.
  */
 void
-GMT_change_state (struct MeshTunnel3* t, enum MeshTunnel3State state)
+GMT_change_cstate (struct MeshTunnel3* t, enum MeshTunnel3CState state)
 {
   if (NULL == t)
     return;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-              "Tunnel %s state was %s\n",
-              GMP_2s (t->peer),
-              GMT_state2s (t->state));
+              "Tunnel %s cstate was %s\n",
+              GMP_2s (t->peer), cstate2s (t->cstate));
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-              "Tunnel %s state is now %s\n",
-              GMP_2s (t->peer),
-              GMT_state2s (state));
+              "Tunnel %s cstate is now %s\n",
+              GMP_2s (t->peer), cstate2s (state));
   if (myid != GMP_get_short_id (t->peer) &&
-      MESH_TUNNEL3_WAITING == t->state && MESH_TUNNEL3_READY == state)
+      MESH_TUNNEL3_READY != t->cstate &&
+      MESH_TUNNEL3_READY == state &&
+      MESH_TUNNEL3_KEY_UNINITIALIZED == t->estate)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  triggered rekey\n");
     rekey_tunnel (t, NULL);
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Tunnel %s state is now %s\n",
-         GMP_2s (t->peer),
-         GMT_state2s (t->state));
   }
-  else
-  {
-    t->state = state;
-  }
+  t->cstate = state;
+
   if (MESH_TUNNEL3_READY == state && 3 <= GMT_count_connections (t))
   {
     GMP_stop_search (t->peer);
   }
+}
+
+/**
+ * Change the tunnel encryption state.
+ *
+ * @param t Tunnel whose encryption state to change.
+ * @param state New encryption state.
+ */
+void
+GMT_change_estate (struct MeshTunnel3* t, enum MeshTunnel3EState state)
+{
+  if (NULL == t)
+    return;
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Tunnel %s estate was %s\n",
+       GMP_2s (t->peer), estate2s (t->estate));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Tunnel %s estate is now %s\n",
+       GMP_2s (t->peer), estate2s (state));
+  if (myid != GMP_get_short_id (t->peer) &&
+      MESH_TUNNEL3_KEY_OK != t->estate && MESH_TUNNEL3_KEY_OK == state)
+  {
+    t->estate = state;
+    send_queued_data (t);
+    return;
+  }
+  t->estate = state;
 }
 
 
@@ -1781,21 +1862,21 @@ GMT_count_channels (struct MeshTunnel3 *t)
 
 
 /**
- * Get the state of a tunnel.
+ * Get the connectivity state of a tunnel.
  *
  * @param t Tunnel.
  *
- * @return Tunnel's state.
+ * @return Tunnel's connectivity state.
  */
-enum MeshTunnel3State
-GMT_get_state (struct MeshTunnel3 *t)
+enum MeshTunnel3CState
+GMT_get_cstate (struct MeshTunnel3 *t)
 {
   if (NULL == t)
   {
     GNUNET_break (0);
-    return (enum MeshTunnel3State) -1;
+    return (enum MeshTunnel3CState) -1;
   }
-  return t->state;
+  return t->cstate;
 }
 
 
@@ -2050,6 +2131,7 @@ GMT_cancel (struct MeshTunnel3Queue *q)
   /* message_sent() will be called and free q */
 }
 
+
 /**
  * Sends an already built message on a tunnel, encrypting it and
  * choosing the best connection.
@@ -2078,13 +2160,14 @@ GMT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   uint32_t iv;
   uint16_t type;
 
-  if (MESH_TUNNEL3_READY != t->state)
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "GMT Send on Tunnel %s\n", GMT_2s (t));
+
+  if (GNUNET_NO == is_ready (t))
   {
     queue_data (t, ch, message);
     /* FIXME */
     return NULL;
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "GMT Send on Tunnel %s\n", GMT_2s (t));
 
   if (GMT_is_loopback (t))
   {

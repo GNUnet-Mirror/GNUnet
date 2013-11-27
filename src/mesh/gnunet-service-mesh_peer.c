@@ -436,7 +436,7 @@ send_core_connection_create (struct MeshConnection *c, size_t size, void *buf)
     GNUNET_PEER_resolve (p->peers[i], peer_ptr++);
   }
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
        "CONNECTION CREATE (%u bytes long) sent!\n",
        size_needed);
   return size_needed;
@@ -738,7 +738,7 @@ search_handler (void *cls, const struct MeshPeerPath *path)
   if (3 <= connection_count)
     return;
 
-  if (MESH_TUNNEL3_SEARCHING == GMT_get_state (peer->tunnel))
+  if (MESH_TUNNEL3_SEARCHING == GMT_get_cstate (peer->tunnel))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, " ... connect!\n");
     GMP_connect (peer);
@@ -755,7 +755,7 @@ search_handler (void *cls, const struct MeshPeerPath *path)
  * @param buf Where the to write the message.
  *
  * @return number of bytes written to buf
- * 
+ *
  * FIXME add GNUNET_MESSAGE_TYPE_MESH_KEEPALIVE
  */
 static size_t
@@ -787,6 +787,7 @@ queue_send (void *cls, size_t size, void *buf)
 
   dst_id = GNUNET_PEER_resolve2 (peer->id);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "*   towards %s\n", GNUNET_i2s (dst_id));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "*   on connection %s\n", GMC_2s (c));
   /* Check if buffer size is enough for the message */
   if (queue->size > size)
   {
@@ -1341,7 +1342,7 @@ GMP_connect (struct MeshPeer *peer)
   {
     GMD_search_stop (peer->search_h);
     peer->search_h = NULL;
-    LOG (GNUNET_ERROR_TYPE_DEBUG, 
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
          "  Stopping DHT GET for peer %s\n",
          GMP_2s (peer));
   }
@@ -1354,8 +1355,8 @@ GMP_connect (struct MeshPeer *peer)
     LOG (GNUNET_ERROR_TYPE_DEBUG,
                 "  Starting DHT GET for peer %s\n", GMP_2s (peer));
     peer->search_h = GMD_search (id, &search_handler, peer);
-    if (MESH_TUNNEL3_NEW == GMT_get_state (t))
-      GMT_change_state (t, MESH_TUNNEL3_SEARCHING);
+    if (MESH_TUNNEL3_NEW == GMT_get_cstate (t))
+      GMT_change_cstate (t, MESH_TUNNEL3_SEARCHING);
   }
 }
 

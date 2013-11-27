@@ -1506,7 +1506,7 @@ GMCH_handle_local_create (struct MeshClient *c,
 
   if (GMP_get_short_id (peer) == myid)
   {
-    GMT_change_state (t, MESH_TUNNEL3_READY);
+    GMT_change_cstate (t, MESH_TUNNEL3_READY);
   }
   else
   {

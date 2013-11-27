@@ -41,9 +41,9 @@ extern "C"
 #include "gnunet_util_lib.h"
 
 /**
- * All the states a tunnel can be in.
+ * All the connectivity states a tunnel can be in.
  */
-enum MeshTunnel3State
+enum MeshTunnel3CState
 {
     /**
      * Uninitialized status, should never appear in operation.
@@ -61,26 +61,38 @@ enum MeshTunnel3State
   MESH_TUNNEL3_WAITING,
 
     /**
-     * Ephemeral key sent, waiting for peer's key.
-     */
-  MESH_TUNNEL3_KEY_SENT,
-
-    /**
      * Peer connected and ready to accept data.
      */
   MESH_TUNNEL3_READY,
+};
 
-    /**
-     * Peer connected previosly but not responding.
-     */
-  MESH_TUNNEL3_RECONNECTING,
 
-    /**
-     * New ephemeral key and ping sent, waiting for pong.
-     * This means that we DO have the peer's ephemeral key, otherwise the
-     * state would be KEY_SENT.
-     */
-  MESH_TUNNEL3_REKEY,
+/**
+ * All the encryption states a tunnel can be in.
+ */
+enum MeshTunnel3EState
+{
+  /**
+   * Uninitialized status, should never appear in operation.
+   */
+  MESH_TUNNEL3_KEY_UNINITIALIZED,
+
+  /**
+   * Ephemeral key sent, waiting for peer's key.
+   */
+  MESH_TUNNEL3_KEY_SENT,
+
+  /**
+   * New ephemeral key and ping sent, waiting for pong.
+   * This means that we DO have the peer's ephemeral key, otherwise the
+   * state would be KEY_SENT.
+   */
+  MESH_TUNNEL3_KEY_PING,
+
+  /**
+   * Handshake completed: session key available.
+   */
+  MESH_TUNNEL3_KEY_OK,
 };
 
 /**
@@ -172,14 +184,25 @@ GMT_destroy_if_empty (struct MeshTunnel3 *t);
 void
 GMT_destroy (struct MeshTunnel3 *t);
 
+
 /**
- * Change the tunnel state.
+ * Change the tunnel's connection state.
  *
- * @param t Tunnel whose state to change.
- * @param state New state.
+ * @param t Tunnel whose connection state to change.
+ * @param cstate New connection state.
  */
 void
-GMT_change_state (struct MeshTunnel3* t, enum MeshTunnel3State state);
+GMT_change_cstate (struct MeshTunnel3* t, enum MeshTunnel3CState state);
+
+
+/**
+ * Change the tunnel encryption state.
+ *
+ * @param t Tunnel whose encryption state to change.
+ * @param state New encryption state.
+ */
+void
+GMT_change_estate (struct MeshTunnel3* t, enum MeshTunnel3EState state);
 
 /**
  * Add a connection to a tunnel.
@@ -284,14 +307,14 @@ unsigned int
 GMT_count_channels (struct MeshTunnel3 *t);
 
 /**
- * Get the state of a tunnel.
+ * Get the connectivity state of a tunnel.
  *
  * @param t Tunnel.
  *
- * @return Tunnel's state.
+ * @return Tunnel's connectivity state.
  */
-enum MeshTunnel3State
-GMT_get_state (struct MeshTunnel3 *t);
+enum MeshTunnel3CState
+GMT_get_cstate (struct MeshTunnel3 *t);
 
 /**
  * Get the maximum buffer space for a tunnel towards a local client.

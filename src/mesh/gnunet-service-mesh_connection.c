@@ -710,8 +710,8 @@ send_connection_ack (struct MeshConnection *connection, int fwd)
                  sizeof (struct GNUNET_MESH_ConnectionACK),
                  connection, fwd, &message_sent, NULL);
   connection->pending_messages++;
-  if (MESH_TUNNEL3_NEW == GMT_get_state (t))
-    GMT_change_state (t, MESH_TUNNEL3_WAITING);
+  if (MESH_TUNNEL3_NEW == GMT_get_cstate (t))
+    GMT_change_cstate (t, MESH_TUNNEL3_WAITING);
   if (MESH_CONNECTION_READY != connection->state)
     connection_change_state (connection, MESH_CONNECTION_SENT);
 }
@@ -803,7 +803,7 @@ connection_recreate (struct MeshConnection *c, int fwd)
 static void
 connection_maintain (struct MeshConnection *c, int fwd)
 {
-  if (MESH_TUNNEL3_SEARCHING == GMT_get_state (c->t))
+  if (MESH_TUNNEL3_SEARCHING == GMT_get_cstate (c->t))
   {
     /* TODO DHT GET with RO_BART */
     return;
@@ -1284,8 +1284,8 @@ GMC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
     GMP_add_path_to_origin (orig_peer, path_duplicate (path), GNUNET_YES);
 
     add_to_peer (c, orig_peer);
-    if (MESH_TUNNEL3_NEW == GMT_get_state (c->t))
-      GMT_change_state (c->t,  MESH_TUNNEL3_WAITING);
+    if (MESH_TUNNEL3_NEW == GMT_get_cstate (c->t))
+      GMT_change_cstate (c->t,  MESH_TUNNEL3_WAITING);
 
     send_connection_ack (c, GNUNET_NO);
     if (MESH_CONNECTION_SENT == c->state)
@@ -1395,8 +1395,8 @@ GMC_handle_confirm (void *cls, const struct GNUNET_PeerIdentity *peer,
 
     /* Change connection and tunnel state */
     connection_change_state (c, MESH_CONNECTION_READY);
-    if (MESH_TUNNEL3_WAITING == GMT_get_state (c->t))
-      GMT_change_state (c->t, MESH_TUNNEL3_READY);
+    if (MESH_TUNNEL3_WAITING == GMT_get_cstate (c->t))
+      GMT_change_cstate (c->t, MESH_TUNNEL3_READY);
 
     /* Send ACK (~TCP ACK)*/
     send_connection_ack (c, GNUNET_YES);
@@ -1418,8 +1418,8 @@ GMC_handle_confirm (void *cls, const struct GNUNET_PeerIdentity *peer,
       connection_reset_timeout (c, GNUNET_NO);
 
     /* Change tunnel state */
-    if (MESH_TUNNEL3_WAITING == GMT_get_state (c->t))
-      GMT_change_state (c->t, MESH_TUNNEL3_READY);
+    if (MESH_TUNNEL3_WAITING == GMT_get_cstate (c->t))
+      GMT_change_cstate (c->t, MESH_TUNNEL3_READY);
 
     return GNUNET_OK;
   }
@@ -1734,8 +1734,8 @@ handle_mesh_kx (const struct GNUNET_PeerIdentity *peer,
   connection_reset_timeout (c, fwd);
   if (NULL != c->t)
   {
-    if (MESH_TUNNEL3_WAITING == GMT_get_state (c->t))
-      GMT_change_state (c->t, MESH_TUNNEL3_READY);
+    if (MESH_TUNNEL3_WAITING == GMT_get_cstate (c->t))
+      GMT_change_cstate (c->t, MESH_TUNNEL3_READY);
   }
 
   /* Is this message for us? */
@@ -2652,7 +2652,7 @@ GMC_cancel (struct MeshConnectionQueue *q)
 void
 GMC_send_create (struct MeshConnection *connection)
 {
-  enum MeshTunnel3State state;
+  enum MeshTunnel3CState state;
   size_t size;
 
   size = sizeof (struct GNUNET_MESH_ConnectionCreate);
@@ -2664,9 +2664,9 @@ GMC_send_create (struct MeshConnection *connection)
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  C_P+ %p %u (create)\n",
        connection, connection->pending_messages);
   connection->pending_messages++;
-  state = GMT_get_state (connection->t);
+  state = GMT_get_cstate (connection->t);
   if (MESH_TUNNEL3_SEARCHING == state || MESH_TUNNEL3_NEW == state)
-    GMT_change_state (connection->t, MESH_TUNNEL3_WAITING);
+    GMT_change_cstate (connection->t, MESH_TUNNEL3_WAITING);
   if (MESH_CONNECTION_NEW == connection->state)
     connection_change_state (connection, MESH_CONNECTION_SENT);
 }
@@ -2765,6 +2765,9 @@ GMC_stop_poll (struct MeshConnection *c, int fwd)
 const char *
 GMC_2s (struct MeshConnection *c)
 {
+  if (NULL == c)
+    return "NULL";
+
   if (NULL != c->t)
   {
     static char buf[128];
