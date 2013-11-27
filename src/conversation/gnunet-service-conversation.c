@@ -935,6 +935,7 @@ handle_mesh_ring_message (void *cls,
   ch->channel_reliable = channel;
   ch->reliable_mq = GNUNET_MESH_mq_create (ch->channel_reliable);
   ch->cid = line->cid_gen++;
+  ch->target = msg->source;
   *channel_ctx = ch;
   cring.header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_RING);
   cring.header.size = htons (sizeof (cring));
