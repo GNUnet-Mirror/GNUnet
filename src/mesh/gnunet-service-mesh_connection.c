@@ -2581,6 +2581,8 @@ GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
 
     default:
       GNUNET_break (0);
+      GNUNET_free (data);
+      return NULL;
   }
 
   if (fc->queue_n > fc->queue_max && droppable)
