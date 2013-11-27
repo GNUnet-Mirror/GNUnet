@@ -32,6 +32,17 @@ static int ok;
 
 struct GNUNET_TESTBED_Operation *topology_op;
 
+static GNUNET_SCHEDULER_TaskIdentifier shutdown_task;
+
+static void do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  if (NULL != topology_op)
+  {
+    GNUNET_TESTBED_operation_done (topology_op);
+    topology_op = NULL;
+  }
+}
+
 static void topology_completed (void *cls,
                                 unsigned int nsuccess,
                                 unsigned int nfailures)
@@ -60,6 +71,7 @@ test_connection (void *cls,
                  unsigned int links_succeeded,
                  unsigned int links_failed)
 {
+  shutdown_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &do_shutdown, NULL);
   if (4 != num_peers)
   {
     ok = 1;
@@ -82,7 +94,6 @@ test_connection (void *cls,
   ok = 1;
   fprintf (stderr, "Testbed connected peers, should not happen...\n");
   GNUNET_SCHEDULER_shutdown ();
-
 }
 
 
