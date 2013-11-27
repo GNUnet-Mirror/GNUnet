@@ -318,9 +318,7 @@ static struct GNUNET_CORE_MessageHandler core_handlers[] = {
     sizeof (struct GNUNET_MESH_ConnectionBroken)},
   {&GMC_handle_destroy, GNUNET_MESSAGE_TYPE_MESH_CONNECTION_DESTROY,
     sizeof (struct GNUNET_MESH_ConnectionDestroy)},
-  {&GMC_handle_keepalive, GNUNET_MESSAGE_TYPE_MESH_FWD_KEEPALIVE,
-    sizeof (struct GNUNET_MESH_ConnectionKeepAlive)},
-  {&GMC_handle_keepalive, GNUNET_MESSAGE_TYPE_MESH_BCK_KEEPALIVE,
+  {&GMC_handle_keepalive, GNUNET_MESSAGE_TYPE_MESH_KEEPALIVE,
     sizeof (struct GNUNET_MESH_ConnectionKeepAlive)},
   {&GMC_handle_ack, GNUNET_MESSAGE_TYPE_MESH_ACK,
     sizeof (struct GNUNET_MESH_ACK)},
@@ -923,14 +921,13 @@ GMP_queue_destroy (struct MeshPeerQueue *queue, int clear_cls)
       case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_DESTROY:
         LOG (GNUNET_ERROR_TYPE_INFO, "destroying a DESTROY message\n");
         /* fall through */
-      case GNUNET_MESSAGE_TYPE_MESH_ENCRYPTED:
-      case GNUNET_MESSAGE_TYPE_MESH_ACK:
-      case GNUNET_MESSAGE_TYPE_MESH_POLL:
       case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK:
       case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE:
       case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_BROKEN:
       case GNUNET_MESSAGE_TYPE_MESH_KX:
-        LOG (GNUNET_ERROR_TYPE_DEBUG, "#   prebuilt message\n");;
+      case GNUNET_MESSAGE_TYPE_MESH_ENCRYPTED:
+      case GNUNET_MESSAGE_TYPE_MESH_ACK:
+      case GNUNET_MESSAGE_TYPE_MESH_POLL:
         GNUNET_free_non_null (queue->cls);
         break;
 

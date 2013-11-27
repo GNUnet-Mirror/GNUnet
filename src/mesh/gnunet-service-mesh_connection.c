@@ -749,7 +749,7 @@ send_broken (struct MeshConnection *c,
  * @param c Connection to keep alive..
  * @param fwd Is this a FWD keepalive? (owner -> dest).
  *
- * FIXME use only one type, register in GMC_send_prebuilt_message()
+ * FIXME register in GMC_send_prebuilt_message()
  */
 static void
 connection_keepalive (struct MeshConnection *c, int fwd)
@@ -757,10 +757,6 @@ connection_keepalive (struct MeshConnection *c, int fwd)
   struct GNUNET_MESH_ConnectionKeepAlive *msg;
   size_t size = sizeof (struct GNUNET_MESH_ConnectionKeepAlive);
   char cbuf[size];
-  uint16_t type;
-
-  type = fwd ? GNUNET_MESSAGE_TYPE_MESH_FWD_KEEPALIVE :
-               GNUNET_MESSAGE_TYPE_MESH_BCK_KEEPALIVE;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "sending %s keepalive for connection %s]\n",
@@ -768,7 +764,7 @@ connection_keepalive (struct MeshConnection *c, int fwd)
 
   msg = (struct GNUNET_MESH_ConnectionKeepAlive *) cbuf;
   msg->header.size = htons (size);
-  msg->header.type = htons (type);
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_KEEPALIVE);
   msg->cid = c->id;
 
   GMC_send_prebuilt_message (&msg->header, c, fwd, NULL, NULL);
@@ -1964,6 +1960,7 @@ GMC_handle_keepalive (void *cls, const struct GNUNET_PeerIdentity *peer,
   struct GNUNET_MESH_ConnectionKeepAlive *msg;
   struct MeshConnection *c;
   struct MeshPeer *neighbor;
+  GNUNET_PEER_Id peer_id;
   int fwd;
 
   msg = (struct GNUNET_MESH_ConnectionKeepAlive *) message;
@@ -1978,15 +1975,25 @@ GMC_handle_keepalive (void *cls, const struct GNUNET_PeerIdentity *peer,
     return GNUNET_OK;
   }
 
-  fwd = GNUNET_MESSAGE_TYPE_MESH_FWD_KEEPALIVE == ntohs (message->type) ?
-        GNUNET_YES : GNUNET_NO;
-
-  /* Check if origin is as expected */
-  neighbor = get_hop (c, fwd);
-  if (GNUNET_PEER_search (peer) != GMP_get_short_id (neighbor))
+  /* Check if origin is as expected TODO refactor and reuse */
+  peer_id = GNUNET_PEER_search (peer);
+  neighbor = get_prev_hop (c);
+  if (peer_id == GMP_get_short_id (neighbor))
   {
-    GNUNET_break_op (0);
-    return GNUNET_OK;
+    fwd = GNUNET_YES;
+  }
+  else
+  {
+    neighbor = get_next_hop (c);
+    if (peer_id == GMP_get_short_id (neighbor))
+    {
+      fwd = GNUNET_NO;
+    }
+    else
+    {
+      GNUNET_break_op (0);
+      return GNUNET_OK;
+    }
   }
 
   connection_change_state (c, MESH_CONNECTION_READY);
