@@ -849,15 +849,9 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_MESH_POLL                   269
 
 /**
- * Announce origin is still alive. DEPRECATED
+ * Announce connection is still alive (direction sensitive).
  */
-#define GNUNET_MESSAGE_TYPE_MESH_FWD_KEEPALIVE          270
-#define GNUNET_MESSAGE_TYPE_MESH_KEEPALIVE          270
-
-/**
- * Announce destination is still alive. DEPRECATED
- */
-#define GNUNET_MESSAGE_TYPE_MESH_BCK_KEEPALIVE          271
+#define GNUNET_MESSAGE_TYPE_MESH_KEEPALIVE              270
 
 /**
  * Connect to the mesh service, specifying subscriptions
