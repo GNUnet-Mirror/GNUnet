@@ -628,6 +628,7 @@ send_queued_data (struct MeshTunnel3 *t)
 
   room = GMT_get_connections_buffer (t);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  buffer space: %u\n", room);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  tq head: %p\n", t->tq_head);
   for (tq = t->tq_head; NULL != tq && room > 0; tq = next)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, " data on channel %s\n", GMCH_2s (tq->ch));
@@ -964,7 +965,6 @@ handle_data (struct MeshTunnel3 *t,
              int fwd)
 {
   struct MeshChannel *ch;
-  uint16_t type;
   size_t size;
 
   /* Check size */
@@ -976,9 +976,6 @@ handle_data (struct MeshTunnel3 *t,
     GNUNET_break (0);
     return;
   }
-  type = ntohs (msg->header.type);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "got a %s message\n",
-              GNUNET_MESH_DEBUG_M2S (type));
   LOG (GNUNET_ERROR_TYPE_DEBUG, " payload of type %s\n",
               GNUNET_MESH_DEBUG_M2S (ntohs (msg[1].header.type)));
 
@@ -993,7 +990,6 @@ handle_data (struct MeshTunnel3 *t,
     return;
   }
 
-  GMT_change_cstate (t, MESH_TUNNEL3_READY);
   GMCH_handle_data (ch, msg, fwd);
 }
 
