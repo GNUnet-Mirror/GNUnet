@@ -463,7 +463,7 @@ destroy_channel (struct GNUNET_MESH_Channel *ch, int call_cleaner)
   struct GNUNET_MESH_TransmitHandle *th;
   struct GNUNET_MESH_TransmitHandle *next;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "destroy_channel %X\n", ch->chid);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, " destroy_channel %X\n", ch->chid);
 
   if (NULL == ch)
   {
@@ -476,7 +476,10 @@ destroy_channel (struct GNUNET_MESH_Channel *ch, int call_cleaner)
 
   /* signal channel destruction */
   if ( (NULL != h->cleaner) && (0 != ch->peer) && (GNUNET_YES == call_cleaner) )
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " calling cleaner\n");
     h->cleaner (h->cls, ch, ch->ctx);
+  }
 
   /* check that clients did not leave messages behind in the queue */
   for (th = h->th_head; NULL != th; th = next)
@@ -833,7 +836,7 @@ process_channel_destroy (struct GNUNET_MESH_Handle *h,
   struct GNUNET_MESH_Channel *ch;
   MESH_ChannelNumber chid;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Destroying channel from service\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Channel Destroy received from service\n");
   chid = ntohl (msg->channel_id);
   ch = retrieve_channel (h, chid);
 
@@ -842,7 +845,7 @@ process_channel_destroy (struct GNUNET_MESH_Handle *h,
     LOG (GNUNET_ERROR_TYPE_DEBUG, "channel %X unknown\n", chid);
     return;
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "channel %X destroyed\n", ch->chid);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, " destroying channel %X\n", ch->chid);
   destroy_channel (ch, GNUNET_YES);
 }
 
