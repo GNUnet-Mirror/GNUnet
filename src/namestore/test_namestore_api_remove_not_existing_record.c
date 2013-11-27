@@ -97,24 +97,29 @@ put_cont (void *cls, int32_t success, const char *emsg)
 {
   GNUNET_assert (NULL != cls);
   nsqe = NULL;
-  if (GNUNET_SYSERR == success)
+  if (endbadly_task != GNUNET_SCHEDULER_NO_TASK)
   {
-    GNUNET_break (0);
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Namestore could not remove record: `%s'\n",
-                emsg);
-    GNUNET_SCHEDULER_shutdown ();
-    return;
+    GNUNET_SCHEDULER_cancel (endbadly_task);
+    endbadly_task = GNUNET_SCHEDULER_NO_TASK;
   }
-  else if (GNUNET_OK == success)
-  {
-    res = 0;
-    if (endbadly_task != GNUNET_SCHEDULER_NO_TASK)
-    {
-      GNUNET_SCHEDULER_cancel (endbadly_task);
-      endbadly_task = GNUNET_SCHEDULER_NO_TASK;
-    }
-    GNUNET_SCHEDULER_add_now (&end, NULL);
+
+  switch (success) {
+    case GNUNET_NO:
+      GNUNET_SCHEDULER_add_now (&end, NULL);
+      break;
+    case GNUNET_OK:
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Namestore could remove non-existing record: `%s'\n",
+                  emsg);
+      GNUNET_SCHEDULER_add_now (&endbadly, NULL);
+      break;
+    case GNUNET_SYSERR:
+    default:
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Namestore failed: `%s'\n",
+                  emsg);
+      GNUNET_SCHEDULER_add_now (&endbadly, NULL);
+      break;
   }
 }
 
