@@ -808,7 +808,6 @@ queue_send (void *cls, size_t size, void *buf)
   /* Fill buf */
   switch (queue->type)
   {
-    case GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY:
     case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_DESTROY:
     case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_BROKEN:
     case GNUNET_MESSAGE_TYPE_MESH_ENCRYPTED:
@@ -922,7 +921,6 @@ GMP_queue_destroy (struct MeshPeerQueue *queue, int clear_cls)
     switch (queue->type)
     {
       case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_DESTROY:
-      case GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY:
         LOG (GNUNET_ERROR_TYPE_INFO, "destroying a DESTROY message\n");
         /* fall through */
       case GNUNET_MESSAGE_TYPE_MESH_ENCRYPTED:

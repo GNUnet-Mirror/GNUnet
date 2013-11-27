@@ -1008,7 +1008,7 @@ GML_send_channel_create (struct MeshClient *c,
   struct GNUNET_MESH_ChannelMessage msg;
 
   msg.header.size = htons (sizeof (msg));
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_CREATE);
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CHANNEL_CREATE);
   msg.channel_id = htonl (id);
   msg.port = htonl (port);
   msg.opt = htonl (opt);
@@ -1037,7 +1037,7 @@ GML_send_channel_destroy (struct MeshClient *c, uint32_t id)
   if (GNUNET_YES == c->shutting_down)
     return;
   msg.header.size = htons (sizeof (msg));
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_DESTROY);
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CHANNEL_DESTROY);
   msg.channel_id = htonl (id);
   msg.port = htonl (0);
   memset (&msg.peer, 0, sizeof (msg.peer));

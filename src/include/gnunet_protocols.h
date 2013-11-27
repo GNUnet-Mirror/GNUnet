@@ -784,21 +784,18 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_MESH_HELLO 216
 
 /**
- * Request the creation of a connection DEPRECATED
+ * Request the creation of a connection
  */
-#define GNUNET_MESSAGE_TYPE_MESH_PATH_CREATE            256
 #define GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE      256
 
 /**
- * Send origin an ACK that the connection is complete DEPRECATED
+ * Send origin an ACK that the connection is complete
  */
-#define GNUNET_MESSAGE_TYPE_MESH_PATH_ACK               257
 #define GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK         257
 
 /**
- * Notify that a connection is no longer valid DEPRECATED
+ * Notify that a connection is no longer valid
  */
-#define GNUNET_MESSAGE_TYPE_MESH_PATH_BROKEN            258
 #define GNUNET_MESSAGE_TYPE_MESH_CONNECTION_BROKEN      258
 
 /**
@@ -837,35 +834,9 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_MESH_KX_PONG                265
 
 /**
- * Payload data origin->end DEPRECATED.
+ * Request the destuction of a connection
  */
-#define GNUNET_MESSAGE_TYPE_MESH_UNICAST                260
-
-/**
- * Payload data end->origin DEPRECATED.
- */
-#define GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN              262
-
-/**
- * Confirm owner->dest data end-to-end (ack goes dest->owner). DEPRECATED
- */
-#define GNUNET_MESSAGE_TYPE_MESH_UNICAST_ACK            263
-
-/**
- * Confirm dest->owner data end-to-end (ack goes owner->dest). DEPRECATED
- */
-#define GNUNET_MESSAGE_TYPE_MESH_TO_ORIG_ACK            264
-
-/**
- * Request the destuction of a path (PATH DEPRECATED)
- */
-#define GNUNET_MESSAGE_TYPE_MESH_PATH_DESTROY           266
 #define GNUNET_MESSAGE_TYPE_MESH_CONNECTION_DESTROY     266
-
-/**
- * Request the destruction of a whole tunnel
- */
-#define GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY         267
 
 /**
  * Hop-by-hop, connection dependent ACK.
@@ -878,7 +849,7 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_MESH_POLL                   269
 
 /**
- * Announce origin is still alive.
+ * Announce origin is still alive. DEPRECATED
  */
 #define GNUNET_MESSAGE_TYPE_MESH_FWD_KEEPALIVE          270
 #define GNUNET_MESSAGE_TYPE_MESH_KEEPALIVE          270
@@ -894,16 +865,14 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT          272
 
 /**
- * Ask the mesh service to create a new tunnel DEPRECATED
+ * Ask the mesh service to create a new channel.
  */
 #define GNUNET_MESSAGE_TYPE_MESH_CHANNEL_CREATE         273
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_CREATE    273
 
 /**
- * Ask the mesh service to destroy a tunnel DEPRECATED
+ * Ask the mesh service to destroy a channel.
  */
 #define GNUNET_MESSAGE_TYPE_MESH_CHANNEL_DESTROY        274
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_DESTROY   274
 
 /**
  * Confirm the creation of a channel
@@ -916,19 +885,9 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_MESH_CHANNEL_NACK           276
 
 /**
- * Encrypted data going forward. DEPRECATED
- */
-#define GNUNET_MESSAGE_TYPE_MESH_FWD                    280
-
-/**
  * Encrypted data. (Payload, channel management, keepalive)
  */
 #define GNUNET_MESSAGE_TYPE_MESH_ENCRYPTED              280
-
-/**
- * Encrypted data going backwards.
- */
-#define GNUNET_MESSAGE_TYPE_MESH_BCK                    281
 
 /**
  * Payload client <-> service
