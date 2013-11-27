@@ -116,11 +116,6 @@ GNUNET_MESH_DEBUG_M2S (uint16_t m)
     case 266: return "GNUNET_MESSAGE_TYPE_MESH_CONNECTION_DESTROY";
 
       /**
-       * Request the destruction of a whole tunnel
-       */
-    case 267: return "GNUNET_MESSAGE_TYPE_MESH_TUNNEL_DESTROY";
-
-      /**
        * ACK for a data packet.
        */
     case 268: return "GNUNET_MESSAGE_TYPE_MESH_ACK";
@@ -133,12 +128,7 @@ GNUNET_MESH_DEBUG_M2S (uint16_t m)
       /**
        * Announce origin is still alive.
        */
-    case 270: return "GNUNET_MESSAGE_TYPE_MESH_FWD_KEEPALIVE";
-
-      /**
-       * Announce destination is still alive.
-       */
-    case 271: return "GNUNET_MESSAGE_TYPE_MESH_BCK_KEEPALIVE";
+    case 270: return "GNUNET_MESSAGE_TYPE_MESH_KEEPALIVE";
 
     /**
        * Connect to the mesh service, specifying subscriptions
@@ -183,12 +173,7 @@ GNUNET_MESH_DEBUG_M2S (uint16_t m)
       /**
        * Local monitoring of service.
        */
-    case 287: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNELS";
-
-      /**
-       * Local monitoring of service of a specific tunnel.
-       */
-    case 288: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNEL";
+    case 287: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_NACK";
 
       /**
        * 640kb should be enough for everybody
