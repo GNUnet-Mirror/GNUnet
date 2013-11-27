@@ -1528,11 +1528,19 @@ GMT_change_cstate (struct MeshTunnel3* t, enum MeshTunnel3CState state)
               GMP_2s (t->peer), cstate2s (state));
   if (myid != GMP_get_short_id (t->peer) &&
       MESH_TUNNEL3_READY != t->cstate &&
-      MESH_TUNNEL3_READY == state &&
-      MESH_TUNNEL3_KEY_UNINITIALIZED == t->estate)
+      MESH_TUNNEL3_READY == state)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  triggered rekey\n");
-    rekey_tunnel (t, NULL);
+    t->cstate = state;
+    if (MESH_TUNNEL3_KEY_OK == t->estate)
+    {
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "  triggered send queued data\n");
+      send_queued_data (t);
+    }
+    else if (MESH_TUNNEL3_KEY_UNINITIALIZED == t->estate)
+    {
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "  triggered rekey\n");
+      rekey_tunnel (t, NULL);
+    }
   }
   t->cstate = state;
 
@@ -1710,6 +1718,7 @@ GMT_destroy_empty (struct MeshTunnel3 *t)
     GMC_send_destroy (iter->c);
   }
 
+  t->cstate = MESH_TUNNEL3_NEW;
   t->destroy = GNUNET_YES;
 }
 
