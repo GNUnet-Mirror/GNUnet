@@ -295,7 +295,7 @@ handle_new_client (void *cls, struct GNUNET_SERVER_Client *client,
   uint32_t *p;
   unsigned int i;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "new client connected %p\n", client);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "\n\nnew client connected %p\n", client);
 
   /* Check data sanity */
   size = ntohs (message->size) - sizeof (struct GNUNET_MESH_ClientConnect);
@@ -357,7 +357,7 @@ handle_channel_create (void *cls, struct GNUNET_SERVER_Client *client,
 {
   struct MeshClient *c;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "new channel requested\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "\n\nnew channel requested\n");
 
   /* Sanity check for client registration */
   if (NULL == (c = GML_client_get (client)))
@@ -405,8 +405,7 @@ handle_channel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
   struct MeshChannel *ch;
   MESH_ChannelNumber chid;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-              "Got a DESTROY CHANNEL from client!\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "\n\nGot a DESTROY CHANNEL from client!\n");
 
   /* Sanity check for client registration */
   if (NULL == (c = GML_client_get (client)))
@@ -464,8 +463,7 @@ handle_data (void *cls, struct GNUNET_SERVER_Client *client,
   size_t size;
   int fwd;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-              "Got data from a client!\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "\n\nGot data from a client!\n");
 
   /* Sanity check for client registration */
   if (NULL == (c = GML_client_get (client)))
@@ -531,7 +529,7 @@ handle_ack (void *cls, struct GNUNET_SERVER_Client *client,
   MESH_ChannelNumber chid;
   int fwd;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Got a local ACK\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "\n\nGot a local ACK\n");
 
   /* Sanity check for client registration */
   if (NULL == (c = GML_client_get (client)))
