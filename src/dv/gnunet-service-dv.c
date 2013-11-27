@@ -1409,6 +1409,9 @@ handle_set_union_result (void *cls,
     }
     target = GNUNET_new (struct Target);
     memcpy (target, element->data, sizeof (struct Target));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Received information about peer `%s' with distance %u\n",
+                GNUNET_i2s (&target->peer), ntohl(target->distance));
     if (NULL == neighbor->neighbor_table_consensus)
       neighbor->neighbor_table_consensus = GNUNET_CONTAINER_multipeermap_create (10, GNUNET_NO);
     if (GNUNET_YES !=
@@ -1442,36 +1445,38 @@ handle_set_union_result (void *cls,
 							      neighbor);
     break;
   case GNUNET_SET_STATUS_HALF_DONE:
+    break;
+  case GNUNET_SET_STATUS_DONE:
     /* we got all of our updates; integrate routing table! */
     neighbor->target_removed = GNUNET_NO;
-    GNUNET_CONTAINER_multipeermap_iterate (neighbor->neighbor_table,
-					   &check_target_removed,
-					   neighbor);
+    if (NULL == neighbor->neighbor_table_consensus)
+      neighbor->neighbor_table_consensus = GNUNET_CONTAINER_multipeermap_create (10, GNUNET_NO);
+    if (NULL != neighbor->neighbor_table)
+      GNUNET_CONTAINER_multipeermap_iterate (neighbor->neighbor_table,
+                                           &check_target_removed,
+                                           neighbor);
     if (GNUNET_YES == neighbor->target_removed)
     {
       /* check if we got an alternative for the removed routes */
       GNUNET_CONTAINER_multipeermap_iterate (direct_neighbors,
-					     &refresh_routes,
-					     NULL);
+                                             &refresh_routes,
+                                             NULL);
     }
     /* add targets that appeared (and check for improved routes) */
-    if (NULL == neighbor->neighbor_table_consensus)
-      neighbor->neighbor_table_consensus = GNUNET_CONTAINER_multipeermap_create (10, GNUNET_NO);
     GNUNET_CONTAINER_multipeermap_iterate (neighbor->neighbor_table_consensus,
-					   &check_target_added,
-					   neighbor);
+                                           &check_target_added,
+                                           neighbor);
     if (NULL != neighbor->neighbor_table)
     {
       GNUNET_CONTAINER_multipeermap_iterate (neighbor->neighbor_table,
-					     &free_targets,
-					     NULL);
+                                             &free_targets,
+                                             NULL);
       GNUNET_CONTAINER_multipeermap_destroy (neighbor->neighbor_table);
       neighbor->neighbor_table = NULL;
     }
     neighbor->neighbor_table = neighbor->neighbor_table_consensus;
     neighbor->neighbor_table_consensus = NULL;
-    break;
-  case GNUNET_SET_STATUS_DONE:
+
     /* operation done, schedule next run! */
     neighbor->set_op = NULL;
     if (0 < memcmp (&neighbor->peer,
