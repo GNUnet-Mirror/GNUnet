@@ -757,8 +757,8 @@ transmit_line_audio (void *cls,
   GNUNET_free (ch->audio_data);
   ch->audio_data = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Sending %u bytes of audio data via mesh\n",
-              ch->audio_size);
+              "Sending %u bytes of audio data on line %u via mesh\n",
+              ch->audio_size, ch->remote_line);
   return sizeof (struct MeshAudioMessage) + ch->audio_size;
 }
 
