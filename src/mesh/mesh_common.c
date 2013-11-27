@@ -26,9 +26,33 @@
 
 #include "mesh.h"
 
+/**
+ * @brief Translate a fwd variable into a string representation, for logging.
+ *
+ * @param fwd Is FWD? (#GNUNET_YES or #GNUNET_NO)
+ *
+ * @return String representing FWD or BCK.
+ */
+char *
+GM_f2s (int fwd)
+{
+  if (GNUNET_YES == fwd)
+  {
+    return "FWD";
+  }
+  else if (GNUNET_NO == fwd)
+  {
+    return "BCK";
+  }
+  else
+  {
+    GNUNET_break (0);
+    return "";
+  }
+}
 
 int
-GMC_is_pid_bigger (uint32_t bigger, uint32_t smaller)
+GM_is_pid_bigger (uint32_t bigger, uint32_t smaller)
 {
     return (GNUNET_YES == PID_OVERFLOW (smaller, bigger) ||
             (bigger > smaller && GNUNET_NO == PID_OVERFLOW (bigger, smaller)));
@@ -36,18 +60,18 @@ GMC_is_pid_bigger (uint32_t bigger, uint32_t smaller)
 
 
 uint32_t
-GMC_max_pid (uint32_t a, uint32_t b)
+GM_max_pid (uint32_t a, uint32_t b)
 {
-  if (GMC_is_pid_bigger(a, b))
+  if (GM_is_pid_bigger(a, b))
     return a;
   return b;
 }
 
 
 uint32_t
-GMC_min_pid (uint32_t a, uint32_t b)
+GM_min_pid (uint32_t a, uint32_t b)
 {
-  if (GMC_is_pid_bigger(a, b))
+  if (GM_is_pid_bigger(a, b))
     return b;
   return a;
 }
@@ -55,7 +79,7 @@ GMC_min_pid (uint32_t a, uint32_t b)
 
 #if !defined(GNUNET_CULL_LOGGING)
 const char *
-GNUNET_MESH_DEBUG_M2S (uint16_t m)
+GM_m2s (uint16_t m)
 {
   static char buf[32];
   switch (m)
@@ -185,7 +209,7 @@ GNUNET_MESH_DEBUG_M2S (uint16_t m)
 }
 #else
 const char *
-GNUNET_MESH_DEBUG_M2S (uint16_t m)
+GM_m2s (uint16_t m)
 {
   return "";
 }

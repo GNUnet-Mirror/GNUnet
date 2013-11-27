@@ -1054,7 +1054,7 @@ msg_received (void *cls, const struct GNUNET_MessageHeader *msg)
   type = ntohs (msg->type);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "\n");
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Received a message: %s\n",
-       GNUNET_MESH_DEBUG_M2S (type));
+       GM_m2s (type));
   switch (type)
   {
     /* Notify of a new incoming channel */
@@ -1082,7 +1082,7 @@ msg_received (void *cls, const struct GNUNET_MessageHeader *msg)
     /* We shouldn't get any other packages, log and ignore */
     LOG (GNUNET_ERROR_TYPE_WARNING,
          "unsolicited message form service (type %s)\n",
-         GNUNET_MESH_DEBUG_M2S (ntohs (msg->type)));
+         GM_m2s (ntohs (msg->type)));
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "message processed\n");
   if (GNUNET_YES == h->in_receive)
@@ -1166,7 +1166,7 @@ send_callback (void *cls, size_t size, void *buf)
         dmsg->id = htonl (ch->chid);
         dmsg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_DATA);
         LOG (GNUNET_ERROR_TYPE_DEBUG, "#  payload type %s\n",
-             GNUNET_MESH_DEBUG_M2S (ntohs (mh->type)));
+             GM_m2s (ntohs (mh->type)));
                 ch->allow_send = GNUNET_NO;
       }
       else
@@ -1181,7 +1181,7 @@ send_callback (void *cls, size_t size, void *buf)
       struct GNUNET_MessageHeader *mh = (struct GNUNET_MessageHeader *) &th[1];
 
       LOG (GNUNET_ERROR_TYPE_DEBUG, "#  mesh internal traffic, type %s\n",
-           GNUNET_MESH_DEBUG_M2S (ntohs (mh->type)));
+           GM_m2s (ntohs (mh->type)));
       memcpy (cbuf, &th[1], th->size);
       psize = th->size;
     }
@@ -1243,7 +1243,7 @@ send_packet (struct GNUNET_MESH_Handle *h,
   size_t msize;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, " Sending message to service: %s\n",
-       GNUNET_MESH_DEBUG_M2S(ntohs(msg->type)));
+       GM_m2s(ntohs(msg->type)));
   msize = ntohs (msg->size);
   th = GNUNET_malloc (sizeof (struct GNUNET_MESH_TransmitHandle) + msize);
   th->timeout = GNUNET_TIME_UNIT_FOREVER_ABS;

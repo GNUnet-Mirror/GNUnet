@@ -814,7 +814,7 @@ queue_send (void *cls, size_t size, void *buf)
     case GNUNET_MESSAGE_TYPE_MESH_POLL:
       LOG (GNUNET_ERROR_TYPE_DEBUG,
                   "*   raw: %s\n",
-                  GNUNET_MESH_DEBUG_M2S (queue->type));
+                  GM_m2s (queue->type));
       data_size = send_core_data_raw (queue->cls, size, buf);
       break;
     case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE:
@@ -850,7 +850,7 @@ queue_send (void *cls, size_t size, void *buf)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
                 "Dropping message of type %s\n",
-                GNUNET_MESH_DEBUG_M2S (queue->type));
+                GM_m2s (queue->type));
     data_size = 0;
   }
 
@@ -915,7 +915,7 @@ GMP_queue_destroy (struct MeshPeerQueue *queue, int clear_cls)
   if (GNUNET_YES == clear_cls)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "#   queue destroy type %s\n",
-                GNUNET_MESH_DEBUG_M2S (queue->type));
+                GM_m2s (queue->type));
     switch (queue->type)
     {
       case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_DESTROY:
@@ -934,7 +934,7 @@ GMP_queue_destroy (struct MeshPeerQueue *queue, int clear_cls)
       default:
         GNUNET_break (0);
         LOG (GNUNET_ERROR_TYPE_ERROR, "#   type %s unknown!\n",
-                    GNUNET_MESH_DEBUG_M2S (queue->type));
+                    GM_m2s (queue->type));
     }
   }
   GNUNET_CONTAINER_DLL_remove (peer->queue_head, peer->queue_tail, queue);
@@ -985,7 +985,7 @@ GMP_queue_add (struct MeshPeer *peer, void *cls, uint16_t type, size_t size,
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "queue add %s %s towards %s (size %u) on c %p (%s)\n",
-       fwd ? "FWD" : "BCK",  GNUNET_MESH_DEBUG_M2S (type), GMP_2s(peer),
+       GM_f2s (fwd),  GM_m2s (type), GMP_2s(peer),
        size, c, GMC_2s (c));
   GNUNET_assert (NULL != c);
 
@@ -1075,7 +1075,7 @@ GMP_queue_cancel (struct MeshPeer *peer, struct MeshConnection *c)
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG,
                   "GMP_cancel_queue %s\n",
-                  GNUNET_MESH_DEBUG_M2S (q->type));
+                  GM_m2s (q->type));
       GMP_queue_destroy (q, GNUNET_YES);
 
       /* Get next from prev, q->next might be already freed:

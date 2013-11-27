@@ -322,7 +322,7 @@ add_buffered_data (const struct GNUNET_MESH_Data *msg,
   for (prev = rel->head_recv; NULL != prev; prev = prev->next)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, " prev %u\n", prev->mid);
-    if (GMC_is_pid_bigger (prev->mid, mid))
+    if (GM_is_pid_bigger (prev->mid, mid))
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG, " bingo!\n");
       GNUNET_CONTAINER_DLL_insert_before (rel->head_recv, rel->tail_recv,
@@ -467,7 +467,7 @@ send_client_ack (struct MeshChannel *ch, int fwd)
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "  sending %s ack to client on channel %s\n",
-       fwd ? "FWD" : "BCK", GMCH_2s (ch));
+       GM_f2s (fwd), GMCH_2s (ch));
 
   if (NULL == rel)
   {
@@ -614,7 +614,7 @@ channel_rel_free_sent (struct MeshChannelReliability *rel,
     /* Skip copies with mid < target */
     target = mid + i + 1;
     LOG (GNUNET_ERROR_TYPE_DEBUG, " target %u\n", target);
-    while (NULL != copy && GMC_is_pid_bigger (target, copy->mid))
+    while (NULL != copy && GM_is_pid_bigger (target, copy->mid))
      copy = copy->next;
 
     /* Did we run out of copies? (previously freed, it's ok) */
@@ -625,7 +625,7 @@ channel_rel_free_sent (struct MeshChannelReliability *rel,
     }
 
     /* Did we overshoot the target? (previously freed, it's ok) */
-    if (GMC_is_pid_bigger (copy->mid, target))
+    if (GM_is_pid_bigger (copy->mid, target))
     {
      LOG (GNUNET_ERROR_TYPE_DEBUG, " next copy %u\n", copy->mid);
      continue;
@@ -741,7 +741,7 @@ channel_send_ack (struct MeshChannel *ch, int fwd)
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CHANNEL_ACK);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
               "  sending channel %s ack for channel %s\n",
-              fwd ? "FWD" : "BCK", GMCH_2s (ch));
+              GM_f2s (fwd), GMCH_2s (ch));
 
   msg.chid = htonl (ch->gid);
   GMCH_send_prebuilt_message (&msg.header, ch, !fwd, GNUNET_NO);
@@ -784,7 +784,7 @@ channel_confirm (struct MeshChannel *ch, int fwd)
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
               "  channel confirm %s %s:%X\n",
-              fwd ? "FWD" : "BCK", GMT_2s (ch->t), ch->gid);
+              GM_f2s (fwd), GMT_2s (ch->t), ch->gid);
   ch->state = MESH_CHANNEL_READY;
 
   rel = fwd ? ch->root_rel : ch->dest_rel;
@@ -867,7 +867,7 @@ channel_save_copy (struct MeshChannel *ch,
   size = ntohs (msg->size);
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! SAVE %u %s\n",
-       mid, GNUNET_MESH_DEBUG_M2S (type));
+       mid, GM_m2s (type));
   copy = GNUNET_malloc (sizeof (struct MeshReliableMessage) + size);
   copy->mid = mid;
   copy->rel = rel;
@@ -955,7 +955,7 @@ handle_loopback (struct MeshChannel *ch,
   type = ntohs (msgh->type);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Loopback %s %s message!\n",
-       fwd ? "FWD" : "BCK", GNUNET_MESH_DEBUG_M2S (type));
+       GM_f2s (fwd), GM_m2s (type));
 
   switch (type)
   {
@@ -1211,7 +1211,7 @@ GMCH_send_data_ack (struct MeshChannel *ch, int fwd)
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            "!!  Type %s, expected DATA\n",
-           GNUNET_MESH_DEBUG_M2S (copy->type));
+           GM_m2s (copy->type));
       continue;
     }
     if (copy->mid == ack + 1)
@@ -1593,8 +1593,8 @@ GMCH_handle_data (struct MeshChannel *ch,
   LOG (GNUNET_ERROR_TYPE_DEBUG, "!! got mid %u\n", mid);
 
   if (GNUNET_NO == ch->reliable ||
-      ( !GMC_is_pid_bigger (rel->mid_recv, mid) &&
-        GMC_is_pid_bigger (rel->mid_recv + 64, mid) ) )
+      ( !GM_is_pid_bigger (rel->mid_recv, mid) &&
+        GM_is_pid_bigger (rel->mid_recv + 64, mid) ) )
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! RECV %u\n", mid);
     if (GNUNET_YES == ch->reliable)
@@ -1687,7 +1687,7 @@ GMCH_handle_data_ack (struct MeshChannel *ch,
   /* Free ACK'd copies: no need to retransmit those anymore */
   for (work = GNUNET_NO, copy = rel->head_sent; copy != NULL; copy = next)
   {
-    if (GMC_is_pid_bigger (copy->mid, ack))
+    if (GM_is_pid_bigger (copy->mid, ack))
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG, "!!!  head %u, out!\n", copy->mid);
       channel_rel_free_sent (rel, msg);
@@ -1911,7 +1911,7 @@ GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
                             int retransmission)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG, "GMCH Send %s %s on channel %s\n",
-       fwd ? "FWD" : "BCK", GNUNET_MESH_DEBUG_M2S (ntohs (message->type)),
+       GM_f2s (fwd), GM_m2s (ntohs (message->type)),
        GMCH_2s (ch));
 
   if (GMT_is_loopback (ch->t))

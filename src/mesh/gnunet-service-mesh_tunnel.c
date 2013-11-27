@@ -736,7 +736,7 @@ send_kx (struct MeshTunnel3 *t,
       break;
     default:
       LOG (GNUNET_ERROR_TYPE_DEBUG, "unkown type %s\n",
-           GNUNET_MESH_DEBUG_M2S (type));
+           GM_m2s (type));
       GNUNET_break (0);
   }
 
@@ -977,7 +977,7 @@ handle_data (struct MeshTunnel3 *t,
     return;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, " payload of type %s\n",
-              GNUNET_MESH_DEBUG_M2S (ntohs (msg[1].header.type)));
+              GM_m2s (ntohs (msg[1].header.type)));
 
   /* Check channel */
   ch = GMT_get_channel (t, ntohl (msg->chid));
@@ -1314,7 +1314,7 @@ handle_decrypted (struct MeshTunnel3 *t,
   type = ntohs (msgh->type);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Got a %s message!\n",
-       GNUNET_MESH_DEBUG_M2S (type));
+       GM_m2s (type));
 
   switch (type)
   {
@@ -2213,7 +2213,7 @@ GMT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
       break;
     default:
       LOG (GNUNET_ERROR_TYPE_DEBUG, "unkown type %s\n",
-           GNUNET_MESH_DEBUG_M2S (type));
+           GM_m2s (type));
       GNUNET_break (0);
   }
 

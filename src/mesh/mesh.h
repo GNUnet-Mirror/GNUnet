@@ -200,6 +200,17 @@ GNUNET_NETWORK_STRUCT_END
 
 
 /**
+ * @brief Translate a fwd variable into a string representation, for logging.
+ *
+ * @param fwd Is FWD? (#GNUNET_YES or #GNUNET_NO)
+ *
+ * @return String representing FWD or BCK.
+ */
+char *
+GM_f2s (int fwd);
+
+
+/**
  * Check if one pid is bigger than other, accounting for overflow.
  *
  * @param bigger Argument that should be bigger.
@@ -208,7 +219,7 @@ GNUNET_NETWORK_STRUCT_END
  * @return True if bigger (arg1) has a higher value than smaller (arg 2).
  */
 int
-GMC_is_pid_bigger (uint32_t bigger, uint32_t smaller);
+GM_is_pid_bigger (uint32_t bigger, uint32_t smaller);
 
 
 /**
@@ -220,7 +231,7 @@ GMC_is_pid_bigger (uint32_t bigger, uint32_t smaller);
  * @return Highest ACK value from the two.
  */
 uint32_t
-GMC_max_pid (uint32_t a, uint32_t b);
+GM_max_pid (uint32_t a, uint32_t b);
 
 
 /**
@@ -232,7 +243,7 @@ GMC_max_pid (uint32_t a, uint32_t b);
  * @return Lowest ACK value from the two.
  */
 uint32_t
-GMC_min_pid (uint32_t a, uint32_t b);
+GM_min_pid (uint32_t a, uint32_t b);
 
 
 /**
@@ -246,7 +257,7 @@ GMC_min_pid (uint32_t a, uint32_t b);
  * @return Human readable string description.
  */
 const char *
-GNUNET_MESH_DEBUG_M2S (uint16_t m);
+GM_m2s (uint16_t m);
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

@@ -449,7 +449,7 @@ send_ack (struct MeshConnection *c, unsigned int buffer, int fwd, int force)
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
               "connection send %s ack on %s\n",
-              fwd ? "FWD" : "BCK", GMC_2s (c));
+              GM_f2s (fwd), GMC_2s (c));
 
   /* Check if we need to transmit the ACK. */
   delta = prev_fc->last_ack_sent - prev_fc->last_pid_recv;
@@ -478,7 +478,7 @@ send_ack (struct MeshConnection *c, unsigned int buffer, int fwd, int force)
   /* Check if message is already in queue */
   if (NULL != prev_fc->ack_msg)
   {
-    if (GMC_is_pid_bigger (ack, prev_fc->last_ack_sent))
+    if (GM_is_pid_bigger (ack, prev_fc->last_ack_sent))
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG, " canceling old ACK\n");
       GMC_cancel (prev_fc->ack_msg);
@@ -530,8 +530,8 @@ message_sent (void *cls,
   fc = fwd ? &c->fwd_fc : &c->bck_fc;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "!  sent %s %s\n",
-       fwd ? "FWD" : "BCK",
-       GNUNET_MESH_DEBUG_M2S (type));
+       GM_f2s (fwd),
+       GM_m2s (type));
   LOG (GNUNET_ERROR_TYPE_DEBUG, "!  C_P- %p %u\n", c, c->pending_messages);
   if (NULL != q)
   {
@@ -704,7 +704,7 @@ send_connection_ack (struct MeshConnection *connection, int fwd)
 
   t = connection->t;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Send connection %s ACK\n",
-       !fwd ? "FWD" : "BCK");
+       !GM_f2s (fwd));
   GMP_queue_add (get_hop (connection, fwd), NULL,
                  GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK,
                  sizeof (struct GNUNET_MESH_ConnectionACK),
@@ -760,7 +760,7 @@ connection_keepalive (struct MeshConnection *c, int fwd)
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "sending %s keepalive for connection %s]\n",
-       fwd ? "FWD" : "BCK", GMC_2s (c));
+       GM_f2s (fwd), GMC_2s (c));
 
   msg = (struct GNUNET_MESH_ConnectionKeepAlive *) cbuf;
   msg->header.size = htons (size);
@@ -876,7 +876,7 @@ connection_unlock_queue (struct MeshConnection *c, int fwd)
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
               "connection_unlock_queue %s on %s\n",
-              fwd ? "FWD" : "BCK", GMC_2s (c));
+              GM_f2s (fwd), GMC_2s (c));
 
   if (GMC_is_terminal (c, fwd))
   {
@@ -906,7 +906,7 @@ connection_cancel_queues (struct MeshConnection *c, int fwd)
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        " *** Cancel %s queues for connection %s\n",
-       fwd ? "FWD" : "BCK", GMC_2s (c));
+       GM_f2s (fwd), GMC_2s (c));
   if (NULL == c)
   {
     GNUNET_break (0);
@@ -1564,7 +1564,7 @@ handle_mesh_encrypted (const struct GNUNET_PeerIdentity *peer,
   type = ntohs (msg->header.type);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "\n\n");
   LOG (GNUNET_ERROR_TYPE_DEBUG, "got a %s message (#%u) from %s\n",
-       GNUNET_MESH_DEBUG_M2S (type), ntohl (msg->pid), GNUNET_i2s (peer));
+       GM_m2s (type), ntohl (msg->pid), GNUNET_i2s (peer));
 
   /* Check connection */
   c = connection_get (&msg->cid);
@@ -1602,7 +1602,7 @@ handle_mesh_encrypted (const struct GNUNET_PeerIdentity *peer,
   /* Check PID */
   fc = fwd ? &c->bck_fc : &c->fwd_fc;
   pid = ntohl (msg->pid);
-  if (GMC_is_pid_bigger (pid, fc->last_ack_sent))
+  if (GM_is_pid_bigger (pid, fc->last_ack_sent))
   {
     GNUNET_STATISTICS_update (stats, "# unsolicited message", 1, GNUNET_NO);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -1610,7 +1610,7 @@ handle_mesh_encrypted (const struct GNUNET_PeerIdentity *peer,
                 pid, fc->last_pid_recv, fc->last_ack_sent);
     return GNUNET_OK;
   }
-  if (GNUNET_NO == GMC_is_pid_bigger (pid, fc->last_pid_recv))
+  if (GNUNET_NO == GM_is_pid_bigger (pid, fc->last_pid_recv))
   {
     GNUNET_STATISTICS_update (stats, "# duplicate PID", 1, GNUNET_NO);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -1691,7 +1691,7 @@ handle_mesh_kx (const struct GNUNET_PeerIdentity *peer,
   type = ntohs (msg->header.type);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "\n\n");
   LOG (GNUNET_ERROR_TYPE_DEBUG, "got a %s message from %s\n",
-              GNUNET_MESH_DEBUG_M2S (type), GNUNET_i2s (peer));
+              GM_m2s (type), GNUNET_i2s (peer));
 
   /* Check connection */
   c = connection_get (&msg->cid);
@@ -1853,12 +1853,12 @@ GMC_handle_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
   ack = ntohl (msg->ack);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  ACK %u (was %u)\n",
               ack, fc->last_ack_recv);
-  if (GMC_is_pid_bigger (ack, fc->last_ack_recv))
+  if (GM_is_pid_bigger (ack, fc->last_ack_recv))
     fc->last_ack_recv = ack;
 
   /* Cancel polling if the ACK is big enough. */
   if (GNUNET_SCHEDULER_NO_TASK != fc->poll_task &&
-      GMC_is_pid_bigger (fc->last_ack_recv, fc->last_pid_sent))
+      GM_is_pid_bigger (fc->last_ack_recv, fc->last_pid_sent))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  Cancel poll\n");
     GNUNET_SCHEDULER_cancel (fc->poll_task);
@@ -2024,7 +2024,7 @@ GMC_send_ack (struct MeshConnection *c, int fwd, int force)
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "GMC send %s ACK on %s\n",
-       fwd ? "FWD" : "BCK", GMC_2s (c));
+       GM_f2s (fwd), GMC_2s (c));
 
   if (NULL == c)
   {
@@ -2342,7 +2342,7 @@ GMC_get_allowed (struct MeshConnection *c, int fwd)
   struct MeshFlowControl *fc;
 
   fc = fwd ? &c->fwd_fc : &c->bck_fc;
-  if (GMC_is_pid_bigger(fc->last_pid_recv, fc->last_ack_sent))
+  if (GM_is_pid_bigger(fc->last_pid_recv, fc->last_ack_sent))
   {
     return 0;
   }
@@ -2477,7 +2477,7 @@ GMC_is_sendable (struct MeshConnection *c, int fwd)
   struct MeshFlowControl *fc;
 
   fc = fwd ? &c->fwd_fc : &c->bck_fc;
-  if (GMC_is_pid_bigger (fc->last_ack_recv, fc->last_pid_sent))
+  if (GM_is_pid_bigger (fc->last_ack_recv, fc->last_pid_sent))
     return GNUNET_YES;
   return GNUNET_NO;
 }
@@ -2514,7 +2514,7 @@ GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   memcpy (data, message, size);
   type = ntohs (message->type);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Send %s (%u bytes) on connection %s\n",
-              GNUNET_MESH_DEBUG_M2S (type), size, GMC_2s (c));
+              GM_m2s (type), size, GMC_2s (c));
 
   fc = fwd ? &c->fwd_fc : &c->bck_fc;
   droppable = GNUNET_YES;
@@ -2545,7 +2545,7 @@ GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
       LOG (GNUNET_ERROR_TYPE_DEBUG, "pid %u\n", ntohl (emsg->pid));
       LOG (GNUNET_ERROR_TYPE_DEBUG, "last pid sent %u\n", fc->last_pid_sent);
       LOG (GNUNET_ERROR_TYPE_DEBUG, "     ack recv %u\n", fc->last_ack_recv);
-      if (GMC_is_pid_bigger (fc->last_pid_sent + 1, fc->last_ack_recv))
+      if (GM_is_pid_bigger (fc->last_pid_sent + 1, fc->last_ack_recv))
       {
         GMC_start_poll (c, fwd);
       }
@@ -2733,7 +2733,7 @@ GMC_start_poll (struct MeshConnection *c, int fwd)
 
   fc = fwd ? &c->fwd_fc : &c->bck_fc;
   LOG (GNUNET_ERROR_TYPE_DEBUG, " *** POLL %s requested\n",
-       fwd ? "FWD" : "BCK");
+       GM_f2s (fwd));
   if (GNUNET_SCHEDULER_NO_TASK != fc->poll_task || NULL != fc->poll_msg)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, " ***   not needed (%u, %p)\n",
