@@ -1642,6 +1642,12 @@ GMT_add_channel (struct MeshTunnel3 *t, struct MeshChannel *ch)
   aux->ch = ch;
   LOG (GNUNET_ERROR_TYPE_DEBUG, " adding %p to %p\n", aux, t->channel_head);
   GNUNET_CONTAINER_DLL_insert_tail (t->channel_head, t->channel_tail, aux);
+
+  if (GNUNET_YES == t->destroy)
+  {
+    t->destroy = GNUNET_NO;
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " undo destroy!\n");
+  }
 }
 
 
@@ -2274,6 +2280,7 @@ GMT_get_path_cost (const struct MeshTunnel3 *t,
                    const struct MeshPeerPath *path)
 {
   struct MeshTConnection *iter;
+  const struct MeshPeerPath *aux;
   unsigned int overlap;
   unsigned int i;
   unsigned int j;
@@ -2288,9 +2295,13 @@ GMT_get_path_cost (const struct MeshTunnel3 *t,
   {
     for (iter = t->connection_head; NULL != iter; iter = iter->next)
     {
-      for (j = 0; j < GMC_get_path (iter->c)->length; j++)
+      aux = GMC_get_path (iter->c);
+      if (NULL == aux)
+        continue;
+
+      for (j = 0; j < aux->length; j++)
       {
-        if (path->peers[i] == GMC_get_path (iter->c)->peers[j])
+        if (path->peers[i] == aux->peers[j])
         {
           overlap++;
           break;

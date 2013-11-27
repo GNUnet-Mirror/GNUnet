@@ -2270,7 +2270,9 @@ GMC_get_id (const struct MeshConnection *c)
 const struct MeshPeerPath *
 GMC_get_path (const struct MeshConnection *c)
 {
-  return c->path;
+  if (GNUNET_NO == c->destroy)
+    return c->path;
+  return NULL;
 }
 
 

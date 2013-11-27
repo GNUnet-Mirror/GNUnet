@@ -1336,6 +1336,11 @@ GMP_connect (struct MeshPeer *peer)
         return;
       }
     }
+    else
+    {
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "but is NULL!!\n");
+      GNUNET_break (0);
+    }
   }
 
   if (NULL != peer->search_h && GNUNET_YES == rerun_search)
