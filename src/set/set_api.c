@@ -200,6 +200,11 @@ struct GNUNET_SET_ListenHandle
    * Time to wait until we try to reconnect on failure.
    */
   struct GNUNET_TIME_Relative reconnect_backoff;
+
+  /**
+   * Task for reconnecting when the listener fails.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier reconnect_task;
 };
 
 
@@ -357,7 +362,7 @@ handle_client_listener_error (void *cls, enum GNUNET_MQ_Error error)
   GNUNET_MQ_destroy (lh->mq);
   lh->mq = NULL;
 
-  GNUNET_SCHEDULER_add_delayed (lh->reconnect_backoff, listen_connect, lh);
+  lh->reconnect_task = GNUNET_SCHEDULER_add_delayed (lh->reconnect_backoff, listen_connect, lh);
   lh->reconnect_backoff = GNUNET_TIME_STD_BACKOFF (lh->reconnect_backoff);
 }
 
@@ -651,6 +656,14 @@ listen_connect (void *cls,
     GNUNET_MQ_HANDLERS_END
   };
 
+  if ((tc != NULL) &&(tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "listener not reconnecting due to shutdown\n");
+    return;
+  }
+
+  lh->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
+
   GNUNET_assert (NULL == lh->client);
   lh->client = GNUNET_CLIENT_connect ("set", lh->cfg);
   if (NULL == lh->client)
@@ -721,6 +734,11 @@ GNUNET_SET_listen_cancel (struct GNUNET_SET_ListenHandle *lh)
   {
     GNUNET_CLIENT_disconnect (lh->client);
     lh->client = NULL;
+  }
+  if (GNUNET_SCHEDULER_NO_TASK != lh->reconnect_task)
+  {
+    GNUNET_SCHEDULER_cancel (lh->reconnect_task);
+    lh->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
   }
   GNUNET_free (lh);
 }
