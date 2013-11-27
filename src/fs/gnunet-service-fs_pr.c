@@ -595,7 +595,14 @@ clean_request (void *cls, const struct GNUNET_HashCode * key, void *value)
   GSF_LocalLookupContinuation cont;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Cleaning up pending request for `%s'.\n", GNUNET_h2s (key));
+              "Cleaning up pending request for `%s'.\n", 
+	      GNUNET_h2s (key));
+  if (NULL != pr->mesh_request)
+  {
+    pr->mesh_retry_count = MESH_RETRY_MAX;
+    GSF_mesh_query_cancel (pr->mesh_request);
+    pr->mesh_request = NULL;
+  }
   if (NULL != (cont = pr->llc_cont))
   {
     pr->llc_cont = NULL;
@@ -626,11 +633,6 @@ clean_request (void *cls, const struct GNUNET_HashCode * key, void *value)
   {
     GNUNET_DHT_get_stop (pr->gh);
     pr->gh = NULL;
-  }
-  if (NULL != pr->mesh_request)
-  {
-    GSF_mesh_query_cancel (pr->mesh_request);
-    pr->mesh_request = NULL;
   }
   if (GNUNET_SCHEDULER_NO_TASK != pr->warn_task)
   {
@@ -668,6 +670,12 @@ GSF_pending_request_cancel_ (struct GSF_PendingRequest *pr, int full_cleanup)
      * but do NOT remove from our data-structures, we still need it there
      * to prevent the request from looping */
     pr->rh = NULL;
+    if (NULL != pr->mesh_request)
+    {
+      pr->mesh_retry_count = MESH_RETRY_MAX;
+      GSF_mesh_query_cancel (pr->mesh_request);
+      pr->mesh_request = NULL;
+    }
     if (NULL != (cont = pr->llc_cont))
     {
       pr->llc_cont = NULL;
@@ -683,11 +691,6 @@ GSF_pending_request_cancel_ (struct GSF_PendingRequest *pr, int full_cleanup)
     {
       GNUNET_DHT_get_stop (pr->gh);
       pr->gh = NULL;
-    }
-    if (NULL != pr->mesh_request)
-    {
-      GSF_mesh_query_cancel (pr->mesh_request);
-      pr->mesh_request = NULL;
     }
     if (GNUNET_SCHEDULER_NO_TASK != pr->warn_task)
     {
@@ -1143,7 +1146,7 @@ GSF_dht_lookup_ (struct GSF_PendingRequest *pr)
  * @param cls the pending request struct
  * @param type type of the block, ANY on error
  * @param expiration expiration time for the block
- * @param data_size number of bytes in 'data', 0 on error
+ * @param data_size number of bytes in @a data, 0 on error
  * @param data reply block data, NULL on error
  */
 static void
@@ -1162,11 +1165,11 @@ mesh_reply_proc (void *cls,
   {
     GNUNET_break (NULL == data);
     GNUNET_break (0 == data_size);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Error retrieiving block via mesh\n");
     pr->mesh_retry_count++;
     if (pr->mesh_retry_count >= MESH_RETRY_MAX)
       return; /* give up on mesh */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+		"Error retrieiving block via mesh\n");
     /* retry -- without delay, as this is non-anonymous
        and mesh/mesh connect will take some time anyway */
     pr->mesh_request = GSF_mesh_query (pr->public_data.target,

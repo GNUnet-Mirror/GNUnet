@@ -407,7 +407,7 @@ struct HandleReplyClosure
  * @param cls the 'struct HandleReplyClosure'
  * @param key the key of the entry in the map (the query)
  * @param value the 'struct GSF_MeshRequest' to handle result for
- * @return GNUNET_YES (continue to iterate)
+ * @return #GNUNET_YES (continue to iterate)
  */
 static int
 handle_reply (void *cls,
@@ -422,6 +422,7 @@ handle_reply (void *cls,
 	    hrc->expiration,
 	    hrc->data_size,
 	    hrc->data);
+  sr->proc = NULL;
   GSF_mesh_query_cancel (sr);
   hrc->found = GNUNET_YES;
   return GNUNET_YES;
@@ -591,7 +592,17 @@ void
 GSF_mesh_query_cancel (struct GSF_MeshRequest *sr)
 {
   struct MeshHandle *mh = sr->mh;
+  GSF_MeshReplyProcessor p;
 
+  p = sr->proc;
+  sr->proc = NULL;
+  if (NULL != p)
+  {
+    /* signal failure / cancellation to callback */
+    p (sr->proc_cls, GNUNET_BLOCK_TYPE_ANY, 
+       GNUNET_TIME_UNIT_ZERO_ABS,
+       0, NULL);
+  }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Cancelled query for %s via mesh to %s\n",
 	      GNUNET_h2s (&sr->query),
@@ -619,10 +630,10 @@ GSF_mesh_query_cancel (struct GSF_MeshRequest *sr)
  * call the 'proc' continuation and release associated
  * resources.
  *
- * @param cls the 'struct MeshHandle'
+ * @param cls the `struct MeshHandle`
  * @param key the key of the entry in the map (the query)
- * @param value the 'struct GSF_MeshRequest' to clean up
- * @return GNUNET_YES (continue to iterate)
+ * @param value the `struct GSF_MeshRequest` to clean up
+ * @return #GNUNET_YES (continue to iterate)
  */
 static int
 free_waiting_entry (void *cls,
@@ -631,9 +642,6 @@ free_waiting_entry (void *cls,
 {
   struct GSF_MeshRequest *sr = value;
 
-  sr->proc (sr->proc_cls, GNUNET_BLOCK_TYPE_ANY,
-	    GNUNET_TIME_UNIT_FOREVER_ABS,
-	    0, NULL);
   GSF_mesh_query_cancel (sr);
   return GNUNET_YES;
 }
@@ -660,12 +668,7 @@ cleaner_cb (void *cls,
   GNUNET_assert (channel == mh->channel);
   mh->channel = NULL;
   while (NULL != (sr = mh->pending_head))
-  {
-    sr->proc (sr->proc_cls, GNUNET_BLOCK_TYPE_ANY,
-	      GNUNET_TIME_UNIT_FOREVER_ABS,
-	      0, NULL);
     GSF_mesh_query_cancel (sr);
-  }
   GNUNET_CONTAINER_multihashmap_iterate (mh->waiting_map,
 					 &free_waiting_entry,
 					 mh);
