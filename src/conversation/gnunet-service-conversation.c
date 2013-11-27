@@ -1273,7 +1273,7 @@ handle_mesh_audio_message (void *cls,
   cam->cid = ch->cid;
   memcpy (&cam[1], &msg[1], msize);
   GNUNET_SERVER_notification_context_unicast (nc,
-                                              line->client,
+                                              ch->line->client,
                                               &cam->header,
                                               GNUNET_YES);
   GNUNET_MESH_receive_done (channel);
