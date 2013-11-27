@@ -61,6 +61,7 @@ test_revocation_SOURCES = \
 test_revocation_LDADD = \
  $(top_builddir)/src/identity/libgnunetidentity.la \
  $(top_builddir)/src/revocation/libgnunetrevocation.la \
+ $(top_builddir)/src//core/libgnunetcore.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/testbed/libgnunettestbed.la
 

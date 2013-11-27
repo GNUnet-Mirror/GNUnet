@@ -239,6 +239,7 @@ do_flood (void *cls,
 
   e = GNUNET_MQ_msg (cp, GNUNET_MESSAGE_TYPE_REVOCATION_REVOKE);
   *cp = *rm;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Flooding revocation to `%s'\n", GNUNET_i2s (target));
   GNUNET_MQ_send (pe->mq, e);
   return GNUNET_OK;
 }
@@ -312,6 +313,11 @@ publicize_rm (const struct RevokeMessage *rm)
   {
     GNUNET_break (0);
     return GNUNET_OK;
+  }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Added revocation info to SET\n");
   }
   /* flood to neighbours */
   GNUNET_CONTAINER_multipeermap_iterate (peers,
@@ -459,6 +465,10 @@ transmit_task_cb (void *cls,
   struct PeerEntry *peer_entry = cls;
   uint16_t salt;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Starting set exchange with peer `%s'\n",
+              GNUNET_i2s (&peer_entry->id));
+
   salt = (uint16_t) GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
                                               UINT16_MAX);
   peer_entry->transmit_task = GNUNET_SCHEDULER_NO_TASK;
@@ -495,6 +505,9 @@ handle_core_connect (void *cls,
   struct GNUNET_HashCode my_hash;
   struct GNUNET_HashCode peer_hash;
 
+  if (0 == memcmp(peer, &my_identity, sizeof (my_identity)))
+      return;
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Peer `%s' connected to us\n",
               GNUNET_i2s (peer));
@@ -519,6 +532,9 @@ handle_core_connect (void *cls,
   if (0 < GNUNET_CRYPTO_hash_cmp (&my_hash,
                                   &peer_hash))
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Starting SET operation with peer `%s'\n",
+                GNUNET_i2s (peer));
     peer_entry->transmit_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
                                     &transmit_task_cb,
@@ -540,6 +556,9 @@ handle_core_disconnect (void *cls,
 			const struct GNUNET_PeerIdentity *peer)
 {
   struct PeerEntry *pos;
+
+  if (0 == memcmp(peer, &my_identity, sizeof (my_identity)))
+      return;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Peer `%s' disconnected from us\n",

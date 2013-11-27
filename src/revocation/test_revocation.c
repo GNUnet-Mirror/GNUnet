@@ -18,8 +18,8 @@
  Boston, MA 02111-1307, USA.
  */
 /**
- * @file dv/test_transport_dv.c
- * @brief base testcase for testing distance vector transport
+ * @file revocation/test_revocation.c
+ * @brief base testcase for revocation exchange
  */
 #include "platform.h"
 #include "gnunet_core_service.h"
@@ -33,6 +33,7 @@ struct TestPeer
 {
   struct GNUNET_TESTBED_Peer *p;
   struct GNUNET_TESTBED_Operation *identity_op;
+  struct GNUNET_TESTBED_Operation *core_op;
   struct GNUNET_IDENTITY_Handle *idh;
   const struct GNUNET_CONFIGURATION_Handle *cfg;
   const struct GNUNET_CRYPTO_EcdsaPrivateKey *privkey;
@@ -41,6 +42,7 @@ struct TestPeer
   struct GNUNET_IDENTITY_Operation *create_id_op;
   struct GNUNET_IDENTITY_EgoLookup *ego_lookup;
   struct GNUNET_REVOCATION_Handle *revok_handle;
+  struct GNUNET_CORE_Handle *ch;
   uint64_t pow;
 };
 
@@ -87,6 +89,11 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_TESTBED_operation_done (testpeers[c].identity_op);
       testpeers[c].identity_op = NULL;
     }
+    if (NULL != testpeers[c].core_op)
+    {
+      GNUNET_TESTBED_operation_done (testpeers[c].core_op);
+      testpeers[c].core_op = NULL;
+    }
   }
   GNUNET_SCHEDULER_shutdown ();
   ok = 0;
@@ -100,6 +107,7 @@ do_shutdown_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   do_shutdown (NULL, NULL );
   ok = 1;
 }
+
 
 static void *
 identity_connect_adapter (void *cls,
@@ -249,6 +257,61 @@ identity_completion_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
   }
 }
 
+void static connect_cb (void *cls, const struct GNUNET_PeerIdentity *peer)
+{
+  static int connects = 0;
+  connects++;
+  if (4 == connects)
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO, "All peers connected ...\n");
+
+    /* Connect to identity service */
+    testpeers[0].identity_op = GNUNET_TESTBED_service_connect (NULL,
+        testpeers[0].p, "identity", identity_completion_cb, NULL,
+        &identity_connect_adapter, &identity_disconnect_adapter,
+        &testpeers[0]);
+    testpeers[1].identity_op = GNUNET_TESTBED_service_connect (NULL,
+        testpeers[1].p, "identity", identity_completion_cb, NULL,
+        &identity_connect_adapter, &identity_disconnect_adapter,
+        &testpeers[1]);
+  }
+}
+
+
+static void
+core_completion_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
+    void *ca_result, const char *emsg)
+{
+  static int completed = 0;
+  completed++;
+  if (NUM_TEST_PEERS == completed)
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Connected to CORE\n");
+  }
+}
+
+
+static void *
+core_connect_adapter (void *cls,
+    const struct GNUNET_CONFIGURATION_Handle *cfg)
+{
+  struct TestPeer *me = cls;
+  me->cfg = cfg;
+  me->ch = GNUNET_CORE_connect (cfg, me, NULL, &connect_cb, NULL, NULL, GNUNET_NO, NULL, GNUNET_NO, NULL);
+  if (NULL == me->ch)
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Failed to create CORE handle \n");
+  return me->ch;
+}
+
+
+static void
+core_disconnect_adapter (void *cls, void *op_result)
+{
+  struct TestPeer *me = cls;
+  GNUNET_CORE_disconnect (me->ch);
+  me->ch = NULL;
+}
+
 static void
 test_connection (void *cls, struct GNUNET_TESTBED_RunHandle *h,
     unsigned int num_peers, struct GNUNET_TESTBED_Peer **peers,
@@ -271,10 +334,9 @@ test_connection (void *cls, struct GNUNET_TESTBED_RunHandle *h,
     {
       testpeers[c].p = peers[c];
 
-      /* Connect to identity service */
-      testpeers[c].identity_op = GNUNET_TESTBED_service_connect (NULL,
-          testpeers[c].p, "identity", identity_completion_cb, NULL,
-          &identity_connect_adapter, &identity_disconnect_adapter,
+      testpeers[c].core_op = GNUNET_TESTBED_service_connect (NULL,
+          testpeers[c].p, "core", &core_completion_cb, NULL,
+          &core_connect_adapter, &core_disconnect_adapter,
           &testpeers[c]);
     }
   }
@@ -290,4 +352,4 @@ main (int argc, char *argv[])
   return ok;
 }
 
-/* end of test_transport_dv.c */
+/* end of test_revocation.c */
