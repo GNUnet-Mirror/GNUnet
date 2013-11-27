@@ -823,7 +823,7 @@ decode_and_send (struct Operation *op)
       next_order++;
       if (next_order <= MAX_IBF_ORDER)
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		    "decoding failed, sending larger ibf (size %u)\n",
                     1<<next_order);
         send_ibf (op, next_order);
