@@ -76,7 +76,7 @@ shutdown_task (void *cls,
  * @param origin that started the tunnel (owner).
  * @param target other endpoint of the tunnel
  */
-static void
+void /* FIXME static */
 tunnels_callback (void *cls,
                   uint32_t tunnel_number,
                   const struct GNUNET_PeerIdentity *origin,
@@ -97,7 +97,7 @@ tunnels_callback (void *cls,
  * @param parent Parent of the current peer. All 0 when peer is root.
  *
  */
-static void
+void /* FIXME static */
 tunnel_callback (void *cls,
                  const struct GNUNET_PeerIdentity *peer,
                  const struct GNUNET_PeerIdentity *parent)
