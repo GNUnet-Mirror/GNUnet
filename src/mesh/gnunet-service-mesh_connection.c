@@ -1517,6 +1517,7 @@ GMC_handle_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
      */
     GNUNET_STATISTICS_update (stats, "# control on unknown tunnel",
                               1, GNUNET_NO);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  connection unknown: already destroyed?\n");
     return GNUNET_OK;
   }
   fwd = is_fwd (c, peer);

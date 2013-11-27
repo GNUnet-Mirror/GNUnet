@@ -395,7 +395,7 @@ get_connection_allowed (const struct MeshTConnection *tc)
  * @return GNUNET_OK if message is fine, GNUNET_SYSERR otherwise.
  */
 int
-check_ephemeral (struct MeshTunnel3 *t, 
+check_ephemeral (struct MeshTunnel3 *t,
                  const struct GNUNET_MESH_KX_Ephemeral *msg)
 {
   /* Check message size */
@@ -1623,6 +1623,7 @@ GMT_destroy_empty (struct MeshTunnel3 *t)
 {
   struct MeshTConnection *iter;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Tunnel empty: destroying scheduled\n");
   for (iter = t->connection_head; NULL != iter; iter = iter->next)
   {
     GMC_send_destroy (iter->c);
@@ -1964,7 +1965,7 @@ GMT_send_connection_acks (struct MeshTunnel3 *t)
   unsigned int cs;
   unsigned int buffer;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Tunnel send connection ACKs on %s\n",
        GMT_2s (t));
 
@@ -2019,7 +2020,7 @@ GMT_send_connection_acks (struct MeshTunnel3 *t)
  * @param fwd Was this a FWD going message?
  * @param size Size of the message.
  */
-static void 
+static void
 message_sent (void *cls,
               struct MeshConnection *c,
               struct MeshConnectionQueue *q,
