@@ -64,6 +64,11 @@ enum MeshConnectionState
    * Connection confirmed, ready to carry traffic.
    */
   MESH_CONNECTION_READY,
+
+  /**
+   * Connection to be destroyed, just waiting to empty queues.
+   */
+  MESH_CONNECTION_DESTROYED,
 };
 
 

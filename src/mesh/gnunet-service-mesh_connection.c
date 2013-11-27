@@ -334,6 +334,8 @@ GMC_state2s (enum MeshConnectionState s)
       return "MESH_CONNECTION_ACK";
     case MESH_CONNECTION_READY:
       return "MESH_CONNECTION_READY";
+    case MESH_CONNECTION_DESTROYED:
+      return "MESH_CONNECTION_DESTROYED";
     default:
       return "MESH_CONNECTION_STATE_ERROR";
   }
@@ -379,6 +381,11 @@ connection_change_state (struct MeshConnection* c,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
               "Connection %s state was %s\n",
               GMC_2s (c), GMC_state2s (c->state));
+  if (MESH_CONNECTION_DESTROYED == c->state)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "state not changing anymore\n");
+    return;
+  }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
               "Connection %s state is now %s\n",
               GMC_2s (c), GMC_state2s (state));
@@ -1520,6 +1527,7 @@ GMC_handle_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
   GMC_send_prebuilt_message (message, c, fwd, NULL, NULL);
   c->destroy = GNUNET_YES;
+  c->state = MESH_CONNECTION_DESTROYED;
 
   return GNUNET_OK;
 }
@@ -2399,6 +2407,7 @@ GMC_notify_broken (struct MeshConnection *c,
    * (the one we just scheduled), so no point in checking whether to
    * destroy immediately. */
   c->destroy = GNUNET_YES;
+  c->state = MESH_CONNECTION_DESTROYED;
 
   /**
    * Cancel all queues, if no message is left, connection will be destroyed.
@@ -2691,6 +2700,7 @@ GMC_send_destroy (struct MeshConnection *c)
   if (GNUNET_NO == GMC_is_terminal (c, GNUNET_NO))
     GMC_send_prebuilt_message (&msg.header, c, GNUNET_NO, NULL, NULL);
   c->destroy = GNUNET_YES;
+  c->state = MESH_CONNECTION_DESTROYED;
 }
 
 
