@@ -234,6 +234,11 @@ handle_dv_message_received (void *cls,
   struct GNUNET_ATS_Information ats;
   struct Session *session;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message for peer `%s': new distance %u\n",
+      "DV_MESSAGE_RECEIVED",
+      GNUNET_i2s (sender), distance);
+
+
   session = GNUNET_CONTAINER_multipeermap_get (plugin->sessions,
 					       sender);
   if (NULL == session)
@@ -278,6 +283,10 @@ handle_dv_connect (void *cls,
   struct Plugin *plugin = cls;
   struct Session *session;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message for peer `%s'\n",
+      "DV_CONNECT",
+      GNUNET_i2s (peer));
+
   session = GNUNET_CONTAINER_multipeermap_get (plugin->sessions,
 					       peer);
   if (NULL != session)
@@ -313,6 +322,10 @@ handle_dv_distance_changed (void *cls,
 {
   struct Plugin *plugin = cls;
   struct Session *session;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message for peer `%s': new distance %u\n",
+      "DV_DISTANCE_CHANGED",
+      GNUNET_i2s (peer), distance);
 
   session = GNUNET_CONTAINER_multipeermap_get (plugin->sessions,
 					       peer);
@@ -376,6 +389,10 @@ handle_dv_disconnect (void *cls,
 {
   struct Plugin *plugin = cls;
   struct Session *session;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message for peer `%s'\n",
+      "DV_DISCONNECT",
+      GNUNET_i2s (peer));
 
   session = GNUNET_CONTAINER_multipeermap_get (plugin->sessions,
 					       peer);

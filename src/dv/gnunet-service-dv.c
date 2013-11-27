@@ -1411,7 +1411,7 @@ handle_set_union_result (void *cls,
     memcpy (target, element->data, sizeof (struct Target));
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Received information about peer `%s' with distance %u\n",
-                GNUNET_i2s (&target->peer), ntohl(target->distance));
+                GNUNET_i2s (&target->peer), ntohl(target->distance) + 1);
     if (NULL == neighbor->neighbor_table_consensus)
       neighbor->neighbor_table_consensus = GNUNET_CONTAINER_multipeermap_create (10, GNUNET_NO);
     if (GNUNET_YES !=
