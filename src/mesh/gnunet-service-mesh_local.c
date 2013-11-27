@@ -1034,6 +1034,8 @@ GML_send_channel_destroy (struct MeshClient *c, uint32_t id)
     GNUNET_break (0);
     return;
   }
+  if (GNUNET_YES == c->shutting_down)
+    return;
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_DESTROY);
   msg.channel_id = htonl (id);
