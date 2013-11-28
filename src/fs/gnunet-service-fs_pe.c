@@ -54,7 +54,7 @@ struct PeerPlan;
  * a particular pending request.
  *
  * The corresponding head and tail of the "PE" MDLL
- * are stored in a 'struct GSF_RequestPlan'. (We need
+ * are stored in a `struct GSF_RequestPlan`. (We need
  * to be able to lookup all pending requests corresponding
  * to a given plan entry.)
  *
@@ -238,7 +238,7 @@ get_rp_key (struct GSF_RequestPlan *rp)
 /**
  * Figure out when and how to transmit to the given peer.
  *
- * @param cls the 'struct GSF_ConnectedPeer' for transmission
+ * @param cls the `struct GSF_ConnectedPeer` for transmission
  * @param tc scheduler context
  */
 static void
@@ -376,7 +376,7 @@ get_latest (const struct GSF_RequestPlan *rp)
  * Function called to get a message for transmission.
  *
  * @param cls closure
- * @param buf_size number of bytes available in buf
+ * @param buf_size number of bytes available in @a buf
  * @param buf where to copy the message, NULL on error (peer disconnect)
  * @return number of bytes copied to 'buf', can be 0 (without indicating an error)
  */
@@ -525,8 +525,8 @@ struct MergeContext
  * @param cls closure
  * @param query the query
  * @param element request plan stored at the node
- * @return GNUNET_YES if we should continue to iterate,
- *         GNUNET_NO if not (merge success)
+ * @return #GNUNET_YES if we should continue to iterate,
+ *         #GNUNET_NO if not (merge success)
  */
 static int
 merge_pr (void *cls, const struct GNUNET_HashCode * query, void *element)
@@ -707,17 +707,17 @@ GSF_plan_notify_peer_disconnect_ (const struct GSF_ConnectedPeer *cp)
 
 /**
  * Get the last transmission attempt time for the request plan list
- * referenced by 'pr_head', that was sent to 'sender'
+ * referenced by @a pr_head, that was sent to @a sender
  *
  * @param pr_head request plan reference list to check.
  * @param sender the peer that we've sent the request to.
- * @param result the timestamp to fill, set to "FOREVER" if never transmitted
- * @return GNUNET_YES if 'result' was changed, GNUNET_NO otherwise.
+ * @param result the timestamp to fill, set to #GNUNET_TIME_UNIT_FOREVER_ABS if never transmitted
+ * @return #GNUNET_YES if @a result was changed, #GNUNET_NO otherwise.
  */
 int
-GSF_request_plan_reference_get_last_transmission_ (
-    struct GSF_PendingRequestPlanBijection *pr_head, struct GSF_ConnectedPeer *sender,
-    struct GNUNET_TIME_Absolute *result)
+GSF_request_plan_reference_get_last_transmission_ (struct GSF_PendingRequestPlanBijection *pr_head,
+                                                   struct GSF_ConnectedPeer *sender,
+                                                   struct GNUNET_TIME_Absolute *result)
 {
   struct GSF_PendingRequestPlanBijection *bi;
 
