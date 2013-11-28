@@ -476,7 +476,9 @@ perform_dht_put (const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
 					   label,
 					   &query);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Storing record in DHT with expiration `%s' under key %s\n",
+              "Storing %u record(s) for label `%s' in DHT with expiration `%s' under key %s\n",
+              rd_public_count,
+              label,
               GNUNET_STRINGS_absolute_time_to_string (expire),
               GNUNET_h2s (&query));
   ret = GNUNET_DHT_put (dht_handle, &query,
