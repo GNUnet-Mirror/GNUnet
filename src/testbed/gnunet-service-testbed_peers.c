@@ -1308,38 +1308,6 @@ GST_destroy_peers ()
 
 
 /**
- * Task run upon timeout of forwarded SHUTDOWN_PEERS operation
- *
- * @param cls the ForwardedOperationContext
- * @param tc the scheduler task context
- */
-static void
-shutdown_peers_timeout_cb (void *cls,
-                           const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct ForwardedOperationContext *fo_ctxt = cls;
-  struct HandlerContext_ShutdownPeers *hc;
-
-  fo_ctxt->timeout_task = GNUNET_SCHEDULER_NO_TASK;
-  hc = fo_ctxt->cls;
-  hc->timeout = GNUNET_YES;
-  GNUNET_assert (0 < hc->nslaves);
-  hc->nslaves--;
-  if (0 == hc->nslaves)
-  {
-    GST_send_operation_fail_msg (fo_ctxt->client, fo_ctxt->operation_id,
-                                 "Timeout at a slave controller");
-    GNUNET_free (hc);
-    hc = NULL;
-  }
-  GNUNET_TESTBED_forward_operation_msg_cancel_ (fo_ctxt->opc);
-  GNUNET_SERVER_client_drop (fo_ctxt->client);
-  GNUNET_CONTAINER_DLL_remove (fopcq_head, fopcq_tail, fo_ctxt);
-  GNUNET_free (fo_ctxt);
-}
-
-
-/**
  * The reply msg handler forwarded SHUTDOWN_PEERS operation.  Checks if a
  * success reply is received from all clients and then sends the success message
  * to the client
@@ -1355,9 +1323,6 @@ shutdown_peers_reply_cb (void *cls,
   struct HandlerContext_ShutdownPeers *hc;
 
   hc = fo_ctxt->cls;
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != fo_ctxt->timeout_task);
-  GNUNET_SCHEDULER_cancel (fo_ctxt->timeout_task);
-  fo_ctxt->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_assert (0 < hc->nslaves);
   hc->nslaves--;
   if (GNUNET_MESSAGE_TYPE_TESTBED_GENERIC_OPERATION_SUCCESS !=
@@ -1430,9 +1395,6 @@ GST_handle_shutdown_peers (void *cls, struct GNUNET_SERVER_Client *client,
                                                &msg->header,
                                                shutdown_peers_reply_cb,
                                                fo_ctxt);
-    fo_ctxt->timeout_task =
-        GNUNET_SCHEDULER_add_delayed (GST_timeout, &shutdown_peers_timeout_cb,
-                                      fo_ctxt);
     GNUNET_CONTAINER_DLL_insert_tail (fopcq_head, fopcq_tail, fo_ctxt);
   }
   LOG_DEBUG ("Shutting down peers\n");
