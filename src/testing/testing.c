@@ -1253,7 +1253,10 @@ GNUNET_TESTING_peer_configure (struct GNUNET_TESTING_System *system,
     peer->args = strdup ("");
   }
   else
+  {
+    peer->main_binary = GNUNET_CONFIGURATION_expand_dollar (peer->main_binary);
     peer->args = strdup (libexec_binary);
+  }
   peer->system = system;
   peer->key_number = key_number;
   GNUNET_free (libexec_binary);

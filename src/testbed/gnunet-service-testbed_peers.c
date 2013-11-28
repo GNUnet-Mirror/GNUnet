@@ -361,6 +361,9 @@ GST_handle_peer_create (void *cls, struct GNUNET_SERVER_Client *client,
     }
     GNUNET_CONFIGURATION_set_value_number (cfg, "TESTBED", "PEERID",
                                            (unsigned long long) peer_id);
+    
+    GNUNET_CONFIGURATION_set_value_number (cfg, "PATHS", "PEERID",
+                                           (unsigned long long) peer_id);
     peer = GNUNET_malloc (sizeof (struct Peer));
     peer->is_remote = GNUNET_NO;
     peer->details.local.cfg = cfg;
