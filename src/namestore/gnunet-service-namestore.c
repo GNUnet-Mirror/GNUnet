@@ -397,15 +397,16 @@ client_lookup (struct GNUNET_SERVER_Client *client)
 }
 
 
-static void lookup_nick_it (void *cls,
-     const struct GNUNET_CRYPTO_EcdsaPrivateKey *private_key,
-     const char *label,
-     unsigned int rd_count,
-     const struct GNUNET_GNSRECORD_Data *rd)
+static void
+lookup_nick_it (void *cls,
+                const struct GNUNET_CRYPTO_EcdsaPrivateKey *private_key,
+                const char *label,
+                unsigned int rd_count,
+                const struct GNUNET_GNSRECORD_Data *rd)
 {
-  struct GNUNET_GNSRECORD_Data **res = (cls);
-
+  struct GNUNET_GNSRECORD_Data **res = cls;
   int c;
+
   if (0 != strcmp (label, GNUNET_GNS_MASTERZONE_STR))
   {
     GNUNET_break (0);
@@ -437,26 +438,27 @@ get_nick_record (const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone)
   int res;
 
   res = GSN_database->lookup_records (GSN_database->cls, zone,
-      GNUNET_GNS_MASTERZONE_STR, &lookup_nick_it, &nick);
-
+                                      GNUNET_GNS_MASTERZONE_STR,
+                                      &lookup_nick_it, &nick);
   if ((NULL == nick) || (GNUNET_OK != res))
   {
     GNUNET_CRYPTO_ecdsa_key_get_public (zone, &pub);
-    GNUNET_log(GNUNET_ERROR_TYPE_INFO | GNUNET_ERROR_TYPE_BULK, "No nick name set for zone `%s'\n",
-        GNUNET_CRYPTO_ecdsa_public_key_to_string (&pub));
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO | GNUNET_ERROR_TYPE_BULK,
+                "No nick name set for zone `%s'\n",
+                GNUNET_GNSRECORD_z2s (&pub));
     return NULL;
   }
-
   return nick;
 }
 
 
-static void merge_records (unsigned int rdc1,
-                           const struct GNUNET_GNSRECORD_Data *rd1,
-                           unsigned int rdc2,
-                           const struct GNUNET_GNSRECORD_Data *rd2,
-                           unsigned int *rdc_res,
-                           struct GNUNET_GNSRECORD_Data **rd_res)
+static void
+merge_records (unsigned int rdc1,
+               const struct GNUNET_GNSRECORD_Data *rd1,
+               unsigned int rdc2,
+               const struct GNUNET_GNSRECORD_Data *rd2,
+               unsigned int *rdc_res,
+               struct GNUNET_GNSRECORD_Data **rd_res)
 {
   int c;
   size_t req;
@@ -497,7 +499,6 @@ static void merge_records (unsigned int rdc1,
   }
   GNUNET_assert (req == (sizeof (struct GNUNET_GNSRECORD_Data)) * (*rdc_res) + data_offset);
 }
-
 
 
 /**
