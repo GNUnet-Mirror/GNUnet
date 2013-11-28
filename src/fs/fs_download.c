@@ -2081,7 +2081,7 @@ create_download_context (struct GNUNET_FS_Handle *h,
     GNUNET_break (0);
     return NULL;
   }
-  dc = GNUNET_malloc (sizeof (struct GNUNET_FS_DownloadContext));
+  dc = GNUNET_new (struct GNUNET_FS_DownloadContext);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Starting download %p, %u bytes at offset %llu\n",
 	      dc,

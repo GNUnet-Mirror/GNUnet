@@ -296,17 +296,16 @@ client_response_handler (void *cls, enum GNUNET_BLOCK_EvaluationResult eval,
  * @param client identification of the client
  * @param message the actual message
  * @param prptr where to store the pending request handle for the request
- * @return GNUNET_YES to start local processing,
- *         GNUNET_NO to not (yet) start local processing,
- *         GNUNET_SYSERR on error
+ * @return #GNUNET_YES to start local processing,
+ *         #GNUNET_NO to not (yet) start local processing,
+ *         #GNUNET_SYSERR on error
  */
 int
 GSF_local_client_start_search_handler_ (struct GNUNET_SERVER_Client *client,
-                                        const struct GNUNET_MessageHeader
-                                        *message,
+                                        const struct GNUNET_MessageHeader *message,
                                         struct GSF_PendingRequest **prptr)
 {
-  static struct GNUNET_HashCode all_zeros;
+  static struct GNUNET_PeerIdentity all_zeros;
   const struct SearchMessage *sm;
   struct GSF_LocalClient *lc;
   struct ClientRequest *cr;
@@ -378,9 +377,8 @@ GSF_local_client_start_search_handler_ (struct GNUNET_SERVER_Client *client,
 					  &sm->query,
                                           (0 !=
                                            memcmp (&sm->target, &all_zeros,
-                                                   sizeof (struct GNUNET_HashCode)))
-                                          ? (const struct GNUNET_PeerIdentity *)
-                                          &sm->target : NULL, NULL, 0,
+                                                   sizeof (struct GNUNET_PeerIdentity)))
+                                          ? &sm->target : NULL, NULL, 0,
                                           0 /* bf */ ,
                                           ntohl (sm->anonymity_level),
                                           0 /* priority */ ,

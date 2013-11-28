@@ -1077,7 +1077,7 @@ transmit_search_request (void *cls, size_t size, void *buf)
     sm->header.size = htons (msize);
     sm->type = htonl (GNUNET_BLOCK_TYPE_FS_UBLOCK);
     sm->anonymity_level = htonl (sc->anonymity);
-    memset (&sm->target, 0, sizeof (struct GNUNET_HashCode));
+    memset (&sm->target, 0, sizeof (struct GNUNET_PeerIdentity));
     sm->query = sc->requests[sc->keyword_offset].uquery;
     GNUNET_CONTAINER_multihashmap_iterate (sc->master_result_map,
                                            &build_result_set, &mbc);
@@ -1105,7 +1105,7 @@ transmit_search_request (void *cls, size_t size, void *buf)
     GNUNET_assert (size >= msize);
     sm->type = htonl (GNUNET_BLOCK_TYPE_FS_UBLOCK);
     sm->anonymity_level = htonl (sc->anonymity);
-    memset (&sm->target, 0, sizeof (struct GNUNET_HashCode));
+    memset (&sm->target, 0, sizeof (struct GNUNET_PeerIdentity));
     GNUNET_CRYPTO_ecdsa_public_key_derive (&sc->uri->data.sks.ns,
 					 sc->uri->data.sks.identifier,
 					 "fs-ublock",
