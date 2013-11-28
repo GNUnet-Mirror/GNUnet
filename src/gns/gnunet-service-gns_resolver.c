@@ -1914,7 +1914,7 @@ handle_dht_response (void *cls,
   }
   /* Cache well-formed blocks */
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Caching response from the DHT in namestore\n");
+	      "Caching response from the DHT in namecache\n");
   co = GNUNET_new (struct CacheOps);
   co->namecache_qe_cache = GNUNET_NAMECACHE_block_cache (namecache_handle,
 							 block,
