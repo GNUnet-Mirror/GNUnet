@@ -72,6 +72,8 @@ gnunet-namestore -z testego -d -n mybestfriendalice -t PKEY -V $DELEGATED_PKEY  
 gnunet-namestore -z delegatedego -d -n www -t A -V $TEST_IP  -e never -c test_gns_lookup.conf
 gnunet-arm -e -c test_gns_lookup.conf
 
+rm -rf `gnunet-config -c test_gns_lookup.conf -s PATHS -o GNUNET_HOME -f`
+
 if [ "$RES_IP" == "$TEST_IP" ]
 then
   echo "PASS: Resolved $TEST_NAME properly to $RES_IP."
