@@ -1391,13 +1391,14 @@ GMC_handle_confirm (void *cls, const struct GNUNET_PeerIdentity *peer,
     if (MESH_CONNECTION_SENT == oldstate)
       connection_reset_timeout (c, GNUNET_YES);
 
-    /* Change connection and tunnel state */
+    /* Change connection state */
     connection_change_state (c, MESH_CONNECTION_READY);
+    send_connection_ack (c, GNUNET_YES);
+
+    /* Change tunnel state, trigger KX */
     if (MESH_TUNNEL3_WAITING == GMT_get_cstate (c->t))
       GMT_change_cstate (c->t, MESH_TUNNEL3_READY);
 
-    /* Send ACK (~TCP ACK)*/
-    send_connection_ack (c, GNUNET_YES);
     return GNUNET_OK;
   }
 
