@@ -32,6 +32,11 @@
 
 struct GNUNET_SIGNAL_Context
 {
+
+  struct GNUNET_SIGNAL_Context *next;
+
+  struct GNUNET_SIGNAL_Context *prev;
+
   int sig;
 
   GNUNET_SIGNAL_Handler method;
@@ -40,6 +45,11 @@ struct GNUNET_SIGNAL_Context
   struct sigaction oldsig;
 #endif
 };
+
+static struct GNUNET_SIGNAL_Context *sc_head;
+
+static struct GNUNET_SIGNAL_Context *sc_tail;
+
 
 #ifdef WINDOWS
 GNUNET_SIGNAL_Handler w32_sigchld_handler = NULL;
@@ -81,6 +91,7 @@ GNUNET_SIGNAL_handler_install (int signum, GNUNET_SIGNAL_Handler handler)
     }
   }
 #endif
+  GNUNET_CONTAINER_DLL_insert_tail (sc_head, sc_tail, ret);
   return ret;
 }
 
@@ -93,5 +104,29 @@ GNUNET_SIGNAL_handler_uninstall (struct GNUNET_SIGNAL_Context *ctx)
   sigemptyset (&sig.sa_mask);
   sigaction (ctx->sig, &ctx->oldsig, &sig);
 #endif
+  GNUNET_CONTAINER_DLL_remove (sc_head, sc_tail, ctx);
   GNUNET_free (ctx);
+}
+
+
+/**
+ * Raise the given signal by calling the installed signal handlers.  This will
+ * not use the @em raise() system call but only calls the handlers registered
+ * through GNUNET_SIGNAL_handler_install().
+ *
+ * @param sig the signal to raise
+ */
+void
+GNUNET_SIGNAL_raise (const int sig)
+{
+  struct GNUNET_SIGNAL_Context *ctx;
+  
+  for (ctx = sc_head; NULL != sc_head; ctx = ctx->next)
+  {
+    if (sig != ctx->sig)
+      continue;
+    if (NULL == ctx->method)
+      continue;
+    ctx->method ();
+  }
 }

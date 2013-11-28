@@ -107,7 +107,7 @@ parent_control_handler (void *cls,
   GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
 				  control_pipe, &parent_control_handler,
 				  control_pipe);
-  raise ((int) sig);
+  GNUNET_SIGNAL_raise ((int) sig);
 }
 
 

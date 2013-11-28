@@ -72,6 +72,17 @@ void
 GNUNET_SIGNAL_handler_uninstall (struct GNUNET_SIGNAL_Context *ctx);
 
 
+/**
+ * Raise the given signal by calling the installed signal handlers.  This will
+ * not use the @em raise() system call but only calls the handlers registered
+ * through GNUNET_SIGNAL_handler_install().
+ *
+ * @param sig the signal to raise
+ */
+void
+GNUNET_SIGNAL_raise (const int sig);
+
+
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif
