@@ -2,6 +2,13 @@
 trap "gnunet-arm -e -c test_gns_lookup.conf" SIGINT
 which timeout &> /dev/null && DO_TIMEOUT="timeout 30"
 
+LOCATION=$(which gnunet-config)
+if [ -z $LOCATION ]
+then
+	echo "GNUnet command line tools cannot be found, check environmental variables PATH and GNUNET_PREFIX" 
+	exit 1
+fi
+
 TEST_IP="127.0.0.1"
 gnunet-arm -s -c test_gns_lookup.conf
 gnunet-identity -C delegatedego -c test_gns_lookup.conf

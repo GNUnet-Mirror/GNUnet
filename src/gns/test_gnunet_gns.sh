@@ -1,4 +1,12 @@
 #!/bin/bash
+
+LOCATION=$(which gnunet-config)
+if [ -z $LOCATION ]
+then
+	echo "GNUnet command line tools cannot be found, check environmental variables PATH and GNUNET_PREFIX" 
+	exit 1
+fi
+
 trap "gnunet-arm -e -c test_gns_lookup.conf" SIGINT
 ME=`whoami`
 if [ "$ME" != "root" ]

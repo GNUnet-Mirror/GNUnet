@@ -1,5 +1,13 @@
 #!/bin/bash
 trap "gnunet-arm -e -c test_gns_lookup.conf" SIGINT
+
+LOCATION=$(which gnunet-config)
+if [ -z $LOCATION ]
+then
+	echo "GNUnet command line tools cannot be found, check environmental variables PATH and GNUNET_PREFIX" 
+	exit 1
+fi
+
 rm -r `gnunet-config -c test_gns_lookup.conf -s PATHS -o GNUNET_HOME -f`
 TEST_DOMAIN="homepage.gnu"
 # some public DNS resolver we can use

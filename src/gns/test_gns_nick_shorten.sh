@@ -7,6 +7,13 @@ which timeout &> /dev/null && DO_TIMEOUT="timeout 30"
 # zone "delegatedego": Alice's zone
 # zone "testego": Local zone with delegation to alice
 
+LOCATION=$(which gnunet-config)
+if [ -z $LOCATION ]
+then
+	echo "GNUnet command line tools cannot be found, check environmental variables PATH and GNUNET_PREFIX" 
+	exit 1
+fi
+
 # Deleting home directory from previous runs
 rm -rf `gnunet-config -c test_gns_lookup.conf -s PATHS -o GNUNET_HOME -f`
 TEST_IP="127.0.0.1"
