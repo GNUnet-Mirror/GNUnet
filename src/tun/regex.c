@@ -382,6 +382,7 @@ GNUNET_TUN_ipv4policy2regex (const char *policy)
     if (NULL == line)
     {
       GNUNET_free_non_null (reg);
+      GNUNET_free (np);
       return NULL;
     }
     if (NULL == reg)
@@ -400,6 +401,7 @@ GNUNET_TUN_ipv4policy2regex (const char *policy)
     if (0 == np[i].network.s_addr)
       break;
   }
+  GNUNET_free (np);
   return reg;
 }
 
@@ -434,6 +436,7 @@ GNUNET_TUN_ipv6policy2regex (const char *policy)
     if (NULL == line)
     {
       GNUNET_free_non_null (reg);
+      GNUNET_free (np);
       return NULL;
     }
     if (NULL == reg)
@@ -452,6 +455,7 @@ GNUNET_TUN_ipv6policy2regex (const char *policy)
     if (0 == memcmp (&zero, &np[i].network, sizeof (struct in6_addr)))
       break;
   }
+  GNUNET_free (np);
   return reg;
 }
 
