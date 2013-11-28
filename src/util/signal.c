@@ -121,7 +121,7 @@ GNUNET_SIGNAL_raise (const int sig)
 {
   struct GNUNET_SIGNAL_Context *ctx;
   
-  for (ctx = sc_head; NULL != sc_head; ctx = ctx->next)
+  for (ctx = sc_head; NULL != ctx; ctx = ctx->next)
   {
     if (sig != ctx->sig)
       continue;
