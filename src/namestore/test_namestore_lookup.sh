@@ -1,6 +1,14 @@
 #!/bin/bash
 CONFIGURATION="test_namestore_api.conf"
 trap "gnunet-arm -e -c $CONFIGURATION" SIGINT
+
+LOCATION=$(which gnunet-config)
+if [ -z $LOCATION ]
+then
+	echo "GNUnet command line tools cannot be found, check environmental variables PATH and GNUNET_PREFIX" 
+	exit 1
+fi
+
 rm -rf `gnunet-config -c $CONFIGURATION -s PATHS -o GNUNET_HOME`
 TEST_IP_PLUS="127.0.0.1"
 TEST_RECORD_NAME_DNS="www3"
