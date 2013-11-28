@@ -51,7 +51,6 @@
 #define FORWARD 1
 #define SPEED 3
 #define SPEED_ACK 4
-#define SPEED_NOBUF 6
 #define SPEED_REL 8
 #define P2P_SIGNAL 10
 
@@ -625,7 +624,6 @@ channel_cleaner (void *cls, const struct GNUNET_MESH_Channel *channel,
 static void
 do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  int nobuf;
   int rel;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test_task\n");
@@ -637,13 +635,6 @@ do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     GNUNET_SCHEDULER_cancel (disconnect_task);
   }
-  if (SPEED_NOBUF == test)
-  {
-    test = SPEED;
-    nobuf = GNUNET_YES;
-  }
-  else
-    nobuf = GNUNET_NO;
 
   if (SPEED_REL == test)
   {
@@ -652,7 +643,7 @@ do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   else
     rel = GNUNET_NO;
-  ch = GNUNET_MESH_channel_create (h1, NULL, p_id[1], 1, nobuf, rel);
+  ch = GNUNET_MESH_channel_create (h1, NULL, p_id[1], 1, GNUNET_NO, rel);
 
   disconnect_task = GNUNET_SCHEDULER_add_delayed (SHORT_TIME,
                                                   &disconnect_mesh_peers,
@@ -794,12 +785,7 @@ main (int argc, char *argv[])
     */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "SPEED\n");
     ok_goal = TOTAL_PACKETS + 4;
-    if (strstr (argv[0], "_nobuf") != NULL)
-    {
-      test = SPEED_NOBUF;
-      test_name = "speed nobuf";
-    }
-    else if (strstr (argv[0], "_reliable") != NULL)
+    if (strstr (argv[0], "_reliable") != NULL)
     {
       test = SPEED_REL;
       test_name = "speed reliable";

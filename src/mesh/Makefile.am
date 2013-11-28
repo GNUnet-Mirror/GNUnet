@@ -111,9 +111,7 @@ check_PROGRAMS = \
   test_mesh_small_signal  \
   test_mesh_small_speed  \
   test_mesh_small_speed_ack  \
-  test_mesh_small_speed_nobuf  \
   test_mesh_small_speed_backwards  \
-  test_mesh_small_speed_nobuf_backwards \
   test_mesh_small_speed_reliable \
   test_mesh_small_speed_reliable_backwards
 endif
