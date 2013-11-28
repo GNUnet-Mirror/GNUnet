@@ -105,19 +105,20 @@ put_cont (void *cls, int32_t success, const char *emsg)
 
   switch (success) {
     case GNUNET_NO:
+      /* We expected GNUNET_NO, since record was not found */
       GNUNET_SCHEDULER_add_now (&end, NULL);
       break;
     case GNUNET_OK:
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   "Namestore could remove non-existing record: `%s'\n",
-                  emsg);
+                  (NULL !=emsg) ? emsg : "");
       GNUNET_SCHEDULER_add_now (&endbadly, NULL);
       break;
     case GNUNET_SYSERR:
     default:
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   "Namestore failed: `%s'\n",
-                  emsg);
+                  (NULL !=emsg) ? emsg : "");
       GNUNET_SCHEDULER_add_now (&endbadly, NULL);
       break;
   }
