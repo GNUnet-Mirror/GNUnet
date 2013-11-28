@@ -1082,6 +1082,8 @@ connection_reset_timeout (struct MeshConnection *c, int fwd)
 
   ti = fwd ? &c->fwd_maintenance_task : &c->bck_maintenance_task;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Connection %s reset timeout\n", GM_f2s (fwd));
+
   if (GNUNET_SCHEDULER_NO_TASK != *ti)
     GNUNET_SCHEDULER_cancel (*ti);
 
