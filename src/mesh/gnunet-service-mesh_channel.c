@@ -60,6 +60,32 @@ enum MeshChannelState
 };
 
 
+/**
+ * Info holder for channel messages in queues.
+ */
+struct MeshChannelQueue
+{
+  /**
+   * Tunnel Queue.
+   */
+  struct MeshTunnel3Queue *q;
+
+  /**
+   * Message type (DATA/DATA_ACK)
+   */
+  uint16_t type;
+
+  /**
+   * Message copy (for DATAs, to start retransmission timer)
+   */
+  struct MeshReliableMessage *copy;
+
+  /**
+   * Reliability (for DATA_ACKs, to access rel->ack_q)
+   */
+  struct MeshChannelReliability *rel;
+};
+
 
 /**
  * Info needed to retry a message in case it gets lost.
@@ -137,6 +163,11 @@ struct MeshChannelReliability
      * Next MID expected for incoming traffic.
      */
   uint32_t                          mid_recv;
+
+    /**
+     * Handle for queued DATA_ACKs.
+     */
+  struct MeshChannelQueue           *ack_q;
 
     /**
      * Can we send data to the client?
@@ -812,32 +843,54 @@ channel_confirm (struct MeshChannel *ch, int fwd)
 /**
  * Message has been sent: start retransmission timer.
  *
- * @param cls Closure (copy sent).
+ * @param cls Closure (queue structure).
  * @param t Tunnel.
  * @param q Queue handler (no longer valid).
  * @param type Type of message.
  * @param size Size of the message.
  */
 static void
-message_sent (void *cls,
-              struct MeshTunnel3 *t,
-              struct MeshTunnel3Queue *q,
-              uint16_t type, size_t size)
+ch_message_sent (void *cls,
+                 struct MeshTunnel3 *t,
+                 struct MeshTunnel3Queue *q,
+                 uint16_t type, size_t size)
 {
-  struct MeshReliableMessage *copy = cls;
-  struct MeshChannelReliability *rel = copy->rel;
+  struct MeshChannelQueue *ch_q = cls;
+  struct MeshReliableMessage *copy = ch_q->copy;
+  struct MeshChannelReliability *rel;
 
-  copy->timestamp = GNUNET_TIME_absolute_get ();
-  if (GNUNET_SCHEDULER_NO_TASK == rel->retry_task)
+  switch (ch_q->type)
   {
-    rel->retry_timer =
-        GNUNET_TIME_relative_multiply (rel->expected_delay,
-                                       MESH_RETRANSMIT_MARGIN);
-    rel->retry_task =
-        GNUNET_SCHEDULER_add_delayed (rel->retry_timer,
-                                      &channel_retransmit_message,
-                                      rel);
+    case GNUNET_MESSAGE_TYPE_MESH_DATA:
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! SENT %u %s\n",
+           copy->mid, GM_m2s (type));
+      copy->timestamp = GNUNET_TIME_absolute_get ();
+      rel = copy->rel;
+      if (GNUNET_SCHEDULER_NO_TASK == rel->retry_task)
+      {
+        rel->retry_timer =
+            GNUNET_TIME_relative_multiply (rel->expected_delay,
+                                          MESH_RETRANSMIT_MARGIN);
+        rel->retry_task =
+            GNUNET_SCHEDULER_add_delayed (rel->retry_timer,
+                                          &channel_retransmit_message,
+                                          rel);
+      }
+      break;
+
+
+    case GNUNET_MESSAGE_TYPE_MESH_DATA_ACK:
+      rel = ch_q->rel;
+      GNUNET_assert (rel->ack_q == ch_q);
+      rel->ack_q = NULL;
+      break;
+
+
+    default:
+      GNUNET_break (0);
   }
+
+  GNUNET_free (ch_q);
 }
 
 
@@ -866,8 +919,7 @@ channel_save_copy (struct MeshChannel *ch,
   type = ntohs (msg->type);
   size = ntohs (msg->size);
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! SAVE %u %s\n",
-       mid, GM_m2s (type));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! SAVE %u %s\n", mid, GM_m2s (type));
   copy = GNUNET_malloc (sizeof (struct MeshReliableMessage) + size);
   copy->mid = mid;
   copy->rel = rel;
@@ -1910,8 +1962,11 @@ GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
                             struct MeshChannel *ch, int fwd,
                             int retransmission)
 {
+  uint16_t type;
+
+  type = ntohs (message->type);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "GMCH Send %s %s on channel %s\n",
-       GM_f2s (fwd), GM_m2s (ntohs (message->type)),
+       GM_f2s (fwd), GM_m2s (type),
        GMCH_2s (ch));
 
   if (GMT_is_loopback (ch->t))
@@ -1921,16 +1976,36 @@ GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   }
 
   if (GNUNET_YES == ch->reliable && GNUNET_NO == retransmission
-      && ntohs (message->type) == GNUNET_MESSAGE_TYPE_MESH_DATA)
+      && GNUNET_MESSAGE_TYPE_MESH_DATA == type)
   {
-    struct MeshReliableMessage *copy;
+    struct MeshChannelQueue *q;
 
-    copy = channel_save_copy (ch, message, fwd);
-    copy->q = GMT_send_prebuilt_message (message, ch->t, ch, fwd,
-                                         &message_sent, copy);
+    q = GNUNET_new (struct MeshChannelQueue);
+    q->type = type;
+    q->copy = channel_save_copy (ch, message, fwd);
+    q->q = GMT_send_prebuilt_message (message, ch->t, ch, fwd,
+                                      &ch_message_sent, q);
+    /* Don't store q itself: we never need to cancel messages */
+  }
+  else if (GNUNET_MESSAGE_TYPE_MESH_DATA_ACK == type)
+  {
+    struct MeshChannelReliability *rel;
+
+    rel = fwd ? ch->root_rel : ch->dest_rel;
+    if (NULL != rel->ack_q)
+    {
+      GMT_cancel (rel->ack_q->q);
+      /* ch_message_sent is called, freeing ack_q */
+    }
+    rel->ack_q = GNUNET_new (struct MeshChannelQueue);
+    rel->ack_q->type = type;
+    rel->ack_q->rel = rel;
+    rel->ack_q->q = GMT_send_prebuilt_message (message, ch->t, ch, fwd,
+                                               &ch_message_sent, rel->ack_q);
   }
   else
-    GMT_send_prebuilt_message (message, ch->t, ch, fwd, NULL, NULL);
+    GNUNET_break (NULL == GMT_send_prebuilt_message (message, ch->t, ch, fwd,
+                                                     NULL, NULL));
 }
 
 
