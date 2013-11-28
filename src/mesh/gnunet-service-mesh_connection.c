@@ -742,7 +742,6 @@ send_broken (struct MeshConnection *c,
 }
 
 
-
 /**
  * Send keepalive packets for a connection.
  *
@@ -766,6 +765,7 @@ connection_keepalive (struct MeshConnection *c, int fwd)
   msg->header.size = htons (size);
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_KEEPALIVE);
   msg->cid = c->id;
+  msg->reserved = htonl (0);
 
   GMC_send_prebuilt_message (&msg->header, c, fwd, NULL, NULL);
 }
@@ -2529,6 +2529,7 @@ GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
     struct GNUNET_MESH_Poll      *pmsg;
     struct GNUNET_MESH_ConnectionDestroy *dmsg;
     struct GNUNET_MESH_ConnectionBroken  *bmsg;
+    struct GNUNET_MESH_ConnectionKeepAlive *kamsg;
     uint32_t ttl;
 
     case GNUNET_MESSAGE_TYPE_MESH_ENCRYPTED:
@@ -2587,6 +2588,7 @@ GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
 
     case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE:
     case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK:
+    case GNUNET_MESSAGE_TYPE_MESH_KEEPALIVE:
       break;
 
     default:
