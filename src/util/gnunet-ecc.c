@@ -113,7 +113,7 @@ create_keys (const char *fn)
 
 
 static void
-print_examples_ecdh (void)
+print_examples_ecdh ()
 {
   struct GNUNET_CRYPTO_EcdhePrivateKey *dh_priv1;
   struct GNUNET_CRYPTO_EcdhePublicKey *dh_pub1;
@@ -156,7 +156,7 @@ print_examples_ecdh (void)
  * Print some random example operations to stdout.
  */
 static void
-print_examples (void)
+print_examples ()
 {
   print_examples_ecdh ();
   // print_examples_ecdsa ();
@@ -178,7 +178,9 @@ print_key (const char *filename)
 
   if (GNUNET_YES != GNUNET_DISK_file_test (filename))
   {
-    fprintf (stderr, _("Hostkeys file not found: %s\n"), filename);
+    fprintf (stderr,
+             _("Hostkeys file `%s' not found\n"),
+             filename);
     return;
   }
 
@@ -187,13 +189,16 @@ print_key (const char *filename)
     fs = 0;
   if (0 == fs)
   {
-    fprintf (stderr, _("Hostkeys file is empty: %s\n"), filename);
+    fprintf (stderr,
+             _("Hostkeys file `%s' is empty\n"),
+             filename);
     return;       /* File is empty */
   }
   if (0 != (fs % GNUNET_TESTING_HOSTKEYFILESIZE))
   {
     fprintf (stderr,
-         _("Incorrect hostkey file format: %s\n"), filename);
+             _("Incorrect hostkey file format: %s\n"),
+             filename);
     return;
   }
   fd = GNUNET_DISK_file_open (filename, GNUNET_DISK_OPEN_READ,
@@ -204,11 +209,13 @@ print_key (const char *filename)
     return;
   }
   hostkeys_data = GNUNET_malloc (fs);
-  if (fs != GNUNET_DISK_file_read(fd, hostkeys_data, fs))
+  if (fs != GNUNET_DISK_file_read (fd, hostkeys_data, fs))
   {
     fprintf (stderr,
-         _("Could not readk hostkey file: %s\n"), filename);
+             _("Could not read hostkey file: %s\n"),
+             filename);
     GNUNET_free (hostkeys_data);
+    GNUNET_DISK_file_close (fd);
     return;
   }
   GNUNET_DISK_file_close (fd);
