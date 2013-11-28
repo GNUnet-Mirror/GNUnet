@@ -222,31 +222,10 @@ struct Plugin
   struct GNUNET_TIME_Relative broadcast_interval;
 
   /**
-   * Broadcast with IPv4
-   */
-  int broadcast_ipv4;
-
-  /**
-   * Broadcast with IPv6
-   */
-  int broadcast_ipv6;
-
-
-  /**
    * Tokenizer for inbound messages.
    */
   struct GNUNET_SERVER_MessageStreamTokenizer *broadcast_ipv6_mst;
   struct GNUNET_SERVER_MessageStreamTokenizer *broadcast_ipv4_mst;
-
-  /**
-   * ID of select broadcast task
-   */
-  GNUNET_SCHEDULER_TaskIdentifier send_ipv4_broadcast_task;
-
-  /**
-   * ID of select broadcast task
-   */
-  GNUNET_SCHEDULER_TaskIdentifier send_ipv6_broadcast_task;
 
   /**
    * IPv6 multicast address
@@ -254,10 +233,10 @@ struct Plugin
   struct sockaddr_in6 ipv6_multicast_address;
 
   /**
-   * DLL of IPv4 broadcast addresses
+   * DLL of broadcast addresses
    */
-  struct BroadcastAddress *ipv4_broadcast_tail;
-  struct BroadcastAddress *ipv4_broadcast_head;
+  struct BroadcastAddress *broadcast_tail;
+  struct BroadcastAddress *broadcast_head;
 
   /**
    * Is IPv6 enabled: GNUNET_YES or GNUNET_NO
