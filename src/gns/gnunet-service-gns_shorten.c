@@ -391,8 +391,8 @@ GNS_shorten_start (const char *original_label,
     GNUNET_break (0);
     return;
   }
-  GNUNET_CRYPTO_ecdsa_key_get_public(shorten_zone, &shorten_pub);
-  if (0 == memcmp (&shorten_pub, pub, sizeof (pub)))
+  GNUNET_CRYPTO_ecdsa_key_get_public (shorten_zone, &shorten_pub);
+  if (0 == memcmp (&shorten_pub, pub, sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey)))
   {
     /* Do not shorten the shorten zone */
     return;
