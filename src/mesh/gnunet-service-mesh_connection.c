@@ -1067,7 +1067,7 @@ connection_bck_timeout (void *cls,
  *   a keepalive or a path confirmation message (either create or ACK).
  * - For all other peers, this means to destroy the connection,
  *   due to lack of activity.
- * Starts the tiemout if no timeout was running (connection just created).
+ * Starts the timeout if no timeout was running (connection just created).
  *
  * @param c Connection whose timeout to reset.
  * @param fwd Is this forward?
@@ -1291,8 +1291,8 @@ GMC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
 
     /* Keep tunnel alive in direction dest->owner*/
     c->bck_maintenance_task =
-            GNUNET_SCHEDULER_add_delayed (create_connection_time,
-                                          &connection_bck_keepalive, c);
+      GNUNET_SCHEDULER_add_delayed (create_connection_time,
+                                    &connection_bck_keepalive, c);
   }
   else
   {
@@ -2176,8 +2176,8 @@ GMC_new (const struct GNUNET_HashCode *cid,
   if (0 == own_pos)
   {
     c->fwd_maintenance_task =
-            GNUNET_SCHEDULER_add_delayed (create_connection_time,
-                                          &connection_fwd_keepalive, c);
+      GNUNET_SCHEDULER_add_delayed (create_connection_time,
+                                    &connection_fwd_keepalive, c);
   }
   if (GNUNET_OK != register_neighbors (c))
   {
