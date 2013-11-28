@@ -439,7 +439,7 @@ transmit_message_callback (void *cls, size_t buf_size, void *buf)
 /**
  * Figure out when and how to transmit to the given peer.
  *
- * @param cls the 'struct PeerPlan'
+ * @param cls the `struct PeerPlan`
  * @param tc scheduler context
  */
 static void
@@ -506,7 +506,7 @@ schedule_peer_transmission (void *cls,
 
 
 /**
- * Closure for 'merge_pr'.
+ * Closure for merge_pr().
  */
 struct MergeContext
 {
@@ -573,7 +573,8 @@ merge_pr (void *cls, const struct GNUNET_HashCode * query, void *element)
  * @param pr request with the entry
  */
 void
-GSF_plan_add_ (struct GSF_ConnectedPeer *cp, struct GSF_PendingRequest *pr)
+GSF_plan_add_ (struct GSF_ConnectedPeer *cp,
+               struct GSF_PendingRequest *pr)
 {
   const struct GNUNET_PeerIdentity *id;
   struct PeerPlan *pp;
@@ -594,15 +595,16 @@ GSF_plan_add_ (struct GSF_ConnectedPeer *cp, struct GSF_PendingRequest *pr)
     pp->delay_heap =
         GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
     pp->cp = cp;
-    GNUNET_CONTAINER_multipeermap_put (plans,
-				       id, pp,
-                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+    GNUNET_assert (GNUNET_OK ==
+                   GNUNET_CONTAINER_multipeermap_put (plans,
+                                                      id, pp,
+                                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   }
   mpc.merged = GNUNET_NO;
   mpc.pr = pr;
   GNUNET_CONTAINER_multihashmap_get_multiple (pp->plan_map,
                                               &GSF_pending_request_get_data_
-                                              (pr)->query, &merge_pr, &mpc); // 8 MB in 'merge_pr'
+                                              (pr)->query, &merge_pr, &mpc);
   if (GNUNET_NO != mpc.merged)
     return;
   GNUNET_CONTAINER_multihashmap_get_multiple (pp->plan_map,
@@ -617,7 +619,7 @@ GSF_plan_add_ (struct GSF_ConnectedPeer *cp, struct GSF_PendingRequest *pr)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Planning transmission of query `%s' to peer `%s'\n",
               GNUNET_h2s (&prd->query), GNUNET_i2s (id));
-  rp = GNUNET_new (struct GSF_RequestPlan); // 8 MB
+  rp = GNUNET_new (struct GSF_RequestPlan);
   bi = GNUNET_new (struct GSF_PendingRequestPlanBijection);
   bi->rp = rp;
   bi->pr = pr;
@@ -627,8 +629,8 @@ GSF_plan_add_ (struct GSF_ConnectedPeer *cp, struct GSF_PendingRequest *pr)
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multihashmap_put (pp->plan_map,
                                                     get_rp_key (rp), rp,
-                                                    GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE)); // 8 MB
-  plan (pp, rp); // +5 MB (plan/heap-insert)
+                                                    GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
+  plan (pp, rp);
 }
 
 
