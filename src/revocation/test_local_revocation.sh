@@ -5,6 +5,13 @@ TEST_REVOCATION_EGO="revoc_test"
 which timeout &> /dev/null && DO_TIMEOUT="timeout 5"
 trap "gnunet-arm -e -c test_revocation.conf" SIGINT
 
+LOCATION=$(which gnunet-config)
+if [ -z $LOCATION ]
+then
+	echo "GNUnet command line tools cannot be found, check environmental variables PATH and GNUNET_PREFIX" 
+	exit 1
+fi
+
 # clean up
 rm -rf `gnunet-config -c test_revocation.conf -s PATHS -o GNUNET_HOME -f`
 
