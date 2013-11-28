@@ -1978,6 +1978,11 @@ handle_namestore_block_response (void *cls,
     }
     return;
   }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received result from namecache for label `%s'\n",
+              ac->label);
+
   if ( (NULL == block) ||
        (0 == GNUNET_TIME_absolute_get_remaining (GNUNET_TIME_absolute_ntoh (block->expiration_time)).rel_value_us) )
   {
