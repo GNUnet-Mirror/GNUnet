@@ -54,8 +54,9 @@ gnunet-namestore -p -z testego  -a -n mail -t A -V $TEST_IP -e never -c test_gns
 gnunet-namestore -p -z delegatedego -a -n www -t A -V $TEST_IP -e never -c test_gns_lookup.conf
 
 # Delete namecache content
+gnunet-arm -c test_gns_lookup.conf -k gns
 gnunet-arm -c test_gns_lookup.conf -k namecache
-rm -rf `gnunet-config -c test_gns_lookup.conf -s namecache-sqlite -o FILENAME`
+rm -rf `gnunet-config -c test_gns_lookup.conf -s namecache-sqlite -o FILENAME -f`
 
 # Force start of GNS
 gnunet-arm -c test_gns_lookup.conf -i gns
