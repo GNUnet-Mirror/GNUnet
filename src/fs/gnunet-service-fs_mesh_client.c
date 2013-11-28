@@ -529,17 +529,20 @@ get_mesh (const struct GNUNET_PeerIdentity *target)
 						 mh);
   mh->waiting_map = GNUNET_CONTAINER_multihashmap_create (16, GNUNET_YES);
   mh->target = *target;
-  mh->channel = GNUNET_MESH_channel_create (mesh_handle,
-					  mh,
-					  &mh->target,
-					  GNUNET_APPLICATION_TYPE_FS_BLOCK_TRANSFER,
-					  GNUNET_NO,
-					  GNUNET_YES);
   GNUNET_assert (GNUNET_OK ==
 		 GNUNET_CONTAINER_multipeermap_put (mesh_map,
 						    &mh->target,
 						    mh,
 						    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+  mh->channel = GNUNET_MESH_channel_create (mesh_handle,
+                                            mh,
+                                            &mh->target,
+                                            GNUNET_APPLICATION_TYPE_FS_BLOCK_TRANSFER,
+                                            GNUNET_NO,
+                                            GNUNET_YES);
+  GNUNET_assert (mh ==
+                 GNUNET_CONTAINER_multipeermap_get (mesh_map,
+                                                    target));
   return mh;
 }
 
@@ -599,7 +602,7 @@ GSF_mesh_query_cancel (struct GSF_MeshRequest *sr)
   if (NULL != p)
   {
     /* signal failure / cancellation to callback */
-    p (sr->proc_cls, GNUNET_BLOCK_TYPE_ANY, 
+    p (sr->proc_cls, GNUNET_BLOCK_TYPE_ANY,
        GNUNET_TIME_UNIT_ZERO_ABS,
        0, NULL);
   }
@@ -649,7 +652,7 @@ free_waiting_entry (void *cls,
 
 /**
  * Function called by mesh when a client disconnects.
- * Cleans up our 'struct MeshClient' of that channel.
+ * Cleans up our `struct MeshClient` of that channel.
  *
  * @param cls NULL
  * @param channel channel of the disconnecting client
@@ -722,15 +725,12 @@ release_meshs (void *cls,
 	       void *value)
 {
   struct MeshHandle *mh = value;
-  struct GNUNET_MESH_Channel *tun;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Timeout on mesh channel to %s\n",
 	      GNUNET_i2s (&mh->target));
-  tun = mh->channel;
-  mh->channel = NULL;
-  if (NULL != tun)
-    GNUNET_MESH_channel_destroy (tun);
+  if (NULL != mh->channel)
+    GNUNET_MESH_channel_destroy (mh->channel);
   return GNUNET_YES;
 }
 
