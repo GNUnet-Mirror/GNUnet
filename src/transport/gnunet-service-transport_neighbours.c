@@ -2394,19 +2394,20 @@ send_utilization_data (void *cls,
   delta = GNUNET_TIME_absolute_get_difference(n->last_util_transmission, GNUNET_TIME_absolute_get());
 
   bps_pl_in = 0;
-  if (0 != n->util_payload_bytes_recv)
+
+  if ((0 != n->util_payload_bytes_recv) && (0 != delta.rel_value_us))
     bps_pl_in =  (1000LL * 1000LL *  n->util_payload_bytes_recv) / (delta.rel_value_us);
   bps_pl_out = 0;
-  if (0 != n->util_payload_bytes_sent)
+  if ((0 != n->util_payload_bytes_sent) && (0 != delta.rel_value_us))
     bps_pl_out = (1000LL * 1000LL * n->util_payload_bytes_sent) / delta.rel_value_us;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "`%s' payload: received %u Bytes/s, sent %u Bytes/s  \n",
       GNUNET_i2s (key), bps_pl_in, bps_pl_out);
 
   bps_in = 0;
-  if (0 != n->util_total_bytes_recv)
+  if ((0 != n->util_total_bytes_recv) && (0 != delta.rel_value_us))
     bps_in =  (1000LL * 1000LL *  n->util_total_bytes_recv) / (delta.rel_value_us);
   bps_out = 0;
-  if (0 != n->util_total_bytes_sent)
+  if ((0 != n->util_total_bytes_sent) && (0 != delta.rel_value_us))
     bps_out = (1000LL * 1000LL * n->util_total_bytes_sent) / delta.rel_value_us;
 
 
