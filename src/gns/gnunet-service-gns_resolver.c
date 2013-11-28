@@ -1954,9 +1954,10 @@ handle_namestore_block_response (void *cls,
   {
     /* namecache knows nothing; try DHT lookup */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Starting DHT lookup for `%s' in zone %s\n",
+		"Starting DHT lookup for `%s' in zone `%s' under key `%s'\n",
 		ac->label,
-		GNUNET_GNSRECORD_z2s (&ac->authority_info.gns_authority));
+		GNUNET_GNSRECORD_z2s (&ac->authority_info.gns_authority),
+		GNUNET_h2s (&query));
     GNUNET_assert (NULL == rh->get_handle);
     rh->get_handle = GNUNET_DHT_get_start (dht_handle,
 					   GNUNET_BLOCK_TYPE_GNS_NAMERECORD,
