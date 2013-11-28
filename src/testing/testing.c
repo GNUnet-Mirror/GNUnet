@@ -34,6 +34,8 @@
 #include "gnunet_arm_service.h"
 #include "gnunet_testing_lib.h"
 
+#include "../arm/do_start_process.c"
+
 #define LOG(kind,...)                                           \
   GNUNET_log_from (kind, "testing-api", __VA_ARGS__)
 
@@ -1320,15 +1322,14 @@ GNUNET_TESTING_peer_start (struct GNUNET_TESTING_Peer *peer)
       return GNUNET_SYSERR;
     i->n_refs++;
   }
-  peer->main_process = GNUNET_OS_start_process (PIPE_CONTROL,
-                                                GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
-                                                NULL, NULL,
-                                                peer->main_binary,
-                                                peer->main_binary,
-                                                peer->args,
-                                                "-c",
-                                                peer->cfgfile,
-                                                NULL);
+  peer->main_process = do_start_process (PIPE_CONTROL,
+                                         GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
+                                         NULL,
+                                         peer->main_binary,
+                                         peer->args,
+                                         "-c",
+                                         peer->cfgfile,
+                                         NULL);
   if (NULL == peer->main_process)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
