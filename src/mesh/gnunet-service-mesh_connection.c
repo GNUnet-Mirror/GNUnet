@@ -2529,7 +2529,6 @@ GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
     struct GNUNET_MESH_Poll      *pmsg;
     struct GNUNET_MESH_ConnectionDestroy *dmsg;
     struct GNUNET_MESH_ConnectionBroken  *bmsg;
-    struct GNUNET_MESH_ConnectionKeepAlive *kamsg;
     uint32_t ttl;
 
     case GNUNET_MESSAGE_TYPE_MESH_ENCRYPTED:
