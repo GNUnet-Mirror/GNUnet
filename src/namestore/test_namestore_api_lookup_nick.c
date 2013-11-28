@@ -52,6 +52,8 @@ static struct GNUNET_NAMESTORE_QueueEntry *nsqe;
 //static const char * name = "dummy.dummy.gnunet";
 static const char * name = "d";
 
+static char *directory;
+
 static void
 cleanup ()
 {
@@ -65,6 +67,11 @@ cleanup ()
   {
     GNUNET_free (privkey);
     privkey = NULL;
+  }
+  if (NULL != directory)
+  {
+      GNUNET_DISK_directory_remove (directory);
+      GNUNET_free (directory);
   }
   GNUNET_SCHEDULER_shutdown ();
 }
@@ -266,6 +273,9 @@ run (void *cls,
      struct GNUNET_TESTING_Peer *peer)
 {
   char *hostkey_file;
+
+  directory = NULL;
+  GNUNET_CONFIGURATION_get_value_string(cfg, "PATHS", "GNUNET_TEST_HOME", &directory);
 
   endbadly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
 						&endbadly, NULL);

@@ -266,8 +266,9 @@ handle_record_store_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
   const char *emsg;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Received `%s'\n",
-       "RECORD_STORE_RESPONSE");
+       "Received `%s' with result %i\n",
+       "RECORD_STORE_RESPONSE",
+       ntohl (msg->op_result));
   /* TODO: add actual error message from namestore to response... */
   res = ntohl (msg->op_result);
   if (GNUNET_SYSERR == res)

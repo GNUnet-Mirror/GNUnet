@@ -237,14 +237,6 @@ test_namestore_api_lookup_shadow_filter_LDADD = \
   $(top_builddir)/src/namecache/libgnunetnamecache.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la
 
-test_namestore_api_put_SOURCES = \
- test_namestore_api_put.c
-test_namestore_api_put_LDADD = \
-  $(top_builddir)/src/testing/libgnunettesting.la \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
-  $(top_builddir)/src/namestore/libgnunetnamestore.la
-
 test_namestore_api_remove_SOURCES = \
  test_namestore_api_remove.c
 test_namestore_api_remove_LDADD = \

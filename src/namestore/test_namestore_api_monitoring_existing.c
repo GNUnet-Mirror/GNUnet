@@ -57,6 +57,7 @@ static struct GNUNET_GNSRECORD_Data *s_rd_3;
 
 struct GNUNET_NAMESTORE_QueueEntry * ns_ops[3];
 
+static char *directory;
 
 static void
 do_shutdown ()
@@ -118,6 +119,11 @@ do_shutdown ()
   {
     GNUNET_free (privkey2);
     privkey2 = NULL;
+  }
+  if (NULL != directory)
+  {
+      GNUNET_DISK_directory_remove (directory);
+      GNUNET_free (directory);
   }
 }
 
@@ -279,6 +285,9 @@ run (void *cls,
      struct GNUNET_TESTING_Peer *peer)
 {
   char *hostkey_file;
+
+  directory = NULL;
+  GNUNET_CONFIGURATION_get_value_string(mycfg, "PATHS", "GNUNET_TEST_HOME", &directory);
 
   res = 1;
 

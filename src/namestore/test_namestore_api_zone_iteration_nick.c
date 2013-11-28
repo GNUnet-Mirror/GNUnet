@@ -60,6 +60,8 @@ static struct GNUNET_GNSRECORD_Data *s_rd_3;
 
 static struct GNUNET_NAMESTORE_QueueEntry *nsqe;
 
+static char *directory;
+
 /**
  * Re-establish the connection to the service.
  *
@@ -105,6 +107,11 @@ endbadly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if (privkey2 != NULL)
     GNUNET_free (privkey2);
+  if (NULL != directory)
+  {
+      GNUNET_DISK_directory_remove (directory);
+      GNUNET_free (directory);
+  }
   privkey2 = NULL;
   res = 1;
 }
@@ -153,6 +160,11 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (nsh != NULL)
     GNUNET_NAMESTORE_disconnect (nsh);
   nsh = NULL;
+  if (NULL != directory)
+  {
+      GNUNET_DISK_directory_remove (directory);
+      GNUNET_free (directory);
+  }
 }
 
 static int
@@ -431,6 +443,9 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg,
      struct GNUNET_TESTING_Peer *peer)
 {
+  directory = NULL;
+  GNUNET_CONFIGURATION_get_value_string(cfg, "PATHS", "GNUNET_TEST_HOME", &directory);
+
   endbadly_task = GNUNET_SCHEDULER_add_delayed(TIMEOUT, &endbadly, NULL);
   nsh = GNUNET_NAMESTORE_connect (cfg);
   GNUNET_break (NULL != nsh);

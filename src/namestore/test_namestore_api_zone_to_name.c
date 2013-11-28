@@ -57,6 +57,7 @@ static struct GNUNET_CRYPTO_EcdsaSignature *s_signature;
 
 static int res;
 
+static char *directory;
 
 /**
  * Re-establish the connection to the service.
@@ -72,6 +73,11 @@ endbadly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   nsh = NULL;
   if (privkey != NULL)
     GNUNET_free (privkey);
+  if (NULL != directory)
+  {
+      GNUNET_DISK_directory_remove (directory);
+      GNUNET_free (directory);
+  }
   privkey = NULL;
   res = 1;
 }
@@ -90,6 +96,11 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   privkey = NULL;
   if (nsh != NULL)
     GNUNET_NAMESTORE_disconnect (nsh);
+  if (NULL != directory)
+  {
+      GNUNET_DISK_directory_remove (directory);
+      GNUNET_free (directory);
+  }
   nsh = NULL;
 }
 
@@ -166,6 +177,9 @@ run (void *cls,
      struct GNUNET_TESTING_Peer *peer)
 {
   struct GNUNET_TIME_Absolute et;
+
+  directory = NULL;
+  GNUNET_CONFIGURATION_get_value_string(cfg, "PATHS", "GNUNET_TEST_HOME", &directory);
 
   endbadly_task = GNUNET_SCHEDULER_add_delayed(TIMEOUT,endbadly, NULL);
   GNUNET_asprintf (&s_name, "dummy");
