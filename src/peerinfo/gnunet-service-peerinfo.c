@@ -446,10 +446,11 @@ add_host_to_known_hosts (const struct GNUNET_PeerIdentity *identity)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Adding new peer `%s'\n", GNUNET_i2s (identity));
     GNUNET_STATISTICS_update (stats, gettext_noop ("# peers known"), 1,
 			      GNUNET_NO);
-    entry = GNUNET_malloc (sizeof (struct HostEntry));
+    entry = GNUNET_new (struct HostEntry);
     entry->identity = *identity;
-    GNUNET_CONTAINER_multipeermap_put (hostmap, &entry->identity, entry,
-				       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+    GNUNET_assert (GNUNET_OK ==
+                   GNUNET_CONTAINER_multipeermap_put (hostmap, &entry->identity, entry,
+                                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
     notify_all (entry);
     fn = get_host_filename (identity);
     if (NULL != fn)
