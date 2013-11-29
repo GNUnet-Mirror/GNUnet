@@ -116,7 +116,7 @@ struct MeshReliableMessage
   /**
    * Tunnel Queue.
    */
-  struct MeshTunnel3Queue *q;
+  struct MeshChannelQueue       *q;
 
     /**
      * When was this message issued (to calculate ACK delay)
@@ -391,7 +391,7 @@ add_destination (struct MeshChannel *ch, struct MeshClient *c)
   GNUNET_break (NULL == ch->dest_rel);
   ch->dest_rel = GNUNET_new (struct MeshChannelReliability);
   ch->dest_rel->ch = ch;
-  ch->dest_rel->expected_delay = MESH_RETRANSMIT_TIME;
+  ch->dest_rel->expected_delay.rel_value_us = 0;
 
   ch->dest = c;
 }
@@ -734,9 +734,14 @@ rel_message_free (struct MeshReliableMessage *copy, int update_time)
   if (update_time)
   {
     time = GNUNET_TIME_absolute_get_duration (copy->timestamp);
-    rel->expected_delay.rel_value_us *= 7;
-    rel->expected_delay.rel_value_us += time.rel_value_us;
-    rel->expected_delay.rel_value_us /= 8;
+    if (0 == rel->expected_delay.rel_value_us)
+      rel->expected_delay = time;
+    else
+    {
+      rel->expected_delay.rel_value_us *= 7;
+      rel->expected_delay.rel_value_us += time.rel_value_us;
+      rel->expected_delay.rel_value_us /= 8;
+    }
     LOG (GNUNET_ERROR_TYPE_DEBUG, "!!!  took %s\n",
                 GNUNET_STRINGS_relative_time_to_string (time, GNUNET_NO));
     LOG (GNUNET_ERROR_TYPE_DEBUG, "!!!  new expected delay %s\n",
@@ -754,6 +759,10 @@ rel_message_free (struct MeshReliableMessage *copy, int update_time)
     struct MeshTunnel3 *t = rel->ch->t;
     GMCH_destroy (rel->ch);
     GMT_destroy_if_empty (t);
+  }
+  if (NULL != copy->q)
+  {
+    GMT_cancel (copy->q->q);
   }
   GNUNET_CONTAINER_DLL_remove (rel->head_sent, rel->tail_sent, copy);
   GNUNET_free (copy);
@@ -871,14 +880,22 @@ ch_message_sent (void *cls,
       rel = copy->rel;
       if (GNUNET_SCHEDULER_NO_TASK == rel->retry_task)
       {
-        rel->retry_timer =
-            GNUNET_TIME_relative_multiply (rel->expected_delay,
-                                           MESH_RETRANSMIT_MARGIN);
+        if (0 != rel->expected_delay.rel_value_us)
+        {
+          rel->retry_timer =
+              GNUNET_TIME_relative_multiply (rel->expected_delay,
+                                             MESH_RETRANSMIT_MARGIN);
+        }
+        else
+        {
+          rel->retry_timer = MESH_RETRANSMIT_TIME;
+        }
         rel->retry_task =
             GNUNET_SCHEDULER_add_delayed (rel->retry_timer,
                                           &channel_retransmit_message,
                                           rel);
       }
+      copy->q = NULL;
       break;
 
 
@@ -1595,7 +1612,7 @@ GMCH_handle_local_create (struct MeshClient *c,
   /* In unreliable channels, we'll use the DLL to buffer BCK data */
   ch->root_rel = GNUNET_new (struct MeshChannelReliability);
   ch->root_rel->ch = ch;
-  ch->root_rel->expected_delay = MESH_RETRANSMIT_TIME;
+  ch->root_rel->expected_delay.rel_value_us = 0;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "CREATED CHANNEL %s\n", GMCH_2s (ch));
 
@@ -2007,7 +2024,14 @@ GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
         if (NULL == existing_copy)
           q->copy = channel_save_copy (ch, message, fwd);
         else
+        {
           q->copy = (struct MeshReliableMessage *) existing_copy;
+          LOG (GNUNET_ERROR_TYPE_DEBUG,
+               "  ### using existing copy: %p {r:0x%p q:0x%p t:%u}\n",
+               existing_copy,
+               q->copy->rel, q->copy->q, q->copy->type);
+        }
+        q->copy->q = q;
         q->q = GMT_send_prebuilt_message (message, ch->t, ch,
                                           fwd, NULL != existing_copy,
                                           &ch_message_sent, q);
