@@ -589,11 +589,16 @@ channel_cleaner (void *cls, const struct GNUNET_MESH_Channel *channel,
   if (4L == i)
   {
     ok++;
+    GNUNET_break (channel == incoming_ch);
     incoming_ch = NULL;
   }
-  else if (0L == i && P2P_SIGNAL == test)
+  else if (0L == i)
   {
-    ok ++;
+    if (P2P_SIGNAL == test)
+    {
+      ok ++;
+    }
+    GNUNET_break (channel == ch);
     ch = NULL;
   }
   else
