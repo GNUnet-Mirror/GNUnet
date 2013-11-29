@@ -92,8 +92,8 @@ struct GSF_MeshRequest
   enum GNUNET_BLOCK_Type type;
 
   /**
-   * Did we transmit this request already? YES if we are
-   * in the 'waiting_map', NO if we are in the 'pending' DLL.
+   * Did we transmit this request already? #GNUNET_YES if we are
+   * in the 'waiting_map', #GNUNET_NO if we are in the 'pending' DLL.
    */
   int was_transmitted;
 };
@@ -180,10 +180,10 @@ transmit_pending (struct MeshHandle *mh);
  * Iterator called on each entry in a waiting map to
  * move it back to the pending list.
  *
- * @param cls the 'struct MeshHandle'
+ * @param cls the `struct MeshHandle`
  * @param key the key of the entry in the map (the query)
- * @param value the 'struct GSF_MeshRequest' to move to pending
- * @return GNUNET_YES (continue to iterate)
+ * @param value the `struct GSF_MeshRequest` to move to pending
+ * @return #GNUNET_YES (continue to iterate)
  */
 static int
 move_to_pending (void *cls,
@@ -237,7 +237,7 @@ reset_mesh (struct MeshHandle *mh)
 /**
  * Task called when it is time to destroy an inactive mesh channel.
  *
- * @param cls the 'struct MeshHandle' to tear down
+ * @param cls the `struct MeshHandle` to tear down
  * @param tc scheduler context, unused
  */
 static void
@@ -260,7 +260,7 @@ mesh_timeout (void *cls,
 /**
  * Task called when it is time to reset an mesh.
  *
- * @param cls the 'struct MeshHandle' to tear down
+ * @param cls the `struct MeshHandle` to tear down
  * @param tc scheduler context, unused
  */
 static void
@@ -404,9 +404,9 @@ struct HandleReplyClosure
  * Iterator called on each entry in a waiting map to
  * process a result.
  *
- * @param cls the 'struct HandleReplyClosure'
+ * @param cls the `struct HandleReplyClosure`
  * @param key the key of the entry in the map (the query)
- * @param value the 'struct GSF_MeshRequest' to handle result for
+ * @param value the `struct GSF_MeshRequest` to handle result for
  * @return #GNUNET_YES (continue to iterate)
  */
 static int
@@ -433,7 +433,7 @@ handle_reply (void *cls,
  * Functions with this signature are called whenever a complete reply
  * is received.
  *
- * @param cls closure with the 'struct MeshHandle'
+ * @param cls closure with the `struct MeshHandle`
  * @param channel channel handle
  * @param channel_ctx channel context
  * @param message the actual message
@@ -468,6 +468,11 @@ reply_cb (void *cls,
 			    &srm[1], msize, &query))
   {
     GNUNET_break_op (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Received bogus reply of type %u with %u bytes via mesh from peer %s\n",
+                type,
+                msize,
+                GNUNET_i2s (&mh->target));
     reset_mesh_async (mh);
     return GNUNET_SYSERR;
   }
