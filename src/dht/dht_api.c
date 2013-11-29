@@ -1003,7 +1003,7 @@ GNUNET_DHT_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
   handle->cfg = cfg;
   handle->uid_gen =
       GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK, UINT64_MAX);
-  handle->active_requests = GNUNET_CONTAINER_multihashmap_create (ht_len, GNUNET_NO);
+  handle->active_requests = GNUNET_CONTAINER_multihashmap_create (ht_len, GNUNET_YES);
   if (GNUNET_NO == try_connect (handle))
   {
     GNUNET_DHT_disconnect (handle);
@@ -1280,12 +1280,15 @@ GNUNET_DHT_get_start (struct GNUNET_DHT_Handle *handle,
                                pending);
   pending->in_pending_queue = GNUNET_YES;
   get_handle = GNUNET_new (struct GNUNET_DHT_GetHandle);
+  get_handle->key = *key;
   get_handle->dht_handle = handle;
   get_handle->iter = iter;
   get_handle->iter_cls = iter_cls;
   get_handle->message = pending;
   get_handle->unique_id = get_msg->unique_id;
-  GNUNET_CONTAINER_multihashmap_put (handle->active_requests, key, get_handle,
+  GNUNET_CONTAINER_multihashmap_put (handle->active_requests,
+                                     &get_handle->key,
+                                     get_handle,
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
   process_pending_messages (handle);
   return get_handle;
@@ -1363,7 +1366,7 @@ GNUNET_DHT_get_stop (struct GNUNET_DHT_GetHandle *get_handle)
   /* remove 'GET' from active status */
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multihashmap_remove (handle->active_requests,
-                                                       &get_msg->key,
+                                                       &get_handle->key,
                                                        get_handle));
   if (GNUNET_YES == get_handle->message->in_pending_queue)
   {
@@ -1416,7 +1419,7 @@ GNUNET_DHT_monitor_start (struct GNUNET_DHT_Handle *handle,
   h->dht_handle = handle;
   if (NULL != key)
   {
-    h->key = GNUNET_new(struct GNUNET_HashCode);
+    h->key = GNUNET_new (struct GNUNET_HashCode);
     *h->key = *key;
   }
 
@@ -1471,12 +1474,13 @@ GNUNET_DHT_monitor_stop (struct GNUNET_DHT_MonitorHandle *handle)
   m->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_MONITOR_STOP);
   m->header.size = htons (sizeof (struct GNUNET_DHT_MonitorStartStopMessage));
   m->type = htonl(handle->type);
-  m->get = htons(NULL != handle->get_cb);
+  m->get = htons (NULL != handle->get_cb);
   m->get_resp = htons(NULL != handle->get_resp_cb);
-  m->put = htons(NULL != handle->put_cb);
-  if (NULL != handle->key) {
-    m->filter_key = htons(1);
-    memcpy (&m->key, handle->key, sizeof(struct GNUNET_HashCode));
+  m->put = htons (NULL != handle->put_cb);
+  if (NULL != handle->key)
+  {
+    m->filter_key = htons (1);
+    m->key = *handle->key;
   }
   GNUNET_CONTAINER_DLL_insert (handle->dht_handle->pending_head,
                                handle->dht_handle->pending_tail,
