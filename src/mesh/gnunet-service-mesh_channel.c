@@ -2038,12 +2038,14 @@ GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
           q->copy = (struct MeshReliableMessage *) existing_copy;
           if (NULL != q->copy->q)
           {
-            /* Last retransmission was scheduled but not sent!
-             * This retransmission was executed by a ch_message_sent
-             * following a very fast RRT, which scheduled the retransmission
-             * before the retransmitted message had a chance to leave the peer.
-             * Cancel this transmission and wait until the pending
-             * retransmission schedules the next one.
+            /* Last retransmission was queued but not yet sent!
+             * This retransmission was scheduled by a ch_message_sent which
+             * followed a very fast RTT, so the tiny delay made the
+             * retransmission function to execute before the previous
+             * retransmitted message even had a chance to leave the peer.
+             * Cancel this message and wait until the pending
+             * retransmission leaves the peer and ch_message_sent starts
+             * the timer for the next one.
              */
             GNUNET_free (q);
             return;
