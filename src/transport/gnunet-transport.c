@@ -165,7 +165,6 @@ static GNUNET_SCHEDULER_TaskIdentifier end;
  */
 static GNUNET_SCHEDULER_TaskIdentifier op_timeout;
 
-
 /**
  * Selected level of verbosity.
  */
@@ -270,13 +269,14 @@ shutdown_task (void *cls,
   }
 }
 
-struct ResolutionContext *rc_head;
-struct ResolutionContext *rc_tail;
+
+static struct ResolutionContext *rc_head;
+static struct ResolutionContext *rc_tail;
 
 struct ResolutionContext
 {
-	struct ResolutionContext *next;
-	struct ResolutionContext *prev;
+  struct ResolutionContext *next;
+  struct ResolutionContext *prev;
   struct GNUNET_HELLO_Address *addrcp;
   struct GNUNET_TRANSPORT_AddressToStringContext *asc;
   int printed;
@@ -285,10 +285,10 @@ struct ResolutionContext
 
 static void
 operation_timeout (void *cls,
-               const struct GNUNET_SCHEDULER_TaskContext *tc)
+                   const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-	struct ResolutionContext *cur;
-	struct ResolutionContext *next;
+  struct ResolutionContext *cur;
+  struct ResolutionContext *next;
   op_timeout = GNUNET_SCHEDULER_NO_TASK;
   if ((try_connect) || (benchmark_send) ||
   		(benchmark_receive))
@@ -331,7 +331,7 @@ operation_timeout (void *cls,
  * Display the result of the test.
  *
  * @param tc test context
- * @param result GNUNET_YES on success
+ * @param result #GNUNET_YES on success
  */
 static void
 display_test_result (struct TestContext *tc, int result)
@@ -370,7 +370,7 @@ display_test_result (struct TestContext *tc, int result)
  * Clean up and update GUI (with success).
  *
  * @param cls test context
- * @param success currently always GNUNET_OK
+ * @param success currently always #GNUNET_OK
  */
 static void
 result_callback (void *cls, int success)
@@ -411,6 +411,7 @@ do_test_configuration (const struct GNUNET_CONFIGURATION_Handle *cfg)
   unsigned long long bnd_port;
   unsigned long long adv_port;
   struct TestContext *tc;
+  char *binary;
 
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (cfg, "transport", "plugins",
@@ -440,12 +441,17 @@ do_test_configuration (const struct GNUNET_CONFIGURATION_Handle *cfg)
                                                &adv_port))
       adv_port = bnd_port;
     if (NULL == resolver)
+    {
+      binary = GNUNET_OS_get_libexec_binary_path ("gnunet-service-resolver");
       resolver =
-	  GNUNET_OS_start_process (GNUNET_YES, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, "gnunet-service-resolver",
+	  GNUNET_OS_start_process (GNUNET_YES, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL,
+                                   binary,
                                    "gnunet-service-resolver", NULL);
+      GNUNET_free (binary);
+    }
     resolver_users++;
     GNUNET_RESOLVER_connect (cfg);
-    tc = GNUNET_malloc (sizeof (struct TestContext));
+    tc = GNUNET_new (struct TestContext);
     tc->name = GNUNET_strdup (tok);
     tc->tst =
         GNUNET_NAT_test_start (cfg,
@@ -464,16 +470,17 @@ do_test_configuration (const struct GNUNET_CONFIGURATION_Handle *cfg)
   GNUNET_free (plugins);
 }
 
+
 /**
  * Function called to notify a client about the socket
- * begin ready to queue more data.  "buf" will be
- * NULL and "size" zero if the socket was closed for
+ * begin ready to queue more data.  @a buf will be
+ * NULL and @a size zero if the socket was closed for
  * writing in the meantime.
  *
  * @param cls closure
- * @param size number of bytes available in buf
+ * @param size number of bytes available in @a buf
  * @param buf where the callee should write the message
- * @return number of bytes written to buf
+ * @return number of bytes written to @a buf
  */
 static size_t
 transmit_data (void *cls, size_t size, void *buf)
@@ -598,7 +605,8 @@ monitor_notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
   struct GNUNET_TIME_Absolute now = GNUNET_TIME_absolute_get();
   const char *now_str = GNUNET_STRINGS_absolute_time_to_string (now);
 
-  FPRINTF (stdout, _("%24s: %-17s %4s   (%u connections in total)\n"),
+  FPRINTF (stdout,
+           _("%24s: %-17s %4s   (%u connections in total)\n"),
            now_str,
            _("Connected to"),
            GNUNET_i2s (peer),
@@ -622,7 +630,8 @@ monitor_notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
   GNUNET_assert (monitor_connect_counter > 0);
   monitor_connect_counter --;
 
-  FPRINTF (stdout, _("%24s: %-17s %4s   (%u connections in total)\n"),
+  FPRINTF (stdout,
+           _("%24s: %-17s %4s   (%u connections in total)\n"),
            now_str,
            _("Disconnected from"),
            GNUNET_i2s (peer),
@@ -647,7 +656,8 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
     if (GNUNET_MESSAGE_TYPE_DUMMY != ntohs (message->type))
       return;
     if (verbosity > 0)
-      FPRINTF (stdout, _("Received %u bytes from %s\n"),
+      FPRINTF (stdout,
+               _("Received %u bytes from %s\n"),
                (unsigned int) ntohs (message->size), GNUNET_i2s (peer));
 
     if (traffic_received == 0)
@@ -658,8 +668,9 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
 }
 
 
-static void resolve_address (const struct GNUNET_HELLO_Address *address,
-														 int numeric);
+static void
+resolve_address (const struct GNUNET_HELLO_Address *address,
+                 int numeric);
 
 
 static void
@@ -670,7 +681,11 @@ process_string (void *cls, const char *address)
 
   if (address != NULL)
   {
-    FPRINTF (stdout, _("Peer `%s': %s %s\n"), GNUNET_i2s (&addrcp->peer), addrcp->transport_name, address);
+    FPRINTF (stdout,
+             _("Peer `%s': %s %s\n"),
+             GNUNET_i2s (&addrcp->peer),
+             addrcp->transport_name,
+             address);
     rc->printed = GNUNET_YES;
   }
   else
@@ -680,12 +695,15 @@ process_string (void *cls, const char *address)
     address_resolutions --;
     if (GNUNET_NO == rc->printed)
     {
-    	if (numeric == GNUNET_NO)
-    	{
-    		resolve_address (rc->addrcp, GNUNET_YES ); /* Failed to resolve address, try numeric lookup */
-    	}
-    	else
-      	FPRINTF (stdout, _("Peer `%s': %s <unable to resolve address>\n"), GNUNET_i2s (&addrcp->peer), addrcp->transport_name);
+      if (numeric == GNUNET_NO)
+      {
+        resolve_address (rc->addrcp, GNUNET_YES ); /* Failed to resolve address, try numeric lookup */
+      }
+      else
+      	FPRINTF (stdout,
+                 _("Peer `%s': %s <unable to resolve address>\n"),
+                 GNUNET_i2s (&addrcp->peer),
+                 addrcp->transport_name);
     }
     GNUNET_free (rc->addrcp);
     GNUNET_CONTAINER_DLL_remove (rc_head, rc_tail, rc);
@@ -708,12 +726,14 @@ process_string (void *cls, const char *address)
   }
 }
 
-static void resolve_address (const struct GNUNET_HELLO_Address *address,
-														 int numeric)
+
+static void
+resolve_address (const struct GNUNET_HELLO_Address *address,
+                 int numeric)
 {
   struct ResolutionContext *rc;
 
-  rc = GNUNET_malloc(sizeof (struct ResolutionContext));
+  rc = GNUNET_new (struct ResolutionContext);
   GNUNET_assert (NULL != rc);
   GNUNET_CONTAINER_DLL_insert (rc_head, rc_tail, rc);
   address_resolutions ++;
@@ -763,8 +783,10 @@ process_address (void *cls, const struct GNUNET_PeerIdentity *peer,
   resolve_address (address, numeric);
 }
 
-void try_connect_cb (void *cls,
-                     const int result)
+
+static void
+try_connect_cb (void *cls,
+                const int result)
 {
   static int retries = 0;
   if (GNUNET_OK == result)
@@ -792,7 +814,7 @@ void try_connect_cb (void *cls,
  * service is running.
  *
  * @param cls closure with our configuration
- * @param result GNUNET_YES if transport is running
+ * @param result #GNUNET_YES if transport is running
  */
 static void
 testservice_task (void *cls,
@@ -822,13 +844,15 @@ testservice_task (void *cls,
 
   if (1 < counter)
   {
-    FPRINTF (stderr, _("Multiple operations given. Please choose only one operation: %s, %s, %s, %s, %s, %s\n"),
+    FPRINTF (stderr,
+             _("Multiple operations given. Please choose only one operation: %s, %s, %s, %s, %s, %s\n"),
              "connect", "benchmark send", "benchmark receive", "information", "monitor", "events");
     return;
   }
   if (0 == counter)
   {
-    FPRINTF (stderr, _("No operation given. Please choose one operation: %s, %s, %s, %s, %s, %s\n"),
+    FPRINTF (stderr,
+             _("No operation given. Please choose one operation: %s, %s, %s, %s, %s, %s\n"),
              "connect", "benchmark send", "benchmark receive", "information", "monitor", "events");
     return;
   }
@@ -837,7 +861,8 @@ testservice_task (void *cls,
   {
     if (NULL == cpid)
     {
-      FPRINTF (stderr, _("Option `%s' makes no sense without option `%s'.\n"),
+      FPRINTF (stderr,
+               _("Option `%s' makes no sense without option `%s'.\n"),
                "-C", "-p");
       ret = 1;
       return;
@@ -848,16 +873,20 @@ testservice_task (void *cls,
                                        &notify_disconnect);
     if (NULL == handle)
     {
-        FPRINTF (stderr, "%s", _("Failed to connect to transport service\n"));
+        FPRINTF (stderr,
+                 "%s",
+                 _("Failed to connect to transport service\n"));
         ret = 1;
         return;
     }
     tc_handle = GNUNET_TRANSPORT_try_connect (handle, &pid, try_connect_cb, NULL);
     if (NULL == tc_handle)
     {
-        FPRINTF (stderr, "%s", _("Failed to send request to transport service\n"));
-        ret = 1;
-        return;
+      FPRINTF (stderr,
+               "%s",
+               _("Failed to send request to transport service\n"));
+      ret = 1;
+      return;
     }
     op_timeout = GNUNET_SCHEDULER_add_delayed (OP_TIMEOUT,
                                                &operation_timeout, NULL);
@@ -968,8 +997,8 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *mycfg)
 {
-	cfg = (struct GNUNET_CONFIGURATION_Handle *) mycfg;
-	if (test_configuration)
+  cfg = (struct GNUNET_CONFIGURATION_Handle *) mycfg;
+  if (test_configuration)
   {
     do_test_configuration (cfg);
     return;
