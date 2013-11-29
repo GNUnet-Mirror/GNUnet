@@ -468,6 +468,7 @@ send_client_buffered_data (struct MeshChannel *ch,
       rel->n_recv--;
       rel->mid_recv++;
       GNUNET_CONTAINER_DLL_remove (rel->head_recv, rel->tail_recv, copy);
+      LOG (GNUNET_ERROR_TYPE_DEBUG, " COPYFREE RECV %p\n", copy);
       GNUNET_free (copy);
     }
     else
@@ -586,16 +587,20 @@ channel_rel_free_all (struct MeshChannelReliability *rel)
   {
     next = copy->next;
     GNUNET_CONTAINER_DLL_remove (rel->head_recv, rel->tail_recv, copy);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " COPYFREE BATCH RECV %p\n", copy);
     GNUNET_free (copy);
   }
   for (copy = rel->head_sent; NULL != copy; copy = next)
   {
     next = copy->next;
     GNUNET_CONTAINER_DLL_remove (rel->head_sent, rel->tail_sent, copy);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " COPYFREE BATCH %p\n", copy);
     GNUNET_free (copy);
   }
   if (GNUNET_SCHEDULER_NO_TASK != rel->retry_task)
+  {
     GNUNET_SCHEDULER_cancel (rel->retry_task);
+  }
   if (NULL != rel->ack_q)
     GMT_cancel (rel->ack_q->q);
   GNUNET_free (rel);
@@ -765,6 +770,7 @@ rel_message_free (struct MeshReliableMessage *copy, int update_time)
     GMT_cancel (copy->q->q);
   }
   GNUNET_CONTAINER_DLL_remove (rel->head_sent, rel->tail_sent, copy);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, " COPYFREE %p\n", copy);
   GNUNET_free (copy);
 }
 
@@ -943,6 +949,7 @@ channel_save_copy (struct MeshChannel *ch,
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! SAVE %u %s\n", mid, GM_m2s (type));
   copy = GNUNET_malloc (sizeof (struct MeshReliableMessage) + size);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  at %p\n", copy);
   copy->mid = mid;
   copy->rel = rel;
   copy->type = type;
@@ -1796,11 +1803,7 @@ GMCH_handle_data_ack (struct MeshChannel *ch,
     if (GNUNET_SCHEDULER_NO_TASK != rel->retry_task)
     {
       GNUNET_SCHEDULER_cancel (rel->retry_task);
-      if (NULL == rel->head_sent)
-      {
-        rel->retry_task = GNUNET_SCHEDULER_NO_TASK;
-      }
-      else if (NULL == rel->head_sent->q)
+      if (NULL != rel->head_sent && NULL == rel->head_sent->q)
       {
         struct GNUNET_TIME_Absolute new_target;
         struct GNUNET_TIME_Relative delay;
@@ -1815,9 +1818,15 @@ GMCH_handle_data_ack (struct MeshChannel *ch,
                                           &channel_retransmit_message,
                                           rel);
       }
+      else /* either no more traffic to ack or traffic has just been queued */
+      {
+        rel->retry_task = GNUNET_SCHEDULER_NO_TASK;
+      }
     }
-    else
+    else /* work was done but no task was pending? shouldn't happen! */
+    {
       GNUNET_break (0);
+    }
   }
 }
 
@@ -2027,7 +2036,7 @@ GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
         {
           q->copy = (struct MeshReliableMessage *) existing_copy;
           LOG (GNUNET_ERROR_TYPE_DEBUG,
-               "  ### using existing copy: %p {r:0x%p q:0x%p t:%u}\n",
+               "  using existing copy: %p {r:%p q:%p t:%u}\n",
                existing_copy,
                q->copy->rel, q->copy->q, q->copy->type);
         }
@@ -2035,7 +2044,7 @@ GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
         q->q = GMT_send_prebuilt_message (message, ch->t, ch,
                                           fwd, NULL != existing_copy,
                                           &ch_message_sent, q);
-        /* Don't store q itself: we never need to cancel messages */
+        /* q itself is stored in copy */
       }
       else
       {
@@ -2059,8 +2068,9 @@ GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
         rel->ack_q->type = type;
         rel->ack_q->rel = rel;
         rel->ack_q->q = GMT_send_prebuilt_message (message, ch->t, ch,
-                                                  fwd, GNUNET_YES,
-                                                  &ch_message_sent, rel->ack_q);
+                                                   fwd, GNUNET_YES,
+                                                   &ch_message_sent,
+                                                  rel->ack_q);
       }
       break;
     default:
