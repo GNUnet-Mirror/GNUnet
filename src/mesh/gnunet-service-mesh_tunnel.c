@@ -637,7 +637,7 @@ send_queued_data (struct MeshTunnel3 *t)
     GNUNET_CONTAINER_DLL_remove (t->tq_head, t->tq_tail, tq);
     GMCH_send_prebuilt_message ((struct GNUNET_MessageHeader *) &tq[1],
                                 tq->ch, GMCH_is_origin (tq->ch, GNUNET_YES),
-                                GNUNET_NO);
+                                NULL);
 
     GNUNET_free (tq);
   }
@@ -742,7 +742,7 @@ send_kx (struct MeshTunnel3 *t,
 
   fwd = GMC_is_origin (t->connection_head->c, GNUNET_YES);
   /* TODO save handle and cancel in case of a unneeded retransmission */
-  GMC_send_prebuilt_message (&msg->header, c, fwd, NULL, NULL);
+  GMC_send_prebuilt_message (&msg->header, c, fwd, GNUNET_YES, NULL, NULL);
 }
 
 
@@ -2151,6 +2151,7 @@ GMT_cancel (struct MeshTunnel3Queue *q)
  * @param t Tunnel on which this message is transmitted.
  * @param ch Channel on which this message is transmitted.
  * @param fwd Is this a fwd message on @c ch?
+ * @param force Force the tunnel to take the message (buffer overfill).
  * @param cont Continuation to call once message is really sent.
  * @param cont_cls Closure for @c cont.
  *
@@ -2159,7 +2160,7 @@ GMT_cancel (struct MeshTunnel3Queue *q)
 struct MeshTunnel3Queue *
 GMT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
                            struct MeshTunnel3 *t,
-                           struct MeshChannel *ch, int fwd,
+                           struct MeshChannel *ch, int fwd, int force,
                            GMT_sent cont, void *cont_cls)
 {
   struct MeshTunnel3Queue *q;
@@ -2221,11 +2222,12 @@ GMT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
 
   if (NULL == cont)
   {
-    (void) GMC_send_prebuilt_message (&msg->header, c, fwd, NULL, NULL);
+    (void) GMC_send_prebuilt_message (&msg->header, c, fwd, force, NULL, NULL);
     return NULL;
   }
   q = GNUNET_new (struct MeshTunnel3Queue); /* FIXME valgrind: leak*/
-  q->q = GMC_send_prebuilt_message (&msg->header, c, fwd, &message_sent, q);
+  q->q = GMC_send_prebuilt_message (&msg->header, c, fwd, force,
+                                    &message_sent, q);
   q->cont = cont;
   q->cont_cls = cont_cls;
 

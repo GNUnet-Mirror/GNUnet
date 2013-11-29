@@ -538,7 +538,7 @@ send_client_nack (struct MeshChannel *ch)
  * Notify a client that the channel is no longer valid.
  *
  * @param ch Channel that is destroyed.
- * @param local_only Should we try to send it to other peers?
+ * @param local_only Should we avoid sending it to other peers?
  */
 static void
 send_destroy (struct MeshChannel *ch, int local_only)
@@ -557,12 +557,12 @@ send_destroy (struct MeshChannel *ch, int local_only)
   if (NULL != ch->root)
     GML_send_channel_destroy (ch->root, ch->lid_root);
   else if (0 == ch->lid_root && GNUNET_NO == local_only)
-    GMCH_send_prebuilt_message (&msg.header, ch, GNUNET_NO, GNUNET_NO);
+    GMCH_send_prebuilt_message (&msg.header, ch, GNUNET_NO, NULL);
 
   if (NULL != ch->dest)
     GML_send_channel_destroy (ch->dest, ch->lid_dest);
   else if (0 == ch->lid_dest && GNUNET_NO == local_only)
-    GMCH_send_prebuilt_message (&msg.header, ch, GNUNET_YES, GNUNET_NO);
+    GMCH_send_prebuilt_message (&msg.header, ch, GNUNET_YES, NULL);
 }
 
 
@@ -596,6 +596,8 @@ channel_rel_free_all (struct MeshChannelReliability *rel)
   }
   if (GNUNET_SCHEDULER_NO_TASK != rel->retry_task)
     GNUNET_SCHEDULER_cancel (rel->retry_task);
+  if (NULL != rel->ack_q)
+    GMT_cancel (rel->ack_q->q);
   GNUNET_free (rel);
 }
 
@@ -705,14 +707,8 @@ channel_retransmit_message (void *cls,
   /* Message not found in the queue that we are going to use. */
   LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! RETRANSMIT %u\n", copy->mid);
 
-  GMCH_send_prebuilt_message (&payload->header, ch, fwd, GNUNET_YES);
+  GMCH_send_prebuilt_message (&payload->header, ch, fwd, copy);
   GNUNET_STATISTICS_update (stats, "# data retransmitted", 1, GNUNET_NO);
-
-  copy->timestamp = GNUNET_TIME_absolute_get();
-  rel->retry_timer = GNUNET_TIME_STD_BACKOFF (rel->retry_timer);
-  rel->retry_task = GNUNET_SCHEDULER_add_delayed (rel->retry_timer,
-                                                  &channel_retransmit_message,
-                                                  cls);
 }
 
 
@@ -752,6 +748,13 @@ rel_message_free (struct MeshReliableMessage *copy, int update_time)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! batch free, ignoring timing\n");
   }
+  rel->ch->pending_messages--;
+  if (GNUNET_NO != rel->ch->destroy && 0 == rel->ch->pending_messages)
+  {
+    struct MeshTunnel3 *t = rel->ch->t;
+    GMCH_destroy (rel->ch);
+    GMT_destroy_if_empty (t);
+  }
   GNUNET_CONTAINER_DLL_remove (rel->head_sent, rel->tail_sent, copy);
   GNUNET_free (copy);
 }
@@ -775,7 +778,7 @@ channel_send_ack (struct MeshChannel *ch, int fwd)
               GM_f2s (fwd), GMCH_2s (ch));
 
   msg.chid = htonl (ch->gid);
-  GMCH_send_prebuilt_message (&msg.header, ch, !fwd, GNUNET_NO);
+  GMCH_send_prebuilt_message (&msg.header, ch, !fwd, NULL);
 }
 
 
@@ -796,7 +799,7 @@ channel_send_nack (struct MeshChannel *ch)
        GMCH_2s (ch));
 
   msg.chid = htonl (ch->gid);
-  GMCH_send_prebuilt_message (&msg.header, ch, GNUNET_NO, GNUNET_NO);
+  GMCH_send_prebuilt_message (&msg.header, ch, GNUNET_NO, NULL);
 }
 
 
@@ -863,14 +866,14 @@ ch_message_sent (void *cls,
   {
     case GNUNET_MESSAGE_TYPE_MESH_DATA:
       LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! SENT %u %s\n",
-           copy->mid, GM_m2s (type));
+           NULL != copy ? copy->mid : 0, GM_m2s (type));
       copy->timestamp = GNUNET_TIME_absolute_get ();
       rel = copy->rel;
       if (GNUNET_SCHEDULER_NO_TASK == rel->retry_task)
       {
         rel->retry_timer =
             GNUNET_TIME_relative_multiply (rel->expected_delay,
-                                          MESH_RETRANSMIT_MARGIN);
+                                           MESH_RETRANSMIT_MARGIN);
         rel->retry_task =
             GNUNET_SCHEDULER_add_delayed (rel->retry_timer,
                                           &channel_retransmit_message,
@@ -888,6 +891,8 @@ ch_message_sent (void *cls,
 
     default:
       GNUNET_break (0);
+      GNUNET_free (ch_q);
+      return;
   }
 
   GNUNET_free (ch_q);
@@ -926,6 +931,7 @@ channel_save_copy (struct MeshChannel *ch,
   copy->type = type;
   memcpy (&copy[1], msg, size);
   GNUNET_CONTAINER_DLL_insert_tail (rel->head_sent, rel->tail_sent, copy);
+  ch->pending_messages++;
 
   return copy;
 }
@@ -1163,6 +1169,13 @@ GMCH_get_allowed (struct MeshChannel *ch, int fwd)
 
   rel = fwd ? ch->root_rel : ch->dest_rel;
 
+  if (NULL == rel)
+  {
+    /* Probably shutting down: root/dest NULL'ed to mark disconnection */
+    GNUNET_break (GNUNET_NO != ch->destroy);
+    return 0;
+  }
+
   return rel->client_allowed;
 }
 
@@ -1285,7 +1298,7 @@ GMCH_send_data_ack (struct MeshChannel *ch, int fwd)
        "!!! ACK for %u, futures %llX\n",
        ack, msg.futures);
 
-  GMCH_send_prebuilt_message (&msg.header, ch, !fwd, GNUNET_NO);
+  GMCH_send_prebuilt_message (&msg.header, ch, !fwd, NULL);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "send_data_ack END\n");
 }
 
@@ -1315,7 +1328,7 @@ GMCH_allow_client (struct MeshChannel *ch, int fwd)
     rel = fwd ? ch->root_rel : ch->dest_rel;
     if (NULL == rel)
     {
-      GNUNET_break (0);
+      GNUNET_break (GNUNET_NO != ch->destroy);
       return;
     }
     if (NULL != rel->head_sent && 64 <= rel->mid_send - rel->head_sent->mid)
@@ -1466,7 +1479,7 @@ GMCH_handle_local_data (struct MeshChannel *ch,
   payload->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_DATA);
   payload->chid = htonl (ch->gid);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  sending on channel...\n");
-  GMCH_send_prebuilt_message (&payload->header, ch, fwd, GNUNET_NO);
+  GMCH_send_prebuilt_message (&payload->header, ch, fwd, NULL);
 
   if (is_loopback (ch))
   {
@@ -1501,6 +1514,7 @@ GMCH_handle_local_destroy (struct MeshChannel *ch,
 {
   struct MeshTunnel3 *t;
 
+  ch->destroy = GNUNET_YES;
   /* Cleanup after the tunnel */
   if (GNUNET_NO == is_root && c == ch->dest)
   {
@@ -1517,8 +1531,11 @@ GMCH_handle_local_destroy (struct MeshChannel *ch,
 
   t = ch->t;
   send_destroy (ch, GNUNET_NO);
-  GMCH_destroy (ch);
-  GMT_destroy_if_empty (t);
+  if (0 == ch->pending_messages)
+  {
+    GMCH_destroy (ch);
+    GMT_destroy_if_empty (t);
+  }
 }
 
 
@@ -1592,7 +1609,9 @@ GMCH_handle_local_create (struct MeshClient *c,
     msgcc.port = msg->port;
     msgcc.opt = msg->opt;
 
-    GMT_send_prebuilt_message (&msgcc.header, t, ch, GNUNET_YES, NULL, NULL);
+    /* FIXME retransmit if lost */
+    GMT_send_prebuilt_message (&msgcc.header, t, ch,
+                               GNUNET_YES, GNUNET_YES, NULL, NULL);
   }
   return GNUNET_OK;
 }
@@ -1955,12 +1974,12 @@ GMCH_handle_destroy (struct MeshChannel *ch,
  * @param message Message to send. Function makes a copy of it.
  * @param ch Channel on which this message is transmitted.
  * @param fwd Is this a fwd message?
- * @param retransmission Is this a retransmission? (Don't save a copy)
+ * @param existing_copy This is a retransmission, don't save a copy.
  */
 void
 GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
                             struct MeshChannel *ch, int fwd,
-                            int retransmission)
+                            void *existing_copy)
 {
   uint16_t type;
 
@@ -1975,37 +1994,56 @@ GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
     return;
   }
 
-  if (GNUNET_YES == ch->reliable && GNUNET_NO == retransmission
-      && GNUNET_MESSAGE_TYPE_MESH_DATA == type)
+  switch (type)
   {
-    struct MeshChannelQueue *q;
+    case GNUNET_MESSAGE_TYPE_MESH_DATA:
 
-    q = GNUNET_new (struct MeshChannelQueue);
-    q->type = type;
-    q->copy = channel_save_copy (ch, message, fwd);
-    q->q = GMT_send_prebuilt_message (message, ch->t, ch, fwd,
-                                      &ch_message_sent, q);
-    /* Don't store q itself: we never need to cancel messages */
-  }
-  else if (GNUNET_MESSAGE_TYPE_MESH_DATA_ACK == type)
-  {
-    struct MeshChannelReliability *rel;
+      if (GNUNET_YES == ch->reliable)
+      {
+        struct MeshChannelQueue *q;
 
-    rel = fwd ? ch->root_rel : ch->dest_rel;
-    if (NULL != rel->ack_q)
-    {
-      GMT_cancel (rel->ack_q->q);
-      /* ch_message_sent is called, freeing ack_q */
-    }
-    rel->ack_q = GNUNET_new (struct MeshChannelQueue);
-    rel->ack_q->type = type;
-    rel->ack_q->rel = rel;
-    rel->ack_q->q = GMT_send_prebuilt_message (message, ch->t, ch, fwd,
-                                               &ch_message_sent, rel->ack_q);
+        q = GNUNET_new (struct MeshChannelQueue);
+        q->type = type;
+        if (NULL == existing_copy)
+          q->copy = channel_save_copy (ch, message, fwd);
+        else
+          q->copy = (struct MeshReliableMessage *) existing_copy;
+        q->q = GMT_send_prebuilt_message (message, ch->t, ch,
+                                          fwd, NULL != existing_copy,
+                                          &ch_message_sent, q);
+        /* Don't store q itself: we never need to cancel messages */
+      }
+      else
+      {
+        GNUNET_break (NULL == GMT_send_prebuilt_message (message, ch->t, ch,
+                                                         fwd, GNUNET_NO,
+                                                         NULL, NULL));
+      }
+      break;
+
+    case GNUNET_MESSAGE_TYPE_MESH_DATA_ACK:
+      {
+        struct MeshChannelReliability *rel;
+
+        rel = fwd ? ch->root_rel : ch->dest_rel;
+        if (NULL != rel->ack_q)
+        {
+          GMT_cancel (rel->ack_q->q);
+          /* ch_message_sent is called, freeing ack_q */
+        }
+        rel->ack_q = GNUNET_new (struct MeshChannelQueue);
+        rel->ack_q->type = type;
+        rel->ack_q->rel = rel;
+        rel->ack_q->q = GMT_send_prebuilt_message (message, ch->t, ch,
+                                                  fwd, GNUNET_YES,
+                                                  &ch_message_sent, rel->ack_q);
+      }
+      break;
+    default:
+      GNUNET_break (NULL == GMT_send_prebuilt_message (message, ch->t, ch,
+                                                       fwd, GNUNET_YES,
+                                                       NULL, NULL));
   }
-  else
-    GNUNET_break (NULL == GMT_send_prebuilt_message (message, ch->t, ch, fwd,
-                                                     NULL, NULL));
 }
 
 
