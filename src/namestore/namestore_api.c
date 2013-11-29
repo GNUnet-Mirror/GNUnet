@@ -459,7 +459,9 @@ handle_zone_to_name_response (struct GNUNET_NAMESTORE_QueueEntry *qe,
   case GNUNET_NO:
     LOG (GNUNET_ERROR_TYPE_DEBUG,
 	 "Namestore has no result for zone to name mapping \n");
-    break;
+    if (NULL != qe->proc)
+      qe->proc (qe->proc_cls, &msg->zone, NULL, 0, NULL);
+    return GNUNET_NO;
   case GNUNET_YES:
     LOG (GNUNET_ERROR_TYPE_DEBUG,
 	 "Namestore has result for zone to name mapping \n");
