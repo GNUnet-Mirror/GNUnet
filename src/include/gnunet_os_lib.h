@@ -225,7 +225,7 @@ GNUNET_OS_get_libexec_binary_path (const char *progname);
  * @param isDefault is this presumably the default interface
  * @param addr address of this interface (can be NULL for unknown or unassigned)
  * @param broadcast_addr the broadcast address (can be NULL for unknown or unassigned)
- * @param netmask the network mask (can be NULL for unknown or unassigned))
+ * @param netmask the network mask (can be NULL for unknown or unassigned)
  * @param addrlen length of the address
  * @return #GNUNET_OK to continue iteration, #GNUNET_SYSERR to abort
  */
