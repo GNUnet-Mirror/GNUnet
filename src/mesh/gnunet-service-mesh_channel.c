@@ -1712,7 +1712,7 @@ GMCH_handle_data (struct MeshChannel *ch,
   {
     GNUNET_break_op (0);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-                " MID %u not expected (%u - %u), dropping!\n",
+                " !!! MID %u not expected (%u - %u), dropping!\n",
                 mid, rel->mid_recv, rel->mid_recv + 63);
   }
 
@@ -1800,7 +1800,7 @@ GMCH_handle_data_ack (struct MeshChannel *ch,
       {
         rel->retry_task = GNUNET_SCHEDULER_NO_TASK;
       }
-      else
+      else if (NULL == rel->head_sent->q)
       {
         struct GNUNET_TIME_Absolute new_target;
         struct GNUNET_TIME_Relative delay;
