@@ -104,7 +104,7 @@ struct GNUNET_NAT_Test
   GNUNET_NAT_TestCallback report;
 
   /**
-   * Closure for 'report'.
+   * Closure for @e report.
    */
   void *report_cls;
 
@@ -162,15 +162,17 @@ struct GNUNET_NAT_Test
 
 
 /**
- * Function called from GNUNET_NAT_register whenever someone asks us
+ * Function called from #GNUNET_NAT_register whenever someone asks us
  * to do connection reversal.
  *
- * @param cls closure, our 'struct GNUNET_NAT_Handle'
+ * @param cls closure, our `struct GNUNET_NAT_Handle`
  * @param addr public IP address of the other peer
  * @param addrlen actual lenght of the address
  */
 static void
-reversal_cb (void *cls, const struct sockaddr *addr, socklen_t addrlen)
+reversal_cb (void *cls,
+             const struct sockaddr *addr,
+             socklen_t addrlen)
 {
   struct GNUNET_NAT_Test *h = cls;
   const struct sockaddr_in *sa;
@@ -300,13 +302,15 @@ do_accept (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Address-callback, used to send message to gnunet-nat-server.
  *
  * @param cls closure
- * @param add_remove GNUNET_YES to mean the new public IP address, GNUNET_NO to mean
+ * @param add_remove #GNUNET_YES to mean the new public IP address, #GNUNET_NO to mean
  *     the previous (now invalid) one
  * @param addr either the previous or the new public IP address
  * @param addrlen actual lenght of the address
  */
 static void
-addr_cb (void *cls, int add_remove, const struct sockaddr *addr,
+addr_cb (void *cls,
+         int add_remove,
+         const struct sockaddr *addr,
          socklen_t addrlen)
 {
   struct GNUNET_NAT_Test *h = cls;
@@ -357,7 +361,7 @@ addr_cb (void *cls, int add_remove, const struct sockaddr *addr,
  * given configuration (IPv4-only).
  *
  * @param cfg configuration for the NAT traversal
- * @param is_tcp GNUNET_YES to test TCP, GNUNET_NO to test UDP
+ * @param is_tcp #GNUNET_YES to test TCP, #GNUNET_NO to test UDP
  * @param bnd_port port to bind to, 0 for connection reversal
  * @param adv_port externally advertised port to use
  * @param report function to call with the result of the test
@@ -381,7 +385,7 @@ GNUNET_NAT_test_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   sa.sin_len = sizeof (sa);
 #endif
 
-  ret = GNUNET_malloc (sizeof (struct GNUNET_NAT_Test));
+  ret = GNUNET_new (struct GNUNET_NAT_Test);
   ret->cfg = cfg;
   ret->is_tcp = is_tcp;
   ret->data = bnd_port;
@@ -407,8 +411,7 @@ GNUNET_NAT_test_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                      sizeof (sa))))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _
-                  ("Failed to create listen socket bound to `%s' for NAT test: %s\n"),
+                  _("Failed to create listen socket bound to `%s' for NAT test: %s\n"),
                   GNUNET_a2s ((const struct sockaddr *) &sa, sizeof (sa)),
                   STRERROR (errno));
       if (NULL != ret->lsock)
