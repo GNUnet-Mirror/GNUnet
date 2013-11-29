@@ -589,13 +589,13 @@ GSF_pending_request_get_message_ (struct GSF_PendingRequest *pr,
  * @return #GNUNET_YES (we should continue to iterate)
  */
 static int
-clean_request (void *cls, const struct GNUNET_HashCode * key, void *value)
+clean_request (void *cls, const struct GNUNET_HashCode *key, void *value)
 {
   struct GSF_PendingRequest *pr = value;
   GSF_LocalLookupContinuation cont;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Cleaning up pending request for `%s'.\n", 
+              "Cleaning up pending request for `%s'.\n",
 	      GNUNET_h2s (key));
   if (NULL != pr->mesh_request)
   {

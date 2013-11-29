@@ -115,7 +115,7 @@ struct MeshHandle
   struct GSF_MeshRequest *pending_tail;
 
   /**
-   * Map from query to 'struct GSF_MeshRequest's waiting for
+   * Map from query to `struct GSF_MeshRequest`s waiting for
    * a reply.
    */
   struct GNUNET_CONTAINER_MultiHashMap *waiting_map;
