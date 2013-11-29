@@ -1710,7 +1710,7 @@ GMCH_handle_data (struct MeshChannel *ch,
   }
   else
   {
-    GNUNET_break_op (0);
+    GNUNET_break_op (GM_is_pid_bigger (rel->mid_recv, mid));
     LOG (GNUNET_ERROR_TYPE_DEBUG,
                 " !!! MID %u not expected (%u - %u), dropping!\n",
                 mid, rel->mid_recv, rel->mid_recv + 63);
