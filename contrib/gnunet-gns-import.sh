@@ -2,6 +2,20 @@
 # This shell-script will import some GNS authorities into your GNS
 # namestore.
 
+LOCATION=$(which gnunet-config)
+if [ -z $LOCATION ]
+then
+	echo "GNUnet command line tools not found, check environmental variables PATH and GNUNET_PREFIX" 
+	exit 1
+fi
+
+gnunet-arm -I 1> /dev/null 2>/dev/null
+if [ ! $? -eq 0 ]
+then
+	echo "GNUnet is not running, please start GNUnet before running import" 
+	exit 1
+fi
+
 options=''
 
 while getopts "c:" opt; do
