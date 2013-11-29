@@ -537,7 +537,6 @@ zone_to_name_cb (void *cls,
     return;
   }
 
-  fprintf (stderr, "PUB %s\n", GNUNET_CRYPTO_ecdsa_public_key_to_string(&request->pub));
   r.data = &request->pub;
   r.data_size = sizeof (request->pub);
   r.expiration_time = UINT64_MAX;
@@ -585,7 +584,6 @@ lookup_block_processor (void *cls,
       run_httpd_now ();
       return;
     }
-    fprintf (stderr, "PUB1 %s\n", GNUNET_CRYPTO_ecdsa_public_key_to_string(&request->pub));
     request->qe = GNUNET_NAMESTORE_zone_to_name (ns,
                                                  &fcfs_zone_pkey,
                                                  &request->pub,
