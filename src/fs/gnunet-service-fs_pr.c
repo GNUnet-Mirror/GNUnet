@@ -719,10 +719,8 @@ GSF_iterate_pending_requests_ (GSF_PendingRequestIterator it, void *cls)
 }
 
 
-
-
 /**
- * Closure for "process_reply" function.
+ * Closure for process_reply() function.
  */
 struct ProcessReplyClosure
 {
@@ -800,7 +798,9 @@ update_request_performance_data (struct ProcessReplyClosure *prq,
  * @return #GNUNET_YES (we should continue to iterate)
  */
 static int
-process_reply (void *cls, const struct GNUNET_HashCode * key, void *value)
+process_reply (void *cls,
+               const struct GNUNET_HashCode *key,
+               void *value)
 {
   struct ProcessReplyClosure *prq = cls;
   struct GSF_PendingRequest *pr = value;
@@ -1151,10 +1151,10 @@ GSF_dht_lookup_ (struct GSF_PendingRequest *pr)
  */
 static void
 mesh_reply_proc (void *cls,
-		   enum GNUNET_BLOCK_Type type,
-		   struct GNUNET_TIME_Absolute expiration,
-		   size_t data_size,
-		   const void *data)
+                 enum GNUNET_BLOCK_Type type,
+                 struct GNUNET_TIME_Absolute expiration,
+                 size_t data_size,
+                 const void *data)
 {
   struct GSF_PendingRequest *pr = cls;
   struct ProcessReplyClosure prq;
@@ -1173,10 +1173,10 @@ mesh_reply_proc (void *cls,
     /* retry -- without delay, as this is non-anonymous
        and mesh/mesh connect will take some time anyway */
     pr->mesh_request = GSF_mesh_query (pr->public_data.target,
-					   &pr->public_data.query,
-					   pr->public_data.type,
-					   &mesh_reply_proc,
-					   pr);
+                                       &pr->public_data.query,
+                                       pr->public_data.type,
+                                       &mesh_reply_proc,
+                                       pr);
     return;
   }
   if (GNUNET_YES !=

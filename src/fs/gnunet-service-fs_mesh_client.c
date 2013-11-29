@@ -368,7 +368,7 @@ transmit_pending (struct MeshHandle *mh)
 
 
 /**
- * Closure for 'handle_reply'.
+ * Closure for handle_reply().
  */
 struct HandleReplyClosure
 {
@@ -677,6 +677,14 @@ cleaner_cb (void *cls,
   mh->channel = NULL;
   while (NULL != (sr = mh->pending_head))
     GSF_mesh_query_cancel (sr);
+  /* first remove `mh` from the `mesh_map`, so that if the
+     callback from `free_waiting_entry()` happens to re-issue
+     the request, we don't immediately have it back in the
+     `waiting_map`. */
+  GNUNET_assert (GNUNET_OK ==
+		 GNUNET_CONTAINER_multipeermap_remove (mesh_map,
+						       &mh->target,
+						       mh));
   GNUNET_CONTAINER_multihashmap_iterate (mh->waiting_map,
 					 &free_waiting_entry,
 					 mh);
@@ -686,10 +694,8 @@ cleaner_cb (void *cls,
     GNUNET_SCHEDULER_cancel (mh->timeout_task);
   if (GNUNET_SCHEDULER_NO_TASK != mh->reset_task)
     GNUNET_SCHEDULER_cancel (mh->reset_task);
-  GNUNET_assert (GNUNET_OK ==
-		 GNUNET_CONTAINER_multipeermap_remove (mesh_map,
-						       &mh->target,
-						       mh));
+  GNUNET_assert (0 ==
+                 GNUNET_CONTAINER_multihashmap_size (mh->waiting_map));
   GNUNET_CONTAINER_multihashmap_destroy (mh->waiting_map);
   GNUNET_free (mh);
 }
