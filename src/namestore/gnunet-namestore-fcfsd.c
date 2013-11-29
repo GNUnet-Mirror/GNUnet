@@ -151,6 +151,8 @@ struct Request
    */
   char public_key[128];
 
+  struct GNUNET_CRYPTO_EcdsaPublicKey pub;
+
 };
 
 /**
@@ -515,10 +517,9 @@ zone_to_name_cb (void *cls,
 {
   struct Request *request = cls;
   struct GNUNET_GNSRECORD_Data r;
-  struct GNUNET_CRYPTO_EcdsaPublicKey pub;
-
   request->qe = NULL;
-  if (NULL != name)
+
+  if (0 != rd_count)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		_("Found existing name `%s' for the given key\n"),
@@ -527,10 +528,18 @@ zone_to_name_cb (void *cls,
     run_httpd_now ();
     return;
   }
-  GNUNET_CRYPTO_ecdsa_key_get_public (zone_key,
-						  &pub);
-  r.data = &pub;
-  r.data_size = sizeof (pub);
+  if (NULL == zone_key)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Error when mapping zone to name\n"));
+    request->phase = RP_FAIL;
+    run_httpd_now ();
+    return;
+  }
+
+  fprintf (stderr, "PUB %s\n", GNUNET_CRYPTO_ecdsa_public_key_to_string(&request->pub));
+  r.data = &request->pub;
+  r.data_size = sizeof (request->pub);
   r.expiration_time = UINT64_MAX;
   r.record_type = GNUNET_GNSRECORD_TYPE_PKEY;
   r.flags = GNUNET_GNSRECORD_RF_NONE;
@@ -561,30 +570,29 @@ lookup_block_processor (void *cls,
                         const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct Request *request = cls;
-  struct GNUNET_CRYPTO_EcdsaPublicKey pub;
 
   request->qe = NULL;
-  if (NULL == label)
+  if (0 == rd_count)
   {
 
     if (GNUNET_OK !=
         GNUNET_CRYPTO_ecdsa_public_key_from_string (request->public_key,
                                                     strlen (request->public_key),
-                                                    &pub))
+                                                    &request->pub))
     {
       GNUNET_break (0);
       request->phase = RP_FAIL;
       run_httpd_now ();
       return;
     }
+    fprintf (stderr, "PUB1 %s\n", GNUNET_CRYPTO_ecdsa_public_key_to_string(&request->pub));
     request->qe = GNUNET_NAMESTORE_zone_to_name (ns,
                                                  &fcfs_zone_pkey,
-                                                 &pub,
+                                                 &request->pub,
                                                  &zone_to_name_cb,
                                                  request);
     return;
   }
-  GNUNET_break (0 != strcmp (label, request->domain_name));
   GNUNET_break (0 != rd_count);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               _("Found %u existing records for domain `%s'\n"),
@@ -966,6 +974,12 @@ run (void *cls, char *const *args, const char *cfgfile,
     }
   identity = GNUNET_IDENTITY_connect (cfg,
 				      NULL, NULL);
+  if (NULL == identity)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Failed to connect to identity\n"));
+    return;
+  }
   id_op = GNUNET_IDENTITY_get (identity, "fcfsd",
 			       &identity_cb, NULL);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
