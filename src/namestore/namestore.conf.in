@@ -26,6 +26,7 @@ gns = gnunet-namestore
 # Name of the fcfs registration service binary (for ARM)
 BINARY = gnunet-namestore-fcfsd
 AUTOSTART = NO
+UNIXPATH = $GNUNET_RUNTIME_DIR/gnunet-service-fcfsd.sock
 
 # On what port does the FCFS daemon listen for HTTP clients?
 HTTPPORT = 18080
