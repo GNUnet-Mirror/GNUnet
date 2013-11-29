@@ -217,10 +217,10 @@ continue_writing (struct MeshClient *sc);
 /**
  * Send a reply now, mesh is ready.
  *
- * @param cls closure with the struct MeshClient which sent the query
- * @param size number of bytes available in 'buf'
+ * @param cls closure with the `struct MeshClient` which sent the query
+ * @param size number of bytes available in @a buf
  * @param buf where to write the message
- * @return number of bytes written to 'buf'
+ * @return number of bytes written to @a buf
  */
 static size_t
 write_continuation (void *cls,
@@ -239,7 +239,8 @@ write_continuation (void *cls,
 		"Write queue empty, reading more requests\n");
     return 0;
   }
-  if (0 == size)
+  if ( (0 == size) ||
+       (size < wqi->msize) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Transmission of reply failed, terminating mesh\n");
@@ -291,7 +292,7 @@ continue_writing (struct MeshClient *sc)
   }
   sc->wh = GNUNET_MESH_notify_transmit_ready (sc->channel, GNUNET_NO,
 					      GNUNET_TIME_UNIT_FOREVER_REL,
-					      wqi->msize,				
+					      wqi->msize,
 					      &write_continuation,
 					      sc);
   if (NULL == sc->wh)
@@ -309,9 +310,9 @@ continue_writing (struct MeshClient *sc)
 /**
  * Process a datum that was stored in the datastore.
  *
- * @param cls closure with the struct MeshClient which sent the query
+ * @param cls closure with the `struct MeshClient` which sent the query
  * @param key key for the content
- * @param size number of bytes in data
+ * @param size number of bytes in @a data
  * @param data content stored
  * @param type type of the content
  * @param priority priority of the content
@@ -327,8 +328,8 @@ handle_datastore_reply (void *cls,
 			enum GNUNET_BLOCK_Type type,
 			uint32_t priority,
 			uint32_t anonymity,
-			struct GNUNET_TIME_Absolute
-			expiration, uint64_t uid)
+			struct GNUNET_TIME_Absolute expiration,
+                        uint64_t uid)
 {
   struct MeshClient *sc = cls;
   size_t msize = size + sizeof (struct MeshReplyMessage);
@@ -336,6 +337,23 @@ handle_datastore_reply (void *cls,
   struct MeshReplyMessage *srm;
 
   sc->qe = NULL;
+  if (NULL == data)
+  {
+    /* no result, this should not really happen, as for
+       non-anonymous routing only peers that HAVE the
+       answers should be queried; OTOH, this is not a
+       hard error as we might have had the answer in the
+       past and the user might have unindexed it. Hence
+       we log at level "INFO" for now. */
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Have no answer for query `%s'\n",
+                GNUNET_h2s (key));
+    GNUNET_STATISTICS_update (GSF_stats,
+                              gettext_noop ("# queries received via mesh not answered"), 1,
+                              GNUNET_NO);
+    continue_writing (sc);
+    return;
+  }
   if (GNUNET_BLOCK_TYPE_FS_ONDEMAND == type)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -361,9 +379,11 @@ handle_datastore_reply (void *cls,
     continue_writing (sc);
     return;
   }
+  GNUNET_break (GNUNET_BLOCK_TYPE_ANY != type);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Starting transmission of %u byte reply for query `%s' via mesh to %p\n",
+	      "Starting transmission of %u byte reply of type %d for query `%s' via mesh to %p\n",
 	      (unsigned int) size,
+              (unsigned int) type,
 	      GNUNET_h2s (key),
 	      sc);
   wqi = GNUNET_malloc (sizeof (struct WriteQueueItem) + msize);
@@ -386,13 +406,13 @@ handle_datastore_reply (void *cls,
  * Functions with this signature are called whenever a
  * complete query message is received.
  *
- * Do not call GNUNET_SERVER_mst_destroy in callback
+ * Do not call #GNUNET_SERVER_mst_destroy in callback
  *
  * @param cls closure with the 'struct MeshClient'
  * @param channel channel handle
  * @param channel_ctx channel context
  * @param message the actual message
- * @return GNUNET_OK on success, GNUNET_SYSERR to stop further processing
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR to stop further processing
  */
 static int
 request_cb (void *cls,
