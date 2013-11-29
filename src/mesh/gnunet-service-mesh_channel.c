@@ -266,7 +266,7 @@ struct MeshChannel
   int destroy;
 
     /**
-     * Total messages pending for this channel, payload or not.
+     * Total (reliable) messages pending ACK for this channel.
      */
   unsigned int pending_messages;
 
