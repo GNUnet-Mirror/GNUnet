@@ -1329,6 +1329,145 @@ GNUNET_OS_start_process_v (int pipe_control,
 
 
 /**
+ * Start a process.  This function is similar to the GNUNET_OS_start_process_*
+ * except that the @a filename and @argv can have whole strings which contain
+ * the arguments.  These arguments are to be separated by spaces and are parsed
+ * in the order they appear.  Arguments containing spaces can be used by 
+ * quoting them with @em ".
+ *
+ * @param pipe_control should a pipe be used to send signals to the child?
+ * @param std_inheritance a set of GNUNET_OS_INHERIT_STD_* flags
+ * @param lsocks array of listen sockets to dup systemd-style (or NULL);
+ *         must be NULL on platforms where dup is not supported
+ * @param filename name of the binary.  It is valid to have the arguments
+ *         in this string when they are separated by spaces.
+ * @param ... more arguments.  Should be of type <tt>char *</tt>.  It is valid
+ *         to have the arguments in these strings when they are separated by
+ *         spaces.
+ * @param argv NULL-terminated list of arguments to the process,
+ *             including the process name as the first argument
+ * @return pointer to process structure of the new process, NULL on error
+ */
+struct GNUNET_OS_Process *
+GNUNET_OS_start_process_s (int pipe_control,
+                           unsigned int std_inheritance,
+                           const SOCKTYPE * lsocks,
+                           const char *first_arg, ...)
+{
+  va_list ap;
+  char **argv;
+  unsigned int argv_size;
+  const char *arg;
+  const char *rpos;
+  char *pos;
+  char *cp;
+  const char *last;
+  struct GNUNET_OS_Process *proc;
+  char *binary_path;
+  int quote_on;
+  unsigned int i;
+  size_t len;
+
+  argv_size = 1;
+  va_start (ap, first_arg);
+  arg = first_arg;
+  last = NULL;
+  do
+  {
+    rpos = arg;
+    quote_on = 0;
+    while ('\0' != *rpos)
+    {
+      if ('"' == *rpos)
+      {
+	if (1 == quote_on)
+	  quote_on = 0;
+	else
+	  quote_on = 1;
+      }	
+      if ( (' ' == *rpos) && (0 == quote_on) )
+      {
+	if (NULL != last)
+	  argv_size++;
+	last = NULL;
+	rpos++;
+	while (' ' == *rpos)
+	  rpos++;
+      }
+      if ( (NULL == last) && ('\0' != *rpos) ) // FIXME: == or !=?
+	last = rpos;
+      if ('\0' != *rpos)
+	rpos++;
+    }
+    if (NULL != last)
+      argv_size++;
+  }
+  while (NULL != (arg = (va_arg (ap, const char*))));
+  va_end (ap);
+
+  argv = GNUNET_malloc (argv_size * sizeof (char *));
+  argv_size = 0;
+  va_start (ap, first_arg);
+  arg = first_arg;
+  last = NULL;
+  do
+  {
+    cp = GNUNET_strdup (arg);
+    quote_on = 0;
+    pos = cp;
+    while ('\0' != *pos)
+    {	
+      if ('"' == *pos)
+      {
+	if (1 == quote_on)
+	  quote_on = 0;
+	else
+	  quote_on = 1;
+      }
+      if ( (' ' == *pos) && (0 == quote_on) )
+      {
+	*pos = '\0';
+	if (NULL != last)
+	  argv[argv_size++] = GNUNET_strdup (last);
+	last = NULL;
+	pos++;
+	while (' ' == *pos)
+	  pos++;
+      }
+      if ( (NULL == last) && ('\0' != *pos)) // FIXME: == or !=?
+	last = pos;
+      if ('\0' != *pos)
+	pos++;
+    }
+    if (NULL != last)
+      argv[argv_size++] = GNUNET_strdup (last);
+    last = NULL;
+    GNUNET_free (cp);
+  }
+  while (NULL != (arg = (va_arg (ap, const char*))));
+  va_end (ap);
+  argv[argv_size] = NULL;
+  
+  for(i = 0; i < argv_size; i++)
+  {
+    len = strlen (argv[i]);
+    if ( (argv[i][0] == '"') && (argv[i][len-1] == '"'))
+    {
+      memmove (&argv[i][0], &argv[i][1], len - 2);
+      argv[i][len-2] = '\0';  
+    }
+  }
+  binary_path = argv[0];
+  proc = GNUNET_OS_start_process_v (pipe_control, std_inheritance, lsocks,
+				    binary_path, argv);
+  while (argv_size > 0)
+    GNUNET_free (argv[--argv_size]);
+  GNUNET_free (argv);
+  return proc;
+}
+
+
+/**
  * Retrieve the status of a process, waiting on him if dead.
  * Nonblocking version.
  *

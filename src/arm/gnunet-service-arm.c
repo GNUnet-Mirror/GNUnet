@@ -246,8 +246,6 @@ static struct GNUNET_SERVER_Handle *server;
 static struct GNUNET_SERVER_NotificationContext *notifier;
 
 
-#include "do_start_process.c"
-
 /**
  * Transmit a status result message.
  *
@@ -496,27 +494,32 @@ start_process (struct ServiceList *sl,
   {
     if (NULL == sl->config)
       sl->proc =
-	do_start_process (sl->pipe_control, GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
-			  lsocks, loprefix, quotedbinary, "-L",
-			  "DEBUG", options, NULL);
+	GNUNET_OS_start_process_s (sl->pipe_control,
+                                   GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
+                                   lsocks, loprefix, quotedbinary, "-L",
+                                   "DEBUG", options, NULL);
     else
       sl->proc =
-	do_start_process (sl->pipe_control, GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
-			  lsocks, loprefix, quotedbinary, "-c", sl->config, "-L",
-			  "DEBUG", options, NULL);
+          GNUNET_OS_start_process_s (sl->pipe_control,
+                                     GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
+                                     lsocks, loprefix, quotedbinary, "-c",
+                                     sl->config, "-L",
+                                     "DEBUG", options, NULL);
   }
   else
   {
     if (NULL == sl->config)
       sl->proc =
-	do_start_process (sl->pipe_control, GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
-			  lsocks, loprefix, quotedbinary,
-			  options, NULL);
+          GNUNET_OS_start_process_s (sl->pipe_control,
+                                     GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
+                                     lsocks, loprefix, quotedbinary,
+                                     options, NULL);
     else
       sl->proc =
-	do_start_process (sl->pipe_control, GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
-			  lsocks, loprefix, quotedbinary, "-c", sl->config,
-			  options, NULL);
+          GNUNET_OS_start_process_s (sl->pipe_control,
+                                     GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
+                                     lsocks, loprefix, quotedbinary, "-c",
+                                     sl->config, options, NULL);
   }
   GNUNET_free (binary);
   GNUNET_free (quotedbinary);

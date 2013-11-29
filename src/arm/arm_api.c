@@ -737,9 +737,6 @@ control_message_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *t
 }
 
 
-#include "do_start_process.c"
-
-
 /**
  * A client specifically requested starting of ARM itself.
  * This function is called with information about whether
@@ -832,26 +829,27 @@ arm_service_report (void *cls,
     /* Means we are ONLY running locally */
     /* we're clearly running a test, don't daemonize */
     if (NULL == config)
-      proc = do_start_process (GNUNET_NO, cm->std_inheritance,
-			       NULL, loprefix, quotedbinary,
-			       /* no daemonization! */
-			       lopostfix, NULL);
+      proc = GNUNET_OS_start_process_s (GNUNET_NO, cm->std_inheritance,
+                                        NULL, loprefix, quotedbinary,
+                                        /* no daemonization! */
+                                        lopostfix, NULL);
     else
-      proc = do_start_process (GNUNET_NO, cm->std_inheritance,
+      proc = GNUNET_OS_start_process_s (GNUNET_NO, cm->std_inheritance,
 			       NULL, loprefix, quotedbinary, "-c", config,
-			       /* no daemonization! */
-			       lopostfix, NULL);
+                                        /* no daemonization! */
+                                        lopostfix, NULL);
   }
   else
   {
     if (NULL == config)
-      proc = do_start_process (GNUNET_NO, cm->std_inheritance,
-			       NULL, loprefix, quotedbinary,
-			       "-d", lopostfix, NULL);
+      proc = GNUNET_OS_start_process_s (GNUNET_NO, cm->std_inheritance,
+                                        NULL, loprefix, quotedbinary,
+                                        "-d", lopostfix, NULL);
     else
-      proc = do_start_process (GNUNET_NO, cm->std_inheritance,
-			       NULL, loprefix, quotedbinary, "-c", config,
-			       "-d", lopostfix, NULL);
+      proc = GNUNET_OS_start_process_s (GNUNET_NO, cm->std_inheritance,
+                                        NULL, loprefix, quotedbinary, "-c",
+                                        config,
+                                        "-d", lopostfix, NULL);
   }
   GNUNET_free (binary);
   GNUNET_free (quotedbinary);
