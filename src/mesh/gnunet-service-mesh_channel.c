@@ -880,8 +880,9 @@ ch_message_sent (void *cls,
   switch (ch_q->type)
   {
     case GNUNET_MESSAGE_TYPE_MESH_DATA:
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! SENT %u %s\n",
-           NULL != copy ? copy->mid : 0, GM_m2s (type));
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! SENT %u %s (c: %p, q: %p)\n",
+           copy->mid, GM_m2s (type), copy, copy->q);
+      GNUNET_assert (ch_q == copy->q);
       copy->timestamp = GNUNET_TIME_absolute_get ();
       rel = copy->rel;
       if (GNUNET_SCHEDULER_NO_TASK == rel->retry_task)
@@ -2035,11 +2036,24 @@ GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
         else
         {
           q->copy = (struct MeshReliableMessage *) existing_copy;
+          if (NULL != q->copy->q)
+          {
+            /* Last retransmission was scheduled but not sent!
+             * This retransmission was executed by a ch_message_sent
+             * following a very fast RRT, which scheduled the retransmission
+             * before the retransmitted message had a chance to leave the peer.
+             * Cancel this transmission and wait until the pending
+             * retransmission schedules the next one.
+             */
+            GNUNET_free (q);
+            return;
+          }
           LOG (GNUNET_ERROR_TYPE_DEBUG,
                "  using existing copy: %p {r:%p q:%p t:%u}\n",
                existing_copy,
                q->copy->rel, q->copy->q, q->copy->type);
         }
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "  new q: %p\n", q);
         q->copy->q = q;
         q->q = GMT_send_prebuilt_message (message, ch->t, ch,
                                           fwd, NULL != existing_copy,
