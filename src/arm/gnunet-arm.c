@@ -517,12 +517,14 @@ list_callback (void *cls,
     GNUNET_asprintf (&msg, "%s", _("Failed to request a list of services: %s\n"));
     FPRINTF (stdout, msg, req_string (rs));
     GNUNET_free (msg);
+    ret = 3;
     GNUNET_SCHEDULER_shutdown ();
   }
   if (NULL == list)
   {
     FPRINTF (stderr, "%s", _("Error communicating with ARM. ARM not running?\n"));
     GNUNET_SCHEDULER_shutdown ();
+    ret = 3;
     return;
   }
   FPRINTF (stdout, "%s", _("Running services:\n"));
