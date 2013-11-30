@@ -746,8 +746,6 @@ ch_message_sent (void *cls,
 
     default:
       GNUNET_break (0);
-      GNUNET_free (ch_q);
-      return;
   }
 
   GNUNET_free (ch_q);
@@ -1064,8 +1062,8 @@ channel_confirm (struct MeshChannel *ch, int fwd)
   }
 
   /* In case of a FWD ACK (SYNACK) send a BCK ACK (ACK). */
-  if (fwd)
-    channel_send_ack (ch, !fwd);
+  if (GNUNET_YES == fwd)
+    channel_send_ack (ch, GNUNET_NO);
 }
 
 
@@ -2175,6 +2173,7 @@ GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
       }
       break;
 
+      
     case GNUNET_MESSAGE_TYPE_MESH_DATA_ACK:
       {
         struct MeshChannelReliability *rel;
@@ -2194,6 +2193,8 @@ GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
                                                   rel->uniq);
       }
       break;
+
+
     default:
       GNUNET_break (NULL == GMT_send_prebuilt_message (message, ch->t, ch,
                                                        fwd, GNUNET_YES,
