@@ -2184,8 +2184,15 @@ GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
       q->rel = fwd ? ch->root_rel : ch->dest_rel;
       if (NULL != q->rel->uniq)
       {
-        GMT_cancel (q->rel->uniq->q);
-        /* ch_message_sent is called, freeing and NULLing uniq */
+        if (NULL != q->rel->uniq->q)
+        {
+          GMT_cancel (q->rel->uniq->q);
+          /* ch_message_sent is called, freeing and NULLing uniq */
+        }
+        else
+        {
+          GNUNET_free (q->rel->uniq);
+        }
       }
       q->q = GMT_send_prebuilt_message (message, ch->t, ch,
                                         fwd, GNUNET_YES,
