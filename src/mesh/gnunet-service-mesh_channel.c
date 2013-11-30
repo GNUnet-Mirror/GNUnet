@@ -737,6 +737,7 @@ ch_message_sent (void *cls,
     case GNUNET_MESSAGE_TYPE_MESH_DATA_ACK:
     case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_CREATE:
     case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_ACK:
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! SENT %s\n", GM_m2s (type));
       rel = ch_q->rel;
       GNUNET_assert (rel->uniq == ch_q);
       rel->uniq = NULL;
@@ -2149,6 +2150,8 @@ GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
              * the timer for the next one.
              */
             GNUNET_free (q);
+            LOG (GNUNET_ERROR_TYPE_DEBUG,
+                 "  exisitng copy not yet transmitted!\n");
             return;
           }
           LOG (GNUNET_ERROR_TYPE_DEBUG,
