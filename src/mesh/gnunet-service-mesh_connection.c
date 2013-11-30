@@ -2699,13 +2699,16 @@ GMC_send_create (struct MeshConnection *connection)
 
   size = sizeof (struct GNUNET_MESH_ConnectionCreate);
   size += connection->path->length * sizeof (struct GNUNET_PeerIdentity);
+
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Send connection create\n");
-  GMP_queue_add (get_next_hop (connection), NULL,
-                 GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE,
-                 size, connection, GNUNET_YES, &message_sent, NULL);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  C_P+ %p %u (create)\n",
        connection, connection->pending_messages);
   connection->pending_messages++;
+
+  GMP_queue_add (get_next_hop (connection), NULL,
+                 GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE,
+                 size, connection, GNUNET_YES, &message_sent, NULL);
+
   state = GMT_get_cstate (connection->t);
   if (MESH_TUNNEL3_SEARCHING == state || MESH_TUNNEL3_NEW == state)
     GMT_change_cstate (connection->t, MESH_TUNNEL3_WAITING);
