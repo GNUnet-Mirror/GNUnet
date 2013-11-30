@@ -733,8 +733,6 @@ ch_message_sent (void *cls,
       GNUNET_assert (rel->uniq == ch_q);
       if (MESH_CHANNEL_READY != rel->ch->state)
       {
-        struct GNUNET_TIME_Relative delay;
-
         GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == rel->retry_task);
         rel->retry_timer = GNUNET_TIME_STD_BACKOFF (rel->retry_timer);
         rel->retry_task = GNUNET_SCHEDULER_add_delayed (rel->retry_timer,
@@ -761,7 +759,6 @@ static void
 send_create (struct MeshChannel *ch)
 {
   struct GNUNET_MESH_ChannelCreate msgcc;
-  struct MeshChannelQueue *q;
 
   msgcc.header.size = htons (sizeof (msgcc));
   msgcc.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CHANNEL_CREATE);
@@ -769,14 +766,7 @@ send_create (struct MeshChannel *ch)
   msgcc.port = htonl (ch->port);
   msgcc.opt = htonl (channel_get_options (ch));
 
-  q = GNUNET_new (struct MeshChannelQueue);
-  q->rel = ch->root_rel;
-
-  /* FIXME cancel on confirm */
-  q->q = GMT_send_prebuilt_message (&msgcc.header, ch->t, ch,
-                                    GNUNET_YES, GNUNET_YES,
-                                    ch_message_sent, q);
-  q->rel->uniq = q;
+  GMCH_send_prebuilt_message (&msgcc.header, ch, GNUNET_YES, NULL);
 }
 
 
@@ -2111,6 +2101,7 @@ GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
                             struct MeshChannel *ch, int fwd,
                             void *existing_copy)
 {
+  struct MeshChannelQueue *q;
   uint16_t type;
 
   type = ntohs (message->type);
@@ -2130,8 +2121,6 @@ GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
 
       if (GNUNET_YES == ch->reliable)
       {
-        struct MeshChannelQueue *q;
-
         q = GNUNET_new (struct MeshChannelQueue);
         q->type = type;
         if (NULL == existing_copy)
@@ -2173,25 +2162,21 @@ GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
       }
       break;
 
-      
-    case GNUNET_MESSAGE_TYPE_MESH_DATA_ACK:
-      {
-        struct MeshChannelReliability *rel;
 
-        rel = fwd ? ch->root_rel : ch->dest_rel;
-        if (NULL != rel->uniq)
-        {
-          GMT_cancel (rel->uniq->q);
-          /* ch_message_sent is called, freeing ack_q */
-        }
-        rel->uniq = GNUNET_new (struct MeshChannelQueue);
-        rel->uniq->type = type;
-        rel->uniq->rel = rel;
-        rel->uniq->q = GMT_send_prebuilt_message (message, ch->t, ch,
-                                                   fwd, GNUNET_YES,
-                                                   &ch_message_sent,
-                                                  rel->uniq);
+    case GNUNET_MESSAGE_TYPE_MESH_DATA_ACK:
+    case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_CREATE:
+      q = GNUNET_new (struct MeshChannelQueue);
+      q->type = type;
+      q->rel = fwd ? ch->root_rel : ch->dest_rel;
+      if (NULL != q->rel->uniq)
+      {
+        GMT_cancel (q->rel->uniq->q);
+        /* ch_message_sent is called, freeing and NULLing uniq */
       }
+      q->q = GMT_send_prebuilt_message (message, ch->t, ch,
+                                        fwd, GNUNET_YES,
+                                        &ch_message_sent, q);
+      q->rel->uniq = q;
       break;
 
 
