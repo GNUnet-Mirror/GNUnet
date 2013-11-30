@@ -83,7 +83,7 @@ struct GetMessage
 {
 
   /**
-   * Message type will be GNUNET_MESSAGE_TYPE_FS_GET.
+   * Message type will be #GNUNET_MESSAGE_TYPE_FS_GET.
    */
   struct GNUNET_MessageHeader header;
 
@@ -114,7 +114,7 @@ struct GetMessage
   /**
    * Which of the optional hash codes are present at the end of the
    * message?  See GET_MESSAGE_BIT_xx constants.  For each bit that is
-   * set, an additional struct GNUNET_HashCode with the respective content
+   * set, an additional `struct GNUNET_HashCode` with the respective content
    * (in order of the bits) will be appended to the end of the GET
    * message.
    */
@@ -126,7 +126,7 @@ struct GetMessage
    */
   struct GNUNET_HashCode query;
 
-  /* this is followed by hash codes as specified in the "hash_bitmap";
+  /* this is followed by PeerIdentities as specified in the "hash_bitmap";
    * after that, an optional bloomfilter (with bits set for replies
    * that should be suppressed) can be present */
 };

@@ -98,7 +98,7 @@ struct GSF_PeerTransmitHandle
   struct GSF_ConnectedPeer *cp;
 
   /**
-   * Closure for 'gmc'.
+   * Closure for @e gmc.
    */
   void *gmc_cls;
 
@@ -108,7 +108,7 @@ struct GSF_PeerTransmitHandle
   size_t size;
 
   /**
-   * GNUNET_YES if this is a query, GNUNET_NO for content.
+   * #GNUNET_YES if this is a query, #GNUNET_NO for content.
    */
   int is_query;
 
@@ -1116,7 +1116,7 @@ GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
   uint16_t msize;
   const struct GetMessage *gm;
   unsigned int bits;
-  const struct GNUNET_HashCode *opt;
+  const struct GNUNET_PeerIdentity *opt;
   uint32_t bm;
   size_t bfsize;
   uint32_t ttl_decrement;
@@ -1146,13 +1146,13 @@ GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
       bits++;
     bm >>= 1;
   }
-  if (msize < sizeof (struct GetMessage) + bits * sizeof (struct GNUNET_HashCode))
+  if (msize < sizeof (struct GetMessage) + bits * sizeof (struct GNUNET_PeerIdentity))
   {
     GNUNET_break_op (0);
     return NULL;
   }
-  opt = (const struct GNUNET_HashCode *) &gm[1];
-  bfsize = msize - sizeof (struct GetMessage) - bits * sizeof (struct GNUNET_HashCode);
+  opt = (const struct GNUNET_PeerIdentity *) &gm[1];
+  bfsize = msize - sizeof (struct GetMessage) - bits * sizeof (struct GNUNET_PeerIdentity);
   /* bfsize must be power of 2, check! */
   if (0 != ((bfsize - 1) & bfsize))
   {
@@ -1173,7 +1173,7 @@ GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
     return NULL;
   }
   if (0 != (bm & GET_MESSAGE_BIT_RETURN_TO))
-    cp = GSF_peer_get_ ((const struct GNUNET_PeerIdentity *) &opt[bits++]);
+    cp = GSF_peer_get_ (&opt[bits++]);
   else
     cp = cps;
   if (NULL == cp)
@@ -1181,8 +1181,7 @@ GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
     if (0 != (bm & GET_MESSAGE_BIT_RETURN_TO))
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Failed to find RETURN-TO peer `%4s' in connection set. Dropping query.\n",
-                  GNUNET_i2s ((const struct GNUNET_PeerIdentity *)
-                              &opt[bits - 1]));
+                  GNUNET_i2s (&opt[bits - 1]));
 
     else
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1209,12 +1208,13 @@ GSF_handle_p2p_query_ (const struct GNUNET_PeerIdentity *other,
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received request for `%s' of type %u from peer `%4s' with flags %u\n",
-              GNUNET_h2s (&gm->query), (unsigned int) type, GNUNET_i2s (other),
+              GNUNET_h2s (&gm->query),
+              (unsigned int) type,
+              GNUNET_i2s (other),
               (unsigned int) bm);
   target =
       (0 !=
-       (bm & GET_MESSAGE_BIT_TRANSMIT_TO)) ? ((const struct GNUNET_PeerIdentity
-                                               *) &opt[bits++]) : NULL;
+       (bm & GET_MESSAGE_BIT_TRANSMIT_TO)) ? (&opt[bits++]) : NULL;
   options = GSF_PRO_DEFAULTS;
   spid = 0;
   if ((GNUNET_LOAD_get_load (cp->ppd.transmission_delay) > 3 * (1 + priority))

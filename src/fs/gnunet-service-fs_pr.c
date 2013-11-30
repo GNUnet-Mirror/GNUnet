@@ -504,7 +504,7 @@ GSF_pending_request_get_message_ (struct GSF_PendingRequest *pr,
 {
   char lbuf[GNUNET_SERVER_MAX_MESSAGE_SIZE];
   struct GetMessage *gm;
-  struct GNUNET_HashCode *ext;
+  struct GNUNET_PeerIdentity *ext;
   size_t msize;
   unsigned int k;
   uint32_t bm;
@@ -537,7 +537,7 @@ GSF_pending_request_get_message_ (struct GSF_PendingRequest *pr,
     k++;
   }
   bf_size = GNUNET_CONTAINER_bloomfilter_get_size (pr->bf);
-  msize = sizeof (struct GetMessage) + bf_size + k * sizeof (struct GNUNET_HashCode);
+  msize = sizeof (struct GetMessage) + bf_size + k * sizeof (struct GNUNET_PeerIdentity);
   GNUNET_assert (msize < GNUNET_SERVER_MAX_MESSAGE_SIZE);
   if (buf_size < msize)
     return msize;
@@ -561,16 +561,14 @@ GSF_pending_request_get_message_ (struct GSF_PendingRequest *pr,
   gm->filter_mutator = htonl (pr->mingle);
   gm->hash_bitmap = htonl (bm);
   gm->query = pr->public_data.query;
-  ext = (struct GNUNET_HashCode *) & gm[1];
+  ext = (struct GNUNET_PeerIdentity *) &gm[1];
   k = 0;
   if (!do_route)
     GNUNET_PEER_resolve (pr->sender_pid,
-                         (struct GNUNET_PeerIdentity *) &ext[k++]);
+                         &ext[k++]);
   if (NULL != pr->public_data.target)
-    memcpy (&ext[k++],
-	    pr->public_data.target,
-	    sizeof (struct GNUNET_PeerIdentity));
-  if (pr->bf != NULL)
+    ext[k++] = *pr->public_data.target;
+  if (NULL != pr->bf)
     GNUNET_assert (GNUNET_SYSERR !=
                    GNUNET_CONTAINER_bloomfilter_get_raw_data (pr->bf,
                                                               (char *) &ext[k],
