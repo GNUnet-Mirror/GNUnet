@@ -61,6 +61,11 @@
 #include <netinet/ip_icmp.h>
 #include <netinet/in.h>
 
+/* The following constant is missing from FreeBSD 9.2 */
+#ifndef ICMP_TIME_EXCEEDED
+#define ICMP_TIME_EXCEEDED 11
+#endif
+
 /**
  * Must match IP given in the server.
  */

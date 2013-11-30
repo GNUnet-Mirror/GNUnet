@@ -83,9 +83,9 @@ GNUNET_DATASTORE_disconnect (struct GNUNET_DATASTORE_Handle *h, int drop);
  * operation.
  *
  * @param cls closure
- * @param success GNUNET_SYSERR on failure (including timeout/queue drop)
- *                GNUNET_NO if content was already there
- *                GNUNET_YES (or other positive value) on success
+ * @param success #GNUNET_SYSERR on failure (including timeout/queue drop)
+ *                #GNUNET_NO if content was already there
+ *                #GNUNET_YES (or other positive value) on success
  * @param min_expiration minimum expiration time required for 0-priority content to be stored
  *                by the datacache at this time, zero for unknown, forever if we have no
  *                space for 0-priority content
@@ -146,7 +146,7 @@ GNUNET_DATASTORE_reserve (struct GNUNET_DATASTORE_Handle *h, uint64_t amount,
  *        (if other requests of higher priority are in the queue)
  * @param timeout timeout for the operation
  * @param cont continuation to call when done
- * @param cont_cls closure for cont
+ * @param cont_cls closure for @a cont
  * @return NULL if the entry was not queued, otherwise a handle that can be used to
  *         cancel; note that even if NULL is returned, the callback will be invoked
  *         (or rather, will already have been invoked)
@@ -180,7 +180,7 @@ GNUNET_DATASTORE_put (struct GNUNET_DATASTORE_Handle *h, uint32_t rid,
  *        (if other requests of higher priority are in the queue)
  * @param timeout how long to wait at most for a response
  * @param cont continuation to call when done
- * @param cont_cls closure for cont
+ * @param cont_cls closure for @a cont
  * @return NULL if the entry was not queued, otherwise a handle that can be used to
  *         cancel; note that even if NULL is returned, the callback will be invoked
  *         (or rather, will already have been invoked)
@@ -206,7 +206,7 @@ GNUNET_DATASTORE_release_reserve (struct GNUNET_DATASTORE_Handle *h,
  *        (if other requests of higher priority are in the queue)
  * @param timeout how long to wait at most for a response
  * @param cont continuation to call when done
- * @param cont_cls closure for cont
+ * @param cont_cls closure for @a cont
  * @return NULL if the entry was not queued, otherwise a handle that can be used to
  *         cancel; note that even if NULL is returned, the callback will be invoked
  *         (or rather, will already have been invoked)
@@ -223,22 +223,21 @@ GNUNET_DATASTORE_update (struct GNUNET_DATASTORE_Handle *h, uint64_t uid,
 
 
 /**
- * Explicitly remove some content from the database.
- * The "cont"inuation will be called with status
- * "GNUNET_OK" if content was removed, "GNUNET_NO"
- * if no matching entry was found and "GNUNET_SYSERR"
- * on all other types of errors.
+ * Explicitly remove some content from the database.  @a cont will be
+ * called with status #GNUNET_OK if content was removed, #GNUNET_NO if
+ * no matching entry was found and #GNUNET_SYSERR on all other types
+ * of errors.
  *
  * @param h handle to the datastore
  * @param key key for the value
- * @param size number of bytes in data
+ * @param size number of bytes in @a data
  * @param data content stored
  * @param queue_priority ranking of this request in the priority queue
  * @param max_queue_size at what queue size should this request be dropped
  *        (if other requests of higher priority are in the queue)
  * @param timeout how long to wait at most for a response
  * @param cont continuation to call when done
- * @param cont_cls closure for cont
+ * @param cont_cls closure for @a cont
  * @return NULL if the entry was not queued, otherwise a handle that can be used to
  *         cancel; note that even if NULL is returned, the callback will be invoked
  *         (or rather, will already have been invoked)
@@ -268,13 +267,13 @@ GNUNET_DATASTORE_remove (struct GNUNET_DATASTORE_Handle *h,
  *        maybe 0 if no unique identifier is available
  */
 typedef void (*GNUNET_DATASTORE_DatumProcessor) (void *cls,
-                                                 const struct GNUNET_HashCode * key,
+                                                 const struct GNUNET_HashCode *key,
                                                  size_t size, const void *data,
                                                  enum GNUNET_BLOCK_Type type,
                                                  uint32_t priority,
                                                  uint32_t anonymity,
-                                                 struct GNUNET_TIME_Absolute
-                                                 expiration, uint64_t uid);
+                                                 struct GNUNET_TIME_Absolute expiration,
+                                                 uint64_t uid);
 
 
 /**
@@ -294,7 +293,7 @@ typedef void (*GNUNET_DATASTORE_DatumProcessor) (void *cls,
  * @param timeout how long to wait at most for a response
  * @param proc function to call on a matching value;
  *        or with a NULL value if no datum matches
- * @param proc_cls closure for proc
+ * @param proc_cls closure for @a proc
  * @return NULL if the entry was not queued, otherwise a handle that can be used to
  *         cancel
  */
