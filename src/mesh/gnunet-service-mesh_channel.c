@@ -722,23 +722,19 @@ ch_message_sent (void *cls,
 
 
     case GNUNET_MESSAGE_TYPE_MESH_DATA_ACK:
-      rel = ch_q->rel;
-      GNUNET_assert (rel->uniq == ch_q);
-      rel->uniq = NULL;
-      break;
-
-
     case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_CREATE:
       rel = ch_q->rel;
       GNUNET_assert (rel->uniq == ch_q);
-      if (MESH_CHANNEL_READY != rel->ch->state)
+      rel->uniq = NULL;
+
+      if (MESH_CHANNEL_READY != rel->ch->state
+          && GNUNET_MESSAGE_TYPE_MESH_CHANNEL_CREATE == type)
       {
         GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == rel->retry_task);
         rel->retry_timer = GNUNET_TIME_STD_BACKOFF (rel->retry_timer);
         rel->retry_task = GNUNET_SCHEDULER_add_delayed (rel->retry_timer,
                                                         &channel_recreate, rel);
       }
-      rel->uniq = NULL;
       break;
 
 
