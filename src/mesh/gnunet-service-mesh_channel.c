@@ -326,6 +326,15 @@ rel_message_free (struct MeshReliableMessage *copy, int update_time);
 static void
 send_create (struct MeshChannel *ch);
 
+/**
+ * Confirm we got a channel create, FWD ack.
+ *
+ * @param ch The channel to confirm.
+ * @param fwd Should we send a FWD ACK? (going dest->root)
+ */
+static void
+send_ack (struct MeshChannel *ch, int fwd);
+
 
 
 /**
@@ -666,9 +675,13 @@ channel_recreate (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     send_create (rel->ch);
   }
+  else if (rel == rel->ch->dest_rel)
+  {
+    send_ack (rel->ch, GNUNET_YES);
+  }
   else
   {
-
+    GNUNET_break (0);
   }
 
 }
@@ -723,12 +736,13 @@ ch_message_sent (void *cls,
 
     case GNUNET_MESSAGE_TYPE_MESH_DATA_ACK:
     case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_CREATE:
+    case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_ACK:
       rel = ch_q->rel;
       GNUNET_assert (rel->uniq == ch_q);
       rel->uniq = NULL;
 
       if (MESH_CHANNEL_READY != rel->ch->state
-          && GNUNET_MESSAGE_TYPE_MESH_CHANNEL_CREATE == type)
+          && GNUNET_MESSAGE_TYPE_MESH_DATA_ACK != type)
       {
         GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == rel->retry_task);
         rel->retry_timer = GNUNET_TIME_STD_BACKOFF (rel->retry_timer);
@@ -763,6 +777,49 @@ send_create (struct MeshChannel *ch)
   msgcc.opt = htonl (channel_get_options (ch));
 
   GMCH_send_prebuilt_message (&msgcc.header, ch, GNUNET_YES, NULL);
+}
+
+
+/**
+ * Confirm we got a channel create, FWD ack.
+ *
+ * @param ch The channel to confirm.
+ * @param fwd Should we send a FWD ACK? (going dest->root)
+ */
+static void
+send_ack (struct MeshChannel *ch, int fwd)
+{
+  struct GNUNET_MESH_ChannelManage msg;
+
+  msg.header.size = htons (sizeof (msg));
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CHANNEL_ACK);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "  sending channel %s ack for channel %s\n",
+       GM_f2s (fwd), GMCH_2s (ch));
+
+  msg.chid = htonl (ch->gid);
+  GMCH_send_prebuilt_message (&msg.header, ch, !fwd, NULL);
+}
+
+
+/**
+ * Notify that a channel create didn't succeed.
+ *
+ * @param ch The channel to reject.
+ */
+static void
+send_nack (struct MeshChannel *ch)
+{
+  struct GNUNET_MESH_ChannelManage msg;
+
+  msg.header.size = htons (sizeof (msg));
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CHANNEL_NACK);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "  sending channel NACK for channel %s\n",
+       GMCH_2s (ch));
+
+  msg.chid = htonl (ch->gid);
+  GMCH_send_prebuilt_message (&msg.header, ch, GNUNET_NO, NULL);
 }
 
 
@@ -968,49 +1025,6 @@ rel_message_free (struct MeshReliableMessage *copy, int update_time)
 
 
 /**
- * Confirm we got a channel create.
- *
- * @param ch The channel to confirm.
- * @param fwd Should we send a FWD ACK? (going dest->root)
- */
-static void
-channel_send_ack (struct MeshChannel *ch, int fwd)
-{
-  struct GNUNET_MESH_ChannelManage msg;
-
-  msg.header.size = htons (sizeof (msg));
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CHANNEL_ACK);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-              "  sending channel %s ack for channel %s\n",
-              GM_f2s (fwd), GMCH_2s (ch));
-
-  msg.chid = htonl (ch->gid);
-  GMCH_send_prebuilt_message (&msg.header, ch, !fwd, NULL);
-}
-
-
-/**
- * Notify that a channel create didn't succeed.
- *
- * @param ch The channel to reject.
- */
-static void
-channel_send_nack (struct MeshChannel *ch)
-{
-  struct GNUNET_MESH_ChannelManage msg;
-
-  msg.header.size = htons (sizeof (msg));
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CHANNEL_NACK);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "  sending channel NACK for channel %s\n",
-       GMCH_2s (ch));
-
-  msg.chid = htonl (ch->gid);
-  GMCH_send_prebuilt_message (&msg.header, ch, GNUNET_NO, NULL);
-}
-
-
-/**
  * Channel was ACK'd by remote peer, mark as ready and cancel retransmission.
  *
  * @param ch Channel to mark as ready.
@@ -1049,7 +1063,7 @@ channel_confirm (struct MeshChannel *ch, int fwd)
 
   /* In case of a FWD ACK (SYNACK) send a BCK ACK (ACK). */
   if (GNUNET_YES == fwd)
-    channel_send_ack (ch, GNUNET_NO);
+    send_ack (ch, GNUNET_NO);
 }
 
 
@@ -1954,17 +1968,16 @@ GMCH_handle_create (struct MeshTunnel3 *t,
   c = GML_client_get_by_port (ch->port);
   if (NULL == c)
   {
-    /* TODO send reject */
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  no client has port registered\n");
     if (is_loopback (ch))
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG, "  loopback: destroy on handler\n");
-      channel_send_nack (ch);
+      send_nack (ch);
     }
     else
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG, "  not loopback: destroy now\n");
-      channel_send_nack (ch);
+      send_nack (ch);
       GMCH_destroy (ch);
     }
     return NULL;
@@ -1981,7 +1994,7 @@ GMCH_handle_create (struct MeshTunnel3 *t,
     LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! Not Reliable\n");
 
   send_client_create (ch);
-  channel_send_ack (ch, GNUNET_YES);
+  send_ack (ch, GNUNET_YES);
 
   return ch;
 }
@@ -2152,13 +2165,18 @@ GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
       }
       else
       {
-        GNUNET_break (NULL == GMT_send_prebuilt_message (message, ch->t, ch,
-                                                         fwd, GNUNET_NO,
-                                                         NULL, NULL));
+        goto fire_and_forget;
       }
       break;
 
 
+    case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_ACK:
+      if (GNUNET_YES == fwd)
+      {
+        /* BCK ACK (going FWD) is just a response for a SYNACK, don't keep*/
+        goto fire_and_forget;
+      }
+      /* fall-trough */
     case GNUNET_MESSAGE_TYPE_MESH_DATA_ACK:
     case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_CREATE:
       q = GNUNET_new (struct MeshChannelQueue);
@@ -2176,6 +2194,7 @@ GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
       break;
 
 
+    fire_and_forget:
     default:
       GNUNET_break (NULL == GMT_send_prebuilt_message (message, ch->t, ch,
                                                        fwd, GNUNET_YES,
