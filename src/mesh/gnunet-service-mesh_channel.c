@@ -2090,6 +2090,17 @@ GMCH_handle_destroy (struct MeshChannel *ch,
 }
 
 
+void
+fire_and_forget (struct GNUNET_MessageHeader *msg,
+                 struct MeshChannel *ch,
+                 int force)
+{
+  GNUNET_break (NULL == GMT_send_prebuilt_message (msg, ch->t, ch,
+                                                   GNUNET_YES, force,
+                                                   NULL, NULL));
+}
+
+
 /**
  * Sends an already built message on a channel.
  *
@@ -2168,7 +2179,7 @@ GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
       }
       else
       {
-        goto fire_and_forget;
+        fire_and_forget (message, ch, GNUNET_NO);
       }
       break;
 
@@ -2177,7 +2188,8 @@ GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
       if (GNUNET_YES == fwd)
       {
         /* BCK ACK (going FWD) is just a response for a SYNACK, don't keep*/
-        goto fire_and_forget;
+        fire_and_forget (message, ch, GNUNET_YES);
+        break;
       }
       /* fall-trough */
     case GNUNET_MESSAGE_TYPE_MESH_DATA_ACK:
@@ -2204,11 +2216,16 @@ GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
       break;
 
 
-    fire_and_forget:
+    case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_DESTROY:
+    case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_NACK:
+      fire_and_forget (message, ch, GNUNET_YES);
+      break;
+
+
     default:
-      GNUNET_break (NULL == GMT_send_prebuilt_message (message, ch->t, ch,
-                                                       fwd, GNUNET_YES,
-                                                       NULL, NULL));
+      GNUNET_break (0);
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "type %s unknown!\n", GM_m2s (type));
+      fire_and_forget (message, ch, GNUNET_YES);
   }
 }
 
