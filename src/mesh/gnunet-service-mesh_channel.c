@@ -804,6 +804,24 @@ send_ack (struct MeshChannel *ch, int fwd)
 
 
 /**
+ * Sent a message and don't keep any info about it: we won't need to cancel it
+ * or resend it.
+ *
+ * @param msg Header of the message to fire away.
+ * @param ch Channel on which the message should go.
+ * @param force Is this a forced (undroppable) message?
+ */
+static void
+fire_and_forget (const struct GNUNET_MessageHeader *msg,
+                 struct MeshChannel *ch,
+                 int force)
+{
+  GNUNET_break (NULL == GMT_send_prebuilt_message (msg, ch->t, ch, force,
+                                                   NULL, NULL));
+}
+
+
+/**
  * Notify that a channel create didn't succeed.
  *
  * @param ch The channel to reject.
@@ -2090,17 +2108,6 @@ GMCH_handle_destroy (struct MeshChannel *ch,
 }
 
 
-void
-fire_and_forget (struct GNUNET_MessageHeader *msg,
-                 struct MeshChannel *ch,
-                 int force)
-{
-  GNUNET_break (NULL == GMT_send_prebuilt_message (msg, ch->t, ch,
-                                                   GNUNET_YES, force,
-                                                   NULL, NULL));
-}
-
-
 /**
  * Sends an already built message on a channel.
  *
@@ -2173,7 +2180,7 @@ GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
         LOG (GNUNET_ERROR_TYPE_DEBUG, "  new q: %p\n", q);
         q->copy->q = q;
         q->q = GMT_send_prebuilt_message (message, ch->t, ch,
-                                          fwd, NULL != existing_copy,
+                                          NULL != existing_copy,
                                           &ch_message_sent, q);
         /* q itself is stored in copy */
       }
@@ -2209,8 +2216,7 @@ GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
           GNUNET_free (q->rel->uniq);
         }
       }
-      q->q = GMT_send_prebuilt_message (message, ch->t, ch,
-                                        fwd, GNUNET_YES,
+      q->q = GMT_send_prebuilt_message (message, ch->t, ch, GNUNET_YES,
                                         &ch_message_sent, q);
       q->rel->uniq = q;
       break;

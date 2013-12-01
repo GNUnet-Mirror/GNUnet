@@ -2150,7 +2150,6 @@ GMT_cancel (struct MeshTunnel3Queue *q)
  * @param message Message to send. Function modifies it.
  * @param t Tunnel on which this message is transmitted.
  * @param ch Channel on which this message is transmitted.
- * @param fwd Is this a fwd message on @c ch?
  * @param force Force the tunnel to take the message (buffer overfill).
  * @param cont Continuation to call once message is really sent.
  * @param cont_cls Closure for @c cont.
@@ -2159,8 +2158,8 @@ GMT_cancel (struct MeshTunnel3Queue *q)
  */
 struct MeshTunnel3Queue *
 GMT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
-                           struct MeshTunnel3 *t,
-                           struct MeshChannel *ch, int fwd, int force,
+                           struct MeshTunnel3 *t, struct MeshChannel *ch,
+                           int force,
                            GMT_sent cont, void *cont_cls)
 {
   struct MeshTunnel3Queue *q;
@@ -2171,6 +2170,7 @@ GMT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   char cbuf[sizeof (struct GNUNET_MESH_Encrypted) + size];
   uint32_t iv;
   uint16_t type;
+  int fwd;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "GMT Send on Tunnel %s\n", GMT_2s (t));
 
@@ -2181,13 +2181,7 @@ GMT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
     return NULL;
   }
 
-  if (GMT_is_loopback (t))
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  loopback!\n");
-    handle_decrypted (t, message, fwd);
-    GNUNET_break (0); /* FIXME replace with assert */
-    return NULL; /* Already delivered, cannot cancel */
-  }
+  GNUNET_assert (GNUNET_NO == GMT_is_loopback (t));
 
   iv = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
   msg = (struct GNUNET_MESH_Encrypted *) cbuf;
