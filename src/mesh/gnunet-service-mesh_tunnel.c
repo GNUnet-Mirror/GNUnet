@@ -2185,7 +2185,7 @@ GMT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  loopback!\n");
     handle_decrypted (t, message, fwd);
-    /* FIXME: call cont? */
+    GNUNET_break (0); /* FIXME replace with assert */
     return NULL; /* Already delivered, cannot cancel */
   }
 
