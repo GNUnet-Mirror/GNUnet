@@ -180,7 +180,7 @@ struct NotifyTrafficMessage
 struct SendMessageRequest
 {
   /**
-   * Header with type GNUNET_MESSAGE_TYPE_CORE_SEND_REQUEST
+   * Header with type #GNUNET_MESSAGE_TYPE_CORE_SEND_REQUEST
    */
   struct GNUNET_MessageHeader header;
 
@@ -221,12 +221,12 @@ struct SendMessageRequest
 /**
  * Core notifying client that it is allowed to now
  * transmit a message to the given target
- * (response to GNUNET_MESSAGE_TYPE_CORE_SEND_REQUEST).
+ * (response to #GNUNET_MESSAGE_TYPE_CORE_SEND_REQUEST).
  */
 struct SendMessageReady
 {
   /**
-   * Header with type GNUNET_MESSAGE_TYPE_CORE_SEND_READY
+   * Header with type #GNUNET_MESSAGE_TYPE_CORE_SEND_READY
    */
   struct GNUNET_MessageHeader header;
 
@@ -253,12 +253,12 @@ struct SendMessageReady
 
 /**
  * Client asking core to transmit a particular message to a particular
- * target (response to GNUNET_MESSAGE_TYPE_CORE_SEND_READY).
+ * target (response to #GNUNET_MESSAGE_TYPE_CORE_SEND_READY).
  */
 struct SendMessage
 {
   /**
-   * Header with type GNUNET_MESSAGE_TYPE_CORE_SEND
+   * Header with type #GNUNET_MESSAGE_TYPE_CORE_SEND
    */
   struct GNUNET_MessageHeader header;
 
@@ -279,7 +279,7 @@ struct SendMessage
   struct GNUNET_PeerIdentity peer;
 
   /**
-   * GNUNET_YES if corking is allowed, GNUNET_NO if not.
+   * #GNUNET_YES if corking is allowed, #GNUNET_NO if not.
    */
   uint32_t cork GNUNET_PACKED;
 
