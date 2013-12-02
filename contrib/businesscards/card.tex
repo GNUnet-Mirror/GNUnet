@@ -11,28 +11,23 @@
 \usepackage{auto-pst-pdf}
 \usetikzlibrary{positioning,shapes,shadows,arrows}
 
+
 \input{fields.tex}
 
-% ===============================================================
-% Font type
-% ===============================================================
 \renewcommand{\rmdefault}{phv}
 \renewcommand{\seriesdefault}{m}
 \renewcommand{\shapedefault}{n}
-% ===============================================================
 
-\definecolor{MyBlack}{cmyk}{0,0,0,1}     % Black
+\definecolor{MyBlack}{cmyk}{0,0,0,1}
 
 \setlength\parindent{0pt}
-
-
 \newlength{\width}
 \newlength{\height}
 \setlength{\width}{85mm}
 \setlength{\height}{55mm}
 
 
-\newcommand{\card}[1]{%
+\newcommand{\card}[1]{
     \begin{tikzpicture}[font=\tiny]
             \draw[-,line width=1pt,MyBlack] (-5mm,0mm) to (-2mm,0mm);
             \draw[-,line width=1pt,MyBlack] (0mm,5mm) to (0mm,2mm);
@@ -47,21 +42,12 @@
             \draw[-,line width=1pt,MyBlack] [yshift=-2mm](\width,-\height) to [yshift=-3mm](\width,-\height);
 
 
-            %\draw[-,line width=1pt,MyBlack] (-5mm,0mm) to (90mm,0mm);
-            %\draw[-,line width=1pt,MyBlack] (-5mm,-55mm) to (90mm,-55mm);
-            %\draw[-,line width=1pt,MyBlack] (-0mm,5mm) to (0mm,-60mm);
-            %\draw[-,line width=1pt,MyBlack] (85mm,5mm) to (85mm,-60mm);
-
-            %\draw[-,line width=0.1mm,MyBlack!50] (44.5mm,0mm) to (44.5mm,-55mm);
-
             \node at (78mm,-7mm) {\includegraphics[height=7mm]{gnunet-logo.pdf}};
             \node[rectangle,draw=white,minimum height=7pt,text width=37.5mm,inner sep=0pt] at (64.25mm,-16mm) {\orga};
             \node[rectangle,draw=white,minimum height=7pt,text width=37.5mm,inner sep=0pt] at (64.25mm,-21.5mm) {\ifthenelse{\equal{#1}{english}}{\departmenten}{\departmentde}};
             \node[rectangle,draw=white,minimum height=7pt,text width=37.5mm,inner sep=0pt] at (64.25mm,-24.0mm) {\ifthenelse{\equal{#1}{english}}{\subdepartmenten}{\subdepartmentde}};
-%            \node[rectangle,draw=white,minimum height=7pt,text width=37.5mm,inner sep=0pt] at (64.25mm,-26.5mm) {\ifthenelse{\equal{#1}{english}}{}{und Netzdienste}};
 
-
-            \ifthenelse{\equal{\gpglineone}{}\or\equal{#1}{german}}{%
+            \ifthenelse{\equal{\gpglineone}{}\or\equal{#1}{german}}{
                 \node[rectangle,draw=white,minimum height=7pt,text width=37.5mm,inner sep=0pt] at (64.25mm,-35mm) {\street};
                 \node[rectangle,draw=white,minimum height=7pt,text width=37.5mm,inner sep=0pt] at (64.25mm,-37.5mm) {\city};
 
@@ -72,51 +58,42 @@
 
                 \node[rectangle,draw=white,minimum height=7pt,text width=37.5mm,inner sep=0pt] at (64.25mm,-48.0mm) {\email};
                 \node[rectangle,draw=white,minimum height=7pt,text width=37.5mm,inner sep=0pt] at (64.25mm,-50.5mm) {\homepage};
-            }%
-            {%
+            }
+            {
                 \node[rectangle,draw=white,minimum height=7pt,text width=37.5mm,inner sep=0pt] at (64.25mm,-35.0mm) {\email};
                 \node[rectangle,draw=white,minimum height=7pt,text width=37.5mm,inner sep=0pt] at (64.25mm,-37.5mm) {\homepage};
 
                 \node[rectangle,draw=white,minimum height=7pt,text width=37.5mm,inner sep=0pt] at (64.25mm,-44.0mm) {GPG Fingerprint:};
                 \node[rectangle,draw=white,minimum height=7pt,text width=37.5mm,inner sep=0pt] at (64.25mm,-46.5mm) {\gpglineone};
                 \node[rectangle,draw=white,minimum height=7pt,text width=37.5mm,inner sep=0pt] at (64.25mm,-49.0mm) {\gpglinetwo};
-            }%
+            }
 
-
-            \ifthenelse{\equal{\gns}{}\or\equal{#1}{english}}{%
+            \ifthenelse{\equal{\gns}{}\or\equal{#1}{english}}{
                 \node[rectangle,draw=white,minimum height=7pt,text width=41mm,inner sep=0pt] at (24.25mm,-21.0mm) {\ifthenelse{\equal{\prefix}{}}{}{\tiny \prefix}};
                 \node[rectangle,draw=white,minimum height=7pt,text width=41mm,inner sep=0pt] at (24.25mm,-24.0mm) {\fontsize{8pt}{8pt}\selectfont \textbf{\name}\ifthenelse{\equal{\suffix}{}}{}{, \tiny \suffix}};
                 \node[rectangle,draw=white,minimum height=7pt,text width=41mm,inner sep=0pt] at (24.25mm,-29.0mm) {\ifthenelse{\equal{#1}{english}}{\textit{\jobtitleenglish}}{\textit{\jobtitlegerman}}};
-            }%
-            {%
+            }
+            {
                 \node[rectangle,draw=black,line width=1pt,inner sep=0pt] at (12.5mm,-14.75mm) {\begin{pspicture}(17mm,17mm) \psbarcode{\gns}{}{qrcode}\end{pspicture}};
                 \node[rectangle,draw=white,minimum height=7pt,text width=41mm,inner sep=0pt] at (24.25mm,-32.0mm) {\ifthenelse{\equal{\prefix}{}}{}{\tiny \prefix}};
                 \node[rectangle,draw=white,minimum height=7pt,text width=41mm,inner sep=0pt] at (24.25mm,-35.0mm) {\fontsize{8pt}{8pt}\selectfont \textbf{\name}\ifthenelse{\equal{\suffix}{}}{}{, \tiny \suffix}};
                 \node[rectangle,draw=white,minimum height=7pt,text width=41mm,inner sep=0pt] at (24.25mm,-41.5mm) {\ifthenelse{\equal{#1}{english}}{\textit{\jobtitleenglish}}{\textit{\jobtitlegerman}}};
-            }%
+            }
     \end{tikzpicture}
-}%
-
-
+}
 
 
 \begin{document}
-
-
 \begin{figure}
     \begin{center}
         \card{german}
     \end{center}
 \end{figure}
-
 \clearpage
-
 \begin{figure}
     \begin{center}
         \card{english}
     \end{center}
 \end{figure}
-
-
 \end{document}
 
