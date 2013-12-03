@@ -40,11 +40,9 @@ plugin_LTLIBRARIES = \
 libgnunetats_la_SOURCES = \
   ats_api_scheduling.c \
   ats_api_performance.c  
-
 libgnunetats_la_LIBADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(LTLIBINTL)
-
 libgnunetats_la_LDFLAGS = \
  $(GN_LIB_LDFLAGS) \
   -version-info 4:0:0
@@ -53,20 +51,19 @@ libgnunet_plugin_ats_proportional_la_SOURCES = \
   libgnunet_plugin_ats_proportional.c
 libgnunet_plugin_ats_proportional_la_LIBADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
-  $(top_builddir)/src/ats/libgnunetats.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(LTLIBINTL)
+libgnunet_plugin_ats_proportional_la_DEPENDENCIES = \
+  libgnunetats.la  
 libgnunet_plugin_ats_proportional_la_LDFLAGS = \
   $(GN_PLUGIN_LDFLAGS)
-libgnunet_plugin_ats_proportional_la_DEPENDENCIES = \
-  libgnunetats.la
+
 
 if HAVE_LIBGLPK
 libgnunet_plugin_ats_mlp_la_SOURCES = \
   libgnunet_plugin_ats_mlp.c
 libgnunet_plugin_ats_mlp_la_LIBADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
-  $(top_builddir)/src/ats/libgnunetats.la \
   $(top_builddir)/src/util/libgnunetutil.la
 libgnunet_plugin_ats_mlp_la_LDFLAGS = \
   $(GN_PLUGIN_LDFLAGS) $(GN_LIBGLPK)
@@ -78,7 +75,6 @@ libgnunet_plugin_ats_ril_la_SOURCES = \
   libgnunet_plugin_ats_ril.c
 libgnunet_plugin_ats_ril_la_LIBADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
-  $(top_builddir)/src/ats/libgnunetats.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(LTLIBINTL)
 libgnunet_plugin_ats_ril_la_LDFLAGS = \
