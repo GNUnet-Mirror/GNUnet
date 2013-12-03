@@ -47,6 +47,11 @@ struct GNUNET_DV_ConnectMessage
   uint32_t distance GNUNET_PACKED;
 
   /**
+   * The network the peer is in
+   */
+  uint32_t network GNUNET_PACKED;
+
+  /**
    * The other peer (at the given distance).
    */
   struct GNUNET_PeerIdentity peer;
