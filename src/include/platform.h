@@ -266,10 +266,9 @@ atoll (const char *nptr);
 #define SOCKTYPE int
 #endif
 
-#if ENABLE_SUPERMUC
-#define GNUNET_TERM_SIG SIGUSR1
-#else
+/**
+ * The termination signal
+ */
 #define GNUNET_TERM_SIG SIGTERM
-#endif
 
 #endif

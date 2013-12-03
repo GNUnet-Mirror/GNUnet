@@ -424,7 +424,9 @@ GNUNET_CONFIGURATION_get_value_yesno (const struct GNUNET_CONFIGURATION_Handle
  * to VAR2.
  *
  * @param cfg configuration to use for path expansion
- * @param orig string to $-expand (will be freed!)
+ * @param orig string to $-expand (will be freed!)  Note that multiple
+ *          $-expressions can be present in this string.  They will all be
+ *          $-expanded.
  * @return $-expanded string
  */
 char *
