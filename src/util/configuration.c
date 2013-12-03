@@ -1056,6 +1056,7 @@ expand_dollar (const struct GNUNET_CONFIGURATION_Handle *cfg,
   unsigned int lopen;
   char erased_char;
   char *erased_pos;
+  size_t len;
 
   if (NULL == orig)
     return NULL;
@@ -1124,7 +1125,8 @@ expand_dollar (const struct GNUNET_CONFIGURATION_Handle *cfg,
     i = 0;
     while ( (orig[i] != '/') &&
             (orig[i] != '\\') &&
-            (orig[i] != '\0') )
+            (orig[i] != '\0')  &&
+            (orig[i] != ' ') )
       i++;
     if (orig[i] == '\0')
     {
@@ -1144,10 +1146,10 @@ expand_dollar (const struct GNUNET_CONFIGURATION_Handle *cfg,
        post,
        def);
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (cfg,
-                                               "PATHS",
-                                               start,
-                                               &prefix))
+      GNUNET_CONFIGURATION_get_value_string (cfg,
+                                             "PATHS",
+                                             start,
+                                             &prefix))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Filename for `%s' is not in PATHS config section\n",
@@ -1174,15 +1176,19 @@ expand_dollar (const struct GNUNET_CONFIGURATION_Handle *cfg,
     }
     prefix = GNUNET_strdup (env);
   }
+  prefix = GNUNET_CONFIGURATION_expand_dollar (cfg, prefix);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Prefix is `%s'\n",
        prefix);
-  result = GNUNET_malloc (strlen (prefix) + strlen (post) + 2);
+  if ( (erased_pos) && ('}' != erased_char) )
+  {
+    len = strlen (prefix) + 1;
+    prefix = GNUNET_realloc (prefix, len + 1);
+    prefix[len - 1] = erased_char;
+    prefix[len] = '\0';
+  }
+  result = GNUNET_malloc (strlen (prefix) + strlen (post) + 1);
   strcpy (result, prefix);
-  if ( (0 == strlen (prefix)) ||
-       ( (prefix[strlen (prefix) - 1] != DIR_SEPARATOR) &&
-         (strlen (post) > 0) ) )
-    strcat (result, DIR_SEPARATOR_STR);
   strcat (result, post);
   GNUNET_free_non_null (def);
   GNUNET_free (prefix);
@@ -1205,14 +1211,31 @@ expand_dollar (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * to VAR2.
  *
  * @param cfg configuration to use for path expansion
- * @param orig string to $-expand (will be freed!)
+ * @param orig string to $-expand (will be freed!).  Note that multiple
+ *          $-expressions can be present in this string.  They will all be
+ *          $-expanded.
  * @return $-expanded string
  */
 char *
 GNUNET_CONFIGURATION_expand_dollar (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                     char *orig)
 {
-  return expand_dollar (cfg, orig, 0);
+  char *dup;
+  size_t i;
+  size_t len;
+
+  for (i = 0; '\0' != orig[i]; i++)
+  {
+    if ('$' != orig[i])
+      continue;
+    dup = GNUNET_strdup (orig + i);
+    dup = expand_dollar (cfg, dup, 0);
+    len = strlen (dup) + 1;
+    orig = GNUNET_realloc (orig, i + len);
+    memcpy (orig + i, dup, len);
+    GNUNET_free (dup);
+  }
+  return orig;
 }
 
 
