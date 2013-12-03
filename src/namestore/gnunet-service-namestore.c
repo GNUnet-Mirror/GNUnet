@@ -659,6 +659,19 @@ refresh_block (struct GNUNET_SERVER_Client *client,
   struct GNUNET_GNSRECORD_Block *block;
   struct CacheOperation *cop;
   struct GNUNET_CRYPTO_EcdsaPublicKey pkey;
+  struct GNUNET_GNSRECORD_Data *nick;
+  struct GNUNET_GNSRECORD_Data *res;
+  unsigned int res_count;
+
+  nick = get_nick_record (zone_key);
+  res_count = rd_count;
+  res = rd;
+  if (NULL != nick)
+  {
+    nick->flags = (nick->flags | GNUNET_GNSRECORD_RF_PRIVATE) ^ GNUNET_GNSRECORD_RF_PRIVATE;
+    merge_records (rd_count,rd, 1, nick, &res_count, &res);
+    GNUNET_free (nick);
+  }
 
   if (0 == rd_count)
     block = GNUNET_GNSRECORD_block_create (zone_key,
