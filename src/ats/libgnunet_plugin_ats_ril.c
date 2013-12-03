@@ -715,27 +715,27 @@ ril_network_get_assigned (struct GAS_RIL_Handle *solver, enum GNUNET_ATS_Network
   return sum;
 }
 
-static void
-envi_state_networks (struct GAS_RIL_Handle *solver)
-{
-  int i;
-  struct RIL_Network net;
-  int overutilized_in;
-  int overutilized_out;
-
-  for (i = 0; i < solver->networks_count; i++)
-  {
-    net = solver->network_entries[i];
-
-    overutilized_in = net.bw_in_assigned > net.bw_in_available;
-    overutilized_out = net.bw_out_assigned > net.bw_out_available;
-
-    solver->global_state_networks[i * RIL_FEATURES_NETWORK_COUNT + 0] = ((double) net.bw_in_assigned / (double) net.bw_in_available)*10;
-    solver->global_state_networks[i * RIL_FEATURES_NETWORK_COUNT + 1] = (double) overutilized_in;
-    solver->global_state_networks[i * RIL_FEATURES_NETWORK_COUNT + 2] = ((double) net.bw_out_assigned / (double) net.bw_out_available)*10;
-    solver->global_state_networks[i * RIL_FEATURES_NETWORK_COUNT + 3] = (double) overutilized_out;
-  }
-}
+//static void
+//envi_state_networks (struct GAS_RIL_Handle *solver)
+//{
+//  int i;
+//  struct RIL_Network net;
+//  int overutilized_in;
+//  int overutilized_out;
+//
+//  for (i = 0; i < solver->networks_count; i++)
+//  {
+//    net = solver->network_entries[i];
+//
+//    overutilized_in = net.bw_in_assigned > net.bw_in_available;
+//    overutilized_out = net.bw_out_assigned > net.bw_out_available;
+//
+//    solver->global_state_networks[i * RIL_FEATURES_NETWORK_COUNT + 0] = ((double) net.bw_in_assigned / (double) net.bw_in_available)*10;
+//    solver->global_state_networks[i * RIL_FEATURES_NETWORK_COUNT + 1] = (double) overutilized_in;
+//    solver->global_state_networks[i * RIL_FEATURES_NETWORK_COUNT + 2] = ((double) net.bw_out_assigned / (double) net.bw_out_available)*10;
+//    solver->global_state_networks[i * RIL_FEATURES_NETWORK_COUNT + 3] = (double) overutilized_out;
+//  }
+//}
 
 /**
  * Allocates a state vector and fills it with the features present
@@ -803,140 +803,140 @@ envi_get_state (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
   return state;
 }
 
-/**
- * For all networks a peer has an address in, this gets the maximum bandwidth which could
- * theoretically be available in one of the networks. This is used for bandwidth normalization.
- *
- * @param agent the agent handle
- * @param direction_in whether the inbound bandwidth should be considered. Returns the maximum outbound bandwidth if GNUNET_NO
- */
-static unsigned long long
-ril_get_max_bw (struct RIL_Peer_Agent *agent, int direction_in)
-{
-  /*
-   * get the maximum bandwidth possible for a peer, e.g. among all addresses which addresses'
-   * network could provide the maximum bandwidth if all that bandwidth was used on that one peer.
-   */
-  unsigned long long max = 0;
-  struct RIL_Address_Wrapped *cur;
-  struct RIL_Network *net;
+///**
+// * For all networks a peer has an address in, this gets the maximum bandwidth which could
+// * theoretically be available in one of the networks. This is used for bandwidth normalization.
+// *
+// * @param agent the agent handle
+// * @param direction_in whether the inbound bandwidth should be considered. Returns the maximum outbound bandwidth if GNUNET_NO
+// */
+//static unsigned long long
+//ril_get_max_bw (struct RIL_Peer_Agent *agent, int direction_in)
+//{
+//  /*
+//   * get the maximum bandwidth possible for a peer, e.g. among all addresses which addresses'
+//   * network could provide the maximum bandwidth if all that bandwidth was used on that one peer.
+//   */
+//  unsigned long long max = 0;
+//  struct RIL_Address_Wrapped *cur;
+//  struct RIL_Network *net;
+//
+//  for (cur = agent->addresses_head; NULL != cur; cur = cur->next)
+//  {
+//    net = cur->address_naked->solver_information;
+//    if (direction_in)
+//    {
+//      if (net->bw_in_available > max)
+//      {
+//        max = net->bw_in_available;
+//      }
+//    }
+//    else
+//    {
+//      if (net->bw_out_available > max)
+//      {
+//        max = net->bw_out_available;
+//      }
+//    }
+//  }
+//  return max;
+//}
 
-  for (cur = agent->addresses_head; NULL != cur; cur = cur->next)
-  {
-    net = cur->address_naked->solver_information;
-    if (direction_in)
-    {
-      if (net->bw_in_available > max)
-      {
-        max = net->bw_in_available;
-      }
-    }
-    else
-    {
-      if (net->bw_out_available > max)
-      {
-        max = net->bw_out_available;
-      }
-    }
-  }
-  return max;
-}
+///**
+// * Get the index of the quality-property in question
+// *
+// * @param type the quality property type
+// * @return the index
+// */
+//static int
+//ril_find_property_index (uint32_t type)
+//{
+//  int existing_types[] = GNUNET_ATS_QualityProperties;
+//  int c;
+//  for (c = 0; c < GNUNET_ATS_QualityPropertiesCount; c++)
+//    if (existing_types[c] == type)
+//      return c;
+//  return GNUNET_SYSERR;
+//}
 
-/**
- * Get the index of the quality-property in question
- *
- * @param type the quality property type
- * @return the index
- */
-static int
-ril_find_property_index (uint32_t type)
-{
-  int existing_types[] = GNUNET_ATS_QualityProperties;
-  int c;
-  for (c = 0; c < GNUNET_ATS_QualityPropertiesCount; c++)
-    if (existing_types[c] == type)
-      return c;
-  return GNUNET_SYSERR;
-}
+//static int
+//ril_get_atsi (struct ATS_Address *address, uint32_t type)
+//{
+//  int c1;
+//  GNUNET_assert(NULL != address);
+//
+//  if ((NULL == address->atsi) || (0 == address->atsi_count))
+//    return 0;
+//
+//  for (c1 = 0; c1 < address->atsi_count; c1++)
+//  {
+//    if (ntohl (address->atsi[c1].type) == type)
+//      return ntohl (address->atsi[c1].value);
+//  }
+//  return 0;
+//}
 
-static int
-ril_get_atsi (struct ATS_Address *address, uint32_t type)
-{
-  int c1;
-  GNUNET_assert(NULL != address);
+//static double
+//envi_reward_global (struct GAS_RIL_Handle *solver)
+//{
+//  int i;
+//  struct RIL_Network net;
+//  unsigned int sum_in_available = 0;
+//  unsigned int sum_out_available = 0;
+//  unsigned int sum_in_assigned = 0;
+//  unsigned int sum_out_assigned = 0;
+//  double ratio_in;
+//  double ratio_out;
+//
+//  for (i = 0; i < solver->networks_count; i++)
+//  {
+//    net = solver->network_entries[i];
+//    sum_in_available += net.bw_in_available;
+//    sum_in_assigned += net.bw_in_assigned;
+//    sum_out_available += net.bw_out_available;
+//    sum_out_assigned += net.bw_out_assigned;
+//  }
+//
+//  ratio_in = ((double) sum_in_assigned) / ((double) sum_in_available);
+//  ratio_out = ((double) sum_out_assigned) / ((double) sum_out_available);
+//
+//  // global reward in [1,2]
+//  return ratio_in +1;
+//  return ((ratio_in + ratio_out) / 2) + 1;
+//}
 
-  if ((NULL == address->atsi) || (0 == address->atsi_count))
-    return 0;
-
-  for (c1 = 0; c1 < address->atsi_count; c1++)
-  {
-    if (ntohl (address->atsi[c1].type) == type)
-      return ntohl (address->atsi[c1].value);
-  }
-  return 0;
-}
-
-static double
-envi_reward_global (struct GAS_RIL_Handle *solver)
-{
-  int i;
-  struct RIL_Network net;
-  unsigned int sum_in_available = 0;
-  unsigned int sum_out_available = 0;
-  unsigned int sum_in_assigned = 0;
-  unsigned int sum_out_assigned = 0;
-  double ratio_in;
-  double ratio_out;
-
-  for (i = 0; i < solver->networks_count; i++)
-  {
-    net = solver->network_entries[i];
-    sum_in_available += net.bw_in_available;
-    sum_in_assigned += net.bw_in_assigned;
-    sum_out_available += net.bw_out_available;
-    sum_out_assigned += net.bw_out_assigned;
-  }
-
-  ratio_in = ((double) sum_in_assigned) / ((double) sum_in_available);
-  ratio_out = ((double) sum_out_assigned) / ((double) sum_out_available);
-
-  // global reward in [1,2]
-  return ratio_in +1;
-  return ((ratio_in + ratio_out) / 2) + 1;
-}
-
-static double
-envi_reward_local (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
-{
-  const double *preferences;
-  const double *properties;
-  int prop_index;
-  double pref_match = 0;
-  double bw_norm;
-  double dl_norm;
-
-  preferences = solver->plugin_envi->get_preferences (solver->plugin_envi->get_preference_cls,
-      &agent->peer);
-  properties = solver->plugin_envi->get_property (solver->plugin_envi->get_property_cls,
-      agent->address_inuse);
-
-  // delay in [0,1]
-  prop_index = ril_find_property_index (GNUNET_ATS_QUALITY_NET_DELAY);
-  dl_norm = 2 - properties[prop_index]; //invert property as we want to maximize for lower latencies
-
-  // utilization in [0,1]
-  bw_norm = (((double) ril_get_atsi (agent->address_inuse, GNUNET_ATS_UTILIZATION_IN)
-      / (double) ril_get_max_bw (agent, GNUNET_YES))
-      + ((double) ril_get_atsi (agent->address_inuse, GNUNET_ATS_UTILIZATION_OUT)
-          / (double) ril_get_max_bw (agent, GNUNET_NO))) / 2;
-
-  // preference matching in [0,4]
-  pref_match += (preferences[GNUNET_ATS_PREFERENCE_LATENCY] * dl_norm);
-  pref_match += (preferences[GNUNET_ATS_PREFERENCE_BANDWIDTH] * bw_norm);
-
-  // local reward in [1,2]
-  return (pref_match / 4) +1;
-}
+//static double
+//envi_reward_local (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
+//{
+//  const double *preferences;
+//  const double *properties;
+//  int prop_index;
+//  double pref_match = 0;
+//  double bw_norm;
+//  double dl_norm;
+//
+//  preferences = solver->plugin_envi->get_preferences (solver->plugin_envi->get_preference_cls,
+//      &agent->peer);
+//  properties = solver->plugin_envi->get_property (solver->plugin_envi->get_property_cls,
+//      agent->address_inuse);
+//
+//  // delay in [0,1]
+//  prop_index = ril_find_property_index (GNUNET_ATS_QUALITY_NET_DELAY);
+//  dl_norm = 2 - properties[prop_index]; //invert property as we want to maximize for lower latencies
+//
+//  // utilization in [0,1]
+//  bw_norm = (((double) ril_get_atsi (agent->address_inuse, GNUNET_ATS_UTILIZATION_IN)
+//      / (double) ril_get_max_bw (agent, GNUNET_YES))
+//      + ((double) ril_get_atsi (agent->address_inuse, GNUNET_ATS_UTILIZATION_OUT)
+//          / (double) ril_get_max_bw (agent, GNUNET_NO))) / 2;
+//
+//  // preference matching in [0,4]
+//  pref_match += (preferences[GNUNET_ATS_PREFERENCE_LATENCY] * dl_norm);
+//  pref_match += (preferences[GNUNET_ATS_PREFERENCE_BANDWIDTH] * bw_norm);
+//
+//  // local reward in [1,2]
+//  return (pref_match / 4) +1;
+//}
 
 /**
  * Gets the reward for the last performed step, which is calculated in equal
@@ -2092,13 +2092,17 @@ GAS_ril_address_delete (void *solver, struct ATS_Address *address, int session_o
   m_new = agent->m - RIL_FEATURES_ADDRESS_COUNT;
   n_new = agent->n - 1;
 
+  LOG(GNUNET_ERROR_TYPE_DEBUG, "first\n");
+
   for (i = 0; i < agent->n; i++)
   {
     ril_cut_from_vector ((void **) &agent->W[i], sizeof(double),
-        ((s->networks_count * RIL_FEATURES_NETWORK_COUNT)
+        //((s->networks_count * RIL_FEATURES_NETWORK_COUNT)
+        ((RIL_FEATURES_NETWORK_COUNT) //TODO! replace, when adding more networks
             + (address_index * RIL_FEATURES_ADDRESS_COUNT)), RIL_FEATURES_ADDRESS_COUNT, agent->m);
   }
   GNUNET_free(agent->W[RIL_ACTION_TYPE_NUM + address_index]);
+  LOG(GNUNET_ERROR_TYPE_DEBUG, "second\n");
   ril_cut_from_vector ((void **) &agent->W, sizeof(double *), RIL_ACTION_TYPE_NUM + address_index,
       1, agent->n);
   //correct last action
@@ -2111,11 +2115,14 @@ GAS_ril_address_delete (void *solver, struct ATS_Address *address, int session_o
     agent->a_old = RIL_ACTION_INVALID;
   }
   //decrease old state vector and eligibility vector
+  LOG(GNUNET_ERROR_TYPE_DEBUG, "third\n");
   ril_cut_from_vector ((void **) &agent->s_old, sizeof(double),
-      ((s->networks_count * RIL_FEATURES_NETWORK_COUNT)
+      //((s->networks_count * RIL_FEATURES_NETWORK_COUNT)
+      ((RIL_FEATURES_NETWORK_COUNT) //TODO! replace when adding more networks
           + (address_index * RIL_FEATURES_ADDRESS_COUNT)), RIL_FEATURES_ADDRESS_COUNT, agent->m);
   ril_cut_from_vector ((void **) &agent->e, sizeof(double),
-      ((s->networks_count * RIL_FEATURES_NETWORK_COUNT)
+      //((s->networks_count * RIL_FEATURES_NETWORK_COUNT)
+      ((RIL_FEATURES_NETWORK_COUNT) //TODO! replace when adding more networks
           + (address_index * RIL_FEATURES_ADDRESS_COUNT)), RIL_FEATURES_ADDRESS_COUNT, agent->m);
   agent->m = m_new;
   agent->n = n_new;
