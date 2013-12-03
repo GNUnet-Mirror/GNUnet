@@ -2259,9 +2259,39 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_MULTICAST_REPLAY_REQUEST_CANCEL
 
 
+
+/*******************************************************************************
+ * SECRETSHARING message types
+ ******************************************************************************/
+
+
 /**
- * Next available: 780
+ * Establish a new session.
  */
+#define GNUNET_MESSAGE_TYPE_SECRETSHARING_CLIENT_GENERATE 780
+
+/**
+ * Request the decryption of a ciphertext.
+ */
+#define GNUNET_MESSAGE_TYPE_SECRETSHARING_CLIENT_DECRYPT 781
+
+/**
+ * The service succeeded in decrypting a ciphertext.
+ */
+#define GNUNET_MESSAGE_TYPE_SECRETSHARING_CLIENT_DECRYPT_DONE 782
+
+/**
+ * The cryptosystem has been established.
+ * Contains the peer's share.
+ */
+#define GNUNET_MESSAGE_TYPE_SECRETSHARING_CLIENT_ESTABLISHED 783
+
+
+
+/**
+ * Next available: 800
+ */
+
 
 
 /*******************************************************************************
