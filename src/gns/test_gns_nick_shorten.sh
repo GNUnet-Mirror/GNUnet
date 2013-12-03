@@ -54,40 +54,45 @@ gnunet-namestore -p -z testego  -a -n mail -t A -V $TEST_IP -e never -c test_gns
 gnunet-namestore -p -z delegatedego -a -n www -t A -V $TEST_IP -e never -c test_gns_lookup.conf
 
 # Delete namecache content
-gnunet-arm -c test_gns_lookup.conf -k gns
+#gnunet-arm -c test_gns_lookup.conf -k gns
 gnunet-arm -c test_gns_lookup.conf -k namecache
 rm -rf `gnunet-config -c test_gns_lookup.conf -s namecache-sqlite -o FILENAME -f`
 
 # Force start of GNS
 gnunet-arm -c test_gns_lookup.conf -i gns
-
 # need to sleep here, to give PSEU record chance to be copied to DHT
 sleep 1
+
 RES_IP=`$DO_TIMEOUT gnunet-gns --raw -z testego -u $TEST_NAME -t A -c test_gns_lookup.conf`
 
 # need to sleep here, as shortening happens asynchronously...
 sleep 1
-RES_IP_PSEU=`$DO_TIMEOUT gnunet-gns --raw -z testego -u www.alice.short.gnu -t A -c test_gns_lookup.conf`
-gnunet-namestore -z testego -d -n mybestfriendalice -t PKEY -V $DELEGATED_PKEY  -e never -c test_gns_lookup.conf
 
+# DO THAT 
+PKEY_SHORT_RES=$($DO_TIMEOUT gnunet-gns --raw -c test_gns_lookup.conf -z short-zone -u alice.gnu -t PKEY)
+echo "Resolving alice's PKEY in shorten zone: $PKEY_SHORT_RES"
+PKEY_RES=$($DO_TIMEOUT gnunet-gns --raw -c test_gns_lookup.conf -z testego -u alice.short.gnu -t PKEY)
+echo "Resolving alice's PKEY in master zone: $PKEY_RES"
+
+#RES_IP_PSEU=`$DO_TIMEOUT gnunet-gns --raw -z testego -u www.alice.short.gnu -t A -c test_gns_lookup.conf`
+
+gnunet-namestore -z testego -d -n mybestfriendalice -t PKEY -V $DELEGATED_PKEY  -e never -c test_gns_lookup.conf
 gnunet-namestore -z delegatedego -d -n www -t A -V $TEST_IP  -e never -c test_gns_lookup.conf
 gnunet-arm -e -c test_gns_lookup.conf
 
 rm -rf `gnunet-config -c test_gns_lookup.conf -s PATHS -o GNUNET_HOME -f`
 
-if [ "$RES_IP" == "$TEST_IP" ]
+if [ "$DELEGATED_PKEY" == "$PKEY_SHORT_RES" ]
 then
-  echo "PASS: Resolved $TEST_NAME properly to $RES_IP."
+  echo "PASS: Resolved delegation for shorten name in shortened zone"
 else
-  echo "FAIL: Could not resolve $TEST_NAME to proper IP, got $RES_IP."
-  exit 1
+  echo "FAIL: Expected PKEY in $DELEGATED_PKEY, received PKEY '$PKEY_SHORT_RES' in shorten zone."
 fi
 
-if [ "$RES_IP_PSEU" == "$TEST_IP" ]
+if [ "$DELEGATED_PKEY" == "$PKEY_RES" ]
 then
-  echo "PASS: Resolved $TEST_NAME_SHORT properly to $RES_IP."
+  echo "PASS: Resolved delegation for shorten name in master zone"
   exit 0
 else
-  echo "FAIL: Could not resolve $TEST_NAME_SHORT to proper IP, got $RES_IP_PSEU."
-  exit 1
+  echo "FAIL: Expected PKEY in $DELEGATED_PKEY, received PKEY $PKEY_SHORT_RES in master zone."
 fi  
