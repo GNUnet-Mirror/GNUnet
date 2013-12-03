@@ -44,12 +44,13 @@ libgnunetats_la_LIBADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(LTLIBINTL)
 libgnunetats_la_LDFLAGS = \
- $(GN_LIB_LDFLAGS) \
+  $(GN_LIB_LDFLAGS)  $(WINFLAGS) \
   -version-info 4:0:0
 
 libgnunet_plugin_ats_proportional_la_SOURCES = \
   libgnunet_plugin_ats_proportional.c
 libgnunet_plugin_ats_proportional_la_LIBADD = \
+	libgnunetats.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(LTLIBINTL)
@@ -63,6 +64,7 @@ if HAVE_LIBGLPK
 libgnunet_plugin_ats_mlp_la_SOURCES = \
   libgnunet_plugin_ats_mlp.c
 libgnunet_plugin_ats_mlp_la_LIBADD = \
+	libgnunetats.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la
 libgnunet_plugin_ats_mlp_la_LDFLAGS = \
@@ -74,6 +76,7 @@ endif
 libgnunet_plugin_ats_ril_la_SOURCES = \
   libgnunet_plugin_ats_ril.c
 libgnunet_plugin_ats_ril_la_LIBADD = \
+  libgnunetats.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(LTLIBINTL)
