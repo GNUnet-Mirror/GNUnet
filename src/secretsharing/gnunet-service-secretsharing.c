@@ -25,6 +25,353 @@
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
+#include "gnunet_time_lib.h"
+#include "gnunet_consensus_service.h"
+#include "secretsharing.h"
+#include "secretsharing_protocol.h"
+#include <gcrypt.h>
+
+
+
+/**
+ * Info about a peer in a key generation session.
+ */
+struct KeygenPeerInfo
+{
+  /**
+   * Peer identity of the peer.
+   */
+  struct GNUNET_PeerIdentity peer;
+
+  /**
+   * g-component of the peer's paillier public key.
+   */
+  gcry_mpi_t paillier_g;
+
+  /**
+   * mu-component of the peer's paillier public key.
+   */
+  gcry_mpi_t paillier_mu;
+
+  /**
+   * The peer's commitment to his presecret.
+   */
+  gcry_mpi_t presecret_commitment;
+
+  /**
+   * GNUNET_YES if the peer has been disqualified,
+   * GNUNET_NO otherwise.
+   */
+  int disqualified;
+};
+
+
+/**
+ * Session to establish a threshold-shared secret.
+ */
+struct KeygenSession
+{
+  /**
+   * Keygen sessions are held in a linked list.
+   */
+  struct KeygenSession *next;
+
+  /**
+   * Keygen sessions are held in a linked list.
+   */
+  struct KeygenSession *prev;
+
+  /**
+   * Current consensus, used for both DKG rounds.
+   */
+  struct GNUNET_CONSENSUS_Handle *consensus;
+
+  /**
+   * Client that is interested in the result
+   * of this key generation session.
+   */
+  struct GNUNET_SERVER_Client *client;
+
+  /**
+   * Randomly generated coefficients of the polynomial for sharing our
+   * pre-secret, where 'preshares[0]' is our pre-secret.  Contains 'threshold'
+   * elements, thus represents a polynomial of degree 'threshold-1', which can
+   * be interpolated with 'threshold' data points.
+   *
+   * The pre-secret-shares 'i=1,...,num_peers' are given by evaluating this
+   * polyomial at 'i' for share i.
+   */
+  gcry_mpi_t *presecret_polynomial;
+
+  /**
+   * Minimum number of shares required to restore the secret.
+   */
+  unsigned int threshold;
+
+  /**
+   * Total number of peers.
+   */
+  unsigned int num_peers;
+
+  /**
+   * Index of the local peer.
+   */
+  unsigned int local_peer;
+
+  /**
+   * Information about all participating peers.
+   */
+  struct KeygenPeerInfo *info;
+
+  /**
+   * List of all peers involved in the secret sharing session.
+   */
+  struct GNUNET_PeerIdentity *peers;
+
+  /**
+   * Identifier for this session.
+   */
+  struct GNUNET_HashCode session_id;
+
+  /**
+   * g-component of our peer's paillier private key.
+   */
+  gcry_mpi_t paillier_g;
+
+  /**
+   * g-component of our peer's paillier private key.
+   */
+  gcry_mpi_t paillier_mu;
+
+  struct GNUNET_TIME_Absolute deadline;
+
+  /**
+   * Index of the local peer in the ordered list
+   * of peers in the session.
+   */
+  unsigned int local_peer_idx;
+};
+
+
+struct DecryptSession
+{
+  struct DecryptSession *next;
+  struct DecryptSession *prev;
+
+  struct GNUNET_CONSENSUS_Handle *consensus;
+
+  struct GNUNET_SERVER_Client *client;
+};
+
+/**
+ * Decrypt sessions are held in a linked list.
+ */
+static struct DecryptSession *decrypt_sessions_head;
+
+/**
+ * Decrypt sessions are held in a linked list.
+ */
+static struct DecryptSession *decrypt_sessions_tail;
+
+/**
+ * Decrypt sessions are held in a linked list.
+ */
+static struct KeygenSession *keygen_sessions_head;
+
+/**
+ * Decrypt sessions are held in a linked list.
+ */
+static struct KeygenSession *keygen_sessions_tail;
+
+/**
+ * The ElGamal prime field order as libgcrypt mpi.
+ * Will be initialized to 'ELGAMAL_Q_DATA'.
+ */
+static gcry_mpi_t elgamal_q;
+
+/**
+ * Modulus of the prime field used for ElGamal.
+ * Will be initialized to 'ELGAMAL_P_DATA'.
+ */
+static gcry_mpi_t elgamal_p;
+
+/**
+ * Generator for prime field of order 'elgamal_q'.
+ * Will be initialized to 'ELGAMAL_G_DATA'.
+ */
+static gcry_mpi_t elgamal_g;
+
+/**
+ * Peer that runs this service.
+ */
+static struct GNUNET_PeerIdentity my_peer;
+
+/**
+ * Configuration of this service.
+ */
+static const struct GNUNET_CONFIGURATION_Handle *cfg;
+
+/**
+ * Server for this service.
+ */
+static struct GNUNET_SERVER_Handle *srv;
+
+
+/**
+ * Although GNUNET_CRYPTO_hash_cmp exisits, it does not have
+ * the correct signature to be used with e.g. qsort.
+ * We use this function instead.
+ *
+ * @param h1 some hash code
+ * @param h2 some hash code
+ * @return 1 if h1 > h2, -1 if h1 < h2 and 0 if h1 == h2.
+ */
+static int
+hash_cmp (const void *h1, const void *h2)
+{
+  return GNUNET_CRYPTO_hash_cmp ((struct GNUNET_HashCode *) h1, (struct GNUNET_HashCode *) h2);
+}
+
+
+/**
+ * Normalize the given list of peers, by including the local peer
+ * (if it is missing) and sorting the peers by their identity.
+ * 
+ * @param listed peers in the unnormalized list
+ * @param num_listed peers in the un-normalized list
+ * @param num_normalized[out] number of peers in the normalized list
+ * @param my_peer_idx[out] index of the local peer in the normalized list
+ * @return normalized list, must be free'd by the caller
+ */
+static struct GNUNET_PeerIdentity *
+normalize_peers (struct GNUNET_PeerIdentity *listed,
+                 unsigned int num_listed,
+                 unsigned int *num_normalized,
+                 unsigned int *my_peer_idx)
+{
+  unsigned int local_peer_in_list;
+  unsigned int n;
+  unsigned int i;
+  struct GNUNET_PeerIdentity *normalized;
+
+  local_peer_in_list = GNUNET_NO;
+  for (i = 0; i < num_listed; i++)
+  {
+    if (0 == memcmp (&listed[i], &my_peer, sizeof (struct GNUNET_PeerIdentity)))
+    {
+      local_peer_in_list = GNUNET_YES;
+      break;
+    }
+  }
+
+  n = num_listed;
+  if (GNUNET_NO == local_peer_in_list)
+    n++;
+
+  normalized = GNUNET_malloc (n * sizeof (struct GNUNET_PeerIdentity));
+
+  if (GNUNET_NO == local_peer_in_list)
+    normalized[n - 1] = my_peer;
+
+  memcpy (normalized, listed, num_listed * sizeof (struct GNUNET_PeerIdentity));
+  qsort (normalized, n, sizeof (struct GNUNET_PeerIdentity), &hash_cmp);
+
+  if (NULL != my_peer_idx)
+  {
+    for (i = 0; i < num_listed; i++)
+    {
+      if (0 == memcmp (&normalized[i], &my_peer, sizeof (struct GNUNET_PeerIdentity)))
+      {
+        *my_peer_idx = i;
+        break;
+      }
+    }
+  }
+
+  *num_normalized = n;
+  return normalized;
+}
+
+
+/**
+ * Create a key pair for the paillier crypto system.
+ *
+ * Uses the simplified key generation of Jonathan Katz, Yehuda Lindell,
+ * "Introduction to Modern Cryptography: Principles and Protocols".
+ */
+static void
+paillier_create (unsigned int s, gcry_mpi_t n, gcry_mpi_t g, gcry_mpi_t lambda, gcry_mpi_t mu)
+{
+  gcry_mpi_t p;
+  gcry_mpi_t q;
+  gcry_mpi_t phi;
+  gcry_mpi_t tmp;
+
+  GNUNET_assert (0 != (phi = gcry_mpi_new (PAILLIER_BITS)));
+  GNUNET_assert (0 != (tmp = gcry_mpi_new (PAILLIER_BITS)));
+ 
+  // generate rsa modulus
+  GNUNET_assert (0 == gcry_prime_generate (&p, s, 0, NULL, NULL, NULL,
+                                           GCRY_WEAK_RANDOM, 0));
+  GNUNET_assert (0 == gcry_prime_generate (&q, s, 0, NULL, NULL, NULL,
+                                           GCRY_WEAK_RANDOM, 0));
+  gcry_mpi_mul (n, p, q);
+  gcry_mpi_add_ui (g, n, 1);
+  // compute phi(n) = (p-1)(q-1)
+  gcry_mpi_sub_ui (phi, p, 1);
+  gcry_mpi_sub_ui (tmp, q, 1);
+  gcry_mpi_mul (phi, phi, tmp);
+  gcry_mpi_set (lambda, phi);
+  // compute mu
+  GNUNET_assert (0 != gcry_mpi_invm (mu, phi, n));
+
+  gcry_mpi_release (p);
+  gcry_mpi_release (q);
+  gcry_mpi_release (phi);
+  gcry_mpi_release (tmp);
+}
+
+
+static void
+paillier_encrypt (gcry_mpi_t c, gcry_mpi_t m, gcry_mpi_t g, gcry_mpi_t n)
+{
+  gcry_mpi_t n_square;
+  gcry_mpi_t r;
+
+  GNUNET_assert (0 != (n_square = gcry_mpi_new (0)));
+  GNUNET_assert (0 != (r = gcry_mpi_new (0)));
+
+  gcry_mpi_mul (n_square, n, n);
+  
+  // generate r < n
+  do
+  {
+    gcry_mpi_randomize (r, PAILLIER_BITS, GCRY_WEAK_RANDOM);
+  }
+  while (gcry_mpi_cmp (r, n) > 0);
+
+  gcry_mpi_powm (c, g, m, n_square);
+  gcry_mpi_powm (r, r, n, n_square);
+  gcry_mpi_mulm (c, r, c, n_square);
+
+  gcry_mpi_release (n_square);
+  gcry_mpi_release (r);
+}
+
+
+static void
+paillier_decrypt (gcry_mpi_t m, gcry_mpi_t c, gcry_mpi_t mu, gcry_mpi_t lambda, gcry_mpi_t n)
+{
+  gcry_mpi_t n_square;
+  GNUNET_assert (0 != (n_square = gcry_mpi_new (0)));
+  gcry_mpi_mul (n_square, n, n);
+  gcry_mpi_powm (m, c, lambda, n_square);
+  gcry_mpi_sub_ui (m, m, 1);
+  // m = m/n
+  gcry_mpi_div (m, NULL, m, n, 0);
+  gcry_mpi_mulm (m, m, mu, n);
+  gcry_mpi_release (n_square);
+}
 
 
 /**
@@ -40,6 +387,230 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
+static void
+generate_presecret_polynomial (struct KeygenSession *ks)
+{
+  int i;
+  GNUNET_assert (NULL == ks->presecret_polynomial);
+  ks->presecret_polynomial = GNUNET_malloc (ks->threshold * sizeof (gcry_mpi_t));
+  for (i = 0; i < ks->threshold; i++)
+  {
+    ks->presecret_polynomial[i] = gcry_mpi_new (PAILLIER_BITS);
+    gcry_mpi_randomize (ks->presecret_polynomial[i], PAILLIER_BITS,
+                        GCRY_WEAK_RANDOM);
+  }
+}
+
+
+static void
+keygen_round1_new_element (void *cls,
+                           const struct GNUNET_SET_Element *element)
+{
+  const struct GNUNET_SECRETSHARING_KeygenCommitData *d;
+  struct KeygenSession *ks = cls;
+  unsigned int i;
+
+  if (element->size != sizeof (struct GNUNET_SECRETSHARING_KeygenCommitData))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "keygen commit data with wrong size in consensus\n");
+    return;
+  }
+
+  d = element->data;
+
+  for (i = 0; i < ks->num_peers; i++)
+  {
+    if (0 == memcmp (&d->peer, &ks->info[i].peer, sizeof (struct GNUNET_PeerIdentity)))
+    {
+      // TODO: check signature and store key data
+      return;
+    }
+  }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "keygen commit data with wrong peer identity in consensus\n");
+
+}
+
+
+/**
+ * Evaluate the polynomial with coefficients @a coeff at @a x.
+ * The i-th element in @coeff corresponds to the coefficient of x^i.
+ *
+ * @param[out] z result of the evaluation
+ * @param coeff array of coefficients
+ * @param num_coeff number of coefficients
+ * @param x where to evaluate the polynomial
+ * @param m what group are we operating in?
+ */
+static void
+horner_eval (gcry_mpi_t z, gcry_mpi_t *coeff, unsigned int num_coeff, gcry_mpi_t x, gcry_mpi_t m)
+{
+  unsigned int i;
+
+  gcry_mpi_set_ui (z, 0);
+  for (i = 0; i < num_coeff; i++)
+  {
+    // z <- zx + c
+    gcry_mpi_mul (z, z, x);
+    gcry_mpi_addm (z, z, coeff[num_coeff - i - 1], m);
+  }
+}
+
+
+static void
+keygen_round2_conclude (void *cls)
+{
+  // TODO: recombine shares and send to client
+  GNUNET_assert (0);
+}
+
+
+static void
+insert_round2_element (struct KeygenSession *ks)
+{
+  struct GNUNET_SET_Element *element;
+  unsigned int i;
+  uint16_t big_y_size;
+  gcry_mpi_t c;
+  gcry_mpi_t idx;
+  gcry_mpi_t preshare;
+
+  GNUNET_assert (0 != (c = gcry_mpi_new (PAILLIER_BITS)));
+  GNUNET_assert (0 != (preshare = gcry_mpi_new (PAILLIER_BITS)));
+  GNUNET_assert (0 != (idx = gcry_mpi_new (PAILLIER_BITS)));
+
+  big_y_size = PAILLIER_BITS / 8 * ks->num_peers;
+
+  element = GNUNET_malloc (sizeof (struct GNUNET_SET_Element) + big_y_size);
+
+  for (i = 0; i < ks->num_peers; i++)
+  {
+    gcry_mpi_set_ui (idx, i + 1);
+    horner_eval (preshare, ks->presecret_polynomial, ks->threshold, idx, elgamal_p);
+    // concat 'A', 'y' and 'Y' to the vector
+  }
+
+  for (i = 0; i < ks->threshold; i++)
+  {
+    // concat 'a' to the vector
+  }
+
+  GNUNET_CONSENSUS_insert (ks->consensus, element, NULL, NULL);
+}
+
+
+
+static void
+keygen_round1_conclude (void *cls)
+{
+  struct KeygenSession *ks = cls;
+
+  // TODO: destroy old consensus
+
+  ks->consensus = GNUNET_CONSENSUS_create (cfg, ks->num_peers, ks->peers, &ks->session_id,
+                                           keygen_round1_new_element, ks);
+
+  insert_round2_element (ks);
+
+  GNUNET_CONSENSUS_conclude (ks->consensus, GNUNET_TIME_UNIT_FOREVER_REL /* FIXME */, keygen_round2_conclude, ks);
+}
+
+
+static void
+insert_round1_element (struct KeygenSession *ks)
+{
+  struct GNUNET_SET_Element *element;
+  struct GNUNET_SECRETSHARING_KeygenCommitData *d;
+  gcry_mpi_t v;
+  unsigned char v_data[PAILLIER_BITS / 8];
+
+  element = GNUNET_malloc (sizeof *element + sizeof *d);
+  d = (void *) &element[1];
+  element->data = d;
+  element->size = sizeof *d;
+
+  GNUNET_assert (0 != (v = gcry_mpi_new (PAILLIER_BITS)));
+
+  gcry_mpi_powm (v, elgamal_g, ks->presecret_polynomial[0], elgamal_p);
+
+  GNUNET_assert (0 == gcry_mpi_print (GCRYMPI_FMT_USG,
+                                      v_data, PAILLIER_BITS / 8, NULL,
+                                      v));
+
+  GNUNET_CRYPTO_hash (v_data, PAILLIER_BITS / 8, &d->commitment);
+
+  GNUNET_assert (0 == gcry_mpi_print (GCRYMPI_FMT_USG,
+                                      (unsigned char *) d->pubkey.g, PAILLIER_BITS / 8, NULL,
+                                      ks->paillier_g));
+
+  GNUNET_assert (0 == gcry_mpi_print (GCRYMPI_FMT_USG,
+                                      (unsigned char *) d->pubkey.mu, PAILLIER_BITS / 8, NULL,
+                                      ks->paillier_mu));
+
+  // FIXME: sign stuff
+
+  d->peer = my_peer;
+
+  GNUNET_CONSENSUS_insert (ks->consensus, element, NULL, NULL);
+}
+
+
+/**
+ * Functions with this signature are called whenever a message is
+ * received.
+ *
+ * @param cls closure
+ * @param client identification of the client
+ * @param message the actual message
+ */
+static void handle_client_keygen (void *cls,
+                                  struct GNUNET_SERVER_Client *client,
+                                  const struct GNUNET_MessageHeader
+                                  *message)
+{
+  const struct GNUNET_SECRETSHARING_CreateMessage *msg =
+      (const struct GNUNET_SECRETSHARING_CreateMessage *) message;
+  struct KeygenSession *ks;
+
+  ks = GNUNET_new (struct KeygenSession);
+
+  GNUNET_CONTAINER_DLL_insert (keygen_sessions_head, keygen_sessions_tail, ks);
+
+  ks->deadline = GNUNET_TIME_absolute_ntoh (msg->deadline);
+  ks->threshold = ntohs (msg->threshold);
+  ks->num_peers = ntohs (msg->num_peers);
+
+  ks->peers = normalize_peers ((struct GNUNET_PeerIdentity *) &msg[1], ks->num_peers,
+                               &ks->num_peers, &ks->local_peer_idx);
+
+  ks->consensus = GNUNET_CONSENSUS_create (cfg, ks->num_peers, ks->peers, &msg->session_id,
+                                           keygen_round1_new_element, ks);
+
+  generate_presecret_polynomial (ks);
+
+  insert_round1_element (ks);
+  
+  GNUNET_CONSENSUS_conclude (ks->consensus, GNUNET_TIME_UNIT_FOREVER_REL /* FIXME */, keygen_round1_conclude, ks);
+}
+
+
+/**
+ * Functions with this signature are called whenever a message is
+ * received.
+ *
+ * @param cls closure
+ * @param client identification of the client
+ * @param message the actual message
+ */
+static void handle_client_decrypt (void *cls,
+                                  struct GNUNET_SERVER_Client *client,
+                                  const struct GNUNET_MessageHeader
+                                  *message)
+{
+  GNUNET_assert (0);
+}
+
+
 /**
  * Process template requests.
  *
@@ -49,13 +620,22 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  */
 static void
 run (void *cls, struct GNUNET_SERVER_Handle *server,
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
+     const struct GNUNET_CONFIGURATION_Handle *c)
 {
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
-    /* FIXME: add handlers here! */
+    {handle_client_keygen, NULL, GNUNET_MESSAGE_TYPE_SECRETSHARING_CLIENT_GENERATE, 0},
+    {handle_client_decrypt, NULL, GNUNET_MESSAGE_TYPE_SECRETSHARING_CLIENT_DECRYPT, 0},
     {NULL, NULL, 0, 0}
   };
-  /* FIXME: do setup here */
+  cfg = c;
+  srv = server;
+  if (GNUNET_OK != GNUNET_CRYPTO_get_peer_identity (cfg, &my_peer))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "could not retrieve host identity\n");
+    GNUNET_break (0);
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
   GNUNET_SERVER_add_handlers (server, handlers);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleanup_task,
                                 NULL);
@@ -73,8 +653,7 @@ int
 main (int argc, char *const *argv)
 {
   return (GNUNET_OK ==
-          GNUNET_SERVICE_run (argc, argv, "template",
+          GNUNET_SERVICE_run (argc, argv, "secretsharing",
                               GNUNET_SERVICE_OPTION_NONE, &run, NULL)) ? 0 : 1;
 }
 
-/* end of gnunet-service-template.c */

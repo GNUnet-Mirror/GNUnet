@@ -43,6 +43,14 @@ extern "C"
 
 
 /**
+ * Number of bits for secretsharing keys.
+ * Must be smaller than the Pallier key size used internally
+ * by the secretsharing service.
+ */
+#define GNUNET_SECRETSHARING_KEY_BITS 1024
+
+
+/**
  * Session that will eventually establish a shared secred between
  * the involved peers and allow encryption and cooperative decryption.
  */
@@ -50,6 +58,8 @@ struct GNUNET_SECRETSHARING_Session;
 
 /**
  * Share of a secret shared with a group of peers.
+ * Contains both the share and information about the peers that have
+ * the other parts of the share.
  */
 struct GNUNET_SECRETSHARING_Share;
 
@@ -65,10 +75,7 @@ struct GNUNET_SECRETSHARING_DecryptionHandle;
  */
 struct GNUNET_SECRETSHARING_PublicKey
 {
-  /**
-   * Value of the private key.
-   */
-  gcry_mpi_t value;
+  uint32_t bits[GNUNET_SECRETSHARING_KEY_BITS / 8 / sizeof (uint32_t)];
 };
 
 
@@ -77,14 +84,7 @@ struct GNUNET_SECRETSHARING_PublicKey
  */
 struct GNUNET_SECRETSHARING_Ciphertext
 {
-  /**
-   * First component.
-   */
-  gcry_mpi_t c1;
-  /**
-   * Second component.
-   */
-  gcry_mpi_t c2;
+  uint32_t bits[2 * GNUNET_SECRETSHARING_KEY_BITS / 8 / sizeof (uint32_t)];
 };
 
 
@@ -104,9 +104,11 @@ struct GNUNET_SECRETSHARING_Message
 /**
  * Called once the secret has been established with all peers, or the deadline is due.
  *
- * Note that the number of peers can be smaller that 'k' (this threshold parameter), which
+ * Note that the number of peers can be smaller than 'k' (this threshold parameter), which
  * makes the threshold crypto system useless.  However, in this case one can still determine which peers
  * were able to participate in the secret sharing successfully.
+ *
+ * If the secret sharing failed, num_ready_peers is 0 and my_share and public_key is NULL.
  *
  * @param cls closure
  * @param my_share the share of this peer
@@ -160,36 +162,6 @@ GNUNET_SECRETSHARING_create_session (const struct GNUNET_CONFIGURATION_Handle *c
 
 
 /**
- * Load a session from an existing share.
- *
- * @param cfg configuration to use for connecting to the secretsharing service
- * @param share share to load the session from
- */
-struct GNUNET_SECRETSHARING_Session *
-GNUNET_SECRETSHARING_load_session_DEPRECATED (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                                   const struct GNUNET_SECRETSHARING_Share *share);
-
-/**
- * Convert a secret share to a string.
- *
- * @param share share to serialize
- * @return the serialized secret share, to be freed by the caller
- */
-char *
-GNUNET_SECRETSHARING_share_to_BIN (const struct GNUNET_SECRETSHARING_Share *share);
-
-
-/**
- * Convert a secret share to a string.
- *
- * @param str string to deserialize
- * @return the serialized secret share, to be freed by the caller
- */
-const struct GNUNET_SECRETSHARING_Share *
-GNUNET_SECRETSHARING_share_from_BIN (const char *str);
-
-
-/**
  * Destroy a secret share.
  *
  * @param share secret share to destroy
@@ -214,15 +186,14 @@ GNUNET_SECRETSHARING_destroy_session (struct GNUNET_SECRETSHARING_Session *sessi
  * This is a helper function, encryption can be done soley with a session's public key
  * and the crypto system parameters.
  *
- * @param session session to take the key for encryption from,
- *                the session's ready callback must have been already called
+ * @param public_key public key to use for decryption
  * @param message message to encrypt
  * @param message_size number of bytes in @a message
  * @param result_ciphertext pointer to store the resulting ciphertext
  * @return #GNUNET_YES on succes, #GNUNET_SYSERR if the message is invalid (invalid range)
  */
 int
-GNUNET_SECRETSHARING_encrypt (const struct GNUNET_SECRETSHARING_PublicKey *session,
+GNUNET_SECRETSHARING_encrypt (struct GNUNET_SECRETSHARING_PublicKey *public_key,
                               const void *message,
                               size_t message_size,
                               struct GNUNET_SECRETSHARING_Ciphertext *result_ciphertext);
@@ -235,14 +206,14 @@ GNUNET_SECRETSHARING_encrypt (const struct GNUNET_SECRETSHARING_PublicKey *sessi
  * When the operation is canceled, the decrypt_cb is not called anymore, but the calling
  * peer may already have irrevocably contributed his share for the decryption of the value.
  *
- * @param session session to use for the decryption
+ * @param share our secret share to use for decryption
  * @param ciphertext ciphertext to publish in order to decrypt it (if enough peers agree)
  * @param decrypt_cb callback called once the decryption succeeded
  * @param decrypt_cb_cls closure for @a decrypt_cb
  * @return handle to cancel the operation
  */
 struct GNUNET_SECRETSHARING_DecryptionHandle *
-GNUNET_SECRETSHARING_decrypt (struct GNUNET_SECRETSHARING_Session *session,
+GNUNET_SECRETSHARING_decrypt (struct GNUNET_SECRETSHARING_Share *share,
                               struct GNUNET_SECRETSHARING_Ciphertext *ciphertext,
                               GNUNET_SECRETSHARING_DecryptCallback decrypt_cb,
                               void *decrypt_cb_cls);
@@ -259,6 +230,43 @@ GNUNET_SECRETSHARING_decrypt (struct GNUNET_SECRETSHARING_Session *session,
 void
 GNUNET_SECRETSHARING_decrypt_cancel (struct GNUNET_SECRETSHARING_DecryptionHandle *decryption_handle);
 
+
+/**
+ * Read a share from its binary representation.
+ *
+ * @param data binary representation of the share
+ * @param len length of @a data
+ * @return the share, or NULL on error
+ */
+struct GNUNET_SECRETSHARING_Share *
+GNUNET_SECRETSHARING_share_read (void *data, size_t len);
+
+
+/**
+ * Convert a share to its binary representation.  Use
+ * #GNUNET_SECRETSHARING_share_size to get the necessary size for the binary
+ * representation.
+ * 
+ * @param share share to write
+ * @param buf buffer to write to
+ * @param buflen number of writable bytes in @a buffer
+ * @param[out] writelen pointer to store number of bytes written,
+ *             ignored if NULL
+ * @return GNUNET_YES on success, GNUNET_NO on failure
+ */
+int
+GNUNET_SECRETSHARING_share_write (struct GNUNET_SECRETSHARING_Share *share,
+                                  void *buf, size_t buflen, size_t *writelen);
+
+
+/**
+ * Get the number of bytes necessary to represent the given share.
+ *
+ * @param share share
+ * @return number of bytes necessary to represent @a share
+ */
+size_t
+GNUNET_SECRETSHARING_share_size (struct GNUNET_SECRETSHARING_Share *share);
 
 
 
