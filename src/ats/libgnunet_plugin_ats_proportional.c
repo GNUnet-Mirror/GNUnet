@@ -1252,6 +1252,13 @@ GAS_proportional_address_delete (void *solver, struct ATS_Address *address,
    *   - update quotas
    */
   asi = address->solver_information;
+
+  if (NULL == asi)
+  {
+    GNUNET_break (0);
+    return;
+  }
+
   net = asi->network;
 
   if (GNUNET_NO == session_only)
