@@ -543,7 +543,7 @@ send_connect_to_plugin (const struct GNUNET_PeerIdentity *target,
   cm.distance = htonl (distance);
   cm.network = htonl (network);
   cm.peer = *target;
-  //send_control_to_plugin (&cm.header);
+  send_control_to_plugin (&cm.header);
 }
 
 
