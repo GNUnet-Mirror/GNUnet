@@ -36,10 +36,11 @@
  * @param cls closure
  * @param peer newly connected peer
  * @param distance distance to the peer
+ * @param network the peer is located in
  */
 typedef void (*GNUNET_DV_ConnectCallback)(void *cls,
 					  const struct GNUNET_PeerIdentity *peer,
-					  uint32_t distance);
+					  uint32_t distance, uint32_t network);
 
 
 /**

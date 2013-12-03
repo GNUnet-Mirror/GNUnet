@@ -47,7 +47,7 @@ static int verbose;
 static void
 connect_cb (void *cls,
 	    const struct GNUNET_PeerIdentity *peer,
-	    uint32_t distance)
+	    uint32_t distance, uint32_t network)
 {
   fprintf (stderr, "Connect: %s at %u\n",
 	   GNUNET_i2s (peer),

@@ -324,7 +324,7 @@ handle_message_receipt (void *cls,
     cm = (const struct GNUNET_DV_ConnectMessage *) msg;
     sh->connect_cb (sh->cls,
 		    &cm->peer,
-		    ntohl (cm->distance));
+		    ntohl (cm->distance), ntohl (cm->network));
     break;
   case GNUNET_MESSAGE_TYPE_DV_DISTANCE_CHANGED:
     if (ntohs (msg->size) != sizeof (struct GNUNET_DV_DistanceUpdateMessage))

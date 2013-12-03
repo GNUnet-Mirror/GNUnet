@@ -38,6 +38,7 @@
 
 #define LOG(kind,...) GNUNET_log_from (kind, "transport-dv",__VA_ARGS__)
 
+#define PLUGIN_NAME "dv"
 
 /**
  * Encapsulation of all of the state of the plugin.
@@ -123,6 +124,11 @@ struct Session
   uint32_t distance;
 
   /**
+   * Current network the next hop peer is located in
+   */
+  uint32_t network;
+
+  /**
    * Does the transport service know about this session (and we thus
    * need to call 'session_end' when it is released?)
    */
@@ -180,7 +186,7 @@ notify_distance_change (struct Session *session)
   ats.value = htonl (session->distance);
   plugin->env->update_address_metrics (plugin->env->cls,
 				       &session->sender,
-				       "", 0,
+				       NULL, 0,
 				       session,
 				       &ats, 1);
 }
@@ -211,7 +217,7 @@ unbox_cb (void *cls,
                         message,
 			session, "", 0);
   plugin->env->update_address_metrics (plugin->env->cls,
-  		&session->sender, "", 0, session, &ats, 1);
+  		&session->sender, NULL, 0, session, &ats, 1);
   return GNUNET_OK;
 }
 
@@ -278,14 +284,17 @@ handle_dv_message_received (void *cls,
 static void
 handle_dv_connect (void *cls,
 		   const struct GNUNET_PeerIdentity *peer,
-		   uint32_t distance)
+		   uint32_t distance, uint32_t network)
 {
   struct Plugin *plugin = cls;
   struct Session *session;
+  struct GNUNET_ATS_Information ats[2];
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message for peer `%s'\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+      "Received `%s' message for peer `%s' with next hop in network %s \n",
       "DV_CONNECT",
-      GNUNET_i2s (peer));
+      GNUNET_i2s (peer),
+      GNUNET_ATS_print_network_type (network));
 
   session = GNUNET_CONTAINER_multipeermap_get (plugin->sessions,
 					       peer);
@@ -300,11 +309,20 @@ handle_dv_connect (void *cls,
   session = GNUNET_new (struct Session);
   session->sender = *peer;
   session->distance = distance;
+  session->network = network;
   GNUNET_assert (GNUNET_YES ==
 		 GNUNET_CONTAINER_multipeermap_put (plugin->sessions,
 						    &session->sender,
 						    session,
 						    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+
+  /* Notify transport and ats about new connection */
+  ats[0].type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
+  ats[0].value = htonl (distance);
+  ats[0].type = htonl (GNUNET_ATS_NETWORK_TYPE);
+  ats[0].value = htonl (network);
+  plugin->env->session_start (plugin->env->cls, peer, PLUGIN_NAME, NULL, 0,
+      session, ats, 2);
 }
 
 
@@ -332,7 +350,8 @@ handle_dv_distance_changed (void *cls,
   if (NULL == session)
   {
     GNUNET_break (0);
-    handle_dv_connect (plugin, peer, distance);
+    /* FIXME */
+    handle_dv_connect (plugin, peer, distance, 0);
     return;
   }
   session->distance = distance;
@@ -398,6 +417,7 @@ handle_dv_disconnect (void *cls,
 					       peer);
   if (NULL == session)
     return; /* nothing to do */
+
   free_session (session);
 }
 
@@ -668,7 +688,7 @@ dv_get_network (void *cls,
 		struct Session *session)
 {
   GNUNET_assert (NULL != session);
-  return GNUNET_ATS_NET_UNSPECIFIED;
+  return session->network;
 }
 
 
