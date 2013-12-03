@@ -527,7 +527,7 @@ send_distance_change_to_plugin (const struct GNUNET_PeerIdentity *peer,
  *
  * @param target peer that connected
  * @param distance distance to the target
- * @param the network the peer is in
+ * @param network the network the next hop is located in
  */
 static void
 send_connect_to_plugin (const struct GNUNET_PeerIdentity *target,

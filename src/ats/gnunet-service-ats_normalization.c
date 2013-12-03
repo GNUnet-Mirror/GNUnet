@@ -516,8 +516,9 @@ GAS_normalization_get_preferences_by_peer (const struct GNUNET_PeerIdentity *id)
 /**
  * Get the normalized preference values for a specific client and peer
  *
- * @param id the peer
- * @param the peer
+ * @param client client
+ * @param peer the peer
+ * @param pref the preference type
  * @return the value
  */
 const double

@@ -280,6 +280,7 @@ handle_dv_message_received (void *cls,
  * @param cls closure with 'struct Plugin'
  * @param peer newly connected peer
  * @param distance distance to the peer
+ * @param network the network the next hop is located in
  */
 static void
 handle_dv_connect (void *cls,
