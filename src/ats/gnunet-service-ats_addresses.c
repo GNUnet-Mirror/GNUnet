@@ -1472,8 +1472,9 @@ GAS_addresses_evaluate_assignment (struct GAS_Addresses_Handle *ah)
     if (GNUNET_YES == request_active)
       requests_fulfilled ++;
     requests_pending ++;
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Peer `%s': pending requests, %s\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer `%s': %u pending requests, %s\n",
         GNUNET_i2s (&cur->id),
+        requests_pending,
         (GNUNET_YES == request_active) ? "active adress" : "no active address");
 
   }
@@ -1487,7 +1488,7 @@ GAS_addresses_evaluate_assignment (struct GAS_Addresses_Handle *ah)
     quality_requests_fulfilled = 0.0;
     include_requests = GNUNET_NO;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "%u pending requests, %u requests fullfilled\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%u pending requests, %u requests fullfilled\n",
       requests_pending, requests_fulfilled);
 
   /* 2) How well is bandwidth utilized? */
@@ -1506,7 +1507,7 @@ GAS_addresses_evaluate_assignment (struct GAS_Addresses_Handle *ah)
     quality_bandwidth_utilization[c] = (((float)sum.bandwidth_out_assigned[c] / ah->env.out_quota[c]) +
         ((float)sum.bandwidth_in_assigned[c] / ah->env.in_quota[c])) / 2;
 
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Utilization for network `%s': %f\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Utilization for network `%s': %f\n",
          GNUNET_ATS_print_network_type(ah->env.networks[c]),
          quality_bandwidth_utilization[c]);
     if (sum.addresses_in_network[c] > 0)
@@ -1580,7 +1581,7 @@ GAS_addresses_evaluate_assignment (struct GAS_Addresses_Handle *ah)
 
           /* We now have preference values [1..2] and properties [1..2] */
 
-          GNUNET_log (GNUNET_ERROR_TYPE_INFO, "%u Client %p, Peer %s Property %s: pref: %.3f prop %.3f \n",
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%u Client %p, Peer %s Property %s: pref: %.3f prop %.3f \n",
               c,
               pcur->client,
               GNUNET_i2s (&cur->id),
@@ -1618,7 +1619,7 @@ GAS_addresses_evaluate_assignment (struct GAS_Addresses_Handle *ah)
   else
     guq = 0.0;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
       "Requests fulfilled %.3f bandwidth utilized %.3f application preferences met %.3f => %.3f\n",
       quality_requests_fulfilled,
       quality_bandwidth_utilization_total,
