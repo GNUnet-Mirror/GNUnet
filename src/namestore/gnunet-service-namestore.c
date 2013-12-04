@@ -688,8 +688,9 @@ refresh_block (struct GNUNET_SERVER_Client *client,
   GNUNET_CRYPTO_ecdsa_key_get_public (zone_key,
                                       &pkey);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Caching block for label `%s' in zone `%s' in namecache\n",
+              "Caching block for label `%s' with %u records in zone `%s' in namecache\n",
               name,
+              rd_count,
               GNUNET_GNSRECORD_z2s (&pkey));
   cop = GNUNET_new (struct CacheOperation);
   cop->client = client;
