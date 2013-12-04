@@ -291,6 +291,10 @@ handle_dv_connect (void *cls,
   struct Session *session;
   struct GNUNET_ATS_Information ats[2];
 
+  /**
+   * This requires transport plugin to be linked to libgnunetats.
+   * If you remove it, also remove libgnunetats linkage from Makefile.am
+   */
   LOG (GNUNET_ERROR_TYPE_DEBUG,
       "Received `%s' message for peer `%s' with next hop in network %s \n",
       "DV_CONNECT",
