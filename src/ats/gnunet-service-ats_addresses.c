@@ -2151,7 +2151,7 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
     GNUNET_free(mode_str);
   }
 
-  load_quotas (cfg, quotas_in, quotas_out, GNUNET_ATS_NetworkTypeCount);
+  load_quotas (cfg, quotas_out, quotas_in, GNUNET_ATS_NetworkTypeCount);
   ah->env.info_cb = &solver_info_cb;
   ah->env.info_cb_cls = ah;
   ah->env.bandwidth_changed_cb = &bandwidth_changed_cb;
