@@ -453,48 +453,58 @@ get_nick_record (const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone)
 
 
 static void
-merge_records (unsigned int rdc1,
-               const struct GNUNET_GNSRECORD_Data *rd1,
+merge_with_nick_records ( const struct GNUNET_GNSRECORD_Data *nick_rd,
                unsigned int rdc2,
                const struct GNUNET_GNSRECORD_Data *rd2,
                unsigned int *rdc_res,
                struct GNUNET_GNSRECORD_Data **rd_res)
 {
+  uint64_t latest_expiration;
   int c;
   size_t req;
   char *data;
   int record_offset;
   size_t data_offset;
-  (*rdc_res) = rdc1 + rdc2;
+  (*rdc_res) = 1 + rdc2;
 
-  if (0 == rdc1 + rdc2)
+  if (0 == 1 + rdc2)
   {
     (*rd_res) = NULL;
     return;
   }
 
   req = 0;
-  for (c=0; c< rdc1; c++)
-    req += sizeof (struct GNUNET_GNSRECORD_Data) + rd1[c].data_size;
+  for (c=0; c< 1; c++)
+    req += sizeof (struct GNUNET_GNSRECORD_Data) + nick_rd[c].data_size;
   for (c=0; c< rdc2; c++)
     req += sizeof (struct GNUNET_GNSRECORD_Data) + rd2[c].data_size;
   (*rd_res) = GNUNET_malloc (req);
-  data = (char *) &(*rd_res)[rdc1 + rdc2];
+  data = (char *) &(*rd_res)[1 + rdc2];
   data_offset = 0;
+  latest_expiration = 0;
 
-  for (c=0; c< rdc1; c++)
-  {
-    (*rd_res)[c] = rd1[c];
-    (*rd_res)[c].data = (void *) &data[data_offset];
-    memcpy ((void *) (*rd_res)[c].data, rd1[c].data, rd1[c].data_size);
-    data_offset += (*rd_res)[c].data_size;
-  }
-  record_offset = rdc1;
   for (c=0; c< rdc2; c++)
   {
-    (*rd_res)[c+record_offset] = rd2[c];
+    if (0 != (rd2[c].flags & GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION))
+    {
+      if ((GNUNET_TIME_absolute_get().abs_value_us + rd2[c].expiration_time) >
+        latest_expiration)
+          latest_expiration = rd2[c].expiration_time;
+    }
+    else if (rd2[c].expiration_time > latest_expiration)
+      latest_expiration = rd2[c].expiration_time;
+    (*rd_res)[c] = rd2[c];
+    (*rd_res)[c].data = (void *) &data[data_offset];
+    memcpy ((void *) (*rd_res)[c].data, rd2[c].data, rd2[c].data_size);
+    data_offset += (*rd_res)[c].data_size;
+  }
+  record_offset = rdc2;
+  for (c=0; c< 1; c++)
+  {
+    (*rd_res)[c+record_offset] = nick_rd[c];
+    (*rd_res)[c+record_offset].expiration_time = latest_expiration;
     (*rd_res)[c+record_offset].data = (void *) &data[data_offset];
-    memcpy ((void *) (*rd_res)[c+record_offset].data, rd2[c].data, rd2[c].data_size);
+    memcpy ((void *) (*rd_res)[c+record_offset].data, nick_rd[c].data, nick_rd[c].data_size);
     data_offset += (*rd_res)[c+record_offset].data_size;
   }
   GNUNET_assert (req == (sizeof (struct GNUNET_GNSRECORD_Data)) * (*rdc_res) + data_offset);
@@ -536,7 +546,7 @@ send_lookup_response (struct GNUNET_SERVER_NotificationContext *nc,
   if ((NULL != nick) && (0 != strcmp(name, GNUNET_GNS_MASTERZONE_STR)))
   {
     nick->flags = (nick->flags | GNUNET_GNSRECORD_RF_PRIVATE) ^ GNUNET_GNSRECORD_RF_PRIVATE;
-    merge_records (rd_count,rd, 1, nick, &res_count, &res);
+    merge_with_nick_records (nick, rd_count,rd, &res_count, &res);
     //fprintf (stderr, "Merging %u records for `%s' with NICK records\n",rd_count, name);
     GNUNET_free (nick);
   }
@@ -669,7 +679,7 @@ refresh_block (struct GNUNET_SERVER_Client *client,
   if (NULL != nick)
   {
     nick->flags = (nick->flags | GNUNET_GNSRECORD_RF_PRIVATE) ^ GNUNET_GNSRECORD_RF_PRIVATE;
-    merge_records (rd_count,rd, 1, nick, &res_count, &res);
+    merge_with_nick_records (nick, rd_count,rd, &res_count, &res);
     GNUNET_free (nick);
   }
 
@@ -743,8 +753,8 @@ lookup_it (void *cls, const struct GNUNET_CRYPTO_EcdsaPrivateKey *private_key,
         rd_res = NULL;
         rdc_res = 0;
         rlc->nick->flags = (rlc->nick->flags | GNUNET_GNSRECORD_RF_PRIVATE) ^ GNUNET_GNSRECORD_RF_PRIVATE;
-        merge_records (rd_count, rd,
-                       1, rlc->nick,
+        merge_with_nick_records ( rlc->nick,
+                       rd_count, rd,
                        &rdc_res, &rd_res);
 
         rlc->rd_ser_len = GNUNET_GNSRECORD_records_get_size (rdc_res, rd_res);
