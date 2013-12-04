@@ -19,7 +19,7 @@
  */
 /**
  * @file ats/test_ats_solver_add_address.c
- * @brief solver test:  add address, request address and wait for suggest
+ * @brief solver test:  add address, request address and wait for suggests, write data to file
  * @author Christian Grothoff
  * @author Matthias Wachs
  * @author Fabian Oehlmann
@@ -83,27 +83,27 @@ uint32_t test_ats_count;
 /**
  * Seconds to run the test
  */
-unsigned int seconds;
+static unsigned int seconds;
 
 /**
  * When the test starts
  */
-struct GNUNET_TIME_Absolute time_start;
+static struct GNUNET_TIME_Absolute time_start;
 
 /**
  * Whether to write a data file
  */
-int write_data_file;
-
-/**
- * File handle
- */
-struct GNUNET_DISK_FileHandle *data_file_handle;
+static int write_data_file;
 
 /**
  * File name
  */
-char *data_file_name;
+static char *data_file_name;
+
+/**
+ * Run name
+ */
+static char *run_name;
 
 static int
 stat_cb(void *cls, const char *subsystem, const char *name, uint64_t value,
@@ -135,9 +135,6 @@ end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   /* Close data file */
   if (write_data_file)
   {
-    if (GNUNET_SYSERR == GNUNET_DISK_file_close (data_file_handle))
-      GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Cannot close log file '%s'\n",
-              data_file_name);
     GNUNET_free_non_null(data_file_name);
   }
 
@@ -164,6 +161,7 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
 {
   struct GNUNET_TIME_Relative time_delta;
   char *data;
+  struct GNUNET_DISK_FileHandle *data_file_handle;
 
   GNUNET_assert (NULL != address);
   GNUNET_assert (NULL == session);
@@ -181,8 +179,22 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
         (double) time_delta.rel_value_us / 1000000.,
               ntohl(bandwidth_in.value__)/1024,
               ntohl(bandwidth_out.value__)/1024);
-    if (GNUNET_SYSERR == GNUNET_DISK_file_write(data_file_handle, data, strlen(data)))
-              GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot write data to file `%s'\n", data_file_name);
+    data_file_handle = GNUNET_DISK_file_open (data_file_name,
+        GNUNET_DISK_OPEN_WRITE | GNUNET_DISK_OPEN_APPEND,
+        GNUNET_DISK_PERM_USER_EXEC | GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE);
+    if (NULL == data_file_handle)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot write data to file `%s'\n", data_file_name);
+    }
+    else
+    {
+      if (GNUNET_SYSERR == GNUNET_DISK_file_write(data_file_handle, data, strlen(data)))
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot write data to file `%s'\n", data_file_name);
+      if (GNUNET_SYSERR == GNUNET_DISK_file_close (data_file_handle))
+        GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Cannot close log file '%s'\n",
+                data_file_name);
+    }
+
     GNUNET_free(data);
   }
 
@@ -206,9 +218,10 @@ static void
 run (void *cls, const struct GNUNET_CONFIGURATION_Handle *mycfg,
     struct GNUNET_TESTING_Peer *peer)
 {
+  struct GNUNET_DISK_FileHandle *data_file_handle;
+
   stats = GNUNET_STATISTICS_create ("ats", mycfg);
   GNUNET_STATISTICS_watch (stats, "ats", "# addresses", &stat_cb, NULL);
-
 
   /* Connect to ATS scheduling */
   sched_ats = GNUNET_ATS_scheduling_init (mycfg, &address_suggest_cb, NULL);
@@ -219,17 +232,26 @@ run (void *cls, const struct GNUNET_CONFIGURATION_Handle *mycfg,
     return;
   }
 
-  /* Set up file handle */
-  GNUNET_asprintf (&data_file_name, "test_convergence_s%d.data", seconds);
-  data_file_handle = GNUNET_DISK_file_open (data_file_name,
-         GNUNET_DISK_OPEN_WRITE | GNUNET_DISK_OPEN_CREATE | GNUNET_DISK_OPEN_TRUNCATE,
-         GNUNET_DISK_PERM_USER_EXEC | GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE);
-  if (NULL == data_file_handle) {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not open data file\n");
-    GNUNET_free(data_file_handle);
-    GNUNET_free(data_file_name);
-    GNUNET_SCHEDULER_add_now (&end_badly, NULL);
-    return;
+  /* Create or truncate file */
+  if (write_data_file)
+  {
+    GNUNET_asprintf (&data_file_name, "test_convergence_%s_s%d.data", run_name, seconds);
+    data_file_handle = GNUNET_DISK_file_open (data_file_name,
+        GNUNET_DISK_OPEN_WRITE | GNUNET_DISK_OPEN_CREATE | GNUNET_DISK_OPEN_TRUNCATE,
+        GNUNET_DISK_PERM_USER_EXEC | GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE);
+    if (NULL == data_file_handle)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Could not open data file\n");
+      GNUNET_SCHEDULER_add_now (&end_badly, NULL);
+      return;
+    }
+    if (GNUNET_SYSERR == GNUNET_DISK_file_close (data_file_handle))
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Cannot close log file '%s'\n",
+              data_file_name);
+      GNUNET_SCHEDULER_add_now (&end_badly, NULL);
+      return;
+    }
   }
 
   /* Set up peer */
@@ -322,6 +344,7 @@ int
 main (int argc, char *argv[])
 {
   seconds = 5;
+  run_name = NULL;
 
   static struct GNUNET_GETOPT_CommandLineOption options[] = {
       { 's', "seconds", NULL,
@@ -330,6 +353,9 @@ main (int argc, char *argv[])
       { 'd', "data-file", NULL,
           gettext_noop ("generate data file"),
           0, &GNUNET_GETOPT_set_one, &write_data_file},
+      { 'r', "run-name", "NAME",
+          gettext_noop ("will be part of the data file name"),
+          1, &GNUNET_GETOPT_set_string, &run_name},
       GNUNET_GETOPT_OPTION_END
   };
 
