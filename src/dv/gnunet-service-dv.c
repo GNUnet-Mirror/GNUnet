@@ -324,7 +324,7 @@ struct ConsensusSet
   struct Route **targets;
 
   /**
-   * Size of the 'targets' array.
+   * Size of the @e targets array.
    */
   unsigned int array_length;
 
@@ -383,6 +383,14 @@ static struct GNUNET_STATISTICS_Handle *stats;
  */
 static struct GNUNET_ATS_PerformanceHandle *ats;
 
+/**
+ * Task scheduled to refresh routes based on direct neighbours.
+ */
+static GNUNET_SCHEDULER_TaskIdentifier rr_task;
+
+/**
+ * #GNUNET_YES if we are shutting down.
+ */
 static int in_shutdown;
 
 /**
@@ -618,7 +626,7 @@ core_transmit_notify (void *cls, size_t size, void *buf)
 					 0 /* priority */,
 					 GNUNET_TIME_UNIT_FOREVER_REL,
 					 &dn->peer,
-					 msize,					
+					 msize,
 					 &core_transmit_notify, dn);
   return off;
 }
@@ -682,7 +690,7 @@ forward_payload (struct DirectNeighbor *target,
 						     0 /* priority */,
 						     GNUNET_TIME_UNIT_FOREVER_REL,
 						     &target->peer,
-						     msize,					
+						     msize,
 						     &core_transmit_notify, target);
 }
 
@@ -979,7 +987,7 @@ handle_core_connect (void *cls,
  * @param cls NULL
  * @param key key of the value
  * @param value value to free
- * @return GNUNET_OK to continue to iterate
+ * @return #GNUNET_OK to continue to iterate
  */
 static int
 free_targets (void *cls,
@@ -999,7 +1007,7 @@ free_targets (void *cls,
  * @param key key value stored under
  * @param value a 'struct Target' that may or may not be useful; not that
  *        the distance in 'target' does not include the first hop yet
- * @return GNUNET_YES to continue iteration, GNUNET_NO to stop
+ * @return #GNUNET_YES to continue iteration, #GNUNET_NO to stop
  */
 static int
 check_possible_route (void *cls,
@@ -1045,8 +1053,8 @@ check_possible_route (void *cls,
  *
  * @param cls NULL
  * @param key peer identity of the given direct neighbor
- * @param value a 'struct DirectNeighbor' to check for additional routes
- * @return GNUNET_YES to continue iteration
+ * @param value a `struct DirectNeighbor` to check for additional routes
+ * @return #GNUNET_YES to continue iteration
  */
 static int
 refresh_routes (void *cls,
@@ -1063,6 +1071,36 @@ refresh_routes (void *cls,
 					   &check_possible_route,
 					   neighbor);
   return GNUNET_YES;
+}
+
+
+/**
+ * Task to run #refresh_routes() on all direct neighbours.
+ *
+ * @param cls NULL
+ * @param tc unused
+ */
+static void
+refresh_routes_task (void *cls,
+                     const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  rr_task = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_CONTAINER_multipeermap_iterate (direct_neighbors,
+					 &refresh_routes,
+                                         NULL);
+}
+
+
+/**
+ * Asynchronously run #refresh_routes() at the next opportunity
+ * on all direct neighbours.
+ */
+static void
+schedule_refresh_routes ()
+{
+  if (GNUNET_SCHEDULER_NO_TASK == rr_task)
+    rr_task = GNUNET_SCHEDULER_add_now (&refresh_routes_task,
+                                        NULL);
 }
 
 
@@ -1254,9 +1292,7 @@ handle_ats_update (void *cls,
 				"# peers connected (1-hop)",
 				-1, GNUNET_NO);
       handle_direct_disconnect (neighbor);
-      GNUNET_CONTAINER_multipeermap_iterate (direct_neighbors,
-					     &refresh_routes,
-					     NULL);
+      schedule_refresh_routes ();
       return;
     }
     neighbor->distance = distance;
@@ -1498,9 +1534,7 @@ handle_set_union_result (void *cls,
     if (GNUNET_YES == neighbor->target_removed)
     {
       /* check if we got an alternative for the removed routes */
-      GNUNET_CONTAINER_multipeermap_iterate (direct_neighbors,
-                                             &refresh_routes,
-                                             NULL);
+      schedule_refresh_routes ();
     }
     /* add targets that appeared (and check for improved routes) */
     GNUNET_CONTAINER_multipeermap_iterate (neighbor->neighbor_table_consensus,
@@ -1825,10 +1859,7 @@ handle_core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 
   if (GNUNET_YES == in_shutdown)
     return;
-
-  GNUNET_CONTAINER_multipeermap_iterate (direct_neighbors,
-					 &refresh_routes,
-                                         NULL);
+  schedule_refresh_routes ();
 }
 
 
@@ -1838,11 +1869,12 @@ handle_core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
  * @param cls NULL
  * @param key key value stored under
  * @param value the route to be freed
- *
- * @return GNUNET_YES to continue iteration, GNUNET_NO to stop
+ * @return #GNUNET_YES to continue iteration, #GNUNET_NO to stop
  */
 static int
-free_route (void *cls, const struct GNUNET_PeerIdentity * key, void *value)
+free_route (void *cls,
+            const struct GNUNET_PeerIdentity *key,
+            void *value)
 {
   struct Route *route = value;
 
@@ -1862,11 +1894,12 @@ free_route (void *cls, const struct GNUNET_PeerIdentity * key, void *value)
  * @param cls NULL
  * @param key key value stored under
  * @param value the direct neighbor to be freed
- *
- * @return GNUNET_YES to continue iteration, GNUNET_NO to stop
+ * @return #GNUNET_YES to continue iteration, #GNUNET_NO to stop
  */
 static int
-free_direct_neighbors (void *cls, const struct GNUNET_PeerIdentity * key, void *value)
+free_direct_neighbors (void *cls,
+                       const struct GNUNET_PeerIdentity *key,
+                       void *value)
 {
   struct DirectNeighbor *neighbor = value;
 
@@ -1883,11 +1916,12 @@ free_direct_neighbors (void *cls, const struct GNUNET_PeerIdentity * key, void *
  * @param tc unused
  */
 static void
-shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls,
+               const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   unsigned int i;
-  in_shutdown = GNUNET_YES;
 
+  in_shutdown = GNUNET_YES;
   GNUNET_assert (NULL != core_api);
   GNUNET_CORE_disconnect (core_api);
   core_api = NULL;
@@ -1909,16 +1943,21 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 		       consensi[i].array_length,
 		       0);
   }
+  if (GNUNET_SCHEDULER_NO_TASK != rr_task)
+  {
+    GNUNET_SCHEDULER_cancel (rr_task);
+    rr_task = GNUNET_SCHEDULER_NO_TASK;
+  }
 }
 
 
 /**
  * Notify newly connected client about an existing route.
  *
- * @param cls the 'struct GNUNET_SERVER_Client'
+ * @param cls the `struct GNUNET_SERVER_Client *`
  * @param key peer identity
- * @param value the XXX.
- * @return GNUNET_OK (continue to iterate)
+ * @param value the `struct Route *`
+ * @return #GNUNET_OK (continue to iterate)
  */
 static int
 add_route (void *cls,
