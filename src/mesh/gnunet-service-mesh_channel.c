@@ -1064,7 +1064,8 @@ channel_confirm (struct MeshChannel *ch, int fwd)
   rel = fwd ? ch->root_rel : ch->dest_rel;
   rel->client_ready = GNUNET_YES;
   rel->expected_delay = rel->retry_timer;
-  send_client_ack (ch, fwd);
+  if (GMT_get_connections_buffer (ch->t) > 0 || GMT_is_loopback (ch->t))
+    send_client_ack (ch, fwd);
 
   if (GNUNET_SCHEDULER_NO_TASK != rel->retry_task)
   {
