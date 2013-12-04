@@ -78,5 +78,12 @@ if ENABLE_TEST_RUN
  $(check_PROGRAMS)
 endif
 
-EXTRA_DIST = test_revocation.conf
+do_subst = $(SED) -e 's,[@]PYTHON[@],$(PYTHON),g'
+
+test_local_revocation.py: test_local_revocation.py.in Makefile
+	$(do_subst) < $(srcdir)/test_local_revocation.py.in > test_local_revocation.py
+	chmod +x test_local_revocation.py
+
+EXTRA_DIST = test_revocation.conf \
+	test_local_revocation.py.in
 
