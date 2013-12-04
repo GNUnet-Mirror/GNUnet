@@ -45,6 +45,8 @@
 #define RIL_DEFAULT_EXPLORE_RATIO 0.1
 #define RIL_DEFAULT_GLOBAL_REWARD_SHARE 0.5
 
+#define RIL_INC_DEC_STEP_SIZE 1
+
 /**
  * ATS reinforcement learning solver
  *
@@ -68,7 +70,7 @@ enum RIL_Action_Type
   RIL_ACTION_BW_OUT_HLV = -5,
   RIL_ACTION_BW_OUT_INC = -6,
   RIL_ACTION_BW_OUT_DEC = -7,
-  RIL_ACTION_TYPE_NUM = 2
+  RIL_ACTION_TYPE_NUM = 1
 };
 
 enum RIL_Algorithm
@@ -363,6 +365,11 @@ struct GAS_RIL_Handle
    * Shutdown
    */
   int done;
+
+  /**
+   * Simulate steps, i.e. schedule steps immediately
+   */
+  unsigned long long simulate;
 };
 
 /*
@@ -396,8 +403,7 @@ agent_estimate_q (struct RIL_Peer_Agent *agent, double *state, int action)
 
   if (isinf(result))
   {
-    GNUNET_assert(GNUNET_NO);
-    return isinf(result) * (DBL_MAX / 2); //TODO! fix
+    return isinf(result) * UINT32_MAX; //TODO! fix
   }
 
   return result;
@@ -537,13 +543,14 @@ agent_update_weights (struct RIL_Peer_Agent *agent, double reward, double *s_nex
   delta += agent->envi->global_discount_variable * agent_estimate_q (agent, s_next, a_prime); //discounted future value
   delta -= agent_estimate_q (agent, agent->s_old, agent->a_old); //one step
 
-//  LOG(GNUNET_ERROR_TYPE_INFO, "Y*r = %f   y*Q(s+1,a+1) = %f   Q(s,a) = %f\n, y = %f\n",
-//      agent->envi->global_discount_integrated * reward,
-//      agent->envi->global_discount_variable * agent_estimate_q (agent, s_next, a_prime),
-//      agent_estimate_q (agent, agent->s_old, agent->a_old),
-//      agent->envi->global_discount_variable);
-//
-//  LOG(GNUNET_ERROR_TYPE_INFO, "delta = %f\n", delta);
+  LOG(GNUNET_ERROR_TYPE_INFO, "update()   Step# %llu  Q(s,a): %f  a: %f  r: %f  y: %f  Q(s+1,a+1) = %f  delta: %f\n",
+      agent->step_count,
+      agent_estimate_q (agent, agent->s_old, agent->a_old),
+      agent->envi->parameters.alpha,
+      reward,
+      agent->envi->global_discount_variable,
+      agent_estimate_q (agent, s_next, a_prime),
+      delta);
 
   for (i = 0; i < agent->m; i++)
   {
@@ -764,17 +771,17 @@ envi_get_state (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
   state[0] = (double) net->bw_in_assigned / 1024; //(double) net->bw_in_available;
   if (net->bw_in_assigned > net->bw_in_available)
   {
-    state[1] = (double)(net->bw_in_assigned - net->bw_in_available) / 1024;// net->bw_in_available;
+    state[1] = 1;// net->bw_in_available;
   }
   else
   {
     state[1] = 0;
   }
-  LOG(GNUNET_ERROR_TYPE_INFO, "state[0] = %f\n", state[0]);
-  LOG(GNUNET_ERROR_TYPE_INFO, "state[1] = %f\n", state[1]);
+  LOG(GNUNET_ERROR_TYPE_INFO, "get_state()  state[0] = %f\n", state[0]);
+  LOG(GNUNET_ERROR_TYPE_INFO, "get_state()  state[1] = %f\n", state[1]);
 
-  LOG(GNUNET_ERROR_TYPE_INFO, "W / %08.3f %08.3f \\ \n", agent->W[0][0], agent->W[1][0]);
-  LOG(GNUNET_ERROR_TYPE_INFO, "W \\ %08.3f %08.3f / \n", agent->W[0][1], agent->W[1][1]);
+  LOG(GNUNET_ERROR_TYPE_INFO, "get_state()  W / %08.3f %08.3f \\ \n", agent->W[0][0], agent->W[1][0]);
+  LOG(GNUNET_ERROR_TYPE_INFO, "get_state()  W \\ %08.3f %08.3f / \n", agent->W[0][1], agent->W[1][1]);
 
 
   //get peer features
@@ -1072,7 +1079,7 @@ envi_action_bw_inc (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent,
 
   if (direction_in)
   {
-    new_bw = agent->bw_in + (1 * MIN_BW);
+    new_bw = agent->bw_in + (RIL_INC_DEC_STEP_SIZE * MIN_BW);
     if (new_bw < agent->bw_in || new_bw > GNUNET_ATS_MaxBandwidth)
       new_bw = GNUNET_ATS_MaxBandwidth;
     envi_set_active_suggestion (solver, agent, agent->address_inuse, new_bw,
@@ -1080,7 +1087,7 @@ envi_action_bw_inc (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent,
   }
   else
   {
-    new_bw = agent->bw_out + (1 * MIN_BW);
+    new_bw = agent->bw_out + (RIL_INC_DEC_STEP_SIZE * MIN_BW);
     if (new_bw < agent->bw_out || new_bw > GNUNET_ATS_MaxBandwidth)
       new_bw = GNUNET_ATS_MaxBandwidth;
     envi_set_active_suggestion (solver, agent, agent->address_inuse, agent->bw_in,
@@ -1104,7 +1111,7 @@ envi_action_bw_dec (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent,
 
   if (direction_in)
   {
-    new_bw = agent->bw_in - (1 * MIN_BW);
+    new_bw = agent->bw_in - (RIL_INC_DEC_STEP_SIZE * MIN_BW);
     if (new_bw < MIN_BW || new_bw > agent->bw_in)
       new_bw = MIN_BW;
     envi_set_active_suggestion (solver, agent, agent->address_inuse, new_bw, agent->bw_out,
@@ -1112,7 +1119,7 @@ envi_action_bw_dec (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent,
   }
   else
   {
-    new_bw = agent->bw_out - (1 * MIN_BW);
+    new_bw = agent->bw_out - (RIL_INC_DEC_STEP_SIZE * MIN_BW);
     if (new_bw < MIN_BW || new_bw > agent->bw_out)
       new_bw = MIN_BW;
     envi_set_active_suggestion (solver, agent, agent->address_inuse, agent->bw_in, new_bw,
@@ -1220,6 +1227,7 @@ static void
 agent_step (struct RIL_Peer_Agent *agent)
 {
   int a_next = RIL_ACTION_INVALID;
+  int explore;
   double *s_next;
   double reward;
 
@@ -1229,22 +1237,12 @@ agent_step (struct RIL_Peer_Agent *agent)
 
   s_next = envi_get_state (agent->envi, agent);
   reward = envi_get_reward (agent->envi, agent);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Agent step %llu:   A: %d   R: %f  IN %llu   OUT %llu\n",
-      agent->step_count,
-      agent->a_old,
-      reward,
-      agent->bw_in/1024,
-      agent->bw_out/1024);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Agent step %llu:   Best A: %d   Q(s,a): %f \n",
-        agent->step_count,
-        agent_get_action_best (agent, s_next),
-        agent_estimate_q(agent, s_next, agent_get_action_best (agent, s_next)));
+  explore = agent_decide_exploration (agent);
 
   switch (agent->envi->parameters.algorithm)
   {
   case RIL_ALGO_SARSA:
-    if (agent_decide_exploration (agent))
+    if (explore)
     {
       a_next = agent_get_action_explore (agent, s_next);
     }
@@ -1267,7 +1265,7 @@ agent_step (struct RIL_Peer_Agent *agent)
       //updates weights with best action, disregarding actually selected action (off-policy), if not first step
       agent_update_weights (agent, reward, s_next, a_next);
     }
-    if (agent_decide_exploration (agent))
+    if (explore)
     {
       a_next = agent_get_action_explore (agent, s_next);
       agent_modify_eligibility (agent, RIL_E_ZERO, NULL);
@@ -1283,6 +1281,13 @@ agent_step (struct RIL_Peer_Agent *agent)
   GNUNET_assert(RIL_ACTION_INVALID != a_next);
 
   agent_modify_eligibility (agent, RIL_E_ACCUMULATE, s_next);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "step()  Step# %llu  R: %f  IN %llu  OUT %llu  A: %d\n",
+        agent->step_count,
+        reward,
+        agent->bw_in/1024,
+        agent->bw_out/1024,
+        a_next);
 
   envi_do_action (agent->envi, agent, a_next);
 
@@ -1416,7 +1421,7 @@ ril_calculate_discount (struct GAS_RIL_Handle *solver)
   double tau;
 
   // MDP case - remove when debugged
-  if (solver->parameters.step_time_min.rel_value_us == solver->parameters.step_time_max.rel_value_us)
+  if (solver->simulate)
   {
     solver->global_discount_variable = solver->parameters.gamma;
     solver->global_discount_integrated = 1;
@@ -1483,6 +1488,11 @@ ril_step_schedule_next (struct GAS_RIL_Handle *solver)
   GNUNET_assert(y >= (double ) solver->parameters.step_time_min.rel_value_us);
 
   time_next = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MICROSECONDS, (unsigned long long) y);
+
+  if (solver->simulate)
+  {
+    time_next = GNUNET_TIME_UNIT_ZERO;
+  }
 
   if ((GNUNET_SCHEDULER_NO_TASK == solver->step_next_task_id) && (GNUNET_NO == solver->done))
   {
@@ -1583,7 +1593,7 @@ agent_w_start (struct RIL_Peer_Agent *agent)
     for (k = 0; k < agent->m; k++)
     {
       if (0 == count) {
-        agent->W[i][k] = 1.1 - ((double) GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, UINT32_MAX/5)/(double)UINT32_MAX);
+        agent->W[i][k] = 1;//.1 - ((double) GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, UINT32_MAX/5)/(double)UINT32_MAX);
       }
       else {
         for (other = agent->envi->agents_head; NULL != other; other = other->next)
@@ -1878,6 +1888,10 @@ libgnunet_plugin_ats_ril_init (void *cls)
   {
     solver->parameters.reward_global_share = RIL_DEFAULT_GLOBAL_REWARD_SHARE;
   }
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_number (env->cfg, "ats", "RIL_SIMULATE", &solver->simulate))
+  {
+    solver->simulate = GNUNET_NO;
+  }
 
   env->sf.s_add = &GAS_ril_address_add;
   env->sf.s_address_update_property = &GAS_ril_address_property_changed;
@@ -1905,16 +1919,16 @@ libgnunet_plugin_ats_ril_init (void *cls)
     cur->type = env->networks[c];
     cur->bw_in_available = env->in_quota[c];
     cur->bw_out_available = env->out_quota[c];
-    LOG(GNUNET_ERROR_TYPE_INFO, "Quotas for %s network:  IN %llu - OUT %llu\n", GNUNET_ATS_print_network_type(cur->type), cur->bw_in_available/1024, cur->bw_out_available/1024);
+    LOG(GNUNET_ERROR_TYPE_INFO, "init()  Quotas for %s network:  IN %llu - OUT %llu\n", GNUNET_ATS_print_network_type(cur->type), cur->bw_in_available/1024, cur->bw_out_available/1024);
   }
 
-  LOG(GNUNET_ERROR_TYPE_INFO, "Parameters:\n");
-  LOG(GNUNET_ERROR_TYPE_INFO, "Algorithm = %s, alpha = %f, beta = %f, lambda = %f\n",
+  LOG(GNUNET_ERROR_TYPE_INFO, "init()  Parameters:\n");
+  LOG(GNUNET_ERROR_TYPE_INFO, "init()  Algorithm = %s, alpha = %f, beta = %f, lambda = %f\n",
       solver->parameters.algorithm ? "Q" : "SARSA",
       solver->parameters.alpha,
       solver->parameters.beta,
       solver->parameters.lambda);
-  LOG(GNUNET_ERROR_TYPE_INFO, "explore = %f, global_share = %f\n",
+  LOG(GNUNET_ERROR_TYPE_INFO, "init()  explore = %f, global_share = %f\n",
       solver->parameters.explore_ratio,
       solver->parameters.reward_global_share);
 
