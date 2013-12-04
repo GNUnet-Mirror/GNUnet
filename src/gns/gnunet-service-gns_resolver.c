@@ -1933,7 +1933,7 @@ handle_dht_response (void *cls,
  * @param block block that was stored in the namecache
  */
 static void
-handle_namestore_block_response (void *cls,
+handle_namecache_block_response (void *cls,
 				 const struct GNUNET_GNSRECORD_Block *block)
 {
   struct GNS_ResolverHandle *rh = cls;
@@ -2031,7 +2031,7 @@ recursive_gns_resolution_namecache (struct GNS_ResolverHandle *rh)
 					  &query);
   rh->namecache_qe = GNUNET_NAMECACHE_lookup_block (namecache_handle,
 						    &query,
-						    &handle_namestore_block_response,
+						    &handle_namecache_block_response,
 						    rh);
   GNUNET_assert (NULL != rh->namecache_qe);
 }
