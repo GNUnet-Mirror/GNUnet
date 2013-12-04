@@ -1935,18 +1935,15 @@ GMT_get_connections_buffer (struct MeshTunnel3 *t)
   struct MeshTConnection *iter;
   unsigned int buffer;
 
-  iter = t->connection_head;
   buffer = 0;
-  while (NULL != iter)
+  for (iter = t->connection_head; NULL != iter; iter = iter->next)
   {
     if (GMC_get_state (iter->c) != MESH_CONNECTION_READY)
     {
       iter = iter->next;
       continue;
     }
-
     buffer += get_connection_buffer (iter);
-    iter = iter->next;
   }
 
   return buffer;
