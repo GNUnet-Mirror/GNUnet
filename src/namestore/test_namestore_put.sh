@@ -5,11 +5,16 @@ trap "gnunet-arm -e -c $CONFIGURATION" SIGINT
 LOCATION=$(which gnunet-config)
 if [ -z $LOCATION ]
 then
+  LOCATION="gnunet-config"
+fi
+$LOCATION --version
+if test $? != 0
+then
 	echo "GNUnet command line tools cannot be found, check environmental variables PATH and GNUNET_PREFIX" 
-	exit 1
+	exit 77
 fi
 
-rm -rf `gnunet-config -c $CONFIGURATION -s PATHS -o GNUNET_HOME`
+rm -rf `$LOCATION -c $CONFIGURATION -s PATHS -o GNUNET_HOME`
 TEST_DOMAIN_PLUS="www.gnu"
 TEST_DOMAIN_DNS="www3.gnu"
 TEST_IP_PLUS="127.0.0.1"
