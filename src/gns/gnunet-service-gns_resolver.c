@@ -455,6 +455,10 @@ static struct CacheOps *co_head;
  */
 static struct CacheOps *co_tail;
 
+/**
+ * Use namecache
+ */
+static int use_cache;
 
 /**
  * Global configuration.
@@ -1925,6 +1929,31 @@ handle_dht_response (void *cls,
 			       co);
 }
 
+static void
+start_dht_request (struct GNS_ResolverHandle *rh, struct GNUNET_HashCode query)
+{
+  struct GNS_ResolverHandle *rx;
+  GNUNET_assert (NULL == rh->get_handle);
+  rh->get_handle = GNUNET_DHT_get_start (dht_handle,
+                                         GNUNET_BLOCK_TYPE_GNS_NAMERECORD,
+                                         &query,
+                                         DHT_GNS_REPLICATION_LEVEL,
+                                         GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
+                                         NULL, 0,
+                                         &handle_dht_response, rh);
+  rh->dht_heap_node = GNUNET_CONTAINER_heap_insert (dht_lookup_heap,
+                                                    rh,
+                                                    GNUNET_TIME_absolute_get ().abs_value_us);
+  if (GNUNET_CONTAINER_heap_get_size (dht_lookup_heap) > max_allowed_background_queries)
+  {
+    /* fail longest-standing DHT request */
+    rx = GNUNET_CONTAINER_heap_peek (dht_lookup_heap);
+    GNUNET_assert (NULL != rx);
+    rx->proc (rx->proc_cls, 0, NULL);
+    GNS_resolver_lookup_cancel (rx);
+  }
+}
+
 
 /**
  * Process a record that was stored in the namecache.
@@ -1937,15 +1966,11 @@ handle_namecache_block_response (void *cls,
 				 const struct GNUNET_GNSRECORD_Block *block)
 {
   struct GNS_ResolverHandle *rh = cls;
-  struct GNS_ResolverHandle *rx;
   struct AuthorityChain *ac = rh->ac_tail;
   const char *label = ac->label;
   const struct GNUNET_CRYPTO_EcdsaPublicKey *auth = &ac->authority_info.gns_authority;
   struct GNUNET_HashCode query;
 
-  GNUNET_GNSRECORD_query_from_public_key (auth,
-					  label,
-					  &query);
   GNUNET_assert (NULL != rh->namecache_qe);
   rh->namecache_qe = NULL;
   if ( (GNUNET_NO == rh->only_cached) &&
@@ -1954,30 +1979,14 @@ handle_namecache_block_response (void *cls,
   {
     /* namecache knows nothing; try DHT lookup */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Starting DHT lookup for `%s' in zone `%s' under key `%s'\n",
-		ac->label,
-		GNUNET_GNSRECORD_z2s (&ac->authority_info.gns_authority),
-		GNUNET_h2s (&query));
-    GNUNET_assert (NULL == rh->get_handle);
-    rh->get_handle = GNUNET_DHT_get_start (dht_handle,
-					   GNUNET_BLOCK_TYPE_GNS_NAMERECORD,
-					   &query,
-					   DHT_GNS_REPLICATION_LEVEL,
-					   GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
-					   NULL, 0,
-					   &handle_dht_response, rh);
-    rh->dht_heap_node = GNUNET_CONTAINER_heap_insert (dht_lookup_heap,
-						      rh,
-						      GNUNET_TIME_absolute_get ().abs_value_us);
-    if (GNUNET_CONTAINER_heap_get_size (dht_lookup_heap) > max_allowed_background_queries)
-    {
-      /* fail longest-standing DHT request */
-      rx = GNUNET_CONTAINER_heap_peek (dht_lookup_heap);
-      GNUNET_assert (NULL != rx);
-      rx->proc (rx->proc_cls, 0, NULL);
-      GNS_resolver_lookup_cancel (rx);
-    }
-    return;
+                "Starting DHT lookup for `%s' in zone `%s' under key `%s'\n",
+                ac->label,
+                GNUNET_GNSRECORD_z2s (&ac->authority_info.gns_authority),
+                GNUNET_h2s (&query));
+    GNUNET_GNSRECORD_query_from_public_key (auth,
+                                            label,
+                                            &query);
+    start_dht_request(rh, query);
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -2029,11 +2038,16 @@ recursive_gns_resolution_namecache (struct GNS_ResolverHandle *rh)
   GNUNET_GNSRECORD_query_from_public_key (&ac->authority_info.gns_authority,
 					  ac->label,
 					  &query);
-  rh->namecache_qe = GNUNET_NAMECACHE_lookup_block (namecache_handle,
+  if (GNUNET_YES == use_cache)
+  {
+    rh->namecache_qe = GNUNET_NAMECACHE_lookup_block (namecache_handle,
 						    &query,
 						    &handle_namecache_block_response,
 						    rh);
-  GNUNET_assert (NULL != rh->namecache_qe);
+    GNUNET_assert (NULL != rh->namecache_qe);
+  }
+  else
+    start_dht_request (rh, query);
 }
 
 
@@ -2402,6 +2416,13 @@ GNS_resolver_init (struct GNUNET_NAMECACHE_Handle *nc,
   dht_lookup_heap =
     GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
   max_allowed_background_queries = max_bg_queries;
+  if (GNUNET_SYSERR == (use_cache = GNUNET_CONFIGURATION_get_value_yesno (c,
+                                             "gns",
+                                             "USE_CACHE")))
+    use_cache = GNUNET_YES;
+  if (GNUNET_NO == use_cache)
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Namecache disabled\n");
+
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (c,
 					     "gns",
