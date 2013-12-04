@@ -70,7 +70,7 @@ check_PROGRAMS = \
 
 
 check_SCRIPTS = \
-	test_local_revocation.sh
+	test_local_revocation.py
 
 if ENABLE_TEST_RUN
  TESTS = \

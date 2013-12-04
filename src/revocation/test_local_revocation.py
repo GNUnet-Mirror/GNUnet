@@ -1,0 +1,111 @@
+#!/mingw/bin/python
+#    This file is part of GNUnet.
+#    (C) 2010 Christian Grothoff (and other contributing authors)
+#
+#    GNUnet is free software; you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published
+#    by the Free Software Foundation; either version 2, or (at your
+#    option) any later version.
+#
+#    GNUnet is distributed in the hope that it will be useful, but
+#    WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#    General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with GNUnet; see the file COPYING.  If not, write to the
+#    Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+#    Boston, MA 02111-1307, USA.
+#
+# Testcase for ego revocation
+from __future__ import print_function
+import sys
+import os
+import subprocess
+import re
+import shutil
+
+if os.name == 'posix':
+  config = 'gnunet-config'
+  gnunetarm = 'gnunet-arm'
+  ident = 'gnunet-identity'
+  revoc = './gnunet-revocation'
+elif os.name == 'nt':
+  config = 'gnunet-config.exe'
+  gnunetarm = 'gnunet-arm.exe'
+  ident = 'gnunet-identity.exe'
+  revoc = './gnunet-revocation.exe'
+
+TEST_CONFIGURATION = "test_revocation.conf"
+TEST_REVOCATION_EGO = "revoc_test"
+
+
+get_clean = subprocess.Popen ([config, '-c', TEST_CONFIGURATION, '-s', 'PATHS', '-o', 'GNUNET_HOME', '-f'], stdout=subprocess.PIPE)
+cleandir, x = get_clean.communicate ()
+cleandir = cleandir.rstrip ('\n').rstrip ('\r')
+
+if os.path.isdir (cleandir):
+  shutil.rmtree (cleandir, True)
+
+res = 0
+arm = subprocess.Popen ([gnunetarm, '-s', '-c', TEST_CONFIGURATION])
+arm.communicate ()
+
+try:
+  print ("Creating an ego " + TEST_REVOCATION_EGO)
+  sys.stdout.flush ()
+  sys.stderr.flush ()
+  idc = subprocess.Popen ([ident, '-C', TEST_REVOCATION_EGO, '-c', TEST_CONFIGURATION])
+  idc.communicate ()
+  if idc.returncode != 0:
+    raise Exception ("gnunet-identity failed to create an ego `" + TEST_REVOCATION_EGO + "'")
+
+  sys.stdout.flush ()
+  sys.stderr.flush ()
+  idd = subprocess.Popen ([ident, '-d'], stdout=subprocess.PIPE)
+  rev_key, x = idd.communicate ()
+  if len (rev_key.split ()) < 3:
+    raise Exception ("can't get revocation key out of `" + rev_key + "'")
+  rev_key = rev_key.split ()[2]
+
+  print ("Testing key " + rev_key)
+  sys.stdout.flush ()
+  sys.stderr.flush ()
+  tst = subprocess.Popen ([revoc, '-t', rev_key, '-c', TEST_CONFIGURATION], stdout=subprocess.PIPE)
+  output_not_revoked, x = tst.communicate ()
+  if tst.returncode != 0:
+    raise Exception ("gnunet-revocation failed to test a key - " + str (tst.returncode) + ": " + output_not_revoked)
+  if 'valid' not in output_not_revoked:
+    res = 1
+    print ("Key was not valid")
+  else:
+    print ("Key was valid")
+
+  print ("Revoking key " + rev_key)
+  sys.stdout.flush ()
+  sys.stderr.flush ()
+  rev = subprocess.Popen ([revoc, '-R', TEST_REVOCATION_EGO, '-p', '-c', TEST_CONFIGURATION])
+  rev.communicate ()
+  if rev.returncode != 0:
+    raise Exception ("gnunet-revocation failed to revoke a key")
+
+  print ("Testing revoked key " + rev_key)
+  sys.stdout.flush ()
+  sys.stderr.flush ()
+  tst = subprocess.Popen ([revoc, '-t', rev_key, '-c', TEST_CONFIGURATION], stdout=subprocess.PIPE)
+  output_revoked, x = tst.communicate ()
+  if tst.returncode != 0:
+    raise Exception ("gnunet-revocation failed to test a revoked key")
+  if 'revoked' not in output_revoked:
+    res = 1
+    print ("Key was not revoked")
+  else:
+    print ("Key was revoked")
+
+finally:
+  arm = subprocess.Popen ([gnunetarm, '-e', '-c', TEST_CONFIGURATION])
+  arm.communicate ()
+  if os.path.isdir (cleandir):
+    shutil.rmtree (cleandir, True)
+
+sys.exit (res)
