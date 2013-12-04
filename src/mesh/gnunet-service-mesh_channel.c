@@ -1053,10 +1053,12 @@ static void
 channel_confirm (struct MeshChannel *ch, int fwd)
 {
   struct MeshChannelReliability *rel;
+  enum MeshChannelState oldstate;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
               "  channel confirm %s %s:%X\n",
               GM_f2s (fwd), GMT_2s (ch->t), ch->gid);
+  oldstate = ch->state;
   ch->state = MESH_CHANNEL_READY;
 
   rel = fwd ? ch->root_rel : ch->dest_rel;
@@ -1077,7 +1079,7 @@ channel_confirm (struct MeshChannel *ch, int fwd)
   else
   {
     /* We SHOULD have been trying to retransmit this! */
-    GNUNET_break (0);
+    GNUNET_break (oldstate == MESH_CHANNEL_READY);
   }
 
   /* In case of a FWD ACK (SYNACK) send a BCK ACK (ACK). */
