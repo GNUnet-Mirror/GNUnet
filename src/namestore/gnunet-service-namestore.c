@@ -683,24 +683,24 @@ refresh_block (struct GNUNET_SERVER_Client *client,
     GNUNET_free (nick);
   }
 
-  if (0 == rd_count)
+  if (0 == res_count)
     block = GNUNET_GNSRECORD_block_create (zone_key,
                                            GNUNET_TIME_UNIT_ZERO_ABS,
                                            name,
-                                           rd, rd_count);
+                                           res, rd_count);
   else
     block = GNUNET_GNSRECORD_block_create (zone_key,
-                                           GNUNET_GNSRECORD_record_get_expiration_time (rd_count,
-                                                                                        rd),
+                                           GNUNET_GNSRECORD_record_get_expiration_time (res_count,
+                                               res),
                                            name,
-                                           rd, rd_count);
+                                           res, res_count);
   GNUNET_assert (NULL != block);
   GNUNET_CRYPTO_ecdsa_key_get_public (zone_key,
                                       &pkey);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Caching block for label `%s' with %u records in zone `%s' in namecache\n",
               name,
-              rd_count,
+              res_count,
               GNUNET_GNSRECORD_z2s (&pkey));
   cop = GNUNET_new (struct CacheOperation);
   cop->client = client;
