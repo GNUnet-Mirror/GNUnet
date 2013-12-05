@@ -412,6 +412,7 @@ add_destination (struct MeshChannel *ch, struct MeshClient *c)
   ch->dest_rel = GNUNET_new (struct MeshChannelReliability);
   ch->dest_rel->ch = ch;
   ch->dest_rel->expected_delay.rel_value_us = 0;
+  ch->dest_rel->retry_timer = MESH_RETRANSMIT_TIME;
 
   ch->dest = c;
 }
