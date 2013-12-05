@@ -42,7 +42,7 @@
 #define LOG(kind,...) GNUNET_log_from (kind, "transport-udp", __VA_ARGS__)
 
 /* *********** Cryogenic ********** */
-
+#if LINUX
 #include <sys/stat.h>
 #include <fcntl.h>
 
@@ -57,7 +57,8 @@ struct pm_times {
 	unsigned long delay_msecs;
 	unsigned long timeout_msecs;
 };
-/************************************/ 
+#endif
+/************************************/
 
 
 struct UDP_Beacon_Message
@@ -90,13 +91,18 @@ struct BroadcastAddress
   void *addr;
 
   socklen_t addrlen;
-  
-  /*
-   * Cryogenic fields
+
+#if LINUX
+  /**
+   * Cryogenic handle.
    */
   struct GNUNET_DISK_FileHandle *cryogenic_fd;
 
+  /**
+   * Time out for cryogenic.
+   */
   struct pm_times cryogenic_times;
+#endif
 };
 
 
@@ -340,7 +346,8 @@ udp_ipv4_broadcast_send (void *cls,
            GNUNET_a2s (baddr->addr, baddr->addrlen));
     }
   }
-  
+
+#if LINUX
   /*
    * Cryogenic
    */
@@ -348,7 +355,7 @@ udp_ipv4_broadcast_send (void *cls,
   {
     baddr->cryogenic_times.delay_msecs = (plugin->broadcast_interval.rel_value_us/1000.0)*0.5;
     baddr->cryogenic_times.timeout_msecs = (plugin->broadcast_interval.rel_value_us/1000.0)*1.5;
-    
+
     if (ioctl(baddr->cryogenic_fd->fd,
     		  PM_SET_DELAY_AND_TIMEOUT,
     		  &baddr->cryogenic_times) < 0)
@@ -363,9 +370,10 @@ udp_ipv4_broadcast_send (void *cls,
     		                           baddr->cryogenic_fd,
         		                       &udp_ipv4_broadcast_send,
         		                       baddr);
-    
+
   }
   else
+#endif
     baddr->broadcast_task =
         GNUNET_SCHEDULER_add_delayed (plugin->broadcast_interval,
 	                                  &udp_ipv4_broadcast_send, baddr);
@@ -423,6 +431,7 @@ udp_ipv6_broadcast_send (void *cls,
          GNUNET_a2s ((const struct sockaddr *) &plugin->ipv6_multicast_address,
                      sizeof (struct sockaddr_in6)));
   }
+#if LINUX
   /*
    * Cryogenic
    */
@@ -430,7 +439,7 @@ udp_ipv6_broadcast_send (void *cls,
   {
     baddr->cryogenic_times.delay_msecs = (plugin->broadcast_interval.rel_value_us/1000.0)*0.5;
     baddr->cryogenic_times.timeout_msecs = (plugin->broadcast_interval.rel_value_us/1000.0)*1.5;
-    
+
     if (ioctl(baddr->cryogenic_fd->fd,
     		  PM_SET_DELAY_AND_TIMEOUT,
     		  &baddr->cryogenic_times) < 0)
@@ -447,6 +456,7 @@ udp_ipv6_broadcast_send (void *cls,
                                        baddr);
   }
   else
+#endif
     baddr->broadcast_task =
         GNUNET_SCHEDULER_add_delayed (plugin->broadcast_interval,
                                       &udp_ipv6_broadcast_send, baddr);
@@ -498,11 +508,12 @@ iface_proc (void *cls,
        (NULL != plugin->sockv4) &&
        (addrlen == sizeof (struct sockaddr_in)) )
   {
-    
-	/*
-	 * setup Cryogenic FD for ipv4 broadcasting
-	 */
+#if LINUX
+    /*
+     * setup Cryogenic FD for ipv4 broadcasting
+     */
     char *filename;
+
     GNUNET_asprintf (&filename,
                      "/dev/power/%s",
                      name);
@@ -511,7 +522,7 @@ iface_proc (void *cls,
         		               GNUNET_DISK_OPEN_WRITE,
         		               GNUNET_DISK_PERM_NONE);
     GNUNET_free (filename);
-    
+#endif
     ba->broadcast_task =
         GNUNET_SCHEDULER_add_now (&udp_ipv4_broadcast_send, ba);
   }
@@ -549,13 +560,12 @@ iface_proc (void *cls,
     }
     else
     {
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-           "IPv6 multicasting running\n");
-      
+#if LINUX
       /*
        * setup Cryogenic FD for ipv6 broadcasting
        */
       char *filename;
+
       GNUNET_asprintf (&filename,
                        "/dev/power/%s",
                        name);
@@ -564,8 +574,7 @@ iface_proc (void *cls,
         		                 GNUNET_DISK_OPEN_WRITE,
     		                     GNUNET_DISK_PERM_NONE);
       GNUNET_free (filename);
-
-
+#endif
       ba->broadcast_task =
           GNUNET_SCHEDULER_add_now (&udp_ipv6_broadcast_send, ba);
     }
@@ -664,11 +673,9 @@ stop_broadcast (struct Plugin *plugin)
       }
     }
 
-    /*
-     * Close Cryogenic FD
-     */
+#if LINUX
     GNUNET_DISK_file_close(p->cryogenic_fd);
-
+#endif
     GNUNET_CONTAINER_DLL_remove (plugin->broadcast_head,
                                  plugin->broadcast_tail, p);
     GNUNET_free (p->addr);
