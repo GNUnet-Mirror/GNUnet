@@ -1110,6 +1110,23 @@ GNUNET_CRYPTO_get_peer_identity (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 
 /**
+ * Compare two Peer Identities.
+ *
+ * @param first first peer identity
+ * @param second second peer identity
+ * @return bigger than 0 if first > second,
+ *         0 if they are the same
+ *         smaller than 0 if second > first
+ */
+int
+GNUNET_CRYPTO_cmp_peer_identity (const struct GNUNET_PeerIdentity *first,
+                                 const struct GNUNET_PeerIdentity *second)
+{
+  return memcmp (first, second, sizeof (struct GNUNET_PeerIdentity));
+}
+
+
+/**
  * Convert the data specified in the given purpose argument to an
  * S-expression suitable for signature operations.
  *

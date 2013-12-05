@@ -1096,6 +1096,19 @@ int
 GNUNET_CRYPTO_get_peer_identity (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                  struct GNUNET_PeerIdentity *dst);
 
+/**
+ * Compare two Peer Identities.
+ *
+ * @param first first peer identity
+ * @param second second peer identity
+ * @return bigger than 0 if first > second,
+ *         0 if they are the same
+ *         smaller than 0 if second > first
+ */
+int
+GNUNET_CRYPTO_cmp_peer_identity (const struct GNUNET_PeerIdentity *first,
+                                 const struct GNUNET_PeerIdentity *second);
+
 
 /**
  * @ingroup crypto
