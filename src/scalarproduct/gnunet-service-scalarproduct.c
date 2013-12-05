@@ -912,9 +912,10 @@ prepare_client_response (void *cls,
 
   msg_length = sizeof (struct GNUNET_SCALARPRODUCT_client_response) +product_length;
   msg = GNUNET_malloc (msg_length);
-  memcpy (&msg->key, &session->key, sizeof (struct GNUNET_HashCode));
-  memcpy (&msg->peer, &session->peer, sizeof ( struct GNUNET_PeerIdentity));
-  if (product_exported != NULL) {
+  msg->key = session->key;
+  &msg->peer = session->peer;
+  if (product_exported != NULL)
+  {
     memcpy (&msg[1], product_exported, product_length);
     GNUNET_free (product_exported);
   }
