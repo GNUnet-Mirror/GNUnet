@@ -3131,7 +3131,6 @@ GST_neighbours_handle_disconnect_message (const struct GNUNET_PeerIdentity
 {
   struct NeighbourMapEntry *n;
   const struct SessionDisconnectMessage *sdm;
-  struct GNUNET_HashCode hc;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received DISCONNECT message from peer `%s'\n",
@@ -3156,10 +3155,7 @@ GST_neighbours_handle_disconnect_message (const struct GNUNET_PeerIdentity
                               GNUNET_NO);
     return;
   }
-  GNUNET_CRYPTO_hash (&sdm->public_key,
-                      sizeof (struct GNUNET_CRYPTO_EddsaPublicKey),
-                      &hc);
-  if (0 != memcmp (peer, &hc, sizeof (struct GNUNET_PeerIdentity)))
+  if (0 != memcmp (peer, &sdm->public_key, sizeof (struct GNUNET_PeerIdentity)))
   {
     GNUNET_break_op (0);
     return;
