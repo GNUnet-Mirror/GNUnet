@@ -325,7 +325,10 @@ run (void *cls,
                                              mask, mask_bytes,
                                              &requester_callback,
                                              (void *) &closure)))
+  {
+    GNUNET_free (elements);
     return;
+  }
 
   if ((NULL == input_peer_id) &&
       (NULL == GNUNET_SCALARPRODUCT_response (cfg,
@@ -333,7 +336,11 @@ run (void *cls,
                                               elements, element_count,
                                               &responder_callback,
                                               (void *) &closure)))
+  {
+    GNUNET_free (elements);
     return;
+  }
+  GNUNET_free (elements);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                 &shutdown_task,
                                 NULL);
