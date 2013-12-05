@@ -940,9 +940,10 @@ GST_handle_peer_reconfigure (void *cls, struct GNUNET_SERVER_Client *client,
       GST_send_operation_fail_msg (client, op_id, emsg);
     GST_send_operation_success_msg (client, op_id);
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    GNUNET_free_non_null (emsg);
     return;
   }
-  prc = GNUNET_malloc (sizeof (struct PeerReconfigureContext));
+  prc = GNUNET_new (struct PeerReconfigureContext);
   if (GNUNET_OK !=
       GNUNET_TESTING_peer_stop_async (peer->details.local.peer, &prc_stop_cb,
                                       prc))
@@ -1235,7 +1236,7 @@ GST_handle_manage_peer_service (void *cls, struct GNUNET_SERVER_Client *client,
                      peer_id);
     goto err_ret;
   }
-  mctx = GNUNET_malloc (sizeof (struct ManageServiceContext));
+  mctx = GNUNET_new (struct ManageServiceContext);
   mctx->peer = peer;
   peer->reference_cnt++;
   mctx->op_id = op_id;
