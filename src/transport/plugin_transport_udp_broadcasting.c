@@ -517,10 +517,13 @@ iface_proc (void *cls,
     GNUNET_asprintf (&filename,
                      "/dev/power/%s",
                      name);
-    ba->cryogenic_fd =
+    if (0 == ACCESS (name, R_OK))
+    {
+      ba->cryogenic_fd =
         GNUNET_DISK_file_open (filename,
-        		               GNUNET_DISK_OPEN_WRITE,
-        		               GNUNET_DISK_PERM_NONE);
+                               GNUNET_DISK_OPEN_WRITE,
+                               GNUNET_DISK_PERM_NONE);
+    }
     GNUNET_free (filename);
 #endif
     ba->broadcast_task =
@@ -569,10 +572,13 @@ iface_proc (void *cls,
       GNUNET_asprintf (&filename,
                        "/dev/power/%s",
                        name);
-      ba->cryogenic_fd =
+      if (0 == ACCESS (name, R_OK))
+      {
+        ba->cryogenic_fd =
           GNUNET_DISK_file_open (filename,
-        		                 GNUNET_DISK_OPEN_WRITE,
-    		                     GNUNET_DISK_PERM_NONE);
+                                 GNUNET_DISK_OPEN_WRITE,
+                                 GNUNET_DISK_PERM_NONE);
+      }
       GNUNET_free (filename);
 #endif
       ba->broadcast_task =
