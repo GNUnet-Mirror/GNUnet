@@ -1966,6 +1966,7 @@ add_route (void *cls,
   struct Route *route = value;
   struct GNUNET_DV_ConnectMessage cm;
 
+  memset (&cm, 0, sizeof (cm));
   cm.header.size = htons (sizeof (cm));
   cm.header.type = htons (GNUNET_MESSAGE_TYPE_DV_CONNECT);
   cm.distance = htonl (route->target.distance);
