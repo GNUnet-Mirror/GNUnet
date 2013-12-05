@@ -254,20 +254,22 @@ notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
   char *ps = GNUNET_strdup (GNUNET_i2s (&p->id));
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Peer %u (`%4s'): peer (`%s') disconnected from me!\n", p->no, ps,
+              "Peer %u (`%4s'): peer (`%s') disconnected from me!\n",
+              p->no, ps,
               GNUNET_i2s (peer));
+  GNUNET_free (ps);
 
   if (GNUNET_SCHEDULER_NO_TASK != send_task)
   {
-
-  	GNUNET_SCHEDULER_cancel(send_task);
-  	GNUNET_break (0);
-		send_task = GNUNET_SCHEDULER_NO_TASK;
+    GNUNET_SCHEDULER_cancel(send_task);
+    GNUNET_break (0);
+    send_task = GNUNET_SCHEDULER_NO_TASK;
   }
-
-  if (th != NULL)
+  if (NULL != th)
+  {
     GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
-  th = NULL;
+    th = NULL;
+  }
 }
 
 
