@@ -88,14 +88,14 @@ GNUNET_CONSENSUS_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 
 /**
- * Called when an insertion (transmission to consensus service,
- * which does not imply fully consensus on this element with
- * all other peers) was successful.
- * May not call GNUNET_CONSENSUS_destroy; schedule a task to call
- * GNUNET_CONSENSUS_destroy instead.
+ * Called when an insertion (transmission to consensus service, which
+ * does not imply fully consensus on this element with all other
+ * peers) was successful.  May not call GNUNET_CONSENSUS_destroy();
+ * schedule a task to call GNUNET_CONSENSUS_destroy() instead (if
+ * needed).
  *
  * @param cls
- * @param success GNUNET_OK on success, GNUNET_SYSERR if
+ * @param success #GNUNET_OK on success, #GNUNET_SYSERR if
  *        the insertion and thus the consensus failed for good
  */
 typedef void (*GNUNET_CONSENSUS_InsertDoneCallback) (void *cls,
@@ -104,16 +104,16 @@ typedef void (*GNUNET_CONSENSUS_InsertDoneCallback) (void *cls,
 
 /**
  * Insert an element in the set being reconsiled.  Only transmit changes to
- * other peers if "GNUNET_CONSENSUS_begin" has been called.
- * Must not be called after "GNUNET_CONSENSUS_conclude".
- * May not call GNUNET_CONSENSUS_destroy; schedule a task to call
- * GNUNET_CONSENSUS_destroy instead.
+ * other peers if GNUNET_CONSENSUS_begin() has been called.
+ * Must not be called after GNUNET_CONSENSUS_conclude().
+ * May not call GNUNET_CONSENSUS_destroy(); schedule a task to call
+ * GNUNET_CONSENSUS_destroy() instead (if needed).
  *
  * @param consensus handle for the consensus session
  * @param element the element to be inserted
  * @param idc function called when we are done with this element and it
- *            is thus allowed to call GNUNET_CONSENSUS_insert again
- * @param idc_cls closure for 'idc'
+ *            is thus allowed to call GNUNET_CONSENSUS_insert() again
+ * @param idc_cls closure for @a idc
  */
 void
 GNUNET_CONSENSUS_insert (struct GNUNET_CONSENSUS_Handle *consensus,

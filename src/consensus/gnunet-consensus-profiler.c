@@ -65,18 +65,20 @@ static int verbose;
  * @param event information about the event
  */
 static void
-controller_cb(void *cls,
-              const struct GNUNET_TESTBED_EventInformation *event)
+controller_cb (void *cls,
+               const struct GNUNET_TESTBED_EventInformation *event)
 {
   GNUNET_assert (0);
 }
 
+
 static void
 destroy (void *cls, const struct GNUNET_SCHEDULER_TaskContext *ctx)
 {
-  struct GNUNET_CONSENSUS_Handle *consensus;
-  consensus = cls;
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "destroying consensus\n");
+  struct GNUNET_CONSENSUS_Handle *consensus = cls;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "destroying consensus\n");
   GNUNET_CONSENSUS_destroy (consensus);
   peers_done++;
   if (peers_done == num_peers)
@@ -85,7 +87,10 @@ destroy (void *cls, const struct GNUNET_SCHEDULER_TaskContext *ctx)
     for (i = 0; i < num_peers; i++)
       GNUNET_TESTBED_operation_done (testbed_operations[i]);
     for (i = 0; i < num_peers; i++)
-      printf ("P%u got %u of %u elements\n", i, results_for_peer[i], num_values);
+      printf ("P%u got %u of %u elements\n",
+              i,
+              results_for_peer[i],
+              num_values);
     GNUNET_SCHEDULER_shutdown ();
   }
 }
@@ -95,13 +100,17 @@ destroy (void *cls, const struct GNUNET_SCHEDULER_TaskContext *ctx)
  * Called when a conclusion was successful.
  *
  * @param cls closure, the consensus handle
- * @return GNUNET_YES if more consensus groups should be offered, GNUNET_NO if not
+ * @return #GNUNET_YES if more consensus groups should be offered,
+ *         #GNUNET_NO if not
  */
 static void
 conclude_cb (void *cls)
 {
   struct GNUNET_CONSENSUS_Handle **chp = cls;
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "consensus %d done\n", chp - consensus_handles);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "consensus %d done\n",
+              chp - consensus_handles);
   GNUNET_SCHEDULER_add_now (destroy, *chp);
 }
 
@@ -134,34 +143,37 @@ static void
 do_consensus ()
 {
   int unique_indices[replication];
-  int i;
+  unsigned int i;
 
   for (i = 0; i < num_values; i++)
   {
-    int j;
-    struct GNUNET_HashCode *val;
-    struct GNUNET_SET_Element *element;
-    generate_indices(unique_indices);
+    unsigned int j;
+    struct GNUNET_HashCode val;
+    struct GNUNET_SET_Element element;
 
-    val = GNUNET_malloc (sizeof *val);
-    GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK, val);
+    generate_indices (unique_indices);
+    GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_WEAK, &val);
 
-    element = GNUNET_malloc (sizeof *element);
-    element->data = val;
-    element->size = sizeof *val;
-
+    element.data = &val;
+    element.size = sizeof (val);
     for (j = 0; j < replication; j++)
     {
       int cid;
+
       cid = unique_indices[j];
-      GNUNET_CONSENSUS_insert (consensus_handles[cid], element, NULL, NULL);
+      GNUNET_CONSENSUS_insert (consensus_handles[cid],
+                               &element,
+                               NULL, NULL);
     }
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "all elements inserted, calling conclude\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "all elements inserted, calling conclude\n");
 
   for (i = 0; i < num_peers; i++)
-    GNUNET_CONSENSUS_conclude (consensus_handles[i], conclude_timeout, conclude_cb, &consensus_handles[i]);
+    GNUNET_CONSENSUS_conclude (consensus_handles[i],
+                               conclude_timeout,
+                               conclude_cb, &consensus_handles[i]);
 }
 
 
@@ -183,13 +195,16 @@ connect_complete (void *cls,
 
   if (NULL != emsg)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "testbed connect emsg: %s\n", emsg);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "testbed connect emsg: %s\n",
+                emsg);
     GNUNET_assert (0);
   }
 
   num_connected_handles++;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "connect complete\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "connect complete\n");
 
   if (num_connected_handles == num_peers)
   {
@@ -213,7 +228,9 @@ new_element_cb (void *cls,
 
   if (GNUNET_YES == verbose)
   {
-    printf ("P%d received %s\n", idx, GNUNET_h2s ((struct GNUNET_HashCode *) element->data));
+    printf ("P%d received %s\n",
+            idx,
+            GNUNET_h2s ((struct GNUNET_HashCode *) element->data));
   }
 }
 
@@ -236,8 +253,13 @@ connect_adapter (void *cls,
   struct GNUNET_CONSENSUS_Handle *consensus;
   chp = (struct GNUNET_CONSENSUS_Handle **) cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "connect adapter, %d peers\n", num_peers);
-  consensus = GNUNET_CONSENSUS_create (cfg, num_peers, peer_ids, &session_id, new_element_cb, chp);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "connect adapter, %d peers\n",
+              num_peers);
+  consensus = GNUNET_CONSENSUS_create (cfg,
+                                       num_peers, peer_ids,
+                                       &session_id,
+                                       &new_element_cb, chp);
   *chp = (struct GNUNET_CONSENSUS_Handle *) consensus;
   return consensus;
 }
@@ -340,6 +362,7 @@ test_master (void *cls,
                                          &peer_ids[i]);
 }
 
+
 static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
@@ -350,8 +373,9 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (cfg, "testbed", "OVERLAY_TOPOLOGY", &topology))
   {
-    fprintf (stderr, "'OVERLAY_TOPOLOGY' not found in 'testbed' config section, "
-                     "seems like you passed the wrong configuration file\n");
+    fprintf (stderr,
+             "'OVERLAY_TOPOLOGY' not found in 'testbed' config section, "
+             "seems like you passed the wrong configuration file\n");
     return;
   }
 
@@ -360,8 +384,9 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   if (0 == topology_cmp_result)
   {
-    fprintf (stderr, "'OVERLAY_TOPOLOGY' set to 'NONE', "
-                     "seems like you passed the wrong configuration file\n");
+    fprintf (stderr,
+             "'OVERLAY_TOPOLOGY' set to 'NONE', "
+             "seems like you passed the wrong configuration file\n");
     return;
   }
 
@@ -371,7 +396,8 @@ run (void *cls, char *const *args, const char *cfgfile,
     return;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "running gnunet-consensus\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "running gnunet-consensus\n");
 
   GNUNET_CRYPTO_hash (session_str, strlen(session_str), &session_id);
 
@@ -408,7 +434,7 @@ main (int argc, char **argv)
       GNUNET_GETOPT_OPTION_END
   };
   conclude_timeout = GNUNET_TIME_UNIT_SECONDS;
-  GNUNET_PROGRAM_run2 (argc, argv, "gnunet-consensus",
+  GNUNET_PROGRAM_run2 (argc, argv, "gnunet-consensus-profiler",
 		      "help",
 		      options, &run, NULL, GNUNET_YES);
   return 0;
