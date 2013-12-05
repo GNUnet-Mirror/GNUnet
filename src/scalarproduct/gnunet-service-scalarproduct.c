@@ -1392,7 +1392,6 @@ except:
   {
     gcry_mpi_release (b[i]);
     gcry_mpi_release (request->a[i]);
-    gcry_mpi_release (r_prime[i]);
   }
 
   GNUNET_free (b);
@@ -1401,8 +1400,6 @@ except:
   GNUNET_free (p);
   GNUNET_free (q);
   GNUNET_free (rand);
-  GNUNET_free (r);
-  GNUNET_free (r_prime);
   return ret;
 }
 
