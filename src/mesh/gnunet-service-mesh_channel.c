@@ -2008,9 +2008,9 @@ GMCH_handle_create (struct MeshTunnel3 *t,
   MESH_ChannelNumber chid;
   struct MeshChannel *ch;
   struct MeshClient *c;
+  int new_channel;
 
   chid = ntohl (msg->chid);
-
   ch = GMT_get_channel (t, chid);
   if (NULL == ch)
   {
@@ -2018,7 +2018,15 @@ GMCH_handle_create (struct MeshTunnel3 *t,
     ch = channel_new (t, NULL, 0);
     ch->gid = chid;
     channel_set_options (ch, ntohl (msg->opt));
+    new_channel = GNUNET_YES;
+  }
+  else
+  {
+    new_channel = GNUNET_NO;
+  }
 
+  if (GNUNET_YES == new_channel || GMT_is_loopback (t))
+  {
     /* Find a destination client */
     ch->port = ntohl (msg->port);
     LOG (GNUNET_ERROR_TYPE_DEBUG, "   port %u\n", ch->port);
@@ -2053,7 +2061,10 @@ GMCH_handle_create (struct MeshTunnel3 *t,
     send_client_create (ch);
     ch->state =  MESH_CHANNEL_SENT;
   }
-
+  else
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  duplicate create channel\n");
+  }
   send_ack (ch, GNUNET_YES);
 
   return ch;
