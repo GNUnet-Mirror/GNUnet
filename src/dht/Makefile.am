@@ -49,7 +49,8 @@ libgnunet_plugin_block_dht_la_DEPENDENCIES = \
 
 
 libexec_PROGRAMS = \
- gnunet-service-dht
+ gnunet-service-dht \
+ gnunet-service-dht-xvine
 
 noinst_PROGRAMS = \
  gnunet-dht-monitor \
@@ -76,6 +77,29 @@ gnunet_service_dht_LDADD = \
   $(top_builddir)/src/datacache/libgnunetdatacache.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   -lm
+
+gnunet_service_dht_xvine_SOURCES = \
+ gnunet-service-xdht.c gnunet-service-xdht.h \
+ gnunet-service-xdht_clients.c gnunet-service-xdht_clients.h \
+ gnunet-service-xdht_datacache.c gnunet-service-xdht_datacache.h \
+ gnunet-service-xdht_hello.c gnunet-service-xdht_hello.h \
+ gnunet-service-xdht_nse.c gnunet-service-xdht_nse.h \
+ gnunet-service-xdht_neighbours.c gnunet-service-xdht_neighbours.h \
+ gnunet-service-xdht_routing.c gnunet-service-xdht_routing.h
+gnunet_service_dht_xvine_LDADD = \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/core/libgnunetcore.la \
+  $(top_builddir)/src/nse/libgnunetnse.la \
+  $(top_builddir)/src/ats/libgnunetats.la \
+  $(top_builddir)/src/transport/libgnunettransport.la \
+  $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
+  $(top_builddir)/src/hello/libgnunethello.la \
+  $(top_builddir)/src/block/libgnunetblock.la \
+  $(top_builddir)/src/datacache/libgnunetdatacache.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  -lm
+
+
 
 gnunet_dht_get_SOURCES = \
  gnunet-dht-get.c
