@@ -488,7 +488,7 @@ start_process (struct ServiceList *sl,
   GNUNET_asprintf (&quotedbinary,
 		   "\"%s\"",
 		   binary);
-  
+
   GNUNET_assert (NULL == sl->proc);
   if (GNUNET_YES == use_debug)
   {
@@ -747,7 +747,7 @@ handle_start (void *cls, struct GNUNET_SERVER_Client *client,
   }
   if (GNUNET_YES == in_shutdown)
   {
-    signal_result (client, servicename, request_id, 
+    signal_result (client, servicename, request_id,
 		   GNUNET_ARM_RESULT_IN_SHUTDOWN);
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
@@ -755,7 +755,7 @@ handle_start (void *cls, struct GNUNET_SERVER_Client *client,
   sl = find_service (servicename);
   if (NULL == sl)
   {
-    signal_result (client, servicename, request_id, 
+    signal_result (client, servicename, request_id,
 		   GNUNET_ARM_RESULT_IS_NOT_KNOWN);
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
@@ -818,7 +818,7 @@ handle_stop (void *cls, struct GNUNET_SERVER_Client *client,
       return;
     }
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-	      _("Preparing to stop `%s'\n"), 
+	      _("Preparing to stop `%s'\n"),
 	      servicename);
   if (0 == strcasecmp (servicename, "arm"))
   {
@@ -1299,22 +1299,28 @@ setup_service (void *cls, const char *section)
     return;
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (cfg, section, "BINARY", &binary))
-    {
-      /* not a service section */
-      return;
-    }
+  {
+    /* not a service section */
+    return;
+  }
   if ((GNUNET_YES ==
        GNUNET_CONFIGURATION_have_value (cfg, section, "USER_SERVICE")) &&
       (GNUNET_YES ==
        GNUNET_CONFIGURATION_get_value_yesno (cfg, section, "USER_SERVICE")))
   {
     if (GNUNET_NO == start_user)
+    {
+      GNUNET_free (binary);
       return; /* user service, and we don't deal with those */
+    }
   }
   else
   {
     if (GNUNET_NO == start_system)
+    {
+      GNUNET_free (binary);
       return; /* system service, and we don't deal with those */
+    }
   }
   sl = find_service (section);
   if (NULL != sl)

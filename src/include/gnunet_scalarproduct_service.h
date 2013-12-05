@@ -49,10 +49,12 @@ enum GNUNET_SCALARPRODUCT_ResponseStatus
   GNUNET_SCALARPRODUCT_Status_ServiceDisconnected
 };
 
+
 /**
  * Opaque declaration of the SP-Handle
  */
 struct GNUNET_SCALARPRODUCT_Handle;
+
 
 /**
  * Continuation called to notify client about result of the
@@ -63,6 +65,8 @@ struct GNUNET_SCALARPRODUCT_Handle;
  */
 typedef void (*GNUNET_SCALARPRODUCT_ContinuationWithStatus) (void *cls,
                                                              enum GNUNET_SCALARPRODUCT_ResponseStatus status);
+
+
 /**
  * Process a datum that was stored in the scalarproduct.
  *
@@ -73,6 +77,7 @@ typedef void (*GNUNET_SCALARPRODUCT_ContinuationWithStatus) (void *cls,
 typedef void (*GNUNET_SCALARPRODUCT_DatumProcessor) (void *cls,
                                                      enum GNUNET_SCALARPRODUCT_ResponseStatus status,
                                                      gcry_mpi_t result);
+
 
 /**
  * Request by Alice's client for computing a scalar product
@@ -85,17 +90,16 @@ typedef void (*GNUNET_SCALARPRODUCT_DatumProcessor) (void *cls,
  * @param mask Array of the mask
  * @param mask_bytes number of bytes in the mask
  * @param cont Callback function
- * @param cont_cls Closure for the callback function
- * 
+ * @param cont_cls Closure for @a cont
  * @return a new handle for this computation
  */
 struct GNUNET_SCALARPRODUCT_ComputationHandle *
-GNUNET_SCALARPRODUCT_request (const struct GNUNET_CONFIGURATION_Handle * cfg,
-                              const struct GNUNET_HashCode * key,
+GNUNET_SCALARPRODUCT_request (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                              const struct GNUNET_HashCode *key,
                               const struct GNUNET_PeerIdentity *peer,
-                              const int32_t * elements,
+                              const int32_t *elements,
                               uint32_t element_count,
-                              const unsigned char * mask,
+                              const unsigned char *mask,
                               uint32_t mask_bytes,
                               GNUNET_SCALARPRODUCT_DatumProcessor cont,
                               void * cont_cls);
@@ -108,17 +112,18 @@ GNUNET_SCALARPRODUCT_request (const struct GNUNET_CONFIGURATION_Handle * cfg,
  * @param elements Array of elements of the vector
  * @param element_count Number of elements in the vector
  * @param cont Callback function
- * @param cont_cls Closure for the callback function
- * 
+ * @param cont_cls Closure for @a cont
  * @return a new handle for this computation
  */
 struct GNUNET_SCALARPRODUCT_ComputationHandle *
-GNUNET_SCALARPRODUCT_response (const struct GNUNET_CONFIGURATION_Handle * cfg,
-                               const struct GNUNET_HashCode * key,
-                               const int32_t * elements,
+GNUNET_SCALARPRODUCT_response (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                               const struct GNUNET_HashCode *key,
+                               const int32_t *elements,
                                uint32_t element_count,
                                GNUNET_SCALARPRODUCT_ContinuationWithStatus cont,
-                               void * cont_cls);
+                               void *cont_cls);
+
+
 /**
  * Cancel an ongoing computation or revoke our collaboration offer.
  * Closes the connection to the service
@@ -126,14 +131,21 @@ GNUNET_SCALARPRODUCT_response (const struct GNUNET_CONFIGURATION_Handle * cfg,
  * @param h computation handle to terminate
  */
 void
-GNUNET_SCALARPRODUCT_cancel (struct GNUNET_SCALARPRODUCT_ComputationHandle * h);
+GNUNET_SCALARPRODUCT_cancel (struct GNUNET_SCALARPRODUCT_ComputationHandle *h);
+
 
 /**
  * Cancel ALL ongoing computation or revoke our collaboration offer.
  * Closes ALL connections to the service
+ *
+ * FIXME: this should take an argument, and we should
+ * have an explicit 'connect' API which returns an opaque
+ * connection handle.  Avoid (globals) in the library!
+ * @deprecated in this form
  */
 void
 GNUNET_SCALARPRODUCT_disconnect ();
+
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
