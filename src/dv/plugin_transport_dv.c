@@ -314,6 +314,7 @@ handle_dv_connect (void *cls,
 
   session = GNUNET_new (struct Session);
   session->sender = *peer;
+  session->plugin = plugin;
   session->distance = distance;
   session->network = network;
   GNUNET_assert(
@@ -490,6 +491,7 @@ dv_plugin_send (void *cls,
                 struct GNUNET_TIME_Relative timeout,
                 GNUNET_TRANSPORT_TransmitContinuation cont, void *cont_cls)
 {
+  struct Plugin *plugin = cls;
   struct PendingRequest *pr;
   const struct GNUNET_MessageHeader *msg;
   struct GNUNET_MessageHeader *box;
@@ -512,9 +514,10 @@ dv_plugin_send (void *cls,
   GNUNET_CONTAINER_DLL_insert_tail (session->pr_head,
 				    session->pr_tail,
 				    pr);
-  pr->th = GNUNET_DV_send (session->plugin->dvh,
+
+  pr->th = GNUNET_DV_send (plugin->dvh,
 			   &session->sender,
-			   msg,
+			   msg ,
 			   &send_finished,
 			   pr);
   GNUNET_free_non_null (box);
