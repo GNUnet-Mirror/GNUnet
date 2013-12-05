@@ -66,6 +66,12 @@ bin_PROGRAMS = \
   $(DO_W32_NSPTOOLS) \
   gnunet-gns
 
+if HAVE_MHD
+if LINUX
+bin_PROGRAMS += gnunet-bcd
+endif
+endif
+
 bin_SCRIPTS = gnunet-gns-proxy-setup-ca
 
 plugin_LTLIBRARIES = \
@@ -97,6 +103,16 @@ gnunet_gns_DEPENDENCIES = \
   $(top_builddir)/src/identity/libgnunetidentity.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   libgnunetgns.la
+
+
+gnunet_bcd_SOURCES = \
+ gnunet-bcd.c
+gnunet_bcd_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(GN_LIBINTL) -lmicrohttpd
+gnunet_bcd_DEPENDENCIES = \
+  $(top_builddir)/src/util/libgnunetutil.la
+
 
 gnunet_dns2gns_SOURCES = \
  gnunet-dns2gns.c
