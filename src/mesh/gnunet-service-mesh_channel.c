@@ -1997,41 +1997,42 @@ GMCH_handle_create (struct MeshTunnel3 *t,
     /* Create channel */
     ch = channel_new (t, NULL, 0);
     ch->gid = chid;
-  }
-  channel_set_options (ch, ntohl (msg->opt));
+    channel_set_options (ch, ntohl (msg->opt));
 
-  /* Find a destination client */
-  ch->port = ntohl (msg->port);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "   port %u\n", ch->port);
-  c = GML_client_get_by_port (ch->port);
-  if (NULL == c)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  no client has port registered\n");
-    if (is_loopback (ch))
+    /* Find a destination client */
+    ch->port = ntohl (msg->port);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "   port %u\n", ch->port);
+    c = GML_client_get_by_port (ch->port);
+    if (NULL == c)
     {
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "  loopback: destroy on handler\n");
-      send_nack (ch);
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "  no client has port registered\n");
+      if (is_loopback (ch))
+      {
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "  loopback: destroy on handler\n");
+        send_nack (ch);
+      }
+      else
+      {
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "  not loopback: destroy now\n");
+        send_nack (ch);
+        GMCH_destroy (ch);
+      }
+      return NULL;
     }
     else
     {
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "  not loopback: destroy now\n");
-      send_nack (ch);
-      GMCH_destroy (ch);
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "  client %p has port registered\n", c);
     }
-    return NULL;
-  }
-  else
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  client %p has port registered\n", c);
+
+    add_destination (ch, c);
+    if (GNUNET_YES == ch->reliable)
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! Reliable\n");
+    else
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! Not Reliable\n");
+
+    send_client_create (ch);
   }
 
-  add_destination (ch, c);
-  if (GNUNET_YES == ch->reliable)
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! Reliable\n");
-  else
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! Not Reliable\n");
-
-  send_client_create (ch);
   send_ack (ch, GNUNET_YES);
 
   return ch;
