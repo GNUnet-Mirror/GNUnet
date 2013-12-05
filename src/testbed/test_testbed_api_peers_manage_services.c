@@ -146,6 +146,7 @@ op_comp_cb (void *cls,
                                              op_comp_cb,
                                              dummy_cls,
                                              0);
+    GNUNET_assert (NULL != op);
     break;
   case STATE_SERVICE_DOWN:
     state = STATE_SERVICE_UP;

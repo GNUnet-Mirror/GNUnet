@@ -361,7 +361,7 @@ GST_handle_peer_create (void *cls, struct GNUNET_SERVER_Client *client,
     }
     GNUNET_CONFIGURATION_set_value_number (cfg, "TESTBED", "PEERID",
                                            (unsigned long long) peer_id);
-    
+
     GNUNET_CONFIGURATION_set_value_number (cfg, "PATHS", "PEERID",
                                            (unsigned long long) peer_id);
     peer = GNUNET_malloc (sizeof (struct Peer));
@@ -798,7 +798,7 @@ update_peer_config (struct Peer *peer,
   GNUNET_TESTING_peer_destroy (peer->details.local.peer);
   GNUNET_CONFIGURATION_destroy (peer->details.local.cfg);
   peer->details.local.cfg = cfg;
-  emsg = NULL;  
+  emsg = NULL;
   peer->details.local.peer
       = GNUNET_TESTING_peer_configure (GST_context->system,
                                        peer->details.local.cfg, peer->id,
@@ -943,17 +943,18 @@ GST_handle_peer_reconfigure (void *cls, struct GNUNET_SERVER_Client *client,
     return;
   }
   prc = GNUNET_malloc (sizeof (struct PeerReconfigureContext));
-  if (GNUNET_OK != 
+  if (GNUNET_OK !=
       GNUNET_TESTING_peer_stop_async (peer->details.local.peer, &prc_stop_cb,
                                       prc))
   {
     GNUNET_assert (0 < GNUNET_asprintf (&emsg,
-                                        "Error trying to stop peer %u asynchronously\n", 
+                                        "Error trying to stop peer %u asynchronously\n",
                                         peer_id));
     LOG (GNUNET_ERROR_TYPE_ERROR, "%s\n", emsg);
     GST_send_operation_fail_msg (client, op_id, emsg);
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     GNUNET_free (prc);
+    GNUNET_free (emsg);
     return;
   }
   prc->cfg = cfg;
