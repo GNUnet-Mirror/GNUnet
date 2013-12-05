@@ -311,21 +311,26 @@ handle_dv_connect (void *cls,
       notify_distance_change (session);
     return; /* nothing to do */
   }
+
   session = GNUNET_new (struct Session);
   session->sender = *peer;
   session->distance = distance;
   session->network = network;
-  GNUNET_assert (GNUNET_YES ==
-		 GNUNET_CONTAINER_multipeermap_put (plugin->sessions,
-						    &session->sender,
-						    session,
-						    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+  GNUNET_assert(
+      GNUNET_YES == GNUNET_CONTAINER_multipeermap_put (plugin->sessions,
+          &session->sender, session,
+          GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+      "Creating new session %p for peer `%s'\n",
+      session,
+      GNUNET_i2s (peer));
 
   /* Notify transport and ats about new connection */
   ats[0].type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
   ats[0].value = htonl (distance);
-  ats[0].type = htonl (GNUNET_ATS_NETWORK_TYPE);
-  ats[0].value = htonl (network);
+  ats[1].type = htonl (GNUNET_ATS_NETWORK_TYPE);
+  ats[1].value = htonl (network);
   plugin->env->session_start (plugin->env->cls, peer, PLUGIN_NAME, NULL, 0,
       session, ats, 2);
 }
@@ -380,6 +385,12 @@ free_session (struct Session *session)
 		 GNUNET_CONTAINER_multipeermap_remove (plugin->sessions,
 						       &session->sender,
 						       session));
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+      "Freeing session %p for peer `%s'\n",
+      session,
+      GNUNET_i2s (&session->sender));
+
   if (GNUNET_YES == session->active)
     plugin->env->session_end (plugin->env->cls,
 			      &session->sender,
