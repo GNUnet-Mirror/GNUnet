@@ -1224,7 +1224,10 @@ GNUNET_TESTING_peer_configure (struct GNUNET_TESTING_System *system,
     ss = system->shared_services[cnt];
     ss_instances[cnt] = associate_shared_service (system, ss, cfg);
     if (NULL == ss_instances[cnt])
+    {
+      emsg_ = GNUNET_strdup ("FIXME");
       goto err_ret;
+    }
   }
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONFIGURATION_get_value_filename
