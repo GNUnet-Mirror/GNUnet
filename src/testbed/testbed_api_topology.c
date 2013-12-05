@@ -608,7 +608,6 @@ gen_scale_free (struct TopologyContext *tc, uint16_t cap, uint8_t m)
   unsigned int off;
   unsigned int redo_threshold;
 
-  links = 0;
   etaboff = 0;
   tc->link_array_size = tc->num_peers * m;
   tc->link_array = GNUNET_malloc_large (sizeof (struct OverlayLink) *
