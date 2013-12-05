@@ -1528,10 +1528,9 @@ GAS_addresses_evaluate_assignment (struct GAS_Addresses_Handle *ah)
   }
 
   /* 3) How well does selection match application requirements */
-  include_requirements = GNUNET_NO;
   if (0 == ah->pref_clients)
   {
-    include_requirements = GNUNET_NO;
+    include_requirements = 0;
   }
   else
   {
@@ -1609,7 +1608,7 @@ GAS_addresses_evaluate_assignment (struct GAS_Addresses_Handle *ah)
     else
       quality_application_requirements = 0.0;
 
-    include_requirements = GNUNET_YES;
+    include_requirements = 1;
   }
   /* GUQ */
 
