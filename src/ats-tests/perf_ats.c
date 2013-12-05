@@ -66,21 +66,32 @@ struct TestbedConnectOperation
  */
 struct BenchmarkState
 {
-  /* Are we connected to ATS service of all peers: GNUNET_YES/NO */
+  /**
+   * Are we connected to ATS service of all peers: GNUNET_YES/NO
+   */
   int connected_ATS_service;
 
-  /* Are we connected to CORE service of all peers: GNUNET_YES/NO */
+  /**
+   * Are we connected to CORE service of all peers: GNUNET_YES/NO
+   */
   int connected_COMM_service;
 
-  /* Are we connected to all peers: GNUNET_YES/NO */
+  /**
+   * Are we connected to all peers: GNUNET_YES/NO
+   */
   int connected_PEERS;
 
-  /* Are we connected to all slave peers on CORE level: GNUNET_YES/NO */
+  /**
+   * Are we connected to all slave peers on CORE level: GNUNET_YES/NO
+   */
   int connected_CORE;
 
-  /* Are we connected to CORE service of all peers: GNUNET_YES/NO */
+  /**
+   * Are we connected to CORE service of all peers: GNUNET_YES/NO
+   */
   int benchmarking;
 };
+
 
 /**
  * Shutdown task
