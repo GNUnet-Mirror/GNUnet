@@ -1235,11 +1235,14 @@ compute_service_response (struct ServiceSession * request,
   rand_pi_prime = GNUNET_malloc (sizeof (gcry_mpi_t) * count);
 
   // convert responder session to from long to mpi
-  for (i = 0, j = 0; i < response->total && j < count; i++) {
-    if (request->mask[i / 8] & (1 << (i % 8))) {
+  for (i = 0, j = 0; i < response->total && j < count; i++)
+  {
+    if (request->mask[i / 8] & (1 << (i % 8)))
+    {
       value = response->vector[i] >= 0 ? response->vector[i] : -response->vector[i];
       // long to gcry_mpi_t
-      if (0 > response->vector[i]) {
+      if (0 > response->vector[i])
+      {
         b[j] = gcry_mpi_new (0);
         gcry_mpi_sub_ui (b[j], b[j], value);
       }
@@ -1327,7 +1330,8 @@ compute_service_response (struct ServiceSession * request,
   // vectors, which get rid of all the lookups in p/q.
   // however, ap/aq are not absolutely necessary but are just abstraction
   // Calculate Kp = E(S + a_pi) (+) E(S - r_pi - b_pi)
-  for (i = 0; i < count; i++) {
+  for (i = 0; i < count; i++)
+  {
     // E(S - r_pi - b_pi)
     gcry_mpi_sub (r[i], my_offset, rand_pi[i]);
     gcry_mpi_sub (r[i], r[i], b_pi[i]);
@@ -1388,7 +1392,6 @@ except:
   {
     gcry_mpi_release (b[i]);
     gcry_mpi_release (request->a[i]);
-    gcry_mpi_release (r[i]);
     gcry_mpi_release (r_prime[i]);
   }
 
