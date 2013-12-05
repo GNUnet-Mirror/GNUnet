@@ -107,6 +107,7 @@ responder_callback (void *cls,
     LOG (GNUNET_ERROR_TYPE_ERROR,
          "Session %s failed: service failure\n",
          GNUNET_h2s (&closure->key));
+    break;
   case GNUNET_SCALARPRODUCT_Status_ServiceDisconnected:
     LOG (GNUNET_ERROR_TYPE_ERROR,
          "Session %s failed: service disconnect!\n",
