@@ -9,7 +9,7 @@ noinst_PROGRAMS = \
 
 if !MINGW
 timeout_watchdog_SOURCES = \
- timeout_watchdog.c 
+ timeout_watchdog.c
 else
 timeout_watchdog_SOURCES = \
  timeout_watchdog_w32.c
@@ -25,6 +25,9 @@ bin_SCRIPTS = \
  gnunet-gns-import.sh
 
 dist_pkgdata_DATA = \
+ gns-bcd.html \
+ gns-bcd.tex \
+ gnunet-logo.pdf \
  gnunet-logo-color.png \
  testing_hostkeys.ecc
 
@@ -56,7 +59,7 @@ EXTRA_DIST = \
  openvpn-tap32/tapw64/OemWin2k.inf \
  openvpn-tap32/INSTALL \
  openvpn-tap32/tap32-signed-i386-2.1.zip \
- openvpn-tap32/tap32-source-2.1.zip 
+ openvpn-tap32/tap32-source-2.1.zip
 
 do_subst = $(SED) -e 's,[@]PYTHON[@],$(PYTHON),g'
 
@@ -70,7 +73,7 @@ do_subst = $(SED) -e 's,[@]PYTHON[@],$(PYTHON),g'
 # gnmessage.sh \
 # junkinsert.sh \
 # junklookup.sh \
-# namespacehelper.sh 
+# namespacehelper.sh
 
 
 check_PROGRAMS = \
@@ -90,12 +93,12 @@ test_gnunet_prefix_LDADD = \
   $(GCLIBADD) $(WINLIB) \
   $(LTLIBICONV) \
   $(GN_LIBINTL) \
-  $(LIBLTDL) -lunistring $(XLIB) 
+  $(LIBLTDL) -lunistring $(XLIB)
 
 pkghellodir= $(pkgdatadir)/hellos
 
 install-data-local:
-	$(mkinstalldirs) $(DESTDIR)$(pkghellodir) 
+	$(mkinstalldirs) $(DESTDIR)$(pkghellodir)
 	@$(NORMAL_INSTALL)
 	for hello in $(srcdir)/hellos/*; do \
 	  if test -f $$hello; then \
