@@ -731,8 +731,7 @@ handle_regex_result (void *cls,
                                           ts,
                                           id,
                                           apptype,
-                                          GNUNET_YES,
-                                          GNUNET_NO);
+                                          GNUNET_MESH_OPTION_DEFAULT);
 }
 
 
@@ -778,8 +777,7 @@ create_channel_to_destination (struct DestinationChannel *dt,
 					    ts,
 					    &dt->destination->details.service_destination.target,
 					    apptype,
-					    GNUNET_YES,
-					    GNUNET_NO);
+					    GNUNET_MESH_OPTION_DEFAULT);
     if (NULL == ts->channel)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -815,7 +813,7 @@ create_channel_to_destination (struct DestinationChannel *dt,
       char address[GNUNET_TUN_IPV6_REGEXLEN];
 
       GNUNET_TUN_ipv6toregexsearch (&dt->destination->details.exit_destination.ip.v6,
-				    dt->destination_port, 
+				    dt->destination_port,
                                     address);
       GNUNET_asprintf (&policy, "%s%s",
                        GNUNET_APPLICATION_TYPE_EXIT_REGEX_PREFIX,

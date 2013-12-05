@@ -62,6 +62,11 @@ struct GNUNET_MESH_Channel;
 enum MeshOption
 {
   /**
+   * Default options: unreliable, default buffering, not out of order.
+   */
+  GNUNET_MESH_OPTION_DEFAULT    = 0x0,
+
+  /**
    * Disable buffering on intermediate nodes (for minimum latency).
    * Yes/No.
    */
@@ -81,6 +86,7 @@ enum MeshOption
 
   /**
    * Who is the peer at the other end of the channel.
+   * Only for use in @c GNUNET_MESH_channel_get_info
    * struct GNUNET_PeerIdentity *peer
    */
   GNUNET_MESH_OPTION_PEER       = 0x8
@@ -146,6 +152,8 @@ struct GNUNET_MESH_MessageHandler
  * @param channel new handle to the channel
  * @param initiator peer that started the channel
  * @param port Port this channel is for.
+ * @param options MeshOption flag field, with all active option bits set to 1.
+ *
  * @return initial channel context for the channel
  *         (can be NULL -- that's not an error)
  */
@@ -156,7 +164,9 @@ typedef void *(GNUNET_MESH_InboundChannelNotificationHandler) (void *cls,
                                                                const struct
                                                                GNUNET_PeerIdentity
                                                                * initiator,
-                                                               uint32_t port);
+                                                               uint32_t port,
+                                                               enum MeshOption
+                                                               options);
 
 
 /**
@@ -229,8 +239,8 @@ GNUNET_MESH_disconnect (struct GNUNET_MESH_Handle *handle);
  * @param channel_ctx client's channel context to associate with the channel
  * @param peer peer identity the channel should go to
  * @param port Port number.
- * @param nobuffer Flag for disabling buffering on relay nodes.
- * @param reliable Flag for end-to-end reliability.
+ * @param options MeshOption flag field, with all desired option bits set to 1.
+ *
  * @return handle to the channel
  */
 struct GNUNET_MESH_Channel *
@@ -238,8 +248,7 @@ GNUNET_MESH_channel_create (struct GNUNET_MESH_Handle *h,
                             void *channel_ctx,
                             const struct GNUNET_PeerIdentity *peer,
                             uint32_t port,
-                            int nobuffer,
-                            int reliable);
+                            enum MeshOption options);
 
 
 /**

@@ -536,13 +536,14 @@ static struct GNUNET_MESH_MessageHandler handlers[] = {
  * @param channel New handle to the channel.
  * @param initiator Peer that started the channel.
  * @param port Port this channel is connected to.
+ * @param options channel option flags
  * @return Initial channel context for the channel
  *         (can be NULL -- that's not an error).
  */
 static void *
 incoming_channel (void *cls, struct GNUNET_MESH_Channel *channel,
                  const struct GNUNET_PeerIdentity *initiator,
-                 uint32_t port)
+                 uint32_t port, enum MeshOption options)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Incoming channel from %s to peer %d\n",
@@ -629,7 +630,7 @@ channel_cleaner (void *cls, const struct GNUNET_MESH_Channel *channel,
 static void
 do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  int rel;
+  enum MeshOption flags;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test_task\n");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "add peer 2\n");
@@ -641,14 +642,13 @@ do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_SCHEDULER_cancel (disconnect_task);
   }
 
+  flags = GNUNET_MESH_OPTION_DEFAULT;
   if (SPEED_REL == test)
   {
     test = SPEED;
-    rel = GNUNET_YES;
+    flags |= GNUNET_MESH_OPTION_RELIABLE;
   }
-  else
-    rel = GNUNET_NO;
-  ch = GNUNET_MESH_channel_create (h1, NULL, p_id[1], 1, GNUNET_NO, rel);
+  ch = GNUNET_MESH_channel_create (h1, NULL, p_id[1], 1, flags);
 
   disconnect_task = GNUNET_SCHEDULER_add_delayed (SHORT_TIME,
                                                   &disconnect_mesh_peers,

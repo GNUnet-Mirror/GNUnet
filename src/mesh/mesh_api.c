@@ -277,19 +277,9 @@ struct GNUNET_MESH_Channel
   unsigned int packet_size;
 
     /**
-     * Is the channel allowed to buffer?
+     * Channel options: reliability, etc.
      */
-  int nobuffer;
-
-    /**
-     * Is the channel realiable?
-     */
-  int reliable;
-
-    /**
-     * If reliable, is the channel out of order?
-     */
-  int ooorder;
+  enum MeshOption options;
 
     /**
      * Are we allowed to send to the service?
@@ -439,7 +429,6 @@ create_channel (struct GNUNET_MESH_Handle *h, MESH_ChannelNumber chid)
     ch->chid = chid;
   }
   ch->allow_send = GNUNET_NO;
-  ch->nobuffer = GNUNET_NO;
   return ch;
 }
 
@@ -782,24 +771,10 @@ process_channel_created (struct GNUNET_MESH_Handle *h,
     ch->mesh = h;
     ch->chid = chid;
     ch->port = port;
-    if (0 != (msg->opt & GNUNET_MESH_OPTION_NOBUFFER))
-      ch->nobuffer = GNUNET_YES;
-    else
-      ch->nobuffer = GNUNET_NO;
-
-    if (0 != (msg->opt & GNUNET_MESH_OPTION_RELIABLE))
-      ch->reliable = GNUNET_YES;
-    else
-      ch->reliable = GNUNET_NO;
-
-    if (GNUNET_YES == ch->reliable &&
-        0 != (msg->opt & GNUNET_MESH_OPTION_OOORDER))
-      ch->ooorder = GNUNET_YES;
-    else
-      ch->ooorder = GNUNET_NO;
+    ch->options = ntohl (msg->opt);
 
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  created channel %p\n", ch);
-    ctx = h->new_channel (h->cls, ch, &msg->peer, ch->port);
+    ctx = h->new_channel (h->cls, ch, &msg->peer, ch->port, ch->options);
     if (NULL != ctx)
       ch->ctx = ctx;
     LOG (GNUNET_ERROR_TYPE_DEBUG, "User notified\n");
@@ -1398,18 +1373,16 @@ GNUNET_MESH_disconnect (struct GNUNET_MESH_Handle *handle)
  * @param channel_ctx client's channel context to associate with the channel
  * @param peer peer identity the channel should go to
  * @param port Port number.
- * @param nobuffer Flag for disabling buffering on relay nodes.
- * @param reliable Flag for end-to-end reliability.
+ * @param options MeshOption flag field, with all desired option bits set to 1.
  *
  * @return handle to the channel
  */
 struct GNUNET_MESH_Channel *
 GNUNET_MESH_channel_create (struct GNUNET_MESH_Handle *h,
-                           void *channel_ctx,
-                           const struct GNUNET_PeerIdentity *peer,
-                           uint32_t port,
-                           int nobuffer,
-                           int reliable)
+                            void *channel_ctx,
+                            const struct GNUNET_PeerIdentity *peer,
+                            uint32_t port,
+                            enum MeshOption options)
 {
   struct GNUNET_MESH_Channel *ch;
   struct GNUNET_MESH_ChannelMessage msg;
@@ -1427,12 +1400,7 @@ GNUNET_MESH_channel_create (struct GNUNET_MESH_Handle *h,
   msg.channel_id = htonl (ch->chid);
   msg.port = htonl (port);
   msg.peer = *peer;
-  msg.opt = 0;
-  if (GNUNET_YES == reliable)
-    msg.opt |= GNUNET_MESH_OPTION_RELIABLE;
-  if (GNUNET_YES == nobuffer)
-    msg.opt |= GNUNET_MESH_OPTION_NOBUFFER;
-  msg.opt = htonl (msg.opt);
+  msg.opt = htonl (options);
   ch->allow_send = 0;
   send_packet (h, &msg.header, ch);
   return ch;
@@ -1489,20 +1457,21 @@ GNUNET_MESH_channel_destroy (struct GNUNET_MESH_Channel *channel)
  */
 const union GNUNET_MESH_ChannelInfo *
 GNUNET_MESH_channel_get_info (struct GNUNET_MESH_Channel *channel,
-                             enum MeshOption option, ...)
+                              enum MeshOption option, ...)
 {
+  static int bool_flag;
   const union GNUNET_MESH_ChannelInfo *ret;
 
   switch (option)
   {
     case GNUNET_MESH_OPTION_NOBUFFER:
-      ret = (const union GNUNET_MESH_ChannelInfo *) &channel->nobuffer;
-      break;
     case GNUNET_MESH_OPTION_RELIABLE:
-      ret = (const union GNUNET_MESH_ChannelInfo *) &channel->reliable;
-      break;
     case GNUNET_MESH_OPTION_OOORDER:
-      ret = (const union GNUNET_MESH_ChannelInfo *) &channel->ooorder;
+      if (0 != (option & channel->options))
+        bool_flag = GNUNET_YES;
+      else
+        bool_flag = GNUNET_NO;
+      ret = (const union GNUNET_MESH_ChannelInfo *) &bool_flag;
       break;
     case GNUNET_MESH_OPTION_PEER:
       ret = (const union GNUNET_MESH_ChannelInfo *) GNUNET_PEER_resolve2 (channel->peer);

@@ -226,9 +226,9 @@ struct ServiceSession
  * Send a multi part chunk of a service request from alice to bob.
  * This element only contains a part of the elements-vector (session->a[]),
  * mask and public key set have to be contained within the first message
- * 
+ *
  * This allows a ~32kbit key length while using 32000 elements or 62000 elements per request.
- * 
+ *
  * @param cls the associated service session
  */
 static void
@@ -237,7 +237,7 @@ prepare_service_request_multipart (void *cls);
 /**
  * Send a multi part chunk of a service response from bob to alice.
  * This element only contains the two permutations of R, R'.
- * 
+ *
  * @param cls the associated service session
  */
 static void
@@ -657,7 +657,7 @@ permute_vector (gcry_mpi_t * vector,
 /**
  * Finds a not terminated client/service session in the
  * given DLL based on session key, element count and state.
- * 
+ *
  * @param tail - the tail of the DLL
  * @param key - the key we want to search for
  * @param element_count - the total element count of the dataset (session->total)
@@ -694,7 +694,7 @@ find_matching_session (struct ServiceSession * tail,
 
 /**
  * Safely frees ALL memory areas referenced by a session.
- * 
+ *
  * @param session - the session to free elements from
  */
 static void
@@ -769,7 +769,7 @@ handle_client_disconnect (void *cls,
                           struct GNUNET_SERVER_Client *client)
 {
   struct ServiceSession *session;
-  
+
   if (NULL != client)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               _ ("Client (%p) disconnected from us.\n"), client);
@@ -851,7 +851,7 @@ prepare_client_end_notification (void * cls,
   }
   else
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, _ ("Sending session-end notification to client (%p) for session %s\n"), &session->client, GNUNET_h2s (&session->key));
-  
+
   free_session_variables (session);
 }
 
@@ -953,7 +953,7 @@ prepare_client_response (void *cls,
 /**
  * Send a multipart chunk of a service response from bob to alice.
  * This element only contains the two permutations of R, R'.
- * 
+ *
  * @param cls the associated service session
  */
 static void
@@ -1396,9 +1396,9 @@ except:
  * Send a multi part chunk of a service request from alice to bob.
  * This element only contains a part of the elements-vector (session->a[]),
  * mask and public key set have to be contained within the first message
- * 
+ *
  * This allows a ~32kbit key length while using 32000 elements or 62000 elements per request.
- * 
+ *
  * @param cls the associated service session
  */
 static void
@@ -1751,8 +1751,7 @@ handle_client_request (void *cls,
     session->channel = GNUNET_MESH_channel_create (my_mesh, session,
                                                  &session->peer,
                                                  GNUNET_APPLICATION_TYPE_SCALARPRODUCT,
-                                                 GNUNET_NO,
-                                                 GNUNET_YES);
+                                                 GNUNET_MESH_OPTION_RELIABLE);
     //prepare_service_request, channel_peer_disconnect_handler,
     if (!session->channel) {
       GNUNET_break (0);
@@ -1815,18 +1814,20 @@ handle_client_request (void *cls,
  * @param channel new handle to the channel
  * @param initiator peer that started the channel
  * @param port unused
+ * @param options unused
+ *
  * @return session associated with the channel
  */
 static void *
 channel_incoming_handler (void *cls,
                          struct GNUNET_MESH_Channel *channel,
                          const struct GNUNET_PeerIdentity *initiator,
-                         uint32_t port)
+                         uint32_t port, enum MeshOption options)
 {
   struct ServiceSession * c = GNUNET_new (struct ServiceSession);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _ ("New incoming channel from peer %s.\n"), GNUNET_i2s (initiator));
-  
+
   c->peer = *initiator;
   c->channel = channel;
   c->role = BOB;
@@ -1861,7 +1862,7 @@ channel_destruction_handler (void *cls,
               GNUNET_i2s (&session->peer));
   if (ALICE == session->role) {
     // as we have only one peer connected in each session, just remove the session
-    
+
     if ((SERVICE_RESPONSE_RECEIVED > session->state) && (!do_shutdown)) {
       session->channel = NULL;
       // if this happened before we received the answer, we must terminate the session
@@ -2288,7 +2289,7 @@ handle_service_response_multipart (void *cls,
     return GNUNET_OK;
   session->state = SERVICE_RESPONSE_RECEIVED;
   session->product = compute_scalar_product (session); //never NULL
-  
+
 invalid_msg:
   GNUNET_break_op (NULL != session->product);
 
@@ -2342,7 +2343,7 @@ handle_service_response (void *cls,
   //we need at least a full message without elements attached
   msg_size = ntohs (msg->header.size);
   required_size = sizeof (struct GNUNET_SCALARPRODUCT_service_response) + 2 * PAILLIER_ELEMENT_LENGTH;
-  
+
   if (required_size > msg_size) {
     goto invalid_msg;
   }
@@ -2393,7 +2394,7 @@ handle_service_response (void *cls,
 
   session->state = SERVICE_RESPONSE_RECEIVED;
   session->product = compute_scalar_product (session); //never NULL
-  
+
 invalid_msg:
   GNUNET_break_op (NULL != session->product);
   // send message with product to client

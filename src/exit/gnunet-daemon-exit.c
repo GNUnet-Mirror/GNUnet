@@ -3008,13 +3008,14 @@ receive_udp_service (void *cls,
  * @param channel new handle to the channel
  * @param initiator peer that started the channel
  * @param port destination port
+ * @param options channel options flags
  * @return initial channel context for the channel
  */
 static void *
 new_channel (void *cls,
             struct GNUNET_MESH_Channel *channel,
             const struct GNUNET_PeerIdentity *initiator,
-            uint32_t port)
+            uint32_t port, enum MeshOption options)
 {
   struct ChannelState *s = GNUNET_new (struct ChannelState);
 

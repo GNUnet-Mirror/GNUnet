@@ -458,13 +458,14 @@ request_cb (void *cls,
  * @param initiator the identity of the peer who wants to establish a mesh
  *            with us; NULL on binding error
  * @param port mesh port used for the incoming connection
+ * @param options channel option flags
  * @return initial channel context (our 'struct MeshClient')
  */
 static void *
 accept_cb (void *cls,
 	   struct GNUNET_MESH_Channel *channel,
 	   const struct GNUNET_PeerIdentity *initiator,
-	   uint32_t port)
+	   uint32_t port, enum MeshOption options)
 {
   struct MeshClient *sc;
 

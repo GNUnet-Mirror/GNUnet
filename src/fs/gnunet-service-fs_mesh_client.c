@@ -228,8 +228,7 @@ reset_mesh (struct MeshHandle *mh)
 					  mh,
 					  &mh->target,
 					  GNUNET_APPLICATION_TYPE_FS_BLOCK_TRANSFER,
-					  GNUNET_NO,
-					  GNUNET_YES);
+					  GNUNET_MESH_OPTION_RELIABLE);
   transmit_pending (mh);
 }
 
@@ -543,8 +542,7 @@ get_mesh (const struct GNUNET_PeerIdentity *target)
                                             mh,
                                             &mh->target,
                                             GNUNET_APPLICATION_TYPE_FS_BLOCK_TRANSFER,
-                                            GNUNET_NO,
-                                            GNUNET_YES);
+                                            GNUNET_MESH_OPTION_RELIABLE);
   GNUNET_assert (mh ==
                  GNUNET_CONTAINER_multipeermap_get (mesh_map,
                                                     target));

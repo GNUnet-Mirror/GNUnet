@@ -162,13 +162,14 @@ data_callback (void *cls, struct GNUNET_MESH_Channel *channel,
  * @param channel new handle to the channel
  * @param initiator peer that started the channel
  * @param port port number
+ * @param options channel option flags
  * @return initial channel context for the channel
  *         (can be NULL -- that's not an error)
  */
 static void *
 inbound_channel (void *cls, struct GNUNET_MESH_Channel *channel,
                 const struct GNUNET_PeerIdentity *initiator,
-                uint32_t port)
+                uint32_t port, enum MeshOption options)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "received incoming channel on port %u\n",
@@ -256,7 +257,8 @@ do_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   GNUNET_TESTING_peer_get_identity (me, &id);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "CONNECT BY PORT\n");
-  ch1 = GNUNET_MESH_channel_create (mesh, NULL, &id, 1, GNUNET_YES, GNUNET_NO);
+  ch1 = GNUNET_MESH_channel_create (mesh, NULL, &id, 1,
+                                    GNUNET_MESH_OPTION_DEFAULT);
   GNUNET_MESH_notify_transmit_ready (ch1, GNUNET_NO,
                                      GNUNET_TIME_UNIT_FOREVER_REL,
                                      size, &do_send, NULL);

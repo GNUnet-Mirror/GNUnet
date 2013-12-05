@@ -701,8 +701,7 @@ handle_client_call_message (void *cls,
                                                      ch,
                                                      &msg->target,
                                                      GNUNET_APPLICATION_TYPE_CONVERSATION_CONTROL,
-                                                     GNUNET_NO,
-                                                     GNUNET_YES);
+                                                     GNUNET_MESH_OPTION_RELIABLE);
   ch->reliable_mq = GNUNET_MESH_mq_create (ch->channel_reliable);
   e = GNUNET_MQ_msg (ring, GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_PHONE_RING);
   ring->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_CONVERSATION_RING);
@@ -1073,8 +1072,7 @@ handle_mesh_pickup_message (void *cls,
                                                        ch,
                                                        &ch->target,
                                                        GNUNET_APPLICATION_TYPE_CONVERSATION_AUDIO,
-                                                       GNUNET_YES,
-                                                       GNUNET_NO);
+                                                       GNUNET_MESH_OPTION_DEFAULT);
   if (NULL == ch->channel_unreliable)
   {
     GNUNET_break (0);

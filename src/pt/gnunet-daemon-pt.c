@@ -352,8 +352,7 @@ try_open_exit ()
 						      pos,
 						      &pos->peer,
 						      GNUNET_APPLICATION_TYPE_INTERNET_RESOLVER,
-						      GNUNET_YES /* no buffer */,
-						      GNUNET_NO /* reliable */);
+						      GNUNET_MESH_OPTION_DEFAULT);
 	if (NULL == pos->mesh_channel)
 	{
 	  GNUNET_break (0);

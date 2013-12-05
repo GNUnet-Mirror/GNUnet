@@ -237,7 +237,7 @@ listener_destroy (struct Listener *listener)
  * Collect and destroy elements that are not needed anymore, because
  * their lifetime (as determined by their generation) does not overlap with any active
  * set operation.
- * 
+ *
  * We hereby replace the old element hashmap with a new one, instead of removing elements.
  */
 void
@@ -252,7 +252,7 @@ collect_generation_garbage (struct Set *set)
   new_elements = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_NO);
   iter = GNUNET_CONTAINER_multihashmap_iterator_create (set->elements);
   while (GNUNET_OK ==
-         (res = GNUNET_CONTAINER_multihashmap_iterator_next (iter, NULL, (const void **) &ee))) 
+         (res = GNUNET_CONTAINER_multihashmap_iterator_next (iter, NULL, (const void **) &ee)))
   {
     if (GNUNET_NO == ee->removed)
       goto still_needed;
@@ -449,7 +449,7 @@ incoming_destroy (struct Operation *incoming)
 
 /**
  * remove & free state of the operation from the incoming list
- * 
+ *
  * @param incoming the element to remove
  */
 
@@ -510,7 +510,7 @@ incoming_suggest (struct Operation *incoming, struct Listener *listener)
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != incoming->state->timeout_task);
   GNUNET_SCHEDULER_cancel (incoming->state->timeout_task);
   incoming->state->timeout_task = GNUNET_SCHEDULER_NO_TASK;
-  
+
   mqm = GNUNET_MQ_msg_nested_mh (cmsg, GNUNET_MESSAGE_TYPE_SET_REQUEST,
                                  incoming->spec->context_msg);
   GNUNET_assert (NULL != mqm);
@@ -524,9 +524,9 @@ incoming_suggest (struct Operation *incoming, struct Listener *listener)
 
 /**
  * Handle a request for a set operation from
- * another peer. 
- * 
- * This msg is expected as the first and only msg handled through the 
+ * another peer.
+ *
+ * This msg is expected as the first and only msg handled through the
  * non-operation bound virtual table, acceptance of this operation replaces
  * our virtual table and subsequent msgs would be routed differently.
  *
@@ -685,7 +685,7 @@ handle_client_create_set (void *cls,
               ntohs (msg->operation));
 
   // max. one set per client!
-  if (NULL != set_get (client)) 
+  if (NULL != set_get (client))
   {
     GNUNET_break (0);
     GNUNET_SERVER_client_disconnect (client);
@@ -742,7 +742,7 @@ handle_client_listen (void *cls,
     GNUNET_SERVER_client_disconnect (client);
     return;
   }
-  
+
   listener = GNUNET_new (struct Listener);
   listener->client = client;
   listener->client_mq = GNUNET_MQ_queue_for_server_client (client);
@@ -751,7 +751,7 @@ handle_client_listen (void *cls,
   GNUNET_CONTAINER_DLL_insert_tail (listeners_head, listeners_tail, listener);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "new listener created (op %u, app %s)\n",
               listener->operation, GNUNET_h2s (&listener->app_id));
-  
+
   /* check for incoming requests the listener is interested in */
   for (op = incoming_head; NULL != op; op = op->next)
   {
@@ -805,7 +805,7 @@ handle_client_reject (void *cls,
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "peer request rejected by client\n");
-  
+
   GNUNET_MESH_channel_destroy (incoming->channel);
   //channel destruction handler called immediately upon destruction
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -925,7 +925,7 @@ handle_client_evaluate (void *cls,
   spec->result_mode = ntohs (msg->result_mode);
   spec->client_request_id = ntohl (msg->request_id);
   spec->context_msg = GNUNET_MQ_extract_nested_mh (msg);
-  
+
   // for simplicity we just backup the context msg instead of rebuilding it later on
   if (NULL != spec->context_msg)
     spec->context_msg = GNUNET_copy_message (spec->context_msg);
@@ -938,8 +938,7 @@ handle_client_evaluate (void *cls,
 
   op->channel = GNUNET_MESH_channel_create (mesh, op, &msg->target_peer,
                                           GNUNET_APPLICATION_TYPE_SET,
-                                          GNUNET_YES,
-                                          GNUNET_YES);
+                                          GNUNET_MESH_OPTION_RELIABLE);
 
   op->mq = GNUNET_MESH_mq_create (op->channel);
 
@@ -950,7 +949,7 @@ handle_client_evaluate (void *cls,
 
 /**
  * Handle an ack from a client, and send the next element.
- * 
+ *
  * @param cls unused
  * @param client the client
  * @param m the message
@@ -1027,7 +1026,7 @@ handle_client_cancel (void *cls,
     GNUNET_SERVER_client_disconnect (client);
     return;
   }
-  
+
   _GSS_operation_destroy (op);
 }
 
@@ -1036,7 +1035,7 @@ handle_client_cancel (void *cls,
  * Handle a request from the client to accept
  * a set operation that came from a remote peer.
  * We forward the accept to the associated operation for handling
- * 
+ *
  * @param cls unused
  * @param client the client
  * @param mh the message
@@ -1066,7 +1065,7 @@ handle_client_accept (void *cls,
 
   // client without a set requested an operation
   set = set_get (client);
-  
+
   if (NULL == set)
   {
     GNUNET_break (0);
@@ -1126,7 +1125,7 @@ shutdown_task (void *cls,
 
 /**
  * Timeout happens iff:
- *  - we suggested an operation to our listener, 
+ *  - we suggested an operation to our listener,
  *    but did not receive a response in time
  *  - we got the channel from a peer but no GNUNET_MESSAGE_TYPE_SET_P2P_OPERATION_REQUEST
  *  - shutdown (obviously)
@@ -1152,14 +1151,14 @@ incoming_timeout_cb (void *cls,
 /**
  * Terminates an incoming operation in case we have not yet received an
  * operation request. Called by the channel destruction handler.
- * 
+ *
  * @param op the channel context
  */
 static void
 handle_incoming_disconnect (struct Operation *op)
 {
   GNUNET_assert (GNUNET_YES == op->is_incoming);
-  
+
   if (NULL == op->channel)
     return;
 
@@ -1171,16 +1170,17 @@ handle_incoming_disconnect (struct Operation *op)
  * Method called whenever another peer has added us to a channel
  * the other peer initiated.
  * Only called (once) upon reception of data with a message type which was
- * subscribed to in GNUNET_MESH_connect. 
- * 
+ * subscribed to in GNUNET_MESH_connect.
+ *
  * The channel context represents the operation itself and gets added to a DLL,
- * from where it gets looked up when our local listener client responds 
+ * from where it gets looked up when our local listener client responds
  * to a proposed/suggested operation or connects and associates with this operation.
  *
  * @param cls closure
  * @param channel new handle to the channel
  * @param initiator peer that started the channel
  * @param port Port this channel is for.
+ * @param options Unused.
  * @return initial channel context for the channel
  *         (can be NULL -- that's not an error)
  */
@@ -1188,7 +1188,7 @@ static void *
 channel_new_cb (void *cls,
                struct GNUNET_MESH_Channel *channel,
                const struct GNUNET_PeerIdentity *initiator,
-               uint32_t port)
+               uint32_t port, enum MeshOption options)
 {
   struct Operation *incoming;
   static const struct SetVT incoming_vt = {
@@ -1202,7 +1202,7 @@ channel_new_cb (void *cls,
   {
     GNUNET_break (0);
     GNUNET_MESH_channel_destroy (channel);
-    return;
+    return NULL;
   }
 
   incoming = GNUNET_new (struct Operation);
@@ -1225,12 +1225,12 @@ channel_new_cb (void *cls,
  * any associated state.
  * GNUNET_MESH_channel_destroy. It must NOT call GNUNET_MESH_channel_destroy on
  * the channel.
- * 
- * The peer_disconnect function is part of a a virtual table set initially either 
+ *
+ * The peer_disconnect function is part of a a virtual table set initially either
  * when a peer creates a new channel with us (channel_new_cb), or once we create
- * a new channel ourselves (evaluate). 
- * 
- * Once we know the exact type of operation (union/intersection), the vt is 
+ * a new channel ourselves (evaluate).
+ *
+ * Once we know the exact type of operation (union/intersection), the vt is
  * replaced with an operation specific instance (_GSS_[op]_vt).
  *
  * @param cls closure (set from GNUNET_MESH_connect)
@@ -1259,11 +1259,11 @@ channel_end_cb (void *cls,
  * Functions with this signature are called whenever any message is
  * received via the mesh channel.
  *
- * The msg_handler is a virtual table set in initially either when a peer 
- * creates a new channel with us (channel_new_cb), or once we create a new channel 
- * ourselves (evaluate). 
- * 
- * Once we know the exact type of operation (union/intersection), the vt is 
+ * The msg_handler is a virtual table set in initially either when a peer
+ * creates a new channel with us (channel_new_cb), or once we create a new channel
+ * ourselves (evaluate).
+ *
+ * Once we know the exact type of operation (union/intersection), the vt is
  * replaced with an operation specific instance (_GSS_[op]_vt).
  *
  * @param cls Closure (set from GNUNET_MESH_connect).
