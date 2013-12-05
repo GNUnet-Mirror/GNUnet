@@ -74,9 +74,9 @@ enum UnionOperationPhase
    */
   PHASE_EXPECT_SE,
   /**
-   * We sent the strata estimator, and expect an IBF. This phase is entered once 
+   * We sent the strata estimator, and expect an IBF. This phase is entered once
    * upon initialization and later via PHASE_EXPECT_ELEMENTS_AND_REQUESTS.
-   * 
+   *
    * After receiving the complete IBF, we enter PHASE_EXPECT_ELEMENTS
    */
   PHASE_EXPECT_IBF,
@@ -87,7 +87,7 @@ enum UnionOperationPhase
   /**
    * We are sending request and elements,
    * and thus only expect elements from the other peer.
-   * 
+   *
    * We are currently decoding an IBF until it can no longer be decoded,
    * we currently send requests and expect elements
    * The remote peer is in PHASE_EXPECT_ELEMENTS_AND_REQUESTS
@@ -96,13 +96,13 @@ enum UnionOperationPhase
   /**
    * We are expecting elements and requests, and send
    * requested elements back to the other peer.
-   * 
+   *
    * We are in this phase if we have SENT an IBF for the remote peer to decode.
    * We expect requests, send elements or could receive an new IBF, which takes
    * us via PHASE_EXPECT_IBF to phase PHASE_EXPECT_ELEMENTS
-   * 
+   *
    * The remote peer is thus in:
-   * PHASE_EXPECT_ELEMENTS 
+   * PHASE_EXPECT_ELEMENTS
    */
   PHASE_EXPECT_ELEMENTS_AND_REQUESTS,
   /**
@@ -257,7 +257,7 @@ destroy_key_to_element_iter (void *cls,
 
 /**
  * Destroy the union operation.  Only things specific to the union operation are destroyed.
- * 
+ *
  * @param op union operation to destroy
  */
 static void
@@ -760,8 +760,9 @@ send_elements_for_key (struct Operation *op, struct IBF_Key ibf_key)
 
   send_cls.ibf_key = ibf_key;
   send_cls.op = op;
-  GNUNET_CONTAINER_multihashmap32_get_multiple (op->state->key_to_element, (uint32_t) ibf_key.key_val,
-                                                &send_element_iterator, &send_cls);
+  (void) GNUNET_CONTAINER_multihashmap32_get_multiple (op->state->key_to_element,
+                                                       (uint32_t) ibf_key.key_val,
+                                                       &send_element_iterator, &send_cls);
 }
 
 
@@ -1060,7 +1061,7 @@ finish_and_destroy (struct Operation *op)
   if (GNUNET_SET_RESULT_FULL == op->spec->result_mode)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "sending full result set\n");
-    GNUNET_assert (NULL == op->state->full_result_iter); 
+    GNUNET_assert (NULL == op->state->full_result_iter);
     op->state->full_result_iter =
         GNUNET_CONTAINER_multihashmap32_iterator_create (op->state->key_to_element);
     send_remaining_elements (op);
@@ -1225,10 +1226,10 @@ union_accept (struct Operation *op)
 
 /**
  * Create a new set supporting the union operation
- * 
+ *
  * We maintain one strata estimator per set and then manipulate it over the
  * lifetime of the set, as recreating a strata estimator would be expensive.
- * 
+ *
  * @return the newly created set
  */
 static struct SetState *
@@ -1328,9 +1329,9 @@ union_handle_p2p_message (struct Operation *op,
 }
 
 /**
- * handler for peer-disconnects, notifies the client 
+ * handler for peer-disconnects, notifies the client
  * about the aborted operation in case the op was not concluded
- * 
+ *
  * @param op the destroyed operation
  */
 static void
@@ -1360,7 +1361,7 @@ union_peer_disconnect (struct Operation *op)
 /**
  * Get the table with implementing functions for
  * set union.
- * 
+ *
  * @return the operation specific VTable
  */
 const struct SetVT *
