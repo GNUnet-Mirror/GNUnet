@@ -813,34 +813,28 @@ mhd_content_cb (void *cls,
 static int
 check_ssl_certificate (struct Socks5Request *s5r)
 {
-  struct curl_tlsinfo tlsinfo;
   unsigned int cert_list_size;
   const gnutls_datum_t *chainp;
-  union {
-    struct curl_tlsinfo *tlsinfo;
-    struct curl_slist   *to_slist;
-  } gptr;
+  const struct curl_tlsinfo *tlsinfo;
   char certdn[GNUNET_DNSPARSER_MAX_NAME_LENGTH + 3];
   size_t size;
   gnutls_x509_crt_t x509_cert;
   int rc;
   const char *name;
 
-  memset (&tlsinfo, 0, sizeof (tlsinfo));
-  gptr.tlsinfo = &tlsinfo;
   if (CURLE_OK !=
       curl_easy_getinfo (s5r->curl,
 			 CURLINFO_TLS_SESSION,
-			 &gptr))
+			 &tlsinfo))
     return GNUNET_SYSERR;
-  if (CURLSSLBACKEND_GNUTLS != tlsinfo.ssl_backend)
+  if (CURLSSLBACKEND_GNUTLS != tlsinfo->ssl_backend)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Unsupported CURL SSL backend %d\n"),
-                tlsinfo.ssl_backend);
+                tlsinfo->ssl_backend);
     return GNUNET_SYSERR;
   }
-  chainp = gnutls_certificate_get_peers (tlsinfo.internals, &cert_list_size);
+  chainp = gnutls_certificate_get_peers (tlsinfo->internals, &cert_list_size);
   if ( (! chainp) || (0 == cert_list_size) )
     return GNUNET_SYSERR;
 

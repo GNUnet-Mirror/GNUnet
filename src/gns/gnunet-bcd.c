@@ -249,6 +249,10 @@ access_handler_callback (void *cls, struct MHD_Connection *connection,
     {
       GNUNET_break (0);
       GNUNET_break (0 == CLOSE (fd));
+      GNUNET_free (deffile);
+      GNUNET_free (p);
+      GNUNET_DISK_directory_remove (tmp);
+      GNUNET_free (tmp);
       return MHD_NO;
     }
     (void) MHD_add_response_header (response,
@@ -258,6 +262,7 @@ access_handler_callback (void *cls, struct MHD_Connection *connection,
                               MHD_HTTP_OK,
                               response);
     MHD_destroy_response (response);
+    GNUNET_free (deffile);
     GNUNET_free (p);
     GNUNET_DISK_directory_remove (tmp);
     GNUNET_free (tmp);
