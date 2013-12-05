@@ -271,7 +271,6 @@ transmit_ready_cb (void *cls, size_t size, void *buf)
   size_t wrote;
 
   ctx->tx = NULL;
-  wrote = 0;
   if ((0 == size) || (NULL == buf))
   {
     GNUNET_assert (NULL != ctx->client);
