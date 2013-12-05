@@ -1254,16 +1254,19 @@ compute_service_response (struct ServiceSession * request,
   }
   GNUNET_free (response->vector);
   response->vector = NULL;
-
+  q = NULL;
+  p = NULL;
   tmp_exp = gcry_sexp_find_token (request->remote_pubkey, "n", 0);
-  if (!tmp_exp) {
+  if (!tmp_exp)
+  {
     GNUNET_break_op (0);
     gcry_sexp_release (request->remote_pubkey);
     request->remote_pubkey = NULL;
     goto except;
   }
   remote_n = gcry_sexp_nth_mpi (tmp_exp, 1, GCRYMPI_FMT_USG);
-  if (!remote_n) {
+  if (!remote_n)
+  {
     GNUNET_break (0);
     gcry_sexp_release (tmp_exp);
     goto except;
@@ -1274,13 +1277,15 @@ compute_service_response (struct ServiceSession * request,
   tmp_exp = gcry_sexp_find_token (request->remote_pubkey, "g", 0);
   gcry_sexp_release (request->remote_pubkey);
   request->remote_pubkey = NULL;
-  if (!tmp_exp) {
+  if (!tmp_exp)
+  {
     GNUNET_break_op (0);
     gcry_mpi_release (remote_n);
     goto except;
   }
   remote_g = gcry_sexp_nth_mpi (tmp_exp, 1, GCRYMPI_FMT_USG);
-  if (!remote_g) {
+  if (!remote_g)
+  {
     GNUNET_break (0);
     gcry_mpi_release (remote_n);
     gcry_sexp_release (tmp_exp);
@@ -1397,8 +1402,8 @@ except:
   GNUNET_free (b);
   GNUNET_free (request->a);
   request->a = NULL;
-  GNUNET_free (p);
-  GNUNET_free (q);
+  GNUNET_free_non_null (p);
+  GNUNET_free_non_null (q);
   GNUNET_free (rand);
   return ret;
 }
