@@ -34,7 +34,8 @@
 
 #define LOG(level, ...) GNUNET_log_from(level,"mesh-chn",__VA_ARGS__)
 
-#define MESH_RETRANSMIT_TIME    GNUNET_TIME_UNIT_SECONDS
+#define MESH_RETRANSMIT_TIME    GNUNET_TIME_relative_multiply(\
+                                    GNUNET_TIME_UNIT_MILLISECONDS, 250)
 #define MESH_RETRANSMIT_MARGIN  4
 
 
@@ -755,6 +756,9 @@ ch_message_sent (void *cls,
           && GNUNET_MESSAGE_TYPE_MESH_DATA_ACK != type)
       {
         GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == rel->retry_task);
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! STD BACKOFF %s\n",
+             GNUNET_STRINGS_relative_time_to_string (rel->retry_timer,
+                                                     GNUNET_NO));
         rel->retry_timer = GNUNET_TIME_STD_BACKOFF (rel->retry_timer);
         rel->retry_task = GNUNET_SCHEDULER_add_delayed (rel->retry_timer,
                                                         &channel_recreate, rel);
@@ -1768,7 +1772,7 @@ GMCH_handle_local_create (struct MeshClient *c,
   /* In unreliable channels, we'll use the DLL to buffer BCK data */
   ch->root_rel = GNUNET_new (struct MeshChannelReliability);
   ch->root_rel->ch = ch;
-  ch->root_rel->retry_timer = GNUNET_TIME_UNIT_SECONDS;
+  ch->root_rel->retry_timer = MESH_RETRANSMIT_TIME;
   ch->root_rel->expected_delay.rel_value_us = 0;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "CREATED CHANNEL %s\n", GMCH_2s (ch));
