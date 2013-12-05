@@ -199,7 +199,7 @@ get_incoming (uint32_t id)
 {
   struct Operation *op;
 
-  for (op = incoming_head; NULL != op; op = op)
+  for (op = incoming_head; NULL != op; op = op->next)
     if (op->state->suggest_id == id)
       return op;
   return NULL;
