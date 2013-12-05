@@ -1341,7 +1341,8 @@ compute_service_response (struct ServiceSession * request,
   GNUNET_free (rand_pi);
 
   // Calculate Kq = E(S + a_qi) (+) E(S - r_qi)
-  for (i = 0; i < count; i++) {
+  for (i = 0; i < count; i++)
+  {
     // E(S - r_qi)
     gcry_mpi_sub (r_prime[i], my_offset, rand_pi_prime[i]);
     encrypt_element (r_prime[i], r_prime[i], remote_g, remote_n, remote_nsquare);
@@ -1383,15 +1384,25 @@ compute_service_response (struct ServiceSession * request,
     ret = GNUNET_OK;
 
 except:
-  for (i = 0; i < count; i++) {
+  for (i = 0; i < count; i++)
+  {
     gcry_mpi_release (b[i]);
     gcry_mpi_release (request->a[i]);
+    gcry_mpi_release (rand[i]);
+    gcry_mpi_release (r[i]);
+    gcry_mpi_release (r_prime[i]);
   }
 
   GNUNET_free (b);
   GNUNET_free (request->a);
   request->a = NULL;
-
+  GNUNET_free (p);
+  GNUNET_free (q);
+  GNUNET_free (a_pi);
+  GNUNET_free (rand);
+  GNUNET_free (rand_pi);
+  GNUNET_free (r);
+  GNUNET_free (r_prime);
   return ret;
 }
 
@@ -1437,7 +1448,8 @@ prepare_service_request_multipart (void *cls)
   a = gcry_mpi_new (KEYBITS * 2);
   current = (unsigned char *) &msg[1];
   // encrypt our vector and generate string representations
-  for (i = session->last_processed, j = 0; i < session->total; i++) {
+  for (i = session->last_processed, j = 0; i < session->total; i++)
+  {
     // is this a used element?
     if (session->mask[i / 8] & 1 << (i % 8)) {
       if (todo_count <= j)
