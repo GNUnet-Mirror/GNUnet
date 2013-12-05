@@ -1287,16 +1287,19 @@ compute_service_response (struct ServiceSession * request,
 
   // generate r, p and q
   rand = initialize_mpi_vector (count);
-  for (i = 0; i < count; i++) {
-    value = (int32_t) GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, UINT32_MAX);
+  for (i = 0; i < count; i++)
+  {
+    int32_t svalue;
+
+    svalue = (int32_t) GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, UINT32_MAX);
 
     // long to gcry_mpi_t
-    if (value < 0)
+    if (svalue < 0)
       gcry_mpi_sub_ui (rand[i],
                        rand[i],
-                       -value);
+                       -svalue);
     else
-      rand[i] = gcry_mpi_set_ui (rand[i], value);
+      rand[i] = gcry_mpi_set_ui (rand[i], svalue);
   }
   p = GNUNET_CRYPTO_random_permute (GNUNET_CRYPTO_QUALITY_WEAK, count);
   q = GNUNET_CRYPTO_random_permute (GNUNET_CRYPTO_QUALITY_WEAK, count);
