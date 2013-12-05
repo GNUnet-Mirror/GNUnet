@@ -1902,8 +1902,6 @@ free_direct_neighbors (void *cls,
                        void *value)
 {
   struct DirectNeighbor *neighbor = value;
-
-  GNUNET_break (0);
   cleanup_neighbor (neighbor);
   return GNUNET_YES;
 }

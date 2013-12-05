@@ -43,6 +43,7 @@ static int verbose;
  * @param cls closure
  * @param peer newly connected peer
  * @param distance distance to the peer
+ * @param network the network the next hop is located in
  */
 static void
 connect_cb (void *cls,
