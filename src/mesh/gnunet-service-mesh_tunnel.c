@@ -1975,14 +1975,28 @@ MESH_ChannelNumber
 GMT_get_next_chid (struct MeshTunnel3 *t)
 {
   MESH_ChannelNumber chid;
+  MESH_ChannelNumber mask;
+  int result;
+
+  /* Set bit 30 depending on the ID relationship. Bit 31 is always 0 for GID.
+   * If our ID is bigger or loopback tunnel, start at 0, bit 30 = 0
+   * If peer's ID is bigger, start at 0x4... bit 30 = 1
+   */
+  result = GNUNET_CRYPTO_cmp_peer_identity (&my_full_id, GMP_get_id (t->peer));
+  if (0 > result)
+    mask = 0x4000000;
+  else
+    mask = 0x0;
 
   while (NULL != GMT_get_channel (t, t->next_chid))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Channel %u exists...\n", t->next_chid);
     t->next_chid = (t->next_chid + 1) & ~GNUNET_MESH_LOCAL_CHANNEL_ID_CLI;
+    t->next_chid |= mask;
   }
   chid = t->next_chid;
   t->next_chid = (t->next_chid + 1) & ~GNUNET_MESH_LOCAL_CHANNEL_ID_CLI;
+  t->next_chid |= mask;
 
   return chid;
 }
