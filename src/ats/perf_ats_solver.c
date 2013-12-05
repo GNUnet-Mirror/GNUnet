@@ -655,21 +655,27 @@ write_gnuplot_script (char * data_fn, int full)
   }
   else if (MODE_RIL == ph.ats_mode)
   {
-    GNUNET_asprintf (&data, "plot '%s' using 1:%u with lines title 'Total time to solve'\n" \
-                           "pause -1",
-                           data_fn, 3);
+    GNUNET_asprintf (&data,
+                     "plot '%s' using 1:%u with lines title 'Total time to solve'\n" \
+                     "pause -1",
+                     data_fn, 3);
   }
 
-  if ((NULL != data) && (GNUNET_SYSERR == GNUNET_DISK_file_write(f, data, strlen(data))))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot write data to plot file `%s'\n", gfn);
-    GNUNET_free (data);
-  }
+  if ((NULL != data) &&
+      (GNUNET_SYSERR == GNUNET_DISK_file_write (f, data, strlen(data))))
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Cannot write data to plot file `%s'\n",
+                gfn);
+  GNUNET_free_non_null (data);
 
   if (GNUNET_SYSERR == GNUNET_DISK_file_close(f))
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot close gnuplot file `%s'\n", gfn);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Cannot close gnuplot file `%s'\n",
+                gfn);
   else
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Data successfully written to plot file `%s'\n", gfn);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Data successfully written to plot file `%s'\n",
+                gfn);
   GNUNET_free (gfn);
 
 }
