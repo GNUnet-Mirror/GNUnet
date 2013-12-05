@@ -1827,6 +1827,23 @@ GMCH_handle_data (struct MeshChannel *ch,
     return;
   }
 
+  if (MESH_CHANNEL_READY != ch->state)
+  {
+    if (GNUNET_NO == fwd)
+    {
+      /* If we are the root, this means the other peer has sent traffic before
+       * receiving our ACK. Even if the SYNACK goes missing, no traffic should
+       * be sent before the ACK.
+       */
+      GNUNET_break_op (0);
+      return;
+    }
+    /* If we are the dest, this means that the SYNACK got to the root but
+     * the ACK went missing. Treat this as an ACK.
+     */
+    channel_confirm (ch, GNUNET_NO);
+  }
+
   GNUNET_STATISTICS_update (stats, "# data received", 1, GNUNET_NO);
 
   mid = ntohl (msg->mid);
@@ -2034,6 +2051,7 @@ GMCH_handle_create (struct MeshTunnel3 *t,
       LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! Not Reliable\n");
 
     send_client_create (ch);
+    ch->state =  MESH_CHANNEL_SENT;
   }
 
   send_ack (ch, GNUNET_YES);
