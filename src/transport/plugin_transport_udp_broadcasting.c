@@ -94,7 +94,7 @@ struct BroadcastAddress
   /*
    * Cryogenic fields
    */
-  struct GNUNET_DISK_FileHandle cryogenic_fd;
+  struct GNUNET_DISK_FileHandle *cryogenic_fd;
 
   struct pm_times cryogenic_times;
 };
@@ -344,12 +344,12 @@ udp_ipv4_broadcast_send (void *cls,
   /*
    * Cryogenic
    */
-  if (baddr->cryogenic_fd.fd > 0)
+  if (NULL != baddr->cryogenic_fd)
   {
-    baddr->cryogenic_times.delay_msecs = (plugin->broadcast_interval/1000.0)*0.5;
-    baddr->cryogenic_times.timeout_msecs = (plugin->broadcast_interval/1000.0)*1.5;
+    baddr->cryogenic_times.delay_msecs = (plugin->broadcast_interval.rel_value_us/1000.0)*0.5;
+    baddr->cryogenic_times.timeout_msecs = (plugin->broadcast_interval.rel_value_us/1000.0)*1.5;
     
-    if (ioctl(baddr->cryogenic_fd.fd,
+    if (ioctl(baddr->cryogenic_fd->fd,
     		  PM_SET_DELAY_AND_TIMEOUT,
     		  &baddr->cryogenic_times) < 0)
     {
@@ -360,7 +360,7 @@ udp_ipv4_broadcast_send (void *cls,
     }
     else
       GNUNET_SCHEDULER_add_write_file (GNUNET_TIME_UNIT_FOREVER_REL,
-    		                           &baddr->cryogenic_fd,
+    		                           baddr->cryogenic_fd,
         		                       &udp_ipv4_broadcast_send,
         		                       baddr);
     
@@ -426,12 +426,12 @@ udp_ipv6_broadcast_send (void *cls,
   /*
    * Cryogenic
    */
-  if (baddr->cryogenic_fd.fd > 0)
+  if (NULL != baddr->cryogenic_fd)
   {
-    baddr->cryogenic_times.delay_msecs = (plugin->broadcast_interval/1000.0)*0.5;
-    baddr->cryogenic_times.timeout_msecs = (plugin->broadcast_interval/1000.0)*1.5;
+    baddr->cryogenic_times.delay_msecs = (plugin->broadcast_interval.rel_value_us/1000.0)*0.5;
+    baddr->cryogenic_times.timeout_msecs = (plugin->broadcast_interval.rel_value_us/1000.0)*1.5;
     
-    if (ioctl(baddr->cryogenic_fd.fd,
+    if (ioctl(baddr->cryogenic_fd->fd,
     		  PM_SET_DELAY_AND_TIMEOUT,
     		  &baddr->cryogenic_times) < 0)
     {
@@ -442,7 +442,7 @@ udp_ipv6_broadcast_send (void *cls,
     }
     else
       GNUNET_SCHEDULER_add_write_file (GNUNET_TIME_UNIT_FOREVER_REL,
-    		                           &baddr->cryogenic_fd,
+    		                       baddr->cryogenic_fd,
                                        &udp_ipv4_broadcast_send,
                                        baddr);
   }
@@ -667,7 +667,7 @@ stop_broadcast (struct Plugin *plugin)
     /*
      * Close Cryogenic FD
      */
-    GNUNET_DISK_file_cose(p->cryogenic_fd);
+    GNUNET_DISK_file_close(p->cryogenic_fd);
 
     GNUNET_CONTAINER_DLL_remove (plugin->broadcast_head,
                                  plugin->broadcast_tail, p);
