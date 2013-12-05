@@ -922,7 +922,7 @@ channel_rel_free_all (struct MeshChannelReliability *rel)
   {
     GNUNET_SCHEDULER_cancel (rel->retry_task);
   }
-  if (NULL != rel->uniq)
+  if (NULL != rel->uniq && NULL != rel->uniq->q)
     GMT_cancel (rel->uniq->q);
   GNUNET_free (rel);
 }
@@ -1041,19 +1041,21 @@ rel_message_free (struct MeshReliableMessage *copy, int update_time)
     LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! batch free, ignoring timing\n");
   }
   rel->ch->pending_messages--;
+  if (NULL != copy->q)
+  {
+    GMT_cancel (copy->q->q);
+    /* copy->q is set to NULL by ch_message_sent */
+  }
+  GNUNET_CONTAINER_DLL_remove (rel->head_sent, rel->tail_sent, copy);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, " COPYFREE %p\n", copy);
+  GNUNET_free (copy);
+
   if (GNUNET_NO != rel->ch->destroy && 0 == rel->ch->pending_messages)
   {
     struct MeshTunnel3 *t = rel->ch->t;
     GMCH_destroy (rel->ch);
     GMT_destroy_if_empty (t);
   }
-  if (NULL != copy->q)
-  {
-    GMT_cancel (copy->q->q);
-  }
-  GNUNET_CONTAINER_DLL_remove (rel->head_sent, rel->tail_sent, copy);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, " COPYFREE %p\n", copy);
-  GNUNET_free (copy);
 }
 
 
