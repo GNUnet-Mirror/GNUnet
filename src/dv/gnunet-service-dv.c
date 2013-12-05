@@ -600,7 +600,6 @@ core_transmit_notify (void *cls, size_t size, void *buf)
     /* peer disconnected */
     return 0;
   }
-  off = 0;
   pending = dn->pm_head;
   off = 0;
   while ( (NULL != (pending = dn->pm_head)) &&
