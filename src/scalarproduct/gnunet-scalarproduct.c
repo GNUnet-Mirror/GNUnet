@@ -94,18 +94,29 @@ responder_callback (void *cls,
   {
   case GNUNET_SCALARPRODUCT_Status_Success:
     ret = 0;
-    LOG (GNUNET_ERROR_TYPE_INFO, "Session %s concluded.\n", GNUNET_h2s (&closure->key));
+    LOG (GNUNET_ERROR_TYPE_INFO,
+         "Session %s concluded.\n",
+         GNUNET_h2s (&closure->key));
     break;
   case GNUNET_SCALARPRODUCT_Status_InvalidResponse:
-    LOG (GNUNET_ERROR_TYPE_ERROR, "Session %s failed: invalid response\n", GNUNET_h2s (&closure->key));
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         "Session %s failed: invalid response\n",
+         GNUNET_h2s (&closure->key));
     break;
   case GNUNET_SCALARPRODUCT_Status_Failure:
-    LOG (GNUNET_ERROR_TYPE_ERROR, "Session %s failed: service failure\n", GNUNET_h2s (&closure->key));
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         "Session %s failed: service failure\n",
+         GNUNET_h2s (&closure->key));
   case GNUNET_SCALARPRODUCT_Status_ServiceDisconnected:
-    LOG (GNUNET_ERROR_TYPE_ERROR, "Session %s failed: service disconnect!!\n", GNUNET_h2s (&closure->key));
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         "Session %s failed: service disconnect!\n",
+         GNUNET_h2s (&closure->key));
     break;
   default:
-    LOG (GNUNET_ERROR_TYPE_ERROR, "Session %s failed: return code %d\n", GNUNET_h2s (&closure->key), status);
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         "Session %s failed: return code %d\n",
+         GNUNET_h2s (&closure->key),
+         status);
   }
   GNUNET_SCHEDULER_shutdown();
 }
@@ -136,21 +147,37 @@ requester_callback (void *cls,
       printf ("%s", buf);
     }
     else
-      LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_aprint", rc);
+      LOG_GCRY (GNUNET_ERROR_TYPE_ERROR,
+                "gcry_mpi_aprint",
+                rc);
     break;
   case GNUNET_SCALARPRODUCT_Status_InvalidResponse:
-    LOG (GNUNET_ERROR_TYPE_ERROR, "Session %s with peer %s failed: invalid response received\n", GNUNET_h2s (&closure->key), GNUNET_i2s (&closure->peer));
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         "Session %s with peer %s failed: invalid response received\n",
+         GNUNET_h2s (&closure->key),
+         GNUNET_i2s (&closure->peer));
     break;
   case GNUNET_SCALARPRODUCT_Status_Failure:
-    LOG (GNUNET_ERROR_TYPE_ERROR, "Session %s with peer %s failed: API failure\n", GNUNET_h2s (&closure->key), GNUNET_i2s (&closure->peer));
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         "Session %s with peer %s failed: API failure\n",
+         GNUNET_h2s (&closure->key),
+         GNUNET_i2s (&closure->peer));
   case GNUNET_SCALARPRODUCT_Status_ServiceDisconnected:
-    LOG (GNUNET_ERROR_TYPE_ERROR, "Session %s with peer %s was disconnected from service.\n", GNUNET_h2s (&closure->key), GNUNET_i2s (&closure->peer));
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         "Session %s with peer %s was disconnected from service.\n",
+         GNUNET_h2s (&closure->key),
+         GNUNET_i2s (&closure->peer));
     break;
   default:
-    LOG (GNUNET_ERROR_TYPE_ERROR, "Session %s with peer %s failed: return code %d\n", GNUNET_h2s (&closure->key), GNUNET_i2s (&closure->peer), status);
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         "Session %s with peer %s failed: return code %d\n",
+         GNUNET_h2s (&closure->key),
+         GNUNET_i2s (&closure->peer),
+         status);
   }
   GNUNET_SCHEDULER_shutdown();
 }
+
 
 /**
  * Task run during shutdown.
@@ -164,6 +191,7 @@ shutdown_task (void *cls,
 {
   GNUNET_SCALARPRODUCT_disconnect ();
 }
+
 
 /**
  * Main function that will be run by the scheduler.
