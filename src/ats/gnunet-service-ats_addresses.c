@@ -1552,7 +1552,6 @@ GAS_addresses_evaluate_assignment (struct GAS_Addresses_Handle *ah)
         {
           if (prefs[c] == GNUNET_ATS_PREFERENCE_END)
             continue;
-          pref_val = -1.0;
           pref_val = GAS_normalization_get_preferences_by_client (pcur->client, &cur->id, prefs[c]);
           if (-1.0 == pref_val)
           {
