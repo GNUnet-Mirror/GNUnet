@@ -236,7 +236,7 @@ hash_cmp (const void *h1, const void *h2)
 /**
  * Normalize the given list of peers, by including the local peer
  * (if it is missing) and sorting the peers by their identity.
- * 
+ *
  * @param listed peers in the unnormalized list
  * @param num_listed peers in the un-normalized list
  * @param num_normalized[out] number of peers in the normalized list
@@ -309,7 +309,7 @@ paillier_create (unsigned int s, gcry_mpi_t n, gcry_mpi_t g, gcry_mpi_t lambda, 
 
   GNUNET_assert (0 != (phi = gcry_mpi_new (PAILLIER_BITS)));
   GNUNET_assert (0 != (tmp = gcry_mpi_new (PAILLIER_BITS)));
- 
+
   // generate rsa modulus
   GNUNET_assert (0 == gcry_prime_generate (&p, s, 0, NULL, NULL, NULL,
                                            GCRY_WEAK_RANDOM, 0));
@@ -342,7 +342,7 @@ paillier_encrypt (gcry_mpi_t c, gcry_mpi_t m, gcry_mpi_t g, gcry_mpi_t n)
   GNUNET_assert (0 != (r = gcry_mpi_new (0)));
 
   gcry_mpi_mul (n_square, n, n);
-  
+
   // generate r < n
   do
   {
@@ -496,8 +496,8 @@ insert_round2_element (struct KeygenSession *ks)
   }
 
   GNUNET_CONSENSUS_insert (ks->consensus, element, NULL, NULL);
+  GNUNET_free (element); /* FIXME: maybe stack-allocate instead? */
 }
-
 
 
 static void
@@ -589,7 +589,7 @@ static void handle_client_keygen (void *cls,
   generate_presecret_polynomial (ks);
 
   insert_round1_element (ks);
-  
+
   GNUNET_CONSENSUS_conclude (ks->consensus, GNUNET_TIME_UNIT_FOREVER_REL /* FIXME */, keygen_round1_conclude, ks);
 }
 
