@@ -61,6 +61,9 @@ EXTRA_DIST = \
  openvpn-tap32/tap32-signed-i386-2.1.zip \
  openvpn-tap32/tap32-source-2.1.zip
 
+CLEANFILES = \
+  $(noinst_SCRIPTS)
+
 do_subst = $(SED) -e 's,[@]PYTHON[@],$(PYTHON),g'
 
 %.py: %.py.in Makefile
