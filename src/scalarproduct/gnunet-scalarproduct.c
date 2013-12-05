@@ -163,6 +163,7 @@ requester_callback (void *cls,
          "Session %s with peer %s failed: API failure\n",
          GNUNET_h2s (&closure->key),
          GNUNET_i2s (&closure->peer));
+    break;
   case GNUNET_SCALARPRODUCT_Status_ServiceDisconnected:
     LOG (GNUNET_ERROR_TYPE_ERROR,
          "Session %s with peer %s was disconnected from service.\n",
