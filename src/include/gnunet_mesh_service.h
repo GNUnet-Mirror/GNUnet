@@ -144,9 +144,10 @@ struct GNUNET_MESH_MessageHandler
  * Method called whenever another peer has added us to a channel
  * the other peer initiated.
  * Only called (once) upon reception of data with a message type which was
- * subscribed to in #GNUNET_MESH_connect. A call to #GNUNET_MESH_channel_destroy
- * causes te channel to be ignored and no further notifications are sent about
- * the same channel.
+ * subscribed to in #GNUNET_MESH_connect.
+ * 
+ * A call to #GNUNET_MESH_channel_destroy causes te channel to be ignored. In
+ * this case the handler MUST return NULL.
  *
  * @param cls closure
  * @param channel new handle to the channel
