@@ -134,7 +134,7 @@ static unsigned int num_masters;
 /**
  * Array of master peers
  */
-static  struct BenchmarkPeer *mps;
+static struct BenchmarkPeer *mps;
 
 /**
  * Number slave peers
@@ -1102,9 +1102,11 @@ peerinformation_cb (void *cb_cls, struct GNUNET_TESTBED_Operation *op,
  *          failed
  */
 static void
-main_run (void *cls, struct GNUNET_TESTBED_RunHandle *h, unsigned int num_peers,
-    struct GNUNET_TESTBED_Peer **peers_, unsigned int links_succeeded,
-    unsigned int links_failed)
+main_run (void *cls, struct GNUNET_TESTBED_RunHandle *h,
+          unsigned int num_peers,
+          struct GNUNET_TESTBED_Peer **peers_,
+          unsigned int links_succeeded,
+          unsigned int links_failed)
 {
   int c_m;
   int c_s;
@@ -1130,7 +1132,7 @@ main_run (void *cls, struct GNUNET_TESTBED_RunHandle *h, unsigned int num_peers,
     mps[c_m].pref_partner = &sps[c_m];
     mps[c_m].pref_value = TEST_ATS_PREFRENCE_START;
     mps[c_m].partners =
-        GNUNET_malloc (num_slaves * sizeof (struct BenchmarkPeer));
+        GNUNET_malloc (num_slaves * sizeof (struct BenchmarkPartner));
     mps[c_m].num_partners = num_slaves;
     /* Initialize partners */
     for (c_s = 0; c_s < num_slaves; c_s++)
