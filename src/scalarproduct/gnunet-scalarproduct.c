@@ -212,7 +212,7 @@ run (void *cls,
   int32_t element;
   int i;
   int32_t *elements;
-  unsigned char * mask;
+  unsigned char *mask;
   uint32_t mask_bytes;
   uint32_t element_count = 0;
   struct ScalarProductCallbackClosure * closure;
@@ -355,6 +355,7 @@ run (void *cls,
                                              (void *) &closure)))
   {
     GNUNET_free (elements);
+    GNUNET_free (mask);
     return;
   }
 
@@ -366,9 +367,11 @@ run (void *cls,
                                               (void *) &closure)))
   {
     GNUNET_free (elements);
+    GNUNET_free (mask);
     return;
   }
   GNUNET_free (elements);
+  GNUNET_free (mask);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                 &shutdown_task,
                                 NULL);
