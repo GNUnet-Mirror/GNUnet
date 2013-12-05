@@ -150,7 +150,8 @@ play (void *cls,
              (const char *) data);
   }
   if ( (20 < call_i) &&
-       (20 < phone_i) )
+       (20 < phone_i) &&
+       (NULL != call) )
   {
     /* time to hang up ... */
     GNUNET_CONVERSATION_call_stop (call);
