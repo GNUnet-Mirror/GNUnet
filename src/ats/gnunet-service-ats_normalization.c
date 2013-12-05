@@ -476,12 +476,13 @@ GAS_normalization_normalize_preference (void *src,
 
   if (NULL == GNUNET_CONTAINER_multipeermap_get (preference_peers, peer))
   {
-    r_cur = GNUNET_malloc (sizeof (struct PeerRelative));
+    r_cur = GNUNET_new (struct PeerRelative);
     r_cur->id = (*peer);
     for (i = 0; i < GNUNET_ATS_PreferenceCount; i++)
       r_cur->f_rel[i] = DEFAULT_REL_PREFERENCE;
-    GNUNET_CONTAINER_multipeermap_put (preference_peers, &r_cur->id, r_cur,
-        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+    GNUNET_assert (GNUNET_OK ==
+                   GNUNET_CONTAINER_multipeermap_put (preference_peers, &r_cur->id, r_cur,
+                                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   }
 
   if (GNUNET_SCHEDULER_NO_TASK == aging_task)

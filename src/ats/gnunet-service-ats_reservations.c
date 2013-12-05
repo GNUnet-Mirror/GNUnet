@@ -107,11 +107,12 @@ GAS_reservations_set_bandwidth (const struct GNUNET_PeerIdentity *peer,
   }
   if (NULL == tracker)
   {
-    tracker = GNUNET_malloc (sizeof (struct GNUNET_BANDWIDTH_Tracker));
+    tracker = GNUNET_new (struct GNUNET_BANDWIDTH_Tracker);
     GNUNET_BANDWIDTH_tracker_init (tracker, bandwidth_in,
                                    MAX_BANDWIDTH_CARRY_S);
-    GNUNET_CONTAINER_multipeermap_put (trackers, peer, tracker,
-                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+    GNUNET_assert (GNUNET_OK ==
+                   GNUNET_CONTAINER_multipeermap_put (trackers, peer, tracker,
+                                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
     return;
   }
   GNUNET_BANDWIDTH_tracker_update_quota (tracker, bandwidth_in);
