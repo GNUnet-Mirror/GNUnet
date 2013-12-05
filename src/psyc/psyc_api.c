@@ -347,10 +347,16 @@ message_handler (void *cls,
     break;
   case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_METHOD:
     size_min = sizeof (struct GNUNET_PSYC_MessageMethod);
+    break;
   case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MODIFIER:
     size_min = sizeof (struct GNUNET_PSYC_MessageModifier);
+    break;
   case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_DATA:
     size_min = sizeof (struct GNUNET_PSYC_MessageData);
+    break;
+  default:
+    GNUNET_break_op (0);
+    return;
   }
 
   if (! ((0 < size_eq && size == size_eq)
