@@ -55,22 +55,22 @@ struct ScalarProductCallbackClosure
 /**
  * Option -p: destination peer identity for checking message-ids with
  */
-static char *input_peer_id = NULL;
+static char *input_peer_id;
 
 /**
  * Option -p: destination peer identity for checking message-ids with
  */
-static char *input_key = NULL;
+static char *input_key;
 
 /**
  * Option -e: vector to calculate a scalarproduct with
  */
-static char *input_elements = NULL;
+static char *input_elements;
 
 /**
  * Option -m: message-ids to calculate a scalarproduct with
  */
-static char *input_mask = NULL;
+static char *input_mask;
 
 /**
  * Global return value
@@ -179,11 +179,11 @@ run (void *cls,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  char * begin = input_elements;
-  char * end;
+  char *begin = input_elements;
+  char *end;
   int32_t element;
   int i;
-  int32_t * elements;
+  int32_t *elements;
   unsigned char * mask;
   uint32_t mask_bytes;
   uint32_t element_count = 0;
@@ -191,29 +191,35 @@ run (void *cls,
 
   if (NULL == input_elements)
   {
-    LOG (GNUNET_ERROR_TYPE_ERROR, _ ("You must specify at least one message ID to check!\n"));
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         _ ("You must specify at least one message ID to check!\n"));
     return;
   }
 
   if (NULL == input_key)
   {
-    LOG (GNUNET_ERROR_TYPE_ERROR, _ ("This program needs a session identifier for comparing vectors.\n"));
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         _ ("This program needs a session identifier for comparing vectors.\n"));
     return;
   }
 
   if (1 > strnlen (input_key, sizeof (struct GNUNET_HashCode)))
   {
-    LOG (GNUNET_ERROR_TYPE_ERROR, _ ("Please give a session key for --input_key!\n"));
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         _ ("Please give a session key for --input_key!\n"));
     return;
   }
   closure = GNUNET_new (struct ScalarProductCallbackClosure);
   GNUNET_CRYPTO_hash (input_key, strlen (input_key), &closure->key);
 
-  if (input_peer_id && GNUNET_OK != GNUNET_CRYPTO_hash_from_string (input_peer_id,
-                                                                    (struct GNUNET_HashCode *) &closure->peer))
+  if (input_peer_id &&
+      (GNUNET_OK !=
+       GNUNET_CRYPTO_hash_from_string (input_peer_id,
+                                       (struct GNUNET_HashCode *) &closure->peer)))
   {
-    LOG (GNUNET_ERROR_TYPE_ERROR, _ ("Tried to set initiator mode, as peer ID was given. "
-                                     "However, `%s' is not a valid peer identifier.\n"),
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         _ ("Tried to set initiator mode, as peer ID was given. "
+            "However, `%s' is not a valid peer identifier.\n"),
          input_peer_id);
     return;
   }
@@ -236,14 +242,16 @@ run (void *cls,
     }
     else
     {
-      LOG (GNUNET_ERROR_TYPE_ERROR, _ ("Could not convert `%s' to int32_t.\n"), begin);
+      LOG (GNUNET_ERROR_TYPE_ERROR,
+           _ ("Could not convert `%s' to int32_t.\n"), begin);
       return;
     }
   }
   while (1);
   if (0 == element_count)
   {
-    LOG (GNUNET_ERROR_TYPE_ERROR, _ ("Need elements to compute the vectorproduct, got none.\n"));
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         _ ("Need elements to compute the vectorproduct, got none.\n"));
     return;
   }
 
@@ -294,7 +302,8 @@ run (void *cls,
       }
       else
       {
-        LOG (GNUNET_ERROR_TYPE_ERROR, _ ("Could not convert `%s' to int32_t.\n"), begin);
+        LOG (GNUNET_ERROR_TYPE_ERROR,
+             _ ("Could not convert `%s' to integer.\n"), begin);
         return;
       }
 
@@ -308,22 +317,23 @@ run (void *cls,
     for (i = 0; i <= mask_bytes; i++)
       mask[i] = UCHAR_MAX; // all 1's
 
-  if (input_peer_id && (NULL == GNUNET_SCALARPRODUCT_request (cfg,
-                                                              &closure->key,
-                                                              &closure->peer,
-                                                              elements, element_count,
-                                                              mask, mask_bytes,
-                                                              &requester_callback,
-                                                              (void *) &closure)))
+  if (input_peer_id &&
+      (NULL == GNUNET_SCALARPRODUCT_request (cfg,
+                                             &closure->key,
+                                             &closure->peer,
+                                             elements, element_count,
+                                             mask, mask_bytes,
+                                             &requester_callback,
+                                             (void *) &closure)))
     return;
 
-  if ((NULL == input_peer_id) && (NULL == GNUNET_SCALARPRODUCT_response (cfg,
-                                                                         &closure->key,
-                                                                         elements, element_count,
-                                                                         &responder_callback,
-                                                                         (void *) &closure)))
+  if ((NULL == input_peer_id) &&
+      (NULL == GNUNET_SCALARPRODUCT_response (cfg,
+                                              &closure->key,
+                                              elements, element_count,
+                                              &responder_callback,
+                                              (void *) &closure)))
     return;
-
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                 &shutdown_task,
                                 NULL);
