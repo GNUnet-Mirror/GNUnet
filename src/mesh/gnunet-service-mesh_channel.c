@@ -709,26 +709,35 @@ ch_message_sent (void *cls,
   switch (ch_q->type)
   {
     case GNUNET_MESSAGE_TYPE_MESH_DATA:
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! SENT %u %s (c: %p, q: %p)\n",
-           copy->mid, GM_m2s (type), copy, copy->q);
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! SENT DATA MID %u\n", copy->mid);
       GNUNET_assert (ch_q == copy->q);
       copy->timestamp = GNUNET_TIME_absolute_get ();
       rel = copy->rel;
       if (GNUNET_SCHEDULER_NO_TASK == rel->retry_task)
       {
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "!! scheduling retry %u\n");
         if (0 != rel->expected_delay.rel_value_us)
         {
+          LOG (GNUNET_ERROR_TYPE_DEBUG, "!! delay != 0\n");
           rel->retry_timer =
           GNUNET_TIME_relative_multiply (rel->expected_delay,
                                          MESH_RETRANSMIT_MARGIN);
         }
         else
         {
+          LOG (GNUNET_ERROR_TYPE_DEBUG, "!! delay 0\n");
           rel->retry_timer = MESH_RETRANSMIT_TIME;
         }
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "!! using delay %s\n",
+             GNUNET_STRINGS_relative_time_to_string (rel->retry_timer,
+                                                     GNUNET_NO));
         rel->retry_task =
             GNUNET_SCHEDULER_add_delayed (rel->retry_timer,
                                           &channel_retransmit_message, rel);
+      }
+      else
+      {
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "!! retry task %u\n", rel->retry_task);
       }
       copy->q = NULL;
       break;
@@ -737,7 +746,7 @@ ch_message_sent (void *cls,
     case GNUNET_MESSAGE_TYPE_MESH_DATA_ACK:
     case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_CREATE:
     case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_ACK:
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! SENT %s\n", GM_m2s (type));
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! SENT %s\n", GM_m2s (ch_q->type));
       rel = ch_q->rel;
       GNUNET_assert (rel->uniq == ch_q);
       rel->uniq = NULL;
@@ -1063,6 +1072,9 @@ channel_confirm (struct MeshChannel *ch, int fwd)
 
   rel = fwd ? ch->root_rel : ch->dest_rel;
   rel->client_ready = GNUNET_YES;
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "  !! retry timer confirm %s\n",
+       GNUNET_STRINGS_relative_time_to_string (rel->retry_timer, GNUNET_NO));
   rel->expected_delay = rel->retry_timer;
   if (GMT_get_connections_buffer (ch->t) > 0 || GMT_is_loopback (ch->t))
     send_client_ack (ch, fwd);
