@@ -1,0 +1,33 @@
+.TH GNUNET\-BCD 1 "Dec 5, 2013" "GNUnet"
+
+.SH NAME
+gnunet\-bcd \- run HTTP server to create GNS business cards
+
+.SH SYNOPSIS
+.B gnunet\-bcd
+.RI [ options ]
+.br
+
+.SH DESCRIPTION
+\fBgnunet\-bcd\fP can be used to create an business card with a QR code containing the public key of a zone from the GNU Name System.  gnunet\-bcd requires LaTeX (pdflatex) with various packages to be installed.
+
+.SH OPTIONS
+.B
+.IP "\-p PORT, \-\-port=PORT"
+Run the HTTP server on port PORT.
+.B
+.IP "\-c FILENAME,  \-\-config=FILENAME"
+Use the configuration file FILENAME.
+.B
+.IP "\-h, \-\-help"
+Print short help on options.
+.B
+.IP "\-L LOGLEVEL, \-\-loglevel=LOGLEVEL"
+Use LOGLEVEL for logging.  Valid values are DEBUG, INFO, WARNING and ERROR.
+.B
+.IP "\-v, \-\-version"
+Print GNUnet version number.
+
+.SH BUGS
+Report bugs by using Mantis <https://gnunet.org/bugs/> or by sending electronic mail to <gnunet\-developers@gnu.org>
+
