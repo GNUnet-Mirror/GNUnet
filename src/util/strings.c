@@ -1454,7 +1454,6 @@ GNUNET_STRINGS_parse_ipv4_policy (const char *routeListX)
       if ( (';' == routeList[colon]) ||
            ('\0' == routeList[colon]) )
         break;
-    end = colon;
     for (end = colon; ';' != routeList[end]; end++)
       if ('\0' == routeList[end])
         break;
