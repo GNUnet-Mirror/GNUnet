@@ -1920,7 +1920,6 @@ compute_scalar_product (struct ServiceSession * session)
   unsigned int i;
 
   count = session->used;
-  tmp = gcry_mpi_new (KEYBITS);
   // due to the introduced static offset S, we now also have to remove this
   // from the E(a_pi)(+)E(-b_pi-r_pi) and E(a_qi)(+)E(-r_qi) twice each,
   // the result is E((S + a_pi) + (S -b_pi-r_pi)) and E(S + a_qi + S - r_qi)
