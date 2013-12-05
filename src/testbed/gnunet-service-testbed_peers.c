@@ -364,7 +364,7 @@ GST_handle_peer_create (void *cls, struct GNUNET_SERVER_Client *client,
 
     GNUNET_CONFIGURATION_set_value_number (cfg, "PATHS", "PEERID",
                                            (unsigned long long) peer_id);
-    peer = GNUNET_malloc (sizeof (struct Peer));
+    peer = GNUNET_new (struct Peer);
     peer->is_remote = GNUNET_NO;
     peer->details.local.cfg = cfg;
     peer->id = peer_id;
@@ -385,9 +385,7 @@ GST_handle_peer_create (void *cls, struct GNUNET_SERVER_Client *client,
     }
     peer->details.local.is_running = GNUNET_NO;
     peer_list_add (peer);
-    reply =
-        GNUNET_malloc (sizeof
-                       (struct GNUNET_TESTBED_PeerCreateSuccessEventMessage));
+    reply = GNUNET_new (struct GNUNET_TESTBED_PeerCreateSuccessEventMessage);
     reply->header.size =
         htons (sizeof (struct GNUNET_TESTBED_PeerCreateSuccessEventMessage));
     reply->header.type =
@@ -407,12 +405,12 @@ GST_handle_peer_create (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
-  peer = GNUNET_malloc (sizeof (struct Peer));
+  peer = GNUNET_new (struct Peer);
   peer->is_remote = GNUNET_YES;
   peer->id = peer_id;
   peer->details.remote.slave = GST_slave_list[route->dest];
   peer->details.remote.remote_host_id = host_id;
-  fo_ctxt = GNUNET_malloc (sizeof (struct ForwardedOperationContext));
+  fo_ctxt = GNUNET_new (struct ForwardedOperationContext);
   GNUNET_SERVER_client_keep (client);
   fo_ctxt->client = client;
   fo_ctxt->operation_id = GNUNET_ntohll (msg->operation_id);
@@ -465,7 +463,7 @@ GST_handle_peer_destroy (void *cls, struct GNUNET_SERVER_Client *client,
   if (GNUNET_YES == peer->is_remote)
   {
     /* Forward the destory message to sub controller */
-    fopc = GNUNET_malloc (sizeof (struct ForwardedOperationContext));
+    fopc = GNUNET_new (struct ForwardedOperationContext);
     GNUNET_SERVER_client_keep (client);
     fopc->client = client;
     fopc->cls = peer;
@@ -558,7 +556,7 @@ GST_handle_peer_start (void *cls, struct GNUNET_SERVER_Client *client,
   peer = GST_peer_list[peer_id];
   if (GNUNET_YES == peer->is_remote)
   {
-    fopc = GNUNET_malloc (sizeof (struct ForwardedOperationContext));
+    fopc = GNUNET_new (struct ForwardedOperationContext);
     GNUNET_SERVER_client_keep (client);
     fopc->client = client;
     fopc->operation_id = GNUNET_ntohll (msg->operation_id);
@@ -583,7 +581,7 @@ GST_handle_peer_start (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
-  reply = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_PeerEventMessage));
+  reply = GNUNET_new (struct GNUNET_TESTBED_PeerEventMessage);
   reply->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_PEER_EVENT);
   reply->header.size = htons (sizeof (struct GNUNET_TESTBED_PeerEventMessage));
   reply->event_type = htonl (GNUNET_TESTBED_ET_PEER_START);
@@ -627,7 +625,7 @@ GST_handle_peer_stop (void *cls, struct GNUNET_SERVER_Client *client,
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Forwarding PEER_STOP for peer %u\n",
          peer_id);
-    fopc = GNUNET_malloc (sizeof (struct ForwardedOperationContext));
+    fopc = GNUNET_new (struct ForwardedOperationContext);
     GNUNET_SERVER_client_keep (client);
     fopc->client = client;
     fopc->operation_id = GNUNET_ntohll (msg->operation_id);
@@ -654,7 +652,7 @@ GST_handle_peer_stop (void *cls, struct GNUNET_SERVER_Client *client,
     return;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Peer %u successfully stopped\n", peer_id);
-  reply = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_PeerEventMessage));
+  reply = GNUNET_new (struct GNUNET_TESTBED_PeerEventMessage);
   reply->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_PEER_EVENT);
   reply->header.size = htons (sizeof (struct GNUNET_TESTBED_PeerEventMessage));
   reply->event_type = htonl (GNUNET_TESTBED_ET_PEER_STOP);
@@ -703,7 +701,7 @@ GST_handle_peer_get_config (void *cls, struct GNUNET_SERVER_Client *client,
   if (GNUNET_YES == peer->is_remote)
   {
     LOG_DEBUG ("Forwarding PEER_GET_CONFIG for peer: %u\n", peer_id);
-    fopc = GNUNET_malloc (sizeof (struct ForwardedOperationContext));
+    fopc = GNUNET_new (struct ForwardedOperationContext);
     GNUNET_SERVER_client_keep (client);
     fopc->client = client;
     fopc->operation_id = GNUNET_ntohll (msg->operation_id);
@@ -892,7 +890,7 @@ GST_handle_peer_reconfigure (void *cls, struct GNUNET_SERVER_Client *client,
   if (GNUNET_YES == peer->is_remote)
   {
     LOG_DEBUG ("Forwarding PEER_RECONFIGURE for peer: %u\n", peer_id);
-    fopc = GNUNET_malloc (sizeof (struct ForwardedOperationContext));
+    fopc = GNUNET_new (struct ForwardedOperationContext);
     GNUNET_SERVER_client_keep (client);
     fopc->client = client;
     fopc->operation_id = op_id;
@@ -1195,7 +1193,7 @@ GST_handle_manage_peer_service (void *cls, struct GNUNET_SERVER_Client *client,
   if (GNUNET_YES == peer->is_remote)
   {
     /* Forward the destory message to sub controller */
-    fopc = GNUNET_malloc (sizeof (struct ForwardedOperationContext));
+    fopc = GNUNET_new (struct ForwardedOperationContext);
     GNUNET_SERVER_client_keep (client);
     fopc->client = client;
     fopc->cls = peer;
@@ -1376,7 +1374,7 @@ GST_handle_shutdown_peers (void *cls, struct GNUNET_SERVER_Client *client,
   GST_clear_fopcq ();
   /* Forward to all slaves which we have started */
   op_id = GNUNET_ntohll (msg->operation_id);
-  hc = GNUNET_malloc (sizeof (struct HandlerContext_ShutdownPeers));
+  hc = GNUNET_new (struct HandlerContext_ShutdownPeers);
   /* FIXME: have a better implementation where we track which slaves are
      started by this controller */
   for (cnt = 0; cnt < GST_slave_list_size; cnt++)
@@ -1388,7 +1386,7 @@ GST_handle_shutdown_peers (void *cls, struct GNUNET_SERVER_Client *client,
       continue;
     LOG_DEBUG ("Forwarding SHUTDOWN_PEERS\n");
     hc->nslaves++;
-    fo_ctxt = GNUNET_malloc (sizeof (struct ForwardedOperationContext));
+    fo_ctxt = GNUNET_new (struct ForwardedOperationContext);
     GNUNET_SERVER_client_keep (client);
     fo_ctxt->client = client;
     fo_ctxt->operation_id = op_id;
