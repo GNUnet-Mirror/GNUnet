@@ -1,4 +1,4 @@
-#@PYTHON@
+#!@PYTHON@
 import sys
 import getopt
 import subprocess
@@ -36,7 +36,6 @@ if __name__ == '__main__':
 		help ()
 		print str (e)
 		exit (1)
-	print "asdsa"
 	for o,a in opts:
 		if o in ("-h", "--help"):
 			help ()            
@@ -49,7 +48,7 @@ if __name__ == '__main__':
 			silent = True
 		elif o in ("-v", "--verbose"):
 			verbose = True			
-	id (True == verbose):
+	if (True == verbose):
 		print 'Initializing'
 	# create a Processor
 	proc = zbar.Processor()
@@ -59,7 +58,7 @@ if __name__ == '__main__':
 
 	# initialize the Processor
 	try:
-		id (True == verbose):
+		if (True == verbose):
 			print 'Opening video device ' + device
 		proc.init(device)
 	except Exception as e:
@@ -75,7 +74,7 @@ if __name__ == '__main__':
 	proc.visible = True
 	# read at least one barcode (or until window closed)
 	try:
-		id (True == verbose):
+		if (True == verbose):
 			print 'Capturing'
 		proc.process_one()
 	except Exception as e:
@@ -99,9 +98,9 @@ if __name__ == '__main__':
 		for a in args:
 			cmd += " " + str(a)
 		if (verbose):
-			print 'Running ' + cmd
+			print 'Running `' + cmd +'`'
 		res=subprocess.call(args)
 		if (0 != res):
-			print 'Failed to '
+			print 'Failed to add URI ' + str(symbol.data) 
 		exit (res)
 	exit (1)
