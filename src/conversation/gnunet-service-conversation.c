@@ -1287,6 +1287,7 @@ handle_mesh_audio_message (void *cls,
  * @param channel new handle to the channel
  * @param initiator peer that started the channel
  * @param port port
+ * @param options channel option flags
  * @return initial channel context for the channel;
  *         (can be NULL -- that's not an error)
  */
@@ -1294,7 +1295,7 @@ static void *
 inbound_channel (void *cls,
                 struct GNUNET_MESH_Channel *channel,
 		const struct GNUNET_PeerIdentity *initiator,
-                uint32_t port)
+                uint32_t port, enum MeshOption options)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 	      _("Received incoming channel on port %u\n"),
