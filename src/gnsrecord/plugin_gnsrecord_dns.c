@@ -358,6 +358,7 @@ dns_string_to_value (void *cls,
 
       sdup = GNUNET_strdup (s);
       typep = strtok (sdup, " ");
+      /* TODO: add typep mnemonic conversion according to RFC 4398 */
       if ( (NULL == typep) ||
            (1 != sscanf (typep,
                          "%u",
@@ -378,6 +379,7 @@ dns_string_to_value (void *cls,
         return GNUNET_SYSERR;
       }
       algp = strtok (NULL, " ");
+      /* TODO: add algp mnemonic conversion according to RFC 4398/RFC 4034 */
       if ( (NULL == algp) ||
            (1 != sscanf (algp,
                          "%u",
