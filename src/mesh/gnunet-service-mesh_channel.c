@@ -796,7 +796,7 @@ send_create (struct MeshChannel *ch)
 
 
 /**
- * Confirm we got a channel create, FWD ack.
+ * Confirm we got a channel create or FWD ack.
  *
  * @param ch The channel to confirm.
  * @param fwd Should we send a FWD ACK? (going dest->root)
@@ -818,7 +818,7 @@ send_ack (struct MeshChannel *ch, int fwd)
 
 
 /**
- * Sent a message and don't keep any info about it: we won't need to cancel it
+ * Send a message and don't keep any info about it: we won't need to cancel it
  * or resend it.
  *
  * @param msg Header of the message to fire away.

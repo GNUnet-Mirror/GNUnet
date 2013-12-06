@@ -34,9 +34,39 @@
 static int monitor_connections;
 
 /**
- * Option -t
+ * Option -i.
+ */
+static int get_info;
+
+/**
+ * Option --tunnel
  */
 static char *tunnel_id;
+
+/**
+ * Option --connection
+ */
+static char *conn_id;
+
+/**
+ * Option --channel
+ */
+static char *channel_id;
+
+/**
+ * Port to listen on (-p).
+ */
+static uint32_t listen_port;
+
+/**
+ * Peer to connect to.
+ */
+static char *target_id;
+
+/**
+ * Port to connect to
+ */
+static uint32_t target_port;
 
 /**
  * Mesh handle.
@@ -168,10 +198,22 @@ run (void *cls, char *const *args, const char *cfgfile,
     {NULL, 0, 0} /* FIXME add option to monitor msg types */
   };
   /* FIXME add option to monitor apps */
-
-  if (args[0] != NULL)
+  int i;
+  for (i = 0; args[i]; i++)
   {
-    FPRINTF (stderr, _("Invalid command line argument `%s'\n"), args[0]);
+    FPRINTF (stderr, "Parameter %u `%s'\n", i, args[i]);
+  }
+
+  target_id = args[0];
+  target_port = args[0] && args[1] ? atoi(args[1]) : 0;
+  if ( (0 != get_info
+        || 0 != monitor_connections
+        || NULL != tunnel_id
+        || NULL != conn_id
+        || NULL != channel_id)
+       && target_id != NULL)
+  {
+    FPRINTF (stderr, _("You must NOT give a TARGET when using options\n"));
     return;
   }
   mh = GNUNET_MESH_connect (cfg,
@@ -208,18 +250,30 @@ main (int argc, char *const *argv)
     {'m', "monitor", NULL,
      gettext_noop ("provide information about all tunnels (continuously) NOT IMPLEMENTED"), /* FIXME */
      GNUNET_NO, &GNUNET_GETOPT_set_one, &monitor_connections},
-    {'t', "tunnel", "OWNER_ID:TUNNEL_ID",
+    {'i', "info", NULL,
+     gettext_noop ("provide information about all tunnels"),
+     GNUNET_NO, &GNUNET_GETOPT_set_one, &get_info},
+    {'p', "port", NULL,
+     gettext_noop ("listen on this port"),
+     GNUNET_NO, &GNUNET_GETOPT_set_uint, &listen_port},
+    {'t', "tunnel", "TUNNEL_ID",
      gettext_noop ("provide information about a particular tunnel"),
      GNUNET_YES, &GNUNET_GETOPT_set_string, &tunnel_id},
+    {'n', "connection", "TUNNEL_ID:CONNECTION_ID",
+     gettext_noop ("provide information about a particular connection"),
+     GNUNET_YES, &GNUNET_GETOPT_set_string, &conn_id},
+    {'a', "channel", "TUNNEL_ID:CHANNEL_ID",
+     gettext_noop ("provide information about a particular channel"),
+     GNUNET_YES, &GNUNET_GETOPT_set_string, &channel_id},
     GNUNET_GETOPT_OPTION_END
   };
 
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
 
-  res = GNUNET_PROGRAM_run (argc, argv, "gnunet-mesh",
+  res = GNUNET_PROGRAM_run (argc, argv, "gnunet-mesh (OPTIONS | TARGET PORT)",
                       gettext_noop
-                      ("Print information about mesh tunnels and peers."),
+                      ("Create channels and retreive info about meshs status."),
                       options, &run, NULL);
 
   GNUNET_free ((void *) argv);
