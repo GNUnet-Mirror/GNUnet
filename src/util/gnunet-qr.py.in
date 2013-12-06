@@ -58,9 +58,9 @@ if __name__ == '__main__':
 	
 	# enable the preview window
 	if (True == silent):
-		proc.visible = True
-	else:
 		proc.visible = False
+	else:
+		proc.visible = True
 	
 	# read at least one barcode (or until window closed)
 	try:
