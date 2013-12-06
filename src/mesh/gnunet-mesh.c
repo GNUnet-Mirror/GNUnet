@@ -91,7 +91,7 @@ GNUNET_SCHEDULER_TaskIdentifier sd;
 
 
 
-void
+static void
 listen_stdio (void);
 
 
@@ -177,8 +177,13 @@ read_stdio (void *cls,
     return;
   }
 
-  data_size = read (2, buf, 60000);
+  data_size = read (0, buf, 60000);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "stdio read %u bytes\n", data_size);
+  if (data_size < 1)
+  {
+    GNUNET_SCHEDULER_shutdown();
+    return;
+  }
   GNUNET_MESH_notify_transmit_ready (ch, GNUNET_NO,
                                      GNUNET_TIME_UNIT_FOREVER_REL,
                                      data_size
@@ -186,13 +191,17 @@ read_stdio (void *cls,
                                      &data_ready, buf);
 }
 
-void
+
+/**
+ * Start listening to stdin
+ */
+static void
 listen_stdio (void)
 {
   struct GNUNET_NETWORK_FDSet *rs;
 
   rs = GNUNET_NETWORK_fdset_create ();
-  GNUNET_NETWORK_fdset_set_native (rs, 2);
+  GNUNET_NETWORK_fdset_set_native (rs, 0);
   GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
                                GNUNET_TIME_UNIT_FOREVER_REL,
                                rs, NULL,
@@ -241,7 +250,7 @@ channel_ended (void *cls,
  * @return initial channel context for the channel
  *         (can be NULL -- that's not an error)
  */
-void *
+static void *
 channel_incoming (void *cls,
                   struct GNUNET_MESH_Channel * channel,
                   const struct GNUNET_PeerIdentity * initiator,
@@ -312,7 +321,7 @@ create_channel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @return #GNUNET_OK to keep the channel open,
  *         #GNUNET_SYSERR to close it (signal serious error).
  */
-int
+static int
 data_callback (void *cls,
                struct GNUNET_MESH_Channel *channel,
                void **channel_ctx,
@@ -543,6 +552,7 @@ int
 main (int argc, char *const *argv)
 {
   int res;
+  const char helpstr[] = "Create channels and retreive info about meshs status.";
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
     {'a', "channel", "TUNNEL_ID:CHANNEL_ID",
      gettext_noop ("provide information about a particular channel"),
@@ -569,9 +579,8 @@ main (int argc, char *const *argv)
     return 2;
 
   res = GNUNET_PROGRAM_run (argc, argv, "gnunet-mesh (OPTIONS | TARGET PORT)",
-                      gettext_noop
-                      ("Create channels and retreive info about meshs status."),
-                      options, &run, NULL);
+                            gettext_noop (helpstr),
+                            options, &run, NULL);
 
   GNUNET_free ((void *) argv);
 
