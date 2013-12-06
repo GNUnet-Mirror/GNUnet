@@ -122,8 +122,9 @@ channel_ended (void *cls,
                const struct GNUNET_MESH_Channel *channel,
                void *channel_ctx)
 {
-  FPRINTF (stdout, "Channel ended!\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Channel ended!\n");
   GNUNET_break (channel == ch);
+  ch = NULL;
   GNUNET_SCHEDULER_shutdown ();
 }
 
@@ -152,7 +153,7 @@ channel_incoming (void *cls,
                   const struct GNUNET_PeerIdentity * initiator,
                   uint32_t port, enum MeshOption options)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Incoming channel on port %u\n", port);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Incoming channel %p on port %u\n", channel, port);
   if (NULL != ch)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "A channel already exists\n");
@@ -193,8 +194,9 @@ create_channel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  GNUNET_MESH_channel_create (mh, NULL, &pid, GNUNET_MESSAGE_TYPE_MESH_CLI,
-                              GNUNET_MESH_OPTION_DEFAULT);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connecting to `%s'\n", target_id);
+  ch = GNUNET_MESH_channel_create (mh, NULL, &pid, target_port,
+                                   GNUNET_MESH_OPTION_DEFAULT);
 }
 
 
@@ -356,6 +358,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     {&data_callback, GNUNET_MESSAGE_TYPE_MESH_CLI, 0},
     {NULL, 0, 0} /* FIXME add option to monitor msg types */
   };
+  static uint32_t *ports = NULL;
   /* FIXME add option to monitor apps */
 
   target_id = args[0];
@@ -383,6 +386,9 @@ run (void *cls, char *const *args, const char *cfgfile,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Listen\n");
     newch = &channel_incoming;
+    endch = &channel_ended;
+    ports = GNUNET_malloc (sizeof (uint32_t) * 2);
+    ports[0] = listen_port;
   }
   else if (NULL != tunnel_id)
   {
@@ -416,8 +422,8 @@ run (void *cls, char *const *args, const char *cfgfile,
                             newch, /* new channel */
                             endch, /* cleaner */
                             handlers,
-                            NULL);
-  FPRINTF (stdout, "Done\n");
+                            ports);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Done\n");
   if (NULL == mh)
     GNUNET_SCHEDULER_add_now (shutdown_task, NULL);
   else
