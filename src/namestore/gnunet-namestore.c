@@ -306,6 +306,7 @@ add_continuation (void *cls,
     if (GNUNET_NO != success)
       ret = 1;
   }
+  ret = 0;
   test_finished ();
 }
 
@@ -704,12 +705,8 @@ testservice_task (void *cls,
     char sname[64];
     struct GNUNET_CRYPTO_EcdsaPublicKey pkey;
 
-    if ( (2 != (sscanf (uri,
-                        "gnunet://gns/%104s/%63s",
-                        sh,
-                        sname)) ) ||
-         (GNUNET_OK !=
-          GNUNET_CRYPTO_ecdsa_public_key_from_string (sh, strlen (sh), &pkey)) )
+    if ( (2 != (sscanf (uri, "gnunet://gns/%52s/%63s", sh, sname)) ) ||
+         (GNUNET_OK != GNUNET_CRYPTO_ecdsa_public_key_from_string (sh, strlen (sh), &pkey)) )
     {
       fprintf (stderr,
                _("Invalid URI `%s'\n"),
@@ -732,7 +729,7 @@ testservice_task (void *cls,
     else
       rd.expiration_time = GNUNET_TIME_UNIT_FOREVER_ABS.abs_value_us;
 
-    if (1 != shadow)
+    if (1 == shadow)
       rd.flags |= GNUNET_GNSRECORD_RF_SHADOW_RECORD;
     add_qe_uri = GNUNET_NAMESTORE_records_store (ns,
 						 &zone_pkey,
@@ -791,6 +788,7 @@ identity_cb (void *cls,
                ego_name);
     }
     GNUNET_SCHEDULER_shutdown ();
+    ret = -1;
     return;
   }
   zone_pkey = *GNUNET_IDENTITY_ego_get_private_key (ego);
@@ -815,6 +813,7 @@ default_ego_cb (void *cls,
     fprintf (stderr,
              _("No default ego configured in identity service\n"));
     GNUNET_SCHEDULER_shutdown ();
+    ret = -1;
     return;
   }
   else
@@ -847,6 +846,7 @@ testservice_id_task (void *cls, int result)
     fprintf (stderr,
              _("Identity service is not running\n"));
     GNUNET_SCHEDULER_shutdown ();
+    ret = -1;
     return;
   }
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
@@ -857,6 +857,7 @@ testservice_id_task (void *cls, int result)
     idh = GNUNET_IDENTITY_connect (cfg, &id_connect_cb, (void *) cfg);
     if (NULL == idh)
       fprintf (stderr, _("Cannot connect to identity service\n"));
+    ret = -1;
     return;
   }
   el = GNUNET_IDENTITY_ego_lookup (cfg,
