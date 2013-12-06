@@ -12,7 +12,9 @@ def help ():
  print 'gnunet-qr\n\
 Scan a QR code using a video device and import\n\
 Arguments mandatory for long options are also mandatory for short options.\n\
+  -c, --config=FILENAME      use configuration file FILENAME\n\
   -d, --device=DEVICE        use device DEVICE\n\
+  -s, --silent               do not show preview windows\n\
   -h, --help                 print this help\n\
 Report bugs to gnunet-developers@gnu.org.\n\
 GNUnet home page: http://www.gnu.org/software/gnunet/\n\
@@ -20,48 +22,57 @@ General help using GNU software: http://www.gnu.org/gethelp/'
 
 
 if __name__ == '__main__':
-    # Parse arguments
-    try:
-        opts, args = getopt.gnu_getopt(sys.argv[1:], "hd:", ["help", "device"])
-    except getopt.GetoptError as e:
-        help ()
-        print str (e)
-        exit (1)
-    
-    device = '/dev/video0'
-    for o,a in opts:
-        if o in ("-h", "--help"):
-            help ()            
-            sys.exit (0)
-        elif o in ("-d", "--device"):
-            device = a
-    # create a Processor
-    proc = zbar.Processor()
+	configuration = ''
+	device = '/dev/video0'
+	silent = False
+	# Parse arguments
+	try:
+		opts, args = getopt.gnu_getopt(sys.argv[1:], "c:hd:s", ["config","help", "device","silent"])
+	except getopt.GetoptError as e:
+		help ()
+		print str (e)
+		exit (1)
 
-    # configure the Processor
-    proc.parse_config('enable')
+		for o,a in opts:
+			if o in ("-h", "--help"):
+				help ()            
+				sys.exit (0)
+			elif o in ("-c", "--config"):
+				configuration = a
+			elif o in ("-d", "--device"):
+				device = a
+			elif o in ("-s", "--silent"):
+				silent = True
+	# create a Processor
+	proc = zbar.Processor()
 
-    # initialize the Processor
-    try:
-        proc.init(device)
-    except Exception as e:
-        print 'Failed to open device ' + device
-        exit (1)
+	# configure the Processor
+	proc.parse_config('enable')
 
-    # enable the preview window
-    proc.visible = True
-
-    # read at least one barcode (or until window closed)
-    try:
-        proc.process_one()
-    except Exception as e:
-        # Window was closed without finding code
-        exit (1)
-
-    # hide the preview window
-    proc.visible = False
-
-    # extract results
-    for symbol in proc.results:
-        # do something useful with results
-        print 'Found ', symbol.type, ' symbol ', '"%s"' % symbol.data
+	# initialize the Processor
+	try:
+		proc.init(device)
+	except Exception as e:
+		print 'Failed to open device ' + device
+		exit (1)
+	
+	# enable the preview window
+	if (True == silent):
+		proc.visible = True
+	else:
+		proc.visible = False
+	
+	# read at least one barcode (or until window closed)
+	try:
+		proc.process_one()
+	except Exception as e:
+		# Window was closed without finding code
+		exit (1)
+	
+	# hide the preview window
+	proc.visible = False
+	
+	# extract results
+	for symbol in proc.results:
+	# do something useful with results
+		print 'Found ', symbol.type, ' symbol ', '"%s"' % symbol.data
