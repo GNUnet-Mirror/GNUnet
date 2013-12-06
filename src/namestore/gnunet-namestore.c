@@ -50,8 +50,14 @@ static struct GNUNET_CRYPTO_EcdsaPrivateKey zone_pkey;
  */
 static struct GNUNET_IDENTITY_EgoLookup *el;
 
+/**
+ * Identity service handle
+ */
 static struct GNUNET_IDENTITY_Handle *idh;
 
+/**
+ * Obtain default ego
+ */
 struct GNUNET_IDENTITY_Operation *get_default;
 
 /**
