@@ -98,6 +98,56 @@ shutdown_task (void *cls,
 
 
 /**
+ * Function called whenever a channel is destroyed.  Should clean up
+ * any associated state.
+ *
+ * It must NOT call #GNUNET_MESH_channel_destroy on the channel.
+ *
+ * @param cls closure (set from #GNUNET_MESH_connect)
+ * @param channel connection to the other end (henceforth invalid)
+ * @param channel_ctx place where local state associated
+ *                   with the channel is stored
+ */
+static void
+channel_ended (void *cls,
+               const struct GNUNET_MESH_Channel *channel,
+               void *channel_ctx)
+{
+  FPRINTF (stdout, "Channel ended!\n");
+}
+
+
+/**
+ * Method called whenever another peer has added us to a channel
+ * the other peer initiated.
+ * Only called (once) upon reception of data with a message type which was
+ * subscribed to in #GNUNET_MESH_connect.
+ *
+ * A call to #GNUNET_MESH_channel_destroy causes te channel to be ignored. In
+ * this case the handler MUST return NULL.
+ *
+ * @param cls closure
+ * @param channel new handle to the channel
+ * @param initiator peer that started the channel
+ * @param port Port this channel is for.
+ * @param options MeshOption flag field, with all active option bits set to 1.
+ *
+ * @return initial channel context for the channel
+ *         (can be NULL -- that's not an error)
+ */
+void *
+channel_incoming (void *cls,
+                  struct GNUNET_MESH_Channel * channel,
+                  const struct GNUNET_PeerIdentity * initiator,
+                  uint32_t port, enum MeshOption options)
+{
+  FPRINTF (stdout, "Incoming channel!\n");
+  return NULL;
+}
+
+
+
+/**
  * Call MESH's monitor API, get info of one connection.
  *
  * @param cls Closure (unused).
@@ -232,37 +282,6 @@ show_connection (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
 
 }
-
-
-
-/**
- * Method called whenever another peer has added us to a channel
- * the other peer initiated.
- * Only called (once) upon reception of data with a message type which was
- * subscribed to in #GNUNET_MESH_connect.
- *
- * A call to #GNUNET_MESH_channel_destroy causes te channel to be ignored. In
- * this case the handler MUST return NULL.
- *
- * @param cls closure
- * @param channel new handle to the channel
- * @param initiator peer that started the channel
- * @param port Port this channel is for.
- * @param options MeshOption flag field, with all active option bits set to 1.
- *
- * @return initial channel context for the channel
- *         (can be NULL -- that's not an error)
- */
-void *
-incoming_channel (void *cls,
-                  struct GNUNET_MESH_Channel * channel,
-                  const struct GNUNET_PeerIdentity * initiator,
-                  uint32_t port, enum MeshOption options)
-{
-  FPRINTF (stdout, "Incoming channel!\n");
-  return NULL;
-}
-
 
 
 /**
