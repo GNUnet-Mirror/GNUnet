@@ -87,8 +87,8 @@ struct GNUNET_GETOPT_CommandLineProcessorContext
  * @return #GNUNET_OK to continue processing other options, #GNUNET_SYSERR to abort
  */
 typedef int (*GNUNET_GETOPT_CommandLineOptionProcessor) (struct
-                                                         GNUNET_GETOPT_CommandLineProcessorContext
-                                                         * ctx, void *scls,
+                                                         GNUNET_GETOPT_CommandLineProcessorContext *ctx,
+                                                         void *scls,
                                                          const char *option,
                                                          const char *value);
 
@@ -99,7 +99,7 @@ struct GNUNET_GETOPT_CommandLineOption
 {
 
   /**
-   * Short name of the option (use '\\0' for none).
+   * Short name of the option.
    */
   const char shortName;
 
@@ -119,7 +119,7 @@ struct GNUNET_GETOPT_CommandLineOption
   const char *description;
 
   /**
-   * Is an argument required?  0: GNUNET_NO (includes optional), 1: GNUNET_YES.
+   * Is an argument required?  0: #GNUNET_NO (includes optional), 1: #GNUNET_YES.
    */
   int require_argument;
 
@@ -217,9 +217,9 @@ GNUNET_GETOPT_run (const char *binaryOptions,
 /**
  * Set an option of type 'unsigned long long' from the command line.
  * A pointer to this function should be passed as part of the
- * 'struct GNUNET_GETOPT_CommandLineOption' array to initialize options
+ * `struct GNUNET_GETOPT_CommandLineOption` array to initialize options
  * of this type.  It should be followed by a pointer to a value of
- * type 'unsigned long long'.
+ * type `unsigned long long`.
  *
  * @param ctx command line processing context
  * @param scls additional closure (will point to the 'unsigned long long')
@@ -235,9 +235,9 @@ GNUNET_GETOPT_set_ulong (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
 /**
  * Set an option of type 'struct GNUNET_TIME_Relative' from the command line.
  * A pointer to this function should be passed as part of the
- * 'struct GNUNET_GETOPT_CommandLineOption' array to initialize options
+ * `struct GNUNET_GETOPT_CommandLineOption` array to initialize options
  * of this type.  It should be followed by a pointer to a value of
- * type 'struct GNUNET_TIME_Relative'.
+ * type `struct GNUNET_TIME_Relative`.
  *
  * @param ctx command line processing context
  * @param scls additional closure (will point to the 'struct GNUNET_TIME_Relative')
@@ -253,9 +253,9 @@ GNUNET_GETOPT_set_relative_time (struct GNUNET_GETOPT_CommandLineProcessorContex
 /**
  * Set an option of type 'unsigned int' from the command line.
  * A pointer to this function should be passed as part of the
- * 'struct GNUNET_GETOPT_CommandLineOption' array to initialize options
+ * `struct GNUNET_GETOPT_CommandLineOption` array to initialize options
  * of this type.  It should be followed by a pointer to a value of
- * type 'unsigned int'.
+ * type `unsigned int`.
  *
  * @param ctx command line processing context
  * @param scls additional closure (will point to the 'unsigned int')
@@ -272,12 +272,12 @@ GNUNET_GETOPT_set_uint (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
  * Set an option of type 'int' from the command line to 1 if the
  * given option is present.
  * A pointer to this function should be passed as part of the
- * 'struct GNUNET_GETOPT_CommandLineOption' array to initialize options
+ * `struct GNUNET_GETOPT_CommandLineOption` array to initialize options
  * of this type.  It should be followed by a pointer to a value of
- * type 'int'.
+ * type `int`.
  *
  * @param ctx command line processing context
- * @param scls additional closure (will point to the 'int')
+ * @param scls additional closure (will point to the `int`)
  * @param option name of the option
  * @param value not used (NULL)
  * @return #GNUNET_OK (always)
@@ -290,12 +290,12 @@ GNUNET_GETOPT_set_one (struct GNUNET_GETOPT_CommandLineProcessorContext *ctx,
 /**
  * Set an option of type 'char *' from the command line.
  * A pointer to this function should be passed as part of the
- * 'struct GNUNET_GETOPT_CommandLineOption' array to initialize options
+ * `struct GNUNET_GETOPT_CommandLineOption` array to initialize options
  * of this type.  It should be followed by a pointer to a value of
- * type 'char *', which will be allocated with the requested string.
+ * type `char *`, which will be allocated with the requested string.
  *
  * @param ctx command line processing context
- * @param scls additional closure (will point to the 'char *',
+ * @param scls additional closure (will point to the `char *`,
  *             which will be allocated)
  * @param option name of the option
  * @param value actual value of the option (a string)
