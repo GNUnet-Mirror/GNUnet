@@ -106,7 +106,20 @@ shutdown_task (void *cls,
 static void
 create_channel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  struct GNUNET_PeerIdentity pid;
 
+  if (GNUNET_OK !=
+      GNUNET_CRYPTO_eddsa_public_key_from_string (target_id,
+                                                  strlen (target_id),
+                                                  &pid.public_key))
+  {
+    FPRINTF (stderr,
+             _("Invalid target `%s'\n"),
+             target_id);
+    GNUNET_SCHEDULER_shutdown();
+    return;
+  }
+//   GNUNET_MESH_channel_create ()
 }
 
 
