@@ -128,6 +128,9 @@ endif
 libexec_PROGRAMS = \
  gnunet-service-resolver
 
+bin_SCRIPTS =\
+ gnunet-qr
+
 bin_PROGRAMS = \
  gnunet-resolver \
  gnunet-config \
