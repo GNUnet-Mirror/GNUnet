@@ -180,6 +180,8 @@ create_channel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_PeerIdentity pid;
 
+  GNUNET_assert (NULL == ch);
+
   if (GNUNET_OK !=
       GNUNET_CRYPTO_eddsa_public_key_from_string (target_id,
                                                   strlen (target_id),
@@ -191,7 +193,8 @@ create_channel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-//   GNUNET_MESH_channel_create ()
+  GNUNET_MESH_channel_create (mh, NULL, &pid, GNUNET_MESSAGE_TYPE_MESH_CLI,
+                              GNUNET_MESH_OPTION_DEFAULT);
 }
 
 
