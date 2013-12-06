@@ -50,6 +50,10 @@ static struct GNUNET_CRYPTO_EcdsaPrivateKey zone_pkey;
  */
 static struct GNUNET_IDENTITY_EgoLookup *el;
 
+static struct GNUNET_IDENTITY_Handle *idh;
+
+struct GNUNET_IDENTITY_Operation *get_default;
+
 /**
  * Name of the ego controlling the zone.
  */
@@ -196,6 +200,16 @@ static void
 do_shutdown (void *cls,
 	     const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  if (NULL != get_default)
+  {
+    GNUNET_IDENTITY_cancel (get_default);
+    get_default = NULL;
+  }
+  if (NULL != idh)
+  {
+    GNUNET_IDENTITY_disconnect (idh);
+    idh = NULL;
+  }
   if (NULL != el)
   {
     GNUNET_IDENTITY_ego_lookup_cancel (el);
@@ -764,19 +778,85 @@ identity_cb (void *cls,
   el = NULL;
   if (NULL == ego)
   {
-    fprintf (stderr,
-	     _("Ego `%s' not known to identity service\n"),
-	     ego_name);
+    if (NULL != ego_name)
+    {
+      fprintf (stderr,
+               _("Ego `%s' not known to identity service\n"),
+               ego_name);
+    }
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
   zone_pkey = *GNUNET_IDENTITY_ego_get_private_key (ego);
-  GNUNET_free (ego_name);
+  GNUNET_free_non_null (ego_name);
   ego_name = NULL;
   GNUNET_CLIENT_service_test ("namestore", cfg,
 			      GNUNET_TIME_UNIT_SECONDS,
 			      &testservice_task,
 			      (void *) cfg);
+}
+
+
+static void
+default_ego_cb (void *cls,
+    struct GNUNET_IDENTITY_Ego *ego,
+    void **ctx,
+    const char *name)
+{
+  get_default = NULL;
+  if (NULL == ego)
+  {
+    fprintf (stderr,
+             _("No default ego configured in identity service\n"));
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+  else
+  {
+    identity_cb (cls, ego);
+  }
+}
+
+static void
+id_connect_cb (void *cls,
+    struct GNUNET_IDENTITY_Ego *ego,
+    void **ctx,
+    const char *name)
+{
+  const struct GNUNET_CONFIGURATION_Handle *cfg = cls;
+  if (NULL == ego)
+  {
+    get_default = GNUNET_IDENTITY_get (idh, "namestore",
+        &default_ego_cb, (void *) cfg);
+  }
+}
+
+
+static void
+testservice_id_task (void *cls, int result)
+{
+  const struct GNUNET_CONFIGURATION_Handle *cfg = cls;
+  if (result != GNUNET_YES)
+  {
+    fprintf (stderr,
+             _("Identity service is not running\n"));
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
+                                &do_shutdown, (void *) cfg);
+
+  if (NULL == ego_name)
+  {
+    idh = GNUNET_IDENTITY_connect (cfg, &id_connect_cb, (void *) cfg);
+    if (NULL == idh)
+      fprintf (stderr, _("Cannot connect to identity service\n"));
+    return;
+  }
+  el = GNUNET_IDENTITY_ego_lookup (cfg,
+                                   ego_name,
+                                   &identity_cb,
+                                   (void *) cfg);
 }
 
 
@@ -792,21 +872,13 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  if (NULL == ego_name)
-  {
-    fprintf (stderr,
-	     _("You must specify which zone should be accessed\n"));
-    return;
-  }
-
   if ( (NULL != args[0]) && (NULL == uri) )
     uri = GNUNET_strdup (args[0]);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                &do_shutdown, NULL);
-  el = GNUNET_IDENTITY_ego_lookup (cfg,
-				   ego_name,
-				   &identity_cb,
-				   (void *) cfg);
+
+  GNUNET_CLIENT_service_test ("identity", cfg,
+                              GNUNET_TIME_UNIT_SECONDS,
+                              &testservice_id_task,
+                              (void *) cfg);
 }
 
 
