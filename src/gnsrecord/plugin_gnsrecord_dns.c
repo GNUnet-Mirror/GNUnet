@@ -140,6 +140,38 @@ dns_value_to_string (void *cls,
       }
       return ptr;
     }
+  case GNUNET_DNSPARSER_TYPE_CERT:
+    {
+      struct GNUNET_DNSPARSER_CertRecord *cert;
+      size_t off;
+      char *base64;
+      int len;
+
+      off = 0;
+      cert = GNUNET_DNSPARSER_parse_cert (data,
+                                          data_size,
+                                          &off);
+      if ( (NULL == cert) ||
+	   (off != data_size) )
+      {
+	GNUNET_break_op (0);
+        GNUNET_DNSPARSER_free_cert (cert);
+	return NULL;
+      }
+      len = GNUNET_STRINGS_base64_encode (cert->certificate_data,
+                                          cert->certificate_size,
+                                          &base64);
+      GNUNET_asprintf (&result,
+		       "%u %u %u %.*s",
+                       cert->cert_type,
+                       cert->cert_tag,
+                       cert->algorithm,
+                       len,
+                       base64);
+      GNUNET_free (base64);
+      GNUNET_DNSPARSER_free_cert (cert);
+      return result;
+    }
   case GNUNET_DNSPARSER_TYPE_MX:
     {
       struct GNUNET_DNSPARSER_MxRecord *mx;
@@ -153,7 +185,7 @@ dns_value_to_string (void *cls,
 	   (off != data_size) )
       {
 	GNUNET_break_op (0);
-	GNUNET_free_non_null (mx);
+        GNUNET_DNSPARSER_free_mx (mx);
 	return NULL;
       }
       GNUNET_asprintf (&result,
@@ -308,6 +340,92 @@ dns_string_to_value (void *cls,
       *data_size = off;
       *data = GNUNET_malloc (off);
       memcpy (*data, cnamebuf, off);
+      return GNUNET_OK;
+    }
+  case GNUNET_DNSPARSER_TYPE_CERT:
+    {
+      char *sdup;
+      const char *typep;
+      const char *keyp;
+      const char *algp;
+      const char *certp;
+      unsigned int type;
+      unsigned int key;
+      unsigned int alg;
+      size_t cert_size;
+      char *cert_data;
+      struct GNUNET_DNSPARSER_CertRecord cert;
+
+      sdup = GNUNET_strdup (s);
+      typep = strtok (sdup, " ");
+      if ( (NULL == typep) ||
+           (1 != sscanf (typep,
+                         "%u",
+                         &type)) ||
+           (type > UINT16_MAX) )
+      {
+        GNUNET_free (sdup);
+        return GNUNET_SYSERR;
+      }
+      keyp = strtok (NULL, " ");
+      if ( (NULL == keyp) ||
+           (1 != sscanf (keyp,
+                         "%u",
+                         &key)) ||
+           (key > UINT16_MAX) )
+      {
+        GNUNET_free (sdup);
+        return GNUNET_SYSERR;
+      }
+      algp = strtok (NULL, " ");
+      if ( (NULL == algp) ||
+           (1 != sscanf (algp,
+                         "%u",
+                         &alg)) ||
+           (alg > UINT8_MAX) )
+      {
+        GNUNET_free (sdup);
+        return GNUNET_SYSERR;
+      }
+      certp = strtok (NULL, " ");
+      if ( (NULL == certp) ||
+           (0 == strlen (certp) ) )
+      {
+        GNUNET_free (sdup);
+        return GNUNET_SYSERR;
+      }
+      cert_size = GNUNET_STRINGS_base64_decode (certp,
+                                                strlen (certp),
+                                                &cert_data);
+      GNUNET_free (sdup);
+      cert.cert_type = type;
+      cert.cert_tag = key;
+      cert.algorithm = alg;
+      cert.certificate_size = cert_size;
+      cert.certificate_data = cert_data;
+      {
+        char certbuf[cert_size + sizeof (struct GNUNET_TUN_DnsCertRecord)];
+        size_t off;
+
+        off = 0;
+        if (GNUNET_OK !=
+            GNUNET_DNSPARSER_builder_add_cert (certbuf,
+                                               sizeof (certbuf),
+                                               &off,
+                                               &cert))
+        {
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                      _("Failed to serialize CERT record with %u bytes\n"),
+                      (unsigned int) cert_size);
+          GNUNET_free (cert_data);
+          return GNUNET_SYSERR;
+        }
+        GNUNET_free (cert_data);
+        *data_size = off;
+        *data = GNUNET_malloc (off);
+        memcpy (*data, certbuf, off);
+      }
+      GNUNET_free (cert_data);
       return GNUNET_OK;
     }
   case GNUNET_DNSPARSER_TYPE_SOA:
