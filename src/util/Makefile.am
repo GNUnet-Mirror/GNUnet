@@ -137,6 +137,11 @@ bin_PROGRAMS = \
  $(GNUNET_ECC) \
  gnunet-uri
 
+do_subst = $(SED) -e 's,[@]PYTHON[@],$(PYTHON),g'
+
+gnunet-qr: gnunet-qr.py.in Makefile
+	$(do_subst) < gnunet-qr.py.in > gnunet-qr
+	chmod +x gnunet-qr
 
 gnunet_service_resolver_SOURCES = \
  gnunet-service-resolver.c

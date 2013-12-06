@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!@PYTHON@
 import sys
 import getopt
 from sys import argv
@@ -31,11 +31,10 @@ if __name__ == '__main__':
     device = '/dev/video0'
     for o,a in opts:
         if o in ("-h", "--help"):
-            help ()
+            help ()            
             sys.exit (0)
         elif o in ("-d", "--device"):
             device = a
-    
     # create a Processor
     proc = zbar.Processor()
 
@@ -43,7 +42,11 @@ if __name__ == '__main__':
     proc.parse_config('enable')
 
     # initialize the Processor
-    proc.init(device)
+    try:
+        proc.init(device)
+    except Exception as e:
+        print 'Failed to open device ' + device
+        exit (1)
 
     # enable the preview window
     proc.visible = True
