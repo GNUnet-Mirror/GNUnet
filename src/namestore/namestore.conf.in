@@ -1,5 +1,5 @@
 [namestore]
-AUTOSTART = YES
+AUTOSTART = @AUTOSTART@
 USER_SERVICE = YES
 UNIXPATH = $GNUNET_RUNTIME_DIR/gnunet-service-namestore.sock
 UNIX_MATCH_UID = NO

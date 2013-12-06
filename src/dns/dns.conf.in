@@ -1,5 +1,5 @@
 [dns]
-AUTOSTART = YES
+AUTOSTART = @AUTOSTART@
 HOSTNAME = localhost
 BINARY = gnunet-service-dns
 UNIXPATH = $GNUNET_RUNTIME_DIR/gnunet-service-dns.sock

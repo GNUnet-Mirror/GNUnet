@@ -1,5 +1,5 @@
 [conversation]
-AUTOSTART = YES
+AUTOSTART = @AUTOSTART@
 BINARY = gnunet-service-conversation
 UNIXPATH = $GNUNET_RUNTIME_DIR/gnunet-service-conversation.sock
 @UNIXONLY@ PORT = 2106

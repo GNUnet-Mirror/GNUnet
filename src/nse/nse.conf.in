@@ -1,5 +1,5 @@
 [nse]
-AUTOSTART = YES
+AUTOSTART = @AUTOSTART@
 @JAVAPORT@PORT = 2097
 HOSTNAME = localhost
 BINARY = gnunet-service-nse

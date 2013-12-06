@@ -1,5 +1,5 @@
 [statistics]
-AUTOSTART = YES
+AUTOSTART = @AUTOSTART@
 @JAVAPORT@PORT = 2088
 HOSTNAME = localhost
 BINARY = gnunet-service-statistics

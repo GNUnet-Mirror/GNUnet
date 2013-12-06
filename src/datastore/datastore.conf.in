@@ -1,5 +1,5 @@
 [datastore]
-AUTOSTART = YES
+AUTOSTART = @AUTOSTART@
 UNIXPATH = $GNUNET_RUNTIME_DIR/gnunet-service-datastore.sock
 UNIX_MATCH_UID = NO
 UNIX_MATCH_GID = YES

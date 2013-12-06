@@ -1,5 +1,5 @@
 [dv]
-AUTOSTART = YES
+AUTOSTART = @AUTOSTART@
 ACCEPT_FROM6 = ::1;
 ACCEPT_FROM = 127.0.0.1;
 BINARY = gnunet-service-dv

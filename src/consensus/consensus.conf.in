@@ -1,5 +1,5 @@
 [consensus]
-AUTOSTART = YES
+AUTOSTART = @AUTOSTART@
 @JAVAPORT@PORT = 2103
 HOSTNAME = localhost
 BINARY = gnunet-service-consensus

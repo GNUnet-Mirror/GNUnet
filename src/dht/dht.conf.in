@@ -1,5 +1,5 @@
 [dht]
-AUTOSTART = YES
+AUTOSTART = @AUTOSTART@
 @JAVAPORT@PORT = 2095
 HOSTNAME = localhost
 BINARY = gnunet-service-dht

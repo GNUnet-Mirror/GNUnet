@@ -1158,6 +1158,25 @@ AC_ARG_ENABLE([experimental],
 AC_MSG_RESULT($enable_experimental)
 AM_CONDITIONAL([HAVE_EXPERIMENTAL], [test "x$enable_experimental" = "xyes"])
 
+# should services be started by default when a peer starts?  Some services may
+# choose to never start by default and it is upto the service/module developer to
+# decide it by having "AUTOSTART = NO" instead of "AUTOSTART = @AUTOSTART" in
+# the service/module's conf.in file.
+AUTOSTART="YES"
+AC_MSG_CHECKING(whether to auto-start peer's services by default)
+AC_ARG_ENABLE([autostart],
+   [AS_HELP_STRING([--disable-autostart], [do not start peer's services by default])],
+   [enable_autostart=${enableval}
+    if test "x$enable_autostart" == "xno"
+    then
+        AUTOSTART="NO"
+    fi
+   ],
+   [enable_autostart=yes])
+AC_MSG_RESULT($enable_autostart)
+#AM_CONDITIONAL([HAVE_AUTOSTART], [test "x$enable_autostart" = "xyes"])
+AC_SUBST(AUTOSTART)
+
 # should memory statistics be kept (very expensive CPU-wise!)
 AC_MSG_CHECKING(whether to create expensive statistics on memory use)
 AC_ARG_ENABLE([heapstats],

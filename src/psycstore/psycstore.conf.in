@@ -1,5 +1,5 @@
 [psycstore]
-AUTOSTART = YES
+AUTOSTART = @AUTOSTART@
 BINARY = gnunet-service-psycstore
 UNIXPATH = $GNUNET_RUNTIME_DIR/gnunet-service-psycstore.sock
 @UNIXONLY@PORT = 2111

@@ -1,5 +1,5 @@
 [transport]
-AUTOSTART = YES
+AUTOSTART = @AUTOSTART@
 @JAVAPORT@PORT = 2091
 HOSTNAME = localhost
 BINARY = gnunet-service-transport

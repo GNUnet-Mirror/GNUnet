@@ -1,5 +1,5 @@
 [regex]
-AUTOSTART = YES
+AUTOSTART = @AUTOSTART@
 @UNIXONLY@ PORT = 2107
 UNIXPATH = $GNUNET_RUNTIME_DIR/gnunet-service-regex.sock
 HOSTNAME = localhost

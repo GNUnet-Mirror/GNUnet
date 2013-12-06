@@ -1,5 +1,5 @@
 [ats]
-AUTOSTART = YES
+AUTOSTART = @AUTOSTART@
 @UNIXONLY@ PORT = 2098
 HOSTNAME = localhost
 BINARY = gnunet-service-ats

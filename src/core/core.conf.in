@@ -1,5 +1,5 @@
 [core]
-AUTOSTART = YES
+AUTOSTART = @AUTOSTART@
 @JAVAPORT@PORT = 2092
 HOSTNAME = localhost
 BINARY = gnunet-service-core

@@ -1,5 +1,5 @@
 [peerinfo]
-AUTOSTART = YES
+AUTOSTART = @AUTOSTART@
 @JAVAPORT@PORT = 2090
 HOSTNAME = localhost
 BINARY = gnunet-service-peerinfo

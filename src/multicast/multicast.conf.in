@@ -1,5 +1,5 @@
 [multicast]
-AUTOSTART = YES
+AUTOSTART = @AUTOSTART@
 PORT = 2109
 HOSTNAME = localhost
 BINARY = gnunet-service-multicast

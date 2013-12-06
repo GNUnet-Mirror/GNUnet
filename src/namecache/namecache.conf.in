@@ -1,5 +1,5 @@
 [namecache]
-AUTOSTART = YES
+AUTOSTART = @AUTOSTART@
 USER_SERVICE = NO
 UNIXPATH = $GNUNET_RUNTIME_DIR/gnunet-service-namecache.sock
 UNIX_MATCH_UID = NO
