@@ -1743,4 +1743,144 @@ GNUNET_STRINGS_parse_ipv6_policy (const char *routeListX)
 }
 
 
+
+/** ******************** Base64 encoding ***********/
+
+#define FILLCHAR '='
+static char *cvt =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZ" "abcdefghijklmnopqrstuvwxyz" "0123456789+/";
+
+
+/**
+ * Encode into Base64.
+ *
+ * @param data the data to encode
+ * @param len the length of the input
+ * @param output where to write the output (*output should be NULL,
+ *   is allocated)
+ * @return the size of the output
+ */
+size_t
+GNUNET_STRINGS_base64_encode (const char *data,
+                              size_t len,
+                              char **output)
+{
+  size_t i;
+  char c;
+  size_t ret;
+  char *opt;
+
+  ret = 0;
+  opt = GNUNET_malloc (2 + (len * 4 / 3) + 8);
+  *output = opt;
+  for (i = 0; i < len; ++i)
+  {
+    c = (data[i] >> 2) & 0x3f;
+    opt[ret++] = cvt[(int) c];
+    c = (data[i] << 4) & 0x3f;
+    if (++i < len)
+      c |= (data[i] >> 4) & 0x0f;
+    opt[ret++] = cvt[(int) c];
+    if (i < len)
+    {
+      c = (data[i] << 2) & 0x3f;
+      if (++i < len)
+        c |= (data[i] >> 6) & 0x03;
+      opt[ret++] = cvt[(int) c];
+    }
+    else
+    {
+      ++i;
+      opt[ret++] = FILLCHAR;
+    }
+    if (i < len)
+    {
+      c = data[i] & 0x3f;
+      opt[ret++] = cvt[(int) c];
+    }
+    else
+    {
+      opt[ret++] = FILLCHAR;
+    }
+  }
+  opt[ret++] = FILLCHAR;
+  return ret;
+}
+
+#define cvtfind(a)( (((a) >= 'A')&&((a) <= 'Z'))? (a)-'A'\
+                   :(((a)>='a')&&((a)<='z')) ? (a)-'a'+26\
+                   :(((a)>='0')&&((a)<='9')) ? (a)-'0'+52\
+  	   :((a) == '+') ? 62\
+  	   :((a) == '/') ? 63 : -1)
+
+
+/**
+ * Decode from Base64.
+ *
+ * @param data the data to encode
+ * @param len the length of the input
+ * @param output where to write the output (*output should be NULL,
+ *   is allocated)
+ * @return the size of the output
+ */
+size_t
+GNUNET_STRINGS_base64_decode (const char *data,
+                              size_t len, char **output)
+{
+  size_t i;
+  char c;
+  char c1;
+  size_t ret = 0;
+
+#define CHECK_CRLF  while (data[i] == '\r' || data[i] == '\n') {\
+  			GNUNET_log(GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK, "ignoring CR/LF\n"); \
+  			i++; \
+  			if (i >= len) goto END;  \
+  		}
+
+  *output = GNUNET_malloc ((len * 3 / 4) + 8);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "base64_decode decoding len=%d\n",
+              (int) len);
+  for (i = 0; i < len; ++i)
+  {
+    CHECK_CRLF;
+    if (FILLCHAR == data[i])
+      break;
+    c = (char) cvtfind (data[i]);
+    ++i;
+    CHECK_CRLF;
+    c1 = (char) cvtfind (data[i]);
+    c = (c << 2) | ((c1 >> 4) & 0x3);
+    (*output)[ret++] = c;
+    if (++i < len)
+    {
+      CHECK_CRLF;
+      c = data[i];
+      if (FILLCHAR == c)
+        break;
+      c = (char) cvtfind (c);
+      c1 = ((c1 << 4) & 0xf0) | ((c >> 2) & 0xf);
+      (*output)[ret++] = c1;
+    }
+    if (++i < len)
+    {
+      CHECK_CRLF;
+      c1 = data[i];
+      if (FILLCHAR == c1)
+        break;
+
+      c1 = (char) cvtfind (c1);
+      c = ((c << 6) & 0xc0) | c1;
+      (*output)[ret++] = c;
+    }
+  }
+END:
+  return ret;
+}
+
+
+
+
+
 /* end of strings.c */

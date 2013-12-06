@@ -145,153 +145,6 @@ static unsigned long long rate_limit;
 
 static GNUNET_CronTime last_transmission;
 
-/** ******************** Base64 encoding ***********/
-
-#define FILLCHAR '='
-static char *cvt =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZ" "abcdefghijklmnopqrstuvwxyz" "0123456789+/";
-
-/**
- * Encode into Base64.
- *
- * @param data the data to encode
- * @param len the length of the input
- * @param output where to write the output (*output should be NULL,
- *   is allocated)
- * @return the size of the output
- */
-static unsigned int
-base64_encode (const char *data, unsigned int len, char **output)
-{
-  unsigned int i;
-  char c;
-  unsigned int ret;
-  char *opt;
-
-/*    (*output)[ret++] = '\r'; \*/
-#define CHECKLINE \
-  if ( (ret % MAX_CHAR_PER_LINE) == 0) { \
-    (*output)[ret++] = '\n'; \
-  }
-  ret = 0;
-  opt =
-      GNUNET_malloc (2 +
-                     (((len * 4 / 3) + 8) * (MAX_CHAR_PER_LINE +
-                                             2)) / MAX_CHAR_PER_LINE);
-  /* message must start with \r\n for libesmtp */
-  *output = opt;
-  opt[0] = '\r';
-  opt[1] = '\n';
-  ret += 2;
-  for (i = 0; i < len; ++i)
-  {
-    c = (data[i] >> 2) & 0x3f;
-    opt[ret++] = cvt[(int) c];
-    CHECKLINE;
-    c = (data[i] << 4) & 0x3f;
-    if (++i < len)
-      c |= (data[i] >> 4) & 0x0f;
-    opt[ret++] = cvt[(int) c];
-    CHECKLINE;
-    if (i < len)
-    {
-      c = (data[i] << 2) & 0x3f;
-      if (++i < len)
-        c |= (data[i] >> 6) & 0x03;
-      opt[ret++] = cvt[(int) c];
-      CHECKLINE;
-    }
-    else
-    {
-      ++i;
-      opt[ret++] = FILLCHAR;
-      CHECKLINE;
-    }
-    if (i < len)
-    {
-      c = data[i] & 0x3f;
-      opt[ret++] = cvt[(int) c];
-      CHECKLINE;
-    }
-    else
-    {
-      opt[ret++] = FILLCHAR;
-      CHECKLINE;
-    }
-  }
-  opt[ret++] = FILLCHAR;
-  return ret;
-}
-
-#define cvtfind(a)( (((a) >= 'A')&&((a) <= 'Z'))? (a)-'A'\
-                   :(((a)>='a')&&((a)<='z')) ? (a)-'a'+26\
-                   :(((a)>='0')&&((a)<='9')) ? (a)-'0'+52\
-  	   :((a) == '+') ? 62\
-  	   :((a) == '/') ? 63 : -1)
-/**
- * Decode from Base64.
- *
- * @param data the data to encode
- * @param len the length of the input
- * @param output where to write the output (*output should be NULL,
- *   is allocated)
- * @return the size of the output
- */
-static unsigned int
-base64_decode (const char *data, unsigned int len, char **output)
-{
-  unsigned int i;
-  char c;
-  char c1;
-  unsigned int ret = 0;
-
-#define CHECK_CRLF  while (data[i] == '\r' || data[i] == '\n') {\
-  			GNUNET_GE_LOG(ectx, GNUNET_GE_DEBUG | GNUNET_GE_REQUEST | GNUNET_GE_USER, "ignoring CR/LF\n"); \
-  			i++; \
-  			if (i >= len) goto END;  \
-  		}
-
-  *output = GNUNET_malloc ((len * 3 / 4) + 8);
-#if DEBUG_SMTP
-  GNUNET_GE_LOG (ectx, GNUNET_GE_DEBUG | GNUNET_GE_REQUEST | GNUNET_GE_USER,
-                 "base64_decode decoding len=%d\n", len);
-#endif
-  for (i = 0; i < len; ++i)
-  {
-    CHECK_CRLF;
-    if (data[i] == FILLCHAR)
-      break;
-    c = (char) cvtfind (data[i]);
-    ++i;
-    CHECK_CRLF;
-    c1 = (char) cvtfind (data[i]);
-    c = (c << 2) | ((c1 >> 4) & 0x3);
-    (*output)[ret++] = c;
-    if (++i < len)
-    {
-      CHECK_CRLF;
-      c = data[i];
-      if (FILLCHAR == c)
-        break;
-      c = (char) cvtfind (c);
-      c1 = ((c1 << 4) & 0xf0) | ((c >> 2) & 0xf);
-      (*output)[ret++] = c1;
-    }
-    if (++i < len)
-    {
-      CHECK_CRLF;
-      c1 = data[i];
-      if (FILLCHAR == c1)
-        break;
-
-      c1 = (char) cvtfind (c1);
-      c = ((c << 6) & 0xc0) | c1;
-      (*output)[ret++] = c;
-    }
-  }
-END:
-  return ret;
-}
 
 /* ********************* the real stuff ******************* */
 
@@ -354,7 +207,7 @@ listenAndDistribute (void *unused)
         if ((line[pos] == '\r') || (line[pos] == '\n'))
           break;                /* empty line => end of message! */
       }
-      size = base64_decode (line, pos, &out);
+      size = GNUNET_STRINGS_base64_decode (line, pos, &out);
       if (size < sizeof (SMTPMessage))
       {
         GNUNET_GE_BREAK (ectx, 0);
@@ -617,7 +470,7 @@ api_send (GNUNET_TSession * tsession, const void *msg, const unsigned int size,
   mp->sender = *core_api->my_identity;
   gm_cls.ebody = NULL;
   gm_cls.pos = 0;
-  gm_cls.esize = base64_encode (m, size + sizeof (SMTPMessage), &gm_cls.ebody);
+  gm_cls.esize = GNUNET_STRINGS_base64_encode (m, size + sizeof (SMTPMessage), &gm_cls.ebody);
   GNUNET_free (m);
   if (0 == smtp_size_set_estimate (message, gm_cls.esize))
   {

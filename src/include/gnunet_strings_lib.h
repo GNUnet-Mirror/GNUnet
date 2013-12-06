@@ -317,6 +317,31 @@ GNUNET_STRINGS_string_to_data (const char *enc,
 
 
 /**
+ * Encode into Base64.
+ *
+ * @param data the data to encode
+ * @param len the length of the input
+ * @param output where to write the output (*output should be NULL,
+ *   is allocated)
+ * @return the size of the output
+ */
+size_t
+GNUNET_STRINGS_base64_encode (const char *data, size_t len, char **output);
+
+/**
+ * Decode from Base64.
+ *
+ * @param data the data to encode
+ * @param len the length of the input
+ * @param output where to write the output (*output should be NULL,
+ *   is allocated)
+ * @return the size of the output
+ */
+size_t
+GNUNET_STRINGS_base64_decode (const char *data, size_t len, char **output);
+
+
+/**
  * Parse a path that might be an URI.
  *
  * @param path path to parse. Must be NULL-terminated.
@@ -392,8 +417,8 @@ enum GNUNET_STRINGS_FilenameCheck
  *
  * @param filename file to check
  * @param checks checks to perform
- * @return GNUNET_YES if all checks pass, GNUNET_NO if at least one of them
- *         fails, GNUNET_SYSERR when a check can't be performed
+ * @return #GNUNET_YES if all checks pass, #GNUNET_NO if at least one of them
+ *         fails, #GNUNET_SYSERR when a check can't be performed
  */
 int
 GNUNET_STRINGS_check_filename (const char *filename,
