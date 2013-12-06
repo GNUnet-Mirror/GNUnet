@@ -179,7 +179,7 @@ mpi_print (unsigned char *buf,
  *
  * @param result where to store MPI value (allocated)
  * @param data raw data (GCRYMPI_FMT_USG)
- * @param size number of bytes in data
+ * @param size number of bytes in @a data
  */
 static void
 mpi_scan (gcry_mpi_t *result,
