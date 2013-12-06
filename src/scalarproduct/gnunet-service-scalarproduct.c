@@ -486,7 +486,8 @@ encrypt_element (gcry_mpi_t c, gcry_mpi_t m, gcry_mpi_t g, gcry_mpi_t n, gcry_mp
 
   GNUNET_assert (tmp = gcry_mpi_new (0));
 
-  while (0 >= gcry_mpi_cmp_ui (tmp, 1)) {
+  while (0 >= gcry_mpi_cmp_ui (tmp, 1))
+  {
     gcry_mpi_randomize (tmp, KEYBITS / 3, GCRY_WEAK_RANDOM);
     // r must be 1 < r < n
   }
@@ -1697,7 +1698,7 @@ handle_client_request (void *cls,
   if ((ntohs (msg->header.size) != (sizeof (struct GNUNET_SCALARPRODUCT_client_request) +element_count * sizeof (int32_t) + mask_length))
       || (0 == element_count)) {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _ ("Invalid message received from client, session information incorrect!\n"));
+                _("Invalid message received from client, session information incorrect!\n"));
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
@@ -1708,7 +1709,7 @@ handle_client_request (void *cls,
                                      element_count,
                                      NULL, NULL)) {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _ ("Duplicate session information received, cannot create new session with key `%s'\n"),
+                _("Duplicate session information received, cannot create new session with key `%s'\n"),
                 GNUNET_h2s (&msg->key));
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
@@ -1726,9 +1727,10 @@ handle_client_request (void *cls,
   session->vector = GNUNET_malloc (sizeof (int32_t) * element_count);
   vector = (int32_t *) & msg[1];
 
-  if (GNUNET_MESSAGE_TYPE_SCALARPRODUCT_CLIENT_TO_ALICE == msg_type) {
+  if (GNUNET_MESSAGE_TYPE_SCALARPRODUCT_CLIENT_TO_ALICE == msg_type)
+  {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                _ ("Got client-request-session with key %s, preparing channel to remote service.\n"),
+                _("Got client-request-session with key %s, preparing channel to remote service.\n"),
                 GNUNET_h2s (&session->key));
 
     session->role = ALICE;
@@ -1738,7 +1740,8 @@ handle_client_request (void *cls,
 
     // copy over the elements
     session->used = 0;
-    for (i = 0; i < element_count; i++) {
+    for (i = 0; i < element_count; i++)
+    {
       session->vector[i] = ntohl (vector[i]);
       if (session->vector[i] == 0)
         session->mask[i / 8] &= ~(1 << (i % 8));
@@ -1746,7 +1749,8 @@ handle_client_request (void *cls,
         session->used++;
     }
 
-    if (0 == session->used) {
+    if (0 == session->used)
+    {
       GNUNET_break_op (0);
       GNUNET_free (session->vector);
       GNUNET_free (session);
@@ -1754,7 +1758,8 @@ handle_client_request (void *cls,
       return;
     }
     //session with ourself makes no sense!
-    if (!memcmp (&msg->peer, &me, sizeof (struct GNUNET_PeerIdentity))) {
+    if (!memcmp (&msg->peer, &me, sizeof (struct GNUNET_PeerIdentity)))
+    {
       GNUNET_break (0);
       GNUNET_free (session->vector);
       GNUNET_free (session);
@@ -1787,7 +1792,8 @@ handle_client_request (void *cls,
                                       session);
 
   }
-  else {
+  else
+  {
     struct ServiceSession * requesting_session;
     enum SessionState needed_state = SERVICE_REQUEST_RECEIVED;
 
@@ -1807,16 +1813,22 @@ handle_client_request (void *cls,
                                                 &session->key,
                                                 session->total,
                                                 &needed_state, NULL);
-    if (NULL != requesting_session) {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, _ ("Got client-responder-session with key %s and a matching service-request-session set, processing.\n"), GNUNET_h2s (&session->key));
+    if (NULL != requesting_session)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  _("Got client-responder-session with key %s and a matching service-request-session set, processing.\n"),
+                  GNUNET_h2s (&session->key));
       if (GNUNET_OK != compute_service_response (requesting_session, session))
         session->client_notification_task =
               GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
                                         session);
 
     }
-    else {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, _ ("Got client-responder-session with key %s but NO matching service-request-session set, queuing element for later use.\n"), GNUNET_h2s (&session->key));
+    else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  _("Got client-responder-session with key %s but NO matching service-request-session set, queuing element for later use.\n"),
+                  GNUNET_h2s (&session->key));
       // no matching session exists yet, store the response
       // for later processing by handle_service_request()
     }
@@ -1844,7 +1856,9 @@ channel_incoming_handler (void *cls,
 {
   struct ServiceSession * c = GNUNET_new (struct ServiceSession);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _ ("New incoming channel from peer %s.\n"), GNUNET_i2s (initiator));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              _("New incoming channel from peer %s.\n"),
+              GNUNET_i2s (initiator));
 
   c->peer = *initiator;
   c->channel = channel;
@@ -1941,7 +1955,8 @@ compute_scalar_product (struct ServiceSession * session)
   // due to the introduced static offset S, we now also have to remove this
   // from the E(a_pi)(+)E(-b_pi-r_pi) and E(a_qi)(+)E(-r_qi) twice each,
   // the result is E((S + a_pi) + (S -b_pi-r_pi)) and E(S + a_qi + S - r_qi)
-  for (i = 0; i < count; i++) {
+  for (i = 0; i < count; i++)
+  {
     decrypt_element (session->r[i], session->r[i], my_mu, my_lambda, my_n, my_nsquare);
     gcry_mpi_sub (session->r[i], session->r[i], my_offset);
     gcry_mpi_sub (session->r[i], session->r[i], my_offset);
@@ -2058,20 +2073,27 @@ handle_service_request_multipart (void *cls,
     }
     session->transferred += contained_elements;
 
-    if (session->transferred == used_elements) {
+    if (session->transferred == used_elements)
+    {
       // single part finished
       session->state = SERVICE_REQUEST_RECEIVED;
-      if (session->response) {
-        GNUNET_log (GNUNET_ERROR_TYPE_INFO, _ ("Got session with key %s and a matching element set, processing.\n"), GNUNET_h2s (&session->key));
+      if (session->response)
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                    _ ("Got session with key %s and a matching element set, processing.\n"),
+                    GNUNET_h2s (&session->key));
         if (GNUNET_OK != compute_service_response (session, session->response)) {
           //something went wrong, remove it again...
           goto except;
         }
       }
       else
-        GNUNET_log (GNUNET_ERROR_TYPE_INFO, _ ("Got session with key %s without a matching element set, queueing.\n"), GNUNET_h2s (&session->key));
+        GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                    _("Got session with key %s without a matching element set, queueing.\n"),
+                    GNUNET_h2s (&session->key));
     }
-    else {
+    else
+    {
       // multipart message
     }
   }
@@ -2145,9 +2167,12 @@ handle_service_request (void *cls,
           +mask_length + pk_length + contained_elements * PAILLIER_ELEMENT_LENGTH;
 
   //sanity check: is the message as long as the message_count fields suggests?
-  if ((ntohs (msg->header.size) != msg_length) || (element_count < used_elements) || (used_elements < contained_elements)
-      || (used_elements == 0) || (mask_length != (element_count / 8 + (element_count % 8 ? 1 : 0)))
-      ) {
+  if ( (ntohs (msg->header.size) != msg_length) ||
+       (element_count < used_elements) ||
+       (used_elements < contained_elements) ||
+       (0 == used_elements) ||
+       (mask_length != (element_count / 8 + (element_count % 8 ? 1 : 0))) )
+  {
     GNUNET_free (session);
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
@@ -2156,8 +2181,11 @@ handle_service_request (void *cls,
                              &msg->key,
                              element_count,
                              NULL,
-                             NULL)) {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _ ("Got message with duplicate session key (`%s'), ignoring service request.\n"), (const char *) &(msg->key));
+                             NULL))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _ ("Got message with duplicate session key (`%s'), ignoring service request.\n"),
+                (const char *) &(msg->key));
     GNUNET_free (session);
     return GNUNET_SYSERR;
   }
