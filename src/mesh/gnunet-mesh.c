@@ -68,10 +68,14 @@ static char *target_id;
  */
 static uint32_t target_port;
 
+
+
 /**
  * Mesh handle.
  */
 static struct GNUNET_MESH_Handle *mh;
+
+static struct GNUNET_MESH_Channel *ch;
 
 /**
  * Shutdown task handle.
@@ -89,6 +93,11 @@ static void
 shutdown_task (void *cls,
                const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  if (NULL != ch)
+  {
+    GNUNET_MESH_channel_destroy (ch);
+    ch = NULL;
+  }
   if (NULL != mh)
   {
     GNUNET_MESH_disconnect (mh);
@@ -114,6 +123,8 @@ channel_ended (void *cls,
                void *channel_ctx)
 {
   FPRINTF (stdout, "Channel ended!\n");
+  GNUNET_break (channel == ch);
+  GNUNET_SCHEDULER_shutdown ();
 }
 
 
@@ -141,7 +152,18 @@ channel_incoming (void *cls,
                   const struct GNUNET_PeerIdentity * initiator,
                   uint32_t port, enum MeshOption options)
 {
-  FPRINTF (stdout, "Incoming channel!\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Incoming channel on port %u\n", port);
+  if (NULL != ch)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "A channel already exists\n");
+    return NULL;
+  }
+  if (0 == listen_port)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Not listening to channels\n");
+    return NULL;
+  }
+  ch = channel;
   return NULL;
 }
 
@@ -166,10 +188,39 @@ create_channel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     FPRINTF (stderr,
              _("Invalid target `%s'\n"),
              target_id);
-    GNUNET_SCHEDULER_shutdown();
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
 //   GNUNET_MESH_channel_create ()
+}
+
+
+/**
+ * Function called whenever a message is received.
+ *
+ * Each time the function must call #GNUNET_MESH_receive_done on the channel
+ * in order to receive the next message. This doesn't need to be immediate:
+ * can be delayed if some processing is done on the message.
+ *
+ * @param cls Closure (set from #GNUNET_MESH_connect).
+ * @param channel Connection to the other end.
+ * @param channel_ctx Place to store local state associated with the channel.
+ * @param message The actual message.
+ * @return #GNUNET_OK to keep the channel open,
+ *         #GNUNET_SYSERR to close it (signal serious error).
+ */
+int
+data_callback (void *cls,
+               struct GNUNET_MESH_Channel *channel,
+               void **channel_ctx,
+               const struct GNUNET_MessageHeader *message)
+{
+  int16_t len;
+  GNUNET_break (ch == channel);
+
+  len = ntohs (message->size) - sizeof (*message);
+  FPRINTF (stdout, "%.*s", len, (char *) &message[1]);
+  return GNUNET_OK;
 }
 
 
@@ -188,9 +239,9 @@ tunnels_callback (void *cls,
                   const struct GNUNET_PeerIdentity *origin,
                   const struct GNUNET_PeerIdentity *target)
 {
-  fprintf (stdout, "Tunnel %s [%u]\n",
+  FPRINTF (stdout, "Tunnel %s [%u]\n",
            GNUNET_i2s_full (origin), tunnel_number);
-  fprintf (stdout, "\n");
+  FPRINTF (stdout, "\n");
 }
 
 
@@ -296,7 +347,10 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
+  GNUNET_MESH_InboundChannelNotificationHandler *newch = NULL;
+  GNUNET_MESH_ChannelEndHandler *endch = NULL;
   static const struct GNUNET_MESH_MessageHandler handlers[] = {
+    {&data_callback, GNUNET_MESSAGE_TYPE_MESH_CLI, 0},
     {NULL, 0, 0} /* FIXME add option to monitor msg types */
   };
   /* FIXME add option to monitor apps */
@@ -320,6 +374,12 @@ run (void *cls, char *const *args, const char *cfgfile,
                 "Creating channel to %s\n",
                 target_id);
     GNUNET_SCHEDULER_add_now (&create_channel, NULL);
+    endch = &channel_ended;
+  }
+  else if (0 != listen_port)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Listen\n");
+    newch = &channel_incoming;
   }
   else if (NULL != tunnel_id)
   {
@@ -350,8 +410,8 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connecting to mesh\n");
   mh = GNUNET_MESH_connect (cfg,
                             NULL, /* cls */
-                            NULL, /* new tunnel */
-                            NULL, /* cleaner */
+                            newch, /* new channel */
+                            endch, /* cleaner */
                             handlers,
                             NULL);
   FPRINTF (stdout, "Done\n");

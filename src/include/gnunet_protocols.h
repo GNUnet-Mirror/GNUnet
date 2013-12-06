@@ -911,6 +911,11 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_CHANNEL     288
 
 /**
+ * Traffic (net-cat style) used by the Command Line Interface.
+ */
+#define GNUNET_MESSAGE_TYPE_MESH_CLI                    298
+
+/**
  * 640kb should be enough for everybody
  */
 #define GNUNET_MESSAGE_TYPE_MESH_RESERVE_END            299
