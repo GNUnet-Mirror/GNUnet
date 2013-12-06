@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#@PYTHON@
 import sys
 import getopt
 import subprocess
@@ -28,7 +28,6 @@ if __name__ == '__main__':
 	device = '/dev/video0'
 	url = ''
 	verbose = False	
-	
 	silent = False
 	# Parse arguments
 	try:
@@ -37,19 +36,21 @@ if __name__ == '__main__':
 		help ()
 		print str (e)
 		exit (1)
-
-		for o,a in opts:
-			if o in ("-h", "--help"):
-				help ()            
-				sys.exit (0)
-			elif o in ("-c", "--config"):
-				configuration = a
-			elif o in ("-d", "--device"):
-				device = a
-			elif o in ("-s", "--silent"):
-				silent = True
-			elif o in ("-v", "--verbose"):
-				silent = True				
+	print "asdsa"
+	for o,a in opts:
+		if o in ("-h", "--help"):
+			help ()            
+			sys.exit (0)
+		elif o in ("-c", "--config"):
+			configuration = a
+		elif o in ("-d", "--device"):
+			device = a
+		elif o in ("-s", "--silent"):
+			silent = True
+		elif o in ("-v", "--verbose"):
+			verbose = True			
+	id (True == verbose):
+		print 'Initializing'
 	# create a Processor
 	proc = zbar.Processor()
 
@@ -58,19 +59,24 @@ if __name__ == '__main__':
 
 	# initialize the Processor
 	try:
+		id (True == verbose):
+			print 'Opening video device ' + device
 		proc.init(device)
 	except Exception as e:
 		print 'Failed to open device ' + device
 		exit (1)
 	
 	# enable the preview window
-	if (True == silent):
-		proc.visible = True
-	else:
-		proc.visible = False
+	#if (True == silent):
+	#	proc.visible = True
+	#else:
+	#		proc.visible = False
 	
+	proc.visible = True
 	# read at least one barcode (or until window closed)
 	try:
+		id (True == verbose):
+			print 'Capturing'
 		proc.process_one()
 	except Exception as e:
 		# Window was closed without finding code
@@ -82,19 +88,20 @@ if __name__ == '__main__':
 	# extract results
 	for symbol in proc.results:
 		# do something useful with results
-		if (verbose):
+		if (True == verbose):
 			print 'Found ', symbol.type, ' symbol ', '"%s"' % symbol.data
 		args = list()
 		args.append("gnunet-uri")
 		if (configuration != ''):
-			args.append ("-c " + str(configuration))
-		args.append (url)
+			args.append (str("-c " + str(configuration)))
+		args.append (str(symbol.data))
+		cmd = ''
+		for a in args:
+			cmd += " " + str(a)
 		if (verbose):
-			for a in args:
-				cmd += str (a)
 			print 'Running ' + cmd
-			ls_output=subprocess.call(args)
-			print ls_output
-			exit (ls_output)
-		
-	
+		res=subprocess.call(args)
+		if (0 != res):
+			print 'Failed to '
+		exit (res)
+	exit (1)
