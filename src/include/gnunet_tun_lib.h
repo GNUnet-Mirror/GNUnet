@@ -530,6 +530,31 @@ struct GNUNET_TUN_DnsSrvRecord
 
 
 /**
+ * Payload of DNS CERT record.
+ */
+struct GNUNET_TUN_DnsCertRecord
+{
+
+  /**
+   * Certificate type
+   */
+  uint16_t cert_type;
+
+  /**
+   * Certificate KeyTag
+   */
+  uint16_t cert_tag;
+
+  /**
+   * Algorithm
+   */
+  uint8_t algorithm;
+
+  /* Followed by the certificate */
+};
+
+
+/**
  * Payload of DNSSEC TLSA record.
  * http://datatracker.ietf.org/doc/draft-ietf-dane-protocol/
  */
@@ -593,6 +618,7 @@ struct GNUNET_TUN_GnsVpnRecord
 
   /* followed by the servicename */
 };
+
 
 /**
  * DNS query prefix.
@@ -658,16 +684,19 @@ struct GNUNET_TUN_DnsRecordLine
 /**
  * ICMP header.
  */
-struct GNUNET_TUN_IcmpHeader {
+struct GNUNET_TUN_IcmpHeader
+{
   uint8_t type;
   uint8_t code;
   uint16_t crc GNUNET_PACKED;
 
-  union {
+  union
+  {
     /**
      * ICMP Echo (request/reply)
      */
-    struct {
+    struct
+    {
       uint16_t	identifier GNUNET_PACKED;
       uint16_t	sequence_number GNUNET_PACKED;
     } echo;
@@ -675,7 +704,8 @@ struct GNUNET_TUN_IcmpHeader {
     /**
      * ICMP Destination Unreachable (RFC 1191)
      */
-    struct ih_pmtu {
+    struct ih_pmtu
+    {
       uint16_t empty GNUNET_PACKED;
       uint16_t next_hop_mtu GNUNET_PACKED;
       /* followed by original IP header + first 8 bytes of original IP datagram */

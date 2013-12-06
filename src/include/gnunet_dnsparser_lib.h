@@ -53,6 +53,7 @@
 #define GNUNET_DNSPARSER_TYPE_TXT 16
 #define GNUNET_DNSPARSER_TYPE_AAAA 28
 #define GNUNET_DNSPARSER_TYPE_SRV 33
+#define GNUNET_DNSPARSER_TYPE_CERT 37
 #define GNUNET_DNSPARSER_TYPE_TLSA 52
 
 
@@ -178,6 +179,171 @@ struct GNUNET_DNSPARSER_SrvRecord
 
 
 /**
+ * DNS CERT types as defined in RFC 4398.
+ */
+enum GNUNET_DNSPARSER_CertType
+{
+  /**
+   *  Reserved value
+   */
+  GNUNET_DNSPARSER_CERTTYPE_RESERVED = 0,
+
+  /**
+   * An x509 PKIX certificate
+   */
+  GNUNET_DNSPARSER_CERTTYPE_PKIX = 1,
+
+  /**
+   * A SKPI certificate
+   */
+  GNUNET_DNSPARSER_CERTTYPE_SKPI = 2,
+
+  /**
+   * A PGP certificate
+   */
+  GNUNET_DNSPARSER_CERTTYPE_PGP = 3,
+
+  /**
+   * An x509 PKIX cert URL
+   */
+  GNUNET_DNSPARSER_CERTTYPE_IPKIX = 4,
+
+  /**
+   * A SKPI cert URL
+   */
+  GNUNET_DNSPARSER_CERTTYPE_ISKPI = 5,
+
+  /**
+   * A PGP cert fingerprint and URL
+   */
+  GNUNET_DNSPARSER_CERTTYPE_IPGP = 6,
+
+  /**
+   * An attribute Certificate
+   */
+  GNUNET_DNSPARSER_CERTTYPE_ACPKIX = 7,
+
+  /**
+   * An attribute cert URL
+   */
+  GNUNET_DNSPARSER_CERTTYPE_IACKPIX = 8
+};
+
+
+/**
+ * DNSCERT algorithms as defined in http://www.iana.org/assignments/
+ *  dns-sec-alg-numbers/dns-sec-alg-numbers.xhtml#dns-sec-alg-numbers-1
+ */
+enum GNUNET_DNSPARSER_CertAlgorithm
+{
+  /**
+   * No defined
+   */
+  GNUNET_DNSPARSER_CERTALGO_UNDEFINED = 0,
+
+  /**
+   * RSA/MD5
+   */
+  GNUNET_DNSPARSER_CERTALGO_RSAMD5 = 1,
+
+  /**
+   * Diffie-Hellman
+   */
+  GNUNET_DNSPARSER_CERTALGO_DH = 2,
+
+  /**
+   * DSA/SHA1
+   */
+  GNUNET_DNSPARSER_CERTALGO_DSASHA = 3,
+
+  /**
+   * Reserved
+   */
+  GNUNET_DNSPARSER_CERTALGO_RSRVD4 = 4,
+
+  /**
+   * RSA/SHA1
+   */
+  GNUNET_DNSPARSER_CERTALGO_RSASHA = 5,
+
+  /**
+   * DSA/NSEC3/SHA
+   */
+  GNUNET_DNSPARSER_CERTALGO_DSANSEC3 = 6,
+
+  /**
+   * RSA/NSEC3/SHA
+   */
+  GNUNET_DNSPARSER_CERTALGO_RSANSEC3 = 7,
+
+  /**
+   * RSA/SHA256
+   */
+  GNUNET_DNSPARSER_CERTALGO_RSASHA256 = 8,
+
+  /**
+   * Reserved
+   */
+  GNUNET_DNSPARSER_CERTALGO_RSRVD9 = 9,
+
+  /**
+   * RSA/SHA512
+   */
+  GNUNET_DNSPARSER_CERTALGO_RSASHA512 = 10,
+
+  /**
+   * GOST R 34.10-2001
+   */
+  GNUNET_DNSPARSER_CERTALGO_GOST_R34 = 12,
+
+  /**
+   * ECDSA Curve P-256/SHA256
+   */
+  GNUNET_DNSPARSER_CERTALGO_ECDSA_P256SHA256 = 13,
+
+  /**
+   * ECDSA Curve P-384/SHA384
+   */
+  GNUNET_DNSPARSER_CERTALGO_ECDSA_P384SHA384 = 14
+
+};
+
+
+/**
+ * Information from CERT records (RFC 4034).
+ */
+struct GNUNET_DNSPARSER_CertRecord
+{
+
+  /**
+   * Certificate type
+   */
+  enum GNUNET_DNSPARSER_CertType cert_type;
+
+  /**
+   * Certificate KeyTag
+   */
+  uint16_t cert_tag;
+
+  /**
+   * Algorithm
+   */
+  enum GNUNET_DNSPARSER_CertAlgorithm algorithm;
+
+  /**
+   * Number of bytes in @e certificate_data
+   */
+  size_t certificate_size;
+
+  /**
+   * Data of the certificate.
+   */
+  char *certificate_data;
+
+};
+
+
+/**
  * Information from SOA records (RFC 1035).
  */
 struct GNUNET_DNSPARSER_SoaRecord
@@ -286,6 +452,11 @@ struct GNUNET_DNSPARSER_Record
      * SOA data for SOA records.
      */
     struct GNUNET_DNSPARSER_SoaRecord *soa;
+
+    /**
+     * CERT data for CERT records.
+     */
+    struct GNUNET_DNSPARSER_CertRecord *cert;
 
     /**
      * MX data for MX records.
@@ -528,6 +699,25 @@ GNUNET_DNSPARSER_builder_add_soa (char *dst,
 
 
 /**
+ * Add CERT record to the UDP packet at the given location.
+ *
+ * @param dst where to write the CERT record
+ * @param dst_len number of bytes in @a dst
+ * @param off pointer to offset where to write the CERT information (increment by bytes used)
+ *            can also change if there was an error
+ * @param cert CERT information to write
+ * @return #GNUNET_SYSERR if @a soa is invalid
+ *         #GNUNET_NO if @a soa did not fit
+ *         #GNUNET_OK if @a soa was added to @a dst
+ */
+int
+GNUNET_DNSPARSER_builder_add_cert (char *dst,
+                                   size_t dst_len,
+                                   size_t *off,
+                                   const struct GNUNET_DNSPARSER_CertRecord *cert);
+
+
+/**
  * Add an SRV record to the UDP packet at the given location.
  *
  * @param dst where to write the SRV record
@@ -595,6 +785,7 @@ GNUNET_DNSPARSER_parse_query (const char *udp_payload,
 			      size_t *off,
 			      struct GNUNET_DNSPARSER_Query *q);
 
+
 /**
  * Parse a DNS SOA record.
  *
@@ -608,6 +799,21 @@ struct GNUNET_DNSPARSER_SoaRecord *
 GNUNET_DNSPARSER_parse_soa (const char *udp_payload,
 			    size_t udp_payload_length,
 			    size_t *off);
+
+
+/**
+ * Parse a DNS CERT record.
+ *
+ * @param udp_payload reference to UDP packet
+ * @param udp_payload_length length of @a udp_payload
+ * @param off pointer to the offset of the query to parse in the CERT record (to be
+ *                    incremented by the size of the record), unchanged on error
+ * @return the parsed CERT record, NULL on error
+ */
+struct GNUNET_DNSPARSER_CertRecord *
+GNUNET_DNSPARSER_parse_cert (const char *udp_payload,
+                             size_t udp_payload_length,
+                             size_t *off);
 
 
 /**
@@ -677,6 +883,15 @@ GNUNET_DNSPARSER_free_srv (struct GNUNET_DNSPARSER_SrvRecord *srv);
  */
 void
 GNUNET_DNSPARSER_free_soa (struct GNUNET_DNSPARSER_SoaRecord *soa);
+
+
+/**
+ * Free CERT information record.
+ *
+ * @param cert record to free
+ */
+void
+GNUNET_DNSPARSER_free_cert (struct GNUNET_DNSPARSER_CertRecord *cert);
 
 
 #endif

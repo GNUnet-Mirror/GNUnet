@@ -118,6 +118,21 @@ GNUNET_DNSPARSER_free_soa (struct GNUNET_DNSPARSER_SoaRecord *soa)
 
 
 /**
+ * Free CERT information record.
+ *
+ * @param cert record to free
+ */
+void
+GNUNET_DNSPARSER_free_cert (struct GNUNET_DNSPARSER_CertRecord *cert)
+{
+  if (NULL == cert)
+    return;
+  GNUNET_free_non_null (cert->certificate_data);
+  GNUNET_free (cert);
+}
+
+
+/**
  * Free SRV information record.
  *
  * @param srv record to free
@@ -169,6 +184,9 @@ GNUNET_DNSPARSER_free_record (struct GNUNET_DNSPARSER_Record *r)
     break;
   case GNUNET_DNSPARSER_TYPE_SRV:
     GNUNET_DNSPARSER_free_srv (r->data.srv);
+    break;
+  case GNUNET_DNSPARSER_TYPE_CERT:
+    GNUNET_DNSPARSER_free_cert (r->data.cert);
     break;
   case GNUNET_DNSPARSER_TYPE_NS:
   case GNUNET_DNSPARSER_TYPE_CNAME:
@@ -545,6 +563,44 @@ GNUNET_DNSPARSER_parse_srv (const char *r_name,
 
 
 /**
+ * Parse a DNS CERT record.
+ *
+ * @param udp_payload reference to UDP packet
+ * @param udp_payload_length length of @a udp_payload
+ * @param off pointer to the offset of the query to parse in the CERT record (to be
+ *                    incremented by the size of the record), unchanged on error
+ * @return the parsed CERT record, NULL on error
+ */
+struct GNUNET_DNSPARSER_CertRecord *
+GNUNET_DNSPARSER_parse_cert (const char *udp_payload,
+                             size_t udp_payload_length,
+                             size_t *off)
+{
+  struct GNUNET_DNSPARSER_CertRecord *cert;
+  struct GNUNET_TUN_DnsCertRecord dcert;
+
+  if (*off + sizeof (struct GNUNET_TUN_DnsCertRecord) >= udp_payload_length)
+  {
+    GNUNET_break_op (0);
+    return NULL;
+  }
+  memcpy (&dcert, &udp_payload[*off], sizeof (struct GNUNET_TUN_DnsCertRecord));
+  (*off) += sizeof (sizeof (struct GNUNET_TUN_DnsCertRecord));
+  cert = GNUNET_new (struct GNUNET_DNSPARSER_CertRecord);
+  cert->cert_type = ntohs (dcert.cert_type);
+  cert->cert_tag = ntohs (dcert.cert_tag);
+  cert->algorithm = dcert.algorithm;
+  cert->certificate_size = udp_payload_length - (*off);
+  cert->certificate_data = GNUNET_malloc (cert->certificate_size);
+  memcpy (cert->certificate_data,
+          &udp_payload[*off],
+          cert->certificate_size);
+  (*off) += cert->certificate_size;
+  return cert;
+}
+
+
+/**
  * Parse a DNS record entry.
  *
  * @param udp_payload entire UDP payload
@@ -905,6 +961,46 @@ GNUNET_DNSPARSER_builder_add_mx (char *dst,
 
 
 /**
+ * Add a CERT record to the UDP packet at the given location.
+ *
+ * @param dst where to write the CERT record
+ * @param dst_len number of bytes in @a dst
+ * @param off pointer to offset where to write the CERT information (increment by bytes used);
+ *            can also change if there was an error
+ * @param cert CERT information to write
+ * @return #GNUNET_SYSERR if @a cert is invalid
+ *         #GNUNET_NO if @a cert did not fit
+ *         #GNUNET_OK if @a cert was added to @a dst
+ */
+int
+GNUNET_DNSPARSER_builder_add_cert (char *dst,
+                                   size_t dst_len,
+                                   size_t *off,
+                                   const struct GNUNET_DNSPARSER_CertRecord *cert)
+{
+  struct GNUNET_TUN_DnsCertRecord dcert;
+
+  if ( (cert->cert_type > UINT16_MAX) ||
+       (cert->cert_tag > UINT16_MAX) ||
+       (cert->algorithm > UINT8_MAX) )
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  if (*off + sizeof (struct GNUNET_TUN_DnsCertRecord) + cert->certificate_size > dst_len)
+    return GNUNET_NO;
+  dcert.cert_type = htons ((uint16_t) cert->cert_type);
+  dcert.cert_tag = htons ((uint16_t) cert->cert_tag);
+  dcert.algorithm = (uint8_t) cert->algorithm;
+  memcpy (&dst[*off], &dcert, sizeof (dcert));
+  (*off) += sizeof (dcert);
+  memcpy (&dst[*off], cert->certificate_data, cert->certificate_size);
+  (*off) += cert->certificate_size;
+  return GNUNET_OK;
+}
+
+
+/**
  * Add an SOA record to the UDP packet at the given location.
  *
  * @param dst where to write the SOA record
@@ -926,13 +1022,13 @@ GNUNET_DNSPARSER_builder_add_soa (char *dst,
   int ret;
 
   if ( (GNUNET_OK != (ret = GNUNET_DNSPARSER_builder_add_name (dst,
-				      dst_len,
-				      off,
-				      soa->mname))) ||
+                                                               dst_len,
+                                                               off,
+                                                               soa->mname))) ||
        (GNUNET_OK != (ret = GNUNET_DNSPARSER_builder_add_name (dst,
-				      dst_len,
-				      off,
-				      soa->rname)) ) )
+                                                               dst_len,
+                                                               off,
+                                                               soa->rname)) ) )
     return ret;
   if (*off + sizeof (struct GNUNET_TUN_DnsSoaRecord) > dst_len)
     return GNUNET_NO;
@@ -1031,6 +1127,9 @@ add_record (char *dst,
   {
   case GNUNET_DNSPARSER_TYPE_MX:
     ret = GNUNET_DNSPARSER_builder_add_mx (dst, dst_len, &pos, record->data.mx);
+    break;
+  case GNUNET_DNSPARSER_TYPE_CERT:
+    ret = GNUNET_DNSPARSER_builder_add_cert (dst, dst_len, &pos, record->data.cert);
     break;
   case GNUNET_DNSPARSER_TYPE_SOA:
     ret = GNUNET_DNSPARSER_builder_add_soa (dst, dst_len, &pos, record->data.soa);
