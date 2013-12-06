@@ -68,6 +68,10 @@ static char *target_id;
  */
 static uint32_t target_port;
 
+/**
+ * Data pending in netcat mode.
+ */
+size_t data_size;
 
 
 /**
@@ -75,12 +79,22 @@ static uint32_t target_port;
  */
 static struct GNUNET_MESH_Handle *mh;
 
+/**
+ * Channel handle.
+ */
 static struct GNUNET_MESH_Channel *ch;
 
 /**
  * Shutdown task handle.
  */
 GNUNET_SCHEDULER_TaskIdentifier sd;
+
+
+
+void
+listen_stdio (void);
+
+
 
 /**
  * Task run in monitor mode when the user presses CTRL-C to abort.
@@ -103,6 +117,86 @@ shutdown_task (void *cls,
     GNUNET_MESH_disconnect (mh);
         mh = NULL;
   }
+}
+
+
+/**
+ * Function called to notify a client about the connection
+ * begin ready to queue more data.  "buf" will be
+ * NULL and "size" zero if the connection was closed for
+ * writing in the meantime.
+ *
+ * FIXME
+ *
+ * @param cls closure
+ * @param size number of bytes available in buf
+ * @param buf where the callee should write the message
+ * @return number of bytes written to buf
+ */
+size_t
+data_ready (void *cls, size_t size, void *buf)
+{
+  struct GNUNET_MessageHeader *msg;
+  size_t total_size;
+
+  if (NULL == buf || 0 == size)
+  {
+    GNUNET_SCHEDULER_shutdown();
+    return 0;
+  }
+
+  total_size = data_size + sizeof (struct GNUNET_MessageHeader);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "sending %u bytes\n", data_size);
+  GNUNET_assert (size >= total_size);
+
+  msg = buf;
+  msg->size = ntohs (total_size);
+  msg->type = ntohs (GNUNET_MESSAGE_TYPE_MESH_CLI);
+  memcpy (&msg[1], cls, data_size);
+  listen_stdio ();
+
+  return total_size;
+}
+
+
+/**
+ * Task run in monitor mode when the user presses CTRL-C to abort.
+ * Stops monitoring activity.
+ *
+ * @param cls Closure (unused).
+ * @param tc scheduler context
+ */
+static void
+read_stdio (void *cls,
+            const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  char buf[60000];
+
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+  {
+    return;
+  }
+
+  data_size = read (2, buf, 60000);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "stdio read %u bytes\n", data_size);
+  GNUNET_MESH_notify_transmit_ready (ch, GNUNET_NO,
+                                     GNUNET_TIME_UNIT_FOREVER_REL,
+                                     data_size
+                                     + sizeof (struct GNUNET_MessageHeader),
+                                     &data_ready, buf);
+}
+
+void
+listen_stdio (void)
+{
+  struct GNUNET_NETWORK_FDSet *rs;
+
+  rs = GNUNET_NETWORK_fdset_create ();
+  GNUNET_NETWORK_fdset_set_native (rs, 2);
+  GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+                               GNUNET_TIME_UNIT_FOREVER_REL,
+                               rs, NULL,
+                               &read_stdio, NULL);
 }
 
 
@@ -153,7 +247,9 @@ channel_incoming (void *cls,
                   const struct GNUNET_PeerIdentity * initiator,
                   uint32_t port, enum MeshOption options)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Incoming channel %p on port %u\n", channel, port);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Incoming channel %p on port %u\n",
+              channel, port);
   if (NULL != ch)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "A channel already exists\n");
@@ -165,6 +261,7 @@ channel_incoming (void *cls,
     return NULL;
   }
   ch = channel;
+  listen_stdio ();
   return NULL;
 }
 
@@ -197,6 +294,7 @@ create_channel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connecting to `%s'\n", target_id);
   ch = GNUNET_MESH_channel_create (mh, NULL, &pid, target_port,
                                    GNUNET_MESH_OPTION_DEFAULT);
+  listen_stdio ();
 }
 
 
@@ -224,6 +322,7 @@ data_callback (void *cls,
   GNUNET_break (ch == channel);
 
   len = ntohs (message->size) - sizeof (*message);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got %u bytes\n", len);
   FPRINTF (stdout, "%.*s", len, (char *) &message[1]);
   return GNUNET_OK;
 }
