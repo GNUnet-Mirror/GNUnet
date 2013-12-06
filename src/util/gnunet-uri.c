@@ -26,11 +26,10 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 
-
 /**
- * Global return value.
+ * Handler exit code
  */
-static int ret = 1;
+static long unsigned int exit_code = 1;
 
 /**
  * Helper process we started.
@@ -54,14 +53,9 @@ static void
 maint_child_death (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   enum GNUNET_OS_ProcessStatusType type;
-  unsigned long code;
-
-  if ( (GNUNET_OK ==
-	GNUNET_OS_process_status (p, &type, &code)) &&
-       (type == GNUNET_OS_PROCESS_EXITED) &&
-       (0 == code) )
-    ret = 0;
-  else
+  if ( (GNUNET_OK !=
+	GNUNET_OS_process_status (p, &type, &exit_code)) ||
+       (type != GNUNET_OS_PROCESS_EXITED) )
     GNUNET_break (0 == GNUNET_OS_process_kill (p, GNUNET_TERM_SIG));
   GNUNET_OS_process_destroy (p);
 }
@@ -178,7 +172,7 @@ main (int argc, char *const *argv)
   GNUNET_DISK_pipe_close (sigpipe);
   sigpipe = NULL;
   GNUNET_free ((void *) argv);
-  return (GNUNET_OK == ret) ? 0 : 1;
+  return ((GNUNET_OK == ret) && (0 == exit_code)) ? 0 : 1;
 }
 
 /* end of gnunet-uri.c */
