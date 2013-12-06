@@ -98,6 +98,19 @@ shutdown_task (void *cls,
 
 
 /**
+ * Call MESH's monitor API, get info of one connection.
+ *
+ * @param cls Closure (unused).
+ * @param tc TaskContext
+ */
+static void
+create_channel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+
+}
+
+
+/**
  * Method called to retrieve information about each tunnel the mesh peer
  * is aware of.
  *
@@ -169,17 +182,74 @@ show_tunnel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if (GNUNET_OK !=
       GNUNET_CRYPTO_eddsa_public_key_from_string (tunnel_id,
-						     strlen (tunnel_id),
-						     &pid.public_key))
+                                                  strlen (tunnel_id),
+                                                  &pid.public_key))
   {
     fprintf (stderr,
-	     _("Invalid tunnel owner `%s'\n"),
-	     tunnel_id);
+             _("Invalid tunnel owner `%s'\n"),
+             tunnel_id);
     GNUNET_SCHEDULER_shutdown();
     return;
   }
 //   GNUNET_MESH_show_tunnel (mh, &pid, 0, tunnel_callback, NULL);
 }
+
+
+/**
+ * Call MESH's monitor API, get info of one channel.
+ *
+ * @param cls Closure (unused).
+ * @param tc TaskContext
+ */
+static void
+show_channel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+
+}
+
+
+/**
+ * Call MESH's monitor API, get info of one connection.
+ *
+ * @param cls Closure (unused).
+ * @param tc TaskContext
+ */
+static void
+show_connection (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+
+}
+
+
+
+/**
+ * Method called whenever another peer has added us to a channel
+ * the other peer initiated.
+ * Only called (once) upon reception of data with a message type which was
+ * subscribed to in #GNUNET_MESH_connect.
+ *
+ * A call to #GNUNET_MESH_channel_destroy causes te channel to be ignored. In
+ * this case the handler MUST return NULL.
+ *
+ * @param cls closure
+ * @param channel new handle to the channel
+ * @param initiator peer that started the channel
+ * @param port Port this channel is for.
+ * @param options MeshOption flag field, with all active option bits set to 1.
+ *
+ * @return initial channel context for the channel
+ *         (can be NULL -- that's not an error)
+ */
+void *
+incoming_channel (void *cls,
+                  struct GNUNET_MESH_Channel * channel,
+                  const struct GNUNET_PeerIdentity * initiator,
+                  uint32_t port, enum MeshOption options)
+{
+  FPRINTF (stdout, "Incoming channel!\n");
+  return NULL;
+}
+
 
 
 /**
@@ -198,11 +268,6 @@ run (void *cls, char *const *args, const char *cfgfile,
     {NULL, 0, 0} /* FIXME add option to monitor msg types */
   };
   /* FIXME add option to monitor apps */
-  int i;
-  for (i = 0; args[i]; i++)
-  {
-    FPRINTF (stderr, "Parameter %u `%s'\n", i, args[i]);
-  }
 
   target_id = args[0];
   target_port = args[0] && args[1] ? atoi(args[1]) : 0;
@@ -216,22 +281,54 @@ run (void *cls, char *const *args, const char *cfgfile,
     FPRINTF (stderr, _("You must NOT give a TARGET when using options\n"));
     return;
   }
+
+  if (NULL != target_id)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Creating channel to %s\n",
+                target_id);
+    GNUNET_SCHEDULER_add_now (&create_channel, NULL);
+  }
+  else if (NULL != tunnel_id)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Show tunnel\n");
+    GNUNET_SCHEDULER_add_now (&show_tunnel, NULL);
+  }
+  else if (NULL != channel_id)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Show channel\n");
+    GNUNET_SCHEDULER_add_now (&show_channel, NULL);
+  }
+  else if (NULL != conn_id)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Show connection\n");
+    GNUNET_SCHEDULER_add_now (&show_connection, NULL);
+  }
+  else if (GNUNET_YES == get_info)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Show all tunnels\n");
+    GNUNET_SCHEDULER_add_now (&get_tunnels, NULL);
+  }
+  else
+  {
+    FPRINTF (stderr, "No action requested\n");
+    return;
+  }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connecting to mesh\n");
   mh = GNUNET_MESH_connect (cfg,
                             NULL, /* cls */
                             NULL, /* new tunnel */
                             NULL, /* cleaner */
                             handlers,
                             NULL);
+  FPRINTF (stdout, "Done\n");
   if (NULL == mh)
     GNUNET_SCHEDULER_add_now (shutdown_task, NULL);
   else
     sd = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                        shutdown_task, NULL);
 
-  if (NULL != tunnel_id)
-    GNUNET_SCHEDULER_add_now (&show_tunnel, NULL);
-  else
-    GNUNET_SCHEDULER_add_now (&get_tunnels, NULL);
 }
 
 
@@ -247,24 +344,24 @@ main (int argc, char *const *argv)
 {
   int res;
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    {'m', "monitor", NULL,
-     gettext_noop ("provide information about all tunnels (continuously) NOT IMPLEMENTED"), /* FIXME */
-     GNUNET_NO, &GNUNET_GETOPT_set_one, &monitor_connections},
-    {'i', "info", NULL,
-     gettext_noop ("provide information about all tunnels"),
-     GNUNET_NO, &GNUNET_GETOPT_set_one, &get_info},
-    {'p', "port", NULL,
-     gettext_noop ("listen on this port"),
-     GNUNET_NO, &GNUNET_GETOPT_set_uint, &listen_port},
-    {'t', "tunnel", "TUNNEL_ID",
-     gettext_noop ("provide information about a particular tunnel"),
-     GNUNET_YES, &GNUNET_GETOPT_set_string, &tunnel_id},
-    {'n', "connection", "TUNNEL_ID:CONNECTION_ID",
-     gettext_noop ("provide information about a particular connection"),
-     GNUNET_YES, &GNUNET_GETOPT_set_string, &conn_id},
     {'a', "channel", "TUNNEL_ID:CHANNEL_ID",
      gettext_noop ("provide information about a particular channel"),
      GNUNET_YES, &GNUNET_GETOPT_set_string, &channel_id},
+    {'b', "connection", "TUNNEL_ID:CONNECTION_ID",
+     gettext_noop ("provide information about a particular connection"),
+     GNUNET_YES, &GNUNET_GETOPT_set_string, &conn_id},
+    {'i', "info", NULL,
+     gettext_noop ("provide information about all tunnels"),
+     GNUNET_NO, &GNUNET_GETOPT_set_one, &get_info},
+    {'m', "monitor", NULL,
+     gettext_noop ("provide information about all tunnels (continuously) NOT IMPLEMENTED"), /* FIXME */
+     GNUNET_NO, &GNUNET_GETOPT_set_one, &monitor_connections},
+    {'p', "port", NULL,
+     gettext_noop ("port to listen to (default; 0)"),
+     GNUNET_YES, &GNUNET_GETOPT_set_uint, &listen_port},
+    {'t', "tunnel", "TUNNEL_ID",
+     gettext_noop ("provide information about a particular tunnel"),
+     GNUNET_YES, &GNUNET_GETOPT_set_string, &tunnel_id},
     GNUNET_GETOPT_OPTION_END
   };
 
