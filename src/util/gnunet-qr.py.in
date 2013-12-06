@@ -1,6 +1,7 @@
-#!@PYTHON@
+#!/usr/bin/python
 import sys
 import getopt
+import subprocess
 from sys import argv
 try:
     import zbar
@@ -16,6 +17,7 @@ Arguments mandatory for long options are also mandatory for short options.\n\
   -d, --device=DEVICE        use device DEVICE\n\
   -s, --silent               do not show preview windows\n\
   -h, --help                 print this help\n\
+  -v, --verbose							 be verbose\n\
 Report bugs to gnunet-developers@gnu.org.\n\
 GNUnet home page: http://www.gnu.org/software/gnunet/\n\
 General help using GNU software: http://www.gnu.org/gethelp/'
@@ -24,10 +26,13 @@ General help using GNU software: http://www.gnu.org/gethelp/'
 if __name__ == '__main__':
 	configuration = ''
 	device = '/dev/video0'
+	url = ''
+	verbose = False	
+	
 	silent = False
 	# Parse arguments
 	try:
-		opts, args = getopt.gnu_getopt(sys.argv[1:], "c:hd:s", ["config","help", "device","silent"])
+		opts, args = getopt.gnu_getopt(sys.argv[1:], "c:hd:sv", ["config","help", "device","silent","verbose"])
 	except getopt.GetoptError as e:
 		help ()
 		print str (e)
@@ -43,6 +48,8 @@ if __name__ == '__main__':
 				device = a
 			elif o in ("-s", "--silent"):
 				silent = True
+			elif o in ("-v", "--verbose"):
+				silent = True				
 	# create a Processor
 	proc = zbar.Processor()
 
@@ -58,9 +65,9 @@ if __name__ == '__main__':
 	
 	# enable the preview window
 	if (True == silent):
-		proc.visible = False
-	else:
 		proc.visible = True
+	else:
+		proc.visible = False
 	
 	# read at least one barcode (or until window closed)
 	try:
@@ -74,5 +81,20 @@ if __name__ == '__main__':
 	
 	# extract results
 	for symbol in proc.results:
-	# do something useful with results
-		print 'Found ', symbol.type, ' symbol ', '"%s"' % symbol.data
+		# do something useful with results
+		if (verbose):
+			print 'Found ', symbol.type, ' symbol ', '"%s"' % symbol.data
+		args = list()
+		args.append("gnunet-uri")
+		if (configuration != ''):
+			args.append ("-c " + str(configuration))
+		args.append (url)
+		if (verbose):
+			for a in args:
+				cmd += str (a)
+			print 'Running ' + cmd
+			ls_output=subprocess.call(args)
+			print ls_output
+			exit (ls_output)
+		
+	
