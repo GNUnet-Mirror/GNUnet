@@ -1040,7 +1040,7 @@ check_possible_route (void *cls,
 						    route,
 						    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   send_connect_to_plugin (&route->target.peer, ntohl (target->distance),
-      neighbor->network);
+                          neighbor->network);
   return GNUNET_YES;
 }
 
@@ -1148,9 +1148,9 @@ get_atsi_network (const struct GNUNET_ATS_Information *atsi,
  *
  * @param cls the direct neighbor that is now unavailable
  * @param key key value stored under
- * @param value a 'struct Route' that may or may not go via neighbor
+ * @param value a `struct Route` that may or may not go via neighbor
  *
- * @return GNUNET_YES to continue iteration, GNUNET_NO to stop
+ * @return #GNUNET_YES to continue iteration, #GNUNET_NO to stop
  */
 static int
 cull_routes (void *cls,
@@ -1247,7 +1247,7 @@ handle_direct_disconnect (struct DirectNeighbor *neighbor)
  * @param bandwidth_out assigned outbound bandwidth for the connection
  * @param bandwidth_in assigned inbound bandwidth for the connection
  * @param ats performance data for the address (as far as known)
- * @param ats_count number of performance records in 'ats'
+ * @param ats_count number of performance records in @a ats
  */
 static void
 handle_ats_update (void *cls,
@@ -1319,9 +1319,9 @@ handle_ats_update (void *cls,
  * if we also used it for our route, we need to remove it from our
  * 'all_routes' set (and later check if an alternative path now exists).
  *
- * @param cls the 'struct DirectNeighbor'
+ * @param cls the `struct DirectNeighbor`
  * @param key peer identity for the target
- * @param value a 'struct Target' previously reachable via the given neighbor
+ * @param value a `struct Target` previously reachable via the given neighbor
  */
 static int
 check_target_removed (void *cls,
@@ -1364,9 +1364,9 @@ check_target_removed (void *cls,
  * Check if a target was added to the set of the other peer; if it
  * was added or impoves the existing route, do the needed updates.
  *
- * @param cls the 'struct DirectNeighbor'
+ * @param cls the `struct DirectNeighbor`
  * @param key peer identity for the target
- * @param value a 'struct Target' now reachable via the given neighbor
+ * @param value a `struct Target` now reachable via the given neighbor
  */
 static int
 check_target_added (void *cls,
@@ -1436,8 +1436,8 @@ check_target_added (void *cls,
  * We have learned a new route from the other peer.  Add it to the
  * route set we're building.
  *
- * @param cls the 'struct DirectNeighbor' we're building the consensus with
- * @param element a result element, only valid if status is GNUNET_SET_STATUS_OK
+ * @param cls the `struct DirectNeighbor` we're building the consensus with
+ * @param element a result element, only valid if status is #GNUNET_SET_STATUS_OK
  * @param status see enum GNUNET_SET_Status
  */
 static void
@@ -1659,7 +1659,7 @@ initiate_set_union (void *cls,
  * @param cls closure
  * @param peer peer which sent the message (immediate sender)
  * @param message the message
- * @return GNUNET_OK on success, GNUNET_SYSERR if the other peer violated the protocol
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR if the other peer violated the protocol
  */
 static int
 handle_dv_route_message (void *cls, const struct GNUNET_PeerIdentity *peer,
