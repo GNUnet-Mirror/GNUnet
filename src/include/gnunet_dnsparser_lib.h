@@ -232,7 +232,7 @@ enum GNUNET_DNSPARSER_CertType
 
 /**
  * DNSCERT algorithms as defined in http://www.iana.org/assignments/
- *  dns-sec-alg-numbers/dns-sec-alg-numbers.xhtml#dns-sec-alg-numbers-1
+ *  dns-sec-alg-numbers/dns-sec-alg-numbers.xhtml, under dns-sec-alg-numbers-1
  */
 enum GNUNET_DNSPARSER_CertAlgorithm
 {

@@ -1330,22 +1330,20 @@ GNUNET_OS_start_process_v (int pipe_control,
 
 /**
  * Start a process.  This function is similar to the GNUNET_OS_start_process_*
- * except that the @a filename and @argv can have whole strings which contain
+ * except that the filename and arguments can have whole strings which contain
  * the arguments.  These arguments are to be separated by spaces and are parsed
- * in the order they appear.  Arguments containing spaces can be used by 
+ * in the order they appear.  Arguments containing spaces can be used by
  * quoting them with @em ".
  *
  * @param pipe_control should a pipe be used to send signals to the child?
  * @param std_inheritance a set of GNUNET_OS_INHERIT_STD_* flags
  * @param lsocks array of listen sockets to dup systemd-style (or NULL);
  *         must be NULL on platforms where dup is not supported
- * @param filename name of the binary.  It is valid to have the arguments
+ * @param first_arg name of the binary.  It is valid to have the arguments
  *         in this string when they are separated by spaces.
- * @param ... more arguments.  Should be of type <tt>char *</tt>.  It is valid
+ * @param ... more arguments.  Should be of type `char *`.  It is valid
  *         to have the arguments in these strings when they are separated by
  *         spaces.
- * @param argv NULL-terminated list of arguments to the process,
- *             including the process name as the first argument
  * @return pointer to process structure of the new process, NULL on error
  */
 struct GNUNET_OS_Process *
@@ -1384,7 +1382,7 @@ GNUNET_OS_start_process_s (int pipe_control,
 	  quote_on = 0;
 	else
 	  quote_on = 1;
-      }	
+      }
       if ( (' ' == *rpos) && (0 == quote_on) )
       {
 	if (NULL != last)
@@ -1416,7 +1414,7 @@ GNUNET_OS_start_process_s (int pipe_control,
     quote_on = 0;
     pos = cp;
     while ('\0' != *pos)
-    {	
+    {
       if ('"' == *pos)
       {
 	if (1 == quote_on)
@@ -1447,14 +1445,14 @@ GNUNET_OS_start_process_s (int pipe_control,
   while (NULL != (arg = (va_arg (ap, const char*))));
   va_end (ap);
   argv[argv_size] = NULL;
-  
+
   for(i = 0; i < argv_size; i++)
   {
     len = strlen (argv[i]);
     if ( (argv[i][0] == '"') && (argv[i][len-1] == '"'))
     {
       memmove (&argv[i][0], &argv[i][1], len - 2);
-      argv[i][len-2] = '\0';  
+      argv[i][len-2] = '\0';
     }
   }
   binary_path = argv[0];
