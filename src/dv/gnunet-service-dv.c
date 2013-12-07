@@ -349,7 +349,7 @@ static struct GNUNET_CONTAINER_MultiPeerMap *all_routes;
  * Array of consensus sets we expose to the outside world.  Sets
  * are structured by the distance to the target.
  */
-static struct ConsensusSet consensi[DEFAULT_FISHEYE_DEPTH - 1];
+static struct ConsensusSet consensi[DEFAULT_FISHEYE_DEPTH];
 
 /**
  * Handle to the core service api.
@@ -485,7 +485,7 @@ send_control_to_plugin (const struct GNUNET_MessageHeader *message)
  *
  * @param target peer that received the message
  * @param uid plugin-chosen UID for the message
- * @param nack GNUNET_NO to send ACK, GNUNET_YES to send NACK
+ * @param nack #GNUNET_NO to send ACK, #GNUNET_YES to send NACK
  */
 static void
 send_ack_to_plugin (const struct GNUNET_PeerIdentity *target,
@@ -705,7 +705,7 @@ get_consensus_slot (uint32_t distance)
   struct ConsensusSet *cs;
   unsigned int i;
 
-  GNUNET_assert (distance < DEFAULT_FISHEYE_DEPTH - 1);
+  GNUNET_assert (distance < DEFAULT_FISHEYE_DEPTH);
   cs = &consensi[distance];
   i = 0;
   while ( (i < cs->array_length) &&
@@ -732,7 +732,11 @@ allocate_route (struct Route *route,
 {
   unsigned int i;
 
-  GNUNET_assert (distance < DEFAULT_FISHEYE_DEPTH - 1);
+  if (distance >= DEFAULT_FISHEYE_DEPTH)
+  {
+    route->set_offset = UINT_MAX; /* invalid slot */
+    return;
+  }
   i = get_consensus_slot (distance);
   route->set_offset = i;
   consensi[distance].targets[i] = route;
@@ -748,6 +752,9 @@ allocate_route (struct Route *route,
 static void
 release_route (struct Route *route)
 {
+  if (UINT_MAX == route->set_offset)
+    return;
+  GNUNET_assert (ntohl (route->target.distance) < DEFAULT_FISHEYE_DEPTH);
   consensi[ntohl (route->target.distance)].targets[route->set_offset] = NULL;
   route->set_offset = UINT_MAX; /* indicate invalid slot */
 }
@@ -766,6 +773,8 @@ move_route (struct Route *route,
   unsigned int i;
 
   release_route (route);
+  if (new_distance >= DEFAULT_FISHEYE_DEPTH)
+    return; /* no longer interesting for 'consensi' */
   i = get_consensus_slot (new_distance);
   route->set_offset = i;
   consensi[new_distance].targets[i] = route;
@@ -791,24 +800,24 @@ build_set (void *cls)
   struct GNUNET_SET_Element element;
   struct Target *target;
   target = NULL;
-  while ( (DEFAULT_FISHEYE_DEPTH - 1 > neighbor->consensus_insertion_distance) &&
+  while ( (DEFAULT_FISHEYE_DEPTH > neighbor->consensus_insertion_distance) &&
 	  (consensi[neighbor->consensus_insertion_distance].array_length == neighbor->consensus_insertion_offset) )
   {
     /* If we reached the last element of a consensus array element: increase distance and start with next array */
     neighbor->consensus_insertion_offset = 0;
     neighbor->consensus_insertion_distance++;
     /* skip over NULL entries */
-    while ( (DEFAULT_FISHEYE_DEPTH - 1 > neighbor->consensus_insertion_distance) &&
+    while ( (DEFAULT_FISHEYE_DEPTH > neighbor->consensus_insertion_distance) &&
 	    (consensi[neighbor->consensus_insertion_distance].array_length  > neighbor->consensus_insertion_offset) &&
 	    (NULL == consensi[neighbor->consensus_insertion_distance].targets[neighbor->consensus_insertion_offset]) )
       neighbor->consensus_insertion_offset++;
   }
-  if (DEFAULT_FISHEYE_DEPTH - 1 == neighbor->consensus_insertion_distance)
+  if (DEFAULT_FISHEYE_DEPTH == neighbor->consensus_insertion_distance)
   {
     /* we have added all elements to the set, run the operation */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Finished building my SET for peer `%s' with %u elements, committing\n",
-		GNUNET_i2s(&neighbor->peer),
+		GNUNET_i2s (&neighbor->peer),
 		neighbor->consensus_elements);
     GNUNET_SET_commit (neighbor->set_op,
 		       neighbor->my_set);
@@ -825,7 +834,7 @@ build_set (void *cls)
   /* Find next non-NULL entry */
   neighbor->consensus_insertion_offset++;
   /* skip over NULL entries */
-  while ( (DEFAULT_FISHEYE_DEPTH - 1 > neighbor->consensus_insertion_distance) &&
+  while ( (DEFAULT_FISHEYE_DEPTH > neighbor->consensus_insertion_distance) &&
 	  (consensi[neighbor->consensus_insertion_distance].array_length > neighbor->consensus_insertion_offset) &&
 	  (NULL == consensi[neighbor->consensus_insertion_distance].targets[neighbor->consensus_insertion_offset]) )
   {
@@ -1035,7 +1044,7 @@ check_possible_route (void *cls,
     }
     return GNUNET_YES; /* got a route to this target already */
   }
-  if (ntohl (target->distance) >= DEFAULT_FISHEYE_DEPTH - 1)
+  if (ntohl (target->distance) >= DEFAULT_FISHEYE_DEPTH)
     return GNUNET_YES; /* distance is too large to be interesting */
   route = GNUNET_new (struct Route);
   route->next_hop = neighbor;
@@ -1425,6 +1434,7 @@ check_target_added (void *cls,
   current_route->next_hop = neighbor;
   current_route->target.peer = target->peer;
   current_route->target.distance = htonl (ntohl (target->distance) + 1);
+  allocate_route (current_route, ntohl (current_route->target.distance));
   GNUNET_assert (GNUNET_YES ==
 		 GNUNET_CONTAINER_multipeermap_put (all_routes,
 						    &current_route->target.peer,
@@ -1941,7 +1951,7 @@ shutdown_task (void *cls,
   stats = NULL;
   GNUNET_SERVER_notification_context_destroy (nc);
   nc = NULL;
-  for (i=0;i<DEFAULT_FISHEYE_DEPTH - 1;i++)
+  for (i=0;i<DEFAULT_FISHEYE_DEPTH;i++)
   {
     GNUNET_array_grow (consensi[i].targets,
 		       consensi[i].array_length,
