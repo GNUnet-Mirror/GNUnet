@@ -215,10 +215,10 @@ handle_call_suspend (void *cls,
     break;
   case CS_ACTIVE:
     call->state = CS_SUSPENDED_CALLEE;
-    call->event_handler (call->event_handler_cls,
-                         GNUNET_CONVERSATION_EC_CALL_SUSPENDED);
     call->speaker->disable_speaker (call->speaker->cls);
     call->mic->disable_microphone (call->mic->cls);
+    call->event_handler (call->event_handler_cls,
+                         GNUNET_CONVERSATION_EC_CALL_SUSPENDED);
     break;
   case CS_SHUTDOWN:
     GNUNET_CONVERSATION_call_stop (call);
@@ -328,6 +328,8 @@ handle_call_hangup (void *cls,
                     const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_CONVERSATION_Call *call = cls;
+  GNUNET_CONVERSATION_CallEventHandler eh;
+  void *eh_cls;
 
   switch (call->state)
   {
@@ -340,9 +342,10 @@ handle_call_hangup (void *cls,
   case CS_SUSPENDED_CALLEE:
   case CS_SUSPENDED_BOTH:
   case CS_ACTIVE:
-    call->event_handler (call->event_handler_cls,
-                         GNUNET_CONVERSATION_EC_CALL_HUNG_UP);
+    eh = call->event_handler;
+    eh_cls = call->event_handler_cls;
     GNUNET_CONVERSATION_call_stop (call);
+    eh (eh_cls, GNUNET_CONVERSATION_EC_CALL_HUNG_UP);
     return;
   case CS_SHUTDOWN:
     GNUNET_CONVERSATION_call_stop (call);

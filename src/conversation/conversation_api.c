@@ -560,6 +560,34 @@ phone_error_handler (void *cls,
 
 
 /**
+ * Clean up all callers of the given phone.
+ *
+ * @param phone phone to clean up callers for
+ */
+static void
+clean_up_callers (struct GNUNET_CONVERSATION_Phone *phone)
+{
+  struct GNUNET_CONVERSATION_Caller *caller;
+
+  while (NULL != (caller = phone->caller_head))
+  {
+    /* make sure mic/speaker are disabled *before* callback */
+    if (CS_ACTIVE == caller->state)
+    {
+      caller->speaker->disable_speaker (caller->speaker->cls);
+      caller->mic->disable_microphone (caller->mic->cls);
+      caller->state = CS_CALLER_SUSPENDED;
+    }
+    phone->event_handler (phone->event_handler_cls,
+                          GNUNET_CONVERSATION_EC_PHONE_HUNG_UP,
+                          caller,
+                          caller->caller_id_str);
+    GNUNET_CONVERSATION_caller_hang_up (caller);
+  }
+}
+
+
+/**
  * The phone got disconnected, reconnect to the service.
  *
  * @param phone phone to reconnect
@@ -588,16 +616,8 @@ reconnect_phone (struct GNUNET_CONVERSATION_Phone *phone)
   };
   struct GNUNET_MQ_Envelope *e;
   struct ClientPhoneRegisterMessage *reg;
-  struct GNUNET_CONVERSATION_Caller *caller;
 
-  while (NULL != (caller = phone->caller_head))
-  {
-    phone->event_handler (phone->event_handler_cls,
-                          GNUNET_CONVERSATION_EC_PHONE_HUNG_UP,
-                          caller,
-                          caller->caller_id_str);
-    GNUNET_CONVERSATION_caller_hang_up (caller);
-  }
+  clean_up_callers (phone);
   if (NULL != phone->mq)
   {
     GNUNET_MQ_destroy (phone->mq);
@@ -766,7 +786,8 @@ GNUNET_CONVERSATION_caller_hang_up (struct GNUNET_CONVERSATION_Caller *caller)
                                caller);
   GNUNET_free_non_null (caller->caller_id_str);
   GNUNET_free (caller);
-  e = GNUNET_MQ_msg (hang, GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_HANG_UP);
+  e = GNUNET_MQ_msg (hang,
+                     GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_HANG_UP);
   GNUNET_MQ_send (phone->mq, e);
 }
 
@@ -779,16 +800,7 @@ GNUNET_CONVERSATION_caller_hang_up (struct GNUNET_CONVERSATION_Caller *caller)
 void
 GNUNET_CONVERSATION_phone_destroy (struct GNUNET_CONVERSATION_Phone *phone)
 {
-  struct GNUNET_CONVERSATION_Caller *caller;
-
-  while (NULL != (caller = phone->caller_head))
-  {
-    phone->event_handler (phone->event_handler_cls,
-                          GNUNET_CONVERSATION_EC_PHONE_HUNG_UP,
-                          caller,
-                          caller->caller_id_str);
-    GNUNET_CONVERSATION_caller_hang_up (caller);
-  }
+  clean_up_callers (phone);
   if (NULL != phone->ns)
   {
     GNUNET_NAMESTORE_disconnect (phone->ns);
