@@ -18,12 +18,14 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file conversation/test_conversation_api.c
+ * @file conversation/test_conversation_api_twocalls.c
  * @brief testcase for conversation_api.c
  *
- * This test performs the operations of a call to a phone
- * where the phone user picks up and then the call is
- * terminated by the party that initiated the call.
+ * This test performs the operations of TWO calls made to a phone
+ * where the phone user picks up one, suspends it, picks up the
+ * second one; eventually, the initiator hangs up, the callee
+ * resumes the first call, and then the initiator hangs up the
+ * second call.
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -49,11 +51,15 @@ static struct GNUNET_CONVERSATION_Phone *phone;
 
 static struct GNUNET_NAMESTORE_Handle *ns;
 
-static struct GNUNET_CONVERSATION_Call *call;
+static struct GNUNET_CONVERSATION_Call *call1;
+
+static struct GNUNET_CONVERSATION_Call *call2;
 
 static struct GNUNET_NAMESTORE_QueueEntry *qe;
 
-static struct GNUNET_CONVERSATION_Caller *active_caller;
+static struct GNUNET_CONVERSATION_Caller *active_caller1;
+
+static struct GNUNET_CONVERSATION_Caller *active_caller2;
 
 static char *gns_name;
 
@@ -76,11 +82,10 @@ static void
 phone_send (void *cls,
             const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  static unsigned int i;
   char buf[32];
 
   GNUNET_assert (NULL != phone_rdc);
-  GNUNET_snprintf (buf, sizeof (buf), "phone-%u", i++);
+  GNUNET_snprintf (buf, sizeof (buf), "phone");
   phone_rdc (phone_rdc_cls, strlen (buf) + 1, buf);
   phone_task = GNUNET_SCHEDULER_add_delayed (FREQ,
                                              &phone_send, NULL);
@@ -89,13 +94,12 @@ phone_send (void *cls,
 
 static void
 call_send (void *cls,
-            const struct GNUNET_SCHEDULER_TaskContext *tc)
+           const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  static unsigned int i;
   char buf[32];
 
   GNUNET_assert (NULL != call_rdc);
-  GNUNET_snprintf (buf, sizeof (buf), "call-%u", i++);
+  GNUNET_snprintf (buf, sizeof (buf), "call");
   call_rdc (call_rdc_cls, strlen (buf) + 1, buf);
   call_task = GNUNET_SCHEDULER_add_delayed (FREQ,
                                             &call_send, NULL);
@@ -130,31 +134,39 @@ play (void *cls,
       size_t data_size,
       const void *data)
 {
-  const char *origin = cls;
   static unsigned int phone_i;
   static unsigned int call_i;
-  char buf[32];
 
-  if (0 == strcmp (origin, "phone"))
-    GNUNET_snprintf (buf, sizeof (buf), "phone-%u", phone_i++);
+  if (0 == strncmp ("call", data, data_size))
+    call_i++;
+  else if (0 == strncmp ("phone", data, data_size))
+    phone_i++;
   else
-    GNUNET_snprintf (buf, sizeof (buf), "call-%u", call_i++);
-  if ( (data_size != strlen (buf) + 1) ||
-       (0 != strncmp (buf, data, data_size)) )
   {
     fprintf (stderr,
-             "Expected %s, received %.*s\n",
-             buf,
+             "Received unexpected data %.*s\n",
              (int) data_size,
              (const char *) data);
   }
+
   if ( (20 < call_i) &&
        (20 < phone_i) &&
-       (NULL != call) )
+       (NULL != call2) )
   {
     /* time to hang up ... */
-    GNUNET_CONVERSATION_call_stop (call);
-    call = NULL;
+    GNUNET_CONVERSATION_call_stop (call2);
+    call2 = NULL;
+    /* reset counters */
+    call_i = 0;
+    phone_i = 0;
+  }
+  if ( (20 < call_i) &&
+       (20 < phone_i) &&
+       (NULL != call1) )
+  {
+    /* time to hang up ... */
+    GNUNET_CONVERSATION_call_stop (call1);
+    call1 = NULL;
   }
 }
 
@@ -200,12 +212,14 @@ enable_mic (void *cls,
   {
     phone_rdc = rdc;
     phone_rdc_cls = rdc_cls;
+    GNUNET_break (GNUNET_SCHEDULER_NO_TASK == phone_task);
     phone_task = GNUNET_SCHEDULER_add_now (&phone_send, NULL);
   }
   else
   {
     call_rdc = rdc;
     call_rdc_cls = rdc_cls;
+    GNUNET_break (GNUNET_SCHEDULER_NO_TASK == call_task);
     call_task = GNUNET_SCHEDULER_add_now (&call_send, NULL);
   }
   return GNUNET_OK;
@@ -279,10 +293,15 @@ end_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_IDENTITY_cancel (op);
     op = NULL;
   }
-  if (NULL != call)
+  if (NULL != call1)
   {
-    GNUNET_CONVERSATION_call_stop (call);
-    call = NULL;
+    GNUNET_CONVERSATION_call_stop (call1);
+    call1 = NULL;
+  }
+  if (NULL != call2)
+  {
+    GNUNET_CONVERSATION_call_stop (call2);
+    call2 = NULL;
   }
   if (NULL != phone)
   {
@@ -328,28 +347,50 @@ phone_event_handler (void *cls,
                      struct GNUNET_CONVERSATION_Caller *caller,
                      const char *caller_id)
 {
-  static enum GNUNET_CONVERSATION_PhoneEventCode expect
-    = GNUNET_CONVERSATION_EC_PHONE_RING;
+  const char *cid;
 
   GNUNET_break (0 == strcmp (caller_id,
                              gns_caller_id));
-  GNUNET_break (code == expect);
   switch (code)
   {
   case GNUNET_CONVERSATION_EC_PHONE_RING:
-    active_caller = caller;
-    GNUNET_CONVERSATION_caller_pick_up (caller,
-                                        &caller_event_handler,
-                                        NULL,
-                                        &phone_speaker,
-                                        &phone_mic);
-    expect = GNUNET_CONVERSATION_EC_PHONE_HUNG_UP;
+    if (NULL == active_caller1)
+    {
+      active_caller1 = caller;
+      cid = "caller1";
+      GNUNET_CONVERSATION_caller_pick_up (caller,
+                                          &caller_event_handler,
+                                          (void *) cid,
+                                          &phone_speaker,
+                                          &phone_mic);
+    }
+    else
+    {
+      GNUNET_CONVERSATION_caller_suspend (active_caller1);
+      active_caller2 = caller;
+      cid = "caller2";
+      GNUNET_CONVERSATION_caller_pick_up (caller,
+                                          &caller_event_handler,
+                                          (void *) cid,
+                                          &phone_speaker,
+                                          &phone_mic);
+    }
     break;
   case GNUNET_CONVERSATION_EC_PHONE_HUNG_UP:
-    GNUNET_break (caller == active_caller);
-    active_caller = NULL;
-    ok = 0;
-    GNUNET_SCHEDULER_shutdown ();
+    if (caller == active_caller2)
+    {
+      active_caller2 = NULL;
+      GNUNET_CONVERSATION_caller_resume (active_caller1,
+                                         &phone_speaker,
+                                         &phone_mic);
+    }
+    else if (caller == active_caller1)
+    {
+      active_caller1 = NULL;
+      GNUNET_break (NULL == active_caller2);
+      ok = 0;
+      GNUNET_SCHEDULER_shutdown ();
+    }
     break;
   default:
     fprintf (stderr, "Unexpected phone code: %d\n", code);
@@ -362,26 +403,23 @@ static void
 call_event_handler (void *cls,
                     enum GNUNET_CONVERSATION_CallEventCode code)
 {
-  static enum GNUNET_CONVERSATION_CallEventCode expect
-    = GNUNET_CONVERSATION_EC_CALL_RINGING;
+  const char *cid = cls;
 
-  GNUNET_break (code == expect);
   switch (code)
   {
   case GNUNET_CONVERSATION_EC_CALL_RINGING:
-    expect = GNUNET_CONVERSATION_EC_CALL_PICKED_UP;
     break;
   case GNUNET_CONVERSATION_EC_CALL_PICKED_UP:
-    expect = -1;
     break;
   case GNUNET_CONVERSATION_EC_CALL_GNS_FAIL:
   case GNUNET_CONVERSATION_EC_CALL_HUNG_UP:
-    call = NULL;
-    fprintf (stderr, "Unexpected call code: %d\n", code);
+    if (0 == strcmp (cid, "call1"))
+      call1 = NULL;
+    else
+      call2 = NULL;
     break;
   case GNUNET_CONVERSATION_EC_CALL_SUSPENDED:
   case GNUNET_CONVERSATION_EC_CALL_RESUMED:
-    fprintf (stderr, "Unexpected call code: %d\n", code);
     break;
   }
 }
@@ -453,13 +491,20 @@ identity_cb (void *cls,
     GNUNET_asprintf (&gns_caller_id,
                      "%s",
                      GNUNET_GNSRECORD_pkey_to_zkey (&pub));
-    call = GNUNET_CONVERSATION_call_start (cfg,
-                                           ego,
-                                           gns_name,
-                                           &call_speaker,
-                                           &call_mic,
-                                           &call_event_handler,
-                                           NULL);
+    call1 = GNUNET_CONVERSATION_call_start (cfg,
+                                            ego,
+                                            gns_name,
+                                            &call_speaker,
+                                            &call_mic,
+                                            &call_event_handler,
+                                            (void *) "call1");
+    call2 = GNUNET_CONVERSATION_call_start (cfg,
+                                            ego,
+                                            gns_name,
+                                            &call_speaker,
+                                            &call_mic,
+                                            &call_event_handler,
+                                            (void *) "call2");
     return;
   }
 }
@@ -493,11 +538,11 @@ run (void *cls,
 int
 main (int argc, char *argv[])
 {
-  if (0 != GNUNET_TESTING_peer_run ("test_conversation_api",
+  if (0 != GNUNET_TESTING_peer_run ("test_conversation_api_twocalls",
 				    "test_conversation.conf",
 				    &run, NULL))
     return 1;
   return ok;
 }
 
-/* end of test_conversation_api.c */
+/* end of test_conversation_api_twocalls.c */

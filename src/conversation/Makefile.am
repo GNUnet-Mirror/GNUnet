@@ -78,7 +78,8 @@ endif
 
 
 check_PROGRAMS = \
- test_conversation_api
+ test_conversation_api \
+ test_conversation_api_twocalls
 
 if HAVE_PULSE
 if HAVE_OPUS
@@ -155,6 +156,22 @@ test_conversation_api_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la
 test_conversation_api_LDFLAGS = \
  $(GNUNET_LDFLAGS)  $(WINFLAGS) -export-dynamic
+
+
+test_conversation_api_twocalls_SOURCES = \
+ test_conversation_api_twocalls.c
+test_conversation_api_twocalls_LDADD = \
+  libgnunetconversation.la \
+  libgnunetspeaker.la \
+  libgnunetmicrophone.la \
+  $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
+  $(top_builddir)/src/namestore/libgnunetnamestore.la \
+  $(top_builddir)/src/identity/libgnunetidentity.la \
+  $(top_builddir)/src/testing/libgnunettesting.la \
+  $(top_builddir)/src/util/libgnunetutil.la
+test_conversation_api_twocalls_LDFLAGS = \
+ $(GNUNET_LDFLAGS)  $(WINFLAGS) -export-dynamic
+
 
  pkgcfg_DATA = conversation.conf
 
