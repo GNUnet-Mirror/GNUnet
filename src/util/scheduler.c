@@ -86,7 +86,7 @@ struct Task
   GNUNET_SCHEDULER_Task callback;
 
   /**
-   * Closure for the callback.
+   * Closure for the @e callback.
    */
   void *callback_cls;
 
@@ -293,7 +293,7 @@ update_sets (struct GNUNET_NETWORK_FDSet *rs, struct GNUNET_NETWORK_FDSet *ws,
 
   now = GNUNET_TIME_absolute_get ();
   pos = pending_timeout;
-  if (pos != NULL)
+  if (NULL != pos)
   {
     to = GNUNET_TIME_absolute_get_difference (now, pos->timeout);
     if (timeout->rel_value_us > to.rel_value_us)
@@ -302,7 +302,7 @@ update_sets (struct GNUNET_NETWORK_FDSet *rs, struct GNUNET_NETWORK_FDSet *ws,
       *timeout = GNUNET_TIME_UNIT_ZERO;
   }
   pos = pending;
-  while (pos != NULL)
+  while (NULL != pos)
   {
     if (pos->timeout.abs_value_us != GNUNET_TIME_UNIT_FOREVER_ABS.abs_value_us)
     {
@@ -310,15 +310,15 @@ update_sets (struct GNUNET_NETWORK_FDSet *rs, struct GNUNET_NETWORK_FDSet *ws,
       if (timeout->rel_value_us > to.rel_value_us)
         *timeout = to;
     }
-    if (pos->read_fd != -1)
+    if (-1 != pos->read_fd)
       GNUNET_NETWORK_fdset_set_native (rs, pos->read_fd);
-    if (pos->write_fd != -1)
+    if (-1 != pos->write_fd)
       GNUNET_NETWORK_fdset_set_native (ws, pos->write_fd);
-    if (pos->read_set != NULL)
+    if (NULL != pos->read_set)
       GNUNET_NETWORK_fdset_add (rs, pos->read_set);
-    if (pos->write_set != NULL)
+    if (NULL != pos->write_set)
       GNUNET_NETWORK_fdset_add (ws, pos->write_set);
-    if (pos->reason != 0)
+    if (0 != pos->reason)
       *timeout = GNUNET_TIME_UNIT_ZERO;
     pos = pos->next;
   }
@@ -381,7 +381,7 @@ is_ready (struct Task *task, struct GNUNET_TIME_Absolute now,
         (GNUNET_YES == GNUNET_NETWORK_fdset_test_native (ws, task->write_fd)))
        || (set_overlaps (ws, task->write_set))))
     reason |= GNUNET_SCHEDULER_REASON_WRITE_READY;
-  if (reason == 0)
+  if (0 == reason)
     return GNUNET_NO;           /* not ready */
   reason |= GNUNET_SCHEDULER_REASON_PREREQ_DONE;
   task->reason = reason;
@@ -426,7 +426,7 @@ check_ready (const struct GNUNET_NETWORK_FDSet *rs,
   now = GNUNET_TIME_absolute_get ();
   prev = NULL;
   pos = pending_timeout;
-  while (pos != NULL)
+  while (NULL != pos)
   {
     next = pos->next;
     if (now.abs_value_us >= pos->timeout.abs_value_us)
@@ -440,7 +440,7 @@ check_ready (const struct GNUNET_NETWORK_FDSet *rs,
     pos = next;
   }
   pos = pending;
-  while (pos != NULL)
+  while (NULL != pos)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
 	 "Checking readiness of task: %llu / %p\n",
@@ -448,7 +448,7 @@ check_ready (const struct GNUNET_NETWORK_FDSet *rs,
     next = pos->next;
     if (GNUNET_YES == is_ready (pos, now, rs, ws))
     {
-      if (prev == NULL)
+      if (NULL == prev)
         pending = next;
       else
         prev->next = next;
@@ -476,7 +476,7 @@ GNUNET_SCHEDULER_shutdown ()
   int i;
 
   pos = pending_timeout;
-  while (pos != NULL)
+  while (NULL != pos)
   {
     pos->reason |= GNUNET_SCHEDULER_REASON_SHUTDOWN;
     /* we don't move the task into the ready queue yet; check_ready
@@ -485,7 +485,7 @@ GNUNET_SCHEDULER_shutdown ()
     pos = pos->next;
   }
   pos = pending;
-  while (pos != NULL)
+  while (NULL != pos)
   {
     pos->reason |= GNUNET_SCHEDULER_REASON_SHUTDOWN;
     /* we don't move the task into the ready queue yet; check_ready
@@ -496,7 +496,7 @@ GNUNET_SCHEDULER_shutdown ()
   for (i = 0; i < GNUNET_SCHEDULER_PRIORITY_COUNT; i++)
   {
     pos = ready[i];
-    while (pos != NULL)
+    while (NULL != pos)
     {
       pos->reason |= GNUNET_SCHEDULER_REASON_SHUTDOWN;
       /* we don't move the task into the ready queue yet; check_ready
@@ -538,7 +538,8 @@ destroy_task (struct Task *t)
  * @param ws FDs ready for writing
  */
 static void
-run_ready (struct GNUNET_NETWORK_FDSet *rs, struct GNUNET_NETWORK_FDSet *ws)
+run_ready (struct GNUNET_NETWORK_FDSet *rs,
+           struct GNUNET_NETWORK_FDSet *ws)
 {
   enum GNUNET_SCHEDULER_Priority p;
   struct Task *pos;
@@ -547,7 +548,7 @@ run_ready (struct GNUNET_NETWORK_FDSet *rs, struct GNUNET_NETWORK_FDSet *ws)
   max_priority_added = GNUNET_SCHEDULER_PRIORITY_KEEP;
   do
   {
-    if (ready_count == 0)
+    if (0 == ready_count)
       return;
     GNUNET_assert (ready[GNUNET_SCHEDULER_PRIORITY_KEEP] == NULL);
     /* yes, p>0 is correct, 0 is "KEEP" which should
@@ -555,10 +556,10 @@ run_ready (struct GNUNET_NETWORK_FDSet *rs, struct GNUNET_NETWORK_FDSet *ws)
     for (p = GNUNET_SCHEDULER_PRIORITY_COUNT - 1; p > 0; p--)
     {
       pos = ready[p];
-      if (pos != NULL)
+      if (NULL != pos)
         break;
     }
-    GNUNET_assert (pos != NULL);        /* ready_count wrong? */
+    GNUNET_assert (NULL != pos);        /* ready_count wrong? */
     ready[p] = pos->next;
     ready_count--;
     current_priority = pos->priority;
@@ -571,7 +572,8 @@ run_ready (struct GNUNET_NETWORK_FDSet *rs, struct GNUNET_NETWORK_FDSet *ws)
       LOG (GNUNET_ERROR_TYPE_DEBUG,
 	   "Task %llu took %s to be scheduled\n",
            (unsigned long long) pos->id,
-           GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_duration (pos->start_time), GNUNET_YES));
+           GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_duration (pos->start_time),
+                                                   GNUNET_YES));
     }
 #endif
     tc.reason = pos->reason;
@@ -595,14 +597,17 @@ run_ready (struct GNUNET_NETWORK_FDSet *rs, struct GNUNET_NETWORK_FDSet *ws)
     int i;
 
     for (i = 0; i < pos->num_backtrace_strings; i++)
-      LOG (GNUNET_ERROR_TYPE_ERROR, "Task %llu trace %d: %s\n", pos->id, i,
+      LOG (GNUNET_ERROR_TYPE_ERROR,
+           "Task %llu trace %d: %s\n",
+           pos->id,
+           i,
            pos->backtrace_strings[i]);
 #endif
     active_task = NULL;
     destroy_task (pos);
     tasks_run++;
   }
-  while ((pending == NULL) || (p >= max_priority_added));
+  while ((NULL == pending) || (p >= max_priority_added));
 }
 
 /**
@@ -697,16 +702,16 @@ check_lifeness ()
 /**
  * Initialize and run scheduler.  This function will return when all
  * tasks have completed.  On systems with signals, receiving a SIGTERM
- * (and other similar signals) will cause "GNUNET_SCHEDULER_shutdown"
+ * (and other similar signals) will cause #GNUNET_SCHEDULER_shutdown()
  * to be run after the active task is complete.  As a result, SIGTERM
  * causes all active tasks to be scheduled with reason
- * "GNUNET_SCHEDULER_REASON_SHUTDOWN".  (However, tasks added
+ * #GNUNET_SCHEDULER_REASON_SHUTDOWN.  (However, tasks added
  * afterwards will execute normally!). Note that any particular signal
  * will only shut down one scheduler; applications should always only
  * create a single scheduler.
  *
  * @param task task to run immediately
- * @param task_cls closure of task
+ * @param task_cls closure of @a task
  */
 void
 GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *task_cls)
@@ -717,7 +722,7 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *task_cls)
   int ret;
   struct GNUNET_SIGNAL_Context *shc_int;
   struct GNUNET_SIGNAL_Context *shc_term;
-#if (SIGTERM != GNUNET_TERM_SIG) 
+#if (SIGTERM != GNUNET_TERM_SIG)
   struct GNUNET_SIGNAL_Context *shc_gterm;
 #endif
 
@@ -731,12 +736,12 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *task_cls)
   const struct GNUNET_DISK_FileHandle *pr;
   char c;
 
-  GNUNET_assert (active_task == NULL);
+  GNUNET_assert (NULL == active_task);
   rs = GNUNET_NETWORK_fdset_create ();
   ws = GNUNET_NETWORK_fdset_create ();
-  GNUNET_assert (shutdown_pipe_handle == NULL);
+  GNUNET_assert (NULL == shutdown_pipe_handle);
   shutdown_pipe_handle = GNUNET_DISK_pipe (GNUNET_NO, GNUNET_NO, GNUNET_NO, GNUNET_NO);
-  GNUNET_assert (shutdown_pipe_handle != NULL);
+  GNUNET_assert (NULL != shutdown_pipe_handle);
   pr = GNUNET_DISK_pipe_handle (shutdown_pipe_handle,
                                 GNUNET_DISK_PIPE_END_READ);
   GNUNET_assert (pr != NULL);
@@ -793,15 +798,19 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *task_cls)
       (void) close (1);
       (void) dup2 (2, 1);
       if (0 != system (lsof))
-        LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING, "system");
+        LOG_STRERROR (GNUNET_ERROR_TYPE_WARNING,
+                      "system");
 #endif
 #endif
       GNUNET_abort ();
       break;
     }
-    if ((0 == ret) && (0 == timeout.rel_value_us) && (busy_wait_warning > 16))
+    if ( (0 == ret) &&
+         (0 == timeout.rel_value_us) &&
+         (busy_wait_warning > 16) )
     {
-      LOG (GNUNET_ERROR_TYPE_WARNING, _("Looks like we're busy waiting...\n"));
+      LOG (GNUNET_ERROR_TYPE_WARNING,
+           _("Looks like we're busy waiting...\n"));
       short_wait (100);                /* mitigate */
     }
     check_ready (rs, ws);
@@ -844,7 +853,7 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *task_cls)
 /**
  * Obtain the reason code for why the current task was
  * started.  Will return the same value as
- * the GNUNET_SCHEDULER_TaskContext's reason field.
+ * the `struct GNUNET_SCHEDULER_TaskContext`'s reason field.
  *
  * @return reason(s) why the current task is run
  */
@@ -878,7 +887,7 @@ GNUNET_SCHEDULER_get_load (enum GNUNET_SCHEDULER_Priority p)
     p = current_priority;
   ret = 0;
   pos = ready[check_priority (p)];
-  while (pos != NULL)
+  while (NULL != pos)
   {
     pos = pos->next;
     ret++;
@@ -903,18 +912,18 @@ GNUNET_SCHEDULER_cancel (GNUNET_SCHEDULER_TaskIdentifier task)
   int to;
   void *ret;
 
-  GNUNET_assert (active_task != NULL);
+  GNUNET_assert (NULL != active_task);
   to = 0;
   prev = NULL;
   t = pending;
-  while (t != NULL)
+  while (NULL != t)
   {
     if (t->id == task)
       break;
     prev = t;
     t = t->next;
   }
-  if (t == NULL)
+  if (NULL == t)
   {
     prev = NULL;
     to = 1;
@@ -930,18 +939,19 @@ GNUNET_SCHEDULER_cancel (GNUNET_SCHEDULER_TaskIdentifier task)
       pending_timeout_last = NULL;
   }
   p = 0;
-  while (t == NULL)
+  while (NULL == t)
   {
     p++;
     if (p >= GNUNET_SCHEDULER_PRIORITY_COUNT)
     {
-      LOG (GNUNET_ERROR_TYPE_ERROR, _("Attempt to cancel dead task %llu!\n"),
+      LOG (GNUNET_ERROR_TYPE_ERROR,
+           _("Attempt to cancel dead task %llu!\n"),
            (unsigned long long) task);
       GNUNET_assert (0);
     }
     prev = NULL;
     t = ready[p];
-    while (t != NULL)
+    while (NULL != t)
     {
       if (t->id == task)
       {
@@ -952,11 +962,11 @@ GNUNET_SCHEDULER_cancel (GNUNET_SCHEDULER_TaskIdentifier task)
       t = t->next;
     }
   }
-  if (prev == NULL)
+  if (NULL == prev)
   {
-    if (p == 0)
+    if (0 == p)
     {
-      if (to == 0)
+      if (0 == to)
       {
         pending = t->next;
       }
@@ -975,7 +985,9 @@ GNUNET_SCHEDULER_cancel (GNUNET_SCHEDULER_TaskIdentifier task)
     prev->next = t->next;
   }
   ret = t->callback_cls;
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Canceling task: %llu / %p\n", task,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Canceling task: %llu / %p\n",
+       task,
        t->callback_cls);
   destroy_task (t);
   return ret;
@@ -988,7 +1000,7 @@ GNUNET_SCHEDULER_cancel (GNUNET_SCHEDULER_TaskIdentifier task)
  * and the reason code can be specified.
  *
  * @param task main function of the task
- * @param task_cls closure for 'main'
+ * @param task_cls closure for @a task
  * @param reason reason for task invocation
  * @param priority priority to use for the task
  */
@@ -1004,9 +1016,9 @@ GNUNET_SCHEDULER_add_continuation_with_priority (GNUNET_SCHEDULER_Task task, voi
 #endif
 
   GNUNET_assert (NULL != task);
-  GNUNET_assert ((active_task != NULL) ||
-                 (reason == GNUNET_SCHEDULER_REASON_STARTUP));
-  t = GNUNET_malloc (sizeof (struct Task));
+  GNUNET_assert ((NULL != active_task) ||
+                 (GNUNET_SCHEDULER_REASON_STARTUP == reason));
+  t = GNUNET_new (struct Task);
 #if EXECINFO
   t->num_backtrace_strings = backtrace (backtrace_array, 50);
   t->backtrace_strings =
@@ -1023,7 +1035,9 @@ GNUNET_SCHEDULER_add_continuation_with_priority (GNUNET_SCHEDULER_Task task, voi
   t->reason = reason;
   t->priority = priority;
   t->lifeness = current_lifeness;
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Adding continuation task: %llu / %p\n", t->id,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Adding continuation task: %llu / %p\n",
+       t->id,
        t->callback_cls);
   queue_ready_task (t);
 }
@@ -1035,7 +1049,7 @@ GNUNET_SCHEDULER_add_continuation_with_priority (GNUNET_SCHEDULER_Task task, voi
  * and the reason code can be specified.
  *
  * @param task main function of the task
- * @param task_cls closure for 'main'
+ * @param task_cls closure for @a task
  * @param reason reason for task invocation
  */
 void
@@ -1052,10 +1066,10 @@ GNUNET_SCHEDULER_add_continuation (GNUNET_SCHEDULER_Task task, void *task_cls,
  * Schedule a new task to be run with a specified priority.
  *
  * @param prio how important is the new task?
- * @param task main function of the task
+ * @param task main function of the @a task
  * @param task_cls closure of task
  * @return unique task identifier for the job
- *         only valid until "task" is started!
+ *         only valid until @a task is started!
  */
 GNUNET_SCHEDULER_TaskIdentifier
 GNUNET_SCHEDULER_add_with_priority (enum GNUNET_SCHEDULER_Priority prio,
@@ -1073,12 +1087,12 @@ GNUNET_SCHEDULER_add_with_priority (enum GNUNET_SCHEDULER_Priority prio,
  * will be scheduled for execution once the delay has expired.
  *
  * @param delay when should this operation time out? Use
- *        GNUNET_TIME_UNIT_FOREVER_REL for "on shutdown"
+ *        #GNUNET_TIME_UNIT_FOREVER_REL for "on shutdown"
  * @param priority priority to use for the task
  * @param task main function of the task
- * @param task_cls closure of task
+ * @param task_cls closure of @a task
  * @return unique task identifier for the job
- *         only valid until "task" is started!
+ *         only valid until @a task is started!
  */
 GNUNET_SCHEDULER_TaskIdentifier
 GNUNET_SCHEDULER_add_delayed_with_priority (struct GNUNET_TIME_Relative delay,
@@ -1093,9 +1107,9 @@ GNUNET_SCHEDULER_add_delayed_with_priority (struct GNUNET_TIME_Relative delay,
   void *backtrace_array[MAX_TRACE_DEPTH];
 #endif
 
-  GNUNET_assert (active_task != NULL);
+  GNUNET_assert (NULL != active_task);
   GNUNET_assert (NULL != task);
-  t = GNUNET_malloc (sizeof (struct Task));
+  t = GNUNET_new (struct Task);
   t->callback = task;
   t->callback_cls = task_cls;
 #if EXECINFO
@@ -1204,14 +1218,14 @@ GNUNET_SCHEDULER_add_now (GNUNET_SCHEDULER_Task task, void *task_cls)
  * (transitive) ignore-shutdown flag either explicitly set or
  * explicitly enabled.  This task (and all tasks created from it,
  * other than by another call to this function) will either count or
- * not count for the 'lifeness' of the process.  This API is only
+ * not count for the "lifeness" of the process.  This API is only
  * useful in a few special cases.
  *
- * @param lifeness GNUNET_YES if the task counts for lifeness, GNUNET_NO if not.
+ * @param lifeness #GNUNET_YES if the task counts for lifeness, #GNUNET_NO if not.
  * @param task main function of the task
- * @param task_cls closure of task
+ * @param task_cls closure of @a task
  * @return unique task identifier for the job
- *         only valid until "task" is started!
+ *         only valid until @a task is started!
  */
 GNUNET_SCHEDULER_TaskIdentifier
 GNUNET_SCHEDULER_add_now_with_lifeness (int lifeness,
@@ -1247,13 +1261,13 @@ GNUNET_SCHEDULER_add_now_with_lifeness (int lifeness,
  *     || shutdown-active )
  * </code>
  *
- * @param delay how long should we wait? Use GNUNET_TIME_UNIT_FOREVER_REL for "forever",
+ * @param delay how long should we wait? Use #GNUNET_TIME_UNIT_FOREVER_REL for "forever",
  *        which means that the task will only be run after we receive SIGTERM
  * @param priority priority to use
  * @param rfd file descriptor we want to read (can be -1)
  * @param wfd file descriptors we want to write (can be -1)
  * @param task main function of the task
- * @param task_cls closure of task
+ * @param task_cls closure of @a task
  * @return unique task identifier for the job
  *         only valid until "task" is started!
  */
@@ -1270,9 +1284,9 @@ add_without_sets (struct GNUNET_TIME_Relative delay,
   void *backtrace_array[MAX_TRACE_DEPTH];
 #endif
 
-  GNUNET_assert (active_task != NULL);
+  GNUNET_assert (NULL != active_task);
   GNUNET_assert (NULL != task);
-  t = GNUNET_malloc (sizeof (struct Task));
+  t = GNUNET_new (struct Task);
   t->callback = task;
   t->callback_cls = task_cls;
 #if EXECINFO
@@ -1287,12 +1301,16 @@ add_without_sets (struct GNUNET_TIME_Relative delay,
 
     if ((flags == -1) && (errno == EBADF))
     {
-      LOG (GNUNET_ERROR_TYPE_ERROR, "Got invalid file descriptor %d!\n", rfd);
+      LOG (GNUNET_ERROR_TYPE_ERROR,
+           "Got invalid file descriptor %d!\n",
+           rfd);
 #if EXECINFO
       int i;
 
       for (i = 0; i < t->num_backtrace_strings; i++)
-        LOG (GNUNET_ERROR_TYPE_DEBUG, "Trace: %s\n", t->backtrace_strings[i]);
+        LOG (GNUNET_ERROR_TYPE_DEBUG,
+             "Trace: %s\n",
+             t->backtrace_strings[i]);
 #endif
       GNUNET_assert (0);
     }
@@ -1303,12 +1321,16 @@ add_without_sets (struct GNUNET_TIME_Relative delay,
 
     if (flags == -1 && errno == EBADF)
     {
-      LOG (GNUNET_ERROR_TYPE_ERROR, "Got invalid file descriptor %d!\n", wfd);
+      LOG (GNUNET_ERROR_TYPE_ERROR,
+           "Got invalid file descriptor %d!\n",
+           wfd);
 #if EXECINFO
       int i;
 
       for (i = 0; i < t->num_backtrace_strings; i++)
-        LOG (GNUNET_ERROR_TYPE_DEBUG, "Trace: %s\n", t->backtrace_strings[i]);
+        LOG (GNUNET_ERROR_TYPE_DEBUG,
+             "Trace: %s\n",
+             t->backtrace_strings[i]);
 #endif
       GNUNET_assert (0);
     }
@@ -1327,13 +1349,18 @@ add_without_sets (struct GNUNET_TIME_Relative delay,
   t->next = pending;
   pending = t;
   max_priority_added = GNUNET_MAX (max_priority_added, t->priority);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Adding task: %llu / %p\n", t->id,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Adding task: %llu / %p\n",
+       t->id,
        t->callback_cls);
 #if EXECINFO
   int i;
 
   for (i = 0; i < t->num_backtrace_strings; i++)
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Task %llu trace %d: %s\n", t->id, i,
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Task %llu trace %d: %s\n",
+         t->id,
+         i,
          t->backtrace_strings[i]);
 #endif
   return t->id;
@@ -1350,12 +1377,12 @@ add_without_sets (struct GNUNET_TIME_Relative delay,
  * socket operation is ready.  It will be run with the DEFAULT priority.
  *
  * @param delay when should this operation time out? Use
- *        GNUNET_TIME_UNIT_FOREVER_REL for "on shutdown"
+ *        #GNUNET_TIME_UNIT_FOREVER_REL for "on shutdown"
  * @param rfd read file-descriptor
  * @param task main function of the task
- * @param task_cls closure of task
+ * @param task_cls closure of @a task
  * @return unique task identifier for the job
- *         only valid until "task" is started!
+ *         only valid until @a task is started!
  */
 GNUNET_SCHEDULER_TaskIdentifier
 GNUNET_SCHEDULER_add_read_net (struct GNUNET_TIME_Relative delay,
@@ -1377,13 +1404,13 @@ GNUNET_SCHEDULER_add_read_net (struct GNUNET_TIME_Relative delay,
  * will be run with the DEFAULT priority.
  *
  * @param delay when should this operation time out? Use
- *        GNUNET_TIME_UNIT_FOREVER_REL for "on shutdown"
+ *        #GNUNET_TIME_UNIT_FOREVER_REL for "on shutdown"
  * @param priority priority to use for the task
  * @param rfd read file-descriptor
  * @param task main function of the task
- * @param task_cls closure of task
+ * @param task_cls closure of @a task
  * @return unique task identifier for the job
- *         only valid until "task" is started!
+ *         only valid until @a task is started!
  */
 GNUNET_SCHEDULER_TaskIdentifier
 GNUNET_SCHEDULER_add_read_net_with_priority (struct GNUNET_TIME_Relative delay,
@@ -1395,7 +1422,7 @@ GNUNET_SCHEDULER_add_read_net_with_priority (struct GNUNET_TIME_Relative delay,
   struct GNUNET_NETWORK_FDSet *rs;
   GNUNET_SCHEDULER_TaskIdentifier ret;
 
-  GNUNET_assert (rfd != NULL);
+  GNUNET_assert (NULL != rfd);
   rs = GNUNET_NETWORK_fdset_create ();
   GNUNET_NETWORK_fdset_set (rs, rfd);
   ret =
@@ -1413,7 +1440,6 @@ GNUNET_SCHEDULER_add_read_net_with_priority (struct GNUNET_TIME_Relative delay,
 }
 
 
-
 /**
  * Schedule a new task to be run with a specified delay or when the
  * specified file descriptor is ready for writing.  The delay can be
@@ -1423,12 +1449,12 @@ GNUNET_SCHEDULER_add_read_net_with_priority (struct GNUNET_TIME_Relative delay,
  * the calling task.
  *
  * @param delay when should this operation time out? Use
- *        GNUNET_TIME_UNIT_FOREVER_REL for "on shutdown"
+ *        #GNUNET_TIME_UNIT_FOREVER_REL for "on shutdown"
  * @param wfd write file-descriptor
  * @param task main function of the task
- * @param task_cls closure of task
+ * @param task_cls closure of @a task
  * @return unique task identifier for the job
- *         only valid until "task" is started!
+ *         only valid until @a task is started!
  */
 GNUNET_SCHEDULER_TaskIdentifier
 GNUNET_SCHEDULER_add_write_net (struct GNUNET_TIME_Relative delay,
@@ -1439,7 +1465,7 @@ GNUNET_SCHEDULER_add_write_net (struct GNUNET_TIME_Relative delay,
   struct GNUNET_NETWORK_FDSet *ws;
   GNUNET_SCHEDULER_TaskIdentifier ret;
 
-  GNUNET_assert (wfd != NULL);
+  GNUNET_assert (NULL != wfd);
   ws = GNUNET_NETWORK_fdset_create ();
   GNUNET_NETWORK_fdset_set (ws, wfd);
   ret =
@@ -1466,12 +1492,12 @@ GNUNET_SCHEDULER_add_write_net (struct GNUNET_TIME_Relative delay,
  * socket operation is ready. It will be run with the DEFAULT priority.
  *
  * @param delay when should this operation time out? Use
- *        GNUNET_TIME_UNIT_FOREVER_REL for "on shutdown"
+ *        #GNUNET_TIME_UNIT_FOREVER_REL for "on shutdown"
  * @param rfd read file-descriptor
  * @param task main function of the task
- * @param task_cls closure of task
+ * @param task_cls closure of @a task
  * @return unique task identifier for the job
- *         only valid until "task" is started!
+ *         only valid until @a task is started!
  */
 GNUNET_SCHEDULER_TaskIdentifier
 GNUNET_SCHEDULER_add_read_file (struct GNUNET_TIME_Relative delay,
@@ -1482,7 +1508,7 @@ GNUNET_SCHEDULER_add_read_file (struct GNUNET_TIME_Relative delay,
   struct GNUNET_NETWORK_FDSet *rs;
   GNUNET_SCHEDULER_TaskIdentifier ret;
 
-  GNUNET_assert (rfd != NULL);
+  GNUNET_assert (NULL != rfd);
   rs = GNUNET_NETWORK_fdset_create ();
   GNUNET_NETWORK_fdset_handle_set (rs, rfd);
   ret =
@@ -1511,12 +1537,12 @@ GNUNET_SCHEDULER_add_read_file (struct GNUNET_TIME_Relative delay,
  * socket operation is ready. It will be run with the DEFAULT priority.
  *
  * @param delay when should this operation time out? Use
- *        GNUNET_TIME_UNIT_FOREVER_REL for "on shutdown"
+ *        #GNUNET_TIME_UNIT_FOREVER_REL for "on shutdown"
  * @param wfd write file-descriptor
  * @param task main function of the task
- * @param task_cls closure of task
+ * @param task_cls closure of @a task
  * @return unique task identifier for the job
- *         only valid until "task" is started!
+ *         only valid until @a task is started!
  */
 GNUNET_SCHEDULER_TaskIdentifier
 GNUNET_SCHEDULER_add_write_file (struct GNUNET_TIME_Relative delay,
@@ -1527,7 +1553,7 @@ GNUNET_SCHEDULER_add_write_file (struct GNUNET_TIME_Relative delay,
   struct GNUNET_NETWORK_FDSet *ws;
   GNUNET_SCHEDULER_TaskIdentifier ret;
 
-  GNUNET_assert (wfd != NULL);
+  GNUNET_assert (NULL != wfd);
   ws = GNUNET_NETWORK_fdset_create ();
   GNUNET_NETWORK_fdset_handle_set (ws, wfd);
   ret =
@@ -1549,7 +1575,6 @@ GNUNET_SCHEDULER_add_write_file (struct GNUNET_TIME_Relative delay,
 }
 
 
-
 /**
  * Schedule a new task to be run with a specified delay or when any of
  * the specified file descriptor sets is ready.  The delay can be used
@@ -1568,14 +1593,14 @@ GNUNET_SCHEDULER_add_write_file (struct GNUNET_TIME_Relative delay,
  * </code>
  *
  * @param prio how important is this task?
- * @param delay how long should we wait? Use GNUNET_TIME_UNIT_FOREVER_REL for "forever",
+ * @param delay how long should we wait? Use #GNUNET_TIME_UNIT_FOREVER_REL for "forever",
  *        which means that the task will only be run after we receive SIGTERM
  * @param rs set of file descriptors we want to read (can be NULL)
  * @param ws set of file descriptors we want to write (can be NULL)
  * @param task main function of the task
- * @param task_cls closure of task
+ * @param task_cls closure of @a task
  * @return unique task identifier for the job
- *         only valid until "task" is started!
+ *         only valid until @a task is started!
  */
 GNUNET_SCHEDULER_TaskIdentifier
 GNUNET_SCHEDULER_add_select (enum GNUNET_SCHEDULER_Priority prio,
@@ -1592,7 +1617,7 @@ GNUNET_SCHEDULER_add_select (enum GNUNET_SCHEDULER_Priority prio,
 
   GNUNET_assert (NULL != active_task);
   GNUNET_assert (NULL != task);
-  t = GNUNET_malloc (sizeof (struct Task));
+  t = GNUNET_new (struct Task);
   t->callback = task;
   t->callback_cls = task_cls;
 #if EXECINFO
@@ -1625,13 +1650,17 @@ GNUNET_SCHEDULER_add_select (enum GNUNET_SCHEDULER_Priority prio,
   t->next = pending;
   pending = t;
   max_priority_added = GNUNET_MAX (max_priority_added, t->priority);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Adding task: %llu / %p\n", t->id,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Adding task: %llu / %p\n",
+       t->id,
        t->callback_cls);
 #if EXECINFO
   int i;
 
   for (i = 0; i < t->num_backtrace_strings; i++)
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Task %llu trace %d: %s\n", t->id, i,
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Task %llu trace %d: %s\n",
+         t->id, i,
          t->backtrace_strings[i]);
 #endif
   return t->id;
