@@ -871,6 +871,10 @@ handle_direct_connect (struct DirectNeighbor *neighbor)
 					     &neighbor->peer);
   if (NULL != route)
   {
+    GNUNET_assert (GNUNET_YES ==
+		   GNUNET_CONTAINER_multipeermap_remove (all_routes,
+                                                         &neighbor->peer,
+                                                         route));
     send_disconnect_to_plugin (&neighbor->peer);
     release_route (route);
     GNUNET_free (route);
