@@ -705,6 +705,7 @@ get_consensus_slot (uint32_t distance)
   struct ConsensusSet *cs;
   unsigned int i;
 
+  GNUNET_assert (distance < DEFAULT_FISHEYE_DEPTH - 1);
   cs = &consensi[distance];
   i = 0;
   while ( (i < cs->array_length) &&
@@ -731,6 +732,7 @@ allocate_route (struct Route *route,
 {
   unsigned int i;
 
+  GNUNET_assert (distance < DEFAULT_FISHEYE_DEPTH - 1);
   i = get_consensus_slot (distance);
   route->set_offset = i;
   consensi[distance].targets[i] = route;
@@ -1033,6 +1035,8 @@ check_possible_route (void *cls,
     }
     return GNUNET_YES; /* got a route to this target already */
   }
+  if (ntohl (target->distance) >= DEFAULT_FISHEYE_DEPTH - 1)
+    return GNUNET_YES; /* distance is too large to be interesting */
   route = GNUNET_new (struct Route);
   route->next_hop = neighbor;
   route->target.distance = htonl (ntohl (target->distance) + 1);
