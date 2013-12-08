@@ -284,6 +284,7 @@ void
 _GSS_operation_destroy (struct Operation *op)
 {
   struct Set *set;
+  struct GNUNET_MESH_Channel *channel;
 
   if (NULL == op->vt)
     return;
@@ -316,10 +317,10 @@ _GSS_operation_destroy (struct Operation *op)
     op->mq = NULL;
   }
 
-  if (NULL != op->channel)
+  if (NULL != (channel = op->channel))
   {
-    GNUNET_MESH_channel_destroy (op->channel);
     op->channel = NULL;
+    GNUNET_MESH_channel_destroy (channel);
   }
 
   collect_generation_garbage (set);
