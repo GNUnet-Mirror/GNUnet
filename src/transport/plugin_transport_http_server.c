@@ -1177,7 +1177,6 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
     plugin->env->session_start (NULL, &s->target, PLUGIN_NAME, NULL, 0 ,s, NULL, 0);
   }
 
-#if MHD_VERSION >= 0x00090E00
   if ((NULL == s->server_recv) || (NULL == s->server_send))
   {
     to = (HTTP_SERVER_NOT_VALIDATED_TIMEOUT.rel_value_us / 1000LL / 1000LL);
@@ -1196,7 +1195,6 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
 
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                    "Setting timeout for %p to %u sec.\n", sc, to);
-#endif
   return sc;
 }
 

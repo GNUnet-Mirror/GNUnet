@@ -52,36 +52,6 @@ struct HttpAddressWrapper
   struct HttpAddress *addr;
 };
 
-/**
- * Context for address to string conversion.
- */
-struct PrettyPrinterContext
-{
-  /**
-   * Function to call with the result.
-   */
-  GNUNET_TRANSPORT_AddressStringCallback asc;
-
-  /**
-   * Plugin
-   */
-  struct Plugin *plugin;
-
-  /**
-   * Clsoure for 'asc'.
-   */
-  void *asc_cls;
-
-  /**
-   * Port to add after the IP address.
-   */
-  uint16_t port;
-
-  uint32_t addrlen;
-
-  int numeric;
-};
-
 
 /**
  * Encapsulation of all of the state of the plugin.
@@ -106,6 +76,7 @@ reschedule_session_timeout (struct Session *s);
 static void
 stop_session_timeout (struct Session *s);
 
+
 /**
  * Convert the transports address to a nice, human-readable
  * format.
@@ -118,7 +89,7 @@ stop_session_timeout (struct Session *s);
  * @param numeric should (IP) addresses be displayed in numeric form?
  * @param timeout after how long should we give up?
  * @param asc function to call on each string
- * @param asc_cls closure for asc
+ * @param asc_cls closure for @a asc
  */
 static void
 http_plugin_address_pretty_printer (void *cls, const char *type,
@@ -128,9 +99,9 @@ http_plugin_address_pretty_printer (void *cls, const char *type,
                                     GNUNET_TRANSPORT_AddressStringCallback asc,
                                     void *asc_cls)
 {
-  GNUNET_assert (cls != NULL);
-  struct HttpAddress *haddr = (struct HttpAddress *) addr;
+  const struct HttpAddress *haddr = addr;
 
+  GNUNET_assert (cls != NULL);
   if (addrlen < (sizeof (struct HttpAddress)))
   {
     /* invalid address */
