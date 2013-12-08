@@ -481,7 +481,7 @@ neighbour_delete (void *cls,
 /**
  * Function we use for handling incoming messages.
  *
- * @param cls closure (struct GNUNET_TRANSPORT_Handle *)
+ * @param cls closure, a `struct GNUNET_TRANSPORT_Handle *`
  * @param msg message received, NULL on timeout or fatal error
  */
 static void
@@ -714,9 +714,9 @@ timeout_request_due_to_congestion (void *cls,
  * Transmit message(s) to service.
  *
  * @param cls handle to transport
- * @param size number of bytes available in buf
+ * @param size number of bytes available in @a buf
  * @param buf where to copy the message
- * @return number of bytes copied to buf
+ * @return number of bytes copied to @a buf
  */
 static size_t
 transport_notify_ready (void *cls, size_t size, void *buf)
@@ -746,7 +746,8 @@ transport_notify_ready (void *cls, size_t size, void *buf)
   {
     GNUNET_CONTAINER_DLL_remove (h->control_head, h->control_tail, th);
     nret = th->notify (th->notify_cls, size, &cbuf[ret]);
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Added %u bytes of control message at %u\n",
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Added %u bytes of control message at %u\n",
          nret, ret);
     GNUNET_free (th);
     ret += nret;
@@ -913,7 +914,7 @@ schedule_transmission (struct GNUNET_TRANSPORT_Handle *h)
  * @param h handle to the transport service
  * @param size number of bytes to be transmitted
  * @param notify function to call to get the content
- * @param notify_cls closure for notify
+ * @param notify_cls closure for @a notify
  * @return a `struct GNUNET_TRANSPORT_TransmitHandle`
  */
 static struct GNUNET_TRANSPORT_TransmitHandle *
@@ -940,9 +941,9 @@ schedule_control_transmit (struct GNUNET_TRANSPORT_Handle *h, size_t size,
  * Transmit START message to service.
  *
  * @param cls unused
- * @param size number of bytes available in buf
+ * @param size number of bytes available in @a buf
  * @param buf where to copy the message
- * @return number of bytes copied to buf
+ * @return number of bytes copied to @a buf
  */
 static size_t
 send_start (void *cls, size_t size, void *buf)
@@ -1384,7 +1385,7 @@ GNUNET_TRANSPORT_offer_hello_cancel (struct GNUNET_TRANSPORT_OfferHelloHandle *o
  */
 int
 GNUNET_TRANSPORT_check_peer_connected (struct GNUNET_TRANSPORT_Handle *handle,
-					    const struct GNUNET_PeerIdentity *peer)
+                                       const struct GNUNET_PeerIdentity *peer)
 {
   if (GNUNET_YES ==
       GNUNET_CONTAINER_multipeermap_contains (handle->neighbours,
