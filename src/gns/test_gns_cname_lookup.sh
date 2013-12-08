@@ -4,8 +4,13 @@ trap "gnunet-arm -e -c test_gns_lookup.conf" SIGINT
 LOCATION=$(which gnunet-config)
 if [ -z $LOCATION ]
 then
+  LOCATION="gnunet-config"
+fi
+$LOCATION --version
+if test $? != 0
+then
 	echo "GNUnet command line tools cannot be found, check environmental variables PATH and GNUNET_PREFIX" 
-	exit 1
+	exit 77
 fi
 
 rm -rf `gnunet-config -c test_gns_lookup.conf -s PATHS -o GNUNET_HOME -f`
