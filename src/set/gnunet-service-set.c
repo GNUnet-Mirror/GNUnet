@@ -1130,6 +1130,7 @@ shutdown_task (void *cls,
  *    but did not receive a response in time
  *  - we got the channel from a peer but no GNUNET_MESSAGE_TYPE_SET_P2P_OPERATION_REQUEST
  *  - shutdown (obviously)
+ *
  * @param cls channel context
  * @param tc context information (why was this task triggered now)
  */
@@ -1139,12 +1140,12 @@ incoming_timeout_cb (void *cls,
 {
   struct Operation *incoming = cls;
 
+  incoming->state->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_assert (GNUNET_YES == incoming->is_incoming);
-
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "remote peer timed out\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "remote peer timed out\n");
   incoming_destroy (incoming);
 }
 
@@ -1214,7 +1215,8 @@ channel_new_cb (void *cls,
   incoming->mq = GNUNET_MESH_mq_create (incoming->channel);
   incoming->vt = &incoming_vt;
   incoming->state->timeout_task =
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES, incoming_timeout_cb, incoming);
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
+                                    &incoming_timeout_cb, incoming);
   GNUNET_CONTAINER_DLL_insert_tail (incoming_head, incoming_tail, incoming);
 
   return incoming;
