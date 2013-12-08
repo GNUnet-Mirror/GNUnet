@@ -130,7 +130,7 @@ struct Session
 
   /**
    * Does the transport service know about this session (and we thus
-   * need to call 'session_end' when it is released?)
+   * need to call `session_end` when it is released?)
    */
   int active;
 
@@ -182,6 +182,8 @@ notify_distance_change (struct Session *session)
   struct Plugin *plugin = session->plugin;
   struct GNUNET_ATS_Information ats;
 
+  if (GNUNET_YES != session->active)
+    return;
   ats.type = htonl ((uint32_t) GNUNET_ATS_QUALITY_NET_DISTANCE);
   ats.value = htonl (session->distance);
   plugin->env->update_address_metrics (plugin->env->cls,
@@ -195,10 +197,10 @@ notify_distance_change (struct Session *session)
 /**
  * Function called by MST on each message from the box.
  *
- * @param cls closure with the 'struct Plugin'
+ * @param cls closure with the `struct Plugin *`
  * @param client identification of the client (with the 'struct Session')
  * @param message the actual message
- * @return GNUNET_OK on success
+ * @return #GNUNET_OK on success
  */
 static int
 unbox_cb (void *cls,
@@ -217,7 +219,9 @@ unbox_cb (void *cls,
                         message,
 			session, "", 0);
   plugin->env->update_address_metrics (plugin->env->cls,
-  		&session->sender, NULL, 0, session, &ats, 1);
+                                       &session->sender, NULL,
+                                       0, session,
+                                       &ats, 1);
   return GNUNET_OK;
 }
 
@@ -240,11 +244,10 @@ handle_dv_message_received (void *cls,
   struct GNUNET_ATS_Information ats;
   struct Session *session;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message for peer `%s': new distance %u\n",
-      "DV_MESSAGE_RECEIVED",
-      GNUNET_i2s (sender), distance);
-
-
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Received `%s' message for peer `%s': new distance %u\n",
+       "DV_MESSAGE_RECEIVED",
+       GNUNET_i2s (sender), distance);
   session = GNUNET_CONTAINER_multipeermap_get (plugin->sessions,
 					       sender);
   if (NULL == session)
@@ -270,14 +273,16 @@ handle_dv_message_received (void *cls,
                         msg,
                         session, "", 0);
   plugin->env->update_address_metrics (plugin->env->cls,
-				       sender, "", 0, session, &ats, 1);
+				       sender, "",
+                                       0, session,
+                                       &ats, 1);
 }
 
 
 /**
  * Function called if DV starts to be able to talk to a peer.
  *
- * @param cls closure with 'struct Plugin'
+ * @param cls closure with `struct Plugin *`
  * @param peer newly connected peer
  * @param distance distance to the peer
  * @param network the network the next hop is located in
@@ -296,10 +301,10 @@ handle_dv_connect (void *cls,
    * If you remove it, also remove libgnunetats linkage from Makefile.am
    */
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-      "Received `%s' message for peer `%s' with next hop in network %s \n",
-      "DV_CONNECT",
-      GNUNET_i2s (peer),
-      GNUNET_ATS_print_network_type (network));
+       "Received `%s' message for peer `%s' with next hop in network %s \n",
+       "DV_CONNECT",
+       GNUNET_i2s (peer),
+       GNUNET_ATS_print_network_type (network));
 
   session = GNUNET_CONTAINER_multipeermap_get (plugin->sessions,
 					       peer);
@@ -307,8 +312,7 @@ handle_dv_connect (void *cls,
   {
     GNUNET_break (0);
     session->distance = distance;
-    if (GNUNET_YES == session->active)
-      notify_distance_change (session);
+    notify_distance_change (session);
     return; /* nothing to do */
   }
 
@@ -317,30 +321,33 @@ handle_dv_connect (void *cls,
   session->plugin = plugin;
   session->distance = distance;
   session->network = network;
-  GNUNET_assert(
-      GNUNET_YES == GNUNET_CONTAINER_multipeermap_put (plugin->sessions,
-          &session->sender, session,
-          GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+  GNUNET_assert(GNUNET_YES ==
+                GNUNET_CONTAINER_multipeermap_put (plugin->sessions,
+                                                   &session->sender, session,
+                                                   GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-      "Creating new session %p for peer `%s'\n",
-      session,
-      GNUNET_i2s (peer));
+       "Creating new session %p for peer `%s'\n",
+       session,
+       GNUNET_i2s (peer));
 
   /* Notify transport and ats about new connection */
   ats[0].type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
   ats[0].value = htonl (distance);
   ats[1].type = htonl (GNUNET_ATS_NETWORK_TYPE);
   ats[1].value = htonl (network);
-  plugin->env->session_start (plugin->env->cls, peer, PLUGIN_NAME, NULL, 0,
-      session, ats, 2);
+  session->active = GNUNET_YES;
+  plugin->env->session_start (plugin->env->cls, peer,
+                              PLUGIN_NAME,
+                              NULL, 0,
+                              session, ats, 2);
 }
 
 
 /**
  * Function called if DV distance to a peer is changed.
  *
- * @param cls closure with 'struct Plugin'
+ * @param cls closure with `struct Plugin *`
  * @param peer connected peer
  * @param distance new distance to the peer
  */
@@ -366,8 +373,7 @@ handle_dv_distance_changed (void *cls,
     return;
   }
   session->distance = distance;
-  if (GNUNET_YES == session->active)
-    notify_distance_change (session);
+  notify_distance_change (session);
 }
 
 
@@ -388,14 +394,16 @@ free_session (struct Session *session)
 						       session));
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-      "Freeing session %p for peer `%s'\n",
-      session,
-      GNUNET_i2s (&session->sender));
-
+       "Freeing session %p for peer `%s'\n",
+       session,
+       GNUNET_i2s (&session->sender));
   if (GNUNET_YES == session->active)
+  {
     plugin->env->session_end (plugin->env->cls,
 			      &session->sender,
 			      session);
+    session->active = GNUNET_NO;
+  }
   while (NULL != (pr = session->pr_head))
   {
     GNUNET_CONTAINER_DLL_remove (session->pr_head,
@@ -416,7 +424,7 @@ free_session (struct Session *session)
 /**
  * Function called if DV is no longer able to talk to a peer.
  *
- * @param cls closure with 'struct Plugin'
+ * @param cls closure with `struct Plugin *`
  * @param peer peer that disconnected
  */
 static void
@@ -426,15 +434,14 @@ handle_dv_disconnect (void *cls,
   struct Plugin *plugin = cls;
   struct Session *session;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message for peer `%s'\n",
-      "DV_DISCONNECT",
-      GNUNET_i2s (peer));
-
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Received `%s' message for peer `%s'\n",
+       "DV_DISCONNECT",
+       GNUNET_i2s (peer));
   session = GNUNET_CONTAINER_multipeermap_get (plugin->sessions,
 					       peer);
   if (NULL == session)
     return; /* nothing to do */
-
   free_session (session);
 }
 
@@ -444,7 +451,7 @@ handle_dv_disconnect (void *cls,
  * Clean up the pending request, and call continuations.
  *
  * @param cls closure
- * @param ok GNUNET_OK on success, GNUNET_SYSERR on error
+ * @param ok #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 static void
 send_finished (void *cls,
@@ -479,7 +486,7 @@ send_finished (void *cls,
  *        been transmitted (or if the transport is ready
  *        for the next transmission call; or if the
  *        peer disconnected...)
- * @param cont_cls closure for cont
+ * @param cont_cls closure for @a cont
  * @return number of bytes used (on the physical network, with overheads);
  *         -1 on hard errors (i.e. address invalid); 0 is a legal value
  *         and does NOT mean that the message was not transmitted (DV)
@@ -487,7 +494,9 @@ send_finished (void *cls,
 static ssize_t
 dv_plugin_send (void *cls,
 		struct Session *session,
-                const char *msgbuf, size_t msgbuf_size, unsigned int priority,
+                const char *msgbuf,
+                size_t msgbuf_size,
+                unsigned int priority,
                 struct GNUNET_TIME_Relative timeout,
                 GNUNET_TRANSPORT_TransmitContinuation cont, void *cont_cls)
 {
@@ -530,11 +539,12 @@ dv_plugin_send (void *cls,
  * from the given peer and cancel all previous transmissions
  * (and their continuations).
  *
- * @param cls closure
+ * @param cls closure with the `struct Plugin *`
  * @param target peer from which to disconnect
  */
 static void
-dv_plugin_disconnect (void *cls, const struct GNUNET_PeerIdentity *target)
+dv_plugin_disconnect (void *cls,
+                      const struct GNUNET_PeerIdentity *target)
 {
   struct Plugin *plugin = cls;
   struct Session *session;
@@ -573,10 +583,11 @@ dv_plugin_disconnect (void *cls, const struct GNUNET_PeerIdentity *target)
  * @param numeric should (IP) addresses be displayed in numeric form?
  * @param timeout after how long should we give up?
  * @param asc function to call on each string
- * @param asc_cls closure for asc
+ * @param asc_cls closure for @a asc
  */
 static void
-dv_plugin_address_pretty_printer (void *cls, const char *type, const void *addr,
+dv_plugin_address_pretty_printer (void *cls, const char *type,
+                                  const void *addr,
                                   size_t addrlen, int numeric,
                                   struct GNUNET_TIME_Relative timeout,
                                   GNUNET_TRANSPORT_AddressStringCallback asc,
@@ -594,12 +605,13 @@ dv_plugin_address_pretty_printer (void *cls, const char *type, const void *addr,
  *
  * @param cls closure
  * @param addr the (hopefully) DV address
- * @param addrlen the length of the address
- *
+ * @param addrlen the length of the @a addr
  * @return string representing the DV address
  */
 static const char *
-dv_plugin_address_to_string (void *cls, const void *addr, size_t addrlen)
+dv_plugin_address_to_string (void *cls,
+                             const void *addr,
+                             size_t addrlen)
 {
   if (0 != addrlen)
   {
@@ -622,12 +634,14 @@ dv_plugin_address_to_string (void *cls, const void *addr, size_t addrlen)
  * @param cls closure
  * @param addr pointer to the address
  * @param addrlen length of addr
- * @return GNUNET_OK if this is a plausible address for this peer
- *         and transport, GNUNET_SYSERR if not
+ * @return #GNUNET_OK if this is a plausible address for this peer
+ *         and transport, #GNUNET_SYSERR if not
  *
  */
 static int
-dv_plugin_check_address (void *cls, const void *addr, size_t addrlen)
+dv_plugin_check_address (void *cls,
+                         const void *addr,
+                         size_t addrlen)
 {
   if (0 != addrlen)
     return GNUNET_SYSERR;
@@ -668,11 +682,11 @@ dv_get_session (void *cls,
  *
  * @param cls closure ('struct Plugin*')
  * @param addr string address
- * @param addrlen length of the address including \0 termination
+ * @param addrlen length of the @a addr including \0 termination
  * @param buf location to store the buffer
- *        If the function returns GNUNET_SYSERR, its contents are undefined.
+ *        If the function returns #GNUNET_SYSERR, its contents are undefined.
  * @param added length of created address
- * @return GNUNET_OK on success, GNUNET_SYSERR on failure
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
  */
 static int
 dv_plugin_string_to_address (void *cls,
@@ -698,7 +712,7 @@ dv_plugin_string_to_address (void *cls,
  * used by the next hop here.  Or find some other way
  * to properly allow ATS-DV resource allocation.
  *
- * @param cls closure ('struct Plugin*')
+ * @param cls closure (`struct Plugin *`)
  * @param session the session
  * @return the network type
  */
