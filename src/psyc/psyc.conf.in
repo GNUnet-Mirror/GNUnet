@@ -4,3 +4,5 @@ BINARY = gnunet-service-psyc
 UNIXPATH = $GNUNET_RUNTIME_DIR/gnunet-service-psyc.sock
 UNIX_MATCH_UID = NO
 UNIX_MATCH_GID = YES
+@UNIXONLY@PORT = 2115
+HOSTNAME = localhost
