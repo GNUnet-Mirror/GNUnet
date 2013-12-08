@@ -23,7 +23,7 @@ TEST_RECORD_GNS2DNS="gnunet.org"
 if ! nslookup $TEST_RECORD_GNS2DNS $TEST_IP_GNS2DNS &> /dev/null
 then
   echo "Cannot reach DNS, skipping test"
-  exit 0
+  exit 77
 fi
 
 gnunet-arm -s -c test_gns_lookup.conf

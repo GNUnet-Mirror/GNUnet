@@ -17,7 +17,7 @@ ME=`whoami`
 if [ "$ME" != "root" ]
 then
   echo "This test only works if run as root.  Skipping."
-  exit 0
+  exit 77
 fi
 export PATH=".:$PATH"
 gnunet-service-gns -c gns.conf &

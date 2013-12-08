@@ -33,7 +33,7 @@ TEST_DOMAIN_ALT2="uk.${TEST_RECORD_NAME}.gnu"
 if ! nslookup gnunet.org $TEST_IP_GNS2DNS &> /dev/null
 then
   echo "Cannot reach DNS, skipping test"
-  exit 0
+  exit 77
 fi
 
 # helper record for pointing to the DNS resolver
