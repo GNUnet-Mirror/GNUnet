@@ -19,7 +19,7 @@
 */
 /**
  * @file conversation/gnunet-helper-audio-playback.c
- * @brief constants for network protocols
+ * @brief program to playback audio data to the speaker
  * @author Siomon Dieterle
  * @author Andreas Fuchs
  * @author Christian Grothoff
@@ -335,8 +335,8 @@ main (int argc, char *argv[])
 
   GNUNET_assert (GNUNET_OK ==
 		 GNUNET_log_setup ("gnunet-helper-audio-playback",
-				   "DEBUG",
-				   "/tmp/helper-audio-playback"));
+				   "WARNING",
+				   NULL));
   if (0 != pipe (ready_pipe))
   {
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "pipe");

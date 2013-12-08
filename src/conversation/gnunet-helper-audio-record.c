@@ -18,8 +18,8 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file conversation/gnunet-helper-audio-playback.c
- * @brief constants for network protocols
+ * @file conversation/gnunet-helper-audio-record.c
+ * @brief program to record audio data from the microphone
  * @author Siomon Dieterle
  * @author Andreas Fuchs
  * @author Christian Grothoff
@@ -293,9 +293,8 @@ stream_state_callback (pa_stream * s, void *userdata)
   case PA_STREAM_READY:
     {
       const pa_buffer_attr *a;
-
-      char cmt[PA_CHANNEL_MAP_SNPRINT_MAX],
-	sst[PA_SAMPLE_SPEC_SNPRINT_MAX];
+      char cmt[PA_CHANNEL_MAP_SNPRINT_MAX];
+      char sst[PA_SAMPLE_SPEC_SNPRINT_MAX];
 
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		  _("Stream successfully created.\n"));
@@ -306,7 +305,7 @@ stream_state_callback (pa_stream * s, void *userdata)
 		    _("pa_stream_get_buffer_attr() failed: %s\n"),
 		    pa_strerror (pa_context_errno
 				 (pa_stream_get_context (s))));
-	
+
       }
       else
       {
@@ -492,8 +491,8 @@ main (int argc, char *argv[])
 {
   GNUNET_assert (GNUNET_OK ==
 		 GNUNET_log_setup ("gnunet-helper-audio-record",
-				   "DEBUG",
-				   "/tmp/helper-audio-record"));
+				   "WARNING",
+				   NULL));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Audio source starts\n");
   audio_message = GNUNET_malloc (UINT16_MAX);
