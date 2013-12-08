@@ -307,7 +307,7 @@ run (void *cls,
   }
   while (1);
 
-  mask_bytes = element_count / 8 + (element_count % 8 ? 1 : 0);
+  mask_bytes = element_count / 8 + ( (element_count % 8) ? 1 : 0);
   mask = GNUNET_malloc ((element_count / 8) + 1);
 
   /* Read input_mask_peer1 and read in mask_peer1 array */
