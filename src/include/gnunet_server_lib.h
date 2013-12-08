@@ -96,7 +96,7 @@ struct GNUNET_SERVER_MessageHandler
   GNUNET_SERVER_MessageCallback callback;
 
   /**
-   * Closure argument for "callback".
+   * Closure argument for @e callback.
    */
   void *callback_cls;
 
@@ -210,8 +210,7 @@ GNUNET_SERVER_destroy (struct GNUNET_SERVER_Handle *server);
  */
 void
 GNUNET_SERVER_add_handlers (struct GNUNET_SERVER_Handle *server,
-                            const struct GNUNET_SERVER_MessageHandler
-                            *handlers);
+                            const struct GNUNET_SERVER_MessageHandler *handlers);
 
 
 /**
@@ -233,8 +232,8 @@ struct GNUNET_SERVER_TransmitHandle *
 GNUNET_SERVER_notify_transmit_ready (struct GNUNET_SERVER_Client *client,
                                      size_t size,
                                      struct GNUNET_TIME_Relative timeout,
-                                     GNUNET_CONNECTION_TransmitReadyNotify
-                                     callback, void *callback_cls);
+                                     GNUNET_CONNECTION_TransmitReadyNotify callback,
+                                     void *callback_cls);
 
 
 /**
@@ -513,8 +512,8 @@ GNUNET_SERVER_connect_notify (struct GNUNET_SERVER_Handle *server,
  */
 void
 GNUNET_SERVER_disconnect_notify_cancel (struct GNUNET_SERVER_Handle *server,
-                                        GNUNET_SERVER_DisconnectCallback
-                                        callback, void *callback_cls);
+                                        GNUNET_SERVER_DisconnectCallback callback,
+                                        void *callback_cls);
 
 
 /**
@@ -587,8 +586,8 @@ GNUNET_SERVER_transmit_context_create (struct GNUNET_SERVER_Client *client);
  * @param type type of the message
  */
 void
-GNUNET_SERVER_transmit_context_append_data (struct GNUNET_SERVER_TransmitContext
-                                            *tc, const void *data,
+GNUNET_SERVER_transmit_context_append_data (struct GNUNET_SERVER_TransmitContext *tc,
+                                            const void *data,
                                             size_t length, uint16_t type);
 
 
@@ -601,11 +600,8 @@ GNUNET_SERVER_transmit_context_append_data (struct GNUNET_SERVER_TransmitContext
  * @param msg message to append
  */
 void
-GNUNET_SERVER_transmit_context_append_message (struct
-                                               GNUNET_SERVER_TransmitContext
-                                               *tc,
-                                               const struct GNUNET_MessageHeader
-                                               *msg);
+GNUNET_SERVER_transmit_context_append_message (struct GNUNET_SERVER_TransmitContext *tc,
+                                               const struct GNUNET_MessageHeader *msg);
 
 
 /**
@@ -634,8 +630,8 @@ GNUNET_SERVER_transmit_context_run (struct GNUNET_SERVER_TransmitContext *tc,
  *                          serious error)
  */
 void
-GNUNET_SERVER_transmit_context_destroy (struct GNUNET_SERVER_TransmitContext
-                                        *tc, int success);
+GNUNET_SERVER_transmit_context_destroy (struct GNUNET_SERVER_TransmitContext *tc,
+                                        int success);
 
 
 /**
@@ -731,9 +727,7 @@ struct GNUNET_SERVER_MessageStreamTokenizer;
  * @return #GNUNET_OK on success, #GNUNET_SYSERR to stop further processing
  */
 typedef int (*GNUNET_SERVER_MessageTokenizerCallback) (void *cls, void *client,
-                                                        const struct
-                                                        GNUNET_MessageHeader *
-                                                        message);
+                                                       const struct GNUNET_MessageHeader *message);
 
 
 /**
@@ -766,7 +760,8 @@ GNUNET_SERVER_mst_create (GNUNET_SERVER_MessageTokenizerCallback cb,
  */
 int
 GNUNET_SERVER_mst_receive (struct GNUNET_SERVER_MessageStreamTokenizer *mst,
-                           void *client_identity, const char *buf, size_t size,
+                           void *client_identity,
+                           const char *buf, size_t size,
                            int purge, int one_shot);
 
 
@@ -782,7 +777,7 @@ GNUNET_SERVER_mst_destroy (struct GNUNET_SERVER_MessageStreamTokenizer *mst);
 /**
  * Signature of a function to create a custom tokenizer.
  *
- * @param cls closure from 'GNUNET_SERVER_set_callbacks'
+ * @param cls closure from #GNUNET_SERVER_set_callbacks
  * @param client handle to client the tokenzier will be used for
  * @return handle to custom tokenizer ('mst')
  */
@@ -793,7 +788,7 @@ typedef void* (*GNUNET_SERVER_MstCreateCallback) (void *cls,
 /**
  * Signature of a function to destroy a custom tokenizer.
  *
- * @param cls closure from 'GNUNET_SERVER_set_callbacks'
+ * @param cls closure from #GNUNET_SERVER_set_callbacks
  * @param mst custom tokenizer handle
  */
 typedef void (*GNUNET_SERVER_MstDestroyCallback) (void *cls, void *mst);

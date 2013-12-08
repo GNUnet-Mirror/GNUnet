@@ -81,7 +81,7 @@ struct GNUNET_SERVER_MessageStreamTokenizer
  * Create a message stream tokenizer.
  *
  * @param cb function to call on completed messages
- * @param cb_cls closure for cb
+ * @param cb_cls closure for @a cb
  * @return handle to tokenizer
  */
 struct GNUNET_SERVER_MessageStreamTokenizer *
@@ -106,17 +106,18 @@ GNUNET_SERVER_mst_create (GNUNET_SERVER_MessageTokenizerCallback cb,
  * @param mst tokenizer to use
  * @param client_identity ID of client for which this is a buffer
  * @param buf input data to add
- * @param size number of bytes in buf
+ * @param size number of bytes in @a buf
  * @param purge should any excess bytes in the buffer be discarded
  *       (i.e. for packet-based services like UDP)
  * @param one_shot only call callback once, keep rest of message in buffer
- * @return GNUNET_OK if we are done processing (need more data)
- *         GNUNET_NO if one_shot was set and we have another message ready
- *         GNUNET_SYSERR if the data stream is corrupt
+ * @return #GNUNET_OK if we are done processing (need more data)
+ *         #GNUNET_NO if @a one_shot was set and we have another message ready
+ *         #GNUNET_SYSERR if the data stream is corrupt
  */
 int
 GNUNET_SERVER_mst_receive (struct GNUNET_SERVER_MessageStreamTokenizer *mst,
-                           void *client_identity, const char *buf, size_t size,
+                           void *client_identity,
+                           const char *buf, size_t size,
                            int purge, int one_shot)
 {
   const struct GNUNET_MessageHeader *hdr;
