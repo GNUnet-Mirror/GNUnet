@@ -197,6 +197,9 @@ GNUNET_xrealloc_ (void *ptr, size_t n, const char *filename, int linenumber)
 #if WINDOWS
 #define M_SIZE(p) _msize (p)
 #endif
+#ifdef FREEBSD
+#include <malloc_np.h>
+#endif
 #if HAVE_MALLOC_USABLE_SIZE
 #define M_SIZE(p) malloc_usable_size (p)
 #elif HAVE_MALLOC_SIZE
