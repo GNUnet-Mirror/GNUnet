@@ -1397,7 +1397,7 @@ GNUNET_TRANSPORT_check_peer_connected (struct GNUNET_TRANSPORT_Handle *handle,
 /**
  * Task to call the HelloUpdateCallback of the GetHelloHandle
  *
- * @param cls the GetHelloHandle
+ * @param cls the `struct GNUNET_TRANSPORT_GetHelloHandle`
  * @param tc the scheduler task context
  */
 static void
