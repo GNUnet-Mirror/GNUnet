@@ -130,7 +130,6 @@ GNUNET_CRYPTO_random_block (enum GNUNET_CRYPTO_Quality mode, void *buffer, size_
 #endif
     gcry_randomize (buffer, length, GCRY_WEAK_RANDOM);
     return;
-    return;
   default:
     GNUNET_assert (0);
   }
