@@ -543,7 +543,7 @@ static struct GNUNET_MESH_MessageHandler handlers[] = {
 static void *
 incoming_channel (void *cls, struct GNUNET_MESH_Channel *channel,
                  const struct GNUNET_PeerIdentity *initiator,
-                 uint32_t port, enum MeshOption options)
+                 uint32_t port, enum GNUNET_MESH_ChannelOption options)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Incoming channel from %s to peer %d\n",
@@ -630,7 +630,7 @@ channel_cleaner (void *cls, const struct GNUNET_MESH_Channel *channel,
 static void
 do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  enum MeshOption flags;
+  enum GNUNET_MESH_ChannelOption flags;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test_task\n");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "add peer 2\n");

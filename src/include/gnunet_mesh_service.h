@@ -59,7 +59,7 @@ struct GNUNET_MESH_Channel;
  * Channel options.
  * Second line indicates filed in the MeshChannelInfo union carrying the answer.
  */
-enum MeshOption
+enum GNUNET_MESH_ChannelOption
 {
   /**
    * Default options: unreliable, default buffering, not out of order.
@@ -166,7 +166,7 @@ typedef void *(GNUNET_MESH_InboundChannelNotificationHandler) (void *cls,
                                                                GNUNET_PeerIdentity
                                                                * initiator,
                                                                uint32_t port,
-                                                               enum MeshOption
+                                                               enum GNUNET_MESH_ChannelOption
                                                                options);
 
 
@@ -249,7 +249,7 @@ GNUNET_MESH_channel_create (struct GNUNET_MESH_Handle *h,
                             void *channel_ctx,
                             const struct GNUNET_PeerIdentity *peer,
                             uint32_t port,
-                            enum MeshOption options);
+                            enum GNUNET_MESH_ChannelOption options);
 
 
 /**
@@ -293,7 +293,7 @@ union GNUNET_MESH_ChannelInfo
  */
 const union GNUNET_MESH_ChannelInfo *
 GNUNET_MESH_channel_get_info (struct GNUNET_MESH_Channel *channel,
-                              enum MeshOption option, ...);
+                              enum GNUNET_MESH_ChannelOption option, ...);
 
 
 /**

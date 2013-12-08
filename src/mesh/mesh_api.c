@@ -279,7 +279,7 @@ struct GNUNET_MESH_Channel
     /**
      * Channel options: reliability, etc.
      */
-  enum MeshOption options;
+  enum GNUNET_MESH_ChannelOption options;
 
     /**
      * Are we allowed to send to the service?
@@ -1382,7 +1382,7 @@ GNUNET_MESH_channel_create (struct GNUNET_MESH_Handle *h,
                             void *channel_ctx,
                             const struct GNUNET_PeerIdentity *peer,
                             uint32_t port,
-                            enum MeshOption options)
+                            enum GNUNET_MESH_ChannelOption options)
 {
   struct GNUNET_MESH_Channel *ch;
   struct GNUNET_MESH_ChannelMessage msg;
@@ -1457,7 +1457,7 @@ GNUNET_MESH_channel_destroy (struct GNUNET_MESH_Channel *channel)
  */
 const union GNUNET_MESH_ChannelInfo *
 GNUNET_MESH_channel_get_info (struct GNUNET_MESH_Channel *channel,
-                              enum MeshOption option, ...)
+                              enum GNUNET_MESH_ChannelOption option, ...)
 {
   static int bool_flag;
   const union GNUNET_MESH_ChannelInfo *ret;

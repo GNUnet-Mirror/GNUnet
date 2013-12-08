@@ -169,7 +169,7 @@ data_callback (void *cls, struct GNUNET_MESH_Channel *channel,
 static void *
 inbound_channel (void *cls, struct GNUNET_MESH_Channel *channel,
                 const struct GNUNET_PeerIdentity *initiator,
-                uint32_t port, enum MeshOption options)
+                uint32_t port, enum GNUNET_MESH_ChannelOption options)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "received incoming channel on port %u\n",

@@ -1852,7 +1852,7 @@ static void *
 channel_incoming_handler (void *cls,
                          struct GNUNET_MESH_Channel *channel,
                          const struct GNUNET_PeerIdentity *initiator,
-                         uint32_t port, enum MeshOption options)
+                         uint32_t port, enum GNUNET_MESH_ChannelOption options)
 {
   struct ServiceSession * c = GNUNET_new (struct ServiceSession);
 

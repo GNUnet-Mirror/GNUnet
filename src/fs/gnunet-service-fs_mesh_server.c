@@ -465,7 +465,7 @@ static void *
 accept_cb (void *cls,
 	   struct GNUNET_MESH_Channel *channel,
 	   const struct GNUNET_PeerIdentity *initiator,
-	   uint32_t port, enum MeshOption options)
+	   uint32_t port, enum GNUNET_MESH_ChannelOption options)
 {
   struct MeshClient *sc;
 
