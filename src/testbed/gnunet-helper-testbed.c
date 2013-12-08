@@ -406,9 +406,9 @@ tokenizer_cb (void *cls, void *client,
   evstr = getenv (GNUNET_TESTING_PREFIX);
   if (NULL != evstr)
   {
-#ifdef WINDOWS
     /* unsetting the variable will invalidate the pointer! */
     evstr = GNUNET_strdup (evstr);
+#ifdef WINDOWS
     GNUNET_break (0 != SetEnvironmentVariable (GNUNET_TESTING_PREFIX, NULL));
 #else
     GNUNET_break (0 == unsetenv (GNUNET_TESTING_PREFIX));
@@ -421,7 +421,6 @@ tokenizer_cb (void *cls, void *client,
   {
 #ifdef WINDOWS
     GNUNET_assert (0 != SetEnvironmentVariable (GNUNET_TESTING_PREFIX, evstr));
-    GNUNET_free (evstr);
 #else
     static char evar[2* PATH_MAX];
 
@@ -429,7 +428,7 @@ tokenizer_cb (void *cls, void *client,
                                         GNUNET_TESTING_PREFIX "=%s", evstr));
     putenv (evar);
 #endif
-    /* do not free evstr */
+    GNUNET_free (evstr);
     evstr = NULL;
   }
   GNUNET_free_non_null (hostname);
