@@ -789,7 +789,11 @@ GML_channel_get (struct MeshClient *c, MESH_ChannelNumber chid)
     map = c->incoming_channels;
   else if (chid >= GNUNET_MESH_LOCAL_CHANNEL_ID_CLI)
     map = c->own_channels;
-
+  else
+  {
+    GNUNET_break (0);
+    map = NULL;
+  }
   if (NULL == map)
   {
     GNUNET_break (0);
