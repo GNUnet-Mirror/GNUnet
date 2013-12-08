@@ -341,7 +341,7 @@ reconnect (struct GNUNET_CORE_Handle *h);
 /**
  * Task schedule to try to re-connect to core.
  *
- * @param cls the 'struct GNUNET_CORE_Handle'
+ * @param cls the `struct GNUNET_CORE_Handle`
  * @param tc task context
  */
 static void
@@ -350,7 +350,8 @@ reconnect_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_CORE_Handle *h = cls;
 
   h->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Connecting to CORE service after delay\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Connecting to CORE service after delay\n");
   reconnect (h);
 }
 
@@ -359,9 +360,9 @@ reconnect_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Notify clients about disconnect and free
  * the entry for connected peer.
  *
- * @param cls the 'struct GNUNET_CORE_Handle*'
+ * @param cls the `struct GNUNET_CORE_Handle *`
  * @param key the peer identity (not used)
- * @param value the 'struct PeerRecord' to free.
+ * @param value the `struct PeerRecord` to free.
  * @return #GNUNET_YES (continue)
  */
 static int
@@ -433,7 +434,8 @@ reconnect_later (struct GNUNET_CORE_Handle *h)
   h->currently_down = GNUNET_YES;
   GNUNET_assert (h->reconnect_task == GNUNET_SCHEDULER_NO_TASK);
   h->reconnect_task =
-      GNUNET_SCHEDULER_add_delayed (h->retry_backoff, &reconnect_task, h);
+      GNUNET_SCHEDULER_add_delayed (h->retry_backoff,
+                                    &reconnect_task, h);
   while (NULL != (cm = h->control_pending_head))
   {
     GNUNET_CONTAINER_DLL_remove (h->control_pending_head,
@@ -472,7 +474,8 @@ trigger_next_request (struct GNUNET_CORE_Handle *h, int ignore_currently_down);
  * @param tc context, can be NULL (!)
  */
 static void
-transmission_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+transmission_timeout (void *cls,
+                      const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
@@ -537,7 +540,8 @@ request_next_transmission (struct PeerRecord *pr)
  * @param tc context, can be NULL (!)
  */
 static void
-transmission_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+transmission_timeout (void *cls,
+                      const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct PeerRecord *pr = cls;
   struct GNUNET_CORE_Handle *h = pr->ch;
@@ -577,10 +581,10 @@ transmission_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /**
  * Transmit the next message to the core service.
  *
- * @param cls closure with the 'struct GNUNET_CORE_Handle'
+ * @param cls closure with the `struct GNUNET_CORE_Handle`
  * @param size number of bytes available in @a buf
  * @param buf where the callee should write the message
- * @return number of bytes written to buf
+ * @return number of bytes written to @a buf
  */
 static size_t
 transmit_message (void *cls, size_t size, void *buf)
@@ -734,7 +738,7 @@ trigger_next_request (struct GNUNET_CORE_Handle *h, int ignore_currently_down)
 /**
  * Handler for notification messages received from the core.
  *
- * @param cls our "struct GNUNET_CORE_Handle"
+ * @param cls our `struct GNUNET_CORE_Handle`
  * @param msg the message received from the core service
  */
 static void
@@ -1072,7 +1076,8 @@ reconnect (struct GNUNET_CORE_Handle *h)
   unsigned int hpos;
 
   GNUNET_assert (NULL == h->client);
-  GNUNET_assert (h->currently_down == GNUNET_YES);
+  GNUNET_assert (GNUNET_YES == h->currently_down);
+  GNUNET_assert (NULL != h->cfg);
   h->client = GNUNET_CLIENT_connect ("core", h->cfg);
   if (NULL == h->client)
   {
@@ -1173,7 +1178,8 @@ GNUNET_CORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
   GNUNET_assert (h->hcnt <
                  (GNUNET_SERVER_MAX_MESSAGE_SIZE -
                   sizeof (struct InitMessage)) / sizeof (uint16_t));
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Connecting to CORE service\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Connecting to CORE service\n");
   reconnect (h);
   return h;
 }
