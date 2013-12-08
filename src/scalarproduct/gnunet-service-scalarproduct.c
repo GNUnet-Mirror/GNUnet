@@ -2171,7 +2171,7 @@ handle_service_request (void *cls,
        (element_count < used_elements) ||
        (used_elements < contained_elements) ||
        (0 == used_elements) ||
-       (mask_length != (element_count / 8 + (element_count % 8 ? 1 : 0))) )
+       (mask_length != (element_count / 8 + ((element_count % 8) ? 1 : 0))) )
   {
     GNUNET_free (session);
     GNUNET_break_op (0);
