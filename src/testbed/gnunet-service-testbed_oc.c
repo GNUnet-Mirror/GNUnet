@@ -1669,7 +1669,7 @@ rocc_cache_get_handle_transport_cb (void *cls, struct GNUNET_CORE_Handle *ch,
   rocc->tcc.th_ = th;
   rocc->tcc.pid = &rocc->a_id;
   if (GNUNET_YES ==
-      GNUNET_TRANSPORT_check_neighbour_connected (rocc->tcc.th_, rocc->tcc.pid))
+      GNUNET_TRANSPORT_check_peer_connected (rocc->tcc.th_, rocc->tcc.pid))
   {
     LOG_DEBUG ("0x%llx: Target peer %4s already connected to local peer: %u\n",
                rocc->op_id, GNUNET_i2s (&rocc->a_id), rocc->peer->id);

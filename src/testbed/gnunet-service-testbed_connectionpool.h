@@ -111,7 +111,7 @@ typedef void
  *
  * @note @a connect_notify_cb will not be called if @a target is
  * already connected @a service level. Use
- * GNUNET_TRANSPORT_check_neighbour_connected() or a similar function from the
+ * GNUNET_TRANSPORT_check_peer_connected() or a similar function from the
  * respective @a service's API to check if the target peer is already connected or
  * not. @a connect_notify_cb will be called only once or never (in case @a target
  * cannot be connected or is already connected).

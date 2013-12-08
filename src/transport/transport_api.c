@@ -1031,7 +1031,8 @@ disconnect_and_schedule_reconnect (struct GNUNET_TRANSPORT_Handle *h)
     h->client = NULL;
   }
   /* Forget about all neighbours that we used to be connected to */
-  GNUNET_CONTAINER_multipeermap_iterate (h->neighbours, &neighbour_delete, h);
+  GNUNET_CONTAINER_multipeermap_iterate (h->neighbours,
+                                         &neighbour_delete, h);
   if (h->quota_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (h->quota_task);
@@ -1374,8 +1375,15 @@ GNUNET_TRANSPORT_offer_hello_cancel (struct GNUNET_TRANSPORT_OfferHelloHandle *o
 }
 
 
+/**
+ * Checks if a given peer is connected to us
+ *
+ * @param handle connection to transport service
+ * @param peer the peer to check
+ * @return #GNUNET_YES (connected) or #GNUNET_NO (disconnected)
+ */
 int
-GNUNET_TRANSPORT_check_neighbour_connected (struct GNUNET_TRANSPORT_Handle *handle,
+GNUNET_TRANSPORT_check_peer_connected (struct GNUNET_TRANSPORT_Handle *handle,
 					    const struct GNUNET_PeerIdentity *peer)
 {
   if (GNUNET_YES ==
