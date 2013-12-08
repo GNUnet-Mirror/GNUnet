@@ -918,12 +918,13 @@ channel_rel_free_all (struct MeshChannelReliability *rel)
     LOG (GNUNET_ERROR_TYPE_DEBUG, " COPYFREE BATCH %p\n", copy);
     GNUNET_free (copy);
   }
+  if (NULL != rel->uniq && NULL != rel->uniq->q)
+    GMT_cancel (rel->uniq->q);
   if (GNUNET_SCHEDULER_NO_TASK != rel->retry_task)
   {
     GNUNET_SCHEDULER_cancel (rel->retry_task);
+    rel->retry_task = GNUNET_SCHEDULER_NO_TASK;
   }
-  if (NULL != rel->uniq && NULL != rel->uniq->q)
-    GMT_cancel (rel->uniq->q);
   GNUNET_free (rel);
 }
 
@@ -1965,6 +1966,7 @@ GMCH_handle_data_ack (struct MeshChannel *ch,
     if (GNUNET_SCHEDULER_NO_TASK != rel->retry_task)
     {
       GNUNET_SCHEDULER_cancel (rel->retry_task);
+      rel->retry_task = GNUNET_SCHEDULER_NO_TASK;
       if (NULL != rel->head_sent && NULL == rel->head_sent->q)
       {
         struct GNUNET_TIME_Absolute new_target;
@@ -1979,10 +1981,6 @@ GMCH_handle_data_ack (struct MeshChannel *ch,
             GNUNET_SCHEDULER_add_delayed (delay,
                                           &channel_retransmit_message,
                                           rel);
-      }
-      else /* either no more traffic to ack or traffic has just been queued */
-      {
-        rel->retry_task = GNUNET_SCHEDULER_NO_TASK;
       }
     }
     else /* work was done but no task was pending? shouldn't happen! */
