@@ -2239,20 +2239,6 @@ GMC_destroy (struct MeshConnection *c)
        c->fwd_fc.poll_task, c->bck_fc.poll_task);
 
   /* Cancel maintainance task (keepalive/timeout) */
-  if (GNUNET_SCHEDULER_NO_TASK != c->fwd_maintenance_task)
-    GNUNET_SCHEDULER_cancel (c->fwd_maintenance_task);
-  if (GNUNET_SCHEDULER_NO_TASK != c->bck_maintenance_task)
-    GNUNET_SCHEDULER_cancel (c->bck_maintenance_task);
-  if (GNUNET_SCHEDULER_NO_TASK != c->fwd_fc.poll_task)
-  {
-    GNUNET_SCHEDULER_cancel (c->fwd_fc.poll_task);
-    LOG (GNUNET_ERROR_TYPE_DEBUG, " *** POLL FWD canceled\n");
-  }
-  if (GNUNET_SCHEDULER_NO_TASK != c->bck_fc.poll_task)
-  {
-    GNUNET_SCHEDULER_cancel (c->bck_fc.poll_task);
-    LOG (GNUNET_ERROR_TYPE_DEBUG, " *** POLL BCK canceled\n");
-  }
   if (NULL != c->fwd_fc.poll_msg)
   {
     GMC_cancel (c->fwd_fc.poll_msg);
@@ -2274,6 +2260,20 @@ GMC_destroy (struct MeshConnection *c)
 
   if (GNUNET_NO == GMC_is_origin (c, GNUNET_YES))
     path_destroy (c->path);
+  if (GNUNET_SCHEDULER_NO_TASK != c->fwd_maintenance_task)
+    GNUNET_SCHEDULER_cancel (c->fwd_maintenance_task);
+  if (GNUNET_SCHEDULER_NO_TASK != c->bck_maintenance_task)
+    GNUNET_SCHEDULER_cancel (c->bck_maintenance_task);
+  if (GNUNET_SCHEDULER_NO_TASK != c->fwd_fc.poll_task)
+  {
+    GNUNET_SCHEDULER_cancel (c->fwd_fc.poll_task);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " *** POLL FWD canceled\n");
+  }
+  if (GNUNET_SCHEDULER_NO_TASK != c->bck_fc.poll_task)
+  {
+    GNUNET_SCHEDULER_cancel (c->bck_fc.poll_task);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " *** POLL BCK canceled\n");
+  }
 
   GNUNET_break (GNUNET_YES ==
                 GNUNET_CONTAINER_multihashmap_remove (connections, &c->id, c));
