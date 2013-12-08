@@ -203,6 +203,13 @@ AC_CHECK_LIB(socket, socket)
 AC_CHECK_LIB(m, log)
 AC_CHECK_LIB(c, getloadavg, AC_DEFINE(HAVE_GETLOADAVG,1,[getloadavg supported]))
 
+
+AC_CHECK_MEMBER(struct tm.tm_gmtoff,
+  [AC_DEFINE(HAVE_TM_GMTOFF, 1,
+     [Define if struct tm has the tm_gmtoff member.])],
+     ,
+     [#include <time.h>])
+
 # 'save' libs; only those libs found so far will be
 # linked against _everywhere_.  For the others, we
 # will be more selective!

@@ -197,7 +197,7 @@ struct ConversionTable
  * @param input input string to parse
  * @param table table with the conversion of unit names to numbers
  * @param output where to store the result
- * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 static int
 convert_with_table (const char *input,
@@ -255,7 +255,7 @@ convert_with_table (const char *input,
  *
  * @param fancy_size human readable string (i.e. 1 MB)
  * @param size set to the size in bytes
- * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
 GNUNET_STRINGS_fancy_size_to_bytes (const char *fancy_size,
@@ -345,6 +345,9 @@ GNUNET_STRINGS_fancy_time_to_absolute (const char *fancy_time,
 {
   struct tm tv;
   time_t t;
+#if HAVE_TM_GMTOFF
+  struct tm *tp;
+#endif
 
   if (0 == strcasecmp ("end of time", fancy_time))
   {
@@ -365,7 +368,10 @@ GNUNET_STRINGS_fancy_time_to_absolute (const char *fancy_time,
     return GNUNET_SYSERR;
   t = mktime (&tv);
   atime->abs_value_us = (uint64_t) ((uint64_t) t * 1000LL * 1000LL);
-#if LINUX
+#if HAVE_TM_GMTOFF
+  tp = localtime (&t);
+  atime->abs_value_us += 1000LL * 1000LL * tp->tm_gmtoff;
+#elif defined LINUX
   atime->abs_value_us -= 1000LL * 1000LL * timezone;
 #elif defined WINDOWS
   {
