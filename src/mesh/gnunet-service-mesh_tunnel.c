@@ -1828,6 +1828,11 @@ GMT_use_path (struct MeshTunnel3 *t, struct MeshPeerPath *p)
 
   GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_NONCE, &cid);
   c = GMC_new (&cid, t, p, own_pos);
+  if (NULL == c)
+  {
+    /* Path was flawed */
+    return NULL;
+  }
   GMT_add_connection (t, c);
   return c;
 }
