@@ -1285,6 +1285,9 @@ GMCH_destroy (struct MeshChannel *ch)
 
   if (NULL == ch)
     return;
+  if (2 == ch->destroy)
+    return; /* recursive call */
+  ch->destroy = 2;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "destroying channel %s:%u\n",
               GMT_2s (ch->t), ch->gid);
