@@ -356,11 +356,10 @@ send_bloomfilter_multipart (struct Operation *op, uint32_t offset)
   ev = GNUNET_MQ_msg_extra (msg, chunk_size, GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_BF);
     
   msg->reserved = 0;
-  msg->sender_element_count = htonl (op->state->my_element_count);
   msg->bloomfilter_total_length = htonl (op->state->local_bf_data_size);
   msg->bloomfilter_length = htonl (chunk_size);
   msg->bloomfilter_offset = htonl (offset);
-  msg->sender_mutator = htonl (op->spec->salt);
+  memcpy(&msg[1], op->state->local_bf, chunk_size);
 
   GNUNET_MQ_send (op->mq, ev);
   
@@ -369,6 +368,7 @@ send_bloomfilter_multipart (struct Operation *op, uint32_t offset)
     // done
     GNUNET_CONTAINER_bloomfilter_free (op->state->local_bf);
     GNUNET_free(op->state->local_bf_data);
+    op->state->local_bf_data = NULL;
     op->state->local_bf = NULL;
     return;
   }
