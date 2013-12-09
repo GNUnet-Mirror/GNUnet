@@ -365,7 +365,7 @@ server_start ()
                                     &access_handler_callback, NULL,
                                     MHD_OPTION_CONNECTION_LIMIT, (unsigned int) 512,
                                     MHD_OPTION_PER_IP_CONNECTION_LIMIT, (unsigned int) 2,
-                                    MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 16,
+                                    MHD_OPTION_CONNECTION_TIMEOUT, (unsigned int) 60,
                                     MHD_OPTION_CONNECTION_MEMORY_LIMIT, (size_t) (16 * 1024),
                                     MHD_OPTION_END);
   if (NULL == daemon_handle)
