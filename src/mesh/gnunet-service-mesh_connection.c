@@ -1147,7 +1147,18 @@ register_neighbors (struct MeshConnection *c)
 
   if (GNUNET_NO == GMP_is_neighbor (next_peer)
       || GNUNET_NO == GMP_is_neighbor (prev_peer))
+  {
+    if (GMC_is_origin (c, GNUNET_YES))
+      GNUNET_break (0);
+    else
+      GNUNET_break_op (0);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  register neighbors failed\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  prev: %s, %d\n",
+         GMP_2s (prev_peer), GMP_is_neighbor (prev_peer));
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  next: %s, %d\n",
+         GMP_2s (next_peer), GMP_is_neighbor (next_peer));
     return GNUNET_SYSERR;
+  }
 
   GMP_add_connection (next_peer, c);
   GMP_add_connection (prev_peer, c);
@@ -2210,6 +2221,7 @@ GMC_new (const struct GNUNET_HashCode *cid,
   }
   if (GNUNET_OK != register_neighbors (c))
   {
+    GNUNET_break (0);
     GMC_destroy (c);
     return NULL;
   }
