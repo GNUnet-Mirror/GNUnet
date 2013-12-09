@@ -121,6 +121,11 @@ struct BFMessage
   uint32_t bloomfilter_length GNUNET_PACKED;
   
   /**
+   * offset in the bloolfilter data block, if multipart message
+   */
+  uint32_t bloomfilter_offset GNUNET_PACKED;
+  
+  /**
    * rest: the sender's bloomfilter
    */
 };

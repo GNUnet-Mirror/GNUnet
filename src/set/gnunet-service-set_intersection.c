@@ -76,6 +76,16 @@ struct OperationState
    * BF of the set's element.
    */
   struct GNUNET_CONTAINER_BloomFilter *local_bf;
+  
+  /**
+   * for multipart msgs we have to store the bloomfilter-data until we fully sent it.
+   */
+  char * local_bf_data;
+  
+  /**
+   * for multipart msgs we have to store the bloomfilter-data until we fully sent it.
+   */
+  uint32_t local_bf_data_size;
 
   /**
    * Current state of the operation.
@@ -351,19 +361,31 @@ send_bloomfilter (struct Operation *op)
 
   // send our bloomfilter
   bf_size = GNUNET_CONTAINER_bloomfilter_get_size (op->state->local_bf);
+  if ( GNUNET_SERVER_MAX_MESSAGE_SIZE <= bf_size + sizeof(struct BFMessage))
+  {
+    // singlepart
+    ev = GNUNET_MQ_msg_extra (msg, bf_size, GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_BF);
+    
+    GNUNET_CONTAINER_bloomfilter_free (op->state->local_bf);
+    op->state->local_bf = NULL;
+    
+    msg->reserved = 0;
+    msg->sender_element_count = htonl (op->state->my_element_count);
+    msg->bloomfilter_length = htonl (bf_size);
+    msg->bloomfilter_offset = htonl (0);
+    msg->sender_mutator = htonl (op->spec->salt);
 
-  ev = GNUNET_MQ_msg_extra (msg, bf_size, GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_BF);
-  msg->reserved = 0;
-  msg->sender_element_count = htonl (op->state->my_element_count);
-  msg->bloomfilter_length = htonl (bf_size);
-  msg->sender_mutator = htonl (op->spec->salt);
-  GNUNET_assert (GNUNET_SYSERR !=
+    GNUNET_MQ_send (op->mq, ev);
+  }
+  else {
+    op->state->local_bf_data = (char *)GNUNET_malloc(bf_size);
+    GNUNET_assert (GNUNET_SYSERR !=
                  GNUNET_CONTAINER_bloomfilter_get_raw_data (op->state->local_bf,
-                                                            (char *) &msg[1],
+                                                            op->state->local_bf_data,
                                                             bf_size));
-  GNUNET_CONTAINER_bloomfilter_free (op->state->local_bf);
-  op->state->local_bf = NULL;
-  GNUNET_MQ_send (op->mq, ev);
+    op->state->local_bf_data_size = bf_size;
+    send_bloomfilter_multipart (op, 0);
+  }
 }
 
 
