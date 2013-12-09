@@ -1343,14 +1343,14 @@ GNUNET_OS_start_process_v (int pipe_control,
  *         in this string when they are separated by spaces.
  * @param ... more arguments.  Should be of type `char *`.  It is valid
  *         to have the arguments in these strings when they are separated by
- *         spaces.
+ *         spaces.  The last argument MUST be NULL.
  * @return pointer to process structure of the new process, NULL on error
  */
 struct GNUNET_OS_Process *
 GNUNET_OS_start_process_s (int pipe_control,
                            unsigned int std_inheritance,
                            const SOCKTYPE * lsocks,
-                           const char *first_arg, ...)
+                           const char *filename, ...)
 {
   va_list ap;
   char **argv;
@@ -1367,8 +1367,8 @@ GNUNET_OS_start_process_s (int pipe_control,
   size_t len;
 
   argv_size = 1;
-  va_start (ap, first_arg);
-  arg = first_arg;
+  va_start (ap, filename);
+  arg = filename;
   last = NULL;
   do
   {
@@ -1405,8 +1405,8 @@ GNUNET_OS_start_process_s (int pipe_control,
 
   argv = GNUNET_malloc (argv_size * sizeof (char *));
   argv_size = 0;
-  va_start (ap, first_arg);
-  arg = first_arg;
+  va_start (ap, filename);
+  arg = filename;
   last = NULL;
   do
   {
