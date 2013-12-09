@@ -285,8 +285,8 @@ run (void *cls,
                                     (GNUNET_TIME_UNIT_SECONDS, 15), &do_abort,
                                     NULL);
   mesh_peer_1 = GNUNET_MESH_connect (cfg,       /* configuration */
-                                     (void *) 1L,     /* cls */
-                                     &inbound_channel,   /* inbound new hndlr */
+                                     (void *) 1L,       /* cls */
+                                     NULL,              /* inbound new hndlr */
                                      &channel_end,      /* channel end hndlr */
                                      handlers1, /* traffic handlers */
                                      NULL);     /* ports offered */
