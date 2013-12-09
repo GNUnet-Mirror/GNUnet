@@ -24,7 +24,6 @@
  * @author Christian Grothoff
  *
  * TODO:
- * - "address_change_cb" is NEVER invoked; when should we call this one exactly?
  * - TEST, TEST, TEST...
  */
 #include "platform.h"
@@ -110,8 +109,8 @@ GNUNET_NETWORK_STRUCT_BEGIN
 struct SessionConnectMessage
 {
   /**
-   * Header of type 'GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_CONNECT'
-   * or 'GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_CONNECT_ACK'
+   * Header of type #GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_CONNECT
+   * or #GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_CONNECT_ACK
    */
   struct GNUNET_MessageHeader header;
 
@@ -138,7 +137,7 @@ struct SessionConnectMessage
 struct SessionDisconnectMessage
 {
   /**
-   * Header of type 'GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_DISCONNECT'
+   * Header of type #GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_DISCONNECT
    */
   struct GNUNET_MessageHeader header;
 
@@ -149,7 +148,7 @@ struct SessionDisconnectMessage
 
   /**
    * Purpose of the signature.  Extends over the timestamp.
-   * Purpose should be GNUNET_SIGNATURE_PURPOSE_TRANSPORT_DISCONNECT.
+   * Purpose should be #GNUNET_SIGNATURE_PURPOSE_TRANSPORT_DISCONNECT.
    */
   struct GNUNET_CRYPTO_EccSignaturePurpose purpose;
 
@@ -199,7 +198,7 @@ struct MessageQueue
   GST_NeighbourSendContinuation cont;
 
   /**
-   * Closure for 'cont'
+   * Closure for @e cont
    */
   void *cont_cls;
 
@@ -223,53 +222,53 @@ struct MessageQueue
 
 
 /**
- * Possible state of a neighbour.  Initially, we are S_NOT_CONNECTED.
+ * Possible state of a neighbour.  Initially, we are #S_NOT_CONNECTED.
  *
  * Then, there are two main paths. If we receive a CONNECT message, we
- * first run a check against the blacklist (S_CONNECT_RECV_BLACKLIST_INBOUND).
+ * first run a check against the blacklist (#S_CONNECT_RECV_BLACKLIST_INBOUND).
  * If this check is successful, we give the inbound address to ATS.
  * After the check we ask ATS for a suggestion (S_CONNECT_RECV_ATS).
  * If ATS makes a suggestion, we ALSO give that suggestion to the blacklist
- * (S_CONNECT_RECV_BLACKLIST).  Once the blacklist approves the
+ * (#S_CONNECT_RECV_BLACKLIST).  Once the blacklist approves the
  * address we got from ATS, we send our CONNECT_ACK and go to
- * S_CONNECT_RECV_ACK.  If we receive a SESSION_ACK, we go to
- * S_CONNECTED (and notify everyone about the new connection).  If the
- * operation times out, we go to S_DISCONNECT.
+ * #S_CONNECT_RECV_ACK.  If we receive a SESSION_ACK, we go to
+ * #S_CONNECTED (and notify everyone about the new connection).  If the
+ * operation times out, we go to #S_DISCONNECT.
  *
  * The other case is where we transmit a CONNECT message first.  We
- * start with S_INIT_ATS.  If we get an address, we enter
- * S_INIT_BLACKLIST and check the blacklist.  If the blacklist is OK
+ * start with #S_INIT_ATS.  If we get an address, we enter
+ * #S_INIT_BLACKLIST and check the blacklist.  If the blacklist is OK
  * with the connection, we actually send the CONNECT message and go to
  * state S_CONNECT_SENT.  Once we receive a CONNECT_ACK, we go to
- * S_CONNECTED (and notify everyone about the new connection and send
+ * #S_CONNECTED (and notify everyone about the new connection and send
  * back a SESSION_ACK).  If the operation times out, we go to
- * S_DISCONNECT.
+ * #S_DISCONNECT.
  *
  * If the session is in trouble (i.e. transport-level disconnect or
- * timeout), we go to S_RECONNECT_ATS where we ask ATS for a new
+ * timeout), we go to #S_RECONNECT_ATS where we ask ATS for a new
  * address (we don't notify anyone about the disconnect yet).  Once we
- * have a new address, we go to S_RECONNECT_BLACKLIST to check the new
+ * have a new address, we go to #S_RECONNECT_BLACKLIST to check the new
  * address against the blacklist.  If the blacklist approves, we enter
- * S_RECONNECT_SENT and send a CONNECT message.  If we receive a
- * CONNECT_ACK, we go to S_CONNECTED and nobody noticed that we had
+ * #S_RECONNECT_SENT and send a CONNECT message.  If we receive a
+ * #CONNECT_ACK, we go to #S_CONNECTED and nobody noticed that we had
  * trouble; we also send a SESSION_ACK at this time just in case.  If
  * the operation times out, we go to S_DISCONNECT (and notify everyone
  * about the lost connection).
  *
  * If ATS decides to switch addresses while we have a normal
- * connection, we go to S_CONNECTED_SWITCHING_BLACKLIST to check the
+ * connection, we go to #S_CONNECTED_SWITCHING_BLACKLIST to check the
  * new address against the blacklist.  If the blacklist approves, we
- * go to S_CONNECTED_SWITCHING_CONNECT_SENT and send a
+ * go to #S_CONNECTED_SWITCHING_CONNECT_SENT and send a
  * SESSION_CONNECT.  If we get a SESSION_ACK back, we switch the
  * primary connection to the suggested alternative from ATS, go back
- * to S_CONNECTED and send a SESSION_ACK to the other peer just to be
+ * to #S_CONNECTED and send a SESSION_ACK to the other peer just to be
  * sure.  If the operation times out (or the blacklist disapproves),
- * we go to S_CONNECTED (and notify ATS that the given alternative
+ * we go to #S_CONNECTED (and notify ATS that the given alternative
  * address is "invalid").
  *
- * Once a session is in S_DISCONNECT, it is cleaned up and then goes
- * to (S_DISCONNECT_FINISHED).  If we receive an explicit disconnect
- * request, we can go from any state to S_DISCONNECT, possibly after
+ * Once a session is in #S_DISCONNECT, it is cleaned up and then goes
+ * to (#S_DISCONNECT_FINISHED).  If we receive an explicit disconnect
+ * request, we can go from any state to #S_DISCONNECT, possibly after
  * generating disconnect notifications.
  *
  * Note that it is quite possible that while we are in any of these
@@ -279,7 +278,7 @@ struct MessageQueue
  * set to 1.  If our state machine allows us to send a 'CONNECT_ACK'
  * (because we have an acceptable address), we send the 'CONNECT_ACK'
  * and set the 'send_connect_ack' to 2.  If we then receive a
- * 'SESSION_ACK', we go to 'S_CONNECTED' (and reset 'send_connect_ack'
+ * 'SESSION_ACK', we go to #S_CONNECTED (and reset 'send_connect_ack'
  * to 0).
  *
  */
@@ -784,7 +783,7 @@ free_address (struct NeighbourAddress *na)
   {
     GST_validation_set_address_use (na->address, na->session, GNUNET_NO, __LINE__);
     GNUNET_ATS_address_in_use (GST_ats, na->address, na->session, GNUNET_NO);
-    address_change_cb (NULL, &na->address->peer, NULL);
+    address_change_cb (callback_cls, &na->address->peer, NULL);
   }
 
   na->ats_active = GNUNET_NO;
@@ -833,7 +832,7 @@ set_address (struct NeighbourAddress *na,
       GNUNET_ATS_address_in_use (GST_ats, na->address, na->session, is_active);
       GST_validation_set_address_use (na->address, na->session, is_active,  __LINE__);
       if (is_active)
-        address_change_cb (NULL, &address->peer, address);
+        address_change_cb (callback_cls, &address->peer, address);
     }
     if (GNUNET_YES == is_active)
     {
@@ -864,7 +863,7 @@ set_address (struct NeighbourAddress *na,
     /* Telling ATS about new session */
     GNUNET_ATS_address_in_use (GST_ats, na->address, na->session, GNUNET_YES);
     GST_validation_set_address_use (na->address, na->session, GNUNET_YES,  __LINE__);
-    address_change_cb (NULL, &address->peer, address);
+    address_change_cb (callback_cls, &address->peer, address);
     /* FIXME: is this the right place to set quotas? */
     GST_neighbours_set_incoming_quota (&address->peer, bandwidth_in);
     send_outbound_quota (&address->peer, bandwidth_out);
@@ -3385,7 +3384,7 @@ GST_neighbour_get_current_address (const struct GNUNET_PeerIdentity *peer)
  */
 void
 GST_neighbours_start (void *cls,
-    									NotifyConnect connect_cb,
+                      NotifyConnect connect_cb,
                       GNUNET_TRANSPORT_NotifyDisconnect disconnect_cb,
                       GNUNET_TRANSPORT_PeerIterateCallback peer_address_cb,
                       unsigned int max_fds)
