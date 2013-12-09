@@ -1680,14 +1680,14 @@ GMCH_handle_local_data (struct MeshChannel *ch,
   if (is_loopback (ch))
   {
     if (GMCH_get_buffer (ch, fwd) > 0)
-      send_client_ack (ch, fwd);
+      GMCH_allow_client (ch, fwd);
 
     return GNUNET_OK;
   }
 
   if (GMT_get_connections_buffer (ch->t) > 0)
   {
-    send_client_ack (ch, fwd);
+    GMCH_allow_client (ch, fwd);
   }
 
   return GNUNET_OK;
