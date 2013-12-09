@@ -1192,7 +1192,7 @@ channel_new (struct MeshTunnel3 *t,
  *
  * @param ch Channel to test.
  *
- * @return #GNUNET_YES if channel is loopback, #NGUNET_NO otherwise.
+ * @return #GNUNET_YES if channel is loopback, #GNUNET_NO otherwise.
  */
 static int
 is_loopback (const struct MeshChannel *ch)

@@ -969,7 +969,6 @@ GMP_queue_destroy (struct MeshPeerQueue *queue, int clear_cls)
  * @param size Size of the message.
  * @param c Connection this message belongs to (cannot be NULL).
  * @param fwd Is this a message going root->dest? (FWD ACK are NOT FWD!)
- * @param force Force the tunnel to take the message (buffer overfill).
  * @param cont Continuation to be called once CORE has taken the message.
  * @param cont_cls Closure for @c cont.
  *

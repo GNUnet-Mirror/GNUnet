@@ -1512,7 +1512,7 @@ GMT_new (struct MeshPeer *destination)
  * @param cstate New connection state.
  */
 void
-GMT_change_cstate (struct MeshTunnel3* t, enum MeshTunnel3CState state)
+GMT_change_cstate (struct MeshTunnel3* t, enum MeshTunnel3CState cstate)
 {
   if (NULL == t)
     return;
@@ -1521,12 +1521,12 @@ GMT_change_cstate (struct MeshTunnel3* t, enum MeshTunnel3CState state)
               GMP_2s (t->peer), cstate2s (t->cstate));
   LOG (GNUNET_ERROR_TYPE_DEBUG,
               "Tunnel %s cstate is now %s\n",
-              GMP_2s (t->peer), cstate2s (state));
+              GMP_2s (t->peer), cstate2s (cstate));
   if (myid != GMP_get_short_id (t->peer) &&
       MESH_TUNNEL3_READY != t->cstate &&
-      MESH_TUNNEL3_READY == state)
+      MESH_TUNNEL3_READY == cstate)
   {
-    t->cstate = state;
+    t->cstate = cstate;
     if (MESH_TUNNEL3_KEY_OK == t->estate)
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG, "  triggered send queued data\n");
@@ -1538,9 +1538,9 @@ GMT_change_cstate (struct MeshTunnel3* t, enum MeshTunnel3CState state)
       rekey_tunnel (t, NULL);
     }
   }
-  t->cstate = state;
+  t->cstate = cstate;
 
-  if (MESH_TUNNEL3_READY == state && 3 <= GMT_count_connections (t))
+  if (MESH_TUNNEL3_READY == cstate && 3 <= GMT_count_connections (t))
   {
     GMP_stop_search (t->peer);
   }
@@ -2119,6 +2119,7 @@ GMT_send_connection_acks (struct MeshTunnel3 *t)
  *
  * @param cls Closure (TunnelQueue handle).
  * @param c Connection this message was on.
+ * @param q Connection queue handle (unused).
  * @param type Type of message sent.
  * @param fwd Was this a FWD going message?
  * @param size Size of the message.

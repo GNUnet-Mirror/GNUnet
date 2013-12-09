@@ -192,7 +192,7 @@ GMT_destroy (struct MeshTunnel3 *t);
  * @param cstate New connection state.
  */
 void
-GMT_change_cstate (struct MeshTunnel3* t, enum MeshTunnel3CState state);
+GMT_change_cstate (struct MeshTunnel3* t, enum MeshTunnel3CState cstate);
 
 
 /**
