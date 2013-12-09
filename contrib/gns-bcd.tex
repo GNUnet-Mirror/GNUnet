@@ -1,16 +1,35 @@
 \documentclass[14pt,a4paper,oneside,ngerman]{scrartcl}
 
 \usepackage{geometry}
-\geometry{paperwidth=95mm, paperheight=65mm,left=0mm,right=0mm, top=0mm, bottom=0mm}
+%\geometry{paperwidth=95mm, paperheight=65mm,left=0mm,right=0mm, top=0mm, bottom=0mm}
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage{graphicx}
 \usepackage{units}
 \usepackage{tikz}
+\usepackage[newdimens]{labels}
 \usepackage{pspicture}
 \usepackage{pst-barcode}
 \usepackage{auto-pst-pdf}
 \usetikzlibrary{positioning,shapes,shadows,arrows}
+
+
+\LabelCols=2%
+\LabelRows=5%
+\LeftPageMargin=12.0mm%
+\RightPageMargin=12.0mm%
+\TopPageMargin=16.5mm%
+\BottomPageMargin=16.5mm%
+\InterLabelColumn=1.5mm%
+\InterLabelRow=11.0mm%
+\LeftLabelBorder=0mm%
+\RightLabelBorder=0mm%
+\TopLabelBorder=0mm%
+\BottomLabelBorder=0mm%
+\numberoflabels=10%
+\LabelGridfalse%  <-- or \LabelGridfalse
+
+
 
 \renewcommand{\rmdefault}{phv}
 \renewcommand{\seriesdefault}{m}
@@ -18771,6 +18790,11 @@
 
 
 \begin{document}
+\addresslabel{\card{german}}
+\addresslabel{\card{english}}
+\end{document}
+
+
 \begin{figure}
     \begin{center}
         \card{german}
@@ -18782,5 +18806,4 @@
         \card{english}
     \end{center}
 \end{figure}
-\end{document}
 
