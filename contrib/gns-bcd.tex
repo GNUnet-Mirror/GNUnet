@@ -18748,7 +18748,6 @@
             \draw[-,line width=1pt,MyBlack] [yshift=-2mm](\width,-\height) to [yshift=-3mm](\width,-\height);
 
 
-            \node at (78mm,-7mm) {\logo}; %\includegraphics[height=7mm]{gnunet-logo.pdf}};
             \node[rectangle,draw=white,minimum height=7pt,text width=37.5mm,inner sep=0pt] at (64.25mm,-16mm) {\orga};
             \node[rectangle,draw=white,minimum height=7pt,text width=37.5mm,inner sep=0pt] at (64.25mm,-21.5mm) {\ifthenelse{\equal{#1}{english}}{\departmenten}{\departmentde}};
             \node[rectangle,draw=white,minimum height=7pt,text width=37.5mm,inner sep=0pt] at (64.25mm,-24.0mm) {\ifthenelse{\equal{#1}{english}}{\subdepartmenten}{\subdepartmentde}};
@@ -18775,15 +18774,17 @@
             }
 
             \ifthenelse{\equal{\gns}{}\or\equal{#1}{english}}{
+                \node[rectangle,draw=white,minimum height=7pt,text width=120mm,inner sep=0pt] at (62mm,-2mm) {\gns};
                 \node[rectangle,draw=white,minimum height=7pt,text width=41mm,inner sep=0pt] at (24.25mm,-21.0mm) {\ifthenelse{\equal{\prefix}{}}{}{\tiny \prefix}};
                 \node[rectangle,draw=white,minimum height=7pt,text width=41mm,inner sep=0pt] at (24.25mm,-24.0mm) {\fontsize{8pt}{8pt}\selectfont \textbf{\name}\ifthenelse{\equal{\suffix}{}}{}{, \tiny \suffix}};
                 \node[rectangle,draw=white,minimum height=7pt,text width=41mm,inner sep=0pt] at (24.25mm,-29.0mm) {\ifthenelse{\equal{#1}{english}}{\textit{\jobtitleenglish}}{\textit{\jobtitlegerman}}};
             }
             {
-                \node[rectangle,draw=black,line width=1pt,inner sep=0pt] at (12.5mm,-14.75mm) {\begin{pspicture}(17mm,17mm) \psbarcode{\gns}{}{qrcode}\end{pspicture}};
-                \node[rectangle,draw=white,minimum height=7pt,text width=41mm,inner sep=0pt] at (24.25mm,-32.0mm) {\ifthenelse{\equal{\prefix}{}}{}{\tiny \prefix}};
-                \node[rectangle,draw=white,minimum height=7pt,text width=41mm,inner sep=0pt] at (24.25mm,-35.0mm) {\fontsize{8pt}{8pt}\selectfont \textbf{\name}\ifthenelse{\equal{\suffix}{}}{}{, \tiny \suffix}};
-                \node[rectangle,draw=white,minimum height=7pt,text width=41mm,inner sep=0pt] at (24.25mm,-41.5mm) {\ifthenelse{\equal{#1}{english}}{\textit{\jobtitleenglish}}{\textit{\jobtitlegerman}}};
+                \node at (78mm,-7mm) {\logo}; %\includegraphics[height=7mm]{gnunet-logo.pdf}};
+                \node[rectangle,draw=white,line width=1pt,inner sep=0pt] at (17mm,-17mm) {\begin{pspicture}(15mm,15mm) \psbarcode{gnunet://gns/\gns}{eclevel=Q}{qrcode}\end{pspicture}};
+                \node[rectangle,draw=white,minimum height=7pt,text width=41mm,inner sep=0pt] at (24.25mm,-35.0mm) {\ifthenelse{\equal{\prefix}{}}{}{\tiny \prefix}};
+                \node[rectangle,draw=white,minimum height=7pt,text width=41mm,inner sep=0pt] at (24.25mm,-41.5mm) {\fontsize{8pt}{8pt}\selectfont \textbf{\name}\ifthenelse{\equal{\suffix}{}}{}{, \tiny \suffix}};
+                \node[rectangle,draw=white,minimum height=7pt,text width=41mm,inner sep=0pt] at (24.25mm,-47.0mm) {\ifthenelse{\equal{#1}{english}}{\textit{\jobtitleenglish}}{\textit{\jobtitlegerman}}};
             }
     \end{tikzpicture}
 }

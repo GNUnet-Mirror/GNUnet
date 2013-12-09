@@ -215,7 +215,7 @@ access_handler_callback (void *cls, struct MHD_Connection *connection,
       GNUNET_free (gpg1);
     }
     FPRINTF (f,
-             "\\def\\gns{gnunet://gns/%s/%s}\n",
+             "\\def\\gns{%s/%s}\n",
              gnskey,
              (NULL == gns_nick) ? "" : gns_nick);
     FCLOSE (f);

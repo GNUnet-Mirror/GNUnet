@@ -959,7 +959,8 @@ verify_message_crypto (const struct GNUNET_NSE_FloodMessage *incoming_flood)
       check_proof_of_work (&incoming_flood->origin.public_key,
                            incoming_flood->proof_of_work))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Proof of work invalid: %llu!\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Proof of work invalid: %llu!\n",
                 (unsigned long long)
                 GNUNET_ntohll (incoming_flood->proof_of_work));
     GNUNET_break_op (0);
