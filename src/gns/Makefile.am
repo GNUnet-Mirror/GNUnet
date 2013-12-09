@@ -153,10 +153,12 @@ gnunet_gns_helper_service_w32_SOURCES = \
   gnunet-gns-helper-service-w32.c
 gnunet_gns_helper_service_w32_LDADD = \
   $(top_builddir)/src/gns/libgnunetgns.la \
+  $(top_builddir)/src/identity/libgnunetidentity.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
 gnunet_gns_helper_service_w32_DEPENDENCIES = \
   $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/identity/libgnunetidentity.la \
   libgnunetgns.la
 
 w32nsp_install_SOURCES = \
