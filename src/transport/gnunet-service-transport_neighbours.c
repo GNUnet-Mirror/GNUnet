@@ -1147,7 +1147,9 @@ disconnect_neighbour (struct NeighbourMapEntry *n)
     GNUNET_assert (0);
     break;
   default:
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Unhandled state `%s' \n",print_state (n->state));
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Unhandled state `%s'\n",
+                print_state (n->state));
     GNUNET_break (0);
     break;
   }
@@ -1654,7 +1656,7 @@ setup_neighbour (const struct GNUNET_PeerIdentity *peer)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Creating new neighbour entry for `%s'\n",
 	      GNUNET_i2s (peer));
-  n = GNUNET_malloc (sizeof (struct NeighbourMapEntry));
+  n = GNUNET_new (struct NeighbourMapEntry);
   n->id = *peer;
   n->state = S_NOT_CONNECTED;
   n->latency = GNUNET_TIME_UNIT_FOREVER_REL;
@@ -1768,7 +1770,9 @@ GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target)
       /* should not be possible */
       GNUNET_assert (0);
     default:
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Unhandled state `%s' \n",print_state (n->state));
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Unhandled state `%s'\n",
+                  print_state (n->state));
       GNUNET_break (0);
       free_neighbour (n, GNUNET_NO);
       break;
@@ -1989,7 +1993,9 @@ handle_test_blacklist_cont (void *cls,
     GNUNET_assert (0);
     break;
   default:
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Unhandled state `%s' \n",print_state (n->state));
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Unhandled state `%s'\n",
+                print_state (n->state));
     GNUNET_break (0);
     free_neighbour (n, GNUNET_NO);
     break;
@@ -2142,7 +2148,9 @@ GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
     GNUNET_assert (0);
     break;
   default:
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Unhandled state `%s' \n",print_state (n->state));
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Unhandled state `%s'\n",
+                print_state (n->state));
     GNUNET_break (0);
     free_neighbour (n, GNUNET_NO);
     break;
@@ -2370,16 +2378,19 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
     GNUNET_assert (0);
     break;
   default:
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Unhandled state `%s' \n",print_state (n->state));
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Unhandled state `%s'\n",
+                print_state (n->state));
     GNUNET_break (0);
     break;
   }
 }
 
+
 static int
 send_utilization_data (void *cls,
-    const struct GNUNET_PeerIdentity *key,
-    void *value)
+                       const struct GNUNET_PeerIdentity *key,
+                       void *value)
 {
   struct NeighbourMapEntry *n = value;
   struct GNUNET_ATS_Information atsi[4];
@@ -2389,7 +2400,8 @@ send_utilization_data (void *cls,
   uint32_t bps_out;
   struct GNUNET_TIME_Relative delta;
 
-  delta = GNUNET_TIME_absolute_get_difference(n->last_util_transmission, GNUNET_TIME_absolute_get());
+  delta = GNUNET_TIME_absolute_get_difference (n->last_util_transmission,
+                                               GNUNET_TIME_absolute_get ());
 
   bps_pl_in = 0;
 
@@ -2398,9 +2410,11 @@ send_utilization_data (void *cls,
   bps_pl_out = 0;
   if ((0 != n->util_payload_bytes_sent) && (0 != delta.rel_value_us))
     bps_pl_out = (1000LL * 1000LL * n->util_payload_bytes_sent) / delta.rel_value_us;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "`%s' payload: received %u Bytes/s, sent %u Bytes/s  \n",
-      GNUNET_i2s (key), bps_pl_in, bps_pl_out);
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "`%s' payload: received %u Bytes/s, sent %u Bytes/s\n",
+              GNUNET_i2s (key),
+              bps_pl_in,
+              bps_pl_out);
   bps_in = 0;
   if ((0 != n->util_total_bytes_recv) && (0 != delta.rel_value_us))
     bps_in =  (1000LL * 1000LL *  n->util_total_bytes_recv) / (delta.rel_value_us);
@@ -2409,9 +2423,11 @@ send_utilization_data (void *cls,
     bps_out = (1000LL * 1000LL * n->util_total_bytes_sent) / delta.rel_value_us;
 
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "`%s' total: received %u Bytes/s, sent %u Bytes/s  \n",
-      GNUNET_i2s (key), bps_in, bps_out);
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "`%s' total: received %u Bytes/s, sent %u Bytes/s\n",
+              GNUNET_i2s (key),
+              bps_in,
+              bps_out);
   atsi[0].type = htonl (GNUNET_ATS_UTILIZATION_OUT);
   atsi[0].value = htonl (bps_out);
   atsi[1].type = htonl (GNUNET_ATS_UTILIZATION_IN);
@@ -2431,6 +2447,7 @@ send_utilization_data (void *cls,
   n->last_util_transmission = GNUNET_TIME_absolute_get();
   return GNUNET_OK;
 }
+
 
 /**
  * Task transmitting utilization in a regular interval
@@ -2695,7 +2712,9 @@ master_task (void *cls,
     GNUNET_assert (0);
     break;
   default:
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Unhandled state `%s' \n",print_state (n->state));
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Unhandled state `%s'\n",
+                print_state (n->state));
     GNUNET_break (0);
     break;
   }
@@ -2868,7 +2887,9 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
     GNUNET_assert (0);
     break;
   default:
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Unhandled state `%s' \n",print_state (n->state));
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Unhandled state `%s'\n",
+                print_state (n->state));
     GNUNET_break (0);
     break;
   }
@@ -2994,7 +3015,9 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
     return GNUNET_NO;
     break;
   default:
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Unhandled state `%s' \n",print_state (n->state));
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Unhandled state `%s'\n",
+                print_state (n->state));
     GNUNET_break (0);
     break;
   }
@@ -3322,7 +3345,9 @@ GST_neighbour_get_latency (const struct GNUNET_PeerIdentity *peer)
   case S_DISCONNECT_FINISHED:
     return GNUNET_TIME_UNIT_FOREVER_REL;
   default:
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Unhandled state `%s' \n",print_state (n->state));
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Unhandled state `%s'\n",
+                print_state (n->state));
     GNUNET_break (0);
     break;
   }
@@ -3381,7 +3406,7 @@ GST_neighbours_start (void *cls,
  * @param cls unused
  * @param key hash of neighbour's public key (not used)
  * @param value the 'struct NeighbourMapEntry' of the neighbour
- * @return GNUNET_OK (continue to iterate)
+ * @return #GNUNET_OK (continue to iterate)
  */
 static int
 disconnect_all_neighbours (void *cls,
