@@ -339,6 +339,23 @@ send_ack (struct MeshChannel *ch, int fwd);
 
 
 /**
+ * Test if the channel is loopback: both root and dest are on the local peer.
+ *
+ * @param ch Channel to test.
+ *
+ * @return #GNUNET_YES if channel is loopback, #GNUNET_NO otherwise.
+ */
+static int
+is_loopback (const struct MeshChannel *ch)
+{
+  if (NULL != ch->t)
+    return GMT_is_loopback (ch->t);
+
+  return (NULL != ch->root && NULL != ch->dest);
+}
+
+
+/**
  * We have received a message out of order, or the client is not ready.
  * Buffer it until we receive an ACK from the client or the missing
  * message from the channel.
@@ -385,6 +402,7 @@ add_buffered_data (const struct GNUNET_MESH_Data *msg,
     GNUNET_CONTAINER_DLL_insert_tail (rel->head_recv, rel->tail_recv, copy);
     LOG (GNUNET_ERROR_TYPE_DEBUG, "add_buffered_data END\n");
 }
+
 
 /**
  * Add a destination client to a channel, initializing all data structures
@@ -1104,8 +1122,11 @@ channel_confirm (struct MeshChannel *ch, int fwd)
   }
   else
   {
-    /* We SHOULD have been trying to retransmit this! */
-    GNUNET_break (oldstate == MESH_CHANNEL_READY);
+    if (GNUNET_NO == is_loopback (ch))
+    {
+      /* We SHOULD have been trying to retransmit this! */
+      GNUNET_break (oldstate == MESH_CHANNEL_READY);
+    }
   }
 
   /* In case of a FWD ACK (SYNACK) send a BCK ACK (ACK). */
@@ -1184,23 +1205,6 @@ channel_new (struct MeshTunnel3 *t,
   GMT_add_channel (t, ch);
 
   return ch;
-}
-
-
-/**
- * Test if the channel is loopback: both root and dest are on the local peer.
- *
- * @param ch Channel to test.
- *
- * @return #GNUNET_YES if channel is loopback, #GNUNET_NO otherwise.
- */
-static int
-is_loopback (const struct MeshChannel *ch)
-{
-  if (NULL != ch->t)
-    return GMT_is_loopback (ch->t);
-
-  return (NULL != ch->root && NULL != ch->dest);
 }
 
 
