@@ -311,8 +311,6 @@ struct Operation
   /**
    * GNUNET_YES if this is not a "real" set operation yet, and we still
    * need to wait for the other peer to give us more details.
-   *
-   * //TODO: replace with state-enum
    */
   int is_incoming;
 
@@ -346,6 +344,12 @@ struct Operation
     * a linked list.
     */
   struct Operation *prev;
+
+  /**
+   * Set to GNUNET_YES if the set service should not free
+   * the operation, as it is still needed (e.g. in some scheduled task).
+   */
+  int keep;
 };
 
 

@@ -28,6 +28,8 @@
 #include "gnunet_set_service.h"
 
 
+static int ret;
+
 static struct GNUNET_PeerIdentity local_id;
 
 static struct GNUNET_HashCode app_id;
@@ -50,6 +52,7 @@ result_cb_set1 (void *cls, const struct GNUNET_SET_Element *element,
       break;
     case GNUNET_SET_STATUS_FAILURE:
       printf ("set 1: failure\n");
+      ret = 1;
       break;
     case GNUNET_SET_STATUS_DONE:
       printf ("set 1: done\n");
@@ -72,6 +75,7 @@ result_cb_set2 (void *cls, const struct GNUNET_SET_Element *element,
       break;
     case GNUNET_SET_STATUS_FAILURE:
       printf ("set 2: failure\n");
+      ret = 1;
       break;
     case GNUNET_SET_STATUS_DONE:
       printf ("set 2: done\n");
@@ -245,11 +249,12 @@ run (void *cls,
 int
 main (int argc, char **argv)
 {
-  int ret;
-
-  ret = GNUNET_TESTING_peer_run ("test_set_api",
-                                 "test_set.conf",
-                                 &run, NULL);
+  if (0 != GNUNET_TESTING_peer_run ("test_set_api",
+                                    "test_set.conf",
+                                    &run, NULL))
+  {
+    return 0;
+  }
   return ret;
 }
 

@@ -268,6 +268,9 @@ impl_send_continue (void *cls,
   struct GNUNET_MQ_Handle *mq = cls;
   struct GNUNET_MQ_Envelope *current_envelope;
 
+  if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
+    return;
+
   mq->continue_task = GNUNET_SCHEDULER_NO_TASK;
   /* call is only valid if we're actually currently sending
    * a message */
@@ -465,6 +468,12 @@ server_client_destroy_impl (struct GNUNET_MQ_Handle *mq,
                             void *impl_state)
 {
   struct ServerClientSocketState *state = impl_state;
+
+  if (NULL != state->th)
+  {
+    GNUNET_SERVER_notify_transmit_ready_cancel (state->th);
+    state->th = NULL;
+  }
 
   GNUNET_assert (NULL != mq);
   GNUNET_assert (NULL != state);

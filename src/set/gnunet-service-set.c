@@ -955,8 +955,8 @@ handle_client_evaluate (void *cls,
   GNUNET_CONTAINER_DLL_insert (set->ops_head, set->ops_tail, op);
 
   op->channel = GNUNET_MESH_channel_create (mesh, op, &msg->target_peer,
-                                          GNUNET_APPLICATION_TYPE_SET,
-                                          GNUNET_MESH_OPTION_RELIABLE);
+                                            GNUNET_APPLICATION_TYPE_SET,
+                                            GNUNET_MESH_OPTION_RELIABLE);
 
   op->mq = GNUNET_MESH_mq_create (op->channel);
 
@@ -1261,17 +1261,28 @@ channel_new_cb (void *cls,
  */
 static void
 channel_end_cb (void *cls,
-               const struct GNUNET_MESH_Channel *channel, void *channel_ctx)
+                const struct GNUNET_MESH_Channel *channel, void *channel_ctx)
 {
   struct Operation *op = channel_ctx;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "channel end cb called\n");
   op->channel = NULL;
+  /* the vt can be null if a client already requested canceling op. */
   if (NULL != op->vt)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "calling peer disconnect due to channel end\n");
     op->vt->peer_disconnect (op);
+  }
+
+  if (GNUNET_YES == op->keep)
+    return;
+
   /* mesh will never call us with the context again! */
   GNUNET_free (channel_ctx);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "channel end cb finished\n");
 }
 
 
