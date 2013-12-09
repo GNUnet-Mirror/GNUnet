@@ -2457,7 +2457,7 @@ send_utilization_data (void *cls,
  */
 static void
 utilization_transmission (void *cls,
-             const struct GNUNET_SCHEDULER_TaskContext *tc)
+                          const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   util_transmission_tk = GNUNET_SCHEDULER_NO_TASK;
 
@@ -3234,37 +3234,37 @@ struct IteratorContext
 /**
  * Call the callback from the closure for each connected neighbour.
  *
- * @param cls the 'struct IteratorContext'
+ * @param cls the `struct IteratorContext`
  * @param key the hash of the public key of the neighbour
- * @param value the 'struct NeighbourMapEntry'
- * @return GNUNET_OK (continue to iterate)
+ * @param value the `struct NeighbourMapEntry`
+ * @return #GNUNET_OK (continue to iterate)
  */
 static int
-neighbours_iterate (void *cls, const struct GNUNET_PeerIdentity * key, void *value)
+neighbours_iterate (void *cls,
+                    const struct GNUNET_PeerIdentity *key,
+                    void *value)
 {
   struct IteratorContext *ic = cls;
   struct NeighbourMapEntry *n = value;
+  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in;
+  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out;
 
-  if (GNUNET_YES == test_connected (n))
+  if (GNUNET_YES != test_connected (n))
+    return GNUNET_OK;
+
+  if (NULL != n->primary_address.address)
   {
-    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in;
-    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out;
-
-    if (NULL != n->primary_address.address)
-    {
-      bandwidth_in = n->primary_address.bandwidth_in;
-      bandwidth_out = n->primary_address.bandwidth_out;
-    }
-    else
-    {
-      bandwidth_in = GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT;
-      bandwidth_out = GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT;
-    }
-
-    ic->cb (ic->cb_cls, &n->id,
-            n->primary_address.address,
-            bandwidth_in, bandwidth_out);
+    bandwidth_in = n->primary_address.bandwidth_in;
+    bandwidth_out = n->primary_address.bandwidth_out;
   }
+  else
+  {
+    bandwidth_in = GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT;
+    bandwidth_out = GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT;
+  }
+  ic->cb (ic->cb_cls, &n->id,
+          n->primary_address.address,
+          bandwidth_in, bandwidth_out);
   return GNUNET_OK;
 }
 

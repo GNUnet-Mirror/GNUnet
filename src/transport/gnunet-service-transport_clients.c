@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2010,2011 Christian Grothoff (and other contributing authors)
+     (C) 2010-2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -381,9 +381,10 @@ unicast (struct TransportClient *tc,
   if ((tc->message_count >= MAX_PENDING) && (GNUNET_YES == may_drop))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                _
-                ("Dropping message of type %u and size %u, have %u/%u messages pending\n"),
-                ntohs (msg->type), ntohs (msg->size), tc->message_count,
+                _("Dropping message of type %u and size %u, have %u/%u messages pending\n"),
+                ntohs (msg->type),
+                ntohs (msg->size),
+                tc->message_count,
                 MAX_PENDING);
     GNUNET_STATISTICS_update (GST_stats,
                               gettext_noop
@@ -459,7 +460,7 @@ client_disconnect_notification (void *cls, struct GNUNET_SERVER_Client *client)
  * Function called for each of our connected neighbours.  Notify the
  * client about the existing neighbour.
  *
- * @param cls the 'struct TransportClient' to notify
+ * @param cls the `struct TransportClient *` to notify
  * @param peer identity of the neighbour
  * @param address the address
  * @param bandwidth_in inbound bandwidth in NBO
@@ -702,9 +703,9 @@ try_connect_if_allowed (void *cls,
 {
   if (GNUNET_OK != result)
   {
-  	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-  		      "Blacklist refuses connection attempt to peer `%s'\n",
-  	              GNUNET_i2s (peer));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Blacklist refuses connection attempt to peer `%s'\n",
+                GNUNET_i2s (peer));
     return;                     /* not allowed */
   }
   GST_neighbours_try_connect (peer);
@@ -733,7 +734,7 @@ clients_handle_request_connect (void *cls, struct GNUNET_SERVER_Client *client,
   if (0 == memcmp (&trcm->peer, &GST_my_identity,
   		sizeof (struct GNUNET_PeerIdentity)))
   {
-  	GNUNET_break_op (0);
+    GNUNET_break_op (0);
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "Received a request connect message myself `%s'\n",
                 GNUNET_i2s (&trcm->peer));
@@ -816,8 +817,7 @@ clients_handle_address_to_string (void *cls,
   }
   address = (const char *) &alum[1];
   plugin_name = (const char *) &address[address_len];
-  if (plugin_name[size - sizeof (struct AddressLookupMessage) - address_len - 1]
-      != '\0')
+  if ('\0' != plugin_name[size - sizeof (struct AddressLookupMessage) - address_len - 1])
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);

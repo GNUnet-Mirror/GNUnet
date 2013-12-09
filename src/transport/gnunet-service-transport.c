@@ -150,15 +150,12 @@ process_payload (const struct GNUNET_PeerIdentity *peer,
 
   do_forward = GNUNET_SYSERR;
   ret = GST_neighbours_calculate_receive_delay (peer, msg_size, &do_forward);
-
   if (! GST_neighbours_test_connected (peer))
   {
-
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Discarded %u bytes type %u payload from peer `%s'\n",
                 msg_size,
                 ntohs (message->type), GNUNET_i2s (peer));
-
     GNUNET_STATISTICS_update (GST_stats,
                               gettext_noop
                               ("# bytes payload discarded due to not connected peer"),
@@ -175,9 +172,7 @@ process_payload (const struct GNUNET_PeerIdentity *peer,
   im->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_RECV);
   im->peer = *peer;
   memcpy (&im[1], message, ntohs (message->size));
-
   GST_clients_broadcast (&im->header, GNUNET_YES);
-
   return ret;
 }
 
@@ -654,7 +649,6 @@ neighbours_connect_notification (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "We are now connected to peer `%s' and %u peers in total\n",
               GNUNET_i2s (peer), connections);
-
   connect_msg->header.size = htons (sizeof (buf));
   connect_msg->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_CONNECT);
   connect_msg->id = *peer;
