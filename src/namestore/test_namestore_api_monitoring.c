@@ -119,11 +119,6 @@ do_shutdown ()
     GNUNET_free (privkey2);
     privkey2 = NULL;
   }
-  if (NULL != directory)
-  {
-      GNUNET_DISK_directory_remove (directory);
-      GNUNET_free (directory);
-  }
 }
 
 
@@ -277,6 +272,7 @@ run (void *cls,
 
   directory = NULL;
   GNUNET_CONFIGURATION_get_value_string(cfg, "PATHS", "GNUNET_TEST_HOME", &directory);
+  GNUNET_DISK_directory_remove (directory);
 
   GNUNET_asprintf(&hostkey_file,
 		  "zonefiles%s%s",
@@ -357,7 +353,14 @@ main (int argc, char *argv[])
                                "test_namestore_api.conf",
                                &run,
                                NULL))
-    return 1;
+  {
+    res = 1;
+  }
+  if (NULL != directory)
+  {
+      GNUNET_DISK_directory_remove (directory);
+      GNUNET_free (directory);
+  }
   return res;
 }
 

@@ -61,11 +61,6 @@ cleanup ()
     GNUNET_free (privkey);
     privkey = NULL;
   }
-  if (NULL != directory)
-  {
-      GNUNET_DISK_directory_remove (directory);
-      GNUNET_free (directory);
-  }
   GNUNET_SCHEDULER_shutdown ();
 }
 
@@ -125,6 +120,7 @@ run (void *cls,
 
   directory = NULL;
   GNUNET_CONFIGURATION_get_value_string(cfg, "PATHS", "GNUNET_TEST_HOME", &directory);
+  GNUNET_DISK_directory_remove (directory);
 
   endbadly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT,
 						&endbadly, NULL);
@@ -169,7 +165,14 @@ main (int argc, char *argv[])
                                "test_namestore_api.conf",
                                &run,
                                NULL))
-    return 1;
+  {
+    res = 1;
+  }
+  if (NULL != directory)
+  {
+      GNUNET_DISK_directory_remove (directory);
+      GNUNET_free (directory);
+  }
   return res;
 }
 
