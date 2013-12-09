@@ -1585,6 +1585,8 @@ GMT_add_connection (struct MeshTunnel3 *t, struct MeshConnection *c)
 {
   struct MeshTConnection *aux;
 
+  GNUNET_assert (NULL != c);
+
   for (aux = t->connection_head; aux != NULL; aux = aux->next)
     if (aux->c == c)
       return;
