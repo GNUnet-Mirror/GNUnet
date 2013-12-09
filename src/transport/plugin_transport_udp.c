@@ -2615,10 +2615,9 @@ analyze_send_error (struct Plugin *plugin,
       */
 
     LOG (GNUNET_ERROR_TYPE_WARNING | GNUNET_ERROR_TYPE_BULK,
-        _("UDP could not transmit message to `%s': "
-          "Please check your network configuration and disable IPv6 if your "
-          "connection does not have a global IPv6 address\n"),
-        GNUNET_a2s (sa, slen));
+        _("UDP could not transmit IPv6 message! "
+        "Please check your network configuration and disable IPv6 if your "
+        "connection does not have a global IPv6 address\n"));
    }
  }
  else
