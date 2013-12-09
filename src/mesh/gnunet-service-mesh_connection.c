@@ -1502,7 +1502,6 @@ GMC_handle_broken (void* cls,
   }
 
   fwd = is_fwd (c, id);
-  connection_cancel_queues (c, !fwd);
   if (GMC_is_terminal (c, fwd))
   {
     if (0 < c->pending_messages)
@@ -1514,6 +1513,7 @@ GMC_handle_broken (void* cls,
   {
     GMC_send_prebuilt_message (message, c, fwd, GNUNET_YES, NULL, NULL);
     c->destroy = GNUNET_YES;
+    connection_cancel_queues (c, !fwd);
   }
 
   return GNUNET_OK;
