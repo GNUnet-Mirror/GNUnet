@@ -341,6 +341,40 @@ send_operation_request (struct Operation *op)
   }
 }
 
+static void
+send_bloomfilter_multipart (struct Operation *op, uint32_t offset)
+{
+  struct GNUNET_MQ_Envelope *ev;
+  struct BFMessage *msg;
+  uint32_t chunk_size = (GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof(struct BFMessage));
+  uint32_t todo_size = op->state->local_bf_data_size - offset;
+  
+  if (todo_size < chunk_size)
+    // we probably need many chunks, thus we assume a maximum packet size by default
+    chunk_size = todo_size;
+  
+  ev = GNUNET_MQ_msg_extra (msg, chunk_size, GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_BF);
+    
+  msg->reserved = 0;
+  msg->sender_element_count = htonl (op->state->my_element_count);
+  msg->bloomfilter_total_length = htonl (op->state->local_bf_data_size);
+  msg->bloomfilter_length = htonl (chunk_size);
+  msg->bloomfilter_offset = htonl (offset);
+  msg->sender_mutator = htonl (op->spec->salt);
+
+  GNUNET_MQ_send (op->mq, ev);
+  
+  if (op->state->local_bf_data_size == offset + chunk_size)
+  {
+    // done
+    GNUNET_CONTAINER_bloomfilter_free (op->state->local_bf);
+    GNUNET_free(op->state->local_bf_data);
+    op->state->local_bf = NULL;
+    return;
+  }
+  
+  send_bloomfilter_multipart (op, offset + chunk_size);
+}
 
 /**
  * Send a bloomfilter to our peer.
@@ -378,6 +412,7 @@ send_bloomfilter (struct Operation *op)
     GNUNET_MQ_send (op->mq, ev);
   }
   else {
+    //multipart
     op->state->local_bf_data = (char *)GNUNET_malloc(bf_size);
     GNUNET_assert (GNUNET_SYSERR !=
                  GNUNET_CONTAINER_bloomfilter_get_raw_data (op->state->local_bf,

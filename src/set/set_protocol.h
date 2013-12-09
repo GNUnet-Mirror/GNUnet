@@ -116,7 +116,12 @@ struct BFMessage
   uint32_t sender_mutator GNUNET_PACKED;
 
   /**
-   * Length of the bloomfilter data block
+   * Length of the bloomfilter data
+   */
+  uint32_t bloomfilter_total_length GNUNET_PACKED;
+  
+  /**
+   * Length of the appended bloomfilter data block
    */
   uint32_t bloomfilter_length GNUNET_PACKED;
   
