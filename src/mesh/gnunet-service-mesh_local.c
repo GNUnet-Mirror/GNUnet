@@ -433,6 +433,9 @@ handle_channel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
   if (NULL == ch)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  channel %X not found\n", chid);
+    GNUNET_STATISTICS_update (stats,
+                              "# client destroy messages on unknown channel",
+                              1, GNUNET_NO);
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
@@ -491,8 +494,10 @@ handle_data (void *cls, struct GNUNET_SERVER_Client *client,
   ch = GML_channel_get (c, chid);
   if (NULL == ch)
   {
-    GNUNET_break (0);
-    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    GNUNET_STATISTICS_update (stats,
+                              "# client data messages on unknown channel",
+                              1, GNUNET_NO);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
 
@@ -550,6 +555,9 @@ handle_ack (void *cls, struct GNUNET_SERVER_Client *client,
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Channel %X unknown.\n", chid);
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  for client %u.\n", c->id);
+    GNUNET_STATISTICS_update (stats,
+                              "# client ack messages on unknown channel",
+                              1, GNUNET_NO);
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
