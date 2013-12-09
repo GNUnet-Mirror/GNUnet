@@ -656,13 +656,23 @@ send_queued_data (struct MeshTunnel3 *t)
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  tq head: %p\n", t->tq_head);
   for (tq = t->tq_head; NULL != tq && room > 0; tq = next)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, " data on channel %s\n", GMCH_2s (tq->ch));
+    /* GMCH_send_prebuilt_message will call GMT_cancel on the current
+     * queue handler, therefore free'ing tq before calling GMT_send.
+     * Since the data to send is part of tq, we need to provide a copy,
+     * so the data is not invalidated.
+     */
+    struct GNUNET_MessageHeader *msg = (struct GNUNET_MessageHeader *) &tq[1];
+    size_t m_size = ntohs (msg->size);
+    char cbuf[m_size];
+    struct GNUNET_MessageHeader *copy = (struct GNUNET_MessageHeader *) cbuf;
+
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " msg on channel %s\n", GMCH_2s (tq->ch));
     next = tq->next;
     room--;
-    GMCH_send_prebuilt_message ((struct GNUNET_MessageHeader *) &tq[1],
+    memcpy (copy, msg, m_size);
+    GMCH_send_prebuilt_message (copy,
                                 tq->ch, GMCH_is_origin (tq->ch, GNUNET_YES),
                                 NULL);
-    unqueue_data (tq);
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "GMT_send_queued_data end\n",
