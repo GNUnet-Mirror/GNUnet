@@ -2221,7 +2221,6 @@ GMC_new (const struct GNUNET_HashCode *cid,
   }
   if (GNUNET_OK != register_neighbors (c))
   {
-    GNUNET_break (0);
     GMC_destroy (c);
     return NULL;
   }
