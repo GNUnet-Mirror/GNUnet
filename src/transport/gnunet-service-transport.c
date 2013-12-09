@@ -151,23 +151,24 @@ process_payload (const struct GNUNET_PeerIdentity *peer,
   do_forward = GNUNET_SYSERR;
   ret = GST_neighbours_calculate_receive_delay (peer, msg_size, &do_forward);
 
-  if (!GST_neighbours_test_connected (peer))
+  if (! GST_neighbours_test_connected (peer))
   {
 
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Discarded %u bytes type %u payload from peer `%s'\n", msg_size,
+                "Discarded %u bytes type %u payload from peer `%s'\n",
+                msg_size,
                 ntohs (message->type), GNUNET_i2s (peer));
 
     GNUNET_STATISTICS_update (GST_stats,
                               gettext_noop
-                              ("# bytes payload discarded due to not connected peer "),
+                              ("# bytes payload discarded due to not connected peer"),
                               msg_size, GNUNET_NO);
     return ret;
   }
 
   GST_ats_add_address ((struct GNUNET_HELLO_Address *) address, session);
 
-  if (do_forward != GNUNET_YES)
+  if (GNUNET_YES != do_forward)
     return ret;
   im = (struct InboundMessage *) buf;
   im->header.size = htons (size);
@@ -203,11 +204,12 @@ process_payload (const struct GNUNET_PeerIdentity *peer,
  *         (plugins that do not support this, can ignore the return value)
  */
 struct GNUNET_TIME_Relative
-GST_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
-                             const struct GNUNET_MessageHeader *message,
-                             struct Session *session,
-                             const char *sender_address,
-                             uint16_t sender_address_len)
+GST_receive_callback (void *cls,
+                      const struct GNUNET_PeerIdentity *peer,
+                      const struct GNUNET_MessageHeader *message,
+                      struct Session *session,
+                      const char *sender_address,
+                      uint16_t sender_address_len)
 {
   const char *plugin_name = cls;
   struct GNUNET_TIME_Relative ret;
@@ -222,11 +224,14 @@ GST_receive_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
   if (NULL == message)
     goto end;
   type = ntohs (message->type);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received Message with type %u from peer `%s'\n", type, GNUNET_i2s (peer));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received Message with type %u from peer `%s'\n",
+              type,
+              GNUNET_i2s (peer));
 
   GNUNET_STATISTICS_update (GST_stats,
-                        gettext_noop
-                        ("# bytes total received"),
+                            gettext_noop
+                            ("# bytes total received"),
                             ntohs (message->size), GNUNET_NO);
   GST_neighbours_notify_data_recv (peer, &address, session, message);
 
@@ -298,7 +303,7 @@ end:
  *                   set of valid addresses?
  * @param addr one of the addresses of the host
  *        the specific address format depends on the transport
- * @param addrlen length of the address
+ * @param addrlen length of the @a addr
  * @param dest_plugin destination plugin to use this address with
  */
 static void
@@ -400,46 +405,46 @@ plugin_env_address_to_type (void *cls,
  */
 void
 GST_ats_add_address (const struct GNUNET_HELLO_Address *address,
-						 	 	 	 	 struct Session *session)
+                     struct Session *session)
 {
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
-	struct GNUNET_ATS_Information ats;
-	uint32_t net;
+  struct GNUNET_ATS_Information ats;
+  uint32_t net;
 
   /* valid new address, let ATS know! */
   if (NULL == address->transport_name)
   {
-  	GNUNET_break (0);
-  	return;
+    GNUNET_break (0);
+    return;
   }
   if (NULL == (papi = GST_plugins_find (address->transport_name)))
   {
     /* we don't have the plugin for this address */
-  	GNUNET_break (0);
-  	return;
+    GNUNET_break (0);
+    return;
   }
 
   if (GNUNET_YES == GNUNET_ATS_session_known (GST_ats, address, session))
-  	return;
+    return;
 
-	net = papi->get_network (NULL, (void *) session);
+  net = papi->get_network (NULL, (void *) session);
   if (GNUNET_ATS_NET_UNSPECIFIED == net)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-    						_("Could not obtain a valid network for `%s' %s\n"),
+                _("Could not obtain a valid network for `%s' %s\n"),
                 GNUNET_i2s (&address->peer), GST_plugins_a2s (address));
-  	GNUNET_break (0);
+    GNUNET_break (0);
   }
-	ats.type = htonl (GNUNET_ATS_NETWORK_TYPE);
-	ats.value = htonl(net);
-	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-			"Notifying ATS about peer `%s''s new address `%s' session %p in network %s\n",
-			GNUNET_i2s (&address->peer),
-			(0 == address->address_length) ? "<inbound>" : GST_plugins_a2s (address),
-			session,
-			GNUNET_ATS_print_network_type(net));
-	GNUNET_ATS_address_add (GST_ats,
-			address, session, &ats, 1);
+  ats.type = htonl (GNUNET_ATS_NETWORK_TYPE);
+  ats.value = htonl(net);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Notifying ATS about peer `%s''s new address `%s' session %p in network %s\n",
+              GNUNET_i2s (&address->peer),
+              (0 == address->address_length) ? "<inbound>" : GST_plugins_a2s (address),
+              session,
+              GNUNET_ATS_print_network_type(net));
+  GNUNET_ATS_address_add (GST_ats,
+                          address, session, &ats, 1);
 }
 
 
@@ -450,7 +455,7 @@ GST_ats_add_address (const struct GNUNET_HELLO_Address *address,
  * @param address the address
  * @param session the session
  * @param ats performance information
- * @param ats_count number of elements in ats
+ * @param ats_count number of elements in @a ats
  */
 void
 GST_ats_update_metrics (const struct GNUNET_PeerIdentity *peer,
@@ -459,14 +464,14 @@ GST_ats_update_metrics (const struct GNUNET_PeerIdentity *peer,
 			const struct GNUNET_ATS_Information *ats,
 			uint32_t ats_count)
 {
-	struct GNUNET_ATS_Information *ats_new;
+  struct GNUNET_ATS_Information *ats_new;
 
   if (GNUNET_NO == GNUNET_ATS_session_known (GST_ats, address, session))
     return;
 
   /* Call to manipulation to manipulate ATS information */
   ats_new = GST_manipulation_manipulate_metrics (peer, address, session, ats,
-      ats_count);
+                                                 ats_count);
   if (NULL == ats_new)
   {
     GNUNET_break(0);
@@ -475,12 +480,14 @@ GST_ats_update_metrics (const struct GNUNET_PeerIdentity *peer,
   if (GNUNET_NO == GNUNET_ATS_address_update (GST_ats,
       address, session, ats_new, ats_count))
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-        _("Address or session unknown: failed to update properties for peer `%s' plugin `%s' address `%s' session %p\n"),
-        GNUNET_i2s (peer), address->transport_name, GST_plugins_a2s (address),
-        session);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Address or session unknown: failed to update properties for peer `%s' plugin `%s' address `%s' session %p\n"),
+                GNUNET_i2s (peer),
+                address->transport_name,
+                GST_plugins_a2s (address),
+                session);
   }
-  GNUNET_free(ats_new);
+  GNUNET_free (ats_new);
 }
 
 
@@ -491,10 +498,10 @@ GST_ats_update_metrics (const struct GNUNET_PeerIdentity *peer,
  * @param cls closure
  * @param peer the peer
  * @param address binary address
- * @param address_len length of the address
+ * @param address_len length of the @a address
  * @param session the session
  * @param ats the ats information to update
- * @param ats_count the number of ats elements
+ * @param ats_count the number of @a ats elements
  */
 static void
 plugin_env_update_metrics (void *cls,
@@ -505,23 +512,26 @@ plugin_env_update_metrics (void *cls,
 			   const struct GNUNET_ATS_Information *ats,
 			   uint32_t ats_count)
 {
-  struct GNUNET_HELLO_Address haddress;
   const char *plugin_name = cls;
+  struct GNUNET_HELLO_Address haddress;
 
-	if ((NULL == ats) || (0 == ats_count))
-		return;
-	GNUNET_assert (NULL != GST_ats);
+  if ((NULL == ats) || (0 == ats_count))
+    return;
+  GNUNET_assert (NULL != GST_ats);
 
-
-	haddress.peer = *peer;
-	haddress.address = address;
+  haddress.peer = *peer;
+  haddress.address = address;
   haddress.address_length = address_len;
   haddress.transport_name = plugin_name;
 
-	GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Updating metrics for peer `%s' address %s session %p\n",
-			GNUNET_i2s (peer), GST_plugins_a2s(&haddress), session);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Updating metrics for peer `%s' address %s session %p\n",
+              GNUNET_i2s (peer),
+              GST_plugins_a2s (&haddress),
+              session);
   GST_ats_update_metrics (peer, &haddress, session, ats, ats_count);
 }
+
 
 /**
  * Plugin tells transport service about a new (inbound) session
@@ -530,19 +540,22 @@ plugin_env_update_metrics (void *cls,
  * @param peer the peer
  * @param plugin plugin name
  * @param address address
- * @param address_len address length
+ * @param address_len @a address length
  * @param session the new session
  * @param ats ats information
- * @param ats_count number of ats information
+ * @param ats_count number of @a ats information
  */
-
 static void
-plugin_env_session_start (void *cls, const struct GNUNET_PeerIdentity *peer,
-    const char *plugin, const void *address, uint16_t address_len,
-    struct Session *session, const struct GNUNET_ATS_Information *ats,
-    uint32_t ats_count)
+plugin_env_session_start (void *cls,
+                          const struct GNUNET_PeerIdentity *peer,
+                          const char *plugin,
+                          const void *address, uint16_t address_len,
+                          struct Session *session,
+                          const struct GNUNET_ATS_Information *ats,
+                          uint32_t ats_count)
 {
   struct GNUNET_HELLO_Address *addr;
+
   if (NULL == peer)
   {
     GNUNET_break(0);
@@ -561,14 +574,18 @@ plugin_env_session_start (void *cls, const struct GNUNET_PeerIdentity *peer,
 
   addr = GNUNET_HELLO_address_allocate (peer, plugin, address, address_len);
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-      "Notification from plugin `%s' about new session %p from peer `%s' address `%s'\n",
-      plugin, session, GNUNET_i2s (peer), GST_plugins_a2s (addr));
+             "Notification from plugin `%s' about new session %p from peer `%s' address `%s'\n",
+             plugin,
+             session,
+             GNUNET_i2s (peer),
+             GST_plugins_a2s (addr));
   GST_ats_add_address (addr, session);
 
   if (0 < ats_count)
     GST_ats_update_metrics (peer, addr, session, ats, ats_count);
   GNUNET_free(addr);
 }
+
 
 /**
  * Function called by ATS to notify the callee that the
@@ -585,7 +602,7 @@ plugin_env_session_start (void *cls, const struct GNUNET_PeerIdentity *peer,
  * @param bandwidth_in assigned inbound bandwidth for the connection in NBO,
  * 	0 to disconnect from peer
  * @param ats ATS information
- * @param ats_count number of ATS elements
+ * @param ats_count number of @a ats elements
  */
 static void
 ats_request_address_change (void *cls,
@@ -756,8 +773,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
                                                &keyfile))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _
-                ("Transport service is lacking key configuration settings.  Exiting.\n"));
+                _("Transport service is lacking key configuration settings. Exiting.\n"));
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
@@ -800,7 +816,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   {
     max_fd_rlimit = r_file.rlim_cur;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Maximum number of open files was: %u/%u\n", r_file.rlim_cur,
+		"Maximum number of open files was: %u/%u\n",
+                r_file.rlim_cur,
 		r_file.rlim_max);
   }
   max_fd_rlimit = (9 * max_fd_rlimit) / 10; /* Keep 10% for rest of transport */

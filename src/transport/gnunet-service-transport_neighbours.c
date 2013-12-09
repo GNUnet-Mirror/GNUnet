@@ -557,9 +557,6 @@ struct NeighbourMapEntry
    */
   uint32_t util_total_bytes_recv;
 
-
-
-
   /**
    * Date of last utilization transmission
    */
@@ -614,7 +611,7 @@ static struct BlackListCheckContext *bc_head;
 static struct BlackListCheckContext *bc_tail;
 
 /**
- * Closure for connect_notify_cb, disconnect_notify_cb and address_change_cb
+ * Closure for #connect_notify_cb, #disconnect_notify_cb and #address_change_cb
  */
 static void *callback_cls;
 
@@ -662,6 +659,7 @@ lookup_neighbour (const struct GNUNET_PeerIdentity *pid)
     return NULL;
   return GNUNET_CONTAINER_multipeermap_get (neighbours, pid);
 }
+
 
 static const char *
 print_state (int state)
@@ -711,7 +709,7 @@ print_state (int state)
  * Test if we're connected to the given peer.
  *
  * @param n neighbour entry of peer to test
- * @return GNUNET_YES if we are connected, GNUNET_NO if not
+ * @return #GNUNET_YES if we are connected, #GNUNET_NO if not
  */
 static int
 test_connected (struct NeighbourMapEntry *n)
@@ -740,7 +738,9 @@ test_connected (struct NeighbourMapEntry *n)
   case S_DISCONNECT_FINISHED:
     return GNUNET_NO;
   default:
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Unhandled state `%s' \n",print_state (n->state));
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Unhandled state `%s' \n",
+                print_state (n->state));
     GNUNET_break (0);
     break;
   }
@@ -807,7 +807,7 @@ free_address (struct NeighbourAddress *na)
  *        address must be setup)
  * @param bandwidth_in inbound quota to be used when connection is up
  * @param bandwidth_out outbound quota to be used when connection is up
- * @param is_active GNUNET_YES to mark this as the active address with ATS
+ * @param is_active #GNUNET_YES to mark this as the active address with ATS
  */
 static void
 set_address (struct NeighbourAddress *na,
@@ -906,7 +906,6 @@ free_neighbour (struct NeighbourMapEntry *n, int keep_sessions)
 			   GNUNET_NO);
     disconnect_notify_cb (callback_cls, &n->id);
   }
-
   n->state = S_DISCONNECT_FINISHED;
 
   if (NULL != n->primary_address.address)
@@ -948,8 +947,8 @@ free_neighbour (struct NeighbourMapEntry *n, int keep_sessions)
   // such a handle, we should cancel the operation here!
   if (NULL != n->suggest_handle)
   {
-  	GNUNET_ATS_suggest_address_cancel (GST_ats, &n->id);
-  	n->suggest_handle = NULL;
+    GNUNET_ATS_suggest_address_cancel (GST_ats, &n->id);
+    n->suggest_handle = NULL;
   }
 
   if (GNUNET_SCHEDULER_NO_TASK != n->task)
@@ -1018,7 +1017,7 @@ master_task (void *cls,
  *
  * @param cls NULL
  * @param target identity of the neighbour that was disconnected
- * @param result GNUNET_OK if the disconnect got out successfully
+ * @param result #GNUNET_OK if the disconnect got out successfully
  * @param payload bytes payload
  * @param physical bytes physical
  */
@@ -1033,7 +1032,6 @@ send_disconnect_cont (void *cls, const struct GNUNET_PeerIdentity *target,
     return; /* already gone */
   if (S_DISCONNECT != n->state)
     return; /* have created a fresh entry since */
-  n->state = S_DISCONNECT;
   if (GNUNET_SCHEDULER_NO_TASK != n->task)
     GNUNET_SCHEDULER_cancel (n->task);
   n->task = GNUNET_SCHEDULER_add_now (&master_task, n);
@@ -3071,7 +3069,7 @@ GST_neighbours_handle_session_ack (const struct GNUNET_MessageHeader *message,
  * Test if we're connected to the given peer.
  *
  * @param target peer to test
- * @return GNUNET_YES if we are connected, GNUNET_NO if not
+ * @return #GNUNET_YES if we are connected, #GNUNET_NO if not
  */
 int
 GST_neighbours_test_connected (const struct GNUNET_PeerIdentity *target)
