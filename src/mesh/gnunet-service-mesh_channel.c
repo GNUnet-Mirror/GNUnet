@@ -316,7 +316,7 @@ extern GNUNET_PEER_Id myid;
  *                    is skewed by the retransmission, count only for the
  *                    retransmitted message.
  */
-static void
+static int
 rel_message_free (struct MeshReliableMessage *copy, int update_time);
 
 /**
@@ -993,7 +993,7 @@ channel_rel_free_sent (struct MeshChannelReliability *rel,
 
     /* Now copy->mid == target, free it */
     next = copy->next;
-    rel_message_free (copy, GNUNET_YES);
+    GNUNET_break (GNUNET_YES != rel_message_free (copy, GNUNET_YES));
     copy = next;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "free_sent_reliable END\n");
@@ -1010,8 +1010,11 @@ channel_rel_free_sent (struct MeshChannelReliability *rel,
  *                    If this message is ACK in a batch the timing information
  *                    is skewed by the retransmission, count only for the
  *                    retransmitted message.
+ *
+ * @return #GNUNET_YES if channel was destroyed as a result of the call,
+ *         #GNUNET_NO otherwise.
  */
-static void
+static int
 rel_message_free (struct MeshReliableMessage *copy, int update_time)
 {
   struct MeshChannelReliability *rel;
@@ -1056,7 +1059,9 @@ rel_message_free (struct MeshReliableMessage *copy, int update_time)
     struct MeshTunnel3 *t = rel->ch->t;
     GMCH_destroy (rel->ch);
     GMT_destroy_if_empty (t);
+    return GNUNET_YES;
   }
+  return GNUNET_NO;
 }
 
 
@@ -1954,7 +1959,8 @@ GMCH_handle_data_ack (struct MeshChannel *ch,
     work = GNUNET_YES;
     LOG (GNUNET_ERROR_TYPE_DEBUG, " !!  id %u\n", copy->mid);
     next = copy->next;
-    rel_message_free (copy, GNUNET_YES);
+    if (GNUNET_YES == rel_message_free (copy, GNUNET_YES))
+      return;
   }
 
   /* ACK client if needed */
