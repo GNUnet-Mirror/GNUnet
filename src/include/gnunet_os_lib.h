@@ -391,7 +391,7 @@ GNUNET_OS_start_process_v (int pipe_control,
  * @param std_inheritance a set of GNUNET_OS_INHERIT_STD_* flags
  * @param lsocks array of listen sockets to dup systemd-style (or NULL);
  *         must be NULL on platforms where dup is not supported
- * @param first_arg name of the binary.  It is valid to have the arguments
+ * @param filename name of the binary.  It is valid to have the arguments
  *         in this string when they are separated by spaces.
  * @param ... more arguments.  Should be of type `char *`.  It is valid
  *         to have the arguments in these strings when they are separated by
