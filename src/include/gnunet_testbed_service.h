@@ -1593,6 +1593,104 @@ void
 GNUNET_TESTBED_barrier_wait_cancel (struct GNUNET_TESTBED_BarrierWaitHandle *h);
 
 
+/**
+ * Model for configuring underlay links of a peer
+ * @ingroup underlay
+ */
+struct GNUNET_TESTBED_UnderlayLinkModel;
+
+
+/**
+ * The type of GNUNET_TESTBED_UnderlayLinkModel
+ * @ingroup underlay
+ */
+enum GNUNET_TESTBED_UnderlayLinkModelType
+{
+  /**
+   * The model is based on white listing of peers to which underlay connections
+   * are permitted.  Underlay connections to all other peers will not be
+   * permitted.
+   */
+  GNUNET_TESTBED_UNDERLAYLINKMODELTYPE_BLACKLIST,
+
+  /**
+   * The model is based on black listing of peers to which underlay connections
+   * are not permitted.  Underlay connections to all other peers will be
+   * permitted
+   */
+  GNUNET_TESTBED_UNDERLAYLINKMODELTYPE_WHITELIST
+};
+
+
+/**
+ * Create a GNUNET_TESTBED_UnderlayLinkModel for the given peer.  A peer can
+ * have ONLY ONE model and it can be either a blacklist or whitelist based one.
+ *
+ * @ingroup underlay
+ * @param peer the peer for which the model has to be created
+ * @param type the type of the model
+ * @return the model
+ */
+struct GNUNET_TESTBED_UnderlayLinkModel *
+GNUNET_TESTBED_underlaylinkmodel_create (struct GNUNET_TESTBED_Peer *peer,
+                                         enum GNUNET_TESTBED_UnderlayLinkModelType type);
+
+
+/**
+ * Add a peer to the given model.  Underlay connections to the given peer will
+ * be permitted if the model is whitelist based; otherwise they will not be
+ * permitted.
+ *
+ * @ingroup underlay
+ * @param model the model
+ * @param peer the peer to add
+ */
+void
+GNUNET_TESTBED_underlaylinkmodel_add_peer (struct GNUNET_TESTBED_UnderlayLinkModel *model,
+                                           struct GNUNET_TESTBED_Peer *peer);
+
+
+/**
+ * Set the metrics for a link to the given peer in the underlay model.  The link
+ * SHOULD be permittable according to the given model.
+ * 
+ * @ingroup underlay
+ * @param model the model
+ * @param peer the other end peer of the link
+ * @param latency latency of the link in microseconds
+ * @param loss data loss of the link expressed as a percentage
+ * @param bandwidth bandwidth of the link in kilobytes per second [kB/s]
+ */
+void
+GNUNET_TESTBED_underlaylinkmodel_set_link (struct GNUNET_TESTBED_UnderlayLinkModel *model,
+                                           struct GNUNET_TESTBED_Peer *peer,
+                                           uint32_t latency,
+                                           uint32_t loss,
+                                           uint32_t bandwidth);
+
+
+/**
+ * Commit the model.  The model is freed in this function(!).
+ *
+ * @ingroup underlay
+ * @param model the model to commit
+ */
+void
+GNUNET_TESTBED_underlaylinkmodel_commit (struct GNUNET_TESTBED_UnderlayLinkModel *model);
+
+
+/**
+ * Free the resources of the model.  Use this function only if the model has not
+ * be committed and has to be unallocated.  The peer can then have another model
+ * created.
+ *
+ * @ingroup underlay
+ * @param model the model to unallocate
+ */
+void
+GNUNET_TESTBED_underlaylinkmodel_free (struct GNUNET_TESTBED_UnderlayLinkModel *model);
+
+
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif
