@@ -201,7 +201,11 @@ get_incoming (uint32_t id)
 
   for (op = incoming_head; NULL != op; op = op->next)
     if (op->state->suggest_id == id)
+    {
+      // FIXME: remove this assertion once the corresponding bug is gone!
+      GNUNET_assert (GNUNET_YES == op->is_incoming);
       return op;
+    }
   return NULL;
 }
 
@@ -441,13 +445,16 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
 static void
 incoming_destroy (struct Operation *incoming)
 {
+  GNUNET_assert (GNUNET_YES == incoming->is_incoming);
   GNUNET_CONTAINER_DLL_remove (incoming_head, incoming_tail, incoming);
   if (GNUNET_SCHEDULER_NO_TASK != incoming->state->timeout_task)
   {
     GNUNET_SCHEDULER_cancel (incoming->state->timeout_task);
     incoming->state->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   }
+  GNUNET_assert (NULL != incoming->state);
   GNUNET_free (incoming->state);
+  incoming->state = NULL;
 }
 
 
@@ -459,7 +466,9 @@ incoming_destroy (struct Operation *incoming)
 static void
 incoming_retire (struct Operation *incoming)
 {
+  GNUNET_assert (GNUNET_YES == incoming->is_incoming);
   incoming->is_incoming = GNUNET_NO;
+  GNUNET_assert (NULL != incoming->state);
   GNUNET_free (incoming->state);
   incoming->state = NULL;
   GNUNET_CONTAINER_DLL_remove (incoming_head, incoming_tail, incoming);
@@ -505,7 +514,9 @@ incoming_suggest (struct Operation *incoming, struct Listener *listener)
 {
   struct GNUNET_MQ_Envelope *mqm;
   struct GNUNET_SET_RequestMessage *cmsg;
-
+  
+  GNUNET_assert (GNUNET_YES == incoming->is_incoming);
+  GNUNET_assert (NULL != incoming->state);
   GNUNET_assert (NULL != incoming->spec);
   GNUNET_assert (0 == incoming->state->suggest_id);
   incoming->state->suggest_id = suggest_id++;
@@ -545,6 +556,8 @@ handle_incoming_msg (struct Operation *op,
   const struct OperationRequestMessage *msg = (const struct OperationRequestMessage *) mh;
   struct Listener *listener;
   struct OperationSpecification *spec;
+
+  GNUNET_assert (GNUNET_YES == op->is_incoming);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "got op request\n");
 
@@ -1180,9 +1193,8 @@ static void
 handle_incoming_disconnect (struct Operation *op)
 {
   GNUNET_assert (GNUNET_YES == op->is_incoming);
-  if (NULL == op->channel)
-    return;
   incoming_destroy (op);
+  op->vt = NULL;
 }
 
 
@@ -1287,8 +1299,8 @@ channel_end_cb (void *cls,
 
 
 /**
- * Functions with this signature are called whenever any message is
- * received via the mesh channel.
+ * Functions with this signature are called whenever a message is
+ * received via a mesh channel.
  *
  * The msg_handler is a virtual table set in initially either when a peer
  * creates a new channel with us (channel_new_cb), or once we create a new channel
