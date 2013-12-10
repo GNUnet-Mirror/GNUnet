@@ -413,6 +413,12 @@ send_core_connection_create (struct MeshConnection *c, size_t size, void *buf)
   size_t size_needed;
   int i;
 
+  if (NULL == p)
+  {
+    GNUNET_break (GNUNET_NO != c->destroy);
+    return 0;
+  }
+
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Sending CONNECTION CREATE...\n");
   size_needed =
       sizeof (struct GNUNET_MESH_ConnectionCreate) +
