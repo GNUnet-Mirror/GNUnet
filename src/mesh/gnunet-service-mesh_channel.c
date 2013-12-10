@@ -735,7 +735,9 @@ ch_message_sent (void *cls,
       rel = copy->rel;
       if (GNUNET_SCHEDULER_NO_TASK == rel->retry_task)
       {
-        LOG (GNUNET_ERROR_TYPE_DEBUG, "!! scheduling retry %u\n");
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "!! scheduling retry in %s\n",
+             GNUNET_STRINGS_relative_time_to_string (rel->expected_delay,
+                                                     GNUNET_YES));
         if (0 != rel->expected_delay.rel_value_us)
         {
           LOG (GNUNET_ERROR_TYPE_DEBUG, "!! delay != 0\n");
@@ -745,7 +747,7 @@ ch_message_sent (void *cls,
         }
         else
         {
-          LOG (GNUNET_ERROR_TYPE_DEBUG, "!! delay 0\n");
+          LOG (GNUNET_ERROR_TYPE_DEBUG, "!! delay reset\n");
           rel->retry_timer = MESH_RETRANSMIT_TIME;
         }
         LOG (GNUNET_ERROR_TYPE_DEBUG, "!! using delay %s\n",
@@ -1113,8 +1115,8 @@ channel_confirm (struct MeshChannel *ch, int fwd)
   enum MeshChannelState oldstate;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-              "  channel confirm %s %s:%X\n",
-              GM_f2s (fwd), GMT_2s (ch->t), ch->gid);
+              "  channel confirm %s %s\n",
+              GM_f2s (fwd), GMCH_2s (ch));
   oldstate = ch->state;
   ch->state = MESH_CHANNEL_READY;
 
@@ -2273,6 +2275,7 @@ GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
                                           NULL != existing_copy,
                                           &ch_message_sent, q);
         /* q itself is stored in copy */
+        GNUNET_assert (NULL != q->q);
       }
       else
       {
