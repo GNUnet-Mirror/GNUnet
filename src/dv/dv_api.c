@@ -35,6 +35,12 @@
 
 
 /**
+ * Information we track for each peer.
+ */
+struct ConnectedPeer;
+
+
+/**
  * Handle for a send operation.
  */
 struct GNUNET_DV_TransmitHandle
@@ -60,7 +66,7 @@ struct GNUNET_DV_TransmitHandle
   GNUNET_DV_MessageSentCallback cb;
 
   /**
-   * Closure for 'cb'.
+   * Closure for @a cb.
    */
   void *cb_cls;
 
@@ -72,12 +78,42 @@ struct GNUNET_DV_TransmitHandle
   /**
    * Destination for the message.
    */
-  struct GNUNET_PeerIdentity target;
+  struct ConnectedPeer *target;
 
   /**
    * UID of our message, if any.
    */
   uint32_t uid;
+
+};
+
+
+/**
+ * Information we track for each peer.
+ */
+struct ConnectedPeer
+{
+
+  /**
+   * Identity of the peer.
+   */
+  struct GNUNET_PeerIdentity pid;
+
+  /**
+   * Head of DLL of transmission handles where we need
+   * to invoke a continuation when we are informed about
+   * successful transmission.  The respective request
+   * has already been sent to the DV service.
+   */
+  struct GNUNET_DV_TransmitHandle *head;
+
+  /**
+   * Tail of DLL of transmission handles where we need
+   * to invoke a continuation when we are informed about
+   * successful transmission.  The respective request
+   * has already been sent to the DV service.
+   */
+  struct GNUNET_DV_TransmitHandle *tail;
 
 };
 
@@ -139,11 +175,10 @@ struct GNUNET_DV_ServiceHandle
   struct GNUNET_DV_TransmitHandle *th_tail;
 
   /**
-   * Mapping of peer identities to TransmitHandles to invoke
-   * upon successful transmission.  The respective
-   * transmissions have already been done.
+   * Information tracked per connected peer.  Maps peer
+   * identities to `struct ConnectedPeer` entries.
    */
-  struct GNUNET_CONTAINER_MultiPeerMap *send_callbacks;
+  struct GNUNET_CONTAINER_MultiPeerMap *peers;
 
   /**
    * Current unique ID
@@ -168,7 +203,7 @@ reconnect (struct GNUNET_DV_ServiceHandle *sh);
  * @param cls handle to the dv service (struct GNUNET_DV_ServiceHandle)
  * @param size how many bytes can we send
  * @param buf where to copy the message to send
- * @return how many bytes we copied to buf
+ * @return how many bytes we copied to @a buf
  */
 static size_t
 transmit_pending (void *cls, size_t size, void *buf)
@@ -193,13 +228,13 @@ transmit_pending (void *cls, size_t size, void *buf)
 				 sh->th_tail,
 				 th);
     memcpy (&cbuf[ret], th->msg, tsize);
+    th->msg = NULL;
     ret += tsize;
     if (NULL != th->cb)
     {
-      (void) GNUNET_CONTAINER_multipeermap_put (sh->send_callbacks,
-						&th->target,
-						th,
-						GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+      GNUNET_CONTAINER_DLL_insert (th->target->head,
+                                   th->target->tail,
+                                   th);
     }
     else
     {
@@ -232,54 +267,36 @@ start_transmit (struct GNUNET_DV_ServiceHandle *sh)
 
 
 /**
- * Closure for 'process_ack'.
- */
-struct AckContext
-{
-  /**
-   * The ACK message.
-   */
-  const struct GNUNET_DV_AckMessage *ack;
-
-  /**
-   * Our service handle.
-   */
-  struct GNUNET_DV_ServiceHandle *sh;
-};
-
-
-/**
- * We got an ACK.  Check if it matches the given transmit handle, and if
- * so call the continuation.
+ * We got disconnected from the service and thus all of the
+ * pending send callbacks will never be confirmed.  Clean up.
  *
- * @param cls the 'struct AckContext'
- * @param key peer identity
- * @param value the 'struct GNUNET_DV_TransmitHandle'
- * @return GNUNET_OK if the ACK did not match (continue to iterate)
+ * @param cls the 'struct GNUNET_DV_ServiceHandle'
+ * @param key a peer identity
+ * @param value a `struct ConnectedPeer` to clean up
+ * @return #GNUNET_OK (continue to iterate)
  */
 static int
-process_ack (void *cls,
-	     const struct GNUNET_PeerIdentity *key,
-	     void *value)
+cleanup_send_cb (void *cls,
+		 const struct GNUNET_PeerIdentity *key,
+		 void *value)
 {
-  struct AckContext *ctx = cls;
-  struct GNUNET_DV_TransmitHandle *th = value;
+  struct GNUNET_DV_ServiceHandle *sh = cls;
+  struct ConnectedPeer *peer = value;
+  struct GNUNET_DV_TransmitHandle *th;
 
-  if (th->uid != ntohl (ctx->ack->uid))
-    return GNUNET_OK;
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Matchedk ACK for message to peer %s\n",
-       GNUNET_i2s (key));
   GNUNET_assert (GNUNET_YES ==
-		 GNUNET_CONTAINER_multipeermap_remove (ctx->sh->send_callbacks,
+		 GNUNET_CONTAINER_multipeermap_remove (sh->peers,
 						       key,
-						       th));
-  th->cb (th->cb_cls,
-	  (ntohs (ctx->ack->header.type) == GNUNET_MESSAGE_TYPE_DV_SEND_ACK)
-	  ? GNUNET_OK
-	  : GNUNET_SYSERR);
-  GNUNET_free (th);
-  return GNUNET_NO;
+						       peer));
+  sh->disconnect_cb (sh->cls,
+                     key);
+  while (NULL != (th = peer->head))
+  {
+    GNUNET_CONTAINER_DLL_remove (peer->head, peer->tail, th);
+    th->cb (th->cb_cls, GNUNET_SYSERR);
+    GNUNET_free (th);
+  }
+  return GNUNET_OK;
 }
 
 
@@ -301,7 +318,9 @@ handle_message_receipt (void *cls,
   const struct GNUNET_DV_ReceivedMessage *rm;
   const struct GNUNET_MessageHeader *payload;
   const struct GNUNET_DV_AckMessage *ack;
-  struct AckContext ctx;
+  struct GNUNET_DV_TransmitHandle *th;
+  struct GNUNET_DV_TransmitHandle *tn;
+  struct ConnectedPeer *peer;
 
   if (NULL == msg)
   {
@@ -322,6 +341,21 @@ handle_message_receipt (void *cls,
       return;
     }
     cm = (const struct GNUNET_DV_ConnectMessage *) msg;
+    peer = GNUNET_CONTAINER_multipeermap_get (sh->peers,
+                                              &cm->peer);
+    if (NULL != peer)
+    {
+      GNUNET_break (0);
+      reconnect (sh);
+      return;
+    }
+    peer = GNUNET_new (struct ConnectedPeer);
+    peer->pid = cm->peer;
+    GNUNET_assert (GNUNET_OK ==
+                   GNUNET_CONTAINER_multipeermap_put (sh->peers,
+                                                      &peer->pid,
+                                                      peer,
+                                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
     sh->connect_cb (sh->cls,
 		    &cm->peer,
 		    ntohl (cm->distance), ntohl (cm->network));
@@ -346,8 +380,28 @@ handle_message_receipt (void *cls,
       return;
     }
     dm = (const struct GNUNET_DV_DisconnectMessage *) msg;
-    sh->disconnect_cb (sh->cls,
-		       &dm->peer);
+    peer = GNUNET_CONTAINER_multipeermap_get (sh->peers,
+                                              &dm->peer);
+    if (NULL == peer)
+    {
+      GNUNET_break (0);
+      reconnect (sh);
+      return;
+    }
+    tn = sh->th_head;
+    while (NULL != (th = tn))
+    {
+      tn = th->next;
+      if (peer == th->target)
+      {
+        GNUNET_CONTAINER_DLL_remove (sh->th_head,
+                                     sh->th_tail,
+                                     th);
+        th->cb (th->cb_cls, GNUNET_SYSERR);
+        GNUNET_free (th);
+      }
+    }
+    cleanup_send_cb (sh, &dm->peer, peer);
     break;
   case GNUNET_MESSAGE_TYPE_DV_RECV:
     if (ntohs (msg->size) < sizeof (struct GNUNET_DV_ReceivedMessage) + sizeof (struct GNUNET_MessageHeader))
@@ -378,12 +432,25 @@ handle_message_receipt (void *cls,
       return;
     }
     ack = (const struct GNUNET_DV_AckMessage *) msg;
-    ctx.ack = ack;
-    ctx.sh = sh;
-    GNUNET_CONTAINER_multipeermap_get_multiple (sh->send_callbacks,
-						&ack->target,
-						&process_ack,
-						&ctx);
+    peer = GNUNET_CONTAINER_multipeermap_get (sh->peers,
+                                              &ack->target);
+    for (th = peer->head; NULL != th; th = th->next)
+    {
+      if (th->uid != ntohl (ack->uid))
+        continue;
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Matched ACK for message to peer %s\n",
+           GNUNET_i2s (&ack->target));
+      GNUNET_CONTAINER_DLL_remove (peer->head,
+                                   peer->tail,
+                                   th);
+      th->cb (th->cb_cls,
+              (ntohs (ack->header.type) == GNUNET_MESSAGE_TYPE_DV_SEND_ACK)
+              ? GNUNET_OK
+              : GNUNET_SYSERR);
+      GNUNET_free (th);
+      break;
+    }
     break;
   default:
     reconnect (sh);
@@ -398,7 +465,7 @@ handle_message_receipt (void *cls,
 /**
  * Transmit the start message to the DV service.
  *
- * @param cls the 'struct GNUNET_DV_ServiceHandle'
+ * @param cls the `struct GNUNET_DV_ServiceHandle *`
  * @param size number of bytes available in buf
  * @param buf where to copy the message
  * @return number of bytes written to buf
@@ -431,33 +498,6 @@ transmit_start (void *cls,
 
 
 /**
- * We got disconnected from the service and thus all of the
- * pending send callbacks will never be confirmed.  Clean up.
- *
- * @param cls the 'struct GNUNET_DV_ServiceHandle'
- * @param key a peer identity
- * @param value a 'struct GNUNET_DV_TransmitHandle' to clean up
- * @return GNUNET_OK (continue to iterate)
- */
-static int
-cleanup_send_cb (void *cls,
-		 const struct GNUNET_PeerIdentity *key,
-		 void *value)
-{
-  struct GNUNET_DV_ServiceHandle *sh = cls;
-  struct GNUNET_DV_TransmitHandle *th = value;
-
-  GNUNET_assert (GNUNET_YES ==
-		 GNUNET_CONTAINER_multipeermap_remove (sh->send_callbacks,
-						       key,
-						       th));
-  th->cb (th->cb_cls, GNUNET_SYSERR);
-  GNUNET_free (th);
-  return GNUNET_OK;
-}
-
-
-/**
  * Disconnect and then reconnect to the DV service.
  *
  * @param sh service handle
@@ -475,7 +515,7 @@ reconnect (struct GNUNET_DV_ServiceHandle *sh)
     GNUNET_CLIENT_disconnect (sh->client);
     sh->client = NULL;
   }
-  GNUNET_CONTAINER_multipeermap_iterate (sh->send_callbacks,
+  GNUNET_CONTAINER_multipeermap_iterate (sh->peers,
 					 &cleanup_send_cb,
 					 sh);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -523,7 +563,7 @@ GNUNET_DV_service_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
   sh->distance_cb = distance_cb;
   sh->disconnect_cb = disconnect_cb;
   sh->message_cb = message_cb;
-  sh->send_callbacks = GNUNET_CONTAINER_multipeermap_create (128, GNUNET_YES);
+  sh->peers = GNUNET_CONTAINER_multipeermap_create (128, GNUNET_YES);
   reconnect (sh);
   return sh;
 }
@@ -558,10 +598,10 @@ GNUNET_DV_service_disconnect (struct GNUNET_DV_ServiceHandle *sh)
     GNUNET_CLIENT_disconnect (sh->client);
     sh->client = NULL;
   }
-  GNUNET_CONTAINER_multipeermap_iterate (sh->send_callbacks,
+  GNUNET_CONTAINER_multipeermap_iterate (sh->peers,
 					 &cleanup_send_cb,
 					 sh);
-  GNUNET_CONTAINER_multipeermap_destroy (sh->send_callbacks);
+  GNUNET_CONTAINER_multipeermap_destroy (sh->peers);
   GNUNET_free (sh);
 }
 
@@ -573,7 +613,7 @@ GNUNET_DV_service_disconnect (struct GNUNET_DV_ServiceHandle *sh)
  * @param target intended recpient
  * @param msg message payload
  * @param cb function to invoke when done
- * @param cb_cls closure for 'cb'
+ * @param cb_cls closure for @a cb
  * @return handle to cancel the operation
  */
 struct GNUNET_DV_TransmitHandle *
@@ -585,6 +625,7 @@ GNUNET_DV_send (struct GNUNET_DV_ServiceHandle *sh,
 {
   struct GNUNET_DV_TransmitHandle *th;
   struct GNUNET_DV_SendMessage *sm;
+  struct ConnectedPeer *peer;
 
   if (ntohs (msg->size) + sizeof (struct GNUNET_DV_SendMessage) >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
   {
@@ -596,12 +637,18 @@ GNUNET_DV_send (struct GNUNET_DV_ServiceHandle *sh,
        (unsigned int) msg->size,
        (unsigned int) msg->type,
        GNUNET_i2s (target));
-
+  peer = GNUNET_CONTAINER_multipeermap_get (sh->peers,
+                                            target);
+  if (NULL == peer)
+  {
+    GNUNET_break (0);
+    return NULL;
+  }
   th = GNUNET_malloc (sizeof (struct GNUNET_DV_TransmitHandle) +
 		      sizeof (struct GNUNET_DV_SendMessage) +
 		      ntohs (msg->size));
   th->sh = sh;
-  th->target = *target;
+  th->target = peer;
   th->cb = cb;
   th->cb_cls = cb_cls;
   th->msg = (const struct GNUNET_MessageHeader *) &th[1];
@@ -635,12 +682,12 @@ void
 GNUNET_DV_send_cancel (struct GNUNET_DV_TransmitHandle *th)
 {
   struct GNUNET_DV_ServiceHandle *sh = th->sh;
-  int ret;
 
-  ret = GNUNET_CONTAINER_multipeermap_remove (sh->send_callbacks,
-					      &th->target,
-					      th);
-  if (GNUNET_YES != ret)
+  if (NULL == th->msg)
+    GNUNET_CONTAINER_DLL_remove (th->target->head,
+				 th->target->tail,
+				 th);
+  else
     GNUNET_CONTAINER_DLL_remove (sh->th_head,
 				 sh->th_tail,
 				 th);
