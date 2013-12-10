@@ -440,7 +440,7 @@ connection_ready (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 /**
  * Function called from peer connect notify callbacks from CORE and TRANSPORT
- * connections. This function calls the pendning peer connect notify callbacks
+ * connections. This function calls the pending peer connect notify callbacks
  * which are queued in an entry.
  *
  * @param cls the #PooledConnection object
@@ -887,8 +887,8 @@ GST_connection_pool_get_handle_done (struct GST_ConnectionPool_GetHandle *gh)
   if (!gh->connection_ready_called)
   {
     GNUNET_CONTAINER_DLL_remove (entry->head_waiting, entry->tail_waiting, gh);
-    if ((NULL == entry->head_waiting)
-        && (GNUNET_SCHEDULER_NO_TASK != entry->notify_task))
+    if ( (NULL == search_waiting (entry, entry->head_waiting))
+         && (GNUNET_SCHEDULER_NO_TASK != entry->notify_task) )
     {
       GNUNET_SCHEDULER_cancel (entry->notify_task);
       entry->notify_task = GNUNET_SCHEDULER_NO_TASK;
