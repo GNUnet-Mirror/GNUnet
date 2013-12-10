@@ -474,7 +474,7 @@ libgnunet_plugin_ats_proportional_done (void *cls)
       LOG(GNUNET_ERROR_TYPE_DEBUG,
           "Had %u addresses for network `%s' not deleted during shutdown\n",
           s->network_entries[c].total_addresses, s->network_entries[c].desc);
-      GNUNET_break(0);
+      //GNUNET_break(0);
     }
 
     if (s->network_entries[c].active_addresses > 0)
@@ -482,7 +482,7 @@ libgnunet_plugin_ats_proportional_done (void *cls)
       LOG(GNUNET_ERROR_TYPE_DEBUG,
           "Had %u active addresses for network `%s' not deleted during shutdown\n",
           s->network_entries[c].active_addresses, s->network_entries[c].desc);
-      GNUNET_break(0);
+      //GNUNET_break(0);
     }
 
     next = s->network_entries[c].head;
