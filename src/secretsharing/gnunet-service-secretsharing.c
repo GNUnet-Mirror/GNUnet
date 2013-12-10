@@ -239,8 +239,8 @@ hash_cmp (const void *h1, const void *h2)
  *
  * @param listed peers in the unnormalized list
  * @param num_listed peers in the un-normalized list
- * @param num_normalized[out] number of peers in the normalized list
- * @param my_peer_idx[out] index of the local peer in the normalized list
+ * @param[out] num_normalized number of peers in the normalized list
+ * @param[out] my_peer_idx index of the local peer in the normalized list
  * @return normalized list, must be free'd by the caller
  */
 static struct GNUNET_PeerIdentity *
@@ -434,7 +434,7 @@ keygen_round1_new_element (void *cls,
 
 /**
  * Evaluate the polynomial with coefficients @a coeff at @a x.
- * The i-th element in @coeff corresponds to the coefficient of x^i.
+ * The i-th element in @a coeff corresponds to the coefficient of x^i.
  *
  * @param[out] z result of the evaluation
  * @param coeff array of coefficients
@@ -616,7 +616,7 @@ static void handle_client_decrypt (void *cls,
  *
  * @param cls closure
  * @param server the initialized server
- * @param cfg configuration to use
+ * @param c configuration to use
  */
 static void
 run (void *cls, struct GNUNET_SERVER_Handle *server,
