@@ -19,12 +19,12 @@
  */
 
 /**
- * @file ats/libgnunet_plugin_ats_ril.c
+ * @file ats/plugin_ats_ril.c
  * @brief ATS reinforcement learning solver
  * @author Fabian Oehlmann
  * @author Matthias Wachs
  */
-#include "libgnunet_plugin_ats_ril.h"
+#include "plugin_ats_ril.h"
 
 #define LOG(kind,...) GNUNET_log_from (kind, "ats-ril",__VA_ARGS__)
 
@@ -2417,4 +2417,4 @@ GAS_ril_stop_get_preferred_address (void *solver, const struct GNUNET_PeerIdenti
       GNUNET_i2s (peer), agent->address_inuse->plugin);
 }
 
-/* end of libgnunet_plugin_ats_ril.c */
+/* end of plugin_ats_ril.c */

@@ -19,13 +19,13 @@
 */
 
 /**
- * @file ats/libgnunet_plugin_ats_mlp.c
+ * @file ats/plugin_ats_mlp.c
  * @brief ats mlp problem solver
  * @author Matthias Wachs
  * @author Christian Grothoff
  */
 
-#include "libgnunet_plugin_ats_mlp.h"
+#include "plugin_ats_mlp.h"
 
 
 /**
@@ -2164,4 +2164,4 @@ libgnunet_plugin_ats_mlp_init (void *cls)
   return mlp;
 }
 
-/* end of gnunet-service-ats_addresses_mlp.c */
+/* end of plugin_ats_mlp.c */

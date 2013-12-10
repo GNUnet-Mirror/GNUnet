@@ -19,7 +19,7 @@
  */
 
 /**
- * @file ats/libgnunet_plugin_ats_ril.h
+ * @file ats/plugin_ats_ril.h
  * @brief ATS reinforcement learning solver
  * @author Fabian Oehlmann
  * @author Matthias Wachs
@@ -188,4 +188,4 @@ const struct ATS_Address *
 GAS_ril_get_preferred_address (void *solver,
     const struct GNUNET_PeerIdentity *peer);
 
-/* end of libgnunet_plugin_ats_ril.h */
+/* end of plugin_ats_ril.h */

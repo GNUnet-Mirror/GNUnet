@@ -18,7 +18,7 @@
  */
 
 /**
- * @file ats/libgnunet_plugin_ats_mlp.h
+ * @file ats/plugin_ats_mlp.h
  * @brief ats MLP problem solver
  * @author Matthias Wachs
  * @author Christian Grothoff
@@ -556,4 +556,4 @@ void
 GAS_mlp_done (void *solver);
 
 #endif
-/* end of gnunet-service-ats_addresses_mlp.h */
+/* end of plugin_ats_mlp.h */

@@ -19,12 +19,12 @@
  */
 
 /**
- * @file ats/libgnunet_plugin_ats_proportional.c
+ * @file ats/plugin_ats_proportional.c
  * @brief ATS proportional solver
  * @author Matthias Wachs
  * @author Christian Grothoff
  */
-#include "libgnunet_plugin_ats_proportional.h"
+#include "plugin_ats_proportional.h"
 
 #define LOG(kind,...) GNUNET_log_from (kind, "ats-proportional",__VA_ARGS__)
 
@@ -1601,4 +1601,4 @@ GAS_proportional_address_add (void *solver, struct ATS_Address *address,
 }
 
 
-/* end of gnunet-service-ats-solver_proportional.c */
+/* end of plugin_ats_proportional.c */

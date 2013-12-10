@@ -19,7 +19,7 @@
  */
 
 /**
- * @file ats/libgnunet_plugin_ats_proportional.h
+ * @file ats/plugin_ats_proportional.h
  * @brief ATS proportional solver
  * @author Matthias Wachs
  * @author Christian Grothoff
@@ -183,4 +183,4 @@ const struct ATS_Address *
 GAS_proportional_get_preferred_address (void *solver,
     const struct GNUNET_PeerIdentity *peer);
 
-/* end of gnunet-service-ats-solver_proportional.c */
+/* end of plugin_ats_proportional.h */
