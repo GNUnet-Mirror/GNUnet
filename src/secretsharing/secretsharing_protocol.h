@@ -60,9 +60,9 @@ struct PaillierPublicKey
 
   /**
    * Network order representation of the
-   * g-component.
+   * n-component.
    */
-  uint32_t mu[PAILLIER_BITS / 8 / sizeof (uint32_t)];
+  uint32_t n[PAILLIER_BITS / 8 / sizeof (uint32_t)];
 };
 
 
@@ -71,6 +71,10 @@ struct PaillierPublicKey
  */
 struct GNUNET_SECRETSHARING_KeygenCommitData
 {
+  /**
+   * Signature over the rest of the message.
+   */
+  struct GNUNET_CRYPTO_EddsaSignature signature;
   /**
    * Signature purpose for signing the keygen commit data.
    */
@@ -88,10 +92,25 @@ struct GNUNET_SECRETSHARING_KeygenCommitData
    * Commitment of 'peer' to his presecret.
    */
   struct GNUNET_HashCode commitment GNUNET_PACKED;
+};
+
+
+struct GNUNET_SECRETSHARING_KeygenRevealData
+{
   /**
-   * Signature over the previous values.
+   * Signature over rest of the message.
    */
   struct GNUNET_CRYPTO_EddsaSignature signature;
+  /*
+   * Signature purpose for signing the keygen commit data.
+   */
+  struct GNUNET_CRYPTO_EccSignaturePurpose purpose;
+  /**
+   * Peer that inserts this element.
+   */
+  struct GNUNET_PeerIdentity peer;
+
+  /* values follow */
 };
 
 GNUNET_NETWORK_STRUCT_END

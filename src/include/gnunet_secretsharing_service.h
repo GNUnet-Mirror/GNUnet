@@ -119,7 +119,7 @@ struct GNUNET_SECRETSHARING_Message
  */
 typedef void (*GNUNET_SECRETSHARING_SecretReadyCallback) (void *cls,
                                                           const struct GNUNET_SECRETSHARING_Share *my_share,
-                                                          const struct GNUNET_SECRETSHARING_PublicKey public_key,
+                                                          const struct GNUNET_SECRETSHARING_PublicKey *public_key,
                                                           unsigned int num_ready_peers,
                                                           const struct GNUNET_PeerIdentity *ready_peers);
 
@@ -157,7 +157,7 @@ GNUNET_SECRETSHARING_create_session (const struct GNUNET_CONFIGURATION_Handle *c
                                      const struct GNUNET_HashCode *session_id,
                                      struct GNUNET_TIME_Absolute deadline,
                                      unsigned int threshold,
-                                     GNUNET_SECRETSHARING_SecretReadyCallback *cb,
+                                     GNUNET_SECRETSHARING_SecretReadyCallback cb,
                                      void *cls);
 
 

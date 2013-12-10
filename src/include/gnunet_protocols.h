@@ -2289,7 +2289,7 @@ extern "C"
  * The cryptosystem has been established.
  * Contains the peer's share.
  */
-#define GNUNET_MESSAGE_TYPE_SECRETSHARING_CLIENT_ESTABLISHED 783
+#define GNUNET_MESSAGE_TYPE_SECRETSHARING_CLIENT_SECRET_READY 783
 
 
 

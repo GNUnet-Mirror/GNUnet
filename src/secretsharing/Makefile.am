@@ -15,10 +15,25 @@ if USE_COVERAGE
   AM_CFLAGS = -fprofile-arcs -ftest-coverage
 endif
 
+
+bin_PROGRAMS = \
+ gnunet-secretsharing-profiler
+
 libexec_PROGRAMS = \
  gnunet-service-secretsharing
 
 lib_LTLIBRARIES = \
+  libgnunetsecretsharing.la
+
+
+gnunet_secretsharing_profiler_SOURCES = \
+ gnunet-secretsharing-profiler.c
+gnunet_secretsharing_profiler_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/secretsharing/libgnunetsecretsharing.la \
+  $(top_builddir)/src/testbed/libgnunettestbed.la \
+  $(GN_LIBINTL)
+gnunet_secretsharing_profiler_DEPENDENCIES = \
   libgnunetsecretsharing.la
 
 gnunet_service_secretsharing_SOURCES = \

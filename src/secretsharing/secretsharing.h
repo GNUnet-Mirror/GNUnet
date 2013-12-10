@@ -67,10 +67,10 @@ struct GNUNET_SECRETSHARING_CreateMessage
 };
 
 
-struct GNUNET_SECRETSHARING_SecretEstablishedMessage
+struct GNUNET_SECRETSHARING_SecretReadyMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_SECRETSHARING_CLIENT_ESTABLISHED
+   * Type: GNUNET_MESSAGE_TYPE_SECRETSHARING_CLIENT_SECRET_READY
    */
   struct GNUNET_MessageHeader header;
 
@@ -78,6 +78,11 @@ struct GNUNET_SECRETSHARING_SecretEstablishedMessage
    * Secret share in network byte order.
    */
   unsigned char secret[GNUNET_SECRETSHARING_KEY_BITS / 8];
+
+  /**
+   * Secret share in network byte order.
+   */
+  struct GNUNET_SECRETSHARING_PublicKey public_key;
 
   /**
    * Number of peers at the end of this message.
@@ -90,10 +95,10 @@ struct GNUNET_SECRETSHARING_SecretEstablishedMessage
 };
 
 
-struct GNUNET_SECRETSHARING_DecryptMessage
+struct GNUNET_SECRETSHARING_DecryptRequestMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_SECRETSHARING_CLIENT_DECRYPT
+   * Type: GNUNET_MESSAGE_TYPE_SECRETSHARING_CLIENT_DECRYPT_REQUEST
    */
   struct GNUNET_MessageHeader header;
 
@@ -113,10 +118,10 @@ struct GNUNET_SECRETSHARING_DecryptMessage
 };
 
 
-struct GNUNET_SECRETSHARING_DecryptDoneMessage
+struct GNUNET_SECRETSHARING_DecryptResponseMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_SECRETSHARING_CLIENT_DECRYPT_DONE
+   * Type: GNUNET_MESSAGE_TYPE_SECRETSHARING_CLIENT_DECRYPT_RESPONSE
    */
   struct GNUNET_MessageHeader header;
 
