@@ -927,6 +927,7 @@ channel_rel_free_all (struct MeshChannelReliability *rel)
     next = copy->next;
     GNUNET_CONTAINER_DLL_remove (rel->head_recv, rel->tail_recv, copy);
     LOG (GNUNET_ERROR_TYPE_DEBUG, " COPYFREE BATCH RECV %p\n", copy);
+    GNUNET_break (NULL == copy->q);
     GNUNET_free (copy);
   }
   for (copy = rel->head_sent; NULL != copy; copy = next)
@@ -934,6 +935,19 @@ channel_rel_free_all (struct MeshChannelReliability *rel)
     next = copy->next;
     GNUNET_CONTAINER_DLL_remove (rel->head_sent, rel->tail_sent, copy);
     LOG (GNUNET_ERROR_TYPE_DEBUG, " COPYFREE BATCH %p\n", copy);
+    if (NULL != copy->q)
+    {
+      if (NULL != copy->q->q)
+      {
+        GMT_cancel (copy->q->q);
+        /* ch_message_sent will free copy->q */
+      }
+      else
+      {
+        GNUNET_free (copy->q);
+        GNUNET_break (0);
+      }
+    }
     GNUNET_free (copy);
   }
   if (NULL != rel->uniq && NULL != rel->uniq->q)
@@ -1121,7 +1135,7 @@ channel_confirm (struct MeshChannel *ch, int fwd)
   else if (NULL != rel->uniq)
   {
     GMT_cancel (rel->uniq->q);
-    /* ch_sent_message will free and NULL uniq */
+    /* ch_message_sent will free and NULL uniq */
   }
   else
   {
