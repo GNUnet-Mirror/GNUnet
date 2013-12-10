@@ -803,8 +803,14 @@ build_set (void *cls)
   struct DirectNeighbor *neighbor = cls;
   struct GNUNET_SET_Element element;
   struct Target *target;
+  struct Route *route;
 
   target = NULL;
+  /* skip over NULL entries */
+  while ( (DEFAULT_FISHEYE_DEPTH > neighbor->consensus_insertion_distance) &&
+	  (consensi[neighbor->consensus_insertion_distance].array_length > neighbor->consensus_insertion_offset) &&
+	  (NULL == consensi[neighbor->consensus_insertion_distance].targets[neighbor->consensus_insertion_offset]) )
+    neighbor->consensus_insertion_offset++;
   while ( (DEFAULT_FISHEYE_DEPTH > neighbor->consensus_insertion_distance) &&
 	  (consensi[neighbor->consensus_insertion_distance].array_length == neighbor->consensus_insertion_offset) )
   {
@@ -831,23 +837,17 @@ build_set (void *cls)
     return;
   }
 
-  target = &consensi[neighbor->consensus_insertion_distance].targets[neighbor->consensus_insertion_offset]->target;
+  route = consensi[neighbor->consensus_insertion_distance].targets[neighbor->consensus_insertion_offset];
+  GNUNET_assert (NULL != route);
+  target = &route->target;
   element.size = sizeof (struct Target);
   element.type = htons (0); /* do we need this? */
   element.data = target;
 
   /* Find next non-NULL entry */
   neighbor->consensus_insertion_offset++;
-  /* skip over NULL entries */
-  while ( (DEFAULT_FISHEYE_DEPTH > neighbor->consensus_insertion_distance) &&
-	  (consensi[neighbor->consensus_insertion_distance].array_length > neighbor->consensus_insertion_offset) &&
-	  (NULL == consensi[neighbor->consensus_insertion_distance].targets[neighbor->consensus_insertion_offset]) )
-  {
-    neighbor->consensus_insertion_offset++;
-  }
-
-  if ( (0 != memcmp(&target->peer, &my_identity, sizeof (my_identity))) &&
-       (0 != memcmp(&target->peer, &neighbor->peer, sizeof (neighbor->peer))) )
+  if ( (0 != memcmp (&target->peer, &my_identity, sizeof (my_identity))) &&
+       (0 != memcmp (&target->peer, &neighbor->peer, sizeof (neighbor->peer))) )
   {
     /* Add target if it is not the neighbor or this peer */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -860,7 +860,7 @@ build_set (void *cls)
     neighbor->consensus_elements++;
   }
   else
-    build_set(neighbor);
+    build_set (neighbor);
 }
 
 
