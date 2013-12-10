@@ -454,6 +454,9 @@ incoming_destroy (struct Operation *incoming)
   }
   GNUNET_assert (NULL != incoming->state);
   GNUNET_free (incoming->state);
+  // make sure that the tunnel end handler will not
+  // destroy us again
+  incoming->vt = NULL;
   incoming->state = NULL;
 }
 
