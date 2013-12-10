@@ -1980,7 +1980,6 @@ GMT_get_connections_buffer (struct MeshTunnel3 *t)
   {
     if (GMC_get_state (iter->c) != MESH_CONNECTION_READY)
     {
-      iter = iter->next;
       continue;
     }
     buffer += get_connection_buffer (iter);
