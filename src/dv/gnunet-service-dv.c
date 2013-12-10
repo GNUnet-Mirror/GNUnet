@@ -894,7 +894,6 @@ handle_direct_connect (struct DirectNeighbor *neighbor)
   neighbor->direct_route = GNUNET_new (struct Route);
   neighbor->direct_route->next_hop = neighbor;
   neighbor->direct_route->target.peer= neighbor->peer;
-  neighbor->direct_route->target.distance = DIRECT_NEIGHBOR_COST;
   allocate_route (neighbor->direct_route, DIRECT_NEIGHBOR_COST);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1048,9 +1047,8 @@ check_possible_route (void *cls,
     return GNUNET_YES; /* distance is too large to be interesting */
   route = GNUNET_new (struct Route);
   route->next_hop = neighbor;
-  route->target.distance = htonl (ntohl (target->distance) + 1);
   route->target.peer = target->peer;
-  allocate_route (route, ntohl (route->target.distance));
+  allocate_route (route, ntohl (target->distance) + 1);
   GNUNET_assert (GNUNET_YES ==
 		 GNUNET_CONTAINER_multipeermap_put (all_routes,
 						    &route->target.peer,
@@ -1402,11 +1400,28 @@ check_target_added (void *cls,
     /* route exists */
     if (current_route->next_hop == neighbor)
     {
-      /* we had the same route before, no change */
+      /* we had the same route before, no change in target */
       if (ntohl (target->distance) + 1 != ntohl (current_route->target.distance))
       {
-	current_route->target.distance = htonl (ntohl (target->distance) + 1);
-	send_distance_change_to_plugin (&target->peer, ntohl (target->distance) + 1);
+        /* but distance changed! */
+        if (ntohl (target->distance) + 1 > DEFAULT_FISHEYE_DEPTH)
+        {
+          /* distance increased beyond what is allowed, kill route */
+          GNUNET_assert (GNUNET_YES ==
+                         GNUNET_CONTAINER_multipeermap_remove (all_routes,
+                                                               key,
+                                                               current_route));
+          send_disconnect_to_plugin (key);
+          release_route (current_route);
+          GNUNET_free (current_route);
+        }
+        else
+        {
+          /* distance decreased, update route */
+          move_route (current_route,
+                      ntohl (target->distance) + 1);
+          send_distance_change_to_plugin (&target->peer, ntohl (target->distance) + 1);
+        }
       }
       return GNUNET_OK;
     }
@@ -1420,8 +1435,9 @@ check_target_added (void *cls,
        very short routes to take over longer paths; as we don't
        check that the shorter routes actually work, a malicious
        direct neighbor can use this to DoS our long routes */
+
+    move_route (current_route, ntohl (target->distance) + 1);
     current_route->next_hop = neighbor;
-    current_route->target.distance = htonl (ntohl (target->distance) + 1);
     send_distance_change_to_plugin (&target->peer, ntohl (target->distance) + 1);
     return GNUNET_OK;
   }
@@ -1433,8 +1449,7 @@ check_target_added (void *cls,
   current_route = GNUNET_new (struct Route);
   current_route->next_hop = neighbor;
   current_route->target.peer = target->peer;
-  current_route->target.distance = htonl (ntohl (target->distance) + 1);
-  allocate_route (current_route, ntohl (current_route->target.distance));
+  allocate_route (current_route, ntohl (target.distance) + 1);
   GNUNET_assert (GNUNET_YES ==
 		 GNUNET_CONTAINER_multipeermap_put (all_routes,
 						    &current_route->target.peer,
