@@ -858,11 +858,9 @@ GNUNET_CLIENT_service_test (const char *service,
     }
     if (NULL != unixpath)
     {
-      if (GNUNET_OK !=
-	  GNUNET_DISK_directory_create_for_file (unixpath))
-	GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
-				  "mkdir",
-				  unixpath);
+      if (GNUNET_SYSERR == GNUNET_DISK_directory_create_for_file (unixpath))
+        GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
+            "mkdir", unixpath);
       sock = GNUNET_NETWORK_socket_create (PF_UNIX, SOCK_STREAM, 0);
       if (NULL != sock)
       {
