@@ -205,7 +205,7 @@ struct DirectNeighbor
    * NULL if we are not currently building it.
    * Keys are peer identities, values are 'struct Target' entries.
    * Note that the distances in the targets are from the point-of-view
-   * of the peer, not from us!
+   * of the other peer, not from us!
    */
   struct GNUNET_CONTAINER_MultiPeerMap *neighbor_table_consensus;
 
@@ -543,8 +543,8 @@ send_connect_to_plugin (const struct GNUNET_PeerIdentity *target,
 {
   struct GNUNET_DV_ConnectMessage cm;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-              "Delivering CONNECT about peer `%s' with distance %u\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Delivering CONNECT about peer %s with distance %u\n",
               GNUNET_i2s (target), distance);
   cm.header.size = htons (sizeof (cm));
   cm.header.type = htons (GNUNET_MESSAGE_TYPE_DV_CONNECT);
@@ -738,6 +738,7 @@ allocate_route (struct Route *route,
 
   if (distance >= DEFAULT_FISHEYE_DEPTH)
   {
+    route->target.distance = htonl (distance);
     route->set_offset = UINT_MAX; /* invalid slot */
     return;
   }
@@ -774,15 +775,8 @@ static void
 move_route (struct Route *route,
 	    uint32_t new_distance)
 {
-  unsigned int i;
-
   release_route (route);
-  if (new_distance >= DEFAULT_FISHEYE_DEPTH)
-    return; /* no longer interesting for 'consensi' */
-  i = get_consensus_slot (new_distance);
-  route->set_offset = i;
-  consensi[new_distance].targets[i] = route;
-  route->target.distance = htonl (new_distance);
+  allocate_route (route, new_distance);
 }
 
 
@@ -840,6 +834,7 @@ build_set (void *cls)
   route = consensi[neighbor->consensus_insertion_distance].targets[neighbor->consensus_insertion_offset];
   GNUNET_assert (NULL != route);
   target = &route->target;
+  GNUNET_assert (ntohl (target->distance) < DEFAULT_FISHEYE_DEPTH);
   element.size = sizeof (struct Target);
   element.type = htons (0); /* do we need this? */
   element.data = target;
@@ -898,7 +893,7 @@ handle_direct_connect (struct DirectNeighbor *neighbor)
 
   neighbor->direct_route = GNUNET_new (struct Route);
   neighbor->direct_route->next_hop = neighbor;
-  neighbor->direct_route->target.peer= neighbor->peer;
+  neighbor->direct_route->target.peer = neighbor->peer;
   allocate_route (neighbor->direct_route, DIRECT_NEIGHBOR_COST);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1035,16 +1030,22 @@ check_possible_route (void *cls,
   struct Target *target = value;
   struct Route *route;
 
+  if (GNUNET_YES ==
+      GNUNET_CONTAINER_multipeermap_contains (direct_neighbors,
+                                              key))
+    return GNUNET_YES; /* direct route, do not care about alternatives */
   route = GNUNET_CONTAINER_multipeermap_get (all_routes,
 					     key);
   if (NULL != route)
   {
+    /* we have an existing route, check how it compares with going via 'target' */
     if (ntohl (route->target.distance) > ntohl (target->distance) + 1)
     {
-      /* this 'target' is cheaper than the existing route; switch to alternative route! */
+      /* via 'target' is cheaper than the existing route; switch to alternative route! */
       move_route (route, ntohl (target->distance) + 1);
       route->next_hop = neighbor;
-      send_distance_change_to_plugin (&target->peer, ntohl (target->distance) + 1);
+      send_distance_change_to_plugin (&target->peer,
+                                      ntohl (target->distance) + 1);
     }
     return GNUNET_YES; /* got a route to this target already */
   }
@@ -1203,6 +1204,9 @@ cull_routes (void *cls,
 static void
 handle_direct_disconnect (struct DirectNeighbor *neighbor)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Culling routes via %s due to direct disconnect\n",
+	      GNUNET_i2s (&neighbor->peer));
   GNUNET_CONTAINER_multipeermap_iterate (all_routes,
 					 &cull_routes,
                                          neighbor);
@@ -1284,15 +1288,10 @@ handle_ats_update (void *cls,
   uint32_t network = GNUNET_ATS_NET_UNSPECIFIED;
 
   if (GNUNET_NO == active)
-  	return;
+    return;
   distance = get_atsi_distance (ats, ats_count);
   network = get_atsi_network (ats, ats_count);
 
-  /*
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "ATS says distance to %s is %u\n",
-	      GNUNET_i2s (&address->peer),
-	      (unsigned int) distance);*/
   /* check if entry exists */
   neighbor = GNUNET_CONTAINER_multipeermap_get (direct_neighbors,
 						&address->peer);
@@ -1300,7 +1299,12 @@ handle_ats_update (void *cls,
   {
     if (GNUNET_ATS_NET_UNSPECIFIED != network)
       neighbor->network = network;
-
+    if (neighbor->distance == distance)
+      return; /* nothing new to see here, move along */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "ATS says distance to %s is now %u\n",
+                GNUNET_i2s (&address->peer),
+                (unsigned int) distance);
     if ( (DIRECT_NEIGHBOR_COST == neighbor->distance) &&
 	 (DIRECT_NEIGHBOR_COST == distance) )
       return; /* no change */
@@ -1322,6 +1326,10 @@ handle_ats_update (void *cls,
     handle_direct_connect (neighbor);
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "ATS says distance to %s is now %u\n",
+	      GNUNET_i2s (&address->peer),
+	      (unsigned int) distance);
   neighbor = GNUNET_new (struct DirectNeighbor);
   neighbor->peer = address->peer;
   GNUNET_assert (GNUNET_YES ==
@@ -1355,28 +1363,37 @@ check_target_removed (void *cls,
 
   new_target = GNUNET_CONTAINER_multipeermap_get (neighbor->neighbor_table_consensus,
 						  key);
-  if (NULL == new_target)
+  current_route = GNUNET_CONTAINER_multipeermap_get (all_routes,
+                                                     key);
+  if (NULL != new_target)
   {
-    /* target was revoked, check if it was used */
-    current_route = GNUNET_CONTAINER_multipeermap_get (all_routes,
-						       key);
-    if ( (NULL == current_route) ||
-	 (current_route->next_hop != neighbor) )
+    /* target was in old set, is in new set */
+    if ( (NULL != current_route) &&
+         (current_route->next_hop == neighbor) &&
+         (current_route->target.distance != new_target->distance) )
     {
-      /* didn't matter, wasn't used */
-      return GNUNET_OK;
+      /* need to recalculate routes due to distance change */
+      neighbor->target_removed = GNUNET_YES;
     }
-    /* remove existing route */
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Lost route to %s\n",
-		GNUNET_i2s (&current_route->target.peer));
-    GNUNET_assert (GNUNET_YES ==
-		   GNUNET_CONTAINER_multipeermap_remove (all_routes, key, current_route));
-    send_disconnect_to_plugin (&current_route->target.peer);
-    GNUNET_free (current_route);
-    neighbor->target_removed = GNUNET_YES;
     return GNUNET_OK;
   }
+  /* target was revoked, check if it was used */
+  if ( (NULL == current_route) ||
+       (current_route->next_hop != neighbor) )
+  {
+    /* didn't matter, wasn't used */
+    return GNUNET_OK;
+  }
+  /* remove existing route */
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Lost route to %s\n",
+              GNUNET_i2s (&current_route->target.peer));
+  GNUNET_assert (GNUNET_YES ==
+                 GNUNET_CONTAINER_multipeermap_remove (all_routes, key, current_route));
+  send_disconnect_to_plugin (&current_route->target.peer);
+  release_route (current_route);
+  GNUNET_free (current_route);
+  neighbor->target_removed = GNUNET_YES;
   return GNUNET_OK;
 }
 
@@ -1431,7 +1448,7 @@ check_target_added (void *cls,
       }
       return GNUNET_OK;
     }
-    if (ntohl (current_route->target.distance) >= ntohl (target->distance) + 1)
+    if (ntohl (current_route->target.distance) <= ntohl (target->distance) + 1)
     {
       /* alternative, shorter route exists, ignore */
       return GNUNET_OK;
@@ -1520,13 +1537,24 @@ handle_set_union_result (void *cls,
       GNUNET_break_op (0);
       return;
     }
+    if (GNUNET_YES ==
+        GNUNET_CONTAINER_multipeermap_contains (direct_neighbors,
+                                                &((struct Target *) element->data)->peer))
+    {
+      /* this is a direct neighbor of ours, we do not care about routes
+         to this peer */
+      return;
+    }
     target = GNUNET_new (struct Target);
     memcpy (target, element->data, sizeof (struct Target));
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Received information about peer `%s' with distance %u\n",
-                GNUNET_i2s (&target->peer), ntohl(target->distance) + 1);
+                "Received information about peer `%s' with distance %u from SET\n",
+                GNUNET_i2s (&target->peer),
+                ntohl (target->distance) + 1);
+
     if (NULL == neighbor->neighbor_table_consensus)
-      neighbor->neighbor_table_consensus = GNUNET_CONTAINER_multipeermap_create (10, GNUNET_NO);
+      neighbor->neighbor_table_consensus
+        = GNUNET_CONTAINER_multipeermap_create (10, GNUNET_NO);
     if (GNUNET_YES !=
 	GNUNET_CONTAINER_multipeermap_put (neighbor->neighbor_table_consensus,
 					   &target->peer,
@@ -1566,8 +1594,8 @@ handle_set_union_result (void *cls,
       neighbor->neighbor_table_consensus = GNUNET_CONTAINER_multipeermap_create (10, GNUNET_NO);
     if (NULL != neighbor->neighbor_table)
       GNUNET_CONTAINER_multipeermap_iterate (neighbor->neighbor_table,
-                                           &check_target_removed,
-                                           neighbor);
+                                             &check_target_removed,
+                                             neighbor);
     if (GNUNET_YES == neighbor->target_removed)
     {
       /* check if we got an alternative for the removed routes */
@@ -1940,6 +1968,7 @@ free_direct_neighbors (void *cls,
                        void *value)
 {
   struct DirectNeighbor *neighbor = value;
+
   cleanup_neighbor (neighbor);
   return GNUNET_YES;
 }
