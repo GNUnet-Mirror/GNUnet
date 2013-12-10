@@ -1059,7 +1059,8 @@ check_possible_route (void *cls,
 						    &route->target.peer,
 						    route,
 						    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-  send_connect_to_plugin (&route->target.peer, ntohl (target->distance),
+  send_connect_to_plugin (&route->target.peer,
+                          ntohl (route->target.distance),
                           neighbor->network);
   return GNUNET_YES;
 }
