@@ -434,6 +434,12 @@ handle_message_receipt (void *cls,
     ack = (const struct GNUNET_DV_AckMessage *) msg;
     peer = GNUNET_CONTAINER_multipeermap_get (sh->peers,
                                               &ack->target);
+    if (NULL == peer)
+    {
+      GNUNET_break (0);
+      reconnect (sh);
+      return;
+    }
     for (th = peer->head; NULL != th; th = th->next)
     {
       if (th->uid != ntohl (ack->uid))
