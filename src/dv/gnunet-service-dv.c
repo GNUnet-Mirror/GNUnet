@@ -597,7 +597,7 @@ core_transmit_notify (void *cls, size_t size, void *buf)
   dn->cth = NULL;
   if (NULL == buf)
   {
-    /* peer disconnected */
+    /* client disconnected */
     return 0;
   }
   off = 0;
