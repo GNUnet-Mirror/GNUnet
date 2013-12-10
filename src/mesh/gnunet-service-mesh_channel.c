@@ -848,7 +848,7 @@ fire_and_forget (const struct GNUNET_MessageHeader *msg,
                  struct MeshChannel *ch,
                  int force)
 {
-  GNUNET_break (NULL == GMT_send_prebuilt_message (msg, ch->t, ch, force,
+  GNUNET_break (NULL == GMT_send_prebuilt_message (msg, ch->t, force,
                                                    NULL, NULL));
 }
 
@@ -937,7 +937,10 @@ channel_rel_free_all (struct MeshChannelReliability *rel)
     GNUNET_free (copy);
   }
   if (NULL != rel->uniq && NULL != rel->uniq->q)
+  {
     GMT_cancel (rel->uniq->q);
+    /* ch_message_sent is called freeing uniq */
+  }
   if (GNUNET_SCHEDULER_NO_TASK != rel->retry_task)
   {
     GNUNET_SCHEDULER_cancel (rel->retry_task);
@@ -2252,7 +2255,7 @@ GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
         }
         LOG (GNUNET_ERROR_TYPE_DEBUG, "  new q: %p\n", q);
         q->copy->q = q;
-        q->q = GMT_send_prebuilt_message (message, ch->t, ch,
+        q->q = GMT_send_prebuilt_message (message, ch->t,
                                           NULL != existing_copy,
                                           &ch_message_sent, q);
         /* q itself is stored in copy */
@@ -2289,7 +2292,7 @@ GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
           GNUNET_free (q->rel->uniq);
         }
       }
-      q->q = GMT_send_prebuilt_message (message, ch->t, ch, GNUNET_YES,
+      q->q = GMT_send_prebuilt_message (message, ch->t, GNUNET_YES,
                                         &ch_message_sent, q);
       q->rel->uniq = q;
       break;
