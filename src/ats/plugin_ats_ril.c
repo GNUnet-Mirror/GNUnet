@@ -565,13 +565,14 @@ agent_update_weights (struct RIL_Peer_Agent *agent, double reward, double *s_nex
 
 /**
  * Changes the eligibility trace vector e in various manners:
- * RIL_E_ACCUMULATE - adds 1 to each component as in accumulating eligibility traces
- * RIL_E_REPLACE - resets each component to 1 as in replacing traces
- * RIL_E_SET - multiplies e with discount factor and lambda as in the update rule
- * RIL_E_ZERO - sets e to 0 as in Watkin's Q-learning algorithm when exploring and when initializing
+ * #RIL_E_ACCUMULATE - adds @a f to each component as in accumulating eligibility traces
+ * #RIL_E_REPLACE - resets each component to @f  as in replacing traces
+ * #RIL_E_SET - multiplies e with discount factor and lambda as in the update rule
+ * #RIL_E_ZERO - sets e to 0 as in Watkin's Q-learning algorithm when exploring and when initializing
  *
  * @param agent the agent handle
  * @param mod the kind of modification
+ * @param f how much to change
  */
 static void
 agent_modify_eligibility (struct RIL_Peer_Agent *agent, enum RIL_E_Modification mod, double *f)
@@ -598,6 +599,7 @@ agent_modify_eligibility (struct RIL_Peer_Agent *agent, enum RIL_E_Modification 
     }
   }
 }
+
 
 static void
 ril_inform (struct GAS_RIL_Handle *solver,

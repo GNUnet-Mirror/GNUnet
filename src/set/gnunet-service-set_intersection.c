@@ -76,12 +76,12 @@ struct OperationState
    * BF of the set's element.
    */
   struct GNUNET_CONTAINER_BloomFilter *local_bf;
-  
+
   /**
    * for multipart msgs we have to store the bloomfilter-data until we fully sent it.
    */
   char * local_bf_data;
-  
+
   /**
    * for multipart msgs we have to store the bloomfilter-data until we fully sent it.
    */
@@ -304,7 +304,7 @@ fail_intersection_operation (struct Operation *op)
 /**
  * Send a request for the evaluate operation to a remote peer
  *
- * @param eo operation with the other peer
+ * @param op operation with the other peer
  */
 static void
 send_operation_request (struct Operation *op)
@@ -348,13 +348,13 @@ send_bloomfilter_multipart (struct Operation *op, uint32_t offset)
   struct BFMessage *msg;
   uint32_t chunk_size = (GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof(struct BFMessage));
   uint32_t todo_size = op->state->local_bf_data_size - offset;
-  
+
   if (todo_size < chunk_size)
     // we probably need many chunks, thus we assume a maximum packet size by default
     chunk_size = todo_size;
-  
+
   ev = GNUNET_MQ_msg_extra (msg, chunk_size, GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_BF);
-    
+
   msg->reserved = 0;
   msg->bloomfilter_total_length = htonl (op->state->local_bf_data_size);
   msg->bloomfilter_length = htonl (chunk_size);
@@ -362,7 +362,7 @@ send_bloomfilter_multipart (struct Operation *op, uint32_t offset)
   memcpy(&msg[1], op->state->local_bf, chunk_size);
 
   GNUNET_MQ_send (op->mq, ev);
-  
+
   if (op->state->local_bf_data_size == offset + chunk_size)
   {
     // done
@@ -372,7 +372,7 @@ send_bloomfilter_multipart (struct Operation *op, uint32_t offset)
     op->state->local_bf = NULL;
     return;
   }
-  
+
   send_bloomfilter_multipart (op, offset + chunk_size);
 }
 
@@ -382,7 +382,7 @@ send_bloomfilter_multipart (struct Operation *op, uint32_t offset)
  * After the result done message has been sent to the client,
  * destroy the evaluate operation.
  *
- * @param eo intersection operation
+ * @param op intersection operation
  */
 static void
 send_bloomfilter (struct Operation *op)
@@ -399,10 +399,10 @@ send_bloomfilter (struct Operation *op)
   {
     // singlepart
     ev = GNUNET_MQ_msg_extra (msg, bf_size, GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_BF);
-    
+
     GNUNET_CONTAINER_bloomfilter_free (op->state->local_bf);
     op->state->local_bf = NULL;
-    
+
     msg->reserved = 0;
     msg->sender_element_count = htonl (op->state->my_element_count);
     msg->bloomfilter_length = htonl (bf_size);
@@ -487,7 +487,7 @@ send_remaining_elements (void *cls)
 /**
  * Inform the peer that this operation is complete.
  *
- * @param eo the intersection operation to fail
+ * @param op the intersection operation to fail
  */
 static void
 send_peer_done (struct Operation *op)
@@ -617,7 +617,7 @@ handle_p2p_element_info (void *cls, const struct GNUNET_MessageHeader *mh)
 /**
  * Send our element to the peer, in case our element count is lower than his
  *
- * @param eo intersection operation
+ * @param op intersection operation
  */
 static void
 send_element_count (struct Operation *op)
@@ -804,7 +804,7 @@ intersection_remove (struct SetState *set_state,
 /**
  * Dispatch messages for a intersection operation.
  *
- * @param eo the state of the intersection evaluate operation
+ * @param op the state of the intersection evaluate operation
  * @param mh the received message
  * @return #GNUNET_SYSERR if the tunnel should be disconnected,
  *         #GNUNET_OK otherwise

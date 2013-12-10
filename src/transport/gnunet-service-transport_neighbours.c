@@ -250,7 +250,7 @@ struct MessageQueue
  * have a new address, we go to #S_RECONNECT_BLACKLIST to check the new
  * address against the blacklist.  If the blacklist approves, we enter
  * #S_RECONNECT_SENT and send a CONNECT message.  If we receive a
- * #CONNECT_ACK, we go to #S_CONNECTED and nobody noticed that we had
+ * CONNECT_ACK, we go to #S_CONNECTED and nobody noticed that we had
  * trouble; we also send a SESSION_ACK at this time just in case.  If
  * the operation times out, we go to S_DISCONNECT (and notify everyone
  * about the lost connection).
