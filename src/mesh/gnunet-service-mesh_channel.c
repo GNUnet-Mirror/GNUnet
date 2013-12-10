@@ -2275,7 +2275,7 @@ GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
                                           NULL != existing_copy,
                                           &ch_message_sent, q);
         /* q itself is stored in copy */
-        GNUNET_assert (NULL != q->q);
+        GNUNET_assert (NULL != q->q || GNUNET_NO != ch->destroy);
       }
       else
       {

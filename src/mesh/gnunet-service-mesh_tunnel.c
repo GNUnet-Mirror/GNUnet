@@ -815,7 +815,7 @@ send_queued_data (struct MeshTunnel3 *t)
     LOG (GNUNET_ERROR_TYPE_DEBUG, " sending queued data\n");
     next = tq->next;
     room--;
-    send_prebuilt_message ((struct GNUNET_MessageHeader *)&tq[1],
+    send_prebuilt_message ((struct GNUNET_MessageHeader *) &tq[1],
                            tq->t, GNUNET_YES, tq->cont, tq->cont_cls, tq->q);
     unqueue_data (tq);
   }
