@@ -634,9 +634,9 @@ core_transmit_notify (void *cls, size_t size, void *buf)
  * Forward the given payload to the given target.
  *
  * @param target where to send the message
+ * @param distance expected (remaining) distance to the target
  * @param uid unique ID for the message
  * @param ultimate_target ultimate recipient for the message
- * @param distance expected (remaining) distance to the target
  * @param sender original sender of the message
  * @param payload payload of the message
  */
@@ -653,11 +653,15 @@ forward_payload (struct DirectNeighbor *target,
   size_t msize;
 
   if ( (target->pm_queue_size >= MAX_QUEUE_SIZE) &&
+       (0 == uid) &&
        (0 != memcmp (sender,
 		     &my_identity,
 		     sizeof (struct GNUNET_PeerIdentity))) )
   {
-    GNUNET_break (0 == uid);
+    /* not _our_ client and queue is full, drop */
+    GNUNET_STATISTICS_update (stats,
+                              "# messages dropped",
+                              1, GNUNET_NO);
     return;
   }
   msize = sizeof (struct RouteMessage) + ntohs (payload->size);

@@ -301,7 +301,7 @@ handle_dv_connect (void *cls,
    * If you remove it, also remove libgnunetats linkage from Makefile.am
    */
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Received `%s' message for peer `%s' with next hop in network %s \n",
+       "Received `%s' message for peer `%s' with next hop in network %s\n",
        "DV_CONNECT",
        GNUNET_i2s (peer),
        GNUNET_ATS_print_network_type (network));
