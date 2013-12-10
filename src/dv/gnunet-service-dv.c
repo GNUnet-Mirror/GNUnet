@@ -103,7 +103,7 @@ struct RouteMessage
 
   /**
    * Expected (remaining) distance.  Must be always smaller than
-   * DEFAULT_FISHEYE_DEPTH, should be zero at the target.  Must
+   * #DEFAULT_FISHEYE_DEPTH, should be zero at the target.  Must
    * be decremented by one at each hop.  Peers must not forward
    * these messages further once the counter has reached zero.
    */
@@ -799,6 +799,7 @@ build_set (void *cls)
   struct DirectNeighbor *neighbor = cls;
   struct GNUNET_SET_Element element;
   struct Target *target;
+
   target = NULL;
   while ( (DEFAULT_FISHEYE_DEPTH > neighbor->consensus_insertion_distance) &&
 	  (consensi[neighbor->consensus_insertion_distance].array_length == neighbor->consensus_insertion_offset) )
@@ -1449,7 +1450,7 @@ check_target_added (void *cls,
   current_route = GNUNET_new (struct Route);
   current_route->next_hop = neighbor;
   current_route->target.peer = target->peer;
-  allocate_route (current_route, ntohl (target.distance) + 1);
+  allocate_route (current_route, ntohl (target->distance) + 1);
   GNUNET_assert (GNUNET_YES ==
 		 GNUNET_CONTAINER_multipeermap_put (all_routes,
 						    &current_route->target.peer,
@@ -1471,7 +1472,7 @@ check_target_added (void *cls,
  *
  * @param cls the `struct DirectNeighbor` we're building the consensus with
  * @param element a result element, only valid if status is #GNUNET_SET_STATUS_OK
- * @param status see enum GNUNET_SET_Status
+ * @param status see `enum GNUNET_SET_Status`
  */
 static void
 handle_set_union_result (void *cls,
@@ -1653,7 +1654,7 @@ listen_set_union (void *cls,
 /**
  * Start creating a new DV set union by initiating the connection.
  *
- * @param cls the 'struct DirectNeighbor' of the peer we're building
+ * @param cls the `struct DirectNeighbor *` of the peer we're building
  *        a routing consensus with
  * @param tc scheduler context
  */
@@ -1661,6 +1662,7 @@ static void
 initiate_set_union (void *cls,
 		    const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  static uint16_t salt;
   struct DirectNeighbor *neighbor = cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1672,7 +1674,7 @@ initiate_set_union (void *cls,
   neighbor->set_op = GNUNET_SET_prepare (&neighbor->peer,
                                          &neighbor->real_session_id,
                                          NULL,
-                                         0 /* FIXME: salt */,
+                                         salt++,
                                          GNUNET_SET_RESULT_ADDED,
                                          &handle_set_union_result,
                                          neighbor);
