@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2001, 2002, 2003, 2004, 2005, 2006, 2012 Christian Grothoff (and other contributing authors)
+     (C) 2001-2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -94,6 +94,7 @@ GNUNET_CRYPTO_seed_weak_random (int32_t seed)
 {
   SRANDOM (seed);
 }
+
 
 /**
  * @ingroup crypto
@@ -220,6 +221,7 @@ GNUNET_CRYPTO_random_permute (enum GNUNET_CRYPTO_Quality mode, unsigned int n)
   return ret;
 }
 
+
 /**
  * Random on unsigned 64-bit values.
  *
@@ -267,77 +269,6 @@ GNUNET_CRYPTO_random_u64 (enum GNUNET_CRYPTO_Quality mode, uint64_t max)
 }
 
 
-/**
- * Process ID of the "find" process that we use for
- * entropy gathering.
- */
-static struct GNUNET_OS_Process *genproc;
-
-
-/**
- * Function called by libgcrypt whenever we are
- * blocked gathering entropy.
- */
-static void
-entropy_generator (void *cls, const char *what, int printchar, int current,
-                   int total)
-{
-  unsigned long code;
-  enum GNUNET_OS_ProcessStatusType type;
-  int ret;
-
-  if (0 != strcmp (what, "need_entropy"))
-    return;
-  if (current == total)
-  {
-    if (genproc != NULL)
-    {
-      if (0 != GNUNET_OS_process_kill (genproc, SIGKILL))
-        LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "kill");
-      GNUNET_break (GNUNET_OK == GNUNET_OS_process_wait (genproc));
-      GNUNET_OS_process_destroy (genproc);
-      genproc = NULL;
-    }
-    return;
-  }
-  if (genproc != NULL)
-  {
-    ret = GNUNET_OS_process_status (genproc, &type, &code);
-    if (ret == GNUNET_NO)
-      return;                   /* still running */
-    if (ret == GNUNET_SYSERR)
-    {
-      GNUNET_break (0);
-      return;
-    }
-    if (0 != GNUNET_OS_process_kill (genproc, SIGKILL))
-      LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "kill");
-    GNUNET_break (GNUNET_OK == GNUNET_OS_process_wait (genproc));
-    GNUNET_OS_process_destroy (genproc);
-    genproc = NULL;
-  }
-  LOG (GNUNET_ERROR_TYPE_INFO, _("Starting `%s' process to generate entropy\n"),
-       "find");
-  genproc =
-     GNUNET_OS_start_process (GNUNET_NO, 0,
-			      NULL, NULL, "sh", "sh", "-c",
-			      "exec find / -mount -type f -exec cp {} /dev/null \\; 2>/dev/null",
-			      NULL);
-}
-
-
-static void
-killfind ()
-{
-  if (genproc != NULL)
-  {
-    GNUNET_OS_process_kill (genproc, SIGKILL);
-    GNUNET_OS_process_destroy (genproc);
-    genproc = NULL;
-  }
-}
-
-
 void __attribute__ ((constructor))
 GNUNET_CRYPTO_random_init ()
 {
@@ -346,28 +277,24 @@ GNUNET_CRYPTO_random_init ()
   if (! gcry_check_version (NEED_LIBGCRYPT_VERSION))
   {
     FPRINTF (stderr,
-             _
-             ("libgcrypt has not the expected version (version %s is required).\n"),
+             _("libgcrypt has not the expected version (version %s is required).\n"),
              NEED_LIBGCRYPT_VERSION);
     GNUNET_abort ();
   }
   if ((rc = gcry_control (GCRYCTL_DISABLE_SECMEM, 0)))
-    FPRINTF (stderr, "Failed to set libgcrypt option %s: %s\n", "DISABLE_SECMEM",
+    FPRINTF (stderr,
+             "Failed to set libgcrypt option %s: %s\n",
+             "DISABLE_SECMEM",
 	     gcry_strerror (rc));
   /* we only generate ephemeral keys in-process; for those,
      we are fine with "just" using GCRY_STRONG_RANDOM */
   if ((rc = gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0)))
-    FPRINTF (stderr,  "Failed to set libgcrypt option %s: %s\n", "ENABLE_QUICK_RANDOM",
+    FPRINTF (stderr,
+             "Failed to set libgcrypt option %s: %s\n",
+             "ENABLE_QUICK_RANDOM",
 	     gcry_strerror (rc));
-
-#ifdef GCRYCTL_INITIALIZATION_FINISHED
   gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
-#endif
-#ifdef gcry_fast_random_poll
   gcry_fast_random_poll ();
-#endif
-  gcry_set_progress_handler (&entropy_generator, NULL);
-  atexit (&killfind);
   GNUNET_CRYPTO_seed_weak_random (time (NULL) ^
                                   GNUNET_CRYPTO_random_u32
                                   (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX));
@@ -378,9 +305,7 @@ void __attribute__ ((destructor))
 GNUNET_CRYPTO_random_fini ()
 {
   gcry_set_progress_handler (NULL, NULL);
-#ifdef GCRYCTL_CLOSE_RANDOM_DEVICE
   (void) gcry_control (GCRYCTL_CLOSE_RANDOM_DEVICE, 0);
-#endif
 }
 
 
