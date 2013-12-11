@@ -2,9 +2,6 @@ SUBDIRS = .
 
 gnunetincludedir = $(includedir)/gnunet
 
-nodist_gnunetinclude_HEADERS = \
-  gnunet_directories.h
-
 if MINGW
   WINPROC = winproc.h
 endif

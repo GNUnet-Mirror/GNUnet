@@ -11,9 +11,9 @@ src/ats/gnunet-service-ats_normalization.c
 src/ats/gnunet-service-ats_performance.c
 src/ats/gnunet-service-ats_reservations.c
 src/ats/gnunet-service-ats_scheduling.c
-src/ats/libgnunet_plugin_ats_mlp.c
-src/ats/libgnunet_plugin_ats_proportional.c
-src/ats/libgnunet_plugin_ats_ril.c
+src/ats/plugin_ats_mlp.c
+src/ats/plugin_ats_proportional.c
+src/ats/plugin_ats_ril.c
 src/ats-tool/gnunet-ats.c
 src/block/block.c
 src/block/plugin_block_template.c
@@ -243,6 +243,7 @@ src/revocation/revocation_api.c
 src/scalarproduct/gnunet-scalarproduct.c
 src/scalarproduct/gnunet-service-scalarproduct.c
 src/scalarproduct/scalarproduct_api.c
+src/secretsharing/gnunet-secretsharing-profiler.c
 src/secretsharing/gnunet-service-secretsharing.c
 src/secretsharing/secretsharing_api.c
 src/set/gnunet-service-set.c
@@ -285,6 +286,7 @@ src/testbed/testbed_api_statistics.c
 src/testbed/testbed_api_testbed.c
 src/testbed/testbed_api_test.c
 src/testbed/testbed_api_topology.c
+src/testbed/testbed_api_underlay.c
 src/testbed/testbed_logger_api.c
 src/testing/gnunet-testing.c
 src/testing/testing.c

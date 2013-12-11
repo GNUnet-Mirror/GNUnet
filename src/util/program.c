@@ -27,7 +27,7 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_resolver_service.h"
-#include "gnunet_directories.h"
+#include "gnunet_constants.h"
 #include <gcrypt.h>
 
 #define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
