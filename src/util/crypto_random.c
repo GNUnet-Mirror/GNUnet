@@ -378,6 +378,9 @@ void __attribute__ ((destructor))
 GNUNET_CRYPTO_random_fini ()
 {
   gcry_set_progress_handler (NULL, NULL);
+#ifdef GCRYCTL_CLOSE_RANDOM_DEVICE
+  (void) gcry_control (GCRYCTL_CLOSE_RANDOM_DEVICE, 0);
+#endif
 }
 
 
