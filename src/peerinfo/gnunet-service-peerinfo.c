@@ -320,11 +320,13 @@ update_hello (const struct GNUNET_PeerIdentity *peer,
  * HELLO should be included
  *
  * @param fn name of the file
- * @param unlink_garbage if GNUNET_YES, try to remove useless files
+ * @param unlink_garbage if #GNUNET_YES, try to remove useless files
  * @param r ReadHostFileContext to store the resutl
  */
 static void
-read_host_file (const char *fn, int unlink_garbage, struct ReadHostFileContext *r)
+read_host_file (const char *fn,
+                int unlink_garbage,
+                struct ReadHostFileContext *r)
 {
   char buffer[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1] GNUNET_ALIGN;
   unsigned int size_total;
@@ -340,12 +342,12 @@ read_host_file (const char *fn, int unlink_garbage, struct ReadHostFileContext *
   r->hello = NULL;
 
   if (GNUNET_YES != GNUNET_DISK_file_test (fn))
-  {
     return;
-  }
-
   size_total = GNUNET_DISK_fn_read (fn, buffer, sizeof (buffer));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Read %u bytes from `%s'\n", size_total, fn);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Read %u bytes from `%s'\n",
+              size_total,
+              fn);
   if (size_total < sizeof (struct GNUNET_MessageHeader))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -354,7 +356,9 @@ read_host_file (const char *fn, int unlink_garbage, struct ReadHostFileContext *
     if ( (GNUNET_YES == unlink_garbage) &&
 	 (0 != UNLINK (fn)) &&
 	 (ENOENT != errno) )
-      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "unlink", fn);
+      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
+                                "unlink",
+                                fn);
     return;
   }
 
@@ -367,11 +371,15 @@ read_host_file (const char *fn, int unlink_garbage, struct ReadHostFileContext *
       {
 	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		    _("Failed to parse HELLO in file `%s': %s %u \n"),
-		    fn, "HELLO is invalid and has size of ", size_hello);
+		    fn,
+                    "HELLO is invalid and has size of ",
+                    size_hello);
 	if ((GNUNET_YES == unlink_garbage) &&
 	    (0 != UNLINK (fn)) &&
 	    (ENOENT != errno) )
-	  GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "unlink", fn);
+	  GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
+                                    "unlink",
+                                    fn);
 	return;
       }
 
@@ -416,10 +424,12 @@ read_host_file (const char *fn, int unlink_garbage, struct ReadHostFileContext *
   if (0 == left)
   {
     /* no addresses left, remove from disk */
-    if ((GNUNET_YES == unlink_garbage) && (0 != UNLINK (fn)))
-      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "unlink", fn);
+    if ( (GNUNET_YES == unlink_garbage) &&
+         (0 != UNLINK (fn)) )
+      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
+                                "unlink",
+                                fn);
   }
-
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Found `%s' and `%s' HELLO message in file\n",
 	      (NULL != r->hello) ? "public" : "NO public",
@@ -534,18 +544,13 @@ hosts_directory_scan_callback (void *cls, const char *fullname)
 
   filename = strrchr (fullname, DIR_SEPARATOR);
   if ((NULL == filename) || (1 > strlen (filename)))
-   	filename = fullname;
+    filename = fullname;
   else
     filename ++;
 
   read_host_file (fullname, dsc->remove_files, &r);
   if ( (NULL == r.hello) && (NULL == r.friend_only_hello))
-  {
-    if (GNUNET_YES == dsc->remove_files)
-      remove_garbage (fullname);
     return GNUNET_OK;
-  }
-
   if (NULL != r.friend_only_hello)
   {
     if (GNUNET_OK != GNUNET_HELLO_get_id (r.friend_only_hello, &id_friend))
