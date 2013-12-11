@@ -387,11 +387,6 @@ do_disconnect (struct GNUNET_STATISTICS_Handle *h)
     GNUNET_CLIENT_notify_transmit_ready_cancel (h->th);
     h->th = NULL;
   }
-  if (NULL != h->client)
-  {
-    GNUNET_CLIENT_disconnect (h->client);
-    h->client = NULL;
-  }
   h->receiving = GNUNET_NO;
   if (NULL != (c = h->current))
   {
@@ -401,6 +396,11 @@ do_disconnect (struct GNUNET_STATISTICS_Handle *h)
       c->cont (c->cls, GNUNET_SYSERR);
     free_action_item (c);
   }
+  if (NULL != h->client)
+  {
+    GNUNET_CLIENT_disconnect (h->client);
+    h->client = NULL;
+  }
 }
 
 
@@ -408,7 +408,7 @@ do_disconnect (struct GNUNET_STATISTICS_Handle *h)
  * Try to (re)connect to the statistics service.
  *
  * @param h statistics handle to reconnect
- * @return GNUNET_YES on success, GNUNET_NO on failure.
+ * @return #GNUNET_YES on success, #GNUNET_NO on failure.
  */
 static int
 try_connect (struct GNUNET_STATISTICS_Handle *h)
@@ -433,7 +433,7 @@ try_connect (struct GNUNET_STATISTICS_Handle *h)
 	GNUNET_CONTAINER_DLL_remove (h->action_head,
 				     h->action_tail,
 				     gh);
-	free_action_item (gh);	
+	free_action_item (gh);
       }
     }
     for (i = 0; i < h->watches_size; i++)
@@ -1266,7 +1266,7 @@ GNUNET_STATISTICS_watch_cancel (struct GNUNET_STATISTICS_Handle *handle,
       GNUNET_free (w);
       handle->watches[i] = NULL;
       return GNUNET_OK;
-    }	
+    }
   }
   return GNUNET_SYSERR;
 }
