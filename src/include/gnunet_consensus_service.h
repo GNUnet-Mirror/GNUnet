@@ -64,8 +64,7 @@ struct GNUNET_CONSENSUS_Handle;
 
 /**
  * Create a consensus session.  The set being reconciled is initially
- * empty.  Only reconcile with other peers after
- * GNUNET_CONSENSUS_reconcile has been called.
+ * empty.
  *
  * @param cfg
  * @param num_peers
