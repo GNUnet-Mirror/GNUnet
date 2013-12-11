@@ -95,6 +95,11 @@ struct GNUNET_TESTBED_Peer
    * Peer's state
    */
   enum PeerState state;
+
+  /**
+   * Has an underlay model already set for this peer?
+   */
+  uint8_t underlay_model_exists;
 };
 
 
