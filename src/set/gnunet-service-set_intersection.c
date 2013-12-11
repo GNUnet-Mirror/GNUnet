@@ -31,6 +31,13 @@
 #include <gcrypt.h>
 
 #define BLOOMFILTER_SIZE GNUNET_CRYPTO_HASH_LENGTH
+
+#define CALCULATE_BF_SIZE(A, B, s, k) \
+                          do { \
+                            k = ceil(1 + log2((double) (2*B / (double) A)));\
+                            s = ceil((double) (A * k / log(2))); \
+                          } while (0)
+
 /**
  * Current phase we are in for a intersection operation.
  */
@@ -185,13 +192,6 @@ iterator_initialization_by_alice (void *cls,
                                                     &ee->element_hash, ee,
                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
 
-  /* create our own bloomfilter with salt+1 */
-  GNUNET_BLOCK_mingle_hash (&ee->element_hash,
-                            op->spec->salt + 1,
-                            &mutated_hash);
-  GNUNET_CONTAINER_bloomfilter_add (op->state->local_bf,
-                                    &mutated_hash);
-
   return GNUNET_YES;
 }
 
@@ -224,11 +224,6 @@ iterator_initialization (void *cls,
                  GNUNET_CONTAINER_multihashmap_put (op->state->my_elements,
                                                     &ee->element_hash, ee,
                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-  GNUNET_BLOCK_mingle_hash (&ee->element_hash,
-                            op->spec->salt,
-                            &mutated_hash);
-  GNUNET_CONTAINER_bloomfilter_add (op->state->local_bf,
-                                    &mutated_hash);
   return GNUNET_YES;
 }
 
@@ -245,7 +240,7 @@ iterator_initialization (void *cls,
  *         #GNUNET_NO if not.
  */
 static int
-iterator_bf_round (void *cls,
+iterator_bf_reduce (void *cls,
                    const struct GNUNET_HashCode *key,
                    void *value)
 {
@@ -264,16 +259,36 @@ iterator_bf_round (void *cls,
                    GNUNET_CONTAINER_multihashmap_remove (op->state->my_elements,
                                                          &ee->element_hash,
                                                          ee));
-    return GNUNET_YES;
   }
-  GNUNET_BLOCK_mingle_hash(&ee->element_hash,
-                           op->spec->salt+1,
-                           &mutated_hash);
+
+  return GNUNET_YES;
+}
+
+/**
+ * create a bloomfilter based on the elements given
+ *
+ * @param cls closure
+ * @param key current key code
+ * @param value value in the hash map
+ * @return #GNUNET_YES if we should continue to
+ *         iterate,
+ *         #GNUNET_NO if not.
+ */
+static int
+iterator_bf_create (void *cls,
+                   const struct GNUNET_HashCode *key,
+                   void *value)
+{
+  struct ElementEntry *ee = value;
+  struct Operation *op = cls;
+  struct GNUNET_HashCode mutated_hash;
+
+  GNUNET_BLOCK_mingle_hash(&ee->element_hash, op->spec->salt, &mutated_hash);
+
   GNUNET_CONTAINER_bloomfilter_add (op->state->local_bf,
                                     &mutated_hash);
   return GNUNET_YES;
 }
-
 
 /**
  * Inform the client that the union operation has failed,
@@ -522,8 +537,8 @@ handle_p2p_bf (void *cls, const struct GNUNET_MessageHeader *mh)
   op->spec->salt = ntohl (msg->sender_mutator);
 
   op->state->remote_bf = GNUNET_CONTAINER_bloomfilter_init ((const char*) &msg[1],
-                                                            BLOOMFILTER_SIZE,
-                                                            ntohl (msg->bloomfilter_length));
+                                                            ntohl (msg->bloomfilter_length),
+                                                            GNUNET_CONSTANTS_BLOOMFILTER_K);
   op->state->local_bf = GNUNET_CONTAINER_bloomfilter_init (NULL,
                                                            BLOOMFILTER_SIZE,
                                                            GNUNET_CONSTANTS_BLOOMFILTER_K);
@@ -541,7 +556,7 @@ handle_p2p_bf (void *cls, const struct GNUNET_MessageHeader *mh)
   case PHASE_MAYBE_FINISHED:
     // if we are bob or alice and are continuing operation
     GNUNET_CONTAINER_multihashmap_iterate (op->spec->set->elements,
-                                           &iterator_bf_round,
+                                           &iterator_bf_reduce,
                                            op);
     break;
   default:
@@ -586,6 +601,8 @@ handle_p2p_element_info (void *cls, const struct GNUNET_MessageHeader *mh)
 {
   struct Operation *op = cls;
   struct BFMessage *msg = (struct BFMessage *) mh;
+  uint32_t bf_size;
+  uint32_t bits_per_element;
 
   op->spec->remote_element_count = ntohl(msg->sender_element_count);
   if ((op->state->phase != PHASE_INITIAL)
@@ -596,13 +613,19 @@ handle_p2p_element_info (void *cls, const struct GNUNET_MessageHeader *mh)
 
   op->state->phase = PHASE_BF_EXCHANGE;
   op->state->my_elements = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_YES);
-
-  op->state->local_bf = GNUNET_CONTAINER_bloomfilter_init (NULL,
-                                                           BLOOMFILTER_SIZE,
-                                                           GNUNET_CONSTANTS_BLOOMFILTER_K);
+  
   GNUNET_CONTAINER_multihashmap_iterate (op->spec->set->elements,
                                          &iterator_initialization,
                                          op);
+  
+  CALCULATE_BF_SIZE(op->state->my_element_count,
+                    op->spec->remote_element_count,
+                    bf_size,
+                    bits_per_element);
+  
+  op->state->local_bf = GNUNET_CONTAINER_bloomfilter_init (NULL,
+                                                           bf_size,
+                                                           bits_per_element);
 
   GNUNET_CONTAINER_bloomfilter_free (op->state->remote_bf);
   op->state->remote_bf = NULL;
