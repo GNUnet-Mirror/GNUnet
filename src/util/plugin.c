@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     (C) 2002, 2003, 2004, 2005, 2006, 2009 Christian Grothoff (and other contributing authors)
+     (C) 2002-2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -63,7 +63,6 @@ static int initialized;
  */
 static char *old_dlsearchpath;
 
-
 /**
  * List of plugins we have loaded.
  */
@@ -84,7 +83,8 @@ plugin_init ()
   err = lt_dlinit ();
   if (err > 0)
   {
-    FPRINTF (stderr, _("Initialization of plugin mechanism failed: %s!\n"),
+    FPRINTF (stderr,
+             _("Initialization of plugin mechanism failed: %s!\n"),
              lt_dlerror ());
     return;
   }
@@ -128,6 +128,10 @@ plugin_fini ()
 
 /**
  * Lookup a function in the plugin.
+ *
+ * @param plug the plugin to check
+ * @param name name of the symbol to look for
+ * @return NULL if the symbol was not found
  */
 static GNUNET_PLUGIN_Callback
 resolve_function (struct PluginList *plug, const char *name)
@@ -137,24 +141,26 @@ resolve_function (struct PluginList *plug, const char *name)
 
   GNUNET_asprintf (&initName, "_%s_%s", plug->name, name);
   mptr = lt_dlsym (plug->handle, &initName[1]);
-  if (mptr == NULL)
+  if (NULL == mptr)
     mptr = lt_dlsym (plug->handle, initName);
-  if (mptr == NULL)
+  if (NULL == mptr)
     LOG (GNUNET_ERROR_TYPE_ERROR,
-         _("`%s' failed to resolve method '%s' with error: %s\n"), "lt_dlsym",
+         _("`%s' failed to resolve method '%s' with error: %s\n"),
+         "lt_dlsym",
          &initName[1], lt_dlerror ());
   GNUNET_free (initName);
   return mptr;
 }
 
+
 /**
  * Test if a plugin exists.
  *
  * Note that the library must export a symbol called
- * "library_name_init" for the test to succeed.
+ * `library_name_init` for the test to succeed.
  *
  * @param library_name name of the plugin to test if it is installed
- * @return GNUNET_YES if the plugin exists, GNUNET_NO if not
+ * @return #GNUNET_YES if the plugin exists, #GNUNET_NO if not
  */
 int
 GNUNET_PLUGIN_test (const char *library_name)
@@ -163,18 +169,18 @@ GNUNET_PLUGIN_test (const char *library_name)
   GNUNET_PLUGIN_Callback init;
   struct PluginList plug;
 
-  if (!initialized)
+  if (! initialized)
   {
     initialized = GNUNET_YES;
     plugin_init ();
   }
   libhandle = lt_dlopenext (library_name);
-  if (libhandle == NULL)
+  if (NULL == libhandle)
     return GNUNET_NO;
   plug.handle = libhandle;
   plug.name = (char *) library_name;
   init = resolve_function (&plug, "init");
-  if (init == NULL)
+  if (NULL == init)
   {
     GNUNET_break (0);
     lt_dlclose (libhandle);
@@ -186,11 +192,11 @@ GNUNET_PLUGIN_test (const char *library_name)
 
 
 /**
- * Setup plugin (runs the "init" callback and returns whatever "init"
- * returned).  If "init" returns NULL, the plugin is unloaded.
+ * Setup plugin (runs the `init` callback and returns whatever `init`
+ * returned).  If `init` returns NULL, the plugin is unloaded.
  *
  * Note that the library must export symbols called
- * "library_name_init" and "library_name_done".  These will be called
+ * `library_name_init` and `library_name_done`.  These will be called
  * when the library is loaded and unloaded respectively.
  *
  * @param library_name name of the plugin to load
@@ -214,11 +220,12 @@ GNUNET_PLUGIN_load (const char *library_name, void *arg)
   if (libhandle == NULL)
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
-         _("`%s' failed for library `%s' with error: %s\n"), "lt_dlopenext",
+         _("`%s' failed for library `%s' with error: %s\n"),
+         "lt_dlopenext",
          library_name, lt_dlerror ());
     return NULL;
   }
-  plug = GNUNET_malloc (sizeof (struct PluginList));
+  plug = GNUNET_new (struct PluginList);
   plug->handle = libhandle;
   plug->name = GNUNET_strdup (library_name);
   plug->next = plugins;
@@ -237,7 +244,7 @@ GNUNET_PLUGIN_load (const char *library_name, void *arg)
 
 
 /**
- * Unload plugin (runs the "done" callback and returns whatever "done"
+ * Unload plugin (runs the `done` callback and returns whatever `done`
  * returned).  The plugin is then unloaded.
  *
  * @param library_name name of the plugin to unload
@@ -245,7 +252,8 @@ GNUNET_PLUGIN_load (const char *library_name, void *arg)
  * @return whatever the shutdown function returned
  */
 void *
-GNUNET_PLUGIN_unload (const char *library_name, void *arg)
+GNUNET_PLUGIN_unload (const char *library_name,
+                      void *arg)
 {
   struct PluginList *pos;
   struct PluginList *prev;
@@ -254,26 +262,26 @@ GNUNET_PLUGIN_unload (const char *library_name, void *arg)
 
   prev = NULL;
   pos = plugins;
-  while ((pos != NULL) && (0 != strcmp (pos->name, library_name)))
+  while ((NULL != pos) && (0 != strcmp (pos->name, library_name)))
   {
     prev = pos;
     pos = pos->next;
   }
-  if (pos == NULL)
+  if (NULL == pos)
     return NULL;
 
   done = resolve_function (pos, "done");
   ret = NULL;
-  if (done != NULL)
+  if (NULL != done)
     ret = done (arg);
-  if (prev == NULL)
+  if (NULL == prev)
     plugins = pos->next;
   else
     prev->next = pos->next;
   lt_dlclose (pos->handle);
   GNUNET_free (pos->name);
   GNUNET_free (pos);
-  if (plugins == NULL)
+  if (NULL == plugins)
   {
     plugin_fini ();
     initialized = GNUNET_NO;
@@ -282,15 +290,42 @@ GNUNET_PLUGIN_unload (const char *library_name, void *arg)
 }
 
 
+/**
+ * Closure for #find_libraries().
+ */
 struct LoadAllContext
 {
+  /**
+   * Prefix the plugin names we find have to match.
+   */
   const char *basename;
+
+  /**
+   * Argument to give to 'init' when loading the plugin.
+   */
   void *arg;
+
+  /**
+   * Function to call for each plugin.
+   */
   GNUNET_PLUGIN_LoaderCallback cb;
+
+  /**
+   * Closure for @e cb
+   */
   void *cb_cls;
 };
 
 
+/**
+ * Function called on each plugin in the directory.  Loads
+ * the plugins that match the given basename.
+ *
+ * @param cls the `struct LoadAllContext` describing which
+ *            plugins to load and what to do with them
+ * @param filename name of a plugin library to check
+ * @return #GNUNET_OK (continue loading)
+ */
 static int
 find_libraries (void *cls, const char *filename)
 {
@@ -325,13 +360,13 @@ find_libraries (void *cls, const char *filename)
  * Load all compatible plugins with the given base name.
  *
  * Note that the library must export symbols called
- * "basename_ANYTHING_init" and "basename_ANYTHING__done".  These will
+ * `basename_ANYTHING_init` and `basename_ANYTHING__done`.  These will
  * be called when the library is loaded and unloaded respectively.
  *
  * @param basename basename of the plugins to load
  * @param arg argument to the plugin initialization function
  * @param cb function to call for each plugin found
- * @param cb_cls closure for 'cb'
+ * @param cb_cls closure for @a cb
  */
 void
 GNUNET_PLUGIN_load_all (const char *basename, void *arg,
@@ -341,7 +376,7 @@ GNUNET_PLUGIN_load_all (const char *basename, void *arg,
   char *path;
 
   path = GNUNET_OS_installation_get_path (GNUNET_OS_IPK_LIBDIR);
-  if (path == NULL)
+  if (NULL == path)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Could not determine plugin installation path.\n"));
