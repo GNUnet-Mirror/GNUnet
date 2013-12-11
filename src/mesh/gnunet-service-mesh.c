@@ -105,7 +105,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GMP_shutdown ();
 
   GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
-
+  stats = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "shut down\n");
 }
 
