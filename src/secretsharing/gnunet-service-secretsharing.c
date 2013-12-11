@@ -390,10 +390,11 @@ paillier_encrypt (gcry_mpi_t c, gcry_mpi_t m, gcry_mpi_t g, gcry_mpi_t n)
 /**
  * Decrypt a ciphertext using Paillier's scheme.
  *
- * @param m[out] resulting plaintext
+ * @param[out] m resulting plaintext
  * @param c ciphertext to decrypt
  * @param lambda lambda-component of private key
  * @param mu mu-component of private key
+ * @param n n-component of public key
  */
 static void
 paillier_decrypt (gcry_mpi_t m, gcry_mpi_t c, gcry_mpi_t mu, gcry_mpi_t lambda, gcry_mpi_t n)
