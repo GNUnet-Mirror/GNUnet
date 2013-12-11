@@ -776,7 +776,7 @@ libgnunet_plugin_transport_dv_init (void *cls)
  * @param cls NULL
  * @param key unused
  * @param value session to free
- * @return GNUNET_OK (continue to iterate)
+ * @return #GNUNET_OK (continue to iterate)
  */
 static int
 free_session_iterator (void *cls,

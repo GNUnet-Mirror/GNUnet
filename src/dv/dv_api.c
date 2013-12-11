@@ -296,6 +296,7 @@ cleanup_send_cb (void *cls,
     th->cb (th->cb_cls, GNUNET_SYSERR);
     GNUNET_free (th);
   }
+  GNUNET_free (peer);
   return GNUNET_OK;
 }
 
