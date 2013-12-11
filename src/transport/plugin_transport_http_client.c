@@ -26,10 +26,12 @@
 
 #if BUILD_HTTPS
 #define PLUGIN_NAME "https_client"
+#define HTTP_STAT_STR_CONNECTIONS "# HTTPS client connections"
 #define LIBGNUNET_PLUGIN_TRANSPORT_INIT libgnunet_plugin_transport_https_client_init
 #define LIBGNUNET_PLUGIN_TRANSPORT_DONE libgnunet_plugin_transport_https_client_done
 #else
 #define PLUGIN_NAME "http_client"
+#define HTTP_STAT_STR_CONNECTIONS "# HTTP client connections"
 #define LIBGNUNET_PLUGIN_TRANSPORT_INIT libgnunet_plugin_transport_http_client_init
 #define LIBGNUNET_PLUGIN_TRANSPORT_DONE libgnunet_plugin_transport_http_client_done
 #endif
@@ -697,7 +699,7 @@ client_disconnect (struct Session *s)
   GNUNET_assert (plugin->cur_connections >= 2);
   plugin->cur_connections -= 2;
   GNUNET_STATISTICS_set (plugin->env->stats,
-      "# HTTP client sessions",
+      HTTP_STAT_STR_CONNECTIONS,
       plugin->cur_connections,
       GNUNET_NO);
 
@@ -1428,7 +1430,7 @@ client_connect (struct Session *s)
   /* Perform connect */
   plugin->cur_connections += 2;
   GNUNET_STATISTICS_set (plugin->env->stats,
-      "# HTTP client connections",
+      HTTP_STAT_STR_CONNECTIONS,
       plugin->cur_connections,
       GNUNET_NO);
 
