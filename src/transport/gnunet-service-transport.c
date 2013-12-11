@@ -194,7 +194,7 @@ process_payload (const struct GNUNET_PeerIdentity *peer,
  *                for inbound TCP/UDP connections since it it not clear
  *                that we could establish ourselves a connection to that
  *                IP address and get the same system)
- * @param sender_address_len number of bytes in sender_address
+ * @param sender_address_len number of bytes in @a sender_address
  * @return how long the plugin should wait until receiving more data
  *         (plugins that do not support this, can ignore the return value)
  */

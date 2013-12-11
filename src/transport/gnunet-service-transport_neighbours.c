@@ -378,7 +378,7 @@ enum State
    * from the map.  We should never find a 'struct NeighbourMapEntry'
    * in this state in the map.  Accessing a 'struct NeighbourMapEntry'
    * in this state virtually always means using memory that has been
-   * freed (the exception being the cleanup code in 'free_neighbour').
+   * freed (the exception being the cleanup code in #free_neighbour()).
    */
   S_DISCONNECT_FINISHED
 };
@@ -875,8 +875,8 @@ set_address (struct NeighbourAddress *na,
  * Free a neighbour map entry.
  *
  * @param n entry to free
- * @param keep_sessions GNUNET_NO to tell plugin to terminate sessions,
- *                      GNUNET_YES to keep all sessions
+ * @param keep_sessions #GNUNET_NO to tell plugin to terminate sessions,
+ *                      #GNUNET_YES to keep all sessions
  */
 static void
 free_neighbour (struct NeighbourMapEntry *n, int keep_sessions)
@@ -909,7 +909,7 @@ free_neighbour (struct NeighbourMapEntry *n, int keep_sessions)
 
   if (NULL != n->primary_address.address)
   {
-    backup_primary = GNUNET_HELLO_address_copy(n->primary_address.address);
+    backup_primary = GNUNET_HELLO_address_copy (n->primary_address.address);
   }
   else
     backup_primary = NULL;
@@ -958,6 +958,7 @@ free_neighbour (struct NeighbourMapEntry *n, int keep_sessions)
   /* free rest of memory */
   GNUNET_free (n);
 }
+
 
 /**
  * Transmit a message using the current session of the given
@@ -1592,14 +1593,22 @@ send_session_connect (struct NeighbourAddress *na)
   connect_msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_CONNECT);
   connect_msg.reserved = htonl (0);
   connect_msg.timestamp = GNUNET_TIME_absolute_hton (na->connect_timestamp);
-  (void) papi->send (papi->cls,
-		     na->session,
-		     (const char *) &connect_msg, sizeof (struct SessionConnectMessage),
-		     UINT_MAX,
-		     GNUNET_TIME_UNIT_FOREVER_REL,
-		     NULL, NULL);
+  if (-1 ==
+      papi->send (papi->cls,
+                  na->session,
+                  (const char *) &connect_msg, sizeof (struct SessionConnectMessage),
+                  UINT_MAX,
+                  GNUNET_TIME_UNIT_FOREVER_REL,
+                  NULL, NULL))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _("Failed to transmit CONNECT message via plugin to %s\n"),
+                GST_plugins_a2s (na->address));
+  }
   GST_neighbours_notify_data_sent (&na->address->peer,
-      na->address, na->session, sizeof (struct SessionConnectMessage));
+                                   na->address,
+                                   na->session,
+                                   sizeof (struct SessionConnectMessage));
 
 }
 
@@ -2191,10 +2200,8 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
 				  struct Session *session,
 				  const struct GNUNET_ATS_Information *ats,
 				  uint32_t ats_count,
-				  struct GNUNET_BANDWIDTH_Value32NBO
-				  bandwidth_in,
-				  struct GNUNET_BANDWIDTH_Value32NBO
-				  bandwidth_out)
+				  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
+				  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out)
 {
   struct NeighbourMapEntry *n;
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
@@ -3083,8 +3090,13 @@ GST_neighbours_handle_session_ack (const struct GNUNET_MessageHeader *message,
 	 (S_CONNECT_SENT != n->state) ) ||
        (2 != n->send_connect_ack) )
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Received SESSION_ACK message from peer `%s' in state %s/%d\n",
+                GNUNET_i2s (peer),
+                print_state (n->state),
+                n->send_connect_ack);
     GNUNET_STATISTICS_update (GST_stats,
-                              gettext_noop ("# unexpected SESSION ACK messages"), 1,
+                              gettext_noop ("# unexpected SESSION_ACK messages"), 1,
                               GNUNET_NO);
     return;
   }

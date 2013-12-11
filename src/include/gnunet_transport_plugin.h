@@ -90,7 +90,7 @@ typedef void (*GNUNET_TRANSPORT_SessionEnd) (void *cls,
  * @param peer peer
  * @param plugin plugin
  * @param address address
- * @param address_len length of the address
+ * @param address_len length of the @a address
  * @param session session
  * @param ats ATS information
  * @param ats_count number of ATS information contained
@@ -122,7 +122,7 @@ typedef void
  *                for inbound TCP/UDP connections since it it not clear
  *                that we could establish ourselves a connection to that
  *                IP address and get the same system)
- * @param sender_address_len number of bytes in sender_address
+ * @param sender_address_len number of bytes in @a sender_address
  * @return how long the plugin should wait until receiving more data
  *         (plugins that do not support this, can ignore the return value)
  */
@@ -141,7 +141,7 @@ typedef struct
  *
  * @param cls closure
  * @param addr binary address
- * @param addrlen length of the address
+ * @param addrlen length of the @a addr
  * @return ATS Information containing the network type
  */
 typedef struct GNUNET_ATS_Information
@@ -156,10 +156,10 @@ typedef struct GNUNET_ATS_Information
  * @param cls closure
  * @param peer peer
  * @param address address
- * @param address_len length of the address
+ * @param address_len length of the @a address
  * @param session session
  * @param ats ATS information
- * @param ats_count number of ATS information contained
+ * @param ats_count number of ATS information contained in @a ats
  */
 typedef void
 (*GNUNET_TRANSPORT_UpdateAddressMetrics) (void *cls,
@@ -183,7 +183,7 @@ typedef void
  * @param dest_plugin plugin to use this address with
  */
 typedef void (*GNUNET_TRANSPORT_AddressNotification) (void *cls,
-																											int add_remove,
+                                                      int add_remove,
                                                       const void *addr,
                                                       size_t addrlen,
                                                       const char *dest_plugin);
@@ -312,19 +312,19 @@ struct GNUNET_TRANSPORT_PluginEnvironment
  *
  * @param cls closure
  * @param target who was the recipient of the message?
- * @param result GNUNET_OK on success
- *               GNUNET_SYSERR if the target disconnected;
+ * @param result #GNUNET_OK on success
+ *               #GNUNET_SYSERR if the target disconnected;
  *               disconnect will ALSO be signalled using
  *               the ReceiveCallback.
  * @param size_payload bytes of payload from transport service in message
  * @param size_on_wire bytes required on wire for transmission,
- *               0 if result == GNUNET_SYSERR
+ *               0 if result == #GNUNET_SYSERR
  */
 typedef void (*GNUNET_TRANSPORT_TransmitContinuation) (void *cls,
-								 const struct GNUNET_PeerIdentity *target,
-								 int result,
-								 size_t size_payload,
-								 size_t size_on_wire);
+                                                       const struct GNUNET_PeerIdentity *target,
+                                                       int result,
+                                                       size_t size_payload,
+                                                       size_t size_on_wire);
 
 /**
  * The new send function with just the session and no address
@@ -339,7 +339,7 @@ typedef void (*GNUNET_TRANSPORT_TransmitContinuation) (void *cls,
  * @param cls closure
  * @param session which session must be used
  * @param msgbuf the message to transmit
- * @param msgbuf_size number of bytes in 'msgbuf'
+ * @param msgbuf_size number of bytes in @a msgbuf
  * @param priority how important is the message (most plugins will
  *                 ignore message priority and just FIFO)
  * @param to how long to wait at most for the transmission (does not
@@ -409,16 +409,16 @@ typedef void (*GNUNET_TRANSPORT_AddressStringCallback) (void *cls,
  * @param numeric should (IP) addresses be displayed in numeric form?
  * @param timeout after how long should we give up?
  * @param asc function to call on each string
- * @param asc_cls closure for asc
+ * @param asc_cls closure for @a asc
  */
 typedef void (*GNUNET_TRANSPORT_AddressPrettyPrinter) (void *cls,
-																 const char *type,
-																 const void *addr,
-																 size_t addrlen,
-																 int numeric,
-																 struct GNUNET_TIME_Relative timeout,
-																 GNUNET_TRANSPORT_AddressStringCallback asc,
-																 void *asc_cls);
+                                                       const char *type,
+                                                       const void *addr,
+                                                       size_t addrlen,
+                                                       int numeric,
+                                                       struct GNUNET_TIME_Relative timeout,
+                                                       GNUNET_TRANSPORT_AddressStringCallback asc,
+                                                       void *asc_cls);
 
 
 /**
@@ -431,12 +431,12 @@ typedef void (*GNUNET_TRANSPORT_AddressPrettyPrinter) (void *cls,
  * and not some potential man-in-the-middle).
  *
  * @param addr pointer to the address
- * @param addrlen length of addr
- * @return GNUNET_OK if this is a plausible address for this peer
- *         and transport, GNUNET_SYSERR if not
+ * @param addrlen length of @a addr
+ * @return #GNUNET_OK if this is a plausible address for this peer
+ *         and transport, #GNUNET_SYSERR if not
  */
 typedef int (*GNUNET_TRANSPORT_CheckAddress) (void *cls,
-																							const void *addr,
+                                              const void *addr,
                                               size_t addrlen);
 
 /**
@@ -473,11 +473,11 @@ typedef const char *(*GNUNET_TRANSPORT_AddressToString) (void *cls,
  *
  * @param cls closure ('struct Plugin*')
  * @param addr string address
- * @param addrlen length of the address including \0 termination
+ * @param addrlen length of the address including '\0' termination
  * @param buf location to store the buffer
- *        If the function returns GNUNET_SYSERR, its contents are undefined.
+ *        If the function returns #GNUNET_SYSERR, its contents are undefined.
  * @param added length of created address
- * @return GNUNET_OK on success, GNUNET_SYSERR on failure
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
  */
 typedef int (*GNUNET_TRANSPORT_StringToAddress) (void *cls,
                                                  const char *addr,

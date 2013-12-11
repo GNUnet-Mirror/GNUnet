@@ -139,10 +139,10 @@ GNUNET_NETWORK_STRUCT_BEGIN
  */
 struct IPv4TcpAddress
 {
-	/**
-	 * Optional options and flags for this address
-	 */
-	uint32_t options;
+  /**
+   * Optional options and flags for this address
+   */
+  uint32_t options;
 
   /**
    * IPv4 address, in network byte order.
@@ -162,10 +162,10 @@ struct IPv4TcpAddress
  */
 struct IPv6TcpAddress
 {
-	/**
-	 * Optional flags for this address
-	 */
-	uint32_t options;
+  /**
+   * Optional flags for this address
+   */
+  uint32_t options;
 
   /**
    * IPv6 address.
@@ -314,12 +314,12 @@ struct Session
   struct GNUNET_TIME_Absolute last_activity;
 
   /**
-   * Are we still expecting the welcome message? (GNUNET_YES/GNUNET_NO)
+   * Are we still expecting the welcome message? (#GNUNET_YES/#GNUNET_NO)
    */
   int expecting_welcome;
 
   /**
-   * Was this a connection that was inbound (we accepted)? (GNUNET_YES/GNUNET_NO)
+   * Was this a connection that was inbound (we accepted)? (#GNUNET_YES/#GNUNET_NO)
    */
   int inbound;
 
@@ -441,6 +441,8 @@ reschedule_session_timeout (struct Session *s);
 
 /**
  * Cancel timeout
+ *
+ * @param s session to cancel timeout for
  */
 static void
 stop_session_timeout (struct Session *s);
@@ -458,34 +460,39 @@ static void
 inc_sessions (struct Plugin *plugin, struct Session *session, int line)
 {
   sessions++;
-  unsigned int size = GNUNET_CONTAINER_multipeermap_size(plugin->sessionmap);
+  unsigned int size = GNUNET_CONTAINER_multipeermap_size (plugin->sessionmap);
   if (sessions != size)
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Inconsistent sessions %u <-> session map size: %u\n",
-        sessions, size);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "%4i Session increased to %u (session map size: %u): `%s' `%s'\n",
-      line,
-      sessions,
-      size,
-      GNUNET_i2s (&session->target),
-      tcp_address_to_string (NULL, session->addr, session->addrlen));
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Inconsistent sessions %u <-> session map size: %u\n",
+         sessions, size);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "%4i Session increased to %u (session map size: %u): `%s' `%s'\n",
+       line,
+       sessions,
+       size,
+       GNUNET_i2s (&session->target),
+       tcp_address_to_string (NULL, session->addr, session->addrlen));
 }
 
 
 static void
-dec_sessions (struct Plugin *plugin, struct Session *session, int line)
+dec_sessions (struct Plugin *plugin,
+              struct Session *session, int line)
 {
   GNUNET_assert (sessions > 0);
   unsigned int size = GNUNET_CONTAINER_multipeermap_size(plugin->sessionmap);
   sessions--;
   if (sessions != size)
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Inconsistent sessions %u <-> session map size: %u\n",
-      sessions, size);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "%4i Session decreased to %u (session map size: %u): `%s' `%s'\n",
-      line,
-      sessions,
-      size,
-      GNUNET_i2s (&session->target),
-      tcp_address_to_string (NULL, session->addr, session->addrlen));
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Inconsistent sessions %u <-> session map size: %u\n",
+         sessions, size);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "%4i Session decreased to %u (session map size: %u): `%s' `%s'\n",
+       line,
+       sessions,
+       size,
+       GNUNET_i2s (&session->target),
+       tcp_address_to_string (NULL, session->addr, session->addrlen));
 }
 /* DEBUG CODE */
 
@@ -499,7 +506,7 @@ dec_sessions (struct Plugin *plugin, struct Session *session, int line)
  * @param ucred credentials, if available, otherwise NULL
  * @param addr address
  * @param addrlen length of address
- * @return GNUNET_YES to allow, GNUNET_NO to deny, GNUNET_SYSERR
+ * @return #GNUNET_YES to allow, #GNUNET_NO to deny, #GNUNET_SYSERR
  *   for unknown address family (will be denied).
  */
 static int
@@ -522,7 +529,7 @@ plugin_tcp_access_check (void *cls,
  * Our external IP address/port mapping has changed.
  *
  * @param cls closure, the 'struct LocalAddrList'
- * @param add_remove GNUNET_YES to mean the new public IP address, GNUNET_NO to mean
+ * @param add_remove #GNUNET_YES to mean the new public IP address, #GNUNET_NO to mean
  *     the previous (now invalid) one
  * @param addr either the previous or the new public IP address
  * @param addrlen actual lenght of the address
@@ -647,12 +654,14 @@ tcp_address_to_string (void *cls, const void *addr, size_t addrlen)
  * @param addrlen length of the address
  * @param buf location to store the buffer
  * @param added location to store the number of bytes in the buffer.
- *        If the function returns GNUNET_SYSERR, its contents are undefined.
- * @return GNUNET_OK on success, GNUNET_SYSERR on failure
+ *        If the function returns #GNUNET_SYSERR, its contents are undefined.
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
  */
 static int
-tcp_string_to_address (void *cls, const char *addr, uint16_t addrlen,
-    void **buf, size_t *added)
+tcp_string_to_address (void *cls,
+                       const char *addr,
+                       uint16_t addrlen,
+                       void **buf, size_t *added)
 {
   struct sockaddr_storage socket_address;
   char *address;
@@ -1024,17 +1033,25 @@ disconnect_session (struct Session *session)
 
   stop_session_timeout (session);
 
-  if (GNUNET_YES == GNUNET_CONTAINER_multipeermap_remove (plugin->sessionmap, &session->target, session))
+  if (GNUNET_YES ==
+      GNUNET_CONTAINER_multipeermap_remove (plugin->sessionmap,
+                                            &session->target,
+                                            session))
   {
     GNUNET_STATISTICS_update (session->plugin->env->stats,
 			      gettext_noop ("# TCP sessions active"), -1,
 			      GNUNET_NO);
     dec_sessions (plugin, session, __LINE__);
   }
-  else GNUNET_assert (GNUNET_YES == GNUNET_CONTAINER_multipeermap_remove (plugin->nat_wait_conns, &session->target, session));
-
+  else
+  {
+    GNUNET_assert (GNUNET_YES ==
+                   GNUNET_CONTAINER_multipeermap_remove (plugin->nat_wait_conns,
+                                                         &session->target,
+                                                         session));
+  }
   /* clean up state */
-  if (session->transmit_handle != NULL)
+  if (NULL != session->transmit_handle)
   {
     GNUNET_SERVER_notify_transmit_ready_cancel (session->transmit_handle);
     session->transmit_handle = NULL;
@@ -1630,29 +1647,29 @@ struct PrettyPrinterContext
 };
 
 
-
-void
-ppc_cancel_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+static void
+ppc_cancel_task (void *cls,
+                 const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-	int count = 0;
+  int count = 0;
   struct PrettyPrinterContext *ppc = cls;
   struct PrettyPrinterContext *cur;
-	for (cur = ppc_dll_head; (NULL != cur); cur = cur->next)
-	{
-		if (cur != ppc)
-			count++;
-	}
 
-	// GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cancel request %p, %u pending\n", ppc, count);
-	ppc->timeout_task = GNUNET_SCHEDULER_NO_TASK;
-	if (NULL != ppc->resolver_handle)
-	{
-		GNUNET_RESOLVER_request_cancel (ppc->resolver_handle);
-		ppc->resolver_handle = NULL;
-	}
+  for (cur = ppc_dll_head; (NULL != cur); cur = cur->next)
+  {
+    if (cur != ppc)
+      count++;
+  }
 
-	GNUNET_CONTAINER_DLL_remove (ppc_dll_head, ppc_dll_tail, ppc);
-	GNUNET_free (ppc);
+  // GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cancel request %p, %u pending\n", ppc, count);
+  ppc->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  if (NULL != ppc->resolver_handle)
+  {
+    GNUNET_RESOLVER_request_cancel (ppc->resolver_handle);
+    ppc->resolver_handle = NULL;
+  }
+  GNUNET_CONTAINER_DLL_remove (ppc_dll_head, ppc_dll_tail, ppc);
+  GNUNET_free (ppc);
 }
 
 
@@ -1670,12 +1687,12 @@ append_port (void *cls, const char *hostname)
   char *ret;
   int count = 0;
 
-	for (cur = ppc_dll_head; (NULL != cur); cur = cur->next)
-	{
-		if (cur != ppc)
-			count++;
-	}
-	//GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Callback request %p == %s, %u pending\n", ppc, hostname, count);
+  for (cur = ppc_dll_head; (NULL != cur); cur = cur->next)
+  {
+    if (cur != ppc)
+      count++;
+  }
+  //GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Callback request %p == %s, %u pending\n", ppc, hostname, count);
   if (hostname == NULL)
   {
     ppc->asc (ppc->asc_cls, NULL);
@@ -1786,19 +1803,20 @@ tcp_plugin_address_pretty_printer (void *cls, const char *type,
   ppc->port = port;
   ppc->options = options;
   ppc->timeout_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(timeout, 2),
-  		&ppc_cancel_task, ppc);
-	ppc->resolver_handle =  GNUNET_RESOLVER_hostname_get (sb, sbs, !numeric,
-			timeout, &append_port, ppc);
-	if (NULL != ppc->resolver_handle)
-	{
-		//GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Adding request %p\n", ppc);
-		GNUNET_CONTAINER_DLL_insert (ppc_dll_head, ppc_dll_tail, ppc);
-	}
-	else
-	{
-		GNUNET_break (0);
-		GNUNET_free (ppc);
-	}
+                                                    &ppc_cancel_task, ppc);
+  ppc->resolver_handle = GNUNET_RESOLVER_hostname_get (sb, sbs, !numeric,
+                                                       timeout,
+                                                       &append_port, ppc);
+  if (NULL != ppc->resolver_handle)
+  {
+    //GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Adding request %p\n", ppc);
+    GNUNET_CONTAINER_DLL_insert (ppc_dll_head, ppc_dll_tail, ppc);
+  }
+  else
+  {
+    GNUNET_break (0);
+    GNUNET_free (ppc);
+  }
 }
 
 
@@ -2372,7 +2390,7 @@ notify_send_probe (void *cls, size_t size, void *buf)
  *
  * @param cls closure
  * @param addr address to try
- * @param addrlen number of bytes in addr
+ * @param addrlen number of bytes in @a addr
  */
 static void
 try_connection_reversal (void *cls, const struct sockaddr *addr,
@@ -2421,9 +2439,9 @@ try_connection_reversal (void *cls, const struct sockaddr *addr,
  * Session was idle, so disconnect it
  */
 static void
-session_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+session_timeout (void *cls,
+                 const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_assert (NULL != cls);
   struct Session *s = cls;
 
   s->timeout_task = GNUNET_SCHEDULER_NO_TASK;
@@ -2433,7 +2451,7 @@ session_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	      GNUNET_STRINGS_relative_time_to_string (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
 						      GNUNET_YES));
   /* call session destroy function */
-  disconnect_session(s);
+  disconnect_session (s);
 }
 
 
@@ -2445,7 +2463,7 @@ start_session_timeout (struct Session *s)
 {
   GNUNET_assert (NULL != s);
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == s->timeout_task);
-  s->timeout_task =  GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
+  s->timeout_task = GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
                                                    &session_timeout,
                                                    s);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -2466,9 +2484,9 @@ reschedule_session_timeout (struct Session *s)
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != s->timeout_task);
 
   GNUNET_SCHEDULER_cancel (s->timeout_task);
-  s->timeout_task =  GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
-                                                   &session_timeout,
-                                                   s);
+  s->timeout_task = GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
+                                                  &session_timeout,
+                                                  s);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Timeout rescheduled for session %p set to %s\n",
 	      s,
@@ -2478,7 +2496,9 @@ reschedule_session_timeout (struct Session *s)
 
 
 /**
- * Cancel timeout
+ * Cancel timeout.
+ *
+ * @param s session to cancel timeout for
  */
 static void
 stop_session_timeout (struct Session *s)
@@ -2634,7 +2654,7 @@ libgnunet_plugin_transport_tcp_init (void *cls)
 				       GNUNET_YES, 0, 0, NULL, NULL, NULL,
 				       &try_connection_reversal, plugin);
   }
-  api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
+  api = GNUNET_new (struct GNUNET_TRANSPORT_PluginFunctions);
   api->cls = plugin;
   api->send = &tcp_plugin_send;
   api->get_session = &tcp_plugin_get_session;
@@ -2716,23 +2736,26 @@ libgnunet_plugin_transport_tcp_done (void *cls)
     GNUNET_free (api);
     return NULL;
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Shutting down TCP plugin\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Shutting down TCP plugin\n");
 
   /* Removing leftover sessions */
-  GNUNET_CONTAINER_multipeermap_iterate(plugin->sessionmap, &session_disconnect_it, NULL);
+  GNUNET_CONTAINER_multipeermap_iterate (plugin->sessionmap,
+                                         &session_disconnect_it, NULL);
   /* Removing leftover NAT sessions */
-  GNUNET_CONTAINER_multipeermap_iterate(plugin->nat_wait_conns, &session_disconnect_it, NULL);
+  GNUNET_CONTAINER_multipeermap_iterate (plugin->nat_wait_conns,
+                                         &session_disconnect_it, NULL);
 
   next = ppc_dll_head;
   for (cur = next; NULL != cur; cur = next)
   {
-  	next = cur->next;
-  	GNUNET_CONTAINER_DLL_remove (ppc_dll_head, ppc_dll_tail, cur);
-  	if (NULL != cur->resolver_handle)
-  		GNUNET_RESOLVER_request_cancel (cur->resolver_handle);
-  	GNUNET_SCHEDULER_cancel (cur->timeout_task);
-  	GNUNET_free (cur);
-  	GNUNET_break (0);
+    next = cur->next;
+    GNUNET_CONTAINER_DLL_remove (ppc_dll_head, ppc_dll_tail, cur);
+    if (NULL != cur->resolver_handle)
+      GNUNET_RESOLVER_request_cancel (cur->resolver_handle);
+    GNUNET_SCHEDULER_cancel (cur->timeout_task);
+    GNUNET_free (cur);
+    GNUNET_break (0);
   }
 
   if (plugin->service != NULL)
