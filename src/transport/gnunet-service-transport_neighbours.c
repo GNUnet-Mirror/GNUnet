@@ -1583,6 +1583,10 @@ send_session_connect (struct NeighbourAddress *na)
     GNUNET_break (0);
     return;
   }
+  GNUNET_STATISTICS_update (GST_stats,
+                            gettext_noop
+                            ("# SESSION_CONNECT messages sent"),
+                            1, GNUNET_NO);
   na->connect_timestamp = GNUNET_TIME_absolute_get ();
   connect_msg.header.size = htons (sizeof (struct SessionConnectMessage));
   connect_msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_CONNECT);
@@ -1627,6 +1631,10 @@ send_session_connect_ack_message (const struct GNUNET_HELLO_Address *address,
     GNUNET_break (0);
     return;
   }
+  GNUNET_STATISTICS_update (GST_stats,
+                            gettext_noop
+                            ("# CONNECT_ACK messages sent"),
+                            1, GNUNET_NO);
   connect_msg.header.size = htons (sizeof (struct SessionConnectMessage));
   connect_msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_CONNECT_ACK);
   connect_msg.reserved = htonl (0);
@@ -1686,7 +1694,7 @@ setup_neighbour (const struct GNUNET_PeerIdentity *peer)
  *
  * @param a1 first address to compare
  * @param a2 other address to compare
- * @return GNUNET_NO if the addresses do not match, GNUNET_YES if they do match
+ * @return #GNUNET_NO if the addresses do not match, #GNUNET_YES if they do match
  */
 static int
 address_matches (const struct NeighbourAddress *a1,
@@ -1714,15 +1722,13 @@ GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target)
 
   if (NULL == neighbours)
   {
-  	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-  		      "Asked to connect to peer `%s' during shutdown\n",
-  	              GNUNET_i2s (target));
-  		return; /* during shutdown, do nothing */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Asked to connect to peer `%s' during shutdown\n",
+                GNUNET_i2s (target));
+    return; /* during shutdown, do nothing */
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-	      "Asked to connect to peer `%s'\n",
-              GNUNET_i2s (target));
-  if (0 == memcmp (target, &GST_my_identity, sizeof (struct GNUNET_PeerIdentity)))
+  if (0 == memcmp (target,
+                   &GST_my_identity, sizeof (struct GNUNET_PeerIdentity)))
   {
     /* refuse to connect to myself */
     /* FIXME: can this happen? Is this not an API violation? */
@@ -1731,6 +1737,10 @@ GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target)
     return;
   }
   n = lookup_neighbour (target);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+	      "Asked to connect to peer `%s' (state: %d)\n",
+              GNUNET_i2s (target),
+              (NULL != n) ? n->state : -1);
   if (NULL != n)
   {
     switch (n->state)
@@ -1748,7 +1758,7 @@ GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target)
     case S_CONNECT_RECV_BLACKLIST:
     case S_CONNECT_RECV_ACK:
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-      		"Ignoring request to try to connect to `%s', already trying!\n",
+                  "Ignoring request to try to connect to `%s', already trying!\n",
 		  GNUNET_i2s (target));
       return; /* already trying */
     case S_CONNECTED:
@@ -1758,7 +1768,7 @@ GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target)
     case S_CONNECTED_SWITCHING_BLACKLIST:
     case S_CONNECTED_SWITCHING_CONNECT_SENT:
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-      		"Ignoring request to try to connect, already connected to `%s'!\n",
+                  "Ignoring request to try to connect, already connected to `%s'!\n",
 		  GNUNET_i2s (target));
       return; /* already connected */
     case S_DISCONNECT:
@@ -1791,7 +1801,7 @@ GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target)
  *
  * @param cls closure with the 'struct BlackListCheckContext'
  * @param peer peer this check affects
- * @param result GNUNET_OK if the address is allowed
+ * @param result #GNUNET_OK if the address is allowed
  */
 static void
 handle_test_blacklist_cont (void *cls,
@@ -2066,12 +2076,15 @@ GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received CONNECT message from peer `%s'\n",
 	      GNUNET_i2s (peer));
-
   if (ntohs (message->size) != sizeof (struct SessionConnectMessage))
   {
     GNUNET_break_op (0);
     return;
   }
+  GNUNET_STATISTICS_update (GST_stats,
+                            gettext_noop
+                            ("# CONNECT messages received"),
+                            1, GNUNET_NO);
   if (NULL == neighbours)
     return; /* we're shutting down */
   scm = (const struct SessionConnectMessage *) message;
@@ -2207,11 +2220,12 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "ATS tells us to switch to address '%s' session %p for "
-              "peer `%s' in state %s (quota in/out %u %u )\n",
+              "peer `%s' in state %s/%d (quota in/out %u %u )\n",
               (address->address_length != 0) ? GST_plugins_a2s (address): "<inbound>",
               session,
               GNUNET_i2s (peer),
               print_state (n->state),
+              n->send_connect_ack,
               ntohl (bandwidth_in.value__),
               ntohl (bandwidth_out.value__));
 
@@ -2501,9 +2515,9 @@ GST_neighbours_notify_payload_recv (const struct GNUNET_PeerIdentity *peer,
 
 void
 GST_neighbours_notify_data_sent (const struct GNUNET_PeerIdentity *peer,
-                     const struct GNUNET_HELLO_Address *address,
-                     struct Session *session,
-                     size_t size)
+                                 const struct GNUNET_HELLO_Address *address,
+                                 struct Session *session,
+                                 size_t size)
 {
   struct NeighbourMapEntry *n;
   n = lookup_neighbour (peer);
@@ -2514,16 +2528,15 @@ GST_neighbours_notify_data_sent (const struct GNUNET_PeerIdentity *peer,
   n->util_total_bytes_sent += size;
 }
 
+
 void
 GST_neighbours_notify_payload_sent (const struct GNUNET_PeerIdentity *peer,
-    size_t size)
+                                    size_t size)
 {
   struct NeighbourMapEntry *n;
   n = lookup_neighbour (peer);
   if (NULL == n)
-  {
-      return;
-  }
+    return;
   n->util_payload_bytes_sent += size;
 }
 
@@ -2783,6 +2796,10 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
     GNUNET_break_op (0);
     return;
   }
+  GNUNET_STATISTICS_update (GST_stats,
+                            gettext_noop
+                            ("# CONNECT_ACK messages received"),
+                            1, GNUNET_NO);
   scm = (const struct SessionConnectMessage *) message;
   GNUNET_break_op (ntohl (scm->reserved) == 0);
   if (NULL == (n = lookup_neighbour (peer)))
@@ -2901,7 +2918,7 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
  *
  * @param peer identity of the peer where the session died
  * @param session session that is gone
- * @return GNUNET_YES if this was a session used, GNUNET_NO if
+ * @return #GNUNET_YES if this was a session used, #GNUNET_NO if
  *        this session was not in use
  */
 int
@@ -3054,6 +3071,10 @@ GST_neighbours_handle_session_ack (const struct GNUNET_MessageHeader *message,
     GNUNET_break_op (0);
     return;
   }
+  GNUNET_STATISTICS_update (GST_stats,
+                            gettext_noop
+                            ("# SESSION_ACK messages received"),
+                            1, GNUNET_NO);
   if (NULL == (n = lookup_neighbour (peer)))
     return;
   /* check if we are in a plausible state for having sent
@@ -3164,6 +3185,10 @@ GST_neighbours_handle_disconnect_message (const struct GNUNET_PeerIdentity
                               GNUNET_NO);
     return;
   }
+  GNUNET_STATISTICS_update (GST_stats,
+                            gettext_noop
+                            ("# DISCONNECT messages received"),
+                            1, GNUNET_NO);
   sdm = (const struct SessionDisconnectMessage *) msg;
   if (NULL == (n = lookup_neighbour (peer)))
     return;                     /* gone already */
