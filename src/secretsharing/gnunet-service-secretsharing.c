@@ -558,6 +558,7 @@ insert_round2_element (struct KeygenSession *ks)
   gcry_mpi_t v;
 
   GNUNET_assert (0 != (c = gcry_mpi_new (PAILLIER_BITS)));
+  // FIXME: c is never used...
   GNUNET_assert (0 != (v = gcry_mpi_new (PAILLIER_BITS)));
   GNUNET_assert (0 != (idx = gcry_mpi_new (PAILLIER_BITS)));
 
@@ -611,6 +612,10 @@ insert_round2_element (struct KeygenSession *ks)
 
   GNUNET_CONSENSUS_insert (ks->consensus, element, NULL, NULL);
   GNUNET_free (element); /* FIXME: maybe stack-allocate instead? */
+
+  gcry_mpi_release (c);
+  gcry_mpi_release (v);
+  gcry_mpi_release (idx);
 }
 
 
