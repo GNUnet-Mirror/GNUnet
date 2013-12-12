@@ -269,12 +269,11 @@ GNUNET_PROGRAM_run2 (int argc, char *const *argv, const char *binaryName,
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		  _("Could not access configuration file `%s'\n"),
 		  cc.cfgfile);
-    GNUNET_free (cc.cfgfile);
-    cc.cfgfile = NULL;
     if (GNUNET_SYSERR == GNUNET_CONFIGURATION_load (cfg, NULL))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   _("Malformed configuration, exit ...\n"));
+      GNUNET_free (cc.cfgfile); 
       return GNUNET_SYSERR;
     }
   }
