@@ -1747,9 +1747,9 @@ GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target)
   }
   n = lookup_neighbour (target);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-	      "Asked to connect to peer `%s' (state: %d)\n",
+	      "Asked to connect to peer `%s' (state: %s)\n",
               GNUNET_i2s (target),
-              (NULL != n) ? n->state : -1);
+              (NULL != n) ? print_state(n->state) : "UNKNOWN PEER");
   if (NULL != n)
   {
     switch (n->state)
