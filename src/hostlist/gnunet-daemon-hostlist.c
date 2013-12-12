@@ -28,13 +28,9 @@
 #include "platform.h"
 #include "hostlist-client.h"
 #include "gnunet_core_service.h"
-#include "gnunet_getopt_lib.h"
-#include "gnunet_protocols.h"
-#include "gnunet_program_lib.h"
-#include "gnunet_statistics_service.h"
-#include "gnunet_strings_lib.h"
-#include "gnunet_time_lib.h"
 #include "gnunet_util_lib.h"
+#include "gnunet_protocols.h"
+#include "gnunet_statistics_service.h"
 
 #if HAVE_MHD
 
@@ -156,7 +152,8 @@ advertisement_handler (void *cls, const struct GNUNET_PeerIdentity *peer,
 
 
 /**
- * Method called whenever a given peer connects.  Wrapper to call both client's and server's functions
+ * Method called whenever a given peer connects.  Wrapper to call both
+ * client's and server's functions
  *
  * @param cls closure
  * @param peer peer identity this notification is about
@@ -169,17 +166,17 @@ connect_handler (void *cls, const struct GNUNET_PeerIdentity *peer)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "A new peer connected, notifying client and server\n");
   if (NULL != client_ch)
-  {
     (*client_ch) (cls, peer);
-  }
 #if HAVE_MHD
   if (NULL != server_ch)
     (*server_ch) (cls, peer);
 #endif
 }
 
+
 /**
- * Method called whenever a given peer disconnects. Wrapper to call both client's and server's functions
+ * Method called whenever a given peer disconnects. Wrapper to call
+ * both client's and server's functions
  *
  * @param cls closure
  * @param peer peer identity this notification is about
@@ -199,6 +196,7 @@ disconnect_handler (void *cls, const struct GNUNET_PeerIdentity *peer)
 #endif
 }
 
+
 /**
  * Last task run during shutdown.  Disconnects us from
  * the other services.
@@ -206,7 +204,8 @@ disconnect_handler (void *cls, const struct GNUNET_PeerIdentity *peer)
 static void
 cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Hostlist daemon is shutting down\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+	      "Hostlist daemon is shutting down\n");
   if (core != NULL)
   {
     GNUNET_CORE_disconnect (core);
@@ -260,31 +259,27 @@ run (void *cls, char *const *args, const char *cfgfile,
                 ("None of the functions for the hostlist daemon were enabled.  I have no reason to run!\n"));
     return;
   }
-
-
-
   stats = GNUNET_STATISTICS_create ("hostlist", cfg);
-
-  core =
-      GNUNET_CORE_connect (cfg, NULL, &core_init, &connect_handler,
-                           &disconnect_handler, NULL, GNUNET_NO, NULL,
-                           GNUNET_NO,
-                           learning ? learn_handlers : no_learn_handlers);
-
   if (bootstrapping)
-  {
     GNUNET_HOSTLIST_client_start (cfg, stats, &client_ch, &client_dh,
                                   &client_adv_handler, learning);
-  }
+  core =
+    GNUNET_CORE_connect (cfg, NULL,
+			 &core_init, 
+			 &connect_handler,
+			 &disconnect_handler, NULL, 
+			 GNUNET_NO, NULL,
+			 GNUNET_NO,
+			 learning ? learn_handlers : no_learn_handlers);
+
 
 #if HAVE_MHD
   if (provide_hostlist)
-  {
     GNUNET_HOSTLIST_server_start (cfg, stats, core, &server_ch, &server_dh,
                                   advertising);
-  }
 #endif
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleaning_task,
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, 
+				&cleaning_task,
                                 NULL);
 
   if (NULL == core)

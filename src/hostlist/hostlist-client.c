@@ -33,8 +33,7 @@
 #include "gnunet_transport_service.h"
 #include "gnunet-daemon-hostlist.h"
 #include <curl/curl.h>
-#include "gnunet_common.h"
-#include "gnunet_bio_lib.h"
+#include "gnunet_util_lib.h"
 
 
 /**
@@ -416,6 +415,7 @@ get_bootstrap_server ()
   return ret;
 }
 
+
 /**
  * Method deciding if a preconfigured or advertisied hostlist is used on a 50:50 ratio
  * @return uri to use, NULL if there is no URL available
@@ -479,6 +479,7 @@ save_hostlist_file (int shutdown);
 
 /**
  * add val2 to val1 with overflow check
+ *
  * @param val1 value 1
  * @param val2 value 2
  * @return result
@@ -501,6 +502,7 @@ checked_add (uint64_t val1, uint64_t val2)
 
 /**
  * Subtract val2 from val1 with underflow check
+ *
  * @param val1 value 1
  * @param val2 value 2
  * @return result
@@ -516,8 +518,9 @@ checked_sub (uint64_t val1, uint64_t val2)
 
 /**
  * Method to check if  a URI is in hostlist linked list
+ *
  * @param uri uri to check
- * @return GNUNET_YES if existing in linked list, GNUNET_NO if not
+ * @return #GNUNET_YES if existing in linked list, #GNUNET_NO if not
  */
 static int
 linked_list_contains (const char *uri)
@@ -1130,8 +1133,8 @@ handler_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
  * @param cls closure (always NULL)
  * @param peer the peer sending the message
  * @param message the actual message
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
+ * @return #GNUNET_OK to keep the connection open,
+ *         #GNUNET_SYSERR to close it (signal serious error)
  */
 static int
 handler_advertisement (void *cls, const struct GNUNET_PeerIdentity *peer,
@@ -1211,8 +1214,8 @@ handler_advertisement (void *cls, const struct GNUNET_PeerIdentity *peer,
  * we go the stat.  Initiates hostlist download scheduling.
  *
  * @param cls closure
- * @param success GNUNET_OK if statistics were
- *        successfully obtained, GNUNET_SYSERR if not.
+ * @param success #GNUNET_OK if statistics were
+ *        successfully obtained, #GNUNET_SYSERR if not.
  */
 static void
 primary_task (void *cls, int success)
@@ -1256,8 +1259,6 @@ load_hostlist_file ()
   char *uri;
   char *emsg;
   struct Hostlist *hostlist;
-
-  uri = NULL;
   uint32_t times_used;
   uint32_t hellos_returned;
   uint64_t quality;
@@ -1265,6 +1266,7 @@ load_hostlist_file ()
   uint64_t created;
   uint32_t counter;
 
+  uri = NULL;
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_filename (cfg, "HOSTLIST", "HOSTLISTFILE",
                                                &filename))
@@ -1275,7 +1277,8 @@ load_hostlist_file ()
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              _("Loading saved hostlist entries from file `%s' \n"), filename);
+              _("Loading saved hostlist entries from file `%s' \n"), 
+	      filename);
   if (GNUNET_NO == GNUNET_DISK_file_test (filename))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
