@@ -1553,7 +1553,7 @@ GMC_handle_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
      * destroyed the tunnel and retransmitted to children.
      * Safe to ignore.
      */
-    GNUNET_STATISTICS_update (stats, "# control on unknown tunnel",
+    GNUNET_STATISTICS_update (stats, "# control on unknown connection",
                               1, GNUNET_NO);
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  connection unknown: already destroyed?\n");
     return GNUNET_OK;
@@ -1564,7 +1564,14 @@ GMC_handle_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_break_op (0);
     return GNUNET_OK;
   }
-  GMC_send_prebuilt_message (message, c, fwd, GNUNET_YES, NULL, NULL);
+  if (GNUNET_NO == GMC_is_terminal (c, fwd))
+    GMC_send_prebuilt_message (message, c, fwd, GNUNET_YES, NULL, NULL);
+  else if (0 == c->pending_messages)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "!  directly destroying connection!\n");
+    GMC_destroy (c);
+    return;
+  }
   c->destroy = GNUNET_YES;
   c->state = MESH_CONNECTION_DESTROYED;
 

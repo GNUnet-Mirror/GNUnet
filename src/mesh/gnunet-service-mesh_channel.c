@@ -1812,6 +1812,7 @@ GMCH_handle_local_create (struct MeshClient *c,
   }
   else
   {
+    /* FIXME change to a tunnel API, eliminate ch <-> peer connection */
     GMP_connect (peer);
   }
 
