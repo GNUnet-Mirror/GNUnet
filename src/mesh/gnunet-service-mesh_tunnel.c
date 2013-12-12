@@ -656,7 +656,7 @@ unqueue_data (struct MeshTunnelDelayed *tq)
 static struct MeshTunnelDelayed *
 queue_data (struct MeshTunnel3 *t, const struct GNUNET_MessageHeader *msg)
 {
-  struct MeshTunnelDelayed *tq;
+  struct MeshTunnelDelayed *tqd;
   uint16_t size = ntohs (msg->size);
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "queue data on Tunnel %s\n", GMT_2s (t));
@@ -667,12 +667,12 @@ queue_data (struct MeshTunnel3 *t, const struct GNUNET_MessageHeader *msg)
     return NULL;
   }
 
-  tq = GNUNET_malloc (sizeof (struct MeshTunnelDelayed) + size);
+  tqd = GNUNET_malloc (sizeof (struct MeshTunnelDelayed) + size);
 
-  tq->t = t;
-  memcpy (&tq[1], msg, size);
-  GNUNET_CONTAINER_DLL_insert_tail (t->tq_head, t->tq_tail, tq);
-  return tq;
+  tqd->t = t;
+  memcpy (&tqd[1], msg, size);
+  GNUNET_CONTAINER_DLL_insert_tail (t->tq_head, t->tq_tail, tqd);
+  return tqd;
 }
 
 
@@ -711,10 +711,17 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
 
   if (GNUNET_NO == is_ready (t))
   {
+    struct MeshTunnelDelayed *tqd;
+    /* A non null existing_q indicates sending of queued data.
+     * Should only happen after tunnel becomes ready.
+     */
     GNUNET_assert (NULL == existing_q);
+    tqd = queue_data (t, message);
+    if (NULL == cont)
+      return NULL;
     tq = GNUNET_new (struct MeshTunnel3Queue);
-    tq->tqd = queue_data (t, message);
-    tq->tqd->tq = tq;
+    tq->tqd = tqd;
+    tqd->tq = tq;
     tq->cont = cont;
     tq->cont_cls = cont_cls;
     return tq;
@@ -814,8 +821,10 @@ send_queued_data (struct MeshTunnel3 *t)
     next = tqd->next;
     room--;
     send_prebuilt_message ((struct GNUNET_MessageHeader *) &tqd[1],
-                               tqd->t, GNUNET_YES,
-                           tqd->tq->cont, tqd->tq->cont_cls, tqd->tq);
+                           tqd->t, GNUNET_YES,
+                           NULL != tqd->tq ? tqd->tq->cont : NULL,
+                           NULL != tqd->tq ? tqd->tq->cont_cls : NULL,
+                           tqd->tq);
     unqueue_data (tqd);
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "GMT_send_queued_data end\n", GMP_2s (t->peer));
