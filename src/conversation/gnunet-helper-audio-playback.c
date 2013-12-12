@@ -168,7 +168,7 @@ stream_write_callback (pa_stream * s,
   /* unblock 'main' */
   if (-1 != ready_pipe[1])
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Unblocking main loop!\n");
     write (ready_pipe[1], "r", 1);
   }
@@ -345,7 +345,7 @@ main (int argc, char *argv[])
   stdin_mst = GNUNET_SERVER_mst_create (&stdin_receiver, NULL);
   opus_init ();
   pa_init ();
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Waiting for PulseAudio to be ready.\n");
   GNUNET_assert (1 == read (ready_pipe[0], &c, 1));
   close (ready_pipe[0]);
