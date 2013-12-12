@@ -1441,12 +1441,24 @@ GNUNET_SERVICE_run (int argc, char *const *argv,
     HANDLE_ERROR;
   if (NULL == opt_cfg_fn)
     opt_cfg_fn = GNUNET_strdup (cfg_fn);
-  if (GNUNET_YES ==
-      GNUNET_DISK_file_test (opt_cfg_fn))
-    (void) GNUNET_CONFIGURATION_load (cfg, opt_cfg_fn);
+  if (GNUNET_YES == GNUNET_DISK_file_test (opt_cfg_fn))
+  {
+    if (GNUNET_SYSERR == GNUNET_CONFIGURATION_load (cfg, opt_cfg_fn))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _("Malformed configuration file `%s', exit ...\n"),
+                  opt_cfg_fn);
+      goto shutdown;
+    }
+  }
   else
   {
-    (void) GNUNET_CONFIGURATION_load (cfg, NULL);
+    if (GNUNET_SYSERR == GNUNET_CONFIGURATION_load (cfg, NULL))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _("Malformed configuration, exit ...\n"));
+      goto shutdown;
+    }
     if (0 != strcmp (opt_cfg_fn, cfg_fn))
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		  _("Could not access configuration file `%s'\n"),
