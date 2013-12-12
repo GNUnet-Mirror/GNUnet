@@ -681,7 +681,7 @@ GSC_CLIENTS_reject_request (struct GSC_ClientActiveRequest *car)
  *
  * @param client client to notify
  * @param neighbour identity of the neighbour that changed status
- * @param tmap_old previous type map for the neighbour, NULL for disconnect
+ * @param tmap_old previous type map for the neighbour, NULL for connect
  * @param tmap_new updated type map for the neighbour, NULL for disconnect
  */
 void
@@ -753,7 +753,7 @@ GSC_CLIENTS_notify_client_about_neighbour (struct GSC_Client *client,
  * or types processed by the respective peer.
  *
  * @param neighbour identity of the neighbour that changed status
- * @param tmap_old previous type map for the neighbour, NULL for disconnect
+ * @param tmap_old previous type map for the neighbour, NULL for connect
  * @param tmap_new updated type map for the neighbour, NULL for disconnect
  */
 void
