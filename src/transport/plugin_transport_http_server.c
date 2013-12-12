@@ -23,7 +23,6 @@
  * @brief HTTP/S server transport plugin
  * @author Matthias Wachs
  */
-
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_statistics_service.h"
@@ -49,7 +48,9 @@
 #define _SEND 1
 
 
-/* Enable output for debbuging URL's of incoming requests */
+/**
+ * Enable output for debbuging URL's of incoming requests
+ */
 #define DEBUG_URL_PARSE GNUNET_NO
 
 
@@ -159,22 +160,34 @@ struct Session
 
 struct ServerConnection
 {
-  /* _RECV or _SEND */
+  /**
+   * _RECV or _SEND
+   */
   int direction;
 
-  /* Should this connection get disconnected? GNUNET_YES/NO  */
+  /**
+   * Should this connection get disconnected? GNUNET_YES/NO
+   */
   int disconnect;
 
-  /* For PUT connections: Is this the first or last callback with size 0 */
+  /**
+   * For PUT connections: Is this the first or last callback with size 0
+   */
   int connected;
 
-  /* The session this server connection belongs to */
+  /**
+   * The session this server connection belongs to
+   */
   struct Session *session;
 
-  /* The MHD connection */
+  /**
+   * The MHD connection
+   */
   struct MHD_Connection *mhd_conn;
 
-  /* The MHD daemon */
+  /**
+   * The MHD daemon
+   */
   struct MHD_Daemon *mhd_daemon;
 };
 
@@ -192,7 +205,6 @@ struct HTTP_Server_Plugin
   /**
    * Linked list head of open sessions.
    */
-
   struct Session *head;
 
   /**
@@ -224,7 +236,6 @@ struct HTTP_Server_Plugin
    * Verify external address
    */
   int verify_external_hostname;
-
 
   /**
    * Maximum number of sockets the plugin can use
@@ -440,12 +451,6 @@ struct HTTP_Message
 
 
 /**
- * The http_server plugin handle
- */
-static struct HTTP_Server_Plugin * p;
-
-
-/**
  * Start session timeout for session s
  * @param s the session
  */
@@ -470,11 +475,15 @@ server_stop_session_timeout (struct Session *s);
 
 
 /**
- * Disconnect a session  s
+ * Disconnect session @a s
+ *
+ * @param cls closure with the `struct HTTP_Server_Plugin`
  * @param s the session
+ * @return #GNUNET_OK on success
  */
 static int
-server_disconnect (struct Session *s);
+http_server_plugin_disconnect_session (void *cls,
+                                       struct Session *s);
 
 
 /**
@@ -482,7 +491,7 @@ server_disconnect (struct Session *s);
  *
  * @param plugin the plugin handle
  * @param s the session
- * @return GNUNET_YES on success, GNUNET_NO on error
+ * @return #GNUNET_YES on success, #GNUNET_NO on error
  */
 static int
 server_exist_session (struct HTTP_Server_Plugin *plugin, struct Session *s);
@@ -492,12 +501,13 @@ server_exist_session (struct HTTP_Server_Plugin *plugin, struct Session *s);
  * Reschedule the execution of both IPv4 and IPv6 server
  * @param plugin the plugin
  * @param server which server to schedule v4 or v6?
- * @param now GNUNET_YES to schedule execution immediately, GNUNET_NO to wait
+ * @param now #GNUNET_YES to schedule execution immediately, #GNUNET_NO to wait
  * until timeout
  */
 static void
-server_reschedule (struct HTTP_Server_Plugin *plugin, struct MHD_Daemon *server,
-				   int now);
+server_reschedule (struct HTTP_Server_Plugin *plugin,
+                   struct MHD_Daemon *server,
+                   int now);
 
 
 /**
@@ -511,7 +521,7 @@ server_reschedule (struct HTTP_Server_Plugin *plugin, struct MHD_Daemon *server,
  * @param cls closure
  * @param session which session must be used
  * @param msgbuf the message to transmit
- * @param msgbuf_size number of bytes in 'msgbuf'
+ * @param msgbuf_size number of bytes in @a msgbuf
  * @param priority how important is the message (most plugins will
  *                 ignore message priority and just FIFO)
  * @param to how long to wait at most for the transmission (does not
@@ -522,7 +532,7 @@ server_reschedule (struct HTTP_Server_Plugin *plugin, struct MHD_Daemon *server,
  *        been transmitted (or if the transport is ready
  *        for the next transmission call; or if the
  *        peer disconnected...); can be NULL
- * @param cont_cls closure for cont
+ * @param cont_cls closure for @a cont
  * @return number of bytes used (on the physical network, with overheads);
  *         -1 on hard errors (i.e. address invalid); 0 is a legal value
  *         and does NOT mean that the message was not transmitted (DV)
@@ -562,8 +572,8 @@ http_server_plugin_send (void *cls,
   }
   else
   {
-      if (GNUNET_YES == session->server_send->disconnect)
-        return GNUNET_SYSERR;
+    if (GNUNET_YES == session->server_send->disconnect)
+      return GNUNET_SYSERR;
   }
 
 
@@ -592,14 +602,13 @@ http_server_plugin_send (void *cls,
 
   if (NULL != session->server_send)
   {
-      server_reschedule (session->plugin,
-                         session->server_send->mhd_daemon,
-                         GNUNET_YES);
-      server_reschedule_session_timeout (session);
+    server_reschedule (session->plugin,
+                       session->server_send->mhd_daemon,
+                       GNUNET_YES);
+    server_reschedule_session_timeout (session);
   }
   return bytes_sent;
 }
-
 
 
 /**
@@ -611,16 +620,16 @@ http_server_plugin_send (void *cls,
  * @param target peer from which to disconnect
  */
 static void
-http_server_plugin_disconnect (void *cls, const struct GNUNET_PeerIdentity *target)
+http_server_plugin_disconnect_peer (void *cls,
+                                    const struct GNUNET_PeerIdentity *target)
 {
   struct HTTP_Server_Plugin *plugin = cls;
-  struct Session *next = NULL;
-  struct Session *pos = NULL;
+  struct Session *next;
+  struct Session *pos;
 
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                    "Transport tells me to disconnect `%s'\n",
                    GNUNET_i2s (target));
-
   next = plugin->head;
   while (NULL != (pos = next))
   {
@@ -630,10 +639,9 @@ http_server_plugin_disconnect (void *cls, const struct GNUNET_PeerIdentity *targ
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                        "Disconnecting session %p to `%s'\n",
                        pos, GNUNET_i2s (target));
-      server_disconnect (pos);
+      http_server_plugin_disconnect_session (plugin, pos);
     }
   }
-
 }
 
 
@@ -645,41 +653,42 @@ http_server_plugin_disconnect (void *cls, const struct GNUNET_PeerIdentity *targ
  *
  * @param cls closure
  * @param addr pointer to the address
- * @param addrlen length of addr
- * @return GNUNET_OK if this is a plausible address for this peer
+ * @param addrlen length of @a addr
+ * @return #GNUNET_OK if this is a plausible address for this peer
  *         and transport
  */
 static int
-http_server_plugin_address_suggested (void *cls, const void *addr,
-		size_t addrlen)
+http_server_plugin_address_suggested (void *cls,
+                                      const void *addr,
+                                      size_t addrlen)
 {
-	struct HttpAddressWrapper *next;
-	struct HttpAddressWrapper *pos;
-	const struct HttpAddress *haddr = addr;
+  struct HTTP_Server_Plugin *plugin = cls;
+  struct HttpAddressWrapper *next;
+  struct HttpAddressWrapper *pos;
+  const struct HttpAddress *haddr = addr;
 
-	if ((NULL != p->ext_addr) &&
-		 GNUNET_YES == (http_common_cmp_addresses (addr, addrlen,
-								 p->ext_addr, p->ext_addr_len)))
-	{
-		/* Checking HTTP_OPTIONS_VERIFY_CERTIFICATE option for external hostname */
-		if ((ntohl(haddr->options) & HTTP_OPTIONS_VERIFY_CERTIFICATE) !=
-				(p->options & HTTP_OPTIONS_VERIFY_CERTIFICATE))
-			return GNUNET_NO; /* VERIFY option not set as required! */
-		return GNUNET_OK;
-	}
-
-	next  = p->addr_head;
-	while (NULL != (pos = next))
-	{
-		next = pos->next;
-		if (GNUNET_YES == (http_common_cmp_addresses(addr,
-																								 addrlen,
-																								 pos->address,
-																								 pos->addrlen)))
-			return GNUNET_OK;
-
-	}
-	return GNUNET_NO;
+  if ((NULL != plugin->ext_addr) &&
+      GNUNET_YES == (http_common_cmp_addresses (addr, addrlen,
+                                                plugin->ext_addr,
+                                                plugin->ext_addr_len)))
+  {
+    /* Checking HTTP_OPTIONS_VERIFY_CERTIFICATE option for external hostname */
+    if ((ntohl (haddr->options) & HTTP_OPTIONS_VERIFY_CERTIFICATE) !=
+        (plugin->options & HTTP_OPTIONS_VERIFY_CERTIFICATE))
+      return GNUNET_NO; /* VERIFY option not set as required! */
+    return GNUNET_OK;
+  }
+  next  = plugin->addr_head;
+  while (NULL != (pos = next))
+  {
+    next = pos->next;
+    if (GNUNET_YES == (http_common_cmp_addresses(addr,
+                                                 addrlen,
+                                                 pos->address,
+                                                 pos->addrlen)))
+      return GNUNET_OK;
+  }
+  return GNUNET_NO;
 }
 
 
@@ -705,33 +714,32 @@ http_server_plugin_get_session (void *cls,
  * Deleting the session
  * Must not be used afterwards
  *
+ * @param cls closure with the `struct HTTP_ServerPlugin`
  * @param s the session to delete
+ * @return #GNUNET_OK on success
  */
-static void
-server_delete_session (struct Session *s)
+static int
+server_delete_session (void *cls,
+                       struct Session *s)
 {
-  struct HTTP_Server_Plugin *plugin = s->plugin;
+  struct HTTP_Server_Plugin *plugin = cls;
+  struct HTTP_Message *msg;
+  struct HTTP_Message *tmp;
+
   server_stop_session_timeout(s);
-
   GNUNET_CONTAINER_DLL_remove (plugin->head, plugin->tail, s);
-  struct HTTP_Message *msg = s->msg_head;
-  struct HTTP_Message *tmp = NULL;
-
-  while (msg != NULL)
+  msg = s->msg_head;
+  while (NULL != msg)
   {
     tmp = msg->next;
-
     GNUNET_CONTAINER_DLL_remove (s->msg_head, s->msg_tail, msg);
-    if (msg->transmit_cont != NULL)
-    {
+    if (NULL != msg->transmit_cont)
       msg->transmit_cont (msg->transmit_cont_cls, &s->target, GNUNET_SYSERR,
                           msg->size, msg->pos + msg->overhead);
-    }
     GNUNET_free (msg);
     msg = tmp;
   }
-
-  if (s->msg_tk != NULL)
+  if (NULL != s->msg_tk)
   {
     GNUNET_SERVER_mst_destroy (s->msg_tk);
     s->msg_tk = NULL;
@@ -739,9 +747,11 @@ server_delete_session (struct Session *s)
   GNUNET_free (s->addr);
   GNUNET_free_non_null (s->server_recv);
   GNUNET_free_non_null (s->server_send);
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+                   plugin->name,
                    "Session %p destroyed\n", s);
   GNUNET_free (s);
+  return GNUNET_OK;
 }
 
 
@@ -770,11 +780,11 @@ server_stop_session_timeout (struct Session *s)
  * @param plugin plugin
  * @param daemon_handle the MHD daemon handle
  * @param now schedule immediately
- * @return gnunet task identifier
+ * @return task identifier
  */
 static GNUNET_SCHEDULER_TaskIdentifier
 server_schedule (struct HTTP_Server_Plugin *plugin,
-				 struct MHD_Daemon *daemon_handle,
+                 struct MHD_Daemon *daemon_handle,
                  int now);
 
 
@@ -782,12 +792,13 @@ server_schedule (struct HTTP_Server_Plugin *plugin,
  * Reschedule the execution of both IPv4 and IPv6 server
  * @param plugin the plugin
  * @param server which server to schedule v4 or v6?
- * @param now GNUNET_YES to schedule execution immediately, GNUNET_NO to wait
+ * @param now #GNUNET_YES to schedule execution immediately, #GNUNET_NO to wait
  * until timeout
  */
 static void
-server_reschedule (struct HTTP_Server_Plugin *plugin, struct MHD_Daemon *server,
-				   int now)
+server_reschedule (struct HTTP_Server_Plugin *plugin,
+                   struct MHD_Daemon *server,
+                   int now)
 {
   if ((server == plugin->server_v4) && (plugin->server_v4 != NULL))
   {
@@ -824,21 +835,24 @@ server_reschedule (struct HTTP_Server_Plugin *plugin, struct MHD_Daemon *server,
 
 
 /**
- * Disconnect session s
+ * Disconnect session @a s
  *
+ * @param cls closure with the `struct HTTP_Server_Plugin`
  * @param s the session
- * @return GNUNET_OK on success
+ * @return #GNUNET_OK on success
  */
 static int
-server_disconnect (struct Session *s)
+http_server_plugin_disconnect_session (void *cls,
+                                       struct Session *s)
 {
-  struct ServerConnection * send = NULL;
-  struct ServerConnection * recv = NULL;
+  struct HTTP_Server_Plugin *plugin = cls;
+  struct ServerConnection * send;
+  struct ServerConnection * recv;
 
-  if (GNUNET_NO == server_exist_session (p, s))
+  if (GNUNET_NO == server_exist_session (plugin, s))
   {
-      GNUNET_break (0);
-      return GNUNET_SYSERR;
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
   }
 
   send = (struct ServerConnection *) s->server_send;
@@ -849,10 +863,9 @@ server_disconnect (struct Session *s)
                      s, s->server_send, GNUNET_i2s (&s->target));
 
     send->disconnect = GNUNET_YES;
-#if MHD_VERSION >= 0x00090E00
-      MHD_set_connection_option (send->mhd_conn, MHD_CONNECTION_OPTION_TIMEOUT,
-                                 1);
-#endif
+    MHD_set_connection_option (send->mhd_conn,
+                               MHD_CONNECTION_OPTION_TIMEOUT,
+                               1);
     server_reschedule (s->plugin, send->mhd_daemon, GNUNET_YES);
   }
 
@@ -864,15 +877,13 @@ server_disconnect (struct Session *s)
                      s, s->server_recv, GNUNET_i2s (&s->target));
 
     recv->disconnect = GNUNET_YES;
-#if MHD_VERSION >= 0x00090E00
-      MHD_set_connection_option (recv->mhd_conn, MHD_CONNECTION_OPTION_TIMEOUT,
-                                 1);
-#endif
+    MHD_set_connection_option (recv->mhd_conn,
+                               MHD_CONNECTION_OPTION_TIMEOUT,
+                               1);
     server_reschedule (s->plugin, recv->mhd_daemon, GNUNET_YES);
   }
   return GNUNET_OK;
 }
-
 
 
 /**
@@ -887,7 +898,6 @@ server_mhd_connection_timeout (struct HTTP_Server_Plugin *plugin,
 			       struct Session *s,
 			       unsigned int to)
 {
-#if MHD_VERSION >= 0x00090E00
     /* Setting timeouts for other connections */
   if (NULL != s->server_recv)
   {
@@ -909,8 +919,8 @@ server_mhd_connection_timeout (struct HTTP_Server_Plugin *plugin,
 			       to);
     server_reschedule (plugin, s->server_send->mhd_daemon, GNUNET_NO);
   }
-#endif
 }
+
 
 /**
  * Parse incoming URL for tag and target
@@ -919,9 +929,8 @@ server_mhd_connection_timeout (struct HTTP_Server_Plugin *plugin,
  * @param url incoming url
  * @param target where to store the target
  * @param tag where to store the tag
- * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
-
 static int
 server_parse_url (struct HTTP_Server_Plugin *plugin,
 		  const char *url,
@@ -1136,7 +1145,7 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
       return NULL;
     }
 
-    s = GNUNET_malloc (sizeof (struct Session));
+    s = GNUNET_new (struct Session);
     memcpy (&s->target, &target, sizeof (struct GNUNET_PeerIdentity));
     s->plugin = plugin;
     s->addr = addr;
@@ -1155,9 +1164,11 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                      "Creating new session %p for peer `%s' connecting from `%s'\n",
                      s, GNUNET_i2s (&target),
-                     http_common_plugin_address_to_string (NULL, p->protocol, addr, addr_len));
+                     http_common_plugin_address_to_string (NULL,
+                                                           plugin->protocol,
+                                                           addr, addr_len));
   }
-  sc = GNUNET_malloc (sizeof (struct ServerConnection));
+  sc = GNUNET_new (struct ServerConnection);
   if (conn_info->client_addr->sa_family == AF_INET)
     sc->mhd_daemon = plugin->server_v4;
   if (conn_info->client_addr->sa_family == AF_INET6)
@@ -1218,19 +1229,16 @@ server_lookup_session (struct HTTP_Server_Plugin *plugin,
   return NULL;
 }
 
-int
-server_exist_session (struct HTTP_Server_Plugin *plugin, struct Session *s)
+
+static int
+server_exist_session (struct HTTP_Server_Plugin *plugin,
+                      struct Session *s)
 {
   struct Session * head;
 
-  GNUNET_assert (NULL != plugin);
-  GNUNET_assert (NULL != s);
-
   for (head = plugin->head; head != NULL; head = head->next)
-  {
     if (head == s)
       return GNUNET_YES;
-  }
   return GNUNET_NO;
 }
 
@@ -1252,8 +1260,7 @@ server_send_callback (void *cls, uint64_t pos, char *buf, size_t max)
   struct HTTP_Message *msg;
   char *stat_txt;
 
-  GNUNET_assert (NULL != p);
-  if (GNUNET_NO == server_exist_session (p, s))
+  if (GNUNET_NO == server_exist_session (s->plugin, s))
     return 0;
   msg = s->msg_head;
   if (NULL != msg)
@@ -1278,12 +1285,14 @@ server_send_callback (void *cls, uint64_t pos, char *buf, size_t max)
   {
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, s->plugin->name,
                    "Sent %u bytes to peer `%s' with session %p \n", bytes_read, GNUNET_i2s (&s->target), s);
-    GNUNET_asprintf (&stat_txt, "# bytes currently in %s_server buffers", p->protocol);
-    GNUNET_STATISTICS_update (p->env->stats,
+    GNUNET_asprintf (&stat_txt, "# bytes currently in %s_server buffers",
+                     s->plugin->protocol);
+    GNUNET_STATISTICS_update (s->plugin->env->stats,
                               stat_txt, -bytes_read, GNUNET_NO);
     GNUNET_free (stat_txt);
-    GNUNET_asprintf (&stat_txt, "# bytes transmitted via %s_server", p->protocol);
-    GNUNET_STATISTICS_update (p->env->stats,
+    GNUNET_asprintf (&stat_txt, "# bytes transmitted via %s_server",
+                     s->plugin->protocol);
+    GNUNET_STATISTICS_update (s->plugin->env->stats,
                               stat_txt, bytes_read, GNUNET_NO);
     GNUNET_free (stat_txt);
   }
@@ -1297,7 +1306,7 @@ server_send_callback (void *cls, uint64_t pos, char *buf, size_t max)
  * @param cls current session as closure
  * @param client client
  * @param message the message to be forwarded to transport service
- * @return GNUNET_OK
+ * @return #GNUNET_OK
  */
 static int
 server_receive_mst_cb (void *cls, void *client,
@@ -1309,8 +1318,7 @@ server_receive_mst_cb (void *cls, void *client,
   struct GNUNET_TIME_Relative delay;
   char *stat_txt;
 
-  GNUNET_assert (NULL != p);
-  if (GNUNET_NO == server_exist_session(p, s))
+  if (GNUNET_NO == server_exist_session (s->plugin, s))
     return GNUNET_OK;
 
 
@@ -1340,7 +1348,9 @@ server_receive_mst_cb (void *cls, void *client,
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                      "Peer `%s' address `%s' next read delayed for %s\n",
                      GNUNET_i2s (&s->target),
-                     http_common_plugin_address_to_string (NULL,  p->protocol, s->addr, s->addrlen),
+                     http_common_plugin_address_to_string (NULL,
+                                                           plugin->protocol,
+                                                           s->addr, s->addrlen),
                      GNUNET_STRINGS_relative_time_to_string (delay,
 							     GNUNET_YES));
   }
@@ -1448,7 +1458,7 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
                        s, sc,
                        GNUNET_i2s (&s->target),
                        http_common_plugin_address_to_string (NULL,
-                      		 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	    p->protocol,
+                                                             plugin->protocol,
                                                              s->addr,
                                                              s->addrlen));
       sc->connected = GNUNET_YES;
@@ -1462,7 +1472,7 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
                        s, sc,
                        GNUNET_i2s (&s->target),
                        http_common_plugin_address_to_string (NULL,
-                      		 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	  p->protocol,
+                                                             plugin->protocol,
                                                              s->addr,
                                                              s->addrlen));
       sc->connected = GNUNET_NO;
@@ -1482,7 +1492,7 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
                        s, sc,
                        GNUNET_i2s (&s->target),
                        http_common_plugin_address_to_string (NULL,
-                      		 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	 	    p->protocol,
+                                                             plugin->protocol,
                                                              s->addr,
                                                              s->addrlen),
                        *upload_data_size);
@@ -1526,7 +1536,7 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
 /**
  * Callback from MHD when a connection disconnects
  *
- * @param cls closure
+ * @param cls closure with the `struct HTTP_Server_Plugin *`
  * @param connection the disconnected MHD connection
  * @param httpSessionCache the pointer to distinguish
  */
@@ -1534,37 +1544,34 @@ static void
 server_disconnect_cb (void *cls, struct MHD_Connection *connection,
                       void **httpSessionCache)
 {
+  struct HTTP_Server_Plugin *plugin = cls;
   struct ServerConnection *sc = *httpSessionCache;
   struct Session *s = NULL;
   struct Session *t = NULL;
-  struct HTTP_Server_Plugin *plugin = NULL;
 
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, p->name,
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+                   plugin->name,
                    "Disconnect for connection %p \n", sc);
 
   if (sc == NULL)
     return;
 
-  if (NULL == (s = server_lookup_session (p, sc)))
+  if (NULL == (s = server_lookup_session (plugin, sc)))
     return;
-
-  GNUNET_assert (NULL != p);
-  for (t = p->head; t != NULL; t = t->next)
-  {
+  for (t = plugin->head; t != NULL; t = t->next)
     if (t == s)
       break;
-  }
   if (NULL == t)
     return;
 
-  plugin = s->plugin;
   if (sc->direction == _SEND)
   {
-
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                      "Peer `%s' connection  %p, GET on address `%s' disconnected\n",
                      GNUNET_i2s (&s->target), s->server_send,
-                     http_common_plugin_address_to_string (NULL,  p->protocol, s->addr, s->addrlen));
+                     http_common_plugin_address_to_string (NULL,
+                                                           plugin->protocol,
+                                                           s->addr, s->addrlen));
     s->server_send = NULL;
     if (NULL != (s->server_recv))
     {
@@ -1582,7 +1589,9 @@ server_disconnect_cb (void *cls, struct MHD_Connection *connection,
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                      "Peer `%s' connection %p PUT on address `%s' disconnected\n",
                      GNUNET_i2s (&s->target), s->server_recv,
-                     http_common_plugin_address_to_string (NULL,  p->protocol, s->addr, s->addrlen));
+                     http_common_plugin_address_to_string (NULL,
+                                                           plugin->protocol,
+                                                           s->addr, s->addrlen));
     s->server_recv = NULL;
     /* Do not terminate session when PUT disconnects
     if (NULL != (s->server_send))
@@ -1610,7 +1619,9 @@ server_disconnect_cb (void *cls, struct MHD_Connection *connection,
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                      "Peer `%s' on address `%s' disconnected\n",
                      GNUNET_i2s (&s->target),
-                     http_common_plugin_address_to_string (NULL,  p->protocol, s->addr, s->addrlen));
+                     http_common_plugin_address_to_string (NULL,
+                                                           plugin->protocol,
+                                                           s->addr, s->addrlen));
 
     if ((GNUNET_YES == s->session_passed) && (GNUNET_NO == s->session_ended))
     {
@@ -1618,20 +1629,18 @@ server_disconnect_cb (void *cls, struct MHD_Connection *connection,
         s->session_ended = GNUNET_YES;
         plugin->env->session_end (plugin->env->cls, &s->target, s);
     }
-    server_delete_session (s);
+    server_delete_session (plugin, s);
   }
-
 }
 
 
 /**
  * Check if incoming connection is accepted.
-
+ *
  * @param cls plugin as closure
  * @param addr address of incoming connection
  * @param addr_len address length of incoming connection
  * @return MHD_YES if connection is accepted, MHD_NO if connection is rejected
- *
  */
 static int
 server_accept_cb (void *cls, const struct sockaddr *addr, socklen_t addr_len)
@@ -1654,6 +1663,7 @@ server_accept_cb (void *cls, const struct sockaddr *addr, socklen_t addr_len)
     return MHD_NO;
   }
 }
+
 
 static void
 server_log (void *arg, const char *fmt, va_list ap)
@@ -1717,8 +1727,6 @@ server_v6_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
-#define UNSIGNED_MHD_LONG_LONG unsigned MHD_LONG_LONG
-
 /**
  * Function that queries MHD's select sets and
  * starts the task waiting for them.
@@ -1740,7 +1748,7 @@ server_schedule (struct HTTP_Server_Plugin *plugin,
   struct GNUNET_NETWORK_FDSet *wws;
   struct GNUNET_NETWORK_FDSet *wes;
   int max;
-  UNSIGNED_MHD_LONG_LONG timeout;
+  MHD_UNSIGNED_LONG_LONG timeout;
   static unsigned long long last_timeout = 0;
   int haveto;
 
@@ -2158,8 +2166,6 @@ server_stop (struct HTTP_Server_Plugin *plugin)
     GNUNET_SCHEDULER_cancel (plugin->server_v6_task);
     plugin->server_v6_task = GNUNET_SCHEDULER_NO_TASK;
   }
-  p = NULL;
-
 #if BUILD_HTTPS
   GNUNET_free_non_null (plugin->crypto_init);
   GNUNET_free_non_null (plugin->cert);
@@ -2198,7 +2204,9 @@ server_add_address (void *cls, int add_remove, const struct sockaddr *addr,
   GNUNET_CONTAINER_DLL_insert(plugin->addr_head, plugin->addr_tail, w);
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                    "Notifying transport to add address `%s'\n",
-                   http_common_plugin_address_to_string (NULL,  p->protocol, w->address, w->addrlen));
+                   http_common_plugin_address_to_string (NULL,
+                                                         plugin->protocol,
+                                                         w->address, w->addrlen));
 #if BUILD_HTTPS
   plugin->env->notify_address (plugin->env->cls, add_remove, w->address, w->addrlen, "https_client");
 #else
@@ -2240,7 +2248,9 @@ server_remove_address (void *cls, int add_remove, const struct sockaddr *addr,
 
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                    "Notifying transport to remove address `%s'\n",
-                   http_common_plugin_address_to_string (NULL,  p->protocol, w->address, w->addrlen));
+                   http_common_plugin_address_to_string (NULL,
+                                                         plugin->protocol,
+                                                         w->address, w->addrlen));
   GNUNET_CONTAINER_DLL_remove (plugin->addr_head, plugin->addr_tail, w);
 #if BUILD_HTTPS
   plugin->env->notify_address (plugin->env->cls, add_remove, w->address, w->addrlen, "https_client");
@@ -2880,7 +2890,6 @@ server_configure_plugin (struct HTTP_Server_Plugin *plugin)
 static void
 server_session_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_assert (NULL != cls);
   struct Session *s = cls;
 
   s->timeout_task = GNUNET_SCHEDULER_NO_TASK;
@@ -2891,7 +2900,8 @@ server_session_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
 						      GNUNET_YES));
 
   /* call session destroy function */
- GNUNET_assert (GNUNET_OK == server_disconnect (s));
+  GNUNET_assert (GNUNET_OK ==
+                 http_server_plugin_disconnect_session (s->plugin, s));
 }
 
 
@@ -2966,24 +2976,24 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
 
   if (GNUNET_SCHEDULER_NO_TASK != plugin->notify_ext_task)
   {
-      GNUNET_SCHEDULER_cancel (plugin->notify_ext_task);
-      plugin->notify_ext_task = GNUNET_SCHEDULER_NO_TASK;
+    GNUNET_SCHEDULER_cancel (plugin->notify_ext_task);
+    plugin->notify_ext_task = GNUNET_SCHEDULER_NO_TASK;
   }
 
   if (NULL != plugin->ext_addr)
   {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                       "Notifying transport to remove address `%s'\n",
-                       http_common_plugin_address_to_string (NULL,
-                      		  p->protocol,
-                           plugin->ext_addr,
-                           plugin->ext_addr_len));
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                     "Notifying transport to remove address `%s'\n",
+                     http_common_plugin_address_to_string (NULL,
+                                                           plugin->protocol,
+                                                           plugin->ext_addr,
+                                                           plugin->ext_addr_len));
 #if BUILD_HTTPS
-      plugin->env->notify_address (plugin->env->cls,
-                                   GNUNET_NO,
-                                   plugin->ext_addr,
-                                   plugin->ext_addr_len,
-                                   "https_client");
+    plugin->env->notify_address (plugin->env->cls,
+                                 GNUNET_NO,
+                                 plugin->ext_addr,
+                                 plugin->ext_addr_len,
+                                 "https_client");
 #else
   plugin->env->notify_address (plugin->env->cls,
                                GNUNET_NO,
@@ -2991,7 +3001,6 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
                                plugin->ext_addr_len,
                                "http_client");
 #endif
-
   }
 
   /* Stop to report addresses to transport service */
@@ -3000,18 +3009,17 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
   next = plugin->head;
   while (NULL != (pos = next))
   {
-      next = pos->next;
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                       "Removing left over session %p\n", pos);
+    next = pos->next;
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                     "Removing left over session %p\n", pos);
 
-      if ((GNUNET_YES == pos->session_passed) && (GNUNET_NO == pos->session_ended))
-      {
-        /* Notify transport immediately that this session is invalid */
-        pos->session_ended = GNUNET_YES;
-        plugin->env->session_end (plugin->env->cls, &pos->target, pos);
-      }
-
-      server_delete_session (pos);
+    if ((GNUNET_YES == pos->session_passed) && (GNUNET_NO == pos->session_ended))
+    {
+      /* Notify transport immediately that this session is invalid */
+      pos->session_ended = GNUNET_YES;
+      plugin->env->session_end (plugin->env->cls, &pos->target, pos);
+    }
+    server_delete_session (plugin, pos);
   }
 
   /* Clean up */
@@ -3071,15 +3079,14 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
   struct GNUNET_TRANSPORT_PluginFunctions *api;
   struct HTTP_Server_Plugin *plugin;
 
-  plugin = GNUNET_malloc (sizeof (struct HTTP_Server_Plugin));
+  plugin = GNUNET_new (struct HTTP_Server_Plugin);
   plugin->env = env;
-  p = plugin;
 
   if (NULL == env->receive)
   {
     /* run in 'stub' mode (i.e. as part of gnunet-peerinfo), don't fully
        initialze the plugin or the API */
-    api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
+    api = GNUNET_new (struct GNUNET_TRANSPORT_PluginFunctions);
     api->cls = NULL;
     api->address_to_string = &http_plugin_address_to_string;
     api->string_to_address = &http_common_plugin_string_to_address;
@@ -3087,10 +3094,11 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
     return api;
   }
 
-  api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
+  api = GNUNET_new (struct GNUNET_TRANSPORT_PluginFunctions);
   api->cls = plugin;
   api->send = &http_server_plugin_send;
-  api->disconnect = &http_server_plugin_disconnect;
+  api->disconnect_peer = &http_server_plugin_disconnect_peer;
+  api->disconnect_session = &http_server_plugin_disconnect_session;
   api->check_address = &http_server_plugin_address_suggested;
   api->get_session = &http_server_plugin_get_session;
 

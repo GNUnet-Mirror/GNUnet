@@ -298,12 +298,11 @@ struct Session
    * call or on our 'accept' call).
    *
    * struct IPv4TcpAddress or struct IPv6TcpAddress
-   *
    */
   void *addr;
 
   /**
-   * Length of connect_addr.
+   * Length of @e addr.
    */
   size_t addrlen;
 
@@ -1019,12 +1018,14 @@ process_pending_messages (struct Session *session)
  * establish a connection.
  *
  * @param session session to close down
+ * @return #GNUNET_OK on success
  */
-static void
-disconnect_session (struct Session *session)
+static int
+tcp_disconnect_session (void *cls,
+                        struct Session *session)
 {
+  struct Plugin *plugin = cls;
   struct PendingMessage *pm;
-  struct Plugin * plugin = session->plugin;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Disconnecting session of peer `%s' address `%s'\n",
@@ -1101,6 +1102,7 @@ disconnect_session (struct Session *session)
   GNUNET_free_non_null (session->addr);
   GNUNET_assert (NULL == session->transmit_handle);
   GNUNET_free (session);
+  return GNUNET_OK;
 }
 
 
@@ -1172,7 +1174,7 @@ find_session (struct Plugin *plugin, struct Session *session)
  *        been transmitted (or if the transport is ready
  *        for the next transmission call; or if the
  *        peer disconnected...); can be NULL
- * @param cont_cls closure for cont
+ * @param cont_cls closure for @a cont
  * @return number of bytes used (on the physical network, with overheads);
  *         -1 on hard errors (i.e. address invalid); 0 is a legal value
  *         and does NOT mean that the message was not transmitted (DV)
@@ -1315,15 +1317,19 @@ session_lookup_it (void *cls,
  * Task cleaning up a NAT connection attempt after timeout
  */
 static void
-nat_connect_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+nat_connect_timeout (void *cls,
+                     const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct Session *session = cls;
 
   session->nat_connection_timeout = GNUNET_SCHEDULER_NO_TASK;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "NAT WAIT connection to `%4s' at `%s' could not be established, removing session\n",
-       GNUNET_i2s (&session->target), tcp_address_to_string(NULL, session->addr, session->addrlen));
-  disconnect_session (session);
+       GNUNET_i2s (&session->target),
+       tcp_address_to_string (NULL,
+                              session->addr, session->addrlen));
+  tcp_disconnect_session (session->plugin,
+                          session);
 }
 
 
@@ -1491,7 +1497,7 @@ tcp_plugin_get_session (void *cls,
       LOG (GNUNET_ERROR_TYPE_DEBUG,
 	   "Running NAT client for `%4s' at `%s' failed\n",
 	   GNUNET_i2s (&session->target), GNUNET_a2s (sb, sbs));
-      disconnect_session (session);
+      tcp_disconnect_session (plugin, session);
       return NULL;
     }
   }
@@ -1544,13 +1550,15 @@ session_disconnect_it (void *cls,
 		       const struct GNUNET_PeerIdentity *key,
 		       void *value)
 {
+  struct Plugin *plugin = cls;
   struct Session *session = value;
 
   GNUNET_STATISTICS_update (session->plugin->env->stats,
                             gettext_noop
                             ("# transport-service disconnect requests for TCP"),
                             1, GNUNET_NO);
-  disconnect_session (session);
+  tcp_disconnect_session (plugin,
+                          session);
   return GNUNET_YES;
 }
 
@@ -1980,7 +1988,7 @@ handle_tcp_nat_probe (void *cls, struct GNUNET_SERVER_Client *client,
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    disconnect_session (session);
+    tcp_disconnect_session (plugin, session);
     return;
   }
   GNUNET_assert (GNUNET_CONTAINER_multipeermap_remove
@@ -2021,7 +2029,7 @@ handle_tcp_nat_probe (void *cls, struct GNUNET_SERVER_Client *client,
 	 "Bad address for incoming connection!\n");
     GNUNET_free (vaddr);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
-    disconnect_session (session);
+    tcp_disconnect_session (plugin, session);
     return;
   }
   GNUNET_free (vaddr);
@@ -2334,18 +2342,18 @@ disconnect_notify (void *cls, struct GNUNET_SERVER_Client *client)
        "*");
 
   if (plugin->cur_connections == plugin->max_connections)
-  	GNUNET_SERVER_resume (plugin->server); /* Resume server  */
+    GNUNET_SERVER_resume (plugin->server); /* Resume server  */
 
   if (plugin->cur_connections < 1)
-  	GNUNET_break (0);
+    GNUNET_break (0);
   else
-  	plugin->cur_connections--;
+    plugin->cur_connections--;
 
   GNUNET_STATISTICS_update (session->plugin->env->stats,
                             gettext_noop
                             ("# network-level TCP disconnect events"), 1,
                             GNUNET_NO);
-  disconnect_session (session);
+  tcp_disconnect_session (plugin, session);
 }
 
 
@@ -2451,7 +2459,7 @@ session_timeout (void *cls,
 	      GNUNET_STRINGS_relative_time_to_string (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
 						      GNUNET_YES));
   /* call session destroy function */
-  disconnect_session (s);
+  tcp_disconnect_session(s->plugin, s);
 }
 
 
@@ -2461,11 +2469,10 @@ session_timeout (void *cls,
 static void
 start_session_timeout (struct Session *s)
 {
-  GNUNET_assert (NULL != s);
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == s->timeout_task);
   s->timeout_task = GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
-                                                   &session_timeout,
-                                                   s);
+                                                  &session_timeout,
+                                                  s);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Timeout for session %p set to %s\n",
 	      s,
@@ -2567,7 +2574,7 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   {
     /* run in 'stub' mode (i.e. as part of gnunet-peerinfo), don't fully
        initialze the plugin or the API */
-    api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
+    api = GNUNET_new (struct GNUNET_TRANSPORT_PluginFunctions);
     api->cls = NULL;
     api->address_pretty_printer = &tcp_plugin_address_pretty_printer;
     api->address_to_string = &tcp_address_to_string;
@@ -2592,8 +2599,7 @@ libgnunet_plugin_transport_tcp_init (void *cls)
        (aport > 65535)))
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
-	 _
-	 ("Require valid port number for service `%s' in configuration!\n"),
+	 _("Require valid port number for service `%s' in configuration!\n"),
 	 "transport-tcp");
     return NULL;
   }
@@ -2617,7 +2623,7 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   /* Initialize my flags */
   myoptions = 0;
 
-  plugin = GNUNET_malloc (sizeof (struct Plugin));
+  plugin = GNUNET_new (struct Plugin);
   plugin->sessionmap = GNUNET_CONTAINER_multipeermap_create (max_connections, GNUNET_YES);
   plugin->max_connections = max_connections;
   plugin->cur_connections = 0;
@@ -2659,14 +2665,15 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   api->send = &tcp_plugin_send;
   api->get_session = &tcp_plugin_get_session;
 
-  api->disconnect = &tcp_plugin_disconnect;
+  api->disconnect_session = &tcp_disconnect_session;
+  api->disconnect_peer = &tcp_plugin_disconnect;
   api->address_pretty_printer = &tcp_plugin_address_pretty_printer;
   api->check_address = &tcp_plugin_check_address;
   api->address_to_string = &tcp_address_to_string;
   api->string_to_address = &tcp_string_to_address;
   api->get_network = &tcp_get_network;
   plugin->service = service;
-  if (service != NULL)
+  if (NULL != service)
   {
     plugin->server = GNUNET_SERVICE_get_server (service);
   }
@@ -2703,13 +2710,11 @@ libgnunet_plugin_transport_tcp_init (void *cls)
 	 _("TCP transport listening on port %llu\n"), bport);
   else
     LOG (GNUNET_ERROR_TYPE_INFO,
-	 _
-	 ("TCP transport not listening on any port (client only)\n"));
+	 _("TCP transport not listening on any port (client only)\n"));
   if (aport != bport)
     LOG (GNUNET_ERROR_TYPE_INFO,
-                     _
-                     ("TCP transport advertises itself as being on port %llu\n"),
-                     aport);
+         _("TCP transport advertises itself as being on port %llu\n"),
+         aport);
   /* Initially set connections to 0 */
   GNUNET_assert (NULL != plugin->env->stats);
   GNUNET_STATISTICS_set (plugin->env->stats,

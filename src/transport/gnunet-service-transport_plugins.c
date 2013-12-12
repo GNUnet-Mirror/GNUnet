@@ -219,12 +219,20 @@ GST_plugins_load (GNUNET_TRANSPORT_PluginReceiveCallback recv_cb,
                   "send",
                   plug->lib_name);
     }
-    if (NULL == plug->api->disconnect)
+    if (NULL == plug->api->disconnect_peer)
     {
     	fail = GNUNET_YES;
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   _("Missing function `%s' in transport plugin for `%s'\n"),
-                  "disconnect",
+                  "disconnect_peer",
+                  plug->lib_name);
+    }
+    if (NULL == plug->api->disconnect_session)
+    {
+    	fail = GNUNET_YES;
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _("Missing function `%s' in transport plugin for `%s'\n"),
+                  "disconnect_session",
                   plug->lib_name);
     }
     if (GNUNET_YES == fail)

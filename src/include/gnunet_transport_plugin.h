@@ -62,6 +62,7 @@ struct SessionHeader
   /* empty, for now */
 };
 
+
 /**
  * Function that will be called whenever the plugin internally
  * cleans up a session pointer and hence the service needs to
@@ -75,9 +76,10 @@ struct SessionHeader
  * @param peer which peer was the session for
  * @param session which session is being destoyed
  */
-typedef void (*GNUNET_TRANSPORT_SessionEnd) (void *cls,
-                                             const struct GNUNET_PeerIdentity *peer,
-                                             struct Session * session);
+typedef void
+(*GNUNET_TRANSPORT_SessionEnd) (void *cls,
+                                const struct GNUNET_PeerIdentity *peer,
+                                struct Session *session);
 
 
 /**
@@ -93,17 +95,18 @@ typedef void (*GNUNET_TRANSPORT_SessionEnd) (void *cls,
  * @param address_len length of the @a address
  * @param session session
  * @param ats ATS information
- * @param ats_count number of ATS information contained
+ * @param ats_count number of entries in @a ats array
  */
 typedef void
 (*GNUNET_TRANSPORT_SessionStart) (void *cls,
-					  const struct GNUNET_PeerIdentity *peer,
-					  const char *plugin,
-					  const void *address,
-					  uint16_t address_len,
-					  struct Session *session,
-					  const struct GNUNET_ATS_Information *ats,
-					  uint32_t ats_count);
+                                  const struct GNUNET_PeerIdentity *peer,
+                                  const char *plugin,
+                                  const void *address,
+                                  uint16_t address_len,
+                                  struct Session *session,
+                                  const struct GNUNET_ATS_Information *ats,
+                                  uint32_t ats_count);
+
 
 /**
  * Function called by the transport for each received message.
@@ -123,16 +126,17 @@ typedef void
  *                that we could establish ourselves a connection to that
  *                IP address and get the same system)
  * @param sender_address_len number of bytes in @a sender_address
- * @return how long the plugin should wait until receiving more data
- *         (plugins that do not support this, can ignore the return value)
+ * @return how long the plugin should wait until receiving more data;
+ *         returning #GNUNET_TIME_UNIT_FOREVER_REL means that the
+ *         connection should be closed
  */
-typedef struct
-    GNUNET_TIME_Relative (*GNUNET_TRANSPORT_PluginReceiveCallback) (void *cls,
-																		const struct GNUNET_PeerIdentity *peer,
-																		const struct GNUNET_MessageHeader *message,
-																		struct Session *session,
-																		const char *sender_address,
-																		uint16_t sender_address_len);
+typedef struct GNUNET_TIME_Relative
+(*GNUNET_TRANSPORT_PluginReceiveCallback) (void *cls,
+                                           const struct GNUNET_PeerIdentity *peer,
+                                           const struct GNUNET_MessageHeader *message,
+                                           struct Session *session,
+                                           const char *sender_address,
+                                           uint16_t sender_address_len);
 
 
 /**
@@ -159,7 +163,7 @@ typedef struct GNUNET_ATS_Information
  * @param address_len length of the @a address
  * @param session session
  * @param ats ATS information
- * @param ats_count number of ATS information contained in @a ats
+ * @param ats_count number entries in the @a ats array
  */
 typedef void
 (*GNUNET_TRANSPORT_UpdateAddressMetrics) (void *cls,
@@ -175,18 +179,19 @@ typedef void
  * is aware that it might be reachable under.
  *
  * @param cls closure
- * @param add_remove should the address added (YES) or removed (NO) from the
+ * @param add_remove should the address added (#GNUNET_YES) or removed (#GNUNET_NO) from the
  *                   set of valid addresses?
  * @param addr one of the addresses of the host
  *        the specific address format depends on the transport
- * @param addrlen length of the address
+ * @param addrlen length of the @a addr
  * @param dest_plugin plugin to use this address with
  */
-typedef void (*GNUNET_TRANSPORT_AddressNotification) (void *cls,
-                                                      int add_remove,
-                                                      const void *addr,
-                                                      size_t addrlen,
-                                                      const char *dest_plugin);
+typedef void
+(*GNUNET_TRANSPORT_AddressNotification) (void *cls,
+                                         int add_remove,
+                                         const void *addr,
+                                         size_t addrlen,
+                                         const char *dest_plugin);
 
 
 /**
@@ -202,18 +207,20 @@ typedef void (*GNUNET_TRANSPORT_AddressNotification) (void *cls,
  * @param peer which peer did we read data from
  * @param amount_recved number of bytes read (can be zero)
  * @return how long to wait until reading more from this peer
- *         (to enforce inbound quotas)
+ *         (to enforce inbound quotas); returning #GNUNET_TIME_UNIT_FOREVER_REL
+ *         means that the connection should be closed
  */
-typedef struct GNUNET_TIME_Relative (*GNUNET_TRANSPORT_TrafficReport) (void *cls,
-										 const struct GNUNET_PeerIdentity* peer,
-										 size_t amount_recved);
+typedef struct GNUNET_TIME_Relative
+(*GNUNET_TRANSPORT_TrafficReport) (void *cls,
+                                   const struct GNUNET_PeerIdentity *peer,
+                                   size_t amount_recved);
 
 
 /**
  * Function that returns a HELLO message.
  */
 typedef const struct GNUNET_MessageHeader *
-    (*GNUNET_TRANSPORT_GetHelloCallback) (void);
+(*GNUNET_TRANSPORT_GetHelloCallback) (void);
 
 
 /**
@@ -252,7 +259,6 @@ struct GNUNET_TRANSPORT_PluginEnvironment
    * 'string_to_address' functions.
    */
   GNUNET_TRANSPORT_PluginReceiveCallback receive;
-
 
   /**
    * Function that returns our HELLO.
@@ -302,7 +308,7 @@ struct GNUNET_TRANSPORT_PluginEnvironment
 
 
 /**
- * Function called by the GNUNET_TRANSPORT_TransmitFunction
+ * Function called by the #GNUNET_TRANSPORT_TransmitFunction
  * upon "completion".  In the case that a peer disconnects,
  * this function must be called for each pending request
  * (with a 'failure' indication) AFTER notifying the service
@@ -320,11 +326,13 @@ struct GNUNET_TRANSPORT_PluginEnvironment
  * @param size_on_wire bytes required on wire for transmission,
  *               0 if result == #GNUNET_SYSERR
  */
-typedef void (*GNUNET_TRANSPORT_TransmitContinuation) (void *cls,
-                                                       const struct GNUNET_PeerIdentity *target,
-                                                       int result,
-                                                       size_t size_payload,
-                                                       size_t size_on_wire);
+typedef void
+(*GNUNET_TRANSPORT_TransmitContinuation) (void *cls,
+                                          const struct GNUNET_PeerIdentity *target,
+                                          int result,
+                                          size_t size_payload,
+                                          size_t size_on_wire);
+
 
 /**
  * The new send function with just the session and no address
@@ -350,19 +358,37 @@ typedef void (*GNUNET_TRANSPORT_TransmitContinuation) (void *cls,
  *        been transmitted (or if the transport is ready
  *        for the next transmission call; or if the
  *        peer disconnected...); can be NULL
- * @param cont_cls closure for cont
+ * @param cont_cls closure for @a cont
  * @return number of bytes used (on the physical network, with overheads);
  *         -1 on hard errors (i.e. address invalid); 0 is a legal value
  *         and does NOT mean that the message was not transmitted (DV)
  */
-typedef ssize_t (*GNUNET_TRANSPORT_TransmitFunction) (void *cls,
-						      struct Session *session,
-						      const char *msgbuf,
-						      size_t msgbuf_size,
-						      unsigned int priority,
-						      struct GNUNET_TIME_Relative to,
-						      GNUNET_TRANSPORT_TransmitContinuation cont,
-						      void *cont_cls);
+typedef ssize_t
+(*GNUNET_TRANSPORT_TransmitFunction) (void *cls,
+                                      struct Session *session,
+                                      const char *msgbuf,
+                                      size_t msgbuf_size,
+                                      unsigned int priority,
+                                      struct GNUNET_TIME_Relative to,
+                                      GNUNET_TRANSPORT_TransmitContinuation cont,
+                                      void *cont_cls);
+
+
+/**
+ * Function that can be called to force a disconnect from the
+ * specified neighbour for the given session only.  .  This should
+ * also cancel all previously scheduled transmissions for this
+ * session.  Obviously the transmission may have been partially
+ * completed already, which is OK.  The plugin is supposed to close
+ * the connection (if applicable).
+ *
+ * @param cls closure with the `struct Plugin`
+ * @param session session to destroy
+ * @return #GNUNET_OK on success
+ */
+typedef int
+(*GNUNET_TRANSPORT_DisconnectSessionFunction) (void *cls,
+                                               struct Session *session);
 
 
 /**
@@ -373,16 +399,13 @@ typedef ssize_t (*GNUNET_TRANSPORT_TransmitFunction) (void *cls,
  * to close the connection (if applicable) and no longer call the
  * transmit continuation(s).
  *
- * Finally, plugin MUST NOT call the services's receive function to
- * notify the service that the connection to the specified target was
- * closed after a getting this call.
- *
  * @param cls closure
  * @param target peer for which the last transmission is
  *        to be cancelled
  */
-typedef void (*GNUNET_TRANSPORT_DisconnectFunction) (void *cls,
-                      const struct GNUNET_PeerIdentity *target);
+typedef void
+(*GNUNET_TRANSPORT_DisconnectPeerFunction) (void *cls,
+                                            const struct GNUNET_PeerIdentity *target);
 
 
 /**
@@ -393,8 +416,9 @@ typedef void (*GNUNET_TRANSPORT_DisconnectFunction) (void *cls,
  * @param address one of the names for the host, NULL
  *        on the last call to the callback
  */
-typedef void (*GNUNET_TRANSPORT_AddressStringCallback) (void *cls,
-                                                        const char *address);
+typedef void
+(*GNUNET_TRANSPORT_AddressStringCallback) (void *cls,
+                                           const char *address);
 
 
 /**
@@ -405,20 +429,21 @@ typedef void (*GNUNET_TRANSPORT_AddressStringCallback) (void *cls,
  * @param type name of the transport that generated the address
  * @param addr one of the addresses of the host, NULL for the last address
  *        the specific address format depends on the transport
- * @param addrlen length of the address
+ * @param addrlen length of the @a addr
  * @param numeric should (IP) addresses be displayed in numeric form?
  * @param timeout after how long should we give up?
  * @param asc function to call on each string
  * @param asc_cls closure for @a asc
  */
-typedef void (*GNUNET_TRANSPORT_AddressPrettyPrinter) (void *cls,
-                                                       const char *type,
-                                                       const void *addr,
-                                                       size_t addrlen,
-                                                       int numeric,
-                                                       struct GNUNET_TIME_Relative timeout,
-                                                       GNUNET_TRANSPORT_AddressStringCallback asc,
-                                                       void *asc_cls);
+typedef void
+(*GNUNET_TRANSPORT_AddressPrettyPrinter) (void *cls,
+                                          const char *type,
+                                          const void *addr,
+                                          size_t addrlen,
+                                          int numeric,
+                                          struct GNUNET_TIME_Relative timeout,
+                                          GNUNET_TRANSPORT_AddressStringCallback asc,
+                                          void *asc_cls);
 
 
 /**
@@ -435,9 +460,11 @@ typedef void (*GNUNET_TRANSPORT_AddressPrettyPrinter) (void *cls,
  * @return #GNUNET_OK if this is a plausible address for this peer
  *         and transport, #GNUNET_SYSERR if not
  */
-typedef int (*GNUNET_TRANSPORT_CheckAddress) (void *cls,
-                                              const void *addr,
-                                              size_t addrlen);
+typedef int
+(*GNUNET_TRANSPORT_CheckAddress) (void *cls,
+                                  const void *addr,
+                                  size_t addrlen);
+
 
 /**
  * Create a new session to transmit data to the target
@@ -448,8 +475,9 @@ typedef int (*GNUNET_TRANSPORT_CheckAddress) (void *cls,
  * @param address the hello address
  * @return the session if the address is valid, NULL otherwise
  */
-typedef struct Session * (*GNUNET_TRANSPORT_CreateSession) (void *cls,
-                      const struct GNUNET_HELLO_Address *address);
+typedef struct Session *
+(*GNUNET_TRANSPORT_CreateSession) (void *cls,
+                                   const struct GNUNET_HELLO_Address *address);
 
 
 /**
@@ -460,30 +488,33 @@ typedef struct Session * (*GNUNET_TRANSPORT_CreateSession) (void *cls,
  *
  * @param cls closure
  * @param addr binary address
- * @param addr_len length of the address
+ * @param addr_len length of the @a addr
  * @return string representing the same address
  */
-typedef const char *(*GNUNET_TRANSPORT_AddressToString) (void *cls,
-                                                         const void *addr,
-                                                         size_t addrlen);
+typedef const char *
+(*GNUNET_TRANSPORT_AddressToString) (void *cls,
+                                     const void *addr,
+                                     size_t addrlen);
+
 
 /**
  * Function called to convert a string address to
  * a binary address.
  *
- * @param cls closure ('struct Plugin*')
+ * @param cls closure (`struct Plugin*`)
  * @param addr string address
- * @param addrlen length of the address including '\0' termination
+ * @param addrlen length of the @a addr including \0 termination
  * @param buf location to store the buffer
  *        If the function returns #GNUNET_SYSERR, its contents are undefined.
  * @param added length of created address
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
  */
-typedef int (*GNUNET_TRANSPORT_StringToAddress) (void *cls,
-                                                 const char *addr,
-                                                 uint16_t addrlen,
-                                                 void **buf,
-                                                 size_t *added);
+typedef int
+(*GNUNET_TRANSPORT_StringToAddress) (void *cls,
+                                     const char *addr,
+                                     uint16_t addrlen,
+                                     void **buf,
+                                     size_t *added);
 
 
 /**
@@ -493,8 +524,9 @@ typedef int (*GNUNET_TRANSPORT_StringToAddress) (void *cls,
  * @param session the session
  * @return the network type
  */
-typedef enum GNUNET_ATS_Network_Type (*GNUNET_TRANSPORT_GetNetworkType) (void *cls,
-									 struct Session *session);
+typedef enum GNUNET_ATS_Network_Type
+(*GNUNET_TRANSPORT_GetNetworkType) (void *cls,
+                                    struct Session *session);
 
 
 /**
@@ -523,7 +555,14 @@ struct GNUNET_TRANSPORT_PluginFunctions
    * the given peer and cancel all previous transmissions (and their
    * continuations).
    */
-  GNUNET_TRANSPORT_DisconnectFunction disconnect;
+  GNUNET_TRANSPORT_DisconnectPeerFunction disconnect_peer;
+
+  /**
+   * Function that can be used to force the plugin to disconnect from
+   * the given peer and cancel all previous transmissions (and their
+   * continuations).
+   */
+  GNUNET_TRANSPORT_DisconnectSessionFunction disconnect_session;
 
   /**
    * Function to pretty-print addresses.  NOTE: this function is not

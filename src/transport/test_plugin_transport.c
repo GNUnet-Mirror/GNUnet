@@ -695,8 +695,8 @@ run (void *cls, char *const *args, const char *cfgfile,
       end_badly_now ();
       return;
   }
-  GNUNET_assert (NULL != api->disconnect);
-  if (NULL == api->disconnect)
+  GNUNET_assert (NULL != api->disconnect_peer);
+  if (NULL == api->disconnect_peer)
   {
       GNUNET_break (0);
       end_badly_now ();

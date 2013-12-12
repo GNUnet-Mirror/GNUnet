@@ -107,6 +107,7 @@ struct HTTP_Message
  */
 struct Session;
 
+
 /**
  * A connection handle
  *
@@ -123,7 +124,6 @@ struct ConnectionHandle
    */
   struct Session *s;
 };
-
 
 
 /**
@@ -623,12 +623,12 @@ client_delete_session (struct Session *s)
  * Disconnect a session
  *
  * @param s session
- * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 static int
-client_disconnect (struct Session *s)
+http_client_session_disconnect (struct HTTP_Client_Plugin *plugin,
+                                struct Session *s)
 {
-  struct HTTP_Client_Plugin *plugin = s->plugin;
   struct HTTP_Message *msg;
   struct HTTP_Message *t;
   int res = GNUNET_OK;
@@ -730,7 +730,8 @@ client_disconnect (struct Session *s)
  * @param target peer from which to disconnect
  */
 static void
-http_client_plugin_disconnect (void *cls, const struct GNUNET_PeerIdentity *target)
+http_client_peer_disconnect (void *cls,
+                             const struct GNUNET_PeerIdentity *target)
 {
   struct HTTP_Client_Plugin *plugin = cls;
   struct Session *next = NULL;
@@ -749,11 +750,12 @@ http_client_plugin_disconnect (void *cls, const struct GNUNET_PeerIdentity *targ
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                        "Disconnecting session %p to `%pos'\n",
                        pos, GNUNET_i2s (target));
-      GNUNET_assert (GNUNET_OK == client_disconnect (pos));
+      GNUNET_assert (GNUNET_OK == http_client_session_disconnect (plugin,
+                                                                  pos));
     }
   }
-
 }
+
 
 /**
  * Check if a sessions exists for an specific address
@@ -1221,7 +1223,7 @@ client_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
             /* Disconnect other transmission direction and tell transport */
             s->get.easyhandle = NULL;
             s->get.s = NULL;
-            client_disconnect (s);
+            http_client_session_disconnect (plugin, s);
         }
       }
     }
@@ -1535,8 +1537,8 @@ http_client_plugin_get_session (void *cls,
       return NULL;
   }
 
-  s = GNUNET_malloc (sizeof (struct Session));
-  memcpy (&s->target, &address->peer, sizeof (struct GNUNET_PeerIdentity));
+  s = GNUNET_new (struct Session);
+  s->target = address->peer;
   s->plugin = plugin;
   s->addr = GNUNET_malloc (address->address_length);
   memcpy (s->addr, address->address, address->address_length);
@@ -1574,7 +1576,7 @@ http_client_plugin_get_session (void *cls,
  * Setup http_client plugin
  *
  * @param plugin the plugin handle
- * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 static int
 client_start (struct HTTP_Client_Plugin *plugin)
@@ -1598,7 +1600,6 @@ client_start (struct HTTP_Client_Plugin *plugin)
 static void
 client_session_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_assert (NULL != cls);
   struct Session *s = cls;
 
   s->timeout_task = GNUNET_SCHEDULER_NO_TASK;
@@ -1609,7 +1610,8 @@ client_session_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
 						      GNUNET_YES));
 
   /* call session destroy function */
-  GNUNET_assert (GNUNET_OK == client_disconnect (s));
+  GNUNET_assert (GNUNET_OK == http_client_session_disconnect (s->plugin,
+                                                              s));
 }
 
 
@@ -1729,13 +1731,13 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
   next = plugin->head;
   while (NULL != (pos = next))
   {
-      next = pos->next;
-      client_disconnect (pos);
+    next = pos->next;
+    http_client_session_disconnect (plugin, pos);
   }
   if (GNUNET_SCHEDULER_NO_TASK != plugin->client_perform_task)
   {
-      GNUNET_SCHEDULER_cancel (plugin->client_perform_task);
-      plugin->client_perform_task = GNUNET_SCHEDULER_NO_TASK;
+    GNUNET_SCHEDULER_cancel (plugin->client_perform_task);
+    plugin->client_perform_task = GNUNET_SCHEDULER_NO_TASK;
   }
 
 
@@ -1760,7 +1762,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
  * Configure plugin
  *
  * @param plugin the plugin handle
- * @return GNUNET_OK on success, GNUNET_SYSERR on failure
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
  */
 static int
 client_configure_plugin (struct HTTP_Client_Plugin *plugin)
@@ -1780,12 +1782,15 @@ client_configure_plugin (struct HTTP_Client_Plugin *plugin)
   return GNUNET_OK;
 }
 
-const char *http_plugin_address_to_string (void *cls,
-                                           const void *addr,
-                                           size_t addrlen)
+
+static const char *
+http_plugin_address_to_string (void *cls,
+                               const void *addr,
+                               size_t addrlen)
 {
-	return http_common_plugin_address_to_string (cls, PLUGIN_NAME, addr, addrlen);
+  return http_common_plugin_address_to_string (cls, PLUGIN_NAME, addr, addrlen);
 }
+
 
 /**
  * Entry point for the plugin.
@@ -1801,7 +1806,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
   {
     /* run in 'stub' mode (i.e. as part of gnunet-peerinfo), don't fully
        initialze the plugin or the API */
-    api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
+    api = GNUNET_new (struct GNUNET_TRANSPORT_PluginFunctions);
     api->cls = NULL;
     api->address_to_string = &http_plugin_address_to_string;
     api->string_to_address = &http_common_plugin_string_to_address;
@@ -1809,13 +1814,14 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
     return api;
   }
 
-  plugin = GNUNET_malloc (sizeof (struct HTTP_Client_Plugin));
+  plugin = GNUNET_new (struct HTTP_Client_Plugin);
   p = plugin;
   plugin->env = env;
-  api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
+  api = GNUNET_new (struct GNUNET_TRANSPORT_PluginFunctions);
   api->cls = plugin;
   api->send = &http_client_plugin_send;
-  api->disconnect = &http_client_plugin_disconnect;
+  api->disconnect_session = &http_client_session_disconnect;
+  api->disconnect_peer = &http_client_peer_disconnect;
   api->check_address = &http_client_plugin_address_suggested;
   api->get_session = &http_client_plugin_get_session;
   api->address_to_string = &http_plugin_address_to_string;

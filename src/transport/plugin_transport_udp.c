@@ -138,6 +138,7 @@ enum UDP_MessageType
   MSG_BEACON = 5
 };
 
+
 struct Session
 {
   /**
@@ -145,7 +146,15 @@ struct Session
    */
   struct GNUNET_PeerIdentity target;
 
-  struct UDP_FragmentationContext * frag_ctx;
+  /**
+   * Plugin this session belongs to.
+   */
+  struct Plugin *plugin;
+
+  /**
+   * Context for dealing with fragments.
+   */
+  struct UDP_FragmentationContext *frag_ctx;
 
   /**
    * Address of the other peer
@@ -179,8 +188,10 @@ struct Session
 
   struct GNUNET_ATS_Information ats;
 
+  /**
+   * Number of bytes in @e sock_addr.
+   */
   size_t addrlen;
-
 
   unsigned int rc;
 
@@ -214,6 +225,7 @@ struct SourceInformation
   const void *arg;
 
   struct Session *session;
+
   /**
    * Number of bytes in source address.
    */
@@ -240,7 +252,7 @@ struct FindReceiveContext
   struct Session *session;
 
   /**
-   * Number of bytes in 'addr'.
+   * Number of bytes in @e addr.
    */
   socklen_t addr_len;
 
@@ -292,27 +304,27 @@ struct UDP_FragmentationContext
   /**
    * Next in linked list
    */
-  struct UDP_FragmentationContext * next;
+  struct UDP_FragmentationContext *next;
 
   /**
    * Previous in linked list
    */
-  struct UDP_FragmentationContext * prev;
+  struct UDP_FragmentationContext *prev;
 
   /**
    * The plugin
    */
-  struct Plugin * plugin;
+  struct Plugin *plugin;
 
   /**
    * Handle for GNUNET_FRAGMENT context
    */
-  struct GNUNET_FRAGMENT_Context * frag;
+  struct GNUNET_FRAGMENT_Context *frag;
 
   /**
    * The session this fragmentation context belongs to
    */
-  struct Session * session;
+  struct Session *session;
 
   /**
    * Function to call upon completion of the transmission.
@@ -320,7 +332,7 @@ struct UDP_FragmentationContext
   GNUNET_TRANSPORT_TransmitContinuation cont;
 
   /**
-   * Closure for 'cont'.
+   * Closure for @e cont.
    */
   void *cont_cls;
 
@@ -1110,7 +1122,8 @@ free_session (struct Session *s)
 
 
 static void
-dequeue (struct Plugin *plugin, struct UDP_MessageWrapper * udpw)
+dequeue (struct Plugin *plugin,
+         struct UDP_MessageWrapper * udpw)
 {
   if (plugin->bytes_in_buffer < udpw->msg_size)
       GNUNET_break (0);
@@ -1195,28 +1208,33 @@ fragmented_message_done (struct UDP_FragmentationContext *fc, int result)
                                      &s->last_expected_msg_delay,
                                      &s->last_expected_ack_delay);
   s->frag_ctx = NULL;
-  GNUNET_free (fc );
+  GNUNET_free (fc);
 }
+
 
 /**
  * Functions with this signature are called whenever we need
  * to close a session due to a disconnect or failure to
  * establish a connection.
  *
+ * @param cls closure with the `struct Plugin`
  * @param s session to close down
+ * @return #GNUNET_OK on success
  */
-static void
-disconnect_session (struct Session *s)
+static int
+udp_disconnect_session (void *cls,
+                        struct Session *s)
 {
+  struct Plugin *plugin = cls;
   struct UDP_MessageWrapper *udpw;
   struct UDP_MessageWrapper *next;
 
   GNUNET_assert (GNUNET_YES != s->in_destroy);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Session %p to peer `%s' address ended \n",
-         s,
-         GNUNET_i2s (&s->target),
-         GNUNET_a2s (s->sock_addr, s->addrlen));
+       "Session %p to peer `%s' address ended\n",
+       s,
+       GNUNET_i2s (&s->target),
+       GNUNET_a2s (s->sock_addr, s->addrlen));
   stop_session_timeout (s);
 
   if (NULL != s->frag_ctx)
@@ -1232,7 +1250,7 @@ disconnect_session (struct Session *s)
     if (udpw->session == s)
     {
       dequeue (plugin, udpw);
-      call_continuation(udpw, GNUNET_SYSERR);
+      call_continuation (udpw, GNUNET_SYSERR);
       GNUNET_free (udpw);
     }
   }
@@ -1243,7 +1261,7 @@ disconnect_session (struct Session *s)
     if (udpw->session == s)
     {
       dequeue (plugin, udpw);
-      call_continuation(udpw, GNUNET_SYSERR);
+      call_continuation (udpw, GNUNET_SYSERR);
       GNUNET_free (udpw);
     }
   }
@@ -1265,48 +1283,55 @@ disconnect_session (struct Session *s)
                  GNUNET_CONTAINER_multipeermap_remove (plugin->sessions,
                                                        &s->target,
                                                        s));
-  GNUNET_STATISTICS_set(plugin->env->stats,
-                        "# UDP, sessions active",
-                        GNUNET_CONTAINER_multipeermap_size(plugin->sessions),
-                        GNUNET_NO);
+  GNUNET_STATISTICS_set (plugin->env->stats,
+                         "# UDP, sessions active",
+                         GNUNET_CONTAINER_multipeermap_size(plugin->sessions),
+                         GNUNET_NO);
   if (s->rc > 0)
     s->in_destroy = GNUNET_YES;
   else
     free_session (s);
-}
-
-/**
- * Destroy a session, plugin is being unloaded.
- *
- * @param cls unused
- * @param key hash of public key of target peer
- * @param value a 'struct PeerSession*' to clean up
- * @return GNUNET_OK (continue to iterate)
- */
-static int
-disconnect_and_free_it (void *cls, const struct GNUNET_PeerIdentity * key, void *value)
-{
-  disconnect_session(value);
   return GNUNET_OK;
 }
 
 
 /**
- * Disconnect from a remote node.  Clean up session if we have one for this peer
+ * Destroy a session, plugin is being unloaded.
+ *
+ * @param cls the `struct Plugin`
+ * @param key hash of public key of target peer
+ * @param value a `struct PeerSession *` to clean up
+ * @return #GNUNET_OK (continue to iterate)
+ */
+static int
+disconnect_and_free_it (void *cls,
+                        const struct GNUNET_PeerIdentity *key,
+                        void *value)
+{
+  struct Plugin *plugin = cls;
+
+  udp_disconnect_session (plugin, value);
+  return GNUNET_OK;
+}
+
+
+/**
+ * Disconnect from a remote node.  Clean up session if we have one for
+ * this peer.
  *
  * @param cls closure for this call (should be handle to Plugin)
  * @param target the peeridentity of the peer to disconnect
- * @return GNUNET_OK on success, GNUNET_SYSERR if the operation failed
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR if the operation failed
  */
 static void
-udp_disconnect (void *cls, const struct GNUNET_PeerIdentity *target)
+udp_disconnect (void *cls,
+                const struct GNUNET_PeerIdentity *target)
 {
   struct Plugin *plugin = cls;
-  GNUNET_assert (plugin != NULL);
 
-  GNUNET_assert (target != NULL);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Disconnecting from peer `%s'\n", GNUNET_i2s (target));
+       "Disconnecting from peer `%s'\n",
+       GNUNET_i2s (target));
   /* Clean up sessions */
   GNUNET_CONTAINER_multipeermap_get_multiple (plugin->sessions, target,
 					      &disconnect_and_free_it, plugin);
@@ -1317,9 +1342,9 @@ udp_disconnect (void *cls, const struct GNUNET_PeerIdentity *target)
  * Session was idle, so disconnect it
  */
 static void
-session_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+session_timeout (void *cls,
+                 const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_assert (NULL != cls);
   struct Session *s = cls;
 
   s->timeout_task = GNUNET_SCHEDULER_NO_TASK;
@@ -1329,7 +1354,8 @@ session_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 	      GNUNET_STRINGS_relative_time_to_string (UDP_SESSION_TIME_OUT,
 						      GNUNET_YES));
   /* call session destroy function */
-  disconnect_session (s);
+  udp_disconnect_session (s->plugin,
+                          s);
 }
 
 
@@ -1374,7 +1400,8 @@ reschedule_session_timeout (struct Session *s)
 
 
 static struct Session *
-create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
+create_session (struct Plugin *plugin,
+                const struct GNUNET_PeerIdentity *target,
                 const void *addr, size_t addrlen,
                 GNUNET_TRANSPORT_TransmitContinuation cont, void *cont_cls)
 {
@@ -1387,8 +1414,8 @@ create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
 
   if (NULL == addr)
   {
-  	GNUNET_break (0);
-  	return NULL;
+    GNUNET_break (0);
+    return NULL;
   }
 
   switch (addrlen)
@@ -1399,11 +1426,12 @@ create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            "Could not create session for peer `%s' address `%s': IPv4 is not enabled\n",
            GNUNET_i2s(target),
-           udp_address_to_string(NULL, addr, addrlen));
+           udp_address_to_string (NULL, addr, addrlen));
       return NULL;
     }
     t4 = addr;
     s = GNUNET_malloc (sizeof (struct Session) + sizeof (struct sockaddr_in));
+    s->plugin = plugin;
     len = sizeof (struct sockaddr_in);
     v4 = (struct sockaddr_in *) &s[1];
     v4->sin_family = AF_INET;
@@ -1425,6 +1453,7 @@ create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
     }
     t6 = addr;
     s = GNUNET_malloc (sizeof (struct Session) + sizeof (struct sockaddr_in6));
+    s->plugin = plugin;
     len = sizeof (struct sockaddr_in6);
     v6 = (struct sockaddr_in6 *) &s[1];
     v6->sin6_family = AF_INET6;
@@ -1512,7 +1541,7 @@ session_cmp_it (void *cls,
  *
  * @param cls closure ('struct Plugin*')
  * @param session the session
- * @return the network type in HBO or GNUNET_SYSERR
+ * @return the network type in HBO or #GNUNET_SYSERR
  */
 static enum GNUNET_ATS_Network_Type
 udp_get_network (void *cls,
@@ -2991,7 +3020,7 @@ libgnunet_plugin_transport_udp_init (void *cls)
   {
     /* run in 'stub' mode (i.e. as part of gnunet-peerinfo), don't fully
        initialze the plugin or the API */
-    api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
+    api = GNUNET_new (struct GNUNET_TRANSPORT_PluginFunctions);
     api->cls = NULL;
     api->address_pretty_printer = &udp_plugin_address_pretty_printer;
     api->address_to_string = &udp_address_to_string;
@@ -3002,8 +3031,7 @@ libgnunet_plugin_transport_udp_init (void *cls)
   GNUNET_assert (NULL != env->stats);
 
   /* Get port number: port == 0 : autodetect a port,
-   * 												> 0 : use this port,
-   * 								  not given : 2086 default */
+   * > 0 : use this port, not given : 2086 default */
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (env->cfg, "transport-udp", "PORT",
                                              &port))
@@ -3097,7 +3125,7 @@ libgnunet_plugin_transport_udp_init (void *cls)
     udp_max_bps = 1024 * 1024 * 50;     /* 50 MB/s == infinity for practical purposes */
   }
 
-  p = GNUNET_malloc (sizeof (struct Plugin));
+  p = GNUNET_new (struct Plugin);
   p->port = port;
   p->aport = aport;
   p->broadcast_interval = interval;
@@ -3130,10 +3158,11 @@ libgnunet_plugin_transport_udp_init (void *cls)
     setup_broadcast (p, &server_addrv6, &server_addrv4);
   }
 
-  api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
+  api = GNUNET_new (struct GNUNET_TRANSPORT_PluginFunctions);
   api->cls = p;
   api->send = NULL;
-  api->disconnect = &udp_disconnect;
+  api->disconnect_session = &udp_disconnect_session;
+  api->disconnect_peer = &udp_disconnect;
   api->address_pretty_printer = &udp_plugin_address_pretty_printer;
   api->address_to_string = &udp_address_to_string;
   api->string_to_address = &udp_string_to_address;
@@ -3148,10 +3177,9 @@ libgnunet_plugin_transport_udp_init (void *cls)
 
 static int
 heap_cleanup_iterator (void *cls,
-		       struct GNUNET_CONTAINER_HeapNode *
-		       node, void *element,
-		       GNUNET_CONTAINER_HeapCostType
-		       cost)
+		       struct GNUNET_CONTAINER_HeapNode *node,
+                       void *element,
+		       GNUNET_CONTAINER_HeapCostType cost)
 {
   struct DefragContext * d_ctx = element;
 
@@ -3197,35 +3225,37 @@ libgnunet_plugin_transport_udp_done (void *cls)
   }
 
   /* Closing sockets */
-  if (GNUNET_YES ==plugin->enable_ipv4)
+  if (GNUNET_YES == plugin->enable_ipv4)
   {
-		if (plugin->sockv4 != NULL)
-		{
-			GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (plugin->sockv4));
-			plugin->sockv4 = NULL;
-		}
-		GNUNET_NETWORK_fdset_destroy (plugin->rs_v4);
-		GNUNET_NETWORK_fdset_destroy (plugin->ws_v4);
+    if (NULL != plugin->sockv4)
+    {
+      GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (plugin->sockv4));
+      plugin->sockv4 = NULL;
+    }
+    GNUNET_NETWORK_fdset_destroy (plugin->rs_v4);
+    GNUNET_NETWORK_fdset_destroy (plugin->ws_v4);
   }
-  if (GNUNET_YES ==plugin->enable_ipv6)
+  if (GNUNET_YES == plugin->enable_ipv6)
   {
-		if (plugin->sockv6 != NULL)
-		{
-			GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (plugin->sockv6));
-			plugin->sockv6 = NULL;
+    if (NULL != plugin->sockv6)
+    {
+      GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_close (plugin->sockv6));
+      plugin->sockv6 = NULL;
 
-			GNUNET_NETWORK_fdset_destroy (plugin->rs_v6);
-			GNUNET_NETWORK_fdset_destroy (plugin->ws_v6);
-		}
+      GNUNET_NETWORK_fdset_destroy (plugin->rs_v6);
+      GNUNET_NETWORK_fdset_destroy (plugin->ws_v6);
+    }
   }
   if (NULL != plugin->nat)
-  	GNUNET_NAT_unregister (plugin->nat);
-
-  if (plugin->defrag_ctxs != NULL)
   {
-    GNUNET_CONTAINER_heap_iterate(plugin->defrag_ctxs,
-        heap_cleanup_iterator, NULL);
-    GNUNET_CONTAINER_heap_destroy(plugin->defrag_ctxs);
+    GNUNET_NAT_unregister (plugin->nat);
+    plugin->nat = NULL;
+  }
+  if (NULL != plugin->defrag_ctxs)
+  {
+    GNUNET_CONTAINER_heap_iterate (plugin->defrag_ctxs,
+                                   heap_cleanup_iterator, NULL);
+    GNUNET_CONTAINER_heap_destroy (plugin->defrag_ctxs);
     plugin->defrag_ctxs = NULL;
   }
   if (plugin->mst != NULL)
@@ -3266,12 +3296,12 @@ libgnunet_plugin_transport_udp_done (void *cls)
   next = ppc_dll_head;
   for (cur = next; NULL != cur; cur = next)
   {
-  	next = cur->next;
-  	GNUNET_CONTAINER_DLL_remove (ppc_dll_head, ppc_dll_tail, cur);
-  	GNUNET_RESOLVER_request_cancel (cur->resolver_handle);
-  	GNUNET_SCHEDULER_cancel (cur->timeout_task);
-  	GNUNET_free (cur);
-  	GNUNET_break (0);
+    next = cur->next;
+    GNUNET_CONTAINER_DLL_remove (ppc_dll_head, ppc_dll_tail, cur);
+    GNUNET_RESOLVER_request_cancel (cur->resolver_handle);
+    GNUNET_SCHEDULER_cancel (cur->timeout_task);
+    GNUNET_free (cur);
+    GNUNET_break (0);
   }
 
   plugin->nat = NULL;
@@ -3281,16 +3311,16 @@ libgnunet_plugin_transport_udp_done (void *cls)
   struct Allocation *allocation;
   while (NULL != ahead)
   {
-      allocation = ahead;
-      GNUNET_CONTAINER_DLL_remove (ahead, atail, allocation);
-      GNUNET_free (allocation);
+    allocation = ahead;
+    GNUNET_CONTAINER_DLL_remove (ahead, atail, allocation);
+    GNUNET_free (allocation);
   }
   struct Allocator *allocator;
   while (NULL != aehead)
   {
-      allocator = aehead;
-      GNUNET_CONTAINER_DLL_remove (aehead, aetail, allocator);
-      GNUNET_free (allocator);
+    allocator = aehead;
+    GNUNET_CONTAINER_DLL_remove (aehead, aetail, allocator);
+    GNUNET_free (allocator);
   }
 #endif
   return NULL;

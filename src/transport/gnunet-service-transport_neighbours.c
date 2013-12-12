@@ -817,6 +817,7 @@ set_address (struct NeighbourAddress *na,
 	     int is_active)
 {
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
+
   if (NULL == (papi = GST_plugins_find (address->transport_name)))
   {
     GNUNET_break (0);
@@ -918,13 +919,8 @@ free_neighbour (struct NeighbourMapEntry *n, int keep_sessions)
   free_address (&n->primary_address);
   free_address (&n->alternative_address);
 
-  /* FIXME-PLUGIN-API: This does not seem to guarantee that all
-     transport sessions eventually get killed due to inactivity; they
-     MUST have their own timeout logic (but at least TCP doesn't have
-     one yet).  Are we sure that EVERY 'session' of a plugin is
-     actually cleaned up this way!?  Note that if we are switching
-     between two TCP sessions to the same peer, the existing plugin
-     API gives us not even the means to selectively kill only one of
+  /* FIXME: Note that if we are switching between two TCP sessions to
+     the same peer, we might want to selectively kill only one of
      them! Killing all sessions like this seems to be very, very
      wrong. */
 
@@ -932,7 +928,7 @@ free_neighbour (struct NeighbourMapEntry *n, int keep_sessions)
   if ((GNUNET_NO == keep_sessions) &&
       (NULL != backup_primary) &&
       (NULL != (papi = GST_plugins_find (backup_primary->transport_name))))
-    papi->disconnect (papi->cls, &n->id);
+    papi->disconnect_peer (papi->cls, &n->id);
 
   GNUNET_free_non_null (backup_primary);
 

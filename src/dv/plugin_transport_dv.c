@@ -429,7 +429,7 @@ free_session (struct Session *session)
  */
 static void
 handle_dv_disconnect (void *cls,
-		      const struct GNUNET_PeerIdentity *peer)
+                      const struct GNUNET_PeerIdentity *peer)
 {
   struct Plugin *plugin = cls;
   struct Session *session;
@@ -543,8 +543,8 @@ dv_plugin_send (void *cls,
  * @param target peer from which to disconnect
  */
 static void
-dv_plugin_disconnect (void *cls,
-                      const struct GNUNET_PeerIdentity *target)
+dv_plugin_disconnect_peer (void *cls,
+                           const struct GNUNET_PeerIdentity *target)
 {
   struct Plugin *plugin = cls;
   struct Session *session;
@@ -568,6 +568,39 @@ dv_plugin_disconnect (void *cls,
     GNUNET_free (pr);
   }
   session->active = GNUNET_NO;
+}
+
+
+/**
+ * Function that can be used to force the plugin to disconnect
+ * from the given peer and cancel all previous transmissions
+ * (and their continuations).
+ *
+ * @param cls closure with the `struct Plugin *`
+ * @param session which session to disconnect
+ * @return #GNUNET_OK
+ */
+static int
+dv_plugin_disconnect_session (void *cls,
+                              struct Session *session)
+{
+  struct PendingRequest *pr;
+
+  while (NULL != (pr = session->pr_head))
+  {
+    GNUNET_CONTAINER_DLL_remove (session->pr_head,
+				 session->pr_tail,
+				 pr);
+    GNUNET_DV_send_cancel (pr->th);
+    pr->th = NULL;
+    if (NULL != pr->transmit_cont)
+      pr->transmit_cont (pr->transmit_cont_cls,
+			 &session->sender,
+			 GNUNET_SYSERR, 0, 0);
+    GNUNET_free (pr);
+  }
+  session->active = GNUNET_NO;
+  return GNUNET_OK;
 }
 
 
@@ -759,7 +792,8 @@ libgnunet_plugin_transport_dv_init (void *cls)
   api = GNUNET_new (struct GNUNET_TRANSPORT_PluginFunctions);
   api->cls = plugin;
   api->send = &dv_plugin_send;
-  api->disconnect = &dv_plugin_disconnect;
+  api->disconnect_peer = &dv_plugin_disconnect_peer;
+  api->disconnect_session = &dv_plugin_disconnect_session;
   api->address_pretty_printer = &dv_plugin_address_pretty_printer;
   api->check_address = &dv_plugin_check_address;
   api->address_to_string = &dv_plugin_address_to_string;

@@ -454,10 +454,10 @@ get_nick_record (const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone)
 
 static void
 merge_with_nick_records ( const struct GNUNET_GNSRECORD_Data *nick_rd,
-               unsigned int rdc2,
-               const struct GNUNET_GNSRECORD_Data *rd2,
-               unsigned int *rdc_res,
-               struct GNUNET_GNSRECORD_Data **rd_res)
+                          unsigned int rdc2,
+                          const struct GNUNET_GNSRECORD_Data *rd2,
+                          unsigned int *rdc_res,
+                          struct GNUNET_GNSRECORD_Data **rd_res)
 {
   uint64_t latest_expiration;
   int c;
@@ -675,7 +675,7 @@ refresh_block (struct GNUNET_SERVER_Client *client,
 
   nick = get_nick_record (zone_key);
   res_count = rd_count;
-  res = rd;
+  res = (struct GNUNET_GNSRECORD_Data *) rd; /* fixme: a bit unclean... */
   if (NULL != nick)
   {
     nick->flags = (nick->flags | GNUNET_GNSRECORD_RF_PRIVATE) ^ GNUNET_GNSRECORD_RF_PRIVATE;
@@ -754,8 +754,8 @@ lookup_it (void *cls, const struct GNUNET_CRYPTO_EcdsaPrivateKey *private_key,
         rdc_res = 0;
         rlc->nick->flags = (rlc->nick->flags | GNUNET_GNSRECORD_RF_PRIVATE) ^ GNUNET_GNSRECORD_RF_PRIVATE;
         merge_with_nick_records ( rlc->nick,
-                       rd_count, rd,
-                       &rdc_res, &rd_res);
+                                  rd_count, rd,
+                                  &rdc_res, &rd_res);
 
         rlc->rd_ser_len = GNUNET_GNSRECORD_records_get_size (rdc_res, rd_res);
         rlc->res_rd_count = rdc_res;

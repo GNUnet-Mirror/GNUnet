@@ -530,9 +530,6 @@ lookup_session (struct Plugin *plugin,
 {
   struct LookupCtx lctx;
 
-  GNUNET_assert (NULL != plugin);
-  GNUNET_assert (NULL != sender);
-  GNUNET_assert (NULL != ua);
   lctx.s = NULL;
   lctx.ua = ua;
   lctx.ua_len = ua_len;
@@ -548,12 +545,15 @@ lookup_session (struct Plugin *plugin,
  * to close a session due to a disconnect or failure to
  * establish a connection.
  *
+ * @param cls closure with the `struct Plugin`
  * @param s session to close down
+ * @return #GNUNET_OK on success
  */
-static void
-disconnect_session (struct Session *s)
+static int
+unix_session_disconnect (void *cls,
+                         struct Session *s)
 {
-  struct Plugin *plugin = s->plugin;
+  struct Plugin *plugin = cls;
   struct UNIXMessageWrapper *msgw;
   struct UNIXMessageWrapper *next;
   int removed;
@@ -595,6 +595,7 @@ disconnect_session (struct Session *s)
     s->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   }
   GNUNET_free (s);
+  return GNUNET_OK;
 }
 
 
@@ -610,13 +611,13 @@ disconnect_session (struct Session *s)
  * @param priority how important is the message (ignored by UNIX)
  * @param timeout when should we time out (give up) if we can not transmit?
  * @param addr the addr to send the message to, needs to be a sockaddr for us
- * @param addrlen the len of addr
+ * @param addrlen the len of @a addr
  * @param payload bytes payload to send
  * @param cont continuation to call once the message has
  *        been transmitted (or if the transport is ready
  *        for the next transmission call; or if the
  *        peer disconnected...)
- * @param cont_cls closure for cont
+ * @param cont_cls closure for @a cont
  * @return on success the number of bytes written, RETRY for retry, -1 on errors
  */
 static ssize_t
@@ -636,7 +637,6 @@ unix_real_send (void *cls,
   struct sockaddr_un *un;
   socklen_t un_len;
   const char *unixpath;
-
 
   GNUNET_assert (NULL != plugin);
   if (NULL == send_handle)
@@ -734,7 +734,7 @@ struct GetSessionIteratorContext
   const char *address;
 
   /**
-   * Number of bytes in 'address'
+   * Number of bytes in @e address
    */
   size_t addrlen;
 };
@@ -784,7 +784,7 @@ session_timeout (void *cls,
        s,
        GNUNET_STRINGS_relative_time_to_string (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
 					       GNUNET_YES));
-  disconnect_session (s);
+  unix_session_disconnect (s->plugin, s);
 }
 
 
@@ -903,7 +903,7 @@ unix_plugin_get_session (void *cls,
  * @param cls closure
  * @param session which session must be used
  * @param msgbuf the message to transmit
- * @param msgbuf_size number of bytes in 'msgbuf'
+ * @param msgbuf_size number of bytes in @a msgbuf
  * @param priority how important is the message (most plugins will
  *                 ignore message priority and just FIFO)
  * @param to how long to wait at most for the transmission (does not
@@ -914,7 +914,7 @@ unix_plugin_get_session (void *cls,
  *        been transmitted (or if the transport is ready
  *        for the next transmission call; or if the
  *        peer disconnected...); can be NULL
- * @param cont_cls closure for cont
+ * @param cont_cls closure for @a cont
  * @return number of bytes used (on the physical network, with overheads);
  *         -1 on hard errors (i.e. address invalid); 0 is a legal value
  *         and does NOT mean that the message was not transmitted (DV)
@@ -931,9 +931,6 @@ unix_plugin_send (void *cls,
   struct UNIXMessageWrapper *wrapper;
   struct UNIXMessage *message;
   int ssize;
-
-  GNUNET_assert (NULL != plugin);
-  GNUNET_assert (NULL != session);
 
   if (GNUNET_OK !=
       GNUNET_CONTAINER_multipeermap_contains_value (plugin->session_map,
@@ -960,7 +957,7 @@ unix_plugin_send (void *cls,
           sizeof (struct GNUNET_PeerIdentity));
   memcpy (&message[1], msgbuf, msgbuf_size);
   reschedule_session_timeout (session);
-  wrapper = GNUNET_malloc (sizeof (struct UNIXMessageWrapper));
+  wrapper = GNUNET_new (struct UNIXMessageWrapper);
   wrapper->msg = message;
   wrapper->msgsize = ssize;
   wrapper->payload = msgbuf_size;
@@ -1001,9 +998,7 @@ unix_demultiplexer (struct Plugin *plugin, struct GNUNET_PeerIdentity *sender,
   struct GNUNET_HELLO_Address * addr;
 
   GNUNET_break (ntohl(plugin->ats_network.value) != GNUNET_ATS_NET_UNSPECIFIED);
-
   GNUNET_assert (ua_len >= sizeof (struct UnixAddress));
-
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Received message from %s\n",
        unix_address_to_string(NULL, ua, ua_len));
@@ -1329,10 +1324,10 @@ unix_transport_server_start (void *cls)
 static int
 unix_check_address (void *cls, const void *addr, size_t addrlen)
 {
-	struct Plugin* plugin = cls;
-	struct UnixAddress *ua = (struct UnixAddress *) addr;
-	char *addrstr;
-	size_t addr_str_len;
+  struct Plugin* plugin = cls;
+  struct UnixAddress *ua = (struct UnixAddress *) addr;
+  char *addrstr;
+  size_t addr_str_len;
 
   if ((NULL == addr) || (0 == addrlen) || (sizeof (struct UnixAddress) > addrlen))
   {
@@ -1366,11 +1361,11 @@ unix_check_address (void *cls, const void *addr, size_t addrlen)
  * @param type name of the transport that generated the address
  * @param addr one of the addresses of the host, NULL for the last address
  *        the specific address format depends on the transport
- * @param addrlen length of the address
+ * @param addrlen length of the @a addr
  * @param numeric should (IP) addresses be displayed in numeric form?
  * @param timeout after how long should we give up?
  * @param asc function to call on each string
- * @param asc_cls closure for asc
+ * @param asc_cls closure for @a asc
  */
 static void
 unix_plugin_address_pretty_printer (void *cls, const char *type,
@@ -1403,15 +1398,16 @@ unix_plugin_address_pretty_printer (void *cls, const char *type,
  *
  * @param cls closure ('struct Plugin*')
  * @param addr string address
- * @param addrlen length of the address (strlen(addr) + '\0')
+ * @param addrlen length of the @a addr (strlen(addr) + '\0')
  * @param buf location to store the buffer
- *        If the function returns GNUNET_SYSERR, its contents are undefined.
+ *        If the function returns #GNUNET_SYSERR, its contents are undefined.
  * @param added length of created address
- * @return GNUNET_OK on success, GNUNET_SYSERR on failure
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
  */
 static int
-unix_string_to_address (void *cls, const char *addr, uint16_t addrlen,
-    void **buf, size_t *added)
+unix_string_to_address (void *cls,
+                        const char *addr, uint16_t addrlen,
+                        void **buf, size_t *added)
 {
   struct UnixAddress *ua;
   char *address;
@@ -1532,19 +1528,20 @@ reschedule_session_timeout (struct Session *s)
 /**
  * Function called on sessions to disconnect
  *
- * @param cls the plugin (unused)
+ * @param cls the plugin
  * @param key peer identity (unused)
  * @param value the 'struct Session' to disconnect
- * @return GNUNET_YES (always, continue to iterate)
+ * @return #GNUNET_YES (always, continue to iterate)
  */
 static int
 get_session_delete_it (void *cls,
 		       const struct GNUNET_PeerIdentity *key,
 		       void *value)
 {
+  struct Plugin *plugin = cls;
   struct Session *s = value;
 
-  disconnect_session (s);
+  unix_session_disconnect (plugin, s);
   return GNUNET_YES;
 }
 
@@ -1557,8 +1554,8 @@ get_session_delete_it (void *cls,
  * @return #GNUNET_OK on success, #GNUNET_SYSERR if the operation failed
  */
 static void
-unix_disconnect (void *cls,
-		 const struct GNUNET_PeerIdentity *target)
+unix_peer_disconnect (void *cls,
+                      const struct GNUNET_PeerIdentity *target)
 {
   struct Plugin *plugin = cls;
 
@@ -1589,7 +1586,7 @@ libgnunet_plugin_transport_unix_init (void *cls)
   {
     /* run in 'stub' mode (i.e. as part of gnunet-peerinfo), don't fully
        initialze the plugin or the API */
-    api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
+    api = GNUNET_new (struct GNUNET_TRANSPORT_PluginFunctions);
     api->cls = NULL;
     api->address_pretty_printer = &unix_plugin_address_pretty_printer;
     api->address_to_string = &unix_address_to_string;
@@ -1600,7 +1597,7 @@ libgnunet_plugin_transport_unix_init (void *cls)
       GNUNET_CONFIGURATION_get_value_number (env->cfg, "transport-unix", "PORT",
                                              &port))
     port = UNIX_NAT_DEFAULT_PORT;
-  plugin = GNUNET_malloc (sizeof (struct Plugin));
+  plugin = GNUNET_new (struct Plugin);
   plugin->port = port;
   plugin->env = env;
   GNUNET_asprintf (&plugin->unix_socket_path,
@@ -1610,12 +1607,13 @@ libgnunet_plugin_transport_unix_init (void *cls)
   /* Initialize my flags */
   myoptions = 0;
 
-  api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
+  api = GNUNET_new (struct GNUNET_TRANSPORT_PluginFunctions);
   api->cls = plugin;
 
   api->get_session = &unix_plugin_get_session;
   api->send = &unix_plugin_send;
-  api->disconnect = &unix_disconnect;
+  api->disconnect_peer = &unix_peer_disconnect;
+  api->disconnect_session = &unix_session_disconnect;
   api->address_pretty_printer = &unix_plugin_address_pretty_printer;
   api->address_to_string = &unix_address_to_string;
   api->check_address = &unix_check_address;

@@ -597,8 +597,8 @@ send_ack (void *cls, uint32_t msg_id,
 
   if (NULL == endpoint)
   {
-  	GNUNET_break (0);
-  	return;
+    GNUNET_break (0);
+    return;
   }
 
   if (size >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
@@ -654,10 +654,12 @@ wlan_data_message_handler (void *cls, const struct GNUNET_MessageHeader *hdr)
 /**
  * Free a session
  *
+ * @param cls our `struct Plugin`.
  * @param session the session free
  */
-static void
-free_session (struct Session *session)
+static int
+wlan_plugin_disconnect_session (void *cls,
+                                struct Session *session)
 {
   struct MacEndpoint *endpoint = session->mac;
   struct PendingMessage *pm;
@@ -685,9 +687,11 @@ free_session (struct Session *session)
     GNUNET_SCHEDULER_cancel (session->timeout_task);
     session->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   }
-  GNUNET_STATISTICS_update (endpoint->plugin->env->stats, _("# WLAN sessions allocated"), -1,
+  GNUNET_STATISTICS_update (endpoint->plugin->env->stats,
+                            _("# WLAN sessions allocated"), -1,
                             GNUNET_NO);
   GNUNET_free (session);
+  return GNUNET_OK;
 }
 
 
@@ -700,14 +704,15 @@ free_session (struct Session *session)
 static void
 session_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct Session * session = cls;
+  struct Session *session = cls;
   struct GNUNET_TIME_Relative timeout;
 
   session->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   timeout = GNUNET_TIME_absolute_get_remaining (session->timeout);
   if (0 == timeout.rel_value_us)
   {
-    free_session (session);
+    wlan_plugin_disconnect_session (session->mac->plugin,
+                                    session);
     return;
   }
   session->timeout_task =
@@ -804,7 +809,7 @@ get_session (struct MacEndpoint *endpoint,
  * the next fragment.
  *
  * @param cls the 'struct FragmentMessage'
- * @param result result of the operation (GNUNET_OK on success, GNUNET_NO if the helper died, GNUNET_SYSERR
+ * @param result result of the operation (#GNUNET_OK on success, #GNUNET_NO if the helper died, #GNUNET_SYSERR
  *        if the helper was stopped)
  */
 static void
@@ -894,8 +899,8 @@ free_fragment_message (struct FragmentMessage *fm)
     fm->sh = NULL;
   }
   GNUNET_FRAGMENT_context_destroy (fm->fragcontext,
-		  	  	  	  	  	  	   &endpoint->msg_delay,
-		  	  	  	  	  	  	   &endpoint->ack_delay);
+                                   &endpoint->msg_delay,
+                                   &endpoint->ack_delay);
   if (fm->timeout_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (fm->timeout_task);
@@ -944,7 +949,7 @@ fragmentmessage_timeout (void *cls,
 static void
 send_with_fragmentation (struct MacEndpoint *endpoint,
 			 struct GNUNET_TIME_Relative timeout,
-			 const struct GNUNET_PeerIdentity *target,			
+			 const struct GNUNET_PeerIdentity *target,
 			 const struct GNUNET_MessageHeader *msg,
 			 size_t payload_size,
 			 GNUNET_TRANSPORT_TransmitContinuation cont, void *cont_cls)
@@ -994,7 +999,8 @@ free_macendpoint (struct MacEndpoint *endpoint)
   GNUNET_STATISTICS_update (plugin->env->stats,
 			    _("# WLAN MAC endpoints allocated"), -1, GNUNET_NO);
   while (NULL != (session = endpoint->sessions_head))
-    free_session (session);
+    wlan_plugin_disconnect_session (plugin,
+                                    session);
   while (NULL != (fm = endpoint->sending_messages_head))
     free_fragment_message (fm);
   GNUNET_CONTAINER_DLL_remove (plugin->mac_head,
@@ -1142,7 +1148,8 @@ wlan_plugin_get_session (void *cls,
  * @param target peer from which to disconnect
  */
 static void
-wlan_plugin_disconnect (void *cls, const struct GNUNET_PeerIdentity *target)
+wlan_plugin_disconnect_peer (void *cls,
+                             const struct GNUNET_PeerIdentity *target)
 {
   struct Plugin *plugin = cls;
   struct Session *session;
@@ -1153,7 +1160,7 @@ wlan_plugin_disconnect (void *cls, const struct GNUNET_PeerIdentity *target)
       if (0 == memcmp (target, &session->target,
 		       sizeof (struct GNUNET_PeerIdentity)))
       {
-        free_session (session);
+        wlan_plugin_disconnect_session (plugin, session);
 	break; /* inner-loop only (in case peer has another MAC as well!) */
       }
 }
@@ -1959,7 +1966,8 @@ libgnunet_plugin_transport_wlan_init (void *cls)
   api->cls = plugin;
   api->send = &wlan_plugin_send;
   api->get_session = &wlan_plugin_get_session;
-  api->disconnect = &wlan_plugin_disconnect;
+  api->disconnect_peer = &wlan_plugin_disconnect_peer;
+  api->disconnect_session = &wlan_plugin_disconnect_session;
   api->address_pretty_printer = &wlan_plugin_address_pretty_printer;
   api->check_address = &wlan_plugin_address_suggested;
   api->address_to_string = &wlan_plugin_address_to_string;
