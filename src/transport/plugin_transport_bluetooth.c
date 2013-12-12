@@ -887,7 +887,7 @@ fragmentmessage_timeout (void *cls,
 static void
 send_with_fragmentation (struct MacEndpoint *endpoint,
 			 struct GNUNET_TIME_Relative timeout,
-			 const struct GNUNET_PeerIdentity *target,			
+			 const struct GNUNET_PeerIdentity *target,
 			 const struct GNUNET_MessageHeader *msg,
 			 size_t payload_size,
 			 GNUNET_TRANSPORT_TransmitContinuation cont, void *cont_cls)
@@ -1085,7 +1085,7 @@ bluetooth_plugin_get_session (void *cls,
  * @param target peer from which to disconnect
  */
 static void
-bluetooth_plugin_disconnect (void *cls, const struct GNUNET_PeerIdentity *target)
+bluetooth_plugin_disconnect_peer (void *cls, const struct GNUNET_PeerIdentity *target)
 {
   struct Plugin *plugin = cls;
   struct Session *session;
@@ -1094,11 +1094,28 @@ bluetooth_plugin_disconnect (void *cls, const struct GNUNET_PeerIdentity *target
   for (endpoint = plugin->mac_head; NULL != endpoint; endpoint = endpoint->next)
     for (session = endpoint->sessions_head; NULL != session; session = session->next)
       if (0 == memcmp (target, &session->target,
-		       sizeof (struct GNUNET_PeerIdentity)))
+        sizeof (struct GNUNET_PeerIdentity)))
       {
         free_session (session);
-	break; /* inner-loop only (in case peer has another MAC as well!) */
+        break; /* inner-loop only (in case peer has another MAC as well!) */
       }
+}
+
+
+/**
+ * Function that can be used to force the plugin to disconnect
+ * from the given peer and cancel all previous transmissions
+ * (and their continuation).
+ *
+ * @param cls closure
+ * @param session session to disconnect
+ */
+static int
+bluetooth_plugin_disconnect_session (void *cls,
+                                     struct Session *session)
+{
+  free_session (session);
+  return GNUNET_OK;
 }
 
 
@@ -1893,7 +1910,8 @@ libgnunet_plugin_transport_bluetooth_init (void *cls)
   api->cls = plugin;
   api->send = &bluetooth_plugin_send;
   api->get_session = &bluetooth_plugin_get_session;
-  api->disconnect = &bluetooth_plugin_disconnect;
+  api->disconnect_peer = &bluetooth_plugin_disconnect_peer;
+  api->disconnect_session = &bluetooth_plugin_disconnect_session;
   api->address_pretty_printer = &bluetooth_plugin_address_pretty_printer;
   api->check_address = &bluetooth_plugin_address_suggested;
   api->address_to_string = &bluetooth_plugin_address_to_string;;
