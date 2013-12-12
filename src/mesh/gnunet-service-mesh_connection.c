@@ -1149,9 +1149,9 @@ register_neighbors (struct MeshConnection *c)
       || GNUNET_NO == GMP_is_neighbor (prev_peer))
   {
     if (GMC_is_origin (c, GNUNET_YES))
-      GNUNET_break (0);
-    else
-      GNUNET_break_op (0);
+      GNUNET_STATISTICS_update (stats, "# local bad paths", 1, GNUNET_NO);
+    GNUNET_STATISTICS_update (stats, "# bad paths", 1, GNUNET_NO);
+    
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  register neighbors failed\n");
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  prev: %s, %d\n",
          GMP_2s (prev_peer), GMP_is_neighbor (prev_peer));
@@ -1178,11 +1178,12 @@ unregister_neighbors (struct MeshConnection *c)
   struct MeshPeer *peer;
 
   peer = get_next_hop (c);
-  GMP_remove_connection (peer, c);
+  if (GNUNET_OK != GMP_remove_connection (peer, c))
+    GNUNET_break (MESH_CONNECTION_NEW == c->state);
 
   peer = get_prev_hop (c);
-  GMP_remove_connection (peer, c);
-
+  if (GNUNET_OK != GMP_remove_connection (peer, c))
+    GNUNET_break (MESH_CONNECTION_NEW == c->state);
 }
 
 
@@ -2220,16 +2221,17 @@ GMC_new (const struct GNUNET_HashCode *cid,
   c->own_pos = own_pos;
   c->path = p;
 
+  if (GNUNET_OK != register_neighbors (c))
+  {
+    GMC_destroy (c);
+    return NULL;
+  }
+
   if (0 == own_pos)
   {
     c->fwd_maintenance_task =
       GNUNET_SCHEDULER_add_delayed (create_connection_time,
                                     &connection_fwd_keepalive, c);
-  }
-  if (GNUNET_OK != register_neighbors (c))
-  {
-    GMC_destroy (c);
-    return NULL;
   }
 
   return c;
