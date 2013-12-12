@@ -89,8 +89,9 @@ GST_validation_get_address_latency (const struct GNUNET_PeerIdentity *sender,
  * @param hdr the PING
  * @param sender_address address of the sender, NULL if we did not initiate
  * @param session session we got the PING from
+ * @return #GNUNET_OK if the message was fine, #GNUNET_SYSERR on serious error
  */
-void
+int
 GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
                             const struct GNUNET_MessageHeader *hdr,
                             const struct GNUNET_HELLO_Address *sender_address,
@@ -103,8 +104,9 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
  *
  * @param sender peer sending the PONG
  * @param hdr the PONG
+ * @return #GNUNET_OK if the message was fine, #GNUNET_SYSERR on serious error
  */
-void
+int
 GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
                             const struct GNUNET_MessageHeader *hdr);
 
@@ -114,8 +116,9 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
  * validation.
  *
  * @param hello the HELLO we received
+ * @return #GNUNET_OK if the message was fine, #GNUNET_SYSERR on serious error
  */
-void
+int
 GST_validation_handle_hello (const struct GNUNET_MessageHeader *hello);
 
 

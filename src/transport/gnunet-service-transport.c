@@ -124,7 +124,6 @@ process_hello_update (void *cls, const struct GNUNET_MessageHeader *hello)
 }
 
 
-
 /**
  * We received some payload.  Prepare to pass it on to our clients.
  *
@@ -178,14 +177,36 @@ process_payload (const struct GNUNET_PeerIdentity *peer,
 
 
 /**
+ * Force plugin to terminate session due to communication
+ * issue.
+ *
+ * @param plugin_name name of the plugin
+ * @param session session to termiante
+ */
+static void
+kill_session (const char *plugin_name,
+              struct Session *session)
+{
+  struct GNUNET_TRANSPORT_PluginFunctions *plugin;
+
+  plugin = GST_plugins_find (plugin_name);
+  if (NULL == plugin)
+  {
+    GNUNET_break (0);
+    return;
+  }
+  plugin->disconnect_session (plugin->cls,
+                              session);
+}
+
+
+/**
  * Function called by the transport for each received message.
- * This function should also be called with "NULL" for the
- * message to signal that the other peer disconnected.
  *
  * @param cls closure, const char* with the name of the plugin we received the message from
  * @param peer (claimed) identity of the other peer
  * @param message the message, NULL if we only care about
- *                learning about the delay until we should receive again -- FIXME!
+ *                learning about the delay until we should receive again
  * @param session identifier used for this session (NULL for plugins
  *                that do not offer bi-directional communication to the sender
  *                using the same "connection")
@@ -236,30 +257,57 @@ GST_receive_callback (void *cls,
     /* Legacy HELLO message, discard  */
     return ret;
   case GNUNET_MESSAGE_TYPE_HELLO:
-    GST_validation_handle_hello (message);
+    if (GNUNET_OK !=
+        GST_validation_handle_hello (message))
+    {
+      GNUNET_break_op (0);
+      kill_session (plugin_name, session);
+    }
     return ret;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_PING:
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
                 "Processing `%s' from `%s'\n", "PING",
                 (sender_address !=
                  NULL) ? GST_plugins_a2s (&address) : TRANSPORT_SESSION_INBOUND_STRING);
-    GST_validation_handle_ping (peer, message, &address, session);
+    if (GNUNET_OK !=
+        GST_validation_handle_ping (peer, message, &address, session))
+      kill_session (plugin_name, session);
     break;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_PONG:
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
                 "Processing `%s' from `%s'\n", "PONG",
                 (sender_address !=
                  NULL) ? GST_plugins_a2s (&address) : TRANSPORT_SESSION_INBOUND_STRING);
-    GST_validation_handle_pong (peer, message);
+    if (GNUNET_OK !=
+        GST_validation_handle_pong (peer, message))
+    {
+      GNUNET_break_op (0);
+      kill_session (plugin_name, session);
+    }
     break;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_CONNECT:
-    GST_neighbours_handle_connect (message, peer, &address, session);
+    if (GNUNET_OK !=
+        GST_neighbours_handle_connect (message, peer, &address, session))
+    {
+      GNUNET_break_op (0);
+      kill_session (plugin_name, session);
+    }
     break;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_CONNECT_ACK:
-    GST_neighbours_handle_connect_ack (message, peer, &address, session);
+    if (GNUNET_OK !=
+        GST_neighbours_handle_connect_ack (message, peer, &address, session))
+    {
+      GNUNET_break_op (0);
+      kill_session (plugin_name, session);
+    }
     break;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_ACK:
-    GST_neighbours_handle_session_ack (message, peer, &address, session);
+    if (GNUNET_OK !=
+        GST_neighbours_handle_session_ack (message, peer, &address, session))
+    {
+      GNUNET_break_op (0);
+      kill_session (plugin_name, session);
+    }
     break;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_DISCONNECT:
     GST_neighbours_handle_disconnect_message (peer, message);
@@ -370,6 +418,7 @@ plugin_env_address_to_type (void *cls,
                             size_t addrlen)
 {
   struct GNUNET_ATS_Information ats;
+
   ats.type = htonl (GNUNET_ATS_NETWORK_TYPE);
   ats.value = htonl (GNUNET_ATS_NET_UNSPECIFIED);
   if (GST_ats == NULL)
@@ -381,9 +430,10 @@ plugin_env_address_to_type (void *cls,
       ((addr->sa_family != AF_INET6) && (addrlen != sizeof (struct sockaddr_in6))) &&
       (addr->sa_family != AF_UNIX))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Malformed address with length %u `%s'\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Malformed address with length %u `%s'\n",
                 addrlen,
-                GNUNET_a2s(addr, addrlen));
+                GNUNET_a2s (addr, addrlen));
     GNUNET_break (0);
     return ats;
   }
@@ -621,8 +671,8 @@ ats_request_address_change (void *cls,
     return;
   }
   GST_neighbours_switch_to_address (&address->peer, address, session, ats,
-                                         ats_count, bandwidth_in,
-                                         bandwidth_out);
+                                    ats_count, bandwidth_in,
+                                    bandwidth_out);
 }
 
 

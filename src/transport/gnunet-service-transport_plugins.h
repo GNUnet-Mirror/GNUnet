@@ -70,6 +70,7 @@ GST_plugins_unload (void);
 struct GNUNET_TRANSPORT_PluginFunctions *
 GST_plugins_find (const char *name);
 
+
 /**
  * Obtain the plugin API based on a the stripped plugin name after the underscore.
  *

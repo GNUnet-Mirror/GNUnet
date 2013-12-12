@@ -774,7 +774,7 @@ send_outbound_quota (const struct GNUNET_PeerIdentity *target,
  * Release its resources and give appropriate notifications
  * to ATS and other subsystems.
  *
- * @param na address we are done with; 'na' itself must NOT be 'free'd, only the contents!
+ * @param na address we are done with; @a na itself must NOT be 'free'd, only the contents!
  */
 static void
 free_address (struct NeighbourAddress *na)
@@ -1817,10 +1817,15 @@ handle_test_blacklist_cont (void *cls,
   struct NeighbourMapEntry *n;
 
   bcc->bc = NULL;
+  GNUNET_CONTAINER_DLL_remove (bc_head,
+			       bc_tail,
+			       bcc);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Connection to new address of peer `%s' based on blacklist is `%s'\n",
               GNUNET_i2s (peer),
               (GNUNET_OK == result) ? "allowed" : "FORBIDDEN");
+  if (GNUNET_OK == result)
+    GST_ats_add_address (bcc->na.address, bcc->na.session);
   if (NULL == (n = lookup_neighbour (peer)))
     goto cleanup; /* nobody left to care about new address */
   switch (n->state)
@@ -1831,7 +1836,8 @@ handle_test_blacklist_cont (void *cls,
     free_neighbour (n, GNUNET_NO);
     break;
   case S_INIT_ATS:
-    /* still waiting on ATS suggestion */
+    /* waiting on ATS suggestion; still, pass address to ATS as a
+       possibility */
     break;
   case S_INIT_BLACKLIST:
     /* check if the address the blacklist was fine with matches
@@ -1877,20 +1883,21 @@ handle_test_blacklist_cont (void *cls,
     }
     break;
   case S_CONNECT_RECV_BLACKLIST_INBOUND:
-    if (GNUNET_OK == result)
-    	GST_ats_add_address (bcc->na.address, bcc->na.session);
-
     n->state = S_CONNECT_RECV_ATS;
     n->timeout = GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT);
     GNUNET_ATS_reset_backoff (GST_ats, peer);
     n->suggest_handle = GNUNET_ATS_suggest_address (GST_ats, peer);
     break;
   case S_CONNECT_RECV_ATS:
-    /* still waiting on ATS suggestion, don't care about blacklist */
+    /* waiting on ATS suggestion, don't care about blacklist */
     break;
   case S_CONNECT_RECV_BLACKLIST:
     if (GNUNET_YES != address_matches (&bcc->na, &n->primary_address))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Blacklist result ignored, as it is not for our primary address\n");
       break; /* result for an address we currently don't care about */
+    }
     if (GNUNET_OK == result)
     {
       n->timeout = GNUNET_TIME_relative_to_absolute (SETUP_CONNECTION_TIMEOUT);
@@ -1903,10 +1910,20 @@ handle_test_blacklist_cont (void *cls,
     }
     else
     {
-      // FIXME: should also possibly destroy session with plugin!?
+      struct GNUNET_TRANSPORT_PluginFunctions *plugin;
+
+      plugin = GST_plugins_find (bcc->na.address->transport_name);
+      if ( (NULL != plugin) &&
+           (NULL != bcc->na.session) )
+      {
+        plugin->disconnect_session (plugin->cls,
+                                    bcc->na.session);
+        break;
+      }
+      GNUNET_break (NULL != plugin);
       GNUNET_ATS_address_destroyed (GST_ats,
-				    bcc->na.address,
-				    NULL);
+                                    bcc->na.address,
+                                    NULL);
       free_address (&n->primary_address);
       n->state = S_INIT_ATS;
       n->timeout = GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT);
@@ -2016,9 +2033,6 @@ handle_test_blacklist_cont (void *cls,
   }
  cleanup:
   GNUNET_HELLO_address_free (bcc->na.address);
-  GNUNET_CONTAINER_DLL_remove (bc_head,
-			       bc_tail,
-			       bcc);
   GNUNET_free (bcc);
 }
 
@@ -2042,7 +2056,7 @@ check_blacklist (const struct GNUNET_PeerIdentity *peer,
   struct BlackListCheckContext *bcc;
   struct GST_BlacklistCheck *bc;
 
-  bcc = GNUNET_malloc (sizeof (struct BlackListCheckContext));
+  bcc = GNUNET_new (struct BlackListCheckContext);
   bcc->na.address = GNUNET_HELLO_address_copy (address);
   bcc->na.session = session;
   bcc->na.connect_timestamp = ts;
@@ -2067,8 +2081,9 @@ check_blacklist (const struct GNUNET_PeerIdentity *peer,
  * @param address address of the other peer, NULL if other peer
  *                       connected to us
  * @param session session to use (or NULL)
+ * @return #GNUNET_OK if the message was fine, #GNUNET_SYSERR on serious error
  */
-void
+int
 GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
                                const struct GNUNET_PeerIdentity *peer,
                                const struct GNUNET_HELLO_Address *address,
@@ -2084,14 +2099,19 @@ GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
   if (ntohs (message->size) != sizeof (struct SessionConnectMessage))
   {
     GNUNET_break_op (0);
-    return;
+    return GNUNET_SYSERR;
   }
   GNUNET_STATISTICS_update (GST_stats,
                             gettext_noop
                             ("# CONNECT messages received"),
                             1, GNUNET_NO);
   if (NULL == neighbours)
-    return; /* we're shutting down */
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                _("CONNECT request from peer `%s' ignored due impending shutdown\n"),
+                GNUNET_i2s (peer));
+    return GNUNET_OK; /* we're shutting down */
+  }
   scm = (const struct SessionConnectMessage *) message;
   GNUNET_break_op (0 == ntohl (scm->reserved));
   ts = GNUNET_TIME_absolute_ntoh (scm->timestamp);
@@ -2169,9 +2189,9 @@ GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
                 "Unhandled state `%s'\n",
                 print_state (n->state));
     GNUNET_break (0);
-    free_neighbour (n, GNUNET_NO);
-    break;
+    return GNUNET_SYSERR;
   }
+  return GNUNET_OK;
 }
 
 
@@ -2485,33 +2505,32 @@ utilization_transmission (void *cls,
 
 }
 
+
 void
 GST_neighbours_notify_data_recv (const struct GNUNET_PeerIdentity *peer,
-                 const struct GNUNET_HELLO_Address *address,
-                 struct Session *session,
-                 const struct GNUNET_MessageHeader *message)
+                                 const struct GNUNET_HELLO_Address *address,
+                                 struct Session *session,
+                                 const struct GNUNET_MessageHeader *message)
 {
   struct NeighbourMapEntry *n;
+
   n = lookup_neighbour (peer);
   if (NULL == n)
-  {
-      return;
-  }
+    return;
   n->util_total_bytes_recv += ntohs(message->size);
 }
 
+
 void
 GST_neighbours_notify_payload_recv (const struct GNUNET_PeerIdentity *peer,
-                 const struct GNUNET_HELLO_Address *address,
-                 struct Session *session,
-                 const struct GNUNET_MessageHeader *message)
+                                    const struct GNUNET_HELLO_Address *address,
+                                    struct Session *session,
+                                    const struct GNUNET_MessageHeader *message)
 {
   struct NeighbourMapEntry *n;
   n = lookup_neighbour (peer);
   if (NULL == n)
-  {
-      return;
-  }
+    return;
   n->util_payload_bytes_recv += ntohs(message->size);
 }
 
@@ -2779,8 +2798,9 @@ send_session_ack_message (struct NeighbourMapEntry *n)
  * @param address address of the other peer, NULL if other peer
  *                       connected to us
  * @param session session to use (or NULL)
+ * @return #GNUNET_OK if the message was fine, #GNUNET_SYSERR on serious error
  */
-void
+int
 GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
                                    const struct GNUNET_PeerIdentity *peer,
                                    const struct GNUNET_HELLO_Address *address,
@@ -2797,7 +2817,7 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
   if (ntohs (message->size) != sizeof (struct SessionConnectMessage))
   {
     GNUNET_break_op (0);
-    return;
+    return GNUNET_SYSERR;
   }
   GNUNET_STATISTICS_update (GST_stats,
                             gettext_noop
@@ -2811,7 +2831,7 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
                               gettext_noop
                               ("# unexpected CONNECT_ACK messages (no peer)"),
                               1, GNUNET_NO);
-    return;
+    return GNUNET_SYSERR;
   }
   ts = GNUNET_TIME_absolute_ntoh (scm->timestamp);
   switch (n->state)
@@ -2819,7 +2839,7 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
   case S_NOT_CONNECTED:
     GNUNET_break (0);
     free_neighbour (n, GNUNET_NO);
-    return;
+    return GNUNET_SYSERR;
   case S_INIT_ATS:
   case S_INIT_BLACKLIST:
     GNUNET_STATISTICS_update (GST_stats,
@@ -2829,7 +2849,11 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
     break;
   case S_CONNECT_SENT:
     if (ts.abs_value_us != n->primary_address.connect_timestamp.abs_value_us)
-      break; /* ACK does not match our original CONNECT message */
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  "CONNECT_ACK ignored as the timestamp does not match our CONNECT request\n");
+      return GNUNET_OK;
+    }
     n->state = S_CONNECTED;
     n->timeout = GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
     GNUNET_STATISTICS_set (GST_stats,
@@ -2901,7 +2925,7 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
                               gettext_noop
                               ("# unexpected CONNECT_ACK messages (disconnecting)"),
                               1, GNUNET_NO);
-    break;
+    return GNUNET_SYSERR;
   case S_DISCONNECT_FINISHED:
     GNUNET_assert (0);
     break;
@@ -2910,8 +2934,9 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
                 "Unhandled state `%s'\n",
                 print_state (n->state));
     GNUNET_break (0);
-    break;
+    return GNUNET_SYSERR;
   }
+  return GNUNET_OK;
 }
 
 
@@ -2939,7 +2964,8 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
     bcc_next = bcc->next;
     if (bcc->na.session == session)
     {
-      GST_blacklist_test_cancel (bcc->bc);
+      if (NULL != bcc->bc)
+        GST_blacklist_test_cancel (bcc->bc);
       GNUNET_HELLO_address_free (bcc->na.address);
       GNUNET_CONTAINER_DLL_remove (bc_head,
 				   bc_tail,
@@ -3057,8 +3083,9 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
  * @param address address of the other peer, NULL if other peer
  *                       connected to us
  * @param session session to use (or NULL)
+ * @return #GNUNET_OK if the message was fine, #GNUNET_SYSERR on serious error
  */
-void
+int
 GST_neighbours_handle_session_ack (const struct GNUNET_MessageHeader *message,
 				   const struct GNUNET_PeerIdentity *peer,
 				   const struct GNUNET_HELLO_Address *address,
@@ -3072,14 +3099,14 @@ GST_neighbours_handle_session_ack (const struct GNUNET_MessageHeader *message,
   if (ntohs (message->size) != sizeof (struct GNUNET_MessageHeader))
   {
     GNUNET_break_op (0);
-    return;
+    return GNUNET_SYSERR;
   }
   GNUNET_STATISTICS_update (GST_stats,
                             gettext_noop
                             ("# SESSION_ACK messages received"),
                             1, GNUNET_NO);
   if (NULL == (n = lookup_neighbour (peer)))
-    return;
+    return GNUNET_SYSERR;
   /* check if we are in a plausible state for having sent
      a CONNECT_ACK.  If not, return, otherwise break */
   if ( ( (S_CONNECT_RECV_ACK != n->state) &&
@@ -3094,7 +3121,7 @@ GST_neighbours_handle_session_ack (const struct GNUNET_MessageHeader *message,
     GNUNET_STATISTICS_update (GST_stats,
                               gettext_noop ("# unexpected SESSION_ACK messages"), 1,
                               GNUNET_NO);
-    return;
+    return GNUNET_SYSERR;
   }
   n->state = S_CONNECTED;
   n->timeout = GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
@@ -3113,6 +3140,7 @@ GST_neighbours_handle_session_ack (const struct GNUNET_MessageHeader *message,
 	       n->primary_address.bandwidth_in,
 	       n->primary_address.bandwidth_out,
 	       GNUNET_YES);
+  return GNUNET_OK;
 }
 
 

@@ -1608,25 +1608,25 @@ static struct PrettyPrinterContext *ppc_dll_tail;
  */
 struct PrettyPrinterContext
 {
-	/**
-	 * DLL
-	 */
-	struct PrettyPrinterContext *next;
+  /**
+   * DLL
+   */
+  struct PrettyPrinterContext *next;
 
-	/**
-	 * DLL
-	 */
-	struct PrettyPrinterContext *prev;
+  /**
+   * DLL
+   */
+  struct PrettyPrinterContext *prev;
 
-	/**
-	 * Timeout task
-	 */
-	GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+  /**
+   * Timeout task
+   */
+  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
 
-	/**
-	 * Resolver handle
-	 */
-	struct GNUNET_RESOLVER_RequestHandle *resolver_handle;
+  /**
+   * Resolver handle
+   */
+  struct GNUNET_RESOLVER_RequestHandle *resolver_handle;
 
   /**
    * Function to call with the result.
