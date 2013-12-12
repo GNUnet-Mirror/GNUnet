@@ -2324,6 +2324,12 @@ GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
       }
       chq->tq = GMT_send_prebuilt_message (message, ch->t, GNUNET_YES,
                                            &ch_message_sent, chq);
+      if (NULL != chq->tq)
+      {
+        GNUNET_break (0);
+        GNUNET_free (chq);
+        chq = NULL;
+      }
       chq->rel->uniq = chq;
       break;
 
