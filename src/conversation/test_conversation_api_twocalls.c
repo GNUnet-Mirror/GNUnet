@@ -37,7 +37,7 @@
 
 #define FREQ GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 250)
 
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 25)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 25)
 
 static int ok = 1;
 
@@ -69,13 +69,43 @@ static GNUNET_MICROPHONE_RecordedDataCallback phone_rdc;
 
 static void *phone_rdc_cls;
 
-static GNUNET_MICROPHONE_RecordedDataCallback call_rdc;
-
-static void *call_rdc_cls;
-
 static GNUNET_SCHEDULER_TaskIdentifier phone_task;
 
-static GNUNET_SCHEDULER_TaskIdentifier call_task;
+/**
+ * Variable for recognizing caller1
+ */
+static const char *caller1 = "caller1";
+
+/**
+ * Variable for recognizing caller2
+ */
+static const char *caller2 = "caller2";
+
+/**
+ * Variable for recognizing callee
+ */
+static const char *phone0 = "phone";
+
+#define CALLER1 &caller1
+#define CALLER2 &caller2
+#define PHONE0 &phone0
+
+#define CLS_STR(caller) (*((char **)caller))
+
+struct MicContext
+{
+  GNUNET_MICROPHONE_RecordedDataCallback rdc;
+
+  void *rdc_cls;
+
+  GNUNET_SCHEDULER_TaskIdentifier call_task;
+  
+  char sym;
+};
+
+static struct MicContext call1_mic_ctx;
+static struct MicContext call2_mic_ctx;
+//static struct MicContext phone_mic_ctx;
 
 
 static void
@@ -87,6 +117,7 @@ phone_send (void *cls,
   GNUNET_assert (NULL != phone_rdc);
   GNUNET_snprintf (buf, sizeof (buf), "phone");
   phone_rdc (phone_rdc_cls, strlen (buf) + 1, buf);
+  fprintf (stderr, "+");
   phone_task = GNUNET_SCHEDULER_add_delayed (FREQ,
                                              &phone_send, NULL);
 }
@@ -96,20 +127,22 @@ static void
 call_send (void *cls,
            const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  struct MicContext *mc = cls;
   char buf[32];
 
-  GNUNET_assert (NULL != call_rdc);
+  GNUNET_assert (NULL != mc->rdc);
   GNUNET_snprintf (buf, sizeof (buf), "call");
-  call_rdc (call_rdc_cls, strlen (buf) + 1, buf);
-  call_task = GNUNET_SCHEDULER_add_delayed (FREQ,
-                                            &call_send, NULL);
+  mc->rdc (mc->rdc_cls, strlen (buf) + 1, buf);
+  fprintf (stderr, "%c", mc->sym);
+  mc->call_task = GNUNET_SCHEDULER_add_delayed (FREQ,
+                                                &call_send, mc);
 }
 
 
 static int
 enable_speaker (void *cls)
 {
-  const char *origin = cls;
+  const char *origin = CLS_STR (cls);
 
   fprintf (stderr,
            "Speaker %s enabled\n",
@@ -121,7 +154,7 @@ enable_speaker (void *cls)
 static void
 disable_speaker (void *cls)
 {
-  const char *origin = cls;
+  const char *origin = CLS_STR (cls);
 
   fprintf (stderr,
            "Speaker %s disabled\n",
@@ -137,6 +170,7 @@ play (void *cls,
   static unsigned int phone_i;
   static unsigned int call_i;
 
+  write (2, data, data_size);
   if (0 == strncmp ("call", data, data_size))
     call_i++;
   else if (0 == strncmp ("phone", data, data_size))
@@ -151,7 +185,7 @@ play (void *cls,
 
   if ( (20 < call_i) &&
        (20 < phone_i) &&
-       (NULL != call2) )
+       (CALLER2 == cls) )
   {
     /* time to hang up ... */
     GNUNET_CONVERSATION_call_stop (call2);
@@ -162,7 +196,7 @@ play (void *cls,
   }
   if ( (20 < call_i) &&
        (20 < phone_i) &&
-       (NULL != call1) )
+       (CALLER1 == cls) )
   {
     /* time to hang up ... */
     GNUNET_CONVERSATION_call_stop (call1);
@@ -174,18 +208,27 @@ play (void *cls,
 static void
 destroy_speaker (void *cls)
 {
-  const char *origin = cls;
+  const char *origin = CLS_STR (cls);
 
   fprintf (stderr, "Speaker %s destroyed\n", origin);
 }
 
 
-static struct GNUNET_SPEAKER_Handle call_speaker = {
+static struct GNUNET_SPEAKER_Handle call1_speaker = {
   &enable_speaker,
   &play,
   &disable_speaker,
   &destroy_speaker,
-  "caller"
+  CALLER1
+};
+
+
+static struct GNUNET_SPEAKER_Handle call2_speaker = {
+  &enable_speaker,
+  &play,
+  &disable_speaker,
+  &destroy_speaker,
+  CALLER2
 };
 
 
@@ -194,7 +237,7 @@ static struct GNUNET_SPEAKER_Handle phone_speaker = {
   &play,
   &disable_speaker,
   &destroy_speaker,
-  "phone"
+  PHONE0
 };
 
 
@@ -203,25 +246,26 @@ enable_mic (void *cls,
             GNUNET_MICROPHONE_RecordedDataCallback rdc,
             void *rdc_cls)
 {
-  const char *origin = cls;
+  const char *origin = CLS_STR (cls);
+  struct MicContext *mc;
 
   fprintf (stderr,
            "Mic %s enabled\n",
            origin);
-  if (0 == strcmp (origin, "phone"))
+  if (PHONE0 == cls)
   {
     phone_rdc = rdc;
     phone_rdc_cls = rdc_cls;
     GNUNET_break (GNUNET_SCHEDULER_NO_TASK == phone_task);
     phone_task = GNUNET_SCHEDULER_add_now (&phone_send, NULL);
+    return GNUNET_OK;
   }
-  else
-  {
-    call_rdc = rdc;
-    call_rdc_cls = rdc_cls;
-    GNUNET_break (GNUNET_SCHEDULER_NO_TASK == call_task);
-    call_task = GNUNET_SCHEDULER_add_now (&call_send, NULL);
-  }
+  mc = (CALLER1 == cls) ? &call1_mic_ctx : &call2_mic_ctx;
+  mc->sym = (CALLER1 == cls) ? '1': '2';
+  mc->rdc = rdc;
+  mc->rdc_cls = rdc_cls;
+  GNUNET_break (GNUNET_SCHEDULER_NO_TASK == mc->call_task);
+  mc->call_task = GNUNET_SCHEDULER_add_now (&call_send, mc);
   return GNUNET_OK;
 }
 
@@ -229,32 +273,32 @@ enable_mic (void *cls,
 static void
 disable_mic (void *cls)
 {
-  const char *origin = cls;
+  const char *origin = CLS_STR (cls);
+  struct MicContext *mc;
 
   fprintf (stderr,
            "Mic %s disabled\n",
            origin);
-  if (0 == strcmp (origin, "phone"))
+  if (PHONE0 == cls)
   {
     phone_rdc = NULL;
     phone_rdc_cls = NULL;
     GNUNET_SCHEDULER_cancel (phone_task);
     phone_task = GNUNET_SCHEDULER_NO_TASK;
+    return;
   }
-  else
-  {
-    call_rdc = NULL;
-    call_rdc_cls = NULL;
-    GNUNET_SCHEDULER_cancel (call_task);
-    call_task = GNUNET_SCHEDULER_NO_TASK;
-  }
+  mc = (CALLER1 == cls) ? &call1_mic_ctx : &call2_mic_ctx;
+  mc->rdc = NULL;
+  mc->rdc_cls = NULL;
+  GNUNET_SCHEDULER_cancel (mc->call_task);
+  mc->call_task = GNUNET_SCHEDULER_NO_TASK;
 }
 
 
 static void
 destroy_mic (void *cls)
 {
-  const char *origin = cls;
+  const char *origin = CLS_STR (cls);
 
   fprintf (stderr,
            "Mic %s destroyed\n",
@@ -262,11 +306,19 @@ destroy_mic (void *cls)
 }
 
 
-static struct GNUNET_MICROPHONE_Handle call_mic = {
+static struct GNUNET_MICROPHONE_Handle call1_mic = {
   &enable_mic,
   &disable_mic,
   &destroy_mic,
-  "caller"
+  CALLER1
+};
+
+
+static struct GNUNET_MICROPHONE_Handle call2_mic = {
+  &enable_mic,
+  &disable_mic,
+  &destroy_mic,
+  CALLER2
 };
 
 
@@ -274,7 +326,7 @@ static struct GNUNET_MICROPHONE_Handle phone_mic = {
   &enable_mic,
   &disable_mic,
   &destroy_mic,
-  "phone"
+  PHONE0
 };
 
 
@@ -410,16 +462,22 @@ call_event_handler (void *cls,
   case GNUNET_CONVERSATION_EC_CALL_RINGING:
     break;
   case GNUNET_CONVERSATION_EC_CALL_PICKED_UP:
+    fprintf (stderr, "\t Call %s picked\n", cid);
     break;
   case GNUNET_CONVERSATION_EC_CALL_GNS_FAIL:
+    fprintf (stderr, "\t Call %s GNS lookup failed \n", cid);
   case GNUNET_CONVERSATION_EC_CALL_HUNG_UP:
+    fprintf (stderr, "\t Call %s hungup\n", cid);
     if (0 == strcmp (cid, "call1"))
       call1 = NULL;
     else
       call2 = NULL;
     break;
   case GNUNET_CONVERSATION_EC_CALL_SUSPENDED:
+    fprintf (stderr, "\t Call %s suspended\n", cid);
+    break;
   case GNUNET_CONVERSATION_EC_CALL_RESUMED:
+    fprintf (stderr, "\t Call %s resumed\n", cid);
     break;
   }
 }
@@ -494,15 +552,15 @@ identity_cb (void *cls,
     call1 = GNUNET_CONVERSATION_call_start (cfg,
                                             ego,
                                             gns_name,
-                                            &call_speaker,
-                                            &call_mic,
+                                            &call1_speaker,
+                                            &call1_mic,
                                             &call_event_handler,
                                             (void *) "call1");
     call2 = GNUNET_CONVERSATION_call_start (cfg,
                                             ego,
                                             gns_name,
-                                            &call_speaker,
-                                            &call_mic,
+                                            &call2_speaker,
+                                            &call2_mic,
                                             &call_event_handler,
                                             (void *) "call2");
     return;
