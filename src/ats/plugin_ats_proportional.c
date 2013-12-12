@@ -501,14 +501,14 @@ libgnunet_plugin_ats_proportional_done (void *cls)
   {
     LOG(GNUNET_ERROR_TYPE_DEBUG,
         "Had %u addresses not deleted during shutdown\n", s->total_addresses);
-    GNUNET_break(0);
+    // GNUNET_break(0);
   }
   if (s->active_addresses > 0)
   {
     LOG(GNUNET_ERROR_TYPE_DEBUG,
         "Had %u active addresses not deleted during shutdown\n",
         s->active_addresses);
-    GNUNET_break (0);
+    // GNUNET_break (0);
   }
   GNUNET_free (s->network_entries);
   GNUNET_CONTAINER_multipeermap_destroy (s->requests);
