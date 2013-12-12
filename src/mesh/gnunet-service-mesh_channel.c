@@ -1114,13 +1114,18 @@ channel_confirm (struct MeshChannel *ch, int fwd)
   struct MeshChannelReliability *rel;
   enum MeshChannelState oldstate;
 
+  rel = fwd ? ch->root_rel : ch->dest_rel;
+  if (NULL == rel)
+  {
+    GNUNET_break (GNUNET_NO != ch->destroy);
+    return;
+  }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
               "  channel confirm %s %s\n",
               GM_f2s (fwd), GMCH_2s (ch));
   oldstate = ch->state;
   ch->state = MESH_CHANNEL_READY;
 
-  rel = fwd ? ch->root_rel : ch->dest_rel;
   rel->client_ready = GNUNET_YES;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "  !! retry timer confirm %s\n",
