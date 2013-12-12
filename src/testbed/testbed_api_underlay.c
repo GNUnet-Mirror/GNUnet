@@ -38,6 +38,11 @@ struct LinkProperty
   struct LinkProperty *next;
 
   /**
+   * the peer whose link is defined by these properties
+   */
+  struct GNUNET_TESTBED_Peer *peer;
+
+  /**
    * latency of the link in microseconds
    */
   uint32_t latency;
