@@ -1877,7 +1877,7 @@ GMCH_handle_data (struct MeshChannel *ch,
 
   if (NULL == c)
   {
-    GNUNET_break (0);
+    GNUNET_break (GNUNET_NO != ch->destroy);
     return;
   }
 
