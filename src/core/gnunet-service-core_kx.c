@@ -553,8 +553,8 @@ do_encrypt (struct GSC_KeyExchangeInfo *kx,
  * @param iv initialization vector to use
  * @param in ciphertext
  * @param out plaintext
- * @param size size of in/out
- * @return GNUNET_OK on success
+ * @param size size of @a in / @a out
+ * @return #GNUNET_OK on success
  */
 static int
 do_decrypt (struct GSC_KeyExchangeInfo *kx,

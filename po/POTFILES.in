@@ -308,7 +308,6 @@ src/transport/gnunet-transport-certificate-creation.c
 src/transport/gnunet-transport-wlan-receiver.c
 src/transport/gnunet-transport-wlan-sender.c
 src/transport/plugin_transport_bluetooth.c
-src/transport/plugin_transport_http.c
 src/transport/plugin_transport_http_client.c
 src/transport/plugin_transport_http_common.c
 src/transport/plugin_transport_http_server.c
