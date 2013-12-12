@@ -2564,7 +2564,7 @@ GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   memcpy (data, message, size);
   type = ntohs (message->type);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Send %s (%u bytes) on connection %s\n",
-              GM_m2s (type), size, GMC_2s (c));
+       GM_m2s (type), size, GMC_2s (c));
 
   fc = fwd ? &c->fwd_fc : &c->bck_fc;
   droppable = GNUNET_NO == force;

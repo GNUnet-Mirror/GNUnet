@@ -768,7 +768,7 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
     tq->tqd = NULL;
   }
   tq->cq = GMC_send_prebuilt_message (&msg->header, c, fwd, force,
-                                  &message_sent, tq);
+                                      &message_sent, tq);
   tq->cont = cont;
   tq->cont_cls = cont_cls;
 
@@ -1748,7 +1748,10 @@ void
 GMT_remove_connection (struct MeshTunnel3 *t, struct MeshConnection *c)
 {
   struct MeshTConnection *aux;
+  unsigned int i;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Removing connection %s from tunnel %s\n",
+       GMC_2s (c), GMT_2s (t));
   for (aux = t->connection_head; aux != NULL; aux = aux->next)
     if (aux->c == c)
     {
@@ -1756,6 +1759,26 @@ GMT_remove_connection (struct MeshTunnel3 *t, struct MeshConnection *c)
       GNUNET_free (aux);
       return;
     }
+
+  /* Start new connections if needed */
+  if (NULL == t->connection_head)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  no more connections\n");
+    GMP_connect (t->peer);
+    t->cstate = MESH_TUNNEL3_SEARCHING;
+    return;
+  }
+
+  /* If not marked as ready, no change is needed */
+  if (MESH_TUNNEL3_READY != t->cstate)
+    return;
+
+  /* Check if any connection is ready to maintaing cstate */
+  for (aux = t->connection_head; aux != NULL; aux = aux->next)
+    if (MESH_CONNECTION_READY == GMC_get_state (aux->c))
+      return;
+
+  t->cstate = MESH_TUNNEL3_WAITING;
 }
 
 
