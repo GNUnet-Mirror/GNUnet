@@ -159,6 +159,5 @@ test_plugin_namecache_postgres_LDADD = \
 EXTRA_DIST = \
   test_namecache_api.conf \
   test_plugin_namecache_sqlite.conf \
-  test_plugin_namecache_postgres.conf \
-  test_namecache_defaults.conf
+  test_plugin_namecache_postgres.conf 
 

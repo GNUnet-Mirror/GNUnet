@@ -105,5 +105,4 @@ test_gnunet_arm.py: test_gnunet_arm.py.in Makefile
 
 EXTRA_DIST = \
   test_arm_api_data.conf \
-  test_gnunet_arm.py.in \
-  do_start_process.c
+  test_gnunet_arm.py.in 

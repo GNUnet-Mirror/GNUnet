@@ -10,9 +10,10 @@ SUBDIRS = . $(NSS_SUBDIR)
 
 EXTRA_DIST = \
   test_gns_defaults.conf \
-  test_gns_simple_lookup.conf \
+  test_gns_lookup.conf \
   test_gns_nick_shorten.conf \
-  test_gns_dht_default.conf \
+  test_gns_proxy.conf \
+  test_gns_simple_lookup.conf \
   gns-helper-service-w32.conf \
   gnunet-gns-proxy-setup-ca \
   zonefiles/J7POEUT41A8PBFS7KVVDRF88GBOU4HK8PSU5QKVLVE3R9T91E99G.zkey \
