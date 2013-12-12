@@ -2746,10 +2746,10 @@ libgnunet_plugin_transport_tcp_done (void *cls)
 
   /* Removing leftover sessions */
   GNUNET_CONTAINER_multipeermap_iterate (plugin->sessionmap,
-                                         &session_disconnect_it, NULL);
+                                         &session_disconnect_it, plugin);
   /* Removing leftover NAT sessions */
   GNUNET_CONTAINER_multipeermap_iterate (plugin->nat_wait_conns,
-                                         &session_disconnect_it, NULL);
+                                         &session_disconnect_it, plugin);
 
   next = ppc_dll_head;
   for (cur = next; NULL != cur; cur = next)
