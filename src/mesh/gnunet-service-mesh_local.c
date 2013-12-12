@@ -357,7 +357,8 @@ handle_channel_create (void *cls, struct GNUNET_SERVER_Client *client,
 {
   struct MeshClient *c;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "\n\nnew channel requested\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "new channel requested\n");
 
   /* Sanity check for client registration */
   if (NULL == (c = GML_client_get (client)))

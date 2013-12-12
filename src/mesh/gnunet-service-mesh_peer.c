@@ -1297,9 +1297,7 @@ GMP_connect (struct MeshPeer *peer)
   struct MeshConnection *c;
   int rerun_search;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-              "peer_connect towards %s\n",
-              GMP_2s (peer));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "peer_connect towards %s\n", GMP_2s (peer));
   t = peer->tunnel;
   c = NULL;
   rerun_search = GNUNET_NO;
