@@ -253,10 +253,23 @@ GNUNET_PROGRAM_run2 (int argc, char *const *argv, const char *binaryName,
     cc.cfgfile = GNUNET_strdup (cfg_fn);
   if (GNUNET_YES ==
       GNUNET_DISK_file_test (cc.cfgfile))
-    (void) GNUNET_CONFIGURATION_load (cfg, cc.cfgfile);
+  {
+    if (GNUNET_SYSERR == GNUNET_CONFIGURATION_load (cfg, cc.cfgfile))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _("Malformed configuration file `%s', exit ...\n"),
+                  cc.cfgfile);
+      return GNUNET_SYSERR;
+    }
+  }
   else
   {
-    (void) GNUNET_CONFIGURATION_load (cfg, NULL);
+    if (GNUNET_SYSERR == GNUNET_CONFIGURATION_load (cfg, NULL))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _("Malformed configuration, exit ...\n"));
+      return GNUNET_SYSERR;
+    }
     if (0 != strcmp (cc.cfgfile, cfg_fn))
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		  _("Could not access configuration file `%s'\n"),
