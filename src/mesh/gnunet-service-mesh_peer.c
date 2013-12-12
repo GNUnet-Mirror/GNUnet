@@ -645,7 +645,8 @@ peer_delete_oldest (void)
 
 
 /**
- * Choose the best path towards a peer considering the tunnel properties.
+ * Choose the best (yet unused) path towards a peer,
+ * considering the tunnel properties.
  *
  * @param peer The destination peer.
  *
