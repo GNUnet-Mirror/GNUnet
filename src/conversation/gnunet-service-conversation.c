@@ -469,6 +469,7 @@ handle_client_hangup_message (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Channel %u not found\n",
                 msg->cid);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
 
