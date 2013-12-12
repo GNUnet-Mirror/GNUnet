@@ -1759,15 +1759,19 @@ void
 GMT_remove_connection (struct MeshTunnel3 *t, struct MeshConnection *c)
 {
   struct MeshTConnection *aux;
+  struct MeshTConnection *next;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Removing connection %s from tunnel %s\n",
        GMC_2s (c), GMT_2s (t));
-  for (aux = t->connection_head; aux != NULL; aux = aux->next)
+  for (aux = t->connection_head; aux != NULL; aux = next)
+  {
+    next = aux->next;
     if (aux->c == c)
     {
       GNUNET_CONTAINER_DLL_remove (t->connection_head, t->connection_tail, aux);
       GNUNET_free (aux);
     }
+  }
 
   /* Start new connections if needed */
   if (NULL == t->connection_head)
