@@ -2301,7 +2301,7 @@ GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
       {
         /* BCK ACK (going FWD) is just a response for a SYNACK, don't keep*/
         fire_and_forget (message, ch, GNUNET_YES);
-        break;
+        return;
       }
       /* fall-trough */
     case GNUNET_MESSAGE_TYPE_MESH_DATA_ACK:
@@ -2324,11 +2324,12 @@ GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
       }
       chq->tq = GMT_send_prebuilt_message (message, ch->t, GNUNET_YES,
                                            &ch_message_sent, chq);
-      if (NULL != chq->tq)
+      if (NULL == chq->tq)
       {
         GNUNET_break (0);
         GNUNET_free (chq);
         chq = NULL;
+        return;
       }
       chq->rel->uniq = chq;
       break;
