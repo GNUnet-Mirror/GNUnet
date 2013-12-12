@@ -69,7 +69,7 @@ struct MeshChannelQueue
   /**
    * Tunnel Queue.
    */
-  struct MeshTunnel3Queue *q;
+  struct MeshTunnel3Queue *tq;
 
   /**
    * Message type (DATA/DATA_ACK)
@@ -117,7 +117,7 @@ struct MeshReliableMessage
   /**
    * Tunnel Queue.
    */
-  struct MeshChannelQueue       *q;
+  struct MeshChannelQueue       *chq;
 
     /**
      * When was this message issued (to calculate ACK delay)
@@ -728,15 +728,15 @@ ch_message_sent (void *cls,
                  struct MeshTunnel3Queue *q,
                  uint16_t type, size_t size)
 {
-  struct MeshChannelQueue *ch_q = cls;
-  struct MeshReliableMessage *copy = ch_q->copy;
+  struct MeshChannelQueue *chq = cls;
+  struct MeshReliableMessage *copy = chq->copy;
   struct MeshChannelReliability *rel;
 
-  switch (ch_q->type)
+  switch (chq->type)
   {
     case GNUNET_MESSAGE_TYPE_MESH_DATA:
       LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! SENT DATA MID %u\n", copy->mid);
-      GNUNET_assert (ch_q == copy->q);
+      GNUNET_assert (chq == copy->chq);
       copy->timestamp = GNUNET_TIME_absolute_get ();
       rel = copy->rel;
       if (GNUNET_SCHEDULER_NO_TASK == rel->retry_task)
@@ -767,16 +767,16 @@ ch_message_sent (void *cls,
       {
         LOG (GNUNET_ERROR_TYPE_DEBUG, "!! retry task %u\n", rel->retry_task);
       }
-      copy->q = NULL;
+      copy->chq = NULL;
       break;
 
 
     case GNUNET_MESSAGE_TYPE_MESH_DATA_ACK:
     case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_CREATE:
     case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_ACK:
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! SENT %s\n", GM_m2s (ch_q->type));
-      rel = ch_q->rel;
-      GNUNET_assert (rel->uniq == ch_q);
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! SENT %s\n", GM_m2s (chq->type));
+      rel = chq->rel;
+      GNUNET_assert (rel->uniq == chq);
       rel->uniq = NULL;
 
       if (MESH_CHANNEL_READY != rel->ch->state
@@ -797,7 +797,7 @@ ch_message_sent (void *cls,
       GNUNET_break (0);
   }
 
-  GNUNET_free (ch_q);
+  GNUNET_free (chq);
 }
 
 
@@ -935,7 +935,7 @@ channel_rel_free_all (struct MeshChannelReliability *rel)
     next = copy->next;
     GNUNET_CONTAINER_DLL_remove (rel->head_recv, rel->tail_recv, copy);
     LOG (GNUNET_ERROR_TYPE_DEBUG, " COPYFREE BATCH RECV %p\n", copy);
-    GNUNET_break (NULL == copy->q);
+    GNUNET_break (NULL == copy->chq);
     GNUNET_free (copy);
   }
   for (copy = rel->head_sent; NULL != copy; copy = next)
@@ -943,24 +943,24 @@ channel_rel_free_all (struct MeshChannelReliability *rel)
     next = copy->next;
     GNUNET_CONTAINER_DLL_remove (rel->head_sent, rel->tail_sent, copy);
     LOG (GNUNET_ERROR_TYPE_DEBUG, " COPYFREE BATCH %p\n", copy);
-    if (NULL != copy->q)
+    if (NULL != copy->chq)
     {
-      if (NULL != copy->q->q)
+      if (NULL != copy->chq->tq)
       {
-        GMT_cancel (copy->q->q);
+        GMT_cancel (copy->chq->tq);
         /* ch_message_sent will free copy->q */
       }
       else
       {
-        GNUNET_free (copy->q);
+        GNUNET_free (copy->chq);
         GNUNET_break (0);
       }
     }
     GNUNET_free (copy);
   }
-  if (NULL != rel->uniq && NULL != rel->uniq->q)
+  if (NULL != rel->uniq && NULL != rel->uniq->tq)
   {
-    GMT_cancel (rel->uniq->q);
+    GMT_cancel (rel->uniq->tq);
     /* ch_message_sent is called freeing uniq */
   }
   if (GNUNET_SCHEDULER_NO_TASK != rel->retry_task)
@@ -1088,9 +1088,9 @@ rel_message_free (struct MeshReliableMessage *copy, int update_time)
     LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! batch free, ignoring timing\n");
   }
   rel->ch->pending_messages--;
-  if (NULL != copy->q)
+  if (NULL != copy->chq)
   {
-    GMT_cancel (copy->q->q);
+    GMT_cancel (copy->chq->tq);
     /* copy->q is set to NULL by ch_message_sent */
   }
   GNUNET_CONTAINER_DLL_remove (rel->head_sent, rel->tail_sent, copy);
@@ -1147,7 +1147,7 @@ channel_confirm (struct MeshChannel *ch, int fwd)
   }
   else if (NULL != rel->uniq)
   {
-    GMT_cancel (rel->uniq->q);
+    GMT_cancel (rel->uniq->tq);
     /* ch_message_sent will free and NULL uniq */
   }
   else
@@ -2021,7 +2021,7 @@ GMCH_handle_data_ack (struct MeshChannel *ch,
     {
       GNUNET_SCHEDULER_cancel (rel->retry_task);
       rel->retry_task = GNUNET_SCHEDULER_NO_TASK;
-      if (NULL != rel->head_sent && NULL == rel->head_sent->q)
+      if (NULL != rel->head_sent && NULL == rel->head_sent->chq)
       {
         struct GNUNET_TIME_Absolute new_target;
         struct GNUNET_TIME_Relative delay;
@@ -2233,7 +2233,7 @@ GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
                             struct MeshChannel *ch, int fwd,
                             void *existing_copy)
 {
-  struct MeshChannelQueue *q;
+  struct MeshChannelQueue *chq;
   uint16_t type;
 
   type = ntohs (message->type);
@@ -2253,14 +2253,14 @@ GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
 
       if (GNUNET_YES == ch->reliable)
       {
-        q = GNUNET_new (struct MeshChannelQueue);
-        q->type = type;
+        chq = GNUNET_new (struct MeshChannelQueue);
+        chq->type = type;
         if (NULL == existing_copy)
-          q->copy = channel_save_copy (ch, message, fwd);
+          chq->copy = channel_save_copy (ch, message, fwd);
         else
         {
-          q->copy = (struct MeshReliableMessage *) existing_copy;
-          if (NULL != q->copy->q)
+          chq->copy = (struct MeshReliableMessage *) existing_copy;
+          if (NULL != chq->copy->chq)
           {
             /* Last retransmission was queued but not yet sent!
              * This retransmission was scheduled by a ch_message_sent which
@@ -2271,7 +2271,7 @@ GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
              * retransmission leaves the peer and ch_message_sent starts
              * the timer for the next one.
              */
-            GNUNET_free (q);
+            GNUNET_free (chq);
             LOG (GNUNET_ERROR_TYPE_DEBUG,
                  "  exisitng copy not yet transmitted!\n");
             return;
@@ -2279,15 +2279,15 @@ GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
           LOG (GNUNET_ERROR_TYPE_DEBUG,
                "  using existing copy: %p {r:%p q:%p t:%u}\n",
                existing_copy,
-               q->copy->rel, q->copy->q, q->copy->type);
+               chq->copy->rel, chq->copy->chq, chq->copy->type);
         }
-        LOG (GNUNET_ERROR_TYPE_DEBUG, "  new q: %p\n", q);
-        q->copy->q = q;
-        q->q = GMT_send_prebuilt_message (message, ch->t,
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "  new chq: %p\n", chq);
+            chq->copy->chq = chq;
+            chq->tq = GMT_send_prebuilt_message (message, ch->t,
                                           NULL != existing_copy,
-                                          &ch_message_sent, q);
+                                          &ch_message_sent, chq);
         /* q itself is stored in copy */
-        GNUNET_assert (NULL != q->q || GNUNET_NO != ch->destroy);
+        GNUNET_assert (NULL != chq->tq || GNUNET_NO != ch->destroy);
       }
       else
       {
@@ -2306,24 +2306,25 @@ GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
       /* fall-trough */
     case GNUNET_MESSAGE_TYPE_MESH_DATA_ACK:
     case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_CREATE:
-      q = GNUNET_new (struct MeshChannelQueue);
-      q->type = type;
-      q->rel = fwd ? ch->root_rel : ch->dest_rel;
-      if (NULL != q->rel->uniq)
+      chq = GNUNET_new (struct MeshChannelQueue);
+      chq->type = type;
+      chq->rel = fwd ? ch->root_rel : ch->dest_rel;
+      if (NULL != chq->rel->uniq)
       {
-        if (NULL != q->rel->uniq->q)
+        if (NULL != chq->rel->uniq->tq)
         {
-          GMT_cancel (q->rel->uniq->q);
+          GMT_cancel (chq->rel->uniq->tq);
           /* ch_message_sent is called, freeing and NULLing uniq */
         }
         else
         {
-          GNUNET_free (q->rel->uniq);
+          GNUNET_break (0);
+          GNUNET_free (chq->rel->uniq);
         }
       }
-      q->q = GMT_send_prebuilt_message (message, ch->t, GNUNET_YES,
-                                        &ch_message_sent, q);
-      q->rel->uniq = q;
+      chq->tq = GMT_send_prebuilt_message (message, ch->t, GNUNET_YES,
+                                           &ch_message_sent, chq);
+      chq->rel->uniq = chq;
       break;
 
 

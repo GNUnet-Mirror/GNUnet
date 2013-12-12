@@ -162,9 +162,10 @@ struct MeshTunnelDelayed
    */
   struct MeshTunnel3 *t;
 
-  struct MeshTunnel3Queue *q;
-  GMT_sent cont;
-  void *cont_cls;
+  /**
+   * Tunnel queue given to the channel to cancel request. Update on send_queued.
+   */
+  struct MeshTunnel3Queue *tq;
 
   /**
    * Message to send.
@@ -181,12 +182,12 @@ struct MeshTunnel3Queue
   /**
    * Connection queue handle, to cancel if necessary.
    */
-  struct MeshConnectionQueue *q;
+  struct MeshConnectionQueue *cq;
 
   /**
    * Handle in case message hasn't been given to a connection yet.
    */
-  struct MeshTunnelDelayed *tq;
+  struct MeshTunnelDelayed *tqd;
 
   /**
    * Continuation to call once sent.
@@ -653,8 +654,7 @@ unqueue_data (struct MeshTunnelDelayed *tq)
  * @param msg Message itself (copy will be made).
  */
 static struct MeshTunnelDelayed *
-queue_data (struct MeshTunnel3 *t, const struct GNUNET_MessageHeader *msg,
-            GMT_sent cont, void *cont_cls)
+queue_data (struct MeshTunnel3 *t, const struct GNUNET_MessageHeader *msg)
 {
   struct MeshTunnelDelayed *tq;
   uint16_t size = ntohs (msg->size);
@@ -670,8 +670,6 @@ queue_data (struct MeshTunnel3 *t, const struct GNUNET_MessageHeader *msg,
   tq = GNUNET_malloc (sizeof (struct MeshTunnelDelayed) + size);
 
   tq->t = t;
-  tq->cont = cont;
-  tq->cont_cls = cont_cls;
   memcpy (&tq[1], msg, size);
   GNUNET_CONTAINER_DLL_insert_tail (t->tq_head, t->tq_tail, tq);
   return tq;
@@ -700,11 +698,10 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
                        GMT_sent cont, void *cont_cls,
                        struct MeshTunnel3Queue *existing_q)
 {
-  struct MeshTunnel3Queue *q;
+  struct MeshTunnel3Queue *tq;
   struct MeshConnection *c;
   struct GNUNET_MESH_Encrypted *msg;
   size_t size = ntohs (message->size);
-  size_t encrypted_size;
   char cbuf[sizeof (struct GNUNET_MESH_Encrypted) + size];
   uint32_t iv;
   uint16_t type;
@@ -715,10 +712,12 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   if (GNUNET_NO == is_ready (t))
   {
     GNUNET_assert (NULL == existing_q);
-    q = GNUNET_new (struct MeshTunnel3Queue);
-    q->tq = queue_data (t, message, cont, cont_cls);
-    q->tq->q = q;
-    return q;
+    tq = GNUNET_new (struct MeshTunnel3Queue);
+    tq->tqd = queue_data (t, message);
+    tq->tqd->tq = tq;
+    tq->cont = cont;
+    tq->cont_cls = cont_cls;
+    return tq;
   }
 
   GNUNET_assert (GNUNET_NO == GMT_is_loopback (t));
@@ -727,9 +726,8 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   msg = (struct GNUNET_MESH_Encrypted *) cbuf;
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_ENCRYPTED);
   msg->iv = iv;
-  encrypted_size = t_encrypt (t, &msg[1], message, size, iv);
-  msg->header.size = htons (sizeof (struct GNUNET_MESH_Encrypted)
-  + encrypted_size);
+  GNUNET_assert (t_encrypt (t, &msg[1], message, size, iv) == size);
+  msg->header.size = htons (sizeof (struct GNUNET_MESH_Encrypted) + size);
   c = tunnel_get_connection (t);
   if (NULL == c)
   {
@@ -762,19 +760,19 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   }
   if (NULL == existing_q)
   {
-    q = GNUNET_new (struct MeshTunnel3Queue); /* FIXME valgrind: leak*/
+    tq = GNUNET_new (struct MeshTunnel3Queue); /* FIXME valgrind: leak*/
   }
   else
   {
-    q = existing_q;
-    q->tq = NULL;
+    tq = existing_q;
+    tq->tqd = NULL;
   }
-  q->q = GMC_send_prebuilt_message (&msg->header, c, fwd, force,
-                                    &message_sent, q);
-  q->cont = cont;
-  q->cont_cls = cont_cls;
+  tq->cq = GMC_send_prebuilt_message (&msg->header, c, fwd, force,
+                                  &message_sent, tq);
+  tq->cont = cont;
+  tq->cont_cls = cont_cls;
 
-  return q;
+  return tq;
 }
 
 
@@ -786,7 +784,7 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
 static void
 send_queued_data (struct MeshTunnel3 *t)
 {
-  struct MeshTunnelDelayed *tq;
+  struct MeshTunnelDelayed *tqd;
   struct MeshTunnelDelayed *next;
   unsigned int room;
 
@@ -810,18 +808,17 @@ send_queued_data (struct MeshTunnel3 *t)
   room = GMT_get_connections_buffer (t);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  buffer space: %u\n", room);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  tq head: %p\n", t->tq_head);
-  for (tq = t->tq_head; NULL != tq && room > 0; tq = next)
+  for (tqd = t->tq_head; NULL != tqd && room > 0; tqd = next)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, " sending queued data\n");
-    next = tq->next;
+    next = tqd->next;
     room--;
-    send_prebuilt_message ((struct GNUNET_MessageHeader *) &tq[1],
-                           tq->t, GNUNET_YES, tq->cont, tq->cont_cls, tq->q);
-    unqueue_data (tq);
+    send_prebuilt_message ((struct GNUNET_MessageHeader *) &tqd[1],
+                               tqd->t, GNUNET_YES,
+                           tqd->tq->cont, tqd->tq->cont_cls, tqd->tq);
+    unqueue_data (tqd);
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "GMT_send_queued_data end\n",
-       GMP_2s (t->peer));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "GMT_send_queued_data end\n", GMP_2s (t->peer));
 }
 
 
@@ -2274,14 +2271,14 @@ GMT_send_connection_acks (struct MeshTunnel3 *t)
 void
 GMT_cancel (struct MeshTunnel3Queue *q)
 {
-  if (NULL != q->q)
+  if (NULL != q->cq)
   {
-    GMC_cancel (q->q);
+    GMC_cancel (q->cq);
     /* message_sent() will be called and free q */
   }
-  else if (NULL != q->tq)
+  else if (NULL != q->tqd)
   {
-    unqueue_data (q->tq);
+    unqueue_data (q->tqd);
   }
   else
   {
