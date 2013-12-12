@@ -508,15 +508,12 @@ keygen_round2_conclude (void *cls)
   unsigned int i;
   gcry_mpi_t s;
   gcry_mpi_t h;
-  struct GNUNET_PeerIdentity *pid;
 
   GNUNET_assert (0 != (s = gcry_mpi_new (PAILLIER_BITS)));
   GNUNET_assert (0 != (h = gcry_mpi_new (PAILLIER_BITS)));
 
   // multiplicative identity
   gcry_mpi_set_ui (s, 1);
-
-  pid = (void *) &m[1];
 
   for (i = 0; i < ks->num_peers; i++)
   {
@@ -525,8 +522,6 @@ keygen_round2_conclude (void *cls)
       gcry_mpi_addm (s, s, ks->info[i].decrypted_preshare, elgamal_p);
       gcry_mpi_mulm (h, h, ks->info[i].public_key_share, elgamal_p);
       m->num_secret_peers++;
-      *pid = ks->info[i].peer;
-      pid++;
     }
   }
 
@@ -567,7 +562,7 @@ insert_round2_element (struct KeygenSession *ks)
   GNUNET_assert (0 != (idx = gcry_mpi_new (PAILLIER_BITS)));
 
   element_size = (sizeof (struct GNUNET_SECRETSHARING_KeygenRevealData) +
-                  2 * PAILLIER_BITS / 8 * ks->num_peers + 
+                  2 * PAILLIER_BITS / 8 * ks->num_peers +
                   1 * PAILLIER_BITS / 8 * ks->threshold);
 
   element = GNUNET_malloc (sizeof (struct GNUNET_SET_Element) + element_size);
