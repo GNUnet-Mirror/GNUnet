@@ -75,7 +75,7 @@ case "$host_os" in
 *darwin* | *rhapsody* | *macosx*)
      AC_DEFINE_UNQUOTED(DARWIN,1,[This is an Apple Darwin system])
      CPPFLAGS="-D_APPLE_C_SOURCE $CPPFLAGS"
-     CFLAGS="-no-cpp-precomp -fno-common $CFLAGS"
+     CFLAGS="-fno-common $CFLAGS"
      AC_MSG_WARN([The VPN application cannot be compiled on your OS])
      build_target="darwin"
      DEFAULT_INTERFACE="\"en0\""
