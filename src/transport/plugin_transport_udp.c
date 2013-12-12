@@ -42,6 +42,8 @@
 
 #define LOG(kind,...) GNUNET_log_from (kind, "transport-udp", __VA_ARGS__)
 
+#define UDP_SESSION_TIME_OUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)
+
 #define PLUGIN_NAME "udp"
 
 /**
@@ -1324,7 +1326,7 @@ session_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Session %p was idle for %s, disconnecting\n",
               s,
-	      GNUNET_STRINGS_relative_time_to_string (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
+	      GNUNET_STRINGS_relative_time_to_string (UDP_SESSION_TIME_OUT,
 						      GNUNET_YES));
   /* call session destroy function */
   disconnect_session (s);
@@ -1339,13 +1341,13 @@ start_session_timeout (struct Session *s)
 {
   GNUNET_assert (NULL != s);
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == s->timeout_task);
-  s->timeout_task =  GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
+  s->timeout_task =  GNUNET_SCHEDULER_add_delayed (UDP_SESSION_TIME_OUT,
                                                    &session_timeout,
                                                    s);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Timeout for session %p set to %s\n",
               s,
-	      GNUNET_STRINGS_relative_time_to_string (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
+	      GNUNET_STRINGS_relative_time_to_string (UDP_SESSION_TIME_OUT,
 						      GNUNET_YES));
 }
 
@@ -1360,13 +1362,13 @@ reschedule_session_timeout (struct Session *s)
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != s->timeout_task);
 
   GNUNET_SCHEDULER_cancel (s->timeout_task);
-  s->timeout_task =  GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
+  s->timeout_task =  GNUNET_SCHEDULER_add_delayed (UDP_SESSION_TIME_OUT,
                                                    &session_timeout,
                                                    s);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Timeout rescheduled for session %p set to %s\n",
               s,
-	      GNUNET_STRINGS_relative_time_to_string (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
+	      GNUNET_STRINGS_relative_time_to_string (UDP_SESSION_TIME_OUT,
 						      GNUNET_YES));
 }
 
