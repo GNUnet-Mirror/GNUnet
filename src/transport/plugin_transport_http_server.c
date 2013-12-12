@@ -3037,16 +3037,17 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
   return NULL;
 }
 
-const char *http_plugin_address_to_string (void *cls,
-                                           const void *addr,
-                                           size_t addrlen)
+
+static const char *
+http_plugin_address_to_string (void *cls,
+                               const void *addr,
+                               size_t addrlen)
 {
 #if BUILD_HTTPS
-	return http_common_plugin_address_to_string (cls, PLUGIN_NAME, addr, addrlen);
+  return http_common_plugin_address_to_string (cls, PLUGIN_NAME, addr, addrlen);
 #else
-	return http_common_plugin_address_to_string (cls, PLUGIN_NAME, addr, addrlen);
+  return http_common_plugin_address_to_string (cls, PLUGIN_NAME, addr, addrlen);
 #endif
-
 }
 
 
@@ -3079,9 +3080,6 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
   struct GNUNET_TRANSPORT_PluginFunctions *api;
   struct HTTP_Server_Plugin *plugin;
 
-  plugin = GNUNET_new (struct HTTP_Server_Plugin);
-  plugin->env = env;
-
   if (NULL == env->receive)
   {
     /* run in 'stub' mode (i.e. as part of gnunet-peerinfo), don't fully
@@ -3093,7 +3091,8 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
     api->address_pretty_printer = &http_common_plugin_address_pretty_printer;
     return api;
   }
-
+  plugin = GNUNET_new (struct HTTP_Server_Plugin);
+  plugin->env = env;
   api = GNUNET_new (struct GNUNET_TRANSPORT_PluginFunctions);
   api->cls = plugin;
   api->send = &http_server_plugin_send;
@@ -3118,8 +3117,8 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
   /* Configure plugin */
   if (GNUNET_SYSERR == server_configure_plugin (plugin))
   {
-      LIBGNUNET_PLUGIN_TRANSPORT_DONE (api);
-      return NULL;
+    LIBGNUNET_PLUGIN_TRANSPORT_DONE (api);
+    return NULL;
   }
 
   /* Check IPv6 support */
@@ -3132,8 +3131,8 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
 
   if (GNUNET_SYSERR == server_start (plugin))
   {
-      LIBGNUNET_PLUGIN_TRANSPORT_DONE (api);
-      return NULL;
+    LIBGNUNET_PLUGIN_TRANSPORT_DONE (api);
+    return NULL;
   }
   return api;
 }
