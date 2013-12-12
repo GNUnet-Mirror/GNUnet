@@ -864,7 +864,7 @@ send_kx (struct MeshTunnel3 *t,
   /* Must have a connection. */
   if (NULL == t->connection_head)
   {
-    GNUNET_break (0);
+    GNUNET_break (MESH_TUNNEL3_SEARCHING == t->cstate);
     return;
   }
 
@@ -874,7 +874,7 @@ send_kx (struct MeshTunnel3 *t,
   c = tunnel_get_connection (t);
   if (NULL == c)
   {
-    GNUNET_break (GNUNET_YES == t->destroy);
+    GNUNET_break (GNUNET_YES == t->destroy || MESH_TUNNEL3_READY != t->cstate);
     return;
   }
   type = ntohs (message->type);
