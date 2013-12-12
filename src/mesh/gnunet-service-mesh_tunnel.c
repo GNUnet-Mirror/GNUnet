@@ -335,6 +335,8 @@ estate2s (enum MeshTunnel3EState es)
 static int
 is_ready (struct MeshTunnel3 *t)
 {
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  ready: cs=%s, es=%s\n",
+       cstate2s (t->cstate), estate2s (t->estate));
   return (MESH_TUNNEL3_READY == t->cstate
           && MESH_TUNNEL3_KEY_OK == t->estate)
          || GMT_is_loopback (t);
@@ -1765,7 +1767,6 @@ GMT_remove_connection (struct MeshTunnel3 *t, struct MeshConnection *c)
     {
       GNUNET_CONTAINER_DLL_remove (t->connection_head, t->connection_tail, aux);
       GNUNET_free (aux);
-      return;
     }
 
   /* Start new connections if needed */
