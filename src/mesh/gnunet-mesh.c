@@ -206,6 +206,7 @@ listen_stdio (void)
                                GNUNET_TIME_UNIT_FOREVER_REL,
                                rs, NULL,
                                &read_stdio, NULL);
+  GNUNET_NETWORK_fdset_destroy (rs);
 }
 
 
