@@ -25,8 +25,8 @@
  */
 #include "platform.h"
 #include "gnunet_nse_service.h"
-#include "gnunet-service-dht.h"
-#include "gnunet-service-dht_nse.h"
+#include "gnunet-service-xdht.h"
+#include "gnunet-service-xdht_nse.h"
 
 /**
  * log of the current network size estimate, used as the point where

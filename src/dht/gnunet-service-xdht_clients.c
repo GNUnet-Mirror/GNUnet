@@ -29,10 +29,10 @@
 #include "gnunet_constants.h"
 #include "gnunet_protocols.h"
 #include "gnunet_statistics_service.h"
-#include "gnunet-service-dht.h"
-#include "gnunet-service-dht_clients.h"
-#include "gnunet-service-dht_datacache.h"
-#include "gnunet-service-dht_neighbours.h"
+#include "gnunet-service-xdht.h"
+#include "gnunet-service-xdht_clients.h"
+#include "gnunet-service-xdht_datacache.h"
+#include "gnunet-service-xdht_neighbours.h"
 #include "dht.h"
 
 

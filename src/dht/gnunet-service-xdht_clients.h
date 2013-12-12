@@ -24,8 +24,8 @@
  * @author Christian Grothoff
  * @author Nathan Evans
  */
-#ifndef GNUNET_SERVICE_DHT_CLIENT_H
-#define GNUNET_SERVICE_DHT_CLIENT_H
+#ifndef GNUNET_SERVICE_XDHT_CLIENT_H
+#define GNUNET_SERVICE_XDHT_CLIENT_H
 
 #include "gnunet_util_lib.h"
 #include "gnunet_block_lib.h"

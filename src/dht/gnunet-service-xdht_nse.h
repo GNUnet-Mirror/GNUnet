@@ -23,8 +23,8 @@
  * @brief GNUnet DHT integration with NSE
  * @author Christian Grothoff
  */
-#ifndef GNUNET_SERVICE_DHT_NSE_H
-#define GNUNET_SERVICE_DHT_NSE_H
+#ifndef GNUNET_SERVICE_XDHT_NSE_H
+#define GNUNET_SERVICE_XDHT_NSE_H
 
 
 /**

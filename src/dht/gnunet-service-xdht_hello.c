@@ -27,8 +27,8 @@
  * - consider adding mechanism to remove expired HELLOs
  */
 #include "platform.h"
-#include "gnunet-service-dht.h"
-#include "gnunet-service-dht_hello.h"
+#include "gnunet-service-xdht.h"
+#include "gnunet-service-xdht_hello.h"
 #include "gnunet_peerinfo_service.h"
 
 

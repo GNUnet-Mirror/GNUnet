@@ -26,10 +26,10 @@
  */
 #include "platform.h"
 #include "gnunet_datacache_lib.h"
-#include "gnunet-service-dht_clients.h"
-#include "gnunet-service-dht_datacache.h"
-#include "gnunet-service-dht_routing.h"
-#include "gnunet-service-dht.h"
+#include "gnunet-service-xdht_clients.h"
+#include "gnunet-service-xdht_datacache.h"
+#include "gnunet-service-xdht_routing.h"
+#include "gnunet-service-xdht.h"
 
 #define LOG(kind,...) GNUNET_log_from (kind, "dht-dtcache",__VA_ARGS__)
 

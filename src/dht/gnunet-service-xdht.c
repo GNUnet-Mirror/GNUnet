@@ -31,13 +31,13 @@
 #include "gnunet_hello_lib.h"
 #include "gnunet_dht_service.h"
 #include "gnunet_statistics_service.h"
-#include "gnunet-service-dht.h"
-#include "gnunet-service-dht_clients.h"
-#include "gnunet-service-dht_datacache.h"
-#include "gnunet-service-dht_hello.h"
-#include "gnunet-service-dht_neighbours.h"
-#include "gnunet-service-dht_nse.h"
-#include "gnunet-service-dht_routing.h"
+#include "gnunet-service-xdht.h"
+#include "gnunet-service-xdht_clients.h"
+#include "gnunet-service-xdht_datacache.h"
+#include "gnunet-service-xdht_hello.h"
+#include "gnunet-service-xdht_neighbours.h"
+#include "gnunet-service-xdht_nse.h"
+#include "gnunet-service-xdht_routing.h"
 
 
 

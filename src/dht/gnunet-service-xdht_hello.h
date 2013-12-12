@@ -23,8 +23,8 @@
  * @brief GNUnet DHT integration with peerinfo
  * @author Christian Grothoff
  */
-#ifndef GNUNET_SERVICE_DHT_HELLO_H
-#define GNUNET_SERVICE_DHT_HELLO_H
+#ifndef GNUNET_SERVICE_XDHT_HELLO_H
+#define GNUNET_SERVICE_XDHT_HELLO_H
 
 #include "gnunet_util_lib.h"
 #include "gnunet_hello_lib.h"

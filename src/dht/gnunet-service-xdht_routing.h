@@ -23,8 +23,8 @@
  * @brief GNUnet DHT tracking of requests for routing replies
  * @author Christian Grothoff
  */
-#ifndef GNUNET_SERVICE_DHT_ROUTING_H
-#define GNUNET_SERVICE_DHT_ROUTING_H
+#ifndef GNUNET_SERVICE_XDHT_ROUTING_H
+#define GNUNET_SERVICE_XDHT_ROUTING_H
 
 #include "gnunet_util_lib.h"
 #include "gnunet_block_lib.h"

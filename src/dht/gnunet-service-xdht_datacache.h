@@ -24,8 +24,8 @@
  * @author Christian Grothoff
  * @author Nathan Evans
  */
-#ifndef GNUNET_SERVICE_DHT_DATACACHE_H
-#define GNUNET_SERVICE_DHT_DATACACHE_H
+#ifndef GNUNET_SERVICE_XDHT_DATACACHE_H
+#define GNUNET_SERVICE_XDHT_DATACACHE_H
 
 #include "gnunet_util_lib.h"
 #include "gnunet_block_lib.h"
