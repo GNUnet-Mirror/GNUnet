@@ -676,14 +676,21 @@ GSC_KX_start (const struct GNUNET_PeerIdentity *pid)
   GNUNET_CRYPTO_hash (pid, sizeof (struct GNUNET_PeerIdentity), &h1);
   GNUNET_CRYPTO_hash (&GSC_my_identity, sizeof (struct GNUNET_PeerIdentity), &h2);
 
+  kx->status = KX_STATE_KEY_SENT;
   if (0 < GNUNET_CRYPTO_hash_cmp (&h1,
 				  &h2))
   {
     /* peer with "lower" identity starts KX, otherwise we typically end up
        with both peers starting the exchange and transmit the 'set key'
        message twice */
-    kx->status = KX_STATE_KEY_SENT;
     send_key (kx);
+  }
+  else
+  {
+    /* peer with "higher" identity starts a delayed  KX, if the "lower" peer
+     * does not start a KX since he sees no reasons to do so  */
+    kx->retry_set_key_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+          &set_key_retry_task, kx);
   }
   return kx;
 }
