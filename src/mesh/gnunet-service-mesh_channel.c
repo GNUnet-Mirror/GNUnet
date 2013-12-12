@@ -595,7 +595,13 @@ static void
 send_client_ack (struct MeshChannel *ch, int fwd)
 {
   struct MeshChannelReliability *rel = fwd ? ch->root_rel : ch->dest_rel;
+  struct MeshClient *c = fwd ? ch->root : ch->dest;
 
+  if (NULL == c)
+  {
+    GNUNET_break (GNUNET_NO != ch->destroy);
+    return;
+  }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "  sending %s ack to client on channel %s\n",
        GM_f2s (fwd), GMCH_2s (ch));
@@ -613,7 +619,7 @@ send_client_ack (struct MeshChannel *ch, int fwd)
   }
   rel->client_allowed = GNUNET_YES;
 
-  GML_send_ack (fwd ? ch->root : ch->dest, fwd ? ch->lid_root : ch->lid_dest);
+  GML_send_ack (c, fwd ? ch->lid_root : ch->lid_dest);
 }
 
 
