@@ -6,7 +6,8 @@ BINARY = gnunet-service-arm
 ACCEPT_FROM = 127.0.0.1;
 ACCEPT_FROM6 = ::1;
 DEFAULTSERVICES = topology hostlist dht nse mesh fs
-UNIXPATH = $GNUNET_RUNTIME_DIR/gnunet-service-arm.sock
+# Special case, uses user runtime dir even for per-system service.
+UNIXPATH = $GNUNET_USER_RUNTIME_DIR/gnunet-service-arm.sock
 UNIX_MATCH_UID = YES
 UNIX_MATCH_GID = YES
 
@@ -33,6 +34,12 @@ GLOBAL_PREFIX = @MONKEYPREFIX@
 # ensures that personal data is stored under $HOME, which might
 # be important in a multi-user system (or if $HOME is encrypted
 # and /var/ is not).
+#
+# Note that if you have different ARM services for SYSTEM and USER,
+# and you are not on UNIX, you need to change the PORT option for the
+# USER ARM instances to some free port (counting down from 2085 should
+# be sane).
+#
 # USER_ONLY = YES
 
 

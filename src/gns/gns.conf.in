@@ -2,7 +2,7 @@
 AUTOSTART = @AUTOSTART@
 HOSTNAME = localhost
 BINARY = gnunet-service-gns
-UNIXPATH = $GNUNET_RUNTIME_DIR/gnunet-service-gns.sock
+UNIXPATH = $GNUNET_USER_RUNTIME_DIR/gnunet-service-gns.sock
 @UNIXONLY@PORT = 2102
 
 # Do we require users that want to access GNS to run this process
