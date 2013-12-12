@@ -1570,7 +1570,7 @@ GMC_handle_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "!  directly destroying connection!\n");
     GMC_destroy (c);
-    return;
+    return GNUNET_OK;
   }
   c->destroy = GNUNET_YES;
   c->state = MESH_CONNECTION_DESTROYED;
