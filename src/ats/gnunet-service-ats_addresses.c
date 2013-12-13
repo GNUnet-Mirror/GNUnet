@@ -773,7 +773,9 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
 
     GNUNET_log(GNUNET_ERROR_TYPE_INFO,
         "Adding new address %p for peer `%s', length %u, session id %u, %s\n",
-        new_address, GNUNET_i2s (peer), plugin_addr_len, session_id,
+        new_address,
+        GNUNET_i2s (peer),
+        plugin_addr_len, session_id,
         GNUNET_ATS_print_network_type (addr_net));
 
     /* Tell solver about new address */
@@ -833,7 +835,7 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
           && (addr_net != ntohl (atsi_delta[c1].value)))
       {
         /* Network type changed */
-        GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
             "Address for peer `%s' %p changed from network %s to %s\n",
             GNUNET_i2s (peer), existing_address,
             GNUNET_ATS_print_network_type (addr_net),
@@ -904,20 +906,9 @@ GAS_addresses_update (struct GAS_Addresses_Handle *handle,
   aa = find_exact_address (handle, peer, plugin_name, plugin_addr,
       plugin_addr_len, session_id);
   if (aa == NULL )
-  {
-    /* GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Tried to update unknown address for peer `%s' `%s' session id %u\n", */
-    /*             GNUNET_i2s (peer), plugin_name, session_id); */
-    /* GNUNET_break (0); */
     return;
-  }
-
   if (NULL == aa->solver_information)
-  {
-    GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-        "Tried to update unknown address for peer `%s' `%s' session id %u\n",
-        GNUNET_i2s (peer), plugin_name, session_id);
     return;
-  }
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Received `%s' for peer `%s' address \n",
       "ADDRESS UPDATE", GNUNET_i2s (peer), aa);
@@ -1097,13 +1088,13 @@ GAS_addresses_destroy (struct GAS_Addresses_Handle *handle,
       plugin_addr_len, session_id);
   if (ea == NULL )
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
         "Tried to destroy unknown address for peer `%s' `%s' session id %u\n",
         GNUNET_i2s (peer), plugin_name, session_id);
     return;
   }
 
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
       "Received `%s' for peer `%s' address %p session %u\n", "ADDRESS DESTROY",
       GNUNET_i2s (peer), ea, session_id);
 
@@ -1156,7 +1147,7 @@ GAS_addresses_in_use (struct GAS_Addresses_Handle *handle,
       plugin_addr_len, session_id);
   if (NULL == ea)
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+    GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
         "Trying to set unknown address `%s' `%s' `%u' to %s \n",
         GNUNET_i2s (peer), plugin_name, session_id,
         (GNUNET_NO == in_use) ? "NO" : "YES");
@@ -1166,7 +1157,7 @@ GAS_addresses_in_use (struct GAS_Addresses_Handle *handle,
   if (ea->used == in_use)
   {
     GNUNET_break(0);
-    GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+    GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
         "Address in use called multiple times for peer `%s': %s -> %s \n",
         GNUNET_i2s (peer), (GNUNET_NO == ea->used) ? "NO" : "YES",
         (GNUNET_NO == in_use) ? "NO" : "YES");
@@ -1203,7 +1194,7 @@ GAS_addresses_request_address_cancel (struct GAS_Addresses_Handle *handle,
 
   if (NULL == cur)
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
         "No address requests pending for peer `%s', cannot remove!\n",
         GNUNET_i2s (peer));
     return;
@@ -1230,7 +1221,7 @@ GAS_addresses_request_address (struct GAS_Addresses_Handle *handle,
   struct GAS_Addresses_Suggestion_Requests *cur = handle->pending_requests_head;
   struct ATS_Address *aa;
 
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Received `%s' for peer `%s'\n",
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Received `%s' for peer `%s'\n",
       "REQUEST ADDRESS", GNUNET_i2s (peer));
 
   if (GNUNET_NO == handle->running)
@@ -1831,7 +1822,7 @@ GAS_addresses_preference_change (struct GAS_Addresses_Handle *handle,
       GNUNET_CONTAINER_multipeermap_contains (handle->addresses,
 					      peer))
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
         "Received `%s' for unknown peer `%s' from client %p\n",
         "CHANGE PREFERENCE", GNUNET_i2s (peer), client);
     return;
@@ -1880,7 +1871,7 @@ GAS_addresses_preference_feedback (struct GAS_Addresses_Handle *handle,
       GNUNET_CONTAINER_multipeermap_contains (handle->addresses,
 					      peer))
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
         "Received `%s' for unknown peer `%s' from client %p\n",
         "PREFERENCE FEEDBACK", GNUNET_i2s (peer), application);
     return;
