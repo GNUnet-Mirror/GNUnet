@@ -476,11 +476,41 @@ GNUNET_NETWORK_socket_close (struct GNUNET_NETWORK_Handle *desc)
   if ((desc->af == AF_UNIX) && (NULL != desc->addr))
   {
     const struct sockaddr_un *un = (const struct sockaddr_un *) desc->addr;
+    char *dirname = GNUNET_strndup (un->sun_path,
+                                    sizeof (un->sun_path));
 
-    if (0 != unlink (un->sun_path))
+    if (0 != unlink (dirname))
+    {
       LOG_STRERROR_FILE (GNUNET_ERROR_TYPE_WARNING,
 			 "unlink",
-			 un->sun_path);
+			 dirname);
+    }
+    else
+    {
+      size_t len;
+
+      len = strlen (dirname);
+      while ((len > 0) && (dirname[len] != DIR_SEPARATOR))
+        len--;
+      dirname[len] = '\0';
+      if (0 != rmdir (dirname))
+      {
+        switch (errno)
+        {
+        case EACCES:
+        case ENOTEMPTY:
+        case EPERM:
+          /* these are normal and can just be ignored */
+          break;
+        default:
+          GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
+                                    "rmdir",
+                                    dirname);
+          break;
+        }
+      }
+    }
+    GNUNET_free (dirname);
   }
 #endif
   GNUNET_NETWORK_socket_free_memory_only_ (desc);

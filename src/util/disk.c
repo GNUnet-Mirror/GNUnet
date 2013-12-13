@@ -796,7 +796,7 @@ int
 GNUNET_DISK_directory_create_for_file (const char *filename)
 {
   char *rdir;
-  int len;
+  size_t len;
   int ret;
 
   rdir = GNUNET_STRINGS_filename_expand (filename);
