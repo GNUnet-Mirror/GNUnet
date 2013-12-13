@@ -12,6 +12,7 @@ endif
 
 if HAVE_EXPERIMENTAL
  EXP_DIR = \
+  scalarproduct \
   multicast \
   env \
   psyc \
@@ -73,7 +74,6 @@ SUBDIRS = \
   gnsrecord \
   namecache \
   namestore \
-  scalarproduct \
   vpn \
   gns \
   $(CONVERSATION_DIR) \
