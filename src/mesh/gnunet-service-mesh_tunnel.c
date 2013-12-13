@@ -1774,7 +1774,7 @@ GMT_remove_connection (struct MeshTunnel3 *t, struct MeshConnection *c)
   }
 
   /* Start new connections if needed */
-  if (NULL == t->connection_head)
+  if (NULL == t->connection_head && GNUNET_NO == t->destroy)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  no more connections\n");
     GMP_connect (t->peer);
@@ -1940,6 +1940,8 @@ GMT_destroy (struct MeshTunnel3 *t)
 
   if (NULL == t)
     return;
+
+  t->destroy = 2;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "destroying tunnel %s\n", GMP_2s (t->peer));
 
