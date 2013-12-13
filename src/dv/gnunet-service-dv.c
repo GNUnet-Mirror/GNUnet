@@ -512,10 +512,12 @@ send_ack_to_plugin (const struct GNUNET_PeerIdentity *target,
  *
  * @param peer peer with a changed distance
  * @param distance new distance to the peer
+ * @param network network used by the neighbor
  */
 static void
 send_distance_change_to_plugin (const struct GNUNET_PeerIdentity *peer,
-				uint32_t distance)
+				uint32_t distance,
+                                uint32_t network)
 {
   struct GNUNET_DV_DistanceUpdateMessage du_msg;
 
@@ -526,6 +528,7 @@ send_distance_change_to_plugin (const struct GNUNET_PeerIdentity *peer,
   du_msg.header.type = htons (GNUNET_MESSAGE_TYPE_DV_DISTANCE_CHANGED);
   du_msg.distance = htonl (distance);
   du_msg.peer = *peer;
+  du_msg.network = htonl (network);
   send_control_to_plugin (&du_msg.header);
 }
 
@@ -1045,7 +1048,8 @@ check_possible_route (void *cls,
       move_route (route, ntohl (target->distance) + 1);
       route->next_hop = neighbor;
       send_distance_change_to_plugin (&target->peer,
-                                      ntohl (target->distance) + 1);
+                                      ntohl (target->distance) + 1,
+                                      neighbor->network);
     }
     return GNUNET_YES; /* got a route to this target already */
   }
@@ -1443,7 +1447,9 @@ check_target_added (void *cls,
           /* distance decreased, update route */
           move_route (current_route,
                       ntohl (target->distance) + 1);
-          send_distance_change_to_plugin (&target->peer, ntohl (target->distance) + 1);
+          send_distance_change_to_plugin (&target->peer,
+                                          ntohl (target->distance) + 1,
+                                          neighbor->network);
         }
       }
       return GNUNET_OK;
@@ -1461,7 +1467,9 @@ check_target_added (void *cls,
 
     move_route (current_route, ntohl (target->distance) + 1);
     current_route->next_hop = neighbor;
-    send_distance_change_to_plugin (&target->peer, ntohl (target->distance) + 1);
+    send_distance_change_to_plugin (&target->peer,
+                                    ntohl (target->distance) + 1,
+                                    neighbor->network);
     return GNUNET_OK;
   }
   /* new route */

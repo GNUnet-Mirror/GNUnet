@@ -62,11 +62,13 @@ connect_cb (void *cls,
  * @param cls closure
  * @param peer connected peer
  * @param distance new distance to the peer
+ * @param network network used on first hop to peer
  */
 static void
 change_cb (void *cls,
 	   const struct GNUNET_PeerIdentity *peer,
-	   uint32_t distance)
+	   uint32_t distance,
+           uint32_t network)
 {
   fprintf (stderr, "Change: %s at %u\n",
 	   GNUNET_i2s (peer),

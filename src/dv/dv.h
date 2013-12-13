@@ -37,7 +37,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
 struct GNUNET_DV_ConnectMessage
 {
   /**
-   * Type:  GNUNET_MESSAGE_TYPE_TRANSPORT_DV_CONNECT
+   * Type: #GNUNET_MESSAGE_TYPE_TRANSPORT_DV_CONNECT
    */
   struct GNUNET_MessageHeader header;
 
@@ -47,14 +47,14 @@ struct GNUNET_DV_ConnectMessage
   uint32_t distance GNUNET_PACKED;
 
   /**
-   * The network the peer is in
-   */
-  uint32_t network GNUNET_PACKED;
-
-  /**
    * The other peer (at the given distance).
    */
   struct GNUNET_PeerIdentity peer;
+
+  /**
+   * The network the peer is in
+   */
+  uint32_t network GNUNET_PACKED;
 
 };
 
@@ -69,7 +69,7 @@ struct GNUNET_DV_ConnectMessage
 struct GNUNET_DV_DisconnectMessage
 {
   /**
-   * Type:  GNUNET_MESSAGE_TYPE_TRANSPORT_DV_DISCONNECT
+   * Type: #GNUNET_MESSAGE_TYPE_TRANSPORT_DV_DISCONNECT
    */
   struct GNUNET_MessageHeader header;
 
@@ -96,7 +96,7 @@ struct GNUNET_DV_DisconnectMessage
 struct GNUNET_DV_ReceivedMessage
 {
   /**
-   * Type:  GNUNET_MESSAGE_TYPE_TRANSPORT_DV_RECV
+   * Type: #GNUNET_MESSAGE_TYPE_TRANSPORT_DV_RECV
    */
   struct GNUNET_MessageHeader header;
 
@@ -121,7 +121,7 @@ struct GNUNET_DV_ReceivedMessage
 struct GNUNET_DV_SendMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_DV_SEND
+   * Type: #GNUNET_MESSAGE_TYPE_DV_SEND
    */
   struct GNUNET_MessageHeader header;
 
@@ -145,8 +145,8 @@ struct GNUNET_DV_SendMessage
 struct GNUNET_DV_AckMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_DV_SEND_ACK or
-   * GNUNET_MESSAGE_TYPE_DV_SEND_NACK.
+   * Type: #GNUNET_MESSAGE_TYPE_DV_SEND_ACK or
+   * #GNUNET_MESSAGE_TYPE_DV_SEND_NACK.
    */
   struct GNUNET_MessageHeader header;
 
@@ -170,7 +170,7 @@ struct GNUNET_DV_AckMessage
 struct GNUNET_DV_DistanceUpdateMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_DV_DISTANCE_CHANGED.
+   * Type: #GNUNET_MESSAGE_TYPE_DV_DISTANCE_CHANGED.
    */
   struct GNUNET_MessageHeader header;
 
@@ -183,6 +183,11 @@ struct GNUNET_DV_DistanceUpdateMessage
    * The peer for which the distance changed.
    */
   struct GNUNET_PeerIdentity peer;
+
+  /**
+   * The network the peer is in
+   */
+  uint32_t network GNUNET_PACKED;
 
 };
 

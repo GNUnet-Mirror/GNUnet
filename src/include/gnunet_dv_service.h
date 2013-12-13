@@ -40,7 +40,8 @@
  */
 typedef void (*GNUNET_DV_ConnectCallback)(void *cls,
 					  const struct GNUNET_PeerIdentity *peer,
-					  uint32_t distance, uint32_t network);
+					  uint32_t distance,
+                                          uint32_t network);
 
 
 /**
@@ -50,10 +51,12 @@ typedef void (*GNUNET_DV_ConnectCallback)(void *cls,
  * @param cls closure
  * @param peer connected peer
  * @param distance new distance to the peer
+ * @param network this network will be used to reach the next hop
  */
 typedef void (*GNUNET_DV_DistanceChangedCallback)(void *cls,
 						  const struct GNUNET_PeerIdentity *peer,
-						  uint32_t distance);
+						  uint32_t distance,
+                                                  uint32_t network);
 
 
 /**

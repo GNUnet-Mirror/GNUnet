@@ -296,6 +296,7 @@ handle_dv_connect (void *cls,
   struct Session *session;
   struct GNUNET_ATS_Information ats[2];
 
+  GNUNET_break (GNUNET_ATS_NET_UNSPECIFIED != network);
   /**
    * This requires transport plugin to be linked to libgnunetats.
    * If you remove it, also remove libgnunetats linkage from Makefile.am
@@ -350,26 +351,28 @@ handle_dv_connect (void *cls,
  * @param cls closure with `struct Plugin *`
  * @param peer connected peer
  * @param distance new distance to the peer
+ * @param network network type used for the connection
  */
 static void
 handle_dv_distance_changed (void *cls,
 			    const struct GNUNET_PeerIdentity *peer,
-			    uint32_t distance)
+			    uint32_t distance,
+                            uint32_t network)
 {
   struct Plugin *plugin = cls;
   struct Session *session;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message for peer `%s': new distance %u\n",
-      "DV_DISTANCE_CHANGED",
-      GNUNET_i2s (peer), distance);
-
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Received `%s' message for peer `%s': new distance %u\n",
+       "DV_DISTANCE_CHANGED",
+       GNUNET_i2s (peer),
+       distance);
   session = GNUNET_CONTAINER_multipeermap_get (plugin->sessions,
 					       peer);
   if (NULL == session)
   {
     GNUNET_break (0);
-    /* FIXME */
-    handle_dv_connect (plugin, peer, distance, 0);
+    handle_dv_connect (plugin, peer, distance, network);
     return;
   }
   session->distance = distance;
