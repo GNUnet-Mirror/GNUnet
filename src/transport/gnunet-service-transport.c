@@ -472,8 +472,8 @@ GST_ats_add_address (const struct GNUNET_HELLO_Address *address,
   if (GNUNET_YES == GNUNET_ATS_session_known (GST_ats, address, session))
     return;
 
-  net = papi->get_network (NULL, (void *) session);
-  if (GNUNET_ATS_NET_UNSPECIFIED != net)
+  net = papi->get_network (NULL, session);
+  if (GNUNET_ATS_NET_UNSPECIFIED == net)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Could not obtain a valid network for `%s' %s (%s)\n"),
