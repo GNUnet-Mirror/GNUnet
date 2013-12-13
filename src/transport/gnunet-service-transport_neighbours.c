@@ -877,7 +877,8 @@ set_address (struct NeighbourAddress *na,
  *                      #GNUNET_YES to keep all sessions
  */
 static void
-free_neighbour (struct NeighbourMapEntry *n, int keep_sessions)
+free_neighbour (struct NeighbourMapEntry *n,
+                int keep_sessions)
 {
   struct MessageQueue *mq;
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
@@ -3090,7 +3091,10 @@ GST_neighbours_handle_session_ack (const struct GNUNET_MessageHeader *message,
                             ("# SESSION_ACK messages received"),
                             1, GNUNET_NO);
   if (NULL == (n = lookup_neighbour (peer)))
+  {
+    GNUNET_break_op (0);
     return GNUNET_SYSERR;
+  }
   /* check if we are in a plausible state for having sent
      a CONNECT_ACK.  If not, return, otherwise break */
   if ( ( (S_CONNECT_RECV_ACK != n->state) &&
@@ -3105,7 +3109,7 @@ GST_neighbours_handle_session_ack (const struct GNUNET_MessageHeader *message,
     GNUNET_STATISTICS_update (GST_stats,
                               gettext_noop ("# unexpected SESSION_ACK messages"), 1,
                               GNUNET_NO);
-    return GNUNET_SYSERR;
+    return GNUNET_OK;
   }
   n->state = S_CONNECTED;
   n->timeout = GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);

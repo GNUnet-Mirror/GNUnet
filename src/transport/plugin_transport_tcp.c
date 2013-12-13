@@ -2297,13 +2297,11 @@ handle_tcp_data (void *cls, struct GNUNET_SERVER_Client *client,
                                 (GNUNET_YES == session->inbound) ? NULL : session->addr,
                                 (GNUNET_YES == session->inbound) ? 0 : session->addrlen);
   plugin->env->update_address_metrics (plugin->env->cls,
-  		&session->target,
-  		(GNUNET_YES == session->inbound) ? NULL : session->addr,
-		  (GNUNET_YES == session->inbound) ? 0 : session->addrlen,
-		  session, &distance, 1);
-
+                                       &session->target,
+                                       (GNUNET_YES == session->inbound) ? NULL : session->addr,
+                                       (GNUNET_YES == session->inbound) ? 0 : session->addrlen,
+                                       session, &distance, 1);
   reschedule_session_timeout (session);
-
   if (0 == delay.rel_value_us)
   {
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -2316,7 +2314,7 @@ handle_tcp_data (void *cls, struct GNUNET_SERVER_Client *client,
 	 GNUNET_STRINGS_relative_time_to_string (delay, GNUNET_YES));
     GNUNET_SERVER_disable_receive_done_warning (client);
     session->receive_delay_task =
-        GNUNET_SCHEDULER_add_delayed (delay, &delayed_done, session);
+      GNUNET_SCHEDULER_add_delayed (delay, &delayed_done, session);
   }
 }
 

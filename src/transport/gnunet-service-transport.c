@@ -40,6 +40,39 @@
 #include "gnunet-service-transport_manipulation.h"
 #include "transport.h"
 
+
+/**
+ * Information we need for an asynchronous session kill.
+ */
+struct SessionKiller
+{
+  /**
+   * Kept in a DLL.
+   */
+  struct SessionKiller *next;
+
+  /**
+   * Kept in a DLL.
+   */
+  struct SessionKiller *prev;
+
+  /**
+   * Session to kill.
+   */
+  struct Session *session;
+
+  /**
+   * Plugin for the session.
+   */
+  struct GNUNET_TRANSPORT_PluginFunctions *plugin;
+
+  /**
+   * The kill task.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier task;
+};
+
+
 /* globals */
 
 /**
@@ -78,14 +111,24 @@ struct GNUNET_CRYPTO_EddsaPrivateKey *GST_my_private_key;
 struct GNUNET_ATS_SchedulingHandle *GST_ats;
 
 /**
+ * Hello address expiration
+ */
+struct GNUNET_TIME_Relative hello_expiration;
+
+/**
  * DEBUGGING connection counter
  */
 static int connections;
 
 /**
- * Hello address expiration
+ * Head of DLL of asynchronous tasks to kill sessions.
  */
-struct GNUNET_TIME_Relative hello_expiration;
+static struct SessionKiller *sk_head;
+
+/**
+ * Tail of DLL of asynchronous tasks to kill sessions.
+ */
+static struct SessionKiller *sk_tail;
 
 
 /**
@@ -177,6 +220,26 @@ process_payload (const struct GNUNET_PeerIdentity *peer,
 
 
 /**
+ * Task to asynchronously terminate a session.
+ *
+ * @param cls the `struct SessionKiller` with the information for the kill
+ * @param tc scheduler context
+ */
+static void
+kill_session_task (void *cls,
+                   const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct SessionKiller *sk = cls;
+
+  sk->task = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_CONTAINER_DLL_remove (sk_head, sk_tail, sk);
+  sk->plugin->disconnect_session (sk->plugin->cls,
+                                  sk->session);
+  GNUNET_free (sk);
+}
+
+
+/**
  * Force plugin to terminate session due to communication
  * issue.
  *
@@ -188,15 +251,24 @@ kill_session (const char *plugin_name,
               struct Session *session)
 {
   struct GNUNET_TRANSPORT_PluginFunctions *plugin;
+  struct SessionKiller *sk;
 
+  for (sk = sk_head; NULL != sk; sk = sk->next)
+    if (sk->session == session)
+      return;
   plugin = GST_plugins_find (plugin_name);
   if (NULL == plugin)
   {
     GNUNET_break (0);
     return;
   }
-  plugin->disconnect_session (plugin->cls,
-                              session);
+  /* need to issue disconnect asynchronously */
+  sk = GNUNET_new (struct SessionKiller);
+  sk->session = session;
+  sk->plugin = plugin;
+  sk->task = GNUNET_SCHEDULER_add_now (&kill_session_task,
+                                       sk);
+  GNUNET_CONTAINER_DLL_insert (sk_head, sk_tail, sk);
 }
 
 
@@ -383,10 +455,13 @@ plugin_env_session_end (void *cls, const struct GNUNET_PeerIdentity *peer,
 {
   const char *transport_name = cls;
   struct GNUNET_HELLO_Address address;
+  struct SessionKiller *sk;
 
   GNUNET_assert (strlen (transport_name) > 0);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Session %p to peer `%s' ended \n",
-              session, GNUNET_i2s (peer));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Session %p to peer `%s' ended \n",
+              session,
+              GNUNET_i2s (peer));
   if (NULL != session)
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
                      "transport-ats",
@@ -400,6 +475,15 @@ plugin_env_session_end (void *cls, const struct GNUNET_PeerIdentity *peer,
 
   /* Tell ATS that session has ended */
   GNUNET_ATS_address_destroyed (GST_ats, &address, session);
+  for (sk = sk_head; NULL != sk; sk = sk->next)
+  {
+    if (sk->session == session)
+    {
+      GNUNET_CONTAINER_DLL_remove (sk_head, sk_tail, sk);
+      GNUNET_SCHEDULER_cancel (sk->task);
+      GNUNET_free (sk);
+    }
+  }
 }
 
 
