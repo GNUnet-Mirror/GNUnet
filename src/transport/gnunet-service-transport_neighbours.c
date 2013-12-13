@@ -2600,6 +2600,7 @@ master_task (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		  "Connection to `%s' timed out waiting for other peer to send CONNECT_ACK\n",
 		  GNUNET_i2s (&n->id));
+      /* We could not send to this address, delete address and session */
       if (NULL != n->primary_address.session)
         GNUNET_ATS_address_destroyed (GST_ats,
             n->primary_address.address, n->primary_address.session);
@@ -2846,7 +2847,7 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
     connect_notify_cb (callback_cls, &n->id,
                        n->primary_address.bandwidth_in,
                        n->primary_address.bandwidth_out);
-    /* Tell ATS that the outbound session we created to send CONNECT was successfull */
+    /* Tell ATS that the outbound session we created to send CONNECT was successful */
     GST_ats_add_address (n->primary_address.address, n->primary_address.session);
     set_address (&n->primary_address,
 		 n->primary_address.address,
