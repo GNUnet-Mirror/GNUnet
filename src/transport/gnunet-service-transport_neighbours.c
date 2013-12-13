@@ -1734,7 +1734,7 @@ GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target)
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 	      "Asked to connect to peer `%s' (state: %s)\n",
               GNUNET_i2s (target),
-              (NULL != n) ? print_state(n->state) : "UNKNOWN PEER");
+              (NULL != n) ? print_state(n->state) : "NEW PEER");
   if (NULL != n)
   {
     switch (n->state)
@@ -2220,7 +2220,7 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
     return;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "ATS tells us to switch to address '%s' session %p for "
               "peer `%s' in state %s/%d (quota in/out %u %u )\n",
               (address->address_length != 0) ? GST_plugins_a2s (address): "<inbound>",
@@ -2576,7 +2576,7 @@ master_task (void *cls,
   case S_INIT_ATS:
     if (0 == delay.rel_value_us)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		  "Connection to `%s' timed out waiting for ATS to provide address\n",
 		  GNUNET_i2s (&n->id));
       n->state = S_DISCONNECT_FINISHED;
