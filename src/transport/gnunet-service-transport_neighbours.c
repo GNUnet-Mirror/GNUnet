@@ -22,9 +22,6 @@
  * @file transport/gnunet-service-transport_neighbours.c
  * @brief neighbour management
  * @author Christian Grothoff
- *
- * TODO:
- * - TEST, TEST, TEST...
  */
 #include "platform.h"
 #include "gnunet_ats_service.h"
@@ -2600,9 +2597,14 @@ master_task (void *cls,
   case S_CONNECT_SENT:
     if (0 == delay.rel_value_us)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		  "Connection to `%s' timed out waiting for other peer to send CONNECT_ACK\n",
 		  GNUNET_i2s (&n->id));
+      if (NULL != n->primary_address.session)
+        GNUNET_ATS_address_destroyed (GST_ats,
+            n->primary_address.address, n->primary_address.session);
+      GNUNET_ATS_address_destroyed (GST_ats,
+          n->primary_address.address, NULL);
       disconnect_neighbour (n);
       return;
     }
