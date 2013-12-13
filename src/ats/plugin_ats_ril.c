@@ -380,6 +380,7 @@ struct GAS_RIL_Handle
 static int
 ril_count_agents(struct GAS_RIL_Handle * solver);
 
+
 /**
  * Estimate the current action-value for state s and action a
  *
@@ -405,9 +406,9 @@ agent_estimate_q (struct RIL_Peer_Agent *agent, double *state, int action)
   {
     return isinf(result) * UINT32_MAX; //TODO! fix
   }
-
   return result;
 }
+
 
 /**
  * Decide whether to do exploration (i.e. taking a new action) or exploitation (i.e. taking the
@@ -430,13 +431,14 @@ agent_decide_exploration (struct RIL_Peer_Agent *agent)
   return GNUNET_NO;
 }
 
-  /**
-   * Get the index of the address in the agent's list.
-   *
-   * @param agent agent handle
-   * @param address address handle
-   * @return the index, starting with zero
-   */
+
+/**
+ * Get the index of the address in the agent's list.
+ *
+ * @param agent agent handle
+ * @param address address handle
+ * @return the index, starting with zero
+ */
 static int
 agent_address_get_index (struct RIL_Peer_Agent *agent, struct ATS_Address *address)
 {
@@ -448,13 +450,11 @@ agent_address_get_index (struct RIL_Peer_Agent *agent, struct ATS_Address *addre
   {
     i++;
     if (cur->address_naked == address)
-    {
       return i;
-    }
   }
-
   return i;
 }
+
 
 /**
  * Gets the wrapped address from the agent's list
@@ -469,15 +469,11 @@ agent_address_get (struct RIL_Peer_Agent *agent, struct ATS_Address *address)
   struct RIL_Address_Wrapped *cur;
 
   for (cur = agent->addresses_head; NULL != cur; cur = cur->next)
-  {
     if (cur->address_naked == address)
-    {
       return cur;
-    }
-  }
-
-  return NULL ;
+  return NULL;
 }
+
 
 /**
  * Gets the action, with the maximal estimated Q-value (i.e. the one currently estimated to bring the
@@ -510,6 +506,7 @@ agent_get_action_best (struct RIL_Peer_Agent *agent, double *state)
   return max_i;
 }
 
+
 /**
  * Gets any action, to explore the action space from that state
  *
@@ -523,6 +520,7 @@ agent_get_action_explore (struct RIL_Peer_Agent *agent, double *state)
   // TODO?: Future Work: Choose the action for exploration, which has been explored the least in this state
   return GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, agent->n);
 }
+
 
 /**
  * Updates the weights (i.e. coefficients) of the weight vector in matrix W for action a
@@ -563,10 +561,11 @@ agent_update_weights (struct RIL_Peer_Agent *agent, double reward, double *s_nex
   }
 }
 
+
 /**
  * Changes the eligibility trace vector e in various manners:
  * #RIL_E_ACCUMULATE - adds @a f to each component as in accumulating eligibility traces
- * #RIL_E_REPLACE - resets each component to @f  as in replacing traces
+ * #RIL_E_REPLACE - resets each component to @a f  as in replacing traces
  * #RIL_E_SET - multiplies e with discount factor and lambda as in the update rule
  * #RIL_E_ZERO - sets e to 0 as in Watkin's Q-learning algorithm when exploring and when initializing
  *
@@ -575,7 +574,9 @@ agent_update_weights (struct RIL_Peer_Agent *agent, double reward, double *s_nex
  * @param f how much to change
  */
 static void
-agent_modify_eligibility (struct RIL_Peer_Agent *agent, enum RIL_E_Modification mod, double *f)
+agent_modify_eligibility (struct RIL_Peer_Agent *agent,
+                          enum RIL_E_Modification mod,
+                          double *f)
 {
   int i;
   double *e = agent->e;
@@ -609,6 +610,7 @@ ril_inform (struct GAS_RIL_Handle *solver,
   if (NULL != solver->plugin_envi->info_cb)
     solver->plugin_envi->info_cb (solver->plugin_envi->info_cb_cls, op, stat, GAS_INFO_NONE);
 }
+
 
 /**
  * Changes the active assignment suggestion of the handler and invokes the bw_changed callback to
@@ -698,6 +700,7 @@ envi_set_active_suggestion (struct GAS_RIL_Handle *solver,
   }
   agent->address_inuse = new_address;
 }
+
 
 static unsigned long long
 ril_network_get_assigned (struct GAS_RIL_Handle *solver, enum GNUNET_ATS_Network_Type type, int direction_in)

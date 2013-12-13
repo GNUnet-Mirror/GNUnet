@@ -622,13 +622,15 @@ client_delete_session (struct Session *s)
 /**
  * Disconnect a session
  *
+ * @param cls the `struct HTTP_Client_Plugin`
  * @param s session
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 static int
-http_client_session_disconnect (struct HTTP_Client_Plugin *plugin,
+http_client_session_disconnect (void *cls,
                                 struct Session *s)
 {
+  struct HTTP_Client_Plugin *plugin = cls;
   struct HTTP_Message *msg;
   struct HTTP_Message *t;
   int res = GNUNET_OK;

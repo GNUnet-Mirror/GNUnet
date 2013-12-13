@@ -1017,6 +1017,7 @@ process_pending_messages (struct Session *session)
  * to close a session due to a disconnect or failure to
  * establish a connection.
  *
+ * @param cls the `struct Plugin`
  * @param session session to close down
  * @return #GNUNET_OK on success
  */
