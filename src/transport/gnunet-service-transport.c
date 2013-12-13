@@ -482,6 +482,7 @@ plugin_env_session_end (void *cls, const struct GNUNET_PeerIdentity *peer,
       GNUNET_CONTAINER_DLL_remove (sk_head, sk_tail, sk);
       GNUNET_SCHEDULER_cancel (sk->task);
       GNUNET_free (sk);
+      break;
     }
   }
 }
