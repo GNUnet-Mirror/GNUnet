@@ -362,6 +362,7 @@ handle_dv_distance_changed (void *cls,
   struct Plugin *plugin = cls;
   struct Session *session;
 
+  GNUNET_break (GNUNET_ATS_NET_UNSPECIFIED != network);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Received `%s' message for peer `%s': new distance %u\n",
        "DV_DISTANCE_CHANGED",

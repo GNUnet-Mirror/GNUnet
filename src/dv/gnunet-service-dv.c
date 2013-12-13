@@ -521,6 +521,7 @@ send_distance_change_to_plugin (const struct GNUNET_PeerIdentity *peer,
 {
   struct GNUNET_DV_DistanceUpdateMessage du_msg;
 
+  GNUNET_break (GNUNET_ATS_NET_UNSPECIFIED != network);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Delivering DISTANCE_CHANGED for message about peer `%s'\n",
               GNUNET_i2s (peer));
@@ -969,6 +970,7 @@ handle_core_connect (void *cls,
 						peer);
   if (NULL != neighbor)
   {
+    GNUNET_break (GNUNET_ATS_NET_UNSPECIFIED != neighbor->network);
     GNUNET_break (GNUNET_YES != neighbor->connected);
     neighbor->connected = GNUNET_YES;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1295,14 +1297,13 @@ handle_ats_update (void *cls,
     return;
   distance = get_atsi_distance (ats, ats_count);
   network = get_atsi_network (ats, ats_count);
-
+  GNUNET_break (GNUNET_ATS_NET_UNSPECIFIED != network);
   /* check if entry exists */
   neighbor = GNUNET_CONTAINER_multipeermap_get (direct_neighbors,
 						&address->peer);
   if (NULL != neighbor)
   {
-    if (GNUNET_ATS_NET_UNSPECIFIED != network)
-      neighbor->network = network;
+    neighbor->network = network;
     if (neighbor->distance == distance)
       return; /* nothing new to see here, move along */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
