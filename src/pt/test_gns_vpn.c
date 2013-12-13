@@ -27,6 +27,7 @@
 #include <curl/curl.h>
 #include <microhttpd.h>
 #include "gnunet_namestore_service.h"
+#include "gnunet_gnsrecord_lib.h"
 #include "gnunet_gns_service.h"
 #include "gnunet_testing_lib.h"
 
@@ -244,7 +245,7 @@ static void
 start_curl (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_asprintf (&url,
-		   "http://%s/hello_world",	
+		   "http://%s/hello_world",
 		   TEST_DOMAIN);
   curl = curl_easy_init ();
   curl_easy_setopt (curl, CURLOPT_URL, url);
@@ -363,7 +364,7 @@ run (void *cls,
   enum MHD_FLAG flags;
   struct GNUNET_PeerIdentity id;
   struct GNUNET_CRYPTO_HashAsciiEncoded peername;
-  struct GNUNET_CRYPTO_EddsaPrivateKey *host_key;
+  struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_key;
   struct GNUNET_GNSRECORD_Data rd;
   char *rd_string;
   char *zone_keyfile;
@@ -388,13 +389,17 @@ run (void *cls,
                                                             "ZONEKEY",
                                                             &zone_keyfile))
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Failed to get key from cfg\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Failed to get key from cfg\n");
     return;
   }
 
-  host_key = GNUNET_CRYPTO_eddsa_key_create_from_file (zone_keyfile);
+  zone_key = GNUNET_CRYPTO_ecdsa_key_create_from_file (zone_keyfile);
   rd.expiration_time = GNUNET_TIME_UNIT_FOREVER_ABS.abs_value_us;
-  GNUNET_asprintf (&rd_string, "6 %s %s", (char*)&peername, "www.gnu.");
+  GNUNET_asprintf (&rd_string,
+                   "6 %s %s",
+                   (char*) &peername,
+                   "www.gnu.");
   GNUNET_assert (GNUNET_OK == GNUNET_GNSRECORD_string_to_value (GNUNET_GNSRECORD_TYPE_VPN,
                                                                rd_string,
                                                                (void**)&rd.data,
@@ -402,7 +407,7 @@ run (void *cls,
   rd.record_type = GNUNET_GNSRECORD_TYPE_VPN;
 
   GNUNET_NAMESTORE_records_store (namestore,
-				  host_key,
+				  zone_key,
 				  "www",
 				  1, &rd,
 				  &commence_testing,
@@ -410,7 +415,7 @@ run (void *cls,
   GNUNET_free ((void**)rd.data);
   GNUNET_free (rd_string);
   GNUNET_free (zone_keyfile);
-  GNUNET_free (host_key);
+  GNUNET_free (zone_key);
 }
 
 
