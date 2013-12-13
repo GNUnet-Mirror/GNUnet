@@ -43,6 +43,8 @@
 
 #define PLUGIN_NAME "tcp"
 
+#define EXTRA_CHECKS ALLOW_EXTRA_CHECKS
+
 /**
  * How long until we give up on establishing an NAT connection?
  * Must be > 4 RTT
@@ -1108,21 +1110,41 @@ tcp_disconnect_session (void *cls,
 }
 
 
+#if EXTRA_CHECKS
+/**
+ * Closure for #session_it().
+ */
 struct FindSessionContext
 {
+  /**
+   * Session we are looking for.
+   */
   struct Session *s;
+
+  /**
+   * Set to #GNUNET_OK if we found the session.
+   */
   int res;
 };
 
 
+/**
+ * Function called to check if a session is in our maps.
+ *
+ * @param cls the `struct FindSessionContext`
+ * @param key peer identity
+ * @param value session in the map
+ * @return #GNUNET_YES to continue looking, #GNUNET_NO if we found the session
+ */
 static int
 session_it (void *cls,
-	    const struct GNUNET_PeerIdentity * key,
+	    const struct GNUNET_PeerIdentity *key,
 	    void *value)
 {
   struct FindSessionContext *res = cls;
+  struct Session *session = value;
 
-  if (res->s == value)
+  if (res->s == session)
   {
     res->res = GNUNET_OK;
     return GNUNET_NO;
@@ -1131,27 +1153,37 @@ session_it (void *cls,
 }
 
 
+/**
+ * Check that the given session is known to the plugin and
+ * is in one of our maps.
+ *
+ * @param plugin the plugin to check against
+ * @param session the session to check
+ * @return #GNUNET_OK if all is well, #GNUNET_SYSERR if the session is invalid
+ */
 static int
-find_session (struct Plugin *plugin, struct Session *session)
+find_session (struct Plugin *plugin,
+              struct Session *session)
 {
   struct FindSessionContext session_map_res;
   struct FindSessionContext nat_map_res;
 
   session_map_res.s = session;
   session_map_res.res = GNUNET_SYSERR;
-  GNUNET_CONTAINER_multipeermap_iterate (plugin->sessionmap, &session_it, &session_map_res);
-
+  GNUNET_CONTAINER_multipeermap_iterate (plugin->sessionmap,
+                                         &session_it, &session_map_res);
+  if (GNUNET_SYSERR != session_map_res.res)
+    return GNUNET_OK;
   nat_map_res.s = session;
   nat_map_res.res = GNUNET_SYSERR;
-  GNUNET_CONTAINER_multipeermap_iterate (plugin->nat_wait_conns, &session_it, &nat_map_res);
-
-  if ((session_map_res.res == GNUNET_SYSERR) && (nat_map_res.res == GNUNET_SYSERR))
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  return GNUNET_OK;
+  GNUNET_CONTAINER_multipeermap_iterate (plugin->nat_wait_conns,
+                                         &session_it, &nat_map_res);
+  if (GNUNET_SYSERR != nat_map_res.res)
+    return GNUNET_OK;
+  GNUNET_break (0);
+  return GNUNET_SYSERR;
 }
+#endif
 
 
 /**
@@ -1183,25 +1215,23 @@ find_session (struct Plugin *plugin, struct Session *session)
  */
 static ssize_t
 tcp_plugin_send (void *cls,
-    struct Session *session,
-    const char *msgbuf, size_t msgbuf_size,
-    unsigned int priority,
-    struct GNUNET_TIME_Relative to,
-    GNUNET_TRANSPORT_TransmitContinuation cont, void *cont_cls)
+                 struct Session *session,
+                 const char *msgbuf, size_t msgbuf_size,
+                 unsigned int priority,
+                 struct GNUNET_TIME_Relative to,
+                 GNUNET_TRANSPORT_TransmitContinuation cont, void *cont_cls)
 {
   struct Plugin * plugin = cls;
   struct PendingMessage *pm;
 
-  GNUNET_assert (NULL != plugin);
-  GNUNET_assert (NULL != session);
-
-  if (GNUNET_SYSERR == find_session(plugin, session))
+#if EXTRA_CHECKS
+  if (GNUNET_SYSERR == find_session (plugin, session))
   {
-      LOG (GNUNET_ERROR_TYPE_ERROR,
-           _("Trying to send with invalid session %p\n"));
-      return GNUNET_SYSERR;
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         _("Trying to send with invalid session %p\n"));
+    return GNUNET_SYSERR;
   }
-
+#endif
   /* create new message entry */
   pm = GNUNET_malloc (sizeof (struct PendingMessage) + msgbuf_size);
   pm->msg = (const char *) &pm[1];

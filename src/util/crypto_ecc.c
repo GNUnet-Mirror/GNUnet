@@ -27,7 +27,7 @@
 #include <gcrypt.h>
 #include "gnunet_util_lib.h"
 
-#define EXTRA_CHECKS ALLOW_EXTRA_CHECKS
+#define EXTRA_CHECKS 0
 
 /**
  * Name of the curve we are using.  Note that we have hard-coded
