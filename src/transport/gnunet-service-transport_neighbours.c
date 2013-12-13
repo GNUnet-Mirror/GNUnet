@@ -960,11 +960,11 @@ free_neighbour (struct NeighbourMapEntry *n,
  *
  * @param n entry for the recipient
  * @param msgbuf buffer to transmit
- * @param msgbuf_size number of bytes in buffer
+ * @param msgbuf_size number of bytes in @a msgbuf buffer
  * @param priority transmission priority
  * @param timeout transmission timeout
  * @param cont continuation to call when finished (can be NULL)
- * @param cont_cls closure for cont
+ * @param cont_cls closure for @a cont
  */
 static void
 send_with_session (struct NeighbourMapEntry *n,
@@ -997,7 +997,7 @@ send_with_session (struct NeighbourMapEntry *n,
  * activities (keep alive, send next message, disconnect if idle, finish
  * clean up after disconnect).
  *
- * @param cls the 'struct NeighbourMapEntry' for which we are running
+ * @param cls the `struct NeighbourMapEntry` for which we are running
  * @param tc scheduler context (unused)
  */
 static void
@@ -1158,7 +1158,7 @@ disconnect_neighbour (struct NeighbourMapEntry *n)
 /**
  * We're done with our transmission attempt, continue processing.
  *
- * @param cls the 'struct MessageQueue' of the message
+ * @param cls the `struct MessageQueue` of the message
  * @param receiver intended receiver
  * @param success whether it worked or not
  * @param size_payload bytes payload sent
