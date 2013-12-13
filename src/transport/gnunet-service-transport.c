@@ -369,7 +369,6 @@ GST_receive_callback (void *cls,
     if (GNUNET_OK !=
         GST_neighbours_handle_connect_ack (message, peer, &address, session))
     {
-      GNUNET_break_op (0);
       kill_session (plugin_name, session);
     }
     break;
