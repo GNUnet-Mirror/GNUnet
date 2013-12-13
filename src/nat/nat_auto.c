@@ -107,7 +107,7 @@ struct GNUNET_NAT_AutoHandle
   GNUNET_NAT_AutoResultCallback fin_cb;
 
   /**
-   * Closure for 'fin_cb'.
+   * Closure for @e fin_cb.
    */
   void *fin_cb_cls;
 
@@ -161,7 +161,8 @@ next_phase (struct GNUNET_NAT_AutoHandle *ah);
  * @param tc scheduler callback
  */
 static void
-fail_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+fail_timeout (void *cls,
+              const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_NAT_AutoHandle *ah = cls;
 
@@ -183,7 +184,7 @@ fail_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Clean up and update GUI (with success).
  *
  * @param cls the auto handle
- * @param success currently always GNUNET_OK
+ * @param success currently always #GNUNET_OK
  */
 static void
 result_callback (void *cls, int success)
@@ -203,14 +204,16 @@ result_callback (void *cls, int success)
   next_phase (ah);
 }
 
+
 /**
  * Main function for the connection reversal test.
  *
- * @param cls the 'int*' for the result
+ * @param cls the `struct GNUNET_NAT_AutoHandle`
  * @param tc scheduler context
  */
 static void
-reversal_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+reversal_test (void *cls,
+               const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_NAT_AutoHandle *ah = cls;
 
@@ -249,7 +252,8 @@ test_online (struct GNUNET_NAT_AutoHandle *ah)
  * @param addr the address, NULL on errors
  */
 static void
-set_external_ipv4 (void *cls, const struct in_addr *addr)
+set_external_ipv4 (void *cls,
+                   const struct in_addr *addr)
 {
   struct GNUNET_NAT_AutoHandle *ah = cls;
   char buf[INET_ADDRSTRLEN];
@@ -301,18 +305,22 @@ test_external_ip (struct GNUNET_NAT_AutoHandle *ah)
  * Process list of local IP addresses.  Find and set the
  * one of the default interface.
  *
- * @param cls our NAT auto handle
+ * @param cls our `struct GNUNET_NAT_AutoHandle`
  * @param name name of the interface (can be NULL for unknown)
  * @param isDefault is this presumably the default interface
  * @param addr address of this interface (can be NULL for unknown or unassigned)
  * @param broadcast_addr the broadcast address (can be NULL for unknown or unassigned)
  * @param netmask the network mask (can be NULL for unknown or unassigned))
- * @param addrlen length of the address
- * @return GNUNET_OK to continue iteration, GNUNET_SYSERR to abort
+ * @param addrlen length of the @a addr and @a broadcast_addr
+ * @return GNUNET_OK to continue iteration, #GNUNET_SYSERR to abort
  */
 static int
-nipo (void *cls, const char *name, int isDefault, const struct sockaddr *addr,
-      const struct sockaddr *broadcast_addr, const struct sockaddr *netmask,
+nipo (void *cls,
+      const char *name,
+      int isDefault,
+      const struct sockaddr *addr,
+      const struct sockaddr *broadcast_addr,
+      const struct sockaddr *netmask,
       socklen_t addrlen)
 {
   struct GNUNET_NAT_AutoHandle *ah = cls;
@@ -519,14 +527,13 @@ next_phase (struct GNUNET_NAT_AutoHandle *ah)
 }
 
 
-
 /**
  * Start auto-configuration routine.  The resolver service should
  * be available when this function is called.
  *
  * @param cfg initial configuration
  * @param cb function to call with autoconfiguration result
- * @param cb_cls closure for cb
+ * @param cb_cls closure for @a cb
  * @return handle to cancel operation
  */
 struct GNUNET_NAT_AutoHandle *
@@ -536,7 +543,7 @@ GNUNET_NAT_autoconfig_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
 {
   struct GNUNET_NAT_AutoHandle *ah;
 
-  ah = GNUNET_malloc (sizeof (struct GNUNET_NAT_AutoHandle));
+  ah = GNUNET_new (struct GNUNET_NAT_AutoHandle);
   ah->fin_cb = cb;
   ah->fin_cb_cls = cb_cls;
   ah->cfg = GNUNET_CONFIGURATION_dup (cfg);
@@ -550,7 +557,7 @@ GNUNET_NAT_autoconfig_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   return ah;
 }
 
-			
+
 /**
  * Abort autoconfiguration.
  *
@@ -578,7 +585,6 @@ GNUNET_NAT_autoconfig_cancel (struct GNUNET_NAT_AutoHandle *ah)
   GNUNET_CONFIGURATION_destroy (ah->initial_cfg);
   GNUNET_free (ah);
 }
-
 
 
 /* end of nat_auto.c */
