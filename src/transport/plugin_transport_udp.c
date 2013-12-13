@@ -1979,6 +1979,7 @@ process_inbound_tokenized_messages (void *cls, void *client,
     return GNUNET_OK;
   /* setup ATS */
   GNUNET_break (ntohl(si->session->ats.value) != GNUNET_ATS_NET_UNSPECIFIED);
+  reschedule_session_timeout (si->session);
   delay = plugin->env->receive (plugin->env->cls,
 				&si->sender,
 				hdr,
@@ -1994,7 +1995,6 @@ process_inbound_tokenized_messages (void *cls, void *client,
 				       si->session,
 				       &si->session->ats, 1);
   si->session->flow_delay_for_other_peer = delay;
-  reschedule_session_timeout (si->session);
   return GNUNET_OK;
 }
 
