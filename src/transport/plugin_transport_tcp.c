@@ -1229,6 +1229,7 @@ tcp_plugin_send (void *cls,
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
          _("Trying to send with invalid session %p\n"));
+    GNUNET_assert (0);
     return GNUNET_SYSERR;
   }
 #endif
