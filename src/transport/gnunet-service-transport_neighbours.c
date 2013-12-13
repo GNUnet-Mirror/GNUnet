@@ -1949,9 +1949,9 @@ handle_test_blacklist_cont (void *cls,
       break; /* result for an address we currently don't care about */
     if (GNUNET_OK == result)
     {
+      n->state = S_RECONNECT_SENT;
       send_session_connect (&n->primary_address);
       n->timeout = GNUNET_TIME_relative_to_absolute (FAST_RECONNECT_TIMEOUT);
-      n->state = S_RECONNECT_SENT;
     }
     else
     {
@@ -1980,8 +1980,8 @@ handle_test_blacklist_cont (void *cls,
     }
     else
     {
-      free_address (&n->alternative_address);
       n->state = S_CONNECTED;
+      free_address (&n->alternative_address);
     }
     break;
   case S_CONNECTED_SWITCHING_CONNECT_SENT:
@@ -2318,17 +2318,17 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
     }
     /* ATS asks us to switch a life connection; see if we can get
        a CONNECT_ACK on it before we actually do this! */
+    n->state = S_CONNECTED_SWITCHING_BLACKLIST;
     set_address (&n->alternative_address,
 		 address, session, bandwidth_in, bandwidth_out, GNUNET_NO);
-    n->state = S_CONNECTED_SWITCHING_BLACKLIST;
     check_blacklist (&n->id,
 		     GNUNET_TIME_absolute_get (),
 		     address, session);
     break;
   case S_RECONNECT_ATS:
+    n->state = S_RECONNECT_BLACKLIST;
     set_address (&n->primary_address,
 		 address, session, bandwidth_in, bandwidth_out, GNUNET_NO);
-    n->state = S_RECONNECT_BLACKLIST;
     n->timeout = GNUNET_TIME_relative_to_absolute (BLACKLIST_RESPONSE_TIMEOUT);
     check_blacklist (&n->id,
 		     n->connect_ack_timestamp,
@@ -2347,9 +2347,9 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
   case S_RECONNECT_SENT:
     /* ATS asks us to switch while we were trying to reconnect; switch to new
        address and check blacklist again */
+    n->state = S_RECONNECT_BLACKLIST;
     set_address (&n->primary_address,
 		 address, session, bandwidth_in, bandwidth_out, GNUNET_NO);
-    n->state = S_RECONNECT_BLACKLIST;
     n->timeout = GNUNET_TIME_relative_to_absolute (BLACKLIST_RESPONSE_TIMEOUT);
     check_blacklist (&n->id,
 		     n->connect_ack_timestamp,
@@ -2359,8 +2359,8 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
     if (n->primary_address.session == session)
     {
       /* ATS switches back to still-active session */
-      free_address (&n->alternative_address);
       n->state = S_CONNECTED;
+      free_address (&n->alternative_address);
       break;
     }
     /* ATS asks us to switch a life connection, update blacklist check */
@@ -2379,9 +2379,9 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
       break;
     }
     /* ATS asks us to switch a life connection, update blacklist check */
+    n->state = S_CONNECTED_SWITCHING_BLACKLIST;
     set_address (&n->alternative_address,
 		 address, session, bandwidth_in, bandwidth_out, GNUNET_NO);
-    n->state = S_CONNECTED_SWITCHING_BLACKLIST;
     check_blacklist (&n->id,
 		     GNUNET_TIME_absolute_get (),
 		     address, session);
@@ -2964,12 +2964,12 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
   {
     if (session == n->alternative_address.session)
     {
-      free_address (&n->alternative_address);
       if ( (S_CONNECTED_SWITCHING_BLACKLIST == n->state) ||
 	   (S_CONNECTED_SWITCHING_CONNECT_SENT == n->state) )
 	n->state = S_CONNECTED;
       else
 	GNUNET_break (0);
+      free_address (&n->alternative_address);
     }
     return GNUNET_NO; /* doesn't affect us further */
   }
@@ -3002,8 +3002,8 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
     free_neighbour (n, GNUNET_NO);
     return GNUNET_YES;
   case S_CONNECTED:
-    free_address (&n->primary_address);
     n->state = S_RECONNECT_ATS;
+    free_address (&n->primary_address);
     n->timeout = GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT);
     /* FIXME: is this ATS call needed? */
     n->suggest_handle = GNUNET_ATS_suggest_address (GST_ats, &n->id);
@@ -3022,20 +3022,20 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
   case S_CONNECTED_SWITCHING_BLACKLIST:
     /* primary went down while we were checking secondary against
        blacklist, adopt secondary as primary */
+    n->state = S_RECONNECT_BLACKLIST;
     free_address (&n->primary_address);
     n->primary_address = n->alternative_address;
     memset (&n->alternative_address, 0, sizeof (struct NeighbourAddress));
     n->timeout = GNUNET_TIME_relative_to_absolute (FAST_RECONNECT_TIMEOUT);
-    n->state = S_RECONNECT_BLACKLIST;
     break;
   case S_CONNECTED_SWITCHING_CONNECT_SENT:
     /* primary went down while we were waiting for CONNECT_ACK on secondary;
        secondary as primary */
+    n->state = S_RECONNECT_SENT;
     free_address (&n->primary_address);
     n->primary_address = n->alternative_address;
     memset (&n->alternative_address, 0, sizeof (struct NeighbourAddress));
     n->timeout = GNUNET_TIME_relative_to_absolute (FAST_RECONNECT_TIMEOUT);
-    n->state = S_RECONNECT_SENT;
     break;
   case S_DISCONNECT:
     free_address (&n->primary_address);

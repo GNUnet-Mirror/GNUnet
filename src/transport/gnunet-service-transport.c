@@ -205,7 +205,7 @@ process_payload (const struct GNUNET_PeerIdentity *peer,
     return ret;
   }
 
-  GST_ats_add_address ((struct GNUNET_HELLO_Address *) address, session);
+  GST_ats_add_address (address, session);
 
   if (GNUNET_YES != do_forward)
     return ret;
