@@ -71,6 +71,13 @@ enum LocalAddressSource
   LAL_EXTERNAL_IP,
 
   /**
+   * Address was obtained by DNS resolution of the external hostname
+   * given in the configuration (i.e. hole-punched DynDNS setup)
+   * during the previous iteration (see #3213).
+   */
+  LAL_EXTERNAL_IP_OLD,
+
+  /**
    * Address was obtained by looking up our own hostname in DNS.
    */
   LAL_HOSTNAME_DNS,
@@ -579,6 +586,8 @@ process_external_ip (void *cls,
   if (NULL == addr)
   {
     h->ext_dns = NULL;
+    /* Current iteration is over, remove 'old' IPs now */
+    remove_from_address_list_by_source (h, LAL_EXTERNAL_IP);
     if (1 == inet_pton (AF_INET,
                         h->external_address,
                         &dummy))
@@ -967,10 +976,12 @@ resolve_dns (void *cls,
              const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_NAT_Handle *h = cls;
+  struct LocalAddressList *pos;
 
   h->dns_task = GNUNET_SCHEDULER_NO_TASK;
-  /* NOTE #3213, bugnote #7878 */
-  remove_from_address_list_by_source (h, LAL_EXTERNAL_IP);
+  for (pos = h->lal_head; NULL != pos; pos = pos->next)
+    if (pos->source == LAL_EXTERNAL_IP)
+      pos->source = LAL_EXTERNAL_IP_OLD;
   h->ext_dns =
       GNUNET_RESOLVER_ip_get (h->external_address, AF_INET,
                               GNUNET_TIME_UNIT_MINUTES,
