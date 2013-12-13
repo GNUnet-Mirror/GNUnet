@@ -213,6 +213,9 @@ struct Session
 };
 
 
+/**
+ * Closure for #session_cmp_it().
+ */
 struct SessionCompareContext
 {
   struct Session *res;
@@ -222,7 +225,7 @@ struct SessionCompareContext
 
 
 /**
- * Closure for 'process_inbound_tokenized_messages'
+ * Closure for #process_inbound_tokenized_messages().
  */
 struct SourceInformation
 {
@@ -236,6 +239,9 @@ struct SourceInformation
    */
   const void *arg;
 
+  /**
+   * Associated session.
+   */
   struct Session *session;
 
   /**
@@ -247,7 +253,7 @@ struct SourceInformation
 
 
 /**
- * Closure for 'find_receive_context'.
+ * Closure for #find_receive_context().
  */
 struct FindReceiveContext
 {
@@ -788,7 +794,7 @@ append_port (void *cls, const char *hostname)
  * @param numeric should (IP) addresses be displayed in numeric form?
  * @param timeout after how long should we give up?
  * @param asc function to call on each string
- * @param asc_cls closure for asc
+ * @param asc_cls closure for @a asc
  */
 static void
 udp_plugin_address_pretty_printer (void *cls, const char *type,
@@ -1036,11 +1042,11 @@ call_continuation (struct UDP_MessageWrapper *udpw, int result)
 /**
  * Check if the given port is plausible (must be either our listen
  * port or our advertised port).  If it is neither, we return
- * GNUNET_SYSERR.
+ * #GNUNET_SYSERR.
  *
  * @param plugin global variables
  * @param in_port port number to check
- * @return GNUNET_OK if port is either open_port or adv_port
+ * @return #GNUNET_OK if port is either open_port or adv_port
  */
 static int
 check_port (struct Plugin *plugin, uint16_t in_port)
@@ -1062,13 +1068,15 @@ check_port (struct Plugin *plugin, uint16_t in_port)
  *
  * @param cls closure, should be our handle to the Plugin
  * @param addr pointer to the address
- * @param addrlen length of addr
- * @return GNUNET_OK if this is a plausible address for this peer
- *         and transport, GNUNET_SYSERR if not
+ * @param addrlen length of @a addr
+ * @return #GNUNET_OK if this is a plausible address for this peer
+ *         and transport, #GNUNET_SYSERR if not
  *
  */
 static int
-udp_plugin_check_address (void *cls, const void *addr, size_t addrlen)
+udp_plugin_check_address (void *cls,
+                          const void *addr,
+                          size_t addrlen)
 {
   struct Plugin *plugin = cls;
   struct IPv4UdpAddress *v4;
@@ -1077,6 +1085,7 @@ udp_plugin_check_address (void *cls, const void *addr, size_t addrlen)
   if ((addrlen != sizeof (struct IPv4UdpAddress)) &&
       (addrlen != sizeof (struct IPv6UdpAddress)))
   {
+    GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
   if (addrlen == sizeof (struct IPv4UdpAddress))
@@ -1488,7 +1497,6 @@ session_cmp_it (void *cls,
   struct SessionCompareContext * cctx = cls;
   const struct GNUNET_HELLO_Address *address = cctx->addr;
   struct Session *s = value;
-
   socklen_t s_addrlen = s->addrlen;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -1536,7 +1544,7 @@ session_cmp_it (void *cls,
  *
  * @param cls closure ('struct Plugin*')
  * @param session the session
- * @return the network type in HBO or #GNUNET_SYSERR
+ * @return the network type
  */
 static enum GNUNET_ATS_Network_Type
 udp_get_network (void *cls,
@@ -1547,8 +1555,8 @@ udp_get_network (void *cls,
 
 
 /**
- * Creates a new outbound session the transport service will use to send data to the
- * peer
+ * Creates a new outbound session the transport service will use to
+ * send data to the peer
  *
  * @param cls the plugin
  * @param address the address
@@ -1963,8 +1971,9 @@ udp_nat_port_map_callback (void *cls, int add_remove,
  * to the service.
  *
  * @param cls the 'struct Plugin'
- * @param client the 'struct SourceInformation'
+ * @param client the `struct SourceInformation`
  * @param hdr the actual message
+ * @return #GNUNET_OK (always)
  */
 static int
 process_inbound_tokenized_messages (void *cls, void *client,
@@ -2091,12 +2100,12 @@ process_udp_message (struct Plugin *plugin, const struct UDPMessage *msg,
 /**
  * Scan the heap for a receive context with the given address.
  *
- * @param cls the 'struct FindReceiveContext'
+ * @param cls the `struct FindReceiveContext`
  * @param node internal node of the heap
  * @param element value stored at the node (a 'struct ReceiveContext')
  * @param cost cost associated with the node
- * @return GNUNET_YES if we should continue to iterate,
- *         GNUNET_NO if not.
+ * @return #GNUNET_YES if we should continue to iterate,
+ *         #GNUNET_NO if not.
  */
 static int
 find_receive_context (void *cls, struct GNUNET_CONTAINER_HeapNode *node,

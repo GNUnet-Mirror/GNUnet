@@ -32,14 +32,14 @@
 #include "gnunet_util_lib.h"
 
 /**
- * Signature of the callback passed to GNUNET_NAT_register for
+ * Signature of the callback passed to #GNUNET_NAT_register() for
  * a function to call whenever our set of 'valid' addresses changes.
  *
  * @param cls closure
- * @param add_remove GNUNET_YES to mean the new public IP address, GNUNET_NO to mean
+ * @param add_remove #GNUNET_YES to mean the new public IP address, #GNUNET_NO to mean
  *     the previous (now invalid) one
  * @param addr either the previous or the new public IP address
- * @param addrlen actual lenght of the address
+ * @param addrlen actual length of the @a addr
  */
 typedef void (*GNUNET_NAT_AddressCallback) (void *cls, int add_remove,
                                             const struct sockaddr *addr,
@@ -47,13 +47,13 @@ typedef void (*GNUNET_NAT_AddressCallback) (void *cls, int add_remove,
 
 
 /**
- * Signature of the callback passed to GNUNET_NAT_register
+ * Signature of the callback passed to #GNUNET_NAT_register().
  * for a function to call whenever someone asks us to do connection
  * reversal.
  *
  * @param cls closure
  * @param addr public IP address of the other peer
- * @param addrlen actual lenght of the address
+ * @param addrlen actual lenght of the @a addr
  */
 typedef void (*GNUNET_NAT_ReversalCallback) (void *cls,
                                              const struct sockaddr *addr,
@@ -74,22 +74,25 @@ struct GNUNET_NAT_Handle;
  * should call the given callback for any 'plausible' external address.
  *
  * @param cfg configuration to use
- * @param is_tcp GNUNET_YES for TCP, GNUNET_NO for UDP
+ * @param is_tcp #GNUNET_YES for TCP, #GNUNET_NO for UDP
  * @param adv_port advertised port (port we are either bound to or that our OS
  *                 locally performs redirection from to our bound port).
- * @param num_addrs number of addresses in 'addrs'
+ * @param num_addrs number of addresses in @a addrs
  * @param addrs list of local addresses packets should be redirected to
- * @param addrlens actual lengths of the addresses
+ * @param addrlens actual lengths of the addresses in @a addrs
  * @param address_callback function to call everytime the public IP address changes
  * @param reversal_callback function to call if someone wants connection reversal from us,
  *        NULL if connection reversal is not supported
- * @param callback_cls closure for callback
+ * @param callback_cls closure for callbacks
  * @return NULL on error, otherwise handle that can be used to unregister
  */
 struct GNUNET_NAT_Handle *
-GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg, int is_tcp,
-                     uint16_t adv_port, unsigned int num_addrs,
-                     const struct sockaddr **addrs, const socklen_t *addrlens,
+GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                     int is_tcp,
+                     uint16_t adv_port,
+                     unsigned int num_addrs,
+                     const struct sockaddr **addrs,
+                     const socklen_t *addrlens,
                      GNUNET_NAT_AddressCallback address_callback,
                      GNUNET_NAT_ReversalCallback reversal_callback,
                      void *callback_cls);
@@ -100,13 +103,14 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg, int is_tcp,
  *
  * @param h the handle returned by register
  * @param addr IP address to test (IPv4 or IPv6)
- * @param addrlen number of bytes in addr
- * @return GNUNET_YES if the address is plausible,
- *         GNUNET_NO if the address is not plausible,
- *         GNUNET_SYSERR if the address is malformed
+ * @param addrlen number of bytes in @a addr
+ * @return #GNUNET_YES if the address is plausible,
+ *         #GNUNET_NO if the address is not plausible,
+ *         #GNUNET_SYSERR if the address is malformed
  */
 int
-GNUNET_NAT_test_address (struct GNUNET_NAT_Handle *h, const void *addr,
+GNUNET_NAT_test_address (struct GNUNET_NAT_Handle *h,
+                         const void *addr,
                          socklen_t addrlen);
 
 
@@ -117,19 +121,18 @@ GNUNET_NAT_test_address (struct GNUNET_NAT_Handle *h, const void *addr,
  *
  * @param h handle (used for configuration)
  * @param sa the address of the peer (IPv4-only)
- *
- * @return GNUNET_SYSERR on error, GNUNET_NO if nat client is disabled,
- *         GNUNET_OK otherwise
+ * @return #GNUNET_SYSERR on error, #GNUNET_NO if nat client is disabled,
+ *         #GNUNET_OK otherwise
  */
 int
 GNUNET_NAT_run_client (struct GNUNET_NAT_Handle *h,
                        const struct sockaddr_in *sa);
 
 
-
 /**
- * Stop port redirection and public IP address detection for the given handle.
- * This frees the handle, after having sent the needed commands to close open ports.
+ * Stop port redirection and public IP address detection for the given
+ * handle.  This frees the handle, after having sent the needed
+ * commands to close open ports.
  *
  * @param h the handle to stop
  */
@@ -142,13 +145,14 @@ GNUNET_NAT_unregister (struct GNUNET_NAT_Handle *h);
  */
 struct GNUNET_NAT_Test;
 
+
 /**
  * Function called to report success or failure for
  * NAT configuration test.
  *
  * @param cls closure
- * @param success GNUNET_OK on success, GNUNET_NO on failure,
- *                GNUNET_SYSERR if the test could not be
+ * @param success #GNUNET_OK on success, #GNUNET_NO on failure,
+ *                #GNUNET_SYSERR if the test could not be
  *                properly started (internal failure)
  */
 typedef void (*GNUNET_NAT_TestCallback) (void *cls, int success);
@@ -158,17 +162,20 @@ typedef void (*GNUNET_NAT_TestCallback) (void *cls, int success);
  * given configuration (IPv4-only).
  *
  * @param cfg configuration for the NAT traversal
- * @param is_tcp GNUNET_YES to test TCP, GNUNET_NO to test UDP
+ * @param is_tcp #GNUNET_YES to test TCP, #GNUNET_NO to test UDP
  * @param bnd_port port to bind to, 0 for connection reversal
  * @param adv_port externally advertised port to use
  * @param report function to call with the result of the test
- * @param report_cls closure for report
+ * @param report_cls closure for @a report
  * @return handle to cancel NAT test
  */
 struct GNUNET_NAT_Test *
 GNUNET_NAT_test_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                       int is_tcp, uint16_t bnd_port, uint16_t adv_port,
-                       GNUNET_NAT_TestCallback report, void *report_cls);
+                       int is_tcp,
+                       uint16_t bnd_port,
+                       uint16_t adv_port,
+                       GNUNET_NAT_TestCallback report,
+                       void *report_cls);
 
 
 /**
@@ -186,12 +193,13 @@ GNUNET_NAT_test_stop (struct GNUNET_NAT_Test *tst);
  * @param cls closure
  * @param addr the address, NULL on errors
  */
-typedef void (*GNUNET_NAT_IPCallback) (void *cls, const struct in_addr * addr);
+typedef void (*GNUNET_NAT_IPCallback) (void *cls,
+                                       const struct in_addr * addr);
 
 
 
 /**
- * Opaque handle to cancel "GNUNET_NAT_mini_get_external_ipv4" operation.
+ * Opaque handle to cancel #GNUNET_NAT_mini_get_external_ipv4() operation.
  */
 struct GNUNET_NAT_ExternalHandle;
 
@@ -201,12 +209,13 @@ struct GNUNET_NAT_ExternalHandle;
  *
  * @param timeout when to fail
  * @param cb function to call with result
- * @param cb_cls closure for 'cb'
- * @return handle for cancellation (can only be used until 'cb' is called), NULL on error
+ * @param cb_cls closure for @a cb
+ * @return handle for cancellation (can only be used until @a cb is called), NULL on error
  */
 struct GNUNET_NAT_ExternalHandle *
 GNUNET_NAT_mini_get_external_ipv4 (struct GNUNET_TIME_Relative timeout,
-                                   GNUNET_NAT_IPCallback cb, void *cb_cls);
+                                   GNUNET_NAT_IPCallback cb,
+                                   void *cb_cls);
 
 
 /**
@@ -227,19 +236,20 @@ struct GNUNET_NAT_MiniHandle;
 /**
  * Start mapping the given port using (mini)upnpc.  This function
  * should typically not be used directly (it is used within the
- * general-purpose 'GNUNET_NAT_register' code).  However, it can be
+ * general-purpose #GNUNET_NAT_register() code).  However, it can be
  * used if specifically UPnP-based NAT traversal is to be used or
  * tested.
  *
  * @param port port to map
- * @param is_tcp GNUNET_YES to map TCP, GNUNET_NO for UDP
+ * @param is_tcp #GNUNET_YES to map TCP, #GNUNET_NO for UDP
  * @param ac function to call with mapping result
- * @param ac_cls closure for 'ac'
+ * @param ac_cls closure for @a ac
  * @return NULL on error
  */
 struct GNUNET_NAT_MiniHandle *
 GNUNET_NAT_mini_map_start (uint16_t port, int is_tcp,
-                           GNUNET_NAT_AddressCallback ac, void *ac_cls);
+                           GNUNET_NAT_AddressCallback ac,
+                           void *ac_cls);
 
 
 /**
@@ -277,14 +287,14 @@ typedef void (*GNUNET_NAT_AutoResultCallback)(void *cls,
  *
  * @param cfg initial configuration
  * @param cb function to call with autoconfiguration result
- * @param cb_cls closure for cb
+ * @param cb_cls closure for @a cb
  * @return handle to cancel operation
  */
 struct GNUNET_NAT_AutoHandle *
 GNUNET_NAT_autoconfig_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
 			     GNUNET_NAT_AutoResultCallback cb,
 			     void *cb_cls);
-			
+
 
 /**
  * Abort autoconfiguration.

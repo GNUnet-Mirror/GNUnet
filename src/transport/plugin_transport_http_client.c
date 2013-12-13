@@ -678,10 +678,9 @@ http_client_session_disconnect (void *cls,
   GNUNET_assert (plugin->cur_connections >= 2);
   plugin->cur_connections -= 2;
   GNUNET_STATISTICS_set (plugin->env->stats,
-      HTTP_STAT_STR_CONNECTIONS,
-      plugin->cur_connections,
-      GNUNET_NO);
-
+                         HTTP_STAT_STR_CONNECTIONS,
+                         plugin->cur_connections,
+                         GNUNET_NO);
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                    "Session %p: notifying transport about ending session\n",s);
 
@@ -921,7 +920,9 @@ client_receive_mst_cb (void *cls, void *client,
 				       s,
 				       &atsi, 1);
 
-  GNUNET_asprintf (&stat_txt, "# bytes received via %s_client", plugin->protocol);
+  GNUNET_asprintf (&stat_txt,
+                   "# bytes received via %s_client",
+                   plugin->protocol);
   GNUNET_STATISTICS_update (plugin->env->stats,
                             stat_txt, ntohs(message->size), GNUNET_NO);
   GNUNET_free (stat_txt);
