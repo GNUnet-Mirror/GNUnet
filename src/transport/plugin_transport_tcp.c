@@ -747,7 +747,7 @@ session_lookup_by_client_it (void *cls,
  */
 static struct Session *
 lookup_session_by_client (struct Plugin *plugin,
-			  const struct GNUNET_SERVER_Client *client)
+			  struct GNUNET_SERVER_Client *client)
 {
   struct Session *ret;
   struct SessionClientCtx sc_ctx;
