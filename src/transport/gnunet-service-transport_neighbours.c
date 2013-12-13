@@ -1732,15 +1732,6 @@ GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target)
                 GNUNET_i2s (target));
     return; /* during shutdown, do nothing */
   }
-  if (0 == memcmp (target,
-                   &GST_my_identity, sizeof (struct GNUNET_PeerIdentity)))
-  {
-    /* refuse to connect to myself */
-    /* FIXME: can this happen? Is this not an API violation? */
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		"Refusing to try to connect to myself.\n");
-    return;
-  }
   n = lookup_neighbour (target);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 	      "Asked to connect to peer `%s' (state: %s)\n",
