@@ -1817,6 +1817,15 @@ handle_test_blacklist_cont (void *cls,
               (GNUNET_OK == result) ? "allowed" : "FORBIDDEN");
   if (GNUNET_OK == result)
     GST_ats_add_address (bcc->na.address, bcc->na.session);
+  else
+  {
+    /* Blacklist disagreed on connecting to a peer with this address
+     * Destroy address because we are not allowed to use it
+     */
+    if (NULL != bcc->na.session)
+      GNUNET_ATS_address_destroyed (GST_ats, bcc->na.address, bcc->na.session);
+    GNUNET_ATS_address_destroyed (GST_ats, bcc->na.address, NULL);
+  }
   if (NULL == (n = lookup_neighbour (peer)))
     goto cleanup; /* nobody left to care about new address */
   switch (n->state)
@@ -1851,15 +1860,9 @@ handle_test_blacklist_cont (void *cls,
     }
     else
     {
-      // FIXME: should also possibly destroy session with plugin!?
-      GNUNET_ATS_address_destroyed (GST_ats,
-				    bcc->na.address,
-				    NULL);
       free_address (&n->primary_address);
       n->state = S_INIT_ATS;
       n->timeout = GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT);
-      // FIXME: do we need to ask ATS again for suggestions?
-      n->suggest_handle = GNUNET_ATS_suggest_address (GST_ats, &n->id);
     }
     break;
   case S_CONNECT_SENT:
@@ -1912,15 +1915,10 @@ handle_test_blacklist_cont (void *cls,
         break;
       }
       GNUNET_break (NULL != plugin);
-      GNUNET_ATS_address_destroyed (GST_ats,
-                                    bcc->na.address,
-                                    NULL);
       free_address (&n->primary_address);
       n->state = S_INIT_ATS;
       n->timeout = GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT);
-      // FIXME: do we need to ask ATS again for suggestions?
       GNUNET_ATS_reset_backoff (GST_ats, peer);
-      n->suggest_handle = GNUNET_ATS_suggest_address (GST_ats, &n->id);
     }
     break;
   case S_CONNECT_RECV_ACK:
@@ -1959,13 +1957,8 @@ handle_test_blacklist_cont (void *cls,
     }
     else
     {
-      GNUNET_ATS_address_destroyed (GST_ats,
-				    bcc->na.address,
-				    NULL);
       n->state = S_RECONNECT_ATS;
       n->timeout = GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT);
-      // FIXME: do we need to ask ATS again for suggestions?
-      n->suggest_handle = GNUNET_ATS_suggest_address (GST_ats, &n->id);
     }
     break;
   case S_RECONNECT_SENT:
@@ -1989,9 +1982,6 @@ handle_test_blacklist_cont (void *cls,
     }
     else
     {
-      GNUNET_ATS_address_destroyed (GST_ats,
-				    bcc->na.address,
-				    NULL);
       free_address (&n->alternative_address);
       n->state = S_CONNECTED;
     }
