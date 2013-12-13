@@ -1611,7 +1611,7 @@ GNUNET_DISK_file_lock (struct GNUNET_DISK_FileHandle *fh, off_t lock_start,
  * @param fh file handle
  * @param unlock_start absolute position from where to unlock
  * @param unlock_end absolute position until where to unlock
- * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
 GNUNET_DISK_file_unlock (struct GNUNET_DISK_FileHandle *fh, off_t unlock_start,

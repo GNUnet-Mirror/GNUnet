@@ -988,7 +988,7 @@ GNUNET_NETWORK_fdset_add (struct GNUNET_NETWORK_FDSet *dst,
 #ifndef MINGW
   int nfds;
 
-  for (nfds = src->nsds; nfds > 0; nfds--)
+  for (nfds = src->nsds; nfds >= 0; nfds--)
     if (FD_ISSET (nfds, &src->sds))
 
     {
@@ -1310,6 +1310,7 @@ _selector (LPVOID p)
 
 /**
  * Check if sockets or pipes meet certain conditions
+ *
  * @param rfds set of sockets or pipes to be checked for readability
  * @param wfds set of sockets or pipes to be checked for writability
  * @param efds set of sockets or pipes to be checked for exceptions
@@ -1423,8 +1424,7 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
   {
     GNUNET_break (0);
     LOG (GNUNET_ERROR_TYPE_ERROR,
-         _
-         ("Fatal internal logic error, process hangs in `%s' (abort with CTRL-C)!\n"),
+         _("Fatal internal logic error, process hangs in `%s' (abort with CTRL-C)!\n"),
          "select");
   }
 #ifndef MINGW

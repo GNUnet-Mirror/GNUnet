@@ -328,7 +328,7 @@ GNUNET_CONFIGURATION_parse (struct GNUNET_CONFIGURATION_Handle *cfg,
     return GNUNET_SYSERR;
   dirty = cfg->dirty;           /* back up value! */
   if (GNUNET_SYSERR ==
-       GNUNET_DISK_file_size (fn, &fs64, GNUNET_YES, GNUNET_YES))
+      GNUNET_DISK_file_size (fn, &fs64, GNUNET_YES, GNUNET_YES))
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
 	 "Error while determining the file size of %s\n", fn);
