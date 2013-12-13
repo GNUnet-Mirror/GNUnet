@@ -126,7 +126,7 @@ struct Session
   /**
    * Current network the next hop peer is located in
    */
-  uint32_t network;
+  enum GNUNET_ATS_Network_Type network;
 
   /**
    * Does the transport service know about this session (and we thus
@@ -290,7 +290,8 @@ handle_dv_message_received (void *cls,
 static void
 handle_dv_connect (void *cls,
 		   const struct GNUNET_PeerIdentity *peer,
-		   uint32_t distance, uint32_t network)
+		   uint32_t distance,
+                   enum GNUNET_ATS_Network_Type network)
 {
   struct Plugin *plugin = cls;
   struct Session *session;
@@ -336,7 +337,7 @@ handle_dv_connect (void *cls,
   ats[0].type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
   ats[0].value = htonl (distance);
   ats[1].type = htonl (GNUNET_ATS_NETWORK_TYPE);
-  ats[1].value = htonl (network);
+  ats[1].value = htonl ((uint32_t) network);
   session->active = GNUNET_YES;
   plugin->env->session_start (plugin->env->cls, peer,
                               PLUGIN_NAME,
@@ -357,7 +358,7 @@ static void
 handle_dv_distance_changed (void *cls,
 			    const struct GNUNET_PeerIdentity *peer,
 			    uint32_t distance,
-                            uint32_t network)
+                            enum GNUNET_ATS_Network_Type network)
 {
   struct Plugin *plugin = cls;
   struct Session *session;

@@ -2528,7 +2528,7 @@ stop_session_timeout (struct Session *s)
  *
  * @param cls closure ('struct Plugin*')
  * @param session the session
- * @return the network type in HBO or GNUNET_SYSERR
+ * @return the network type in HBO or #GNUNET_SYSERR
  */
 static enum GNUNET_ATS_Network_Type
 tcp_get_network (void *cls,

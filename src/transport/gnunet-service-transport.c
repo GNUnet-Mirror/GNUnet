@@ -476,9 +476,10 @@ GST_ats_add_address (const struct GNUNET_HELLO_Address *address,
   if (GNUNET_ATS_NET_UNSPECIFIED != net)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Could not obtain a valid network for `%s' %s\n"),
+                _("Could not obtain a valid network for `%s' %s (%s)\n"),
                 GNUNET_i2s (&address->peer),
-                GST_plugins_a2s (address));
+                GST_plugins_a2s (address),
+                address->transport_name);
     GNUNET_break (0);
   }
   ats.type = htonl (GNUNET_ATS_NETWORK_TYPE);

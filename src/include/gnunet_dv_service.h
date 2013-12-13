@@ -27,7 +27,7 @@
 #define GNUNET_SERVICE_DV_H
 
 #include "gnunet_util_lib.h"
-
+#include "gnunet_ats_service.h"
 
 /**
  * Signature of a function to be called if DV
@@ -41,7 +41,7 @@
 typedef void (*GNUNET_DV_ConnectCallback)(void *cls,
 					  const struct GNUNET_PeerIdentity *peer,
 					  uint32_t distance,
-                                          uint32_t network);
+                                          enum GNUNET_ATS_Network_Type network);
 
 
 /**
@@ -56,7 +56,7 @@ typedef void (*GNUNET_DV_ConnectCallback)(void *cls,
 typedef void (*GNUNET_DV_DistanceChangedCallback)(void *cls,
 						  const struct GNUNET_PeerIdentity *peer,
 						  uint32_t distance,
-                                                  uint32_t network);
+                                                  enum GNUNET_ATS_Network_Type network);
 
 
 /**

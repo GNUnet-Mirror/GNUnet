@@ -359,7 +359,8 @@ handle_message_receipt (void *cls,
                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
     sh->connect_cb (sh->cls,
 		    &cm->peer,
-		    ntohl (cm->distance), ntohl (cm->network));
+		    ntohl (cm->distance),
+                    (enum GNUNET_ATS_Network_Type) ntohl (cm->network));
     break;
   case GNUNET_MESSAGE_TYPE_DV_DISTANCE_CHANGED:
     if (ntohs (msg->size) != sizeof (struct GNUNET_DV_DistanceUpdateMessage))
@@ -372,7 +373,7 @@ handle_message_receipt (void *cls,
     sh->distance_cb (sh->cls,
 		     &dum->peer,
 		     ntohl (dum->distance),
-                     ntohl (dum->network));
+                     (enum GNUNET_ATS_Network_Type) ntohl (dum->network));
     break;
   case GNUNET_MESSAGE_TYPE_DV_DISCONNECT:
     if (ntohs (msg->size) != sizeof (struct GNUNET_DV_DisconnectMessage))

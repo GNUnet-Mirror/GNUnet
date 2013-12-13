@@ -272,7 +272,7 @@ struct DirectNeighbor
   /**
    * The network this peer is in
    */
-  uint32_t network;
+  enum GNUNET_ATS_Network_Type network;
 
   /**
    * Is this neighbor connected at the core level?
@@ -517,7 +517,7 @@ send_ack_to_plugin (const struct GNUNET_PeerIdentity *target,
 static void
 send_distance_change_to_plugin (const struct GNUNET_PeerIdentity *peer,
 				uint32_t distance,
-                                uint32_t network)
+                                enum GNUNET_ATS_Network_Type network)
 {
   struct GNUNET_DV_DistanceUpdateMessage du_msg;
 
@@ -529,7 +529,7 @@ send_distance_change_to_plugin (const struct GNUNET_PeerIdentity *peer,
   du_msg.header.type = htons (GNUNET_MESSAGE_TYPE_DV_DISTANCE_CHANGED);
   du_msg.distance = htonl (distance);
   du_msg.peer = *peer;
-  du_msg.network = htonl (network);
+  du_msg.network = htonl ((uint32_t) network);
   send_control_to_plugin (&du_msg.header);
 }
 
@@ -543,7 +543,8 @@ send_distance_change_to_plugin (const struct GNUNET_PeerIdentity *peer,
  */
 static void
 send_connect_to_plugin (const struct GNUNET_PeerIdentity *target,
-			uint32_t distance, uint32_t network)
+			uint32_t distance,
+                        enum GNUNET_ATS_Network_Type network)
 {
   struct GNUNET_DV_ConnectMessage cm;
 
@@ -553,7 +554,7 @@ send_connect_to_plugin (const struct GNUNET_PeerIdentity *target,
   cm.header.size = htons (sizeof (cm));
   cm.header.type = htons (GNUNET_MESSAGE_TYPE_DV_CONNECT);
   cm.distance = htonl (distance);
-  cm.network = htonl (network);
+  cm.network = htonl ((uint32_t) network);
   cm.peer = *target;
   send_control_to_plugin (&cm.header);
 }
@@ -1158,7 +1159,7 @@ get_atsi_distance (const struct GNUNET_ATS_Information *atsi,
  * @param atsi_count number of entries in atsi
  * @return connected transport network
  */
-static uint32_t
+static enum GNUNET_ATS_Network_Type
 get_atsi_network (const struct GNUNET_ATS_Information *atsi,
                    uint32_t atsi_count)
 {
@@ -1166,7 +1167,7 @@ get_atsi_network (const struct GNUNET_ATS_Information *atsi,
 
   for (i = 0; i < atsi_count; i++)
     if (ntohl (atsi[i].type) == GNUNET_ATS_NETWORK_TYPE)
-      return ntohl (atsi[i].value);
+      return (enum GNUNET_ATS_Network_Type) ntohl (atsi[i].value);
   return GNUNET_ATS_NET_UNSPECIFIED;
 }
 
@@ -1291,7 +1292,7 @@ handle_ats_update (void *cls,
 {
   struct DirectNeighbor *neighbor;
   uint32_t distance;
-  uint32_t network = GNUNET_ATS_NET_UNSPECIFIED;
+  enum GNUNET_ATS_Network_Type network = GNUNET_ATS_NET_UNSPECIFIED;
 
   if (GNUNET_NO == active)
     return;
