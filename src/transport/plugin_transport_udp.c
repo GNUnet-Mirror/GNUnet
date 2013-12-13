@@ -193,8 +193,20 @@ struct Session
    */
   size_t addrlen;
 
+  /**
+   * Reference counter to indicate that this session is
+   * currently being used and must not be destroyed;
+   * setting @e in_destroy will destroy it as soon as
+   * possible.
+   */
   unsigned int rc;
 
+  /**
+   * Is this session about to be destroyed (sometimes we cannot
+   * destroy a session immediately as below us on the stack
+   * there might be code that still uses it; in this case,
+   * @e rc is non-zero).
+   */
   int in_destroy;
 
   int inbound;
@@ -479,25 +491,6 @@ udp_plugin_select_v6 (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
- * Cancel timeout
- */
-static void
-stop_session_timeout (struct Session *s)
-{
-  GNUNET_assert (NULL != s);
-
-  if (GNUNET_SCHEDULER_NO_TASK != s->timeout_task)
-  {
-    GNUNET_SCHEDULER_cancel (s->timeout_task);
-    s->timeout_task = GNUNET_SCHEDULER_NO_TASK;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Timeout stopped for session %p canceled\n",
-                s);
-  }
-}
-
-
-/**
  * (re)schedule select tasks for this plugin.
  *
  * @param plugin plugin to reschedule
@@ -713,19 +706,19 @@ udp_string_to_address (void *cls, const char *addr, uint16_t addrlen,
 
 
 static void
-ppc_cancel_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+ppc_cancel_task (void *cls,
+                 const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-	struct PrettyPrinterContext *ppc = cls;
-	/* GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "PPC %p was not removed!\n", ppc); */
-	ppc->timeout_task = GNUNET_SCHEDULER_NO_TASK;
-	if (NULL != ppc->resolver_handle)
-	{
-		GNUNET_RESOLVER_request_cancel (ppc->resolver_handle);
-		ppc->resolver_handle = NULL;
-	}
+  struct PrettyPrinterContext *ppc = cls;
 
-	GNUNET_CONTAINER_DLL_remove (ppc_dll_head, ppc_dll_tail, ppc);
-	GNUNET_free (ppc);
+  ppc->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  if (NULL != ppc->resolver_handle)
+  {
+    GNUNET_RESOLVER_request_cancel (ppc->resolver_handle);
+    ppc->resolver_handle = NULL;
+  }
+  GNUNET_CONTAINER_DLL_remove (ppc_dll_head, ppc_dll_tail, ppc);
+  GNUNET_free (ppc);
 }
 
 
@@ -741,7 +734,7 @@ append_port (void *cls, const char *hostname)
   struct PrettyPrinterContext *ppc = cls;
   struct PrettyPrinterContext *cur;
   char *ret;
-	/* GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "PPC callback: %p `%s'\n",ppc, hostname); */
+
   if (hostname == NULL)
   {
     ppc->asc (ppc->asc_cls, NULL);
@@ -749,28 +742,39 @@ append_port (void *cls, const char *hostname)
     GNUNET_SCHEDULER_cancel (ppc->timeout_task);
     ppc->timeout_task = GNUNET_SCHEDULER_NO_TASK;
     ppc->resolver_handle = NULL;
-  	/* GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "PPC %p was removed!\n", ppc); */
     GNUNET_free (ppc);
     return;
   }
   for (cur = ppc_dll_head; (NULL != cur); cur = cur->next)
   {
-  	if (cur == ppc)
-  		break;
+    if (cur == ppc)
+      break;
   }
   if (NULL == cur)
   {
-  	GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Invalid callback for PPC %p \n", ppc);
-  	return;
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Invalid callback for PPC %p \n", ppc);
+    return;
   }
 
   if (GNUNET_YES == ppc->ipv6)
-    GNUNET_asprintf (&ret, "%s.%u.[%s]:%d", PLUGIN_NAME, ppc->options, hostname, ppc->port);
+    GNUNET_asprintf (&ret,
+                     "%s.%u.[%s]:%d",
+                     PLUGIN_NAME,
+                     ppc->options,
+                     hostname,
+                     ppc->port);
   else
-    GNUNET_asprintf (&ret, "%s.%u.%s:%d", PLUGIN_NAME, ppc->options, hostname, ppc->port);
+    GNUNET_asprintf (&ret,
+                     "%s.%u.%s:%d",
+                     PLUGIN_NAME,
+                     ppc->options,
+                     hostname,
+                     ppc->port);
   ppc->asc (ppc->asc_cls, ret);
   GNUNET_free (ret);
 }
+
 
 /**
  * Convert the transports address to a nice, human-readable
@@ -841,7 +845,7 @@ udp_plugin_address_pretty_printer (void *cls, const char *type,
     asc (asc_cls, NULL);
     return;
   }
-  ppc = GNUNET_malloc (sizeof (struct PrettyPrinterContext));
+  ppc = GNUNET_new (struct PrettyPrinterContext);
   ppc->asc = asc;
   ppc->asc_cls = asc_cls;
   ppc->port = port;
@@ -853,9 +857,10 @@ udp_plugin_address_pretty_printer (void *cls, const char *type,
   ppc->timeout_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(timeout, 2),
   		&ppc_cancel_task, ppc);
   GNUNET_CONTAINER_DLL_insert (ppc_dll_head, ppc_dll_tail, ppc);
-	/* GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "PPC %p was created!\n", ppc); */
-  ppc->resolver_handle = GNUNET_RESOLVER_hostname_get (sb, sbs, !numeric, timeout, &append_port, ppc);
-
+  ppc->resolver_handle = GNUNET_RESOLVER_hostname_get (sb, sbs,
+                                                       !numeric,
+                                                       timeout,
+                                                       &append_port, ppc);
 }
 
 
@@ -1104,7 +1109,7 @@ udp_plugin_check_address (void *cls, const void *addr, size_t addrlen)
 
 
 /**
- * Task to free resources associated with a session.
+ * Function to free last resources associated with a session.
  *
  * @param s session to free
  */
@@ -1113,7 +1118,7 @@ free_session (struct Session *s)
 {
   if (NULL != s->frag_ctx)
   {
-    GNUNET_FRAGMENT_context_destroy(s->frag_ctx->frag, NULL, NULL);
+    GNUNET_FRAGMENT_context_destroy (s->frag_ctx->frag, NULL, NULL);
     GNUNET_free (s->frag_ctx);
     s->frag_ctx = NULL;
   }
@@ -1235,8 +1240,12 @@ udp_disconnect_session (void *cls,
        s,
        GNUNET_i2s (&s->target),
        GNUNET_a2s (s->sock_addr, s->addrlen));
-  stop_session_timeout (s);
-
+  /* stop timeout task */
+  if (GNUNET_SCHEDULER_NO_TASK != s->timeout_task)
+  {
+    GNUNET_SCHEDULER_cancel (s->timeout_task);
+    s->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  }
   if (NULL != s->frag_ctx)
   {
     /* Remove fragmented message due to disconnect */
@@ -1340,6 +1349,9 @@ udp_disconnect (void *cls,
 
 /**
  * Session was idle, so disconnect it
+ *
+ * @param cls the `struct Session` to time out
+ * @param tc scheduler context
  */
 static void
 session_timeout (void *cls,
@@ -1360,42 +1372,23 @@ session_timeout (void *cls,
 
 
 /**
- * Start session timeout
- */
-static void
-start_session_timeout (struct Session *s)
-{
-  GNUNET_assert (NULL != s);
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == s->timeout_task);
-  s->timeout_task =  GNUNET_SCHEDULER_add_delayed (UDP_SESSION_TIME_OUT,
-                                                   &session_timeout,
-                                                   s);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Timeout for session %p set to %s\n",
-              s,
-	      GNUNET_STRINGS_relative_time_to_string (UDP_SESSION_TIME_OUT,
-						      GNUNET_YES));
-}
-
-
-/**
  * Increment session timeout due to activity
+ *
+ * @param s session to reschedule timeout activity for
  */
 static void
 reschedule_session_timeout (struct Session *s)
 {
-  GNUNET_assert (NULL != s);
+  if (GNUNET_YES == s->in_destroy)
+    return;
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != s->timeout_task);
-
   GNUNET_SCHEDULER_cancel (s->timeout_task);
-  s->timeout_task =  GNUNET_SCHEDULER_add_delayed (UDP_SESSION_TIME_OUT,
-                                                   &session_timeout,
-                                                   s);
+  s->timeout_task = GNUNET_SCHEDULER_add_delayed (UDP_SESSION_TIME_OUT,
+                                                  &session_timeout,
+                                                  s);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Timeout rescheduled for session %p set to %s\n",
-              s,
-	      GNUNET_STRINGS_relative_time_to_string (UDP_SESSION_TIME_OUT,
-						      GNUNET_YES));
+              "Timeout restarted for session %p\n",
+              s);
 }
 
 
@@ -1480,7 +1473,9 @@ create_session (struct Plugin *plugin,
   s->flow_delay_from_other_peer = GNUNET_TIME_UNIT_ZERO_ABS;
   s->flow_delay_for_other_peer = GNUNET_TIME_UNIT_ZERO;
   s->inbound = GNUNET_NO;
-  start_session_timeout (s);
+  s->timeout_task =  GNUNET_SCHEDULER_add_delayed (UDP_SESSION_TIME_OUT,
+                                                   &session_timeout,
+                                                   s);
   return s;
 }
 
@@ -1988,18 +1983,18 @@ process_inbound_tokenized_messages (void *cls, void *client,
 				&si->sender,
 				hdr,
 				si->session,
- 	  	 (GNUNET_YES == si->session->inbound) ? NULL : si->arg,
- 	  	 (GNUNET_YES == si->session->inbound) ? 0 : si->args);
-
+                                (GNUNET_YES == si->session->inbound)
+                                ? NULL : si->arg,
+                                (GNUNET_YES == si->session->inbound)
+                                ? 0 : si->args);
   plugin->env->update_address_metrics (plugin->env->cls,
 				       &si->sender,
-			  	  	 (GNUNET_YES == si->session->inbound) ? NULL : si->arg,
-			  	  	 (GNUNET_YES == si->session->inbound) ? 0 : si->args,
+                                       (GNUNET_YES == si->session->inbound) ? NULL : si->arg,
+                                       (GNUNET_YES == si->session->inbound) ? 0 : si->args,
 				       si->session,
 				       &si->session->ats, 1);
-
   si->session->flow_delay_for_other_peer = delay;
-  reschedule_session_timeout(si->session);
+  reschedule_session_timeout (si->session);
   return GNUNET_OK;
 }
 
@@ -2081,9 +2076,12 @@ process_udp_message (struct Plugin *plugin, const struct UDPMessage *msg,
   si.arg = arg;
   si.args = args;
   s->rc++;
-  GNUNET_SERVER_mst_receive (plugin->mst, &si, (const char *) &msg[1],
-                             ntohs (msg->header.size) -
-                             sizeof (struct UDPMessage), GNUNET_YES, GNUNET_NO);
+  GNUNET_SERVER_mst_receive (plugin->mst,
+                             &si,
+                             (const char *) &msg[1],
+                             ntohs (msg->header.size) - sizeof (struct UDPMessage),
+                             GNUNET_YES,
+                             GNUNET_NO);
   s->rc--;
   if ( (0 == s->rc) && (GNUNET_YES == s->in_destroy))
     free_session (s);

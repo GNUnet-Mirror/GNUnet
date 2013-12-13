@@ -421,7 +421,7 @@ plugin_env_address_to_type (void *cls,
 
   ats.type = htonl (GNUNET_ATS_NETWORK_TYPE);
   ats.value = htonl (GNUNET_ATS_NET_UNSPECIFIED);
-  if (GST_ats == NULL)
+  if (NULL == GST_ats)
   {
     GNUNET_break (0);
     return ats;
@@ -437,7 +437,7 @@ plugin_env_address_to_type (void *cls,
     GNUNET_break (0);
     return ats;
   }
-  return GNUNET_ATS_address_get_type(GST_ats, addr, addrlen);
+  return GNUNET_ATS_address_get_type (GST_ats, addr, addrlen);
 }
 
 
@@ -473,11 +473,12 @@ GST_ats_add_address (const struct GNUNET_HELLO_Address *address,
     return;
 
   net = papi->get_network (NULL, (void *) session);
-  if (GNUNET_ATS_NET_UNSPECIFIED == net)
+  if (GNUNET_ATS_NET_UNSPECIFIED != net)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Could not obtain a valid network for `%s' %s\n"),
-                GNUNET_i2s (&address->peer), GST_plugins_a2s (address));
+                GNUNET_i2s (&address->peer),
+                GST_plugins_a2s (address));
     GNUNET_break (0);
   }
   ats.type = htonl (GNUNET_ATS_NETWORK_TYPE);
