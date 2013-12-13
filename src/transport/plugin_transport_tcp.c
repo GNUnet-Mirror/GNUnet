@@ -25,14 +25,10 @@
 #include "platform.h"
 #include "gnunet_hello_lib.h"
 #include "gnunet_constants.h"
-#include "gnunet_connection_lib.h"
-#include "gnunet_container_lib.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_nat_lib.h"
-#include "gnunet_os_lib.h"
 #include "gnunet_protocols.h"
 #include "gnunet_resolver_service.h"
-#include "gnunet_server_lib.h"
-#include "gnunet_service_lib.h"
 #include "gnunet_signatures.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_transport_service.h"
@@ -427,31 +423,20 @@ struct Plugin
 
 
 /**
- * Start session timeout
- */
-static void
-start_session_timeout (struct Session *s);
-
-
-/**
- * Increment session timeout due to activity
- */
-static void
-reschedule_session_timeout (struct Session *s);
-
-
-/**
- * Cancel timeout
+ * Function called for a quick conversion of the binary address to
+ * a numeric address.  Note that the caller must not free the
+ * address and that the next call to this function is allowed
+ * to override the address again.
  *
- * @param s session to cancel timeout for
+ * @param cls closure ('struct Plugin*')
+ * @param addr binary address
+ * @param addrlen length of the address
+ * @return string representing the same address
  */
-static void
-stop_session_timeout (struct Session *s);
-
-
-/* DEBUG CODE */
 static const char *
-tcp_address_to_string (void *cls, const void *addr, size_t addrlen);
+tcp_address_to_string (void *cls,
+                       const void *addr,
+                       size_t addrlen);
 
 
 /**
@@ -459,7 +444,7 @@ tcp_address_to_string (void *cls, const void *addr, size_t addrlen);
  * Mostly used to limit the total number of open connections
  * we can have.
  *
- * @param cls the 'struct Plugin'
+ * @param cls the `struct Plugin`
  * @param ucred credentials, if available, otherwise NULL
  * @param addr address
  * @param addrlen length of address
@@ -485,7 +470,7 @@ plugin_tcp_access_check (void *cls,
 /**
  * Our external IP address/port mapping has changed.
  *
- * @param cls closure, the 'struct LocalAddrList'
+ * @param cls closure, the 'struct Plugin'
  * @param add_remove #GNUNET_YES to mean the new public IP address, #GNUNET_NO to mean
  *     the previous (now invalid) one
  * @param addr either the previous or the new public IP address
@@ -493,7 +478,8 @@ plugin_tcp_access_check (void *cls,
  */
 static void
 tcp_nat_port_map_callback (void *cls, int add_remove,
-                           const struct sockaddr *addr, socklen_t addrlen)
+                           const struct sockaddr *addr,
+                           socklen_t addrlen)
 {
   struct Plugin *plugin = cls;
   struct IPv4TcpAddress t4;
@@ -542,7 +528,7 @@ tcp_nat_port_map_callback (void *cls, int add_remove,
  * address and that the next call to this function is allowed
  * to override the address again.
  *
- * @param cls closure ('struct Plugin*')
+ * @param cls closure (`struct Plugin*`)
  * @param addr binary address
  * @param addrlen length of the address
  * @return string representing the same address
@@ -596,8 +582,15 @@ tcp_address_to_string (void *cls, const void *addr, size_t addrlen)
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "inet_ntop");
     return NULL;
   }
-  GNUNET_snprintf (rbuf, sizeof (rbuf), (af == AF_INET6) ? "%s.%u.[%s]:%u" : "%s.%u.%s:%u",
-                   PLUGIN_NAME, options, buf, port);
+  GNUNET_snprintf (rbuf,
+                   sizeof (rbuf),
+                   (af == AF_INET6)
+                   ? "%s.%u.[%s]:%u"
+                   : "%s.%u.%s:%u",
+                   PLUGIN_NAME,
+                   options,
+                   buf,
+                   port);
   return rbuf;
 }
 
@@ -606,7 +599,7 @@ tcp_address_to_string (void *cls, const void *addr, size_t addrlen)
  * Function called to convert a string address to
  * a binary address.
  *
- * @param cls closure ('struct Plugin*')
+ * @param cls closure (`struct Plugin*`)
  * @param addr string address
  * @param addrlen length of the address
  * @param buf location to store the buffer
@@ -682,7 +675,7 @@ tcp_string_to_address (void *cls,
     {
       struct IPv4TcpAddress *t4;
       struct sockaddr_in *in4 = (struct sockaddr_in *) &socket_address;
-      t4 = GNUNET_malloc (sizeof (struct IPv4TcpAddress));
+      t4 = GNUNET_new (struct IPv4TcpAddress);
       t4->options =  htonl (options);
       t4->ipv4_addr = in4->sin_addr.s_addr;
       t4->t4_port = in4->sin_port;
@@ -694,7 +687,7 @@ tcp_string_to_address (void *cls,
     {
       struct IPv6TcpAddress *t6;
       struct sockaddr_in6 *in6 = (struct sockaddr_in6 *) &socket_address;
-      t6 = GNUNET_malloc (sizeof (struct IPv6TcpAddress));
+      t6 = GNUNET_new (struct IPv6TcpAddress);
       t6->options = htonl (options);
       t6->ipv6_addr = in6->sin6_addr;
       t6->t6_port = in6->sin6_port;
@@ -708,9 +701,19 @@ tcp_string_to_address (void *cls,
 }
 
 
+/**
+ * Closure for #session_lookup_by_client_it().
+ */
 struct SessionClientCtx
 {
+  /**
+   * Client we are looking for.
+   */
   const struct GNUNET_SERVER_Client *client;
+
+  /**
+   * Session that was found.
+   */
   struct Session *ret;
 };
 
@@ -734,6 +737,9 @@ session_lookup_by_client_it (void *cls,
 
 /**
  * Find the session handle for the given client.
+ * Currently uses both the hashmap and the client
+ * context, as the client context is new and the
+ * logic still needs to be tested.
  *
  * @param plugin the plugin
  * @param client which client to find the session handle for
@@ -743,13 +749,162 @@ static struct Session *
 lookup_session_by_client (struct Plugin *plugin,
 			  const struct GNUNET_SERVER_Client *client)
 {
+  struct Session *ret;
   struct SessionClientCtx sc_ctx;
 
+  ret = GNUNET_SERVER_client_get_user_context (client, struct Session);
   sc_ctx.client = client;
   sc_ctx.ret = NULL;
   GNUNET_CONTAINER_multipeermap_iterate (plugin->sessionmap,
                                          &session_lookup_by_client_it, &sc_ctx);
+  /* check both methods yield the same result */
+  GNUNET_break (ret == sc_ctx.ret);
   return sc_ctx.ret;
+}
+
+
+/**
+ * Functions with this signature are called whenever we need
+ * to close a session due to a disconnect or failure to
+ * establish a connection.
+ *
+ * @param cls the `struct Plugin`
+ * @param session session to close down
+ * @return #GNUNET_OK on success
+ */
+static int
+tcp_disconnect_session (void *cls,
+                        struct Session *session)
+{
+  struct Plugin *plugin = cls;
+  struct PendingMessage *pm;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Disconnecting session of peer `%s' address `%s'\n",
+       GNUNET_i2s (&session->target),
+       tcp_address_to_string (NULL, session->addr, session->addrlen));
+
+  if (GNUNET_SCHEDULER_NO_TASK != session->timeout_task)
+  {
+    GNUNET_SCHEDULER_cancel (session->timeout_task);
+    session->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+
+  if (GNUNET_YES ==
+      GNUNET_CONTAINER_multipeermap_remove (plugin->sessionmap,
+                                            &session->target,
+                                            session))
+  {
+    GNUNET_STATISTICS_update (session->plugin->env->stats,
+			      gettext_noop ("# TCP sessions active"), -1,
+			      GNUNET_NO);
+  }
+  else
+  {
+    GNUNET_assert (GNUNET_YES ==
+                   GNUNET_CONTAINER_multipeermap_remove (plugin->nat_wait_conns,
+                                                         &session->target,
+                                                         session));
+  }
+  GNUNET_SERVER_client_set_user_context (session->client,
+                                         (void *) NULL);
+
+  /* clean up state */
+  if (NULL != session->transmit_handle)
+  {
+    GNUNET_SERVER_notify_transmit_ready_cancel (session->transmit_handle);
+    session->transmit_handle = NULL;
+  }
+  session->plugin->env->session_end (session->plugin->env->cls,
+                                     &session->target, session);
+
+  if (GNUNET_SCHEDULER_NO_TASK != session->nat_connection_timeout)
+  {
+    GNUNET_SCHEDULER_cancel (session->nat_connection_timeout);
+    session->nat_connection_timeout = GNUNET_SCHEDULER_NO_TASK;
+  }
+
+  while (NULL != (pm = session->pending_messages_head))
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+	 pm->transmit_cont !=
+	 NULL ? "Could not deliver message to `%4s'.\n" :
+	 "Could not deliver message to `%4s', notifying.\n",
+	 GNUNET_i2s (&session->target));
+    GNUNET_STATISTICS_update (session->plugin->env->stats,
+                              gettext_noop ("# bytes currently in TCP buffers"),
+                              -(int64_t) pm->message_size, GNUNET_NO);
+    GNUNET_STATISTICS_update (session->plugin->env->stats,
+                              gettext_noop
+                              ("# bytes discarded by TCP (disconnect)"),
+                              pm->message_size, GNUNET_NO);
+    GNUNET_CONTAINER_DLL_remove (session->pending_messages_head,
+                                 session->pending_messages_tail, pm);
+    if (NULL != pm->transmit_cont)
+      pm->transmit_cont (pm->transmit_cont_cls, &session->target,
+                         GNUNET_SYSERR, pm->message_size, 0);
+    GNUNET_free (pm);
+  }
+  if (session->receive_delay_task != GNUNET_SCHEDULER_NO_TASK)
+  {
+    GNUNET_SCHEDULER_cancel (session->receive_delay_task);
+    if (NULL != session->client)
+      GNUNET_SERVER_receive_done (session->client, GNUNET_SYSERR);
+  }
+  if (NULL != session->client)
+  {
+    GNUNET_SERVER_client_disconnect (session->client);
+    GNUNET_SERVER_client_drop (session->client);
+    session->client = NULL;
+  }
+  GNUNET_free_non_null (session->addr);
+  GNUNET_assert (NULL == session->transmit_handle);
+  GNUNET_free (session);
+  return GNUNET_OK;
+}
+
+
+/**
+ * Session was idle, so disconnect it
+ *
+ * @param cls the `struct Session` of the idle session
+ * @param tc scheduler context
+ */
+static void
+session_timeout (void *cls,
+                 const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct Session *s = cls;
+
+  s->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Session %p was idle for %s, disconnecting\n",
+	      s,
+	      GNUNET_STRINGS_relative_time_to_string (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
+						      GNUNET_YES));
+  /* call session destroy function */
+  tcp_disconnect_session (s->plugin, s);
+}
+
+
+/**
+ * Increment session timeout due to activity
+ *
+ * @param s session to increment timeout for
+ */
+static void
+reschedule_session_timeout (struct Session *s)
+{
+  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != s->timeout_task);
+  GNUNET_SCHEDULER_cancel (s->timeout_task);
+  s->timeout_task = GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
+                                                  &session_timeout,
+                                                  s);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Timeout rescheduled for session %p set to %s\n",
+	      s,
+	      GNUNET_STRINGS_relative_time_to_string (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
+						      GNUNET_YES));
 }
 
 
@@ -809,8 +964,9 @@ create_session (struct Plugin *plugin,
                               gettext_noop ("# TCP sessions active"), 1,
                               GNUNET_NO);
   }
-  start_session_timeout (session);
-
+  session->timeout_task = GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
+                                                        &session_timeout,
+                                                        session);
   return session;
 }
 
@@ -969,103 +1125,6 @@ process_pending_messages (struct Session *session)
                                            GNUNET_TIME_absolute_get_remaining
                                            (pm->timeout), &do_transmit,
                                            session);
-}
-
-
-/**
- * Functions with this signature are called whenever we need
- * to close a session due to a disconnect or failure to
- * establish a connection.
- *
- * @param cls the `struct Plugin`
- * @param session session to close down
- * @return #GNUNET_OK on success
- */
-static int
-tcp_disconnect_session (void *cls,
-                        struct Session *session)
-{
-  struct Plugin *plugin = cls;
-  struct PendingMessage *pm;
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Disconnecting session of peer `%s' address `%s'\n",
-       GNUNET_i2s (&session->target),
-       tcp_address_to_string (NULL, session->addr, session->addrlen));
-
-  stop_session_timeout (session);
-
-  if (GNUNET_YES ==
-      GNUNET_CONTAINER_multipeermap_remove (plugin->sessionmap,
-                                            &session->target,
-                                            session))
-  {
-    GNUNET_STATISTICS_update (session->plugin->env->stats,
-			      gettext_noop ("# TCP sessions active"), -1,
-			      GNUNET_NO);
-  }
-  else
-  {
-    GNUNET_assert (GNUNET_YES ==
-                   GNUNET_CONTAINER_multipeermap_remove (plugin->nat_wait_conns,
-                                                         &session->target,
-                                                         session));
-  }
-  GNUNET_SERVER_client_set_user_context (session->client,
-                                         (void *) NULL);
-
-  /* clean up state */
-  if (NULL != session->transmit_handle)
-  {
-    GNUNET_SERVER_notify_transmit_ready_cancel (session->transmit_handle);
-    session->transmit_handle = NULL;
-  }
-  session->plugin->env->session_end (session->plugin->env->cls,
-                                     &session->target, session);
-
-  if (GNUNET_SCHEDULER_NO_TASK != session->nat_connection_timeout)
-  {
-    GNUNET_SCHEDULER_cancel (session->nat_connection_timeout);
-    session->nat_connection_timeout = GNUNET_SCHEDULER_NO_TASK;
-  }
-
-  while (NULL != (pm = session->pending_messages_head))
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-	 pm->transmit_cont !=
-	 NULL ? "Could not deliver message to `%4s'.\n" :
-	 "Could not deliver message to `%4s', notifying.\n",
-	 GNUNET_i2s (&session->target));
-    GNUNET_STATISTICS_update (session->plugin->env->stats,
-                              gettext_noop ("# bytes currently in TCP buffers"),
-                              -(int64_t) pm->message_size, GNUNET_NO);
-    GNUNET_STATISTICS_update (session->plugin->env->stats,
-                              gettext_noop
-                              ("# bytes discarded by TCP (disconnect)"),
-                              pm->message_size, GNUNET_NO);
-    GNUNET_CONTAINER_DLL_remove (session->pending_messages_head,
-                                 session->pending_messages_tail, pm);
-    if (NULL != pm->transmit_cont)
-      pm->transmit_cont (pm->transmit_cont_cls, &session->target,
-                         GNUNET_SYSERR, pm->message_size, 0);
-    GNUNET_free (pm);
-  }
-  if (session->receive_delay_task != GNUNET_SCHEDULER_NO_TASK)
-  {
-    GNUNET_SCHEDULER_cancel (session->receive_delay_task);
-    if (NULL != session->client)
-      GNUNET_SERVER_receive_done (session->client, GNUNET_SYSERR);
-  }
-  if (NULL != session->client)
-  {
-    GNUNET_SERVER_client_disconnect (session->client);
-    GNUNET_SERVER_client_drop (session->client);
-    session->client = NULL;
-  }
-  GNUNET_free_non_null (session->addr);
-  GNUNET_assert (NULL == session->transmit_handle);
-  GNUNET_free (session);
-  return GNUNET_OK;
 }
 
 
@@ -1253,14 +1312,36 @@ tcp_plugin_send (void *cls,
 }
 
 
+/**
+ * Closure for #session_lookup_it().
+ */
 struct SessionItCtx
 {
+  /**
+   * Address we are looking for.
+   */
   void *addr;
+
+  /**
+   * Number of bytes in @e addr.
+   */
   size_t addrlen;
+
+  /**
+   * Where to store the session (if we found it).
+   */
   struct Session *result;
 };
 
 
+/**
+ * Look for a session by address.
+ *
+ * @param cls the `struct SessionItCtx`
+ * @param key unused
+ * @param value a `struct Session`
+ * @return #GNUNET_YES to continue looking, #GNUNET_NO if we found the session
+ */
 static int
 session_lookup_it (void *cls,
 		   const struct GNUNET_PeerIdentity *key,
@@ -1281,16 +1362,12 @@ session_lookup_it (void *cls,
   GNUNET_free (a2);
 #endif
   if (session->addrlen != si_ctx->addrlen)
-  {
     return GNUNET_YES;
-  }
   if (0 != memcmp (session->addr, si_ctx->addr, si_ctx->addrlen))
-  {
     return GNUNET_YES;
-  }
 #if 0
-  a1 = strdup (tcp_address_to_string(NULL, session->addr, session->addrlen));
-  a2 = strdup (tcp_address_to_string(NULL, si_ctx->addr, si_ctx->addrlen));
+  a1 = strdup (tcp_address_to_string (NULL, session->addr, session->addrlen));
+  a2 = strdup (tcp_address_to_string (NULL, si_ctx->addr, si_ctx->addrlen));
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Comparing: %s %u <-> %s %u , OK!\n",
        a1,
@@ -1308,6 +1385,9 @@ session_lookup_it (void *cls,
 
 /**
  * Task cleaning up a NAT connection attempt after timeout
+ *
+ * @param cls the `struct Session`
+ * @param tc scheduler context (unused)
  */
 static void
 nat_connect_timeout (void *cls,
@@ -1332,7 +1412,7 @@ nat_connect_timeout (void *cls,
  * notify us by calling the env->session_end function
  *
  * @param cls closure
- * @param address pointer to the GNUNET_HELLO_Address
+ * @param address the address to use
  * @return the session if the address is valid, NULL otherwise
  */
 static struct Session *
@@ -1353,8 +1433,6 @@ tcp_plugin_get_session (void *cls,
   unsigned int is_natd = GNUNET_NO;
   size_t addrlen;
 
-  GNUNET_assert (plugin != NULL);
-  GNUNET_assert (address != NULL);
   addrlen = address->address_length;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Trying to get session for `%s' address of peer `%s'\n",
@@ -1580,12 +1658,14 @@ session_disconnect_it (void *cls,
  *        to be cancelled
  */
 static void
-tcp_plugin_disconnect (void *cls, const struct GNUNET_PeerIdentity *target)
+tcp_plugin_disconnect (void *cls,
+                       const struct GNUNET_PeerIdentity *target)
 {
   struct Plugin *plugin = cls;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Disconnecting peer `%4s'\n", GNUNET_i2s (target));
+       "Disconnecting peer `%4s'\n",
+       GNUNET_i2s (target));
   GNUNET_CONTAINER_multipeermap_get_multiple (plugin->sessionmap, target,
 					      &session_disconnect_it, plugin);
   GNUNET_CONTAINER_multipeermap_get_multiple (plugin->nat_wait_conns, target,
@@ -1832,11 +1912,11 @@ tcp_plugin_address_pretty_printer (void *cls, const char *type,
  * Check if the given port is plausible (must be either our listen
  * port or our advertised port), or any port if we are behind NAT
  * and do not have a port open.  If it is neither, we return
- * GNUNET_SYSERR.
+ * #GNUNET_SYSERR.
  *
  * @param plugin global variables
  * @param in_port port number to check
- * @return GNUNET_OK if port is either open_port or adv_port
+ * @return #GNUNET_OK if port is either open_port or adv_port
  */
 static int
 check_port (struct Plugin *plugin, uint16_t in_port)
@@ -1859,8 +1939,8 @@ check_port (struct Plugin *plugin, uint16_t in_port)
  * @param cls closure, our 'struct Plugin*'
  * @param addr pointer to the address
  * @param addrlen length of addr
- * @return GNUNET_OK if this is a plausible address for this peer
- *         and transport, GNUNET_SYSERR if not
+ * @return #GNUNET_OK if this is a plausible address for this peer
+ *         and transport, #GNUNET_SYSERR if not
  */
 static int
 tcp_plugin_check_address (void *cls, const void *addr, size_t addrlen)
@@ -2440,85 +2520,6 @@ try_connection_reversal (void *cls, const struct sockaddr *addr,
 
 }
 
-
-/**
- * Session was idle, so disconnect it
- */
-static void
-session_timeout (void *cls,
-                 const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct Session *s = cls;
-
-  s->timeout_task = GNUNET_SCHEDULER_NO_TASK;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Session %p was idle for %s, disconnecting\n",
-	      s,
-	      GNUNET_STRINGS_relative_time_to_string (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
-						      GNUNET_YES));
-  /* call session destroy function */
-  tcp_disconnect_session(s->plugin, s);
-}
-
-
-/**
- * Start session timeout
- */
-static void
-start_session_timeout (struct Session *s)
-{
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == s->timeout_task);
-  s->timeout_task = GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
-                                                  &session_timeout,
-                                                  s);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Timeout for session %p set to %s\n",
-	      s,
-	      GNUNET_STRINGS_relative_time_to_string (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
-						      GNUNET_YES));
-}
-
-
-/**
- * Increment session timeout due to activity
- */
-static void
-reschedule_session_timeout (struct Session *s)
-{
-  GNUNET_assert (NULL != s);
-  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != s->timeout_task);
-
-  GNUNET_SCHEDULER_cancel (s->timeout_task);
-  s->timeout_task = GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
-                                                  &session_timeout,
-                                                  s);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Timeout rescheduled for session %p set to %s\n",
-	      s,
-	      GNUNET_STRINGS_relative_time_to_string (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
-						      GNUNET_YES));
-}
-
-
-/**
- * Cancel timeout.
- *
- * @param s session to cancel timeout for
- */
-static void
-stop_session_timeout (struct Session *s)
-{
-  GNUNET_assert (NULL != s);
-
-  if (GNUNET_SCHEDULER_NO_TASK != s->timeout_task)
-  {
-    GNUNET_SCHEDULER_cancel (s->timeout_task);
-    s->timeout_task = GNUNET_SCHEDULER_NO_TASK;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Timeout stopped for session %p canceled\n",
-                s);
-  }
-}
 
 /**
  * Function obtain the network type for a session
