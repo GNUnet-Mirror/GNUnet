@@ -454,50 +454,6 @@ static const char *
 tcp_address_to_string (void *cls, const void *addr, size_t addrlen);
 
 
-static unsigned int sessions;
-
-
-static void
-inc_sessions (struct Plugin *plugin, struct Session *session, int line)
-{
-  sessions++;
-  unsigned int size = GNUNET_CONTAINER_multipeermap_size (plugin->sessionmap);
-  if (sessions != size)
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Inconsistent sessions %u <-> session map size: %u\n",
-         sessions, size);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "%4i Session increased to %u (session map size: %u): `%s' `%s'\n",
-       line,
-       sessions,
-       size,
-       GNUNET_i2s (&session->target),
-       tcp_address_to_string (NULL, session->addr, session->addrlen));
-}
-
-
-static void
-dec_sessions (struct Plugin *plugin,
-              struct Session *session, int line)
-{
-  GNUNET_assert (sessions > 0);
-  unsigned int size = GNUNET_CONTAINER_multipeermap_size(plugin->sessionmap);
-  sessions--;
-  if (sessions != size)
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Inconsistent sessions %u <-> session map size: %u\n",
-         sessions, size);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "%4i Session decreased to %u (session map size: %u): `%s' `%s'\n",
-       line,
-       sessions,
-       size,
-       GNUNET_i2s (&session->target),
-       tcp_address_to_string (NULL, session->addr, session->addrlen));
-}
-/* DEBUG CODE */
-
-
 /**
  * Function to check if an inbound connection is acceptable.
  * Mostly used to limit the total number of open connections
@@ -791,7 +747,8 @@ lookup_session_by_client (struct Plugin *plugin,
 
   sc_ctx.client = client;
   sc_ctx.ret = NULL;
-  GNUNET_CONTAINER_multipeermap_iterate (plugin->sessionmap, &session_lookup_by_client_it, &sc_ctx);
+  GNUNET_CONTAINER_multipeermap_iterate (plugin->sessionmap,
+                                         &session_lookup_by_client_it, &sc_ctx);
   return sc_ctx.ret;
 }
 
@@ -1046,7 +1003,6 @@ tcp_disconnect_session (void *cls,
     GNUNET_STATISTICS_update (session->plugin->env->stats,
 			      gettext_noop ("# TCP sessions active"), -1,
 			      GNUNET_NO);
-    dec_sessions (plugin, session, __LINE__);
   }
   else
   {
@@ -1055,6 +1011,9 @@ tcp_disconnect_session (void *cls,
                                                          &session->target,
                                                          session));
   }
+  GNUNET_SERVER_client_set_user_context (session->client,
+                                         (void *) NULL);
+
   /* clean up state */
   if (NULL != session->transmit_handle)
   {
@@ -1246,9 +1205,10 @@ tcp_plugin_send (void *cls,
        "Asked to transmit %u bytes to `%s', added message to list.\n",
        msgbuf_size, GNUNET_i2s (&session->target));
 
-  if (GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains_value (plugin->sessionmap,
-								  &session->target,
-								  session))
+  if (GNUNET_YES ==
+      GNUNET_CONTAINER_multipeermap_contains_value (plugin->sessionmap,
+                                                    &session->target,
+                                                    session))
   {
     GNUNET_assert (session->client != NULL);
     reschedule_session_timeout (session);
@@ -1552,11 +1512,12 @@ tcp_plugin_get_session (void *cls,
   }
   plugin->cur_connections++;
   if (plugin->cur_connections == plugin->max_connections)
-  	GNUNET_SERVER_suspend (plugin->server); /* Maximum number of connections rechead */
+    GNUNET_SERVER_suspend (plugin->server); /* Maximum number of connections rechead */
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Asked to transmit to `%4s', creating fresh session using address `%s'.\n",
-       GNUNET_i2s (&address->peer), GNUNET_a2s (sb, sbs));
+       GNUNET_i2s (&address->peer),
+       GNUNET_a2s (sb, sbs));
 
   session = create_session (plugin,
                             &address->peer,
@@ -1567,10 +1528,11 @@ tcp_plugin_get_session (void *cls,
   session->addrlen = addrlen;
   session->ats_address_network_type = (enum GNUNET_ATS_Network_Type) ntohl (ats.value);
   GNUNET_break (session->ats_address_network_type != GNUNET_ATS_NET_UNSPECIFIED);
+  GNUNET_SERVER_client_set_user_context (session->client, session);
   GNUNET_CONTAINER_multipeermap_put (plugin->sessionmap,
 				     &session->target,
-				     session, GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-  inc_sessions (plugin, session, __LINE__);
+				     session,
+                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Creating new session for `%s' address `%s' session %p\n",
        GNUNET_i2s (&address->peer),
@@ -1964,7 +1926,8 @@ tcp_plugin_check_address (void *cls, const void *addr, size_t addrlen)
  * @param message the actual message
  */
 static void
-handle_tcp_nat_probe (void *cls, struct GNUNET_SERVER_Client *client,
+handle_tcp_nat_probe (void *cls,
+                      struct GNUNET_SERVER_Client *client,
                       const struct GNUNET_MessageHeader *message)
 {
   struct Plugin *plugin = cls;
@@ -1977,8 +1940,8 @@ handle_tcp_nat_probe (void *cls, struct GNUNET_SERVER_Client *client,
   const struct sockaddr_in *s4;
   const struct sockaddr_in6 *s6;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Received NAT probe\n");
-
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Received NAT probe\n");
   /* We have received a TCP NAT probe, meaning we (hopefully) initiated
    * a connection to this peer by running gnunet-nat-client.  This peer
    * received the punch message and now wants us to use the new connection
@@ -2003,9 +1966,8 @@ handle_tcp_nat_probe (void *cls, struct GNUNET_SERVER_Client *client,
   }
 
   session =
-      GNUNET_CONTAINER_multipeermap_get (plugin->nat_wait_conns,
-                                         &tcp_nat_probe->
-                                         clientIdentity);
+    GNUNET_CONTAINER_multipeermap_get (plugin->nat_wait_conns,
+                                       &tcp_nat_probe->clientIdentity);
   if (session == NULL)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -2033,6 +1995,7 @@ handle_tcp_nat_probe (void *cls, struct GNUNET_SERVER_Client *client,
                  (plugin->nat_wait_conns,
                   &tcp_nat_probe->clientIdentity,
                   session) == GNUNET_YES);
+  GNUNET_SERVER_client_set_user_context (client, session);
   GNUNET_CONTAINER_multipeermap_put (plugin->sessionmap,
 				     &session->target, session,
 				     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
@@ -2045,7 +2008,7 @@ handle_tcp_nat_probe (void *cls, struct GNUNET_SERVER_Client *client,
   {
   case AF_INET:
     s4 = vaddr;
-    t4 = GNUNET_malloc (sizeof (struct IPv4TcpAddress));
+    t4 = GNUNET_new (struct IPv4TcpAddress);
     t4->options = 0;
     t4->t4_port = s4->sin_port;
     t4->ipv4_addr = s4->sin_addr.s_addr;
@@ -2054,7 +2017,7 @@ handle_tcp_nat_probe (void *cls, struct GNUNET_SERVER_Client *client,
     break;
   case AF_INET6:
     s6 = vaddr;
-    t6 = GNUNET_malloc (sizeof (struct IPv6TcpAddress));
+    t6 = GNUNET_new (struct IPv6TcpAddress);
     t6->options = 0;
     t6->t6_port = s6->sin6_port;
     memcpy (&t6->ipv6_addr, &s6->sin6_addr, sizeof (struct in6_addr));
@@ -2074,7 +2037,6 @@ handle_tcp_nat_probe (void *cls, struct GNUNET_SERVER_Client *client,
   GNUNET_break (NULL == session->client);
   GNUNET_SERVER_client_keep (client);
   session->client = client;
-  inc_sessions (plugin, session, __LINE__);
   GNUNET_STATISTICS_update (plugin->env->stats,
                             gettext_noop ("# TCP sessions active"), 1,
                             GNUNET_NO);
@@ -2180,11 +2142,11 @@ handle_tcp_welcome (void *cls, struct GNUNET_SERVER_Client *client,
            session,
            GNUNET_a2s (vaddr, alen));
       GNUNET_free (vaddr);
+      GNUNET_SERVER_client_set_user_context (session->client, session);
       GNUNET_CONTAINER_multipeermap_put (plugin->sessionmap,
-  				       &session->target,
-  				       session,
-  				       GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-      inc_sessions (plugin, session, __LINE__);
+                                         &session->target,
+                                         session,
+                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
     }
     else
     {
@@ -2754,8 +2716,8 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   /* Initially set connections to 0 */
   GNUNET_assert (NULL != plugin->env->stats);
   GNUNET_STATISTICS_set (plugin->env->stats,
-                        gettext_noop ("# TCP sessions active"), 0,
-                        GNUNET_NO);
+                         gettext_noop ("# TCP sessions active"), 0,
+                         GNUNET_NO);
   return api;
 }
 
