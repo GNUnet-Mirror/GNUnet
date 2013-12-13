@@ -157,7 +157,8 @@ GNUNET_NETWORK_shorten_unixpath (char *unixpath)
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
-GNUNET_NETWORK_socket_set_blocking (struct GNUNET_NETWORK_Handle *fd, int doBlock)
+GNUNET_NETWORK_socket_set_blocking (struct GNUNET_NETWORK_Handle *fd,
+                                    int doBlock)
 {
 
 #if MINGW
@@ -869,7 +870,7 @@ GNUNET_NETWORK_socket_create (int domain, int type, int protocol)
  * Shut down socket operations
  * @param desc socket
  * @param how type of shutdown
- * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR otherwise
  */
 int
 GNUNET_NETWORK_socket_shutdown (struct GNUNET_NETWORK_Handle *desc, int how)
@@ -1308,6 +1309,7 @@ _selector (LPVOID p)
 #endif
 
 
+#ifndef MINGW
 /**
  * Check if sockets or pipes meet certain conditions
  *
@@ -1323,8 +1325,58 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
                               struct GNUNET_NETWORK_FDSet *efds,
                               const struct GNUNET_TIME_Relative timeout)
 {
+  int nfds;
+  struct timeval tv;
+
+  if (NULL != rfds)
+    nfds = rfds->nsds;
+  else
+    nfds = 0;
+  if (NULL != wfds)
+    nfds = GNUNET_MAX (nfds, wfds->nsds);
+  if (NULL != efds)
+    nfds = GNUNET_MAX (nfds, efds->nsds);
+  if ((nfds == 0) &&
+      (timeout.rel_value_us == GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us))
+  {
+    GNUNET_break (0);
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         _("Fatal internal logic error, process hangs in `%s' (abort with CTRL-C)!\n"),
+         "select");
+  }
+  tv.tv_sec = timeout.rel_value_us / GNUNET_TIME_UNIT_SECONDS.rel_value_us;
+  tv.tv_usec =
+    (timeout.rel_value_us -
+     (tv.tv_sec * GNUNET_TIME_UNIT_SECONDS.rel_value_us));
+  return select (nfds,
+		 (NULL != rfds) ? &rfds->sds : NULL,
+                 (NULL != wfds) ? &wfds->sds : NULL,
+                 (NULL != efds) ? &efds->sds : NULL,
+                 (timeout.rel_value_us ==
+                  GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us) ? NULL : &tv);
+}
+
+
+#else
+/* MINGW */
+
+
+/**
+ * Check if sockets or pipes meet certain conditions, version for W32.
+ *
+ * @param rfds set of sockets or pipes to be checked for readability
+ * @param wfds set of sockets or pipes to be checked for writability
+ * @param efds set of sockets or pipes to be checked for exceptions
+ * @param timeout relative value when to return
+ * @return number of selected sockets or pipes, #GNUNET_SYSERR on error
+ */
+int
+GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
+                              struct GNUNET_NETWORK_FDSet *wfds,
+                              struct GNUNET_NETWORK_FDSet *efds,
+                              const struct GNUNET_TIME_Relative timeout)
+{
   int nfds = 0;
-#ifdef MINGW
   int handles = 0;
   int ex_handles = 0;
   int read_handles = 0;
@@ -1373,13 +1425,11 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
 
   /* TODO: Make this growable */
   struct GNUNET_DISK_FileHandle *readArray[50];
-#else
   struct timeval tv;
-#endif
+
   if (NULL != rfds)
   {
     nfds = rfds->nsds;
-#ifdef MINGW
     handles += read_handles = GNUNET_CONTAINER_slist_count (rfds->handles);
 #if DEBUG_NETWORK
     {
@@ -1398,48 +1448,27 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
       }
     }
 #endif
-#endif
   }
   if (NULL != wfds)
   {
     nfds = GNUNET_MAX (nfds, wfds->nsds);
-#ifdef MINGW
     handles += write_handles = GNUNET_CONTAINER_slist_count (wfds->handles);
-#endif
   }
   if (NULL != efds)
   {
     nfds = GNUNET_MAX (nfds, efds->nsds);
-#ifdef MINGW
     handles += ex_handles = GNUNET_CONTAINER_slist_count (efds->handles);
-#endif
   }
 
   if ((nfds == 0) &&
       (timeout.rel_value_us == GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us)
-#ifdef MINGW
-      && handles == 0
-#endif
-      )
+      && (handles == 0) )
   {
     GNUNET_break (0);
     LOG (GNUNET_ERROR_TYPE_ERROR,
          _("Fatal internal logic error, process hangs in `%s' (abort with CTRL-C)!\n"),
          "select");
   }
-#ifndef MINGW
-  tv.tv_sec = timeout.rel_value_us / GNUNET_TIME_UNIT_SECONDS.rel_value_us;
-  tv.tv_usec =
-    (timeout.rel_value_us -
-     (tv.tv_sec * GNUNET_TIME_UNIT_SECONDS.rel_value_us));
-  return select (nfds,
-		 (NULL != rfds) ? &rfds->sds : NULL,
-                 (NULL != wfds) ? &wfds->sds : NULL,
-                 (NULL != efds) ? &efds->sds : NULL,
-                 (timeout.rel_value_us ==
-                  GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us) ? NULL : &tv);
-
-#else
 #define SAFE_FD_ISSET(fd, set)  (set != NULL && FD_ISSET(fd, set))
   /* calculate how long we need to wait in microseconds */
   if (timeout.rel_value_us == GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us)
@@ -2042,8 +2071,10 @@ GNUNET_NETWORK_socket_select (struct GNUNET_NETWORK_FDSet *rfds,
   if (nhandles && (returnedpos < nhandles))
     return retcode;
   else
-#endif
     return 0;
 }
+
+/* MINGW */
+#endif
 
 /* end of network.c */
