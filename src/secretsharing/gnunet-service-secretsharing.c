@@ -521,7 +521,7 @@ keygen_round2_conclude (void *cls)
     {
       gcry_mpi_addm (s, s, ks->info[i].decrypted_preshare, elgamal_p);
       gcry_mpi_mulm (h, h, ks->info[i].public_key_share, elgamal_p);
-      m->num_secret_peers++;
+      // m->num_secret_peers++; // FIXME: m not initialized here!
     }
   }
 
