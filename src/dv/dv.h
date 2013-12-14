@@ -37,7 +37,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
 struct GNUNET_DV_ConnectMessage
 {
   /**
-   * Type: #GNUNET_MESSAGE_TYPE_TRANSPORT_DV_CONNECT
+   * Type: #GNUNET_MESSAGE_TYPE_DV_CONNECT
    */
   struct GNUNET_MessageHeader header;
 
@@ -69,7 +69,7 @@ struct GNUNET_DV_ConnectMessage
 struct GNUNET_DV_DisconnectMessage
 {
   /**
-   * Type: #GNUNET_MESSAGE_TYPE_TRANSPORT_DV_DISCONNECT
+   * Type: #GNUNET_MESSAGE_TYPE_DV_DISCONNECT
    */
   struct GNUNET_MessageHeader header;
 
@@ -96,7 +96,7 @@ struct GNUNET_DV_DisconnectMessage
 struct GNUNET_DV_ReceivedMessage
 {
   /**
-   * Type: #GNUNET_MESSAGE_TYPE_TRANSPORT_DV_RECV
+   * Type: #GNUNET_MESSAGE_TYPE_DV_RECV
    */
   struct GNUNET_MessageHeader header;
 
