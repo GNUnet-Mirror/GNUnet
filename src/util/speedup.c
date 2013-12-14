@@ -37,7 +37,8 @@ static GNUNET_SCHEDULER_TaskIdentifier speedup_task;
 
 
 static void
-do_speedup (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_speedup (void *cls,
+            const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   static long long current_offset;
 
@@ -57,14 +58,18 @@ do_speedup (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Start task that may speed up our system clock artificially
  *
  * @param cfg configuration to use
- * @return GNUNET_OK on success, GNUNET_SYSERR if the speedup was not configured
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR if the speedup was not configured
  */
 int
 GNUNET_SPEEDUP_start_ (const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_time (cfg, "testing", "SPEEDUP_INTERVAL", &interval))
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_time (cfg, "testing",
+                                           "SPEEDUP_INTERVAL", &interval))
     return GNUNET_SYSERR;
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_time (cfg, "testing", "SPEEDUP_DELTA", &delta))
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_time (cfg, "testing",
+                                           "SPEEDUP_DELTA", &delta))
     return GNUNET_SYSERR;
 
   if ((0 == interval.rel_value_us) || (0 == delta.rel_value_us))
@@ -79,7 +84,8 @@ GNUNET_SPEEDUP_start_ (const struct GNUNET_CONFIGURATION_Handle *cfg)
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Speed up executed every %s\n",
        GNUNET_STRINGS_relative_time_to_string (interval, GNUNET_NO));
-  speedup_task = GNUNET_SCHEDULER_add_now_with_lifeness (GNUNET_NO, &do_speedup, NULL);
+  speedup_task = GNUNET_SCHEDULER_add_now_with_lifeness (GNUNET_NO,
+                                                         &do_speedup, NULL);
   return GNUNET_OK;
 }
 
@@ -88,7 +94,7 @@ GNUNET_SPEEDUP_start_ (const struct GNUNET_CONFIGURATION_Handle *cfg)
  * Stop tasks that modify clock behavior.
  */
 void
-GNUNET_SPEEDUP_stop_ ( )
+GNUNET_SPEEDUP_stop_ ()
 {
   if (GNUNET_SCHEDULER_NO_TASK != speedup_task)
   {
