@@ -696,6 +696,21 @@ wlan_plugin_disconnect_session (void *cls,
 
 
 /**
+ * Function that is called to get the keepalive factor.
+ * GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT is divided by this number to
+ * calculate the interval between keepalive packets.
+ *
+ * @param cls closure with the `struct Plugin`
+ * @return keepalive factor
+ */
+static unsigned int
+wlan_plugin_query_keepalive_factor (void *cls)
+{
+  return 3;
+}
+
+
+/**
  * A session is timing out.  Clean up.
  *
  * @param cls pointer to the Session
@@ -1968,6 +1983,7 @@ libgnunet_plugin_transport_wlan_init (void *cls)
   api->get_session = &wlan_plugin_get_session;
   api->disconnect_peer = &wlan_plugin_disconnect_peer;
   api->disconnect_session = &wlan_plugin_disconnect_session;
+  api->query_keepalive_factor = &wlan_plugin_query_keepalive_factor;
   api->address_pretty_printer = &wlan_plugin_address_pretty_printer;
   api->check_address = &wlan_plugin_address_suggested;
   api->address_to_string = &wlan_plugin_address_to_string;

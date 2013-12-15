@@ -600,6 +600,21 @@ unix_session_disconnect (void *cls,
 
 
 /**
+ * Function that is called to get the keepalive factor.
+ * GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT is divided by this number to
+ * calculate the interval between keepalive packets.
+ *
+ * @param cls closure with the `struct Plugin`
+ * @return keepalive factor
+ */
+static unsigned int
+unix_query_keepalive_factor (void *cls)
+{
+  return 3;
+}
+
+
+/**
  * Actually send out the message, assume we've got the address and
  * send_handle squared away!
  *
@@ -1614,6 +1629,7 @@ libgnunet_plugin_transport_unix_init (void *cls)
   api->send = &unix_plugin_send;
   api->disconnect_peer = &unix_peer_disconnect;
   api->disconnect_session = &unix_session_disconnect;
+  api->query_keepalive_factor = &unix_query_keepalive_factor;
   api->address_pretty_printer = &unix_plugin_address_pretty_printer;
   api->address_to_string = &unix_address_to_string;
   api->check_address = &unix_check_address;

@@ -390,6 +390,17 @@ typedef int
 (*GNUNET_TRANSPORT_DisconnectSessionFunction) (void *cls,
                                                struct Session *session);
 
+/**
+ * Function that is called to get the keepalive factor.
+ * GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT is divided by this number to
+ * calculate the interval between keepalive packets.
+ *
+ * @param cls closure with the `struct Plugin`
+ * @return keepalive factor
+ */
+typedef unsigned int
+(*GNUNET_TRANSPORT_QueryKeepaliveFactorFunction) (void *cls);
+
 
 /**
  * Function that can be called to force a disconnect from the
@@ -563,6 +574,13 @@ struct GNUNET_TRANSPORT_PluginFunctions
    * continuations).
    */
   GNUNET_TRANSPORT_DisconnectSessionFunction disconnect_session;
+
+  /**
+   * Function that is used to query keepalive factor.
+   * GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT is divided by this number to
+   * calculate the interval between keepalive packets.
+   */
+  GNUNET_TRANSPORT_QueryKeepaliveFactorFunction query_keepalive_factor;
 
   /**
    * Function to pretty-print addresses.  NOTE: this function is not

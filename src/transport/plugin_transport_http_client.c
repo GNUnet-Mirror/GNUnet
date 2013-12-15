@@ -700,6 +700,21 @@ http_client_session_disconnect (void *cls,
 
 
 /**
+ * Function that is called to get the keepalive factor.
+ * GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT is divided by this number to
+ * calculate the interval between keepalive packets.
+ *
+ * @param cls closure with the `struct Plugin`
+ * @return keepalive factor
+ */
+static unsigned int
+http_client_query_keepalive_factor (void *cls)
+{
+  return 3;
+}
+
+
+/**
  * Function that can be used to force the plugin to disconnect
  * from the given peer and cancel all previous transmissions
  * (and their continuationc).
@@ -1773,6 +1788,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
   api->cls = plugin;
   api->send = &http_client_plugin_send;
   api->disconnect_session = &http_client_session_disconnect;
+  api->query_keepalive_factor = &http_client_query_keepalive_factor;
   api->disconnect_peer = &http_client_peer_disconnect;
   api->check_address = &http_client_plugin_address_suggested;
   api->get_session = &http_client_plugin_get_session;

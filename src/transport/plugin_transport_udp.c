@@ -1314,6 +1314,21 @@ udp_disconnect_session (void *cls,
 
 
 /**
+ * Function that is called to get the keepalive factor.
+ * GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT is divided by this number to
+ * calculate the interval between keepalive packets.
+ *
+ * @param cls closure with the `struct Plugin`
+ * @return keepalive factor
+ */
+static unsigned int
+udp_query_keepalive_factor (void *cls)
+{
+  return 15;
+}
+
+
+/**
  * Destroy a session, plugin is being unloaded.
  *
  * @param cls the `struct Plugin`
@@ -3169,6 +3184,7 @@ libgnunet_plugin_transport_udp_init (void *cls)
   api->cls = p;
   api->send = NULL;
   api->disconnect_session = &udp_disconnect_session;
+  api->query_keepalive_factor = &udp_query_keepalive_factor;
   api->disconnect_peer = &udp_disconnect;
   api->address_pretty_printer = &udp_plugin_address_pretty_printer;
   api->address_to_string = &udp_address_to_string;

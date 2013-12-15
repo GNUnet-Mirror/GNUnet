@@ -55,15 +55,6 @@
 #define QUOTA_VIOLATION_DROP_THRESHOLD 10
 
 /**
- * How often do we send KEEPALIVE messages to each of our neighbours and measure
- * the latency with this neighbour?
- * (idle timeout is 5 minutes or 300 seconds, so with 100s interval we
- * send 3 keepalives in each interval, so 3 messages would need to be
- * lost in a row for a disconnect).
- */
-#define KEEPALIVE_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 100)
-
-/**
  * How long are we willing to wait for a response from ATS before timing out?
  */
 #define ATS_RESPONSE_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 5000)
@@ -963,18 +954,24 @@ free_neighbour (struct NeighbourMapEntry *n,
  * @param msgbuf_size number of bytes in @a msgbuf buffer
  * @param priority transmission priority
  * @param timeout transmission timeout
+ * @param use_keepalive_timeout #GNUNET_YES to use plugin-specific keep-alive
+ *        timeout (@a timeout is ignored in that case), #GNUNET_NO otherwise
  * @param cont continuation to call when finished (can be NULL)
  * @param cont_cls closure for @a cont
+ * @return timeout (copy of @a timeout or a calculated one if
+ *         @a use_keepalive_timeout is #GNUNET_YES.
  */
-static void
+static struct GNUNET_TIME_Relative
 send_with_session (struct NeighbourMapEntry *n,
                    const char *msgbuf, size_t msgbuf_size,
                    uint32_t priority,
                    struct GNUNET_TIME_Relative timeout,
+		   unsigned int use_keepalive_timeout,
                    GNUNET_TRANSPORT_TransmitContinuation cont,
 		   void *cont_cls)
 {
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
+  struct GNUNET_TIME_Relative result = GNUNET_TIME_UNIT_FOREVER_REL;
 
   GNUNET_assert (n->primary_address.session != NULL);
   if ( ((NULL == (papi = GST_plugins_find (n->primary_address.address->transport_name)) ||
@@ -982,13 +979,16 @@ send_with_session (struct NeighbourMapEntry *n,
 			    n->primary_address.session,
 			    msgbuf, msgbuf_size,
 			    priority,
-			    timeout,
+			    (result = (GNUNET_NO == use_keepalive_timeout) ? timeout :
+				GNUNET_TIME_relative_divide (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
+							     papi->query_keepalive_factor (papi->cls))),
 			    cont, cont_cls)))) &&
        (NULL != cont))
     cont (cont_cls, &n->id, GNUNET_SYSERR, msgbuf_size, 0);
   GST_neighbours_notify_data_sent (&n->id,
       n->primary_address.address, n->primary_address.session, msgbuf_size);
   GNUNET_break (NULL != papi);
+  return result;
 }
 
 
@@ -1063,10 +1063,10 @@ send_disconnect (struct NeighbourMapEntry *n)
                                          &disconnect_msg.purpose,
                                          &disconnect_msg.signature));
 
-  send_with_session (n,
-		     (const char *) &disconnect_msg, sizeof (disconnect_msg),
-		     UINT32_MAX, GNUNET_TIME_UNIT_FOREVER_REL,
-		     &send_disconnect_cont, NULL);
+  (void) send_with_session (n,
+			    (const char *) &disconnect_msg, sizeof (disconnect_msg),
+			    UINT32_MAX, GNUNET_TIME_UNIT_FOREVER_REL,
+			    GNUNET_NO, &send_disconnect_cont, NULL);
   GNUNET_STATISTICS_update (GST_stats,
                             gettext_noop
                             ("# DISCONNECT messages sent"), 1,
@@ -1278,10 +1278,10 @@ try_transmission_to_peer (struct NeighbourMapEntry *n)
     return;                     /* no more messages */
   GNUNET_CONTAINER_DLL_remove (n->messages_head, n->messages_tail, mq);
   n->is_active = mq;
-  send_with_session (n,
-		     mq->message_buf, mq->message_buf_size,
-		     0 /* priority */, timeout,
-		     &transmit_send_continuation, mq);
+  (void) send_with_session (n,
+			    mq->message_buf, mq->message_buf_size,
+			    0 /* priority */, timeout, GNUNET_NO,
+			    &transmit_send_continuation, mq);
 }
 
 
@@ -1297,6 +1297,7 @@ static void
 send_keepalive (struct NeighbourMapEntry *n)
 {
   struct GNUNET_MessageHeader m;
+  struct GNUNET_TIME_Relative timeout;
 
   GNUNET_assert ((S_CONNECTED == n->state) ||
                  (S_CONNECTED_SWITCHING_BLACKLIST == n->state) ||
@@ -1305,16 +1306,16 @@ send_keepalive (struct NeighbourMapEntry *n)
     return; /* no keepalive needed at this time */
   m.size = htons (sizeof (struct GNUNET_MessageHeader));
   m.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_KEEPALIVE);
-  send_with_session (n,
-		     (const void *) &m, sizeof (m),
-		     UINT32_MAX /* priority */,
-		     KEEPALIVE_FREQUENCY,
-		     NULL, NULL);
+  timeout = send_with_session (n,
+			       (const void *) &m, sizeof (m),
+			       UINT32_MAX /* priority */,
+			       GNUNET_TIME_UNIT_FOREVER_REL, GNUNET_YES,
+			       NULL, NULL);
   GNUNET_STATISTICS_update (GST_stats, gettext_noop ("# keepalives sent"), 1,
 			    GNUNET_NO);
   n->expect_latency_response = GNUNET_YES;
   n->last_keep_alive_time = GNUNET_TIME_absolute_get ();
-  n->keep_alive_time = GNUNET_TIME_relative_to_absolute (KEEPALIVE_FREQUENCY);
+  n->keep_alive_time = GNUNET_TIME_relative_to_absolute (timeout);
 }
 
 
@@ -1349,11 +1350,11 @@ GST_neighbours_keepalive (const struct GNUNET_PeerIdentity *neighbour)
   /* send reply to allow neighbour to measure latency */
   m.size = htons (sizeof (struct GNUNET_MessageHeader));
   m.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_KEEPALIVE_RESPONSE);
-  send_with_session(n,
-		    (const void *) &m, sizeof (m),
-		    UINT32_MAX /* priority */,
-		    KEEPALIVE_FREQUENCY,
-		    NULL, NULL);
+  (void) send_with_session(n,
+			   (const void *) &m, sizeof (m),
+			   UINT32_MAX /* priority */,
+			   GNUNET_TIME_UNIT_FOREVER_REL, GNUNET_YES,
+			   NULL, NULL);
 }
 
 
@@ -2769,7 +2770,7 @@ send_session_ack_message (struct NeighbourMapEntry *n)
   msg.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_ACK);
   (void) send_with_session(n,
 			   (const char *) &msg, sizeof (struct GNUNET_MessageHeader),
-			   UINT32_MAX, GNUNET_TIME_UNIT_FOREVER_REL,
+			   UINT32_MAX, GNUNET_TIME_UNIT_FOREVER_REL, GNUNET_NO,
 			   NULL, NULL);
 }
 

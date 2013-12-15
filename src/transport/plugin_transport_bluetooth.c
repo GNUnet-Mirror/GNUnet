@@ -1120,6 +1120,21 @@ bluetooth_plugin_disconnect_session (void *cls,
 
 
 /**
+ * Function that is called to get the keepalive factor.
+ * GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT is divided by this number to
+ * calculate the interval between keepalive packets.
+ *
+ * @param cls closure with the `struct Plugin`
+ * @return keepalive factor
+ */
+static unsigned int
+bluetooth_query_keepalive_factor (void *cls)
+{
+  return 3;
+}
+
+
+/**
  * Function that can be used by the transport service to transmit
  * a message using the plugin.   Note that in the case of a
  * peer disconnecting, the continuation MUST be called
@@ -1912,6 +1927,7 @@ libgnunet_plugin_transport_bluetooth_init (void *cls)
   api->get_session = &bluetooth_plugin_get_session;
   api->disconnect_peer = &bluetooth_plugin_disconnect_peer;
   api->disconnect_session = &bluetooth_plugin_disconnect_session;
+  api->query_keepalive_factor = &bluetooth_query_keepalive_factor;
   api->address_pretty_printer = &bluetooth_plugin_address_pretty_printer;
   api->check_address = &bluetooth_plugin_address_suggested;
   api->address_to_string = &bluetooth_plugin_address_to_string;;

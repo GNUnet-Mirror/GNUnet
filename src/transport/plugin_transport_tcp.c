@@ -865,6 +865,21 @@ tcp_disconnect_session (void *cls,
 
 
 /**
+ * Function that is called to get the keepalive factor.
+ * GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT is divided by this number to
+ * calculate the interval between keepalive packets.
+ *
+ * @param cls closure with the `struct Plugin`
+ * @return keepalive factor
+ */
+static unsigned int
+tcp_query_keepalive_factor (void *cls)
+{
+  return 3;
+}
+
+
+/**
  * Session was idle, so disconnect it
  *
  * @param cls the `struct Session` of the idle session
@@ -2665,6 +2680,7 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   api->get_session = &tcp_plugin_get_session;
 
   api->disconnect_session = &tcp_disconnect_session;
+  api->query_keepalive_factor = &tcp_query_keepalive_factor;
   api->disconnect_peer = &tcp_plugin_disconnect;
   api->address_pretty_printer = &tcp_plugin_address_pretty_printer;
   api->check_address = &tcp_plugin_check_address;
