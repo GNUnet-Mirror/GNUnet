@@ -275,12 +275,7 @@ getaddrinfo_resolve (struct GNUNET_SERVER_TransmitContext *tc,
   struct addrinfo *pos;
 
   memset (&hints, 0, sizeof (struct addrinfo));
-// FIXME in PlibC
-#ifndef MINGW
   hints.ai_family = af;
-#else
-  hints.ai_family = AF_INET;
-#endif
   hints.ai_socktype = SOCK_STREAM;      /* go for TCP */
 
   if (0 != (s = getaddrinfo (hostname, NULL, &hints, &result)))
@@ -291,10 +286,9 @@ getaddrinfo_resolve (struct GNUNET_SERVER_TransmitContext *tc,
                  AF_INET) ? "IPv4" : ((af == AF_INET6) ? "IPv6" : "any"),
                 gai_strerror (s));
     if ((s == EAI_BADFLAGS) || (s == EAI_MEMORY)
-#ifndef MINGW
+#ifndef WINDOWS
         || (s == EAI_SYSTEM)
 #else
-        // FIXME NILS
         || 1
 #endif
         )
@@ -303,8 +297,7 @@ getaddrinfo_resolve (struct GNUNET_SERVER_TransmitContext *tc,
   }
   if (result == NULL)
     return GNUNET_SYSERR;
-  pos = result;
-  while (pos != NULL)
+  for (pos = result; pos != NULL; pos = pos->ai_next)
   {
     switch (pos->ai_family)
     {
@@ -324,7 +317,6 @@ getaddrinfo_resolve (struct GNUNET_SERVER_TransmitContext *tc,
       /* unsupported, skip */
       break;
     }
-    pos = pos->ai_next;
   }
   freeaddrinfo (result);
   return GNUNET_OK;
