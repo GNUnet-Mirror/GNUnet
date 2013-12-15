@@ -206,6 +206,15 @@ main (int argc, char **argv)
     else
       wargc -= 1;
   }
+  else
+  {
+    fprintf (stderr, "Usage: %S <record type> <service name> <NSP library path> <NSP id>\n"
+        "record type      - one of the following: A | AAAA | name | addr\n"
+        "service name     - a string to resolve; \" \" (a space) means 'blank'\n"
+        "NSP library path - path to libw32nsp\n"
+        "NSP id           - one of the following: mswdns | gnunetdns\n",
+        wargv[0]);
+  }
 
   if (wargc == 5)
   {
@@ -219,12 +228,15 @@ main (int argc, char **argv)
     else
     {
       LPNSPSTARTUP startup = (LPNSPSTARTUP) GetProcAddress (nsp, "NSPStartup");
+      if (startup == NULL)
+        startup = (LPNSPSTARTUP) GetProcAddress (nsp, "NSPStartup@8");
       if (startup != NULL)
       {
         NSP_ROUTINE api;
+        api.cbSize = sizeof (api);
         ret = startup (&prov, &api);
         if (NO_ERROR != ret)
-          fprintf (stderr, "startup failed\n");
+          fprintf (stderr, "startup failed: %lu\n", GetLastError ());
         else
         {
           HANDLE lookup;
@@ -251,7 +263,7 @@ main (int argc, char **argv)
             err = GetLastError ();
             if (ret != NO_ERROR)
             {
-              fprintf (stderr, "lookup next failed\n");
+              fprintf (stderr, "lookup next failed: %lu\n", err);
             }
             else
             {
