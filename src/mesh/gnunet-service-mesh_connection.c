@@ -1581,6 +1581,11 @@ GMC_handle_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
   c->destroy = GNUNET_YES;
   c->state = MESH_CONNECTION_DESTROYED;
+  if (NULL != c->t)
+  {
+    GMT_remove_connection (c->t);
+    c->t = NULL;
+  }
 
   return GNUNET_OK;
 }

@@ -1802,7 +1802,7 @@ GMT_remove_connection (struct MeshTunnel3 *t,
       && GNUNET_NO == t->destroy
       && GNUNET_NO == shutting_down)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  no more connections\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  no more connections, getting new ones\n");
     GMP_connect (t->peer);
     t->cstate = MESH_TUNNEL3_SEARCHING;
     return;
