@@ -1616,6 +1616,8 @@ GMP_remove_path (struct MeshPeer *peer, struct MeshPeerPath *path)
                      sizeof (GNUNET_PEER_Id) * path->length))
     {
       path_destroy (iter);
+      if (path == iter)
+        return;
     }
   }
 }
