@@ -1975,7 +1975,7 @@ GMC_handle_poll (void *cls, const struct GNUNET_PeerIdentity *peer,
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "\n\n");
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Got a POLL packet from %s!\n",
+       "Got a POLL message from %s!\n",
        GNUNET_i2s (peer));
 
   msg = (struct GNUNET_MESH_Poll *) message;
@@ -1986,7 +1986,9 @@ GMC_handle_poll (void *cls, const struct GNUNET_PeerIdentity *peer,
   {
     GNUNET_STATISTICS_update (stats, "# poll on unknown connection", 1,
                               GNUNET_NO);
-    GNUNET_break_op (0);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "WARNING POLL message on unknown connection %s!\n",
+         GNUNET_h2s (&msg->cid));
     return GNUNET_OK;
   }
 
