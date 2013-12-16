@@ -871,6 +871,8 @@ send_kx (struct MeshTunnel3 *t,
   if (NULL == t->connection_head)
   {
     GNUNET_break (MESH_TUNNEL3_SEARCHING == t->cstate);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " tunnel %s connection state %s\n",
+         GMT_2s (t), cstate2s (t->cstate));
     return;
   }
 

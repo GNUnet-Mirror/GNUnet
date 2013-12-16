@@ -1742,7 +1742,7 @@ handle_mesh_kx (const struct GNUNET_PeerIdentity *peer,
   type = ntohs (msg->header.type);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "\n\n");
   LOG (GNUNET_ERROR_TYPE_DEBUG, "got a %s message from %s\n",
-              GM_m2s (type), GNUNET_i2s (peer));
+       GM_m2s (type), GNUNET_i2s (peer));
 
   /* Check connection */
   c = connection_get (&msg->cid);
@@ -1752,6 +1752,7 @@ handle_mesh_kx (const struct GNUNET_PeerIdentity *peer,
     LOG (GNUNET_ERROR_TYPE_DEBUG, "WARNING connection unknown\n");
     return GNUNET_OK;
   }
+  LOG (GNUNET_ERROR_TYPE_DEBUG, " on connection %s\n", GMC_2s (c));
 
   /* Check if origin is as expected */
   neighbor = get_prev_hop (c);
