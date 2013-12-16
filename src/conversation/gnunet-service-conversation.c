@@ -325,6 +325,7 @@ handle_client_pickup_message (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Channel %u not found\n",
                 msg->cid);
+    GNUNET_SERVER_receive_done (client, GNUNET_YES);
     return;
   }
   switch (ch->status)
@@ -339,7 +340,6 @@ handle_client_pickup_message (void *cls,
   case CS_CALLEE_SHUTDOWN:
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Ignoring client's PICKUP message, line is in SHUTDOWN\n");
-    GNUNET_SERVER_receive_done (client, GNUNET_OK);
     break;
   case CS_CALLER_CALLING:
   case CS_CALLER_CONNECTED:
@@ -483,6 +483,7 @@ handle_client_hangup_message (void *cls,
     break;
   case CS_CALLEE_SHUTDOWN:
     /* maybe the other peer closed asynchronously... */
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   case CS_CALLER_CALLING:
     ch->status = CS_CALLER_SHUTDOWN;
@@ -492,6 +493,7 @@ handle_client_hangup_message (void *cls,
     break;
   case CS_CALLER_SHUTDOWN:
     /* maybe the other peer closed asynchronously... */
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -541,6 +543,7 @@ handle_client_suspend_message (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Channel %u not found\n",
                 msg->cid);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
   if (GNUNET_YES == ch->suspended_local)
@@ -560,6 +563,7 @@ handle_client_suspend_message (void *cls,
     break;
   case CS_CALLEE_SHUTDOWN:
     /* maybe the other peer closed asynchronously... */
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   case CS_CALLER_CALLING:
     GNUNET_break (0);
@@ -570,6 +574,7 @@ handle_client_suspend_message (void *cls,
     break;
   case CS_CALLER_SHUTDOWN:
     /* maybe the other peer closed asynchronously... */
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -616,6 +621,7 @@ handle_client_resume_message (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Channel %u not found\n",
                 msg->cid);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
   if (GNUNET_YES != ch->suspended_local)
@@ -635,6 +641,7 @@ handle_client_resume_message (void *cls,
     break;
   case CS_CALLEE_SHUTDOWN:
     /* maybe the other peer closed asynchronously... */
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   case CS_CALLER_CALLING:
     GNUNET_break (0);
@@ -645,6 +652,7 @@ handle_client_resume_message (void *cls,
     break;
   case CS_CALLER_SHUTDOWN:
     /* maybe the other peer closed asynchronously... */
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -799,6 +807,7 @@ handle_client_audio_message (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Channel %u not found\n",
                 msg->cid);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
 
