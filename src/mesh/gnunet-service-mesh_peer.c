@@ -1595,6 +1595,32 @@ GMP_add_path_to_all (const struct MeshPeerPath *p, int confirmed)
 
 
 /**
+ * Remove any path to the peer that has the extact same peers as the one given.
+ *
+ * @param peer Peer to remove the path from.
+ * @param path Path to remove.
+ */
+void
+GMP_remove_path (struct MeshPeer *peer, struct MeshPeerPath *path)
+{
+  struct MeshPeerPath *iter;
+  struct MeshPeerPath *next;
+
+  GNUNET_assert (myid == path->peers[path->length - 1]);
+
+  for (iter = peer->path_head; NULL != iter; iter = next)
+  {
+    next = iter->next;
+    if (0 == memcmp (path->peers, iter->peers,
+                     sizeof (GNUNET_PEER_Id) * path->length))
+    {
+      path_destroy (iter);
+    }
+  }
+}
+
+
+/**
  * Remove a connection from a neighboring peer.
  *
  * @param peer Peer to remove connection from.

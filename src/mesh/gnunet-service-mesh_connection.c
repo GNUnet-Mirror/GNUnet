@@ -179,7 +179,8 @@ struct MeshConnection
   enum MeshConnectionState state;
 
   /**
-   * Path being used for the tunnel.
+   * Path being used for the tunnel. At the origin of the connection
+   * it's a pointer to the destination's path pool, otherwise just a copy.
    */
   struct MeshPeerPath *path;
 
@@ -1149,7 +1150,7 @@ register_neighbors (struct MeshConnection *c)
       || GNUNET_NO == GMP_is_neighbor (prev_peer))
   {
     if (GMC_is_origin (c, GNUNET_YES))
-      GNUNET_STATISTICS_update (stats, "# local bad paths", 1, GNUNET_NO);
+    GNUNET_STATISTICS_update (stats, "# local bad paths", 1, GNUNET_NO);
     GNUNET_STATISTICS_update (stats, "# bad paths", 1, GNUNET_NO);
 
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  register neighbors failed\n");
@@ -2220,6 +2221,11 @@ GMC_new (const struct GNUNET_HashCode *cid,
 
   if (GNUNET_OK != register_neighbors (c))
   {
+    if (0 == own_pos)
+    {
+      GMT_remove_path (c->t, p);
+      path_destroy (p);
+    }
     GMC_destroy (c);
     return NULL;
   }
