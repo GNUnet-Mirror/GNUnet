@@ -222,6 +222,12 @@ extern struct GNUNET_PeerIdentity my_full_id;
 
 
 /**
+ * Don't try to recover tunnels if shutting down.
+ */
+extern int shutting_down;
+
+
+/**
  * Set of all tunnels, in order to trigger a new exchange on rekey.
  * Indexed by peer's ID.
  */
@@ -1756,7 +1762,8 @@ GMT_add_connection (struct MeshTunnel3 *t, struct MeshConnection *c)
  * @param c Connection.
  */
 void
-GMT_remove_connection (struct MeshTunnel3 *t, struct MeshConnection *c)
+GMT_remove_connection (struct MeshTunnel3 *t,
+                       struct MeshConnection *c)
 {
   struct MeshTConnection *aux;
   struct MeshTConnection *next;
@@ -1774,7 +1781,9 @@ GMT_remove_connection (struct MeshTunnel3 *t, struct MeshConnection *c)
   }
 
   /* Start new connections if needed */
-  if (NULL == t->connection_head && GNUNET_NO == t->destroy)
+  if (NULL == t->connection_head
+      && GNUNET_NO == t->destroy
+      && GNUNET_NO == shutting_down)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  no more connections\n");
     GMP_connect (t->peer);

@@ -75,6 +75,12 @@ GNUNET_PEER_Id myid;
  */
 struct GNUNET_PeerIdentity my_full_id;
 
+
+/**
+ * Signal that shutdown is happening: prevent recover measures.
+ */
+int shutting_down;
+
 /*************************** Static global variables **************************/
 
 /**
@@ -97,6 +103,8 @@ static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "shutting down\n");
+
+  shutting_down = GNUNET_YES;
 
   GML_shutdown ();
   GMD_shutdown ();
@@ -160,6 +168,7 @@ main (int argc, char *const *argv)
   int ret;
   int r;
 
+  shutting_down = GNUNET_NO;
   r = GNUNET_SERVICE_run (argc, argv, "mesh", GNUNET_SERVICE_OPTION_NONE, &run,
                           NULL);
   GNUNET_free (my_private_key);
