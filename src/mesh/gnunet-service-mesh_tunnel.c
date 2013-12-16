@@ -1759,7 +1759,7 @@ GMT_add_connection (struct MeshTunnel3 *t, struct MeshConnection *c)
  * Mark a path as no longer valid for this tunnel: has been tried and failed.
  *
  * @param t Tunnel to update.
- * @param path Invalid path.
+ * @param path Invalid path to remove. Is destroyed after removal.
  */
 void
 GMT_remove_path (struct MeshTunnel3 *t, struct MeshPeerPath *path)

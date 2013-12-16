@@ -1598,7 +1598,7 @@ GMP_add_path_to_all (const struct MeshPeerPath *p, int confirmed)
  * Remove any path to the peer that has the extact same peers as the one given.
  *
  * @param peer Peer to remove the path from.
- * @param path Path to remove.
+ * @param path Path to remove. Is always destroyed .
  */
 void
 GMP_remove_path (struct MeshPeer *peer, struct MeshPeerPath *path)
@@ -1620,6 +1620,7 @@ GMP_remove_path (struct MeshPeer *peer, struct MeshPeerPath *path)
         return;
     }
   }
+  path_destroy (path);
 }
 
 

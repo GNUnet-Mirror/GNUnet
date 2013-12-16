@@ -2222,10 +2222,7 @@ GMC_new (const struct GNUNET_HashCode *cid,
   if (GNUNET_OK != register_neighbors (c))
   {
     if (0 == own_pos)
-    {
       GMT_remove_path (c->t, p);
-      path_destroy (p);
-    }
     GMC_destroy (c);
     return NULL;
   }
