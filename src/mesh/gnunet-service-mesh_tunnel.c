@@ -1434,7 +1434,7 @@ handle_pong (struct MeshTunnel3 *t,
   LOG (GNUNET_ERROR_TYPE_DEBUG, "PONG received\n");
   if (GNUNET_SCHEDULER_NO_TASK == t->rekey_task)
   {
-    GNUNET_break_op (0);
+    GNUNET_break_op (GNUNET_NO != t->destroy);
     return;
   }
   t_decrypt (t, &challenge, &msg->nonce, sizeof (uint32_t), msg->iv);
