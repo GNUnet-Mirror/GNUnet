@@ -639,7 +639,6 @@ get_prev_hop (const struct MeshConnection *c)
 {
   GNUNET_PEER_Id id;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Get prev hop, own pos %u\n", c->own_pos);
   if (0 == c->own_pos || c->path->length < 2)
     id = c->path->peers[0];
   else
@@ -1154,9 +1153,9 @@ register_neighbors (struct MeshConnection *c)
     GNUNET_STATISTICS_update (stats, "# bad paths", 1, GNUNET_NO);
 
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  register neighbors failed\n");
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  prev: %s, %d\n",
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  prev: %s, neighbor: %d\n",
          GMP_2s (prev_peer), GMP_is_neighbor (prev_peer));
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  next: %s, %d\n",
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  next: %s, neighbor: %d\n",
          GMP_2s (next_peer), GMP_is_neighbor (next_peer));
     return GNUNET_SYSERR;
   }
@@ -1180,11 +1179,17 @@ unregister_neighbors (struct MeshConnection *c)
 
   peer = get_next_hop (c);
   if (GNUNET_OK != GMP_remove_connection (peer, c))
+  {
     GNUNET_break (MESH_CONNECTION_NEW == c->state);
+    LOG (GNUNET_ERROR_TYPE_ERROR, "  cstate: %u\n", c->state);
+  }
 
   peer = get_prev_hop (c);
   if (GNUNET_OK != GMP_remove_connection (peer, c))
+  {
     GNUNET_break (MESH_CONNECTION_NEW == c->state);
+    LOG (GNUNET_ERROR_TYPE_ERROR, "  cstate: %u\n", c->state);
+  }
 }
 
 
