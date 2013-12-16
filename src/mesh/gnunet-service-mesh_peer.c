@@ -1615,6 +1615,7 @@ GMP_remove_path (struct MeshPeer *peer, struct MeshPeerPath *path)
     if (0 == memcmp (path->peers, iter->peers,
                      sizeof (GNUNET_PEER_Id) * path->length))
     {
+      GNUNET_CONTAINER_DLL_remove (peer->path_head, peer->path_tail, iter);
       path_destroy (iter);
       if (path == iter)
         return;
