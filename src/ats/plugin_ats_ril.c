@@ -40,7 +40,7 @@
 #define RIL_DEFAULT_STEP_TIME_MIN GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 500)
 #define RIL_DEFAULT_STEP_TIME_MAX GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 3000)
 #define RIL_DEFAULT_ALGORITHM RIL_ALGO_SARSA
-#define RIL_DEFAULT_DISCOUNT_BETA 1
+#define RIL_DEFAULT_DISCOUNT_BETA 1.0
 #define RIL_DEFAULT_DISCOUNT_GAMMA 0.5
 #define RIL_DEFAULT_GRADIENT_STEP_SIZE 0.1
 #define RIL_DEFAULT_TRACE_DECAY 0.5
@@ -1443,8 +1443,8 @@ ril_calculate_discount (struct GAS_RIL_Handle *solver)
       / (double) solver->parameters.step_time_min.rel_value_us;
 
   //calculate reward discounts (once per step for all agents)
-  solver->global_discount_variable = pow (M_E, ((-1.) * ((double) solver->parameters.beta) * tau));
-  solver->global_discount_integrated = (1. - solver->global_discount_variable)
+  solver->global_discount_variable = pow (M_E, ((-1.0) * ((double) solver->parameters.beta) * tau));
+  solver->global_discount_integrated = (1.0 - solver->global_discount_variable)
       / (double) solver->parameters.beta;
 }
 
@@ -1842,6 +1842,11 @@ libgnunet_plugin_ats_ril_init (void *cls)
   {
     solver->parameters.beta = strtod (string, NULL);
     GNUNET_free (string);
+    if (!(solver->parameters.beta > 0))
+    {
+      LOG (GNUNET_ERROR_TYPE_WARNING, "RIL_DISCOUNT_BETA not configured as positive number. Set to default value of %f instead.\n", RIL_DEFAULT_DISCOUNT_BETA);
+      solver->parameters.beta = RIL_DEFAULT_DISCOUNT_BETA;
+    }
   }
   else
   {
@@ -1851,6 +1856,11 @@ libgnunet_plugin_ats_ril_init (void *cls)
   {
     solver->parameters.gamma = strtod (string, NULL);
     GNUNET_free (string);
+    if (!(solver->parameters.gamma < 1) || (solver->parameters.gamma < 0))
+    {
+      LOG (GNUNET_ERROR_TYPE_WARNING, "RIL_DISCOUNT_GAMMA not configured in range [0,1[. Set to default value of %f instead.\n", RIL_DEFAULT_DISCOUNT_GAMMA);
+      solver->parameters.gamma = RIL_DEFAULT_DISCOUNT_GAMMA;
+    }
   }
   else
   {
@@ -1861,6 +1871,11 @@ libgnunet_plugin_ats_ril_init (void *cls)
   {
     solver->parameters.alpha = strtod (string, NULL);
     GNUNET_free (string);
+    if (!(solver->parameters.alpha > 0) || solver->parameters.alpha > 1)
+    {
+      LOG (GNUNET_ERROR_TYPE_WARNING, "RIL_GRADIENT_STEP_SIZE not configured in range ]0,1]. Set to default value of %f instead.\n", RIL_DEFAULT_GRADIENT_STEP_SIZE);
+      solver->parameters.alpha = RIL_DEFAULT_GRADIENT_STEP_SIZE;
+    }
   }
   else
   {
@@ -1870,6 +1885,11 @@ libgnunet_plugin_ats_ril_init (void *cls)
   {
     solver->parameters.lambda = strtod (string, NULL);
     GNUNET_free (string);
+    if (solver->parameters.lambda < 0 || solver->parameters.lambda > 1)
+    {
+      LOG (GNUNET_ERROR_TYPE_WARNING, "RIL_TRACE_DECAY not configured in range [0,1]. Set to default value of %f instead.\n", RIL_DEFAULT_TRACE_DECAY);
+      solver->parameters.lambda = RIL_DEFAULT_TRACE_DECAY;
+    }
   }
   else
   {
@@ -1879,6 +1899,11 @@ libgnunet_plugin_ats_ril_init (void *cls)
   {
     solver->parameters.explore_ratio = strtod (string, NULL);
     GNUNET_free (string);
+    if (solver->parameters.explore_ratio < 0 || solver->parameters.explore_ratio > 1)
+    {
+      LOG (GNUNET_ERROR_TYPE_WARNING, "RIL_EXPLORE_RATIO not configured in range [0,1]. Set to default value of %f instead.\n", RIL_DEFAULT_EXPLORE_RATIO);
+      solver->parameters.explore_ratio = RIL_DEFAULT_EXPLORE_RATIO;
+    }
   }
   else
   {
@@ -1888,6 +1913,11 @@ libgnunet_plugin_ats_ril_init (void *cls)
   {
     solver->parameters.reward_global_share = strtod (string, NULL);
     GNUNET_free (string);
+    if (solver->parameters.reward_global_share < 0 || solver->parameters.reward_global_share > 1)
+    {
+      LOG (GNUNET_ERROR_TYPE_WARNING, "RIL_GLOBAL_REWARD_SHARE not configured in range [0,1]. Set to default value of %f instead.\n", RIL_DEFAULT_GLOBAL_REWARD_SHARE);
+      solver->parameters.reward_global_share = RIL_DEFAULT_GLOBAL_REWARD_SHARE;
+    }
   }
   else
   {
@@ -2117,7 +2147,7 @@ GAS_ril_address_delete (void *solver, struct ATS_Address *address, int session_o
   {
     ril_cut_from_vector ((void **) &agent->W[i], sizeof(double),
         //((s->networks_count * RIL_FEATURES_NETWORK_COUNT)
-        ((RIL_FEATURES_NETWORK_COUNT) //TODO! replace, when adding more networks
+        ((RIL_FEATURES_INIT_COUNT) //TODO! replace, when adding more networks
             + (address_index * RIL_FEATURES_ADDRESS_COUNT)), RIL_FEATURES_ADDRESS_COUNT, agent->m);
   }
   GNUNET_free(agent->W[RIL_ACTION_TYPE_NUM + address_index]);
@@ -2137,11 +2167,11 @@ GAS_ril_address_delete (void *solver, struct ATS_Address *address, int session_o
   LOG(GNUNET_ERROR_TYPE_DEBUG, "third\n");
   ril_cut_from_vector ((void **) &agent->s_old, sizeof(double),
       //((s->networks_count * RIL_FEATURES_NETWORK_COUNT)
-      ((RIL_FEATURES_NETWORK_COUNT) //TODO! replace when adding more networks
+      ((RIL_FEATURES_INIT_COUNT) //TODO! replace when adding more networks
           + (address_index * RIL_FEATURES_ADDRESS_COUNT)), RIL_FEATURES_ADDRESS_COUNT, agent->m);
   ril_cut_from_vector ((void **) &agent->e, sizeof(double),
       //((s->networks_count * RIL_FEATURES_NETWORK_COUNT)
-      ((RIL_FEATURES_NETWORK_COUNT) //TODO! replace when adding more networks
+      ((RIL_FEATURES_INIT_COUNT) //TODO! replace when adding more networks
           + (address_index * RIL_FEATURES_ADDRESS_COUNT)), RIL_FEATURES_ADDRESS_COUNT, agent->m);
   agent->m = m_new;
   agent->n = n_new;
