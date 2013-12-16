@@ -753,6 +753,7 @@ transmit_line_audio (void *cls,
   mam->header.size = htons (sizeof (struct MeshAudioMessage) + ch->audio_size);
   mam->header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_AUDIO);
   mam->remote_line = htonl (ch->remote_line);
+  mam->source_line = htonl (ch->line->local_line);
   memcpy (&mam[1], ch->audio_data, ch->audio_size);
   GNUNET_free (ch->audio_data);
   ch->audio_data = NULL;
@@ -1259,7 +1260,8 @@ handle_mesh_audio_message (void *cls,
                (0 == memcmp (&ch->target,
                              &sender,
                              sizeof (struct GNUNET_PeerIdentity))) &&
-               (NULL == ch->channel_unreliable) )
+               (NULL == ch->channel_unreliable) &&
+               (ch->remote_line == ntohl (msg->source_line)) )
             break;
         }
         break;

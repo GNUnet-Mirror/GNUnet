@@ -352,7 +352,12 @@ struct MeshAudioMessage
   /**
    * Target line on the receiving end.
    */
-  uint32_t remote_line;
+  uint32_t remote_line GNUNET_PACKED;
+
+  /**
+   * The source line sending this data
+   */
+  uint32_t source_line GNUNET_PACKED;
 
   /* followed by audio data */
 
