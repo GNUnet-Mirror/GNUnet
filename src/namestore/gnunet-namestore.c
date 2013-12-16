@@ -384,7 +384,9 @@ display_record (void *cls,
 	   rname);
   for (i=0;i<rd_len;i++)
   {
-    if (GNUNET_GNSRECORD_TYPE_NICK == rd[i].record_type)
+    if ( (GNUNET_GNSRECORD_TYPE_NICK == rd[i].record_type) &&
+         (0 != strcmp (rname,
+                       "+")) )
       continue;
     typestring = GNUNET_GNSRECORD_number_to_typename (rd[i].record_type);
     s = GNUNET_GNSRECORD_value_to_string (rd[i].record_type,
