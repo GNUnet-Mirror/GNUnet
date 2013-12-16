@@ -896,10 +896,10 @@ process_ack (struct GNUNET_MESH_Handle *h,
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Got an ACK!\n");
   msg = (struct GNUNET_MESH_LocalAck *) message;
   chid = ntohl (msg->channel_id);
-    ch = retrieve_channel (h, chid);
+  ch = retrieve_channel (h, chid);
   if (NULL == ch)
   {
-    LOG (GNUNET_ERROR_TYPE_WARNING, "ACK on unknown channel %X\n", chid);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "ACK on unknown channel %X\n", chid);
     return;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  on channel %X!\n", ch->chid);
@@ -907,10 +907,9 @@ process_ack (struct GNUNET_MESH_Handle *h,
   if (NULL == h->th && 0 < ch->packet_size)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  tmt rdy was NULL, requesting!\n");
-    h->th =
-        GNUNET_CLIENT_notify_transmit_ready (h->client, ch->packet_size,
-                                             GNUNET_TIME_UNIT_FOREVER_REL,
-                                             GNUNET_YES, &send_callback, h);
+    h->th = GNUNET_CLIENT_notify_transmit_ready (h->client, ch->packet_size,
+                                                 GNUNET_TIME_UNIT_FOREVER_REL,
+                                                 GNUNET_YES, &send_callback, h);
   }
 }
 
