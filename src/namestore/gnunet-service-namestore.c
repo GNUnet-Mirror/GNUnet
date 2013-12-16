@@ -495,6 +495,7 @@ merge_with_nick_records ( const struct GNUNET_GNSRECORD_Data *nick_rd,
       latest_expiration = rd2[c].expiration_time;
     (*rd_res)[c] = rd2[c];
     (*rd_res)[c].data = (void *) &data[data_offset];
+    // WTF?
     memcpy ((void *) (*rd_res)[c].data, rd2[c].data, rd2[c].data_size);
     data_offset += (*rd_res)[c].data_size;
   }
@@ -504,7 +505,10 @@ merge_with_nick_records ( const struct GNUNET_GNSRECORD_Data *nick_rd,
     (*rd_res)[c+record_offset] = nick_rd[c];
     (*rd_res)[c+record_offset].expiration_time = latest_expiration;
     (*rd_res)[c+record_offset].data = (void *) &data[data_offset];
-    memcpy ((void *) (*rd_res)[c+record_offset].data, nick_rd[c].data, nick_rd[c].data_size);
+    // WTF?
+    memcpy ((void *) (*rd_res)[c+record_offset].data,
+            nick_rd[c].data,
+            nick_rd[c].data_size);
     data_offset += (*rd_res)[c+record_offset].data_size;
   }
   GNUNET_assert (req == (sizeof (struct GNUNET_GNSRECORD_Data)) * (*rdc_res) + data_offset);
@@ -546,7 +550,7 @@ send_lookup_response (struct GNUNET_SERVER_NotificationContext *nc,
   if ((NULL != nick) && (0 != strcmp(name, GNUNET_GNS_MASTERZONE_STR)))
   {
     nick->flags = (nick->flags | GNUNET_GNSRECORD_RF_PRIVATE) ^ GNUNET_GNSRECORD_RF_PRIVATE;
-    merge_with_nick_records (nick, rd_count,rd, &res_count, &res);
+    merge_with_nick_records (nick, rd_count, rd, &res_count, &res);
     //fprintf (stderr, "Merging %u records for `%s' with NICK records\n",rd_count, name);
     GNUNET_free (nick);
   }
@@ -732,11 +736,12 @@ struct RecordLookupContext
 };
 
 
-
 static void
-lookup_it (void *cls, const struct GNUNET_CRYPTO_EcdsaPrivateKey *private_key,
-    const char *label, unsigned int rd_count,
-    const struct GNUNET_GNSRECORD_Data *rd)
+lookup_it (void *cls,
+           const struct GNUNET_CRYPTO_EcdsaPrivateKey *private_key,
+           const char *label,
+           unsigned int rd_count,
+           const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct RecordLookupContext *rlc = cls;
   struct GNUNET_GNSRECORD_Data *rd_res;
@@ -753,9 +758,9 @@ lookup_it (void *cls, const struct GNUNET_CRYPTO_EcdsaPrivateKey *private_key,
         rd_res = NULL;
         rdc_res = 0;
         rlc->nick->flags = (rlc->nick->flags | GNUNET_GNSRECORD_RF_PRIVATE) ^ GNUNET_GNSRECORD_RF_PRIVATE;
-        merge_with_nick_records ( rlc->nick,
-                                  rd_count, rd,
-                                  &rdc_res, &rd_res);
+        merge_with_nick_records (rlc->nick,
+                                 rd_count, rd,
+                                 &rdc_res, &rd_res);
 
         rlc->rd_ser_len = GNUNET_GNSRECORD_records_get_size (rdc_res, rd_res);
         rlc->res_rd_count = rdc_res;
@@ -782,9 +787,6 @@ lookup_it (void *cls, const struct GNUNET_CRYPTO_EcdsaPrivateKey *private_key,
     }
   }
 }
-
-
-
 
 
 /**
@@ -987,10 +989,24 @@ handle_record_store (void *cls,
     }
     else
     {
+      struct GNUNET_GNSRECORD_Data rd_clean[rd_count];
+      unsigned int i;
+      unsigned int rd_clean_off;
+
+      /* remove "NICK" records, unless this is for the "+" label */
+      rd_clean_off = 0;
+      for (i=0;i<rd_count;i++)
+      {
+        rd_clean[rd_clean_off] = rd[i];
+        if ( (0 == strcmp (GNUNET_GNS_MASTERZONE_STR,
+                           conv_name)) ||
+             (GNUNET_GNSRECORD_TYPE_NICK != rd[i].record_type) )
+          rd_clean_off++;
+      }
       res = GSN_database->store_records (GSN_database->cls,
 					 &rp_msg->private_key,
 					 conv_name,
-					 rd_count, rd);
+					 rd_clean_off, rd_clean);
       if (GNUNET_OK == res)
       {
         for (zm = monitor_head; NULL != zm; zm = zm->next)

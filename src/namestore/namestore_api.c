@@ -999,7 +999,7 @@ GNUNET_NAMESTORE_disconnect (struct GNUNET_NAMESTORE_Handle *h)
  * @param rd_count number of records in the 'rd' array
  * @param rd array of records with data to store
  * @param cont continuation to call when done
- * @param cont_cls closure for 'cont'
+ * @param cont_cls closure for @a cont
  * @return handle to abort the request
  */
 struct GNUNET_NAMESTORE_QueueEntry *

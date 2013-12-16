@@ -1,4 +1,3 @@
-
 /*
      This file is part of GNUnet.
      (C) 2012, 2013 Christian Grothoff (and other contributing authors)
@@ -385,6 +384,8 @@ display_record (void *cls,
 	   rname);
   for (i=0;i<rd_len;i++)
   {
+    if (GNUNET_GNSRECORD_TYPE_NICK == rd[i].record_type)
+      continue;
     typestring = GNUNET_GNSRECORD_number_to_typename (rd[i].record_type);
     s = GNUNET_GNSRECORD_value_to_string (rd[i].record_type,
 					  rd[i].data,
