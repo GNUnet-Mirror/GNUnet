@@ -1045,13 +1045,14 @@ connection_fwd_timeout (void *cls,
   c->fwd_maintenance_task = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-              "Connection %s[%X] FWD timed out. Destroying.\n",
-              GMT_2s (c->t),
-              c->id);
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Connection %s FWD timed out. Destroying.\n",
+       GMC_2s (c);
   if (GMC_is_origin (c, GNUNET_YES)) /* If local, leave. */
+  {
+    GNUNET_break (0);
     return;
+  }
 
   GMC_destroy (c);
 }
@@ -1074,12 +1075,14 @@ connection_bck_timeout (void *cls,
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-              "Connection %s[%X] FWD timed out. Destroying.\n",
-              GMT_2s (c->t), c->id);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Connection %s BCK timed out. Destroying.\n",
+       GMC_2s (c));
 
   if (GMC_is_origin (c, GNUNET_NO)) /* If local, leave. */
+  {
+    GNUNET_break (0);
     return;
+  }
 
   GMC_destroy (c);
 }
