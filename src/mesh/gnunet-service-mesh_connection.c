@@ -1047,7 +1047,7 @@ connection_fwd_timeout (void *cls,
     return;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Connection %s FWD timed out. Destroying.\n",
-       GMC_2s (c);
+       GMC_2s (c));
   if (GMC_is_origin (c, GNUNET_YES)) /* If local, leave. */
   {
     GNUNET_break (0);
