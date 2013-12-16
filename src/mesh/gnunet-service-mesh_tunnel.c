@@ -759,6 +759,7 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
     case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_CREATE:
     case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_DESTROY:
     case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_ACK:
+    case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_NACK:
       msg->cid = *GMC_get_id (c);
       msg->ttl = htonl (default_ttl);
       break;
