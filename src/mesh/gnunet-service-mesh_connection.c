@@ -1155,13 +1155,13 @@ register_neighbors (struct MeshConnection *c)
       || GNUNET_NO == GMP_is_neighbor (prev_peer))
   {
     if (GMC_is_origin (c, GNUNET_YES))
-    GNUNET_STATISTICS_update (stats, "# local bad paths", 1, GNUNET_NO);
+      GNUNET_STATISTICS_update (stats, "# local bad paths", 1, GNUNET_NO);
     GNUNET_STATISTICS_update (stats, "# bad paths", 1, GNUNET_NO);
 
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  register neighbors failed\n");
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  prev: %s, neighbor: %d\n",
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  prev: %s, neighbor?: %d\n",
          GMP_2s (prev_peer), GMP_is_neighbor (prev_peer));
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  next: %s, neighbor: %d\n",
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  next: %s, neighbor?: %d\n",
          GMP_2s (next_peer), GMP_is_neighbor (next_peer));
     return GNUNET_SYSERR;
   }
@@ -1186,15 +1186,19 @@ unregister_neighbors (struct MeshConnection *c)
   peer = get_next_hop (c);
   if (GNUNET_OK != GMP_remove_connection (peer, c))
   {
-    GNUNET_break (MESH_CONNECTION_NEW == c->state);
-    LOG (GNUNET_ERROR_TYPE_ERROR, "  cstate: %u\n", c->state);
+    GNUNET_break (MESH_CONNECTION_NEW == c->state/*
+                  || MESH_CONNECTION_DESTROYED == c->state*/);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  cstate: %u\n", c->state);
+    if (NULL != c->t) GMT_debug (c->t);
   }
 
   peer = get_prev_hop (c);
   if (GNUNET_OK != GMP_remove_connection (peer, c))
   {
-    GNUNET_break (MESH_CONNECTION_NEW == c->state);
-    LOG (GNUNET_ERROR_TYPE_ERROR, "  cstate: %u\n", c->state);
+    GNUNET_break (MESH_CONNECTION_NEW == c->state/*
+                  || MESH_CONNECTION_DESTROYED == c->state*/);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  cstate: %u\n", c->state);
+    if (NULL != c->t) GMT_debug (c->t);
   }
 }
 
@@ -1391,6 +1395,12 @@ GMC_handle_confirm (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_STATISTICS_update (stats, "# control on unknown connection",
                               1, GNUNET_NO);
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  don't know the connection!\n");
+    return GNUNET_OK;
+  }
+
+  if (GNUNET_NO != c->destroy)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  connection being destroyed\n");
     return GNUNET_OK;
   }
 
@@ -1638,8 +1648,7 @@ handle_mesh_encrypted (const struct GNUNET_PeerIdentity *peer,
   if (NULL == c)
   {
     GNUNET_STATISTICS_update (stats, "# unknown connection", 1, GNUNET_NO);
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "WARNING connection %s unknown\n",
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "WARNING enc on unknown connection %s\n",
          GNUNET_h2s (&msg->cid));
     return GNUNET_OK;
   }
@@ -1765,7 +1774,8 @@ handle_mesh_kx (const struct GNUNET_PeerIdentity *peer,
   if (NULL == c)
   {
     GNUNET_STATISTICS_update (stats, "# unknown connection", 1, GNUNET_NO);
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "WARNING connection unknown\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "WARNING kx on unknown connection %s\n",
+         GNUNET_h2s (&msg->cid));
     return GNUNET_OK;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, " on connection %s\n", GMC_2s (c));
