@@ -1381,6 +1381,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     {dispatch_p2p_message, GNUNET_MESSAGE_TYPE_SET_UNION_P2P_SE, 0},
     {dispatch_p2p_message, GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_ELEMENT_INFO, 0},
     {dispatch_p2p_message, GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_BF, 0},
+    {dispatch_p2p_message, GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_BF_PART, 0},
     {NULL, 0, 0}
   };
   static const uint32_t mesh_ports[] = {GNUNET_APPLICATION_TYPE_SET, 0};

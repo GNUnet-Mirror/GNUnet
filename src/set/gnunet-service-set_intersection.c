@@ -54,6 +54,10 @@ enum IntersectionOperationPhase
    */
   PHASE_BF_EXCHANGE,
   /**
+   * Multipart continuation of BF_exchange
+   */
+  PHASE_BF_AWAIT_MULTIPART,
+  /**
    * if both peers have an equal peercount, they enter this state for
    * one more turn, to see if they actually have agreed on a correct set.
    * if a peer finds the same element count after the next iteration,
@@ -421,7 +425,7 @@ send_bloomfilter (struct Operation *op)
                                          op);
 
   // send our bloomfilter
-  if (GNUNET_SERVER_MAX_MESSAGE_SIZE <= bf_size + sizeof (struct BFMessage)) {
+  if (GNUNET_SERVER_MAX_MESSAGE_SIZE > bf_size + sizeof (struct BFMessage)) {
     // singlepart
     chunk_size = bf_size;
     ev = GNUNET_MQ_msg_extra (msg, chunk_size, GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_BF);
@@ -452,9 +456,8 @@ send_bloomfilter (struct Operation *op)
 
   GNUNET_MQ_send (op->mq, ev);
 
-  if (op->state->local_bf_data) {
+  if (op->state->local_bf_data)
     send_bloomfilter_multipart (op, chunk_size);
-  }
 }
 
 
@@ -537,6 +540,26 @@ send_peer_done (struct Operation *op)
   GNUNET_MQ_send (op->mq, ev);
 }
 
+/**
+ * Handle an BF multipart message from a remote peer.
+ *
+ * @param cls the intersection operation
+ * @param mh the header of the message
+ */
+static void
+handle_p2p_bf_part (void *cls, const struct GNUNET_MessageHeader *mh)
+{
+  struct Operation *op = cls;
+  const struct BFPart *msg = (const struct BFPart *) mh;
+  
+  if (op->state->phase != PHASE_BF_AWAIT_MULTIPART){
+    GNUNET_break_op (0);
+    fail_intersection_operation(op);
+    return;
+  }
+  
+  
+}
 
 /**
  * Handle an BF message from a remote peer.
@@ -556,8 +579,8 @@ handle_p2p_bf (void *cls, const struct GNUNET_MessageHeader *mh)
   op->spec->salt = ntohl (msg->sender_mutator);
 
   op->state->remote_bf = GNUNET_CONTAINER_bloomfilter_init ((const char*) &msg[1],
-                                                            ntohl (msg->bloomfilter_length),
-                                                            GNUNET_CONSTANTS_BLOOMFILTER_K);
+                                                            ntohl (msg->bloomfilter_total_length),
+                                                            ntohl (msg->bits_per_element));
   op->state->local_bf = GNUNET_CONTAINER_bloomfilter_init (NULL,
                                                            BLOOMFILTER_SIZE,
                                                            GNUNET_CONSTANTS_BLOOMFILTER_K);
@@ -855,6 +878,9 @@ intersection_handle_p2p_message (struct Operation *op,
     break;
   case GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_BF:
     handle_p2p_bf (op, mh);
+    break;
+  case GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_BF_PART:
+    handle_p2p_bf_part (op, mh);
     break;
   case GNUNET_MESSAGE_TYPE_SET_P2P_DONE:
     handle_p2p_done (op, mh);
