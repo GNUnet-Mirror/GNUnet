@@ -713,7 +713,7 @@ handle_client_call_message (void *cls,
   GNUNET_CRYPTO_ecdsa_key_get_public (&msg->caller_id,
                                       &ring->caller_id);
   ring->remote_line = msg->line;
-  ring->source_line = line->local_line;
+  ring->source_line = htonl (line->local_line);
   ring->target = msg->target;
   ring->source = my_identity;
   ring->expiration_time = GNUNET_TIME_absolute_hton (GNUNET_TIME_relative_to_absolute (RING_TIMEOUT));
@@ -757,8 +757,8 @@ transmit_line_audio (void *cls,
   GNUNET_free (ch->audio_data);
   ch->audio_data = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Sending %u bytes of audio data on line %u via mesh\n",
-              ch->audio_size, ch->remote_line);
+              "Sending %u bytes of audio data from line %u to remote line %u via mesh\n",
+              ch->audio_size, ch->line->local_line, ch->remote_line);
   return sizeof (struct MeshAudioMessage) + ch->audio_size;
 }
 
@@ -817,6 +817,12 @@ handle_client_audio_message (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
                 "Mesh audio channel in shutdown; audio data dropped\n");
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
+  if (GNUNET_YES == ch->suspended_local)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "This channel is suspended locally\n");
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
   if (NULL == ch->channel_unreliable)
@@ -942,7 +948,8 @@ handle_mesh_ring_message (void *cls,
   cring.cid = ch->cid;
   cring.caller_id = msg->caller_id;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Sending RING message to client\n");
+              "Sending RING message to client. CID %u:(%u, %u)\n", 
+              ch->cid, ch->remote_line, line->local_line);
   GNUNET_SERVER_notification_context_unicast (nc,
                                               line->client,
                                               &cring.header,
@@ -1113,6 +1120,9 @@ handle_mesh_suspend_message (void *cls,
   suspend.header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_SUSPEND);
   suspend.cid = ch->cid;
   GNUNET_MESH_receive_done (channel);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Suspending channel CID: %u(%u:%u)\n",
+              ch->cid, ch->remote_line, line->local_line);
   switch (ch->status)
   {
   case CS_CALLEE_RINGING:
@@ -1252,20 +1262,36 @@ handle_mesh_audio_message (void *cls,
                (NULL == ch->channel_unreliable) )
             break;
         }
+        break;
       }
+    if (NULL == line)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Received %u bytes of AUDIO data for non-existing line %u, dropping.\n",
+                  msize, ntohl (msg->remote_line));
+      return GNUNET_SYSERR;
+    }
     if (NULL == ch)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Received AUDIO data for non-existing line %u, dropping.\n",
-                  ntohl (msg->remote_line));
+                  "Received %u bytes of AUDIO data for unknown sender.\n",
+                  msize);
       return GNUNET_SYSERR;
+    }
+    if ((GNUNET_YES == ch->suspended_local) || (GNUNET_YES == ch->suspended_remote))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Received %u bytes of AUDIO data on suspended channel CID %u:(%u:%u); dropping\n",
+                  msize, ch->cid, ch->remote_line, line->local_line);
+      return GNUNET_OK;
     }
     ch->channel_unreliable = channel;
     *channel_ctx = ch;
   }
+  GNUNET_break (ch->line->local_line == ntohl (msg->remote_line));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Forwarding %u bytes of AUDIO data to client\n",
-              msize);
+              "Forwarding %u bytes of AUDIO data to client CID %u:(%u:%u)\n",
+              msize, ch->cid, ch->remote_line, ch->line->local_line);
   cam = (struct ClientAudioMessage *) buf;
   cam->header.size = htons (sizeof (buf));
   cam->header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_CS_AUDIO);
