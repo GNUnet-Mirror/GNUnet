@@ -1930,6 +1930,8 @@ GMT_destroy_empty (struct MeshTunnel3 *t)
     t->estate = MESH_TUNNEL3_KEY_UNINITIALIZED;
     GNUNET_SCHEDULER_cancel (t->rekey_task);
     t->rekey_task = GNUNET_SCHEDULER_NO_TASK;
+    GNUNET_free (t->kx_ctx);
+    t->kx_ctx = NULL;
   }
   t->cstate = MESH_TUNNEL3_NEW;
   t->destroy = GNUNET_YES;
