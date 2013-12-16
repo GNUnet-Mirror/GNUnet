@@ -2224,6 +2224,7 @@ GMC_new (const struct GNUNET_HashCode *cid,
     if (0 == own_pos)
     {
       GMT_remove_path (c->t, p);
+      c->t = NULL;
       c->path = NULL;
     }
     GMC_destroy (c);
@@ -2265,6 +2266,7 @@ GMC_destroy (struct MeshConnection *c)
   {
     connection_cancel_queues (c, GNUNET_YES);
     connection_cancel_queues (c, GNUNET_NO);
+    unregister_neighbors (c);
   }
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, " fc tasks f: %u, b: %u\n",
@@ -2282,11 +2284,7 @@ GMC_destroy (struct MeshConnection *c)
     LOG (GNUNET_ERROR_TYPE_DEBUG, " *** POLL msg BCK canceled\n");
   }
 
-  /* Unregister from neighbors */
-  unregister_neighbors (c);
-
-  /* Delete */
-  GNUNET_STATISTICS_update (stats, "# connections", -1, GNUNET_NO);
+  /* Delete from tunnel */
   if (NULL != c->t)
     GMT_remove_connection (c->t, c);
 
@@ -2310,6 +2308,7 @@ GMC_destroy (struct MeshConnection *c)
   GNUNET_break (GNUNET_YES ==
                 GNUNET_CONTAINER_multihashmap_remove (connections, &c->id, c));
 
+  GNUNET_STATISTICS_update (stats, "# connections", -1, GNUNET_NO);
   GNUNET_free (c);
 }
 
