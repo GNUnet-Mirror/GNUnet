@@ -2239,7 +2239,10 @@ void
 GMC_destroy (struct MeshConnection *c)
 {
   if (NULL == c)
+  {
+    GNUNET_break (0);
     return;
+  }
 
   if (2 == c->destroy) /* cancel queues -> GMP_queue_cancel -> q_destroy -> */
     return;            /* -> message_sent -> GMC_destroy. Don't loop. */
@@ -2277,6 +2280,8 @@ GMC_destroy (struct MeshConnection *c)
   GNUNET_STATISTICS_update (stats, "# connections", -1, GNUNET_NO);
   if (NULL != c->t)
     GMT_remove_connection (c->t, c);
+  else
+    GNUNET_break (0);
 
   if (GNUNET_NO == GMC_is_origin (c, GNUNET_YES))
     path_destroy (c->path);
