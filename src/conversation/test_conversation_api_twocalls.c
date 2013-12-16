@@ -201,6 +201,8 @@ play (void *cls,
     /* time to hang up ... */
     GNUNET_CONVERSATION_call_stop (call1);
     call1 = NULL;
+    call_i = 0;
+    phone_i = 0;
   }
 }
 
