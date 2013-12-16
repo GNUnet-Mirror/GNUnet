@@ -884,6 +884,7 @@ send_kx (struct MeshTunnel3 *t,
   if (NULL == c)
   {
     GNUNET_break (GNUNET_YES == t->destroy || MESH_TUNNEL3_READY != t->cstate);
+    GMT_debug (t);
     return;
   }
   type = ntohs (message->type);
@@ -985,7 +986,7 @@ rekey_tunnel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   t->rekey_task = GNUNET_SCHEDULER_NO_TASK;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Re-key Tunnel\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Re-key Tunnel %s\n", GMT_2s (t));
   if (NULL != tc && 0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
     return;
 
@@ -1924,6 +1925,12 @@ GMT_destroy_empty (struct MeshTunnel3 *t)
     GMC_send_destroy (iter->c);
   }
 
+  if (GNUNET_SCHEDULER_NO_TASK != t->rekey_task)
+  {
+    t->estate = MESH_TUNNEL3_KEY_UNINITIALIZED;
+    GNUNET_SCHEDULER_cancel (t->rekey_task);
+    t->rekey_task = GNUNET_SCHEDULER_NO_TASK;
+  }
   t->cstate = MESH_TUNNEL3_NEW;
   t->destroy = GNUNET_YES;
 }
