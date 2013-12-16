@@ -39,7 +39,11 @@
 
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 25)
 
-static int ok = 1;
+#define LOG(kind,...)                           \
+  GNUNET_log (kind, __VA_ARGS__)
+
+#define LOG_DEBUG(...)                          \
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__)
 
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
@@ -86,11 +90,23 @@ static const char *caller2 = "caller2";
  */
 static const char *phone0 = "phone";
 
+
 #define CALLER1 &caller1
 #define CALLER2 &caller2
 #define PHONE0 &phone0
 
 #define CLS_STR(caller) (*((char **)caller))
+
+
+/**
+ * Did caller1 call finish successfully
+ */
+static int call1_finished;
+
+/**
+ * Did caller2 call finish successfully
+ */
+static int call2_finished;
 
 struct MicContext
 {
@@ -100,7 +116,6 @@ struct MicContext
 
   GNUNET_SCHEDULER_TaskIdentifier call_task;
   
-  char sym;
 };
 
 static struct MicContext call1_mic_ctx;
@@ -117,7 +132,6 @@ phone_send (void *cls,
   GNUNET_assert (NULL != phone_rdc);
   GNUNET_snprintf (buf, sizeof (buf), "phone");
   phone_rdc (phone_rdc_cls, strlen (buf) + 1, buf);
-  fprintf (stderr, "+");
   phone_task = GNUNET_SCHEDULER_add_delayed (FREQ,
                                              &phone_send, NULL);
 }
@@ -133,7 +147,6 @@ call_send (void *cls,
   GNUNET_assert (NULL != mc->rdc);
   GNUNET_snprintf (buf, sizeof (buf), "call");
   mc->rdc (mc->rdc_cls, strlen (buf) + 1, buf);
-  fprintf (stderr, "%c", mc->sym);
   mc->call_task = GNUNET_SCHEDULER_add_delayed (FREQ,
                                                 &call_send, mc);
 }
@@ -144,9 +157,8 @@ enable_speaker (void *cls)
 {
   const char *origin = CLS_STR (cls);
 
-  fprintf (stderr,
-           "Speaker %s enabled\n",
-           origin);
+  LOG_DEBUG ("Speaker %s enabled\n",
+             origin);
   return GNUNET_OK;
 }
 
@@ -156,9 +168,8 @@ disable_speaker (void *cls)
 {
   const char *origin = CLS_STR (cls);
 
-  fprintf (stderr,
-           "Speaker %s disabled\n",
-           origin);
+  LOG_DEBUG ("Speaker %s disabled\n",
+             origin);
 }
 
 
@@ -170,17 +181,15 @@ play (void *cls,
   static unsigned int phone_i;
   static unsigned int call_i;
 
-  write (2, data, data_size);
   if (0 == strncmp ("call", data, data_size))
     call_i++;
   else if (0 == strncmp ("phone", data, data_size))
     phone_i++;
   else
   {
-    fprintf (stderr,
-             "Received unexpected data %.*s\n",
-             (int) data_size,
-             (const char *) data);
+    LOG_DEBUG ("Received unexpected data %.*s\n",
+               (int) data_size,
+               (const char *) data);
   }
 
   if ( (20 < call_i) &&
@@ -193,6 +202,7 @@ play (void *cls,
     /* reset counters */
     call_i = 0;
     phone_i = 0;
+    call2_finished = GNUNET_YES;
   }
   if ( (20 < call_i) &&
        (20 < phone_i) &&
@@ -203,6 +213,7 @@ play (void *cls,
     call1 = NULL;
     call_i = 0;
     phone_i = 0;
+    call1_finished = GNUNET_YES;
   }
 }
 
@@ -212,7 +223,7 @@ destroy_speaker (void *cls)
 {
   const char *origin = CLS_STR (cls);
 
-  fprintf (stderr, "Speaker %s destroyed\n", origin);
+  LOG_DEBUG ("Speaker %s destroyed\n", origin);
 }
 
 
@@ -251,9 +262,8 @@ enable_mic (void *cls,
   const char *origin = CLS_STR (cls);
   struct MicContext *mc;
 
-  fprintf (stderr,
-           "Mic %s enabled\n",
-           origin);
+  LOG_DEBUG ("Mic %s enabled\n",
+             origin);
   if (PHONE0 == cls)
   {
     phone_rdc = rdc;
@@ -263,7 +273,6 @@ enable_mic (void *cls,
     return GNUNET_OK;
   }
   mc = (CALLER1 == cls) ? &call1_mic_ctx : &call2_mic_ctx;
-  mc->sym = (CALLER1 == cls) ? '1': '2';
   mc->rdc = rdc;
   mc->rdc_cls = rdc_cls;
   GNUNET_break (GNUNET_SCHEDULER_NO_TASK == mc->call_task);
@@ -278,9 +287,8 @@ disable_mic (void *cls)
   const char *origin = CLS_STR (cls);
   struct MicContext *mc;
 
-  fprintf (stderr,
-           "Mic %s disabled\n",
-           origin);
+  LOG_DEBUG ("Mic %s disabled\n",
+             origin);
   if (PHONE0 == cls)
   {
     phone_rdc = NULL;
@@ -302,9 +310,8 @@ destroy_mic (void *cls)
 {
   const char *origin = CLS_STR (cls);
 
-  fprintf (stderr,
-           "Mic %s destroyed\n",
-           origin);
+  LOG_DEBUG ("Mic %s destroyed\n",
+             origin);
 }
 
 
@@ -389,7 +396,7 @@ caller_event_handler (void *cls,
   {
   case GNUNET_CONVERSATION_EC_CALLER_SUSPEND:
   case GNUNET_CONVERSATION_EC_CALLER_RESUME:
-    fprintf (stderr, "Unexpected caller code: %d\n", code);
+    LOG (GNUNET_ERROR_TYPE_WARNING, "Unexpected caller code: %d\n", code);
     break;
   }
 }
@@ -442,12 +449,11 @@ phone_event_handler (void *cls,
     {
       active_caller1 = NULL;
       GNUNET_break (NULL == active_caller2);
-      ok = 0;
       GNUNET_SCHEDULER_shutdown ();
     }
     break;
   default:
-    fprintf (stderr, "Unexpected phone code: %d\n", code);
+    LOG (GNUNET_ERROR_TYPE_WARNING, "Unexpected phone code: %d\n", code);
     break;
   }
 }
@@ -464,22 +470,22 @@ call_event_handler (void *cls,
   case GNUNET_CONVERSATION_EC_CALL_RINGING:
     break;
   case GNUNET_CONVERSATION_EC_CALL_PICKED_UP:
-    fprintf (stderr, "\t Call %s picked\n", cid);
+    LOG_DEBUG ("Call %s picked\n", cid);
     break;
   case GNUNET_CONVERSATION_EC_CALL_GNS_FAIL:
-    fprintf (stderr, "\t Call %s GNS lookup failed \n", cid);
+    LOG_DEBUG ("Call %s GNS lookup failed \n", cid);
   case GNUNET_CONVERSATION_EC_CALL_HUNG_UP:
-    fprintf (stderr, "\t Call %s hungup\n", cid);
+    LOG_DEBUG ("Call %s hungup\n", cid);
     if (0 == strcmp (cid, "call1"))
       call1 = NULL;
     else
       call2 = NULL;
     break;
   case GNUNET_CONVERSATION_EC_CALL_SUSPENDED:
-    fprintf (stderr, "\t Call %s suspended\n", cid);
+    LOG_DEBUG ("Call %s suspended\n", cid);
     break;
   case GNUNET_CONVERSATION_EC_CALL_RESUMED:
-    fprintf (stderr, "\t Call %s resumed\n", cid);
+    LOG_DEBUG ("Call %s resumed\n", cid);
     break;
   }
 }
@@ -598,11 +604,14 @@ run (void *cls,
 int
 main (int argc, char *argv[])
 {
+  
   if (0 != GNUNET_TESTING_peer_run ("test_conversation_api_twocalls",
 				    "test_conversation.conf",
 				    &run, NULL))
     return 1;
-  return ok;
+  if (call1_finished && call2_finished)
+    return 0;
+  return 1;
 }
 
 /* end of test_conversation_api_twocalls.c */
