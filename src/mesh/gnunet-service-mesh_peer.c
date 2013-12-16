@@ -1606,7 +1606,8 @@ GMP_remove_path (struct MeshPeer *peer, struct MeshPeerPath *path)
   struct MeshPeerPath *iter;
   struct MeshPeerPath *next;
 
-  GNUNET_assert (myid == path->peers[path->length - 1]);
+  GNUNET_assert (myid == path->peers[0]);
+  GNUNET_assert (peer->id == path->peers[path->length - 1]);
 
   for (iter = peer->path_head; NULL != iter; iter = next)
   {
