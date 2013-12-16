@@ -35,6 +35,7 @@
 #define RIL_FEATURES_NETWORK_COUNT 2
 #define RIL_FEATURES_INIT_COUNT 1 + RIL_FEATURES_NETWORK_COUNT // + GNUNET_ATS_PreferenceCount
 #define RIL_INTERVAL_EXPONENT 10
+#define RIL_UTILITY_MAX (double) GNUNET_ATS_MaxBandwidth
 
 #define RIL_DEFAULT_STEP_TIME_MIN GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 500)
 #define RIL_DEFAULT_STEP_TIME_MAX GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 3000)
@@ -381,6 +382,11 @@ struct GAS_RIL_Handle
 static int
 ril_count_agents(struct GAS_RIL_Handle * solver);
 
+static double
+agent_get_utility (struct RIL_Peer_Agent *agent)
+{
+  return (double) agent->bw_in;
+}
 
 /**
  * Estimate the current action-value for state s and action a
@@ -947,6 +953,27 @@ envi_get_state (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
 //  return (pref_match / 4) +1;
 //}
 
+static double
+envi_get_collective_utility (struct GAS_RIL_Handle *solver)
+{
+  //TODO! add nash product
+  struct RIL_Peer_Agent *cur;
+  double result = RIL_UTILITY_MAX;
+
+  for (cur = solver->agents_head; NULL != cur; cur = cur->next)
+  {
+    if (cur->is_active)
+    {
+      if (cur->address_inuse)
+      {
+        result = GNUNET_MIN(result, agent_get_utility(cur));
+      }
+    }
+  }
+
+  return result;
+}
+
 /**
  * Gets the reward for the last performed step, which is calculated in equal
  * parts from the local (the peer specific) and the global (for all peers
@@ -960,44 +987,20 @@ static double
 envi_get_reward (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
 {
   struct RIL_Network *net;
-//  double reward = 0;
-  long long overutilized_in = 0;
-//  long long overutilized_out;
-  long long assigned_in = 0;
-//  long long assigned_out = 0;
-//  long long unused;
 
-  //punish overutilization
+  unsigned long long objective;
+
   net = agent->address_inuse->solver_information;
-
   if (net->bw_in_assigned > net->bw_in_available)
   {
-    overutilized_in = (net->bw_in_assigned - net->bw_in_available);
-    assigned_in = net->bw_in_available;
+    objective = net->bw_in_available - net->bw_in_assigned;
   }
   else
   {
-    assigned_in = net->bw_in_assigned;
+    objective = envi_get_collective_utility(solver);
   }
-//  if (net->bw_out_assigned > net->bw_out_available)
-//  {
-//    overutilized_out = (net->bw_out_assigned - net->bw_out_available);
-//    assigned_out = net->bw_out_available;
-//  }
-//  else
-//  {
-//    assigned_out = net->bw_out_assigned;
-//  }
 
-//  unused = net->bw_in_available - net->bw_in_assigned;
-//  unused = unused < 0 ? unused : -unused;
-
-  return (double) (assigned_in - overutilized_in) / 1024;
-
-//  reward += envi_reward_global (solver) * (solver->parameters.reward_global_share);
-//  reward += envi_reward_local (solver, agent) * (1 - solver->parameters.reward_global_share);
-//
-//  return (reward - 1.) * 100;
+  return objective;
 }
 
 /**
