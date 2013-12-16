@@ -994,9 +994,11 @@ rekey_tunnel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  new kx ctx\n");
     t->kx_ctx = GNUNET_new (struct MeshTunnelKXCtx);
-    t->kx_ctx->challenge = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE,
-                                                     UINT32_MAX);
+    t->kx_ctx->challenge =
+        GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
     t->kx_ctx->d_key_old = t->d_key;
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  new challenge for %s: %u\n",
+         GMT_2s (t), t->kx_ctx->challenge);
   }
   send_ephemeral (t);
   switch (t->estate)
@@ -1919,7 +1921,8 @@ GMT_destroy_empty (struct MeshTunnel3 *t)
 {
   struct MeshTConnection *iter;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Tunnel empty: destroying scheduled\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Tunnel %s empty: destroying scheduled\n",
+       GMT_2s (t));
   for (iter = t->connection_head; NULL != iter; iter = iter->next)
   {
     GMC_send_destroy (iter->c);
@@ -2104,7 +2107,7 @@ GMT_get_cstate (struct MeshTunnel3 *t)
 {
   if (NULL == t)
   {
-    GNUNET_break (0);
+    GNUNET_assert (0);
     return (enum MeshTunnel3CState) -1;
   }
   return t->cstate;
