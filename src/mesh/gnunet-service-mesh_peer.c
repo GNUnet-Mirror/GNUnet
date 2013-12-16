@@ -1324,8 +1324,10 @@ GMP_connect (struct MeshPeer *peer)
          * path.
          *
          * Re-running the DHT GET should give core time to callback.
+         *
+         * GMT_use_path -> GMC_new -> register_neighbors takes care of
+         * updating statistics about this issue.
          */
-        GNUNET_break (0);
         rerun_search = GNUNET_YES;
       }
       else
