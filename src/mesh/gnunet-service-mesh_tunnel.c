@@ -2492,9 +2492,14 @@ GMT_debug (const struct MeshTunnel3 *t)
   struct MeshTChannel *iterch;
   struct MeshTConnection *iterc;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "DEBUG %s\n", GMT_2s (t));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "DEBUG TUNNEL TOWARDS %s\n", GMT_2s (t));
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  cstate %s, estate %s\n",
        cstate2s (t->cstate), estate2s (t->estate));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  kx_ctx %p, rekey_task %u\n",
+       t->kx_ctx, t->rekey_task);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  tq_head %p, tq_tail %p\n",
+       t->tq_head, t->tq_tail);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  destroy %u\n", t->destroy);
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  channels:\n");
   for (iterch = t->channel_head; NULL != iterch; iterch = iterch->next)
@@ -2505,8 +2510,13 @@ GMT_debug (const struct MeshTunnel3 *t)
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  connections:\n");
   for (iterc = t->connection_head; NULL != iterc; iterc = iterc->next)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  - %s\n", GMC_2s (iterc->c));
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  - %s [%u] buf: %u/%u (qn %u/%u)\n",
+         GMC_2s (iterc->c), GMC_get_state (iterc->c),
+         GMC_get_buffer (iterc->c, GNUNET_YES),
+         GMC_get_buffer (iterc->c, GNUNET_NO),
+         GMC_get_qn (iterc->c, GNUNET_YES),
+         GMC_get_qn (iterc->c, GNUNET_NO));
   }
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "DEBUG END\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "DEBUG TUNNEL END\n");
 }
