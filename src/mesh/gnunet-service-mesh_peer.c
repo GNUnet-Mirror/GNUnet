@@ -1307,7 +1307,7 @@ GMP_connect (struct MeshPeer *peer)
 
   if (NULL != peer->path_head)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "path exists\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  some path exists\n");
     p = peer_get_best_path (peer);
     if (NULL != p)
     {
@@ -1340,8 +1340,7 @@ GMP_connect (struct MeshPeer *peer)
     }
     else
     {
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "but is NULL!!\n");
-      GNUNET_break (0);
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "  but is NULL, all paths are in use\n");
     }
   }
 
