@@ -815,7 +815,7 @@ envi_get_state (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
   return state;
 }
 
-///**
+///*
 // * For all networks a peer has an address in, this gets the maximum bandwidth which could
 // * theoretically be available in one of the networks. This is used for bandwidth normalization.
 // *
@@ -854,7 +854,7 @@ envi_get_state (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
 //  return max;
 //}
 
-///**
+///*
 // * Get the index of the quality-property in question
 // *
 // * @param type the quality property type
