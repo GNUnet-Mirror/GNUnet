@@ -404,7 +404,7 @@ agent_estimate_q (struct RIL_Peer_Agent *agent, double *state, int action)
 
   if (isinf(result))
   {
-    return isinf(result) * UINT32_MAX; //TODO! fix
+    return isinf(result) * UINT32_MAX; //TODO! prevent crash when learning diverges
   }
   return result;
 }
@@ -541,14 +541,14 @@ agent_update_weights (struct RIL_Peer_Agent *agent, double reward, double *s_nex
   delta += agent->envi->global_discount_variable * agent_estimate_q (agent, s_next, a_prime); //discounted future value
   delta -= agent_estimate_q (agent, agent->s_old, agent->a_old); //one step
 
-  LOG(GNUNET_ERROR_TYPE_INFO, "update()   Step# %llu  Q(s,a): %f  a: %f  r: %f  y: %f  Q(s+1,a+1) = %f  delta: %f\n",
-      agent->step_count,
-      agent_estimate_q (agent, agent->s_old, agent->a_old),
-      agent->envi->parameters.alpha,
-      reward,
-      agent->envi->global_discount_variable,
-      agent_estimate_q (agent, s_next, a_prime),
-      delta);
+//  LOG(GNUNET_ERROR_TYPE_INFO, "update()   Step# %llu  Q(s,a): %f  a: %f  r: %f  y: %f  Q(s+1,a+1) = %f  delta: %f\n",
+//      agent->step_count,
+//      agent_estimate_q (agent, agent->s_old, agent->a_old),
+//      agent->envi->parameters.alpha,
+//      reward,
+//      agent->envi->global_discount_variable,
+//      agent_estimate_q (agent, s_next, a_prime),
+//      delta);
 
   for (i = 0; i < agent->m; i++)
   {
@@ -782,11 +782,11 @@ envi_get_state (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
   {
     state[1] = 0;
   }
-  LOG(GNUNET_ERROR_TYPE_INFO, "get_state()  state[0] = %f\n", state[0]);
-  LOG(GNUNET_ERROR_TYPE_INFO, "get_state()  state[1] = %f\n", state[1]);
-
-  LOG(GNUNET_ERROR_TYPE_INFO, "get_state()  W / %08.3f %08.3f \\ \n", agent->W[0][0], agent->W[1][0]);
-  LOG(GNUNET_ERROR_TYPE_INFO, "get_state()  W \\ %08.3f %08.3f / \n", agent->W[0][1], agent->W[1][1]);
+//  LOG(GNUNET_ERROR_TYPE_INFO, "get_state()  state[0] = %f\n", state[0]);
+//  LOG(GNUNET_ERROR_TYPE_INFO, "get_state()  state[1] = %f\n", state[1]);
+//
+//  LOG(GNUNET_ERROR_TYPE_INFO, "get_state()  W / %08.3f %08.3f \\ \n", agent->W[0][0], agent->W[1][0]);
+//  LOG(GNUNET_ERROR_TYPE_INFO, "get_state()  W \\ %08.3f %08.3f / \n", agent->W[0][1], agent->W[1][1]);
 
 
   //get peer features
@@ -1287,12 +1287,12 @@ agent_step (struct RIL_Peer_Agent *agent)
 
   agent_modify_eligibility (agent, RIL_E_ACCUMULATE, s_next);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "step()  Step# %llu  R: %f  IN %llu  OUT %llu  A: %d\n",
-        agent->step_count,
-        reward,
-        agent->bw_in/1024,
-        agent->bw_out/1024,
-        a_next);
+//  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "step()  Step# %llu  R: %f  IN %llu  OUT %llu  A: %d\n",
+//        agent->step_count,
+//        reward,
+//        agent->bw_in/1024,
+//        agent->bw_out/1024,
+//        a_next);
 
   envi_do_action (agent->envi, agent, a_next);
 
@@ -1598,7 +1598,7 @@ agent_w_start (struct RIL_Peer_Agent *agent)
     for (k = 0; k < agent->m; k++)
     {
       if (0 == count) {
-        agent->W[i][k] = 1;//.1 - ((double) GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, UINT32_MAX/5)/(double)UINT32_MAX);
+        agent->W[i][k] = agent->envi->parameters.alpha * (1.0 - 2.0*((double) GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, UINT32_MAX)/(double)UINT32_MAX));
       }
       else {
         for (other = agent->envi->agents_head; NULL != other; other = other->next)
