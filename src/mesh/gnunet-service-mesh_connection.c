@@ -1788,13 +1788,15 @@ handle_mesh_kx (const struct GNUNET_PeerIdentity *peer,
 
   /* Count as connection confirmation. */
   if (MESH_CONNECTION_SENT == c->state || MESH_CONNECTION_ACK == c->state)
-    connection_change_state (c, MESH_CONNECTION_READY);
-  connection_reset_timeout (c, fwd);
-  if (NULL != c->t)
   {
-    if (MESH_TUNNEL3_WAITING == GMT_get_cstate (c->t))
-      GMT_change_cstate (c->t, MESH_TUNNEL3_READY);
+    connection_change_state (c, MESH_CONNECTION_READY);
+    if (NULL != c->t)
+    {
+      if (MESH_TUNNEL3_WAITING == GMT_get_cstate (c->t))
+        GMT_change_cstate (c->t, MESH_TUNNEL3_READY);
+    }
   }
+  connection_reset_timeout (c, fwd);
 
   /* Is this message for us? */
   if (GMC_is_terminal (c, fwd))
