@@ -2222,7 +2222,10 @@ GMC_new (const struct GNUNET_HashCode *cid,
   if (GNUNET_OK != register_neighbors (c))
   {
     if (0 == own_pos)
+    {
       GMT_remove_path (c->t, p);
+      c->path = NULL;
+    }
     GMC_destroy (c);
     return NULL;
   }
@@ -2258,8 +2261,11 @@ GMC_destroy (struct MeshConnection *c)
        c->fwd_fc.poll_task, c->bck_fc.poll_task);
 
   /* Cancel all traffic */
-  connection_cancel_queues (c, GNUNET_YES);
-  connection_cancel_queues (c, GNUNET_NO);
+  if (NULL != c->path)
+  {
+    connection_cancel_queues (c, GNUNET_YES);
+    connection_cancel_queues (c, GNUNET_NO);
+  }
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, " fc tasks f: %u, b: %u\n",
        c->fwd_fc.poll_task, c->bck_fc.poll_task);
@@ -2284,7 +2290,7 @@ GMC_destroy (struct MeshConnection *c)
   if (NULL != c->t)
     GMT_remove_connection (c->t, c);
 
-  if (GNUNET_NO == GMC_is_origin (c, GNUNET_YES))
+  if (GNUNET_NO == GMC_is_origin (c, GNUNET_YES) && NULL != c->path)
     path_destroy (c->path);
   if (GNUNET_SCHEDULER_NO_TASK != c->fwd_maintenance_task)
     GNUNET_SCHEDULER_cancel (c->fwd_maintenance_task);
