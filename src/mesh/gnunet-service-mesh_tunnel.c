@@ -341,8 +341,6 @@ estate2s (enum MeshTunnel3EState es)
 static int
 is_ready (struct MeshTunnel3 *t)
 {
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  ready: cs=%s, es=%s\n",
-       cstate2s (t->cstate), estate2s (t->estate));
   return (MESH_TUNNEL3_READY == t->cstate
           && MESH_TUNNEL3_KEY_OK == t->estate)
          || GMT_is_loopback (t);
@@ -746,7 +744,11 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   c = tunnel_get_connection (t);
   if (NULL == c)
   {
-    GNUNET_break (GNUNET_YES == t->destroy);
+    if (GNUNET_YES == t->destroy || MESH_TUNNEL3_SEARCHING != t->cstate)
+    {
+      GNUNET_break (0);
+      GMT_debug (t);
+    }
     return NULL;
   }
   type = ntohs (message->type);
@@ -871,8 +873,7 @@ send_kx (struct MeshTunnel3 *t,
   if (NULL == t->connection_head)
   {
     GNUNET_break (MESH_TUNNEL3_SEARCHING == t->cstate);
-    LOG (GNUNET_ERROR_TYPE_DEBUG, " tunnel %s connection state %s\n",
-         GMT_2s (t), cstate2s (t->cstate));
+    GMT_debug (t);
     return;
   }
 
@@ -2465,4 +2466,35 @@ GMT_2s (const struct MeshTunnel3 *t)
     return "(NULL)";
 
   return GMP_2s (t->peer);
+}
+
+
+/**
+ * Log all possible info about the tunnel state.
+ *
+ * @param t Tunnel to debug.
+ */
+void
+GMT_debug (const struct MeshTunnel3 *t)
+{
+  struct MeshTChannel *iterch;
+  struct MeshTConnection *iterc;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "DEBUG %s\n", GMT_2s (t));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  cstate %s, estate %s\n",
+       cstate2s (t->cstate), estate2s (t->estate));
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  channels:\n");
+  for (iterch = t->channel_head; NULL != iterch; iterch = iterch->next)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  - %s\n", GMCH_2s (iterch->ch));
+  }
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  connections:\n");
+  for (iterc = t->connection_head; NULL != iterc; iterc = iterc->next)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  - %s\n", GMC_2s (iterc->c));
+  }
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "DEBUG END\n");
 }

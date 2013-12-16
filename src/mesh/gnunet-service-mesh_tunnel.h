@@ -455,6 +455,14 @@ GMT_get_path_cost (const struct MeshTunnel3 *t,
 const char *
 GMT_2s (const struct MeshTunnel3 *t);
 
+/**
+ * Log all possible info about the tunnel state.
+ *
+ * @param t Tunnel to debug.
+ */
+void
+GMT_debug (const struct MeshTunnel3 *t);
+
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif
