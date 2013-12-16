@@ -1132,30 +1132,33 @@ channel_confirm (struct MeshChannel *ch, int fwd)
   oldstate = ch->state;
   ch->state = MESH_CHANNEL_READY;
 
-  rel->client_ready = GNUNET_YES;
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "  !! retry timer confirm %s\n",
-       GNUNET_STRINGS_relative_time_to_string (rel->retry_timer, GNUNET_NO));
-  rel->expected_delay = rel->retry_timer;
-  if (GMT_get_connections_buffer (ch->t) > 0 || GMT_is_loopback (ch->t))
-    send_client_ack (ch, fwd);
+  if (MESH_CHANNEL_READY != oldstate || GNUNET_YES == is_loopback (ch))
+  {
+    rel->client_ready = GNUNET_YES;
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "  !! retry timer confirm %s\n",
+         GNUNET_STRINGS_relative_time_to_string (rel->retry_timer, GNUNET_NO));
+    rel->expected_delay = rel->retry_timer;
+    if (GMT_get_connections_buffer (ch->t) > 0 || GMT_is_loopback (ch->t))
+      send_client_ack (ch, fwd);
 
-  if (GNUNET_SCHEDULER_NO_TASK != rel->retry_task)
-  {
-    GNUNET_SCHEDULER_cancel (rel->retry_task);
-    rel->retry_task = GNUNET_SCHEDULER_NO_TASK;
-  }
-  else if (NULL != rel->uniq)
-  {
-    GMT_cancel (rel->uniq->tq);
-    /* ch_message_sent will free and NULL uniq */
-  }
-  else
-  {
-    if (GNUNET_NO == is_loopback (ch))
+    if (GNUNET_SCHEDULER_NO_TASK != rel->retry_task)
     {
-      /* We SHOULD have been trying to retransmit this! */
-      GNUNET_break (oldstate == MESH_CHANNEL_READY);
+      GNUNET_SCHEDULER_cancel (rel->retry_task);
+      rel->retry_task = GNUNET_SCHEDULER_NO_TASK;
+    }
+    else if (NULL != rel->uniq)
+    {
+      GMT_cancel (rel->uniq->tq);
+      /* ch_message_sent will free and NULL uniq */
+    }
+    else
+    {
+      if (GNUNET_NO == is_loopback (ch))
+      {
+        /* We SHOULD have been trying to retransmit this! */
+        GNUNET_break (0);
+      }
     }
   }
 
@@ -1961,7 +1964,6 @@ GMCH_handle_data_ack (struct MeshChannel *ch,
   struct MeshChannelReliability *rel;
   struct MeshReliableMessage *copy;
   struct MeshReliableMessage *next;
-  struct MeshChannelQueue *oldchq;
   uint32_t ack;
   int work;
 
@@ -1995,8 +1997,6 @@ GMCH_handle_data_ack (struct MeshChannel *ch,
     GNUNET_break_op (GNUNET_NO != ch->destroy);
     return;
   }
-
-  oldchq = NULL != rel->head_sent ? rel->head_sent->chq : NULL;
 
   /* Free ACK'd copies: no need to retransmit those anymore FIXME refactor */
   for (work = GNUNET_NO, copy = rel->head_sent; copy != NULL; copy = next)
@@ -2042,16 +2042,8 @@ GMCH_handle_data_ack (struct MeshChannel *ch,
     }
     else
     {
-      /* Work was done but no task was pending?
-       * Shouldn't happen unless the transmission was queued but not sent (in
-       * this case, the task would have been started in ch_message_sent).
-       */
-      GNUNET_assert (0); /* FIXME */
-      GNUNET_break (NULL != oldchq);
-      rel->retry_task =
-      GNUNET_SCHEDULER_add_delayed (rel->retry_timer,
-                                    &channel_retransmit_message,
-                                    rel);
+      /* Work was done but no task was pending? Shouldn't happen! */
+      GNUNET_break (0);
     }
   }
 }
