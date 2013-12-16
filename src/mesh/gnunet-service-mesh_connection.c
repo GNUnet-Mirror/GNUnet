@@ -823,6 +823,9 @@ connection_recreate (struct MeshConnection *c, int fwd)
 static void
 connection_maintain (struct MeshConnection *c, int fwd)
 {
+  if (GNUNET_NO != c->destroy)
+    return;
+
   if (MESH_TUNNEL3_SEARCHING == GMT_get_cstate (c->t))
   {
     /* TODO DHT GET with RO_BART */
