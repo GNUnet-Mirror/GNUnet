@@ -199,12 +199,17 @@ transport_addr_to_str_cb (void *cls, const char *address)
           GNUNET_free (ats_tmp);
         }
         GNUNET_free (ats_prop_value);
-		}
+    }
 
-    fprintf (stderr, _("Peer `%s' plugin `%s', address `%s', `%s' bw out: %u Bytes/s, bw in %u Bytes/s, %s\n"),
-      GNUNET_i2s (&pr->address->peer), pr->address->transport_name, address,
-      GNUNET_ATS_print_network_type(network),
-      ntohl (pr->bandwidth_out.value__), ntohl (pr->bandwidth_in.value__),ats_str);
+    fprintf (stderr,
+             _("Peer `%s' plugin `%s', address `%s', `%s' bw out: %u Bytes/s, bw in %u Bytes/s, %s\n"),
+             GNUNET_i2s (&pr->address->peer),
+             pr->address->transport_name,
+             address,
+             GNUNET_ATS_print_network_type(network),
+             ntohl (pr->bandwidth_out.value__),
+             ntohl (pr->bandwidth_in.value__),
+             ats_str);
     GNUNET_free (ats_str);
   }
   else
@@ -414,7 +419,7 @@ testservice_ats (void *cls,
     }
     else if (op_monitor)
     {
-        ph = GNUNET_ATS_performance_init (cfg, ats_perf_cb, NULL);
+        ph = GNUNET_ATS_performance_init (cfg, &ats_perf_cb, NULL);
         if (NULL == ph)
           fprintf (stderr, _("Cannot connect to ATS service, exiting...\n"));
         end_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &end, NULL);
