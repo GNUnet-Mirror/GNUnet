@@ -741,7 +741,7 @@ ch_message_sent (void *cls,
       rel = copy->rel;
       if (GNUNET_SCHEDULER_NO_TASK == rel->retry_task)
       {
-        LOG (GNUNET_ERROR_TYPE_DEBUG, "!! scheduling retry in %s\n",
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "!! scheduling retry in 4 * %s\n",
              GNUNET_STRINGS_relative_time_to_string (rel->expected_delay,
                                                      GNUNET_YES));
         if (0 != rel->expected_delay.rel_value_us)
@@ -1018,7 +1018,7 @@ channel_rel_free_sent (struct MeshChannelReliability *rel,
     target = mid + i + 1;
     LOG (GNUNET_ERROR_TYPE_DEBUG, " target %u\n", target);
     while (NULL != copy && GM_is_pid_bigger (target, copy->mid))
-     copy = copy->next;
+      copy = copy->next;
 
     /* Did we run out of copies? (previously freed, it's ok) */
     if (NULL == copy)
@@ -1961,6 +1961,7 @@ GMCH_handle_data_ack (struct MeshChannel *ch,
   struct MeshChannelReliability *rel;
   struct MeshReliableMessage *copy;
   struct MeshReliableMessage *next;
+  struct MeshChannelQueue *oldchq;
   uint32_t ack;
   int work;
 
@@ -1991,11 +1992,13 @@ GMCH_handle_data_ack (struct MeshChannel *ch,
   }
   if (NULL == rel)
   {
-    GNUNET_break_op (0);
+    GNUNET_break_op (GNUNET_NO != ch->destroy);
     return;
   }
 
-  /* Free ACK'd copies: no need to retransmit those anymore */
+  oldchq = NULL != rel->head_sent ? rel->head_sent->chq : NULL;
+
+  /* Free ACK'd copies: no need to retransmit those anymore FIXME refactor */
   for (work = GNUNET_NO, copy = rel->head_sent; copy != NULL; copy = next)
   {
     if (GM_is_pid_bigger (copy->mid, ack))
@@ -2011,7 +2014,7 @@ GMCH_handle_data_ack (struct MeshChannel *ch,
       return;
   }
 
-  /* ACK client if needed */
+  /* ACK client if needed and possible */
   GMCH_allow_client (ch, fwd);
 
   /* If some message was free'd, update the retransmission delay */
@@ -2037,9 +2040,18 @@ GMCH_handle_data_ack (struct MeshChannel *ch,
                                           rel);
       }
     }
-    else /* work was done but no task was pending? shouldn't happen! */
+    else
     {
-      GNUNET_break (0);
+      /* Work was done but no task was pending?
+       * Shouldn't happen unless the transmission was queued but not sent (in
+       * this case, the task would have been started in ch_message_sent).
+       */
+      GNUNET_assert (0); /* FIXME */
+      GNUNET_break (NULL != oldchq);
+      rel->retry_task =
+      GNUNET_SCHEDULER_add_delayed (rel->retry_timer,
+                                    &channel_retransmit_message,
+                                    rel);
     }
   }
 }
