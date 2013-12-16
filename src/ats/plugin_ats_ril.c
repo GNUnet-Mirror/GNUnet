@@ -33,6 +33,7 @@
 #define RIL_ACTION_INVALID -1
 #define RIL_FEATURES_ADDRESS_COUNT (0)// + GNUNET_ATS_QualityPropertiesCount)
 #define RIL_FEATURES_NETWORK_COUNT 2
+#define RIL_FEATURES_INIT_COUNT 1 + RIL_FEATURES_NETWORK_COUNT // + GNUNET_ATS_PreferenceCount
 #define RIL_INTERVAL_EXPONENT 10
 
 #define RIL_DEFAULT_STEP_TIME_MIN GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 500)
@@ -758,30 +759,26 @@ ril_network_get_assigned (struct GAS_RIL_Handle *solver, enum GNUNET_ATS_Network
 static double *
 envi_get_state (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
 {
-  int i;
+//  int i;
 //  int k;
   double *state = GNUNET_malloc (sizeof (double) * agent->m);
-  struct RIL_Address_Wrapped *cur_address;
+//  struct RIL_Address_Wrapped *cur_address;
 //  const double *preferences;
 //  const double *properties;
   struct RIL_Network *net;
 
   //copy global networks state
-  for (i = 0; i < solver->networks_count * RIL_FEATURES_NETWORK_COUNT; i++)
-  {
+//  for (i = 0; i < solver->networks_count * RIL_FEATURES_NETWORK_COUNT; i++)
+//  {
 //    state[i] = solver->global_state_networks[i];
-  }
+//  }
+
   net = agent->address_inuse->solver_information;
 
-  state[0] = (double) net->bw_in_assigned / 1024; //(double) net->bw_in_available;
-  if (net->bw_in_assigned > net->bw_in_available)
-  {
-    state[1] = 1;// net->bw_in_available;
-  }
-  else
-  {
-    state[1] = 0;
-  }
+  state[0] = 1;
+  state[1] = (double) net->bw_in_assigned / (double) GNUNET_ATS_MaxBandwidth;
+  state[2] = GNUNET_MIN((double) (net->bw_in_available - net->bw_in_assigned), 0) / (double) GNUNET_ATS_MaxBandwidth;
+
 //  LOG(GNUNET_ERROR_TYPE_INFO, "get_state()  state[0] = %f\n", state[0]);
 //  LOG(GNUNET_ERROR_TYPE_INFO, "get_state()  state[1] = %f\n", state[1]);
 //
@@ -798,8 +795,8 @@ envi_get_state (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
 //  }
 
   //get address specific features
-  for (cur_address = agent->addresses_head; NULL != cur_address; cur_address = cur_address->next)
-  {
+//  for (cur_address = agent->addresses_head; NULL != cur_address; cur_address = cur_address->next)
+//  {
 //    //when changing the number of address specific state features, change RIL_FEATURES_ADDRESS_COUNT macro
 //    state[i++] = cur_address->address_naked->active;
 //    state[i++] = cur_address->address_naked->active ? agent->bw_in : 0;
@@ -810,7 +807,7 @@ envi_get_state (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
 //    {
 //      state[i++] = properties[k];
 //    }
-  }
+//  }
 
   return state;
 }
@@ -1634,7 +1631,7 @@ agent_init (void *s, const struct GNUNET_PeerIdentity *peer)
   agent->bw_out = MIN_BW;
   agent->suggestion_issue = GNUNET_NO;
   agent->n = RIL_ACTION_TYPE_NUM;
-  agent->m = (RIL_FEATURES_NETWORK_COUNT);// + GNUNET_ATS_PreferenceCount;
+  agent->m = RIL_FEATURES_INIT_COUNT;
   agent->W = (double **) GNUNET_malloc (sizeof (double *) * agent->n);
   for (i = 0; i < agent->n; i++)
   {
