@@ -186,6 +186,15 @@ GNUNET_CONTAINER_bloomfilter_free (struct GNUNET_CONTAINER_BloomFilter *bf);
 
 
 /**
+ * Get the number of the addresses set per element in the bloom filter.
+ *
+ * @param bf the filter
+ * @return addresses set per element in the bf
+ */
+size_t
+GNUNET_CONTAINER_bloomfilter_get_element_addresses (const struct GNUNET_CONTAINER_BloomFilter *bf);
+
+/**
  * @ingroup bloomfilter
  * Get size of the bloom filter.
  *

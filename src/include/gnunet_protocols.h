@@ -1839,6 +1839,11 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_BF 592
 
+/**
+ * Bloom filter message for intersection exchange started by Bob.
+ */
+#define GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_BF_PART 593
+
 /*******************************************************************************
  * TESTBED LOGGER message types
  ******************************************************************************/

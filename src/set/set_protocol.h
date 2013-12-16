@@ -101,11 +101,6 @@ struct BFMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Padding, must be 0.
-   */
-  uint8_t reserved;
-
-  /**
    * mutator used with this bloomfilter.
    */
   uint32_t sender_element_count GNUNET_PACKED;
@@ -120,6 +115,28 @@ struct BFMessage
    */
   uint32_t bloomfilter_total_length GNUNET_PACKED;
   
+  /**
+   * Length of the appended bloomfilter data block
+   */
+  uint32_t bloomfilter_length GNUNET_PACKED;
+  
+  /**
+   * Length of the bloomfilter data
+   */
+  uint32_t bits_per_element GNUNET_PACKED;
+  
+  /**
+   * rest: the sender's bloomfilter
+   */
+};
+
+struct BFPart
+{
+  /**
+   * Type: GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_BF
+   */
+  struct GNUNET_MessageHeader header;
+
   /**
    * Length of the appended bloomfilter data block
    */
