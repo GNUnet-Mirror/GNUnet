@@ -1275,9 +1275,8 @@ GMC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
   msg = (struct GNUNET_MESH_ConnectionCreate *) message;
   cid = &msg->cid;
   id = (struct GNUNET_PeerIdentity *) &msg[1];
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-              "    connection %s (%s).\n",
-              GNUNET_h2s (cid), GNUNET_i2s (id));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "    connection %s (%s->).\n",
+       GNUNET_h2s (cid), GNUNET_i2s (id));
 
   /* Create connection */
   c = connection_get (cid);
@@ -1352,7 +1351,8 @@ GMC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  Retransmitting.\n");
     GMP_add_path (dest_peer, path_duplicate (path), GNUNET_NO);
     GMP_add_path_to_origin (orig_peer, path_duplicate (path), GNUNET_NO);
-    GMC_send_prebuilt_message (message, c, GNUNET_YES, GNUNET_YES, NULL, NULL);
+    GMC_send_prebuilt_message (message, c, GNUNET_YES, GNUNET_YES,
+                               NULL, NULL);
   }
   path_destroy (path);
   return GNUNET_OK;
@@ -2705,7 +2705,7 @@ GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
                         &message_sent, q);
   if (NULL == q->q)
   {
-    GNUNET_break (0);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "WARNING dropping msg on %s\n", GMC_2s (c));
     GNUNET_free (data);
     GNUNET_free (q);
     return NULL;

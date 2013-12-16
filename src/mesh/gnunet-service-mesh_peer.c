@@ -997,7 +997,9 @@ GMP_queue_add (struct MeshPeer *peer, void *cls, uint16_t type, size_t size,
   if (NULL == peer->connections)
   {
     /* We are not connected to this peer, ignore request. */
-    GNUNET_break_op (0);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "WARNING %s not a neighbor\n", GMP_2s (peer));
+    GNUNET_STATISTICS_update (stats, "# messages dropped due to wrong hop", 1,
+                              GNUNET_NO);
     return NULL;
   }
 
