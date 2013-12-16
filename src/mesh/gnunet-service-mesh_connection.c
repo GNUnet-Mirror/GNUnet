@@ -2280,8 +2280,6 @@ GMC_destroy (struct MeshConnection *c)
   GNUNET_STATISTICS_update (stats, "# connections", -1, GNUNET_NO);
   if (NULL != c->t)
     GMT_remove_connection (c->t, c);
-  else
-    GNUNET_break (0);
 
   if (GNUNET_NO == GMC_is_origin (c, GNUNET_YES))
     path_destroy (c->path);
