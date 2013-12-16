@@ -2001,7 +2001,7 @@ GMT_use_path (struct MeshTunnel3 *t, struct MeshPeerPath *p)
   }
   if (own_pos > p->length - 1)
   {
-    GNUNET_break (0);
+    GNUNET_break_op (0);
     return NULL;
   }
 

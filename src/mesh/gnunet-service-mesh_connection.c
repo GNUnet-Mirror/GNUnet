@@ -1151,7 +1151,7 @@ register_neighbors (struct MeshConnection *c)
     if (GMC_is_origin (c, GNUNET_YES))
       GNUNET_STATISTICS_update (stats, "# local bad paths", 1, GNUNET_NO);
     GNUNET_STATISTICS_update (stats, "# bad paths", 1, GNUNET_NO);
-    
+
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  register neighbors failed\n");
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  prev: %s, %d\n",
          GMP_2s (prev_peer), GMP_is_neighbor (prev_peer));
@@ -1292,7 +1292,7 @@ GMC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
     }
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  Own position: %u\n", own_pos);
     GMP_add_path_to_all (path, GNUNET_NO);
-        LOG (GNUNET_ERROR_TYPE_DEBUG, "  Creating connection\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  Creating connection\n");
     c = GMC_new (cid, NULL, path_duplicate (path), own_pos);
     if (NULL == c)
     {
@@ -2204,20 +2204,17 @@ GMC_new (const struct GNUNET_HashCode *cid,
 
   c = GNUNET_new (struct MeshConnection);
   c->id = *cid;
-  GNUNET_CONTAINER_multihashmap_put (connections, &c->id, c,
-                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_CONTAINER_multihashmap_put (connections,
+                                                    &c->id, c,
+                                                    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   fc_init (&c->fwd_fc);
   fc_init (&c->bck_fc);
   c->fwd_fc.c = c;
   c->bck_fc.c = c;
 
   c->t = t;
-  if (own_pos > p->length - 1)
-  {
-    GNUNET_break (0);
-    GMC_destroy (c);
-    return NULL;
-  }
+  GNUNET_assert (own_pos <= p->length - 1);
   c->own_pos = own_pos;
   c->path = p;
 
