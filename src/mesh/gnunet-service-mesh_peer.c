@@ -757,8 +757,6 @@ search_handler (void *cls, const struct MeshPeerPath *path)
  * @param buf Where the to write the message.
  *
  * @return number of bytes written to buf
- *
- * FIXME add GNUNET_MESSAGE_TYPE_MESH_KEEPALIVE
  */
 static size_t
 queue_send (void *cls, size_t size, void *buf)
@@ -770,7 +768,8 @@ queue_send (void *cls, size_t size, void *buf)
   size_t data_size;
 
   peer->core_transmit = NULL;
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "* Queue send (max %u)\n", size);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "* Queue send towards %s (max %u)\n",
+       GMP_2s (peer), size);
 
   if (NULL == buf || 0 == size)
   {
@@ -788,7 +787,6 @@ queue_send (void *cls, size_t size, void *buf)
   c = queue->c;
 
   dst_id = GNUNET_PEER_resolve2 (peer->id);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "*   towards %s\n", GNUNET_i2s (dst_id));
   LOG (GNUNET_ERROR_TYPE_DEBUG, "*   on connection %s\n", GMC_2s (c));
   /* Check if buffer size is enough for the message */
   if (queue->size > size)
