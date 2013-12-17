@@ -158,6 +158,9 @@ def run ():
 		cleanup ()
 		sys.exit(success)
 	
+	# Server has to settle down
+	time.sleep(5)
+	
 	client = Peer(test, './confs/c_no_nat_client.conf');
 	if (True != client.start()):
 		print 'Failed to start client'
