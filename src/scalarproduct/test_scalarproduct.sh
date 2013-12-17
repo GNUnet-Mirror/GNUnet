@@ -13,10 +13,11 @@ CFGBOB="-c $PREFIX/1/config"
 
 # launch two peers in line topology non-interactively
 #
-# interactive mode would terminate the test immediately 
-# because the rest of the script is already in stdin, 
+# interactive mode would terminate the test immediately
+# because the rest of the script is already in stdin,
 # thus redirecting stdin does not suffice)
-GNUNET_LOG='scalarproduct;;;;DEBUG' GNUNET_TESTING_PREFIX=$PREFIX ../testbed/gnunet-testbed-profiler -n -c test_scalarproduct.conf -p 2 &
+#GNUNET_LOG='scalarproduct;;;;DEBUG'
+GNUNET_TESTING_PREFIX=$PREFIX ../testbed/gnunet-testbed-profiler -n -c test_scalarproduct.conf -p 2 &
 PID=$!
 # sleep 1 is too short on most systems, 2 works on most, 5 seems to be safe
 sleep 5
@@ -24,11 +25,13 @@ sleep 5
 # get bob's peer ID, necessary for alice
 PEERIDBOB=`gnunet-peerinfo -qs $CFGBOB`
 
-GNUNET_LOG=';;;;DEBUG' gnunet-scalarproduct $CFGBOB $INPUTBOB &
-RESULT=`GNUNET_LOG=';;;;DEBUG' gnunet-scalarproduct $CFGALICE $INPUTALICE -p $PEERIDBOB`
+#GNUNET_LOG=';;;;DEBUG'
+gnunet-scalarproduct $CFGBOB $INPUTBOB &
+GNUNET_LOG=';;;;DEBUG'
+RESULT=`gnunet-scalarproduct $CFGALICE $INPUTALICE -p $PEERIDBOB`
 
 # terminate the testbed
-kill $PID 
+kill $PID
 
 EXPECTED="0CCC"
 if [ "$RESULT" == "$EXPECTED" ]
