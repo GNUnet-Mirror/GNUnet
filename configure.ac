@@ -410,7 +410,7 @@ fi
 
 
 # libgnurl
-LIBGNURL_CHECK_CONFIG(,7.33.0,gnurl=1,gnurl=0)
+LIBGNURL_CHECK_CONFIG(,7.34.0,gnurl=1,gnurl=0)
 if test "$gnurl" = 1
 then
 	AM_CONDITIONAL(HAVE_LIBGNURL, true)
