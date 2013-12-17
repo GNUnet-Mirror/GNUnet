@@ -1750,13 +1750,12 @@ handle_mesh_encrypted (const struct GNUNET_PeerIdentity *peer,
   /* Is this message for us? */
   if (GMC_is_terminal (c, fwd))
   {
-    /* TODO signature verification */
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  message for us!\n");
     GNUNET_STATISTICS_update (stats, "# messages received", 1, GNUNET_NO);
 
     if (NULL == c->t)
     {
-      GNUNET_break (0);
+      GNUNET_break (GNUNET_NO != c->destroy);
       return GNUNET_OK;
     }
     fc->last_pid_recv = pid;
