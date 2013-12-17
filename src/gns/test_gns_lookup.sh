@@ -9,11 +9,11 @@ fi
 $LOCATION --version
 if test $? != 0
 then
-	echo "GNUnet command line tools cannot be found, check environmental variables PATH and GNUNET_PREFIX" 
+	echo "GNUnet command line tools cannot be found, check environmental variables PATH and GNUNET_PREFIX"
 	exit 77
 fi
 
-rm -r `gnunet-config -c test_gns_lookup.conf -s PATHS -o GNUNET_HOME -f`
+rm -rf `gnunet-config -c test_gns_lookup.conf -s PATHS -o GNUNET_HOME -f`
 which timeout &> /dev/null && DO_TIMEOUT="timeout 30"
 TEST_IP="127.0.0.1"
 gnunet-arm -s -c test_gns_lookup.conf
