@@ -2822,7 +2822,6 @@ setup_sockets (struct Plugin *plugin,
     plugin->sockv6 = GNUNET_NETWORK_socket_create (PF_INET6, SOCK_DGRAM, 0);
     if (NULL == plugin->sockv6)
     {
-    	GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "socket");
       LOG (GNUNET_ERROR_TYPE_WARNING, "Disabling IPv6 since it is not supported on this system!\n");
       plugin->enable_ipv6 = GNUNET_NO;
     }
