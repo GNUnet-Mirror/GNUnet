@@ -19,12 +19,14 @@
 #
 # 
 #
-# This test starts 3 peers and expects bootstrap and a connected clique
+# This test starts 3 peers (nated, server, no nat)and expects bootstrap 
+# and a connected clique
 #
 # Conditions for successful exit:
-# Both peers have 1 connected peer in transport, core, topology, fs 
+# Both peers have 2 connected peers in transport, core, topology, fs and dht 
 
 import sys
+import signal
 import os
 import subprocess
 import re
@@ -68,7 +70,7 @@ def cleanup ():
     if (os.path.exists(path)):
         test.p ("Failed to remove " + path)     
         retries = 10
-    path = os.path.join (tmp, "c_no_nat_client_2")  
+    path = os.path.join (tmp, "c_nat_client")  
     test.p ("Removing " + path)      
     while ((os.path.exists(path)) and (retries > 0)):
         shutil.rmtree ((path), False)
@@ -81,65 +83,13 @@ def cleanup ():
 def success_cont (check):
     global success 
     success = True;
+    print 'Connected clique successfully'
 
 def fail_cont (check):    
     global success 
     success= False;
-    check.evaluate(True)        
-
-
-def check_disconnect_client ():
-  test.p ('Shutting down bootstrap client')
-  client.stop ()
-  check = Check (test)
-  
-  check.add (StatisticsCondition (client2, 'transport', '# peers connected',0))
-  check.add (StatisticsCondition (client2, 'core', '# neighbour entries allocated',0))  
-  check.add (StatisticsCondition (client2, 'core', '# peers connected',0))
-  check.add (StatisticsCondition (client2, 'topology', '# peers connected',0))
-  check.add (StatisticsCondition (client2, 'fs', '# peers connected',0))
-  
-  check.run_blocking (check_timeout, success_cont, fail_cont)
-
-		
-def success_disconnect_server_cont (check):
-    check_disconnect_client ()
-
-
-def fail_disconnect_server_cont (check):    
-    global success 
-    success= False;
-    check.evaluate(True)        
-
-        
-def check_disconnect_server ():
-  test.p ('Shutting down bootstrap server')
-  server.stop ()
-  check = Check (test)
-  check.add (StatisticsCondition (client, 'transport', '# peers connected',1))
-  check.add (StatisticsCondition (client, 'core', '# neighbour entries allocated',1))  
-  check.add (StatisticsCondition (client, 'core', '# peers connected',1))
-  check.add (StatisticsCondition (client, 'topology', '# peers connected',1))
-  check.add (StatisticsCondition (client, 'fs', '# peers connected',1))
-  
-  check.add (StatisticsCondition (client2, 'transport', '# peers connected',1))
-  check.add (StatisticsCondition (client2, 'core', '# neighbour entries allocated',1))  
-  check.add (StatisticsCondition (client2, 'core', '# peers connected',1))
-  check.add (StatisticsCondition (client2, 'topology', '# peers connected',1))
-  check.add (StatisticsCondition (client2, 'fs', '# peers connected',1))
-  
-  check.run_blocking (check_timeout, success_disconnect_server_cont, fail_disconnect_server_cont)
-
-
-def success_connect_cont (check):
-    check_disconnect_server ()
-
-
-def fail_connect_cont (check):    
-    global success 
-    success= False;
     check.evaluate(True)
-
+    print 'Failed to connect clique'
 
 def check_connect ():
   check = Check (test)
@@ -147,52 +97,96 @@ def check_connect ():
   check.add (StatisticsCondition (client, 'core', '# neighbour entries allocated',2))  
   check.add (StatisticsCondition (client, 'core', '# peers connected',2))
   check.add (StatisticsCondition (client, 'topology', '# peers connected',2))
+  check.add (StatisticsCondition (client, 'dht', '# peers connected',2))
   check.add (StatisticsCondition (client, 'fs', '# peers connected',2))
 
-  check.add (StatisticsCondition (client2, 'transport', '# peers connected',2))
-  check.add (StatisticsCondition (client2, 'core', '# neighbour entries allocated',2))  
-  check.add (StatisticsCondition (client2, 'core', '# peers connected',2))
-  check.add (StatisticsCondition (client2, 'topology', '# peers connected',2))
-  check.add (StatisticsCondition (client2, 'fs', '# peers connected',2))
+  check.add (StatisticsCondition (client_nat, 'transport', '# peers connected',2))
+  check.add (StatisticsCondition (client_nat, 'core', '# neighbour entries allocated',2))  
+  check.add (StatisticsCondition (client_nat, 'core', '# peers connected',2))
+  check.add (StatisticsCondition (client_nat, 'topology', '# peers connected',2))
+  check.add (StatisticsCondition (client_nat, 'dht', '# peers connected',2))
+  check.add (StatisticsCondition (client_nat, 'fs', '# peers connected',2))
   
   check.add (StatisticsCondition (server, 'transport', '# peers connected',2))
   check.add (StatisticsCondition (server, 'core', '# neighbour entries allocated',2))  
   check.add (StatisticsCondition (server, 'core', '# peers connected',2))
   check.add (StatisticsCondition (server, 'topology', '# peers connected',2))
+  check.add (StatisticsCondition (server, 'dht', '# peers connected',2))
   check.add (StatisticsCondition (server, 'fs', '# peers connected',2))  
   
-  check.run_blocking (check_timeout, success_connect_cont, fail_connect_cont)
+  check.run_blocking (check_timeout, success_cont, fail_cont)
 
 # 
 # Test execution
 # 
+
+def SigHandler(signum = None, frame = None):
+	global success	
+	global server
+	global client
+	global client_nat    
+	
+	print 'Test was aborted!'
+	if (None != server):
+		server.stop ()
+	if (None != client):		
+		client.stop ()
+	if (None != client_nat):		
+		client_nat.stop ()		
+	cleanup ()
+	sys.exit(success)
+
 def run ():
 	global success
 	global test
 	global server
 	global client
-	global client2	
+	global client_nat	
 	
 	success = False
-	test = Test ('test_integration_disconnect', verbose)
+	server = None
+	client = None
+	client_nat = None
+	test = Test ('test_integration_clique', verbose)
 	cleanup ()
 	
 	server = Peer(test, './confs/c_bootstrap_server.conf');
-	server.start();
+	if (True != server.start()):
+		print 'Failed to start server'
+		if (None != server):
+			server.stop ()
+		cleanup ()
+		sys.exit(success)
 	
 	client = Peer(test, './confs/c_no_nat_client.conf');
-	client.start();
+	if (True != client.start()):
+		print 'Failed to start client'
+		if (None != server):
+			server.stop ()
+		if (None != client):
+			client.stop ()			
+		cleanup ()
+		sys.exit(success)
 	
-	client2 = Peer(test, './confs/c_no_nat_client_2.conf');
-	client2.start();
+	client_nat = Peer(test, './confs/c_nat_client.conf');
+	if (True != client_nat.start()):
+		print 'Failed to start client_nat'
+		if (None != server):
+			server.stop ()
+		if (None != client):
+			client.stop ()
+		if (None != client_nat):
+			client_nat.stop ()								
+		cleanup ()
+		sys.exit(success)	
 	
-	if ((client.started == True) and (client2.started == True) and (server.started == True)):
+	if ((client.started == True) and (client_nat.started == True) and (server.started == True)):
 	    test.p ('Peers started, running check')
 	    check_connect ()
 	    
 	server.stop ()    
 	client.stop ()
-	client2.stop ()
+	client_nat.stop ()
 	
 	cleanup ()
 	
@@ -209,7 +203,7 @@ except (KeyboardInterrupt, SystemExit):
     print 'Test interrupted'
     server.stop ()
     client.stop ()
-    client2.stop ()
+    client_nat.stop ()
     cleanup ()
 if (success == False):
 	sys.exit(1)   

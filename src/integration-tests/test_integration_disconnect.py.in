@@ -123,7 +123,7 @@ def SigHandler(signum = None, frame = None):
 	print 'Test was aborted!'
 	if (None != server):
 		server.stop ()
-	if (None != server):		
+	if (None != client):		
 		client.stop ()
 	cleanup ()
 	sys.exit(success)
@@ -151,15 +151,13 @@ def run ():
 		print 'Failed to start server'
 		if (None != server):
 			server.stop ()
-		if (None != server):		
-			client.stop ()
 		cleanup ()
 		sys.exit(success)
 	if (True != client.start()):
 		print 'Failed to start client'
 		if (None != server):
 			server.stop ()
-		if (None != server):		
+		if (None != client):		
 			client.stop ()
 		cleanup ()
 		sys.exit(success)

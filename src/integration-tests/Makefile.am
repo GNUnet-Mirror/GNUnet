@@ -18,10 +18,8 @@ check_SCRIPTS = \
   test_integration_bootstrap_and_connect.py \
   test_integration_disconnect.py \
   test_integration_reconnect.py \
-  test_integration_reconnect_nat.py    
-#  test_integration_bootstrap_and_connect_and_disconnect.py \
-# test_integration_bootstrap_and_connect_and_disconnect_nat.py \
-# test_integration_clique.py \
+  test_integration_reconnect_nat.py \    
+  test_integration_clique.py
 # test_integration_clique_nat.py \
 # test_integration_connect_on_restart.py
 endif
@@ -64,28 +62,9 @@ test_integration_reconnect_nat.py: test_integration_reconnect_nat.py.in Makefile
 	$(do_subst) < $(srcdir)/test_integration_reconnect_nat.py.in > test_integration_reconnect_nat.py
 	chmod +x test_integration_reconnect_nat.py
 
-
-
-
-#test_integration_bootstrap_and_connect_and_disconnect.py: test_integration_bootstrap_and_connect_and_disconnect.py.in Makefile
-#	$(do_subst) < $(srcdir)/test_integration_bootstrap_and_connect_and_disconnect.py.in > test_integration_bootstrap_and_connect_and_disconnect.py
-#	chmod +x test_integration_bootstrap_and_connect_and_disconnect.py
-
-#test_integration_bootstrap_and_connect_and_disconnect_nat.py: test_integration_bootstrap_and_connect_and_disconnect_nat.py.in Makefile
-#	$(do_subst) < $(srcdir)/test_integration_bootstrap_and_connect_and_disconnect_nat.py.in > test_integration_bootstrap_and_connect_and_disconnect_nat.py
-#	chmod +x test_integration_bootstrap_and_connect_and_disconnect_nat.py
-
-
-
-#test_integration_disconnect_nat.py: test_integration_disconnect_nat.py.in Makefile
-#	$(do_subst) < $(srcdir)/test_integration_disconnect_nat.py.in > test_integration_disconnect_nat.py
-#	chmod +x test_integration_disconnect_nat.py
-
-
-
-#test_integration_clique.py: test_integration_clique.py.in Makefile
-#	$(do_subst) < $(srcdir)/test_integration_clique.py.in > test_integration_clique.py
-#	chmod +x test_integration_clique.py
+test_integration_clique.py: test_integration_clique.py.in Makefile
+	$(do_subst) < $(srcdir)/test_integration_clique.py.in > test_integration_clique.py
+	chmod +x test_integration_clique.py
 
 #test_integration_clique_nat.py: test_integration_clique_nat.py.in Makefile
 #	$(do_subst) < $(srcdir)/test_integration_clique_nat.py.in > test_integration_clique_nat.py
@@ -100,13 +79,10 @@ EXTRA_DIST = \
    gnunet_testing.py.in \
    gnunet_pyexpect.py.in \
    test_integration_bootstrap_and_connect.py.in \
-   test_integration_bootstrap_and_connect_and_disconnect.py.in \
-   test_integration_bootstrap_and_connect_and_disconnect_nat.py.in \
-   test_integration_connect_on_restart.py.in \
    test_integration_disconnect.py.in \
    test_integration_reconnect.py.in \
+   test_integration_reconnect_nat.py.in \
    test_integration_clique.py.in \
-   test_integration_clique_nat.py.in \
    confs/test_defaults.conf \
    confs/c_bootstrap_server.conf \
    confs/c_nat_client.conf \
@@ -115,14 +91,8 @@ EXTRA_DIST = \
    hostkeys/c_bootstrap_server \
    hostkeys/c_no_nat_client \
    hostkeys/c_no_nat_client_2 \
-   hostkeys/c_nat_client \
-   hostkeys/0004-hostkey \
-   hostkeys/0005-hostkey \
-   hostkeys/0006-hostkey \
-   hostkeys/0007-hostkey \
-   hostkeys/0008-hostkey \
-   hostkeys/0009-hostkey
-#   test_integration_disconnect_nat.py
+   hostkeys/c_nat_client
+#   test_integration_clique_nat.py.in
 
 CLEANFILES = \
 	$(check_SCRIPTS) \
