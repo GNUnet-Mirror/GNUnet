@@ -1,0 +1,198 @@
+#!@PYTHON@
+#    This file is part of GNUnet.
+#    (C) 2010 Christian Grothoff (and other contributing authors)
+#
+#    GNUnet is free software; you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published
+#    by the Free Software Foundation; either version 2, or (at your
+#    option) any later version.
+#
+#    GNUnet is distributed in the hope that it will be useful, but
+#    WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+#    General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with GNUnet; see the file COPYING.  If not, write to the
+#    Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+#    Boston, MA 02111-1307, USA.
+#
+# 
+import sys
+import signal
+import os
+import subprocess
+import re
+import shutil
+import time
+from gnunet_testing import Peer
+from gnunet_testing import Test
+from gnunet_testing import Check
+from gnunet_testing import Condition
+from gnunet_testing import * 
+ 
+
+#
+# This test tests if a fresh peer bootstraps from a hostlist server and then
+# successfully connects to the server. When both peers are connected
+# in transport, core, topology, fs, the server is shutdown
+#
+# Conditions for successful exit:
+# Client peer has 0 connected peer in transport, core, topology, dht, fs
+
+#definitions
+
+testname = "test_integration_disconnect"
+verbose = True
+check_timeout = 180
+
+if os.name == "nt":
+  tmp = os.getenv ("TEMP")
+else:
+  tmp = "/tmp"
+
+def cleanup ():
+  shutil.rmtree (os.path.join (tmp, "c_bootstrap_server"), True)
+  shutil.rmtree (os.path.join (tmp, "c_nat_client"), True)
+
+
+def success_disconnect_cont (check):
+	print 'Peers disconnected successfully'
+	global success 
+	success = True;
+
+
+def fail_disconnect_cont (check):    
+	global success 
+	success = False;
+	print 'Peers failed to disconnect'
+	check.evaluate(True)   
+  
+def check_disconnect ():
+  global server
+  global nat_client  
+  test.p ('Shutting down nat client')
+  nat_client.stop ()
+  check = Check (test)
+  check.add (StatisticsCondition (server, 'transport', '# peers connected',0))
+  check.add (StatisticsCondition (server, 'core', '# neighbour entries allocated',0))  
+  check.add (StatisticsCondition (server, 'core', '# peers connected',0))
+  check.add (StatisticsCondition (server, 'topology', '# peers connected',0))
+  check.add (StatisticsCondition (server, 'dht', '# peers connected',0))
+  check.add (StatisticsCondition (server, 'fs', '# peers connected',0))
+  check.run_blocking (check_timeout, success_disconnect_cont, fail_disconnect_cont)
+
+
+def success_connect_cont (check):
+	print 'Peers connected successfully'
+	check_disconnect ()
+
+
+def fail_connect_cont (check):    
+  global success 
+  success= False
+  print 'Peers failed to connected!'    
+  check.evaluate(True)
+
+
+def check_connect ():
+  global server
+  global nat_client  
+  check = Check (test)
+  check.add (StatisticsCondition (nat_client, 'transport', '# peers connected',1))
+  check.add (StatisticsCondition (nat_client, 'core', '# neighbour entries allocated',1))  
+  check.add (StatisticsCondition (nat_client, 'core', '# peers connected',1))
+  check.add (StatisticsCondition (nat_client, 'topology', '# peers connected',1))
+  check.add (StatisticsCondition (nat_client, 'dht', '# peers connected',1))
+  check.add (StatisticsCondition (nat_client, 'fs', '# peers connected',1))
+  
+  check.add (StatisticsCondition (server, 'transport', '# peers connected',1))
+  check.add (StatisticsCondition (server, 'core', '# neighbour entries allocated',1))  
+  check.add (StatisticsCondition (server, 'core', '# peers connected',1))
+  check.add (StatisticsCondition (server, 'topology', '# peers connected',1))
+  check.add (StatisticsCondition (server, 'dht', '# peers connected',1))
+  check.add (StatisticsCondition (server, 'fs', '# peers connected',1))  
+  
+  check.run_blocking (check_timeout, success_connect_cont, fail_connect_cont)
+
+# 
+# Test execution
+# 
+
+def SigHandler(signum = None, frame = None):
+	global success	
+	global server
+	global nat_client  
+	
+	print 'Test was aborted!'
+	if (None != server):
+		server.stop ()
+	if (None != nat_client):		
+		nat_client.stop ()
+	cleanup ()
+	sys.exit(success)
+
+def run ():
+	global success
+	global test
+	global server
+	global nat_client    
+	
+	server = None
+	nat_client = None
+	success = False  
+	
+	for sig in [signal.SIGTERM, signal.SIGINT, signal.SIGHUP, signal.SIGQUIT]:
+		signal.signal(sig, SigHandler)
+
+	test = Test ('test_integration_bootstrap_and_connect.py', verbose)
+	cleanup ()
+	
+	server = Peer(test, './confs/c_bootstrap_server.conf');
+	nat_client = Peer(test, './confs/c_nat_client.conf');
+	
+	if (True != server.start()):
+		print 'Failed to start server'
+		if (None != server):
+			server.stop ()
+		cleanup ()
+		sys.exit(success)
+	if (True != nat_client.start()):
+		print 'Failed to start nat_client'
+		if (None != server):
+			server.stop ()
+		if (None != nat_client):		
+			nat_client.stop ()
+		cleanup ()
+		sys.exit(success)
+	
+	if ((nat_client.started == True) and (server.started == True)):
+		test.p ('Peers started, running check')
+		time.sleep(5)
+		check_connect ()
+	server.stop ()
+	nat_client.stop ()
+	
+	cleanup ()
+	
+	if (success == False):
+		print ('Test failed')
+		return False 
+	else:
+		return True
+
+try:
+	run ()
+except (KeyboardInterrupt, SystemExit):    
+	print 'Test interrupted'
+	server.stop ()
+	nat_client.stop ()
+	cleanup ()
+if (success == False):
+	sys.exit(1)   
+else:
+	sys.exit(0)    
+     
+	
+     
+	
