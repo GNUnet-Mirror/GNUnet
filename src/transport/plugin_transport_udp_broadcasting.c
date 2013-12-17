@@ -599,13 +599,19 @@ setup_broadcast (struct Plugin *plugin,
   const struct GNUNET_MessageHeader *hello;
 
   hello = plugin->env->get_our_hello ();
-  if (GNUNET_YES == GNUNET_HELLO_is_friend_only((const struct GNUNET_HELLO_Message *) hello))
+  if (GNUNET_YES ==
+      GNUNET_HELLO_is_friend_only ((const struct GNUNET_HELLO_Message *) hello))
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
          _("Disabling HELLO broadcasting due to friend-to-friend only configuration!\n"));
     return;
   }
 
+  /* always create tokenizers */
+  plugin->broadcast_ipv4_mst =
+    GNUNET_SERVER_mst_create (&broadcast_ipv4_mst_cb, plugin);
+  plugin->broadcast_ipv6_mst =
+    GNUNET_SERVER_mst_create (&broadcast_ipv6_mst_cb, plugin);
   /* create IPv4 broadcast socket */
   if ((GNUNET_YES == plugin->enable_ipv4) && (NULL != plugin->sockv4))
   {
@@ -619,12 +625,6 @@ setup_broadcast (struct Plugin *plugin,
            _("Failed to set IPv4 broadcast option for broadcast socket on port %d\n"),
            ntohs (server_addrv4->sin_port));
     }
-    else
-    {
-      plugin->broadcast_ipv4_mst =
-          GNUNET_SERVER_mst_create (broadcast_ipv4_mst_cb, plugin);
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "IPv4 Broadcasting running\n");
-    }
   }
   if ((GNUNET_YES == plugin->enable_ipv6) && (plugin->sockv6 != NULL))
   {
@@ -634,8 +634,6 @@ setup_broadcast (struct Plugin *plugin,
                               &plugin->ipv6_multicast_address.sin6_addr));
     plugin->ipv6_multicast_address.sin6_family = AF_INET6;
     plugin->ipv6_multicast_address.sin6_port = htons (plugin->port);
-    plugin->broadcast_ipv6_mst =
-      GNUNET_SERVER_mst_create (broadcast_ipv6_mst_cb, plugin);
   }
   GNUNET_OS_network_interfaces_list (&iface_proc, plugin);
 }
@@ -687,10 +685,16 @@ stop_broadcast (struct Plugin *plugin)
     GNUNET_free (p->addr);
     GNUNET_free (p);
   }
-  if (plugin->broadcast_ipv4_mst != NULL)
+  if (NULL != plugin->broadcast_ipv4_mst)
+  {
     GNUNET_SERVER_mst_destroy (plugin->broadcast_ipv4_mst);
-  if (plugin->broadcast_ipv6_mst != NULL)
+    plugin->broadcast_ipv4_mst = NULL;
+  }
+  if (NULL != plugin->broadcast_ipv6_mst)
+  {
     GNUNET_SERVER_mst_destroy (plugin->broadcast_ipv6_mst);
+    plugin->broadcast_ipv6_mst = NULL;
+  }
 }
 
 /* end of plugin_transport_udp_broadcasting.c */
