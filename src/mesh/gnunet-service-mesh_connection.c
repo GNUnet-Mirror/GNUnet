@@ -448,7 +448,7 @@ send_ack (struct MeshConnection *c, unsigned int buffer, int fwd, int force)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "connection %s is origin in %s\n",
          GMC_2s (c), GM_f2s (fwd));
-    GNUNET_assert (0);
+    GNUNET_assert (0); /* FIXME */
     return;
   }
 
@@ -1221,6 +1221,67 @@ add_to_peer (struct MeshConnection *c, struct MeshPeer *peer)
   GMT_add_connection (c->t, c);
 }
 
+
+/**
+ * Builds a path from a PeerIdentity array.
+ *
+ * @param peers PeerIdentity array.
+ * @param size Size of the @c peers array.
+ * @param own_pos Output parameter: own position in the path.
+ *
+ * @return Fixed and shortened path.
+ */
+static struct MeshPeerPath *
+build_path_from_peer_ids (struct GNUNET_PeerIdentity *peers,
+                          unsigned int size,
+                          unsigned int *own_pos)
+{
+  struct MeshPeerPath *path;
+  GNUNET_PEER_Id shortid;
+  unsigned int i;
+  unsigned int j;
+  unsigned int offset;
+
+  /* Create path */
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  Creating path...\n");
+  path = path_new (size);
+  *own_pos = 0;
+  offset = 0;
+  for (i = 0; i < size; i++)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  - %u: taking %s\n",
+         i, GNUNET_i2s (&peers[i]));
+    shortid = GNUNET_PEER_intern (&peers[i]);
+
+    /* Check for loops / duplicates */
+    for (j = 0; j < i - offset; j++)
+    {
+      if (path->peers[j] == shortid)
+      {
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "    already exists at pos %u\n", j);
+        offset += i - j;
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "    offset now\n", offset);
+        GNUNET_PEER_change_rc (shortid, -1);
+      }
+    }
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "    storing at %u\n", i - offset);
+    path->peers[i - offset] = shortid;
+    if (path->peers[i] == myid)
+      *own_pos = i;
+  }
+  path->length -= offset;
+
+  if (path->peers[*own_pos] != myid)
+  {
+    /* create path: self not found in path through self */
+    GNUNET_break_op (0);
+    path_destroy (path);
+    return NULL;
+  }
+
+  return path;
+}
+
 /******************************************************************************/
 /********************************    API    ***********************************/
 /******************************************************************************/
@@ -1248,7 +1309,6 @@ GMC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
   struct MeshConnection *c;
   unsigned int own_pos;
   uint16_t size;
-  uint16_t i;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "\n\n");
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Received a connection create msg\n");
@@ -1287,25 +1347,10 @@ GMC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
   c = connection_get (cid);
   if (NULL == c)
   {
-    /* Create path */
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  Creating path...\n");
-    path = path_new (size);
-    own_pos = 0;
-    for (i = 0; i < size; i++)
-    {
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "  ... adding %s\n",
-                  GNUNET_i2s (&id[i]));
-      path->peers[i] = GNUNET_PEER_intern (&id[i]);
-      if (path->peers[i] == myid)
-        own_pos = i;
-    }
-    if (own_pos == 0 && path->peers[own_pos] != myid)
-    {
-      /* create path: self not found in path through self */
-      GNUNET_break_op (0);
-      path_destroy (path);
+    path = build_path_from_peer_ids ((struct GNUNET_PeerIdentity *) &msg[1],
+                                     size, &own_pos);
+    if (NULL == path)
       return GNUNET_OK;
-    }
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  Own position: %u\n", own_pos);
     GMP_add_path_to_all (path, GNUNET_NO);
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  Creating connection\n");
@@ -1585,7 +1630,7 @@ GMC_handle_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
   fwd = is_fwd (c, peer);
   if (GNUNET_SYSERR == fwd)
   {
-    GNUNET_break_op (0);
+    GNUNET_break_op (0); /* FIXME */
     return GNUNET_OK;
   }
   if (GNUNET_NO == GMC_is_terminal (c, fwd))

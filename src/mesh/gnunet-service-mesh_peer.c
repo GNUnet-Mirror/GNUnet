@@ -783,7 +783,7 @@ queue_send (void *cls, size_t size, void *buf)
   queue = peer_get_first_message (peer);
   if (NULL == queue)
   {
-    GNUNET_break (0); /* Core tmt_rdy should've been canceled */
+    GNUNET_assert (0); /* Core tmt_rdy should've been canceled FIXME */
     return 0;
   }
   c = queue->c;

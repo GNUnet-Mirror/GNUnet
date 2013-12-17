@@ -110,6 +110,8 @@ static struct GNUNET_CONTAINER_MultiHashMap32 *get_requests;
  * to obtain a local peer -> destination path and interning the peer ids.
  *
  * @return Newly allocated and created path
+ *
+ * FIXME refactor and use build_path_from_peer_ids
  */
 static struct MeshPeerPath *
 path_build_from_dht (const struct GNUNET_PeerIdentity *get_path,
@@ -269,7 +271,7 @@ announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 /**
- * Iterator over hash map entries and stop GET requests before disconnecting 
+ * Iterator over hash map entries and stop GET requests before disconnecting
  * from the DHT.
  *
  * @param cls Closure (unused)
