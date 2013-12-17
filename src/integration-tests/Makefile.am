@@ -16,14 +16,15 @@ noinst_SCRIPTS = \
 if HAVE_PYTHON
 check_SCRIPTS = \
   test_integration_bootstrap_and_connect.py \
-  test_integration_restart.py
+  test_integration_disconnect.py \
+  test_integration_restart.py  
 #  test_integration_bootstrap_and_connect_and_disconnect.py \
 # test_integration_bootstrap_and_connect_and_disconnect_nat.py \
 # test_integration_clique.py \
 # test_integration_clique_nat.py \
 # test_integration_connect_on_restart.py
 endif
-# test_integration_disconnect.py
+
 
 if HAVE_MHD
 if ENABLE_TEST_RUN
