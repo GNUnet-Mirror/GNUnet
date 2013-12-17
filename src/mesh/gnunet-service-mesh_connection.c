@@ -731,7 +731,7 @@ send_connection_ack (struct MeshConnection *connection, int fwd)
 
   t = connection->t;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Send connection %s ACK\n",
-       !GM_f2s (fwd));
+       GM_f2s (!fwd));
   GMP_queue_add (get_hop (connection, fwd), NULL,
                  GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK,
                  sizeof (struct GNUNET_MESH_ConnectionACK),
