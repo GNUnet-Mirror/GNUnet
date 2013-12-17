@@ -541,6 +541,7 @@ t_decrypt (struct MeshTunnel3 *t,
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "WARNING got data on %s without a valid key\n",
          GMT_2s (t));
+    GMT_debug (t);
     return 0;
   }
 
@@ -1133,6 +1134,29 @@ destroy_iterator (void *cls,
 
 
 /**
+ * Notify remote peer that we don't know a channel he is talking about,
+ * probably CHANNEL_DESTROY was missed.
+ *
+ * @param t Tunnel on which to notify.
+ * @param gid ID of the channel.
+ */
+static void
+send_channel_destroy (struct MeshTunnel3 *t, unsigned int gid)
+{
+  struct GNUNET_MESH_ChannelManage msg;
+
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CHANNEL_DESTROY);
+  msg.header.size = htons (sizeof (msg));
+  msg.chid = htonl (gid);
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "WARNING destroying unknown channel %u on tunnel %s\n",
+       gid, GMT_2s (t));
+  send_prebuilt_message (&msg.header, t, GNUNET_YES, NULL, NULL, NULL);
+}
+
+
+/**
  * Demultiplex data per channel and call appropriate channel handler.
  *
  * @param t Tunnel on which the data came.
@@ -1170,6 +1194,7 @@ handle_data (struct MeshTunnel3 *t,
                               1, GNUNET_NO);
     LOG (GNUNET_ERROR_TYPE_DEBUG, "WARNING channel 0x%X unknown\n",
          ntohl (msg->chid));
+    send_channel_destroy (t, ntohl (msg->chid));
     return;
   }
 
