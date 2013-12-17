@@ -234,6 +234,30 @@ notify_broken (void *cls,
 
 
 /**
+ * Remove the direct path to the peer.
+ *
+ * @param peer Peer to remove the direct path from.
+ *
+ */
+static struct MeshPeerPath *
+pop_direct_path (struct MeshPeer *peer)
+{
+  struct MeshPeerPath *iter;
+
+  for (iter = peer->path_head; NULL != iter; iter = iter->next)
+  {
+    if (2 <= iter->length)
+    {
+      GNUNET_CONTAINER_DLL_remove (peer->path_head, peer->path_tail, iter);
+      return iter;
+    }
+  }
+  return NULL;
+}
+
+
+
+/**
  * Method called whenever a given peer connects.
  *
  * @param cls closure
@@ -280,6 +304,7 @@ static void
 core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
   struct MeshPeer *p;
+  struct MeshPeerPath *direct_path;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Peer disconnected\n");
   p = GNUNET_CONTAINER_multipeermap_get (peers, peer);
@@ -293,7 +318,7 @@ core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
   else
     LOG (GNUNET_ERROR_TYPE_DEBUG, "     %s\n", GMP_2s (p));
 
-
+  direct_path = pop_direct_path (p);
   GNUNET_CONTAINER_multihashmap_iterate (p->connections, &notify_broken, p);
   GNUNET_CONTAINER_multihashmap_destroy (p->connections);
   p->connections = NULL;
@@ -304,6 +329,7 @@ core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
     }
   GNUNET_STATISTICS_update (stats, "# peers", -1, GNUNET_NO);
 
+  path_destroy (direct_path);
   return;
 }
 
@@ -1453,15 +1479,31 @@ int
 GMP_add_connection (struct MeshPeer *peer,
                     struct MeshConnection *c)
 {
+  int result;
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "adding connection %s\n", GMC_2s (c));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "to peer %s\n", GMP_2s (peer));
+
   if (NULL == peer->connections)
   {
     GNUNET_break (0);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Peer %s is not a neighbor!\n",
+         GMP_2s (peer));
     return GNUNET_SYSERR;
   }
-  return GNUNET_CONTAINER_multihashmap_put (peer->connections,
-                                            GMC_get_id (c),
-                                            c,
-                                            GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "peer %s ok, has %u connections.\n",
+       GMP_2s (peer), GNUNET_CONTAINER_multihashmap_size (peer->connections));
+  result = GNUNET_CONTAINER_multihashmap_put (peer->connections,
+                                              GMC_get_id (c),
+                                              c,
+                                              GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       " now has %u connections.\n",
+       GNUNET_CONTAINER_multihashmap_size (peer->connections));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "result %u\n", result);
+
+  return result;
 }
 
 
@@ -1654,9 +1696,9 @@ int
 GMP_remove_connection (struct MeshPeer *peer,
                        const struct MeshConnection *c)
 {
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "removing connection %s from peer %s\n",
-       GMC_2s (c), GMP_2s (peer));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "removing connection %s\n", GMC_2s (c));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "from peer %s\n", GMP_2s (peer));
+
   if (NULL == peer || NULL == peer->connections)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -1664,6 +1706,10 @@ GMP_remove_connection (struct MeshPeer *peer,
          GMP_2s (peer));
     return GNUNET_SYSERR;
   }
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "peer %s ok, has %u connections.\n",
+       GMP_2s (peer), GNUNET_CONTAINER_multihashmap_size (peer->connections));
+
   return GNUNET_CONTAINER_multihashmap_remove (peer->connections,
                                                GMC_get_id (c),
                                                c);

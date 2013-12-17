@@ -640,11 +640,21 @@ get_prev_hop (const struct MeshConnection *c)
 {
   GNUNET_PEER_Id id;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  get prev hop %s [%u/%u]\n",
+       GMC_2s (c), c->own_pos, c->path->length);
   if (0 == c->own_pos || c->path->length < 2)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  own pos is zero\n");
     id = c->path->peers[0];
+  }
   else
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  own pos is NOT zero\n");
     id = c->path->peers[c->own_pos - 1];
+  }
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  id: %u\n", id);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  ID: %s\n", GNUNET_i2s (GNUNET_PEER_resolve2 (id)));
   return GMP_get_short (id);
 }
 
@@ -661,10 +671,21 @@ get_next_hop (const struct MeshConnection *c)
 {
   GNUNET_PEER_Id id;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  get next hop %s [%u/%u]\n",
+       GMC_2s (c), c->own_pos, c->path->length);
   if ((c->path->length - 1) == c->own_pos || c->path->length < 2)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  own pos is end\n");
     id = c->path->peers[c->path->length - 1];
+  }
   else
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  own pos is NOT end\n");
     id = c->path->peers[c->own_pos + 1];
+  }
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  id: %u\n", id);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  ID: %s\n", GNUNET_i2s (GNUNET_PEER_resolve2 (id)));
 
   return GMP_get_short (id);
 }
@@ -1152,10 +1173,16 @@ register_neighbors (struct MeshConnection *c)
   next_peer = get_next_hop (c);
   prev_peer = get_prev_hop (c);
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "putting connection %s to next peer %s\n",
-       GMC_2s (c), GMP_2s (next_peer));
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "putting connection %s to prev peer %s\n",
-       GMC_2s (c), GMP_2s (prev_peer));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "register neighbors for connection %s\n",
+       GMC_2s (c));
+  path_debug (c->path);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "own pos %u\n", c->own_pos);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "putting connection %s to next peer %p\n",
+       GMC_2s (c), next_peer);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "next peer %p %s\n", next_peer, GMP_2s (next_peer));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "putting connection %s to prev peer %p\n",
+       GMC_2s (c), prev_peer);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "prev peer %p %s\n", prev_peer, GMP_2s (prev_peer));
 
   if (GNUNET_NO == GMP_is_neighbor (next_peer)
       || GNUNET_NO == GMP_is_neighbor (prev_peer))

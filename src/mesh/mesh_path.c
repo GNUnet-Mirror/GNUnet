@@ -187,8 +187,9 @@ path_debug (struct MeshPeerPath *p)
 {
   unsigned int i;
 
-  fprintf (stderr, "PATH:");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "PATH:\n");
   for (i = 0; i < p->length; i++)
-    fprintf (stderr, "  %s", GNUNET_i2s (GNUNET_PEER_resolve2 (p->peers[i])));
-  fprintf (stderr, " END\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  %s\n",
+                GNUNET_i2s (GNUNET_PEER_resolve2 (p->peers[i])));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "END\n");
 }
