@@ -525,9 +525,27 @@ t_decrypt (struct MeshTunnel3 *t,
            size_t size, uint32_t iv)
 {
   struct GNUNET_CRYPTO_SymmetricInitializationVector siv;
+  struct GNUNET_CRYPTO_SymmetricSessionKey *key;
 
-  GNUNET_CRYPTO_symmetric_derive_iv (&siv, &t->d_key, &iv, sizeof (uint32_t), NULL);
-  return GNUNET_CRYPTO_symmetric_decrypt (src, size, &t->d_key, &siv, dst);
+  if (t->estate == MESH_TUNNEL3_KEY_OK)
+  {
+    key = &t->d_key;
+  }
+  else if (NULL != t->kx_ctx)
+  {
+    key = &t->kx_ctx->d_key_old;
+  }
+  else
+  {
+    GNUNET_STATISTICS_update (stats, "# non decryptable data", 1, GNUNET_NO);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "WARNING got data on %s without a valid key\n",
+         GMT_2s (t));
+    return 0;
+  }
+
+  GNUNET_CRYPTO_symmetric_derive_iv (&siv, key, &iv, sizeof (uint32_t), NULL);
+  return GNUNET_CRYPTO_symmetric_decrypt (src, size, key, &siv, dst);
 }
 
 

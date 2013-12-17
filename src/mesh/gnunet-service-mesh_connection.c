@@ -1699,6 +1699,8 @@ handle_mesh_encrypted (const struct GNUNET_PeerIdentity *peer,
     return GNUNET_OK;
   }
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  on connection %s\n", GMC_2s (c));
+
   /* Check if origin is as expected */
   neighbor = get_prev_hop (c);
   peer_id = GNUNET_PEER_search (peer);
