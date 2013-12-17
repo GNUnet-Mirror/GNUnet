@@ -687,6 +687,7 @@ queue_is_sendable (struct MeshPeerQueue *q)
   {
     case GNUNET_MESSAGE_TYPE_MESH_ACK:
     case GNUNET_MESSAGE_TYPE_MESH_POLL:
+    case GNUNET_MESSAGE_TYPE_MESH_KX:
       return GNUNET_YES;
   }
 
