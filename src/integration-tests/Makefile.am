@@ -18,10 +18,8 @@ check_SCRIPTS = \
   test_integration_bootstrap_and_connect.py \
   test_integration_disconnect.py \
   test_integration_reconnect.py \
-  test_integration_reconnect_nat.py \    
+  test_integration_reconnect_nat.py \
   test_integration_clique.py
-# test_integration_clique_nat.py \
-# test_integration_connect_on_restart.py
 endif
 
 
@@ -66,14 +64,6 @@ test_integration_clique.py: test_integration_clique.py.in Makefile
 	$(do_subst) < $(srcdir)/test_integration_clique.py.in > test_integration_clique.py
 	chmod +x test_integration_clique.py
 
-#test_integration_clique_nat.py: test_integration_clique_nat.py.in Makefile
-#	$(do_subst) < $(srcdir)/test_integration_clique_nat.py.in > test_integration_clique_nat.py
-#	chmod +x test_integration_clique_nat.py
-
-#test_integration_connect_on_restart.py: test_integration_connect_on_restart.py.in Makefile
-#	$(do_subst) < $(srcdir)/test_integration_connect_on_restart.py.in > test_integration_connect_on_restart.py
-#	chmod +x test_integration_connect_on_restart.py
-
 
 EXTRA_DIST = \
    gnunet_testing.py.in \
@@ -92,7 +82,6 @@ EXTRA_DIST = \
    hostkeys/c_no_nat_client \
    hostkeys/c_no_nat_client_2 \
    hostkeys/c_nat_client
-#   test_integration_clique_nat.py.in
 
 CLEANFILES = \
 	$(check_SCRIPTS) \
