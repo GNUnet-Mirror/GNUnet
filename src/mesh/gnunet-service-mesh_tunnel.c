@@ -1572,6 +1572,7 @@ handle_decrypted (struct MeshTunnel3 *t,
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            "end-to-end message not known (%u)\n",
            ntohs (msgh->type));
+      GMT_debug (t);
   }
 }
 

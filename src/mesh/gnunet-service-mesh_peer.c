@@ -669,6 +669,9 @@ peer_get_best_path (const struct MeshPeer *peer)
     if (GNUNET_YES == GMT_is_path_used (peer->tunnel, p))
       continue; /* If path is already in use, skip it. */
 
+    if (GNUNET_NO == path_is_valid (p))
+      continue; /* Don't use invalid paths. */
+
     if ((cost = GMT_get_path_cost (peer->tunnel, p)) < best_cost)
     {
       best_cost = cost;

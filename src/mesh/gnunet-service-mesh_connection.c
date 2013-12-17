@@ -1152,6 +1152,11 @@ register_neighbors (struct MeshConnection *c)
   next_peer = get_next_hop (c);
   prev_peer = get_prev_hop (c);
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "putting connection %s to next peer %s\n",
+       GMC_2s (c), GMP_2s (next_peer));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "putting connection %s to prev peer %s\n",
+       GMC_2s (c), GMP_2s (prev_peer));
+
   if (GNUNET_NO == GMP_is_neighbor (next_peer)
       || GNUNET_NO == GMP_is_neighbor (prev_peer))
   {
@@ -2301,7 +2306,7 @@ GMC_new (const struct GNUNET_HashCode *cid,
   {
     if (0 == own_pos)
     {
-      GMT_remove_path (c->t, p);
+      path_invalidate (c->path);
       c->t = NULL;
       c->path = NULL;
     }

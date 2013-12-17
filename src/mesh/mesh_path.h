@@ -66,6 +66,12 @@ struct MeshPeerPath
      */
   int score;
 
+  /**
+   * Task to delete the path.
+   * We tried it, it didn't work, don't try again in a while.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier path_delete;
+
 };
 
 /******************************************************************************/
@@ -112,6 +118,27 @@ path_duplicate (const struct MeshPeerPath *path);
 unsigned int
 path_get_length (struct MeshPeerPath *path);
 
+/**
+ * Mark path as invalid: keep it aroud for a while to avoid trying it in a loop.
+ *
+ * DHT_get sometimes returns bad cached results, for instance, on a locally
+ * cached result where the PUT followed a path that is no longer current.
+ *
+ * @param p Path to invalidate.
+ */
+void
+path_invalidate (struct MeshPeerPath *p);
+
+/**
+ * Test if a path is valid (or at least not known to be invalid).
+ *
+ * @param path Path to test.
+ *
+ * @return #GNUNET_YES If the path is valid or unknown,
+ *         #GNUNET_NO If the path is known to be invalid.
+ */
+int
+path_is_valid (const struct MeshPeerPath *path);
 
 /**
  * Destroy the path and free any allocated resources linked to it
@@ -123,6 +150,12 @@ path_get_length (struct MeshPeerPath *path);
 int
 path_destroy (struct MeshPeerPath *p);
 
+
+/**
+ * Print info about the path for debug.
+ *
+ * @param p Path to debug.
+ */
 void
 path_debug (struct MeshPeerPath *p);
 
