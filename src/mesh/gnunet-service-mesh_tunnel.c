@@ -527,7 +527,7 @@ t_decrypt (struct MeshTunnel3 *t,
   struct GNUNET_CRYPTO_SymmetricInitializationVector siv;
   struct GNUNET_CRYPTO_SymmetricSessionKey *key;
 
-  if (t->estate == MESH_TUNNEL3_KEY_OK)
+  if (t->estate == MESH_TUNNEL3_KEY_OK || t->estate == MESH_TUNNEL3_KEY_PING)
   {
     key = &t->d_key;
   }
