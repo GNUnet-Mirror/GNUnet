@@ -643,13 +643,13 @@ message_sent (void *cls,
  * Delete a queued message: either was sent or the channel was destroyed
  * before the tunnel's key exchange had a chance to finish.
  *
- * @param tq Queue handle.
+ * @param tqd Delayed queue handle.
  */
 static void
-unqueue_data (struct MeshTunnelDelayed *tq)
+unqueue_data (struct MeshTunnelDelayed *tqd)
 {
-  GNUNET_CONTAINER_DLL_remove (tq->t->tq_head, tq->t->tq_tail, tq);
-  GNUNET_free (tq);
+  GNUNET_CONTAINER_DLL_remove (tqd->t->tq_head, tqd->t->tq_tail, tqd);
+  GNUNET_free (tqd);
 }
 
 
@@ -1150,7 +1150,7 @@ handle_data (struct MeshTunnel3 *t,
   {
     GNUNET_STATISTICS_update (stats, "# data on unknown channel",
                               1, GNUNET_NO);
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "WARNING channel %X unknown\n",
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "WARNING channel 0x%X unknown\n",
          ntohl (msg->chid));
     return;
   }
@@ -2357,6 +2357,10 @@ GMT_cancel (struct MeshTunnel3Queue *q)
   else if (NULL != q->tqd)
   {
     unqueue_data (q->tqd);
+    q->tqd = NULL;
+    if (NULL != q->cont)
+      q->cont (q->cont_cls, NULL, q, 0, 0);
+    GNUNET_free (q);
   }
   else
   {
