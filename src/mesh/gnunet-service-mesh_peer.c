@@ -688,7 +688,18 @@ queue_is_sendable (struct MeshPeerQueue *q)
     case GNUNET_MESSAGE_TYPE_MESH_ACK:
     case GNUNET_MESSAGE_TYPE_MESH_POLL:
     case GNUNET_MESSAGE_TYPE_MESH_KX:
+    case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE:
+    case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK:
+    case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_DESTROY:
+    case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_BROKEN:
+    case GNUNET_MESSAGE_TYPE_MESH_KEEPALIVE:
       return GNUNET_YES;
+
+    case GNUNET_MESSAGE_TYPE_MESH_ENCRYPTED:
+      break;
+
+    default:
+      GNUNET_break (0);
   }
 
   if (GMC_is_sendable (q->c, q->fwd))
