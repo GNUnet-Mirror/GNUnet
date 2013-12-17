@@ -1150,7 +1150,7 @@ handle_data (struct MeshTunnel3 *t,
   {
     GNUNET_STATISTICS_update (stats, "# data on unknown channel",
                               1, GNUNET_NO);
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "WARNING channel %u unknown\n",
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "WARNING channel %X unknown\n",
          ntohl (msg->chid));
     return;
   }
@@ -2291,8 +2291,7 @@ GMT_send_connection_acks (struct MeshTunnel3 *t)
   unsigned int cs;
   unsigned int buffer;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Tunnel send connection ACKs on %s\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Tunnel send connection ACKs on %s\n",
        GMT_2s (t));
 
   if (NULL == t)
@@ -2302,6 +2301,7 @@ GMT_send_connection_acks (struct MeshTunnel3 *t)
   }
 
   buffer = GMT_get_channels_buffer (t);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  buffer %u\n", buffer);
 
   /* Count connections, how many messages are already allowed */
   cs = GMT_count_connections (t);
@@ -2309,6 +2309,7 @@ GMT_send_connection_acks (struct MeshTunnel3 *t)
   {
     allowed += get_connection_allowed (iter);
   }
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  allowed %u\n", allowed);
 
   /* Make sure there is no overflow */
   if (allowed > buffer)
@@ -2328,7 +2329,8 @@ GMT_send_connection_acks (struct MeshTunnel3 *t)
     {
       continue;
     }
-    GMC_allow (iter->c, buffer, GMC_is_origin (iter->c, GNUNET_YES));
+    GMC_allow (iter->c, allow_per_connection,
+               GMC_is_origin (iter->c, GNUNET_YES));
   }
 
   GNUNET_break (to_allow == 0);

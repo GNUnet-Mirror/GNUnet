@@ -446,16 +446,17 @@ send_ack (struct MeshConnection *c, unsigned int buffer, int fwd, int force)
   /* If origin, there is no connection to send ACKs. Wrong function! */
   if (GMC_is_origin (c, fwd))
   {
-    GNUNET_break (0);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "connection %s is origin in %s\n",
+         GMC_2s (c), GM_f2s (fwd));
+    GNUNET_assert (0);
     return;
   }
 
   next_fc = fwd ? &c->fwd_fc : &c->bck_fc;
   prev_fc = fwd ? &c->bck_fc : &c->fwd_fc;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-              "connection send %s ack on %s\n",
-              GM_f2s (fwd), GMC_2s (c));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "connection send %s ack on %s\n",
+       GM_f2s (fwd), GMC_2s (c));
 
   /* Check if we need to transmit the ACK. */
   delta = prev_fc->last_ack_sent - prev_fc->last_pid_recv;
@@ -2471,6 +2472,8 @@ GMC_get_qn (struct MeshConnection *c, int fwd)
 void
 GMC_allow (struct MeshConnection *c, unsigned int buffer, int fwd)
 {
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  allowing %s %u messages %s\n",
+       GMC_2s (c), buffer, GM_f2s (fwd));
   send_ack (c, buffer, fwd, GNUNET_NO);
 }
 

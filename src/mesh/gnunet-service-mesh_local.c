@@ -534,7 +534,8 @@ handle_ack (void *cls, struct GNUNET_SERVER_Client *client,
   MESH_ChannelNumber chid;
   int fwd;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "\n\nGot a local ACK\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Got a local ACK\n");
 
   /* Sanity check for client registration */
   if (NULL == (c = GML_client_get (client)))
