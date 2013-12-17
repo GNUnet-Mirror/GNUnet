@@ -1186,8 +1186,8 @@ unregister_neighbors (struct MeshConnection *c)
   peer = get_next_hop (c);
   if (GNUNET_OK != GMP_remove_connection (peer, c))
   {
-    GNUNET_break (MESH_CONNECTION_NEW == c->state/*
-                  || MESH_CONNECTION_DESTROYED == c->state*/);
+    GNUNET_break (MESH_CONNECTION_NEW == c->state
+                  || MESH_CONNECTION_DESTROYED == c->state);
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  cstate: %u\n", c->state);
     if (NULL != c->t) GMT_debug (c->t);
   }
@@ -1195,8 +1195,8 @@ unregister_neighbors (struct MeshConnection *c)
   peer = get_prev_hop (c);
   if (GNUNET_OK != GMP_remove_connection (peer, c))
   {
-    GNUNET_break (MESH_CONNECTION_NEW == c->state/*
-                  || MESH_CONNECTION_DESTROYED == c->state*/);
+    GNUNET_break (MESH_CONNECTION_NEW == c->state
+                  || MESH_CONNECTION_DESTROYED == c->state);
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  cstate: %u\n", c->state);
     if (NULL != c->t) GMT_debug (c->t);
   }

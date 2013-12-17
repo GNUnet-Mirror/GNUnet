@@ -225,6 +225,8 @@ notify_broken (void *cls,
   struct MeshPeer *peer = cls;
   struct MeshConnection *c = value;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  notifying %s due to %s\n",
+       GMC_2s (c), GMP_2s (peer));
   GMC_notify_broken (c, peer);
 
   return GNUNET_YES;
@@ -287,7 +289,7 @@ core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
     return;
   }
   if (myid == p->id)
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "     (self)\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "     (self: %s)\n", GMP_2s (p));
   else
     LOG (GNUNET_ERROR_TYPE_DEBUG, "     %s\n", GMP_2s (p));
 
