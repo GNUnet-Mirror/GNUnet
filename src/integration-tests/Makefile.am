@@ -15,10 +15,10 @@ noinst_SCRIPTS = \
 
 if HAVE_PYTHON
 check_SCRIPTS = \
-  test_integration_bootstrap_and_connect.py
-# test_integration_bootstrap_and_connect_and_disconnect.py \
+  test_integration_bootstrap_and_connect.py \
+  test_integration_restart.py
+#  test_integration_bootstrap_and_connect_and_disconnect.py \
 # test_integration_bootstrap_and_connect_and_disconnect_nat.py \
-# test_integration_restart.py \
 # test_integration_clique.py \
 # test_integration_clique_nat.py \
 # test_integration_connect_on_restart.py
@@ -46,9 +46,12 @@ gnunet_pyexpect.py: gnunet_pyexpect.py.in Makefile
 	$(do_subst) < $(srcdir)/gnunet_pyexpect.py.in > gnunet_pyexpect.py
 	chmod +x gnunet_pyexpect.py
 
-test_integration_bootstrap_andconnect.py: test_integration_bootstrap_and_connect.py.in Makefile
+test_integration_bootstrap_and_connect.py: test_integration_bootstrap_and_connect.py.in Makefile
 	$(do_subst) < $(srcdir)/test_integration_bootstrap_and_connect.py.in > test_integration_bootstrap_and_connect.py
 	chmod +x test_integration_bootstrap_and_connect.py
+
+
+
 
 test_integration_bootstrap_and_connect_and_disconnect.py: test_integration_bootstrap_and_connect_and_disconnect.py.in Makefile
 	$(do_subst) < $(srcdir)/test_integration_bootstrap_and_connect_and_disconnect.py.in > test_integration_bootstrap_and_connect_and_disconnect.py
