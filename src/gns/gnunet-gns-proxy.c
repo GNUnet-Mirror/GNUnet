@@ -815,7 +815,7 @@ check_ssl_certificate (struct Socks5Request *s5r)
 {
   unsigned int cert_list_size;
   const gnutls_datum_t *chainp;
-  const struct curl_tlsinfo *tlsinfo;
+  const struct curl_tlssessioninfo *tlsinfo;
   char certdn[GNUNET_DNSPARSER_MAX_NAME_LENGTH + 3];
   size_t size;
   gnutls_x509_crt_t x509_cert;
@@ -827,11 +827,11 @@ check_ssl_certificate (struct Socks5Request *s5r)
 			 CURLINFO_TLS_SESSION,
 			 &tlsinfo))
     return GNUNET_SYSERR;
-  if (CURLSSLBACKEND_GNUTLS != tlsinfo->ssl_backend)
+  if (CURLSSLBACKEND_GNUTLS != tlsinfo->backend)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Unsupported CURL SSL backend %d\n"),
-                tlsinfo->ssl_backend);
+                tlsinfo->backend);
     return GNUNET_SYSERR;
   }
   chainp = gnutls_certificate_get_peers (tlsinfo->internals, &cert_list_size);
