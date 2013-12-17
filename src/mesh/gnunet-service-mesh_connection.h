@@ -517,7 +517,7 @@ GMC_stop_poll (struct MeshConnection *c, int fwd);
  * @param c Connection.
  */
 const char *
-GMC_2s (struct MeshConnection *c);
+GMC_2s (const struct MeshConnection *c);
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

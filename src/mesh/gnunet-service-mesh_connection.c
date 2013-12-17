@@ -1187,7 +1187,7 @@ unregister_neighbors (struct MeshConnection *c)
   peer = get_next_hop (c);
   if (GNUNET_OK != GMP_remove_connection (peer, c))
   {
-    GNUNET_break (MESH_CONNECTION_NEW == c->state
+    GNUNET_assert (MESH_CONNECTION_NEW == c->state
                   || MESH_CONNECTION_DESTROYED == c->state);
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  cstate: %u\n", c->state);
     if (NULL != c->t) GMT_debug (c->t);
@@ -1196,7 +1196,7 @@ unregister_neighbors (struct MeshConnection *c)
   peer = get_prev_hop (c);
   if (GNUNET_OK != GMP_remove_connection (peer, c))
   {
-    GNUNET_break (MESH_CONNECTION_NEW == c->state
+    GNUNET_assert (MESH_CONNECTION_NEW == c->state
                   || MESH_CONNECTION_DESTROYED == c->state);
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  cstate: %u\n", c->state);
     if (NULL != c->t) GMT_debug (c->t);
@@ -2921,7 +2921,7 @@ GMC_stop_poll (struct MeshConnection *c, int fwd)
  * @param c Connection.
  */
 const char *
-GMC_2s (struct MeshConnection *c)
+GMC_2s (const struct MeshConnection *c)
 {
   if (NULL == c)
     return "NULL";

@@ -1093,9 +1093,7 @@ GMP_queue_cancel (struct MeshPeer *peer, struct MeshConnection *c)
     prev = q->prev;
     if (q->c == c)
     {
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-                  "GMP_cancel_queue %s\n",
-                  GM_m2s (q->type));
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "GMP_cancel_queue %s\n", GM_m2s (q->type));
       GMP_queue_destroy (q, GNUNET_YES);
 
       /* Get next from prev, q->next might be already freed:
@@ -1653,6 +1651,9 @@ int
 GMP_remove_connection (struct MeshPeer *peer,
                        const struct MeshConnection *c)
 {
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "removing connection %s from peer %s\n",
+       GMC_2s (c), GMP_2s (peer));
   if (NULL == peer || NULL == peer->connections)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,

@@ -341,9 +341,12 @@ estate2s (enum MeshTunnel3EState es)
 static int
 is_ready (struct MeshTunnel3 *t)
 {
-  return (MESH_TUNNEL3_READY == t->cstate
-          && MESH_TUNNEL3_KEY_OK == t->estate)
-         || GMT_is_loopback (t);
+  int ready;
+
+  GMT_debug (t);
+  ready = (MESH_TUNNEL3_READY == t->cstate && MESH_TUNNEL3_KEY_OK == t->estate);
+  ready = ready || GMT_is_loopback (t);
+  return ready;
 }
 
 
@@ -886,6 +889,12 @@ send_kx (struct MeshTunnel3 *t,
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  loopback!\n");
     GNUNET_break (0);
+    return;
+  }
+
+  if (GNUNET_NO != t->destroy)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  being destroyed, why bother\n");
     return;
   }
 
