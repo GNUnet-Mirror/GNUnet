@@ -112,15 +112,6 @@ EXTRA_DIST = \
    confs/c_nat_client.conf \
    confs/c_no_nat_client_2.conf \
    confs/c_no_nat_client.conf \
-   confs/c_normal_client_tcp.conf \
-   confs/c_normal_client_tcp_udp.conf \
-   confs/c_normal_client_tcp_udp_http.conf \
-   confs/c_no_nat_client_http.conf \
-   confs/c_no_nat_client_http_2.conf\
-   confs/c_no_nat_client_http.conf \
-   confs/c_no_nat_client_http_2.conf \
-   confs/c_no_nat_client_unix.conf \
-   confs/c_no_nat_client_unix_2.conf \
    hostkeys/c_bootstrap_server \
    hostkeys/c_no_nat_client \
    hostkeys/c_no_nat_client_2 \
