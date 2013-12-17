@@ -18,6 +18,7 @@
 #    Boston, MA 02111-1307, USA.
 #
 # 
+import signal
 import sys
 import os
 import subprocess
@@ -48,7 +49,7 @@ from gnunet_testing import *
 #definitions
 
 testname = "test_integration_bootstrap_and_connect"
-verbose = True
+verbose = False
 check_timeout = 180
 
 if os.name == "nt":
@@ -81,10 +82,12 @@ def cleanup ():
 def success_cont (check):
     global success
     success = True;
+    print 'Peers connected successfully'
     
 def fail_cont (check):    
     global success 
     success = False;
+    print 'Peers did not connect'
     check.evaluate(True)
 
 def check ():
@@ -93,13 +96,14 @@ def check ():
   check.add (StatisticsCondition (client, 'core', '# neighbour entries allocated',1))  
   check.add (StatisticsCondition (client, 'core', '# peers connected',1))
   check.add (StatisticsCondition (client, 'topology', '# peers connected',1))
+  check.add (StatisticsCondition (client, 'dht', '# peers connected',1))  
   check.add (StatisticsCondition (client, 'fs', '# peers connected',1))
   
-
   check.add (StatisticsCondition (server, 'transport', '# peers connected',1))
   check.add (StatisticsCondition (server, 'core', '# neighbour entries allocated',1))  
   check.add (StatisticsCondition (server, 'core', '# peers connected',1))
   check.add (StatisticsCondition (server, 'topology', '# peers connected',1))
+  check.add (StatisticsCondition (server, 'dht', '# peers connected',1))  
   check.add (StatisticsCondition (server, 'fs', '# peers connected',1))  
   
   check.run_blocking (check_timeout, success_cont, fail_cont)
@@ -108,13 +112,32 @@ def check ():
 # Test execution
 # 
 
+def SigHandler(signum = None, frame = None):
+	global success	
+	global server
+	global client  
+	
+	print 'Test was aborted!'
+	if (None != server):
+		server.stop ()
+	if (None != server):		
+		client.stop ()
+	cleanup ()
+	sys.exit(success)
+
 def run ():
 	global success
 	global test
 	global server
 	global client    
 	
+	server = None
+	client = None
 	success = False  
+	
+	for sig in [signal.SIGTERM, signal.SIGINT, signal.SIGHUP, signal.SIGQUIT]:
+		signal.signal(sig, SigHandler)
+
 	test = Test ('test_integration_bootstrap_and_connect.py', verbose)
 	cleanup ()
 	

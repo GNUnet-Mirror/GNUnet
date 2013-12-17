@@ -14,8 +14,8 @@ noinst_SCRIPTS = \
  gnunet_pyexpect.py
 
 if HAVE_PYTHON
-check_SCRIPTS =
-# test_integration_bootstrap_and_connect.py
+check_SCRIPTS = \
+  test_integration_bootstrap_and_connect.py
 # test_integration_bootstrap_and_connect_and_disconnect.py \
 # test_integration_bootstrap_and_connect_and_disconnect_nat.py \
 # test_integration_restart.py \
