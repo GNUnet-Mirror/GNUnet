@@ -9,27 +9,19 @@ if USE_COVERAGE
   XLIB = -lgcov
 endif
 
-#bin_PROGRAMS = \
-# connection_watchdog
-
-noinst_PROGRAMS = connection_watchdog
-
 noinst_SCRIPTS = \
  gnunet_testing.py \
- gnunet_pyexpect.py \
- test_integration_connection_values_tcp.py \
- test_integration_connection_values_tcp_udp.py \
- test_integration_connection_values_tcp_udp_http.py
+ gnunet_pyexpect.py
 
 if HAVE_PYTHON
-check_SCRIPTS = \
- test_integration_bootstrap_and_connect.py \
- test_integration_bootstrap_and_connect_and_disconnect.py \
- test_integration_bootstrap_and_connect_and_disconnect_nat.py \
- test_integration_restart.py \
- test_integration_clique.py \
- test_integration_clique_nat.py \
- test_integration_connect_on_restart.py
+check_SCRIPTS =
+# test_integration_bootstrap_and_connect.py
+# test_integration_bootstrap_and_connect_and_disconnect.py \
+# test_integration_bootstrap_and_connect_and_disconnect_nat.py \
+# test_integration_restart.py \
+# test_integration_clique.py \
+# test_integration_clique_nat.py \
+# test_integration_connect_on_restart.py
 endif
 # test_integration_disconnect.py
 
@@ -39,14 +31,6 @@ TESTS = \
  $(check_SCRIPTS)
 endif
 endif
-
-connection_watchdog_SOURCE = \
- connection_watchdog.c
-connection_watchdog_LDADD = \
-  $(top_builddir)/src/statistics/libgnunetstatistics.la \
-  $(top_builddir)/src/core/libgnunetcore.la \
-  $(top_builddir)/src/transport/libgnunettransport.la \
-  $(top_builddir)/src/util/libgnunetutil.la
 
 do_subst = $(SED) -e 's,[@]PYTHON[@],$(PYTHON),g'
 
@@ -62,7 +46,7 @@ gnunet_pyexpect.py: gnunet_pyexpect.py.in Makefile
 	$(do_subst) < $(srcdir)/gnunet_pyexpect.py.in > gnunet_pyexpect.py
 	chmod +x gnunet_pyexpect.py
 
-test_integration_bootstrap_and_connect.py: test_integration_bootstrap_and_connect.py.in Makefile
+test_integration_bootstrap_andconnect.py: test_integration_bootstrap_and_connect.py.in Makefile
 	$(do_subst) < $(srcdir)/test_integration_bootstrap_and_connect.py.in > test_integration_bootstrap_and_connect.py
 	chmod +x test_integration_bootstrap_and_connect.py
 
@@ -99,25 +83,10 @@ test_integration_connect_on_restart.py: test_integration_connect_on_restart.py.i
 	$(do_subst) < $(srcdir)/test_integration_connect_on_restart.py.in > test_integration_connect_on_restart.py
 	chmod +x test_integration_connect_on_restart.py
 
-test_integration_connection_values_tcp.py: test_integration_connection_values_tcp.py.in Makefile
-	$(do_subst) < $(srcdir)/test_integration_connection_values_tcp.py.in > test_integration_connection_values_tcp.py
-	chmod +x test_integration_connection_values_tcp.py
-
-test_integration_connection_values_tcp_udp.py: test_integration_connection_values_tcp_udp.py.in Makefile
-	$(do_subst) < $(srcdir)/test_integration_connection_values_tcp_udp.py.in > test_integration_connection_values_tcp_udp.py
-	chmod +x test_integration_connection_values_tcp_udp.py
-
-test_integration_connection_values_tcp_udp_http.py: test_integration_connection_values_tcp_udp_http.py.in Makefile
-	$(do_subst) < $(srcdir)/test_integration_connection_values_tcp_udp_http.py.in > test_integration_connection_values_tcp_udp_http.py
-	chmod +x test_integration_connection_values_tcp_udp_http.py
-
 
 EXTRA_DIST = \
    gnunet_testing.py.in \
    gnunet_pyexpect.py.in \
-   test_integration_connection_values_tcp.py.in \
-   test_integration_connection_values_tcp_udp.py.in \
-   test_integration_connection_values_tcp_udp_http.py.in \
    test_integration_bootstrap_and_connect.py.in \
    test_integration_bootstrap_and_connect_and_disconnect.py.in \
    test_integration_bootstrap_and_connect_and_disconnect_nat.py.in \
@@ -155,7 +124,4 @@ EXTRA_DIST = \
 CLEANFILES = \
 	$(check_SCRIPTS) \
 	gnunet_pyexpect.py \
-	test_integration_connection_values_tcp.py \
-	test_integration_connection_values_tcp_udp.py \
-	test_integration_connection_values_tcp_udp_http.py \
 	gnunet_testing.py
