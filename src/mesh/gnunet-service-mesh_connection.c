@@ -448,7 +448,7 @@ send_ack (struct MeshConnection *c, unsigned int buffer, int fwd, int force)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "connection %s is origin in %s\n",
          GMC_2s (c), GM_f2s (fwd));
-    GNUNET_assert (0); /* FIXME */
+    GNUNET_break (0);
     return;
   }
 

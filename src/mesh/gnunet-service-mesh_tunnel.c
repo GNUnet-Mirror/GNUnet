@@ -2330,7 +2330,7 @@ GMT_send_connection_acks (struct MeshTunnel3 *t)
       continue;
     }
     GMC_allow (iter->c, allow_per_connection,
-               GMC_is_origin (iter->c, GNUNET_YES));
+               GMC_is_origin (iter->c, GNUNET_NO));
   }
 
   GNUNET_break (to_allow == 0);
