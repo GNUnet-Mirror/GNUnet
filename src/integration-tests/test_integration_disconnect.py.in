@@ -106,7 +106,7 @@ def check_connect ():
   check.add (StatisticsCondition (server, 'core', '# neighbour entries allocated',1))  
   check.add (StatisticsCondition (server, 'core', '# peers connected',1))
   check.add (StatisticsCondition (server, 'topology', '# peers connected',1))
-  check.add (StatisticsCondition (client, 'dht', '# peers connected',1))
+  check.add (StatisticsCondition (server, 'dht', '# peers connected',1))
   check.add (StatisticsCondition (server, 'fs', '# peers connected',1))  
   
   check.run_blocking (check_timeout, success_connect_cont, fail_connect_cont)
