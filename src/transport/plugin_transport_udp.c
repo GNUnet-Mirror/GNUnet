@@ -1858,7 +1858,13 @@ udp_plugin_send (void *cls,
   udp->reserved = htonl (0);
   udp->sender = *plugin->env->my_identity;
 
-  reschedule_session_timeout(s);
+  /* We do not update the session time out here!
+   * Otherwise this session will not timeout since we send keep alive before
+   * session can timeout
+   *
+   * For UDP we update session timeout only on receive, this will cover keep
+   * alives, since remote peer will reply with keep alive response!
+   */
   if (udpmlen <= UDP_MTU)
   {
     /* unfragmented message */
