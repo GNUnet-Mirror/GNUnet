@@ -17,6 +17,7 @@ if HAVE_PYTHON
 check_SCRIPTS = \
   test_integration_bootstrap_and_connect.py \
   test_integration_disconnect.py \
+  test_integration_disconnect_nat.py \
   test_integration_reconnect.py \
   test_integration_reconnect_nat.py \
   test_integration_clique.py
@@ -51,6 +52,10 @@ test_integration_bootstrap_and_connect.py: test_integration_bootstrap_and_connec
 test_integration_disconnect.py: test_integration_disconnect.py.in Makefile
 	$(do_subst) < $(srcdir)/test_integration_disconnect.py.in > test_integration_disconnect.py
 	chmod +x test_integration_disconnect.py
+	
+test_integration_disconnect_nat.py: test_integration_disconnect_nat.py.in Makefile
+	$(do_subst) < $(srcdir)/test_integration_disconnect_nat.py.in > test_integration_disconnect_nat.py
+	chmod +x test_integration_disconnect_nat.py
 
 test_integration_reconnect.py: test_integration_reconnect.py.in Makefile
 	$(do_subst) < $(srcdir)/test_integration_reconnect.py.in > test_integration_reconnect.py
@@ -70,6 +75,7 @@ EXTRA_DIST = \
    gnunet_pyexpect.py.in \
    test_integration_bootstrap_and_connect.py.in \
    test_integration_disconnect.py.in \
+   test_integration_disconnect_nat.py.in \
    test_integration_reconnect.py.in \
    test_integration_reconnect_nat.py.in \
    test_integration_clique.py.in \
