@@ -60,6 +60,9 @@
 struct Plugin
 {
 
+  /**
+   * Our configuration.
+   */
   const struct GNUNET_CONFIGURATION_Handle *cfg;
 
   /**
@@ -100,7 +103,7 @@ create_indices (PGconn * dbh)
  * as needed as well).
  *
  * @param plugin the plugin context (state for this module)
- * @return GNUNET_OK on success
+ * @return #GNUNET_OK on success
  */
 static int
 database_setup (struct Plugin *plugin)
@@ -173,7 +176,7 @@ database_setup (struct Plugin *plugin)
       (GNUNET_OK !=
        GNUNET_POSTGRES_prepare (plugin->dbh,
 				"iterate_zone",
-				"SELECT record_count, record_data, label FROM ns097records"
+				"SELECT record_count,record_data,label FROM ns097records"
                                 " WHERE zone_private_key=$1 ORDER BY rvalue LIMIT 1 OFFSET $2", 2)) ||
       (GNUNET_OK !=
        GNUNET_POSTGRES_prepare (plugin->dbh,
@@ -182,9 +185,9 @@ database_setup (struct Plugin *plugin)
 				" FROM ns097records ORDER BY rvalue LIMIT 1 OFFSET $1", 1)) ||
       (GNUNET_OK !=
        GNUNET_POSTGRES_prepare (plugin->dbh,
-                              "lookup_label",
-                              "SELECT record_count,record_data,label,zone_private_key"
-                              " FROM ns097records WHERE records zone_private_key=$1 AND label=$2", 2)))
+                                "lookup_label",
+                                "SELECT record_count,record_data,label"
+                                " FROM ns097records WHERE zone_private_key=$1 AND label=$2", 2)))
   {
     PQfinish (plugin->dbh);
     plugin->dbh = NULL;
@@ -387,8 +390,10 @@ get_record_and_call_iterator (struct Plugin *plugin,
  */
 static int
 namestore_postgres_lookup_records (void *cls,
-    const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone, const char *label,
-    GNUNET_NAMESTORE_RecordIterator iter, void *iter_cls)
+                                   const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
+                                   const char *label,
+                                   GNUNET_NAMESTORE_RecordIterator iter,
+                                   void *iter_cls)
 {
   struct Plugin *plugin = cls;
   const char *paramValues[] = {
@@ -535,7 +540,7 @@ database_shutdown (struct Plugin *plugin)
 /**
  * Entry point for the plugin.
  *
- * @param cls the "struct GNUNET_NAMESTORE_PluginEnvironment*"
+ * @param cls the `struct GNUNET_NAMESTORE_PluginEnvironment*`
  * @return NULL on error, othrewise the plugin context
  */
 void *
