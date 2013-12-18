@@ -742,7 +742,13 @@ dv_plugin_string_to_address (void *cls,
   return GNUNET_SYSERR;
 }
 
+static void
+dv_plugin_update_session_timeout (void *cls,
+                                  const struct GNUNET_PeerIdentity *peer,
+                                  struct Session *session)
+{
 
+}
 
 /**
  * Function to obtain the network type for a session
@@ -821,6 +827,7 @@ libgnunet_plugin_transport_dv_init (void *cls)
   api->query_keepalive_factor = &dv_plugin_query_keepalive_factor;
   api->get_session = &dv_get_session;
   api->get_network = &dv_get_network;
+  api->update_session_timeout = &dv_plugin_update_session_timeout;
   return api;
 }
 
