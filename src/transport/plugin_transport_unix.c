@@ -906,6 +906,13 @@ unix_plugin_get_session (void *cls,
   return s;
 }
 
+static void
+unix_plugin_update_session_timeout (void *cls,
+                                  const struct GNUNET_PeerIdentity *peer,
+                                  struct Session *session)
+{
+
+}
 
 /**
  * Function that can be used by the transport service to transmit
@@ -1635,6 +1642,7 @@ libgnunet_plugin_transport_unix_init (void *cls)
   api->check_address = &unix_check_address;
   api->string_to_address = &unix_string_to_address;
   api->get_network = &unix_get_network;
+  api->update_session_timeout = &unix_plugin_update_session_timeout;
   sockets_created = unix_transport_server_start (plugin);
   if (0 == sockets_created)
     LOG (GNUNET_ERROR_TYPE_WARNING,

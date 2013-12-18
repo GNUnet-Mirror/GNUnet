@@ -900,6 +900,14 @@ http_server_query_keepalive_factor (void *cls)
   return 3;
 }
 
+static void
+http_server_plugin_update_session_timeout (void *cls,
+                                  const struct GNUNET_PeerIdentity *peer,
+                                  struct Session *session)
+{
+
+}
+
 
 /**
  * Tell MHD that the connection should timeout after @a to seconds.
@@ -3121,7 +3129,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
   api->string_to_address = &http_common_plugin_string_to_address;
   api->address_pretty_printer = &http_common_plugin_address_pretty_printer;
   api->get_network = &http_server_get_network;
-
+  api->update_session_timeout = &http_server_plugin_update_session_timeout;
 #if BUILD_HTTPS
   plugin->name = "transport-https_server";
   plugin->protocol = "https";

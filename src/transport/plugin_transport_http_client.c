@@ -1759,6 +1759,13 @@ http_plugin_address_to_string (void *cls,
   return http_common_plugin_address_to_string (cls, PLUGIN_NAME, addr, addrlen);
 }
 
+static void
+http_client_plugin_update_session_timeout (void *cls,
+                                  const struct GNUNET_PeerIdentity *peer,
+                                  struct Session *session)
+{
+
+}
 
 /**
  * Entry point for the plugin.
@@ -1796,6 +1803,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
   api->string_to_address = &http_common_plugin_string_to_address;
   api->address_pretty_printer = &http_common_plugin_address_pretty_printer;
   api->get_network = &http_client_get_network;
+  api->update_session_timeout = &http_client_plugin_update_session_timeout;
 
 #if BUILD_HTTPS
   plugin->name = "transport-https_client";

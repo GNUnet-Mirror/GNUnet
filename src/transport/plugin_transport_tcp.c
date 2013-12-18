@@ -1420,6 +1420,14 @@ nat_connect_timeout (void *cls,
                           session);
 }
 
+static void
+tcp_plugin_update_session_timeout (void *cls,
+                                  const struct GNUNET_PeerIdentity *peer,
+                                  struct Session *session)
+{
+
+}
+
 
 /**
  * Create a new session to transmit data to the target
@@ -2687,6 +2695,7 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   api->address_to_string = &tcp_address_to_string;
   api->string_to_address = &tcp_string_to_address;
   api->get_network = &tcp_get_network;
+  api->update_session_timeout = &tcp_plugin_update_session_timeout;
   plugin->service = service;
   if (NULL != service)
   {

@@ -125,22 +125,27 @@ GST_neighbours_calculate_receive_delay (const struct GNUNET_PeerIdentity
 
 /**
  * Keep the connection to the given neighbour alive longer,
- * we received a KEEPALIVE (or equivalent).
+ * we received a KEEPALIVE (or equivalent); send a response.
  *
- * @param neighbour neighbour to keep alive
+ * @param neighbour neighbour to keep alive (by sending keep alive response)
+ * @param m the keep alive message containing the nonce to respond to
  */
 void
-GST_neighbours_keepalive (const struct GNUNET_PeerIdentity *neighbour);
+GST_neighbours_keepalive (const struct GNUNET_PeerIdentity *neighbour,
+                          const struct GNUNET_MessageHeader *m);
 
 
 /**
- * We received a KEEP_ALIVE_RESPONSE message and use this to calculate latency
- * to this peer
+ * We received a KEEP_ALIVE_RESPONSE message and use this to calculate
+ * latency to this peer.  Pass the updated information (existing ats
+ * plus calculated latency) to ATS.
  *
  * @param neighbour neighbour to keep alive
+ * @param m the message containing the keep alive response
  */
 void
-GST_neighbours_keepalive_response (const struct GNUNET_PeerIdentity *neighbour);
+GST_neighbours_keepalive_response (const struct GNUNET_PeerIdentity *neighbour,
+    const struct GNUNET_MessageHeader *m);
 
 
 /**

@@ -245,6 +245,14 @@ GST_plugins_load (GNUNET_TRANSPORT_PluginReceiveCallback recv_cb,
                   "query_keepalive_factor",
                   plug->lib_name);
     }
+    if (NULL == plug->api->update_session_timeout)
+    {
+        fail = GNUNET_YES;
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _("Missing function `%s' in transport plugin for `%s'\n"),
+                  "update_session_timeout",
+                  plug->lib_name);
+    }
     if (GNUNET_YES == fail)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,

@@ -1673,6 +1673,13 @@ udp_plugin_create_session (void *cls,
   return s;
 }
 
+static void
+udp_plugin_update_session_timeout (void *cls,
+                                  const struct GNUNET_PeerIdentity *peer,
+                                  struct Session *session)
+{
+
+}
 
 /**
  * Creates a new outbound session the transport service will use to send data to the
@@ -3197,7 +3204,7 @@ libgnunet_plugin_transport_udp_init (void *cls)
   api->get_session = &udp_plugin_get_session;
   api->send = &udp_plugin_send;
   api->get_network = &udp_get_network;
-
+  api->update_session_timeout = &udp_plugin_update_session_timeout;
   return api;
 }
 

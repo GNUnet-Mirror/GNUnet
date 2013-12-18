@@ -378,6 +378,13 @@ template_plugin_get_session (void *cls,
   return NULL;
 }
 
+static void
+template_plugin_update_session_timeout (void *cls,
+                                  const struct GNUNET_PeerIdentity *peer,
+                                  struct Session *session)
+{
+
+}
 
 /**
  * Entry point for the plugin.
@@ -415,6 +422,7 @@ libgnunet_plugin_transport_template_init (void *cls)
   api->string_to_address = &template_plugin_string_to_address;
   api->get_session = &template_plugin_get_session;
   api->get_network = &template_plugin_get_network;
+  api->update_session_timeout = &template_plugin_update_session_timeout;
   LOG (GNUNET_ERROR_TYPE_INFO, "Template plugin successfully loaded\n");
   return api;
 }

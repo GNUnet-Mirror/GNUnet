@@ -384,10 +384,10 @@ GST_receive_callback (void *cls,
     GST_neighbours_handle_disconnect_message (peer, message);
     break;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_KEEPALIVE:
-    GST_neighbours_keepalive (peer);
+    GST_neighbours_keepalive (peer, message);
     break;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_KEEPALIVE_RESPONSE:
-    GST_neighbours_keepalive_response (peer);
+    GST_neighbours_keepalive_response (peer, message);
     break;
   default:
     /* should be payload */

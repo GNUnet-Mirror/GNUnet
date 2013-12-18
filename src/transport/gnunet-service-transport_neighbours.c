@@ -117,6 +117,28 @@ struct SessionConnectMessage
 
 
 /**
+ * Message a peer sends to another when connected to indicate that a
+ * session is in use and the peer is still alive or to respond to a keep alive.
+ * A peer sends a message with type #GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_KEEPALIVE
+ * to request a message with #GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_KEEPALIVE_RESPONSE.
+ * When the keep alive response with type is received, transport service
+ * will call the respective plugin to update the session timeout
+ */
+struct SessionKeepAliveMessage
+{
+  /**
+   * Header of type #GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_KEEPALIVE or
+   * #GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_KEEPALIVE_RESPONSE.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * A nonce to identify the session the keep alive is used for
+   */
+  uint32_t nonce GNUNET_PACKED;
+};
+
+/**
  * Message we send to the other peer to notify him that we intentionally
  * are disconnecting (to reduce timeouts).  This is just a friendly
  * notification, peers must not rely on always receiving disconnect
@@ -410,6 +432,10 @@ struct NeighbourAddress
    */
   int ats_active;
 
+  /**
+   * The current nonce sent in the last keep alive messages
+   */
+  uint32_t keep_alive_nonce;
 };
 
 
@@ -775,6 +801,7 @@ free_address (struct NeighbourAddress *na)
   }
 
   na->ats_active = GNUNET_NO;
+  na->keep_alive_nonce = 0;
   if (NULL != na->address)
   {
     GNUNET_HELLO_address_free (na->address);
@@ -847,6 +874,7 @@ set_address (struct NeighbourAddress *na,
   na->bandwidth_out = bandwidth_out;
   na->session = session;
   na->ats_active = is_active;
+  na->keep_alive_nonce = 0;
   if (GNUNET_YES == is_active)
   {
     /* Telling ATS about new session */
@@ -1296,16 +1324,28 @@ try_transmission_to_peer (struct NeighbourMapEntry *n)
 static void
 send_keepalive (struct NeighbourMapEntry *n)
 {
-  struct GNUNET_MessageHeader m;
+  struct SessionKeepAliveMessage m;
   struct GNUNET_TIME_Relative timeout;
+  uint32_t nonce;
 
   GNUNET_assert ((S_CONNECTED == n->state) ||
                  (S_CONNECTED_SWITCHING_BLACKLIST == n->state) ||
                  (S_CONNECTED_SWITCHING_CONNECT_SENT));
   if (GNUNET_TIME_absolute_get_remaining (n->keep_alive_time).rel_value_us > 0)
     return; /* no keepalive needed at this time */
-  m.size = htons (sizeof (struct GNUNET_MessageHeader));
-  m.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_KEEPALIVE);
+
+  nonce = 0; /* 0 indicates 'not set' */
+  while (0 == nonce)
+    nonce = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+      "Sending keep alive response to peer `%s' with nonce %u\n",
+      GNUNET_i2s (&n->id), nonce);
+
+  m.header.size = htons (sizeof (struct SessionKeepAliveMessage));
+  m.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_KEEPALIVE);
+  m.nonce = htonl (nonce);
+
   timeout = send_with_session (n,
 			       (const void *) &m, sizeof (m),
 			       UINT32_MAX /* priority */,
@@ -1313,9 +1353,11 @@ send_keepalive (struct NeighbourMapEntry *n)
 			       NULL, NULL);
   GNUNET_STATISTICS_update (GST_stats, gettext_noop ("# keepalives sent"), 1,
 			    GNUNET_NO);
+  n->primary_address.keep_alive_nonce = nonce;
   n->expect_latency_response = GNUNET_YES;
   n->last_keep_alive_time = GNUNET_TIME_absolute_get ();
   n->keep_alive_time = GNUNET_TIME_relative_to_absolute (timeout);
+
 }
 
 
@@ -1324,13 +1366,20 @@ send_keepalive (struct NeighbourMapEntry *n)
  * we received a KEEPALIVE (or equivalent); send a response.
  *
  * @param neighbour neighbour to keep alive (by sending keep alive response)
+ * @param m the keep alive message containing the nonce to respond to
  */
 void
-GST_neighbours_keepalive (const struct GNUNET_PeerIdentity *neighbour)
+GST_neighbours_keepalive (const struct GNUNET_PeerIdentity *neighbour,
+    const struct GNUNET_MessageHeader *m)
 {
   struct NeighbourMapEntry *n;
-  struct GNUNET_MessageHeader m;
+  const struct SessionKeepAliveMessage *msg_in;
+  struct SessionKeepAliveMessage msg;
 
+  if (sizeof (struct SessionKeepAliveMessage) != ntohs (m->size))
+    return;
+
+  msg_in = (struct SessionKeepAliveMessage *) m;
   if (NULL == (n = lookup_neighbour (neighbour)))
   {
     GNUNET_STATISTICS_update (GST_stats,
@@ -1347,11 +1396,17 @@ GST_neighbours_keepalive (const struct GNUNET_PeerIdentity *neighbour)
                               1, GNUNET_NO);
     return;
   }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+      "Received keep alive request from peer `%s' with nonce %u\n",
+      GNUNET_i2s (&n->id), ntohl (msg_in->nonce));
+
   /* send reply to allow neighbour to measure latency */
-  m.size = htons (sizeof (struct GNUNET_MessageHeader));
-  m.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_KEEPALIVE_RESPONSE);
+  msg.header.size = htons (sizeof (struct SessionKeepAliveMessage));
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_KEEPALIVE_RESPONSE);
+  msg.nonce = msg_in->nonce;
   (void) send_with_session(n,
-			   (const void *) &m, sizeof (m),
+			   (const void *) &msg, sizeof (struct SessionKeepAliveMessage),
 			   UINT32_MAX /* priority */,
 			   GNUNET_TIME_UNIT_FOREVER_REL, GNUNET_YES,
 			   NULL, NULL);
@@ -1364,14 +1419,22 @@ GST_neighbours_keepalive (const struct GNUNET_PeerIdentity *neighbour)
  * plus calculated latency) to ATS.
  *
  * @param neighbour neighbour to keep alive
+ * @param m the message containing the keep alive response
  */
 void
-GST_neighbours_keepalive_response (const struct GNUNET_PeerIdentity *neighbour)
+GST_neighbours_keepalive_response (const struct GNUNET_PeerIdentity *neighbour,
+    const struct GNUNET_MessageHeader *m)
 {
   struct NeighbourMapEntry *n;
+  const struct SessionKeepAliveMessage *msg;
+  struct GNUNET_TRANSPORT_PluginFunctions *papi;
   uint32_t latency;
   struct GNUNET_ATS_Information ats;
 
+  if (sizeof (struct SessionKeepAliveMessage) != ntohs (m->size))
+    return;
+
+  msg = (const struct SessionKeepAliveMessage *) m;
   if (NULL == (n = lookup_neighbour (neighbour)))
   {
     GNUNET_STATISTICS_update (GST_stats,
@@ -1389,6 +1452,43 @@ GST_neighbours_keepalive_response (const struct GNUNET_PeerIdentity *neighbour)
                               1, GNUNET_NO);
     return;
   }
+  if (NULL == n->primary_address.address)
+  {
+    GNUNET_STATISTICS_update (GST_stats,
+                              gettext_noop
+                              ("# KEEPALIVE_RESPONSE messages discarded (address changed)"),
+                              1, GNUNET_NO);
+    return;
+  }
+  if (n->primary_address.keep_alive_nonce != ntohl (msg->nonce))
+  {
+    GNUNET_STATISTICS_update (GST_stats,
+                              gettext_noop
+                              ("# KEEPALIVE_RESPONSE messages discarded (wrong nonce)"),
+                              1, GNUNET_NO);
+    return;
+  }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+        "Received keep alive response from peer `%s' for session %p\n",
+        GNUNET_i2s (&n->id), n->primary_address.session);
+
+  }
+
+  /* Update session timeout here */
+  if (NULL != (papi = GST_plugins_find (n->primary_address.address->transport_name)))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+        "Updating session for peer `%s' for session %p\n",
+        GNUNET_i2s (&n->id), n->primary_address.session);
+    papi->update_session_timeout (papi->cls, &n->id, n->primary_address.session);
+  }
+  else
+  {
+    GNUNET_break (0);
+  }
+
   n->expect_latency_response = GNUNET_NO;
   n->latency = GNUNET_TIME_absolute_get_duration (n->last_keep_alive_time);
   n->timeout = GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
@@ -1404,10 +1504,8 @@ GST_neighbours_keepalive_response (const struct GNUNET_PeerIdentity *neighbour)
   else
     latency = n->latency.rel_value_us;
   ats.value = htonl (latency);
-  GST_ats_update_metrics (&n->id,
-  		 	 	 	 	 	 	 	 	 	  n->primary_address.address,
-			     	 	 	 	 	 	 	 	n->primary_address.session,
-			     	 	 	 	 	 	 	 	&ats, 1);
+  GST_ats_update_metrics (&n->id, n->primary_address.address,
+      n->primary_address.session, &ats, 1);
 }
 
 

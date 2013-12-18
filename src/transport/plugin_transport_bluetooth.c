@@ -1799,6 +1799,15 @@ bluetooth_string_to_address (void *cls, const char *addr, uint16_t addrlen,
   return GNUNET_OK;
 }
 
+static void
+bluetooth_plugin_update_session_timeout (void *cls,
+                                  const struct GNUNET_PeerIdentity *peer,
+                                  struct Session *session)
+{
+
+}
+
+
 
 /**
  * Entry point for the plugin.
@@ -1933,6 +1942,7 @@ libgnunet_plugin_transport_bluetooth_init (void *cls)
   api->address_to_string = &bluetooth_plugin_address_to_string;;
   api->string_to_address = &bluetooth_string_to_address;
   api->get_network = &bluetooth_get_network;
+  api->update_session_timeout = &blueooth_plugin_update_session_timeout;
 
   return api;
 }

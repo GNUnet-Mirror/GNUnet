@@ -1856,6 +1856,14 @@ wlan_string_to_address (void *cls, const char *addr, uint16_t addrlen,
 }
 
 
+static void
+wlan_plugin_update_session_timeout (void *cls,
+                                  const struct GNUNET_PeerIdentity *peer,
+                                  struct Session *session)
+{
+
+}
+
 /**
  * Entry point for the plugin.
  *
@@ -1989,6 +1997,7 @@ libgnunet_plugin_transport_wlan_init (void *cls)
   api->address_to_string = &wlan_plugin_address_to_string;
   api->string_to_address = &wlan_string_to_address;
   api->get_network = &wlan_get_network;
+  api->update_session_timeout = &wlan_plugin_update_session_timeout;
   return api;
 }
 
