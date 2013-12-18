@@ -791,6 +791,39 @@ send_broken (struct MeshConnection *c,
 
 
 /**
+ * Send a notification that a connection is broken, when a connection
+ * isn't even created.
+ *
+ * @param connection_id Connection ID.
+ * @param id1 Peer that has disconnected.
+ * @param id2 Peer that has disconnected.
+ * @param peer Peer to notify (neighbor who sent the connection).
+ */
+static void
+send_broken2 (struct GNUNET_HashCode *connection_id,
+             const struct GNUNET_PeerIdentity *id1,
+             const struct GNUNET_PeerIdentity *id2,
+             GNUNET_PEER_Id peer_id)
+{
+  struct GNUNET_MESH_ConnectionBroken *msg;
+  struct MeshPeer *neighbor;
+
+  msg = GNUNET_new (struct GNUNET_MESH_ConnectionBroken);
+  msg->header.size = htons (sizeof (struct GNUNET_MESH_ConnectionBroken));
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CONNECTION_BROKEN);
+  msg->cid = *connection_id;
+  msg->peer1 = *id1;
+  msg->peer2 = *id2;
+  neighbor = GMP_get_short (peer_id);
+  GMP_queue_add (neighbor, msg,
+                 GNUNET_MESSAGE_TYPE_MESH_ENCRYPTED,
+                 sizeof (struct GNUNET_MESH_ConnectionBroken),
+                 NULL, GNUNET_SYSERR, /* connection, fwd */
+                 NULL, NULL); /* continuation */
+}
+
+
+/**
  * Send keepalive packets for a connection.
  *
  * @param c Connection to keep alive..
@@ -1383,15 +1416,29 @@ GMC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
                                      size, &own_pos);
     if (NULL == path)
       return GNUNET_OK;
+    if (0 == own_pos)
+    {
+      GNUNET_break_op (0);
+      return GNUNET_OK;
+    }
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  Own position: %u\n", own_pos);
-    GMP_add_path_to_all (path, GNUNET_NO);
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  Creating connection\n");
     c = GMC_new (cid, NULL, path_duplicate (path), own_pos);
     if (NULL == c)
     {
+      if (path->length - 1 == own_pos)
+      {
+        /* If we are destination, why did the creation fail? */
+        GNUNET_break (0);
+        return GNUNET_OK;
+      }
+      send_broken2 (cid, &my_full_id,
+                    GNUNET_PEER_resolve2 (path->peers[own_pos + 1]),
+                    path->peers[own_pos - 1]);
       path_destroy (path);
       return GNUNET_OK;
     }
+    GMP_add_path_to_all (path, GNUNET_NO);
     connection_reset_timeout (c, GNUNET_YES);
   }
   else

@@ -858,9 +858,7 @@ queue_send (void *cls, size_t size, void *buf)
     case GNUNET_MESSAGE_TYPE_MESH_KX:
     case GNUNET_MESSAGE_TYPE_MESH_ACK:
     case GNUNET_MESSAGE_TYPE_MESH_POLL:
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-                  "*   raw: %s\n",
-                  GM_m2s (queue->type));
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "*   raw: %s\n", GM_m2s (queue->type));
       data_size = send_core_data_raw (queue->cls, size, buf);
       break;
     case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE:
@@ -911,14 +909,13 @@ queue_send (void *cls, size_t size, void *buf)
     if (NULL == peer->core_transmit)
     {
       peer->core_transmit =
-          GNUNET_CORE_notify_transmit_ready(core_handle,
-                                            0,
-                                            0,
-                                            GNUNET_TIME_UNIT_FOREVER_REL,
-                                            dst_id,
-                                            queue->size,
-                                            &queue_send,
-                                            peer);
+          GNUNET_CORE_notify_transmit_ready (core_handle,
+                                             0, 0,
+                                             GNUNET_TIME_UNIT_FOREVER_REL,
+                                             dst_id,
+                                             queue->size,
+                                             &queue_send,
+                                             peer);
       queue->start_waiting = GNUNET_TIME_absolute_get ();
     }
     else
@@ -956,7 +953,6 @@ GMP_queue_destroy (struct MeshPeerQueue *queue, int clear_cls)
   struct MeshPeer *peer;
 
   peer = queue->peer;
-  GNUNET_assert (NULL != queue->c);
 
   if (GNUNET_YES == clear_cls)
   {
@@ -1013,7 +1009,7 @@ GMP_queue_destroy (struct MeshPeerQueue *queue, int clear_cls)
  *            build the message to be sent if not already prebuilt.
  * @param type Type of the message, 0 for a raw message.
  * @param size Size of the message.
- * @param c Connection this message belongs to (cannot be NULL).
+ * @param c Connection this message belongs to (can be NULL).
  * @param fwd Is this a message going root->dest? (FWD ACK are NOT FWD!)
  * @param cont Continuation to be called once CORE has taken the message.
  * @param cont_cls Closure for @c cont.
@@ -1034,7 +1030,6 @@ GMP_queue_add (struct MeshPeer *peer, void *cls, uint16_t type, size_t size,
        "queue add %s %s towards %s (size %u) on c %p (%s)\n",
        GM_f2s (fwd),  GM_m2s (type), GMP_2s(peer),
        size, c, GMC_2s (c));
-  GNUNET_assert (NULL != c);
 
   if (NULL == peer->connections)
   {
@@ -1055,7 +1050,7 @@ GMP_queue_add (struct MeshPeer *peer, void *cls, uint16_t type, size_t size,
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "priority %d\n", priority);
 
-  call_core = GMC_is_sendable (c, fwd);
+  call_core = NULL == c ? GNUNET_YES : GMC_is_sendable (c, fwd);
   queue = GNUNET_malloc (sizeof (struct MeshPeerQueue));
   queue->cls = cls;
   queue->type = type;
