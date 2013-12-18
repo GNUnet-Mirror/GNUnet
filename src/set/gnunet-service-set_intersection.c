@@ -157,6 +157,37 @@ struct SetState
 
 
 /**
+ * Send a result message to the client indicating
+ * we removed an element
+ *
+ * @param op union operation
+ * @param element element to send
+ */
+static void
+send_client_element (struct Operation *op,
+                     struct GNUNET_SET_Element *element)
+{
+  struct GNUNET_MQ_Envelope *ev;
+  struct GNUNET_SET_ResultMessage *rm;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "sending removed element (size %u) to client\n", element->size);
+  GNUNET_assert (0 != op->spec->client_request_id);
+  ev = GNUNET_MQ_msg_extra (rm, element->size, GNUNET_MESSAGE_TYPE_SET_RESULT);
+  if (NULL == ev)
+  {
+    GNUNET_MQ_discard (ev);
+    GNUNET_break (0);
+    return;
+  }
+  rm->result_status = htons (GNUNET_SET_STATUS_OK);
+  rm->request_id = htonl (op->spec->client_request_id);
+  rm->element_type = element->type;
+  memcpy (&rm[1], element->data, element->size);
+  GNUNET_MQ_send (op->spec->set->client_mq, ev);
+}
+
+
+/**
  * Alice's version:
  *
  * fills the contained-elements hashmap with all relevant
@@ -188,8 +219,11 @@ iterator_initialization_by_alice (void *cls,
                            op->spec->salt,
                            &mutated_hash);
   if (GNUNET_NO == GNUNET_CONTAINER_bloomfilter_test (op->state->remote_bf,
-                                                      &mutated_hash))
+                                                      &mutated_hash)){
+    if (GNUNET_SET_RESULT_REMOVED == op->spec->result_mode)
+      send_client_element (op, &ee->element);
     return GNUNET_YES;
+  }
 
   op->state->my_element_count++;
   GNUNET_assert (GNUNET_YES ==
@@ -263,6 +297,8 @@ iterator_bf_reduce (void *cls,
                    GNUNET_CONTAINER_multihashmap_remove (op->state->my_elements,
                                                          &ee->element_hash,
                                                          ee));
+    if (GNUNET_SET_RESULT_REMOVED == op->spec->result_mode)
+      send_client_element (op, &ee->element);
   }
 
   return GNUNET_YES;
