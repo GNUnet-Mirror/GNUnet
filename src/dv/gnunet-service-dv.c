@@ -145,9 +145,9 @@ struct PendingMessage
   const struct GNUNET_MessageHeader *msg;
 
   /**
-   * Ultimate target for the message.
+   * Next target for the message (a neighbour of ours).
    */
-  struct GNUNET_PeerIdentity ultimate_target;
+  struct GNUNET_PeerIdentity next_target;
 
   /**
    * Unique ID of the message.
@@ -615,12 +615,22 @@ core_transmit_notify (void *cls, size_t size, void *buf)
                                  pending);
     memcpy (&cbuf[off], pending->msg, msize);
     if (0 != pending->uid)
-      send_ack_to_plugin (&pending->ultimate_target,
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Acking transmission of %u bytes to %s with plugin\n",
+                  msize,
+                  GNUNET_i2s (&pending->next_target));
+      send_ack_to_plugin (&pending->next_target,
 			  pending->uid,
 			  GNUNET_NO);
+    }
     GNUNET_free (pending);
     off += msize;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Transmitting total of %u bytes to %s\n",
+	      off,
+	      GNUNET_i2s (&dn->peer));
   GNUNET_assert (NULL != core_api);
   if (NULL != dn->pm_head)
     dn->cth =
@@ -641,7 +651,7 @@ core_transmit_notify (void *cls, size_t size, void *buf)
  * @param target where to send the message
  * @param distance expected (remaining) distance to the target
  * @param uid unique ID for the message
- * @param ultimate_target ultimate recipient for the message
+ * @param actual_target ultimate recipient for the message
  * @param sender original sender of the message
  * @param payload payload of the message
  */
@@ -650,7 +660,7 @@ forward_payload (struct DirectNeighbor *target,
 		 uint32_t distance,
 		 uint32_t uid,
 		 const struct GNUNET_PeerIdentity *sender,
-		 const struct GNUNET_PeerIdentity *ultimate_target,
+		 const struct GNUNET_PeerIdentity *actual_target,
 		 const struct GNUNET_MessageHeader *payload)
 {
   struct PendingMessage *pm;
@@ -676,14 +686,14 @@ forward_payload (struct DirectNeighbor *target,
     return;
   }
   pm = GNUNET_malloc (sizeof (struct PendingMessage) + msize);
-  pm->ultimate_target = *ultimate_target;
+  pm->next_target = target->peer;
   pm->uid = uid;
   pm->msg = (const struct GNUNET_MessageHeader *) &pm[1];
   rm = (struct RouteMessage *) &pm[1];
   rm->header.size = htons ((uint16_t) msize);
   rm->header.type = htons (GNUNET_MESSAGE_TYPE_DV_ROUTE);
   rm->distance = htonl (distance);
-  rm->target = target->peer;
+  rm->target = *actual_target;
   rm->sender = *sender;
   memcpy (&rm[1], payload, ntohs (payload->size));
   GNUNET_CONTAINER_DLL_insert_tail (target->pm_head,
@@ -1746,9 +1756,12 @@ handle_dv_route_message (void *cls, const struct GNUNET_PeerIdentity *peer,
   const struct RouteMessage *rm;
   const struct GNUNET_MessageHeader *payload;
   struct Route *route;
+  struct DirectNeighbor *neighbor;
+  uint32_t distance;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Handling DV message\n");
+	      "Handling DV message from %s\n",
+              GNUNET_i2s (peer));
   if (ntohs (message->size) < sizeof (struct RouteMessage) + sizeof (struct GNUNET_MessageHeader))
   {
     GNUNET_break_op (0);
@@ -1771,6 +1784,10 @@ handle_dv_route_message (void *cls, const struct GNUNET_PeerIdentity *peer,
     if (NULL == route)
     {
       /* don't have reverse route, drop */
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "No reverse route to %s, dropping %u bytes!\n",
+                  GNUNET_i2s (&rm->sender),
+                  ntohs (payload->size));
       GNUNET_STATISTICS_update (stats,
 				"# message discarded (no reverse route)",
 				1, GNUNET_NO);
@@ -1788,23 +1805,41 @@ handle_dv_route_message (void *cls, const struct GNUNET_PeerIdentity *peer,
 					     &rm->target);
   if (NULL == route)
   {
-    GNUNET_STATISTICS_update (stats,
-			      "# messages discarded (no route)",
-			      1, GNUNET_NO);
-    return GNUNET_OK;
+    neighbor = GNUNET_CONTAINER_multipeermap_get (direct_neighbors,
+                                                  peer);
+    if (NULL == neighbor)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "No route to %s, not routing %u bytes!\n",
+                  GNUNET_i2s (&rm->target),
+                  ntohs (payload->size));
+      GNUNET_STATISTICS_update (stats,
+                                "# messages discarded (no route)",
+                                1, GNUNET_NO);
+      return GNUNET_OK;
+    }
+    distance = DIRECT_NEIGHBOR_COST;
   }
-  if (ntohl (route->target.distance) > ntohl (rm->distance) + 1)
+  else
   {
-    GNUNET_STATISTICS_update (stats,
-			      "# messages discarded (target too far)",
-			      1, GNUNET_NO);
-    return GNUNET_OK;
+    if (ntohl (route->target.distance) > ntohl (rm->distance) + 1)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Distance too far, not routing %u bytes!\n",
+                  ntohs (payload->size));
+      GNUNET_STATISTICS_update (stats,
+                                "# messages discarded (target too far)",
+                                1, GNUNET_NO);
+      return GNUNET_OK;
+    }
+    neighbor = route->next_hop;
+    distance = ntohl (route->target.distance);
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Forwarding message to %s\n",
 	      GNUNET_i2s (&rm->target));
-  forward_payload (route->next_hop,
-		   ntohl (route->target.distance),
+  forward_payload (neighbor,
+		   distance,
 		   0,
 		   &rm->target,
 		   &rm->sender,
