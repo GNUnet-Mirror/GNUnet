@@ -13,7 +13,7 @@ then
 	exit 77
 fi
 
-rm -r `gnunet-config -c test_gns_lookup.conf -s PATHS -o GNUNET_HOME -f`
+rm -rf /tmp/test-gnunet-gns-peer-1/
 which timeout &> /dev/null && DO_TIMEOUT="timeout 5"
 TEST_IP="127.0.0.1"
 gnunet-arm -s -c test_gns_lookup.conf
@@ -45,6 +45,7 @@ gnunet-namestore -z testego -d -n b -t PKEY -V $DELEGATED_PKEY  -e never -c test
 gnunet-identity -D testego -c test_gns_lookup.conf
 gnunet-identity -D delegatedego -c test_gns_lookup.conf
 gnunet-arm -e -c test_gns_lookup.conf
+rm -rf /tmp/test-gnunet-gns-peer-1/
 
 if [ "$RES_IP" == "$TEST_IP" ]
 then

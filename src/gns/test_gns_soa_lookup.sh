@@ -13,7 +13,7 @@ then
 	exit 77
 fi
 
-rm -r `gnunet-config -c test_gns_lookup.conf -s PATHS -o GNUNET_HOME -f`
+rm -rf /tmp/test-gnunet-gns-peer-1/
 TEST_DOMAIN="homepage.gnu"
 # some public DNS resolver we can use
 TEST_IP_GNS2DNS="184.172.157.218"
@@ -33,6 +33,7 @@ RES_SOA=$(timeout 5 gnunet-gns --raw -z testego -u $TEST_DOMAIN -t SOA -c test_g
 gnunet-namestore -z testego -d -n $TEST_RECORD_NAME -t GNS2DNS -V ${TEST_RECORD_GNS2DNS}@${TEST_IP_GNS2DNS} -e never -c test_gns_lookup.conf &> /dev/null
 gnunet-identity -D testego -c test_gns_lookup.conf
 gnunet-arm -e -c test_gns_lookup.conf
+rm -rf /tmp/test-gnunet-gns-peer-1/
 
 if [ "x$RES_SOA" != "x" ]
 then

@@ -13,7 +13,8 @@ then
 	exit 77
 fi
 
-rm -rf `gnunet-config -c test_gns_lookup.conf -s PATHS -o GNUNET_HOME -f`
+rm -rf /tmp/test-gnunet-gns-peer-1/
+
 TEST_DOMAIN_PLUS="www.gnu"
 TEST_DOMAIN_DNS="www3.gnu"
 TEST_IP_PLUS="127.0.0.1"
@@ -40,6 +41,7 @@ gnunet-namestore -p -z testego -d -n $TEST_RECORD_NAME_PLUS -t CNAME -V $TEST_RE
 gnunet-namestore -p -z testego -d -n $TEST_RECORD_CNAME_SERVER -t A -V $TEST_IP_PLUS -e never -c test_gns_lookup.conf
 gnunet-identity -D testego -c test_gns_lookup.conf
 gnunet-arm -e -c test_gns_lookup.conf
+rm -rf /tmp/test-gnunet-gns-peer-1/
 
 if [ "$RES_CNAME_RAW" == "server.$TESTEGOZONE.zkey" ]
 then

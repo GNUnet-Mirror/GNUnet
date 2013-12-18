@@ -13,7 +13,7 @@ then
 	exit 77
 fi
 
-rm -r `gnunet-config -c test_gns_lookup.conf -s PATHS -o GNUNET_HOME -f`
+rm -rf /tmp/test-gnunet-gns-peer-1/
 which timeout &> /dev/null && DO_TIMEOUT="timeout 30"
 TEST_TXT="GNS powered txt record data"
 gnunet-arm -s -c test_gns_lookup.conf
@@ -23,6 +23,7 @@ RES_TXT=`$DO_TIMEOUT gnunet-gns --raw -z testego -u testtxt.gnu -t TXT -c test_g
 gnunet-namestore -z testego -d -n testtxt -t TXT -V "$TEST_TXT" -e never -c test_gns_lookup.conf
 gnunet-identity -D testego -c test_gns_lookup.conf
 gnunet-arm -e -c test_gns_lookup.conf
+rm -rf /tmp/test-gnunet-gns-peer-1/
 
 if [ "$RES_TXT" == "$TEST_TXT" ]
 then

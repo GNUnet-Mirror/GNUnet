@@ -21,7 +21,7 @@ fi
 
 # Deleting home directory from previous runs
 TEST_CONFIG="test_gns_nick_shorten.conf "
-rm -rf `gnunet-config -c test_gns_nick_shorten.conf -s PATHS -o GNUNET_HOME -f`
+rm -rf /tmp/test-gnunet-gns-peer-1/
 TEST_IP="127.0.0.1"
 TEST_IP="127.0.0.2"
 TEST_NICK_EGO="ego"
@@ -118,7 +118,7 @@ gnunet-identity -D -z delegatedego -c $TEST_CONFIG
 gnunet-identity -D -z short-zone -c $TEST_CONFIG
 
 gnunet-arm -e -c test_gns_nick_shorten.conf
-rm -rf `gnunet-config -c test_gns_nick_shorten.conf -s PATHS -o GNUNET_HOME -f`
+rm -rf /tmp/test-gnunet-gns-peer-1/
 
 exit $RES
 
