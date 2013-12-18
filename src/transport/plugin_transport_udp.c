@@ -1678,7 +1678,16 @@ udp_plugin_update_session_timeout (void *cls,
                                   const struct GNUNET_PeerIdentity *peer,
                                   struct Session *session)
 {
+  if (GNUNET_YES
+      != GNUNET_CONTAINER_multipeermap_contains_value (plugin->sessions,
+          &s->target, s))
+  {
+    GNUNET_break(0);
+    return;
+  }
 
+  /* Reschedule session timeout */
+  reschedule_session_timeout (session);
 }
 
 /**
