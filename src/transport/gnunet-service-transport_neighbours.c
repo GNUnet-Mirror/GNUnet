@@ -1338,8 +1338,8 @@ send_keepalive (struct NeighbourMapEntry *n)
   while (0 == nonce)
     nonce = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-      "Sending keep alive response to peer `%s' with nonce %u\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      "Sending keep alive to peer `%s' with nonce %u\n",
       GNUNET_i2s (&n->id), nonce);
 
   m.header.size = htons (sizeof (struct SessionKeepAliveMessage));
@@ -1397,7 +1397,7 @@ GST_neighbours_keepalive (const struct GNUNET_PeerIdentity *neighbour,
     return;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
       "Received keep alive request from peer `%s' with nonce %u\n",
       GNUNET_i2s (&n->id), ntohl (msg_in->nonce));
 
@@ -1470,7 +1470,7 @@ GST_neighbours_keepalive_response (const struct GNUNET_PeerIdentity *neighbour,
   }
   else
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
         "Received keep alive response from peer `%s' for session %p\n",
         GNUNET_i2s (&n->id), n->primary_address.session);
 
@@ -1479,7 +1479,7 @@ GST_neighbours_keepalive_response (const struct GNUNET_PeerIdentity *neighbour,
   /* Update session timeout here */
   if (NULL != (papi = GST_plugins_find (n->primary_address.address->transport_name)))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
         "Updating session for peer `%s' for session %p\n",
         GNUNET_i2s (&n->id), n->primary_address.session);
     papi->update_session_timeout (papi->cls, &n->id, n->primary_address.session);
