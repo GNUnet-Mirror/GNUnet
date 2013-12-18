@@ -386,6 +386,21 @@ read_host_file (const char *fn,
     now = GNUNET_TIME_absolute_get ();
     hello_clean = GNUNET_HELLO_iterate_addresses (hello, GNUNET_YES,
 						  &discard_expired, &now);
+    if (NULL == hello_clean)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _("Failed to parse HELLO in file `%s': %s %u \n"),
+                  fn,
+                  "HELLO is invalid and has size of ",
+                  size_hello);
+      if ((GNUNET_YES == unlink_garbage) &&
+          (0 != UNLINK (fn)) &&
+          (ENOENT != errno) )
+        GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
+                                  "unlink",
+                                  fn);
+      return;
+    }
     left = 0;
     (void) GNUNET_HELLO_iterate_addresses (hello_clean, GNUNET_NO,
 					   &count_addresses, &left);
