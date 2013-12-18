@@ -3,7 +3,7 @@ trap "gnunet-arm -e -c test_gns_nick_shorten.conf" SIGINT
 which timeout &> /dev/null && DO_TIMEOUT="timeout 5"
 
 # This test tests shortening functionality based on NICK records:
-# 
+#
 # zone "delegatedego": Alice's zone
 # zone "testego": Local zone with delegation to alice
 
@@ -12,10 +12,10 @@ if [ -z $LOCATION ]
 then
   LOCATION="gnunet-config"
 fi
-$LOCATION --version
+$LOCATION --version &> /dev/null
 if test $? != 0
 then
-	echo "GNUnet command line tools cannot be found, check environmental variables PATH and GNUNET_PREFIX" 
+	echo "GNUnet command line tools cannot be found, check environmental variables PATH and GNUNET_PREFIX"
 	exit 77
 fi
 
@@ -47,7 +47,7 @@ echo "Adding nick names for identities"
 gnunet-namestore -z testego -i $TEST_NICK_EGO -c $TEST_CONFIG
 gnunet-namestore -z delegatedego -i $TEST_NICK_DELEGATED -c $TEST_CONFIG
 
-# Adding label www in Alice's delegatedego zone 
+# Adding label www in Alice's delegatedego zone
 echo "Adding www record with IP $TEST_IP"
 gnunet-namestore -p -z delegatedego -a -n www -t A -V $TEST_IP -e never -c test_gns_nick_shorten.conf
 
@@ -94,12 +94,12 @@ then
 else
   echo "FAIL: Expected PKEY in $DELEGATED_PKEY, received PKEY $PKEY_SHORT_RES in master zone."
   RES=1
-fi  
+fi
 
 if [ $RES -eq 0 ]
 then
-	RES_IP=`$DO_TIMEOUT gnunet-gns --raw -z testego -u $TEST_NAME_SHORT -t A -c test_gns_nick_shorten.conf`	
-	if [ "$RES_IP" == "$TEST_IP" ]	
+	RES_IP=`$DO_TIMEOUT gnunet-gns --raw -z testego -u $TEST_NAME_SHORT -t A -c test_gns_nick_shorten.conf`
+	if [ "$RES_IP" == "$TEST_IP" ]
 	then
 		echo "PASS: Received $TEST_IP for $TEST_NAME_SHORT"
 	else

@@ -7,10 +7,10 @@ if [ -z $LOCATION ]
 then
   LOCATION="gnunet-config"
 fi
-$LOCATION --version
+$LOCATION --version &> /dev/null
 if test $? != 0
 then
-	echo "GNUnet command line tools cannot be found, check environmental variables PATH and GNUNET_PREFIX" 
+	echo "GNUnet command line tools cannot be found, check environmental variables PATH and GNUNET_PREFIX"
 	exit 77
 fi
 
