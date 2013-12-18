@@ -4,10 +4,10 @@ import getopt
 import subprocess
 from sys import argv
 try:
-    import zbar
+	import zbar
 except ImportError as e:
-    print 'Cannot run gnunet-qr, please install zbar-python'
-    sys.exit (1)
+	print 'Cannot run gnunet-qr, please install zbar-python'
+	sys.exit (1)
 
 def help ():
  print 'gnunet-qr\n\
