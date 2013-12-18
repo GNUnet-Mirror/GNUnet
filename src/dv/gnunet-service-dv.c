@@ -444,8 +444,9 @@ send_data_to_plugin (const struct GNUNET_MessageHeader *message,
   size_t size;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Delivering message from peer `%s'\n",
-              GNUNET_i2s (origin));
+              "Delivering message from peer `%s' at distance %u\n",
+              GNUNET_i2s (origin),
+              (unsigned int) distance);
   size = sizeof (struct GNUNET_DV_ReceivedMessage) +
     ntohs (message->size);
   if (size >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
@@ -863,7 +864,7 @@ build_set (void *cls)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Adding peer `%s' with distance %u to SET\n",
                 GNUNET_i2s (&target->peer),
-                ntohl (target->distance));
+                ntohl (target->distance) + 1);
     GNUNET_SET_add_element (neighbor->my_set,
                             &element,
                             &build_set, neighbor);
@@ -1814,7 +1815,7 @@ handle_dv_route_message (void *cls, const struct GNUNET_PeerIdentity *peer,
     if ( (NULL == route) &&
          (NULL == GNUNET_CONTAINER_multipeermap_get (direct_neighbors,
                                                      &rm->sender)) &&
-         (ntohs (rm->distance) < DEFAULT_FISHEYE_DEPTH) )
+         (ntohl (rm->distance) < DEFAULT_FISHEYE_DEPTH) )
     {
       /* don't have reverse route yet, learn it! */
       neighbor = GNUNET_CONTAINER_multipeermap_get (direct_neighbors,
@@ -1830,7 +1831,7 @@ handle_dv_route_message (void *cls, const struct GNUNET_PeerIdentity *peer,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Learning target %s at distance %u from delivery!\n",
                   GNUNET_i2s (&rm->sender),
-                  1 + ntohs (rm->distance));
+                  1 + ntohl (rm->distance));
       if (NULL == neighbor->neighbor_table)
         neighbor->neighbor_table = GNUNET_CONTAINER_multipeermap_create (10, GNUNET_NO);
       if (GNUNET_YES !=
@@ -1849,7 +1850,7 @@ handle_dv_route_message (void *cls, const struct GNUNET_PeerIdentity *peer,
 		ntohs (payload->size));
     send_data_to_plugin (payload,
 			 &rm->sender,
-			 ntohl (route->target.distance));
+			 1 + ntohl (rm->distance));
     return GNUNET_OK;
   }
   if ( (NULL == GNUNET_CONTAINER_multipeermap_get (direct_neighbors,
@@ -1860,7 +1861,7 @@ handle_dv_route_message (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Learning target %s at distance %u from forwarding!\n",
                 GNUNET_i2s (&rm->sender),
-                1 + ntohs (rm->distance));
+                1 + ntohl (rm->distance));
     neighbor = GNUNET_CONTAINER_multipeermap_get (direct_neighbors,
                                                   peer);
     if (NULL == neighbor)
