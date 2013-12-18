@@ -169,7 +169,6 @@ src/identity/gnunet-identity.c
 src/identity/gnunet-service-identity.c
 src/identity/identity_api.c
 src/identity/identity_api_lookup.c
-src/integration-tests/connection_watchdog.c
 src/mesh/gnunet-mesh.c
 src/mesh/gnunet-service-mesh.c
 src/mesh/gnunet-service-mesh_channel.c
