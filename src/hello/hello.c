@@ -183,7 +183,7 @@ get_hello_address_size (const char *buf,
     pos++;
     slen++;
   }
-  if (left == 0)
+  if (0 == left)
   {
     /* 0-termination not found */
     GNUNET_break_op (0);
@@ -300,7 +300,7 @@ GNUNET_HELLO_iterate_addresses (const struct GNUNET_HELLO_Message *msg,
   while (insize > 0)
   {
     esize = get_hello_address_size (inptr, insize, &alen);
-    if (esize == 0)
+    if (0 == esize)
     {
       GNUNET_break (0);
       GNUNET_free_non_null (ret);
