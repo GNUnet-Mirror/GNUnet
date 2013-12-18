@@ -651,8 +651,8 @@ core_transmit_notify (void *cls, size_t size, void *buf)
  * @param target where to send the message
  * @param distance expected (remaining) distance to the target
  * @param uid unique ID for the message
- * @param actual_target ultimate recipient for the message
  * @param sender original sender of the message
+ * @param actual_target ultimate recipient for the message
  * @param payload payload of the message
  */
 static void
@@ -1758,16 +1758,27 @@ handle_dv_route_message (void *cls, const struct GNUNET_PeerIdentity *peer,
   struct Route *route;
   struct DirectNeighbor *neighbor;
   uint32_t distance;
+  char me[5];
+  char src[5];
+  char prev[5];
+  char dst[5];
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Handling DV message from %s\n",
-              GNUNET_i2s (peer));
   if (ntohs (message->size) < sizeof (struct RouteMessage) + sizeof (struct GNUNET_MessageHeader))
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
   rm = (const struct RouteMessage *) message;
+  strncpy (prev, GNUNET_i2s (peer), 4);
+  strncpy (me, GNUNET_i2s (&my_identity), 4);
+  strncpy (src, GNUNET_i2s (&rm->sender), 4);
+  strncpy (dst, GNUNET_i2s (&rm->target), 4);
+  prev[4] = me[4] = src[4] = dst[4] = '\0';
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "Handling DV message from %s to %s routed by %s to me (%s)\n",
+              src, dst,
+              prev, me);
+
   payload = (const struct GNUNET_MessageHeader *) &rm[1];
   if (ntohs (message->size) != sizeof (struct RouteMessage) + ntohs (payload->size))
   {
@@ -1806,7 +1817,7 @@ handle_dv_route_message (void *cls, const struct GNUNET_PeerIdentity *peer,
   if (NULL == route)
   {
     neighbor = GNUNET_CONTAINER_multipeermap_get (direct_neighbors,
-                                                  peer);
+                                                  &rm->target);
     if (NULL == neighbor)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1837,12 +1848,12 @@ handle_dv_route_message (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Forwarding message to %s\n",
-	      GNUNET_i2s (&rm->target));
+	      GNUNET_i2s (&neighbor->peer));
   forward_payload (neighbor,
 		   distance,
 		   0,
-		   &rm->target,
 		   &rm->sender,
+		   &rm->target,
 		   payload);
   return GNUNET_OK;
 }
@@ -1899,8 +1910,8 @@ handle_dv_send_message (void *cls, struct GNUNET_SERVER_Client *client,
   forward_payload (route->next_hop,
 		   ntohl (route->target.distance),
 		   htonl (msg->uid),
-		   &msg->target,
 		   &my_identity,
+		   &msg->target,
 		   payload);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }

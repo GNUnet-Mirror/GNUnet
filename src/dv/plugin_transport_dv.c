@@ -329,9 +329,10 @@ handle_dv_connect (void *cls,
                                                    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Creating new session %p for peer `%s'\n",
+       "Creating new DV session %p for peer `%s' at distance %u\n",
        session,
-       GNUNET_i2s (peer));
+       GNUNET_i2s (peer),
+       distance);
 
   /* Notify transport and ats about new connection */
   ats[0].type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
