@@ -464,7 +464,9 @@ TESTS = \
  $(HTTPS_API_TEST) \
  $(HTTPS_API_TIMEOUT_TEST) \
  $(WLAN_API_TEST) \
+ $(WLAN_TIMEOUT_TEST) \
  $(BT_API_TEST) \
+ $(BT_TIMEOUT_TEST) \
  test_transport_api_multi \
  test_transport_blacklisting_no_bl \
  test_transport_blacklisting_outbound_bl_full \
