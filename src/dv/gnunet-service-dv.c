@@ -1812,12 +1812,21 @@ handle_dv_route_message (void *cls, const struct GNUNET_PeerIdentity *peer,
 		   &my_identity,
 		   sizeof (struct GNUNET_PeerIdentity)))
   {
+    if (NULL != GNUNET_CONTAINER_multipeermap_get (direct_neighbors,
+                                                   &rm->sender))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Discarding DV message, as %s is a direct neighbor\n",
+                  GNUNET_i2s (&rm->sender));
+      GNUNET_STATISTICS_update (stats,
+                                "# messages discarded (direct neighbor)",
+                                1, GNUNET_NO);
+      return GNUNET_OK;
+    }
     /* message is for me, check reverse route! */
     route = GNUNET_CONTAINER_multipeermap_get (all_routes,
 					       &rm->sender);
     if ( (NULL == route) &&
-         (NULL == GNUNET_CONTAINER_multipeermap_get (direct_neighbors,
-                                                     &rm->sender)) &&
          (distance < DEFAULT_FISHEYE_DEPTH) )
     {
       /* don't have reverse route yet, learn it! */
