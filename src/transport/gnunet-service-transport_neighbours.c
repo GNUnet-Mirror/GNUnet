@@ -1489,6 +1489,7 @@ GST_neighbours_keepalive_response (const struct GNUNET_PeerIdentity *neighbour,
     GNUNET_break (0);
   }
 
+  n->primary_address.keep_alive_nonce = 0;
   n->expect_latency_response = GNUNET_NO;
   n->latency = GNUNET_TIME_absolute_get_duration (n->last_keep_alive_time);
   n->timeout = GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);

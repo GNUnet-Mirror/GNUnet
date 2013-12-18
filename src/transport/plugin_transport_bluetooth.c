@@ -1942,7 +1942,7 @@ libgnunet_plugin_transport_bluetooth_init (void *cls)
   api->address_to_string = &bluetooth_plugin_address_to_string;;
   api->string_to_address = &bluetooth_string_to_address;
   api->get_network = &bluetooth_get_network;
-  api->update_session_timeout = &blueooth_plugin_update_session_timeout;
+  api->update_session_timeout = &bluetooth_plugin_update_session_timeout;
 
   return api;
 }
