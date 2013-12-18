@@ -911,7 +911,15 @@ unix_plugin_update_session_timeout (void *cls,
                                   const struct GNUNET_PeerIdentity *peer,
                                   struct Session *session)
 {
+  struct Plugin *plugin = cls;
 
+  if (GNUNET_OK !=
+      GNUNET_CONTAINER_multipeermap_contains_value (plugin->session_map,
+                                                    &session->target,
+                                                    session))
+    return;
+
+  reschedule_session_timeout (session);
 }
 
 /**
@@ -978,7 +986,7 @@ unix_plugin_send (void *cls,
   memcpy (&message->sender, plugin->env->my_identity,
           sizeof (struct GNUNET_PeerIdentity));
   memcpy (&message[1], msgbuf, msgbuf_size);
-  reschedule_session_timeout (session);
+
   wrapper = GNUNET_new (struct UNIXMessageWrapper);
   wrapper->msg = message;
   wrapper->msgsize = ssize;
