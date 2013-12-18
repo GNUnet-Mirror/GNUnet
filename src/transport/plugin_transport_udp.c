@@ -3285,6 +3285,11 @@ libgnunet_plugin_transport_udp_done (void *cls)
     GNUNET_CONTAINER_heap_destroy (plugin->defrag_ctxs);
     plugin->defrag_ctxs = NULL;
   }
+  if (plugin->mst != NULL)
+  {
+    GNUNET_SERVER_mst_destroy(plugin->mst);
+    plugin->mst = NULL;
+  }
 
   /* Clean up leftover messages */
   struct UDP_MessageWrapper * udpw;
