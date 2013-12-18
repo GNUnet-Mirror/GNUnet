@@ -370,10 +370,8 @@ read_host_file (const char *fn,
     if (0 == size_hello)
       {
 	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		    _("Failed to parse HELLO in file `%s': %s %u \n"),
-		    fn,
-                    "HELLO is invalid and has size of ",
-                    size_hello);
+		    _("Failed to parse HELLO in file `%s'\n"),
+		    fn);
 	if ((GNUNET_YES == unlink_garbage) &&
 	    (0 != UNLINK (fn)) &&
 	    (ENOENT != errno) )
@@ -389,10 +387,8 @@ read_host_file (const char *fn,
     if (NULL == hello_clean)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  _("Failed to parse HELLO in file `%s': %s %u \n"),
-                  fn,
-                  "HELLO is invalid and has size of ",
-                  size_hello);
+                  _("Failed to parse HELLO in file `%s'\n"),
+                  fn);
       if ((GNUNET_YES == unlink_garbage) &&
           (0 != UNLINK (fn)) &&
           (ENOENT != errno) )
