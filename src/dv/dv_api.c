@@ -200,7 +200,7 @@ reconnect (struct GNUNET_DV_ServiceHandle *sh);
 /**
  * Gives a message from our queue to the DV service.
  *
- * @param cls handle to the dv service (struct GNUNET_DV_ServiceHandle)
+ * @param cls handle to the dv service (`struct GNUNET_DV_ServiceHandle`)
  * @param size how many bytes can we send
  * @param buf where to copy the message to send
  * @return how many bytes we copied to @a buf
@@ -228,6 +228,10 @@ transmit_pending (void *cls, size_t size, void *buf)
 				 sh->th_tail,
 				 th);
     memcpy (&cbuf[ret], th->msg, tsize);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Passing %u bytes of type %u to DV service\n",
+         tsize,
+         ntohs (th->msg->type));
     th->msg = NULL;
     ret += tsize;
     if (NULL != th->cb)

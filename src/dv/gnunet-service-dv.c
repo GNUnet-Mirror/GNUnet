@@ -97,7 +97,7 @@ struct Target
 struct RouteMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_DV_ROUTE
+   * Type: #GNUNET_MESSAGE_TYPE_DV_ROUTE
    */
   struct GNUNET_MessageHeader header;
 
@@ -938,7 +938,7 @@ handle_direct_connect (struct DirectNeighbor *neighbor)
     }
     else
       neighbor->initiate_task = GNUNET_SCHEDULER_add_now (&initiate_set_union,
-							neighbor);
+                                                          neighbor);
   }
   else
   {
@@ -1028,6 +1028,33 @@ free_targets (void *cls,
 
 
 /**
+ * Add a new route to the given @a target via the given @a neighbor.
+ *
+ * @param target the target of the route
+ * @param neighbor the next hop for communicating with the @a target
+ */
+static void
+add_new_route (struct Target *target,
+               struct DirectNeighbor *neighbor)
+{
+  struct Route *route;
+
+  route = GNUNET_new (struct Route);
+  route->next_hop = neighbor;
+  route->target.peer = target->peer;
+  allocate_route (route, ntohl (target->distance) + 1);
+  GNUNET_assert (GNUNET_YES ==
+		 GNUNET_CONTAINER_multipeermap_put (all_routes,
+						    &route->target.peer,
+						    route,
+						    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+  send_connect_to_plugin (&route->target.peer,
+                          ntohl (route->target.distance),
+                          neighbor->network);
+}
+
+
+/**
  * Multipeerhmap iterator for checking if a given route is
  * (now) useful to this peer.
  *
@@ -1068,18 +1095,7 @@ check_possible_route (void *cls,
   }
   if (ntohl (target->distance) >= DEFAULT_FISHEYE_DEPTH)
     return GNUNET_YES; /* distance is too large to be interesting */
-  route = GNUNET_new (struct Route);
-  route->next_hop = neighbor;
-  route->target.peer = target->peer;
-  allocate_route (route, ntohl (target->distance) + 1);
-  GNUNET_assert (GNUNET_YES ==
-		 GNUNET_CONTAINER_multipeermap_put (all_routes,
-						    &route->target.peer,
-						    route,
-						    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-  send_connect_to_plugin (&route->target.peer,
-                          ntohl (route->target.distance),
-                          neighbor->network);
+  add_new_route (target, neighbor);
   return GNUNET_YES;
 }
 
@@ -1525,25 +1541,26 @@ handle_set_union_result (void *cls,
   struct Target *target;
   char *status_str;
 
-  switch (status) {
-    case GNUNET_SET_STATUS_OK:
-      status_str = "GNUNET_SET_STATUS_OK";
-      break;
-    case GNUNET_SET_STATUS_TIMEOUT:
-      status_str = "GNUNET_SET_STATUS_TIMEOUT";
-      break;
-    case GNUNET_SET_STATUS_FAILURE:
-      status_str = "GNUNET_SET_STATUS_FAILURE";
-      break;
-    case GNUNET_SET_STATUS_HALF_DONE:
-      status_str = "GNUNET_SET_STATUS_HALF_DONE";
-      break;
-    case GNUNET_SET_STATUS_DONE:
-      status_str = "GNUNET_SET_STATUS_DONE";
-      break;
-    default:
-      status_str = "UNDEFINED";
-      break;
+  switch (status)
+  {
+  case GNUNET_SET_STATUS_OK:
+    status_str = "GNUNET_SET_STATUS_OK";
+    break;
+  case GNUNET_SET_STATUS_TIMEOUT:
+    status_str = "GNUNET_SET_STATUS_TIMEOUT";
+    break;
+  case GNUNET_SET_STATUS_FAILURE:
+    status_str = "GNUNET_SET_STATUS_FAILURE";
+    break;
+  case GNUNET_SET_STATUS_HALF_DONE:
+    status_str = "GNUNET_SET_STATUS_HALF_DONE";
+    break;
+  case GNUNET_SET_STATUS_DONE:
+    status_str = "GNUNET_SET_STATUS_DONE";
+    break;
+  default:
+    status_str = "UNDEFINED";
+    break;
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1757,6 +1774,7 @@ handle_dv_route_message (void *cls, const struct GNUNET_PeerIdentity *peer,
   const struct GNUNET_MessageHeader *payload;
   struct Route *route;
   struct DirectNeighbor *neighbor;
+  struct Target *target;
   uint32_t distance;
   char me[5];
   char src[5];
@@ -1775,9 +1793,10 @@ handle_dv_route_message (void *cls, const struct GNUNET_PeerIdentity *peer,
   strncpy (dst, GNUNET_i2s (&rm->target), 4);
   prev[4] = me[4] = src[4] = dst[4] = '\0';
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Handling DV message from %s to %s routed by %s to me (%s)\n",
+	      "Handling DV message from %s to %s routed by %s to me (%s @ %u)\n",
               src, dst,
-              prev, me);
+              prev, me,
+              (unsigned int) ntohl (rm->distance));
 
   payload = (const struct GNUNET_MessageHeader *) &rm[1];
   if (ntohs (message->size) != sizeof (struct RouteMessage) + ntohs (payload->size))
@@ -1792,17 +1811,38 @@ handle_dv_route_message (void *cls, const struct GNUNET_PeerIdentity *peer,
     /* message is for me, check reverse route! */
     route = GNUNET_CONTAINER_multipeermap_get (all_routes,
 					       &rm->sender);
-    if (NULL == route)
+    if ( (NULL == route) &&
+         (NULL == GNUNET_CONTAINER_multipeermap_get (direct_neighbors,
+                                                     &rm->sender)) &&
+         (ntohs (rm->distance) < DEFAULT_FISHEYE_DEPTH) )
     {
-      /* don't have reverse route, drop */
+      /* don't have reverse route yet, learn it! */
+      neighbor = GNUNET_CONTAINER_multipeermap_get (direct_neighbors,
+                                                    peer);
+      if (NULL == neighbor)
+      {
+        GNUNET_break (0);
+        return GNUNET_SYSERR;
+      }
+      target = GNUNET_new (struct Target);
+      target->peer = rm->sender;
+      target->distance = htonl (ntohl (rm->distance));
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "No reverse route to %s, dropping %u bytes!\n",
+                  "Learning target %s at distance %u from delivery!\n",
                   GNUNET_i2s (&rm->sender),
-                  ntohs (payload->size));
-      GNUNET_STATISTICS_update (stats,
-				"# message discarded (no reverse route)",
-				1, GNUNET_NO);
-      return GNUNET_OK;
+                  1 + ntohs (rm->distance));
+      if (NULL == neighbor->neighbor_table)
+        neighbor->neighbor_table = GNUNET_CONTAINER_multipeermap_create (10, GNUNET_NO);
+      if (GNUNET_YES !=
+          GNUNET_CONTAINER_multipeermap_put (neighbor->neighbor_table,
+                                             &target->peer,
+                                             target,
+                                             GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
+      {
+        GNUNET_break_op (0);
+        GNUNET_free (target);
+      }
+      add_new_route (target, neighbor);
     }
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Delivering %u bytes to myself!\n",
@@ -1812,6 +1852,39 @@ handle_dv_route_message (void *cls, const struct GNUNET_PeerIdentity *peer,
 			 ntohl (route->target.distance));
     return GNUNET_OK;
   }
+  if ( (NULL == GNUNET_CONTAINER_multipeermap_get (direct_neighbors,
+                                                   &rm->sender)) &&
+       (NULL == GNUNET_CONTAINER_multipeermap_get (all_routes,
+                                                   &rm->sender)) )
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Learning target %s at distance %u from forwarding!\n",
+                GNUNET_i2s (&rm->sender),
+                1 + ntohs (rm->distance));
+    neighbor = GNUNET_CONTAINER_multipeermap_get (direct_neighbors,
+                                                  peer);
+    if (NULL == neighbor)
+    {
+      GNUNET_break (0);
+      return GNUNET_SYSERR;
+    }
+    target = GNUNET_new (struct Target);
+    target->peer = rm->sender;
+    target->distance = htonl (ntohl (rm->distance));
+    if (NULL == neighbor->neighbor_table)
+      neighbor->neighbor_table = GNUNET_CONTAINER_multipeermap_create (10, GNUNET_NO);
+    if (GNUNET_YES !=
+        GNUNET_CONTAINER_multipeermap_put (neighbor->neighbor_table,
+                                           &target->peer,
+                                           target,
+                                           GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
+    {
+      GNUNET_break_op (0);
+      GNUNET_free (target);
+    }
+    add_new_route (target, neighbor);
+  }
+
   route = GNUNET_CONTAINER_multipeermap_get (all_routes,
 					     &rm->target);
   if (NULL == route)
@@ -2081,9 +2154,9 @@ shutdown_task (void *cls,
  * @return #GNUNET_OK (continue to iterate)
  */
 static int
-add_route (void *cls,
-	   const struct GNUNET_PeerIdentity *key,
-	   void *value)
+notify_client_about_route (void *cls,
+                           const struct GNUNET_PeerIdentity *key,
+                           void *value)
 {
   struct GNUNET_SERVER_Client *client = cls;
   struct Route *route = value;
@@ -2118,7 +2191,7 @@ handle_start (void *cls, struct GNUNET_SERVER_Client *client,
   GNUNET_SERVER_notification_context_add (nc, client);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
   GNUNET_CONTAINER_multipeermap_iterate (all_routes,
-					 &add_route,
+					 &notify_client_about_route,
 					 client);
 }
 
