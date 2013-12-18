@@ -674,10 +674,15 @@ lookup_neighbour (const struct GNUNET_PeerIdentity *pid)
 }
 
 
+/**
+ * Convert state to human-readable string.
+ *
+ * @param state the state value
+ * @return corresponding string
+ */
 static const char *
-print_state (int state)
+print_state (enum State state)
 {
-
   switch (state)
   {
   case S_NOT_CONNECTED:
@@ -1110,6 +1115,10 @@ send_disconnect (struct NeighbourMapEntry *n)
 static void
 disconnect_neighbour (struct NeighbourMapEntry *n)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Disconnecting from peer %s in state %s\n",
+              GNUNET_i2s (&n->id),
+              print_state (n->state));
   /* depending on state, notify neighbour and/or upper layers of this peer
      about disconnect */
   switch (n->state)
@@ -1216,12 +1225,12 @@ transmit_send_continuation (void *cls,
   }
   if (bytes_in_send_queue < mq->message_buf_size)
   {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Bytes_in_send_queue `%u', Message_size %u, result: %s, payload %u, on wire %u\n",
-                  bytes_in_send_queue, mq->message_buf_size,
-                  (GNUNET_OK == success) ? "OK" : "FAIL",
-               	  size_payload, physical);
-      GNUNET_break (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Bytes_in_send_queue `%u', Message_size %u, result: %s, payload %u, on wire %u\n",
+                bytes_in_send_queue, mq->message_buf_size,
+                (GNUNET_OK == success) ? "OK" : "FAIL",
+                size_payload, physical);
+    GNUNET_break (0);
   }
 
 
@@ -1300,7 +1309,9 @@ try_transmission_to_peer (struct NeighbourMapEntry *n)
 			      1, GNUNET_NO);
     GNUNET_CONTAINER_DLL_remove (n->messages_head, n->messages_tail, mq);
     n->is_active = mq;
-    transmit_send_continuation (mq, &n->id, GNUNET_SYSERR, mq->message_buf_size, 0);     /* timeout */
+    transmit_send_continuation (mq, &n->id,
+                                GNUNET_SYSERR,
+                                mq->message_buf_size, 0);     /* timeout */
   }
   if (NULL == mq)
     return;                     /* no more messages */
@@ -1517,9 +1528,9 @@ GST_neighbours_keepalive_response (const struct GNUNET_PeerIdentity *neighbour,
  *
  * @param sender sender of the message
  * @param size size of the message
- * @param do_forward set to GNUNET_YES if the message should be forwarded to clients
- *                   GNUNET_NO if the neighbour is not connected or violates the quota,
- *                   GNUNET_SYSERR if the connection is not fully up yet
+ * @param do_forward set to #GNUNET_YES if the message should be forwarded to clients
+ *                   #GNUNET_NO if the neighbour is not connected or violates the quota,
+ *                   #GNUNET_SYSERR if the connection is not fully up yet
  * @return how long to wait before reading more from this sender
  */
 struct GNUNET_TIME_Relative
@@ -2321,9 +2332,10 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "ATS tells us to switch to address '%s' session %p for "
+              "ATS tells us to switch to address '%s/%s' session %p for "
               "peer `%s' in state %s/%d (quota in/out %u %u )\n",
               (address->address_length != 0) ? GST_plugins_a2s (address): "<inbound>",
+              address->transport_name,
               session,
               GNUNET_i2s (peer),
               print_state (n->state),
@@ -2401,6 +2413,7 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
        address and check blacklist again */
     set_address (&n->primary_address,
 		 address, session, bandwidth_in, bandwidth_out, GNUNET_NO);
+    n->state = S_CONNECT_RECV_BLACKLIST;
     n->timeout = GNUNET_TIME_relative_to_absolute (BLACKLIST_RESPONSE_TIMEOUT);
     check_blacklist (&n->id,
 		     n->connect_ack_timestamp,
@@ -3277,8 +3290,9 @@ GST_neighbours_set_incoming_quota (const struct GNUNET_PeerIdentity *neighbour,
   GNUNET_BANDWIDTH_tracker_update_quota (&n->in_tracker, quota);
   if (0 != ntohl (quota.value__))
     return;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting peer `%4s' due to `%s'\n",
-              GNUNET_i2s (&n->id), "SET_QUOTA");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Disconnecting peer `%4s' due to SET_QUOTA\n",
+              GNUNET_i2s (&n->id));
   if (GNUNET_YES == test_connected (n))
     GNUNET_STATISTICS_update (GST_stats,
                               gettext_noop ("# disconnects due to quota of 0"),
@@ -3295,10 +3309,8 @@ GST_neighbours_set_incoming_quota (const struct GNUNET_PeerIdentity *neighbour,
  * @param msg the disconnect message
  */
 void
-GST_neighbours_handle_disconnect_message (const struct GNUNET_PeerIdentity
-                                          *peer,
-                                          const struct GNUNET_MessageHeader
-                                          *msg)
+GST_neighbours_handle_disconnect_message (const struct GNUNET_PeerIdentity *peer,
+                                          const struct GNUNET_MessageHeader *msg)
 {
   struct NeighbourMapEntry *n;
   const struct SessionDisconnectMessage *sdm;
@@ -3364,6 +3376,9 @@ GST_neighbours_handle_disconnect_message (const struct GNUNET_PeerIdentity
 			      gettext_noop
 			      ("# other peer asked to disconnect from us"), 1,
 			      GNUNET_NO);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Disconnecting by request from peer %s\n",
+              GNUNET_i2s (peer));
   disconnect_neighbour (n);
 }
 
@@ -3459,6 +3474,9 @@ GST_neighbours_force_disconnect (const struct GNUNET_PeerIdentity *target)
 			      gettext_noop
 			      ("# disconnected from peer upon explicit request"), 1,
 			      GNUNET_NO);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Forced disconnect from peer %s\n",
+              GNUNET_i2s (target));
   disconnect_neighbour (n);
 }
 

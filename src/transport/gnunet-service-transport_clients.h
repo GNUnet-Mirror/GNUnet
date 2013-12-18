@@ -52,7 +52,7 @@ GST_clients_stop (void);
  * Broadcast the given message to all of our clients.
  *
  * @param msg message to broadcast
- * @param may_drop GNUNET_YES if the message can be dropped / is payload
+ * @param may_drop #GNUNET_YES if the message can be dropped / is payload
  */
 void
 GST_clients_broadcast (const struct GNUNET_MessageHeader *msg, int may_drop);
@@ -63,7 +63,7 @@ GST_clients_broadcast (const struct GNUNET_MessageHeader *msg, int may_drop);
  *
  * @param client target of the message
  * @param msg message to transmit
- * @param may_drop GNUNET_YES if the message can be dropped
+ * @param may_drop #GNUNET_YES if the message can be dropped
  */
 void
 GST_clients_unicast (struct GNUNET_SERVER_Client *client,
@@ -77,10 +77,8 @@ GST_clients_unicast (struct GNUNET_SERVER_Client *client,
  * @param address address, NULL on disconnect
  */
 void
-GST_clients_broadcast_address_notification (const struct GNUNET_PeerIdentity
-                                            *peer,
-                                            const struct GNUNET_HELLO_Address
-                                            *address);
+GST_clients_broadcast_address_notification (const struct GNUNET_PeerIdentity *peer,
+                                            const struct GNUNET_HELLO_Address *address);
 
 
 #endif
