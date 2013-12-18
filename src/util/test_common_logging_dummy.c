@@ -35,7 +35,7 @@
  * This must be long enough for us to not to mistake skipped log call
  * on a slow machine for a non-skipped one.
  */
-#define OUTPUT_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MICROSECONDS, 200)
+#define OUTPUT_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MICROSECONDS, 1000)
 
 static void
 my_log (void *ctx, enum GNUNET_ErrorType kind, const char *component,

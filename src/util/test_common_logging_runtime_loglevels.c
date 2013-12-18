@@ -30,15 +30,15 @@
 
 /**
  * How much time the child is allowed to waste on skipped log calls, at most.
- * Raspberry Pi takes 33 microseconds tops, this is 3x that value.
+ * Raspberry Pi takes 113 microseconds tops, this is 3x that value.
  */
-#define MAX_SKIP_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MICROSECONDS, 100).rel_value_us
+#define MAX_SKIP_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MICROSECONDS, 400).rel_value_us
 
 /**
  * How much time non-skipped log call should take, at least.
  * Keep in sync with the value in the dummy!
  */
-#define OUTPUT_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MICROSECONDS, 200).rel_value_us
+#define OUTPUT_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MICROSECONDS, 1000).rel_value_us
 
 static int ok;
 
