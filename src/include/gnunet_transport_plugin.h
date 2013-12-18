@@ -74,13 +74,12 @@ struct SessionHeader
  *
  * @param cls closure
  * @param peer which peer was the session for
- * @param session which session is being destoyed
+ * @param session which session is being destroyed
  */
 typedef void
 (*GNUNET_TRANSPORT_SessionEnd) (void *cls,
                                 const struct GNUNET_PeerIdentity *peer,
                                 struct Session *session);
-
 
 /**
  * Function that will be called whenever the plugin internally
@@ -106,7 +105,6 @@ typedef void
                                   struct Session *session,
                                   const struct GNUNET_ATS_Information *ats,
                                   uint32_t ats_count);
-
 
 /**
  * Function called by the transport for each received message.
@@ -490,6 +488,19 @@ typedef struct Session *
 (*GNUNET_TRANSPORT_CreateSession) (void *cls,
                                    const struct GNUNET_HELLO_Address *address);
 
+/**
+ * Function that will be called whenever the transport service wants to
+ * notify the plugin that a session is still active and in use and
+ * therefore the session timeout for this session has to be updated
+ *
+ * @param cls closure
+ * @param peer which peer was the session for
+ * @param session which session is being updated
+ */
+typedef void
+(*GNUNET_TRANSPORT_UpdateSessionTimeout) (void *cls,
+                                          const struct GNUNET_PeerIdentity *peer,
+                                          struct Session *session);
 
 /**
  * Function called for a quick conversion of the binary address to
@@ -574,6 +585,13 @@ struct GNUNET_TRANSPORT_PluginFunctions
    * continuations).
    */
   GNUNET_TRANSPORT_DisconnectSessionFunction disconnect_session;
+
+  /**
+   * Function that will be called whenever the transport service wants to
+   * notify the plugin that a session is still active and in use and
+   * therefore the session timeout for this session has to be updated
+   */
+  GNUNET_TRANSPORT_UpdateSessionTimeout update_session_timeout;
 
   /**
    * Function that is used to query keepalive factor.
