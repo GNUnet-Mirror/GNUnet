@@ -198,6 +198,15 @@ reconnect (struct GNUNET_DV_ServiceHandle *sh);
 
 
 /**
+ * Start sending messages from our queue to the service.
+ *
+ * @param sh service handle
+ */
+static void
+start_transmit (struct GNUNET_DV_ServiceHandle *sh);
+
+
+/**
  * Gives a message from our queue to the DV service.
  *
  * @param cls handle to the dv service (`struct GNUNET_DV_ServiceHandle`)
@@ -236,15 +245,17 @@ transmit_pending (void *cls, size_t size, void *buf)
     ret += tsize;
     if (NULL != th->cb)
     {
-      GNUNET_CONTAINER_DLL_insert (th->target->head,
-                                   th->target->tail,
-                                   th);
+      GNUNET_CONTAINER_DLL_insert_tail (th->target->head,
+                                        th->target->tail,
+                                        th);
     }
     else
     {
       GNUNET_free (th);
     }
   }
+  if (NULL != sh->th_head)
+    start_transmit (sh);
   return ret;
 }
 
@@ -691,9 +702,9 @@ GNUNET_DV_send (struct GNUNET_DV_ServiceHandle *sh,
   /* use memcpy here as 'target' may not be sufficiently aligned */
   memcpy (&sm->target, target, sizeof (struct GNUNET_PeerIdentity));
   memcpy (&sm[1], msg, ntohs (msg->size));
-  GNUNET_CONTAINER_DLL_insert (sh->th_head,
-			       sh->th_tail,
-			       th);
+  GNUNET_CONTAINER_DLL_insert_tail (sh->th_head,
+                                    sh->th_tail,
+                                    th);
   start_transmit (sh);
   return th;
 }

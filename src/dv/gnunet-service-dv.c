@@ -1961,6 +1961,10 @@ handle_dv_send_message (void *cls, struct GNUNET_SERVER_Client *client,
   if (NULL == route)
   {
     /* got disconnected */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "No route to %s, dropping local message of type %u\n",
+                GNUNET_i2s (&msg->target),
+                ntohs (payload->type));
     GNUNET_STATISTICS_update (stats,
 			      "# local messages discarded (no route)",
 			      1, GNUNET_NO);
@@ -1969,8 +1973,9 @@ handle_dv_send_message (void *cls, struct GNUNET_SERVER_Client *client,
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Forwarding %u bytes to %s\n",
+	      "Forwarding %u bytes of type %u to %s\n",
 	      ntohs (payload->size),
+              ntohs (payload->type),
 	      GNUNET_i2s (&msg->target));
 
   forward_payload (route->next_hop,
