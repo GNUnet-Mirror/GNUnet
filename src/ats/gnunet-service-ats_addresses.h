@@ -363,6 +363,16 @@ struct ATS_Address
   struct GNUNET_TIME_Absolute blocked_until;
 
   /**
+   * Time when address had last activity (update, in uses)
+   */
+  struct GNUNET_TIME_Absolute t_last_activity;
+
+  /**
+   * Time when address was added
+   */
+  struct GNUNET_TIME_Absolute t_added;
+
+  /**
    * Is this the active address for this peer?
    */
   int active;

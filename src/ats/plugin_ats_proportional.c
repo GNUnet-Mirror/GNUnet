@@ -714,14 +714,16 @@ find_best_address_it (void *cls,
 		      const struct GNUNET_PeerIdentity *key,
 		      void *value)
 {
-  struct FindBestAddressCtx *fba_ctx = (struct FindBestAddressCtx *) cls;
+  struct FindBestAddressCtx *ctx = (struct FindBestAddressCtx *) cls;
   struct ATS_Address *current = (struct ATS_Address *) value;
+  struct ATS_Address *current_best = (struct ATS_Address *) value;
   struct GNUNET_TIME_Absolute now;
   struct AddressSolverInformation *asi;
   const double *norm_prop_cur;
-  const double *norm_prop_prev;
+  const double *norm_prop_best;
   int index;
 
+  current_best = NULL;
   asi = current->solver_information;
   now = GNUNET_TIME_absolute_get ();
 
@@ -736,76 +738,71 @@ find_best_address_it (void *cls,
   }
   if (GNUNET_NO == is_bandwidth_available_in_network (asi->network))
     return GNUNET_OK; /* There's no bandwidth available in this network */
-  if (NULL != fba_ctx->best)
+
+  if (NULL != ctx->best)
   {
-    GNUNET_assert(NULL != fba_ctx->best->plugin);
-    GNUNET_assert(NULL != current->plugin);
-    if (0 == strcmp (fba_ctx->best->plugin, current->plugin))
+    /* Compare current addresses with denominated 'best' address */
+
+    current_best = ctx->best;
+    if ((0 != ctx->best->addr_len) && (0 == current->addr_len))
     {
-      if ((0 != fba_ctx->best->addr_len) && (0 == current->addr_len))
-      {
-        /* saved address was an outbound address, but we have an inbound address */
-        fba_ctx->best = current;
-        return GNUNET_OK;
-      }
-      if (0 == fba_ctx->best->addr_len)
-      {
-        /* saved address was an inbound address, so do not overwrite */
-        return GNUNET_OK;
-      }
+      /* saved address was an outbound address, but we have an inbound address */
+      current_best = current;
+      goto end;
+    }
+    if (ctx->best->t_last_activity.abs_value_us < current->t_last_activity.abs_value_us)
+    {
+      /* Current address is newer */
+      current_best = current;
+    }
+    if (ctx->best->t_added.abs_value_us < current->t_added.abs_value_us)
+    {
+      /* Current address is newer */
+      current_best = current;
+      goto end;
     }
   }
-  if (NULL == fba_ctx->best)
+  if (NULL == ctx->best)
   {
-    fba_ctx->best = current;
-    return GNUNET_OK;
+    /* We do not have a 'best' address so take this address */
+    current_best = current;
+    goto end;
   }
-  if ((ntohl (fba_ctx->best->assigned_bw_in.value__) == 0)
-      && (ntohl (current->assigned_bw_in.value__) > 0))
+
+  if ( (ntohl (ctx->best->assigned_bw_in.value__) == 0) &&
+       (ntohl (current->assigned_bw_in.value__) > 0) )
   {
     /* stick to existing connection */
-    fba_ctx->best = current;
-    return GNUNET_OK;
+    current_best = current;
   }
 
-  norm_prop_cur = fba_ctx->s->get_properties (fba_ctx->s->get_properties_cls,
+  /* Now compare ATS information */
+  norm_prop_cur = ctx->s->get_properties (ctx->s->get_properties_cls,
       (const struct ATS_Address *) current);
-  norm_prop_prev = fba_ctx->s->get_properties (fba_ctx->s->get_properties_cls,
-      (const struct ATS_Address *) fba_ctx->best);
-  /*
-   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%s previous %.2f current %.2f\n",
-   "DISTANCE", norm_prop_cur[1], norm_prop_cur[1]);
-   */
+  norm_prop_best = ctx->s->get_properties (ctx->s->get_properties_cls,
+      (const struct ATS_Address *) ctx->best);
+
   index = find_property_index (GNUNET_ATS_QUALITY_NET_DISTANCE);
-  if (GNUNET_SYSERR == index)
-  {
-    GNUNET_break(0);
-    return GNUNET_OK;
-  }
-  if (norm_prop_cur[index] < norm_prop_prev[index])
+  if (GNUNET_SYSERR != index)
   {
     /* user shorter distance */
-    fba_ctx->best = current;
-    return GNUNET_OK;
-  }
-  /*
-   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%s previous %.2f current %.2f\n",
-   "DELAY", norm_prop_cur[1], norm_prop_cur[1]);
-   */
-  index = find_property_index (GNUNET_ATS_QUALITY_NET_DELAY);
-  if (GNUNET_SYSERR == index)
-  {
-    GNUNET_break(0);
-    return GNUNET_OK;
-  }
-  if (norm_prop_cur[index] < norm_prop_prev[index])
-  {
-    /* user shorter delay */
-    fba_ctx->best = current;
-    return GNUNET_OK;
+    if (norm_prop_cur[index] < norm_prop_best[index])
+      current_best = current;
+    else
+      current_best = ctx->best;
   }
 
-  /* don't care */
+  index = find_property_index (GNUNET_ATS_QUALITY_NET_DELAY);
+  if (GNUNET_SYSERR != index)
+  {
+    /* User connection with less delay */
+    if (norm_prop_cur[index] < norm_prop_best[index])
+      current_best = current;
+    else
+      current_best = ctx->best;
+  }
+end:
+  ctx->best = current_best;
   return GNUNET_OK;
 }
 

@@ -762,6 +762,8 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
   if (existing_address == NULL )
   {
     /* Add a new address */
+    new_address->t_added = GNUNET_TIME_absolute_get();
+    new_address->t_last_activity = GNUNET_TIME_absolute_get();
     GNUNET_assert(
         GNUNET_OK == GNUNET_CONTAINER_multipeermap_put (handle->addresses,
 							peer,
@@ -816,6 +818,8 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
       GNUNET_i2s (peer), existing_address, session_id,
       GNUNET_ATS_print_network_type (addr_net));
   /* We have an address without an session, update this address */
+  existing_address->t_added = GNUNET_TIME_absolute_get();
+  existing_address->t_last_activity = GNUNET_TIME_absolute_get();
   atsi_delta = NULL;
   atsi_delta_count = 0;
   if (GNUNET_YES
@@ -914,6 +918,7 @@ GAS_addresses_update (struct GAS_Addresses_Handle *handle,
       "ADDRESS UPDATE", GNUNET_i2s (peer), aa);
 
   /* Update address */
+  aa->t_last_activity = GNUNET_TIME_absolute_get();
   if (session_id != aa->session_id)
   {
     /* Session changed */
@@ -1166,6 +1171,7 @@ GAS_addresses_in_use (struct GAS_Addresses_Handle *handle,
 
   /* Tell solver about update */
   ea->used = in_use;
+  ea->t_last_activity = GNUNET_TIME_absolute_get();
   handle->env.sf.s_address_update_inuse (handle->solver, ea, ea->used);
   return GNUNET_OK;
 }
