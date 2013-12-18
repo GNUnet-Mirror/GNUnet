@@ -53,6 +53,7 @@ These are the direct dependencies for running GNUnet:
 - postgres      >= 8.3 (alternative to sqlite)
 - libopus       >= 0.9.14 (optional for experimental conversation tool)
 - libpulse      >= 2.0 (optional for experimental conversation tool)
+- python-zbar   >= 0.10 (optional for gnunet-qr)
 
 Recommended autotools for compiling the SVN version are:
 - autoconf >= 2.59
