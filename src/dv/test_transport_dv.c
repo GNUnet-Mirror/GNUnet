@@ -34,7 +34,10 @@ struct GNUNET_TESTBED_Operation *topology_op;
 
 static GNUNET_SCHEDULER_TaskIdentifier shutdown_task;
 
-static void do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+
+static void
+do_shutdown (void *cls,
+             const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   shutdown_task = GNUNET_SCHEDULER_NO_TASK;
   if (NULL != topology_op)
@@ -44,17 +47,25 @@ static void do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *t
   }
 }
 
-static void topology_completed (void *cls,
-                                unsigned int nsuccess,
-                                unsigned int nfailures)
+
+static void
+topology_completed (void *cls,
+                    unsigned int nsuccess,
+                    unsigned int nfailures)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Links successful %u / %u failed\n", nsuccess, nfailures);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Links successful %u / %u failed\n",
+              nsuccess,
+              nfailures);
   GNUNET_TESTBED_operation_done (topology_op);
   topology_op = NULL;
 
   if (nfailures > 0)
   {
-    fprintf (stderr, "Error: links successful %u but %u failed\n", nsuccess, nfailures);
+    fprintf (stderr,
+             "Error: links successful %u but %u failed\n",
+             nsuccess,
+             nfailures);
     ok = 1;
   }
   else
@@ -72,28 +83,35 @@ test_connection (void *cls,
                  unsigned int links_succeeded,
                  unsigned int links_failed)
 {
-  shutdown_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &do_shutdown, NULL);
+  shutdown_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
+                                                &do_shutdown, NULL);
   if (4 != num_peers)
   {
     ok = 1;
-    fprintf (stderr, "Only %u out of 4 peers were started ...\n",
-        num_peers);
+    fprintf (stderr,
+             "Only %u out of 4 peers were started ...\n",
+             num_peers);
   }
 
   if (0 != links_failed)
   {
     /* All peers except DV peers are connected  */
-    fprintf (stderr, "Testbed failed to connect peers,\n");
+    fprintf (stderr,
+             "Testbed failed to connect peers (%u links OK, %u links failed)\n",
+             links_succeeded,
+             links_failed);
 
-    topology_op = GNUNET_TESTBED_overlay_configure_topology(NULL, num_peers, peers, NULL,
-        &topology_completed, NULL,
-        GNUNET_TESTBED_TOPOLOGY_CLIQUE,
-        GNUNET_TESTBED_TOPOLOGY_OPTION_END);
+    topology_op = GNUNET_TESTBED_overlay_configure_topology
+      (NULL, num_peers, peers, NULL,
+       &topology_completed, NULL,
+       GNUNET_TESTBED_TOPOLOGY_CLIQUE,
+       GNUNET_TESTBED_TOPOLOGY_OPTION_END);
     return;
   }
 
   ok = 1;
-  fprintf (stderr, "Testbed connected peers, should not happen...\n");
+  fprintf (stderr,
+           "Testbed connected peers, should not happen...\n");
   GNUNET_SCHEDULER_shutdown ();
 }
 
