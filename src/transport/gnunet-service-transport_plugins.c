@@ -120,14 +120,16 @@ GST_plugins_load (GNUNET_TRANSPORT_PluginReceiveCallback recv_cb,
       GNUNET_CONFIGURATION_get_value_string (GST_cfg, "TRANSPORT", "PLUGINS",
                                              &plugs))
     return;
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Starting transport plugins `%s'\n"),
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              _("Starting transport plugins `%s'\n"),
               plugs);
   for (pos = strtok (plugs, " "); pos != NULL; pos = strtok (NULL, " "))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Loading `%s' transport plugin\n"),
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                _("Loading `%s' transport plugin\n"),
                 pos);
     GNUNET_asprintf (&libname, "libgnunet_plugin_transport_%s", pos);
-    plug = GNUNET_malloc (sizeof (struct TransportPlugin));
+    plug = GNUNET_new (struct TransportPlugin);
     plug->short_name = GNUNET_strdup (pos);
     plug->lib_name = libname;
     plug->env.cfg = GST_cfg;
@@ -151,7 +153,7 @@ GST_plugins_load (GNUNET_TRANSPORT_PluginReceiveCallback recv_cb,
     plug = next;
     next = plug->next;
     plug->api = GNUNET_PLUGIN_load (plug->lib_name, &plug->env);
-    if (plug->api == NULL)
+    if (NULL == plug->api)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   _("Failed to load transport plugin for `%s'\n"),
@@ -237,7 +239,7 @@ GST_plugins_load (GNUNET_TRANSPORT_PluginReceiveCallback recv_cb,
     }
     if (NULL == plug->api->query_keepalive_factor)
     {
-        fail = GNUNET_YES;
+      fail = GNUNET_YES;
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   _("Missing function `%s' in transport plugin for `%s'\n"),
                   "query_keepalive_factor",
@@ -248,6 +250,7 @@ GST_plugins_load (GNUNET_TRANSPORT_PluginReceiveCallback recv_cb,
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   _("Did not load plugin `%s' due to missing functions\n"),
                   plug->lib_name);
+      GNUNET_break (NULL == GNUNET_PLUGIN_unload (plug->lib_name, plug->api));
       GNUNET_CONTAINER_DLL_remove (plugins_head, plugins_tail, plug);
       GNUNET_free (plug->short_name);
       GNUNET_free (plug->lib_name);
