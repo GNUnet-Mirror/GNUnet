@@ -1861,7 +1861,11 @@ wlan_plugin_update_session_timeout (void *cls,
                                   const struct GNUNET_PeerIdentity *peer,
                                   struct Session *session)
 {
+  if (session->timeout_task != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel (session->timeout_task);
 
+  session->timeout_task = GNUNET_SCHEDULER_add_delayed (
+      GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT, &session_timeout, session);
 }
 
 /**

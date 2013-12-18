@@ -53,6 +53,7 @@ if LINUX
  WLAN_PLUGIN_LA = libgnunet_plugin_transport_wlan.la
  WLAN_PLUGIN_TEST = test_plugin_wlan
  WLAN_API_TEST = test_transport_api_wlan
+ WLAN_TIMEOUT_TEST = test_transport_api_timeout_wlan
  WLAN_REL_TEST = test_transport_api_reliability_wlan
  WLAN_UREL_TEST = test_transport_api_unreliability_wlan
  WLAN_QUOTA_TEST = test_quota_compliance_wlan \
@@ -72,6 +73,7 @@ if HAVE_LIBBLUETOOTH
  BT_PLUGIN_LA = libgnunet_plugin_transport_bluetooth.la
  BT_PLUGIN_TEST = test_plugin_bluetooth
  BT_API_TEST = test_transport_api_bluetooth
+ BT_TIMEOUT_TEST = test_transport_api_timeout_bluetooth
  BT_REL_TEST = test_transport_api_reliability_bluetooth
  BT_UREL_TEST = test_transport_api_unreliability_bluetooth
  BT_QUOTA_TEST = test_quota_compliance_bluetooth \
@@ -398,7 +400,9 @@ check_PROGRAMS = \
  $(HTTPS_API_TEST) \
  $(HTTPS_API_TIMEOUT_TEST) \
  $(WLAN_API_TEST) \
+ $(WLAN_TIMEOUT_TEST) \
  $(BT_API_TEST) \
+ $(BT_TIMEOUT_TEST) \
  test_transport_api_multi \
  test_transport_blacklisting_no_bl \
  test_transport_blacklisting_outbound_bl_full \
@@ -786,6 +790,22 @@ test_transport_api_timeout_unix_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/transport/libgnunettransporttesting.la
 
+test_transport_api_timeout_wlan_SOURCES = \
+ test_transport_api_timeout.c
+test_transport_api_timeout_wlan_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/transport/libgnunettransporttesting.la
+
+test_transport_api_timeout_bluetooth_SOURCES = \
+ test_transport_api_timeout.c
+test_transport_api_timeout_bluetooth_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/transport/libgnunettransporttesting.la
+
 test_transport_api_reliability_tcp_nat_SOURCES = \
  test_transport_api_reliability.c
 test_transport_api_reliability_tcp_nat_LDADD = \
@@ -1155,6 +1175,10 @@ test_transport_api_unix_peer1.conf\
 test_transport_api_unix_peer2.conf\
 test_transport_api_timeout_unix_peer1.conf\
 test_transport_api_timeout_unix_peer2.conf\
+test_transport_api_timeout_wlan_peer1.conf \
+test_transport_api_timeout_wlan_peer2.conf \
+test_transport_api_timeout_bluetooth_peer1.conf\
+test_transport_api_timeout_bluetooth_peer2.conf\
 test_transport_api_unreliability_udp_peer1.conf\
 test_transport_api_unreliability_udp_peer2.conf\
 test_transport_api_unreliability_unix_peer1.conf\
