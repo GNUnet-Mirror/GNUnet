@@ -582,9 +582,10 @@ process_bf (struct Operation *op){
   GNUNET_CONTAINER_bloomfilter_free (op->state->remote_bf);
   op->state->remote_bf = NULL;
 
-  if ((op->state->phase == PHASE_MAYBE_FINISHED)
-       && (old_elements == op->state->my_element_count)
-       && (op->state->my_element_count == peer_elements)){
+  if ((0 == op->state->my_element_count) // fully disjoint
+      || ((op->state->phase == PHASE_MAYBE_FINISHED) // we agree on a shared set of elements
+          && (old_elements == op->state->my_element_count)
+          && (op->state->my_element_count == peer_elements))) {
     // In the last round we though we were finished, we now know this is correct
     send_peer_done (op);
     return;
@@ -627,7 +628,7 @@ handle_p2p_bf_part (void *cls, const struct GNUNET_MessageHeader *mh)
   
   memcpy (&op->state->bf_data[chunk_offset], (const char*) &msg[1], chunk_size);
 
-  if (op->state->bf_data_size > chunk_size + chunk_offset)
+  if (op->state->bf_data_size != chunk_offset + chunk_size)
     // wait for next chunk
     return;
 
