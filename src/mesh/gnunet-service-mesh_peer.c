@@ -1436,7 +1436,7 @@ GMP_is_neighbor (const struct MeshPeer *peer)
       return GNUNET_YES;
   }
 
-  GNUNET_break (0); /* Is not a neighbor but connections is not NULL */
+  /* Is not a neighbor but connections is not NULL, probably disconnecting */
   return GNUNET_NO;
 }
 
