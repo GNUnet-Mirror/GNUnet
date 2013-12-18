@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 CONFIGURATION="test_namestore_api.conf"
 trap "gnunet-arm -e -c $CONFIGURATION" SIGINT
 
