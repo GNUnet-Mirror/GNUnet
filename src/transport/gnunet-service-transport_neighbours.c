@@ -1914,7 +1914,7 @@ handle_test_blacklist_cont (void *cls,
               GNUNET_i2s (peer),
               (GNUNET_OK == result) ? "allowed" : "FORBIDDEN");
   if (GNUNET_OK == result)
-    GST_ats_add_address (bcc->na.address, bcc->na.session);
+    GST_ats_add_address (bcc->na.address, bcc->na.session, NULL, 0);
   else
   {
     /* Blacklist disagreed on connecting to a peer with this address
@@ -2949,7 +2949,9 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
                        n->primary_address.bandwidth_in,
                        n->primary_address.bandwidth_out);
     /* Tell ATS that the outbound session we created to send CONNECT was successful */
-    GST_ats_add_address (n->primary_address.address, n->primary_address.session);
+    GST_ats_add_address (n->primary_address.address,
+                         n->primary_address.session,
+                         NULL, 0);
     set_address (&n->primary_address,
 		 n->primary_address.address,
 		 n->primary_address.session,
@@ -2995,7 +2997,9 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
     n->timeout = GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
     GNUNET_break (GNUNET_NO == n->alternative_address.ats_active);
 
-    GST_ats_add_address (n->alternative_address.address, n->alternative_address.session);
+    GST_ats_add_address (n->alternative_address.address,
+                         n->alternative_address.session,
+                         NULL, 0);
     set_address (&n->primary_address,
 		 n->alternative_address.address,
 		 n->alternative_address.session,
@@ -3221,7 +3225,9 @@ GST_neighbours_handle_session_ack (const struct GNUNET_MessageHeader *message,
                      n->primary_address.bandwidth_in,
                      n->primary_address.bandwidth_out);
 
-  GST_ats_add_address (n->primary_address.address, n->primary_address.session);
+  GST_ats_add_address (n->primary_address.address,
+                       n->primary_address.session,
+                       NULL, 0);
   set_address (&n->primary_address,
 	       n->primary_address.address,
 	       n->primary_address.session,
