@@ -426,6 +426,14 @@ handle_message_receipt (void *cls,
       reconnect (sh);
       return;
     }
+    if (NULL ==
+        GNUNET_CONTAINER_multipeermap_get (sh->peers,
+                                           &rm->sender))
+    {
+      GNUNET_break (0);
+      reconnect (sh);
+      return;
+    }
     sh->message_cb (sh->cls,
 		    &rm->sender,
 		    ntohl (rm->distance),
@@ -443,7 +451,7 @@ handle_message_receipt (void *cls,
     peer = GNUNET_CONTAINER_multipeermap_get (sh->peers,
                                               &ack->target);
     if (NULL == peer)
-      return; /* this happens, just ignore */
+      break; /* this happens, just ignore */
     for (th = peer->head; NULL != th; th = th->next)
     {
       if (th->uid != ntohl (ack->uid))
@@ -466,6 +474,9 @@ handle_message_receipt (void *cls,
     reconnect (sh);
     break;
   }
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Received message, continuing receive loop for %p\n",
+       sh->client);
   GNUNET_CLIENT_receive (sh->client,
 			 &handle_message_receipt, sh,
                          GNUNET_TIME_UNIT_FOREVER_REL);
@@ -499,6 +510,9 @@ transmit_start (void *cls,
   start_message.size = htons (sizeof (struct GNUNET_MessageHeader));
   start_message.type = htons (GNUNET_MESSAGE_TYPE_DV_START);
   memcpy (buf, &start_message, sizeof (start_message));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Transmitting START request, starting receive loop for %p\n",
+       sh->client);
   GNUNET_CLIENT_receive (sh->client,
 			 &handle_message_receipt, sh,
                          GNUNET_TIME_UNIT_FOREVER_REL);
@@ -520,6 +534,9 @@ reconnect (struct GNUNET_DV_ServiceHandle *sh)
     GNUNET_CLIENT_notify_transmit_ready_cancel (sh->th);
     sh->th = NULL;
   }
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Disconnecting from DV service at %p\n",
+       sh->client);
   if (NULL != sh->client)
   {
     GNUNET_CLIENT_disconnect (sh->client);
@@ -643,10 +660,11 @@ GNUNET_DV_send (struct GNUNET_DV_ServiceHandle *sh,
     return NULL;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Asked to send %u bytes of type %u to %s\n",
+       "Asked to send %u bytes of type %u to %s via %p\n",
        (unsigned int) ntohs (msg->size),
        (unsigned int) ntohs (msg->type),
-       GNUNET_i2s (target));
+       GNUNET_i2s (target),
+       sh->client);
   peer = GNUNET_CONTAINER_multipeermap_get (sh->peers,
                                             target);
   if (NULL == peer)

@@ -70,7 +70,7 @@ struct PendingRequest
   GNUNET_TRANSPORT_TransmitContinuation transmit_cont;
 
   /**
-   * Closure for transmit_cont.
+   * Closure for @e transmit_cont.
    */
   void *transmit_cont_cls;
 
@@ -84,6 +84,10 @@ struct PendingRequest
    */
   struct Session *session;
 
+  /**
+   * Number of bytes to transmit.
+   */
+  size_t size;
 };
 
 
@@ -214,6 +218,12 @@ unbox_cb (void *cls,
   ats.type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
   ats.value = htonl (session->distance);
   session->active = GNUNET_YES;
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Delivering message of type %u with %u bytes from peer `%s'\n",
+       ntohs (message->type),
+       ntohs (message->size),
+       GNUNET_i2s (&session->sender));
+
   plugin->env->receive (plugin->env->cls,
 			&session->sender,
                         message,
@@ -245,8 +255,7 @@ handle_dv_message_received (void *cls,
   struct Session *session;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Received `%s' message for peer `%s': new distance %u\n",
-       "DV_MESSAGE_RECEIVED",
+       "Received DV_MESSAGE_RECEIVED message for peer `%s': new distance %u\n",
        GNUNET_i2s (sender), distance);
   session = GNUNET_CONTAINER_multipeermap_get (plugin->sessions,
 					       sender);
@@ -258,6 +267,8 @@ handle_dv_message_received (void *cls,
   if (GNUNET_MESSAGE_TYPE_DV_BOX == ntohs (msg->type))
   {
     /* need to unbox using MST */
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Unboxing DV message using MST\n");
     GNUNET_SERVER_mst_receive (plugin->mst,
 			       session,
 			       (const char *) &msg[1],
@@ -269,6 +280,11 @@ handle_dv_message_received (void *cls,
   ats.type = htonl (GNUNET_ATS_QUALITY_NET_DISTANCE);
   ats.value = htonl (distance);
   session->active = GNUNET_YES;
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Delivering message of type %u with %u bytes from peer `%s'\n",
+       ntohs (msg->type),
+       ntohs (msg->size),
+       GNUNET_i2s (sender));
   plugin->env->receive (plugin->env->cls, sender,
                         msg,
                         session, "", 0);
@@ -420,7 +436,8 @@ free_session (struct Session *session)
     if (NULL != pr->transmit_cont)
       pr->transmit_cont (pr->transmit_cont_cls,
 			 &session->sender,
-			 GNUNET_SYSERR, 0, 0);
+			 GNUNET_SYSERR,
+                         pr->size, 0);
     GNUNET_free (pr);
   }
   GNUNET_free (session);
@@ -473,7 +490,8 @@ send_finished (void *cls,
   if (NULL != pr->transmit_cont)
     pr->transmit_cont (pr->transmit_cont_cls,
 		       &session->sender,
-		       ok, 0, 0);
+		       ok,
+                       pr->size, 0);
   GNUNET_free (pr);
 }
 
@@ -516,6 +534,8 @@ dv_plugin_send (void *cls,
   if (ntohs (msg->size) != msgbuf_size)
   {
     /* need to box */
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Boxing DV message\n");
     box = GNUNET_malloc (sizeof (struct GNUNET_MessageHeader) + msgbuf_size);
     box->type = htons (GNUNET_MESSAGE_TYPE_DV_BOX);
     box->size = htons (sizeof (struct GNUNET_MessageHeader) + msgbuf_size);
@@ -526,13 +546,14 @@ dv_plugin_send (void *cls,
   pr->transmit_cont = cont;
   pr->transmit_cont_cls = cont_cls;
   pr->session = session;
+  pr->size = msgbuf_size;
   GNUNET_CONTAINER_DLL_insert_tail (session->pr_head,
 				    session->pr_tail,
 				    pr);
 
   pr->th = GNUNET_DV_send (plugin->dvh,
 			   &session->sender,
-			   msg ,
+			   msg,
 			   &send_finished,
 			   pr);
   GNUNET_free_non_null (box);
@@ -570,7 +591,8 @@ dv_plugin_disconnect_peer (void *cls,
     if (NULL != pr->transmit_cont)
       pr->transmit_cont (pr->transmit_cont_cls,
 			 &session->sender,
-			 GNUNET_SYSERR, 0, 0);
+			 GNUNET_SYSERR,
+                         pr->size, 0);
     GNUNET_free (pr);
   }
   session->active = GNUNET_NO;
@@ -602,7 +624,8 @@ dv_plugin_disconnect_session (void *cls,
     if (NULL != pr->transmit_cont)
       pr->transmit_cont (pr->transmit_cont_cls,
 			 &session->sender,
-			 GNUNET_SYSERR, 0, 0);
+			 GNUNET_SYSERR,
+                         pr->size, 0);
     GNUNET_free (pr);
   }
   session->active = GNUNET_NO;
@@ -672,7 +695,7 @@ dv_plugin_address_to_string (void *cls,
  *
  * @param cls closure
  * @param addr pointer to the address
- * @param addrlen length of addr
+ * @param addrlen length of @a addr
  * @return #GNUNET_OK if this is a plausible address for this peer
  *         and transport, #GNUNET_SYSERR if not
  *
@@ -743,13 +766,26 @@ dv_plugin_string_to_address (void *cls,
   return GNUNET_SYSERR;
 }
 
+
+/**
+ * Function that will be called whenever the transport service wants to
+ * notify the plugin that a session is still active and in use and
+ * therefore the session timeout for this session has to be updated
+ *
+ * @param cls closure (`struct Plugin *`)
+ * @param peer which peer was the session for
+ * @param session which session is being updated
+ */
 static void
 dv_plugin_update_session_timeout (void *cls,
                                   const struct GNUNET_PeerIdentity *peer,
                                   struct Session *session)
 {
-
+  /* DV currently doesn't time out like "normal" plugins,
+     so it should be safe to do nothing, right?
+     (or should we add an internal timeout?) */
 }
+
 
 /**
  * Function to obtain the network type for a session

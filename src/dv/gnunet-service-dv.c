@@ -341,7 +341,7 @@ static struct GNUNET_CONTAINER_MultiPeerMap *direct_neighbors;
 /**
  * Hashmap with all routes that we currently support; contains
  * routing information for all peers from distance 2
- * up to distance DEFAULT_FISHEYE_DEPTH.
+ * up to distance #DEFAULT_FISHEYE_DEPTH.
  */
 static struct GNUNET_CONTAINER_MultiPeerMap *all_routes;
 
@@ -1974,7 +1974,7 @@ handle_dv_send_message (void *cls, struct GNUNET_SERVER_Client *client,
 	      GNUNET_i2s (&msg->target));
 
   forward_payload (route->next_hop,
-		   ntohl (route->target.distance),
+		   0 /* first hop, distance is zero */,
 		   htonl (msg->uid),
 		   &my_identity,
 		   &msg->target,
