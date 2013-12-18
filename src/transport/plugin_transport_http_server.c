@@ -605,7 +605,6 @@ http_server_plugin_send (void *cls,
     server_reschedule (session->plugin,
                        session->server_send->mhd_daemon,
                        GNUNET_YES);
-    server_reschedule_session_timeout (session);
   }
   return bytes_sent;
 }
@@ -905,7 +904,12 @@ http_server_plugin_update_session_timeout (void *cls,
                                   const struct GNUNET_PeerIdentity *peer,
                                   struct Session *session)
 {
+  struct HTTP_Server_Plugin *plugin = cls;
 
+  if (GNUNET_NO == server_exist_session (plugin, session))
+      return;
+
+  server_reschedule_session_timeout (session);
 }
 
 

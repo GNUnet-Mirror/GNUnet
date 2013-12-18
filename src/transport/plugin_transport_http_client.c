@@ -543,7 +543,6 @@ http_client_plugin_send (void *cls,
   }
 
   client_schedule (s->plugin, GNUNET_YES);
-  client_reschedule_session_timeout (s);
   return msgbuf_size;
 }
 
@@ -861,8 +860,6 @@ client_send_cb (void *stream, size_t size, size_t nmemb, void *cls)
   GNUNET_STATISTICS_update (plugin->env->stats,
                             stat_txt, len, GNUNET_NO);
   GNUNET_free (stat_txt);
-
-  client_reschedule_session_timeout (s);
   return len;
 }
 
@@ -1764,7 +1761,13 @@ http_client_plugin_update_session_timeout (void *cls,
                                   const struct GNUNET_PeerIdentity *peer,
                                   struct Session *session)
 {
+  struct HTTP_Client_Plugin *plugin = cls;
 
+  /* lookup if session is really existing */
+  if (GNUNET_YES != client_exist_session (plugin, session))
+    return;
+
+  client_reschedule_session_timeout (session);
 }
 
 /**
