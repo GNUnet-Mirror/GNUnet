@@ -1461,7 +1461,7 @@ handle_ping (struct MeshTunnel3 *t,
   if (0 != memcmp (&my_full_id, &res.target, sizeof (my_full_id)))
   {
     GNUNET_STATISTICS_update (stats, "# malformed PINGs", 1, GNUNET_NO);
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  WARNING malformed PING\n");
+    LOG (GNUNET_ERROR_TYPE_WARNING, "  malformed PING\n");
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  e got %u\n", msg->nonce);
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  e towards %s\n", GNUNET_i2s (&msg->target));
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  got %u\n", res.nonce);
@@ -1497,8 +1497,8 @@ handle_pong (struct MeshTunnel3 *t,
 
   if (challenge != t->kx_ctx->challenge)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Wrong PONG challenge: %u (e: %u). Expected: %u.\n",
+    LOG (GNUNET_ERROR_TYPE_WARNING, "Wrong PONG challenge\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "PONG: %u (e: %u). Expected: %u.\n",
          challenge, msg->nonce, t->kx_ctx->challenge);
     GNUNET_break_op (0);
     return;
