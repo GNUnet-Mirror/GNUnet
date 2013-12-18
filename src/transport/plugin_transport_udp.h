@@ -249,6 +249,11 @@ struct Plugin
   int enable_ipv4;
 
   /**
+   * Is broadcasting enabled: GNUNET_YES or GNUNET_NO
+   */
+  int enable_broadcasting;
+
+  /**
    * Port we broadcasting on.
    */
   uint16_t broadcast_port;

@@ -612,6 +612,10 @@ setup_broadcast (struct Plugin *plugin,
     GNUNET_SERVER_mst_create (&broadcast_ipv4_mst_cb, plugin);
   plugin->broadcast_ipv6_mst =
     GNUNET_SERVER_mst_create (&broadcast_ipv6_mst_cb, plugin);
+
+  if (GNUNET_YES != plugin->enable_broadcasting)
+    return; /* We do not send, just receive */
+
   /* create IPv4 broadcast socket */
   if ((GNUNET_YES == plugin->enable_ipv4) && (NULL != plugin->sockv4))
   {
@@ -626,6 +630,7 @@ setup_broadcast (struct Plugin *plugin,
            ntohs (server_addrv4->sin_port));
     }
   }
+  /* create IPv6 multicast socket */
   if ((GNUNET_YES == plugin->enable_ipv6) && (plugin->sockv6 != NULL))
   {
     memset (&plugin->ipv6_multicast_address, 0, sizeof (struct sockaddr_in6));
@@ -642,49 +647,55 @@ setup_broadcast (struct Plugin *plugin,
 void
 stop_broadcast (struct Plugin *plugin)
 {
-  while (plugin->broadcast_head != NULL)
+  if (GNUNET_YES == plugin->enable_broadcasting)
   {
-    struct BroadcastAddress *p = plugin->broadcast_head;
-
-    if (p->broadcast_task != GNUNET_SCHEDULER_NO_TASK)
+    /* Disable broadcasting */
+    while (plugin->broadcast_head != NULL)
     {
-      GNUNET_SCHEDULER_cancel (p->broadcast_task);
-      p->broadcast_task = GNUNET_SCHEDULER_NO_TASK;
-    }
-    if ((GNUNET_YES == plugin->enable_ipv6) &&
-        (NULL != plugin->sockv6) &&
-        (p->addrlen == sizeof (struct sockaddr_in6)))
-    {
-      /* Create IPv6 multicast request */
-      struct ipv6_mreq multicastRequest;
-      const struct sockaddr_in6 *s6 = (const struct sockaddr_in6 *) p->addr;
+      struct BroadcastAddress *p = plugin->broadcast_head;
 
-      multicastRequest.ipv6mr_multiaddr =
-        plugin->ipv6_multicast_address.sin6_addr;
-      multicastRequest.ipv6mr_interface = s6->sin6_scope_id;
+      if (p->broadcast_task != GNUNET_SCHEDULER_NO_TASK)
+      {
+        GNUNET_SCHEDULER_cancel (p->broadcast_task);
+        p->broadcast_task = GNUNET_SCHEDULER_NO_TASK;
+      }
+      if ((GNUNET_YES == plugin->enable_ipv6) &&
+          (NULL != plugin->sockv6) &&
+          (p->addrlen == sizeof (struct sockaddr_in6)))
+      {
+        /* Create IPv6 multicast request */
+        struct ipv6_mreq multicastRequest;
+        const struct sockaddr_in6 *s6 = (const struct sockaddr_in6 *) p->addr;
 
-      /* Leave the multicast group */
-      if (GNUNET_OK ==
-          GNUNET_NETWORK_socket_setsockopt
-          (plugin->sockv6, IPPROTO_IPV6, IPV6_LEAVE_GROUP,
-           &multicastRequest, sizeof (multicastRequest)))
-      {
-        GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, setsockopt);
+        multicastRequest.ipv6mr_multiaddr =
+          plugin->ipv6_multicast_address.sin6_addr;
+        multicastRequest.ipv6mr_interface = s6->sin6_scope_id;
+
+        /* Leave the multicast group */
+        if (GNUNET_OK ==
+            GNUNET_NETWORK_socket_setsockopt
+            (plugin->sockv6, IPPROTO_IPV6, IPV6_LEAVE_GROUP,
+             &multicastRequest, sizeof (multicastRequest)))
+        {
+          GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, setsockopt);
+        }
+        else
+        {
+          LOG (GNUNET_ERROR_TYPE_DEBUG, "IPv6 multicasting stopped\n");
+        }
       }
-      else
-      {
-        LOG (GNUNET_ERROR_TYPE_DEBUG, "IPv6 multicasting stopped\n");
-      }
-    }
 
 #if LINUX
     GNUNET_DISK_file_close(p->cryogenic_fd);
 #endif
-    GNUNET_CONTAINER_DLL_remove (plugin->broadcast_head,
-                                 plugin->broadcast_tail, p);
-    GNUNET_free (p->addr);
-    GNUNET_free (p);
+      GNUNET_CONTAINER_DLL_remove (plugin->broadcast_head,
+                                   plugin->broadcast_tail, p);
+      GNUNET_free (p->addr);
+      GNUNET_free (p);
+    }
   }
+
+  /* Destroy MSTs */
   if (NULL != plugin->broadcast_ipv4_mst)
   {
     GNUNET_SERVER_mst_destroy (plugin->broadcast_ipv4_mst);

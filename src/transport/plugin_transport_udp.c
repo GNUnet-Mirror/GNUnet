@@ -2499,7 +2499,7 @@ udp_select_read (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *rsock)
   switch (ntohs (msg->type))
   {
   case GNUNET_MESSAGE_TYPE_TRANSPORT_BROADCAST_BEACON:
-    udp_broadcast_receive (plugin, buf, size,
+      udp_broadcast_receive (plugin, buf, size,
                            (const struct sockaddr *) &addr, fromlen);
     return;
   case GNUNET_MESSAGE_TYPE_TRANSPORT_UDP_MESSAGE:
@@ -3030,9 +3030,9 @@ libgnunet_plugin_transport_udp_init (void *cls)
   struct Plugin *p;
   unsigned long long port;
   unsigned long long aport;
-  unsigned long long broadcast;
   unsigned long long udp_max_bps;
   unsigned long long enable_v6;
+  unsigned long long enable_broadcasting;
   char * bind4_address;
   char * bind6_address;
   char * fancy_interval;
@@ -3126,10 +3126,10 @@ libgnunet_plugin_transport_udp_init (void *cls)
   myoptions = 0;
 
   /* Enable neighbour discovery */
-  broadcast = GNUNET_CONFIGURATION_get_value_yesno (env->cfg, "transport-udp",
+  enable_broadcasting = GNUNET_CONFIGURATION_get_value_yesno (env->cfg, "transport-udp",
                                             "BROADCAST");
-  if (broadcast == GNUNET_SYSERR)
-    broadcast = GNUNET_NO;
+  if (enable_broadcasting == GNUNET_SYSERR)
+    enable_broadcasting = GNUNET_NO;
 
   if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string (env->cfg, "transport-udp",
                                            "BROADCAST_INTERVAL", &fancy_interval))
@@ -3158,6 +3158,7 @@ libgnunet_plugin_transport_udp_init (void *cls)
   p->broadcast_interval = interval;
   p->enable_ipv6 = enable_v6;
   p->enable_ipv4 = GNUNET_YES; /* default */
+  p->enable_broadcasting = enable_broadcasting;
   p->env = env;
   p->sessions = GNUNET_CONTAINER_multipeermap_create (10, GNUNET_NO);
   p->defrag_ctxs = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
@@ -3179,11 +3180,9 @@ libgnunet_plugin_transport_udp_init (void *cls)
     GNUNET_free (p);
     return NULL;
   }
-  else if (broadcast == GNUNET_YES)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Starting broadcasting\n");
-    setup_broadcast (p, &server_addrv6, &server_addrv4);
-  }
+
+  /* Setup broadcasting and receiving beacons */
+  setup_broadcast (p, &server_addrv6, &server_addrv4);
 
   api = GNUNET_new (struct GNUNET_TRANSPORT_PluginFunctions);
   api->cls = p;
@@ -3285,11 +3284,6 @@ libgnunet_plugin_transport_udp_done (void *cls)
                                    heap_cleanup_iterator, NULL);
     GNUNET_CONTAINER_heap_destroy (plugin->defrag_ctxs);
     plugin->defrag_ctxs = NULL;
-  }
-  if (plugin->mst != NULL)
-  {
-    GNUNET_SERVER_mst_destroy(plugin->mst);
-    plugin->mst = NULL;
   }
 
   /* Clean up leftover messages */
