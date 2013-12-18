@@ -235,6 +235,14 @@ GST_plugins_load (GNUNET_TRANSPORT_PluginReceiveCallback recv_cb,
                   "disconnect_session",
                   plug->lib_name);
     }
+    if (NULL == plug->api->query_keepalive_factor)
+    {
+        fail = GNUNET_YES;
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _("Missing function `%s' in transport plugin for `%s'\n"),
+                  "query_keepalive_factor",
+                  plug->lib_name);
+    }
     if (GNUNET_YES == fail)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
