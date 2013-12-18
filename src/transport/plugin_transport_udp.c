@@ -1680,7 +1680,7 @@ udp_plugin_update_session_timeout (void *cls,
 {
   if (GNUNET_YES
       != GNUNET_CONTAINER_multipeermap_contains_value (plugin->sessions,
-          &s->target, s))
+          peer, session))
   {
     GNUNET_break(0);
     return;
