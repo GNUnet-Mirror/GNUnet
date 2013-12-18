@@ -140,12 +140,12 @@ struct BFPart
   /**
    * Length of the appended bloomfilter data block
    */
-  uint32_t bloomfilter_length GNUNET_PACKED;
+  uint32_t chunk_length GNUNET_PACKED;
   
   /**
    * offset in the bloolfilter data block, if multipart message
    */
-  uint32_t bloomfilter_offset GNUNET_PACKED;
+  uint32_t chunk_offset GNUNET_PACKED;
   
   /**
    * rest: the sender's bloomfilter
