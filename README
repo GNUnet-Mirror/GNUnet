@@ -54,6 +54,7 @@ These are the direct dependencies for running GNUnet:
 - libopus       >= 0.9.14 (optional for experimental conversation tool)
 - libpulse      >= 2.0 (optional for experimental conversation tool)
 - python-zbar   >= 0.10 (optional for gnunet-qr)
+- TeX Live      >= 2012 (optional for gnunet-bcd) 
 
 Recommended autotools for compiling the SVN version are:
 - autoconf >= 2.59
