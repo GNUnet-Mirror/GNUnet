@@ -1285,7 +1285,6 @@ tcp_plugin_send (void *cls,
                                                     session))
   {
     GNUNET_assert (session->client != NULL);
-    reschedule_session_timeout (session);
     GNUNET_SERVER_client_set_timeout (session->client,
                                       GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
     GNUNET_STATISTICS_update (plugin->env->stats,
@@ -1304,7 +1303,6 @@ tcp_plugin_send (void *cls,
     LOG (GNUNET_ERROR_TYPE_DEBUG,
 	 "This NAT WAIT session for peer `%s' is not yet ready!\n",
 	 GNUNET_i2s (&session->target));
-    reschedule_session_timeout (session);
     GNUNET_STATISTICS_update (plugin->env->stats,
                               gettext_noop ("# bytes currently in TCP buffers"),
                               msgbuf_size, GNUNET_NO);
@@ -1425,7 +1423,11 @@ tcp_plugin_update_session_timeout (void *cls,
                                   const struct GNUNET_PeerIdentity *peer,
                                   struct Session *session)
 {
+  struct Plugin *plugin = cls;
+  if (GNUNET_SYSERR == find_session (plugin, session))
+    return;
 
+  reschedule_session_timeout (session);
 }
 
 
