@@ -316,9 +316,10 @@ handle_transport_notify_connect (void *cls,
     GNUNET_break (0);
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received connection from `%4s'.\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received connection from `%4s'.\n",
               GNUNET_i2s (peer));
-  n = GNUNET_malloc (sizeof (struct Neighbour));
+  n = GNUNET_new (struct Neighbour);
   n->peer = *peer;
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONTAINER_multipeermap_put (neighbours,

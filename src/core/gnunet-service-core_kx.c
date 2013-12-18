@@ -667,7 +667,7 @@ GSC_KX_start (const struct GNUNET_PeerIdentity *pid)
   GNUNET_STATISTICS_update (GSC_stats,
                             gettext_noop ("# key exchanges initiated"), 1,
                             GNUNET_NO);
-  kx = GNUNET_malloc (sizeof (struct GSC_KeyExchangeInfo));
+  kx = GNUNET_new (struct GSC_KeyExchangeInfo);
   kx->peer = *pid;
   kx->set_key_retry_frequency = INITIAL_SET_KEY_RETRY_FREQUENCY;
   GNUNET_CONTAINER_DLL_insert (kx_head,
