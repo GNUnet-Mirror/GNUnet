@@ -330,8 +330,9 @@ handle_message_receipt (void *cls,
     return;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Received message of type %u from DV service\n",
-       (unsigned int) msg->type);
+       "Received message of type %u with %u bytes from DV service\n",
+       (unsigned int) ntohs (msg->type),
+       (unsigned int) ntohs (msg->size));
   switch (ntohs (msg->type))
   {
   case GNUNET_MESSAGE_TYPE_DV_CONNECT:
@@ -639,8 +640,8 @@ GNUNET_DV_send (struct GNUNET_DV_ServiceHandle *sh,
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Asked to send %u bytes of type %u to %s\n",
-       (unsigned int) msg->size,
-       (unsigned int) msg->type,
+       (unsigned int) ntohs (msg->size),
+       (unsigned int) ntohs (msg->type),
        GNUNET_i2s (target));
   peer = GNUNET_CONTAINER_multipeermap_get (sh->peers,
                                             target);
