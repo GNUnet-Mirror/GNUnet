@@ -254,6 +254,11 @@ struct Plugin
   int enable_broadcasting;
 
   /**
+   * Is receiving broadcasts enabled: GNUNET_YES or GNUNET_NO
+   */
+  int enable_broadcasting_receiving;
+
+  /**
    * Port we broadcasting on.
    */
   uint16_t broadcast_port;

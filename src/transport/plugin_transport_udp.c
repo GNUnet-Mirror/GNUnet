@@ -2515,6 +2515,7 @@ udp_select_read (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *rsock)
   switch (ntohs (msg->type))
   {
   case GNUNET_MESSAGE_TYPE_TRANSPORT_BROADCAST_BEACON:
+    if (GNUNET_YES == plugin->enable_broadcasting_receiving)
       udp_broadcast_receive (plugin, buf, size,
                            (const struct sockaddr *) &addr, fromlen);
     return;
@@ -3049,6 +3050,7 @@ libgnunet_plugin_transport_udp_init (void *cls)
   unsigned long long udp_max_bps;
   unsigned long long enable_v6;
   unsigned long long enable_broadcasting;
+  unsigned long long enable_broadcasting_recv;
   char * bind4_address;
   char * bind6_address;
   char * fancy_interval;
@@ -3147,6 +3149,11 @@ libgnunet_plugin_transport_udp_init (void *cls)
   if (enable_broadcasting == GNUNET_SYSERR)
     enable_broadcasting = GNUNET_NO;
 
+  enable_broadcasting_recv = GNUNET_CONFIGURATION_get_value_yesno (env->cfg, "transport-udp",
+                                            "BROADCAST_RECEIVE");
+  if (enable_broadcasting_recv == GNUNET_SYSERR)
+    enable_broadcasting_recv = GNUNET_YES;
+
   if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string (env->cfg, "transport-udp",
                                            "BROADCAST_INTERVAL", &fancy_interval))
   {
@@ -3175,6 +3182,7 @@ libgnunet_plugin_transport_udp_init (void *cls)
   p->enable_ipv6 = enable_v6;
   p->enable_ipv4 = GNUNET_YES; /* default */
   p->enable_broadcasting = enable_broadcasting;
+  p->enable_broadcasting_receiving = enable_broadcasting_recv;
   p->env = env;
   p->sessions = GNUNET_CONTAINER_multipeermap_create (10, GNUNET_NO);
   p->defrag_ctxs = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
