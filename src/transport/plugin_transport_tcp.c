@@ -1906,7 +1906,7 @@ tcp_plugin_address_pretty_printer (void *cls, const char *type,
     asc (asc_cls, NULL);
     return;
   }
-  ppc = GNUNET_malloc (sizeof (struct PrettyPrinterContext));
+  ppc = GNUNET_new (struct PrettyPrinterContext);
   if (addrlen == sizeof (struct IPv6TcpAddress))
     ppc->ipv6 = GNUNET_YES;
   else
@@ -2524,7 +2524,7 @@ try_connection_reversal (void *cls, const struct sockaddr *addr,
 
   /* FIXME: do we need to track these probe context objects so that
    * we can clean them up on plugin unload? */
-  tcp_probe_ctx = GNUNET_malloc (sizeof (struct TCPProbeContext));
+  tcp_probe_ctx = GNUNET_new (struct TCPProbeContext);
   tcp_probe_ctx->message.header.size =
       htons (sizeof (struct TCP_NAT_ProbeMessage));
   tcp_probe_ctx->message.header.type =

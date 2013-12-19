@@ -246,7 +246,7 @@ GNUNET_TRANSPORT_TESTING_start_peer (struct GNUNET_TRANSPORT_TESTING_handle *tth
     return NULL;
   }
 
-  struct PeerContext *p = GNUNET_malloc (sizeof (struct PeerContext));
+  struct PeerContext *p = GNUNET_new (struct PeerContext);
   GNUNET_CONTAINER_DLL_insert (tth->p_head, tth->p_tail, p);
 
   /* Create configuration and call testing lib to modify it */
@@ -471,7 +471,7 @@ GNUNET_TRANSPORT_TESTING_connect_peers (struct GNUNET_TRANSPORT_TESTING_handle *
   GNUNET_assert (tth != NULL);
 
   struct ConnectingContext *cc =
-      GNUNET_malloc (sizeof (struct ConnectingContext));
+      GNUNET_new (struct ConnectingContext);
 
   GNUNET_assert (p1 != NULL);
   GNUNET_assert (p2 != NULL);
@@ -574,7 +574,7 @@ GNUNET_TRANSPORT_TESTING_init ()
   struct GNUNET_TRANSPORT_TESTING_handle *tth;
 
   /* prepare hostkeys */
-  tth = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_TESTING_handle));
+  tth = GNUNET_new (struct GNUNET_TRANSPORT_TESTING_handle);
 
   /* Init testing the testing lib */
   tth->tl_system = GNUNET_TESTING_system_create ("transport-testing", NULL,

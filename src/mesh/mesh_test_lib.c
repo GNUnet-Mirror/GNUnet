@@ -237,7 +237,7 @@ mesh_test_run (void *cls,
   for (i = 0; i < num_peers; i++)
   {
     struct GNUNET_MESH_TEST_AdapterContext *newctx;
-    newctx = GNUNET_malloc (sizeof (struct GNUNET_MESH_TEST_AdapterContext));
+    newctx = GNUNET_new (struct GNUNET_MESH_TEST_AdapterContext);
     newctx->peer = i;
     newctx->ctx = ctx;
     ctx->ops[i] = GNUNET_TESTBED_service_connect (ctx,
@@ -265,7 +265,7 @@ GNUNET_MESH_TEST_run (const char *testname,
 {
   struct GNUNET_MESH_TEST_Context *ctx;
 
-  ctx = GNUNET_malloc (sizeof (struct GNUNET_MESH_TEST_Context));
+  ctx = GNUNET_new (struct GNUNET_MESH_TEST_Context);
   ctx->num_peers = num_peers;
   ctx->ops = GNUNET_malloc (num_peers * sizeof (struct GNUNET_TESTBED_Operation *));
   ctx->meshes = GNUNET_malloc (num_peers * sizeof (struct GNUNET_MESH_Handle *));

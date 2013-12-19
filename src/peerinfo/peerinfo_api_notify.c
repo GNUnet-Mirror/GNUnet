@@ -269,7 +269,7 @@ GNUNET_PEERINFO_notify (const struct GNUNET_CONFIGURATION_Handle *cfg,
          "peerinfo");
     return NULL;
   }
-  nc = GNUNET_malloc (sizeof (struct GNUNET_PEERINFO_NotifyContext));
+  nc = GNUNET_new (struct GNUNET_PEERINFO_NotifyContext);
   nc->cfg = cfg;
   nc->client = client;
   nc->callback = callback;

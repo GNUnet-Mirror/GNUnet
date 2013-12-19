@@ -164,7 +164,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   char *emsg;
   struct GNUNET_PeerIdentity id;
 
-  test_ctx = GNUNET_malloc (sizeof (struct TestingContext));
+  test_ctx = GNUNET_new (struct TestingContext);
   test_ctx->system =
       GNUNET_TESTING_system_create ("test-gnunet-testing",
                                     "127.0.0.1", NULL, NULL);

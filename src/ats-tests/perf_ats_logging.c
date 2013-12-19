@@ -513,7 +513,7 @@ collect_log_now (void)
   for (c_m = 0; c_m < num_peers; c_m++)
   {
     bp = &lp[c_m];
-    mlt = GNUNET_malloc (sizeof (struct PeerLoggingTimestep));
+    mlt = GNUNET_new (struct PeerLoggingTimestep);
     GNUNET_CONTAINER_DLL_insert_tail(bp->head, bp->tail, mlt);
     prev_log_mlt = mlt->prev;
 

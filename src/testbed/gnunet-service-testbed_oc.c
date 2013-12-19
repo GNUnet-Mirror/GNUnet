@@ -444,7 +444,7 @@ GST_process_next_focc (struct RegisteredHostContext *rhc)
   peer = GST_peer_list[focc->peer1];
   GNUNET_assert (GNUNET_YES == peer->is_remote);
   GNUNET_assert (NULL != (slave = peer->details.remote.slave));
-  fopc = GNUNET_malloc (sizeof (struct ForwardedOperationContext));
+  fopc = GNUNET_new (struct ForwardedOperationContext);
   GNUNET_SERVER_client_keep (focc->client);
   fopc->client = focc->client;
   fopc->operation_id = focc->operation_id;
@@ -605,7 +605,7 @@ send_overlay_connect_success_msg (struct OverlayConnectContext *occ)
 
   LOG_DEBUG ("0x%llx: Peers connected - Sending overlay connect success\n",
              occ->op_id);
-  msg = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_ConnectionEventMessage));
+  msg = GNUNET_new (struct GNUNET_TESTBED_ConnectionEventMessage);
   msg->header.size =
       htons (sizeof (struct GNUNET_TESTBED_ConnectionEventMessage));
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_PEER_CONNECT_EVENT);
@@ -1223,7 +1223,7 @@ register_host (struct Slave *slave, struct GNUNET_TESTBED_Host *host)
   struct GNUNET_HashCode hash;
   struct RegisteredHostContext *rhc;
 
-  rhc = GNUNET_malloc (sizeof (struct RegisteredHostContext));
+  rhc = GNUNET_new (struct RegisteredHostContext);
   rhc->reg_host = host;
   rhc->host = GST_host_list[slave->host_id];
   GNUNET_assert (NULL != rhc->reg_host);
@@ -1304,7 +1304,7 @@ forward_overlay_connect (const struct GNUNET_TESTBED_OverlayConnectMessage *msg,
                                     GST_host_list[peer2_host_id])))
   {
     LOG_DEBUG ("Queueing forwarding FOCC for connecting peers %u and %u\n", p1, p2);
-    focc = GNUNET_malloc (sizeof (struct ForwardedOverlayConnectContext));
+    focc = GNUNET_new (struct ForwardedOverlayConnectContext);
     focc->peer1 = p1;
     focc->peer2 = p2;
     focc->peer2_host_id = peer2_host_id;
@@ -1319,7 +1319,7 @@ forward_overlay_connect (const struct GNUNET_TESTBED_OverlayConnectMessage *msg,
 
  forward:
   LOG_DEBUG ("Forwarding without FOCC for connecting peers %u and %u\n", p1, p2);
-  fopc = GNUNET_malloc (sizeof (struct ForwardedOperationContext));
+  fopc = GNUNET_new (struct ForwardedOperationContext);
   GNUNET_SERVER_client_keep (client);
   fopc->client = client;
   fopc->operation_id = op_id;
@@ -1429,7 +1429,7 @@ GST_handle_overlay_connect (void *cls, struct GNUNET_SERVER_Client *client,
     return;
   }
   p2n = NULL;
-  occ = GNUNET_malloc (sizeof (struct OverlayConnectContext));
+  occ = GNUNET_new (struct OverlayConnectContext);
   occ->type = OCC_TYPE_LOCAL;
   if (!VALID_PEER_ID (p2))       /* May be peer2 is on a another controller */
   {
@@ -1743,7 +1743,7 @@ GST_handle_remote_overlay_connect (void *cls,
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
-  rocc = GNUNET_malloc (sizeof (struct RemoteOverlayConnectCtx));
+  rocc = GNUNET_new (struct RemoteOverlayConnectCtx);
   rocc->op_id = GNUNET_ntohll (msg->operation_id);
   GNUNET_CONTAINER_DLL_insert_tail (roccq_head, roccq_tail, rocc);
   memcpy (&rocc->a_id, &msg->peer_identity,

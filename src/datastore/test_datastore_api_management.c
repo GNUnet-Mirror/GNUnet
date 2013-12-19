@@ -265,7 +265,7 @@ run (void *cls,
   struct CpsRunContext *crc;
   static struct GNUNET_HashCode zkey;
 
-  crc = GNUNET_malloc (sizeof (struct CpsRunContext));
+  crc = GNUNET_new (struct CpsRunContext);
   crc->cfg = cfg;
   crc->phase = RP_PUT;
   now = GNUNET_TIME_absolute_get ();

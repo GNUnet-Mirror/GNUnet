@@ -60,7 +60,7 @@ http_split_address (const char * addr)
 	char *port_start = NULL;
 	char *path_start = NULL;
 	protocol_start = src;
-	sp = GNUNET_malloc (sizeof (struct SplittedHTTPAddress));
+	sp = GNUNET_new (struct SplittedHTTPAddress);
 
 	/* Address string consists of protocol://host[:port]path*/
 
@@ -455,7 +455,7 @@ http_common_socket_from_address (const void *addr, size_t addrlen, int *res)
       return NULL;
   }
 
-  s = GNUNET_malloc (sizeof (struct sockaddr_storage));
+  s = GNUNET_new (struct sockaddr_storage);
   GNUNET_asprintf (&to_conv, "%s:%u", spa->host, spa->port);
   if (GNUNET_SYSERR == GNUNET_STRINGS_to_address_ip (to_conv, strlen(to_conv), s))
   {

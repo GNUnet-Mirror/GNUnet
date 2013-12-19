@@ -210,7 +210,7 @@ set_metric (struct TM_Peer *dest, int direction, uint32_t type, uint32_t value)
 	}
 	if (NULL == cur)
 	{
-		cur = GNUNET_malloc (sizeof (struct PropManipulationEntry));
+		cur = GNUNET_new (struct PropManipulationEntry);
 		GNUNET_CONTAINER_DLL_insert (dest->head, dest->tail, cur);
 		cur->type = type;
 		cur->metrics[TM_SEND] = UINT32_MAX;
@@ -327,7 +327,7 @@ GST_manipulation_set_metric (void *cls, struct GNUNET_SERVER_Client *client,
 
 	if (NULL == (tmp = GNUNET_CONTAINER_multipeermap_get (man_handle.peers, &tm->peer)))
 	{
-			tmp = GNUNET_malloc (sizeof (struct TM_Peer));
+			tmp = GNUNET_new (struct TM_Peer);
 			tmp->peer = (tm->peer);
 			for (c = 0; c < TM_BOTH; c++)
 			{

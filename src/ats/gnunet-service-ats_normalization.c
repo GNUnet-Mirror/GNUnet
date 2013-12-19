@@ -445,7 +445,7 @@ GAS_normalization_normalize_preference (void *src,
   /* Not found: create new preference client */
   if (NULL == c_cur)
   {
-    c_cur = GNUNET_malloc (sizeof (struct PreferenceClient));
+    c_cur = GNUNET_new (struct PreferenceClient);
     c_cur->client = src;
     GNUNET_CONTAINER_DLL_insert(pc_head, pc_tail, c_cur);
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Adding new client %p \n", c_cur);
@@ -459,7 +459,7 @@ GAS_normalization_normalize_preference (void *src,
   /* Not found: create new peer entry */
   if (NULL == p_cur)
   {
-    p_cur = GNUNET_malloc (sizeof (struct PreferencePeer));
+    p_cur = GNUNET_new (struct PreferencePeer);
     p_cur->client = c_cur;
     p_cur->id = (*peer);
     for (i = 0; i < GNUNET_ATS_PreferenceCount; i++)

@@ -109,7 +109,7 @@ GPI_plugins_load (const struct GNUNET_CONFIGURATION_Handle *cfg)
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Loading `%s' transport plugin\n"),
                 pos);
     GNUNET_asprintf (&libname, "libgnunet_plugin_transport_%s", pos);
-    plug = GNUNET_malloc (sizeof (struct TransportPlugin));
+    plug = GNUNET_new (struct TransportPlugin);
     plug->short_name = GNUNET_strdup (pos);
     plug->lib_name = libname;
     plug->env.cfg = cfg;

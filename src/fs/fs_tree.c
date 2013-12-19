@@ -276,7 +276,7 @@ GNUNET_FS_tree_encoder_create (struct GNUNET_FS_Handle *h, uint64_t size,
 {
   struct GNUNET_FS_TreeEncoder *te;
 
-  te = GNUNET_malloc (sizeof (struct GNUNET_FS_TreeEncoder));
+  te = GNUNET_new (struct GNUNET_FS_TreeEncoder);
   te->h = h;
   te->size = size;
   te->cls = cls;
@@ -347,7 +347,7 @@ GNUNET_FS_tree_encoder_next (struct GNUNET_FS_TreeEncoder *te)
     off = CHK_PER_INODE * (te->chk_tree_depth - 1);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "TE done, reading CHK `%s' from %u\n",
                 GNUNET_h2s (&te->chk_tree[off].query), off);
-    te->uri = GNUNET_malloc (sizeof (struct GNUNET_FS_Uri));
+    te->uri = GNUNET_new (struct GNUNET_FS_Uri);
     te->uri->type = GNUNET_FS_URI_CHK;
     te->uri->data.chk.chk = te->chk_tree[off];
     te->uri->data.chk.file_length = GNUNET_htonll (te->size);

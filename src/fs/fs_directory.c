@@ -346,7 +346,7 @@ GNUNET_FS_directory_builder_create (const struct GNUNET_CONTAINER_MetaData
 {
   struct GNUNET_FS_DirectoryBuilder *ret;
 
-  ret = GNUNET_malloc (sizeof (struct GNUNET_FS_DirectoryBuilder));
+  ret = GNUNET_new (struct GNUNET_FS_DirectoryBuilder);
   if (mdir != NULL)
     ret->meta = GNUNET_CONTAINER_meta_data_duplicate (mdir);
   else

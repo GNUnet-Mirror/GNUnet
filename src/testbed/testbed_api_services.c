@@ -263,7 +263,7 @@ GNUNET_TESTBED_service_connect (void *op_cls, struct GNUNET_TESTBED_Peer *peer,
 {
   struct ServiceConnectData *data;
 
-  data = GNUNET_malloc (sizeof (struct ServiceConnectData));
+  data = GNUNET_new (struct ServiceConnectData);
   data->ca = ca;
   data->da = da;
   data->cada_cls = cada_cls;

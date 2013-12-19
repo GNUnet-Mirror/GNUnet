@@ -322,7 +322,7 @@ GNUNET_TRANSPORT_peer_get_active_addresses (const struct
     return NULL;
   if (GNUNET_YES != one_shot)
     timeout = GNUNET_TIME_UNIT_FOREVER_REL;
-  pal_ctx = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PeerIterateContext));
+  pal_ctx = GNUNET_new (struct GNUNET_TRANSPORT_PeerIterateContext);
   pal_ctx->cb = peer_address_callback;
   pal_ctx->cb_cls = peer_address_callback_cls;
   pal_ctx->cfg = cfg;

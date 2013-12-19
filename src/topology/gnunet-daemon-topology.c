@@ -483,7 +483,7 @@ make_peer (const struct GNUNET_PeerIdentity *peer,
 {
   struct Peer *ret;
 
-  ret = GNUNET_malloc (sizeof (struct Peer));
+  ret = GNUNET_new (struct Peer);
   ret->pid = *peer;
   ret->is_friend = is_friend;
   if (hello != NULL)

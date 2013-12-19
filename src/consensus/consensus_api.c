@@ -180,7 +180,7 @@ GNUNET_CONSENSUS_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
     GNUNET_MQ_HANDLERS_END
   };
 
-  consensus = GNUNET_malloc (sizeof (struct GNUNET_CONSENSUS_Handle));
+  consensus = GNUNET_new (struct GNUNET_CONSENSUS_Handle);
   consensus->cfg = cfg;
   consensus->new_element_cb = new_element_cb;
   consensus->new_element_cls = new_element_cls;

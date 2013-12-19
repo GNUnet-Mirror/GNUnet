@@ -328,7 +328,7 @@ preprocess_file (const char *filename,
 		     : GNUNET_MESSAGE_TYPE_FS_PUBLISH_HELPER_PROGRESS_FILE,
 		     filename, strlen (filename) + 1))
     return GNUNET_SYSERR;
-  item = GNUNET_malloc (sizeof (struct ScanTreeNode));
+  item = GNUNET_new (struct ScanTreeNode);
   item->filename = GNUNET_strdup (filename);
   item->is_directory = (S_ISDIR (sbuf.st_mode)) ? GNUNET_YES : GNUNET_NO;
   item->file_size = fsize;

@@ -658,7 +658,7 @@ create_response (void *cls,
       request = *ptr;
       if (NULL == request)
       {
-	request = GNUNET_malloc (sizeof (struct Request));
+	request = GNUNET_new (struct Request);
 	*ptr = request;
 	request->pp = MHD_create_post_processor (connection, 1024,
 						 &post_iterator, request);

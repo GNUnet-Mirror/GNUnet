@@ -145,7 +145,7 @@ queue_message (struct GNUNET_SERVER_Client *client,
 
   type = ntohs (msg->type);
   size = ntohs (msg->size);
-  mq_entry = GNUNET_malloc (sizeof (struct MessageQueue));
+  mq_entry = GNUNET_new (struct MessageQueue);
   mq_entry->msg = msg;
   mq_entry->client = client;
   GNUNET_SERVER_client_keep (client);

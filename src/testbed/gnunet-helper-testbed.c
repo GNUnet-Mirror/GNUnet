@@ -480,7 +480,7 @@ tokenizer_cb (void *cls, void *client,
   xconfig_size =
       GNUNET_TESTBED_compress_config_ (config, config_size, &xconfig);
   GNUNET_free (config);
-  wc = GNUNET_malloc (sizeof (struct WriteContext));
+  wc = GNUNET_new (struct WriteContext);
   wc->length = xconfig_size + sizeof (struct GNUNET_TESTBED_HelperReply);
   reply = GNUNET_realloc (xconfig, wc->length);
   memmove (&reply[1], reply, xconfig_size);

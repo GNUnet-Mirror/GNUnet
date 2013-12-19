@@ -308,7 +308,7 @@ do_report (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     return;                   /* more downloads to come */
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Finished all downloads, getting statistics\n");
-  sm = GNUNET_malloc (sizeof (struct StatMaster));
+  sm = GNUNET_new (struct StatMaster);
   sm->op =
     GNUNET_TESTBED_service_connect (NULL,
 				    daemons[sm->daemon],

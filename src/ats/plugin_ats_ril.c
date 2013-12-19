@@ -1624,7 +1624,7 @@ agent_init (void *s, const struct GNUNET_PeerIdentity *peer)
 {
   int i;
   struct GAS_RIL_Handle * solver = s;
-  struct RIL_Peer_Agent * agent = GNUNET_malloc (sizeof (struct RIL_Peer_Agent));
+  struct RIL_Peer_Agent * agent = GNUNET_new (struct RIL_Peer_Agent);
 
   agent->envi = solver;
   agent->peer = *peer;
@@ -2045,7 +2045,7 @@ GAS_ril_address_add (void *solver, struct ATS_Address *address, uint32_t network
   agent = ril_get_agent (s, &address->peer, GNUNET_YES);
 
   //add address
-  address_wrapped = GNUNET_malloc (sizeof (struct RIL_Address_Wrapped));
+  address_wrapped = GNUNET_new (struct RIL_Address_Wrapped);
   address_wrapped->address_naked = address;
   GNUNET_CONTAINER_DLL_insert_tail(agent->addresses_head, agent->addresses_tail, address_wrapped);
 

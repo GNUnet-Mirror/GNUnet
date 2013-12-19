@@ -132,7 +132,7 @@ state_add_transition (struct REGEX_INTERNAL_Context *ctx,
       break;
   }
 
-  t = GNUNET_malloc (sizeof (struct REGEX_INTERNAL_Transition));
+  t = GNUNET_new (struct REGEX_INTERNAL_Transition);
   if (NULL != ctx)
     t->id = ctx->transition_id++;
   if (NULL != label)
@@ -1774,7 +1774,7 @@ dfa_state_create (struct REGEX_INTERNAL_Context *ctx,
   struct REGEX_INTERNAL_Transition *ctran;
   unsigned int i;
 
-  s = GNUNET_malloc (sizeof (struct REGEX_INTERNAL_State));
+  s = GNUNET_new (struct REGEX_INTERNAL_State);
   s->id = ctx->state_id++;
   s->index = -1;
   s->lowlink = -1;
@@ -2143,7 +2143,7 @@ dfa_add_multi_strides_helper (void *cls, const unsigned int depth, char *label,
 
   if (depth == ctx->stride)
   {
-    t = GNUNET_malloc (sizeof (struct REGEX_INTERNAL_Transition));
+    t = GNUNET_new (struct REGEX_INTERNAL_Transition);
     t->label = GNUNET_strdup (label);
     t->to_state = s;
     t->from_state = start;
@@ -2258,7 +2258,7 @@ dfa_compress_paths_helper (struct REGEX_INTERNAL_Automaton *dfa,
                                        max_len == strlen (label)) ||
        (start == dfa->start && GNUNET_REGEX_INITIAL_BYTES == strlen (label))))
   {
-    t = GNUNET_malloc (sizeof (struct REGEX_INTERNAL_Transition));
+    t = GNUNET_new (struct REGEX_INTERNAL_Transition);
     t->label = GNUNET_strdup (label);
     t->to_state = cur;
     t->from_state = start;
@@ -2375,7 +2375,7 @@ nfa_fragment_create (struct REGEX_INTERNAL_State *start,
 {
   struct REGEX_INTERNAL_Automaton *n;
 
-  n = GNUNET_malloc (sizeof (struct REGEX_INTERNAL_Automaton));
+  n = GNUNET_new (struct REGEX_INTERNAL_Automaton);
 
   n->type = NFA;
   n->start = NULL;
@@ -2448,7 +2448,7 @@ nfa_state_create (struct REGEX_INTERNAL_Context *ctx, int accepting)
 {
   struct REGEX_INTERNAL_State *s;
 
-  s = GNUNET_malloc (sizeof (struct REGEX_INTERNAL_State));
+  s = GNUNET_new (struct REGEX_INTERNAL_State);
   s->id = ctx->state_id++;
   s->accepting = accepting;
   s->marked = GNUNET_NO;
@@ -3043,7 +3043,7 @@ REGEX_INTERNAL_construct_dfa (const char *regex, const size_t len,
     return NULL;
   }
 
-  dfa = GNUNET_malloc (sizeof (struct REGEX_INTERNAL_Automaton));
+  dfa = GNUNET_new (struct REGEX_INTERNAL_Automaton);
   dfa->type = DFA;
   dfa->regex = GNUNET_strdup (regex);
 

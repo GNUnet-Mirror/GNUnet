@@ -530,7 +530,7 @@ GNUNET_DNSSTUB_start (const char *dns_ip)
 {
   struct GNUNET_DNSSTUB_Context *ctx;
 
-  ctx = GNUNET_malloc (sizeof (struct GNUNET_DNSSTUB_Context));
+  ctx = GNUNET_new (struct GNUNET_DNSSTUB_Context);
   if (NULL != dns_ip)
     ctx->dns_exit = GNUNET_strdup (dns_ip);
   return ctx;

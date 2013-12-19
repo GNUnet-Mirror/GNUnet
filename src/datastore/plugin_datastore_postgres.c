@@ -838,14 +838,14 @@ libgnunet_plugin_datastore_postgres_init (void *cls)
   struct GNUNET_DATASTORE_PluginFunctions *api;
   struct Plugin *plugin;
 
-  plugin = GNUNET_malloc (sizeof (struct Plugin));
+  plugin = GNUNET_new (struct Plugin);
   plugin->env = env;
   if (GNUNET_OK != init_connection (plugin))
   {
     GNUNET_free (plugin);
     return NULL;
   }
-  api = GNUNET_malloc (sizeof (struct GNUNET_DATASTORE_PluginFunctions));
+  api = GNUNET_new (struct GNUNET_DATASTORE_PluginFunctions);
   api->cls = plugin;
   api->estimate_size = &postgres_plugin_estimate_size;
   api->put = &postgres_plugin_put;

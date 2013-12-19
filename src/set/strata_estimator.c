@@ -89,7 +89,7 @@ strata_estimator_create (unsigned int strata_count, uint32_t ibf_size, uint8_t i
 
   /* fixme: allocate everything in one chunk */
 
-  se = GNUNET_malloc (sizeof (struct StrataEstimator));
+  se = GNUNET_new (struct StrataEstimator);
   se->strata_count = strata_count;
   se->ibf_size = ibf_size;
   se->strata = GNUNET_malloc (sizeof (struct InvertibleBloomFilter *) * strata_count);
@@ -159,7 +159,7 @@ strata_estimator_dup (struct StrataEstimator *se)
   struct StrataEstimator *c;
   int i;
 
-  c = GNUNET_malloc (sizeof (struct StrataEstimator));
+  c = GNUNET_new (struct StrataEstimator);
   c->strata_count = se->strata_count;
   c->ibf_size = se->ibf_size;
   c->strata = GNUNET_malloc (sizeof (struct InvertibleBloomFilter *) * se->strata_count);

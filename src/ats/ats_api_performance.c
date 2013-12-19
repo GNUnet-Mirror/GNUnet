@@ -628,7 +628,7 @@ GNUNET_ATS_performance_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
 {
   struct GNUNET_ATS_PerformanceHandle *ph;
 
-  ph = GNUNET_malloc (sizeof (struct GNUNET_ATS_PerformanceHandle));
+  ph = GNUNET_new (struct GNUNET_ATS_PerformanceHandle);
   ph->cfg = cfg;
   ph->addr_info_cb = addr_info_cb;
   ph->addr_info_cb_cls = addr_info_cb_cls;
@@ -703,7 +703,7 @@ GNUNET_ATS_reserve_bandwidth (struct GNUNET_ATS_PerformanceHandle *ph,
   struct PendingMessage *p;
   struct ReservationRequestMessage *m;
 
-  rc = GNUNET_malloc (sizeof (struct GNUNET_ATS_ReservationContext));
+  rc = GNUNET_new (struct GNUNET_ATS_ReservationContext);
   rc->size = amount;
   rc->peer = *peer;
   rc->rcb = rcb;
@@ -763,7 +763,7 @@ GNUNET_ATS_performance_list_addresses (
   if (NULL == infocb)
     return NULL ;
 
-  alh = GNUNET_malloc (sizeof (struct GNUNET_ATS_AddressListHandle));
+  alh = GNUNET_new (struct GNUNET_ATS_AddressListHandle);
   alh->id = handle->id;
   handle->id++;
   alh->cb = infocb;

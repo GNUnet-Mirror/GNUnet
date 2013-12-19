@@ -127,7 +127,7 @@ GNUNET_PEER_intern (const struct GNUNET_PeerIdentity *pid)
     GNUNET_array_grow (table, size, size + 16);
     for (i = ret; i < size; i++)
     {
-      table[i] = GNUNET_malloc (sizeof (struct PeerEntry));
+      table[i] = GNUNET_new (struct PeerEntry);
       table[i]->pid = i + 1;
     }
   }

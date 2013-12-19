@@ -127,7 +127,7 @@ GNUNET_SERVER_transmit_context_create (struct GNUNET_SERVER_Client *client)
   struct GNUNET_SERVER_TransmitContext *tc;
 
   GNUNET_assert (NULL != client);
-  tc = GNUNET_malloc (sizeof (struct GNUNET_SERVER_TransmitContext));
+  tc = GNUNET_new (struct GNUNET_SERVER_TransmitContext);
   GNUNET_SERVER_client_keep (client);
   tc->client = client;
   return tc;

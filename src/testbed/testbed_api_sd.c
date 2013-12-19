@@ -109,7 +109,7 @@ GNUNET_TESTBED_SD_init_ (unsigned int max_cnt)
   struct SDHandle *h;
 
   GNUNET_assert (1 < max_cnt);
-  h = GNUNET_malloc (sizeof (struct SDHandle));
+  h = GNUNET_new (struct SDHandle);
   h->max_cnt = max_cnt;
   return h;
 }
@@ -159,7 +159,7 @@ GNUNET_TESTBED_SD_add_data_ (struct SDHandle *h, unsigned int amount)
   }
   GNUNET_assert (h->cnt < h->max_cnt);
   if (NULL == entry)
-    entry = GNUNET_malloc (sizeof (struct SDEntry));
+    entry = GNUNET_new (struct SDEntry);
   entry->amount = amount;
   GNUNET_CONTAINER_DLL_insert_tail (h->head, h->tail, entry);
   h->sum += amount;

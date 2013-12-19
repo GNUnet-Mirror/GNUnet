@@ -636,7 +636,7 @@ GNUNET_ARM_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
 {
   struct GNUNET_ARM_Handle *h;
 
-  h = GNUNET_malloc (sizeof (struct GNUNET_ARM_Handle));
+  h = GNUNET_new (struct GNUNET_ARM_Handle);
   h->cfg = GNUNET_CONFIGURATION_dup (cfg);
   h->currently_down = GNUNET_YES;
   h->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
@@ -1067,7 +1067,7 @@ GNUNET_ARM_request_service_list (struct GNUNET_ARM_Handle *h,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Requesting LIST from ARM service with timeout: %s\n",
        GNUNET_STRINGS_relative_time_to_string (timeout, GNUNET_YES));
-  cm = GNUNET_malloc (sizeof (struct ARMControlMessage));
+  cm = GNUNET_new (struct ARMControlMessage);
   cm->h = h;
   cm->list_cont = cont;
   cm->cont_cls = cont_cls;

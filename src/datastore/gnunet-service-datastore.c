@@ -516,7 +516,7 @@ transmit (struct GNUNET_SERVER_Client *client, struct GNUNET_MessageHeader *msg)
     GNUNET_free (msg);
     return;
   }
-  tcc = GNUNET_malloc (sizeof (struct TransmitCallbackContext));
+  tcc = GNUNET_new (struct TransmitCallbackContext);
   tcc->msg = msg;
   tcc->client = client;
   if (NULL ==
@@ -598,7 +598,7 @@ transmit_item (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
     /* transmit 'DATA_END' */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Transmitting `%s' message\n",
                 "DATA_END");
-    end = GNUNET_malloc (sizeof (struct GNUNET_MessageHeader));
+    end = GNUNET_new (struct GNUNET_MessageHeader);
     end->size = htons (sizeof (struct GNUNET_MessageHeader));
     end->type = htons (GNUNET_MESSAGE_TYPE_DATASTORE_DATA_END);
     transmit (client, end);
@@ -698,7 +698,7 @@ handle_reserve (void *cls, struct GNUNET_SERVER_Client *client,
   reserved += req;
   GNUNET_STATISTICS_set (stats, gettext_noop ("# reserved"), reserved,
                          GNUNET_NO);
-  e = GNUNET_malloc (sizeof (struct ReservationList));
+  e = GNUNET_new (struct ReservationList);
   e->next = reservations;
   reservations = e;
   e->client = client;
@@ -1274,7 +1274,7 @@ load_plugin ()
   struct DatastorePlugin *ret;
   char *libname;
 
-  ret = GNUNET_malloc (sizeof (struct DatastorePlugin));
+  ret = GNUNET_new (struct DatastorePlugin);
   ret->env.cfg = cfg;
   ret->env.duc = &disk_utilization_change_cb;
   ret->env.cls = NULL;

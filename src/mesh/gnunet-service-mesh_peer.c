@@ -1051,7 +1051,7 @@ GMP_queue_add (struct MeshPeer *peer, void *cls, uint16_t type, size_t size,
   LOG (GNUNET_ERROR_TYPE_DEBUG, "priority %d\n", priority);
 
   call_core = NULL == c ? GNUNET_YES : GMC_is_sendable (c, fwd);
-  queue = GNUNET_malloc (sizeof (struct MeshPeerQueue));
+  queue = GNUNET_new (struct MeshPeerQueue);
   queue->cls = cls;
   queue->type = type;
   queue->size = size;

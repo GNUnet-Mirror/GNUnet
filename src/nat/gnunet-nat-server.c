@@ -152,7 +152,7 @@ try_send_tcp (uint32_t dst_ipv4, uint16_t dport, uint16_t data)
     GNUNET_NETWORK_socket_close (s);
     return;
   }
-  ctx = GNUNET_malloc (sizeof (struct TcpContext));
+  ctx = GNUNET_new (struct TcpContext);
   ctx->s = s;
   ctx->data = data;
   GNUNET_SCHEDULER_add_write_net (GNUNET_TIME_UNIT_SECONDS, s, &tcp_send, ctx);

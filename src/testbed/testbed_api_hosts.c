@@ -331,7 +331,7 @@ GNUNET_TESTBED_host_create_with_id (uint32_t id, const char *hostname,
     LOG (GNUNET_ERROR_TYPE_WARNING, "Host with id: %u already created\n", id);
     return NULL;
   }
-  host = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Host));
+  host = GNUNET_new (struct GNUNET_TESTBED_Host);
   host->hostname = (NULL != hostname) ? GNUNET_strdup (hostname) : NULL;
   host->username = (NULL != username) ? GNUNET_strdup (username) : NULL;
   host->id = id;
@@ -649,7 +649,7 @@ GNUNET_TESTBED_mark_host_registered_at_ (struct GNUNET_TESTBED_Host *host,
       return;
     }
   }
-  rc = GNUNET_malloc (sizeof (struct RegisteredController));
+  rc = GNUNET_new (struct RegisteredController);
   rc->controller = controller;
   GNUNET_CONTAINER_DLL_insert_tail (host->rc_head, host->rc_tail, rc);
 }
@@ -1079,7 +1079,7 @@ GNUNET_TESTBED_controller_start (const char *trusted_ip,
   host->locked = GNUNET_YES;
   API_VIOLATION (GNUNET_NO == host->controller_started,
                  "Attempting to start a controller on a host which is already started a controller");
-  cp = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_ControllerProc));
+  cp = GNUNET_new (struct GNUNET_TESTBED_ControllerProc);
   if (0 == GNUNET_TESTBED_host_get_id_ (host))
   {
     cp->helper =
@@ -1324,7 +1324,7 @@ GNUNET_TESTBED_is_host_habitable (const struct GNUNET_TESTBED_Host *host,
   const char *hostname;
   char *port;
 
-  h = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_HostHabitableCheckHandle));
+  h = GNUNET_new (struct GNUNET_TESTBED_HostHabitableCheckHandle);
   h->cb = cb;
   h->cb_cls = cb_cls;
   h->host = host;
@@ -1449,7 +1449,7 @@ GNUNET_TESTBED_register_host (struct GNUNET_TESTBED_Controller *controller,
          (NULL == hostname) ? "localhost" : hostname);
     return NULL;
   }
-  rh = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_HostRegistrationHandle));
+  rh = GNUNET_new (struct GNUNET_TESTBED_HostRegistrationHandle);
   rh->host = host;
   rh->c = controller;
   GNUNET_assert (NULL != cc);

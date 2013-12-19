@@ -201,7 +201,7 @@ GNUNET_PEERINFO_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_PEERINFO_Handle *h;
 
-  h = GNUNET_malloc (sizeof (struct GNUNET_PEERINFO_Handle));
+  h = GNUNET_new (struct GNUNET_PEERINFO_Handle);
   h->client = GNUNET_CLIENT_connect ("peerinfo", cfg);
   h->cfg = cfg;
   return h;
@@ -708,7 +708,7 @@ GNUNET_PEERINFO_iterate (struct GNUNET_PEERINFO_Handle *h,
   struct GNUNET_PEERINFO_IteratorContext *ic;
   struct GNUNET_PEERINFO_AddContext *ac;
 
-  ic = GNUNET_malloc (sizeof (struct GNUNET_PEERINFO_IteratorContext));
+  ic = GNUNET_new (struct GNUNET_PEERINFO_IteratorContext);
   if (NULL == peer)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,

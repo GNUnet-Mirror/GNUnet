@@ -710,7 +710,7 @@ GNUNET_logger_add (GNUNET_Logger logger, void *logger_cls)
 {
   struct CustomLogger *entry;
 
-  entry = GNUNET_malloc (sizeof (struct CustomLogger));
+  entry = GNUNET_new (struct CustomLogger);
   entry->logger = logger;
   entry->logger_cls = logger_cls;
   entry->next = loggers;

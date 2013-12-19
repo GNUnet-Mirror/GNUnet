@@ -307,7 +307,7 @@ GAS_performance_add_client (struct GNUNET_SERVER_Client *client,
   struct PerformanceClient *pc;
   GNUNET_break (NULL == find_client (client));
 
-  pc = GNUNET_malloc (sizeof (struct PerformanceClient));
+  pc = GNUNET_new (struct PerformanceClient);
   pc->client = client;
   pc->flag = flag;
 

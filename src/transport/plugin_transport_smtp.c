@@ -233,7 +233,7 @@ listenAndDistribute (void *unused)
       }
       if (stats != NULL)
         stats->change (stat_bytesReceived, size);
-      coreMP = GNUNET_malloc (sizeof (GNUNET_TransportPacket));
+      coreMP = GNUNET_new (GNUNET_TransportPacket);
       coreMP->msg = out;
       coreMP->size = size - sizeof (SMTPMessage);
       coreMP->tsession = NULL;
@@ -541,7 +541,7 @@ api_connect (const GNUNET_MessageHello * hello, GNUNET_TSession ** tsessionPtr,
 {
   GNUNET_TSession *tsession;
 
-  tsession = GNUNET_malloc (sizeof (GNUNET_TSession));
+  tsession = GNUNET_new (GNUNET_TSession);
   tsession->internal = GNUNET_malloc (GNUNET_sizeof_hello (hello));
   tsession->peer = hello->senderIdentity;
   memcpy (tsession->internal, hello, GNUNET_sizeof_hello (hello));

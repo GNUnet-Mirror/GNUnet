@@ -151,7 +151,7 @@ do_wait (void *cls, const struct GNUNET_FS_Uri *uri,
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Waiting to allow content to migrate\n");
-  dc = GNUNET_malloc (sizeof (struct DownloadContext));
+  dc = GNUNET_new (struct DownloadContext);
   dc->uri = GNUNET_FS_uri_dup (uri);
   if (NULL != fn)
     dc->fn = GNUNET_strdup (fn);

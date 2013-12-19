@@ -53,7 +53,7 @@ GNUNET_FS_getopt_set_keywords (struct GNUNET_GETOPT_CommandLineProcessorContext
 
   if (u == NULL)
   {
-    u = GNUNET_malloc (sizeof (struct GNUNET_FS_Uri));
+    u = GNUNET_new (struct GNUNET_FS_Uri);
     *uri = u;
     u->type = GNUNET_FS_URI_KSK;
     u->data.ksk.keywordCount = 0;

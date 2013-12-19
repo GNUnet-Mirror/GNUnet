@@ -743,7 +743,7 @@ handle_client_init (void *cls GNUNET_UNUSED,
   struct ClientRecord *cr;
   const struct GNUNET_DNS_Register *reg = (const struct GNUNET_DNS_Register*) message;
 
-  cr = GNUNET_malloc (sizeof (struct ClientRecord));
+  cr = GNUNET_new (struct ClientRecord);
   cr->client = client;
   cr->flags = (enum GNUNET_DNS_Flags) ntohl (reg->flags);
   GNUNET_SERVER_client_keep (client);

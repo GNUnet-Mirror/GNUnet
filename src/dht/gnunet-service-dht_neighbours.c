@@ -666,7 +666,7 @@ handle_core_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
 		      &phash);
   peer_bucket = find_bucket (&phash);
   GNUNET_assert ((peer_bucket >= 0) && (peer_bucket < MAX_BUCKETS));
-  ret = GNUNET_malloc (sizeof (struct PeerInfo));
+  ret = GNUNET_new (struct PeerInfo);
 #if 0
   ret->latency = latency;
   ret->distance = distance;

@@ -256,7 +256,7 @@ GNUNET_TRANSPORT_blacklist (const struct GNUNET_CONFIGURATION_Handle *cfg,
   client = GNUNET_CLIENT_connect ("transport", cfg);
   if (NULL == client)
     return NULL;
-  ret = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_Blacklist));
+  ret = GNUNET_new (struct GNUNET_TRANSPORT_Blacklist);
   ret->client = client;
   ret->cfg = cfg;
   ret->cb = cb;

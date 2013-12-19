@@ -216,7 +216,7 @@ transmit (struct GNUNET_SERVER_Client *client,
     GNUNET_free (msg);
     return;
   }
-  tcc = GNUNET_malloc (sizeof (struct TransmitCallbackContext));
+  tcc = GNUNET_new (struct TransmitCallbackContext);
   tcc->msg = msg;
   if (NULL ==
       (tcc->th =
@@ -594,7 +594,7 @@ get_ip_from_hostname (struct GNUNET_SERVER_Client *client,
               af == AF_INET ? "IPv4" : af == AF_INET6 ? "IPv6" : "anything",
               hostname);
 
-  rq = GNUNET_malloc (sizeof (struct request));
+  rq = GNUNET_new (struct request);
   rq->sc = sc;
   rq->client = client;
   rq->af = af;

@@ -677,7 +677,7 @@ clients_handle_send (void *cls,
     return;
   }
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
-  stcc = GNUNET_malloc (sizeof (struct SendTransmitContinuationContext));
+  stcc = GNUNET_new (struct SendTransmitContinuationContext);
   stcc->target = obm->peer;
   stcc->client = client;
   GNUNET_SERVER_client_keep (client);

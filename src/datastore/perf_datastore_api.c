@@ -303,7 +303,7 @@ run (void *cls,
 
   datastore = GNUNET_DATASTORE_connect (cfg);
   start_time = GNUNET_TIME_absolute_get ();
-  crc = GNUNET_malloc (sizeof (struct CpsRunContext));
+  crc = GNUNET_new (struct CpsRunContext);
   crc->cfg = cfg;
   crc->phase = RP_PUT;
   if (NULL ==

@@ -343,7 +343,7 @@ schedule_watch_request (struct GNUNET_STATISTICS_Handle *h,
     GNUNET_break (0);
     return;
   }
-  ai = GNUNET_malloc (sizeof (struct GNUNET_STATISTICS_GetHandle));
+  ai = GNUNET_new (struct GNUNET_STATISTICS_GetHandle);
   ai->sh = h;
   ai->subsystem = GNUNET_strdup (watch->subsystem);
   ai->name = GNUNET_strdup (watch->name);
@@ -932,7 +932,7 @@ GNUNET_STATISTICS_create (const char *subsystem,
     return NULL;
   GNUNET_assert (NULL != subsystem);
   GNUNET_assert (NULL != cfg);
-  ret = GNUNET_malloc (sizeof (struct GNUNET_STATISTICS_Handle));
+  ret = GNUNET_new (struct GNUNET_STATISTICS_Handle);
   ret->cfg = cfg;
   ret->subsystem = GNUNET_strdup (subsystem);
   ret->backoff = GNUNET_TIME_UNIT_MILLISECONDS;
@@ -1158,7 +1158,7 @@ GNUNET_STATISTICS_get (struct GNUNET_STATISTICS_Handle *handle,
   slen2 = strlen (name) + 1;
   GNUNET_assert (slen1 + slen2 + sizeof (struct GNUNET_MessageHeader) <
                  GNUNET_SERVER_MAX_MESSAGE_SIZE);
-  ai = GNUNET_malloc (sizeof (struct GNUNET_STATISTICS_GetHandle));
+  ai = GNUNET_new (struct GNUNET_STATISTICS_GetHandle);
   ai->sh = handle;
   ai->subsystem = GNUNET_strdup (subsystem);
   ai->name = GNUNET_strdup (name);
@@ -1220,7 +1220,7 @@ GNUNET_STATISTICS_watch (struct GNUNET_STATISTICS_Handle *handle,
 
   if (NULL == handle)
     return GNUNET_SYSERR;
-  w = GNUNET_malloc (sizeof (struct GNUNET_STATISTICS_WatchEntry));
+  w = GNUNET_new (struct GNUNET_STATISTICS_WatchEntry);
   w->subsystem = GNUNET_strdup (subsystem);
   w->name = GNUNET_strdup (name);
   w->proc = proc;
@@ -1354,7 +1354,7 @@ add_setter_action (struct GNUNET_STATISTICS_Handle *h, const char *name,
     return;
   }
   /* no existing entry matches, create a fresh one */
-  ai = GNUNET_malloc (sizeof (struct GNUNET_STATISTICS_GetHandle));
+  ai = GNUNET_new (struct GNUNET_STATISTICS_GetHandle);
   ai->sh = h;
   ai->subsystem = GNUNET_strdup (h->subsystem);
   ai->name = GNUNET_strdup (name);

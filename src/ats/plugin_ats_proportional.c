@@ -409,7 +409,7 @@ libgnunet_plugin_ats_proportional_init (void *cls)
   GNUNET_assert(NULL != env->get_preferences);
   GNUNET_assert(NULL != env->get_property);
 
-  s = GNUNET_malloc (sizeof (struct GAS_PROPORTIONAL_Handle));
+  s = GNUNET_new (struct GAS_PROPORTIONAL_Handle);
   s->env = env;
   env->sf.s_add = &GAS_proportional_address_add;
   env->sf.s_address_update_property = &GAS_proportional_address_property_changed;
@@ -1572,12 +1572,12 @@ GAS_proportional_address_add (void *solver, struct ATS_Address *address,
     return;
   }
 
-  aw = GNUNET_malloc (sizeof (struct AddressWrapper));
+  aw = GNUNET_new (struct AddressWrapper);
   aw->addr = address;
   GNUNET_CONTAINER_DLL_insert(net->head, net->tail, aw);
   addresse_increment (s, net, GNUNET_YES, GNUNET_NO);
 
-  asi = GNUNET_malloc (sizeof (struct AddressSolverInformation));
+  asi = GNUNET_new (struct AddressSolverInformation);
   asi->network = net;
   asi->calculated_quota_in_NBO = 0;
   asi->calculated_quota_out_NBO = 0;

@@ -60,7 +60,7 @@ path_new (unsigned int length)
 {
   struct MeshPeerPath *p;
 
-  p = GNUNET_malloc (sizeof (struct MeshPeerPath));
+  p = GNUNET_new (struct MeshPeerPath);
   if (length > 0)
   {
     p->length = length;

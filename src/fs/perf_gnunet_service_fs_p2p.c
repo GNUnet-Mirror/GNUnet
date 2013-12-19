@@ -263,7 +263,7 @@ do_report (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_free (fancy);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Finished download, shutting down\n",
 	      (unsigned long long) FILESIZE);
-  sm = GNUNET_malloc (sizeof (struct StatMaster));
+  sm = GNUNET_new (struct StatMaster);
   sm->op =
     GNUNET_TESTBED_service_connect (NULL,
 				    daemons[sm->daemon],

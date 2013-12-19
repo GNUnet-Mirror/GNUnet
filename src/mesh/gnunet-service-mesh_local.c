@@ -593,7 +593,7 @@ handle_ack (void *cls, struct GNUNET_SERVER_Client *client,
 //   struct MeshChannel *ch = value;
 //   struct GNUNET_MESH_LocalMonitor *msg;
 //
-//   msg = GNUNET_malloc (sizeof(struct GNUNET_MESH_LocalMonitor));
+//   msg = GNUNET_new (struct GNUNET_MESH_LocalMonitor);
 //   msg->channel_id = htonl (ch->gid);
 //   msg->header.size = htons (sizeof (struct GNUNET_MESH_LocalMonitor));
 //   msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNELS);
@@ -688,7 +688,7 @@ handle_show_tunnel (void *cls, struct GNUNET_SERVER_Client *client,
   }
 
   /* Initialize context */
-  resp = GNUNET_malloc (sizeof (struct GNUNET_MESH_LocalMonitor));
+  resp = GNUNET_new (struct GNUNET_MESH_LocalMonitor);
   *resp = *msg;
   resp->header.size = htons (sizeof (struct GNUNET_MESH_LocalMonitor));
   GNUNET_SERVER_notification_context_unicast (nc, c->handle,

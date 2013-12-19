@@ -240,9 +240,9 @@ libgnunet_plugin_datastore_template_init (void *cls)
   struct GNUNET_DATASTORE_PluginFunctions *api;
   struct Plugin *plugin;
 
-  plugin = GNUNET_malloc (sizeof (struct Plugin));
+  plugin = GNUNET_new (struct Plugin);
   plugin->env = env;
-  api = GNUNET_malloc (sizeof (struct GNUNET_DATASTORE_PluginFunctions));
+  api = GNUNET_new (struct GNUNET_DATASTORE_PluginFunctions);
   api->cls = plugin;
   api->estimate_size = &template_plugin_estimate_size;
   api->put = &template_plugin_put;

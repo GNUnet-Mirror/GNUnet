@@ -592,7 +592,7 @@ wait_op_completion (void *cls)
   if (NULL == rc->peers)
     goto cleanup_;
   rc->shutdown = GNUNET_YES;
-  rcop = GNUNET_malloc (sizeof (struct RunContextOperation));
+  rcop = GNUNET_new (struct RunContextOperation);
   rcop->rc = rc;
   rcop->op = GNUNET_TESTBED_shutdown_peers (rc->c, rcop, NULL, NULL);
   GNUNET_assert (NULL != rcop->op);
@@ -673,7 +673,7 @@ start_peers_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   rc->pstart_time = GNUNET_TIME_absolute_get ();
   for (peer = 0; peer < rc->num_peers; peer++)
   {
-    rcop = GNUNET_malloc (sizeof (struct RunContextOperation));
+    rcop = GNUNET_new (struct RunContextOperation);
     rcop->rc = rc;
     rcop->op  = GNUNET_TESTBED_peer_start (NULL, rc->peers[peer], NULL, NULL);
     GNUNET_assert (NULL != rcop->op);
@@ -782,7 +782,7 @@ create_peers (struct GNUNET_TESTBED_RunHandle *rc)
   rc->peer_count = 0;
   for (peer = 0; peer < rc->num_peers; peer++)
   {
-    rcop = GNUNET_malloc (sizeof (struct RunContextOperation));
+    rcop = GNUNET_new (struct RunContextOperation);
     rcop->rc = rc;
     rcop->op =
         GNUNET_TESTBED_peer_create (rc->c,
@@ -1014,7 +1014,7 @@ register_hosts (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     /* Start slaves */
     for (slave = 0; slave < rc->num_hosts; slave++)
     {
-      rcop = GNUNET_malloc (sizeof (struct RunContextOperation));
+      rcop = GNUNET_new (struct RunContextOperation);
       rcop->rc = rc;
       rcop->op =
           GNUNET_TESTBED_controller_link (rcop, rc->c, rc->hosts[slave],
@@ -1253,7 +1253,7 @@ GNUNET_TESTBED_run (const char *host_filename,
   unsigned int nhost;
 
   GNUNET_assert (num_peers > 0);
-  rc = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_RunHandle));
+  rc = GNUNET_new (struct GNUNET_TESTBED_RunHandle);
   rc->cfg = GNUNET_CONFIGURATION_dup (cfg);
 #if ENABLE_SUPERMUC
   rc->num_hosts = GNUNET_TESTBED_hosts_load_from_loadleveler (rc->cfg,

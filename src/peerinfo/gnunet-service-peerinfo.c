@@ -1138,7 +1138,7 @@ handle_notify (void *cls, struct GNUNET_SERVER_Client *client,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "`%s' message received\n",
 	      "NOTIFY");
-  nc = GNUNET_malloc (sizeof (struct NotificationContext));
+  nc = GNUNET_new (struct NotificationContext);
   nc->client = client;
   nc->include_friend_only = ntohl (nm->include_friend_only);
 

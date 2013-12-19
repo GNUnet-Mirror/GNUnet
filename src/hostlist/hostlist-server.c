@@ -433,7 +433,7 @@ process_notify (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
   else
   {
-    builder = GNUNET_malloc (sizeof (struct HostSet));
+    builder = GNUNET_new (struct HostSet);
   }
   GNUNET_assert (NULL != peerinfo);
   builder->pitr =

@@ -1899,8 +1899,8 @@ GNUNET_DISK_get_handle_from_w32_handle (HANDLE osfh)
      * otherwise we're screwed, as selecting on non-overlapped handle
      * will block.
      */
-    fh->oOverlapRead = GNUNET_malloc (sizeof (OVERLAPPED));
-    fh->oOverlapWrite = GNUNET_malloc (sizeof (OVERLAPPED));
+    fh->oOverlapRead = GNUNET_new (OVERLAPPED);
+    fh->oOverlapWrite = GNUNET_new (OVERLAPPED);
     fh->oOverlapRead->hEvent = CreateEvent (NULL, FALSE, FALSE, NULL);
     fh->oOverlapWrite->hEvent = CreateEvent (NULL, FALSE, FALSE, NULL);
   }
@@ -2356,10 +2356,10 @@ GNUNET_DISK_pipe (int blocking_read, int blocking_write, int inherit_read, int i
   p->fd[0]->type = GNUNET_DISK_HANLDE_TYPE_PIPE;
   p->fd[1]->type = GNUNET_DISK_HANLDE_TYPE_PIPE;
 
-  p->fd[0]->oOverlapRead = GNUNET_malloc (sizeof (OVERLAPPED));
-  p->fd[0]->oOverlapWrite = GNUNET_malloc (sizeof (OVERLAPPED));
-  p->fd[1]->oOverlapRead = GNUNET_malloc (sizeof (OVERLAPPED));
-  p->fd[1]->oOverlapWrite = GNUNET_malloc (sizeof (OVERLAPPED));
+  p->fd[0]->oOverlapRead = GNUNET_new (OVERLAPPED);
+  p->fd[0]->oOverlapWrite = GNUNET_new (OVERLAPPED);
+  p->fd[1]->oOverlapRead = GNUNET_new (OVERLAPPED);
+  p->fd[1]->oOverlapWrite = GNUNET_new (OVERLAPPED);
 
   p->fd[0]->oOverlapRead->hEvent = CreateEvent (NULL, FALSE, FALSE, NULL);
   p->fd[0]->oOverlapWrite->hEvent = CreateEvent (NULL, FALSE, FALSE, NULL);
@@ -2462,8 +2462,8 @@ GNUNET_DISK_pipe_from_fd (int blocking_read, int blocking_write, int fd[2])
     if (p->fd[0]->h != INVALID_HANDLE_VALUE)
     {
       p->fd[0]->type = GNUNET_DISK_HANLDE_TYPE_PIPE;
-      p->fd[0]->oOverlapRead = GNUNET_malloc (sizeof (OVERLAPPED));
-      p->fd[0]->oOverlapWrite = GNUNET_malloc (sizeof (OVERLAPPED));
+      p->fd[0]->oOverlapRead = GNUNET_new (OVERLAPPED);
+      p->fd[0]->oOverlapWrite = GNUNET_new (OVERLAPPED);
       p->fd[0]->oOverlapRead->hEvent = CreateEvent (NULL, FALSE, FALSE, NULL);
       p->fd[0]->oOverlapWrite->hEvent = CreateEvent (NULL, FALSE, FALSE, NULL);
     }
@@ -2480,8 +2480,8 @@ GNUNET_DISK_pipe_from_fd (int blocking_read, int blocking_write, int fd[2])
     if (p->fd[1]->h != INVALID_HANDLE_VALUE)
     {
       p->fd[1]->type = GNUNET_DISK_HANLDE_TYPE_PIPE;
-      p->fd[1]->oOverlapRead = GNUNET_malloc (sizeof (OVERLAPPED));
-      p->fd[1]->oOverlapWrite = GNUNET_malloc (sizeof (OVERLAPPED));
+      p->fd[1]->oOverlapRead = GNUNET_new (OVERLAPPED);
+      p->fd[1]->oOverlapWrite = GNUNET_new (OVERLAPPED);
       p->fd[1]->oOverlapRead->hEvent = CreateEvent (NULL, FALSE, FALSE, NULL);
       p->fd[1]->oOverlapWrite->hEvent = CreateEvent (NULL, FALSE, FALSE, NULL);
     }

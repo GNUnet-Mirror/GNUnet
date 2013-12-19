@@ -245,7 +245,7 @@ regex_add (struct RegexCombineCtx *ctx, const char *regex)
     len = strlen (p->s);
     if (prefix_l < len) /* only partial match, split existing state */
     {
-      newctx = GNUNET_malloc (sizeof (struct RegexCombineCtx));
+      newctx = GNUNET_new (struct RegexCombineCtx);
       newctx->head = p->head;
       newctx->tail = p->tail;
       newctx->s = GNUNET_malloc(len - prefix_l + 1);
@@ -262,14 +262,14 @@ regex_add (struct RegexCombineCtx *ctx, const char *regex)
   if (NULL == ctx->head && NULL != ctx->s)
   {
     /* this was the end before, add empty string */
-    newctx = GNUNET_malloc (sizeof (struct RegexCombineCtx));
+    newctx = GNUNET_new (struct RegexCombineCtx);
     newctx->s = GNUNET_strdup ("");
     GNUNET_CONTAINER_DLL_insert (ctx->head, ctx->tail, newctx);
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " no match\n");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " new state %s\n", regex);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " under %s\n", ctx->s);
-  newctx = GNUNET_malloc (sizeof (struct RegexCombineCtx));
+  newctx = GNUNET_new (struct RegexCombineCtx);
   newctx->s = GNUNET_strdup (regex);
   GNUNET_CONTAINER_DLL_insert (ctx->head, ctx->tail, newctx);
 }
@@ -312,7 +312,7 @@ REGEX_TEST_combine (char * const regexes[])
   const char *current;
   struct RegexCombineCtx *ctx;
 
-  ctx = GNUNET_malloc (sizeof (struct RegexCombineCtx));
+  ctx = GNUNET_new (struct RegexCombineCtx);
   for (i = 0; regexes[i]; i++)
   {
     current = regexes[i];

@@ -191,7 +191,7 @@ GST_queue_message (struct GNUNET_SERVER_Client *client,
   size = ntohs (msg->size);
   GNUNET_assert ((GNUNET_MESSAGE_TYPE_TESTBED_INIT <= type) &&
                  (GNUNET_MESSAGE_TYPE_TESTBED_MAX > type));
-  mq_entry = GNUNET_malloc (sizeof (struct MessageQueue));
+  mq_entry = GNUNET_new (struct MessageQueue);
   mq_entry->msg = msg;
   mq_entry->client = client;
   GNUNET_SERVER_client_keep (client);
@@ -364,7 +364,7 @@ GST_queue_host_registration (struct Slave *slave,
        "Queueing host registration for host %u at %u\n",
        GNUNET_TESTBED_host_get_id_ (host),
        GNUNET_TESTBED_host_get_id_ (GST_host_list[slave->host_id]));
-  hr = GNUNET_malloc (sizeof (struct HostRegistration));
+  hr = GNUNET_new (struct HostRegistration);
   hr->cb = cb;
   hr->cb_cls = cb_cls;
   hr->host = host;
@@ -525,7 +525,7 @@ handle_init (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_free (ss_str);
     ss_str = NULL;
   }
-  GST_context = GNUNET_malloc (sizeof (struct Context));
+  GST_context = GNUNET_new (struct Context);
   GNUNET_SERVER_client_keep (client);
   GST_context->client = client;
   GST_context->host_id = ntohl (msg->host_id);

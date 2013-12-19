@@ -463,7 +463,7 @@ GNUNET_FS_directory_scan_start (const char *filename,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Starting to scan directory `%s'\n",
 	      filename_expanded);
-  ds = GNUNET_malloc (sizeof (struct GNUNET_FS_DirScanner));
+  ds = GNUNET_new (struct GNUNET_FS_DirScanner);
   ds->progress_callback = cb;
   ds->progress_callback_cls = cb_cls;
   ds->filename_expanded = filename_expanded;

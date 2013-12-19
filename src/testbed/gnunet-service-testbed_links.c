@@ -970,7 +970,7 @@ GST_neighbour_get_connection (struct Neighbour *n,
   GNUNET_assert (NULL != cb);
   LOG_DEBUG ("Attempting to get connection to controller on host %u\n",
              n->host_id);
-  h = GNUNET_malloc (sizeof (struct NeighbourConnectNotification));
+  h = GNUNET_new (struct NeighbourConnectNotification);
   h->n = n;
   h->cb  = cb;
   h->cb_cls = cb_cls;
@@ -1163,7 +1163,7 @@ GST_create_neighbour (struct GNUNET_TESTBED_Host *host)
 {
   struct Neighbour *n;
 
-  n = GNUNET_malloc (sizeof (struct Neighbour));
+  n = GNUNET_new (struct Neighbour);
   n->host_id = GNUNET_TESTBED_host_get_id_ (host);
   neighbour_list_add (n);   /* just add; connect on-demand */
   return n;
@@ -1249,7 +1249,7 @@ GST_handle_link_controllers (void *cls, struct GNUNET_SERVER_Client *client,
       LOG_DEBUG ("Received request to establish a link to host %u\n",
                  delegated_host_id);
       n = GST_create_neighbour (GST_host_list[delegated_host_id]);
-      ncc = GNUNET_malloc (sizeof (struct NeighbourConnectCtxt));
+      ncc = GNUNET_new (struct NeighbourConnectCtxt);
       ncc->n = n;
       ncc->op_id = op_id;
       ncc->client = client;
@@ -1271,11 +1271,11 @@ GST_handle_link_controllers (void *cls, struct GNUNET_SERVER_Client *client,
     }
     LOG_DEBUG ("Received request to start and establish a link to host %u\n",
                delegated_host_id);
-    slave = GNUNET_malloc (sizeof (struct Slave));
+    slave = GNUNET_new (struct Slave);
     slave->host_id = delegated_host_id;
     slave->reghost_map = GNUNET_CONTAINER_multihashmap_create (100, GNUNET_NO);
     slave_list_add (slave);
-    lcc = GNUNET_malloc (sizeof (struct LinkControllersContext));
+    lcc = GNUNET_new (struct LinkControllersContext);
     lcc->operation_id = op_id;
     GNUNET_SERVER_client_keep (client);
     lcc->client = client;
@@ -1284,7 +1284,7 @@ GST_handle_link_controllers (void *cls, struct GNUNET_SERVER_Client *client,
         GNUNET_TESTBED_controller_start (GST_context->master_ip,
                                          GST_host_list[slave->host_id],
                                          &slave_status_cb, slave);
-    new_route = GNUNET_malloc (sizeof (struct Route));
+    new_route = GNUNET_new (struct Route);
     new_route->dest = delegated_host_id;
     new_route->thru = GST_context->host_id;
     route_list_add (new_route);
@@ -1298,8 +1298,8 @@ GST_handle_link_controllers (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-  lcfq = GNUNET_malloc (sizeof (struct LCFContextQueue));
-  lcfq->lcf = GNUNET_malloc (sizeof (struct LCFContext));
+  lcfq = GNUNET_new (struct LCFContextQueue);
+  lcfq->lcf = GNUNET_new (struct LCFContext);
   lcfq->lcf->delegated_host_id = delegated_host_id;
   lcfq->lcf->slave_host_id = slave_host_id;
   route = GST_find_dest_route (slave_host_id);
@@ -1335,7 +1335,7 @@ GST_handle_link_controllers (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-  new_route = GNUNET_malloc (sizeof (struct Route));
+  new_route = GNUNET_new (struct Route);
   new_route->dest = delegated_host_id;
   new_route->thru = route->dest;
   route_list_add (new_route);

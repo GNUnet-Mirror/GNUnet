@@ -718,7 +718,7 @@ find_validation_entry (const struct GNUNET_CRYPTO_EddsaPublicKey *public_key,
     return ve;
   if (public_key == NULL)
     return NULL;
-  ve = GNUNET_malloc (sizeof (struct ValidationEntry));
+  ve = GNUNET_new (struct ValidationEntry);
   ve->in_use = GNUNET_SYSERR; /* not defined */
   ve->last_line_set_to_no  = 0;
   ve->last_line_set_to_yes  = 0;

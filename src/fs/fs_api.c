@@ -371,7 +371,7 @@ GNUNET_FS_make_top (struct GNUNET_FS_Handle *h, SuspendSignalFunction ssf,
 {
   struct TopLevelActivity *ret;
 
-  ret = GNUNET_malloc (sizeof (struct TopLevelActivity));
+  ret = GNUNET_new (struct TopLevelActivity);
   ret->ssf = ssf;
   ret->ssf_cls = ssf_cls;
   GNUNET_CONTAINER_DLL_insert (h->top_head, h->top_tail, ret);
@@ -852,7 +852,7 @@ deserialize_fi_node (struct GNUNET_FS_Handle *h, const char *fn,
     GNUNET_break (0);
     return NULL;
   }
-  ret = GNUNET_malloc (sizeof (struct GNUNET_FS_FileInformation));
+  ret = GNUNET_new (struct GNUNET_FS_FileInformation);
   ret->h = h;
   ksks = NULL;
   chks = NULL;
@@ -1769,7 +1769,7 @@ read_download_request (struct GNUNET_BIO_ReadHandle *rh)
   struct DownloadRequest *dr;
   unsigned int i;
 
-  dr = GNUNET_malloc (sizeof (struct DownloadRequest));
+  dr = GNUNET_new (struct DownloadRequest);
   if ((GNUNET_OK != GNUNET_BIO_read_int32 (rh, &dr->state)) ||
       (GNUNET_OK != GNUNET_BIO_read_int64 (rh, &dr->offset)) ||
       (GNUNET_OK != GNUNET_BIO_read_int32 (rh, &dr->num_children)) ||
@@ -2127,7 +2127,7 @@ deserialize_unindex_file (void *cls, const char *filename)
   char *uris;
   uint32_t state;
 
-  uc = GNUNET_malloc (sizeof (struct GNUNET_FS_UnindexContext));
+  uc = GNUNET_new (struct GNUNET_FS_UnindexContext);
   uc->h = h;
   uc->serialization = get_serialization_short_name (filename);
   rh = GNUNET_BIO_read_open (filename);
@@ -2994,7 +2994,7 @@ GNUNET_FS_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   enum GNUNET_FS_OPTIONS opt;
   va_list ap;
 
-  ret = GNUNET_malloc (sizeof (struct GNUNET_FS_Handle));
+  ret = GNUNET_new (struct GNUNET_FS_Handle);
   ret->cfg = cfg;
   ret->client_name = GNUNET_strdup (client_name);
   ret->upcb = upcb;

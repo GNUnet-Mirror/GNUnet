@@ -208,7 +208,7 @@ load_state ()
 	 (GNUNET_OK !=
 	  GNUNET_BIO_read (rh, "id", &id, sizeof (struct GNUNET_HashCode))) )
       goto error;
-    wi = GNUNET_malloc (sizeof (struct WorkItem));
+    wi = GNUNET_new (struct WorkItem);
     wi->id = id;
     wi->filename = fn;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -605,7 +605,7 @@ add_file (void *cls,
   }
   else
   {
-    wi = GNUNET_malloc (sizeof (struct WorkItem));
+    wi = GNUNET_new (struct WorkItem);
     wi->filename = GNUNET_strdup (filename);
   }
   wi->id = id;

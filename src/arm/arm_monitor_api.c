@@ -251,7 +251,7 @@ GNUNET_ARM_monitor (const struct GNUNET_CONFIGURATION_Handle *cfg,
 {
   struct GNUNET_ARM_MonitorHandle *h;
 
-  h = GNUNET_malloc (sizeof (struct GNUNET_ARM_MonitorHandle));
+  h = GNUNET_new (struct GNUNET_ARM_MonitorHandle);
   h->cfg = GNUNET_CONFIGURATION_dup (cfg);
   h->currently_down = GNUNET_YES;
   h->reconnect_task = GNUNET_SCHEDULER_NO_TASK;

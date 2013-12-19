@@ -275,7 +275,7 @@ overlay_link_completed (void *cls, struct GNUNET_TESTBED_Operation *op,
     {
       LOG (GNUNET_ERROR_TYPE_WARNING,
            "Error while establishing a link: %s -- Retrying\n", emsg);
-      retry_entry = GNUNET_malloc (sizeof (struct RetryListEntry));
+      retry_entry = GNUNET_new (struct RetryListEntry);
       retry_entry->link = link;
       GNUNET_CONTAINER_DLL_insert_tail (tc->rl_head, tc->rl_tail, retry_entry);
     }
@@ -923,7 +923,7 @@ GNUNET_TESTBED_overlay_configure_topology_va (void *op_cls,
   if (num_peers < 2)
     return NULL;
   c = peers[0]->controller;
-  tc = GNUNET_malloc (sizeof (struct TopologyContext));
+  tc = GNUNET_new (struct TopologyContext);
   tc->peers = peers;
   tc->num_peers = num_peers;
   tc->op_cls = op_cls;

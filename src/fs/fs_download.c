@@ -1550,7 +1550,7 @@ create_download_request (struct DownloadRequest *parent,
   unsigned int head_skip;
   uint64_t child_block_size;
 
-  dr = GNUNET_malloc (sizeof (struct DownloadRequest));
+  dr = GNUNET_new (struct DownloadRequest);
   dr->parent = parent;
   dr->depth = depth;
   dr->offset = dr_offset;

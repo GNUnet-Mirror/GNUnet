@@ -330,7 +330,7 @@ GED_scheduler_add (struct Node *n, struct Experiment *e, int outbound)
 			return;	/* End of experiment is reached */
 
 	/* Add additional checks here if required */
-	se = GNUNET_malloc (sizeof (struct ScheduledExperiment));
+	se = GNUNET_new (struct ScheduledExperiment);
 	se->state = NOT_RUNNING;
 	se->outbound = outbound;
 	se->e = e;

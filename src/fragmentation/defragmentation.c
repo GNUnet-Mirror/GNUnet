@@ -210,7 +210,7 @@ GNUNET_DEFRAGMENT_context_create (struct GNUNET_STATISTICS_Handle *stats,
 {
   struct GNUNET_DEFRAGMENT_Context *dc;
 
-  dc = GNUNET_malloc (sizeof (struct GNUNET_DEFRAGMENT_Context));
+  dc = GNUNET_new (struct GNUNET_DEFRAGMENT_Context);
   dc->stats = stats;
   dc->cls = cls;
   dc->proc = proc;

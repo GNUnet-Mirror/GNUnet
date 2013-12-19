@@ -306,7 +306,7 @@ queue_message (struct ClientCtx *ctx, struct GNUNET_MessageHeader *msg)
   struct MessageQueue *mq;
   struct GNUNET_SERVER_Client *client = ctx->client;
 
-  mq = GNUNET_malloc (sizeof (struct MessageQueue));
+  mq = GNUNET_new (struct MessageQueue);
   mq->msg = msg;
   LOG_DEBUG ("Queueing message of type %u, size %u for sending\n",
              ntohs (msg->type), ntohs (msg->size));
@@ -494,7 +494,7 @@ handle_barrier_wait (void *cls, struct GNUNET_SERVER_Client *client,
   client_ctx = GNUNET_SERVER_client_get_user_context (client, struct ClientCtx);
   if (NULL == client_ctx)
   {
-    client_ctx = GNUNET_malloc (sizeof (struct ClientCtx));
+    client_ctx = GNUNET_new (struct ClientCtx);
     client_ctx->client = client;
     GNUNET_SERVER_client_keep (client);
     client_ctx->barrier = barrier;
@@ -747,7 +747,7 @@ GST_handle_barrier_init (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
-  barrier = GNUNET_malloc (sizeof (struct Barrier));
+  barrier = GNUNET_new (struct Barrier);
   (void) memcpy (&barrier->hash, &hash, sizeof (struct GNUNET_HashCode));
   barrier->quorum = msg->quorum;
   barrier->name = name;
@@ -769,7 +769,7 @@ GST_handle_barrier_init (void *cls, struct GNUNET_SERVER_Client *client,
       GNUNET_break (0);/* May happen when we are connecting to the controller */
       continue;
     }
-    wrapper = GNUNET_malloc (sizeof (struct WBarrier));
+    wrapper = GNUNET_new (struct WBarrier);
     wrapper->barrier = barrier;
     GNUNET_CONTAINER_DLL_insert_tail (barrier->whead, barrier->wtail, wrapper);
     wrapper->hbarrier = GNUNET_TESTBED_barrier_init_ (slave->controller,

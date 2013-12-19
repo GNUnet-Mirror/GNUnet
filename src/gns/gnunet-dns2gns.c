@@ -338,7 +338,7 @@ result_processor (void *cls,
 	case GNUNET_DNSPARSER_TYPE_AAAA:
 	  GNUNET_assert (sizeof (struct in6_addr) == rd[i].data_size);
 	  rec.name = GNUNET_strdup (packet->queries[0].name);
-	  rec.data.raw.data = GNUNET_malloc (sizeof (struct in6_addr));
+	  rec.data.raw.data = GNUNET_new (struct in6_addr);
 	  rec.dns_traffic_class = GNUNET_TUN_DNS_CLASS_INTERNET;
 	  rec.type = GNUNET_DNSPARSER_TYPE_AAAA;
 	  memcpy (rec.data.raw.data,

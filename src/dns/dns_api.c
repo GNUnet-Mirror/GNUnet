@@ -258,7 +258,7 @@ request_handler (void *cls,
                          GNUNET_TIME_UNIT_FOREVER_REL);
 
   /* finally, pass request to callback for answers */
-  rh = GNUNET_malloc (sizeof (struct GNUNET_DNS_RequestHandle));
+  rh = GNUNET_new (struct GNUNET_DNS_RequestHandle);
   rh->dh =dh;
   rh->request_id = req->request_id;
   rh->generation = dh->generation;
@@ -490,7 +490,7 @@ GNUNET_DNS_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
 {
   struct GNUNET_DNS_Handle *dh;
 
-  dh = GNUNET_malloc (sizeof (struct GNUNET_DNS_Handle));
+  dh = GNUNET_new (struct GNUNET_DNS_Handle);
   dh->cfg = cfg;
   dh->flags = flags;
   dh->rh = rh;

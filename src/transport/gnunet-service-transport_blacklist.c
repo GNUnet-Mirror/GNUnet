@@ -494,7 +494,7 @@ test_connection_ok (void *cls, const struct GNUNET_PeerIdentity *neighbour,
   struct TestConnectionContext *tcc = cls;
   struct GST_BlacklistCheck *bc;
 
-  bc = GNUNET_malloc (sizeof (struct GST_BlacklistCheck));
+  bc = GNUNET_new (struct GST_BlacklistCheck);
   GNUNET_CONTAINER_DLL_insert (bc_head, bc_tail, bc);
   bc->peer = *neighbour;
   bc->cont = &confirm_or_drop_neighbour;
@@ -538,7 +538,7 @@ GST_blacklist_handle_init (void *cls, struct GNUNET_SERVER_Client *client,
     bl = bl->next;
   }
   GNUNET_SERVER_client_mark_monitor (client);
-  bl = GNUNET_malloc (sizeof (struct Blacklisters));
+  bl = GNUNET_new (struct Blacklisters);
   bl->client = client;
   GNUNET_SERVER_client_keep (client);
   GNUNET_CONTAINER_DLL_insert_after (bl_head, bl_tail, bl_tail, bl);
@@ -739,7 +739,7 @@ GST_blacklist_test_allowed (const struct GNUNET_PeerIdentity *peer,
   }
 
   /* need to query blacklist clients */
-  bc = GNUNET_malloc (sizeof (struct GST_BlacklistCheck));
+  bc = GNUNET_new (struct GST_BlacklistCheck);
   GNUNET_CONTAINER_DLL_insert (bc_head, bc_tail, bc);
   bc->peer = *peer;
   bc->cont = cont;

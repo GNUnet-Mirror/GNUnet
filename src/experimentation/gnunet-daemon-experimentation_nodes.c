@@ -1044,7 +1044,7 @@ GED_nodes_send_start_ack (struct Node *n, struct Experiment *e)
 			"Sending %s for experiment request to peer `%s' for experiment `%s'\n",
 			"START_ACK" ,GNUNET_i2s(&n->id), e->name);
 
-	e_ctx = GNUNET_malloc (sizeof (struct NodeComCtx));
+	e_ctx = GNUNET_new (struct NodeComCtx);
 	e_ctx->n = n;
 	e_ctx->e = e;
 	e_ctx->size = sizeof (struct GED_start_ack_message) + strlen (e->name) + 1;
@@ -1071,7 +1071,7 @@ GED_nodes_send_start (struct Node *n, struct Experiment *e)
 			"Sending %s for experiment request to peer `%s' for experiment `%s'\n",
 			"START", GNUNET_i2s(&n->id), e->name);
 
-	e_ctx = GNUNET_malloc (sizeof (struct NodeComCtx));
+	e_ctx = GNUNET_new (struct NodeComCtx);
 	e_ctx->n = n;
 	e_ctx->e = e;
 	e_ctx->size = sizeof (struct GED_start_message) + strlen (e->name) + 1;

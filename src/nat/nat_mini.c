@@ -172,7 +172,7 @@ GNUNET_NAT_mini_get_external_ipv4 (struct GNUNET_TIME_Relative timeout,
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Running `external-ip' to determine our external IP\n");
-  eh = GNUNET_malloc (sizeof (struct GNUNET_NAT_ExternalHandle));
+  eh = GNUNET_new (struct GNUNET_NAT_ExternalHandle);
   eh->cb = cb;
   eh->cb_cls = cb_cls;
   eh->opipe = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_YES, GNUNET_NO, GNUNET_YES);
@@ -507,7 +507,7 @@ GNUNET_NAT_mini_map_start (uint16_t port, int is_tcp,
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Running `upnpc' to install mapping\n");
-  ret = GNUNET_malloc (sizeof (struct GNUNET_NAT_MiniHandle));
+  ret = GNUNET_new (struct GNUNET_NAT_MiniHandle);
   ret->ac = ac;
   ret->ac_cls = ac_cls;
   ret->is_tcp = is_tcp;

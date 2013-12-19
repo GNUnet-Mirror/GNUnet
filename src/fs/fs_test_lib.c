@@ -452,7 +452,7 @@ GNUNET_FS_TEST_publish (struct GNUNET_TESTBED_Peer *peer,
 {
   struct TestPublishOperation *po;
 
-  po = GNUNET_malloc (sizeof (struct TestPublishOperation));
+  po = GNUNET_new (struct TestPublishOperation);
   po->publish_cont = cont;
   po->publish_cont_cls = cont_cls;
   po->publish_seed = seed;
@@ -631,7 +631,7 @@ GNUNET_FS_TEST_download (struct GNUNET_TESTBED_Peer *peer,
 {
   struct TestDownloadOperation *dop;
 
-  dop = GNUNET_malloc (sizeof (struct TestDownloadOperation));
+  dop = GNUNET_new (struct TestDownloadOperation);
   dop->uri = GNUNET_FS_uri_dup (uri);
   dop->size = GNUNET_FS_uri_chk_get_file_size (uri);
   dop->verbose = verbose;

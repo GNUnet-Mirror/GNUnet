@@ -64,7 +64,7 @@ GNUNET_SIGNAL_handler_install (int signum, GNUNET_SIGNAL_Handler handler)
   struct sigaction sig;
 #endif
 
-  ret = GNUNET_malloc (sizeof (struct GNUNET_SIGNAL_Context));
+  ret = GNUNET_new (struct GNUNET_SIGNAL_Context);
   ret->sig = signum;
   ret->method = handler;
 #ifndef MINGW

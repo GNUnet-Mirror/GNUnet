@@ -187,7 +187,7 @@ REGEX_INTERNAL_announce (struct GNUNET_DHT_Handle *dht,
   struct REGEX_INTERNAL_Announcement *h;
 
   GNUNET_assert (NULL != dht);
-  h = GNUNET_malloc (sizeof (struct REGEX_INTERNAL_Announcement));
+  h = GNUNET_new (struct REGEX_INTERNAL_Announcement);
   h->regex = regex;
   h->dht = dht;
   h->stats = stats;
@@ -614,7 +614,7 @@ regex_next_edge (const struct RegexBlock *block,
   }
 
   hash = &ctx->hash;
-  new_ctx = GNUNET_malloc (sizeof (struct RegexSearchContext));
+  new_ctx = GNUNET_new (struct RegexSearchContext);
   new_ctx->info = info;
   new_ctx->position = ctx->position + ctx->longest_match;
   GNUNET_array_append (info->contexts, info->n_contexts, new_ctx);
@@ -693,7 +693,7 @@ REGEX_INTERNAL_search (struct GNUNET_DHT_Handle *dht,
   LOG (GNUNET_ERROR_TYPE_INFO, "REGEX_INTERNAL_search: %s\n", string);
   GNUNET_assert (NULL != dht);
   GNUNET_assert (NULL != callback);
-  h = GNUNET_malloc (sizeof (struct REGEX_INTERNAL_Search));
+  h = GNUNET_new (struct REGEX_INTERNAL_Search);
   h->dht = dht;
   h->description = GNUNET_strdup (string);
   h->callback = callback;
@@ -708,7 +708,7 @@ REGEX_INTERNAL_search (struct GNUNET_DHT_Handle *dht,
   LOG (GNUNET_ERROR_TYPE_INFO,
        "  initial key for %s: %s (%.*s)\n",
        string, GNUNET_h2s (&key), size, string);
-  ctx = GNUNET_malloc (sizeof (struct RegexSearchContext));
+  ctx = GNUNET_new (struct RegexSearchContext);
   ctx->position = size;
   ctx->info = h;
   GNUNET_array_append (h->contexts, h->n_contexts, ctx);

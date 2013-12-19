@@ -242,7 +242,7 @@ udp_broadcast_receive (struct Plugin *plugin,
          size, GNUNET_a2s ((const struct sockaddr *) addr, addrlen));
     struct Mstv4Context *mc;
 
-    mc = GNUNET_malloc (sizeof (struct Mstv4Context));
+    mc = GNUNET_new (struct Mstv4Context);
     struct sockaddr_in *av4 = (struct sockaddr_in *) addr;
 
     mc->addr.ipv4_addr = av4->sin_addr.s_addr;
@@ -263,7 +263,7 @@ udp_broadcast_receive (struct Plugin *plugin,
          size, GNUNET_a2s ((const struct sockaddr *) &addr, addrlen));
     struct Mstv6Context *mc;
 
-    mc = GNUNET_malloc (sizeof (struct Mstv6Context));
+    mc = GNUNET_new (struct Mstv6Context);
     struct sockaddr_in6 *av6 = (struct sockaddr_in6 *) addr;
 
     mc->addr.ipv6_addr = av6->sin6_addr;

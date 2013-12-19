@@ -189,8 +189,8 @@ run (void *cls,
     end ();
     return;
   }
-  p = GNUNET_malloc (sizeof (struct PeerContext));
-  addr = GNUNET_malloc (sizeof (struct Address));
+  p = GNUNET_new (struct PeerContext);
+  addr = GNUNET_new (struct Address);
 
   atp = GNUNET_ATS_performance_init (cfg, &performance_cb, NULL);
   if (atp == NULL)

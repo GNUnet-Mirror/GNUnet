@@ -345,7 +345,7 @@ run (void *cls, char *const *args, const char *cfgfile,
              "%s", "Could not initialize plugin, assuming database not configured. Test not run!\n");
     return;
   }
-  crc = GNUNET_malloc (sizeof (struct CpsRunContext));
+  crc = GNUNET_new (struct CpsRunContext);
   crc->api = api;
   crc->cfg = c;
   crc->phase = RP_PUT;

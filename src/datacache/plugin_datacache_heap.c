@@ -393,12 +393,12 @@ libgnunet_plugin_datacache_heap_init (void *cls)
   struct GNUNET_DATACACHE_PluginFunctions *api;
   struct Plugin *plugin;
 
-  plugin = GNUNET_malloc (sizeof (struct Plugin));
+  plugin = GNUNET_new (struct Plugin);
   plugin->map = GNUNET_CONTAINER_multihashmap_create (1024,  /* FIXME: base on quota! */
 						      GNUNET_YES);
   plugin->heap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
   plugin->env = env;
-  api = GNUNET_malloc (sizeof (struct GNUNET_DATACACHE_PluginFunctions));
+  api = GNUNET_new (struct GNUNET_DATACACHE_PluginFunctions);
   api->cls = plugin;
   api->get = &heap_plugin_get;
   api->put = &heap_plugin_put;

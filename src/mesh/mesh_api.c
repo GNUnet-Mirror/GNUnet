@@ -404,7 +404,7 @@ create_channel (struct GNUNET_MESH_Handle *h, MESH_ChannelNumber chid)
 {
   struct GNUNET_MESH_Channel *ch;
 
-  ch = GNUNET_malloc (sizeof (struct GNUNET_MESH_Channel));
+  ch = GNUNET_new (struct GNUNET_MESH_Channel);
   GNUNET_CONTAINER_DLL_insert (h->channels_head, h->channels_tail, ch);
   ch->mesh = h;
   if (0 == chid)
@@ -1243,7 +1243,7 @@ GNUNET_MESH_connect (const struct GNUNET_CONFIGURATION_Handle *cfg, void *cls,
   struct GNUNET_MESH_Handle *h;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "GNUNET_MESH_connect()\n");
-  h = GNUNET_malloc (sizeof (struct GNUNET_MESH_Handle));
+  h = GNUNET_new (struct GNUNET_MESH_Handle);
   LOG (GNUNET_ERROR_TYPE_DEBUG, " addr %p\n", h);
   h->cfg = cfg;
   h->new_channel = new_channel;
@@ -1496,7 +1496,7 @@ GNUNET_MESH_notify_transmit_ready (struct GNUNET_MESH_Channel *channel, int cork
   LOG (GNUNET_ERROR_TYPE_DEBUG, "    payload size %u\n", notify_size);
   GNUNET_assert (NULL != notify);
   GNUNET_assert (0 == channel->packet_size); // Only one data packet allowed
-  th = GNUNET_malloc (sizeof (struct GNUNET_MESH_TransmitHandle));
+  th = GNUNET_new (struct GNUNET_MESH_TransmitHandle);
   th->channel = channel;
   th->timeout = GNUNET_TIME_relative_to_absolute (maxdelay);
   th->size = notify_size + sizeof (struct GNUNET_MESH_LocalData);

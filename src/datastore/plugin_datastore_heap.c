@@ -240,7 +240,7 @@ heap_plugin_put (void *cls,
 	break;
     if (NULL == zabt)
     {
-      zabt = GNUNET_malloc (sizeof (struct ZeroAnonByType));
+      zabt = GNUNET_new (struct ZeroAnonByType);
       zabt->type = type;
       GNUNET_CONTAINER_DLL_insert (plugin->zero_head,
 				   plugin->zero_tail,
@@ -800,12 +800,12 @@ libgnunet_plugin_datastore_heap_init (void *cls)
 					     "HASHMAPSIZE",
 					     &esize))
     esize = 128 * 1024;
-  plugin = GNUNET_malloc (sizeof (struct Plugin));
+  plugin = GNUNET_new (struct Plugin);
   plugin->env = env;
   plugin->keyvalue = GNUNET_CONTAINER_multihashmap_create (esize, GNUNET_YES);
   plugin->by_expiration = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
   plugin->by_replication = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MAX);
-  api = GNUNET_malloc (sizeof (struct GNUNET_DATASTORE_PluginFunctions));
+  api = GNUNET_new (struct GNUNET_DATASTORE_PluginFunctions);
   api->cls = plugin;
   api->estimate_size = &heap_plugin_estimate_size;
   api->put = &heap_plugin_put;

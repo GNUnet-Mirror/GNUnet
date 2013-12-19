@@ -153,7 +153,7 @@ GNUNET_DATACACHE_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
   }
   bf_size = quota / 32;         /* 8 bit per entry, 1 bit per 32 kb in DB */
 
-  ret = GNUNET_malloc (sizeof (struct GNUNET_DATACACHE_Handle));
+  ret = GNUNET_new (struct GNUNET_DATACACHE_Handle);
 
   if (GNUNET_YES !=
       GNUNET_CONFIGURATION_get_value_yesno (cfg, section, "DISABLE_BF"))

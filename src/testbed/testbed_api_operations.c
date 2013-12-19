@@ -455,7 +455,7 @@ change_state (struct GNUNET_TESTBED_Operation *op, enum OperationState state)
   {
     if (OP_STATE_INIT == op->state)
     {
-      entry = GNUNET_malloc (sizeof (struct QueueEntry));
+      entry = GNUNET_new (struct QueueEntry);
       entry->op = op;
       entry->nres = op->nres[cnt];
       s = cnt;
@@ -557,7 +557,7 @@ rq_add (struct GNUNET_TESTBED_Operation *op)
   struct ReadyQueueEntry *rq_entry;
 
   GNUNET_assert (NULL == op->rq_entry);
-  rq_entry = GNUNET_malloc (sizeof (struct ReadyQueueEntry));
+  rq_entry = GNUNET_new (struct ReadyQueueEntry);
   rq_entry->op = op;
   GNUNET_CONTAINER_DLL_insert_tail (rq_head, rq_tail, rq_entry);
   op->rq_entry = rq_entry;
@@ -970,7 +970,7 @@ GNUNET_TESTBED_operation_create_ (void *cls, OperationStart start,
 {
   struct GNUNET_TESTBED_Operation *op;
 
-  op = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Operation));
+  op = GNUNET_new (struct GNUNET_TESTBED_Operation);
   op->start = start;
   op->state = OP_STATE_INIT;
   op->release = release;
@@ -994,7 +994,7 @@ GNUNET_TESTBED_operation_queue_create_ (enum OperationQueueType type,
   struct OperationQueue *queue;
   struct FeedbackCtx *fctx;
 
-  queue = GNUNET_malloc (sizeof (struct OperationQueue));
+  queue = GNUNET_new (struct OperationQueue);
   queue->type = type;
   if (OPERATION_QUEUE_TYPE_FIXED == type)
   {
@@ -1002,7 +1002,7 @@ GNUNET_TESTBED_operation_queue_create_ (enum OperationQueueType type,
   }
   else
   {
-    fctx = GNUNET_malloc (sizeof (struct FeedbackCtx));
+    fctx = GNUNET_new (struct FeedbackCtx);
     fctx->max_active_bound = max_active;
     fctx->sd = GNUNET_TESTBED_SD_init_ (10); /* FIXME: Why 10? */
     queue->fctx = fctx;

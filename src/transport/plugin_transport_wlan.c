@@ -777,7 +777,7 @@ create_session (struct MacEndpoint *endpoint,
 
   GNUNET_STATISTICS_update (endpoint->plugin->env->stats, _("# WLAN sessions allocated"), 1,
                             GNUNET_NO);
-  session = GNUNET_malloc (sizeof (struct Session));
+  session = GNUNET_new (struct Session);
   GNUNET_CONTAINER_DLL_insert_tail (endpoint->sessions_head,
                                     endpoint->sessions_tail,
 				    session);
@@ -974,7 +974,7 @@ send_with_fragmentation (struct MacEndpoint *endpoint,
   struct Plugin *plugin;
 
   plugin = endpoint->plugin;
-  fm = GNUNET_malloc (sizeof (struct FragmentMessage));
+  fm = GNUNET_new (struct FragmentMessage);
   fm->macendpoint = endpoint;
   fm->target = *target;
   fm->size_payload = payload_size;
@@ -1079,7 +1079,7 @@ create_macendpoint (struct Plugin *plugin,
   for (pos = plugin->mac_head; NULL != pos; pos = pos->next)
     if (0 == memcmp (addr, &pos->addr, sizeof (struct WlanAddress)))
       return pos;
-  pos = GNUNET_malloc (sizeof (struct MacEndpoint));
+  pos = GNUNET_new (struct MacEndpoint);
   pos->addr = *addr;
   pos->plugin = plugin;
   pos->defrag =
@@ -1846,7 +1846,7 @@ wlan_string_to_address (void *cls, const char *addr, uint16_t addrlen,
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-  wa = GNUNET_malloc (sizeof (struct WlanAddress));
+  wa = GNUNET_new (struct WlanAddress);
   for (i=0;i<6;i++)
     wa->mac.mac[i] = a[i];
   wa->options = htonl (0);
@@ -1889,7 +1889,7 @@ libgnunet_plugin_transport_wlan_init (void *cls)
   {
     /* run in 'stub' mode (i.e. as part of gnunet-peerinfo), don't fully
        initialze the plugin or the API */
-    api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
+    api = GNUNET_new (struct GNUNET_TRANSPORT_PluginFunctions);
     api->cls = NULL;
     api->address_pretty_printer = &wlan_plugin_address_pretty_printer;
     api->address_to_string = &wlan_plugin_address_to_string;
@@ -1931,7 +1931,7 @@ libgnunet_plugin_transport_wlan_init (void *cls)
     return NULL;
   }
 
-  plugin = GNUNET_malloc (sizeof (struct Plugin));
+  plugin = GNUNET_new (struct Plugin);
   plugin->interface = interface;
   plugin->env = env;
   GNUNET_STATISTICS_set (plugin->env->stats, _("# WLAN sessions allocated"),
@@ -1989,7 +1989,7 @@ libgnunet_plugin_transport_wlan_init (void *cls)
     GNUNET_assert (0);
   }
 
-  api = GNUNET_malloc (sizeof (struct GNUNET_TRANSPORT_PluginFunctions));
+  api = GNUNET_new (struct GNUNET_TRANSPORT_PluginFunctions);
   api->cls = plugin;
   api->send = &wlan_plugin_send;
   api->get_session = &wlan_plugin_get_session;

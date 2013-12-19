@@ -438,11 +438,11 @@ libgnunet_plugin_datacache_sqlite_init (void *cls)
 		"  path BLOB DEFAULT '')");
   SQLITE3_EXEC (dbh, "CREATE INDEX idx_hashidx ON ds090 (key,type,expire)");
   SQLITE3_EXEC (dbh, "CREATE INDEX idx_expire ON ds090 (expire)");
-  plugin = GNUNET_malloc (sizeof (struct Plugin));
+  plugin = GNUNET_new (struct Plugin);
   plugin->env = env;
   plugin->dbh = dbh;
   plugin->fn = fn_utf8;
-  api = GNUNET_malloc (sizeof (struct GNUNET_DATACACHE_PluginFunctions));
+  api = GNUNET_new (struct GNUNET_DATACACHE_PluginFunctions);
   api->cls = plugin;
   api->get = &sqlite_plugin_get;
   api->put = &sqlite_plugin_put;

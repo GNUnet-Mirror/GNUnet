@@ -1078,7 +1078,7 @@ handle_dht_reply (void *cls, struct GNUNET_TIME_Absolute exp,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Replicating result for query `%s' with priority %u\n",
                 GNUNET_h2s (key), prq.priority);
-    pmc = GNUNET_malloc (sizeof (struct PutMigrationContext));
+    pmc = GNUNET_new (struct PutMigrationContext);
     pmc->start = GNUNET_TIME_absolute_get ();
     pmc->requested = GNUNET_YES;
     if (NULL ==
@@ -1675,7 +1675,7 @@ GSF_handle_p2p_content_ (struct GSF_ConnectedPeer *cp,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Replicating result for query `%s' with priority %u\n",
                 GNUNET_h2s (&query), prq.priority);
-    pmc = GNUNET_malloc (sizeof (struct PutMigrationContext));
+    pmc = GNUNET_new (struct PutMigrationContext);
     pmc->start = GNUNET_TIME_absolute_get ();
     pmc->requested = prq.request_found;
     GNUNET_assert (0 != GSF_get_peer_performance_data_ (cp)->pid);

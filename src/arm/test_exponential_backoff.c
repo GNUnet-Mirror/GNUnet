@@ -214,7 +214,7 @@ do_nothing_service_shutdown (struct GNUNET_CLIENT_Connection *sock,
 {
   struct ShutdownContext *shutdown_ctx;
 
-  shutdown_ctx = GNUNET_malloc (sizeof (struct ShutdownContext));
+  shutdown_ctx = GNUNET_new (struct ShutdownContext);
   shutdown_ctx->cont = cont;
   shutdown_ctx->cont_cls = cont_cls;
   shutdown_ctx->sock = sock;

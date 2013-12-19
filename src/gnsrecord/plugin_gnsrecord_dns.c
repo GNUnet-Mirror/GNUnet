@@ -294,7 +294,7 @@ dns_string_to_value (void *cls,
                   s);
       return GNUNET_SYSERR;
     }
-    *data = GNUNET_malloc (sizeof (struct in_addr));
+    *data = GNUNET_new (struct in_addr);
     memcpy (*data, &value_a, sizeof (value_a));
     *data_size = sizeof (value_a);
     return GNUNET_OK;
@@ -550,7 +550,7 @@ dns_string_to_value (void *cls,
            s);
       return GNUNET_SYSERR;
     }
-    *data = GNUNET_malloc (sizeof (struct in6_addr));
+    *data = GNUNET_new (struct in6_addr);
     *data_size = sizeof (struct in6_addr);
     memcpy (*data, &value_aaaa, sizeof (value_aaaa));
     return GNUNET_OK;

@@ -684,7 +684,7 @@ udp_string_to_address (void *cls, const char *addr, uint16_t addrlen,
     {
       struct IPv4UdpAddress *u4;
       struct sockaddr_in *in4 = (struct sockaddr_in *) &socket_address;
-      u4 = GNUNET_malloc (sizeof (struct IPv4UdpAddress));
+      u4 = GNUNET_new (struct IPv4UdpAddress);
       u4->options =  htonl (options);
       u4->ipv4_addr = in4->sin_addr.s_addr;
       u4->u4_port = in4->sin_port;
@@ -696,7 +696,7 @@ udp_string_to_address (void *cls, const char *addr, uint16_t addrlen,
     {
       struct IPv6UdpAddress *u6;
       struct sockaddr_in6 *in6 = (struct sockaddr_in6 *) &socket_address;
-      u6 = GNUNET_malloc (sizeof (struct IPv6UdpAddress));
+      u6 = GNUNET_new (struct IPv6UdpAddress);
       u6->options =  htonl (options);
       u6->ipv6_addr = in6->sin6_addr;
       u6->u6_port = in6->sin6_port;
@@ -1911,7 +1911,7 @@ udp_plugin_send (void *cls,
     if  (s->frag_ctx != NULL)
       return GNUNET_SYSERR;
     memcpy (&udp[1], msgbuf, msgbuf_size);
-    frag_ctx = GNUNET_malloc (sizeof (struct UDP_FragmentationContext));
+    frag_ctx = GNUNET_new (struct UDP_FragmentationContext);
     frag_ctx->plugin = plugin;
     frag_ctx->session = s;
     frag_ctx->cont = cont;

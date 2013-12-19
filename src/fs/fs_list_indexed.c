@@ -151,7 +151,7 @@ GNUNET_FS_get_indexed_files (struct GNUNET_FS_Handle *h,
                 _("Failed to not connect to `%s' service.\n"), "fs");
     return NULL;
   }
-  gic = GNUNET_malloc (sizeof (struct GNUNET_FS_GetIndexedContext));
+  gic = GNUNET_new (struct GNUNET_FS_GetIndexedContext);
   gic->h = h;
   gic->client = client;
   gic->iterator = iterator;

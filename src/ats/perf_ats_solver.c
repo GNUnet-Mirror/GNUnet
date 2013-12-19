@@ -456,7 +456,7 @@ solver_info_cb (void *cls,
       if ((GAS_STAT_SUCCESS == stat) && (NULL == ph.current_result))
       {
         /* Create new result */
-        tmp = GNUNET_malloc (sizeof (struct Result));
+        tmp = GNUNET_new (struct Result);
         ph.current_result = tmp;
         GNUNET_CONTAINER_DLL_insert_tail(ph.head, ph.tail, tmp);
         ph.current_result->addresses = ph.current_a;

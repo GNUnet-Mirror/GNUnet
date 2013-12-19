@@ -377,7 +377,7 @@ handle_client_send_request (void *cls, struct GNUNET_SERVER_Client *client,
   if (car == NULL)
   {
     /* create new entry */
-    car = GNUNET_malloc (sizeof (struct GSC_ClientActiveRequest));
+    car = GNUNET_new (struct GSC_ClientActiveRequest);
     GNUNET_assert (GNUNET_OK ==
                    GNUNET_CONTAINER_multipeermap_put (c->requests,
                                                       &req->peer,

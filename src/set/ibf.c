@@ -78,7 +78,7 @@ ibf_create (uint32_t size, uint8_t hash_num)
 
   /* TODO: use malloc_large */
 
-  ibf = GNUNET_malloc (sizeof (struct InvertibleBloomFilter));
+  ibf = GNUNET_new (struct InvertibleBloomFilter);
   ibf->count = GNUNET_malloc (size * sizeof (uint8_t));
   ibf->key_sum = GNUNET_malloc (size * sizeof (struct IBF_Key));
   ibf->key_hash_sum = GNUNET_malloc (size * sizeof (struct IBF_KeyHash));

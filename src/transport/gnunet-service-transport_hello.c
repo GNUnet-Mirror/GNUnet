@@ -288,7 +288,7 @@ GST_hello_modify_addresses (int addremove,
     GNUNET_break (0);
     return;
   }
-  al = GNUNET_malloc (sizeof (struct OwnAddressList));
+  al = GNUNET_new (struct OwnAddressList);
   GNUNET_CONTAINER_DLL_insert (oal_head, oal_tail, al);
   al->address = GNUNET_HELLO_address_copy (address);
   refresh_hello ();

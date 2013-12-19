@@ -179,7 +179,7 @@ create_meter (unsigned int total, char *start_string, int print)
 {
   struct ProgressMeter *ret;
 
-  ret = GNUNET_malloc (sizeof (struct ProgressMeter));
+  ret = GNUNET_new (struct ProgressMeter);
   ret->print = print;
   ret->total = total;
   ret->modnum = total / 4;

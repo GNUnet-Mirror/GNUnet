@@ -136,7 +136,7 @@ main (int argc, char *argv[])
 
   for (i = 0; i < 100; i++)
   {
-    ip = GNUNET_malloc (sizeof (int));
+    ip = GNUNET_new (int);
     *ip = i;
     GNUNET_CONTAINER_slist_add (l, GNUNET_CONTAINER_SLIST_DISPOSITION_DYNAMIC,
                                 ip, sizeof (int));

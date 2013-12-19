@@ -1240,7 +1240,7 @@ GAS_addresses_request_address (struct GAS_Addresses_Handle *handle,
   }
   if (NULL == cur)
   {
-    cur = GNUNET_malloc (sizeof (struct GAS_Addresses_Suggestion_Requests));
+    cur = GNUNET_new (struct GAS_Addresses_Suggestion_Requests);
     cur->id = (*peer);
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
         "Adding new address suggestion request for `%s'\n",
@@ -1836,7 +1836,7 @@ GAS_addresses_preference_change (struct GAS_Addresses_Handle *handle,
 
   if (NULL == find_preference_client (handle, client))
   {
-    pc = GNUNET_malloc (sizeof (struct GAS_Addresses_Preference_Clients));
+    pc = GNUNET_new (struct GAS_Addresses_Preference_Clients);
     pc->client = client;
     GNUNET_CONTAINER_DLL_insert (handle->preference_clients_head,
         handle->preference_clients_tail, pc);
@@ -2091,7 +2091,7 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   char *plugin_short;
   int c;
 
-  ah = GNUNET_malloc (sizeof (struct GAS_Addresses_Handle));
+  ah = GNUNET_new (struct GAS_Addresses_Handle);
   ah->running = GNUNET_NO;
 
   ah->stat = (struct GNUNET_STATISTICS_Handle *) stats;

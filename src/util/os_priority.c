@@ -1089,7 +1089,7 @@ start_process (int pipe_control,
     return NULL;
   }
 
-  gnunet_proc = GNUNET_malloc (sizeof (struct GNUNET_OS_Process));
+  gnunet_proc = GNUNET_new (struct GNUNET_OS_Process);
   gnunet_proc->pid = proc.dwProcessId;
   gnunet_proc->handle = proc.hProcess;
   gnunet_proc->control_pipe = childpipe_write;
@@ -1774,7 +1774,7 @@ GNUNET_OS_command_run (GNUNET_OS_LineProcessor proc, void *proc_cls,
     return NULL;
   }
   GNUNET_DISK_pipe_close_end (opipe, GNUNET_DISK_PIPE_END_WRITE);
-  cmd = GNUNET_malloc (sizeof (struct GNUNET_OS_CommandHandle));
+  cmd = GNUNET_new (struct GNUNET_OS_CommandHandle);
   cmd->timeout = GNUNET_TIME_relative_to_absolute (timeout);
   cmd->eip = eip;
   cmd->opipe = opipe;

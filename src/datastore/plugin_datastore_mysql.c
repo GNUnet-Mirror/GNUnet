@@ -946,7 +946,7 @@ libgnunet_plugin_datastore_mysql_init (void *cls)
   struct GNUNET_DATASTORE_PluginFunctions *api;
   struct Plugin *plugin;
 
-  plugin = GNUNET_malloc (sizeof (struct Plugin));
+  plugin = GNUNET_new (struct Plugin);
   plugin->env = env;
   plugin->mc = GNUNET_MYSQL_context_create (env->cfg, "datastore-mysql");
   if (NULL == plugin->mc)
@@ -1007,7 +1007,7 @@ libgnunet_plugin_datastore_mysql_init (void *cls)
 #undef PINIT
 #undef MRUNS
 
-  api = GNUNET_malloc (sizeof (struct GNUNET_DATASTORE_PluginFunctions));
+  api = GNUNET_new (struct GNUNET_DATASTORE_PluginFunctions);
   api->cls = plugin;
   api->estimate_size = &mysql_plugin_estimate_size;
   api->put = &mysql_plugin_put;

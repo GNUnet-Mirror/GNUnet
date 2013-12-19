@@ -387,7 +387,7 @@ GNUNET_TESTING_system_create_with_portrange (const char *testdir,
   unsigned int cnt;
 
   GNUNET_assert (NULL != testdir);
-  system = GNUNET_malloc (sizeof (struct GNUNET_TESTING_System));
+  system = GNUNET_new (struct GNUNET_TESTING_System);
   if (NULL == (system->tmppath = getenv (GNUNET_TESTING_PREFIX)))
     system->tmppath = GNUNET_DISK_mkdtemp (testdir);
   else
@@ -413,7 +413,7 @@ GNUNET_TESTING_system_create_with_portrange (const char *testdir,
   for (cnt = 0; NULL != shared_services[cnt].service; cnt++)
   {
     tss = shared_services[cnt];
-    ss = GNUNET_malloc (sizeof (struct SharedService));
+    ss = GNUNET_new (struct SharedService);
     ss->sname = GNUNET_strdup (tss.service);
     ss->cfg = GNUNET_CONFIGURATION_create ();
     GNUNET_CONFIGURATION_iterate_section_values (tss.cfg, ss->sname,
@@ -1242,7 +1242,7 @@ GNUNET_TESTING_peer_configure (struct GNUNET_TESTING_System *system,
     GNUNET_free (config_filename);
     goto err_ret;
   }
-  peer = GNUNET_malloc (sizeof (struct GNUNET_TESTING_Peer));
+  peer = GNUNET_new (struct GNUNET_TESTING_Peer);
   peer->ss_instances = ss_instances;
   peer->cfgfile = config_filename; /* Free in peer_destroy */
   peer->cfg = GNUNET_CONFIGURATION_dup (cfg);
@@ -1291,7 +1291,7 @@ GNUNET_TESTING_peer_get_identity (struct GNUNET_TESTING_Peer *peer,
     memcpy (id, peer->id, sizeof (struct GNUNET_PeerIdentity));
     return;
   }
-  peer->id = GNUNET_malloc (sizeof (struct GNUNET_PeerIdentity));
+  peer->id = GNUNET_new (struct GNUNET_PeerIdentity);
   GNUNET_free (GNUNET_TESTING_hostkey_get (peer->system,
 							  peer->key_number,
 							  peer->id));

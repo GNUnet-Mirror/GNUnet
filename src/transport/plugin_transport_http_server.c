@@ -2219,7 +2219,7 @@ server_add_address (void *cls, int add_remove, const struct sockaddr *addr,
   struct HTTP_Server_Plugin *plugin = cls;
   struct HttpAddressWrapper *w = NULL;
 
-  w = GNUNET_malloc (sizeof (struct HttpAddressWrapper));
+  w = GNUNET_new (struct HttpAddressWrapper);
   w->address = http_common_address_from_socket (plugin->protocol, addr, addrlen);
   if (NULL == w->address)
   {
@@ -2769,7 +2769,7 @@ server_configure_plugin (struct HTTP_Server_Plugin *plugin)
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                      "Binding %s plugin to specific IPv4 address: `%s'\n",
                      plugin->protocol, bind4_address);
-    plugin->server_addr_v4 = GNUNET_malloc (sizeof (struct sockaddr_in));
+    plugin->server_addr_v4 = GNUNET_new (struct sockaddr_in);
     if (1 != inet_pton (AF_INET, bind4_address,
                         &plugin->server_addr_v4->sin_addr))
     {
@@ -2800,7 +2800,7 @@ server_configure_plugin (struct HTTP_Server_Plugin *plugin)
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                      "Binding %s plugin to specific IPv6 address: `%s'\n",
                      plugin->protocol, bind6_address);
-    plugin->server_addr_v6 = GNUNET_malloc (sizeof (struct sockaddr_in6));
+    plugin->server_addr_v6 = GNUNET_new (struct sockaddr_in6);
     if (1 !=
         inet_pton (AF_INET6, bind6_address, &plugin->server_addr_v6->sin6_addr))
     {

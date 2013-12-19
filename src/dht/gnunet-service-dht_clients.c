@@ -822,7 +822,7 @@ handle_dht_local_monitor (void *cls, struct GNUNET_SERVER_Client *client,
   const struct GNUNET_DHT_MonitorStartStopMessage *msg;
 
   msg = (struct GNUNET_DHT_MonitorStartStopMessage *) message;
-  r = GNUNET_malloc (sizeof(struct ClientMonitorRecord));
+  r = GNUNET_new (struct ClientMonitorRecord);
 
   r->client = find_active_client(client);
   r->type = ntohl(msg->type);
@@ -833,7 +833,7 @@ handle_dht_local_monitor (void *cls, struct GNUNET_SERVER_Client *client,
       r->key = NULL;
   else
   {
-    r->key = GNUNET_malloc (sizeof (struct GNUNET_HashCode));
+    r->key = GNUNET_new (struct GNUNET_HashCode);
     memcpy (r->key, &msg->key, sizeof (struct GNUNET_HashCode));
   }
   GNUNET_CONTAINER_DLL_insert (monitor_head, monitor_tail, r);

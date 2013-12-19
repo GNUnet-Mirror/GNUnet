@@ -234,7 +234,7 @@ GNUNET_TESTBED_barrier_init_ (struct GNUNET_TESTBED_Controller *controller,
     return NULL;
   }
   LOG_DEBUG ("Initialising barrier `%s'\n", name);
-  barrier = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Barrier));
+  barrier = GNUNET_new (struct GNUNET_TESTBED_Barrier);
   barrier->c = controller;
   barrier->name = GNUNET_strdup (name);
   barrier->cb = cb;
@@ -488,7 +488,7 @@ GNUNET_TESTBED_barrier_wait (const char *name,
     GNUNET_CONFIGURATION_destroy (cfg);
     return NULL;
   }
-  h = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_BarrierWaitHandle));
+  h = GNUNET_new (struct GNUNET_TESTBED_BarrierWaitHandle);
   h->name = GNUNET_strdup (name);
   h->cfg = cfg;
   h->conn = GNUNET_CLIENT_connect ("testbed-barrier", h->cfg);

@@ -241,7 +241,7 @@ GNUNET_FS_file_information_create_from_reader (struct GNUNET_FS_Handle *h,
     GNUNET_break (0);
     return NULL;
   }
-  ret = GNUNET_malloc (sizeof (struct GNUNET_FS_FileInformation));
+  ret = GNUNET_new (struct GNUNET_FS_FileInformation);
   ret->h = h;
   ret->client_info = client_info;
   ret->meta = GNUNET_CONTAINER_meta_data_duplicate (meta);
@@ -297,7 +297,7 @@ GNUNET_FS_file_information_create_empty_directory (struct GNUNET_FS_Handle *h,
 {
   struct GNUNET_FS_FileInformation *ret;
 
-  ret = GNUNET_malloc (sizeof (struct GNUNET_FS_FileInformation));
+  ret = GNUNET_new (struct GNUNET_FS_FileInformation);
   ret->h = h;
   ret->client_info = client_info;
   ret->meta = GNUNET_CONTAINER_meta_data_duplicate (meta);

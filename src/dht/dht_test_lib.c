@@ -201,7 +201,7 @@ GNUNET_DHT_TEST_run (const char *testname,
 {
   struct GNUNET_DHT_TEST_Context *ctx;
 
-  ctx = GNUNET_malloc (sizeof (struct GNUNET_DHT_TEST_Context));
+  ctx = GNUNET_new (struct GNUNET_DHT_TEST_Context);
   ctx->num_peers = num_peers;
   ctx->ops = GNUNET_malloc (num_peers * sizeof (struct GNUNET_TESTBED_Operation *));
   ctx->dhts = GNUNET_malloc (num_peers * sizeof (struct GNUNET_DHT_Handle *));

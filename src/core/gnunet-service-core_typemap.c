@@ -114,13 +114,13 @@ GSC_TYPEMAP_get_from_message (const struct GNUNET_MessageHeader *msg)
       GNUNET_break_op (0);
       return NULL;
     }
-    ret = GNUNET_malloc (sizeof (struct GSC_TypeMap));
+    ret = GNUNET_new (struct GSC_TypeMap);
     memcpy (ret, &msg[1], sizeof (struct GSC_TypeMap));
     return ret;
   case GNUNET_MESSAGE_TYPE_CORE_COMPRESSED_TYPE_MAP:
     GNUNET_STATISTICS_update (GSC_stats, gettext_noop ("# type maps received"),
                               1, GNUNET_NO);
-    ret = GNUNET_malloc (sizeof (struct GSC_TypeMap));
+    ret = GNUNET_new (struct GSC_TypeMap);
     dlen = sizeof (struct GSC_TypeMap);
     if ((Z_OK !=
          uncompress ((Bytef *) ret, &dlen, (const Bytef *) &msg[1],
@@ -242,7 +242,7 @@ GSC_TYPEMAP_extend (const struct GSC_TypeMap *tmap, const uint16_t * types,
   struct GSC_TypeMap *ret;
   unsigned int i;
 
-  ret = GNUNET_malloc (sizeof (struct GSC_TypeMap));
+  ret = GNUNET_new (struct GSC_TypeMap);
   if (NULL != tmap)
     memcpy (ret, tmap, sizeof (struct GSC_TypeMap));
   for (i = 0; i < tcnt; i++)
@@ -259,7 +259,7 @@ GSC_TYPEMAP_extend (const struct GSC_TypeMap *tmap, const uint16_t * types,
 struct GSC_TypeMap *
 GSC_TYPEMAP_create ()
 {
-  return GNUNET_malloc (sizeof (struct GSC_TypeMap));
+  return GNUNET_new (struct GSC_TypeMap);
 }
 
 

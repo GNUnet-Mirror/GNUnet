@@ -68,7 +68,7 @@ GNUNET_ENV_environment_add_mod (struct GNUNET_ENV_Environment *env,
                                 enum GNUNET_ENV_Operator oper, const char *name,
                                 const void *value, size_t value_size)
 {
-  struct GNUNET_ENV_Modifier *mod = GNUNET_malloc (sizeof (*mod));
+  struct GNUNET_ENV_Modifier *mod = GNUNET_new (struct GNUNET_ENV_Modifier);
   mod->oper = oper;
   mod->name = name;
   mod->value = value;

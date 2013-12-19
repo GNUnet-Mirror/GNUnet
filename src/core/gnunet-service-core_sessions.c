@@ -265,7 +265,7 @@ GSC_SESSIONS_create (const struct GNUNET_PeerIdentity *peer,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Creating session for peer `%4s'\n",
               GNUNET_i2s (peer));
-  session = GNUNET_malloc (sizeof (struct Session));
+  session = GNUNET_new (struct Session);
   session->tmap = GSC_TYPEMAP_create ();
   session->peer = *peer;
   session->kxinfo = kx;

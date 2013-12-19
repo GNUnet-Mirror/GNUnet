@@ -1672,7 +1672,7 @@ GAS_mlp_get_preferred_address (void *solver,
       LOG (GNUNET_ERROR_TYPE_INFO, "Adding peer `%s' to list of requested_peers with requests\n",
           GNUNET_i2s (peer));
 
-      p = GNUNET_malloc (sizeof (struct ATS_Peer));
+      p = GNUNET_new (struct ATS_Peer);
       p->id = (*peer);
       p->f = get_peer_pref_value (mlp, peer);
       GNUNET_CONTAINER_multipeermap_put (mlp->requested_peers,
@@ -1887,7 +1887,7 @@ void *
 libgnunet_plugin_ats_mlp_init (void *cls)
 {
   struct GNUNET_ATS_PluginEnvironment *env = cls;
-  struct GAS_MLP_Handle * mlp = GNUNET_malloc (sizeof (struct GAS_MLP_Handle));
+  struct GAS_MLP_Handle * mlp = GNUNET_new (struct GAS_MLP_Handle);
 
   double D;
   double R;

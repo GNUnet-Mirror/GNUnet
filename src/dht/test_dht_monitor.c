@@ -380,7 +380,7 @@ run (void *cls,
     GNUNET_CRYPTO_hash (&i, sizeof (i), &key);
     for (j=0;j<num_peers;j++)
     {
-      get_op = GNUNET_malloc (sizeof (struct GetOperation));
+      get_op = GNUNET_new (struct GetOperation);
       GNUNET_CONTAINER_DLL_insert (get_head,
 				   get_tail,
 				   get_op);

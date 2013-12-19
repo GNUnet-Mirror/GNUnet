@@ -340,7 +340,7 @@ opstart_get_stats (void *cls)
       GNUNET_break (0);
       continue;
     }
-    peer_sc = GNUNET_malloc (sizeof (struct PeerGetStatsContext));
+    peer_sc = GNUNET_new (struct PeerGetStatsContext);
     peer_sc->sc = sc;
     peer_sc->peer_index = peer;
     sc->ops[peer] =
@@ -417,7 +417,7 @@ GNUNET_TESTBED_get_statistics (unsigned int num_peers,
   if (NULL == no_wait_queue)
     no_wait_queue = GNUNET_TESTBED_operation_queue_create_
         (OPERATION_QUEUE_TYPE_FIXED, UINT_MAX);
-  sc = GNUNET_malloc (sizeof (struct GetStatsContext));
+  sc = GNUNET_new (struct GetStatsContext);
   sc->peers = peers;
   sc->subsystem = (NULL == subsystem) ? NULL : GNUNET_strdup (subsystem);
   sc->name = (NULL == name) ? NULL : GNUNET_strdup (name);

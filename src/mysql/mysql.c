@@ -292,7 +292,7 @@ GNUNET_MYSQL_context_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
 {
   struct GNUNET_MYSQL_Context *mc;
 
-  mc = GNUNET_malloc (sizeof (struct GNUNET_MYSQL_Context));
+  mc = GNUNET_new (struct GNUNET_MYSQL_Context);
   mc->cfg = cfg;
   mc->section = section;
   mc->cnffile = get_my_cnf_path (cfg, section);
@@ -365,7 +365,7 @@ GNUNET_MYSQL_statement_prepare (struct GNUNET_MYSQL_Context *mc,
 {
   struct GNUNET_MYSQL_StatementHandle *sh;
 
-  sh = GNUNET_malloc (sizeof (struct GNUNET_MYSQL_StatementHandle));
+  sh = GNUNET_new (struct GNUNET_MYSQL_StatementHandle);
   sh->query = GNUNET_strdup (query);
   GNUNET_CONTAINER_DLL_insert (mc->shead, mc->stail, sh);
   return sh;

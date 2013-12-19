@@ -132,7 +132,7 @@ add_entry (unsigned int peer_id)
                                                            entry->peer_id,
                                                            entry));
   }
-  entry = GNUNET_malloc (sizeof (struct CacheEntry));
+  entry = GNUNET_new (struct CacheEntry);
   entry->peer_id = peer_id;
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONTAINER_multihashmap32_put (cache,

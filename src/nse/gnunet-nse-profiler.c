@@ -511,7 +511,7 @@ connect_nse_service ()
 	(0 != (i % (num_peers_in_round[current_round] / connection_limit))))
       continue;
     LOG_DEBUG ("Connecting to nse service of peer %d\n", i);
-    current_peer = GNUNET_malloc (sizeof (struct NSEPeer));
+    current_peer = GNUNET_new (struct NSEPeer);
     current_peer->daemon = daemons[i];
     current_peer->nse_op
         = GNUNET_TESTBED_service_connect (NULL,
@@ -593,7 +593,7 @@ make_oplist_entry ()
 {
   struct OpListEntry *entry;
 
-  entry = GNUNET_malloc (sizeof (struct OpListEntry));
+  entry = GNUNET_new (struct OpListEntry);
   GNUNET_CONTAINER_DLL_insert_tail (oplist_head, oplist_tail, entry);
   return entry;
 }

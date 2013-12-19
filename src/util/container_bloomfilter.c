@@ -494,7 +494,7 @@ GNUNET_CONTAINER_bloomfilter_load (const char *filename, size_t size,
     ui *= 2;
   size = ui;                    /* make sure it's a power of 2 */
 
-  bf = GNUNET_malloc (sizeof (struct GNUNET_CONTAINER_BloomFilter));
+  bf = GNUNET_new (struct GNUNET_CONTAINER_BloomFilter);
   /* Try to open a bloomfilter file */
   if (GNUNET_YES == GNUNET_DISK_file_test (filename))
     bf->fh =
@@ -631,7 +631,7 @@ GNUNET_CONTAINER_bloomfilter_init (const char *data, size_t size,
 
   if ((0 == k) || (0 == size))
     return NULL;
-  bf = GNUNET_malloc (sizeof (struct GNUNET_CONTAINER_BloomFilter));
+  bf = GNUNET_new (struct GNUNET_CONTAINER_BloomFilter);
   bf->filename = NULL;
   bf->fh = NULL;
   bf->bitArray = GNUNET_malloc_large (size);

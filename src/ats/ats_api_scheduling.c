@@ -967,7 +967,7 @@ GNUNET_ATS_scheduling_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
 {
   struct GNUNET_ATS_SchedulingHandle *sh;
 
-  sh = GNUNET_malloc (sizeof (struct GNUNET_ATS_SchedulingHandle));
+  sh = GNUNET_new (struct GNUNET_ATS_SchedulingHandle);
   sh->cfg = cfg;
   sh->suggest_cb = suggest_cb;
   sh->suggest_cb_cls = suggest_cb_cls;
@@ -1083,7 +1083,7 @@ GNUNET_ATS_suggest_address (struct GNUNET_ATS_SchedulingHandle *sh,
   m->peer = *peer;
   GNUNET_CONTAINER_DLL_insert_tail (sh->pending_head, sh->pending_tail, p);
   do_transmit (sh);
-  s = GNUNET_malloc (sizeof (struct GNUNET_ATS_SuggestHandle));
+  s = GNUNET_new (struct GNUNET_ATS_SuggestHandle);
   s->id = (*peer);
   GNUNET_CONTAINER_DLL_insert_tail (sh->sug_head, sh->sug_tail, s);
   return s;

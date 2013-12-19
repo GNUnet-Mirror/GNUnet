@@ -364,7 +364,7 @@ print_peer_info (void *cls, const struct GNUNET_PeerIdentity *peer,
 	    GNUNET_i2s_full (peer));
     return;
   }
-  pc = GNUNET_malloc (sizeof (struct PrintContext));
+  pc = GNUNET_new (struct PrintContext);
   GNUNET_CONTAINER_DLL_insert (pc_head,
 			       pc_tail,
 			       pc);

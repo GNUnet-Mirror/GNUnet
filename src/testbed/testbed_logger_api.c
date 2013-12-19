@@ -277,7 +277,7 @@ queue_message (struct GNUNET_TESTBED_LOGGER_Handle *h,
 
   type = ntohs (msg->type);
   size = ntohs (msg->size);
-  mq = GNUNET_malloc (sizeof (struct MessageQueue));
+  mq = GNUNET_new (struct MessageQueue);
   mq->msg = msg;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Queueing message of type %u, size %u for sending\n", type,
@@ -333,7 +333,7 @@ GNUNET_TESTBED_LOGGER_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
   client = GNUNET_CLIENT_connect ("testbed-logger", cfg);
   if (NULL == client)
     return NULL;
-  h = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_LOGGER_Handle));
+  h = GNUNET_new (struct GNUNET_TESTBED_LOGGER_Handle);
   h->client = client;
   return h;
 }

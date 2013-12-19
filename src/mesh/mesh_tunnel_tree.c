@@ -119,7 +119,7 @@ path_new (unsigned int length)
 {
   struct MeshPeerPath *p;
 
-  p = GNUNET_malloc (sizeof (struct MeshPeerPath));
+  p = GNUNET_new (struct MeshPeerPath);
   if (length > 0)
   {
     p->length = length;
@@ -233,7 +233,7 @@ tree_node_new (struct MeshTunnelTreeNode *parent, GNUNET_PEER_Id peer)
 {
   struct MeshTunnelTreeNode *node;
 
-  node = GNUNET_malloc (sizeof (struct MeshTunnelTreeNode));
+  node = GNUNET_new (struct MeshTunnelTreeNode);
   node->peer = peer;
   GNUNET_PEER_change_rc (peer, 1);
   node->parent = parent;
@@ -322,7 +322,7 @@ tree_node_update_first_hops (struct MeshTunnelTree *tree,
   GNUNET_PEER_resolve (parent->peer, &id);
   copy = GNUNET_CONTAINER_multihashmap_get (tree->first_hops, &id.hashPubKey);
   if (NULL == copy)
-    copy = GNUNET_malloc (sizeof (struct GNUNET_PeerIdentity));
+    copy = GNUNET_new (struct GNUNET_PeerIdentity);
   *copy = *hop;
 
   (void) GNUNET_CONTAINER_multihashmap_put (tree->first_hops, &id.hashPubKey,
@@ -417,7 +417,7 @@ tree_new (GNUNET_PEER_Id peer)
 {
   struct MeshTunnelTree *tree;
 
-  tree = GNUNET_malloc (sizeof (struct MeshTunnelTree));
+  tree = GNUNET_new (struct MeshTunnelTree);
   tree->first_hops = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_NO);
   tree->root = tree_node_new (NULL, peer);
   tree->root->status = MESH_PEER_ROOT;
@@ -647,7 +647,7 @@ tree_iterate_all (struct MeshTunnelTree *tree,
   struct MeshTreePendingNode *pending;
 
   cb (cb_cls, tree->root->peer, 0);
-  pending = GNUNET_malloc (sizeof (struct MeshTreePendingNode));
+  pending = GNUNET_new (struct MeshTreePendingNode);
   pending->node = tree->root;
   head = tail = NULL;
   GNUNET_CONTAINER_DLL_insert (head, tail, pending);
@@ -661,7 +661,7 @@ tree_iterate_all (struct MeshTunnelTree *tree,
     for (n = parent->children_head; NULL != n; n = n->next)
     {
       cb (cb_cls, n->peer, parent->peer);
-      pending = GNUNET_malloc (sizeof (struct MeshTreePendingNode));
+      pending = GNUNET_new (struct MeshTreePendingNode);
       pending->node = n;
       /* Insert_tail: breadth first, Insert: depth first */
       GNUNET_CONTAINER_DLL_insert (head, tail, pending);

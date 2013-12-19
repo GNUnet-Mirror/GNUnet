@@ -767,7 +767,7 @@ GNUNET_FS_unindex_start (struct GNUNET_FS_Handle *h,
 
   if (GNUNET_OK != GNUNET_DISK_file_size (filename, &size, GNUNET_YES, GNUNET_YES))
     return NULL;
-  ret = GNUNET_malloc (sizeof (struct GNUNET_FS_UnindexContext));
+  ret = GNUNET_new (struct GNUNET_FS_UnindexContext);
   ret->h = h;
   ret->filename = GNUNET_strdup (filename);
   ret->start_time = GNUNET_TIME_absolute_get ();

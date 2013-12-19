@@ -200,7 +200,7 @@ exop_insert (struct GNUNET_TESTBED_Operation *op)
 {
   struct ExpireOperationEntry *entry;
 
-  entry = GNUNET_malloc (sizeof (struct ExpireOperationEntry));
+  entry = GNUNET_new (struct ExpireOperationEntry);
   entry->op = op;
   GNUNET_CONTAINER_DLL_insert_tail (exop_head, exop_tail, entry);
 }
@@ -737,7 +737,7 @@ handle_peer_config (struct GNUNET_TESTBED_Controller *c,
   peer = data->peer;
   GNUNET_assert (NULL != peer);
   GNUNET_assert (ntohl (msg->peer_id) == peer->unique_id);
-  pinfo = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_PeerInformation));
+  pinfo = GNUNET_new (struct GNUNET_TESTBED_PeerInformation);
   pinfo->pit = data->pit;
   cb = data->cb;
   cb_cls = data->cb_cls;
@@ -747,7 +747,7 @@ handle_peer_config (struct GNUNET_TESTBED_Controller *c,
   switch (pinfo->pit)
   {
   case GNUNET_TESTBED_PIT_IDENTITY:
-    pinfo->result.id = GNUNET_malloc (sizeof (struct GNUNET_PeerIdentity));
+    pinfo->result.id = GNUNET_new (struct GNUNET_PeerIdentity);
     (void) memcpy (pinfo->result.id, &msg->peer_identity,
                    sizeof (struct GNUNET_PeerIdentity));
     break;
@@ -1253,7 +1253,7 @@ GNUNET_TESTBED_queue_message_ (struct GNUNET_TESTBED_Controller *controller,
   size = ntohs (msg->size);
   GNUNET_assert ((GNUNET_MESSAGE_TYPE_TESTBED_INIT <= type) &&
                  (GNUNET_MESSAGE_TYPE_TESTBED_MAX > type));
-  mq_entry = GNUNET_malloc (sizeof (struct MessageQueue));
+  mq_entry = GNUNET_new (struct MessageQueue);
   mq_entry->msg = msg;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Queueing message of type %u, size %u for sending\n", type,
@@ -1295,10 +1295,10 @@ GNUNET_TESTBED_forward_operation_msg_ (struct GNUNET_TESTBED_Controller
   struct GNUNET_MessageHeader *dup_msg;
   uint16_t msize;
 
-  data = GNUNET_malloc (sizeof (struct ForwardedOperationData));
+  data = GNUNET_new (struct ForwardedOperationData);
   data->cc = cc;
   data->cc_cls = cc_cls;
-  opc = GNUNET_malloc (sizeof (struct OperationContext));
+  opc = GNUNET_new (struct OperationContext);
   opc->c = controller;
   opc->type = OP_FORWARDED;
   opc->data = data;
@@ -1482,7 +1482,7 @@ GNUNET_TESTBED_controller_connect (struct GNUNET_TESTBED_Host *host,
     GNUNET_break (0);
     return NULL;
   }
-  controller = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_Controller));
+  controller = GNUNET_new (struct GNUNET_TESTBED_Controller);
   controller->cc = cc;
   controller->cc_cls = cc_cls;
   controller->event_mask = event_mask;
@@ -1706,10 +1706,10 @@ GNUNET_TESTBED_controller_link (void *op_cls,
   msg->delegated_host_id = htonl (delegated_host_id);
   msg->slave_host_id = htonl (slave_host_id);
   msg->is_subordinate = (GNUNET_YES == is_subordinate) ? 1 : 0;
-  data = GNUNET_malloc (sizeof (struct ControllerLinkData));
+  data = GNUNET_new (struct ControllerLinkData);
   data->msg = msg;
   data->host_id = delegated_host_id;
-  opc = GNUNET_malloc (sizeof (struct OperationContext));
+  opc = GNUNET_new (struct OperationContext);
   opc->c = master;
   opc->data = data;
   opc->type = OP_LINK_CONTROLLERS;
@@ -1747,9 +1747,9 @@ GNUNET_TESTBED_get_slave_config_ (void *op_cls,
   struct OperationContext *opc;
   struct GetSlaveConfigData *data;
 
-  data = GNUNET_malloc (sizeof (struct GetSlaveConfigData));
+  data = GNUNET_new (struct GetSlaveConfigData);
   data->slave_id = slave_host_id;
-  opc = GNUNET_malloc (sizeof (struct OperationContext));
+  opc = GNUNET_new (struct OperationContext);
   opc->state = OPC_STATE_INIT;
   opc->c = master;
   opc->id = GNUNET_TESTBED_get_next_op_id (master);
@@ -2076,7 +2076,7 @@ opstart_shutdown_peers (void *cls)
   struct GNUNET_TESTBED_ShutdownPeersMessage *msg;
 
   opc->state = OPC_STATE_STARTED;
-  msg = GNUNET_malloc (sizeof (struct GNUNET_TESTBED_ShutdownPeersMessage));
+  msg = GNUNET_new (struct GNUNET_TESTBED_ShutdownPeersMessage);
   msg->header.size =
       htons (sizeof (struct GNUNET_TESTBED_ShutdownPeersMessage));
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_TESTBED_SHUTDOWN_PEERS);
@@ -2137,10 +2137,10 @@ GNUNET_TESTBED_shutdown_peers (struct GNUNET_TESTBED_Controller *c,
 
   if (0 != GNUNET_CONTAINER_multihashmap32_size (c->opc_map))
     return NULL;
-  data = GNUNET_malloc (sizeof (struct ShutdownPeersData));
+  data = GNUNET_new (struct ShutdownPeersData);
   data->cb = cb;
   data->cb_cls = cb_cls;
-  opc = GNUNET_malloc (sizeof (struct OperationContext));
+  opc = GNUNET_new (struct OperationContext);
   opc->c = c;
   opc->op_cls = op_cls;
   opc->data = data;

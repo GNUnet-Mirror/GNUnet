@@ -1179,7 +1179,7 @@ libgnunet_plugin_datastore_sqlite_init (void *cls)
     database_shutdown (&plugin);
     return NULL;
   }
-  api = GNUNET_malloc (sizeof (struct GNUNET_DATASTORE_PluginFunctions));
+  api = GNUNET_new (struct GNUNET_DATASTORE_PluginFunctions);
   api->cls = &plugin;
   api->estimate_size = &sqlite_plugin_estimate_size;
   api->put = &sqlite_plugin_put;
