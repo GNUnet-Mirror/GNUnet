@@ -477,6 +477,7 @@ neighbour_delete (void *cls,
   return GNUNET_YES;
 }
 
+static int reconnecting;
 
 /**
  * Function we use for handling incoming messages.
@@ -503,10 +504,15 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
   uint32_t bytes_physical;
 
   GNUNET_assert (NULL != h->client);
+  if (GNUNET_YES == reconnecting)
+  {
+    return;
+  }
   if (NULL == msg)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Error receiving from transport service, disconnecting temporarily.\n");
+    reconnecting = GNUNET_YES;
     disconnect_and_schedule_reconnect (h);
     return;
   }
@@ -1003,7 +1009,9 @@ reconnect (void *cls,
   GNUNET_assert (NULL == h->client);
   GNUNET_assert (NULL == h->control_head);
   GNUNET_assert (NULL == h->control_tail);
+  reconnecting = GNUNET_NO;
   h->client = GNUNET_CLIENT_connect ("transport", h->cfg);
+
   GNUNET_assert (NULL != h->client);
   schedule_control_transmit (h, sizeof (struct StartMessage), &send_start, h);
 }
@@ -1030,6 +1038,8 @@ disconnect_and_schedule_reconnect (struct GNUNET_TRANSPORT_Handle *h)
   {
     GNUNET_CLIENT_disconnect (h->client);
     h->client = NULL;
+/*    LOG (GNUNET_ERROR_TYPE_ERROR,
+         "Client disconnect done \n");*/
   }
   /* Forget about all neighbours that we used to be connected to */
   GNUNET_CONTAINER_multipeermap_iterate (h->neighbours,
