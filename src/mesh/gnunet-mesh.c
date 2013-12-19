@@ -150,8 +150,8 @@ data_ready (void *cls, size_t size, void *buf)
   GNUNET_assert (size >= total_size);
 
   msg = buf;
-  msg->size = ntohs (total_size);
-  msg->type = ntohs (GNUNET_MESSAGE_TYPE_MESH_CLI);
+  msg->size = htons (total_size);
+  msg->type = htons (GNUNET_MESSAGE_TYPE_MESH_CLI);
   memcpy (&msg[1], cls, data_size);
   listen_stdio ();
 
@@ -287,6 +287,7 @@ static void
 create_channel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_PeerIdentity pid;
+  enum GNUNET_MESH_ChannelOption opt;
 
   GNUNET_assert (NULL == ch);
 
@@ -302,8 +303,8 @@ create_channel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connecting to `%s'\n", target_id);
-  ch = GNUNET_MESH_channel_create (mh, NULL, &pid, target_port,
-                                   GNUNET_MESH_OPTION_DEFAULT);
+  opt = GNUNET_MESH_OPTION_DEFAULT | GNUNET_MESH_OPTION_RELIABLE;
+  ch = GNUNET_MESH_channel_create (mh, NULL, &pid, target_port, opt);
   listen_stdio ();
 }
 
@@ -328,7 +329,7 @@ data_callback (void *cls,
                void **channel_ctx,
                const struct GNUNET_MessageHeader *message)
 {
-  int16_t len;
+  uint16_t len;
   GNUNET_break (ch == channel);
 
   len = ntohs (message->size) - sizeof (*message);
