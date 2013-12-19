@@ -141,6 +141,11 @@ struct TransmitCallbackContext
    */
   struct GNUNET_SERVER_TransmitHandle *th;
 
+
+  /**
+   * Handle for the client to which to send
+   */
+  struct GNUNET_SERVER_Client *client;
 };
 
 
@@ -193,6 +198,17 @@ transmit_callback (void *cls, size_t size, void *buf)
   memcpy (buf, tcc->msg, msize);
   GNUNET_free (tcc->msg);
   GNUNET_free (tcc);
+  for (tcc = tcc_head; tcc; tcc = tcc->next)
+  {
+    if (NULL == tcc->th)
+    {
+      tcc->th = GNUNET_SERVER_notify_transmit_ready (tcc->client,
+          ntohs (tcc->msg->size),
+          GNUNET_TIME_UNIT_FOREVER_REL,
+          &transmit_callback, tcc);
+      break;
+    }
+  }
   return msize;
 }
 
@@ -218,18 +234,11 @@ transmit (struct GNUNET_SERVER_Client *client,
   }
   tcc = GNUNET_new (struct TransmitCallbackContext);
   tcc->msg = msg;
-  if (NULL ==
-      (tcc->th =
-       GNUNET_SERVER_notify_transmit_ready (client,
-					    ntohs (msg->size),
-                                            GNUNET_TIME_UNIT_FOREVER_REL,
-                                            &transmit_callback, tcc)))
-  {
-    GNUNET_break (0);
-    GNUNET_free (msg);
-    GNUNET_free (tcc);
-    return;
-  }
+  tcc->client = client;
+  tcc->th = GNUNET_SERVER_notify_transmit_ready (client,
+      ntohs (msg->size),
+      GNUNET_TIME_UNIT_FOREVER_REL,
+      &transmit_callback, tcc);
   GNUNET_CONTAINER_DLL_insert (tcc_head, tcc_tail, tcc);
 }
 
@@ -355,7 +364,6 @@ process_lookup_result (void* cls, uint32_t rd_count,
     }
     size += blobsize;
   }
-  size += sizeof (struct GNUNET_MessageHeader);
   size_recalc = sizeof (struct GNUNET_W32RESOLVER_GetMessage) + sizeof (WSAQUERYSETW);
   msg = GNUNET_malloc (size);
   msg->header.size = htons (size - sizeof (struct GNUNET_MessageHeader));
@@ -518,9 +526,7 @@ process_lookup_result (void* cls, uint32_t rd_count,
     }
     he->h_addr_list[j] = NULL;
   }
-  msgend = (struct GNUNET_MessageHeader *) ptr;
-  ptr += sizeof (struct GNUNET_MessageHeader);
-  size_recalc += sizeof (struct GNUNET_MessageHeader);
+  msgend = GNUNET_new (struct GNUNET_MessageHeader);
 
   msgend->type = htons (GNUNET_MESSAGE_TYPE_W32RESOLVER_RESPONSE);
   msgend->size = htons (sizeof (struct GNUNET_MessageHeader));
@@ -531,6 +537,7 @@ process_lookup_result (void* cls, uint32_t rd_count,
   }
   MarshallWSAQUERYSETW (qs, &rq->sc);
   transmit (rq->client, &msg->header);
+  transmit (rq->client, msgend);
   GNUNET_free_non_null (rq->name);
   if (rq->u8name)
     free (rq->u8name);
