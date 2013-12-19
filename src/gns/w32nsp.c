@@ -26,7 +26,6 @@
  * "Network Programming For Microsoft Windows, 2Nd Edition".
  */
 
-#define INITGUID
 #include <stdint.h>
 #include <ws2tcpip.h>
 #include <ws2spi.h>
@@ -69,8 +68,10 @@
 #endif
 #endif
 #endif
-#include "gnunet_w32nsp_lib.h"
 #include "w32resolver.h"
+#define INITGUID
+#include "gnunet_w32nsp_lib.h"
+#undef INITGUID
 
 #define NSPAPI_VERSION_MAJOR 4
 #define NSPAPI_VERSION_MINOR 4
@@ -82,7 +83,7 @@
 #define STATE_REPLY  0x04
 #define STATE_GHBN   0x08
 
-CRITICAL_SECTION records_cs;
+static CRITICAL_SECTION records_cs;
 
 struct record
 {
@@ -97,7 +98,7 @@ static struct record *records = NULL;
 static size_t records_len = 0;
 static size_t records_size = 0;
 
-int
+static int
 resize_records ()
 {
   size_t new_size = records_len > 0 ? records_len * 2 : 5;
@@ -115,7 +116,7 @@ resize_records ()
   return 1;
 }
 
-int
+static int
 add_record (SOCKET s, const wchar_t *name, DWORD flags)
 {
   int res = 1;
@@ -148,7 +149,7 @@ add_record (SOCKET s, const wchar_t *name, DWORD flags)
   return res;
 }
 
-void
+static void
 free_record (int i)
 {
   if (records[i].name)
@@ -267,7 +268,7 @@ send_name_to_ip_request (LPWSAQUERYSETW lpqsRestrictions,
   return ret;
 }
 
-int WSPAPI
+static int WSPAPI
 NSPCleanup (LPGUID lpProviderId)
 {
   DEBUGLOG ("NSPCleanup\n");
@@ -304,7 +305,7 @@ DllMain (HINSTANCE hinstDLL, DWORD fdwReason, LPVOID lpvReserved)
 
 
 
-int WSPAPI
+static int WSPAPI
 GNUNET_W32NSP_LookupServiceBegin (LPGUID lpProviderId, LPWSAQUERYSETW lpqsRestrictions,
     LPWSASERVICECLASSINFOW lpServiceClassInfo, DWORD dwControlFlags,
     LPHANDLE lphLookup)
@@ -363,7 +364,7 @@ GNUNET_W32NSP_LookupServiceBegin (LPGUID lpProviderId, LPWSAQUERYSETW lpqsRestri
   if (ptr) \
     ptr = (ptrtype *) (base + (uintptr_t) ptr)
 
-void
+static void
 UnmarshallWSAQUERYSETW (LPWSAQUERYSETW req)
 {
   int i;
@@ -387,7 +388,7 @@ UnmarshallWSAQUERYSETW (LPWSAQUERYSETW req)
     UnmarshallPtr (req->lpBlob->pBlobData, BYTE, base);
 }
 
-int WSAAPI
+static int WSAAPI
 GNUNET_W32NSP_LookupServiceNext (HANDLE hLookup, DWORD dwControlFlags,
     LPDWORD lpdwBufferLength, LPWSAQUERYSETW lpqsResults)
 {
@@ -558,7 +559,7 @@ GNUNET_W32NSP_LookupServiceNext (HANDLE hLookup, DWORD dwControlFlags,
   return NO_ERROR;
 }
 
-int WSPAPI
+static int WSPAPI
 GNUNET_W32NSP_LookupServiceEnd (HANDLE hLookup)
 {
   DWORD effective_flags;
@@ -604,7 +605,7 @@ GNUNET_W32NSP_LookupServiceEnd (HANDLE hLookup)
   return NO_ERROR;
 }
 
-int WSAAPI
+static int WSAAPI
 GNUNET_W32NSP_SetService (LPGUID lpProviderId,
     LPWSASERVICECLASSINFOW lpServiceClassInfo, LPWSAQUERYSETW lpqsRegInfo,
     WSAESETSERVICEOP essOperation, DWORD dwControlFlags)
@@ -614,7 +615,7 @@ GNUNET_W32NSP_SetService (LPGUID lpProviderId,
   return SOCKET_ERROR;
 }
 
-int WSAAPI
+static int WSAAPI
 GNUNET_W32NSP_InstallServiceClass (LPGUID lpProviderId,
     LPWSASERVICECLASSINFOW lpServiceClassInfo)
 {
@@ -624,7 +625,7 @@ GNUNET_W32NSP_InstallServiceClass (LPGUID lpProviderId,
 }
 
 
-int WSAAPI
+static int WSAAPI
 GNUNET_W32NSP_RemoveServiceClass (LPGUID lpProviderId, LPGUID lpServiceClassId)
 {
   DEBUGLOG ("GNUNET_W32NSP_RemoveServiceClass\n");
@@ -632,7 +633,7 @@ GNUNET_W32NSP_RemoveServiceClass (LPGUID lpProviderId, LPGUID lpServiceClassId)
   return SOCKET_ERROR;
 }
 
-int WSAAPI
+static int WSAAPI
 GNUNET_W32NSP_GetServiceClassInfo (LPGUID lpProviderId, LPDWORD lpdwBufSize,
   LPWSASERVICECLASSINFOW lpServiceClassInfo)
 {
@@ -641,7 +642,7 @@ GNUNET_W32NSP_GetServiceClassInfo (LPGUID lpProviderId, LPDWORD lpdwBufSize,
   return SOCKET_ERROR;
 }
 
-int WSAAPI
+static int WSAAPI
 GNUNET_W32NSP_Ioctl (HANDLE hLookup, DWORD dwControlCode, LPVOID lpvInBuffer,
     DWORD cbInBuffer, LPVOID lpvOutBuffer, DWORD cbOutBuffer,
     LPDWORD lpcbBytesReturned, LPWSACOMPLETION lpCompletion,
@@ -657,8 +658,8 @@ GNUNET_W32NSP_Ioctl (HANDLE hLookup, DWORD dwControlCode, LPVOID lpvInBuffer,
  * It is the only function that [should be/is] exported by the
  * provider. All other routines are passed as pointers in lpnspRoutines.
  */
-int WSPAPI
-NSPStartup (LPGUID lpProviderId, LPNSP_ROUTINE lpnspRoutines)
+int WSAAPI
+GNUNET_W32NSP_NSPStartup (LPGUID lpProviderId, LPNSP_ROUTINE lpnspRoutines)
 {
   if (IsEqualGUID (lpProviderId, &GNUNET_NAMESPACE_PROVIDER_DNS))
   {
@@ -670,7 +671,7 @@ NSPStartup (LPGUID lpProviderId, LPNSP_ROUTINE lpnspRoutines)
      * If it does, you need to use FIELD_OFFSET() macro to get offset of NSPIoctl
      * and use that offset as cbSize.
      */
-    lpnspRoutines->cbSize = sizeof(NSP_ROUTINE_XP);
+    lpnspRoutines->cbSize = sizeof(NSP_ROUTINE);
 
     lpnspRoutines->dwMajorVersion = NSPAPI_VERSION_MAJOR;
     lpnspRoutines->dwMinorVersion = NSPAPI_VERSION_MINOR;
@@ -682,7 +683,8 @@ NSPStartup (LPGUID lpProviderId, LPNSP_ROUTINE lpnspRoutines)
     lpnspRoutines->NSPInstallServiceClass = GNUNET_W32NSP_InstallServiceClass;
     lpnspRoutines->NSPRemoveServiceClass = GNUNET_W32NSP_RemoveServiceClass;
     lpnspRoutines->NSPGetServiceClassInfo = GNUNET_W32NSP_GetServiceClassInfo;
-    ((NSP_ROUTINE_XP *) lpnspRoutines)->NSPIoctl = GNUNET_W32NSP_Ioctl;
+    /*((NSP_ROUTINE_XP *) lpnspRoutines)->NSPIoctl = GNUNET_W32NSP_Ioctl;*/
+    lpnspRoutines->NSPIoctl = GNUNET_W32NSP_Ioctl;
     return NO_ERROR;
   }
   SetLastError (WSAEINVALIDPROVIDER);
