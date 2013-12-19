@@ -61,9 +61,12 @@ struct GNUNET_STATISTICS_Handle;
  * @param is_persistent #GNUNET_YES if the value is persistent, #GNUNET_NO if not
  * @return #GNUNET_OK to continue, #GNUNET_SYSERR to abort iteration
  */
-typedef int (*GNUNET_STATISTICS_Iterator) (void *cls, const char *subsystem,
-                                           const char *name, uint64_t value,
+typedef int (*GNUNET_STATISTICS_Iterator) (void *cls,
+                                           const char *subsystem,
+                                           const char *name,
+                                           uint64_t value,
                                            int is_persistent);
+
 
 /**
  * Get handle for the statistics service.
@@ -86,7 +89,8 @@ GNUNET_STATISTICS_create (const char *subsystem,
  *        be completed
  */
 void
-GNUNET_STATISTICS_destroy (struct GNUNET_STATISTICS_Handle *h, int sync_first);
+GNUNET_STATISTICS_destroy (struct GNUNET_STATISTICS_Handle *h,
+                           int sync_first);
 
 
 /**
@@ -101,8 +105,10 @@ GNUNET_STATISTICS_destroy (struct GNUNET_STATISTICS_Handle *h, int sync_first);
  */
 int
 GNUNET_STATISTICS_watch (struct GNUNET_STATISTICS_Handle *handle,
-                         const char *subsystem, const char *name,
-                         GNUNET_STATISTICS_Iterator proc, void *proc_cls);
+                         const char *subsystem,
+                         const char *name,
+                         GNUNET_STATISTICS_Iterator proc,
+                         void *proc_cls);
 
 
 /**
@@ -117,8 +123,10 @@ GNUNET_STATISTICS_watch (struct GNUNET_STATISTICS_Handle *handle,
  */
 int
 GNUNET_STATISTICS_watch_cancel (struct GNUNET_STATISTICS_Handle *handle,
-				const char *subsystem, const char *name,
-				GNUNET_STATISTICS_Iterator proc, void *proc_cls);
+				const char *subsystem,
+                                const char *name,
+				GNUNET_STATISTICS_Iterator proc,
+                                void *proc_cls);
 
 
 /**
@@ -128,7 +136,8 @@ GNUNET_STATISTICS_watch_cancel (struct GNUNET_STATISTICS_Handle *handle,
  * @param success #GNUNET_OK if statistics were
  *        successfully obtained, #GNUNET_SYSERR if not.
  */
-typedef void (*GNUNET_STATISTICS_Callback) (void *cls, int success);
+typedef void (*GNUNET_STATISTICS_Callback) (void *cls,
+                                            int success);
 
 
 /**
@@ -153,7 +162,8 @@ struct GNUNET_STATISTICS_GetHandle;
  */
 struct GNUNET_STATISTICS_GetHandle *
 GNUNET_STATISTICS_get (struct GNUNET_STATISTICS_Handle *handle,
-                       const char *subsystem, const char *name,
+                       const char *subsystem,
+                       const char *name,
                        struct GNUNET_TIME_Relative timeout,
                        GNUNET_STATISTICS_Callback cont,
                        GNUNET_STATISTICS_Iterator proc, void *cls);
@@ -180,7 +190,9 @@ GNUNET_STATISTICS_get_cancel (struct GNUNET_STATISTICS_GetHandle *gh);
  */
 void
 GNUNET_STATISTICS_set (struct GNUNET_STATISTICS_Handle *handle,
-                       const char *name, uint64_t value, int make_persistent);
+                       const char *name,
+                       uint64_t value,
+                       int make_persistent);
 
 
 /**
@@ -194,7 +206,9 @@ GNUNET_STATISTICS_set (struct GNUNET_STATISTICS_Handle *handle,
  */
 void
 GNUNET_STATISTICS_update (struct GNUNET_STATISTICS_Handle *handle,
-                          const char *name, int64_t delta, int make_persistent);
+                          const char *name,
+                          int64_t delta,
+                          int make_persistent);
 
 
 

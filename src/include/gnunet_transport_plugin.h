@@ -488,6 +488,7 @@ typedef struct Session *
 (*GNUNET_TRANSPORT_CreateSession) (void *cls,
                                    const struct GNUNET_HELLO_Address *address);
 
+
 /**
  * Function that will be called whenever the transport service wants to
  * notify the plugin that a session is still active and in use and
