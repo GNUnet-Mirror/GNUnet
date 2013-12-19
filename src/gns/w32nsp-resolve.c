@@ -206,6 +206,9 @@ main (int argc, char **argv)
     else
       wargc -= 1;
   }
+  else if (wargc == 3)
+  {
+  }
   else
   {
     fprintf (stderr, "Usage: %S <record type> <service name> <NSP library path> <NSP id>\n"
@@ -374,6 +377,65 @@ main (int argc, char **argv)
         }
       }
       FreeLibrary (nsp);
+    }
+  }
+  else if (wargc == 3)
+  {
+    int s;
+    ADDRINFOW hints;
+    ADDRINFOW *result;
+    ADDRINFOW *pos;
+  
+    memset (&hints, 0, sizeof (struct addrinfo));
+    hints.ai_family = AF_UNSPEC;
+    hints.ai_socktype = SOCK_STREAM;
+
+    if (0 != (s = GetAddrInfoW (wargv[2], NULL, &hints, &result)))
+    {
+      fprintf (stderr, "Cound not resolve `%S' using GetAddrInfoW: %lu\n",
+          wargv[2], GetLastError ());
+    }
+    else
+    {
+      for (pos = result; pos != NULL; pos = pos->ai_next)
+      {
+        wchar_t tmpbuf[1024];
+        DWORD buflen = 1024;
+        if (0 == WSAAddressToStringW (pos->ai_addr, pos->ai_addrlen, NULL, tmpbuf, &buflen))
+          fprintf (stderr, "Result:\n"
+                         "  flags: 0x%X\n"
+                         "  family: 0x%X\n"
+                         "  socktype: 0x%X\n"
+                         "  protocol: 0x%X\n"
+                         "  addrlen: %u\n"
+                         "  addr: %S\n"
+                         "  canonname: %S\n",
+                         pos->ai_flags,
+                         pos->ai_family,
+                         pos->ai_socktype,
+                         pos->ai_protocol,
+                         pos->ai_addrlen,
+                         tmpbuf,
+                         pos->ai_canonname);
+        else
+          fprintf (stderr, "Result:\n"
+                         "  flags: 0x%X\n"
+                         "  family: 0x%X\n"
+                         "  socktype: 0x%X\n"
+                         "  protocol: 0x%X\n"
+                         "  addrlen: %u\n"
+                         "  addr: %S\n"
+                         "  canonname: %S\n",
+                         pos->ai_flags,
+                         pos->ai_family,
+                         pos->ai_socktype,
+                         pos->ai_protocol,
+                         pos->ai_addrlen,
+                         L"<can't stringify>",
+                         pos->ai_canonname);
+      }
+      if (NULL != result)
+        FreeAddrInfoW (result);
     }
   }
   WSACleanup();
