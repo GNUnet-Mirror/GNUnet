@@ -50,6 +50,16 @@ DEFINE_GUID(SVCID_INET_HOSTADDRBYNAME, 0x0002a803, 0x0000, 0x0000, 0xc0, 0x00, 0
 
 struct request
 {
+  /**
+   * We keep these in a doubly-linked list (for cleanup).
+   */
+  struct request *next;
+
+  /**
+   * We keep these in a doubly-linked list (for cleanup).
+   */
+  struct request *prev;
+
   struct GNUNET_SERVER_Client *client;
   GUID sc;
   int af;
@@ -57,6 +67,16 @@ struct request
   char *u8name;
   struct GNUNET_GNS_LookupRequest *lookup_request;
 };
+
+/**
+ * Head of the doubly-linked list (for cleanup).
+ */
+static struct request *rq_head;
+
+/**
+ * Tail of the doubly-linked list (for cleanup).
+ */
+static struct request *rq_tail;
 
 /**
  * Handle to GNS service.
@@ -98,6 +118,7 @@ static void
 do_shutdown (void *cls,
 	     const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  struct request *rq;
   if (NULL != id_op)
   {
     GNUNET_IDENTITY_cancel (id_op);
@@ -107,6 +128,16 @@ do_shutdown (void *cls,
   {
     GNUNET_IDENTITY_disconnect (identity);
     identity = NULL;
+  }
+  while (NULL != (rq = rq_head))
+  {
+    if (NULL != rq->lookup_request)
+      GNUNET_GNS_lookup_cancel(rq->lookup_request);
+    GNUNET_CONTAINER_DLL_remove (rq_head, rq_tail, rq);
+    GNUNET_free_non_null (rq->name);
+    if (rq->u8name)
+      free (rq->u8name);
+    GNUNET_free (rq);
   }
   if (NULL != gns)
   {
@@ -300,6 +331,7 @@ process_lookup_result (void* cls, uint32_t rd_count,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
       "Got lookup result with count %u for rq %p with client %p\n",
       rd_count, rq, rq->client);
+  rq->lookup_request = NULL;
 
   if (rd_count == 0)
   {
@@ -308,6 +340,7 @@ process_lookup_result (void* cls, uint32_t rd_count,
     msg->header.size = htons (size);
     msg->header.type = htons (GNUNET_MESSAGE_TYPE_W32RESOLVER_RESPONSE);
     transmit (rq->client, &msg->header);
+    GNUNET_CONTAINER_DLL_remove (rq_head, rq_tail, rq);
     GNUNET_free_non_null (rq->name);
     if (rq->u8name)
       free (rq->u8name);
@@ -538,6 +571,7 @@ process_lookup_result (void* cls, uint32_t rd_count,
   MarshallWSAQUERYSETW (qs, &rq->sc);
   transmit (rq->client, &msg->header);
   transmit (rq->client, msgend);
+  GNUNET_CONTAINER_DLL_remove (rq_head, rq_tail, rq);
   GNUNET_free_non_null (rq->name);
   if (rq->u8name)
     free (rq->u8name);
@@ -625,6 +659,7 @@ get_ip_from_hostname (struct GNUNET_SERVER_Client *client,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Lookup launched, waiting for a reply\n");
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    GNUNET_CONTAINER_DLL_insert (rq_head, rq_tail, rq);
   }
   else
   {
