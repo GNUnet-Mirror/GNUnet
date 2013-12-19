@@ -26,10 +26,11 @@
  * "Network Programming For Microsoft Windows, 2Nd Edition".
  */
 
-#if 1
+#define VERBOSE 0
+#if !VERBOSE
 #  define DEBUGLOG(s, ...)
 #endif
-#if 0
+#if VERBOSE
 #  define __printf__ printf
 #  define DEBUGLOG(s, ...) printf (s, ##__VA_ARGS__)
 #endif
@@ -143,14 +144,6 @@ add_record (SOCKET s, const wchar_t *name, DWORD flags)
   return res;
 }
 
-static void
-free_record (int i)
-{
-  if (records[i].name)
-    free (records[i].name);
-  records[i].state = 0;
-}
-
 /* These are not defined by mingw.org headers at the moment*/
 typedef INT (WSPAPI *LPNSPIOCTL) (HANDLE,DWORD,LPVOID,DWORD,LPVOID,DWORD,LPDWORD,LPWSACOMPLETION,LPWSATHREADID);
 typedef struct _NSP_ROUTINE_XP {
@@ -209,7 +202,6 @@ send_name_to_ip_request (LPWSAQUERYSETW lpqsRestrictions,
   char *buf;
   int ret = 1;
   int i;
-  uint32_t id;
   size_t size = sizeof (struct GNUNET_W32RESOLVER_GetMessage);
   size_t namelen = 0;
   if (lpqsRestrictions->lpszServiceInstanceName)
@@ -248,7 +240,9 @@ send_name_to_ip_request (LPWSAQUERYSETW lpqsRestrictions,
   {
     if (size != send (*resolver, buf, size, 0))
     {
+#if VERBOSE
       DWORD err = GetLastError ();
+#endif
       closesocket (*resolver);
       *resolver = INVALID_SOCKET;
       DEBUGLOG ("GNUNET_W32NSP_LookupServiceBegin: failed to send request: %lu\n", err);
@@ -386,7 +380,7 @@ static int WSAAPI
 GNUNET_W32NSP_LookupServiceNext (HANDLE hLookup, DWORD dwControlFlags,
     LPDWORD lpdwBufferLength, LPWSAQUERYSETW lpqsResults)
 {
-  DWORD effective_flags;
+  /*DWORD effective_flags;*/
   int i;
   struct GNUNET_MessageHeader header = {0, 0};
   int rec = -1;
@@ -419,7 +413,7 @@ GNUNET_W32NSP_LookupServiceNext (HANDLE hLookup, DWORD dwControlFlags,
     //LeaveCriticalSection (&records_cs);
     return SOCKET_ERROR;
   }
-  effective_flags = dwControlFlags & records[rec].flags;
+  /*effective_flags = dwControlFlags & records[rec].flags;*/
   if (records[rec].buf)
   {
     DEBUGLOG ("GNUNET_W32NSP_LookupServiceNext: checking buffer\n");
@@ -443,11 +437,13 @@ GNUNET_W32NSP_LookupServiceNext (HANDLE hLookup, DWORD dwControlFlags,
   //LeaveCriticalSection (&records_cs);
   to_receive = sizeof (header);
   rc = 0;
+#if VERBOSE
   {
     unsigned long have;
     int ior = ioctlsocket ((SOCKET) hLookup, FIONREAD, &have);
     DEBUGLOG ("GNUNET_W32NSP_LookupServiceNext: reading %d bytes as a header from %p, %lu bytes available\n", to_receive, hLookup, have);
   }
+#endif
   while (to_receive > 0)
   {
     t = recv ((SOCKET) hLookup, &((char *) &header)[rc], to_receive, 0);
@@ -459,11 +455,13 @@ GNUNET_W32NSP_LookupServiceNext (HANDLE hLookup, DWORD dwControlFlags,
     else
       break;
   }
+#if VERBOSE
   {
     unsigned long have;
     int ior = ioctlsocket ((SOCKET) hLookup, FIONREAD, &have);
     DEBUGLOG ("GNUNET_W32NSP_LookupServiceNext: read %d bytes as a header from %p, %lu bytes available\n", rc, hLookup, have);
   }
+#endif
   //EnterCriticalSection (&records_cs);
   records[rec].state &= ~8;
   if (rc != sizeof (header))
@@ -513,11 +511,13 @@ GNUNET_W32NSP_LookupServiceNext (HANDLE hLookup, DWORD dwControlFlags,
   memcpy (buf, &header, sizeof (header));
   to_receive = header.size - sizeof (header);
   rc = 0;
+#if VERBOSE
   {
     unsigned long have;
     int ior = ioctlsocket ((SOCKET) hLookup, FIONREAD, &have);
     DEBUGLOG ("GNUNET_W32NSP_LookupServiceNext: reading %d bytes as a body from %p, %lu bytes available\n", to_receive, hLookup, have);
   }
+#endif
   while (to_receive > 0)
   {
     DEBUGLOG ("GNUNET_W32NSP_LookupServiceNext: recv (%d)\n", to_receive);
@@ -531,11 +531,13 @@ GNUNET_W32NSP_LookupServiceNext (HANDLE hLookup, DWORD dwControlFlags,
     else
       break;
   }
+#if VERBOSE
   {
     unsigned long have;
     int ior = ioctlsocket ((SOCKET) hLookup, FIONREAD, &have);
     DEBUGLOG ("GNUNET_W32NSP_LookupServiceNext: read %d bytes as a body from %p, %lu bytes available\n", rc, hLookup, have);
   }
+#endif
   //EnterCriticalSection (&records_cs);
   records[rec].state &= ~8;
   if (rc != header.size - sizeof (header))
@@ -576,12 +578,8 @@ GNUNET_W32NSP_LookupServiceNext (HANDLE hLookup, DWORD dwControlFlags,
 static int WSPAPI
 GNUNET_W32NSP_LookupServiceEnd (HANDLE hLookup)
 {
-  DWORD effective_flags;
   int i;
-  struct GNUNET_MessageHeader header = {0, 0};
   int rec = -1;
-  int rc;
-  char *buf;
 
   DEBUGLOG ("GNUNET_W32NSP_LookupServiceEnd\n");
   //EnterCriticalSection (&records_cs);
