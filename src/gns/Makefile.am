@@ -15,6 +15,7 @@ EXTRA_DIST = \
   test_gns_proxy.conf \
   test_gns_simple_lookup.conf \
   gns-helper-service-w32.conf \
+  w32nsp.def \
   gnunet-gns-proxy-setup-ca \
   zonefiles/J7POEUT41A8PBFS7KVVDRF88GBOU4HK8PSU5QKVLVE3R9T91E99G.zkey \
   zonefiles/OEFL7A4VEF1B40QLEMTG5D8G1CN6EN16QUSG5R2DT71GRJN34LSG.zkey \
@@ -212,7 +213,7 @@ libw32nsp_la_LIBADD = \
   -lole32 -lws2_32
 libw32nsp_la_LDFLAGS = \
   -export-symbols $(top_srcdir)/src/gns/w32nsp.def \
-  $(GN_LIB_LDFLAGS) -static-libgcc
+  -no-undefined -static-libgcc
 
 libgnunetgns_la_SOURCES = \
  gns_api.c gns.h

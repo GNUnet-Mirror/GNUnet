@@ -1,2 +1,2 @@
-NSPStartup@8
-NSPCleanup@4
+EXPORTS
+NSPStartup=GNUNET_W32NSP_NSPStartup
