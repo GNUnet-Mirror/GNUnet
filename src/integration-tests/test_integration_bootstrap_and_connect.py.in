@@ -152,6 +152,10 @@ def run ():
 			client.stop ()
 		cleanup ()
 		sys.exit(success)
+		
+	# Give the server time to start
+	time.sleep(5)
+	
 	if (True != client.start()):
 		print 'Failed to start client'
 		if (None != server):

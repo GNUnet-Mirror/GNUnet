@@ -157,6 +157,10 @@ def run ():
 			server.stop ()
 		cleanup ()
 		sys.exit(success)
+		
+	# Give the server time to start
+	time.sleep(5)
+		
 	if (True != nat_client.start()):
 		print 'Failed to start nat_client'
 		if (None != server):
