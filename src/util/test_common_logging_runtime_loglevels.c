@@ -175,7 +175,7 @@ read_output_line (int phase_from1, int phase_to1, int phase_from2,
   /* Delay must be either less than 'lessthan' (log call is skipped)
    * or more than 'morethan' (log call is not skipped)
    */
-  delay_outside_of_range = ((*delay < delay_lessthan) || (*delay > delay_morethan));
+  delay_outside_of_range = ((*delay < delay_lessthan) || (*delay >= delay_morethan));
   if (delay_is_a_dummy)
     delay_outside_of_range = 1;
 
