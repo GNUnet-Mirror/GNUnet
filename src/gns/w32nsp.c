@@ -77,13 +77,6 @@
 #define NSPAPI_VERSION_MAJOR 4
 #define NSPAPI_VERSION_MINOR 4
 
-#define REPLY_LIFETIME 60*5
-
-#define STATE_BEGIN  0x01
-#define STATE_END    0x02
-#define STATE_REPLY  0x04
-#define STATE_GHBN   0x08
-
 static CRITICAL_SECTION records_cs;
 
 struct record
@@ -318,7 +311,7 @@ GNUNET_W32NSP_LookupServiceBegin (LPGUID lpProviderId, LPWSAQUERYSETW lpqsRestri
     if (lpqsRestrictions->dwNameSpace != NS_DNS && lpqsRestrictions->dwNameSpace != NS_ALL)
     {
       DEBUGLOG ("GNUNET_W32NSP_LookupServiceBegin: wrong namespace\n");
-      SetLastError (WSANO_DATA);
+      SetLastError (WSAEINVAL);
       return SOCKET_ERROR;
     }
     if (lpqsRestrictions->lpszServiceInstanceName != NULL)
@@ -334,7 +327,7 @@ GNUNET_W32NSP_LookupServiceBegin (LPGUID lpProviderId, LPWSAQUERYSETW lpqsRestri
       else
       {
         DEBUGLOG ("GNUNET_W32NSP_LookupServiceBegin: unsupported TLD\n");
-        SetLastError (WSANO_DATA);
+        SetLastError (WSAEINVAL);
         return SOCKET_ERROR;
       }
     }
