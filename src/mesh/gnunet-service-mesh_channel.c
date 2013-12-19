@@ -1264,6 +1264,8 @@ handle_loopback (struct MeshChannel *ch,
   {
     case GNUNET_MESSAGE_TYPE_MESH_DATA:
       /* Don't send hop ACK, wait for client to ACK */
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! SEND loopback %u (%u)\n",
+           ntohl (((struct GNUNET_MESH_Data *) msgh)->mid), ntohs (msgh->size));
       GMCH_handle_data (ch, (struct GNUNET_MESH_Data *) msgh, fwd);
       break;
 
@@ -1910,7 +1912,8 @@ GMCH_handle_data (struct MeshChannel *ch,
       ( !GM_is_pid_bigger (rel->mid_recv, mid) &&
         GM_is_pid_bigger (rel->mid_recv + 64, mid) ) )
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! RECV %u\n", mid);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! RECV %u (%u)\n",
+         mid, ntohs (msg->header.size));
     if (GNUNET_YES == ch->reliable)
     {
       /* Is this the exact next expected messasge? */
