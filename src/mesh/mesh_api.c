@@ -835,15 +835,14 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
   unsigned int i;
   uint16_t type;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Got a data message!\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Got a data message!\n");
   dmsg = (struct GNUNET_MESH_LocalData *) message;
   ch = retrieve_channel (h, ntohl (dmsg->id));
   payload = (struct GNUNET_MessageHeader *) &dmsg[1];
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "  %s data on channel %s [%X]\n",
-       ch->chid >= GNUNET_MESH_LOCAL_CHANNEL_ID_SERV ? "fwd" : "bck",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  %s data on channel %s [%X]\n",
+       GM_f2s (ch->chid >= GNUNET_MESH_LOCAL_CHANNEL_ID_SERV),
        GNUNET_i2s (GNUNET_PEER_resolve2 (ch->peer)), ntohl (dmsg->id));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  %u bytes\n", ntohs (message->size));
   if (NULL == ch)
   {
     /* Channel was ignored/destroyed, probably service didn't get it yet */
