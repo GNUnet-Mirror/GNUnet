@@ -82,18 +82,6 @@
 #define STATE_REPLY  0x04
 #define STATE_GHBN   0x08
 
-uint64_t
-GNUNET_htonll (uint64_t n)
-{
-#if __BYTE_ORDER == __BIG_ENDIAN
-  return n;
-#elif __BYTE_ORDER == __LITTLE_ENDIAN
-  return (((uint64_t) htonl (n)) << 32) + htonl (n >> 32);
-#else
-  #error byteorder undefined
-#endif
-}
-
 CRITICAL_SECTION records_cs;
 
 struct record
@@ -258,10 +246,8 @@ send_name_to_ip_request (LPWSAQUERYSETW lpqsRestrictions,
   msg->sc_data1 = htonl (lpqsRestrictions->lpServiceClassId->Data1);
   msg->sc_data2 = htons (lpqsRestrictions->lpServiceClassId->Data2);
   msg->sc_data3 = htons (lpqsRestrictions->lpServiceClassId->Data3);
-  msg->sc_data4 = 0;
   for (i = 0; i < 8; i++)
-    msg->sc_data4 |= ((uint64_t) lpqsRestrictions->lpServiceClassId->Data4[i]) << ((7 - i) * 8);
-  msg->sc_data4 = GNUNET_htonll (msg->sc_data4);
+    msg->sc_data4[i] = lpqsRestrictions->lpServiceClassId->Data4[i];
   *resolver = connect_to_dns_resolver ();
   if (*resolver != INVALID_SOCKET)
   {

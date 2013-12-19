@@ -62,7 +62,7 @@ struct GNUNET_W32RESOLVER_GetMessage
   uint32_t sc_data1 GNUNET_PACKED;
   uint16_t sc_data2 GNUNET_PACKED;
   uint16_t sc_data3 GNUNET_PACKED;
-  uint64_t sc_data4 GNUNET_PACKED;
+  uint8_t sc_data4[8];
   /* followed by 0-terminated string for A/AAAA lookup */
 };
 

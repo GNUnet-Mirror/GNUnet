@@ -364,10 +364,8 @@ process_lookup_result (void* cls, uint32_t rd_count,
   msg->sc_data1 = htonl (rq->sc.Data1);
   msg->sc_data2 = htons (rq->sc.Data2);
   msg->sc_data3 = htons (rq->sc.Data3);
-  msg->sc_data4 = 0;
   for (i = 0; i < 8; i++)
-    msg->sc_data4 |= rq->sc.Data4[i] << ((7 - i) * 8);
-  msg->sc_data4 = GNUNET_htonll (msg->sc_data4);
+    msg->sc_data4[i] = rq->sc.Data4[i];
   qs = (WSAQUERYSETW *) &msg[1];
   ptr = (char *) &qs[1];
   GNUNET_break (size_recalc == (size_t) ((char *) ptr - (char *) msg));
@@ -649,7 +647,6 @@ handle_get (void *cls, struct GNUNET_SERVER_Client *client,
   const struct GNUNET_W32RESOLVER_GetMessage *msg;
   GUID sc;
   uint16_t size;
-  uint64_t data4;
   int i;
   const wchar_t *hostname;
   int af;
@@ -674,16 +671,20 @@ handle_get (void *cls, struct GNUNET_SERVER_Client *client,
   msg = (const struct GNUNET_W32RESOLVER_GetMessage *) message;
   size = msize - sizeof (struct GNUNET_W32RESOLVER_GetMessage);
   af = ntohl (msg->af);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got NBO GUID: %08X-%04X-%04X-%016llX\n",
-      msg->sc_data1, msg->sc_data2, msg->sc_data3, msg->sc_data4);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      "Got NBO GUID: %08X-%04X-%04X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X\n",
+      msg->sc_data1, msg->sc_data2, msg->sc_data3, msg->sc_data4[0], msg->sc_data4[1],
+      msg->sc_data4[2], msg->sc_data4[3], msg->sc_data4[4], msg->sc_data4[5],
+      msg->sc_data4[6], msg->sc_data4[7]);
   sc.Data1 = ntohl (msg->sc_data1);
   sc.Data2 = ntohs (msg->sc_data2);
   sc.Data3 = ntohs (msg->sc_data3);
-  data4 = GNUNET_ntohll (msg->sc_data4);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got GUID: %08X-%04X-%04X-%016llX\n",
-      sc.Data1, sc.Data2, sc.Data3, data4);
   for (i = 0; i < 8; i++)
-    sc.Data4[i] = 0xFF & (data4 >> ((7 - i) * 8));
+    sc.Data4[i] = msg->sc_data4[i];
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Got GUID: %08X-%04X-%04X-%02X-%02X-%02X-%02X-%02X-%02X-%02X-%02X\n",
+              sc.Data1, sc.Data2, sc.Data3, sc.Data4[0], sc.Data4[1], sc.Data4[2],
+              sc.Data4[3], sc.Data4[4], sc.Data4[5], sc.Data4[6], sc.Data4[7]);
 
   hostname = (const wchar_t *) &msg[1];
   if (hostname[size - 1] != L'\0')

@@ -212,7 +212,7 @@ libw32nsp_la_LIBADD = \
   -lole32 -lws2_32
 libw32nsp_la_LDFLAGS = \
   -export-symbols $(top_srcdir)/src/gns/w32nsp.def \
-  $(GN_LIB_LDFLAGS)
+  $(GN_LIB_LDFLAGS) -static-libgcc
 
 libgnunetgns_la_SOURCES = \
  gns_api.c gns.h
