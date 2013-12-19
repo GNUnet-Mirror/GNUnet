@@ -245,8 +245,8 @@ run (void *cls,
   if (input_peer_id &&
       (GNUNET_OK !=
        GNUNET_CRYPTO_eddsa_public_key_from_string (input_peer_id,
-                                       (struct GNUNET_CRYPTO_EddsaPublicKey *) &closure->peer)))
-  {
+                                                   strlen (input_peer_id),
+                                                   (struct GNUNET_CRYPTO_EddsaPublicKey *) &closure->peer))) {
     LOG (GNUNET_ERROR_TYPE_ERROR,
          _ ("Tried to set initiator mode, as peer ID was given. "
             "However, `%s' is not a valid peer identifier.\n"),
