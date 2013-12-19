@@ -26,18 +26,19 @@
  * "Network Programming For Microsoft Windows, 2Nd Edition".
  */
 
+#if 1
+#  define DEBUGLOG(s, ...)
+#endif
+#if 0
+#  define __printf__ printf
+#  define DEBUGLOG(s, ...) printf (s, ##__VA_ARGS__)
+#endif
+
 #include <stdint.h>
 #include <ws2tcpip.h>
 #include <ws2spi.h>
 #include <windows.h>
 #include <nspapi.h>
-
-#if 1
-#  define DEBUGLOG(s, ...)
-#endif
-#if 0
-#  define DEBUGLOG(s, ...) printf (s, ##__VA_ARGS__)
-#endif
 
 #define WINDOWS 1
 #define MINGW 1
