@@ -334,7 +334,7 @@ data_callback (void *cls,
 
   len = ntohs (message->size) - sizeof (*message);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got %u bytes\n", len);
-  FPRINTF (stdout, "%.*s", len, (char *) &message[1]);
+  write (1, (char *) &message[1], len);
   return GNUNET_OK;
 }
 
