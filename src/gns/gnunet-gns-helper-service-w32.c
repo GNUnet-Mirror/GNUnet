@@ -669,7 +669,7 @@ handle_get (void *cls, struct GNUNET_SERVER_Client *client,
   }
 
   msize = ntohs (message->size);
-  if (msize < sizeof (struct GNUNET_W32RESOLVER_GetMessage))
+  if (msize <= sizeof (struct GNUNET_W32RESOLVER_GetMessage))
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
