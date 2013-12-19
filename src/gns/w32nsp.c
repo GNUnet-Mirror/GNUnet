@@ -428,34 +428,32 @@ GNUNET_W32NSP_LookupServiceNext (HANDLE hLookup, DWORD dwControlFlags,
   effective_flags = dwControlFlags & records[rec].flags;
   if (records[rec].buf)
   {
+    DEBUGLOG ("GNUNET_W32NSP_LookupServiceNext: checking buffer\n");
     header = *((struct GNUNET_MessageHeader *) records[rec].buf);
-    if (dwControlFlags & LUP_FLUSHCACHE)
+    if (*lpdwBufferLength < header.size - sizeof (struct GNUNET_W32RESOLVER_GetMessage))
     {
-      free (records[rec].buf);
-      records[rec].buf = NULL;
-    }
-    else
-    {
-      if (*lpdwBufferLength < header.size - sizeof (struct GNUNET_W32RESOLVER_GetMessage))
-      {
-        DEBUGLOG ("GNUNET_W32NSP_LookupServiceNext: client buffer is too small\n");
-        SetLastError (WSAEFAULT);
-        //LeaveCriticalSection (&records_cs);
-        return SOCKET_ERROR;
-      }
-      memcpy (lpqsResults, &((struct GNUNET_W32RESOLVER_GetMessage *)records[rec].buf)[1], header.size - sizeof (struct GNUNET_W32RESOLVER_GetMessage));
-      free (records[rec].buf);
-      records[rec].buf = NULL;
+      DEBUGLOG ("GNUNET_W32NSP_LookupServiceNext: client buffer is too small\n");
+      SetLastError (WSAEFAULT);
       //LeaveCriticalSection (&records_cs);
-      UnmarshallWSAQUERYSETW ((LPWSAQUERYSETW) lpqsResults);
-      DEBUGLOG ("GNUNET_W32NSP_LookupServiceNext: OK (from buffer)\n");
-      return NO_ERROR;
+      return SOCKET_ERROR;
     }
+    memcpy (lpqsResults, &((struct GNUNET_W32RESOLVER_GetMessage *)records[rec].buf)[1], header.size - sizeof (struct GNUNET_W32RESOLVER_GetMessage));
+    free (records[rec].buf);
+    records[rec].buf = NULL;
+    //LeaveCriticalSection (&records_cs);
+    UnmarshallWSAQUERYSETW ((LPWSAQUERYSETW) lpqsResults);
+    DEBUGLOG ("GNUNET_W32NSP_LookupServiceNext: OK (from buffer)\n");
+    return NO_ERROR;
   }
   records[rec].state |= 8;
   //LeaveCriticalSection (&records_cs);
   to_receive = sizeof (header);
   rc = 0;
+  {
+    unsigned long have;
+    int ior = ioctlsocket ((SOCKET) hLookup, FIONREAD, &have);
+    DEBUGLOG ("GNUNET_W32NSP_LookupServiceNext: reading %d bytes as a header from %p, %lu bytes available\n", to_receive, hLookup, have);
+  }
   while (to_receive > 0)
   {
     t = recv ((SOCKET) hLookup, &((char *) &header)[rc], to_receive, 0);
@@ -466,6 +464,11 @@ GNUNET_W32NSP_LookupServiceNext (HANDLE hLookup, DWORD dwControlFlags,
     }
     else
       break;
+  }
+  {
+    unsigned long have;
+    int ior = ioctlsocket ((SOCKET) hLookup, FIONREAD, &have);
+    DEBUGLOG ("GNUNET_W32NSP_LookupServiceNext: read %d bytes as a header from %p, %lu bytes available\n", rc, hLookup, have);
   }
   //EnterCriticalSection (&records_cs);
   records[rec].state &= ~8;
@@ -478,7 +481,7 @@ GNUNET_W32NSP_LookupServiceNext (HANDLE hLookup, DWORD dwControlFlags,
     }
     else
     {
-      DEBUGLOG ("GNUNET_W32NSP_LookupServiceNext: failed to receive enough data\n");
+      DEBUGLOG ("GNUNET_W32NSP_LookupServiceNext: failed to receive enough data for a header (rc %d != %u, state is 0x%0X)\n", rc, sizeof (header), records[rec].state);
       SetLastError (WSA_E_NO_MORE);
     }
     records[rec].state |= 4;
@@ -488,12 +491,16 @@ GNUNET_W32NSP_LookupServiceNext (HANDLE hLookup, DWORD dwControlFlags,
   records[rec].state &= ~8;
   header.type = ntohs (header.type);
   header.size = ntohs (header.size);
+  DEBUGLOG ("GNUNET_W32NSP_LookupServiceNext: header type %d, header size %u\n", header.type, header.size);
   if (header.type != GNUNET_MESSAGE_TYPE_W32RESOLVER_RESPONSE ||
       (header.type == GNUNET_MESSAGE_TYPE_W32RESOLVER_RESPONSE &&
       header.size == sizeof (header)))
   {
     records[rec].state |= 4;
-    DEBUGLOG ("GNUNET_W32NSP_LookupServiceNext: header is wrong or type is wrong or no data\n");
+    if (header.type != GNUNET_MESSAGE_TYPE_W32RESOLVER_RESPONSE)
+      DEBUGLOG ("GNUNET_W32NSP_LookupServiceNext: header type is wrong\n");
+    else
+      DEBUGLOG ("GNUNET_W32NSP_LookupServiceNext: empty header - no data\n");
     //LeaveCriticalSection (&records_cs);
     SetLastError (WSA_E_NO_MORE);
     return SOCKET_ERROR;
@@ -512,9 +519,16 @@ GNUNET_W32NSP_LookupServiceNext (HANDLE hLookup, DWORD dwControlFlags,
   memcpy (buf, &header, sizeof (header));
   to_receive = header.size - sizeof (header);
   rc = 0;
+  {
+    unsigned long have;
+    int ior = ioctlsocket ((SOCKET) hLookup, FIONREAD, &have);
+    DEBUGLOG ("GNUNET_W32NSP_LookupServiceNext: reading %d bytes as a body from %p, %lu bytes available\n", to_receive, hLookup, have);
+  }
   while (to_receive > 0)
   {
+    DEBUGLOG ("GNUNET_W32NSP_LookupServiceNext: recv (%d)\n", to_receive);
     t = recv ((SOCKET) hLookup, &((char *) &((struct GNUNET_MessageHeader *) buf)[1])[rc], to_receive, 0);
+    DEBUGLOG ("GNUNET_W32NSP_LookupServiceNext: recv returned %d\n", t);
     if (t > 0)
     {
       rc += t;
@@ -522,6 +536,11 @@ GNUNET_W32NSP_LookupServiceNext (HANDLE hLookup, DWORD dwControlFlags,
     }
     else
       break;
+  }
+  {
+    unsigned long have;
+    int ior = ioctlsocket ((SOCKET) hLookup, FIONREAD, &have);
+    DEBUGLOG ("GNUNET_W32NSP_LookupServiceNext: read %d bytes as a body from %p, %lu bytes available\n", rc, hLookup, have);
   }
   //EnterCriticalSection (&records_cs);
   records[rec].state &= ~8;
@@ -535,7 +554,7 @@ GNUNET_W32NSP_LookupServiceNext (HANDLE hLookup, DWORD dwControlFlags,
     }
     else
     {
-      DEBUGLOG ("GNUNET_W32NSP_LookupServiceNext: failed to receive enough data\n");
+      DEBUGLOG ("GNUNET_W32NSP_LookupServiceNext: failed to receive enough data for the rest (rc %d != %d, state is 0x%0X)\n", rc, header.size - sizeof (header), records[rec].state);
       SetLastError (WSA_E_NO_MORE);
     }
     records[rec].state |= 4;
@@ -551,6 +570,7 @@ GNUNET_W32NSP_LookupServiceNext (HANDLE hLookup, DWORD dwControlFlags,
     return SOCKET_ERROR;
   }
   //LeaveCriticalSection (&records_cs);
+  DEBUGLOG ("GNUNET_W32NSP_LookupServiceNext: writing %d bytes into result buffer\n", header.size - sizeof (struct GNUNET_W32RESOLVER_GetMessage));
   memcpy (lpqsResults, &((struct GNUNET_W32RESOLVER_GetMessage *)buf)[1], header.size - sizeof (struct GNUNET_W32RESOLVER_GetMessage));
   free (buf);
   DEBUGLOG ("GNUNET_W32NSP_LookupServiceNext: OK\n");
