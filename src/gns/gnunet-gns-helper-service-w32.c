@@ -694,10 +694,12 @@ handle_get (void *cls, struct GNUNET_SERVER_Client *client,
               sc.Data4[3], sc.Data4[4], sc.Data4[5], sc.Data4[6], sc.Data4[7]);
 
   hostname = (const wchar_t *) &msg[1];
-  if (hostname[size - 1] != L'\0')
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "name of %u bytes (last word is 0x%0X): %*S\n",
+        size, hostname[size / 2 - 2], size / 2, hostname);
+  if (hostname[size / 2 - 1] != L'\0')
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "name of length %u, not 0-terminated: %*S\n",
-        size, size, hostname);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "name of length %u, not 0-terminated (%d-th word is 0x%0X): %*S\n",
+        size, size / 2 - 1, hostname[size / 2 - 1], size, hostname);
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
