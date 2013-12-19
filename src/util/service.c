@@ -1531,7 +1531,7 @@ shutdown:
   GNUNET_free_non_null (logfile);
   GNUNET_free_non_null (loglev);
   GNUNET_free (cfg_fn);
-  GNUNET_free (opt_cfg_fn);
+  GNUNET_free_non_null (opt_cfg_fn);
   GNUNET_free_non_null (sctx.v4_denied);
   GNUNET_free_non_null (sctx.v6_denied);
   GNUNET_free_non_null (sctx.v4_allowed);
