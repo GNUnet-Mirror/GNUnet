@@ -480,7 +480,8 @@ http_client_plugin_send (void *cls,
   /* lookup if session is really existing */
   if (GNUNET_YES != client_exist_session (plugin, s))
   {
-    GNUNET_break (0);
+    GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, plugin->name,
+                     "Trying to send with invalid session %p \n");
     return GNUNET_SYSERR;
   }
 
