@@ -18753,16 +18753,17 @@
             \node[rectangle,draw=white,minimum height=7pt,text width=37.5mm,inner sep=0pt] at (64.25mm,-27.0mm) {\ifthenelse{\equal{#1}{english}}{\subdepartmenten}{\subdepartmentde}};
 
             \ifthenelse{\equal{\gpglineone}{}\or\equal{#1}{german}}{
-                \node[rectangle,draw=white,minimum height=7pt,text width=37.5mm,inner sep=0pt] at (64.25mm,-35mm) {\street};
-                \node[rectangle,draw=white,minimum height=7pt,text width=37.5mm,inner sep=0pt] at (64.25mm,-37.5mm) {\city};
+                \node[rectangle,draw=white,minimum height=7pt,text width=37.5mm,inner sep=0pt] at (64.25mm,-33.0mm) {Tel};
+                \node[rectangle,draw=white,minimum height=7pt,text width=37.5mm,inner sep=0pt] at (64.25mm,-35.5mm) {Fax};
+                \node[rectangle,draw=white,minimum height=7pt,text width=30mm,inner sep=0pt] at (65mm,-33.0mm) {\phone};
+                \node[rectangle,draw=white,minimum height=7pt,text width=30mm,inner sep=0pt] at (65mm,-35.5mm) {\fax};
 
-                \node[rectangle,draw=white,minimum height=7pt,text width=37.5mm,inner sep=0pt] at (64.25mm,-41.5mm) {Tel};
-                \node[rectangle,draw=white,minimum height=7pt,text width=37.5mm,inner sep=0pt] at (64.25mm,-44.0mm) {Fax};
-                \node[rectangle,draw=white,minimum height=7pt,text width=30mm,inner sep=0pt] at (65mm,-41.5mm) {\phone};
-                \node[rectangle,draw=white,minimum height=7pt,text width=30mm,inner sep=0pt] at (65mm,-44.0mm) {\fax};
+                \node[rectangle,draw=white,minimum height=7pt,text width=37.5mm,inner sep=0pt] at (64.25mm,-38.5mm) {\email};
+                \node[rectangle,draw=white,minimum height=7pt,text width=37.5mm,inner sep=0pt] at (64.25mm,-41.0mm) {\homepage};
 
-                \node[rectangle,draw=white,minimum height=7pt,text width=37.5mm,inner sep=0pt] at (64.25mm,-48.0mm) {\email};
-                \node[rectangle,draw=white,minimum height=7pt,text width=37.5mm,inner sep=0pt] at (64.25mm,-50.5mm) {\homepage};
+                \node[rectangle,draw=white,minimum height=7pt,text width=37.5mm,inner sep=0pt] at (64.25mm,-44.0mm) {GPG Fingerprint:};
+                \node[rectangle,draw=white,minimum height=7pt,text width=37.5mm,inner sep=0pt] at (64.25mm,-46.5mm) {\gpglineone};
+                \node[rectangle,draw=white,minimum height=7pt,text width=37.5mm,inner sep=0pt] at (64.25mm,-49.0mm) {\gpglinetwo};
             }
             {
                 \node[rectangle,draw=white,minimum height=7pt,text width=37.5mm,inner sep=0pt] at (64.25mm,-35.0mm) {\email};
