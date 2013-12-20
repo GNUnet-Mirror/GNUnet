@@ -1900,11 +1900,14 @@ receive_tcp_service (void *cls,
 	      GNUNET_i2s (&state->peer),
 	      GNUNET_h2s (&start->service_descriptor),
 	      (unsigned int) ntohs (start->tcp_header.destination_port));
-  if (NULL == (state->specifics.tcp_udp.serv = find_service (tcp_services, &start->service_descriptor,
-							     ntohs (start->tcp_header.destination_port))))
+  if (NULL == (state->specifics.tcp_udp.serv =
+               find_service (tcp_services,
+                             &start->service_descriptor,
+                             ntohs (start->tcp_header.destination_port))))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		_("No service found for %s on port %d!\n"),
+		_("No service %s found for %s on port %d!\n"),
+                GNUNET_h2s (&start->service_descriptor),
 		"TCP",
 		ntohs (start->tcp_header.destination_port));
     GNUNET_STATISTICS_update (stats,
@@ -2978,11 +2981,14 @@ receive_udp_service (void *cls,
        GNUNET_i2s (&state->peer),
        GNUNET_h2s (&msg->service_descriptor),
        (unsigned int) ntohs (msg->destination_port));
-  if (NULL == (state->specifics.tcp_udp.serv = find_service (udp_services, &msg->service_descriptor,
-							     ntohs (msg->destination_port))))
+  if (NULL == (state->specifics.tcp_udp.serv =
+               find_service (udp_services,
+                             &msg->service_descriptor,
+                             ntohs (msg->destination_port))))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		_("No service found for %s on port %d!\n"),
+		_("No service %s found for %s on port %d!\n"),
+                GNUNET_h2s (&msg->service_descriptor),
 		"UDP",
 		ntohs (msg->destination_port));
     GNUNET_STATISTICS_update (stats,
@@ -3213,6 +3219,12 @@ add_services (int proto,
   char *hostname;
   char *hostport;
   struct LocalService *serv;
+  char *n;
+  size_t slen;
+
+  slen = strlen (name);
+  GNUNET_assert (slen >= 8);
+  n = GNUNET_strndup (name, slen - 8 /* remove .gnunet. */);
 
   for (redirect = strtok (cpy, " "); redirect != NULL;
        redirect = strtok (NULL, " "))
@@ -3230,9 +3242,9 @@ add_services (int proto,
     if (NULL == (hostport = strstr (hostname, ":")))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		  _("Option `%s' for domain `%s' is not formatted correctly!\n"),
-		  redirect,
-		  name);
+                  _("Option `%s' for domain `%s' is not formatted correctly!\n"),
+                  redirect,
+                  name);
       continue;
     }
     hostport[0] = '\0';
@@ -3244,9 +3256,9 @@ add_services (int proto,
     if (!((local_port > 0) && (local_port < 65536)))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		  _("`%s' is not a valid port number (for domain `%s')!"),
+                  _("`%s' is not a valid port number (for domain `%s')!"),
                   redirect,
-		  name);
+                  name);
       continue;
     }
     if (!((remote_port > 0) && (remote_port < 65536)))
@@ -3287,7 +3299,7 @@ add_services (int proto,
 	GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		    _("No addresses found for hostname `%s' of service `%s'!\n"),
 		    hostname,
-		    name);
+		    n);
 	GNUNET_free (serv);
 	continue;
       }
@@ -3300,7 +3312,7 @@ add_services (int proto,
 	{
 	  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		      _("Service `%s' configured for IPv4, but IPv4 is disabled!\n"),
-		      name);
+		      n);
 	  freeaddrinfo (res);
 	  GNUNET_free (serv);
 	  continue;
@@ -3312,7 +3324,7 @@ add_services (int proto,
 	{
 	  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		      _("Service `%s' configured for IPv4, but IPv4 is disabled!\n"),
-		      name);
+		      n);
 	  freeaddrinfo (res);
 	  GNUNET_free (serv);
 	  continue;
@@ -3324,14 +3336,14 @@ add_services (int proto,
 	GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		    _("No IP addresses found for hostname `%s' of service `%s'!\n"),
 		    hostname,
-		    name);
+		    n);
 	GNUNET_free (serv);
 	continue;
       }
       freeaddrinfo (res);
     }
     store_service ((IPPROTO_UDP == proto) ? udp_services : tcp_services,
-		   name,
+		   n,
 		   local_port,
 		   serv);
   }
