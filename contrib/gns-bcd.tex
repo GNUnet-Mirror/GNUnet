@@ -16,16 +16,16 @@
 
 \LabelCols=2%
 \LabelRows=5%
-\LeftPageMargin=12.0mm%
-\RightPageMargin=12.0mm%
-\TopPageMargin=16.5mm%
-\BottomPageMargin=16.5mm%
-\InterLabelColumn=1.5mm%
-\InterLabelRow=11.0mm%
-\LeftLabelBorder=0mm%
-\RightLabelBorder=0mm%
-\TopLabelBorder=0mm%
-\BottomLabelBorder=0mm%
+\LeftPageMargin=17.0mm%
+\RightPageMargin=17.0mm%
+\TopPageMargin=10.0mm%
+\BottomPageMargin=10.0mm%
+\InterLabelColumn=3.5mm%
+\InterLabelRow=3.0mm%
+\LeftLabelBorder=2mm%
+\RightLabelBorder=2mm%
+\TopLabelBorder=2mm%
+\BottomLabelBorder=2mm%
 \numberoflabels=10%
 \LabelGridfalse%  <-- or \LabelGridfalse
 
@@ -42,7 +42,7 @@
 \newlength{\width}
 \newlength{\height}
 \setlength{\width}{85mm}
-\setlength{\height}{55mm}
+\setlength{\height}{50mm}
 
 \newcommand{\logo}{
 %LaTeX with PSTricks extensions
@@ -18735,22 +18735,22 @@
 
 \newcommand{\card}[1]{
     \begin{tikzpicture}[font=\tiny]
-            \draw[-,line width=1pt,MyBlack] (-5mm,0mm) to (-2mm,0mm);
-            \draw[-,line width=1pt,MyBlack] (0mm,5mm) to (0mm,2mm);
+%            \draw[-,line width=1pt,MyBlack] (-5mm,0mm) to (-2mm,0mm);
+%            \draw[-,line width=1pt,MyBlack] (0mm,5mm) to (0mm,2mm);
 
-            \draw[-,line width=1pt,MyBlack] [xshift=2mm](\width,0mm) to [xshift=3mm](\width,0mm);
-            \draw[-,line width=1pt,MyBlack] (\width,5mm) to (\width,2mm);
+%            \draw[-,line width=1pt,MyBlack] [xshift=2mm](\width,0mm) to [xshift=3mm](\width,0mm);
+%            \draw[-,line width=1pt,MyBlack] (\width,5mm) to (\width,2mm);
 
-            \draw[-,line width=1pt,MyBlack] (-5mm,-\height) to (-2mm,-\height);
-            \draw[-,line width=1pt,MyBlack] [yshift=-2mm](0mm,-\height) to [yshift=-3mm](0mm,-\height);
+%            \draw[-,line width=1pt,MyBlack] (-5mm,-\height) to (-2mm,-\height);
+%            \draw[-,line width=1pt,MyBlack] [yshift=-2mm](0mm,-\height) to [yshift=-3mm](0mm,-\height);
 
-            \draw[-,line width=1pt,MyBlack] [xshift=2mm](\width,-\height) to [xshift=3mm](\width,-\height);
-            \draw[-,line width=1pt,MyBlack] [yshift=-2mm](\width,-\height) to [yshift=-3mm](\width,-\height);
+%            \draw[-,line width=1pt,MyBlack] [xshift=2mm](\width,-\height) to [xshift=3mm](\width,-\height);
+%            \draw[-,line width=1pt,MyBlack] [yshift=-2mm](\width,-\height) to [yshift=-3mm](\width,-\height);
 
 
             \node[rectangle,draw=white,minimum height=7pt,text width=37.5mm,inner sep=0pt] at (64.25mm,-16mm) {\orga};
-            \node[rectangle,draw=white,minimum height=7pt,text width=37.5mm,inner sep=0pt] at (64.25mm,-21.5mm) {\ifthenelse{\equal{#1}{english}}{\departmenten}{\departmentde}};
-            \node[rectangle,draw=white,minimum height=7pt,text width=37.5mm,inner sep=0pt] at (64.25mm,-27.0mm) {\ifthenelse{\equal{#1}{english}}{\subdepartmenten}{\subdepartmentde}};
+            \node[rectangle,draw=white,minimum height=7pt,text width=37.5mm,inner sep=0pt] at (64.25mm,-18.5mm) {\ifthenelse{\equal{#1}{english}}{\departmenten}{\departmentde}};
+            \node[rectangle,draw=white,minimum height=7pt,text width=37.5mm,inner sep=0pt] at (64.25mm,-21.0mm) {\ifthenelse{\equal{#1}{english}}{\subdepartmenten}{\subdepartmentde}};
 
             \ifthenelse{\equal{\gpglineone}{}\or\equal{#1}{german}}{
                 \node[rectangle,draw=white,minimum height=7pt,text width=37.5mm,inner sep=0pt] at (64.25mm,-33.0mm) {Tel};
