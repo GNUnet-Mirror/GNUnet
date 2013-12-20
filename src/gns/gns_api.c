@@ -365,6 +365,8 @@ process_lookup_reply (struct GNUNET_GNS_LookupRequest *qe,
 {
   struct GNUNET_GNS_Handle *handle = qe->gns_handle;
   struct PendingMessage *p = (struct PendingMessage *) &qe[1];
+  GNUNET_GNS_LookupResultProcessor proc;
+  void *proc_cls;
   uint32_t rd_count = ntohl (msg->rd_count);
   struct GNUNET_GNSRECORD_Data rd[rd_count];
   size_t mlen;
@@ -378,6 +380,10 @@ process_lookup_reply (struct GNUNET_GNS_LookupRequest *qe,
   }
   mlen = ntohs (msg->header.size);
   mlen -= sizeof (struct GNUNET_GNS_ClientLookupResultMessage);
+  proc = qe->lookup_proc;
+  proc_cls = qe->proc_cls;
+  GNUNET_CONTAINER_DLL_remove (handle->lookup_head, handle->lookup_tail, qe);
+  GNUNET_free (qe);
   if (GNUNET_SYSERR == GNUNET_GNSRECORD_records_deserialize (mlen,
                                                              (const char*) &msg[1],
                                                              rd_count,
@@ -385,17 +391,15 @@ process_lookup_reply (struct GNUNET_GNS_LookupRequest *qe,
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
 	 _("Failed to serialize lookup reply from GNS service!\n"));
-    qe->lookup_proc (qe->proc_cls, 0, NULL);
+    proc (proc_cls, 0, NULL);
   }
   else
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
 	 "Received lookup reply from GNS service (%u records)\n",
 	 (unsigned int) rd_count);
-    qe->lookup_proc (qe->proc_cls, rd_count, rd);
+    proc (proc_cls, rd_count, rd);
   }
-  GNUNET_CONTAINER_DLL_remove (handle->lookup_head, handle->lookup_tail, qe);
-  GNUNET_free (qe);
 }
 
 
