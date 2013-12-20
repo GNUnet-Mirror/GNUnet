@@ -1539,6 +1539,7 @@ handle_set_union_result (void *cls,
 			 enum GNUNET_SET_Status status)
 {
   struct DirectNeighbor *neighbor = cls;
+  struct DirectNeighbor *dn;
   struct Target *target;
   char *status_str;
 
@@ -1575,9 +1576,7 @@ handle_set_union_result (void *cls,
       GNUNET_break_op (0);
       return;
     }
-    if (GNUNET_YES ==
-        GNUNET_CONTAINER_multipeermap_contains (direct_neighbors,
-                                                &((struct Target *) element->data)->peer))
+    if ( (NULL != (dn = GNUNET_CONTAINER_multipeermap_get (direct_neighbors, &((struct Target *) element->data)->peer))) && (DIRECT_NEIGHBOR_COST == dn->distance) )
     {
       /* this is a direct neighbor of ours, we do not care about routes
          to this peer */
@@ -1775,6 +1774,7 @@ handle_dv_route_message (void *cls, const struct GNUNET_PeerIdentity *peer,
   const struct GNUNET_MessageHeader *payload;
   struct Route *route;
   struct DirectNeighbor *neighbor;
+  struct DirectNeighbor *dn;
   struct Target *target;
   uint32_t distance;
   char me[5];
@@ -1812,8 +1812,9 @@ handle_dv_route_message (void *cls, const struct GNUNET_PeerIdentity *peer,
 		   &my_identity,
 		   sizeof (struct GNUNET_PeerIdentity)))
   {
-    if (NULL != GNUNET_CONTAINER_multipeermap_get (direct_neighbors,
-                                                   &rm->sender))
+    if ((NULL
+        != (dn = GNUNET_CONTAINER_multipeermap_get (direct_neighbors,
+            &rm->sender))) && (DIRECT_NEIGHBOR_COST == dn->distance))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Discarding DV message, as %s is a direct neighbor\n",
