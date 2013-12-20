@@ -548,7 +548,7 @@ receive_helper (void *cls, const void *buf, size_t available,
     if (NULL != (receive_handler = client->receiver_handler))
     {
       client->receiver_handler = NULL;
-      receiver_handler (client->receiver_handler_cls, NULL);
+      receive_handler (client->receiver_handler_cls, NULL);
     }
     return;
   }
