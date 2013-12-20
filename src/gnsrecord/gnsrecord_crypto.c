@@ -108,7 +108,9 @@ GNUNET_GNSRECORD_block_create (const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
     {
       /* encrypted blocks must never have relative expiration times, convert! */
       rdc[i].flags &= ~GNUNET_GNSRECORD_RF_RELATIVE_EXPIRATION;
-      rdc[i].expiration_time += now.abs_value_us;
+      rdc[i].expiration_time = GNUNET_TIME_absolute_add (now,
+                                                         GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MICROSECONDS,
+                                                                                        rdc[i].expiration_time)).abs_value_us;
     }
   }
   /* serialize */
