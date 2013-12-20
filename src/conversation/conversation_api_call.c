@@ -416,6 +416,8 @@ handle_gns_response (void *cls,
   struct GNUNET_MQ_Envelope *e;
   struct ClientCallMessage *ccm;
 
+  GNUNET_break (NULL != call->gns_lookup);
+  GNUNET_break (CS_LOOKUP == call->gns_lookup);
   call->gns_lookup = NULL;
   for (i=0;i<rd_count;i++)
   {
@@ -516,8 +518,10 @@ reconnect_call (struct GNUNET_CONVERSATION_Call *call)
   }
   call->state = CS_SHUTDOWN;
   call->client = GNUNET_CLIENT_connect ("conversation", call->cfg);
-  if (NULL == call->client)
+  if (NULL == call->client);
     return;
+  call->event_handler (call->event_handler_cls,
+                       GNUNET_CONVERSATION_EC_CALL_ERROR);
   call->mq = GNUNET_MQ_queue_for_connection_client (call->client,
                                                     handlers,
                                                     &call_error_handler,

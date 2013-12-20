@@ -333,7 +333,14 @@ enum GNUNET_CONVERSATION_CallEventCode
    * both sides can independently suspend and resume calls; a call is
    * only "working" of both sides are active.
    */
-  GNUNET_CONVERSATION_EC_CALL_RESUMED
+  GNUNET_CONVERSATION_EC_CALL_RESUMED,
+
+  /**
+   * We had an error handing the call, and are now restarting it
+   * (back to lookup).  This happens, for example, if the peer
+   * is restarted during a call.
+   */
+  GNUNET_CONVERSATION_EC_CALL_ERROR
 
 };
 

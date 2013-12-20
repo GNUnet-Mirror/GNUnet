@@ -411,6 +411,11 @@ call_event_handler (void *cls,
              _("Connection to `%s' resumed (by other user)\n"),
              peer_name);
     break;
+  case GNUNET_CONVERSATION_EC_CALL_ERROR:
+    FPRINTF (stdout,
+             _("Error with the call, restarting it\n"));
+    call_state = CS_RESOLVING;
+    break;
   }
 }
 
