@@ -2448,14 +2448,14 @@ free_destination_entry (struct DestinationEntry *de)
 			    -1, GNUNET_NO);
   while (NULL != (dt = de->dt_head))
   {
+    GNUNET_CONTAINER_DLL_remove (de->dt_head,
+				 de->dt_tail,
+				 dt);
     if (NULL != dt->ts)
     {
       free_channel_state (dt->ts);
       GNUNET_assert (NULL == dt->ts);
     }
-    GNUNET_CONTAINER_DLL_remove (de->dt_head,
-				 de->dt_tail,
-				 dt);
     GNUNET_free (dt);
   }
   if (NULL != de->heap_node)
