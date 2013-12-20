@@ -51,6 +51,7 @@ libnss_gns6_la_SOURCES=$(libnss_gns_la_SOURCES)
 libnss_gns6_la_CFLAGS=$(libnss_gns_la_CFLAGS) -DNSS_IPV6_ONLY=1
 libnss_gns6_la_LDFLAGS=$(libnss_gns_la_LDFLAGS)
 
+if INSTALL_NSS
 if !MINGW
 install-data-hook:
 	$(top_srcdir)/src/gns/nss/install-nss-plugin.sh $(SHELL) $(top_builddir) $(nssdir) $(SUDO_BINARY)
@@ -59,4 +60,5 @@ uninstall-hook:
 	$(top_srcdir)/src/gns/nss/uninstall-nss-plugin.sh $(SHELL) $(top_builddir) "rm -f $(nssdir)/libnss_gns.so.2" $(SUDO_BINARY)
 	$(top_srcdir)/src/gns/nss/uninstall-nss-plugin.sh $(SHELL) $(top_builddir) "rm -f $(nssdir)/libnss_gns4.so.2" $(SUDO_BINARY)
 	$(top_srcdir)/src/gns/nss/uninstall-nss-plugin.sh $(SHELL) $(top_builddir) "rm -f $(nssdir)/libnss_gns6.so.2" $(SUDO_BINARY)
+endif
 endif
