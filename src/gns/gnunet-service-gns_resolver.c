@@ -1995,14 +1995,14 @@ handle_namecache_block_response (void *cls,
 	 (0 == GNUNET_TIME_absolute_get_remaining (GNUNET_TIME_absolute_ntoh (block->expiration_time)).rel_value_us) ) )
   {
     /* namecache knows nothing; try DHT lookup */
+    GNUNET_GNSRECORD_query_from_public_key (auth,
+                                            label,
+                                            &query);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Starting DHT lookup for `%s' in zone `%s' under key `%s'\n",
                 ac->label,
                 GNUNET_GNSRECORD_z2s (&ac->authority_info.gns_authority),
                 GNUNET_h2s (&query));
-    GNUNET_GNSRECORD_query_from_public_key (auth,
-                                            label,
-                                            &query);
     start_dht_request (rh, &query);
     return;
   }
