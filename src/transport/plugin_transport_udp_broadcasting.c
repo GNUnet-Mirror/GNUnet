@@ -515,7 +515,7 @@ iface_proc (void *cls,
     char *filename;
 
     GNUNET_asprintf (&filename,
-                     "/dev/power/%s",
+                     "/dev/cryogenic/%s",
                      name);
     if (0 == ACCESS (name, R_OK))
     {
@@ -570,7 +570,7 @@ iface_proc (void *cls,
       char *filename;
 
       GNUNET_asprintf (&filename,
-                       "/dev/power/%s",
+                       "/dev/cryogenic/%s",
                        name);
       if (0 == ACCESS (name, R_OK))
       {
