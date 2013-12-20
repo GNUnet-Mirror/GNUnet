@@ -422,6 +422,9 @@ process_message (void *cls, const struct GNUNET_MessageHeader *msg)
     force_reconnect (handle);
     return;
   }
+
+  GNUNET_CLIENT_receive (handle->client, &process_message, handle,
+			 GNUNET_TIME_UNIT_FOREVER_REL);
   switch (ntohs (msg->type))
   {
   case GNUNET_MESSAGE_TYPE_GNS_LOOKUP_RESULT:
@@ -447,8 +450,6 @@ process_message (void *cls, const struct GNUNET_MessageHeader *msg)
     force_reconnect (handle);
     return;
   }
-  GNUNET_CLIENT_receive (handle->client, &process_message, handle,
-			 GNUNET_TIME_UNIT_FOREVER_REL);
 }
 
 
