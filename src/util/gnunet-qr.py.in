@@ -101,6 +101,8 @@ if __name__ == '__main__':
 			print 'Running `' + cmd +'`'
 		res=subprocess.call(args)
 		if (0 != res):
-			print 'Failed to add URI ' + str(symbol.data) 
+			print 'Failed to add URI ' + str(symbol.data)
+		else: 
+			print 'Added URI ' + str(symbol.data)
 		exit (res)
 	exit (1)
