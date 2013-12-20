@@ -1937,14 +1937,23 @@ handle_dht_response (void *cls,
 			       co);
 }
 
+
+/**
+ * Initiate a DHT query for a set of GNS records.
+ *
+ * @param rh resolution handle
+ * @param query key to use in the DHT lookup
+ */
 static void
-start_dht_request (struct GNS_ResolverHandle *rh, struct GNUNET_HashCode query)
+start_dht_request (struct GNS_ResolverHandle *rh,
+                   const struct GNUNET_HashCode *query)
 {
   struct GNS_ResolverHandle *rx;
+
   GNUNET_assert (NULL == rh->get_handle);
   rh->get_handle = GNUNET_DHT_get_start (dht_handle,
                                          GNUNET_BLOCK_TYPE_GNS_NAMERECORD,
-                                         &query,
+                                         query,
                                          DHT_GNS_REPLICATION_LEVEL,
                                          GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,
                                          NULL, 0,
@@ -1994,7 +2003,8 @@ handle_namecache_block_response (void *cls,
     GNUNET_GNSRECORD_query_from_public_key (auth,
                                             label,
                                             &query);
-    start_dht_request(rh, query);
+    start_dht_request (rh, &query);
+    return;
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -2055,7 +2065,9 @@ recursive_gns_resolution_namecache (struct GNS_ResolverHandle *rh)
     GNUNET_assert (NULL != rh->namecache_qe);
   }
   else
-    start_dht_request (rh, query);
+  {
+    start_dht_request (rh, &query);
+  }
 }
 
 
