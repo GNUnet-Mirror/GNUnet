@@ -168,7 +168,7 @@ struct GNUNET_CLIENT_Connection
   GNUNET_CLIENT_MessageHandler receiver_handler;
 
   /**
-   * Closure for receiver_handler.
+   * Closure for @e receiver_handler.
    */
   void *receiver_handler_cls;
 
@@ -545,8 +545,11 @@ receive_helper (void *cls, const void *buf, size_t available,
   if (0 == remaining.rel_value_us)
   {
     /* signal timeout! */
-    if (NULL != client->receiver_handler)
-      client->receiver_handler (client->receiver_handler_cls, NULL);
+    if (NULL != (receive_handler = client->receiver_handler))
+    {
+      client->receiver_handler = NULL;
+      receiver_handler (client->receiver_handler_cls, NULL);
+    }
     return;
   }
   /* back to receive -- either for more data or to call callback! */
