@@ -352,10 +352,9 @@ start_phone ()
     address = GNUNET_GNSRECORD_value_to_string (rd.record_type,
                                                 rd.data,
                                                 rd.data_size);
-    if (verbose)
-      FPRINTF (stdout,
-               _("Phone active on line %u\n"),
-               (unsigned int) line);
+    FPRINTF (stdout,
+             _("Phone active on line %u.  Type `/help' for a list of available commands\n"),
+             (unsigned int) line);
     phone_state = PS_LISTEN;
   }
 }
@@ -522,6 +521,13 @@ do_call (const char *arg)
     break;
   }
   GNUNET_free_non_null (peer_name);
+  if (NULL == arg)
+  {
+    FPRINTF (stderr,
+             _("Call recipient missing.\n"));
+    do_help ("/call");
+    return;
+  }
   peer_name = GNUNET_strdup (arg);
   call_state = CS_RESOLVING;
   GNUNET_assert (NULL == call);
