@@ -609,8 +609,9 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
     okm = (const struct SendOkMessage *) msg;
     bytes_msg = ntohl (okm->bytes_msg);
     bytes_physical = ntohl (okm->bytes_physical);
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Receiving `%s' message, transmission %s.\n",
-         "SEND_OK", ntohl (okm->success) == GNUNET_OK ? "succeeded" : "failed");
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Receiving SEND_OK message, transmission %s.\n",
+         ntohl (okm->success) == GNUNET_OK ? "succeeded" : "failed");
 
     n = neighbour_find (h, &okm->peer);
     if (NULL == n)
@@ -618,7 +619,8 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
 
     if (bytes_physical >= bytes_msg)
     {
-        LOG (GNUNET_ERROR_TYPE_DEBUG, "Overhead for %u byte message: %u \n",
+        LOG (GNUNET_ERROR_TYPE_DEBUG,
+             "Overhead for %u byte message: %u\n",
             bytes_msg, bytes_physical - bytes_msg);
       n->traffic_overhead += bytes_physical - bytes_msg;
     }

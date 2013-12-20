@@ -806,9 +806,9 @@ identity_cb (void *cls,
 
 static void
 default_ego_cb (void *cls,
-    struct GNUNET_IDENTITY_Ego *ego,
-    void **ctx,
-    const char *name)
+                struct GNUNET_IDENTITY_Ego *ego,
+                void **ctx,
+                const char *name)
 {
   get_default = NULL;
   if (NULL == ego)
@@ -825,17 +825,20 @@ default_ego_cb (void *cls,
   }
 }
 
+
 static void
 id_connect_cb (void *cls,
-    struct GNUNET_IDENTITY_Ego *ego,
-    void **ctx,
-    const char *name)
+               struct GNUNET_IDENTITY_Ego *ego,
+               void **ctx,
+               const char *name)
 {
   const struct GNUNET_CONFIGURATION_Handle *cfg = cls;
+
   if (NULL == ego)
   {
-    get_default = GNUNET_IDENTITY_get (idh, "namestore",
-        &default_ego_cb, (void *) cfg);
+    get_default = GNUNET_IDENTITY_get (idh,
+                                       "namestore",
+                                       &default_ego_cb, (void *) cfg);
   }
 }
 
