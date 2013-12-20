@@ -26,6 +26,7 @@
 
 #include "platform.h"
 #include "gnunet_util_lib.h"
+#include "gnunet_tun_lib.h"
 #include "gnunet_vpn_service.h"
 
 
@@ -227,16 +228,16 @@ run (void *cls, char *const *args, const char *cfgfile,
       protocol = IPPROTO_UDP;
     if (GNUNET_OK !=
 	GNUNET_CRYPTO_eddsa_public_key_from_string (peer_id,
-						       strlen (peer_id),
-						       &peer.public_key))
+                                                    strlen (peer_id),
+                                                    &peer.public_key))
     {
-      FPRINTF (stderr, _("`%s' is not a valid peer identifier.\n"),
+      FPRINTF (stderr,
+               _("`%s' is not a valid peer identifier.\n"),
                peer_id);
       goto error;
     }
-    GNUNET_CRYPTO_hash (service_name,
-			strlen (service_name),
-			&sd);
+    GNUNET_TUN_service_name_to_hash (service_name,
+                                     &sd);
     request = GNUNET_VPN_redirect_to_peer (handle,
 					   req_af,
 					   protocol,

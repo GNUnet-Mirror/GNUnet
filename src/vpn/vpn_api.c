@@ -120,7 +120,7 @@ struct GNUNET_VPN_RedirectionRequest
   /**
    * For service redirection, service descriptor.
    */
-  struct GNUNET_HashCode serv;		
+  struct GNUNET_HashCode serv;
 
   /**
    * At what time should the created service mapping expire?
@@ -162,7 +162,7 @@ reconnect (struct GNUNET_VPN_Handle *vh);
 /**
  * Function called when we receive a message from the VPN service.
  *
- * @param cls the 'struct GNUNET_VPN_Handle'
+ * @param cls the `struct GNUNET_VPN_Handle`
  * @param msg message received, NULL on timeout or fatal error
  */
 static void
@@ -475,7 +475,7 @@ GNUNET_VPN_redirect_to_peer (struct GNUNET_VPN_Handle *vh,
   return rr;
 }
 
-		
+
 /**
  * Tell the VPN that forwarding to the Internet via some exit node is
  * requested.  Note that both UDP and TCP traffic will be forwarded,

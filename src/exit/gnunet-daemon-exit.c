@@ -787,7 +787,7 @@ store_service (struct GNUNET_CONTAINER_MultiHashMap *service_map,
   char key[sizeof (struct GNUNET_HashCode) + sizeof (uint16_t)];
   struct GNUNET_HashCode desc;
 
-  GNUNET_CRYPTO_hash (name, strlen (name) + 1, &desc);
+  GNUNET_TUN_service_name_to_hash (name, &desc);
   service->name = GNUNET_strdup (name);
   memcpy (&key[0], &destination_port, sizeof (uint16_t));
   memcpy (&key[sizeof(uint16_t)], &desc, sizeof (struct GNUNET_HashCode));
@@ -3220,7 +3220,7 @@ add_services (int proto,
     if (NULL == (hostname = strstr (redirect, ":")))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		  "option `%s' for domain `%s' is not formatted correctly!\n",
+		  _("Option `%s' for domain `%s' is not formatted correctly!\n"),
 		  redirect,
 		  name);
       continue;
@@ -3230,7 +3230,7 @@ add_services (int proto,
     if (NULL == (hostport = strstr (hostname, ":")))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		  "option `%s' for domain `%s' is not formatted correctly!\n",
+		  _("Option `%s' for domain `%s' is not formatted correctly!\n"),
 		  redirect,
 		  name);
       continue;
@@ -3244,14 +3244,16 @@ add_services (int proto,
     if (!((local_port > 0) && (local_port < 65536)))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		  "`%s' is not a valid port number (for domain `%s')!", redirect,
+		  _("`%s' is not a valid port number (for domain `%s')!"),
+                  redirect,
 		  name);
       continue;
     }
     if (!((remote_port > 0) && (remote_port < 65536)))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-		  "`%s' is not a valid port number (for domain `%s')!", hostport,
+		  _("`%s' is not a valid port number (for domain `%s')!"),
+                  hostport,
 		  name);
       continue;
     }

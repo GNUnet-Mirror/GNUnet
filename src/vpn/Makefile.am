@@ -40,7 +40,7 @@ bin_PROGRAMS = \
 
 if MINGW
   gnunet_helper_vpn_LDFLAGS = \
-    -no-undefined -Wl,--export-all-symbols 
+    -no-undefined -Wl,--export-all-symbols
 
   gnunet_helper_vpn_LDADD = \
     -lsetupapi -lnewdev -lshell32 -liconv -lstdc++ \
@@ -53,7 +53,7 @@ else
 	gnunet-helper-vpn.c
 endif
 gnunet_service_vpn_SOURCES = \
- gnunet-service-vpn.c 
+ gnunet-service-vpn.c
 gnunet_service_vpn_LDADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/tun/libgnunettun.la \
@@ -68,6 +68,7 @@ gnunet_vpn_SOURCES = \
  gnunet-vpn.c
 gnunet_vpn_LDADD = \
   $(top_builddir)/src/vpn/libgnunetvpn.la \
+  $(top_builddir)/src/tun/libgnunettun.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
 gnunet_vpn_DEPENDENCIES = \

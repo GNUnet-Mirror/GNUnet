@@ -186,7 +186,7 @@ struct GNUNET_REGEX_Search
   GNUNET_REGEX_Found callback;
 
   /**
-   * Closure for 'callback'.
+   * Closure for @e callback.
    */
   void *callback_cls;
 
@@ -201,7 +201,7 @@ struct GNUNET_REGEX_Search
  * We got a response or disconnect after asking regex
  * to do the search.  Handle it.
  *
- * @param cls the 'struct GNUNET_REGEX_Search' to retry
+ * @param cls the `struct GNUNET_REGEX_Search` to retry
  * @param msg NULL on disconnect
  */
 static void

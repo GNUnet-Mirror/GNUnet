@@ -190,6 +190,7 @@ gnunet_service_gns_LDADD = \
   $(top_builddir)/src/dns/libgnunetdnsparser.la \
   $(top_builddir)/src/dns/libgnunetdnsstub.la \
   $(top_builddir)/src/dht/libgnunetdht.la \
+  $(top_builddir)/src/tun/libgnunettun.la \
   $(top_builddir)/src/namecache/libgnunetnamecache.la \
   $(top_builddir)/src/namestore/libgnunetnamestore.la \
   $(USE_VPN) \
@@ -199,6 +200,7 @@ gnunet_service_gns_DEPENDENCIES = \
   $(top_builddir)/src/revocation/libgnunetrevocation.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/tun/libgnunettun.la \
   $(top_builddir)/src/dns/libgnunetdns.la \
   $(top_builddir)/src/dns/libgnunetdnsparser.la \
   $(top_builddir)/src/dht/libgnunetdht.la \

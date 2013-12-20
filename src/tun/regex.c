@@ -460,4 +460,22 @@ GNUNET_TUN_ipv6policy2regex (const char *policy)
 }
 
 
+/**
+ * Hash the service name of a hosted service to the
+ * hash code that is used to identify the service on
+ * the network.
+ *
+ * @param service_name a string
+ * @param hc corresponding hash
+ */
+void
+GNUNET_TUN_service_name_to_hash (const char *service_name,
+                                 struct GNUNET_HashCode *hc)
+{
+  GNUNET_CRYPTO_hash (service_name,
+                      strlen (service_name),
+                      hc);
+}
+
+
 /* end of regex.c */

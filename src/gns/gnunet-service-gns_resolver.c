@@ -41,6 +41,7 @@
 #include "gnunet_resolver_service.h"
 #include "gnunet_revocation_service.h"
 #include "gnunet_dnsparser_lib.h"
+#include "gnunet_tun_lib.h"
 #include "gnunet_gns_service.h"
 #include "gns.h"
 #include "gnunet-service-gns_resolver.h"
@@ -1413,9 +1414,8 @@ handle_gns_resolution_result (void *cls,
 	      GNS_resolver_lookup_cancel (rh);
 	      return;
 	    }
-	    GNUNET_CRYPTO_hash (vname,
-				strlen (vname), // FIXME: +1?
-				&vhash);
+	    GNUNET_TUN_service_name_to_hash (vname,
+                                             &vhash);
             GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                         "Attempting VPN allocation for %s-%s (AF: %d, proto %d)\n",
                         GNUNET_i2s (&vpn->peer),
