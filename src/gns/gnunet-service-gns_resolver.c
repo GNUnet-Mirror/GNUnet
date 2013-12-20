@@ -1396,7 +1396,7 @@ handle_gns_resolution_result (void *cls,
 	case GNUNET_GNSRECORD_TYPE_VPN:
 	  {
 	    af = (GNUNET_DNSPARSER_TYPE_A == rh->record_type) ? AF_INET : AF_INET6;
-	    if (sizeof (struct GNUNET_TUN_GnsVpnRecord) <
+	    if (sizeof (struct GNUNET_TUN_GnsVpnRecord) >
 		rd[i].data_size)
 	    {
 	      GNUNET_break_op (0);
@@ -1416,16 +1416,24 @@ handle_gns_resolution_result (void *cls,
 	    GNUNET_CRYPTO_hash (vname,
 				strlen (vname), // FIXME: +1?
 				&vhash);
+            GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                        "Attempting VPN allocation for %s-%s (AF: %d, proto %d)\n",
+                        GNUNET_i2s (&vpn->peer),
+                        vname,
+                        (int) af,
+                        (int) ntohs (vpn->proto));
 	    vpn_ctx = GNUNET_new (struct VpnContext);
 	    rh->vpn_ctx = vpn_ctx;
 	    vpn_ctx->rh = rh;
 	    vpn_ctx->rd_data_size = GNUNET_GNSRECORD_records_get_size (rd_count,
 								       rd);
 	    vpn_ctx->rd_data = GNUNET_malloc (vpn_ctx->rd_data_size);
-	    (void) GNUNET_GNSRECORD_records_serialize (rd_count,
-						       rd,
-						       vpn_ctx->rd_data_size,
-						       vpn_ctx->rd_data);
+            vpn_ctx->rd_count = rd_count;
+	    GNUNET_assert (vpn_ctx->rd_data_size ==
+                           GNUNET_GNSRECORD_records_serialize (rd_count,
+                                                               rd,
+                                                               vpn_ctx->rd_data_size,
+                                                               vpn_ctx->rd_data));
 	    vpn_ctx->vpn_request = GNUNET_VPN_redirect_to_peer (vpn_handle,
 								af,
 								ntohs (vpn->proto),
@@ -1433,7 +1441,7 @@ handle_gns_resolution_result (void *cls,
 								&vhash,
 								GNUNET_TIME_relative_to_absolute (VPN_TIMEOUT),
 								&vpn_allocation_cb,
-								rh);
+								vpn_ctx);
 	    return;
 	  }
 	case GNUNET_GNSRECORD_TYPE_GNS2DNS:
