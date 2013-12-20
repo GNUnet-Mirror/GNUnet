@@ -518,10 +518,13 @@ reconnect_call (struct GNUNET_CONVERSATION_Call *call)
   }
   call->state = CS_SHUTDOWN;
   call->client = GNUNET_CLIENT_connect ("conversation", call->cfg);
-  if (NULL == call->client);
-    return;
-  call->event_handler (call->event_handler_cls,
+  if (NULL == call->client)
+  {
+    call->event_handler (call->event_handler_cls,
                        GNUNET_CONVERSATION_EC_CALL_ERROR);
+    return;
+  }
+  
   call->mq = GNUNET_MQ_queue_for_connection_client (call->client,
                                                     handlers,
                                                     &call_error_handler,
