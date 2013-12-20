@@ -3543,7 +3543,7 @@ run (void *cls,
 
   dns_exit = NULL;
   if ( (GNUNET_YES ==
-	GNUNET_CONFIGURATION_get_value_yesno (cfg_, "exit", "ENABLE_DNS")) &&
+	GNUNET_CONFIGURATION_get_value_yesno (cfg_, "exit", "EXIT_DNS")) &&
        ( (GNUNET_OK !=
 	  GNUNET_CONFIGURATION_get_value_string (cfg, "exit",
 						 "DNS_RESOLVER",
@@ -3557,20 +3557,14 @@ run (void *cls,
     GNUNET_free_non_null (dns_exit);
     dns_exit = NULL;
   }
-  if (NULL != dns_exit)
-    dnsstub = GNUNET_DNSSTUB_start (dns_exit);
-
-
   app_idx = 0;
   if (GNUNET_YES == ipv4_exit)
   {
-    // FIXME use regex to put info
     apptypes[app_idx] = GNUNET_APPLICATION_TYPE_IPV4_GATEWAY;
     app_idx++;
   }
   if (GNUNET_YES == ipv6_exit)
   {
-    // FIXME use regex to put info
     apptypes[app_idx] = GNUNET_APPLICATION_TYPE_IPV6_GATEWAY;
     app_idx++;
   }
@@ -3702,11 +3696,18 @@ run (void *cls,
 
   connections_map = GNUNET_CONTAINER_multihashmap_create (65536, GNUNET_NO);
   connections_heap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
+  if (0 == app_idx)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		_("No useful service enabled.  Exiting.\n"));
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
   mesh_handle
     = GNUNET_MESH_connect (cfg, NULL,
 			   &new_channel,
 			   &clean_channel, handlers,
-                           apptypes); // FIXME use ports
+                           apptypes);
   if (NULL == mesh_handle)
   {
     GNUNET_SCHEDULER_shutdown ();
