@@ -105,7 +105,7 @@ handle_a_reconnect (void *cls,
 
 /**
  * Announce the given peer under the given regular expression.  Does
- * not free resources, must call GNUNET_REGEX_announce_cancel for
+ * not free resources, must call #GNUNET_REGEX_announce_cancel for
  * that.
  *
  * @param cfg configuration to use
@@ -113,7 +113,7 @@ handle_a_reconnect (void *cls,
  * @param refresh_delay after what delay should the announcement be repeated?
  * @param compression How many characters per edge can we squeeze?
  * @return Handle to reuse o free cached resources.
- *         Must be freed by calling GNUNET_REGEX_announce_cancel.
+ *         Must be freed by calling #GNUNET_REGEX_announce_cancel.
  */
 struct GNUNET_REGEX_Announcement *
 GNUNET_REGEX_announce (const struct GNUNET_CONFIGURATION_Handle *cfg,
@@ -127,6 +127,9 @@ GNUNET_REGEX_announce (const struct GNUNET_CONFIGURATION_Handle *cfg,
   slen = strlen (regex) + 1;
   if (slen + sizeof (struct AnnounceMessage) >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _("Regex `%s' is too long!\n"),
+                regex);
     GNUNET_break (0);
     return NULL;
   }
@@ -269,7 +272,7 @@ handle_search_response (void *cls,
       s->callback (s->callback_cls,
 		   pid,
 		   &pid[1], gpl,
-		   &pid[1 + gpl], ppl);		
+		   &pid[1 + gpl], ppl);
       return;
     }
   }
