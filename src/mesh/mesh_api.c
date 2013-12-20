@@ -832,7 +832,6 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
   const struct GNUNET_MESH_MessageHandler *handler;
   struct GNUNET_MESH_LocalData *dmsg;
   struct GNUNET_MESH_Channel *ch;
-  struct GNUNET_HashCode hash;
   size_t size;
   unsigned int i;
   uint16_t type;
@@ -864,9 +863,6 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
          handler->type);
     if (handler->type == type)
     {
-      GNUNET_CRYPTO_hash (payload, size, &hash);
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "  recv %p hash %s (%u)\n",
-           payload, GNUNET_h2s_full (&hash), size);
       if (GNUNET_OK !=
           handler->callback (h->cls, ch, &ch->ctx, payload))
       {
@@ -1132,12 +1128,6 @@ send_callback (void *cls, size_t size, void *buf)
       psize = th->notify (th->notify_cls,
                           size - sizeof (struct GNUNET_MESH_LocalData),
                           mh);
-      {
-        struct GNUNET_HashCode hash;
-        GNUNET_CRYPTO_hash (mh, psize, &hash);
-        LOG (GNUNET_ERROR_TYPE_DEBUG, "#  hash send %s (%u)\n",
-             GNUNET_h2s_full (&hash), psize);
-      }
       if (psize > 0)
       {
         psize += sizeof (struct GNUNET_MESH_LocalData);

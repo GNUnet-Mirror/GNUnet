@@ -170,7 +170,7 @@ static void
 read_stdio (void *cls,
             const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  char buf[60000];
+  static char buf[60000];
 
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
   {
@@ -179,12 +179,6 @@ read_stdio (void *cls,
 
   data_size = read (0, buf, 60000);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "stdio read %u bytes\n", data_size);
-  {
-    struct GNUNET_HashCode hash;
-    GNUNET_CRYPTO_hash (buf, data_size, &hash);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  cli SEND %p hash %s (%u)\n",
-                buf, GNUNET_h2s_full (&hash), data_size);
-  }
   if (data_size < 1)
   {
     GNUNET_SCHEDULER_shutdown();
@@ -341,16 +335,6 @@ data_callback (void *cls,
   len = ntohs (message->size) - sizeof (*message);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got %u bytes\n", len);
   write (1, (char *) &message[1], len);
-  {
-    struct GNUNET_HashCode hash;
-
-    GNUNET_CRYPTO_hash (message, ntohs (message->size), &hash);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  api RECV %p hash %s (%u)\n",
-                message, GNUNET_h2s_full (&hash), ntohs (message->size));
-    GNUNET_CRYPTO_hash (&message[1], len, &hash);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  cli RECV %p hash %s (%u)\n",
-                &message[1], GNUNET_h2s_full (&hash), len);
-  }
   return GNUNET_OK;
 }
 
