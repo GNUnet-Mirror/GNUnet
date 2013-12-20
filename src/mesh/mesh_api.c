@@ -832,6 +832,8 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
   const struct GNUNET_MESH_MessageHandler *handler;
   struct GNUNET_MESH_LocalData *dmsg;
   struct GNUNET_MESH_Channel *ch;
+  struct GNUNET_HashCode hash;
+  size_t size;
   unsigned int i;
   uint16_t type;
 
@@ -842,7 +844,10 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  %s data on channel %s [%X]\n",
        GM_f2s (ch->chid >= GNUNET_MESH_LOCAL_CHANNEL_ID_SERV),
        GNUNET_i2s (GNUNET_PEER_resolve2 (ch->peer)), ntohl (dmsg->id));
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  %u bytes\n", ntohs (message->size));
+
+  size = ntohs (message->size);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  %u bytes\n", size);
+
   if (NULL == ch)
   {
     /* Channel was ignored/destroyed, probably service didn't get it yet */
@@ -850,6 +855,7 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
     return;
   }
   type = ntohs (payload->type);
+  size = ntohs (payload->size);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  payload type %u\n", type);
   for (i = 0; i < h->n_handlers; i++)
   {
@@ -859,6 +865,9 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
          handler->type);
     if (handler->type == type)
     {
+      GNUNET_CRYPTO_hash (payload, size, &hash);
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "  hash recv %s (%u)\n",
+           GNUNET_h2s_full (&hash), size);
       if (GNUNET_OK !=
           handler->callback (h->cls, ch, &ch->ctx, payload))
       {
@@ -1124,6 +1133,12 @@ send_callback (void *cls, size_t size, void *buf)
       psize = th->notify (th->notify_cls,
                           size - sizeof (struct GNUNET_MESH_LocalData),
                           mh);
+      {
+        struct GNUNET_HashCode hash;
+        GNUNET_CRYPTO_hash (mh, psize, &hash);
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "#  hash send %s (%u)\n",
+             GNUNET_h2s_full (&hash), psize);
+      }
       if (psize > 0)
       {
         psize += sizeof (struct GNUNET_MESH_LocalData);

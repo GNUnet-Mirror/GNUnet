@@ -1652,6 +1652,7 @@ GMC_handle_broken (void* cls,
   fwd = is_fwd (c, id);
   if (GMC_is_terminal (c, fwd))
   {
+    path_invalidate (c->path);
     if (0 < c->pending_messages)
       c->destroy = GNUNET_YES;
     else
