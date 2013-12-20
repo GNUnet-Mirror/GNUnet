@@ -856,18 +856,17 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
   }
   type = ntohs (payload->type);
   size = ntohs (payload->size);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  payload type %u\n", type);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  payload type %s\n", GM_m2s (type));
   for (i = 0; i < h->n_handlers; i++)
   {
     handler = &h->message_handlers[i];
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "    checking handler for type %u\n",
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "    checking handler for type %u\n",
          handler->type);
     if (handler->type == type)
     {
       GNUNET_CRYPTO_hash (payload, size, &hash);
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "  hash recv %s (%u)\n",
-           GNUNET_h2s_full (&hash), size);
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "  recv %p hash %s (%u)\n",
+           payload, GNUNET_h2s_full (&hash), size);
       if (GNUNET_OK !=
           handler->callback (h->cls, ch, &ch->ctx, payload))
       {

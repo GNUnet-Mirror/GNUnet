@@ -182,8 +182,8 @@ read_stdio (void *cls,
   {
     struct GNUNET_HashCode hash;
     GNUNET_CRYPTO_hash (buf, data_size, &hash);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  hash SEND %s (%u)\n",
-                GNUNET_h2s_full (&hash), data_size);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  cli SEND %p hash %s (%u)\n",
+                buf, GNUNET_h2s_full (&hash), data_size);
   }
   if (data_size < 1)
   {
@@ -340,16 +340,16 @@ data_callback (void *cls,
 
   len = ntohs (message->size) - sizeof (*message);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got %u bytes\n", len);
-  GNUNET_BIO_write (1, (char *) &message[1], len);
+  write (1, (char *) &message[1], len);
   {
     struct GNUNET_HashCode hash;
 
     GNUNET_CRYPTO_hash (message, ntohs (message->size), &hash);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  api hash RECV %s (%u)\n",
-                GNUNET_h2s_full (&hash), ntohs (message->size));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  api RECV %p hash %s (%u)\n",
+                message, GNUNET_h2s_full (&hash), ntohs (message->size));
     GNUNET_CRYPTO_hash (&message[1], len, &hash);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  hash RECV %s (%u)\n",
-                GNUNET_h2s_full (&hash), len);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  cli RECV %p hash %s (%u)\n",
+                &message[1], GNUNET_h2s_full (&hash), len);
   }
   return GNUNET_OK;
 }
