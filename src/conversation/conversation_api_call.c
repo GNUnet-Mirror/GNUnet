@@ -583,21 +583,6 @@ GNUNET_CONVERSATION_call_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 
 /**
- * We've sent the hang up message, now finish terminating the call.
- *
- * @param cls the `struct GNUNET_CONVERSATION_Call` to terminate
- */
-static void
-finish_stop (void *cls)
-{
-  struct GNUNET_CONVERSATION_Call *call = cls;
-
-  GNUNET_assert (CS_SHUTDOWN == call->state);
-  GNUNET_CONVERSATION_call_stop (call);
-}
-
-
-/**
  * Terminate a call.  The call may be ringing or ready at this time.
  *
  * @param call call to terminate
@@ -605,9 +590,6 @@ finish_stop (void *cls)
 void
 GNUNET_CONVERSATION_call_stop (struct GNUNET_CONVERSATION_Call *call)
 {
-  struct GNUNET_MQ_Envelope *e;
-  struct ClientPhoneHangupMessage *hang;
-
   if ( (NULL != call->speaker) &&
        (CS_ACTIVE == call->state) )
     call->speaker->disable_speaker (call->speaker->cls);
@@ -617,10 +599,6 @@ GNUNET_CONVERSATION_call_stop (struct GNUNET_CONVERSATION_Call *call)
   if (CS_SHUTDOWN != call->state)
   {
     call->state = CS_SHUTDOWN;
-    e = GNUNET_MQ_msg (hang, GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_HANG_UP);
-    GNUNET_MQ_notify_sent (e, &finish_stop, call);
-    GNUNET_MQ_send (call->mq, e);
-    return;
   }
   if (NULL != call->mq)
   {
