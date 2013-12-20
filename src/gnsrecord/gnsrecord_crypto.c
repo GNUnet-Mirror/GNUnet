@@ -187,6 +187,7 @@ GNUNET_GNSRECORD_block_decrypt (const struct GNUNET_GNSRECORD_Block *block,
 				GNUNET_GNSRECORD_RecordCallback proc,
 				void *proc_cls)
 {
+  struct GNUNET_TIME_Absolute exp;
   size_t payload_len = ntohl (block->purpose.size) -
     sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) -
     sizeof (struct GNUNET_TIME_AbsoluteNBO);
@@ -249,6 +250,7 @@ GNUNET_GNSRECORD_block_decrypt (const struct GNUNET_GNSRECORD_Block *block,
           continue;
         }
 
+        exp.abs_value_us = GNUNET_ntohll (rd[i].expiration_time);
         if (0 != (rd[i].flags & GNUNET_GNSRECORD_RF_SHADOW_RECORD))
         {
           int include_record = GNUNET_YES;
@@ -257,10 +259,12 @@ GNUNET_GNSRECORD_block_decrypt (const struct GNUNET_GNSRECORD_Block *block,
           {
             if (k == i)
               continue;
-            if (rd[i].expiration_time < now.abs_value_us)
+            if (exp.abs_value_us < now.abs_value_us)
+            {
               include_record = GNUNET_NO; /* Shadow record is expired */
+            }
             if ((rd[k].record_type == rd[i].record_type)
-                && (rd[k].expiration_time >= now.abs_value_us)
+                && (GNUNET_ntohll (rd[k].expiration_time) >= now.abs_value_us)
                 && (0 == (rd[k].flags & GNUNET_GNSRECORD_RF_SHADOW_RECORD)))
               include_record = GNUNET_NO; /* We have a non-expired, non-shadow record of the same type */
           }
@@ -272,7 +276,7 @@ GNUNET_GNSRECORD_block_decrypt (const struct GNUNET_GNSRECORD_Block *block,
             j++;
           }
         }
-        else if (rd[i].expiration_time >= now.abs_value_us)
+        else if (exp.abs_value_us >= now.abs_value_us)
         {
           /* Include this record */
           if (j != i)
