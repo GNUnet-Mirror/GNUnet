@@ -1610,7 +1610,6 @@ GNUNET_SCHEDULER_add_select (enum GNUNET_SCHEDULER_Priority prio,
                              GNUNET_SCHEDULER_Task task, void *task_cls)
 {
   struct Task *t;
-
 #if EXECINFO
   void *backtrace_array[MAX_TRACE_DEPTH];
 #endif
@@ -1627,12 +1626,12 @@ GNUNET_SCHEDULER_add_select (enum GNUNET_SCHEDULER_Priority prio,
 #endif
   t->read_fd = -1;
   t->write_fd = -1;
-  if (rs != NULL)
+  if (NULL != rs)
   {
     t->read_set = GNUNET_NETWORK_fdset_create ();
     GNUNET_NETWORK_fdset_copy (t->read_set, rs);
   }
-  if (ws != NULL)
+  if (NULL != ws)
   {
     t->write_set = GNUNET_NETWORK_fdset_create ();
     GNUNET_NETWORK_fdset_copy (t->write_set, ws);
