@@ -36,7 +36,7 @@
 #define TEST_SHADOW_RECORD_DATA 'b'
 
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 100)
-#define EXPIRATION GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 2)
+#define EXPIRATION GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
 static struct GNUNET_NAMESTORE_Handle *nsh;
 
@@ -282,7 +282,7 @@ put_cont (void *cls, int32_t success, const char *emsg)
   ncqe = GNUNET_NAMECACHE_lookup_block (nch, &derived_hash,
                                         &name_lookup_active_proc, &records[0]);
 
-  delayed_lookup_task = GNUNET_SCHEDULER_add_delayed (EXPIRATION, &name_lookup_shadow, NULL);
+  delayed_lookup_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (EXPIRATION, 2), &name_lookup_shadow, NULL);
 }
 
 
