@@ -922,6 +922,7 @@ handle_mesh_ring_message (void *cls,
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
+  GNUNET_MESH_receive_done (channel); /* needed? */
   for (line = lines_head; NULL != line; line = line->next)
     if (line->local_line == ntohl (msg->remote_line))
       break;
@@ -938,7 +939,6 @@ handle_mesh_ring_message (void *cls,
     reliable_mq = GNUNET_MESH_mq_create (channel);
     GNUNET_MQ_send (reliable_mq, e);
     /* FIXME: do we need to clean up reliable_mq somehow/somewhere? */
-    GNUNET_MESH_receive_done (channel); /* needed? */
     return GNUNET_OK;
   }
   ch = GNUNET_new (struct Channel);
@@ -964,7 +964,6 @@ handle_mesh_ring_message (void *cls,
                                               line->client,
                                               &cring.header,
                                               GNUNET_NO);
-  GNUNET_MESH_receive_done (channel);
   return GNUNET_OK;
 }
 
@@ -1257,7 +1256,7 @@ handle_mesh_audio_message (void *cls,
     if (NULL == info)
     {
       GNUNET_break (0);
-      return GNUNET_OK;
+      return GNUNET_SYSERR;
     }
     sender = info->peer;
     for (line = lines_head; NULL != line; line = line->next)
@@ -1294,12 +1293,13 @@ handle_mesh_audio_message (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Received %u bytes of AUDIO data on suspended channel CID %u:(%u:%u); dropping\n",
                   msize, ch->cid, ch->remote_line, line->local_line);
+      GNUNET_MESH_receive_done (channel);
       return GNUNET_OK;
     }
     ch->channel_unreliable = channel;
     *channel_ctx = ch;
   }
-  GNUNET_break (ch->line->local_line == ntohl (msg->remote_line));
+  GNUNET_MESH_receive_done (channel);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Forwarding %u bytes of AUDIO data to client CID %u:(%u:%u)\n",
               msize, ch->cid, ch->remote_line, ch->line->local_line);
@@ -1312,7 +1312,6 @@ handle_mesh_audio_message (void *cls,
                                               ch->line->client,
                                               &cam->header,
                                               GNUNET_YES);
-  GNUNET_MESH_receive_done (channel);
   return GNUNET_OK;
 }
 
