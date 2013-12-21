@@ -3347,6 +3347,7 @@ add_services (int proto,
 		   local_port,
 		   serv);
   }
+  GNUNET_free (n);
 }
 
 
