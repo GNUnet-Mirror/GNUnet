@@ -1,9 +1,0 @@
-======================================================================
-
-THIS SVN VERSION OF GNUNET IS INCOMPATIBLE TO ALL PREVIOUS RELEASES.
-WE CHANGED FUNDAMENTAL PARTS IN THE CRYPTOGRAPHY OF THE SYSTEM.
-
-You need to install libgcrypt from git master 
-for the code to compile.
-
-=======================================================================
