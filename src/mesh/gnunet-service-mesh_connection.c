@@ -1419,6 +1419,7 @@ GMC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
     if (0 == own_pos)
     {
       GNUNET_break_op (0);
+      GNUNET_free (path);
       return GNUNET_OK;
     }
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  Own position: %u\n", own_pos);
