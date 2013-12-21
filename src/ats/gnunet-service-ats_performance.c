@@ -153,7 +153,7 @@ GAS_performance_notify_client (struct PerformanceClient *pc,
                                const struct GNUNET_PeerIdentity *peer,
                                const char *plugin_name,
                                const void *plugin_addr, size_t plugin_addr_len,
-                               const int active,
+                               int active,
                                const struct GNUNET_ATS_Information *atsi,
                                uint32_t atsi_count,
                                struct GNUNET_BANDWIDTH_Value32NBO
@@ -216,9 +216,9 @@ GAS_performance_notify_client (struct PerformanceClient *pc,
  */
 void
 GAS_performance_notify_all_clients (const struct GNUNET_PeerIdentity *peer,
-                                const char *plugin_name,
-                                const void *plugin_addr, size_t plugin_addr_len,
-                                const int active,
+                                    const char *plugin_name,
+                                    const void *plugin_addr, size_t plugin_addr_len,
+                                    int active,
                                 const struct GNUNET_ATS_Information *atsi,
                                 uint32_t atsi_count,
                                 struct GNUNET_BANDWIDTH_Value32NBO
@@ -226,6 +226,7 @@ GAS_performance_notify_all_clients (const struct GNUNET_PeerIdentity *peer,
                                 struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
 {
   struct PerformanceClient *pc;
+
   for (pc = pc_head; pc != NULL; pc = pc->next)
     if (pc->flag == START_FLAG_PERFORMANCE_WITH_PIC)
     {
