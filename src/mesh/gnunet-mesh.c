@@ -330,11 +330,27 @@ data_callback (void *cls,
                const struct GNUNET_MessageHeader *message)
 {
   uint16_t len;
+  ssize_t done;
+  uint16_t off;
+  const char *buf;
   GNUNET_break (ch == channel);
 
   len = ntohs (message->size) - sizeof (*message);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got %u bytes\n", len);
-  write (1, (char *) &message[1], len);
+  buf = (const char *) &message[1];
+  off = 0;
+  while (off < len)
+  {
+    done = write (1, &buf[off], len - off);
+    if (done <= 0)
+    {
+      if (-1 == done)
+        GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
+                             "write");
+      return GNUNET_SYSERR;
+    }
+    off += done;
+  }
   return GNUNET_OK;
 }
 
