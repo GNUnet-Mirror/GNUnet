@@ -1855,6 +1855,7 @@ handle_dv_route_message (void *cls, const struct GNUNET_PeerIdentity *peer,
       {
         GNUNET_break_op (0);
         GNUNET_free (target);
+        return GNUNET_SYSERR;
       }
       add_new_route (target, neighbor);
     }
