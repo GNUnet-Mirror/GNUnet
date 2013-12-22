@@ -249,7 +249,7 @@ zone_iterator (void *cls,
     {
       if (0 != run_process_and_wait (GNUNET_NO, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, &st, &code,
           "gnunet-namestore",
-          "gnunet-namestore", "-z", "master-zone", "-a", "-e", "never", "-n", "pin", "-p", "-t", "PKEY", "-V", "72QC35CO20UJN1E91KPJFNT9TG4CLKAPB4VK9S3Q758S9MLBRKOG", NULL))
+          "gnunet-namestore", "-z", "master-zone", "-a", "-e", "never", "-n", "pin", "-p", "-t", "PKEY", "-V", pin_zone_pkey, NULL))
       {
         ret = 10;
         return;
@@ -263,7 +263,7 @@ zone_iterator (void *cls,
 }
 
 /**
- * If listing is enabled, prints information about the egos.
+ * Get master-zone, short-zone and private-zone keys.
  *
  * This function is initially called for all egos and then again
  * whenever a ego's identifier changes or if it is deleted.  At the
