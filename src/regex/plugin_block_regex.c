@@ -270,9 +270,9 @@ block_plugin_regex_evaluate (void *cls, enum GNUNET_BLOCK_Type type,
  * @param cls closure
  * @param type block type
  * @param block block to get the key for
- * @param block_size number of bytes in block
+ * @param block_size number of bytes in @a block
  * @param key set to the key (query) for the given block
- * @return GNUNET_OK on success, GNUNET_SYSERR if type not supported
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR if type not supported
  *         (or if extracting a key from a block of this type does not work)
  */
 static int
