@@ -578,7 +578,7 @@ struct NeighbourMapEntry
 
 
 /**
- * Context for blacklist checks and the 'handle_test_blacklist_cont'
+ * Context for blacklist checks and the #handle_test_blacklist_cont()
  * function.  Stores information about ongoing blacklist checks.
  */
 struct BlackListCheckContext
@@ -1904,7 +1904,7 @@ GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target)
 /**
  * Function called with the result of a blacklist check.
  *
- * @param cls closure with the 'struct BlackListCheckContext'
+ * @param cls closure with the `struct BlackListCheckContext`
  * @param peer peer this check affects
  * @param result #GNUNET_OK if the address is allowed
  */
