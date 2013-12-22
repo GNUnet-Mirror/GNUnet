@@ -131,14 +131,14 @@ play (void *cls,
       const void *data)
 {
   const char *origin = cls;
-  static unsigned int phone_i;
+  static unsigned int phone_i = 1;
   static unsigned int call_i;
   char buf[32];
 
   if (0 == strcmp (origin, "phone"))
-    GNUNET_snprintf (buf, sizeof (buf), "phone-%u", phone_i++);
-  else
     GNUNET_snprintf (buf, sizeof (buf), "call-%u", call_i++);
+  else
+    GNUNET_snprintf (buf, sizeof (buf), "phone-%u", phone_i++);
   if ( (data_size != strlen (buf) + 1) ||
        (0 != strncmp (buf, data, data_size)) )
   {
@@ -147,6 +147,10 @@ play (void *cls,
              buf,
              (int) data_size,
              (const char *) data);
+  }
+  else
+  {
+    fprintf (stderr, ".");
   }
   if ( (20 < call_i) &&
        (20 < phone_i) &&

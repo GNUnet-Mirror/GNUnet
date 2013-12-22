@@ -417,7 +417,7 @@ handle_gns_response (void *cls,
   struct ClientCallMessage *ccm;
 
   GNUNET_break (NULL != call->gns_lookup);
-  GNUNET_break (CS_LOOKUP == call->gns_lookup);
+  GNUNET_break (CS_LOOKUP == call->state);
   call->gns_lookup = NULL;
   for (i=0;i<rd_count;i++)
   {
