@@ -745,7 +745,34 @@ GNUNET_STRINGS_absolute_time_to_string (struct GNUNET_TIME_Absolute t)
     return _("end of time");
   tt = t.abs_value_us / 1000LL / 1000LL;
   tp = gmtime (&tt);
+  /* This is hacky, but i don't know a way to detect libc character encoding.
+   * Just expect utf8 from glibc these days.
+   * As for msvcrt, use the wide variant, which always returns utf16
+   * (otherwise we'd have to detect current codepage or use W32API character
+   * set conversion routines to convert to UTF8).
+   */
+#ifndef WINDOWS
   strftime (buf, sizeof (buf), "%a %b %d %H:%M:%S %Y", tp);
+#else
+  {
+    static wchar_t wbuf[255];
+    uint8_t *conved;
+    size_t ssize;
+
+    wcsftime (wbuf, sizeof (wbuf) / sizeof (wchar_t),
+        L"%a %b %d %H:%M:%S %Y", tp);
+
+    ssize = sizeof (buf);
+    conved = u16_to_u8 (wbuf, sizeof (wbuf) / sizeof (wchar_t),
+        (uint8_t *) buf, &ssize);
+    if (conved != (uint8_t *) buf)
+    {
+      strncpy (buf, (char *) conved, sizeof (buf));
+      buf[255 - 1] = '\0';
+      free (conved);
+    }
+  }
+#endif
   return buf;
 }
 
