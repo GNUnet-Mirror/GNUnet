@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet href="gns-form.xslt" type="text/xsl" ?>
+<form>
+	<group title="Name">
+		<field id="prefix">Academic Title (prefix)</field>
+		<field id="name">Name</field>
+		<field id="suffix">Academic Title (suffix)</field>
+	</group>
+	<group title="Legacy Contact">
+		<field id="phone">Phone</field>
+		<field id="fax">Fax</field>
+		<field id="email">E-mail</field>
+		<field id="homepage">Homepage</field>
+	</group>
+	<group title="Affiliation">
+		<field id="orga">Organization</field>
+		<field id="departmenti18n">Department</field>
+		<field id="subdepartmenti18n">Division</field>
+	</group>
+	<group title="Jobtitle">
+		<field id="jobtitlei18n">Jobtitle</field>
+	</group>
+	<group title="GNU ID">
+		<field id="gpgfingerprint">GPG Fingerprint</field>
+		<field id="gnskey">GNS Public Key</field>
+		<field id="gnsnick">GNS Nickname</field>
+	</group>
+</form>
