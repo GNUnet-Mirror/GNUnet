@@ -115,7 +115,7 @@ struct MicContext
   void *rdc_cls;
 
   GNUNET_SCHEDULER_TaskIdentifier call_task;
-  
+
 };
 
 static struct MicContext call1_mic_ctx;
@@ -487,6 +487,9 @@ call_event_handler (void *cls,
   case GNUNET_CONVERSATION_EC_CALL_RESUMED:
     LOG_DEBUG ("Call %s resumed\n", cid);
     break;
+  case GNUNET_CONVERSATION_EC_CALL_ERROR:
+    GNUNET_break (0);
+    break;
   }
 }
 
@@ -604,7 +607,7 @@ run (void *cls,
 int
 main (int argc, char *argv[])
 {
-  
+
   if (0 != GNUNET_TESTING_peer_run ("test_conversation_api_twocalls",
 				    "test_conversation.conf",
 				    &run, NULL))

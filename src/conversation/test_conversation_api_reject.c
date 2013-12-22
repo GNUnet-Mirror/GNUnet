@@ -217,6 +217,7 @@ call_event_handler (void *cls,
   case GNUNET_CONVERSATION_EC_CALL_GNS_FAIL:
   case GNUNET_CONVERSATION_EC_CALL_SUSPENDED:
   case GNUNET_CONVERSATION_EC_CALL_RESUMED:
+  case GNUNET_CONVERSATION_EC_CALL_ERROR:
     fprintf (stderr, "Unexpected call code: %d\n", code);
     break;
   }
