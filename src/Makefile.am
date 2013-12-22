@@ -12,6 +12,7 @@ endif
 
 if HAVE_EXPERIMENTAL
  EXP_DIR = \
+  dv \
   scalarproduct \
   multicast \
   env \
@@ -69,7 +70,6 @@ SUBDIRS = \
   dns \
   identity \
   set \
-  dv \
   revocation \
   gnsrecord \
   namecache \
