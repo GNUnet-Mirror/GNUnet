@@ -474,9 +474,6 @@ http_client_plugin_send (void *cls,
   struct HTTP_Message *msg;
   char *stat_txt;
 
-  GNUNET_assert (plugin != NULL);
-  GNUNET_assert (s != NULL);
-
   /* lookup if session is really existing */
   if (GNUNET_YES != client_exist_session (plugin, s))
   {
@@ -527,7 +524,8 @@ http_client_plugin_send (void *cls,
                      "Session %p/connection %p: unpausing connection\n",
                      s, s->client_put);
     s->put_paused = GNUNET_NO;
-    curl_easy_pause (s->client_put, CURLPAUSE_CONT);
+    if (NULL != s->client_put)
+      curl_easy_pause (s->client_put, CURLPAUSE_CONT);
   }
   else if (GNUNET_YES == s->put_tmp_disconnected)
   {
@@ -619,7 +617,7 @@ http_client_session_disconnect (void *cls,
     return GNUNET_SYSERR;
   }
 
-  if (s->client_put != NULL)
+  if (NULL != s->client_put)
   {
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                      "Session %p/connection %p: disconnecting PUT connection to peer `%s'\n",
@@ -644,12 +642,12 @@ http_client_session_disconnect (void *cls,
     s->recv_wakeup_task = GNUNET_SCHEDULER_NO_TASK;
   }
 
-  if (s->client_get != NULL)
+  if (NULL != s->client_get)
   {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                       "Session %p/connection %p: disconnecting GET connection to peer `%s'\n",
-                       s, s->client_get, GNUNET_i2s (&s->target));
-
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                     "Session %p/connection %p: disconnecting GET connection to peer `%s'\n",
+                     s, s->client_get,
+                     GNUNET_i2s (&s->target));
     /* remove curl handle from multi handle */
     mret = curl_multi_remove_handle (plugin->curl_multi_handle, s->client_get);
     if (mret != CURLM_OK)
@@ -663,7 +661,7 @@ http_client_session_disconnect (void *cls,
   }
 
   msg = s->msg_head;
-  while (msg != NULL)
+  while (NULL != msg)
   {
     t = msg->next;
     if (NULL != msg->transmit_cont)
@@ -784,7 +782,8 @@ client_put_disconnect (void *cls,
                    s, s->client_put);
   s->put_paused = GNUNET_NO;
   s->put_tmp_disconnecting = GNUNET_YES;
-  curl_easy_pause (s->client_put, CURLPAUSE_CONT);
+  if (NULL != s->client_put)
+    curl_easy_pause (s->client_put, CURLPAUSE_CONT);
   client_schedule (s->plugin, GNUNET_YES);
 }
 
@@ -890,8 +889,10 @@ client_wake_up (void *cls,
                    "Session %p/connection %p: Waking up GET handle\n",
                    s,
                    s->client_get);
-  if (s->client_get != NULL)
+  s->put_paused = GNUNET_NO;
+  if (NULL != s->client_get)
     curl_easy_pause (s->client_get, CURLPAUSE_CONT);
+
 }
 
 
