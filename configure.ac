@@ -210,6 +210,8 @@ AC_CHECK_MEMBER(struct tm.tm_gmtoff,
      ,
      [#include <time.h>])
 
+AC_CHECK_DECLS([_stati64])
+
 # 'save' libs; only those libs found so far will be
 # linked against _everywhere_.  For the others, we
 # will be more selective!

@@ -147,7 +147,8 @@ GNInitWinEnv ()
   plibc_initialized ();
   plibc_set_panic_proc (plibc_panic);
   ret = plibc_init_utf8 ("GNU", PACKAGE, 1);
-
+  plibc_set_stat_size_size (8);
+  plibc_set_stat_time_size (4);
   /* don't load other DLLs twice */
   if (hNTDLL)
     return ret;

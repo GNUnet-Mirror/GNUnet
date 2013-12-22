@@ -22,7 +22,7 @@
  * @brief PlibC header
  * @attention This file is usually not installed under Unix,
  *            so ship it with your application
- * @version $Revision: 151 $
+ * @version $Revision$
  */
 
 #ifndef _PLIBC_H_
@@ -70,7 +70,7 @@ extern "C" {
 /* Convert LARGE_INTEGER to double */
 #define Li2Double(x) ((double)((x).HighPart) * 4.294967296E9 + \
   (double)((x).LowPart))
-#ifndef __MINGW64_VERSION_MAJOR
+#ifndef HAVE_DECL__STATI64
 struct _stati64
 {
     _dev_t st_dev;
@@ -517,6 +517,8 @@ unsigned plibc_get_handle_count();
 
 typedef void (*TPanicProc) (int, char *);
 void plibc_set_panic_proc(TPanicProc proc);
+void plibc_set_stat_size_size(int iLength);
+void plibc_set_stat_time_size(int iLength);
 
 int flock(int fd, int operation);
 int fsync(int fildes);
