@@ -941,7 +941,7 @@ GSC_KX_handle_ping (struct GSC_KeyExchangeInfo *kx,
   }
   m = (const struct PingMessage *) msg;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Core service receives `%s' request from `%4s'.\n", "PING",
+              "Core service receives PING request from `%4s'.\n",
               GNUNET_i2s (&kx->peer));
   derive_iv (&iv, &kx->decrypt_key, m->iv_seed, &GSC_my_identity);
   if (GNUNET_OK !=
@@ -953,18 +953,29 @@ GSC_KX_handle_ping (struct GSC_KeyExchangeInfo *kx,
     return;
   }
   if (0 !=
-      memcmp (&t.target, &GSC_my_identity, sizeof (struct GNUNET_PeerIdentity)))
+      memcmp (&t.target,
+              &GSC_my_identity,
+              sizeof (struct GNUNET_PeerIdentity)))
   {
-    char sender[9];
-    char peer[9];
+    char sender[5];
+    char peer[5];
 
-    GNUNET_snprintf (sender, sizeof (sender), "%8s", GNUNET_i2s (&kx->peer));
-    GNUNET_snprintf (peer, sizeof (peer), "%8s", GNUNET_i2s (&t.target));
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _
-                ("Received PING from `%s' for different identity: I am `%s', PONG identity: `%s'\n"),
-                sender, GNUNET_i2s (&GSC_my_identity), peer);
-    GNUNET_break_op (0);
+    GNUNET_snprintf (sender,
+                     sizeof (sender),
+                     "%4s",
+                     GNUNET_i2s (&kx->peer));
+    GNUNET_snprintf (peer,
+                     sizeof (peer),
+                     "%4s",
+                     GNUNET_i2s (&t.target));
+    /* demoted ERROR to 'info' for now, as peers running < 0.10
+       might be causing these, and we don't want to confuse users */
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                _("Received PING from `%s' for different identity: I am `%s', PONG identity: `%s'\n"),
+                sender,
+                GNUNET_i2s (&GSC_my_identity),
+                peer);
+    /* GNUNET_break_op (0); */
     return;
   }
   /* construct PONG */
@@ -982,7 +993,7 @@ GSC_KX_handle_ping (struct GSC_KeyExchangeInfo *kx,
   GNUNET_STATISTICS_update (GSC_stats, gettext_noop ("# PONG messages created"),
                             1, GNUNET_NO);
   GSC_NEIGHBOURS_transmit (&kx->peer, &tp.header,
-                           GNUNET_TIME_UNIT_FOREVER_REL /* FIXME: timeout */ );
+                           GNUNET_TIME_UNIT_FOREVER_REL);
 }
 
 
