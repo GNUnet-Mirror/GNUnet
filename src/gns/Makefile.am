@@ -28,6 +28,7 @@ if MINGW
   DO_W32_NSP = libw32nsp.la
   DO_W32_NSPTOOLS = w32nsp-install w32nsp-uninstall w32nsp-resolve
   DO_W32_HS_CONF = gns-helper-service-w32.conf
+  DO_NONPOSIX_GNSIMPORT = gnunet-gns-import
 endif
 USE_VPN = $(top_builddir)/src/vpn/libgnunetvpn.la
 
@@ -66,6 +67,7 @@ libexec_PROGRAMS = \
 
 bin_PROGRAMS = \
   $(DO_W32_NSPTOOLS) \
+  $(DO_NONPOSIX_GNSIMPORT) \
   gnunet-gns
 
 if HAVE_MHD
@@ -162,6 +164,20 @@ gnunet_gns_helper_service_w32_DEPENDENCIES = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/identity/libgnunetidentity.la \
   libgnunetgns.la
+
+gnunet_gns_import_SOURCES = \
+  gnunet-gns-import.c
+gnunet_gns_import_LDADD = \
+  $(top_builddir)/src/identity/libgnunetidentity.la \
+  $(top_builddir)/src/namestore/libgnunetnamestore.la \
+  $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(GN_LIBINTL)
+gnunet_gns_import_DEPENDENCIES = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/namestore/libgnunetnamestore.la \
+  $(top_builddir)/src/gnsrecord/libgnunetgnsrecord.la \
+  $(top_builddir)/src/identity/libgnunetidentity.la
 
 w32nsp_install_SOURCES = \
   w32nsp-install.c
