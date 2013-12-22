@@ -737,7 +737,8 @@ GNUNET_CONTAINER_multihashmap_contains_value (const struct GNUNET_CONTAINER_Mult
  */
 int
 GNUNET_CONTAINER_multihashmap_put (struct GNUNET_CONTAINER_MultiHashMap *map,
-                                   const struct GNUNET_HashCode * key, void *value,
+                                   const struct GNUNET_HashCode *key,
+                                   void *value,
                                    enum GNUNET_CONTAINER_MultiHashMapOption
                                    opt);
 
