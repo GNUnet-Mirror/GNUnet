@@ -5,6 +5,11 @@
 LOCATION=$(which gnunet-config)
 if [ -z $LOCATION ]
 then
+  LOCATION="gnunet-config"
+fi
+$LOCATION --version &> /dev/null
+if test $? != 0
+then
 	echo "GNUnet command line tools not found, check environmental variables PATH and GNUNET_PREFIX"
 	exit 1
 fi
@@ -54,11 +59,26 @@ gnunet-identity -e sks-zone -s fs-sks $options
 MASTER=`gnunet-identity -d $options | grep master-zone | awk '{print $3}'`
 SHORT=`gnunet-identity -d $options | grep short-zone | awk '{print $3}'`
 PRIVATE=`gnunet-identity -d $options | grep private-zone | awk '{print $3}'`
+PIN=72QC35CO20UJN1E91KPJFNT9TG4CLKAPB4VK9S3Q758S9MLBRKOG
 
 # Link short and private zones into master zone
-gnunet-namestore -z master-zone -a -e never -n private -p -t PKEY -V $PRIVATE $options
-gnunet-namestore -z master-zone -a -e never -n short -p -t PKEY -V $SHORT $options
+if (gnunet-namestore -z master-zone -D -n private -t PKEY | grep "PKEY: $PRIVATE" &>/dev/null)
+then
+  :
+else
+  gnunet-namestore -z master-zone -a -e never -n private -p -t PKEY -V $PRIVATE $options
+fi
+if (gnunet-namestore -z master-zone -D -n short -t PKEY | grep "PKEY: $SHORT" &>/dev/null)
+then
+  :
+else
+  gnunet-namestore -z master-zone -a -e never -n short -p -t PKEY -V $SHORT $options
+fi
 
 # Link GNUnet's FCFS zone into master zone under label "pin"
-gnunet-namestore -z master-zone -a -e never -n pin -p -t PKEY -V 72QC35CO20UJN1E91KPJFNT9TG4CLKAPB4VK9S3Q758S9MLBRKOG $options
-
+if (gnunet-namestore -z master-zone -D -n pin -t PKEY | grep "PKEY: $PIN" &>/dev/null)
+then
+  :
+else
+  gnunet-namestore -z master-zone -a -e never -n pin -p -t PKEY -V $PIN $options
+fi
