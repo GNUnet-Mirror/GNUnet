@@ -136,8 +136,8 @@ static void *
 progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
 {
   static unsigned int cnt;
+  int is_directory;
   char *uri;
-  char *dotdot;
   char *filename;
 
   switch (info->status)
@@ -156,12 +156,19 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
         GNUNET_CONTAINER_meta_data_get_by_type (info->value.search.
                                                 specifics.result.meta,
                                                 EXTRACTOR_METATYPE_GNUNET_ORIGINAL_FILENAME);
+    is_directory =
+        GNUNET_FS_meta_data_test_for_directory (info->value.search.
+                                                specifics.result.meta);
     if (filename != NULL)
     {
-      while (NULL != (dotdot = strstr (filename, "..")))
-        dotdot[0] = dotdot[1] = '_';
-      printf ("gnunet-download -o \"%s\" %s\n", filename, uri);
+      GNUNET_DISK_filename_canonicalize (filename);
+      if (GNUNET_YES == is_directory)
+        printf ("gnunet-download -o \"%s%s\" -R %s\n", filename, GNUNET_FS_DIRECTORY_EXT, uri);
+      else
+        printf ("gnunet-download -o \"%s\" %s\n", filename, uri);
     }
+    else if (GNUNET_YES == is_directory)
+      printf ("gnunet-download -o \"collection%s\" -R %s\n", GNUNET_FS_DIRECTORY_EXT, uri);
     else
       printf ("gnunet-download %s\n", uri);
     if (verbose)
