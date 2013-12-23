@@ -26,19 +26,15 @@ bin_PROGRAMS = \
   gnunet-testbed-profiler
 
 gnunet_service_testbed_SOURCES = \
-  gnunet-service-testbed.h \
-  gnunet-service-testbed.c \
-  gnunet-service-testbed_links.c \
+  gnunet-service-testbed.c gnunet-service-testbed.h \
+  gnunet-service-testbed_links.c gnunet-service-testbed_links.h \
   gnunet-service-testbed_peers.c \
   gnunet-service-testbed_cache.c \
   gnunet-service-testbed_oc.c \
   gnunet-service-testbed_cpustatus.c \
-  gnunet-service-testbed_meminfo.c \
-  gnunet-service-testbed_meminfo.h \
-  gnunet-service-testbed_barriers.c \
-  gnunet-service-testbed_barriers.h \
-  gnunet-service-testbed_connectionpool.c \
-  gnunet-service-testbed_connectionpool.h
+  gnunet-service-testbed_meminfo.c gnunet-service-testbed_meminfo.h \
+  gnunet-service-testbed_barriers.c gnunet-service-testbed_barriers.h \
+  gnunet-service-testbed_connectionpool.c gnunet-service-testbed_connectionpool.h
 gnunet_service_testbed_LDADD = $(XLIB) \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/core/libgnunetcore.la \
@@ -102,7 +98,7 @@ libgnunettestbed_la_SOURCES = \
   testbed_api_test.c \
   testbed_api_topology.c testbed_api_topology.h \
   testbed_api_sd.c testbed_api_sd.h \
-  testbed_api_barriers.c 
+  testbed_api_barriers.c testbed_api_barriers.h
 libgnunettestbed_la_LIBADD = $(XLIB) \
  $(top_builddir)/src/core/libgnunetcore.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \

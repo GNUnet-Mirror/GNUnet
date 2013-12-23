@@ -10,7 +10,7 @@ pkgcfg_DATA = \
   ats.conf
 
 if MINGW
- WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols 
+ WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols
 endif
 
 if USE_COVERAGE
@@ -39,7 +39,7 @@ plugin_LTLIBRARIES = \
 
 libgnunetats_la_SOURCES = \
   ats_api_scheduling.c \
-  ats_api_performance.c  
+  ats_api_performance.c
 libgnunetats_la_LIBADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(LTLIBINTL)
@@ -55,7 +55,7 @@ libgnunet_plugin_ats_proportional_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(LTLIBINTL)
 libgnunet_plugin_ats_proportional_la_DEPENDENCIES = \
-  libgnunetats.la  
+  libgnunetats.la
 libgnunet_plugin_ats_proportional_la_LDFLAGS = \
   $(GN_PLUGIN_LDFLAGS)
 
@@ -138,7 +138,7 @@ TESTING_TESTS = \
  test_ats_solver_alternative_after_delete_address_ril \
  perf_ats_solver_proportional \
  $(GN_MLP_SOLVER_PERF) \
- perf_ats_solver_ril 
+ perf_ats_solver_ril
 endif
 
 check_PROGRAMS = \
@@ -157,7 +157,7 @@ test_ats_api_scheduling_init_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/ats/libgnunetats.la \
-  $(top_builddir)/src/statistics/libgnunetstatistics.la      
+  $(top_builddir)/src/statistics/libgnunetstatistics.la
 
 test_ats_api_scheduling_add_address_SOURCES = \
  test_ats_api_scheduling_add_address.c \
@@ -166,7 +166,7 @@ test_ats_api_scheduling_add_address_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/ats/libgnunetats.la \
-  $(top_builddir)/src/statistics/libgnunetstatistics.la    
+  $(top_builddir)/src/statistics/libgnunetstatistics.la
 
 test_ats_api_scheduling_add_address_inbound_SOURCES = \
  test_ats_api_scheduling_add_address_inbound.c \
@@ -175,7 +175,7 @@ test_ats_api_scheduling_add_address_inbound_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/ats/libgnunetats.la \
-  $(top_builddir)/src/statistics/libgnunetstatistics.la    
+  $(top_builddir)/src/statistics/libgnunetstatistics.la
 
 test_ats_api_scheduling_add_address_duplicate_SOURCES = \
  test_ats_api_scheduling_add_address_duplicate.c \
@@ -184,7 +184,7 @@ test_ats_api_scheduling_add_address_duplicate_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/ats/libgnunetats.la \
-  $(top_builddir)/src/statistics/libgnunetstatistics.la    
+  $(top_builddir)/src/statistics/libgnunetstatistics.la
 
 test_ats_api_scheduling_destroy_address_SOURCES = \
  test_ats_api_scheduling_destroy_address.c \
@@ -193,7 +193,7 @@ test_ats_api_scheduling_destroy_address_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/ats/libgnunetats.la \
-  $(top_builddir)/src/statistics/libgnunetstatistics.la    
+  $(top_builddir)/src/statistics/libgnunetstatistics.la
 
 test_ats_api_scheduling_destroy_address_twice_SOURCES = \
  test_ats_api_scheduling_destroy_address_twice.c \
@@ -202,7 +202,7 @@ test_ats_api_scheduling_destroy_address_twice_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/ats/libgnunetats.la \
-  $(top_builddir)/src/statistics/libgnunetstatistics.la    
+  $(top_builddir)/src/statistics/libgnunetstatistics.la
 
 test_ats_api_scheduling_add_session_SOURCES = \
  test_ats_api_scheduling_add_session.c test_ats_api_common.c
@@ -210,7 +210,7 @@ test_ats_api_scheduling_add_session_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/ats/libgnunetats.la \
-  $(top_builddir)/src/statistics/libgnunetstatistics.la  
+  $(top_builddir)/src/statistics/libgnunetstatistics.la
 
 test_ats_api_scheduling_destroy_session_SOURCES = \
  test_ats_api_scheduling_destroy_session.c test_ats_api_common.c
@@ -218,7 +218,7 @@ test_ats_api_scheduling_destroy_session_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/ats/libgnunetats.la \
-  $(top_builddir)/src/statistics/libgnunetstatistics.la  
+  $(top_builddir)/src/statistics/libgnunetstatistics.la
 
 # performance API tests
 
@@ -239,7 +239,7 @@ test_ats_api_performance_list_peer_addresses_LDADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/ats/libgnunetats.la \
 	$(top_builddir)/src/statistics/libgnunetstatistics.la
-	
+
 test_ats_api_performance_list_all_addresses_active_SOURCES = \
  test_ats_api_performance_list_all_addresses_active.c
 test_ats_api_performance_list_all_addresses_active_LDADD = \
@@ -257,16 +257,16 @@ test_ats_api_performance_monitor_LDADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/ats/libgnunetats.la \
 	$(top_builddir)/src/statistics/libgnunetstatistics.la
-	
+
 test_ats_api_performance_monitor_initial_callback_SOURCES = \
- test_ats_api_performance_monitor_initial_callback.c	
+ test_ats_api_performance_monitor_initial_callback.c
 test_ats_api_performance_monitor_initial_callback_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/ats/libgnunetats.la \
 	$(top_builddir)/src/statistics/libgnunetstatistics.la
-	
+
 # solver tests
 test_ats_solver_add_address_proportional_SOURCES = \
  test_ats_solver_add_address.c \
@@ -277,8 +277,8 @@ test_ats_solver_add_address_proportional_LDADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/ats/libgnunetats.la \
 	$(top_builddir)/src/statistics/libgnunetstatistics.la
-	
-if HAVE_LIBGLPK	
+
+if HAVE_LIBGLPK
 test_ats_solver_add_address_mlp_SOURCES = \
  test_ats_solver_add_address.c \
  test_ats_api_common.c test_ats_api_common.h
@@ -288,8 +288,8 @@ test_ats_solver_add_address_mlp_LDADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/ats/libgnunetats.la \
 	$(top_builddir)/src/statistics/libgnunetstatistics.la
-endif  
-			
+endif
+
 test_ats_solver_add_address_ril_SOURCES = \
  test_ats_solver_add_address.c \
  test_ats_api_common.c test_ats_api_common.h
@@ -299,7 +299,7 @@ test_ats_solver_add_address_ril_LDADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/ats/libgnunetats.la \
 	$(top_builddir)/src/statistics/libgnunetstatistics.la
-			
+
 test_ats_solver_add_address_and_request_proportional_SOURCES = \
  test_ats_solver_add_address_and_request.c \
  test_ats_api_common.c test_ats_api_common.h
@@ -309,8 +309,8 @@ test_ats_solver_add_address_and_request_proportional_LDADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/ats/libgnunetats.la \
 	$(top_builddir)/src/statistics/libgnunetstatistics.la
-	
-if HAVE_LIBGLPK	
+
+if HAVE_LIBGLPK
 test_ats_solver_add_address_and_request_mlp_SOURCES = \
  test_ats_solver_add_address_and_request.c \
  test_ats_api_common.c test_ats_api_common.h
@@ -320,8 +320,8 @@ test_ats_solver_add_address_and_request_mlp_LDADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/ats/libgnunetats.la \
 	$(top_builddir)/src/statistics/libgnunetstatistics.la
-endif  
-			
+endif
+
 test_ats_solver_add_address_and_request_ril_SOURCES = \
  test_ats_solver_add_address_and_request.c \
  test_ats_api_common.c test_ats_api_common.h
@@ -342,8 +342,8 @@ test_ats_solver_request_and_add_address_proportional_LDADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/ats/libgnunetats.la \
 	$(top_builddir)/src/statistics/libgnunetstatistics.la
-	
-if HAVE_LIBGLPK	
+
+if HAVE_LIBGLPK
 test_ats_solver_request_and_add_address_mlp_SOURCES = \
  test_ats_solver_request_and_add_address.c \
  test_ats_api_common.c test_ats_api_common.h
@@ -353,8 +353,8 @@ test_ats_solver_request_and_add_address_mlp_LDADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/ats/libgnunetats.la \
 	$(top_builddir)/src/statistics/libgnunetstatistics.la
-endif  
-			
+endif
+
 test_ats_solver_request_and_add_address_ril_SOURCES = \
  test_ats_solver_request_and_add_address.c \
  test_ats_api_common.c test_ats_api_common.h
@@ -375,8 +375,8 @@ test_ats_solver_request_and_delete_address_proportional_LDADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/ats/libgnunetats.la \
 	$(top_builddir)/src/statistics/libgnunetstatistics.la
-	
-if HAVE_LIBGLPK	
+
+if HAVE_LIBGLPK
 test_ats_solver_request_and_delete_address_mlp_SOURCES = \
  test_ats_solver_request_and_delete_address.c \
  test_ats_api_common.c test_ats_api_common.h
@@ -386,8 +386,8 @@ test_ats_solver_request_and_delete_address_mlp_LDADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/ats/libgnunetats.la \
 	$(top_builddir)/src/statistics/libgnunetstatistics.la
-endif  
-			
+endif
+
 test_ats_solver_request_and_delete_address_ril_SOURCES = \
  test_ats_solver_request_and_delete_address.c \
  test_ats_api_common.c test_ats_api_common.h
@@ -418,8 +418,8 @@ test_ats_solver_preferences_proportional_LDADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/ats/libgnunetats.la \
 	$(top_builddir)/src/statistics/libgnunetstatistics.la
-	
-if HAVE_LIBGLPK	
+
+if HAVE_LIBGLPK
 test_ats_solver_alternative_after_delete_address_mlp_SOURCES = \
  test_ats_solver_alternative_after_delete_address.c \
  test_ats_api_common.c test_ats_api_common.h
@@ -429,7 +429,7 @@ test_ats_solver_alternative_after_delete_address_mlp_LDADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/ats/libgnunetats.la \
 	$(top_builddir)/src/statistics/libgnunetstatistics.la
-	
+
 test_ats_solver_preferences_mlp_SOURCES = \
  test_ats_solver_preferences.c \
  test_ats_api_common.c test_ats_api_common.h
@@ -439,8 +439,8 @@ test_ats_solver_preferences_mlp_LDADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/ats/libgnunetats.la \
 	$(top_builddir)/src/statistics/libgnunetstatistics.la
-endif  
-			
+endif
+
 test_ats_solver_alternative_after_delete_address_ril_SOURCES = \
  test_ats_solver_alternative_after_delete_address.c \
  test_ats_api_common.c test_ats_api_common.h
@@ -457,7 +457,7 @@ test_ats_solver_alternative_after_delete_address_ril_LDADD = \
 #  $(GN_LIBGLPK) \
 #  $(top_builddir)/src/util/libgnunetutil.la \
 #  $(top_builddir)/src/statistics/libgnunetstatistics.la \
-#  $(top_builddir)/src/ats/libgnunetats.la  
+#  $(top_builddir)/src/ats/libgnunetats.la
 
 perf_ats_solver_mlp_SOURCES = \
   perf_ats_solver.c test_ats_api_common.c gnunet-service-ats_normalization.c
@@ -465,7 +465,7 @@ perf_ats_solver_mlp_LDADD = \
   $(GN_LIBGLPK) \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
-  $(top_builddir)/src/ats/libgnunetats.la 
+  $(top_builddir)/src/ats/libgnunetats.la
 
 perf_ats_solver_proportional_SOURCES = \
   perf_ats_solver.c test_ats_api_common.c gnunet-service-ats_normalization.c
@@ -473,7 +473,7 @@ perf_ats_solver_proportional_LDADD = \
   $(GN_LIBGLPK) \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
-  $(top_builddir)/src/ats/libgnunetats.la 
+  $(top_builddir)/src/ats/libgnunetats.la
 
 perf_ats_solver_ril_SOURCES = \
   perf_ats_solver.c test_ats_api_common.c gnunet-service-ats_normalization.c
@@ -481,7 +481,7 @@ perf_ats_solver_ril_LDADD = \
   $(GN_LIBGLPK) \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
-  $(top_builddir)/src/ats/libgnunetats.la 
+  $(top_builddir)/src/ats/libgnunetats.la
 
 test_ats_solver_preferences_ril_SOURCES = \
  test_ats_solver_preferences.c \
@@ -492,7 +492,7 @@ test_ats_solver_preferences_ril_LDADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/ats/libgnunetats.la \
 	$(top_builddir)/src/statistics/libgnunetstatistics.la
-	
+
 test_ats_solver_convergence_ril_SOURCES = \
  test_ats_solver_convergence.c \
  test_ats_api_common.c test_ats_api_common.h
@@ -505,6 +505,9 @@ test_ats_solver_convergence_ril_LDADD = \
 
 EXTRA_DIST = \
   ats.h \
+  plugin_ats_proportional.h \
+  plugin_ats_mlp.h \
+  plugin_ats_ril.h \
   test_ats_api.conf \
   test_ats_mlp.conf \
   test_ats_solver_default.conf \

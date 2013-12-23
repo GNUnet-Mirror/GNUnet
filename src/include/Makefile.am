@@ -18,6 +18,7 @@ gnunetinclude_HEADERS = \
   gnunet_applications.h \
   gnunet_arm_service.h \
   gnunet_ats_service.h \
+  gnunet_ats_plugin.h \
   gnunet_bandwidth_lib.h \
   gnunet_bio_lib.h \
   gnunet_block_lib.h \
@@ -41,6 +42,7 @@ gnunetinclude_HEADERS = \
   gnunet_dnsstub_lib.h \
   gnunet_dns_service.h \
   gnunet_dv_service.h \
+  gnunet_env_lib.h \
   gnunet_fragmentation_lib.h \
   gnunet_friends_lib.h \
   gnunet_fs_service.h \
@@ -54,6 +56,7 @@ gnunetinclude_HEADERS = \
   gnunet_load_lib.h \
   gnunet_mesh_service.h \
   gnunet_microphone_lib.h \
+  gnunet_multicast_service.h \
   gnunet_mq_lib.h \
   gnunet_mysql_lib.h \
   gnunet_namecache_plugin.h \
@@ -68,6 +71,9 @@ gnunetinclude_HEADERS = \
   gnunet_peerinfo_service.h \
   gnunet_plugin_lib.h \
   gnunet_postgres_lib.h \
+  gnunet_psycstore_plugin.h \
+  gnunet_psycstore_service.h \
+  gnunet_psyc_service.h \
   gnunet_program_lib.h \
   gnunet_protocols.h \
   gnunet_resolver_service.h \
@@ -77,6 +83,7 @@ gnunetinclude_HEADERS = \
   gnunet_scheduler_lib.h \
   gnunet_server_lib.h \
   gnunet_service_lib.h \
+  gnunet_set_service.h \
   gnunet_signal_lib.h \
   gnunet_signatures.h \
   gnunet_speaker_lib.h \

@@ -8,7 +8,7 @@ pkgcfg_DATA = \
   set.conf
 
 if MINGW
- WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols 
+ WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols
 endif
 
 if USE_COVERAGE
@@ -43,11 +43,12 @@ gnunet_set_ibf_profiler_LDADD = \
   $(GN_LIBINTL)
 
 gnunet_service_set_SOURCES = \
- gnunet-service-set.c \
+ gnunet-service-set.c gnunet-service-set.h \
  gnunet-service-set_union.c \
  gnunet-service-set_intersection.c \
- ibf.c \
- strata_estimator.c
+ ibf.c ibf.h \
+ strata_estimator.c strata_estimator.h \
+ set_protocol.h
 gnunet_service_set_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/core/libgnunetcore.la \
@@ -56,7 +57,7 @@ gnunet_service_set_LDADD = \
   $(GN_LIBINTL)
 
 libgnunetset_la_SOURCES = \
-  set_api.c
+  set_api.c set.h
 libgnunetset_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(LTLIBINTL)

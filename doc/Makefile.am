@@ -1,3 +1,3 @@
-SUBDIRS = man
+SUBDIRS = man doxygen
 
 docdir = $(datadir)/doc/gnunet/

@@ -16,6 +16,7 @@ if HAVE_EXPERIMENTAL
   scalarproduct \
   multicast \
   env \
+  psycstore \
   psyc \
   $(CONSENSUS) \
   $(SECRETSHARING) \
@@ -77,7 +78,6 @@ SUBDIRS = \
   vpn \
   gns \
   $(CONVERSATION_DIR) \
-  psycstore \
   fs \
   exit \
   pt \

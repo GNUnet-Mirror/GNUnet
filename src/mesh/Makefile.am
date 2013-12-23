@@ -63,13 +63,13 @@ gnunet_mesh_DEPENDENCIES = \
   libgnunetmesh.la
 
 gnunet_service_mesh_SOURCES = \
- gnunet-service-mesh_tunnel.c \
- gnunet-service-mesh_connection.c \
- gnunet-service-mesh_channel.c \
- gnunet-service-mesh_local.c \
- gnunet-service-mesh_peer.c \
- gnunet-service-mesh_dht.c \
- mesh_path.c \
+ gnunet-service-mesh_tunnel.c gnunet-service-mesh_tunnel.h \
+ gnunet-service-mesh_connection.c gnunet-service-mesh_connection.h \
+ gnunet-service-mesh_channel.c gnunet-service-mesh_channel.h \
+ gnunet-service-mesh_local.c gnunet-service-mesh_local.h \
+ gnunet-service-mesh_peer.c gnunet-service-mesh_peer.h \
+ gnunet-service-mesh_dht.c gnunet-service-mesh_dht.h \
+ mesh_path.c mesh_path.h \
  mesh_common.c \
  gnunet-service-mesh.c
 gnunet_service_mesh_CFLAGS = $(AM_CFLAGS)

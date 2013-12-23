@@ -1936,7 +1936,7 @@ check_port (struct Plugin *plugin, uint16_t in_port)
  * traffic to a 3rd party that might try to man-in-the-middle our
  * traffic.
  *
- * @param cls closure, our 'struct Plugin*'
+ * @param cls closure, our `struct Plugin *`
  * @param addr pointer to the address
  * @param addrlen length of addr
  * @return #GNUNET_OK if this is a plausible address for this peer
