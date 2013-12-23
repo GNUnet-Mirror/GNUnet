@@ -308,11 +308,12 @@ arm_termination_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 /**
  * Handler for ARM replies.
  *
- * @param cls our "struct GNUNET_ARM_Handle"
+ * @param cls our `struct GNUNET_ARM_Handle`
  * @param msg the message received from the arm service
  */
 static void
-client_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
+client_notify_handler (void *cls,
+                       const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_ARM_Handle *h = cls;
   const struct GNUNET_ARM_Message *arm_msg;
@@ -353,7 +354,9 @@ client_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
   cm = find_cm_by_id (h, id);
   if (NULL == cm)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Message with unknown id %llu\n", id);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Message with unknown id %llu\n",
+         id);
     return;
   }
   fail = GNUNET_NO;
@@ -460,7 +463,7 @@ client_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     if (NULL != cm->list_cont)
         cm->list_cont (cm->cont_cls, GNUNET_ARM_REQUEST_SENT_OK, rcount,
                        list);
-    GNUNET_free (list);
+    GNUNET_free_non_null (list);
     break;
   }
   GNUNET_free (cm->msg);

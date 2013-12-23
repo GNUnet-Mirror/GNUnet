@@ -260,7 +260,7 @@ write_result (void *cls, size_t size, void *buf)
   struct GNUNET_ARM_ResultMessage *msg = cls;
   size_t msize;
 
-  if (buf == NULL)
+  if (NULL == buf)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
 		_("Could not send status result to client\n"));
@@ -296,7 +296,7 @@ write_list_result (void *cls, size_t size, void *buf)
   struct GNUNET_ARM_ListResultMessage *msg = cls;
   size_t rslt_size;
 
-  if (buf == NULL)
+  if (NULL == buf)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 _("Could not send list result to client\n"));
@@ -525,14 +525,19 @@ start_process (struct ServiceList *sl,
   GNUNET_free (quotedbinary);
   if (sl->proc == NULL)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Failed to start service `%s'\n"),
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Failed to start service `%s'\n"),
 		sl->name);
     if (client)
-      signal_result (client, sl->name, request_id, GNUNET_ARM_RESULT_START_FAILED);
+      signal_result (client,
+                     sl->name,
+                     request_id,
+                     GNUNET_ARM_RESULT_START_FAILED);
   }
   else
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Starting service `%s'\n"),
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                _("Starting service `%s'\n"),
 		sl->name);
     broadcast_status (sl->name, GNUNET_ARM_SERVICE_STARTING, NULL);
     if (client)
@@ -903,7 +908,7 @@ handle_list (void *cls, struct GNUNET_SERVER_Client *client,
   /* first count the running processes get their name's size */
   for (sl = running_head; NULL != sl; sl = sl->next)
   {
-    if (sl->proc != NULL)
+    if (NULL != sl->proc)
     {
       string_list_size += strlen (sl->name);
       string_list_size += strlen (sl->binary);
@@ -922,20 +927,19 @@ handle_list (void *cls, struct GNUNET_SERVER_Client *client,
   msg->count = count;
 
   char *pos = (char *)&msg[1];
-  for (sl = running_head; sl != NULL; sl = sl->next)
+  for (sl = running_head; NULL != sl; sl = sl->next)
   {
-    if (sl->proc != NULL)
+    if (NULL != sl->proc)
     {
       size_t s = strlen (sl->name) + strlen (sl->binary) + 4;
-      GNUNET_snprintf(pos, s, "%s (%s)", sl->name, sl->binary);
+      GNUNET_snprintf (pos, s, "%s (%s)", sl->name, sl->binary);
       pos += s;
     }
   }
-
   GNUNET_SERVER_notify_transmit_ready (client,
                                        total_size,
                                        GNUNET_TIME_UNIT_FOREVER_REL,
-                                       write_list_result, msg);
+                                       &write_list_result, msg);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
@@ -966,6 +970,12 @@ do_shutdown ()
 }
 
 
+/**
+ * Count how many services are still active.
+ *
+ * @param running_head list of services
+ * @return number of active services found
+ */
 static unsigned int
 list_count (struct ServiceList *running_head)
 {
@@ -1442,8 +1452,9 @@ run (void *cls, struct GNUNET_SERVER_Handle *serv,
 
   cfg = c;
   server = serv;
-  GNUNET_assert (serv != NULL);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
+  GNUNET_assert (NULL != serv);
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
+                                &shutdown_task,
 				NULL);
   child_death_task =
     GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
@@ -1464,50 +1475,49 @@ run (void *cls, struct GNUNET_SERVER_Handle *serv,
   {
     GNUNET_break (GNUNET_YES == start_user);
     start_system = GNUNET_NO;
-    return;
   }
   if (GNUNET_YES ==
       GNUNET_CONFIGURATION_get_value_yesno (cfg, "ARM", "SYSTEM_ONLY"))
   {
     GNUNET_break (GNUNET_YES == start_system);
     start_user = GNUNET_NO;
-    return;
   }
   GNUNET_CONFIGURATION_iterate_sections (cfg, &setup_service, NULL);
 
   /* start default services... */
   if (GNUNET_OK ==
-      GNUNET_CONFIGURATION_get_value_string (cfg, "ARM", "DEFAULTSERVICES",
+      GNUNET_CONFIGURATION_get_value_string (cfg,
+                                             "ARM",
+                                             "DEFAULTSERVICES",
 					     &defaultservices))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                _("Starting default services `%s'\n"),
+                defaultservices);
+    if (0 < strlen (defaultservices))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		  _("Starting default services `%s'\n"), defaultservices);
-      if (0 < strlen (defaultservices))
-	{
-	  for (pos = strtok (defaultservices, " "); NULL != pos;
-	       pos = strtok (NULL, " "))
-	    {
-	      sl = find_service (pos);
-	      if (NULL == sl)
-		{
-		  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-			      _
-			      ("Default service `%s' not configured correctly!\n"),
-			      pos);
-		  continue;
-		}
-	      sl->is_default = GNUNET_YES;
-	      start_process (sl, NULL, 0);
-	    }
-	}
-      GNUNET_free (defaultservices);
+      for (pos = strtok (defaultservices, " "); NULL != pos;
+           pos = strtok (NULL, " "))
+      {
+        sl = find_service (pos);
+        if (NULL == sl)
+        {
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                      _("Default service `%s' not configured correctly!\n"),
+                      pos);
+          continue;
+        }
+        sl->is_default = GNUNET_YES;
+        start_process (sl, NULL, 0);
+      }
     }
+    GNUNET_free (defaultservices);
+  }
   else
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-		  _
-		  ("No default services configured, GNUnet will not really start right now.\n"));
-    }
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                _("No default services configured, GNUnet will not really start right now.\n"));
+  }
 
   notifier =
       GNUNET_SERVER_notification_context_create (server, MAX_NOTIFY_QUEUE);

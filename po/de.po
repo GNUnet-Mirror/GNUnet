@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: GNUnet 0.7.0b\n"
 "Report-Msgid-Bugs-To: gnunet-developers@mail.gnu.org\n"
-"POT-Creation-Date: 2013-12-23 22:41+0100\n"
+"POT-Creation-Date: 2013-12-23 22:54+0100\n"
 "PO-Revision-Date: 2006-03-17 21:37+0100\n"
 "Last-Translator: Nils Durner <durner@gnunet.org>\n"
 "Language-Team: German <de@li.org>\n"
@@ -4081,6 +4081,10 @@ msgstr ""
 #, fuzzy, c-format
 msgid "Failed to connect to identity service\n"
 msgstr "Es konnte keine Verbindung mit gnunetd hergestellt werden.\n"
+
+#: src/gns/gnunet-gns-import.c:476
+msgid "This program will import some GNS authorities into your GNS namestore."
+msgstr ""
 
 #: src/gns/gnunet-gns-proxy.c:105 src/hostlist/hostlist-client.c:469
 #: src/hostlist/hostlist-client.c:683 src/hostlist/hostlist-client.c:689

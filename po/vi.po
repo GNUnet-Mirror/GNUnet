@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gnunet 0.8.0a\n"
 "Report-Msgid-Bugs-To: gnunet-developers@mail.gnu.org\n"
-"POT-Creation-Date: 2013-12-23 22:41+0100\n"
+"POT-Creation-Date: 2013-12-23 22:54+0100\n"
 "PO-Revision-Date: 2008-09-10 22:05+0930\n"
 "Last-Translator: Clytie Siddall <clytie@riverland.net.au>\n"
 "Language-Team: Vietnamese <vi-VN@googlegroups.com>\n"
@@ -4081,6 +4081,10 @@ msgstr ""
 #, fuzzy, c-format
 msgid "Failed to connect to identity service\n"
 msgstr "Lỗi kết nối đến gnunetd.\n"
+
+#: src/gns/gnunet-gns-import.c:476
+msgid "This program will import some GNS authorities into your GNS namestore."
+msgstr ""
 
 #: src/gns/gnunet-gns-proxy.c:105 src/hostlist/hostlist-client.c:469
 #: src/hostlist/hostlist-client.c:683 src/hostlist/hostlist-client.c:689
