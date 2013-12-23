@@ -148,7 +148,9 @@ transmit_our_hello (void *cls, const struct GNUNET_PeerIdentity *target,
 {
   const struct GNUNET_MessageHeader *hello = cls;
 
-  GST_neighbours_send (target, (const char *) hello, ntohs (hello->size),
+  GST_neighbours_send (target,
+                       hello,
+                       ntohs (hello->size),
                        hello_expiration, NULL, NULL);
 }
 
@@ -160,7 +162,8 @@ transmit_our_hello (void *cls, const struct GNUNET_PeerIdentity *target,
  * @param hello new HELLO
  */
 static void
-process_hello_update (void *cls, const struct GNUNET_MessageHeader *hello)
+process_hello_update (void *cls,
+                      const struct GNUNET_MessageHeader *hello)
 {
   GST_clients_broadcast (hello, GNUNET_NO);
   GST_neighbours_iterate (&transmit_our_hello, (void *) hello);
