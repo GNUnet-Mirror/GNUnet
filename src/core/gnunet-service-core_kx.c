@@ -1274,7 +1274,7 @@ GSC_KX_encrypt_and_transmit (struct GSC_KeyExchangeInfo *kx,
 
 
 /**
- * Closure for 'deliver_message'
+ * Closure for #deliver_message()
  */
 struct DeliverMessageContext
 {
@@ -1320,7 +1320,7 @@ GSC_KX_handle_encrypted_message (struct GSC_KeyExchangeInfo *kx,
     return;
   }
   m = (const struct EncryptedMessage *) msg;
-  if (kx->status != KX_STATE_UP)
+  if (KX_STATE_UP != kx->status)
   {
     GNUNET_STATISTICS_update (GSC_stats,
                               gettext_noop
@@ -1365,8 +1365,10 @@ GSC_KX_handle_encrypted_message (struct GSC_KeyExchangeInfo *kx,
       do_decrypt (kx, &iv, &m->sequence_number, &buf[ENCRYPTED_HEADER_SIZE],
                   size - ENCRYPTED_HEADER_SIZE))
     return;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Decrypted %u bytes from %s\n",
-              size - ENCRYPTED_HEADER_SIZE, GNUNET_i2s (&kx->peer));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Decrypted %u bytes from %s\n",
+              size - ENCRYPTED_HEADER_SIZE,
+              GNUNET_i2s (&kx->peer));
   pt = (struct EncryptedMessage *) buf;
 
   /* validate sequence number */
@@ -1427,7 +1429,8 @@ GSC_KX_handle_encrypted_message (struct GSC_KeyExchangeInfo *kx,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Message received far too old (%s). Content ignored.\n",
-                GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_duration (t), GNUNET_YES));
+                GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_duration (t),
+                                                        GNUNET_YES));
     GNUNET_STATISTICS_update (GSC_stats,
                               gettext_noop
                               ("# bytes dropped (ancient message)"), size,
@@ -1439,14 +1442,16 @@ GSC_KX_handle_encrypted_message (struct GSC_KeyExchangeInfo *kx,
   update_timeout (kx);
   GNUNET_STATISTICS_update (GSC_stats,
                             gettext_noop ("# bytes of payload decrypted"),
-                            size - sizeof (struct EncryptedMessage), GNUNET_NO);
+                            size - sizeof (struct EncryptedMessage),
+                            GNUNET_NO);
   dmc.kx = kx;
   dmc.peer = &kx->peer;
   if (GNUNET_OK !=
       GNUNET_SERVER_mst_receive (mst, &dmc,
                                  &buf[sizeof (struct EncryptedMessage)],
                                  size - sizeof (struct EncryptedMessage),
-                                 GNUNET_YES, GNUNET_NO))
+                                 GNUNET_YES,
+                                 GNUNET_NO))
     GNUNET_break_op (0);
 }
 
@@ -1461,7 +1466,9 @@ GSC_KX_handle_encrypted_message (struct GSC_KeyExchangeInfo *kx,
  * @param m the message
  */
 static int
-deliver_message (void *cls, void *client, const struct GNUNET_MessageHeader *m)
+deliver_message (void *cls,
+                 void *client,
+                 const struct GNUNET_MessageHeader *m)
 {
   struct DeliverMessageContext *dmc = client;
 
@@ -1568,7 +1575,6 @@ do_rekey (void *cls,
 int
 GSC_KX_init (struct GNUNET_CRYPTO_EddsaPrivateKey *pk)
 {
-  GNUNET_assert (NULL != pk);
   my_private_key = pk;
   GNUNET_CRYPTO_eddsa_key_get_public (my_private_key,
 						  &GSC_my_identity.public_key);
