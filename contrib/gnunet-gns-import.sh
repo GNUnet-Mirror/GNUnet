@@ -62,23 +62,23 @@ PRIVATE=`gnunet-identity -d $options | grep private-zone | awk '{print $3}'`
 PIN=72QC35CO20UJN1E91KPJFNT9TG4CLKAPB4VK9S3Q758S9MLBRKOG
 
 # Link short and private zones into master zone
-if (gnunet-namestore -z master-zone -D -n private -t PKEY | grep "PKEY: $PRIVATE" &>/dev/null)
+if (gnunet-namestore -z master-zone -D -n private -t PKEY | grep "PKEY: $PRIVATE" 1>/dev/null)
 then
-  :
+  echo "Private zone link exists, skipping"
 else
   gnunet-namestore -z master-zone -a -e never -n private -p -t PKEY -V $PRIVATE $options
 fi
-if (gnunet-namestore -z master-zone -D -n short -t PKEY | grep "PKEY: $SHORT" &>/dev/null)
+if (gnunet-namestore -z master-zone -D -n short -t PKEY | grep "PKEY: $SHORT" 1>/dev/null)
 then
-  :
+  echo "Shorten zone link exists, skipping"
 else
   gnunet-namestore -z master-zone -a -e never -n short -p -t PKEY -V $SHORT $options
 fi
 
 # Link GNUnet's FCFS zone into master zone under label "pin"
-if (gnunet-namestore -z master-zone -D -n pin -t PKEY | grep "PKEY: $PIN" &>/dev/null)
+if (gnunet-namestore -z master-zone -D -n pin -t PKEY | grep "PKEY: $PIN" 1>/dev/null)
 then
-  :
+  echo "Pin zone link exists, skipping"
 else
   gnunet-namestore -z master-zone -a -e never -n pin -p -t PKEY -V $PIN $options
 fi
