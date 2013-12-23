@@ -589,7 +589,7 @@ process_external_ip (void *cls,
     /* Current iteration is over, remove 'old' IPs now */
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Purging old IPs for external address\n");
-    remove_from_address_list_by_source (h, LAL_EXTERNAL_IP);
+    remove_from_address_list_by_source (h, LAL_EXTERNAL_IP_OLD);
     if (1 == inet_pton (AF_INET,
                         h->external_address,
                         &dummy))
