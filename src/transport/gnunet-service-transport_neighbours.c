@@ -1741,7 +1741,7 @@ send_session_connect_ack_message (const struct GNUNET_HELLO_Address *address,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Sending CONNECT_ACK to peer `%s'\n",
-              GNUNET_i2s (peer));
+              GNUNET_i2s (&address->peer));
   if (NULL == (papi = GST_plugins_find (address->transport_name)))
   {
     GNUNET_break (0);
