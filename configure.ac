@@ -22,7 +22,7 @@
 #
 AC_PREREQ(2.61)
 # Checks for programs.
-AC_INIT([gnunet], [0.9.5a], [bug-gnunet@gnu.org])
+AC_INIT([gnunet], [0.10.0], [bug-gnunet@gnu.org])
 
 AC_CANONICAL_TARGET
 AC_CANONICAL_HOST

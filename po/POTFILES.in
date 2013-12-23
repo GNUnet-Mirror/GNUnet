@@ -141,6 +141,7 @@ src/gns/gnunet-bcd.c
 src/gns/gnunet-dns2gns.c
 src/gns/gnunet-gns.c
 src/gns/gnunet-gns-helper-service-w32.c
+src/gns/gnunet-gns-import.c
 src/gns/gnunet-gns-proxy.c
 src/gns/gnunet-service-gns.c
 src/gns/gnunet-service-gns_interceptor.c

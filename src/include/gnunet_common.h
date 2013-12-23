@@ -60,13 +60,13 @@ extern "C"
 /**
  * Version of the API (for entire gnunetutil.so library).
  */
-#define GNUNET_UTIL_VERSION 0x00090501
+#define GNUNET_UTIL_VERSION 0x000A0000
 
 /**
- * Named constants for return values.  The following
- * invariants hold: "GNUNET_NO == 0" (to allow "if (GNUNET_NO)")
- * "GNUNET_OK != GNUNET_SYSERR", "GNUNET_OK != GNUNET_NO", "GNUNET_NO != GNUNET_SYSERR"
- * and finally "GNUNET_YES != GNUNET_NO".
+ * Named constants for return values.  The following invariants hold:
+ * `GNUNET_NO == 0` (to allow `if (GNUNET_NO)`) `GNUNET_OK !=
+ * GNUNET_SYSERR`, `GNUNET_OK != GNUNET_NO`, `GNUNET_NO !=
+ * GNUNET_SYSERR` and finally `GNUNET_YES != GNUNET_NO`.
  */
 #define GNUNET_OK      1
 #define GNUNET_SYSERR -1
@@ -108,7 +108,7 @@ extern "C"
 
 /**
  * @ingroup logging
- * define GNUNET_EXTRA_LOGGING if using this header outside the GNUnet source
+ * define #GNUNET_EXTRA_LOGGING if using this header outside the GNUnet source
  * tree where gnunet_config.h is unavailable
  */
 #ifndef GNUNET_EXTRA_LOGGING
@@ -963,8 +963,6 @@ GNUNET_copy_message (const struct GNUNET_MessageHeader *msg);
 #define __func__ "<unknown>"
 #endif
 #endif
-
-
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

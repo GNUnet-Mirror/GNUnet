@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gnunet-0.8.1\n"
 "Report-Msgid-Bugs-To: gnunet-developers@mail.gnu.org\n"
-"POT-Creation-Date: 2013-12-23 19:38+0100\n"
+"POT-Creation-Date: 2013-12-23 22:41+0100\n"
 "PO-Revision-Date: 2011-07-09 12:12+0800\n"
 "Last-Translator: Wylmer Wang <wantinghard@gmail.com>\n"
 "Language-Team: Chinese (simplified) <i18n-zh@googlegroups.com>\n"
@@ -355,49 +355,49 @@ msgstr ""
 msgid "Received last message for %s \n"
 msgstr ""
 
-#: src/ats/gnunet-service-ats_addresses.c:1943
-#: src/ats/gnunet-service-ats_addresses.c:1987
+#: src/ats/gnunet-service-ats_addresses.c:1944
+#: src/ats/gnunet-service-ats_addresses.c:1988
 #, c-format
 msgid ""
 "Could not load quota for network `%s':  `%s', assigning default bandwidth "
 "%llu\n"
 msgstr ""
 
-#: src/ats/gnunet-service-ats_addresses.c:1950
+#: src/ats/gnunet-service-ats_addresses.c:1951
 #, c-format
 msgid "Outbound quota configure for network `%s' is %llu\n"
 msgstr ""
 
-#: src/ats/gnunet-service-ats_addresses.c:1958
+#: src/ats/gnunet-service-ats_addresses.c:1959
 #, c-format
 msgid ""
 "No outbound quota configured for network `%s', assigning default bandwidth "
 "%llu\n"
 msgstr ""
 
-#: src/ats/gnunet-service-ats_addresses.c:1994
+#: src/ats/gnunet-service-ats_addresses.c:1995
 #, c-format
 msgid "Inbound quota configured for network `%s' is %llu\n"
 msgstr ""
 
-#: src/ats/gnunet-service-ats_addresses.c:2002
+#: src/ats/gnunet-service-ats_addresses.c:2003
 #, c-format
 msgid ""
 "No outbound quota configure for network `%s', assigning default bandwidth "
 "%llu\n"
 msgstr ""
 
-#: src/ats/gnunet-service-ats_addresses.c:2172
+#: src/ats/gnunet-service-ats_addresses.c:2173
 #, c-format
 msgid "Initializing solver `%s '`%s'\n"
 msgstr ""
 
-#: src/ats/gnunet-service-ats_addresses.c:2175
+#: src/ats/gnunet-service-ats_addresses.c:2176
 #, fuzzy, c-format
 msgid "Failed to initialize solver `%s'!\n"
 msgstr "无法初始化 SQLite：%s。\n"
 
-#: src/ats/gnunet-service-ats_addresses.c:2198
+#: src/ats/gnunet-service-ats_addresses.c:2199
 #, fuzzy
 msgid "Failed to initialize solver!\n"
 msgstr "无法初始化 SQLite：%s。\n"
@@ -1172,24 +1172,24 @@ msgstr ""
 msgid "# sessions terminated by key expiration"
 msgstr ""
 
-#: src/core/gnunet-service-core_kx.c:1380
-#: src/core/gnunet-service-core_kx.c:1405
+#: src/core/gnunet-service-core_kx.c:1382
+#: src/core/gnunet-service-core_kx.c:1407
 msgid "# bytes dropped (duplicates)"
 msgstr ""
 
-#: src/core/gnunet-service-core_kx.c:1392
+#: src/core/gnunet-service-core_kx.c:1394
 msgid "# bytes dropped (out of sequence)"
 msgstr ""
 
-#: src/core/gnunet-service-core_kx.c:1433
+#: src/core/gnunet-service-core_kx.c:1436
 msgid "# bytes dropped (ancient message)"
 msgstr ""
 
-#: src/core/gnunet-service-core_kx.c:1441
+#: src/core/gnunet-service-core_kx.c:1444
 msgid "# bytes of payload decrypted"
 msgstr ""
 
-#: src/core/gnunet-service-core_kx.c:1472
+#: src/core/gnunet-service-core_kx.c:1479
 msgid "# PAYLOAD dropped (out of order)"
 msgstr ""
 
@@ -7792,17 +7792,17 @@ msgid ""
 "Must specify `%s' or numeric IP address for `%s' of `%s' in configuration!\n"
 msgstr ""
 
-#: src/util/resolver_api.c:343
+#: src/util/resolver_api.c:348
 #, fuzzy, c-format
 msgid "Timeout trying to resolve IP address `%s'.\n"
 msgstr "GNUnet 现在使用 IP 地址 %s。\n"
 
-#: src/util/resolver_api.c:347
+#: src/util/resolver_api.c:352
 #, c-format
 msgid "Timeout trying to resolve hostname `%s'.\n"
 msgstr ""
 
-#: src/util/resolver_api.c:891
+#: src/util/resolver_api.c:908
 #, fuzzy, c-format
 msgid "Could not resolve our FQDN : %s\n"
 msgstr "无法解析“%s”(%s)：%s\n"
