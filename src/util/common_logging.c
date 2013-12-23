@@ -321,7 +321,7 @@ log_rotate (const char *new_name)
  * Setup the log file.
  *
  * @param tm timestamp for which we should setup logging
- * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 static int
 setup_log_file (const struct tm *tm)
@@ -703,7 +703,7 @@ GNUNET_log_setup (const char *comp,
  * Add a custom logger.
  *
  * @param logger log function
- * @param logger_cls closure for logger
+ * @param logger_cls closure for @a logger
  */
 void
 GNUNET_logger_add (GNUNET_Logger logger, void *logger_cls)
@@ -722,7 +722,7 @@ GNUNET_logger_add (GNUNET_Logger logger, void *logger_cls)
  * Remove a custom logger.
  *
  * @param logger log function
- * @param logger_cls closure for logger
+ * @param logger_cls closure for @a logger
  */
 void
 GNUNET_logger_remove (GNUNET_Logger logger, void *logger_cls)
@@ -732,14 +732,14 @@ GNUNET_logger_remove (GNUNET_Logger logger, void *logger_cls)
 
   prev = NULL;
   pos = loggers;
-  while ((pos != NULL) &&
+  while ((NULL != pos) &&
          ((pos->logger != logger) || (pos->logger_cls != logger_cls)))
   {
     prev = pos;
     pos = pos->next;
   }
-  GNUNET_assert (pos != NULL);
-  if (prev == NULL)
+  GNUNET_assert (NULL != pos);
+  if (NULL == prev)
     loggers = pos->next;
   else
     prev->next = pos->next;
@@ -1233,7 +1233,8 @@ GNUNET_log_config_invalid (enum GNUNET_ErrorType kind,
 /**
  * Initializer
  */
-void __attribute__ ((constructor)) GNUNET_util_cl_init ()
+void __attribute__ ((constructor))
+GNUNET_util_cl_init ()
 {
   GNUNET_stderr = stderr;
 #ifdef MINGW
@@ -1249,7 +1250,8 @@ void __attribute__ ((constructor)) GNUNET_util_cl_init ()
 /**
  * Destructor
  */
-void __attribute__ ((destructor)) GNUNET_util_cl_fini ()
+void __attribute__ ((destructor))
+GNUNET_util_cl_fini ()
 {
 #if WINDOWS
   DeleteCriticalSection (&output_message_cs);
