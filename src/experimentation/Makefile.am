@@ -19,11 +19,11 @@ endif
 
 if HAVE_EXPERIMENTAL
  TEXT_EXP_CLIQUE = test_experimentation_clique_connect test_experimentation_clique_run
-endif 
+endif
 
 check_PROGRAMS = \
  $(TEXT_EXP_CLIQUE)
- 
+
 if ENABLE_TEST_RUN
  TESTS = \
  $(TEXT_EXP_CLIQUE)
@@ -33,7 +33,7 @@ libexec_PROGRAMS = \
  gnunet-daemon-experimentation
 
 gnunet_daemon_experimentation_SOURCES = \
- gnunet-daemon-experimentation.c \
+ gnunet-daemon-experimentation.c gnunet-daemon-experimentation.h \
  gnunet-daemon-experimentation_capabilities.c \
  gnunet-daemon-experimentation_nodes.c \
  gnunet-daemon-experimentation_scheduler.c \
@@ -42,7 +42,7 @@ gnunet_daemon_experimentation_SOURCES = \
 gnunet_daemon_experimentation_LDADD = \
   $(top_builddir)/src/core/libgnunetcore.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
-  $(top_builddir)/src/util/libgnunetutil.la 
+  $(top_builddir)/src/util/libgnunetutil.la
 
 test_experimentation_clique_connect_SOURCES = \
  test_experimentation_clique_connect.c
@@ -57,14 +57,14 @@ test_experimentation_clique_run_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/testbed/libgnunettestbed.la
- 
+
 #test_experimentation_clique_run_SOURCES = \
 # test_experimentation_clique_run.c
 #test_experimentation_clique_run_LDADD = \
 # $(top_builddir)/src/util/libgnunetutil.la \
 # $(top_builddir)/src/statistics/libgnunetstatistics.la \
-# $(top_builddir)/src/testbed/libgnunettestbed.la 
- 
+# $(top_builddir)/src/testbed/libgnunettestbed.la
+
 
 EXTRA_DIST = \
  test_experimentation_clique.conf \

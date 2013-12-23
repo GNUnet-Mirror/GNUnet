@@ -5,10 +5,10 @@ pkgcfgdir= $(pkgdatadir)/config.d/
 libexecdir= $(pkglibdir)/libexec/
 
 pkgcfg_DATA = \
-  scalarproduct.conf 
+  scalarproduct.conf
 
 if MINGW
- WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols 
+ WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols
 endif
 
 if USE_COVERAGE
@@ -30,7 +30,7 @@ gnunet_scalarproduct_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/scalarproduct/libgnunetscalarproduct.la \
   -lgcrypt \
-  $(GN_LIBINTL) 
+  $(GN_LIBINTL)
 gnunet_scalarproduct_DEPENDENCIES = \
   libgnunetscalarproduct.la
 
@@ -44,7 +44,8 @@ gnunet_service_scalarproduct_LDADD = \
   $(GN_LIBINTL)
 
 libgnunetscalarproduct_la_SOURCES = \
-  scalarproduct_api.c 
+  scalarproduct_api.c \
+  scalarproduct.h
 libgnunetscalarproduct_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
@@ -61,7 +62,7 @@ check_SCRIPTS = \
   test_scalarproduct.sh \
   test_scalarproduct_negative.sh \
   test_scalarproduct_negativezero.sh
-  
+
 if ENABLE_TEST_RUN
   TESTS = $(check_SCRIPTS)
 endif

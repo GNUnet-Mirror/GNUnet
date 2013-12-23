@@ -8,7 +8,7 @@ pkgcfg_DATA = \
   multicast.conf
 
 if MINGW
- WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols 
+ WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols
 endif
 
 if USE_COVERAGE
@@ -18,8 +18,8 @@ endif
 lib_LTLIBRARIES = libgnunetmulticast.la
 
 libgnunetmulticast_la_SOURCES = \
-  multicast_api.c 
-# multicast.h
+  multicast_api.c \
+  multicast.h
 libgnunetmulticast_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL) $(XLIB)
@@ -29,19 +29,19 @@ libgnunetmulticast_la_LDFLAGS = \
 
 
 bin_PROGRAMS = \
- gnunet-multicast 
+ gnunet-multicast
 
 libexec_PROGRAMS = \
  gnunet-service-multicast
 
 gnunet_multicast_SOURCES = \
- gnunet-multicast.c         
+ gnunet-multicast.c
 gnunet_multicast_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
 
 gnunet_service_multicast_SOURCES = \
- gnunet-service-multicast.c         
+ gnunet-service-multicast.c
 gnunet_service_multicast_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
@@ -57,5 +57,5 @@ endif
 test_multicast_api_SOURCES = \
  test_multicast_api.c
 test_multicast_api_LDADD = \
-  $(top_builddir)/src/util/libgnunetutil.la  
+  $(top_builddir)/src/util/libgnunetutil.la
 

@@ -8,7 +8,7 @@ pkgcfg_DATA = \
   secretsharing.conf
 
 if MINGW
- WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols 
+ WINFLAGS = -Wl,--no-undefined -Wl,--export-all-symbols
 endif
 
 if USE_COVERAGE
@@ -37,7 +37,8 @@ gnunet_secretsharing_profiler_DEPENDENCIES = \
   libgnunetsecretsharing.la
 
 gnunet_service_secretsharing_SOURCES = \
- gnunet-service-secretsharing.c
+ gnunet-service-secretsharing.c \
+ secretsharing_protocol.h
 gnunet_service_secretsharing_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/consensus/libgnunetconsensus.la \
@@ -47,7 +48,8 @@ gnunet_service_secretsharing_DEPENDENCIES = \
   $(top_builddir)/src/set/libgnunetset.la
 
 libgnunetsecretsharing_la_SOURCES = \
-  secretsharing_api.c
+  secretsharing_api.c \
+  secretsharing.h
 libgnunetsecretsharing_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(LTLIBINTL)
