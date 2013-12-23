@@ -370,6 +370,8 @@ gnunet_service_test_barriers_LDADD = \
 EXTRA_DIST = \
   test_testbed_api.conf \
   test_testbed_api_test_timeout.conf \
+  test_testbed_api_template.conf \
+  test_testbed_logger_api.conf \
   test_testbed_api_testbed_run_topologyring.conf \
   test_testbed_api_testbed_run_topologyclique.conf \
   test_testbed_api_testbed_run_topologyline.conf \

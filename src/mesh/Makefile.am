@@ -190,4 +190,6 @@ endif
 
 EXTRA_DIST = \
   mesh.h mesh_protocol.h \
-  test_mesh.conf
+  test_mesh.conf \
+  test_mesh_drop.conf
+

@@ -50,7 +50,7 @@ libgnunetats_la_LDFLAGS = \
 libgnunet_plugin_ats_proportional_la_SOURCES = \
   plugin_ats_proportional.c
 libgnunet_plugin_ats_proportional_la_LIBADD = \
-	libgnunetats.la \
+  libgnunetats.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(LTLIBINTL)
@@ -64,7 +64,7 @@ if HAVE_LIBGLPK
 libgnunet_plugin_ats_mlp_la_SOURCES = \
   plugin_ats_mlp.c
 libgnunet_plugin_ats_mlp_la_LIBADD = \
-	libgnunetats.la \
+  libgnunetats.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la
 libgnunet_plugin_ats_mlp_la_LDFLAGS = \
@@ -504,7 +504,7 @@ test_ats_solver_convergence_ril_LDADD = \
 	$(top_builddir)/src/statistics/libgnunetstatistics.la
 
 EXTRA_DIST = \
-  ats.h \
+  ats.h perf_ats.h \
   plugin_ats_proportional.h \
   plugin_ats_mlp.h \
   plugin_ats_ril.h \
