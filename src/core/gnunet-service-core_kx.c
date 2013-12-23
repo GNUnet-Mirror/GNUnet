@@ -108,8 +108,7 @@ struct EphemeralKeyMessage
   struct GNUNET_TIME_AbsoluteNBO expiration_time;
 
   /**
-   * Ephemeral public ECC key (always for NIST P-521) encoded in a format suitable
-   * for network transmission as created using 'gcry_sexp_sprint'.
+   * Ephemeral public ECC key.
    */
   struct GNUNET_CRYPTO_EcdhePublicKey ephemeral_key;
 
@@ -306,6 +305,11 @@ struct GSC_KeyExchangeInfo
    * PING message we transmit to the other peer.
    */
   struct PingMessage ping;
+
+  /**
+   * Ephemeral public ECC key of the other peer.
+   */
+  struct GNUNET_CRYPTO_EcdhePublicKey other_ephemeral_key;
 
   /**
    * Key we use to encrypt our messages for the other peer
@@ -736,6 +740,41 @@ send_ping (struct GSC_KeyExchangeInfo *kx)
                            MIN_PING_FREQUENCY);
 }
 
+
+/**
+ * Derive fresh session keys from the current ephemeral keys.
+ *
+ * @param kx session to derive keys for
+ */
+static void
+derive_session_keys (struct GSC_KeyExchangeInfo *kx)
+{
+  struct GNUNET_HashCode key_material;
+
+  if (GNUNET_OK !=
+      GNUNET_CRYPTO_ecc_ecdh (my_ephemeral_key,
+			      &kx->other_ephemeral_key,
+			      &key_material))
+  {
+    GNUNET_break (0);
+    return;
+  }
+  derive_aes_key (&GSC_my_identity,
+		  &kx->peer,
+		  &key_material,
+		  &kx->encrypt_key);
+  derive_aes_key (&kx->peer,
+		  &GSC_my_identity,
+		  &key_material,
+		  &kx->decrypt_key);
+  memset (&key_material, 0, sizeof (key_material));
+  /* fresh key, reset sequence numbers */
+  kx->last_sequence_number_received = 0;
+  kx->last_packets_bitmap = 0;
+  setup_fresh_ping (kx);
+}
+
+
 /**
  * We received a SET_KEY message.  Validate and update
  * our key material and status.
@@ -753,7 +792,6 @@ GSC_KX_handle_ephemeral_key (struct GSC_KeyExchangeInfo *kx,
   struct GNUNET_TIME_Absolute now;
   enum KxStateMachine sender_status;
   uint16_t size;
-  struct GNUNET_HashCode key_material;
 
   size = ntohs (msg->size);
   if (sizeof (struct EphemeralKeyMessage) != size)
@@ -815,30 +853,12 @@ GSC_KX_handle_ephemeral_key (struct GSC_KeyExchangeInfo *kx,
 		end_t.abs_value_us);
     return;
   }
-  if (GNUNET_OK !=
-      GNUNET_CRYPTO_ecc_ecdh (my_ephemeral_key,
-			      &m->ephemeral_key,
-			      &key_material))
-  {
-    GNUNET_break (0);
-    return;
-  }
-  GNUNET_STATISTICS_update (GSC_stats,
-                            gettext_noop ("# EPHEMERAL_KEY messages decrypted"), 1,
-                            GNUNET_NO);
-  derive_aes_key (&GSC_my_identity,
-		  &kx->peer,
-		  &key_material,
-		  &kx->encrypt_key);
-  derive_aes_key (&kx->peer,
-		  &GSC_my_identity,
-		  &key_material,
-		  &kx->decrypt_key);
-  /* fresh key, reset sequence numbers */
-  kx->last_sequence_number_received = 0;
-  kx->last_packets_bitmap = 0;
+  kx->other_ephemeral_key = m->ephemeral_key;
   kx->foreign_key_expires = end_t;
-  setup_fresh_ping (kx);
+  derive_session_keys (kx);
+  GNUNET_STATISTICS_update (GSC_stats,
+                            gettext_noop ("# EPHEMERAL_KEY messages received"), 1,
+                            GNUNET_NO);
 
   /* check if we still need to send the sender our key */
   sender_status = (enum KxStateMachine) ntohl (m->sender_status);
@@ -1533,6 +1553,7 @@ do_rekey (void *cls,
   for (pos = kx_head; NULL != pos; pos = pos->next)
   {
     pos->status = KX_STATE_REKEY_SENT;
+    derive_session_keys (pos);
     send_key (pos);
   }
 }
