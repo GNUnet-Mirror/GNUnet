@@ -48,12 +48,25 @@ check_timeout = 180
 
 if os.name == "nt":
   tmp = os.getenv ("TEMP")
+  signals = [signal.SIGTERM, signal.SIGINT]
 else:
   tmp = "/tmp"
+  signals = [signal.SIGTERM, signal.SIGINT, signal.SIGHUP, signal.SIGQUIT]
+
+def cleanup_onerror (function, path, excinfo):
+  import stat
+  if not os.path.exists (path):
+    pass
+  elif not os.access(path, os.W_OK):
+    # Is the error an access error ?
+    os.chmod (path, stat.S_IWUSR)
+    function (path)
+  else:
+    raise
 
 def cleanup ():
-  shutil.rmtree (os.path.join (tmp, "c_bootstrap_server"), True)
-  shutil.rmtree (os.path.join (tmp, "c_no_nat_client"), True)
+  shutil.rmtree (os.path.join (tmp, "c_bootstrap_server"), False, cleanup_onerror)
+  shutil.rmtree (os.path.join (tmp, "c_no_nat_client"), False, cleanup_onerror)
 
 
 def success_disconnect_cont (check):
@@ -138,7 +151,7 @@ def run ():
 	client = None
 	success = False  
 	
-	for sig in [signal.SIGTERM, signal.SIGINT, signal.SIGHUP, signal.SIGQUIT]:
+	for sig in signals:
 		signal.signal(sig, SigHandler)
 
 	test = Test ('test_integration_bootstrap_and_connect.py', verbose)

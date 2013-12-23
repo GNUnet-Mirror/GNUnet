@@ -49,15 +49,28 @@ check_timeout = 180
 
 if os.name == "nt":
   tmp = os.getenv ("TEMP")
+  signals = [signal.SIGTERM, signal.SIGINT]
 else:
   tmp = "/tmp"
+  signals = [signal.SIGTERM, signal.SIGINT, signal.SIGHUP, signal.SIGQUIT]
+
+def cleanup_onerror (function, path, excinfo):
+  import stat
+  if not os.path.exists (path):
+    pass
+  elif not os.access(path, os.W_OK):
+    # Is the error an access error ?
+    os.chmod (path, stat.S_IWUSR)
+    function (path)
+  else:
+    raise
 
 def cleanup ():
     retries = 10
     path = os.path.join (tmp, "c_bootstrap_server")  
     test.p ("Removing " + path)      
     while ((os.path.exists(path)) and (retries > 0)):
-        shutil.rmtree ((path), False)
+        shutil.rmtree ((path), False, cleanup_onerror)
         time.sleep (1)
         retries -= 1
     if (os.path.exists(path)):
@@ -68,7 +81,7 @@ def cleanup ():
     path = os.path.join (tmp, "c_nat_client")  
     test.p ("Removing " + path)      
     while ((os.path.exists(path)) and (retries > 0)):
-        shutil.rmtree ((path), False)
+        shutil.rmtree ((path), False, cleanup_onerror)
         time.sleep (1)
         retries -= 1
     if (os.path.exists(path)):
@@ -167,7 +180,7 @@ def run ():
 	server = None
 	client = None	
 
-	for sig in [signal.SIGTERM, signal.SIGINT, signal.SIGHUP, signal.SIGQUIT]:
+	for sig in signals:
 		signal.signal(sig, SigHandler)
 	
 	
