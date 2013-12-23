@@ -531,7 +531,6 @@ struct GNUNET_ATS_SchedulingHandle;
 
 /**
  * Handle for address suggestion requests
- *
  */
 struct GNUNET_ATS_SuggestHandle;
 
@@ -550,14 +549,14 @@ struct Session;
  * @param bandwidth_out assigned outbound bandwidth for the connection
  * @param bandwidth_in assigned inbound bandwidth for the connection
  * @param ats performance data for the address (as far as known)
- * @param ats_count number of performance records in 'ats'
+ * @param ats_count number of performance records in @a ats
  */
 typedef void
 (*GNUNET_ATS_AddressSuggestionCallback) (void *cls,
-    const struct GNUNET_HELLO_Address * address, struct Session * session,
+    const struct GNUNET_HELLO_Address *address, struct Session *session,
     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-    const struct GNUNET_ATS_Information * ats, uint32_t ats_count);
+    const struct GNUNET_ATS_Information *ats, uint32_t ats_count);
 
 /**
  * Initialize the ATS subsystem.
@@ -588,7 +587,8 @@ GNUNET_ATS_scheduling_done (struct GNUNET_ATS_SchedulingHandle *sh);
  */
 void
 GNUNET_ATS_reset_backoff (struct GNUNET_ATS_SchedulingHandle *sh,
-    const struct GNUNET_PeerIdentity *peer);
+                          const struct GNUNET_PeerIdentity *peer);
+
 
 /**
  * We would like to establish a new connection with a peer.  ATS
@@ -600,7 +600,8 @@ GNUNET_ATS_reset_backoff (struct GNUNET_ATS_SchedulingHandle *sh,
  */
 struct GNUNET_ATS_SuggestHandle *
 GNUNET_ATS_suggest_address (struct GNUNET_ATS_SchedulingHandle *sh,
-    const struct GNUNET_PeerIdentity *peer);
+                            const struct GNUNET_PeerIdentity *peer);
+
 
 /**
  * We want to cancel ATS suggesting addresses for a peer.
@@ -610,7 +611,8 @@ GNUNET_ATS_suggest_address (struct GNUNET_ATS_SchedulingHandle *sh,
  */
 void
 GNUNET_ATS_suggest_address_cancel (struct GNUNET_ATS_SchedulingHandle *sh,
-    const struct GNUNET_PeerIdentity *peer);
+                                   const struct GNUNET_PeerIdentity *peer);
+
 
 /**
  * Convert a ATS property to a string
@@ -621,6 +623,7 @@ GNUNET_ATS_suggest_address_cancel (struct GNUNET_ATS_SchedulingHandle *sh,
 const char *
 GNUNET_ATS_print_property_type (uint32_t type);
 
+
 /**
  * Convert a GNUNET_ATS_NetworkType to a string
  *
@@ -629,6 +632,7 @@ GNUNET_ATS_print_property_type (uint32_t type);
  */
 const char *
 GNUNET_ATS_print_network_type (uint32_t net);
+
 
 /**
  * Returns where the address is located: LAN or WAN or ...
@@ -639,7 +643,9 @@ GNUNET_ATS_print_network_type (uint32_t net);
  */
 struct GNUNET_ATS_Information
 GNUNET_ATS_address_get_type (struct GNUNET_ATS_SchedulingHandle *sh,
-    const struct sockaddr * addr, socklen_t addrlen);
+                             const struct sockaddr * addr,
+                             socklen_t addrlen);
+
 
 /**
  * Test if a address and a session is known to ATS
@@ -647,11 +653,13 @@ GNUNET_ATS_address_get_type (struct GNUNET_ATS_SchedulingHandle *sh,
  * @param sh the scheduling handle
  * @param address the address
  * @param session the session
- * @return GNUNET_YES or GNUNET_NO
+ * @return #GNUNET_YES or #GNUNET_NO
  */
 int
 GNUNET_ATS_session_known (struct GNUNET_ATS_SchedulingHandle *sh,
-    const struct GNUNET_HELLO_Address *address, struct Session *session);
+                          const struct GNUNET_HELLO_Address *address,
+                          struct Session *session);
+
 
 /**
  * We have a new address ATS should know. Addresses have to be added with this
@@ -661,12 +669,15 @@ GNUNET_ATS_session_known (struct GNUNET_ATS_SchedulingHandle *sh,
  * @param address the address
  * @param session session handle (if available)
  * @param ats performance data for the address
- * @param ats_count number of performance records in 'ats'
+ * @param ats_count number of performance records in @a ats
  */
 int
 GNUNET_ATS_address_add (struct GNUNET_ATS_SchedulingHandle *sh,
-    const struct GNUNET_HELLO_Address *address, struct Session *session,
-    const struct GNUNET_ATS_Information *ats, uint32_t ats_count);
+                        const struct GNUNET_HELLO_Address *address,
+                        struct Session *session,
+                        const struct GNUNET_ATS_Information *ats,
+                        uint32_t ats_count);
+
 
 /**
  * We have updated performance statistics for a given address.  Note
@@ -680,13 +691,16 @@ GNUNET_ATS_address_add (struct GNUNET_ATS_SchedulingHandle *sh,
  * @param address updated address
  * @param session session handle (if available)
  * @param ats performance data for the address
- * @param ats_count number of performance records in 'ats'
- * @return GNUNET_OK or GNUNET_SYSERR
+ * @param ats_count number of performance records in @a ats
+ * @return #GNUNET_OK or #GNUNET_SYSERR
  */
 int
 GNUNET_ATS_address_update (struct GNUNET_ATS_SchedulingHandle *sh,
-    const struct GNUNET_HELLO_Address *address, struct Session *session,
-    const struct GNUNET_ATS_Information *ats, uint32_t ats_count);
+                           const struct GNUNET_HELLO_Address *address,
+                           struct Session *session,
+                           const struct GNUNET_ATS_Information *ats,
+                           uint32_t ats_count);
+
 
 /**
  * An address is now in use or not used any more.
@@ -694,13 +708,15 @@ GNUNET_ATS_address_update (struct GNUNET_ATS_SchedulingHandle *sh,
  * @param sh handle
  * @param address the address
  * @param session session handle
- * @param in_use GNUNET_YES if this address is now used, GNUNET_NO
+ * @param in_use #GNUNET_YES if this address is now used, #GNUNET_NO
  * if address is not used any more
  */
 void
 GNUNET_ATS_address_in_use (struct GNUNET_ATS_SchedulingHandle *sh,
-    const struct GNUNET_HELLO_Address *address, struct Session *session,
-    int in_use);
+                           const struct GNUNET_HELLO_Address *address,
+                           struct Session *session,
+                           int in_use);
+
 
 /**
  * A session got destroyed, stop including it as a valid address.
@@ -711,7 +727,9 @@ GNUNET_ATS_address_in_use (struct GNUNET_ATS_SchedulingHandle *sh,
  */
 void
 GNUNET_ATS_address_destroyed (struct GNUNET_ATS_SchedulingHandle *sh,
-    const struct GNUNET_HELLO_Address *address, struct Session *session);
+                              const struct GNUNET_HELLO_Address *address,
+                              struct Session *session);
+
 
 /* ******************************** Performance API ***************************** */
 

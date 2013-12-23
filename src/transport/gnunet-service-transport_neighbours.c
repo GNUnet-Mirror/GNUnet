@@ -497,7 +497,7 @@ struct NeighbourMapEntry
 
   /**
    * Timestamp we should include in our next CONNECT_ACK message.
-   * (only valid if 'send_connect_ack' is GNUNET_YES).  Used to build
+   * (only valid if 'send_connect_ack' is #GNUNET_YES).  Used to build
    * our CONNECT_ACK message.
    */
   struct GNUNET_TIME_Absolute connect_ack_timestamp;
@@ -908,6 +908,9 @@ free_neighbour (struct NeighbourMapEntry *n,
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
   struct GNUNET_HELLO_Address *backup_primary;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Freeing neighbur state of peer `%s'\n",
+              GNUNET_i2s (&n->id));
   n->is_active = NULL; /* always free'd by its own continuation! */
 
   /* fail messages currently in the queue */
@@ -1677,6 +1680,9 @@ send_session_connect (struct NeighbourAddress *na)
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
   struct SessionConnectMessage connect_msg;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Sending SESSION_CONNECT message to peer %s\n",
+              GNUNET_i2s (&na->address->peer));
   if (NULL == (papi = GST_plugins_find (na->address->transport_name)))
   {
     GNUNET_break (0);
@@ -1733,6 +1739,9 @@ send_session_connect_ack_message (const struct GNUNET_HELLO_Address *address,
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
   struct SessionConnectMessage connect_msg;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Sending CONNECT_ACK to peer `%s'\n",
+              GNUNET_i2s (peer));
   if (NULL == (papi = GST_plugins_find (address->transport_name)))
   {
     GNUNET_break (0);
@@ -1925,7 +1934,9 @@ handle_test_blacklist_cont (void *cls,
               GNUNET_i2s (peer),
               (GNUNET_OK == result) ? "allowed" : "FORBIDDEN");
   if (GNUNET_OK == result)
+  {
     GST_ats_add_address (bcc->na.address, bcc->na.session, NULL, 0);
+  }
   else
   {
     /* Blacklist disagreed on connecting to a peer with this address
@@ -1936,7 +1947,17 @@ handle_test_blacklist_cont (void *cls,
     GNUNET_ATS_address_destroyed (GST_ats, bcc->na.address, NULL);
   }
   if (NULL == (n = lookup_neighbour (peer)))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "No neighbor entry for peer `%s', ignoring blacklist result\n",
+                GNUNET_i2s (peer));
     goto cleanup; /* nobody left to care about new address */
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received blacklist result for peer `%s' in state %s/%d\n",
+              GNUNET_i2s (peer),
+              print_state (n->state),
+              n->send_connect_ack);
   switch (n->state)
   {
   case S_NOT_CONNECTED:
@@ -1960,7 +1981,12 @@ handle_test_blacklist_cont (void *cls,
 					n->connect_ack_timestamp);
     }
     if (GNUNET_YES != address_matches (&bcc->na, &n->primary_address))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Blacklist result for peer %s is for non-primary address, ignored\n",
+                  GNUNET_i2s (peer));
       break; /* result for an address we currently don't care about */
+    }
     if (GNUNET_OK == result)
     {
       n->timeout = GNUNET_TIME_relative_to_absolute (SETUP_CONNECTION_TIMEOUT);
@@ -1989,6 +2015,9 @@ handle_test_blacklist_cont (void *cls,
     n->state = S_CONNECT_RECV_ATS;
     n->timeout = GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT);
     GNUNET_ATS_reset_backoff (GST_ats, peer);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Suggesting address for peer %s to ATS\n",
+                GNUNET_i2s (peer));
     n->suggest_handle = GNUNET_ATS_suggest_address (GST_ats, peer);
     break;
   case S_CONNECT_RECV_ATS:
@@ -2057,7 +2086,11 @@ handle_test_blacklist_cont (void *cls,
 					n->connect_ack_timestamp);
     }
     if (GNUNET_YES != address_matches (&bcc->na, &n->primary_address))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Blacklist result ignored, as it is not for our primary address\n");
       break; /* result for an address we currently don't care about */
+    }
     if (GNUNET_OK == result)
     {
       n->state = S_RECONNECT_SENT;
@@ -2083,7 +2116,11 @@ handle_test_blacklist_cont (void *cls,
     break;
   case S_CONNECTED_SWITCHING_BLACKLIST:
     if (GNUNET_YES != address_matches (&bcc->na, &n->alternative_address))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Blacklist result ignored, as it is not for our primary address\n");
       break; /* result for an address we currently don't care about */
+    }
     if (GNUNET_OK == result)
     {
       send_session_connect (&n->alternative_address);
@@ -2146,6 +2183,9 @@ check_blacklist (const struct GNUNET_PeerIdentity *peer,
   struct BlackListCheckContext *bcc;
   struct GST_BlacklistCheck *bc;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Checking peer `%s' against blacklist\n",
+              GNUNET_i2s (peer));
   bcc = GNUNET_new (struct BlackListCheckContext);
   bcc->na.address = GNUNET_HELLO_address_copy (address);
   bcc->na.session = session;
@@ -2211,6 +2251,11 @@ GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
   n->send_connect_ack = 1;
   n->connect_ack_timestamp = ts;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received SESSION_CONNECT for peer `%s' in state %s/%d\n",
+              GNUNET_i2s (peer),
+              print_state (n->state),
+              n->send_connect_ack);
   switch (n->state)
   {
   case S_NOT_CONNECTED:
@@ -2312,14 +2357,26 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
   struct NeighbourMapEntry *n;
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
 
-  GNUNET_assert (address->transport_name != NULL);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "ATS has decided on an address for peer %s\n",
+              GNUNET_i2s (peer));
+  GNUNET_assert (NULL != address->transport_name);
   if (NULL == (n = lookup_neighbour (peer)))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Peer %s is unknown, suggestion ignored\n",
+                GNUNET_i2s (peer));
     return;
+  }
 
   /* Obtain an session for this address from plugin */
   if (NULL == (papi = GST_plugins_find (address->transport_name)))
   {
     /* we don't have the plugin for this address */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Plugin `%s' is unknown, suggestion for peer %s ignored\n",
+                address->transport_name,
+                GNUNET_i2s (peer));
     GNUNET_ATS_address_destroyed (GST_ats, address, NULL);
     return;
   }

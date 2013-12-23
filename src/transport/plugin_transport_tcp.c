@@ -61,7 +61,7 @@ static uint32_t myoptions;
 struct WelcomeMessage
 {
   /**
-   * Type is GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_WELCOME.
+   * Type is #GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_WELCOME.
    */
   struct GNUNET_MessageHeader header;
 
@@ -80,7 +80,7 @@ struct WelcomeMessage
 struct TCP_NAT_ProbeMessage
 {
   /**
-   * Type is GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_NAT_PROBE.
+   * Type is #GNUNET_MESSAGE_TYPE_TRANSPORT_TCP_NAT_PROBE.
    */
   struct GNUNET_MessageHeader header;
 

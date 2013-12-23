@@ -561,7 +561,11 @@ GST_ats_add_address (const struct GNUNET_HELLO_Address *address,
   }
 
   if (GNUNET_YES == GNUNET_ATS_session_known (GST_ats, address, session))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "ATS already knows the address, not passing it on again\n");
     return;
+  }
 
   net = papi->get_network (NULL, session);
   if (GNUNET_ATS_NET_UNSPECIFIED == net)
@@ -754,7 +758,7 @@ ats_request_address_change (void *cls,
   uint32_t bw_out = ntohl (bandwidth_out.value__);
 
   /* ATS tells me to disconnect from peer */
-  if ((bw_in == 0) && (bw_out == 0))
+  if ((0 == bw_in) && (0 == bw_out))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "ATS tells me to disconnect from peer `%s'\n",
