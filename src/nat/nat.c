@@ -587,16 +587,26 @@ process_external_ip (void *cls,
   {
     h->ext_dns = NULL;
     /* Current iteration is over, remove 'old' IPs now */
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Purging old IPs for external address\n");
     remove_from_address_list_by_source (h, LAL_EXTERNAL_IP);
     if (1 == inet_pton (AF_INET,
                         h->external_address,
                         &dummy))
+    {
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Got numeric IP for external address, not repeating lookup\n");
       return;                   /* repated lookup pointless: was numeric! */
+    }
     h->dns_task =
       GNUNET_SCHEDULER_add_delayed (h->dyndns_frequency,
                                     &resolve_dns, h);
     return;
   }
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Got IP `%s' for external address `%s'\n",
+       GNUNET_a2s (addr, addrlen),
+       h->external_address);
   add_to_address_list (h, LAL_EXTERNAL_IP, addr, addrlen);
 }
 
@@ -891,7 +901,8 @@ start_gnunet_nat_server (struct GNUNET_NAT_Handle *h)
        (h->server_stdout =
         GNUNET_DISK_pipe (GNUNET_YES, GNUNET_YES, GNUNET_NO, GNUNET_YES))))
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Starting `%s' at `%s'\n",
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Starting `%s' at `%s'\n",
          "gnunet-helper-nat-server", h->internal_address);
     /* Start the server process */
     binary = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-nat-server");
@@ -982,6 +993,9 @@ resolve_dns (void *cls,
   for (pos = h->lal_head; NULL != pos; pos = pos->next)
     if (pos->source == LAL_EXTERNAL_IP)
       pos->source = LAL_EXTERNAL_IP_OLD;
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Resolving external address `%s'\n",
+       h->external_address);
   h->ext_dns =
       GNUNET_RESOLVER_ip_get (h->external_address, AF_INET,
                               GNUNET_TIME_UNIT_MINUTES,
@@ -1235,12 +1249,18 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
     h->enable_nat_server = GNUNET_NO;
 
   /* Check if NAT was hole-punched */
-  if ((NULL != h->address_callback) && (h->external_address != NULL) &&
-      (h->nat_punched == GNUNET_YES))
+  if ((NULL != h->address_callback) &&
+      (NULL != h->external_address) &&
+      (GNUNET_YES == h->nat_punched))
   {
     h->dns_task = GNUNET_SCHEDULER_add_now (&resolve_dns, h);
     h->enable_nat_server = GNUNET_NO;
     h->enable_upnp = GNUNET_NO;
+  }
+  else
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "No external IP address given to add to our list of addresses\n");
   }
 
   /* Test for SUID binaries */
@@ -1251,8 +1271,7 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
   {
     h->enable_nat_server = GNUNET_NO;
     LOG (GNUNET_ERROR_TYPE_WARNING,
-         _
-         ("Configuration requires `%s', but binary is not installed properly (SUID bit not set).  Option disabled.\n"),
+         _("Configuration requires `%s', but binary is not installed properly (SUID bit not set).  Option disabled.\n"),
          "gnunet-helper-nat-server");
   }
   GNUNET_free (binary);
@@ -1296,6 +1315,8 @@ GNUNET_NAT_unregister (struct GNUNET_NAT_Handle *h)
   struct LocalAddressList *lal;
   struct MiniList *ml;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "NAT unregister called\n");
   while (NULL != (ml = h->mini_head))
   {
     GNUNET_CONTAINER_DLL_remove (h->mini_head, h->mini_tail, ml);
