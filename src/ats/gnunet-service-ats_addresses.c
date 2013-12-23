@@ -1383,10 +1383,11 @@ eval_sum_bw_used (void *cls, const struct GNUNET_PeerIdentity *id, void *obj)
         ctx->bandwidth_out_assigned[c] += ntohl (addr->assigned_bw_out.value__);
       }
     }
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Active address in  %s with (in/out) %llu/%llu Bps\n",
-        GNUNET_ATS_print_network_type(net),
-        ntohl (addr->assigned_bw_in.value__),
-        ntohl (addr->assigned_bw_out.value__));
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Active address in  %s with (in/out) %u/%u Bps\n",
+                GNUNET_ATS_print_network_type (net),
+                (unsigned int) ntohl (addr->assigned_bw_in.value__),
+                (unsigned int) ntohl (addr->assigned_bw_out.value__));
   }
   return GNUNET_OK;
 }
