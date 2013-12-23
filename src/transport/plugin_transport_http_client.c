@@ -477,8 +477,7 @@ http_client_plugin_send (void *cls,
   /* lookup if session is really existing */
   if (GNUNET_YES != client_exist_session (plugin, s))
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, plugin->name,
-                     "Trying to send with invalid session %p \n", s);
+    GNUNET_break (0);
     return GNUNET_SYSERR;
   }
 
@@ -1758,6 +1757,7 @@ http_plugin_address_to_string (void *cls,
   return http_common_plugin_address_to_string (cls, PLUGIN_NAME, addr, addrlen);
 }
 
+
 static void
 http_client_plugin_update_session_timeout (void *cls,
                                   const struct GNUNET_PeerIdentity *peer,
@@ -1767,8 +1767,10 @@ http_client_plugin_update_session_timeout (void *cls,
 
   /* lookup if session is really existing */
   if (GNUNET_YES != client_exist_session (plugin, session))
+  {
+    GNUNET_break (0);
     return;
-
+  }
   client_reschedule_session_timeout (session);
 }
 
