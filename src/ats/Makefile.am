@@ -504,7 +504,7 @@ test_ats_solver_convergence_ril_LDADD = \
 	$(top_builddir)/src/statistics/libgnunetstatistics.la
 
 EXTRA_DIST = \
-  ats.h perf_ats.h \
+  ats.h \
   plugin_ats_proportional.h \
   plugin_ats_mlp.h \
   plugin_ats_ril.h \
