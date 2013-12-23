@@ -4,6 +4,7 @@ HOSTNAME = localhost
 BINARY = gnunet-service-gns
 UNIXPATH = $GNUNET_USER_RUNTIME_DIR/gnunet-service-gns.sock
 @UNIXONLY@PORT = 2102
+USER_SERVICE = YES
 
 # Do we require users that want to access GNS to run this process
 # (usually not a good idea)
