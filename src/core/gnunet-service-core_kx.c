@@ -1559,8 +1559,15 @@ do_rekey (void *cls,
   sign_ephemeral_key ();
   for (pos = kx_head; NULL != pos; pos = pos->next)
   {
-    pos->status = KX_STATE_REKEY_SENT;
-    derive_session_keys (pos);
+    if (KX_STATE_UP == pos->status)
+    {
+      pos->status = KX_STATE_REKEY_SENT;
+      derive_session_keys (pos);
+    }
+    if (KX_STATE_DOWN == pos->status)
+    {
+      pos->status = KX_STATE_KEY_SENT;
+    }
     send_key (pos);
   }
 }
