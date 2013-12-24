@@ -898,7 +898,7 @@ check_ssl_certificate (struct Socks5Request *s5r)
     if (0 != (rc = dane_verify_crt_raw (dane_state,
                                         chainp,
                                         cert_list_size,
-                                        gnutls_certificate_type_get (tlsinfo.internals),
+                                        gnutls_certificate_type_get (tlsinfo->internals),
                                         dane_query,
                                         0, 0,
                                         &verify)))

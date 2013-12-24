@@ -1024,8 +1024,8 @@ AC_DEFINE_UNQUOTED([HAVE_GNUTLS], $gnutls, [We have GnuTLS])
 gnutls_dane=0
 AC_CHECK_HEADERS([gnutls/dane.h],
    AC_CHECK_LIB([gnutls-dane], [dane_verify_crt_raw],
-	     gnutls_dane=true))
-AM_CONDITIONAL(HAVE_GNUTLS_DANE, test x$gnutls_dane = xtrue)
+	     gnutls_dane=1))
+AM_CONDITIONAL(HAVE_GNUTLS_DANE, test x$gnutls_dane = x1)
 AC_DEFINE_UNQUOTED([HAVE_GNUTLS_DANE], $gnutls_dane, [We have GnuTLS with DANE support])
 
 
