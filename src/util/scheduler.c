@@ -1599,7 +1599,7 @@ GNUNET_SCHEDULER_add_file_with_priority (struct GNUNET_TIME_Relative delay,
   int real_fd;
 
   GNUNET_DISK_internal_file_handle_ (fd, &real_fd, sizeof (int));
-  GNUNET_assert (real_fd > 0);
+  GNUNET_assert (real_fd >= 0);
   return add_without_sets (
       delay, priority,
       on_read  ? real_fd : -1,
