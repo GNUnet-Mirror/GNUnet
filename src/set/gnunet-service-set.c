@@ -452,6 +452,16 @@ incoming_destroy (struct Operation *incoming)
     GNUNET_SCHEDULER_cancel (incoming->state->timeout_task);
     incoming->state->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   }
+  if (NULL != incoming->mq)
+  {
+    GNUNET_MQ_destroy (incoming->mq);
+    incoming->mq = NULL;
+  }
+  if (NULL != incoming->channel)
+  {
+    GNUNET_MESH_channel_destroy (incoming->channel);
+    incoming->channel = NULL;
+  }
   GNUNET_assert (NULL != incoming->state);
   GNUNET_free (incoming->state);
   // make sure that the tunnel end handler will not
@@ -1196,6 +1206,9 @@ static void
 handle_incoming_disconnect (struct Operation *op)
 {
   GNUNET_assert (GNUNET_YES == op->is_incoming);
+  /* channel is already dead, incoming_destroy must not
+   * destroy it ... */
+  op->channel = NULL;
   incoming_destroy (op);
   op->vt = NULL;
 }
