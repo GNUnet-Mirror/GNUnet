@@ -29,6 +29,7 @@ gnunet_scalarproduct_SOURCES = \
 gnunet_scalarproduct_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/scalarproduct/libgnunetscalarproduct.la \
+  $(LIBGCRYPT_LIBS) \
   -lgcrypt \
   $(GN_LIBINTL)
 gnunet_scalarproduct_DEPENDENCIES = \
@@ -40,6 +41,7 @@ gnunet_service_scalarproduct_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/mesh/libgnunetmesh.la \
   $(top_builddir)/src/set/libgnunetset.la \
+  $(LIBGCRYPT_LIBS) \
   -lgcrypt \
   $(GN_LIBINTL)
 
@@ -49,6 +51,7 @@ libgnunetscalarproduct_la_SOURCES = \
 libgnunetscalarproduct_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(LIBGCRYPT_LIBS) \
   -lgcrypt \
   $(LTLIBINTL)
 libgnunetscalarproduct_la_LDFLAGS = \

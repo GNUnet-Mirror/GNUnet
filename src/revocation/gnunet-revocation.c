@@ -90,6 +90,11 @@ static void
 do_shutdown (void *cls,
              const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  if (NULL != el)
+  {
+    GNUNET_IDENTITY_ego_lookup_cancel (el);
+    el = NULL;
+  }
   if (NULL != q)
   {
     GNUNET_REVOCATION_query_cancel (q);

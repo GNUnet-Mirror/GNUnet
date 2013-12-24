@@ -34,6 +34,7 @@ libgnunetrevocation_la_SOURCES = \
   revocation_api.c revocation.h
 libgnunetrevocation_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
+  $(LIBGCRYPT_LIBS) \
   $(GN_LIBINTL) $(XLIB) -lgcrypt
 libgnunetrevocation_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)  $(WINFLAGS) \
@@ -66,7 +67,7 @@ test_revocation_LDADD = \
  $(top_builddir)/src/testbed/libgnunettestbed.la
 
 check_PROGRAMS = \
- test_revocation 
+ test_revocation
 
 
 check_SCRIPTS = \
