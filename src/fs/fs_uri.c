@@ -118,7 +118,7 @@ GNUNET_FS_uri_to_key (const struct GNUNET_FS_Uri *uri,
   case GNUNET_FS_URI_LOC:
     GNUNET_CRYPTO_hash (&uri->data.loc.fi,
                         sizeof (struct FileIdentifier) +
-                        sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey),
+                        sizeof (struct GNUNET_PeerIdentity),
                         key);
     break;
   default:
@@ -442,70 +442,6 @@ uri_chk_parse (const char *s, char **emsg)
 }
 
 
-/**
- * Convert a character back to the binary value
- * that it represents (given base64-encoding).
- *
- * @param a character to convert
- * @return offset in the "tbl" array
- */
-static unsigned int
-c2v (unsigned char a)
-{
-  if ((a >= '0') && (a <= '9'))
-    return a - '0';
-  if ((a >= 'A') && (a <= 'Z'))
-    return (a - 'A' + 10);
-  if ((a >= 'a') && (a <= 'z'))
-    return (a - 'a' + 36);
-  if (a == '_')
-    return 62;
-  if (a == '=')
-    return 63;
-  return -1;
-}
-
-
-/**
- * Convert string back to binary data.
- *
- * @param input '\\0'-terminated string
- * @param data where to write binary data
- * @param size how much data should be converted
- * @return number of characters processed from input,
- *        -1 on error
- */
-static int
-enc2bin (const char *input, void *data, size_t size)
-{
-  size_t len;
-  size_t pos;
-  unsigned int bits;
-  unsigned int hbits;
-
-  len = size * 8 / 6;
-  if (((size * 8) % 6) != 0)
-    len++;
-  if (strlen (input) < len)
-    return -1;                  /* error! */
-  bits = 0;
-  hbits = 0;
-  len = 0;
-  for (pos = 0; pos < size; pos++)
-  {
-    while (hbits < 8)
-    {
-      bits |= (c2v (input[len++]) << hbits);
-      hbits += 6;
-    }
-    (((unsigned char *) data)[pos]) = (unsigned char) bits;
-    bits >>= 8;
-    hbits -= 8;
-  }
-  return len;
-}
-
-
 GNUNET_NETWORK_STRUCT_BEGIN
 /**
  * Structure that defines how the contents of a location URI must be
@@ -540,6 +476,8 @@ GNUNET_NETWORK_STRUCT_END
 
 #define GNUNET_FS_URI_LOC_PREFIX GNUNET_FS_URI_PREFIX GNUNET_FS_URI_LOC_INFIX
 
+#define SIGNATURE_ASCII_LENGTH 103
+
 /**
  * Parse a LOC URI.
  * Also verifies validity of the location URI.
@@ -561,10 +499,8 @@ uri_loc_parse (const char *s, char **emsg)
   struct GNUNET_TIME_Absolute et;
   struct GNUNET_CRYPTO_EddsaSignature sig;
   struct LocUriAssembly ass;
-  int ret;
   size_t slen;
 
-  GNUNET_assert (s != NULL);
   slen = strlen (s);
   pos = strlen (GNUNET_FS_URI_LOC_PREFIX);
   if ((slen < pos + 2 * sizeof (struct GNUNET_CRYPTO_HashAsciiEncoded) + 1) ||
@@ -602,28 +538,43 @@ uri_loc_parse (const char *s, char **emsg)
     goto ERR;
   }
   npos++;
-  ret =
-      enc2bin (&s[npos], &ass.peer,
-               sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
-  if (ret == -1)
+  if ( (strlen (&s[npos]) <= GNUNET_CRYPTO_PKEY_ASCII_LENGTH + 1) ||
+       ('.' != s[npos+GNUNET_CRYPTO_PKEY_ASCII_LENGTH]) )
+  {
+    *emsg =
+      GNUNET_strdup (_("LOC URI malformed (could not decode public key)"));
+  }
+  if (GNUNET_OK !=
+      GNUNET_CRYPTO_eddsa_public_key_from_string (&s[npos],
+                                                  GNUNET_CRYPTO_PKEY_ASCII_LENGTH,
+                                                  &ass.peer.public_key))
   {
     *emsg =
         GNUNET_strdup (_("LOC URI malformed (could not decode public key)"));
     goto ERR;
   }
-  npos += ret;
+  npos += GNUNET_CRYPTO_PKEY_ASCII_LENGTH;
   if (s[npos++] != '.')
   {
     *emsg = GNUNET_strdup (_("SKS URI malformed (could not find signature)"));
     goto ERR;
   }
-  ret = enc2bin (&s[npos], &sig, sizeof (struct GNUNET_CRYPTO_EcdsaSignature));
-  if (ret == -1)
+  if ( (strlen (&s[npos]) <= SIGNATURE_ASCII_LENGTH + 1) ||
+       ('.' != s[npos + SIGNATURE_ASCII_LENGTH]) )
   {
     *emsg = GNUNET_strdup (_("SKS URI malformed (could not decode signature)"));
     goto ERR;
   }
-  npos += ret;
+  if (GNUNET_OK !=
+      GNUNET_STRINGS_string_to_data (&s[npos],
+                                     SIGNATURE_ASCII_LENGTH,
+                                     &sig,
+                                     sizeof (struct GNUNET_CRYPTO_EddsaSignature)))
+  {
+    *emsg = GNUNET_strdup (_("SKS URI malformed (could not decode signature)"));
+    goto ERR;
+  }
+  npos += SIGNATURE_ASCII_LENGTH;
   if (s[npos++] != '.')
   {
     *emsg = GNUNET_strdup (_("SKS URI malformed"));
@@ -632,8 +583,7 @@ uri_loc_parse (const char *s, char **emsg)
   if (1 != SSCANF (&s[npos], "%llu", &exptime))
   {
     *emsg =
-        GNUNET_strdup (_
-                       ("SKS URI malformed (could not parse expiration time)"));
+        GNUNET_strdup (_("SKS URI malformed (could not parse expiration time)"));
     goto ERR;
   }
   ass.purpose.size = htonl (sizeof (struct LocUriAssembly));
@@ -700,7 +650,6 @@ GNUNET_FS_uri_destroy (struct GNUNET_FS_Uri *uri)
 {
   unsigned int i;
 
-  GNUNET_assert (uri != NULL);
   switch (uri->type)
   {
   case GNUNET_FS_URI_KSK:
@@ -719,6 +668,7 @@ GNUNET_FS_uri_destroy (struct GNUNET_FS_Uri *uri)
   }
   GNUNET_free (uri);
 }
+
 
 /**
  * How many keywords are ANDed in this keyword URI?
@@ -754,7 +704,7 @@ GNUNET_FS_uri_ksk_get_keywords (const struct GNUNET_FS_Uri *uri,
 
   if (uri->type != GNUNET_FS_URI_KSK)
     return -1;
-  if (iterator == NULL)
+  if (NULL == iterator)
     return uri->data.ksk.keywordCount;
   for (i = 0; i < uri->data.ksk.keywordCount; i++)
   {
@@ -777,7 +727,8 @@ GNUNET_FS_uri_ksk_get_keywords (const struct GNUNET_FS_Uri *uri,
  * @param is_mandatory is this keyword mandatory?
  */
 void
-GNUNET_FS_uri_ksk_add_keyword (struct GNUNET_FS_Uri *uri, const char *keyword,
+GNUNET_FS_uri_ksk_add_keyword (struct GNUNET_FS_Uri *uri,
+                               const char *keyword,
                                int is_mandatory)
 {
   unsigned int i;
@@ -857,7 +808,6 @@ GNUNET_FS_uri_loc_get_expiration (const struct GNUNET_FS_Uri *uri)
   GNUNET_assert (uri->type == GNUNET_FS_URI_LOC);
   return uri->data.loc.expirationTime;
 }
-
 
 
 /**
@@ -1965,53 +1915,6 @@ uri_chk_to_string (const struct GNUNET_FS_Uri *uri)
   return ret;
 }
 
-/**
- * Convert binary data to a string.
- *
- * @param data binary data to convert
- * @param size number of bytes in data
- * @return converted data
- */
-static char *
-bin2enc (const void *data, size_t size)
-{
-  /**
-   * 64 characters for encoding, 6 bits per character
-   */
-  static char *tbl =
-      "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_=";
-
-  size_t len;
-  size_t pos;
-  unsigned int bits;
-  unsigned int hbits;
-  char *ret;
-
-  GNUNET_assert (strlen (tbl) == 64);
-  len = size * 8 / 6;
-  if (((size * 8) % 6) != 0)
-    len++;
-  ret = GNUNET_malloc (len + 1);
-  ret[len] = '\0';
-  len = 0;
-  bits = 0;
-  hbits = 0;
-  for (pos = 0; pos < size; pos++)
-  {
-    bits |= ((((const unsigned char *) data)[pos]) << hbits);
-    hbits += 8;
-    while (hbits >= 6)
-    {
-      ret[len++] = tbl[bits & 63];
-      bits >>= 6;
-      hbits -= 6;
-    }
-  }
-  if (hbits > 0)
-    ret[len] = tbl[bits & 63];
-  return ret;
-}
-
 
 /**
  * Convert a LOC URI to a string.
@@ -2025,27 +1928,28 @@ uri_loc_to_string (const struct GNUNET_FS_Uri *uri)
   char *ret;
   struct GNUNET_CRYPTO_HashAsciiEncoded keyhash;
   struct GNUNET_CRYPTO_HashAsciiEncoded queryhash;
-  char *peerId;
-  char *peerSig;
+  char *peer_id;
+  char peer_sig[SIGNATURE_ASCII_LENGTH + 1];
 
   GNUNET_CRYPTO_hash_to_enc (&uri->data.loc.fi.chk.key, &keyhash);
   GNUNET_CRYPTO_hash_to_enc (&uri->data.loc.fi.chk.query, &queryhash);
-  peerId =
-      bin2enc (&uri->data.loc.peer,
-               sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey));
-  peerSig =
-      bin2enc (&uri->data.loc.contentSignature,
-               sizeof (struct GNUNET_CRYPTO_EcdsaSignature));
+  peer_id =
+    GNUNET_CRYPTO_eddsa_public_key_to_string (&uri->data.loc.peer.public_key);
+  GNUNET_assert (NULL !=
+                 GNUNET_STRINGS_data_to_string (&uri->data.loc.contentSignature,
+                                                sizeof (struct GNUNET_CRYPTO_EddsaSignature),
+                                                peer_sig,
+                                                sizeof (peer_sig)));
   GNUNET_asprintf (&ret,
 		   "%s%s%s.%s.%llu.%s.%s.%llu", GNUNET_FS_URI_PREFIX,
                    GNUNET_FS_URI_LOC_INFIX, (const char *) &keyhash,
                    (const char *) &queryhash,
                    (unsigned long long) GNUNET_ntohll (uri->data.loc.
-                                                       fi.file_length), peerId,
-                   peerSig,
+                                                       fi.file_length),
+                   peer_id,
+                   peer_sig,
                    (unsigned long long) uri->data.loc.expirationTime.abs_value_us / 1000000LL);
-  GNUNET_free (peerSig);
-  GNUNET_free (peerId);
+  GNUNET_free (peer_id);
   return ret;
 }
 

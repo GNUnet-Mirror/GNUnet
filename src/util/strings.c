@@ -1287,7 +1287,7 @@ GNUNET_STRINGS_to_address_ip (const char *addr,
 
 /**
  * Makes a copy of argv that consists of a single memory chunk that can be
- * freed with a single call to GNUNET_free ();
+ * freed with a single call to GNUNET_free();
  */
 static char *const *
 _make_continuous_arg_copy (int argc,
@@ -1318,7 +1318,7 @@ _make_continuous_arg_copy (int argc,
  * other than W32.
  * Returned argv has u8argv[u8argc] == NULL.
  * Returned argv is a single memory block, and can be freed with a single
- *   GNUNET_free () call.
+ *   GNUNET_free() call.
  *
  * @param argc argc (as given by main())
  * @param argv argv (as given by main())

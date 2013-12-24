@@ -328,6 +328,7 @@ GNUNET_STRINGS_string_to_data (const char *enc,
 size_t
 GNUNET_STRINGS_base64_encode (const char *data, size_t len, char **output);
 
+
 /**
  * Decode from Base64.
  *

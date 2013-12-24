@@ -111,6 +111,12 @@ enum GNUNET_CRYPTO_Quality
 #define GNUNET_CRYPTO_HASH_LENGTH (512/8)
 
 /**
+ * How many characters (without 0-terminator) are our ASCII-encoded
+ * public keys (ECDSA/EDDSA/ECDHE).
+ */
+#define GNUNET_CRYPTO_PKEY_ASCII_LENGTH 52
+
+/**
  * @brief 0-terminated ASCII encoding of a struct GNUNET_HashCode.
  */
 struct GNUNET_CRYPTO_HashAsciiEncoded
