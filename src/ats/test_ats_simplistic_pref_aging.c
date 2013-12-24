@@ -169,7 +169,7 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
   		/* Callback for initial suggestion */
   		if (0 == memcmp (&address->peer, &p[0].id, sizeof (p[0].id)))
   		{
-				GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Stage %u: Callback for peer 0 `%s': (in/out) %llu/%llu\n",
+				GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Stage %u: Callback for peer 0 `%s': (in/out) %lu/%lu\n",
 						stage,
 						GNUNET_i2s (&address->peer),
 						ntohl (bandwidth_in.value__),
@@ -180,7 +180,7 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
   		}
   		if (0 == memcmp (&address->peer, &p[1].id, sizeof (p[1].id)))
   		{
-				GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Stage %u: Callback for peer 1 `%s': (in/out) %llu/%llu\n",
+				GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Stage %u: Callback for peer 1 `%s': (in/out) %lu/%lu\n",
 						stage,
 						GNUNET_i2s (&address->peer),
 						ntohl (bandwidth_in.value__),
@@ -205,7 +205,7 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
   		/* Callback due to preference change */
   		if (0 == memcmp (&address->peer, &p[0].id, sizeof (p[0].id)))
   		{
-				GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Stage %u: Callback for peer 0 `%s': (in/out) %llu/%llu\n",
+				GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Stage %u: Callback for peer 0 `%s': (in/out) %lu/%lu\n",
 						stage,
 						GNUNET_i2s (&address->peer),
 						ntohl (bandwidth_in.value__),
@@ -222,7 +222,7 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
   		}
   		if (0 == memcmp (&address->peer, &p[1].id, sizeof (p[1].id)))
   		{
-				GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Stage %u: Callback for peer 1 `%s': (in/out) %llu/%llu\n",
+				GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Stage %u: Callback for peer 1 `%s': (in/out) %lu/%lu\n",
 						stage,
 						GNUNET_i2s (&address->peer),
 						ntohl (bandwidth_in.value__),
@@ -256,7 +256,7 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
   		/* Callback due to preference aging */
   		if (0 == memcmp (&address->peer, &p[0].id, sizeof (p[0].id)))
   		{
-				GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Stage %u: Callback for peer 0 `%s': (in/out) %llu/%llu\n",
+				GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Stage %u: Callback for peer 0 `%s': (in/out) %lu/%lu\n",
 						stage,
 						GNUNET_i2s (&address->peer),
 						ntohl (bandwidth_in.value__),
@@ -273,7 +273,7 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
   		}
   		if (0 == memcmp (&address->peer, &p[1].id, sizeof (p[1].id)))
   		{
-				GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Stage %u: Callback for peer 1 `%s': (in/out) %llu/%llu\n",
+				GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Stage %u: Callback for peer 1 `%s': (in/out) %lu/%lu\n",
 						stage,
 						GNUNET_i2s (&address->peer),
 						ntohl (bandwidth_in.value__),

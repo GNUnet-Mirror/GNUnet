@@ -146,7 +146,7 @@ GAS_scheduling_transmit_address_suggestion (const struct GNUNET_PeerIdentity
   strcpy (&addrp[plugin_addr_len], plugin_name);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "ATS sends quota for peer `%s': (in/out) %u/%u\n",
+              "ATS sends quota for peer `%s': (in/out) %lu/%lu\n",
               GNUNET_i2s (peer), ntohl (bandwidth_in.value__),
               ntohl (bandwidth_out.value__));
 

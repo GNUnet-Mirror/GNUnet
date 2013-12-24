@@ -300,7 +300,7 @@ bandwidth_changed_cb (void *cls, struct ATS_Address *address)
     return;
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-      "Bandwidth changed addresses %s %p to %llu Bps out / %llu Bps in\n",
+      "Bandwidth changed addresses %s %p to %lu Bps out / %lu Bps in\n",
       GNUNET_i2s (&address->peer),
       address,
       ntohl(address->assigned_bw_out.value__),

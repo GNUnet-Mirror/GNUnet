@@ -1384,10 +1384,10 @@ eval_sum_bw_used (void *cls, const struct GNUNET_PeerIdentity *id, void *obj)
       }
     }
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "Active address in  %s with (in/out) %u/%u Bps\n",
-                GNUNET_ATS_print_network_type (net),
-                (unsigned int) ntohl (addr->assigned_bw_in.value__),
-                (unsigned int) ntohl (addr->assigned_bw_out.value__));
+        "Active address in  %s with (in/out) %lu/%lu Bps\n",
+        GNUNET_ATS_print_network_type (net),
+        ntohl (addr->assigned_bw_in.value__),
+        ntohl (addr->assigned_bw_out.value__));
   }
   return GNUNET_OK;
 }
@@ -2060,9 +2060,9 @@ bandwidth_changed_cb (void *cls, struct ATS_Address *address)
   else
   {
     GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-        "Sending bandwidth update for peer `%s': %llu %llu\n",
-        GNUNET_i2s (&address->peer), address->assigned_bw_out,
-        address->assigned_bw_out);
+        "Sending bandwidth update for peer `%s': %lu %lu\n",
+        GNUNET_i2s (&address->peer), address->assigned_bw_out.value__,
+        address->assigned_bw_out.value__);
   }
 
   /* *Notify scheduling clients about suggestion */
