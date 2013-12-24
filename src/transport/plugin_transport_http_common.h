@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Christian Grothoff (and other contributing authors)
+     (C) 2002-2013 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -61,8 +61,8 @@
 
 enum HTTP_OPTIONS
 {
-  			HTTP_OPTIONS_NONE = 0,
-        HTTP_OPTIONS_VERIFY_CERTIFICATE = 1
+  HTTP_OPTIONS_NONE = 0,
+  HTTP_OPTIONS_VERIFY_CERTIFICATE = 1
 };
 
 
@@ -73,16 +73,15 @@ GNUNET_NETWORK_STRUCT_BEGIN
  */
 struct HttpAddress
 {
-	/**
-	 * Address options
-	 */
-	uint32_t options;
+  /**
+   * Address options
+   */
+  uint32_t options;
 
-	/**
-	 * Length of URL located after struct
-	 *
-	 */
-	uint32_t urlen;
+  /**
+   * Length of URL located after struct
+   */
+  uint32_t urlen;
 };
 
 GNUNET_NETWORK_STRUCT_END
@@ -104,15 +103,16 @@ http_split_address (const char * addr);
  * @param numeric should (IP) addresses be displayed in numeric form?
  * @param timeout after how long should we give up?
  * @param asc function to call on each string
- * @param asc_cls closure for asc
+ * @param asc_cls closure for @a asc
  */
 void
 http_common_plugin_address_pretty_printer (void *cls, const char *type,
-                                        const void *addr, size_t addrlen,
-                                        int numeric,
-                                        struct GNUNET_TIME_Relative timeout,
-                                        GNUNET_TRANSPORT_AddressStringCallback
-                                        asc, void *asc_cls);
+                                           const void *addr, size_t addrlen,
+                                           int numeric,
+                                           struct GNUNET_TIME_Relative timeout,
+                                           GNUNET_TRANSPORT_AddressStringCallback
+                                           asc, void *asc_cls);
+
 
 /**
  * Function called for a quick conversion of the binary address to
@@ -128,21 +128,22 @@ http_common_plugin_address_pretty_printer (void *cls, const char *type,
  */
 const char *
 http_common_plugin_address_to_string (void *cls,
-																			char *plugin,
+                                      const char *plugin,
                                       const void *addr,
                                       size_t addrlen);
+
 
 /**
  * Function called to convert a string address to
  * a binary address.
  *
- * @param cls closure ('struct Plugin*')
+ * @param cls closure (`struct Plugin*`)
  * @param addr string address
  * @param addrlen length of the address
  * @param buf location to store the buffer
- *        If the function returns GNUNET_SYSERR, its contents are undefined.
+ *        If the function returns #GNUNET_SYSERR, its contents are undefined.
  * @param added length of created address
- * @return GNUNET_OK on success, GNUNET_SYSERR on failure
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
  */
 int
 http_common_plugin_string_to_address (void *cls,
@@ -156,31 +157,38 @@ http_common_plugin_string_to_address (void *cls,
  * Create a HTTP address from a socketaddr
  *
  * @param protocol protocol
- * @param addr sockaddr * address
- * @param addrlen length of the address
+ * @param addr `sockaddr *` address
+ * @param addrlen length of the @a addr
  * @return the string
  */
 struct HttpAddress *
 http_common_address_from_socket (const char *protocol,
-																 const struct sockaddr *addr,
-																 socklen_t addrlen);
+                                 const struct sockaddr *addr,
+                                 socklen_t addrlen);
+
 
 /**
  * Create a socketaddr from a HTTP address
  *
- * @param addr sockaddr * address
- * @param addrlen length of the address
+ * @param addr a `sockaddr *` address
+ * @param addrlen length of the @a addr
  * @param res the result:
- * GNUNET_SYSERR, invalid input,
- * GNUNET_YES: could convert to ip,
- * GNUNET_NO: valid input but could not convert to ip (hostname?)
+ *   #GNUNET_SYSERR, invalid input,
+ *   #GNUNET_YES: could convert to ip,
+ *   #GNUNET_NO: valid input but could not convert to ip (hostname?)
  * @return the string
  */
 struct sockaddr *
-http_common_socket_from_address (const void *addr, size_t addrlen, int *res);
+http_common_socket_from_address (const void *addr,
+                                 size_t addrlen,
+                                 int *res);
+
 
 const char *
-http_common_plugin_address_to_url (void *cls, const void *addr, size_t addrlen);
+http_common_plugin_address_to_url (void *cls,
+                                   const void *addr,
+                                   size_t addrlen);
+
 
 /**
  * Get the length of an address
@@ -199,8 +207,12 @@ http_common_address_get_size (const struct HttpAddress * addr);
  * @param addrlen1 address 1 length
  * @param addr2 address2
  * @param addrlen2 address 2 length
- * @return GNUNET_YES if equal, GNUNET_NO else
+ * @return #GNUNET_YES if equal, #GNUNET_NO else
  */
 size_t
-http_common_cmp_addresses (const void *addr1, size_t addrlen1, const void *addr2, size_t addrlen2);
-/* end of plugin_transport_http_common.c */
+http_common_cmp_addresses (const void *addr1,
+                           size_t addrlen1,
+                           const void *addr2,
+                           size_t addrlen2);
+
+/* end of plugin_transport_http_common.h */
