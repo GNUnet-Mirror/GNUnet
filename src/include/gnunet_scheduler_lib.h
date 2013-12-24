@@ -29,6 +29,8 @@
 #ifndef GNUNET_SCHEDULER_LIB_H
 #define GNUNET_SCHEDULER_LIB_H
 
+#include <stdbool.h>
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -468,6 +470,31 @@ GNUNET_SCHEDULER_add_write_net (struct GNUNET_TIME_Relative delay,
 
 /**
  * Schedule a new task to be run with a specified delay or when the
+ * specified file descriptor is ready.  The delay can be
+ * used as a timeout on the socket being ready.  The task will be
+ * scheduled for execution once either the delay has expired or the
+ * socket operation is ready.
+ *
+ * @param delay when should this operation time out? Use
+ *        GNUNET_TIME_UNIT_FOREVER_REL for "on shutdown"
+ * @param priority priority of the task
+ * @param fd file-descriptor
+ * @param on_read whether to poll the file-descriptor for readability
+ * @param on_write whether to poll the file-descriptor for writability
+ * @param task main function of the task
+ * @param task_cls closure of task
+ * @return unique task identifier for the job
+ *         only valid until "task" is started!
+ */
+GNUNET_SCHEDULER_TaskIdentifier
+GNUNET_SCHEDULER_add_net_with_priority  (struct GNUNET_TIME_Relative delay,
+                                         enum GNUNET_SCHEDULER_Priority priority,
+                                         struct GNUNET_NETWORK_Handle *fd,
+                                         bool on_read, bool on_write,
+                                         GNUNET_SCHEDULER_Task task, void *task_cls);
+
+/**
+ * Schedule a new task to be run with a specified delay or when the
  * specified file descriptor is ready for reading.  The delay can be
  * used as a timeout on the socket being ready.  The task will be
  * scheduled for execution once either the delay has expired or the
@@ -506,6 +533,32 @@ GNUNET_SCHEDULER_TaskIdentifier
 GNUNET_SCHEDULER_add_write_file (struct GNUNET_TIME_Relative delay,
                                  const struct GNUNET_DISK_FileHandle *wfd,
                                  GNUNET_SCHEDULER_Task task, void *task_cls);
+
+
+/**
+ * Schedule a new task to be run with a specified delay or when the
+ * specified file descriptor is ready.  The delay can be
+ * used as a timeout on the socket being ready.  The task will be
+ * scheduled for execution once either the delay has expired or the
+ * socket operation is ready.
+ *
+ * @param delay when should this operation time out? Use
+ *        GNUNET_TIME_UNIT_FOREVER_REL for "on shutdown"
+ * @param priority priority of the task
+ * @param fd file-descriptor
+ * @param on_read whether to poll the file-descriptor for readability
+ * @param on_write whether to poll the file-descriptor for writability
+ * @param task main function of the task
+ * @param task_cls closure of task
+ * @return unique task identifier for the job
+ *         only valid until "task" is started!
+ */
+GNUNET_SCHEDULER_TaskIdentifier
+GNUNET_SCHEDULER_add_file_with_priority (struct GNUNET_TIME_Relative delay,
+                                         enum GNUNET_SCHEDULER_Priority priority,
+                                         const struct GNUNET_DISK_FileHandle *fd,
+                                         bool on_read, bool on_write,
+                                         GNUNET_SCHEDULER_Task task, void *task_cls);
 
 
 /**

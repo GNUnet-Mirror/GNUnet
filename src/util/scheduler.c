@@ -1418,25 +1418,10 @@ GNUNET_SCHEDULER_add_read_net_with_priority (struct GNUNET_TIME_Relative delay,
 					     struct GNUNET_NETWORK_Handle *rfd,
 					     GNUNET_SCHEDULER_Task task, void *task_cls)
 {
-#if MINGW
-  struct GNUNET_NETWORK_FDSet *rs;
-  GNUNET_SCHEDULER_TaskIdentifier ret;
-
-  GNUNET_assert (NULL != rfd);
-  rs = GNUNET_NETWORK_fdset_create ();
-  GNUNET_NETWORK_fdset_set (rs, rfd);
-  ret =
-    GNUNET_SCHEDULER_add_select (priority,
-				 delay, rs, NULL,
-				 task, task_cls);
-  GNUNET_NETWORK_fdset_destroy (rs);
-  return ret;
-#else
-  return add_without_sets (delay,
-			   priority,
-			   GNUNET_NETWORK_get_fd (rfd), -1, task,
-                           task_cls);
-#endif
+  return GNUNET_SCHEDULER_add_net_with_priority (
+      delay, priority,
+      rfd, true, false,
+      task, task_cls);
 }
 
 
@@ -1461,25 +1446,58 @@ GNUNET_SCHEDULER_add_write_net (struct GNUNET_TIME_Relative delay,
                                 struct GNUNET_NETWORK_Handle *wfd,
                                 GNUNET_SCHEDULER_Task task, void *task_cls)
 {
+  return GNUNET_SCHEDULER_add_net_with_priority (
+      delay, GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+      wfd, false, true,
+      task, task_cls);
+}
+
+/**
+ * Schedule a new task to be run with a specified delay or when the
+ * specified file descriptor is ready.  The delay can be
+ * used as a timeout on the socket being ready.  The task will be
+ * scheduled for execution once either the delay has expired or the
+ * socket operation is ready.
+ *
+ * @param delay when should this operation time out? Use
+ *        GNUNET_TIME_UNIT_FOREVER_REL for "on shutdown"
+ * @param priority priority of the task
+ * @param fd file-descriptor
+ * @param on_read whether to poll the file-descriptor for readability
+ * @param on_write whether to poll the file-descriptor for writability
+ * @param task main function of the task
+ * @param task_cls closure of task
+ * @return unique task identifier for the job
+ *         only valid until "task" is started!
+ */
+GNUNET_SCHEDULER_TaskIdentifier
+GNUNET_SCHEDULER_add_net_with_priority  (struct GNUNET_TIME_Relative delay,
+                                         enum GNUNET_SCHEDULER_Priority priority,
+                                         struct GNUNET_NETWORK_Handle *fd,
+                                         bool on_read, bool on_write,
+                                         GNUNET_SCHEDULER_Task task, void *task_cls)
+{
 #if MINGW
-  struct GNUNET_NETWORK_FDSet *ws;
+  struct GNUNET_NETWORK_FDSet *s;
   GNUNET_SCHEDULER_TaskIdentifier ret;
 
-  GNUNET_assert (NULL != wfd);
-  ws = GNUNET_NETWORK_fdset_create ();
-  GNUNET_NETWORK_fdset_set (ws, wfd);
-  ret =
-    GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-				 delay, NULL, ws,
-                                   task, task_cls);
-  GNUNET_NETWORK_fdset_destroy (ws);
+  GNUNET_assert (fd != NULL);
+  s = GNUNET_NETWORK_fdset_create ();
+  GNUNET_NETWORK_fdset_set (s, fd);
+  ret = GNUNET_SCHEDULER_add_select (
+      priority, delay,
+      on_read  ? s : NULL,
+      on_write ? s : NULL,
+      task, task_cls);
+  GNUNET_NETWORK_fdset_destroy (s);
   return ret;
 #else
-  GNUNET_assert (GNUNET_NETWORK_get_fd (wfd) >= 0);
-  return add_without_sets (delay,
-			   GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-			   -1, GNUNET_NETWORK_get_fd (wfd), task,
-                           task_cls);
+  GNUNET_assert (GNUNET_NETWORK_get_fd (fd) >= 0);
+  return add_without_sets (
+      delay, priority,
+      on_read  ? GNUNET_NETWORK_get_fd (fd) : -1,
+      on_write ? GNUNET_NETWORK_get_fd (fd) : -1,
+      task, task_cls);
 #endif
 }
 
@@ -1504,28 +1522,10 @@ GNUNET_SCHEDULER_add_read_file (struct GNUNET_TIME_Relative delay,
                                 const struct GNUNET_DISK_FileHandle *rfd,
                                 GNUNET_SCHEDULER_Task task, void *task_cls)
 {
-#if MINGW
-  struct GNUNET_NETWORK_FDSet *rs;
-  GNUNET_SCHEDULER_TaskIdentifier ret;
-
-  GNUNET_assert (NULL != rfd);
-  rs = GNUNET_NETWORK_fdset_create ();
-  GNUNET_NETWORK_fdset_handle_set (rs, rfd);
-  ret =
-      GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                                   delay, rs, NULL,
-                                   task, task_cls);
-  GNUNET_NETWORK_fdset_destroy (rs);
-  return ret;
-#else
-  int fd;
-
-  GNUNET_DISK_internal_file_handle_ (rfd, &fd, sizeof (int));
-  return add_without_sets (delay,
-			   GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-			   fd, -1, task, task_cls);
-
-#endif
+  return GNUNET_SCHEDULER_add_file_with_priority (
+      delay, GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+      rfd, true, false,
+      task, task_cls);
 }
 
 
@@ -1549,28 +1549,61 @@ GNUNET_SCHEDULER_add_write_file (struct GNUNET_TIME_Relative delay,
                                  const struct GNUNET_DISK_FileHandle *wfd,
                                  GNUNET_SCHEDULER_Task task, void *task_cls)
 {
+  return GNUNET_SCHEDULER_add_file_with_priority (
+      delay, GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+      wfd, false, true,
+      task, task_cls);
+}
+
+/**
+ * Schedule a new task to be run with a specified delay or when the
+ * specified file descriptor is ready.  The delay can be
+ * used as a timeout on the socket being ready.  The task will be
+ * scheduled for execution once either the delay has expired or the
+ * socket operation is ready.
+ *
+ * @param delay when should this operation time out? Use
+ *        GNUNET_TIME_UNIT_FOREVER_REL for "on shutdown"
+ * @param priority priority of the task
+ * @param fd file-descriptor
+ * @param on_read whether to poll the file-descriptor for readability
+ * @param on_write whether to poll the file-descriptor for writability
+ * @param task main function of the task
+ * @param task_cls closure of task
+ * @return unique task identifier for the job
+ *         only valid until "task" is started!
+ */
+GNUNET_SCHEDULER_TaskIdentifier
+GNUNET_SCHEDULER_add_file_with_priority (struct GNUNET_TIME_Relative delay,
+                                         enum GNUNET_SCHEDULER_Priority priority,
+                                         const struct GNUNET_DISK_FileHandle *fd,
+                                         bool on_read, bool on_write,
+                                         GNUNET_SCHEDULER_Task task, void *task_cls)
+{
 #if MINGW
-  struct GNUNET_NETWORK_FDSet *ws;
+  struct GNUNET_NETWORK_FDSet *s;
   GNUNET_SCHEDULER_TaskIdentifier ret;
 
-  GNUNET_assert (NULL != wfd);
-  ws = GNUNET_NETWORK_fdset_create ();
-  GNUNET_NETWORK_fdset_handle_set (ws, wfd);
-  ret =
-      GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                                   delay, NULL, ws,
-                                   task, task_cls);
-  GNUNET_NETWORK_fdset_destroy (ws);
+  GNUNET_assert (fd != NULL);
+  s = GNUNET_NETWORK_fdset_create ();
+  GNUNET_NETWORK_fdset_handle_set (s, fd);
+  ret = GNUNET_SCHEDULER_add_select (
+      priority, delay,
+      on_read  ? s : NULL,
+      on_write ? s : NULL,
+      task, task_cls);
+  GNUNET_NETWORK_fdset_destroy (s);
   return ret;
 #else
-  int fd;
+  int real_fd;
 
-  GNUNET_DISK_internal_file_handle_ (wfd, &fd, sizeof (int));
-  GNUNET_assert (fd >= 0);
-  return add_without_sets (delay,
-			   GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-			   -1, fd, task, task_cls);
-
+  GNUNET_DISK_internal_file_handle_ (fd, &real_fd, sizeof (int));
+  GNUNET_assert (real_fd > 0);
+  return add_without_sets (
+      delay, priority,
+      on_read  ? real_fd : -1,
+      on_write ? real_fd : -1,
+      task, task_cls);
 #endif
 }
 
