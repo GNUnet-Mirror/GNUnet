@@ -1066,8 +1066,8 @@ GNUNET_SCHEDULER_add_continuation (GNUNET_SCHEDULER_Task task, void *task_cls,
  * Schedule a new task to be run with a specified priority.
  *
  * @param prio how important is the new task?
- * @param task main function of the @a task
- * @param task_cls closure of task
+ * @param task main function of the task
+ * @param task_cls closure of @a task
  * @return unique task identifier for the job
  *         only valid until @a task is started!
  */
@@ -1420,7 +1420,7 @@ GNUNET_SCHEDULER_add_read_net_with_priority (struct GNUNET_TIME_Relative delay,
 {
   return GNUNET_SCHEDULER_add_net_with_priority (
       delay, priority,
-      rfd, true, false,
+      rfd, GNUNET_YES, GNUNET_NO,
       task, task_cls);
 }
 
@@ -1448,7 +1448,7 @@ GNUNET_SCHEDULER_add_write_net (struct GNUNET_TIME_Relative delay,
 {
   return GNUNET_SCHEDULER_add_net_with_priority (
       delay, GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-      wfd, false, true,
+      wfd, GNUNET_NO, GNUNET_YES,
       task, task_cls);
 }
 
@@ -1474,7 +1474,7 @@ GNUNET_SCHEDULER_TaskIdentifier
 GNUNET_SCHEDULER_add_net_with_priority  (struct GNUNET_TIME_Relative delay,
                                          enum GNUNET_SCHEDULER_Priority priority,
                                          struct GNUNET_NETWORK_Handle *fd,
-                                         bool on_read, bool on_write,
+                                         int on_read, int on_write,
                                          GNUNET_SCHEDULER_Task task, void *task_cls)
 {
 #if MINGW
@@ -1524,7 +1524,7 @@ GNUNET_SCHEDULER_add_read_file (struct GNUNET_TIME_Relative delay,
 {
   return GNUNET_SCHEDULER_add_file_with_priority (
       delay, GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-      rfd, true, false,
+      rfd, GNUNET_YES, GNUNET_NO,
       task, task_cls);
 }
 
@@ -1551,7 +1551,7 @@ GNUNET_SCHEDULER_add_write_file (struct GNUNET_TIME_Relative delay,
 {
   return GNUNET_SCHEDULER_add_file_with_priority (
       delay, GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-      wfd, false, true,
+      wfd, GNUNET_NO, GNUNET_YES,
       task, task_cls);
 }
 
@@ -1563,21 +1563,21 @@ GNUNET_SCHEDULER_add_write_file (struct GNUNET_TIME_Relative delay,
  * socket operation is ready.
  *
  * @param delay when should this operation time out? Use
- *        GNUNET_TIME_UNIT_FOREVER_REL for "on shutdown"
+ *        #GNUNET_TIME_UNIT_FOREVER_REL for "on shutdown"
  * @param priority priority of the task
  * @param fd file-descriptor
  * @param on_read whether to poll the file-descriptor for readability
  * @param on_write whether to poll the file-descriptor for writability
  * @param task main function of the task
- * @param task_cls closure of task
+ * @param task_cls closure of @a task
  * @return unique task identifier for the job
- *         only valid until "task" is started!
+ *         only valid until @a task is started!
  */
 GNUNET_SCHEDULER_TaskIdentifier
 GNUNET_SCHEDULER_add_file_with_priority (struct GNUNET_TIME_Relative delay,
                                          enum GNUNET_SCHEDULER_Priority priority,
                                          const struct GNUNET_DISK_FileHandle *fd,
-                                         bool on_read, bool on_write,
+                                         int on_read, int on_write,
                                          GNUNET_SCHEDULER_Task task, void *task_cls)
 {
 #if MINGW
