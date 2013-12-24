@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: GNUnet 0.7.0b\n"
 "Report-Msgid-Bugs-To: gnunet-developers@mail.gnu.org\n"
-"POT-Creation-Date: 2013-12-23 23:34+0100\n"
+"POT-Creation-Date: 2013-12-24 21:07+0100\n"
 "PO-Revision-Date: 2006-03-17 21:37+0100\n"
 "Last-Translator: Nils Durner <durner@gnunet.org>\n"
 "Language-Team: German <de@li.org>\n"
@@ -358,49 +358,49 @@ msgstr "ungültige `%s' Nachricht empfangen\n"
 msgid "Received last message for %s \n"
 msgstr "GAP hat ungültige Inhalte von `%s' empfangen.\n"
 
-#: src/ats/gnunet-service-ats_addresses.c:1944
-#: src/ats/gnunet-service-ats_addresses.c:1988
+#: src/ats/gnunet-service-ats_addresses.c:1948
+#: src/ats/gnunet-service-ats_addresses.c:1992
 #, c-format
 msgid ""
 "Could not load quota for network `%s':  `%s', assigning default bandwidth "
 "%llu\n"
 msgstr ""
 
-#: src/ats/gnunet-service-ats_addresses.c:1951
+#: src/ats/gnunet-service-ats_addresses.c:1955
 #, c-format
 msgid "Outbound quota configure for network `%s' is %llu\n"
 msgstr ""
 
-#: src/ats/gnunet-service-ats_addresses.c:1959
+#: src/ats/gnunet-service-ats_addresses.c:1963
 #, c-format
 msgid ""
 "No outbound quota configured for network `%s', assigning default bandwidth "
 "%llu\n"
 msgstr ""
 
-#: src/ats/gnunet-service-ats_addresses.c:1995
+#: src/ats/gnunet-service-ats_addresses.c:1999
 #, c-format
 msgid "Inbound quota configured for network `%s' is %llu\n"
 msgstr ""
 
-#: src/ats/gnunet-service-ats_addresses.c:2003
+#: src/ats/gnunet-service-ats_addresses.c:2007
 #, c-format
 msgid ""
 "No outbound quota configure for network `%s', assigning default bandwidth "
 "%llu\n"
 msgstr ""
 
-#: src/ats/gnunet-service-ats_addresses.c:2173
+#: src/ats/gnunet-service-ats_addresses.c:2180
 #, c-format
 msgid "Initializing solver `%s '`%s'\n"
 msgstr ""
 
-#: src/ats/gnunet-service-ats_addresses.c:2176
+#: src/ats/gnunet-service-ats_addresses.c:2183
 #, fuzzy, c-format
 msgid "Failed to initialize solver `%s'!\n"
 msgstr "SQLite Datenbank konnte nicht initialisiert werden: %s.\n"
 
-#: src/ats/gnunet-service-ats_addresses.c:2199
+#: src/ats/gnunet-service-ats_addresses.c:2206
 #, fuzzy
 msgid "Failed to initialize solver!\n"
 msgstr "SQLite Datenbank konnte nicht initialisiert werden: %s.\n"
@@ -870,7 +870,7 @@ msgid ""
 msgstr ""
 
 #: src/conversation/gnunet-conversation-test.c:248
-#: src/multicast/gnunet-multicast.c:70 src/revocation/gnunet-revocation.c:517
+#: src/multicast/gnunet-multicast.c:70 src/revocation/gnunet-revocation.c:522
 #: src/template/gnunet-template.c:70
 #, fuzzy
 msgid "help text"
@@ -3041,53 +3041,53 @@ msgstr ""
 msgid "Malformed CHK URI"
 msgstr ""
 
-#: src/fs/fs_uri.c:576 src/fs/fs_uri.c:629
+#: src/fs/fs_uri.c:512 src/fs/fs_uri.c:580
 msgid "SKS URI malformed"
 msgstr ""
 
-#: src/fs/fs_uri.c:591 src/fs/fs_uri.c:601
+#: src/fs/fs_uri.c:527 src/fs/fs_uri.c:537
 msgid "LOC URI malformed"
 msgstr ""
 
-#: src/fs/fs_uri.c:611
+#: src/fs/fs_uri.c:545 src/fs/fs_uri.c:553
 msgid "LOC URI malformed (could not decode public key)"
 msgstr ""
 
-#: src/fs/fs_uri.c:617
+#: src/fs/fs_uri.c:559
 msgid "SKS URI malformed (could not find signature)"
 msgstr ""
 
-#: src/fs/fs_uri.c:623
+#: src/fs/fs_uri.c:565 src/fs/fs_uri.c:574
 msgid "SKS URI malformed (could not decode signature)"
 msgstr ""
 
-#: src/fs/fs_uri.c:636
+#: src/fs/fs_uri.c:586
 msgid "SKS URI malformed (could not parse expiration time)"
 msgstr ""
 
-#: src/fs/fs_uri.c:648
+#: src/fs/fs_uri.c:598
 msgid "SKS URI malformed (signature failed validation)"
 msgstr ""
 
-#: src/fs/fs_uri.c:686
+#: src/fs/fs_uri.c:636
 msgid "Unrecognized URI type"
 msgstr ""
 
-#: src/fs/fs_uri.c:910
+#: src/fs/fs_uri.c:860
 #, fuzzy
 msgid "Lacking key configuration settings.\n"
 msgstr "GNUnet Konfiguration"
 
-#: src/fs/fs_uri.c:916
+#: src/fs/fs_uri.c:866
 #, fuzzy, c-format
 msgid "Could not access hostkey file `%s'.\n"
 msgstr "Konfigurationsdatei `%s' konnte nicht geparst werden.\n"
 
-#: src/fs/fs_uri.c:1100 src/fs/fs_uri.c:1127
+#: src/fs/fs_uri.c:1050 src/fs/fs_uri.c:1077
 msgid "No keywords specified!\n"
 msgstr "Keine Schlüsselwörter angegeben!\n"
 
-#: src/fs/fs_uri.c:1133
+#: src/fs/fs_uri.c:1083
 msgid "Number of double-quotes not balanced!\n"
 msgstr ""
 
@@ -5716,107 +5716,107 @@ msgstr ""
 msgid "Regex `%s' is too long!\n"
 msgstr "`%s' ist keine Datei.\n"
 
-#: src/revocation/gnunet-revocation.c:121
+#: src/revocation/gnunet-revocation.c:126
 #, fuzzy, c-format
 msgid "Key `%s' is valid\n"
 msgstr "Format des Pseudonyms `%s' ist ungültig.\n"
 
-#: src/revocation/gnunet-revocation.c:126
+#: src/revocation/gnunet-revocation.c:131
 #, fuzzy, c-format
 msgid "Key `%s' has been revoked\n"
 msgstr "Dienst gelöscht.\n"
 
-#: src/revocation/gnunet-revocation.c:132
+#: src/revocation/gnunet-revocation.c:137
 #, fuzzy
 msgid "Internal error\n"
 msgstr "Unbekannter Fehler.\n"
 
-#: src/revocation/gnunet-revocation.c:158
+#: src/revocation/gnunet-revocation.c:163
 #, c-format
 msgid "Key for ego `%s' is still valid, revocation failed (!)\n"
 msgstr ""
 
-#: src/revocation/gnunet-revocation.c:163
+#: src/revocation/gnunet-revocation.c:168
 #, fuzzy
 msgid "Revocation failed (!)\n"
 msgstr "Absicherung fehlgeschlagen bei %s:%d.\n"
 
-#: src/revocation/gnunet-revocation.c:168
+#: src/revocation/gnunet-revocation.c:173
 #, c-format
 msgid "Key for ego `%s' has been successfully revoked\n"
 msgstr ""
 
-#: src/revocation/gnunet-revocation.c:173
+#: src/revocation/gnunet-revocation.c:178
 msgid "Revocation successful.\n"
 msgstr ""
 
-#: src/revocation/gnunet-revocation.c:178
+#: src/revocation/gnunet-revocation.c:183
 msgid "Internal error, key revocation might have failed\n"
 msgstr ""
 
-#: src/revocation/gnunet-revocation.c:289
+#: src/revocation/gnunet-revocation.c:294
 #, c-format
 msgid "Revocation certificate for `%s' stored in `%s'\n"
 msgstr ""
 
-#: src/revocation/gnunet-revocation.c:319
+#: src/revocation/gnunet-revocation.c:324
 #, fuzzy, c-format
 msgid "Ego `%s' not found.\n"
 msgstr "`%s' fehlgeschlagen: Tabelle nicht gefunden!\n"
 
-#: src/revocation/gnunet-revocation.c:340
+#: src/revocation/gnunet-revocation.c:345
 #, c-format
 msgid "Error: revocation certificate in `%s' is not for `%s'\n"
 msgstr ""
 
-#: src/revocation/gnunet-revocation.c:360
+#: src/revocation/gnunet-revocation.c:365
 msgid "Revocation certificate ready\n"
 msgstr ""
 
-#: src/revocation/gnunet-revocation.c:370
+#: src/revocation/gnunet-revocation.c:375
 msgid "Revocation certificate not ready, calculating proof of work\n"
 msgstr ""
 
-#: src/revocation/gnunet-revocation.c:402
+#: src/revocation/gnunet-revocation.c:407
 #, fuzzy, c-format
 msgid "Public key `%s' malformed\n"
 msgstr "Ungültiger Parameter: `%s'\n"
 
-#: src/revocation/gnunet-revocation.c:416
+#: src/revocation/gnunet-revocation.c:421
 msgid ""
 "Testing and revoking at the same time is not allowed, only executing test.\n"
 msgstr ""
 
-#: src/revocation/gnunet-revocation.c:436
+#: src/revocation/gnunet-revocation.c:441
 #, fuzzy
 msgid "No filename to store revocation certificate given.\n"
 msgstr "Fehler beim Lesen der Freunde-Liste von `%s'\n"
 
-#: src/revocation/gnunet-revocation.c:458
+#: src/revocation/gnunet-revocation.c:463
 #, fuzzy, c-format
 msgid "Failed to read revocation certificate from `%s'\n"
 msgstr "Fehler beim Lesen der Freunde-Liste von `%s'\n"
 
-#: src/revocation/gnunet-revocation.c:483
+#: src/revocation/gnunet-revocation.c:488
 #, fuzzy
 msgid "No action specified. Nothing to do.\n"
 msgstr "Keine Oberfläche angegeben, verwende Standard\n"
 
-#: src/revocation/gnunet-revocation.c:499
+#: src/revocation/gnunet-revocation.c:504
 msgid "use NAME for the name of the revocation file"
 msgstr ""
 
-#: src/revocation/gnunet-revocation.c:502
+#: src/revocation/gnunet-revocation.c:507
 msgid ""
 "revoke the private key associated for the the private key associated with "
 "the ego NAME "
 msgstr ""
 
-#: src/revocation/gnunet-revocation.c:505
+#: src/revocation/gnunet-revocation.c:510
 msgid "actually perform revocation, otherwise we just do the precomputation"
 msgstr ""
 
-#: src/revocation/gnunet-revocation.c:508
+#: src/revocation/gnunet-revocation.c:513
 msgid "test if the public key KEY has been revoked"
 msgstr ""
 
@@ -6071,7 +6071,7 @@ msgstr "Es konnte keine Verbindung mit gnunetd hergestellt werden.\n"
 msgid "Failed to send a message to the scalarproduct service\n"
 msgstr "Der Transportdienst auf Port %d konnte nicht gestartet werden.\n"
 
-#: src/set/gnunet-service-set.c:1400
+#: src/set/gnunet-service-set.c:1403
 #, fuzzy
 msgid "Could not connect to mesh service\n"
 msgstr "Verbindung zu gnunetd konnte nicht hergestellt werden.\n"
