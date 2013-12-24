@@ -2696,6 +2696,11 @@ GMC_is_sendable (struct MeshConnection *c, int fwd)
 {
   struct MeshFlowControl *fc;
 
+  if (NULL == c)
+  {
+    GNUNET_break (0);
+    return GNUNET_YES;
+  }
   fc = fwd ? &c->fwd_fc : &c->bck_fc;
   if (GM_is_pid_bigger (fc->last_ack_recv, fc->last_pid_sent))
     return GNUNET_YES;
