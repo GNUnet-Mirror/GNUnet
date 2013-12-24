@@ -1333,7 +1333,10 @@ dispatch_p2p_message (void *cls,
               ntohs (message->type));
   /* do this before the handler, as the handler might kill the channel */
   GNUNET_MESH_receive_done (channel);
-  ret = op->vt->msg_handler (op, message);
+  if (NULL != op->vt)
+    ret = op->vt->msg_handler (op, message);
+  else
+    ret = GNUNET_SYSERR;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "handled mesh message (type: %u)\n",
               ntohs (message->type));
