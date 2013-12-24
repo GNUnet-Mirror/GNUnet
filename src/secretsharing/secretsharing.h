@@ -53,7 +53,7 @@ struct GNUNET_SECRETSHARING_CreateMessage
   struct GNUNET_TIME_AbsoluteNBO deadline;
 
   /**
-   * Mininum number of cooperating peers to decrypt a 
+   * Mininum number of cooperating peers to decrypt a
    * value.
    */
   uint16_t threshold GNUNET_PACKED;

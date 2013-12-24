@@ -93,12 +93,12 @@ struct OperationState
    * size of the bloomfilter
    */
   uint32_t bf_data_size;
-  
+
   /**
    * size of the bloomfilter
    */
   uint32_t bf_bits_per_element;
-  
+
   /**
    * Current state of the operation.
    */
@@ -445,7 +445,7 @@ send_bloomfilter (struct Operation *op)
   struct GNUNET_CONTAINER_BloomFilter * local_bf;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "sending bf of size %u\n");
-  
+
   CALCULATE_BF_SIZE(op->state->my_element_count,
                     op->spec->remote_element_count,
                     bf_size,
@@ -586,7 +586,7 @@ static void
 process_bf (struct Operation *op){
   uint32_t old_elements;
   uint32_t peer_elements;
-  
+
   old_elements = op->state->my_element_count;
   peer_elements = op->spec->remote_element_count;
   switch (op->state->phase)
@@ -650,18 +650,18 @@ handle_p2p_bf_part (void *cls, const struct GNUNET_MessageHeader *mh)
   const struct BFPart *msg = (const struct BFPart *) mh;
   uint32_t chunk_size;
   uint32_t chunk_offset;
-  
+
   chunk_size = ntohl(msg->chunk_length);
   chunk_offset = ntohl(msg->chunk_offset);
-  
-  if ((NULL == op->state->bf_data) 
+
+  if ((NULL == op->state->bf_data)
        || (op->state->bf_data_size < chunk_size + chunk_offset)){
     // unexpected multipart chunk
     GNUNET_break_op (0);
     fail_intersection_operation(op);
     return;
   }
-  
+
   memcpy (&op->state->bf_data[chunk_offset], (const char*) &msg[1], chunk_size);
 
   if (op->state->bf_data_size != chunk_offset + chunk_size)
@@ -671,10 +671,10 @@ handle_p2p_bf_part (void *cls, const struct GNUNET_MessageHeader *mh)
   op->state->remote_bf = GNUNET_CONTAINER_bloomfilter_init ((const char*) &msg[1],
                                                             op->state->bf_data_size,
                                                             op->state->bf_bits_per_element);
-  
+
   GNUNET_free (op->state->bf_data);
   op->state->bf_data = NULL;
-  
+
   process_bf (op);
 }
 
@@ -750,7 +750,7 @@ handle_p2p_element_info (void *cls, const struct GNUNET_MessageHeader *mh)
 
   op->state->phase = PHASE_BF_EXCHANGE;
   op->state->my_elements = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_YES);
-  
+
   GNUNET_CONTAINER_multihashmap_iterate (op->spec->set->elements,
                                          &iterator_initialization,
                                          op);

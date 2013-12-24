@@ -53,7 +53,7 @@ struct OperationRequestMessage
    * For Intersection: my element count
    */
   uint32_t element_count;
-  
+
   /**
    * Application-specific identifier of the request.
    */
@@ -104,7 +104,7 @@ struct BFMessage
    * mutator used with this bloomfilter.
    */
   uint32_t sender_element_count GNUNET_PACKED;
-  
+
   /**
    * mutator used with this bloomfilter.
    */
@@ -114,17 +114,17 @@ struct BFMessage
    * Length of the bloomfilter data
    */
   uint32_t bloomfilter_total_length GNUNET_PACKED;
-  
+
   /**
    * Length of the appended bloomfilter data block
    */
   uint32_t bloomfilter_length GNUNET_PACKED;
-  
+
   /**
    * Length of the bloomfilter data
    */
   uint32_t bits_per_element GNUNET_PACKED;
-  
+
   /**
    * rest: the sender's bloomfilter
    */
@@ -141,12 +141,12 @@ struct BFPart
    * Length of the appended bloomfilter data block
    */
   uint32_t chunk_length GNUNET_PACKED;
-  
+
   /**
    * offset in the bloolfilter data block, if multipart message
    */
   uint32_t chunk_offset GNUNET_PACKED;
-  
+
   /**
    * rest: the sender's bloomfilter
    */

@@ -65,7 +65,7 @@ connect_cb (void *cls, const struct GNUNET_PeerIdentity *peer)
     struct GNUNET_MQ_Envelope *ev;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Queueing messages.\n");
     for (i = 0; i < NUM_MSG; i++)
-    { 
+    {
       ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_TEST);
       GNUNET_MQ_send (mq, ev);
     }
@@ -107,13 +107,13 @@ shutdown_task (void *cls,
 
 /**
  * Initialize framework and start test
- * 
+ *
  * @param cls Closure (unused).
  * @param cfg Configuration handle.
  * @param peer Testing peer handle.
  */
 static void
-run (void *cls, 
+run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg,
      struct GNUNET_TESTING_Peer *peer)
 {

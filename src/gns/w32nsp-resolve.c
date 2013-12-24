@@ -385,7 +385,7 @@ main (int argc, char **argv)
     ADDRINFOW hints;
     ADDRINFOW *result;
     ADDRINFOW *pos;
-  
+
     memset (&hints, 0, sizeof (struct addrinfo));
     hints.ai_family = AF_UNSPEC;
     hints.ai_socktype = SOCK_STREAM;

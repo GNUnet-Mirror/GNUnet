@@ -21,7 +21,7 @@
 /**
  * @file testbed/testbed_api_underlay.c
  * @brief testbed underlay API implementation
- * @author Sree Harsha Totakura <sreeharsha@totakura.in> 
+ * @author Sree Harsha Totakura <sreeharsha@totakura.in>
  */
 
 #include "testbed_api_peers.h"
@@ -46,7 +46,7 @@ struct LinkProperty
    * latency of the link in microseconds
    */
   uint32_t latency;
-  
+
   /**
    * data loss on the link expressed as percentage
    */
@@ -154,7 +154,7 @@ GNUNET_TESTBED_underlaylinkmodel_create (struct GNUNET_TESTBED_Peer *peer,
                                          enum GNUNET_TESTBED_UnderlayLinkModelType type)
 {
   struct GNUNET_TESTBED_UnderlayLinkModel *m;
-  
+
   GNUNET_assert (0 == peer->underlay_model_exists);
   m = GNUNET_new (struct GNUNET_TESTBED_UnderlayLinkModel);
   peer->underlay_model_exists = 1;
@@ -188,7 +188,7 @@ GNUNET_TESTBED_underlaylinkmodel_add_peer (struct GNUNET_TESTBED_UnderlayLinkMod
 /**
  * Set the metrics for a link to the given peer in the underlay model.  The link
  * SHOULD be permittable according to the given model.
- * 
+ *
  * @ingroup underlay
  * @param model the model
  * @param peer the other end peer of the link

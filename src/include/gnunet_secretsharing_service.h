@@ -246,7 +246,7 @@ GNUNET_SECRETSHARING_share_read (void *data, size_t len);
  * Convert a share to its binary representation.  Use
  * #GNUNET_SECRETSHARING_share_size to get the necessary size for the binary
  * representation.
- * 
+ *
  * @param share share to write
  * @param buf buffer to write to
  * @param buflen number of writable bytes in @a buffer

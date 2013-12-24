@@ -1088,7 +1088,7 @@ open_device (struct HardwareInfos *dev)
     addr.btAddr = 0;
     addr.port = BT_PORT_ANY;
 
-    if (GNUNET_OK != 
+    if (GNUNET_OK !=
 	GNUNET_NETWORK_socket_bind (dev->handle, (const SOCKADDR*)&addr, sizeof (SOCKADDR_BTH)))
     {
       fprintf (stderr, "Failed to bind the socket: ");

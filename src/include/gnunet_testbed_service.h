@@ -1653,7 +1653,7 @@ GNUNET_TESTBED_underlaylinkmodel_add_peer (struct GNUNET_TESTBED_UnderlayLinkMod
 /**
  * Set the metrics for a link to the given peer in the underlay model.  The link
  * SHOULD be permittable according to the given model.
- * 
+ *
  * @ingroup underlay
  * @param model the model
  * @param peer the other end peer of the link

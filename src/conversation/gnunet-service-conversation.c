@@ -958,7 +958,7 @@ handle_mesh_ring_message (void *cls,
   cring.cid = ch->cid;
   cring.caller_id = msg->caller_id;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Sending RING message to client. CID %u:(%u, %u)\n", 
+              "Sending RING message to client. CID %u:(%u, %u)\n",
               ch->cid, ch->remote_line, line->local_line);
   GNUNET_SERVER_notification_context_unicast (nc,
                                               line->client,

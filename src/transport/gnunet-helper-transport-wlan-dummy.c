@@ -315,7 +315,7 @@ main (int argc, char *argv[])
   signal (SIGINT, &sigfunc);
   signal (SIGTERM, &sigfunc);
   signal (GNUNET_TERM_SIG, &sigfunc);
-  
+
   write_std.size = 0;
   write_std.pos = 0;
   write_pout.size = 0;

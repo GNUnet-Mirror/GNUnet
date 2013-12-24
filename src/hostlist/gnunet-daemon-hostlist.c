@@ -204,7 +204,7 @@ disconnect_handler (void *cls, const struct GNUNET_PeerIdentity *peer)
 static void
 cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Hostlist daemon is shutting down\n");
   if (core != NULL)
   {
@@ -265,9 +265,9 @@ run (void *cls, char *const *args, const char *cfgfile,
                                   &client_adv_handler, learning);
   core =
     GNUNET_CORE_connect (cfg, NULL,
-			 &core_init, 
+			 &core_init,
 			 &connect_handler,
-			 &disconnect_handler, NULL, 
+			 &disconnect_handler, NULL,
 			 GNUNET_NO, NULL,
 			 GNUNET_NO,
 			 learning ? learn_handlers : no_learn_handlers);
@@ -278,7 +278,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     GNUNET_HOSTLIST_server_start (cfg, stats, core, &server_ch, &server_dh,
                                   advertising);
 #endif
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, 
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
 				&cleaning_task,
                                 NULL);
 

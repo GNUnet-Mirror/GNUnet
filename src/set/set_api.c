@@ -428,7 +428,7 @@ set_operation_cancel (struct GNUNET_SET_OperationHandle *oh)
   }
 
   GNUNET_free (oh);
-  
+
   return ret;
 }
 

@@ -517,7 +517,7 @@ incoming_suggest (struct Operation *incoming, struct Listener *listener)
 {
   struct GNUNET_MQ_Envelope *mqm;
   struct GNUNET_SET_RequestMessage *cmsg;
-  
+
   GNUNET_assert (GNUNET_YES == incoming->is_incoming);
   GNUNET_assert (NULL != incoming->state);
   GNUNET_assert (NULL != incoming->spec);

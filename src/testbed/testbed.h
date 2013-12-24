@@ -790,7 +790,7 @@ struct GNUNET_TESTBED_UnderlayLinkModelMsg
    * The number of link properties contained in this message
    */
   uint32_t nprops GNUNET_PACKED;
-  
+
   /**
    * Array of ids of peers to be in the blacklist/whitelist.  Each id is of type
    * uint32_t.  Number of ids should be equal to nentries.
@@ -801,7 +801,7 @@ struct GNUNET_TESTBED_UnderlayLinkModelMsg
    * sequence of four integers of type uint32_t: peer_id, latency, loss and
    * bandwidth.
    */
-  
+
 };
 
 

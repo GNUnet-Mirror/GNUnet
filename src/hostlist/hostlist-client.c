@@ -1277,7 +1277,7 @@ load_hostlist_file ()
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              _("Loading saved hostlist entries from file `%s' \n"), 
+              _("Loading saved hostlist entries from file `%s' \n"),
 	      filename);
   if (GNUNET_NO == GNUNET_DISK_file_test (filename))
   {

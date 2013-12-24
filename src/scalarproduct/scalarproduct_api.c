@@ -318,7 +318,7 @@ transmit_request (void *cls, size_t size,
  * @param element_count Number of elements in the vector
  * @param cont Callback function
  * @param cont_cls Closure for the callback function
- * 
+ *
  * @return a new handle for this computation
  */
 struct GNUNET_SCALARPRODUCT_ComputationHandle *
@@ -408,7 +408,7 @@ GNUNET_SCALARPRODUCT_response (const struct GNUNET_CONFIGURATION_Handle * cfg,
  * @param mask_bytes number of bytes in the mask
  * @param cont Callback function
  * @param cont_cls Closure for the callback function
- * 
+ *
  * @return a new handle for this computation
  */
 struct GNUNET_SCALARPRODUCT_ComputationHandle *

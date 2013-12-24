@@ -524,7 +524,7 @@ reconnect_call (struct GNUNET_CONVERSATION_Call *call)
                        GNUNET_CONVERSATION_EC_CALL_ERROR);
     return;
   }
-  
+
   call->mq = GNUNET_MQ_queue_for_connection_client (call->client,
                                                     handlers,
                                                     &call_error_handler,

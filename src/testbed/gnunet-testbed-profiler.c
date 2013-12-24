@@ -230,7 +230,7 @@ test_run (void *cls,
   result = GNUNET_OK;
   fprintf (stdout, "\n");
   print_overlay_links_summary ();
-  if (noninteractive)    
+  if (noninteractive)
   {
     GNUNET_SCHEDULER_cancel (abort_task);
     abort_task = GNUNET_SCHEDULER_NO_TASK;

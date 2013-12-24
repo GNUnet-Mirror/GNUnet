@@ -895,7 +895,7 @@ GST_connection_pool_get_handle_done (struct GST_ConnectionPool_GetHandle *gh)
     }
   }
   if (gh->notify_waiting)
-  { 
+  {
     GNUNET_CONTAINER_DLL_remove (entry->head_notify, entry->tail_notify, gh);
     gh->notify_waiting = 0;
   }

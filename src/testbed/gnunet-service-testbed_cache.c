@@ -121,7 +121,7 @@ static struct CacheEntry *
 add_entry (unsigned int peer_id)
 {
   struct CacheEntry *entry;
-  
+
   GNUNET_assert (NULL != cache);
   if (cache_size == GNUNET_CONTAINER_multihashmap32_size (cache))
   {
