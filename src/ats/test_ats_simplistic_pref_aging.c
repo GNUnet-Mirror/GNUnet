@@ -166,152 +166,158 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
 
   if (0 == stage)
   {
-  		/* Callback for initial suggestion */
-  		if (0 == memcmp (&address->peer, &p[0].id, sizeof (p[0].id)))
-  		{
-				GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Stage %u: Callback for peer 0 `%s': (in/out) %lu/%lu\n",
-						stage,
-						GNUNET_i2s (&address->peer),
-						ntohl (bandwidth_in.value__),
-						ntohl (bandwidth_out.value__));
-				sug_p0 = GNUNET_YES;
-				p0_last_bandwidth_out = ntohl(bandwidth_out.value__);
-				p0_last_bandwidth_in = ntohl(bandwidth_in.value__);
-  		}
-  		if (0 == memcmp (&address->peer, &p[1].id, sizeof (p[1].id)))
-  		{
-				GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Stage %u: Callback for peer 1 `%s': (in/out) %lu/%lu\n",
-						stage,
-						GNUNET_i2s (&address->peer),
-						ntohl (bandwidth_in.value__),
-						ntohl (bandwidth_out.value__));
-				sug_p1 = GNUNET_YES;
-				p1_last_bandwidth_out = ntohl(bandwidth_out.value__);
-				p1_last_bandwidth_in = ntohl(bandwidth_in.value__);
-  		}
-  		if ((GNUNET_YES == sug_p0) && (GNUNET_YES == sug_p1))
-  		{
-  		  /* Changing preference for peer 0 */
-  			stage ++;
-  			GNUNET_ATS_performance_change_preference (perf_ats, &p[0].id, GNUNET_ATS_PREFERENCE_BANDWIDTH,(double) 1000, GNUNET_ATS_PREFERENCE_END);
-				sug_p0 = GNUNET_NO;
-				sug_p1 = GNUNET_NO;
-  			return;
-  		}
-
+    /* Callback for initial suggestion */
+    if (0 == memcmp (&address->peer, &p[0].id, sizeof (p[0].id)))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  "Stage %u: Callback for peer 0 `%s': (in/out) %u/%u\n",
+                  stage,
+                  GNUNET_i2s (&address->peer),
+                  (unsigned int) ntohl (bandwidth_in.value__),
+                  (unsigned int) ntohl (bandwidth_out.value__));
+      sug_p0 = GNUNET_YES;
+      p0_last_bandwidth_out = ntohl(bandwidth_out.value__);
+      p0_last_bandwidth_in = ntohl(bandwidth_in.value__);
+    }
+    if (0 == memcmp (&address->peer, &p[1].id, sizeof (p[1].id)))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  "Stage %u: Callback for peer 1 `%s': (in/out) %u/%u\n",
+                  stage,
+                  GNUNET_i2s (&address->peer),
+                  (unsigned int) ntohl (bandwidth_in.value__),
+                  (unsigned int) ntohl (bandwidth_out.value__));
+      sug_p1 = GNUNET_YES;
+      p1_last_bandwidth_out = ntohl(bandwidth_out.value__);
+      p1_last_bandwidth_in = ntohl(bandwidth_in.value__);
+    }
+    if ((GNUNET_YES == sug_p0) && (GNUNET_YES == sug_p1))
+    {
+      /* Changing preference for peer 0 */
+      stage ++;
+      GNUNET_ATS_performance_change_preference (perf_ats, &p[0].id, GNUNET_ATS_PREFERENCE_BANDWIDTH,(double) 1000, GNUNET_ATS_PREFERENCE_END);
+      sug_p0 = GNUNET_NO;
+      sug_p1 = GNUNET_NO;
+      return;
+    }
   }
   if (1 == stage)
   {
-  		/* Callback due to preference change */
-  		if (0 == memcmp (&address->peer, &p[0].id, sizeof (p[0].id)))
-  		{
-				GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Stage %u: Callback for peer 0 `%s': (in/out) %lu/%lu\n",
-						stage,
-						GNUNET_i2s (&address->peer),
-						ntohl (bandwidth_in.value__),
-						ntohl (bandwidth_out.value__));
-				sug_p0 = GNUNET_YES;
+    /* Callback due to preference change */
+    if (0 == memcmp (&address->peer, &p[0].id, sizeof (p[0].id)))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  "Stage %u: Callback for peer 0 `%s': (in/out) %u/%u\n",
+                  stage,
+                  GNUNET_i2s (&address->peer),
+                  (unsigned int) ntohl (bandwidth_in.value__),
+                  (unsigned int) ntohl (bandwidth_out.value__));
+      sug_p0 = GNUNET_YES;
 
-				/* Peer 0 should get more bandwidth */
-				if (cur_bandwidth_out <= p0_last_bandwidth_out)
-					GNUNET_break (0);
-				if (cur_bandwidth_in <= p0_last_bandwidth_in)
-					GNUNET_break (0);
-				p0_last_bandwidth_out = ntohl(bandwidth_out.value__);
-				p0_last_bandwidth_in = ntohl(bandwidth_in.value__);
-  		}
-  		if (0 == memcmp (&address->peer, &p[1].id, sizeof (p[1].id)))
-  		{
-				GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Stage %u: Callback for peer 1 `%s': (in/out) %lu/%lu\n",
-						stage,
-						GNUNET_i2s (&address->peer),
-						ntohl (bandwidth_in.value__),
-						ntohl (bandwidth_out.value__));
-				sug_p1 = GNUNET_YES;
+      /* Peer 0 should get more bandwidth */
+      if (cur_bandwidth_out <= p0_last_bandwidth_out)
+        GNUNET_break (0);
+      if (cur_bandwidth_in <= p0_last_bandwidth_in)
+        GNUNET_break (0);
+      p0_last_bandwidth_out = ntohl(bandwidth_out.value__);
+      p0_last_bandwidth_in = ntohl(bandwidth_in.value__);
+    }
+    if (0 == memcmp (&address->peer, &p[1].id, sizeof (p[1].id)))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  "Stage %u: Callback for peer 1 `%s': (in/out) %u/%u\n",
+                  stage,
+                  GNUNET_i2s (&address->peer),
+                  (unsigned int) ntohl (bandwidth_in.value__),
+                  (unsigned int) ntohl (bandwidth_out.value__));
+      sug_p1 = GNUNET_YES;
 
-				/* Peer 1 should get less bandwidth */
-				if (cur_bandwidth_out >= p1_last_bandwidth_out)
-				{
-					GNUNET_break (0);
-					goto error;
-				}
-				if (cur_bandwidth_in >= p1_last_bandwidth_in)
-				{
-					GNUNET_break (0);
-					goto error;
-				}
-				p1_last_bandwidth_out = ntohl(bandwidth_out.value__);
-				p1_last_bandwidth_in = ntohl(bandwidth_in.value__);
-  		}
-  		if ((GNUNET_YES == sug_p0) && (GNUNET_YES == sug_p1))
-  		{
-  			stage ++;
-				sug_p0 = GNUNET_NO;
-				sug_p1 = GNUNET_NO;
-  			return;
-  		}
+      /* Peer 1 should get less bandwidth */
+      if (cur_bandwidth_out >= p1_last_bandwidth_out)
+      {
+        GNUNET_break (0);
+        goto error;
+      }
+      if (cur_bandwidth_in >= p1_last_bandwidth_in)
+      {
+        GNUNET_break (0);
+        goto error;
+      }
+      p1_last_bandwidth_out = ntohl(bandwidth_out.value__);
+      p1_last_bandwidth_in = ntohl(bandwidth_in.value__);
+    }
+    if ((GNUNET_YES == sug_p0) && (GNUNET_YES == sug_p1))
+    {
+      stage ++;
+      sug_p0 = GNUNET_NO;
+      sug_p1 = GNUNET_NO;
+      return;
+    }
   }
   if (2 == stage)
   {
-  		/* Callback due to preference aging */
-  		if (0 == memcmp (&address->peer, &p[0].id, sizeof (p[0].id)))
-  		{
-				GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Stage %u: Callback for peer 0 `%s': (in/out) %lu/%lu\n",
-						stage,
-						GNUNET_i2s (&address->peer),
-						ntohl (bandwidth_in.value__),
-						ntohl (bandwidth_out.value__));
-				sug_p0 = GNUNET_YES;
+    /* Callback due to preference aging */
+    if (0 == memcmp (&address->peer, &p[0].id, sizeof (p[0].id)))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  "Stage %u: Callback for peer 0 `%s': (in/out) %u/%u\n",
+                  stage,
+                  GNUNET_i2s (&address->peer),
+                  (unsigned int) ntohl (bandwidth_in.value__),
+                  (unsigned int) ntohl (bandwidth_out.value__));
+      sug_p0 = GNUNET_YES;
 
-				/* Peer 0 should get less bandwidth */
-				if (cur_bandwidth_out <= p0_last_bandwidth_out)
-					GNUNET_break (0);
-				if (cur_bandwidth_in <= p0_last_bandwidth_in)
-					GNUNET_break (0);
-				p0_last_bandwidth_out = ntohl(bandwidth_out.value__);
-				p0_last_bandwidth_in = ntohl(bandwidth_in.value__);
-  		}
-  		if (0 == memcmp (&address->peer, &p[1].id, sizeof (p[1].id)))
-  		{
-				GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Stage %u: Callback for peer 1 `%s': (in/out) %lu/%lu\n",
-						stage,
-						GNUNET_i2s (&address->peer),
-						ntohl (bandwidth_in.value__),
-						ntohl (bandwidth_out.value__));
-				sug_p1 = GNUNET_YES;
-				/* Peer 1 should get more bandwidth */
-				if (cur_bandwidth_out <= p1_last_bandwidth_out)
-				{
-					GNUNET_break (0);
-					goto error;
-				}
-				if (cur_bandwidth_in <= p1_last_bandwidth_in)
-				{
-					GNUNET_break (0);
-					goto error;
-				}
-				p0_last_bandwidth_out = ntohl(bandwidth_out.value__);
-				p0_last_bandwidth_in = ntohl(bandwidth_in.value__);
-  		}
+      /* Peer 0 should get less bandwidth */
+      if (cur_bandwidth_out <= p0_last_bandwidth_out)
+        GNUNET_break (0);
+      if (cur_bandwidth_in <= p0_last_bandwidth_in)
+        GNUNET_break (0);
+      p0_last_bandwidth_out = ntohl(bandwidth_out.value__);
+      p0_last_bandwidth_in = ntohl(bandwidth_in.value__);
+    }
+    if (0 == memcmp (&address->peer, &p[1].id, sizeof (p[1].id)))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  "Stage %u: Callback for peer 1 `%s': (in/out) %u/%u\n",
+                  stage,
+                  GNUNET_i2s (&address->peer),
+                  (unsigned int) ntohl (bandwidth_in.value__),
+                  (unsigned int) ntohl (bandwidth_out.value__));
+      sug_p1 = GNUNET_YES;
+      /* Peer 1 should get more bandwidth */
+      if (cur_bandwidth_out <= p1_last_bandwidth_out)
+      {
+        GNUNET_break (0);
+        goto error;
+      }
+      if (cur_bandwidth_in <= p1_last_bandwidth_in)
+      {
+        GNUNET_break (0);
+        goto error;
+      }
+      p0_last_bandwidth_out = ntohl(bandwidth_out.value__);
+      p0_last_bandwidth_in = ntohl(bandwidth_in.value__);
+    }
 
-  		if ((GNUNET_YES == sug_p0) && (GNUNET_YES == sug_p1))
-  		{
-  	  		/* Done ! */
-  			GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Done!\n");
-  			stage ++;
-  			ret = 0;
-        GNUNET_SCHEDULER_add_now (&end,NULL);
-  			return;
-  		}
+    if ((GNUNET_YES == sug_p0) && (GNUNET_YES == sug_p1))
+    {
+      /* Done ! */
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Done!\n");
+      stage ++;
+      ret = 0;
+      GNUNET_SCHEDULER_add_now (&end,NULL);
+      return;
+    }
   }
   return;
 
 error:
-	/* Error ! */
-	ret = 1;
-	GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Error!\n");
-	GNUNET_SCHEDULER_add_now (&end,NULL);
+  /* Error ! */
+  ret = 1;
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Error!\n");
+  GNUNET_SCHEDULER_add_now (&end,NULL);
 }
+
 
 static void
 run (void *cls,

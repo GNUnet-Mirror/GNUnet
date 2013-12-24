@@ -1323,9 +1323,10 @@ GAS_addresses_handle_backoff_reset (struct GAS_Addresses_Handle *handle,
 }
 
 
-
 static int
-eval_count_active_it (void *cls, const struct GNUNET_PeerIdentity *id, void *obj)
+eval_count_active_it (void *cls,
+                      const struct GNUNET_PeerIdentity *id,
+                      void *obj)
 {
   int *request_fulfilled = cls;
   struct ATS_Address *addr = obj;
@@ -1343,7 +1344,8 @@ eval_count_active_it (void *cls, const struct GNUNET_PeerIdentity *id, void *obj
 /**
  * Summary context
  */
-struct SummaryContext {
+struct SummaryContext
+{
   /**
    * Sum of the utilized inbound bandwidth per network
    */
@@ -1364,11 +1366,10 @@ struct SummaryContext {
 static int
 eval_sum_bw_used (void *cls, const struct GNUNET_PeerIdentity *id, void *obj)
 {
+  struct SummaryContext *ctx = cls;
   struct ATS_Address *addr = obj;
   int networks[GNUNET_ATS_NetworkTypeCount] = GNUNET_ATS_NetworkType;
   int net;
-  struct SummaryContext  *ctx = cls;
-
   int c;
 
   if (GNUNET_YES == addr->active)
@@ -1384,21 +1385,24 @@ eval_sum_bw_used (void *cls, const struct GNUNET_PeerIdentity *id, void *obj)
       }
     }
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-        "Active address in  %s with (in/out) %lu/%lu Bps\n",
-        GNUNET_ATS_print_network_type (net),
-        ntohl (addr->assigned_bw_in.value__),
-        ntohl (addr->assigned_bw_out.value__));
+                "Active address in  %s with (in/out) %u/%u Bps\n",
+                GNUNET_ATS_print_network_type (net),
+                (unsigned int) ntohl (addr->assigned_bw_in.value__),
+                (unsigned int) ntohl (addr->assigned_bw_out.value__));
   }
   return GNUNET_OK;
 }
 
+
 /**
  * Summary context
  */
-struct RelativityContext {
+struct RelativityContext
+{
 
   struct GAS_Addresses_Handle *ah;
 };
+
 
 static int
 find_active_address (void *cls, const struct GNUNET_PeerIdentity *id, void *obj)
@@ -2045,24 +2049,26 @@ bandwidth_changed_cb (void *cls, struct ATS_Address *address)
   }
   if (NULL == cur)
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Nobody is interested in peer `%s' :(\n",
-        GNUNET_i2s (&address->peer));
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+               "Nobody is interested in peer `%s' :(\n",
+               GNUNET_i2s (&address->peer));
     return;
   }
 
   if ((0 == ntohl (address->assigned_bw_in.value__))
       && (0 == ntohl (address->assigned_bw_out.value__)))
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-        "Telling transport to disconnect peer `%s'\n",
-        GNUNET_i2s (&address->peer));
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+               "Telling transport to disconnect peer `%s'\n",
+                GNUNET_i2s (&address->peer));
   }
   else
   {
     GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-        "Sending bandwidth update for peer `%s': %lu %lu\n",
-        GNUNET_i2s (&address->peer), address->assigned_bw_out.value__,
-        address->assigned_bw_out.value__);
+               "Sending bandwidth update for peer `%s': %u %u\n",
+               GNUNET_i2s (&address->peer),
+               (unsigned int) ntohl (address->assigned_bw_out.value__),
+               (unsigned int) ntohl (address->assigned_bw_out.value__));
   }
 
   /* *Notify scheduling clients about suggestion */
@@ -2070,6 +2076,7 @@ bandwidth_changed_cb (void *cls, struct ATS_Address *address)
       address->addr, address->addr_len, address->session_id, address->atsi,
       address->atsi_count, address->assigned_bw_out, address->assigned_bw_in);
 }
+
 
 /**
  * Initialize address subsystem. The addresses subsystem manages the addresses

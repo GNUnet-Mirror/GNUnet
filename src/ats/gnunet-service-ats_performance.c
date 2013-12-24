@@ -261,11 +261,11 @@ peerinfo_it (void *cls,
     return;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Callback for peer `%s' plugin `%s' BW out %lu, BW in %lu \n",
+              "Callback for peer `%s' plugin `%s' BW out %u, BW in %u \n",
               GNUNET_i2s (id),
               plugin_name,
-              ntohl (bandwidth_out.value__),
-              ntohl (bandwidth_in.value__));
+              (unsigned int) ntohl (bandwidth_out.value__),
+              (unsigned int) ntohl (bandwidth_in.value__));
   GAS_performance_notify_client(pc,
                                 id,
                                 plugin_name,
@@ -405,31 +405,31 @@ req_addr_peerinfo_it (void *cls,
       return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Callback for  %s peer `%s' plugin `%s' BW out %lu, BW in %lu \n",
+              "Callback for  %s peer `%s' plugin `%s' BW out %u, BW in %u\n",
               (active == GNUNET_YES) ? "ACTIVE" : "INACTIVE",
               GNUNET_i2s (id),
               plugin_name,
-              ntohl (bandwidth_out.value__),
-              ntohl (bandwidth_in.value__));
+              (unsigned int) ntohl (bandwidth_out.value__),
+              (unsigned int) ntohl (bandwidth_in.value__));
 
   /* Transmit result */
   if ((GNUNET_YES == ai->all) || (GNUNET_YES == active))
   {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Sending result for  %s peer `%s' plugin `%s' BW out %lu, BW in %lu \n",
+                  "Sending result for  %s peer `%s' plugin `%s' BW out %u, BW in %u\n",
                   (active == GNUNET_YES) ? "ACTIVE" : "INACTIVE",
                   GNUNET_i2s (id),
                   plugin_name,
-                  ntohl (bandwidth_out.value__),
-                  ntohl (bandwidth_in.value__));
+                  (unsigned int) ntohl (bandwidth_out.value__),
+                  (unsigned int) ntohl (bandwidth_in.value__));
     transmit_req_addr (cls,
-        id,
-        plugin_name,
-        plugin_addr, plugin_addr_len,
-        active,
-        atsi,
-        atsi_count,
-        bandwidth_out, bandwidth_in);
+                       id,
+                       plugin_name,
+                       plugin_addr, plugin_addr_len,
+                       active,
+                       atsi,
+                       atsi_count,
+                       bandwidth_out, bandwidth_in);
   }
 }
 

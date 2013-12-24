@@ -291,24 +291,25 @@ perf_update_address (struct ATS_Address *cur)
 }
 
 
-
 static void
-bandwidth_changed_cb (void *cls, struct ATS_Address *address)
+bandwidth_changed_cb (void *cls,
+                      struct ATS_Address *address)
 {
-  if (0 == ntohl(address->assigned_bw_out.value__) &&
-      0 == ntohl(address->assigned_bw_in.value__))
+  if ( (0 == ntohl (address->assigned_bw_out.value__)) &&
+       (0 == ntohl (address->assigned_bw_in.value__)) )
     return;
 
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-      "Bandwidth changed addresses %s %p to %lu Bps out / %lu Bps in\n",
-      GNUNET_i2s (&address->peer),
-      address,
-      ntohl(address->assigned_bw_out.value__),
-      ntohl(address->assigned_bw_in.value__));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Bandwidth changed addresses %s %p to %u Bps out / %u Bps in\n",
+              GNUNET_i2s (&address->peer),
+              address,
+              (unsigned int) ntohl (address->assigned_bw_out.value__),
+              (unsigned int) ntohl (address->assigned_bw_in.value__));
   if (GNUNET_YES == ph.bulk_running)
     GNUNET_break (0);
   return;
 }
+
 
 const double *
 get_preferences_cb (void *cls, const struct GNUNET_PeerIdentity *id)

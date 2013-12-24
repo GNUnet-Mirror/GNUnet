@@ -474,10 +474,10 @@ client_notify_handler (void *cls,
 /**
  * Transmit the next message to the arm service.
  *
- * @param cls closure with the 'struct GNUNET_ARM_Handle'
- * @param size number of bytes available in buf
+ * @param cls closure with the `struct GNUNET_ARM_Handle`
+ * @param size number of bytes available in @a buf
  * @param buf where the callee should write the message
- * @return number of bytes written to buf
+ * @return number of bytes written to @a buf
  */
 static size_t
 transmit_arm_message (void *cls, size_t size, void *buf)
@@ -491,8 +491,8 @@ transmit_arm_message (void *cls, size_t size, void *buf)
 
   notify_connection = GNUNET_NO;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-      "transmit_arm_message is running with %p buffer of size %lu. ARM is known to be %s\n",
-      buf, size, h->currently_down ? "unconnected" : "connected");
+       "transmit_arm_message is running with %p buffer of size %lu. ARM is known to be %s\n",
+       buf, size, h->currently_down ? "unconnected" : "connected");
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == h->reconnect_task);
   h->cth = NULL;
   if ((GNUNET_YES == h->currently_down) && (NULL != buf))
@@ -512,7 +512,8 @@ transmit_arm_message (void *cls, size_t size, void *buf)
   }
   if (NULL == (cm = h->control_pending_head))
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Queue is empty, not sending anything\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Queue is empty, not sending anything\n");
     msize = 0;
     goto end;
   }

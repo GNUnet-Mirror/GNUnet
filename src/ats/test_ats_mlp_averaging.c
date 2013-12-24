@@ -218,7 +218,10 @@ check (void *cls, char *const *args, const char *cfgfile,
   GNUNET_assert (GNUNET_OK == ctx.mlp_result);
 
   res[0] = GAS_mlp_get_preferred_address(mlp, addresses, &p[0]);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Preferred address `%s' outbound bandwidth: %lu Bps\n",res[0]->plugin, ntohl(res[0]->assigned_bw_out.value__));
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Preferred address `%s' outbound bandwidth: %u Bps\n",
+              res[0]->plugin,
+              (unsigned int) ntohl (res[0]->assigned_bw_out.value__));
 
   /* Delete an address */
   GNUNET_CONTAINER_multihashmap_remove (addresses, &addr[0].peer.hashPubKey, &addr[0]);
@@ -233,7 +236,6 @@ check (void *cls, char *const *args, const char *cfgfile,
   GNUNET_STATISTICS_destroy(stats, GNUNET_NO);
 
   ret = 0;
-  return;
 }
 
 

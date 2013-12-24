@@ -159,10 +159,10 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
     /* Expecting disconnect */
 
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-        "Received sugggestion for peer `%s': %lu %lu\n",
-        GNUNET_i2s (&address->peer),
-        ntohl(bandwidth_in.value__),
-        ntohl(bandwidth_out.value__));
+                "Received sugggestion for peer `%s': %u %u\n",
+                GNUNET_i2s (&address->peer),
+                (unsigned int) ntohl (bandwidth_in.value__),
+                (unsigned int) ntohl (bandwidth_out.value__));
 
     if ((ntohl(bandwidth_in.value__) == 0) &&
         (ntohl(bandwidth_out.value__) == 0))

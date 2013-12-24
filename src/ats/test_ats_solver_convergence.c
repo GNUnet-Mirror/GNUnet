@@ -170,8 +170,11 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
 
   time_delta = GNUNET_TIME_absolute_get_difference(time_start, GNUNET_TIME_absolute_get());
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Received suggestion for peer '%s': IN %lu - OUT %lu\n",
-      GNUNET_i2s (&address->peer), ntohl(bandwidth_in.value__)/1024, ntohl(bandwidth_out.value__)/1024);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Received suggestion for peer '%s': IN %u kb/s - OUT %u kb/s\n",
+              GNUNET_i2s (&address->peer),
+              (unsigned int) ntohl (bandwidth_in.value__)/1024,
+              (unsigned int) ntohl (bandwidth_out.value__)/1024);
 
   if (write_data_file)
   {
@@ -184,21 +187,24 @@ address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
         GNUNET_DISK_PERM_USER_EXEC | GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE);
     if (NULL == data_file_handle)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot write data to file `%s'\n", data_file_name);
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Cannot write data to file `%s'\n",
+                  data_file_name);
     }
     else
     {
       if (GNUNET_SYSERR == GNUNET_DISK_file_write(data_file_handle, data, strlen(data)))
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot write data to file `%s'\n", data_file_name);
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    "Cannot write data to file `%s'\n",
+                    data_file_name);
       if (GNUNET_SYSERR == GNUNET_DISK_file_close (data_file_handle))
-        GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Cannot close log file '%s'\n",
-                data_file_name);
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    "Cannot close log file '%s'\n",
+                    data_file_name);
     }
 
     GNUNET_free(data);
   }
-
-  return;
 }
 
 
@@ -207,12 +213,14 @@ stat_cb(void *cls, const char *subsystem,
         const char *name, uint64_t value,
         int is_persistent)
 {
-
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "ATS statistics: `%s' `%s' %llu\n",
-      subsystem,name, value);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "ATS statistics: `%s' `%s' %llu\n",
+              subsystem,name,
+              (unsigned long long) value);
   GNUNET_ATS_suggest_address (sched_ats, &p.id);
   return GNUNET_OK;
 }
+
 
 static void
 run (void *cls, const struct GNUNET_CONFIGURATION_Handle *mycfg,
