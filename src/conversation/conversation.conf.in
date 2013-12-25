@@ -4,3 +4,8 @@ BINARY = gnunet-service-conversation
 UNIXPATH = $GNUNET_RUNTIME_DIR/gnunet-service-conversation.sock
 @UNIXONLY@ PORT = 2106
 
+ACCEPT_FROM = 127.0.0.1;
+ACCEPT_FROM6 = ::1;
+UNIX_MATCH_UID = NO
+UNIX_MATCH_GID = YES
+
