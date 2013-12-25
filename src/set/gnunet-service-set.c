@@ -452,6 +452,12 @@ incoming_destroy (struct Operation *incoming)
     GNUNET_SCHEDULER_cancel (incoming->state->timeout_task);
     incoming->state->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   }
+  GNUNET_assert (NULL != incoming->state);
+  GNUNET_free (incoming->state);
+  // make sure that the tunnel end handler will not
+  // destroy us again
+  incoming->vt = NULL;
+  incoming->state = NULL;
   if (NULL != incoming->mq)
   {
     GNUNET_MQ_destroy (incoming->mq);
@@ -462,12 +468,6 @@ incoming_destroy (struct Operation *incoming)
     GNUNET_MESH_channel_destroy (incoming->channel);
     incoming->channel = NULL;
   }
-  GNUNET_assert (NULL != incoming->state);
-  GNUNET_free (incoming->state);
-  // make sure that the tunnel end handler will not
-  // destroy us again
-  incoming->vt = NULL;
-  incoming->state = NULL;
 }
 
 
