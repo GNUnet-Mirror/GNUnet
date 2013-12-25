@@ -1558,8 +1558,7 @@ tcp_plugin_get_session (void *cls,
                               GNUNET_YES);
     session->addrlen = 0;
     session->addr = NULL;
-    session->ats_address_network_type = (enum GNUNET_ATS_Network_Type) ntohl (ats.value)
-;
+    session->ats_address_network_type = (enum GNUNET_ATS_Network_Type) ntohl (ats.value);
     GNUNET_break (session->ats_address_network_type != GNUNET_ATS_NET_UNSPECIFIED);
     session->nat_connection_timeout = GNUNET_SCHEDULER_add_delayed (NAT_TIMEOUT,
 								    &nat_connect_timeout,
