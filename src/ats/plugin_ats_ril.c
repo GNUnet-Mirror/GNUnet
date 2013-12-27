@@ -34,18 +34,20 @@
 #define RIL_INTERVAL_EXPONENT 10
 #define RIL_UTILITY_MAX (double) GNUNET_ATS_MaxBandwidth
 
-#define RIL_DEFAULT_STEP_TIME_MIN GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 500)
-#define RIL_DEFAULT_STEP_TIME_MAX GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 3000)
-#define RIL_DEFAULT_ALGORITHM RIL_ALGO_SARSA
-#define RIL_DEFAULT_DISCOUNT_BETA 1.0
-#define RIL_DEFAULT_DISCOUNT_GAMMA 0.5
-#define RIL_DEFAULT_GRADIENT_STEP_SIZE 0.1
-#define RIL_DEFAULT_TRACE_DECAY 0.5
-#define RIL_DEFAULT_EXPLORE_RATIO 0.1
-#define RIL_DEFAULT_DIVISOR 10
+#define RIL_DEFAULT_STEP_TIME_MIN       GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 500)
+#define RIL_DEFAULT_STEP_TIME_MAX       GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 3000)
+#define RIL_DEFAULT_ALGORITHM           RIL_ALGO_SARSA
+#define RIL_DEFAULT_SELECT              RIL_SELECT_EGREEDY
+#define RIL_DEFAULT_DISCOUNT_BETA       1.0
+#define RIL_DEFAULT_DISCOUNT_GAMMA      0.5
+#define RIL_DEFAULT_GRADIENT_STEP_SIZE  0.1
+#define RIL_DEFAULT_TRACE_DECAY         0.5
+#define RIL_DEFAULT_EXPLORE_RATIO       0.1
+#define RIL_DEFAULT_DIVISOR             10
 #define RIL_DEFAULT_GLOBAL_REWARD_SHARE 0.5
+#define RIL_DEFAULT_TEMPERATURE         1.0
 
-#define RIL_INC_DEC_STEP_SIZE 1
+#define RIL_INC_DEC_STEP_SIZE           1
 
 /**
  * ATS reinforcement learning solver
@@ -77,6 +79,12 @@ enum RIL_Algorithm
 {
   RIL_ALGO_SARSA = 0,
   RIL_ALGO_Q = 1
+};
+
+enum RIL_Select
+{
+  RIL_SELECT_EGREEDY,
+  RIL_SELECT_SOFTMAX
 };
 
 enum RIL_E_Modification
@@ -118,9 +126,19 @@ struct RIL_Learning_Parameters
   double lambda;
 
   /**
+   * Softmax action-selection temperature
+   */
+  double temperature;
+
+  /**
    * State space divisor
    */
   unsigned long long int divisor;
+
+  /**
+   * Action selection strategy;
+   */
+  enum RIL_Select select;
 
   /**
    * Ratio, with what probability an agent should explore in the e-greed policy
@@ -1176,6 +1194,87 @@ envi_do_action (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent, int
   }
 }
 
+static int
+agent_select_egreedy (struct RIL_Peer_Agent *agent, double *state)
+{
+  if (agent_decide_exploration(agent))
+  {
+    if (RIL_ALGO_Q == agent->envi->parameters.algorithm)
+    {
+      agent_modify_eligibility(agent, RIL_E_ZERO, NULL);
+    }
+    return agent_get_action_explore(agent, state);
+  }
+  else
+  {
+    if (RIL_ALGO_Q == agent->envi->parameters.algorithm)
+    {
+      agent_modify_eligibility(agent, RIL_E_SET, NULL);
+    }
+    return agent_get_action_best(agent, state);
+  }
+}
+
+/**
+ * Selects the next action with a probability corresponding to its value. The
+ * probability is calculated using a Boltzmann distribution with a temperature
+ * value. The higher the temperature, the more are the action selection
+ * probabilities the same. With a temperature of 0, the selection is greedy,
+ * i.e. always the action with the highest value is chosen.
+ * @param agent
+ * @param state
+ * @return
+ */
+static int
+agent_select_softmax (struct RIL_Peer_Agent *agent, double *state)
+{
+  int i;
+  double eqt[agent->n];
+  double p[agent->n];
+  double sum = 0;
+  double r;
+
+  if (RIL_ALGO_Q == agent->envi->parameters.algorithm)
+  {
+    agent_modify_eligibility(agent, RIL_E_SET, NULL);
+  }
+
+  for (i=0; i<agent->n; i++)
+  {
+    eqt[i] = exp(agent_estimate_q(agent,state,i) / agent->envi->parameters.temperature);
+    sum += eqt[i];
+  }
+  for (i=0; i<agent->n; i++)
+  {
+    p[i] = eqt[i]/sum;
+  }
+  r = (double) GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+      UINT32_MAX) / (double) UINT32_MAX;
+  sum = 0;
+  for (i=0; i<agent->n; i++)
+  {
+    if (sum + p[i] > r)
+    {
+      return i;
+    }
+    sum += p[i];
+  }
+  GNUNET_assert(GNUNET_NO);
+}
+
+static int
+agent_select_action (struct RIL_Peer_Agent *agent, double *state)
+{
+  if (agent->envi->parameters.select == RIL_SELECT_EGREEDY)
+  {
+    return agent_select_egreedy(agent, state);
+  }
+  else
+  {
+    return agent_select_softmax(agent, state);
+  }
+}
+
 /**
  * Performs one step of the Markov Decision Process. Other than in the literature the step starts
  * after having done the last action a_old. It observes the new state s_next and the reward
@@ -1188,7 +1287,7 @@ static void
 agent_step (struct RIL_Peer_Agent *agent)
 {
   int a_next = RIL_ACTION_INVALID;
-  int explore;
+  int a_max;
   double *s_next;
   double reward;
 
@@ -1198,44 +1297,27 @@ agent_step (struct RIL_Peer_Agent *agent)
 
   s_next = envi_get_state (agent->envi, agent);
   reward = envi_get_reward (agent->envi, agent);
-  explore = agent_decide_exploration (agent);
 
   switch (agent->envi->parameters.algorithm)
   {
   case RIL_ALGO_SARSA:
-    if (explore)
-    {
-      a_next = agent_get_action_explore (agent, s_next);
-    }
-    else
-    {
-      a_next = agent_get_action_best (agent, s_next);
-    }
+    a_next = agent_select_action (agent, s_next);
     if (RIL_ACTION_INVALID != agent->a_old)
     {
       //updates weights with selected action (on-policy), if not first step
       agent_update_weights (agent, reward, s_next, a_next);
-      agent_modify_eligibility (agent, RIL_E_SET, s_next);
     }
+    agent_modify_eligibility (agent, RIL_E_SET, s_next);
     break;
 
   case RIL_ALGO_Q:
-    a_next = agent_get_action_best (agent, s_next);
+    a_max = agent_get_action_best (agent, s_next);
     if (RIL_ACTION_INVALID != agent->a_old)
     {
       //updates weights with best action, disregarding actually selected action (off-policy), if not first step
-      agent_update_weights (agent, reward, s_next, a_next);
+      agent_update_weights (agent, reward, s_next, a_max);
     }
-    if (explore)
-    {
-      a_next = agent_get_action_explore (agent, s_next);
-      agent_modify_eligibility (agent, RIL_E_ZERO, NULL);
-    }
-    else
-    {
-      a_next = agent_get_action_best (agent, s_next);
-      agent_modify_eligibility (agent, RIL_E_SET, s_next);
-    }
+    a_next = agent_select_action (agent, s_next);
     break;
   }
 
@@ -1798,6 +1880,15 @@ libgnunet_plugin_ats_ril_init (void *cls)
   {
     solver->parameters.algorithm = RIL_DEFAULT_ALGORITHM;
   }
+  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (env->cfg, "ats", "RIL_SELECT", &string))
+  {
+    solver->parameters.select = !strcmp (string, "EGREEDY") ? RIL_SELECT_EGREEDY : RIL_SELECT_SOFTMAX;
+    GNUNET_free (string);
+  }
+  else
+  {
+    solver->parameters.select = RIL_DEFAULT_SELECT;
+  }
   if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (env->cfg, "ats", "RIL_DISCOUNT_BETA", &string))
   {
     solver->parameters.beta = strtod (string, NULL);
@@ -1882,6 +1973,20 @@ libgnunet_plugin_ats_ril_init (void *cls)
   else
   {
     solver->parameters.reward_global_share = RIL_DEFAULT_GLOBAL_REWARD_SHARE;
+  }
+  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (env->cfg, "ats", "RIL_TEMPERATURE", &string))
+  {
+    solver->parameters.temperature = strtod (string, NULL);
+    GNUNET_free (string);
+    if (solver->parameters.temperature <= 0)
+    {
+      LOG (GNUNET_ERROR_TYPE_WARNING, "RIL_TEMPERATURE not positive. Set to default value of %f instead.\n", RIL_DEFAULT_TEMPERATURE);
+      solver->parameters.temperature = RIL_DEFAULT_TEMPERATURE;
+    }
+  }
+  else
+  {
+    solver->parameters.temperature = RIL_DEFAULT_TEMPERATURE;
   }
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_number (env->cfg, "ats", "RIL_SIMULATE", &solver->simulate))
   {
