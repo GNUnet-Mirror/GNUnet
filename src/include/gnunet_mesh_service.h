@@ -372,7 +372,9 @@ GNUNET_MESH_receive_done (struct GNUNET_MESH_Channel *channel);
  * @param target other endpoint of the channel
  */
 typedef void (*GNUNET_MESH_ChannelsCB) (void *cls,
-                                        uint32_t channel_number,
+                                        uint32_t root_channel_number,
+                                        uint32_t dest_channel_number,
+                                        uint32_t public_channel_number,
                                         const struct GNUNET_PeerIdentity *origin,
                                         const struct GNUNET_PeerIdentity *target);
 
@@ -388,6 +390,33 @@ typedef void (*GNUNET_MESH_ChannelsCB) (void *cls,
 typedef void (*GNUNET_MESH_ChannelCB) (void *cls,
                                       const struct GNUNET_PeerIdentity *peer,
                                       const struct GNUNET_PeerIdentity *parent);
+
+
+/**
+ * Method called to retrieve information about all tunnels in MESH.
+ *
+ * @param cls Closure.
+ * @param peer Peer in the channel's tree.
+ */
+typedef void (*GNUNET_MESH_TunnelsCB) (void *cls,
+                                       const struct GNUNET_PeerIdentity *peer);
+
+
+
+/**
+ * Method called to retrieve information about a specific tunnel the mesh peer
+ * has established, o`r is trying to establish.
+ *
+ * @param cls Closure.
+ * @param peer Peer in the channel's tree.
+ */
+typedef void (*GNUNET_MESH_TunnelCB) (void *cls,
+                                      const struct GNUNET_PeerIdentity *peer,
+                                      unsigned int channels,
+                                      unsigned int connections,
+                                      unsigned int estatus,
+                                      unsigned int cstatus
+                                     );
 
 
 /**

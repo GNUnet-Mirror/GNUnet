@@ -899,16 +899,34 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_MESH_LOCAL_NACK             287
 
 /**
- * Local information about all tunnels of service. DEPRECATED
+ * Local information about all channels of service.
  */
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNELS     287
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_CHANNELS    287
+#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_CHANNELS    290
 
 /**
- * Local information of service about a specific tunnel. DEPRECATED
+ * Local information of service about a specific channel.
  */
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNEL      288
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_CHANNEL     288
+#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_CHANNEL     291
+
+/**
+ * Local information about all tunnels of service.
+ */
+#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNELS     292
+
+/**
+ * Local information of service about a specific tunnel.
+ */
+#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNEL      293
+
+/**
+ * Local information about all connections of service.
+ */
+#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_CONNECTIONS 294
+
+/**
+ * Local information of service about a specific connection.
+ */
+#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_CONNECTION  295
 
 /**
  * Traffic (net-cat style) used by the Command Line Interface.
