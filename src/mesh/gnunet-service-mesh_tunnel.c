@@ -2542,6 +2542,11 @@ GMT_2s (const struct MeshTunnel3 *t)
 }
 
 
+/******************************************************************************/
+/*****************************    INFO/DEBUG    *******************************/
+/******************************************************************************/
+
+
 /**
  * Log all possible info about the tunnel state.
  *
@@ -2580,4 +2585,17 @@ GMT_debug (const struct MeshTunnel3 *t)
   }
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "DEBUG TUNNEL END\n");
+}
+
+
+void
+GMT_iterate_all (void *cls, GNUNET_CONTAINER_PeerMapIterator iter)
+{
+  GNUNET_CONTAINER_multipeermap_iterate (tunnels, iter, cls);
+}
+
+unsigned int
+GMT_count_all (void)
+{
+  return GNUNET_CONTAINER_multipeermap_size (tunnels);
 }

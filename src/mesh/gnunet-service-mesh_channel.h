@@ -61,12 +61,13 @@ struct MeshChannel;
 void
 GMCH_destroy (struct MeshChannel *ch);
 
+
 /**
- * Get channel ID.
+ * Get the channel's public ID.
  *
  * @param ch Channel.
  *
- * @return ID
+ * @return ID used to identify the channel with the remote peer.
  */
 MESH_ChannelNumber
 GMCH_get_id (const struct MeshChannel *ch);

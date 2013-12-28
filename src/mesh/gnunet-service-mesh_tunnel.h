@@ -463,6 +463,12 @@ GMT_2s (const struct MeshTunnel3 *t);
 void
 GMT_debug (const struct MeshTunnel3 *t);
 
+void
+GMT_iterate_all (void *cls, GNUNET_CONTAINER_PeerMapIterator iter);
+
+unsigned int
+GMT_count_all (void);
+
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif

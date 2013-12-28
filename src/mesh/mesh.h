@@ -166,10 +166,10 @@ struct GNUNET_MESH_LocalAck
 /**
  * Message to inform the client about channels in the service.
  */
-struct GNUNET_MESH_LocalMonitor
+struct GNUNET_MESH_LocalInfo
 {
   /**
-     * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_MONITOR[_TUNNEL]
+     * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO[_TUNNEL]
    */
   struct GNUNET_MessageHeader header;
 
