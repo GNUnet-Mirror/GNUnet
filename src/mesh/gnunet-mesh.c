@@ -399,7 +399,7 @@ data_callback (void *cls,
       echo_time = GNUNET_TIME_UNIT_FOREVER_ABS;
       FPRINTF (stdout, "time: %s\n",
                GNUNET_STRINGS_relative_time_to_string (latency, GNUNET_NO));
-      echo_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
+      echo_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
                                                 &send_echo, NULL);
     }
   }
