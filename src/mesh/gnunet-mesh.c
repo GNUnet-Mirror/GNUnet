@@ -347,7 +347,7 @@ create_channel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connecting to `%s'\n", target_id);
   opt = GNUNET_MESH_OPTION_DEFAULT | GNUNET_MESH_OPTION_RELIABLE;
   ch = GNUNET_MESH_channel_create (mh, NULL, &pid, target_port, opt);
-  if (GNUNET_YES == echo)
+  if (GNUNET_NO == echo)
     listen_stdio ();
   else
     GNUNET_SCHEDULER_add_now (send_echo, NULL);
