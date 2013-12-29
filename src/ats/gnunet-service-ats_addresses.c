@@ -2109,7 +2109,6 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   GNUNET_assert(NULL != ah->addresses);
 
   /* Figure out configured solution method */
-  plugin_short = NULL;
   if (GNUNET_SYSERR
       == GNUNET_CONFIGURATION_get_value_string (cfg, "ats", "MODE", &mode_str))
   {
@@ -2122,34 +2121,25 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
     for (c = 0; c < strlen (mode_str); c++)
       mode_str[c] = toupper (mode_str[c]);
     if (0 == strcmp (mode_str, "PROPORTIONAL"))
-    {
       ah->ats_mode = MODE_PROPORTIONAL;
-      plugin_short = "proportional";
-    }
     else if (0 == strcmp (mode_str, "MLP"))
     {
       ah->ats_mode = MODE_MLP;
-      plugin_short = "mlp";
 #if !HAVE_LIBGLPK
       GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
           "Assignment method `%s' configured, but GLPK is not available, please install \n",
           mode_str);
       ah->ats_mode = MODE_PROPORTIONAL;
-      plugin_short = "proportional";
 #endif
     }
     else if (0 == strcmp (mode_str, "RIL"))
-    {
       ah->ats_mode = MODE_RIL;
-      plugin_short = "ril";
-    }
     else
     {
       GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
           "Invalid resource assignment method `%s' configured, using proportional approach\n",
           mode_str);
       ah->ats_mode = MODE_PROPORTIONAL;
-      plugin_short = "proportional";
     }
     GNUNET_free(mode_str);
   }
@@ -2176,6 +2166,20 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
     ah->env.in_quota[c] = quotas_in[c];
   }
 
+  switch (ah->ats_mode) {
+    case MODE_PROPORTIONAL:
+      plugin_short = "proportional";
+      break;
+    case MODE_MLP:
+      plugin_short = "mlp";
+      break;
+    case MODE_RIL:
+      plugin_short = "ril";
+      break;
+    default:
+      plugin_short = NULL;
+      break;
+  }
   GNUNET_asprintf (&ah->plugin, "libgnunet_plugin_ats_%s", plugin_short);
   GNUNET_log(GNUNET_ERROR_TYPE_INFO, _("Initializing solver `%s '`%s'\n"), plugin_short, ah->plugin);
   if  (NULL == (ah->solver = GNUNET_PLUGIN_load (ah->plugin, &ah->env)))
