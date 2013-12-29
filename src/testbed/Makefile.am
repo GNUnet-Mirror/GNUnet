@@ -16,11 +16,16 @@ pkgcfgdir= $(pkgdatadir)/config.d/
 pkgcfg_DATA = \
   testbed.conf
 
+if HAVE_SQLITE
+  underlay_daemon = gnunet-daemon-testbed-underlay
+endif
+
 libexec_PROGRAMS = \
   gnunet-service-testbed \
   gnunet-helper-testbed \
   gnunet-service-testbed-logger \
-  gnunet-daemon-testbed-blacklist
+  gnunet-daemon-testbed-blacklist \
+  $(underlay_daemon)
 
 bin_PROGRAMS = \
   gnunet-testbed-profiler
@@ -80,6 +85,15 @@ gnunet_daemon_testbed_blacklist_LDADD = $(XLIB) \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(LTLIBINTL)
 gnunet_daemon_testbed_blacklist_DEPENDENCIES = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/util/libgnunetutil.la
+
+gnunet_daemon_testbed_underlay_SOURCES = gnunet-daemon-testbed-underlay.c
+gnunet_daemon_testbed_underlay_LDADD = $(XLIB) \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(LTLIBINTL) -lsqlite3
+gnunet_daemon_testbed_underlay_DEPENDENCIES = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/util/libgnunetutil.la
 
