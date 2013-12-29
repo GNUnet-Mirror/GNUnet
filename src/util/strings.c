@@ -347,9 +347,6 @@ GNUNET_STRINGS_fancy_time_to_absolute (const char *fancy_time,
 {
   struct tm tv;
   time_t t;
-#if HAVE_TM_GMTOFF
-  struct tm *tp;
-#endif
 
   if (0 == strcasecmp ("end of time", fancy_time))
   {
@@ -370,12 +367,7 @@ GNUNET_STRINGS_fancy_time_to_absolute (const char *fancy_time,
     return GNUNET_SYSERR;
   t = mktime (&tv);
   atime->abs_value_us = (uint64_t) ((uint64_t) t * 1000LL * 1000LL);
-#if HAVE_TM_GMTOFF
-  tp = localtime (&t);
-  atime->abs_value_us += 1000LL * 1000LL * tp->tm_gmtoff;
-#elif defined LINUX
-  atime->abs_value_us -= 1000LL * 1000LL * timezone;
-#elif defined WINDOWS
+#if WINDOWS
   {
     DWORD tzv;
     TIME_ZONE_INFORMATION tzi;
@@ -744,7 +736,7 @@ GNUNET_STRINGS_absolute_time_to_string (struct GNUNET_TIME_Absolute t)
   if (t.abs_value_us == GNUNET_TIME_UNIT_FOREVER_ABS.abs_value_us)
     return _("end of time");
   tt = t.abs_value_us / 1000LL / 1000LL;
-  tp = gmtime (&tt);
+  tp = localtime (&tt);
   /* This is hacky, but i don't know a way to detect libc character encoding.
    * Just expect utf8 from glibc these days.
    * As for msvcrt, use the wide variant, which always returns utf16
