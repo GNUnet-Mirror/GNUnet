@@ -910,7 +910,7 @@ queue_send (void *cls, size_t size, void *buf)
     {
       peer->core_transmit =
           GNUNET_CORE_notify_transmit_ready (core_handle,
-                                             0, 0,
+                                             GNUNET_NO, 0,
                                              GNUNET_TIME_UNIT_FOREVER_REL,
                                              dst_id,
                                              queue->size,
@@ -1078,7 +1078,7 @@ GMP_queue_add (struct MeshPeer *peer, void *cls, uint16_t type, size_t size,
                 GMP_2s (peer), size);
     peer->core_transmit =
         GNUNET_CORE_notify_transmit_ready (core_handle,
-                                           0,
+                                           GNUNET_NO,
                                            0,
                                            GNUNET_TIME_UNIT_FOREVER_REL,
                                            GNUNET_PEER_resolve2 (peer->id),
