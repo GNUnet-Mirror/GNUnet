@@ -59,6 +59,21 @@ static char *channel_id;
 static uint32_t listen_port;
 
 /**
+ * Request echo service
+ */
+int echo;
+
+/**
+ * Time of last echo request.
+ */
+struct GNUNET_TIME_Absolute echo_time;
+
+/**
+ * Task for next echo request.
+ */
+GNUNET_SCHEDULER_TaskIdentifier echo_task;
+
+/**
  * Peer to connect to.
  */
 static char *target_id;
@@ -153,7 +168,14 @@ data_ready (void *cls, size_t size, void *buf)
   msg->size = htons (total_size);
   msg->type = htons (GNUNET_MESSAGE_TYPE_MESH_CLI);
   memcpy (&msg[1], cls, data_size);
-  listen_stdio ();
+  if (GNUNET_NO == echo)
+  {
+    listen_stdio ();
+  }
+  else
+  {
+    echo_time = GNUNET_TIME_absolute_get ();
+  }
 
   return total_size;
 }
@@ -271,8 +293,28 @@ channel_incoming (void *cls,
     return NULL;
   }
   ch = channel;
-  listen_stdio ();
+  if (GNUNET_NO == echo)
+  {
+    listen_stdio ();
+    return NULL;
+  }
+  data_size = 0;
   return NULL;
+}
+
+/**
+ * @brief Send an echo request to the remote peer.
+ *
+ * @param cls Closure (NULL).
+ * @param tc Task context.
+ */
+static void
+send_echo (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_MESH_notify_transmit_ready (ch, GNUNET_NO,
+                                     GNUNET_TIME_UNIT_FOREVER_REL,
+                                     sizeof (struct GNUNET_MessageHeader),
+                                     &data_ready, NULL);
 }
 
 
@@ -305,7 +347,10 @@ create_channel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connecting to `%s'\n", target_id);
   opt = GNUNET_MESH_OPTION_DEFAULT | GNUNET_MESH_OPTION_RELIABLE;
   ch = GNUNET_MESH_channel_create (mh, NULL, &pid, target_port, opt);
-  listen_stdio ();
+  if (GNUNET_YES == echo)
+    listen_stdio ();
+  else
+    GNUNET_SCHEDULER_add_now (send_echo, NULL);
 }
 
 
@@ -334,6 +379,30 @@ data_callback (void *cls,
   uint16_t off;
   const char *buf;
   GNUNET_break (ch == channel);
+
+  if (GNUNET_YES == echo)
+  {
+    if (0 != listen_port)
+    {
+      /* Just listening to echo incoming messages*/
+      GNUNET_MESH_notify_transmit_ready (channel, GNUNET_NO,
+                                        GNUNET_TIME_UNIT_FOREVER_REL,
+                                        sizeof (struct GNUNET_MessageHeader),
+                                        &data_ready, NULL);
+      return GNUNET_OK;
+    }
+    else
+    {
+      struct GNUNET_TIME_Relative latency;
+
+      latency = GNUNET_TIME_absolute_get_duration (echo_time);
+      echo_time = GNUNET_TIME_UNIT_FOREVER_ABS;
+      FPRINTF (stdout, "time: %s\n",
+               GNUNET_STRINGS_relative_time_to_string (latency, GNUNET_NO));
+      echo_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
+                                                &send_echo, NULL);
+    }
+  }
 
   len = ntohs (message->size) - sizeof (*message);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got %u bytes\n", len);
@@ -578,6 +647,9 @@ main (int argc, char *const *argv)
     {'b', "connection", "TUNNEL_ID:CONNECTION_ID",
      gettext_noop ("provide information about a particular connection"),
      GNUNET_YES, &GNUNET_GETOPT_set_string, &conn_id},
+    {'e', "echo", NULL,
+     gettext_noop ("activate echo mode"),
+     GNUNET_NO, &GNUNET_GETOPT_set_one, &echo},
     {'i', "info", NULL,
      gettext_noop ("provide information about all tunnels"),
      GNUNET_NO, &GNUNET_GETOPT_set_one, &get_info},
