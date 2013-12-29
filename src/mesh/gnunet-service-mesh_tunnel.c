@@ -507,9 +507,15 @@ t_encrypt (struct MeshTunnel3 *t,
            size_t size, uint32_t iv)
 {
   struct GNUNET_CRYPTO_SymmetricInitializationVector siv;
+  size_t out_size;
 
-  GNUNET_CRYPTO_symmetric_derive_iv (&siv, &t->e_key, &iv, sizeof (uint32_t), NULL);
-  return GNUNET_CRYPTO_symmetric_encrypt (src, size, &t->e_key, &siv, dst);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_encrypt start\n");
+  GNUNET_CRYPTO_symmetric_derive_iv (&siv, &t->e_key, &iv, sizeof (iv), NULL);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_encrypt IV derived\n");
+  out_size = GNUNET_CRYPTO_symmetric_encrypt (src, size, &t->e_key, &siv, dst);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_encrypt end\n");
+
+  return out_size;
 }
 
 
@@ -529,7 +535,9 @@ t_decrypt (struct MeshTunnel3 *t,
 {
   struct GNUNET_CRYPTO_SymmetricInitializationVector siv;
   struct GNUNET_CRYPTO_SymmetricSessionKey *key;
+  size_t out_size;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_decrypt start\n");
   if (t->estate == MESH_TUNNEL3_KEY_OK || t->estate == MESH_TUNNEL3_KEY_PING)
   {
     key = &t->d_key;
@@ -548,8 +556,13 @@ t_decrypt (struct MeshTunnel3 *t,
     return 0;
   }
 
-  GNUNET_CRYPTO_symmetric_derive_iv (&siv, key, &iv, sizeof (uint32_t), NULL);
-  return GNUNET_CRYPTO_symmetric_decrypt (src, size, key, &siv, dst);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_decrypt iv\n");
+  GNUNET_CRYPTO_symmetric_derive_iv (&siv, key, &iv, sizeof (iv), NULL);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_decrypt iv done\n");
+  out_size = GNUNET_CRYPTO_symmetric_decrypt (src, size, key, &siv, dst);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_decrypt end\n");
+
+  return out_size;
 }
 
 
