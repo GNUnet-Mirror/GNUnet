@@ -806,8 +806,9 @@ tcp_disconnect_session (void *cls,
                                                          &session->target,
                                                          session));
   }
-  GNUNET_SERVER_client_set_user_context (session->client,
-                                         (void *) NULL);
+  if (NULL != session->client)
+    GNUNET_SERVER_client_set_user_context (session->client,
+                                           (void *) NULL);
 
   /* clean up state */
   if (NULL != session->transmit_handle)
