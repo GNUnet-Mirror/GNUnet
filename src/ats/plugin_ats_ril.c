@@ -72,7 +72,7 @@ enum RIL_Action_Type
   RIL_ACTION_BW_OUT_HLV = -5,
   RIL_ACTION_BW_OUT_INC = -6,
   RIL_ACTION_BW_OUT_DEC = -7,
-  RIL_ACTION_TYPE_NUM = 1
+  RIL_ACTION_TYPE_NUM = 2
 };
 
 enum RIL_Algorithm
@@ -89,7 +89,7 @@ enum RIL_Select
 
 enum RIL_E_Modification
 {
-  RIL_E_SET,
+  RIL_E_UPDATE,
   RIL_E_ZERO,
   RIL_E_ACCUMULATE,
   RIL_E_REPLACE
@@ -240,9 +240,9 @@ struct RIL_Peer_Agent
   int a_old;
 
   /**
-   * Eligibility trace vector
+   * Eligibility traces
    */
-  double * e;
+  double ** E;
 
   /**
    * Address in use
@@ -580,45 +580,49 @@ agent_update_weights (struct RIL_Peer_Agent *agent, double reward, double *s_nex
 //        delta,
 //        i,
 //        agent->e[i]);
-    theta[i] += agent->envi->parameters.alpha * delta * agent->s_old[i];// * agent->e[i];
+    theta[i] += agent->envi->parameters.alpha * delta * agent->s_old[i];// * agent->E[a_prime][i];
   }
 }
 
 
 /**
  * Changes the eligibility trace vector e in various manners:
- * #RIL_E_ACCUMULATE - adds @a f to each component as in accumulating eligibility traces
- * #RIL_E_REPLACE - resets each component to @a f  as in replacing traces
+ * #RIL_E_ACCUMULATE - adds @a feature to each component as in accumulating eligibility traces
+ * #RIL_E_REPLACE - resets each component to @a feature  as in replacing traces
  * #RIL_E_SET - multiplies e with discount factor and lambda as in the update rule
  * #RIL_E_ZERO - sets e to 0 as in Watkin's Q-learning algorithm when exploring and when initializing
  *
  * @param agent the agent handle
  * @param mod the kind of modification
- * @param f how much to change
+ * @param feature the feature vector
  */
 static void
 agent_modify_eligibility (struct RIL_Peer_Agent *agent,
                           enum RIL_E_Modification mod,
-                          double *f)
+                          double *feature,
+                          int action)
 {
   int i;
-  double *e = agent->e;
+  int k;
 
   for (i = 0; i < agent->m; i++)
   {
     switch (mod)
     {
     case RIL_E_ACCUMULATE:
-      e[i] += f[i];
+      agent->E[action][i] += feature[i];
       break;
     case RIL_E_REPLACE:
-      e[i] = f[i];
+      agent->E[action][i] = agent->E[action][i]+feature[i] > 1 ? 1 : agent->E[action][i]+feature[i]; //TODO? Maybe remove as only accumulating traces really apply
       break;
-    case RIL_E_SET:
-      e[i] *= agent->envi->global_discount_variable * agent->envi->parameters.lambda;
+    case RIL_E_UPDATE:
+      agent->E[action][i] *= agent->envi->global_discount_variable * agent->envi->parameters.lambda;
       break;
     case RIL_E_ZERO:
-      e[i] = 0;
+      for (k = 0; k < agent->n; k++)
+      {
+        agent->E[k][i] = 0;
+      }
       break;
     }
   }
@@ -769,7 +773,7 @@ envi_get_state (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
   int i;
   int k;
 
-  state = GNUNET_malloc (sizeof(agent->m));
+  state = GNUNET_malloc (sizeof(double) * agent->m);
 
   y[0] = (double) agent->bw_out;
   y[1] = (double) agent->bw_in;
@@ -964,6 +968,7 @@ envi_get_reward (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
 
   unsigned long long objective;
 
+  LOG(GNUNET_ERROR_TYPE_INFO, "address: %x\n", agent->address_inuse);
   net = agent->address_inuse->solver_information;
   if (net->bw_in_assigned > net->bw_in_available)
   {
@@ -1197,21 +1202,25 @@ envi_do_action (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent, int
 static int
 agent_select_egreedy (struct RIL_Peer_Agent *agent, double *state)
 {
+  int action;
+
   if (agent_decide_exploration(agent))
   {
+    action = agent_get_action_explore(agent, state);
     if (RIL_ALGO_Q == agent->envi->parameters.algorithm)
     {
-      agent_modify_eligibility(agent, RIL_E_ZERO, NULL);
+      agent_modify_eligibility(agent, RIL_E_ZERO, NULL, action);
     }
-    return agent_get_action_explore(agent, state);
+    return action;
   }
   else
   {
+    action = agent_get_action_best(agent, state);
     if (RIL_ALGO_Q == agent->envi->parameters.algorithm)
     {
-      agent_modify_eligibility(agent, RIL_E_SET, NULL);
+      agent_modify_eligibility(agent, RIL_E_UPDATE, NULL, action);
     }
-    return agent_get_action_best(agent, state);
+    return action;
   }
 }
 
@@ -1234,11 +1243,6 @@ agent_select_softmax (struct RIL_Peer_Agent *agent, double *state)
   double sum = 0;
   double r;
 
-  if (RIL_ALGO_Q == agent->envi->parameters.algorithm)
-  {
-    agent_modify_eligibility(agent, RIL_E_SET, NULL);
-  }
-
   for (i=0; i<agent->n; i++)
   {
     eqt[i] = exp(agent_estimate_q(agent,state,i) / agent->envi->parameters.temperature);
@@ -1255,6 +1259,10 @@ agent_select_softmax (struct RIL_Peer_Agent *agent, double *state)
   {
     if (sum + p[i] > r)
     {
+      if (RIL_ALGO_Q == agent->envi->parameters.algorithm)
+      {
+        agent_modify_eligibility(agent, RIL_E_UPDATE, NULL, i);
+      }
       return i;
     }
     sum += p[i];
@@ -1307,7 +1315,7 @@ agent_step (struct RIL_Peer_Agent *agent)
       //updates weights with selected action (on-policy), if not first step
       agent_update_weights (agent, reward, s_next, a_next);
     }
-    agent_modify_eligibility (agent, RIL_E_SET, s_next);
+    agent_modify_eligibility (agent, RIL_E_UPDATE, s_next, a_next);
     break;
 
   case RIL_ALGO_Q:
@@ -1323,7 +1331,7 @@ agent_step (struct RIL_Peer_Agent *agent)
 
   GNUNET_assert(RIL_ACTION_INVALID != a_next);
 
-  agent_modify_eligibility (agent, RIL_E_ACCUMULATE, s_next);
+  agent_modify_eligibility (agent, RIL_E_ACCUMULATE, s_next, a_next);
 
 //  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "step()  Step# %llu  R: %f  IN %llu  OUT %llu  A: %d\n",
 //        agent->step_count,
@@ -1674,15 +1682,16 @@ agent_init (void *s, const struct GNUNET_PeerIdentity *peer)
   agent->n = RIL_ACTION_TYPE_NUM;
   agent->m = 0;
   agent->W = (double **) GNUNET_malloc (sizeof (double *) * agent->n);
+  agent->E = (double **) GNUNET_malloc (sizeof (double *) * agent->n);
   for (i = 0; i < agent->n; i++)
   {
     agent->W[i] = (double *) GNUNET_malloc (sizeof (double) * agent->m);
+    agent->E[i] = (double *) GNUNET_malloc (sizeof (double) * agent->m);
   }
   agent_w_start(agent);
   agent->a_old = RIL_ACTION_INVALID;
   agent->s_old = GNUNET_malloc (sizeof (double) * agent->m);
-  agent->e = (double *) GNUNET_malloc (sizeof (double) * agent->m);
-  agent_modify_eligibility (agent, RIL_E_ZERO, NULL);
+  agent->address_inuse = NULL;
 
   return agent;
 }
@@ -1700,11 +1709,12 @@ agent_die (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
 
   for (i = 0; i < agent->n; i++)
   {
-    GNUNET_free(agent->W[i]);
+    GNUNET_free_non_null(agent->W[i]);
+    GNUNET_free_non_null(agent->E[i]);
   }
-  GNUNET_free(agent->W);
-  GNUNET_free(agent->e);
-  GNUNET_free(agent->s_old);
+  GNUNET_free_non_null(agent->W);
+  GNUNET_free_non_null(agent->E);
+  GNUNET_free_non_null(agent->s_old);
   GNUNET_free(agent);
 }
 
@@ -1780,7 +1790,7 @@ ril_cut_from_vector (void **old,
   unsigned int bytes_hole;
   unsigned int bytes_after;
 
-  GNUNET_assert(old_length > hole_length);
+  GNUNET_assert(old_length >= hole_length);
   GNUNET_assert(old_length >= (hole_start + hole_length));
 
   size = element_size * (old_length - hole_length);
@@ -2119,26 +2129,29 @@ GAS_ril_address_add (void *solver, struct ATS_Address *address, uint32_t network
   n_old = agent->n;
 
   GNUNET_array_grow(agent->W, agent->n, n_new);
+  agent->n = n_old;
+  GNUNET_array_grow(agent->E, agent->n, n_new);
   for (i = 0; i < n_new; i++)
   {
     if (i < n_old)
     {
       agent->m = m_old;
       GNUNET_array_grow(agent->W[i], agent->m, m_new);
+      agent->m = m_old;
+      GNUNET_array_grow(agent->E[i], agent->m, m_new);
     }
     else
     {
       zero = 0;
       GNUNET_array_grow(agent->W[i], zero, m_new);
+      zero = 0;
+      GNUNET_array_grow(agent->E[i], zero, m_new);
     }
   }
 
   //increase size of old state vector
   agent->m = m_old;
   GNUNET_array_grow(agent->s_old, agent->m, m_new);
-
-  agent->m = m_old;
-  GNUNET_array_grow(agent->e, agent->m, m_new);
 
   ril_try_unblock_agent(s, agent, GNUNET_NO);
 
@@ -2204,17 +2217,24 @@ GAS_ril_address_delete (void *solver, struct ATS_Address *address, int session_o
   m_new = agent->m - ((s->parameters.divisor+1) * (s->parameters.divisor+1));
   n_new = agent->n - 1;
 
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "first\n");
-
   for (i = 0; i < agent->n; i++)
   {
+    LOG(GNUNET_ERROR_TYPE_DEBUG, "first\n");
     ril_cut_from_vector ((void **) &agent->W[i], sizeof(double),
         address_index * ((s->parameters.divisor+1) * (s->parameters.divisor+1)),
         ((s->parameters.divisor+1) * (s->parameters.divisor+1)), agent->m);
+    LOG(GNUNET_ERROR_TYPE_DEBUG, "sec\n");
+    ril_cut_from_vector ((void **) &agent->E[i], sizeof(double),
+        address_index * ((s->parameters.divisor+1) * (s->parameters.divisor+1)),
+        ((s->parameters.divisor+1) * (s->parameters.divisor+1)), agent->m);
   }
-  GNUNET_free(agent->W[RIL_ACTION_TYPE_NUM + address_index]);
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "second\n");
+  GNUNET_free_non_null(agent->W[RIL_ACTION_TYPE_NUM + address_index]);
+  GNUNET_free_non_null(agent->E[RIL_ACTION_TYPE_NUM + address_index]);
+  LOG(GNUNET_ERROR_TYPE_DEBUG, "third\n");
   ril_cut_from_vector ((void **) &agent->W, sizeof(double *), RIL_ACTION_TYPE_NUM + address_index,
+      1, agent->n);
+  LOG(GNUNET_ERROR_TYPE_DEBUG, "fourth\n");
+  ril_cut_from_vector ((void **) &agent->E, sizeof(double *), RIL_ACTION_TYPE_NUM + address_index,
       1, agent->n);
   //correct last action
   if (agent->a_old > (RIL_ACTION_TYPE_NUM + address_index))
@@ -2225,12 +2245,9 @@ GAS_ril_address_delete (void *solver, struct ATS_Address *address, int session_o
   {
     agent->a_old = RIL_ACTION_INVALID;
   }
-  //decrease old state vector and eligibility vector
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "third\n");
+  //decrease old state vector
+  LOG(GNUNET_ERROR_TYPE_DEBUG, "fifth\n");
   ril_cut_from_vector ((void **) &agent->s_old, sizeof(double),
-      address_index * ((s->parameters.divisor+1) * (s->parameters.divisor+1)),
-      ((s->parameters.divisor+1) * (s->parameters.divisor+1)), agent->m);
-  ril_cut_from_vector ((void **) &agent->e, sizeof(double),
       address_index * ((s->parameters.divisor+1) * (s->parameters.divisor+1)),
       ((s->parameters.divisor+1) * (s->parameters.divisor+1)), agent->m);
   agent->m = m_new;
