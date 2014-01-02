@@ -244,10 +244,10 @@ blacklist_peer (unsigned int offset)
 
   (void) memcpy (&private_key, &hostkeys[offset], sizeof (private_key));
   GNUNET_CRYPTO_eddsa_key_get_public (&private_key, &id.public_key);
-  GNUNET_break (GNUNET_OK == 
+  GNUNET_break (GNUNET_OK ==
                 GNUNET_CONTAINER_multipeermap_put (map, &id, &id,
                                                    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-  
+
 }
 
 /**
@@ -259,7 +259,7 @@ struct ListRow
    * Next ptr
    */
   struct ListRow *next;
-  
+
   /**
    * The offset where to find the hostkey for the peer
    */
@@ -277,7 +277,7 @@ static void
 listrow_add (struct ListRow *head, unsigned int id)
 {
   struct ListRow *bp;
-                                               
+
   bp = GNUNET_new (struct ListRow);
   bp->id = id;
   bp->next = head;
@@ -324,7 +324,7 @@ load_keys (const struct GNUNET_CONFIGURATION_Handle *c)
   char *idfile;
   struct GNUNET_DISK_FileHandle *fd;
   uint64_t fsize;
-  
+
   data_dir = NULL;
   idfile = NULL;
   fd = NULL;
@@ -417,7 +417,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   unsigned long long pid;
   unsigned int nrows;
   int ret;
-  
+
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_number (c, "TESTBED",
                                                             "PEERID", &pid))
   {
@@ -478,7 +478,9 @@ main (int argc, char *const *argv)
 
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
+#ifdef SQLITE_CONFIG_MMAP_SIZE
   (void) sqlite3_config (SQLITE_CONFIG_MMAP_SIZE, 512000, 256000000);
+#endif
   ret =
       (GNUNET_OK ==
        GNUNET_PROGRAM_run (argc, argv, "gnunet-daemon-testbed-underlay",
