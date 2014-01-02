@@ -29,6 +29,7 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_transport_service.h"
+#include "gnunet_ats_service.h"
 #include "gnunet_testing_lib.h"
 #include <sqlite3.h>
 
@@ -95,6 +96,11 @@ static struct GNUNET_DISK_MapHandle *idmap;
  * The hostkeys data
  */
 static struct GNUNET_PeerIdentity *hostkeys;
+
+/**
+ * Handle to the transport service.  This is used for setting link metrics
+ */
+static struct GNUNET_TRANSPORT_Handle *transport;
 
 /**
  * The number of hostkeys in the hostkeys array
@@ -253,12 +259,12 @@ blacklist_peer (unsigned int offset)
 /**
  * Blacklist peer
  */
-struct ListRow
+struct BlackListRow
 {
   /**
    * Next ptr
    */
-  struct ListRow *next;
+  struct BlackListRow *next;
 
   /**
    * The offset where to find the hostkey for the peer
@@ -268,32 +274,46 @@ struct ListRow
 
 
 /**
- * Function to add a peer to the blacklist
- *
- * @param head the head of the list
- * @param id the id of the peer to add
+ * Whilelist entry
  */
-static void
-listrow_add (struct ListRow *head, unsigned int id)
+struct WhiteListRow
 {
-  struct ListRow *bp;
+  /**
+   * Next ptr
+   */
+  struct WhiteListRow *next;
+  
+  /**
+   * The offset where to find the hostkey for the peer
+   */
+  unsigned int id;
+  
+  /**
+   * Bandwidth to be assigned to the link
+   */
+  int bandwidth;
 
-  bp = GNUNET_new (struct ListRow);
-  bp->id = id;
-  bp->next = head;
-  head = bp;
-}
+  /**
+   * Latency to be assigned to the link
+   */
+  int latency;
+
+  /**
+   * Loss to be assigned to the link
+   */
+  int loss;
+};
 
 
 /**
  * Add peers in the blacklist to the blacklist map
  */
 static int
-map_populate (struct ListRow *head,
+map_populate (struct BlackListRow *head,
               struct GNUNET_CONTAINER_MultiPeerMap *map,
               const struct GNUNET_PeerIdentity *hostkeys)
 {
-  struct ListRow *row;
+  struct BlackListRow *row;
   int ret;
 
   while (NULL != (row = head))
@@ -364,11 +384,20 @@ load_keys (const struct GNUNET_CONFIGURATION_Handle *c)
 }
 
 
+/**
+ * Function to read blacklist rows from the database
+ *
+ * @param db the database connection
+ * @param pid the identity of this peer
+ * @param bl_rows where to store the retrieved blacklist rows
+ * @return GNUNET_SYSERR upon error OR the number of rows retrieved
+ */
 static int
-db_read_blacklist (sqlite3 *dbfile, unsigned int pid, struct ListRow **blacklist_rows)
+db_read_blacklist (struct sqlite3 *db, unsigned int pid, struct BlackListRow **bl_rows)
 {
-  static const char *query_bl = "SELECT (id, oid) FROM blacklist WHERE (id == ?);";
-  static struct sqlite3_stmt *stmt_bl;
+  static const char *query_bl = "SELECT (oid) FROM blacklist WHERE (id == ?);";
+  struct sqlite3_stmt *stmt_bl;
+  struct BlackListRow *lr;
   int nrows;
   int peer_id;
   int ret;
@@ -391,11 +420,62 @@ db_read_blacklist (sqlite3 *dbfile, unsigned int pid, struct ListRow **blacklist
     if (SQLITE_ROW != ret)
       break;
     peer_id = sqlite3_column_int (stmt_bl, 1);
-    listrow_add (*blacklist_rows, peer_id);
+    lr = GNUNET_new (struct BlackListRow);
+    lr->id = peer_id;
+    lr->next = *bl_rows;
+    *bl_rows = lr;
     nrows++;
   } while (1);
   sqlite3_finalize (stmt_bl);
   stmt_bl = NULL;
+  return nrows;
+}
+
+
+/**
+ * Function to read whitelist rows from the database
+ *
+ * @param db the database connection
+ * @param pid the identity of this peer
+ * @param wl_rows where to store the retrieved whitelist rows
+ * @return GNUNET_SYSERR upon error OR the number of rows retrieved
+ */
+static int
+db_read_whitelist (struct sqlite3 *db, unsigned int pid, struct WhiteListRow **wl_rows)
+{
+  static const char *query_wl = "SELECT (oid, bandwidth, latency, loss) FROM whitelist WHERE (id == ?);";
+  struct sqlite3_stmt *stmt_wl;
+  struct WhiteListRow *lr;
+  int nrows;
+  int ret;
+  
+  if (SQLITE_OK != (ret = sqlite3_prepare_v2 (db, query_wl, -1, &stmt_wl, NULL)))
+  {
+    LOG_SQLITE_ERROR (ret);
+    return GNUNET_SYSERR;
+  }
+  if (SQLITE_OK != (ret = sqlite3_bind_int (stmt_wl, 1, pid)))
+  {
+    LOG_SQLITE_ERROR (ret);
+    sqlite3_finalize (stmt_wl);
+    return GNUNET_SYSERR;
+  }
+  nrows = 0;
+  do
+  {
+    ret = sqlite3_step (stmt_wl);
+    if (SQLITE_ROW != ret)
+      break;
+    nrows++;
+    lr = GNUNET_new (struct WhiteListRow);
+    lr->id = sqlite3_column_int (stmt_wl, 1);
+    lr->bandwidth = sqlite3_column_int (stmt_wl, 2);
+    lr->latency = sqlite3_column_int (stmt_wl, 3);
+    lr->loss = sqlite3_column_int (stmt_wl, 4);
+    lr->next = *wl_rows;
+    *wl_rows = lr;
+  } while (1);
+  sqlite3_finalize (stmt_wl);
   return nrows;
 }
 
@@ -413,13 +493,23 @@ run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   char *dbfile;
-  struct ListRow *blacklist_rows;
+  struct BlackListRow *bl_head;
+  struct BlackListRow *bl_entry;
+  struct WhiteListRow *wl_head;
+  struct WhiteListRow *wl_entry;
+  struct GNUNET_ATS_Information triplet[3];
   unsigned long long pid;
   unsigned int nrows;
   int ret;
 
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_number (c, "TESTBED",
                                                             "PEERID", &pid))
+  {
+    GNUNET_break (0);
+    return;
+  }
+  transport = GNUNET_TRANSPORT_connect (c, NULL, NULL, NULL, NULL, NULL);
+  if (NULL == transport)
   {
     GNUNET_break (0);
     return;
@@ -440,22 +530,45 @@ run (void *cls, char *const *args, const char *cfgfile,
   DEBUG ("Opened database %s\n", dbfile);
   GNUNET_free (dbfile);
   dbfile = NULL;
-  blacklist_rows = NULL;
-  nrows = db_read_blacklist (db, pid, &blacklist_rows);
-  if (-1 == nrows)
+  bl_head = NULL;
+  wl_head = NULL;
+  nrows = db_read_blacklist (db, pid, &bl_head);
+  if (GNUNET_SYSERR == nrows)
     goto close_db;
   if (nrows > 0)
   {
     blacklist_map = GNUNET_CONTAINER_multipeermap_create (nrows, GNUNET_YES);
     if (GNUNET_OK != load_keys (c))
-    {
       goto close_db;
-    }
   }
   /* process whitelist */
-  GNUNET_break (0);             /* TODO */
+  nrows = 0;
+  wl_head = NULL;
+  nrows = db_read_whitelist (db, pid, &wl_head);
+  if ((GNUNET_SYSERR == nrows) || (0 == nrows))
+    goto close_db;
+  triplet[0].type = 0; //FIXME: not implemented: GNUNET_ATS_QUALITY_NET_THROUGHPUT
+  triplet[1].type = GNUNET_ATS_QUALITY_NET_DELAY;
+  triplet[2].type =  0; //FIXME: not implemented: GNUNET_ATS_QUALITY_NET_LOSSRATE;
+  while (NULL != (wl_entry = wl_head))
+  {
+    wl_head = wl_entry->next;
+    triplet[0].value = wl_entry->bandwidth; //FIXME: bandwidth != throughput !!
+    triplet[1].value = wl_entry->latency;
+    triplet[2].value = wl_entry->loss;
+    GNUNET_TRANSPORT_set_traffic_metric (transport,
+                                         &hostkeys[wl_entry->id],
+                                         GNUNET_YES,
+                                         GNUNET_YES, /* FIXME: Separate inbound, outboud metrics */
+                                         triplet, 3);
+  }
 
  close_db:
+  while (NULL != (bl_entry = bl_head))
+  {
+    bl_head = bl_entry->next;
+    GNUNET_free (bl_entry);
+  }
   GNUNET_break (GNUNET_OK == sqlite3_close (db));
   return;
 }
