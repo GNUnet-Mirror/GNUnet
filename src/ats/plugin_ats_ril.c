@@ -1238,10 +1238,13 @@ static int
 agent_select_softmax (struct RIL_Peer_Agent *agent, double *state)
 {
   int i;
+  int a_max;
   double eqt[agent->n];
   double p[agent->n];
   double sum = 0;
   double r;
+
+  a_max = agent_get_action_best(agent, state);
 
   for (i=0; i<agent->n; i++)
   {
@@ -1261,7 +1264,10 @@ agent_select_softmax (struct RIL_Peer_Agent *agent, double *state)
     {
       if (RIL_ALGO_Q == agent->envi->parameters.algorithm)
       {
-        agent_modify_eligibility(agent, RIL_E_UPDATE, NULL, i);
+        if (i == a_max)
+          agent_modify_eligibility(agent, RIL_E_UPDATE, NULL, i);
+        else
+          agent_modify_eligibility(agent, RIL_E_ZERO, NULL, -1);
       }
       return i;
     }
