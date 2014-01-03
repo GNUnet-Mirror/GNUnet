@@ -77,11 +77,6 @@ static struct GNUNET_CONTAINER_MultiPeerMap *blacklist_map;
 static struct sqlite3 *db;
 
 /**
- * The array of peer identities we read from whitelist/blacklist
- */
-static struct GNUNET_PeerIdentity *ilist;
-
-/**
  * The blacklist handle we obtain from transport when we register ourselves for
  * access control
  */
@@ -95,7 +90,7 @@ static struct GNUNET_DISK_MapHandle *idmap;
 /**
  * The hostkeys data
  */
-static struct GNUNET_PeerIdentity *hostkeys;
+static char *hostkeys_data;
 
 /**
  * Handle to the transport service.  This is used for setting link metrics
@@ -192,48 +187,18 @@ check_access (void *cls, const struct GNUNET_PeerIdentity * pid)
 }
 
 
-/**
- * Setup the access control by reading the given file containing peer identities
- * and then establishing blacklist handler with the peer's transport service
- *
- * @param fname the filename to read the list of peer identities
- * @param cfg the configuration for connecting to the peer's transport service
- */
-static void
-setup_ac (const char *fname, const struct GNUNET_CONFIGURATION_Handle *cfg)
+static int
+get_identity (unsigned int offset, struct GNUNET_PeerIdentity *id)
 {
-  uint64_t fsize;
-  unsigned int npeers;
-  unsigned int cnt;
+  struct GNUNET_CRYPTO_EddsaPrivateKey private_key;
 
-  GNUNET_assert (GNUNET_OK != GNUNET_DISK_file_size (fname, &fsize, GNUNET_NO,
-                                                     GNUNET_YES));
-  if (0 != (fsize % sizeof (struct GNUNET_PeerIdentity)))
-  {
-    GNUNET_break (0);
-    return;
-  }
-  npeers = fsize / sizeof (struct GNUNET_PeerIdentity);
-  if (0 != npeers)
-  {
-    map = GNUNET_CONTAINER_multipeermap_create (npeers, GNUNET_YES);
-    ilist = GNUNET_malloc_large (fsize);
-    GNUNET_assert (fsize == GNUNET_DISK_fn_read (fname, ilist, fsize));
-  }
-  for (cnt = 0; cnt < npeers; cnt++)
-  {
-    if (GNUNET_SYSERR == GNUNET_CONTAINER_multipeermap_put (map, &ilist[cnt],
-                                                            &ilist[cnt],
-                                                            GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
-    {
-      cleanup_map ();
-      GNUNET_free (ilist);
-      return;
-    }
-  }
-  shutdown_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                                &do_shutdown, NULL);
-  bh = GNUNET_TRANSPORT_blacklist (cfg, &check_access, NULL);
+  if (offset >= num_hostkeys)
+    return GNUNET_SYSERR;
+  (void) memcpy (&private_key,
+                 hostkeys_data + (offset * GNUNET_TESTING_HOSTKEYFILESIZE),
+                 GNUNET_TESTING_HOSTKEYFILESIZE);
+  GNUNET_CRYPTO_eddsa_key_get_public (&private_key, &id->public_key);
+  return GNUNET_OK;
 }
 
 
@@ -245,11 +210,10 @@ setup_ac (const char *fname, const struct GNUNET_CONFIGURATION_Handle *cfg)
 static void
 blacklist_peer (unsigned int offset)
 {
-  struct GNUNET_CRYPTO_EddsaPrivateKey private_key;
   struct GNUNET_PeerIdentity id;
 
-  (void) memcpy (&private_key, &hostkeys[offset], sizeof (private_key));
-  GNUNET_CRYPTO_eddsa_key_get_public (&private_key, &id.public_key);
+  GNUNET_assert (offset < num_hostkeys);
+  GNUNET_assert (GNUNET_OK == get_identity (offset, &id));
   GNUNET_break (GNUNET_OK ==
                 GNUNET_CONTAINER_multipeermap_put (map, &id, &id,
                                                    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
@@ -306,35 +270,6 @@ struct WhiteListRow
 
 
 /**
- * Add peers in the blacklist to the blacklist map
- */
-static int
-map_populate (struct BlackListRow *head,
-              struct GNUNET_CONTAINER_MultiPeerMap *map,
-              const struct GNUNET_PeerIdentity *hostkeys)
-{
-  struct BlackListRow *row;
-  int ret;
-
-  while (NULL != (row = head))
-  {
-    if (head->id >= num_hostkeys)
-    {
-      LOG (GNUNET_ERROR_TYPE_WARNING, "Hostkey index %u out of max range %u\n",
-           row->id, num_hostkeys);
-    }
-    head = row->next;
-    ret = GNUNET_CONTAINER_multipeermap_put (blacklist_map, &hostkeys[row->id],
-                                       (void *) &hostkeys[row->id],
-                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
-    if (GNUNET_OK != ret)
-      return GNUNET_SYSERR;
-  }
-  return GNUNET_OK;
-}
-
-
-/**
  * Function to load keys
  */
 static int
@@ -376,9 +311,11 @@ load_keys (const struct GNUNET_CONFIGURATION_Handle *c)
   }
   GNUNET_free (idfile);
   idfile = NULL;
-  hostkeys = (struct GNUNET_PeerIdentity *)
-      GNUNET_DISK_file_map (fd, &idmap, GNUNET_DISK_MAP_TYPE_READ, fsize);
-  if (NULL == hostkeys)
+  hostkeys_data = GNUNET_DISK_file_map (fd,
+                                        &idmap,
+                                        GNUNET_DISK_MAP_TYPE_READ,
+                                        fsize);
+  if (NULL != hostkeys_data)
     num_hostkeys = fsize / GNUNET_TESTING_HOSTKEYFILESIZE;
   return GNUNET_OK;
 }
@@ -497,6 +434,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   struct BlackListRow *bl_entry;
   struct WhiteListRow *wl_head;
   struct WhiteListRow *wl_entry;
+  struct GNUNET_PeerIdentity identity;
   struct GNUNET_ATS_Information triplet[3];
   unsigned long long pid;
   unsigned int nrows;
@@ -541,7 +479,19 @@ run (void *cls, char *const *args, const char *cfgfile,
     if (GNUNET_OK != load_keys (c))
       goto close_db;
   }
-  /* process whitelist */
+  while (NULL != (bl_entry = bl_head))
+  {
+    bl_head = bl_entry->next;
+    blacklist_peer (bl_entry->id);
+    GNUNET_free (bl_entry);
+  }
+  if (NULL != blacklist_map)
+  {
+    bh = GNUNET_TRANSPORT_blacklist (c, &check_access, NULL);
+    shutdown_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
+                                                  &do_shutdown, NULL);
+  }
+  /* read and process whitelist */
   nrows = 0;
   wl_head = NULL;
   nrows = db_read_whitelist (db, pid, &wl_head);
@@ -556,11 +506,13 @@ run (void *cls, char *const *args, const char *cfgfile,
     triplet[0].value = wl_entry->bandwidth; //FIXME: bandwidth != throughput !!
     triplet[1].value = wl_entry->latency;
     triplet[2].value = wl_entry->loss;
+    GNUNET_assert (GNUNET_OK == get_identity (wl_entry->id, &identity));
     GNUNET_TRANSPORT_set_traffic_metric (transport,
-                                         &hostkeys[wl_entry->id],
+                                         &identity,
                                          GNUNET_YES,
                                          GNUNET_YES, /* FIXME: Separate inbound, outboud metrics */
                                          triplet, 3);
+    GNUNET_free (wl_entry);
   }
 
  close_db:
