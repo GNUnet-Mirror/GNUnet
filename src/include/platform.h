@@ -164,6 +164,9 @@
 #if HAVE_UCRED_H
 #include <ucred.h>
 #endif
+#if HAVE_SYS_UCRED_H
+#include <sys/ucred.h>
+#endif
 #ifdef CYGWIN
 #include <windows.h>
 #include <cygwin/if.h>
