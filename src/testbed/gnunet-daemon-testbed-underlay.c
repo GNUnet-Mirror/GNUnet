@@ -45,9 +45,19 @@
 #define DEBUG(...)                              \
   LOG (GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__)
 
-
-#define LOG_SQLITE_ERROR(ret)                                           \
-  LOG (GNUNET_ERROR_TYPE_ERROR, "sqlite error: %s", sqlite3_errstr (ret))
+/**
+ * Log an error message at log-level 'level' that indicates
+ * a failure of the command 'cmd' on file 'filename'
+ * with the message given by strerror(errno).
+ */
+#define LOG_SQLITE(db, msg, level, cmd)                                 \
+  do {                                                                  \
+    GNUNET_log_from (level, "sqlite", _("`%s' failed at %s:%d with error: %s\n"), \
+                     cmd, __FILE__,__LINE__, sqlite3_errmsg(db));  \
+    if (msg != NULL)                                                    \
+      GNUNET_asprintf(msg, _("`%s' failed at %s:%u with error: %s"), cmd, \
+                      __FILE__, __LINE__, sqlite3_errmsg(db));     \
+  } while(0)
 
 
 /**
@@ -341,12 +351,12 @@ db_read_blacklist (struct sqlite3 *db, unsigned int pid, struct BlackListRow **b
 
   if (SQLITE_OK != (ret = sqlite3_prepare_v2 (db, query_bl, -1, &stmt_bl, NULL)))
   {
-    LOG_SQLITE_ERROR (ret);
+    LOG_SQLITE (db, NULL, GNUNET_ERROR_TYPE_ERROR, "sqlite3_prepare_v2");
     return GNUNET_SYSERR;
   }
   if (SQLITE_OK != (ret = sqlite3_bind_int (stmt_bl, 1, pid)))
   {
-    LOG_SQLITE_ERROR (ret);
+    LOG_SQLITE (db, NULL, GNUNET_ERROR_TYPE_ERROR, "sqlite3_bind_int");
     sqlite3_finalize (stmt_bl);
     return GNUNET_SYSERR;
   }
@@ -388,12 +398,12 @@ db_read_whitelist (struct sqlite3 *db, unsigned int pid, struct WhiteListRow **w
   
   if (SQLITE_OK != (ret = sqlite3_prepare_v2 (db, query_wl, -1, &stmt_wl, NULL)))
   {
-    LOG_SQLITE_ERROR (ret);
+    LOG_SQLITE (db, NULL, GNUNET_ERROR_TYPE_ERROR, "sqlite3_prepare_v2");
     return GNUNET_SYSERR;
   }
   if (SQLITE_OK != (ret = sqlite3_bind_int (stmt_wl, 1, pid)))
   {
-    LOG_SQLITE_ERROR (ret);
+    LOG_SQLITE (db, NULL, GNUNET_ERROR_TYPE_ERROR, "sqlite3_bind_int");
     sqlite3_finalize (stmt_wl);
     return GNUNET_SYSERR;
   }
@@ -461,7 +471,13 @@ run (void *cls, char *const *args, const char *cfgfile,
   }
   if (SQLITE_OK != (ret = sqlite3_open_v2 (dbfile, &db, SQLITE_OPEN_READONLY, NULL)))
   {
-    LOG_SQLITE_ERROR (ret);
+    if (NULL != db)
+    {
+      LOG_SQLITE (db, NULL, GNUNET_ERROR_TYPE_ERROR, "sqlite_open_v2");
+      sqlite3_close (db);
+    }
+    else
+      LOG (GNUNET_ERROR_TYPE_ERROR, "Cannot open sqlite file %s\n", dbfile);
     GNUNET_free (dbfile);
     return;
   }
