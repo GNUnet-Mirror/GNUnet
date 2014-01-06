@@ -148,11 +148,16 @@ join (void *cls, const struct GNUNET_CRYPTO_EddsaPublicKey *slave_key,
 struct TransmitClosure
 {
   struct GNUNET_PSYC_MasterTransmitHandle *handle;
-  uint8_t n;
+
+  char *mod_names[16];
+  char *mod_values[16];
+  char *data[16];
+
+  uint8_t mod_count;
+  uint8_t data_count;
+
   uint8_t paused;
-  uint8_t fragment_count;
-  char *fragments[16];
-  uint16_t fragment_sizes[16];
+  uint8_t n;
 };
 
 
@@ -167,16 +172,47 @@ transmit_resume (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 static int
-transmit_notify (void *cls, size_t *data_size, void *data)
+tmit_notify_mod (void *cls, size_t *data_size, void *data)
 {
   struct TransmitClosure *tmit = cls;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Transmit notify: %lu bytes available, "
+              "Transmit notify modifier: %lu bytes available, "
+              "processing modifier %u/%u.\n",
+              *data_size, tmit->n + 1, tmit->fragment_count);
+  /* FIXME: continuation */
+  uint16_t name_size = strlen (tmit->mod_names[tmit->n]);
+  uint16_t value_size = strlen (tmit->mod_values[tmit->n]);
+  if (name_size + 1 + value_size <= *data_size)
+    return GNUNET_NO;
+
+  *data_size = name_size + 1 + value_size;
+  memcpy (data, tmit->fragments[tmit->n], *data_size);
+
+  if (++tmit->n < tmit->mod_count)
+  {
+    return GNUNET_NO;
+  }
+  else
+  {
+    tmit->n = 0;
+    return GNUNET_YES;
+  }
+}
+
+
+static int
+tmit_notify_data (void *cls, size_t *data_size, void *data)
+{
+  struct TransmitClosure *tmit = cls;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Transmit notify data: %lu bytes available, "
               "processing fragment %u/%u.\n",
               *data_size, tmit->n + 1, tmit->fragment_count);
-  GNUNET_assert (tmit->fragment_sizes[tmit->n] <= *data_size);
+  uint16_t size = strlen (tmit->data[tmit->n]);
+  if (size <= *data_size)
+    return GNUNET_NO;
 
-  if (GNUNET_YES == tmit->paused && tmit->n == tmit->fragment_count - 1)
+  if (GNUNET_YES == tmit->paused && tmit->n == tmit->data_count - 1)
   {
     /* Send last fragment later. */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Transmission paused.\n");
@@ -188,12 +224,12 @@ transmit_notify (void *cls, size_t *data_size, void *data)
     return GNUNET_NO;
   }
 
-  GNUNET_assert (tmit->fragment_sizes[tmit->n] <= *data_size);
-  *data_size = tmit->fragment_sizes[tmit->n];
-  memcpy (data, tmit->fragments[tmit->n], *data_size);
+  *data_size = size;
+  memcpy (data, tmit->data[tmit->n], size);
 
-  return ++tmit->n < tmit->fragment_count ? GNUNET_NO : GNUNET_YES;
+  return ++tmit->n < tmit->data_count ? GNUNET_NO : GNUNET_YES;
 }
+
 
 void
 master_started (void *cls, uint64_t max_message_id)
@@ -208,15 +244,13 @@ master_started (void *cls, uint64_t max_message_id)
                                   "_foo_bar", "foo bar baz", 11);
 
   struct TransmitClosure *tmit = GNUNET_new (struct TransmitClosure);
-  tmit->fragment_count = 3;
-  tmit->fragments[0] = "foo";
-  tmit->fragment_sizes[0] = 4;
-  tmit->fragments[1] = "foo bar";
-  tmit->fragment_sizes[1] = 7;
-  tmit->fragments[2] = "foo bar baz";
-  tmit->fragment_sizes[2] = 11;
+  tmit->data[0] = "foo";
+  tmit->data[1] = "foo bar";
+  tmit->data[2] = "foo bar baz";
+  tmit->data_count = 3;
   tmit->handle
-    = GNUNET_PSYC_master_transmit (mst, "_test", env, transmit_notify, tmit,
+    = GNUNET_PSYC_master_transmit (mst, "_test", tmit_notify_mod,
+                                   tmit_notify_data, tmit,
                                    GNUNET_PSYC_MASTER_TRANSMIT_INC_GROUP_GEN);
 }
 

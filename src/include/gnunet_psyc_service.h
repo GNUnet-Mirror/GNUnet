@@ -161,31 +161,49 @@ enum GNUNET_PSYC_Policy
 enum GNUNET_PSYC_MessageFlags
 {
   /**
-   * First fragment of a message.
-   */
-  GNUNET_PSYC_MESSAGE_FIRST_FRAGMENT = 1 << 0,
-
-  /**
-   * Last fragment of a message.
-   */
-  GNUNET_PSYC_MESSAGE_LAST_FRAGMENT = 1 << 1,
-
-  /**
-   * OR'ed flags if message is not fragmented.
-   */
-  GNUNET_PSYC_MESSAGE_NOT_FRAGMENTED
-    = GNUNET_PSYC_MESSAGE_FIRST_FRAGMENT
-    | GNUNET_PSYC_MESSAGE_LAST_FRAGMENT,
-
-  /**
    * Historic message, retrieved from PSYCstore.
    */
-  GNUNET_PSYC_MESSAGE_HISTORIC = 1 << 30
+  GNUNET_PSYC_MESSAGE_HISTORIC = 1
+};
+
+GNUNET_NETWORK_STRUCT_BEGIN
+
+/**
+ * Header of a PSYC message.
+ */
+struct GNUNET_PSYC_MessageHeader
+{
+  /**
+   * Generic message header with size and type information.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Flags for this message fragment.
+   *
+   * @see enum GNUNET_PSYC_MessageFlags
+   */
+  uint32_t flags GNUNET_PACKED;
+
+  /**
+   * Number of the message this message part belongs to.
+   */
+  uint64_t message_id GNUNET_PACKED;
+
+  /**
+   * Sending slave's public key.
+   * Not set if the message is from the master.
+   */
+  struct GNUNET_CRYPTO_EddsaPublicKey slave_key;
+
+  /* Followed by concatenated PSYC message parts:
+   * messages with GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_* types
+   */
 };
 
 
 /**
- * M
+ * The method of a message.
  */
 struct GNUNET_PSYC_MessageMethod
 {
@@ -194,28 +212,18 @@ struct GNUNET_PSYC_MessageMethod
    */
   struct GNUNET_MessageHeader header;
 
-  uint32_t reserved GNUNET_PACKED;
-
-  /**
-   * Number of modifiers in the message.
-   */
-  uint32_t mod_count GNUNET_PACKED;
-
   /**
    * OR'ed GNUNET_PSYC_MasterTransmitFlags
    */
   uint32_t flags GNUNET_PACKED;
 
-  /**
-   * Sending slave's public key.
-   * NULL if the message is from the master, or when transmitting a message.
-   */
-  struct GNUNET_CRYPTO_EddsaPublicKey slave_key;
-
   /* Followed by NUL-terminated method name. */
 };
 
 
+/**
+ * A modifier of a message.
+ */
 struct GNUNET_PSYC_MessageModifier
 {
   /**
@@ -241,38 +249,19 @@ struct GNUNET_PSYC_MessageModifier
   /* Followed by NUL-terminated name, then the value. */
 };
 
+GNUNET_NETWORK_STRUCT_END
 
-enum GNUNET_PSYC_DataStatus
-{
-  /**
-   * To be continued.
-   */
-  GNUNET_PSYC_DATA_CONT = 0,
+#define GNUNET_PSYC_MODIFIER_MAX_PAYLOAD        \
+  GNUNET_MULTICAST_FRAGMENT_MAX_PAYLOAD         \
+  - sizeof (struct GNUNET_PSYC_MessageModifier)
 
-  /**
-   * Reached the end of message.
-   */
-  GNUNET_PSYC_DATA_END = 1,
+#define GNUNET_PSYC_MOD_CONT_MAX_PAYLOAD        \
+  GNUNET_MULTICAST_FRAGMENT_MAX_PAYLOAD         \
+  - sizeof (struct GNUNET_MessageHeader)
 
-  /**
-   * Cancelled before the end.
-   */
-  GNUNET_PSYC_DATA_CANCEL = 2
-};
-
-
-struct GNUNET_PSYC_MessageData
-{
-  /**
-   * Type: GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_DATA
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * enum GNUNET_PSYC_DataStatus
-   */
-  uint8_t status;
-};
+#define GNUNET_PSYC_DATA_MAX_PAYLOAD            \
+  GNUNET_MULTICAST_FRAGMENT_MAX_PAYLOAD         \
+  - sizeof (struct GNUNET_MessageHeader)
 
 /**
  * Handle that identifies a join request.
@@ -284,36 +273,21 @@ struct GNUNET_PSYC_JoinHandle;
 
 
 /**
- * Method called from PSYC upon receiving a message indicating a call to a
- * @e method.
+ * Method called from PSYC upon receiving part of a message.
  *
  * @param cls Closure.
- * @param slave_key Who transmitted the message.
- *        - NULL for multicast messages from the master.
- *        - The sending slave's public key for unicast requests from one of the
- *          slaves to the master.
- * @param message_id Unique message counter for this message.
- *        Unique only in combination with the given sender for this channel.
- * @param method_name Method name from PSYC.
- * @param modifier_count Number of elements in the @a modifiers array.
- * @param modifiers State modifiers and transient variables for the message.
- * @param data_offset Byte offset of @a data in the overall data of the method.
- * @param data Data stream given to the method (might not be zero-terminated
- *             if data is binary).
- * @param data_size Number of bytes in @a data.
- * @param frag Fragmentation status for the data.
+ * @param msg Message part, one of the following types:
+ * - GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_HEADER
+ * - GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_METHOD
+ * - GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MODIFIER
+ * - GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MOD_CONT
+ * - GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_DATA
  */
-typedef int
-(*GNUNET_PSYC_Method) (void *cls,
-                       const struct GNUNET_CRYPTO_EddsaPublicKey *slave_key,
-                       uint64_t message_id,
-                       const char *method_name,
-                       size_t modifier_count,
-                       const struct GNUNET_ENV_Modifier *modifiers,
-                       uint64_t data_offset,
-                       const void *data,
-                       size_t data_size,
-                       enum GNUNET_PSYC_MessageFlags flags);
+typedef void
+(*GNUNET_PSYC_MessageCallback) (void *cls,
+                                uint64_t message_id,
+                                uint32_t flags,
+                                const struct GNUNET_MessageHeader *msg);
 
 
 /**
@@ -329,7 +303,7 @@ typedef int
  * @param data_size Number of bytes in @a data.
  * @param jh Join handle to use with GNUNET_PSYC_join_decision()
  */
-typedef int
+typedef void
 (*GNUNET_PSYC_JoinCallback) (void *cls,
                              const struct GNUNET_CRYPTO_EddsaPublicKey
                              *slave_key,
@@ -413,7 +387,7 @@ typedef void
  *        one in the future.
  * @param policy Channel policy specifying join and history restrictions.
  *        Used to automate join decisions.
- * @param method Function to invoke on messages received from slaves.
+ * @param message_cb Function to invoke on message parts received from slaves.
  * @param join_cb Function to invoke when a peer wants to join.
  * @param master_started_cb Function to invoke after the channel master started.
  * @param cls Closure for @a method and @a join_cb.
@@ -423,7 +397,7 @@ struct GNUNET_PSYC_Master *
 GNUNET_PSYC_master_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
                           const struct GNUNET_CRYPTO_EddsaPrivateKey *channel_key,
                           enum GNUNET_PSYC_Policy policy,
-                          GNUNET_PSYC_Method method,
+                          GNUNET_PSYC_MessageCallback message_cb,
                           GNUNET_PSYC_JoinCallback join_cb,
                           GNUNET_PSYC_MasterStartCallback master_started_cb,
                           void *cls);
@@ -449,7 +423,7 @@ GNUNET_PSYC_master_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
  */
 typedef int
 (*GNUNET_PSYC_MasterTransmitNotify) (void *cls,
-                                     size_t *data_size,
+                                     uint16_t *data_size,
                                      void *data);
 
 
@@ -489,18 +463,17 @@ struct GNUNET_PSYC_MasterTransmitHandle;
  *
  * @param master Handle to the PSYC channel.
  * @param method_name Which method should be invoked.
- * @param env Environment containing state operations and transient variables
- *            for the message, or NULL.
- * @param notify Function to call to obtain the arguments.
- * @param notify_cls Closure for @a notify.
+ * @param notify_mod Function to call to obtain modifiers.
+ * @param notify_data Function to call to obtain fragments of the data.
+ * @param notify_cls Closure for @a notify_mod and @a notify_data.
  * @param flags Flags for the message being transmitted.
  * @return Transmission handle, NULL on error (i.e. more than one request queued).
  */
 struct GNUNET_PSYC_MasterTransmitHandle *
 GNUNET_PSYC_master_transmit (struct GNUNET_PSYC_Master *master,
                              const char *method_name,
-                             const struct GNUNET_ENV_Environment *env,
-                             GNUNET_PSYC_MasterTransmitNotify notify,
+                             GNUNET_PSYC_MasterTransmitNotify notify_mod,
+                             GNUNET_PSYC_MasterTransmitNotify notify_data,
                              void *notify_cls,
                              enum GNUNET_PSYC_MasterTransmitFlags flags);
 
@@ -567,12 +540,13 @@ typedef void
  * @param relay_count Number of peers in the @a relays array.
  * @param relays Peer identities of members of the multicast group, which serve
  *        as relays and used to join the group at.
- * @param method Function to invoke on messages received from the channel,
- *        typically at least contains functions for @e join and @e part.
+ * @param message_cb Function to invoke on message parts received from the
+ *        channel, typically at least contains method handlers for @e join and
+ *        @e part.
  * @param join_cb function invoked once we have joined with the current
  *        message ID of the channel
  * @param slave_joined_cb Function to invoke when a peer wants to join.
- * @param cls Closure for @a method_cb and @a slave_joined_cb.
+ * @param cls Closure for @a message_cb and @a slave_joined_cb.
  * @param method_name Method name for the join request.
  * @param env Environment containing transient variables for the request, or NULL.
  * @param data Payload for the join message.
@@ -586,7 +560,7 @@ GNUNET_PSYC_slave_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
                         const struct GNUNET_PeerIdentity *origin,
                         uint32_t relay_count,
                         const struct GNUNET_PeerIdentity *relays,
-                        GNUNET_PSYC_Method method,
+                        GNUNET_PSYC_MessageCallback message_cb,
                         GNUNET_PSYC_JoinCallback join_cb,
                         GNUNET_PSYC_SlaveJoinCallback slave_joined_cb,
                         void *cls,
@@ -809,7 +783,7 @@ struct GNUNET_PSYC_Story;
  * @param channel Which channel should be replayed?
  * @param start_message_id Earliest interesting point in history.
  * @param end_message_id Last (exclusive) interesting point in history.
- * @param method Function to invoke on messages received from the story.
+ * @param message_cb Function to invoke on message parts received from the story.
  * @param finish_cb Function to call when the requested story has been fully
  *        told (counting message IDs might not suffice, as some messages
  *        might be secret and thus the listener would not know the story is
@@ -823,8 +797,8 @@ struct GNUNET_PSYC_Story *
 GNUNET_PSYC_channel_story_tell (struct GNUNET_PSYC_Channel *channel,
                                 uint64_t start_message_id,
                                 uint64_t end_message_id,
-                                GNUNET_PSYC_Method method,
-                                GNUNET_PSYC_FinishCallback *finish_cb,
+                                GNUNET_PSYC_MessageCallback message_cb,
+                                GNUNET_PSYC_FinishCallback finish_cb,
                                 void *cls);
 
 

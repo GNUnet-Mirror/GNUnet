@@ -45,11 +45,6 @@ extern "C"
 #define GNUNET_MULTICAST_VERSION 0x00000000
 
 /**
- * Maximum size of a multicast message fragment.
- */
-#define GNUNET_MULTICAST_FRAGMENT_MAX_SIZE 63 * 1024
-
-/**
  * Opaque handle for a multicast group member.
  */
 struct GNUNET_MULTICAST_Member;
@@ -77,7 +72,14 @@ enum GNUNET_MULTICAST_MessageFlags
    */
   GNUNET_MULTICAST_MESSAGE_NOT_FRAGMENTED
     = GNUNET_MULTICAST_MESSAGE_FIRST_FRAGMENT
-    | GNUNET_MULTICAST_MESSAGE_LAST_FRAGMENT
+  | GNUNET_MULTICAST_MESSAGE_LAST_FRAGMENT,
+
+  /**
+   * Historic message, used only locally when replaying messages from local
+   * storage.
+   */
+  GNUNET_MULTICAST_MESSAGE_HISTORIC = 1 << 30
+
 };
 
 
@@ -120,7 +122,7 @@ struct GNUNET_MULTICAST_MessageHeader
   struct GNUNET_CRYPTO_EccSignaturePurpose purpose;
 
   /**
-   * Number of the message fragment, monotonically increasing.
+   * Number of the message fragment, monotonically increasing starting from 1.
    */
   uint64_t fragment_id GNUNET_PACKED;
 
@@ -150,6 +152,8 @@ struct GNUNET_MULTICAST_MessageHeader
 
   /**
    * Flags for this message fragment.
+   *
+   * @see enum GNUNET_MULTICAST_MessageFlags
    */
   uint32_t flags GNUNET_PACKED;
 
@@ -157,6 +161,15 @@ struct GNUNET_MULTICAST_MessageHeader
 };
 
 GNUNET_NETWORK_STRUCT_END
+
+/**
+ * Maximum size of a multicast message fragment.
+ */
+#define GNUNET_MULTICAST_FRAGMENT_MAX_SIZE 63 * 1024
+
+#define GNUNET_MULTICAST_FRAGMENT_MAX_PAYLOAD           \
+  GNUNET_MULTICAST_FRAGMENT_MAX_SIZE                    \
+  - sizeof (struct GNUNET_MULTICAST_MessageHeader)
 
 
 /**

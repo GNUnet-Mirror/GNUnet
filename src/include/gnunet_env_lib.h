@@ -168,7 +168,9 @@ GNUNET_ENV_environment_add_mod (struct GNUNET_ENV_Environment *env,
  *         #GNUNET_NO to stop.
  */
 typedef int
-(*GNUNET_ENV_Iterator) (void *cls, struct GNUNET_ENV_Modifier *mod);
+(*GNUNET_ENV_Iterator) (void *cls, enum GNUNET_ENV_Operator oper,
+                        const char *name, const char *value,
+                        uint32_t value_size);
 
 
 /**

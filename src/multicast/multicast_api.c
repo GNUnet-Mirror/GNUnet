@@ -361,14 +361,13 @@ schedule_origin_to_all (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
   struct GNUNET_MULTICAST_Origin *orig = cls;
   struct GNUNET_MULTICAST_OriginMessageHandle *mh = &orig->msg_handle;
 
-  size_t buf_size = GNUNET_MULTICAST_FRAGMENT_MAX_SIZE;
+  size_t buf_size = GNUNET_MULTICAST_FRAGMENT_MAX_PAYLOAD;
   struct GNUNET_MULTICAST_MessageHeader *msg
     = GNUNET_malloc (buf_size);
-  buf_size -= sizeof (*msg);
   int ret = mh->notify (mh->notify_cls, &buf_size, &msg[1]);
 
   if (! (GNUNET_YES == ret || GNUNET_NO == ret)
-      || sizeof (*msg) + buf_size > GNUNET_MULTICAST_FRAGMENT_MAX_SIZE)
+      || GNUNET_MULTICAST_FRAGMENT_MAX_PAYLOAD < buf_size)
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
          "MasterTransmitNotify() returned error or invalid message size.\n");

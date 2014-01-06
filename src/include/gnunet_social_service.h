@@ -587,7 +587,7 @@ struct GNUNET_SOCIAL_HistoryLesson;
  * @param slicer Slicer to use to process history.  Can be the same as the
  *               slicer of the place, as the HISTORIC flag allows distinguishing
  *               old messages from fresh ones.
- * @param finish_cb Function called after the last message if the history lesson
+ * @param finish_cb Function called after the last message in the history lesson
  *              is passed through the @a slicer. NULL if not needed.
  * @param finish_cb_cls Closure for @a finish_cb.
  * @return Handle to abort history lesson, never NULL (multiple lessons

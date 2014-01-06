@@ -29,6 +29,20 @@
 
 #include "gnunet_common.h"
 
+
+enum MessageState
+{
+  MSG_STATE_START = 0,
+  MSG_STATE_HEADER = 1,
+  MSG_STATE_METHOD = 2,
+  MSG_STATE_MODIFIER = 3,
+  MSG_STATE_MOD_CONT = 4,
+  MSG_STATE_DATA = 5,
+  MSG_STATE_END = 6,
+  MSG_STATE_CANCEL = 7,
+};
+
+
 GNUNET_NETWORK_STRUCT_BEGIN
 
 /**** service -> library ****/
@@ -53,8 +67,7 @@ struct OperationResult
    */
   int64_t result_code GNUNET_PACKED;
 
-  /* followed by 0-terminated error message (on error) */
-
+  /* followed by NUL-terminated error message (on error) */
 };
 
 
@@ -74,6 +87,7 @@ struct CountersResult
 };
 
 
+#if REMOVE
 /**
  * Transmit acknowledgment.
  *
@@ -95,6 +109,7 @@ struct TransmitAck
    */
   uint16_t buf_avail;
 };
+#endif
 
 
 /**** library -> service ****/
