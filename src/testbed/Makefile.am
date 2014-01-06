@@ -18,6 +18,7 @@ pkgcfg_DATA = \
 
 if HAVE_SQLITE
   underlay_daemon = gnunet-daemon-testbed-underlay
+  generate_underlay = generate-underlay-topology
 endif
 
 libexec_PROGRAMS = \
@@ -29,6 +30,9 @@ libexec_PROGRAMS = \
 
 bin_PROGRAMS = \
   gnunet-testbed-profiler
+
+noinst_PROGRAMS = \
+  $(generate_underlay)
 
 gnunet_service_testbed_SOURCES = \
   gnunet-service-testbed.c gnunet-service-testbed.h \
@@ -134,6 +138,15 @@ libgnunettestbedlogger_la_LIBADD = $(XLIB) \
 libgnunettestbedlogger_la_LDFLAGS = \
  $(GN_LIB_LDFLAGS) \
  -version-info 0:0:0
+
+generate_underlay_topology_SOURCES = generate-underlay-topology.c
+generate_underlay_topology_LDADD = $(XLIB) \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/testbed/libgnunettestbed.la \
+ $(LTLIBINTL) -lsqlite3
+generate_underlay_topology_DEPENDENCIES = \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ libgnunettestbed.la
 
 check_PROGRAMS = \
   test_testbed_api_hosts \

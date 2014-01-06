@@ -78,6 +78,38 @@ struct OverlayLink
 };
 
 
+/**
+ * Representation of an underlay link
+ */
+struct UnderlayLink
+{
+  /**
+   * position of peer A's handle in peers array
+   */
+  uint32_t A;
+
+  /**
+   * position of peer B's handle in peers array
+   */
+  uint32_t B;
+
+  /**
+   * Bandwidth of the link in bytes per second
+   */
+  uint32_t bandwidth;
+
+  /**
+   * Latency of the link in milliseconds
+   */
+  uint32_t latency;
+
+  /**
+   * Loss in the link in percentage of message dropped
+   */
+  uint32_t loss;
+};
+
+
 struct RetryListEntry
 {
   /**
@@ -98,9 +130,9 @@ struct RetryListEntry
 
 
 /**
- * Context information for topology operations
+ * Context information for overlay topologies
  */
-struct TopologyContext
+struct TopologyContextOverlay
 {
   /**
    * The array of peers
@@ -138,16 +170,6 @@ struct TopologyContext
   struct RetryListEntry *rl_tail;
 
   /**
-   * The number of peers
-   */
-  unsigned int num_peers;
-
-  /**
-   * The size of the link array
-   */
-  unsigned int link_array_size;
-
-  /**
    * How many retries to do before we give up
    */
   unsigned int retry_cnt;
@@ -171,6 +193,66 @@ struct TopologyContext
    * Total failed overlay connections
    */
   unsigned int nfailures;
+};
+
+
+/**
+ * Topology context information for underlay topologies
+ */
+struct TopologyContextUnderlay
+{
+  /**
+   * The link array
+   */
+  struct UnderlayLink *link_array;
+};
+
+
+/**
+ * Context information for topology operations
+ */
+struct TopologyContext
+{
+  /**
+   * The type of this context
+   */
+  enum {
+    
+    /**
+     * Type for underlay topology
+     */
+    TOPOLOGYCONTEXT_TYPE_UNDERLAY = 0,
+    
+    /**
+     * Type for overlay topology
+     */
+    TOPOLOGYCONTEXT_TYPE_OVERLAY
+
+  } type;
+
+  union {
+
+    /**
+     * Topology context information for overlay topology
+     */
+    struct TopologyContextOverlay overlay;
+
+    /**
+     * Topology context information for underlay topology
+     */
+    struct TopologyContextUnderlay underlay;
+  } u;
+
+  /**
+   * The number of peers
+   */
+  unsigned int num_peers;
+
+  /**
+   * The size of the link array
+   */
+  unsigned int link_array_size;
+
 };
 
 
@@ -222,7 +304,9 @@ const char *topology_strings[] = {
   "INTERNAT",
 
     /**
-     * Scale free topology. No options.
+     * Scale free topology. Followed by the maximum number of links a node can
+     * have (unsigned int); and the number of links a new node should have when
+     * it is added to the network (unsigned int)
      */
   "SCALE_FREE",
 
@@ -262,50 +346,53 @@ overlay_link_completed (void *cls, struct GNUNET_TESTBED_Operation *op,
 {
   struct OverlayLink *link = cls;
   struct TopologyContext *tc;
+  struct TopologyContextOverlay *overlay;
   struct RetryListEntry *retry_entry;
 
   GNUNET_assert (op == link->op);
   GNUNET_TESTBED_operation_done (op);
   link->op = NULL;
   tc = link->tc;
+  GNUNET_assert (TOPOLOGYCONTEXT_TYPE_OVERLAY == tc->type);
+  overlay = &tc->u.overlay;
   if (NULL != emsg)
   {
-    tc->nfailures++;
-    if (0 != tc->retry_cnt)
+    overlay->nfailures++;
+    if (0 != overlay->retry_cnt)
     {
       LOG (GNUNET_ERROR_TYPE_WARNING,
            "Error while establishing a link: %s -- Retrying\n", emsg);
       retry_entry = GNUNET_new (struct RetryListEntry);
       retry_entry->link = link;
-      GNUNET_CONTAINER_DLL_insert_tail (tc->rl_head, tc->rl_tail, retry_entry);
+      GNUNET_CONTAINER_DLL_insert_tail (overlay->rl_head, overlay->rl_tail, retry_entry);
     }
   }
   else
-    tc->nsuccess++;
-  tc->ncompleted++;
-  if (tc->ncompleted < tc->nlinks)
+    overlay->nsuccess++;
+  overlay->ncompleted++;
+  if (overlay->ncompleted < overlay->nlinks)
     return;
-  if ((0 != tc->retry_cnt) && (NULL != tc->rl_head))
+  if ((0 != overlay->retry_cnt) && (NULL != overlay->rl_head))
   {
-    tc->retry_cnt--;
-    tc->ncompleted = 0;
-    tc->nlinks = 0;
-    while (NULL != (retry_entry = tc->rl_head))
+    overlay->retry_cnt--;
+    overlay->ncompleted = 0;
+    overlay->nlinks = 0;
+    while (NULL != (retry_entry = overlay->rl_head))
     {
       link = retry_entry->link;
       link->op =
-          GNUNET_TESTBED_overlay_connect (tc->op_cls, &overlay_link_completed,
-                                          link, tc->peers[link->A],
-                                          tc->peers[link->B]);
-      tc->nlinks++;
-      GNUNET_CONTAINER_DLL_remove (tc->rl_head, tc->rl_tail, retry_entry);
+          GNUNET_TESTBED_overlay_connect (overlay->op_cls, &overlay_link_completed,
+                                          link, overlay->peers[link->A],
+                                          overlay->peers[link->B]);
+      overlay->nlinks++;
+      GNUNET_CONTAINER_DLL_remove (overlay->rl_head, overlay->rl_tail, retry_entry);
       GNUNET_free (retry_entry);
     }
     return;
   }
-  if (NULL != tc->comp_cb)
+  if (NULL != overlay->comp_cb)
   {
-    tc->comp_cb (tc->comp_cb_cls, tc->nsuccess, tc->nfailures);
+    overlay->comp_cb (overlay->comp_cb_cls, overlay->nsuccess, overlay->nfailures);
   }
 }
 
@@ -320,16 +407,19 @@ static void
 opstart_overlay_configure_topology (void *cls)
 {
   struct TopologyContext *tc = cls;
+  struct TopologyContextOverlay *overlay;
   unsigned int p;
 
-  tc->nlinks = tc->link_array_size;
+  GNUNET_assert (TOPOLOGYCONTEXT_TYPE_OVERLAY == tc->type);
+  overlay = &tc->u.overlay;
+  overlay->nlinks = tc->link_array_size;
   for (p = 0; p < tc->link_array_size; p++)
   {
-    tc->link_array[p].op =
-        GNUNET_TESTBED_overlay_connect (tc->op_cls, &overlay_link_completed,
-                                        &tc->link_array[p],
-                                        tc->peers[tc->link_array[p].A],
-                                        tc->peers[tc->link_array[p].B]);
+    overlay->link_array[p].op =
+        GNUNET_TESTBED_overlay_connect (overlay->op_cls, &overlay_link_completed,
+                                        &overlay->link_array[p],
+                                        overlay->peers[overlay->link_array[p].A],
+                                        overlay->peers[overlay->link_array[p].B]);
   }
 }
 
@@ -343,20 +433,23 @@ static void
 oprelease_overlay_configure_topology (void *cls)
 {
   struct TopologyContext *tc = cls;
+  struct TopologyContextOverlay *overlay;
   struct RetryListEntry *retry_entry;
   unsigned int p;
 
-  while (NULL != (retry_entry = tc->rl_head))
+  GNUNET_assert (TOPOLOGYCONTEXT_TYPE_OVERLAY == tc->type);
+  overlay = &tc->u.overlay;
+  while (NULL != (retry_entry = overlay->rl_head))
   {
-    GNUNET_CONTAINER_DLL_remove (tc->rl_head, tc->rl_tail, retry_entry);
+    GNUNET_CONTAINER_DLL_remove (overlay->rl_head, overlay->rl_tail, retry_entry);
     GNUNET_free (retry_entry);
   }
-  if (NULL != tc->link_array)
+  if (NULL != overlay->link_array)
   {
     for (p = 0; p < tc->link_array_size; p++)
-      if (NULL != tc->link_array[p].op)
-        GNUNET_TESTBED_operation_done (tc->link_array[p].op);
-    GNUNET_free (tc->link_array);
+      if (NULL != overlay->link_array[p].op)
+        GNUNET_TESTBED_operation_done (overlay->link_array[p].op);
+    GNUNET_free (overlay->link_array);
   }
   GNUNET_free (tc);
 }
@@ -365,22 +458,47 @@ oprelease_overlay_configure_topology (void *cls)
 /**
  * Populates the OverlayLink structure.
  *
- * @param link the OverlayLink
+ * @param offset the offset of the link array to use
  * @param A the peer A. Should be different from B
  * @param B the peer B. Should be different from A
  * @param tc the TopologyContext
  * @return
  */
 static void
-make_link (struct OverlayLink *link, uint32_t A, uint32_t B,
+make_link (unsigned int offset, uint32_t A, uint32_t B,
            struct TopologyContext *tc)
 {
   GNUNET_assert (A != B);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Connecting peer %u to %u\n", B, A);
-  link->A = A;
-  link->B = B;
-  link->op = NULL;
-  link->tc = tc;
+  switch (tc->type)
+  {
+  case TOPOLOGYCONTEXT_TYPE_OVERLAY:
+    {
+      struct TopologyContextOverlay *overlay;
+      struct OverlayLink *olink;
+      
+      overlay = &tc->u.overlay;
+      GNUNET_assert (offset < tc->link_array_size);
+      olink = &overlay->link_array[offset];
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "Connecting peer %u to %u\n", B, A);
+      olink->A = A;
+      olink->B = B;
+      olink->op = NULL;
+      olink->tc = tc;
+    }
+    break;
+  case TOPOLOGYCONTEXT_TYPE_UNDERLAY:
+    {
+      struct TopologyContextUnderlay *underlay;
+      struct UnderlayLink *ulink;
+      
+      underlay = &tc->u.underlay;
+      GNUNET_assert (offset < tc->link_array_size);
+      ulink = &underlay->link_array[offset];
+      ulink->A = A;
+      ulink->B = B;
+    }
+    break;
+  }
 }
 
 
@@ -395,10 +513,29 @@ gen_topo_line (struct TopologyContext *tc)
   unsigned int cnt;
 
   tc->link_array_size = tc->num_peers - 1;
-  tc->link_array =
-      GNUNET_malloc (sizeof (struct OverlayLink) * tc->link_array_size);
-  for (cnt = 0; cnt < (tc->num_peers - 1); cnt++)
-    make_link (&tc->link_array[cnt], cnt, cnt + 1, tc);
+  switch (tc->type)
+  {
+  case TOPOLOGYCONTEXT_TYPE_OVERLAY:
+    {
+      struct TopologyContextOverlay *overlay;
+      
+      overlay = &tc->u.overlay;
+      overlay->link_array =
+          GNUNET_malloc (sizeof (struct OverlayLink) * tc->link_array_size);
+    }
+    break;
+  case TOPOLOGYCONTEXT_TYPE_UNDERLAY:
+    {
+      struct TopologyContextUnderlay *underlay;
+      
+      underlay = &tc->u.underlay;
+      underlay->link_array =
+          GNUNET_malloc (sizeof (struct UnderlayLink) * tc->link_array_size);
+    }
+    break;
+  }
+  for (cnt = 0; cnt < (tc->link_array_size); cnt++)
+    make_link (cnt, cnt, cnt + 1, tc);
 }
 
 
@@ -412,11 +549,30 @@ gen_topo_ring (struct TopologyContext *tc)
 {
   gen_topo_line (tc);
   tc->link_array_size++;
-  tc->link_array =
-      GNUNET_realloc (tc->link_array,
-                      sizeof (struct OverlayLink) * tc->link_array_size);
-  make_link (&tc->link_array[tc->link_array_size - 1], tc->num_peers - 1, 0,
-             tc);
+  switch (tc->type)
+  {
+  case TOPOLOGYCONTEXT_TYPE_OVERLAY:
+    {
+      struct TopologyContextOverlay *overlay;
+
+      overlay = &tc->u.overlay;
+      overlay->link_array =
+          GNUNET_realloc (overlay->link_array, sizeof (struct OverlayLink) *
+                          tc->link_array_size);
+    }
+    break;
+  case TOPOLOGYCONTEXT_TYPE_UNDERLAY:
+    {
+      struct TopologyContextUnderlay *underlay;
+      
+      underlay = &tc->u.underlay;
+      underlay->link_array =
+          GNUNET_realloc (underlay->link_array, sizeof (struct UnderlayLink) *
+      tc->link_array_size);
+    }
+    break;
+  }
+  make_link (tc->link_array_size - 1, tc->num_peers - 1, 0, tc);
 }
 
 
@@ -495,20 +651,39 @@ gen_topo_2dtorus (struct TopologyContext *tc)
 
   tc->link_array_size =
       GNUNET_TESTBED_2dtorus_calc_links (tc->num_peers, &rows, &rows_len);
-  tc->link_array =
-      GNUNET_malloc (sizeof (struct OverlayLink) * tc->link_array_size);
+  switch (tc->type)
+  {
+  case TOPOLOGYCONTEXT_TYPE_OVERLAY:
+    {
+      struct TopologyContextOverlay *overlay;
+      
+      overlay = &tc->u.overlay;
+      overlay->link_array =
+          GNUNET_malloc (sizeof (struct OverlayLink) * tc->link_array_size);
+    }
+    break;
+  case TOPOLOGYCONTEXT_TYPE_UNDERLAY:
+    {
+      struct TopologyContextUnderlay *underlay;
+
+      underlay = &tc->u.underlay;
+      underlay->link_array =
+          GNUNET_malloc (sizeof (struct UnderlayLink) * tc->link_array_size);
+      break;
+    }
+  }
   cnt = 0;
   offset = 0;
   for (y = 0; y < rows; y++)
   {
     for (x = 0; x < rows_len[y] - 1; x++)
     {
-      make_link (&tc->link_array[cnt], offset + x, offset + x + 1, tc);
+      make_link (cnt, offset + x, offset + x + 1, tc);
       cnt++;
     }
     if (0 == x)
       break;
-    make_link (&tc->link_array[cnt], offset + x, offset, tc);
+    make_link (cnt, offset + x, offset, tc);
     cnt++;
     offset += rows_len[y];
   }
@@ -520,14 +695,13 @@ gen_topo_2dtorus (struct TopologyContext *tc)
       if (x >= rows_len[y + 1])
         break;
       GNUNET_assert (x < rows_len[y + 1]);
-      make_link (&tc->link_array[cnt], offset + x, offset + rows_len[y] + x,
-                 tc);
+      make_link (cnt, offset + x, offset + rows_len[y] + x, tc);
       offset += rows_len[y];
       cnt++;
     }
     if (0 == offset)
       break;
-    make_link (&tc->link_array[cnt], offset + x, x, tc);
+    make_link (cnt, offset + x, x, tc);
     cnt++;
   }
   GNUNET_assert (cnt == tc->link_array_size);
@@ -553,20 +727,52 @@ gen_topo_random (struct TopologyContext *tc, unsigned int links, int append)
 
   if (GNUNET_YES == append)
   {
-    GNUNET_assert ((0 < tc->link_array_size) && (NULL != tc->link_array));
     index = tc->link_array_size;
     tc->link_array_size += links;
-    tc->link_array =
-        GNUNET_realloc (tc->link_array,
-                        sizeof (struct OverlayLink) * tc->link_array_size);
   }
   else
   {
-    GNUNET_assert ((0 == tc->link_array_size) && (NULL == tc->link_array));
     index = 0;
     tc->link_array_size = links;
-    tc->link_array =
-        GNUNET_malloc (sizeof (struct OverlayLink) * tc->link_array_size);
+  }
+  switch (tc->type)
+  {
+  case TOPOLOGYCONTEXT_TYPE_OVERLAY:
+    {
+      struct TopologyContextOverlay *overlay;
+
+      overlay = &tc->u.overlay;
+      if (GNUNET_YES != append)
+      {
+        GNUNET_assert (NULL == overlay->link_array);
+        overlay->link_array =
+            GNUNET_malloc (sizeof (struct OverlayLink) * tc->link_array_size);
+        break;
+      }
+      GNUNET_assert ((0 < tc->link_array_size) && (NULL != overlay->link_array));
+      overlay->link_array =
+          GNUNET_realloc (overlay->link_array,
+                          sizeof (struct OverlayLink) * tc->link_array_size);
+      break;
+    }
+  case TOPOLOGYCONTEXT_TYPE_UNDERLAY:
+    {
+      struct TopologyContextUnderlay *underlay;
+
+      underlay = &tc->u.underlay;
+      if (GNUNET_YES != append)
+      {
+        GNUNET_assert (NULL == underlay->link_array);
+        underlay->link_array =
+            GNUNET_malloc (sizeof (struct UnderlayLink) * tc->link_array_size);
+        break;
+      }
+      GNUNET_assert ((0 < tc->link_array_size) && (NULL != underlay->link_array));
+      underlay->link_array =
+          GNUNET_realloc (underlay->link_array,
+                          sizeof (struct UnderlayLink) * tc->link_array_size);
+      break;
+    }
   }
   for (cnt = 0; cnt < links; cnt++)
   {
@@ -578,7 +784,7 @@ gen_topo_random (struct TopologyContext *tc, unsigned int links, int append)
           GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, tc->num_peers);
     }
     while (A_rand == B_rand);
-    make_link (&tc->link_array[index + cnt], A_rand, B_rand, tc);
+    make_link (index+cnt, A_rand, B_rand, tc);
   }
 }
 
@@ -594,7 +800,7 @@ gen_topo_random (struct TopologyContext *tc, unsigned int links, int append)
  *   network
  */
 static void
-gen_scale_free (struct TopologyContext *tc, uint16_t cap, uint8_t m)
+gen_topo_scale_free (struct TopologyContext *tc, uint16_t cap, uint8_t m)
 {
   unsigned int *deg;
   unsigned int *etab;
@@ -610,13 +816,32 @@ gen_scale_free (struct TopologyContext *tc, uint16_t cap, uint8_t m)
 
   etaboff = 0;
   tc->link_array_size = tc->num_peers * m;
-  tc->link_array = GNUNET_malloc_large (sizeof (struct OverlayLink) *
-                                        tc->link_array_size);
+  switch (tc->type)
+  {
+  case TOPOLOGYCONTEXT_TYPE_OVERLAY:
+    {
+      struct TopologyContextOverlay *overlay;
+
+      overlay = &tc->u.overlay;
+      overlay->link_array = GNUNET_malloc_large (sizeof (struct OverlayLink) *
+                                                 tc->link_array_size);
+    }
+    break;
+  case TOPOLOGYCONTEXT_TYPE_UNDERLAY:
+    {
+      struct TopologyContextUnderlay *underlay;
+
+      underlay = &tc->u.underlay;
+      underlay->link_array = GNUNET_malloc_large (sizeof (struct UnderlayLink) *
+                                                  tc->link_array_size);
+    }
+    break;
+  }
   etab = GNUNET_malloc_large (sizeof (unsigned int) * 2 * tc->link_array_size);
   deg = GNUNET_malloc (sizeof (unsigned int) * tc->num_peers);
   used = GNUNET_malloc (sizeof (unsigned int) * m);
   /* start by connecting peer 1 to peer 0 */
-  make_link (&tc->link_array[0], 0, 1, tc);
+  make_link (0, 0, 1, tc);
   deg[0]++;
   deg[1]++;
   etab[etaboff++] = 0;
@@ -654,7 +879,7 @@ gen_scale_free (struct TopologyContext *tc, uint16_t cap, uint8_t m)
       for (cnt2 = 0; cnt2 < cnt; cnt2++)
         if (random_peer == used[cnt2])
           goto redo;
-      make_link (&tc->link_array[links + cnt], random_peer, peer, tc);
+      make_link (links + cnt, random_peer, peer, tc);
       deg[random_peer]++;
       deg[peer]++;
       used[cnt] = random_peer;
@@ -671,9 +896,27 @@ gen_scale_free (struct TopologyContext *tc, uint16_t cap, uint8_t m)
   GNUNET_free (deg);
   GNUNET_assert (links <= tc->link_array_size);
   tc->link_array_size = links;
-  tc->link_array =
-      GNUNET_realloc (tc->link_array,
-                      sizeof (struct OverlayLink) * tc->link_array_size);
+  switch (tc->type)
+  {
+  case TOPOLOGYCONTEXT_TYPE_OVERLAY:
+    {
+      struct TopologyContextOverlay *overlay;
+      
+      overlay = &tc->u.overlay;
+      overlay->link_array = 
+          GNUNET_realloc (overlay->link_array, sizeof (struct OverlayLink) * tc->link_array_size);
+    }
+    break;
+  case TOPOLOGYCONTEXT_TYPE_UNDERLAY:
+    {
+      struct TopologyContextUnderlay *underlay;
+
+      underlay = &tc->u.underlay;
+      underlay->link_array =
+          GNUNET_realloc (underlay->link_array, sizeof (struct UnderlayLink) * tc->link_array_size);
+    }
+    break;
+  }
 }
 
 
@@ -798,12 +1041,31 @@ gen_topo_from_file (struct TopologyContext *tc, const char *filename)
       if (peer_id != other_peer_id)
       {
         tc->link_array_size++;
-        tc->link_array =
-            GNUNET_realloc (tc->link_array,
-                            sizeof (struct OverlayLink) * tc->link_array_size);
+        switch (tc->type)
+        {
+        case TOPOLOGYCONTEXT_TYPE_OVERLAY:
+          {
+            struct TopologyContextOverlay *overlay;
+            
+            overlay = &tc->u.overlay;
+            overlay->link_array = 
+                GNUNET_realloc (overlay->link_array,
+                                sizeof (struct OverlayLink) * tc->link_array_size);
+          }
+          break;
+        case TOPOLOGYCONTEXT_TYPE_UNDERLAY:
+          {
+            struct TopologyContextUnderlay *underlay;
+            
+            underlay = &tc->u.underlay;
+            underlay->link_array =
+                GNUNET_realloc (underlay->link_array,
+                                sizeof (struct UnderlayLink) * tc->link_array_size);
+          }
+          break;
+        }
         offset += end - &data[offset];
-        make_link (&tc->link_array[tc->link_array_size - 1], peer_id,
-                   other_peer_id, tc);
+        make_link (tc->link_array_size - 1, peer_id, other_peer_id, tc);
       }
       else
         LOG (GNUNET_ERROR_TYPE_WARNING,
@@ -829,8 +1091,74 @@ _exit:
   {
     LOG (GNUNET_ERROR_TYPE_WARNING, "Removing link data read from the file\n");
     tc->link_array_size = 0;
-    GNUNET_free_non_null (tc->link_array);
-    tc->link_array = NULL;
+    switch (tc->type)
+    {
+    case TOPOLOGYCONTEXT_TYPE_OVERLAY:
+      {
+        struct TopologyContextOverlay *overlay;
+        
+        overlay = &tc->u.overlay;
+        GNUNET_free_non_null (overlay->link_array);
+        overlay->link_array = NULL;
+      }
+      break;
+    case TOPOLOGYCONTEXT_TYPE_UNDERLAY:
+      {
+        struct TopologyContextUnderlay *underlay;
+        
+        underlay = &tc->u.underlay;
+        GNUNET_free_non_null (underlay->link_array);
+        underlay->link_array = NULL;
+      }
+      break;
+    }
+  }
+}
+
+
+/**
+ * Generates clique topology
+ *
+ * @param tc the topology context
+ */
+static void
+gen_topo_clique (struct TopologyContext *tc)
+{
+  unsigned int cnt;
+  unsigned int offset;
+  unsigned int neighbour;
+  
+  tc->link_array_size = tc->num_peers * (tc->num_peers - 1);
+  switch (tc->type)
+  {
+  case TOPOLOGYCONTEXT_TYPE_OVERLAY:
+    {
+      struct TopologyContextOverlay *overlay;
+
+      overlay = &tc->u.overlay;
+      overlay->link_array = GNUNET_malloc (sizeof (struct OverlayLink) *
+                                           tc->link_array_size);
+    }
+    break;
+  case TOPOLOGYCONTEXT_TYPE_UNDERLAY:
+    {
+      struct TopologyContextUnderlay *underlay;
+
+      underlay = &tc->u.underlay;
+      underlay->link_array = GNUNET_malloc (sizeof (struct UnderlayLink) *
+                                            tc->link_array_size);
+    }
+  }
+  offset = 0;
+  for (cnt = 0; cnt < tc->num_peers; cnt++)
+  {
+    for (neighbour = 0; neighbour < tc->num_peers; neighbour++)
+    {
+      if (neighbour == cnt)
+        continue;
+      make_link (offset, cnt, neighbour, tc);
+      offset++;
+    }
   }
 }
 
@@ -915,21 +1243,23 @@ GNUNET_TESTBED_overlay_configure_topology_va (void *op_cls,
                                               va_list va)
 {
   struct TopologyContext *tc;
+  struct TopologyContextOverlay *overlay;
   struct GNUNET_TESTBED_Operation *op;
   struct GNUNET_TESTBED_Controller *c;
   enum GNUNET_TESTBED_TopologyOption secondary_option;
-  unsigned int cnt;
 
   if (num_peers < 2)
     return NULL;
   c = peers[0]->controller;
   tc = GNUNET_new (struct TopologyContext);
-  tc->peers = peers;
+  tc->type = TOPOLOGYCONTEXT_TYPE_OVERLAY;
+  overlay = &tc->u.overlay;
+  overlay->peers = peers;
   tc->num_peers = num_peers;
-  tc->op_cls = op_cls;
-  tc->retry_cnt = DEFAULT_RETRY_CNT;
-  tc->comp_cb = comp_cb;
-  tc->comp_cb_cls = comp_cb_cls;
+  overlay->op_cls = op_cls;
+  overlay->retry_cnt = DEFAULT_RETRY_CNT;
+  overlay->comp_cb = comp_cb;
+  overlay->comp_cb_cls = comp_cb_cls;
   switch (topo)
   {
   case GNUNET_TESTBED_TOPOLOGY_LINE:
@@ -946,28 +1276,7 @@ GNUNET_TESTBED_overlay_configure_topology_va (void *op_cls,
     gen_topo_random (tc, va_arg (va, unsigned int), GNUNET_YES);
     break;
   case GNUNET_TESTBED_TOPOLOGY_CLIQUE:
-    tc->link_array_size = num_peers * (num_peers - 1);
-    tc->link_array =
-        GNUNET_malloc (sizeof (struct OverlayLink) * tc->link_array_size);
-    {
-      unsigned int offset;
-
-      offset = 0;
-      for (cnt = 0; cnt < num_peers; cnt++)
-      {
-        unsigned int neighbour;
-
-        for (neighbour = 0; neighbour < num_peers; neighbour++)
-        {
-          if (neighbour == cnt)
-            continue;
-          tc->link_array[offset].A = cnt;
-          tc->link_array[offset].B = neighbour;
-          tc->link_array[offset].tc = tc;
-          offset++;
-        }
-      }
-    }
+    gen_topo_clique (tc);
     break;
   case GNUNET_TESTBED_TOPOLOGY_2D_TORUS:
     gen_topo_2dtorus (tc);
@@ -984,7 +1293,7 @@ GNUNET_TESTBED_overlay_configure_topology_va (void *op_cls,
 
       cap = (uint16_t) va_arg (va, unsigned int);
       m = (uint8_t) va_arg (va, unsigned int);
-      gen_scale_free (tc, cap, m);
+      gen_topo_scale_free (tc, cap, m);
     }
     break;
   case GNUNET_TESTBED_TOPOLOGY_FROM_FILE:
@@ -1009,14 +1318,14 @@ GNUNET_TESTBED_overlay_configure_topology_va (void *op_cls,
     switch (secondary_option)
     {
     case GNUNET_TESTBED_TOPOLOGY_RETRY_CNT:
-      tc->retry_cnt =  va_arg (va, unsigned int);
+      overlay->retry_cnt =  va_arg (va, unsigned int);
       break;
     case GNUNET_TESTBED_TOPOLOGY_OPTION_END:
       break;
     default:
       GNUNET_break (0);         /* Should not use any other option apart from
                                  * the ones handled here */
-      GNUNET_free_non_null (tc->link_array);
+      GNUNET_free_non_null (overlay->link_array);
       GNUNET_free (tc);
       return NULL;
     }
@@ -1123,6 +1432,108 @@ GNUNET_TESTBED_topology_to_str_ (enum GNUNET_TESTBED_TopologyOption topology)
   if (GNUNET_TESTBED_TOPOLOGY_OPTION_END <= topology)
     return NULL;
   return GNUNET_strdup (topology_strings[topology]);
+}
+
+
+/**
+ * Function to construct an underlay topology
+ *
+ * @param num_peers the number of peers for which the topology should be
+ *          generated
+ * @param proc the underlay link processor callback.  Will be called for each
+ *          underlay link generated unless a previous call to this callback
+ *          returned GNUNET_SYSERR.  Cannot be NULL.
+ * @param cls closure for proc
+ * @param ... variable arguments denoting the topology and its parameters.  They
+ *          should start with the type of topology to generate followed by their
+ *          options.
+ * @return GNUNET_OK if underlay link generation is successful; GNUNET_SYSERR
+ *          upon error in generating the underlay or if any calls to the
+ *          underlay link processor returned GNUNET_SYSERR
+ */
+int
+GNUNET_TESTBED_underlay_construct_ (int num_peers,
+                                    underlay_link_processor proc,
+                                    void *cls,
+                                    ...)
+{
+  struct TopologyContext tc;
+  struct TopologyContextUnderlay *underlay;
+  struct UnderlayLink *ulink;
+  va_list vargs;
+  enum GNUNET_TESTBED_TopologyOption topology;
+  unsigned int cnt;
+  int ret;
+  
+  GNUNET_assert (NULL != proc);
+  ret = GNUNET_OK;
+  memset (&tc, 0, sizeof (tc));
+  tc.type = TOPOLOGYCONTEXT_TYPE_UNDERLAY;
+  underlay = &tc.u.underlay;
+  va_start (vargs, cls);
+  topology = va_arg (vargs, enum GNUNET_TESTBED_TopologyOption);
+  switch (topology)
+  {
+  case GNUNET_TESTBED_TOPOLOGY_LINE:
+    gen_topo_line (&tc);
+    break;
+  case GNUNET_TESTBED_TOPOLOGY_RING:
+    gen_topo_ring (&tc);
+    break;
+  case GNUNET_TESTBED_TOPOLOGY_CLIQUE:
+    gen_topo_clique (&tc);
+    break;
+  case GNUNET_TESTBED_TOPOLOGY_2D_TORUS:
+    gen_topo_2dtorus (&tc);
+    break;
+  case GNUNET_TESTBED_TOPOLOGY_ERDOS_RENYI:
+    gen_topo_random (&tc, va_arg (vargs, unsigned int), GNUNET_NO);
+    break;
+  case GNUNET_TESTBED_TOPOLOGY_SMALL_WORLD_RING:
+    gen_topo_ring (&tc);
+    gen_topo_random (&tc, va_arg (vargs, unsigned int), GNUNET_YES);
+    break;
+  case GNUNET_TESTBED_TOPOLOGY_SMALL_WORLD:
+    gen_topo_2dtorus (&tc);
+    gen_topo_random (&tc, va_arg (vargs, unsigned int), GNUNET_YES);
+    break;
+  case GNUNET_TESTBED_TOPOLOGY_FROM_FILE:
+    {
+      const char *filename;
+      filename = va_arg (vargs, char *);
+      GNUNET_assert (NULL != filename);
+      gen_topo_from_file (&tc, filename);
+    }
+    break;
+  case GNUNET_TESTBED_TOPOLOGY_SCALE_FREE:
+    {
+      uint16_t cap;
+      uint8_t m;
+      cap = (uint16_t) va_arg (vargs, unsigned int);
+      m = (uint8_t) va_arg (vargs, unsigned int);
+      gen_topo_scale_free (&tc, cap, m);
+    }
+    break;
+  default:
+    GNUNET_assert (0);
+  }
+  va_end (vargs);
+  for (cnt = 0; cnt < tc.link_array_size; cnt++)
+  {
+    ulink = &underlay->link_array[cnt];
+    if (GNUNET_SYSERR == proc (cls,
+                               ulink->A,
+                               ulink->B,
+                               ulink->bandwidth,
+                               ulink->latency,
+                               ulink->loss))
+    {
+      ret = GNUNET_SYSERR;
+      break;
+    }
+  }
+  GNUNET_free_non_null (underlay->link_array);
+  return ret;
 }
 
 /* end of testbed_api_topology.c */
