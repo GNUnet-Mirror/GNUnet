@@ -179,11 +179,6 @@ struct GNUNET_MESH_LocalInfo
   MESH_ChannelNumber channel_id GNUNET_PACKED;
 
   /**
-   * Alignment.
-   */
-  uint32_t reserved GNUNET_PACKED;
-
-  /**
    * ID of the owner of the channel (can be local peer).
    */
   struct GNUNET_PeerIdentity owner;
@@ -192,6 +187,45 @@ struct GNUNET_MESH_LocalInfo
    * ID of the destination of the channel (can be local peer).
    */
   struct GNUNET_PeerIdentity destination;
+};
+
+/**
+ * Message to inform the client about one of the tunnels in the service.
+ */
+struct GNUNET_MESH_LocalInfoTunnel
+{
+  /**
+   * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNEL[S]
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Number of channels.
+   */
+  uint32_t channels GNUNET_PACKED;
+
+  /**
+   * ID of the destination of the tunnel (can be local peer).
+   */
+  struct GNUNET_PeerIdentity destination;
+
+  /**
+   * Number of connections.
+   */
+  uint32_t connections GNUNET_PACKED;
+
+  /**
+   * Encryption state.
+   */
+  uint16_t estate GNUNET_PACKED;
+
+  /**
+   * Connection state.
+   */
+  uint16_t cstate GNUNET_PACKED;
+
+  /* If TUNNEL (no 'S'): GNUNET_PeerIdentity connection_ids[connections] */
+  /* If TUNNEL (no 'S'): uint32_t channel_ids[channels] */
 };
 
 
