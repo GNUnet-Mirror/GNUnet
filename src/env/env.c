@@ -64,9 +64,9 @@ GNUNET_ENV_environment_create ()
  * @param value_size Size of @a value.
  */
 void
-GNUNET_ENV_environment_add_mod (struct GNUNET_ENV_Environment *env,
-                                enum GNUNET_ENV_Operator oper, const char *name,
-                                const void *value, size_t value_size)
+GNUNET_ENV_environment_add (struct GNUNET_ENV_Environment *env,
+                            enum GNUNET_ENV_Operator oper, const char *name,
+                            const void *value, size_t value_size)
 {
   struct GNUNET_ENV_Modifier *mod = GNUNET_new (struct GNUNET_ENV_Modifier);
   mod->oper = oper;
@@ -75,6 +75,67 @@ GNUNET_ENV_environment_add_mod (struct GNUNET_ENV_Environment *env,
   mod->value_size = value_size;
   GNUNET_CONTAINER_DLL_insert_tail (env->mod_head, env->mod_tail, mod);
   env->mod_count++;
+}
+
+
+/** 
+ * Get the modifier at the beginning of an environment.
+ *
+ * @param env 
+ * @param oper 
+ * @param name 
+ * @param value 
+ * @param value_size 
+ * 
+ * @return 
+ */
+int
+GNUNET_ENV_environment_head (struct GNUNET_ENV_Environment *env,
+                              enum GNUNET_ENV_Operator *oper, const char **name,
+                              const void **value, size_t *value_size)
+{
+  if (NULL == env->mod_head)
+    return GNUNET_NO;
+
+  struct GNUNET_ENV_Modifier *mod = env->mod_head;
+  *oper = mod->oper;
+  *name = mod->name;
+  *value = mod->value;
+  *value_size = mod->value_size;
+  return GNUNET_YES;
+}
+
+
+/** 
+ * Get the modifier at the beginning of an environment and remove it.
+ *
+ * @param env 
+ * @param oper 
+ * @param name 
+ * @param value 
+ * @param value_size 
+ * 
+ * @return 
+ */
+int
+GNUNET_ENV_environment_shift (struct GNUNET_ENV_Environment *env,
+                              enum GNUNET_ENV_Operator *oper, const char **name,
+                              const void **value, size_t *value_size)
+{
+  if (NULL == env->mod_head)
+    return GNUNET_NO;
+
+  struct GNUNET_ENV_Modifier *mod = env->mod_head;
+  *oper = mod->oper;
+  *name = mod->name;
+  *value = mod->value;
+  *value_size = mod->value_size;
+
+  GNUNET_CONTAINER_DLL_remove (env->mod_head, env->mod_tail, mod);
+  GNUNET_free (mod);
+  env->mod_count--;
+
+  return GNUNET_YES;
 }
 
 
@@ -91,7 +152,7 @@ GNUNET_ENV_environment_iterate (const struct GNUNET_ENV_Environment *env,
 {
   struct GNUNET_ENV_Modifier *mod;
   for (mod = env->mod_head; NULL != mod; mod = mod->next)
-    it (it_cls, mod);
+    it (it_cls, mod->oper, mod->name, mod->value, mod->value_size);
 }
 
 
@@ -103,7 +164,7 @@ GNUNET_ENV_environment_iterate (const struct GNUNET_ENV_Environment *env,
  * @return Number of modifiers.
  */
 size_t
-GNUNET_ENV_environment_get_mod_count (const struct GNUNET_ENV_Environment *env)
+GNUNET_ENV_environment_get_count (const struct GNUNET_ENV_Environment *env)
 {
   return env->mod_count;
 }

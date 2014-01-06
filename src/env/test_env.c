@@ -46,15 +46,16 @@ struct ItCls
 };
 
 int
-iterator (void *cls, struct GNUNET_ENV_Modifier *mod)
+iterator (void *cls, enum GNUNET_ENV_Operator oper,
+          const char *name, const char *value, uint32_t value_size)
 {
   struct ItCls *it_cls = cls;
   struct GNUNET_ENV_Modifier *m = &mods[it_cls->n++];
 
-  GNUNET_assert (mod->oper == m->oper);
-  GNUNET_assert (mod->value_size == m->value_size);
-  GNUNET_assert (0 == memcmp (mod->name, m->name, strlen (m->name)));
-  GNUNET_assert (0 == memcmp (mod->value, m->value, m->value_size));
+  GNUNET_assert (oper == m->oper);
+  GNUNET_assert (value_size == m->value_size);
+  GNUNET_assert (0 == memcmp (name, m->name, strlen (m->name)));
+  GNUNET_assert (0 == memcmp (value, m->value, m->value_size));
 
   return GNUNET_YES;
 }
@@ -70,13 +71,23 @@ main (int argc, char *argv[])
 
   for (i = 0; i < len; i++)
   {
-    GNUNET_ENV_environment_add_mod (env, mods[i].oper, mods[i].name,
-                                    mods[i].value, mods[i].value_size);
+    GNUNET_ENV_environment_add (env, mods[i].oper, mods[i].name,
+                                mods[i].value, mods[i].value_size);
   }
 
   struct ItCls it_cls = { .n = 0 };
   GNUNET_ENV_environment_iterate (env, iterator, &it_cls);
   GNUNET_assert (len == it_cls.n);
+
+  for (i = 0; i < len; i++)
+  {
+    enum GNUNET_ENV_Operator oper;
+    const char *name;
+    const void *value;
+    size_t value_size;
+    GNUNET_ENV_environment_shift (env, &oper, &name, &value, &value_size);
+    GNUNET_assert (len - i - 1 == GNUNET_ENV_environment_get_count (env));
+  }
 
   GNUNET_ENV_environment_destroy (env);
 

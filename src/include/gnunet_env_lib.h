@@ -153,9 +153,28 @@ GNUNET_ENV_environment_create ();
  * @param value_size Size of @a value.
  */
 void
-GNUNET_ENV_environment_add_mod (struct GNUNET_ENV_Environment *env,
-                                enum GNUNET_ENV_Operator oper, const char *name,
-                                const void *value, size_t value_size);
+GNUNET_ENV_environment_add (struct GNUNET_ENV_Environment *env,
+                            enum GNUNET_ENV_Operator oper, const char *name,
+                            const void *value, size_t value_size);
+
+
+
+/**
+ * Remove a modifier at the beginning of the environment.
+ */
+int
+GNUNET_ENV_environment_shift (struct GNUNET_ENV_Environment *env,
+                              enum GNUNET_ENV_Operator *oper, const char **name,
+                              const void **value, size_t *value_size);
+
+
+/**
+ * Get the modifier at the beginning of the environment.
+ */
+int
+GNUNET_ENV_environment_head (struct GNUNET_ENV_Environment *env,
+                             enum GNUNET_ENV_Operator *oper, const char **name,
+                             const void **value, size_t *value_size);
 
 
 /**
@@ -193,7 +212,7 @@ GNUNET_ENV_environment_iterate (const struct GNUNET_ENV_Environment *env,
  * @return Number of modifiers.
  */
 size_t
-GNUNET_ENV_environment_get_mod_count (const struct GNUNET_ENV_Environment *env);
+GNUNET_ENV_environment_get_count (const struct GNUNET_ENV_Environment *env);
 
 
 /**
