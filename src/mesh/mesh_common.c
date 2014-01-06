@@ -200,6 +200,16 @@ GM_m2s (uint16_t m)
     case 287: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_NACK";
 
       /**
+       * Local monitoring of service.
+       */
+    case 292: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNELS";
+
+      /**
+       * Local monitoring of service.
+      */
+    case 293: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNEL";
+
+      /**
        * 640kb should be enough for everybody
        */
     case 299: return "GNUNET_MESSAGE_TYPE_MESH_RESERVE_END";
