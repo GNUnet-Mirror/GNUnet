@@ -1146,7 +1146,7 @@ msg_received (void *cls, const struct GNUNET_MessageHeader *msg)
     break;
     /* Notify of a channel disconnection */
   case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_DESTROY: /* TODO separate(gid problem)*/
-  case GNUNET_MESSAGE_TYPE_MESH_LOCAL_NACK:
+  case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_NACK:
     process_channel_destroy (h, (struct GNUNET_MESH_ChannelMessage *) msg);
     break;
   case GNUNET_MESSAGE_TYPE_MESH_LOCAL_DATA:

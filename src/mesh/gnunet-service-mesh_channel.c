@@ -636,7 +636,7 @@ send_client_nack (struct MeshChannel *ch)
     GNUNET_break (0);
     return;
   }
-  GML_send_nack (ch->root, ch->lid_root);
+  GML_send_channel_nack (ch->root, ch->lid_root);
 }
 
 
