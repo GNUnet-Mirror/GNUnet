@@ -426,6 +426,11 @@ typedef int
                                      uint16_t *data_size,
                                      void *data);
 
+typedef int
+(*GNUNET_PSYC_MasterTransmitNotifyModifier) (void *cls,
+                                             uint16_t *data_size,
+                                             void *data,
+                                             uint8_t *oper);
 
 /**
  * Flags for transmitting messages to a channel by the master.
@@ -472,7 +477,7 @@ struct GNUNET_PSYC_MasterTransmitHandle;
 struct GNUNET_PSYC_MasterTransmitHandle *
 GNUNET_PSYC_master_transmit (struct GNUNET_PSYC_Master *master,
                              const char *method_name,
-                             GNUNET_PSYC_MasterTransmitNotify notify_mod,
+                             GNUNET_PSYC_MasterTransmitNotifyModifier notify_mod,
                              GNUNET_PSYC_MasterTransmitNotify notify_data,
                              void *notify_cls,
                              enum GNUNET_PSYC_MasterTransmitFlags flags);

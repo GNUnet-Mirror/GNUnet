@@ -362,8 +362,9 @@ schedule_origin_to_all (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
   struct GNUNET_MULTICAST_OriginMessageHandle *mh = &orig->msg_handle;
 
   size_t buf_size = GNUNET_MULTICAST_FRAGMENT_MAX_PAYLOAD;
+  char buf[GNUNET_MULTICAST_FRAGMENT_MAX_PAYLOAD] = "";
   struct GNUNET_MULTICAST_MessageHeader *msg
-    = GNUNET_malloc (buf_size);
+    = (struct GNUNET_MULTICAST_MessageHeader *) buf;
   int ret = mh->notify (mh->notify_cls, &buf_size, &msg[1]);
 
   if (! (GNUNET_YES == ret || GNUNET_NO == ret)
@@ -380,12 +381,12 @@ schedule_origin_to_all (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
 
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_MULTICAST_MESSAGE);
   msg->header.size = htons (sizeof (*msg) + buf_size);
-  msg->message_id = mh->message_id;
+  msg->message_id = GNUNET_htonll (mh->message_id);
   msg->group_generation = mh->group_generation;
 
   /* FIXME: add fragment ID and signature in the service instead of here */
-  msg->fragment_id = orig->next_fragment_id++;
-  msg->fragment_offset = mh->fragment_offset;
+  msg->fragment_id = GNUNET_ntohll (orig->next_fragment_id++);
+  msg->fragment_offset = GNUNET_ntohll (mh->fragment_offset);
   mh->fragment_offset += sizeof (*msg) + buf_size;
   msg->purpose.size = htonl (sizeof (*msg) + buf_size
                              - sizeof (msg->header)

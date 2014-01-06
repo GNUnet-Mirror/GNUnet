@@ -171,8 +171,8 @@ struct Slave
 };
 
 
-static void
-transmit_message (struct Channel *ch, struct GNUNET_TIME_Relative delay);
+static inline void
+transmit_message (struct Channel *ch);
 
 
 /**
@@ -205,6 +205,7 @@ client_cleanup (struct Channel *ch)
     struct Master *mst = (struct Master *) ch;
     if (NULL != mst->origin)
       GNUNET_MULTICAST_origin_stop (mst->origin);
+    GNUNET_CONTAINER_multihashmap_remove (clients, &mst->pub_key_hash, mst);
   }
   else
   {
@@ -251,7 +252,7 @@ client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
   /* Send pending messages to multicast before cleanup. */
   if (NULL != ch->tmit_head)
   {
-    transmit_message (ch, GNUNET_TIME_UNIT_ZERO);
+    transmit_message (ch);
   }
   else
   {
@@ -321,6 +322,10 @@ message_to_client (void *cls, const struct GNUNET_HashCode *chan_key_hash,
   const struct GNUNET_MessageHeader *msg = cls;
   struct Channel *ch = chan;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Sending message of type %u and size %u to client 0x%zx.\n",
+              ntohs (msg->type), ntohs (msg->size), ch->client);
+
   GNUNET_SERVER_notification_context_add (nc, ch->client);
   GNUNET_SERVER_notification_context_unicast (nc, ch->client, msg, GNUNET_NO);
 
@@ -363,24 +368,6 @@ message_cb (void *cls, const struct GNUNET_MessageHeader *msg)
                                       GNUNET_MULTICAST_MessageHeader *) msg,
                                      0, NULL, NULL);
 
-    uint16_t size = ntohs (msg->size);
-    uint16_t psize = 0;
-    uint16_t pos = 0;
-
-    for (pos = 0; sizeof (*msg) + pos < size; pos += psize)
-    {
-      const struct GNUNET_MessageHeader *pmsg
-        = (const struct GNUNET_MessageHeader *) ((char *) &msg[1] + pos);
-      uint16_t psize = ntohs (pmsg->size);
-      if (sizeof (*msg) + pos + psize > size)
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                    "Message received from multicast contains invalid PSYC "
-                    "message. Not sending to clients.\n");
-        return;
-      }
-    }
-
 #if TODO
     /* FIXME: apply modifiers to state in PSYCstore */
     GNUNET_PSYCSTORE_state_modify (store, chan_key,
@@ -392,6 +379,26 @@ message_cb (void *cls, const struct GNUNET_MessageHeader *msg)
     const struct GNUNET_MULTICAST_MessageHeader *mmsg
       = (const struct GNUNET_MULTICAST_MessageHeader *) msg;
     struct GNUNET_PSYC_MessageHeader *pmsg;
+
+    uint16_t size = ntohs (msg->size);
+    uint16_t psize = 0;
+    uint16_t pos = 0;
+
+    for (pos = 0; sizeof (*mmsg) + pos < size; pos += psize)
+    {
+      const struct GNUNET_MessageHeader *pmsg
+        = (const struct GNUNET_MessageHeader *) ((char *) &mmsg[1] + pos);
+      psize = ntohs (pmsg->size);
+      if (psize < sizeof (*pmsg) || sizeof (*mmsg) + pos + psize > size)
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                    "Received invalid message part of type %u and size %u "
+                    "from multicast. Not sending to clients.\n",
+                    ntohs (pmsg->type), psize);
+        GNUNET_break_op (0);
+        return;
+      }
+    }
 
     psize = sizeof (*pmsg) + size - sizeof (*mmsg);
     pmsg = GNUNET_malloc (psize);
@@ -572,19 +579,18 @@ handle_slave_join (void *cls, struct GNUNET_SERVER_Client *client,
 
 
 /**
- * Send transmission acknowledgement to a client.
+ * Send acknowledgement to a client.
  *
- * Sent after the last GNUNET_PSYC_MessageModifier and after each
- * GNUNET_PSYC_MessageData.
+ * Sent after a message fragment has been passed on to multicast.
  *
  * @param ch The channel struct for the client.
  */
 static void
-send_transmit_ack (struct Channel *ch)
+send_message_ack (struct Channel *ch)
 {
   struct GNUNET_MessageHeader res;
   res.size = htons (sizeof (res));
-  res.type = htons (GNUNET_MESSAGE_TYPE_PSYC_TRANSMIT_ACK);
+  res.type = htons (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_ACK);
 
   GNUNET_SERVER_notification_context_add (nc, ch->client);
   GNUNET_SERVER_notification_context_unicast (nc, ch->client, &res,
@@ -599,9 +605,9 @@ static int
 transmit_notify (void *cls, size_t *data_size, void *data)
 {
   struct Channel *ch = cls;
-  struct TransmitMessage *msg = ch->tmit_head;
+  struct TransmitMessage *tmit_msg = ch->tmit_head;
 
-  if (NULL == msg || *data_size < msg->size)
+  if (NULL == tmit_msg || *data_size < tmit_msg->size)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "transmit_notify: nothing to send.\n");
     *data_size = 0;
@@ -609,21 +615,22 @@ transmit_notify (void *cls, size_t *data_size, void *data)
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "transmit_notify: sending %u bytes.\n", msg->size);
+              "transmit_notify: sending %u bytes.\n", tmit_msg->size);
 
-  *data_size = msg->size;
-  memcpy (data, msg->buf, *data_size);
+  *data_size = tmit_msg->size;
+  memcpy (data, tmit_msg->buf, *data_size);
 
-  GNUNET_CONTAINER_DLL_remove (ch->tmit_head, ch->tmit_tail, msg);
-  GNUNET_free (msg);
+  GNUNET_CONTAINER_DLL_remove (ch->tmit_head, ch->tmit_tail, tmit_msg);
+  GNUNET_free (tmit_msg);
 
   int ret = (MSG_STATE_END < ch->tmit_state) ? GNUNET_NO : GNUNET_YES;
+  send_message_ack (ch);
 
   if (0 == ch->tmit_task)
   {
     if (NULL != ch->tmit_head)
     {
-      transmit_message (ch, GNUNET_TIME_UNIT_ZERO);
+      transmit_message (ch);
     }
     else if (ch->disconnected)
     {
@@ -640,11 +647,9 @@ transmit_notify (void *cls, size_t *data_size, void *data)
  * Transmit a message from a channel master to the multicast group.
  */
 static void
-master_transmit_message (void *cls,
-                         const struct GNUNET_SCHEDULER_TaskContext *tc)
+master_transmit_message (struct Master *mst)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "master_transmit_message()\n");
-  struct Master *mst = cls;
   mst->channel.tmit_task = 0;
   if (NULL == mst->tmit_handle)
   {
@@ -664,10 +669,8 @@ master_transmit_message (void *cls,
  * Transmit a message from a channel slave to the multicast group.
  */
 static void
-slave_transmit_message (void *cls,
-                        const struct GNUNET_SCHEDULER_TaskContext *tc)
+slave_transmit_message (struct Slave *slv)
 {
-  struct Slave *slv = cls;
   slv->channel.tmit_task = 0;
   if (NULL == slv->tmit_handle)
   {
@@ -682,214 +685,85 @@ slave_transmit_message (void *cls,
 }
 
 
-/**
- * Schedule message transmission from a channel to the multicast group.
- *
- * @param ch The channel.
- * @param delay Transmission delay.
- */
-static void
-transmit_message (struct Channel *ch, struct GNUNET_TIME_Relative delay)
+static inline void
+transmit_message (struct Channel *ch)
 {
-  if (0 != ch->tmit_task)
-    GNUNET_SCHEDULER_cancel (ch->tmit_task);
-
-  ch->tmit_task
-    = ch->is_master
-    ? GNUNET_SCHEDULER_add_delayed (delay, master_transmit_message, ch)
-    : GNUNET_SCHEDULER_add_delayed (delay, slave_transmit_message, ch);
-}
-
-
-/**
- * Queue incoming message parts from a client for transmission, and send them to
- * the multicast group when the buffer is full or reached the end of message.
- *
- * @param ch Channel struct for the client.
- * @param msg Message from the client.
- *
- * @return #GNUNET_OK on success, else #GNUNET_SYSERR.
- */
-static int
-queue_message (struct Channel *ch, const struct GNUNET_MessageHeader *msg)
-{
-  uint16_t size = ntohs (msg->size);
-  struct GNUNET_TIME_Relative tmit_delay = GNUNET_TIME_UNIT_ZERO;
-  struct TransmitMessage *tmit_msg = ch->tmit_tail;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Queueing message of type %u and size %u "
-              "for transmission to multicast.\n",
-              ntohs (msg->type), size);
-
-  if (GNUNET_MULTICAST_FRAGMENT_MAX_PAYLOAD < size)
-    return GNUNET_SYSERR;
-
-  if (NULL == tmit_msg
-      || GNUNET_MULTICAST_FRAGMENT_MAX_PAYLOAD < tmit_msg->size + size)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Appending message to new buffer.\n");
-    /* Start filling up new buffer */
-    tmit_msg = GNUNET_new (struct TransmitMessage);
-    tmit_msg->buf = GNUNET_malloc (size);
-    memcpy (tmit_msg->buf, msg, size);
-    tmit_msg->size = size;
-    tmit_msg->state = ch->tmit_state;
-    GNUNET_CONTAINER_DLL_insert_tail (ch->tmit_head, ch->tmit_tail, tmit_msg);
-  }
-  else
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Appending message to existing buffer.\n");
-    /* Append to existing buffer */
-    tmit_msg->buf = GNUNET_realloc (tmit_msg->buf, tmit_msg->size + size);
-    memcpy (tmit_msg->buf + tmit_msg->size, msg, size);
-    tmit_msg->size += size;
-    tmit_msg->state = ch->tmit_state;
-  }
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "tmit_size: %u\n", tmit_msg->size);
-
-  /* Wait a bit for the remaining message parts from the client
-     if there's still some space left in the buffer. */
-  if (tmit_msg->state < MSG_STATE_END
-      && (tmit_msg->size + sizeof (struct GNUNET_MessageHeader)
-          < GNUNET_MULTICAST_FRAGMENT_MAX_PAYLOAD))
-  {
-    tmit_delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 2);
-  }
-  else
-  {
-    send_transmit_ack (ch);
-  }
-
-  transmit_message (ch, tmit_delay);
-
-  return GNUNET_OK;
+  ch->is_master
+    ? master_transmit_message ((struct Master *) ch)
+    : slave_transmit_message ((struct Slave *) ch);
 }
 
 
 static void
 transmit_error (struct Channel *ch)
 {
-  struct GNUNET_MessageHeader *msg = GNUNET_malloc (sizeof (*msg));
+  struct GNUNET_MessageHeader *msg;
+  struct TransmitMessage *tmit_msg = GNUNET_malloc (sizeof (*tmit_msg)
+                                                    + sizeof (*msg));
+  msg = (struct GNUNET_MessageHeader *) &tmit_msg[1];
   msg->size = ntohs (sizeof (*msg));
   msg->type = ntohs (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_CANCEL);
-  queue_message (ch, msg);
 
+  tmit_msg->buf = (char *) &tmit_msg[1];
+  tmit_msg->size = sizeof (*msg);
+  tmit_msg->state = ch->tmit_state;
+  GNUNET_CONTAINER_DLL_insert_tail (ch->tmit_head, ch->tmit_tail, tmit_msg);
+  transmit_message (ch);
+
+  /* FIXME: cleanup */
   GNUNET_SERVER_client_disconnect (ch->client);
 }
 
-/**
- * Incoming method from a client.
- */
-static void
-handle_transmit_method (void *cls, struct GNUNET_SERVER_Client *client,
-                        const struct GNUNET_MessageHeader *msg)
-{
-  /* const struct GNUNET_PSYC_MessageMethod *meth
-     = (const struct GNUNET_PSYC_MessageMethod *) msg; */
-  struct Channel *ch
-    = GNUNET_SERVER_client_get_user_context (client, struct Channel);
-  GNUNET_assert (NULL != ch);
-
-  if (MSG_STATE_START != ch->tmit_state)
-  {
-    transmit_error (ch);
-    return;
-  }
-  ch->tmit_state = MSG_STATE_METHOD;
-
-  queue_message (ch, msg);
-  send_transmit_ack (ch);
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
-};
-
 
 /**
- * Incoming modifier from a client.
+ * Incoming message from a client.
  */
 static void
-handle_transmit_modifier (void *cls, struct GNUNET_SERVER_Client *client,
-                          const struct GNUNET_MessageHeader *msg)
-{
-  const struct GNUNET_PSYC_MessageModifier *mod
-    = (const struct GNUNET_PSYC_MessageModifier *) msg;
-
-  struct Channel *ch
-    = GNUNET_SERVER_client_get_user_context (client, struct Channel);
-  GNUNET_assert (NULL != ch);
-
-  if (MSG_STATE_METHOD != ch->tmit_state
-      || MSG_STATE_MODIFIER != ch->tmit_state
-      || MSG_STATE_MOD_CONT != ch->tmit_state
-      || ch->tmit_mod_value_size_expected != ch->tmit_mod_value_size)
-  {
-    transmit_error (ch);
-    return;
-  }
-  ch->tmit_mod_value_size_expected = ntohl (mod->value_size);
-  ch->tmit_mod_value_size = ntohs (msg->size) - ntohs(mod->name_size) - 1;
-
-  queue_message (ch, msg);
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
-};
-
-
-/**
- * Incoming modifier from a client.
- */
-static void
-handle_transmit_mod_cont (void *cls, struct GNUNET_SERVER_Client *client,
-                          const struct GNUNET_MessageHeader *msg)
+handle_psyc_message (void *cls, struct GNUNET_SERVER_Client *client,
+                         const struct GNUNET_MessageHeader *msg)
 {
   struct Channel *ch
     = GNUNET_SERVER_client_get_user_context (client, struct Channel);
   GNUNET_assert (NULL != ch);
 
-  ch->tmit_mod_value_size += ntohs (msg->size);
+  uint16_t size = ntohs (msg->size);
+  uint16_t psize = 0, pos = 0;
 
-  if (MSG_STATE_MODIFIER != ch->tmit_state
-      || MSG_STATE_MOD_CONT != ch->tmit_state
-      || ch->tmit_mod_value_size_expected < ch->tmit_mod_value_size)
+  if (GNUNET_MULTICAST_FRAGMENT_MAX_PAYLOAD < size - sizeof (*msg))
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Message payload too large\n");
+    GNUNET_break (0);
     transmit_error (ch);
     return;
   }
-  ch->tmit_state = MSG_STATE_MOD_CONT;
 
-  queue_message (ch, msg);
-  GNUNET_SERVER_receive_done (client, GNUNET_OK);
-};
-
-
-/**
- * Incoming data from a client.
- */
-static void
-handle_transmit_data (void *cls, struct GNUNET_SERVER_Client *client,
-                      const struct GNUNET_MessageHeader *msg)
-{
-  struct Channel *ch
-    = GNUNET_SERVER_client_get_user_context (client, struct Channel);
-  GNUNET_assert (NULL != ch);
-
-  if (MSG_STATE_METHOD != ch->tmit_state
-      || MSG_STATE_MODIFIER != ch->tmit_state
-      || MSG_STATE_MOD_CONT != ch->tmit_state
-      || ch->tmit_mod_value_size_expected != ch->tmit_mod_value_size)
+  for (pos = 0; sizeof (*msg) + pos < size; pos += psize)
   {
-    transmit_error (ch);
-    return;
+    const struct GNUNET_MessageHeader *pmsg
+      = (const struct GNUNET_MessageHeader *) ((char *) &msg[1] + pos);
+    psize = ntohs (pmsg->size);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Received message part of type %u and size %u "
+                "from client.\n", ntohs (pmsg->type), psize);
+    if (psize < sizeof (*pmsg) || sizeof (*msg) + pos + psize > size)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Received invalid message part of type %u and size %u "
+                  "from client.\n", ntohs (pmsg->type), psize);
+      GNUNET_break (0);
+      transmit_error (ch);
+      return;
+    }
   }
-  ch->tmit_state = MSG_STATE_DATA;
 
-  queue_message (ch, msg);
-  send_transmit_ack (ch);
-
-  if (MSG_STATE_END <= ch->tmit_state)
-    ch->tmit_state = MSG_STATE_START;
+  size -= sizeof (*msg);
+  struct TransmitMessage *tmit_msg = GNUNET_malloc (sizeof (*tmit_msg) + size);
+  tmit_msg->buf = (char *) &tmit_msg[1];
+  memcpy (tmit_msg->buf, &msg[1], size);
+  tmit_msg->size = size;
+  tmit_msg->state = ch->tmit_state;
+  GNUNET_CONTAINER_DLL_insert_tail (ch->tmit_head, ch->tmit_tail, tmit_msg);
+  transmit_message (ch);
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 };
@@ -912,22 +786,9 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 
     { &handle_slave_join, NULL,
       GNUNET_MESSAGE_TYPE_PSYC_SLAVE_JOIN, 0 },
-#if TODO
+
     { &handle_psyc_message, NULL,
       GNUNET_MESSAGE_TYPE_PSYC_MESSAGE, 0 },
-#endif
-    { &handle_transmit_method, NULL,
-      GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_METHOD, 0 },
-
-    { &handle_transmit_modifier, NULL,
-      GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MODIFIER, 0 },
-
-    { &handle_transmit_mod_cont, NULL,
-      GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MOD_CONT, 0 },
-
-    { &handle_transmit_data, NULL,
-      GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_DATA, 0 },
-    { NULL, NULL, 0, 0 }
   };
 
   cfg = c;

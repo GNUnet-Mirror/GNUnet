@@ -98,7 +98,7 @@ while (<>)
     s/\b(multicast|psyc|psycstore|social)\b/BLUE $1/ex;
 
     # Add message type names
-    s/(message(?:\s+of)?\s+type\s+)(\d+)/
+    s/(message(?:\s+part)?(?:\s+of)?\s+type\s+)(\d+)/
       $1 . BRIGHT_CYAN (exists $msgtypes{$2} ? $msgtypes{$2} : 'UNKNOWN') .
       CYAN " ($2)"/e;
 
