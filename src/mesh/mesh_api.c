@@ -1034,28 +1034,34 @@ static void
 process_get_tunnels (struct GNUNET_MESH_Handle *h,
                      const struct GNUNET_MessageHeader *message)
 {
-  struct GNUNET_PeerIdentity *id;
+  struct GNUNET_MESH_LocalInfoTunnel *msg;
   uint16_t size;
-  unsigned int i;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Get Tunnels messasge received\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Get Tunnels messasge received\n");
 
   if (NULL == h->tunnels_cb)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "  ignored\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  ignored\n");
     return;
   }
 
   size = ntohs (message->size);
-  size /= sizeof (struct GNUNET_PeerIdentity);
-  id = (struct GNUNET_PeerIdentity *) &message[1];
+  if (sizeof (struct GNUNET_MESH_LocalInfoTunnel) > size)
+  {
+    h->tunnels_cb (h->tunnel_cls, NULL, 0, 0, 0, 0);
+    h->tunnels_cb = NULL;
+    h->tunnels_cls = NULL;
+    return;
+  }
 
-  for (i = 0; i < size; i++)
-    h->tunnels_cb (h->tunnels_cls, &id[i]);
-  h->tunnels_cb (h->tunnels_cls, NULL);
+  msg = (struct GNUNET_MESH_LocalInfoTunnel *) message;
+  h->tunnels_cb (h->tunnel_cls,
+                 &msg->destination,
+                 ntohl (msg->channels),
+                 ntohl (msg->connections),
+                 ntohl (msg->estate),
+                 ntohl (msg->cstate));
 
-  h->tunnels_cb = NULL;
-  h->tunnels_cls = NULL;
 }
 
 
@@ -1066,43 +1072,48 @@ process_get_tunnels (struct GNUNET_MESH_Handle *h,
  * @param h Mesh handle.
  * @param message Message itself.
  */
-// static void
-// process_show_channel (struct GNUNET_MESH_Handle *h,
-//                       const struct GNUNET_MessageHeader *message)
-// {
-//   struct GNUNET_MESH_LocalInfo *msg;
-//   size_t esize;
-//
-//   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Show Channel messasge received\n");
-//
-//   if (NULL == h->channel_cb)
-//   {
-//     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "  ignored\n");
-//     return;
-//   }
-//
-//   /* Verify message sanity */
-//   msg = (struct GNUNET_MESH_LocalInfo *) message;
-//   esize = sizeof (struct GNUNET_MESH_LocalInfo);
-//   if (ntohs (message->size) != esize)
-//   {
-//     GNUNET_break_op (0);
-//     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-//                 "Show channel message: size %hu - expected %u\n",
-//                 ntohs (message->size),
-//                 esize);
-//
-//     h->channel_cb (h->channel_cls, NULL, NULL);
-//     h->channel_cb = NULL;
-//     h->channel_cls = NULL;
-//
-//     return;
-//   }
-//
-//   h->channel_cb (h->channel_cls,
-//                  &msg->destination,
-//                  &msg->owner);
-// }
+static void
+process_get_tunnel (struct GNUNET_MESH_Handle *h,
+                    const struct GNUNET_MessageHeader *message)
+{
+  struct GNUNET_MESH_LocalInfoTunnel *msg;
+  size_t esize;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Get Tunnel messasge received\n");
+
+  if (NULL == h->tunnel_cb)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "  ignored\n");
+    return;
+  }
+
+  /* Verify message sanity */
+  msg = (struct GNUNET_MESH_LocalInfoTunnel *) message;
+  esize = sizeof (struct GNUNET_MESH_LocalInfo);
+  if (ntohs (message->size) != esize)
+  {
+    GNUNET_break_op (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Get Tunnel message: size %hu - expected %u\n",
+                ntohs (message->size),
+                esize);
+
+    h->tunnel_cb (h->tunnel_cls, NULL, 0, 0, 0, 0);
+    h->tunnel_cb = NULL;
+    h->tunnel_cls = NULL;
+
+    return;
+  }
+
+  h->tunnel_cb (h->tunnel_cls,
+                &msg->destination,
+                ntohl (msg->channels),
+                ntohl (msg->connections),
+                ntohl (msg->estate),
+                ntohl (msg->cstate));
+  h->tunnel_cb = NULL;
+  h->tunnel_cls = NULL;
+}
 
 /**
  * Function to process all messages received from the service
@@ -1153,6 +1164,9 @@ msg_received (void *cls, const struct GNUNET_MessageHeader *msg)
   case GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNELS:
     process_get_tunnels (h, msg);
     break;
+  case GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNEL:
+    process_get_tunnel (h, msg);
+    break;
 //   case GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_CHANNEL:
 //     process_show_channel (h, msg);
 //     break;
@@ -1161,7 +1175,7 @@ msg_received (void *cls, const struct GNUNET_MessageHeader *msg)
     LOG (GNUNET_ERROR_TYPE_WARNING,
          "unsolicited message form service (type %s)\n",
          GM_m2s (ntohs (msg->type)));
-  }
+  }  FPRINTF (stdout, "\n");
   LOG (GNUNET_ERROR_TYPE_DEBUG, "message processed\n");
   if (GNUNET_YES == h->in_receive)
   {
@@ -1435,6 +1449,8 @@ GNUNET_MESH_disconnect (struct GNUNET_MESH_Handle *handle)
       case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_DESTROY:
       case GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_CHANNELS:
       case GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_CHANNEL:
+      case GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNEL:
+      case GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNELS:
         break;
       default:
         GNUNET_break (0);
@@ -1756,7 +1772,7 @@ GNUNET_MESH_get_tunnels_cancel (struct GNUNET_MESH_Handle *h)
   h->tunnels_cb = NULL;
   cls = h->tunnels_cls;
   h->tunnels_cls = NULL;
-  
+
   return cls;
 }
 
@@ -1780,7 +1796,7 @@ GNUNET_MESH_get_tunnels_cancel (struct GNUNET_MESH_Handle *h)
 void
 GNUNET_MESH_get_tunnel (struct GNUNET_MESH_Handle *h,
                         const struct GNUNET_PeerIdentity *id,
-                        GNUNET_MESH_TunnelsCB callback,
+                        GNUNET_MESH_TunnelCB callback,
                         void *callback_cls)
 {
   struct GNUNET_MESH_LocalInfo msg;
@@ -1790,6 +1806,8 @@ GNUNET_MESH_get_tunnel (struct GNUNET_MESH_Handle *h,
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNEL);
   msg.destination = *id;
   send_packet (h, &msg.header, NULL);
+  h->tunnel_cb = callback;
+  h->tunnel_cls = callback_cls;
 }
 
 
@@ -1818,7 +1836,7 @@ GNUNET_MESH_show_channel (struct GNUNET_MESH_Handle *h,
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_CHANNEL);
   msg.owner = *initiator;
   msg.channel_id = htonl (channel_number);
-  msg.reserved = 0;
+//   msg.reserved = 0;
   send_packet (h, &msg.header, NULL);
   h->channel_cb = callback;
   h->channel_cls = callback_cls;

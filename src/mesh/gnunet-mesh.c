@@ -425,40 +425,52 @@ data_callback (void *cls,
 
 
 /**
- * Method called to retrieve information about each tunnel the mesh peer
- * is aware of.
+ * Method called to retrieve information about all tunnels in MESH.
  *
  * @param cls Closure.
- * @param tunnel_number Tunnel number.
- * @param origin that started the tunnel (owner).
- * @param target other endpoint of the tunnel
+ * @param peer Destination peer.
+ * @param channels Number of channels.
+ * @param connections Number of connections.
+ * @param estate Encryption state.
+ * @param cstate Connectivity state.
  */
-void /* FIXME static */
+void
 tunnels_callback (void *cls,
-                  uint32_t tunnel_number,
-                  const struct GNUNET_PeerIdentity *origin,
-                  const struct GNUNET_PeerIdentity *target)
+                  const struct GNUNET_PeerIdentity *peer,
+                  unsigned int channels,
+                  unsigned int connections,
+                  unsigned int estate,
+                  unsigned int cstate)
 {
-  FPRINTF (stdout, "Tunnel %s [%u]\n",
-           GNUNET_i2s_full (origin), tunnel_number);
-  FPRINTF (stdout, "\n");
+  FPRINTF (stdout, "%s [%u, %u] CH: %u, C: %u\n",
+           GNUNET_i2s_full (peer), estate, cstate, channels, connections);
 }
 
 
 /**
- * Method called to retrieve information about each tunnel the mesh peer
- * is aware of.
+ * Method called to retrieve information about a specific tunnel the mesh peer
+ * has established, o`r is trying to establish.
  *
  * @param cls Closure.
- * @param peer Peer in the tunnel's tree.
- * @param parent Parent of the current peer. All 0 when peer is root.
- *
+ * @param peer Peer towards whom the tunnel is directed.
+ * @param channels Number of channels.
+ * @param connections Number of connections.
+ * @param estate Encryption status.
+ * @param cstate Connectivity status.
  */
-void /* FIXME static */
+void
 tunnel_callback (void *cls,
                  const struct GNUNET_PeerIdentity *peer,
-                 const struct GNUNET_PeerIdentity *parent)
+                 unsigned int channels,
+                 unsigned int connections,
+                 unsigned int estate,
+                 unsigned int cstate)
 {
+  FPRINTF (stdout, "Tunnel %s\n", GNUNET_i2s_full (peer));
+  FPRINTF (stdout, "- %u channels\n", channels);
+  FPRINTF (stdout, "- %u connections\n", connections);
+  FPRINTF (stdout, "- enc state: %u\n", estate);
+  FPRINTF (stdout, "- con state: %u\n", cstate);
 }
 
 
@@ -475,7 +487,7 @@ get_tunnels (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     return;
   }
-//   GNUNET_MESH_get_tunnels (mh, &tunnels_callback, NULL);
+  GNUNET_MESH_get_tunnels (mh, &tunnels_callback, NULL);
   if (GNUNET_YES != monitor_connections)
   {
     GNUNET_SCHEDULER_shutdown();
@@ -505,7 +517,7 @@ show_tunnel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_SCHEDULER_shutdown();
     return;
   }
-//   GNUNET_MESH_show_tunnel (mh, &pid, 0, tunnel_callback, NULL);
+  GNUNET_MESH_get_tunnel (mh, &pid, tunnel_callback, NULL);
 }
 
 
@@ -662,6 +674,7 @@ main (int argc, char *const *argv)
     {'t', "tunnel", "TUNNEL_ID",
      gettext_noop ("provide information about a particular tunnel"),
      GNUNET_YES, &GNUNET_GETOPT_set_string, &tunnel_id},
+
     GNUNET_GETOPT_OPTION_END
   };
 

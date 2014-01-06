@@ -593,20 +593,22 @@ monitor_all_tunnels_iterator (void *cls,
                               void *value)
 {
   struct GNUNET_SERVER_Client *client = cls;
-  struct MeshChannel *ch = value;
-  struct GNUNET_MESH_LocalInfo *msg;
+  struct MeshTunnel3 *t = value;
+  struct GNUNET_MESH_LocalInfoTunnel msg;
 
-  msg = GNUNET_new (struct GNUNET_MESH_LocalInfo);
-  msg->channel_id = htonl (GMCH_get_id (ch));
-  msg->header.size = htons (sizeof (struct GNUNET_MESH_LocalInfo));
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNELS);
+  msg.header.size = htons (sizeof (msg));
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNELS);
+  msg.destination = *peer;
+  msg.channels = htons (42);
+  msg.connections = htons (42);
+  msg.cstate = htons (GMT_get_cstate (t));
+  msg.estate = htons (42);
 
-  LOG (GNUNET_ERROR_TYPE_INFO,
-              "*  sending info about tunnel %s\n",
-              GNUNET_i2s (&msg->owner));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "sending info about tunnel ->%s\n",
+       GNUNET_i2s (peer));
 
   GNUNET_SERVER_notification_context_unicast (nc, client,
-                                              &msg->header, GNUNET_NO);
+                                              &msg.header, GNUNET_NO);
   return GNUNET_YES;
 }
 
