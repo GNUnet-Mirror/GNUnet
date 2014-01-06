@@ -1175,7 +1175,7 @@ msg_received (void *cls, const struct GNUNET_MessageHeader *msg)
     LOG (GNUNET_ERROR_TYPE_WARNING,
          "unsolicited message form service (type %s)\n",
          GM_m2s (ntohs (msg->type)));
-  }  FPRINTF (stdout, "\n");
+  }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "message processed\n");
   if (GNUNET_YES == h->in_receive)
   {
