@@ -2183,6 +2183,24 @@ GMT_get_cstate (struct MeshTunnel3 *t)
 
 
 /**
+ * Get the encryption state of a tunnel.
+ *
+ * @param t Tunnel.
+ *
+ * @return Tunnel's encryption state.
+ */
+enum MeshTunnel3EState
+GMT_get_estate (struct MeshTunnel3 *t)
+{
+  if (NULL == t)
+  {
+    GNUNET_assert (0);
+    return (enum MeshTunnel3EState) -1;
+  }
+  return t->estate;
+}
+
+/**
  * Get the maximum buffer space for a tunnel towards a local client.
  *
  * @param t Tunnel.
@@ -2387,7 +2405,9 @@ GMT_send_connection_acks (struct MeshTunnel3 *t)
   /* Authorize connections to send more data */
   to_allow = buffer; /* - allowed; */
 
-  for (iter = t->connection_head; NULL != iter && to_allow > 0; iter = iter->next)
+  for (iter = t->connection_head;
+       NULL != iter && to_allow > 0;
+       iter = iter->next)
   {
     allow_per_connection = to_allow/cs;
     to_allow -= allow_per_connection;

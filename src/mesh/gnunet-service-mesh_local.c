@@ -298,7 +298,8 @@ handle_new_client (void *cls, struct GNUNET_SERVER_Client *client,
   uint32_t *p;
   unsigned int i;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "\n\nnew client connected %p\n", client);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "new client connected %p\n", client);
 
   /* Check data sanity */
   size = ntohs (message->size) - sizeof (struct GNUNET_MESH_ClientConnect);
@@ -581,7 +582,7 @@ handle_ack (void *cls, struct GNUNET_SERVER_Client *client,
 /**
  * Iterator over all tunnels to send a monitoring client info about each tunnel.
  *
- * @param cls Closure (client handle).
+ * @param cls Closure ().
  * @param peer Peer ID (tunnel remote peer).
  * @param value Tunnel info.
  *
@@ -599,10 +600,10 @@ monitor_all_tunnels_iterator (void *cls,
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNELS);
   msg.destination = *peer;
-  msg.channels = htons (42);
-  msg.connections = htons (42);
-  msg.cstate = htons (GMT_get_cstate (t));
-  msg.estate = htons (42);
+  msg.channels = htonl (GMT_count_channels (t));
+  msg.connections = htonl (GMT_count_connections (t));
+  msg.cstate = htons ((uint16_t) GMT_get_cstate (t));
+  msg.estate = htons ((uint16_t) GMT_get_estate (t));
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "sending info about tunnel ->%s\n",
        GNUNET_i2s (peer));
@@ -625,8 +626,7 @@ handle_get_tunnels (void *cls, struct GNUNET_SERVER_Client *client,
                     const struct GNUNET_MessageHeader *message)
 {
   struct MeshClient *c;
-  size_t size;
-  struct GNUNET_MessageHeader *reply;
+  struct GNUNET_MessageHeader reply;
 
   /* Sanity check for client registration */
   if (NULL == (c = GML_client_get (client)))
@@ -636,21 +636,17 @@ handle_get_tunnels (void *cls, struct GNUNET_SERVER_Client *client,
     return;
   }
 
-  LOG (GNUNET_ERROR_TYPE_INFO, "Received get tunnels request from client %u\n",
-       c->id);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Received get tunnels request from client %u (%p)\n",
+       c->id, client);
 
-  size = GMT_count_all () + 1; /* Last one is all \0 to mark 'end' */
-  size *= sizeof (struct GNUNET_PeerIdentity);
-  size += sizeof (*reply);
-  reply = GNUNET_malloc (size);
-  GMT_iterate_all (reply, monitor_all_tunnels_iterator);
-  reply->size = htons (size);
-  reply->type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNELS);
-  GNUNET_SERVER_notification_context_unicast (nc, client, reply, GNUNET_NO);
+  GMT_iterate_all (client, monitor_all_tunnels_iterator);
+  reply.size = htons (sizeof (reply));
+  reply.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNELS);
+  GNUNET_SERVER_notification_context_unicast (nc, client, &reply, GNUNET_NO);
 
-  LOG (GNUNET_ERROR_TYPE_INFO,
-              "Get tunnels request from client %u completed\n",
-              c->id);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Get tunnels request from client %u completed\n", c->id);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 

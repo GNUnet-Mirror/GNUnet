@@ -326,6 +326,16 @@ enum MeshTunnel3CState
 GMT_get_cstate (struct MeshTunnel3 *t);
 
 /**
+ * Get the encryption state of a tunnel.
+ *
+ * @param t Tunnel.
+ *
+ * @return Tunnel's encryption state.
+ */
+enum MeshTunnel3EState
+GMT_get_estate (struct MeshTunnel3 *t);
+
+/**
  * Get the maximum buffer space for a tunnel towards a local client.
  *
  * @param t Tunnel.

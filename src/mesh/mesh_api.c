@@ -1059,8 +1059,8 @@ process_get_tunnels (struct GNUNET_MESH_Handle *h,
                  &msg->destination,
                  ntohl (msg->channels),
                  ntohl (msg->connections),
-                 ntohl (msg->estate),
-                 ntohl (msg->cstate));
+                 ntohs (msg->estate),
+                 ntohs (msg->cstate));
 
 }
 

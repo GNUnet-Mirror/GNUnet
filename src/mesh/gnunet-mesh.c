@@ -122,6 +122,7 @@ static void
 shutdown_task (void *cls,
                const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown\n");
   if (NULL != ch)
   {
     GNUNET_MESH_channel_destroy (ch);
@@ -439,10 +440,18 @@ tunnels_callback (void *cls,
                   const struct GNUNET_PeerIdentity *peer,
                   unsigned int channels,
                   unsigned int connections,
-                  unsigned int estate,
-                  unsigned int cstate)
+                  uint16_t estate,
+                  uint16_t cstate)
 {
-  FPRINTF (stdout, "%s [%u, %u] CH: %u, C: %u\n",
+  if (NULL == peer)
+  {
+    if (GNUNET_YES != monitor_connections)
+    {
+      GNUNET_SCHEDULER_shutdown();
+    }
+    return;
+  }
+  FPRINTF (stdout, "%s [ENC: %u, CON: %u] CHs: %u, CONNs: %u\n",
            GNUNET_i2s_full (peer), estate, cstate, channels, connections);
 }
 
@@ -483,15 +492,12 @@ tunnel_callback (void *cls,
 static void
 get_tunnels (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown\n");
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
   {
     return;
   }
   GNUNET_MESH_get_tunnels (mh, &tunnels_callback, NULL);
-  if (GNUNET_YES != monitor_connections)
-  {
-    GNUNET_SCHEDULER_shutdown();
-  }
 }
 
 
