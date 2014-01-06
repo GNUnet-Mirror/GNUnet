@@ -725,6 +725,8 @@ gen_topo_random (struct TopologyContext *tc, unsigned int links, int append)
   uint32_t A_rand;
   uint32_t B_rand;
 
+  if (1 == tc->num_peers)
+    return;
   if (GNUNET_YES == append)
   {
     index = tc->link_array_size;
@@ -1468,6 +1470,7 @@ GNUNET_TESTBED_underlay_construct_ (int num_peers,
   GNUNET_assert (NULL != proc);
   ret = GNUNET_OK;
   memset (&tc, 0, sizeof (tc));
+  tc.num_peers = num_peers;
   tc.type = TOPOLOGYCONTEXT_TYPE_UNDERLAY;
   underlay = &tc.u.underlay;
   va_start (vargs, cls);

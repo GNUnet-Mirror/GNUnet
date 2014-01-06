@@ -72,7 +72,7 @@ link_processor (void *cls,
                 unsigned int latency,
                 unsigned int loss)
 {
-  GNUNET_break (0);
+  FPRINTF (stdout, "%u -> %u\n", A, B);
   return GNUNET_OK;
 }
 
@@ -166,7 +166,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     }
     break;
   default:
-    GNUNET_assert (0);
+    break;
   }
   /* contruct topologies */
   switch (topology)
@@ -209,6 +209,9 @@ int
 main (int argc, char *const argv[])
 {
   struct GNUNET_GETOPT_CommandLineOption option[] = {
+    {'p', "num-peers", "COUNT",
+     gettext_noop ("create COUNT number of peers"),
+     GNUNET_YES, &GNUNET_GETOPT_set_uint, &num_peers},
     GNUNET_GETOPT_OPTION_END
   };
   int ret;
