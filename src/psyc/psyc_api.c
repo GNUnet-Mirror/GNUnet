@@ -310,8 +310,6 @@ recv_reset (struct GNUNET_PSYC_Channel *ch)
 static void
 recv_error (struct GNUNET_PSYC_Channel *ch)
 {
-  recv_reset (ch);
-
   GNUNET_PSYC_MessageCallback message_cb
     = ch->recv_flags & GNUNET_PSYC_MESSAGE_HISTORIC
     ? ch->hist_message_cb
@@ -319,6 +317,8 @@ recv_error (struct GNUNET_PSYC_Channel *ch)
 
   if (NULL != message_cb)
     message_cb (ch->cb_cls, ch->recv_message_id, ch->recv_flags, NULL);
+
+  recv_reset (ch);
 }
 
 
@@ -577,6 +577,7 @@ handle_psyc_message (struct GNUNET_PSYC_Channel *ch,
          GNUNET_ntohll (msg->message_id), ch->recv_message_id);
     GNUNET_break_op (0);
     recv_error (ch);
+    return;
   }
   else if (ntohl (msg->flags) != ch->recv_flags)
   {
@@ -585,6 +586,7 @@ handle_psyc_message (struct GNUNET_PSYC_Channel *ch,
          ntohl (msg->flags), ch->recv_flags);
     GNUNET_break_op (0);
     recv_error (ch);
+    return;
   }
 
   uint16_t pos = 0, psize = 0, ptype, size_eq, size_min;
@@ -606,7 +608,8 @@ handle_psyc_message (struct GNUNET_PSYC_Channel *ch,
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   "Discarding message of type %u with invalid size %u.\n",
                   ptype, psize);
-      break;
+      recv_error (ch);
+      return;
     }
 
     switch (ptype)
@@ -625,13 +628,17 @@ handle_psyc_message (struct GNUNET_PSYC_Channel *ch,
     case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_CANCEL:
       size_eq = sizeof (struct GNUNET_MessageHeader);
       break;
+    default:
+      GNUNET_break_op (0);
+      recv_error (ch);
+      return;
     }
 
     if (! ((0 < size_eq && psize == size_eq)
            || (0 < size_min && size_min <= psize)))
     {
-      GNUNET_break (0);
-      reschedule_connect (ch);
+      GNUNET_break_op (0);
+      recv_error (ch);
       return;
     }
 
@@ -693,6 +700,7 @@ handle_psyc_message (struct GNUNET_PSYC_Channel *ch,
       {
         LOG (GNUNET_ERROR_TYPE_WARNING, "Discarding malformed modifier.\n");
         GNUNET_break_op (0);
+        recv_error (ch);
         return;
       }
       ch->recv_state = MSG_STATE_MODIFIER;
@@ -709,7 +717,7 @@ handle_psyc_message (struct GNUNET_PSYC_Channel *ch,
         LOG (GNUNET_ERROR_TYPE_WARNING,
              "Discarding out of order message modifier continuation.\n");
         GNUNET_break_op (0);
-        recv_reset (ch);
+        recv_error (ch);
         return;
       }
       break;
@@ -722,7 +730,7 @@ handle_psyc_message (struct GNUNET_PSYC_Channel *ch,
         LOG (GNUNET_ERROR_TYPE_WARNING,
              "Discarding out of order message data fragment.\n");
         GNUNET_break_op (0);
-        recv_reset (ch);
+        recv_error (ch);
         return;
       }
       ch->recv_state = MSG_STATE_DATA;
@@ -792,13 +800,15 @@ message_handler (void *cls,
   case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_ACK:
     size_eq = sizeof (struct GNUNET_MessageHeader);
     break;
+  default:
+    GNUNET_break_op (0);
+    return;
   }
 
   if (! ((0 < size_eq && size == size_eq)
          || (0 < size_min && size_min <= size)))
   {
-    GNUNET_break (0);
-    reschedule_connect (ch);
+    GNUNET_break_op (0);
     return;
   }
 
