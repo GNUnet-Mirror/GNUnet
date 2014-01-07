@@ -135,33 +135,47 @@ dump (const char *src, const void *p, unsigned int l)
  * @param skm source key material
  * @param skm_len length of skm
  * @param argp va_list of void * & size_t pairs for context chunks
- * @return GNUNET_YES on success
+ * @return #GNUNET_YES on success
  */
 int
 GNUNET_CRYPTO_hkdf_v (void *result, size_t out_len, int xtr_algo, int prf_algo,
                       const void *xts, size_t xts_len, const void *skm,
                       size_t skm_len, va_list argp)
 {
+  static int once;
+  static gcry_md_hd_t xtr;
+  static gcry_md_hd_t prf;
   const void *hc;
-  unsigned long i, t, d;
+  unsigned long i;
+  unsigned long t;
+  unsigned long d;
   unsigned int k = gcry_md_get_algo_dlen (prf_algo);
   unsigned int xtr_len = gcry_md_get_algo_dlen (xtr_algo);
   char prk[xtr_len];
   int ret;
-  gcry_md_hd_t xtr, prf;
   size_t ctx_len;
   va_list args;
 
-  if (k == 0)
+  if (0 == k)
     return GNUNET_SYSERR;
-
-  if (gcry_md_open (&xtr, xtr_algo, GCRY_MD_FLAG_HMAC) != GPG_ERR_NO_ERROR)
-    return GNUNET_SYSERR;
-
-  if (gcry_md_open (&prf, prf_algo, GCRY_MD_FLAG_HMAC) != GPG_ERR_NO_ERROR)
+  if (! once)
   {
-    gcry_md_close (xtr);
-    return GNUNET_SYSERR;
+    if (GPG_ERR_NO_ERROR !=
+        gcry_md_open (&xtr, xtr_algo, GCRY_MD_FLAG_HMAC))
+      return GNUNET_SYSERR;
+
+    if (GPG_ERR_NO_ERROR !=
+        gcry_md_open (&prf, prf_algo, GCRY_MD_FLAG_HMAC))
+    {
+      gcry_md_close (xtr);
+      return GNUNET_SYSERR;
+    }
+    once = 1;
+  }
+  else
+  {
+    gcry_md_reset (xtr);
+    gcry_md_reset (prf);
   }
 
   va_copy (args, argp);
@@ -261,9 +275,6 @@ GNUNET_CRYPTO_hkdf_v (void *result, size_t out_len, int xtr_algo, int prf_algo,
 hkdf_error:
   ret = GNUNET_SYSERR;
 hkdf_ok:
-  gcry_md_close (prf);
-  gcry_md_close (xtr);
-
   return ret;
 }
 

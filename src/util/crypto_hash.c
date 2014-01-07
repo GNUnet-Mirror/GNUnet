@@ -561,19 +561,27 @@ GNUNET_CRYPTO_hmac_derive_key_v (struct GNUNET_CRYPTO_AuthKey *key,
 void
 GNUNET_CRYPTO_hmac (const struct GNUNET_CRYPTO_AuthKey *key,
                     const void *plaintext, size_t plaintext_len,
-                    struct GNUNET_HashCode * hmac)
+                    struct GNUNET_HashCode *hmac)
 {
-  gcry_md_hd_t md;
+  static int once;
+  static gcry_md_hd_t md;
   const unsigned char *mc;
 
-  GNUNET_assert (GPG_ERR_NO_ERROR ==
-                 gcry_md_open (&md, GCRY_MD_SHA512, GCRY_MD_FLAG_HMAC));
+  if (! once)
+  {
+    once = 1;
+    GNUNET_assert (GPG_ERR_NO_ERROR ==
+                   gcry_md_open (&md, GCRY_MD_SHA512, GCRY_MD_FLAG_HMAC));
+  }
+  else
+  {
+    gcry_md_reset (md);
+  }
   gcry_md_setkey (md, key->key, sizeof (key->key));
   gcry_md_write (md, plaintext, plaintext_len);
   mc = gcry_md_read (md, GCRY_MD_SHA512);
-  if (mc != NULL)
-    memcpy (hmac->bits, mc, sizeof (hmac->bits));
-  gcry_md_close (md);
+  GNUNET_assert (NULL != mc);
+  memcpy (hmac->bits, mc, sizeof (hmac->bits));
 }
 
 
