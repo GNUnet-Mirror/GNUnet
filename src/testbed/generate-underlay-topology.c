@@ -149,24 +149,21 @@ setup_db (const char *dbfile)
       " ?3,"
       " ?4," 
       " ?5);";
-  struct sqlite3_stmt *stmt_create;
   int ret;
   
-  stmt_create = NULL;
   if (SQLITE_OK != (ret = sqlite3_open (dbfile, &db)))
   {
     LOG_SQLITE (db, NULL, GNUNET_ERROR_TYPE_ERROR, "sqlite3_open");
     goto err_ret;
   }
-  if (SQLITE_OK != (ret = sqlite3_prepare_v2 (db, query_create, -1,
-                                              &stmt_create, NULL)))
+  if (0 != sqlite3_exec (db, query_create, NULL, NULL, NULL))
   {
-    LOG_SQLITE (db, NULL, GNUNET_ERROR_TYPE_ERROR, "sqlite3_prepare_v2");
+    LOG_SQLITE (db, NULL, GNUNET_ERROR_TYPE_ERROR, "sqlite3_exec");
     goto err_ret;
   }
-  if (SQLITE_DONE != sqlite3_step (stmt_create))
+  if (0 != sqlite3_exec (db, "PRAGMA synchronous = 0;", NULL, NULL, NULL))
   {
-    LOG_SQLITE (db, NULL, GNUNET_ERROR_TYPE_ERROR, "sqlite3_step");
+    LOG_SQLITE (db, NULL, GNUNET_ERROR_TYPE_ERROR, "sqlite3_exec");
     goto err_ret;
   }
   if (SQLITE_OK != (ret = sqlite3_prepare_v2 (db, query_insert, -1,
@@ -177,8 +174,6 @@ setup_db (const char *dbfile)
   }
   
  err_ret:
-  if (NULL != stmt_create)
-    sqlite3_finalize (stmt_create);
   return (SQLITE_OK != ret) ? GNUNET_SYSERR : GNUNET_OK;
 }
 
