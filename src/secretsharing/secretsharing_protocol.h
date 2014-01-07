@@ -48,12 +48,6 @@ struct PaillierPublicKey
 {
   /**
    * Network order representation of the
-   * g-component.
-   */
-  uint32_t g[PAILLIER_BITS / 8 / sizeof (uint32_t)];
-
-  /**
-   * Network order representation of the
    * n-component.
    */
   uint32_t n[PAILLIER_BITS / 8 / sizeof (uint32_t)];
