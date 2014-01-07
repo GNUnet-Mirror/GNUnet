@@ -136,7 +136,7 @@ struct MeshTunnel3
   /**
    * Destroy flag: if true, destroy on last message.
    */
-  int destroy;
+  GNUNET_SCHEDULER_TaskIdentifier destroy_task;
 
   /**
    * Queued messages, to transmit once tunnel gets connected.
@@ -779,7 +779,8 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   c = tunnel_get_connection (t);
   if (NULL == c)
   {
-    if (GNUNET_YES == t->destroy || MESH_TUNNEL3_SEARCHING != t->cstate)
+    if (GNUNET_SCHEDULER_NO_TASK != t->destroy_task
+        || MESH_TUNNEL3_SEARCHING != t->cstate)
     {
       GNUNET_break (0);
       GMT_debug (t);
@@ -905,7 +906,7 @@ send_kx (struct MeshTunnel3 *t,
     return;
   }
 
-  if (GNUNET_NO != t->destroy)
+  if (GNUNET_SCHEDULER_NO_TASK != t->destroy_task)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  being destroyed, why bother\n");
     return;
@@ -925,7 +926,8 @@ send_kx (struct MeshTunnel3 *t,
   c = tunnel_get_connection (t);
   if (NULL == c)
   {
-    GNUNET_break (GNUNET_YES == t->destroy || MESH_TUNNEL3_READY != t->cstate);
+    GNUNET_break (GNUNET_SCHEDULER_NO_TASK != t->destroy_task
+                  || MESH_TUNNEL3_READY != t->cstate);
     GMT_debug (t);
     return;
   }
@@ -1869,7 +1871,7 @@ GMT_remove_connection (struct MeshTunnel3 *t,
 
   /* Start new connections if needed */
   if (NULL == t->connection_head
-      && GNUNET_NO == t->destroy
+      && GNUNET_SCHEDULER_NO_TASK == t->destroy_task
       && GNUNET_NO == shutting_down)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  no more connections, getting new ones\n");
@@ -1918,9 +1920,10 @@ GMT_add_channel (struct MeshTunnel3 *t, struct MeshChannel *ch)
   LOG (GNUNET_ERROR_TYPE_DEBUG, " adding %p to %p\n", aux, t->channel_head);
   GNUNET_CONTAINER_DLL_insert_tail (t->channel_head, t->channel_tail, aux);
 
-  if (GNUNET_YES == t->destroy)
+  if (GNUNET_SCHEDULER_NO_TASK != t->destroy_task)
   {
-    t->destroy = GNUNET_NO;
+    GNUNET_SCHEDULER_cancel (t->destroy_task);
+    t->destroy_task = GNUNET_SCHEDULER_NO_TASK;
     LOG (GNUNET_ERROR_TYPE_DEBUG, " undo destroy!\n");
   }
 }
@@ -1978,6 +1981,25 @@ GMT_get_channel (struct MeshTunnel3 *t, MESH_ChannelNumber chid)
 
 
 /**
+ * @brief Destroy a tunnel and free all resources.
+ *
+ * Should only be called a while after the tunnel has been marked as destroyed,
+ * in case there is a new channel added to the same peer shortly after marking
+ * the tunnel. This way we avoid a new public key handshake.
+ *
+ * @param cls Closure (tunnel to destroy).
+ * @param tc Task context.
+ */
+static void
+tunnel_destroy (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct MeshTunnel3 *t = cls;
+
+  GMT_destroy (t);
+}
+
+
+/**
  * Tunnel is empty: destroy it.
  *
  * Notifies all connections about the destruction.
@@ -2005,7 +2027,8 @@ GMT_destroy_empty (struct MeshTunnel3 *t)
     t->kx_ctx = NULL;
   }
   t->cstate = MESH_TUNNEL3_NEW;
-  t->destroy = GNUNET_YES;
+  t->destroy_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
+                                                  &tunnel_destroy, t);
 }
 
 
@@ -2046,7 +2069,11 @@ GMT_destroy (struct MeshTunnel3 *t)
   if (NULL == t)
     return;
 
-  t->destroy = 2;
+  if (GNUNET_SCHEDULER_NO_TASK != t->destroy_task)
+  {
+    GNUNET_SCHEDULER_cancel (t->destroy_task);
+    t->destroy_task = GNUNET_SCHEDULER_NO_TASK;
+  }
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "destroying tunnel %s\n", GMP_2s (t->peer));
 
@@ -2598,7 +2625,7 @@ GMT_debug (const struct MeshTunnel3 *t)
        t->kx_ctx, t->rekey_task);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  tq_head %p, tq_tail %p\n",
        t->tq_head, t->tq_tail);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  destroy %u\n", t->destroy);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  destroy %u\n", t->destroy_task);
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  channels:\n");
   for (iterch = t->channel_head; NULL != iterch; iterch = iterch->next)
