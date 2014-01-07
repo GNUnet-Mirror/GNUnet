@@ -259,14 +259,14 @@ GNUNET_CONSENSUS_insert (struct GNUNET_CONSENSUS_Handle *consensus,
  * inserted by the client.
  *
  * @param consensus consensus session
- * @param timeout timeout after which the conculde callback
+ * @param deadline deadline after which the conculde callback
  *                must be called
  * @param conclude called when the conclusion was successful
  * @param conclude_cls closure for the conclude callback
  */
 void
 GNUNET_CONSENSUS_conclude (struct GNUNET_CONSENSUS_Handle *consensus,
-			   struct GNUNET_TIME_Relative timeout,
+			   struct GNUNET_TIME_Absolute deadline,
 			   GNUNET_CONSENSUS_ConcludeCallback conclude,
 			   void *conclude_cls)
 {
@@ -280,7 +280,7 @@ GNUNET_CONSENSUS_conclude (struct GNUNET_CONSENSUS_Handle *consensus,
   consensus->conclude_cb = conclude;
 
   ev = GNUNET_MQ_msg (conclude_msg, GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_CONCLUDE);
-  conclude_msg->timeout = GNUNET_TIME_relative_hton (timeout);
+  conclude_msg->deadline = GNUNET_TIME_absolute_hton (deadline);
 
   GNUNET_MQ_send (consensus->mq, ev);
 }

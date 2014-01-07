@@ -172,7 +172,7 @@ do_consensus ()
 
   for (i = 0; i < num_peers; i++)
     GNUNET_CONSENSUS_conclude (consensus_handles[i],
-                               conclude_timeout,
+                               GNUNET_TIME_relative_to_absolute (conclude_timeout),
                                conclude_cb, &consensus_handles[i]);
 }
 

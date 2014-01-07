@@ -146,7 +146,7 @@ struct ConsensusSession
    * with a fraction of the conclude timeout.
    * Only valid once the current round is not CONSENSUS_ROUND_BEGIN.
    */
-  struct GNUNET_TIME_Relative conclude_timeout;
+  struct GNUNET_TIME_Absolute conclude_deadline;
 
   /**
    * Timeout task identifier for the current round.
@@ -1194,7 +1194,7 @@ client_conclude (void *cls,
   }
   else
   {
-    session->conclude_timeout = GNUNET_TIME_relative_ntoh (cmsg->timeout);
+    session->conclude_deadline = GNUNET_TIME_absolute_ntoh (cmsg->deadline);
     /* the 'begin' round is over, start with the next, actual round */
     round_over (session, NULL);
   }

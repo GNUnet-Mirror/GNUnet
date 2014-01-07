@@ -31,6 +31,7 @@
 #include "platform.h"
 #include "gnunet_common.h"
 #include "gnunet_protocols.h"
+#include "secretsharing.h"
 
 /**
  * Bit length used for the Paillier crypto system.
@@ -111,6 +112,50 @@ struct GNUNET_SECRETSHARING_KeygenRevealData
   struct GNUNET_PeerIdentity peer;
 
   /* values follow */
+};
+
+
+/**
+ * Data of then element put in consensus
+ * for decrypting a value.
+ */
+struct GNUNET_SECRETSHARING_DecryptData
+{
+  /*
+   * Signature over rest of the message.
+   */
+  struct GNUNET_CRYPTO_EddsaSignature signature;
+  /*
+   * Signature purpose for signing the keygen commit data.
+   */
+  struct GNUNET_CRYPTO_EccSignaturePurpose purpose;
+  /**
+   * Ciphertext we want to decrypt.
+   */
+  struct GNUNET_SECRETSHARING_Ciphertext ciphertext;
+  /**
+   * Peer that inserts this element.
+   */
+  struct GNUNET_PeerIdentity peer;
+  /**
+   * Partial decryption, computed as c_1^{s_i}
+   */
+  struct GNUNET_SECRETSHARING_FieldElement partial_decryption;
+  /**
+   * Commitment for the non-interactive zero knowledge proof.
+   * g^\beta, with \beta < q
+   */
+  struct GNUNET_SECRETSHARING_FieldElement nizk_commit1;
+  /**
+   * Commitment for the non-interactive zero knowledge proof.
+   * c_1^\beta, with \beta < q
+   */
+  struct GNUNET_SECRETSHARING_FieldElement nizk_commit2;
+  /**
+   * Reponse to the challenge computed from the protocol transcript.
+   * r = \beta + challenge \cdot share_i
+   */
+  struct GNUNET_SECRETSHARING_FieldElement nizk_response;
 };
 
 GNUNET_NETWORK_STRUCT_END

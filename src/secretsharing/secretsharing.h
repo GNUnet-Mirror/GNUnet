@@ -27,12 +27,21 @@
 #define SECRETSHARING_H
 
 #include "platform.h"
-#include "gnunet_common.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_time_lib.h"
+#include "gnunet_common.h"
 #include "gnunet_secretsharing_service.h"
 
 
 GNUNET_NETWORK_STRUCT_BEGIN
+
+struct GNUNET_SECRETSHARING_FieldElement
+{
+  /**
+   * Value of an element in <elgamal_g>.
+   */
+  unsigned char bits[GNUNET_SECRETSHARING_KEY_BITS / 8];
+};
 
 
 struct GNUNET_SECRETSHARING_CreateMessage
@@ -67,6 +76,37 @@ struct GNUNET_SECRETSHARING_CreateMessage
 };
 
 
+
+struct GNUNET_SECRETSHARING_ShareHeaderNBO
+{
+  /**
+   * Threshold for the key this share belongs to.
+   */
+  uint16_t threshold;
+
+  /**
+   * Peers that have the share.
+   */
+  uint16_t num_peers;
+
+  /**
+   * Index of our peer in the list.
+   */
+  uint16_t my_peer;
+
+  /**
+   * Public key. Must correspond to the product of
+   * the homomorphic share commitments.
+   */
+  struct GNUNET_SECRETSHARING_PublicKey public_key;
+
+  /**
+   * Share of 'my_peer'
+   */
+  struct GNUNET_SECRETSHARING_FieldElement my_share;
+};
+
+
 struct GNUNET_SECRETSHARING_SecretReadyMessage
 {
   /**
@@ -74,24 +114,8 @@ struct GNUNET_SECRETSHARING_SecretReadyMessage
    */
   struct GNUNET_MessageHeader header;
 
-  /**
-   * Secret share in network byte order.
-   */
-  unsigned char secret[GNUNET_SECRETSHARING_KEY_BITS / 8];
+  /* rest: the serialized share */
 
-  /**
-   * Secret share in network byte order.
-   */
-  struct GNUNET_SECRETSHARING_PublicKey public_key;
-
-  /**
-   * Number of peers at the end of this message.
-   * Includes peers that are part of the established
-   * threshold crypto system.
-   */
-  uint16_t num_secret_peers GNUNET_PACKED;
-
-  /* struct GNUNET_PeerIdentity[num_peers]; */
 };
 
 
@@ -103,35 +127,88 @@ struct GNUNET_SECRETSHARING_DecryptRequestMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Ciphertext to request decryption for.
+   * Until when should the decryption be finished?
    */
-  unsigned char ciphertext[GNUNET_SECRETSHARING_KEY_BITS / 8];
+  struct GNUNET_TIME_AbsoluteNBO deadline;
 
   /**
-   * Number of peers at the end of this message.
-   * Includes peers that are part of the established
-   * threshold crypto system.
+   * Ciphertext we want to decrypt.
    */
-  uint16_t num_secret_peers GNUNET_PACKED;
+  struct GNUNET_SECRETSHARING_Ciphertext ciphertext;
 
-  /* struct GNUNET_PeerIdentity[num_peers]; */
+  /* the share with payload */
 };
 
 
 struct GNUNET_SECRETSHARING_DecryptResponseMessage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_SECRETSHARING_CLIENT_DECRYPT_RESPONSE
+   * Type: GNUNET_MESSAGE_TYPE_SECRETSHARING_CLIENT_DECRYPT_DONE
    */
   struct GNUNET_MessageHeader header;
 
   /**
-   * Ciphertext to request decryption for.
+   * Zero if decryption failed, non-zero if decryption succeeded.
+   * If the decryption failed, plaintext is also zero.
    */
-  unsigned char plaintext[GNUNET_SECRETSHARING_KEY_BITS / 8];
+  uint32_t success;
+
+  /**
+   * Decrypted plaintext.
+   */
+  struct GNUNET_SECRETSHARING_FieldElement plaintext;
 };
 
 
 GNUNET_NETWORK_STRUCT_END
+
+
+/**
+ * A share, with all values in in host byte order.
+ */
+struct GNUNET_SECRETSHARING_Share
+{
+  /**
+   * Threshold for the key this share belongs to.
+   */
+  uint16_t threshold;
+
+  /**
+   * Peers that have the share.
+   */
+  uint16_t num_peers;
+
+  /**
+   * Index of our peer in the list.
+   */
+  uint16_t my_peer;
+
+  /**
+   * Public key. Must correspond to the product of
+   * the homomorphic share commitments.
+   */
+  struct GNUNET_SECRETSHARING_PublicKey public_key;
+
+  /**
+   * Share of 'my_peer'
+   */
+  struct GNUNET_SECRETSHARING_FieldElement my_share;
+
+  /**
+   * Peer identities (includes 'my_peer') 
+   */
+  struct GNUNET_PeerIdentity *peers;
+
+  /*
+   * Homomorphic commitments to each peer's share (includes 'my_peer') 
+   */
+  struct GNUNET_SECRETSHARING_FieldElement *hom_share_commitments;
+
+  /*
+   * Original indices of peers from the DKG round.
+   */
+  uint16_t *original_indices;
+};
+
 
 #endif

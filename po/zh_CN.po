@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gnunet-0.8.1\n"
 "Report-Msgid-Bugs-To: gnunet-developers@mail.gnu.org\n"
-"POT-Creation-Date: 2013-12-24 21:07+0100\n"
+"POT-Creation-Date: 2014-01-05 13:20+0100\n"
 "PO-Revision-Date: 2011-07-09 12:12+0800\n"
 "Last-Translator: Wylmer Wang <wantinghard@gmail.com>\n"
 "Language-Team: Chinese (simplified) <i18n-zh@googlegroups.com>\n"
@@ -387,17 +387,17 @@ msgid ""
 "%llu\n"
 msgstr ""
 
-#: src/ats/gnunet-service-ats_addresses.c:2180
+#: src/ats/gnunet-service-ats_addresses.c:2184
 #, c-format
 msgid "Initializing solver `%s '`%s'\n"
 msgstr ""
 
-#: src/ats/gnunet-service-ats_addresses.c:2183
+#: src/ats/gnunet-service-ats_addresses.c:2187
 #, fuzzy, c-format
 msgid "Failed to initialize solver `%s'!\n"
 msgstr "无法初始化 SQLite：%s。\n"
 
-#: src/ats/gnunet-service-ats_addresses.c:2206
+#: src/ats/gnunet-service-ats_addresses.c:2210
 #, fuzzy
 msgid "Failed to initialize solver!\n"
 msgstr "无法初始化 SQLite：%s。\n"
@@ -4564,44 +4564,48 @@ msgstr "解析配置文件“%s”失败\n"
 msgid "Failed to create directory `%s' for storing egos\n"
 msgstr "解析配置文件“%s”失败\n"
 
-#: src/mesh/gnunet-mesh.c:300
+#: src/mesh/gnunet-mesh.c:342
 #, fuzzy, c-format
 msgid "Invalid target `%s'\n"
 msgstr "“%s”的参数无效。\n"
 
-#: src/mesh/gnunet-mesh.c:434
+#: src/mesh/gnunet-mesh.c:503
 #, fuzzy, c-format
 msgid "Invalid tunnel owner `%s'\n"
 msgstr "IP 格式无效：“%s”\n"
 
-#: src/mesh/gnunet-mesh.c:499
+#: src/mesh/gnunet-mesh.c:568
 msgid "You must NOT give a TARGET when using options\n"
 msgstr ""
 
-#: src/mesh/gnunet-mesh.c:576
+#: src/mesh/gnunet-mesh.c:645
 #, fuzzy
 msgid "provide information about a particular channel"
 msgstr "无法获取有关用户“%s”的信息：%s\n"
 
-#: src/mesh/gnunet-mesh.c:579
+#: src/mesh/gnunet-mesh.c:648
 #, fuzzy
 msgid "provide information about a particular connection"
 msgstr "无法获取有关用户“%s”的信息：%s\n"
 
-#: src/mesh/gnunet-mesh.c:582
+#: src/mesh/gnunet-mesh.c:651
+msgid "activate echo mode"
+msgstr ""
+
+#: src/mesh/gnunet-mesh.c:654
 #, fuzzy
 msgid "provide information about all tunnels"
 msgstr "无法获取有关用户“%s”的信息：%s\n"
 
-#: src/mesh/gnunet-mesh.c:585
+#: src/mesh/gnunet-mesh.c:657
 msgid "provide information about all tunnels (continuously) NOT IMPLEMENTED"
 msgstr ""
 
-#: src/mesh/gnunet-mesh.c:588
+#: src/mesh/gnunet-mesh.c:660
 msgid "port to listen to (default; 0)"
 msgstr ""
 
-#: src/mesh/gnunet-mesh.c:591
+#: src/mesh/gnunet-mesh.c:663
 #, fuzzy
 msgid "provide information about a particular tunnel"
 msgstr "无法获取有关用户“%s”的信息：%s\n"
@@ -5821,7 +5825,7 @@ msgstr "初始化“%s”服务失败。\n"
 msgid "Failed to send a message to the scalarproduct service\n"
 msgstr "初始化“%s”服务失败。\n"
 
-#: src/set/gnunet-service-set.c:1403
+#: src/set/gnunet-service-set.c:1416
 #, fuzzy
 msgid "Could not connect to mesh service\n"
 msgstr "无法连接到 %s:%u：%s\n"
@@ -5957,6 +5961,16 @@ msgstr ""
 msgid ""
 "Daemon to restrict incoming transport layer connections during testbed "
 "deployments"
+msgstr ""
+
+#: src/testbed/gnunet-daemon-testbed-underlay.c:300 src/testing/testing.c:293
+#: src/util/gnunet-ecc.c:217
+#, c-format
+msgid "Incorrect hostkey file format: %s\n"
+msgstr ""
+
+#: src/testbed/gnunet-daemon-testbed-underlay.c:553
+msgid "Daemon to restrict underlay network in testbed deployments"
 msgstr ""
 
 #: src/testbed/gnunet-service-testbed_cpustatus.c:727
@@ -6173,11 +6187,6 @@ msgstr ""
 #: src/testing/testing.c:277
 #, c-format
 msgid "Hostkeys file not found: %s\n"
-msgstr ""
-
-#: src/testing/testing.c:293 src/util/gnunet-ecc.c:217
-#, c-format
-msgid "Incorrect hostkey file format: %s\n"
 msgstr ""
 
 #: src/testing/testing.c:716
@@ -7007,39 +7016,39 @@ msgid "Unexpected address length: %u bytes\n"
 msgstr ""
 
 #: src/transport/plugin_transport_tcp.c:799
-#: src/transport/plugin_transport_tcp.c:979
+#: src/transport/plugin_transport_tcp.c:980
 #: src/transport/plugin_transport_tcp.c:2120
 #: src/transport/plugin_transport_tcp.c:2723
 msgid "# TCP sessions active"
 msgstr ""
 
-#: src/transport/plugin_transport_tcp.c:835
-#: src/transport/plugin_transport_tcp.c:972
-#: src/transport/plugin_transport_tcp.c:1061
-#: src/transport/plugin_transport_tcp.c:1111
-#: src/transport/plugin_transport_tcp.c:1290
-#: src/transport/plugin_transport_tcp.c:1309
+#: src/transport/plugin_transport_tcp.c:836
+#: src/transport/plugin_transport_tcp.c:973
+#: src/transport/plugin_transport_tcp.c:1062
+#: src/transport/plugin_transport_tcp.c:1112
+#: src/transport/plugin_transport_tcp.c:1291
+#: src/transport/plugin_transport_tcp.c:1310
 msgid "# bytes currently in TCP buffers"
 msgstr ""
 
-#: src/transport/plugin_transport_tcp.c:839
+#: src/transport/plugin_transport_tcp.c:840
 msgid "# bytes discarded by TCP (disconnect)"
 msgstr ""
 
-#: src/transport/plugin_transport_tcp.c:1065
+#: src/transport/plugin_transport_tcp.c:1066
 msgid "# bytes discarded by TCP (timeout)"
 msgstr ""
 
-#: src/transport/plugin_transport_tcp.c:1114
+#: src/transport/plugin_transport_tcp.c:1115
 msgid "# bytes transmitted via TCP"
 msgstr ""
 
-#: src/transport/plugin_transport_tcp.c:1263
+#: src/transport/plugin_transport_tcp.c:1264
 #, c-format
 msgid "Trying to send with invalid session %p\n"
 msgstr ""
 
-#: src/transport/plugin_transport_tcp.c:1520
+#: src/transport/plugin_transport_tcp.c:1521
 #: src/transport/plugin_transport_udp.c:1488
 msgid "# requests to create session with invalid address"
 msgstr ""
@@ -7938,114 +7947,114 @@ msgstr ""
 msgid "b"
 msgstr "b"
 
-#: src/util/strings.c:452
+#: src/util/strings.c:444
 #, c-format
 msgid "Character sets requested were `%s'->`%s'\n"
 msgstr ""
 
-#: src/util/strings.c:580
+#: src/util/strings.c:572
 msgid "Failed to expand `$HOME': environment variable `HOME' not set"
 msgstr "扩展“$HOME”失败：没有设置环境变量“HOME”"
 
-#: src/util/strings.c:677
+#: src/util/strings.c:669
 msgid "µs"
 msgstr ""
 
-#: src/util/strings.c:681
+#: src/util/strings.c:673
 msgid "forever"
 msgstr ""
 
-#: src/util/strings.c:683
+#: src/util/strings.c:675
 msgid "0 ms"
 msgstr ""
 
-#: src/util/strings.c:689
+#: src/util/strings.c:681
 msgid "ms"
 msgstr "毫秒"
 
-#: src/util/strings.c:695
+#: src/util/strings.c:687
 msgid "s"
 msgstr "秒"
 
-#: src/util/strings.c:701
+#: src/util/strings.c:693
 msgid "m"
 msgstr "分"
 
-#: src/util/strings.c:707
+#: src/util/strings.c:699
 msgid "h"
 msgstr "时"
 
-#: src/util/strings.c:714
+#: src/util/strings.c:706
 #, fuzzy
 msgid "day"
 msgstr " 天"
 
-#: src/util/strings.c:716
+#: src/util/strings.c:708
 #, fuzzy
 msgid "days"
 msgstr " 天"
 
-#: src/util/strings.c:745
+#: src/util/strings.c:737
 msgid "end of time"
 msgstr ""
 
-#: src/util/strings.c:1178
+#: src/util/strings.c:1170
 msgid "IPv6 address did not start with `['\n"
 msgstr ""
 
-#: src/util/strings.c:1186
+#: src/util/strings.c:1178
 msgid "IPv6 address did contain ':' to separate port number\n"
 msgstr ""
 
-#: src/util/strings.c:1192
+#: src/util/strings.c:1184
 msgid "IPv6 address did contain ']' before ':' to separate port number\n"
 msgstr ""
 
-#: src/util/strings.c:1199
+#: src/util/strings.c:1191
 msgid "IPv6 address did contain a valid port number after the last ':'\n"
 msgstr ""
 
-#: src/util/strings.c:1208
+#: src/util/strings.c:1200
 #, fuzzy, c-format
 msgid "Invalid IPv6 address `%s': %s\n"
 msgstr "无效的进程优先级“%s”\n"
 
-#: src/util/strings.c:1414 src/util/strings.c:1430
+#: src/util/strings.c:1406 src/util/strings.c:1422
 msgid "Port not in range\n"
 msgstr ""
 
-#: src/util/strings.c:1439
+#: src/util/strings.c:1431
 #, fuzzy, c-format
 msgid "Malformed port policy `%s'\n"
 msgstr "解析配置文件“%s”失败\n"
 
-#: src/util/strings.c:1522 src/util/strings.c:1553 src/util/strings.c:1601
-#: src/util/strings.c:1622
+#: src/util/strings.c:1514 src/util/strings.c:1545 src/util/strings.c:1593
+#: src/util/strings.c:1614
 #, c-format
 msgid "Invalid format for IP: `%s'\n"
 msgstr "IP 格式无效：“%s”\n"
 
-#: src/util/strings.c:1579
+#: src/util/strings.c:1571
 #, c-format
 msgid "Invalid network notation ('/%d' is not legal in IPv4 CIDR)."
 msgstr "网络表示法无效(“/%d” 在 IPv4 CIDR 中是非法的)。"
 
-#: src/util/strings.c:1631
+#: src/util/strings.c:1623
 #, fuzzy, c-format
 msgid "Invalid format: `%s'\n"
 msgstr "IP 格式无效：“%s”\n"
 
-#: src/util/strings.c:1683
+#: src/util/strings.c:1675
 #, c-format
 msgid "Invalid network notation (does not end with ';': `%s')\n"
 msgstr "无效的网络表示法(没有以“;”结尾：“%s”)\n"
 
-#: src/util/strings.c:1733
+#: src/util/strings.c:1725
 #, c-format
 msgid "Wrong format `%s' for netmask\n"
 msgstr "网络掩码的格式“%s”错误\n"
 
-#: src/util/strings.c:1764
+#: src/util/strings.c:1756
 #, c-format
 msgid "Wrong format `%s' for network\n"
 msgstr "网络的格式“%s”错误\n"

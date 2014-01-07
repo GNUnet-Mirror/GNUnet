@@ -682,6 +682,17 @@ GNUNET_ntoh_double (double d);
 
 /**
  * @ingroup memory
+ * Allocate a size @a n array with structs or unions of the given @a type.
+ * Wrapper around #GNUNET_malloc that returns a pointer
+ * to the newly created objects of the correct type.
+ *
+ * @param n number of elements in the array
+ * @param type name of the struct or union, i.e. pass 'struct Foo'.
+ */
+#define GNUNET_new_array(n, type) (type *) GNUNET_malloc ((n) * sizeof (type))
+
+/**
+ * @ingroup memory
  * Wrapper around malloc. Allocates size bytes of memory.
  * The memory will be zero'ed out.
  *

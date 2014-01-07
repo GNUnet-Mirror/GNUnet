@@ -151,6 +151,21 @@ extern "C"
  */
 #define GNUNET_SIGNATURE_PURPOSE_MESH_KX                21
 
+/**
+ * Signature for the first round of distributed key generation.
+ */
+#define GNUNET_SIGNATURE_PURPOSE_SECRETSHARING_DKG1 22
+
+/**
+ * Signature for the second round of distributed key generation.
+ */
+#define GNUNET_SIGNATURE_PURPOSE_SECRETSHARING_DKG2 23
+
+/**
+ * Signature for cooperatice decryption.
+ */
+#define GNUNET_SIGNATURE_PURPOSE_SECRETSHARING_DECRYPTION 23
+
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

@@ -56,12 +56,15 @@ struct GNUNET_CONSENSUS_ConcludeMessage
    */
   struct GNUNET_MessageHeader header;
 
-  // uint32_t reserved GNUNET_PACKED; // FIXME...
+  /**
+   * Padding, must be zero.
+   */
+  uint32_t reserved GNUNET_PACKED;
 
   /**
-   * Timeout for conclude
+   * Deadline for conclude
    */
-  struct GNUNET_TIME_RelativeNBO timeout;
+  struct GNUNET_TIME_AbsoluteNBO deadline;
 };
 
 

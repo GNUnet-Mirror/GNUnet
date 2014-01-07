@@ -73,7 +73,7 @@ struct GNUNET_CONSENSUS_Handle;
  * @param session_id session identifier
  *                   Allows a group of peers to have more than consensus session.
  * @param new_element_cb callback, called when a new element is added to the set by
- *                    another peer
+ *                    another peer. Also called when an error occurs.
  * @param new_element_cls closure for new_element
  * @return handle to use, NULL on error
  */
@@ -135,14 +135,14 @@ typedef void (*GNUNET_CONSENSUS_ConcludeCallback) (void *cls);
  * try to conclude the consensus within a given time window.
  *
  * @param consensus consensus session
- * @param timeout timeout after which the conculde callback
- *                must be called
+ * @param deadline deadline after which the conculde callback
+ *                 whill be called
  * @param conclude called when the conclusion was successful
  * @param conclude_cls closure for the conclude callback
  */
 void
 GNUNET_CONSENSUS_conclude (struct GNUNET_CONSENSUS_Handle *consensus,
-                           struct GNUNET_TIME_Relative timeout,
+                           struct GNUNET_TIME_Absolute deadline,
                            GNUNET_CONSENSUS_ConcludeCallback conclude,
                            void *conclude_cls);
 

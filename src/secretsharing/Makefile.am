@@ -38,7 +38,9 @@ gnunet_secretsharing_profiler_DEPENDENCIES = \
 
 gnunet_service_secretsharing_SOURCES = \
  gnunet-service-secretsharing.c \
+ secretsharing_common.c \
  secretsharing_protocol.h
+gnunet_service_secretsharing_CFLAGS = $(AM_CFLAGS)
 gnunet_service_secretsharing_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/consensus/libgnunetconsensus.la \
@@ -49,6 +51,7 @@ gnunet_service_secretsharing_DEPENDENCIES = \
 
 libgnunetsecretsharing_la_SOURCES = \
   secretsharing_api.c \
+  secretsharing_common.c \
   secretsharing.h
 libgnunetsecretsharing_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
@@ -57,7 +60,8 @@ libgnunetsecretsharing_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)
 
 check_PROGRAMS = \
- test_secretsharing_api
+ test_secretsharing_api \
+ test_secretsharing_sig
 
 if ENABLE_TEST_RUN
 TESTS = $(check_PROGRAMS)
@@ -69,6 +73,12 @@ test_secretsharing_api_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/secretsharing/libgnunetsecretsharing.la
+
+test_secretsharing_sig_SOURCES = \
+ test_secretsharing_sig.c \
+ secretsharing_protocol.h
+test_secretsharing_sig_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la
 
 EXTRA_DIST = \
   test_secretsharing.conf
