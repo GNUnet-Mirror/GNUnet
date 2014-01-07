@@ -1020,6 +1020,10 @@ insert_round1_element (struct KeygenSession *ks)
   element->data = d;
   element->size = sizeof *d;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "alloc'd size %u\n", sizeof *element + sizeof *d);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "element size %u\n", element->size);
+
+
   d->peer = my_peer;
 
   GNUNET_assert (0 != (v = gcry_mpi_new (PAILLIER_BITS)));
@@ -1032,6 +1036,8 @@ insert_round1_element (struct KeygenSession *ks)
 
   GNUNET_CRYPTO_hash (v_data, PAILLIER_BITS / 8, &d->commitment);
 
+  /*
+
   GNUNET_assert (0 == gcry_mpi_print (GCRYMPI_FMT_USG,
                                       (unsigned char *) d->pubkey.g, PAILLIER_BITS / 8, NULL,
                                       ks->info[ks->local_peer_idx].paillier_g));
@@ -1039,6 +1045,8 @@ insert_round1_element (struct KeygenSession *ks)
   GNUNET_assert (0 == gcry_mpi_print (GCRYMPI_FMT_USG,
                                       (unsigned char *) d->pubkey.n, PAILLIER_BITS / 8, NULL,
                                       ks->info[ks->local_peer_idx].paillier_n));
+
+  */
 
   d->purpose.size = htonl ((sizeof *d) - offsetof (struct GNUNET_SECRETSHARING_KeygenCommitData, purpose));
   d->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_SECRETSHARING_DKG1);
