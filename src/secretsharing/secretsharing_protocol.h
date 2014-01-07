@@ -38,13 +38,6 @@
  */
 #define PAILLIER_BITS 2048
 
-/**
- * Big endian representation of the prime field order used
- * for ElGamal.
- */
-#define ELGAMAL_Q_DATA {0x00 /* FIXME */};
-
-
 GNUNET_NETWORK_STRUCT_BEGIN
 
 
