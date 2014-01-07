@@ -668,7 +668,7 @@ keygen_round1_new_element (void *cls,
   }
 
   if (d->purpose.size !=
-      htons (element->size - offsetof (struct GNUNET_SECRETSHARING_KeygenCommitData, purpose)))
+      htonl (element->size - offsetof (struct GNUNET_SECRETSHARING_KeygenCommitData, purpose)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "keygen commit data with wrong signature purpose size in consensus\n");
     return;
@@ -858,8 +858,8 @@ insert_round2_element (struct KeygenSession *ks)
     pos += PAILLIER_BITS / 8;
   }
 
-  d->purpose.size = htons (element_size - offsetof (struct GNUNET_SECRETSHARING_KeygenRevealData, purpose));
-  d->purpose.purpose = htons (GNUNET_SIGNATURE_PURPOSE_SECRETSHARING_DKG2);
+  d->purpose.size = htonl (element_size - offsetof (struct GNUNET_SECRETSHARING_KeygenRevealData, purpose));
+  d->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_SECRETSHARING_DKG2);
   GNUNET_CRYPTO_eddsa_sign (my_peer_private_key, &d->purpose, &d->signature);
 
   GNUNET_CONSENSUS_insert (ks->consensus, element, NULL, NULL);
@@ -1040,8 +1040,8 @@ insert_round1_element (struct KeygenSession *ks)
                                       (unsigned char *) d->pubkey.n, PAILLIER_BITS / 8, NULL,
                                       ks->info[ks->local_peer_idx].paillier_n));
 
-  d->purpose.size = htons ((sizeof *d) - offsetof (struct GNUNET_SECRETSHARING_KeygenCommitData, purpose));
-  d->purpose.purpose = htons (GNUNET_SIGNATURE_PURPOSE_SECRETSHARING_DKG1);
+  d->purpose.size = htonl ((sizeof *d) - offsetof (struct GNUNET_SECRETSHARING_KeygenCommitData, purpose));
+  d->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_SECRETSHARING_DKG1);
   GNUNET_assert (GNUNET_OK == GNUNET_CRYPTO_eddsa_sign (my_peer_private_key, &d->purpose, &d->signature));
 
   GNUNET_CONSENSUS_insert (ks->consensus, element, NULL, NULL);
