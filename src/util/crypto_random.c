@@ -1,6 +1,6 @@
 /*
-     This file is part of GNUnet.
-     (C) 2001-2013 Christian Grothoff (and other contributing authors)
+     This file is part of GNUnet.  (C) 2001-2013 Christian Grothoff
+     (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -285,13 +285,6 @@ GNUNET_CRYPTO_random_init ()
     FPRINTF (stderr,
              "Failed to set libgcrypt option %s: %s\n",
              "DISABLE_SECMEM",
-	     gcry_strerror (rc));
-  /* we only generate ephemeral keys in-process; for those,
-     we are fine with "just" using GCRY_STRONG_RANDOM */
-  if ((rc = gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0)))
-    FPRINTF (stderr,
-             "Failed to set libgcrypt option %s: %s\n",
-             "ENABLE_QUICK_RANDOM",
 	     gcry_strerror (rc));
   gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
   gcry_fast_random_poll ();
