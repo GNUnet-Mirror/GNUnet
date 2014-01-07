@@ -135,7 +135,12 @@ setup_db (const char *dbfile)
       "oid INTEGER,"
       "bandwidth INTEGER DEFAULT NULL,"
       "latency INTEGER DEFAULT NULL,"
-      "loss INTEGER DEFAULT NULL);";
+      "loss INTEGER DEFAULT NULL,"
+      " UNIQUE ("
+      "  id,"
+      "  oid"
+      " ) ON CONFLICT IGNORE"
+      ");";
   const char *query_insert =
       "INSERT INTO whitelist("
       " id,"
@@ -151,7 +156,8 @@ setup_db (const char *dbfile)
       " ?5);";
   int ret;
   
-  if (SQLITE_OK != (ret = sqlite3_open (dbfile, &db)))
+  ret = GNUNET_SYSERR;
+  if (SQLITE_OK != sqlite3_open (dbfile, &db))
   {
     LOG_SQLITE (db, NULL, GNUNET_ERROR_TYPE_ERROR, "sqlite3_open");
     goto err_ret;
@@ -159,22 +165,20 @@ setup_db (const char *dbfile)
   if (0 != sqlite3_exec (db, query_create, NULL, NULL, NULL))
   {
     LOG_SQLITE (db, NULL, GNUNET_ERROR_TYPE_ERROR, "sqlite3_exec");
+    FPRINTF (stderr, "Perhaps the database `%s' already exits.\n", dbfile);
     goto err_ret;
   }
-  if (0 != sqlite3_exec (db, "PRAGMA synchronous = 0;", NULL, NULL, NULL))
-  {
-    LOG_SQLITE (db, NULL, GNUNET_ERROR_TYPE_ERROR, "sqlite3_exec");
-    goto err_ret;
-  }
-  if (SQLITE_OK != (ret = sqlite3_prepare_v2 (db, query_insert, -1,
-                                              &stmt_insert, NULL)))
+  GNUNET_break (0 == sqlite3_exec (db, "PRAGMA synchronous = 0;", NULL, NULL, NULL));
+  if (SQLITE_OK != sqlite3_prepare_v2 (db, query_insert, -1,
+                                       &stmt_insert, NULL))
   {
     LOG_SQLITE (db, NULL, GNUNET_ERROR_TYPE_ERROR, "sqlite3_prepare_v2");
     goto err_ret;
   }
-  
+  ret = GNUNET_OK;
+
  err_ret:
-  return (SQLITE_OK != ret) ? GNUNET_SYSERR : GNUNET_OK;
+  return ret;
 }
 
 
