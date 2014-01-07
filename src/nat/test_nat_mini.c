@@ -42,12 +42,17 @@
  * believes to be valid for the transport.
  */
 static void
-addr_callback (void *cls, int add_remove, const struct sockaddr *addr,
-               socklen_t addrlen)
+addr_callback (void *cls, int add_remove,
+               const struct sockaddr *addr,
+               socklen_t addrlen,
+               const char *emsg)
 {
-  fprintf (stderr, "Address changed: %s `%s' (%u bytes)\n",
-           add_remove == GNUNET_YES ? "added" : "removed", GNUNET_a2s (addr,
-                                                                       addrlen),
+  fprintf (stderr,
+           "Address changed: %s `%s' (%u bytes)\n",
+           add_remove == GNUNET_YES
+           ? "added" : "removed",
+           GNUNET_a2s (addr,
+                       addrlen),
            (unsigned int) addrlen);
 }
 
@@ -76,7 +81,8 @@ run (void *cls, char *const *args, const char *cfgfile,
   struct GNUNET_NAT_MiniHandle *mini;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Requesting NAT redirection for port %u...\n", PORT);
+              "Requesting NAT redirection for port %u...\n",
+              PORT);
   mini = GNUNET_NAT_mini_map_start (PORT, GNUNET_YES /* tcp */ ,
                                     &addr_callback, NULL);
   if (NULL == mini)

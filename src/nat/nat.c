@@ -1011,12 +1011,14 @@ resolve_dns (void *cls,
  *     the previous (now invalid) one
  * @param addr either the previous or the new public IP address
  * @param addrlen actual lenght of @a addr
+ * @param emsg NULL on success, otherwise an error message
  */
 static void
 upnp_add (void *cls,
           int add_remove,
           const struct sockaddr *addr,
-          socklen_t addrlen)
+          socklen_t addrlen,
+          const char *emsg)
 {
   struct GNUNET_NAT_Handle *h = cls;
   struct LocalAddressList *pos;

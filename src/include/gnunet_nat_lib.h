@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2007, 2008, 2009, 2010, 2011, 2012 Christian Grothoff (and other contributing authors)
+     (C) 2007-2014 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -22,7 +22,7 @@
  * @file include/gnunet_nat_lib.h
  * @brief Library handling UPnP and NAT-PMP port forwarding and
  *     external IP address retrieval
- *
+ * @author Christian Grothoff
  * @author Milan Bouchet-Valat
  */
 
@@ -30,6 +30,7 @@
 #define GNUNET_NAT_LIB_H
 
 #include "gnunet_util_lib.h"
+
 
 /**
  * Signature of the callback passed to #GNUNET_NAT_register() for
@@ -41,9 +42,11 @@
  * @param addr either the previous or the new public IP address
  * @param addrlen actual length of the @a addr
  */
-typedef void (*GNUNET_NAT_AddressCallback) (void *cls, int add_remove,
-                                            const struct sockaddr *addr,
-                                            socklen_t addrlen);
+typedef void
+(*GNUNET_NAT_AddressCallback) (void *cls,
+                               int add_remove,
+                               const struct sockaddr *addr,
+                               socklen_t addrlen);
 
 
 /**
@@ -55,9 +58,10 @@ typedef void (*GNUNET_NAT_AddressCallback) (void *cls, int add_remove,
  * @param addr public IP address of the other peer
  * @param addrlen actual lenght of the @a addr
  */
-typedef void (*GNUNET_NAT_ReversalCallback) (void *cls,
-                                             const struct sockaddr *addr,
-                                             socklen_t addrlen);
+typedef void
+(*GNUNET_NAT_ReversalCallback) (void *cls,
+                                const struct sockaddr *addr,
+                                socklen_t addrlen);
 
 
 /**
@@ -67,11 +71,12 @@ struct GNUNET_NAT_Handle;
 
 
 /**
- * Attempt to enable port redirection and detect public IP address contacting
- * UPnP or NAT-PMP routers on the local network. Use addr to specify to which
- * of the local host's addresses should the external port be mapped. The port
- * is taken from the corresponding sockaddr_in[6] field.  The NAT module
- * should call the given callback for any 'plausible' external address.
+ * Attempt to enable port redirection and detect public IP address
+ * contacting UPnP or NAT-PMP routers on the local network. Use addr
+ * to specify to which of the local host's addresses should the
+ * external port be mapped. The port is taken from the corresponding
+ * sockaddr_in[6] field.  The NAT module should call the given
+ * callback for any 'plausible' external address.
  *
  * @param cfg configuration to use
  * @param is_tcp #GNUNET_YES for TCP, #GNUNET_NO for UDP
@@ -99,7 +104,8 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 
 /**
- * Test if the given address is (currently) a plausible IP address for this peer.
+ * Test if the given address is (currently) a plausible IP address for
+ * this peer.
  *
  * @param h the handle returned by register
  * @param addr IP address to test (IPv4 or IPv6)
@@ -154,8 +160,12 @@ struct GNUNET_NAT_Test;
  * @param success #GNUNET_OK on success, #GNUNET_NO on failure,
  *                #GNUNET_SYSERR if the test could not be
  *                properly started (internal failure)
+ * @param emsg NULL on success, otherwise may include an error message
  */
-typedef void (*GNUNET_NAT_TestCallback) (void *cls, int success);
+typedef void (*GNUNET_NAT_TestCallback) (void *cls,
+                                         int success,
+                                         const char *emsg);
+
 
 /**
  * Start testing if NAT traversal works using the
@@ -192,9 +202,11 @@ GNUNET_NAT_test_stop (struct GNUNET_NAT_Test *tst);
  *
  * @param cls closure
  * @param addr the address, NULL on errors
+ * @param emsg NULL on success, otherwise may include an error message
  */
 typedef void (*GNUNET_NAT_IPCallback) (void *cls,
-                                       const struct in_addr * addr);
+                                       const struct in_addr *addr,
+                                       const char *emsg);
 
 
 
@@ -234,6 +246,24 @@ struct GNUNET_NAT_MiniHandle;
 
 
 /**
+ * Signature of the callback passed to #GNUNET_NAT_register() for
+ * a function to call whenever our set of 'valid' addresses changes.
+ *
+ * @param cls closure
+ * @param add_remove #GNUNET_YES to mean the new public IP address, #GNUNET_NO to mean
+ *     the previous (now invalid) one
+ * @param addr either the previous or the new public IP address
+ * @param addrlen actual length of the @a addr
+ */
+typedef void
+(*GNUNET_NAT_MiniAddressCallback) (void *cls,
+                                   int add_remove,
+                                   const struct sockaddr *addr,
+                                   socklen_t addrlen,
+                                   const char *emsg);
+
+
+/**
  * Start mapping the given port using (mini)upnpc.  This function
  * should typically not be used directly (it is used within the
  * general-purpose #GNUNET_NAT_register() code).  However, it can be
@@ -247,14 +277,15 @@ struct GNUNET_NAT_MiniHandle;
  * @return NULL on error
  */
 struct GNUNET_NAT_MiniHandle *
-GNUNET_NAT_mini_map_start (uint16_t port, int is_tcp,
-                           GNUNET_NAT_AddressCallback ac,
+GNUNET_NAT_mini_map_start (uint16_t port,
+                           int is_tcp,
+                           GNUNET_NAT_MiniAddressCallback ac,
                            void *ac_cls);
 
 
 /**
  * Remove a mapping created with (mini)upnpc.  Calling
- * this function will give 'upnpc' 1s to remove tha mapping,
+ * this function will give 'upnpc' 1s to remove the mapping,
  * so while this function is non-blocking, a task will be
  * left with the scheduler for up to 1s past this call.
  *
@@ -276,9 +307,12 @@ struct GNUNET_NAT_AutoHandle;
  * @param cls closure
  * @param diff minimal suggested changes to the original configuration
  *             to make it work (as best as we can)
+ * @param emsg NULL on success, otherwise may include an error message
  */
-typedef void (*GNUNET_NAT_AutoResultCallback)(void *cls,
-					      const struct GNUNET_CONFIGURATION_Handle *diff);
+typedef void
+(*GNUNET_NAT_AutoResultCallback)(void *cls,
+                                 const struct GNUNET_CONFIGURATION_Handle *diff,
+                                 const char *emsg);
 
 
 /**

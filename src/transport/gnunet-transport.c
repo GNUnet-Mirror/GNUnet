@@ -371,9 +371,12 @@ display_test_result (struct TestContext *tc, int result)
  *
  * @param cls test context
  * @param success currently always #GNUNET_OK
+ * @param emsg error message, NULL on success
  */
 static void
-result_callback (void *cls, int success)
+result_callback (void *cls,
+                 int success,
+                 const char *emsg)
 {
   struct TestContext *tc = cls;
 

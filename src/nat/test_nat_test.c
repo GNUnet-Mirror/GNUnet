@@ -47,14 +47,18 @@ end_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_NAT_test_stop (tst);
 }
 
+
 static void
-report_success (void *cls, int success)
+report_success (void *cls,
+                int success,
+                const char *emsg)
 {
   GNUNET_assert (GNUNET_OK == success);
   ret = 0;
   GNUNET_SCHEDULER_cancel (end);
   end = GNUNET_SCHEDULER_add_now (&end_test, NULL);
 }
+
 
 /**
  * Main function run with scheduler.
@@ -64,7 +68,8 @@ run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   tst =
-      GNUNET_NAT_test_start (cfg, GNUNET_YES, 1285, 1285, &report_success,
+      GNUNET_NAT_test_start (cfg, GNUNET_YES, 1285, 1285,
+                             &report_success,
                              NULL);
   if (NULL == tst)
     return;
@@ -100,10 +105,12 @@ main (int argc, char *const argv[])
     return 0;
   }
 
-  gns =
-      GNUNET_OS_start_process (GNUNET_YES, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, "gnunet-nat-server",
-                               "gnunet-nat-server",
-                               "-c", "test_nat_test_data.conf", "12345", NULL);
+  gns = GNUNET_OS_start_process (GNUNET_YES,
+                                 GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
+                                 NULL, NULL, "gnunet-nat-server",
+                                 "gnunet-nat-server",
+                                 "-c", "test_nat_test_data.conf",
+                                 "12345", NULL);
   GNUNET_assert (NULL != gns);
   GNUNET_PROGRAM_run (3, argv_prog, "test-nat-test", "nohelp", options, &run,
                       NULL);
@@ -111,7 +118,8 @@ main (int argc, char *const argv[])
   GNUNET_break (GNUNET_OK == GNUNET_OS_process_wait (gns));
   GNUNET_OS_process_destroy (gns);
   if (0 != ret)
-    fprintf (stderr, "NAT test failed to report success\n");
+    fprintf (stderr,
+             "NAT test failed to report success\n");
   return ret;
 }
 

@@ -177,7 +177,7 @@ reversal_cb (void *cls,
   struct GNUNET_NAT_Test *h = cls;
   const struct sockaddr_in *sa;
 
-  if (addrlen != sizeof (struct sockaddr_in))
+  if (sizeof (struct sockaddr_in) != addrlen)
     return;
   sa = (const struct sockaddr_in *) addr;
   if (h->data != sa->sin_port)
@@ -187,7 +187,7 @@ reversal_cb (void *cls,
     return;                     /* wrong port */
   }
   /* report success */
-  h->report (h->report_cls, GNUNET_OK);
+  h->report (h->report_cls, GNUNET_OK, NULL);
 }
 
 
@@ -199,7 +199,8 @@ reversal_cb (void *cls,
  * @param tc scheduler context
  */
 static void
-do_udp_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_udp_read (void *cls,
+             const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_NAT_Test *tst = cls;
   uint16_t data;
@@ -214,7 +215,7 @@ do_udp_read (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
        GNUNET_NETWORK_socket_recv (tst->lsock, &data, sizeof (data))))
   {
     if (data == tst->data)
-      tst->report (tst->report_cls, GNUNET_OK);
+      tst->report (tst->report_cls, GNUNET_OK, NULL);
     else
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            "Received data mismatches expected value\n");
@@ -249,10 +250,10 @@ do_read (void *cls,
        GNUNET_NETWORK_socket_recv (na->sock, &data, sizeof (data))))
   {
     if (data == tst->data)
-      tst->report (tst->report_cls, GNUNET_OK);
+      tst->report (tst->report_cls, GNUNET_OK, NULL);
     else
       LOG (GNUNET_ERROR_TYPE_DEBUG,
-           "Received data mismatches expected value\n");
+           "Received data does not match expected value\n");
   }
   else
     LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -295,8 +296,9 @@ do_accept (void *cls,
   wl->sock = s;
   wl->h = tst;
   wl->rtask =
-      GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL, wl->sock,
-                                     &do_read, wl);
+    GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
+                                   wl->sock,
+                                   &do_read, wl);
   GNUNET_CONTAINER_DLL_insert (tst->na_head, tst->na_tail, wl);
 }
 
@@ -331,7 +333,8 @@ addr_cb (void *cls,
 	 GNUNET_a2s (addr, addrlen));
     return;                     /* ignore IPv6 here */
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Asking gnunet-nat-server to connect to `%s'\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Asking gnunet-nat-server to connect to `%s'\n",
        GNUNET_a2s (addr, addrlen));
   sa = (const struct sockaddr_in *) addr;
   msg.header.size = htons (sizeof (struct GNUNET_NAT_TestMessage));
@@ -398,7 +401,7 @@ GNUNET_NAT_test_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   ret->adv_port = adv_port;
   ret->report = report;
   ret->report_cls = report_cls;
-  if (bnd_port == 0)
+  if (0 == bnd_port)
   {
     ret->nat =
         GNUNET_NAT_register (cfg, is_tcp, 0, 0, NULL, NULL, &addr_cb,

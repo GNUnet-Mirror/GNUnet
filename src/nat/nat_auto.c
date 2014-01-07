@@ -185,9 +185,12 @@ fail_timeout (void *cls,
  *
  * @param cls the auto handle
  * @param success currently always #GNUNET_OK
+ * @param emsg NULL on success, otherwise an error message
  */
 static void
-result_callback (void *cls, int success)
+result_callback (void *cls,
+                 int success,
+                 const char *emsg)
 {
   struct GNUNET_NAT_AutoHandle *ah = cls;
 
@@ -250,10 +253,12 @@ test_online (struct GNUNET_NAT_AutoHandle *ah)
  *
  * @param cls closure with our setup context
  * @param addr the address, NULL on errors
+ * @param emsg NULL on success, otherwise an error message
  */
 static void
 set_external_ipv4 (void *cls,
-                   const struct in_addr *addr)
+                   const struct in_addr *addr,
+                   const char *emsg)
 {
   struct GNUNET_NAT_AutoHandle *ah = cls;
   char buf[INET_ADDRSTRLEN];
@@ -519,7 +524,8 @@ next_phase (struct GNUNET_NAT_AutoHandle *ah)
     diff = GNUNET_CONFIGURATION_get_diff (ah->initial_cfg,
 					  ah->cfg);
     ah->fin_cb (ah->fin_cb_cls,
-		diff);
+		diff,
+                NULL);
     GNUNET_CONFIGURATION_destroy (diff);
     GNUNET_NAT_autoconfig_cancel (ah);
     return;
