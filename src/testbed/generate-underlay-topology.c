@@ -28,6 +28,7 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_testbed_service.h"
 #include "testbed_api_topology.h"
+#include "sqlite3.h"
 
 #define LOG(type, ...)                          \
   GNUNET_log (type, __VA_ARGS__)
@@ -36,6 +37,30 @@
 #define LOG_ERROR(...)                          \
   LOG (GNUNET_ERROR_TYPE_ERROR, __VA_ARGS__)
 
+/**
+ * Log an error message at log-level 'level' that indicates
+ * a failure of the command 'cmd' on file 'filename'
+ * with the message given by strerror(errno).
+ */
+#define LOG_SQLITE(db, msg, level, cmd)                                 \
+  do {                                                                  \
+    GNUNET_log_from (level, "sqlite", _("`%s' failed at %s:%d with error: %s\n"), \
+                     cmd, __FILE__,__LINE__, sqlite3_errmsg(db));  \
+    if (msg != NULL)                                                    \
+      GNUNET_asprintf(msg, _("`%s' failed at %s:%u with error: %s"), cmd, \
+                      __FILE__, __LINE__, sqlite3_errmsg(db));     \
+  } while(0)
+
+
+/**
+ * Handle to the sqlite3 database
+ */
+static struct sqlite3 *db;
+
+/**
+ * Prepared statement for inserting link values into db
+ */
+struct sqlite3_stmt *stmt_insert;
 
 /**
  * The topology to generate
@@ -72,8 +97,89 @@ link_processor (void *cls,
                 unsigned int latency,
                 unsigned int loss)
 {
+  if ( (SQLITE_OK != sqlite3_bind_int (stmt_insert, 1, A)) ||
+       (SQLITE_OK != sqlite3_bind_int (stmt_insert, 2, B)) ||
+       (SQLITE_OK != sqlite3_bind_int (stmt_insert, 3, bandwidth)) ||
+       (SQLITE_OK != sqlite3_bind_int (stmt_insert, 4, latency)) ||
+       (SQLITE_OK != sqlite3_bind_int (stmt_insert, 5, loss)) )
+  {
+    LOG_SQLITE (db, NULL, GNUNET_ERROR_TYPE_ERROR, "sqlite3_bind_int");
+    return GNUNET_SYSERR;
+  }
+  if (SQLITE_DONE != sqlite3_step (stmt_insert))
+  {
+    LOG_SQLITE (db, NULL, GNUNET_ERROR_TYPE_ERROR, "sqlite3_step");
+    return GNUNET_SYSERR;
+  }
   FPRINTF (stdout, "%u -> %u\n", A, B);
+  GNUNET_break (SQLITE_OK == sqlite3_reset (stmt_insert));
+  //GNUNET_break (SQLITE_OK == sqlite3_clear_bindings (stmt_insert));
   return GNUNET_OK;
+}
+
+
+/**
+ * Open the database file, creating a new database if not existing and setup the
+ * whitelist table
+ *
+ * @param dbfile the database filename
+ * @return GNUNET_OK upon success; GNUNET_SYSERR upon failure (error message has
+ * to be printed)
+ */
+static int
+setup_db (const char *dbfile)
+{
+  const char *query_create =
+      "CREATE TABLE whitelist ("
+      "id INTEGER,"
+      "oid INTEGER,"
+      "bandwidth INTEGER DEFAULT NULL,"
+      "latency INTEGER DEFAULT NULL,"
+      "loss INTEGER DEFAULT NULL);";
+  const char *query_insert =
+      "INSERT INTO whitelist("
+      " id,"
+      " oid,"
+      " bandwidth,"
+      " latency,"
+      " loss"
+      ") VALUES ("
+      " ?1,"
+      " ?2,"
+      " ?3,"
+      " ?4," 
+      " ?5);";
+  struct sqlite3_stmt *stmt_create;
+  int ret;
+  
+  stmt_create = NULL;
+  if (SQLITE_OK != (ret = sqlite3_open (dbfile, &db)))
+  {
+    LOG_SQLITE (db, NULL, GNUNET_ERROR_TYPE_ERROR, "sqlite3_open");
+    goto err_ret;
+  }
+  if (SQLITE_OK != (ret = sqlite3_prepare_v2 (db, query_create, -1,
+                                              &stmt_create, NULL)))
+  {
+    LOG_SQLITE (db, NULL, GNUNET_ERROR_TYPE_ERROR, "sqlite3_prepare_v2");
+    goto err_ret;
+  }
+  if (SQLITE_DONE != sqlite3_step (stmt_create))
+  {
+    LOG_SQLITE (db, NULL, GNUNET_ERROR_TYPE_ERROR, "sqlite3_step");
+    goto err_ret;
+  }
+  if (SQLITE_OK != (ret = sqlite3_prepare_v2 (db, query_insert, -1,
+                                              &stmt_insert, NULL)))
+  {
+    LOG_SQLITE (db, NULL, GNUNET_ERROR_TYPE_ERROR, "sqlite3_prepare_v2");
+    goto err_ret;
+  }
+  
+ err_ret:
+  if (NULL != stmt_create)
+    sqlite3_finalize (stmt_create);
+  return (SQLITE_OK != ret) ? GNUNET_SYSERR : GNUNET_OK;
 }
 
 
@@ -108,6 +214,8 @@ run (void *cls, char *const *args, const char *cfgfile,
     LOG_ERROR (_("Database filename missing\n"));
     return;
   }
+  if (GNUNET_OK != setup_db (dbfile))
+    return;
   if (NULL == (topology_string = args[argc++]))
   {
     LOG_ERROR (_("Topology string missing\n"));
@@ -238,6 +346,10 @@ main (int argc, char *const argv[])
                             "\t filename: the path of the file which contains topology information\n"
                             "NOTE: the format of the above file is descibed here: https://www.gnunet.org/content/topology-file-format\n"),
                           option, &run, NULL);
+  if (NULL != stmt_insert)
+    sqlite3_finalize (stmt_insert);
+  if (NULL != db)
+    sqlite3_close (db);
   if ((GNUNET_OK != ret) || (GNUNET_OK != exit_result))
     return 1;
   return 0;
