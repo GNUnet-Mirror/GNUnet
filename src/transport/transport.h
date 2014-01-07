@@ -341,11 +341,12 @@ struct AddressLookupMessage
 };
 
 
+#if 0
 /**
  * Message from the library to the transport service
  * asking for human readable addresses known for a peer.
  */
-struct PeerAddressLookupMessage
+struct PeerLookupMessage
 {
   /**
    * Type will be GNUNET_MESSAGE_TYPE_TRANSPORT_PEER_ADDRESS_LOOKUP
@@ -367,13 +368,14 @@ struct PeerAddressLookupMessage
    */
   struct GNUNET_PeerIdentity peer;
 };
+#endif
 
 
 /**
  * Message from the library to the transport service
  * asking for binary addresses known for a peer.
  */
-struct AddressIterateMessage
+struct PeerIterateMessage
 {
   /**
    * Type will be GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE
@@ -427,15 +429,19 @@ struct TrafficMetricMessage
 
 
 /**
- * Message from the transport service to the library
- * containing binary addresses known for a peer.
+ * Message from the transport service to the library containing information
+ * about a peer. Information contained are:
+ * - current address used to communicate with this peer
+ * - state
+ * - state timeout
+ *
  * Memory layout:
  * [AddressIterateResponseMessage][address[addrlen]][transportname[pluginlen]]
  */
-struct AddressIterateResponseMessage
+struct PeerIterateResponseMessage
 {
   /**
-   * Type will be GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE_RESPONSE
+   * Type is #GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE_RESPONSE
    */
   struct GNUNET_MessageHeader header;
 
@@ -444,18 +450,28 @@ struct AddressIterateResponseMessage
    */
   uint32_t reserved;
 
-    /**
+  /**
    * Peer identity
    */
   struct GNUNET_PeerIdentity peer;
 
   /**
-   * address length
+   * Timeout for the state this peer is in
+   */
+  struct GNUNET_TIME_AbsoluteNBO state_timeout;
+
+  /**
+   * State this peer is in as #GNUNET_TRANSPORT_PeerState enumeration element
+   */
+  uint32_t state GNUNET_PACKED;
+
+  /**
+   * Address length
    */
   uint32_t addrlen GNUNET_PACKED;
 
   /**
-   * length of the plugin name
+   * Length of the plugin name
    */
   uint32_t pluginlen GNUNET_PACKED;
 

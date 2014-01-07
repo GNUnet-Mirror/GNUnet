@@ -62,6 +62,19 @@ extern struct GNUNET_CRYPTO_EddsaPrivateKey *GST_my_private_key;
  */
 extern struct GNUNET_ATS_SchedulingHandle *GST_ats;
 
+
+/**
+ * Function to call when a peer's address has changed
+ *
+ * @param cls closure
+ * @param peer peer this update is about,
+ * @param address address, NULL for disconnect notification
+ */
+typedef void (*GNUNET_TRANSPORT_AddressChangeCallback) (void *cls,
+                                                      const struct GNUNET_PeerIdentity *peer,
+                                                      const struct GNUNET_HELLO_Address *address);
+
+
 /**
  * Function called by the transport for each received message.
  * This function should also be called with "NULL" for the

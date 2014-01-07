@@ -29,6 +29,7 @@
 #include "gnunet_statistics_service.h"
 #include "gnunet_transport_service.h"
 #include "gnunet_transport_plugin.h"
+#include "gnunet-service-transport.h"
 #include "transport.h"
 #include "gnunet_util_lib.h"
 
@@ -50,7 +51,7 @@ void
 GST_neighbours_start (void *cls,
                       NotifyConnect connect_cb,
                       GNUNET_TRANSPORT_NotifyDisconnect disconnect_cb,
-                      GNUNET_TRANSPORT_PeerIterateCallback peer_address_cb,
+                      GNUNET_TRANSPORT_AddressChangeCallback peer_address_cb,
                       unsigned int max_fds);
 
 

@@ -851,11 +851,11 @@ clients_handle_address_to_string (void *cls,
  * @param address the address, NULL on disconnect
  * @return composed message
  */
-static struct AddressIterateResponseMessage *
+static struct PeerIterateResponseMessage *
 compose_address_iterate_response_message (const struct GNUNET_PeerIdentity *peer,
                                           const struct GNUNET_HELLO_Address *address)
 {
-  struct AddressIterateResponseMessage *msg;
+  struct PeerIterateResponseMessage *msg;
   size_t size;
   size_t tlen;
   size_t alen;
@@ -869,7 +869,7 @@ compose_address_iterate_response_message (const struct GNUNET_PeerIdentity *peer
   }
   else
     tlen = alen = 0;
-  size = (sizeof (struct AddressIterateResponseMessage) + alen + tlen);
+  size = (sizeof (struct PeerIterateResponseMessage) + alen + tlen);
   msg = GNUNET_malloc (size);
   msg->header.size = htons (size);
   msg->header.type =
@@ -904,7 +904,7 @@ output_address (void *cls, const struct GNUNET_PeerIdentity *peer,
                 struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out)
 {
   struct GNUNET_SERVER_TransmitContext *tc = cls;
-  struct AddressIterateResponseMessage *msg;
+  struct PeerIterateResponseMessage *msg;
 
   msg = compose_address_iterate_response_message (peer, address);
   GNUNET_SERVER_transmit_context_append_message (tc, &msg->header);
@@ -927,7 +927,7 @@ clients_handle_address_iterate (void *cls, struct GNUNET_SERVER_Client *client,
 {
   static struct GNUNET_PeerIdentity all_zeros;
   struct GNUNET_SERVER_TransmitContext *tc;
-  struct AddressIterateMessage *msg;
+  struct PeerIterateMessage *msg;
   struct GNUNET_HELLO_Address *address;
 
   if (ntohs (message->type) != GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE)
@@ -936,13 +936,13 @@ clients_handle_address_iterate (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-  if (ntohs (message->size) != sizeof (struct AddressIterateMessage))
+  if (ntohs (message->size) != sizeof (struct PeerIterateMessage))
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
-  msg = (struct AddressIterateMessage *) message;
+  msg = (struct PeerIterateMessage *) message;
   if ( (GNUNET_YES != ntohl (msg->one_shot)) &&
        (NULL != lookup_monitoring_client (client)) )
   {
@@ -1000,7 +1000,7 @@ GST_clients_start (struct GNUNET_SERVER_Handle *server)
      GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_TO_STRING, 0},
     {&clients_handle_address_iterate, NULL,
      GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE,
-     sizeof (struct AddressIterateMessage)},
+     sizeof (struct PeerIterateMessage)},
     {&GST_blacklist_handle_init, NULL,
      GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_INIT,
      sizeof (struct GNUNET_MessageHeader)},
@@ -1090,7 +1090,7 @@ void
 GST_clients_broadcast_address_notification (const struct GNUNET_PeerIdentity *peer,
                                             const struct GNUNET_HELLO_Address *address)
 {
-  struct AddressIterateResponseMessage *msg;
+  struct PeerIterateResponseMessage *msg;
   struct MonitoringClient *mc;
   static struct GNUNET_PeerIdentity all_zeros;
   msg = compose_address_iterate_response_message (peer, address);

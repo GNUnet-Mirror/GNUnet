@@ -134,7 +134,7 @@ libgnunettransport_la_SOURCES = \
   transport_api.c transport.h \
   transport_api_blacklist.c \
   transport_api_address_to_string.c \
-  transport_api_address_lookup.c
+  transport_api_monitoring.c
 libgnunettransport_la_LIBADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/util/libgnunetutil.la \

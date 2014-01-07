@@ -19,14 +19,15 @@
 */
 
 /**
- * @file transport/transport_api_address_lookup.c
- * @brief given a peer id, get all known addresses from transport service
+ * @file transport/transport_api_montoring.c
+ * @brief montoring api for transport peer status and validation entries
  *
  * This api provides the ability to query the transport service about
- * the status of connections to a specific peer.  Calls back with a
- * pretty printed string of the address, as formatted by the appropriate
- * transport plugin, and whether or not the address given is currently
- * in the 'connected' state (according to the transport service).
+ * the status of a specific or all peers as well as address validation entries.
+ *
+ * Calls back with information about peer(s) including address used, state and
+ * state timeout for peer requests and address, address lifetime and next revalidation
+ * for validation entries.
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -37,9 +38,9 @@
 #include "transport.h"
 
 /**
- * Context for the address lookup.
+ * Context for iterating validation entries.
  */
-struct GNUNET_TRANSPORT_PeerIterateContext
+struct GNUNET_TRANSPORT_PeerMonitoringContext
 {
   /**
    * Function to call with the binary address.
@@ -89,6 +90,59 @@ struct GNUNET_TRANSPORT_PeerIterateContext
 
 
 /**
+ * Context for the address lookup.
+ */
+struct GNUNET_TRANSPORT_ValidationMonitoringContext
+{
+  /**
+   * Function to call with the binary address.
+   */
+  GNUNET_TRANSPORT_ValidationIterateCallback cb;
+
+  /**
+   * Closure for cb.
+   */
+  void *cb_cls;
+
+  /**
+   * Connection to the service.
+   */
+  struct GNUNET_CLIENT_Connection *client;
+
+  /**
+   * Configuration we use.
+   */
+  const struct GNUNET_CONFIGURATION_Handle *cfg;
+
+  /**
+   * When should this operation time out?
+   */
+  struct GNUNET_TIME_Absolute timeout;
+
+  /**
+   * Backoff for reconnect.
+   */
+  struct GNUNET_TIME_Relative backoff;
+
+  /**
+   * Task ID for reconnect.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier reconnect_task;
+
+  /**
+   * Identity of the peer to monitor.
+   */
+  struct GNUNET_PeerIdentity peer;
+
+  /**
+   * Was this a one-shot request?
+   */
+  int one_shot;
+};
+
+
+
+/**
  * Function called with responses from the service.
  *
  * @param cls our 'struct GNUNET_TRANSPORT_PeerAddressLookupContext*'
@@ -106,11 +160,11 @@ peer_address_response_processor (void *cls,
  * @param pal_ctx our context
  */
 static void
-send_request (struct GNUNET_TRANSPORT_PeerIterateContext *pal_ctx)
+send_request (struct GNUNET_TRANSPORT_PeerMonitoringContext *pal_ctx)
 {
-  struct AddressIterateMessage msg;
+  struct PeerIterateMessage msg;
 
-  msg.header.size = htons (sizeof (struct AddressIterateMessage));
+  msg.header.size = htons (sizeof (struct PeerIterateMessage));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE);
   msg.one_shot = htonl (pal_ctx->one_shot);
   msg.timeout = GNUNET_TIME_absolute_hton (pal_ctx->timeout);
@@ -134,7 +188,7 @@ static void
 do_connect (void *cls,
 	    const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct GNUNET_TRANSPORT_PeerIterateContext *pal_ctx = cls;
+  struct GNUNET_TRANSPORT_PeerMonitoringContext *pal_ctx = cls;
 
   pal_ctx->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
   pal_ctx->client = GNUNET_CLIENT_connect ("transport", pal_ctx->cfg);
@@ -149,7 +203,7 @@ do_connect (void *cls,
  * @param pal_ctx our context
  */
 static void
-reconnect (struct GNUNET_TRANSPORT_PeerIterateContext *pal_ctx)
+reconnect (struct GNUNET_TRANSPORT_PeerMonitoringContext *pal_ctx)
 {
   GNUNET_assert (GNUNET_NO == pal_ctx->one_shot);
   GNUNET_CLIENT_disconnect (pal_ctx->client);
@@ -172,8 +226,8 @@ static void
 peer_address_response_processor (void *cls,
                                  const struct GNUNET_MessageHeader *msg)
 {
-  struct GNUNET_TRANSPORT_PeerIterateContext *pal_ctx = cls;
-  struct AddressIterateResponseMessage *air_msg;
+  struct GNUNET_TRANSPORT_PeerMonitoringContext *pal_ctx = cls;
+  struct PeerIterateResponseMessage *air_msg;
   struct GNUNET_HELLO_Address *address;
   const char *addr;
   const char *transport_name;
@@ -185,8 +239,9 @@ peer_address_response_processor (void *cls,
   {
     if (pal_ctx->one_shot)
     {
-      pal_ctx->cb (pal_ctx->cb_cls, NULL, NULL);
-      GNUNET_TRANSPORT_peer_get_active_addresses_cancel (pal_ctx);
+      pal_ctx->cb (pal_ctx->cb_cls, NULL, NULL,
+          S_NOT_CONNECTED, GNUNET_TIME_UNIT_ZERO_ABS);
+      GNUNET_TRANSPORT_monitor_peers_cancel (pal_ctx);
     }
     else
     {
@@ -202,8 +257,9 @@ peer_address_response_processor (void *cls,
     /* done! */
     if (pal_ctx->one_shot)
     {
-      pal_ctx->cb (pal_ctx->cb_cls, NULL, NULL);
-      GNUNET_TRANSPORT_peer_get_active_addresses_cancel (pal_ctx);
+      pal_ctx->cb (pal_ctx->cb_cls, NULL, NULL,
+          S_NOT_CONNECTED, GNUNET_TIME_UNIT_ZERO_ABS);
+      GNUNET_TRANSPORT_monitor_peers_cancel (pal_ctx);
     }
     else
     {
@@ -212,15 +268,16 @@ peer_address_response_processor (void *cls,
     return;
   }
 
-  if ((size < sizeof (struct AddressIterateResponseMessage)) ||
+  if ((size < sizeof (struct PeerIterateResponseMessage)) ||
       (ntohs (msg->type) !=
        GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE_RESPONSE))
   {
     GNUNET_break (0);
     if (pal_ctx->one_shot)
     {
-      pal_ctx->cb (pal_ctx->cb_cls, NULL, NULL);
-      GNUNET_TRANSPORT_peer_get_active_addresses_cancel (pal_ctx);
+      pal_ctx->cb (pal_ctx->cb_cls, NULL, NULL,
+          S_NOT_CONNECTED, GNUNET_TIME_UNIT_ZERO_ABS);
+      GNUNET_TRANSPORT_monitor_peers_cancel (pal_ctx);
     }
     else
     {
@@ -229,17 +286,18 @@ peer_address_response_processor (void *cls,
     return;
   }
 
-  air_msg = (struct AddressIterateResponseMessage *) msg;
+  air_msg = (struct PeerIterateResponseMessage *) msg;
   tlen = ntohl (air_msg->pluginlen);
   alen = ntohl (air_msg->addrlen);
 
-  if (size != sizeof (struct AddressIterateResponseMessage) + tlen + alen)
+  if (size != sizeof (struct PeerIterateResponseMessage) + tlen + alen)
   {
     GNUNET_break (0);
     if (pal_ctx->one_shot)
     {
-      pal_ctx->cb (pal_ctx->cb_cls, NULL, NULL);
-      GNUNET_TRANSPORT_peer_get_active_addresses_cancel (pal_ctx);
+      pal_ctx->cb (pal_ctx->cb_cls, NULL, NULL,
+          S_NOT_CONNECTED, GNUNET_TIME_UNIT_ZERO_ABS);
+      GNUNET_TRANSPORT_monitor_peers_cancel (pal_ctx);
     }
     else
     {
@@ -250,7 +308,8 @@ peer_address_response_processor (void *cls,
 
   if (alen == 0 && tlen == 0)
   {
-    pal_ctx->cb (pal_ctx->cb_cls, &air_msg->peer, NULL);
+    pal_ctx->cb (pal_ctx->cb_cls, &air_msg->peer, NULL,
+        S_NOT_CONNECTED, GNUNET_TIME_UNIT_ZERO_ABS);
   }
   else
   {
@@ -262,8 +321,9 @@ peer_address_response_processor (void *cls,
       GNUNET_break (0);
       if (pal_ctx->one_shot)	
       {
-	pal_ctx->cb (pal_ctx->cb_cls, NULL, NULL);
-	GNUNET_TRANSPORT_peer_get_active_addresses_cancel (pal_ctx);
+	pal_ctx->cb (pal_ctx->cb_cls, NULL, NULL,
+	    S_NOT_CONNECTED, GNUNET_TIME_UNIT_ZERO_ABS);
+	GNUNET_TRANSPORT_monitor_peers_cancel (pal_ctx);
       }
       else
       {
@@ -273,10 +333,11 @@ peer_address_response_processor (void *cls,
     }
 
     /* notify client */
-    address =
-        GNUNET_HELLO_address_allocate (&air_msg->peer, transport_name, addr,
-                                       alen);
-    pal_ctx->cb (pal_ctx->cb_cls, &air_msg->peer, address);
+    address = GNUNET_HELLO_address_allocate (&air_msg->peer,
+        transport_name, addr, alen);
+    pal_ctx->cb (pal_ctx->cb_cls, &air_msg->peer, address,
+        ntohl(air_msg->state),
+        GNUNET_TIME_absolute_ntoh (air_msg->state_timeout));
     GNUNET_HELLO_address_free (address);
   }
 
@@ -304,17 +365,15 @@ peer_address_response_processor (void *cls,
  * @param peer_address_callback function to call with the results
  * @param peer_address_callback_cls closure for peer_address_callback
  */
-struct GNUNET_TRANSPORT_PeerIterateContext *
-GNUNET_TRANSPORT_peer_get_active_addresses (const struct
-                                            GNUNET_CONFIGURATION_Handle *cfg,
-                                            const struct GNUNET_PeerIdentity
-                                            *peer, int one_shot,
-                                            struct GNUNET_TIME_Relative timeout,
-                                            GNUNET_TRANSPORT_PeerIterateCallback
-                                            peer_address_callback,
-                                            void *peer_address_callback_cls)
+struct GNUNET_TRANSPORT_PeerMonitoringContext *
+GNUNET_TRANSPORT_monitor_peers (const struct GNUNET_CONFIGURATION_Handle *cfg,
+    const struct GNUNET_PeerIdentity *peer,
+    int one_shot,
+    struct GNUNET_TIME_Relative timeout,
+    GNUNET_TRANSPORT_PeerIterateCallback peer_address_callback,
+    void *peer_address_callback_cls)
 {
-  struct GNUNET_TRANSPORT_PeerIterateContext *pal_ctx;
+  struct GNUNET_TRANSPORT_PeerMonitoringContext *pal_ctx;
   struct GNUNET_CLIENT_Connection *client;
 
   client = GNUNET_CLIENT_connect ("transport", cfg);
@@ -322,7 +381,7 @@ GNUNET_TRANSPORT_peer_get_active_addresses (const struct
     return NULL;
   if (GNUNET_YES != one_shot)
     timeout = GNUNET_TIME_UNIT_FOREVER_REL;
-  pal_ctx = GNUNET_new (struct GNUNET_TRANSPORT_PeerIterateContext);
+  pal_ctx = GNUNET_new (struct GNUNET_TRANSPORT_PeerMonitoringContext);
   pal_ctx->cb = peer_address_callback;
   pal_ctx->cb_cls = peer_address_callback_cls;
   pal_ctx->cfg = cfg;
@@ -343,9 +402,8 @@ GNUNET_TRANSPORT_peer_get_active_addresses (const struct
  * @param alc handle for the request to cancel
  */
 void
-GNUNET_TRANSPORT_peer_get_active_addresses_cancel (struct
-                                                   GNUNET_TRANSPORT_PeerIterateContext
-                                                   *alc)
+GNUNET_TRANSPORT_monitor_peers_cancel (
+    struct GNUNET_TRANSPORT_PeerMonitoringContext *alc)
 {
   if (NULL != alc->client)
   {
@@ -361,4 +419,42 @@ GNUNET_TRANSPORT_peer_get_active_addresses_cancel (struct
 }
 
 
-/* end of transport_api_peer_address_lookup.c */
+/**
+ * Return information about a peer's or all current pending validation operations
+ *
+ * @param cfg configuration to use
+ * @param peer a specific peer identity to obtain validation entries for,
+ *      NULL for all peers
+ * @param one_shot GNUNET_YES to return all entries and then end (with NULL+NULL),
+ *                 GNUNET_NO to monitor validation entries continuously
+ * @param timeout how long is the lookup allowed to take at most
+ * @param peer_address_callback function to call with the results
+ * @param peer_address_callback_cls closure for peer_address_callback
+ */
+struct GNUNET_TRANSPORT_ValidationMonitoringContext *
+GNUNET_TRANSPORT_monitor_validation_entries (const struct
+                                GNUNET_CONFIGURATION_Handle *cfg,
+                                const struct GNUNET_PeerIdentity *peer,
+                                int one_shot,
+                                struct GNUNET_TIME_Relative timeout,
+                                GNUNET_TRANSPORT_ValidationIterateCallback validation_callback,
+                                void *validation_callback_cls)
+{
+  /* Not implemented */
+  return NULL;
+}
+
+
+/**
+ * Return information about all current pending validation operations
+ *
+ * @param vic handle for the request to cancel
+ */
+void
+GNUNET_TRANSPORT_monitor_validation_entries_cancel (struct GNUNET_TRANSPORT_ValidationMonitoringContext *vic)
+{
+  /* Not implemented */
+}
+
+
+/* end of transport_api_montoring.c */

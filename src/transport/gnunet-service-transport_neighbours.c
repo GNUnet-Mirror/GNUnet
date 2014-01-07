@@ -231,167 +231,6 @@ struct MessageQueue
 };
 
 
-/**
- * Possible state of a neighbour.  Initially, we are #S_NOT_CONNECTED.
- *
- * Then, there are two main paths. If we receive a CONNECT message, we
- * first run a check against the blacklist (#S_CONNECT_RECV_BLACKLIST_INBOUND).
- * If this check is successful, we give the inbound address to ATS.
- * After the check we ask ATS for a suggestion (S_CONNECT_RECV_ATS).
- * If ATS makes a suggestion, we ALSO give that suggestion to the blacklist
- * (#S_CONNECT_RECV_BLACKLIST).  Once the blacklist approves the
- * address we got from ATS, we send our CONNECT_ACK and go to
- * #S_CONNECT_RECV_ACK.  If we receive a SESSION_ACK, we go to
- * #S_CONNECTED (and notify everyone about the new connection).  If the
- * operation times out, we go to #S_DISCONNECT.
- *
- * The other case is where we transmit a CONNECT message first.  We
- * start with #S_INIT_ATS.  If we get an address, we enter
- * #S_INIT_BLACKLIST and check the blacklist.  If the blacklist is OK
- * with the connection, we actually send the CONNECT message and go to
- * state S_CONNECT_SENT.  Once we receive a CONNECT_ACK, we go to
- * #S_CONNECTED (and notify everyone about the new connection and send
- * back a SESSION_ACK).  If the operation times out, we go to
- * #S_DISCONNECT.
- *
- * If the session is in trouble (i.e. transport-level disconnect or
- * timeout), we go to #S_RECONNECT_ATS where we ask ATS for a new
- * address (we don't notify anyone about the disconnect yet).  Once we
- * have a new address, we go to #S_RECONNECT_BLACKLIST to check the new
- * address against the blacklist.  If the blacklist approves, we enter
- * #S_RECONNECT_SENT and send a CONNECT message.  If we receive a
- * CONNECT_ACK, we go to #S_CONNECTED and nobody noticed that we had
- * trouble; we also send a SESSION_ACK at this time just in case.  If
- * the operation times out, we go to S_DISCONNECT (and notify everyone
- * about the lost connection).
- *
- * If ATS decides to switch addresses while we have a normal
- * connection, we go to #S_CONNECTED_SWITCHING_BLACKLIST to check the
- * new address against the blacklist.  If the blacklist approves, we
- * go to #S_CONNECTED_SWITCHING_CONNECT_SENT and send a
- * SESSION_CONNECT.  If we get a SESSION_ACK back, we switch the
- * primary connection to the suggested alternative from ATS, go back
- * to #S_CONNECTED and send a SESSION_ACK to the other peer just to be
- * sure.  If the operation times out (or the blacklist disapproves),
- * we go to #S_CONNECTED (and notify ATS that the given alternative
- * address is "invalid").
- *
- * Once a session is in #S_DISCONNECT, it is cleaned up and then goes
- * to (#S_DISCONNECT_FINISHED).  If we receive an explicit disconnect
- * request, we can go from any state to #S_DISCONNECT, possibly after
- * generating disconnect notifications.
- *
- * Note that it is quite possible that while we are in any of these
- * states, we could receive a 'CONNECT' request from the other peer.
- * We then enter a 'weird' state where we pursue our own primary state
- * machine (as described above), but with the 'send_connect_ack' flag
- * set to 1.  If our state machine allows us to send a 'CONNECT_ACK'
- * (because we have an acceptable address), we send the 'CONNECT_ACK'
- * and set the 'send_connect_ack' to 2.  If we then receive a
- * 'SESSION_ACK', we go to #S_CONNECTED (and reset 'send_connect_ack'
- * to 0).
- *
- */
-enum State
-{
-  /**
-   * fresh peer or completely disconnected
-   */
-  S_NOT_CONNECTED = 0,
-
-  /**
-   * Asked to initiate connection, trying to get address from ATS
-   */
-  S_INIT_ATS,
-
-  /**
-   * Asked to initiate connection, trying to get address approved
-   * by blacklist.
-   */
-  S_INIT_BLACKLIST,
-
-  /**
-   * Sent CONNECT message to other peer, waiting for CONNECT_ACK
-   */
-  S_CONNECT_SENT,
-
-  /**
-   * Received a CONNECT, do a blacklist check for inbound address
-   */
-  S_CONNECT_RECV_BLACKLIST_INBOUND,
-
-  /**
-   * Received a CONNECT, asking ATS about address suggestions.
-   */
-  S_CONNECT_RECV_ATS,
-
-  /**
-   * Received CONNECT from other peer, got an address, checking with blacklist.
-   */
-  S_CONNECT_RECV_BLACKLIST,
-
-  /**
-   * CONNECT request from other peer was SESSION_ACK'ed, waiting for
-   * SESSION_ACK.
-   */
-  S_CONNECT_RECV_ACK,
-
-  /**
-   * Got our CONNECT_ACK/SESSION_ACK, connection is up.
-   */
-  S_CONNECTED,
-
-  /**
-   * Connection got into trouble, rest of the system still believes
-   * it to be up, but we're getting a new address from ATS.
-   */
-  S_RECONNECT_ATS,
-
-  /**
-   * Connection got into trouble, rest of the system still believes
-   * it to be up; we are checking the new address against the blacklist.
-   */
-  S_RECONNECT_BLACKLIST,
-
-  /**
-   * Sent CONNECT over new address (either by ATS telling us to switch
-   * addresses or from RECONNECT_ATS); if this fails, we need to tell
-   * the rest of the system about a disconnect.
-   */
-  S_RECONNECT_SENT,
-
-  /**
-   * We have some primary connection, but ATS suggested we switch
-   * to some alternative; we're now checking the alternative against
-   * the blacklist.
-   */
-  S_CONNECTED_SWITCHING_BLACKLIST,
-
-  /**
-   * We have some primary connection, but ATS suggested we switch
-   * to some alternative; we now sent a CONNECT message for the
-   * alternative session to the other peer and waiting for a
-   * CONNECT_ACK to make this our primary connection.
-   */
-  S_CONNECTED_SWITCHING_CONNECT_SENT,
-
-  /**
-   * Disconnect in progress (we're sending the DISCONNECT message to the
-   * other peer; after that is finished, the state will be cleaned up).
-   */
-  S_DISCONNECT,
-
-  /**
-   * We're finished with the disconnect; and are cleaning up the state
-   * now!  We put the struct into this state when we are really in the
-   * task that calls 'free' on it and are about to remove the record
-   * from the map.  We should never find a 'struct NeighbourMapEntry'
-   * in this state in the map.  Accessing a 'struct NeighbourMapEntry'
-   * in this state virtually always means using memory that has been
-   * freed (the exception being the cleanup code in #free_neighbour()).
-   */
-  S_DISCONNECT_FINISHED
-};
 
 
 /**
@@ -534,7 +373,7 @@ struct NeighbourMapEntry
   /**
    * The current state of the peer.
    */
-  enum State state;
+  enum GNUNET_TRANSPORT_PeerState state;
 
   /**
    * Did we sent an KEEP_ALIVE message and are we expecting a response?
@@ -641,7 +480,7 @@ static GNUNET_TRANSPORT_NotifyDisconnect disconnect_notify_cb;
 /**
  * Function to call when we changed an active address of a neighbour.
  */
-static GNUNET_TRANSPORT_PeerIterateCallback address_change_cb;
+static GNUNET_TRANSPORT_AddressChangeCallback address_change_cb;
 
 /**
  * counter for connected neighbours
@@ -681,7 +520,7 @@ lookup_neighbour (const struct GNUNET_PeerIdentity *pid)
  * @return corresponding string
  */
 static const char *
-print_state (enum State state)
+print_state (enum GNUNET_TRANSPORT_PeerState state)
 {
   switch (state)
   {
@@ -3616,7 +3455,7 @@ void
 GST_neighbours_start (void *cls,
                       NotifyConnect connect_cb,
                       GNUNET_TRANSPORT_NotifyDisconnect disconnect_cb,
-                      GNUNET_TRANSPORT_PeerIterateCallback peer_address_cb,
+                      GNUNET_TRANSPORT_AddressChangeCallback peer_address_cb,
                       unsigned int max_fds)
 {
   callback_cls = cls;
