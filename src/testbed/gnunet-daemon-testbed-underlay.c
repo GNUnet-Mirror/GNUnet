@@ -61,25 +61,9 @@
 
 
 /**
- * Allow access from the peers read from the whitelist
- */
-#define ACCESS_ALLOW 1
-
-/**
- * Deny access from the peers read from the blacklist
- */
-#define ACCESS_DENY 0
-
-/**
  * The map to store the peer identities to allow/deny
  */
 static struct GNUNET_CONTAINER_MultiPeerMap *map;
-
-
-/**
- * The map to store the peer identities to allow/deny
- */
-static struct GNUNET_CONTAINER_MultiPeerMap *blacklist_map;
 
 /**
  * The database connection
@@ -93,9 +77,14 @@ static struct sqlite3 *db;
 struct GNUNET_TRANSPORT_Blacklist *bh;
 
 /**
- * The peer ID map
+ * The hostkeys file
  */
-static struct GNUNET_DISK_MapHandle *idmap;
+struct GNUNET_DISK_FileHandle *hostkeys_fd;
+
+/**
+ * The hostkeys map
+ */
+static struct GNUNET_DISK_MapHandle *hostkeys_map;
 
 /**
  * The hostkeys data
@@ -116,11 +105,6 @@ static unsigned int num_hostkeys;
  * Task for shutdown
  */
 static GNUNET_SCHEDULER_TaskIdentifier shutdown_task;
-
-/**
- * Are we allowing or denying access from peers
- */
-static int mode;
 
 
 /**
@@ -161,21 +145,6 @@ cleanup_map ()
 
 
 /**
- * Shutdown task to cleanup our resources and exit.
- *
- * @param cls NULL
- * @param tc scheduler task context
- */
-static void
-do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  cleanup_map ();
-  if (NULL != bh)
-    GNUNET_TRANSPORT_blacklist_cancel (bh);
-}
-
-
-/**
  * Function that decides if a connection is acceptable or not.
  *
  * @param cls closure
@@ -187,12 +156,8 @@ check_access (void *cls, const struct GNUNET_PeerIdentity * pid)
 {
   int contains;
 
-  if (NULL != map)
-    contains = GNUNET_CONTAINER_multipeermap_contains (map, pid);
-  else
-    contains = GNUNET_NO;
-  if (ACCESS_DENY == mode)
-    return (contains) ? GNUNET_SYSERR : GNUNET_OK;
+  GNUNET_assert (NULL != map);
+  contains = GNUNET_CONTAINER_multipeermap_contains (map, pid);
   return (contains) ? GNUNET_OK : GNUNET_SYSERR;
 }
 
@@ -210,41 +175,6 @@ get_identity (unsigned int offset, struct GNUNET_PeerIdentity *id)
   GNUNET_CRYPTO_eddsa_key_get_public (&private_key, &id->public_key);
   return GNUNET_OK;
 }
-
-
-/**
- * Function to blacklist a peer
- *
- * @param offset the offset where to find the peer's hostkey in the array of hostkeys
- */
-static void
-blacklist_peer (unsigned int offset)
-{
-  struct GNUNET_PeerIdentity id;
-
-  GNUNET_assert (offset < num_hostkeys);
-  GNUNET_assert (GNUNET_OK == get_identity (offset, &id));
-  GNUNET_break (GNUNET_OK ==
-                GNUNET_CONTAINER_multipeermap_put (map, &id, &id,
-                                                   GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-
-}
-
-/**
- * Blacklist peer
- */
-struct BlackListRow
-{
-  /**
-   * Next ptr
-   */
-  struct BlackListRow *next;
-
-  /**
-   * The offset where to find the hostkey for the peer
-   */
-  unsigned int id;
-};
 
 
 /**
@@ -287,12 +217,10 @@ load_keys (const struct GNUNET_CONFIGURATION_Handle *c)
 {
   char *data_dir;
   char *idfile;
-  struct GNUNET_DISK_FileHandle *fd;
   uint64_t fsize;
 
   data_dir = NULL;
   idfile = NULL;
-  fd = NULL;
   fsize = 0;
   data_dir = GNUNET_OS_installation_get_path (GNUNET_OS_IPK_DATADIR);
   GNUNET_asprintf (&idfile, "%s/testing_hostkeys.ecc", data_dir);
@@ -311,9 +239,9 @@ load_keys (const struct GNUNET_CONFIGURATION_Handle *c)
     GNUNET_free (idfile);
     return GNUNET_SYSERR;
   }
-  fd = GNUNET_DISK_file_open (idfile, GNUNET_DISK_OPEN_READ,
-                              GNUNET_DISK_PERM_NONE);
-  if (NULL == fd)
+  hostkeys_fd = GNUNET_DISK_file_open (idfile, GNUNET_DISK_OPEN_READ,
+                                       GNUNET_DISK_PERM_NONE);
+  if (NULL == hostkeys_fd)
   {
     GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "open", idfile);
     GNUNET_free (idfile);
@@ -321,61 +249,55 @@ load_keys (const struct GNUNET_CONFIGURATION_Handle *c)
   }
   GNUNET_free (idfile);
   idfile = NULL;
-  hostkeys_data = GNUNET_DISK_file_map (fd,
-                                        &idmap,
+  hostkeys_data = GNUNET_DISK_file_map (hostkeys_fd,
+                                        &hostkeys_map,
                                         GNUNET_DISK_MAP_TYPE_READ,
                                         fsize);
-  if (NULL != hostkeys_data)
-    num_hostkeys = fsize / GNUNET_TESTING_HOSTKEYFILESIZE;
+  if (NULL == hostkeys_data)
+  {
+
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "mmap");
+    return GNUNET_SYSERR;
+  }
+  num_hostkeys = fsize / GNUNET_TESTING_HOSTKEYFILESIZE;
   return GNUNET_OK;
 }
 
 
 /**
- * Function to read blacklist rows from the database
- *
- * @param db the database connection
- * @param pid the identity of this peer
- * @param bl_rows where to store the retrieved blacklist rows
- * @return GNUNET_SYSERR upon error OR the number of rows retrieved
+ * Function to unload keys
  */
-static int
-db_read_blacklist (struct sqlite3 *db, unsigned int pid, struct BlackListRow **bl_rows)
+static void
+unload_keys ()
 {
-  static const char *query_bl = "SELECT (oid) FROM blacklist WHERE (id == ?);";
-  struct sqlite3_stmt *stmt_bl;
-  struct BlackListRow *lr;
-  int nrows;
-  int peer_id;
-  int ret;
+  if (NULL != hostkeys_map)
+  {
+    GNUNET_assert (NULL != hostkeys_data);
+    GNUNET_DISK_file_unmap (hostkeys_map);
+    hostkeys_map = NULL;
+    hostkeys_data = NULL;
+  }
+  if (NULL != hostkeys_fd)
+  {
+    GNUNET_DISK_file_close (hostkeys_fd);
+    hostkeys_fd = NULL;
+  }
+}
 
-  if (SQLITE_OK != (ret = sqlite3_prepare_v2 (db, query_bl, -1, &stmt_bl, NULL)))
-  {
-    LOG_SQLITE (db, NULL, GNUNET_ERROR_TYPE_ERROR, "sqlite3_prepare_v2");
-    return GNUNET_SYSERR;
-  }
-  if (SQLITE_OK != (ret = sqlite3_bind_int (stmt_bl, 1, pid)))
-  {
-    LOG_SQLITE (db, NULL, GNUNET_ERROR_TYPE_ERROR, "sqlite3_bind_int");
-    sqlite3_finalize (stmt_bl);
-    return GNUNET_SYSERR;
-  }
-  nrows = 0;
-  do
-  {
-    ret = sqlite3_step (stmt_bl);
-    if (SQLITE_ROW != ret)
-      break;
-    peer_id = sqlite3_column_int (stmt_bl, 1);
-    lr = GNUNET_new (struct BlackListRow);
-    lr->id = peer_id;
-    lr->next = *bl_rows;
-    *bl_rows = lr;
-    nrows++;
-  } while (1);
-  sqlite3_finalize (stmt_bl);
-  stmt_bl = NULL;
-  return nrows;
+
+/**
+ * Shutdown task to cleanup our resources and exit.
+ *
+ * @param cls NULL
+ * @param tc scheduler task context
+ */
+static void
+do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  cleanup_map ();
+  unload_keys ();
+  if (NULL != bh)
+    GNUNET_TRANSPORT_blacklist_cancel (bh);
 }
 
 
@@ -440,12 +362,10 @@ run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   char *dbfile;
-  struct BlackListRow *bl_head;
-  struct BlackListRow *bl_entry;
   struct WhiteListRow *wl_head;
   struct WhiteListRow *wl_entry;
   struct GNUNET_PeerIdentity identity;
-  struct GNUNET_ATS_Information triplet[3];
+  struct GNUNET_ATS_Information params[1];
   unsigned long long pid;
   unsigned int nrows;
   int ret;
@@ -462,8 +382,8 @@ run (void *cls, char *const *args, const char *cfgfile,
     GNUNET_break (0);
     return;
   }
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (c, "TESTBED",
-                                                            "UNDERLAY_DB",
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (c, "TESTBED-UNDERLAY",
+                                                            "DBFILE",
                                                             &dbfile))
   {
     GNUNET_break (0);
@@ -484,59 +404,37 @@ run (void *cls, char *const *args, const char *cfgfile,
   DEBUG ("Opened database %s\n", dbfile);
   GNUNET_free (dbfile);
   dbfile = NULL;
-  bl_head = NULL;
   wl_head = NULL;
-  nrows = db_read_blacklist (db, pid, &bl_head);
-  if (GNUNET_SYSERR == nrows)
-    goto close_db;
-  if (nrows > 0)
-  {
-    blacklist_map = GNUNET_CONTAINER_multipeermap_create (nrows, GNUNET_YES);
-    if (GNUNET_OK != load_keys (c))
+  if (GNUNET_OK != load_keys (c))
       goto close_db;
-  }
-  while (NULL != (bl_entry = bl_head))
-  {
-    bl_head = bl_entry->next;
-    blacklist_peer (bl_entry->id);
-    GNUNET_free (bl_entry);
-  }
-  if (NULL != blacklist_map)
-  {
-    bh = GNUNET_TRANSPORT_blacklist (c, &check_access, NULL);
-    shutdown_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                                  &do_shutdown, NULL);
-  }
   /* read and process whitelist */
   nrows = 0;
   wl_head = NULL;
   nrows = db_read_whitelist (db, pid, &wl_head);
   if ((GNUNET_SYSERR == nrows) || (0 == nrows))
     goto close_db;
-  triplet[0].type = 0; //FIXME: not implemented: GNUNET_ATS_QUALITY_NET_THROUGHPUT
-  triplet[1].type = GNUNET_ATS_QUALITY_NET_DELAY;
-  triplet[2].type =  0; //FIXME: not implemented: GNUNET_ATS_QUALITY_NET_LOSSRATE;
+  map = GNUNET_CONTAINER_multipeermap_create (nrows, GNUNET_YES);
+  params[0].type = GNUNET_ATS_QUALITY_NET_DELAY;
   while (NULL != (wl_entry = wl_head))
   {
     wl_head = wl_entry->next;
-    triplet[0].value = wl_entry->bandwidth; //FIXME: bandwidth != throughput !!
-    triplet[1].value = wl_entry->latency;
-    triplet[2].value = wl_entry->loss;
+    params[0].value = wl_entry->latency;
     GNUNET_assert (GNUNET_OK == get_identity (wl_entry->id, &identity));
+    GNUNET_break (GNUNET_OK ==
+                  GNUNET_CONTAINER_multipeermap_put (map, &identity, &identity,
+                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST));
     GNUNET_TRANSPORT_set_traffic_metric (transport,
                                          &identity,
                                          GNUNET_YES,
                                          GNUNET_YES, /* FIXME: Separate inbound, outboud metrics */
-                                         triplet, 3);
+                                         params, 3);
     GNUNET_free (wl_entry);
   }
+  bh = GNUNET_TRANSPORT_blacklist (c, &check_access, NULL);
+  shutdown_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
+                                                &do_shutdown, NULL);
 
  close_db:
-  while (NULL != (bl_entry = bl_head))
-  {
-    bl_head = bl_entry->next;
-    GNUNET_free (bl_entry);
-  }
   GNUNET_break (GNUNET_OK == sqlite3_close (db));
   return;
 }
