@@ -54,7 +54,7 @@ struct KeygenPeerInfo
   gcry_mpi_t presecret_commitment;
 
   /**
-   * The peer's preshare that we could decrypt
+   * The peer's preshare that we decrypted
    * with out private key.
    */
   gcry_mpi_t decrypted_preshare;
@@ -71,13 +71,16 @@ struct KeygenPeerInfo
   int round1_valid;
 
   /**
-   * Did we successfully receive the round1 element
+   * Did we successfully receive the round2 element
    * of the peer?
    */
   int round2_valid;
 };
 
 
+/**
+ * Information about a peer in a decrypt session.
+ */
 struct DecryptPeerInfo
 {
   /**
@@ -177,12 +180,12 @@ struct KeygenSession
   struct GNUNET_HashCode session_id;
 
   /**
-   * g-component of our peer's paillier private key.
+   * lambda-component of our peer's paillier private key.
    */
   gcry_mpi_t paillier_lambda;
 
   /**
-   * g-component of our peer's paillier private key.
+   * mu-component of our peer's paillier private key.
    */
   gcry_mpi_t paillier_mu;
 
@@ -205,6 +208,9 @@ struct KeygenSession
 };
 
 
+/**
+ * Session to cooperatively decrypt a value.
+ */
 struct DecryptSession
 {
   /**
@@ -245,6 +251,8 @@ struct DecryptSession
 
   /**
    * Share of the local peer.
+   * Containts other important information, such as
+   * the list of other peers.
    */
   struct GNUNET_SECRETSHARING_Share *share;
 
@@ -277,19 +285,19 @@ static struct KeygenSession *keygen_sessions_tail;
 
 /**
  * The ElGamal prime field order as libgcrypt mpi.
- * Will be initialized to 'ELGAMAL_Q_DATA'.
+ * Initialized in #init_crypto_constants.
  */
 static gcry_mpi_t elgamal_q;
 
 /**
  * Modulus of the prime field used for ElGamal.
- * Will be initialized to 'ELGAMAL_P_DATA'.
+ * Initialized in #init_crypto_constants.
  */
 static gcry_mpi_t elgamal_p;
 
 /**
  * Generator for prime field of order 'elgamal_q'.
- * Will be initialized to 'ELGAMAL_G_DATA'.
+ * Initialized in #init_crypto_constants.
  */
 static gcry_mpi_t elgamal_g;
 
@@ -341,8 +349,8 @@ adjust (unsigned char *buf,
  *
  * @param buf buffer to write to
  * @param x mpi to be written in the buffer
- * @param bytes how many bytes should the value use
- * @param 
+ * @param size how many bytes should the little endian binary
+ *             representation of @a x use?
  */
 static void
 print_mpi_fixed (void *buf, gcry_mpi_t x, size_t size)
@@ -355,6 +363,13 @@ print_mpi_fixed (void *buf, gcry_mpi_t x, size_t size)
 }
 
 
+/**
+ * Get the peer info belonging to a peer identity in a keygen session.
+ *
+ * @param ks the keygen session
+ * @param peer the peer identity
+ * @return the keygen peer info, or NULL if the peer could not be found
+ */
 static struct KeygenPeerInfo *
 get_keygen_peer_info (const struct KeygenSession *ks,
                       const struct GNUNET_PeerIdentity *peer)
@@ -367,6 +382,13 @@ get_keygen_peer_info (const struct KeygenSession *ks,
 }
 
 
+/**
+ * Get the peer info belonging to a peer identity in a decrypt session.
+ *
+ * @param ks the decrypt session
+ * @param peer the peer identity
+ * @return the decrypt peer info, or NULL if the peer could not be found
+ */
 static struct DecryptPeerInfo *
 get_decrypt_peer_info (const struct DecryptSession *ds,
                       const struct GNUNET_PeerIdentity *peer)
@@ -379,6 +401,14 @@ get_decrypt_peer_info (const struct DecryptSession *ds,
 }
 
 
+/**
+ * Interpolate between two points in time.
+ *
+ * @param start start time
+ * @param end end time
+ * @param num numerator of the scale factor
+ * @param denum denumerator of the scale factor
+ */
 static struct GNUNET_TIME_Absolute
 time_between (struct GNUNET_TIME_Absolute start,
               struct GNUNET_TIME_Absolute end,
@@ -409,7 +439,16 @@ peer_id_cmp (const void *p1, const void *p2)
 }
 
 
-int
+/**
+ * Get the index of a peer in an array of peers
+ *
+ * @param haystack array of peers
+ * @param n size of @a haystack
+ * @param needle peer to find
+ * @return index of @a needle in @a haystack, or -1 if peer
+ *         is not in the list.
+ */
+static int
 peer_find (const struct GNUNET_PeerIdentity *haystack, unsigned int n,
            const struct GNUNET_PeerIdentity *needle)
 {
@@ -637,6 +676,11 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
+/**
+ * Generate the random coefficients of our pre-secret polynomial
+ *
+ * @param ks the session
+ */
 static void
 generate_presecret_polynomial (struct KeygenSession *ks)
 {
