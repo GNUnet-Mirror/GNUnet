@@ -202,6 +202,17 @@ struct MeshConnection
   GNUNET_SCHEDULER_TaskIdentifier bck_maintenance_task;
 
   /**
+   * Queue handle for maintainance traffic. One handle for FWD and BCK since
+   * one peer never needs to maintain both directions (no loopback connections).
+   */
+  struct MeshPeerQueue *maintenance_q;
+
+  /**
+   * Counter to do exponential backoff when creating a connection (max 64).
+   */
+  unsigned short create_retry;
+
+  /**
    * Pending message count.
    */
   int pending_messages;
@@ -396,6 +407,8 @@ connection_change_state (struct MeshConnection* c,
               "Connection %s state is now %s\n",
               GMC_2s (c), GMC_state2s (state));
   c->state = state;
+  if (MESH_CONNECTION_READY == state)
+    c->create_retry = 1;
 }
 
 
@@ -903,8 +916,18 @@ connection_maintain (struct MeshConnection *c, int fwd)
 }
 
 
+/**
+ * Keep the connection alive in the FWD direction.
+ *
+ * Call connection_maintain do to the work and schedule the next execution,
+ * taking in consideration the connection state and number of retries.
+ *
+ * @param cls Closure (connection to keepalive).
+ * @param tc TaskContext.
+ */
 static void
-connection_fwd_keepalive (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+connection_fwd_keepalive (void *cls,
+                          const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct MeshConnection *c = cls;
   struct GNUNET_TIME_Relative delay;
@@ -914,16 +937,39 @@ connection_fwd_keepalive (void *cls, const struct GNUNET_SCHEDULER_TaskContext *
     return;
 
   connection_maintain (c, GNUNET_YES);
-  delay = c->state == MESH_CONNECTION_READY ?
-          refresh_connection_time : create_connection_time;
+  if (MESH_CONNECTION_READY == c->state)
+  {
+    delay = refresh_connection_time;
+  }
+  else
+  {
+    if (1 > c->create_retry)
+      c->create_retry = 1;
+    delay = GNUNET_TIME_relative_multiply (create_connection_time,
+                                           c->create_retry);
+    if (c->create_retry < 64)
+      c->create_retry *= 2;
+  }
   c->fwd_maintenance_task = GNUNET_SCHEDULER_add_delayed (delay,
                                                           &connection_fwd_keepalive,
                                                           c);
 }
 
 
+/**
+ * Keep the connection alive in the BCK direction.
+ *
+ * Call connection_maintain do to the work and schedule the next execution,
+ * taking in consideration the connection state and number of retries.
+ *
+ * TODO refactor and merge with connection_fwd_keepalive.
+ *
+ * @param cls Closure (connection to keepalive).
+ * @param tc TaskContext.
+ */
 static void
-connection_bck_keepalive (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+connection_bck_keepalive (void *cls,
+                          const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct MeshConnection *c = cls;
   struct GNUNET_TIME_Relative delay;
@@ -933,8 +979,19 @@ connection_bck_keepalive (void *cls, const struct GNUNET_SCHEDULER_TaskContext *
     return;
 
   connection_maintain (c, GNUNET_NO);
-  delay = c->state == MESH_CONNECTION_READY ?
-          refresh_connection_time : create_connection_time;
+  if (MESH_CONNECTION_READY == c->state)
+  {
+    delay = refresh_connection_time;
+  }
+  else
+  {
+    if (1 > c->create_retry)
+      c->create_retry = 1;
+    delay = GNUNET_TIME_relative_multiply (create_connection_time,
+                                           c->create_retry);
+    if (c->create_retry < 64)
+      c->create_retry *= 2;
+  }
   c->bck_maintenance_task = GNUNET_SCHEDULER_add_delayed (delay,
                                                           &connection_bck_keepalive,
                                                           c);
