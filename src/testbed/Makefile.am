@@ -19,6 +19,7 @@ pkgcfg_DATA = \
 if HAVE_SQLITE
   underlay_daemon = gnunet-daemon-testbed-underlay
   generate_underlay = generate-underlay-topology
+  underlay_testcases = test_testbed_underlay
 endif
 
 libexec_PROGRAMS = \
@@ -177,7 +178,8 @@ check_PROGRAMS = \
   test_testbed_api_testbed_run_waitforever \
   test_testbed_api_statistics \
   gnunet-service-test-barriers \
-  test_testbed_api_barriers
+  test_testbed_api_barriers \
+  $(underlay_testcases)
 
 if ENABLE_TEST_RUN
  TESTS = \
@@ -394,6 +396,12 @@ gnunet_service_test_barriers_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  libgnunettestbed.la
 
+test_testbed_underlay_SOURCES = \
+ test_testbed_underlay.c
+test_testbed_underlay_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ libgnunettestbed.la
+
 EXTRA_DIST = \
   test_testbed_api.conf \
   test_testbed_api_test_timeout.conf \
@@ -411,4 +419,6 @@ EXTRA_DIST = \
   test_testbed_api_barriers.conf.in \
   overlay_topology.txt \
   sample_hosts.txt \
-  sample.job
+  sample.job \
+  test_testbed_underlay.conf.in \
+  test-underlay.sqlite

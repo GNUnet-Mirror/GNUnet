@@ -100,3 +100,13 @@ HOSTNAME = localhost
 UNIXPATH = $GNUNET_RUNTIME_DIR/gnunet-service-testbed-barrier.sock
 UNIX_MATCH_UID = YES
 UNIX_MATCH_GID = YES
+
+
+# This section is related to configuring underlay restrictions to simulate
+# connectivity restrictions of NAT boxes
+[testbed-underlay]
+AUTOSTART = NO
+BINARY = gnunet-daemon-testbed-underlay
+# The sqlite3 database file containing information about what underlay
+# restrictions to apply
+# DBFILE = 
