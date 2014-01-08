@@ -67,9 +67,10 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  */
 static void
 overlay_connect_status (void *cls,
-                        struct GNUNET_TESTBED_Operation *op,
+                        struct GNUNET_TESTBED_Operation *op_,
                         const char *emsg)
 {
+  GNUNET_assert (op_ == op);
   GNUNET_TESTBED_operation_done (op);
   op = NULL;
   if (NULL == emsg)
