@@ -30,6 +30,9 @@ libgnunettesting_la_LDFLAGS = \
 bin_PROGRAMS = \
  gnunet-testing
 
+noinst_PROGRAMS = \
+ list-keys
+
 gnunet_testing_SOURCES = \
  gnunet-testing.c         
 gnunet_testing_LDADD = \
@@ -38,6 +41,12 @@ gnunet_testing_LDADD = \
  $(GN_LIBINTL)
 gnunet_testing_DEPENDENCIES = \
  libgnunettesting.la
+
+list_keys_SOURCES = \
+ list-keys.c
+list_keys_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(GN_LIBINTL)
 
 
 check_PROGRAMS = \
