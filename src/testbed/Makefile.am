@@ -209,7 +209,8 @@ if ENABLE_TEST_RUN
   test_testbed_api_testbed_run_topologysmallworldring \
   test_testbed_api_testbed_run_topologyfromfile \
   test_testbed_api_testbed_run_topologyscalefree \
-  test_testbed_api_barriers
+  test_testbed_api_barriers \
+  $(underlay_testcases)
 endif
 
 test_testbed_api_hosts_SOURCES = \
