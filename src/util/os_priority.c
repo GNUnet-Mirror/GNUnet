@@ -753,6 +753,7 @@ start_process (int pipe_control,
   DWORD stdif, stdof, stdef;
   BOOL bresult;
   DWORD error_code;
+  DWORD create_no_window;
 
   if (GNUNET_SYSERR == GNUNET_OS_check_helper_binary (filename, GNUNET_NO, NULL))
     return NULL; /* not executable */
@@ -1051,8 +1052,17 @@ start_process (int pipe_control,
     return NULL;
   }
 
+  create_no_window = 0;
+  {
+    HANDLE console_input = CreateFile ("CONIN$", GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_WRITE, NULL, OPEN_EXISTING, 0, NULL);
+    if (INVALID_HANDLE_VALUE == console_input)
+      create_no_window = CREATE_NO_WINDOW;
+    else
+      CloseHandle (console_input);
+  }
+
   bresult = CreateProcessW (wpath, wcmd, NULL, NULL, GNUNET_YES,
-       CREATE_SUSPENDED, env_block, NULL, &start, &proc);
+       create_no_window | CREATE_SUSPENDED, env_block, NULL, &start, &proc);
   error_code = GetLastError ();
 
   if ((NULL == pipe_stdin) && (stdih))
