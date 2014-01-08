@@ -286,6 +286,13 @@ GNUNET_CRYPTO_random_init ()
              "Failed to set libgcrypt option %s: %s\n",
              "DISABLE_SECMEM",
 	     gcry_strerror (rc));
+  /* Otherwise gnunet-ecc takes forever to complete, besides
+     we are fine with "just" using GCRY_STRONG_RANDOM */
+  if ((rc = gcry_control (GCRYCTL_ENABLE_QUICK_RANDOM, 0)))
+    FPRINTF (stderr,
+	     "Failed to set libgcrypt option %s: %s\n",
+	     "ENABLE_QUICK_RANDOM",
+	     gcry_strerror (rc));
   gcry_control (GCRYCTL_INITIALIZATION_FINISHED, 0);
   gcry_fast_random_poll ();
   GNUNET_CRYPTO_seed_weak_random (time (NULL) ^
