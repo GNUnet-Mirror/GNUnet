@@ -29,13 +29,25 @@
 #include "gnunet_gnsrecord_lib.h"
 #include "gnunet_conversation_service.h"
 #include "gnunet_namestore_service.h"
-
+#ifdef WINDOWS
+#include "../util/gnunet-helper-w32-console.h"
+#endif
 
 /**
  * Maximum length allowed for the command line input.
  */
 #define MAX_MESSAGE_LENGTH 1024
 
+#define XSTRINGIFY(x) STRINGIFY(x)
+
+#define STRINGIFY(x) (#x)
+
+#ifdef WINDOWS
+/**
+ * Helper that reads the console for us.
+ */
+struct GNUNET_HELPER_Handle *stdin_hlp;
+#endif
 
 /**
  * Possible states of the phone.
@@ -997,6 +1009,13 @@ static void
 do_stop_task (void *cls,
 	      const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+#ifdef WINDOWS
+  if (NULL != stdin_hlp)
+  {
+    GNUNET_HELPER_stop (stdin_hlp, GNUNET_NO);
+    stdin_hlp = NULL;
+  }
+#endif
   if (NULL != call)
   {
     GNUNET_CONVERSATION_call_stop (call);
@@ -1027,33 +1046,18 @@ do_stop_task (void *cls,
   phone_state = PS_ERROR;
 }
 
-
-/**
- * Task to handle commands from the terminal.
- *
- * @param cls NULL
- * @param tc scheduler context
- */
 static void
-handle_command (void *cls,
-		const struct GNUNET_SCHEDULER_TaskContext *tc)
+handle_command_string (char *message, size_t str_len)
 {
-  char message[MAX_MESSAGE_LENGTH + 1];
-  const char *ptr;
   size_t i;
+  const char *ptr;
 
-  handle_cmd_task =
-    GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
-                                    stdin_fh,
-                                    &handle_command, NULL);
-  /* read message from command line and handle it */
-  memset (message, 0, MAX_MESSAGE_LENGTH + 1);
-  if (NULL == fgets (message, MAX_MESSAGE_LENGTH, stdin))
+  if (0 == str_len)
     return;
-  if (0 == strlen (message))
-    return;
-  if (message[strlen (message) - 1] == '\n')
-    message[strlen (message) - 1] = '\0';
+  if (message[str_len - 1] == '\n')
+    message[str_len - 1] = '\0';
+  if (message[str_len - 2] == '\r')
+    message[str_len - 2] = '\0';
   if (0 == strlen (message))
     return;
   i = 0;
@@ -1067,6 +1071,57 @@ handle_command (void *cls,
   if ('\0' == *ptr)
     ptr = NULL;
   commands[i].Action (ptr);
+}
+
+
+#ifdef WINDOWS
+int
+console_reader_chars (void *cls, void *client,
+    const struct GNUNET_MessageHeader *message)
+{
+  char *chars;
+  size_t str_size;
+  switch (ntohs (message->type))
+  {
+  case GNUNET_MESSAGE_TYPE_W32_CONSOLE_HELPER_CHARS:
+    chars = (char *) &message[1];
+    str_size = ntohs (message->size) - sizeof (struct GNUNET_MessageHeader);
+    if (chars[str_size - 1] != '\0')
+      return GNUNET_SYSERR;
+    /* FIXME: is it ok that we pass part of a const struct to
+     * this function that may mangle the contents?
+     */
+    handle_command_string (chars, str_size - 1);
+    break;
+  default:
+    GNUNET_break (0);
+    break;
+  }
+  return GNUNET_OK;
+}
+#endif
+
+/**
+ * Task to handle commands from the terminal.
+ *
+ * @param cls NULL
+ * @param tc scheduler context
+ */
+static void
+handle_command (void *cls,
+		const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  char message[MAX_MESSAGE_LENGTH + 1];
+
+  handle_cmd_task =
+    GNUNET_SCHEDULER_add_read_file (GNUNET_TIME_UNIT_FOREVER_REL,
+                                    stdin_fh,
+                                    &handle_command, NULL);
+  /* read message from command line and handle it */
+  memset (message, 0, MAX_MESSAGE_LENGTH + 1);
+  if (NULL == fgets (message, MAX_MESSAGE_LENGTH, stdin))
+    return;
+  handle_command_string (message, strlen (message));
 }
 
 
@@ -1144,6 +1199,30 @@ run (void *cls,
   id = GNUNET_IDENTITY_connect (cfg,
                                 &identity_cb,
                                 NULL);
+#ifdef WINDOWS
+  if (stdin_fh == NULL)
+  {
+    static char cpid[64];
+    static char *args[] = {"gnunet-helper-w32-console.exe", "chars",
+        XSTRINGIFY (MAX_MESSAGE_LENGTH), cpid, NULL};
+    snprintf (cpid, 64, "%d", GetCurrentProcessId ());
+    stdin_hlp = GNUNET_HELPER_start (
+        GNUNET_NO,
+	"gnunet-helper-w32-console",
+	args,
+	console_reader_chars,
+	NULL,
+	NULL);
+    if (NULL == stdin_hlp)
+    {
+      FPRINTF (stderr,
+               "%s",
+               _("Failed to start gnunet-helper-w32-console\n"));
+      return;
+    }
+  }
+  else
+#endif
   handle_cmd_task =
     GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_UI,
 					&handle_command, NULL);
@@ -1171,13 +1250,22 @@ main (int argc, char *const *argv)
      1, &GNUNET_GETOPT_set_uint, &line},
     GNUNET_GETOPT_OPTION_END
   };
-  int flags;
   int ret;
-
+#ifndef WINDOWS
+  int flags;
   flags = fcntl (0, F_GETFL, 0);
   flags |= O_NONBLOCK;
   fcntl (0, F_SETFL, flags);
   stdin_fh = GNUNET_DISK_get_handle_from_int_fd (0);
+#else
+  if (FILE_TYPE_CHAR == GetFileType ((HANDLE) _get_osfhandle (0)))
+  {
+    stdin_fh = NULL;
+  }
+  else
+    stdin_fh = GNUNET_DISK_get_handle_from_int_fd (0);
+#endif
+
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
   ret = GNUNET_PROGRAM_run (argc, argv,

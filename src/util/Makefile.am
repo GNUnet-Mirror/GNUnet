@@ -25,6 +25,7 @@ libgnunetutilwin_la_LIBADD = \
   -lcomdlg32 -lgdi32 -liphlpapi
 WINLIB = libgnunetutilwin.la
 W32CAT = w32cat
+W32CONSOLEHELPER = gnunet-helper-w32-console
 endif
 
 if !MINGW
@@ -37,6 +38,14 @@ if USE_COVERAGE
 endif
 
 w32cat_SOURCES = w32cat.c
+
+gnunet_helper_w32_console_SOURCES = \
+  gnunet-helper-w32-console.c \
+  gnunet-helper-w32-console.h
+gnunet_helper_w32_console_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la
+gnunet_helper_w32_console_DEPENDENCIES = \
+ libgnunetutil.la
 
 noinst_PROGRAMS = \
  gnunet-config-diff \
@@ -126,7 +135,8 @@ endif
 
 
 libexec_PROGRAMS = \
- gnunet-service-resolver
+ gnunet-service-resolver \
+ $(W32CONSOLEHELPER)
 
 bin_SCRIPTS =\
  gnunet-qr
