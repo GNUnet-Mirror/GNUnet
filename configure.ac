@@ -388,10 +388,7 @@ AC_CHECK_LIB(pulse,pa_stream_peek,
   [AC_CHECK_HEADER([pulse/simple.h],pulse=1)])
 if test "$pulse" = 1
 then
-  AM_CONDITIONAL(HAVE_PULSE, true)
   AC_DEFINE([HAVE_PULSE],[1],[Have libpulse(audio) library])
-else
-  AM_CONDITIONAL(HAVE_PULSE, false)
 fi
 if test "$build_target" = "mingw"
 then
@@ -404,12 +401,39 @@ AC_CHECK_LIB(opus,opus_decode_float,
   [AC_CHECK_HEADER([opus/opus.h],opus=1)])
 if test "$opus" = 1
 then
-  AM_CONDITIONAL(HAVE_OPUS, true)
   AC_DEFINE([HAVE_OPUS],[1],[Have libopus library])
-else
-  AM_CONDITIONAL(HAVE_OPUS, false)
 fi
 
+gst=0
+PKG_CHECK_MODULES(
+  [GST],
+  [glib-2.0 gobject-2.0 gstreamer-1.0 gstreamer-app-1.0 gstreamer-audio-1.0],
+  [
+    gst=1
+    AC_MSG_RESULT(ok)
+  ], [
+    gst=0
+    AC_MSG_RESULT(not found)
+  ])
+
+# Pulse Audio
+if test "x$pulse" != "x1" -o "x$opus" != "x1"
+then
+ if test "x$gst" != "x1" -o "x$opus" != "x1"
+ then
+  conversation_backend=none
+  AM_CONDITIONAL(BUILD_PULSE_HELPERS, false)
+  AM_CONDITIONAL(BUILD_GST_HELPERS, false)
+ else
+  conversation_backend=gst
+  AM_CONDITIONAL(BUILD_PULSE_HELPERS, false)
+  AM_CONDITIONAL(BUILD_GST_HELPERS, true)
+ fi
+else
+ conversation_backend=pulse
+ AM_CONDITIONAL(BUILD_PULSE_HELPERS, true)
+ AM_CONDITIONAL(BUILD_GST_HELPERS, false)
+fi
 
 # libgnurl
 LIBGNURL_CHECK_CONFIG(,7.34.0,gnurl=1,gnurl=0)
@@ -1519,17 +1543,23 @@ then
  AC_MSG_NOTICE([NOTICE: libmicrohttpd not found, http transport will not be installed.])
 fi
 
-# Pulse Audio
-if test "x$pulse" != "x1"
+# conversation
+if test "x$conversation_backend" == "xnone"
 then
- AC_MSG_NOTICE([NOTICE: libpulse(audio) not found, conversation will not be built.])
+  if test "x$pulse" != "x1"
+  then
+    AC_MSG_NOTICE([NOTICE: libpulse(audio) not found, conversation will not be built.])
+  fi
+  if test "x$opus" != "x1"
+  then
+   AC_MSG_NOTICE([NOTICE: libopus not found, conversation will not be built.])
+  fi
+  if test "x$gst" != "x1"
+  then
+   AC_MSG_NOTICE([NOTICE: GStreamer not found, conversation will not be built.])
+  fi
 fi
 
-# Opus
-if test "x$opus" != "x1"
-then
- AC_MSG_NOTICE([NOTICE: libopus not found, conversation will not be built.])
-fi
 
 AC_MSG_NOTICE([NOTICE: Database support is set to MySQL: $mysql, SQLite: $sqlite, Postgres: $postgres])
 

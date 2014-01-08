@@ -2,6 +2,10 @@ SUBDIRS = .
 
 plugindir = $(libdir)/gnunet
 
+if MINGW
+  WINFLAGS = -no-undefined -Wl,--export-all-symbols
+endif
+
 AM_CPPFLAGS = \
   $(GNUNET_CPPFLAGS) \
   -I$(top_srcdir)/src/include \
@@ -69,26 +73,30 @@ bin_PROGRAMS = \
 libexec_PROGRAMS = \
   gnunet-service-conversation
 
-if HAVE_PULSE
-if HAVE_OPUS
-libexec_PROGRAMS += \
-  gnunet-helper-audio-record \
-  gnunet-helper-audio-playback
-endif
-endif
-
-
 check_PROGRAMS = \
  test_conversation_api \
  test_conversation_api_reject \
  test_conversation_api_twocalls
 
-if HAVE_PULSE
-if HAVE_OPUS
-TESTS = $(check_PROGRAMS)
+if BUILD_PULSE_HELPERS
+AUDIO_HELPER_RECD=gnunet-helper-audio-record
+AUDIO_HELPER_PLAY=gnunet-helper-audio-playback
+AUDIO_TESTS=$(check_PROGRAMS)
+else
+if BUILD_GST_HELPERS
+AUDIO_HELPER_RECD=gnunet-helper-audio-record
+AUDIO_HELPER_PLAY=gnunet-helper-audio-playback
+AUDIO_TESTS=$(check_PROGRAMS)
 endif
 endif
 
+libexec_PROGRAMS += \
+  $(AUDIO_HELPER_RECD) \
+  $(AUDIO_HELPER_PLAY)
+
+TESTS = $(AUDIO_TESTS)
+
+if BUILD_PULSE_HELPERS
 gnunet_helper_audio_record_SOURCES = \
   gnunet-helper-audio-record.c
 gnunet_helper_audio_record_LDADD = \
@@ -106,6 +114,32 @@ gnunet_helper_audio_playback_LDADD = \
   $(INTLLIBS)
 gnunet_helper_audio_playback_LDFLAGS = \
   $(GNUNET_LDFLAGS)  $(WINFLAGS)
+else
+if BUILD_GST_HELPERS
+gnunet_helper_audio_record_SOURCES = \
+  gnunet-helper-audio-record-gst.c
+gnunet_helper_audio_record_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(GST_LIBS) \
+  $(INTLLIBS)
+gnunet_helper_audio_record_LDFLAGS = \
+  $(GNUNET_LDFLAGS)  $(WINFLAGS) $(GST_LDFLAGS)
+gnunet_helper_audio_record_CFLAGS = \
+ $(GST_CFLAGS)
+
+gnunet_helper_audio_playback_SOURCES = \
+  gnunet-helper-audio-playback-gst.c
+gnunet_helper_audio_playback_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  -lopus \
+  $(GST_LIBS) \
+  $(INTLLIBS)
+gnunet_helper_audio_playback_LDFLAGS = \
+  $(GNUNET_LDFLAGS)  $(WINFLAGS) $(GST_LDFLAGS)
+gnunet_helper_audio_playback_CFLAGS = \
+ $(GST_CFLAGS)
+endif
+endif
 
 gnunet_service_conversation_SOURCES = \
   gnunet-service-conversation.c

@@ -24,9 +24,11 @@ if HAVE_EXPERIMENTAL
 endif
 
 
-if HAVE_PULSE
-if HAVE_OPUS
-  CONVERSATION_DIR = conversation
+if BUILD_PULSE_HELPERS
+CONVERSATION_DIR = conversation
+else
+if BUILD_GST_HELPERS
+CONVERSATION_DIR = conversation
 endif
 endif
 
