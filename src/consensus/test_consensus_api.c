@@ -59,7 +59,7 @@ insert_done (void *cls, int success)
   GNUNET_assert (GNUNET_NO == called);
   called = GNUNET_YES;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "insert done\n");
-  GNUNET_CONSENSUS_conclude (consensus, GNUNET_TIME_UNIT_SECONDS, &conclude_done, NULL);
+  GNUNET_CONSENSUS_conclude (consensus, GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_SECONDS), &conclude_done, NULL);
 }
 
 
