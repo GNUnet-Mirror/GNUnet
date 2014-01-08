@@ -1991,10 +1991,11 @@ GMT_get_channel (struct MeshTunnel3 *t, MESH_ChannelNumber chid)
  * @param tc Task context.
  */
 static void
-tunnel_destroy (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+delayed_destroy (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct MeshTunnel3 *t = cls;
 
+  t->destroy_task = GNUNET_SCHEDULER_NO_TASK;
   GMT_destroy (t);
 }
 
@@ -2028,7 +2029,7 @@ GMT_destroy_empty (struct MeshTunnel3 *t)
   }
   t->cstate = MESH_TUNNEL3_NEW;
   t->destroy_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
-                                                  &tunnel_destroy, t);
+                                                  &delayed_destroy, t);
 }
 
 
