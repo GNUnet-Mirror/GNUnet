@@ -108,9 +108,26 @@ main (int argc, char *argv[])
 
   at.abs_value_us = 50000000000;
   bc = GNUNET_STRINGS_absolute_time_to_string (at);
+
   GNUNET_assert (GNUNET_OK ==
-		 GNUNET_STRINGS_fancy_time_to_absolute (bc, &atx));
-  GNUNET_assert (atx.abs_value_us == at.abs_value_us);
+                 GNUNET_STRINGS_fancy_time_to_absolute (bc, &atx));
+
+  if (atx.abs_value_us != at.abs_value_us)
+  {
+#ifdef WINDOWS
+    DWORD tzv;
+    TIME_ZONE_INFORMATION tzi;
+    tzv = GetTimeZoneInformation (&tzi);
+    if (TIME_ZONE_ID_INVALID != tzv)
+    {
+      atx.abs_value_us -= 1000LL * 1000LL * tzi.Bias * 60LL;
+    }
+    if (atx.abs_value_us == at.abs_value_us)
+      fprintf (stderr,
+               "WARNING:  GNUNET_STRINGS_fancy_time_to_absolute() miscalculates timezone!\n");
+#endif
+    GNUNET_assert (0);
+  }
 
   GNUNET_log_skip (2, GNUNET_NO);
   b = GNUNET_STRINGS_to_utf8 ("TEST", 4, "unknown");

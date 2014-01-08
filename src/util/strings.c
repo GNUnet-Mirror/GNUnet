@@ -367,17 +367,6 @@ GNUNET_STRINGS_fancy_time_to_absolute (const char *fancy_time,
     return GNUNET_SYSERR;
   t = mktime (&tv);
   atime->abs_value_us = (uint64_t) ((uint64_t) t * 1000LL * 1000LL);
-#if WINDOWS
-  {
-    DWORD tzv;
-    TIME_ZONE_INFORMATION tzi;
-    tzv = GetTimeZoneInformation (&tzi);
-    if (TIME_ZONE_ID_INVALID != tzv)
-    {
-      atime->abs_value_us -= 1000LL * 1000LL * tzi.Bias * 60LL;
-    }
-  }
-#endif
   return GNUNET_OK;
 }
 
