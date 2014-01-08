@@ -613,7 +613,7 @@ agent_modify_eligibility (struct RIL_Peer_Agent *agent,
       agent->E[action][i] += feature[i];
       break;
     case RIL_E_REPLACE:
-      agent->E[action][i] = agent->E[action][i]+feature[i] > 1 ? 1 : agent->E[action][i]+feature[i]; //TODO? Maybe remove as only accumulating traces really apply
+      agent->E[action][i] =  (agent->envi->global_discount_variable * agent->envi->parameters.lambda * agent->E[action][i]) > feature[i] ? agent->E[action][i] : feature[i]; //TODO make replacing traces available
       break;
     case RIL_E_UPDATE:
       agent->E[action][i] *= agent->envi->global_discount_variable * agent->envi->parameters.lambda;
