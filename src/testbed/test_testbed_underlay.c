@@ -76,7 +76,10 @@ overlay_connect_status (void *cls,
   if (NULL == emsg)
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Peers 0 and 2 should not get connected\n");
   else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peers 0 and 2 not connected: %s.  Success!\n", emsg);
     result = GNUNET_OK;
+  }
   GNUNET_SCHEDULER_shutdown ();
 }
 
@@ -110,14 +113,13 @@ test_master (void *cls,
     return;
   }
   GNUNET_assert (NUM_PEERS == num_peers);
-  getchar();
   op = GNUNET_TESTBED_overlay_connect (NULL,
                                        &overlay_connect_status,
                                        NULL,
                                        peers_[0],
                                        peers_[2]);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
-                                                               15),
+                                                               60),
                                 &do_shutdown, NULL);
 }
 
