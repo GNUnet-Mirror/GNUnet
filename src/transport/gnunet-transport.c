@@ -149,6 +149,11 @@ static struct GNUNET_TIME_Absolute start_time;
 static struct GNUNET_TRANSPORT_TransmitHandle *th;
 
 /**
+ * Map storing information about monitored peers
+ */
+static struct GNUNET_CONTAINER_MultiPeerMap *monitored_peers;
+
+/**
  *
  */
 struct GNUNET_TRANSPORT_PeerMonitoringContext *pic;
@@ -194,6 +199,7 @@ static unsigned int address_resolutions;
  */
 static unsigned int address_resolution_in_progress;
 
+
 /**
  * Context for a plugin test.
  */
@@ -216,6 +222,25 @@ struct TestContext
   const char *name;
 
 };
+
+struct MonitoredPeer
+{
+  enum GNUNET_TRANSPORT_PeerState state;
+  struct GNUNET_TIME_Absolute state_timeout;
+  struct GNUNET_HELLO_Address *address;
+};
+
+
+ int destroy_it (void *cls,
+    const struct GNUNET_PeerIdentity *key,
+    void *value)
+{
+   struct MonitoredPeer *m = value;
+   GNUNET_CONTAINER_multipeermap_remove (monitored_peers, key, value);
+   GNUNET_free_non_null (m->address);
+   GNUNET_free (value);
+   return GNUNET_OK;
+}
 
 /**
  * Task run in monitor mode when the user presses CTRL-C to abort.
@@ -270,6 +295,13 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         traffic_received,
         GNUNET_STRINGS_relative_time_to_string (duration, GNUNET_YES));
   }
+
+  if (NULL != monitored_peers)
+  {
+    GNUNET_CONTAINER_multipeermap_iterate (monitored_peers, &destroy_it, NULL);
+    GNUNET_CONTAINER_multipeermap_destroy (monitored_peers);
+    monitored_peers = NULL;
+  }
 }
 
 static struct ResolutionContext *rc_head;
@@ -279,8 +311,12 @@ struct ResolutionContext
 {
   struct ResolutionContext *next;
   struct ResolutionContext *prev;
+  struct GNUNET_PeerIdentity id;
   struct GNUNET_HELLO_Address *addrcp;
   struct GNUNET_TRANSPORT_AddressToStringContext *asc;
+  enum GNUNET_TRANSPORT_PeerState state;
+  struct GNUNET_TIME_Absolute state_timeout;
+  char *transport;
   int printed;
 };
 
@@ -310,6 +346,7 @@ operation_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
       GNUNET_CONTAINER_DLL_remove(rc_head, rc_tail, cur);
       GNUNET_TRANSPORT_address_to_string_cancel (cur->asc);
+      GNUNET_free(cur->transport);
       GNUNET_free(cur->addrcp);
       GNUNET_free(cur);
 
@@ -641,18 +678,41 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
 }
 
 static void
-resolve_address (const struct GNUNET_HELLO_Address *address, int numeric);
+resolve_address (const struct GNUNET_PeerIdentity *id,
+    const struct GNUNET_HELLO_Address *address, int numeric,
+    enum GNUNET_TRANSPORT_PeerState state,
+    struct GNUNET_TIME_Absolute state_timeout);
+
+static void
+print_info (const struct GNUNET_PeerIdentity *id, const char *transport,
+    const char *addr, enum GNUNET_TRANSPORT_PeerState state,
+    struct GNUNET_TIME_Absolute state_timeout)
+{
+  if ((GNUNET_YES == iterate_all) || (GNUNET_YES == monitor_connections) )
+  {
+    FPRINTF (stdout, _("Peer `%s': %s %s in state `%s' until %s\n"),
+        GNUNET_i2s (id),
+        (NULL == transport) ? "<none>" : transport,
+        (NULL == transport) ? "<none>" : addr,
+        GNUNET_TRANSPORT_p2s (state),
+        GNUNET_STRINGS_absolute_time_to_string (state_timeout));
+  }
+  else
+  {
+    /* Only connected peers, skip state */
+    FPRINTF (stdout, _("Peer `%s': %s %s\n"), GNUNET_i2s (id), transport, addr);
+  }
+
+}
 
 static void
 process_string (void *cls, const char *address)
 {
   struct ResolutionContext *rc = cls;
-  struct GNUNET_HELLO_Address *addrcp = rc->addrcp;
 
   if (address != NULL )
   {
-    FPRINTF (stdout, _("Peer `%s': %s %s\n"), GNUNET_i2s (&addrcp->peer),
-        addrcp->transport_name, address);
+    print_info (&rc->id, rc->transport, address, rc->state, rc->state_timeout);
     rc->printed = GNUNET_YES;
   }
   else
@@ -664,13 +724,18 @@ process_string (void *cls, const char *address)
     {
       if (numeric == GNUNET_NO)
       {
-        resolve_address (rc->addrcp, GNUNET_YES); /* Failed to resolve address, try numeric lookup */
+        /* Failed to resolve address, try numeric lookup */
+        resolve_address (&rc->id, rc->addrcp, GNUNET_YES,
+            rc->state, rc->state_timeout);
       }
       else
-        FPRINTF (stdout, _("Peer `%s': %s <unable to resolve address>\n"),
-            GNUNET_i2s (&addrcp->peer), addrcp->transport_name);
+      {
+        print_info (&rc->id, rc->transport, "<unable to resolve address>",
+            rc->state, rc->state_timeout);
+      }
     }
-    GNUNET_free(rc->addrcp);
+    GNUNET_free (rc->transport);
+    GNUNET_free (rc->addrcp);
     GNUNET_CONTAINER_DLL_remove(rc_head, rc_tail, rc);
     GNUNET_free(rc);
     if ((0 == address_resolutions) && (iterate_connections))
@@ -692,7 +757,10 @@ process_string (void *cls, const char *address)
 }
 
 static void
-resolve_address (const struct GNUNET_HELLO_Address *address, int numeric)
+resolve_address (const struct GNUNET_PeerIdentity *id,
+    const struct GNUNET_HELLO_Address *address, int numeric,
+    enum GNUNET_TRANSPORT_PeerState state,
+    struct GNUNET_TIME_Absolute state_timeout)
 {
   struct ResolutionContext *rc;
 
@@ -701,15 +769,19 @@ resolve_address (const struct GNUNET_HELLO_Address *address, int numeric)
   GNUNET_CONTAINER_DLL_insert(rc_head, rc_tail, rc);
   address_resolutions++;
 
+  rc->id = (*id);
+  rc->transport = GNUNET_strdup(address->transport_name);
   rc->addrcp = GNUNET_HELLO_address_copy (address);
   rc->printed = GNUNET_NO;
+  rc->state = state;
+  rc->state_timeout = state_timeout;
   /* Resolve address to string */
   rc->asc = GNUNET_TRANSPORT_address_to_string (cfg, address, numeric,
       RESOLUTION_TIMEOUT, &process_string, rc);
 }
 
 /**
- * Function called with information about a peers
+ * Function called with information about a peers during a one shot iteration
  *
  * @param cls closure
  * @param peer identity of the peer, NULL for final callback when operation done
@@ -720,7 +792,7 @@ resolve_address (const struct GNUNET_HELLO_Address *address, int numeric)
  *
  */
 static void
-process_peer_cb (void *cls, const struct GNUNET_PeerIdentity *peer,
+process_peer_iteration_cb (void *cls, const struct GNUNET_PeerIdentity *peer,
     const struct GNUNET_HELLO_Address *address,
     enum GNUNET_TRANSPORT_PeerState state,
     struct GNUNET_TIME_Absolute state_timeout)
@@ -735,11 +807,9 @@ process_peer_cb (void *cls, const struct GNUNET_PeerIdentity *peer,
     end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL );
     return;
   }
-  if (address == NULL )
-  {
-    FPRINTF (stdout, _("Peer `%s' disconnected\n"), GNUNET_i2s (peer));
-    return;
-  }
+
+  if ((GNUNET_NO == iterate_all) && (GNUNET_NO == GNUNET_TRANSPORT_is_connected(state)) )
+      return; /* Display only connected peers */
 
   if (GNUNET_SCHEDULER_NO_TASK != op_timeout)
     GNUNET_SCHEDULER_cancel (op_timeout);
@@ -748,7 +818,83 @@ process_peer_cb (void *cls, const struct GNUNET_PeerIdentity *peer,
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Received address for peer `%s': %s\n",
       GNUNET_i2s (peer), address->transport_name);
-  resolve_address (address, numeric);
+
+  if (NULL != address)
+    resolve_address (peer, address, numeric, state, state_timeout);
+  else
+    print_info (peer, NULL, NULL, state, state_timeout);
+}
+
+
+/**
+ * Function called with information about a peers
+ *
+ * @param cls closure
+ * @param peer identity of the peer, NULL for final callback when operation done
+ * @param address binary address used to communicate with this peer,
+ *  NULL on disconnect or when done
+ * @param state current state this peer is in
+ * @param state_timeout time out for the current state
+ *
+ */
+static void
+process_peer_monitoring_cb (void *cls, const struct GNUNET_PeerIdentity *peer,
+    const struct GNUNET_HELLO_Address *address,
+    enum GNUNET_TRANSPORT_PeerState state,
+    struct GNUNET_TIME_Absolute state_timeout)
+{
+  struct MonitoredPeer *m;
+
+  if (peer == NULL )
+  {
+    /* done */
+    address_resolution_in_progress = GNUNET_NO;
+    pic = NULL;
+    if (GNUNET_SCHEDULER_NO_TASK != end)
+      GNUNET_SCHEDULER_cancel (end);
+    end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL );
+    return;
+  }
+
+  if (GNUNET_SCHEDULER_NO_TASK != op_timeout)
+    GNUNET_SCHEDULER_cancel (op_timeout);
+  op_timeout = GNUNET_SCHEDULER_add_delayed (OP_TIMEOUT, &operation_timeout,
+      NULL );
+
+  if (NULL == (m = GNUNET_CONTAINER_multipeermap_get (monitored_peers, peer)))
+  {
+    m = GNUNET_new (struct MonitoredPeer);
+    GNUNET_CONTAINER_multipeermap_put (monitored_peers, peer,
+        m, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
+  }
+  else
+  {
+    if ( (m->state == state) &&
+      (m->state_timeout.abs_value_us == state_timeout.abs_value_us) &&
+      ((NULL == address) && (NULL == m->address)) )
+    {
+      return; /* No real change */
+    }
+    if ( ((NULL != address) && (NULL != m->address)) &&
+        (0 == GNUNET_HELLO_address_cmp(m->address, address)) )
+      return; /* No real change */
+  }
+
+
+  if (NULL != m->address)
+  {
+    GNUNET_free (m->address);
+    m->address = NULL;
+  }
+  if (NULL != address)
+    m->address = GNUNET_HELLO_address_copy (address);
+  m->state = state;
+  m->state_timeout = state_timeout;
+
+  if (NULL != address)
+    resolve_address (peer, m->address, numeric, m->state, m->state_timeout);
+  else
+    print_info (peer, NULL, NULL, m->state, m->state_timeout);
 }
 
 static void
@@ -903,15 +1049,16 @@ testservice_task (void *cls, int result)
   {
     address_resolution_in_progress = GNUNET_YES;
     pic = GNUNET_TRANSPORT_monitor_peers (cfg, (NULL == cpid) ? NULL : &pid,
-        GNUNET_YES, TIMEOUT, &process_peer_cb, (void *) cfg);
+        GNUNET_YES, TIMEOUT, &process_peer_iteration_cb, (void *) cfg);
     op_timeout = GNUNET_SCHEDULER_add_delayed (OP_TIMEOUT, &operation_timeout,
         NULL );
   }
   else if (monitor_connections) /* -m: List information about peers continuously */
   {
+    monitored_peers = GNUNET_CONTAINER_multipeermap_create (10, GNUNET_NO);
     address_resolution_in_progress = GNUNET_YES;
     pic = GNUNET_TRANSPORT_monitor_peers (cfg, (NULL == cpid) ? NULL : &pid,
-        GNUNET_NO, TIMEOUT, &process_peer_cb, (void *) cfg);
+        GNUNET_NO, TIMEOUT, &process_peer_monitoring_cb, (void *) cfg);
   }
   else if (monitor_connects) /* -e : Monitor (dis)connect events continuously */
   {

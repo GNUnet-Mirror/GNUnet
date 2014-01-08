@@ -441,7 +441,7 @@ struct TrafficMetricMessage
 struct PeerIterateResponseMessage
 {
   /**
-   * Type is #GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE_RESPONSE
+   * Type is #GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PEER_RESPONSE
    */
   struct GNUNET_MessageHeader header;
 

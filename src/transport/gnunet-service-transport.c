@@ -137,16 +137,23 @@ static struct SessionKiller *sk_tail;
  * @param cls the 'HELLO' message
  * @param target a connected neighbour
  * @param address the address
+ * @param state current state this peer is in
+ * @param state_timeout timeout for the current state of the peer
  * @param bandwidth_in inbound quota in NBO
  * @param bandwidth_out outbound quota in NBO
  */
 static void
 transmit_our_hello (void *cls, const struct GNUNET_PeerIdentity *target,
                     const struct GNUNET_HELLO_Address *address,
+                    enum GNUNET_TRANSPORT_PeerState state,
+                    struct GNUNET_TIME_Absolute state_timeout,
                     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
                     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out)
 {
   const struct GNUNET_MessageHeader *hello = cls;
+
+  if ( GNUNET_NO == GST_neighbours_test_connected(target) )
+    return;
 
   GST_neighbours_send (target,
                        hello,
@@ -838,13 +845,28 @@ neighbours_disconnect_notification (void *cls,
  * @param cls closure
  * @param peer peer this update is about (never NULL)
  * @param address address, NULL on disconnect
+ * @param state current state this peer is in
+ * @param state_timeout timeout for the current state of the peer
+ * @param bandwidth_in bandwidth assigned inbound
+ * @param bandwidth_out bandwidth assigned outbound
  */
 static void
-neighbours_address_notification (void *cls,
+neighbours_changed_notification (void *cls,
                                  const struct GNUNET_PeerIdentity *peer,
-                                 const struct GNUNET_HELLO_Address *address)
+                                 const struct GNUNET_HELLO_Address *address,
+                                 enum GNUNET_TRANSPORT_PeerState state,
+                                 struct GNUNET_TIME_Absolute state_timeout,
+                                 struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
+                                 struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out)
 {
-  GST_clients_broadcast_address_notification (peer, address);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      "Notifying about change for peer `%s' with address `%s' in state `%s' timing out at %s\n",
+      GNUNET_i2s (peer),
+      (NULL != address) ? GST_plugins_a2s (address) : "<none>",
+      GNUNET_TRANSPORT_p2s(state),
+      GNUNET_STRINGS_absolute_time_to_string(state_timeout));
+
+  GST_clients_broadcast_peer_notification (peer, address, state, state_timeout);
 }
 
 
@@ -994,7 +1016,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   GST_neighbours_start (NULL,
                         &neighbours_connect_notification,
                         &neighbours_disconnect_notification,
-                        &neighbours_address_notification,
+                        &neighbours_changed_notification,
                         (max_fd / 3) * 2);
   GST_clients_start (GST_server);
   GST_validation_start ((max_fd / 3));

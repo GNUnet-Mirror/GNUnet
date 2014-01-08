@@ -474,29 +474,32 @@ struct TestConnectionContext
   struct Blacklisters *bl;
 };
 
-
 /**
  * Test if an existing connection is still acceptable given a new
  * blacklisting client.
  *
  * @param cls the 'struct TestConnectionContest'
- * @param neighbour neighbour's identity
+ * @param peer neighbour's identity
  * @param address the address
- * @param bandwidth_in inbound quota in NBO
- * @param bandwidth_out outbound quota in NBO
+ * @param state current state this peer is in
+ * @param state_timeout timeout for the current state of the peer
+ * @param bandwidth_in bandwidth assigned inbound
+ * @param bandwidth_out bandwidth assigned outbound
  */
 static void
-test_connection_ok (void *cls, const struct GNUNET_PeerIdentity *neighbour,
-                    const struct GNUNET_HELLO_Address *address,
-                    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-                    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out)
+test_connection_ok (void *cls, const struct GNUNET_PeerIdentity *peer,
+    const struct GNUNET_HELLO_Address *address,
+    enum GNUNET_TRANSPORT_PeerState state,
+    struct GNUNET_TIME_Absolute state_timeout,
+    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
+    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out)
 {
   struct TestConnectionContext *tcc = cls;
   struct GST_BlacklistCheck *bc;
 
   bc = GNUNET_new (struct GST_BlacklistCheck);
-  GNUNET_CONTAINER_DLL_insert (bc_head, bc_tail, bc);
-  bc->peer = *neighbour;
+  GNUNET_CONTAINER_DLL_insert(bc_head, bc_tail, bc);
+  bc->peer = *peer;
   bc->cont = &confirm_or_drop_neighbour;
   bc->cont_cls = NULL;
   bc->bl_pos = tcc->bl;

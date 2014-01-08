@@ -580,7 +580,7 @@ GNUNET_TRANSPORT_address_to_string (const struct GNUNET_CONFIGURATION_Handle
 /**
  * Cancel request for address conversion.
  *
- * @param alc handle for the request to cancel
+ * @param pic the context handle
  */
 void
 GNUNET_TRANSPORT_address_to_string_cancel (struct
@@ -590,7 +590,7 @@ GNUNET_TRANSPORT_address_to_string_cancel (struct
 /**
  * Convert a transport state to a human readable string.
  *
- * @param alc handle for the request to cancel
+ * @param state the state
  */
 const char *
 GNUNET_TRANSPORT_p2s (enum GNUNET_TRANSPORT_PeerState state);
@@ -626,8 +626,8 @@ GNUNET_TRANSPORT_is_connected (enum GNUNET_TRANSPORT_PeerState state);
  * @param one_shot GNUNET_YES to return the current state and then end (with NULL+NULL),
  *                 GNUNET_NO to monitor peers continuously
  * @param timeout how long is the lookup allowed to take at most
- * @param peer_address_callback function to call with the results
- * @param peer_address_callback_cls closure for peer_address_callback
+ * @param peer_callback function to call with the results
+ * @param peer_callback_cls closure for peer_address_callback
  */
 struct GNUNET_TRANSPORT_PeerMonitoringContext *
 GNUNET_TRANSPORT_monitor_peers (const struct

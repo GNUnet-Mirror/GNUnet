@@ -57,13 +57,11 @@ GST_validation_stop (void);
  * @param session the session
  * @param in_use GNUNET_YES if we are now using the address for a connection,
  *               GNUNET_NO if we are no longer using the address for a connection
- * @param line line of caller just for DEBUGGING!
  */
 void
 GST_validation_set_address_use (const struct GNUNET_HELLO_Address *address,
                                 struct Session *session,
-                                int in_use,
-                                int line);
+                                int in_use);
 
 
 /**

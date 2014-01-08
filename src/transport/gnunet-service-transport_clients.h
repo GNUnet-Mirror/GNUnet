@@ -20,12 +20,13 @@
 
 /**
  * @file transport/gnunet-service-transport_clients.h
- * @brief plugin management API
+ * @brief client management API
  * @author Christian Grothoff
  */
 #ifndef GNUNET_SERVICE_TRANSPORT_CLIENTS_H
 #define GNUNET_SERVICE_TRANSPORT_CLIENTS_H
 
+#include "gnunet_transport_service.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_hello_lib.h"
@@ -75,10 +76,14 @@ GST_clients_unicast (struct GNUNET_SERVER_Client *client,
  *
  * @param peer peer this update is about (never NULL)
  * @param address address, NULL on disconnect
+ * @param state the current state of the peer
+ * @param state_timeout the time out for the state
  */
 void
-GST_clients_broadcast_address_notification (const struct GNUNET_PeerIdentity *peer,
-                                            const struct GNUNET_HELLO_Address *address);
+GST_clients_broadcast_peer_notification (const struct GNUNET_PeerIdentity *peer,
+    const struct GNUNET_HELLO_Address *address,
+    enum GNUNET_TRANSPORT_PeerState state,
+    struct GNUNET_TIME_Absolute state_timeout);
 
 
 #endif

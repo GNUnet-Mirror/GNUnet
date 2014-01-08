@@ -170,15 +170,15 @@ GNUNET_TRANSPORT_address_to_string (const struct GNUNET_CONFIGURATION_Handle
 /**
  * Cancel request for address conversion.
  *
- * @param alc handle for the request to cancel
+ * @param pic the context handle
  */
 void
 GNUNET_TRANSPORT_address_to_string_cancel (struct
                                            GNUNET_TRANSPORT_AddressToStringContext
-                                           *alc)
+                                           *pic)
 {
-  GNUNET_CLIENT_disconnect (alc->client);
-  GNUNET_free (alc);
+  GNUNET_CLIENT_disconnect (pic->client);
+  GNUNET_free (pic);
 }
 
 

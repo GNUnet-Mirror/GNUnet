@@ -70,9 +70,14 @@ extern struct GNUNET_ATS_SchedulingHandle *GST_ats;
  * @param peer peer this update is about,
  * @param address address, NULL for disconnect notification
  */
-typedef void (*GNUNET_TRANSPORT_AddressChangeCallback) (void *cls,
-                                                      const struct GNUNET_PeerIdentity *peer,
-                                                      const struct GNUNET_HELLO_Address *address);
+typedef void
+(*GNUNET_TRANSPORT_NeighbourChangeCallback) (void *cls,
+                        const struct GNUNET_PeerIdentity *peer,
+                        const struct GNUNET_HELLO_Address *address,
+                        enum GNUNET_TRANSPORT_PeerState state,
+                        struct GNUNET_TIME_Absolute state_timeout,
+                        struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
+                        struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out);
 
 
 /**

@@ -19,7 +19,7 @@
 */
 
 /**
- * @file transport/transport_api_montoring.c
+ * @file transport/transport_api_monitoring.c
  * @brief montoring api for transport peer status and validation entries
  *
  * This api provides the ability to query the transport service about
@@ -450,16 +450,16 @@ peer_response_processor (void *cls,
  * @param one_shot GNUNET_YES to return the current state and then end (with NULL+NULL),
  *                 GNUNET_NO to monitor the set of addresses used (continuously, must be explicitly canceled)
  * @param timeout how long is the lookup allowed to take at most (irrelevant if one_shot is set to GNUNET_NO)
- * @param peer_address_callback function to call with the results
- * @param peer_address_callback_cls closure for peer_address_callback
+ * @param peer_callback function to call with the results
+ * @param peer_callback_cls closure for peer_address_callback
  */
 struct GNUNET_TRANSPORT_PeerMonitoringContext *
 GNUNET_TRANSPORT_monitor_peers (const struct GNUNET_CONFIGURATION_Handle *cfg,
     const struct GNUNET_PeerIdentity *peer,
     int one_shot,
     struct GNUNET_TIME_Relative timeout,
-    GNUNET_TRANSPORT_PeerIterateCallback peer_address_callback,
-    void *peer_address_callback_cls)
+    GNUNET_TRANSPORT_PeerIterateCallback peer_callback,
+    void *peer_callback_cls)
 {
   struct GNUNET_TRANSPORT_PeerMonitoringContext *pal_ctx;
   struct GNUNET_CLIENT_Connection *client;
@@ -470,8 +470,8 @@ GNUNET_TRANSPORT_monitor_peers (const struct GNUNET_CONFIGURATION_Handle *cfg,
   if (GNUNET_YES != one_shot)
     timeout = GNUNET_TIME_UNIT_FOREVER_REL;
   pal_ctx = GNUNET_new (struct GNUNET_TRANSPORT_PeerMonitoringContext);
-  pal_ctx->cb = peer_address_callback;
-  pal_ctx->cb_cls = peer_address_callback_cls;
+  pal_ctx->cb = peer_callback;
+  pal_ctx->cb_cls = peer_callback_cls;
   pal_ctx->cfg = cfg;
   pal_ctx->timeout = GNUNET_TIME_relative_to_absolute (timeout);
   if (NULL != peer)
@@ -485,30 +485,30 @@ GNUNET_TRANSPORT_monitor_peers (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 
 /**
- * Cancel request for address conversion.
+ * Cancel request to monitor peers
  *
- * @param alc handle for the request to cancel
+ * @param pic handle for the request to cancel
  */
 void
-GNUNET_TRANSPORT_monitor_peers_cancel (
-    struct GNUNET_TRANSPORT_PeerMonitoringContext *alc)
+GNUNET_TRANSPORT_monitor_peers_cancel (struct GNUNET_TRANSPORT_PeerMonitoringContext *pic)
 {
-  if (NULL != alc->client)
+  if (NULL != pic->client)
   {
-    GNUNET_CLIENT_disconnect (alc->client);
-    alc->client = NULL;
+    GNUNET_CLIENT_disconnect (pic->client);
+    pic->client = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != alc->reconnect_task)
+  if (GNUNET_SCHEDULER_NO_TASK != pic->reconnect_task)
   {
-    GNUNET_SCHEDULER_cancel (alc->reconnect_task);
-    alc->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
+    GNUNET_SCHEDULER_cancel (pic->reconnect_task);
+    pic->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
   }
-  GNUNET_free (alc);
+  GNUNET_free (pic);
 }
 
 
 /**
- * Return information about a peer's or all current pending validation operations
+ * Return information about pending address validation operations for a specific
+ * or all peers
  *
  * @param cfg configuration to use
  * @param peer a specific peer identity to obtain validation entries for,
@@ -516,8 +516,8 @@ GNUNET_TRANSPORT_monitor_peers_cancel (
  * @param one_shot GNUNET_YES to return all entries and then end (with NULL+NULL),
  *                 GNUNET_NO to monitor validation entries continuously
  * @param timeout how long is the lookup allowed to take at most
- * @param peer_address_callback function to call with the results
- * @param peer_address_callback_cls closure for peer_address_callback
+ * @param validation_callback function to call with the results
+ * @param validation_callback_cls closure for peer_address_callback
  */
 struct GNUNET_TRANSPORT_ValidationMonitoringContext *
 GNUNET_TRANSPORT_monitor_validation_entries (const struct
@@ -545,4 +545,4 @@ GNUNET_TRANSPORT_monitor_validation_entries_cancel (struct GNUNET_TRANSPORT_Vali
 }
 
 
-/* end of transport_api_montoring.c */
+/* end of transport_api_monitoring.c */

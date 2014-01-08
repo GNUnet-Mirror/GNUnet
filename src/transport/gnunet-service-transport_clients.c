@@ -463,6 +463,8 @@ client_disconnect_notification (void *cls, struct GNUNET_SERVER_Client *client)
  * @param cls the `struct TransportClient *` to notify
  * @param peer identity of the neighbour
  * @param address the address
+ * @param state the current state of the peer
+ * @param state_timeout the time out for the state
  * @param bandwidth_in inbound bandwidth in NBO
  * @param bandwidth_out outbound bandwidth in NBO
  */
@@ -908,6 +910,8 @@ struct PeerIterationContext
  * @param cls the 'struct PeerIterationContext'
  * @param peer identity of the neighbour
  * @param address the address
+ * @param state current state this peer is in
+ * @param state_timeout timeout for the current state of the peer
  * @param bandwidth_in inbound quota in NBO
  * @param bandwidth_out outbound quota in NBO
  */
@@ -928,7 +932,9 @@ send_peer_information (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
         "Sending information about `%s' using address `%s' in state `%s'\n",
-        GNUNET_i2s(peer), address);
+        GNUNET_i2s(peer),
+        (address != NULL) ? GST_plugins_a2s (address) : "<none>",
+        GNUNET_TRANSPORT_p2s (state));
     msg = compose_address_iterate_response_message (peer, address);
     msg->state = htonl (state);
     msg->state_timeout = GNUNET_TIME_absolute_hton(state_timeout);
@@ -1119,15 +1125,21 @@ GST_clients_unicast (struct GNUNET_SERVER_Client *client,
  *
  * @param peer peer this update is about (never NULL)
  * @param address address, NULL on disconnect
+ * @param state the current state of the peer
+ * @param state_timeout the time out for the state
  */
 void
-GST_clients_broadcast_address_notification (const struct GNUNET_PeerIdentity *peer,
-                                            const struct GNUNET_HELLO_Address *address)
+GST_clients_broadcast_peer_notification (const struct GNUNET_PeerIdentity *peer,
+    const struct GNUNET_HELLO_Address *address,
+    enum GNUNET_TRANSPORT_PeerState state,
+    struct GNUNET_TIME_Absolute state_timeout)
 {
   struct PeerIterateResponseMessage *msg;
   struct MonitoringClient *mc;
   static struct GNUNET_PeerIdentity all_zeros;
   msg = compose_address_iterate_response_message (peer, address);
+  msg->state = htonl (state);
+  msg->state_timeout = GNUNET_TIME_absolute_hton (state_timeout);
   mc = monitoring_clients_head;
   while (mc != NULL)
   {
