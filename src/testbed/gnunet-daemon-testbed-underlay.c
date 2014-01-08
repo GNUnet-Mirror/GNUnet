@@ -89,7 +89,7 @@ static struct GNUNET_DISK_MapHandle *hostkeys_map;
 /**
  * The hostkeys data
  */
-static char *hostkeys_data;
+static void *hostkeys_data;
 
 /**
  * Handle to the transport service.  This is used for setting link metrics
@@ -193,19 +193,10 @@ struct WhiteListRow
   unsigned int id;
   
   /**
-   * Bandwidth to be assigned to the link
-   */
-  int bandwidth;
-
-  /**
    * Latency to be assigned to the link
    */
   int latency;
 
-  /**
-   * Loss to be assigned to the link
-   */
-  int loss;
 };
 
 
@@ -294,6 +285,11 @@ unload_keys ()
 static void
 do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  if (NULL != transport)
+  {
+    GNUNET_TRANSPORT_disconnect (transport);
+    transport = NULL;
+  }
   cleanup_map ();
   unload_keys ();
   if (NULL != bh)
@@ -310,9 +306,9 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @return GNUNET_SYSERR upon error OR the number of rows retrieved
  */
 static int
-db_read_whitelist (struct sqlite3 *db, unsigned int pid, struct WhiteListRow **wl_rows)
+db_read_whitelist (struct sqlite3 *db, int pid, struct WhiteListRow **wl_rows)
 {
-  static const char *query_wl = "SELECT (oid, bandwidth, latency, loss) FROM whitelist WHERE (id == ?);";
+  static const char *query_wl = "SELECT oid, latency FROM whitelist WHERE (id == ?);";
   struct sqlite3_stmt *stmt_wl;
   struct WhiteListRow *lr;
   int nrows;
@@ -337,10 +333,8 @@ db_read_whitelist (struct sqlite3 *db, unsigned int pid, struct WhiteListRow **w
       break;
     nrows++;
     lr = GNUNET_new (struct WhiteListRow);
-    lr->id = sqlite3_column_int (stmt_wl, 1);
-    lr->bandwidth = sqlite3_column_int (stmt_wl, 2);
-    lr->latency = sqlite3_column_int (stmt_wl, 3);
-    lr->loss = sqlite3_column_int (stmt_wl, 4);
+    lr->id = sqlite3_column_int (stmt_wl, 0);
+    lr->latency = sqlite3_column_int (stmt_wl, 1);
     lr->next = *wl_rows;
     *wl_rows = lr;
   } while (1);
@@ -376,12 +370,6 @@ run (void *cls, char *const *args, const char *cfgfile,
     GNUNET_break (0);
     return;
   }
-  transport = GNUNET_TRANSPORT_connect (c, NULL, NULL, NULL, NULL, NULL);
-  if (NULL == transport)
-  {
-    GNUNET_break (0);
-    return;
-  }
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (c, "TESTBED-UNDERLAY",
                                                             "DBFILE",
                                                             &dbfile))
@@ -407,13 +395,23 @@ run (void *cls, char *const *args, const char *cfgfile,
   wl_head = NULL;
   if (GNUNET_OK != load_keys (c))
       goto close_db;
+  
+  transport = GNUNET_TRANSPORT_connect (c, NULL, NULL, NULL, NULL, NULL);
+  if (NULL == transport)
+  {
+    GNUNET_break (0);
+    return;
+  }
   /* read and process whitelist */
   nrows = 0;
   wl_head = NULL;
   nrows = db_read_whitelist (db, pid, &wl_head);
   if ((GNUNET_SYSERR == nrows) || (0 == nrows))
+  {
+    GNUNET_TRANSPORT_disconnect (transport);
     goto close_db;
-  map = GNUNET_CONTAINER_multipeermap_create (nrows, GNUNET_YES);
+  }
+  map = GNUNET_CONTAINER_multipeermap_create (nrows, GNUNET_NO);
   params[0].type = GNUNET_ATS_QUALITY_NET_DELAY;
   while (NULL != (wl_entry = wl_head))
   {
@@ -423,11 +421,14 @@ run (void *cls, char *const *args, const char *cfgfile,
     GNUNET_break (GNUNET_OK ==
                   GNUNET_CONTAINER_multipeermap_put (map, &identity, &identity,
                                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST));
+    DEBUG ("Setting %u ms latency to peer `%s'\n",
+           wl_entry->latency,
+           GNUNET_i2s (&identity));
     GNUNET_TRANSPORT_set_traffic_metric (transport,
                                          &identity,
                                          GNUNET_YES,
                                          GNUNET_YES, /* FIXME: Separate inbound, outboud metrics */
-                                         params, 3);
+                                         params, 1);
     GNUNET_free (wl_entry);
   }
   bh = GNUNET_TRANSPORT_blacklist (c, &check_access, NULL);
@@ -435,7 +436,7 @@ run (void *cls, char *const *args, const char *cfgfile,
                                                 &do_shutdown, NULL);
 
  close_db:
-  GNUNET_break (GNUNET_OK == sqlite3_close (db));
+  GNUNET_break (SQLITE_OK == sqlite3_close (db));
   return;
 }
 
