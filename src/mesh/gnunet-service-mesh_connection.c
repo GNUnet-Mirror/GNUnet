@@ -331,6 +331,18 @@ connection_debug (struct MeshConnection *c)
 }
 #endif
 
+
+/**
+ * Schedule next keepalive task, taking in consideration
+ * the connection state and number of retries.
+ *
+ * @param c Connection for which to schedule the next keepalive.
+ * @param fwd Direction for the next keepalive.
+ */
+static void
+schedule_next_keepalive (struct MeshConnection *c, int fwd);
+
+
 /**
  * Get string description for tunnel state.
  *
@@ -584,6 +596,14 @@ message_sent (void *cls,
   /* Send ACK if needed, after accounting for sent ID in fc->queue_n */
   switch (type)
   {
+    case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE:
+    case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK:
+      c->maintenance_q = NULL;
+      /* Don't trigger a keepalive for sent ACKs, only SYN and SYNACKs */
+      if (GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE == type || !fwd)
+        schedule_next_keepalive (c, fwd);
+      break;
+
     case GNUNET_MESSAGE_TYPE_MESH_ENCRYPTED:
       fc->last_pid_sent++;
       LOG (GNUNET_ERROR_TYPE_DEBUG, "!  Q_N- %p %u\n", fc, fc->queue_n);
@@ -919,9 +939,6 @@ connection_maintain (struct MeshConnection *c, int fwd)
 /**
  * Keep the connection alive in the FWD direction.
  *
- * Call connection_maintain do to the work and schedule the next execution,
- * taking in consideration the connection state and number of retries.
- *
  * @param cls Closure (connection to keepalive).
  * @param tc TaskContext.
  */
@@ -930,37 +947,19 @@ connection_fwd_keepalive (void *cls,
                           const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct MeshConnection *c = cls;
-  struct GNUNET_TIME_Relative delay;
 
   c->fwd_maintenance_task = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 
   connection_maintain (c, GNUNET_YES);
-  if (MESH_CONNECTION_READY == c->state)
-  {
-    delay = refresh_connection_time;
-  }
-  else
-  {
-    if (1 > c->create_retry)
-      c->create_retry = 1;
-    delay = GNUNET_TIME_relative_multiply (create_connection_time,
-                                           c->create_retry);
-    if (c->create_retry < 64)
-      c->create_retry *= 2;
-  }
-  c->fwd_maintenance_task = GNUNET_SCHEDULER_add_delayed (delay,
-                                                          &connection_fwd_keepalive,
-                                                          c);
+
+  /* Next execution will be scheduled by message_sent */
 }
 
 
 /**
  * Keep the connection alive in the BCK direction.
- *
- * Call connection_maintain do to the work and schedule the next execution,
- * taking in consideration the connection state and number of retries.
  *
  * TODO refactor and merge with connection_fwd_keepalive.
  *
@@ -972,13 +971,32 @@ connection_bck_keepalive (void *cls,
                           const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct MeshConnection *c = cls;
-  struct GNUNET_TIME_Relative delay;
 
   c->bck_maintenance_task = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 
   connection_maintain (c, GNUNET_NO);
+
+  /* Next execution will be scheduled by message_sent */
+}
+
+
+/**
+ * Schedule next keepalive task, taking in consideration
+ * the connection state and number of retries.
+ *
+ * @param c Connection for which to schedule the next keepalive.
+ * @param fwd Direction for the next keepalive.
+ */
+static void
+schedule_next_keepalive (struct MeshConnection *c, int fwd)
+{
+  struct GNUNET_TIME_Relative delay;
+  GNUNET_SCHEDULER_TaskIdentifier *task_id;
+  GNUNET_SCHEDULER_Task keepalive_task;
+
+  /* Calculate delay to use, depending on the state of the connection */
   if (MESH_CONNECTION_READY == c->state)
   {
     delay = refresh_connection_time;
@@ -992,9 +1010,28 @@ connection_bck_keepalive (void *cls,
     if (c->create_retry < 64)
       c->create_retry *= 2;
   }
-  c->bck_maintenance_task = GNUNET_SCHEDULER_add_delayed (delay,
-                                                          &connection_bck_keepalive,
-                                                          c);
+
+  /* Select direction-dependent parameters */
+  if (GNUNET_YES == fwd)
+  {
+    task_id = &c->fwd_maintenance_task;
+    keepalive_task = &connection_fwd_keepalive;
+  }
+  else
+  {
+    task_id = &c->bck_maintenance_task;
+    keepalive_task = &connection_bck_keepalive;
+  }
+
+  /* Check that no one scheduled it before us (and alert in that case) */
+  if (GNUNET_SCHEDULER_NO_TASK != *task_id)
+  {
+    GNUNET_break (0);
+    GNUNET_SCHEDULER_cancel (*task_id);
+  }
+
+  /* Schedule the task */
+  *task_id = GNUNET_SCHEDULER_add_delayed (delay, keepalive_task, c);
 }
 
 
@@ -2959,9 +2996,10 @@ GMC_send_create (struct MeshConnection *connection)
        connection, connection->pending_messages);
   connection->pending_messages++;
 
-  GMP_queue_add (get_next_hop (connection), NULL,
-                 GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE,
-                 size, connection, GNUNET_YES, &message_sent, NULL);
+  connection->maintenance_q =
+    GMP_queue_add (get_next_hop (connection), NULL,
+                   GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE,
+                   size, connection, GNUNET_YES, &message_sent, NULL);
 
   state = GMT_get_cstate (connection->t);
   if (MESH_TUNNEL3_SEARCHING == state || MESH_TUNNEL3_NEW == state)
