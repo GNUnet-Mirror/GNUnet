@@ -375,7 +375,7 @@ struct PeerLookupMessage
  * Message from the library to the transport service
  * asking for binary addresses known for a peer.
  */
-struct PeerIterateMessage
+struct PeerMonitorMessage
 {
   /**
    * Type will be GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE

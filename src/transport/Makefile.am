@@ -210,6 +210,7 @@ gnunet_service_transport_SOURCES = \
  gnunet-service-transport_validation.h gnunet-service-transport_validation.c \
  gnunet-service-transport_manipulation.h gnunet-service-transport_manipulation.c
 gnunet_service_transport_LDADD = \
+  $(top_builddir)/src/transport/libgnunettransport.la \
   $(top_builddir)/src/ats/libgnunetats.la \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \

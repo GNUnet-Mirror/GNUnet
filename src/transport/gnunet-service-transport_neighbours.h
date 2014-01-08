@@ -170,19 +170,21 @@ GST_neighbours_force_disconnect (const struct GNUNET_PeerIdentity *target);
 
 
 /**
- * Function called for each connected neighbour.
+ * Function called for each neighbour.
  *
  * @param cls closure
  * @param neighbour identity of the neighbour
  * @param address the address (or NULL)
+ * @param state current state the peer is in
+ * @param state_timeout timeout for this state
  * @param bandwidth_in inbound quota in NBO
  * @param bandwidth_out outbound quota in NBO
  */
 typedef void (*GST_NeighbourIterator) (void *cls,
-                                       const struct GNUNET_PeerIdentity *
-                                       neighbour,
-                                       const struct GNUNET_HELLO_Address *
-                                       address,
+                                       const struct GNUNET_PeerIdentity *neighbour,
+                                       const struct GNUNET_HELLO_Address *address,
+                                       enum GNUNET_TRANSPORT_PeerState state,
+                                       struct GNUNET_TIME_Absolute state_timeout,
                                        struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
                                        struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out);
 

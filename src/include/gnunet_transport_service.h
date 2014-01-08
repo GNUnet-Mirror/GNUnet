@@ -587,6 +587,23 @@ GNUNET_TRANSPORT_address_to_string_cancel (struct
                                            GNUNET_TRANSPORT_AddressToStringContext
                                            *pic);
 
+/**
+ * Convert a transport state to a human readable string.
+ *
+ * @param alc handle for the request to cancel
+ */
+const char *
+GNUNET_TRANSPORT_p2s (enum GNUNET_TRANSPORT_PeerState state);
+
+
+/**
+ * Check if a state is defined as connected
+ *
+ * @param state the state value
+ * @return GNUNET_YES or GNUNET_NO
+ */
+int
+GNUNET_TRANSPORT_is_connected (enum GNUNET_TRANSPORT_PeerState state);
 
 /**
  * Return information about a specific peer or all peers currently known to

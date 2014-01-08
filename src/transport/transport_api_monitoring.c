@@ -140,6 +140,94 @@ struct GNUNET_TRANSPORT_ValidationMonitoringContext
   int one_shot;
 };
 
+/**
+ * Check if a state is defined as connected
+ *
+ * @param state the state value
+ * @return GNUNET_YES or GNUNET_NO
+ */
+int
+GNUNET_TRANSPORT_is_connected (enum GNUNET_TRANSPORT_PeerState state)
+{
+  switch (state)
+  {
+  case S_NOT_CONNECTED:
+  case S_INIT_ATS:
+  case S_INIT_BLACKLIST:
+  case S_CONNECT_SENT:
+  case S_CONNECT_RECV_BLACKLIST_INBOUND:
+  case S_CONNECT_RECV_ATS:
+  case S_CONNECT_RECV_BLACKLIST:
+  case S_CONNECT_RECV_ACK:
+    return GNUNET_NO;
+  case S_CONNECTED:
+  case S_RECONNECT_ATS:
+  case S_RECONNECT_BLACKLIST:
+  case S_RECONNECT_SENT:
+  case S_CONNECTED_SWITCHING_BLACKLIST:
+  case S_CONNECTED_SWITCHING_CONNECT_SENT:
+    return GNUNET_YES;
+  case S_DISCONNECT:
+  case S_DISCONNECT_FINISHED:
+    return GNUNET_NO;
+  default:
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Unhandled state `%s' \n",
+                GNUNET_TRANSPORT_p2s (state));
+    GNUNET_break (0);
+    break;
+  }
+  return GNUNET_SYSERR;
+}
+
+/**
+ * Convert state to human-readable string.
+ *
+ * @param state the state value
+ * @return corresponding string
+ */
+const char *
+GNUNET_TRANSPORT_p2s (enum GNUNET_TRANSPORT_PeerState state)
+{
+  switch (state)
+  {
+  case S_NOT_CONNECTED:
+    return "S_NOT_CONNECTED";
+  case S_INIT_ATS:
+    return "S_INIT_ATS";
+  case S_INIT_BLACKLIST:
+    return "S_INIT_BLACKLIST";
+  case S_CONNECT_SENT:
+    return "S_CONNECT_SENT";
+  case S_CONNECT_RECV_BLACKLIST_INBOUND:
+    return "S_CONNECT_RECV_BLACKLIST_INBOUND";
+  case S_CONNECT_RECV_ATS:
+    return "S_CONNECT_RECV_ATS";
+  case S_CONNECT_RECV_BLACKLIST:
+    return "S_CONNECT_RECV_BLACKLIST";
+  case S_CONNECT_RECV_ACK:
+    return "S_CONNECT_RECV_ACK";
+  case S_CONNECTED:
+    return "S_CONNECTED";
+  case S_RECONNECT_ATS:
+    return "S_RECONNECT_ATS";
+  case S_RECONNECT_BLACKLIST:
+    return "S_RECONNECT_BLACKLIST";
+  case S_RECONNECT_SENT:
+    return "S_RECONNECT_SENT";
+  case S_CONNECTED_SWITCHING_BLACKLIST:
+    return "S_CONNECTED_SWITCHING_BLACKLIST";
+  case S_CONNECTED_SWITCHING_CONNECT_SENT:
+    return "S_CONNECTED_SWITCHING_CONNECT_SENT";
+  case S_DISCONNECT:
+    return "S_DISCONNECT";
+  case S_DISCONNECT_FINISHED:
+    return "S_DISCONNECT_FINISHED";
+  default:
+    GNUNET_break (0);
+    return "UNDEFINED";
+  }
+}
 
 
 /**
@@ -150,7 +238,7 @@ struct GNUNET_TRANSPORT_ValidationMonitoringContext
  *        message with the human-readable address
  */
 static void
-peer_address_response_processor (void *cls,
+peer_response_processor (void *cls,
                                  const struct GNUNET_MessageHeader *msg);
 
 
@@ -162,10 +250,10 @@ peer_address_response_processor (void *cls,
 static void
 send_request (struct GNUNET_TRANSPORT_PeerMonitoringContext *pal_ctx)
 {
-  struct PeerIterateMessage msg;
+  struct PeerMonitorMessage msg;
 
-  msg.header.size = htons (sizeof (struct PeerIterateMessage));
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE);
+  msg.header.size = htons (sizeof (struct PeerMonitorMessage));
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PEER_REQUEST);
   msg.one_shot = htonl (pal_ctx->one_shot);
   msg.timeout = GNUNET_TIME_absolute_hton (pal_ctx->timeout);
   msg.peer = pal_ctx->peer;
@@ -174,7 +262,7 @@ send_request (struct GNUNET_TRANSPORT_PeerMonitoringContext *pal_ctx)
 							  &msg.header,
                                                           GNUNET_TIME_absolute_get_remaining (pal_ctx->timeout),
 							  GNUNET_YES,
-                                                          &peer_address_response_processor,
+                                                          &peer_response_processor,
                                                           pal_ctx));
 }
 
@@ -218,16 +306,16 @@ reconnect (struct GNUNET_TRANSPORT_PeerMonitoringContext *pal_ctx)
 /**
  * Function called with responses from the service.
  *
- * @param cls our 'struct GNUNET_TRANSPORT_PeerAddressLookupContext*'
+ * @param cls our 'struct GNUNET_TRANSPORT_PeerMonitoringContext*'
  * @param msg NULL on timeout or error, otherwise presumably a
  *        message with the human-readable address
  */
 static void
-peer_address_response_processor (void *cls,
+peer_response_processor (void *cls,
                                  const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_TRANSPORT_PeerMonitoringContext *pal_ctx = cls;
-  struct PeerIterateResponseMessage *air_msg;
+  struct PeerIterateResponseMessage *pir_msg;
   struct GNUNET_HELLO_Address *address;
   const char *addr;
   const char *transport_name;
@@ -251,7 +339,7 @@ peer_address_response_processor (void *cls,
   }
   size = ntohs (msg->size);
   GNUNET_break (ntohs (msg->type) ==
-                GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE_RESPONSE);
+      GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PEER_RESPONSE);
   if (size == sizeof (struct GNUNET_MessageHeader))
   {
     /* done! */
@@ -270,7 +358,7 @@ peer_address_response_processor (void *cls,
 
   if ((size < sizeof (struct PeerIterateResponseMessage)) ||
       (ntohs (msg->type) !=
-       GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE_RESPONSE))
+          GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PEER_RESPONSE))
   {
     GNUNET_break (0);
     if (pal_ctx->one_shot)
@@ -286,9 +374,9 @@ peer_address_response_processor (void *cls,
     return;
   }
 
-  air_msg = (struct PeerIterateResponseMessage *) msg;
-  tlen = ntohl (air_msg->pluginlen);
-  alen = ntohl (air_msg->addrlen);
+  pir_msg = (struct PeerIterateResponseMessage *) msg;
+  tlen = ntohl (pir_msg->pluginlen);
+  alen = ntohl (pir_msg->addrlen);
 
   if (size != sizeof (struct PeerIterateResponseMessage) + tlen + alen)
   {
@@ -308,12 +396,12 @@ peer_address_response_processor (void *cls,
 
   if (alen == 0 && tlen == 0)
   {
-    pal_ctx->cb (pal_ctx->cb_cls, &air_msg->peer, NULL,
+    pal_ctx->cb (pal_ctx->cb_cls, &pir_msg->peer, NULL,
         S_NOT_CONNECTED, GNUNET_TIME_UNIT_ZERO_ABS);
   }
   else
   {
-    addr = (const char *) &air_msg[1];
+    addr = (const char *) &pir_msg[1];
     transport_name = &addr[alen];
 
     if (transport_name[tlen - 1] != '\0')
@@ -333,16 +421,16 @@ peer_address_response_processor (void *cls,
     }
 
     /* notify client */
-    address = GNUNET_HELLO_address_allocate (&air_msg->peer,
+    address = GNUNET_HELLO_address_allocate (&pir_msg->peer,
         transport_name, addr, alen);
-    pal_ctx->cb (pal_ctx->cb_cls, &air_msg->peer, address,
-        ntohl(air_msg->state),
-        GNUNET_TIME_absolute_ntoh (air_msg->state_timeout));
+    pal_ctx->cb (pal_ctx->cb_cls, &pir_msg->peer, address,
+        ntohl(pir_msg->state),
+        GNUNET_TIME_absolute_ntoh (pir_msg->state_timeout));
     GNUNET_HELLO_address_free (address);
   }
 
   /* expect more replies */
-  GNUNET_CLIENT_receive (pal_ctx->client, &peer_address_response_processor,
+  GNUNET_CLIENT_receive (pal_ctx->client, &peer_response_processor,
                          pal_ctx,
                          GNUNET_TIME_absolute_get_remaining (pal_ctx->timeout));
 }

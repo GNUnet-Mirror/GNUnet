@@ -1278,7 +1278,7 @@ extern "C"
 /**
  * Request to monitor addresses used by a peer or all peers.
  */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE 380
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PEER_REQUEST 380
 
 /**
  * Message send by a peer to notify the other to keep the session alive
@@ -1287,16 +1287,16 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_KEEPALIVE 381
 
 /**
- * Response to a GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_KEEPALIVE message to
+ * Response to a #GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_KEEPALIVE message to
  * measure latency in a regular interval
  */
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_KEEPALIVE_RESPONSE 382
 
-
 /**
- * Request to iterate over all known addresses.
+ * Response to #GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PEER_REQUEST
+ * request to iterate over all known addresses.
  */
-#define GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE_RESPONSE 383
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PEER_RESPONSE 383
 
 /**
  * Message send by a peer to notify the other to keep the session alive.
@@ -1307,6 +1307,17 @@ extern "C"
  * Message containing traffic metrics for transport service
  */
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_TRAFFIC_METRIC 385
+
+/**
+ * Request to monitor address validations by a peer or all peers.
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_VALIDATION_REQUEST 386
+
+/**
+ * Response to #GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_VALIDATION_REQUEST
+ * request to iterate over all known addresses.
+ */
+#define GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_VALIDATION_RESPONSE 387
 
 
 

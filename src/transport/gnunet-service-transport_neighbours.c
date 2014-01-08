@@ -514,55 +514,6 @@ lookup_neighbour (const struct GNUNET_PeerIdentity *pid)
 
 
 /**
- * Convert state to human-readable string.
- *
- * @param state the state value
- * @return corresponding string
- */
-static const char *
-print_state (enum GNUNET_TRANSPORT_PeerState state)
-{
-  switch (state)
-  {
-  case S_NOT_CONNECTED:
-    return "S_NOT_CONNECTED";
-  case S_INIT_ATS:
-    return "S_INIT_ATS";
-  case S_INIT_BLACKLIST:
-    return "S_INIT_BLACKLIST";
-  case S_CONNECT_SENT:
-    return "S_CONNECT_SENT";
-  case S_CONNECT_RECV_BLACKLIST_INBOUND:
-    return "S_CONNECT_RECV_BLACKLIST_INBOUND";
-  case S_CONNECT_RECV_ATS:
-    return "S_CONNECT_RECV_ATS";
-  case S_CONNECT_RECV_BLACKLIST:
-    return "S_CONNECT_RECV_BLACKLIST";
-  case S_CONNECT_RECV_ACK:
-    return "S_CONNECT_RECV_ACK";
-  case S_CONNECTED:
-    return "S_CONNECTED";
-  case S_RECONNECT_ATS:
-    return "S_RECONNECT_ATS";
-  case S_RECONNECT_BLACKLIST:
-    return "S_RECONNECT_BLACKLIST";
-  case S_RECONNECT_SENT:
-    return "S_RECONNECT_SENT";
-  case S_CONNECTED_SWITCHING_BLACKLIST:
-    return "S_CONNECTED_SWITCHING_BLACKLIST";
-  case S_CONNECTED_SWITCHING_CONNECT_SENT:
-    return "S_CONNECTED_SWITCHING_CONNECT_SENT";
-  case S_DISCONNECT:
-    return "S_DISCONNECT";
-  case S_DISCONNECT_FINISHED:
-    return "S_DISCONNECT_FINISHED";
-  default:
-    GNUNET_break (0);
-    return "UNDEFINED";
-  }
-}
-
-/**
  * Test if we're connected to the given peer.
  *
  * @param n neighbour entry of peer to test
@@ -573,35 +524,7 @@ test_connected (struct NeighbourMapEntry *n)
 {
   if (NULL == n)
     return GNUNET_NO;
-  switch (n->state)
-  {
-  case S_NOT_CONNECTED:
-  case S_INIT_ATS:
-  case S_INIT_BLACKLIST:
-  case S_CONNECT_SENT:
-  case S_CONNECT_RECV_BLACKLIST_INBOUND:
-  case S_CONNECT_RECV_ATS:
-  case S_CONNECT_RECV_BLACKLIST:
-  case S_CONNECT_RECV_ACK:
-    return GNUNET_NO;
-  case S_CONNECTED:
-  case S_RECONNECT_ATS:
-  case S_RECONNECT_BLACKLIST:
-  case S_RECONNECT_SENT:
-  case S_CONNECTED_SWITCHING_BLACKLIST:
-  case S_CONNECTED_SWITCHING_CONNECT_SENT:
-    return GNUNET_YES;
-  case S_DISCONNECT:
-  case S_DISCONNECT_FINISHED:
-    return GNUNET_NO;
-  default:
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Unhandled state `%s' \n",
-                print_state (n->state));
-    GNUNET_break (0);
-    break;
-  }
-  return GNUNET_SYSERR;
+  return GNUNET_TRANSPORT_is_connected (n->state);
 }
 
 /**
@@ -960,7 +883,7 @@ disconnect_neighbour (struct NeighbourMapEntry *n)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Disconnecting from peer %s in state %s\n",
               GNUNET_i2s (&n->id),
-              print_state (n->state));
+              GNUNET_TRANSPORT_p2s (n->state));
   /* depending on state, notify neighbour and/or upper layers of this peer
      about disconnect */
   switch (n->state)
@@ -1022,7 +945,7 @@ disconnect_neighbour (struct NeighbourMapEntry *n)
   default:
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Unhandled state `%s'\n",
-                print_state (n->state));
+                GNUNET_TRANSPORT_p2s (n->state));
     GNUNET_break (0);
     break;
   }
@@ -1693,7 +1616,7 @@ GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target)
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 	      "Asked to connect to peer `%s' (state: %s)\n",
               GNUNET_i2s (target),
-              (NULL != n) ? print_state(n->state) : "NEW PEER");
+              (NULL != n) ? GNUNET_TRANSPORT_p2s(n->state) : "NEW PEER");
   if (NULL != n)
   {
     switch (n->state)
@@ -1734,7 +1657,7 @@ GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target)
     default:
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   "Unhandled state `%s'\n",
-                  print_state (n->state));
+                  GNUNET_TRANSPORT_p2s (n->state));
       GNUNET_break (0);
       free_neighbour (n, GNUNET_NO);
       break;
@@ -1795,7 +1718,7 @@ handle_test_blacklist_cont (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received blacklist result for peer `%s' in state %s/%d\n",
               GNUNET_i2s (peer),
-              print_state (n->state),
+              GNUNET_TRANSPORT_p2s (n->state),
               n->send_connect_ack);
   switch (n->state)
   {
@@ -1992,7 +1915,7 @@ handle_test_blacklist_cont (void *cls,
   default:
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Unhandled state `%s'\n",
-                print_state (n->state));
+                GNUNET_TRANSPORT_p2s (n->state));
     GNUNET_break (0);
     free_neighbour (n, GNUNET_NO);
     break;
@@ -2093,7 +2016,7 @@ GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received SESSION_CONNECT for peer `%s' in state %s/%d\n",
               GNUNET_i2s (peer),
-              print_state (n->state),
+              GNUNET_TRANSPORT_p2s (n->state),
               n->send_connect_ack);
   switch (n->state)
   {
@@ -2161,7 +2084,7 @@ GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
   default:
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Unhandled state `%s'\n",
-                print_state (n->state));
+                GNUNET_TRANSPORT_p2s (n->state));
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
@@ -2234,7 +2157,7 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
               address->transport_name,
               session,
               GNUNET_i2s (peer),
-              print_state (n->state),
+              GNUNET_TRANSPORT_p2s (n->state),
               n->send_connect_ack,
               ntohl (bandwidth_in.value__),
               ntohl (bandwidth_out.value__));
@@ -2404,7 +2327,7 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
   default:
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Unhandled state `%s'\n",
-                print_state (n->state));
+                GNUNET_TRANSPORT_p2s (n->state));
     GNUNET_break (0);
     break;
   }
@@ -2571,7 +2494,7 @@ master_task (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Master task runs for neighbour `%s' in state %s with timeout in %s\n",
 	      GNUNET_i2s (&n->id),
-	      print_state(n->state),
+	      GNUNET_TRANSPORT_p2s(n->state),
 	      GNUNET_STRINGS_relative_time_to_string (delay,
 						      GNUNET_YES));
   switch (n->state)
@@ -2742,7 +2665,7 @@ master_task (void *cls,
   default:
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Unhandled state `%s'\n",
-                print_state (n->state));
+                GNUNET_TRANSPORT_p2s (n->state));
     GNUNET_break (0);
     break;
   }
@@ -2930,7 +2853,7 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
   default:
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Unhandled state `%s'\n",
-                print_state (n->state));
+                GNUNET_TRANSPORT_p2s (n->state));
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
@@ -3060,7 +2983,7 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
   default:
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Unhandled state `%s'\n",
-                print_state (n->state));
+                GNUNET_TRANSPORT_p2s (n->state));
     GNUNET_break (0);
     break;
   }
@@ -3117,7 +3040,7 @@ GST_neighbours_handle_session_ack (const struct GNUNET_MessageHeader *message,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Received SESSION_ACK message from peer `%s' in state %s/%d\n",
                 GNUNET_i2s (peer),
-                print_state (n->state),
+                GNUNET_TRANSPORT_p2s (n->state),
                 n->send_connect_ack);
     GNUNET_STATISTICS_update (GST_stats,
                               gettext_noop ("# unexpected SESSION_ACK messages"), 1,
@@ -3297,7 +3220,7 @@ struct IteratorContext
 
 
 /**
- * Call the callback from the closure for each connected neighbour.
+ * Call the callback from the closure for each neighbour.
  *
  * @param cls the `struct IteratorContext`
  * @param key the hash of the public key of the neighbour
@@ -3314,8 +3237,6 @@ neighbours_iterate (void *cls,
   struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in;
   struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out;
 
-  if (GNUNET_YES != test_connected (n))
-    return GNUNET_OK;
 
   if (NULL != n->primary_address.address)
   {
@@ -3327,8 +3248,11 @@ neighbours_iterate (void *cls,
     bandwidth_in = GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT;
     bandwidth_out = GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT;
   }
-  ic->cb (ic->cb_cls, &n->id,
+  ic->cb (ic->cb_cls,
+          &n->id,
           n->primary_address.address,
+          n->state,
+          n->timeout,
           bandwidth_in, bandwidth_out);
   return GNUNET_OK;
 }
@@ -3415,7 +3339,7 @@ GST_neighbour_get_latency (const struct GNUNET_PeerIdentity *peer)
   default:
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Unhandled state `%s'\n",
-                print_state (n->state));
+                GNUNET_TRANSPORT_p2s (n->state));
     GNUNET_break (0);
     break;
   }
