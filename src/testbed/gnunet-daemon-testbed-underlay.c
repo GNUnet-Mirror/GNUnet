@@ -158,7 +158,13 @@ check_access (void *cls, const struct GNUNET_PeerIdentity * pid)
 
   GNUNET_assert (NULL != map);
   contains = GNUNET_CONTAINER_multipeermap_contains (map, pid);
-  return (contains) ? GNUNET_OK : GNUNET_SYSERR;
+  if (GNUNET_YES == contains)
+  {
+    DEBUG ("Permitting `%s'\n", GNUNET_i2s (pid));
+    return GNUNET_OK;
+  }
+  DEBUG ("Not permitting `%s'\n", GNUNET_i2s (pid));
+  return GNUNET_SYSERR;
 }
 
 

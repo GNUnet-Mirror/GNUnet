@@ -43,6 +43,21 @@ static struct GNUNET_TESTBED_Operation *op;
 
 
 /**
+ * Shutdown testcase
+ *
+ * @param cls NULL
+ * @param tc scheduler task context
+ */
+static void
+do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  if (NULL != op)
+    GNUNET_TESTBED_operation_done (op);
+  op = NULL;
+}
+
+
+/**
  * Callback to be called when an operation is completed
  *
  * @param cls the callback closure from functions generating an operation
@@ -90,6 +105,7 @@ test_master (void *cls,
   if (NULL == peers_)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failing test due to timeout\n");
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
   GNUNET_assert (NUM_PEERS == num_peers);
@@ -99,6 +115,9 @@ test_master (void *cls,
                                        NULL,
                                        peers_[0],
                                        peers_[2]);
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
+                                                               15),
+                                &do_shutdown, NULL);
 }
 
 

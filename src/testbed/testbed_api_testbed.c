@@ -448,12 +448,11 @@ remove_rcop (struct GNUNET_TESTBED_RunHandle *rc, struct RunContextOperation *rc
 /**
  * Assuming all peers have been destroyed cleanup run handle
  *
- * @param cls the run handle
+ * @param rc the run context
  */
 static void
-cleanup (void *cls)
+cleanup (struct GNUNET_TESTBED_RunHandle *rc)
 {
-  struct GNUNET_TESTBED_RunHandle *rc = cls;
   unsigned int hid;
 
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == rc->register_hosts_task);

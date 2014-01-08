@@ -2,6 +2,7 @@
 
 [testbed]
 OVERLAY_TOPOLOGY = LINE
+OPERATION_TIMEOUT = 5 s
 
 [testbed-underlay]
 AUTOSTART = NO
