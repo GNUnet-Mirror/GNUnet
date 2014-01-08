@@ -282,6 +282,7 @@ notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
   struct PeerContext *p = cls;
   struct PeerContext *t = NULL;
 
+  connected = GNUNET_YES;
   if (0 == memcmp (peer, &p1->id, sizeof (struct GNUNET_PeerIdentity)))
     t = p1;
   if (0 == memcmp (peer, &p2->id, sizeof (struct GNUNET_PeerIdentity)))
@@ -320,6 +321,7 @@ testing_connect_cb (struct PeerContext *p1, struct PeerContext *p2, void *cls)
   cc = NULL;
   char *p1_c = GNUNET_strdup (GNUNET_i2s (&p1->id));
 
+  connected = GNUNET_YES;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peers connected: %u (%s) <-> %u (%s)\n",
               p1->no, p1_c, p2->no, GNUNET_i2s (&p2->id));
   GNUNET_free (p1_c);
