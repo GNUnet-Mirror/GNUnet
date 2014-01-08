@@ -463,7 +463,7 @@ main (int argc, char *const *argv)
 #endif
   ret =
       (GNUNET_OK ==
-       GNUNET_PROGRAM_run (argc, argv, "gnunet-daemon-testbed-underlay",
+       GNUNET_PROGRAM_run (argc, argv, "testbed-underlay",
                            _
                            ("Daemon to restrict underlay network in testbed deployments"),
                            options, &run, NULL)) ? 0 : 1;

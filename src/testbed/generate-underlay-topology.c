@@ -114,6 +114,19 @@ link_processor (void *cls,
   FPRINTF (stdout, "%u -> %u\n", A, B);
   GNUNET_break (SQLITE_OK == sqlite3_reset (stmt_insert));
   //GNUNET_break (SQLITE_OK == sqlite3_clear_bindings (stmt_insert));
+  if ( (SQLITE_OK != sqlite3_bind_int (stmt_insert, 1, B)) ||
+       (SQLITE_OK != sqlite3_bind_int (stmt_insert, 2, A)) )
+  {
+    LOG_SQLITE (db, NULL, GNUNET_ERROR_TYPE_ERROR, "sqlite3_bind_int");
+    return GNUNET_SYSERR;
+  }
+  if (SQLITE_DONE != sqlite3_step (stmt_insert))
+  {
+    LOG_SQLITE (db, NULL, GNUNET_ERROR_TYPE_ERROR, "sqlite3_step");
+    return GNUNET_SYSERR;
+  }
+  FPRINTF (stdout, "%u -> %u\n", B, A);
+  GNUNET_break (SQLITE_OK == sqlite3_reset (stmt_insert));
   return GNUNET_OK;
 }
 
@@ -254,7 +267,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     }
     break;
   default:
-    GNUNET_assert (0);
+    break;
   }
   /* parse for second TOPOOPT.  Only required for SCALE_FREE topology */
   switch (topology)
