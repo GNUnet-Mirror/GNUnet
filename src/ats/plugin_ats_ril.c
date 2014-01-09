@@ -495,11 +495,14 @@ static int
 agent_get_action_max (struct RIL_Peer_Agent *agent, double *state)
 {
   int i;
+  int num_actions;
   int max_i = RIL_ACTION_INVALID;
   double cur_q;
   double max_q = -DBL_MAX;
 
-  for (i = 0; i < agent->n; i++)
+  num_actions = agent->address_inuse->used ? RIL_ACTION_TYPE_NUM : agent->n;
+
+  for (i = 0; i < num_actions; i++)
   {
     cur_q = agent_estimate_q (agent, state, i);
     if (cur_q > max_q)
@@ -1170,19 +1173,22 @@ static int
 agent_select_egreedy (struct RIL_Peer_Agent *agent, double *state)
 {
   int action;
+  int num_actions;
   double r = (double) GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
         UINT32_MAX) / (double) UINT32_MAX;
 
-  if (r < agent->envi->parameters.explore_ratio)
+  num_actions = agent->address_inuse->used ? RIL_ACTION_TYPE_NUM : agent->n;
+
+  if (r < agent->envi->parameters.explore_ratio) //explore
   {
-    action = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, agent->n);
+    action = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, num_actions);
     if (RIL_ALGO_Q == agent->envi->parameters.algorithm)
     {
       agent_modify_eligibility(agent, RIL_E_ZERO, NULL, action);
     }
     return action;
   }
-  else
+  else //exploit
   {
     action = agent_get_action_max(agent, state);
     if (RIL_ALGO_Q == agent->envi->parameters.algorithm)
@@ -1208,26 +1214,29 @@ agent_select_softmax (struct RIL_Peer_Agent *agent, double *state)
 {
   int i;
   int a_max;
+  int num_actions;
   double eqt[agent->n];
   double p[agent->n];
   double sum = 0;
   double r;
 
+  num_actions = agent->address_inuse->used ? RIL_ACTION_TYPE_NUM : agent->n;
+
   a_max = agent_get_action_max(agent, state);
 
-  for (i=0; i<agent->n; i++)
+  for (i=0; i<num_actions; i++)
   {
     eqt[i] = exp(agent_estimate_q(agent,state,i) / agent->envi->parameters.temperature);
     sum += eqt[i];
   }
-  for (i=0; i<agent->n; i++)
+  for (i=0; i<num_actions; i++)
   {
     p[i] = eqt[i]/sum;
   }
   r = (double) GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
       UINT32_MAX) / (double) UINT32_MAX;
   sum = 0;
-  for (i=0; i<agent->n; i++)
+  for (i=0; i<num_actions; i++)
   {
     if (sum + p[i] > r)
     {
@@ -2292,9 +2301,6 @@ GAS_ril_address_session_changed (void *solver,
     uint32_t cur_session,
     uint32_t new_session)
 {
-  /*
-   * TODO? Future Work: Potentially add session activity as a feature in state vector
-   */
   LOG(GNUNET_ERROR_TYPE_DEBUG, "API_address_session_changed()\n");
 }
 
@@ -2311,9 +2317,6 @@ GAS_ril_address_session_changed (void *solver,
 void
 GAS_ril_address_inuse_changed (void *solver, struct ATS_Address *address, int in_use)
 {
-  /*
-   * TODO? Future Work: Potentially add usage variable to state vector
-   */
   LOG(GNUNET_ERROR_TYPE_DEBUG,
       "API_address_inuse_changed() Usage for %s address of peer '%s' changed to %s\n",
       address->plugin, GNUNET_i2s (&address->peer), (GNUNET_YES == in_use) ? "USED" : "UNUSED");
