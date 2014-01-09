@@ -36,12 +36,14 @@
 /**
  * Hash block of given size.
  *
- * @param block the data to GNUNET_CRYPTO_hash, length is given as a second argument
- * @param size the length of the data to GNUNET_CRYPTO_hash
+ * @param block the data to #GNUNET_CRYPTO_hash, length is given as a second argument
+ * @param size the length of the data to #GNUNET_CRYPTO_hash in @a block
  * @param ret pointer to where to write the hashcode
  */
 void
-GNUNET_CRYPTO_hash (const void *block, size_t size, struct GNUNET_HashCode * ret)
+GNUNET_CRYPTO_hash (const void *block,
+                    size_t size,
+                    struct GNUNET_HashCode *ret)
 {
   gcry_md_hash_buffer (GCRY_MD_SHA512, ret, block, size);
 }
