@@ -128,7 +128,9 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 static void
-address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
+address_suggest_cb (void *cls,
+                    const struct GNUNET_PeerIdentity *peer,
+                    const struct GNUNET_HELLO_Address *address,
                     struct Session *session,
                     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
                     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
@@ -199,7 +201,7 @@ run (void *cls, const struct GNUNET_CONFIGURATION_Handle *mycfg,
   test_hello_address.address_length = test_addr.addr_len;
 
   /* Request */
-  GNUNET_ATS_suggest_address (sched_ats, &p.id);
+  GNUNET_ATS_suggest_address (sched_ats, &p.id, NULL, NULL);
 
 
   /* Adding address */

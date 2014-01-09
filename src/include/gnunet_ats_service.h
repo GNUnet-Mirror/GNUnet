@@ -543,6 +543,11 @@ struct Session;
  * Signature of a function called by ATS with the current bandwidth
  * and address preferences as determined by ATS.
  *
+ * If an address is available immediately the address will be included. If no
+ * address can be suggested, address, session, bandwidth and ATS information will
+ * be NULL/0. ATS will suggest an address as soon as it can provide such an
+ * address
+ *
  * @param cls closure
  * @param address suggested address (including peer identity of the peer)
  * @param session session to use
@@ -553,10 +558,12 @@ struct Session;
  */
 typedef void
 (*GNUNET_ATS_AddressSuggestionCallback) (void *cls,
+    const struct GNUNET_PeerIdentity *peer,
     const struct GNUNET_HELLO_Address *address, struct Session *session,
     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
     const struct GNUNET_ATS_Information *ats, uint32_t ats_count);
+
 
 /**
  * Initialize the ATS subsystem.
@@ -596,11 +603,15 @@ GNUNET_ATS_reset_backoff (struct GNUNET_ATS_SchedulingHandle *sh,
  *
  * @param sh handle
  * @param peer identity of the peer we need an address for
+ * @param cont the continuation to indicate success to call with the address
+ * @param cont_cls the cls for the continuation
  * @return suggestion handle
  */
 struct GNUNET_ATS_SuggestHandle *
 GNUNET_ATS_suggest_address (struct GNUNET_ATS_SchedulingHandle *sh,
-                            const struct GNUNET_PeerIdentity *peer);
+                            const struct GNUNET_PeerIdentity *peer,
+                            GNUNET_ATS_AddressSuggestionCallback cont,
+                            void *cont_cls);
 
 
 /**

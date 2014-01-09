@@ -1742,6 +1742,18 @@ address_matches (const struct NeighbourAddress *a1,
 }
 
 
+static void
+address_suggest_cont (void *cls,
+    const struct GNUNET_PeerIdentity *peer,
+    const struct GNUNET_HELLO_Address *address, struct Session *session,
+    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
+    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
+    const struct GNUNET_ATS_Information *ats, uint32_t ats_count)
+{
+
+}
+
+
 /**
  * Try to create a connection to the given target (eventually).
  *
@@ -1814,7 +1826,7 @@ GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target)
   set_state_and_timeout (n, GNUNET_TRANSPORT_INIT_ATS, GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT));
 
   GNUNET_ATS_reset_backoff (GST_ats, target);
-  n->suggest_handle = GNUNET_ATS_suggest_address (GST_ats, target);
+  n->suggest_handle = GNUNET_ATS_suggest_address (GST_ats, target, &address_suggest_cont, n);
 }
 
 
@@ -1923,7 +1935,7 @@ handle_test_blacklist_cont (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Suggesting address for peer %s to ATS\n",
                 GNUNET_i2s (peer));
-    n->suggest_handle = GNUNET_ATS_suggest_address (GST_ats, peer);
+    n->suggest_handle = GNUNET_ATS_suggest_address (GST_ats, peer, &address_suggest_cont, n);
     break;
   case GNUNET_TRANSPORT_CONNECT_RECV_ATS:
     /* waiting on ATS suggestion, don't care about blacklist */
@@ -2214,7 +2226,6 @@ GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
     n = setup_neighbour (peer);
     set_state (n, GNUNET_TRANSPORT_CONNECT_RECV_ATS);
     GNUNET_ATS_reset_backoff (GST_ats, peer);
-    n->suggest_handle = GNUNET_ATS_suggest_address (GST_ats, peer);
     break;
   case GNUNET_TRANSPORT_DISCONNECT_FINISHED:
     /* should not be possible */

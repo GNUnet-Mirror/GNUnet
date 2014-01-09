@@ -167,7 +167,9 @@ end_badly_now ()
 }
 
 static void
-address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
+address_suggest_cb (void *cls,
+                    const struct GNUNET_PeerIdentity *peer,
+                    const struct GNUNET_HELLO_Address *address,
                     struct Session *session,
                     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
                     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
@@ -288,7 +290,7 @@ stat_cb(void *cls, const char *subsystem,
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "All addresses added, requesting....\n");
     /* We have 2 addresses, so we can request */
     addresses_added = GNUNET_YES;
-    GNUNET_ATS_suggest_address (sched_ats, &p.id);
+    GNUNET_ATS_suggest_address (sched_ats, &p.id, NULL, NULL);
   }
   return GNUNET_OK;
 }

@@ -754,6 +754,7 @@ plugin_env_session_start (void *cls,
  */
 static void
 ats_request_address_change (void *cls,
+                            const struct GNUNET_PeerIdentity *peer,
                             const struct GNUNET_HELLO_Address *address,
                             struct Session *session,
                             struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
@@ -773,6 +774,7 @@ ats_request_address_change (void *cls,
     GST_neighbours_force_disconnect (&address->peer);
     return;
   }
+
   GST_neighbours_switch_to_address (&address->peer, address, session, ats,
                                     ats_count, bandwidth_in,
                                     bandwidth_out);

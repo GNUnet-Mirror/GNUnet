@@ -150,10 +150,14 @@ perf_info_cb (void *cls,
 }
 
 static void
-address_suggest_cb (void *cls, const struct GNUNET_HELLO_Address *address,
-    struct Session *session, struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
-    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-    const struct GNUNET_ATS_Information *atsi, uint32_t ats_count)
+address_suggest_cb (void *cls,
+                    const struct GNUNET_PeerIdentity *peer,
+                    const struct GNUNET_HELLO_Address *address,
+                    struct Session *session,
+                    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
+                    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
+                    const struct GNUNET_ATS_Information *atsi,
+                    uint32_t ats_count)
 {
   int c;
   double pref_val;
@@ -249,7 +253,7 @@ run (void *cls, const struct GNUNET_CONFIGURATION_Handle *mycfg,
   /* Adding address */
   GNUNET_ATS_address_add (sched_ats, &test_hello_address, test_session,
       test_ats_info, test_ats_count);
-  GNUNET_ATS_suggest_address(sched_ats, &test_hello_address.peer);
+  GNUNET_ATS_suggest_address(sched_ats, &test_hello_address.peer, NULL, NULL);
 }
 
 int

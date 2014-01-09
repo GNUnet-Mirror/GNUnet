@@ -656,7 +656,9 @@ process_ats_message (void *cls, const struct GNUNET_MessageHeader *msg)
     return;
   }
 
-  sh->suggest_cb (sh->suggest_cb_cls, &address, s, m->bandwidth_out,
+  sh->suggest_cb (sh->suggest_cb_cls,
+                  (const struct GNUNET_PeerIdentity *) &m->peer,
+                  &address, s, m->bandwidth_out,
                   m->bandwidth_in, atsi, ats_count);
 
   GNUNET_CLIENT_receive (sh->client, &process_ats_message, sh,
@@ -1055,16 +1057,23 @@ GNUNET_ATS_reset_backoff (struct GNUNET_ATS_SchedulingHandle *sh,
 }
 
 /**
- * We would like to establish a new connection with a peer.  ATS
- * should suggest a good address to begin with.
+ * We would like to receive address suggestions for a peer. ATS will
+ * respond with a call to the continuation immediately containing an address or
+ * no address if none is available. ATS can suggest more addresses until we call
+ * #GNUNET_ATS_suggest_address_cancel.
+ *
  *
  * @param sh handle
  * @param peer identity of the peer we need an address for
+ * @param cont the continuation to call with the address
+ * @param cont_cls the cls for the continuation
  * @return suggest handle
  */
 struct GNUNET_ATS_SuggestHandle *
 GNUNET_ATS_suggest_address (struct GNUNET_ATS_SchedulingHandle *sh,
-                            const struct GNUNET_PeerIdentity *peer)
+                            const struct GNUNET_PeerIdentity *peer,
+                            GNUNET_ATS_AddressSuggestionCallback cont,
+                            void *cont_cls)
 {
   struct PendingMessage *p;
   struct RequestAddressMessage *m;
