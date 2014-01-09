@@ -43,7 +43,7 @@
 #define RIL_DEFAULT_GRADIENT_STEP_SIZE  0.1
 #define RIL_DEFAULT_TRACE_DECAY         0.5
 #define RIL_DEFAULT_EXPLORE_RATIO       0.1
-#define RIL_DEFAULT_DIVISOR             10
+#define RIL_DEFAULT_RBF_DIVISOR             10
 #define RIL_DEFAULT_GLOBAL_REWARD_SHARE 0.5
 #define RIL_DEFAULT_TEMPERATURE         1.0
 
@@ -1871,9 +1871,9 @@ libgnunet_plugin_ats_ril_init (void *cls)
   GNUNET_assert(NULL != env->get_preferences);
   GNUNET_assert(NULL != env->get_property);
 
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_number(env->cfg, "ats", "RIL_DIVISOR", &solver->parameters.divisor))
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_number(env->cfg, "ats", "RIL_RBF_DIVISOR", &solver->parameters.divisor))
   {
-    solver->parameters.divisor = RIL_DEFAULT_DIVISOR;
+    solver->parameters.divisor = RIL_DEFAULT_RBF_DIVISOR;
   }
   if (GNUNET_OK
       != GNUNET_CONFIGURATION_get_value_time (env->cfg, "ats", "RIL_STEP_TIME_MIN",
