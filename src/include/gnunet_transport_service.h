@@ -285,6 +285,9 @@ typedef void (*GNUNET_TRANSPORT_AddressToStringCallback) (void *cls,
 /**
  * Function to call with information about a peer
  *
+ * The #GNUNET_TRANSPORT_monitor_peers_cancel call MUST not be called from
+ * within this function!
+ *
  * @param cls closure
  * @param peer peer this update is about,
  *      NULL if this is the final last callback for a iteration operation
