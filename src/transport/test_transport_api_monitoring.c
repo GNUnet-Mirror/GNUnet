@@ -77,7 +77,12 @@ static char *cfg_file_p1;
 static char *cfg_file_p2;
 
 static struct GNUNET_TRANSPORT_PeerMonitoringContext *pmc_p1;
+
 static struct GNUNET_TRANSPORT_PeerMonitoringContext *pmc_p2;
+
+static int p1_c = GNUNET_NO;
+
+static int p2_c = GNUNET_NO;
 
 
 static void
@@ -111,6 +116,8 @@ end ()
   p1 = NULL;
   GNUNET_TRANSPORT_TESTING_stop_peer (tth, p2);
   p2 = NULL;
+
+  ok = 0;
 }
 
 static void
@@ -152,6 +159,17 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("Peer were ready to send data\n"));
 
   th = NULL;
+
+  if (NULL != pmc_p1)
+  {
+    GNUNET_TRANSPORT_monitor_peers_cancel (pmc_p1);
+    pmc_p1 = NULL;
+  }
+  if (NULL != pmc_p2)
+  {
+    GNUNET_TRANSPORT_monitor_peers_cancel (pmc_p2);
+    pmc_p2 = NULL;
+  }
 
   if (p1 != NULL)
     GNUNET_TRANSPORT_TESTING_stop_peer (tth, p1);
@@ -330,13 +348,15 @@ start_cb (struct PeerContext *p, void *cls)
                                                NULL);
 
 }
-static int p1_c = GNUNET_NO;
-static int p2_c = GNUNET_NO;
 
 static void done ()
 {
   if ((GNUNET_YES == p1_c) && (GNUNET_YES == p2_c))
-   end();
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Both peers state to be connected\n");
+    ok = 0;
+    end();
+  }
 }
 
 static void monitor1_cb (void *cls,
@@ -442,6 +462,8 @@ main (int argc, char *argv[])
 {
   int ret;
 
+  ok = 1;
+
   GNUNET_TRANSPORT_TESTING_get_test_name (argv[0], &test_name);
   GNUNET_TRANSPORT_TESTING_get_test_source_name (__FILE__, &test_source);
   GNUNET_TRANSPORT_TESTING_get_test_plugin_name (argv[0], test_source,
@@ -466,7 +488,10 @@ main (int argc, char *argv[])
 
   GNUNET_TRANSPORT_TESTING_done (tth);
 
-  return ret;
+  if (0 != ret)
+    return ret;
+  else
+    return ok;
 }
 
 /* end of test_transport_api.c */
