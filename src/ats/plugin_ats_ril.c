@@ -89,7 +89,7 @@ enum RIL_Select
 
 enum RIL_E_Modification
 {
-  RIL_E_UPDATE,
+  RIL_E_DISCOUNT,
   RIL_E_ZERO,
   RIL_E_ACCUMULATE,
   RIL_E_REPLACE
@@ -124,6 +124,11 @@ struct RIL_Learning_Parameters
    * Trace-decay factor for eligibility traces
    */
   double lambda;
+
+  /**
+   * Whether to accumulate or replace eligibility traces
+   */
+  enum RIL_E_Modification eligibility_trace_mode;
 
   /**
    * Softmax action-selection temperature
@@ -615,7 +620,7 @@ agent_modify_eligibility (struct RIL_Peer_Agent *agent,
     case RIL_E_REPLACE:
       agent->E[action][i] =  (agent->envi->global_discount_variable * agent->envi->parameters.lambda * agent->E[action][i]) > feature[i] ? agent->E[action][i] : feature[i]; //TODO make replacing traces available
       break;
-    case RIL_E_UPDATE:
+    case RIL_E_DISCOUNT:
       agent->E[action][i] *= agent->envi->global_discount_variable * agent->envi->parameters.lambda;
       break;
     case RIL_E_ZERO:
@@ -1218,7 +1223,7 @@ agent_select_egreedy (struct RIL_Peer_Agent *agent, double *state)
     action = agent_get_action_best(agent, state);
     if (RIL_ALGO_Q == agent->envi->parameters.algorithm)
     {
-      agent_modify_eligibility(agent, RIL_E_UPDATE, NULL, action);
+      agent_modify_eligibility(agent, RIL_E_DISCOUNT, NULL, action);
     }
     return action;
   }
@@ -1265,7 +1270,7 @@ agent_select_softmax (struct RIL_Peer_Agent *agent, double *state)
       if (RIL_ALGO_Q == agent->envi->parameters.algorithm)
       {
         if (i == a_max)
-          agent_modify_eligibility(agent, RIL_E_UPDATE, NULL, i);
+          agent_modify_eligibility(agent, RIL_E_DISCOUNT, NULL, i);
         else
           agent_modify_eligibility(agent, RIL_E_ZERO, NULL, -1);
       }
@@ -1321,7 +1326,7 @@ agent_step (struct RIL_Peer_Agent *agent)
       //updates weights with selected action (on-policy), if not first step
       agent_update_weights (agent, reward, s_next, a_next);
     }
-    agent_modify_eligibility (agent, RIL_E_UPDATE, s_next, a_next);
+    agent_modify_eligibility (agent, RIL_E_DISCOUNT, s_next, a_next);
     break;
 
   case RIL_ALGO_Q:
@@ -1337,7 +1342,7 @@ agent_step (struct RIL_Peer_Agent *agent)
 
   GNUNET_assert(RIL_ACTION_INVALID != a_next);
 
-  agent_modify_eligibility (agent, RIL_E_ACCUMULATE, s_next, a_next);
+  agent_modify_eligibility (agent, agent->envi->parameters.eligibility_trace_mode, s_next, a_next);
 
 //  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "step()  Step# %llu  R: %f  IN %llu  OUT %llu  A: %d\n",
 //        agent->step_count,
@@ -2007,6 +2012,14 @@ libgnunet_plugin_ats_ril_init (void *cls)
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_number (env->cfg, "ats", "RIL_SIMULATE", &solver->simulate))
   {
     solver->simulate = GNUNET_NO;
+  }
+  if (GNUNET_YES == GNUNET_CONFIGURATION_get_value_yesno(env->cfg, "ats", "RIL_REPLACE_TRACES"))
+  {
+    solver->parameters.eligibility_trace_mode = RIL_E_REPLACE;
+  }
+  else
+  {
+    solver->parameters.eligibility_trace_mode = RIL_E_ACCUMULATE;
   }
 
   env->sf.s_add = &GAS_ril_address_add;
