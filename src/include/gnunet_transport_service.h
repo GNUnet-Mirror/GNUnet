@@ -110,75 +110,75 @@ enum GNUNET_TRANSPORT_PeerState
   /**
    * fresh peer or completely disconnected
    */
-  S_NOT_CONNECTED = 0,
+  GNUNET_TRANSPORT_NOT_CONNECTED = 0,
 
   /**
    * Asked to initiate connection, trying to get address from ATS
    */
-  S_INIT_ATS,
+  GNUNET_TRANSPORT_INIT_ATS,
 
   /**
    * Asked to initiate connection, trying to get address approved
    * by blacklist.
    */
-  S_INIT_BLACKLIST,
+  GNUNET_TRANSPORT_INIT_BLACKLIST,
 
   /**
    * Sent CONNECT message to other peer, waiting for CONNECT_ACK
    */
-  S_CONNECT_SENT,
+  GNUNET_TRANSPORT_CONNECT_SENT,
 
   /**
    * Received a CONNECT, do a blacklist check for inbound address
    */
-  S_CONNECT_RECV_BLACKLIST_INBOUND,
+  GNUNET_TRANSPORT_CONNECT_RECV_BLACKLIST_INBOUND,
 
   /**
    * Received a CONNECT, asking ATS about address suggestions.
    */
-  S_CONNECT_RECV_ATS,
+  GNUNET_TRANSPORT_CONNECT_RECV_ATS,
 
   /**
    * Received CONNECT from other peer, got an address, checking with blacklist.
    */
-  S_CONNECT_RECV_BLACKLIST,
+  GNUNET_TRANSPORT_CONNECT_RECV_BLACKLIST,
 
   /**
    * CONNECT request from other peer was SESSION_ACK'ed, waiting for
    * SESSION_ACK.
    */
-  S_CONNECT_RECV_ACK,
+  GNUNET_TRANSPORT_CONNECT_RECV_ACK,
 
   /**
    * Got our CONNECT_ACK/SESSION_ACK, connection is up.
    */
-  S_CONNECTED,
+  GNUNET_TRANSPORT_CONNECTED,
 
   /**
    * Connection got into trouble, rest of the system still believes
    * it to be up, but we're getting a new address from ATS.
    */
-  S_RECONNECT_ATS,
+  GNUNET_TRANSPORT_RECONNECT_ATS,
 
   /**
    * Connection got into trouble, rest of the system still believes
    * it to be up; we are checking the new address against the blacklist.
    */
-  S_RECONNECT_BLACKLIST,
+  GNUNET_TRANSPORT_RECONNECT_BLACKLIST,
 
   /**
    * Sent CONNECT over new address (either by ATS telling us to switch
    * addresses or from RECONNECT_ATS); if this fails, we need to tell
    * the rest of the system about a disconnect.
    */
-  S_RECONNECT_SENT,
+  GNUNET_TRANSPORT_RECONNECT_SENT,
 
   /**
    * We have some primary connection, but ATS suggested we switch
    * to some alternative; we're now checking the alternative against
    * the blacklist.
    */
-  S_CONNECTED_SWITCHING_BLACKLIST,
+  GNUNET_TRANSPORT_CONNECTED_SWITCHING_BLACKLIST,
 
   /**
    * We have some primary connection, but ATS suggested we switch
@@ -186,13 +186,13 @@ enum GNUNET_TRANSPORT_PeerState
    * alternative session to the other peer and waiting for a
    * CONNECT_ACK to make this our primary connection.
    */
-  S_CONNECTED_SWITCHING_CONNECT_SENT,
+  GNUNET_TRANSPORT_CONNECTED_SWITCHING_CONNECT_SENT,
 
   /**
    * Disconnect in progress (we're sending the DISCONNECT message to the
    * other peer; after that is finished, the state will be cleaned up).
    */
-  S_DISCONNECT,
+  GNUNET_TRANSPORT_DISCONNECT,
 
   /**
    * We're finished with the disconnect; and are cleaning up the state
@@ -203,7 +203,7 @@ enum GNUNET_TRANSPORT_PeerState
    * in this state virtually always means using memory that has been
    * freed (the exception being the cleanup code in #free_neighbour()).
    */
-  S_DISCONNECT_FINISHED
+  GNUNET_TRANSPORT_DISCONNECT_FINISHED
 };
 
 

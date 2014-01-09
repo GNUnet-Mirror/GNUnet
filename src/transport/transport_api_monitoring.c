@@ -151,24 +151,24 @@ GNUNET_TRANSPORT_is_connected (enum GNUNET_TRANSPORT_PeerState state)
 {
   switch (state)
   {
-  case S_NOT_CONNECTED:
-  case S_INIT_ATS:
-  case S_INIT_BLACKLIST:
-  case S_CONNECT_SENT:
-  case S_CONNECT_RECV_BLACKLIST_INBOUND:
-  case S_CONNECT_RECV_ATS:
-  case S_CONNECT_RECV_BLACKLIST:
-  case S_CONNECT_RECV_ACK:
+  case GNUNET_TRANSPORT_NOT_CONNECTED:
+  case GNUNET_TRANSPORT_INIT_ATS:
+  case GNUNET_TRANSPORT_INIT_BLACKLIST:
+  case GNUNET_TRANSPORT_CONNECT_SENT:
+  case GNUNET_TRANSPORT_CONNECT_RECV_BLACKLIST_INBOUND:
+  case GNUNET_TRANSPORT_CONNECT_RECV_ATS:
+  case GNUNET_TRANSPORT_CONNECT_RECV_BLACKLIST:
+  case GNUNET_TRANSPORT_CONNECT_RECV_ACK:
     return GNUNET_NO;
-  case S_CONNECTED:
-  case S_RECONNECT_ATS:
-  case S_RECONNECT_BLACKLIST:
-  case S_RECONNECT_SENT:
-  case S_CONNECTED_SWITCHING_BLACKLIST:
-  case S_CONNECTED_SWITCHING_CONNECT_SENT:
+  case GNUNET_TRANSPORT_CONNECTED:
+  case GNUNET_TRANSPORT_RECONNECT_ATS:
+  case GNUNET_TRANSPORT_RECONNECT_BLACKLIST:
+  case GNUNET_TRANSPORT_RECONNECT_SENT:
+  case GNUNET_TRANSPORT_CONNECTED_SWITCHING_BLACKLIST:
+  case GNUNET_TRANSPORT_CONNECTED_SWITCHING_CONNECT_SENT:
     return GNUNET_YES;
-  case S_DISCONNECT:
-  case S_DISCONNECT_FINISHED:
+  case GNUNET_TRANSPORT_DISCONNECT:
+  case GNUNET_TRANSPORT_DISCONNECT_FINISHED:
     return GNUNET_NO;
   default:
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -191,37 +191,37 @@ GNUNET_TRANSPORT_p2s (enum GNUNET_TRANSPORT_PeerState state)
 {
   switch (state)
   {
-  case S_NOT_CONNECTED:
+  case GNUNET_TRANSPORT_NOT_CONNECTED:
     return "S_NOT_CONNECTED";
-  case S_INIT_ATS:
+  case GNUNET_TRANSPORT_INIT_ATS:
     return "S_INIT_ATS";
-  case S_INIT_BLACKLIST:
+  case GNUNET_TRANSPORT_INIT_BLACKLIST:
     return "S_INIT_BLACKLIST";
-  case S_CONNECT_SENT:
+  case GNUNET_TRANSPORT_CONNECT_SENT:
     return "S_CONNECT_SENT";
-  case S_CONNECT_RECV_BLACKLIST_INBOUND:
+  case GNUNET_TRANSPORT_CONNECT_RECV_BLACKLIST_INBOUND:
     return "S_CONNECT_RECV_BLACKLIST_INBOUND";
-  case S_CONNECT_RECV_ATS:
+  case GNUNET_TRANSPORT_CONNECT_RECV_ATS:
     return "S_CONNECT_RECV_ATS";
-  case S_CONNECT_RECV_BLACKLIST:
+  case GNUNET_TRANSPORT_CONNECT_RECV_BLACKLIST:
     return "S_CONNECT_RECV_BLACKLIST";
-  case S_CONNECT_RECV_ACK:
+  case GNUNET_TRANSPORT_CONNECT_RECV_ACK:
     return "S_CONNECT_RECV_ACK";
-  case S_CONNECTED:
+  case GNUNET_TRANSPORT_CONNECTED:
     return "S_CONNECTED";
-  case S_RECONNECT_ATS:
+  case GNUNET_TRANSPORT_RECONNECT_ATS:
     return "S_RECONNECT_ATS";
-  case S_RECONNECT_BLACKLIST:
+  case GNUNET_TRANSPORT_RECONNECT_BLACKLIST:
     return "S_RECONNECT_BLACKLIST";
-  case S_RECONNECT_SENT:
+  case GNUNET_TRANSPORT_RECONNECT_SENT:
     return "S_RECONNECT_SENT";
-  case S_CONNECTED_SWITCHING_BLACKLIST:
+  case GNUNET_TRANSPORT_CONNECTED_SWITCHING_BLACKLIST:
     return "S_CONNECTED_SWITCHING_BLACKLIST";
-  case S_CONNECTED_SWITCHING_CONNECT_SENT:
+  case GNUNET_TRANSPORT_CONNECTED_SWITCHING_CONNECT_SENT:
     return "S_CONNECTED_SWITCHING_CONNECT_SENT";
-  case S_DISCONNECT:
+  case GNUNET_TRANSPORT_DISCONNECT:
     return "S_DISCONNECT";
-  case S_DISCONNECT_FINISHED:
+  case GNUNET_TRANSPORT_DISCONNECT_FINISHED:
     return "S_DISCONNECT_FINISHED";
   default:
     GNUNET_break (0);
@@ -328,7 +328,7 @@ peer_response_processor (void *cls,
     if (pal_ctx->one_shot)
     {
       pal_ctx->cb (pal_ctx->cb_cls, NULL, NULL,
-          S_NOT_CONNECTED, GNUNET_TIME_UNIT_ZERO_ABS);
+          GNUNET_TRANSPORT_NOT_CONNECTED, GNUNET_TIME_UNIT_ZERO_ABS);
       GNUNET_TRANSPORT_monitor_peers_cancel (pal_ctx);
     }
     else
@@ -346,7 +346,7 @@ peer_response_processor (void *cls,
     if (pal_ctx->one_shot)
     {
       pal_ctx->cb (pal_ctx->cb_cls, NULL, NULL,
-          S_NOT_CONNECTED, GNUNET_TIME_UNIT_ZERO_ABS);
+          GNUNET_TRANSPORT_NOT_CONNECTED, GNUNET_TIME_UNIT_ZERO_ABS);
       GNUNET_TRANSPORT_monitor_peers_cancel (pal_ctx);
     }
     else
@@ -364,7 +364,7 @@ peer_response_processor (void *cls,
     if (pal_ctx->one_shot)
     {
       pal_ctx->cb (pal_ctx->cb_cls, NULL, NULL,
-          S_NOT_CONNECTED, GNUNET_TIME_UNIT_ZERO_ABS);
+          GNUNET_TRANSPORT_NOT_CONNECTED, GNUNET_TIME_UNIT_ZERO_ABS);
       GNUNET_TRANSPORT_monitor_peers_cancel (pal_ctx);
     }
     else
@@ -384,7 +384,7 @@ peer_response_processor (void *cls,
     if (pal_ctx->one_shot)
     {
       pal_ctx->cb (pal_ctx->cb_cls, NULL, NULL,
-          S_NOT_CONNECTED, GNUNET_TIME_UNIT_ZERO_ABS);
+          GNUNET_TRANSPORT_NOT_CONNECTED, GNUNET_TIME_UNIT_ZERO_ABS);
       GNUNET_TRANSPORT_monitor_peers_cancel (pal_ctx);
     }
     else
@@ -397,7 +397,7 @@ peer_response_processor (void *cls,
   if (alen == 0 && tlen == 0)
   {
     pal_ctx->cb (pal_ctx->cb_cls, &pir_msg->peer, NULL,
-        S_NOT_CONNECTED, GNUNET_TIME_UNIT_ZERO_ABS);
+        GNUNET_TRANSPORT_NOT_CONNECTED, GNUNET_TIME_UNIT_ZERO_ABS);
   }
   else
   {
@@ -410,7 +410,7 @@ peer_response_processor (void *cls,
       if (pal_ctx->one_shot)	
       {
 	pal_ctx->cb (pal_ctx->cb_cls, NULL, NULL,
-	    S_NOT_CONNECTED, GNUNET_TIME_UNIT_ZERO_ABS);
+	    GNUNET_TRANSPORT_NOT_CONNECTED, GNUNET_TIME_UNIT_ZERO_ABS);
 	GNUNET_TRANSPORT_monitor_peers_cancel (pal_ctx);
       }
       else
