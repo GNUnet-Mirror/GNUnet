@@ -445,6 +445,9 @@ peer_response_processor (void *cls,
  * time with 'NULL' for the address and the peer.  After this, the operation must no
  * longer be explicitly canceled.
  *
+ * The #GNUNET_TRANSPORT_monitor_peers_cancel call MUST not be called in the
+ * the peer_callback!
+ *
  * @param cfg configuration to use
  * @param peer peer identity to look up the addresses of, CHANGE: allow NULL for all (connected) peers
  * @param one_shot GNUNET_YES to return the current state and then end (with NULL+NULL),
