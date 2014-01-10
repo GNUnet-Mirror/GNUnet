@@ -131,6 +131,7 @@ libgnunetutil_la_LDFLAGS = \
 
 if HAVE_TESTING
   GNUNET_ECC = gnunet-ecc
+  GNUNET_SCRYPT = gnunet-scrypt
 endif
 
 
@@ -145,6 +146,7 @@ bin_PROGRAMS = \
  gnunet-resolver \
  gnunet-config \
  $(GNUNET_ECC) \
+ $(GNUNET_SCRYPT) \
  gnunet-uri
 
 do_subst = $(SED) -e 's,[@]PYTHON[@],$(PYTHON),g'
@@ -177,6 +179,14 @@ gnunet_ecc_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL) -lgcrypt
 gnunet_ecc_DEPENDENCIES = \
+  libgnunetutil.la
+
+gnunet_scrypt_SOURCES = \
+ gnunet-scrypt.c
+gnunet_scrypt_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(GN_LIBINTL) -lgcrypt
+gnunet_scrypt_DEPENDENCIES = \
   libgnunetutil.la
 
 
