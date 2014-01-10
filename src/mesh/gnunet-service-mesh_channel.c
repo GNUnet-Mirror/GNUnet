@@ -780,7 +780,8 @@ ch_message_sent (void *cls,
       rel->uniq = NULL;
 
       if (MESH_CHANNEL_READY != rel->ch->state
-          && GNUNET_MESSAGE_TYPE_MESH_DATA_ACK != type)
+          && GNUNET_MESSAGE_TYPE_MESH_DATA_ACK != type
+          && GNUNET_NO == rel->ch->destroy)
       {
         GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == rel->retry_task);
         LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! STD BACKOFF %s\n",
