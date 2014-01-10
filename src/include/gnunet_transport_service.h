@@ -285,8 +285,12 @@ typedef void (*GNUNET_TRANSPORT_AddressToStringCallback) (void *cls,
 /**
  * Function to call with information about a peer
  *
+ * If one_shot was set to GNUNET_YES to iterate over all peers once,
+ * a final call with NULL for peer and address will follow when done
+ *
  * The #GNUNET_TRANSPORT_monitor_peers_cancel call MUST not be called from
  * within this function!
+ *
  *
  * @param cls closure
  * @param peer peer this update is about,
