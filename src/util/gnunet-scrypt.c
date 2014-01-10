@@ -255,8 +255,9 @@ run (void *cls, char *const *args, const char *cfgfile,
       return;
     }
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,  "Bits: %llu\n", nse_work_required);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Timeout: %s\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Delay between tries: %s\n",
               GNUNET_STRINGS_relative_time_to_string (proof_find_delay, 1));
   GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_IDLE,
                                       &find_proof, NULL);
