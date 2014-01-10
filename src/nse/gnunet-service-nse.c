@@ -834,7 +834,7 @@ count_leading_zeroes (const struct GNUNET_HashCode *hash)
   unsigned int hash_count;
 
   hash_count = 0;
-  while ((0 == GNUNET_CRYPTO_hash_get_bit (hash, hash_count)))
+  while (0 == GNUNET_CRYPTO_hash_get_bit (hash, hash_count))
     hash_count++;
   return hash_count;
 }
@@ -1483,9 +1483,7 @@ run (void *cls,
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_filename (cfg, "NSE", "PROOFFILE", &proof))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _
-                ("NSE service is lacking key configuration settings.  Exiting.\n"));
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR, "NSE", "PROOFFILE");
     GNUNET_free (my_private_key);
     my_private_key = NULL;
     GNUNET_SCHEDULER_shutdown ();
