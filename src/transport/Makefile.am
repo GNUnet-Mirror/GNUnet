@@ -218,6 +218,8 @@ gnunet_service_transport_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_GLPK) \
   $(GN_LIBINTL)
+gnunet_service_transport_DEPENDENCIES = \
+ libgnunettransport.la
 gnunet_service_transport_CFLAGS = \
   $(CFLAGS)
 # -DANALYZE
