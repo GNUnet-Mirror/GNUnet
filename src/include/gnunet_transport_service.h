@@ -608,6 +608,7 @@ GNUNET_TRANSPORT_p2s (enum GNUNET_TRANSPORT_PeerState state);
 int
 GNUNET_TRANSPORT_is_connected (enum GNUNET_TRANSPORT_PeerState state);
 
+
 /**
  * Return information about a specific peer or all peers currently known to
  * transport service once or in monitoring mode. To obtain information about
@@ -622,6 +623,9 @@ GNUNET_TRANSPORT_is_connected (enum GNUNET_TRANSPORT_PeerState state);
  * Upon completion, the 'GNUNET_TRANSPORT_PeerIterateCallback' is called one
  * more time with 'NULL'. After this, the operation must no longer be
  * explicitly canceled.
+ *
+ * The #GNUNET_TRANSPORT_monitor_peers_cancel call MUST not be called in the
+ * the peer_callback!
  *
  * @param cfg configuration to use
  * @param peer a specific peer identity to obtain information for,

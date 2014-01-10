@@ -437,22 +437,29 @@ peer_response_processor (void *cls,
 
 
 /**
- * Return all the known addresses for a specific peer or all peers.
- * Returns continuously all address if one_shot is set to GNUNET_NO
+ * Return information about a specific peer or all peers currently known to
+ * transport service once or in monitoring mode. To obtain information about
+ * a specific peer, a peer identity can be passed. To obtain information about
+ * all peers currently known to transport service, NULL can be passed as peer
+ * identity.
  *
- * CHANGE: Returns the address(es) that we are currently using for this
- * peer.  Upon completion, the 'AddressLookUpCallback' is called one more
- * time with 'NULL' for the address and the peer.  After this, the operation must no
- * longer be explicitly canceled.
+ * For each peer, the callback is called with information about the address used
+ * to communicate with this peer, the state this peer is currently in and the
+ * the current timeout for this state.
+ *
+ * Upon completion, the 'GNUNET_TRANSPORT_PeerIterateCallback' is called one
+ * more time with 'NULL'. After this, the operation must no longer be
+ * explicitly canceled.
  *
  * The #GNUNET_TRANSPORT_monitor_peers_cancel call MUST not be called in the
  * the peer_callback!
  *
  * @param cfg configuration to use
- * @param peer peer identity to look up the addresses of, CHANGE: allow NULL for all (connected) peers
+ * @param peer a specific peer identity to obtain information for,
+ *      NULL for all peers
  * @param one_shot GNUNET_YES to return the current state and then end (with NULL+NULL),
- *                 GNUNET_NO to monitor the set of addresses used (continuously, must be explicitly canceled)
- * @param timeout how long is the lookup allowed to take at most (irrelevant if one_shot is set to GNUNET_NO)
+ *                 GNUNET_NO to monitor peers continuously
+ * @param timeout how long is the lookup allowed to take at most
  * @param peer_callback function to call with the results
  * @param peer_callback_cls closure for peer_address_callback
  */
