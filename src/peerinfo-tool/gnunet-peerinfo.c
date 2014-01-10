@@ -654,12 +654,11 @@ run (void *cls, char *const *args, const char *cfgfile,
   if ( (GNUNET_YES == get_self) || (GNUNET_YES == get_uri) || (NULL != dump_hello) )
   {
     /* load private key */
-    if (GNUNET_OK !=
-	GNUNET_CONFIGURATION_get_value_filename (cfg, "PEER", "PRIVATE_KEY",
-						 &fn))
+    if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_filename (cfg, "PEER",
+                                                              "PRIVATE_KEY",
+                                                               &fn))
     {
-      FPRINTF (stderr, _("Could not find option `%s:%s' in configuration.\n"),
-	       "GNUNETD", "HOSTKEYFILE");
+      GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR, "PEER", "PRIVATE_KEY");
       return;
     }
     if (NULL == (priv = GNUNET_CRYPTO_eddsa_key_create_from_file (fn)))
@@ -670,7 +669,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     }
     GNUNET_free (fn);
     GNUNET_CRYPTO_eddsa_key_get_public (priv,
-						    &my_peer_identity.public_key);
+                                        &my_peer_identity.public_key);
     GNUNET_free (priv);
   }
 
@@ -780,9 +779,9 @@ main (int argc, char *const *argv)
     {'i', "info", NULL,
      gettext_noop ("list all known peers"),
      0, &GNUNET_GETOPT_set_one, &get_info},
-	  {'d', "dump-hello", NULL,
-		 gettext_noop ("dump hello to file"),
-		 1, &GNUNET_GETOPT_set_string, &dump_hello},
+    {'d', "dump-hello", NULL,
+     gettext_noop ("dump hello to file"),
+     1, &GNUNET_GETOPT_set_string, &dump_hello},
     {'g', "get-hello", NULL,
      gettext_noop ("also output HELLO uri(s)"),
      0, &GNUNET_GETOPT_set_one, &get_uri},
