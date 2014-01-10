@@ -108,77 +108,77 @@ extern "C"
 enum GNUNET_TRANSPORT_PeerState
 {
   /**
-   * fresh peer or completely disconnected
+   * Fresh peer or completely disconnected
    */
-  GNUNET_TRANSPORT_NOT_CONNECTED = 0,
+  GNUNET_TRANSPORT_PS_NOT_CONNECTED = 0,
 
   /**
    * Asked to initiate connection, trying to get address from ATS
    */
-  GNUNET_TRANSPORT_INIT_ATS,
+  GNUNET_TRANSPORT_PS_INIT_ATS,
 
   /**
    * Asked to initiate connection, trying to get address approved
    * by blacklist.
    */
-  GNUNET_TRANSPORT_INIT_BLACKLIST,
+  GNUNET_TRANSPORT_PS_INIT_BLACKLIST,
 
   /**
    * Sent CONNECT message to other peer, waiting for CONNECT_ACK
    */
-  GNUNET_TRANSPORT_CONNECT_SENT,
+  GNUNET_TRANSPORT_PS_CONNECT_SENT,
 
   /**
    * Received a CONNECT, do a blacklist check for inbound address
    */
-  GNUNET_TRANSPORT_CONNECT_RECV_BLACKLIST_INBOUND,
+  GNUNET_TRANSPORT_PS_CONNECT_RECV_BLACKLIST_INBOUND,
 
   /**
    * Received a CONNECT, asking ATS about address suggestions.
    */
-  GNUNET_TRANSPORT_CONNECT_RECV_ATS,
+  GNUNET_TRANSPORT_PS_CONNECT_RECV_ATS,
 
   /**
    * Received CONNECT from other peer, got an address, checking with blacklist.
    */
-  GNUNET_TRANSPORT_CONNECT_RECV_BLACKLIST,
+  GNUNET_TRANSPORT_PS_CONNECT_RECV_BLACKLIST,
 
   /**
    * CONNECT request from other peer was SESSION_ACK'ed, waiting for
    * SESSION_ACK.
    */
-  GNUNET_TRANSPORT_CONNECT_RECV_ACK,
+  GNUNET_TRANSPORT_PS_CONNECT_RECV_ACK,
 
   /**
    * Got our CONNECT_ACK/SESSION_ACK, connection is up.
    */
-  GNUNET_TRANSPORT_CONNECTED,
+  GNUNET_TRANSPORT_PS_CONNECTED,
 
   /**
    * Connection got into trouble, rest of the system still believes
    * it to be up, but we're getting a new address from ATS.
    */
-  GNUNET_TRANSPORT_RECONNECT_ATS,
+  GNUNET_TRANSPORT_PS_RECONNECT_ATS,
 
   /**
    * Connection got into trouble, rest of the system still believes
    * it to be up; we are checking the new address against the blacklist.
    */
-  GNUNET_TRANSPORT_RECONNECT_BLACKLIST,
+  GNUNET_TRANSPORT_PS_RECONNECT_BLACKLIST,
 
   /**
    * Sent CONNECT over new address (either by ATS telling us to switch
    * addresses or from RECONNECT_ATS); if this fails, we need to tell
    * the rest of the system about a disconnect.
    */
-  GNUNET_TRANSPORT_RECONNECT_SENT,
+  GNUNET_TRANSPORT_PS_RECONNECT_SENT,
 
   /**
    * We have some primary connection, but ATS suggested we switch
    * to some alternative; we're now checking the alternative against
    * the blacklist.
    */
-  GNUNET_TRANSPORT_CONNECTED_SWITCHING_BLACKLIST,
+  GNUNET_TRANSPORT_PS_CONNECTED_SWITCHING_BLACKLIST,
 
   /**
    * We have some primary connection, but ATS suggested we switch
@@ -186,13 +186,13 @@ enum GNUNET_TRANSPORT_PeerState
    * alternative session to the other peer and waiting for a
    * CONNECT_ACK to make this our primary connection.
    */
-  GNUNET_TRANSPORT_CONNECTED_SWITCHING_CONNECT_SENT,
+  GNUNET_TRANSPORT_PS_CONNECTED_SWITCHING_CONNECT_SENT,
 
   /**
    * Disconnect in progress (we're sending the DISCONNECT message to the
    * other peer; after that is finished, the state will be cleaned up).
    */
-  GNUNET_TRANSPORT_DISCONNECT,
+  GNUNET_TRANSPORT_PS_DISCONNECT,
 
   /**
    * We're finished with the disconnect; and are cleaning up the state
@@ -203,7 +203,7 @@ enum GNUNET_TRANSPORT_PeerState
    * in this state virtually always means using memory that has been
    * freed (the exception being the cleanup code in #free_neighbour()).
    */
-  GNUNET_TRANSPORT_DISCONNECT_FINISHED
+  GNUNET_TRANSPORT_PS_DISCONNECT_FINISHED
 };
 
 
@@ -286,7 +286,8 @@ typedef void (*GNUNET_TRANSPORT_AddressToStringCallback) (void *cls,
  * Function to call with information about a peer
  *
  * If one_shot was set to GNUNET_YES to iterate over all peers once,
- * a final call with NULL for peer and address will follow when done
+ * a final call with NULL for peer and address will follow when done.
+ * In this case state and timeout do not contain valid values.
  *
  * The #GNUNET_TRANSPORT_monitor_peers_cancel call MUST not be called from
  * within this function!

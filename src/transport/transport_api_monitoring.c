@@ -151,24 +151,24 @@ GNUNET_TRANSPORT_is_connected (enum GNUNET_TRANSPORT_PeerState state)
 {
   switch (state)
   {
-  case GNUNET_TRANSPORT_NOT_CONNECTED:
-  case GNUNET_TRANSPORT_INIT_ATS:
-  case GNUNET_TRANSPORT_INIT_BLACKLIST:
-  case GNUNET_TRANSPORT_CONNECT_SENT:
-  case GNUNET_TRANSPORT_CONNECT_RECV_BLACKLIST_INBOUND:
-  case GNUNET_TRANSPORT_CONNECT_RECV_ATS:
-  case GNUNET_TRANSPORT_CONNECT_RECV_BLACKLIST:
-  case GNUNET_TRANSPORT_CONNECT_RECV_ACK:
+  case GNUNET_TRANSPORT_PS_NOT_CONNECTED:
+  case GNUNET_TRANSPORT_PS_INIT_ATS:
+  case GNUNET_TRANSPORT_PS_INIT_BLACKLIST:
+  case GNUNET_TRANSPORT_PS_CONNECT_SENT:
+  case GNUNET_TRANSPORT_PS_CONNECT_RECV_BLACKLIST_INBOUND:
+  case GNUNET_TRANSPORT_PS_CONNECT_RECV_ATS:
+  case GNUNET_TRANSPORT_PS_CONNECT_RECV_BLACKLIST:
+  case GNUNET_TRANSPORT_PS_CONNECT_RECV_ACK:
     return GNUNET_NO;
-  case GNUNET_TRANSPORT_CONNECTED:
-  case GNUNET_TRANSPORT_RECONNECT_ATS:
-  case GNUNET_TRANSPORT_RECONNECT_BLACKLIST:
-  case GNUNET_TRANSPORT_RECONNECT_SENT:
-  case GNUNET_TRANSPORT_CONNECTED_SWITCHING_BLACKLIST:
-  case GNUNET_TRANSPORT_CONNECTED_SWITCHING_CONNECT_SENT:
+  case GNUNET_TRANSPORT_PS_CONNECTED:
+  case GNUNET_TRANSPORT_PS_RECONNECT_ATS:
+  case GNUNET_TRANSPORT_PS_RECONNECT_BLACKLIST:
+  case GNUNET_TRANSPORT_PS_RECONNECT_SENT:
+  case GNUNET_TRANSPORT_PS_CONNECTED_SWITCHING_BLACKLIST:
+  case GNUNET_TRANSPORT_PS_CONNECTED_SWITCHING_CONNECT_SENT:
     return GNUNET_YES;
-  case GNUNET_TRANSPORT_DISCONNECT:
-  case GNUNET_TRANSPORT_DISCONNECT_FINISHED:
+  case GNUNET_TRANSPORT_PS_DISCONNECT:
+  case GNUNET_TRANSPORT_PS_DISCONNECT_FINISHED:
     return GNUNET_NO;
   default:
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -191,37 +191,37 @@ GNUNET_TRANSPORT_p2s (enum GNUNET_TRANSPORT_PeerState state)
 {
   switch (state)
   {
-  case GNUNET_TRANSPORT_NOT_CONNECTED:
+  case GNUNET_TRANSPORT_PS_NOT_CONNECTED:
     return "S_NOT_CONNECTED";
-  case GNUNET_TRANSPORT_INIT_ATS:
+  case GNUNET_TRANSPORT_PS_INIT_ATS:
     return "S_INIT_ATS";
-  case GNUNET_TRANSPORT_INIT_BLACKLIST:
+  case GNUNET_TRANSPORT_PS_INIT_BLACKLIST:
     return "S_INIT_BLACKLIST";
-  case GNUNET_TRANSPORT_CONNECT_SENT:
+  case GNUNET_TRANSPORT_PS_CONNECT_SENT:
     return "S_CONNECT_SENT";
-  case GNUNET_TRANSPORT_CONNECT_RECV_BLACKLIST_INBOUND:
+  case GNUNET_TRANSPORT_PS_CONNECT_RECV_BLACKLIST_INBOUND:
     return "S_CONNECT_RECV_BLACKLIST_INBOUND";
-  case GNUNET_TRANSPORT_CONNECT_RECV_ATS:
+  case GNUNET_TRANSPORT_PS_CONNECT_RECV_ATS:
     return "S_CONNECT_RECV_ATS";
-  case GNUNET_TRANSPORT_CONNECT_RECV_BLACKLIST:
+  case GNUNET_TRANSPORT_PS_CONNECT_RECV_BLACKLIST:
     return "S_CONNECT_RECV_BLACKLIST";
-  case GNUNET_TRANSPORT_CONNECT_RECV_ACK:
+  case GNUNET_TRANSPORT_PS_CONNECT_RECV_ACK:
     return "S_CONNECT_RECV_ACK";
-  case GNUNET_TRANSPORT_CONNECTED:
+  case GNUNET_TRANSPORT_PS_CONNECTED:
     return "S_CONNECTED";
-  case GNUNET_TRANSPORT_RECONNECT_ATS:
+  case GNUNET_TRANSPORT_PS_RECONNECT_ATS:
     return "S_RECONNECT_ATS";
-  case GNUNET_TRANSPORT_RECONNECT_BLACKLIST:
+  case GNUNET_TRANSPORT_PS_RECONNECT_BLACKLIST:
     return "S_RECONNECT_BLACKLIST";
-  case GNUNET_TRANSPORT_RECONNECT_SENT:
+  case GNUNET_TRANSPORT_PS_RECONNECT_SENT:
     return "S_RECONNECT_SENT";
-  case GNUNET_TRANSPORT_CONNECTED_SWITCHING_BLACKLIST:
+  case GNUNET_TRANSPORT_PS_CONNECTED_SWITCHING_BLACKLIST:
     return "S_CONNECTED_SWITCHING_BLACKLIST";
-  case GNUNET_TRANSPORT_CONNECTED_SWITCHING_CONNECT_SENT:
+  case GNUNET_TRANSPORT_PS_CONNECTED_SWITCHING_CONNECT_SENT:
     return "S_CONNECTED_SWITCHING_CONNECT_SENT";
-  case GNUNET_TRANSPORT_DISCONNECT:
+  case GNUNET_TRANSPORT_PS_DISCONNECT:
     return "S_DISCONNECT";
-  case GNUNET_TRANSPORT_DISCONNECT_FINISHED:
+  case GNUNET_TRANSPORT_PS_DISCONNECT_FINISHED:
     return "S_DISCONNECT_FINISHED";
   default:
     GNUNET_break (0);
@@ -327,8 +327,9 @@ peer_response_processor (void *cls,
   {
     if (pal_ctx->one_shot)
     {
+      /* Disconnect */
       pal_ctx->cb (pal_ctx->cb_cls, NULL, NULL,
-          GNUNET_TRANSPORT_NOT_CONNECTED, GNUNET_TIME_UNIT_ZERO_ABS);
+          GNUNET_TRANSPORT_PS_NOT_CONNECTED, GNUNET_TIME_UNIT_ZERO_ABS);
       GNUNET_TRANSPORT_monitor_peers_cancel (pal_ctx);
     }
     else
@@ -342,11 +343,11 @@ peer_response_processor (void *cls,
       GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PEER_RESPONSE);
   if (size == sizeof (struct GNUNET_MessageHeader))
   {
-    /* done! */
+    /* Done! */
     if (pal_ctx->one_shot)
     {
       pal_ctx->cb (pal_ctx->cb_cls, NULL, NULL,
-          GNUNET_TRANSPORT_NOT_CONNECTED, GNUNET_TIME_UNIT_ZERO_ABS);
+          GNUNET_TRANSPORT_PS_NOT_CONNECTED, GNUNET_TIME_UNIT_ZERO_ABS);
       GNUNET_TRANSPORT_monitor_peers_cancel (pal_ctx);
     }
     else
@@ -364,7 +365,7 @@ peer_response_processor (void *cls,
     if (pal_ctx->one_shot)
     {
       pal_ctx->cb (pal_ctx->cb_cls, NULL, NULL,
-          GNUNET_TRANSPORT_NOT_CONNECTED, GNUNET_TIME_UNIT_ZERO_ABS);
+          GNUNET_TRANSPORT_PS_NOT_CONNECTED, GNUNET_TIME_UNIT_ZERO_ABS);
       GNUNET_TRANSPORT_monitor_peers_cancel (pal_ctx);
     }
     else
@@ -384,7 +385,7 @@ peer_response_processor (void *cls,
     if (pal_ctx->one_shot)
     {
       pal_ctx->cb (pal_ctx->cb_cls, NULL, NULL,
-          GNUNET_TRANSPORT_NOT_CONNECTED, GNUNET_TIME_UNIT_ZERO_ABS);
+          GNUNET_TRANSPORT_PS_NOT_CONNECTED, GNUNET_TIME_UNIT_ZERO_ABS);
       GNUNET_TRANSPORT_monitor_peers_cancel (pal_ctx);
     }
     else
@@ -394,28 +395,37 @@ peer_response_processor (void *cls,
     return;
   }
 
-  if (alen == 0 && tlen == 0)
+
+  if ( (0 == tlen) && (0 == alen) )
   {
+    /* No address available */
     pal_ctx->cb (pal_ctx->cb_cls, &pir_msg->peer, NULL,
-        GNUNET_TRANSPORT_NOT_CONNECTED, GNUNET_TIME_UNIT_ZERO_ABS);
+        ntohl(pir_msg->state),
+        GNUNET_TIME_absolute_ntoh (pir_msg->state_timeout));
   }
   else
   {
+    if (0 == tlen)
+    {
+      GNUNET_break (0); /* This must not happen: address without plugin */
+      return;
+    }
     addr = (const char *) &pir_msg[1];
     transport_name = &addr[alen];
 
     if (transport_name[tlen - 1] != '\0')
     {
+      /* Corrupt plugin name */
       GNUNET_break (0);
-      if (pal_ctx->one_shot)	
+      if (pal_ctx->one_shot)
       {
-	pal_ctx->cb (pal_ctx->cb_cls, NULL, NULL,
-	    GNUNET_TRANSPORT_NOT_CONNECTED, GNUNET_TIME_UNIT_ZERO_ABS);
-	GNUNET_TRANSPORT_monitor_peers_cancel (pal_ctx);
+        pal_ctx->cb (pal_ctx->cb_cls, NULL, NULL,
+            GNUNET_TRANSPORT_PS_NOT_CONNECTED, GNUNET_TIME_UNIT_ZERO_ABS);
+        GNUNET_TRANSPORT_monitor_peers_cancel (pal_ctx);
       }
       else
       {
-	reconnect (pal_ctx);
+        reconnect (pal_ctx);
       }
       return;
     }
@@ -427,6 +437,7 @@ peer_response_processor (void *cls,
         ntohl(pir_msg->state),
         GNUNET_TIME_absolute_ntoh (pir_msg->state_timeout));
     GNUNET_HELLO_address_free (address);
+
   }
 
   /* expect more replies */
