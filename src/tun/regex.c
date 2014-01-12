@@ -173,6 +173,328 @@ num_to_regex (uint16_t value,
 
 
 /**
+ * Do we need to put parents around the given argument?
+ *
+ * @param arg part of a regular expression
+ * @return #GNUNET_YES if we should parens,
+ *         #GNUNET_NO if not
+ */
+static int
+needs_parens (const char *arg)
+{
+  size_t off;
+  size_t len;
+  unsigned int op;
+
+  op = 0;
+  len = strlen (arg);
+  for (off=0;off<len;off++)
+  {
+    switch (arg[off])
+    {
+    case '(':
+      op++;
+      break;
+    case ')':
+      GNUNET_assert (op > 0);
+      op--;
+      break;
+    case '|':
+      if (0 == op)
+        return GNUNET_YES;
+      break;
+    default:
+      break;
+    }
+  }
+  return GNUNET_NO;
+}
+
+
+/**
+ * Compute port policy for the given range of
+ * port numbers.
+ *
+ * @param start starting offset
+ * @param end end offset
+ * @param step increment level (power of 16)
+ * @param pp port policy to convert
+ * @return corresponding regex
+ */
+static char *
+compute_policy (unsigned int start,
+                unsigned int end,
+                unsigned int step,
+                const struct GNUNET_STRINGS_PortPolicy *pp)
+{
+  unsigned int i;
+  char before[36]; /* 16 * 2 + 3 dots + 0-terminator */
+  char middlel[33]; /* 16 * 2 + 0-terminator */
+  char middleh[33]; /* 16 * 2 + 0-terminator */
+  char after[36]; /* 16 * 2 + 3 dots + 0-terminator */
+  char beforep[36+2]; /* 16 * 2 + 3 dots + 0-terminator + ()*/
+  char middlehp[33+2]; /* 16 * 2 + 0-terminator + () */
+  char middlelp[33+2]; /* 16 * 2 + 0-terminator + () */
+  char afterp[36+2]; /* 16 * 2 + 3 dots + 0-terminator + () */
+  char dots[4];
+  char buf[3];
+  char *middle;
+  char *ret;
+  unsigned int xstep;
+  char *recl;
+  char *rech;
+  char *reclp;
+  char *rechp;
+  unsigned int start_port;
+  unsigned int end_port;
+
+  GNUNET_assert (GNUNET_YES == pp->negate_portrange);
+  start_port = pp->start_port;
+  if (1 == start_port)
+    start_port = 0;
+  end_port = pp->end_port;
+  GNUNET_assert ((end - start) / step <= 0xF);
+  before[0] = '\0';
+  middlel[0] = '\0';
+  middleh[0] = '\0';
+  after[0] = '\0';
+  for (i=start;i<=end;i+=step)
+  {
+    GNUNET_snprintf (buf,
+                     sizeof (buf),
+                     "%X|",
+                     (i - start) / step);
+    if (i / step < start_port / step)
+      strcat (before, buf);
+    else if (i / step > end_port / step)
+      strcat (after, buf);
+    else if (i / step == start_port / step)
+      strcat (middlel, buf);
+    else if (i / step == end_port / step)
+      strcat (middleh, buf);
+  }
+  if (strlen (before) > 0)
+    before[strlen (before)-1] = '\0';
+  if (strlen (middlel) > 0)
+    middlel[strlen (middlel)-1] = '\0';
+  if (strlen (middleh) > 0)
+    middleh[strlen (middleh)-1] = '\0';
+  if (strlen (after) > 0)
+    after[strlen (after)-1] = '\0';
+  if (needs_parens (before))
+    GNUNET_snprintf (beforep,
+                     sizeof (beforep),
+                     "(%s)",
+                     before);
+  else
+    strcpy (beforep, before);
+  if (needs_parens (middlel))
+    GNUNET_snprintf (middlelp,
+                     sizeof (middlelp),
+                     "(%s)",
+                     middlel);
+  else
+    strcpy (middlelp, middlel);
+  if (needs_parens (middleh))
+    GNUNET_snprintf (middlehp,
+                     sizeof (middlehp),
+                     "(%s)",
+                     middleh);
+  else
+    strcpy (middlehp, middleh);
+  if (needs_parens (after))
+    GNUNET_snprintf (afterp,
+                     sizeof (afterp),
+                     "(%s)",
+                     after);
+  else
+    strcpy (afterp, after);
+  dots[0] = '\0';
+  for (xstep=step/16;xstep>0;xstep/=16)
+    strcat (dots, ".");
+  if (step >= 16)
+  {
+    if (strlen (middlel) > 0)
+      recl = compute_policy ((start_port / step) * step,
+                             (start_port / step) * step + step - 1,
+                             step / 16,
+                             pp);
+    else
+      recl = GNUNET_strdup ("");
+    if (strlen (middleh) > 0)
+      rech = compute_policy ((end_port / step) * step,
+                             (end_port / step) * step + step - 1,
+                             step / 16,
+                             pp);
+    else
+      rech = GNUNET_strdup ("");
+  }
+  else
+  {
+    recl = GNUNET_strdup ("");
+    rech = GNUNET_strdup ("");
+    middlel[0] = '\0';
+    middlelp[0] = '\0';
+    middleh[0] = '\0';
+    middlehp[0] = '\0';
+  }
+  if (needs_parens (recl))
+    GNUNET_asprintf (&reclp,
+                     "(%s)",
+                     recl);
+  else
+    reclp = GNUNET_strdup (recl);
+  if (needs_parens (rech))
+    GNUNET_asprintf (&rechp,
+                     "(%s)",
+                     rech);
+  else
+    rechp = GNUNET_strdup (rech);
+
+  if ( (strlen (middleh) > 0) &&
+       (strlen (rech) > 0) &&
+       (strlen (middlel) > 0) &&
+       (strlen (recl) > 0) )
+  {
+    GNUNET_asprintf (&middle,
+                     "%s%s|%s%s",
+                     middlel,
+                     reclp,
+                     middleh,
+                     rechp);
+  }
+  else if ( (strlen (middleh) > 0) &&
+            (strlen (rech) > 0) )
+  {
+    GNUNET_asprintf (&middle,
+                     "%s%s",
+                     middleh,
+                     rechp);
+  }
+  else if ( (strlen (middlel) > 0) &&
+            (strlen (recl) > 0) )
+  {
+    GNUNET_asprintf (&middle,
+                     "%s%s",
+                     middlel,
+                     reclp);
+  }
+  else
+  {
+    middle = GNUNET_strdup ("");
+  }
+  if ( (strlen(before) > 0) &&
+       (strlen(after) > 0) )
+  {
+    if (strlen (dots) > 0)
+    {
+      if (strlen (middle) > 0)
+        GNUNET_asprintf (&ret,
+                         "(%s%s|%s|%s%s)",
+                         beforep, dots,
+                         middle,
+                         afterp, dots);
+      else
+        GNUNET_asprintf (&ret,
+                         "(%s|%s)%s",
+                         beforep,
+                         afterp,
+                         dots);
+    }
+    else
+    {
+      if (strlen (middle) > 0)
+        GNUNET_asprintf (&ret,
+                         "(%s|%s|%s)",
+                         before,
+                         middle,
+                         after);
+      else if (1 == step)
+        GNUNET_asprintf (&ret,
+                         "%s|%s",
+                         before,
+                         after);
+      else
+        GNUNET_asprintf (&ret,
+                         "(%s|%s)",
+                         before,
+                         after);
+    }
+  }
+  else if (strlen (before) > 0)
+  {
+    if (strlen (dots) > 0)
+    {
+      if (strlen (middle) > 0)
+        GNUNET_asprintf (&ret,
+                         "(%s%s|%s)",
+                         beforep, dots,
+                         middle);
+      else
+        GNUNET_asprintf (&ret,
+                         "%s%s",
+                         beforep, dots);
+    }
+    else
+    {
+      if (strlen (middle) > 0)
+        GNUNET_asprintf (&ret,
+                         "(%s|%s)",
+                         before,
+                         middle);
+      else
+        GNUNET_asprintf (&ret,
+                         "%s",
+                         before);
+    }
+  }
+  else if (strlen (after) > 0)
+  {
+    if (strlen (dots) > 0)
+    {
+      if (strlen (middle) > 0)
+        GNUNET_asprintf (&ret,
+                         "(%s|%s%s)",
+                         middle,
+                         afterp, dots);
+      else
+        GNUNET_asprintf (&ret,
+                         "%s%s",
+                         afterp, dots);
+    }
+    else
+    {
+      if (strlen (middle) > 0)
+        GNUNET_asprintf (&ret,
+                         "%s|%s",
+                         middle,
+                         after);
+      else
+        GNUNET_asprintf (&ret,
+                         "%s",
+                         after);
+    }
+  }
+  else if (strlen (middle) > 0)
+  {
+    GNUNET_asprintf (&ret,
+                     "%s",
+                     middle);
+  }
+  else
+  {
+    ret = GNUNET_strdup ("");
+  }
+  GNUNET_free (middle);
+  GNUNET_free (reclp);
+  GNUNET_free (rechp);
+  GNUNET_free (recl);
+  GNUNET_free (rech);
+  return ret;
+}
+
+
+/**
  * Convert a port policy to a regular expression.  Note: this is a
  * very simplistic implementation, we might want to consider doing
  * something more sophisiticated (resulting in smaller regular
@@ -205,37 +527,42 @@ port_to_regex (const struct GNUNET_STRINGS_PortPolicy *pp)
   }
   if (pp->end_port < pp->start_port)
     return NULL;
-  cnt = pp->end_port - pp->start_port + 1;
+
   if (GNUNET_YES == pp->negate_portrange)
-    cnt = 0xFFFF - cnt;
-  reg = GNUNET_malloc (cnt * 5 + 1);
-  pos = reg;
-  for (i=1;i<=0xFFFF;i++)
   {
-    if ( ( (i >= pp->start_port) && (i <= pp->end_port) ) ^
-         (GNUNET_YES == pp->negate_portrange) )
-    {
-      if (pos == reg)
-      {
-        GNUNET_snprintf (pos,
-                         5,
-                         "%04X",
-                         i);
-      }
-      else
-      {
-        GNUNET_snprintf (pos,
-                         6,
-                         "|%04X",
-                         i);
-      }
-      pos += strlen (pos);
-    }
+    ret = compute_policy (0, 0xFFFF, 0x1000, pp);
   }
-  GNUNET_asprintf (&ret,
-                   "(%s)",
-                   reg);
-  GNUNET_free (reg);
+  else
+  {
+    cnt = pp->end_port - pp->start_port + 1;
+    reg = GNUNET_malloc (cnt * 5 + 1);
+    pos = reg;
+    for (i=1;i<=0xFFFF;i++)
+    {
+      if ( (i >= pp->start_port) && (i <= pp->end_port) )
+      {
+        if (pos == reg)
+        {
+          GNUNET_snprintf (pos,
+                           5,
+                           "%04X",
+                           i);
+        }
+        else
+        {
+          GNUNET_snprintf (pos,
+                           6,
+                           "|%04X",
+                           i);
+        }
+        pos += strlen (pos);
+      }
+    }
+    GNUNET_asprintf (&ret,
+                     "(%s)",
+                     reg);
+    GNUNET_free (reg);
+  }
   return ret;
 }
 
