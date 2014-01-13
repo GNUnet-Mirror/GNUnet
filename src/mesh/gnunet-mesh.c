@@ -659,21 +659,21 @@ main (int argc, char *const *argv)
   int res;
   const char helpstr[] = "Create channels and retreive info about meshs status.";
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    {'a', "channel", "TUNNEL_ID:CHANNEL_ID",
-     gettext_noop ("provide information about a particular channel"),
-     GNUNET_YES, &GNUNET_GETOPT_set_string, &channel_id},
-    {'b', "connection", "TUNNEL_ID:CONNECTION_ID",
-     gettext_noop ("provide information about a particular connection"),
-     GNUNET_YES, &GNUNET_GETOPT_set_string, &conn_id},
+//     {'a', "channel", "TUNNEL_ID:CHANNEL_ID",
+//      gettext_noop ("provide information about a particular channel"),
+//      GNUNET_YES, &GNUNET_GETOPT_set_string, &channel_id},
+//     {'b', "connection", "TUNNEL_ID:CONNECTION_ID",
+//      gettext_noop ("provide information about a particular connection"),
+//      GNUNET_YES, &GNUNET_GETOPT_set_string, &conn_id},
     {'e', "echo", NULL,
      gettext_noop ("activate echo mode"),
      GNUNET_NO, &GNUNET_GETOPT_set_one, &echo},
     {'i', "info", NULL,
      gettext_noop ("provide information about all tunnels"),
      GNUNET_NO, &GNUNET_GETOPT_set_one, &get_info},
-    {'m', "monitor", NULL,
-     gettext_noop ("provide information about all tunnels (continuously) NOT IMPLEMENTED"), /* FIXME */
-     GNUNET_NO, &GNUNET_GETOPT_set_one, &monitor_connections},
+//     {'m', "monitor", NULL,
+//      gettext_noop ("provide information about all tunnels (continuously) NOT IMPLEMENTED"), /* FIXME */
+//      GNUNET_NO, &GNUNET_GETOPT_set_one, &monitor_connections},
     {'p', "port", NULL,
      gettext_noop ("port to listen to (default; 0)"),
      GNUNET_YES, &GNUNET_GETOPT_set_uint, &listen_port},

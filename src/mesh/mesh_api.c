@@ -1804,7 +1804,7 @@ GNUNET_MESH_get_tunnel (struct GNUNET_MESH_Handle *h,
   memset (&msg, 0, sizeof (msg));
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNEL);
-  msg.destination = *id;
+  msg.peer = *id;
   send_packet (h, &msg.header, NULL);
   h->tunnel_cb = callback;
   h->tunnel_cls = callback_cls;
@@ -1834,7 +1834,7 @@ GNUNET_MESH_show_channel (struct GNUNET_MESH_Handle *h,
 
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_CHANNEL);
-  msg.owner = *initiator;
+  msg.peer = *initiator;
   msg.channel_id = htonl (channel_number);
 //   msg.reserved = 0;
   send_packet (h, &msg.header, NULL);

@@ -1787,7 +1787,6 @@ GMP_get_short_id (const struct MeshPeer *peer)
 struct MeshTunnel3 *
 GMP_get_tunnel (const struct MeshPeer *peer)
 {
-  GNUNET_assert (NULL != peer->tunnel);
   return peer->tunnel;
 }
 

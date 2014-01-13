@@ -651,8 +651,19 @@ handle_get_tunnels (void *cls, struct GNUNET_SERVER_Client *client,
 }
 
 
+static void
+iter_connection (void *cls, struct MeshConnection *c)
+{
+}
+
+static void
+iter_channel (void *cls, struct MeshChannel *ch)
+{
+}
+
+
 /**
- * Handler for client's MONITOR_TUNNEL request.
+ * Handler for client's SHOW_TUNNEL request.
  *
  * @param cls Closure (unused).
  * @param client Identification of the client.
@@ -663,9 +674,12 @@ handle_show_tunnel (void *cls, struct GNUNET_SERVER_Client *client,
                     const struct GNUNET_MessageHeader *message)
 {
   const struct GNUNET_MESH_LocalInfo *msg;
-  struct GNUNET_MESH_LocalInfo *resp;
+  struct GNUNET_MESH_LocalInfoTunnel *resp;
   struct MeshClient *c;
-  struct MeshChannel *ch;
+  struct MeshTunnel3 *t;
+  unsigned int ch_n;
+  unsigned int c_n;
+  size_t size;
 
   /* Sanity check for client registration */
   if (NULL == (c = GML_client_get (client)))
@@ -677,18 +691,23 @@ handle_show_tunnel (void *cls, struct GNUNET_SERVER_Client *client,
 
   msg = (struct GNUNET_MESH_LocalInfo *) message;
   LOG (GNUNET_ERROR_TYPE_INFO,
-              "Received tunnel info request from client %u for tunnel %s[%X]\n",
-              c->id,
-              &msg->owner,
-              ntohl (msg->channel_id));
-//   ch = channel_get (&msg->owner, ntohl (msg->channel_id));
-  ch = NULL; // FIXME
-  if (NULL == ch)
+       "Received tunnel info request from client %u for tunnel %s\n",
+       c->id, GNUNET_i2s_full(&msg->peer));
+
+  t = GMP_get_tunnel (GMP_get (&msg->peer));
+  if (NULL == t)
   {
     /* We don't know the tunnel */
-    struct GNUNET_MESH_LocalInfo warn;
+    struct GNUNET_MESH_LocalInfoTunnel warn;
 
-    warn = *msg;
+    warn.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNEL);
+    warn.header.size = htons (sizeof (warn));
+    warn.destination = msg->peer;
+    warn.channels = htonl (0);
+    warn.connections = htonl (0);
+    warn.cstate = htons (0);
+    warn.estate = htons (0);
+
     GNUNET_SERVER_notification_context_unicast (nc, client,
                                                 &warn.header,
                                                 GNUNET_NO);
@@ -697,16 +716,27 @@ handle_show_tunnel (void *cls, struct GNUNET_SERVER_Client *client,
   }
 
   /* Initialize context */
-  resp = GNUNET_new (struct GNUNET_MESH_LocalInfo);
-  *resp = *msg;
-  resp->header.size = htons (sizeof (struct GNUNET_MESH_LocalInfo));
+  ch_n = GMT_count_channels (t);
+  c_n = GMT_count_connections (t);
+
+  size = sizeof (struct GNUNET_MESH_LocalInfo);
+  size += c_n * sizeof (struct GNUNET_HashCode);
+  size += ch_n * sizeof (uint32_t);
+
+  resp = GNUNET_malloc (size);
+  resp->header.size = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNEL);
+  resp->header.size = htons (size);
+  GMT_iterate_connections (t, &iter_connection, resp);
+  GMT_iterate_channels (t, &iter_channel, resp);
+  resp->cstate = htons (GMT_get_cstate (t));
+  resp->estate = htons (GMT_get_estate (t));
   GNUNET_SERVER_notification_context_unicast (nc, c->handle,
                                               &resp->header, GNUNET_NO);
   GNUNET_free (resp);
 
   LOG (GNUNET_ERROR_TYPE_INFO,
-              "Monitor tunnel request from client %u completed\n",
-              c->id);
+       "Show tunnel request from client %u completed\n",
+       c->id);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 

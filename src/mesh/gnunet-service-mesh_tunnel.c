@@ -2660,3 +2660,21 @@ GMT_count_all (void)
 {
   return GNUNET_CONTAINER_multipeermap_size (tunnels);
 }
+
+void
+GMT_iterate_connections (struct MeshTunnel3 *t, GMT_conn_iter iter, void *cls)
+{
+  struct MeshTConnection *ct;
+
+  for (ct = t->connection_head; NULL != ct; ct = ct->next)
+    iter (cls, ct->c);
+}
+
+void
+GMT_iterate_channels (struct MeshTunnel3 *t, GMT_chan_iter iter, void *cls)
+{
+  struct MeshTChannel *cht;
+
+  for (cht = t->channel_head; NULL != cht; cht = cht->next)
+    iter (cls, cht->ch);
+}

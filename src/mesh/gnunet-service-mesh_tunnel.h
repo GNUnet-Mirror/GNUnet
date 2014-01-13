@@ -123,6 +123,9 @@ typedef void (*GMT_sent) (void *cls,
                           struct MeshTunnel3Queue *q,
                           uint16_t type, size_t size);
 
+typedef void (*GMT_conn_iter) (void *cls, struct MeshConnection *c);
+typedef void (*GMT_chan_iter) (void *cls, struct MeshChannel *ch);
+
 
 /******************************************************************************/
 /********************************    API    ***********************************/
@@ -478,6 +481,12 @@ GMT_iterate_all (void *cls, GNUNET_CONTAINER_PeerMapIterator iter);
 
 unsigned int
 GMT_count_all (void);
+
+void
+GMT_iterate_connections (struct MeshTunnel3 *t, GMT_conn_iter iter, void *cls);
+
+void
+GMT_iterate_channels (struct MeshTunnel3 *t, GMT_chan_iter iter, void *cls);
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

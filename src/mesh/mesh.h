@@ -181,12 +181,12 @@ struct GNUNET_MESH_LocalInfo
   /**
    * ID of the owner of the channel (can be local peer).
    */
-  struct GNUNET_PeerIdentity owner;
+//   struct GNUNET_PeerIdentity owner;
 
   /**
    * ID of the destination of the channel (can be local peer).
    */
-  struct GNUNET_PeerIdentity destination;
+  struct GNUNET_PeerIdentity peer;
 };
 
 /**
