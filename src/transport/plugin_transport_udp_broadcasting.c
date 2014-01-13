@@ -135,6 +135,7 @@ broadcast_ipv6_mst_cb (void *cls, void *client,
 {
   struct Plugin *plugin = cls;
   struct Mstv6Context *mc = client;
+  struct GNUNET_HELLO_Address *address;
   const struct GNUNET_MessageHeader *hello;
   const struct UDP_Beacon_Message *msg;
   struct GNUNET_ATS_Information atsi;
@@ -155,19 +156,12 @@ broadcast_ipv6_mst_cb (void *cls, void *client,
   GNUNET_break (ntohl(mc->ats_address_network_type) != GNUNET_ATS_NET_UNSPECIFIED);
 
   hello = (struct GNUNET_MessageHeader *) &msg[1];
-  plugin->env->receive (plugin->env->cls,
-			&msg->sender,
-			hello,
-                        NULL,
-                        (const char *) &mc->addr,
-                        sizeof (mc->addr));
-  plugin->env->update_address_metrics (plugin->env->cls,
-				       &msg->sender,
-				       (const char *) &mc->addr,
-				       sizeof (mc->addr),
-				       NULL,
-				       &atsi, 1);
-
+  address = GNUNET_HELLO_address_allocate (&msg->sender, PLUGIN_NAME,
+      (const char *) &mc->addr, sizeof (mc->addr), GNUNET_HELLO_ADDRESS_INFO_INBOUND);
+  plugin->env->receive (plugin->env->cls, address, NULL, hello);
+  plugin->env->update_address_metrics (plugin->env->cls, address,
+				       NULL, &atsi, 1);
+  GNUNET_HELLO_address_free (address);
   GNUNET_STATISTICS_update (plugin->env->stats,
                             _
                             ("# IPv6 multicast HELLO beacons received via udp"),
@@ -183,6 +177,7 @@ broadcast_ipv4_mst_cb (void *cls, void *client,
 {
   struct Plugin *plugin = cls;
   struct Mstv4Context *mc = client;
+  struct GNUNET_HELLO_Address *address;
   const struct GNUNET_MessageHeader *hello;
   const struct UDP_Beacon_Message *msg;
   struct GNUNET_ATS_Information atsi;
@@ -204,19 +199,12 @@ broadcast_ipv4_mst_cb (void *cls, void *client,
   GNUNET_break (ntohl(mc->ats_address_network_type) != GNUNET_ATS_NET_UNSPECIFIED);
 
   hello = (struct GNUNET_MessageHeader *) &msg[1];
-  plugin->env->receive (plugin->env->cls,
-			&msg->sender,
-			hello,
-                        NULL,
-                        (const char *) &mc->addr,
-                        sizeof (mc->addr));
-
-  plugin->env->update_address_metrics (plugin->env->cls,
-				       &msg->sender,
-				       (const char *) &mc->addr,
-				       sizeof (mc->addr),
-				       NULL,
-				       &atsi, 1);
+  address = GNUNET_HELLO_address_allocate (&msg->sender, PLUGIN_NAME,
+      (const char *) &mc->addr, sizeof (mc->addr), GNUNET_HELLO_ADDRESS_INFO_INBOUND);
+  plugin->env->receive (plugin->env->cls, address, NULL, hello);
+  plugin->env->update_address_metrics (plugin->env->cls, address,
+                                       NULL, &atsi, 1);
+  GNUNET_HELLO_address_free (address);
 
   GNUNET_STATISTICS_update (plugin->env->stats,
                             _("# IPv4 broadcast HELLO beacons received via udp"),

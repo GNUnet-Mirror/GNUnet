@@ -113,12 +113,7 @@ struct Session
   /**
    * Address
    */
-  void *addr;
-
-  /**
-   * Address length
-   */
-  size_t addrlen;
+  struct GNUNET_HELLO_Address *address;
 
   /**
    * Unique HTTP/S connection tag for this connection
@@ -263,17 +258,12 @@ struct HTTP_Server_Plugin
    * External hostname the plugin can be connected to, can be different to
    * the host's FQDN, used e.g. for reverse proxying
    */
-  struct HttpAddress *ext_addr;
+  struct GNUNET_HELLO_Address *ext_addr;
 
   /**
    * Notify transport only about external address
    */
   unsigned int external_only;
-
-  /**
-   * External address length
-   */
-  size_t ext_addr_len;
 
   /**
    * use IPv6
@@ -668,8 +658,8 @@ http_server_plugin_address_suggested (void *cls,
 
   if ((NULL != plugin->ext_addr) &&
       GNUNET_YES == (http_common_cmp_addresses (addr, addrlen,
-                                                plugin->ext_addr,
-                                                plugin->ext_addr_len)))
+                                                plugin->ext_addr->address,
+                                                plugin->ext_addr->address_length)))
   {
     /* Checking HTTP_OPTIONS_VERIFY_CERTIFICATE option for external hostname */
     if ((ntohl (haddr->options) & HTTP_OPTIONS_VERIFY_CERTIFICATE) !=
@@ -743,7 +733,7 @@ server_delete_session (void *cls,
     GNUNET_SERVER_mst_destroy (s->msg_tk);
     s->msg_tk = NULL;
   }
-  GNUNET_free (s->addr);
+  GNUNET_HELLO_address_free (s->address);
   GNUNET_free_non_null (s->server_recv);
   GNUNET_free_non_null (s->server_send);
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
@@ -1082,10 +1072,11 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
   struct Session *s = NULL;
   struct ServerConnection *sc = NULL;
   const union MHD_ConnectionInfo *conn_info;
-  struct GNUNET_ATS_Information ats;
   struct HttpAddress *addr;
-  size_t addr_len;
+
+  struct GNUNET_ATS_Information ats;
   struct GNUNET_PeerIdentity target;
+  size_t addr_len;
   uint32_t tag = 0;
   int direction = GNUNET_SYSERR;
   unsigned int to;
@@ -1175,8 +1166,8 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
     s = GNUNET_new (struct Session);
     memcpy (&s->target, &target, sizeof (struct GNUNET_PeerIdentity));
     s->plugin = plugin;
-    s->addr = addr;
-    s->addrlen = addr_len;
+    s->address = GNUNET_HELLO_address_allocate (&s->target, PLUGIN_NAME,
+        addr, addr_len, GNUNET_HELLO_ADDRESS_INFO_INBOUND);
     s->ats_address_network_type = ats.value;
     s->next_receive = GNUNET_TIME_UNIT_ZERO_ABS;
     s->tag = tag;
@@ -1212,7 +1203,7 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
   if ((NULL != s->server_send) && (NULL != s->server_recv))
   {
     s->connect_in_progress = GNUNET_NO; /* PUT and GET are connected */
-    plugin->env->session_start (NULL, &s->target, PLUGIN_NAME, NULL, 0 ,s, NULL, 0);
+    plugin->env->session_start (NULL, s->address ,s, NULL, 0);
   }
 
   if ((NULL == s->server_recv) || (NULL == s->server_send))
@@ -1353,15 +1344,8 @@ server_receive_mst_cb (void *cls, void *client,
   atsi.value = s->ats_address_network_type;
   GNUNET_break (s->ats_address_network_type != ntohl (GNUNET_ATS_NET_UNSPECIFIED));
 
-
-  delay = plugin->env->receive (plugin->env->cls,
-                                &s->target,
-                                message,
-                                s, NULL, 0);
-
-  plugin->env->update_address_metrics (plugin->env->cls,
-				       &s->target,
-				       NULL, 0, s, &atsi, 1);
+  delay = plugin->env->receive (plugin->env->cls, s->address, s, message);
+  plugin->env->update_address_metrics (plugin->env->cls, s->address, s, &atsi, 1);
 
   GNUNET_asprintf (&stat_txt, "# bytes received via %s_server", plugin->protocol);
   GNUNET_STATISTICS_update (plugin->env->stats,
@@ -1376,8 +1360,8 @@ server_receive_mst_cb (void *cls, void *client,
                      "Peer `%s' address `%s' next read delayed for %s\n",
                      GNUNET_i2s (&s->target),
                      http_common_plugin_address_to_string (NULL,
-                                                           plugin->protocol,
-                                                           s->addr, s->addrlen),
+                         plugin->protocol, s->address->address,
+                         s->address->address_length),
                      GNUNET_STRINGS_relative_time_to_string (delay,
 							     GNUNET_YES));
   }
@@ -1485,9 +1469,8 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
                        s, sc,
                        GNUNET_i2s (&s->target),
                        http_common_plugin_address_to_string (NULL,
-                                                             plugin->protocol,
-                                                             s->addr,
-                                                             s->addrlen));
+                           plugin->protocol, s->address->address,
+                           s->address->address_length));
       sc->connected = GNUNET_YES;
       return MHD_YES;
     }
@@ -1499,9 +1482,8 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
                        s, sc,
                        GNUNET_i2s (&s->target),
                        http_common_plugin_address_to_string (NULL,
-                                                             plugin->protocol,
-                                                             s->addr,
-                                                             s->addrlen));
+                           plugin->protocol, s->address->address,
+                           s->address->address_length));
       sc->connected = GNUNET_NO;
       /* Sent HTTP/1.1: 200 OK as PUT Response\ */
       response = MHD_create_response_from_data (strlen ("Thank you!"),
@@ -1519,9 +1501,8 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
                        s, sc,
                        GNUNET_i2s (&s->target),
                        http_common_plugin_address_to_string (NULL,
-                                                             plugin->protocol,
-                                                             s->addr,
-                                                             s->addrlen),
+                           plugin->protocol, s->address->address,
+                           s->address->address_length),
                        *upload_data_size);
       struct GNUNET_TIME_Absolute now = GNUNET_TIME_absolute_get ();
 
@@ -1597,8 +1578,8 @@ server_disconnect_cb (void *cls, struct MHD_Connection *connection,
                      "Peer `%s' connection  %p, GET on address `%s' disconnected\n",
                      GNUNET_i2s (&s->target), s->server_send,
                      http_common_plugin_address_to_string (NULL,
-                                                           plugin->protocol,
-                                                           s->addr, s->addrlen));
+                         plugin->protocol, s->address->address,
+                         s->address->address_length));
     s->server_send = NULL;
     if (NULL != (s->server_recv))
     {
@@ -1617,8 +1598,8 @@ server_disconnect_cb (void *cls, struct MHD_Connection *connection,
                      "Peer `%s' connection %p PUT on address `%s' disconnected\n",
                      GNUNET_i2s (&s->target), s->server_recv,
                      http_common_plugin_address_to_string (NULL,
-                                                           plugin->protocol,
-                                                           s->addr, s->addrlen));
+                         plugin->protocol, s->address->address,
+                         s->address->address_length));
     s->server_recv = NULL;
     /* Do not terminate session when PUT disconnects
     if (NULL != (s->server_send))
@@ -1647,8 +1628,8 @@ server_disconnect_cb (void *cls, struct MHD_Connection *connection,
                      "Peer `%s' on address `%s' disconnected\n",
                      GNUNET_i2s (&s->target),
                      http_common_plugin_address_to_string (NULL,
-                                                           plugin->protocol,
-                                                           s->addr, s->addrlen));
+                         plugin->protocol, s->address->address,
+                         s->address->address_length));
 
     if ((GNUNET_YES == s->session_passed) && (GNUNET_NO == s->session_ended))
     {
@@ -2217,6 +2198,7 @@ server_add_address (void *cls, int add_remove, const struct sockaddr *addr,
                  socklen_t addrlen)
 {
   struct HTTP_Server_Plugin *plugin = cls;
+  struct GNUNET_HELLO_Address *address;
   struct HttpAddressWrapper *w = NULL;
 
   w = GNUNET_new (struct HttpAddressWrapper);
@@ -2234,11 +2216,17 @@ server_add_address (void *cls, int add_remove, const struct sockaddr *addr,
                    http_common_plugin_address_to_string (NULL,
                                                          plugin->protocol,
                                                          w->address, w->addrlen));
+  /* modify our published address list */
 #if BUILD_HTTPS
-  plugin->env->notify_address (plugin->env->cls, add_remove, w->address, w->addrlen, "https_client");
+  address = GNUNET_HELLO_address_allocate (plugin->env->my_identity,
+      "https_client", w->address, w->addrlen, GNUNET_HELLO_ADDRESS_INFO_NONE);
 #else
-  plugin->env->notify_address (plugin->env->cls, add_remove, w->address, w->addrlen, "http_client");
+  address = GNUNET_HELLO_address_allocate (plugin->env->my_identity,
+      "http_client", w->address, w->addrlen, GNUNET_HELLO_ADDRESS_INFO_NONE);
 #endif
+
+  plugin->env->notify_address (plugin->env->cls, add_remove, address);
+  GNUNET_HELLO_address_free (address);
 }
 
 
@@ -2255,6 +2243,7 @@ server_remove_address (void *cls, int add_remove, const struct sockaddr *addr,
                     socklen_t addrlen)
 {
   struct HTTP_Server_Plugin *plugin = cls;
+  struct GNUNET_HELLO_Address *address;
   struct HttpAddressWrapper *w = plugin->addr_head;
   size_t saddr_len;
   void * saddr = http_common_address_from_socket (plugin->protocol, addr, addrlen);
@@ -2278,12 +2267,20 @@ server_remove_address (void *cls, int add_remove, const struct sockaddr *addr,
                    http_common_plugin_address_to_string (NULL,
                                                          plugin->protocol,
                                                          w->address, w->addrlen));
+
+
   GNUNET_CONTAINER_DLL_remove (plugin->addr_head, plugin->addr_tail, w);
+
+  /* modify our published address list */
 #if BUILD_HTTPS
-  plugin->env->notify_address (plugin->env->cls, add_remove, w->address, w->addrlen, "https_client");
+  address = GNUNET_HELLO_address_allocate (plugin->env->my_identity,
+      "https_client", w->address, w->addrlen, GNUNET_HELLO_ADDRESS_INFO_NONE);
 #else
-  plugin->env->notify_address (plugin->env->cls, add_remove, w->address, w->addrlen, "http_client");
+  address = GNUNET_HELLO_address_allocate (plugin->env->my_identity,
+      "http_client", w->address, w->addrlen, GNUNET_HELLO_ADDRESS_INFO_NONE);
 #endif
+  plugin->env->notify_address (plugin->env->cls, add_remove, address);
+  GNUNET_HELLO_address_free (address);
   GNUNET_free (w->address);
   GNUNET_free (w);
 }
@@ -2660,6 +2657,8 @@ static void
 server_notify_external_hostname (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct HTTP_Server_Plugin *plugin = cls;
+  struct HttpAddress *ext_addr;
+  size_t ext_addr_len;
   unsigned int urlen;
   char *url;
 
@@ -2670,26 +2669,30 @@ server_notify_external_hostname (void *cls, const struct GNUNET_SCHEDULER_TaskCo
   GNUNET_asprintf(&url, "%s://%s", plugin->protocol, plugin->external_hostname);
 
   urlen = strlen (url) + 1;
-  plugin->ext_addr = GNUNET_malloc (sizeof (struct HttpAddress) + urlen);
-  plugin->ext_addr->options = htonl(plugin->options);
-  plugin->ext_addr->urlen = htonl (urlen);
-  plugin->ext_addr_len = sizeof (struct HttpAddress) + urlen;
-  memcpy (&plugin->ext_addr[1], url, urlen);
+  ext_addr = GNUNET_malloc (sizeof (struct HttpAddress) + urlen);
+  ext_addr->options = htonl(plugin->options);
+  ext_addr->urlen = htonl (urlen);
+  ext_addr_len = sizeof (struct HttpAddress) + urlen;
+  memcpy (&ext_addr[1], url, urlen);
   GNUNET_free (url);
+
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                    "Notifying transport about external hostname address `%s'\n", plugin->external_hostname);
 
 #if BUILD_HTTPS
   if (GNUNET_YES == plugin->verify_external_hostname)
-    GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, plugin->name,
-                     "Enabling SSL verification for external hostname address `%s'\n", plugin->external_hostname);
-  plugin->env->notify_address (plugin->env->cls, GNUNET_YES,
-                               plugin->ext_addr, plugin->ext_addr_len,
-                               "https_client");
+  GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, plugin->name,
+      "Enabling SSL verification for external hostname address `%s'\n",
+      plugin->external_hostname);
+  plugin->ext_addr = GNUNET_HELLO_address_allocate (plugin->env->my_identity,
+      "https_client", ext_addr, ext_addr_len, GNUNET_HELLO_ADDRESS_INFO_NONE );
+  plugin->env->notify_address (plugin->env->cls, GNUNET_YES, plugin->ext_addr);
+  GNUNET_free (ext_addr);
 #else
-  plugin->env->notify_address (plugin->env->cls, GNUNET_YES,
-                               plugin->ext_addr, plugin->ext_addr_len,
-                               "http_client");
+  plugin->ext_addr = GNUNET_HELLO_address_allocate (plugin->env->my_identity,
+      "http_client", ext_addr, ext_addr_len, GNUNET_HELLO_ADDRESS_INFO_NONE );
+  plugin->env->notify_address (plugin->env->cls, GNUNET_YES, plugin->ext_addr);
+  GNUNET_free (ext_addr);
 #endif
 }
 
@@ -3013,21 +3016,19 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
                      "Notifying transport to remove address `%s'\n",
                      http_common_plugin_address_to_string (NULL,
                                                            plugin->protocol,
-                                                           plugin->ext_addr,
-                                                           plugin->ext_addr_len));
+                                                           plugin->ext_addr->address,
+                                                           plugin->ext_addr->address_length));
 #if BUILD_HTTPS
     plugin->env->notify_address (plugin->env->cls,
                                  GNUNET_NO,
-                                 plugin->ext_addr,
-                                 plugin->ext_addr_len,
-                                 "https_client");
+                                 plugin->ext_addr);
 #else
   plugin->env->notify_address (plugin->env->cls,
                                GNUNET_NO,
-                               plugin->ext_addr,
-                               plugin->ext_addr_len,
-                               "http_client");
+                               plugin->ext_addr);
 #endif
+    GNUNET_HELLO_address_free (plugin->ext_addr);
+    plugin->ext_addr = NULL;
   }
 
   /* Stop to report addresses to transport service */

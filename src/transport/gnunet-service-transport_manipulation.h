@@ -79,11 +79,9 @@ GST_manipulation_send (const struct GNUNET_PeerIdentity *target,
  */
 struct GNUNET_TIME_Relative
 GST_manipulation_recv (void *cls,
-											 const struct GNUNET_PeerIdentity *peer,
-											 const struct GNUNET_MessageHeader *message,
-											 struct Session *session,
-											 const char *sender_address,
-											 uint16_t sender_address_len);
+    const struct GNUNET_HELLO_Address *address,
+    struct Session *session,
+    const struct GNUNET_MessageHeader *message);
 
 /**
  * Function that will be called to manipulate ATS information according to

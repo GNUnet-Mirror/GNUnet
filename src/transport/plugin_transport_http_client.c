@@ -155,12 +155,7 @@ struct Session
   /**
    * Address
    */
-  struct HttpAddress *addr;
-
-  /**
-   * Address length
-   */
-  size_t addrlen;
+  struct GNUNET_HELLO_Address *address;
 
   /**
    * ATS network type in NBO
@@ -587,7 +582,7 @@ client_delete_session (struct Session *s)
     GNUNET_SERVER_mst_destroy (s->msg_tk);
     s->msg_tk = NULL;
   }
-  GNUNET_free (s->addr);
+  GNUNET_HELLO_address_free (s->address);
   GNUNET_free (s->url);
   GNUNET_free (s);
 }
@@ -761,10 +756,11 @@ client_lookup_session (struct HTTP_Client_Plugin *plugin,
   struct Session *pos;
 
   for (pos = plugin->head; NULL != pos; pos = pos->next)
+  {
     if ((0 == memcmp (&address->peer, &pos->target, sizeof (struct GNUNET_PeerIdentity))) &&
-        (address->address_length == pos->addrlen) &&
-        (0 == memcmp (address->address, pos->addr, pos->addrlen)))
+        (0 == GNUNET_HELLO_address_cmp(address, pos->address)))
       return pos;
+  }
   return NULL;
 }
 
@@ -923,14 +919,10 @@ client_receive_mst_cb (void *cls, void *client,
   atsi.type = htonl (GNUNET_ATS_NETWORK_TYPE);
   atsi.value = s->ats_address_network_type;
   GNUNET_break (s->ats_address_network_type != ntohl (GNUNET_ATS_NET_UNSPECIFIED));
-  delay = s->plugin->env->receive (plugin->env->cls, &s->target, message,
-                                   s, (const char *) s->addr, s->addrlen);
 
+  delay = s->plugin->env->receive (plugin->env->cls, s->address, s, message);
   plugin->env->update_address_metrics (plugin->env->cls,
-				       &s->target,
-				       s->addr,
-				       s->addrlen,
-				       s,
+				       s->address, s,
 				       &atsi, 1);
 
   GNUNET_asprintf (&stat_txt,
@@ -949,8 +941,8 @@ client_receive_mst_cb (void *cls, void *client,
                      "Client: peer `%s' address `%s' next read delayed for %s\n",
                      GNUNET_i2s (&s->target),
                      http_common_plugin_address_to_string (NULL,
-							   s->plugin->protocol,
-							   s->addr, s->addrlen),
+			s->plugin->protocol, s->address->address,
+			s->address->address_length),
                      GNUNET_STRINGS_relative_time_to_string (delay,
 							     GNUNET_YES));
   }
@@ -1241,8 +1233,8 @@ client_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static int
 client_connect_get (struct Session *s)
 {
-
   CURLMcode mret;
+
   /* create get connection */
   s->client_get = curl_easy_init ();
   s->get.s = s;
@@ -1254,16 +1246,21 @@ client_connect_get (struct Session *s)
 #endif
 #if BUILD_HTTPS
   curl_easy_setopt (s->client_get, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1);
-  if (HTTP_OPTIONS_VERIFY_CERTIFICATE ==
-      (ntohl (s->addr->options) & HTTP_OPTIONS_VERIFY_CERTIFICATE))
   {
-    curl_easy_setopt (s->client_get, CURLOPT_SSL_VERIFYPEER, 1L);
-    curl_easy_setopt (s->client_get, CURLOPT_SSL_VERIFYHOST, 2L);
-  }
-  else
-  {
-    curl_easy_setopt (s->client_get, CURLOPT_SSL_VERIFYPEER, 0);
-    curl_easy_setopt (s->client_get, CURLOPT_SSL_VERIFYHOST, 0);
+    struct HttpAddress *ha;
+    ha = (struct HttpAddress *) s->address->address;
+
+    if (HTTP_OPTIONS_VERIFY_CERTIFICATE ==
+        (ntohl (ha->options) & HTTP_OPTIONS_VERIFY_CERTIFICATE))
+    {
+      curl_easy_setopt (s->client_get, CURLOPT_SSL_VERIFYPEER, 1L);
+      curl_easy_setopt (s->client_get, CURLOPT_SSL_VERIFYHOST, 2L);
+    }
+    else
+    {
+      curl_easy_setopt (s->client_get, CURLOPT_SSL_VERIFYPEER, 0);
+      curl_easy_setopt (s->client_get, CURLOPT_SSL_VERIFYHOST, 0);
+    }
   }
   curl_easy_setopt (s->client_get, CURLOPT_PROTOCOLS, CURLPROTO_HTTPS);
   curl_easy_setopt (s->client_get, CURLOPT_REDIR_PROTOCOLS, CURLPROTO_HTTPS);
@@ -1334,16 +1331,21 @@ client_connect_put (struct Session *s)
 #endif
 #if BUILD_HTTPS
   curl_easy_setopt (s->client_put, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1);
-  if (HTTP_OPTIONS_VERIFY_CERTIFICATE ==
-      (ntohl (s->addr->options) & HTTP_OPTIONS_VERIFY_CERTIFICATE))
   {
-    curl_easy_setopt (s->client_put, CURLOPT_SSL_VERIFYPEER, 1L);
-    curl_easy_setopt (s->client_put, CURLOPT_SSL_VERIFYHOST, 2L);
-  }
-  else
-  {
-    curl_easy_setopt (s->client_put, CURLOPT_SSL_VERIFYPEER, 0);
-    curl_easy_setopt (s->client_put, CURLOPT_SSL_VERIFYHOST, 0);
+    struct HttpAddress *ha;
+    ha = (struct HttpAddress *) s->address->address;
+
+    if (HTTP_OPTIONS_VERIFY_CERTIFICATE ==
+        (ntohl (ha->options) & HTTP_OPTIONS_VERIFY_CERTIFICATE))
+    {
+      curl_easy_setopt (s->client_put, CURLOPT_SSL_VERIFYPEER, 1L);
+      curl_easy_setopt (s->client_put, CURLOPT_SSL_VERIFYHOST, 2L);
+    }
+    else
+    {
+      curl_easy_setopt (s->client_put, CURLOPT_SSL_VERIFYPEER, 0);
+      curl_easy_setopt (s->client_put, CURLOPT_SSL_VERIFYHOST, 0);
+    }
   }
   curl_easy_setopt (s->client_get, CURLOPT_PROTOCOLS, CURLPROTO_HTTPS);
   curl_easy_setopt (s->client_get, CURLOPT_REDIR_PROTOCOLS, CURLPROTO_HTTPS);
@@ -1403,8 +1405,7 @@ client_connect (struct Session *s)
 
   /* create url */
   if (NULL == http_common_plugin_address_to_string (NULL,
-                                                    plugin->protocol,
-                                                    s->addr, s->addrlen))
+        plugin->protocol, s->address->address, s->address->address_length))
   {
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
                      plugin->name,
@@ -1414,7 +1415,8 @@ client_connect (struct Session *s)
   }
 
   GNUNET_asprintf (&s->url, "%s/%s;%u",
-		   http_common_plugin_address_to_url (NULL, s->addr, s->addrlen),
+		   http_common_plugin_address_to_url (NULL, s->address->address,
+		       s->address->address_length),
 		   GNUNET_i2s_full (plugin->env->my_identity),
 		   plugin->last_tag);
 
@@ -1567,9 +1569,7 @@ http_client_plugin_get_session (void *cls,
   s = GNUNET_new (struct Session);
   s->target = address->peer;
   s->plugin = plugin;
-  s->addr = GNUNET_malloc (address->address_length);
-  memcpy (s->addr, address->address, address->address_length);
-  s->addrlen = address->address_length;
+  s->address = GNUNET_HELLO_address_copy (address);
   s->ats_address_network_type = ats.value;
   s->put_paused = GNUNET_NO;
   s->put_tmp_disconnecting = GNUNET_NO;
@@ -1579,8 +1579,9 @@ http_client_plugin_get_session (void *cls,
                                                    s);
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                    "Created new session %p for `%s' address `%s''\n",
-                   s,
-                   http_common_plugin_address_to_string (NULL, plugin->protocol, s->addr, s->addrlen),
+                   s, http_common_plugin_address_to_string (NULL,
+                       plugin->protocol, s->address->address,
+                       s->address->address_length),
                    GNUNET_i2s (&s->target));
 
   /* add new session */
@@ -1591,7 +1592,9 @@ http_client_plugin_get_session (void *cls,
   {
     GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
                      "Cannot connect to peer `%s' address `%s''\n",
-                     http_common_plugin_address_to_string (NULL, plugin->protocol, s->addr, s->addrlen),
+                     http_common_plugin_address_to_string (NULL,
+                                            plugin->protocol, s->address->address,
+                                            s->address->address_length),
                      GNUNET_i2s (&s->target));
     client_delete_session (s);
     return NULL;

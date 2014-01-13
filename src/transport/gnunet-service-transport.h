@@ -72,12 +72,12 @@ extern struct GNUNET_ATS_SchedulingHandle *GST_ats;
  */
 typedef void
 (*GNUNET_TRANSPORT_NeighbourChangeCallback) (void *cls,
-                        const struct GNUNET_PeerIdentity *peer,
-                        const struct GNUNET_HELLO_Address *address,
-                        enum GNUNET_TRANSPORT_PeerState state,
-                        struct GNUNET_TIME_Absolute state_timeout,
-                        struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-                        struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out);
+    const struct GNUNET_PeerIdentity *peer,
+    const struct GNUNET_HELLO_Address *address,
+    enum GNUNET_TRANSPORT_PeerState state,
+    struct GNUNET_TIME_Absolute state_timeout,
+    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
+    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out);
 
 
 /**
@@ -103,11 +103,9 @@ typedef void
  */
 struct GNUNET_TIME_Relative
 GST_receive_callback (void *cls,
-		      const struct GNUNET_PeerIdentity *peer,
-		      const struct GNUNET_MessageHeader *message,
-		      struct Session *session,
-		      const char *sender_address,
-		      uint16_t sender_address_len);
+    const struct GNUNET_HELLO_Address *address,
+    struct Session *session,
+    const struct GNUNET_MessageHeader *message);
 
 
 /**

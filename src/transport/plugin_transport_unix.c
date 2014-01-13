@@ -103,11 +103,7 @@ struct Session
 
   struct Plugin * plugin;
 
-  struct UnixAddress *addr;
-
-  size_t addrlen;
-
-  int inbound;
+  struct GNUNET_HELLO_Address *address;
 
   /**
    * Session timeout task
@@ -468,17 +464,9 @@ struct LookupCtx
   /**
    * Location to store the session, if found.
    */
-  struct Session *s;
+  struct Session *res;
 
-  /**
-   * Address we are looking for.
-   */
-  const struct UnixAddress *ua;
-
-  /**
-   * Number of bytes in @e ua
-   */
-  size_t ua_len;
+  struct GNUNET_HELLO_Address *address;
 };
 
 
@@ -496,20 +484,13 @@ lookup_session_it (void *cls,
 		   void *value)
 {
   struct LookupCtx *lctx = cls;
-  struct Session *t = value;
+  struct Session *s = value;
 
-  if (t->addrlen != lctx->ua_len)
+  if (0 == GNUNET_HELLO_address_cmp (lctx->address, s->address))
   {
-    GNUNET_break (0);
-    return GNUNET_YES;
-  }
-
-  if (0 == memcmp (t->addr, lctx->ua, lctx->ua_len))
-  {
-    lctx->s = t;
+    lctx->res = s;
     return GNUNET_NO;
   }
-  GNUNET_break (0);
   return GNUNET_YES;
 }
 
@@ -525,18 +506,16 @@ lookup_session_it (void *cls,
  */
 static struct Session *
 lookup_session (struct Plugin *plugin,
-		const struct GNUNET_PeerIdentity *sender,
-		const struct UnixAddress *ua, size_t ua_len)
+                struct GNUNET_HELLO_Address *address)
 {
   struct LookupCtx lctx;
 
-  lctx.s = NULL;
-  lctx.ua = ua;
-  lctx.ua_len = ua_len;
+  lctx.address = address;
+  lctx.res = NULL;
   GNUNET_CONTAINER_multipeermap_get_multiple (plugin->session_map,
-					      sender,
+					      &address->peer,
 					      &lookup_session_it, &lctx);
-  return lctx.s;
+  return lctx.res;
 }
 
 
@@ -561,7 +540,7 @@ unix_session_disconnect (void *cls,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Disconnecting session for peer `%s' `%s'\n",
        GNUNET_i2s (&s->target),
-       s->addr);
+       unix_address_to_string (NULL, s->address->address, s->address->address_length) );
   plugin->env->session_end (plugin->env->cls, &s->target, s);
   removed = GNUNET_NO;
   next = plugin->msg_head;
@@ -594,6 +573,7 @@ unix_session_disconnect (void *cls,
     GNUNET_SCHEDULER_cancel (s->timeout_task);
     s->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   }
+  GNUNET_HELLO_address_free (s->address);
   GNUNET_free (s);
   return GNUNET_OK;
 }
@@ -746,12 +726,7 @@ struct GetSessionIteratorContext
   /**
    * Address information.
    */
-  const char *address;
-
-  /**
-   * Number of bytes in @e address
-   */
-  size_t addrlen;
+  const struct GNUNET_HELLO_Address *address;
 };
 
 
@@ -771,8 +746,7 @@ get_session_it (void *cls,
   struct GetSessionIteratorContext *gsi = cls;
   struct Session *s = value;
 
-  if ((GNUNET_NO == s->inbound) && (gsi->addrlen == s->addrlen) &&
-       (0 == memcmp (gsi->address, s->addr, s->addrlen)) )
+  if (0 == GNUNET_HELLO_address_cmp(s->address, gsi->address))
   {
     gsi->res = s;
     return GNUNET_NO;
@@ -868,27 +842,23 @@ unix_plugin_get_session (void *cls,
   }
 
   /* Check if already existing */
-  gsi.address = (const char *) address->address;
-  gsi.addrlen = address->address_length;
+  gsi.address = address;
   gsi.res = NULL;
   GNUNET_CONTAINER_multipeermap_get_multiple (plugin->session_map,
 					      &address->peer,
 					      &get_session_it, &gsi);
   if (NULL != gsi.res)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-	 "Found existing session\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Found existing session %p for address `%s'\n",
+	 gsi.res,
+	 unix_address_to_string (NULL, address->address, address->address_length));
     return gsi.res;
   }
 
   /* create a new session */
-  s = GNUNET_malloc (sizeof (struct Session) + address->address_length);
-  s->addr = (struct UnixAddress *) &s[1];
-  s->addrlen = address->address_length;
-  s->plugin = plugin;
-  s->inbound = GNUNET_NO;
-  memcpy (s->addr, address->address, address->address_length);
-  memcpy (&s->target, &address->peer, sizeof (struct GNUNET_PeerIdentity));
+  s = GNUNET_new (struct Session);
+  s->target = address->peer;
+  s->address = GNUNET_HELLO_address_copy (address);
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == s->timeout_task);
   s->timeout_task = GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
 						  &session_timeout,
@@ -918,7 +888,6 @@ unix_plugin_update_session_timeout (void *cls,
                                                     &session->target,
                                                     session))
     return;
-
   reschedule_session_timeout (session);
 }
 
@@ -970,7 +939,8 @@ unix_plugin_send (void *cls,
     LOG (GNUNET_ERROR_TYPE_ERROR,
 	 "Invalid session for peer `%s' `%s'\n",
 	 GNUNET_i2s (&session->target),
-	 (const char *) session->addr);
+	 unix_address_to_string(NULL, session->address->address,
+	     session->address->address_length));
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
@@ -978,7 +948,8 @@ unix_plugin_send (void *cls,
        "Sending %u bytes with session for peer `%s' `%s'\n",
        msgbuf_size,
        GNUNET_i2s (&session->target),
-       (const char *) session->addr);
+       unix_address_to_string(NULL, session->address->address,
+                  session->address->address_length));
   ssize = sizeof (struct UNIXMessage) + msgbuf_size;
   message = GNUNET_malloc (sizeof (struct UNIXMessage) + msgbuf_size);
   message->header.size = htons (ssize);
@@ -1025,7 +996,7 @@ unix_demultiplexer (struct Plugin *plugin, struct GNUNET_PeerIdentity *sender,
                     const struct UnixAddress *ua, size_t ua_len)
 {
   struct Session *s = NULL;
-  struct GNUNET_HELLO_Address * addr;
+  struct GNUNET_HELLO_Address *address;
 
   GNUNET_break (ntohl(plugin->ats_network.value) != GNUNET_ATS_NET_UNSPECIFIED);
   GNUNET_assert (ua_len >= sizeof (struct UnixAddress));
@@ -1037,31 +1008,23 @@ unix_demultiplexer (struct Plugin *plugin, struct GNUNET_PeerIdentity *sender,
 			    ntohs (currhdr->size),
 			    GNUNET_NO);
 
-  addr = GNUNET_HELLO_address_allocate (sender,
-					"unix",
-					ua,
-					ua_len);
-  s = lookup_session (plugin, sender, ua, ua_len);
+  /* Look for existing session */
+  address = GNUNET_HELLO_address_allocate (sender, PLUGIN_NAME, ua, ua_len,
+      GNUNET_HELLO_ADDRESS_INFO_NONE); /* UNIX does not have "inbound" sessions */
+  s = lookup_session (plugin, address);
+
   if (NULL == s)
   {
-    s = unix_plugin_get_session (plugin, addr);
-    s->inbound = GNUNET_YES;
+    s = unix_plugin_get_session (plugin, address);
     /* Notify transport and ATS about new inbound session */
-    plugin->env->session_start (NULL, sender,
-    		PLUGIN_NAME, ua, ua_len, s, &plugin->ats_network, 1);
+    plugin->env->session_start (NULL, s->address, s, &plugin->ats_network, 1);
   }
+  GNUNET_HELLO_address_free (address);
   reschedule_session_timeout (s);
 
-  plugin->env->receive (plugin->env->cls, sender, currhdr, s,
-                        (GNUNET_YES == s->inbound) ? NULL : (const char *) ua,
-             				    (GNUNET_YES == s->inbound) ? 0 : ua_len);
-
-  plugin->env->update_address_metrics (plugin->env->cls, sender,
-				       (GNUNET_YES == s->inbound) ? NULL : (const char *) ua,
-				       (GNUNET_YES == s->inbound) ? 0 : ua_len,
-				       s, &plugin->ats_network, 1);
-
-  GNUNET_free (addr);
+  plugin->env->receive (plugin->env->cls, s->address, s, currhdr);
+  plugin->env->update_address_metrics (plugin->env->cls, s->address, s,
+				       &plugin->ats_network, 1);
 }
 
 
@@ -1193,8 +1156,8 @@ unix_plugin_select_write (struct Plugin *plugin)
                          msgw->msgsize,
                          msgw->priority,
                          msgw->timeout,
-                         msgw->session->addr,
-                         msgw->session->addrlen,
+                         msgw->session->address->address,
+                         msgw->session->address->address_length,
                          msgw->payload,
                          msgw->cont, msgw->cont_cls);
 
@@ -1517,6 +1480,7 @@ address_notification (void *cls,
 		      const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct Plugin *plugin = cls;
+  struct GNUNET_HELLO_Address *address;
   size_t len;
   struct UnixAddress *ua;
 
@@ -1527,16 +1491,19 @@ address_notification (void *cls,
   memcpy (&ua[1], plugin->unix_socket_path, strlen (plugin->unix_socket_path) + 1);
 
   plugin->address_update_task = GNUNET_SCHEDULER_NO_TASK;
-  plugin->env->notify_address (plugin->env->cls, GNUNET_YES,
-                               ua, len, "unix");
+  address = GNUNET_HELLO_address_allocate (plugin->env->my_identity,
+      PLUGIN_NAME, ua, len, GNUNET_HELLO_ADDRESS_INFO_NONE);
+
+  plugin->env->notify_address (plugin->env->cls, GNUNET_YES, address);
   GNUNET_free (ua);
+  GNUNET_free (address);
 }
 
 
 /**
  * Increment session timeout due to activity
  *
- * @param s session for which the timeout should be moved
+ * @param res session for which the timeout should be moved
  */
 static void
 reschedule_session_timeout (struct Session *s)
@@ -1672,6 +1639,7 @@ libgnunet_plugin_transport_unix_done (void *cls)
 {
   struct GNUNET_TRANSPORT_PluginFunctions *api = cls;
   struct Plugin *plugin = api->cls;
+  struct GNUNET_HELLO_Address *address;
   struct UNIXMessageWrapper * msgw;
   struct UnixAddress *ua;
   size_t len;
@@ -1687,10 +1655,13 @@ libgnunet_plugin_transport_unix_done (void *cls)
   ua->options = htonl (myoptions);
   ua->addrlen = htonl(strlen (plugin->unix_socket_path) + 1);
   memcpy (&ua[1], plugin->unix_socket_path, strlen (plugin->unix_socket_path) + 1);
+  address = GNUNET_HELLO_address_allocate (plugin->env->my_identity,
+      PLUGIN_NAME, ua, len, GNUNET_HELLO_ADDRESS_INFO_NONE);
+  plugin->env->notify_address (plugin->env->cls, GNUNET_NO, address);
 
-  plugin->env->notify_address (plugin->env->cls, GNUNET_NO,
-  														 ua, len, "unix");
+  GNUNET_free (address);
   GNUNET_free (ua);
+
   while (NULL != (msgw = plugin->msg_head))
   {
     GNUNET_CONTAINER_DLL_remove (plugin->msg_head, plugin->msg_tail, msgw);

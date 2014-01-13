@@ -529,9 +529,10 @@ GST_manipulation_manipulate_metrics(const struct GNUNET_PeerIdentity *peer,
  * @return manipulated delay for next receive
  */
 struct GNUNET_TIME_Relative
-GST_manipulation_recv(void *cls, const struct GNUNET_PeerIdentity *peer,
-    const struct GNUNET_MessageHeader *message, struct Session *session,
-    const char *sender_address, uint16_t sender_address_len)
+GST_manipulation_recv (void *cls,
+    const struct GNUNET_HELLO_Address *address,
+    struct Session *session,
+    const struct GNUNET_MessageHeader *message)
 {
   struct TM_Peer *tmp;
   uint32_t p_recv_delay;
@@ -547,7 +548,7 @@ GST_manipulation_recv(void *cls, const struct GNUNET_PeerIdentity *peer,
   else
     m_delay = GNUNET_TIME_UNIT_ZERO;
 
-  if (NULL != (tmp = GNUNET_CONTAINER_multipeermap_get(man_handle.peers, peer)))
+  if (NULL != (tmp = GNUNET_CONTAINER_multipeermap_get(man_handle.peers, &address->peer)))
     {
       /* Manipulate receive delay */
       p_recv_delay = find_metric(tmp, GNUNET_ATS_QUALITY_NET_DELAY, TM_RECEIVE);
@@ -555,14 +556,15 @@ GST_manipulation_recv(void *cls, const struct GNUNET_PeerIdentity *peer,
         m_delay.rel_value_us = p_recv_delay; /* Peer specific delay */
     }
 
-  quota_delay = GST_receive_callback(cls, peer, message, session,
-      sender_address, sender_address_len);
+  quota_delay = GST_receive_callback(cls, address, session, message);
 
   if (quota_delay.rel_value_us > m_delay.rel_value_us)
     m_delay = quota_delay;
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-      "Delaying next receive for peer `%s' for %s\n", GNUNET_i2s (peer), GNUNET_STRINGS_relative_time_to_string (m_delay, GNUNET_YES));
+      "Delaying next receive for peer `%s' for %s\n",
+      GNUNET_i2s (&address->peer),
+      GNUNET_STRINGS_relative_time_to_string (m_delay, GNUNET_YES));
   return m_delay;
 
 }

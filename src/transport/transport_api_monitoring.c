@@ -311,8 +311,7 @@ reconnect (struct GNUNET_TRANSPORT_PeerMonitoringContext *pal_ctx)
  *        message with the human-readable address
  */
 static void
-peer_response_processor (void *cls,
-                                 const struct GNUNET_MessageHeader *msg)
+peer_response_processor (void *cls, const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_TRANSPORT_PeerMonitoringContext *pal_ctx = cls;
   struct PeerIterateResponseMessage *pir_msg;
@@ -432,7 +431,7 @@ peer_response_processor (void *cls,
 
     /* notify client */
     address = GNUNET_HELLO_address_allocate (&pir_msg->peer,
-        transport_name, addr, alen);
+        transport_name, addr, alen, ntohl(pir_msg->local_address_info));
     pal_ctx->cb (pal_ctx->cb_cls, &pir_msg->peer, address,
         ntohl(pir_msg->state),
         GNUNET_TIME_absolute_ntoh (pir_msg->state_timeout));

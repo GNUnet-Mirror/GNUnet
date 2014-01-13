@@ -986,6 +986,7 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
     addrend++;
     slen = strlen (addr) + 1;
     alen -= slen;
+    address.local_info = GNUNET_HELLO_ADDRESS_INFO_NONE;
     address.address = addrend;
     address.address_length = alen;
     address.transport_name = addr;
@@ -1298,6 +1299,7 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
   address.address = addr;
   address.address_length = addrlen;
   address.transport_name = tname;
+  address.local_info = GNUNET_HELLO_ADDRESS_INFO_NONE;
   ve = find_validation_entry (NULL, &address);
   if ((NULL == ve) || (GNUNET_NO == ve->expecting_pong))
   {

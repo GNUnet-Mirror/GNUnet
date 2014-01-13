@@ -885,8 +885,10 @@ compose_address_iterate_response_message (const struct GNUNET_PeerIdentity *peer
   msg->peer = *peer;
   msg->addrlen = htonl (alen);
   msg->pluginlen = htonl (tlen);
+
   if (NULL != address)
   {
+    msg->local_address_info = htonl((uint32_t) address->local_info);
     addr = (char *) &msg[1];
     memcpy (addr, address->address, alen);
     memcpy (&addr[alen], address->transport_name, tlen);

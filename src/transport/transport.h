@@ -461,6 +461,11 @@ struct PeerIterateResponseMessage
   struct GNUNET_TIME_AbsoluteNBO state_timeout;
 
   /**
+   * Local info about the address
+   */
+  uint32_t local_address_info GNUNET_PACKED;
+
+  /**
    * State this peer is in as #GNUNET_TRANSPORT_PeerState enumeration element
    */
   uint32_t state GNUNET_PACKED;

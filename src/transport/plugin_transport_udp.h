@@ -41,6 +41,8 @@
 
 #define LOG(kind,...) GNUNET_log_from (kind, "transport-udp", __VA_ARGS__)
 
+#define PLUGIN_NAME "udp"
+
 #define DEBUG_UDP GNUNET_NO
 #define DEBUG_UDP_BROADCASTING GNUNET_NO
 

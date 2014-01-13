@@ -2300,11 +2300,11 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
     return;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "ATS tells us to switch to address '%s/%s' session %p for "
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "ATS tells us to switch to %s address '%s' session %p for "
               "peer `%s' in state %s/%d (quota in/out %u %u )\n",
-              (address->address_length != 0) ? GST_plugins_a2s (address): "<inbound>",
-              address->transport_name,
+              (GNUNET_HELLO_ADDRESS_INFO_INBOUND ==  (GNUNET_HELLO_ADDRESS_INFO_INBOUND & address->local_info)) ? "inbound" : "",
+              GST_plugins_a2s (address),
               session,
               GNUNET_i2s (peer),
               GNUNET_TRANSPORT_p2s (n->state),
