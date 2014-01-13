@@ -40,7 +40,7 @@
  * @param type type of the message
  * @return the MQ message
  */
-#define GNUNET_MQ_msg_extra(mvar, esize, type) GNUNET_MQ_msg_((((void)(mvar)->header), (struct GNUNET_MessageHeader**) &(mvar)), (esize) + sizeof *(mvar), (type))
+#define GNUNET_MQ_msg_extra(mvar, esize, type) GNUNET_MQ_msg_(((struct GNUNET_MessageHeader**) &(mvar)), (esize) + sizeof *(mvar), (type))
 
 /**
  * Allocate a GNUNET_MQ_Envelope.
