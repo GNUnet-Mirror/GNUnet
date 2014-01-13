@@ -162,11 +162,14 @@ packetizer ()
     len =
       opus_encode_float (enc, pcm_buffer, frame_size, opus_data,
 			 max_payload_bytes);
+
     if (len > UINT16_MAX - sizeof (struct AudioMessage))
     {
       GNUNET_break (0);
-      len = UINT16_MAX - sizeof (struct AudioMessage);
+      continue;
     }
+
+
     msg_size = sizeof (struct AudioMessage) + len;
     audio_message->header.size = htons ((uint16_t) msg_size);
     memcpy (&audio_message[1], opus_data, len);
