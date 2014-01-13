@@ -654,11 +654,22 @@ handle_get_tunnels (void *cls, struct GNUNET_SERVER_Client *client,
 static void
 iter_connection (void *cls, struct MeshConnection *c)
 {
+  struct GNUNET_MESH_LocalInfoTunnel *msg = cls;
+  struct GNUNET_HashCode *h = (struct GNUNET_HashCode *) &msg[1];
+
+  h[msg->connections] = *(GMC_get_id (c));
+  msg->connections++;
 }
 
 static void
 iter_channel (void *cls, struct MeshChannel *ch)
 {
+  struct GNUNET_MESH_LocalInfoTunnel *msg = cls;
+  struct GNUNET_HashCode *h = (struct GNUNET_HashCode *) &msg[1];
+  MESH_ChannelNumber *chn = (MESH_ChannelNumber *) &h[msg->connections];
+
+  chn[msg->channels] = GMCH_get_id (ch);
+  msg->channels++;
 }
 
 
@@ -728,6 +739,9 @@ handle_show_tunnel (void *cls, struct GNUNET_SERVER_Client *client,
   resp->header.size = htons (size);
   GMT_iterate_connections (t, &iter_connection, resp);
   GMT_iterate_channels (t, &iter_channel, resp);
+  /* Do not interleave with iterators, iter_channel needs conn in HBO */
+  resp->connections = htonl (resp->connections);
+  resp->channels = htonl (resp->channels);
   resp->cstate = htons (GMT_get_cstate (t));
   resp->estate = htons (GMT_get_estate (t));
   GNUNET_SERVER_notification_context_unicast (nc, c->handle,
