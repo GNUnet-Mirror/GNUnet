@@ -507,52 +507,42 @@ GAS_handle_request_address_list (void *cls, struct GNUNET_SERVER_Client *client,
 
 void
 GAS_handle_performance_update (struct GNUNET_PeerIdentity *peer,
-															 const char *plugin_name,
-															 const void *plugin_addr,
-															 size_t plugin_addr_len,
-															 const int active,
-															 struct GNUNET_ATS_Information *ats,
-															 uint32_t ats_count,
-															 struct GNUNET_BANDWIDTH_Value32NBO
-															 bandwidth_out,
-															 struct GNUNET_BANDWIDTH_Value32NBO
-															 bandwidth_in)
+    const char *plugin_name, const void *plugin_addr, size_t plugin_addr_len,
+    const int active, struct GNUNET_ATS_Information *ats, uint32_t ats_count,
+    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
+    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in)
 {
-/* Notify here */
-	GAS_performance_notify_all_clients (peer,
-																			plugin_name,
-																			plugin_addr, plugin_addr_len,
-																			active,
-																			ats, ats_count,
-																			bandwidth_out, bandwidth_in);
+  /* Notify here */
+  GAS_performance_notify_all_clients (peer, plugin_name, plugin_addr,
+      plugin_addr_len, active, ats, ats_count, bandwidth_out, bandwidth_in);
 
 #if 0
-	struct PerformanceClient *cur;
-	struct PerformanceMonitorClient *curm;
-	struct MonitorResponseMessage *mrm;
-	size_t msglen;
+  struct PerformanceClient *cur;
+  struct PerformanceMonitorClient *curm;
+  struct MonitorResponseMessage *mrm;
+  size_t msglen;
 
-	msglen = sizeof (struct MonitorResponseMessage) +
-					 ats_count * sizeof (struct GNUNET_ATS_Information);
-	mrm = GNUNET_malloc (msglen);
+  msglen = sizeof (struct MonitorResponseMessage) +
+  ats_count * sizeof (struct GNUNET_ATS_Information);
+  mrm = GNUNET_malloc (msglen);
 
-	mrm->header.type = htons (GNUNET_MESSAGE_TYPE_ATS_MONITOR_RESPONSE);
-	mrm->header.size = htons (msglen);
-	mrm->ats_count = htonl (ats_count);
-	mrm->peer = *peer;
-	memcpy (&mrm[1], ats, ats_count * sizeof (struct GNUNET_ATS_Information));
+  mrm->header.type = htons (GNUNET_MESSAGE_TYPE_ATS_MONITOR_RESPONSE);
+  mrm->header.size = htons (msglen);
+  mrm->ats_count = htonl (ats_count);
+  mrm->peer = *peer;
+  memcpy (&mrm[1], ats, ats_count * sizeof (struct GNUNET_ATS_Information));
 
-	for (cur = pc_head; NULL != cur; cur = cur->next)
-		for (curm = cur->pm_head; NULL != curm; curm = curm->next)
-		{
-				/* Notify client about update */
-				mrm->id = htonl (curm->id);
-			  GNUNET_SERVER_notification_context_unicast (nc,
-			  		cur->client,
-			  		(struct GNUNET_MessageHeader *) mrm,
-			  		GNUNET_YES);
-		}
-	GNUNET_free (mrm);
+  for (cur = pc_head; NULL != cur; cur = cur->next)
+  for (curm = cur->pm_head; NULL != curm; curm = curm->next)
+  {
+    /* Notify client about update */
+    mrm->id = htonl (curm->id);
+    GNUNET_SERVER_notification_context_unicast (nc,
+        cur->client,
+        (struct GNUNET_MessageHeader *) mrm,
+        GNUNET_YES);
+  }
+  GNUNET_free (mrm);
 #endif
 }
 

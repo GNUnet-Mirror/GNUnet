@@ -643,6 +643,7 @@ process_ats_message (void *cls, const struct GNUNET_MessageHeader *msg)
   address.address = plugin_address;
   address.address_length = plugin_address_length;
   address.transport_name = plugin_name;
+  address.local_info = ntohl(m->address_local_info);
 
   if ((s == NULL) && (0 == address.address_length))
   {
@@ -1200,11 +1201,9 @@ GNUNET_ATS_address_add (struct GNUNET_ATS_SchedulingHandle *sh,
     return GNUNET_SYSERR;
   }
 
-  namelen =
-      (address->transport_name ==
-       NULL) ? 0 : strlen (address->transport_name) + 1;
-  msize =
-      sizeof (struct AddressUpdateMessage) + address->address_length +
+  namelen = (address->transport_name == NULL) ? 0 : strlen (address->transport_name) + 1;
+
+  msize = sizeof (struct AddressUpdateMessage) + address->address_length +
       ats_count * sizeof (struct GNUNET_ATS_Information) + namelen;
   if ((msize >= GNUNET_SERVER_MAX_MESSAGE_SIZE) ||
       (address->address_length >= GNUNET_SERVER_MAX_MESSAGE_SIZE) ||
@@ -1236,6 +1235,7 @@ GNUNET_ATS_address_add (struct GNUNET_ATS_SchedulingHandle *sh,
   m->ats_count = htonl (ats_count);
   m->peer = address->peer;
   m->address_length = htons (address->address_length);
+  m->address_local_info = htonl ((uint32_t) address->local_info);
   m->plugin_name_length = htons (namelen);
   m->session_id = htonl (s);
 
@@ -1330,6 +1330,7 @@ GNUNET_ATS_address_update (struct GNUNET_ATS_SchedulingHandle *sh,
   m->ats_count = htonl (ats_count);
   m->peer = address->peer;
   m->address_length = htons (address->address_length);
+  m->address_local_info = htonl ((uint32_t) address->local_info);
   m->plugin_name_length = htons (namelen);
 
   m->session_id = htonl (s);
@@ -1413,6 +1414,7 @@ GNUNET_ATS_address_in_use (struct GNUNET_ATS_SchedulingHandle *sh,
   m->peer = address->peer;
   m->in_use = htons (in_use);
   m->address_length = htons (address->address_length);
+  m->address_local_info = htonl ((uint32_t) address->local_info);
   m->plugin_name_length = htons (namelen);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1488,6 +1490,7 @@ GNUNET_ATS_address_destroyed (struct GNUNET_ATS_SchedulingHandle *sh,
   m->reserved = htonl (0);
   m->peer = address->peer;
   m->address_length = htons (address->address_length);
+  m->address_local_info = htonl ((uint32_t) address->local_info);
   m->plugin_name_length = htons (namelen);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

@@ -312,6 +312,8 @@ struct ATS_Address
    */
   uint32_t session_id;
 
+  uint32_t local_address_info;
+
   /**
    * Address
    */
@@ -427,9 +429,14 @@ GAS_addresses_done (struct GAS_Addresses_Handle *handle);
  */
 void
 GAS_addresses_add (struct GAS_Addresses_Handle *handle,
-    const struct GNUNET_PeerIdentity *peer, const char *plugin_name,
-    const void *plugin_addr, size_t plugin_addr_len, uint32_t session_id,
-    const struct GNUNET_ATS_Information *atsi, uint32_t atsi_count);
+    const struct GNUNET_PeerIdentity *peer,
+    const char *plugin_name,
+    const void *plugin_addr,
+    size_t plugin_addr_len,
+    uint32_t local_address_info,
+    uint32_t session_id,
+    const struct GNUNET_ATS_Information *atsi,
+    uint32_t atsi_count);
 
 /**
  * Notification about active use of an address.
@@ -453,7 +460,9 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
 int
 GAS_addresses_in_use (struct GAS_Addresses_Handle *handle,
     const struct GNUNET_PeerIdentity *peer, const char *plugin_name,
-    const void *plugin_addr, size_t plugin_addr_len, uint32_t session_id,
+    const void *plugin_addr, size_t plugin_addr_len,
+    uint32_t local_address_info,
+    uint32_t session_id,
     int in_use);
 
 /**
@@ -474,7 +483,8 @@ GAS_addresses_in_use (struct GAS_Addresses_Handle *handle,
 void
 GAS_addresses_update (struct GAS_Addresses_Handle *handle,
     const struct GNUNET_PeerIdentity *peer, const char *plugin_name,
-    const void *plugin_addr, size_t plugin_addr_len, uint32_t session_id,
+    const void *plugin_addr, size_t plugin_addr_len,
+    uint32_t local_address_info, uint32_t session_id,
     const struct GNUNET_ATS_Information *atsi, uint32_t atsi_count);
 
 /**
@@ -490,7 +500,8 @@ GAS_addresses_update (struct GAS_Addresses_Handle *handle,
 void
 GAS_addresses_destroy (struct GAS_Addresses_Handle *handle,
     const struct GNUNET_PeerIdentity *peer, const char *plugin_name,
-    const void *plugin_addr, size_t plugin_addr_len, uint32_t session_id);
+    const void *plugin_addr, size_t plugin_addr_len,
+    uint32_t local_address_info, uint32_t session_id);
 
 /**
  * Remove all addresses

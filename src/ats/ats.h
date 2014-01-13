@@ -79,11 +79,14 @@ struct AddressUpdateMessage
 
   struct GNUNET_PeerIdentity peer;
 
+
   uint16_t address_length GNUNET_PACKED;
 
   uint16_t plugin_name_length GNUNET_PACKED;
 
   uint32_t session_id GNUNET_PACKED;
+
+  uint32_t address_local_info GNUNET_PACKED;
 
   /* followed by:
    * - struct GNUNET_ATS_Information [ats_count];
@@ -107,6 +110,8 @@ struct AddressUseMessage
 
   uint32_t session_id GNUNET_PACKED;
 
+  uint32_t address_local_info GNUNET_PACKED;
+
   /* followed by:
    * - char address[address_length]
    * - char plugin_name[plugin_name_length] (including '\0'-termination).
@@ -129,6 +134,8 @@ struct AddressDestroyedMessage
 
   uint32_t session_id GNUNET_PACKED;
 
+  uint32_t address_local_info GNUNET_PACKED;
+
   /* followed by:
    * - char address[address_length]
    * - char plugin_name[plugin_name_length] (including '\0'-termination).
@@ -150,6 +157,8 @@ struct AddressSuggestionMessage
   uint16_t plugin_name_length GNUNET_PACKED;
 
   uint32_t session_id GNUNET_PACKED;
+
+  uint32_t address_local_info GNUNET_PACKED;
 
   struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out;
 

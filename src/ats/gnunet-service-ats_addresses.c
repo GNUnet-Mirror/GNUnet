@@ -476,8 +476,12 @@ free_address (struct ATS_Address *addr)
  * @return the ATS_Address
  */
 static struct ATS_Address *
-create_address (const struct GNUNET_PeerIdentity *peer, const char *plugin_name,
-    const void *plugin_addr, size_t plugin_addr_len, uint32_t session_id)
+create_address (const struct GNUNET_PeerIdentity *peer,
+    const char *plugin_name,
+    const void *plugin_addr,
+    size_t plugin_addr_len,
+    uint32_t local_address_info,
+    uint32_t session_id)
 {
   struct ATS_Address *aa = NULL;
   int c1;
@@ -490,6 +494,7 @@ create_address (const struct GNUNET_PeerIdentity *peer, const char *plugin_name,
   memcpy (&aa[1], plugin_addr, plugin_addr_len);
   aa->plugin = GNUNET_strdup (plugin_name);
   aa->session_id = session_id;
+  aa->local_address_info = local_address_info;
   aa->active = GNUNET_NO;
   aa->used = GNUNET_NO;
   aa->solver_information = NULL;
@@ -642,14 +647,18 @@ find_equivalent_address (struct GAS_Addresses_Handle *handle,
 
 static struct ATS_Address *
 find_exact_address (struct GAS_Addresses_Handle *handle,
-    const struct GNUNET_PeerIdentity *peer, const char *plugin_name,
-    const void *plugin_addr, size_t plugin_addr_len, uint32_t session_id)
+    const struct GNUNET_PeerIdentity *peer,
+    const char *plugin_name,
+    const void *plugin_addr,
+    size_t plugin_addr_len,
+    uint32_t local_address_info,
+    uint32_t session_id)
 {
   struct ATS_Address *aa;
   struct ATS_Address *ea;
 
   aa = create_address (peer, plugin_name, plugin_addr, plugin_addr_len,
-      session_id);
+      local_address_info, session_id);
 
   /* Get existing address or address with session == 0 */
   ea = find_equivalent_address (handle, peer, aa);
@@ -727,9 +736,14 @@ get_performance_info (struct ATS_Address *address, uint32_t type)
  */
 void
 GAS_addresses_add (struct GAS_Addresses_Handle *handle,
-    const struct GNUNET_PeerIdentity *peer, const char *plugin_name,
-    const void *plugin_addr, size_t plugin_addr_len, uint32_t session_id,
-    const struct GNUNET_ATS_Information *atsi, uint32_t atsi_count)
+    const struct GNUNET_PeerIdentity *peer,
+    const char *plugin_name,
+    const void *plugin_addr,
+    size_t plugin_addr_len,
+    uint32_t local_address_info,
+    uint32_t session_id,
+    const struct GNUNET_ATS_Information *atsi,
+    uint32_t atsi_count)
 {
   struct ATS_Address *new_address;
   struct ATS_Address *existing_address;
@@ -748,7 +762,7 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
   GNUNET_assert(NULL != handle->addresses);
 
   new_address = create_address (peer, plugin_name, plugin_addr, plugin_addr_len,
-      session_id);
+      local_address_info, session_id);
   atsi_delta = NULL;
   disassemble_ats_information (new_address, atsi, atsi_count, &atsi_delta,
       &atsi_delta_count);
@@ -891,9 +905,14 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
  */
 void
 GAS_addresses_update (struct GAS_Addresses_Handle *handle,
-    const struct GNUNET_PeerIdentity *peer, const char *plugin_name,
-    const void *plugin_addr, size_t plugin_addr_len, uint32_t session_id,
-    const struct GNUNET_ATS_Information *atsi, uint32_t atsi_count)
+    const struct GNUNET_PeerIdentity *peer,
+    const char *plugin_name,
+    const void *plugin_addr,
+    size_t plugin_addr_len,
+    uint32_t local_address_info,
+    uint32_t session_id,
+    const struct GNUNET_ATS_Information *atsi,
+    uint32_t atsi_count)
 {
   struct ATS_Address *aa;
   struct GNUNET_ATS_Information *atsi_delta;
@@ -908,7 +927,7 @@ GAS_addresses_update (struct GAS_Addresses_Handle *handle,
 
   /* Get existing address */
   aa = find_exact_address (handle, peer, plugin_name, plugin_addr,
-      plugin_addr_len, session_id);
+      plugin_addr_len, local_address_info, session_id);
   if (aa == NULL )
     return;
   if (NULL == aa->solver_information)
@@ -1080,8 +1099,12 @@ destroy_by_session_id (void *cls,
  */
 void
 GAS_addresses_destroy (struct GAS_Addresses_Handle *handle,
-    const struct GNUNET_PeerIdentity *peer, const char *plugin_name,
-    const void *plugin_addr, size_t plugin_addr_len, uint32_t session_id)
+    const struct GNUNET_PeerIdentity *peer,
+    const char *plugin_name,
+    const void *plugin_addr,
+    size_t plugin_addr_len,
+    uint32_t local_address_info,
+    uint32_t session_id)
 {
   struct ATS_Address *ea;
   struct DestroyContext dc;
@@ -1090,7 +1113,7 @@ GAS_addresses_destroy (struct GAS_Addresses_Handle *handle,
 
   /* Get existing address */
   ea = find_exact_address (handle, peer, plugin_name, plugin_addr,
-      plugin_addr_len, session_id);
+      plugin_addr_len, local_address_info, session_id);
   if (ea == NULL )
   {
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
@@ -1106,7 +1129,7 @@ GAS_addresses_destroy (struct GAS_Addresses_Handle *handle,
   GNUNET_break(0 < strlen (plugin_name));
   dc.handle = handle;
   dc.aa = create_address (peer, plugin_name, plugin_addr, plugin_addr_len,
-      session_id);
+      local_address_info, session_id);
 
   GNUNET_CONTAINER_multipeermap_get_multiple (handle->addresses,
 					      peer,
@@ -1138,7 +1161,9 @@ GAS_addresses_destroy (struct GAS_Addresses_Handle *handle,
 int
 GAS_addresses_in_use (struct GAS_Addresses_Handle *handle,
     const struct GNUNET_PeerIdentity *peer, const char *plugin_name,
-    const void *plugin_addr, size_t plugin_addr_len, uint32_t session_id,
+    const void *plugin_addr, size_t plugin_addr_len,
+    uint32_t local_address_info,
+    uint32_t session_id,
     int in_use)
 {
   struct ATS_Address *ea;
@@ -1149,7 +1174,7 @@ GAS_addresses_in_use (struct GAS_Addresses_Handle *handle,
     return GNUNET_SYSERR;
 
   ea = find_exact_address (handle, peer, plugin_name, plugin_addr,
-      plugin_addr_len, session_id);
+      plugin_addr_len, local_address_info, session_id);
   if (NULL == ea)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
@@ -1261,7 +1286,8 @@ GAS_addresses_request_address (struct GAS_Addresses_Handle *handle,
       aa, GNUNET_i2s (peer));
 
   GAS_scheduling_transmit_address_suggestion (peer, aa->plugin, aa->addr,
-      aa->addr_len, aa->session_id, aa->atsi, aa->atsi_count,
+      aa->addr_len, aa->local_address_info, aa->session_id,
+      aa->atsi, aa->atsi_count,
       aa->assigned_bw_out, aa->assigned_bw_in);
 
   aa->block_interval = GNUNET_TIME_relative_add (aa->block_interval,
@@ -2073,7 +2099,8 @@ bandwidth_changed_cb (void *cls, struct ATS_Address *address)
 
   /* *Notify scheduling clients about suggestion */
   GAS_scheduling_transmit_address_suggestion (&address->peer, address->plugin,
-      address->addr, address->addr_len, address->session_id, address->atsi,
+      address->addr, address->addr_len, address->local_address_info,
+      address->session_id, address->atsi,
       address->atsi_count, address->assigned_bw_out, address->assigned_bw_in);
 }
 
