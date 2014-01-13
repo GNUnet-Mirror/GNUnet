@@ -82,26 +82,17 @@ typedef void
                                 struct Session *session);
 
 /**
- * Function that will be called whenever the plugin internally
- * creates a new session and hence transport need to tell ATS.
- * This happens when we have a inbound connection we did not
- * initiate.
+ * Plugin tells transport service about a new inbound session
  *
- * @param cls closure
- * @param peer peer
- * @param plugin plugin
- * @param address address
- * @param address_len length of the @a address
- * @param session session
- * @param ats ATS information
- * @param ats_count number of entries in @a ats array
+ * @param cls unused
+ * @param address the address
+ * @param session the new session
+ * @param ats ats information
+ * @param ats_count number of @a ats information
  */
 typedef void
 (*GNUNET_TRANSPORT_SessionStart) (void *cls,
-                                  const struct GNUNET_PeerIdentity *peer,
-                                  const char *plugin,
-                                  const void *address,
-                                  uint16_t address_len,
+                                  struct GNUNET_HELLO_Address *address,
                                   struct Session *session,
                                   const struct GNUNET_ATS_Information *ats,
                                   uint32_t ats_count);
@@ -130,11 +121,9 @@ typedef void
  */
 typedef struct GNUNET_TIME_Relative
 (*GNUNET_TRANSPORT_PluginReceiveCallback) (void *cls,
-                                           const struct GNUNET_PeerIdentity *peer,
-                                           const struct GNUNET_MessageHeader *message,
-                                           struct Session *session,
-                                           const char *sender_address,
-                                           uint16_t sender_address_len);
+    const struct GNUNET_HELLO_Address *address,
+    struct Session *session,
+    const struct GNUNET_MessageHeader *message);
 
 
 /**
@@ -165,9 +154,7 @@ typedef struct GNUNET_ATS_Information
  */
 typedef void
 (*GNUNET_TRANSPORT_UpdateAddressMetrics) (void *cls,
-					  const struct GNUNET_PeerIdentity *peer,
-					  const void *address,
-					  uint16_t address_len,
+					  const struct GNUNET_HELLO_Address *address,
 					  struct Session *session,
 					  const struct GNUNET_ATS_Information *ats,
 					  uint32_t ats_count);
@@ -179,17 +166,11 @@ typedef void
  * @param cls closure
  * @param add_remove should the address added (#GNUNET_YES) or removed (#GNUNET_NO) from the
  *                   set of valid addresses?
- * @param addr one of the addresses of the host
- *        the specific address format depends on the transport
- * @param addrlen length of the @a addr
- * @param dest_plugin plugin to use this address with
+ * @param address the address to add or remove
  */
 typedef void
-(*GNUNET_TRANSPORT_AddressNotification) (void *cls,
-                                         int add_remove,
-                                         const void *addr,
-                                         size_t addrlen,
-                                         const char *dest_plugin);
+(*GNUNET_TRANSPORT_AddressNotification) (void *cls, int add_remove,
+    const struct GNUNET_HELLO_Address *address);
 
 
 /**

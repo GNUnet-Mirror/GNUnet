@@ -48,6 +48,28 @@ extern "C"
  */
 #define GNUNET_FRIEND_HELLO_URI_PREFIX "gnunet://friend-hello/"
 
+
+/**
+ * Additional local information about an address
+ *
+ * These information are only valid for the local peer and are not serialized
+ * when a #GNUNET_HELLO_Message is created
+ */
+enum GNUNET_HELLO_AddressInfo
+{
+  /**
+   * No additional information
+   */
+  GNUNET_HELLO_ADDRESS_INFO_NONE = 0,
+
+  /**
+   * This is an inbound address and cannot be used to initiate an outbound
+   * connection to another peer
+   */
+  GNUNET_HELLO_ADDRESS_INFO_INBOUND = 1
+};
+
+
 /**
  * An address for communicating with a peer.  We frequently
  * need this tuple and the components cannot really be
@@ -61,6 +83,18 @@ struct GNUNET_HELLO_Address
    * For which peer is this an address?
    */
   struct GNUNET_PeerIdentity peer;
+
+  /**
+   * Extended information about address
+   *
+   * This field contains additional #GNUNET_HELLO_AddressInfo flags e.g.
+   * to indicate an address is inbound and cannot be used to initiate an
+   * outbound connection.
+   *
+   * These information are only valid for the local peer and are not serialized
+   * when a #GNUNET_HELLO_Message is created
+   */
+  enum GNUNET_HELLO_AddressInfo local_info;
 
   /**
    * Name of the transport plugin enabling the communication using
@@ -88,12 +122,14 @@ struct GNUNET_HELLO_Address
  * @param transport_name plugin name
  * @param address binary address
  * @param address_length number of bytes in 'address'
+ * @param local_info additional address information, will not get serialized
  * @return the address struct
  */
 struct GNUNET_HELLO_Address *
 GNUNET_HELLO_address_allocate (const struct GNUNET_PeerIdentity *peer,
                                const char *transport_name, const void *address,
-                               size_t address_length);
+                               size_t address_length,
+                               enum GNUNET_HELLO_AddressInfo local_info);
 
 
 /**
@@ -118,7 +154,6 @@ int
 GNUNET_HELLO_address_cmp (const struct GNUNET_HELLO_Address *a1,
                           const struct GNUNET_HELLO_Address *a2);
 
-
 /**
  * Get the size of an address struct.
  *
@@ -127,6 +162,7 @@ GNUNET_HELLO_address_cmp (const struct GNUNET_HELLO_Address *a1,
  */
 size_t
 GNUNET_HELLO_address_get_size (const struct GNUNET_HELLO_Address *address);
+
 
 /**
  * Free an address.
