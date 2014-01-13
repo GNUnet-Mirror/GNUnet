@@ -114,7 +114,6 @@ struct GNUNET_HELLO_Address
 
 };
 
-
 /**
  * Allocate an address struct.
  *
@@ -122,14 +121,12 @@ struct GNUNET_HELLO_Address
  * @param transport_name plugin name
  * @param address binary address
  * @param address_length number of bytes in 'address'
- * @param local_info additional address information, will not get serialized
  * @return the address struct
  */
 struct GNUNET_HELLO_Address *
 GNUNET_HELLO_address_allocate (const struct GNUNET_PeerIdentity *peer,
                                const char *transport_name, const void *address,
-                               size_t address_length,
-                               enum GNUNET_HELLO_AddressInfo local_info);
+                               size_t address_length);
 
 
 /**

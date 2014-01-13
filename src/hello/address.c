@@ -29,6 +29,20 @@
 
 
 /**
+ * Get the size of an address struct.
+ *
+ * @param address address
+ * @return the size
+ */
+size_t
+GNUNET_HELLO_address_get_size (const struct GNUNET_HELLO_Address * address)
+{
+  return sizeof (struct GNUNET_HELLO_Address) + address->address_length +
+        strlen (address->transport_name) + 1;
+}
+
+
+/**
  * Allocate an address struct.
  *
  * @param peer the peer
@@ -60,20 +74,6 @@ GNUNET_HELLO_address_allocate (const struct GNUNET_PeerIdentity *peer,
   addr->transport_name = &end[address_length];
   memcpy (&end[address_length], transport_name, slen);
   return addr;
-}
-
-
-/**
- * Get the size of an address struct.
- *
- * @param address address
- * @return the size
- */
-size_t
-GNUNET_HELLO_address_get_size (const struct GNUNET_HELLO_Address * address)
-{
-  return sizeof (struct GNUNET_HELLO_Address) + address->address_length +
-      strlen (address->transport_name) + 1;
 }
 
 
