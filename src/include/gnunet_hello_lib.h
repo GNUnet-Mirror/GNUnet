@@ -126,8 +126,8 @@ struct GNUNET_HELLO_Address
 struct GNUNET_HELLO_Address *
 GNUNET_HELLO_address_allocate (const struct GNUNET_PeerIdentity *peer,
                                const char *transport_name, const void *address,
-                               size_t address_length);
-
+                               size_t address_length,
+                               enum GNUNET_HELLO_AddressInfo local_info);
 
 /**
  * Copy an address struct.

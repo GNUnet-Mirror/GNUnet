@@ -54,7 +54,8 @@ GNUNET_HELLO_address_get_size (const struct GNUNET_HELLO_Address * address)
 struct GNUNET_HELLO_Address *
 GNUNET_HELLO_address_allocate (const struct GNUNET_PeerIdentity *peer,
                                const char *transport_name, const void *address,
-                               size_t address_length)
+                               size_t address_length,
+                               enum GNUNET_HELLO_AddressInfo local_info)
 {
   struct GNUNET_HELLO_Address *addr;
   size_t slen;
@@ -88,7 +89,7 @@ GNUNET_HELLO_address_copy (const struct GNUNET_HELLO_Address *address)
 {
   return GNUNET_HELLO_address_allocate (&address->peer, address->transport_name,
                                         address->address,
-                                        address->address_length);
+                                        address->address_length, 0);
 }
 
 
