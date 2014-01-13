@@ -178,7 +178,9 @@ setup_db (const char *dbfile)
   if (0 != sqlite3_exec (db, query_create, NULL, NULL, NULL))
   {
     LOG_SQLITE (db, NULL, GNUNET_ERROR_TYPE_ERROR, "sqlite3_exec");
-    FPRINTF (stderr, "Perhaps the database `%s' already exits.\n", dbfile);
+    FPRINTF (stderr, "Error: %d.  Perhaps the database `%s' already exits.\n",
+             sqlite3_errcode (db),
+             dbfile);
     goto err_ret;
   }
   GNUNET_break (0 == sqlite3_exec (db, "PRAGMA synchronous = 0;", NULL, NULL, NULL));

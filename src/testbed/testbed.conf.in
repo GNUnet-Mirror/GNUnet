@@ -110,3 +110,9 @@ BINARY = gnunet-daemon-testbed-underlay
 # The sqlite3 database file containing information about what underlay
 # restrictions to apply
 # DBFILE = 
+
+[latency-logger]
+AUTOSTART = NO
+BINARY = gnunet-daemon-latency-logger
+# The sqlite3 database file where the latency values are to be stored
+# DBFILE = 

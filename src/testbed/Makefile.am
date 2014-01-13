@@ -18,6 +18,7 @@ pkgcfg_DATA = \
 
 if HAVE_SQLITE
   underlay_daemon = gnunet-daemon-testbed-underlay
+  latency_logger = gnunet-daemon-latency-logger
   generate_underlay = generate-underlay-topology
   underlay_testcases = test_testbed_underlay
 endif
@@ -27,7 +28,8 @@ libexec_PROGRAMS = \
   gnunet-helper-testbed \
   gnunet-service-testbed-logger \
   gnunet-daemon-testbed-blacklist \
-  $(underlay_daemon)
+  $(underlay_daemon) \
+  $(latency_logger)
 
 bin_PROGRAMS = \
   gnunet-testbed-profiler
@@ -100,6 +102,15 @@ gnunet_daemon_testbed_underlay_LDADD = $(XLIB) \
  $(LTLIBINTL) -lsqlite3
 gnunet_daemon_testbed_underlay_DEPENDENCIES = \
  $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/util/libgnunetutil.la
+
+gnunet_daemon_latency_logger_SOURCES = gnunet-daemon-latency-logger.c
+gnunet_daemon_latency_logger_LDADD = $(XLIB) \
+ $(top_builddir)/src/ats/libgnunetats.la \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(LTLIBINTL) -lsqlite3
+gnunet_daemon_latency_logger_DEPENDENCIES = \
+ $(top_builddir)/src/ats/libgnunetats.la \
  $(top_builddir)/src/util/libgnunetutil.la
 
 lib_LTLIBRARIES = \
