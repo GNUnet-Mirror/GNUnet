@@ -1086,12 +1086,14 @@ dequeue (struct Plugin *plugin, struct UDP_MessageWrapper * udpw)
   }
   GNUNET_STATISTICS_update (plugin->env->stats, "# UDP, total, msgs in buffers",
       -1, GNUNET_NO);
-  if (udpw->session->address->address_length == sizeof(struct sockaddr_in))
+  if (udpw->session->address->address_length == sizeof(struct IPv4UdpAddress))
     GNUNET_CONTAINER_DLL_remove(plugin->ipv4_queue_head,
         plugin->ipv4_queue_tail, udpw);
-  if (udpw->session->address->address_length == sizeof(struct sockaddr_in6))
+  else if (udpw->session->address->address_length == sizeof(struct IPv6UdpAddress))
     GNUNET_CONTAINER_DLL_remove(plugin->ipv6_queue_head,
         plugin->ipv6_queue_tail, udpw);
+  else
+    GNUNET_break (0);
 }
 
 static void
@@ -1489,7 +1491,7 @@ udp_plugin_create_session (void *cls,
       "Creating new %s session %p for peer `%s' address `%s'\n",
       GNUNET_HELLO_address_check_option (address, GNUNET_HELLO_ADDRESS_INFO_INBOUND) ? "inbound" : "outbound",
       s, GNUNET_i2s (&address->peer),
-      udp_address_to_string(NULL,address->address,address->address_length));
+      udp_address_to_string( NULL,address->address,address->address_length));
   GNUNET_assert(
       GNUNET_OK == GNUNET_CONTAINER_multipeermap_put (plugin->sessions, &s->target, s, GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
   GNUNET_STATISTICS_set (plugin->env->stats, "# UDP, sessions active",
@@ -1554,12 +1556,14 @@ enqueue (struct Plugin *plugin, struct UDP_MessageWrapper * udpw)
   }
   GNUNET_STATISTICS_update (plugin->env->stats, "# UDP, total, msgs in buffers",
       1, GNUNET_NO);
-  if (udpw->session->address->address_length == sizeof(struct sockaddr_in))
+  if (udpw->session->address->address_length == sizeof (struct IPv4UdpAddress))
     GNUNET_CONTAINER_DLL_insert(plugin->ipv4_queue_head,
         plugin->ipv4_queue_tail, udpw);
-  if (udpw->session->address->address_length == sizeof(struct sockaddr_in6))
+  else if (udpw->session->address->address_length == sizeof (struct IPv6UdpAddress))
     GNUNET_CONTAINER_DLL_insert(plugin->ipv6_queue_head,
         plugin->ipv6_queue_tail, udpw);
+  else
+    GNUNET_break (0);
 }
 
 /**
@@ -1656,10 +1660,14 @@ udp_plugin_send (void *cls, struct Session *s, const char *msgbuf,
   GNUNET_assert(plugin != NULL);
   GNUNET_assert(s != NULL);
 
-  if ((s->address->address_length == sizeof(struct sockaddr_in6)) && (plugin->sockv6 == NULL ))
+  if ((s->address->address_length == sizeof(struct IPv6UdpAddress)) && (plugin->sockv6 == NULL ))
+  {
     return GNUNET_SYSERR;
-  if ((s->address->address_length == sizeof(struct sockaddr_in)) && (plugin->sockv4 == NULL ))
+  }
+  if ((s->address->address_length == sizeof(struct IPv4UdpAddress)) && (plugin->sockv4 == NULL ))
+  {
     return GNUNET_SYSERR;
+  }
   if (udpmlen >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
   {
     GNUNET_break(0);
@@ -1672,7 +1680,7 @@ udp_plugin_send (void *cls, struct Session *s, const char *msgbuf,
     GNUNET_break(0);
     return GNUNET_SYSERR;
   }
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
+  LOG(GNUNET_ERROR_TYPE_ERROR,
       "UDP transmits %u-byte message to `%s' using address `%s'\n", udpmlen,
       GNUNET_i2s (&s->target), udp_address_to_string (NULL, s->address->address, s->address->address_length));
 
@@ -2240,7 +2248,7 @@ udp_select_read (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *rsock)
   }
   msg = (const struct GNUNET_MessageHeader *) buf;
 
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
+  LOG(GNUNET_ERROR_TYPE_ERROR,
       "UDP received %u-byte message from `%s' type %u\n", (unsigned int ) size,
       GNUNET_a2s ((const struct sockaddr * ) &addr, fromlen),
       ntohs (msg->type));
@@ -2436,9 +2444,14 @@ analyze_send_error (struct Plugin *plugin, const struct sockaddr * sa,
 static size_t
 udp_select_send (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *sock)
 {
-  const struct sockaddr * sa;
   ssize_t sent;
   socklen_t slen;
+  struct sockaddr *a;
+  const struct IPv4UdpAddress *u4;
+  struct sockaddr_in a4;
+  const struct IPv6UdpAddress *u6;
+  struct sockaddr_in6 a6;
+
 
   struct UDP_MessageWrapper *udpw = NULL;
 
@@ -2449,16 +2462,43 @@ udp_select_send (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *sock)
   if (NULL == udpw)
     return 0; /* No message to send */
 
-  sa = udpw->session->address->address;
-  slen = udpw->session->address->address_length;
-
-  sent = GNUNET_NETWORK_socket_sendto (sock, udpw->msg_buf, udpw->msg_size, sa,
+  if (sizeof (struct IPv4UdpAddress) == udpw->session->address->address_length)
+  {
+    u4 = udpw->session->address->address;
+    memset (&a4, 0, sizeof(a4));
+    a4.sin_family = AF_INET;
+#if HAVE_SOCKADDR_IN_SIN_LEN
+    a4.sin_len = sizeof (a4);
+#endif
+    a4.sin_port = u4->u4_port;
+    memcpy (&a4.sin_addr, &u4->ipv4_addr, sizeof(struct in_addr));
+    a = (struct sockaddr *) &a4;
+    slen = sizeof (a4);
+  }
+  else if (sizeof (struct IPv6UdpAddress) == udpw->session->address->address_length)
+  {
+    u6 = udpw->session->address->address;
+    memset (&a6, 0, sizeof(a6));
+    a6.sin6_family = AF_INET6;
+#if HAVE_SOCKADDR_IN_SIN_LEN
+    a6.sin6_len = sizeof (a6);
+#endif
+    a6.sin6_port = u6->u6_port;
+    memcpy (&a6.sin6_addr, &u6->ipv6_addr, sizeof(struct in6_addr));
+    a = (struct sockaddr *) &a6;
+    slen = sizeof (a6);
+  }
+  else
+  {
+    GNUNET_break (0);
+  }
+  sent = GNUNET_NETWORK_socket_sendto (sock, udpw->msg_buf, udpw->msg_size, a,
       slen);
 
   if (GNUNET_SYSERR == sent)
   {
     /* Failure */
-    analyze_send_error (plugin, sa, slen, errno);
+    analyze_send_error (plugin, a, slen, errno);
     call_continuation (udpw, GNUNET_SYSERR);
     GNUNET_STATISTICS_update (plugin->env->stats,
         "# UDP, total, bytes, sent, failure", sent, GNUNET_NO);
@@ -2468,10 +2508,10 @@ udp_select_send (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *sock)
   else
   {
     /* Success */
-    LOG(GNUNET_ERROR_TYPE_DEBUG,
+    LOG(GNUNET_ERROR_TYPE_ERROR,
         "UDP transmitted %u-byte message to  `%s' `%s' (%d: %s)\n",
         (unsigned int ) (udpw->msg_size), GNUNET_i2s (&udpw->session->target),
-        GNUNET_a2s (sa, slen), (int ) sent,
+        GNUNET_a2s (a, slen), (int ) sent,
         (sent < 0) ? STRERROR (errno) : "ok");
     GNUNET_STATISTICS_update (plugin->env->stats,
         "# UDP, total, bytes, sent, success", sent, GNUNET_NO);
