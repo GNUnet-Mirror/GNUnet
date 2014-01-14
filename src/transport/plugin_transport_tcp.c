@@ -2047,7 +2047,7 @@ handle_tcp_welcome (void *cls, struct GNUNET_SERVER_Client *client,
         t4.t4_port = s4->sin_port;
         t4.ipv4_addr = s4->sin_addr.s_addr;
         address = GNUNET_HELLO_address_allocate (&wm->clientIdentity,
-            PLUGIN_NAME, &t4, sizeof(struct IPv4TcpAddress),
+            PLUGIN_NAME, &t4, sizeof(t4),
             GNUNET_HELLO_ADDRESS_INFO_INBOUND);
       }
       else if (alen == sizeof(struct sockaddr_in6))
@@ -2058,7 +2058,7 @@ handle_tcp_welcome (void *cls, struct GNUNET_SERVER_Client *client,
         t6.t6_port = s6->sin6_port;
         memcpy (&t6.ipv6_addr, &s6->sin6_addr, sizeof(struct in6_addr));
         address = GNUNET_HELLO_address_allocate (&wm->clientIdentity,
-            PLUGIN_NAME, &t6, sizeof(struct IPv6TcpAddress),
+            PLUGIN_NAME, &t6, sizeof (t6),
             GNUNET_HELLO_ADDRESS_INFO_INBOUND);
       }
       session = create_session (plugin, address, client, GNUNET_NO);
