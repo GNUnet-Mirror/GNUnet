@@ -885,8 +885,10 @@ reschedule_session_timeout (struct Session *s)
  * @return new session object
  */
 static struct Session *
-create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
-    struct GNUNET_SERVER_Client *client, int is_nat)
+create_session (struct Plugin *plugin,
+                const struct GNUNET_HELLO_Address *address,
+                struct GNUNET_SERVER_Client *client,
+                int is_nat)
 {
   struct Session *session;
   struct PendingMessage *pm;
@@ -898,13 +900,14 @@ create_session (struct Plugin *plugin, const struct GNUNET_PeerIdentity *target,
     GNUNET_assert(NULL == client);
 
   LOG(GNUNET_ERROR_TYPE_DEBUG, "Creating new session for peer `%4s'\n",
-      GNUNET_i2s (target));
+      GNUNET_i2s (&address->peer));
   session = GNUNET_new (struct Session);
   session->last_activity = GNUNET_TIME_absolute_get ();
   session->plugin = plugin;
   session->is_nat = is_nat;
   session->client = client;
-  session->target = *target;
+  session->address = GNUNET_HELLO_address_copy (address);
+  session->target = address->peer;
   session->expecting_welcome = GNUNET_YES;
   session->ats_address_network_type = GNUNET_ATS_NET_UNSPECIFIED;
   pm = GNUNET_malloc (sizeof (struct PendingMessage) +
@@ -1351,6 +1354,12 @@ tcp_plugin_get_session (void *cls, const struct GNUNET_HELLO_Address *address)
       tcp_address_to_string(NULL, address->address, address->address_length),
       GNUNET_i2s (&address->peer));
 
+  if (GNUNET_HELLO_address_check_option(address, GNUNET_HELLO_ADDRESS_INFO_INBOUND))
+  {
+    GNUNET_break (0);
+    return NULL;
+  }
+
   /* look for existing session */
   if (GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains (plugin->sessionmap,
           &address->peer))
@@ -1448,8 +1457,7 @@ tcp_plugin_get_session (void *cls, const struct GNUNET_HELLO_Address *address)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
         "Found valid IPv4 NAT address (creating session)!\n");
-    session = create_session (plugin, &address->peer, NULL, GNUNET_YES);
-    session->address = GNUNET_HELLO_address_copy (address);
+    session = create_session (plugin, address, NULL, GNUNET_YES);
     session->ats_address_network_type = (enum GNUNET_ATS_Network_Type) ntohl (
         ats.value);
     GNUNET_break(
@@ -1457,8 +1465,8 @@ tcp_plugin_get_session (void *cls, const struct GNUNET_HELLO_Address *address)
     session->nat_connection_timeout = GNUNET_SCHEDULER_add_delayed (NAT_TIMEOUT,
         &nat_connect_timeout, session);
     GNUNET_assert(session != NULL);
-    GNUNET_assert(
-        GNUNET_OK == GNUNET_CONTAINER_multipeermap_put (plugin->nat_wait_conns, &session->target, session, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+    GNUNET_assert(GNUNET_OK == GNUNET_CONTAINER_multipeermap_put (plugin->nat_wait_conns,
+        &session->target, session, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
 
     LOG(GNUNET_ERROR_TYPE_DEBUG,
         "Created NAT WAIT connection to `%4s' at `%s'\n",
@@ -1494,7 +1502,7 @@ tcp_plugin_get_session (void *cls, const struct GNUNET_HELLO_Address *address)
       "Asked to transmit to `%4s', creating fresh session using address `%s'.\n",
       GNUNET_i2s (&address->peer), GNUNET_a2s (sb, sbs));
 
-  session = create_session (plugin, &address->peer,
+  session = create_session (plugin, address,
       GNUNET_SERVER_connect_socket (plugin->server, sa), GNUNET_NO);
   session->address = GNUNET_HELLO_address_copy (address);
   session->ats_address_network_type = (enum GNUNET_ATS_Network_Type) ntohl (
@@ -1982,6 +1990,7 @@ handle_tcp_welcome (void *cls, struct GNUNET_SERVER_Client *client,
 {
   struct Plugin *plugin = cls;
   const struct WelcomeMessage *wm = (const struct WelcomeMessage *) message;
+  struct GNUNET_HELLO_Address *address;
   struct Session *session;
   size_t alen;
   void *vaddr;
@@ -2029,7 +2038,6 @@ handle_tcp_welcome (void *cls, struct GNUNET_SERVER_Client *client,
     if (plugin->cur_connections == plugin->max_connections)
       GNUNET_SERVER_suspend (plugin->server); /* Maximum number of connections rechead */
 
-    session = create_session (plugin, &wm->clientIdentity, client, GNUNET_NO);
     if (GNUNET_OK == GNUNET_SERVER_client_get_address (client, &vaddr, &alen))
     {
       if (alen == sizeof(struct sockaddr_in))
@@ -2039,7 +2047,7 @@ handle_tcp_welcome (void *cls, struct GNUNET_SERVER_Client *client,
         t4.options = htonl (0);
         t4.t4_port = s4->sin_port;
         t4.ipv4_addr = s4->sin_addr.s_addr;
-        session->address = GNUNET_HELLO_address_allocate (&wm->clientIdentity,
+        address = GNUNET_HELLO_address_allocate (&wm->clientIdentity,
             PLUGIN_NAME, &t4, sizeof(struct IPv4TcpAddress),
             GNUNET_HELLO_ADDRESS_INFO_INBOUND);
       }
@@ -2050,16 +2058,19 @@ handle_tcp_welcome (void *cls, struct GNUNET_SERVER_Client *client,
         t6.options = htonl (0);
         t6.t6_port = s6->sin6_port;
         memcpy (&t6.ipv6_addr, &s6->sin6_addr, sizeof(struct in6_addr));
-        session->address = GNUNET_HELLO_address_allocate (&wm->clientIdentity,
+        address = GNUNET_HELLO_address_allocate (&wm->clientIdentity,
             PLUGIN_NAME, &t6, sizeof(struct IPv6TcpAddress),
             GNUNET_HELLO_ADDRESS_INFO_INBOUND);
       }
-
+      session = create_session (plugin, address, client, GNUNET_NO);
+      GNUNET_HELLO_address_free (address);
       ats = plugin->env->get_address_type (plugin->env->cls, vaddr, alen);
       session->ats_address_network_type = (enum GNUNET_ATS_Network_Type) ntohl (
           ats.value);
-      LOG(GNUNET_ERROR_TYPE_DEBUG, "Creating new session %p for peer `%s'\n",
-          session, GNUNET_a2s (vaddr, alen));
+      LOG(GNUNET_ERROR_TYPE_DEBUG, "Creating new%s session %p for peer `%s'\n",
+          GNUNET_HELLO_address_check_option (session->address, GNUNET_HELLO_ADDRESS_INFO_INBOUND) ? " inbound" : "",
+          session,
+          tcp_address_to_string(NULL, (void *) session->address->address,session->address->address_length));
       GNUNET_free(vaddr);
       GNUNET_SERVER_client_set_user_context(session->client, session);
       GNUNET_CONTAINER_multipeermap_put (plugin->sessionmap, &session->target,
