@@ -178,10 +178,11 @@ GNUNET_HELLO_address_get_size (const struct GNUNET_HELLO_Address *address);
 struct GNUNET_HELLO_Message;
 
 
-/** Return HELLO type
+/**
+ * Return HELLO type
  *
  * @param h HELLO Message to test
- * @return GNUNET_YES or GNUNET_NO
+ * @return #GNUNET_YES or #GNUNET_NO
  */
 int
 GNUNET_HELLO_is_friend_only (const struct GNUNET_HELLO_Message *h);
@@ -194,7 +195,7 @@ GNUNET_HELLO_is_friend_only (const struct GNUNET_HELLO_Message *h);
  * @param address address to add
  * @param expiration expiration for the address
  * @param target where to copy the address
- * @param max maximum number of bytes to copy to target
+ * @param max maximum number of bytes to copy to @a target
  * @return number of bytes copied, 0 if
  *         the target buffer was not big enough.
  */
@@ -207,17 +208,18 @@ GNUNET_HELLO_add_address (const struct GNUNET_HELLO_Address *address,
 /**
  * Callback function used to fill a buffer of max bytes with a list of
  * addresses in the format used by HELLOs.  Should use
- * "GNUNET_HELLO_add_address" as a helper function.
+ * #GNUNET_HELLO_add_address() as a helper function.
  *
  * @param cls closure
- * @param max maximum number of bytes that can be written to buf
+ * @param max maximum number of bytes that can be written to @a buf
  * @param buf where to write the address information
  * @return number of bytes written, 0 to signal the
  *         end of the iteration.
  */
-typedef size_t (*GNUNET_HELLO_GenerateAddressListCallback) (void *cls,
-                                                            size_t max,
-                                                            void *buf);
+typedef size_t
+(*GNUNET_HELLO_GenerateAddressListCallback) (void *cls,
+                                             size_t max,
+                                             void *buf);
 
 
 /**
@@ -225,7 +227,7 @@ typedef size_t (*GNUNET_HELLO_GenerateAddressListCallback) (void *cls,
  * expiration time and an iterator that spews the
  * transport addresses.
  *
- * If friend only is set to GNUNET_YES we create a FRIEND_HELLO which will
+ * If friend only is set to #GNUNET_YES we create a FRIEND_HELLO which will
  * not be gossiped to other peers
  *
  * @return the hello message
@@ -288,15 +290,14 @@ GNUNET_HELLO_equals (const struct GNUNET_HELLO_Message *h1,
  * @param cls closure
  * @param address the address
  * @param expiration expiration time
- * @return GNUNET_OK to keep the address,
- *         GNUNET_NO to delete it from the HELLO
- *         GNUNET_SYSERR to stop iterating (but keep current address)
+ * @return #GNUNET_OK to keep the address,
+ *         #GNUNET_NO to delete it from the HELLO
+ *         #GNUNET_SYSERR to stop iterating (but keep current address)
  */
-typedef int (*GNUNET_HELLO_AddressIterator) (void *cls,
-                                             const struct GNUNET_HELLO_Address *
-                                             address,
-                                             struct GNUNET_TIME_Absolute
-                                             expiration);
+typedef int
+(*GNUNET_HELLO_AddressIterator) (void *cls,
+                                 const struct GNUNET_HELLO_Address *address,
+                                 struct GNUNET_TIME_Absolute expiration);
 
 
 /**
@@ -318,7 +319,7 @@ GNUNET_HELLO_get_last_expiration (const struct GNUNET_HELLO_Message *msg);
  * @param return_modified if a modified copy should be returned,
  *         otherwise NULL will be returned
  * @param it iterator to call on each address
- * @param it_cls closure for it
+ * @param it_cls closure for @a it
  * @return the modified HELLO or NULL
  */
 struct GNUNET_HELLO_Message *
@@ -339,12 +340,9 @@ GNUNET_HELLO_iterate_addresses (const struct GNUNET_HELLO_Message *msg,
  * @param it_cls closure for it
  */
 void
-GNUNET_HELLO_iterate_new_addresses (const struct GNUNET_HELLO_Message
-                                    *new_hello,
-                                    const struct GNUNET_HELLO_Message
-                                    *old_hello,
-                                    struct GNUNET_TIME_Absolute
-                                    expiration_limit,
+GNUNET_HELLO_iterate_new_addresses (const struct GNUNET_HELLO_Message *new_hello,
+                                    const struct GNUNET_HELLO_Message *old_hello,
+                                    struct GNUNET_TIME_Absolute expiration_limit,
                                     GNUNET_HELLO_AddressIterator it,
                                     void *it_cls);
 
@@ -354,7 +352,7 @@ GNUNET_HELLO_iterate_new_addresses (const struct GNUNET_HELLO_Message
  *
  * @param hello the hello message
  * @param publicKey where to copy the public key information, can be NULL
- * @return GNUNET_SYSERR if the HELLO was malformed
+ * @return #GNUNET_SYSERR if the HELLO was malformed
  */
 int
 GNUNET_HELLO_get_key (const struct GNUNET_HELLO_Message *hello,
@@ -366,7 +364,7 @@ GNUNET_HELLO_get_key (const struct GNUNET_HELLO_Message *hello,
  *
  * @param hello the hello message
  * @param peer where to store the peer's identity
- * @return GNUNET_SYSERR if the HELLO was malformed
+ * @return #GNUNET_SYSERR if the HELLO was malformed
  */
 int
 GNUNET_HELLO_get_id (const struct GNUNET_HELLO_Message *hello,
@@ -407,7 +405,7 @@ GNUNET_HELLO_compose_uri (const struct GNUNET_HELLO_Message *hello,
  * @param pubkey Pointer to struct where public key is parsed
  * @param hello Pointer to struct where hello message is parsed
  * @param plugins_find Function to find transport plugins by name
- * @return GNUNET_OK on success, GNUNET_SYSERR if the URI was invalid, GNUNET_NO on other errors
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR if the URI was invalid, #GNUNET_NO on other errors
  */
 int
 GNUNET_HELLO_parse_uri (const char *uri,
