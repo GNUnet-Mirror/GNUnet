@@ -58,6 +58,29 @@
 
 
 /**
+ * Entry type to be used in the map to store old latency values
+ */
+struct Entry
+{
+  /**
+   *  The peer's identity
+   */
+  struct GNUNET_PeerIdentity id;
+
+  /**
+   * The last known value for latency
+   */
+  unsigned int latency;
+  
+};
+
+
+/**
+ * Handle to the map used to store old latency values for peers
+ */
+static struct GNUNET_CONTAINER_MultiPeerMap *map;
+
+/**
  * The SQLite database handle
  */
 static struct sqlite3 *db;
@@ -76,6 +99,31 @@ struct sqlite3_stmt *stmt_insert;
  * Shutdown task identifier
  */
 GNUNET_SCHEDULER_TaskIdentifier shutdown_task;
+
+
+/**
+ * @ingroup hashmap
+ * Iterator over hash map entries.
+ *
+ * @param cls closure
+ * @param key current public key
+ * @param value value in the hash map
+ * @return #GNUNET_YES if we should continue to
+ *         iterate,
+ *         #GNUNET_NO if not.
+ */
+static int
+free_iterator (void *cls,
+               const struct GNUNET_PeerIdentity *key,
+               void *value)
+{
+  struct Entry *e = cls;
+
+  GNUNET_assert (GNUNET_YES == 
+                 GNUNET_CONTAINER_multipeermap_remove (map, key, e));
+  GNUNET_free (e);
+  return GNUNET_YES;
+}
 
 
 /**
@@ -98,6 +146,13 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   GNUNET_break (SQLITE_OK == sqlite3_close (db));
   db = NULL;
+  if (NULL != map)
+  {
+    GNUNET_assert (GNUNET_SYSERR != 
+                   GNUNET_CONTAINER_multipeermap_iterate (map, free_iterator, NULL));
+    GNUNET_CONTAINER_multipeermap_destroy (map);
+    map = NULL;
+  }
 }
 
 /**
@@ -131,6 +186,7 @@ addr_info_cb (void *cls,
       " ?2,"
       " datetime('now')"
       ");";
+  struct Entry *entry;
   int latency;
   unsigned int cnt;
 
@@ -146,6 +202,15 @@ addr_info_cb (void *cls,
 
  insert:
   latency = (int) ntohl (ats[cnt].value);
+  entry = NULL;
+  if (GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains (map,
+                                                            &address->peer))
+  {
+    entry = GNUNET_CONTAINER_multipeermap_get (map, &address->peer);
+    GNUNET_assert (NULL != entry);
+    if (latency == entry->latency)
+      return;
+  }
   if (NULL == stmt_insert)
   {
     if (SQLITE_OK != sqlite3_prepare_v2 (db, query_insert, -1, &stmt_insert,
@@ -173,6 +238,15 @@ addr_info_cb (void *cls,
     LOG_SQLITE (db, NULL, GNUNET_ERROR_TYPE_ERROR, "sqlite3_insert");
     goto err_shutdown;
   }
+  if (NULL == entry)
+  {
+    entry = GNUNET_new (struct Entry);
+    entry->id = address->peer;
+    GNUNET_CONTAINER_multipeermap_put (map, 
+                                       &entry->id, entry,
+                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
+  }
+  entry->latency = latency;
   return;
   
  err_shutdown:
@@ -226,6 +300,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_free (dbfile);  
   dbfile = NULL;
   ats = GNUNET_ATS_performance_init (c, addr_info_cb, NULL);
+  map = GNUNET_CONTAINER_multipeermap_create (30, GNUNET_YES);
   shutdown_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                                 &do_shutdown, NULL);
 }
