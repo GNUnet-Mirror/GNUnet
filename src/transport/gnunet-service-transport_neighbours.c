@@ -776,7 +776,7 @@ set_primary_address (struct NeighbourMapEntry *n,
     send_outbound_quota (&address->peer, bandwidth_out);
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Neighbour `%s' switched to address %s\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Neighbour `%s' switched to address `%s'\n",
       GNUNET_i2s (&n->id),
       GST_plugins_a2s(address));
 

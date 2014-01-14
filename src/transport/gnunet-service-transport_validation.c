@@ -483,7 +483,7 @@ transmit_ping_if_allowed (void *cls,
   if (GNUNET_NO == result)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Blacklist denies to send PING to `%s' %s %s\n",
+                "Blacklist denies to send PING to `%s' `%s' `%s'\n",
                 GNUNET_i2s (pid),
                 GST_plugins_a2s (ve->address),
                 ve->address->transport_name);
@@ -491,7 +491,7 @@ transmit_ping_if_allowed (void *cls,
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Transmitting plain PING to `%s' %s %s\n",
+              "Transmitting plain PING to `%s' `%s' `%s'\n",
               GNUNET_i2s (pid),
               GST_plugins_a2s (ve->address),
               ve->address->transport_name);
@@ -557,7 +557,7 @@ transmit_ping_if_allowed (void *cls,
         if (GNUNET_ATS_NET_UNSPECIFIED == network)
         {
           GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-              "Could not obtain a valid network for `%s' %s\n",
+              "Could not obtain a valid network for `%s' `%s'\n",
               GNUNET_i2s (pid), GST_plugins_a2s (ve->address));
           GNUNET_break(0);
         }
@@ -566,7 +566,7 @@ transmit_ping_if_allowed (void *cls,
       else
       {
         /* Could not get a valid session */
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Could not get a valid session for `%s' %s\n",
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Could not get a valid session for `%s' `%s'\n",
                     GNUNET_i2s (pid), GST_plugins_a2s (ve->address));
         ret = -1;
       }
@@ -625,7 +625,7 @@ revalidate_address (void *cls,
   {
     /* should wait a bit longer */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Waiting for %s longer before validating address %s\n",
+                "Waiting for %s longer before validating address `%s'\n",
                 GNUNET_STRINGS_relative_time_to_string (delay,
                                                         GNUNET_YES),
                 GST_plugins_a2s (ve->address));
@@ -639,7 +639,7 @@ revalidate_address (void *cls,
   {
     /* Validations are blocked, have to wait for blocked_for time */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Validations blocked for another %s, delaying validating address %s\n",
+                "Validations blocked for another %s, delaying validating address `%s'\n",
                 GNUNET_STRINGS_relative_time_to_string (blocked_for,
                                                         GNUNET_YES),
                 GST_plugins_a2s (ve->address));
@@ -669,7 +669,7 @@ revalidate_address (void *cls,
   }
   /* End debug code for mantis 0002726*/
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Validating now, next scheduled for %s, now validating address %s\n",
+              "Validating now, next scheduled for %s, now validating address `%s'\n",
               GNUNET_STRINGS_relative_time_to_string (blocked_for,
                                                       GNUNET_YES),
               GST_plugins_a2s (ve->address));
@@ -777,7 +777,7 @@ add_valid_address (void *cls,
   if (GNUNET_SCHEDULER_NO_TASK == ve->revalidation_task)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Starting revalidations for valid address %s\n",
+                "Starting revalidations for valid address `%s'\n",
               GST_plugins_a2s (ve->address));
     ve->revalidation_task = GNUNET_SCHEDULER_add_now (&revalidate_address, ve);
   }
@@ -807,7 +807,7 @@ process_peerinfo_hello (void *cls, const struct GNUNET_PeerIdentity *peer,
   if (NULL == hello)
     return;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Handling HELLO for peer %s\n",
+              "Handling HELLO for peer `%s'\n",
               GNUNET_i2s (peer));
   GNUNET_assert (NULL ==
                  GNUNET_HELLO_iterate_addresses (hello, GNUNET_NO,
@@ -1218,7 +1218,7 @@ validate_address_iterator (void *cls,
   if (GNUNET_SCHEDULER_NO_TASK == ve->revalidation_task)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "Starting validation for fresh address %s\n",
+                "Validation process started for fresh address `%s'\n",
                 GST_plugins_a2s (ve->address));
     ve->revalidation_task = GNUNET_SCHEDULER_add_now (&revalidate_address, ve);
   }
@@ -1354,7 +1354,7 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
     {
       GNUNET_break_op (0);
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "Failed to verify: invalid signature on address %s:%s from peer `%s'\n",
+                  "Failed to verify: invalid signature on address `%s':%s from peer `%s'\n",
                   tname,
                   GST_plugins_a2s (ve->address),
                   GNUNET_i2s (sender));
@@ -1367,7 +1367,7 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Address successfully validated for peer `%s' with plugin `%s': `%s'\n",
+              "Validation process successful for peer `%s' with plugin `%s' address `%s'\n",
               GNUNET_i2s (sender), tname, GST_plugins_a2s (ve->address));
   /* validity achieved, remember it! */
   ve->expecting_pong = GNUNET_NO;
@@ -1438,6 +1438,11 @@ GST_validation_handle_hello (const struct GNUNET_MessageHeader *hello)
     return GNUNET_OK;
   /* Add peer identity without addresses to peerinfo service */
   h = GNUNET_HELLO_create (&vac.public_key, NULL, NULL, friend);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              _("Validation received new %s message for peer `%s' with size %u\n"),
+              "HELLO",
+              GNUNET_i2s (&vac.pid),
+              ntohs (hello->size));
   GNUNET_PEERINFO_add_peer (GST_peerinfo, h, NULL, NULL);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,

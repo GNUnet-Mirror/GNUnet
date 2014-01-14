@@ -639,9 +639,9 @@ plugin_env_session_start (void *cls, struct GNUNET_HELLO_Address *address,
   else
     inbound = GNUNET_NO;
 
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-      "Notification from plugin `%s' about new %s session %p from peer `%s' address `%s'\n",
-      address->transport_name, (GNUNET_YES == inbound) ? "inbound" : "outbound",
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+      "Notification from plugin `%s' about new %ssession %p from peer `%s' address `%s'\n",
+      address->transport_name, (GNUNET_YES == inbound) ? "inbound " : "",
       session, GNUNET_i2s (&address->peer), GST_plugins_a2s (address));
   GST_ats_add_address (address, session, ats, ats_count);
 }
