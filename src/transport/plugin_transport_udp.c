@@ -1175,7 +1175,7 @@ udp_disconnect_session (void *cls, struct Session *s)
   GNUNET_assert(GNUNET_YES != s->in_destroy);
   LOG(GNUNET_ERROR_TYPE_DEBUG, "Session %p to peer `%s' address ended\n", s,
       GNUNET_i2s (&s->target),
-      GNUNET_a2s (s->address->address, s->address->address_length));
+      udp_address_to_string (NULL, s->address->address, s->address->address_length));
   /* stop timeout task */
   if (GNUNET_SCHEDULER_NO_TASK != s->timeout_task)
   {
