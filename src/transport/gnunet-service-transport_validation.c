@@ -1217,7 +1217,7 @@ validate_address_iterator (void *cls,
   ve = find_validation_entry (&vac->public_key, address);
   if (GNUNET_SCHEDULER_NO_TASK == ve->revalidation_task)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "Starting validation for fresh address %s\n",
                 GST_plugins_a2s (ve->address));
     ve->revalidation_task = GNUNET_SCHEDULER_add_now (&revalidate_address, ve);
@@ -1366,8 +1366,8 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
     return GNUNET_SYSERR;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Address validated for peer `%s' with plugin `%s': `%s'\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Address successfully validated for peer `%s' with plugin `%s': `%s'\n",
               GNUNET_i2s (sender), tname, GST_plugins_a2s (ve->address));
   /* validity achieved, remember it! */
   ve->expecting_pong = GNUNET_NO;
