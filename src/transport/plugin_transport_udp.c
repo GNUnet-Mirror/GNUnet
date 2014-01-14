@@ -1121,7 +1121,7 @@ fragmented_message_done (struct UDP_FragmentationContext *fc, int result)
   call_continuation (&dummy, result);
 
   /* Remove leftover fragments from queue */
-  if (s->address->address_length == sizeof(struct sockaddr_in6))
+  if (s->address->address_length == sizeof(struct IPv6UdpAddress))
   {
     udpw = plugin->ipv6_queue_head;
     while (NULL != udpw)
@@ -1135,7 +1135,7 @@ fragmented_message_done (struct UDP_FragmentationContext *fc, int result)
       udpw = tmp;
     }
   }
-  if (s->address->address_length == sizeof(struct sockaddr_in))
+  if (s->address->address_length == sizeof(struct IPv4UdpAddress))
   {
     udpw = plugin->ipv4_queue_head;
     while (udpw != NULL )
@@ -1432,7 +1432,7 @@ udp_plugin_lookup_session (void *cls,
   struct SessionCompareContext cctx;
   cctx.address = address;
   cctx.res = NULL;
-  LOG(GNUNET_ERROR_TYPE_ERROR,
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
       "Looking for existing session for peer `%s' `%s' \n",
       GNUNET_i2s (&address->peer),
       udp_address_to_string(NULL, address->address, address->address_length));
@@ -1440,7 +1440,7 @@ udp_plugin_lookup_session (void *cls,
       session_cmp_it, &cctx);
   if (cctx.res != NULL )
   {
-    LOG(GNUNET_ERROR_TYPE_ERROR, "Found existing session %p\n", cctx.res);
+    LOG(GNUNET_ERROR_TYPE_DEBUG, "Found existing session %p\n", cctx.res);
     return cctx.res;
   }
   return NULL ;
@@ -1487,7 +1487,7 @@ udp_plugin_create_session (void *cls,
 
   if (NULL == s)
     return NULL ; /* protocol not supported or address invalid */
-  LOG(GNUNET_ERROR_TYPE_ERROR,
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
       "Creating new %s session %p for peer `%s' address `%s'\n",
       GNUNET_HELLO_address_check_option (address, GNUNET_HELLO_ADDRESS_INFO_INBOUND) ? "inbound" : "outbound",
       s, GNUNET_i2s (&address->peer),
@@ -1680,7 +1680,7 @@ udp_plugin_send (void *cls, struct Session *s, const char *msgbuf,
     GNUNET_break(0);
     return GNUNET_SYSERR;
   }
-  LOG(GNUNET_ERROR_TYPE_ERROR,
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
       "UDP transmits %u-byte message to `%s' using address `%s'\n", udpmlen,
       GNUNET_i2s (&s->target), udp_address_to_string (NULL, s->address->address, s->address->address_length));
 
@@ -1792,7 +1792,7 @@ udp_nat_port_map_callback (void *cls, int add_remove,
     break;
   case AF_INET6:
     GNUNET_assert(addrlen == sizeof(struct sockaddr_in6));
-    memset (&u4, 0, sizeof(u4));
+    memset (&u6, 0, sizeof(u6));
     u6.options = htonl (myoptions);
     if (0 == ((struct sockaddr_in6 *) addr)->sin6_port)
       return;
@@ -1980,26 +1980,77 @@ fragment_msg_proc (void *cls, const struct GNUNET_MessageHeader *msg)
       rc->src_addr, rc->addr_len);
 }
 
+
+/**
+ * Context to lookup a session based on a IP address
+ */
 struct LookupContext
 {
+  /**
+   * The result
+   */
   struct Session *res;
 
-  const struct GNUNET_HELLO_Address *address;
+  /**
+   * The socket address
+   */
+  const struct sockaddr *address;
 
+  /**
+   * The socket address length
+   */
+  size_t addr_len;
+
+  /**
+   * Is a fragmentation context required for the session
+   */
   int must_have_frag_ctx;
 };
 
 static int
-lookup_session_by_addr_it (void *cls, const struct GNUNET_PeerIdentity *key,
+lookup_session_by_sockaddr_it (void *cls, const struct GNUNET_PeerIdentity *key,
     void *value)
 {
   struct LookupContext *l_ctx = cls;
   struct Session * s = value;
+  struct IPv4UdpAddress u4;
+  struct IPv6UdpAddress u6;
+  void *arg;
+  size_t args;
+
+  /* convert address */
+  switch (l_ctx->address->sa_family)
+  {
+  case AF_INET:
+    GNUNET_assert(l_ctx->addr_len == sizeof(struct sockaddr_in));
+    memset (&u4, 0, sizeof(u4));
+    u6.options = htonl (0);
+    u4.ipv4_addr = ((struct sockaddr_in *) l_ctx->address)->sin_addr.s_addr;
+    u4.u4_port = ((struct sockaddr_in *) l_ctx->address)->sin_port;
+    arg = &u4;
+    args = sizeof(u4);
+    break;
+  case AF_INET6:
+    GNUNET_assert(l_ctx->addr_len == sizeof(struct sockaddr_in6));
+    memset (&u6, 0, sizeof(u6));
+    u6.options = htonl (0);
+    u6.ipv6_addr = ((struct sockaddr_in6 *) l_ctx->address)->sin6_addr;
+    u6.u6_port = ((struct sockaddr_in6 *) l_ctx->address)->sin6_port;
+    arg = &u6;
+    args = sizeof(u6);
+    break;
+  default:
+    GNUNET_break(0);
+    return GNUNET_YES;
+  }
+
 
   if ((GNUNET_YES == l_ctx->must_have_frag_ctx) && (NULL == s->frag_ctx))
     return GNUNET_YES;
 
-  if (0 == GNUNET_HELLO_address_cmp (s->address, l_ctx->address))
+  /* Does not compare peer identities but addresses */
+  if ((args == s->address->address_length) &&
+      (0 == memcmp (arg, s->address->address, args)))
   {
     l_ctx->res = s;
     return GNUNET_YES;
@@ -2025,17 +2076,18 @@ ack_proc (void *cls, uint32_t id, const struct GNUNET_MessageHeader *msg)
   struct Session *s;
   struct LookupContext l_ctx;
 
-  l_ctx.address = GNUNET_HELLO_address_allocate (NULL, PLUGIN_NAME, rc->src_addr,
-      rc->addr_len, GNUNET_HELLO_ADDRESS_INFO_NONE);
-  l_ctx.res = NULL;
+  l_ctx.address = rc->src_addr;
+  l_ctx.addr_len = rc->addr_len;
   l_ctx.must_have_frag_ctx = GNUNET_NO;
+  l_ctx.res = NULL;
   GNUNET_CONTAINER_multipeermap_iterate (rc->plugin->sessions,
-      &lookup_session_by_addr_it, &l_ctx);
+      &lookup_session_by_sockaddr_it, &l_ctx);
   s = l_ctx.res;
-
   if (NULL == s)
+  {
+    GNUNET_break (0);
     return;
-
+  }
   if (s->flow_delay_for_other_peer.rel_value_us <= UINT32_MAX)
     delay = s->flow_delay_for_other_peer.rel_value_us;
 
@@ -2056,6 +2108,7 @@ ack_proc (void *cls, uint32_t id, const struct GNUNET_MessageHeader *msg)
   udp_ack->sender = *rc->plugin->env->my_identity;
   memcpy (&udp_ack[1], msg, ntohs (msg->size));
   enqueue (rc->plugin, udpw);
+  schedule_select (rc->plugin);
 }
 
 static void
@@ -2088,12 +2141,13 @@ read_process_ack (struct Plugin *plugin, const struct GNUNET_MessageHeader *msg,
   }
   udp_ack = (const struct UDP_ACK_Message *) msg;
 
-  l_ctx.address = GNUNET_HELLO_address_allocate (NULL, PLUGIN_NAME,
-      (const struct sockaddr *) addr, fromlen, GNUNET_HELLO_ADDRESS_INFO_NONE);
+  /* Lookup session based on sockaddr */
+  l_ctx.address = addr;
+  l_ctx.addr_len = fromlen;
   l_ctx.res = NULL;
   l_ctx.must_have_frag_ctx = GNUNET_YES;
   GNUNET_CONTAINER_multipeermap_iterate (plugin->sessions,
-      &lookup_session_by_addr_it, &l_ctx);
+      &lookup_session_by_sockaddr_it, &l_ctx);
   s = l_ctx.res;
   if ((NULL == s) || (NULL == s->frag_ctx))
   {
@@ -2150,8 +2204,8 @@ read_process_fragment (struct Plugin *plugin,
   LOG(GNUNET_ERROR_TYPE_DEBUG, "UDP processes %u-byte fragment from `%s'\n",
       (unsigned int ) ntohs (msg->size), GNUNET_a2s (addr, fromlen));
   /* Lookup existing receive context for this address */
-  GNUNET_CONTAINER_heap_iterate (plugin->defrag_ctxs, &find_receive_context,
-      &frc);
+  GNUNET_CONTAINER_heap_iterate (plugin->defrag_ctxs,
+      &find_receive_context, &frc);
   now = GNUNET_TIME_absolute_get ();
   d_ctx = frc.rc;
 
@@ -2248,7 +2302,7 @@ udp_select_read (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *rsock)
   }
   msg = (const struct GNUNET_MessageHeader *) buf;
 
-  LOG(GNUNET_ERROR_TYPE_ERROR,
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
       "UDP received %u-byte message from `%s' type %u\n", (unsigned int ) size,
       GNUNET_a2s ((const struct sockaddr * ) &addr, fromlen),
       ntohs (msg->type));
@@ -2261,6 +2315,9 @@ udp_select_read (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *rsock)
 
   GNUNET_STATISTICS_update (plugin->env->stats, "# UDP, total, bytes, received",
       size, GNUNET_NO);
+
+
+
 
   switch (ntohs (msg->type))
   {
@@ -2508,7 +2565,7 @@ udp_select_send (struct Plugin *plugin, struct GNUNET_NETWORK_Handle *sock)
   else
   {
     /* Success */
-    LOG(GNUNET_ERROR_TYPE_ERROR,
+    LOG(GNUNET_ERROR_TYPE_DEBUG,
         "UDP transmitted %u-byte message to  `%s' `%s' (%d: %s)\n",
         (unsigned int ) (udpw->msg_size), GNUNET_i2s (&udpw->session->target),
         GNUNET_a2s (a, slen), (int ) sent,
