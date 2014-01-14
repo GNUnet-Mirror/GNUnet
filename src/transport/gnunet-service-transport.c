@@ -621,7 +621,6 @@ plugin_env_session_start (void *cls, struct GNUNET_HELLO_Address *address,
     struct Session *session, const struct GNUNET_ATS_Information *ats,
     uint32_t ats_count)
 {
-  int inbound;
   if (NULL == address)
   {
     GNUNET_break(0);
@@ -633,15 +632,11 @@ plugin_env_session_start (void *cls, struct GNUNET_HELLO_Address *address,
     return;
   }
 
-  if (GNUNET_HELLO_ADDRESS_INFO_INBOUND
-      == (address->local_info & GNUNET_HELLO_ADDRESS_INFO_INBOUND))
-    inbound = GNUNET_YES;
-  else
-    inbound = GNUNET_NO;
-
   GNUNET_log(GNUNET_ERROR_TYPE_INFO,
       "Notification from plugin `%s' about new %ssession %p from peer `%s' address `%s'\n",
-      address->transport_name, (GNUNET_YES == inbound) ? "inbound " : "",
+      address->transport_name,
+      GNUNET_HELLO_address_check_option (address,
+          GNUNET_HELLO_ADDRESS_INFO_INBOUND) ? "inbound " : "",
       session, GNUNET_i2s (&address->peer), GST_plugins_a2s (address));
   GST_ats_add_address (address, session, ats, ats_count);
 }

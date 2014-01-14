@@ -1444,14 +1444,6 @@ udp_plugin_lookup_session (void *cls,
   return NULL ;
 }
 
-static int
-udp_address_is_inbound (const struct GNUNET_HELLO_Address *address)
-{
-  if (GNUNET_HELLO_ADDRESS_INFO_INBOUND == (address->local_info & GNUNET_HELLO_ADDRESS_INFO_INBOUND))
-    return GNUNET_YES;
-  else
-   return GNUNET_NO;
-}
 
 static struct Session *
 udp_plugin_create_session (void *cls,
@@ -1495,7 +1487,7 @@ udp_plugin_create_session (void *cls,
     return NULL ; /* protocol not supported or address invalid */
   LOG(GNUNET_ERROR_TYPE_ERROR,
       "Creating new %s session %p for peer `%s' address `%s'\n",
-      (GNUNET_YES == udp_address_is_inbound(address)) ? "inbound" : "outbound",
+      GNUNET_HELLO_address_check_option (address, GNUNET_HELLO_ADDRESS_INFO_INBOUND) ? "inbound" : "outbound",
       s, GNUNET_i2s (&address->peer),
       udp_address_to_string(NULL,address->address,address->address_length));
   GNUNET_assert(

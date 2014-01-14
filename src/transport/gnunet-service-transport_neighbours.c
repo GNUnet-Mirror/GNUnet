@@ -2292,25 +2292,29 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
     GNUNET_ATS_address_destroyed (GST_ats, address, NULL);
     return;
   }
-  if ((NULL == session) && (0 == address->address_length))
+  if ((NULL == session) &&
+      (GNUNET_HELLO_address_check_option (address, GNUNET_HELLO_ADDRESS_INFO_INBOUND)))
   {
-    GNUNET_break (0);
-    if (strlen (address->transport_name) > 0)
-      GNUNET_ATS_address_destroyed (GST_ats, address, NULL);
+    /* This is a inbound address and we do not have a session to use! */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Inbound address without session `%s'! Destroying address...\n",
+                GST_plugins_a2s (address));
+    GNUNET_ATS_address_destroyed (GST_ats, address, NULL);
     return;
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "ATS tells us to switch to %s address '%s' session %p for "
-              "peer `%s' in state %s/%d (quota in/out %u %u )\n",
-              (GNUNET_HELLO_ADDRESS_INFO_INBOUND ==  (GNUNET_HELLO_ADDRESS_INFO_INBOUND & address->local_info)) ? "inbound" : "",
-              GST_plugins_a2s (address),
-              session,
-              GNUNET_i2s (peer),
-              GNUNET_TRANSPORT_p2s (n->state),
-              n->send_connect_ack,
-              ntohl (bandwidth_in.value__),
-              ntohl (bandwidth_out.value__));
+    "ATS tells us to switch to %s address '%s' session %p for "
+    "peer `%s' in state %s/%d (quota in/out %u %u )\n",
+    GNUNET_HELLO_address_check_option (address,
+        GNUNET_HELLO_ADDRESS_INFO_INBOUND) ? "inbound" : "",
+    GST_plugins_a2s (address),
+    session,
+    GNUNET_i2s (peer),
+    GNUNET_TRANSPORT_p2s (n->state),
+    n->send_connect_ack,
+    ntohl (bandwidth_in.value__),
+    ntohl (bandwidth_out.value__));
 
   if (NULL == session)
   {
