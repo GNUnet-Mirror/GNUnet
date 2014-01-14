@@ -106,7 +106,8 @@ GNUNET_HELLO_address_copy (const struct GNUNET_HELLO_Address *address)
 {
   return GNUNET_HELLO_address_allocate (&address->peer, address->transport_name,
                                         address->address,
-                                        address->address_length, 0);
+                                        address->address_length,
+                                        address->local_info);
 }
 
 
