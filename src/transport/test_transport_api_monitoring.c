@@ -84,6 +84,9 @@ static int p1_c = GNUNET_NO;
 
 static int p2_c = GNUNET_NO;
 
+static int p1_c_notify = GNUNET_NO;
+
+static int p2_c_notify = GNUNET_NO;
 
 static void
 end ()
@@ -101,6 +104,11 @@ end ()
     GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
   th = NULL;
 
+  GNUNET_TRANSPORT_TESTING_stop_peer (tth, p1);
+  p1 = NULL;
+  GNUNET_TRANSPORT_TESTING_stop_peer (tth, p2);
+  p2 = NULL;
+
   if (NULL != pmc_p1)
   {
     GNUNET_TRANSPORT_monitor_peers_cancel (pmc_p1);
@@ -112,10 +120,7 @@ end ()
     pmc_p2 = NULL;
   }
 
-  GNUNET_TRANSPORT_TESTING_stop_peer (tth, p1);
-  p1 = NULL;
-  GNUNET_TRANSPORT_TESTING_stop_peer (tth, p2);
-  p2 = NULL;
+
 
   ok = 0;
 }
@@ -265,6 +270,16 @@ sendtask (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                                p1);
 }
 
+static void done ()
+{
+  if ((GNUNET_YES == p1_c) && (GNUNET_YES == p2_c) && p1_c_notify && p2_c_notify)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Both peers state to be connected\n");
+    ok = 0;
+    end();
+  }
+}
+
 
 static void
 notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
@@ -276,9 +291,15 @@ notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
   struct PeerContext *t = NULL;
 
   if (0 == memcmp (peer, &p1->id, sizeof (struct GNUNET_PeerIdentity)))
+  {
+    p1_c_notify = GNUNET_YES;
     t = p1;
+  }
   if (0 == memcmp (peer, &p2->id, sizeof (struct GNUNET_PeerIdentity)))
+  {
+    p2_c_notify = GNUNET_YES;
     t = p2;
+  }
   GNUNET_assert (t != NULL);
 
   char *ps = GNUNET_strdup (GNUNET_i2s (&p->id));
@@ -286,6 +307,8 @@ notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Peer %u (`%4s'): peer %u (`%s') connected to me!\n", p->no, ps,
               t->no, GNUNET_i2s (peer));
+  if (p1_c_notify && p2_c_notify)
+    GNUNET_SCHEDULER_add_now(&done, NULL);
   GNUNET_free (ps);
 }
 
@@ -349,15 +372,6 @@ start_cb (struct PeerContext *p, void *cls)
 
 }
 
-static void done ()
-{
-  if ((GNUNET_YES == p1_c) && (GNUNET_YES == p2_c))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Both peers state to be connected\n");
-    ok = 0;
-    end();
-  }
-}
 
 static void monitor1_cb (void *cls,
                         const struct GNUNET_PeerIdentity *peer,
