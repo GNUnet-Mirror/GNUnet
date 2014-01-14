@@ -160,6 +160,17 @@ GNUNET_HELLO_address_cmp (const struct GNUNET_HELLO_Address *a1,
 size_t
 GNUNET_HELLO_address_get_size (const struct GNUNET_HELLO_Address *address);
 
+/**
+ * Check if an address has a local option set
+ *
+ * @param address the address to check
+ * @param option the respective option to check for
+ * @return GNUNET_YES or GNUNET_NO
+ */
+int
+GNUNET_HELLO_address_check_option (const struct GNUNET_HELLO_Address * address,
+    enum GNUNET_HELLO_AddressInfo option);
+
 
 /**
  * Free an address.
