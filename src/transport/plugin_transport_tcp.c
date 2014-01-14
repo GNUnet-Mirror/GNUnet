@@ -817,7 +817,7 @@ tcp_disconnect_session (void *cls, struct Session *session)
     GNUNET_SERVER_client_drop (session->client);
     session->client = NULL;
   }
-  GNUNET_HELLO_address_free(session->address);
+  GNUNET_HELLO_address_free (session->address);
   GNUNET_assert(NULL == session->transmit_handle);
   GNUNET_free(session);
   return GNUNET_OK;
@@ -1504,7 +1504,6 @@ tcp_plugin_get_session (void *cls, const struct GNUNET_HELLO_Address *address)
 
   session = create_session (plugin, address,
       GNUNET_SERVER_connect_socket (plugin->server, sa), GNUNET_NO);
-  session->address = GNUNET_HELLO_address_copy (address);
   session->ats_address_network_type = (enum GNUNET_ATS_Network_Type) ntohl (
       ats.value);
   GNUNET_break(session->ats_address_network_type != GNUNET_ATS_NET_UNSPECIFIED);
