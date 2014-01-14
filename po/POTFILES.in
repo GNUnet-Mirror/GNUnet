@@ -26,7 +26,9 @@ src/conversation/conversation_api_call.c
 src/conversation/gnunet-conversation.c
 src/conversation/gnunet-conversation-test.c
 src/conversation/gnunet-helper-audio-playback.c
+src/conversation/gnunet-helper-audio-playback-gst.c
 src/conversation/gnunet-helper-audio-record.c
+src/conversation/gnunet-helper-audio-record-gst.c
 src/conversation/gnunet-service-conversation.c
 src/conversation/microphone.c
 src/conversation/plugin_gnsrecord_conversation.c
@@ -246,6 +248,7 @@ src/scalarproduct/scalarproduct_api.c
 src/secretsharing/gnunet-secretsharing-profiler.c
 src/secretsharing/gnunet-service-secretsharing.c
 src/secretsharing/secretsharing_api.c
+src/secretsharing/secretsharing_common.c
 src/set/gnunet-service-set.c
 src/set/gnunet-service-set_intersection.c
 src/set/gnunet-service-set_union.c
@@ -259,6 +262,7 @@ src/statistics/gnunet-statistics.c
 src/statistics/statistics_api.c
 src/template/gnunet-service-template.c
 src/template/gnunet-template.c
+src/testbed/generate-underlay-topology.c
 src/testbed/gnunet-daemon-testbed-blacklist.c
 src/testbed/gnunet-daemon-testbed-underlay.c
 src/testbed/gnunet-helper-testbed.c
@@ -290,6 +294,7 @@ src/testbed/testbed_api_topology.c
 src/testbed/testbed_api_underlay.c
 src/testbed/testbed_logger_api.c
 src/testing/gnunet-testing.c
+src/testing/list-keys.c
 src/testing/testing.c
 src/topology/friends.c
 src/topology/gnunet-daemon-topology.c
@@ -319,10 +324,10 @@ src/transport/plugin_transport_udp_broadcasting.c
 src/transport/plugin_transport_udp.c
 src/transport/plugin_transport_unix.c
 src/transport/plugin_transport_wlan.c
-src/transport/transport_api_address_lookup.c
 src/transport/transport_api_address_to_string.c
 src/transport/transport_api_blacklist.c
 src/transport/transport_api.c
+src/transport/transport_api_monitoring.c
 src/transport/transport-testing.c
 src/tun/regex.c
 src/tun/tun.c
@@ -354,7 +359,9 @@ src/util/getopt_helpers.c
 src/util/gnunet-config.c
 src/util/gnunet-config-diff.c
 src/util/gnunet-ecc.c
+src/util/gnunet-helper-w32-console.c
 src/util/gnunet-resolver.c
+src/util/gnunet-scrypt.c
 src/util/gnunet-service-resolver.c
 src/util/gnunet-uri.c
 src/util/helper.c
