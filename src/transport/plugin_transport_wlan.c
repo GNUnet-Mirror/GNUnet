@@ -1037,6 +1037,7 @@ free_macendpoint (struct MacEndpoint *endpoint)
     GNUNET_SCHEDULER_cancel (endpoint->timeout_task);
     endpoint->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   }
+  GNUNET_HELLO_address_free (endpoint->address);
   GNUNET_free (endpoint);
 }
 
@@ -1556,7 +1557,9 @@ handle_helper_message (void *cls, void *client,
 	 mac_to_string (&rxinfo->frame.addr2));
     wa.mac = rxinfo->frame.addr2;
     wa.options = htonl (0);
-    address = GNUNET_HELLO_address_allocate (NULL, PLUGIN_NAME, &wa,
+    struct GNUNET_PeerIdentity dummy;
+    memset (&dummy, '\0', sizeof (dummy));
+    address = GNUNET_HELLO_address_allocate (&dummy, PLUGIN_NAME, &wa,
         sizeof (struct WlanAddress), GNUNET_HELLO_ADDRESS_INFO_NONE);
     mas.endpoint = create_macendpoint (plugin, address);
     GNUNET_HELLO_address_free (address);

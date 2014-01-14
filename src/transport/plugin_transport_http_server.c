@@ -1144,6 +1144,7 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
   else
   {
     /* create new session */
+    addr = NULL;
     switch (conn_info->client_addr->sa_family)
     {
     case (AF_INET):
@@ -1185,6 +1186,7 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
                      http_common_plugin_address_to_string (NULL,
                                                            plugin->protocol,
                                                            addr, addr_len));
+    GNUNET_free_non_null (addr);
   }
   sc = GNUNET_new (struct ServerConnection);
   if (conn_info->client_addr->sa_family == AF_INET)
