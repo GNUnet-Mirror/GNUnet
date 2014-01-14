@@ -117,6 +117,8 @@ struct Session
    */
   struct PendingRequest *pr_tail;
 
+  struct GNUNET_HELLO_Address *address;
+
   /**
    * To whom are we talking to.
    */
@@ -191,10 +193,7 @@ notify_distance_change (struct Session *session)
   ats.type = htonl ((uint32_t) GNUNET_ATS_QUALITY_NET_DISTANCE);
   ats.value = htonl (session->distance);
   plugin->env->update_address_metrics (plugin->env->cls,
-				       &session->sender,
-				       NULL, 0,
-				       session,
-				       &ats, 1);
+      session->address, session, &ats, 1);
 }
 
 
@@ -224,14 +223,10 @@ unbox_cb (void *cls,
        ntohs (message->size),
        GNUNET_i2s (&session->sender));
 
-  plugin->env->receive (plugin->env->cls,
-			&session->sender,
-                        message,
-			session, "", 0);
+  plugin->env->receive (plugin->env->cls, session->address, session,
+                        message);
   plugin->env->update_address_metrics (plugin->env->cls,
-                                       &session->sender, NULL,
-                                       0, session,
-                                       &ats, 1);
+      session->address, session, &ats, 1);
   return GNUNET_OK;
 }
 
@@ -285,13 +280,9 @@ handle_dv_message_received (void *cls,
        ntohs (msg->type),
        ntohs (msg->size),
        GNUNET_i2s (sender));
-  plugin->env->receive (plugin->env->cls, sender,
-                        msg,
-                        session, "", 0);
+  plugin->env->receive (plugin->env->cls, session->address, session, msg);
   plugin->env->update_address_metrics (plugin->env->cls,
-				       sender, "",
-                                       0, session,
-                                       &ats, 1);
+      session->address, session, &ats, 1);
 }
 
 
@@ -335,6 +326,8 @@ handle_dv_connect (void *cls,
   }
 
   session = GNUNET_new (struct Session);
+  session->address = GNUNET_HELLO_address_allocate (peer, PLUGIN_NAME,
+      NULL, 0, GNUNET_HELLO_ADDRESS_INFO_NONE);
   session->sender = *peer;
   session->plugin = plugin;
   session->distance = distance;
@@ -356,9 +349,7 @@ handle_dv_connect (void *cls,
   ats[1].type = htonl (GNUNET_ATS_NETWORK_TYPE);
   ats[1].value = htonl ((uint32_t) network);
   session->active = GNUNET_YES;
-  plugin->env->session_start (plugin->env->cls, peer,
-                              PLUGIN_NAME,
-                              NULL, 0,
+  plugin->env->session_start (plugin->env->cls, session->address,
                               session, ats, 2);
 }
 
@@ -440,6 +431,7 @@ free_session (struct Session *session)
                          pr->size, 0);
     GNUNET_free (pr);
   }
+  GNUNET_HELLO_address_free (session->address);
   GNUNET_free (session);
 }
 
