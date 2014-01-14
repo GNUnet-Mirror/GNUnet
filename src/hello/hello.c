@@ -312,6 +312,7 @@ GNUNET_HELLO_iterate_addresses (const struct GNUNET_HELLO_Message *msg,
     address.address = &inptr[esize - alen];
     address.address_length = alen;
     address.transport_name = inptr;
+    address.local_info = GNUNET_HELLO_ADDRESS_INFO_NONE;
     iret = it (it_cls, &address, GNUNET_TIME_absolute_ntoh (expire));
     if (iret == GNUNET_SYSERR)
     {
