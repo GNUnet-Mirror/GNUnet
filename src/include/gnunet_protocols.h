@@ -1319,8 +1319,6 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_VALIDATION_RESPONSE 387
 
-
-
 /*******************************************************************************
  * FS-PUBLISH-HELPER IPC Messages
  ******************************************************************************/

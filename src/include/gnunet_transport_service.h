@@ -206,7 +206,28 @@ enum GNUNET_TRANSPORT_PeerState
   GNUNET_TRANSPORT_PS_DISCONNECT_FINISHED
 };
 
+enum GNUNET_TRANSPORT_ValidationState
+{
+  /**
+   * Fresh validation entry
+   */
+  GNUNET_TRANSPORT_VS_NEW,
 
+  /**
+   * Updated validation entry
+   */
+  GNUNET_TRANSPORT_VS_UPDATE,
+
+  /**
+   * Timeout for validation entry
+   */
+  GNUNET_TRANSPORT_VS_TIMEOUT,
+
+  /**
+   * Validation entry is removed
+   */
+  GNUNET_TRANSPORT_VS_REMOVE,
+};
 
 /**
  * Function called by the transport for each received message.
@@ -319,10 +340,12 @@ typedef void (*GNUNET_TRANSPORT_PeerIterateCallback) (void *cls,
  *
  */
 typedef void (*GNUNET_TRANSPORT_ValidationIterateCallback) (void *cls,
-                                    const struct GNUNET_PeerIdentity *peer,
-                                    const struct GNUNET_HELLO_Address *address,
-                                    struct GNUNET_TIME_Absolute valid_until,
-                                    struct GNUNET_TIME_Absolute next_validation);
+    const struct GNUNET_PeerIdentity *peer,
+    const struct GNUNET_HELLO_Address *address,
+    struct GNUNET_TIME_Absolute last_validation,
+    struct GNUNET_TIME_Absolute valid_until,
+    struct GNUNET_TIME_Absolute next_validation,
+    enum GNUNET_TRANSPORT_ValidationState state);
 
 
 
@@ -601,7 +624,7 @@ GNUNET_TRANSPORT_address_to_string_cancel (struct
  * @param state the state
  */
 const char *
-GNUNET_TRANSPORT_p2s (enum GNUNET_TRANSPORT_PeerState state);
+GNUNET_TRANSPORT_ps2s (enum GNUNET_TRANSPORT_PeerState state);
 
 
 /**
@@ -612,6 +635,16 @@ GNUNET_TRANSPORT_p2s (enum GNUNET_TRANSPORT_PeerState state);
  */
 int
 GNUNET_TRANSPORT_is_connected (enum GNUNET_TRANSPORT_PeerState state);
+
+
+/**
+ * Convert validation state to human-readable string.
+ *
+ * @param state the state value
+ * @return corresponding string
+ */
+const char *
+GNUNET_TRANSPORT_vs2s (enum GNUNET_TRANSPORT_ValidationState state);
 
 
 /**
