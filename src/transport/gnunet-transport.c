@@ -89,6 +89,11 @@ static int benchmark_receive;
 static int iterate_connections;
 
 /**
+ * Option -d.
+ */
+static int iterate_validation;
+
+/**
  * Option -a.
  */
 static int iterate_all;
@@ -156,7 +161,9 @@ static struct GNUNET_CONTAINER_MultiPeerMap *monitored_peers;
 /**
  *
  */
-struct GNUNET_TRANSPORT_PeerMonitoringContext *pic;
+static struct GNUNET_TRANSPORT_PeerMonitoringContext *pic;
+
+static struct GNUNET_TRANSPORT_ValidationMonitoringContext *vic;
 
 /**
  * Identity of the peer we transmit to / connect to.
@@ -268,6 +275,11 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     GNUNET_TRANSPORT_monitor_peers_cancel (pic);
     pic = NULL;
+  }
+  if (NULL != vic)
+  {
+    GNUNET_TRANSPORT_monitor_validation_entries_cancel (vic);
+    vic = NULL;
   }
   if (NULL != th)
   {
@@ -428,6 +440,17 @@ fail_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   tstc->tsk = GNUNET_SCHEDULER_NO_TASK;
   display_test_result (tstc, GNUNET_NO);
+}
+
+void process_validation_cb (void *cls,
+    const struct GNUNET_PeerIdentity *peer,
+    const struct GNUNET_HELLO_Address *address,
+    struct GNUNET_TIME_Absolute last_validation,
+    struct GNUNET_TIME_Absolute valid_until,
+    struct GNUNET_TIME_Absolute next_validation,
+    enum GNUNET_TRANSPORT_ValidationState state)
+{
+  GNUNET_break (0);
 }
 
 /**
@@ -694,7 +717,7 @@ print_info (const struct GNUNET_PeerIdentity *id, const char *transport,
         GNUNET_i2s (id),
         (NULL == transport) ? "<none>" : transport,
         (NULL == transport) ? "<none>" : addr,
-        GNUNET_TRANSPORT_p2s (state),
+        GNUNET_TRANSPORT_ps2s (state),
         GNUNET_STRINGS_absolute_time_to_string (state_timeout));
   }
   else
@@ -951,7 +974,7 @@ testservice_task (void *cls, int result)
   }
 
   counter = benchmark_send + benchmark_receive + iterate_connections
-      + monitor_connections + monitor_connects + try_connect;
+      + monitor_connections + monitor_connects + try_connect + iterate_validation;
 
   if (1 < counter)
   {
@@ -1060,6 +1083,11 @@ testservice_task (void *cls, int result)
     pic = GNUNET_TRANSPORT_monitor_peers (cfg, (NULL == cpid) ? NULL : &pid,
         GNUNET_NO, TIMEOUT, &process_peer_monitoring_cb, (void *) cfg);
   }
+  else if (iterate_validation) /* -d: Print information about validations */
+  {
+    vic = GNUNET_TRANSPORT_monitor_validation_entries (cfg, (NULL == cpid) ? NULL : &pid,
+        GNUNET_YES, TIMEOUT, &process_validation_cb, (void *) cfg);
+  }
   else if (monitor_connects) /* -e : Monitor (dis)connect events continuously */
   {
     monitor_connect_counter = 0;
@@ -1120,6 +1148,9 @@ main (int argc, char * const *argv)
               0, &GNUNET_GETOPT_set_one, &benchmark_receive }, { 'C', "connect",
               NULL, gettext_noop ("connect to a peer"), 0,
               &GNUNET_GETOPT_set_one, &try_connect },
+          { 'd', "validation", NULL,
+              gettext_noop ("print information for all pending validations "),
+              0, &GNUNET_GETOPT_set_one, &iterate_validation },
           { 'i', "information", NULL,
               gettext_noop ("provide information about all current connections (once)"),
               0, &GNUNET_GETOPT_set_one, &iterate_connections },

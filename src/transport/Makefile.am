@@ -408,6 +408,7 @@ check_PROGRAMS = \
  $(BT_TIMEOUT_TEST) \
  test_transport_api_multi \
  test_transport_api_monitoring \
+ test_transport_api_monitoring_validation \
  test_transport_blacklisting_no_bl \
  test_transport_blacklisting_outbound_bl_full \
  test_transport_blacklisting_outbound_bl_plugin \
@@ -473,6 +474,7 @@ TESTS = \
  $(BT_TIMEOUT_TEST) \
  test_transport_api_multi \
  test_transport_api_monitoring \
+ test_transport_api_monitoring_validation \
  test_transport_blacklisting_no_bl \
  test_transport_blacklisting_outbound_bl_full \
  test_transport_blacklisting_outbound_bl_plugin \
@@ -1100,10 +1102,17 @@ test_transport_api_multi_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/transport/libgnunettransporttesting.la
 
-
 test_transport_api_monitoring_SOURCES = \
  test_transport_api_monitoring.c
 test_transport_api_monitoring_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/transport/libgnunettransporttesting.la
+
+test_transport_api_monitoring_validation_SOURCES = \
+ test_transport_api_monitoring_validation.c
+test_transport_api_monitoring_validation_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
@@ -1207,6 +1216,8 @@ test_transport_api_bluetooth_peer1.conf\
 test_transport_api_bluetooth_peer2.conf\
 test_transport_api_monitoring_peer1.conf\
 test_transport_api_monitoring_peer2.conf\
+test_transport_api_monitoring_validation_peer1.conf\
+test_transport_api_monitoring_validation_peer2.conf\
 test_transport_defaults.conf\
 test_transport_startonly.conf\
 test_transport_api_disconnect_tcp_peer1.conf\

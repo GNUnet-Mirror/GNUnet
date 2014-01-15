@@ -218,6 +218,11 @@ struct ValidationEntry
   struct GNUNET_TIME_Absolute send_time;
 
   /**
+   * At what time do we send the next validation request (PING)?
+   */
+  struct GNUNET_TIME_Absolute next_validation;
+
+  /**
    * Until when is this address valid?
    * ZERO if it is not currently considered valid.
    */
@@ -243,6 +248,10 @@ struct ValidationEntry
    */
   struct GNUNET_TIME_Relative latency;
 
+  /**
+   * Current state of this validation entry
+   */
+  enum GNUNET_TRANSPORT_ValidationState state;
   /**
    * Challenge number we used.
    */
@@ -336,6 +345,9 @@ static unsigned int validations_fast_start_threshold;
  */
 static struct GNUNET_TIME_Absolute validation_next;
 
+static GST_ValidationChangedCallback validation_entry_changed_cb;
+static void *validation_entry_changed_cb_cls;
+
 /**
  * Context for the validation entry match function.
  */
@@ -377,6 +389,24 @@ validation_entry_match (void *cls, const struct GNUNET_PeerIdentity * key, void 
   return GNUNET_YES;
 }
 
+static void
+validation_entry_changed (struct ValidationEntry *ve, enum GNUNET_TRANSPORT_ValidationState state)
+{
+  char *t_sent = GNUNET_strdup(GNUNET_STRINGS_absolute_time_to_string(ve->send_time));
+  char *t_valid = GNUNET_strdup(GNUNET_STRINGS_absolute_time_to_string(ve->valid_until));
+  char *t_next = GNUNET_strdup(GNUNET_STRINGS_absolute_time_to_string(ve->next_validation));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Validation entry changed for peer `%s' address `%s':\n\tSent:  %s\n\tValid: %s\n\tNext:  %s\n",
+      GNUNET_i2s(&ve->pid), GST_plugins_a2s(ve->address),
+      t_sent, t_valid, t_next);
+  ve->state = state;
+
+  GNUNET_free (t_sent);
+  GNUNET_free (t_valid);
+  GNUNET_free (t_next);
+  validation_entry_changed_cb (validation_entry_changed_cb_cls, &ve->pid,
+      ve->address, ve->send_time, ve->valid_until, ve->next_validation, state);
+}
+
 
 /**
  * Iterate over validation entries and free them.
@@ -390,6 +420,12 @@ static int
 cleanup_validation_entry (void *cls, const struct GNUNET_PeerIdentity * key, void *value)
 {
   struct ValidationEntry *ve = value;
+
+  ve->next_validation = GNUNET_TIME_absolute_get_zero_();
+  ve->valid_until = GNUNET_TIME_UNIT_ZERO_ABS;
+
+  /* Notify about deleted entry */
+  validation_entry_changed (ve, GNUNET_TRANSPORT_VS_REMOVE);
 
   if (NULL != ve->bc)
   {
@@ -586,6 +622,8 @@ transmit_ping_if_allowed (void *cls,
 	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	              "Validation started, %u validation processes running\n",
 	              validations_running);
+    /*  Notify about PING sent */
+    validation_entry_changed (ve, GNUNET_TRANSPORT_VS_UPDATE);
   }
 }
 
@@ -631,6 +669,7 @@ revalidate_address (void *cls,
                 GST_plugins_a2s (ve->address));
     ve->revalidation_task =
         GNUNET_SCHEDULER_add_delayed (delay, &revalidate_address, ve);
+    ve->next_validation =  GNUNET_TIME_absolute_add(GNUNET_TIME_absolute_get(), delay);
     return;
   }
   blocked_for = GNUNET_TIME_absolute_get_remaining(validation_next);
@@ -645,6 +684,7 @@ revalidate_address (void *cls,
                 GST_plugins_a2s (ve->address));
     ve->revalidation_task =
       GNUNET_SCHEDULER_add_delayed (blocked_for, &revalidate_address, ve);
+    ve->next_validation =  GNUNET_TIME_absolute_add(GNUNET_TIME_absolute_get(), blocked_for);
     return;
   }
   ve->revalidation_block = GNUNET_TIME_relative_to_absolute (canonical_delay);
@@ -675,6 +715,7 @@ revalidate_address (void *cls,
               GST_plugins_a2s (ve->address));
   ve->revalidation_task =
       GNUNET_SCHEDULER_add_delayed (delay, &revalidate_address, ve);
+  ve->next_validation =  GNUNET_TIME_absolute_add(GNUNET_TIME_absolute_get(), delay);
 
   /* start PINGing by checking blacklist */
   GNUNET_STATISTICS_update (GST_stats,
@@ -730,6 +771,7 @@ find_validation_entry (const struct GNUNET_CRYPTO_EddsaPublicKey *public_key,
   GNUNET_CONTAINER_multipeermap_put (validation_map, &address->peer,
                                      ve,
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+  validation_entry_changed (ve, GNUNET_TRANSPORT_VS_NEW);
   ve->expecting_pong = GNUNET_NO;
   return ve;
 }
@@ -779,8 +821,10 @@ add_valid_address (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Starting revalidations for valid address `%s'\n",
               GST_plugins_a2s (ve->address));
+    ve->next_validation = GNUNET_TIME_absolute_get();
     ve->revalidation_task = GNUNET_SCHEDULER_add_now (&revalidate_address, ve);
   }
+  validation_entry_changed (ve, GNUNET_TRANSPORT_VS_UPDATE);
 
   ats.type = htonl (GNUNET_ATS_NETWORK_TYPE);
   ats.value = htonl (ve->network);
@@ -822,7 +866,7 @@ process_peerinfo_hello (void *cls, const struct GNUNET_PeerIdentity *peer,
  * @param max_fds maximum number of fds to use
  */
 void
-GST_validation_start (unsigned int max_fds)
+GST_validation_start (GST_ValidationChangedCallback cb, void *cb_cls, unsigned int max_fds)
 {
   /**
    * Initialization for validation throttling
@@ -840,6 +884,8 @@ GST_validation_start (unsigned int max_fds)
   validation_delay.rel_value_us = (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value_us) / (max_fds / 2);
   validations_fast_start_threshold = (max_fds / 2);
   validations_running = 0;
+  validation_entry_changed_cb = cb;
+  validation_entry_changed_cb_cls = cb_cls;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Validation uses a fast start threshold of %u connections and a delay between of %s\n ",
               validations_fast_start_threshold,
               GNUNET_STRINGS_relative_time_to_string (validation_delay,
@@ -1396,6 +1442,9 @@ GST_validation_handle_pong (const struct GNUNET_PeerIdentity *sender,
     GNUNET_break (0);
   }
 
+  /* Notify about new validity */
+  validation_entry_changed (ve, GNUNET_TRANSPORT_VS_UPDATE);
+
   /* build HELLO to store in PEERINFO */
   ve->copied = GNUNET_NO;
   hello = GNUNET_HELLO_create (&ve->public_key,
@@ -1600,5 +1649,54 @@ GST_validation_get_address_latency (const struct GNUNET_PeerIdentity *sender,
   return ve->latency;
 }
 
+/**
+ * Closure for the validation_entries_iterate function.
+ */
+struct ValidationIteratorContext
+{
+  /**
+   * Function to call on each validation entry
+   */
+  GST_ValidationChangedCallback cb;
+
+  /**
+   * Closure for 'cb'.
+   */
+  void *cb_cls;
+};
+
+static int
+validation_entries_iterate (void *cls,
+                           const struct GNUNET_PeerIdentity *key,
+                           void *value)
+{
+  struct ValidationIteratorContext *ic = cls;
+  struct ValidationEntry *ve = value;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Notifying about validation entry for peer `%s' address `%s' \n",
+      GNUNET_i2s (&ve->pid), GST_plugins_a2s (ve->address));
+  ic->cb (ic->cb_cls, &ve->pid, ve->address, ve->send_time,
+      ve->valid_until, ve->next_validation, ve->state);
+
+  return GNUNET_OK;
+}
+
+/**
+ * Iterate over all iteration entries
+ *
+ * @param cb function to call
+ * @param cb_cls closure for cb
+ */
+void
+GST_validation_iterate (GST_ValidationChangedCallback cb, void *cb_cls)
+{
+  struct ValidationIteratorContext ic;
+
+  if (NULL == validation_map)
+    return; /* can happen during shutdown */
+  ic.cb = cb;
+  ic.cb_cls = cb_cls;
+  GNUNET_CONTAINER_multipeermap_iterate (validation_map, &validation_entries_iterate, &ic);
+}
 
 /* end of file gnunet-service-transport_validation.c */

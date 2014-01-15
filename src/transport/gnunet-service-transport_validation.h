@@ -31,6 +31,26 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_hello_lib.h"
 
+/**
+ * Function called for each address (or address status change) that
+ * the validation module is aware of (for the given target).
+ *
+ * @param cls closure
+ * @param public_key public key for the peer, never NULL
+ * @param valid_until is ZERO if we never validated the address,
+ *                    otherwise a time up to when we consider it (or was) valid
+ * @param validation_block  is FOREVER if the address is for an unsupported plugin (from PEERINFO)
+ *                          is ZERO if the address is considered valid (no validation needed)
+ *                          otherwise a time in the future if we're currently denying re-validation
+ * @param address the address
+ */
+typedef void (*GST_ValidationChangedCallback) (void *cls,
+    const struct GNUNET_PeerIdentity *peer,
+    const struct GNUNET_HELLO_Address *address,
+    struct GNUNET_TIME_Absolute last_validation,
+    struct GNUNET_TIME_Absolute valid_until,
+    struct GNUNET_TIME_Absolute next_validation,
+    enum GNUNET_TRANSPORT_ValidationState state);
 
 /**
  * Start the validation subsystem.
@@ -38,7 +58,7 @@
  * @param max_fds maximum number of fds to use
  */
 void
-GST_validation_start (unsigned int max_fds);
+GST_validation_start (GST_ValidationChangedCallback cb, void *cb_cls, unsigned int max_fds);
 
 
 /**
@@ -79,6 +99,14 @@ GST_validation_get_address_latency (const struct GNUNET_PeerIdentity *sender,
                                     const struct GNUNET_HELLO_Address *address,
                                     struct Session *session);
 
+/**
+ * Iterate over all iteration entries
+ *
+ * @param cb function to call
+ * @param cb_cls closure for cb
+ */
+void
+GST_validation_iterate (GST_ValidationChangedCallback cb, void *cb_cls);
 
 /**
  * We've received a PING.  If appropriate, generate a PONG.

@@ -85,6 +85,15 @@ GST_clients_broadcast_peer_notification (const struct GNUNET_PeerIdentity *peer,
     enum GNUNET_TRANSPORT_PeerState state,
     struct GNUNET_TIME_Absolute state_timeout);
 
+void
+GST_clients_broadcast_validation_notification (
+    const struct GNUNET_PeerIdentity *peer,
+    const struct GNUNET_HELLO_Address *address,
+    struct GNUNET_TIME_Absolute last_validation,
+    struct GNUNET_TIME_Absolute valid_until,
+    struct GNUNET_TIME_Absolute next_validation,
+    enum GNUNET_TRANSPORT_ValidationState state);
+
 
 #endif
 /* end of file gnunet-service-transport_clients.h */

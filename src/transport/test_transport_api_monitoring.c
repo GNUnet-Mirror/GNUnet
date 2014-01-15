@@ -98,15 +98,20 @@ end ()
     GNUNET_SCHEDULER_cancel (send_task);
 
   if (die_task != GNUNET_SCHEDULER_NO_TASK)
+  {
     GNUNET_SCHEDULER_cancel (die_task);
+    die_task = GNUNET_SCHEDULER_NO_TASK;
+  }
 
   if (th != NULL)
     GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
   th = NULL;
 
-  GNUNET_TRANSPORT_TESTING_stop_peer (tth, p1);
+  if (NULL != p1)
+    GNUNET_TRANSPORT_TESTING_stop_peer (tth, p1);
   p1 = NULL;
-  GNUNET_TRANSPORT_TESTING_stop_peer (tth, p2);
+  if (NULL != p2)
+    GNUNET_TRANSPORT_TESTING_stop_peer (tth, p2);
   p2 = NULL;
 
   if (NULL != pmc_p1)
@@ -382,8 +387,8 @@ static void monitor1_cb (void *cls,
   if ((NULL == peer) || (NULL == p1))
     return;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Monitor 1: %s %s %s\n",
-      GNUNET_i2s (peer), GNUNET_TRANSPORT_p2s(state), GNUNET_STRINGS_absolute_time_to_string(state_timeout));
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Monitor 1: %s %s %s\n",
+      GNUNET_i2s (peer), GNUNET_TRANSPORT_ps2s(state), GNUNET_STRINGS_absolute_time_to_string(state_timeout));
   if ((0 == memcmp (peer, &p2->id, sizeof (p2->id)) &&
       (GNUNET_YES == GNUNET_TRANSPORT_is_connected(state)) &&
       GNUNET_NO == p1_c) )
@@ -404,8 +409,8 @@ static void monitor2_cb (void *cls,
   if ((NULL == peer) || (NULL == p2))
     return;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Monitor 2: %s %s %s\n",
-      GNUNET_i2s (peer), GNUNET_TRANSPORT_p2s (state), GNUNET_STRINGS_absolute_time_to_string(state_timeout));
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Monitor 2: %s %s %s\n",
+      GNUNET_i2s (peer), GNUNET_TRANSPORT_ps2s (state), GNUNET_STRINGS_absolute_time_to_string(state_timeout));
   if ((0 == memcmp (peer, &p1->id, sizeof (p1->id)) &&
       (GNUNET_YES == GNUNET_TRANSPORT_is_connected(state)) &&
       GNUNET_NO == p2_c) )
@@ -432,13 +437,14 @@ run (void *cls, char *const *args, const char *cfgfile,
                                             &notify_disconnect, &start_cb,
                                             NULL);
   pmc_p1 = GNUNET_TRANSPORT_monitor_peers (p1->cfg, NULL, GNUNET_NO, GNUNET_TIME_UNIT_FOREVER_REL, &monitor1_cb, NULL);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer 1 started\n");
 
   p2 = GNUNET_TRANSPORT_TESTING_start_peer (tth, cfg_file_p2, 2,
                                             &notify_receive, &notify_connect,
                                             &notify_disconnect, &start_cb,
                                             NULL);
   pmc_p2 = GNUNET_TRANSPORT_monitor_peers (p2->cfg, NULL, GNUNET_NO, GNUNET_TIME_UNIT_FOREVER_REL, &monitor2_cb, NULL);
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer 1 started\n");
   if ((p1 == NULL) || (p2 == NULL))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Fail! Could not start peers!\n");

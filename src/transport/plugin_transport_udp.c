@@ -1308,7 +1308,7 @@ session_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       "Session %p was idle for %s, disconnecting\n", s,
       GNUNET_STRINGS_relative_time_to_string (UDP_SESSION_TIME_OUT, GNUNET_YES));
   /* call session destroy function */
-  udp_disconnect_session (s->plugin, s);
+  udp_disconnect_session (plugin, s);
 }
 
 /**

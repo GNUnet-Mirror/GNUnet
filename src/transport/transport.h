@@ -341,15 +341,20 @@ struct AddressLookupMessage
 };
 
 
-#if 0
 /**
- * Message from the library to the transport service
- * asking for human readable addresses known for a peer.
+ * Message from the transport service to the library containing information
+ * about a peer. Information contained are:
+ * - current address used to communicate with this peer
+ * - state
+ * - state timeout
+ *
+ * Memory layout:
+ * [AddressIterateResponseMessage][address[addrlen]][transportname[pluginlen]]
  */
-struct PeerLookupMessage
+struct ValidationIterateResponseMessage
 {
   /**
-   * Type will be GNUNET_MESSAGE_TYPE_TRANSPORT_PEER_ADDRESS_LOOKUP
+   * Type is #GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_VALIDATION_RESPONSE
    */
   struct GNUNET_MessageHeader header;
 
@@ -359,26 +364,45 @@ struct PeerLookupMessage
   uint32_t reserved;
 
   /**
-   * timeout to give up.  FIXME: remove in the future.
-   */
-  struct GNUNET_TIME_RelativeNBO timeout;
-
-  /**
-   * The identity of the peer to look up.
+   * Peer identity
    */
   struct GNUNET_PeerIdentity peer;
-};
-#endif
 
+  /**
+   * Local info about the address
+   */
+  uint32_t local_address_info GNUNET_PACKED;
+
+  /**
+   * Address length
+   */
+  uint32_t addrlen GNUNET_PACKED;
+
+  /**
+   * Length of the plugin name
+   */
+  uint32_t pluginlen GNUNET_PACKED;
+
+  /**
+   * State
+   */
+  uint32_t state GNUNET_PACKED;
+
+  struct GNUNET_TIME_AbsoluteNBO last_validation;
+
+  struct GNUNET_TIME_AbsoluteNBO valid_until;
+
+  struct GNUNET_TIME_AbsoluteNBO next_validation;
+};
 
 /**
  * Message from the library to the transport service
  * asking for binary addresses known for a peer.
  */
-struct PeerMonitorMessage
+struct ValidationMonitorMessage
 {
   /**
-   * Type will be GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_ITERATE
+   * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_VALIDATION_REQUEST
    */
   struct GNUNET_MessageHeader header;
 
@@ -388,9 +412,28 @@ struct PeerMonitorMessage
   uint32_t one_shot;
 
   /**
-   * timeout to give up.  FIXME: remove in the future
+   * The identity of the peer to look up.
    */
-  struct GNUNET_TIME_AbsoluteNBO timeout;
+  struct GNUNET_PeerIdentity peer;
+
+};
+
+
+/**
+ * Message from the library to the transport service
+ * asking for binary addresses known for a peer.
+ */
+struct PeerMonitorMessage
+{
+  /**
+   * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PEER_REQUEST
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * One shot call or continous replies?
+   */
+  uint32_t one_shot;
 
   /**
    * The identity of the peer to look up.

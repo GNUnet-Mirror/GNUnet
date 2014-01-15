@@ -764,10 +764,40 @@ neighbours_changed_notification (void *cls,
       "Notifying about change for peer `%s' with address `%s' in state `%s' timing out at %s\n",
       GNUNET_i2s (peer),
       (NULL != address) ? GST_plugins_a2s (address) : "<none>",
-      GNUNET_TRANSPORT_p2s (state),
+      GNUNET_TRANSPORT_ps2s (state),
       GNUNET_STRINGS_absolute_time_to_string (state_timeout));
 
   GST_clients_broadcast_peer_notification (peer, address, state, state_timeout);
+}
+
+/**
+ * Function called to notify transport users that a neighbour peer changed its
+ * active address.
+ *
+ * @param cls closure
+ * @param peer peer this update is about (never NULL)
+ * @param address address, NULL on disconnect
+ * @param state current state this peer is in
+ * @param state_timeout timeout for the current state of the peer
+ * @param bandwidth_in bandwidth assigned inbound
+ * @param bandwidth_out bandwidth assigned outbound
+ */
+static void
+validation_changed_notification (void *cls,
+    const struct GNUNET_PeerIdentity *peer,
+    const struct GNUNET_HELLO_Address *address,
+    struct GNUNET_TIME_Absolute last_validation,
+    struct GNUNET_TIME_Absolute valid_until,
+    struct GNUNET_TIME_Absolute next_validation,
+    enum GNUNET_TRANSPORT_ValidationState state)
+{
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+      "Notifying about change for for validation entry for peer `%s' with address `%s'\n",
+      GNUNET_i2s (peer),
+      (NULL != address) ? GST_plugins_a2s (address) : "<none>");
+
+  GST_clients_broadcast_validation_notification (peer, address,
+      last_validation, valid_until, next_validation, state);
 }
 
 /**
@@ -918,7 +948,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
       &neighbours_disconnect_notification, &neighbours_changed_notification,
       (max_fd / 3) * 2);
   GST_clients_start (GST_server);
-  GST_validation_start ((max_fd / 3));
+  GST_validation_start (&validation_changed_notification, NULL, (max_fd / 3));
 }
 
 /**
