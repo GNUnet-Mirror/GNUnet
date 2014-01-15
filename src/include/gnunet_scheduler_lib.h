@@ -235,7 +235,7 @@ GNUNET_SCHEDULER_run (GNUNET_SCHEDULER_Task task, void *task_cls);
 
 
 /**
- * Request the shutdown of a scheduler.  Marks all currently
+ * Request the shutdown of the scheduler.  Marks all currently
  * pending tasks as ready because of shutdown.  This will
  * cause all tasks to run (as soon as possible, respecting
  * priorities and prerequisite tasks).  Note that tasks
