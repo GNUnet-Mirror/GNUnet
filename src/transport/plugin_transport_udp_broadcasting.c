@@ -473,6 +473,7 @@ iface_proc (void *cls,
 {
   struct Plugin *plugin = cls;
   struct BroadcastAddress *ba;
+  struct GNUNET_ATS_Information network;
 
   if (NULL == addr)
     return GNUNET_OK;
@@ -487,11 +488,19 @@ iface_proc (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "netmask %s for interface %s %p\n ",
               GNUNET_a2s (netmask, addrlen), name, netmask);
 
+  network = plugin->env->get_address_type (plugin->env->cls, broadcast_addr, addrlen);
+  if (GNUNET_ATS_NET_LOOPBACK == ntohl(network.value))
+  {
+    /* Broadcasting on loopback does not make sense */
+    return GNUNET_YES;
+  }
+
   ba = GNUNET_new (struct BroadcastAddress);
   ba->plugin = plugin;
   ba->addr = GNUNET_malloc (addrlen);
   memcpy (ba->addr, broadcast_addr, addrlen);
   ba->addrlen = addrlen;
+
   if ( (GNUNET_YES == plugin->enable_ipv4) &&
        (NULL != plugin->sockv4) &&
        (addrlen == sizeof (struct sockaddr_in)) )
