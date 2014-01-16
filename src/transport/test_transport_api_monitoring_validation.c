@@ -18,13 +18,11 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file transport/test_transport_api.c
- * @brief base test case for transport implementations
+ * @file transport/test_transport_api_monitoring_validation.c
+ * @brief base test case for transport validation monitorung
  *
- * This test case serves as a base for tcp, udp, and udp-nat
- * transport test cases.  Based on the executable being run
- * the correct test case will be performed.  Conservation of
- * C code apparently.
+ * This test case connects two peers and monitors validation monitoring
+ * callbacks
  */
 #include "platform.h"
 #include "gnunet_transport_service.h"
@@ -520,4 +518,4 @@ main (int argc, char *argv[])
     return ok;
 }
 
-/* end of test_transport_api.c */
+/* end of test_transport_api_monitoring_validation.c */
