@@ -348,7 +348,7 @@ do_connect (void *cls,
  * @param pal_ctx our context
  */
 static void
-reconnect (struct GNUNET_TRANSPORT_PeerMonitoringContext *pal_ctx)
+reconnect_peer_ctx (struct GNUNET_TRANSPORT_PeerMonitoringContext *pal_ctx)
 {
   GNUNET_assert (GNUNET_NO == pal_ctx->one_shot);
   GNUNET_CLIENT_disconnect (pal_ctx->client);
@@ -357,6 +357,23 @@ reconnect (struct GNUNET_TRANSPORT_PeerMonitoringContext *pal_ctx)
   pal_ctx->reconnect_task = GNUNET_SCHEDULER_add_delayed (pal_ctx->backoff,
 							  &do_connect,
 							  pal_ctx);
+}
+
+/**
+ * Cut the existing connection and reconnect.
+ *
+ * @param pal_ctx our context
+ */
+static void
+reconnect_val_ctx (struct GNUNET_TRANSPORT_ValidationMonitoringContext *val_ctx)
+{
+  GNUNET_assert (GNUNET_NO == val_ctx->one_shot);
+  GNUNET_CLIENT_disconnect (val_ctx->client);
+  val_ctx->client = NULL;
+  val_ctx->backoff = GNUNET_TIME_STD_BACKOFF (val_ctx->backoff);
+  val_ctx->reconnect_task = GNUNET_SCHEDULER_add_delayed (val_ctx->backoff,
+                                                          &do_connect,
+                                                          val_ctx);
 }
 
 /**
@@ -370,7 +387,14 @@ static void
 val_response_processor (void *cls, const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_TRANSPORT_ValidationMonitoringContext *val_ctx = cls;
-  GNUNET_break (0);
+  struct ValidationIterateResponseMessage *vr_msg;
+  struct GNUNET_HELLO_Address *address;
+  const char *addr;
+  const char *transport_name;
+  size_t size;
+  size_t tlen;
+  size_t alen;
+
   if (msg == NULL)
   {
     GNUNET_break (0);
@@ -380,93 +404,87 @@ val_response_processor (void *cls, const struct GNUNET_MessageHeader *msg)
       val_ctx->cb (val_ctx->cb_cls, NULL, NULL,
           GNUNET_TIME_UNIT_ZERO_ABS, GNUNET_TIME_UNIT_ZERO_ABS,
           GNUNET_TIME_UNIT_ZERO_ABS, GNUNET_TRANSPORT_VS_TIMEOUT);
-      GNUNET_TRANSPORT_monitor_peers_cancel (val_ctx);
+      GNUNET_TRANSPORT_monitor_validation_entries_cancel (val_ctx);
     }
     else
     {
-      reconnect (val_ctx);
+      reconnect_val_ctx (val_ctx);
     }
     return;
   }
-
-  /* expect more replies */
-  GNUNET_CLIENT_receive (val_ctx->client, &val_response_processor,
-      val_ctx, GNUNET_TIME_absolute_get_remaining (val_ctx->timeout));
-
-  return;
-
-  struct ValidationIterateResponseMessage *vir_msg;
-  struct GNUNET_HELLO_Address *address;
-  const char *addr;
-  const char *transport_name;
-  uint16_t size;
-  size_t alen;
-  size_t tlen;
-#if 0
-
   size = ntohs (msg->size);
   GNUNET_break (ntohs (msg->type) ==
-      GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PEER_RESPONSE);
+      GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_VALIDATION_RESPONSE);
   if (size == sizeof (struct GNUNET_MessageHeader))
   {
     /* Done! */
-    if (pal_ctx->one_shot)
+    if (val_ctx->one_shot)
     {
-      pal_ctx->cb (pal_ctx->cb_cls, NULL, NULL,
-          GNUNET_TRANSPORT_PS_NOT_CONNECTED, GNUNET_TIME_UNIT_ZERO_ABS);
-      GNUNET_TRANSPORT_monitor_peers_cancel (pal_ctx);
+      val_ctx->cb (val_ctx->cb_cls, NULL, NULL,
+          GNUNET_TIME_UNIT_ZERO_ABS, GNUNET_TIME_UNIT_ZERO_ABS,
+          GNUNET_TIME_UNIT_ZERO_ABS, GNUNET_TRANSPORT_VS_NONE);
+      GNUNET_TRANSPORT_monitor_validation_entries_cancel (val_ctx);
     }
     else
     {
-      reconnect (pal_ctx);
+      reconnect_val_ctx (val_ctx);
     }
     return;
   }
 
-  if ((size < sizeof (struct PeerIterateResponseMessage)) ||
-      (ntohs (msg->type) !=
-          GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PEER_RESPONSE))
+  if ((size < sizeof (struct ValidationIterateResponseMessage)) ||
+      (ntohs (msg->type) != GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_VALIDATION_RESPONSE))
   {
     GNUNET_break (0);
-    if (pal_ctx->one_shot)
+    if (val_ctx->one_shot)
     {
-      pal_ctx->cb (pal_ctx->cb_cls, NULL, NULL,
-          GNUNET_TRANSPORT_PS_NOT_CONNECTED, GNUNET_TIME_UNIT_ZERO_ABS);
-      GNUNET_TRANSPORT_monitor_peers_cancel (pal_ctx);
+      val_ctx->cb (val_ctx->cb_cls, NULL, NULL,
+          GNUNET_TIME_UNIT_ZERO_ABS, GNUNET_TIME_UNIT_ZERO_ABS,
+          GNUNET_TIME_UNIT_ZERO_ABS, GNUNET_TRANSPORT_VS_NONE);
+      GNUNET_TRANSPORT_monitor_validation_entries_cancel (val_ctx);
     }
     else
     {
-      reconnect (pal_ctx);
+      reconnect_val_ctx (val_ctx);
     }
     return;
   }
 
-  pir_msg = (struct PeerIterateResponseMessage *) msg;
-  tlen = ntohl (pir_msg->pluginlen);
-  alen = ntohl (pir_msg->addrlen);
+  vr_msg = (struct ValidationIterateResponseMessage *) msg;
+  tlen = ntohl (vr_msg->pluginlen);
+  alen = ntohl (vr_msg->addrlen);
 
-  if (size != sizeof (struct PeerIterateResponseMessage) + tlen + alen)
+  if (size != sizeof (struct ValidationIterateResponseMessage) + tlen + alen)
   {
     GNUNET_break (0);
-    if (pal_ctx->one_shot)
+    if (val_ctx->one_shot)
     {
-      pal_ctx->cb (pal_ctx->cb_cls, NULL, NULL,
-          GNUNET_TRANSPORT_PS_NOT_CONNECTED, GNUNET_TIME_UNIT_ZERO_ABS);
-      GNUNET_TRANSPORT_monitor_peers_cancel (pal_ctx);
+      val_ctx->cb (val_ctx->cb_cls, NULL, NULL,
+          GNUNET_TIME_UNIT_ZERO_ABS, GNUNET_TIME_UNIT_ZERO_ABS,
+          GNUNET_TIME_UNIT_ZERO_ABS, GNUNET_TRANSPORT_VS_NONE);
+      GNUNET_TRANSPORT_monitor_validation_entries_cancel (val_ctx);
     }
     else
     {
-      reconnect (pal_ctx);
+      reconnect_val_ctx (val_ctx);
     }
     return;
   }
-
   if ( (0 == tlen) && (0 == alen) )
   {
-    /* No address available */
-    pal_ctx->cb (pal_ctx->cb_cls, &pir_msg->peer, NULL,
-        ntohl(pir_msg->state),
-        GNUNET_TIME_absolute_ntoh (pir_msg->state_timeout));
+    GNUNET_break (0);
+    if (val_ctx->one_shot)
+    {
+      val_ctx->cb (val_ctx->cb_cls, NULL, NULL,
+          GNUNET_TIME_UNIT_ZERO_ABS, GNUNET_TIME_UNIT_ZERO_ABS,
+          GNUNET_TIME_UNIT_ZERO_ABS, GNUNET_TRANSPORT_VS_NONE);
+      GNUNET_TRANSPORT_monitor_validation_entries_cancel (val_ctx);
+    }
+    else
+    {
+      reconnect_val_ctx (val_ctx);
+    }
+    return;
   }
   else
   {
@@ -475,36 +493,40 @@ val_response_processor (void *cls, const struct GNUNET_MessageHeader *msg)
       GNUNET_break (0); /* This must not happen: address without plugin */
       return;
     }
-    addr = (const char *) &pir_msg[1];
+    addr = (const char *) &vr_msg[1];
     transport_name = &addr[alen];
 
     if (transport_name[tlen - 1] != '\0')
     {
       /* Corrupt plugin name */
       GNUNET_break (0);
-      if (pal_ctx->one_shot)
+      if (val_ctx->one_shot)
       {
-        pal_ctx->cb (pal_ctx->cb_cls, NULL, NULL,
-            GNUNET_TRANSPORT_PS_NOT_CONNECTED, GNUNET_TIME_UNIT_ZERO_ABS);
-        GNUNET_TRANSPORT_monitor_peers_cancel (pal_ctx);
+        val_ctx->cb (val_ctx->cb_cls, NULL, NULL,
+            GNUNET_TIME_UNIT_ZERO_ABS, GNUNET_TIME_UNIT_ZERO_ABS,
+            GNUNET_TIME_UNIT_ZERO_ABS, GNUNET_TRANSPORT_VS_NONE);
+        GNUNET_TRANSPORT_monitor_validation_entries_cancel (val_ctx);
       }
       else
       {
-        reconnect (pal_ctx);
+        reconnect_val_ctx (val_ctx);
       }
       return;
     }
 
     /* notify client */
-    address = GNUNET_HELLO_address_allocate (&pir_msg->peer,
-        transport_name, addr, alen, ntohl(pir_msg->local_address_info));
-    pal_ctx->cb (pal_ctx->cb_cls, &pir_msg->peer, address,
-        ntohl(pir_msg->state),
-        GNUNET_TIME_absolute_ntoh (pir_msg->state_timeout));
+    address = GNUNET_HELLO_address_allocate (&vr_msg->peer,
+        transport_name, addr, alen, ntohl(vr_msg->local_address_info));
+    val_ctx->cb (val_ctx->cb_cls, &vr_msg->peer, address,
+        GNUNET_TIME_absolute_ntoh(vr_msg->last_validation),
+        GNUNET_TIME_absolute_ntoh(vr_msg->valid_until),
+        GNUNET_TIME_absolute_ntoh(vr_msg->next_validation),
+        ntohl(vr_msg->state));
     GNUNET_HELLO_address_free (address);
   }
-#endif
-
+  /* expect more replies */
+  GNUNET_CLIENT_receive (val_ctx->client, &val_response_processor,
+      val_ctx, GNUNET_TIME_absolute_get_remaining (val_ctx->timeout));
 }
 
 
@@ -538,7 +560,7 @@ peer_response_processor (void *cls, const struct GNUNET_MessageHeader *msg)
     }
     else
     {
-      reconnect (pal_ctx);
+      reconnect_peer_ctx (pal_ctx);
     }
     return;
   }
@@ -556,14 +578,13 @@ peer_response_processor (void *cls, const struct GNUNET_MessageHeader *msg)
     }
     else
     {
-      reconnect (pal_ctx);
+      reconnect_peer_ctx (pal_ctx);
     }
     return;
   }
 
   if ((size < sizeof (struct PeerIterateResponseMessage)) ||
-      (ntohs (msg->type) !=
-          GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PEER_RESPONSE))
+      (ntohs (msg->type) != GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PEER_RESPONSE))
   {
     GNUNET_break (0);
     if (pal_ctx->one_shot)
@@ -574,7 +595,7 @@ peer_response_processor (void *cls, const struct GNUNET_MessageHeader *msg)
     }
     else
     {
-      reconnect (pal_ctx);
+      reconnect_peer_ctx (pal_ctx);
     }
     return;
   }
@@ -594,7 +615,7 @@ peer_response_processor (void *cls, const struct GNUNET_MessageHeader *msg)
     }
     else
     {
-      reconnect (pal_ctx);
+      reconnect_peer_ctx (pal_ctx);
     }
     return;
   }
@@ -628,7 +649,7 @@ peer_response_processor (void *cls, const struct GNUNET_MessageHeader *msg)
       }
       else
       {
-        reconnect (pal_ctx);
+        reconnect_peer_ctx (pal_ctx);
       }
       return;
     }

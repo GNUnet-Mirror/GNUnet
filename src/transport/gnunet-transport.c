@@ -316,13 +316,13 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
 }
 
-static struct ResolutionContext *rc_head;
-static struct ResolutionContext *rc_tail;
+static struct PeerResolutionContext *rc_head;
+static struct PeerResolutionContext *rc_tail;
 
-struct ResolutionContext
+struct PeerResolutionContext
 {
-  struct ResolutionContext *next;
-  struct ResolutionContext *prev;
+  struct PeerResolutionContext *next;
+  struct PeerResolutionContext *prev;
   struct GNUNET_PeerIdentity id;
   struct GNUNET_HELLO_Address *addrcp;
   struct GNUNET_TRANSPORT_AddressToStringContext *asc;
@@ -332,11 +332,32 @@ struct ResolutionContext
   int printed;
 };
 
+static struct ValidationResolutionContext *vc_head;
+static struct ValidationResolutionContext *vc_tail;
+
+struct ValidationResolutionContext
+{
+  struct ValidationResolutionContext *next;
+  struct ValidationResolutionContext *prev;
+
+  struct GNUNET_PeerIdentity id;
+  struct GNUNET_HELLO_Address *addrcp;
+  struct GNUNET_TIME_Absolute last_validation;
+  struct GNUNET_TIME_Absolute valid_until;
+  struct GNUNET_TIME_Absolute next_validation;
+  enum GNUNET_TRANSPORT_ValidationState state;
+
+  struct GNUNET_TRANSPORT_AddressToStringContext *asc;
+
+  char *transport;
+  int printed;
+};
+
 static void
 operation_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct ResolutionContext *cur;
-  struct ResolutionContext *next;
+  struct PeerResolutionContext *cur;
+  struct PeerResolutionContext *next;
   op_timeout = GNUNET_SCHEDULER_NO_TASK;
   if ((try_connect) || (benchmark_send) || (benchmark_receive))
   {
@@ -442,6 +463,126 @@ fail_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   display_test_result (tstc, GNUNET_NO);
 }
 
+
+static void
+resolve_validation_address (const struct GNUNET_PeerIdentity *id,
+    const struct GNUNET_HELLO_Address *address, int numeric,
+    struct GNUNET_TIME_Absolute last_validation,
+    struct GNUNET_TIME_Absolute valid_until,
+    struct GNUNET_TIME_Absolute next_validation,
+    enum GNUNET_TRANSPORT_ValidationState state);
+
+static void
+process_validation_string (void *cls, const char *address)
+{
+  struct ValidationResolutionContext *vc = cls;
+  char *s_valid;
+  char *s_last;
+  char *s_next;
+
+  if (address != NULL )
+  {
+    if (GNUNET_TIME_UNIT_ZERO_ABS.abs_value_us == vc->valid_until.abs_value_us)
+      s_valid = GNUNET_strdup("never");
+    else
+      s_valid = GNUNET_strdup(GNUNET_STRINGS_absolute_time_to_string (vc->valid_until));
+
+    if (GNUNET_TIME_UNIT_ZERO_ABS.abs_value_us == vc->last_validation.abs_value_us)
+      s_last = GNUNET_strdup("never");
+    else
+      s_last = GNUNET_strdup(GNUNET_STRINGS_absolute_time_to_string (vc->last_validation));
+
+    if (GNUNET_TIME_UNIT_ZERO_ABS.abs_value_us == vc->next_validation.abs_value_us)
+      s_next = GNUNET_strdup("never");
+    else
+      s_next = GNUNET_strdup(GNUNET_STRINGS_absolute_time_to_string (vc->next_validation));
+
+    FPRINTF (stdout,
+        _("Peer `%s' %s `%s'\n\t%s%s\n\t%s%s\n\t%s%s\n"),
+        GNUNET_i2s (&vc->id), address, GNUNET_TRANSPORT_vs2s (vc->state),
+        "Valid until    : ", s_valid,
+        "Last validation: ",s_last,
+        "Next validation: ", s_next);
+    GNUNET_free (s_valid);
+    GNUNET_free (s_last);
+    GNUNET_free (s_next);
+    vc->printed = GNUNET_YES;
+  }
+  else
+  {
+    /* done */
+    GNUNET_assert(address_resolutions > 0);
+    address_resolutions--;
+    if (GNUNET_NO == vc->printed)
+    {
+      if (numeric == GNUNET_NO)
+      {
+        /* Failed to resolve address, try numeric lookup */
+        resolve_validation_address (&vc->id, vc->addrcp, GNUNET_NO,
+           vc->last_validation, vc->valid_until, vc->next_validation,
+           vc->state);
+      }
+      else
+      {
+        FPRINTF (stdout, _("Peer `%s' %s `%s' \n"),
+            GNUNET_i2s (&vc->id), "<unable to resolve address>",
+            GNUNET_TRANSPORT_vs2s (vc->state));
+      }
+    }
+    GNUNET_free (vc->transport);
+    GNUNET_free (vc->addrcp);
+    GNUNET_CONTAINER_DLL_remove(vc_head, vc_tail, vc);
+    GNUNET_free(vc);
+    if ((0 == address_resolutions) && (iterate_validation))
+    {
+      if (GNUNET_SCHEDULER_NO_TASK != end)
+      {
+        GNUNET_SCHEDULER_cancel (end);
+        end = GNUNET_SCHEDULER_NO_TASK;
+      }
+      if (GNUNET_SCHEDULER_NO_TASK != op_timeout)
+      {
+        GNUNET_SCHEDULER_cancel (op_timeout);
+        op_timeout = GNUNET_SCHEDULER_NO_TASK;
+      }
+      ret = 0;
+      end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL );
+    }
+  }
+}
+
+
+
+static void
+resolve_validation_address (const struct GNUNET_PeerIdentity *id,
+    const struct GNUNET_HELLO_Address *address, int numeric,
+    struct GNUNET_TIME_Absolute last_validation,
+    struct GNUNET_TIME_Absolute valid_until,
+    struct GNUNET_TIME_Absolute next_validation,
+    enum GNUNET_TRANSPORT_ValidationState state)
+{
+  struct ValidationResolutionContext *vc;
+
+  vc = GNUNET_new (struct ValidationResolutionContext);
+  GNUNET_assert(NULL != vc);
+  GNUNET_CONTAINER_DLL_insert(vc_head, vc_tail, vc);
+  address_resolutions++;
+
+  vc->id = (*id);
+  vc->transport = GNUNET_strdup(address->transport_name);
+  vc->addrcp = GNUNET_HELLO_address_copy (address);
+  vc->printed = GNUNET_NO;
+  vc->state = state;
+  vc->last_validation = last_validation;
+  vc->valid_until = valid_until;
+  vc->next_validation = next_validation;
+
+  /* Resolve address to string */
+  vc->asc = GNUNET_TRANSPORT_address_to_string (cfg, address, numeric,
+      RESOLUTION_TIMEOUT, &process_validation_string, vc);
+}
+
+
 void process_validation_cb (void *cls,
     const struct GNUNET_PeerIdentity *peer,
     const struct GNUNET_HELLO_Address *address,
@@ -450,7 +591,27 @@ void process_validation_cb (void *cls,
     struct GNUNET_TIME_Absolute next_validation,
     enum GNUNET_TRANSPORT_ValidationState state)
 {
-  GNUNET_break (0);
+  if ((NULL == peer) && (NULL == address))
+  {
+    /* done */
+    vic = NULL;
+    if (GNUNET_SCHEDULER_NO_TASK != end)
+      GNUNET_SCHEDULER_cancel (end);
+    end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL );
+    return;
+  }
+  if ((NULL == peer) || (NULL == address))
+  {
+    /* invalid response */
+    vic = NULL;
+    if (GNUNET_SCHEDULER_NO_TASK != end)
+      GNUNET_SCHEDULER_cancel (end);
+    end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL );
+    return;
+  }
+  resolve_validation_address (peer, address,
+     numeric, last_validation,
+     valid_until, next_validation, state);
 }
 
 /**
@@ -701,7 +862,7 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
 }
 
 static void
-resolve_address (const struct GNUNET_PeerIdentity *id,
+resolve_peer_address (const struct GNUNET_PeerIdentity *id,
     const struct GNUNET_HELLO_Address *address, int numeric,
     enum GNUNET_TRANSPORT_PeerState state,
     struct GNUNET_TIME_Absolute state_timeout);
@@ -729,9 +890,9 @@ print_info (const struct GNUNET_PeerIdentity *id, const char *transport,
 }
 
 static void
-process_string (void *cls, const char *address)
+process_peer_string (void *cls, const char *address)
 {
-  struct ResolutionContext *rc = cls;
+  struct PeerResolutionContext *rc = cls;
 
   if (address != NULL )
   {
@@ -748,7 +909,7 @@ process_string (void *cls, const char *address)
       if (numeric == GNUNET_NO)
       {
         /* Failed to resolve address, try numeric lookup */
-        resolve_address (&rc->id, rc->addrcp, GNUNET_YES,
+        resolve_peer_address (&rc->id, rc->addrcp, GNUNET_YES,
             rc->state, rc->state_timeout);
       }
       else
@@ -780,14 +941,14 @@ process_string (void *cls, const char *address)
 }
 
 static void
-resolve_address (const struct GNUNET_PeerIdentity *id,
+resolve_peer_address (const struct GNUNET_PeerIdentity *id,
     const struct GNUNET_HELLO_Address *address, int numeric,
     enum GNUNET_TRANSPORT_PeerState state,
     struct GNUNET_TIME_Absolute state_timeout)
 {
-  struct ResolutionContext *rc;
+  struct PeerResolutionContext *rc;
 
-  rc = GNUNET_new (struct ResolutionContext);
+  rc = GNUNET_new (struct PeerResolutionContext);
   GNUNET_assert(NULL != rc);
   GNUNET_CONTAINER_DLL_insert(rc_head, rc_tail, rc);
   address_resolutions++;
@@ -800,7 +961,7 @@ resolve_address (const struct GNUNET_PeerIdentity *id,
   rc->state_timeout = state_timeout;
   /* Resolve address to string */
   rc->asc = GNUNET_TRANSPORT_address_to_string (cfg, address, numeric,
-      RESOLUTION_TIMEOUT, &process_string, rc);
+      RESOLUTION_TIMEOUT, &process_peer_string, rc);
 }
 
 /**
@@ -843,7 +1004,7 @@ process_peer_iteration_cb (void *cls, const struct GNUNET_PeerIdentity *peer,
       GNUNET_i2s (peer), address->transport_name);
 
   if (NULL != address)
-    resolve_address (peer, address, numeric, state, state_timeout);
+    resolve_peer_address (peer, address, numeric, state, state_timeout);
   else
     print_info (peer, NULL, NULL, state, state_timeout);
 }
@@ -915,7 +1076,7 @@ process_peer_monitoring_cb (void *cls, const struct GNUNET_PeerIdentity *peer,
   m->state_timeout = state_timeout;
 
   if (NULL != address)
-    resolve_address (peer, m->address, numeric, m->state, m->state_timeout);
+    resolve_peer_address (peer, m->address, numeric, m->state, m->state_timeout);
   else
     print_info (peer, NULL, NULL, m->state, m->state_timeout);
 }
