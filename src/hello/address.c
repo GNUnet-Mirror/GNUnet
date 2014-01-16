@@ -65,6 +65,7 @@ GNUNET_HELLO_address_get_size (const struct GNUNET_HELLO_Address * address)
  * @param transport_name plugin name
  * @param address binary address
  * @param address_length number of bytes in 'address'
+ * @param local_info additional local information for the address
  * @return the address struct
  */
 struct GNUNET_HELLO_Address *
