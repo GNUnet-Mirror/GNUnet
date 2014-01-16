@@ -206,30 +206,43 @@ enum GNUNET_TRANSPORT_PeerState
   GNUNET_TRANSPORT_PS_DISCONNECT_FINISHED
 };
 
+/**
+ * Current state of a validation process
+ */
 enum GNUNET_TRANSPORT_ValidationState
 {
   /**
    * Undefined state
+   *
+   * Used for final callback indicating operation done
    */
   GNUNET_TRANSPORT_VS_NONE,
 
   /**
    * Fresh validation entry
+   *
+   * Entry was just created, no validation process was executed
    */
   GNUNET_TRANSPORT_VS_NEW,
 
   /**
    * Updated validation entry
+   *
+   * This is an update for an existing validation entry
    */
   GNUNET_TRANSPORT_VS_UPDATE,
 
   /**
    * Timeout for validation entry
+   *
+   * A timeout occured during the validation process
    */
   GNUNET_TRANSPORT_VS_TIMEOUT,
 
   /**
    * Validation entry is removed
+   *
+   * The validation entry is getting removed due to a failed validation
    */
   GNUNET_TRANSPORT_VS_REMOVE,
 };
@@ -336,10 +349,18 @@ typedef void (*GNUNET_TRANSPORT_PeerIterateCallback) (void *cls,
 /**
  * Function to call with validation information about a peer
  *
+ * This function is called by the transport validation monitoring api to
+ * indicate a change to a validation entry. The information included represent
+ * the current state of the validation entry,
+ *
+ * If the monitoring was called with one_shot=GNUNET_YES, a final callback
+ * with peer==NULL and address==NULL is executed.
+ *
  * @param cls closure
  * @param peer peer this update is about,
  *      NULL if this is the final last callback for a iteration operation
- * @param address address, NULL for disconnect notification in monitor mode
+ * @param address address,
+ *      NULL for disconnect notification in monitor mode
  * @param valid_until when does this address expire
  * @param next_validation time of the next validation operation
  *
