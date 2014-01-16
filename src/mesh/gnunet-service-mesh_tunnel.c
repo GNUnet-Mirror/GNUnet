@@ -1995,9 +1995,15 @@ static void
 delayed_destroy (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct MeshTunnel3 *t = cls;
+  struct MeshTConnection *iter;
 
   t->destroy_task = GNUNET_SCHEDULER_NO_TASK;
   t->cstate = MESH_TUNNEL3_SHUTDOWN;
+
+  for (iter = t->connection_head; NULL != iter; iter = iter->next)
+  {
+    GMC_send_destroy (iter->c);
+  }
   GMT_destroy (t);
 }
 
@@ -2012,24 +2018,9 @@ delayed_destroy (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 void
 GMT_destroy_empty (struct MeshTunnel3 *t)
 {
-  struct MeshTConnection *iter;
-
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Tunnel %s empty: destroying scheduled\n",
        GMT_2s (t));
-  for (iter = t->connection_head; NULL != iter; iter = iter->next)
-  {
-    GMC_send_destroy (iter->c);
-  }
 
-  if (GNUNET_SCHEDULER_NO_TASK != t->rekey_task)
-  {
-    t->estate = MESH_TUNNEL3_KEY_UNINITIALIZED;
-    GNUNET_SCHEDULER_cancel (t->rekey_task);
-    t->rekey_task = GNUNET_SCHEDULER_NO_TASK;
-    GNUNET_free (t->kx_ctx);
-    t->kx_ctx = NULL;
-  }
-  t->cstate = MESH_TUNNEL3_NEW;
   t->destroy_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
                                                   &delayed_destroy, t);
 }
@@ -2100,7 +2091,14 @@ GMT_destroy (struct MeshTunnel3 *t)
   GMP_set_tunnel (t->peer, NULL);
 
   if (GNUNET_SCHEDULER_NO_TASK != t->rekey_task)
+  {
     GNUNET_SCHEDULER_cancel (t->rekey_task);
+    t->rekey_task = GNUNET_SCHEDULER_NO_TASK;
+    if (NULL != t->kx_ctx)
+      GNUNET_free (t->kx_ctx);
+    else
+      GNUNET_break (0);
+  }
 
   GNUNET_free (t);
 }
