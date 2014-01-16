@@ -309,7 +309,7 @@ uri_ksk_parse (const char *s, char **emsg)
   iret = max;
   dup = GNUNET_strdup (s);
   keywords = GNUNET_malloc (max * sizeof (char *));
-  for (i = slen - 1; i >= pos; i--)
+  for (i = slen - 1; i >= (int) pos; i--)
   {
     if ((s[i] == '%') && (&s[i] == strstr (&s[i], "%22")))
     {
