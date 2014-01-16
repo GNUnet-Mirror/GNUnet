@@ -240,6 +240,8 @@ GNUNET_TRANSPORT_vs2s (enum GNUNET_TRANSPORT_ValidationState state)
 {
   switch (state)
   {
+  case GNUNET_TRANSPORT_VS_NONE:
+    return "NEW";
   case GNUNET_TRANSPORT_VS_NEW:
     return "NEW";
   case GNUNET_TRANSPORT_VS_REMOVE:
@@ -309,7 +311,7 @@ send_val_mon_request (struct GNUNET_TRANSPORT_ValidationMonitoringContext *val_c
 {
   struct ValidationMonitorMessage msg;
 
-  msg.header.size = htons (sizeof (struct PeerMonitorMessage));
+  msg.header.size = htons (sizeof (struct ValidationMonitorMessage));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_VALIDATION_REQUEST);
   msg.one_shot = htonl (val_ctx->one_shot);
   msg.peer = val_ctx->peer;
@@ -322,7 +324,6 @@ send_val_mon_request (struct GNUNET_TRANSPORT_ValidationMonitoringContext *val_c
                     val_ctx));
 }
 
-
 /**
  * Task run to re-establish the connection.
  *
@@ -330,8 +331,8 @@ send_val_mon_request (struct GNUNET_TRANSPORT_ValidationMonitoringContext *val_c
  * @param tc scheduler context, unused
  */
 static void
-do_connect (void *cls,
-	    const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_peer_connect (void *cls,
+           const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_TRANSPORT_PeerMonitoringContext *pal_ctx = cls;
 
@@ -355,8 +356,27 @@ reconnect_peer_ctx (struct GNUNET_TRANSPORT_PeerMonitoringContext *pal_ctx)
   pal_ctx->client = NULL;
   pal_ctx->backoff = GNUNET_TIME_STD_BACKOFF (pal_ctx->backoff);
   pal_ctx->reconnect_task = GNUNET_SCHEDULER_add_delayed (pal_ctx->backoff,
-							  &do_connect,
+							  &do_peer_connect,
 							  pal_ctx);
+}
+
+
+/**
+ * Task run to re-establish the connection.
+ *
+ * @param cls our 'struct GNUNET_TRANSPORT_PeerAddressLookupContext*'
+ * @param tc scheduler context, unused
+ */
+static void
+do_val_connect (void *cls,
+           const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_TRANSPORT_ValidationMonitoringContext *val_ctx = cls;
+
+  val_ctx->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
+  val_ctx->client = GNUNET_CLIENT_connect ("transport", val_ctx->cfg);
+  GNUNET_assert (NULL != val_ctx->client);
+  send_val_mon_request (val_ctx);
 }
 
 /**
@@ -372,7 +392,7 @@ reconnect_val_ctx (struct GNUNET_TRANSPORT_ValidationMonitoringContext *val_ctx)
   val_ctx->client = NULL;
   val_ctx->backoff = GNUNET_TIME_STD_BACKOFF (val_ctx->backoff);
   val_ctx->reconnect_task = GNUNET_SCHEDULER_add_delayed (val_ctx->backoff,
-                                                          &do_connect,
+                                                          &do_val_connect,
                                                           val_ctx);
 }
 
@@ -397,7 +417,6 @@ val_response_processor (void *cls, const struct GNUNET_MessageHeader *msg)
 
   if (msg == NULL)
   {
-    GNUNET_break (0);
     if (val_ctx->one_shot)
     {
       /* Disconnect */
@@ -415,6 +434,7 @@ val_response_processor (void *cls, const struct GNUNET_MessageHeader *msg)
   size = ntohs (msg->size);
   GNUNET_break (ntohs (msg->type) ==
       GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_VALIDATION_RESPONSE);
+
   if (size == sizeof (struct GNUNET_MessageHeader))
   {
     /* Done! */
@@ -548,7 +568,7 @@ peer_response_processor (void *cls, const struct GNUNET_MessageHeader *msg)
   uint16_t size;
   size_t alen;
   size_t tlen;
-  GNUNET_break (0);
+
   if (msg == NULL)
   {
     if (pal_ctx->one_shot)

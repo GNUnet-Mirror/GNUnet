@@ -1219,13 +1219,12 @@ clients_handle_monitor_validation (void *cls, struct GNUNET_SERVER_Client *clien
 
   if (GNUNET_YES != ntohl (msg->one_shot))
   {
-    GNUNET_break (0);
     setup_val_monitoring_client (client, &msg->peer);
   }
   else
   {
     GNUNET_SERVER_transmit_context_append_data (tc, NULL, 0,
-        GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_PEER_RESPONSE);
+        GNUNET_MESSAGE_TYPE_TRANSPORT_MONITOR_VALIDATION_RESPONSE);
   }
   GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
 }

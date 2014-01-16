@@ -114,6 +114,11 @@ static int monitor_connects;
 static int monitor_connections;
 
 /**
+ * Option -f.
+ */
+static int monitor_validation;
+
+/**
  * Option -C.
  */
 static int try_connect;
@@ -498,8 +503,9 @@ process_validation_string (void *cls, const char *address)
       s_next = GNUNET_strdup(GNUNET_STRINGS_absolute_time_to_string (vc->next_validation));
 
     FPRINTF (stdout,
-        _("Peer `%s' %s `%s'\n\t%s%s\n\t%s%s\n\t%s%s\n"),
-        GNUNET_i2s (&vc->id), address, GNUNET_TRANSPORT_vs2s (vc->state),
+        _("Peer `%s' %s %s\n\t%s%s\n\t%s%s\n\t%s%s\n"),
+        GNUNET_i2s (&vc->id), address,
+        (monitor_validation) ? GNUNET_TRANSPORT_vs2s (vc->state) : "",
         "Valid until    : ", s_valid,
         "Last validation: ",s_last,
         "Next validation: ", s_next);
@@ -1135,7 +1141,8 @@ testservice_task (void *cls, int result)
   }
 
   counter = benchmark_send + benchmark_receive + iterate_connections
-      + monitor_connections + monitor_connects + try_connect + iterate_validation;
+      + monitor_connections + monitor_connects + try_connect
+      + iterate_validation + monitor_validation;
 
   if (1 < counter)
   {
@@ -1246,8 +1253,15 @@ testservice_task (void *cls, int result)
   }
   else if (iterate_validation) /* -d: Print information about validations */
   {
-    vic = GNUNET_TRANSPORT_monitor_validation_entries (cfg, (NULL == cpid) ? NULL : &pid,
+    vic = GNUNET_TRANSPORT_monitor_validation_entries (cfg,
+        (NULL == cpid) ? NULL : &pid,
         GNUNET_YES, TIMEOUT, &process_validation_cb, (void *) cfg);
+  }
+  else if (monitor_validation) /* -f: Print information about validations continuously */
+  {
+    vic = GNUNET_TRANSPORT_monitor_validation_entries (cfg,
+        (NULL == cpid) ? NULL : &pid,
+        GNUNET_NO, TIMEOUT, &process_validation_cb, (void *) cfg);
   }
   else if (monitor_connects) /* -e : Monitor (dis)connect events continuously */
   {
@@ -1312,6 +1326,9 @@ main (int argc, char * const *argv)
           { 'd', "validation", NULL,
               gettext_noop ("print information for all pending validations "),
               0, &GNUNET_GETOPT_set_one, &iterate_validation },
+          { 'f', "monitorvalidation", NULL,
+              gettext_noop ("print information for all pending validations continously"),
+              0, &GNUNET_GETOPT_set_one, &monitor_validation },
           { 'i', "information", NULL,
               gettext_noop ("provide information about all current connections (once)"),
               0, &GNUNET_GETOPT_set_one, &iterate_connections },
