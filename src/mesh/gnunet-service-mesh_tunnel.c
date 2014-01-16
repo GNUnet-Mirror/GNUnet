@@ -1872,6 +1872,7 @@ GMT_remove_connection (struct MeshTunnel3 *t,
   /* Start new connections if needed */
   if (NULL == t->connection_head
       && GNUNET_SCHEDULER_NO_TASK == t->destroy_task
+      && MESH_TUNNEL3_SHUTDOWN != t->cstate
       && GNUNET_NO == shutting_down)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  no more connections, getting new ones\n");
@@ -1996,6 +1997,7 @@ delayed_destroy (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct MeshTunnel3 *t = cls;
 
   t->destroy_task = GNUNET_SCHEDULER_NO_TASK;
+  t->cstate = MESH_TUNNEL3_SHUTDOWN;
   GMT_destroy (t);
 }
 
@@ -2122,6 +2124,12 @@ GMT_use_path (struct MeshTunnel3 *t, struct MeshPeerPath *p)
   unsigned int own_pos;
 
   if (NULL == t || NULL == p)
+  {
+    GNUNET_break (0);
+    return NULL;
+  }
+
+  if (MESH_TUNNEL3_SHUTDOWN == t->cstate)
   {
     GNUNET_break (0);
     return NULL;

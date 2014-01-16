@@ -64,6 +64,11 @@ enum MeshTunnel3CState
      * Peer connected and ready to accept data.
      */
   MESH_TUNNEL3_READY,
+
+  /**
+   * Tunnel being shut down, don't try to keep it alive.
+   */
+  MESH_TUNNEL3_SHUTDOWN
 };
 
 
