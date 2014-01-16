@@ -241,7 +241,7 @@ GNUNET_TRANSPORT_vs2s (enum GNUNET_TRANSPORT_ValidationState state)
   switch (state)
   {
   case GNUNET_TRANSPORT_VS_NONE:
-    return "NEW";
+    return "NONE";
   case GNUNET_TRANSPORT_VS_NEW:
     return "NEW";
   case GNUNET_TRANSPORT_VS_REMOVE:
