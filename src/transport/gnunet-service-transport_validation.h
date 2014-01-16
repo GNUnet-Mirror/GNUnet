@@ -32,17 +32,16 @@
 #include "gnunet_hello_lib.h"
 
 /**
- * Function called for each address (or address status change) that
- * the validation module is aware of (for the given target).
+ * Function called to notify transport users that a neighbour peer changed its
+ * active address.
  *
  * @param cls closure
- * @param public_key public key for the peer, never NULL
- * @param valid_until is ZERO if we never validated the address,
- *                    otherwise a time up to when we consider it (or was) valid
- * @param validation_block  is FOREVER if the address is for an unsupported plugin (from PEERINFO)
- *                          is ZERO if the address is considered valid (no validation needed)
- *                          otherwise a time in the future if we're currently denying re-validation
- * @param address the address
+ * @param peer peer this update is about (never NULL)
+ * @param address address (never NULL)
+ * @param last_validation point in time when last validation was performed
+ * @param valid_until point in time how long address is valid
+ * @param next_validation point in time when next validation will be performed
+ * @param state state of validation notification
  */
 typedef void (*GST_ValidationChangedCallback) (void *cls,
     const struct GNUNET_PeerIdentity *peer,

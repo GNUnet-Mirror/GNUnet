@@ -82,22 +82,14 @@ typedef void
 
 /**
  * Function called by the transport for each received message.
- * This function should also be called with "NULL" for the
- * message to signal that the other peer disconnected.
  *
  * @param cls closure, const char* with the name of the plugin we received the message from
- * @param peer (claimed) identity of the other peer
+ * @param address address and (claimed) identity of the other peer
  * @param message the message, NULL if we only care about
- *                learning about the delay until we should receive again -- FIXME!
+ *                learning about the delay until we should receive again
  * @param session identifier used for this session (NULL for plugins
  *                that do not offer bi-directional communication to the sender
  *                using the same "connection")
- * @param sender_address binary address of the sender (if we established the
- *                connection or are otherwise sure of it; should be NULL
- *                for inbound TCP/UDP connections since it it not clear
- *                that we could establish ourselves a connection to that
- *                IP address and get the same system)
- * @param sender_address_len number of bytes in sender_address
  * @return how long the plugin should wait until receiving more data
  *         (plugins that do not support this, can ignore the return value)
  */

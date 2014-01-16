@@ -267,18 +267,12 @@ kill_session (const char *plugin_name, struct Session *session)
  * Function called by the transport for each received message.
  *
  * @param cls closure, const char* with the name of the plugin we received the message from
- * @param peer (claimed) identity of the other peer
+ * @param address address and (claimed) identity of the other peer
  * @param message the message, NULL if we only care about
  *                learning about the delay until we should receive again
  * @param session identifier used for this session (NULL for plugins
  *                that do not offer bi-directional communication to the sender
  *                using the same "connection")
- * @param sender_address binary address of the sender (if we established the
- *                connection or are otherwise sure of it; should be NULL
- *                for inbound TCP/UDP connections since it it not clear
- *                that we could establish ourselves a connection to that
- *                IP address and get the same system)
- * @param sender_address_len number of bytes in @a sender_address
  * @return how long the plugin should wait until receiving more data
  *         (plugins that do not support this, can ignore the return value)
  */
@@ -579,13 +573,10 @@ GST_ats_update_metrics (const struct GNUNET_PeerIdentity *peer,
 }
 
 /**
- * Function that will be called to figure if an address is an loopback,
- * LAN, WAN etc. address
+ * Function that will be called to update metrics for an address
  *
  * @param cls closure
- * @param peer the peer
- * @param address binary address
- * @param address_len length of the @a address
+ * @param address address to update metrics for
  * @param session the session
  * @param ats the ats information to update
  * @param ats_count the number of @a ats elements
@@ -649,6 +640,7 @@ plugin_env_session_start (void *cls, struct GNUNET_HELLO_Address *address,
  * actually happened.
  *
  * @param cls closure
+ * @param peer the peer this address is intended for
  * @param address address to use (for peer given in address)
  * @param session session to use (if available)
  * @param bandwidth_out assigned outbound bandwidth for the connection in NBO,
@@ -659,11 +651,14 @@ plugin_env_session_start (void *cls, struct GNUNET_HELLO_Address *address,
  * @param ats_count number of @a ats elements
  */
 static void
-ats_request_address_change (void *cls, const struct GNUNET_PeerIdentity *peer,
-    const struct GNUNET_HELLO_Address *address, struct Session *session,
+ats_request_address_change (void *cls,
+    const struct GNUNET_PeerIdentity *peer,
+    const struct GNUNET_HELLO_Address *address,
+    struct Session *session,
     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-    const struct GNUNET_ATS_Information *ats, uint32_t ats_count)
+    const struct GNUNET_ATS_Information *ats,
+    uint32_t ats_count)
 {
   uint32_t bw_in = ntohl (bandwidth_in.value__);
   uint32_t bw_out = ntohl (bandwidth_out.value__);
@@ -776,11 +771,11 @@ neighbours_changed_notification (void *cls,
  *
  * @param cls closure
  * @param peer peer this update is about (never NULL)
- * @param address address, NULL on disconnect
- * @param state current state this peer is in
- * @param state_timeout timeout for the current state of the peer
- * @param bandwidth_in bandwidth assigned inbound
- * @param bandwidth_out bandwidth assigned outbound
+ * @param address address (never NULL)
+ * @param last_validation point in time when last validation was performed
+ * @param valid_until point in time how long address is valid
+ * @param next_validation point in time when next validation will be performed
+ * @param state state of validation notification
  */
 static void
 validation_changed_notification (void *cls,

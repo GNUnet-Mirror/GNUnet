@@ -262,6 +262,7 @@ setup_client (struct GNUNET_SERVER_Client *client)
  * Find the handle to the monitoring client associated with the given
  * client handle
  *
+ * @param head the head of the client queue to look in
  * @param client server's client handle to look up
  * @return handle to the monitoring client
  */
@@ -1006,15 +1007,15 @@ struct IterationContext
 };
 
 /**
- * Output information of neighbours to the given client.
+ * Output information of validation entries to the given client.
  *
- * @param cls the 'struct PeerIterationContext'
+ * @param cls the 'struct IterationContext'
  * @param peer identity of the neighbour
  * @param address the address
- * @param state current state this peer is in
- * @param state_timeout timeout for the current state of the peer
- * @param bandwidth_in inbound quota in NBO
- * @param bandwidth_out outbound quota in NBO
+ * @param last_validation point in time when last validation was performed
+ * @param valid_until point in time how long address is valid
+ * @param next_validation point in time when next validation will be performed
+ * @param state state of validation notification
  */
 static void
 send_validation_information (void *cls,
