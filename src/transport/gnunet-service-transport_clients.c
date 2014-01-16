@@ -1379,12 +1379,14 @@ GST_clients_broadcast_peer_notification (const struct GNUNET_PeerIdentity *peer,
 }
 
 /**
- * Broadcast the new active address to all clients monitoring the peer.
+ * Broadcast the new validation changes to all clients monitoring the peer.
  *
  * @param peer peer this update is about (never NULL)
  * @param address address, NULL on disconnect
- * @param state the current state of the peer
- * @param state_timeout the time out for the state
+ * @param last_validation point in time when last validation was performed
+ * @param valid_until point in time how long address is valid
+ * @param next_validation point in time when next validation will be performed
+ * @param state state of validation notification
  */
 void
 GST_clients_broadcast_validation_notification (

@@ -1385,7 +1385,6 @@ udp_get_network (void *cls, struct Session *session)
  *
  * @param cls the plugin
  * @param address the address
- * @param inbound look for inbound session
  * @return the session or NULL of max connections exceeded
  */
 static struct Session *
@@ -1758,7 +1757,7 @@ udp_plugin_send (void *cls, struct Session *s, const char *msgbuf,
  * @param cls closure, the 'struct LocalAddrList'
  * @param add_remove GNUNET_YES to mean the new public IP address, GNUNET_NO to mean
  *     the previous (now invalid) one
- * @param address either the previous or the new public IP address
+ * @param addr either the previous or the new public IP address
  * @param addrlen actual lenght of the address
  */
 static void

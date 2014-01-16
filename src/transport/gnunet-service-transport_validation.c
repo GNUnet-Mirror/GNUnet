@@ -863,6 +863,8 @@ process_peerinfo_hello (void *cls, const struct GNUNET_PeerIdentity *peer,
 /**
  * Start the validation subsystem.
  *
+ * @param cb callback to call with changes to valdidation entries
+ * @param cb_cls cls for the callback
  * @param max_fds maximum number of fds to use
  */
 void

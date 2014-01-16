@@ -521,11 +521,9 @@ GST_manipulation_manipulate_metrics(const struct GNUNET_PeerIdentity *peer,
  * manipulation delays for next send.
  *
  * @param cls the closure for transport
- * @param peer the peer the message was received from
+ * @param address the address and the peer the message was received from
  * @param message the message received
  * @param session the session the message was received on
- * @param sender_address the sender address
- * @param sender_address_len the length of the sender address
  * @return manipulated delay for next receive
  */
 struct GNUNET_TIME_Relative

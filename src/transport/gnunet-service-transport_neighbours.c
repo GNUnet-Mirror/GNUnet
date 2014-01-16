@@ -659,7 +659,6 @@ set_timeout (struct NeighbourMapEntry *n,
  *        address must be setup)
  * @param bandwidth_in inbound quota to be used when connection is up
  * @param bandwidth_out outbound quota to be used when connection is up
- * @param is_active #GNUNET_YES to mark this as the active address with ATS
  */
 static void
 set_alternative_address (struct NeighbourMapEntry *n,

@@ -1060,7 +1060,7 @@ macendpoint_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Find (or create) a MacEndpoint with a specific MAC address
  *
  * @param plugin pointer to the plugin struct
- * @param addr the MAC address of the endpoint
+ * @param mac the MAC address of the endpoint
  * @return handle to our data structure for this MAC
  */
 static struct MacEndpoint *

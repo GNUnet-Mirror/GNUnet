@@ -304,7 +304,7 @@ send_peer_mon_request (struct GNUNET_TRANSPORT_PeerMonitoringContext *pal_ctx)
 /**
  * Send our subscription request to the service.
  *
- * @param pal_ctx our context
+ * @param val_ctx our context
  */
 static void
 send_val_mon_request (struct GNUNET_TRANSPORT_ValidationMonitoringContext *val_ctx)
@@ -382,7 +382,7 @@ do_val_connect (void *cls,
 /**
  * Cut the existing connection and reconnect.
  *
- * @param pal_ctx our context
+ * @param val_ctx our context
  */
 static void
 reconnect_val_ctx (struct GNUNET_TRANSPORT_ValidationMonitoringContext *val_ctx)

@@ -472,6 +472,7 @@ free_address (struct ATS_Address *addr)
  * @param plugin_name plugin
  * @param plugin_addr address
  * @param plugin_addr_len address length
+ * @param local_address_info additional local info for the address
  * @param session_id session
  * @return the ATS_Address
  */

@@ -877,7 +877,7 @@ reschedule_session_timeout (struct Session *s)
  * Create a new session.  Also queues a welcome message.
  *
  * @param plugin the plugin
- * @param target peer to connect to
+ * @param address the address to create the session for
  * @param client client to use, reference counter must have already been increased
  * @param is_nat this a NAT session, we should wait for a client to
  *               connect to us from an address, then assign that to

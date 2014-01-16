@@ -499,9 +499,7 @@ lookup_session_it (void *cls,
  * Find an existing session by address.
  *
  * @param plugin the plugin
- * @param sender for which peer should the session be?
- * @param ua address to look for
- * @param ua_len length of the address
+ * @param address the address to find
  * @return NULL if session was not found
  */
 static struct Session *
@@ -1503,7 +1501,7 @@ address_notification (void *cls,
 /**
  * Increment session timeout due to activity
  *
- * @param res session for which the timeout should be moved
+ * @param s session for which the timeout should be rescheduled
  */
 static void
 reschedule_session_timeout (struct Session *s)
