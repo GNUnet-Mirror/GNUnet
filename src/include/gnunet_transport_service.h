@@ -209,6 +209,11 @@ enum GNUNET_TRANSPORT_PeerState
 enum GNUNET_TRANSPORT_ValidationState
 {
   /**
+   * Undefined state
+   */
+  GNUNET_TRANSPORT_VS_NONE,
+
+  /**
    * Fresh validation entry
    */
   GNUNET_TRANSPORT_VS_NEW,
@@ -786,3 +791,5 @@ GNUNET_TRANSPORT_blacklist_cancel (struct GNUNET_TRANSPORT_Blacklist *br);
 /* ifndef GNUNET_TRANSPORT_SERVICE_H */
 #endif
 /* end of gnunet_transport_service.h */
+
+
