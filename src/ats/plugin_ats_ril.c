@@ -507,6 +507,66 @@ agent_address_get (struct RIL_Peer_Agent *agent, struct ATS_Address *address)
 }
 
 
+static int
+agent_action_is_possible (struct RIL_Peer_Agent *agent, int action)
+{
+  int address_index;
+
+  switch (action)
+  {
+  case RIL_ACTION_NOTHING:
+    return GNUNET_YES;
+    break;
+  case RIL_ACTION_BW_IN_INC:
+  case RIL_ACTION_BW_IN_DBL:
+    if (agent->bw_in >= RIL_MAX_BW)
+      return GNUNET_NO;
+    else
+      return GNUNET_YES;
+    break;
+  case RIL_ACTION_BW_IN_DEC:
+  case RIL_ACTION_BW_IN_HLV:
+    if (agent->bw_in <= RIL_MIN_BW)
+      return GNUNET_NO;
+    else
+      return GNUNET_YES;
+    break;
+  case RIL_ACTION_BW_OUT_INC:
+  case RIL_ACTION_BW_OUT_DBL:
+    if (agent->bw_out >= RIL_MAX_BW)
+      return GNUNET_NO;
+    else
+      return GNUNET_YES;
+    break;
+  case RIL_ACTION_BW_OUT_DEC:
+  case RIL_ACTION_BW_OUT_HLV:
+    if (agent->bw_out <= RIL_MIN_BW)
+      return GNUNET_NO;
+    else
+      return GNUNET_YES;
+    break;
+  default:
+    if ((action >= RIL_ACTION_TYPE_NUM) && (action < agent->n)) //switch address action
+    {
+      address_index = action - RIL_ACTION_TYPE_NUM;
+
+      GNUNET_assert(address_index >= 0);
+      GNUNET_assert(
+          address_index <= agent_address_get_index (agent, agent->addresses_tail->address_naked));
+
+      if ((agent_address_get_index(agent, agent->address_inuse) == address_index) ||
+          agent->address_inuse->active)
+        return GNUNET_NO;
+      else
+        return GNUNET_YES;
+      break;
+    }
+    // error - action does not exist
+    GNUNET_assert(GNUNET_NO);
+  }
+}
+
+
 /**
  * Gets the action, with the maximal estimated Q-value (i.e. the one currently estimated to bring the
  * most reward in the future)
@@ -519,26 +579,64 @@ static int
 agent_get_action_max (struct RIL_Peer_Agent *agent, double *state)
 {
   int i;
-  int num_actions;
   int max_i = RIL_ACTION_INVALID;
   double cur_q;
   double max_q = -DBL_MAX;
 
-  num_actions = agent->address_inuse->used ? RIL_ACTION_TYPE_NUM : agent->n;
-
-  for (i = 0; i < num_actions; i++)
+  for (i = 0; i < agent->n; i++)
   {
-    cur_q = agent_estimate_q (agent, state, i);
-    if (cur_q > max_q)
+    if (agent_action_is_possible(agent, i))
     {
-      max_q = cur_q;
-      max_i = i;
+      cur_q = agent_estimate_q (agent, state, i);
+      if (cur_q > max_q)
+      {
+        max_q = cur_q;
+        max_i = i;
+      }
     }
   }
 
   GNUNET_assert(RIL_ACTION_INVALID != max_i);
 
   return max_i;
+}
+
+
+static int
+agent_get_action_random (struct RIL_Peer_Agent *agent)
+{
+  int i;
+  int is_possible[agent->n];
+  int sum = 0;
+  int r;
+
+  for (i = 0; i<agent->n; i++)
+  {
+    if (agent_action_is_possible(agent, i))
+    {
+      is_possible[i] = GNUNET_YES;
+      sum++;
+    }
+    else
+    {
+      is_possible[i] = GNUNET_NO;
+    }
+  }
+
+  r = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, sum);
+
+  sum = -1;
+  for (i = 0; i<agent->n; i++)
+  {
+    if (is_possible[i])
+    {
+      sum++;
+      if (sum == r)
+        return i;
+    }
+  }
+
+  GNUNET_assert(GNUNET_NO);
 }
 
 
@@ -787,7 +885,7 @@ envi_get_state (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
       x[1] = (double) k * (double) max_bw / (double) solver->parameters.rbf_divisor;
       d[0] = x[0]-y[0];
       d[1] = x[1]-y[1];
-      sigma = (((double) max_bw / 2) * M_SQRT2) / (double) solver->parameters.rbf_divisor;
+      sigma = (((double) max_bw / (double) solver->parameters.rbf_divisor) / 2.0) * M_SQRT2;
       f = exp(-((d[0]*d[0] + d[1]*d[1]) / (2 * sigma * sigma)));
       state[m++] = f;
     }
@@ -978,7 +1076,7 @@ envi_get_reward (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
 
   if (delta != 0)
   {
-    agent->nop_bonus = abs(delta) * 0;
+    agent->nop_bonus = 0;
   }
 
   LOG(GNUNET_ERROR_TYPE_DEBUG, "utility: %f, welfare: %f, objective, overutilization: %d\n", agent_get_utility (agent), net->social_welfare, objective, overutilization);
@@ -1216,15 +1314,12 @@ static int
 agent_select_egreedy (struct RIL_Peer_Agent *agent, double *state)
 {
   int action;
-  int num_actions;
   double r = (double) GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
         UINT32_MAX) / (double) UINT32_MAX;
 
-  num_actions = agent->address_inuse->used ? RIL_ACTION_TYPE_NUM : agent->n;
-
   if (r < agent->envi->parameters.explore_ratio) //explore
   {
-    action = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, num_actions);
+    action = agent_get_action_random(agent);
     if (RIL_ALGO_Q == agent->envi->parameters.algorithm)
     {
       agent_modify_eligibility(agent, RIL_E_ZERO, NULL, action);
@@ -1257,29 +1352,36 @@ agent_select_softmax (struct RIL_Peer_Agent *agent, double *state)
 {
   int i;
   int a_max;
-  int num_actions;
   double eqt[agent->n];
   double p[agent->n];
   double sum = 0;
   double r;
 
-  num_actions = agent->address_inuse->used ? RIL_ACTION_TYPE_NUM : agent->n;
-
   a_max = agent_get_action_max(agent, state);
 
-  for (i=0; i<num_actions; i++)
+  for (i=0; i<agent->n; i++)
   {
-    eqt[i] = exp(agent_estimate_q(agent,state,i) / agent->envi->parameters.temperature);
-    sum += eqt[i];
+    if (agent_action_is_possible(agent, i))
+    {
+      eqt[i] = exp(agent_estimate_q(agent,state,i) / agent->envi->parameters.temperature);
+      sum += eqt[i];
+    }
   }
-  for (i=0; i<num_actions; i++)
+  for (i=0; i<agent->n; i++)
   {
-    p[i] = eqt[i]/sum;
+    if (agent_action_is_possible(agent, i))
+    {
+      p[i] = eqt[i]/sum;
+    }
+    else
+    {
+      p[i] = 0;
+    }
   }
   r = (double) GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
       UINT32_MAX) / (double) UINT32_MAX;
   sum = 0;
-  for (i=0; i<num_actions; i++)
+  for (i=0; i<agent->n; i++)
   {
     if (sum + p[i] > r)
     {
