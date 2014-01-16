@@ -641,6 +641,7 @@ find_equivalent_address (struct GAS_Addresses_Handle *handle,
  * @param plugin_name transport plugin name
  * @param plugin_addr plugin address
  * @param plugin_addr_len length of the plugin address
+ * @param local_address_info the local address for the address
  * @param session_id session id, can be 0
  * @return an ATS_address or NULL
  */
@@ -730,6 +731,7 @@ get_performance_info (struct ATS_Address *address, uint32_t type)
  * @param plugin_name transport plugin name
  * @param plugin_addr plugin address
  * @param plugin_addr_len length of the plugin address
+ * @param local_address_info the local address for the address
  * @param session_id session id, can be 0
  * @param atsi performance information for this address
  * @param atsi_count number of performance information contained
@@ -899,6 +901,7 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
  * @param plugin_name transport plugin name
  * @param plugin_addr plugin address
  * @param plugin_addr_len length of the plugin address
+ * @param local_address_info the local address for the address
  * @param session_id session id, can be 0
  * @param atsi performance information for this address
  * @param atsi_count number of performance information contained
@@ -1095,6 +1098,7 @@ destroy_by_session_id (void *cls,
  * @param plugin_name transport plugin name
  * @param plugin_addr plugin address
  * @param plugin_addr_len length of the plugin address
+ * @param local_address_info the local address for the address
  * @param session_id session id, can be 0
  */
 void
@@ -1154,6 +1158,7 @@ GAS_addresses_destroy (struct GAS_Addresses_Handle *handle,
  * @param plugin_name transport plugin name
  * @param plugin_addr plugin address
  * @param plugin_addr_len length of the plugin address
+ * @param local_address_info the local address for the address
  * @param session_id session id, can be 0
  * @param in_use GNUNET_YES if GNUNET_NO
  * @return GNUNET_SYSERR on failure (address unknown ...)

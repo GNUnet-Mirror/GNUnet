@@ -92,6 +92,7 @@ GAS_scheduling_remove_client (struct GNUNET_SERVER_Client *client)
  * @param plugin_name 0-termintated string specifying the transport plugin
  * @param plugin_addr binary address for the plugin to use
  * @param plugin_addr_len number of bytes in plugin_addr
+ * @param local_address_info the local address for the address
  * @param session_id session ID to use for the given client (other clients will see 0)
  * @param atsi performance data for the address
  * @param atsi_count number of performance records in 'ats'

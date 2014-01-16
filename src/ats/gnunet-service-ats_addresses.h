@@ -423,6 +423,7 @@ GAS_addresses_done (struct GAS_Addresses_Handle *handle);
  * @param plugin_name transport plugin name
  * @param plugin_addr plugin address
  * @param plugin_addr_len length of the plugin address
+ * @param local_address_info the local address for the address
  * @param session_id session id, can be 0
  * @param atsi performance information for this address
  * @param atsi_count number of performance information contained
@@ -453,6 +454,7 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
  * @param plugin_name transport plugin name
  * @param plugin_addr plugin address
  * @param plugin_addr_len length of the plugin address
+ * @param local_address_info the local address for the address
  * @param session_id session id, can be 0
  * @param in_use GNUNET_YES if GNUNET_NO
  * @return GNUNET_SYSERR on failure (address unknown ...)
@@ -476,6 +478,7 @@ GAS_addresses_in_use (struct GAS_Addresses_Handle *handle,
  * @param plugin_name transport plugin name
  * @param plugin_addr plugin address
  * @param plugin_addr_len length of the plugin address
+ * @param local_address_info the local address for the address
  * @param session_id session id, can be 0
  * @param atsi performance information for this address
  * @param atsi_count number of performance information contained
@@ -496,6 +499,7 @@ GAS_addresses_update (struct GAS_Addresses_Handle *handle,
  * @param plugin_addr plugin address
  * @param plugin_addr_len length of the plugin address
  * @param session_id session id, can be 0
+ * @param local_address_info the local address for the address
  */
 void
 GAS_addresses_destroy (struct GAS_Addresses_Handle *handle,
