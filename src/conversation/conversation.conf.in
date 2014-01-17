@@ -2,6 +2,7 @@
 AUTOSTART = @AUTOSTART@
 BINARY = gnunet-service-conversation
 UNIXPATH = $GNUNET_RUNTIME_DIR/gnunet-service-conversation.sock
+HOSTNAME = localhost
 @UNIXONLY@ PORT = 2106
 
 ACCEPT_FROM = 127.0.0.1;
