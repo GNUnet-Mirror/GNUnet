@@ -101,7 +101,7 @@ gnunet_helper_audio_record_SOURCES = \
   gnunet-helper-audio-record.c
 gnunet_helper_audio_record_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
-  -lpulse  -lopus\
+  -lpulse  -lopus -logg \
   $(INTLLIBS)
 gnunet_helper_audio_record_LDFLAGS = \
   $(GNUNET_LDFLAGS)  $(WINFLAGS)
@@ -110,7 +110,7 @@ gnunet_helper_audio_playback_SOURCES = \
   gnunet-helper-audio-playback.c
 gnunet_helper_audio_playback_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
-  -lpulse -lopus\
+  -lpulse -lopus -logg \
   $(INTLLIBS)
 gnunet_helper_audio_playback_LDFLAGS = \
   $(GNUNET_LDFLAGS)  $(WINFLAGS)
@@ -131,7 +131,6 @@ gnunet_helper_audio_playback_SOURCES = \
   gnunet-helper-audio-playback-gst.c
 gnunet_helper_audio_playback_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
-  -lopus \
   $(GST_LIBS) \
   $(INTLLIBS)
 gnunet_helper_audio_playback_LDFLAGS = \

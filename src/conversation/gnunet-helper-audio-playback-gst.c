@@ -30,25 +30,16 @@
 #include "gnunet_core_service.h"
 
 #include <gst/gst.h>
-#include <gst/app/gstappsrc.h>
 #include <gst/audio/gstaudiobasesrc.h>
+#include <gst/app/gstappsrc.h>
 #include <glib.h>
 
-#include <opus/opus.h>
-#include <opus/opus_types.h>
+#define DEBUG_READ_PURE_OGG 1
 
 /**
  * How much data to read in one go
  */
 #define MAXLINE 4096
-
-#define SAMPLING_RATE 48000
-
-#define CHANNELS 1
-
-#define FRAME_SIZE (SAMPLING_RATE / 50)
-
-#define PCM_LENGTH (FRAME_SIZE * CHANNELS * sizeof (int16_t))
 
 /**
  * Max number of microseconds to buffer in audiosink.
@@ -77,35 +68,38 @@ static GstElement *pipeline;
  */
 static GstElement *source;
 
-/**
- * OPUS decoder
- */
-static OpusDecoder *dec;
-
+static GstElement *demuxer;
+static GstElement *decoder;
+static GstElement *conv;
+static GstElement *resampler;
+static GstElement *sink;
 
 /**
  * Set to 1 to break the reading loop
  */
 static int abort_read;
 
-
-/**
- * OPUS initialization
- */
 static void
-opus_init ()
-{
-  int err;
-  int channels = 1;
-
-  dec = opus_decoder_create (SAMPLING_RATE, channels, &err);
-}
-
-void
 sink_child_added (GstChildProxy *child_proxy, GObject *object, gchar *name, gpointer user_data)
 {
   if (GST_IS_AUDIO_BASE_SRC (object))
     g_object_set (object, "buffer-time", (gint64) BUFFER_TIME, "latency-time", (gint64) LATENCY_TIME, NULL);
+}
+
+static void
+ogg_pad_added (GstElement *element, GstPad *pad, gpointer data)
+{
+  GstPad *sinkpad;
+  GstElement *decoder = (GstElement *) data;
+
+  /* We can now link this pad with the opus-decoder sink pad */
+  sinkpad = gst_element_get_static_pad (decoder, "sink");
+
+  gst_pad_link (pad, sinkpad);
+
+  gst_element_link_many (decoder, conv, resampler, sink, NULL);
+
+  gst_object_unref (sinkpad);
 }
 
 static void
@@ -157,6 +151,50 @@ signalhandler (int s)
   quit ();
 }
 
+static int
+feed_buffer_to_gst (const char *audio, size_t b_len)
+{
+  GstBuffer *b;
+  gchar *bufspace;
+  GstFlowReturn flow;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      "Feeding %u bytes to GStreamer\n",
+      (unsigned int) b_len);
+
+  bufspace = g_memdup (audio, b_len);
+  b = gst_buffer_new_wrapped (bufspace, b_len);
+  if (NULL == b)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Failed to wrap a buffer\n");
+    g_free (bufspace);
+    return GNUNET_SYSERR;
+  }
+  flow = gst_app_src_push_buffer (GST_APP_SRC (source), b);
+  /* They all return GNUNET_OK, because currently player stops when
+   * data stops coming. This might need to be changed for the player
+   * to also stop when pipeline breaks.
+   */
+  switch (flow)
+  {
+  case GST_FLOW_OK:
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Fed %u bytes to the pipeline\n",
+        (unsigned int) b_len);
+    break;
+  case GST_FLOW_FLUSHING:
+    /* buffer was dropped, because pipeline state is not PAUSED or PLAYING */
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Dropped a buffer\n");
+    break;
+  case GST_FLOW_EOS:
+    /* end of stream */
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "EOS\n");
+    break;
+  default:
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Unexpected push result\n");
+    break;
+  }
+  return GNUNET_OK;
+}
 
 /**
  * Message callback
@@ -167,68 +205,15 @@ stdin_receiver (void *cls,
 		const struct GNUNET_MessageHeader *msg)
 {
   struct AudioMessage *audio;
-  GstBuffer *b;
-  int16_t *bufspace;
-  GstFlowReturn flow;
-  int ret;
+  size_t b_len;
 
   switch (ntohs (msg->type))
   {
   case GNUNET_MESSAGE_TYPE_CONVERSATION_AUDIO:
     audio = (struct AudioMessage *) msg;
 
-    bufspace = (int16_t *) g_malloc (PCM_LENGTH);
-
-    ret = opus_decode (dec,
-		       (const unsigned char *) &audio[1],
-		       ntohs (audio->header.size) - sizeof (struct AudioMessage),
-		       bufspace,
-		       FRAME_SIZE, 0);
-    if (ret < 0)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  "Opus decoding failed: %d\n",
-		  ret);
-      g_free (bufspace);
-      return GNUNET_OK;
-    }
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Decoded frame with %u bytes\n",
-		ntohs (audio->header.size));
-
-    b = gst_buffer_new_wrapped (bufspace, ret * sizeof (int16_t));
-    if (NULL == b)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Failed to wrap a buffer\n");
-      g_free (bufspace);
-      return GNUNET_SYSERR;
-    }
-
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "pushing...\n");
-    flow = gst_app_src_push_buffer (GST_APP_SRC (source), b);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "pushed!\n");
-    /* They all return GNUNET_OK, because currently player stops when
-     * data stops coming. This might need to be changed for the player
-     * to also stop when pipeline breaks.
-     */
-    switch (flow)
-    {
-    case GST_FLOW_OK:
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Fed %u bytes to the pipeline\n",
-          (unsigned int) ret * sizeof (int16_t));
-      break;
-    case GST_FLOW_FLUSHING:
-      /* buffer was dropped, because pipeline state is not PAUSED or PLAYING */
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Dropped a buffer\n");
-      break;
-    case GST_FLOW_EOS:
-      /* end of stream */
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "EOS\n");
-      break;
-    default:
-      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Unexpected push result\n");
-      break;
-    }
+    b_len = ntohs (audio->header.size) - sizeof (struct AudioMessage);
+    feed_buffer_to_gst ((const char *) &audio[1], b_len);
     break;
   default:
     break;
@@ -240,15 +225,16 @@ stdin_receiver (void *cls,
 int
 main (int argc, char **argv)
 {
-  GstElement *conv, *resampler, *sink;
   GstBus *bus;
-  GstCaps *caps;
   guint bus_watch_id;
   uint64_t toff;
 
   typedef void (*SignalHandlerPointer) (int);
  
   SignalHandlerPointer inthandler, termhandler;
+#ifdef DEBUG_READ_PURE_OGG
+  int read_pure_ogg = getenv ("GNUNET_READ_PURE_OGG") ? 1 : 0;
+#endif
 
   inthandler = signal (SIGINT, signalhandler);
   termhandler = signal (SIGTERM, signalhandler);
@@ -256,8 +242,6 @@ main (int argc, char **argv)
 #ifdef WINDOWS
   setmode (0, _O_BINARY);
 #endif
-
-  opus_init ();
 
   /* Initialisation */
   gst_init (&argc, &argv);
@@ -275,11 +259,13 @@ main (int argc, char **argv)
   /* Create gstreamer elements */
   pipeline = gst_pipeline_new ("audio-player");
   source   = gst_element_factory_make ("appsrc",        "audio-input");
+  demuxer  = gst_element_factory_make ("oggdemux",      "ogg-demuxer");
+  decoder  = gst_element_factory_make ("opusdec",       "opus-decoder");
   conv     = gst_element_factory_make ("audioconvert",  "converter");
   resampler= gst_element_factory_make ("audioresample", "resampler");
   sink     = gst_element_factory_make ("autoaudiosink", "audiosink");
 
-  if (!pipeline || !source || !conv || !resampler || !sink)
+  if (!pipeline || !source || !conv || !resampler || !decoder || !demuxer || !sink)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
         "One element could not be created. Exiting.\n");
@@ -287,15 +273,7 @@ main (int argc, char **argv)
   }
 
   g_signal_connect (sink, "child-added", G_CALLBACK (sink_child_added), NULL);
-
-  caps = gst_caps_new_simple ("audio/x-raw",
-    "format", G_TYPE_STRING, "S16LE",
-    "rate", G_TYPE_INT, SAMPLING_RATE,
-    "channels", G_TYPE_INT, CHANNELS,
-    "layout", G_TYPE_STRING, "interleaved",
-     NULL);
-  gst_app_src_set_caps (GST_APP_SRC (source), caps);
-  gst_caps_unref (caps);
+  g_signal_connect (demuxer, "pad-added", G_CALLBACK (ogg_pad_added), decoder);
 
   /* Keep a reference to it, we operate on it */
   gst_object_ref (GST_OBJECT (source));
@@ -304,9 +282,15 @@ main (int argc, char **argv)
 
   /* we feed appsrc as fast as possible, it just blocks when it's full */
   g_object_set (G_OBJECT (source),
-      "format", GST_FORMAT_TIME,
+/*      "format", GST_FORMAT_TIME,*/
       "block", TRUE,
       "is-live", TRUE,
+      NULL);
+
+  g_object_set (G_OBJECT (decoder),
+/*      "plc", FALSE,*/
+/*      "apply-gain", TRUE,*/
+      "use-inband-fec", TRUE,
       NULL);
 
   /* we add a message handler */
@@ -315,12 +299,12 @@ main (int argc, char **argv)
   gst_object_unref (bus);
 
   /* we add all elements into the pipeline */
-  /* audio-input | converter | resampler | audiosink */
-  gst_bin_add_many (GST_BIN (pipeline), source, conv,
+  /* audio-input | ogg-demuxer | opus-decoder | converter | resampler | audiosink */
+  gst_bin_add_many (GST_BIN (pipeline), source, demuxer, decoder, conv,
       resampler, sink, NULL);
 
   /* we link the elements together */
-  gst_element_link_many (source, conv, resampler, sink, NULL);
+  gst_element_link_many (source, demuxer, NULL);
 
   /* Set the pipeline to "playing" state*/
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Now playing\n");
@@ -349,6 +333,13 @@ main (int argc, char **argv)
 		toff);
     if (0 == ret)
       break;
+#ifdef DEBUG_READ_PURE_OGG
+    if (read_pure_ogg)
+    {
+      feed_buffer_to_gst (readbuf, ret);
+    }
+    else
+#endif
     GNUNET_SERVER_mst_receive (stdin_mst, NULL,
 			       readbuf, ret,
 			       GNUNET_NO, GNUNET_NO);

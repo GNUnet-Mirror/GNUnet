@@ -38,9 +38,104 @@
 #include <pulse/pulseaudio.h>
 #include <opus/opus.h>
 #include <opus/opus_types.h>
+#include <ogg/ogg.h>
 
+#define DEBUG_RECORD_PURE_OGG 1
+
+/**
+ * Sampling rate
+ */
 #define SAMPLING_RATE 48000
 
+/**
+ * How many ms of audio to buffer before encoding them.
+ * Possible values:
+ * 60, 40, 20, 10, 5, 2.5
+ */
+#define FRAME_SIZE_MS 40
+
+/**
+ * How many samples to buffer before encoding them.
+ */
+#define FRAME_SIZE (SAMPLING_RATE / 1000 * FRAME_SIZE_MS)
+
+/**
+ * Pages are commited when their size goes over this value.
+ * Note that in practice we flush pages VERY often (every frame),
+ * which means that pages NEVER really get to be this big.
+ * With one-packet-per-page, pages are roughly 100-300 bytes each.
+ *
+ * This value is chosen to make MAX_PAYLOAD_BYTES=1024 fit
+ * into a single page.
+ */
+#define PAGE_WATERLINE 800
+
+/**
+ * Maximum length of opus payload
+ */
+#define MAX_PAYLOAD_BYTES 1024
+
+/**
+ * Number of channels
+ */
+#define CHANNELS 1
+
+/**
+ * Configures the encoder's expected packet loss percentage.
+ *
+ * Higher values will trigger progressively more loss resistant behavior
+ * in the encoder at the expense of quality at a given bitrate
+ * in the lossless case, but greater quality under loss.
+ */
+#define CONV_OPUS_PACKET_LOSS_PERCENTAGE 1
+
+/**
+ * Configures the encoder's computational complexity.
+ *
+ * The supported range is 0-10 inclusive with 10 representing
+ * the highest complexity.
+ */
+#define CONV_OPUS_ENCODING_COMPLEXITY 10
+
+/**
+ * Configures the encoder's use of inband forward error correction (FEC).
+ *
+ * Note: This is only applicable to the LPC layer.
+ */
+#define CONV_OPUS_INBAND_FEC 1
+
+/**
+ * Configures the type of signal being encoded.
+ *
+ * This is a hint which helps the encoder's mode selection.
+ *
+ * Possible values:
+ * OPUS_AUTO - (default) Encoder detects the type automatically.
+ * OPUS_SIGNAL_VOICE - Bias thresholds towards choosing LPC or Hybrid modes.
+ * OPUS_SIGNAL_MUSIC - Bias thresholds towards choosing MDCT modes.
+ */
+#define CONV_OPUS_SIGNAL OPUS_AUTO
+
+/**
+ * Coding mode.
+ *
+ * Possible values:
+ * OPUS_APPLICATION_VOIP - gives best quality at a given bitrate for voice
+ * signals. It enhances the input signal by high-pass filtering and
+ * emphasizing formants and harmonics. Optionally it includes in-band forward
+ * error correction to protect against packet loss. Use this mode for typical
+ * VoIP applications. Because of the enhancement, even at high bitrates
+ * the output may sound different from the input.
+ * OPUS_APPLICATION_AUDIO - gives best quality at a given bitrate for most
+ * non-voice signals like music. Use this mode for music and mixed
+ * (music/voice) content, broadcast, and applications requiring less than
+ * 15 ms of coding delay.
+ * OPUS_APPLICATION_RESTRICTED_LOWDELAY - configures low-delay mode that
+ * disables the speech-optimized mode in exchange for slightly reduced delay.
+ * This mode can only be set on an newly initialized or freshly reset encoder
+ * because it changes the codec delay.
+ */
+#define CONV_OPUS_APP_TYPE OPUS_APPLICATION_VOIP
 
 /**
  * Specification for recording. May change in the future to spec negotiation.
@@ -48,8 +143,37 @@
 static pa_sample_spec sample_spec = {
   .format = PA_SAMPLE_FLOAT32LE,
   .rate = SAMPLING_RATE,
-  .channels = 1
+  .channels = CHANNELS
 };
+
+GNUNET_NETWORK_STRUCT_BEGIN
+
+/* OggOpus spec says the numbers must be in little-endian order */
+struct OpusHeadPacket
+{
+  uint8_t magic[8];
+  uint8_t version;
+  uint8_t channels;
+  uint16_t preskip GNUNET_PACKED;
+  uint32_t sampling_rate GNUNET_PACKED;
+  uint16_t gain GNUNET_PACKED;
+  uint8_t channel_mapping;
+};
+
+struct OpusCommentsPacket
+{
+  uint8_t magic[8];
+  uint32_t vendor_length;
+  /* followed by:
+     char vendor[vendor_length];
+     uint32_t string_count;
+     followed by @a string_count pairs of:
+       uint32_t string_length;
+       char string[string_length];
+   */
+};
+
+GNUNET_NETWORK_STRUCT_END
 
 /**
  * Pulseaudio mainloop api
@@ -82,7 +206,7 @@ static pa_io_event *stdio_event;
 static OpusEncoder *enc;
 
 /**
- *
+ * Buffer for encoded data
  */
 static unsigned char *opus_data;
 
@@ -95,16 +219,6 @@ static float *pcm_buffer;
  * Length of the pcm data needed for one OPUS frame
  */
 static int pcm_length;
-
-/**
- * Number of samples for one frame
- */
-static int frame_size;
-
-/**
-* Maximum length of opus payload
-*/
-static int max_payload_bytes = 1500;
 
 /**
  * Audio buffer
@@ -126,6 +240,28 @@ static size_t transmit_buffer_index;
  */
 static struct AudioMessage *audio_message;
 
+/**
+ * Ogg muxer state
+ */
+static ogg_stream_state os;
+
+/**
+ * Ogg packet id
+ */
+static int32_t packet_id;
+
+/**
+ * Ogg granule for current packet
+ */
+static int64_t enc_granulepos;
+
+#ifdef DEBUG_RECORD_PURE_OGG
+/**
+ * 1 to not to write GNUnet message headers,
+ * producing pure playable ogg output
+ */
+static int dump_pure_ogg;
+#endif
 
 /**
  * Pulseaudio shutdown task
@@ -138,20 +274,59 @@ quit (int ret)
 }
 
 
+static void
+write_data (const char *ptr, size_t msg_size)
+{
+  ssize_t ret;
+  size_t off;
+  off = 0;
+  while (off < msg_size)
+  {
+    ret = write (1, &ptr[off], msg_size - off);
+    if (0 >= ret)
+    {
+      if (-1 == ret)
+        GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "write");
+      quit (2);
+    }
+    off += ret;
+  }
+}
+
+static void
+write_page (ogg_page *og)
+{
+  static unsigned long long toff;
+  size_t msg_size;
+  msg_size = sizeof (struct AudioMessage) + og->header_len + og->body_len;
+  audio_message->header.size = htons ((uint16_t) msg_size);
+  memcpy (&audio_message[1], og->header, og->header_len);
+  memcpy (((char *) &audio_message[1]) + og->header_len, og->body, og->body_len);
+
+  toff += msg_size;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Sending %u bytes of audio data (total: %llu)\n",
+              (unsigned int) msg_size,
+              toff);
+#ifdef DEBUG_RECORD_PURE_OGG
+  if (dump_pure_ogg)
+    write_data ((const char *) &audio_message[1], og->header_len + og->body_len);
+  else
+#endif
+    write_data ((const char *) audio_message, msg_size);
+}
+
 /**
  * Creates OPUS packets from PCM data
  */
 static void
 packetizer ()
 {
-  static unsigned long long toff;
   char *nbuf;
   size_t new_size;
-  const char *ptr;
-  size_t off;
-  ssize_t ret;
-  int len; // FIXME: int?
-  size_t msg_size;
+  int32_t len;
+  ogg_packet op;
+  ogg_page og;
 
   while (transmit_buffer_length >= transmit_buffer_index + pcm_length)
   {
@@ -160,37 +335,42 @@ packetizer ()
 	    pcm_length);
     transmit_buffer_index += pcm_length;
     len =
-      opus_encode_float (enc, pcm_buffer, frame_size, opus_data,
-			 max_payload_bytes);
+      opus_encode_float (enc, pcm_buffer, FRAME_SIZE, opus_data,
+			 MAX_PAYLOAD_BYTES);
 
+    if (len < 0)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _("opus_encode_float() failed: %s. Aborting\n"),
+                  opus_strerror (len));
+      quit (5);
+    }
     if (len > UINT16_MAX - sizeof (struct AudioMessage))
     {
       GNUNET_break (0);
       continue;
     }
 
+    /* As per OggOpus spec, granule is calculated as if the audio
+       had 48kHz sampling rate. */
+    enc_granulepos += FRAME_SIZE * 48000 / SAMPLING_RATE;
 
-    msg_size = sizeof (struct AudioMessage) + len;
-    audio_message->header.size = htons ((uint16_t) msg_size);
-    memcpy (&audio_message[1], opus_data, len);
+    op.packet = (unsigned char *) opus_data;
+    op.bytes = len;
+    op.b_o_s = 0;
+    op.e_o_s = 0;
+    op.granulepos = enc_granulepos;
+    op.packetno = packet_id++;
+    ogg_stream_packetin (&os, &op);
 
-    toff += msg_size;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Sending %u bytes of audio data (total: %llu)\n",
-		(unsigned int) msg_size,
-		toff);
-    ptr = (const char *) audio_message;
-    off = 0;
-    while (off < msg_size)
+    while (ogg_stream_flush_fill (&os, &og, PAGE_WATERLINE))
     {
-      ret = write (1, &ptr[off], msg_size - off);
-      if (0 >= ret)
+      if (og.header_len + og.body_len > UINT16_MAX - sizeof (struct AudioMessage))
       {
-	if (-1 == ret)
-	  GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "write");
-	quit (2);
+        GNUNET_assert (0);
+        continue;
       }
-      off += ret;
+      write_page (&og);
     }
   }
 
@@ -460,27 +640,112 @@ pa_init ()
 static void
 opus_init ()
 {
-  int channels = 1;
   int err;
 
-  frame_size = SAMPLING_RATE / 50;
-  pcm_length = frame_size * channels * sizeof (float);
+  pcm_length = FRAME_SIZE * CHANNELS * sizeof (float);
   pcm_buffer = pa_xmalloc (pcm_length);
-  opus_data = GNUNET_malloc (max_payload_bytes);
+  opus_data = GNUNET_malloc (MAX_PAYLOAD_BYTES);
   enc = opus_encoder_create (SAMPLING_RATE,
-			     channels,
-			     OPUS_APPLICATION_VOIP,
+			     CHANNELS,
+			     CONV_OPUS_APP_TYPE,
 			     &err);
   opus_encoder_ctl (enc,
-		    OPUS_SET_PACKET_LOSS_PERC(1));
+		    OPUS_SET_PACKET_LOSS_PERC (CONV_OPUS_PACKET_LOSS_PERCENTAGE));
   opus_encoder_ctl (enc,
-		    OPUS_SET_COMPLEXITY(10));
+		    OPUS_SET_COMPLEXITY (CONV_OPUS_ENCODING_COMPLEXITY));
   opus_encoder_ctl (enc,
-		    OPUS_SET_INBAND_FEC(1));
+		    OPUS_SET_INBAND_FEC (CONV_OPUS_INBAND_FEC));
   opus_encoder_ctl (enc,
 		    OPUS_SET_SIGNAL (OPUS_SIGNAL_VOICE));
 }
 
+static void
+ogg_init ()
+{
+  int serialno;
+  struct OpusHeadPacket headpacket;
+  struct OpusCommentsPacket *commentspacket;
+  size_t commentspacket_len;
+
+  serialno = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_STRONG, 0x7FFFFFFF);
+
+  /*Initialize Ogg stream struct*/
+  if (-1 == ogg_stream_init (&os, serialno))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		_("ogg_stream_init() failed.\n"));
+    exit (3);
+  }
+
+  packet_id = 0;
+
+  /*Write header*/
+  {
+    ogg_packet op;
+    ogg_page og;
+    const char *opusver;
+    int vendor_length;
+
+    memcpy (headpacket.magic, "OpusHead", 8);
+    headpacket.version = 1;
+    headpacket.channels = CHANNELS;
+    headpacket.preskip = GNUNET_htole16 (0);
+    headpacket.sampling_rate = GNUNET_htole32 (SAMPLING_RATE);
+    headpacket.gain = GNUNET_htole16 (0);
+    headpacket.channel_mapping = 0; /* Mono or stereo */
+
+    op.packet = (unsigned char *) &headpacket;
+    op.bytes = sizeof (headpacket);
+    op.b_o_s = 1;
+    op.e_o_s = 0;
+    op.granulepos = 0;
+    op.packetno = packet_id++;
+    ogg_stream_packetin (&os, &op);
+
+    /* Head packet must be alone on its page */
+    while (ogg_stream_flush (&os, &og))
+    {
+      write_page (&og);
+    }
+
+    commentspacket_len = sizeof (*commentspacket);
+    opusver = opus_get_version_string ();
+    vendor_length = strlen (opusver);
+    commentspacket_len += vendor_length;
+    commentspacket_len += sizeof (uint32_t);
+
+    commentspacket = (struct OpusCommentsPacket *) malloc (commentspacket_len);
+    if (NULL == commentspacket)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+		  _("Failed to allocate %d bytes for second packet\n"),
+                  commentspacket_len);
+      exit (5);
+    }
+
+    memcpy (commentspacket->magic, "OpusTags", 8);
+    commentspacket->vendor_length = GNUNET_htole32 (vendor_length);
+    memcpy (&commentspacket[1], opusver, vendor_length);
+    *(uint32_t *) &((char *) &commentspacket[1])[vendor_length] = \
+        GNUNET_htole32 (0); /* no tags */
+
+    op.packet = (unsigned char *) commentspacket;
+    op.bytes = commentspacket_len;
+    op.b_o_s = 0;
+    op.e_o_s = 0;
+    op.granulepos = 0;
+    op.packetno = packet_id++;
+    ogg_stream_packetin (&os, &op);
+
+    /* Comment packets must not be mixed with audio packets on their pages */
+    while (ogg_stream_flush (&os, &og))
+    {
+      write_page (&og);
+    }
+
+    free (commentspacket);
+  }
+}
 
 /**
  * The main function for the record helper.
@@ -500,6 +765,11 @@ main (int argc, char *argv[])
 	      "Audio source starts\n");
   audio_message = GNUNET_malloc (UINT16_MAX);
   audio_message->header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_AUDIO);
+
+#ifdef DEBUG_RECORD_PURE_OGG
+  dump_pure_ogg = getenv ("GNUNET_RECORD_PURE_OGG") ? 1 : 0;
+#endif
+  ogg_init ();
   opus_init ();
   pa_init ();
   return 0;

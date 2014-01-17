@@ -34,6 +34,8 @@
 #include <gst/audio/gstaudiobasesrc.h>
 #include <glib.h>
 
+#define DEBUG_RECORD_PURE_OGG 1
+
 /**
  * Number of channels.
  * Must be one of the following (from libopusenc documentation):
@@ -51,7 +53,7 @@
  * Must be one of the following (from libopus documentation):
  * 2.5, 5, 10, 20, 40 or 60
  */
-#define OPUS_FRAME_SIZE 20
+#define OPUS_FRAME_SIZE 40
 
 /**
  * Expected packet loss to prepare for, in percents.
@@ -68,18 +70,36 @@
  * Max number of microseconds to buffer in audiosource.
  * Default is 200000
  */
-#define BUFFER_TIME 1000
+#define BUFFER_TIME 1000 /* 1ms */
 
 /**
  * Min number of microseconds to buffer in audiosource.
  * Default is 10000
  */
-#define LATENCY_TIME 1000
+#define LATENCY_TIME 1000 /* 1ms */
+
+/**
+ * Maximum delay in multiplexing streams, in ns.
+ * Setting this to 0 forces page flushing, which
+ * decreases delay, but increases overhead.
+ */
+#define OGG_MAX_DELAY 0
+
+/**
+ * Maximum delay for sending out a page, in ns.
+ * Setting this to 0 forces page flushing, which
+ * decreases delay, but increases overhead.
+ */
+#define OGG_MAX_PAGE_DELAY 0
 
 /**
  * Main pipeline.
  */
 static GstElement *pipeline;
+
+#ifdef DEBUG_RECORD_PURE_OGG
+static int dump_pure_ogg;
+#endif
 
 static void
 quit ()
@@ -103,13 +123,13 @@ bus_call (GstBus *bus, GstMessage *msg, gpointer data)
     {
       gchar  *debug;
       GError *error;
-      
+
       gst_message_parse_error (msg, &error, &debug);
       g_free (debug);
-      
+
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Error: %s\n", error->message);
       g_error_free (error);
-      
+
       quit ();
       break;
     }
@@ -137,17 +157,22 @@ signalhandler (int s)
 int
 main (int argc, char **argv)
 {
-  GstElement *source, *encoder, *conv, *resampler, *sink;
+  GstElement *source, *filter, *encoder, *conv, *resampler, *sink, *oggmux;
+  GstCaps *caps;
   GstBus *bus;
   guint bus_watch_id;
   struct AudioMessage audio_message;
   int abort_send = 0;
 
   typedef void (*SignalHandlerPointer) (int);
- 
+
   SignalHandlerPointer inthandler, termhandler;
   inthandler = signal (SIGINT, signalhandler);
   termhandler = signal (SIGTERM, signalhandler);
+
+#ifdef DEBUG_RECORD_PURE_OGG
+  dump_pure_ogg = getenv ("GNUNET_RECORD_PURE_OGG") ? 1 : 0;
+#endif
 
 #ifdef WINDOWS
   setmode (1, _O_BINARY);
@@ -169,12 +194,14 @@ main (int argc, char **argv)
   /* Create gstreamer elements */
   pipeline = gst_pipeline_new ("audio-recorder");
   source   = gst_element_factory_make ("autoaudiosrc",  "audiosource");
+  filter   = gst_element_factory_make ("capsfilter",    "filter");
   conv     = gst_element_factory_make ("audioconvert",  "converter");
   resampler= gst_element_factory_make ("audioresample", "resampler");
   encoder  = gst_element_factory_make ("opusenc",       "opus-encoder");
+  oggmux   = gst_element_factory_make ("oggmux",        "ogg-muxer");
   sink     = gst_element_factory_make ("appsink",       "audio-output");
 
-  if (!pipeline || !source || !conv || !resampler || !encoder || !sink)
+  if (!pipeline || !filter || !source || !conv || !resampler || !encoder || !oggmux || !sink)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
         "One element could not be created. Exiting.\n");
@@ -185,6 +212,17 @@ main (int argc, char **argv)
 
   /* Set up the pipeline */
 
+  caps = gst_caps_new_simple ("audio/x-raw",
+    "format", G_TYPE_STRING, "S16LE",
+/*    "rate", G_TYPE_INT, SAMPLING_RATE,*/
+    "channels", G_TYPE_INT, OPUS_CHANNELS,
+/*    "layout", G_TYPE_STRING, "interleaved",*/
+     NULL);
+  g_object_set (G_OBJECT (filter),
+      "caps", caps,
+      NULL);
+  gst_caps_unref (caps);
+
   g_object_set (G_OBJECT (encoder),
 /*      "bitrate", 64000, */
 /*      "bandwidth", OPUS_BANDWIDTH_FULLBAND, */
@@ -194,7 +232,12 @@ main (int argc, char **argv)
       "audio", FALSE, /* VoIP, not audio */
       "frame-size", OPUS_FRAME_SIZE,
       NULL);
-  
+
+  g_object_set (G_OBJECT (oggmux),
+      "max-delay", OGG_MAX_DELAY,
+      "max-page-delay", OGG_MAX_PAGE_DELAY,
+      NULL);
+
   /* we add a message handler */
   bus = gst_pipeline_get_bus (GST_PIPELINE (pipeline));
   bus_watch_id = gst_bus_add_watch (bus, bus_call, pipeline);
@@ -202,11 +245,11 @@ main (int argc, char **argv)
 
   /* we add all elements into the pipeline */
   /* audiosource | converter | resampler | opus-encoder | audio-output */
-  gst_bin_add_many (GST_BIN (pipeline), source, conv, resampler, encoder,
-      sink, NULL);
+  gst_bin_add_many (GST_BIN (pipeline), source, filter, conv, resampler, encoder,
+      oggmux, sink, NULL);
 
   /* we link the elements together */
-  gst_element_link_many (source, conv, resampler, encoder, sink, NULL);
+  gst_element_link_many (source, filter, conv, resampler, encoder, oggmux, sink, NULL);
 
   /* Set the pipeline to "playing" state*/
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Now playing\n");
@@ -288,6 +331,10 @@ main (int argc, char **argv)
       ssize_t ret;
       if (0 == phase)
       {
+#ifdef DEBUG_RECORD_PURE_OGG
+        if (dump_pure_ogg)
+          continue;
+#endif
         ptr = (const char *) &audio_message;
         to_send = sizeof (audio_message);
       }
@@ -308,7 +355,7 @@ main (int argc, char **argv)
                 "Failed to write %u bytes at offset %u (total %u) in phase %d: %s\n",
                 (unsigned int) to_send - offset, (unsigned int) offset,
                 (unsigned int) (to_send + offset), phase, strerror (errno));
-	  abort_send = 1;
+          abort_send = 1;
           break;
         }
       }
