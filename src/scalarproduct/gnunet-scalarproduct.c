@@ -257,18 +257,20 @@ run (void *cls,
   /* Count input_elements_peer1, and put in elements_peer1 array */
   do
   {
-    // get the length of the current element and replace , with null
+    // get the length of the current element
     for (end = begin; *end && *end != ','; end++);
 
-    if (1 == sscanf (begin, "%" SCNd32 ",", &element))
+    if (0 == *begin)
+    {
+      break;
+    }
+    else if (1 == sscanf (begin, "%" SCNd32 ",", &element))
     {
       //element in the middle
       element_count++;
-      begin = end + 1;
-    }
-    else if (0 == *begin)
-    {
-      break;
+      begin = end;
+      if (',' == *end)
+        begin += 1;
     }
     else
     {
@@ -291,18 +293,26 @@ run (void *cls,
   /* Read input_elements_peer1, and put in elements_peer1 array */
   do
   {
-    // get the length of the current element and replace , with null
+    // get the length of the current element
     for (end = begin; *end && *end != ','; end++);
 
-    if (1 == sscanf (begin, "%" SCNd32 ",", &elements[element_count]))
+    if (0 == *begin)
+    {
+      break;
+    }
+    else if (1 == sscanf (begin, "%" SCNd32 ",", &elements[element_count]))
     {
       //element in the middle
       element_count++;
-      begin = end + 1;
+      begin = end;
+      if (',' == *end)
+        begin += 1;
     }
-    else if (0 == *begin)
+    else
     {
-      break;
+      LOG (GNUNET_ERROR_TYPE_ERROR,
+           _ ("Could not convert `%s' to int32_t.\n"), begin);
+      return;
     }
   }
   while (1);
