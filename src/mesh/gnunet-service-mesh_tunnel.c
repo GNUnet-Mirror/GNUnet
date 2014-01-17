@@ -2020,8 +2020,14 @@ GMT_destroy_empty (struct MeshTunnel3 *t)
 {
   if (GNUNET_SCHEDULER_NO_TASK != t->destroy_task)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Tunnel %s is already scheduled for destruction\n",
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Tunnel %s is already scheduled for destruction\n",
          GMT_2s (t));
+    GNUNET_break (0);
+    /* should never happen, tunnel can only become empty once, and the
+     * task identifier should be NO_TASK (cleaned when the tunnel was created
+     * or became un-empty)
+     */
     return;
   }
 
