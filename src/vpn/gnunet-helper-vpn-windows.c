@@ -1477,7 +1477,7 @@ main (int argc, char **argv)
   BOOL have_ip4 = FALSE;
   BOOL have_ip6 = FALSE;
 
-  if (argc > 1 && 0 != strcmp (argv[1], "-d")){
+  if (argc > 1 && 0 == strcmp (argv[1], "-d")){
       privilege_testing = TRUE;
       fprintf (stderr,
 	       "%s",
