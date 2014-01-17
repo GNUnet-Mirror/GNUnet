@@ -29,7 +29,7 @@
 #define LOG(kind,...) GNUNET_log_from (kind, "ats-ril",__VA_ARGS__)
 
 #define RIL_MIN_BW ntohl (GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT.value__)
-#define RIL_MAX_BW GNUNET_ATS_MaxBandwidth
+#define RIL_MAX_BW 1024 * 250 //TODO return to max
 
 #define RIL_ACTION_INVALID -1
 #define RIL_INTERVAL_EXPONENT 10
@@ -73,9 +73,9 @@ enum RIL_Action_Type
   RIL_ACTION_BW_IN_DEC = 2,
   RIL_ACTION_BW_OUT_DBL = -4,
   RIL_ACTION_BW_OUT_HLV = -5,
-  RIL_ACTION_BW_OUT_INC = -6,
-  RIL_ACTION_BW_OUT_DEC = -7,
-  RIL_ACTION_TYPE_NUM = 3
+  RIL_ACTION_BW_OUT_INC = 3,
+  RIL_ACTION_BW_OUT_DEC = 4,
+  RIL_ACTION_TYPE_NUM = 5
 };
 
 enum RIL_Algorithm
@@ -443,7 +443,7 @@ struct GAS_RIL_Handle
  * @return estimation value
  */
 static double
-agent_estimate_q (struct RIL_Peer_Agent *agent, double *state, int action)
+agent_q (struct RIL_Peer_Agent *agent, double *state, int action)
 {
   int i;
   double result = 0;
@@ -587,7 +587,7 @@ agent_get_action_max (struct RIL_Peer_Agent *agent, double *state)
   {
     if (agent_action_is_possible(agent, i))
     {
-      cur_q = agent_estimate_q (agent, state, i);
+      cur_q = agent_q (agent, state, i);
       if (cur_q > max_q)
       {
         max_q = cur_q;
@@ -649,23 +649,23 @@ agent_get_action_random (struct RIL_Peer_Agent *agent)
  * @param a_prime the new
  */
 static void
-agent_update_weights (struct RIL_Peer_Agent *agent, double reward, double *s_next, int a_prime)
+agent_update (struct RIL_Peer_Agent *agent, double reward, double *s_next, int a_prime)
 {
   int i;
   double delta;
   double *theta = agent->W[agent->a_old];
 
   delta = agent->envi->global_discount_integrated * reward; //reward
-  delta += agent->envi->global_discount_variable * agent_estimate_q (agent, s_next, a_prime); //discounted future value
-  delta -= agent_estimate_q (agent, agent->s_old, agent->a_old); //one step
+  delta += agent->envi->global_discount_variable * agent_q (agent, s_next, a_prime); //discounted future value
+  delta -= agent_q (agent, agent->s_old, agent->a_old); //one step
 
 //  LOG(GNUNET_ERROR_TYPE_INFO, "update()   Step# %llu  Q(s,a): %f  a: %f  r: %f  y: %f  Q(s+1,a+1) = %f  delta: %f\n",
 //      agent->step_count,
-//      agent_estimate_q (agent, agent->s_old, agent->a_old),
+//      agent_q (agent, agent->s_old, agent->a_old),
 //      agent->envi->parameters.alpha,
 //      reward,
 //      agent->envi->global_discount_variable,
-//      agent_estimate_q (agent, s_next, a_prime),
+//      agent_q (agent, s_next, a_prime),
 //      delta);
 
   for (i = 0; i < agent->m; i++)
@@ -675,7 +675,7 @@ agent_update_weights (struct RIL_Peer_Agent *agent, double reward, double *s_nex
 //        delta,
 //        i,
 //        agent->e[i]);
-    theta[i] += agent->envi->parameters.alpha * delta * agent->s_old[i] * agent->E[a_prime][i];
+    theta[i] += agent->envi->parameters.alpha * delta * agent->s_old[i] * agent->E[agent->a_old][i];
   }
 }
 
@@ -885,7 +885,7 @@ envi_get_state (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
       x[1] = (double) k * (double) max_bw / (double) solver->parameters.rbf_divisor;
       d[0] = x[0]-y[0];
       d[1] = x[1]-y[1];
-      sigma = (((double) max_bw / (double) solver->parameters.rbf_divisor) / 2.0) * M_SQRT2;
+      sigma = (((double) max_bw / ((double) solver->parameters.rbf_divisor + 1)) * 0.5);
       f = exp(-((d[0]*d[0] + d[1]*d[1]) / (2 * sigma * sigma)));
       state[m++] = f;
     }
@@ -1004,8 +1004,8 @@ envi_get_state (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
 static double
 agent_get_utility (struct RIL_Peer_Agent *agent)
 {
-  return (double) (agent->bw_in/RIL_MIN_BW);
-//  return sqrt((double) (agent->bw_in/RIL_MIN_BW) * (double) (agent->bw_out/RIL_MIN_BW));
+//  return (double) (agent->bw_in/RIL_MIN_BW);
+  return sqrt((double) (agent->bw_in/RIL_MIN_BW) * (double) (agent->bw_out/RIL_MIN_BW));
 }
 
 static double
@@ -1070,16 +1070,16 @@ envi_get_reward (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
     over_out = net->bw_out_assigned - net->bw_out_available;
   overutilization = GNUNET_MAX(over_in, over_out) / RIL_MIN_BW;
 
-  objective = agent_get_utility (agent) + net->social_welfare;
+  objective = (agent_get_utility (agent) + net->social_welfare) / 2;
   delta = objective - agent->objective_old;
   agent->objective_old = objective;
 
-  if (delta != 0)
-  {
-    agent->nop_bonus = 0;
-  }
+//  if (delta != 0)
+//  {
+    agent->nop_bonus = 0.5;
+//  }
 
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "utility: %f, welfare: %f, objective, overutilization: %d\n", agent_get_utility (agent), net->social_welfare, objective, overutilization);
+  LOG(GNUNET_ERROR_TYPE_DEBUG, "agent->nop_bonus: %f\n", agent->nop_bonus);
 
   steady = (RIL_ACTION_NOTHING == agent->a_old) ? agent->nop_bonus : 0;
 
@@ -1363,7 +1363,7 @@ agent_select_softmax (struct RIL_Peer_Agent *agent, double *state)
   {
     if (agent_action_is_possible(agent, i))
     {
-      eqt[i] = exp(agent_estimate_q(agent,state,i) / agent->envi->parameters.temperature);
+      eqt[i] = exp(agent_q(agent,state,i) / agent->envi->parameters.temperature);
       sum += eqt[i];
     }
   }
@@ -1442,7 +1442,7 @@ agent_step (struct RIL_Peer_Agent *agent)
     if (RIL_ACTION_INVALID != agent->a_old)
     {
       //updates weights with selected action (on-policy), if not first step
-      agent_update_weights (agent, reward, s_next, a_next);
+      agent_update (agent, reward, s_next, a_next);
     }
     agent_modify_eligibility (agent, RIL_E_DISCOUNT, s_next, a_next);
     break;
@@ -1452,7 +1452,7 @@ agent_step (struct RIL_Peer_Agent *agent)
     if (RIL_ACTION_INVALID != agent->a_old)
     {
       //updates weights with best action, disregarding actually selected action (off-policy), if not first step
-      agent_update_weights (agent, reward, s_next, a_max);
+      agent_update (agent, reward, s_next, a_max);
     }
     a_next = agent_select_action (agent, s_next);
     break;
@@ -1776,7 +1776,7 @@ agent_w_init (struct RIL_Peer_Agent *agent)
   {
     for (k = 0; k < agent->m; k++)
     {
-      agent->W[i][k] = agent->envi->parameters.alpha * (1.0 - 2.0*((double) GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, UINT32_MAX)/(double)UINT32_MAX));
+      agent->W[i][k] = agent->envi->parameters.alpha * (1.0 - 2.0 * ((double) GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, UINT32_MAX)/(double) UINT32_MAX));
     }
   }
 }
