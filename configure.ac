@@ -398,7 +398,11 @@ fi
 # check for libopus(audio) library
 opus=0
 AC_CHECK_LIB(opus,opus_decode_float,
-  [AC_CHECK_HEADER([opus/opus.h],opus=1)])
+  [AC_CHECK_HEADER([opus/opus.h],
+    [AC_CHECK_DECL([OPUS_SET_GAIN],[opus=1],[],[[#include <opus/opus.h>]]
+    )]
+  )]
+)
 if test "$opus" = 1
 then
   AC_DEFINE([HAVE_OPUS],[1],[Have libopus library])
