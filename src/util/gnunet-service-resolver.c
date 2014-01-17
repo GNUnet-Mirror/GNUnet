@@ -274,6 +274,22 @@ getaddrinfo_resolve (struct GNUNET_SERVER_TransmitContext *tc,
   struct addrinfo *result;
   struct addrinfo *pos;
 
+#ifdef WINDOWS
+  /* Due to a bug, getaddrinfo will not return a mix of different families */
+  if (AF_UNSPEC == af)
+  {
+    int ret1;
+    int ret2;
+    ret1 = getaddrinfo_resolve (tc, hostname, AF_INET);
+    ret2 = getaddrinfo_resolve (tc, hostname, AF_INET6);
+    if ((ret1 == GNUNET_OK) || (ret2 == GNUNET_OK))
+      return GNUNET_OK;
+    if ((ret1 == GNUNET_SYSERR) || (ret2 == GNUNET_SYSERR))
+      return GNUNET_SYSERR;
+    return GNUNET_NO;
+  }
+#endif
+
   memset (&hints, 0, sizeof (struct addrinfo));
   hints.ai_family = af;
   hints.ai_socktype = SOCK_STREAM;      /* go for TCP */
@@ -332,6 +348,11 @@ gethostbyname2_resolve (struct GNUNET_SERVER_TransmitContext *tc,
   struct hostent *hp;
   int ret1;
   int ret2;
+
+#ifdef WINDOWS
+  /* gethostbyname2() in plibc is a compat dummy that calls gethostbyname(). */
+  return GNUNET_NO;
+#endif
 
   if (af == AF_UNSPEC)
   {
