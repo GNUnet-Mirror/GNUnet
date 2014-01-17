@@ -2018,6 +2018,13 @@ delayed_destroy (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 void
 GMT_destroy_empty (struct MeshTunnel3 *t)
 {
+  if (GNUNET_SCHEDULER_NO_TASK != t->destroy_task)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Tunnel %s is already scheduled for destruction\n",
+         GMT_2s (t));
+    return;
+  }
+
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Tunnel %s empty: destroying scheduled\n",
        GMT_2s (t));
 
