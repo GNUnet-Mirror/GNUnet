@@ -575,7 +575,6 @@ GST_blacklist_handle_reply (void *cls, struct GNUNET_SERVER_Client *client,
   if (bl == NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Blacklist client disconnected\n");
-    /* FIXME: other error handling here!? */
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
