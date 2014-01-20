@@ -348,7 +348,7 @@ get_keygen_peer_info (const struct KeygenSession *ks,
 /**
  * Get the peer info belonging to a peer identity in a decrypt session.
  *
- * @param ks The decrypt session.
+ * @param ds The decrypt session.
  * @param peer The peer identity.
  * @return The decrypt peer info, or NULL if the peer could not be found.
  */
@@ -546,8 +546,8 @@ paillier_create (gcry_mpi_t n, gcry_mpi_t lambda, gcry_mpi_t mu)
   gcry_mpi_t phi;
   gcry_mpi_t tmp;
 
-  GNUNET_assert (0 != (phi = gcry_mpi_new (PAILLIER_BITS)));
-  GNUNET_assert (0 != (tmp = gcry_mpi_new (PAILLIER_BITS)));
+  GNUNET_assert (NULL != (phi = gcry_mpi_new (PAILLIER_BITS)));
+  GNUNET_assert (NULL != (tmp = gcry_mpi_new (PAILLIER_BITS)));
 
   p = q = NULL;
 

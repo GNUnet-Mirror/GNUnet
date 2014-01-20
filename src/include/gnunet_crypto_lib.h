@@ -330,6 +330,65 @@ struct GNUNET_CRYPTO_AuthKey
 };
 
 
+/**
+ * Size of paillier plain texts and public keys.
+ * Private keys and ciphertexts are twice this size.
+ */
+#define GNUNET_CRYPTO_PAILLIER_BITS 2048
+
+
+/**
+ * Paillier public key.
+ */
+struct GNUNET_CRYPTO_PaillierPublicKey
+{
+  /**
+   * N value.
+   */
+  unsigned char n[GNUNET_CRYPTO_PAILLIER_BITS / 8];
+};
+
+
+/**
+ * Paillier public key.
+ */
+struct GNUNET_CRYPTO_PaillierPrivateKey
+{
+  /**
+   * Lambda-component of the private key.
+   */
+  unsigned char lambda[GNUNET_CRYPTO_PAILLIER_BITS / 8];
+  /**
+   * Mu-component of the private key.
+   */
+  unsigned char mu[GNUNET_CRYPTO_PAILLIER_BITS / 8];
+};
+
+
+/**
+ * Paillier plaintext.
+ */
+struct GNUNET_CRYPTO_PaillierPlaintext
+{
+  /**
+   * The bits of the plaintext.
+   */
+  unsigned char bits[GNUNET_CRYPTO_PAILLIER_BITS / 8];
+};
+
+
+/**
+ * Paillier ciphertext.
+ */
+struct GNUNET_CRYPTO_PaillierCiphertext
+{
+  /**
+   * The bits of the ciphertext.
+   */
+  unsigned char bits[GNUNET_CRYPTO_PAILLIER_BITS * 2 / 8];
+};
+
+
 /* **************** Functions and Macros ************* */
 
 /**
@@ -1260,6 +1319,62 @@ void
 GNUNET_CRYPTO_mpi_scan_unsigned (gcry_mpi_t *result,
                                  const void *data,
                                  size_t size);
+
+
+/**
+ * Create a freshly generated paillier public key.
+ *
+ * @param[out] public_key Where to store the public key?
+ * @param[out] private_key Where to store the private key?
+ */
+void
+GNUNET_CRYPTO_paillier_create (struct GNUNET_CRYPTO_PaillierPublicKey *public_key,
+                               struct GNUNET_CRYPTO_PaillierPrivateKey *private_key);
+
+
+/**
+ * Encrypt a plaintext with a paillier public key.
+ *
+ * @param public_key Public key to use.
+ * @param plaintext Plaintext to encrypt.
+ * @param[out] ciphertext Encrytion of @a plaintext with @a public_key.
+ */
+void
+GNUNET_CRYPTO_paillier_encrypt (const struct GNUNET_CRYPTO_PaillierPublicKey *public_key,
+                                const struct GNUNET_CRYPTO_PaillierPlaintext *plaintext,
+                                struct GNUNET_CRYPTO_PaillierCiphertext *ciphertext);
+
+
+/**
+ * Decrypt a paillier ciphertext with a private key.
+ *
+ * @param private_key Private key to use for encryption.
+ * @param ciphertext Ciphertext to decrypt.
+ * @param[out] plaintext Decryption of @a ciphertext with @private_key.
+ */
+void
+GNUNET_CRYPTO_paillier_decrypt (const struct GNUNET_CRYPTO_PaillierPrivateKey *private_key,
+                                const struct GNUNET_CRYPTO_PaillierCiphertext *ciphertext,
+                                struct GNUNET_CRYPTO_PaillierPlaintext *plaintext);
+
+
+/**
+ * Compute a ciphertext that represents the sum of the plaintext in @a x1 and @a x2
+ *
+ * Note that this operation can only be done a finite number of times
+ * before an overflow occurs.
+ *
+ * @param x1 Paillier cipher text.
+ * @param x2 Paillier cipher text.
+ * @param[out] result Result of the homomorphic operation.
+ * @return GNUNET_OK if the result could be computed,
+ *         GNUNET_SYSERR if no more homomorphic operations are remaining.
+ */
+int
+GNUNET_CRYPTO_paillier_hom_add (const struct GNUNET_CRYPTO_PaillierCiphertext *x1,
+                                const struct GNUNET_CRYPTO_PaillierCiphertext *x2,
+                                const struct GNUNET_CRYPTO_PaillierCiphertext *result);
+
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */
