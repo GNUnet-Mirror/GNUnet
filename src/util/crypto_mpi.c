@@ -52,9 +52,11 @@ adjust (void *buf,
 	size_t size,
 	size_t target)
 {
+  char *p = buf;
+
   if (size < target)
   {
-    memmove (&buf[target - size], buf, size);
+    memmove (&p[target - size], buf, size);
     memset (buf, 0, target - size);
   }
 }
