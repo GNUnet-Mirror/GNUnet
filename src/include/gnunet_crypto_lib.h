@@ -1369,8 +1369,8 @@ GNUNET_CRYPTO_paillier_decrypt (const struct GNUNET_CRYPTO_PaillierPrivateKey *p
  * @param x1 Paillier cipher text.
  * @param x2 Paillier cipher text.
  * @param[out] result Result of the homomorphic operation.
- * @return GNUNET_OK if the result could be computed,
- *         GNUNET_SYSERR if no more homomorphic operations are remaining.
+ * @return #GNUNET_OK if the result could be computed,
+ *         #GNUNET_SYSERR if no more homomorphic operations are remaining.
  */
 int
 GNUNET_CRYPTO_paillier_hom_add (const struct GNUNET_CRYPTO_PaillierCiphertext *x1,
