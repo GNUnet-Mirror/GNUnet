@@ -1348,12 +1348,14 @@ GNUNET_CRYPTO_paillier_encrypt (const struct GNUNET_CRYPTO_PaillierPublicKey *pu
 /**
  * Decrypt a paillier ciphertext with a private key.
  *
- * @param private_key Private key to use for encryption.
+ * @param private_key Private key to use for decryption.
+ * @param public_key Public key to use for decryption.
  * @param ciphertext Ciphertext to decrypt.
  * @param[out] plaintext Decryption of @a ciphertext with @private_key.
  */
 void
 GNUNET_CRYPTO_paillier_decrypt (const struct GNUNET_CRYPTO_PaillierPrivateKey *private_key,
+                                const struct GNUNET_CRYPTO_PaillierPublicKey *public_key,
                                 const struct GNUNET_CRYPTO_PaillierCiphertext *ciphertext,
                                 struct GNUNET_CRYPTO_PaillierPlaintext *plaintext);
 
@@ -1374,7 +1376,6 @@ int
 GNUNET_CRYPTO_paillier_hom_add (const struct GNUNET_CRYPTO_PaillierCiphertext *x1,
                                 const struct GNUNET_CRYPTO_PaillierCiphertext *x2,
                                 const struct GNUNET_CRYPTO_PaillierCiphertext *result);
-
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */
