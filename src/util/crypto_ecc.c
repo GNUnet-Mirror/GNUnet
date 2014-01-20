@@ -112,27 +112,6 @@ key_from_sexp (gcry_mpi_t * array, gcry_sexp_t sexp, const char *topname,
 
 
 /**
- * If target != size, move @a target bytes to the end of the size-sized
- * buffer and zero out the first @a target - @a size bytes.
- *
- * @param buf original buffer
- * @param size number of bytes in @a buf
- * @param target target size of the buffer
- */
-static void
-adjust (unsigned char *buf,
-	size_t size,
-	size_t target)
-{
-  if (size < target)
-  {
-    memmove (&buf[target - size], buf, size);
-    memset (buf, 0, target - size);
-  }
-}
-
-
-/**
  * Convert the given private key from the network format to the
  * S-expression that can be used by libgcrypt.
  *
