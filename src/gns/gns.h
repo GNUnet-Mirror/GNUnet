@@ -85,7 +85,7 @@ struct GNUNET_GNS_ClientLookupMessage
    */
   struct GNUNET_CRYPTO_EcdsaPrivateKey shorten_key;
 
-  /* Followed by the name to look up */
+  /* Followed by the zero-terminated name to look up */
 };
 
 
