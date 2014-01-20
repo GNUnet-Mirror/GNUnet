@@ -40,7 +40,7 @@ struct GNUNET_SECRETSHARING_FieldElement
   /**
    * Value of an element in <elgamal_g>.
    */
-  unsigned char bits[GNUNET_SECRETSHARING_KEY_BITS / 8];
+  unsigned char bits[GNUNET_SECRETSHARING_ELGAMAL_BITS / 8];
 };
 
 
@@ -107,6 +107,10 @@ struct GNUNET_SECRETSHARING_ShareHeaderNBO
 };
 
 
+/**
+ * Notify the client that then threshold secret has been
+ * established.
+ */
 struct GNUNET_SECRETSHARING_SecretReadyMessage
 {
   /**

@@ -43,13 +43,53 @@ extern "C"
 
 
 /**
- * Number of bits for secretsharing keys.
+ * Number of bits for secretsharing elements.
  * Must be smaller than the Pallier key size used internally
  * by the secretsharing service.
  * When changing this value, other internal parameters must also
  * be adjusted.
  */
-#define GNUNET_SECRETSHARING_KEY_BITS 1024
+#define GNUNET_SECRETSHARING_ELGAMAL_BITS 1024
+
+
+/**
+ * The q-parameter for ElGamal encryption, a 1024-bit safe prime.
+ */
+#define GNUNET_SECRETSHARING_ELGAMAL_P_HEX  \
+      "0x08a347d3d69e8b2dd7d1b12a08dfbccbebf4ca" \
+      "6f4269a0814e158a34312964d946b3ef22882317" \
+      "2bcf30fc08f772774cb404f9bc002a6f66b09a79" \
+      "d810d67c4f8cb3bedc6060e3c8ef874b1b64df71" \
+      "6c7d2b002da880e269438d5a776e6b5f253c8df5" \
+      "6a16b1c7ce58def07c03db48238aadfc52a354a2" \
+      "7ed285b0c1675cad3f3"
+
+/**
+ * The q-parameter for ElGamal encryption,
+ * a 1023-bit Sophie Germain prime, q = (p-1)/2
+ */
+#define GNUNET_SECRETSHARING_ELGAMAL_Q_HEX  \
+      "0x0451a3e9eb4f4596ebe8d895046fde65f5fa65" \
+      "37a134d040a70ac51a1894b26ca359f79144118b" \
+      "95e7987e047bb93ba65a027cde001537b3584d3c" \
+      "ec086b3e27c659df6e303071e477c3a58db26fb8" \
+      "b63e958016d4407134a1c6ad3bb735af929e46fa" \
+      "b50b58e3e72c6f783e01eda411c556fe2951aa51" \
+      "3f6942d860b3ae569f9"
+
+/**
+ * The g-parameter for ElGamal encryption,
+ * a generator of the unique size q subgroup of Z_p^*
+ */
+#define GNUNET_SECRETSHARING_ELGAMAL_G_HEX  \
+      "0x05c00c36d2e822950087ef09d8252994adc4e4" \
+      "8fe3ec70269f035b46063aff0c99b633fd64df43" \
+      "02442e1914c829a41505a275438871f365e91c12" \
+      "3d5303ef9e90f4b8cb89bf86cc9b513e74a72634" \
+      "9cfd9f953674fab5d511e1c078fc72d72b34086f" \
+      "c82b4b951989eb85325cb203ff98df76bc366bba" \
+      "1d7024c3650f60d0da"
+
 
 
 /**
@@ -77,7 +117,7 @@ struct GNUNET_SECRETSHARING_DecryptionHandle;
  */
 struct GNUNET_SECRETSHARING_PublicKey
 {
-  uint32_t bits[GNUNET_SECRETSHARING_KEY_BITS / 8 / sizeof (uint32_t)];
+  uint32_t bits[GNUNET_SECRETSHARING_ELGAMAL_BITS / 8 / sizeof (uint32_t)];
 };
 
 
@@ -86,21 +126,23 @@ struct GNUNET_SECRETSHARING_PublicKey
  */
 struct GNUNET_SECRETSHARING_Ciphertext
 {
-  uint32_t c1_bits[GNUNET_SECRETSHARING_KEY_BITS / 8 / sizeof (uint32_t)];
-  uint32_t c2_bits[GNUNET_SECRETSHARING_KEY_BITS / 8 / sizeof (uint32_t)];
+  uint32_t c1_bits[GNUNET_SECRETSHARING_ELGAMAL_BITS / 8 / sizeof (uint32_t)];
+  uint32_t c2_bits[GNUNET_SECRETSHARING_ELGAMAL_BITS / 8 / sizeof (uint32_t)];
 };
 
 
 /**
  * Plain, unencrypted message that can be encrypted with
  * a group public key.
+ * Note that we are not operating in GF(2^n), thus not every
+ * bit pattern is a valid plain text.
  */
-struct GNUNET_SECRETSHARING_Message
+struct GNUNET_SECRETSHARING_Plaintext
 {
   /**
    * Value of the message.
    */
-  uint32_t bits[GNUNET_SECRETSHARING_KEY_BITS / 8 / sizeof (uint32_t)];
+  uint32_t bits[GNUNET_SECRETSHARING_ELGAMAL_BITS / 8 / sizeof (uint32_t)];
 };
 
 
@@ -113,6 +155,8 @@ struct GNUNET_SECRETSHARING_Message
  *
  * If the secret sharing failed, num_ready_peers is 0 and my_share and public_key is NULL.
  *
+ * After this callback has been called, the secretsharing session will be invalid.
+ *
  * @param cls closure
  * @param my_share the share of this peer
  * @param public_key public key of the session
@@ -121,10 +165,10 @@ struct GNUNET_SECRETSHARING_Message
  *                    the shared secret
  */
 typedef void (*GNUNET_SECRETSHARING_SecretReadyCallback) (void *cls,
-                                                          const struct GNUNET_SECRETSHARING_Share *my_share,
-                                                          const struct GNUNET_SECRETSHARING_PublicKey *public_key,
+                                                          struct GNUNET_SECRETSHARING_Share *my_share,
+                                                          struct GNUNET_SECRETSHARING_PublicKey *public_key,
                                                           unsigned int num_ready_peers,
-                                                          const struct GNUNET_PeerIdentity *ready_peers);
+                                                          struct GNUNET_PeerIdentity *ready_peers);
 
 
 /**
@@ -135,8 +179,7 @@ typedef void (*GNUNET_SECRETSHARING_SecretReadyCallback) (void *cls,
  * @param data_size number of bytes in @a data
  */
 typedef void (*GNUNET_SECRETSHARING_DecryptCallback) (void *cls,
-                                                      const void *data,
-                                                      size_t data_size);
+                                                      const struct GNUNET_SECRETSHARING_Plaintext *plaintext);
 
 
 /**
@@ -165,21 +208,13 @@ GNUNET_SECRETSHARING_create_session (const struct GNUNET_CONFIGURATION_Handle *c
 
 
 /**
- * Destroy a secret share.
- *
- * @param share secret share to destroy
- */
-void
-GNUNET_SECRETSHARING_share_destroy (const struct GNUNET_SECRETSHARING_Share *share);
-
-
-/**
  * Destroy a secret sharing session.
+ * The secret ready callback will not be called.
  *
  * @param session session to destroy
  */
 void
-GNUNET_SECRETSHARING_destroy_session (struct GNUNET_SECRETSHARING_Session *session);
+GNUNET_SECRETSHARING_session_destroy (struct GNUNET_SECRETSHARING_Session *session);
 
 
 /**
@@ -196,9 +231,8 @@ GNUNET_SECRETSHARING_destroy_session (struct GNUNET_SECRETSHARING_Session *sessi
  * @return #GNUNET_YES on succes, #GNUNET_SYSERR if the message is invalid (invalid range)
  */
 int
-GNUNET_SECRETSHARING_encrypt (struct GNUNET_SECRETSHARING_PublicKey *public_key,
-                              const void *message,
-                              size_t message_size,
+GNUNET_SECRETSHARING_encrypt (const struct GNUNET_SECRETSHARING_PublicKey *public_key,
+                              const struct GNUNET_SECRETSHARING_Plaintext *plaintext,
                               struct GNUNET_SECRETSHARING_Ciphertext *result_ciphertext);
 
 
@@ -218,9 +252,9 @@ GNUNET_SECRETSHARING_encrypt (struct GNUNET_SECRETSHARING_PublicKey *public_key,
  * @return handle to cancel the operation
  */
 struct GNUNET_SECRETSHARING_DecryptionHandle *
-GNUNET_SECRETSHARING_decrypt (struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_SECRETSHARING_decrypt (const struct GNUNET_CONFIGURATION_Handle *cfg,
                               struct GNUNET_SECRETSHARING_Share *share,
-                              struct GNUNET_SECRETSHARING_Ciphertext *ciphertext,
+                              const struct GNUNET_SECRETSHARING_Ciphertext *ciphertext,
                               struct GNUNET_TIME_Absolute deadline,
                               GNUNET_SECRETSHARING_DecryptCallback decrypt_cb,
                               void *decrypt_cb_cls);
@@ -265,6 +299,20 @@ GNUNET_SECRETSHARING_share_read (const void *data, size_t len, size_t *readlen);
 int
 GNUNET_SECRETSHARING_share_write (const struct GNUNET_SECRETSHARING_Share *share,
                                   void *buf, size_t buflen, size_t *writelen);
+
+
+void
+GNUNET_SECRETSHARING_share_destroy (struct GNUNET_SECRETSHARING_Share *share);
+
+
+int
+GNUNET_SECRETSHARING_plaintext_generate (struct GNUNET_SECRETSHARING_Plaintext *plaintext,
+                                         gcry_mpi_t exponent);
+
+int
+GNUNET_SECRETSHARING_plaintext_generate_i (struct GNUNET_SECRETSHARING_Plaintext *plaintext,
+                                           int64_t exponent);
+
 
 
 

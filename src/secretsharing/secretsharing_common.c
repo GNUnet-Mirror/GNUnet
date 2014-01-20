@@ -94,7 +94,7 @@ GNUNET_SECRETSHARING_share_write (const struct GNUNET_SECRETSHARING_Share *share
   char *p;
   int n;
 
-  payload_size = ntohs (sh->num_peers) * 
+  payload_size = ntohs (share->num_peers) * 
       (sizeof (uint16_t) + sizeof (struct GNUNET_SECRETSHARING_FieldElement) + 
        sizeof (struct GNUNET_PeerIdentity));
 
@@ -133,4 +133,5 @@ GNUNET_SECRETSHARING_share_write (const struct GNUNET_SECRETSHARING_Share *share
 
   return GNUNET_OK;
 }
+
 

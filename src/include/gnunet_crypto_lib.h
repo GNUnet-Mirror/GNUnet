@@ -55,6 +55,7 @@ struct GNUNET_PeerIdentity;
 
 #include "gnunet_common.h"
 #include "gnunet_scheduler_lib.h"
+#include <gcrypt.h>
 
 
 /**
@@ -1230,6 +1231,35 @@ GNUNET_CRYPTO_ecdsa_public_key_derive (const struct GNUNET_CRYPTO_EcdsaPublicKey
                                        const char *label,
                                        const char *context,
                                        struct GNUNET_CRYPTO_EcdsaPublicKey *result);
+
+
+/**
+ * Output the given MPI value to the given buffer in network
+ * byte order.  The MPI @a val may not be negative.
+ *
+ * @param buf where to output to
+ * @param size number of bytes in @a buf
+ * @param val value to write to @a buf
+ */
+void
+GNUNET_CRYPTO_mpi_print_unsigned (void *buf,
+                                  size_t size,
+                                  gcry_mpi_t val);
+
+
+/**
+ * Convert data buffer into MPI value.
+ * The buffer is interpreted as network
+ * byte order, unsigned integer.
+ *
+ * @param result where to store MPI value (allocated)
+ * @param data raw data (GCRYMPI_FMT_USG)
+ * @param size number of bytes in @a data
+ */
+void
+GNUNET_CRYPTO_mpi_scan_unsigned (gcry_mpi_t *result,
+                                 const void *data,
+                                 size_t size);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

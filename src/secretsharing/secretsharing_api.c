@@ -27,6 +27,7 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_secretsharing_service.h"
 #include "secretsharing.h"
+#include <gcrypt.h>
 
 
 #define LOG(kind,...) GNUNET_log_from (kind, "secretsharing-api",__VA_ARGS__)
@@ -83,6 +84,40 @@ struct GNUNET_SECRETSHARING_DecryptionHandle
 };
 
 
+/**
+ * The ElGamal prime field order as libgcrypt mpi.
+ * Initialized in #init_crypto_constants.
+ */
+static gcry_mpi_t elgamal_q;
+
+/**
+ * Modulus of the prime field used for ElGamal.
+ * Initialized in #init_crypto_constants.
+ */
+static gcry_mpi_t elgamal_p;
+
+/**
+ * Generator for prime field of order 'elgamal_q'.
+ * Initialized in #init_crypto_constants.
+ */
+static gcry_mpi_t elgamal_g;
+
+
+static void
+ensure_elgamal_initialized (void)
+{
+  if (NULL != elgamal_q)
+    return; /* looks like crypto is already initialized */
+
+  GNUNET_assert (0 == gcry_mpi_scan (&elgamal_q, GCRYMPI_FMT_HEX,
+                                     GNUNET_SECRETSHARING_ELGAMAL_Q_HEX, 0, NULL));
+  GNUNET_assert (0 == gcry_mpi_scan (&elgamal_p, GCRYMPI_FMT_HEX,
+                                     GNUNET_SECRETSHARING_ELGAMAL_P_HEX, 0, NULL));
+  GNUNET_assert (0 == gcry_mpi_scan (&elgamal_g, GCRYMPI_FMT_HEX,
+                                     GNUNET_SECRETSHARING_ELGAMAL_G_HEX, 0, NULL));
+}
+
+
 static void
 handle_session_client_error (void *cls, enum GNUNET_MQ_Error error)
 {
@@ -95,8 +130,11 @@ handle_session_client_error (void *cls, enum GNUNET_MQ_Error error)
 static void
 handle_decrypt_client_error (void *cls, enum GNUNET_MQ_Error error)
 {
-  GNUNET_assert (0);
+  struct GNUNET_SECRETSHARING_DecryptionHandle *dh = cls;
+  
+  dh->decrypt_cb (dh->decrypt_cls, NULL);
 }
+
 
 static void
 handle_secret_ready (void *cls, const struct GNUNET_MessageHeader *msg)
@@ -116,6 +154,18 @@ handle_secret_ready (void *cls, const struct GNUNET_MessageHeader *msg)
                       share->num_peers,
                       (struct GNUNET_PeerIdentity *) &m[1]);
 
+  GNUNET_SECRETSHARING_session_destroy (session);
+}
+
+
+void
+GNUNET_SECRETSHARING_session_destroy (struct GNUNET_SECRETSHARING_Session *session)
+{
+  GNUNET_MQ_destroy (session->mq);
+  session->mq = NULL;
+  GNUNET_CLIENT_disconnect (session->client);
+  session->client = NULL;
+  GNUNET_free (session);
 }
 
 
@@ -169,7 +219,20 @@ GNUNET_SECRETSHARING_create_session (const struct GNUNET_CONFIGURATION_Handle *c
 static void
 handle_decrypt_done (void *cls, const struct GNUNET_MessageHeader *msg)
 {
-  GNUNET_assert (0);
+  struct GNUNET_SECRETSHARING_DecryptionHandle *dh = cls;
+  const struct GNUNET_SECRETSHARING_DecryptResponseMessage *m =
+      (const void *) msg;
+
+  const struct GNUNET_SECRETSHARING_Plaintext *plaintext;
+
+  if (m->success == 0)
+    plaintext = NULL;
+  else
+    plaintext = (void *) &m->plaintext;
+
+  dh->decrypt_cb (dh->decrypt_cls, plaintext);
+
+  GNUNET_SECRETSHARING_decrypt_cancel (dh);
 }
 
 
@@ -187,9 +250,9 @@ handle_decrypt_done (void *cls, const struct GNUNET_MessageHeader *msg)
  * @return handle to cancel the operation
  */
 struct GNUNET_SECRETSHARING_DecryptionHandle *
-GNUNET_SECRETSHARING_decrypt (struct GNUNET_CONFIGURATION_Handle *cfg,
+GNUNET_SECRETSHARING_decrypt (const struct GNUNET_CONFIGURATION_Handle *cfg,
                               struct GNUNET_SECRETSHARING_Share *share,
-                              struct GNUNET_SECRETSHARING_Ciphertext *ciphertext,
+                              const struct GNUNET_SECRETSHARING_Ciphertext *ciphertext,
                               struct GNUNET_TIME_Absolute deadline,
                               GNUNET_SECRETSHARING_DecryptCallback decrypt_cb,
                               void *decrypt_cb_cls)
@@ -223,11 +286,121 @@ GNUNET_SECRETSHARING_decrypt (struct GNUNET_CONFIGURATION_Handle *cfg,
   GNUNET_assert (GNUNET_OK == GNUNET_SECRETSHARING_share_write (share, &msg[1], share_size, NULL));
 
   msg->deadline = GNUNET_TIME_absolute_hton (deadline);
+  msg->ciphertext = *ciphertext;
 
   GNUNET_MQ_send (s->mq, ev);
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "decrypt session created\n");
   return s;
 }
+
+
+int
+GNUNET_SECRETSHARING_plaintext_generate_i (struct GNUNET_SECRETSHARING_Plaintext *plaintext,
+                                           int64_t exponent)
+{
+  int negative;
+  gcry_mpi_t x;
+
+  ensure_elgamal_initialized ();
+
+  GNUNET_assert (NULL != (x = gcry_mpi_new (0)));
+
+  negative = GNUNET_NO;
+  if (exponent < 0)
+  {
+    negative = GNUNET_YES;
+    exponent = -exponent;
+  }
+
+  gcry_mpi_set_ui (x, exponent);
+
+  gcry_mpi_powm (x, elgamal_g, x, elgamal_p);
+
+  if (GNUNET_YES == negative)
+  {
+    int res;
+    res = gcry_mpi_invm (x, x, elgamal_p);
+    if (0 == res)
+      return GNUNET_SYSERR;
+  }
+
+  GNUNET_CRYPTO_mpi_print_unsigned (plaintext, sizeof (struct GNUNET_SECRETSHARING_Plaintext), x);
+
+  return GNUNET_OK;
+}
+
+
+/**
+ * Encrypt a value.  This operation is executed locally, no communication is
+ * necessary.
+ *
+ * This is a helper function, encryption can be done soley with a session's public key
+ * and the crypto system parameters.
+ *
+ * @param public_key public key to use for decryption
+ * @param message message to encrypt
+ * @param message_size number of bytes in @a message
+ * @param result_ciphertext pointer to store the resulting ciphertext
+ * @return #GNUNET_YES on succes, #GNUNET_SYSERR if the message is invalid (invalid range)
+ */
+int
+GNUNET_SECRETSHARING_encrypt (const struct GNUNET_SECRETSHARING_PublicKey *public_key,
+                              const struct GNUNET_SECRETSHARING_Plaintext *plaintext,
+                              struct GNUNET_SECRETSHARING_Ciphertext *result_ciphertext)
+{
+  /* pubkey */
+  gcry_mpi_t h;
+  /* nonce */
+  gcry_mpi_t y;
+  /* plaintext message */
+  gcry_mpi_t m;
+  /* temp value */
+  gcry_mpi_t tmp;
+
+  ensure_elgamal_initialized ();
+
+  GNUNET_assert (NULL != (h = gcry_mpi_new (0)));
+  GNUNET_assert (NULL != (y = gcry_mpi_new (0)));
+  GNUNET_assert (NULL != (tmp = gcry_mpi_new (0)));
+
+  GNUNET_CRYPTO_mpi_scan_unsigned (&h, public_key, sizeof *public_key);
+  GNUNET_CRYPTO_mpi_scan_unsigned (&m, plaintext, sizeof *plaintext);
+
+  // Randomize y such that 0 < y < elgamal_q.
+  // The '- 1' is necessary as bitlength(q) = bitlength(p) - 1.
+  do 
+  {
+    gcry_mpi_randomize (y, GNUNET_SECRETSHARING_ELGAMAL_BITS - 1, GCRY_WEAK_RANDOM);
+  } while ((gcry_mpi_cmp_ui (y, 0) == 0) || (gcry_mpi_cmp (y, elgamal_q) >= 0));
+
+  // tmp <- g^y
+  gcry_mpi_powm (tmp, elgamal_g, y, elgamal_p);
+  // write tmp to c1
+  GNUNET_CRYPTO_mpi_print_unsigned (&result_ciphertext->c1_bits,
+                                    GNUNET_SECRETSHARING_ELGAMAL_BITS / 8, tmp);
+  
+  // tmp <- h^y
+  gcry_mpi_powm (tmp, h, y, elgamal_p);
+  // tmp <- tmp * m 
+  gcry_mpi_mulm (tmp, tmp, m, elgamal_p);
+  // write tmp to c2
+  GNUNET_CRYPTO_mpi_print_unsigned (&result_ciphertext->c2_bits,
+                                    GNUNET_SECRETSHARING_ELGAMAL_BITS / 8, tmp);
+
+  return GNUNET_OK;
+}
+
+
+void
+GNUNET_SECRETSHARING_decrypt_cancel (struct GNUNET_SECRETSHARING_DecryptionHandle *h)
+{
+  GNUNET_MQ_destroy (h->mq);
+  h->mq = NULL;
+  GNUNET_CLIENT_disconnect (h->client);
+  h->client = NULL;
+  GNUNET_free (h);
+}
+
 
 

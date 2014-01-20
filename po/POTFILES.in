@@ -263,6 +263,7 @@ src/statistics/statistics_api.c
 src/template/gnunet-service-template.c
 src/template/gnunet-template.c
 src/testbed/generate-underlay-topology.c
+src/testbed/gnunet-daemon-latency-logger.c
 src/testbed/gnunet-daemon-testbed-blacklist.c
 src/testbed/gnunet-daemon-testbed-underlay.c
 src/testbed/gnunet-helper-testbed.c
