@@ -1763,6 +1763,51 @@ address_suggest_cont (void *cls,
 }
 
 
+struct BlacklistCheckSwitchContext
+{
+  struct BlacklistCheckSwitchContext *prev;
+  struct BlacklistCheckSwitchContext *next;
+
+
+  struct GST_BlacklistCheck *blc;
+
+  struct GNUNET_HELLO_Address *address;
+  struct Session *session;
+  struct GNUNET_ATS_Information *ats;
+  uint32_t ats_count;
+
+  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in;
+  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out;
+};
+
+
+static void
+try_connect_bl_check_cont (void *cls,
+    const struct GNUNET_PeerIdentity *peer, int result)
+{
+  struct BlacklistCheckSwitchContext *blc_ctx = cls;
+  struct NeighbourMapEntry *n;
+
+  GNUNET_CONTAINER_DLL_remove (pending_bc_head, pending_bc_tail, blc_ctx);
+  GNUNET_free (blc_ctx);
+
+  if (GNUNET_OK != result)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+        _("Blacklisting dissaproved to connect to peer `%s'\n"),
+        GNUNET_i2s (peer));
+    return;
+  }
+  n = setup_neighbour (peer);
+  set_state_and_timeout (n, GNUNET_TRANSPORT_PS_INIT_ATS, GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT));
+
+  GNUNET_ATS_reset_backoff (GST_ats, peer);
+  n->suggest_handle = GNUNET_ATS_suggest_address (GST_ats, peer,
+      &address_suggest_cont, n);
+}
+
+
+
 /**
  * Try to create a connection to the given target (eventually).
  *
@@ -1772,6 +1817,8 @@ void
 GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target)
 {
   struct NeighbourMapEntry *n;
+  struct GST_BlacklistCheck *blc;
+  struct BlacklistCheckSwitchContext *blc_ctx;
 
   if (NULL == neighbours)
   {
@@ -1831,11 +1878,16 @@ GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target)
       break;
     }
   }
-  n = setup_neighbour (target);
-  set_state_and_timeout (n, GNUNET_TRANSPORT_PS_INIT_ATS, GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT));
 
-  GNUNET_ATS_reset_backoff (GST_ats, target);
-  n->suggest_handle = GNUNET_ATS_suggest_address (GST_ats, target, &address_suggest_cont, n);
+  /* Do blacklist check if connection is allowed */
+  blc_ctx = GNUNET_new (struct BlacklistCheckSwitchContext);
+  GNUNET_CONTAINER_DLL_insert (pending_bc_head, pending_bc_tail, blc_ctx);
+
+  if (NULL != (blc = GST_blacklist_test_allowed (target, NULL,
+        &try_connect_bl_check_cont, blc_ctx)))
+  {
+    blc_ctx->blc = blc;
+  }
 }
 
 
@@ -2250,20 +2302,6 @@ GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
   return GNUNET_OK;
 }
 
-struct BlacklistCheckSwitchContext
-{
-  struct BlacklistCheckSwitchContext *prev;
-  struct BlacklistCheckSwitchContext *next;
-
-  struct GNUNET_HELLO_Address *address;
-  struct Session *session;
-  struct GNUNET_ATS_Information *ats;
-  uint32_t ats_count;
-
-  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in;
-  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out;
-};
-
 static void
 switch_address_bl_check_cont (void *cls,
     const struct GNUNET_PeerIdentity *peer, int result)
@@ -2271,7 +2309,6 @@ switch_address_bl_check_cont (void *cls,
   struct BlacklistCheckSwitchContext *blc_ctx = cls;
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
   struct NeighbourMapEntry *n;
-
 
   if ( (NULL == (n = lookup_neighbour (peer))) || (result == GNUNET_NO) ||
        (NULL == (papi = GST_plugins_find (blc_ctx->address->transport_name))) )
@@ -2564,7 +2601,7 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
   }
 
   GNUNET_CONTAINER_DLL_insert (pending_bc_head, pending_bc_tail, blc_ctx);
-  GST_blacklist_test_allowed (peer, address->transport_name,
+  blc_ctx->blc = GST_blacklist_test_allowed (peer, address->transport_name,
       &switch_address_bl_check_cont, blc_ctx);
 }
 
@@ -3661,9 +3698,15 @@ GST_neighbours_stop ()
   for (cur = next; NULL != cur; cur = next )
   {
     next = cur->next;
-
     GNUNET_CONTAINER_DLL_remove (pending_bc_head, pending_bc_tail, cur);
-    GNUNET_HELLO_address_free (cur->address);
+
+    if (NULL != cur->blc)
+    {
+      GST_blacklist_test_cancel (cur->blc);
+      cur->blc = NULL;
+    }
+    if (NULL != cur->address)
+      GNUNET_HELLO_address_free (cur->address);
     GNUNET_free_non_null (cur->ats);
     GNUNET_free (cur);
   }
