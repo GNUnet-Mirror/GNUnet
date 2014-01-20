@@ -591,7 +591,9 @@ GST_blacklist_handle_reply (void *cls, struct GNUNET_SERVER_Client *client,
                   "Blacklist check failed, peer not allowed\n");
       bc->cont (bc->cont_cls, &bc->peer, GNUNET_NO);
       GNUNET_CONTAINER_DLL_remove (bc_head, bc_tail, bc);
+      GNUNET_SERVER_receive_done (bl->client, GNUNET_OK);
       GNUNET_free (bc);
+      return;
     }
     else
     {
