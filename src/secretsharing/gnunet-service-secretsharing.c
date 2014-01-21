@@ -546,8 +546,8 @@ paillier_create (gcry_mpi_t n, gcry_mpi_t lambda, gcry_mpi_t mu)
   gcry_mpi_t phi;
   gcry_mpi_t tmp;
 
-  GNUNET_assert (NULL != (phi = gcry_mpi_new (PAILLIER_BITS)));
-  GNUNET_assert (NULL != (tmp = gcry_mpi_new (PAILLIER_BITS)));
+  GNUNET_assert (NULL != (phi = gcry_mpi_new (GNUNET_CRYPTO_PAILLIER_BITS)));
+  GNUNET_assert (NULL != (tmp = gcry_mpi_new (GNUNET_CRYPTO_PAILLIER_BITS)));
 
   p = q = NULL;
 
@@ -560,9 +560,9 @@ paillier_create (gcry_mpi_t n, gcry_mpi_t lambda, gcry_mpi_t mu)
     if (NULL != q)
       gcry_mpi_release (q);
     // generate rsa modulus
-    GNUNET_assert (0 == gcry_prime_generate (&p, PAILLIER_BITS / 2, 0, NULL, NULL, NULL,
+    GNUNET_assert (0 == gcry_prime_generate (&p, GNUNET_CRYPTO_PAILLIER_BITS / 2, 0, NULL, NULL, NULL,
                                              GCRY_WEAK_RANDOM, 0));
-    GNUNET_assert (0 == gcry_prime_generate (&q, PAILLIER_BITS / 2, 0, NULL, NULL, NULL,
+    GNUNET_assert (0 == gcry_prime_generate (&q, GNUNET_CRYPTO_PAILLIER_BITS / 2, 0, NULL, NULL, NULL,
                                            GCRY_WEAK_RANDOM, 0));
   } while (0 == gcry_mpi_cmp (p, q));
   gcry_mpi_mul (n, p, q);
@@ -606,7 +606,7 @@ paillier_encrypt (gcry_mpi_t c, gcry_mpi_t m, gcry_mpi_t n)
   // generate r < n
   do
   {
-    gcry_mpi_randomize (r, PAILLIER_BITS, GCRY_WEAK_RANDOM);
+    gcry_mpi_randomize (r, GNUNET_CRYPTO_PAILLIER_BITS, GCRY_WEAK_RANDOM);
   }
   while (gcry_mpi_cmp (r, n) >= 0);
 
@@ -798,8 +798,8 @@ keygen_round1_new_element (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "keygen commit data with invalid signature in consensus\n");
     return;
   }
-  GNUNET_CRYPTO_mpi_scan_unsigned (&info->paillier_n, &d->pubkey.n, PAILLIER_BITS / 8);
-  GNUNET_CRYPTO_mpi_scan_unsigned (&info->presecret_commitment, &d->pubkey.n, PAILLIER_BITS / 8);
+  GNUNET_CRYPTO_mpi_scan_unsigned (&info->paillier_n, &d->pubkey.n, GNUNET_CRYPTO_PAILLIER_BITS / 8);
+  GNUNET_CRYPTO_mpi_scan_unsigned (&info->presecret_commitment, &d->pubkey.n, GNUNET_CRYPTO_PAILLIER_BITS / 8);
   info->round1_valid = GNUNET_YES;
 }
 
@@ -939,7 +939,7 @@ insert_round2_element (struct KeygenSession *ks)
   element_size = (sizeof (struct GNUNET_SECRETSHARING_KeygenRevealData) +
                   GNUNET_SECRETSHARING_ELGAMAL_BITS / 8 * ks->num_peers +
                   GNUNET_SECRETSHARING_ELGAMAL_BITS / 8 * ks->threshold +
-                  PAILLIER_BITS * 2 / 8 * ks->num_peers);
+                  GNUNET_CRYPTO_PAILLIER_BITS * 2 / 8 * ks->num_peers);
 
   element = GNUNET_malloc (sizeof (struct GNUNET_SET_Element) + element_size);
   element->size = element_size;
@@ -987,8 +987,8 @@ insert_round2_element (struct KeygenSession *ks)
       // encrypt the result
       paillier_encrypt (c, v, ks->info[i].paillier_n);
     }
-    GNUNET_CRYPTO_mpi_print_unsigned (pos, PAILLIER_BITS * 2 / 8, c);
-    pos += PAILLIER_BITS * 2 / 8;
+    GNUNET_CRYPTO_mpi_print_unsigned (pos, GNUNET_CRYPTO_PAILLIER_BITS * 2 / 8, c);
+    pos += GNUNET_CRYPTO_PAILLIER_BITS * 2 / 8;
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "P%u: computed enc preshares\n",
@@ -1038,7 +1038,7 @@ keygen_round2_new_element (void *cls,
 
   expected_element_size = (sizeof (struct GNUNET_SECRETSHARING_KeygenRevealData) +
                   GNUNET_SECRETSHARING_ELGAMAL_BITS / 8 * ks->num_peers +
-                  PAILLIER_BITS / 8 * 2 * ks->num_peers +
+                  GNUNET_CRYPTO_PAILLIER_BITS / 8 * 2 * ks->num_peers +
                   GNUNET_SECRETSHARING_ELGAMAL_BITS / 8 * ks->threshold);
 
   if (element->size != expected_element_size)
@@ -1084,7 +1084,7 @@ keygen_round2_new_element (void *cls,
   // skip exponentiated pre-shares
   pos += GNUNET_SECRETSHARING_ELGAMAL_BITS / 8 * ks->num_peers;
   // skip encrypted pre-shares
-  pos += PAILLIER_BITS * 2 / 8 * ks->num_peers;
+  pos += GNUNET_CRYPTO_PAILLIER_BITS * 2 / 8 * ks->num_peers;
   // the first exponentiated coefficient is the public key share
   GNUNET_CRYPTO_mpi_scan_unsigned (&info->public_key_share, pos, GNUNET_SECRETSHARING_ELGAMAL_BITS / 8);
 
@@ -1092,9 +1092,9 @@ keygen_round2_new_element (void *cls,
   // skip exp. pre-shares
   pos += GNUNET_SECRETSHARING_ELGAMAL_BITS / 8 * ks->num_peers;
   // skip to the encrypted value for our peer
-  pos += PAILLIER_BITS * 2 / 8 * ks->local_peer_idx;
+  pos += GNUNET_CRYPTO_PAILLIER_BITS * 2 / 8 * ks->local_peer_idx;
 
-  GNUNET_CRYPTO_mpi_scan_unsigned (&c, pos, PAILLIER_BITS * 2 / 8);
+  GNUNET_CRYPTO_mpi_scan_unsigned (&c, pos, GNUNET_CRYPTO_PAILLIER_BITS * 2 / 8);
 
   GNUNET_assert (0 != (info->decrypted_preshare = mpi_new (0)));
 
@@ -1177,7 +1177,7 @@ insert_round1_element (struct KeygenSession *ks)
 
   GNUNET_CRYPTO_hash (v_data, GNUNET_SECRETSHARING_ELGAMAL_BITS / 8, &d->commitment);
 
-  GNUNET_CRYPTO_mpi_print_unsigned (d->pubkey.n, PAILLIER_BITS / 8,
+  GNUNET_CRYPTO_mpi_print_unsigned (d->pubkey.n, GNUNET_CRYPTO_PAILLIER_BITS / 8,
                                     ks->info[ks->local_peer_idx].paillier_n);
 
   d->purpose.size = htonl ((sizeof *d) - offsetof (struct GNUNET_SECRETSHARING_KeygenCommitData, purpose));

@@ -33,25 +33,8 @@
 #include "gnunet_protocols.h"
 #include "secretsharing.h"
 
-/**
- * Bit length used for the Paillier crypto system.
- */
-#define PAILLIER_BITS 2048
 
 GNUNET_NETWORK_STRUCT_BEGIN
-
-
-/**
- * Public key for the Paillier crypto system.
- */
-struct PaillierPublicKey
-{
-  /**
-   * Network order representation of the
-   * n-component.
-   */
-  uint32_t n[PAILLIER_BITS / 8 / sizeof (uint32_t)];
-};
 
 
 /**
@@ -75,7 +58,7 @@ struct GNUNET_SECRETSHARING_KeygenCommitData
    * Ephemeral paillier public key used by 'peer' for
    * this session.
    */
-  struct PaillierPublicKey pubkey GNUNET_PACKED;
+  struct GNUNET_CRYPTO_PaillierPublicKey pubkey;
   /**
    * Commitment of 'peer' to his presecret.
    */
