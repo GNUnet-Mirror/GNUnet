@@ -1341,10 +1341,11 @@ GNUNET_CRYPTO_paillier_create (struct GNUNET_CRYPTO_PaillierPublicKey *public_ke
  * Encrypt a plaintext with a paillier public key.
  *
  * @param public_key Public key to use.
- * @param plaintext Plaintext to encrypt.
+ * @param m Plaintext to encrypt.
  * @param[out] ciphertext Encrytion of @a plaintext with @a public_key.
+ * @return guaranteed number of supported homomorphic operations
  */
-void
+int
 GNUNET_CRYPTO_paillier_encrypt (const struct GNUNET_CRYPTO_PaillierPublicKey *public_key,
                                 const gcry_mpi_t m,
                                 struct GNUNET_CRYPTO_PaillierCiphertext *ciphertext);
@@ -1356,7 +1357,7 @@ GNUNET_CRYPTO_paillier_encrypt (const struct GNUNET_CRYPTO_PaillierPublicKey *pu
  * @param private_key Private key to use for decryption.
  * @param public_key Public key to use for decryption.
  * @param ciphertext Ciphertext to decrypt.
- * @param[out] plaintext Decryption of @a ciphertext with @private_key.
+ * @param[out] m Decryption of @a ciphertext with @private_key.
  */
 void
 GNUNET_CRYPTO_paillier_decrypt (const struct GNUNET_CRYPTO_PaillierPrivateKey *private_key,

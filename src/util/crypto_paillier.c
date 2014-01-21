@@ -92,18 +92,28 @@ GNUNET_CRYPTO_paillier_create (struct GNUNET_CRYPTO_PaillierPublicKey *public_ke
  * @param public_key Public key to use.
  * @param m Plaintext to encrypt.
  * @param[out] ciphertext Encrytion of @a plaintext with @a public_key.
+ * @return guaranteed number of supported homomorphic operations >= 1, -1 for failure
  */
-void
+int
 GNUNET_CRYPTO_paillier_encrypt (const struct GNUNET_CRYPTO_PaillierPublicKey *public_key,
                                 const gcry_mpi_t m,
                                 struct GNUNET_CRYPTO_PaillierCiphertext *ciphertext)
 {
+  unsigned int length;
   gcry_mpi_t n_square;
   gcry_mpi_t r;
   gcry_mpi_t g;
   gcry_mpi_t c;
   gcry_mpi_t n;
-
+  
+  // determine how many operations we could allow, if the other number
+  // has the same length. 
+  length = gcry_mpi_get_nbits(m);
+  if (length >= GNUNET_CRYPTO_PAILLIER_BITS)
+    return -1;
+  else
+    ciphertext->remaining_ops = ntohl(pow(2,(GNUNET_CRYPTO_PAILLIER_BITS-length-1)));
+  
   GNUNET_assert (0 != (n_square = gcry_mpi_new (0)));
   GNUNET_assert (0 != (r = gcry_mpi_new (0)));
   GNUNET_assert (0 != (g = gcry_mpi_new (0)));
@@ -135,6 +145,8 @@ GNUNET_CRYPTO_paillier_encrypt (const struct GNUNET_CRYPTO_PaillierPublicKey *pu
   gcry_mpi_release (n_square);
   gcry_mpi_release (r);
   gcry_mpi_release (c);
+  
+  return pow(2,(GNUNET_CRYPTO_PAILLIER_BITS-length-1));
 }
 
 

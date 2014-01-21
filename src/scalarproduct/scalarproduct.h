@@ -44,9 +44,8 @@ extern "C"
 /**
  * When performing our crypto, we may add two encrypted values with each
  * a maximal length of GNUNET_CRYPTO_RSA_DATA_ENCODING_LENGTH.
- * thus we can receive a slightly longer element (+1 byte)
  */
-#define PAILLIER_ELEMENT_LENGTH (2*KEYBITS/8 +1)
+#define PAILLIER_ELEMENT_LENGTH (2*KEYBITS/sizeof(char))
 
 /**
  * Maximum count of elements we can put into a multipart message
