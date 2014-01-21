@@ -408,6 +408,20 @@ then
   AC_DEFINE([HAVE_OPUS],[1],[Have libopus library])
 fi
 
+# libogg
+AC_CHECK_LIB(ogg, ogg_stream_flush_fill,
+        [AC_CHECK_HEADERS([ogg/ogg.h],
+          AM_CONDITIONAL(HAVE_OGG, true)
+          ogg=1
+          AC_DEFINE(HAVE_OGG,1,[Have ogg]),
+          AM_CONDITIONAL(HAVE_OGG, false)
+          ogg=0
+          AC_DEFINE(HAVE_OGG,0,[lacking ogg]))],
+        AM_CONDITIONAL(HAVE_OGG, false)
+        ogg=0)
+
+
+
 gst=0
 PKG_CHECK_MODULES(
   [GST],
@@ -421,7 +435,7 @@ PKG_CHECK_MODULES(
   ])
 
 # Pulse Audio
-if test "x$pulse" != "x1" -o "x$opus" != "x1"
+if test "x$pulse" != "x1" -o "x$opus" != "x1" -o "x$ogg" != "x1"
 then
  if test "x$gst" != "x1" -o "x$opus" != "x1"
  then
