@@ -108,7 +108,7 @@ struct GNUNET_GNS_LookupRequest *
 GNUNET_GNS_lookup (struct GNUNET_GNS_Handle *handle,
 		   const char *name,
 		   const struct GNUNET_CRYPTO_EcdsaPublicKey *zone,
-		   int type,
+		   uint32_t type,
 		   int only_cached,
 		   const struct GNUNET_CRYPTO_EcdsaPrivateKey *shorten_zone_key,
 		   GNUNET_GNS_LookupResultProcessor proc,
