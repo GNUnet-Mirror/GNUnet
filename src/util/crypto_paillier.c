@@ -90,29 +90,25 @@ GNUNET_CRYPTO_paillier_create (struct GNUNET_CRYPTO_PaillierPublicKey *public_ke
  * Encrypt a plaintext with a paillier public key.
  *
  * @param public_key Public key to use.
- * @param plaintext Plaintext to encrypt.
+ * @param m Plaintext to encrypt.
  * @param[out] ciphertext Encrytion of @a plaintext with @a public_key.
  */
 void
 GNUNET_CRYPTO_paillier_encrypt (const struct GNUNET_CRYPTO_PaillierPublicKey *public_key,
-                                const struct GNUNET_CRYPTO_PaillierPlaintext *plaintext,
+                                const gcry_mpi_t m,
                                 struct GNUNET_CRYPTO_PaillierCiphertext *ciphertext)
 {
   gcry_mpi_t n_square;
   gcry_mpi_t r;
   gcry_mpi_t g;
   gcry_mpi_t c;
-
   gcry_mpi_t n;
-  gcry_mpi_t m;
-
 
   GNUNET_assert (0 != (n_square = gcry_mpi_new (0)));
   GNUNET_assert (0 != (r = gcry_mpi_new (0)));
   GNUNET_assert (0 != (g = gcry_mpi_new (0)));
   GNUNET_assert (0 != (c = gcry_mpi_new (0)));
 
-  GNUNET_CRYPTO_mpi_scan_unsigned (&m, plaintext, sizeof (struct GNUNET_CRYPTO_PaillierPlaintext));
   GNUNET_CRYPTO_mpi_scan_unsigned (&n, public_key, sizeof (struct GNUNET_CRYPTO_PaillierPublicKey));
 
   gcry_mpi_mul (n_square, n, n);
@@ -132,11 +128,12 @@ GNUNET_CRYPTO_paillier_encrypt (const struct GNUNET_CRYPTO_PaillierPublicKey *pu
   // c <- r*c mod n^2
   gcry_mpi_mulm (c, r, c, n_square);
 
-  GNUNET_CRYPTO_mpi_print_unsigned (ciphertext, sizeof *ciphertext, c);
+  GNUNET_CRYPTO_mpi_print_unsigned (ciphertext->bits, 
+                                    sizeof(*ciphertext) - sizeof(ciphertext->remaining_ops), 
+                                    c);
 
   gcry_mpi_release (n_square);
   gcry_mpi_release (r);
-  gcry_mpi_release (m);
   gcry_mpi_release (c);
 }
 
@@ -147,15 +144,14 @@ GNUNET_CRYPTO_paillier_encrypt (const struct GNUNET_CRYPTO_PaillierPublicKey *pu
  * @param private_key Private key to use for decryption.
  * @param public_key Public key to use for decryption.
  * @param ciphertext Ciphertext to decrypt.
- * @param[out] plaintext Decryption of @a ciphertext with @private_key.
+ * @param[out] m Decryption of @a ciphertext with @private_key.
  */
 void
 GNUNET_CRYPTO_paillier_decrypt (const struct GNUNET_CRYPTO_PaillierPrivateKey *private_key,
                                 const struct GNUNET_CRYPTO_PaillierPublicKey *public_key,
                                 const struct GNUNET_CRYPTO_PaillierCiphertext *ciphertext,
-                                struct GNUNET_CRYPTO_PaillierPlaintext *plaintext)
+                                gcry_mpi_t *m)
 {
-  gcry_mpi_t m;
   gcry_mpi_t mu;
   gcry_mpi_t lambda;
   gcry_mpi_t n;
@@ -163,7 +159,8 @@ GNUNET_CRYPTO_paillier_decrypt (const struct GNUNET_CRYPTO_PaillierPrivateKey *p
   gcry_mpi_t c;
 
   GNUNET_assert (0 != (n_square = gcry_mpi_new (0)));
-  GNUNET_assert (0 != (m = gcry_mpi_new (0)));
+  if (NULL == *m)
+    GNUNET_assert (0 != (m = gcry_mpi_new (0)));
 
   GNUNET_CRYPTO_mpi_scan_unsigned (&lambda, private_key->lambda, sizeof private_key->lambda);
   GNUNET_CRYPTO_mpi_scan_unsigned (&mu, private_key->mu, sizeof private_key->mu);
@@ -179,9 +176,6 @@ GNUNET_CRYPTO_paillier_decrypt (const struct GNUNET_CRYPTO_PaillierPrivateKey *p
   gcry_mpi_div (m, NULL, m, n, 0);
   gcry_mpi_mulm (m, m, mu, n);
 
-  GNUNET_CRYPTO_mpi_print_unsigned (plaintext, sizeof *plaintext, m);
-
-  gcry_mpi_release (m);
   gcry_mpi_release (mu);
   gcry_mpi_release (lambda);
   gcry_mpi_release (n);

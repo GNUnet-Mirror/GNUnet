@@ -383,6 +383,11 @@ struct GNUNET_CRYPTO_PaillierPlaintext
 struct GNUNET_CRYPTO_PaillierCiphertext
 {
   /**
+   * guaranteed minimum number of homomorphic operations with this ciphertext
+   */
+  uint32_t remaining_ops GNUNET_PACKED;
+  
+  /**
    * The bits of the ciphertext.
    */
   unsigned char bits[GNUNET_CRYPTO_PAILLIER_BITS * 2 / 8];
