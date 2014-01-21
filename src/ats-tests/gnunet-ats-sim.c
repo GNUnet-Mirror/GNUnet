@@ -1,0 +1,73 @@
+/*
+ This file is part of GNUnet.
+ (C) 2010-2013 Christian Grothoff (and other contributing authors)
+
+ GNUnet is free software; you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published
+ by the Free Software Foundation; either version 3, or (at your
+ option) any later version.
+
+ GNUnet is distributed in the hope that it will be useful, but
+ WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ General Public License for more details.
+
+ You should have received a copy of the GNU General Public License
+ along with GNUnet; see the file COPYING.  If not, write to the
+ Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ Boston, MA 02111-1307, USA.
+ */
+/**
+ * @file ats/perf_ats.c
+ * @brief ats benchmark: start peers and modify preferences, monitor change over time
+ * @author Christian Grothoff
+ * @author Matthias Wachs
+ */
+#include "platform.h"
+#include "gnunet_util_lib.h"
+#include "gnunet_testbed_service.h"
+#include "gnunet_ats_service.h"
+#include "gnunet_core_service.h"
+#include "ats-testing.h"
+
+#define DEFAULT_NUM_SLAVES 5
+#define DEFAULT_NUM_MASTERS 1
+
+#define TEST_MESSAGE_TYPE_PING 12345
+#define TEST_MESSAGE_TYPE_PONG 12346
+
+static int
+comm_handle_pong (void *cls, const struct GNUNET_PeerIdentity *other,
+    const struct GNUNET_MessageHeader *message)
+{
+  return 0;
+}
+
+static int
+comm_handle_ping (void *cls, const struct GNUNET_PeerIdentity *other,
+    const struct GNUNET_MessageHeader *message)
+{
+  return 0;
+}
+
+static void
+transport_recv_cb (void *cls,
+                   const struct GNUNET_PeerIdentity * peer,
+                   const struct GNUNET_MessageHeader * message)
+{
+
+}
+
+int
+main (int argc, char *argv[])
+{
+  static struct GNUNET_CORE_MessageHandler handlers[] = { {
+      &comm_handle_ping, TEST_MESSAGE_TYPE_PING, 0 }, { &comm_handle_pong,
+      TEST_MESSAGE_TYPE_PONG, 0 }, { NULL, 0, 0 } };
+
+
+  GNUNET_ATS_TEST_create_topology ("gnunet-ats-sim", "perf_ats_proportional_none.conf",
+      DEFAULT_NUM_SLAVES, DEFAULT_NUM_MASTERS, handlers, &transport_recv_cb);
+  return 0;
+}
+/* end of file perf_ats_topogy.c */

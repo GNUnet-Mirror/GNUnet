@@ -38,12 +38,45 @@ TESTING_TESTS = \
  #perf_ats_ril_core_latency
 endif
 
+lib_LTLIBRARIES = \
+  libgnunetatstesting.la 
+
 check_PROGRAMS = \
  $(TESTING_TESTS)
 
 if ENABLE_TEST_RUN
 TESTS = $(check_PROGRAMS)
 endif
+
+noinst_PROGRAMS = \
+ gnunet-ats-sim
+ 
+libgnunetatstesting_la_SOURCES = \
+  ats-testing.c ats-testing.h
+libgnunetatstesting_la_LIBADD = \
+  $(top_builddir)/src/transport/libgnunettransport.la \
+  $(top_builddir)/src/hello/libgnunethello.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/testing/libgnunettesting.la \
+  $(GN_LIBINTL)
+libgnunettransporttesting_la_DEPENDENCIES = \
+  libgnunettransport.la
+libgnunettransporttesting_la_LDFLAGS = \
+ $(GN_LIB_LDFLAGS)
+ 
+gnunet_ats_sim_SOURCES = \
+ gnunet-ats-sim.c
+gnunet_ats_sim_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/ats-tests/libgnunetatstesting.la \
+ $(top_builddir)/src/testbed/libgnunettestbed.la \
+ $(top_builddir)/src/ats/libgnunetats.la \
+ $(top_builddir)/src/core/libgnunetcore.la \
+ $(top_builddir)/src/transport/libgnunettransport.la  
+gnunet_ats_sim_DEPENDENCIES = \
+ $(top_builddir)/src/ats-tests/libgnunetatstesting.la \
+ $(top_builddir)/src/util/libgnunetutil.la
+
 
 perf_ats_proportional_core_none_SOURCES = \
   perf_ats.c perf_ats_logging.c perf_ats.h
