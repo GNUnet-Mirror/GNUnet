@@ -437,7 +437,7 @@ PKG_CHECK_MODULES(
 # Pulse Audio
 if test "x$pulse" != "x1" -o "x$opus" != "x1" -o "x$ogg" != "x1"
 then
- if test "x$gst" != "x1" -o "x$opus" != "x1"
+ if test "x$gst" != "x1"
  then
   conversation_backend=none
   AM_CONDITIONAL(BUILD_PULSE_HELPERS, false)
