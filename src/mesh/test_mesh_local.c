@@ -254,6 +254,9 @@ do_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_PeerIdentity id;
 
+  if (NULL != tc && 0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
+    return;
+
   GNUNET_TESTING_peer_get_identity (me, &id);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "CONNECT BY PORT\n");
   ch = GNUNET_MESH_channel_create (mesh_peer_1, NULL, &id, 1,
