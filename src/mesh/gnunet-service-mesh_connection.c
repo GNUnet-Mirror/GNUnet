@@ -1269,7 +1269,7 @@ connection_reset_timeout (struct MeshConnection *c, int fwd)
 
   if (GMC_is_origin (c, fwd)) /* Startpoint */
   {
-    f  = fwd ? &connection_fwd_keepalive : &connection_bck_keepalive;
+    f = fwd ? &connection_fwd_keepalive : &connection_bck_keepalive;
     *ti = GNUNET_SCHEDULER_add_delayed (refresh_connection_time, f, c);
   }
   else /* Relay, endpoint. */
@@ -1277,7 +1277,7 @@ connection_reset_timeout (struct MeshConnection *c, int fwd)
     struct GNUNET_TIME_Relative delay;
 
     delay = GNUNET_TIME_relative_multiply (refresh_connection_time, 4);
-    f  = fwd ? &connection_fwd_timeout : &connection_bck_timeout;
+    f = fwd ? &connection_fwd_timeout : &connection_bck_timeout;
     *ti = GNUNET_SCHEDULER_add_delayed (delay, f, c);
   }
 }
@@ -2482,13 +2482,6 @@ GMC_new (const struct GNUNET_HashCode *cid,
     }
     GMC_destroy (c);
     return NULL;
-  }
-
-  if (0 == own_pos)
-  {
-    c->fwd_maintenance_task =
-      GNUNET_SCHEDULER_add_delayed (create_connection_time,
-                                    &connection_fwd_keepalive, c);
   }
 
   return c;
