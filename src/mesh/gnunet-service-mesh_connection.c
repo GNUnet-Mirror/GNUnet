@@ -1565,14 +1565,6 @@ GMC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
     send_connection_ack (c, GNUNET_NO);
     if (MESH_CONNECTION_SENT == c->state)
       connection_change_state (c, MESH_CONNECTION_ACK);
-
-    /* Keep tunnel alive in direction dest->owner*/
-    if (GNUNET_SCHEDULER_NO_TASK == c->bck_maintenance_task)
-    {
-      c->bck_maintenance_task =
-        GNUNET_SCHEDULER_add_delayed (create_connection_time,
-                                      &connection_bck_keepalive, c);
-    }
   }
   else
   {
