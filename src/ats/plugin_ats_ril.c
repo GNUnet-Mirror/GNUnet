@@ -28,12 +28,12 @@
 
 #define LOG(kind,...) GNUNET_log_from (kind, "ats-ril",__VA_ARGS__)
 
-#define RIL_MIN_BW ntohl (GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT.value__)
-#define RIL_MAX_BW 1024 * 250 //TODO return to max
+#define RIL_MIN_BW                      ntohl (GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT.value__)
+#define RIL_MAX_BW                      1024 * 250 //GNUNET_ATS_MaxBandwidth
 
-#define RIL_ACTION_INVALID -1
-#define RIL_INTERVAL_EXPONENT 10
-#define RIL_UTILITY_MAX (double) RIL_MAX_BW
+#define RIL_ACTION_INVALID              -1
+#define RIL_INTERVAL_EXPONENT           10
+#define RIL_UTILITY_DELAY_MAX           100
 
 #define RIL_DEFAULT_STEP_TIME_MIN       GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 500)
 #define RIL_DEFAULT_STEP_TIME_MAX       GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 3000)
@@ -264,6 +264,11 @@ struct RIL_Peer_Agent
   double ** E;
 
   /**
+   * Whether to reset the eligibility traces to 0 after a Q-exploration step
+   */
+  int eligibility_reset;
+
+  /**
    * Address in use
    */
   struct ATS_Address * address_inuse;
@@ -327,14 +332,24 @@ struct RIL_Scope
   unsigned long long bw_in_assigned;
 
   /**
+   * Bandwidth inbound actually utilized in the network
+   */
+  unsigned long long bw_in_utilized;
+
+  /**
    * Total available outbound bandwidth
    */
   unsigned long long bw_out_available;
 
   /**
-   * * Bandwidth outbound assigned in network after last step
+   * Bandwidth outbound assigned in network after last step
    */
   unsigned long long bw_out_assigned;
+
+  /**
+   * Bandwidth outbound actually utilized in the network
+   */
+  unsigned long long bw_out_utilized;
 
   /**
    * Number of active agents in scope
@@ -430,7 +445,7 @@ struct GAS_RIL_Handle
 };
 
 /*
- *  Private functions
+ *  "Private" functions
  *  ---------------------------
  */
 
@@ -601,7 +616,12 @@ agent_get_action_max (struct RIL_Peer_Agent *agent, double *state)
   return max_i;
 }
 
-
+/**
+ * Chooses a random action from the set of possible ones
+ *
+ * @param agent the agent performing the action
+ * @return the action index
+ */
 static int
 agent_get_action_random (struct RIL_Peer_Agent *agent)
 {
@@ -675,7 +695,7 @@ agent_update (struct RIL_Peer_Agent *agent, double reward, double *s_next, int a
 //        delta,
 //        i,
 //        agent->e[i]);
-    theta[i] += agent->envi->parameters.alpha * delta * agent->s_old[i] * agent->E[agent->a_old][i];
+    theta[i] += agent->envi->parameters.alpha * delta * agent->E[agent->a_old][i];
   }
 }
 
@@ -684,7 +704,7 @@ agent_update (struct RIL_Peer_Agent *agent, double reward, double *s_next, int a
  * Changes the eligibility trace vector e in various manners:
  * #RIL_E_ACCUMULATE - adds @a feature to each component as in accumulating eligibility traces
  * #RIL_E_REPLACE - resets each component to @a feature  as in replacing traces
- * #RIL_E_SET - multiplies e with discount factor and lambda as in the update rule
+ * #RIL_E_DISCOUNT - multiplies e with discount factor and lambda as in the update rule
  * #RIL_E_ZERO - sets e to 0 as in Watkin's Q-learning algorithm when exploring and when initializing
  *
  * @param agent the agent handle
@@ -711,7 +731,10 @@ agent_modify_eligibility (struct RIL_Peer_Agent *agent,
       agent->E[action][i] =  (agent->envi->global_discount_variable * agent->envi->parameters.lambda * agent->E[action][i]) > feature[i] ? agent->E[action][i] : feature[i];
       break;
     case RIL_E_DISCOUNT:
-      agent->E[action][i] *= agent->envi->global_discount_variable * agent->envi->parameters.lambda;
+      for (k = 0; k < agent->n; k++)
+      {
+        agent->E[k][i] *= agent->envi->global_discount_variable * agent->envi->parameters.lambda;
+      }
       break;
     case RIL_E_ZERO:
       for (k = 0; k < agent->n; k++)
@@ -723,11 +746,17 @@ agent_modify_eligibility (struct RIL_Peer_Agent *agent,
   }
 }
 
-
+/**
+ * Informs the environment about the status of the solver
+ *
+ * @param solver
+ * @param op
+ * @param stat
+ */
 static void
 ril_inform (struct GAS_RIL_Handle *solver,
-    enum GAS_Solver_Operation op,
-    enum GAS_Solver_Status stat)
+            enum GAS_Solver_Operation op,
+            enum GAS_Solver_Status stat)
 {
   if (NULL != solver->plugin_envi->info_cb)
     solver->plugin_envi->info_cb (solver->plugin_envi->info_cb_cls, op, stat, GAS_INFO_NONE);
@@ -824,31 +853,6 @@ envi_set_active_suggestion (struct GAS_RIL_Handle *solver,
 }
 
 
-static unsigned long long
-ril_network_get_assigned (struct GAS_RIL_Handle *solver, enum GNUNET_ATS_Network_Type type, int direction_in)
-{
-  struct RIL_Peer_Agent *cur;
-  struct RIL_Scope *net;
-  unsigned long long sum = 0;
-
-  for (cur = solver->agents_head; NULL != cur; cur = cur->next)
-  {
-    if (cur->is_active && cur->address_inuse)
-    {
-      net = cur->address_inuse->solver_information;
-      if (net->type == type)
-      {
-        if (direction_in)
-          sum += cur->bw_in;
-        else
-          sum += cur->bw_out;
-      }
-    }
-  }
-
-  return sum;
-}
-
 /**
  * Allocates a state vector and fills it with the features present
  * @param solver the solver handle
@@ -894,120 +898,67 @@ envi_get_state (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
   return state;
 }
 
-///*
-// * For all networks a peer has an address in, this gets the maximum bandwidth which could
-// * theoretically be available in one of the networks. This is used for bandwidth normalization.
-// *
-// * @param agent the agent handle
-// * @param direction_in whether the inbound bandwidth should be considered. Returns the maximum outbound bandwidth if GNUNET_NO
-// */
-//static unsigned long long
-//ril_get_max_bw (struct RIL_Peer_Agent *agent, int direction_in)
-//{
-//  /*
-//   * get the maximum bandwidth possible for a peer, e.g. among all addresses which addresses'
-//   * network could provide the maximum bandwidth if all that bandwidth was used on that one peer.
-//   */
-//  unsigned long long max = 0;
-//  struct RIL_Address_Wrapped *cur;
-//  struct RIL_Scope *net;
-//
-//  for (cur = agent->addresses_head; NULL != cur; cur = cur->next)
-//  {
-//    net = cur->address_naked->solver_information;
-//    if (direction_in)
-//    {
-//      if (net->bw_in_available > max)
-//      {
-//        max = net->bw_in_available;
-//      }
-//    }
-//    else
-//    {
-//      if (net->bw_out_available > max)
-//      {
-//        max = net->bw_out_available;
-//      }
-//    }
-//  }
-//  return max;
-//}
-//
-///*
-// * Get the index of the quality-property in question
-// *
-// * @param type the quality property type
-// * @return the index
-// */
-//static int
-//ril_find_property_index (uint32_t type)
-//{
-//  int existing_types[] = GNUNET_ATS_QualityProperties;
-//  int c;
-//  for (c = 0; c < GNUNET_ATS_QualityPropertiesCount; c++)
-//    if (existing_types[c] == type)
-//      return c;
-//  return GNUNET_SYSERR;
-//}
-//
-//static int
-//ril_get_atsi (struct ATS_Address *address, uint32_t type)
-//{
-//  int c1;
-//  GNUNET_assert(NULL != address);
-//
-//  if ((NULL == address->atsi) || (0 == address->atsi_count))
-//    return 0;
-//
-//  for (c1 = 0; c1 < address->atsi_count; c1++)
-//  {
-//    if (ntohl (address->atsi[c1].type) == type)
-//      return ntohl (address->atsi[c1].value);
-//  }
-//  return 0;
-//}
-//
-//
-//static double
-//envi_reward_local (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
-//{
-//  const double *preferences;
-//  const double *properties;
-//  int prop_index;
-//  double pref_match = 0;
-//  double bw_norm;
-//  double dl_norm;
-//
-//  preferences = solver->plugin_envi->get_preferences (solver->plugin_envi->get_preference_cls,
-//      &agent->peer);
-//  properties = solver->plugin_envi->get_property (solver->plugin_envi->get_property_cls,
-//      agent->address_inuse);
-//
-//  // delay in [0,1]
-//  prop_index = ril_find_property_index (GNUNET_ATS_QUALITY_NET_DELAY);
-//  dl_norm = 2 - properties[prop_index]; //invert property as we want to maximize for lower latencies
-//
-//  // utilization in [0,1]
-//  bw_norm = (((double) ril_get_atsi (agent->address_inuse, GNUNET_ATS_UTILIZATION_IN)
-//      / (double) ril_get_max_bw (agent, GNUNET_YES))
-//      + ((double) ril_get_atsi (agent->address_inuse, GNUNET_ATS_UTILIZATION_OUT)
-//          / (double) ril_get_max_bw (agent, GNUNET_NO))) / 2;
-//
-//  // preference matching in [0,4]
-//  pref_match += (preferences[GNUNET_ATS_PREFERENCE_LATENCY] * dl_norm);
-//  pref_match += (preferences[GNUNET_ATS_PREFERENCE_BANDWIDTH] * bw_norm);
-//
-//  // local reward in [1,2]
-//  return (pref_match / 4) +1;
-//}
+/**
+ * Retrieves an ATS information value of an address
+ *
+ * @param address the address in question
+ * @param type the ATS information type
+ * @return the value
+ */
+static unsigned int
+ril_get_atsi (struct ATS_Address *address, uint32_t type)
+{
+  int c1;
+  GNUNET_assert(NULL != address);
 
+  if ((NULL == address->atsi) || (0 == address->atsi_count))
+    return GNUNET_ATS_QUALITY_NET_DELAY == type ? UINT32_MAX : 1;
+
+  for (c1 = 0; c1 < address->atsi_count; c1++)
+  {
+    if (ntohl (address->atsi[c1].type) == type)
+      return ntohl (address->atsi[c1].value);
+  }
+  return GNUNET_ATS_QUALITY_NET_DELAY == type ? UINT32_MAX : 1;
+}
+
+/**
+ * Returns the utility value of the connection an agent manages
+ *
+ * @param agent the agent in question
+ * @return the utility value
+ */
 static double
 agent_get_utility (struct RIL_Peer_Agent *agent)
 {
+  const double *preferences;
+  double delay_atsi;
+  double delay_norm;
+  double pref_match;
+
+  preferences = agent->envi->plugin_envi->get_preferences (agent->envi->plugin_envi->get_preference_cls,
+      &agent->peer);
+
+  delay_atsi = (double) ril_get_atsi (agent->address_inuse, GNUNET_ATS_QUALITY_NET_DELAY);
+  delay_norm = RIL_UTILITY_DELAY_MAX*exp(-delay_atsi*0.00001);
+
+  pref_match = (preferences[GNUNET_ATS_PREFERENCE_LATENCY] * delay_norm);
+  pref_match += (preferences[GNUNET_ATS_PREFERENCE_BANDWIDTH] * (double) (agent->bw_in/RIL_MIN_BW));
+  pref_match += (preferences[GNUNET_ATS_PREFERENCE_BANDWIDTH] * (double) (agent->bw_out/RIL_MIN_BW));
+
 //  return (double) (agent->bw_in/RIL_MIN_BW);
-  return sqrt((double) (agent->bw_in/RIL_MIN_BW) * (double) (agent->bw_out/RIL_MIN_BW));
+//  return sqrt((double) (agent->bw_in/RIL_MIN_BW) * (double) (agent->bw_out/RIL_MIN_BW));
+  return pref_match;
 }
 
+/**
+ * Calculates the social welfare within a network scope according to what social
+ * welfare measure is set in the configuration.
+ *
+ * @param solver the solver handle
+ * @param scope the network scope in question
+ * @return the social welfare value
+ */
 static double
 ril_network_get_social_welfare (struct GAS_RIL_Handle *solver, struct RIL_Scope *scope)
 {
@@ -1017,7 +968,7 @@ ril_network_get_social_welfare (struct GAS_RIL_Handle *solver, struct RIL_Scope 
   switch (solver->parameters.social_welfare)
   {
   case RIL_WELFARE_EGALITARIAN:
-    result = RIL_UTILITY_MAX;
+    result = DBL_MAX;
     for (cur = solver->agents_head; NULL != cur; cur = cur->next)
     {
       if (cur->is_active && cur->address_inuse && (cur->address_inuse->solver_information == scope))
@@ -1064,6 +1015,7 @@ envi_get_reward (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
 
   net = agent->address_inuse->solver_information;
 
+  //TODO make sure in tests to have utilization property updated
   if (net->bw_in_assigned > net->bw_in_available)
     over_in = net->bw_in_assigned - net->bw_in_available;
   if (net->bw_out_assigned > net->bw_out_available)
@@ -1074,10 +1026,10 @@ envi_get_reward (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
   delta = objective - agent->objective_old;
   agent->objective_old = objective;
 
-//  if (delta != 0)
-//  {
-    agent->nop_bonus = 0.5;
-//  }
+  if (delta != 0)
+  {
+    agent->nop_bonus = delta * 0.5;
+  }
 
   LOG(GNUNET_ERROR_TYPE_DEBUG, "agent->nop_bonus: %f\n", agent->nop_bonus);
 
@@ -1310,6 +1262,17 @@ envi_do_action (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent, int
   }
 }
 
+/**
+ * Selects the next action using the e-greedy strategy. I.e. with a probability
+ * of (1-e) the action with the maximum expected return will be chosen
+ * (=> exploitation) and with probability (e) a random action will be chosen.
+ * In case the Q-learning rule is set, the function also resets the eligibility
+ * traces in the exploration case (after Watkin's Q-learning).
+ *
+ * @param agent the agent selecting an action
+ * @param state the current state-feature vector
+ * @return the action index
+ */
 static int
 agent_select_egreedy (struct RIL_Peer_Agent *agent, double *state)
 {
@@ -1322,17 +1285,13 @@ agent_select_egreedy (struct RIL_Peer_Agent *agent, double *state)
     action = agent_get_action_random(agent);
     if (RIL_ALGO_Q == agent->envi->parameters.algorithm)
     {
-      agent_modify_eligibility(agent, RIL_E_ZERO, NULL, action);
+      agent->eligibility_reset = GNUNET_YES;
     }
     return action;
   }
   else //exploit
   {
     action = agent_get_action_max(agent, state);
-    if (RIL_ALGO_Q == agent->envi->parameters.algorithm)
-    {
-      agent_modify_eligibility(agent, RIL_E_DISCOUNT, NULL, action);
-    }
     return action;
   }
 }
@@ -1387,10 +1346,8 @@ agent_select_softmax (struct RIL_Peer_Agent *agent, double *state)
     {
       if (RIL_ALGO_Q == agent->envi->parameters.algorithm)
       {
-        if (i == a_max)
-          agent_modify_eligibility(agent, RIL_E_DISCOUNT, NULL, i);
-        else
-          agent_modify_eligibility(agent, RIL_E_ZERO, NULL, -1);
+        if (i != a_max)
+          agent->eligibility_reset = GNUNET_YES;
       }
       return i;
     }
@@ -1399,6 +1356,14 @@ agent_select_softmax (struct RIL_Peer_Agent *agent, double *state)
   GNUNET_assert(GNUNET_NO);
 }
 
+/**
+ * Select the next action of an agent either according to the e-greedy strategy
+ * or the softmax strategy.
+ *
+ * @param agent the agent in question
+ * @param state the current state-feature vector
+ * @return the action index
+ */
 static int
 agent_select_action (struct RIL_Peer_Agent *agent, double *state)
 {
@@ -1435,6 +1400,20 @@ agent_step (struct RIL_Peer_Agent *agent)
   s_next = envi_get_state (agent->envi, agent);
   reward = envi_get_reward (agent->envi, agent);
 
+  if (agent->eligibility_reset)
+  {
+    agent_modify_eligibility(agent, RIL_E_ZERO, NULL, -1);
+    agent->eligibility_reset = GNUNET_NO;
+  }
+  else
+  {
+    agent_modify_eligibility (agent, RIL_E_DISCOUNT, NULL, -1);
+  }
+  if (RIL_ACTION_INVALID != agent->a_old)
+  {
+    agent_modify_eligibility (agent, agent->envi->parameters.eligibility_trace_mode, agent->s_old, agent->a_old);
+  }
+
   switch (agent->envi->parameters.algorithm)
   {
   case RIL_ALGO_SARSA:
@@ -1444,7 +1423,6 @@ agent_step (struct RIL_Peer_Agent *agent)
       //updates weights with selected action (on-policy), if not first step
       agent_update (agent, reward, s_next, a_next);
     }
-    agent_modify_eligibility (agent, RIL_E_DISCOUNT, s_next, a_next);
     break;
 
   case RIL_ALGO_Q:
@@ -1459,8 +1437,6 @@ agent_step (struct RIL_Peer_Agent *agent)
   }
 
   GNUNET_assert(RIL_ACTION_INVALID != a_next);
-
-  agent_modify_eligibility (agent, agent->envi->parameters.eligibility_trace_mode, s_next, a_next);
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "step()  Step# %llu  R: %f  IN %llu  OUT %llu  A: %d\n",
         agent->step_count,
@@ -1478,6 +1454,11 @@ agent_step (struct RIL_Peer_Agent *agent)
   agent->step_count += 1;
 }
 
+/**
+ * Prototype of the ril_step() procedure
+ *
+ * @param solver the solver handle
+ */
 static void
 ril_step (struct GAS_RIL_Handle *solver);
 
@@ -1497,6 +1478,14 @@ ril_step_scheduler_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *t
   ril_step (solver);
 }
 
+/**
+ * Determines how much of the available bandwidth is assigned. If more is
+ * assigned than available it returns 1. The function is used to determine the
+ * step size of the adaptive stepping.
+ *
+ * @param solver the solver handle
+ * @return the ratio
+ */
 static double
 ril_get_used_resource_ratio (struct GAS_RIL_Handle *solver)
 {
@@ -1526,7 +1515,7 @@ ril_get_used_resource_ratio (struct GAS_RIL_Handle *solver)
     ratio = 0;
   }
 
-  return ratio > 1 ? 1 : ratio; //overutilization possible, cap at 1
+  return ratio > 1 ? 1 : ratio; //overassignment is possible, cap at 1
 }
 
 /**
@@ -1551,6 +1540,15 @@ ril_get_network (struct GAS_RIL_Handle *s, uint32_t type)
   return NULL ;
 }
 
+/**
+ * Determines whether more connections are allocated in a network scope, than
+ * they would theoretically fit. This is used as a heuristic to determine,
+ * whether a new connection can be allocated or not.
+ *
+ * @param solver the solver handle
+ * @param network the network scope in question
+ * @return GNUNET_YES if there are theoretically enough resources left
+ */
 static int
 ril_network_is_not_full (struct GAS_RIL_Handle *solver, enum GNUNET_ATS_Network_Type network)
 {
@@ -1574,6 +1572,16 @@ ril_network_is_not_full (struct GAS_RIL_Handle *solver, enum GNUNET_ATS_Network_
   return (net->bw_in_available > RIL_MIN_BW * address_count) && (net->bw_out_available > RIL_MIN_BW * address_count);
 }
 
+/**
+ * Unblocks an agent for which a connection request is there, that could not
+ * be satisfied. Iterates over the addresses of the agent, if one of its
+ * addresses can now be allocated in its scope the agent is unblocked,
+ * otherwise it remains unchanged.
+ *
+ * @param solver the solver handle
+ * @param agent the agent in question
+ * @param silent
+ */
 static void
 ril_try_unblock_agent (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent, int silent)
 {
@@ -1593,6 +1601,12 @@ ril_try_unblock_agent (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *age
   agent->address_inuse = NULL;
 }
 
+/**
+ * Determines how much the reward needs to be discounted depending on the amount
+ * of time, which has passed since the last time-step.
+ *
+ * @param solver the solver handle
+ */
 static void
 ril_calculate_discount (struct GAS_RIL_Handle *solver)
 {
@@ -1623,6 +1637,13 @@ ril_calculate_discount (struct GAS_RIL_Handle *solver)
       / (double) solver->parameters.beta;
 }
 
+/**
+ * Count the number of active agents/connections in a network scope
+ *
+ * @param solver the solver handle
+ * @param scope the network scope in question
+ * @return the number of allocated connections
+ */
 static int
 ril_network_count_active_agents (struct GAS_RIL_Handle *solver, struct RIL_Scope *scope)
 {
@@ -1639,6 +1660,82 @@ ril_network_count_active_agents (struct GAS_RIL_Handle *solver, struct RIL_Scope
   return c;
 }
 
+/**
+ * Calculates how much bandwidth is assigned in sum in a network scope, either
+ * in the inbound or in the outbound direction.
+ *
+ * @param solver the solver handle
+ * @param type the type of the network scope in question
+ * @param direction_in GNUNET_YES if the inbound direction should be summed up,
+ *   otherwise the outbound direction will be summed up
+ * @return the sum of the assigned bandwidths
+ */
+static unsigned long long
+ril_network_get_assigned (struct GAS_RIL_Handle *solver, enum GNUNET_ATS_Network_Type type, int direction_in)
+{
+  struct RIL_Peer_Agent *cur;
+  struct RIL_Scope *net;
+  unsigned long long sum = 0;
+
+  for (cur = solver->agents_head; NULL != cur; cur = cur->next)
+  {
+    if (cur->is_active && cur->address_inuse)
+    {
+      net = cur->address_inuse->solver_information;
+      if (net->type == type)
+      {
+        if (direction_in)
+          sum += cur->bw_in;
+        else
+          sum += cur->bw_out;
+      }
+    }
+  }
+
+  return sum;
+}
+
+/**
+ * Calculates how much bandwidth is actually utilized in sum in a network scope,
+ * either in the inbound or in the outbound direction.
+ *
+ * @param solver the solver handle
+ * @param type the type of the network scope in question
+ * @param direction_in GNUNET_YES if the inbound direction should be summed up,
+ *   otherwise the outbound direction will be summed up
+ * @return the sum of the utilized bandwidths (in bytes/second)
+ */
+static unsigned long long
+ril_network_get_utilized (struct GAS_RIL_Handle *solver, enum GNUNET_ATS_Network_Type type, int direction_in)
+{
+  struct RIL_Peer_Agent *cur;
+  struct RIL_Scope *net;
+  unsigned long long sum = 0;
+
+  for (cur = solver->agents_head; NULL != cur; cur = cur->next)
+  {
+    if (cur->is_active && cur->address_inuse)
+    {
+      net = cur->address_inuse->solver_information;
+      if (net->type == type)
+      {
+        if (direction_in)
+          sum += ril_get_atsi (cur->address_inuse, GNUNET_ATS_UTILIZATION_IN);
+        else
+          sum += ril_get_atsi (cur->address_inuse, GNUNET_ATS_UTILIZATION_OUT);
+      }
+    }
+  }
+
+  return sum;
+}
+
+/**
+ * Retrieves the state of the network scope, so that its attributes are up-to-
+ * date.
+ *
+ * @param solver the solver handle
+ */
 static void
 ril_networks_update_state (struct GAS_RIL_Handle *solver)
 {
@@ -1649,7 +1746,9 @@ ril_networks_update_state (struct GAS_RIL_Handle *solver)
   {
     net = &solver->network_entries[c];
     net->bw_in_assigned = ril_network_get_assigned(solver, net->type, GNUNET_YES);
+    net->bw_in_utilized = ril_network_get_utilized(solver, net->type, GNUNET_YES);
     net->bw_out_assigned = ril_network_get_assigned(solver, net->type, GNUNET_NO);
+    net->bw_out_utilized = ril_network_get_utilized(solver, net->type, GNUNET_NO);
     net->agent_count = ril_network_count_active_agents(solver, net);
     net->social_welfare = ril_network_get_social_welfare(solver, net);
   }
@@ -1812,6 +1911,7 @@ agent_init (void *s, const struct GNUNET_PeerIdentity *peer)
     agent->E[i] = (double *) GNUNET_malloc (sizeof (double) * agent->m);
   }
   agent_w_init(agent);
+  agent->eligibility_reset = GNUNET_NO;
   agent->a_old = RIL_ACTION_INVALID;
   agent->s_old = GNUNET_malloc (sizeof (double) * agent->m);
   agent->address_inuse = NULL;
