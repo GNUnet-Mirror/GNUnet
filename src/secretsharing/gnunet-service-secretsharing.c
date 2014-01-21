@@ -528,34 +528,6 @@ compute_lagrange_coefficient (gcry_mpi_t coeff, unsigned int j,
 }
 
 
-/**
- * Decrypt a ciphertext using Paillier's scheme.
- *
- * @param[out] m resulting plaintext
- * @param c ciphertext to decrypt
- * @param lambda lambda-component of private key
- * @param mu mu-component of private key
- * @param n n-component of public key
- */
-static void
-paillier_decrypt (gcry_mpi_t m, gcry_mpi_t c, gcry_mpi_t mu, gcry_mpi_t lambda, gcry_mpi_t n)
-{
-  gcry_mpi_t n_square;
-
-  GNUNET_assert (0 != (n_square = gcry_mpi_new (0)));
-
-  gcry_mpi_mul (n_square, n, n);
-  // m = c^lambda mod n^2
-  gcry_mpi_powm (m, c, lambda, n_square);
-  // m = m - 1
-  gcry_mpi_sub_ui (m, m, 1);
-  // m <- m/n
-  gcry_mpi_div (m, NULL, m, n, 0);
-  gcry_mpi_mulm (m, m, mu, n);
-  gcry_mpi_release (n_square);
-}
-
-
 static void
 decrypt_session_destroy (struct DecryptSession *ds)
 {
@@ -990,7 +962,6 @@ keygen_round2_new_element (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "got round2 element\n");
 
-
   pos = (void *) &d[1];
   // skip exponentiated pre-shares
   pos += GNUNET_SECRETSHARING_ELGAMAL_BITS / 8 * ks->num_peers;
@@ -1007,10 +978,25 @@ keygen_round2_new_element (void *cls,
 
   GNUNET_CRYPTO_mpi_scan_unsigned (&c, pos, GNUNET_CRYPTO_PAILLIER_BITS * 2 / 8);
 
-  GNUNET_assert (0 != (info->decrypted_preshare = mpi_new (0)));
+  // FIXME: remove this ugly block once we changed all MPIs to containers
+  {
+    struct GNUNET_CRYPTO_PaillierPublicKey public_key;
+    struct GNUNET_CRYPTO_PaillierPrivateKey private_key;
+    struct GNUNET_CRYPTO_PaillierPlaintext plaintext;
+    struct GNUNET_CRYPTO_PaillierCiphertext ciphertext;
 
-  paillier_decrypt (info->decrypted_preshare, c, ks->paillier_mu, ks->paillier_lambda,
-                    ks->info[ks->local_peer_idx].paillier_n);
+    GNUNET_CRYPTO_mpi_print_unsigned (&public_key, sizeof public_key, ks->info[ks->local_peer_idx].paillier_n);
+    GNUNET_CRYPTO_mpi_print_unsigned (&private_key.lambda, sizeof private_key.lambda, ks->paillier_lambda);
+    GNUNET_CRYPTO_mpi_print_unsigned (&private_key.mu, sizeof private_key.mu, ks->paillier_mu);
+    GNUNET_CRYPTO_mpi_print_unsigned (&ciphertext, sizeof ciphertext, c);
+
+
+    GNUNET_CRYPTO_paillier_decrypt (&private_key, &public_key,
+                                    &ciphertext, &plaintext);
+    GNUNET_CRYPTO_mpi_scan_unsigned (&info->decrypted_preshare, &plaintext,
+                                     sizeof plaintext);
+  }
+
   // TODO: validate zero knowledge proofs
 
   if (ntohl (d->purpose.size) !=
