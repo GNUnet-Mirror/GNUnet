@@ -36,15 +36,19 @@
 #define TEST_MESSAGE_TYPE_PING 12345
 #define TEST_MESSAGE_TYPE_PONG 12346
 
+static int c_masters;
+
+static int c_slaves;
+
 static int
-comm_handle_pong (void *cls, const struct GNUNET_PeerIdentity *other,
+core_handle_pong (void *cls, const struct GNUNET_PeerIdentity *other,
     const struct GNUNET_MessageHeader *message)
 {
   return 0;
 }
 
 static int
-comm_handle_ping (void *cls, const struct GNUNET_PeerIdentity *other,
+core_handle_ping (void *cls, const struct GNUNET_PeerIdentity *other,
     const struct GNUNET_MessageHeader *message)
 {
   return 0;
@@ -58,16 +62,33 @@ transport_recv_cb (void *cls,
 
 }
 
+static void topology_setup_done (void *cls,
+    struct BenchmarkPeer *masters,
+    struct BenchmarkPeer *slaves)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Topology setup complete!\n");
+  GNUNET_ATS_TEST_shutdown_topology ();
+}
+
 int
 main (int argc, char *argv[])
 {
-  static struct GNUNET_CORE_MessageHandler handlers[] = { {
-      &comm_handle_ping, TEST_MESSAGE_TYPE_PING, 0 }, { &comm_handle_pong,
-      TEST_MESSAGE_TYPE_PONG, 0 }, { NULL, 0, 0 } };
+  static struct GNUNET_CORE_MessageHandler handlers[] = {
+      {&core_handle_ping, TEST_MESSAGE_TYPE_PING, 0 },
+      {&core_handle_pong, TEST_MESSAGE_TYPE_PONG, 0 },
+      { NULL, 0, 0 } };
 
+  c_slaves = DEFAULT_NUM_SLAVES;
+  c_masters = DEFAULT_NUM_MASTERS;
 
   GNUNET_ATS_TEST_create_topology ("gnunet-ats-sim", "perf_ats_proportional_none.conf",
-      DEFAULT_NUM_SLAVES, DEFAULT_NUM_MASTERS, handlers, &transport_recv_cb);
+      c_slaves,
+      c_masters,
+      GNUNET_YES,
+      &topology_setup_done,
+      NULL,
+      handlers,
+      &transport_recv_cb);
   return 0;
 }
 /* end of file perf_ats_topogy.c */

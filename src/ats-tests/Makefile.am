@@ -91,10 +91,14 @@ perf_ats_proportional_transport_none_SOURCES = \
   perf_ats.c perf_ats_logging.c
 perf_ats_proportional_transport_none_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/ats-tests/libgnunetatstesting.la \
   $(top_builddir)/src/testbed/libgnunettestbed.la \
   $(top_builddir)/src/ats/libgnunetats.la \
   $(top_builddir)/src/core/libgnunetcore.la \
   $(top_builddir)/src/transport/libgnunettransport.la
+gnunet_ats_sim_DEPENDENCIES = \
+ $(top_builddir)/src/ats-tests/libgnunetatstesting.la \
+ $(top_builddir)/src/util/libgnunetutil.la  
 
 perf_ats_proportional_core_bandwidth_SOURCES = \
   perf_ats.c perf_ats_logging.c

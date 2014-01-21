@@ -45,7 +45,6 @@
 #define TEST_MESSAGE_SIZE 1000
 #define TEST_MESSAGE_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
 
-
 /**
  * Overall state of the performance benchmark
  */
@@ -300,6 +299,9 @@ struct TestbedConnectOperation
   struct GNUNET_TESTBED_Operation *connect_op;
 };
 
+typedef void (*GNUNET_ATS_TESTING_TopologySetupDoneCallback) (void *cls,
+    struct BenchmarkPeer *masters,
+    struct BenchmarkPeer *slaves);
 
 struct GNUNET_ATS_TEST_Topology
 {
@@ -386,17 +388,22 @@ struct GNUNET_ATS_TEST_Topology
 
   GNUNET_TRANSPORT_ReceiveCallback transport_recv_cb;
 
+  GNUNET_ATS_TESTING_TopologySetupDoneCallback done_cb;
+
+  void *done_cb_cls;
 };
 
-
-struct GNUNET_ATS_TEST_Topology *
+void
 GNUNET_ATS_TEST_create_topology (char *name, char *cfg_file,
     unsigned int num_slaves,
     unsigned int num_masters,
+    int test_core,
+    GNUNET_ATS_TESTING_TopologySetupDoneCallback done_cb,
+    void *done_cb_cls,
     struct GNUNET_CORE_MessageHandler *handlers,
     GNUNET_TRANSPORT_ReceiveCallback transport_recv_cb);
 
 void
-GNUNET_ATS_TEST_destroy_topology (struct GNUNET_ATS_TEST_Topology *top);
+GNUNET_ATS_TEST_shutdown_topology (void);
 
 /* end of file perf_ats.c */

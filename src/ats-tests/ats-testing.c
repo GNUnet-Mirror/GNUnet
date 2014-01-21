@@ -250,8 +250,6 @@ comm_connect_cb (void *cls, const struct GNUNET_PeerIdentity * peer)
           "All master peers connected all slave peers\n", id,
           GNUNET_i2s (peer));
       top->state.connected_CORE = GNUNET_YES;
-      GNUNET_break (0);
-      //GNUNET_SCHEDULER_add_now (&do_benchmark, NULL );
     }
   }
   GNUNET_free(id);
@@ -370,8 +368,9 @@ connect_completion_callback (void *cls, struct GNUNET_TESTBED_Operation *op,
   if (ops == top->num_masters * top->num_slaves)
   {
     top->state.connected_PEERS = GNUNET_YES;
-    GNUNET_break (0);
-    //GNUNET_SCHEDULER_add_now (&do_benchmark, NULL );
+    /* Notify about setup done */
+    if (NULL != top->done_cb)
+      top->done_cb (top->done_cb_cls, top->mps, top->sps);
   }
 }
 
@@ -440,7 +439,6 @@ comm_connect_completion_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
     GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Connected to all %s services\n",
         (GNUNET_YES == top->test_core) ? "CORE" : "TRANSPORT");
     top->state.connected_COMM_service = GNUNET_YES;
-    GNUNET_break (0);
     GNUNET_SCHEDULER_add_now (&do_connect_peers, NULL );
   }
 }
@@ -778,17 +776,24 @@ controller_event_cb (void *cls,
   }
 }
 
-struct GNUNET_ATS_TEST_Topology *
+void
 GNUNET_ATS_TEST_create_topology (char *name, char *cfg_file,
     unsigned int num_slaves,
     unsigned int num_masters,
+    int test_core,
+    GNUNET_ATS_TESTING_TopologySetupDoneCallback done_cb,
+    void *done_cb_cls,
     struct GNUNET_CORE_MessageHandler *handlers,
     GNUNET_TRANSPORT_ReceiveCallback transport_recv_cb)
 {
+
   top = GNUNET_new (struct GNUNET_ATS_TEST_Topology);
   top->num_masters = num_masters;
   top->num_slaves = num_slaves;
   top->handlers = handlers;
+  top->done_cb = done_cb;
+  top->done_cb_cls = done_cb_cls;
+  top->test_core = test_core;
 
   top->mps = GNUNET_malloc (num_masters * sizeof (struct BenchmarkPeer));
   top->sps = GNUNET_malloc (num_slaves * sizeof (struct BenchmarkPeer));
@@ -801,14 +806,12 @@ GNUNET_ATS_TEST_create_topology (char *name, char *cfg_file,
   (void) GNUNET_TESTBED_test_run (name, cfg_file,
       num_slaves + num_masters, event_mask, &controller_event_cb, NULL,
       &main_run, NULL);
-
-  return NULL;
 }
 
 void
-GNUNET_ATS_TEST_destroy_topology (struct GNUNET_ATS_TEST_Topology *top)
+GNUNET_ATS_TEST_shutdown_topology (void)
 {
-
+  GNUNET_SCHEDULER_shutdown();
 }
 
 /* end of file perf_ats.c */
