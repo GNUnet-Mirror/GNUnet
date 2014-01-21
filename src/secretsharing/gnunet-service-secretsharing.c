@@ -904,7 +904,7 @@ keygen_round2_new_element (void *cls,
   const struct GNUNET_SECRETSHARING_KeygenRevealData *d;
   struct KeygenPeerInfo *info;
   unsigned char *pos;
-  gcry_mpi_t c;
+  struct GNUNET_CRYPTO_PaillierPlaintext plaintext;
   size_t expected_element_size;
 
   if (NULL == element)
@@ -970,21 +970,10 @@ keygen_round2_new_element (void *cls,
   // skip to the encrypted value for our peer
   pos += GNUNET_CRYPTO_PAILLIER_BITS * 2 / 8 * ks->local_peer_idx;
 
-  GNUNET_CRYPTO_mpi_scan_unsigned (&c, pos, GNUNET_CRYPTO_PAILLIER_BITS * 2 / 8);
-
-  // FIXME: remove this ugly block once we changed all MPIs to containers
-  {
-    struct GNUNET_CRYPTO_PaillierPlaintext plaintext;
-    struct GNUNET_CRYPTO_PaillierCiphertext ciphertext;
-
-    GNUNET_CRYPTO_mpi_print_unsigned (&ciphertext, sizeof ciphertext, c);
-
-
-    GNUNET_CRYPTO_paillier_decrypt (&ks->paillier_private_key, &ks->info[ks->local_peer_idx].paillier_public_key,
-                                    &ciphertext, &plaintext);
-    GNUNET_CRYPTO_mpi_scan_unsigned (&info->decrypted_preshare, &plaintext,
-                                     sizeof plaintext);
-  }
+  GNUNET_CRYPTO_paillier_decrypt (&ks->paillier_private_key, &ks->info[ks->local_peer_idx].paillier_public_key,
+                                  (struct GNUNET_CRYPTO_PaillierCiphertext *) pos, &plaintext);
+  GNUNET_CRYPTO_mpi_scan_unsigned (&info->decrypted_preshare, &plaintext,
+                                   sizeof plaintext);
 
   // TODO: validate zero knowledge proofs
 
