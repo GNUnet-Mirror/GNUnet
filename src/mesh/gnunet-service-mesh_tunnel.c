@@ -1089,6 +1089,9 @@ rekey_iterator (void *cls,
   if (GNUNET_SCHEDULER_NO_TASK != t->rekey_task)
     return GNUNET_YES;
 
+  if (GNUNET_YES == GMT_is_loopback (t))
+    return GNUNET_YES;
+
   r = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, (uint32_t) n * 100);
   delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, r);
   t->rekey_task = GNUNET_SCHEDULER_add_delayed (delay, &rekey_tunnel, t);
