@@ -428,7 +428,6 @@ transport_recv_cb (void *cls,
                    const struct GNUNET_PeerIdentity * peer,
                    const struct GNUNET_MessageHeader * message)
 {
-  GNUNET_break (0);
   if (TEST_MESSAGE_SIZE != ntohs (message->size) ||
       (TEST_MESSAGE_TYPE_PING != ntohs (message->type) &&
       TEST_MESSAGE_TYPE_PONG != ntohs (message->type)))

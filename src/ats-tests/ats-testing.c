@@ -794,6 +794,7 @@ GNUNET_ATS_TEST_create_topology (char *name, char *cfg_file,
   top->done_cb = done_cb;
   top->done_cb_cls = done_cb_cls;
   top->test_core = test_core;
+  top->transport_recv_cb = transport_recv_cb;
 
   top->mps = GNUNET_malloc (num_masters * sizeof (struct BenchmarkPeer));
   top->sps = GNUNET_malloc (num_slaves * sizeof (struct BenchmarkPeer));
