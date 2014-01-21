@@ -50,7 +50,7 @@ struct KeygenPeerInfo
    * The peer's paillier public key.
    * Freshly generated for each keygen session.
    */
-  gcry_mpi_t paillier_n;
+  struct GNUNET_CRYPTO_PaillierPublicKey paillier_public_key;
 
   /**
    * The peer's commitment to his presecret.
@@ -678,7 +678,8 @@ keygen_round1_new_element (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "keygen commit data with invalid signature in consensus\n");
     return;
   }
-  GNUNET_CRYPTO_mpi_scan_unsigned (&info->paillier_n, &d->pubkey.n, GNUNET_CRYPTO_PAILLIER_BITS / 8);
+  info->paillier_public_key = d->pubkey;
+  // FIXME: does not make any sense / is wrong
   GNUNET_CRYPTO_mpi_scan_unsigned (&info->presecret_commitment, &d->pubkey.n, GNUNET_CRYPTO_PAILLIER_BITS / 8);
   info->round1_valid = GNUNET_YES;
 }
@@ -862,14 +863,12 @@ insert_round2_element (struct KeygenSession *ks)
     if (GNUNET_YES == ks->info[i].round1_valid)
     {
       struct GNUNET_CRYPTO_PaillierPlaintext plaintext;
-      struct GNUNET_CRYPTO_PaillierPublicKey public_key;
       gcry_mpi_set_ui (idx, i + 1);
       // evaluate the polynomial
       horner_eval (v, ks->presecret_polynomial, ks->threshold, idx, elgamal_q);
       GNUNET_CRYPTO_mpi_print_unsigned (&plaintext, sizeof plaintext, v);
-      GNUNET_CRYPTO_mpi_print_unsigned (&public_key, sizeof public_key, ks->info[i].paillier_n);
       // encrypt the result
-      GNUNET_CRYPTO_paillier_encrypt (&public_key, &plaintext, ciphertext);
+      GNUNET_CRYPTO_paillier_encrypt (&ks->info[i].paillier_public_key, &plaintext, ciphertext);
     }
     pos += sizeof *ciphertext;
   }
@@ -980,18 +979,16 @@ keygen_round2_new_element (void *cls,
 
   // FIXME: remove this ugly block once we changed all MPIs to containers
   {
-    struct GNUNET_CRYPTO_PaillierPublicKey public_key;
     struct GNUNET_CRYPTO_PaillierPrivateKey private_key;
     struct GNUNET_CRYPTO_PaillierPlaintext plaintext;
     struct GNUNET_CRYPTO_PaillierCiphertext ciphertext;
 
-    GNUNET_CRYPTO_mpi_print_unsigned (&public_key, sizeof public_key, ks->info[ks->local_peer_idx].paillier_n);
     GNUNET_CRYPTO_mpi_print_unsigned (&private_key.lambda, sizeof private_key.lambda, ks->paillier_lambda);
     GNUNET_CRYPTO_mpi_print_unsigned (&private_key.mu, sizeof private_key.mu, ks->paillier_mu);
     GNUNET_CRYPTO_mpi_print_unsigned (&ciphertext, sizeof ciphertext, c);
 
 
-    GNUNET_CRYPTO_paillier_decrypt (&private_key, &public_key,
+    GNUNET_CRYPTO_paillier_decrypt (&private_key, &ks->info[ks->local_peer_idx].paillier_public_key,
                                     &ciphertext, &plaintext);
     GNUNET_CRYPTO_mpi_scan_unsigned (&info->decrypted_preshare, &plaintext,
                                      sizeof plaintext);
@@ -1074,8 +1071,7 @@ insert_round1_element (struct KeygenSession *ks)
 
   GNUNET_CRYPTO_hash (v_data, GNUNET_SECRETSHARING_ELGAMAL_BITS / 8, &d->commitment);
 
-  GNUNET_CRYPTO_mpi_print_unsigned (d->pubkey.n, GNUNET_CRYPTO_PAILLIER_BITS / 8,
-                                    ks->info[ks->local_peer_idx].paillier_n);
+  d->pubkey = ks->info[ks->local_peer_idx].paillier_public_key;
 
   d->purpose.size = htonl ((sizeof *d) - offsetof (struct GNUNET_SECRETSHARING_KeygenCommitData, purpose));
   d->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_SECRETSHARING_DKG1);
@@ -1106,7 +1102,6 @@ static void handle_client_keygen (void *cls,
   struct KeygenSession *ks;
   unsigned int i;
   struct GNUNET_CRYPTO_PaillierPrivateKey private_key;
-  struct GNUNET_CRYPTO_PaillierPublicKey public_key;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "client requested key generation\n");
 
@@ -1136,14 +1131,12 @@ static void handle_client_keygen (void *cls,
   for (i = 0; i < ks->num_peers; i++)
     ks->info[i].peer = ks->peers[i];
 
-  GNUNET_assert (0 != (ks->info[ks->local_peer_idx].paillier_n = mpi_new (0)));
   GNUNET_assert (0 != (ks->paillier_lambda = mpi_new (0)));
   GNUNET_assert (0 != (ks->paillier_mu = mpi_new (0)));
 
-  GNUNET_CRYPTO_paillier_create (&public_key, &private_key);
+  GNUNET_CRYPTO_paillier_create (&ks->info[ks->local_peer_idx].paillier_public_key,
+                                 &private_key);
 
-  GNUNET_CRYPTO_mpi_scan_unsigned (&ks->info[ks->local_peer_idx].paillier_n,
-                                   &public_key, sizeof public_key);
   GNUNET_CRYPTO_mpi_scan_unsigned (&ks->paillier_lambda,
                                    &private_key.lambda, sizeof private_key.lambda);
   GNUNET_CRYPTO_mpi_scan_unsigned (&ks->paillier_mu,
