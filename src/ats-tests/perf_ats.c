@@ -727,7 +727,8 @@ main (int argc, char *argv[])
 
   GNUNET_ATS_TEST_create_topology ("perf-ats", conf_name,
       num_slaves, num_masters, test_core,
-      &do_benchmark, NULL, handlers, &transport_recv_cb);
+      &do_benchmark, NULL, handlers, &transport_recv_cb,
+      &ats_performance_info_cb);
 
   return result;
 }

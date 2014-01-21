@@ -480,110 +480,13 @@ do_comm_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
-
-static void
-ats_performance_info_cb (void *cls, const struct GNUNET_HELLO_Address *address,
-    int address_active, struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
-    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-    const struct GNUNET_ATS_Information *ats, uint32_t ats_count)
-{
-  struct BenchmarkPeer *me = cls;
-  struct BenchmarkPartner *p;
-  int c_a;
-  int log;
-  char *peer_id;
-
-  p = find_partner (me, &address->peer);
-  if (NULL == p)
-  {
-    /* This is not one of my partners
-     * Will happen since the peers will connect to each other due to gossiping
-     */
-    return;
-  }
-  peer_id = GNUNET_strdup (GNUNET_i2s (&me->id));
-
-  log = GNUNET_NO;
-  if ((p->bandwidth_in != ntohl (bandwidth_in.value__)) ||
-      (p->bandwidth_out != ntohl (bandwidth_out.value__)))
-      log = GNUNET_YES;
-  p->bandwidth_in = ntohl (bandwidth_in.value__);
-  p->bandwidth_out = ntohl (bandwidth_out.value__);
-
-  for (c_a = 0; c_a < ats_count; c_a++)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%s [%u] received ATS information: %s %s %u\n",
-        (GNUNET_YES == p->me->master) ? "Master" : "Slave",
-        p->me->no,
-        GNUNET_i2s (&p->dest->id),
-        GNUNET_ATS_print_property_type(ntohl(ats[c_a].type)),
-        ntohl(ats[c_a].value));
-    switch (ntohl (ats[c_a].type ))
-    {
-      case GNUNET_ATS_ARRAY_TERMINATOR:
-        break;
-      case GNUNET_ATS_UTILIZATION_OUT:
-        if (p->ats_utilization_up != ntohl (ats[c_a].value))
-            log = GNUNET_YES;
-        p->ats_utilization_up = ntohl (ats[c_a].value);
-
-        break;
-      case GNUNET_ATS_UTILIZATION_IN:
-        if (p->ats_utilization_down != ntohl (ats[c_a].value))
-            log = GNUNET_YES;
-        p->ats_utilization_down = ntohl (ats[c_a].value);
-        break;
-      case GNUNET_ATS_NETWORK_TYPE:
-        if (p->ats_network_type != ntohl (ats[c_a].value))
-            log = GNUNET_YES;
-        p->ats_network_type = ntohl (ats[c_a].value);
-        break;
-      case GNUNET_ATS_QUALITY_NET_DELAY:
-        if (p->ats_delay != ntohl (ats[c_a].value))
-            log = GNUNET_YES;
-        p->ats_delay = ntohl (ats[c_a].value);
-        break;
-      case GNUNET_ATS_QUALITY_NET_DISTANCE:
-        if (p->ats_distance != ntohl (ats[c_a].value))
-            log = GNUNET_YES;
-        p->ats_distance = ntohl (ats[c_a].value);
-        GNUNET_break (0);
-        break;
-      case GNUNET_ATS_COST_WAN:
-        if (p->ats_cost_wan != ntohl (ats[c_a].value))
-            log = GNUNET_YES;
-        p->ats_cost_wan = ntohl (ats[c_a].value);
-        break;
-      case GNUNET_ATS_COST_LAN:
-        if (p->ats_cost_lan != ntohl (ats[c_a].value))
-            log = GNUNET_YES;
-        p->ats_cost_lan = ntohl (ats[c_a].value);
-        break;
-      case GNUNET_ATS_COST_WLAN:
-        if (p->ats_cost_wlan != ntohl (ats[c_a].value))
-            log = GNUNET_YES;
-        p->ats_cost_wlan = ntohl (ats[c_a].value);
-        break;
-      default:
-        break;
-    }
-  }
-  if ((GNUNET_YES == top->logging) && (GNUNET_YES == log))
-  {
-//    collect_log_now();
-  }
-  GNUNET_free(peer_id);
-}
-
-
 static void *
 ats_perf_connect_adapter (void *cls,
     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct BenchmarkPeer *me = cls;
 
-  me->ats_perf_handle = GNUNET_ATS_performance_init (cfg,
-      &ats_performance_info_cb, me);
+  me->ats_perf_handle = GNUNET_ATS_performance_init (cfg, top->ats_perf_cb, me);
   if (NULL == me->ats_perf_handle)
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
         "Failed to create ATS performance handle \n");
@@ -784,7 +687,8 @@ GNUNET_ATS_TEST_create_topology (char *name, char *cfg_file,
     GNUNET_ATS_TESTING_TopologySetupDoneCallback done_cb,
     void *done_cb_cls,
     struct GNUNET_CORE_MessageHandler *handlers,
-    GNUNET_TRANSPORT_ReceiveCallback transport_recv_cb)
+    GNUNET_TRANSPORT_ReceiveCallback transport_recv_cb,
+    GNUNET_ATS_AddressInformationCallback ats_perf_cb)
 {
 
   top = GNUNET_new (struct GNUNET_ATS_TEST_Topology);
@@ -795,6 +699,7 @@ GNUNET_ATS_TEST_create_topology (char *name, char *cfg_file,
   top->done_cb_cls = done_cb_cls;
   top->test_core = test_core;
   top->transport_recv_cb = transport_recv_cb;
+  top->ats_perf_cb = ats_perf_cb;
 
   top->mps = GNUNET_malloc (num_masters * sizeof (struct BenchmarkPeer));
   top->sps = GNUNET_malloc (num_slaves * sizeof (struct BenchmarkPeer));

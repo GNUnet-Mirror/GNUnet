@@ -389,7 +389,7 @@ struct GNUNET_ATS_TEST_Topology
   GNUNET_TRANSPORT_ReceiveCallback transport_recv_cb;
 
   GNUNET_ATS_TESTING_TopologySetupDoneCallback done_cb;
-
+  GNUNET_ATS_AddressInformationCallback ats_perf_cb;
   void *done_cb_cls;
 };
 
@@ -401,7 +401,8 @@ GNUNET_ATS_TEST_create_topology (char *name, char *cfg_file,
     GNUNET_ATS_TESTING_TopologySetupDoneCallback done_cb,
     void *done_cb_cls,
     struct GNUNET_CORE_MessageHandler *handlers,
-    GNUNET_TRANSPORT_ReceiveCallback transport_recv_cb);
+    GNUNET_TRANSPORT_ReceiveCallback transport_recv_cb,
+    GNUNET_ATS_AddressInformationCallback ats_perf_cb);
 
 void
 GNUNET_ATS_TEST_shutdown_topology (void);

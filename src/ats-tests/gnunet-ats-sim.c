@@ -62,6 +62,15 @@ transport_recv_cb (void *cls,
 
 }
 
+static void
+ats_performance_info_cb (void *cls, const struct GNUNET_HELLO_Address *address,
+    int address_active, struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
+    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
+    const struct GNUNET_ATS_Information *ats, uint32_t ats_count)
+{
+
+}
+
 static void topology_setup_done (void *cls,
     struct BenchmarkPeer *masters,
     struct BenchmarkPeer *slaves)
@@ -88,7 +97,8 @@ main (int argc, char *argv[])
       &topology_setup_done,
       NULL,
       handlers,
-      &transport_recv_cb);
+      &transport_recv_cb,
+      &ats_performance_info_cb);
   return 0;
 }
 /* end of file perf_ats_topogy.c */
