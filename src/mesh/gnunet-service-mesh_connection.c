@@ -986,6 +986,8 @@ connection_bck_keepalive (void *cls,
  * Schedule next keepalive task, taking in consideration
  * the connection state and number of retries.
  *
+ * If the peer is not the origin, do nothing.
+ *
  * @param c Connection for which to schedule the next keepalive.
  * @param fwd Direction for the next keepalive.
  */
@@ -995,6 +997,9 @@ schedule_next_keepalive (struct MeshConnection *c, int fwd)
   struct GNUNET_TIME_Relative delay;
   GNUNET_SCHEDULER_TaskIdentifier *task_id;
   GNUNET_SCHEDULER_Task keepalive_task;
+
+  if (GNUNET_NO == GMC_is_origin (c, fwd))
+    return;
 
   /* Calculate delay to use, depending on the state of the connection */
   if (MESH_CONNECTION_READY == c->state)
