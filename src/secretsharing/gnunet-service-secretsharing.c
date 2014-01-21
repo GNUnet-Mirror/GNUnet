@@ -529,59 +529,6 @@ compute_lagrange_coefficient (gcry_mpi_t coeff, unsigned int j,
 
 
 /**
- * Create a key pair for the paillier crypto system.
- *
- * Uses the simplified key generation of Jonathan Katz, Yehuda Lindell,
- * "Introduction to Modern Cryptography: Principles and Protocols".
- *
- * @param n n-component of public key
- * @param lambda lambda-component of private key
- * @param mu mu-componenent of private key
- */
-static void
-paillier_create (gcry_mpi_t n, gcry_mpi_t lambda, gcry_mpi_t mu)
-{
-  gcry_mpi_t p;
-  gcry_mpi_t q;
-  gcry_mpi_t phi;
-  gcry_mpi_t tmp;
-
-  GNUNET_assert (NULL != (phi = gcry_mpi_new (GNUNET_CRYPTO_PAILLIER_BITS)));
-  GNUNET_assert (NULL != (tmp = gcry_mpi_new (GNUNET_CRYPTO_PAILLIER_BITS)));
-
-  p = q = NULL;
-
-  // Generate two distinct primes.
-  // The probability that the loop body
-  // is executed more than once is very low.
-  do {
-    if (NULL != p)
-      gcry_mpi_release (p);
-    if (NULL != q)
-      gcry_mpi_release (q);
-    // generate rsa modulus
-    GNUNET_assert (0 == gcry_prime_generate (&p, GNUNET_CRYPTO_PAILLIER_BITS / 2, 0, NULL, NULL, NULL,
-                                             GCRY_WEAK_RANDOM, 0));
-    GNUNET_assert (0 == gcry_prime_generate (&q, GNUNET_CRYPTO_PAILLIER_BITS / 2, 0, NULL, NULL, NULL,
-                                           GCRY_WEAK_RANDOM, 0));
-  } while (0 == gcry_mpi_cmp (p, q));
-  gcry_mpi_mul (n, p, q);
-  // compute phi(n) = (p-1)(q-1)
-  gcry_mpi_sub_ui (phi, p, 1);
-  gcry_mpi_sub_ui (tmp, q, 1);
-  gcry_mpi_mul (phi, phi, tmp);
-  gcry_mpi_set (lambda, phi);
-  // compute mu
-  GNUNET_assert (0 != gcry_mpi_invm (mu, phi, n));
-
-  gcry_mpi_release (p);
-  gcry_mpi_release (q);
-  gcry_mpi_release (phi);
-  gcry_mpi_release (tmp);
-}
-
-
-/**
  * Encrypt a value using Paillier's scheme.
  *
  * @param[out] c resulting ciphertext
@@ -1208,6 +1155,8 @@ static void handle_client_keygen (void *cls,
       (const struct GNUNET_SECRETSHARING_CreateMessage *) message;
   struct KeygenSession *ks;
   unsigned int i;
+  struct GNUNET_CRYPTO_PaillierPrivateKey private_key;
+  struct GNUNET_CRYPTO_PaillierPublicKey public_key;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "client requested key generation\n");
 
@@ -1241,9 +1190,14 @@ static void handle_client_keygen (void *cls,
   GNUNET_assert (0 != (ks->paillier_lambda = mpi_new (0)));
   GNUNET_assert (0 != (ks->paillier_mu = mpi_new (0)));
 
-  paillier_create (ks->info[ks->local_peer_idx].paillier_n,
-                   ks->paillier_lambda,
-                   ks->paillier_mu);
+  GNUNET_CRYPTO_paillier_create (&public_key, &private_key);
+
+  GNUNET_CRYPTO_mpi_scan_unsigned (&ks->info[ks->local_peer_idx].paillier_n,
+                                   &public_key, sizeof public_key);
+  GNUNET_CRYPTO_mpi_scan_unsigned (&ks->paillier_lambda,
+                                   &private_key.lambda, sizeof private_key.lambda);
+  GNUNET_CRYPTO_mpi_scan_unsigned (&ks->paillier_mu,
+                                   &private_key.mu, sizeof private_key.mu);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "P%u: Generated paillier key pair\n", ks->local_peer_idx);
 
