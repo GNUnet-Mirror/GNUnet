@@ -1023,7 +1023,7 @@ forward_reply (void *cls, const struct GNUNET_HashCode * key, void *value)
   int do_free;
   struct GNUNET_HashCode ch;
   unsigned int i;
-
+  
   LOG_TRAFFIC (GNUNET_ERROR_TYPE_DEBUG,
 	       "XDHT CLIENT-RESULT %s\n",
                GNUNET_h2s (key));
@@ -1198,6 +1198,7 @@ GDS_CLIENTS_handle_reply (struct GNUNET_TIME_Absolute expiration,
   frc.type = type;
   GNUNET_CONTAINER_multihashmap_get_multiple (forward_map, key, &forward_reply,
                                               &frc);
+
   if (GNUNET_NO == frc.do_copy)
   {
     /* did not match any of the requests, free! */

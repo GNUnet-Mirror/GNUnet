@@ -21,8 +21,7 @@
 /**
  * @file dht/gnunet-service-xdht_clients.c
  * @brief GNUnet DHT service's client management code
- * @author Christian Grothoff
- * @author Nathan Evans
+ * @author Supriti Singh
  */
 
 #include "platform.h"
@@ -362,6 +361,7 @@ static void
 handle_client_disconnect (void *cls,
 			  struct GNUNET_SERVER_Client *client)
 {
+  
   struct ClientList *pos;
   struct PendingMessage *reply;
   struct ClientMonitorRecord *monitor;
@@ -428,6 +428,7 @@ transmit_request (struct ClientQueryRecord *cqr)
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Initiating GET for %s, replication %u, already have %u replies\n",
        GNUNET_h2s(&cqr->key), cqr->replication, cqr->seen_replies_count);
+  
   GDS_NEIGHBOURS_handle_get (cqr->type, cqr->msg_options, cqr->replication,
                              0 /* hop count */ ,
                              &cqr->key, cqr->xquery, cqr->xquery_size, reply_bf,
@@ -532,6 +533,7 @@ handle_dht_local_put (void *cls, struct GNUNET_SERVER_Client *client,
   peer_bf =
       GNUNET_CONTAINER_bloomfilter_init (NULL, DHT_BLOOM_SIZE,
                                          GNUNET_CONSTANTS_BLOOMFILTER_K);
+
   GDS_NEIGHBOURS_handle_put (ntohl (dht_msg->type), ntohl (dht_msg->options),
                              ntohl (dht_msg->desired_replication_level),
                              GNUNET_TIME_absolute_ntoh (dht_msg->expiration),

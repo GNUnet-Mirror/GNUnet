@@ -26,6 +26,7 @@
 #include "platform.h"
 #include "gnunet_dht_service.h"
 
+#define LOG(kind,...) GNUNET_log_from (kind, "dht-clients",__VA_ARGS__)
 /**
  * The type of the query
  */
@@ -149,6 +150,8 @@ run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   struct GNUNET_HashCode key;
+
+
 
   cfg = c;
   if (NULL == query_key)

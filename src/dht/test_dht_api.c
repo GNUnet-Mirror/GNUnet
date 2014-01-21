@@ -203,6 +203,7 @@ run (void *cls,
                                     (GNUNET_TIME_UNIT_MINUTES, 1), &end_badly,
                                     NULL);
 
+
   memset (&hash, 42, sizeof (struct GNUNET_HashCode));
   data = GNUNET_malloc (data_size);
   memset (data, 43, data_size);

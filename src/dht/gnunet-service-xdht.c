@@ -24,6 +24,7 @@
  * @author Christian Grothoff
  * @author Nathan Evans
  */
+
 #include "platform.h"
 #include "gnunet_block_lib.h"
 #include "gnunet_util_lib.h"
@@ -113,6 +114,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_TRANSPORT_disconnect (GDS_transport_handle);
     GDS_transport_handle = NULL;
   }
+
   GDS_NEIGHBOURS_done ();
   GDS_DATACACHE_done ();
   GDS_ROUTING_done ();
@@ -152,11 +154,13 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   }
   GDS_block_context = GNUNET_BLOCK_context_create (GDS_cfg);
   GDS_stats = GNUNET_STATISTICS_create ("dht", GDS_cfg);
+
   GDS_ROUTING_init ();
   GDS_NSE_init ();
   GDS_DATACACHE_init ();
   GDS_HELLO_init ();
   GDS_CLIENTS_init (server);
+
   if (GNUNET_OK != GDS_NEIGHBOURS_init ())
   {
     shutdown_task (NULL, NULL);

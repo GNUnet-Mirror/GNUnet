@@ -606,6 +606,15 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_DHT_CLIENT_GET_RESULTS_KNOWN             156
 
+/**
+ * Trail setup request is received by a peer.
+ */
+#define GNUNET_MESSAGE_TYPE_DHT_P2P_TRAIL_SETUP                157
+
+/**
+ * Trail to a particular peer is returned to this peer. 
+ */
+#define GNUNET_MESSAGE_TYPE_DHT_P2P_TRAIL_SETUP_RESULT         158
 
 /*******************************************************************************
  * HOSTLIST message types

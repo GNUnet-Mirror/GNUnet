@@ -323,7 +323,7 @@ AC_RUN_IFELSE(
         if (!gcry_check_version (GCRYPT_VERSION))
         {
           fprintf (stderr, "Version mismatch %s <-> %s \n", gcry_check_version (NULL), GCRYPT_VERSION);
-          return 1;
+          return 1; 
         }
 
         gcry_control (GCRYCTL_DISABLE_SECMEM, 0);

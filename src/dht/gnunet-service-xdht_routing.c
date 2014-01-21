@@ -21,14 +21,17 @@
 /**
  * @file dht/gnunet-service-xdht_routing.c
  * @brief GNUnet DHT tracking of requests for routing replies
- * @author Christian Grothoff
+ * @author Supriti Singh
  */
 #include "platform.h"
 #include "gnunet-service-xdht_neighbours.h"
 #include "gnunet-service-xdht_routing.h"
 #include "gnunet-service-xdht.h"
 
-
+/* FIXME
+ * 1. We need field to understand which routing table is for which peer.
+ * 2. Better function names and variable names.
+ */
 /**
  * Number of requests we track at most (for routing replies).
  */
@@ -36,223 +39,81 @@
 
 
 /**
- * Information we keep about all recent GET requests
- * so that we can route replies.
+ * Routing table entry .
  */
-struct RecentRequest
+struct RoutingTrail
 {
+    /**
+     * Source peer .
+     */
+    struct GNUNET_PeerIdentity endpoint1;
 
-  /**
-   * The peer this request was received from.
-   */
-  struct GNUNET_PeerIdentity peer;
+    /**
+     * Destination peer.
+     */
+    struct GNUNET_PeerIdentity endppoint2;
 
-  /**
-   * Key of this request.
-   */
-  struct GNUNET_HashCode key;
+    /**
+     * The peer this request was received from.
+     */
+    struct GNUNET_PeerIdentity previous_hop;
 
-  /**
-   * Position of this node in the min heap.
-   */
-  struct GNUNET_CONTAINER_HeapNode *heap_node;
-
-  /**
-   * Bloomfilter for replies to drop.
-   */
-  struct GNUNET_CONTAINER_BloomFilter *reply_bf;
-
-  /**
-   * Type of the requested block.
-   */
-  enum GNUNET_BLOCK_Type type;
-
-  /**
-   * extended query (see gnunet_block_lib.h).  Allocated at the
-   * end of this struct.
-   */
-  const void *xquery;
-
-  /**
-   * Number of bytes in xquery.
-   */
-  size_t xquery_size;
-
-  /**
-   * Mutator value for the reply_bf, see gnunet_block_lib.h
-   */
-  uint32_t reply_bf_mutator;
-
-  /**
-   * Request options.
-   */
-  enum GNUNET_DHT_RouteOption options;
-
+    /**
+     * The peer to which this request should be passed to.
+     */
+    struct GNUNET_PeerIdentity next_hop;
 };
 
 
 /**
- * Recent requests by time inserted.
+ * Routing table of the peer
  */
-static struct GNUNET_CONTAINER_Heap *recent_heap;
-
-/**
- * Recently seen requests by key.
- */
-static struct GNUNET_CONTAINER_MultiHashMap *recent_map;
+static struct GNUNET_CONTAINER_MultiPeerMap *routing_table;
 
 
 /**
- * Closure for the 'process' function.
+ * Find the next hop to pass the message to .
+ * @return
  */
-struct ProcessContext
-{
-  /**
-   * Path of the original PUT
-   */
-  const struct GNUNET_PeerIdentity *put_path;
+//static struct GNUNET_PeerIdentity *
+//find_next_hop()
+//{
+    
+//}
 
-  /**
-   * Path of the reply.
-   */
-  const struct GNUNET_PeerIdentity *get_path;
-
-  /**
-   * Payload of the reply.
-   */
-  const void *data;
-
-  /**
-   * Expiration time of the result.
-   */
-  struct GNUNET_TIME_Absolute expiration_time;
-
-  /**
-   * Number of entries in 'put_path'.
-   */
-  unsigned int put_path_length;
-
-  /**
-   * Number of entries in 'get_path'.
-   */
-  unsigned int get_path_length;
-
-  /**
-   * Number of bytes in 'data'.
-   */
-  size_t data_size;
-
-  /**
-   * Type of the reply.
-   */
-  enum GNUNET_BLOCK_Type type;
-
-};
 
 
 /**
- * Forward the result to the given peer if it matches the request.
+ * Add a new entry to our routing table.
  *
- * @param cls the `struct ProcessContext` with the result
- * @param key the query
- * @param value the `struct RecentRequest` with the request
- * @return #GNUNET_OK (continue to iterate),
- *         #GNUNET_SYSERR if the result is malformed or type unsupported
+ * @param sender peer that originated the request
+ * @param type type of the block
+ * @param options options for processing
+ * @param key key for the content
+ * @param xquery extended query
+ * @param xquery_size number of bytes in @a xquery
+ * @param reply_bf bloomfilter to filter duplicates
+ * @param reply_bf_mutator mutator for @a reply_bf
  */
-static int
-process (void *cls, const struct GNUNET_HashCode * key, void *value)
+void
+GDS_ROUTING_add (const struct GNUNET_PeerIdentity *sender,
+                 enum GNUNET_BLOCK_Type type,
+                 enum GNUNET_DHT_RouteOption options,
+                 const struct GNUNET_HashCode * key, const void *xquery,
+                 size_t xquery_size,
+                 const struct GNUNET_CONTAINER_BloomFilter *reply_bf,
+                 uint32_t reply_bf_mutator)
 {
-  struct ProcessContext *pc = cls;
-  struct RecentRequest *rr = value;
-  enum GNUNET_BLOCK_EvaluationResult eval;
-  unsigned int gpl;
-  unsigned int ppl;
-  struct GNUNET_HashCode hc;
-  const struct GNUNET_HashCode *eval_key;
 
-  if ((rr->type != GNUNET_BLOCK_TYPE_ANY) && (rr->type != pc->type))
-    return GNUNET_OK;           /* type missmatch */
-
-  if (0 != (rr->options & GNUNET_DHT_RO_RECORD_ROUTE))
-  {
-    gpl = pc->get_path_length;
-    ppl = pc->put_path_length;
-  }
-  else
-  {
-    gpl = 0;
-    ppl = 0;
-  }
-  if ((0 != (rr->options & GNUNET_DHT_RO_FIND_PEER)) &&
-      (pc->type == GNUNET_BLOCK_TYPE_DHT_HELLO))
-  {
-    /* key may not match HELLO, which is OK since
-     * the search is approximate.  Still, the evaluation
-     * would fail since the match is not exact.  So
-     * we fake it by changing the key to the actual PID ... */
-    GNUNET_BLOCK_get_key (GDS_block_context, GNUNET_BLOCK_TYPE_DHT_HELLO,
-                          pc->data, pc->data_size, &hc);
-    eval_key = &hc;
-  }
-  else
-  {
-    eval_key = key;
-  }
-  eval =
-      GNUNET_BLOCK_evaluate (GDS_block_context, pc->type, eval_key,
-                             &rr->reply_bf, rr->reply_bf_mutator, rr->xquery,
-                             rr->xquery_size, pc->data, pc->data_size);
-  switch (eval)
-  {
-  case GNUNET_BLOCK_EVALUATION_OK_MORE:
-  case GNUNET_BLOCK_EVALUATION_OK_LAST:
-    GNUNET_STATISTICS_update (GDS_stats,
-                              gettext_noop
-                              ("# Good REPLIES matched against routing table"),
-                              1, GNUNET_NO);
-    GDS_NEIGHBOURS_handle_reply (&rr->peer, pc->type, pc->expiration_time, key,
-                                 ppl, pc->put_path, gpl, pc->get_path, pc->data,
-                                 pc->data_size);
-    break;
-  case GNUNET_BLOCK_EVALUATION_OK_DUPLICATE:
-    GNUNET_STATISTICS_update (GDS_stats,
-                              gettext_noop
-                              ("# Duplicate REPLIES matched against routing table"),
-                              1, GNUNET_NO);
-    return GNUNET_OK;
-  case GNUNET_BLOCK_EVALUATION_RESULT_INVALID:
-    GNUNET_STATISTICS_update (GDS_stats,
-                              gettext_noop
-                              ("# Invalid REPLIES matched against routing table"),
-                              1, GNUNET_NO);
-    return GNUNET_SYSERR;
-  case GNUNET_BLOCK_EVALUATION_RESULT_IRRELEVANT:
-    GNUNET_STATISTICS_update (GDS_stats,
-                              gettext_noop
-                              ("# Irrelevant REPLIES matched against routing table"),
-                              1, GNUNET_NO);
-    return GNUNET_OK;
-  case GNUNET_BLOCK_EVALUATION_REQUEST_VALID:
-    GNUNET_break (0);
-    return GNUNET_OK;
-  case GNUNET_BLOCK_EVALUATION_REQUEST_INVALID:
-    GNUNET_break (0);
-    return GNUNET_OK;
-  case GNUNET_BLOCK_EVALUATION_TYPE_NOT_SUPPORTED:
-    GNUNET_STATISTICS_update (GDS_stats,
-                              gettext_noop
-                              ("# Unsupported REPLIES matched against routing table"),
-                              1, GNUNET_NO);
-    return GNUNET_SYSERR;
-  default:
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  return GNUNET_OK;
 }
 
+/* search in routing table for next hop to pass the message to . 
+ * struct GNUNET_PeerIdentity *
+GDS_Routing_search()
+{
+}*/
 
-/**
+/**FIXME: Old implementation just to remove error
  * Handle a reply (route to origin).  Only forwards the reply back to
  * other peers waiting for it.  Does not do local caching or
  * forwarding to local clients.  Essentially calls
@@ -278,164 +139,14 @@ GDS_ROUTING_process (enum GNUNET_BLOCK_Type type,
                      const struct GNUNET_PeerIdentity *get_path,
                      const void *data, size_t data_size)
 {
-  struct ProcessContext pc;
-
-  pc.type = type;
-  pc.expiration_time = expiration_time;
-  pc.put_path_length = put_path_length;
-  pc.put_path = put_path;
-  pc.get_path_length = get_path_length;
-  pc.get_path = get_path;
-  pc.data = data;
-  pc.data_size = data_size;
-  if (NULL == data)
-  {
-    /* Some apps might have an 'empty' reply as a valid reply; however,
-       'process' will call GNUNET_BLOCK_evaluate' which treats a 'NULL'
-       reply as request-validation (but we need response-validation).
-       So we set 'data' to a 0-byte non-NULL value just to be sure */
-    GNUNET_break (0 == data_size);
-    pc.data_size = 0;
-    pc.data = ""; /* something not null */
-  }
-  GNUNET_CONTAINER_multihashmap_get_multiple (recent_map, key, &process, &pc);
 }
-
-
-/**
- * Remove the oldest entry from the DHT routing table.  Must only
- * be called if it is known that there is at least one entry
- * in the heap and hashmap.
- */
-static void
-expire_oldest_entry ()
-{
-  struct RecentRequest *recent_req;
-
-  GNUNET_STATISTICS_update (GDS_stats,
-			    gettext_noop
-			    ("# Entries removed from routing table"), 1,
-			    GNUNET_NO);
-  recent_req = GNUNET_CONTAINER_heap_peek (recent_heap);
-  GNUNET_assert (recent_req != NULL);
-  GNUNET_CONTAINER_heap_remove_node (recent_req->heap_node);
-  GNUNET_CONTAINER_bloomfilter_free (recent_req->reply_bf);
-  GNUNET_assert (GNUNET_YES ==
-		 GNUNET_CONTAINER_multihashmap_remove (recent_map,
-						       &recent_req->key,
-						       recent_req));
-  GNUNET_free (recent_req);
-}
-
-
-/**
- * Try to combine multiple recent requests for the same value
- * (if they come from the same peer).
- *
- * @param cls the new 'struct RecentRequest' (to discard upon successful combination)
- * @param key the query
- * @param value the existing 'struct RecentRequest' (to update upon successful combination)
- * @return GNUNET_OK (continue to iterate),
- *         GNUNET_SYSERR if the request was successfully combined
- */
-static int
-try_combine_recent (void *cls, const struct GNUNET_HashCode * key, void *value)
-{
-  struct RecentRequest *in = cls;
-  struct RecentRequest *rr = value;
-
-  if ( (0 != memcmp (&in->peer,
-		     &rr->peer,
-		     sizeof (struct GNUNET_PeerIdentity))) ||
-       (in->type != rr->type) ||
-       (in->xquery_size != rr->xquery_size) ||
-       (0 != memcmp (in->xquery,
-		     rr->xquery,
-		     in->xquery_size)) )
-    return GNUNET_OK;
-  if (in->reply_bf_mutator != rr->reply_bf_mutator)
-  {
-    rr->reply_bf_mutator = in->reply_bf_mutator;
-    GNUNET_CONTAINER_bloomfilter_free (rr->reply_bf);
-    rr->reply_bf = in->reply_bf;
-  }
-  else
-  {
-    GNUNET_CONTAINER_bloomfilter_or2 (rr->reply_bf,
-				      in->reply_bf);
-    GNUNET_CONTAINER_bloomfilter_free (in->reply_bf);
-  }
-  GNUNET_free (in);
-  return GNUNET_SYSERR;
-}
-
-
-/**
- * Add a new entry to our routing table.
- *
- * @param sender peer that originated the request
- * @param type type of the block
- * @param options options for processing
- * @param key key for the content
- * @param xquery extended query
- * @param xquery_size number of bytes in @a xquery
- * @param reply_bf bloomfilter to filter duplicates
- * @param reply_bf_mutator mutator for @a reply_bf
- */
-void
-GDS_ROUTING_add (const struct GNUNET_PeerIdentity *sender,
-                 enum GNUNET_BLOCK_Type type,
-                 enum GNUNET_DHT_RouteOption options,
-                 const struct GNUNET_HashCode * key, const void *xquery,
-                 size_t xquery_size,
-                 const struct GNUNET_CONTAINER_BloomFilter *reply_bf,
-                 uint32_t reply_bf_mutator)
-{
-  struct RecentRequest *recent_req;
-
-  while (GNUNET_CONTAINER_heap_get_size (recent_heap) >= DHT_MAX_RECENT)
-    expire_oldest_entry ();
-  GNUNET_STATISTICS_update (GDS_stats,
-                            gettext_noop ("# Entries added to routing table"),
-                            1, GNUNET_NO);
-  recent_req = GNUNET_malloc (sizeof (struct RecentRequest) + xquery_size);
-  recent_req->peer = *sender;
-  recent_req->key = *key;
-  recent_req->reply_bf = GNUNET_CONTAINER_bloomfilter_copy (reply_bf);
-  recent_req->type = type;
-  recent_req->options = options;
-  recent_req->xquery = &recent_req[1];
-  memcpy (&recent_req[1], xquery, xquery_size);
-  recent_req->xquery_size = xquery_size;
-  recent_req->reply_bf_mutator = reply_bf_mutator;
-  if (GNUNET_SYSERR ==
-      GNUNET_CONTAINER_multihashmap_get_multiple (recent_map, key,
-						  &try_combine_recent, recent_req))
-  {
-    GNUNET_STATISTICS_update (GDS_stats,
-                              gettext_noop
-                              ("# DHT requests combined"),
-                              1, GNUNET_NO);
-    return;
-  }
-  recent_req->heap_node =
-      GNUNET_CONTAINER_heap_insert (recent_heap, recent_req,
-                                    GNUNET_TIME_absolute_get ().abs_value_us);
-  GNUNET_CONTAINER_multihashmap_put (recent_map, key, recent_req,
-                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-
-
-}
-
-
 /**
  * Initialize routing subsystem.
  */
 void
 GDS_ROUTING_init ()
 {
-  recent_heap = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
-  recent_map = GNUNET_CONTAINER_multihashmap_create (DHT_MAX_RECENT * 4 / 3, GNUNET_NO);
+  routing_table = GNUNET_CONTAINER_multipeermap_create (DHT_MAX_RECENT * 4 / 3, GNUNET_NO);
 }
 
 
@@ -445,14 +156,8 @@ GDS_ROUTING_init ()
 void
 GDS_ROUTING_done ()
 {
-  while (GNUNET_CONTAINER_heap_get_size (recent_heap) > 0)
-    expire_oldest_entry ();
-  GNUNET_assert (0 == GNUNET_CONTAINER_heap_get_size (recent_heap));
-  GNUNET_CONTAINER_heap_destroy (recent_heap);
-  recent_heap = NULL;
-  GNUNET_assert (0 == GNUNET_CONTAINER_multihashmap_size (recent_map));
-  GNUNET_CONTAINER_multihashmap_destroy (recent_map);
-  recent_map = NULL;
+  GNUNET_assert (0 == GNUNET_CONTAINER_multipeermap_size (routing_table));
+  GNUNET_CONTAINER_multipeermap_destroy (routing_table);
 }
 
-/* end of gnunet-service-dht_routing.c */
+/* end of gnunet-service-xdht_routing.c */

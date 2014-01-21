@@ -599,6 +599,7 @@ transmit_pending (void *cls,
   struct PendingMessage *head;
   size_t tsize;
 
+
   handle->th = NULL;
   if (NULL == buf)
   {
@@ -635,6 +636,7 @@ transmit_pending (void *cls,
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Starting to process replies from DHT\n");
     handle->in_receive = GNUNET_YES;
+    
     GNUNET_CLIENT_receive (handle->client, &service_message_handler, handle,
                            GNUNET_TIME_UNIT_FOREVER_REL);
   }
@@ -900,6 +902,7 @@ service_message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
   uint16_t msize;
   int ret;
 
+
   if (NULL == msg)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -1147,6 +1150,7 @@ GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle,
   size_t msize;
   struct PendingMessage *pending;
   struct GNUNET_DHT_PutHandle *ph;
+
 
   msize = sizeof (struct GNUNET_DHT_ClientPutMessage) + size;
   if ((msize >= GNUNET_SERVER_MAX_MESSAGE_SIZE) ||
