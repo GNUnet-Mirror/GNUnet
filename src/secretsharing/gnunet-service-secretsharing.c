@@ -529,45 +529,6 @@ compute_lagrange_coefficient (gcry_mpi_t coeff, unsigned int j,
 
 
 /**
- * Encrypt a value using Paillier's scheme.
- *
- * @param[out] c resulting ciphertext
- * @param m plaintext to encrypt
- * @param n n-component of public key
- */
-static void
-paillier_encrypt (gcry_mpi_t c, gcry_mpi_t m, gcry_mpi_t n)
-{
-  gcry_mpi_t n_square;
-  gcry_mpi_t r;
-  gcry_mpi_t g;
-
-  GNUNET_assert (0 != (n_square = gcry_mpi_new (0)));
-  GNUNET_assert (0 != (r = gcry_mpi_new (0)));
-  GNUNET_assert (0 != (g = gcry_mpi_new (0)));
-
-  gcry_mpi_add_ui (g, n, 1);
-
-  gcry_mpi_mul (n_square, n, n);
-
-  // generate r < n
-  do
-  {
-    gcry_mpi_randomize (r, GNUNET_CRYPTO_PAILLIER_BITS, GCRY_WEAK_RANDOM);
-  }
-  while (gcry_mpi_cmp (r, n) >= 0);
-
-  gcry_mpi_powm (c, g, m, n_square);
-  gcry_mpi_powm (r, r, n, n_square);
-  gcry_mpi_mulm (c, r, c, n_square);
-
-  gcry_mpi_release (n_square);
-  gcry_mpi_release (r);
-  gcry_mpi_release (g);
-}
-
-
-/**
  * Decrypt a ciphertext using Paillier's scheme.
  *
  * @param[out] m resulting plaintext
@@ -921,21 +882,24 @@ insert_round2_element (struct KeygenSession *ks)
   for (i = 0; i < ks->num_peers; i++)
   {
     ptrdiff_t remaining = last_pos - pos;
+    struct GNUNET_CRYPTO_PaillierCiphertext *ciphertext;
+
     GNUNET_assert (remaining > 0);
-    if (GNUNET_NO == ks->info[i].round1_valid)
+    ciphertext = (void *) pos;
+    memset (ciphertext, 0, sizeof *ciphertext);
+    if (GNUNET_YES == ks->info[i].round1_valid)
     {
-      gcry_mpi_set_ui (c, 0);
-    }
-    else
-    {
+      struct GNUNET_CRYPTO_PaillierPlaintext plaintext;
+      struct GNUNET_CRYPTO_PaillierPublicKey public_key;
       gcry_mpi_set_ui (idx, i + 1);
       // evaluate the polynomial
       horner_eval (v, ks->presecret_polynomial, ks->threshold, idx, elgamal_q);
+      GNUNET_CRYPTO_mpi_print_unsigned (&plaintext, sizeof plaintext, v);
+      GNUNET_CRYPTO_mpi_print_unsigned (&public_key, sizeof public_key, ks->info[i].paillier_n);
       // encrypt the result
-      paillier_encrypt (c, v, ks->info[i].paillier_n);
+      GNUNET_CRYPTO_paillier_encrypt (&public_key, &plaintext, ciphertext);
     }
-    GNUNET_CRYPTO_mpi_print_unsigned (pos, GNUNET_CRYPTO_PAILLIER_BITS * 2 / 8, c);
-    pos += GNUNET_CRYPTO_PAILLIER_BITS * 2 / 8;
+    pos += sizeof *ciphertext;
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "P%u: computed enc preshares\n",
