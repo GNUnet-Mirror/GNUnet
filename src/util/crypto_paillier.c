@@ -150,7 +150,7 @@ void
 GNUNET_CRYPTO_paillier_decrypt (const struct GNUNET_CRYPTO_PaillierPrivateKey *private_key,
                                 const struct GNUNET_CRYPTO_PaillierPublicKey *public_key,
                                 const struct GNUNET_CRYPTO_PaillierCiphertext *ciphertext,
-                                gcry_mpi_t *m)
+                                gcry_mpi_t m)
 {
   gcry_mpi_t mu;
   gcry_mpi_t lambda;
@@ -159,8 +159,7 @@ GNUNET_CRYPTO_paillier_decrypt (const struct GNUNET_CRYPTO_PaillierPrivateKey *p
   gcry_mpi_t c;
 
   GNUNET_assert (0 != (n_square = gcry_mpi_new (0)));
-  if (NULL == *m)
-    GNUNET_assert (0 != (m = gcry_mpi_new (0)));
+
 
   GNUNET_CRYPTO_mpi_scan_unsigned (&lambda, private_key->lambda, sizeof private_key->lambda);
   GNUNET_CRYPTO_mpi_scan_unsigned (&mu, private_key->mu, sizeof private_key->mu);

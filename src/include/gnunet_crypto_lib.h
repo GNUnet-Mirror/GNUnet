@@ -1346,7 +1346,7 @@ GNUNET_CRYPTO_paillier_create (struct GNUNET_CRYPTO_PaillierPublicKey *public_ke
  */
 void
 GNUNET_CRYPTO_paillier_encrypt (const struct GNUNET_CRYPTO_PaillierPublicKey *public_key,
-                                const struct GNUNET_CRYPTO_PaillierPlaintext *plaintext,
+                                const gcry_mpi_t m,
                                 struct GNUNET_CRYPTO_PaillierCiphertext *ciphertext);
 
 
@@ -1362,7 +1362,7 @@ void
 GNUNET_CRYPTO_paillier_decrypt (const struct GNUNET_CRYPTO_PaillierPrivateKey *private_key,
                                 const struct GNUNET_CRYPTO_PaillierPublicKey *public_key,
                                 const struct GNUNET_CRYPTO_PaillierCiphertext *ciphertext,
-                                struct GNUNET_CRYPTO_PaillierPlaintext *plaintext);
+                                gcry_mpi_t m);
 
 
 /**
