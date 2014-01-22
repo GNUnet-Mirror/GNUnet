@@ -150,6 +150,9 @@ evaluate ()
     {
       p = &mp->partners[c_s];
 
+      fprintf (stderr , "%u  %u %u\n", p->bytes_sent, (p->bytes_sent / 1024) / duration, duration);
+      fprintf (stderr , "%u %u %u \n", p->bytes_received, (p->bytes_sent / 1024) / duration, duration);
+
       kb_sent_sec = 0;
       kb_recv_sec = 0;
       kb_sent_percent = 0.0;
@@ -158,15 +161,19 @@ evaluate ()
 
       if (duration > 0)
       {
-    	  kb_sent_percent = (p->bytes_sent / 1024) / duration;
-    	  kb_recv_percent = (p->bytes_received / 1024) / duration;
+    	  kb_sent_sec = (p->bytes_sent / 1024) / duration;
+    	  kb_recv_sec = (p->bytes_received / 1024) / duration;
       }
+
       if (mp->total_bytes_sent > 0)
     	  kb_sent_percent = ((double) p->bytes_sent * 100) / mp->total_bytes_sent;
       if (mp->total_bytes_received > 0)
     	  kb_recv_percent = ((double) p->bytes_received * 100) / mp->total_bytes_received;
       if (1000 * p->messages_sent > 0)
     	  rtt = p->total_app_rtt / (1000 * p->messages_sent);
+
+
+
       fprintf (stderr,
           "%c Master [%u] -> Slave [%u]: sent %u KiB/s (%.2f %%), received %u KiB/s (%.2f %%)\n",
           (mp->pref_partner == p->dest) ? '*' : ' ',
@@ -232,7 +239,7 @@ comm_send_ready (void *cls, size_t size, void *buf)
     return 0;
   }
 
-  GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Master [%u]: Sending PING to [%u]\n",
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Master [%u]: Sending PING to [%u]\n",
       p->me->no, p->dest->no);
 
   p->messages_sent++;
@@ -391,7 +398,7 @@ comm_handle_ping (void *cls, const struct GNUNET_PeerIdentity *other,
     return GNUNET_SYSERR;
   }
 
-  GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
       "Slave [%u]: Received PING from [%u], sending PONG\n", me->no,
       p->dest->no);
 
@@ -430,7 +437,7 @@ comm_handle_pong (void *cls, const struct GNUNET_PeerIdentity *other,
     return GNUNET_SYSERR;
   }
 
-  GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
       "Master [%u]: Received PONG from [%u], next message\n", me->no,
       p->dest->no);
 
