@@ -29,7 +29,7 @@
 #define LOG(kind,...) GNUNET_log_from (kind, "ats-ril",__VA_ARGS__)
 
 #define RIL_MIN_BW                      ntohl (GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT.value__)
-#define RIL_MAX_BW                      1024 * 250 //GNUNET_ATS_MaxBandwidth
+#define RIL_MAX_BW                      GNUNET_ATS_MaxBandwidth
 
 #define RIL_ACTION_INVALID              -1
 #define RIL_INTERVAL_EXPONENT           10
@@ -511,7 +511,7 @@ agent_address_get_index (struct RIL_Peer_Agent *agent, struct ATS_Address *addre
  * @return wrapped address
  */
 static struct RIL_Address_Wrapped *
-agent_address_get (struct RIL_Peer_Agent *agent, struct ATS_Address *address)
+agent_address_get_wrapped (struct RIL_Peer_Agent *agent, struct ATS_Address *address)
 {
   struct RIL_Address_Wrapped *cur;
 
@@ -1006,21 +1006,40 @@ static double
 envi_get_reward (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
 {
   struct RIL_Scope *net;
-  unsigned long long overutilization;
+  unsigned long long over_max;
   unsigned long long over_in = 0;
   unsigned long long over_out = 0;
   double objective;
   double delta;
   double steady;
+  double util_ratio_in;
+  double util_ratio_out;
+  double util_ratio_max;
+  double sigmoid_x;
+  double obj;
+  double over;
+  double obj_share;
 
   net = agent->address_inuse->solver_information;
 
   //TODO make sure in tests to have utilization property updated
-  if (net->bw_in_assigned > net->bw_in_available)
-    over_in = net->bw_in_assigned - net->bw_in_available;
-  if (net->bw_out_assigned > net->bw_out_available)
-    over_out = net->bw_out_assigned - net->bw_out_available;
-  overutilization = GNUNET_MAX(over_in, over_out) / RIL_MIN_BW;
+  if (net->bw_in_utilized > net->bw_in_available)
+  {
+    over_in = net->bw_in_utilized - net->bw_in_available;
+    if (RIL_ACTION_BW_IN_INC == agent->a_old)
+    {
+      over_in *= 2;
+    }
+  }
+  if (net->bw_out_utilized > net->bw_out_available)
+  {
+    over_out = net->bw_out_utilized - net->bw_out_available;
+    if (RIL_ACTION_BW_OUT_INC == agent->a_old)
+    {
+      over_out *= 2;
+    }
+  }
+  over_max = GNUNET_MAX (over_in , over_out) / RIL_MIN_BW;
 
   objective = (agent_get_utility (agent) + net->social_welfare) / 2;
   delta = objective - agent->objective_old;
@@ -1035,14 +1054,15 @@ envi_get_reward (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
 
   steady = (RIL_ACTION_NOTHING == agent->a_old) ? agent->nop_bonus : 0;
 
-  if (0 != overutilization)
-  {
-    return -1.0 * (double) overutilization;
-  }
-  else
-  {
-    return delta + steady;
-  }
+  util_ratio_in = (double) net->bw_in_utilized / (double) net->bw_in_available;
+  util_ratio_out = (double) net->bw_out_utilized / (double) net->bw_out_available;
+  util_ratio_max = GNUNET_MAX (util_ratio_in, util_ratio_out);
+  sigmoid_x = util_ratio_max - 1;
+  obj_share = 1 / (1 + exp(1 * sigmoid_x));
+
+  over = -1.0 * (double) over_max;
+  obj = delta + steady;
+  return (obj_share * obj) + ((1 - obj_share) * over);
 }
 
 /**
@@ -1781,10 +1801,16 @@ ril_step_schedule_next (struct GAS_RIL_Handle *solver)
   offset = (double) solver->parameters.step_time_min.rel_value_us;
   y = factor * pow (used_ratio, RIL_INTERVAL_EXPONENT) + offset;
 
-  GNUNET_assert(y <= (double ) solver->parameters.step_time_max.rel_value_us);
-  GNUNET_assert(y >= (double ) solver->parameters.step_time_min.rel_value_us);
+  GNUNET_assert(y <= (double) solver->parameters.step_time_max.rel_value_us);
+  GNUNET_assert(y >= (double) solver->parameters.step_time_min.rel_value_us);
 
   time_next = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MICROSECONDS, (unsigned long long) y);
+
+  LOG (GNUNET_ERROR_TYPE_INFO, "ratio: %f, factor: %f, offset: %f, y: %f\n",
+      used_ratio,
+      factor,
+      offset,
+      y);
 
   if (solver->simulate)
   {
@@ -1916,6 +1942,7 @@ agent_init (void *s, const struct GNUNET_PeerIdentity *peer)
   agent->s_old = GNUNET_malloc (sizeof (double) * agent->m);
   agent->address_inuse = NULL;
   agent->objective_old = 0;
+  agent->nop_bonus = 0;
 
   return agent;
 }
@@ -2444,7 +2471,7 @@ GAS_ril_address_delete (void *solver, struct ATS_Address *address, int session_o
   }
 
   address_index = agent_address_get_index (agent, address);
-  address_wrapped = agent_address_get (agent, address);
+  address_wrapped = agent_address_get_wrapped (agent, address);
 
   if (NULL == address_wrapped)
   {
