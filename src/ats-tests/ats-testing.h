@@ -31,116 +31,18 @@
 
 #define TEST_ATS_PREFERENCE_DEFAULT 1.0
 
-/**
- * Overall state of the performance benchmark
- */
-struct BenchmarkState
-{
-  /**
-   * Are we connected to ATS service of all peers: GNUNET_YES/NO
-   */
-  int connected_ATS_service;
+#define TEST_MESSAGE_TYPE_PING 12345
+#define TEST_MESSAGE_TYPE_PONG 12346
+#define TEST_MESSAGE_SIZE 1000
 
-  /**
-   * Are we connected to CORE service of all peers: GNUNET_YES/NO
-   */
-  int connected_COMM_service;
+struct BenchmarkPartner;
+struct BenchmarkPeer;
+struct GNUNET_ATS_TEST_Topology;
+struct TrafficGenerator;
 
-  /**
-   * Are we connected to all peers: GNUNET_YES/NO
-   */
-  int connected_PEERS;
-
-  /**
-   * Are we connected to all slave peers on CORE level: GNUNET_YES/NO
-   */
-  int connected_CORE;
-
-  /**
-   * Are we connected to CORE service of all peers: GNUNET_YES/NO
-   */
-  int benchmarking;
-};
-
-
-/**
- * Information about a benchmarking partner
- */
-struct BenchmarkPartner
-{
-  /**
-   * The peer itself this partner belongs to
-   */
-  struct BenchmarkPeer *me;
-
-  /**
-   * The partner peer
-   */
-  struct BenchmarkPeer *dest;
-
-  /**
-   * Core transmit handles
-   */
-  struct GNUNET_CORE_TransmitHandle *cth;
-
-  /**
-   * Transport transmit handles
-   */
-  struct GNUNET_TRANSPORT_TransmitHandle *tth;
-
-  /**
-   * Timestamp to calculate communication layer delay
-   */
-  struct GNUNET_TIME_Absolute last_message_sent;
-
-  /**
-   * Accumulated RTT for all messages
-   */
-  unsigned int total_app_rtt;
-
-  /**
-   * Number of messages sent to this partner
-   */
-  unsigned int messages_sent;
-
-  /**
-   * Number of bytes sent to this partner
-   */
-  unsigned int bytes_sent;
-
-  /**
-   * Number of messages received from this partner
-   */
-  unsigned int messages_received;
-
-  /**
-   * Number of bytes received from this partner
-   */
-  unsigned int bytes_received;
-
-  /* Current ATS properties */
-
-  uint32_t ats_distance;
-
-  uint32_t ats_delay;
-
-  uint32_t bandwidth_in;
-
-  uint32_t bandwidth_out;
-
-  uint32_t ats_utilization_up;
-
-  uint32_t ats_utilization_down;
-
-  uint32_t ats_network_type;
-
-  uint32_t ats_cost_wan;
-
-  uint32_t ats_cost_lan;
-
-  uint32_t ats_cost_wlan;
-};
-
+typedef void (*GNUNET_ATS_TESTING_TopologySetupDoneCallback) (void *cls,
+    struct BenchmarkPeer *masters,
+    struct BenchmarkPeer *slaves);
 
 /**
  * Information we track for a peer in the testbed.
@@ -264,120 +166,92 @@ struct BenchmarkPeer
   unsigned int total_bytes_received;
 };
 
+
 /**
- * Connect peers with testbed
+ * Information about a benchmarking partner
  */
-struct TestbedConnectOperation
+struct BenchmarkPartner
 {
   /**
-   * The benchmarking master initiating this connection
+   * The peer itself this partner belongs to
    */
-  struct BenchmarkPeer *master;
+  struct BenchmarkPeer *me;
 
   /**
-   * The benchmarking slave to connect to
+   * The partner peer
    */
-  struct BenchmarkPeer *slave;
+  struct BenchmarkPeer *dest;
 
   /**
-   * Testbed operation to connect peers
+   * Core transmit handles
    */
-  struct GNUNET_TESTBED_Operation *connect_op;
+  struct GNUNET_CORE_TransmitHandle *cth;
+
+  /**
+   * Transport transmit handles
+   */
+  struct GNUNET_TRANSPORT_TransmitHandle *tth;
+
+  /**
+   * Timestamp to calculate communication layer delay
+   */
+  struct GNUNET_TIME_Absolute last_message_sent;
+
+  /**
+   * Accumulated RTT for all messages
+   */
+  unsigned int total_app_rtt;
+
+  /**
+   * Number of messages sent to this partner
+   */
+  unsigned int messages_sent;
+
+  /**
+   * Number of bytes sent to this partner
+   */
+  unsigned int bytes_sent;
+
+  /**
+   * Number of messages received from this partner
+   */
+  unsigned int messages_received;
+
+  /**
+   * Number of bytes received from this partner
+   */
+  unsigned int bytes_received;
+
+  /* Current ATS properties */
+
+  uint32_t ats_distance;
+
+  uint32_t ats_delay;
+
+  uint32_t bandwidth_in;
+
+  uint32_t bandwidth_out;
+
+  uint32_t ats_utilization_up;
+
+  uint32_t ats_utilization_down;
+
+  uint32_t ats_network_type;
+
+  uint32_t ats_cost_wan;
+
+  uint32_t ats_cost_lan;
+
+  uint32_t ats_cost_wlan;
 };
 
-typedef void (*GNUNET_ATS_TESTING_TopologySetupDoneCallback) (void *cls,
-    struct BenchmarkPeer *masters,
-    struct BenchmarkPeer *slaves);
+struct TrafficGenerator *
+GNUNET_ATS_TEST_generate_traffic_start (struct BenchmarkPeer *src,
+    struct BenchmarkPartner *dest, unsigned int rate,
+    struct GNUNET_TIME_Relative duration);
 
-struct GNUNET_ATS_TEST_Topology
-{
-  /**
-   * Shutdown task
-   */
-  GNUNET_SCHEDULER_TaskIdentifier shutdown_task;
-
-  /**
-   * Progress task
-   */
-  GNUNET_SCHEDULER_TaskIdentifier progress_task;
-
-  /**
-   * Test result
-   */
-  int result;
-
-  /**
-   * Test result logging
-   */
-  int logging;
-
-  /**Test core (GNUNET_YES) or transport (GNUNET_NO)
-   */
-  int test_core;
-
-  /**
-   * Solver string
-   */
-  char *solver;
-
-  /**
-   * Preference string
-   */
-  char *testname;
-
-  /**
-   * Preference string
-   */
-  char *pref_str;
-
-  /**
-   * ATS preference value
-   */
-  int pref_val;
-
-  /**
-   * Number master peers
-   */
-  unsigned int num_masters;
-
-  /**
-   * Array of master peers
-   */
-  struct BenchmarkPeer *mps;
-
-  /**
-   * Number slave peers
-   */
-  unsigned int num_slaves;
-
-  /**
-   * Array of slave peers
-   */
-  struct BenchmarkPeer *sps;
-
-  /**
-   * Benchmark duration
-   */
-  struct GNUNET_TIME_Relative perf_duration;
-
-  /**
-   * Logging frequency
-   */
-  struct GNUNET_TIME_Relative log_frequency;
-
-  /**
-   * Benchmark state
-   */
-  struct BenchmarkState state;
-
-  struct GNUNET_CORE_MessageHandler *handlers;
-
-  GNUNET_TRANSPORT_ReceiveCallback transport_recv_cb;
-
-  GNUNET_ATS_TESTING_TopologySetupDoneCallback done_cb;
-  GNUNET_ATS_AddressInformationCallback ats_perf_cb;
-  void *done_cb_cls;
-};
+void
+GNUNET_ATS_TEST_generate_traffic_stop (struct TrafficGenerator *tg);
 
 void
 GNUNET_ATS_TEST_logging_start (struct GNUNET_TIME_Relative log_frequency,
@@ -396,7 +270,6 @@ GNUNET_ATS_TEST_create_topology (char *name, char *cfg_file,
     int test_core,
     GNUNET_ATS_TESTING_TopologySetupDoneCallback done_cb,
     void *done_cb_cls,
-    struct GNUNET_CORE_MessageHandler *handlers,
     GNUNET_TRANSPORT_ReceiveCallback transport_recv_cb,
     GNUNET_ATS_AddressInformationCallback ats_perf_cb);
 

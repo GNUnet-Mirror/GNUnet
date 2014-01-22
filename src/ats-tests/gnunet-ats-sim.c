@@ -35,8 +35,13 @@
 #define DEFAULT_NUM_SLAVES 5
 #define DEFAULT_NUM_MASTERS 1
 
+#define TEST_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
+
 #define TEST_MESSAGE_TYPE_PING 12345
-#define TEST_MESSAGE_TYPE_PONG 12346
+#define TEST_MESSAGE_TYPE_PONG 1234
+
+static struct BenchmarkPeer *masters_p;
+static struct BenchmarkPeer *slaves_p;
 
 /**
  * Number of master peers to use
@@ -48,18 +53,74 @@ static int c_masters;
  */
 static int c_slaves;
 
-static int
-core_handle_pong (void *cls, const struct GNUNET_PeerIdentity *other,
-    const struct GNUNET_MessageHeader *message)
+static void
+evaluate ()
 {
-  return 0;
+  int c_m;
+  int c_s;
+  unsigned int duration;
+  struct BenchmarkPeer *mp;
+  struct BenchmarkPartner *p;
+
+  unsigned int kb_sent_sec;
+  double kb_sent_percent;
+  unsigned int kb_recv_sec;
+  double kb_recv_percent;
+  unsigned int rtt;
+
+  duration = (TEST_TIMEOUT.rel_value_us / (1000 * 1000));
+  for (c_m = 0; c_m < c_masters; c_m++)
+  {
+    mp = &masters_p[c_m];
+    fprintf (stderr,
+        _("Master [%u]: sent: %u KiB in %u sec. = %u KiB/s, received: %u KiB in %u sec. = %u KiB/s\n"),
+        mp->no, mp->total_bytes_sent / 1024, duration,
+        (mp->total_bytes_sent / 1024) / duration,
+        mp->total_bytes_received / 1024, duration,
+        (mp->total_bytes_received / 1024) / duration);
+
+    for (c_s = 0; c_s < c_slaves; c_s++)
+    {
+      p = &mp->partners[c_s];
+
+      kb_sent_sec = 0;
+      kb_recv_sec = 0;
+      kb_sent_percent = 0.0;
+      kb_recv_percent = 0.0;
+      rtt = 0;
+
+      if (duration > 0)
+      {
+          kb_sent_sec = (p->bytes_sent / 1024) / duration;
+          kb_recv_sec = (p->bytes_received / 1024) / duration;
+      }
+
+      if (mp->total_bytes_sent > 0)
+          kb_sent_percent = ((double) p->bytes_sent * 100) / mp->total_bytes_sent;
+      if (mp->total_bytes_received > 0)
+          kb_recv_percent = ((double) p->bytes_received * 100) / mp->total_bytes_received;
+      if (1000 * p->messages_sent > 0)
+          rtt = p->total_app_rtt / (1000 * p->messages_sent);
+      fprintf (stderr,
+          "%c Master [%u] -> Slave [%u]: sent %u KiB/s (%.2f %%), received %u KiB/s (%.2f %%)\n",
+          (mp->pref_partner == p->dest) ? '*' : ' ',
+          mp->no, p->dest->no,
+          kb_sent_sec, kb_sent_percent,
+                  kb_recv_sec, kb_recv_percent);
+      fprintf (stderr,
+          "%c Master [%u] -> Slave [%u]: Average application layer RTT: %u ms\n",
+          (mp->pref_partner == p->dest) ? '*' : ' ',
+          mp->no, p->dest->no, rtt);
+    }
+  }
 }
 
-static int
-core_handle_ping (void *cls, const struct GNUNET_PeerIdentity *other,
-    const struct GNUNET_MessageHeader *message)
+static void
+do_shutdown ()
 {
-  return 0;
+  /* Shutdown a topology with */
+  evaluate ();
+  GNUNET_ATS_TEST_shutdown_topology ();
 }
 
 static void
@@ -83,21 +144,30 @@ static void topology_setup_done (void *cls,
     struct BenchmarkPeer *masters,
     struct BenchmarkPeer *slaves)
 {
+  int c_m;
+  int c_s;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Topology setup complete!\n");
 
+  masters_p = masters;
+  slaves_p = slaves;
 
-  /* Shutdown a topology with */
-  GNUNET_ATS_TEST_shutdown_topology ();
+  for (c_m = 0; c_m < c_masters; c_m++)
+  {
+      for (c_s = 0; c_s < c_slaves; c_s++)
+      {
+        /* Generate maximum traffic to all peers */
+        GNUNET_ATS_TEST_generate_traffic_start (&masters[c_m],
+            &masters[c_m].partners[c_s], 10000,
+            GNUNET_TIME_UNIT_FOREVER_REL);
+      }
+  }
+  GNUNET_SCHEDULER_add_delayed (TEST_TIMEOUT, &do_shutdown, NULL);
 }
+
 
 int
 main (int argc, char *argv[])
 {
-  static struct GNUNET_CORE_MessageHandler handlers[] = {
-      {&core_handle_ping, TEST_MESSAGE_TYPE_PING, 0 },
-      {&core_handle_pong, TEST_MESSAGE_TYPE_PONG, 0 },
-      { NULL, 0, 0 } };
-
   c_slaves = DEFAULT_NUM_SLAVES;
   c_masters = DEFAULT_NUM_MASTERS;
 
@@ -105,10 +175,9 @@ main (int argc, char *argv[])
   GNUNET_ATS_TEST_create_topology ("gnunet-ats-sim", "perf_ats_proportional_none.conf",
       c_slaves,
       c_masters,
-      GNUNET_YES,
+      GNUNET_NO,
       &topology_setup_done,
       NULL,
-      handlers,
       &transport_recv_cb,
       &ats_performance_info_cb);
   return 0;

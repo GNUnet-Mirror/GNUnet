@@ -26,7 +26,170 @@
  */
 #include "ats-testing.h"
 
+/**
+ * Overall state of the performance benchmark
+ */
+struct BenchmarkState
+{
+  /**
+   * Are we connected to ATS service of all peers: GNUNET_YES/NO
+   */
+  int connected_ATS_service;
+
+  /**
+   * Are we connected to CORE service of all peers: GNUNET_YES/NO
+   */
+  int connected_COMM_service;
+
+  /**
+   * Are we connected to all peers: GNUNET_YES/NO
+   */
+  int connected_PEERS;
+
+  /**
+   * Are we connected to all slave peers on CORE level: GNUNET_YES/NO
+   */
+  int connected_CORE;
+
+  /**
+   * Are we connected to CORE service of all peers: GNUNET_YES/NO
+   */
+  int benchmarking;
+};
+
+
+
+
+/**
+ * Connect peers with testbed
+ */
+struct TestbedConnectOperation
+{
+  /**
+   * The benchmarking master initiating this connection
+   */
+  struct BenchmarkPeer *master;
+
+  /**
+   * The benchmarking slave to connect to
+   */
+  struct BenchmarkPeer *slave;
+
+  /**
+   * Testbed operation to connect peers
+   */
+  struct GNUNET_TESTBED_Operation *connect_op;
+};
+
+struct GNUNET_ATS_TEST_Topology
+{
+  /**
+   * Shutdown task
+   */
+  GNUNET_SCHEDULER_TaskIdentifier shutdown_task;
+
+  /**
+   * Progress task
+   */
+  GNUNET_SCHEDULER_TaskIdentifier progress_task;
+
+  /**
+   * Test result
+   */
+  int result;
+
+  /**
+   * Test result logging
+   */
+  int logging;
+
+  /**Test core (GNUNET_YES) or transport (GNUNET_NO)
+   */
+  int test_core;
+
+  /**
+   * Solver string
+   */
+  char *solver;
+
+  /**
+   * Preference string
+   */
+  char *testname;
+
+  /**
+   * Preference string
+   */
+  char *pref_str;
+
+  /**
+   * ATS preference value
+   */
+  int pref_val;
+
+  /**
+   * Number master peers
+   */
+  unsigned int num_masters;
+
+  /**
+   * Array of master peers
+   */
+  struct BenchmarkPeer *mps;
+
+  /**
+   * Number slave peers
+   */
+  unsigned int num_slaves;
+
+  /**
+   * Array of slave peers
+   */
+  struct BenchmarkPeer *sps;
+
+  /**
+   * Benchmark duration
+   */
+  struct GNUNET_TIME_Relative perf_duration;
+
+  /**
+   * Logging frequency
+   */
+  struct GNUNET_TIME_Relative log_frequency;
+
+  /**
+   * Benchmark state
+   */
+  struct BenchmarkState state;
+
+  struct GNUNET_CORE_MessageHandler *handlers;
+
+  GNUNET_TRANSPORT_ReceiveCallback transport_recv_cb;
+
+  GNUNET_ATS_TESTING_TopologySetupDoneCallback done_cb;
+  GNUNET_ATS_AddressInformationCallback ats_perf_cb;
+  void *done_cb_cls;
+};
+
+
+
 static struct GNUNET_ATS_TEST_Topology *top;
+
+struct TrafficGenerator *tg_head;
+struct TrafficGenerator *tg_tail;
+
+struct TrafficGenerator
+{
+  struct TrafficGenerator *prev;
+  struct TrafficGenerator *next;
+
+  struct BenchmarkPeer *src;
+  struct BenchmarkPartner *dest;
+  unsigned int rate;
+  GNUNET_SCHEDULER_Task next_send;
+  struct GNUNET_TIME_Absolute last_sent;
+  struct GNUNET_TIME_Relative delta;
+};
 
 /**
  * Shutdown nicely
@@ -41,6 +204,8 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   int c_s;
   int c_op;
   struct BenchmarkPeer *p;
+  struct TrafficGenerator *cur;
+  struct TrafficGenerator *next;
 
   if (GNUNET_YES == top->logging)
     GNUNET_ATS_TEST_logging_stop ();
@@ -48,6 +213,14 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   top->shutdown_task = GNUNET_SCHEDULER_NO_TASK;
 
   top->state.benchmarking = GNUNET_NO;
+
+  next = tg_head;
+  for (cur = next; NULL != cur; cur = next)
+  {
+      next = cur->next;
+      GNUNET_ATS_TEST_generate_traffic_stop(cur);
+  }
+
   GNUNET_log(GNUNET_ERROR_TYPE_INFO, _("Benchmarking done\n"));
 
   for (c_m = 0; c_m < top->num_masters; c_m++)
@@ -137,8 +310,9 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_free(p->partners);
     p->partners = NULL;
   }
-
   GNUNET_SCHEDULER_shutdown ();
+  GNUNET_free (top);
+  top = NULL;
 }
 
 static struct BenchmarkPartner *
@@ -234,6 +408,9 @@ comm_connect_cb (void *cls, const struct GNUNET_PeerIdentity * peer)
           "All master peers connected all slave peers\n", id,
           GNUNET_i2s (peer));
       top->state.connected_CORE = GNUNET_YES;
+      /* Notify about setup done */
+      if (NULL != top->done_cb)
+        top->done_cb (top->done_cb_cls, top->mps, top->sps);
     }
   }
   GNUNET_free(id);
@@ -297,12 +474,214 @@ core_disconnect_adapter (void *cls, void *op_result)
 }
 
 
+
+static size_t
+send_ping_ready_cb (void *cls, size_t size, void *buf)
+{
+  struct BenchmarkPartner *p = cls;
+  static char msgbuf[TEST_MESSAGE_SIZE];
+  struct GNUNET_MessageHeader *msg;
+
+  if (NULL == buf)
+  {
+    GNUNET_break (0);
+    return 0;
+  }
+  if (size < TEST_MESSAGE_SIZE)
+  {
+    GNUNET_break (0);
+    return 0;
+  }
+
+  GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Master [%u]: Sending PING to [%u]\n",
+      p->me->no, p->dest->no);
+
+  if (top->test_core)
+  {
+      if (NULL == p->cth)
+      {
+        GNUNET_break (0);
+      }
+      p->cth = NULL;
+  }
+  else
+  {
+      if (NULL == p->tth)
+      {
+        GNUNET_break (0);
+      }
+      p->tth = NULL;
+  }
+
+  msg = (struct GNUNET_MessageHeader *) &msgbuf;
+  memset (&msgbuf, 'a', TEST_MESSAGE_SIZE);
+  msg->type = htons (TEST_MESSAGE_TYPE_PING);
+  msg->size = htons (TEST_MESSAGE_SIZE);
+  memcpy (buf, msg, TEST_MESSAGE_SIZE);
+
+  p->messages_sent++;
+  p->bytes_sent += TEST_MESSAGE_SIZE;
+  p->me->total_messages_sent++;
+  p->me->total_bytes_sent += TEST_MESSAGE_SIZE;
+
+  return TEST_MESSAGE_SIZE;
+}
+
+
+static void
+comm_schedule_send (struct BenchmarkPartner *p)
+{
+  p->last_message_sent = GNUNET_TIME_absolute_get();
+  if (GNUNET_YES == top->test_core)
+  {
+    p->cth = GNUNET_CORE_notify_transmit_ready (
+      p->me->ch, GNUNET_NO, 0, GNUNET_TIME_UNIT_MINUTES, &p->dest->id,
+      TEST_MESSAGE_SIZE, &send_ping_ready_cb, p);
+  }
+  else
+  {
+    p->tth = GNUNET_TRANSPORT_notify_transmit_ready (
+      p->me->th, &p->dest->id, TEST_MESSAGE_SIZE, 0,GNUNET_TIME_UNIT_MINUTES,
+      &send_ping_ready_cb, p);
+  }
+}
+
+static struct TrafficGenerator *
+find_tg (struct BenchmarkPartner *p)
+{
+  struct TrafficGenerator *cur;
+  for (cur = tg_head; NULL != cur; cur = cur->next)
+    if ( (0 == memcmp (&p->me->id, &cur->dest->me, sizeof (cur->dest->me))) &&
+         (0 == memcmp (&p->dest->id, &cur->dest->dest->id, sizeof (cur->dest->dest->id))) )
+         return cur;
+
+  return NULL;
+}
+
+static int
+core_handle_pong (void *cls, const struct GNUNET_PeerIdentity *other,
+    const struct GNUNET_MessageHeader *message)
+{
+  struct BenchmarkPeer *me = cls;
+  struct BenchmarkPartner *p = NULL;
+  struct TrafficGenerator *tg;
+
+  if (NULL == (p = find_partner (me, other)))
+  {
+    GNUNET_break(0);
+    return GNUNET_SYSERR;
+  }
+
+  GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+      "Master [%u]: Received PONG from [%u], next message\n", me->no,
+      p->dest->no);
+
+  p->messages_received++;
+  p->bytes_received += TEST_MESSAGE_SIZE;
+  p->me->total_messages_received++;
+  p->me->total_bytes_received += TEST_MESSAGE_SIZE;
+  p->total_app_rtt += GNUNET_TIME_absolute_get_difference(p->last_message_sent,
+      GNUNET_TIME_absolute_get()).rel_value_us;
+
+
+  tg = find_tg(p);
+/*
+  if (GNUNET_TIME_absolute_max(GNUNET_TIME_absolute_get(), tg->next_send))*/
+    comm_schedule_send (p);
+  return GNUNET_OK;
+}
+
+static size_t
+comm_send_pong_ready (void *cls, size_t size, void *buf)
+{
+  static char msgbuf[TEST_MESSAGE_SIZE];
+  struct BenchmarkPartner *p = cls;
+  struct GNUNET_MessageHeader *msg;
+
+  if (GNUNET_YES == top->test_core)
+    p->cth = NULL;
+  else
+    p->tth = NULL;
+
+  p->messages_sent++;
+  p->bytes_sent += TEST_MESSAGE_SIZE;
+  p->me->total_messages_sent++;
+  p->me->total_bytes_sent += TEST_MESSAGE_SIZE;
+
+  msg = (struct GNUNET_MessageHeader *) &msgbuf;
+  memset (&msgbuf, 'a', TEST_MESSAGE_SIZE);
+  msg->type = htons (TEST_MESSAGE_TYPE_PONG);
+  msg->size = htons (TEST_MESSAGE_SIZE);
+  memcpy (buf, msg, TEST_MESSAGE_SIZE);
+
+  return TEST_MESSAGE_SIZE;
+}
+
+
+static int
+core_handle_ping (void *cls, const struct GNUNET_PeerIdentity *other,
+    const struct GNUNET_MessageHeader *message)
+{
+  struct BenchmarkPeer *me = cls;
+  struct BenchmarkPartner *p = NULL;
+
+  if (NULL == (p = find_partner(me, other)))
+  {
+    GNUNET_break(0);
+    return GNUNET_SYSERR;
+  }
+
+  GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+      "Slave [%u]: Received PING from [%u], sending PONG\n", me->no,
+      p->dest->no);
+
+  p->messages_received++;
+  p->bytes_received += TEST_MESSAGE_SIZE;
+  p->me->total_messages_received++;
+  p->me->total_bytes_received += TEST_MESSAGE_SIZE;
+
+  if (GNUNET_YES == top->test_core)
+  {
+    GNUNET_assert (NULL == p->cth);
+
+    p->cth = GNUNET_CORE_notify_transmit_ready (me->ch, GNUNET_NO, 0,
+        GNUNET_TIME_UNIT_MINUTES, &p->dest->id, TEST_MESSAGE_SIZE,
+        &comm_send_pong_ready, p);
+  }
+  else
+  {
+    GNUNET_assert (NULL == p->tth);
+    p->tth = GNUNET_TRANSPORT_notify_transmit_ready (me->th, &p->dest->id,
+        TEST_MESSAGE_SIZE, 0, GNUNET_TIME_UNIT_MINUTES, &comm_send_pong_ready,
+        p);
+  }
+  return GNUNET_OK;
+}
+
+static void
+test_recv_cb (void *cls,
+                     const struct GNUNET_PeerIdentity * peer,
+                     const struct GNUNET_MessageHeader * message)
+{
+  if (TEST_MESSAGE_SIZE != ntohs (message->size) ||
+      (TEST_MESSAGE_TYPE_PING != ntohs (message->type) &&
+     TEST_MESSAGE_TYPE_PONG != ntohs (message->type)))
+  {
+    return;
+  }
+  if (TEST_MESSAGE_TYPE_PING == ntohs (message->type))
+    core_handle_ping (cls, peer, message);
+  if (TEST_MESSAGE_TYPE_PONG == ntohs (message->type))
+    core_handle_pong (cls, peer, message);
+}
+
+
 static void *
 transport_connect_adapter (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct BenchmarkPeer *me = cls;
 
-  me->th = GNUNET_TRANSPORT_connect (cfg, &me->id, me, top->transport_recv_cb,
+  me->th = GNUNET_TRANSPORT_connect (cfg, &me->id, me, &test_recv_cb,
       &comm_connect_cb, &comm_disconnect_cb);
   if (NULL == me->th)
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Failed to create transport connection \n");
@@ -352,9 +731,6 @@ connect_completion_callback (void *cls, struct GNUNET_TESTBED_Operation *op,
   if (ops == top->num_masters * top->num_slaves)
   {
     top->state.connected_PEERS = GNUNET_YES;
-    /* Notify about setup done */
-    if (NULL != top->done_cb)
-      top->done_cb (top->done_cb_cls, top->mps, top->sps);
   }
 }
 
@@ -463,6 +839,101 @@ do_comm_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
 }
 
+static void
+ats_performance_info_cb (void *cls, const struct GNUNET_HELLO_Address *address,
+    int address_active, struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
+    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
+    const struct GNUNET_ATS_Information *ats, uint32_t ats_count)
+{
+  struct BenchmarkPeer *me = cls;
+  struct BenchmarkPartner *p;
+  int c_a;
+  int log;
+  char *peer_id;
+
+  p = find_partner (me, &address->peer);
+  if (NULL == p)
+  {
+    /* This is not one of my partners
+     * Will happen since the peers will connect to each other due to gossiping
+     */
+    return;
+  }
+  peer_id = GNUNET_strdup (GNUNET_i2s (&me->id));
+
+  log = GNUNET_NO;
+  if ((p->bandwidth_in != ntohl (bandwidth_in.value__)) ||
+      (p->bandwidth_out != ntohl (bandwidth_out.value__)))
+      log = GNUNET_YES;
+  p->bandwidth_in = ntohl (bandwidth_in.value__);
+  p->bandwidth_out = ntohl (bandwidth_out.value__);
+
+  for (c_a = 0; c_a < ats_count; c_a++)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%s [%u] received ATS information: %s %s %u\n",
+        (GNUNET_YES == p->me->master) ? "Master" : "Slave",
+        p->me->no,
+        GNUNET_i2s (&p->dest->id),
+        GNUNET_ATS_print_property_type(ntohl(ats[c_a].type)),
+        ntohl(ats[c_a].value));
+    switch (ntohl (ats[c_a].type ))
+    {
+      case GNUNET_ATS_ARRAY_TERMINATOR:
+        break;
+      case GNUNET_ATS_UTILIZATION_OUT:
+        if (p->ats_utilization_up != ntohl (ats[c_a].value))
+             log = GNUNET_YES;
+         p->ats_utilization_up = ntohl (ats[c_a].value);
+
+         break;
+       case GNUNET_ATS_UTILIZATION_IN:
+         if (p->ats_utilization_down != ntohl (ats[c_a].value))
+             log = GNUNET_YES;
+         p->ats_utilization_down = ntohl (ats[c_a].value);
+         break;
+       case GNUNET_ATS_NETWORK_TYPE:
+         if (p->ats_network_type != ntohl (ats[c_a].value))
+             log = GNUNET_YES;
+         p->ats_network_type = ntohl (ats[c_a].value);
+         break;
+       case GNUNET_ATS_QUALITY_NET_DELAY:
+         if (p->ats_delay != ntohl (ats[c_a].value))
+             log = GNUNET_YES;
+         p->ats_delay = ntohl (ats[c_a].value);
+         break;
+       case GNUNET_ATS_QUALITY_NET_DISTANCE:
+         if (p->ats_distance != ntohl (ats[c_a].value))
+             log = GNUNET_YES;
+         p->ats_distance = ntohl (ats[c_a].value);
+         GNUNET_break (0);
+         break;
+       case GNUNET_ATS_COST_WAN:
+         if (p->ats_cost_wan != ntohl (ats[c_a].value))
+             log = GNUNET_YES;
+         p->ats_cost_wan = ntohl (ats[c_a].value);
+         break;
+       case GNUNET_ATS_COST_LAN:
+         if (p->ats_cost_lan != ntohl (ats[c_a].value))
+             log = GNUNET_YES;
+         p->ats_cost_lan = ntohl (ats[c_a].value);
+         break;
+       case GNUNET_ATS_COST_WLAN:
+         if (p->ats_cost_wlan != ntohl (ats[c_a].value))
+             log = GNUNET_YES;
+         p->ats_cost_wlan = ntohl (ats[c_a].value);
+         break;
+       default:
+         break;
+     }
+   }
+   if ((GNUNET_YES == top->logging) && (GNUNET_YES == log))
+     GNUNET_ATS_TEST_logging_now();
+
+  top->ats_perf_cb (cls, address, address_active, bandwidth_out, bandwidth_in,
+      ats, ats_count);
+  GNUNET_free(peer_id);
+}
+
 
 static void *
 ats_perf_connect_adapter (void *cls,
@@ -470,7 +941,7 @@ ats_perf_connect_adapter (void *cls,
 {
   struct BenchmarkPeer *me = cls;
 
-  me->ats_perf_handle = GNUNET_ATS_performance_init (cfg, top->ats_perf_cb, me);
+  me->ats_perf_handle = GNUNET_ATS_performance_init (cfg, ats_performance_info_cb, me);
   if (NULL == me->ats_perf_handle)
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
         "Failed to create ATS performance handle \n");
@@ -662,6 +1133,7 @@ controller_event_cb (void *cls,
   }
 }
 
+
 void
 GNUNET_ATS_TEST_create_topology (char *name, char *cfg_file,
     unsigned int num_slaves,
@@ -669,10 +1141,14 @@ GNUNET_ATS_TEST_create_topology (char *name, char *cfg_file,
     int test_core,
     GNUNET_ATS_TESTING_TopologySetupDoneCallback done_cb,
     void *done_cb_cls,
-    struct GNUNET_CORE_MessageHandler *handlers,
     GNUNET_TRANSPORT_ReceiveCallback transport_recv_cb,
     GNUNET_ATS_AddressInformationCallback ats_perf_cb)
 {
+
+  static struct GNUNET_CORE_MessageHandler handlers[] = {
+      {&core_handle_ping, TEST_MESSAGE_TYPE_PING, 0 },
+      {&core_handle_pong, TEST_MESSAGE_TYPE_PONG, 0 },
+      { NULL, 0, 0 } };
 
   top = GNUNET_new (struct GNUNET_ATS_TEST_Topology);
   top->num_masters = num_masters;
@@ -700,7 +1176,83 @@ GNUNET_ATS_TEST_create_topology (char *name, char *cfg_file,
 void
 GNUNET_ATS_TEST_shutdown_topology (void)
 {
+  if (NULL == top)
+    return;
+
   GNUNET_SCHEDULER_shutdown();
+}
+
+
+
+struct TrafficGenerator *
+GNUNET_ATS_TEST_generate_traffic_start (struct BenchmarkPeer *src,
+    struct BenchmarkPartner *dest, unsigned int rate,
+    struct GNUNET_TIME_Relative duration)
+{
+  struct TrafficGenerator * tg;
+  tg = NULL;
+
+  tg = GNUNET_new (struct TrafficGenerator);
+  GNUNET_CONTAINER_DLL_insert (tg_head, tg_tail, tg);
+  tg->src = src;
+  tg->dest = dest;
+  tg->rate = rate;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+      "Setting up traffic generator between master[%u] `%s' and slave [%u] `%s' sending with %u Bytes/sec\n",
+      dest->me->no, GNUNET_i2s (&dest->me->id),
+      dest->dest->no, GNUNET_i2s (&dest->dest->id),
+      rate);
+
+  if (top->test_core)
+  {
+      if (NULL != dest->cth)
+      {
+        GNUNET_break (0);
+        return tg;
+      }
+      dest->cth = GNUNET_CORE_notify_transmit_ready (src->ch, GNUNET_NO,
+          UINT32_MAX, GNUNET_TIME_UNIT_FOREVER_REL, &dest->dest->id,
+          TEST_MESSAGE_SIZE, &send_ping_ready_cb, dest);
+  }
+  else
+  {
+      if (NULL != dest->tth)
+      {
+        GNUNET_break (0);
+        return tg;
+      }
+      dest->tth = GNUNET_TRANSPORT_notify_transmit_ready (src->th, &dest->dest->id,
+          TEST_MESSAGE_SIZE, UINT32_MAX, GNUNET_TIME_UNIT_FOREVER_REL,
+          &send_ping_ready_cb, dest);
+      tg->last_sent = GNUNET_TIME_absolute_get();
+      tg->delta.rel_value_us = (GNUNET_TIME_UNIT_SECONDS.rel_value_us / (rate / TEST_MESSAGE_SIZE));
+  }
+  return tg;
+}
+
+void
+GNUNET_ATS_TEST_generate_traffic_stop (struct TrafficGenerator *tg)
+{
+  GNUNET_CONTAINER_DLL_remove (tg_head, tg_tail, tg);
+
+  if (top->test_core)
+  {
+      if (NULL != tg->dest->cth)
+      {
+          GNUNET_CORE_notify_transmit_ready_cancel (tg->dest->cth);
+          tg->dest->cth = NULL;
+      }
+  }
+  else
+  {
+      if (NULL != tg->dest->tth)
+      {
+          GNUNET_TRANSPORT_notify_transmit_ready_cancel (tg->dest->tth);
+          tg->dest->tth = NULL;
+      }
+  }
+  GNUNET_free (tg);
 }
 
 /* end of file ats-testing.c */
