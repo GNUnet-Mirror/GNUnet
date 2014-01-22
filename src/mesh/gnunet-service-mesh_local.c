@@ -735,7 +735,7 @@ handle_show_tunnel (void *cls, struct GNUNET_SERVER_Client *client,
   size += ch_n * sizeof (uint32_t);
 
   resp = GNUNET_malloc (size);
-  resp->header.size = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNEL);
+  resp->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNEL);
   resp->header.size = htons (size);
   GMT_iterate_connections (t, &iter_connection, resp);
   GMT_iterate_channels (t, &iter_channel, resp);
