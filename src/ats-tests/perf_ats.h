@@ -248,13 +248,13 @@ struct BenchmarkPeer
 
 
 void
-collect_log_now (void);
+GNUNET_ATS_TEST_logging_now (void);
 
 void
-perf_logging_stop ();
+GNUNET_ATS_TEST_logging_stop ();
 
 void
-perf_logging_start (struct GNUNET_TIME_Relative log_frequency,
+GNUNET_ATS_TEST_logging_start (struct GNUNET_TIME_Relative log_frequency,
     char * testname, struct BenchmarkPeer *masters, int num_masters);
 
 

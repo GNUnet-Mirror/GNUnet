@@ -18,8 +18,10 @@
  Boston, MA 02111-1307, USA.
  */
 /**
- * @file ats/perf_ats.c
- * @brief ats benchmark: start peers and modify preferences, monitor change over time
+ * @file ats-test/gnunet-ats-sim.c
+ * @brief ats traffic simulator: this tool uses the ats-test library to setup a
+ * topology and generate traffic between these peers. The traffic description
+ * is loaded from a experiment description file
  * @author Christian Grothoff
  * @author Matthias Wachs
  */
@@ -36,8 +38,14 @@
 #define TEST_MESSAGE_TYPE_PING 12345
 #define TEST_MESSAGE_TYPE_PONG 12346
 
+/**
+ * Number of master peers to use
+ */
 static int c_masters;
 
+/**
+ * Number of slave peers to use
+ */
 static int c_slaves;
 
 static int
@@ -76,6 +84,9 @@ static void topology_setup_done (void *cls,
     struct BenchmarkPeer *slaves)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Topology setup complete!\n");
+
+
+  /* Shutdown a topology with */
   GNUNET_ATS_TEST_shutdown_topology ();
 }
 
@@ -90,6 +101,7 @@ main (int argc, char *argv[])
   c_slaves = DEFAULT_NUM_SLAVES;
   c_masters = DEFAULT_NUM_MASTERS;
 
+  /* Setup a topology with */
   GNUNET_ATS_TEST_create_topology ("gnunet-ats-sim", "perf_ats_proportional_none.conf",
       c_slaves,
       c_masters,
@@ -101,4 +113,4 @@ main (int argc, char *argv[])
       &ats_performance_info_cb);
   return 0;
 }
-/* end of file perf_ats_topogy.c */
+/* end of file gnunet-ats-sim.c */

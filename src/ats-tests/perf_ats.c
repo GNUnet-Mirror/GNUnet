@@ -40,7 +40,12 @@
 #define TEST_MESSAGE_SIZE 1000
 #define TEST_MESSAGE_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
 
-
+#define TEST_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 120)
+#define BENCHMARK_DURATION GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
+#define LOGGING_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 500)
+#define TESTNAME_PREFIX "perf_ats_"
+#define DEFAULT_SLAVES_NUM 2
+#define DEFAULT_MASTERS_NUM 1
 /**
  * Shutdown task
  */
@@ -124,6 +129,12 @@ evaluate ()
   struct BenchmarkPeer *mp;
   struct BenchmarkPartner *p;
 
+  unsigned int kb_sent_sec;
+  double kb_sent_percent;
+  unsigned int kb_recv_sec;
+  double kb_recv_percent;
+  unsigned int rtt;
+
   duration = (perf_duration.rel_value_us / (1000 * 1000));
   for (c_m = 0; c_m < num_masters; c_m++)
   {
@@ -138,19 +149,35 @@ evaluate ()
     for (c_s = 0; c_s < num_slaves; c_s++)
     {
       p = &mp->partners[c_s];
+
+      kb_sent_sec = 0;
+      kb_recv_sec = 0;
+      kb_sent_percent = 0.0;
+      kb_recv_percent = 0.0;
+      rtt = 0;
+
+      if (duration > 0)
+      {
+    	  kb_sent_percent = (p->bytes_sent / 1024) / duration;
+    	  kb_recv_percent = (p->bytes_received / 1024) / duration;
+      }
+      if (mp->total_bytes_sent > 0)
+    	  kb_sent_percent = ((double) p->bytes_sent * 100) / mp->total_bytes_sent;
+      if (mp->total_bytes_received > 0)
+    	  kb_recv_percent = ((double) p->bytes_received * 100) / mp->total_bytes_received;
+      if (1000 * p->messages_sent > 0)
+    	  rtt = p->total_app_rtt / (1000 * p->messages_sent);
       fprintf (stderr,
           "%c Master [%u] -> Slave [%u]: sent %u KiB/s (%.2f %%), received %u KiB/s (%.2f %%)\n",
           (mp->pref_partner == p->dest) ? '*' : ' ',
           mp->no, p->dest->no,
-          (p->bytes_sent / 1024) / duration,
-          ((double) p->bytes_sent * 100) / mp->total_bytes_sent,
-          (p->bytes_received / 1024) / duration,
-          ((double) p->bytes_received * 100) / mp->total_bytes_received );
+          kb_sent_sec, kb_sent_percent,
+		  kb_recv_sec, kb_recv_percent);
+
       fprintf (stderr,
           "%c Master [%u] -> Slave [%u]: Average application layer RTT: %u ms\n",
           (mp->pref_partner == p->dest) ? '*' : ' ',
-          mp->no, p->dest->no,
-          p->total_app_rtt / (1000 * p->messages_sent));
+          mp->no, p->dest->no, rtt);
     }
   }
 }
@@ -164,10 +191,10 @@ evaluate ()
 static void
 do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  /*
+
   if (GNUNET_YES == logging)
-    perf_logging_stop();
-*/
+    GNUNET_ATS_TEST_logging_stop();
+
   shutdown_task = GNUNET_SCHEDULER_NO_TASK;
   if (GNUNET_SCHEDULER_NO_TASK != progress_task)
   {
@@ -300,10 +327,8 @@ do_benchmark (void *cls, struct BenchmarkPeer *masters, struct BenchmarkPeer *sl
       masters[c_m].ats_task = GNUNET_SCHEDULER_add_now (&ats_pref_task, &masters[c_m]);
   }
 
-  /*
   if (GNUNET_YES == logging)
-    perf_logging_start (log_frequency, testname, mps, num_masters);
-*/
+    GNUNET_ATS_TEST_logging_start (log_frequency, testname, mps, num_masters);
 }
 
 
@@ -349,7 +374,6 @@ find_partner (struct BenchmarkPeer *me, const struct GNUNET_PeerIdentity * peer)
       return &me->partners[c_m];
     }
   }
-
   return NULL;
 }
 
@@ -422,11 +446,10 @@ comm_handle_pong (void *cls, const struct GNUNET_PeerIdentity *other,
 }
 
 
-
 static void
-transport_recv_cb (void *cls,
-                   const struct GNUNET_PeerIdentity * peer,
-                   const struct GNUNET_MessageHeader * message)
+test_recv_cb (void *cls,
+		      const struct GNUNET_PeerIdentity * peer,
+		      const struct GNUNET_MessageHeader * message)
 {
   if (TEST_MESSAGE_SIZE != ntohs (message->size) ||
       (TEST_MESSAGE_TYPE_PING != ntohs (message->type) &&
@@ -440,9 +463,6 @@ transport_recv_cb (void *cls,
   if (TEST_MESSAGE_TYPE_PONG == ntohs (message->type))
     comm_handle_pong (cls, peer, message);
 }
-
-
-
 
 
 static void
@@ -532,17 +552,17 @@ ats_performance_info_cb (void *cls, const struct GNUNET_HELLO_Address *address,
         break;
     }
   }
-  /*
+
   if ((GNUNET_YES == logging) && (GNUNET_YES == log))
-    collect_log_now();
-    */
+    GNUNET_ATS_TEST_logging_now();
+
   GNUNET_free(peer_id);
 }
 
 
-
-
-
+/*
+ * Start the performance test case
+ */
 int
 main (int argc, char *argv[])
 {
@@ -720,14 +740,23 @@ main (int argc, char *argv[])
     return GNUNET_SYSERR;
   }
 
+  /**
+   * Core message handler to use for PING/PONG messages
+   */
   static struct GNUNET_CORE_MessageHandler handlers[] = {
       {&comm_handle_ping, TEST_MESSAGE_TYPE_PING, 0 },
       {&comm_handle_pong, TEST_MESSAGE_TYPE_PONG, 0 },
       { NULL, 0, 0 } };
 
+  /**
+   * Setup the topology
+   */
   GNUNET_ATS_TEST_create_topology ("perf-ats", conf_name,
-      num_slaves, num_masters, test_core,
-      &do_benchmark, NULL, handlers, &transport_recv_cb,
+      num_slaves, num_masters,
+      test_core,
+      &do_benchmark,
+      NULL, handlers,
+      &test_recv_cb,
       &ats_performance_info_cb);
 
   return result;

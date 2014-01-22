@@ -18,8 +18,8 @@
  Boston, MA 02111-1307, USA.
  */
 /**
- * @file ats/perf_ats.c
- * @brief ats benchmark: start peers and modify preferences, monitor change over time
+ * @file ats-tests/ats-testing.h
+ * @brief ats testing library: setup topology and provide logging to test ats
  * @author Christian Grothoff
  * @author Matthias Wachs
  */
@@ -29,21 +29,7 @@
 #include "gnunet_ats_service.h"
 #include "gnunet_core_service.h"
 
-#define TEST_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 120)
-#define BENCHMARK_DURATION GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
-#define LOGGING_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 500)
-#define TESTNAME_PREFIX "perf_ats_"
-#define DEFAULT_SLAVES_NUM 2
-#define DEFAULT_MASTERS_NUM 1
-
-#define TEST_ATS_PREFRENCE_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
-#define TEST_ATS_PREFRENCE_START 1.0
-#define TEST_ATS_PREFRENCE_DELTA 1.0
-
-#define TEST_MESSAGE_TYPE_PING 12345
-#define TEST_MESSAGE_TYPE_PONG 12346
-#define TEST_MESSAGE_SIZE 1000
-#define TEST_MESSAGE_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
+#define TEST_ATS_PREFERENCE_DEFAULT 1.0
 
 /**
  * Overall state of the performance benchmark
@@ -394,6 +380,16 @@ struct GNUNET_ATS_TEST_Topology
 };
 
 void
+GNUNET_ATS_TEST_logging_start (struct GNUNET_TIME_Relative log_frequency,
+    char * testname, struct BenchmarkPeer *masters, int num_masters);
+
+void
+GNUNET_ATS_TEST_logging_now (void);
+
+void
+GNUNET_ATS_TEST_logging_stop (void);
+
+void
 GNUNET_ATS_TEST_create_topology (char *name, char *cfg_file,
     unsigned int num_slaves,
     unsigned int num_masters,
@@ -407,4 +403,4 @@ GNUNET_ATS_TEST_create_topology (char *name, char *cfg_file,
 void
 GNUNET_ATS_TEST_shutdown_topology (void);
 
-/* end of file perf_ats.c */
+/* end of file ats-testing.h */

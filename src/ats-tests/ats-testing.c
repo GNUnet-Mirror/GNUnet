@@ -18,20 +18,13 @@
  Boston, MA 02111-1307, USA.
  */
 /**
- * @file ats/perf_ats.c
- * @brief ats benchmark: start peers and modify preferences, monitor change over time
+ * @file ats-tests/ats-testing.c
+ * @brief ats testing library: setup topology and provide logging to test ats
+ * solvers
  * @author Christian Grothoff
  * @author Matthias Wachs
  */
-#include "platform.h"
-#include "gnunet_util_lib.h"
-#include "gnunet_testbed_service.h"
-#include "gnunet_ats_service.h"
-#include "gnunet_core_service.h"
 #include "ats-testing.h"
-
-
-
 
 static struct GNUNET_ATS_TEST_Topology *top;
 
@@ -48,20 +41,11 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   int c_s;
   int c_op;
   struct BenchmarkPeer *p;
-/*
-  if (GNUNET_YES == logging)
-    perf_logging_stop();
-*/
+
+  if (GNUNET_YES == top->logging)
+    GNUNET_ATS_TEST_logging_stop ();
+
   top->shutdown_task = GNUNET_SCHEDULER_NO_TASK;
-/*
-  if (GNUNET_SCHEDULER_NO_TASK != progress_task)
-  {
-    fprintf (stderr, "0\n");
-    GNUNET_SCHEDULER_cancel (progress_task);
-  }
-  progress_task = GNUNET_SCHEDULER_NO_TASK;
-*/
-  //evaluate ();
 
   top->state.benchmarking = GNUNET_NO;
   GNUNET_log(GNUNET_ERROR_TYPE_INFO, _("Benchmarking done\n"));
@@ -604,10 +588,9 @@ main_run (void *cls, struct GNUNET_TESTBED_RunHandle *h,
   GNUNET_assert(NULL != peers_);
 
   top->shutdown_task = GNUNET_SCHEDULER_add_delayed (
-      GNUNET_TIME_relative_multiply (TEST_TIMEOUT, top->num_masters + top->num_slaves),
-      &do_shutdown, top );
+      GNUNET_TIME_UNIT_FOREVER_REL, &do_shutdown, top);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Setting up %u masters and %u slaves\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Setting up %u masters and %u slaves\n",
       top->num_masters, top->num_slaves);
 
   /* Setup master peers */
@@ -618,7 +601,7 @@ main_run (void *cls, struct GNUNET_TESTBED_RunHandle *h,
     top->mps[c_m].no = c_m;
     top->mps[c_m].master = GNUNET_YES;
     top->mps[c_m].pref_partner = &top->sps[c_m];
-    top->mps[c_m].pref_value = TEST_ATS_PREFRENCE_START;
+    top->mps[c_m].pref_value = TEST_ATS_PREFERENCE_DEFAULT;
     top->mps[c_m].partners =
         GNUNET_malloc (top->num_slaves * sizeof (struct BenchmarkPartner));
     top->mps[c_m].num_partners = top->num_slaves;
@@ -720,4 +703,4 @@ GNUNET_ATS_TEST_shutdown_topology (void)
   GNUNET_SCHEDULER_shutdown();
 }
 
-/* end of file perf_ats.c */
+/* end of file ats-testing.c */
