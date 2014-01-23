@@ -27,6 +27,25 @@
 #include "gnunet_util_lib.h"
 #include "ats-testing.h"
 
+const char *
+print_op (enum OperationType op)
+{
+  switch (op) {
+    case START_SEND:
+      return "START_SEND";
+    case STOP_SEND:
+      return "STOP_SEND";
+    case SET_RATE:
+      return "SET_RATE";
+    case SET_PREFERENCE:
+      return "SET_PREFERENCE";
+    default:
+      break;
+  }
+  return "";
+}
+
+
 static struct Experiment *
 create_experiment ()
 {
@@ -59,6 +78,120 @@ free_experiment (struct Experiment *e)
 }
 
 static int
+load_episode (struct Experiment *e, struct Episode *cur,
+    struct GNUNET_CONFIGURATION_Handle *cfg)
+{
+  struct Operation *o;
+  char *sec_name;
+  char *op_name;
+  char *op;
+  int ep_counter = 0;
+  fprintf (stderr, "Parsing episode %u\n",cur->id);
+  GNUNET_asprintf(&sec_name, "episode-%u", cur->id);
+
+  while (1)
+  {
+
+    GNUNET_asprintf(&op_name, "op-%u-operation", ep_counter);
+    if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string(cfg,
+        sec_name, op_name, &op))
+    {
+      break;
+    }
+    o = GNUNET_new (struct Operation);
+    /* operations = set_rate, start_send, stop_send, set_preference */
+    if (0 == strcmp (op, "start_send"))
+    {
+      o->type = START_SEND;
+    }
+    else if (0 == strcmp (op, "stop_send"))
+    {
+      o->type = STOP_SEND;
+    }
+    else if (0 == strcmp (op, "set_rate"))
+    {
+      o->type = SET_RATE;
+    }
+    else if (0 == strcmp (op, "set_preference "))
+    {
+      o->type = SET_PREFERENCE;
+    }
+    else
+    {
+      fprintf (stderr, "Invalid operation %u `%s' in episode %u\n",
+          ep_counter, op, cur->id);
+      GNUNET_free (op);
+      return GNUNET_SYSERR;
+    }
+
+    GNUNET_free (op_name);
+    GNUNET_asprintf(&op_name, "op-%u-src", ep_counter);
+    if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number (cfg,
+        sec_name, op_name, &o->src_id))
+    {
+      fprintf (stderr, "Missing src in operation %u `%s' in episode %u\n",
+          ep_counter, op, cur->id);
+      GNUNET_free (op);
+      return GNUNET_SYSERR;
+    }
+    if (o->src_id > e->num_masters)
+    {
+      fprintf (stderr, "Invalid src %llu in operation %u `%s' in episode %u\n",
+          o->src_id, ep_counter, op, cur->id);
+      GNUNET_free (op);
+      return GNUNET_SYSERR;
+    }
+
+    GNUNET_free (op_name);
+    GNUNET_asprintf(&op_name, "op-%u-dest", ep_counter);
+    if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number (cfg,
+        sec_name, op_name, &o->dest_id))
+    {
+      fprintf (stderr, "Missing src in operation %u `%s' in episode %u\n",
+          ep_counter, op, cur->id);
+      GNUNET_free (op);
+      return GNUNET_SYSERR;
+    }
+    if (o->dest_id > e->num_slaves)
+    {
+      fprintf (stderr, "Invalid destination %llu in operation %u `%s' in episode %u\n",
+          o->dest_id, ep_counter, op, cur->id);
+      GNUNET_free (op);
+      return GNUNET_SYSERR;
+    }
+
+
+    GNUNET_free (op_name);
+    GNUNET_asprintf(&op_name, "op-%u-value", ep_counter);
+    if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number (cfg,
+        sec_name, op_name, &o->value))
+    {
+      fprintf (stderr, "Missing value in operation %u `%s' in episode %u\n",
+          ep_counter, op, cur->id);
+      GNUNET_free (op);
+      return GNUNET_SYSERR;
+    }
+    if (o->dest_id > e->num_slaves)
+    {
+      fprintf (stderr, "Invalid destination %llu in operation %u `%s' in episode %u\n",
+          o->dest_id, ep_counter, op, cur->id);
+      GNUNET_free (op);
+      return GNUNET_SYSERR;
+    }
+
+    fprintf (stderr, "Found operation %u in episode %u: %s [%llu]->[%llu] == %llu\n",
+        ep_counter, cur->id, print_op (o->type), o->src_id, o->dest_id, o->value);
+
+    GNUNET_CONTAINER_DLL_insert (cur->head,cur->tail, o);
+    GNUNET_free (op_name);
+    ep_counter++;
+  }
+  GNUNET_free (sec_name);
+
+  return GNUNET_OK;
+}
+
+static int
 load_episodes (struct Experiment *e, struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   int e_counter = 0;
@@ -82,6 +215,13 @@ load_episodes (struct Experiment *e, struct GNUNET_CONFIGURATION_Handle *cfg)
     cur = GNUNET_new (struct Episode);
     cur->duration = e_duration;
     cur->id = e_counter;
+
+    if (GNUNET_OK != load_episode (e, cur, cfg))
+    {
+      GNUNET_free (sec_name);
+      GNUNET_free (cur);
+      return GNUNET_SYSERR;
+    }
 
     fprintf (stderr, "Found episode %u with duration %s \n",
         e_counter,
@@ -110,7 +250,8 @@ timeout_experiment (void *cls, const struct GNUNET_SCHEDULER_TaskContext* tc)
   e->experiment_timeout_task = GNUNET_SCHEDULER_NO_TASK;
   fprintf (stderr, "Experiment timeout!\n");
 
-  e->e_done_cb (e, GNUNET_SYSERR);
+  e->e_done_cb (e, GNUNET_TIME_absolute_get_duration(e->start_time),
+      GNUNET_SYSERR);
 }
 
 static void
@@ -131,7 +272,7 @@ timeout_episode (void *cls, const struct GNUNET_SCHEDULER_TaskContext* tc)
       GNUNET_SCHEDULER_cancel (e->experiment_timeout_task);
       e->experiment_timeout_task = GNUNET_SCHEDULER_NO_TASK;
     }
-    e->e_done_cb (e, GNUNET_OK);
+    e->e_done_cb (e, GNUNET_TIME_absolute_get_duration(e->start_time), GNUNET_OK);
     return;
   }
 
@@ -152,6 +293,7 @@ GNUNET_ATS_TEST_experimentation_run (struct Experiment *e,
       GNUNET_STRINGS_relative_time_to_string(e->max_duration, GNUNET_YES));
   e->e_done_cb = e_done_cb;
   e->ep_done_cb = ep_done_cb;
+  e->start_time = GNUNET_TIME_absolute_get();
 
   /* Start total time out */
   e->experiment_timeout_task = GNUNET_SCHEDULER_add_delayed (e->max_duration,
@@ -167,6 +309,7 @@ GNUNET_ATS_TEST_experimentation_run (struct Experiment *e,
 
 
 }
+
 
 struct Experiment *
 GNUNET_ATS_TEST_experimentation_load (char *filename)

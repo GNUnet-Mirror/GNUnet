@@ -43,7 +43,7 @@ struct Experiment *e;
 struct LoggingHandle *l;
 
 static void
-evaluate ()
+evaluate (struct GNUNET_TIME_Relative duration_total)
 {
   int c_m;
   int c_s;
@@ -57,7 +57,8 @@ evaluate ()
   double kb_recv_percent;
   unsigned int rtt;
 
-  duration = (TEST_TIMEOUT.rel_value_us / (1000 * 1000));
+
+  duration = (duration_total.rel_value_us / (1000 * 1000));
   for (c_m = 0; c_m < e->num_masters; c_m++)
   {
     mp = &masters_p[c_m];
@@ -135,12 +136,13 @@ log_request__cb (void *cls, const struct GNUNET_HELLO_Address *address,
 }
 
 static void
-experiment_done_cb (struct Experiment *e, int success)
+experiment_done_cb (struct Experiment *e, struct GNUNET_TIME_Relative duration,int success)
 {
   if (GNUNET_OK == success)
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Experiment `%s' done successful\n", e->name);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Experiment done successful in %s\n",
+        GNUNET_STRINGS_relative_time_to_string (duration, GNUNET_YES));
   else
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Experiment `%s' failed \n", e->name);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Experiment failed \n");
   if (GNUNET_SCHEDULER_NO_TASK != timeout_task)
   {
     GNUNET_SCHEDULER_cancel (timeout_task);
@@ -148,7 +150,7 @@ experiment_done_cb (struct Experiment *e, int success)
   }
   /* Stop logging */
   GNUNET_ATS_TEST_logging_stop (l);
-  evaluate ();
+  evaluate (duration);
 
   /* Stop traffic generation */
   GNUNET_ATS_TEST_generate_traffic_stop_all();

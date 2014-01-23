@@ -385,15 +385,43 @@ struct GNUNET_ATS_TEST_Topology
   void *done_cb_cls;
 };
 
-struct Experiment;
+enum OperationType
+{
+  START_SEND,
+  STOP_SEND,
+  SET_RATE,
+  SET_PREFERENCE
+};
 
 struct Episode;
+
+struct Experiment;
 
 typedef void (*GNUNET_ATS_TESTING_EpisodeDoneCallback) (
     struct Episode *e);
 
-typedef void (*GNUNET_ATS_TESTING_ExperimentDoneCallback) (
-    struct Experiment *e, int success);
+typedef void (*GNUNET_ATS_TESTING_ExperimentDoneCallback) (struct Experiment *e,
+    struct GNUNET_TIME_Relative duration,int success);
+
+struct Operation
+{
+  struct Operation *next;
+  struct Operation *prev;
+  long long unsigned int src_id;
+  long long unsigned int dest_id;
+  long long unsigned int value;
+  enum OperationType type;
+};
+
+struct Episode
+{
+  int id;
+  struct Episode *next;
+  struct GNUNET_TIME_Relative duration;
+
+  struct Operation *head;
+  struct Operation *tail;
+};
 
 
 struct Experiment
@@ -414,13 +442,6 @@ struct Experiment
 
   GNUNET_ATS_TESTING_EpisodeDoneCallback ep_done_cb;
   GNUNET_ATS_TESTING_ExperimentDoneCallback e_done_cb;
-};
-
-struct Episode
-{
-  int id;
-  struct Episode *next;
-  struct GNUNET_TIME_Relative duration;
 };
 
 void
