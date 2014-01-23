@@ -207,6 +207,16 @@ struct GNUNET_MESH_Handle
   /**
    * Monitor callback
    */
+  GNUNET_MESH_PeersCB peers_cb;
+
+  /**
+   * Monitor callback closure.
+   */
+  void *peers_cls;
+
+  /**
+   * Monitor callback
+   */
   GNUNET_MESH_TunnelsCB tunnels_cb;
 
   /**
@@ -1733,8 +1743,33 @@ GNUNET_MESH_get_channels_cancel (struct GNUNET_MESH_Handle *h)
 
 /**
  * Request information about the running mesh peer.
- * The callback will be called for every channel known to the service,
- * listing all active peers that blong to the channel.
+ * The callback will be called for every peer known to the service.
+ *
+ * If called again on the same handle, it will overwrite the previous
+ * callback and cls. To retrieve the cls, monitor_cancel must be
+ * called first.
+ *
+ * WARNING: unstable API, likely to change in the future!
+ *
+ * @param h Handle to the mesh peer.
+ * @param callback Function to call with the requested data.
+ * @param callback_cls Closure for @c callback.
+ */
+void
+GNUNET_MESH_get_peers (struct GNUNET_MESH_Handle *h,
+                       GNUNET_MESH_PeersCB callback,
+                       void *callback_cls)
+{
+  send_info_request (h, GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_PEERS);
+  h->peers_cb = callback;
+  h->peers_cls = callback_cls;
+}
+
+
+
+/**
+ * Request information about the running mesh peer.
+ * The callback will be called for every tunnel known to the service.
  *
  * If called again on the same handle, it will overwrite the previous
  * callback and cls. To retrieve the cls, monitor_cancel must be

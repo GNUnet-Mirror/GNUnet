@@ -34,6 +34,11 @@
 static int monitor_connections;
 
 /**
+ * Option -P.
+ */
+static int request_peers;
+
+/**
  * Option -T.
  */
 static int request_tunnels;
@@ -426,6 +431,35 @@ data_callback (void *cls,
 
 
 /**
+ * Method called to retrieve information about all peers in MESH, called
+ * once per peer.
+ *
+ * After last peer has been reported, an additional call with NULL is done.
+ *
+ * @param cls Closure.
+ * @param peer Peer, or NULL on "EOF".
+ * @param tunnel Do we have a tunnel towards this peer?
+ * @param best_path How long is the best path?
+ *                  (0 = unknown, 1 = ourselves, 2 = neighbor)
+ */
+static void
+peers_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
+                int tunnel, unsigned int best_path)
+{
+  if (NULL == peer)
+  {
+    if (GNUNET_YES != monitor_connections)
+    {
+      GNUNET_SCHEDULER_shutdown();
+    }
+    return;
+  }
+  FPRINTF (stdout, "%s tunnel: %c, best path %u hops]\n",
+           GNUNET_i2s_full (peer), tunnel ? 'Y' : 'N', best_path);
+}
+
+
+/**
  * Method called to retrieve information about all tunnels in MESH.
  *
  * @param cls Closure.
@@ -484,7 +518,24 @@ tunnel_callback (void *cls,
 
 
 /**
- * Call MESH's monitor API, get all tunnels known to peer.
+ * Call MESH's meta API, get all peers known to a peer.
+ *
+ * @param cls Closure (unused).
+ * @param tc TaskContext
+ */
+static void
+get_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown\n");
+    return;
+  }
+  GNUNET_MESH_get_peers (mh, &peers_callback, NULL);
+}
+
+/**
+ * Call MESH's meta API, get all tunnels known to a peer.
  *
  * @param cls Closure (unused).
  * @param tc TaskContext
@@ -576,7 +627,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   target_id = args[0];
   target_port = args[0] && args[1] ? atoi(args[1]) : 0;
-  if ( (0 != request_tunnels
+  if ( (0 != (request_peers | request_tunnels)
         || 0 != monitor_connections
         || NULL != tunnel_id
         || NULL != conn_id
@@ -619,6 +670,11 @@ run (void *cls, char *const *args, const char *cfgfile,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Show connection\n");
     GNUNET_SCHEDULER_add_now (&show_connection, NULL);
+  }
+  else if (GNUNET_YES == request_peers)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Show all peers\n");
+    GNUNET_SCHEDULER_add_now (&get_peers, NULL);
   }
   else if (GNUNET_YES == request_tunnels)
   {
@@ -676,6 +732,9 @@ main (int argc, char *const *argv)
     {'p', "port", NULL,
      gettext_noop ("port to listen to (default; 0)"),
      GNUNET_YES, &GNUNET_GETOPT_set_uint, &listen_port},
+    {'P', "peers", NULL,
+    gettext_noop ("provide information about all peers"),
+    GNUNET_NO, &GNUNET_GETOPT_set_one, &request_peers},
     {'t', "tunnel", "TUNNEL_ID",
      gettext_noop ("provide information about a particular tunnel"),
      GNUNET_YES, &GNUNET_GETOPT_set_string, &tunnel_id},

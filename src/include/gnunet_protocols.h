@@ -612,7 +612,7 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_DHT_P2P_TRAIL_SETUP                157
 
 /**
- * Trail to a particular peer is returned to this peer. 
+ * Trail to a particular peer is returned to this peer.
  */
 #define GNUNET_MESSAGE_TYPE_DHT_P2P_TRAIL_SETUP_RESULT         158
 
@@ -931,6 +931,16 @@ extern "C"
  * Local information of service about a specific connection.
  */
 #define GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_CONNECTION  295
+
+/**
+ * Local information about all peers known to the service.
+ */
+#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_PEERS       296
+
+/**
+ * Local information of service about a specific peer.
+ */
+#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_PEER        297
 
 /**
  * Traffic (net-cat style) used by the Command Line Interface.
