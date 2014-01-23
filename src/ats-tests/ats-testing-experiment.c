@@ -121,7 +121,7 @@ load_episode (struct Experiment *e, struct Episode *cur,
     {
       o->type = SET_RATE;
     }
-    else if (0 == strcmp (op, "set_preference "))
+    else if (0 == strcmp (op, "set_preference"))
     {
       o->type = SET_PREFERENCE;
     }
@@ -264,6 +264,57 @@ timeout_experiment (void *cls, const struct GNUNET_SCHEDULER_TaskContext* tc)
 }
 
 static void
+enforce_start_send (struct Operation *op)
+{
+  GNUNET_break (0);
+}
+
+static void
+enforce_stop_send (struct Operation *op)
+{
+  GNUNET_break (0);
+}
+
+static void
+enforce_set_rate (struct Operation *op)
+{
+  GNUNET_break (0);
+}
+
+static void
+enforce_set_preference (struct Operation *op)
+{
+  GNUNET_break (0);
+}
+
+static void enforce_episode (struct Episode *ep)
+{
+  struct Operation *cur;
+  for (cur = ep->head; NULL != cur; cur = cur->next)
+  {
+
+    fprintf (stderr, "Enforcing operation: %s [%llu]->[%llu] == %llu\n",
+        print_op (cur->type), cur->src_id, cur->dest_id, cur->value);
+    switch (cur->type) {
+      case START_SEND:
+        enforce_start_send (cur);
+        break;
+      case STOP_SEND:
+        enforce_stop_send (cur);
+        break;
+      case SET_RATE:
+        enforce_set_rate (cur);
+        break;
+      case SET_PREFERENCE:
+        enforce_set_preference (cur);
+        break;
+      default:
+        break;
+    }
+  }
+}
+
+static void
 timeout_episode (void *cls, const struct GNUNET_SCHEDULER_TaskContext* tc)
 {
   struct Experiment *e = cls;
@@ -288,6 +339,8 @@ timeout_episode (void *cls, const struct GNUNET_SCHEDULER_TaskContext* tc)
   fprintf (stderr, "Running episode %u with timeout %s\n",
       e->cur->id,
       GNUNET_STRINGS_relative_time_to_string(e->cur->duration, GNUNET_YES));
+  enforce_episode(e->cur);
+
   e->episode_timeout_task = GNUNET_SCHEDULER_add_delayed (e->cur->duration,
       &timeout_episode, e);
 }
@@ -313,6 +366,7 @@ GNUNET_ATS_TEST_experimentation_run (struct Experiment *e,
   fprintf (stderr, "Running episode %u with timeout %s\n",
       e->cur->id,
       GNUNET_STRINGS_relative_time_to_string(e->cur->duration, GNUNET_YES));
+  enforce_episode(e->cur);
   e->episode_timeout_task = GNUNET_SCHEDULER_add_delayed (e->cur->duration,
       &timeout_episode, e);
 

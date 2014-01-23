@@ -7,16 +7,26 @@
  
 [episode-0]
 # operations = set_rate, start_send, stop_send, set_preference
+duration = 2 s
 op-0-operation = set_rate
 op-0-value = 10000
 op-0-src = 0
 op-0-dest = 1
 
 op-1-operation = set_rate
-op-1-value = 10000
+op-1-value = 1000
 op-1-src = 0
 op-1-dest = 2
-duration = 2 s
+
 
 [episode-1]
 duration = 2 s
+op-0-operation = set_preference
+op-0-value = 10000
+op-0-src = 0
+op-0-dest = 1
+
+op-1-operation = set_preference
+op-1-value = 10000
+op-1-src = 0
+op-1-dest = 2
