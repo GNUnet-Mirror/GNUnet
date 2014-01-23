@@ -29,7 +29,7 @@
 #define LOG(kind,...) GNUNET_log_from (kind, "ats-ril",__VA_ARGS__)
 
 #define RIL_MIN_BW                      ntohl (GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT.value__)
-#define RIL_MAX_BW                      GNUNET_ATS_MaxBandwidth
+#define RIL_MAX_BW                      1024 * 1000//GNUNET_ATS_MaxBandwidth TODO! revert
 
 #define RIL_ACTION_INVALID              -1
 #define RIL_INTERVAL_EXPONENT           10
@@ -199,6 +199,17 @@ struct RIL_Address_Wrapped
    * The address
    */
   struct ATS_Address *address_naked;
+
+  /**
+   * Last inbound bandwidth used
+   */
+  unsigned long long bw_in;
+
+  /**
+   * Last outbound bandwidth used
+   */
+  unsigned long long bw_out;
+
 };
 
 struct RIL_Peer_Agent
@@ -984,41 +995,40 @@ ril_network_get_social_welfare (struct GAS_RIL_Handle *solver, struct RIL_Scope 
     {
       if (cur->is_active && cur->address_inuse && (cur->address_inuse->solver_information == scope))
       {
-        result *= agent_get_utility(cur);
+        result *= pow(agent_get_utility(cur), 1.0 / (double) scope->agent_count);
       }
     }
-    return pow(result, 1.0 / (double) scope->agent_count);
+    return result;
   }
   GNUNET_assert(GNUNET_NO);
   return 1;
 }
 
-/**
- * Gets the reward for the last performed step, which is calculated in equal
- * parts from the local (the peer specific) and the global (for all peers
- * identical) reward.
- *
- * @param solver the solver handle
- * @param agent the agent handle
- * @return the reward
- */
 static double
-envi_get_reward (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
+envi_penalty_share (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
+{
+  struct RIL_Scope *net;
+  double util_ratio_in;
+  double util_ratio_out;
+  double util_ratio_max;
+  double sigmoid_x;
+
+  net = agent->address_inuse->solver_information;
+
+  util_ratio_in = (double) net->bw_in_utilized / (double) net->bw_in_available;
+  util_ratio_out = (double) net->bw_out_utilized / (double) net->bw_out_available;
+  util_ratio_max = GNUNET_MAX (util_ratio_in, util_ratio_out);
+  sigmoid_x = util_ratio_max - 1;
+  return 1 - (1 / (1 + exp(5 * sigmoid_x)));
+}
+
+static double
+envi_get_penalty (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
 {
   struct RIL_Scope *net;
   unsigned long long over_max;
   unsigned long long over_in = 0;
   unsigned long long over_out = 0;
-  double objective;
-  double delta;
-  double steady;
-  double util_ratio_in;
-  double util_ratio_out;
-  double util_ratio_max;
-  double sigmoid_x;
-  double obj;
-  double over;
-  double obj_share;
 
   net = agent->address_inuse->solver_information;
 
@@ -1041,6 +1051,31 @@ envi_get_reward (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
   }
   over_max = GNUNET_MAX (over_in , over_out) / RIL_MIN_BW;
 
+  return -1.0 * (double) over_max;
+}
+
+/**
+ * Gets the reward for the last performed step, which is calculated in equal
+ * parts from the local (the peer specific) and the global (for all peers
+ * identical) reward.
+ *
+ * @param solver the solver handle
+ * @param agent the agent handle
+ * @return the reward
+ */
+static double
+envi_get_reward (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
+{
+  struct RIL_Scope *net;
+  double objective;
+  double delta;
+  double steady;
+  double pen_share;
+  double penalty;
+  double reward;
+
+  net = agent->address_inuse->solver_information;
+
   objective = (agent_get_utility (agent) + net->social_welfare) / 2;
   delta = objective - agent->objective_old;
   agent->objective_old = objective;
@@ -1050,19 +1085,13 @@ envi_get_reward (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
     agent->nop_bonus = delta * 0.5;
   }
 
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "agent->nop_bonus: %f\n", agent->nop_bonus);
-
   steady = (RIL_ACTION_NOTHING == agent->a_old) ? agent->nop_bonus : 0;
 
-  util_ratio_in = (double) net->bw_in_utilized / (double) net->bw_in_available;
-  util_ratio_out = (double) net->bw_out_utilized / (double) net->bw_out_available;
-  util_ratio_max = GNUNET_MAX (util_ratio_in, util_ratio_out);
-  sigmoid_x = util_ratio_max - 1;
-  obj_share = 1 / (1 + exp(1 * sigmoid_x));
+  pen_share = envi_penalty_share(solver, agent);
+  penalty = envi_get_penalty(solver, agent);
 
-  over = -1.0 * (double) over_max;
-  obj = delta + steady;
-  return (obj_share * obj) + ((1 - obj_share) * over);
+  reward = delta + steady;
+  return ((1 - pen_share) * reward) + (pen_share * penalty);
 }
 
 /**
@@ -1209,11 +1238,15 @@ envi_action_address_switch (struct GAS_RIL_Handle *solver,
   struct RIL_Address_Wrapped *cur;
   int i = 0;
 
+  cur = agent_address_get_wrapped(agent, agent->address_inuse);
+  cur->bw_in = agent->bw_in;
+  cur->bw_out = agent->bw_out;
+
   for (cur = agent->addresses_head; NULL != cur; cur = cur->next)
   {
     if (i == address_index)
     {
-      envi_set_active_suggestion (solver, agent, cur->address_naked, agent->bw_in, agent->bw_out,
+      envi_set_active_suggestion (solver, agent, cur->address_naked, cur->bw_in, cur->bw_out,
           GNUNET_NO);
       return;
     }
@@ -2392,6 +2425,8 @@ GAS_ril_address_add (void *solver, struct ATS_Address *address, uint32_t network
   //add address
   address_wrapped = GNUNET_new (struct RIL_Address_Wrapped);
   address_wrapped->address_naked = address;
+  address_wrapped->bw_in = RIL_MIN_BW;
+  address_wrapped->bw_out = RIL_MIN_BW;
   GNUNET_CONTAINER_DLL_insert_tail(agent->addresses_head, agent->addresses_tail, address_wrapped);
 
   //increase size of W
