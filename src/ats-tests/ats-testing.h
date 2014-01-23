@@ -33,7 +33,7 @@
 
 #define TEST_MESSAGE_TYPE_PING 12345
 #define TEST_MESSAGE_TYPE_PONG 12346
-#define TEST_MESSAGE_SIZE 1000
+#define TEST_MESSAGE_SIZE 100
 
 struct BenchmarkPartner;
 struct BenchmarkPeer;
@@ -166,6 +166,19 @@ struct BenchmarkPeer
   unsigned int total_bytes_received;
 };
 
+struct TrafficGenerator
+{
+  struct TrafficGenerator *prev;
+  struct TrafficGenerator *next;
+
+  struct BenchmarkPeer *src;
+  struct BenchmarkPartner *dest;
+  unsigned int rate;
+  GNUNET_SCHEDULER_TaskIdentifier send_task;
+  struct GNUNET_TIME_Absolute next_ping_transmission;
+  struct GNUNET_TIME_Relative delta;
+};
+
 
 /**
  * Information about a benchmarking partner
@@ -191,6 +204,8 @@ struct BenchmarkPartner
    * Transport transmit handles
    */
   struct GNUNET_TRANSPORT_TransmitHandle *tth;
+
+  struct TrafficGenerator *tg;
 
   /**
    * Timestamp to calculate communication layer delay
@@ -245,6 +260,129 @@ struct BenchmarkPartner
   uint32_t ats_cost_wlan;
 };
 
+/**
+ * Overall state of the performance benchmark
+ */
+struct BenchmarkState
+{
+  /**
+   * Are we connected to ATS service of all peers: GNUNET_YES/NO
+   */
+  int connected_ATS_service;
+
+  /**
+   * Are we connected to CORE service of all peers: GNUNET_YES/NO
+   */
+  int connected_COMM_service;
+
+  /**
+   * Are we connected to all peers: GNUNET_YES/NO
+   */
+  int connected_PEERS;
+
+  /**
+   * Are we connected to all slave peers on CORE level: GNUNET_YES/NO
+   */
+  int connected_CORE;
+
+  /**
+   * Are we connected to CORE service of all peers: GNUNET_YES/NO
+   */
+  int benchmarking;
+};
+
+
+struct GNUNET_ATS_TEST_Topology
+{
+  /**
+   * Shutdown task
+   */
+  GNUNET_SCHEDULER_TaskIdentifier shutdown_task;
+
+  /**
+   * Progress task
+   */
+  GNUNET_SCHEDULER_TaskIdentifier progress_task;
+
+  /**
+   * Test result
+   */
+  int result;
+
+  /**
+   * Test result logging
+   */
+  int logging;
+
+  /**Test core (GNUNET_YES) or transport (GNUNET_NO)
+   */
+  int test_core;
+
+  /**
+   * Solver string
+   */
+  char *solver;
+
+  /**
+   * Preference string
+   */
+  char *testname;
+
+  /**
+   * Preference string
+   */
+  char *pref_str;
+
+  /**
+   * ATS preference value
+   */
+  int pref_val;
+
+  /**
+   * Number master peers
+   */
+  unsigned int num_masters;
+
+  /**
+   * Array of master peers
+   */
+  struct BenchmarkPeer *mps;
+
+  /**
+   * Number slave peers
+   */
+  unsigned int num_slaves;
+
+  /**
+   * Array of slave peers
+   */
+  struct BenchmarkPeer *sps;
+
+  /**
+   * Benchmark duration
+   */
+  struct GNUNET_TIME_Relative perf_duration;
+
+  /**
+   * Logging frequency
+   */
+  struct GNUNET_TIME_Relative log_frequency;
+
+  /**
+   * Benchmark state
+   */
+  struct BenchmarkState state;
+
+  struct GNUNET_CORE_MessageHandler *handlers;
+
+  GNUNET_TRANSPORT_ReceiveCallback transport_recv_cb;
+
+  GNUNET_ATS_TESTING_TopologySetupDoneCallback done_cb;
+  GNUNET_ATS_AddressInformationCallback ats_perf_cb;
+  void *done_cb_cls;
+};
+
+
 struct TrafficGenerator *
 GNUNET_ATS_TEST_generate_traffic_start (struct BenchmarkPeer *src,
     struct BenchmarkPartner *dest, unsigned int rate,
@@ -253,15 +391,38 @@ GNUNET_ATS_TEST_generate_traffic_start (struct BenchmarkPeer *src,
 void
 GNUNET_ATS_TEST_generate_traffic_stop (struct TrafficGenerator *tg);
 
+/**
+ * Stop all traffic generators
+ */
+void
+GNUNET_ATS_TEST_generate_traffic_stop_all ();
+
+/**
+ * Start logging
+ */
 void
 GNUNET_ATS_TEST_logging_start (struct GNUNET_TIME_Relative log_frequency,
     char * testname, struct BenchmarkPeer *masters, int num_masters);
 
+/**
+ * Stop logging
+ */
+void
+GNUNET_ATS_TEST_logging_stop (void);
+
+/**
+ * Log all data now
+ */
 void
 GNUNET_ATS_TEST_logging_now (void);
 
+
 void
-GNUNET_ATS_TEST_logging_stop (void);
+GNUNET_ATS_TEST_traffic_handle_ping (struct BenchmarkPartner *p);
+
+void
+GNUNET_ATS_TEST_traffic_handle_pong (struct BenchmarkPartner *p);
+
 
 void
 GNUNET_ATS_TEST_create_topology (char *name, char *cfg_file,

@@ -37,9 +37,6 @@
 
 #define TEST_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
 
-#define TEST_MESSAGE_TYPE_PING 12345
-#define TEST_MESSAGE_TYPE_PONG 1234
-
 static struct BenchmarkPeer *masters_p;
 static struct BenchmarkPeer *slaves_p;
 
@@ -157,7 +154,8 @@ static void topology_setup_done (void *cls,
       {
         /* Generate maximum traffic to all peers */
         GNUNET_ATS_TEST_generate_traffic_start (&masters[c_m],
-            &masters[c_m].partners[c_s], 10000,
+            &masters[c_m].partners[c_s],
+            10000,
             GNUNET_TIME_UNIT_FOREVER_REL);
       }
   }
@@ -172,7 +170,7 @@ main (int argc, char *argv[])
   c_masters = DEFAULT_NUM_MASTERS;
 
   /* Setup a topology with */
-  GNUNET_ATS_TEST_create_topology ("gnunet-ats-sim", "perf_ats_proportional_none.conf",
+  GNUNET_ATS_TEST_create_topology ("gnunet-ats-sim", "gnunet_ats_sim_default.conf",
       c_slaves,
       c_masters,
       GNUNET_NO,

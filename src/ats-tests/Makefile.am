@@ -52,7 +52,7 @@ noinst_PROGRAMS = \
  gnunet-ats-sim
  
 libgnunetatstesting_la_SOURCES = \
-  ats-testing.c ats-testing-log.c ats-testing.h
+  ats-testing.c ats-testing-log.c ats-testing-traffic.c ats-testing.h
 libgnunetatstesting_la_LIBADD = \
   $(top_builddir)/src/transport/libgnunettransport.la \
   $(top_builddir)/src/hello/libgnunethello.la \
@@ -316,6 +316,7 @@ perf_ats_ril_transport_latency_DEPENDENCIES = \
  $(top_builddir)/src/util/libgnunetutil.la  
 
 EXTRA_DIST = \
+	gnunet_ats_sim_default.conf \
   perf_ats_proportional_none.conf \
   perf_ats_proportional_bandwidth.conf \
   perf_ats_proportional_latency.conf \
