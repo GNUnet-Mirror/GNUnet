@@ -64,11 +64,20 @@ free_experiment (struct Experiment *e)
 {
   struct Episode *cur;
   struct Episode *next;
+  struct Operation *cur_o;
+  struct Operation *next_o;
 
   next = e->start;
   for (cur = next; NULL != cur; cur = next)
   {
     next = cur->next;
+
+    next_o = cur->head;
+    for (cur_o = next_o; NULL != cur_o; cur_o = next_o)
+    {
+      next_o = cur_o->next;
+      GNUNET_free (cur_o);
+    }
     GNUNET_free (cur);
   }
 
