@@ -18,14 +18,14 @@
  Boston, MA 02111-1307, USA.
  */
 /**
- * @file ats/perf_ats_logging.c
+ * @file ats-tests/ats-testing-log.c
  * @brief ats benchmark: logging for performance tests
  * @author Christian Grothoff
  * @author Matthias Wachs
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
-#include "perf_ats.h"
+#include "ats-testing.h"
 
 #define THROUGHPUT_TEMPLATE "#!/usr/bin/gnuplot \n" \
 "set datafile separator ';' \n" \
@@ -68,19 +68,6 @@
 #define LOG_ITEM_ATS_NETWORKTYPE 15
 #define LOG_ITEM_ATS_UTIL_UP 16
 #define LOG_ITEM_ATS_UTIL_DOWN 17
-
-/**
- * Logging task
- */
-static GNUNET_SCHEDULER_TaskIdentifier log_task;
-
-/**
- * Reference to perf_ats' masters
- */
-static int num_peers;
-static int running;
-static char *name;
-static struct GNUNET_TIME_Relative frequency;
 
 /**
  * A single logging time step for a partner
@@ -238,10 +225,28 @@ struct LoggingPeer
   struct PeerLoggingTimestep *tail;
 };
 
-/**
- * Log structure of length num_peers
- */
-static struct LoggingPeer *lp;
+struct LoggingHandle
+{
+  /**
+   * Logging task
+   */
+  GNUNET_SCHEDULER_TaskIdentifier log_task;
+
+  /**
+   * Reference to perf_ats' masters
+   */
+  int num_peers;
+  int running;
+  char *name;
+  struct GNUNET_TIME_Relative frequency;
+
+  /**
+   * Log structure of length num_peers
+   */
+  struct LoggingPeer *lp;
+
+};
+
 
 
 static void
@@ -397,8 +402,8 @@ write_bw_gnuplot_script (char * fn, struct LoggingPeer *lp)
 }
 
 
-static void
-write_to_file ()
+void
+GNUNET_ATS_TEST_logging_write_to_file (struct LoggingHandle *l, char *test)
 {
   struct GNUNET_DISK_FileHandle *f;
 
@@ -411,10 +416,10 @@ write_to_file ()
   int c_m;
   int c_s;
 
-  for (c_m = 0; c_m < num_peers; c_m++)
+  for (c_m = 0; c_m < l->num_peers; c_m++)
   {
-    GNUNET_asprintf (&filename, "%llu_master_%u_%s_%s.data", GNUNET_TIME_absolute_get().abs_value_us,
-        lp[c_m].peer->no, GNUNET_i2s(&lp[c_m].peer->id), name);
+    GNUNET_asprintf (&filename, "%s_%llu_master_%u_%s_%s.data", test, GNUNET_TIME_absolute_get().abs_value_us,
+        l->lp[c_m].peer->no, GNUNET_i2s(&l->lp[c_m].peer->id), l->name);
 
     f = GNUNET_DISK_file_open (filename,
         GNUNET_DISK_OPEN_WRITE | GNUNET_DISK_OPEN_CREATE,
@@ -426,16 +431,16 @@ write_to_file ()
       return;
     }
 
-    for (cur_lt = lp[c_m].head; NULL != cur_lt; cur_lt = cur_lt->next)
+    for (cur_lt = l->lp[c_m].head; NULL != cur_lt; cur_lt = cur_lt->next)
     {
        GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-          "Master [%u]: timestamp %llu %llu ; %u %u %u ; %u %u %u\n", lp[c_m].peer->no,
-          cur_lt->timestamp, GNUNET_TIME_absolute_get_difference(lp[c_m].start,cur_lt->timestamp).rel_value_us / 1000,
+          "Master [%u]: timestamp %llu %llu ; %u %u %u ; %u %u %u\n", l->lp[c_m].peer->no,
+          cur_lt->timestamp, GNUNET_TIME_absolute_get_difference(l->lp[c_m].start,cur_lt->timestamp).rel_value_us / 1000,
           cur_lt->total_messages_sent, cur_lt->total_bytes_sent, cur_lt->total_throughput_send,
           cur_lt->total_messages_received, cur_lt->total_bytes_received, cur_lt->total_throughput_recv);
 
       slave_string = GNUNET_strdup (";");
-      for (c_s = 0; c_s < lp[c_m].peer->num_partners; c_s++)
+      for (c_s = 0; c_s < l->lp[c_m].peer->num_partners; c_s++)
       {
         plt = &cur_lt->slaves_log[c_s];
         /* Log partners */
@@ -465,7 +470,7 @@ write_to_file ()
 
       GNUNET_asprintf (&data, "%llu;%llu;%u;%u;%u;%u;%u;%u;;;;;;;;;;;%s\n",
           cur_lt->timestamp,
-          GNUNET_TIME_absolute_get_difference(lp[c_m].start,cur_lt->timestamp).rel_value_us / 1000,
+          GNUNET_TIME_absolute_get_difference(l->lp[c_m].start,cur_lt->timestamp).rel_value_us / 1000,
           cur_lt->total_messages_sent, cur_lt->total_bytes_sent,  cur_lt->total_throughput_send,
           cur_lt->total_messages_received, cur_lt->total_bytes_received, cur_lt->total_throughput_recv,
           slave_string);
@@ -482,9 +487,9 @@ write_to_file ()
       return;
     }
 
-    write_throughput_gnuplot_script (filename, lp);
-    write_rtt_gnuplot_script (filename, lp);
-    write_bw_gnuplot_script (filename, lp);
+    write_throughput_gnuplot_script (filename, l->lp);
+    write_rtt_gnuplot_script (filename, l->lp);
+    write_bw_gnuplot_script (filename, l->lp);
 
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Data file successfully written to log file `%s'\n", filename);
     GNUNET_free (filename);
@@ -493,7 +498,7 @@ write_to_file ()
 
 
 void
-GNUNET_ATS_TEST_logging_now (void)
+GNUNET_ATS_TEST_logging_now (struct LoggingHandle *l)
 {
   struct LoggingPeer *bp;
   struct PeerLoggingTimestep *mlt;
@@ -507,12 +512,12 @@ GNUNET_ATS_TEST_logging_now (void)
   unsigned int app_rtt;
   double mult;
 
-  if (GNUNET_YES != running)
+  if (GNUNET_YES != l->running)
     return;
 
-  for (c_m = 0; c_m < num_peers; c_m++)
+  for (c_m = 0; c_m < l->num_peers; c_m++)
   {
-    bp = &lp[c_m];
+    bp = &l->lp[c_m];
     mlt = GNUNET_new (struct PeerLoggingTimestep);
     GNUNET_CONTAINER_DLL_insert_tail(bp->head, bp->tail, mlt);
     prev_log_mlt = mlt->prev;
@@ -530,7 +535,7 @@ GNUNET_ATS_TEST_logging_now (void)
     if (NULL == prev_log_mlt)
      {
        /* Get difference to start */
-       delta = GNUNET_TIME_absolute_get_difference (lp[c_m].start, mlt->timestamp);
+       delta = GNUNET_TIME_absolute_get_difference (l->lp[c_m].start, mlt->timestamp);
      }
      else
      {
@@ -639,75 +644,79 @@ GNUNET_ATS_TEST_logging_now (void)
 static void
 collect_log_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  log_task = GNUNET_SCHEDULER_NO_TASK;
+  struct LoggingHandle *l = cls;
+  l->log_task = GNUNET_SCHEDULER_NO_TASK;
 
-  GNUNET_ATS_TEST_logging_now();
+  GNUNET_ATS_TEST_logging_now (l);
 
   if (tc->reason == GNUNET_SCHEDULER_REASON_SHUTDOWN)
     return;
 
-  log_task = GNUNET_SCHEDULER_add_delayed (frequency,
-      &collect_log_task, NULL);
+  l->log_task = GNUNET_SCHEDULER_add_delayed (l->frequency,
+      &collect_log_task, l);
 }
 
 
 void
-GNUNET_ATS_TEST_logging_stop (void)
+GNUNET_ATS_TEST_logging_stop (struct LoggingHandle *l)
 {
   int c_m;
   struct GNUNET_SCHEDULER_TaskContext tc;
   struct PeerLoggingTimestep *cur;
 
-  if (GNUNET_YES!= running)
+  if (GNUNET_YES!= l->running)
     return;
 
-  if (GNUNET_SCHEDULER_NO_TASK != log_task)
-    GNUNET_SCHEDULER_cancel (log_task);
-  log_task = GNUNET_SCHEDULER_NO_TASK;
+  if (GNUNET_SCHEDULER_NO_TASK != l->log_task)
+    GNUNET_SCHEDULER_cancel (l->log_task);
+  l->log_task = GNUNET_SCHEDULER_NO_TASK;
   tc.reason = GNUNET_SCHEDULER_REASON_SHUTDOWN;
-  collect_log_task (NULL, &tc);
+  collect_log_task (l, &tc);
 
   GNUNET_log(GNUNET_ERROR_TYPE_INFO,
       _("Stop logging\n"));
 
-  write_to_file ();
 
-  for (c_m = 0; c_m < num_peers; c_m++)
+  for (c_m = 0; c_m < l->num_peers; c_m++)
   {
-    while (NULL != (cur = lp[c_m].head))
+    while (NULL != (cur = l->lp[c_m].head))
     {
-      GNUNET_CONTAINER_DLL_remove (lp[c_m].head, lp[c_m].tail, cur);
+      GNUNET_CONTAINER_DLL_remove (l->lp[c_m].head, l->lp[c_m].tail, cur);
       GNUNET_free (cur->slaves_log);
       GNUNET_free (cur);
     }
   }
 
-  GNUNET_free (lp);
+  GNUNET_free (l->lp);
+  GNUNET_free (l);
 }
 
-void
+struct LoggingHandle *
 GNUNET_ATS_TEST_logging_start (struct GNUNET_TIME_Relative log_frequency,
     char * testname, struct BenchmarkPeer *masters, int num_masters)
 {
+  struct LoggingHandle *l;
   int c_m;
   GNUNET_log(GNUNET_ERROR_TYPE_INFO,
       _("Start logging `%s'\n"), testname);
 
-  num_peers = num_masters;
-  name = testname;
-  frequency = log_frequency;
-
-  lp = GNUNET_malloc (num_masters * sizeof (struct LoggingPeer));
+  l = GNUNET_new (struct LoggingHandle);
+  l->num_peers = num_masters;
+  l->name = testname;
+  l->frequency = log_frequency;
+  l->lp = GNUNET_malloc (num_masters * sizeof (struct LoggingPeer));
 
   for (c_m = 0; c_m < num_masters; c_m ++)
   {
-    lp[c_m].peer = &masters[c_m];
-    lp[c_m].start = GNUNET_TIME_absolute_get();
+    l->lp[c_m].peer = &masters[c_m];
+    l->lp[c_m].start = GNUNET_TIME_absolute_get();
   }
 
   /* Schedule logging task */
-  log_task = GNUNET_SCHEDULER_add_now (&collect_log_task, NULL);
-  running = GNUNET_YES;
+  l->log_task = GNUNET_SCHEDULER_add_now (&collect_log_task, l);
+  l->running = GNUNET_YES;
+
+  return l;
 }
-/* end of file perf_ats_logging.c */
+/* end of file ats-testing-log.c */
 

@@ -37,8 +37,10 @@
 static struct BenchmarkPeer *masters_p;
 static struct BenchmarkPeer *slaves_p;
 
-struct Experiment *e;
+GNUNET_SCHEDULER_TaskIdentifier timeout_task;
 
+struct Experiment *e;
+struct LoggingHandle *l;
 
 static void
 evaluate ()
@@ -105,8 +107,12 @@ evaluate ()
 static void
 do_shutdown ()
 {
-  /* Shutdown a topology with */
-  evaluate ();
+  /* timeout */
+  if (NULL != e)
+  {
+    GNUNET_ATS_TEST_experimentation_stop (e);
+    e = NULL;
+  }
   GNUNET_ATS_TEST_shutdown_topology ();
 }
 
@@ -119,12 +125,45 @@ transport_recv_cb (void *cls,
 }
 
 static void
-ats_performance_info_cb (void *cls, const struct GNUNET_HELLO_Address *address,
+log_request__cb (void *cls, const struct GNUNET_HELLO_Address *address,
     int address_active, struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
     const struct GNUNET_ATS_Information *ats, uint32_t ats_count)
 {
+  if (NULL != l)
+    GNUNET_ATS_TEST_logging_now (l);
+}
 
+static void
+experiment_done_cb (struct Experiment *e, int success)
+{
+  if (GNUNET_OK == success)
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Experiment `%s' done successful\n", e->name);
+  else
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Experiment `%s' failed \n", e->name);
+  if (GNUNET_SCHEDULER_NO_TASK != timeout_task)
+  {
+    GNUNET_SCHEDULER_cancel (timeout_task);
+    timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  /* Stop logging */
+  GNUNET_ATS_TEST_logging_stop (l);
+  evaluate ();
+
+  /* Stop traffic generation */
+  GNUNET_ATS_TEST_generate_traffic_stop_all();
+  /* Clean up experiment */
+  GNUNET_ATS_TEST_experimentation_stop (e);
+  e = NULL;
+
+  /* Shutdown topology */
+  GNUNET_ATS_TEST_shutdown_topology ();
+}
+
+static void
+episode_done_cb (struct Episode *ep)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Episode %u done\n", ep->id);
 }
 
 static void topology_setup_done (void *cls,
@@ -138,25 +177,31 @@ static void topology_setup_done (void *cls,
   masters_p = masters;
   slaves_p = slaves;
 
+  l = GNUNET_ATS_TEST_logging_start (GNUNET_TIME_UNIT_SECONDS, e->name,
+      masters_p, e->num_masters);
+  GNUNET_ATS_TEST_experimentation_run (e, &episode_done_cb, &experiment_done_cb);
+
   for (c_m = 0; c_m < e->num_masters; c_m++)
   {
       for (c_s = 0; c_s < e->num_slaves; c_s++)
       {
         /* Generate maximum traffic to all peers */
-        fprintf (stderr, "c_m %u c_s %u\n", c_m, c_s);
         GNUNET_ATS_TEST_generate_traffic_start (&masters[c_m],
             &masters[c_m].partners[c_s],
             10000,
             GNUNET_TIME_UNIT_FOREVER_REL);
       }
   }
-  GNUNET_SCHEDULER_add_delayed (TEST_TIMEOUT, &do_shutdown, NULL);
+
+  timeout_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_add (GNUNET_TIME_UNIT_MINUTES,
+      e->max_duration), &do_shutdown, NULL);
 }
 
 
 int
 main (int argc, char *argv[])
 {
+  GNUNET_log_setup("gnunet-ats-sim", "INFO", NULL);
   if (argc < 2)
   {
     fprintf (stderr, "No experiment given...\n");
@@ -164,14 +209,17 @@ main (int argc, char *argv[])
   }
 
   fprintf (stderr, "Loading experiment `%s' \n", argv[1]);
-  e = GNUNET_ATS_TEST_experimentation_start (argv[1]);
+  e = GNUNET_ATS_TEST_experimentation_load (argv[1]);
   if (NULL == e)
   {
     fprintf (stderr, "Invalid experiment\n");
     return 1;
   }
-
-  fprintf (stderr, "%llu %llu\n", e->num_masters, e->num_slaves);
+  if (0 == e->num_episodes)
+  {
+    fprintf (stderr, "No episodes included\n");
+    return 1;
+  }
 
   /* Setup a topology with */
   GNUNET_ATS_TEST_create_topology ("gnunet-ats-sim", e->cfg_file,
@@ -181,7 +229,7 @@ main (int argc, char *argv[])
       &topology_setup_done,
       NULL,
       &transport_recv_cb,
-      &ats_performance_info_cb);
+      &log_request__cb);
   return 0;
 }
 /* end of file gnunet-ats-sim.c */
