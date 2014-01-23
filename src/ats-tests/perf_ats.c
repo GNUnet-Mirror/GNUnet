@@ -117,6 +117,8 @@ static unsigned int num_slaves;
  */
 static struct BenchmarkPeer *sps;
 
+static struct LoggingHandle *l;
+
 static void
 evaluate ()
 {
@@ -190,7 +192,7 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
 
   if (GNUNET_YES == logging)
-    GNUNET_ATS_TEST_logging_stop();
+    GNUNET_ATS_TEST_logging_stop(l);
 
   shutdown_task = GNUNET_SCHEDULER_NO_TASK;
   if (GNUNET_SCHEDULER_NO_TASK != progress_task)
@@ -269,7 +271,7 @@ start_benchmark()
     }
 
   if (GNUNET_YES == logging)
-    GNUNET_ATS_TEST_logging_start(log_frequency, testname, mps, num_masters);
+    l = GNUNET_ATS_TEST_logging_start(log_frequency, testname, mps, num_masters);
 }
 
 static void
@@ -313,7 +315,7 @@ test_recv_cb (void *cls,
 
 
 static void
-ats_performance_info_cb (void *cls, const struct GNUNET_HELLO_Address *address,
+log_request_cb (void *cls, const struct GNUNET_HELLO_Address *address,
     int address_active, struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
     const struct GNUNET_ATS_Information *ats, uint32_t ats_count)
@@ -321,7 +323,6 @@ ats_performance_info_cb (void *cls, const struct GNUNET_HELLO_Address *address,
   struct BenchmarkPeer *me = cls;
   struct BenchmarkPartner *p;
   int c_a;
-  int log;
   char *peer_id;
 
   p = find_partner (me, &address->peer);
@@ -334,10 +335,8 @@ ats_performance_info_cb (void *cls, const struct GNUNET_HELLO_Address *address,
   }
   peer_id = GNUNET_strdup (GNUNET_i2s (&me->id));
 
-  log = GNUNET_NO;
   if ((p->bandwidth_in != ntohl (bandwidth_in.value__)) ||
       (p->bandwidth_out != ntohl (bandwidth_out.value__)))
-      log = GNUNET_YES;
   p->bandwidth_in = ntohl (bandwidth_in.value__);
   p->bandwidth_out = ntohl (bandwidth_out.value__);
 
@@ -351,7 +350,8 @@ ats_performance_info_cb (void *cls, const struct GNUNET_HELLO_Address *address,
         ntohl(ats[c_a].value));
   }
   GNUNET_free(peer_id);
-
+  if (NULL != l)
+    GNUNET_ATS_TEST_logging_now (l);
 }
 
 
@@ -544,7 +544,7 @@ main (int argc, char *argv[])
       &do_benchmark,
       NULL,
       &test_recv_cb,
-      &ats_performance_info_cb);
+      &log_request_cb);
 
   return result;
 }
