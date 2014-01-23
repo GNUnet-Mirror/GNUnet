@@ -583,7 +583,9 @@ run (void *cls, char *const *args, const char *cfgfile,
         || NULL != channel_id)
        && target_id != NULL)
   {
-    FPRINTF (stderr, _("You must NOT give a TARGET when using options\n"));
+    FPRINTF (stderr,
+             _("You must NOT give a TARGET"
+               "when using 'request all' options\n"));
     return;
   }
 
@@ -683,6 +685,8 @@ main (int argc, char *const *argv)
 
     GNUNET_GETOPT_OPTION_END
   };
+
+  monitor_connections = GNUNET_NO;
 
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
