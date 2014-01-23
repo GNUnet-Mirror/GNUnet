@@ -32,23 +32,13 @@
 #include "gnunet_core_service.h"
 #include "ats-testing.h"
 
-#define DEFAULT_NUM_SLAVES 5
-#define DEFAULT_NUM_MASTERS 1
-
 #define TEST_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
 
 static struct BenchmarkPeer *masters_p;
 static struct BenchmarkPeer *slaves_p;
 
-/**
- * Number of master peers to use
- */
-static int c_masters;
+struct Experiment *e;
 
-/**
- * Number of slave peers to use
- */
-static int c_slaves;
 
 static void
 evaluate ()
@@ -66,7 +56,7 @@ evaluate ()
   unsigned int rtt;
 
   duration = (TEST_TIMEOUT.rel_value_us / (1000 * 1000));
-  for (c_m = 0; c_m < c_masters; c_m++)
+  for (c_m = 0; c_m < e->num_masters; c_m++)
   {
     mp = &masters_p[c_m];
     fprintf (stderr,
@@ -76,7 +66,7 @@ evaluate ()
         mp->total_bytes_received / 1024, duration,
         (mp->total_bytes_received / 1024) / duration);
 
-    for (c_s = 0; c_s < c_slaves; c_s++)
+    for (c_s = 0; c_s < e->num_slaves; c_s++)
     {
       p = &mp->partners[c_s];
 
@@ -148,11 +138,12 @@ static void topology_setup_done (void *cls,
   masters_p = masters;
   slaves_p = slaves;
 
-  for (c_m = 0; c_m < c_masters; c_m++)
+  for (c_m = 0; c_m < e->num_masters; c_m++)
   {
-      for (c_s = 0; c_s < c_slaves; c_s++)
+      for (c_s = 0; c_s < e->num_slaves; c_s++)
       {
         /* Generate maximum traffic to all peers */
+        fprintf (stderr, "c_m %u c_s %u\n", c_m, c_s);
         GNUNET_ATS_TEST_generate_traffic_start (&masters[c_m],
             &masters[c_m].partners[c_s],
             10000,
@@ -166,13 +157,26 @@ static void topology_setup_done (void *cls,
 int
 main (int argc, char *argv[])
 {
-  c_slaves = DEFAULT_NUM_SLAVES;
-  c_masters = DEFAULT_NUM_MASTERS;
+  if (argc < 2)
+  {
+    fprintf (stderr, "No experiment given...\n");
+    return 1;
+  }
+
+  fprintf (stderr, "Loading experiment `%s' \n", argv[1]);
+  e = GNUNET_ATS_TEST_experimentation_start (argv[1]);
+  if (NULL == e)
+  {
+    fprintf (stderr, "Invalid experiment\n");
+    return 1;
+  }
+
+  fprintf (stderr, "%llu %llu\n", e->num_masters, e->num_slaves);
 
   /* Setup a topology with */
-  GNUNET_ATS_TEST_create_topology ("gnunet-ats-sim", "gnunet_ats_sim_default.conf",
-      c_slaves,
-      c_masters,
+  GNUNET_ATS_TEST_create_topology ("gnunet-ats-sim", e->cfg_file,
+      e->num_slaves,
+      e->num_masters,
       GNUNET_NO,
       &topology_setup_done,
       NULL,

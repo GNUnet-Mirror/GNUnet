@@ -50,7 +50,7 @@ send_ping_ready_cb (void *cls, size_t size, void *buf)
     return 0;
   }
 
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Master [%u]: Sending PING to [%u]\n",
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Master [%u]: Sending PING to [%u]\n",
       p->me->no, p->dest->no);
 
   if (top->test_core)
@@ -146,7 +146,7 @@ comm_send_pong_ready (void *cls, size_t size, void *buf)
 void
 GNUNET_ATS_TEST_traffic_handle_ping (struct BenchmarkPartner *p)
 {
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
       "Slave [%u]: Received PING from [%u], sending PONG\n", p->me->no,
       p->dest->no);
 
@@ -176,7 +176,7 @@ void
 GNUNET_ATS_TEST_traffic_handle_pong (struct BenchmarkPartner *p)
 {
   struct GNUNET_TIME_Relative left;
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
       "Master [%u]: Received PONG from [%u], next message\n", p->me->no,
       p->dest->no);
 
@@ -203,6 +203,12 @@ GNUNET_ATS_TEST_traffic_handle_pong (struct BenchmarkPartner *p)
         &comm_schedule_send, p);
   }
 }
+
+/**
+ * Generate between the source master and the partner and send traffic with a
+ * maximum rate.
+ *
+ */
 
 struct TrafficGenerator *
 GNUNET_ATS_TEST_generate_traffic_start (struct BenchmarkPeer *src,
@@ -233,7 +239,7 @@ GNUNET_ATS_TEST_generate_traffic_start (struct BenchmarkPeer *src,
   tg->next_ping_transmission = GNUNET_TIME_UNIT_FOREVER_ABS;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-      "Setting up traffic generator between master[%u] `%s' and slave [%u] `%s' sending with max %u Bips\n",
+      "Setting up traffic generator master[%u] `%s' and slave [%u] `%s' max %u Bips\n",
       dest->me->no, GNUNET_i2s (&dest->me->id),
       dest->dest->no, GNUNET_i2s (&dest->dest->id),
       rate);
@@ -299,5 +305,5 @@ GNUNET_ATS_TEST_generate_traffic_stop_all ()
   }
 }
 
-/* end of file perf_ats_logging.c */
+/* end of file ats-testing-traffic.c */
 

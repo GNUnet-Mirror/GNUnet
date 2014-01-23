@@ -382,6 +382,21 @@ struct GNUNET_ATS_TEST_Topology
   void *done_cb_cls;
 };
 
+struct Experiment
+{
+  char *name;
+  char *cfg_file;
+  unsigned long long int num_masters;
+  unsigned long long int num_slaves;
+  struct GNUNET_TIME_Relative max_duration;
+};
+
+struct Experiment *
+GNUNET_ATS_TEST_experimentation_start (char *filename);
+
+void
+GNUNET_ATS_TEST_experimentation_stop (struct Experiment *e);
+
 
 struct TrafficGenerator *
 GNUNET_ATS_TEST_generate_traffic_start (struct BenchmarkPeer *src,
