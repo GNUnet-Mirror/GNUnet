@@ -34,9 +34,9 @@
 static int monitor_connections;
 
 /**
- * Option -i.
+ * Option -T.
  */
-static int get_info;
+static int request_tunnels;
 
 /**
  * Option --tunnel
@@ -492,9 +492,9 @@ tunnel_callback (void *cls,
 static void
 get_tunnels (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown\n");
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown\n");
     return;
   }
   GNUNET_MESH_get_tunnels (mh, &tunnels_callback, NULL);
@@ -576,7 +576,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   target_id = args[0];
   target_port = args[0] && args[1] ? atoi(args[1]) : 0;
-  if ( (0 != get_info
+  if ( (0 != request_tunnels
         || 0 != monitor_connections
         || NULL != tunnel_id
         || NULL != conn_id
@@ -618,7 +618,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Show connection\n");
     GNUNET_SCHEDULER_add_now (&show_connection, NULL);
   }
-  else if (GNUNET_YES == get_info)
+  else if (GNUNET_YES == request_tunnels)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Show all tunnels\n");
     GNUNET_SCHEDULER_add_now (&get_tunnels, NULL);
@@ -668,9 +668,6 @@ main (int argc, char *const *argv)
     {'e', "echo", NULL,
      gettext_noop ("activate echo mode"),
      GNUNET_NO, &GNUNET_GETOPT_set_one, &echo},
-    {'i', "info", NULL,
-     gettext_noop ("provide information about all tunnels"),
-     GNUNET_NO, &GNUNET_GETOPT_set_one, &get_info},
 //     {'m', "monitor", NULL,
 //      gettext_noop ("provide information about all tunnels (continuously) NOT IMPLEMENTED"), /* FIXME */
 //      GNUNET_NO, &GNUNET_GETOPT_set_one, &monitor_connections},
@@ -680,6 +677,9 @@ main (int argc, char *const *argv)
     {'t', "tunnel", "TUNNEL_ID",
      gettext_noop ("provide information about a particular tunnel"),
      GNUNET_YES, &GNUNET_GETOPT_set_string, &tunnel_id},
+    {'T', "tunnels", NULL,
+     gettext_noop ("provide information about all tunnels"),
+     GNUNET_NO, &GNUNET_GETOPT_set_one, &request_tunnels},
 
     GNUNET_GETOPT_OPTION_END
   };
