@@ -615,37 +615,25 @@ shutdown_task (void *cls,
   }
 }
 
-
 /**
- * Main function that will be run by the scheduler.
+ * Function called with the result of the check if the 'peerinfo'
+ * service is running.
  *
- * @param cls closure
- * @param args remaining command-line arguments
- * @param cfgfile name of the configuration file used (for saving, can be NULL!)
- * @param c configuration
+ * @param cls closure with our configuration
+ * @param result #GNUNET_YES if transport is running
  */
 static void
-run (void *cls, char *const *args, const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *c)
+testservice_task (void *cls, int result)
 {
   struct GNUNET_CRYPTO_EddsaPrivateKey *priv;
   char *fn;
 
-  cfg = c;
-  if ( (NULL != args[0]) &&
-       (NULL == put_uri) &&
-       (args[0] == strcasestr (args[0], "gnunet://hello/")) )
+  if (GNUNET_YES != result)
   {
-    put_uri = GNUNET_strdup (args[0]);
-    args++;
-  }
-  if (NULL != args[0])
-  {
-    FPRINTF (stderr,
-	     _("Invalid command line argument `%s'\n"),
-	     args[0]);
+    FPRINTF (stderr, _("Service `%s' is not running, please start GNUnet\n"), "peerinfo");
     return;
   }
+
   if (NULL == (peerinfo = GNUNET_PEERINFO_connect (cfg)))
   {
     FPRINTF (stderr, "%s",  _("Could not access PEERINFO service.  Exiting.\n"));
@@ -675,8 +663,41 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   tt = GNUNET_SCHEDULER_add_now (&state_machine, NULL);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-				&shutdown_task,
-				NULL);
+                                &shutdown_task,
+                                NULL);
+}
+
+
+/**
+ * Main function that will be run by the scheduler.
+ *
+ * @param cls closure
+ * @param args remaining command-line arguments
+ * @param cfgfile name of the configuration file used (for saving, can be NULL!)
+ * @param c configuration
+ */
+static void
+run (void *cls, char *const *args, const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *c)
+{
+  cfg = c;
+  if ( (NULL != args[0]) &&
+       (NULL == put_uri) &&
+       (args[0] == strcasestr (args[0], "gnunet://hello/")) )
+  {
+    put_uri = GNUNET_strdup (args[0]);
+    args++;
+  }
+  if (NULL != args[0])
+  {
+    FPRINTF (stderr,
+	     _("Invalid command line argument `%s'\n"),
+	     args[0]);
+    return;
+  }
+
+  GNUNET_CLIENT_service_test ("peerinfo", cfg, GNUNET_TIME_UNIT_SECONDS,
+      &testservice_task, (void *) cfg);
 }
 
 
