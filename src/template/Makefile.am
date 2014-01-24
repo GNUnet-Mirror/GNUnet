@@ -38,6 +38,7 @@ check_PROGRAMS = \
  test_template_api
 
 if ENABLE_TEST_RUN
+TESTS_ENVIRONMENT=export GNUNET_PREFIX=@prefix@;export PATH=@prefix@/bin:$$PATH;
 TESTS = $(check_PROGRAMS)
 endif
 

@@ -273,12 +273,15 @@ check_SCRIPTS = \
 endif
 
 if ENABLE_MONKEY
- TESTS_ENVIRONMENT = @MONKEYPREFIX@
+ MONKEY = @MONKEYPREFIX@
  AM_LDFLAGS = -no-install
 endif
 
 
 if ENABLE_TEST_RUN
+TESTS_ENVIRONMENT=export GNUNET_PREFIX=@prefix@;\
+ export PATH=@prefix@/bin:$$PATH;\
+ $(MONKEY)
 TESTS = \
  test_fs_directory \
  test_fs_download \

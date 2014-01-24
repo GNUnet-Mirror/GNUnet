@@ -115,6 +115,7 @@ libgnunet_plugin_block_dns_la_LDFLAGS = \
 
 
 if ENABLE_TEST_RUN
+TESTS_ENVIRONMENT=export GNUNET_PREFIX=@prefix@;export PATH=@prefix@/bin:$$PATH;
 TESTS = $(check_PROGRAMS)  $(check_SCRIPTS)
 endif
 

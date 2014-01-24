@@ -184,6 +184,7 @@ test_mesh_small_speed_reliable_backwards_DEPENDENCIES = $(dep_mesh_test_lib)
 
 
 if ENABLE_TEST_RUN
+TESTS_ENVIRONMENT=export GNUNET_PREFIX=@prefix@;export PATH=@prefix@/bin:$$PATH;
 TESTS = \
  $(check_PROGRAMS)
 endif

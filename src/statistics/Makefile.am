@@ -58,6 +58,7 @@ check_PROGRAMS = \
  test_statistics_api_watch_zero_value 
 
 if ENABLE_TEST_RUN
+TESTS_ENVIRONMENT=export GNUNET_PREFIX=@prefix@;export PATH=@prefix@/bin:$$PATH;
 TESTS = $(check_PROGRAMS) $(check_SCRIPTS)
 endif
 

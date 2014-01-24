@@ -74,6 +74,7 @@ check_SCRIPTS = \
 	test_local_revocation.py
 
 if ENABLE_TEST_RUN
+ TESTS_ENVIRONMENT=export GNUNET_PREFIX=@prefix@;export PATH=@prefix@/bin:$$PATH;
  TESTS = \
  $(check_SCRIPTS) \
  $(check_PROGRAMS)

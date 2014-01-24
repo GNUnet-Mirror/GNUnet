@@ -94,6 +94,7 @@ libexec_PROGRAMS += \
   $(AUDIO_HELPER_RECD) \
   $(AUDIO_HELPER_PLAY)
 
+TESTS_ENVIRONMENT=export GNUNET_PREFIX=@prefix@;export PATH=@prefix@/bin:$$PATH;
 TESTS = $(AUDIO_TESTS)
 
 if BUILD_PULSE_HELPERS
