@@ -683,8 +683,9 @@ static void
 agent_update (struct RIL_Peer_Agent *agent, double reward, double *s_next, int a_prime)
 {
   int i;
+  int k;
   double delta;
-  double *theta = agent->W[agent->a_old];
+  double **theta = agent->W;
 
   delta = agent->envi->global_discount_integrated * reward; //reward
   delta += agent->envi->global_discount_variable * agent_q (agent, s_next, a_prime); //discounted future value
@@ -699,14 +700,17 @@ agent_update (struct RIL_Peer_Agent *agent, double reward, double *s_next, int a
 //      agent_q (agent, s_next, a_prime),
 //      delta);
 
-  for (i = 0; i < agent->m; i++)
+  for (k = 0; k < agent->n; k++)
   {
-//    LOG(GNUNET_ERROR_TYPE_INFO, "alpha = %f   delta = %f   e[%d] = %f\n",
-//        agent->envi->parameters.alpha,
-//        delta,
-//        i,
-//        agent->e[i]);
-    theta[i] += agent->envi->parameters.alpha * delta * agent->E[agent->a_old][i];
+    for (i = 0; i < agent->m; i++)
+    {
+  //    LOG(GNUNET_ERROR_TYPE_INFO, "alpha = %f   delta = %f   e[%d] = %f\n",
+  //        agent->envi->parameters.alpha,
+  //        delta,
+  //        i,
+  //        agent->e[i]);
+      theta[k][i] += agent->envi->parameters.alpha * delta * agent->E[k][i];
+    }
   }
 }
 
@@ -739,7 +743,7 @@ agent_modify_eligibility (struct RIL_Peer_Agent *agent,
       agent->E[action][i] += feature[i];
       break;
     case RIL_E_REPLACE:
-      agent->E[action][i] =  (agent->envi->global_discount_variable * agent->envi->parameters.lambda * agent->E[action][i]) > feature[i] ? agent->E[action][i] : feature[i];
+      agent->E[action][i] = agent->E[action][i] > feature[i] ? agent->E[action][i] : feature[i];
       break;
     case RIL_E_DISCOUNT:
       for (k = 0; k < agent->n; k++)
@@ -1004,23 +1008,23 @@ ril_network_get_social_welfare (struct GAS_RIL_Handle *solver, struct RIL_Scope 
   return 1;
 }
 
-static double
-envi_penalty_share (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
-{
-  struct RIL_Scope *net;
-  double util_ratio_in;
-  double util_ratio_out;
-  double util_ratio_max;
-  double sigmoid_x;
-
-  net = agent->address_inuse->solver_information;
-
-  util_ratio_in = (double) net->bw_in_utilized / (double) net->bw_in_available;
-  util_ratio_out = (double) net->bw_out_utilized / (double) net->bw_out_available;
-  util_ratio_max = GNUNET_MAX (util_ratio_in, util_ratio_out);
-  sigmoid_x = util_ratio_max - 1;
-  return 1 - (1 / (1 + exp(5 * sigmoid_x)));
-}
+//static double
+//envi_penalty_share (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
+//{
+//  struct RIL_Scope *net;
+//  double util_ratio_in;
+//  double util_ratio_out;
+//  double util_ratio_max;
+//  double sigmoid_x;
+//
+//  net = agent->address_inuse->solver_information;
+//
+//  util_ratio_in = (double) net->bw_in_utilized / (double) net->bw_in_available;
+//  util_ratio_out = (double) net->bw_out_utilized / (double) net->bw_out_available;
+//  util_ratio_max = GNUNET_MAX (util_ratio_in, util_ratio_out);
+//  sigmoid_x = util_ratio_max - 1;
+//  return 1 - (1 / (1 + exp(5 * sigmoid_x)));
+//}
 
 static double
 envi_get_penalty (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
@@ -1032,7 +1036,6 @@ envi_get_penalty (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
 
   net = agent->address_inuse->solver_information;
 
-  //TODO make sure in tests to have utilization property updated
   if (net->bw_in_utilized > net->bw_in_available)
   {
     over_in = net->bw_in_utilized - net->bw_in_available;
@@ -1087,7 +1090,8 @@ envi_get_reward (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
 
   steady = (RIL_ACTION_NOTHING == agent->a_old) ? agent->nop_bonus : 0;
 
-  pen_share = envi_penalty_share(solver, agent);
+  //pen_share = envi_penalty_share(solver, agent); TODO revert
+  pen_share = 0.5;
   penalty = envi_get_penalty(solver, agent);
 
   reward = delta + steady;
