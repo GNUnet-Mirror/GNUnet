@@ -31,24 +31,46 @@
 int
 main (int argc, char *argv[])
 {
-  struct GNUNET_CRYPTO_PaillierPlaintext plaintext;
-  struct GNUNET_CRYPTO_PaillierPlaintext plaintext_result;
-  struct GNUNET_CRYPTO_PaillierCiphertext ciphertext;
+  int ret;
+  gcry_mpi_t m1;
+  gcry_mpi_t m2;
+  gcry_mpi_t result;
+  gcry_mpi_t hom_result;
+  struct GNUNET_CRYPTO_PaillierCiphertext c1;
+  struct GNUNET_CRYPTO_PaillierCiphertext c2;
+  struct GNUNET_CRYPTO_PaillierCiphertext c_result;
+  
   struct GNUNET_CRYPTO_PaillierPublicKey public_key;
   struct GNUNET_CRYPTO_PaillierPrivateKey private_key;
 
   GNUNET_CRYPTO_paillier_create (&public_key, &private_key);
 
-  GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_WEAK, &plaintext, sizeof plaintext);
-  plaintext.bits[0] = 0;
+  GNUNET_assert (NULL != (m1 = gcry_mpi_new (GNUNET_CRYPTO_PAILLIER_BITS-1)));
+  GNUNET_assert (NULL != (m2 = gcry_mpi_new (GNUNET_CRYPTO_PAILLIER_BITS-1)));
+  GNUNET_assert (NULL != (hom_result = gcry_mpi_new (GNUNET_CRYPTO_PAILLIER_BITS)));
+  gcry_mpi_randomize (m1, GNUNET_CRYPTO_PAILLIER_BITS-1, GCRY_WEAK_RANDOM);
+  gcry_mpi_randomize (m2, GNUNET_CRYPTO_PAILLIER_BITS-1, GCRY_WEAK_RANDOM);
+  gcry_mpi_add(result,m1,m2);
 
-  GNUNET_CRYPTO_paillier_encrypt (&public_key, &plaintext, &ciphertext);
-
-  GNUNET_CRYPTO_paillier_decrypt (&private_key, &public_key,
-                                  &ciphertext, &plaintext_result);
-
-  if (0 != memcmp (&plaintext, &plaintext_result, sizeof plaintext))
+  if (1 != (ret = GNUNET_CRYPTO_paillier_encrypt (&public_key, m1, &c1))){
+    printf ("GNUNET_CRYPTO_paillier_encrypt failed, should return 1 allowed operation, got %d!\n", ret);
     return 1;
+  }
+  
+  GNUNET_CRYPTO_paillier_encrypt (&public_key, m2, &c2);
+
+  if (0 != (ret = GNUNET_CRYPTO_paillier_hom_add (&public_key, &c1,&c2, &c_result))){
+    printf ("GNUNET_CRYPTO_paillier_hom_add failed, expected 0 remaining operations, got %d!\n", ret);
+    return 1;
+  }
+  
+  GNUNET_CRYPTO_paillier_decrypt (&private_key, &public_key,
+                                  &c_result, hom_result);
+
+  if (0 != gcry_mpi_cmp(result, hom_result))
+    printf ("GNUNET_CRYPTO_paillier miscalculated!\n");
+    return 1;
+  
   return 0;
 }
 
