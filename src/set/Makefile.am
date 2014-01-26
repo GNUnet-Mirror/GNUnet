@@ -66,7 +66,7 @@ libgnunetset_la_LDFLAGS = \
 
 if HAVE_TESTING
 check_PROGRAMS = \
- test_set_api test_set_union_result_full
+ test_set_api test_set_union_result_full test_set_intersection_result_full
 endif
 
 if ENABLE_TEST_RUN
@@ -90,6 +90,15 @@ test_set_union_result_full_LDADD = \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/set/libgnunetset.la
 test_set_union_result_full_DEPENDENCIES = \
+  libgnunetset.la
+
+test_set_intersection_result_full_SOURCES = \
+ test_set_intersection_result_full.c
+test_set_intersection_result_full_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/testing/libgnunettesting.la \
+  $(top_builddir)/src/set/libgnunetset.la
+test_set_intersection_result_full_DEPENDENCIES = \
   libgnunetset.la
 
 EXTRA_DIST = \

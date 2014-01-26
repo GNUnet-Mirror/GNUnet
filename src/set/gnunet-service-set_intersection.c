@@ -210,8 +210,8 @@ iterator_initialization_by_alice (void *cls,
   struct GNUNET_HashCode mutated_hash;
 
   //only consider this element, if it is valid for us
-  if ((op->generation_created >= ee->generation_removed)
-       || (op->generation_created < ee->generation_added))
+  if ((op->generation_created < ee->generation_removed)
+       && (op->generation_created >= ee->generation_added))
     return GNUNET_YES;
 
   // not contained according to bob's bloomfilter
@@ -254,8 +254,8 @@ iterator_initialization (void *cls,
   struct Operation *op = cls;
 
   //only consider this element, if it is valid for us
-  if ((op->generation_created >= ee->generation_removed)
-       || (op->generation_created < ee->generation_added))
+  if ((op->generation_created < ee->generation_removed)
+       && (op->generation_created >= ee->generation_added))
     return GNUNET_YES;
 
   GNUNET_assert (GNUNET_YES ==
@@ -456,7 +456,7 @@ send_bloomfilter (struct Operation *op)
                                                 bf_elementbits);
 
   op->spec->salt++;
-  GNUNET_CONTAINER_multihashmap_iterate (op->spec->set->elements,
+  GNUNET_CONTAINER_multihashmap_iterate (op->state->my_elements,
                                          &iterator_bf_create,
                                          op);
 
@@ -602,7 +602,7 @@ process_bf (struct Operation *op){
   case PHASE_BF_EXCHANGE:
   case PHASE_MAYBE_FINISHED:
     // if we are bob or alice and are continuing operation
-    GNUNET_CONTAINER_multihashmap_iterate (op->spec->set->elements,
+    GNUNET_CONTAINER_multihashmap_iterate (op->state->my_elements,
                                            &iterator_bf_reduce,
                                            op);
     break;
@@ -919,7 +919,6 @@ static void
 intersection_add (struct SetState *set_state,
                   struct ElementEntry *ee)
 {
-  GNUNET_assert(0 < set_state->current_set_element_count);
   set_state->current_set_element_count++;
 }
 
