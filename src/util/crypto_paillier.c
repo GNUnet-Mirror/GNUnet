@@ -99,7 +99,7 @@ GNUNET_CRYPTO_paillier_encrypt (const struct GNUNET_CRYPTO_PaillierPublicKey *pu
                                 const gcry_mpi_t m,
                                 struct GNUNET_CRYPTO_PaillierCiphertext *ciphertext)
 {
-  unsigned int length;
+  int length;
   gcry_mpi_t n_square;
   gcry_mpi_t r;
   gcry_mpi_t g;
@@ -109,10 +109,11 @@ GNUNET_CRYPTO_paillier_encrypt (const struct GNUNET_CRYPTO_PaillierPublicKey *pu
   // determine how many operations we could allow, if the other number
   // has the same length. 
   length = gcry_mpi_get_nbits(m);
-  if (length >= GNUNET_CRYPTO_PAILLIER_BITS)
+  if (GNUNET_CRYPTO_PAILLIER_BITS <= length) 
+    //paillier with 0 ops makes no sense, better use RSA and co.
     return -1;
   else
-    ciphertext->remaining_ops = ntohl(pow(2,(GNUNET_CRYPTO_PAILLIER_BITS-length-1)));
+    ciphertext->remaining_ops = htonl(GNUNET_CRYPTO_PAILLIER_BITS - length);
   
   GNUNET_assert (0 != (n_square = gcry_mpi_new (0)));
   GNUNET_assert (0 != (r = gcry_mpi_new (0)));
@@ -146,7 +147,7 @@ GNUNET_CRYPTO_paillier_encrypt (const struct GNUNET_CRYPTO_PaillierPublicKey *pu
   gcry_mpi_release (r);
   gcry_mpi_release (c);
   
-  return pow(2,(GNUNET_CRYPTO_PAILLIER_BITS-length-1));
+  return GNUNET_CRYPTO_PAILLIER_BITS-length;
 }
 
 
@@ -229,7 +230,7 @@ GNUNET_CRYPTO_paillier_hom_add (const struct GNUNET_CRYPTO_PaillierPublicKey *pu
   gcry_mpi_mul(n_square, n_square,n_square);
   gcry_mpi_mulm(c,a,b,n_square);
   
-  result->remaining_ops = (c1->remaining_ops > c2->remaining_ops) ? c2->remaining_ops : c1->remaining_ops;
+  result->remaining_ops = ((c1->remaining_ops > c2->remaining_ops) ? c2->remaining_ops : c1->remaining_ops) - 1;
   GNUNET_CRYPTO_mpi_print_unsigned (result->bits, 
                                     sizeof result->bits, 
                                     c);
@@ -240,5 +241,18 @@ GNUNET_CRYPTO_paillier_hom_add (const struct GNUNET_CRYPTO_PaillierPublicKey *pu
   return GNUNET_OK;
 }
 
+
+/**
+ * Get the number of remaining supported homomorphic operations. 
+ *
+ * @param c Paillier cipher text.
+ * @return the number of remaining homomorphic operations
+ */
+int
+GNUNET_CRYPTO_paillier_hom_get_remaining (const struct GNUNET_CRYPTO_PaillierCiphertext *c)
+{
+  GNUNET_assert(NULL != c);
+  return ntohl(c->remaining_ops);
+}
 
 /* end of crypto_paillier.c */

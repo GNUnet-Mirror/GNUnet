@@ -385,7 +385,7 @@ struct GNUNET_CRYPTO_PaillierCiphertext
   /**
    * guaranteed minimum number of homomorphic operations with this ciphertext
    */
-  uint32_t remaining_ops GNUNET_PACKED;
+  int32_t remaining_ops GNUNET_PACKED;
   
   /**
    * The bits of the ciphertext.
@@ -1385,6 +1385,15 @@ GNUNET_CRYPTO_paillier_hom_add (const struct GNUNET_CRYPTO_PaillierPublicKey *pu
                                 const struct GNUNET_CRYPTO_PaillierCiphertext *c2,
                                 struct GNUNET_CRYPTO_PaillierCiphertext *result);
 
+
+/**
+ * Get the number of remaining supported homomorphic operations. 
+ *
+ * @param c Paillier cipher text.
+ * @return the number of remaining homomorphic operations
+ */
+int
+GNUNET_CRYPTO_paillier_hom_get_remaining (const struct GNUNET_CRYPTO_PaillierCiphertext *c);
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
