@@ -75,15 +75,16 @@ static struct GNUNET_CONTAINER_MultiPeerMap *routing_table;
  * Find the next hop to pass the message to .
  * @return
  */
-//static struct GNUNET_PeerIdentity *
-//find_next_hop()
-//{
-    
-//}
+//static
+struct GNUNET_PeerIdentity *
+find_next_hop()
+{
+  return NULL;    
+}
 
 
 
-/**
+/**FIXME: Old function added just to remove error for time being. 
  * Add a new entry to our routing table.
  *
  * @param sender peer that originated the request
@@ -107,11 +108,24 @@ GDS_ROUTING_add (const struct GNUNET_PeerIdentity *sender,
 
 }
 
-/* search in routing table for next hop to pass the message to . 
- * struct GNUNET_PeerIdentity *
-GDS_Routing_search()
+
+/**
+ * Search the next hop to send the packet to in routing table.
+ * @return next hop peer id
+ */
+struct GNUNET_PeerIdentity *
+GDS_Routing_search(struct GNUNET_PeerIdentity *source_peer,
+                   struct GNUNET_PeerIdentity *destination_peer,
+                   struct GNUNET_PeerIdentity *prev_hop)
 {
-}*/
+    //struct GNUNET_PeerIdentity *next_hop;
+    
+    /* We have got all the fields and now we should search the 
+     routing table by destination_peer and we should return the next_hop
+     I don't see any function at the moment in container_multipeer_map. */
+    return NULL;
+}
+
 
 /**FIXME: Old implementation just to remove error
  * Handle a reply (route to origin).  Only forwards the reply back to

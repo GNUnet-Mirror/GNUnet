@@ -1452,7 +1452,7 @@ GNUNET_CRYPTO_ecdsa_private_key_derive (const struct GNUNET_CRYPTO_EcdsaPrivateK
  * Essentially calculates a public key 'V = H(l,P) * P'.
  *
  * @param pub original public key
- * @param label label to use for key deriviation
+ * @param label label to use for key derivation
  * @param context additional context to use for HKDF of 'h';
  *        typically the name of the subsystem/application
  * @param result where to write the derived public key
@@ -1483,7 +1483,7 @@ GNUNET_CRYPTO_ecdsa_public_key_derive (const struct GNUNET_CRYPTO_EcdsaPublicKey
   q = gcry_mpi_ec_get_point ("q", ctx, 0);
   GNUNET_assert (q);
 
-  /* calulcate h_mod_n = h % n */
+  /* calculate h_mod_n = h % n */
   h = derive_h (pub, label, context);
   n = gcry_mpi_ec_get_mpi ("n", ctx, 1);
   h_mod_n = gcry_mpi_new (256);

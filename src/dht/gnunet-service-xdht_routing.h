@@ -53,6 +53,40 @@ GDS_ROUTING_add (const struct GNUNET_PeerIdentity *sender,
                  uint32_t reply_bf_mutator);
 
 
+/**
+ * Search the next hop to send the packet to in routing table.
+ * @return next hop peer id
+ */
+struct GNUNET_PeerIdentity *
+GDS_Routing_search(struct GNUNET_PeerIdentity *source_peer,
+                   struct GNUNET_PeerIdentity *destination_peer,
+                   struct GNUNET_PeerIdentity *prev_hop);
+
+/**
+ * Handle a reply (route to origin).  Only forwards the reply back to
+ * other peers waiting for it.  Does not do local caching or
+ * forwarding to local clients.  Essentially calls
+ * GDS_NEIGHBOURS_handle_reply for all peers that sent us a matching
+ * request recently.
+ *
+ * @param type type of the block
+ * @param expiration_time when does the content expire
+ * @param key key for the content
+ * @param put_path_length number of entries in @a put_path
+ * @param put_path peers the original PUT traversed (if tracked)
+ * @param get_path_length number of entries in @a get_path
+ * @param get_path peers this reply has traversed so far (if tracked)
+ * @param data payload of the reply
+ * @param data_size number of bytes in @a data
+ */
+void
+GDS_ROUTING_process (enum GNUNET_BLOCK_Type type,
+                     struct GNUNET_TIME_Absolute expiration_time,
+                     const struct GNUNET_HashCode * key, unsigned int put_path_length,
+                     const struct GNUNET_PeerIdentity *put_path,
+                     unsigned int get_path_length,
+                     const struct GNUNET_PeerIdentity *get_path,
+                     const void *data, size_t data_size);
 
 /**
  * Initialize routing subsystem.
