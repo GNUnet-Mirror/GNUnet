@@ -80,7 +80,7 @@ GNUNET_SPEEDUP_start_ (const struct GNUNET_CONFIGURATION_Handle *cfg);
 /**
  * Stop tasks that modify clock behavior.
  */
-int
+void
 GNUNET_SPEEDUP_stop_ (void);
 
 
