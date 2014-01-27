@@ -656,7 +656,11 @@ collect_log_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       &collect_log_task, l);
 }
 
-
+/**
+ * Stop logging
+ *
+ * @param l the logging handle
+ */
 void
 GNUNET_ATS_TEST_logging_stop (struct LoggingHandle *l)
 {
@@ -691,6 +695,16 @@ GNUNET_ATS_TEST_logging_stop (struct LoggingHandle *l)
   GNUNET_free (l);
 }
 
+
+/**
+ * Start logging
+ *
+ * @param log_frequency the logging frequency
+ * @param testname the testname
+ * @param masters the master peers used for benchmarking
+ * @oaram num_master the number of master peers
+ * @return the logging handle or NULL on error
+ */
 struct LoggingHandle *
 GNUNET_ATS_TEST_logging_start (struct GNUNET_TIME_Relative log_frequency,
     char * testname, struct BenchmarkPeer *masters, int num_masters)

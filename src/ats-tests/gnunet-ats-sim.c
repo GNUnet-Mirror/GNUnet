@@ -18,7 +18,7 @@
  Boston, MA 02111-1307, USA.
  */
 /**
- * @file ats-test/gnunet-ats-sim.c
+ * @file ats-tests/gnunet-ats-sim.c
  * @brief ats traffic simulator: this tool uses the ats-test library to setup a
  * topology and generate traffic between these peers. The traffic description
  * is loaded from a experiment description file

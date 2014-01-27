@@ -472,6 +472,12 @@ GNUNET_ATS_TEST_generate_traffic_stop_all ();
 
 /**
  * Start logging
+ *
+ * @param log_frequency the logging frequency
+ * @param testname the testname
+ * @param masters the master peers used for benchmarking
+ * @oaram num_master the number of master peers
+ * @return the logging handle or NULL on error
  */
 struct LoggingHandle *
 GNUNET_ATS_TEST_logging_start (struct GNUNET_TIME_Relative log_frequency,
@@ -479,9 +485,11 @@ GNUNET_ATS_TEST_logging_start (struct GNUNET_TIME_Relative log_frequency,
 
 /**
  * Stop logging
+ *
+ * @param l the logging handle
  */
 void
-GNUNET_ATS_TEST_logging_stop (struct LoggingHandle *);
+GNUNET_ATS_TEST_logging_stop (struct LoggingHandle *l);
 
 /**
  * Log all data now
