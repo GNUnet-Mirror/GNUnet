@@ -118,8 +118,13 @@ struct PerfHandle
   /**
    * Array to store averaged result with length #peers
    */
-  struct Result *averaged_result;
+  struct Result *averaged_full_result;
 
+  struct Result *averaged_update_result;
+
+  /**
+   * The current result
+   */
   struct Result *current_result;
 
   int current_p;
@@ -201,6 +206,7 @@ struct Result
   int peers;
   int addresses;
   int update;
+  int valid;
 
   enum GAS_Solver_Additional_Information info;
 
@@ -467,9 +473,9 @@ solver_info_cb (void *cls,
   switch (op)
   {
     case GAS_OP_SOLVE_START:
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-          "Solver notifies `%s' with result `%s' `%s' in iteration %u \n", "GAS_OP_SOLVE_START",
-          (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL", add_info, ph.current_iteration);
+      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+          "Solver notifies `%s' with result `%s' `%s'\n", "GAS_OP_SOLVE_START",
+          (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL", add_info);
       if (GNUNET_NO == ph.expecting_solution)
       {
         /* We do not expect a solution at the moment */
@@ -499,7 +505,7 @@ solver_info_cb (void *cls,
       }
       return;
     case GAS_OP_SOLVE_STOP:
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
           "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_STOP",
           (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL", add_info);
       if ((GNUNET_NO == ph.expecting_solution) || (NULL == ph.current_result))
@@ -508,6 +514,12 @@ solver_info_cb (void *cls,
         GNUNET_break (0);
         return;
       }
+
+      if (GAS_STAT_SUCCESS == stat)
+        ph.current_result->valid = GNUNET_YES;
+      else
+        ph.current_result->valid = GNUNET_NO;
+
       if (NULL != ph.current_result)
       {
         /* Finalize result */
@@ -519,7 +531,7 @@ solver_info_cb (void *cls,
       return;
 
     case GAS_OP_SOLVE_SETUP_START:
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
           "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_SETUP_START",
           (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL");
       if ((GNUNET_NO == ph.expecting_solution) || (NULL == ph.current_result))
@@ -527,11 +539,17 @@ solver_info_cb (void *cls,
         GNUNET_break(0);
         return;
       }
+
+      if (GAS_STAT_SUCCESS == stat)
+        ph.current_result->valid = GNUNET_YES;
+      else
+        ph.current_result->valid = GNUNET_NO;
+
       ph.current_result->s_setup = GNUNET_TIME_absolute_get ();
       return;
 
     case GAS_OP_SOLVE_SETUP_STOP:
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
           "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_SETUP_STOP",
           (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL");
       if ((GNUNET_NO == ph.expecting_solution) || (NULL == ph.current_result))
@@ -539,13 +557,19 @@ solver_info_cb (void *cls,
         GNUNET_break(0);
         return;
       }
+
+      if (GAS_STAT_SUCCESS == stat)
+        ph.current_result->valid = GNUNET_YES;
+      else
+        ph.current_result->valid = GNUNET_NO;
+
       ph.current_result->e_setup = GNUNET_TIME_absolute_get ();
       ph.current_result->d_setup = GNUNET_TIME_absolute_get_difference (
           ph.current_result->s_setup, ph.current_result->e_setup);
       return;
 
     case GAS_OP_SOLVE_MLP_LP_START:
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
           "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_LP_START",
           (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL");
       if ((GNUNET_NO == ph.expecting_solution) || (NULL == ph.current_result))
@@ -553,10 +577,16 @@ solver_info_cb (void *cls,
         GNUNET_break(0);
         return;
       }
+
+      if (GAS_STAT_SUCCESS == stat)
+        ph.current_result->valid = GNUNET_YES;
+      else
+        ph.current_result->valid = GNUNET_NO;
+
       ph.current_result->s_lp = GNUNET_TIME_absolute_get ();
       return;
     case GAS_OP_SOLVE_MLP_LP_STOP:
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
           "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_LP_STOP",
           (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL");
       if ((GNUNET_NO == ph.expecting_solution) || (NULL == ph.current_result))
@@ -564,13 +594,19 @@ solver_info_cb (void *cls,
         GNUNET_break(0);
         return;
       }
+
+      if (GAS_STAT_SUCCESS == stat)
+        ph.current_result->valid = GNUNET_YES;
+      else
+        ph.current_result->valid = GNUNET_NO;
+
       ph.current_result->e_lp = GNUNET_TIME_absolute_get ();
       ph.current_result->d_lp = GNUNET_TIME_absolute_get_difference (
           ph.current_result->s_lp, ph.current_result->e_lp);
       return;
 
     case GAS_OP_SOLVE_MLP_MLP_START:
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
           "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_MLP_START",
           (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL");
       if ((GNUNET_NO == ph.expecting_solution) || (NULL == ph.current_result))
@@ -578,10 +614,16 @@ solver_info_cb (void *cls,
         GNUNET_break(0);
         return;
       }
+
+      if (GAS_STAT_SUCCESS == stat)
+        ph.current_result->valid = GNUNET_YES;
+      else
+        ph.current_result->valid = GNUNET_NO;
+
       ph.current_result->s_mlp = GNUNET_TIME_absolute_get ();
       return;
     case GAS_OP_SOLVE_MLP_MLP_STOP:
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
           "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_MLP_STOP",
           (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL");
       if ((GNUNET_NO == ph.expecting_solution) || (NULL == ph.current_result))
@@ -589,19 +631,32 @@ solver_info_cb (void *cls,
         GNUNET_break(0);
         return;
       }
+
+      if (GAS_STAT_SUCCESS == stat)
+        ph.current_result->valid = GNUNET_YES;
+      else
+        ph.current_result->valid = GNUNET_NO;
+
       ph.current_result->e_mlp = GNUNET_TIME_absolute_get ();
       ph.current_result->d_mlp = GNUNET_TIME_absolute_get_difference (
       ph.current_result->s_mlp, ph.current_result->e_mlp);
       return;
     case GAS_OP_SOLVE_UPDATE_NOTIFICATION_START:
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
           "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_UPDATE_NOTIFICATION_START",
           (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL");
       return;
     case GAS_OP_SOLVE_UPDATE_NOTIFICATION_STOP:
-      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
           "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_UPDATE_NOTIFICATION_STOP",
           (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL");
+      if (GAS_STAT_SUCCESS != stat)
+      {
+        GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+            "Solver `%s' failed to update problem with %u peers and %u address!\n",
+            ph.ats_string, ph.current_p, ph.current_a);
+      }
+
       return;
     default:
       break;
@@ -740,6 +795,7 @@ evaluate (int iteration)
   char * data;
   struct Result *cur;
   struct Result *next;
+  struct Result *cur_res;
   char * str_d_total;
   char * str_d_setup;
   char * str_d_lp;
@@ -829,15 +885,32 @@ evaluate (int iteration)
     str_d_mlp = NULL;
 
     /* Print log */
-    ph.averaged_result[cur->peers - ph.N_peers_start].peers = cur->peers;
-    ph.averaged_result[cur->peers - ph.N_peers_start].addresses = cur->addresses;
-    ph.averaged_result[cur->peers - ph.N_peers_start].update = cur->update;
+    if (GNUNET_NO == cur->update)
+      cur_res = &ph.averaged_full_result[cur->peers - ph.N_peers_start];
+    else
+      cur_res = &ph.averaged_update_result[cur->peers - ph.N_peers_start];
+
+    cur_res->peers = cur->peers;
+    cur_res->addresses = cur->addresses;
+    cur_res->update = cur->update;
+
+    if (GNUNET_NO == cur->valid)
+    {
+      fprintf (stderr,
+               "Total time to solve %s for %u peers %u addresses: %s\n",
+               (GNUNET_YES == cur->update) ? "updated" : "full",
+               cur->peers, cur->addresses, "Failed to solve!");
+      continue;
+    }
+    else
+      cur_res->valid ++;
 
     if (GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us != cur->d_total.rel_value_us)
     {
-      if (GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us == ph.averaged_result[cur->peers - ph.N_peers_start].d_total.rel_value_us)
-        ph.averaged_result[cur->peers - ph.N_peers_start].d_total.rel_value_us = 0;
-      ph.averaged_result[cur->peers - ph.N_peers_start].d_total.rel_value_us += cur->d_total.rel_value_us;
+      if (GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us == cur_res->d_total.rel_value_us)
+        cur_res->d_total.rel_value_us = 0;
+      if (GNUNET_YES == cur->valid)
+        cur_res->d_total.rel_value_us += cur->d_total.rel_value_us;
       fprintf (stderr,
                "Total time to solve %s for %u peers %u addresses: %llu us\n",
                (GNUNET_YES == cur->update) ? "updated" : "full",
@@ -850,9 +923,10 @@ evaluate (int iteration)
       GNUNET_asprintf(&str_d_total, "-1");
     if (GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us != cur->d_setup.rel_value_us)
     {
-      if (GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us == ph.averaged_result[cur->peers - ph.N_peers_start].d_setup.rel_value_us)
-        ph.averaged_result[cur->peers - ph.N_peers_start].d_setup.rel_value_us = 0;
-      ph.averaged_result[cur->peers - ph.N_peers_start].d_setup.rel_value_us += cur->d_setup.rel_value_us;
+      if (GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us == cur_res->d_setup.rel_value_us)
+        cur_res->d_setup.rel_value_us = 0;
+      if (GNUNET_YES == cur->valid)
+        cur_res->d_setup.rel_value_us += cur->d_setup.rel_value_us;
       fprintf (stderr, "Total time to setup %s %u peers %u addresses: %llu us\n",
           (GNUNET_YES == cur->update) ? "updated" : "full",
           cur->peers, cur->addresses, (unsigned long long )cur->d_setup.rel_value_us);
@@ -862,9 +936,10 @@ evaluate (int iteration)
       GNUNET_asprintf(&str_d_setup, "-1");
     if (GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us != cur->d_lp.rel_value_us)
     {
-      if (GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us == ph.averaged_result[cur->peers - ph.N_peers_start].d_lp.rel_value_us)
-        ph.averaged_result[cur->peers - ph.N_peers_start].d_lp.rel_value_us = 0;
-      ph.averaged_result[cur->peers - ph.N_peers_start].d_lp.rel_value_us += cur->d_lp.rel_value_us;
+      if (GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us == cur_res->d_lp.rel_value_us)
+        cur_res->d_lp.rel_value_us = 0;
+      if (GNUNET_YES == cur->valid)
+        cur_res->d_lp.rel_value_us += cur->d_lp.rel_value_us;
       fprintf (stderr,
                "Total time to solve %s LP for %u peers %u addresses: %llu us\n",
                (GNUNET_YES == cur->update) ? "updated" : "full",
@@ -879,9 +954,11 @@ evaluate (int iteration)
       GNUNET_asprintf (&str_d_lp, "-1");
     if (GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us != cur->d_mlp.rel_value_us)
     {
-      if (GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us == ph.averaged_result[cur->peers - ph.N_peers_start].d_mlp.rel_value_us)
-        ph.averaged_result[cur->peers - ph.N_peers_start].d_mlp.rel_value_us = 0;
-      ph.averaged_result[cur->peers - ph.N_peers_start].d_mlp.rel_value_us += cur->d_mlp.rel_value_us;
+      if (GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us == cur_res->d_mlp.rel_value_us)
+        cur_res->d_mlp.rel_value_us = 0;
+      if (GNUNET_YES == cur->valid)
+        cur_res->d_mlp.rel_value_us += cur->d_mlp.rel_value_us;
+
       fprintf (stderr, "Total time to solve %s MLP for %u peers %u addresses: %llu us\n",
           (GNUNET_YES == cur->update) ? "updated" : "full",
           cur->peers, cur->addresses, (unsigned long long )cur->d_mlp.rel_value_us);
@@ -1021,22 +1098,34 @@ evaluate_average (void)
 
   for (c = 0; c <= ph.N_peers_end - ph.N_peers_start; c++)
   {
-    struct Result *cur = &ph.averaged_result[c];
+    struct Result *cur = &ph.averaged_full_result[c];
 
     str_d_total = NULL;
     str_d_setup = NULL;
     str_d_lp = NULL;
     str_d_mlp = NULL;
 
+    if (0 >= cur->valid)
+    {
+      fprintf (stderr,
+         "No valid results for %s for %u peers %u addresses!\n",
+         (GNUNET_YES == cur->update) ? "updated" : "full",
+             cur->peers, cur->addresses);
+
+      continue;
+    }
+
+
     if (GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us != cur->d_total.rel_value_us)
     {
       fprintf (stderr,
-         "Average total time to solve %s for %u peers %u addresses: %llu us\n",
+         "Average total time from %u iterations to solve %s for %u peers %u addresses: %llu us\n",
+         cur->valid,
          (GNUNET_YES == cur->update) ? "updated" : "full",
              cur->peers, cur->addresses,
-         (unsigned long long) cur->d_total.rel_value_us / ph.iterations);
+         (unsigned long long) cur->d_total.rel_value_us / cur->valid);
       GNUNET_asprintf(&str_d_total, "%llu",
-         (unsigned long long) cur->d_total.rel_value_us / ph.iterations);
+         (unsigned long long) cur->d_total.rel_value_us / cur->valid);
     }
     else
       GNUNET_asprintf (&str_d_total, "-1");
@@ -1044,11 +1133,11 @@ evaluate_average (void)
     if (GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us != cur->d_setup.rel_value_us)
     {
       fprintf (stderr,
-         "Average total time to setup for %u peers %u addresses: %llu us\n",
-             cur->peers, cur->addresses,
-         (unsigned long long) cur->d_setup.rel_value_us / ph.iterations);
+         "Average total time from %u iterations to setup for %u peers %u addresses: %llu us\n",
+         cur->valid, cur->peers, cur->addresses,
+         (unsigned long long) cur->d_setup.rel_value_us / cur->valid);
       GNUNET_asprintf(&str_d_setup, "%llu",
-         (unsigned long long) cur->d_setup.rel_value_us / ph.iterations);
+         (unsigned long long) cur->d_setup.rel_value_us / cur->valid);
 
     }
     else
@@ -1057,10 +1146,11 @@ evaluate_average (void)
     if (GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us != cur->d_lp.rel_value_us)
     {
       fprintf (stderr,
-         "Average total time to solve lp %s for %u peers %u addresses: %llu us\n",
+         "Average total time from %u iterations to solve lp %s for %u peers %u addresses: %llu us\n",
+         cur->valid,
          (GNUNET_YES == cur->update) ? "updated" : "full",
-             cur->peers, cur->addresses,
-         (unsigned long long) cur->d_lp.rel_value_us / ph.iterations);
+         cur->peers, cur->addresses,
+         (unsigned long long) cur->d_lp.rel_value_us / cur->valid);
       GNUNET_asprintf(&str_d_lp, "%llu",
          (unsigned long long) cur->d_lp.rel_value_us / ph.iterations);
     }
@@ -1070,12 +1160,13 @@ evaluate_average (void)
     if (GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us != cur->d_mlp.rel_value_us)
     {
       fprintf (stderr,
-         "Average total time to solve mlp %s for %u peers %u addresses: %llu us\n",
+         "Average total time from %u iterations to solve mlp %s for %u peers %u addresses: %llu us\n",
+         cur->valid,
          (GNUNET_YES == cur->update) ? "updated" : "full",
              cur->peers, cur->addresses,
-         (unsigned long long) cur->d_mlp.rel_value_us / ph.iterations);
+         (unsigned long long) cur->d_mlp.rel_value_us / cur->valid);
       GNUNET_asprintf(&str_d_mlp, "%llu",
-         (unsigned long long) cur->d_mlp.rel_value_us / ph.iterations);
+         (unsigned long long) cur->d_mlp.rel_value_us / cur->valid);
     }
     else
       GNUNET_asprintf (&str_d_mlp, "-1");
@@ -1224,8 +1315,10 @@ perf_run (void)
       GNUNET_CONTAINER_DLL_remove(ph.peers[cp].head, ph.peers[cp].tail, cur);
       GNUNET_free(cur);
     }
-
   }
+
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+      "Iteration done\n");
   GNUNET_free(ph.peers);
 }
 
@@ -1328,13 +1421,14 @@ run (void *cls, char * const *args, const char *cfgfile,
 
   /* Create array of DLL to store results for iterations */
   ph.iterations_results = GNUNET_malloc (sizeof (struct Iteration) * ph.iterations);
-  ph.averaged_result = GNUNET_malloc (sizeof (struct Result) * ((ph.N_peers_end + 1) - ph.N_peers_start));
+  ph.averaged_full_result = GNUNET_malloc (sizeof (struct Result) * ((ph.N_peers_end + 1) - ph.N_peers_start));
+  ph.averaged_update_result = GNUNET_malloc (sizeof (struct Result) * ((ph.N_peers_end + 1) - ph.N_peers_start));
   for (c = 0; c <= ph.N_peers_end - ph.N_peers_start; c++)
   {
-    ph.averaged_result[c].d_setup = GNUNET_TIME_UNIT_FOREVER_REL;
-    ph.averaged_result[c].d_total = GNUNET_TIME_UNIT_FOREVER_REL;
-    ph.averaged_result[c].d_lp = GNUNET_TIME_UNIT_FOREVER_REL;
-    ph.averaged_result[c].d_mlp = GNUNET_TIME_UNIT_FOREVER_REL;
+    ph.averaged_full_result[c].d_setup = GNUNET_TIME_UNIT_FOREVER_REL;
+    ph.averaged_full_result[c].d_total = GNUNET_TIME_UNIT_FOREVER_REL;
+    ph.averaged_full_result[c].d_lp = GNUNET_TIME_UNIT_FOREVER_REL;
+    ph.averaged_full_result[c].d_mlp = GNUNET_TIME_UNIT_FOREVER_REL;
   }
 
   /* Load solver */
@@ -1385,7 +1479,8 @@ run (void *cls, char * const *args, const char *cfgfile,
   GNUNET_PLUGIN_unload (plugin, ph.solver);
   GNUNET_free (plugin);
   GNUNET_free (ph.iterations_results);
-  GNUNET_free (ph.averaged_result);
+  GNUNET_free (ph.averaged_full_result);
+  GNUNET_free (ph.averaged_update_result);
   GNUNET_CONFIGURATION_destroy (solver_cfg);
   GNUNET_STATISTICS_destroy (ph.stat, GNUNET_NO);
   ph.solver = NULL;
