@@ -138,7 +138,6 @@ linux*)
      AC_DEFINE_UNQUOTED(CYGWIN,1,[This is a Cygwin system])
      AC_DEFINE_UNQUOTED(WINDOWS,1,[This is a Windows system])
      AC_CHECK_LIB(intl, gettext)
-     LDFLAGS="$LDFLAGS -Wl,-no-undefined"
      CFLAGS="-mms-bitfields $CFLAGS"
      build_target="cygwin"
      LIBPREFIX=lib
@@ -151,7 +150,7 @@ linux*)
      AC_DEFINE_UNQUOTED(WINDOWS,1,[This is a Windows system])
      AC_DEFINE_UNQUOTED(_WIN32,1,[This is a Windows system])
      AC_CHECK_LIB(intl, gettext)
-     LDFLAGS="$LDFLAGS -Wl,-no-undefined -Wl,--export-all-symbols"
+     LDFLAGS="$LDFLAGS -Wl,--export-all-symbols"
      LIBS="$LIBS -lws2_32 -lplibc -lgnurx -lole32"
      CFLAGS="-mms-bitfields $CFLAGS"
      CPPFLAGS="-D_WIN32_WINNT=0x0501 -DHAVE_STAT64=1 -D__USE_MINGW_ANSI_STDIO=1 $CPPFLAGS"
@@ -933,8 +932,8 @@ then
   AC_LIB_APPENDTOVAR([CPPFLAGS], [$GN_INTLINCL])
 fi
 
-GN_LIB_LDFLAGS="-export-dynamic -Wl,-no-undefined"
-GN_PLUGIN_LDFLAGS="-export-dynamic -avoid-version -module -Wl,-no-undefined"
+GN_LIB_LDFLAGS="-export-dynamic -no-undefined"
+GN_PLUGIN_LDFLAGS="-export-dynamic -avoid-version -module -no-undefined"
 
 AC_SUBST(GN_LIB_LDFLAGS)
 AC_SUBST(GN_PLUGIN_LDFLAGS)
