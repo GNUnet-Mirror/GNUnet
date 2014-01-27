@@ -1107,6 +1107,7 @@ run (void *cls, char * const *args, const char *cfgfile,
   GNUNET_PLUGIN_unload (plugin, ph.solver);
   GNUNET_free (plugin);
   GNUNET_CONFIGURATION_destroy (solver_cfg);
+  GNUNET_STATISTICS_destroy (ph.stat, GNUNET_NO);
   ph.solver = NULL;
 }
 
