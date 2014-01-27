@@ -110,9 +110,7 @@ struct PerfHandle
    * */
   struct GNUNET_ATS_PluginEnvironment env;
 
-  struct Result *head;
-
-  struct Result *tail;
+  struct Iteration *iterations_results;
 
   struct Result *current_result;
 
@@ -160,6 +158,16 @@ struct PerfHandle
   int measure_updates;
 
   /**
+   * Number of iterations
+   */
+  int iterations;
+
+  /**
+   * Current iteration
+   */
+  int current_iteration;
+
+  /**
    * Is a bulk operation running?
    */
   int bulk_running;
@@ -168,6 +176,13 @@ struct PerfHandle
    * Is a bulk operation running?
    */
   int expecting_solution;
+};
+
+struct Iteration
+{
+  struct Result *result_head;
+
+  struct Result *result_tail;
 };
 
 struct Result
@@ -445,8 +460,8 @@ solver_info_cb (void *cls,
   {
     case GAS_OP_SOLVE_START:
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-          "Solver notifies `%s' with result `%s' `%s'\n", "GAS_OP_SOLVE_START",
-          (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL", add_info);
+          "Solver notifies `%s' with result `%s' `%s' in iteration %u \n", "GAS_OP_SOLVE_START",
+          (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL", add_info, ph.current_iteration);
       if (GNUNET_NO == ph.expecting_solution)
       {
         /* We do not expect a solution at the moment */
@@ -459,7 +474,8 @@ solver_info_cb (void *cls,
         /* Create new result */
         tmp = GNUNET_new (struct Result);
         ph.current_result = tmp;
-        GNUNET_CONTAINER_DLL_insert_tail(ph.head, ph.tail, tmp);
+        GNUNET_CONTAINER_DLL_insert_tail(ph.iterations_results[ph.current_iteration-1].result_head,
+            ph.iterations_results[ph.current_iteration-1].result_tail, tmp);
         ph.current_result->addresses = ph.current_a;
         ph.current_result->peers = ph.current_p;
         ph.current_result->s_total = GNUNET_TIME_absolute_get();
@@ -681,9 +697,14 @@ write_gnuplot_script (char * data_fn, int full)
 
 }
 
+/**
+ * Evaluate results for a specific iteration
+ *
+ * @oaram iteration the iteration to evaluate
+ */
 
 static void
-evaluate ()
+evaluate (int iteration)
 {
   struct GNUNET_DISK_FileHandle *f_full;
   struct GNUNET_DISK_FileHandle *f_update;
@@ -754,7 +775,8 @@ evaluate ()
     write_gnuplot_script (data_fn_update, GNUNET_NO);
   }
 
-  next = ph.head;
+
+  next = ph.iterations_results[ph.current_iteration -1].result_head;
   while (NULL != (cur = next))
   {
     next = cur->next;
@@ -843,7 +865,8 @@ evaluate ()
     GNUNET_free_non_null (str_d_lp);
     GNUNET_free_non_null (str_d_mlp);
 
-    GNUNET_CONTAINER_DLL_remove (ph.head, ph.tail, cur);
+    GNUNET_CONTAINER_DLL_remove (ph.iterations_results[ph.current_iteration-1].result_head,
+        ph.iterations_results[ph.current_iteration-1].result_tail, cur);
     GNUNET_free (cur);
   }
 
@@ -860,7 +883,7 @@ evaluate ()
 
 
 static void
-perf_run ()
+perf_run (void)
 {
   struct ATS_Address *cur;
   struct ATS_Address *next;
@@ -872,11 +895,10 @@ perf_run ()
 
 
   ph.peers = GNUNET_malloc ((count_p) * sizeof (struct PerfPeer));
-
   for (cp = 0; cp < count_p; cp++)
     perf_create_peer (cp);
   GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-      "Added %u peers\n", cp);
+      "Iteration %u of %u, added %u peers\n", ph.current_iteration, ph.iterations, cp);
 
   for (cp = 0; cp < count_p; cp++)
   {
@@ -963,8 +985,6 @@ perf_run ()
 
   }
   GNUNET_free(ph.peers);
-
-  evaluate ();
 }
 
 
@@ -1039,11 +1059,11 @@ run (void *cls, char * const *args, const char *cfgfile,
     ph.N_address = DEFAULT_ADDRESSES;
 
   if (ph.N_peers_start != ph.N_peers_end)
-    fprintf (stderr, "Benchmarking solver `%s' with %u to %u peers and %u addresses\n",
-        ph.ats_string, ph.N_peers_start, ph.N_peers_end, ph.N_address);
+    fprintf (stderr, "Benchmarking solver `%s' with %u to %u peers and %u addresses in %u iterations\n",
+        ph.ats_string, ph.N_peers_start, ph.N_peers_end, ph.N_address, ph.iterations);
   else
-    fprintf (stderr, "Benchmarking solver `%s' with %u peers and %u addresses\n",
-        ph.ats_string, ph.N_peers_end, ph.N_address);
+    fprintf (stderr, "Benchmarking solver `%s' with %u peers and %u addresses in %u iterations\n",
+        ph.ats_string, ph.N_peers_end, ph.N_address, ph.iterations);
 
   if (0 == ph.opt_update_percent)
     ph.opt_update_percent = DEFAULT_UPDATE_PERCENTAGE;
@@ -1063,6 +1083,9 @@ run (void *cls, char * const *args, const char *cfgfile,
     end_now (1);
     return;
   }
+
+  /* Create array of DLL to store results for iterations */
+  ph.iterations_results = GNUNET_malloc (sizeof (struct Iteration) * ph.iterations);
 
   /* Load solver */
   ph.env.cfg = solver_cfg;
@@ -1099,8 +1122,12 @@ run (void *cls, char * const *args, const char *cfgfile,
     return;
   }
 
-  /* Do work */
-  perf_run ();
+  /* Do the benchmark */
+  for (ph.current_iteration = 1; ph.current_iteration <= ph.iterations; ph.current_iteration++)
+  {
+    perf_run ();
+    evaluate (ph.current_iteration);
+  }
 
   /* Unload solver*/
   GNUNET_log(GNUNET_ERROR_TYPE_INFO, _("Unloading solver `%s'\n"), ph.ats_string);
@@ -1122,6 +1149,7 @@ main (int argc, char *argv[])
   ph.ats_string = NULL;
   ph.create_plot = GNUNET_NO;
   ph.measure_updates = GNUNET_NO;
+  ph.iterations = 1;
 
   static struct GNUNET_GETOPT_CommandLineOption options[] = {
       { 'a', "addresses", NULL,
@@ -1133,6 +1161,9 @@ main (int argc, char *argv[])
       { 'e', "end", NULL,
           gettext_noop ("end with peer"),
           1, &GNUNET_GETOPT_set_uint, &ph.N_peers_end },
+      { 'i', "iterations", NULL,
+          gettext_noop ("number of iterations used for averaging (default: 1)"),
+          1, &GNUNET_GETOPT_set_uint, &ph.iterations },
       { 'p', "percentage", NULL,
           gettext_noop ("update a fix percentage of addresses"),
           1, &GNUNET_GETOPT_set_uint, &ph.opt_update_percent },
