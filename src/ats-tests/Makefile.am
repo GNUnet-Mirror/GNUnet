@@ -28,14 +28,14 @@ TESTING_TESTS = \
  perf_ats_proportional_transport_bandwidth \
  perf_ats_proportional_core_bandwidth \
  perf_ats_proportional_transport_latency \
- perf_ats_proportional_core_latency
- # $(PERF_MLP)
- #perf_ats_ril_transport_none \
- #perf_ats_ril_core_none \
- #perf_ats_ril_transport_bandwidth \
- #perf_ats_ril_core_bandwidth \
- #perf_ats_ril_transport_latency \
- #perf_ats_ril_core_latency
+ perf_ats_proportional_core_latency \
+ perf_ats_ril_transport_none \
+ perf_ats_ril_core_none \
+ perf_ats_ril_transport_bandwidth \
+ perf_ats_ril_core_bandwidth \
+ perf_ats_ril_transport_latency \
+ perf_ats_ril_core_latency \
+ $(PERF_MLP)
 endif
 
 lib_LTLIBRARIES = \
