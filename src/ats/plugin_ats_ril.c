@@ -29,14 +29,14 @@
 #define LOG(kind,...) GNUNET_log_from (kind, "ats-ril",__VA_ARGS__)
 
 #define RIL_MIN_BW                      ntohl (GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT.value__)
-#define RIL_MAX_BW                      1024 * 1000//GNUNET_ATS_MaxBandwidth TODO! revert
+#define RIL_MAX_BW                      GNUNET_ATS_MaxBandwidth
 
 #define RIL_ACTION_INVALID              -1
 #define RIL_INTERVAL_EXPONENT           10
-#define RIL_UTILITY_DELAY_MAX           100
+#define RIL_UTILITY_DELAY_MAX           1000
 
-#define RIL_DEFAULT_STEP_TIME_MIN       GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 500)
-#define RIL_DEFAULT_STEP_TIME_MAX       GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 3000)
+#define RIL_DEFAULT_STEP_TIME_MIN       GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 100)
+#define RIL_DEFAULT_STEP_TIME_MAX       GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 1000)
 #define RIL_DEFAULT_ALGORITHM           RIL_ALGO_Q
 #define RIL_DEFAULT_SELECT              RIL_SELECT_EGREEDY
 #define RIL_DEFAULT_WELFARE             RIL_WELFARE_EGALITARIAN
@@ -44,13 +44,13 @@
 #define RIL_DEFAULT_DISCOUNT_GAMMA      0.5
 #define RIL_DEFAULT_GRADIENT_STEP_SIZE  0.1
 #define RIL_DEFAULT_TRACE_DECAY         0.5
-#define RIL_DEFAULT_EXPLORE_RATIO       0.1
-#define RIL_DEFAULT_RBF_DIVISOR         10
+#define RIL_DEFAULT_EXPLORE_RATIO       0.2
+#define RIL_DEFAULT_RBF_DIVISOR         50
 #define RIL_DEFAULT_GLOBAL_REWARD_SHARE 0.5
 #define RIL_DEFAULT_TEMPERATURE         1.0
 
-#define RIL_INC_DEC_STEP_SIZE           1
-#define RIL_NOP_BONUS                   0.5
+#define RIL_INC_DEC_STEP_SIZE           100
+#define RIL_NOP_DECAY                   0.5
 
 /**
  * ATS reinforcement learning solver
@@ -67,7 +67,7 @@
 enum RIL_Action_Type
 {
   RIL_ACTION_NOTHING = 0,
-  RIL_ACTION_BW_IN_DBL = -2, //TODO! put actions back
+  RIL_ACTION_BW_IN_DBL = -2, //TODO? Potentially add more actions
   RIL_ACTION_BW_IN_HLV = -3,
   RIL_ACTION_BW_IN_INC = 1,
   RIL_ACTION_BW_IN_DEC = 2,
@@ -957,9 +957,9 @@ agent_get_utility (struct RIL_Peer_Agent *agent)
   delay_atsi = (double) ril_get_atsi (agent->address_inuse, GNUNET_ATS_QUALITY_NET_DELAY);
   delay_norm = RIL_UTILITY_DELAY_MAX*exp(-delay_atsi*0.00001);
 
-  pref_match = (preferences[GNUNET_ATS_PREFERENCE_LATENCY] * delay_norm);
-  pref_match += (preferences[GNUNET_ATS_PREFERENCE_BANDWIDTH] * (double) (agent->bw_in/RIL_MIN_BW));
-  pref_match += (preferences[GNUNET_ATS_PREFERENCE_BANDWIDTH] * (double) (agent->bw_out/RIL_MIN_BW));
+  pref_match = preferences[GNUNET_ATS_PREFERENCE_LATENCY] * delay_norm;
+  pref_match += preferences[GNUNET_ATS_PREFERENCE_BANDWIDTH] *
+      sqrt((double) (agent->bw_in/RIL_MIN_BW) * (double) (agent->bw_out/RIL_MIN_BW));
 
 //  return (double) (agent->bw_in/RIL_MIN_BW);
 //  return sqrt((double) (agent->bw_in/RIL_MIN_BW) * (double) (agent->bw_out/RIL_MIN_BW));
@@ -1007,24 +1007,6 @@ ril_network_get_social_welfare (struct GAS_RIL_Handle *solver, struct RIL_Scope 
   GNUNET_assert(GNUNET_NO);
   return 1;
 }
-
-//static double
-//envi_penalty_share (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
-//{
-//  struct RIL_Scope *net;
-//  double util_ratio_in;
-//  double util_ratio_out;
-//  double util_ratio_max;
-//  double sigmoid_x;
-//
-//  net = agent->address_inuse->solver_information;
-//
-//  util_ratio_in = (double) net->bw_in_utilized / (double) net->bw_in_available;
-//  util_ratio_out = (double) net->bw_out_utilized / (double) net->bw_out_available;
-//  util_ratio_max = GNUNET_MAX (util_ratio_in, util_ratio_out);
-//  sigmoid_x = util_ratio_max - 1;
-//  return 1 - (1 / (1 + exp(5 * sigmoid_x)));
-//}
 
 static double
 envi_get_penalty (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
@@ -1085,12 +1067,15 @@ envi_get_reward (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
 
   if (delta != 0)
   {
-    agent->nop_bonus = delta * 0.5;
+    agent->nop_bonus = delta * RIL_NOP_DECAY;
+  }
+  else
+  {
+    agent->nop_bonus *= RIL_NOP_DECAY;
   }
 
   steady = (RIL_ACTION_NOTHING == agent->a_old) ? agent->nop_bonus : 0;
 
-  //pen_share = envi_penalty_share(solver, agent); TODO revert
   pen_share = 0.5;
   penalty = envi_get_penalty(solver, agent);
 
@@ -1557,8 +1542,8 @@ ril_get_used_resource_ratio (struct GAS_RIL_Handle *solver)
     net = solver->network_entries[i];
     if (net.bw_in_assigned > 0) //only consider scopes where an address is actually active
     {
-      sum_assigned += net.bw_in_assigned;
-      sum_assigned += net.bw_out_assigned;
+      sum_assigned += net.bw_in_utilized;
+      sum_assigned += net.bw_out_utilized;
       sum_available += net.bw_in_available;
       sum_available += net.bw_out_available;
     }
@@ -1572,7 +1557,7 @@ ril_get_used_resource_ratio (struct GAS_RIL_Handle *solver)
     ratio = 0;
   }
 
-  return ratio > 1 ? 1 : ratio; //overassignment is possible, cap at 1
+  return ratio > 1 ? 1 : ratio; //overutilization is possible, cap at 1
 }
 
 /**
@@ -1651,7 +1636,7 @@ ril_try_unblock_agent (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *age
     if (ril_network_is_not_full(solver, net->type))
     {
       if (NULL == agent->address_inuse)
-        envi_set_active_suggestion (solver, agent, addr_wrap->address_naked, RIL_MIN_BW, RIL_MIN_BW, silent);
+        envi_set_active_suggestion (solver, agent, addr_wrap->address_naked, addr_wrap->bw_in, addr_wrap->bw_out, silent);
       return;
     }
   }
@@ -1671,7 +1656,7 @@ ril_calculate_discount (struct GAS_RIL_Handle *solver)
   struct GNUNET_TIME_Relative time_delta;
   double tau;
 
-  // MDP case - TODO remove when debugged
+  // MDP case - TODO! remove when debugged and test SMDP case
   if (solver->simulate)
   {
     solver->global_discount_variable = solver->parameters.gamma;
@@ -2429,8 +2414,8 @@ GAS_ril_address_add (void *solver, struct ATS_Address *address, uint32_t network
   //add address
   address_wrapped = GNUNET_new (struct RIL_Address_Wrapped);
   address_wrapped->address_naked = address;
-  address_wrapped->bw_in = RIL_MIN_BW;
-  address_wrapped->bw_out = RIL_MIN_BW;
+  address_wrapped->bw_in = net->bw_in_available > net->bw_in_utilized ? (net->bw_in_available - net->bw_in_utilized) / 2 : RIL_MIN_BW;
+  address_wrapped->bw_out = net->bw_out_available > net->bw_out_utilized ? (net->bw_out_available - net->bw_out_utilized) / 2 : RIL_MIN_BW;
   GNUNET_CONTAINER_DLL_insert_tail(agent->addresses_head, agent->addresses_tail, address_wrapped);
 
   //increase size of W
@@ -2515,7 +2500,6 @@ GAS_ril_address_delete (void *solver, struct ATS_Address *address, int session_o
   if (NULL == address_wrapped)
   {
     net = address->solver_information;
-    GNUNET_assert(!ril_network_is_active (s, net->type));
     LOG(GNUNET_ERROR_TYPE_DEBUG,
         "Address not considered by agent, address was in inactive network\n");
     return;
@@ -2563,8 +2547,8 @@ GAS_ril_address_delete (void *solver, struct ATS_Address *address, int session_o
   {
     if (NULL != agent->addresses_head) //if peer has an address left, use it
     {
-      envi_set_active_suggestion (s, agent, agent->addresses_head->address_naked, RIL_MIN_BW, RIL_MIN_BW,
-          GNUNET_NO);
+      envi_set_active_suggestion (s, agent, agent->addresses_head->address_naked, agent->addresses_head->bw_in, agent->addresses_head->bw_out,
+          GNUNET_YES);
     }
     else
     {
@@ -2783,7 +2767,6 @@ GAS_ril_get_preferred_address (void *solver, const struct GNUNET_PeerIdentity *p
         "API_get_preferred_address() Activated agent for peer '%s', but no address available\n",
         GNUNET_i2s (peer));
   }
-
   return agent->address_inuse;
 }
 
