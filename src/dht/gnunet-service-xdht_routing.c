@@ -31,7 +31,12 @@
 /* FIXME
  * 1. We need field to understand which routing table is for which peer.
  * 2. Better function names and variable names.
+ * 3. Use destination peer id as key for routing table. 
+ * 4. What does GDS stands for?
+ * 
  */
+
+
 /**
  * Number of requests we track at most (for routing replies).
  */
@@ -43,25 +48,26 @@
  */
 struct RoutingTrail
 {
-    /**
-     * Source peer .
-     */
-    struct GNUNET_PeerIdentity endpoint1;
+  /**
+   * Source peer .
+   */
+  struct GNUNET_PeerIdentity *source;
 
-    /**
-     * Destination peer.
-     */
-    struct GNUNET_PeerIdentity endppoint2;
+  /**
+   * Destination peer.
+   */
+  struct GNUNET_PeerIdentity *destination;
 
-    /**
-     * The peer this request was received from.
-     */
-    struct GNUNET_PeerIdentity previous_hop;
+  /**
+   * The peer this request was received from.
+   */
+  struct GNUNET_PeerIdentity *previous_hop;
 
-    /**
-     * The peer to which this request should be passed to.
-     */
-    struct GNUNET_PeerIdentity next_hop;
+  /**
+   * The peer to which this request should be passed to.
+   */
+  struct GNUNET_PeerIdentity *next_hop;
+  
 };
 
 
@@ -69,19 +75,6 @@ struct RoutingTrail
  * Routing table of the peer
  */
 static struct GNUNET_CONTAINER_MultiPeerMap *routing_table;
-
-
-/**
- * Find the next hop to pass the message to .
- * @return
- */
-//static
-struct GNUNET_PeerIdentity *
-find_next_hop()
-{
-  return NULL;    
-}
-
 
 
 /**FIXME: Old function added just to remove error for time being. 
@@ -110,7 +103,7 @@ GDS_ROUTING_add (const struct GNUNET_PeerIdentity *sender,
 
 
 /**
- * Search the next hop to send the packet to in routing table.
+ * Find the next hop to send packet to .
  * @return next hop peer id
  */
 struct GNUNET_PeerIdentity *
@@ -118,12 +111,13 @@ GDS_Routing_search(struct GNUNET_PeerIdentity *source_peer,
                    struct GNUNET_PeerIdentity *destination_peer,
                    struct GNUNET_PeerIdentity *prev_hop)
 {
-    //struct GNUNET_PeerIdentity *next_hop;
+    struct RoutingTrail *trail;
+    trail = (struct RoutingTrail *)(GNUNET_CONTAINER_multipeermap_get(routing_table,destination_peer));
     
-    /* We have got all the fields and now we should search the 
-     routing table by destination_peer and we should return the next_hop
-     I don't see any function at the moment in container_multipeer_map. */
-    return NULL;
+    if(trail == NULL)
+        return NULL;
+    
+    return trail->next_hop;
 }
 
 
@@ -154,6 +148,8 @@ GDS_ROUTING_process (enum GNUNET_BLOCK_Type type,
                      const void *data, size_t data_size)
 {
 }
+
+
 /**
  * Initialize routing subsystem.
  */
