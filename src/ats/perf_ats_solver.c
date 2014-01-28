@@ -191,62 +191,161 @@ struct PerfHandle
   int expecting_solution;
 };
 
+/**
+ * Data structure to store results for a single iteration
+ */
 struct Iteration
 {
+  /**
+   * Head of the linked list
+   */
   struct Result *result_head;
 
+  /**
+   * Tail of the linked list
+   */
   struct Result *result_tail;
 };
 
+
+/**
+ * Result for a solver calculcation
+ */
 struct Result
 {
+  /**
+   * Previous element in the linked list
+   */
   struct Result *prev;
+
+  /**
+   * Next element in the linked list
+   */
   struct Result *next;
 
+  /**
+   * Number of peers this solution included
+   */
   int peers;
+
+  /**
+   * Number of addresses per peer this solution included
+   */
   int addresses;
+
+  /**
+   * Is this an update or a full solution
+   */
   int update;
+
+  /**
+   * Was the solution valid or did the solver fail
+   */
   int valid;
 
+  /**
+   * Result of the solver
+   */
   enum GAS_Solver_Additional_Information info;
 
+  /**
+   * Duration of setting up the problem in the solver
+   */
   struct GNUNET_TIME_Relative d_setup;
+
+  /**
+   * Duration of solving the LP problem in the solver
+   * MLP solver only
+   */
   struct GNUNET_TIME_Relative d_lp;
+
+  /**
+   * Duration of solving the MLP problem in the solver
+   * MLP solver only
+   */
   struct GNUNET_TIME_Relative d_mlp;
+
+  /**
+   * Duration of solving whole problem in the solver
+   */
   struct GNUNET_TIME_Relative d_total;
 
+  /**
+   * Start time of setting up the problem in the solver
+   */
   struct GNUNET_TIME_Absolute s_setup;
+
+  /**
+   * Start time of solving the LP problem in the solver
+   * MLP solver only
+   */
   struct GNUNET_TIME_Absolute s_lp;
+
+  /**
+   * Start time of solving the MLP problem in the solver
+   * MLP solver only
+   */
   struct GNUNET_TIME_Absolute s_mlp;
+
+  /**
+   * Start time of solving whole problem in the solver
+   */
   struct GNUNET_TIME_Absolute s_total;
 
+  /**
+   * End time of setting up the problem in the solver
+   */
   struct GNUNET_TIME_Absolute e_setup;
+
+  /**
+   * End time of solving the LP problem in the solver
+   * MLP solver only
+   */
   struct GNUNET_TIME_Absolute e_lp;
+
+  /**
+   * End time of solving the MLP problem in the solver
+   * MLP solver only
+   */
   struct GNUNET_TIME_Absolute e_mlp;
+
+  /**
+   * End time of solving whole problem in the solver
+   */
   struct GNUNET_TIME_Absolute e_total;
 };
 
+/**
+ * Peer used for the benchmarking
+ */
 struct PerfPeer
 {
+  /**
+   * Peer identitity
+   */
   struct GNUNET_PeerIdentity id;
 
+  /**
+   * Head of linked list of addresses used with this peer
+   */
   struct ATS_Address *head;
+
+  /**
+   * Head of linked list of addresses used with this peer
+   */
   struct ATS_Address *tail;
 };
 
+
+/**
+ * ATS performance handle
+ */
 static struct PerfHandle ph;
 
 /**
  * Return value
  */
 static int ret;
-
-
-/**
- * ATS information
- */
-//static struct GNUNET_ATS_Information ats[2];
-
 
 static void
 end_now (int res)
