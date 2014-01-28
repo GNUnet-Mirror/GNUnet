@@ -390,7 +390,7 @@ get_performance_info (struct ATS_Address *address, uint32_t type)
 
 struct CountContext
 {
-  const struct GNUNET_CONTAINER_MultiPeerMap *peers;
+  const struct GNUNET_CONTAINER_MultiPeerMap *map;
   int result;
 };
 
@@ -402,22 +402,50 @@ mlp_create_problem_count_addresses_it (void *cls,
   struct CountContext *cctx = cls;
 
   /* Check if we have to add this peer due to a pending request */
-  if (GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains (cctx->peers, key))
+  if (GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains (cctx->map, key))
     cctx->result++;
   return GNUNET_OK;
 }
 
 
 static int
-mlp_create_problem_count_addresses (const struct GNUNET_CONTAINER_MultiPeerMap *peers,
+mlp_create_problem_count_addresses (const struct GNUNET_CONTAINER_MultiPeerMap *requested_peers,
 				    const struct GNUNET_CONTAINER_MultiPeerMap *addresses)
 {
   struct CountContext cctx;
 
-  cctx.peers = peers;
+  cctx.map = requested_peers;
   cctx.result = 0;
   GNUNET_CONTAINER_multipeermap_iterate (addresses,
-					 &mlp_create_problem_count_addresses_it, &cctx);
+           &mlp_create_problem_count_addresses_it, &cctx);
+  return cctx.result;
+}
+
+
+static int
+mlp_create_problem_count_peers_it (void *cls,
+                                   const struct GNUNET_PeerIdentity *key,
+                                   void *value)
+{
+  struct CountContext *cctx = cls;
+
+  /* Check if we have to addresses for the requested peer */
+  if (GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains (cctx->map, key))
+    cctx->result++;
+  return GNUNET_OK;
+}
+
+
+static int
+mlp_create_problem_count_peers (const struct GNUNET_CONTAINER_MultiPeerMap *requested_peers,
+    const struct GNUNET_CONTAINER_MultiPeerMap *addresses)
+{
+  struct CountContext cctx;
+
+  cctx.map = addresses;
+  cctx.result = 0;
+  GNUNET_CONTAINER_multipeermap_iterate (requested_peers,
+           &mlp_create_problem_count_peers_it, &cctx);
   return cctx.result;
 }
 
@@ -835,7 +863,7 @@ mlp_create_problem (struct GAS_MLP_Handle *mlp)
   /* create the glpk problem */
   p->prob = glp_create_prob ();
   GNUNET_assert (NULL != p->prob);
-  p->num_peers = GNUNET_CONTAINER_multipeermap_size (mlp->requested_peers);
+  p->num_peers = mlp_create_problem_count_peers (mlp->requested_peers, mlp->addresses);
   p->num_addresses = mlp_create_problem_count_addresses (mlp->requested_peers, mlp->addresses);
 
   /* Create problem matrix: 10 * #addresses + #q * #addresses + #q, + #peer + 2 + 1 */
@@ -1197,7 +1225,6 @@ GAS_mlp_solve_problem (void *solver)
     /* Do not execute mip solver since lp solution is invalid */
     dur_mlp = GNUNET_TIME_UNIT_ZERO;
     dur_total = GNUNET_TIME_absolute_get_duration (start_total);
-    GNUNET_break (0);
     notify(mlp, GAS_OP_SOLVE_MLP_MLP_STOP, GAS_STAT_FAIL,
         (GNUNET_YES == mlp->mlp_prob_changed) ? GAS_INFO_FULL : GAS_INFO_UPDATED);
     res_mip = GNUNET_SYSERR;
@@ -1244,10 +1271,10 @@ GAS_mlp_solve_problem (void *solver)
       (mlp->dump_solution_on_fail && ((GNUNET_OK != res_lp) || (GNUNET_OK != res_mip))) )
     {
       /* Write problem to disk */
-      GNUNET_asprintf(&filename, "problem_p_%u_a%u_%llu.mps", mlp->p.num_peers,
+      GNUNET_asprintf(&filename, "problem_p_%u_a%u_%llu.lp", mlp->p.num_peers,
           mlp->p.num_addresses, time.abs_value_us);
       LOG(GNUNET_ERROR_TYPE_ERROR, "Dumped problem to file: `%s' \n", filename);
-      glp_write_mps (mlp->p.prob, GLP_MPS_FILE, NULL, filename);
+      glp_write_lp (mlp->p.prob, NULL, filename);
       GNUNET_free(filename);
     }
   if ( (mlp->dump_solution_all) ||
@@ -1576,7 +1603,7 @@ GAS_mlp_address_delete (void *solver,
   if (NULL == (p = GNUNET_CONTAINER_multipeermap_get (mlp->requested_peers,
 						      &address->peer)))
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Deleting %s for peer `%s' without address request \n",
+    LOG (GNUNET_ERROR_TYPE_INFO, "Deleting %s for peer `%s' without address request \n",
         (session_only == GNUNET_YES) ? "session" : "address",
         GNUNET_i2s(&address->peer));
     return;
