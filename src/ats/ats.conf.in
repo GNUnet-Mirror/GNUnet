@@ -34,13 +34,12 @@ BLUETOOTH_QUOTA_OUT = 128 KiB
 
 
 # MLP specific settings
-MLP_MIN_INTERVAL = 15000
-
-# check if required
-#MLP_EXEC_INTERVAL = 30000
-
 # MLP defaults
+
+# Maximum duration for a solution process
 # MLP_MAX_DURATION = 3 s
+
+# Maximum number of iterations for a solution process
 # MLP_MAX_ITERATIONS = 1024
 # MLP_COEFFICIENT_D = 1.0
 # MLP_COEFFICIENT_U = 1.0
@@ -48,11 +47,13 @@ MLP_MIN_INTERVAL = 15000
 # MLP_MIN_BANDWIDTH = 1024
 # MLP_MIN_CONNECTIONS = 4
 
-# MLP Debugging settings
-DUMP_MLP = NO
-DUMP_SOLUTION = NO
-DUMP_OVERWRITE = NO
-DUMP_MIN_PEERS = 0
-DUMP_MIN_ADDRS = 0
-DUMP_OVERWRITE = NO
+# MLP Log settings
+# Dump all problems to disk
+# DUMP_PROBLEM_ALL = YES
+# Dump all solution to disk
+# DUMP_SOLUTION_ALL = YES
 
+# Dump all problems to disk
+DUMP_PROBLEM_ON_FAIL = YES
+# Dump all solution to disk
+DUMP_SOLUTION_ON_FAIL = YES

@@ -317,14 +317,24 @@ struct GAS_MLP_Handle
   int mlp_auto_solve;
 
   /**
-   * Write MILP problem to a MPS file
+   * Write all MILP problems to a MPS file
    */
-  int write_mip_mps;
+  int dump_problem_all;
 
   /**
-   * Write MILP problem to a MPS file
+   * Write all MILP problem solutions to a file
    */
-  int write_mip_sol;
+  int dump_solution_all;
+
+  /**
+   * Write MILP problems to a MPS file when solver fails
+   */
+  int dump_problem_on_fail;
+
+  /**
+   * Write MILP problem solutions to a file when solver fails
+   */
+  int dump_solution_on_fail;
 
 };
 

@@ -81,7 +81,7 @@
  *    adapted using configuration settings and uses the following parameters:
  *      * MLP_MAX_DURATION:
  *        Maximum duration for a MLP solution procees (default: 3 sec.)
- *      * MLP_MAX_DURATION:
+ *      * MLP_MAX_ITERATIONS:
  *        Maximum number of iterations for a MLP solution process (default:
  *        1024)
  *      * MLP_MIN_CONNECTIONS:
@@ -1099,7 +1099,8 @@ GAS_mlp_solve_problem (void *solver)
   int res_lp = 0;
   int res_mip = 0;
 
-  struct GNUNET_TIME_Absolute start;
+  struct GNUNET_TIME_Absolute start_total;
+  struct GNUNET_TIME_Absolute start_cur_op;
   struct GNUNET_TIME_Relative dur_total;
   struct GNUNET_TIME_Relative dur_setup;
   struct GNUNET_TIME_Relative dur_lp;
@@ -1114,7 +1115,7 @@ GAS_mlp_solve_problem (void *solver)
     }
   notify(mlp, GAS_OP_SOLVE_START, GAS_STAT_SUCCESS,
       (GNUNET_YES == mlp->mlp_prob_changed) ? GAS_INFO_FULL : GAS_INFO_UPDATED);
-  start = GNUNET_TIME_absolute_get();
+  start_total = GNUNET_TIME_absolute_get();
 
   if (0 == GNUNET_CONTAINER_multipeermap_size(mlp->requested_peers))
     {
@@ -1153,39 +1154,60 @@ GAS_mlp_solve_problem (void *solver)
       LOG(GNUNET_ERROR_TYPE_DEBUG, "Problem was updated, resolving\n");
     }
 
-  dur_setup = GNUNET_TIME_absolute_get_duration (start);
-  mlp->control_param_lp.presolve = GLP_YES;
-  /* Run LP solver */
+  dur_setup = GNUNET_TIME_absolute_get_duration (start_total);
 
+  /* Run LP solver */
+  mlp->control_param_lp.presolve = GLP_YES;
   notify(mlp, GAS_OP_SOLVE_MLP_LP_START, GAS_STAT_SUCCESS,
       (GNUNET_YES == mlp->mlp_prob_changed) ? GAS_INFO_FULL : GAS_INFO_UPDATED);
   LOG(GNUNET_ERROR_TYPE_DEBUG,
       "Running LP solver %s\n",
       (GLP_YES == mlp->control_param_lp.presolve)? "with presolver": "without presolver");
+  start_cur_op = GNUNET_TIME_absolute_get();
+
+  /* Solve LP */
   res_lp = mlp_solve_lp_problem(mlp);
+
+  dur_lp = GNUNET_TIME_absolute_get_duration (start_cur_op);
   notify(mlp, GAS_OP_SOLVE_MLP_LP_STOP,
       (GNUNET_OK == res_lp) ? GAS_STAT_SUCCESS : GAS_STAT_FAIL,
       (GNUNET_YES == mlp->mlp_prob_changed) ? GAS_INFO_FULL : GAS_INFO_UPDATED);
 
-  dur_lp = GNUNET_TIME_absolute_get_duration (start);
-  dur_lp = GNUNET_TIME_relative_subtract(dur_lp, dur_setup);
 
   /* Run MLP solver */
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "Running MLP solver \n");
-  notify(mlp, GAS_OP_SOLVE_MLP_MLP_START, GAS_STAT_SUCCESS,
-      (GNUNET_YES == mlp->mlp_prob_changed) ? GAS_INFO_FULL : GAS_INFO_UPDATED);
-  res_mip = mlp_solve_mlp_problem(mlp);
-  notify(mlp, GAS_OP_SOLVE_MLP_MLP_STOP,
-      (GNUNET_OK == res_lp) ? GAS_STAT_SUCCESS : GAS_STAT_FAIL,
-      (GNUNET_YES == mlp->mlp_prob_changed) ? GAS_INFO_FULL : GAS_INFO_UPDATED);
-  notify(mlp, GAS_OP_SOLVE_STOP,
-      (GNUNET_OK == res_mip) ? GAS_STAT_SUCCESS : GAS_STAT_FAIL,
-      (GNUNET_YES == mlp->mlp_prob_changed) ? GAS_INFO_FULL : GAS_INFO_UPDATED);
+  if (GNUNET_OK == res_lp)
+  {
+    LOG(GNUNET_ERROR_TYPE_DEBUG, "Running MLP solver \n");
+    notify(mlp, GAS_OP_SOLVE_MLP_MLP_START, GAS_STAT_SUCCESS,
+        (GNUNET_YES == mlp->mlp_prob_changed) ? GAS_INFO_FULL : GAS_INFO_UPDATED);
+    start_cur_op = GNUNET_TIME_absolute_get();
 
-  dur_mlp = GNUNET_TIME_absolute_get_duration (start);
-  dur_mlp = GNUNET_TIME_relative_subtract(dur_mlp, dur_setup);
-  dur_mlp = GNUNET_TIME_relative_subtract(dur_mlp, dur_lp);
-  dur_total = GNUNET_TIME_absolute_get_duration (start);
+    /* Solve MIP */
+    res_mip = mlp_solve_mlp_problem(mlp);
+
+    dur_mlp = GNUNET_TIME_absolute_get_duration (start_cur_op);
+    dur_total = GNUNET_TIME_absolute_get_duration (start_total);
+
+    notify(mlp, GAS_OP_SOLVE_MLP_MLP_STOP,
+        (GNUNET_OK == res_mip) ? GAS_STAT_SUCCESS : GAS_STAT_FAIL,
+        (GNUNET_YES == mlp->mlp_prob_changed) ? GAS_INFO_FULL : GAS_INFO_UPDATED);
+  }
+  else
+  {
+    /* Do not execute mip solver since lp solution is invalid */
+    dur_mlp = GNUNET_TIME_UNIT_ZERO;
+    dur_total = GNUNET_TIME_absolute_get_duration (start_total);
+    GNUNET_break (0);
+    notify(mlp, GAS_OP_SOLVE_MLP_MLP_STOP, GAS_STAT_FAIL,
+        (GNUNET_YES == mlp->mlp_prob_changed) ? GAS_INFO_FULL : GAS_INFO_UPDATED);
+    res_mip = GNUNET_SYSERR;
+  }
+
+
+  /* Notify about end */
+  notify(mlp, GAS_OP_SOLVE_STOP,
+      ((GNUNET_OK == res_mip) && (GNUNET_OK == res_mip)) ? GAS_STAT_SUCCESS : GAS_STAT_FAIL,
+      (GNUNET_YES == mlp->mlp_prob_changed) ? GAS_INFO_FULL : GAS_INFO_UPDATED);
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
       "Execution time for %s solve: (total/setup/lp/mlp) : %llu %llu %llu %llu\n",
@@ -1218,24 +1240,26 @@ GAS_mlp_solve_problem (void *solver)
       GAS_INFO_NONE);
 
   struct GNUNET_TIME_Absolute time = GNUNET_TIME_absolute_get();
-  if (GNUNET_YES == mlp->write_mip_mps)
+  if ( (GNUNET_YES == mlp->dump_solution_all) ||
+      (mlp->dump_solution_on_fail && ((GNUNET_OK != res_lp) || (GNUNET_OK != res_mip))) )
     {
       /* Write problem to disk */
       GNUNET_asprintf(&filename, "problem_p_%u_a%u_%llu.mps", mlp->p.num_peers,
           mlp->p.num_addresses, time.abs_value_us);
-      LOG(GNUNET_ERROR_TYPE_ERROR, "DUMP: %s \n", filename);
-      glp_write_lp(mlp->p.prob, NULL, filename);
+      LOG(GNUNET_ERROR_TYPE_ERROR, "Dumped problem to file: `%s' \n", filename);
+      glp_write_mps (mlp->p.prob, GLP_MPS_FILE, NULL, filename);
       GNUNET_free(filename);
     }
-  if (GNUNET_YES == mlp->write_mip_sol)
-    {
-      /* Write solution to disk */
-      GNUNET_asprintf(&filename, "problem_p_%u_a%u_%llu.sol", mlp->p.num_peers,
-          mlp->p.num_addresses, time.abs_value_us);
-      glp_print_mip(mlp->p.prob, filename);
-      LOG(GNUNET_ERROR_TYPE_ERROR, "DUMP: %s \n", filename);
-      GNUNET_free(filename);
-    }
+  if ( (mlp->dump_solution_all) ||
+      (mlp->dump_solution_on_fail && ((GNUNET_OK != res_lp) || (GNUNET_OK != res_mip))) )
+  {
+    /* Write solution to disk */
+    GNUNET_asprintf(&filename, "problem_p_%u_a%u_%llu.sol", mlp->p.num_peers,
+        mlp->p.num_addresses, time.abs_value_us);
+    glp_print_mip(mlp->p.prob, filename);
+    LOG(GNUNET_ERROR_TYPE_ERROR, "Dumped solution to file: `%s' \n", filename);
+    GNUNET_free(filename);
+  }
 
   /* Reset change and update marker */
   mlp->control_param_lp.presolve = GLP_NO;
@@ -1936,25 +1960,38 @@ libgnunet_plugin_ats_mlp_init (void *cls)
       break;
   }
 
-   mlp->write_mip_mps = GNUNET_CONFIGURATION_get_value_yesno (env->cfg, "ats",
-          "DUMP_MLP");
-   if (GNUNET_SYSERR == mlp->write_mip_mps)
-     mlp->write_mip_mps = GNUNET_NO;
-   mlp->write_mip_sol = GNUNET_CONFIGURATION_get_value_yesno (env->cfg, "ats",
-          "DUMP_SOLUTION");
-   if (GNUNET_SYSERR == mlp->write_mip_sol)
-     mlp->write_mip_sol = GNUNET_NO;
+   mlp->dump_problem_all = GNUNET_CONFIGURATION_get_value_yesno (env->cfg,
+       "ats", "DUMP_PROBLEM_ALL");
+   if (GNUNET_SYSERR == mlp->dump_problem_all)
+     mlp->dump_problem_all = GNUNET_NO;
+
+   mlp->dump_solution_all = GNUNET_CONFIGURATION_get_value_yesno (env->cfg,
+       "ats", "DUMP_SOLUTION_ALL");
+   if (GNUNET_SYSERR == mlp->dump_solution_all)
+     mlp->dump_solution_all = GNUNET_NO;
+
+   mlp->dump_problem_on_fail = GNUNET_CONFIGURATION_get_value_yesno (env->cfg,
+       "ats", "DUMP_PROBLEM_ON_FAIL");
+   if (GNUNET_SYSERR == mlp->dump_problem_on_fail)
+     mlp->dump_problem_on_fail = GNUNET_NO;
+
+   mlp->dump_solution_on_fail = GNUNET_CONFIGURATION_get_value_yesno (env->cfg,
+       "ats", "DUMP_SOLUTION_ON_FAIL");
+   if (GNUNET_SYSERR == mlp->dump_solution_on_fail)
+     mlp->dump_solution_on_fail = GNUNET_NO;
 
   mlp->pv.BIG_M = (double) BIG_M_VALUE;
 
   /* Get timeout for iterations */
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_time(env->cfg, "ats", "MLP_MAX_DURATION", &max_duration))
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_time(env->cfg, "ats",
+      "MLP_MAX_DURATION", &max_duration))
   {
     max_duration = MLP_MAX_EXEC_DURATION;
   }
 
   /* Get maximum number of iterations */
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_size(env->cfg, "ats", "MLP_MAX_ITERATIONS", &max_iterations))
+  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_size(env->cfg, "ats",
+      "MLP_MAX_ITERATIONS", &max_iterations))
   {
     max_iterations = MLP_MAX_ITERATIONS;
   }
@@ -1999,17 +2036,16 @@ libgnunet_plugin_ats_mlp_init (void *cls)
       i_distance = c;
   }
 
-  if ((i_delay != MLP_NaN) && (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size (env->cfg, "ats",
-                                                      "MLP_COEFFICIENT_QUALITY_DELAY",
-                                                      &tmp)))
-
+  if ( (i_delay != MLP_NaN) &&
+       (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size (env->cfg, "ats",
+          "MLP_COEFFICIENT_QUALITY_DELAY", &tmp)) )
     mlp->pv.co_Q[i_delay] = (double) tmp / 100;
   else
     mlp->pv.co_Q[i_delay] = DEFAULT_QUALITY;
 
-  if ((i_distance != MLP_NaN) && (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size (env->cfg, "ats",
-                                                      "MLP_COEFFICIENT_QUALITY_DISTANCE",
-                                                      &tmp)))
+  if ( (i_distance != MLP_NaN) &&
+        (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size (env->cfg, "ats",
+          "MLP_COEFFICIENT_QUALITY_DISTANCE", &tmp)) )
     mlp->pv.co_Q[i_distance] = (double) tmp / 100;
   else
     mlp->pv.co_Q[i_distance] = DEFAULT_QUALITY;
@@ -2045,10 +2081,11 @@ libgnunet_plugin_ats_mlp_init (void *cls)
               mlp->pv.quota_out[c] = env->out_quota[c2];
               mlp->pv.quota_in[c] = env->in_quota[c2];
               found = GNUNET_YES;
-              LOG (GNUNET_ERROR_TYPE_DEBUG, "Quota for network `%s' (in/out) %llu/%llu\n",
-                          GNUNET_ATS_print_network_type(mlp->pv.quota_index[c]),
-                          mlp->pv.quota_out[c],
-                          mlp->pv.quota_in[c]);
+              LOG (GNUNET_ERROR_TYPE_DEBUG,
+                  "Quota for network `%s' (in/out) %llu/%llu\n",
+                  GNUNET_ATS_print_network_type(mlp->pv.quota_index[c]),
+                  mlp->pv.quota_out[c],
+                  mlp->pv.quota_in[c]);
               break;
           }
       }
@@ -2056,7 +2093,8 @@ libgnunet_plugin_ats_mlp_init (void *cls)
       /* Check if defined quota could make problem unsolvable */
       if ((n_min * b_min) > mlp->pv.quota_out[c])
       {
-        LOG (GNUNET_ERROR_TYPE_INFO, _("Adjusting inconsistent outbound quota configuration for network `%s', is %llu must be at least %llu\n"),
+        LOG (GNUNET_ERROR_TYPE_INFO,
+            _("Adjusting inconsistent outbound quota configuration for network `%s', is %llu must be at least %llu\n"),
             GNUNET_ATS_print_network_type(mlp->pv.quota_index[c]),
             mlp->pv.quota_out[c],
             (n_min * b_min));
@@ -2064,7 +2102,8 @@ libgnunet_plugin_ats_mlp_init (void *cls)
       }
       if ((n_min * b_min) > mlp->pv.quota_in[c])
       {
-        LOG (GNUNET_ERROR_TYPE_INFO, _("Adjusting inconsistent inbound quota configuration for network `%s', is %llu must be at least %llu\n"),
+        LOG (GNUNET_ERROR_TYPE_INFO,
+            _("Adjusting inconsistent inbound quota configuration for network `%s', is %llu must be at least %llu\n"),
             GNUNET_ATS_print_network_type(mlp->pv.quota_index[c]),
             mlp->pv.quota_in[c],
             (n_min * b_min));
@@ -2074,7 +2113,8 @@ libgnunet_plugin_ats_mlp_init (void *cls)
       /* Check if bandwidth is too big to make problem solvable */
       if (mlp->pv.BIG_M < mlp->pv.quota_out[c])
       {
-        LOG (GNUNET_ERROR_TYPE_INFO, _("Adjusting outbound quota configuration for network `%s'from %llu to %.0f\n"),
+        LOG (GNUNET_ERROR_TYPE_INFO,
+            _("Adjusting outbound quota configuration for network `%s'from %llu to %.0f\n"),
             GNUNET_ATS_print_network_type(mlp->pv.quota_index[c]),
             mlp->pv.quota_out[c],
             mlp->pv.BIG_M);
