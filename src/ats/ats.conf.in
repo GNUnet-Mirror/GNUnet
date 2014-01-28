@@ -49,11 +49,13 @@ BLUETOOTH_QUOTA_OUT = 128 KiB
 
 # MLP Log settings
 # Dump all problems to disk
-# DUMP_PROBLEM_ALL = YES
+# MLP_DUMP_PROBLEM_ALL = YES
 # Dump all solution to disk
-# DUMP_SOLUTION_ALL = YES
+# MLP_DUMP_SOLUTION_ALL = YES
+# Print GLPK output
+# MLP_GLPK_VERBOSE = YES
 
 # Dump all problems to disk
-DUMP_PROBLEM_ON_FAIL = YES
+MLP_DUMP_PROBLEM_ON_FAIL = YES
 # Dump all solution to disk
-DUMP_SOLUTION_ON_FAIL = YES
+MLP_DUMP_SOLUTION_ON_FAIL = YES
