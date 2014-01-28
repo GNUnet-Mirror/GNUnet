@@ -1277,6 +1277,9 @@ evaluate_average (void)
       else
          break;
 
+      if (0 == cur->peers)
+        continue;
+
       str_d_total = NULL;
       str_d_setup = NULL;
       str_d_lp = NULL;
