@@ -116,10 +116,13 @@ struct PerfHandle
   struct Iteration *iterations_results;
 
   /**
-   * Array to store averaged result with length #peers
+   * Array to store averaged full solution result with length #peers
    */
   struct Result *averaged_full_result;
 
+  /**
+   * Array to store averaged updated solution result with length #peers
+   */
   struct Result *averaged_update_result;
 
   /**
@@ -127,7 +130,14 @@ struct PerfHandle
    */
   struct Result *current_result;
 
+  /**
+   * Current number of peers benchmarked
+   */
   int current_p;
+
+  /**
+   * Current number of addresses benchmarked
+   */
   int current_a;
 
   /**
@@ -347,6 +357,10 @@ static struct PerfHandle ph;
  */
 static int ret;
 
+
+/**
+ * Do shutdown
+ */
 static void
 end_now (int res)
 {
@@ -355,23 +369,22 @@ end_now (int res)
     GNUNET_STATISTICS_destroy (ph.stat, GNUNET_NO);
     ph.stat = NULL;
   }
-  /*
-   if (NULL != addresses)
-   {
-   GNUNET_CONTAINER_multihashmap_iterate (addresses, &addr_it, NULL);
-   GNUNET_CONTAINER_multihashmap_destroy (addresses);
-   addresses = NULL ;
-   }*/
-  if (NULL != ph.peers)
-  {
-    GNUNET_free(ph.peers);
-  }
+
+  GNUNET_free_non_null (ph.peers);
+  GNUNET_free_non_null (ph.iterations_results);
+  GNUNET_free_non_null (ph.averaged_full_result);
+  GNUNET_free_non_null (ph.averaged_update_result);
 
   GAS_normalization_stop ();
   ret = res;
 }
 
 
+/**
+ * Create a peer used for benchmarking
+ *
+ * @param cp the number of the peer
+ */
 static void
 perf_create_peer (int cp)
 {
@@ -383,7 +396,11 @@ perf_create_peer (int cp)
 }
 
 
-
+/**
+ * Perform an update for an address
+ *
+ * @param cur the address to update
+ */
 static void
 perf_update_address (struct ATS_Address *cur)
 {
@@ -475,6 +492,14 @@ perf_address_initial_update (void *solver,
           / 100);
 }
 
+/**
+ * Update a certain percentage of peers
+ *
+ * @param cp the current number of peers
+ * @param ca the current number of addresses
+ * @param percentage_peers the percentage of peers to update
+ */
+
 static void
 perf_update_all_addresses (unsigned int cp, unsigned int ca, unsigned int percentage_peers)
 {
@@ -520,14 +545,19 @@ perf_update_all_addresses (unsigned int cp, unsigned int ca, unsigned int percen
       {
         if (c_cur_a == r)
           perf_update_address (cur_address);
-
         c_cur_a ++;
       }
     }
   }
 }
 
-
+/**
+ * Create an address for a peer
+ *
+ * @param cp index of the peer
+ * @param ca index of the address
+ * @return the address
+ */
 static struct ATS_Address *
 perf_create_address (int cp, int ca)
 {
@@ -540,6 +570,14 @@ perf_create_address (int cp, int ca)
   return a;
 }
 
+
+/**
+ * Information callback for the solver
+ *
+ * @param op the solver operation
+ * @param stat status of the solver operation
+ * @param add additional solver information
+ */
 static void
 solver_info_cb (void *cls,
     enum GAS_Solver_Operation op,
@@ -883,7 +921,6 @@ write_gnuplot_script (char * data_fn, int iteration, int full)
  *
  * @param iteration the iteration to evaluate
  */
-
 static void
 evaluate (int iteration)
 {
@@ -1116,7 +1153,9 @@ evaluate (int iteration)
   GNUNET_free_non_null (data_fn_update);
 }
 
-
+/**
+ * Evaluate average results for all iterations
+ */
 static void
 evaluate_average (void)
 {
@@ -1210,10 +1249,8 @@ evaluate_average (void)
          "No valid results for %s for %u peers %u addresses!\n",
          (GNUNET_YES == cur->update) ? "updated" : "full",
              cur->peers, cur->addresses);
-
       continue;
     }
-
 
     if (GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us != cur->d_total.rel_value_us)
     {
@@ -1314,8 +1351,12 @@ evaluate_average (void)
   GNUNET_free_non_null (data_fn_update);
 }
 
+/**
+ * Run a performance iteration
+ */
+
 static void
-perf_run (void)
+perf_run_iteration (void)
 {
   struct ATS_Address *cur;
   struct ATS_Address *next;
@@ -1363,9 +1404,7 @@ perf_run (void)
         ph.env.sf.s_bulk_stop (ph.solver);
       }
       else
-      {
         GNUNET_break (0);
-      }
 
       /* Problem is solved by the solver here due to unlocking */
       ph.expecting_solution = GNUNET_NO;
@@ -1568,7 +1607,7 @@ run (void *cls, char * const *args, const char *cfgfile,
   /* Do the benchmark */
   for (ph.current_iteration = 1; ph.current_iteration <= ph.iterations; ph.current_iteration++)
   {
-    perf_run ();
+    perf_run_iteration ();
     evaluate (ph.current_iteration);
   }
   evaluate_average ();
@@ -1585,6 +1624,12 @@ run (void *cls, char * const *args, const char *cfgfile,
   ph.solver = NULL;
 }
 
+/**
+ * Main function of the benchmark
+ *
+ * @param argc argument count
+ * @param argv argument values
+ */
 int
 main (int argc, char *argv[])
 {
@@ -1624,7 +1669,6 @@ main (int argc, char *argv[])
   };
 
   GNUNET_PROGRAM_run (argc, argv, argv[0], NULL, options, &run, argv[0]);
-
   return ret;
 }
 
