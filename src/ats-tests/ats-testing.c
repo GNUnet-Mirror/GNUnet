@@ -740,6 +740,7 @@ peerinformation_cb (void *cb_cls, struct GNUNET_TESTBED_Operation *op,
  * Signature of a main function for a testcase.
  *
  * @param cls closure
+ * @param h testbed handle
  * @param num_peers number of peers in 'peers'
  * @param peers_ handle to peers run in the testbed
  * @param links_succeeded the number of overlay link connection attempts that

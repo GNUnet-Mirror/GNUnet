@@ -476,7 +476,7 @@ GNUNET_ATS_TEST_generate_traffic_stop_all ();
  * @param log_frequency the logging frequency
  * @param testname the testname
  * @param masters the master peers used for benchmarking
- * @oaram num_master the number of master peers
+ * @param num_master the number of master peers
  * @return the logging handle or NULL on error
  */
 struct LoggingHandle *
