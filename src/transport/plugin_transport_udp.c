@@ -1476,7 +1476,7 @@ udp_plugin_create_session (void *cls,
     memset (&v6, '\0', sizeof (v6));
     v6.sin6_family = AF_INET6;
 #if HAVE_SOCKADDR_IN_SIN_LEN
-    v6.sin_len = sizeof (struct sockaddr_in6);
+    v6.sin6_len = sizeof (struct sockaddr_in6);
 #endif
     v6.sin6_port = udp_v6->u6_port;
     v6.sin6_addr = udp_v6->ipv6_addr;
