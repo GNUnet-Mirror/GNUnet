@@ -269,12 +269,12 @@ struct GAS_MLP_Handle
    * Bulk lock
    */
 
-  int bulk_lock;
+  int stat_bulk_lock;
 
   /**
    * Number of changes while solver was locked
    */
-  int bulk_request;
+  int stat_bulk_requests;
 
   /**
    * GLPK LP control parameter
@@ -302,39 +302,44 @@ struct GAS_MLP_Handle
   /**
    * Was the problem updated since last solution
    */
-  int mlp_prob_updated;
+  int stat_mlp_prob_updated;
 
   /**
    * Has the problem size changed since last solution
    */
-  int mlp_prob_changed;
+  int stat_mlp_prob_changed;
 
   /**
    * Solve the problem automatically when updates occur?
    * Default: GNUNET_YES
    * Can be disabled for test and measurements
    */
-  int mlp_auto_solve;
+  int opt_mlp_auto_solve;
 
   /**
    * Write all MILP problems to a MPS file
    */
-  int dump_problem_all;
+  int opt_dump_problem_all;
 
   /**
    * Write all MILP problem solutions to a file
    */
-  int dump_solution_all;
+  int opt_dump_solution_all;
 
   /**
    * Write MILP problems to a MPS file when solver fails
    */
-  int dump_problem_on_fail;
+  int opt_dump_problem_on_fail;
 
   /**
    * Write MILP problem solutions to a file when solver fails
    */
-  int dump_solution_on_fail;
+  int opt_dump_solution_on_fail;
+
+  /**
+   * Print GLPK output
+   */
+  int opt_glpk_verbose;
 
 };
 
