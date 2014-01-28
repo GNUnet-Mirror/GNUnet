@@ -28,14 +28,14 @@
 
 #define LOG(kind,...) GNUNET_log_from (kind, "ats-ril",__VA_ARGS__)
 
-#define RIL_MIN_BW                      ntohl (GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT.value__)
+#define RIL_MIN_BW                      (1 * ntohl (GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT.value__))
 #define RIL_MAX_BW                      GNUNET_ATS_MaxBandwidth
 
 #define RIL_ACTION_INVALID              -1
 #define RIL_INTERVAL_EXPONENT           10
 #define RIL_UTILITY_DELAY_MAX           1000
 
-#define RIL_DEFAULT_STEP_TIME_MIN       GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 100)
+#define RIL_DEFAULT_STEP_TIME_MIN       GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 200)
 #define RIL_DEFAULT_STEP_TIME_MAX       GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 1000)
 #define RIL_DEFAULT_ALGORITHM           RIL_ALGO_Q
 #define RIL_DEFAULT_SELECT              RIL_SELECT_EGREEDY
@@ -44,12 +44,12 @@
 #define RIL_DEFAULT_DISCOUNT_GAMMA      0.5
 #define RIL_DEFAULT_GRADIENT_STEP_SIZE  0.1
 #define RIL_DEFAULT_TRACE_DECAY         0.5
-#define RIL_DEFAULT_EXPLORE_RATIO       0.2
+#define RIL_DEFAULT_EXPLORE_RATIO       0.1
 #define RIL_DEFAULT_RBF_DIVISOR         50
 #define RIL_DEFAULT_GLOBAL_REWARD_SHARE 0.5
 #define RIL_DEFAULT_TEMPERATURE         1.0
 
-#define RIL_INC_DEC_STEP_SIZE           100
+#define RIL_INC_DEC_STEP_SIZE           1
 #define RIL_NOP_DECAY                   0.5
 
 /**
@@ -1828,11 +1828,11 @@ ril_step_schedule_next (struct GAS_RIL_Handle *solver)
 
   time_next = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MICROSECONDS, (unsigned long long) y);
 
-  LOG (GNUNET_ERROR_TYPE_INFO, "ratio: %f, factor: %f, offset: %f, y: %f\n",
-      used_ratio,
-      factor,
-      offset,
-      y);
+//  LOG (GNUNET_ERROR_TYPE_INFO, "ratio: %f, factor: %f, offset: %f, y: %f\n",
+//      used_ratio,
+//      factor,
+//      offset,
+//      y);
 
   if (solver->simulate)
   {
