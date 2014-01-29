@@ -366,18 +366,6 @@ struct GNUNET_CRYPTO_PaillierPrivateKey
 
 
 /**
- * Paillier plaintext.
- */
-struct GNUNET_CRYPTO_PaillierPlaintext
-{
-  /**
-   * The bits of the plaintext.
-   */
-  unsigned char bits[GNUNET_CRYPTO_PAILLIER_BITS / 8];
-};
-
-
-/**
  * Paillier ciphertext.
  */
 struct GNUNET_CRYPTO_PaillierCiphertext
