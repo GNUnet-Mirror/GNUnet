@@ -51,10 +51,10 @@ main (int argc, char *argv[])
   GNUNET_assert (NULL != (hom_result = gcry_mpi_new (0)));
   //gcry_mpi_randomize (m1, GNUNET_CRYPTO_PAILLIER_BITS-2, GCRY_WEAK_RANDOM);
   m1 = gcry_mpi_set_ui(m1,1);
-  gcry_mpi_mul_2exp(m1,m1,GNUNET_CRYPTO_PAILLIER_BITS-2);
+  gcry_mpi_mul_2exp(m1,m1,GNUNET_CRYPTO_PAILLIER_BITS-3);
   //gcry_mpi_randomize (m2, GNUNET_CRYPTO_PAILLIER_BITS-2, GCRY_WEAK_RANDOM);
   m2 = gcry_mpi_set_ui(m2,1);
-  gcry_mpi_mul_2exp(m2,m2,GNUNET_CRYPTO_PAILLIER_BITS-2);
+  gcry_mpi_mul_2exp(m2,m2,GNUNET_CRYPTO_PAILLIER_BITS-3);
   gcry_mpi_add(result,m1,m2);
 
   if (1 != (ret = GNUNET_CRYPTO_paillier_encrypt (&public_key, m1, &c1))){
