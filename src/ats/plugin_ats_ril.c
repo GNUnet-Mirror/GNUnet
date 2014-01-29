@@ -199,17 +199,6 @@ struct RIL_Address_Wrapped
    * The address
    */
   struct ATS_Address *address_naked;
-
-  /**
-   * Last inbound bandwidth used
-   */
-  unsigned long long bw_in;
-
-  /**
-   * Last outbound bandwidth used
-   */
-  unsigned long long bw_out;
-
 };
 
 struct RIL_Peer_Agent
@@ -1228,14 +1217,12 @@ envi_action_address_switch (struct GAS_RIL_Handle *solver,
   int i = 0;
 
   cur = agent_address_get_wrapped(agent, agent->address_inuse);
-  cur->bw_in = agent->bw_in;
-  cur->bw_out = agent->bw_out;
 
   for (cur = agent->addresses_head; NULL != cur; cur = cur->next)
   {
     if (i == address_index)
     {
-      envi_set_active_suggestion (solver, agent, cur->address_naked, cur->bw_in, cur->bw_out,
+      envi_set_active_suggestion (solver, agent, cur->address_naked, agent->bw_in, agent->bw_out,
           GNUNET_NO);
       return;
     }
@@ -1636,7 +1623,7 @@ ril_try_unblock_agent (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *age
     if (ril_network_is_not_full(solver, net->type))
     {
       if (NULL == agent->address_inuse)
-        envi_set_active_suggestion (solver, agent, addr_wrap->address_naked, addr_wrap->bw_in, addr_wrap->bw_out, silent);
+        envi_set_active_suggestion (solver, agent, addr_wrap->address_naked, agent->bw_in, agent->bw_out, silent);
       return;
     }
   }
@@ -2414,8 +2401,6 @@ GAS_ril_address_add (void *solver, struct ATS_Address *address, uint32_t network
   //add address
   address_wrapped = GNUNET_new (struct RIL_Address_Wrapped);
   address_wrapped->address_naked = address;
-  address_wrapped->bw_in = net->bw_in_available > net->bw_in_utilized ? (net->bw_in_available - net->bw_in_utilized) / 2 : RIL_MIN_BW;
-  address_wrapped->bw_out = net->bw_out_available > net->bw_out_utilized ? (net->bw_out_available - net->bw_out_utilized) / 2 : RIL_MIN_BW;
   GNUNET_CONTAINER_DLL_insert_tail(agent->addresses_head, agent->addresses_tail, address_wrapped);
 
   //increase size of W
@@ -2547,7 +2532,7 @@ GAS_ril_address_delete (void *solver, struct ATS_Address *address, int session_o
   {
     if (NULL != agent->addresses_head) //if peer has an address left, use it
     {
-      envi_set_active_suggestion (s, agent, agent->addresses_head->address_naked, agent->addresses_head->bw_in, agent->addresses_head->bw_out,
+      envi_set_active_suggestion (s, agent, agent->addresses_head->address_naked, agent->bw_in, agent->bw_out,
           GNUNET_YES);
     }
     else
