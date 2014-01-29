@@ -21,6 +21,7 @@
 /**
  * @file util/test_crypto_paillier.c
  * @brief testcase paillier crypto
+ * @author Christian Fuchs
  * @author Florian Dold
  */
 #include "platform.h"
@@ -39,21 +40,25 @@ main (int argc, char *argv[])
   struct GNUNET_CRYPTO_PaillierCiphertext c1;
   struct GNUNET_CRYPTO_PaillierCiphertext c2;
   struct GNUNET_CRYPTO_PaillierCiphertext c_result;
-  
   struct GNUNET_CRYPTO_PaillierPublicKey public_key;
   struct GNUNET_CRYPTO_PaillierPrivateKey private_key;
 
   GNUNET_CRYPTO_paillier_create (&public_key, &private_key);
 
-  GNUNET_assert (NULL != (m1 = gcry_mpi_new (GNUNET_CRYPTO_PAILLIER_BITS-1)));
-  GNUNET_assert (NULL != (m2 = gcry_mpi_new (GNUNET_CRYPTO_PAILLIER_BITS-1)));
+  GNUNET_assert (NULL != (m1 = gcry_mpi_new (GNUNET_CRYPTO_PAILLIER_BITS-2)));
+  GNUNET_assert (NULL != (m2 = gcry_mpi_new (GNUNET_CRYPTO_PAILLIER_BITS-2)));
+  GNUNET_assert (NULL != (result = gcry_mpi_new (GNUNET_CRYPTO_PAILLIER_BITS)));
   GNUNET_assert (NULL != (hom_result = gcry_mpi_new (GNUNET_CRYPTO_PAILLIER_BITS)));
-  gcry_mpi_randomize (m1, GNUNET_CRYPTO_PAILLIER_BITS-1, GCRY_WEAK_RANDOM);
-  gcry_mpi_randomize (m2, GNUNET_CRYPTO_PAILLIER_BITS-1, GCRY_WEAK_RANDOM);
+  gcry_mpi_randomize (m1, GNUNET_CRYPTO_PAILLIER_BITS-2, GCRY_WEAK_RANDOM);
+  gcry_mpi_randomize (m2, GNUNET_CRYPTO_PAILLIER_BITS-2, GCRY_WEAK_RANDOM);
   gcry_mpi_add(result,m1,m2);
 
   if (1 != (ret = GNUNET_CRYPTO_paillier_encrypt (&public_key, m1, &c1))){
-    printf ("GNUNET_CRYPTO_paillier_encrypt failed, should return 1 allowed operation, got %d!\n", ret);
+    printf ("GNUNET_CRYPTO_paillier_encrypt 1 failed, should return 1 allowed operation, got %d!\n", ret);
+    return 1;
+  }
+  if (1 != (ret = GNUNET_CRYPTO_paillier_encrypt (&public_key, m2, &c2))){
+    printf ("GNUNET_CRYPTO_paillier_encrypt 2 failed, should return 1 allowed operation, got %d!\n", ret);
     return 1;
   }
   

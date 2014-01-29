@@ -99,21 +99,32 @@ GNUNET_CRYPTO_paillier_encrypt (const struct GNUNET_CRYPTO_PaillierPublicKey *pu
                                 const gcry_mpi_t m,
                                 struct GNUNET_CRYPTO_PaillierCiphertext *ciphertext)
 {
-  int length;
+  int possible_opts;
   gcry_mpi_t n_square;
   gcry_mpi_t r;
   gcry_mpi_t g;
   gcry_mpi_t c;
   gcry_mpi_t n;
+  gcry_mpi_t tmp1;
+  gcry_mpi_t tmp2;
   
   // determine how many operations we could allow, if the other number
   // has the same length. 
-  length = gcry_mpi_get_nbits(m);
-  if (GNUNET_CRYPTO_PAILLIER_BITS <= length) 
-    //paillier with 0 ops makes no sense, better use RSA and co.
+  GNUNET_assert (NULL != (tmp1 = gcry_mpi_set_ui(NULL, 1))); 
+  GNUNET_assert (NULL != (tmp2 = gcry_mpi_set_ui(NULL, 2))); 
+  gcry_mpi_mul_2exp(tmp1,tmp1,GNUNET_CRYPTO_PAILLIER_BITS);
+  for (possible_opts = 0; gcry_mpi_cmp(tmp1,m) > 0; possible_opts++){
+    gcry_mpi_div(tmp1, NULL, tmp1, tmp2 ,0);
+  }
+  gcry_mpi_release(tmp1);
+  gcry_mpi_release(tmp2);
+  if (0 >= possible_opts)
+  {
     return -1;
+  }
   else
-    ciphertext->remaining_ops = htonl(GNUNET_CRYPTO_PAILLIER_BITS - length);
+    // reduce by one to guarantee the final homomorphic operation
+    ciphertext->remaining_ops = htonl(possible_opts);
   
   GNUNET_assert (0 != (n_square = gcry_mpi_new (0)));
   GNUNET_assert (0 != (r = gcry_mpi_new (0)));
@@ -147,7 +158,7 @@ GNUNET_CRYPTO_paillier_encrypt (const struct GNUNET_CRYPTO_PaillierPublicKey *pu
   gcry_mpi_release (r);
   gcry_mpi_release (c);
   
-  return GNUNET_CRYPTO_PAILLIER_BITS-length;
+  return possible_opts;
 }
 
 
@@ -218,8 +229,12 @@ GNUNET_CRYPTO_paillier_hom_add (const struct GNUNET_CRYPTO_PaillierPublicKey *pu
   gcry_mpi_t b;
   gcry_mpi_t c;
   gcry_mpi_t n_square;
+  int32_t o1;
+  int32_t o2;
   
-  if (0 == c1->remaining_ops || 0 == c2->remaining_ops)
+  o1 = ntohl(c1->remaining_ops);
+  o2 = ntohl(c2->remaining_ops);
+  if (0 >= o1 || 0 >= o2)
     return GNUNET_SYSERR;
   
   GNUNET_assert (0 != (c = gcry_mpi_new (0)));
@@ -230,7 +245,7 @@ GNUNET_CRYPTO_paillier_hom_add (const struct GNUNET_CRYPTO_PaillierPublicKey *pu
   gcry_mpi_mul(n_square, n_square,n_square);
   gcry_mpi_mulm(c,a,b,n_square);
   
-  result->remaining_ops = ((c1->remaining_ops > c2->remaining_ops) ? c2->remaining_ops : c1->remaining_ops) - 1;
+  result->remaining_ops = htonl(((o2 > o1) ? o1 : o2) - 1);
   GNUNET_CRYPTO_mpi_print_unsigned (result->bits, 
                                     sizeof result->bits, 
                                     c);
@@ -238,7 +253,7 @@ GNUNET_CRYPTO_paillier_hom_add (const struct GNUNET_CRYPTO_PaillierPublicKey *pu
   gcry_mpi_release (b);
   gcry_mpi_release (c);
   gcry_mpi_release (n_square);
-  return GNUNET_OK;
+  return ntohl(result->remaining_ops);
 }
 
 
