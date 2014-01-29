@@ -245,6 +245,7 @@ check_PROGRAMS = \
  test_crypto_ecdhe \
  test_crypto_hash \
  test_crypto_hkdf \
+ test_crypto_paillier \
  test_crypto_random \
  test_disk \
  test_getopt \

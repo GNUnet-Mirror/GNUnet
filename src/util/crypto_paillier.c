@@ -45,8 +45,8 @@ GNUNET_CRYPTO_paillier_create (struct GNUNET_CRYPTO_PaillierPublicKey *public_ke
   gcry_mpi_t phi;
   gcry_mpi_t n;
 
-  GNUNET_assert (NULL != (phi = gcry_mpi_new (GNUNET_CRYPTO_PAILLIER_BITS)));
-  GNUNET_assert (NULL != (n = gcry_mpi_new (GNUNET_CRYPTO_PAILLIER_BITS)));
+  GNUNET_assert (NULL != (phi = gcry_mpi_new (0)));
+  GNUNET_assert (NULL != (n = gcry_mpi_new (0)));
 
   p = q = NULL;
 
@@ -113,15 +113,14 @@ GNUNET_CRYPTO_paillier_encrypt (const struct GNUNET_CRYPTO_PaillierPublicKey *pu
   GNUNET_assert (NULL != (tmp1 = gcry_mpi_set_ui(NULL, 1))); 
   GNUNET_assert (NULL != (tmp2 = gcry_mpi_set_ui(NULL, 2))); 
   gcry_mpi_mul_2exp(tmp1,tmp1,GNUNET_CRYPTO_PAILLIER_BITS);
-  for (possible_opts = 0; gcry_mpi_cmp(tmp1,m) > 0; possible_opts++){
-    gcry_mpi_div(tmp1, NULL, tmp1, tmp2 ,0);
+  
+  for (possible_opts = -1; gcry_mpi_cmp(tmp1, m) > 0; possible_opts++){
+    gcry_mpi_div(tmp1, NULL, tmp1, tmp2, 0);
   }
   gcry_mpi_release(tmp1);
   gcry_mpi_release(tmp2);
-  if (0 >= possible_opts)
-  {
+  if (possible_opts < 1)
     return -1;
-  }
   else
     // reduce by one to guarantee the final homomorphic operation
     ciphertext->remaining_ops = htonl(possible_opts);

@@ -42,15 +42,19 @@ main (int argc, char *argv[])
   struct GNUNET_CRYPTO_PaillierCiphertext c_result;
   struct GNUNET_CRYPTO_PaillierPublicKey public_key;
   struct GNUNET_CRYPTO_PaillierPrivateKey private_key;
-
+  
   GNUNET_CRYPTO_paillier_create (&public_key, &private_key);
 
-  GNUNET_assert (NULL != (m1 = gcry_mpi_new (GNUNET_CRYPTO_PAILLIER_BITS-2)));
-  GNUNET_assert (NULL != (m2 = gcry_mpi_new (GNUNET_CRYPTO_PAILLIER_BITS-2)));
-  GNUNET_assert (NULL != (result = gcry_mpi_new (GNUNET_CRYPTO_PAILLIER_BITS)));
-  GNUNET_assert (NULL != (hom_result = gcry_mpi_new (GNUNET_CRYPTO_PAILLIER_BITS)));
-  gcry_mpi_randomize (m1, GNUNET_CRYPTO_PAILLIER_BITS-2, GCRY_WEAK_RANDOM);
-  gcry_mpi_randomize (m2, GNUNET_CRYPTO_PAILLIER_BITS-2, GCRY_WEAK_RANDOM);
+  GNUNET_assert (NULL != (m1 = gcry_mpi_new (0)));
+  GNUNET_assert (NULL != (m2 = gcry_mpi_new (0)));
+  GNUNET_assert (NULL != (result = gcry_mpi_new (0)));
+  GNUNET_assert (NULL != (hom_result = gcry_mpi_new (0)));
+  //gcry_mpi_randomize (m1, GNUNET_CRYPTO_PAILLIER_BITS-2, GCRY_WEAK_RANDOM);
+  m1 = gcry_mpi_set_ui(m1,1);
+  gcry_mpi_mul_2exp(m1,m1,GNUNET_CRYPTO_PAILLIER_BITS-2);
+  //gcry_mpi_randomize (m2, GNUNET_CRYPTO_PAILLIER_BITS-2, GCRY_WEAK_RANDOM);
+  m2 = gcry_mpi_set_ui(m2,1);
+  gcry_mpi_mul_2exp(m2,m2,GNUNET_CRYPTO_PAILLIER_BITS-2);
   gcry_mpi_add(result,m1,m2);
 
   if (1 != (ret = GNUNET_CRYPTO_paillier_encrypt (&public_key, m1, &c1))){
@@ -71,10 +75,13 @@ main (int argc, char *argv[])
   
   GNUNET_CRYPTO_paillier_decrypt (&private_key, &public_key,
                                   &c_result, hom_result);
-
-  if (0 != gcry_mpi_cmp(result, hom_result))
+  
+  gcry_log_debugmpi("\n", hom_result);
+  gcry_log_debugmpi("\n", result);
+  if (0 != gcry_mpi_cmp(result, hom_result)){
     printf ("GNUNET_CRYPTO_paillier miscalculated!\n");
     return 1;
+  }
   
   return 0;
 }
