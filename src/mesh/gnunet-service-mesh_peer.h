@@ -319,6 +319,25 @@ struct MeshTunnel3 *
 GMP_get_tunnel (const struct MeshPeer *peer);
 
 /**
+ * Count the number of known paths toward the peer.
+ *
+ * @param peer Peer to get path info.
+ *
+ * @return Number of known paths.
+ */
+unsigned int
+GMP_count_paths (const struct MeshPeer *peer);
+
+/**
+ * Iterate all known peers.
+ *
+ * @param iter Iterator.
+ * @param cls Closure for @c iter.
+ */
+void
+GMP_iterate_all (GNUNET_CONTAINER_PeerMapIterator iter, void *cls);
+
+/**
  * Get the static string for a peer ID.
  *
  * @param peer Peer.

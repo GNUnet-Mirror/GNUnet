@@ -169,7 +169,7 @@ struct GNUNET_MESH_LocalAck
 struct GNUNET_MESH_LocalInfo
 {
   /**
-     * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO[_TUNNEL]
+     * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO[_TUNNEL,_PEER]
    */
   struct GNUNET_MessageHeader header;
 
@@ -187,6 +187,36 @@ struct GNUNET_MESH_LocalInfo
    * ID of the destination of the channel (can be local peer).
    */
   struct GNUNET_PeerIdentity peer;
+};
+
+
+/**
+ * Message to inform the client about one of the peers in the service.
+ */
+struct GNUNET_MESH_LocalInfoPeer
+{
+  /**
+   * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_PEER[S]
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Number of paths.
+   */
+  uint16_t paths GNUNET_PACKED;
+
+  /**
+   * Do we have a tunnel toward this peer?
+   */
+  uint16_t tunnel GNUNET_PACKED;
+
+  /**
+   * ID of the destination of the tunnel (can be local peer).
+   */
+  struct GNUNET_PeerIdentity destination;
+
+  /* If type == PEER (no 'S'): GNUNET_PeerIdentity paths[]
+   * (each path ends in destination) */
 };
 
 /**

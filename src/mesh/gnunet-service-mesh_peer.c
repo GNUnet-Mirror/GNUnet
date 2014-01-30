@@ -1792,6 +1792,39 @@ GMP_get_tunnel (const struct MeshPeer *peer)
 
 
 /**
+ * Count the number of known paths toward the peer.
+ *
+ * @param peer Peer to get path info.
+ *
+ * @return Number of known paths.
+ */
+unsigned int
+GMP_count_paths (const struct MeshPeer *peer)
+{
+  struct MeshPeerPath *iter;
+  unsigned int i;
+
+  for (iter = peer->path_head, i = 0; NULL != iter; iter = iter->next)
+    i++;
+
+  return i;
+}
+
+
+/**
+ * Iterate all known peers.
+ *
+ * @param iter Iterator.
+ * @param cls Closure for @c iter.
+ */
+void
+GMP_iterate_all (GNUNET_CONTAINER_PeerMapIterator iter, void *cls)
+{
+  GNUNET_CONTAINER_multipeermap_iterate (peers, iter, cls);
+}
+
+
+/**
  * Get the static string for a peer ID.
  *
  * @param peer Peer.

@@ -32,6 +32,7 @@
 
 /* INFO DEBUG */
 #include "gnunet-service-mesh_tunnel.h"
+#include "gnunet-service-mesh_peer.h"
 
 #define LOG(level, ...) GNUNET_log_from(level,"mesh-loc",__VA_ARGS__)
 
@@ -579,6 +580,77 @@ handle_ack (void *cls, struct GNUNET_SERVER_Client *client,
 }
 
 
+
+/**
+ * Iterator over all peers to send a monitoring client info about each peer.
+ *
+ * @param cls Closure ().
+ * @param peer Peer ID (tunnel remote peer).
+ * @param value Peer info.
+ *
+ * @return #GNUNET_YES, to keep iterating.
+ */
+static int
+get_all_peers_iterator (void *cls,
+                        const struct GNUNET_PeerIdentity * peer,
+                        void *value)
+{
+  struct GNUNET_SERVER_Client *client = cls;
+  struct MeshPeer *p = value;
+  struct GNUNET_MESH_LocalInfoPeer msg;
+
+  msg.header.size = htons (sizeof (msg));
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_PEERS);
+  msg.destination = *peer;
+  msg.paths = GMP_count_paths (p);
+  msg.tunnel = NULL != GMP_get_tunnel (p);
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "sending info about tunnel ->%s\n",
+       GNUNET_i2s (peer));
+
+  GNUNET_SERVER_notification_context_unicast (nc, client,
+                                              &msg.header, GNUNET_NO);
+  return GNUNET_YES;
+}
+
+
+/**
+ * Handler for client's INFO PEERS request.
+ *
+ * @param cls Closure (unused).
+ * @param client Identification of the client.
+ * @param message The actual message.
+ */
+static void
+handle_get_peers (void *cls, struct GNUNET_SERVER_Client *client,
+                    const struct GNUNET_MessageHeader *message)
+{
+  struct MeshClient *c;
+  struct GNUNET_MessageHeader reply;
+
+  /* Sanity check for client registration */
+  if (NULL == (c = GML_client_get (client)))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Received get peers request from client %u (%p)\n",
+       c->id, client);
+
+  GMP_iterate_all (get_all_peers_iterator, client);
+  reply.size = htons (sizeof (reply));
+  reply.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_PEERS);
+  GNUNET_SERVER_notification_context_unicast (nc, client, &reply, GNUNET_NO);
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Get peers request from client %u completed\n", c->id);
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+}
+
+
 /**
  * Iterator over all tunnels to send a monitoring client info about each tunnel.
  *
@@ -590,8 +662,8 @@ handle_ack (void *cls, struct GNUNET_SERVER_Client *client,
  */
 static int
 get_all_tunnels_iterator (void *cls,
-                              const struct GNUNET_PeerIdentity * peer,
-                              void *value)
+                          const struct GNUNET_PeerIdentity * peer,
+                          void *value)
 {
   struct GNUNET_SERVER_Client *client = cls;
   struct MeshTunnel3 *t = value;
@@ -770,6 +842,8 @@ static struct GNUNET_SERVER_MessageHandler client_handlers[] = {
   {&handle_data, NULL, GNUNET_MESSAGE_TYPE_MESH_LOCAL_DATA, 0},
   {&handle_ack, NULL, GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK,
    sizeof (struct GNUNET_MESH_LocalAck)},
+  {&handle_get_peers, NULL, GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_PEERS,
+   sizeof (struct GNUNET_MessageHeader)},
   {&handle_get_tunnels, NULL, GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNELS,
    sizeof (struct GNUNET_MessageHeader)},
   {&handle_show_tunnel, NULL, GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNEL,
