@@ -13,6 +13,15 @@ then
 	exit 77
 fi
 
+# permissive DNS resolver we will use for the test
+DNS_RESOLVER="8.8.8.8"
+if ! nslookup gnunet.org $DNS_RESOLVER &> /dev/null
+then
+  echo "Cannot reach DNS, skipping test"
+  exit 77
+fi
+
+
 rm -rf /tmp/test-gnunet-gns-peer-1/
 
 TEST_DOMAIN_PLUS="www.gnu"
