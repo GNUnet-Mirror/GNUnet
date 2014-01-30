@@ -602,10 +602,10 @@ get_all_peers_iterator (void *cls,
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_PEERS);
   msg.destination = *peer;
-  msg.paths = GMP_count_paths (p);
-  msg.tunnel = NULL != GMP_get_tunnel (p);
+  msg.paths = htons (GMP_count_paths (p));
+  msg.tunnel = htons (NULL != GMP_get_tunnel (p));
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "sending info about tunnel ->%s\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "sending info about peer %s\n",
        GNUNET_i2s (peer));
 
   GNUNET_SERVER_notification_context_unicast (nc, client,
