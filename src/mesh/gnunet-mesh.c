@@ -439,12 +439,13 @@ data_callback (void *cls,
  * @param cls Closure.
  * @param peer Peer, or NULL on "EOF".
  * @param tunnel Do we have a tunnel towards this peer?
+ * @param n_paths Number of known paths towards this peer.
  * @param best_path How long is the best path?
  *                  (0 = unknown, 1 = ourselves, 2 = neighbor)
  */
 static void
 peers_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
-                int tunnel, unsigned int best_path)
+                int tunnel, unsigned int n_paths, unsigned int best_path)
 {
   if (NULL == peer)
   {
@@ -454,8 +455,8 @@ peers_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
     }
     return;
   }
-  FPRINTF (stdout, "%s tunnel: %c, best path %u hops]\n",
-           GNUNET_i2s_full (peer), tunnel ? 'Y' : 'N', best_path);
+  FPRINTF (stdout, "%s tunnel: %c, paths: %u\n",
+           GNUNET_i2s_full (peer), tunnel ? 'Y' : 'N', n_paths);
 }
 
 

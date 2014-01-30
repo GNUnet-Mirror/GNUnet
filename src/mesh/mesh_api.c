@@ -1065,7 +1065,8 @@ process_get_peers (struct GNUNET_MESH_Handle *h,
 
   msg = (struct GNUNET_MESH_LocalInfoPeer *) message;
   h->peers_cb (h->peers_cls, &msg->destination,
-               (int) ntohs (msg->tunnel), ntohs (msg->paths), 0);
+               (int) ntohs (msg->tunnel), (unsigned int ) ntohs (msg->paths),
+               0);
 }
 
 
