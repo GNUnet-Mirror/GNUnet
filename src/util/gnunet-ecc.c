@@ -271,9 +271,6 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  struct GNUNET_CRYPTO_EddsaPrivateKey *pk;
-  struct GNUNET_CRYPTO_EddsaPublicKey pub;
-
   if (print_examples_flag)
   {
     print_examples ();
@@ -296,32 +293,43 @@ run (void *cls, char *const *args, const char *cfgfile,
     create_keys (args[0]);
     return;
   }
-  pk = GNUNET_CRYPTO_eddsa_key_create_from_file (args[0]);
-  if (NULL == pk)
-    return;
   if (print_public_key)
   {
+    struct GNUNET_CRYPTO_EddsaPrivateKey *pk;
+    struct GNUNET_CRYPTO_EddsaPublicKey pub;
     char *s;
 
+    pk = GNUNET_CRYPTO_eddsa_key_create_from_file (args[0]);
+    if (NULL == pk)
+      return;
     GNUNET_CRYPTO_eddsa_key_get_public (pk, &pub);
     s = GNUNET_CRYPTO_eddsa_public_key_to_string (&pub);
     FPRINTF (stdout,
              "%s\n",
              s);
     GNUNET_free (s);
+    GNUNET_free (pk);
   }
   if (print_peer_identity)
   {
     char *str;
+    struct GNUNET_DISK_FileHandle *keyfile;
+    struct GNUNET_CRYPTO_EddsaPrivateKey pk;
+    struct GNUNET_CRYPTO_EddsaPublicKey pub;
 
-    GNUNET_CRYPTO_eddsa_key_get_public (pk, &pub);
-    str = GNUNET_CRYPTO_eddsa_public_key_to_string (&pub);
-    FPRINTF (stdout,
-             "%s\n",
-             str);
-    GNUNET_free (str);
+    keyfile = GNUNET_DISK_file_open (args[0], GNUNET_DISK_OPEN_READ,
+                                     GNUNET_DISK_PERM_NONE);
+    if (NULL == keyfile)
+      return;
+    while (sizeof (pk) == GNUNET_DISK_file_read (keyfile, &pk, sizeof (pk)))
+    {
+      GNUNET_CRYPTO_eddsa_key_get_public (&pk, &pub);
+      str = GNUNET_CRYPTO_eddsa_public_key_to_string (&pub);
+      FPRINTF (stdout, "%s\n", str);
+      GNUNET_free (str);
+    }
   }
-  GNUNET_free (pk);
+
 }
 
 
