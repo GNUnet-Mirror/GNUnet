@@ -1,0 +1,24 @@
+[experiment]
+ name = test
+ masters = 1
+ slaves = 3
+ max_duration = 10 s
+ cfg_file = gnunet_ats_sim_default.conf
+ 
+[episode-0]
+# operations = set_rate, start_send, stop_send, set_preference
+duration = 10 s
+op-0-operation = set_rate
+op-0-value = 10000
+op-0-src = 0
+op-0-dest = 1
+
+op-1-operation = set_rate
+op-1-value = 10000
+op-1-src = 0
+op-1-dest = 1
+
+op-2-operation = set_rate
+op-2-value = 10000
+op-2-src = 0
+op-2-dest = 1
