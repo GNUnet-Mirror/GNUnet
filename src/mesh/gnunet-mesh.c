@@ -513,11 +513,17 @@ tunnel_callback (void *cls,
                  unsigned int estate,
                  unsigned int cstate)
 {
+  unsigned int i;
+
   if (NULL != peer)
   {
     FPRINTF (stdout, "Tunnel %s\n", GNUNET_i2s_full (peer));
     FPRINTF (stdout, "- %u channels\n", n_channels);
+    for (i = 0; i < n_channels; i++)
+      FPRINTF (stdout, "   %u\n", channels[i]);
     FPRINTF (stdout, "- %u connections\n", n_connections);
+    for (i = 0; i < n_connections; i++)
+      FPRINTF (stdout, "   %s\n", GNUNET_h2s_full (&connections[i]));
     FPRINTF (stdout, "- enc state: %u\n", estate);
     FPRINTF (stdout, "- con state: %u\n", cstate);
   }
