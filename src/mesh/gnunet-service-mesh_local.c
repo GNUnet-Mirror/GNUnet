@@ -711,6 +711,8 @@ handle_show_tunnel (void *cls, struct GNUNET_SERVER_Client *client,
     /* We don't know the tunnel */
     struct GNUNET_MESH_LocalInfoTunnel warn;
 
+    LOG (GNUNET_ERROR_TYPE_INFO, "Tunnel %s unknown %u\n",
+         GNUNET_i2s_full(&msg->peer), sizeof (warn));
     warn.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNEL);
     warn.header.size = htons (sizeof (warn));
     warn.destination = msg->peer;
@@ -749,8 +751,8 @@ handle_show_tunnel (void *cls, struct GNUNET_SERVER_Client *client,
   GNUNET_free (resp);
 
   LOG (GNUNET_ERROR_TYPE_INFO,
-       "Show tunnel request from client %u completed\n",
-       c->id);
+       "Show tunnel request from client %u completed. %u conn, %u ch\n",
+       c->id, c_n, ch_n);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
