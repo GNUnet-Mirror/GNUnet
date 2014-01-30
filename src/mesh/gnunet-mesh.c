@@ -509,11 +509,20 @@ tunnel_callback (void *cls,
                  unsigned int estate,
                  unsigned int cstate)
 {
-  FPRINTF (stdout, "Tunnel %s\n", GNUNET_i2s_full (peer));
-  FPRINTF (stdout, "- %u channels\n", channels);
-  FPRINTF (stdout, "- %u connections\n", connections);
-  FPRINTF (stdout, "- enc state: %u\n", estate);
-  FPRINTF (stdout, "- con state: %u\n", cstate);
+  if (NULL != peer)
+  {
+    FPRINTF (stdout, "Tunnel %s\n", GNUNET_i2s_full (peer));
+    FPRINTF (stdout, "- %u channels\n", channels);
+    FPRINTF (stdout, "- %u connections\n", connections);
+    FPRINTF (stdout, "- enc state: %u\n", estate);
+    FPRINTF (stdout, "- con state: %u\n", cstate);
+  }
+  if (GNUNET_YES != monitor_connections)
+  {
+    GNUNET_SCHEDULER_shutdown();
+  }
+  return;
+
 }
 
 
