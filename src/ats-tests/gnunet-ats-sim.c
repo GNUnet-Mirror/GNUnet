@@ -47,6 +47,11 @@ static char *opt_exp_file;
  */
 static int opt_log;
 
+/**
+ * cmd option -p: enable plots
+ */
+static int opt_plot;
+
 GNUNET_SCHEDULER_TaskIdentifier timeout_task;
 
 struct Experiment *e;
@@ -162,7 +167,7 @@ experiment_done_cb (struct Experiment *e, struct GNUNET_TIME_Relative duration,i
   GNUNET_ATS_TEST_logging_stop (l);
   evaluate (duration);
   if (opt_log)
-    GNUNET_ATS_TEST_logging_write_to_file(l, opt_exp_file);
+    GNUNET_ATS_TEST_logging_write_to_file(l, opt_exp_file, opt_plot);
 
   /* Stop traffic generation */
   GNUNET_ATS_TEST_generate_traffic_stop_all();
@@ -220,6 +225,7 @@ parse_args (int argc, char *argv[])
   int c;
   opt_exp_file = NULL;
   opt_log = GNUNET_NO;
+  opt_plot = GNUNET_NO;
 
   for (c = 0; c < argc; c++)
   {
@@ -230,6 +236,10 @@ parse_args (int argc, char *argv[])
     if (0 == strcmp (argv[c], "-l"))
     {
       opt_log = GNUNET_YES;
+    }
+    if (0 == strcmp (argv[c], "-p"))
+    {
+      opt_plot = GNUNET_YES;
     }
   }
 }

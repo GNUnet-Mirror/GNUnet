@@ -258,6 +258,9 @@ write_throughput_gnuplot_script (char * fn, struct LoggingPeer *lp)
   int peer_index;
 
   GNUNET_asprintf (&gfn, "gnuplot_throughput_%s",fn);
+  fprintf (stderr, "Writing throughput plot for master %u to `%s'\n",
+      lp->peer->no, gfn);
+
   f = GNUNET_DISK_file_open (gfn,
       GNUNET_DISK_OPEN_WRITE | GNUNET_DISK_OPEN_CREATE,
       GNUNET_DISK_PERM_USER_EXEC | GNUNET_DISK_PERM_USER_READ |
@@ -328,6 +331,9 @@ write_rtt_gnuplot_script (char * fn, struct LoggingPeer *lp)
   int index;
 
   GNUNET_asprintf (&gfn, "gnuplot_rtt_%s",fn);
+  fprintf (stderr, "Writing rtt plot for master %u to `%s'\n",
+      lp->peer->no, gfn);
+
   f = GNUNET_DISK_file_open (gfn,
       GNUNET_DISK_OPEN_WRITE | GNUNET_DISK_OPEN_CREATE,
       GNUNET_DISK_PERM_USER_EXEC | GNUNET_DISK_PERM_USER_READ |
@@ -374,6 +380,9 @@ write_bw_gnuplot_script (char * fn, struct LoggingPeer *lp)
   int index;
 
   GNUNET_asprintf (&gfn, "gnuplot_bw_%s",fn);
+  fprintf (stderr, "Writing bandwidth plot for master %u to `%s'\n",
+      lp->peer->no, gfn);
+
   f = GNUNET_DISK_file_open (gfn,
       GNUNET_DISK_OPEN_WRITE | GNUNET_DISK_OPEN_CREATE,
       GNUNET_DISK_PERM_USER_EXEC | GNUNET_DISK_PERM_USER_READ |
@@ -386,7 +395,6 @@ write_bw_gnuplot_script (char * fn, struct LoggingPeer *lp)
   }
 
   /* Write header */
-
   if (GNUNET_SYSERR == GNUNET_DISK_file_write(f, BW_TEMPLATE, strlen(BW_TEMPLATE)))
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
         "Cannot write data to plot file `%s'\n", gfn);
@@ -417,11 +425,12 @@ write_bw_gnuplot_script (char * fn, struct LoggingPeer *lp)
 
 
 void
-GNUNET_ATS_TEST_logging_write_to_file (struct LoggingHandle *l, char *test_name)
+GNUNET_ATS_TEST_logging_write_to_file (struct LoggingHandle *l,
+    char *experiment_name, int plots)
 {
   struct GNUNET_DISK_FileHandle *f;
-
-  char * filename;
+  char *tmp_exp_name;
+  char *filename_data;
   char *data;
   char *slave_string;
   char *slave_string_tmp;
@@ -431,32 +440,39 @@ GNUNET_ATS_TEST_logging_write_to_file (struct LoggingHandle *l, char *test_name)
   int c_m;
   int c_s;
 
+
   timestamp = GNUNET_TIME_absolute_get();
+
+  tmp_exp_name = experiment_name;
+  if (NULL != strchr (experiment_name,  '/'));
+  {
+    tmp_exp_name = strchr (experiment_name,  '/');
+    tmp_exp_name++;
+  }
 
   for (c_m = 0; c_m < l->num_peers; c_m++)
   {
-    GNUNET_asprintf (&filename, "%s_%llu_master_%u_%s_%s.data", test_name,
+    GNUNET_asprintf (&filename_data, "%s_%llu_master_%u_%s_%s.data", tmp_exp_name,
         timestamp.abs_value_us,
         l->lp[c_m].peer->no, GNUNET_i2s(&l->lp[c_m].peer->id), l->name);
 
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Writing master %u to file `%s'\n",
-        c_m, filename);
+    fprintf (stderr, "Writing master %u to file `%s'\n", c_m, filename_data);
 
-    f = GNUNET_DISK_file_open (filename,
+    f = GNUNET_DISK_file_open (filename_data,
         GNUNET_DISK_OPEN_WRITE | GNUNET_DISK_OPEN_CREATE,
         GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE);
     if (NULL == f)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot open log file `%s'\n", filename);
-      GNUNET_free (filename);
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot open log file `%s'\n", filename_data);
+      GNUNET_free (filename_data);
       return;
     }
 
     GNUNET_asprintf (&data, "# master peers: %u ; slave peers: %u ; experiment : %s\n",
-        l->num_peers, l->lp[c_m].peer->num_partners, test_name);
+        l->num_peers, l->lp[c_m].peer->num_partners, experiment_name);
     if (GNUNET_SYSERR == GNUNET_DISK_file_write(f, data, strlen(data)))
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-          "Cannot write data to log file `%s'\n", filename);
+          "Cannot write data to log file `%s'\n", filename_data);
     GNUNET_free (data);
 
     for (cur_lt = l->lp[c_m].head; NULL != cur_lt; cur_lt = cur_lt->next)
@@ -534,24 +550,27 @@ GNUNET_ATS_TEST_logging_write_to_file (struct LoggingHandle *l, char *test_name)
 
       if (GNUNET_SYSERR == GNUNET_DISK_file_write(f, data, strlen(data)))
         GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-            "Cannot write data to log file `%s'\n", filename);
+            "Cannot write data to log file `%s'\n", filename_data);
       GNUNET_free (data);
     }
     if (GNUNET_SYSERR == GNUNET_DISK_file_close(f))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-          "Cannot close log file `%s'\n", filename);
-      GNUNET_free (filename);
+          "Cannot close log file `%s'\n", filename_data);
+      GNUNET_free (filename_data);
       return;
     }
 
-    write_throughput_gnuplot_script (filename, l->lp);
-    write_rtt_gnuplot_script (filename, l->lp);
-    write_bw_gnuplot_script (filename, l->lp);
+    if (GNUNET_YES == plots)
+    {
+      write_throughput_gnuplot_script (filename_data, &l->lp[c_m]);
+      write_rtt_gnuplot_script (filename_data, &l->lp[c_m]);
+      write_bw_gnuplot_script (filename_data, &l->lp[c_m]);
+    }
 
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-        "Data file successfully written to log file `%s'\n", filename);
-    GNUNET_free (filename);
+        "Data file successfully written to log file `%s'\n", filename_data);
+    GNUNET_free (filename_data);
   }
 }
 

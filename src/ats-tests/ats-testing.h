@@ -591,10 +591,11 @@ GNUNET_ATS_TEST_logging_now (struct LoggingHandle *l);
  *
  * @param l logging handle to use
  * @param test_name name of the current test
+ * @param plots create gnuplots: GNUNET_YES or GNUNET_NO
  */
 void
-GNUNET_ATS_TEST_logging_write_to_file (struct LoggingHandle *h,
-    char *test_name);
+GNUNET_ATS_TEST_logging_write_to_file (struct LoggingHandle *l,
+    char *test_name, int plots);
 
 /*
  * Topology related functions
