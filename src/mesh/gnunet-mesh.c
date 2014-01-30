@@ -496,24 +496,28 @@ tunnels_callback (void *cls,
  *
  * @param cls Closure.
  * @param peer Peer towards whom the tunnel is directed.
- * @param channels Number of channels.
- * @param connections Number of connections.
+ * @param n_channels Number of channels.
+ * @param n_connections Number of connections.
+ * @param channels Channels.
+ * @param connections Connections.
  * @param estate Encryption status.
  * @param cstate Connectivity status.
  */
 void
 tunnel_callback (void *cls,
                  const struct GNUNET_PeerIdentity *peer,
-                 unsigned int channels,
-                 unsigned int connections,
+                 unsigned int n_channels,
+                 unsigned int n_connections,
+                 uint32_t *channels,
+                 struct GNUNET_HashCode *connections,
                  unsigned int estate,
                  unsigned int cstate)
 {
   if (NULL != peer)
   {
     FPRINTF (stdout, "Tunnel %s\n", GNUNET_i2s_full (peer));
-    FPRINTF (stdout, "- %u channels\n", channels);
-    FPRINTF (stdout, "- %u connections\n", connections);
+    FPRINTF (stdout, "- %u channels\n", n_channels);
+    FPRINTF (stdout, "- %u connections\n", n_connections);
     FPRINTF (stdout, "- enc state: %u\n", estate);
     FPRINTF (stdout, "- con state: %u\n", cstate);
   }

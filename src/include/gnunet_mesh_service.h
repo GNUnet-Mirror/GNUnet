@@ -436,15 +436,19 @@ typedef void (*GNUNET_MESH_TunnelsCB) (void *cls,
  *
  * @param cls Closure.
  * @param peer Peer towards whom the tunnel is directed.
- * @param channels Number of channels.
- * @param connections Number of connections.
+ * @param n_channels Number of channels.
+ * @param n_connections Number of connections.
+ * @param channels Channels.
+ * @param connections Connections.
  * @param estate Encryption state.
  * @param cstate Connectivity state.
  */
 typedef void (*GNUNET_MESH_TunnelCB) (void *cls,
                                       const struct GNUNET_PeerIdentity *peer,
-                                      unsigned int channels,
-                                      unsigned int connections,
+                                      unsigned int n_channels,
+                                      unsigned int n_connections,
+                                      uint32_t *channels,
+                                      struct GNUNET_HashCode *connections,
                                       unsigned int estate,
                                       unsigned int cstate);
 

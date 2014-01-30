@@ -1091,6 +1091,8 @@ process_get_tunnel (struct GNUNET_MESH_Handle *h,
   size_t msize;
   unsigned int ch_n;
   unsigned int c_n;
+  struct GNUNET_HashCode *conns;
+  MESH_ChannelNumber *chns;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Get Tunnel messasge received\n");
   if (NULL == h->tunnel_cb)
@@ -1106,7 +1108,7 @@ process_get_tunnel (struct GNUNET_MESH_Handle *h,
   if (esize > msize)
   {
     GNUNET_break_op (0);
-    h->tunnel_cb (h->tunnel_cls, NULL, 0, 0, 0, 0);
+    h->tunnel_cb (h->tunnel_cls, NULL, 0, 0, NULL, NULL, 0, 0);
     goto clean_cls;
   }
   ch_n = ntohl (msg->channels);
@@ -1121,13 +1123,15 @@ process_get_tunnel (struct GNUNET_MESH_Handle *h,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%u (%u ch, %u conn)\n",
                 sizeof (struct GNUNET_MESH_LocalInfoTunnel),
                 sizeof (MESH_ChannelNumber), sizeof (struct GNUNET_HashCode));
-    h->tunnel_cb (h->tunnel_cls, NULL, 0, 0, 0, 0);
+    h->tunnel_cb (h->tunnel_cls, NULL, 0, 0, NULL, NULL, 0, 0);
     goto clean_cls;
   }
 
   /* Call Callback with tunnel info. */
+  conns = (struct GNUNET_HashCode *) &msg[1];
+  chns = (MESH_ChannelNumber *) &conns[c_n];
   h->tunnel_cb (h->tunnel_cls, &msg->destination,
-                ch_n, c_n,
+                ch_n, c_n, chns, conns,
                 ntohs (msg->estate), ntohs (msg->cstate));
 
 clean_cls:
