@@ -362,34 +362,26 @@ GNUNET_MESH_receive_done (struct GNUNET_MESH_Channel *channel);
 /* normal mesh applications.                                                  */
 /******************************************************************************/
 
-/**
- * Method called to retrieve information about each channel the mesh peer
- * is aware of.
- *
- * @param cls Closure.
- * @param channel_number Channel number.
- * @param origin that started the channel (owner).
- * @param target other endpoint of the channel
- */
-typedef void (*GNUNET_MESH_ChannelsCB) (void *cls,
-                                        uint32_t root_channel_number,
-                                        uint32_t dest_channel_number,
-                                        uint32_t public_channel_number,
-                                        const struct GNUNET_PeerIdentity *origin,
-                                        const struct GNUNET_PeerIdentity *target);
-
 
 /**
  * Method called to retrieve information about a specific channel the mesh peer
  * is aware of, including all transit nodes.
  *
  * @param cls Closure.
- * @param peer Peer in the channel's tree.
- * @param parent Parent of the current peer. All 0 when peer is root.
+ * @param root Root of the channel.
+ * @param dest Destination of the channel.
+ * @param port Destination port of the channel.
+ * @param root_channel_number Local number for root, if known.
+ * @param dest_channel_number Local number for dest, if known.
+ * @param public_channel_numbe Number for P2P, always known.
  */
 typedef void (*GNUNET_MESH_ChannelCB) (void *cls,
-                                      const struct GNUNET_PeerIdentity *peer,
-                                      const struct GNUNET_PeerIdentity *parent);
+                                       const struct GNUNET_PeerIdentity *root,
+                                       const struct GNUNET_PeerIdentity *dest,
+                                       uint32_t port,
+                                       uint32_t root_channel_number,
+                                       uint32_t dest_channel_number,
+                                       uint32_t public_channel_number);
 
 /**
  * Method called to retrieve information about all peers in MESH, called
@@ -454,28 +446,6 @@ typedef void (*GNUNET_MESH_TunnelCB) (void *cls,
                                       unsigned int estate,
                                       unsigned int cstate);
 
-
-/**
- * Request information about the running mesh peer.
- * The callback will be called for every channel known to the service,
- * listing all active peers that belong to the channel.
- *
- * If called again on the same handle, it will overwrite the previous
- * callback and cls. To retrieve the cls, monitor_cancel must be
- * called first.
- *
- * WARNING: unstable API, likely to change in the future!
- *
- * @param h Handle to the mesh peer.
- * @param callback Function to call with the requested data.
- * @param callback_cls Closure for @c callback.
- */
-void
-GNUNET_MESH_get_channels (struct GNUNET_MESH_Handle *h,
-                          GNUNET_MESH_ChannelsCB callback,
-                          void *callback_cls);
-
-
 /**
  * Request information about a specific channel of the running mesh peer.
  *
@@ -496,55 +466,50 @@ GNUNET_MESH_get_channel (struct GNUNET_MESH_Handle *h,
 
 
 /**
- * Cancel a monitor request. The monitor callback will not be called.
+ * Request information about peers known to the running mesh service.
+ * The callback will be called for every peer known to the service.
+ * Only one info request (of any kind) can be active at once.
+ *
+ *
+ * WARNING: unstable API, likely to change in the future!
+ *
+ * @param h Handle to the mesh peer.
+ * @param callback Function to call with the requested data.
+ * @param callback_cls Closure for @c callback.
+ *
+ * @return #GNUNET_OK / #GNUNET_SYSERR
+ */
+int
+GNUNET_MESH_get_peers (struct GNUNET_MESH_Handle *h,
+                       GNUNET_MESH_PeersCB callback,
+                       void *callback_cls);
+
+/**
+ * Cancel a peer info request. The callback will not be called (anymore).
  *
  * WARNING: unstable API, likely to change in the future!
  *
  * @param h Mesh handle.
  *
- * @return Closure given to GNUNET_MESH_monitor, if any.
+ * @return Closure given to GNUNET_MESH_get_peers.
  */
 void *
-GNUNET_MESH_get_channels_cancel (struct GNUNET_MESH_Handle *h);
-
-
+GNUNET_MESH_get_peers_cancel (struct GNUNET_MESH_Handle *h);
 
 /**
- * Request information about the running mesh peer.
- * The callback will be called for every peer known to the service.
- *
- * If called again on the same handle, it will overwrite the previous
- * callback and cls. To retrieve the cls, monitor_cancel must be
- * called first.
+ * Request information about tunnels of the running mesh peer.
+ * The callback will be called for every tunnel of the service.
+ * Only one info request (of any kind) can be active at once.
  *
  * WARNING: unstable API, likely to change in the future!
  *
  * @param h Handle to the mesh peer.
  * @param callback Function to call with the requested data.
  * @param callback_cls Closure for @c callback.
+ *
+ * @return #GNUNET_OK / #GNUNET_SYSERR
  */
-void
-GNUNET_MESH_get_peers (struct GNUNET_MESH_Handle *h,
-                       GNUNET_MESH_PeersCB callback,
-                       void *callback_cls);
-
-
-/**
- * Request information about the running mesh peer.
- * The callback will be called for every channel known to the service,
- * listing all active peers that blong to the channel.
- *
- * If called again on the same handle, it will overwrite the previous
- * callback and cls. To retrieve the cls, monitor_cancel must be
- * called first.
- *
- * WARNING: unstable API, likely to change in the future!
- *
- * @param h Handle to the mesh peer.
- * @param callback Function to call with the requested data.
- * @param callback_cls Closure for @c callback.
- */
-void
+int
 GNUNET_MESH_get_tunnels (struct GNUNET_MESH_Handle *h,
                          GNUNET_MESH_TunnelsCB callback,
                          void *callback_cls);
@@ -559,22 +524,22 @@ GNUNET_MESH_get_tunnels (struct GNUNET_MESH_Handle *h,
 void *
 GNUNET_MESH_get_tunnels_cancel (struct GNUNET_MESH_Handle *h);
 
+
 /**
- * Request information about the running mesh peer.
- * The callback will be called for every channel known to the service,
- * listing all active peers that blong to the channel.
- *
- * If called again on the same handle, it will overwrite the previous
- * callback and cls. To retrieve the cls, monitor_cancel must be
- * called first.
+ * Request information about a tunnel of the running mesh peer.
+ * The callback will be called for the tunnel once.
+ * Only one info request (of any kind) can be active at once.
  *
  * WARNING: unstable API, likely to change in the future!
  *
  * @param h Handle to the mesh peer.
+ * @param id Peer whose tunnel to examine.
  * @param callback Function to call with the requested data.
  * @param callback_cls Closure for @c callback.
+ *
+ * @return #GNUNET_OK / #GNUNET_SYSERR
  */
-void
+int
 GNUNET_MESH_get_tunnel (struct GNUNET_MESH_Handle *h,
                         const struct GNUNET_PeerIdentity *id,
                         GNUNET_MESH_TunnelCB callback,

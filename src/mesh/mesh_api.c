@@ -86,6 +86,29 @@ struct GNUNET_MESH_TransmitHandle
   size_t size;
 };
 
+union MeshInfoCB {
+
+  /**
+   * Channel callback.
+   */
+  GNUNET_MESH_ChannelCB channel_cb;
+
+  /**
+   * Monitor callback
+   */
+  GNUNET_MESH_PeersCB peers_cb;
+
+  /**
+   * Monitor callback
+   */
+  GNUNET_MESH_TunnelsCB tunnels_cb;
+
+  /**
+   * Tunnel callback.
+   */
+  GNUNET_MESH_TunnelCB tunnel_cb;
+};
+
 
 /**
  * Opaque handle to the service.
@@ -185,54 +208,14 @@ struct GNUNET_MESH_Handle
   GNUNET_SCHEDULER_TaskIdentifier reconnect_task;
 
   /**
-   * Monitor callback
+   * Callback for an info task (only one active at a time).
    */
-  GNUNET_MESH_ChannelsCB channels_cb;
+  union MeshInfoCB info_cb;
 
   /**
-   * Monitor callback closure.
+   * Info callback closure for @c info_cb.
    */
-  void *channels_cls;
-
-  /**
-   * Channel callback.
-   */
-  GNUNET_MESH_ChannelCB channel_cb;
-
-  /**
-   * Channel callback closure.
-   */
-  void *channel_cls;
-
-  /**
-   * Monitor callback
-   */
-  GNUNET_MESH_PeersCB peers_cb;
-
-  /**
-   * Monitor callback closure.
-   */
-  void *peers_cls;
-
-  /**
-   * Monitor callback
-   */
-  GNUNET_MESH_TunnelsCB tunnels_cb;
-
-  /**
-   * Monitor callback closure.
-   */
-  void *tunnels_cls;
-
-  /**
-   * Tunnel callback.
-   */
-  GNUNET_MESH_TunnelCB tunnel_cb;
-
-  /**
-   * Tunnel callback closure.
-   */
-  void *tunnel_cls;
+  void *info_cls;
 };
 
 
@@ -1048,7 +1031,7 @@ process_get_peers (struct GNUNET_MESH_Handle *h,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Get Peer messasge received\n");
 
-  if (NULL == h->peers_cb)
+  if (NULL == h->info_cb.peers_cb)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  ignored\n");
     return;
@@ -1057,16 +1040,17 @@ process_get_peers (struct GNUNET_MESH_Handle *h,
   size = ntohs (message->size);
   if (sizeof (struct GNUNET_MESH_LocalInfoPeer) > size)
   {
-    h->peers_cb (h->peers_cls, NULL, -1, 0, 0);
-    h->peers_cb = NULL;
-    h->peers_cls = NULL;
+    h->info_cb.peers_cb (h->info_cls, NULL, -1, 0, 0);
+    h->info_cb.peers_cb = NULL;
+    h->info_cls = NULL;
     return;
   }
 
   msg = (struct GNUNET_MESH_LocalInfoPeer *) message;
-  h->peers_cb (h->peers_cls, &msg->destination,
-               (int) ntohs (msg->tunnel), (unsigned int ) ntohs (msg->paths),
-               0);
+  h->info_cb.peers_cb (h->info_cls, &msg->destination,
+                       (int) ntohs (msg->tunnel),
+                       (unsigned int ) ntohs (msg->paths),
+                       0);
 }
 
 
@@ -1085,7 +1069,7 @@ process_get_tunnels (struct GNUNET_MESH_Handle *h,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Get Tunnels messasge received\n");
 
-  if (NULL == h->tunnels_cb)
+  if (NULL == h->info_cb.tunnels_cb)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  ignored\n");
     return;
@@ -1094,19 +1078,16 @@ process_get_tunnels (struct GNUNET_MESH_Handle *h,
   size = ntohs (message->size);
   if (sizeof (struct GNUNET_MESH_LocalInfoTunnel) > size)
   {
-    h->tunnels_cb (h->tunnel_cls, NULL, 0, 0, 0, 0);
-    h->tunnels_cb = NULL;
-    h->tunnels_cls = NULL;
+    h->info_cb.tunnels_cb (h->info_cls, NULL, 0, 0, 0, 0);
+    h->info_cb.tunnels_cb = NULL;
+    h->info_cls = NULL;
     return;
   }
 
   msg = (struct GNUNET_MESH_LocalInfoTunnel *) message;
-  h->tunnels_cb (h->tunnel_cls,
-                 &msg->destination,
-                 ntohl (msg->channels),
-                 ntohl (msg->connections),
-                 ntohs (msg->estate),
-                 ntohs (msg->cstate));
+  h->info_cb.tunnels_cb (h->info_cls, &msg->destination,
+                         ntohl (msg->channels), ntohl (msg->connections),
+                         ntohs (msg->estate), ntohs (msg->cstate));
 
 }
 
@@ -1131,7 +1112,7 @@ process_get_tunnel (struct GNUNET_MESH_Handle *h,
   MESH_ChannelNumber *chns;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Get Tunnel messasge received\n");
-  if (NULL == h->tunnel_cb)
+  if (NULL == h->info_cb.tunnel_cb)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  ignored\n");
     return;
@@ -1144,7 +1125,7 @@ process_get_tunnel (struct GNUNET_MESH_Handle *h,
   if (esize > msize)
   {
     GNUNET_break_op (0);
-    h->tunnel_cb (h->tunnel_cls, NULL, 0, 0, NULL, NULL, 0, 0);
+    h->info_cb.tunnel_cb (h->info_cls, NULL, 0, 0, NULL, NULL, 0, 0);
     goto clean_cls;
   }
   ch_n = ntohl (msg->channels);
@@ -1159,20 +1140,20 @@ process_get_tunnel (struct GNUNET_MESH_Handle *h,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%u (%u ch, %u conn)\n",
                 sizeof (struct GNUNET_MESH_LocalInfoTunnel),
                 sizeof (MESH_ChannelNumber), sizeof (struct GNUNET_HashCode));
-    h->tunnel_cb (h->tunnel_cls, NULL, 0, 0, NULL, NULL, 0, 0);
+    h->info_cb.tunnel_cb (h->info_cls, NULL, 0, 0, NULL, NULL, 0, 0);
     goto clean_cls;
   }
 
   /* Call Callback with tunnel info. */
   conns = (struct GNUNET_HashCode *) &msg[1];
   chns = (MESH_ChannelNumber *) &conns[c_n];
-  h->tunnel_cb (h->tunnel_cls, &msg->destination,
+  h->info_cb.tunnel_cb (h->info_cls, &msg->destination,
                 ch_n, c_n, chns, conns,
                 ntohs (msg->estate), ntohs (msg->cstate));
 
 clean_cls:
-  h->tunnel_cb = NULL;
-  h->tunnel_cls = NULL;
+  h->info_cb.tunnel_cb = NULL;
+  h->info_cls = NULL;
 }
 
 /**
@@ -1749,101 +1730,86 @@ send_info_request (struct GNUNET_MESH_Handle *h, uint16_t type)
   send_packet (h, &msg, NULL);
 }
 
+
 /**
- * Request information about the running mesh peer.
- * The callback will be called for every channel known to the service,
- * listing all active peers that blong to the channel.
+ * Request information about peers known to the running mesh service.
+ * The callback will be called for every peer known to the service.
+ * Only one info request (of any kind) can be active at once.
  *
- * If called again on the same handle, it will overwrite the previous
- * callback and cls. To retrieve the cls, monitor_cancel must be
- * called first.
  *
  * WARNING: unstable API, likely to change in the future!
  *
  * @param h Handle to the mesh peer.
  * @param callback Function to call with the requested data.
  * @param callback_cls Closure for @c callback.
+ *
+ * @return #GNUNET_OK / #GNUNET_SYSERR
  */
-void
-GNUNET_MESH_get_channels (struct GNUNET_MESH_Handle *h,
-                         GNUNET_MESH_ChannelsCB callback,
-                         void *callback_cls)
+int
+GNUNET_MESH_get_peers (struct GNUNET_MESH_Handle *h,
+                       GNUNET_MESH_PeersCB callback,
+                       void *callback_cls)
 {
-  send_info_request (h, GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_CHANNELS);
-  h->channels_cb = callback;
-  h->channels_cls = callback_cls;
+  if (NULL != h->info_cb.peers_cb)
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  send_info_request (h, GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_PEERS);
+  h->info_cb.peers_cb = callback;
+  h->info_cls = callback_cls;
+  return GNUNET_OK;
 }
 
 
 /**
- * Cancel a monitor request. The monitor callback will not be called.
+ * Cancel a peer info request. The callback will not be called (anymore).
  *
  * WARNING: unstable API, likely to change in the future!
  *
  * @param h Mesh handle.
  *
- * @return Closure given to GNUNET_MESH_monitor, if any.
+ * @return Closure given to GNUNET_MESH_get_peers.
  */
 void *
-GNUNET_MESH_get_channels_cancel (struct GNUNET_MESH_Handle *h)
+GNUNET_MESH_get_peers_cancel (struct GNUNET_MESH_Handle *h)
 {
   void *cls;
 
-  cls = h->channels_cls;
-  h->channels_cb = NULL;
-  h->channels_cls = NULL;
+  cls = h->info_cls;
+  h->info_cb.peers_cb = NULL;
+  h->info_cls = NULL;
   return cls;
 }
 
 
 /**
- * Request information about the running mesh peer.
- * The callback will be called for every peer known to the service.
- *
- * If called again on the same handle, it will overwrite the previous
- * callback and cls. To retrieve the cls, monitor_cancel must be
- * called first.
+ * Request information about tunnels of the running mesh peer.
+ * The callback will be called for every tunnel of the service.
+ * Only one info request (of any kind) can be active at once.
  *
  * WARNING: unstable API, likely to change in the future!
  *
  * @param h Handle to the mesh peer.
  * @param callback Function to call with the requested data.
  * @param callback_cls Closure for @c callback.
+ *
+ * @return #GNUNET_OK / #GNUNET_SYSERR
  */
-void
-GNUNET_MESH_get_peers (struct GNUNET_MESH_Handle *h,
-                       GNUNET_MESH_PeersCB callback,
-                       void *callback_cls)
-{
-  send_info_request (h, GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_PEERS);
-  h->peers_cb = callback;
-  h->peers_cls = callback_cls;
-}
-
-
-
-/**
- * Request information about the running mesh peer.
- * The callback will be called for every tunnel known to the service.
- *
- * If called again on the same handle, it will overwrite the previous
- * callback and cls. To retrieve the cls, monitor_cancel must be
- * called first.
- *
- * WARNING: unstable API, likely to change in the future!
- *
- * @param h Handle to the mesh peer.
- * @param callback Function to call with the requested data.
- * @param callback_cls Closure for @c callback.
- */
-void
+int
 GNUNET_MESH_get_tunnels (struct GNUNET_MESH_Handle *h,
                          GNUNET_MESH_TunnelsCB callback,
                          void *callback_cls)
 {
+  if (NULL != h->info_cb.tunnels_cb)
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
   send_info_request (h, GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNELS);
-  h->tunnels_cb = callback;
-  h->tunnels_cls = callback_cls;
+  h->info_cb.tunnels_cb = callback;
+  h->info_cls = callback_cls;
+  return GNUNET_OK;
 }
 
 
@@ -1852,16 +1818,16 @@ GNUNET_MESH_get_tunnels (struct GNUNET_MESH_Handle *h,
  *
  * @param h Mesh handle.
  *
- * @return Closure given to GNUNET_MESH_monitor, if any.
+ * @return Closure given to GNUNET_MESH_get_tunnels.
  */
 void *
 GNUNET_MESH_get_tunnels_cancel (struct GNUNET_MESH_Handle *h)
 {
   void *cls;
 
-  h->tunnels_cb = NULL;
-  cls = h->tunnels_cls;
-  h->tunnels_cls = NULL;
+  h->info_cb.tunnels_cb = NULL;
+  cls = h->info_cls;
+  h->info_cls = NULL;
 
   return cls;
 }
@@ -1869,21 +1835,20 @@ GNUNET_MESH_get_tunnels_cancel (struct GNUNET_MESH_Handle *h)
 
 
 /**
- * Request information about the running mesh peer.
- * The callback will be called for every channel known to the service,
- * listing all active peers that blong to the channel.
- *
- * If called again on the same handle, it will overwrite the previous
- * callback and cls. To retrieve the cls, monitor_cancel must be
- * called first.
+ * Request information about a tunnel of the running mesh peer.
+ * The callback will be called for the tunnel once.
+ * Only one info request (of any kind) can be active at once.
  *
  * WARNING: unstable API, likely to change in the future!
  *
  * @param h Handle to the mesh peer.
+ * @param id Peer whose tunnel to examine.
  * @param callback Function to call with the requested data.
  * @param callback_cls Closure for @c callback.
+ *
+ * @return #GNUNET_OK / #GNUNET_SYSERR
  */
-void
+int
 GNUNET_MESH_get_tunnel (struct GNUNET_MESH_Handle *h,
                         const struct GNUNET_PeerIdentity *id,
                         GNUNET_MESH_TunnelCB callback,
@@ -1891,13 +1856,20 @@ GNUNET_MESH_get_tunnel (struct GNUNET_MESH_Handle *h,
 {
   struct GNUNET_MESH_LocalInfo msg;
 
+  if (NULL != h->info_cb.tunnel_cb)
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+
   memset (&msg, 0, sizeof (msg));
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNEL);
   msg.peer = *id;
   send_packet (h, &msg.header, NULL);
-  h->tunnel_cb = callback;
-  h->tunnel_cls = callback_cls;
+  h->info_cb.tunnel_cb = callback;
+  h->info_cls = callback_cls;
+  return GNUNET_OK;
 }
 
 
@@ -1912,8 +1884,10 @@ GNUNET_MESH_get_tunnel (struct GNUNET_MESH_Handle *h,
  * @param channel_number Channel number.
  * @param callback Function to call with the requested data.
  * @param callback_cls Closure for @c callback.
+ *
+ * @return #GNUNET_OK / #GNUNET_SYSERR
  */
-void
+int
 GNUNET_MESH_show_channel (struct GNUNET_MESH_Handle *h,
                          struct GNUNET_PeerIdentity *initiator,
                          unsigned int channel_number,
@@ -1922,14 +1896,21 @@ GNUNET_MESH_show_channel (struct GNUNET_MESH_Handle *h,
 {
   struct GNUNET_MESH_LocalInfo msg;
 
+  if (NULL != h->info_cb.channel_cb)
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_CHANNEL);
   msg.peer = *initiator;
   msg.channel_id = htonl (channel_number);
 //   msg.reserved = 0;
   send_packet (h, &msg.header, NULL);
-  h->channel_cb = callback;
-  h->channel_cls = callback_cls;
+  h->info_cb.channel_cb = callback;
+  h->info_cls = callback_cls;
+  return GNUNET_OK;
 }
 
 
