@@ -948,6 +948,7 @@ connection_fwd_keepalive (void *cls,
 {
   struct MeshConnection *c = cls;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "FWD keepalive for %s\n", GMC_2s (c));
   c->fwd_maintenance_task = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
