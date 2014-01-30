@@ -244,7 +244,6 @@ struct LoggingHandle
    * Log structure of length num_peers
    */
   struct LoggingPeer *lp;
-
 };
 
 
@@ -261,7 +260,8 @@ write_throughput_gnuplot_script (char * fn, struct LoggingPeer *lp)
   GNUNET_asprintf (&gfn, "gnuplot_throughput_%s",fn);
   f = GNUNET_DISK_file_open (gfn,
       GNUNET_DISK_OPEN_WRITE | GNUNET_DISK_OPEN_CREATE,
-      GNUNET_DISK_PERM_USER_EXEC | GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE);
+      GNUNET_DISK_PERM_USER_EXEC | GNUNET_DISK_PERM_USER_READ |
+      GNUNET_DISK_PERM_USER_WRITE);
   if (NULL == f)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot open gnuplot file `%s'\n", gfn);
@@ -271,15 +271,18 @@ write_throughput_gnuplot_script (char * fn, struct LoggingPeer *lp)
 
   /* Write header */
 
-  if (GNUNET_SYSERR == GNUNET_DISK_file_write(f, THROUGHPUT_TEMPLATE, strlen(THROUGHPUT_TEMPLATE)))
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot write data to plot file `%s'\n", gfn);
+  if (GNUNET_SYSERR == GNUNET_DISK_file_write(f, THROUGHPUT_TEMPLATE,
+      strlen(THROUGHPUT_TEMPLATE)))
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+        "Cannot write data to plot file `%s'\n", gfn);
 
   /* Write master data */
   peer_index = LOG_ITEMS_TIME;
-  GNUNET_asprintf (&data, "plot '%s' using 2:%u with lines title 'Master %u send total', \\\n" \
-                           "'%s' using 2:%u with lines title 'Master %u receive total', \\\n",
-                           fn, peer_index + LOG_ITEM_THROUGHPUT_SENT, lp->peer->no,
-                           fn, peer_index + LOG_ITEM_THROUGHPUT_RECV, lp->peer->no);
+  GNUNET_asprintf (&data,
+      "plot '%s' using 2:%u with lines title 'Master %u send total', \\\n" \
+      "'%s' using 2:%u with lines title 'Master %u receive total', \\\n",
+      fn, peer_index + LOG_ITEM_THROUGHPUT_SENT, lp->peer->no,
+      fn, peer_index + LOG_ITEM_THROUGHPUT_RECV, lp->peer->no);
   if (GNUNET_SYSERR == GNUNET_DISK_file_write(f, data, strlen(data)))
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot write data to plot file `%s'\n", gfn);
   GNUNET_free (data);
@@ -288,10 +291,16 @@ write_throughput_gnuplot_script (char * fn, struct LoggingPeer *lp)
   for (c_s = 0; c_s < lp->peer->num_partners; c_s++)
   {
     GNUNET_asprintf (&data, "'%s' using 2:%u with lines title 'Master %u - Slave %u send', \\\n" \
-                            "'%s' using 2:%u with lines title 'Master %u - Slave %u receive'%s\n",
-                            fn, peer_index + LOG_ITEM_THROUGHPUT_SENT, lp->peer->no, lp->peer->partners[c_s].dest->no,
-                            fn, peer_index + LOG_ITEM_THROUGHPUT_RECV, lp->peer->no, lp->peer->partners[c_s].dest->no,
-                            (c_s < lp->peer->num_partners -1) ? ", \\" : "\n pause -1");
+        "'%s' using 2:%u with lines title 'Master %u - Slave %u receive'%s\n",
+        fn,
+        peer_index + LOG_ITEM_THROUGHPUT_SENT,
+        lp->peer->no,
+        lp->peer->partners[c_s].dest->no,
+        fn,
+        peer_index + LOG_ITEM_THROUGHPUT_RECV,
+        lp->peer->no,
+        lp->peer->partners[c_s].dest->no,
+        (c_s < lp->peer->num_partners -1) ? ", \\" : "\n pause -1");
     if (GNUNET_SYSERR == GNUNET_DISK_file_write(f, data, strlen(data)))
         GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot write data to plot file `%s'\n", gfn);
     GNUNET_free (data);
@@ -299,9 +308,11 @@ write_throughput_gnuplot_script (char * fn, struct LoggingPeer *lp)
   }
 
   if (GNUNET_SYSERR == GNUNET_DISK_file_close(f))
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot close gnuplot file `%s'\n", gfn);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+        "Cannot close gnuplot file `%s'\n", gfn);
   else
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Data successfully written to plot file `%s'\n", gfn);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+        "Data successfully written to plot file `%s'\n", gfn);
 
   GNUNET_free (gfn);
 }
@@ -319,7 +330,8 @@ write_rtt_gnuplot_script (char * fn, struct LoggingPeer *lp)
   GNUNET_asprintf (&gfn, "gnuplot_rtt_%s",fn);
   f = GNUNET_DISK_file_open (gfn,
       GNUNET_DISK_OPEN_WRITE | GNUNET_DISK_OPEN_CREATE,
-      GNUNET_DISK_PERM_USER_EXEC | GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE);
+      GNUNET_DISK_PERM_USER_EXEC | GNUNET_DISK_PERM_USER_READ |
+      GNUNET_DISK_PERM_USER_WRITE);
   if (NULL == f)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot open gnuplot file `%s'\n", gfn);
@@ -364,7 +376,8 @@ write_bw_gnuplot_script (char * fn, struct LoggingPeer *lp)
   GNUNET_asprintf (&gfn, "gnuplot_bw_%s",fn);
   f = GNUNET_DISK_file_open (gfn,
       GNUNET_DISK_OPEN_WRITE | GNUNET_DISK_OPEN_CREATE,
-      GNUNET_DISK_PERM_USER_EXEC | GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE);
+      GNUNET_DISK_PERM_USER_EXEC | GNUNET_DISK_PERM_USER_READ |
+      GNUNET_DISK_PERM_USER_WRITE);
   if (NULL == f)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot open gnuplot file `%s'\n", gfn);
@@ -375,7 +388,8 @@ write_bw_gnuplot_script (char * fn, struct LoggingPeer *lp)
   /* Write header */
 
   if (GNUNET_SYSERR == GNUNET_DISK_file_write(f, BW_TEMPLATE, strlen(BW_TEMPLATE)))
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot write data to plot file `%s'\n", gfn);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+        "Cannot write data to plot file `%s'\n", gfn);
 
   index = LOG_ITEMS_TIME + LOG_ITEMS_PER_PEER;
   for (c_s = 0; c_s < lp->peer->num_partners; c_s++)
@@ -413,13 +427,20 @@ GNUNET_ATS_TEST_logging_write_to_file (struct LoggingHandle *l, char *test_name)
   char *slave_string_tmp;
   struct PeerLoggingTimestep *cur_lt;
   struct PartnerLoggingTimestep *plt;
+  struct GNUNET_TIME_Absolute timestamp;
   int c_m;
   int c_s;
 
+  timestamp = GNUNET_TIME_absolute_get();
+
   for (c_m = 0; c_m < l->num_peers; c_m++)
   {
-    GNUNET_asprintf (&filename, "%s_%llu_master_%u_%s_%s.data", test_name, GNUNET_TIME_absolute_get().abs_value_us,
+    GNUNET_asprintf (&filename, "%s_%llu_master_%u_%s_%s.data", test_name,
+        timestamp.abs_value_us,
         l->lp[c_m].peer->no, GNUNET_i2s(&l->lp[c_m].peer->id), l->name);
+
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Writing master %u to file `%s'\n",
+        c_m, filename);
 
     f = GNUNET_DISK_file_open (filename,
         GNUNET_DISK_OPEN_WRITE | GNUNET_DISK_OPEN_CREATE,
@@ -431,13 +452,27 @@ GNUNET_ATS_TEST_logging_write_to_file (struct LoggingHandle *l, char *test_name)
       return;
     }
 
+    GNUNET_asprintf (&data, "# master peers: %u ; slave peers: %u ; experiment : %s\n",
+        l->num_peers, l->lp[c_m].peer->num_partners, test_name);
+    if (GNUNET_SYSERR == GNUNET_DISK_file_write(f, data, strlen(data)))
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+          "Cannot write data to log file `%s'\n", filename);
+    GNUNET_free (data);
+
     for (cur_lt = l->lp[c_m].head; NULL != cur_lt; cur_lt = cur_lt->next)
     {
        GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-          "Master [%u]: timestamp %llu %llu ; %u %u %u ; %u %u %u\n", l->lp[c_m].peer->no,
-          cur_lt->timestamp, GNUNET_TIME_absolute_get_difference(l->lp[c_m].start,cur_lt->timestamp).rel_value_us / 1000,
-          cur_lt->total_messages_sent, cur_lt->total_bytes_sent, cur_lt->total_throughput_send,
-          cur_lt->total_messages_received, cur_lt->total_bytes_received, cur_lt->total_throughput_recv);
+          "Master [%u]: timestamp %llu %llu ; %u %u %u ; %u %u %u\n",
+          l->lp[c_m].peer->no,
+          cur_lt->timestamp,
+          GNUNET_TIME_absolute_get_difference(l->lp[c_m].start,
+              cur_lt->timestamp).rel_value_us / 1000,
+          cur_lt->total_messages_sent,
+          cur_lt->total_bytes_sent,
+          cur_lt->total_throughput_send,
+          cur_lt->total_messages_received,
+          cur_lt->total_bytes_received,
+          cur_lt->total_throughput_recv);
 
       slave_string = GNUNET_strdup (";");
       for (c_s = 0; c_s < l->lp[c_m].peer->num_partners; c_s++)
@@ -447,42 +482,65 @@ GNUNET_ATS_TEST_logging_write_to_file (struct LoggingHandle *l, char *test_name)
 
         /* Assembling slave string */
         GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-            "\t Slave [%u]: %u %u %u ; %u %u %u rtt %u delay %u bw_in %u bw_out %u \n", plt->slave->no,
-            plt->total_messages_sent, plt->total_bytes_sent, plt->throughput_sent,
-            plt->total_messages_received, plt->total_bytes_received, plt->throughput_recv,
-            plt->app_rtt, plt->ats_delay,
-            plt->bandwidth_in, plt->bandwidth_out);
+            "\t Slave [%u]: %u %u %u ; %u %u %u rtt %u delay %u bw_in %u bw_out %u \n",
+            plt->slave->no,
+            plt->total_messages_sent,
+            plt->total_bytes_sent,
+            plt->throughput_sent,
+            plt->total_messages_received,
+            plt->total_bytes_received,
+            plt->throughput_recv,
+            plt->app_rtt,
+            plt->ats_delay,
+            plt->bandwidth_in,
+            plt->bandwidth_out);
 
-        GNUNET_asprintf(&slave_string_tmp, "%s%u;%u;%u;%u;%u;%u;%.3f;%u;%u;%u;%u;%u;%u;%u;%u;%u;%u;",slave_string,
-            plt->total_messages_sent, plt->total_bytes_sent,  plt->throughput_sent,
-            plt->total_messages_received, plt->total_bytes_received,  plt->throughput_sent,
+        GNUNET_asprintf(&slave_string_tmp,
+            "%s%u;%u;%u;%u;%u;%u;%.3f;%u;%u;%u;%u;%u;%u;%u;%u;%u;%u;",
+            slave_string,
+            plt->total_messages_sent,
+            plt->total_bytes_sent,
+            plt->throughput_sent,
+            plt->total_messages_received,
+            plt->total_bytes_received,
+            plt->throughput_sent,
             (double) plt->app_rtt / 1000,
-            plt->bandwidth_in,plt->bandwidth_out,
-            plt->ats_cost_lan, plt->ats_cost_wan, plt->ats_cost_wlan,
-            plt->ats_delay, plt->ats_distance, plt->ats_network_type,
-            plt->ats_utilization_up, plt->ats_utilization_down);
+            plt->bandwidth_in,
+            plt->bandwidth_out,
+            plt->ats_cost_lan,
+            plt->ats_cost_wan,
+            plt->ats_cost_wlan,
+            plt->ats_delay,
+            plt->ats_distance,
+            plt->ats_network_type,
+            plt->ats_utilization_up,
+            plt->ats_utilization_down);
         GNUNET_free (slave_string);
         slave_string = slave_string_tmp;
       }
       /* Assembling master string */
-
-
-
       GNUNET_asprintf (&data, "%llu;%llu;%u;%u;%u;%u;%u;%u;;;;;;;;;;;%s\n",
           cur_lt->timestamp,
-          GNUNET_TIME_absolute_get_difference(l->lp[c_m].start,cur_lt->timestamp).rel_value_us / 1000,
-          cur_lt->total_messages_sent, cur_lt->total_bytes_sent,  cur_lt->total_throughput_send,
-          cur_lt->total_messages_received, cur_lt->total_bytes_received, cur_lt->total_throughput_recv,
+          GNUNET_TIME_absolute_get_difference(l->lp[c_m].start,
+              cur_lt->timestamp).rel_value_us / 1000,
+          cur_lt->total_messages_sent,
+          cur_lt->total_bytes_sent,
+          cur_lt->total_throughput_send,
+          cur_lt->total_messages_received,
+          cur_lt->total_bytes_received,
+          cur_lt->total_throughput_recv,
           slave_string);
       GNUNET_free (slave_string);
 
       if (GNUNET_SYSERR == GNUNET_DISK_file_write(f, data, strlen(data)))
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot write data to log file `%s'\n", filename);
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+            "Cannot write data to log file `%s'\n", filename);
       GNUNET_free (data);
     }
     if (GNUNET_SYSERR == GNUNET_DISK_file_close(f))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Cannot close log file `%s'\n", filename);
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+          "Cannot close log file `%s'\n", filename);
       GNUNET_free (filename);
       return;
     }
@@ -491,7 +549,8 @@ GNUNET_ATS_TEST_logging_write_to_file (struct LoggingHandle *l, char *test_name)
     write_rtt_gnuplot_script (filename, l->lp);
     write_bw_gnuplot_script (filename, l->lp);
 
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Data file successfully written to log file `%s'\n", filename);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+        "Data file successfully written to log file `%s'\n", filename);
     GNUNET_free (filename);
   }
 }
@@ -523,11 +582,10 @@ GNUNET_ATS_TEST_logging_now (struct LoggingHandle *l)
   {
     bp = &l->lp[c_m];
     mlt = GNUNET_new (struct PeerLoggingTimestep);
-    GNUNET_CONTAINER_DLL_insert_tail(bp->head, bp->tail, mlt);
+    GNUNET_CONTAINER_DLL_insert_tail(l->lp[c_m].head, l->lp[c_m].tail, mlt);
     prev_log_mlt = mlt->prev;
 
     /* Collect data */
-
     /* Current master state */
     mlt->timestamp = GNUNET_TIME_absolute_get();
     mlt->total_bytes_sent = bp->peer->total_bytes_sent;
@@ -574,6 +632,10 @@ GNUNET_ATS_TEST_logging_now (struct LoggingHandle *l)
 
     for (c_s = 0; c_s < bp->peer->num_partners; c_s++)
     {
+
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+          "Collect logging data master[%u] slave [%u]\n", c_m, c_s);
+
       p = &bp->peer->partners[c_s];
       slt = &mlt->slaves_log[c_s];
 
