@@ -402,6 +402,7 @@ test_crypto_hkdf_LDADD = \
 test_crypto_paillier_SOURCES = \
  test_crypto_paillier.c
 test_crypto_paillier_LDADD = \
+ -lgcrypt \
  $(top_builddir)/src/util/libgnunetutil.la
 
 test_crypto_random_SOURCES = \
