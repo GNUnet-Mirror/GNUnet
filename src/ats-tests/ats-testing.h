@@ -31,26 +31,62 @@
 
 #define TEST_ATS_PREFERENCE_DEFAULT 1.0
 
+/**
+ * Message type sent for traffic generation
+ */
 #define TEST_MESSAGE_TYPE_PING 12345
+
+/**
+ * Message type sent as response during traffic generation
+ */
 #define TEST_MESSAGE_TYPE_PONG 12346
+
+/**
+ * Size of test messages
+ */
 #define TEST_MESSAGE_SIZE 100
 
 struct BenchmarkPartner;
+
 struct BenchmarkPeer;
+
 struct GNUNET_ATS_TEST_Topology;
+
 struct TrafficGenerator;
+
 struct LoggingHandle;
 
+
+/**
+ * Callback to call when topology setup is completed
+ *
+ * @param cls the closure
+ * @param masters array of master peers
+ * @param slaves array of master peers
+ */
 typedef void (*GNUNET_ATS_TEST_TopologySetupDoneCallback) (void *cls,
     struct BenchmarkPeer *masters,
     struct BenchmarkPeer *slaves);
 
+/**
+ * Callback called when logging is required for the data contained
+ *
+ * @param cls the closure
+ * @param address an address
+ * @param address_active is address active
+ * @param bandwidth_out bandwidth outbound
+ * @param bandwidth_in bandwidth inbound
+ * @param ats ats information
+ * @param ats_count number of ats inforation
+ */
 typedef void
 (*GNUNET_ATS_TEST_LogRequest) (void *cls,
-    const struct GNUNET_HELLO_Address *address, int address_active,
+    const struct GNUNET_HELLO_Address *address,
+    int address_active,
     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-    const struct GNUNET_ATS_Information *ats, uint32_t ats_count);
+    const struct GNUNET_ATS_Information *ats,
+    uint32_t ats_count);
 
 /**
  * Information we track for a peer in the testbed.
@@ -444,21 +480,56 @@ struct Experiment
   GNUNET_ATS_TESTING_ExperimentDoneCallback e_done_cb;
 };
 
+/*
+ * Experiment related functions
+ */
+
+
+/**
+ * Execute the specified experiment
+ *
+ * @param e the Experiment
+ * @param ep_done_cb a episode is completed
+ * @param e_done_cb the experiment is completed
+ */
 void
 GNUNET_ATS_TEST_experimentation_run (struct Experiment *e,
     GNUNET_ATS_TESTING_EpisodeDoneCallback ep_done_cb,
     GNUNET_ATS_TESTING_ExperimentDoneCallback e_done_cb);
 
+/**
+ * Load an experiment from a file
+ *
+ * @param filename the file
+ * @return the Experiment or NULL on failure
+ */
 struct Experiment *
 GNUNET_ATS_TEST_experimentation_load (char *filename);
 
+
+/**
+ * Stop an experiment
+ *
+ * @param e the experiment
+ */
 void
 GNUNET_ATS_TEST_experimentation_stop (struct Experiment *e);
+
+/*
+ * Traffic related functions
+ */
+
+void
+GNUNET_ATS_TEST_traffic_handle_ping (struct BenchmarkPartner *p);
+
+void
+GNUNET_ATS_TEST_traffic_handle_pong (struct BenchmarkPartner *p);
 
 
 struct TrafficGenerator *
 GNUNET_ATS_TEST_generate_traffic_start (struct BenchmarkPeer *src,
-    struct BenchmarkPartner *dest, unsigned int rate,
+    struct BenchmarkPartner *dest,
+    unsigned int rate,
     struct GNUNET_TIME_Relative duration);
 
 void
@@ -469,6 +540,11 @@ GNUNET_ATS_TEST_generate_traffic_stop (struct TrafficGenerator *tg);
  */
 void
 GNUNET_ATS_TEST_generate_traffic_stop_all ();
+
+
+/*
+ * Logging related functions
+ */
 
 /**
  * Start logging
@@ -481,7 +557,9 @@ GNUNET_ATS_TEST_generate_traffic_stop_all ();
  */
 struct LoggingHandle *
 GNUNET_ATS_TEST_logging_start (struct GNUNET_TIME_Relative log_frequency,
-    char * testname, struct BenchmarkPeer *masters, int num_masters);
+    char * testname,
+    struct BenchmarkPeer *masters,
+    int num_masters);
 
 /**
  * Stop logging
@@ -493,20 +571,40 @@ GNUNET_ATS_TEST_logging_stop (struct LoggingHandle *l);
 
 /**
  * Log all data now
+ *
+ * @param llogging handle to use
  */
 void
-GNUNET_ATS_TEST_logging_now (struct LoggingHandle *);
+GNUNET_ATS_TEST_logging_now (struct LoggingHandle *l);
 
+
+/**
+ * Write logging data to file
+ *
+ * @param l logging handle to use
+ * @param test_name name of the current test
+ */
 void
-GNUNET_ATS_TEST_logging_write_to_file (struct LoggingHandle *, char *test);
+GNUNET_ATS_TEST_logging_write_to_file (struct LoggingHandle *h,
+    char *test_name);
 
-void
-GNUNET_ATS_TEST_traffic_handle_ping (struct BenchmarkPartner *p);
+/*
+ * Topology related functions
+ */
 
-void
-GNUNET_ATS_TEST_traffic_handle_pong (struct BenchmarkPartner *p);
-
-
+/**
+ * Create a topology for ats testing
+ *
+ * @param name test name
+ * @param cfg_file configuration file to use for the peers
+ * @param num_slaves number of slaves
+ * @param num_masters number of masters
+ * @param test_core connect to CORE service (GNUNET_YES) or transport (GNUNET_NO)
+ * @param done_cb function to call when topology is setup
+ * @param done_cb_cls cls for callback
+ * @param recv_cb callback to call when data are received
+ * @param perf_cb callback to call when performance info are received
+ */
 void
 GNUNET_ATS_TEST_create_topology (char *name, char *cfg_file,
     unsigned int num_slaves,
@@ -514,9 +612,12 @@ GNUNET_ATS_TEST_create_topology (char *name, char *cfg_file,
     int test_core,
     GNUNET_ATS_TEST_TopologySetupDoneCallback done_cb,
     void *done_cb_cls,
-    GNUNET_TRANSPORT_ReceiveCallback transport_recv_cb,
+    GNUNET_TRANSPORT_ReceiveCallback recv_cb,
     GNUNET_ATS_TEST_LogRequest ats_perf_cb);
 
+/**
+ * Shutdown topology
+ */
 void
 GNUNET_ATS_TEST_shutdown_topology (void);
 

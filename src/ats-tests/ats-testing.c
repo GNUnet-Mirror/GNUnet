@@ -837,6 +837,19 @@ controller_event_cb (void *cls,
 }
 
 
+/**
+ * Create a topology for ats testing
+ *
+ * @param name test name
+ * @param cfg_file configuration file to use for the peers
+ * @param num_slaves number of slaves
+ * @param num_masters number of masters
+ * @param test_core connect to CORE service (GNUNET_YES) or transport (GNUNET_NO)
+ * @param done_cb function to call when topology is setup
+ * @param done_cb_cls cls for callback
+ * @param recv_cb callback to call when data are received
+ * @param perf_cb callback to call when performance info are received
+ */
 void
 GNUNET_ATS_TEST_create_topology (char *name, char *cfg_file,
     unsigned int num_slaves,
@@ -876,6 +889,9 @@ GNUNET_ATS_TEST_create_topology (char *name, char *cfg_file,
       &main_run, NULL);
 }
 
+/**
+ * Shutdown topology
+ */
 void
 GNUNET_ATS_TEST_shutdown_topology (void)
 {

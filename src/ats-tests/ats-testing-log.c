@@ -403,7 +403,7 @@ write_bw_gnuplot_script (char * fn, struct LoggingPeer *lp)
 
 
 void
-GNUNET_ATS_TEST_logging_write_to_file (struct LoggingHandle *l, char *test)
+GNUNET_ATS_TEST_logging_write_to_file (struct LoggingHandle *l, char *test_name)
 {
   struct GNUNET_DISK_FileHandle *f;
 
@@ -418,7 +418,7 @@ GNUNET_ATS_TEST_logging_write_to_file (struct LoggingHandle *l, char *test)
 
   for (c_m = 0; c_m < l->num_peers; c_m++)
   {
-    GNUNET_asprintf (&filename, "%s_%llu_master_%u_%s_%s.data", test, GNUNET_TIME_absolute_get().abs_value_us,
+    GNUNET_asprintf (&filename, "%s_%llu_master_%u_%s_%s.data", test_name, GNUNET_TIME_absolute_get().abs_value_us,
         l->lp[c_m].peer->no, GNUNET_i2s(&l->lp[c_m].peer->id), l->name);
 
     f = GNUNET_DISK_file_open (filename,
@@ -496,7 +496,11 @@ GNUNET_ATS_TEST_logging_write_to_file (struct LoggingHandle *l, char *test)
   }
 }
 
-
+/**
+ * Log all data now
+ *
+ * @param llogging handle to use
+ */
 void
 GNUNET_ATS_TEST_logging_now (struct LoggingHandle *l)
 {
