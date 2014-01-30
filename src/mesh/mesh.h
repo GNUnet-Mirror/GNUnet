@@ -208,7 +208,7 @@ struct GNUNET_MESH_LocalInfoPeer
   /**
    * Do we have a tunnel toward this peer?
    */
-  uint16_t tunnel GNUNET_PACKED;
+  int16_t tunnel GNUNET_PACKED;
 
   /**
    * ID of the destination of the tunnel (can be local peer).
