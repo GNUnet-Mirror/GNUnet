@@ -1088,39 +1088,44 @@ process_get_tunnel (struct GNUNET_MESH_Handle *h,
 {
   struct GNUNET_MESH_LocalInfoTunnel *msg;
   size_t esize;
+  size_t msize;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Get Tunnel messasge received\n");
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Get Tunnel messasge received\n");
   if (NULL == h->tunnel_cb)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "  ignored\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  ignored\n");
     return;
   }
 
   /* Verify message sanity */
   msg = (struct GNUNET_MESH_LocalInfoTunnel *) message;
-  esize = sizeof (struct GNUNET_MESH_LocalInfo);
-  if (ntohs (message->size) != esize)
+  msize = ntohs (message->size);
+  esize = sizeof (struct GNUNET_MESH_LocalInfoTunnel);
+  if (esize > msize)
   {
     GNUNET_break_op (0);
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Get Tunnel message: size %hu - expected %u\n",
-                ntohs (message->size),
-                esize);
-
     h->tunnel_cb (h->tunnel_cls, NULL, 0, 0, 0, 0);
-    h->tunnel_cb = NULL;
-    h->tunnel_cls = NULL;
-
-    return;
+    goto clean_cls;
+  }
+  esize += ntohl (msg->connections) * sizeof (struct GNUNET_HashCode);
+  esize += ntohl (msg->channels) * sizeof (MESH_ChannelNumber);
+  if (msize != esize)
+  {
+    GNUNET_break_op (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "e: %u, m:%u\n", esize, msize);
+    h->tunnel_cb (h->tunnel_cls, NULL, 0, 0, 0, 0);
+    goto clean_cls;
   }
 
+  /* Call Callback with tunnel info. */
   h->tunnel_cb (h->tunnel_cls,
                 &msg->destination,
                 ntohl (msg->channels),
                 ntohl (msg->connections),
                 ntohl (msg->estate),
                 ntohl (msg->cstate));
+
+clean_cls:
   h->tunnel_cb = NULL;
   h->tunnel_cls = NULL;
 }
