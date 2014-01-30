@@ -40,7 +40,8 @@ GNUNET_BANDWIDTH_value_init (uint32_t bytes_per_second)
 {
   struct GNUNET_BANDWIDTH_Value32NBO ret;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Initializing bandwidth of %u Bps\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Initializing bandwidth of %u Bps\n",
        (unsigned int) bytes_per_second);
   ret.value__ = htonl (bytes_per_second);
   return ret;
@@ -91,7 +92,7 @@ GNUNET_BANDWIDTH_value_get_available_until (struct GNUNET_BANDWIDTH_Value32NBO
 
 /**
  * At the given bandwidth, calculate how long it would take for
- * 'size' bytes to be transmitted.
+ * @a size bytes to be transmitted.
  *
  * @param bps bandwidth
  * @param size number of bytes we want to have available
@@ -202,12 +203,12 @@ update_tracker (struct GNUNET_BANDWIDTH_Tracker *av)
  * Notify the tracker that a certain number of bytes of bandwidth have
  * been consumed.  Note that it is legal to consume bytes even if not
  * enough bandwidth is available (in that case,
- * GNUNET_BANDWIDTH_tracker_get_delay may return non-zero delay values
+ * #GNUNET_BANDWIDTH_tracker_get_delay may return non-zero delay values
  * even for a size of zero for a while).
  *
  * @param av tracker to update
  * @param size number of bytes consumed
- * @return GNUNET_YES if this consumption is above the limit
+ * @return #GNUNET_YES if this consumption is above the limit
  */
 int
 GNUNET_BANDWIDTH_tracker_consume (struct GNUNET_BANDWIDTH_Tracker *av,
@@ -215,7 +216,9 @@ GNUNET_BANDWIDTH_tracker_consume (struct GNUNET_BANDWIDTH_Tracker *av,
 {
   int64_t nc;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Tracker %p consumes %d bytes\n", av,
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Tracker %p consumes %d bytes\n",
+       av,
        (int) size);
   if (size > 0)
   {
@@ -293,7 +296,7 @@ GNUNET_BANDWIDTH_tracker_get_delay (struct GNUNET_BANDWIDTH_Tracker *av,
  * @return number of bytes available for consumption right now
  */
 int64_t
-GNUNET_BANDWIDTH_tracker_get_available (struct GNUNET_BANDWIDTH_Tracker * av)
+GNUNET_BANDWIDTH_tracker_get_available (struct GNUNET_BANDWIDTH_Tracker *av)
 {
   struct GNUNET_BANDWIDTH_Value32NBO bps;
   uint64_t avail;
@@ -321,8 +324,7 @@ GNUNET_BANDWIDTH_tracker_get_available (struct GNUNET_BANDWIDTH_Tracker * av)
  */
 void
 GNUNET_BANDWIDTH_tracker_update_quota (struct GNUNET_BANDWIDTH_Tracker *av,
-                                       struct GNUNET_BANDWIDTH_Value32NBO
-                                       bytes_per_second_limit)
+                                       struct GNUNET_BANDWIDTH_Value32NBO bytes_per_second_limit)
 {
   uint32_t old_limit;
   uint32_t new_limit;
