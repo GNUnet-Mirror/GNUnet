@@ -481,15 +481,40 @@ GMT_2s (const struct MeshTunnel3 *t);
 void
 GMT_debug (const struct MeshTunnel3 *t);
 
+/**
+ * Iterate all tunnels.
+ *
+ * @param iter Iterator.
+ * @param cls Closure for @c iter.
+ */
 void
-GMT_iterate_all (void *cls, GNUNET_CONTAINER_PeerMapIterator iter);
+GMT_iterate_all (GNUNET_CONTAINER_PeerMapIterator iter, void *cls);
 
+/**
+ * Count all tunnels.
+ *
+ * @return Number of tunnels to remote peers kept by this peer.
+ */
 unsigned int
 GMT_count_all (void);
 
+/**
+ * Iterate all connections of a tunnel.
+ *
+ * @param t Tunnel whose connections to iterate.
+ * @param iter Iterator.
+ * @param cls Closure for @c iter.
+ */
 void
 GMT_iterate_connections (struct MeshTunnel3 *t, GMT_conn_iter iter, void *cls);
 
+/**
+ * Iterate all channels of a tunnel.
+ *
+ * @param t Tunnel whose channels to iterate.
+ * @param iter Iterator.
+ * @param cls Closure for @c iter.
+ */
 void
 GMT_iterate_channels (struct MeshTunnel3 *t, GMT_chan_iter iter, void *cls);
 

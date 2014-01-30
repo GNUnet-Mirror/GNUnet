@@ -589,7 +589,7 @@ handle_ack (void *cls, struct GNUNET_SERVER_Client *client,
  * @return #GNUNET_YES, to keep iterating.
  */
 static int
-monitor_all_tunnels_iterator (void *cls,
+get_all_tunnels_iterator (void *cls,
                               const struct GNUNET_PeerIdentity * peer,
                               void *value)
 {
@@ -640,7 +640,7 @@ handle_get_tunnels (void *cls, struct GNUNET_SERVER_Client *client,
        "Received get tunnels request from client %u (%p)\n",
        c->id, client);
 
-  GMT_iterate_all (client, monitor_all_tunnels_iterator);
+  GMT_iterate_all (get_all_tunnels_iterator, client);
   reply.size = htons (sizeof (reply));
   reply.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNELS);
   GNUNET_SERVER_notification_context_unicast (nc, client, &reply, GNUNET_NO);
