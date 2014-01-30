@@ -419,6 +419,23 @@ neighbour_find (struct GNUNET_TRANSPORT_Handle *h,
 }
 
 
+
+static void
+outbound_bw_tracker_update (void *cls)
+{
+  struct Neighbour *n = cls;
+  struct GNUNET_TIME_Relative delay;
+  if (NULL == n->hn)
+    return;
+
+  delay = GNUNET_BANDWIDTH_tracker_get_delay (&n->out_tracker,
+      n->th->notify_size + n->traffic_overhead);
+  GNUNET_CONTAINER_heap_update_cost (n->h->ready_heap,
+      n->hn, delay.rel_value_us);
+  schedule_transmission (n->h);
+}
+
+
 /**
  * Add neighbour to our list
  *
@@ -439,6 +456,7 @@ neighbour_add (struct GNUNET_TRANSPORT_Handle *h,
   n->is_ready = GNUNET_YES;
   n->traffic_overhead = 0;
   GNUNET_BANDWIDTH_tracker_init (&n->out_tracker,
+                                 outbound_bw_tracker_update, n,
                                  GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT,
                                  MAX_BANDWIDTH_CARRY_S);
   GNUNET_assert (GNUNET_OK ==

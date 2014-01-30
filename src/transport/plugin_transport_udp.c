@@ -3007,7 +3007,7 @@ libgnunet_plugin_transport_udp_init (void *cls)
   p->defrag_ctxs = GNUNET_CONTAINER_heap_create (
       GNUNET_CONTAINER_HEAP_ORDER_MIN);
   p->mst = GNUNET_SERVER_mst_create (&process_inbound_tokenized_messages, p);
-  GNUNET_BANDWIDTH_tracker_init (&p->tracker,
+  GNUNET_BANDWIDTH_tracker_init (&p->tracker, NULL, NULL,
       GNUNET_BANDWIDTH_value_init ((uint32_t) udp_max_bps), 30);
   plugin = p;
 

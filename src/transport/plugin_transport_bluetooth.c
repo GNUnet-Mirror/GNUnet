@@ -1943,7 +1943,7 @@ libgnunet_plugin_transport_bluetooth_init (void *cls)
                          0, GNUNET_NO);
   GNUNET_STATISTICS_set (plugin->env->stats, _("# Bluetooth MAC endpoints allocated"),
                          0, 0);
-  GNUNET_BANDWIDTH_tracker_init (&plugin->tracker,
+  GNUNET_BANDWIDTH_tracker_init (&plugin->tracker, NULL, NULL,
                                  GNUNET_BANDWIDTH_value_init (100 * 1024 *
                                                               1024 / 8), 100);
   plugin->fragment_data_tokenizer = GNUNET_SERVER_mst_create (&process_data, plugin);

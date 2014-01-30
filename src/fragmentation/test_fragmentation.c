@@ -241,7 +241,7 @@ main (int argc, char *argv[])
                     "WARNING",
                     NULL);
   for (i = 0; i < NUM_MSGS; i++)
-    GNUNET_BANDWIDTH_tracker_init (&trackers[i],
+    GNUNET_BANDWIDTH_tracker_init (&trackers[i], NULL, NULL,
                                    GNUNET_BANDWIDTH_value_init ((i + 1) * 1024),
                                    100);
   GNUNET_PROGRAM_run (5, argv_prog, "test-fragmentation", "nohelp", options,

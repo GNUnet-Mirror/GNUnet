@@ -1689,6 +1689,15 @@ send_session_connect_ack_message (const struct GNUNET_HELLO_Address *address,
 
 }
 
+static void
+inbound_bw_tracker_update (void *cls)
+{
+  struct Neighbour *n = cls;
+
+  /* Quota was updated, tell plugins to update the time to receive next */
+
+}
+
 
 /**
  * Create a fresh entry in the neighbour map for the given peer
@@ -1712,7 +1721,7 @@ setup_neighbour (const struct GNUNET_PeerIdentity *peer)
   n->util_payload_bytes_sent = 0;
   n->util_total_bytes_recv = 0;
   n->util_total_bytes_sent = 0;
-  GNUNET_BANDWIDTH_tracker_init (&n->in_tracker,
+  GNUNET_BANDWIDTH_tracker_init (&n->in_tracker, &inbound_bw_tracker_update, n,
                                  GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT,
                                  MAX_BANDWIDTH_CARRY_S);
   n->task = GNUNET_SCHEDULER_add_now (&master_task, n);
@@ -2535,6 +2544,7 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
 				  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out)
 {
   struct NeighbourMapEntry *n;
+  struct GST_BlacklistCheck *blc;
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
   struct BlacklistCheckSwitchContext *blc_ctx;
   int c;
@@ -2601,8 +2611,11 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
   }
 
   GNUNET_CONTAINER_DLL_insert (pending_bc_head, pending_bc_tail, blc_ctx);
-  blc_ctx->blc = GST_blacklist_test_allowed (peer, address->transport_name,
-      &switch_address_bl_check_cont, blc_ctx);
+  if (NULL != (blc = GST_blacklist_test_allowed (peer, address->transport_name,
+      &switch_address_bl_check_cont, blc_ctx)))
+  {
+    blc_ctx->blc = blc;
+  }
 }
 
 
@@ -3337,7 +3350,6 @@ GST_neighbours_test_connected (const struct GNUNET_PeerIdentity *target)
 {
   return test_connected (lookup_neighbour (target));
 }
-
 
 /**
  * Change the incoming quota for the given peer.

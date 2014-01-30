@@ -120,6 +120,7 @@ GNUNET_BANDWIDTH_value_get_delay_for (struct GNUNET_BANDWIDTH_Value32NBO bps,
 }
 
 
+
 /**
  * Initialize bandwidth tracker.  Note that in addition to the
  * 'max_carry_s' limit, we also always allow at least
@@ -130,15 +131,21 @@ GNUNET_BANDWIDTH_value_get_delay_for (struct GNUNET_BANDWIDTH_Value32NBO bps,
  * bytes).
  *
  * @param av tracker to initialize
+ * @param update_cb callback to notify a client about the tracker being updated
+ * @param update_cb_cls cls for the callback
  * @param bytes_per_second_limit initial limit to assume
  * @param max_carry_s maximum number of seconds unused bandwidth
  *        may accumulate before it expires
  */
 void
 GNUNET_BANDWIDTH_tracker_init (struct GNUNET_BANDWIDTH_Tracker *av,
+                               GNUNET_BANDWIDTH_tracker_update_cb update_cb,
+                               void *update_cb_cls,
                                struct GNUNET_BANDWIDTH_Value32NBO
                                bytes_per_second_limit, uint32_t max_carry_s)
 {
+  av->update_cb = update_cb;
+  av->update_cb_cls = update_cb_cls;
   av->consumption_since_last_update__ = 0;
   av->last_update__ = GNUNET_TIME_absolute_get ();
   av->available_bytes_per_s__ = ntohl (bytes_per_second_limit.value__);
@@ -327,6 +334,8 @@ GNUNET_BANDWIDTH_tracker_update_quota (struct GNUNET_BANDWIDTH_Tracker *av,
   update_tracker (av);
   old_limit = av->available_bytes_per_s__;
   av->available_bytes_per_s__ = new_limit;
+  if (NULL != av->update_cb)
+    av->update_cb (av->update_cb_cls);
   if (old_limit > new_limit)
     update_tracker (av);        /* maximum excess might be less now */
 }

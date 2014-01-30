@@ -52,6 +52,17 @@ struct GNUNET_BANDWIDTH_Value32NBO
 };
 GNUNET_NETWORK_STRUCT_END
 
+
+/**
+ * Callback to be called by the bandwidth tracker if the tracker
+ * was updated and the client should update it's delay values
+ *
+ * @param cls a closure to pass
+ */
+void
+typedef (*GNUNET_BANDWIDTH_tracker_update_cb) (void *cls);
+
+
 /**
  * Struct to track available bandwidth.  Combines a time stamp with a
  * number of bytes transmitted, a quota and a maximum amount that
@@ -61,6 +72,10 @@ GNUNET_NETWORK_STRUCT_END
  */
 struct GNUNET_BANDWIDTH_Tracker
 {
+  void *update_cb_cls;
+
+  GNUNET_BANDWIDTH_tracker_update_cb update_cb;
+
   /**
    * Number of bytes consumed since we last updated the tracker.
    */
@@ -129,7 +144,6 @@ GNUNET_BANDWIDTH_value_get_delay_for (struct GNUNET_BANDWIDTH_Value32NBO bps,
                                       uint64_t size);
 
 
-
 /**
  * Compute the MIN of two bandwidth values.
  *
@@ -152,14 +166,19 @@ GNUNET_BANDWIDTH_value_min (struct GNUNET_BANDWIDTH_Value32NBO b1,
  * bytes).
  *
  * @param av tracker to initialize
+ * @param update_cb callback to notify a client about the tracker being updated
+ * @param update_cb_cls cls for the callback
  * @param bytes_per_second_limit initial limit to assume
  * @param max_carry_s maximum number of seconds unused bandwidth
  *        may accumulate before it expires
  */
 void
 GNUNET_BANDWIDTH_tracker_init (struct GNUNET_BANDWIDTH_Tracker *av,
+                               GNUNET_BANDWIDTH_tracker_update_cb update_cb,
+                               void *update_cb_cls,
                                struct GNUNET_BANDWIDTH_Value32NBO
-                               bytes_per_second_limit, uint32_t max_carry_s);
+                               bytes_per_second_limit,
+                               uint32_t max_carry_s);
 
 
 /**

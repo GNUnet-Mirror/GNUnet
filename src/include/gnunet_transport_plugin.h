@@ -576,6 +576,13 @@ struct GNUNET_TRANSPORT_PluginFunctions
   GNUNET_TRANSPORT_UpdateSessionTimeout update_session_timeout;
 
   /**
+   * Function that will be called whenever the transport service wants to
+   * notify the plugin that the inbound quota changed and that the plugin
+   * should update it's delay for the next receive value
+   */
+  //GNUNET_TRANSPORT_UpdateNextReceiveTimeout update_next_receive_timeout;
+
+  /**
    * Function that is used to query keepalive factor.
    * GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT is divided by this number to
    * calculate the interval between keepalive packets.
