@@ -1033,8 +1033,43 @@ process_ack (struct GNUNET_MESH_Handle *h,
 
 
 
+/**
+ * Process a local reply about info on all tunnels, pass info to the user.
+ *
+ * @param h Mesh handle.
+ * @param message Message itself.
+ */
+static void
+process_get_peers (struct GNUNET_MESH_Handle *h,
+                     const struct GNUNET_MessageHeader *message)
+{
+  struct GNUNET_MESH_LocalInfoPeer *msg;
+  uint16_t size;
 
-/*
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Get Peer messasge received\n");
+
+  if (NULL == h->peers_cb)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  ignored\n");
+    return;
+  }
+
+  size = ntohs (message->size);
+  if (sizeof (struct GNUNET_MESH_LocalInfoPeer) > size)
+  {
+    h->peers_cb (h->peers_cls, NULL, -1, 0, 0);
+    h->peers_cb = NULL;
+    h->peers_cls = NULL;
+    return;
+  }
+
+  msg = (struct GNUNET_MESH_LocalInfoPeer *) message;
+  h->peers_cb (h->peers_cls, &msg->destination,
+               (int) ntohs (msg->tunnel), ntohs (msg->paths), 0);
+}
+
+
+/**
  * Process a local reply about info on all tunnels, pass info to the user.
  *
  * @param h Mesh handle.
@@ -1076,8 +1111,8 @@ process_get_tunnels (struct GNUNET_MESH_Handle *h,
 
 
 
-/*
- * Process a local monitor_channel reply, pass info to the user.
+/**
+ * Process a local tunnel info reply, pass info to the user.
  *
  * @param h Mesh handle.
  * @param message Message itself.
@@ -1185,6 +1220,9 @@ msg_received (void *cls, const struct GNUNET_MessageHeader *msg)
 //   case GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_CHANNEL:
 //     process_show_channel (h, msg);
 //     break;
+  case GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_PEERS:
+    process_get_peers (h, msg);
+    break;
   case GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNELS:
     process_get_tunnels (h, msg);
     break;
@@ -1473,6 +1511,8 @@ GNUNET_MESH_disconnect (struct GNUNET_MESH_Handle *handle)
       case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_DESTROY:
       case GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_CHANNELS:
       case GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_CHANNEL:
+      case GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_PEER:
+      case GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_PEERS:
       case GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNEL:
       case GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNELS:
         break;
