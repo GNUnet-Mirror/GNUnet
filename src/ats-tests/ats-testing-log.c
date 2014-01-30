@@ -668,10 +668,7 @@ collect_log_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 void
 GNUNET_ATS_TEST_logging_stop (struct LoggingHandle *l)
 {
-  int c_m;
   struct GNUNET_SCHEDULER_TaskContext tc;
-  struct PeerLoggingTimestep *cur;
-
   if (GNUNET_YES!= l->running)
     return;
 
@@ -680,10 +677,25 @@ GNUNET_ATS_TEST_logging_stop (struct LoggingHandle *l)
   l->log_task = GNUNET_SCHEDULER_NO_TASK;
   tc.reason = GNUNET_SCHEDULER_REASON_SHUTDOWN;
   collect_log_task (l, &tc);
+  l->running = GNUNET_NO;
 
   GNUNET_log(GNUNET_ERROR_TYPE_INFO,
       _("Stop logging\n"));
+}
 
+/**
+ * Clean up logging data
+ *
+ * @param l the logging handle
+ */
+void
+GNUNET_ATS_TEST_logging_clean_up (struct LoggingHandle *l)
+{
+  int c_m;
+  struct PeerLoggingTimestep *cur;
+
+  if (GNUNET_YES == l->running)
+    GNUNET_ATS_TEST_logging_stop (l);
 
   for (c_m = 0; c_m < l->num_peers; c_m++)
   {

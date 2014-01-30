@@ -567,6 +567,14 @@ GNUNET_ATS_TEST_logging_start (struct GNUNET_TIME_Relative log_frequency,
  * @param l the logging handle
  */
 void
+GNUNET_ATS_TEST_logging_clean_up (struct LoggingHandle *l);
+
+/**
+ * Stop logging
+ *
+ * @param l the logging handle
+ */
+void
 GNUNET_ATS_TEST_logging_stop (struct LoggingHandle *l);
 
 /**

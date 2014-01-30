@@ -37,6 +37,16 @@
 static struct BenchmarkPeer *masters_p;
 static struct BenchmarkPeer *slaves_p;
 
+/**
+ * cmd option -e: experiment file
+ */
+static char *opt_exp_file;
+
+/**
+ * cmd option -l: enable logging
+ */
+static int opt_log;
+
 GNUNET_SCHEDULER_TaskIdentifier timeout_task;
 
 struct Experiment *e;
@@ -151,11 +161,14 @@ experiment_done_cb (struct Experiment *e, struct GNUNET_TIME_Relative duration,i
   /* Stop logging */
   GNUNET_ATS_TEST_logging_stop (l);
   evaluate (duration);
+  if (opt_log)
+    GNUNET_ATS_TEST_logging_write_to_file(l, opt_exp_file);
 
   /* Stop traffic generation */
   GNUNET_ATS_TEST_generate_traffic_stop_all();
   /* Clean up experiment */
   GNUNET_ATS_TEST_experimentation_stop (e);
+  GNUNET_ATS_TEST_logging_clean_up (l);
   e = NULL;
 
   /* Shutdown topology */
@@ -179,8 +192,10 @@ static void topology_setup_done (void *cls,
   masters_p = masters;
   slaves_p = slaves;
 
-  l = GNUNET_ATS_TEST_logging_start (GNUNET_TIME_UNIT_SECONDS, e->name,
-      masters_p, e->num_masters);
+  l = GNUNET_ATS_TEST_logging_start (GNUNET_TIME_UNIT_SECONDS,
+      e->name,
+      masters_p,
+      e->num_masters);
   GNUNET_ATS_TEST_experimentation_run (e, &episode_done_cb, &experiment_done_cb);
 
   for (c_m = 0; c_m < e->num_masters; c_m++)
@@ -198,9 +213,6 @@ static void topology_setup_done (void *cls,
   timeout_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_add (GNUNET_TIME_UNIT_MINUTES,
       e->max_duration), &do_shutdown, NULL);
 }
-
-static char *opt_exp_file;
-static int opt_log;
 
 static void
 parse_args (int argc, char *argv[])
@@ -236,7 +248,6 @@ main (int argc, char *argv[])
 
   fprintf (stderr, "Loading experiment `%s' \n", opt_exp_file );
   e = GNUNET_ATS_TEST_experimentation_load (opt_exp_file);
-  GNUNET_free (opt_exp_file);
   if (NULL == e)
   {
     fprintf (stderr, "Invalid experiment\n");
@@ -257,6 +268,7 @@ main (int argc, char *argv[])
       NULL,
       &transport_recv_cb,
       &log_request__cb);
+  GNUNET_free (opt_exp_file);
   return 0;
 }
 /* end of file gnunet-ats-sim.c */

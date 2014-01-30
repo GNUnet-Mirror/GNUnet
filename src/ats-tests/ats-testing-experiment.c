@@ -259,6 +259,12 @@ timeout_experiment (void *cls, const struct GNUNET_SCHEDULER_TaskContext* tc)
   e->experiment_timeout_task = GNUNET_SCHEDULER_NO_TASK;
   fprintf (stderr, "Experiment timeout!\n");
 
+  if (GNUNET_SCHEDULER_NO_TASK != e->episode_timeout_task)
+  {
+    e->episode_timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    GNUNET_SCHEDULER_cancel (e->episode_timeout_task);
+  }
+
   e->e_done_cb (e, GNUNET_TIME_absolute_get_duration(e->start_time),
       GNUNET_SYSERR);
 }
@@ -319,7 +325,8 @@ timeout_episode (void *cls, const struct GNUNET_SCHEDULER_TaskContext* tc)
 {
   struct Experiment *e = cls;
   e->episode_timeout_task = GNUNET_SCHEDULER_NO_TASK;
-  e->ep_done_cb (e->cur);
+  if (NULL != e->ep_done_cb)
+    e->ep_done_cb (e->cur);
 
   /* Scheduling next */
   e->cur = e->cur->next;

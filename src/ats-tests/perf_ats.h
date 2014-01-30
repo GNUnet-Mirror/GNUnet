@@ -251,7 +251,7 @@ void
 GNUNET_ATS_TEST_logging_now (void);
 
 void
-GNUNET_ATS_TEST_logging_stop ();
+GNUNET_ATS_TEST_logging_clean_up ();
 
 void
 GNUNET_ATS_TEST_logging_start (struct GNUNET_TIME_Relative log_frequency,

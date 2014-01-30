@@ -192,7 +192,7 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
 
   if (GNUNET_YES == logging)
-    GNUNET_ATS_TEST_logging_stop(l);
+    GNUNET_ATS_TEST_logging_clean_up(l);
 
   shutdown_task = GNUNET_SCHEDULER_NO_TASK;
   if (GNUNET_SCHEDULER_NO_TASK != progress_task)
