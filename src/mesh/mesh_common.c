@@ -206,8 +206,33 @@ GM_m2s (uint16_t m)
 
       /**
        * Local monitoring of service.
-      */
+       */
     case 293: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNEL";
+
+      /**
+       * Local information about all connections of service.
+       */
+    case 294: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_CONNECTIONS";
+
+      /**
+       * Local information of service about a specific connection.
+       */
+    case 295: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_CONNECTION";
+
+      /**
+       * Local information about all peers known to the service.
+       */
+      case 296: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_PEERS";
+
+      /**
+       * Local information of service about a specific peer.
+       */
+    case 297: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_PEER";
+
+      /**
+       * Traffic (net-cat style) used by the Command Line Interface.
+       */
+    case 298: return "GNUNET_MESSAGE_TYPE_MESH_CLI";
 
       /**
        * 640kb should be enough for everybody
