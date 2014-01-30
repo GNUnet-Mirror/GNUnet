@@ -742,6 +742,7 @@ handle_show_tunnel (void *cls, struct GNUNET_SERVER_Client *client,
   GMT_iterate_connections (t, &iter_connection, resp);
   GMT_iterate_channels (t, &iter_channel, resp);
   /* Do not interleave with iterators, iter_channel needs conn in HBO */
+  resp->destination = msg->peer;
   resp->connections = htonl (resp->connections);
   resp->channels = htonl (resp->channels);
   resp->cstate = htons (GMT_get_cstate (t));
