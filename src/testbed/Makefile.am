@@ -417,6 +417,7 @@ test_testbed_underlay_LDADD = \
 
 EXTRA_DIST = \
   test_testbed_api.conf \
+  test_testbed_api_statistics.conf \
   test_testbed_api_test_timeout.conf \
   test_testbed_api_template.conf \
   test_testbed_logger_api.conf \
