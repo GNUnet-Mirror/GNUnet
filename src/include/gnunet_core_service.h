@@ -53,24 +53,25 @@ enum GNUNET_CORE_Priority
 {
 
   /**
-   * Highest priority, control traffic (i.e. NSE, Core/Mesh KX).
+   * Lowest priority, i.e. background traffic (i.e. fs)
    */
-  GNUNET_CORE_PRIO_CRITICAL_CONTROL = 0,
-
-  /**
-   * Urgent traffic (local peer, i.e. conversation).
-   */
-  GNUNET_CORE_PRIO_URGENT = 1,
+  GNUNET_CORE_PRIO_BACKGROUND = 0,
 
   /**
    * Normal traffic (i.e. mesh/dv relay, DHT)
    */
-  GNUNET_CORE_PRIO_BEST_EFFORT = 2,
+  GNUNET_CORE_PRIO_BEST_EFFORT = 1,
 
   /**
-   * Background traffic (i.e. fs)
+   * Urgent traffic (local peer, i.e. conversation).
    */
-  GNUNET_CORE_PRIO_BACKGROUND = 3
+  GNUNET_CORE_PRIO_URGENT = 2,
+
+  /**
+   * Highest priority, control traffic (i.e. NSE, Core/Mesh KX).
+   */
+  GNUNET_CORE_PRIO_CRITICAL_CONTROL = 3
+
 
 };
 
@@ -250,7 +251,7 @@ struct GNUNET_CORE_TransmitHandle;
  * @param handle connection to core service
  * @param cork is corking allowed for this transmission?
  * @param priority how important is the message?
- * @param maxdelay how long can the message wait?
+ * @param maxdelay how long can the message wait? Only effective if @a cork is #GNUNET_YES
  * @param target who should receive the message, never NULL (can be this peer's identity for loopback)
  * @param notify_size how many bytes of buffer space does notify want?
  * @param notify function to call when buffer space is available;

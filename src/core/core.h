@@ -286,7 +286,7 @@ struct SendMessage
   /**
    * Always 0.
    */
-  uint64_t reserved GNUNET_PACKED;
+  uint32_t reserved GNUNET_PACKED;
 
 };
 

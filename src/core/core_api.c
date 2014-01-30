@@ -700,7 +700,8 @@ transmit_message (void *cls, size_t size, void *buf)
  * @param ignore_currently_down transmit message even if not initialized?
  */
 static void
-trigger_next_request (struct GNUNET_CORE_Handle *h, int ignore_currently_down)
+trigger_next_request (struct GNUNET_CORE_Handle *h,
+                      int ignore_currently_down)
 {
   uint16_t msize;
 
@@ -742,7 +743,8 @@ trigger_next_request (struct GNUNET_CORE_Handle *h, int ignore_currently_down)
  * @param msg the message received from the core service
  */
 static void
-main_notify_handler (void *cls, const struct GNUNET_MessageHeader *msg)
+main_notify_handler (void *cls,
+                     const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_CORE_Handle *h = cls;
   const struct InitReplyMessage *m;
@@ -1265,7 +1267,7 @@ run_request_next_transmission (void *cls,
  * @param handle connection to core service
  * @param cork is corking allowed for this transmission?
  * @param priority how important is the message?
- * @param maxdelay how long can the message wait?
+ * @param maxdelay how long can the message wait? Only effective if @a cork is #GNUNET_YES
  * @param target who should receive the message, never NULL (can be this peer's identity for loopback)
  * @param notify_size how many bytes of buffer space does @a notify want?
  * @param notify function to call when buffer space is available;
@@ -1278,7 +1280,8 @@ run_request_next_transmission (void *cls,
  *         if NULL is returned, @a notify will NOT be called.
  */
 struct GNUNET_CORE_TransmitHandle *
-GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle, int cork,
+GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle,
+                                   int cork,
                                    enum GNUNET_CORE_Priority priority,
                                    struct GNUNET_TIME_Relative maxdelay,
                                    const struct GNUNET_PeerIdentity *target,

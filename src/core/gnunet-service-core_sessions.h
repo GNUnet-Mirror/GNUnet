@@ -92,10 +92,13 @@ GSC_SESSIONS_dequeue_request (struct GSC_ClientActiveRequest *car);
  *            ownership does not change (dequeue will be called soon).
  * @param msg message to transmit
  * @param cork is corking allowed?
+ * @param priority how important is this message
  */
 void
 GSC_SESSIONS_transmit (struct GSC_ClientActiveRequest *car,
-                       const struct GNUNET_MessageHeader *msg, int cork);
+                       const struct GNUNET_MessageHeader *msg,
+                       int cork,
+                       enum GNUNET_CORE_Priority priority);
 
 
 /**

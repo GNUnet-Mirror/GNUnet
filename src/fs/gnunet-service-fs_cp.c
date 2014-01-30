@@ -268,7 +268,7 @@ struct GSF_ConnectedPeer
 
   /**
    * Set to 1 if we're currently in the process of calling
-   * #GNUNET_CORE_notify_transmit_ready() (so while cth is
+   * #GNUNET_CORE_notify_transmit_ready() (so while @e cth is
    * NULL, we should not call notify_transmit_ready for this
    * handle right now).
    */

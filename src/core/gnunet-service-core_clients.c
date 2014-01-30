@@ -419,6 +419,11 @@ struct TokenizerContext
   struct GSC_ClientActiveRequest *car;
 
   /**
+   * How important is this message.
+   */
+  enum GNUNET_CORE_Priority priority;
+
+  /**
    * Is corking allowed (set only once we have the real message).
    */
   int cork;
@@ -454,7 +459,7 @@ handle_client_send (void *cls, struct GNUNET_SERVER_Client *client,
   msize -= sizeof (struct SendMessage);
   GNUNET_break (0 == ntohl (sm->reserved));
   c = find_client (client);
-  if (c == NULL)
+  if (NULL == c)
   {
     /* client did not send INIT first! */
     GNUNET_break (0);
@@ -482,10 +487,13 @@ handle_client_send (void *cls, struct GNUNET_SERVER_Client *client,
                                                        &sm->peer,
                                                        tc.car));
   tc.cork = ntohl (sm->cork);
+  tc.priority = (enum GNUNET_CORE_Priority) ntohl (sm->priority);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Client asked for transmission of %u bytes to `%s' %s\n", msize,
+              "Client asked for transmission of %u bytes to `%s' %s\n",
+              msize,
               GNUNET_i2s (&sm->peer), tc.cork ? "now" : "");
-  GNUNET_SERVER_mst_receive (client_mst, &tc, (const char *) &sm[1], msize,
+  GNUNET_SERVER_mst_receive (client_mst, &tc,
+                             (const char *) &sm[1], msize,
                              GNUNET_YES, GNUNET_NO);
   if (0 !=
       memcmp (&tc.car->target, &GSC_my_identity,
@@ -541,7 +549,8 @@ client_tokenizer_callback (void *cls, void *client,
   else
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Delivering message of type %u to %s\n", ntohs (message->type),
+                "Delivering message of type %u to %s\n",
+                ntohs (message->type),
                 GNUNET_i2s (&car->target));
     GSC_CLIENTS_deliver_message (&car->target, message,
 				 ntohs (message->size),
@@ -549,7 +558,10 @@ client_tokenizer_callback (void *cls, void *client,
     GSC_CLIENTS_deliver_message (&car->target, message,
 				 sizeof (struct GNUNET_MessageHeader),
 				 GNUNET_CORE_OPTION_SEND_HDR_OUTBOUND);
-    GSC_SESSIONS_transmit (car, message, tc->cork);
+    GSC_SESSIONS_transmit (car,
+                           message,
+                           tc->cork,
+                           tc->priority);
   }
   return GNUNET_OK;
 }
