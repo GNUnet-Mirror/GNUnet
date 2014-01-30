@@ -52,6 +52,7 @@ gnunet-identity -e short-zone -s gns-short $options
 gnunet-identity -e master-zone -s gns-master $options
 gnunet-identity -e master-zone -s namestore $options
 gnunet-identity -e master-zone -s gns-proxy $options
+gnunet-identity -e master-zone -s phone-ego $options
 gnunet-identity -e private-zone -s gns-private $options
 gnunet-identity -e sks-zone -s fs-sks $options
 
