@@ -199,7 +199,9 @@ check_rootserver_name (void *cls, const char *hostname)
   else
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Received invalid rootserver hostname `%s'.\n", hostname);
+                "Received invalid rootserver hostname `%s', expected `%s'\n",
+                hostname,
+                ROOTSERVER_NAME);
     GNUNET_break (0);
   }
 }
@@ -292,11 +294,11 @@ run (void *cls, char *const *args, const char *cfgfile,
 
   rootserver =
       gethostbyaddr (&rootserver_addr, sizeof (rootserver_addr), AF_INET);
-  if (rootserver == NULL)
+  if (NULL == rootserver)
   {
     /* Error: resolving IP addresses does not work */
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("gethostbyaddr() could not lookup hostname: %s\n"),
+                "gethostbyaddr() could not lookup hostname: %s\n",
                 hstrerror (h_errno));
     GNUNET_break (0);
   }

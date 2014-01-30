@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2006 Christian Grothoff (and other contributing authors)
+     (C) 2006-2014 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -65,7 +65,7 @@ get_path_from_proc_maps ()
   while (NULL != fgets (line, sizeof (line), f))
   {
     if ((1 ==
-         SSCANF (line, "%*x-%*x %*c%*c%*c%*c %*x %*2u:%*2u %*u%*[ ]%1023s", dir)) &&
+         SSCANF (line, "%*x-%*x %*c%*c%*c%*c %*x %*2x:%*2x %*u%*[ ]%1023s", dir)) &&
         (NULL != (lgu = strstr (dir, "libgnunetutil"))))
     {
       lgu[0] = '\0';
@@ -101,7 +101,7 @@ get_path_from_proc_exe ()
   lnk[size] = '\0';
   while ((lnk[size] != '/') && (size > 0))
     size--;
-  /* test for being in lib/gnunet/libexec/ */
+  /* test for being in lib/gnunet/libexec/ or lib/MULTIARCH/gnunet/libexec */
   if ( (size > strlen ("/gnunet/libexec/")) &&
        (0 == strcmp ("/gnunet/libexec/",
 		     &lnk[size - strlen ("/gnunet/libexec/")])) )
@@ -465,6 +465,8 @@ GNUNET_OS_installation_get_path (enum GNUNET_OS_InstallationPathKind dirkind)
   const char *dirname;
   char *execpath = NULL;
   char *tmp;
+  char *multiarch;
+  char *libdir;
   int isbasedir;
 
   /* if wanted, try to get the current app's bin/ */
@@ -513,6 +515,17 @@ GNUNET_OS_installation_get_path (enum GNUNET_OS_InstallationPathKind dirkind)
     execpath[n - 4] = '\0';
     n -= 4;
   }
+  multiarch = NULL;
+  if (NULL != (libdir = strstr (execpath, "/lib/")))
+  {
+    /* test for multi-arch path of the form "PREFIX/lib/MULTIARCH/";
+       here we need to re-add 'multiarch' to lib and libexec paths later! */
+    multiarch = &libdir[5];
+    if (NULL == strchr (multiarch, '/'))
+      libdir[0] = '\0'; /* Debian multiarch format, cut of from 'execpath' but preserve in multicarch */
+    else
+      multiarch = NULL; /* maybe not, multiarch still has a '/', which is not OK */
+  }
   /* in case this was a directory named foo-bin, remove "foo-" */
   while ((n > 1) && (execpath[n - 1] == DIR_SEPARATOR))
     execpath[--n] = '\0';
@@ -530,29 +543,48 @@ GNUNET_OS_installation_get_path (enum GNUNET_OS_InstallationPathKind dirkind)
     {
       dirname =
           DIR_SEPARATOR_STR "lib" DIR_SEPARATOR_STR "gnunet" DIR_SEPARATOR_STR;
-      tmp = GNUNET_malloc (strlen (execpath) + strlen (dirname) + 1);
-      sprintf (tmp, "%s%s", execpath, dirname);
-      if ( (GNUNET_YES !=
-	    GNUNET_DISK_directory_test (tmp, GNUNET_YES)) &&
-	   (4 == sizeof (void *)) )
+      GNUNET_asprintf (&tmp,
+                       "%s%s%s",
+                       execpath,
+                       dirname,
+                       (NULL != multiarch) ? multiarch : "");
+      if (GNUNET_YES ==
+          GNUNET_DISK_directory_test (tmp, GNUNET_YES))
       {
-	GNUNET_free (tmp);
+        GNUNET_free (execpath);
+        return tmp;
+      }
+      GNUNET_free (tmp);
+      tmp = NULL;
+      if (4 == sizeof (void *))
+      {
 	dirname =
 	  DIR_SEPARATOR_STR "lib32" DIR_SEPARATOR_STR "gnunet" DIR_SEPARATOR_STR;
-	tmp = GNUNET_malloc (strlen (execpath) + strlen (dirname) + 1);
-	sprintf (tmp, "%s%s", execpath, dirname);
+	GNUNET_asprintf (&tmp,
+                         "%s%s",
+                         execpath,
+                         dirname);
       }
-      if ( (GNUNET_YES !=
-	    GNUNET_DISK_directory_test (tmp, GNUNET_YES)) &&
-	   (8 == sizeof (void *)) )
+      if (8 == sizeof (void *))
       {
 	dirname =
 	  DIR_SEPARATOR_STR "lib64" DIR_SEPARATOR_STR "gnunet" DIR_SEPARATOR_STR;
+	GNUNET_asprintf (&tmp,
+                         "%s%s",
+                         execpath,
+                         dirname);
+      }
+
+      if ( (NULL != tmp) &&
+           (GNUNET_YES ==
+            GNUNET_DISK_directory_test (tmp, GNUNET_YES)) )
+      {
+        GNUNET_free (execpath);
+        return tmp;
       }
       GNUNET_free (tmp);
     }
-    else
-      dirname = DIR_SEPARATOR_STR "gnunet" DIR_SEPARATOR_STR;
+    dirname = DIR_SEPARATOR_STR "gnunet" DIR_SEPARATOR_STR;
     break;
   case GNUNET_OS_IPK_DATADIR:
     dirname =
@@ -575,42 +607,63 @@ GNUNET_OS_installation_get_path (enum GNUNET_OS_InstallationPathKind dirkind)
     if (isbasedir)
     {
       dirname =
-        DIR_SEPARATOR_STR "lib" DIR_SEPARATOR_STR "gnunet" DIR_SEPARATOR_STR \
-        "libexec" DIR_SEPARATOR_STR;
-      tmp = GNUNET_malloc (strlen (execpath) + strlen (dirname) + 1);
-      sprintf (tmp, "%s%s", execpath, dirname);
-      if ( (GNUNET_YES !=
-	    GNUNET_DISK_directory_test (tmp, GNUNET_YES)) &&
-	   (4 == sizeof (void *)) )
+        DIR_SEPARATOR_STR "gnunet" DIR_SEPARATOR_STR "libexec" DIR_SEPARATOR_STR;
+      GNUNET_asprintf (&tmp,
+                       "%s%s%s%s",
+                       execpath,
+                       DIR_SEPARATOR_STR "lib" DIR_SEPARATOR_STR,
+                       (NULL != multiarch) ? multiarch : "",
+                       dirname);
+      if (GNUNET_YES ==
+          GNUNET_DISK_directory_test (tmp, GNUNET_YES))
       {
-	GNUNET_free (tmp);
+        GNUNET_free (execpath);
+        return tmp;
+      }
+      GNUNET_free (tmp);
+      tmp = NULL;
+      if (4 == sizeof (void *))
+      {
 	dirname =
 	  DIR_SEPARATOR_STR "lib32" DIR_SEPARATOR_STR "gnunet" DIR_SEPARATOR_STR \
 	  "libexec" DIR_SEPARATOR_STR;
-	tmp = GNUNET_malloc (strlen (execpath) + strlen (dirname) + 1);
-	sprintf (tmp, "%s%s", execpath, dirname);
+	GNUNET_asprintf (&tmp,
+                         "%s%s",
+                         execpath,
+                         dirname);
       }
-      if ( (GNUNET_YES !=
-	    GNUNET_DISK_directory_test (tmp, GNUNET_YES)) &&
-	   (8 == sizeof (void *)) )
+      if (8 == sizeof (void *))
       {
 	dirname =
 	  DIR_SEPARATOR_STR "lib64" DIR_SEPARATOR_STR "gnunet" DIR_SEPARATOR_STR \
 	  "libexec" DIR_SEPARATOR_STR;
+	GNUNET_asprintf (&tmp,
+                         "%s%s",
+                         execpath,
+                         dirname);
       }
+      if ( (NULL != tmp) &&
+           (GNUNET_YES ==
+            GNUNET_DISK_directory_test (tmp, GNUNET_YES)) )
+      {
+        GNUNET_free (execpath);
+        return tmp;
+      }
+
       GNUNET_free (tmp);
     }
-    else
-      dirname =
-        DIR_SEPARATOR_STR "gnunet" DIR_SEPARATOR_STR \
-        "libexec" DIR_SEPARATOR_STR;
+    dirname =
+      DIR_SEPARATOR_STR "gnunet" DIR_SEPARATOR_STR \
+      "libexec" DIR_SEPARATOR_STR;
     break;
   default:
     GNUNET_free (execpath);
     return NULL;
   }
-  tmp = GNUNET_malloc (strlen (execpath) + strlen (dirname) + 1);
-  sprintf (tmp, "%s%s", execpath, dirname);
+  GNUNET_asprintf (&tmp,
+                   "%s%s",
+                   execpath,
+                   dirname);
   GNUNET_free (execpath);
   return tmp;
 }

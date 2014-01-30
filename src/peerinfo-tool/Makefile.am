@@ -29,7 +29,7 @@ check_SCRIPTS = \
 endif
 
 if ENABLE_TEST_RUN
-TESTS_ENVIRONMENT=export GNUNET_PREFIX=@prefix@;export PATH=@prefix@/bin:$$PATH;
+TESTS_ENVIRONMENT=export GNUNET_PREFIX=@libdir@;export PATH=@prefix@/bin:$$PATH;
 TESTS = $(check_SCRIPTS)
 endif
 

@@ -353,6 +353,7 @@ src/util/crypto_hash.c
 src/util/crypto_hkdf.c
 src/util/crypto_kdf.c
 src/util/crypto_mpi.c
+src/util/crypto_paillier.c
 src/util/crypto_random.c
 src/util/crypto_symmetric.c
 src/util/disk.c

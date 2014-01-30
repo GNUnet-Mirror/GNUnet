@@ -1632,7 +1632,7 @@ GNUNET_CONFIGURATION_load (struct GNUNET_CONFIGURATION_Handle *cfg,
   char *ipath;
 
   ipath = GNUNET_OS_installation_get_path (GNUNET_OS_IPK_DATADIR);
-  if (ipath == NULL)
+  if (NULL == ipath)
     return GNUNET_SYSERR;
   baseconfig = NULL;
   GNUNET_asprintf (&baseconfig, "%s%s", ipath, "config.d");
@@ -1644,7 +1644,7 @@ GNUNET_CONFIGURATION_load (struct GNUNET_CONFIGURATION_Handle *cfg,
     return GNUNET_SYSERR;       /* no configuration at all found */
   }
   GNUNET_free (baseconfig);
-  if ((filename != NULL) &&
+  if ((NULL != filename) &&
       (GNUNET_OK != GNUNET_CONFIGURATION_parse (cfg, filename)))
   {
     /* specified configuration not found */

@@ -94,7 +94,7 @@ struct GNUNET_BANDWIDTH_Tracker
   /**
    * Maximum number of seconds over which bandwidth may "accumulate".
    * Note that additionally, we also always allow at least
-   * GNUNET_SERVER_MAX_MESSAGE_SIZE to accumulate.
+   * #GNUNET_SERVER_MAX_MESSAGE_SIZE to accumulate.
    */
   uint32_t max_carry_s__;
 };

@@ -279,7 +279,7 @@ endif
 
 
 if ENABLE_TEST_RUN
-TESTS_ENVIRONMENT=export GNUNET_PREFIX=@prefix@;\
+TESTS_ENVIRONMENT=export GNUNET_PREFIX=@libdir@;\
  export PATH=@prefix@/bin:$$PATH;\
  $(MONKEY)
 TESTS = \
