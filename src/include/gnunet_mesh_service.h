@@ -400,12 +400,14 @@ typedef void (*GNUNET_MESH_ChannelCB) (void *cls,
  * @param cls Closure.
  * @param peer Peer, or NULL on "EOF".
  * @param tunnel Do we have a tunnel towards this peer?
+ * @param n_paths Number of known paths towards this peer.
  * @param best_path How long is the best path?
  *                  (0 = unknown, 1 = ourselves, 2 = neighbor)
  */
 typedef void (*GNUNET_MESH_PeersCB) (void *cls,
                                      const struct GNUNET_PeerIdentity *peer,
-                                     int tunnel, unsigned int best_path);
+                                     int tunnel, unsigned int n_paths,
+                                     unsigned int best_path);
 
 
 /**
