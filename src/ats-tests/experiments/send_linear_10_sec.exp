@@ -16,9 +16,9 @@ op-0-dest = 1
 op-1-operation = set_rate
 op-1-value = 10000
 op-1-src = 0
-op-1-dest = 1
+op-1-dest = 2
 
 op-2-operation = set_rate
 op-2-value = 10000
 op-2-src = 0
-op-2-dest = 1
+op-2-dest = 3
