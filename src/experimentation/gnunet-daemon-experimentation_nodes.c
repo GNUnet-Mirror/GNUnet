@@ -210,7 +210,9 @@ schedule_transmisson (struct NodeComCtx *e_ctx)
   if (NULL != e_ctx->n->cth)
     return;
 
-  e_ctx->n->cth = GNUNET_CORE_notify_transmit_ready (ch, GNUNET_NO, 0, FAST_TIMEOUT,
+  e_ctx->n->cth = GNUNET_CORE_notify_transmit_ready (ch, GNUNET_NO,
+                                                     GNUNET_CORE_PRIO_BEST_EFFORT,
+                                                     FAST_TIMEOUT,
 						     &e_ctx->n->id, e_ctx->size,
 						     transmit_read_wrapper, e_ctx);
   if (NULL == e_ctx->n->cth)
@@ -281,7 +283,7 @@ send_experimentation_request_cb (void *cls, size_t bufsize, void *buf)
   size_t ri_size = sizeof (struct GNUNET_CRYPTO_EddsaPublicKey) * my_issuer_count;
   size_t total_size = msg_size + ri_size;
   struct GNUNET_CRYPTO_EddsaPublicKey *issuers;
-	
+
   n->cth = NULL;
   if (NULL == buf)
   {

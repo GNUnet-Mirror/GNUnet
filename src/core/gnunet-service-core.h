@@ -27,6 +27,7 @@
 #define GNUNET_SERVICE_CORE_H
 
 #include "gnunet_statistics_service.h"
+#include "gnunet_core_service.h"
 #include "core.h"
 
 /**
@@ -73,7 +74,7 @@ struct GSC_ClientActiveRequest
   /**
    * How important is this request.
    */
-  uint32_t priority;
+  enum GNUNET_CORE_Priority priority;
 
   /**
    * Has this request been solicited yet?

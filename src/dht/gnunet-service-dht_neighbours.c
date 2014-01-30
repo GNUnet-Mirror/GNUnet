@@ -793,16 +793,16 @@ core_transmit_notify (void *cls, size_t size, void *buf)
     GNUNET_CONTAINER_DLL_remove (peer->head, peer->tail, pending);
     GNUNET_free (pending);
   }
-  if (pending == NULL)
+  if (NULL == pending)
   {
     /* no messages pending */
     return 0;
   }
-  if (buf == NULL)
+  if (NULL == buf)
   {
     peer->th =
         GNUNET_CORE_notify_transmit_ready (core_api, GNUNET_NO,
-                                           pending->importance,
+                                           GNUNET_CORE_PRIO_BEST_EFFORT,
                                            GNUNET_TIME_absolute_get_remaining
                                            (pending->timeout), &peer->id,
                                            ntohs (pending->msg->size),
@@ -828,7 +828,7 @@ core_transmit_notify (void *cls, size_t size, void *buf)
   {
     peer->th =
         GNUNET_CORE_notify_transmit_ready (core_api, GNUNET_NO,
-                                           pending->importance,
+                                           GNUNET_CORE_PRIO_BEST_EFFORT,
                                            GNUNET_TIME_absolute_get_remaining
                                            (pending->timeout), &peer->id, msize,
                                            &core_transmit_notify, peer);
@@ -858,7 +858,7 @@ process_peer_queue (struct PeerInfo *peer)
                             ntohs (pending->msg->size), GNUNET_NO);
   peer->th =
       GNUNET_CORE_notify_transmit_ready (core_api, GNUNET_NO,
-                                         pending->importance,
+                                         GNUNET_CORE_PRIO_BEST_EFFORT,
                                          GNUNET_TIME_absolute_get_remaining
                                          (pending->timeout), &peer->id,
                                          ntohs (pending->msg->size),

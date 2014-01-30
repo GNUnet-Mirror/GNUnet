@@ -46,6 +46,34 @@ extern "C"
  */
 #define GNUNET_CORE_VERSION 0x00000001
 
+/**
+ * Traffic priorities.
+ */
+enum GNUNET_CORE_Priority
+{
+
+  /**
+   * Highest priority, control traffic (i.e. NSE, Core/Mesh KX).
+   */
+  GNUNET_CORE_PRIO_CRITICAL_CONTROL = 0,
+
+  /**
+   * Urgent traffic (local peer, i.e. conversation).
+   */
+  GNUNET_CORE_PRIO_URGENT = 1,
+
+  /**
+   * Normal traffic (i.e. mesh/dv relay, DHT)
+   */
+  GNUNET_CORE_PRIO_BEST_EFFORT = 2,
+
+  /**
+   * Background traffic (i.e. fs)
+   */
+  GNUNET_CORE_PRIO_BACKGROUND = 3
+
+};
+
 
 /**
  * Opaque handle to the service.
@@ -59,8 +87,9 @@ struct GNUNET_CORE_Handle;
  * @param cls closure
  * @param peer peer identity this notification is about
  */
-typedef void (*GNUNET_CORE_ConnectEventHandler) (void *cls,
-                                                 const struct GNUNET_PeerIdentity *peer);
+typedef void
+(*GNUNET_CORE_ConnectEventHandler) (void *cls,
+                                    const struct GNUNET_PeerIdentity *peer);
 
 
 /**
@@ -69,8 +98,9 @@ typedef void (*GNUNET_CORE_ConnectEventHandler) (void *cls,
  * @param cls closure
  * @param peer peer identity this notification is about
  */
-typedef void (*GNUNET_CORE_DisconnectEventHandler) (void *cls,
-                                                    const struct GNUNET_PeerIdentity *peer);
+typedef void
+(*GNUNET_CORE_DisconnectEventHandler) (void *cls,
+                                       const struct GNUNET_PeerIdentity *peer);
 
 
 /**
@@ -84,11 +114,10 @@ typedef void (*GNUNET_CORE_DisconnectEventHandler) (void *cls,
  * @return #GNUNET_OK to keep the connection open,
  *         #GNUNET_SYSERR to close connection to the peer (signal serious error)
  */
-typedef int (*GNUNET_CORE_MessageCallback) (void *cls,
-                                            const struct GNUNET_PeerIdentity *
-                                            other,
-                                            const struct GNUNET_MessageHeader *
-                                            message);
+typedef int
+(*GNUNET_CORE_MessageCallback) (void *cls,
+                                const struct GNUNET_PeerIdentity *other,
+                                const struct GNUNET_MessageHeader *message);
 
 
 /**
@@ -98,7 +127,7 @@ typedef int (*GNUNET_CORE_MessageCallback) (void *cls,
 struct GNUNET_CORE_MessageHandler
 {
   /**
-   * Function to call for messages of "type".
+   * Function to call for messages of @e type.
    */
   GNUNET_CORE_MessageCallback callback;
 
@@ -129,8 +158,9 @@ struct GNUNET_CORE_MessageHandler
  * @param cls closure
  * @param my_identity ID of this peer, NULL if we failed
  */
-typedef void (*GNUNET_CORE_StartupCallback) (void *cls,
-                                             const struct GNUNET_PeerIdentity *my_identity);
+typedef void
+(*GNUNET_CORE_StartupCallback) (void *cls,
+                                const struct GNUNET_PeerIdentity *my_identity);
 
 
 /**
@@ -233,8 +263,9 @@ struct GNUNET_CORE_TransmitHandle;
  *         if NULL is returned, "notify" will NOT be called.
  */
 struct GNUNET_CORE_TransmitHandle *
-GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle, int cork,
-                                   uint32_t priority,
+GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle,
+                                   int cork,
+                                   enum GNUNET_CORE_Priority priority,
                                    struct GNUNET_TIME_Relative maxdelay,
                                    const struct GNUNET_PeerIdentity *target,
                                    size_t notify_size,

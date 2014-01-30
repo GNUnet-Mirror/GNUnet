@@ -71,7 +71,7 @@ struct GNUNET_CORE_TransmitHandle
   /**
    * How important is this message?
    */
-  uint32_t priority;
+  enum GNUNET_CORE_Priority priority;
 
   /**
    * Size of this request.
@@ -517,7 +517,7 @@ request_next_transmission (struct PeerRecord *pr)
   smr = (struct SendMessageRequest *) &cm[1];
   smr->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_SEND_REQUEST);
   smr->header.size = htons (sizeof (struct SendMessageRequest));
-  smr->priority = htonl (th->priority);
+  smr->priority = htonl ((uint32_t) th->priority);
   smr->deadline = GNUNET_TIME_absolute_hton (th->timeout);
   smr->peer = pr->peer;
   smr->reserved = htonl (0);
@@ -653,7 +653,7 @@ transmit_message (void *cls, size_t size, void *buf)
        GNUNET_i2s (&pr->peer), (unsigned int) th->msize);
   sm = (struct SendMessage *) buf;
   sm->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_SEND);
-  sm->priority = htonl (th->priority);
+  sm->priority = htonl ((uint32_t) th->priority);
   sm->deadline = GNUNET_TIME_absolute_hton (th->timeout);
   sm->peer = pr->peer;
   sm->cork = htonl ((uint32_t) th->cork);
@@ -1187,7 +1187,7 @@ GNUNET_CORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 /**
  * Disconnect from the core service.  This function can only
- * be called *after* all pending 'GNUNET_CORE_notify_transmit_ready'
+ * be called *after* all pending #GNUNET_CORE_notify_transmit_ready()
  * requests have been explicitly canceled.
  *
  * @param handle connection to core to disconnect
@@ -1279,7 +1279,7 @@ run_request_next_transmission (void *cls,
  */
 struct GNUNET_CORE_TransmitHandle *
 GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle, int cork,
-                                   uint32_t priority,
+                                   enum GNUNET_CORE_Priority priority,
                                    struct GNUNET_TIME_Relative maxdelay,
                                    const struct GNUNET_PeerIdentity *target,
                                    size_t notify_size,
@@ -1288,9 +1288,6 @@ GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle, int cork,
 {
   struct PeerRecord *pr;
   struct GNUNET_CORE_TransmitHandle *th;
-
-  GNUNET_assert (NULL != handle);
-  GNUNET_assert (NULL != target);
 
   if (notify_size > GNUNET_CONSTANTS_MAX_ENCRYPTED_MESSAGE_SIZE)
   {
@@ -1329,7 +1326,8 @@ GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle, int cork,
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == pr->ntr_task);
   pr->ntr_task =
     GNUNET_SCHEDULER_add_now (&run_request_next_transmission, pr);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Transmission request added to queue\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Transmission request added to queue\n");
   return th;
 }
 

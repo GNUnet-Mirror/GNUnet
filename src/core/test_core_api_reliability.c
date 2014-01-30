@@ -189,7 +189,8 @@ transmit_ready (void *cls, size_t size, void *buf)
   {
     if (p1.ch != NULL)
       GNUNET_break (NULL !=
-                    GNUNET_CORE_notify_transmit_ready (p1.ch, GNUNET_NO, 0,
+                    GNUNET_CORE_notify_transmit_ready (p1.ch, GNUNET_NO,
+                                                       GNUNET_CORE_PRIO_BEST_EFFORT,
                                                        FAST_TIMEOUT, &p2.id,
                                                        get_size (tr_n),
                                                        &transmit_ready, &p1));
@@ -250,7 +251,8 @@ connect_notify (void *cls, const struct GNUNET_PeerIdentity *peer)
         GNUNET_SCHEDULER_add_delayed (TIMEOUT, &terminate_task_error, NULL);
     start_time = GNUNET_TIME_absolute_get ();
     GNUNET_break (NULL !=
-                  GNUNET_CORE_notify_transmit_ready (p1.ch, GNUNET_NO, 0,
+                  GNUNET_CORE_notify_transmit_ready (p1.ch, GNUNET_NO,
+                                                     GNUNET_CORE_PRIO_BEST_EFFORT,
                                                      TIMEOUT, &p2.id,
                                                      get_size (0),
                                                      &transmit_ready, &p1));
@@ -340,7 +342,8 @@ process_mtype (void *cls, const struct GNUNET_PeerIdentity *peer,
   {
     if (n == tr_n)
       GNUNET_break (NULL !=
-                    GNUNET_CORE_notify_transmit_ready (p1.ch, GNUNET_NO, 0,
+                    GNUNET_CORE_notify_transmit_ready (p1.ch, GNUNET_NO,
+                                                       GNUNET_CORE_PRIO_BEST_EFFORT,
                                                        FAST_TIMEOUT, &p2.id,
                                                        get_size (tr_n),
                                                        &transmit_ready, &p1));

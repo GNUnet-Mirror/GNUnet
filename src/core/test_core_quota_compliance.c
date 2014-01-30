@@ -325,7 +325,8 @@ transmit_ready (void *cls, size_t size, void *buf)
     if ((p1.ch != NULL) && (p1.connect_status == 1))
       GNUNET_break (NULL !=
                     (p1.nth =
-                     GNUNET_CORE_notify_transmit_ready (p1.ch, GNUNET_NO, 0,
+                     GNUNET_CORE_notify_transmit_ready (p1.ch, GNUNET_NO,
+                                                        GNUNET_CORE_PRIO_BEST_EFFORT,
                                                         FAST_TIMEOUT, &p2.id,
                                                         MESSAGESIZE,
                                                         &transmit_ready, &p1)));
@@ -392,7 +393,8 @@ connect_notify (void *cls, const struct GNUNET_PeerIdentity *peer)
 
     GNUNET_break (NULL !=
                   (p1.nth =
-                   GNUNET_CORE_notify_transmit_ready (p1.ch, GNUNET_NO, 0,
+                   GNUNET_CORE_notify_transmit_ready (p1.ch, GNUNET_NO,
+                                                      GNUNET_CORE_PRIO_BEST_EFFORT,
                                                       TIMEOUT, &p2.id,
                                                       MESSAGESIZE,
                                                       &transmit_ready, &p1)));
@@ -488,7 +490,8 @@ process_mtype (void *cls, const struct GNUNET_PeerIdentity *peer,
 
   if (running == GNUNET_YES)
     GNUNET_break (NULL !=
-                  GNUNET_CORE_notify_transmit_ready (p1.ch, GNUNET_NO, 0,
+                  GNUNET_CORE_notify_transmit_ready (p1.ch, GNUNET_NO,
+                                                     GNUNET_CORE_PRIO_BEST_EFFORT,
                                                      FAST_TIMEOUT, &p2.id,
                                                      MESSAGESIZE,
                                                      &transmit_ready, &p1));

@@ -637,7 +637,7 @@ core_transmit_notify (void *cls, size_t size, void *buf)
     dn->cth =
       GNUNET_CORE_notify_transmit_ready (core_api,
 					 GNUNET_YES /* cork */,
-					 0 /* priority */,
+					 GNUNET_CORE_PRIO_BEST_EFFORT,
 					 GNUNET_TIME_UNIT_FOREVER_REL,
 					 &dn->peer,
 					 msize,
@@ -705,7 +705,7 @@ forward_payload (struct DirectNeighbor *target,
   if (NULL == target->cth)
     target->cth = GNUNET_CORE_notify_transmit_ready (core_api,
 						     GNUNET_YES /* cork */,
-						     0 /* priority */,
+						     GNUNET_CORE_PRIO_BEST_EFFORT,
 						     GNUNET_TIME_UNIT_FOREVER_REL,
 						     &target->peer,
 						     msize,

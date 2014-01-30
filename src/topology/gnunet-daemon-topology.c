@@ -641,7 +641,8 @@ schedule_next_hello (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     /* now! */
     pl->hello_req =
-        GNUNET_CORE_notify_transmit_ready (handle, GNUNET_YES, 0,
+        GNUNET_CORE_notify_transmit_ready (handle, GNUNET_YES,
+                                           GNUNET_CORE_PRIO_BEST_EFFORT,
                                            GNUNET_CONSTANTS_SERVICE_TIMEOUT,
                                            &pl->pid, next_want,
                                            &hello_advertising_ready, pl);

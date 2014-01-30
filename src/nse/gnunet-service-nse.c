@@ -70,7 +70,7 @@
 /**
  * Message priority to use.
  */
-#define NSE_PRIORITY 5
+#define NSE_PRIORITY GNUNET_CORE_PRIO_CRITICAL_CONTROL
 
 #if FREEBSD
 #define log2(a) (log(a)/log(2))
@@ -660,7 +660,8 @@ transmit_task_cb (void *cls,
 
   GNUNET_assert (NULL == peer_entry->th);
   peer_entry->th =
-      GNUNET_CORE_notify_transmit_ready (core_api, GNUNET_NO, NSE_PRIORITY,
+      GNUNET_CORE_notify_transmit_ready (core_api, GNUNET_NO,
+                                         NSE_PRIORITY,
                                          GNUNET_TIME_UNIT_FOREVER_REL,
                                          &peer_entry->id,
                                          sizeof (struct

@@ -374,7 +374,7 @@ handle_client_send_request (void *cls, struct GNUNET_SERVER_Client *client,
   }
 
   car = GNUNET_CONTAINER_multipeermap_get (c->requests, &req->peer);
-  if (car == NULL)
+  if (NULL == car)
   {
     /* create new entry */
     car = GNUNET_new (struct GSC_ClientActiveRequest);
@@ -391,7 +391,7 @@ handle_client_send_request (void *cls, struct GNUNET_SERVER_Client *client,
   }
   car->target = req->peer;
   car->deadline = GNUNET_TIME_absolute_ntoh (req->deadline);
-  car->priority = ntohl (req->priority);
+  car->priority = (enum GNUNET_CORE_Priority) ntohl (req->priority);
   car->msize = ntohs (req->size);
   car->smr_id = req->smr_id;
   car->was_solicited = GNUNET_NO;
@@ -503,7 +503,7 @@ handle_client_send (void *cls, struct GNUNET_SERVER_Client *client,
  * or other CLIENT (for loopback).
  *
  * @param cls closure
- * @param client reservation request ('struct GSC_ClientActiveRequest')
+ * @param client reservation request (`struct GSC_ClientActiveRequest`)
  * @param message the actual message
  */
 static int
@@ -560,7 +560,7 @@ client_tokenizer_callback (void *cls, void *client,
  *
  * @param cls NULL
  * @param key identity of peer for which this is an active request
- * @param value the 'struct GSC_ClientActiveRequest' to free
+ * @param value the `struct GSC_ClientActiveRequest` to free
  * @return #GNUNET_YES (continue iteration)
  */
 static int

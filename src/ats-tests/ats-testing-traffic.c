@@ -104,7 +104,9 @@ comm_schedule_send (void *cls,
   if (GNUNET_YES == top->test_core)
   {
     p->cth = GNUNET_CORE_notify_transmit_ready (
-      p->me->ch, GNUNET_NO, 0, GNUNET_TIME_UNIT_MINUTES, &p->dest->id,
+      p->me->ch, GNUNET_NO,
+      GNUNET_CORE_PRIO_BEST_EFFORT,
+      GNUNET_TIME_UNIT_MINUTES, &p->dest->id,
       TEST_MESSAGE_SIZE, &send_ping_ready_cb, p);
   }
   else
@@ -159,9 +161,12 @@ GNUNET_ATS_TEST_traffic_handle_ping (struct BenchmarkPartner *p)
   {
     GNUNET_assert (NULL == p->cth);
 
-    p->cth = GNUNET_CORE_notify_transmit_ready (p->me->ch, GNUNET_NO, 0,
-        GNUNET_TIME_UNIT_MINUTES, &p->dest->id, TEST_MESSAGE_SIZE,
-        &comm_send_pong_ready, p);
+    p->cth
+      = GNUNET_CORE_notify_transmit_ready (p->me->ch, GNUNET_NO,
+                                           GNUNET_CORE_PRIO_BEST_EFFORT,
+                                           GNUNET_TIME_UNIT_MINUTES,
+                                           &p->dest->id, TEST_MESSAGE_SIZE,
+                                           &comm_send_pong_ready, p);
   }
   else
   {
