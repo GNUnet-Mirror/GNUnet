@@ -983,8 +983,8 @@ get_distance (const struct GNUNET_HashCode *target,
  *
  * @param key hash code to check closeness to
  * @param bloom bloomfilter, exclude these entries from the decision
- * @return GNUNET_YES if node location is closest,
- *         GNUNET_NO otherwise.
+ * @return #GNUNET_YES if node location is closest,
+ *         #GNUNET_NO otherwise.
  */
 static int
 am_closest_peer (const struct GNUNET_HashCode *key,
@@ -2220,7 +2220,7 @@ GDS_NEIGHBOURS_done ()
 struct GNUNET_PeerIdentity *
 GDS_NEIGHBOURS_get_id ()
 {
-    return &my_identity;
+  return &my_identity;
 }
 
 
