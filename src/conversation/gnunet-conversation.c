@@ -617,6 +617,9 @@ do_accept (const char *args)
              args);
     return;
   }
+  GNUNET_CONTAINER_DLL_remove (cl_head,
+                               cl_tail,
+                               cl);
   cl_active = cl;
   GNUNET_free_non_null (peer_name);
   peer_name = GNUNET_strdup (cl->caller_id);
