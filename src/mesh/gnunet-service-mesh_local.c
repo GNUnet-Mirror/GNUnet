@@ -732,7 +732,7 @@ handle_show_tunnel (void *cls, struct GNUNET_SERVER_Client *client,
 
   size = sizeof (struct GNUNET_MESH_LocalInfo);
   size += c_n * sizeof (struct GNUNET_HashCode);
-  size += ch_n * sizeof (uint32_t);
+  size += ch_n * sizeof (MESH_ChannelNumber);
 
   resp = GNUNET_malloc (size);
   resp->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNEL);
