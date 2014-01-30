@@ -452,7 +452,7 @@ GNUNET_ATS_TEST_logging_write_to_file (struct LoggingHandle *l,
 
   for (c_m = 0; c_m < l->num_peers; c_m++)
   {
-    GNUNET_asprintf (&filename_data, "%s_%llu_master_%u_%s_%s.data", tmp_exp_name,
+    GNUNET_asprintf (&filename_data, "%s_%llu_master_%u_%s_%s", tmp_exp_name,
         timestamp.abs_value_us,
         l->lp[c_m].peer->no, GNUNET_i2s(&l->lp[c_m].peer->id), l->name);
 
