@@ -199,19 +199,44 @@ static void topology_setup_done (void *cls,
       e->max_duration), &do_shutdown, NULL);
 }
 
+static char *opt_exp_file;
+static int opt_log;
+
+static void
+parse_args (int argc, char *argv[])
+{
+  int c;
+  opt_exp_file = NULL;
+  opt_log = GNUNET_NO;
+
+  for (c = 0; c < argc; c++)
+  {
+    if ((c < (argc - 1)) && (0 == strcmp (argv[c], "-e")))
+    {
+      opt_exp_file = GNUNET_strdup ( argv[c + 1]);
+    }
+    if (0 == strcmp (argv[c], "-l"))
+    {
+      opt_log = GNUNET_YES;
+    }
+  }
+}
 
 int
 main (int argc, char *argv[])
 {
   GNUNET_log_setup("gnunet-ats-sim", "INFO", NULL);
-  if (argc < 2)
+
+  parse_args (argc, argv);
+  if (NULL == opt_exp_file )
   {
     fprintf (stderr, "No experiment given...\n");
     return 1;
   }
 
-  fprintf (stderr, "Loading experiment `%s' \n", argv[1]);
-  e = GNUNET_ATS_TEST_experimentation_load (argv[1]);
+  fprintf (stderr, "Loading experiment `%s' \n", opt_exp_file );
+  e = GNUNET_ATS_TEST_experimentation_load (opt_exp_file);
+  GNUNET_free (opt_exp_file);
   if (NULL == e)
   {
     fprintf (stderr, "Invalid experiment\n");
