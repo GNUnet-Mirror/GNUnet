@@ -430,6 +430,8 @@ outbound_bw_tracker_update (void *cls)
 
   delay = GNUNET_BANDWIDTH_tracker_get_delay (&n->out_tracker,
       n->th->notify_size + n->traffic_overhead);
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "New outbound delay %llu us\n",delay.rel_value_us);
   GNUNET_CONTAINER_heap_update_cost (n->h->ready_heap,
       n->hn, delay.rel_value_us);
   schedule_transmission (n->h);

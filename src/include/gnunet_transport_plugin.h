@@ -194,6 +194,15 @@ typedef struct GNUNET_TIME_Relative
                                    const struct GNUNET_PeerIdentity *peer,
                                    size_t amount_recved);
 
+typedef void
+(*GNUNET_TRANSPORT_RegisterQuotaNotification) (void *cls,
+                                           const struct GNUNET_PeerIdentity *peer,
+                                           const char *plugin,
+                                           struct Session *session);
+
+typedef void
+(*GNUNET_TRANSPORT_UnregisterQuotaNotification) (void *cls,
+    const struct GNUNET_PeerIdentity *peer, const char *plugin, struct Session *session);
 
 /**
  * Function that returns a HELLO message.
@@ -275,6 +284,9 @@ struct GNUNET_TRANSPORT_PluginEnvironment
    */
   GNUNET_TRANSPORT_UpdateAddressMetrics update_address_metrics;
 
+  GNUNET_TRANSPORT_RegisterQuotaNotification register_quota_notification;
+
+  GNUNET_TRANSPORT_UnregisterQuotaNotification unregister_quota_notification;
 
   /**
    * What is the maximum number of connections that this transport
@@ -484,6 +496,14 @@ typedef void
                                           const struct GNUNET_PeerIdentity *peer,
                                           struct Session *session);
 
+
+
+typedef void
+(*GNUNET_TRANSPORT_UpdateInboundDelay) (void *cls,
+                                          const struct GNUNET_PeerIdentity *peer,
+                                          struct Session *session,
+                                          struct GNUNET_TIME_Relative delay);
+
 /**
  * Function called for a quick conversion of the binary address to
  * a numeric address.  Note that the caller must not free the
@@ -574,6 +594,8 @@ struct GNUNET_TRANSPORT_PluginFunctions
    * therefore the session timeout for this session has to be updated
    */
   GNUNET_TRANSPORT_UpdateSessionTimeout update_session_timeout;
+
+  GNUNET_TRANSPORT_UpdateInboundDelay update_inbound_delay;
 
   /**
    * Function that will be called whenever the transport service wants to

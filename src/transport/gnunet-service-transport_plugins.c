@@ -94,6 +94,8 @@ static struct TransportPlugin *plugins_tail;
  */
 void
 GST_plugins_load (GNUNET_TRANSPORT_PluginReceiveCallback recv_cb,
+                  GNUNET_TRANSPORT_RegisterQuotaNotification register_quota_cb,
+                  GNUNET_TRANSPORT_UnregisterQuotaNotification unregister_quota_cb,
                   GNUNET_TRANSPORT_AddressNotification address_cb,
                   GNUNET_TRANSPORT_SessionStart session_start_cb,
                   GNUNET_TRANSPORT_SessionEnd session_end_cb,
@@ -142,6 +144,8 @@ GST_plugins_load (GNUNET_TRANSPORT_PluginReceiveCallback recv_cb,
     plug->env.session_end = session_end_cb;
     plug->env.get_address_type = address_type_cb;
     plug->env.update_address_metrics = metric_update_cb;
+    plug->env.register_quota_notification = register_quota_cb;
+    plug->env.unregister_quota_notification = unregister_quota_cb;
     plug->env.max_connections = tneigh;
     plug->env.stats = GST_stats;
     GNUNET_CONTAINER_DLL_insert (plugins_head, plugins_tail, plug);

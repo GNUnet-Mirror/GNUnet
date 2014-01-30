@@ -107,6 +107,15 @@ GST_neighbours_send (const struct GNUNET_PeerIdentity *target, const void *msg,
                      size_t msg_size, struct GNUNET_TIME_Relative timeout,
                      GST_NeighbourSendContinuation cont, void *cont_cls);
 
+void
+GST_neighbours_register_quota_notification (void *cls,
+                                           const struct GNUNET_PeerIdentity *peer,
+                                           const char *plugin,
+                                           struct Session *session);
+
+void
+GST_neighbours_unregister_quota_notification(void *cls,
+    const struct GNUNET_PeerIdentity *peer, const char *plugin, struct Session *session);
 
 /**
  * We have received a message from the given sender.

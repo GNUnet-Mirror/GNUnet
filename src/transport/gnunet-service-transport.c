@@ -934,6 +934,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
       NULL );
   GST_manipulation_init (GST_cfg);
   GST_plugins_load (&GST_manipulation_recv,
+      &GST_neighbours_register_quota_notification,
+      &GST_neighbours_unregister_quota_notification,
       &plugin_env_address_change_notification,
       &plugin_env_session_start,
       &plugin_env_session_end,

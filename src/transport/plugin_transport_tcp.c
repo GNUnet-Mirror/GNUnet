@@ -779,6 +779,8 @@ tcp_disconnect_session (void *cls, struct Session *session)
     GNUNET_SERVER_notify_transmit_ready_cancel (session->transmit_handle);
     session->transmit_handle = NULL;
   }
+  plugin->env->unregister_quota_notification (plugin->env->cls,
+      &session->target, PLUGIN_NAME, session);
   session->plugin->env->session_end (session->plugin->env->cls,
       &session->target, session);
 
@@ -929,6 +931,8 @@ create_session (struct Plugin *plugin,
     GNUNET_STATISTICS_update (plugin->env->stats,
         gettext_noop ("# TCP sessions active"), 1, GNUNET_NO);
   }
+  plugin->env->register_quota_notification (plugin->env->cls,
+      &address->peer, PLUGIN_NAME, session);
   session->timeout_task = GNUNET_SCHEDULER_add_delayed (
       GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT, &session_timeout, session);
   return session;
@@ -1321,6 +1325,41 @@ tcp_plugin_update_session_timeout (void *cls,
     return;
   reschedule_session_timeout (session);
 }
+
+/**
+ * Task to signal the server that we can continue
+ * receiving from the TCP client now.
+ *
+ * @param cls the `struct Session*`
+ * @param tc task context (unused)
+ */
+static void
+delayed_done (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct Session *session = cls;
+
+  session->receive_delay_task = GNUNET_SCHEDULER_NO_TASK;
+  reschedule_session_timeout (session);
+
+  GNUNET_SERVER_receive_done (session->client, GNUNET_OK);
+}
+
+static void tcp_plugin_update_inbound_delay (void *cls,
+                                      const struct GNUNET_PeerIdentity *peer,
+                                      struct Session *session,
+                                      struct GNUNET_TIME_Relative delay)
+{
+  if (GNUNET_SCHEDULER_NO_TASK == session->receive_delay_task)
+    return;
+
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "New inbound delay %llu us\n",delay.rel_value_us);
+
+  GNUNET_SCHEDULER_cancel (session->receive_delay_task);
+  session->receive_delay_task = GNUNET_SCHEDULER_add_delayed (delay,
+      &delayed_done, session);
+}
+
 
 /**
  * Create a new session to transmit data to the target
@@ -2102,23 +2141,6 @@ handle_tcp_welcome (void *cls, struct GNUNET_SERVER_Client *client,
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
-/**
- * Task to signal the server that we can continue
- * receiving from the TCP client now.
- *
- * @param cls the `struct Session*`
- * @param tc task context (unused)
- */
-static void
-delayed_done (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct Session *session = cls;
-
-  session->receive_delay_task = GNUNET_SCHEDULER_NO_TASK;
-  reschedule_session_timeout (session);
-
-  GNUNET_SERVER_receive_done (session->client, GNUNET_OK);
-}
 
 /**
  * We've received data for this peer via TCP.  Unbox,
@@ -2479,6 +2501,7 @@ else
   api->string_to_address = &tcp_string_to_address;
   api->get_network = &tcp_get_network;
   api->update_session_timeout = &tcp_plugin_update_session_timeout;
+  api->update_inbound_delay = &tcp_plugin_update_inbound_delay;
   plugin->service = service;
   if (NULL != service)
   {
