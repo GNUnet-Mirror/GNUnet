@@ -77,28 +77,33 @@ struct RoutingTrail
 static struct GNUNET_CONTAINER_MultiPeerMap *routing_table;
 
 
-/**FIXME: Old function added just to remove error for time being. 
+/**
+ * FIXME: Change the name of variable. 
+ * Ensure that everywhere in this file you are using destination as the key.
  * Add a new entry to our routing table.
- *
- * @param sender peer that originated the request
- * @param type type of the block
- * @param options options for processing
- * @param key key for the content
- * @param xquery extended query
- * @param xquery_size number of bytes in @a xquery
- * @param reply_bf bloomfilter to filter duplicates
- * @param reply_bf_mutator mutator for @a reply_bf
+ * @param source peer
+ * @param destintation
+ * @param prev_hop
+ * @param next_hop
  */
 void
-GDS_ROUTING_add (const struct GNUNET_PeerIdentity *sender,
-                 enum GNUNET_BLOCK_Type type,
-                 enum GNUNET_DHT_RouteOption options,
-                 const struct GNUNET_HashCode * key, const void *xquery,
-                 size_t xquery_size,
-                 const struct GNUNET_CONTAINER_BloomFilter *reply_bf,
-                 uint32_t reply_bf_mutator)
+GDS_ROUTING_add (struct GNUNET_PeerIdentity *source,
+                 struct GNUNET_PeerIdentity *dest,
+                 struct GNUNET_PeerIdentity *prev_hop,
+                 struct GNUNET_PeerIdentity *next_hop)
 {
-
+    struct RoutingTrail *new_routing_entry;
+    
+    new_routing_entry = GNUNET_malloc (sizeof (struct RoutingTrail));
+    new_routing_entry->source = source;
+    new_routing_entry->previous_hop = prev_hop;
+    new_routing_entry->next_hop = next_hop;
+    new_routing_entry->destination = dest;
+    
+    GNUNET_assert (GNUNET_OK ==
+                 GNUNET_CONTAINER_multipeermap_put (routing_table,
+                                                    dest, new_routing_entry,
+                                                    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
 }
 
 

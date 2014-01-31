@@ -50,12 +50,8 @@
 
 
 /*TODO 
- 1. Add logic to get connected to your predecessor 
- because when nodes join/fail , you need to maintain correct
- pointers to predecessor and your successor (your first finger),
- to update tables.
- 2. Remove extra comments - FIXME,TODO,SUPU
- 3. When do we call GDS_Routing_add()?  */
+ * 1. Remove extra comments - FIXME,TODO,SUPU
+ */
 
 /**
  * Maximum possible fingers of a peer.
@@ -243,7 +239,7 @@ struct PeerGetMessage
 /**
  * FIXME: I have defined this struct between GNUNET_NETWORK_STRUCT_BEGIN. Is
  * it correct? Also, I am using the same struct inside finger info and trailsetup
- * trailsetupresult message. Is it correct? */
+ * trailsetupresult message. Is it correct? Verify while testing. */
  /**
   * Linked List of peers which are part of trail to reach a particular Finger.
   */
@@ -268,7 +264,7 @@ struct TrailPeerList
 
 
 /**
- * FIXME : I am using the same structure trail list in both finger info
+ * FIXME : I am using the same struct TrailPeerList in both finger info
  * and peertrailsetupmessage. Verify if its okay.
  * P2P Trail setup message
  */
@@ -309,10 +305,6 @@ struct PeerTrailSetupMessage
 
 /**
  * P2P Trail setup Result message
- * FIXME: There seem to be no difference between trail_setup and trailsetupresult
- * Can we somehow merge these two. As in result we don't have to do any
- * search in our finger or friend table thats why I kept it separate. But is it
- * actually required to keep these two things different. 
  */
 struct PeerTrailSetupResultMessage
 {
@@ -320,21 +312,16 @@ struct PeerTrailSetupResultMessage
    * Type: #GNUNET_MESSAGE_TYPE_DHT_P2P_TRAIL_RESULT_SETUP
    */
   struct GNUNET_MessageHeader header;
-
-  /* SUPU: It should contain the list of peers which form the trail. 
-   and also maintain a pointer to the current_peer to which we have to forward
-   the packet. We have to maintain the whole list in this message because
-   at the end source peer will store this list in its finger table. */
   
   /**
-   * Source peer which wants to find trail to one of its finger. 
+   * Finger to which we have found the path. 
    */
-  struct GNUNET_PeerIdentity *source_peer;
+  struct GNUNET_PeerIdentity *finger;
 
   /**
-   * Finger id to which we want to set up the trail to. 
+   * Peer which was looking for the trail to finger. 
    */
-  struct GNUNET_PeerIdentity *destination_finger;
+  struct GNUNET_PeerIdentity *destination_peer;
 
   /**
    * This field contains the peer to which this packet is forwarded.
@@ -430,11 +417,10 @@ struct FriendInfo
 struct FingerInfo
 {
   /**
-   * What is the identity of the peer?
+   * What is the identity of the finger peer?
    */
   struct GNUNET_PeerIdentity id;
-
- 
+  
   /**
    * Start of the interval of keys for which this finger is responsible.
    */
@@ -469,6 +455,7 @@ static GNUNET_SCHEDULER_TaskIdentifier find_finger_trail_task;
 static struct GNUNET_PeerIdentity my_identity;
 
 /**
+ * FIXME: Not used anywhere in the code yet. 
  * Hash of the identity of this peer.
  */
 static struct GNUNET_HashCode my_identity_hash;
@@ -484,6 +471,7 @@ static struct GNUNET_CONTAINER_MultiPeerMap *friend_peers;
 static struct GNUNET_CONTAINER_MultiPeerMap *finger_peers;
 
 /**
+ * TODO: Ask whats the use of ATS.
  * Handle to ATS.
  */
 static struct GNUNET_ATS_PerformanceHandle *atsAPI;
@@ -494,14 +482,12 @@ static struct GNUNET_ATS_PerformanceHandle *atsAPI;
 static struct GNUNET_CORE_Handle *core_api;
 
 /**
- * FIXME:where are we using this field.
  * The highest finger_id that we have found trail to.
  */
-static unsigned int finger_id;
+static unsigned int highest_finger_id;
 
 
 /**
- * TODO: Check this function again. 
  * Called when core is ready to send a message we asked for
  * out to the destination. 
  * 
@@ -773,15 +759,15 @@ get_random_friend()
   /* Set the position of iterator to index. */
   while(j < (*index))
   {
-      if(GNUNET_YES == GNUNET_CONTAINER_multipeermap_iterator_next(iter,NULL,NULL))
-        j++;
-      else 
-        return NULL;
+    if(GNUNET_YES == GNUNET_CONTAINER_multipeermap_iterator_next(iter,NULL,NULL))
+      j++;
+    else 
+      return NULL;
   }  
   
   if(GNUNET_YES == GNUNET_CONTAINER_multipeermap_iterator_next(iter,&key_ret,(const void **)&friend))
   {
-      return friend;
+    return friend;
   }
 
   return NULL;
@@ -791,9 +777,9 @@ get_random_friend()
 /**
  * TODO: Complete this function. 
  * Use Chord formula finger[i]=(n+2^(i-1))mod m,
- * where i = current finger map index.
- * n = own peer identity
- * m = number of bits in peer id.
+ * where i = current finger map index - max. 256 bits
+ * n = own peer identity - 256 bits
+ * m = number of bits in peer id - 256 bits
  * @return finger_peer_id for which we have to find the trail through network.
  */
 static 
@@ -828,7 +814,7 @@ find_immediate_predecessor()
     /* Using your own peer identity, calculate your predecessor
      in the network. Try to setup path to this predecessor using
      the same logic as used for other fingers. */
-    return NULL;
+  return NULL;
 }
 
 
@@ -871,7 +857,7 @@ send_find_finger_trail_message (void *cls,
       DHT_MINIMUM_FIND_FINGER_TRAIL_INTERVAL.rel_value_us +
       GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
                                 DHT_MAXIMUM_FIND_FINGER_TRAIL_INTERVAL.rel_value_us /
-                                (finger_id + 1));
+                                (highest_finger_id + 1));
 
   find_finger_trail_task =
       GNUNET_SCHEDULER_add_delayed (next_send_time, &send_find_finger_trail_message,
@@ -993,7 +979,7 @@ handle_dht_p2p_put (void *cls,
      * to reach to a particular peer or you are endpoint of trail or just a friend.
      * 
      */
-    return 0;
+  return 0;
 }
 
 
@@ -1010,7 +996,7 @@ static int
 handle_dht_p2p_get (void *cls, const struct GNUNET_PeerIdentity *peer,
                     const struct GNUNET_MessageHeader *message)
 {
-    return 0;
+  return 0;
 }
 
 
@@ -1026,21 +1012,8 @@ static int
 handle_dht_p2p_result (void *cls, const struct GNUNET_PeerIdentity *peer,
                        const struct GNUNET_MessageHeader *message)
 {
-    return 0;
+  return 0;
 }
-
-
-/**
- * Read the trail setup message backwards to find which is the next hop to which
- * it should be send to.
- * @return
- 
-static
-struct GNUNET_PeerIdentity *
-find_next_hop()
-{
-    return NULL;
-}*/
 
 
 /**
@@ -1077,15 +1050,15 @@ find_successor(struct GNUNET_PeerIdentity *destination)
   /*iterate over friend map till you reach a peer id such that destination <= peer id */ 
   for (friend_index = 0; friend_index < GNUNET_CONTAINER_multipeermap_size (friend_peers); friend_index++)
   {
-      if(GNUNET_YES == GNUNET_CONTAINER_multipeermap_iterator_next(friend_iter,&key_ret,(const void **)&friend)) 
-      {
+    if(GNUNET_YES == GNUNET_CONTAINER_multipeermap_iterator_next(friend_iter,&key_ret,(const void **)&friend)) 
+    {
           /*
            * 1. Check if friend >= destination.
            * 2. If yes then check if friend <= current_predecessor,
            *    if yes then curret_predecessor = friend.
            * 3 If not then do nothing.
            */
-      }
+    }
   }
   
 
@@ -1117,6 +1090,7 @@ find_successor(struct GNUNET_PeerIdentity *destination)
  * 1. Check if we are maintaining the 64k size of struct PeerTrailSetupMessage.
  * when we add ourself to the trail list. 
  * 2. Ensure every case is handled for current_destination. 
+ * 3. When should you call GDS_Routing_Add?
  * Core handler for P2P trail setup message.
  * @param cls closure
  * @param message message
@@ -1162,6 +1136,9 @@ handle_dht_p2p_trail_setup(void *cls, const struct GNUNET_PeerIdentity *peer,
   {
     /* I am current destination, find the next peer to pass the trail setup message. */  
     next_hop = find_successor(trail_setup->destination_finger); 
+    /* Here we have not reached to final destination, but we found the closest 
+     predecessor. routing table should have an entry only if its a finger. */
+    //GDS_Routing_add();
   }
   else
   {
@@ -1195,10 +1172,31 @@ handle_dht_p2p_trail_setup(void *cls, const struct GNUNET_PeerIdentity *peer,
   
   /* Send trail setup message to next hop friend. */
   pending = GNUNET_malloc (sizeof (struct P2PPendingMessage));
+  /*FIXME: This is wrong. Where do you copy the new trail_setup message to 
+   pending.*/
   GNUNET_CONTAINER_DLL_insert_tail (friend->head, friend->tail, pending);
   friend->pending_count++;
   process_friend_queue(friend);
   return GNUNET_YES;
+}
+
+
+/* Add an entry to finger table. */
+static 
+void finger_table_add(struct PeerTrailSetupResultMessage *result)
+{
+    /* Add the whole trail in your finger table, 
+     also add interval. */
+}
+
+
+/* Traverse the trail list to find the next hop to pass the result message. */
+static
+struct GNUNET_PeerIdentity *
+find_trail_list_next_hop(struct PeerTrailSetupResultMessage *trail_result)
+{
+    /* Setup the current_destination value to new next hop found. */
+    return NULL;
 }
 
 
@@ -1214,32 +1212,56 @@ static int
 handle_dht_p2p_trail_setup_result(void *cls, const struct GNUNET_PeerIdentity *peer,
                     const struct GNUNET_MessageHeader *message)
 {
-  /**
-   * Just read the linked list backwards and send the packet to next hop 
-   * till you don't reach the source
-   * but if you are source, then add an entry in finger table for given finger id.
-   * 
-   * 
-   */
-  //const struct PeerTrailSetupResultMessage *trail_result;
-  //trail_result = (const struct PeerTrailSetupResultMessage *) message;
-    
-  /*FIXME: This code is wrong, I am writing just to understand the flow,
-  if(trail_result->destination == message->destination)
+  /* FIXME: Should it be const? */
+  struct PeerTrailSetupResultMessage *trail_result;
+  struct GNUNET_PeerIdentity *next_hop;
+  struct FriendInfo *friend;
+  struct P2PPendingMessage *pending;
+  trail_result = (struct PeerTrailSetupResultMessage *) message;   
+ 
+  uint16_t msize;
+   
+  msize = ntohs (message->size);
+  if (msize < sizeof (struct PeerTrailSetupResultMessage))
   {
-    This condition holds true, then we should add an entry in our
-    routing table and store this finger and its trail. 
-    struct finger_info = with interval . 
-    GNUNET_multipeer_map_insert(finger_map)
-     * GDS_Routing_add();
-  }
+    GNUNET_break_op (0);
+    return GNUNET_YES;
+  }  
+  
+  /* This should always be the case. */
+  if( 0 == (GNUNET_CRYPTO_cmp_peer_identity(trail_result->current_destination,&my_identity)))
+  {
+    /* Am I the destination ? */
+    if( 0 == (GNUNET_CRYPTO_cmp_peer_identity(trail_result->destination_peer,&my_identity)))
+    {
+        /* I am the destination. Add the trail to my finger table. */
+        finger_table_add(trail_result);
+        return GNUNET_YES;
+    }
+    else
+    {
+      /* Find the next peer in the trail list to pass the message to. */
+      next_hop = find_trail_list_next_hop(trail_result);
+      
+      /* Find the struct FriendInfo for next_hop peer id. */
+      friend = GNUNET_CONTAINER_multipeermap_get(friend_peers,next_hop);
+      
+      /* Send trail setup result message to next hop friend. */
+      /*FIXME:
+       I have not yet written the code to copy struct trail message to
+       pending message. Also, before sending the message I need to check
+       the MAXIMUM_PENDNIG_PEER limit is not crossed. Modify the same part
+       of code for handle_dht_p2p_trail_setup. */
+      pending = GNUNET_malloc (sizeof (struct P2PPendingMessage));
+      GNUNET_CONTAINER_DLL_insert_tail (friend->head, friend->tail, pending);
+      friend->pending_count++;
+      process_friend_queue(friend);
+      
+      return GNUNET_YES;
+     }
+  }    
   else
-  {
-    Read the trail list, Check the next_hop and pass the packet to it. 
-    FIXME: Should we an entry in our own routing table. 
-  }*/
-    
-  return 0;
+    return GNUNET_SYSERR;
 }
 
 
@@ -1269,10 +1291,8 @@ GDS_NEIGHBOURS_init()
 
   friend_peers = GNUNET_CONTAINER_multipeermap_create (256, GNUNET_NO);
   finger_peers = GNUNET_CONTAINER_multipeermap_create (256, GNUNET_NO);
-
-
+  
   return GNUNET_OK;
-
 }
 
 
@@ -1313,7 +1333,7 @@ GDS_NEIGHBOURS_done ()
 struct GNUNET_PeerIdentity *
 GDS_NEIGHBOURS_get_id ()
 {
-    return &my_identity;
+  return &my_identity;
 }
 
 

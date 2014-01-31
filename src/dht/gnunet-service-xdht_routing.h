@@ -33,24 +33,12 @@
 
 /**
  * Add a new entry to our routing table.
- *
- * @param sender peer that originated the request
- * @param type type of the block
- * @param options options for processing
- * @param key key for the content
- * @param xquery extended query
- * @param xquery_size number of bytes in @a xquery
- * @param reply_bf bloomfilter to filter duplicates
- * @param reply_bf_mutator mutator for @a reply_bf
 */
 void
-GDS_ROUTING_add (const struct GNUNET_PeerIdentity *sender,
-                 enum GNUNET_BLOCK_Type type,
-                 enum GNUNET_DHT_RouteOption options,
-                 const struct GNUNET_HashCode * key, const void *xquery,
-                 size_t xquery_size,
-                 const struct GNUNET_CONTAINER_BloomFilter *reply_bf,
-                 uint32_t reply_bf_mutator);
+GDS_ROUTING_add (struct GNUNET_PeerIdentity *source,
+                 struct GNUNET_PeerIdentity *destination_peer,
+                 struct GNUNET_PeerIdentity *prev_hop,
+                 struct GNUNET_PeerIdentity *next_hop);
 
 
 /**

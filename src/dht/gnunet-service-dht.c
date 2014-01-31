@@ -145,7 +145,6 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   GDS_cfg = c;
-
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_time (c, "transport", "HELLO_EXPIRATION", &hello_expiration))
   {
