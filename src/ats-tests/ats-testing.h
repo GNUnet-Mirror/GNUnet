@@ -56,6 +56,14 @@ struct TrafficGenerator;
 
 struct LoggingHandle;
 
+enum TrafficGeneratorType
+{
+  GNUNET_ATS_TEST_LINEAR,
+  GNUNET_ATS_TEST_TG_CONSTANT,
+  GNUNET_ATS_TEST_RANDOM,
+  GNUNET_ATS_TEST_SINUS
+};
+
 
 /**
  * Callback to call when topology setup is completed
@@ -214,6 +222,8 @@ struct TrafficGenerator
 {
   struct TrafficGenerator *prev;
   struct TrafficGenerator *next;
+
+  enum TrafficGeneratorType type;
 
   struct BenchmarkPeer *src;
   struct BenchmarkPartner *dest;
@@ -529,6 +539,7 @@ GNUNET_ATS_TEST_traffic_handle_pong (struct BenchmarkPartner *p);
 struct TrafficGenerator *
 GNUNET_ATS_TEST_generate_traffic_start (struct BenchmarkPeer *src,
     struct BenchmarkPartner *dest,
+    enum TrafficGeneratorType type,
     unsigned int rate,
     struct GNUNET_TIME_Relative duration);
 

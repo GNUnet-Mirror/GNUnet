@@ -32,6 +32,28 @@ static struct TrafficGenerator *tg_tail;
 
 extern struct GNUNET_ATS_TEST_Topology *top;
 
+static struct GNUNET_TIME_Relative
+get_delay (struct TrafficGenerator *tg)
+{
+  struct GNUNET_TIME_Relative delay;
+  delay.rel_value_us = 0;
+
+  switch (tg->type) {
+    case GNUNET_ATS_TEST_TG_CONSTANT:
+      if (UINT32_MAX == tg->rate)
+        delay.rel_value_us = 0;
+      else if (tg->rate <= TEST_MESSAGE_SIZE)
+        delay.rel_value_us = (GNUNET_TIME_UNIT_SECONDS.rel_value_us);
+      else
+        delay.rel_value_us = (GNUNET_TIME_UNIT_SECONDS.rel_value_us / (tg->rate / TEST_MESSAGE_SIZE));
+      break;
+    default:
+      return delay;
+      break;
+  }
+  return delay;
+}
+
 static size_t
 send_ping_ready_cb (void *cls, size_t size, void *buf)
 {
@@ -86,7 +108,8 @@ send_ping_ready_cb (void *cls, size_t size, void *buf)
     GNUNET_break (0);
     return TEST_MESSAGE_SIZE;
   }
-  p->tg->next_ping_transmission = GNUNET_TIME_absolute_add(GNUNET_TIME_absolute_get(), p->tg->delta);
+  p->tg->next_ping_transmission = GNUNET_TIME_absolute_add(GNUNET_TIME_absolute_get(),
+      get_delay (p->tg));
 
   return TEST_MESSAGE_SIZE;
 }
@@ -209,15 +232,16 @@ GNUNET_ATS_TEST_traffic_handle_pong (struct BenchmarkPartner *p)
   }
 }
 
+
 /**
  * Generate between the source master and the partner and send traffic with a
  * maximum rate.
  *
  */
-
 struct TrafficGenerator *
 GNUNET_ATS_TEST_generate_traffic_start (struct BenchmarkPeer *src,
     struct BenchmarkPartner *dest,
+    enum TrafficGeneratorType type,
     unsigned int rate,
     struct GNUNET_TIME_Relative duration)
 {
@@ -232,15 +256,10 @@ GNUNET_ATS_TEST_generate_traffic_start (struct BenchmarkPeer *src,
 
   tg = GNUNET_new (struct TrafficGenerator);
   GNUNET_CONTAINER_DLL_insert (tg_head, tg_tail, tg);
+  tg->type = type;
   tg->src = src;
   tg->dest = dest;
   tg->rate = rate;
-  if (UINT32_MAX == rate)
-    tg->delta.rel_value_us = 0;
-  else if (rate <= TEST_MESSAGE_SIZE)
-    tg->delta.rel_value_us = (GNUNET_TIME_UNIT_SECONDS.rel_value_us);
-  else
-    tg->delta.rel_value_us = (GNUNET_TIME_UNIT_SECONDS.rel_value_us / (rate / TEST_MESSAGE_SIZE));
   tg->next_ping_transmission = GNUNET_TIME_UNIT_FOREVER_ABS;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,

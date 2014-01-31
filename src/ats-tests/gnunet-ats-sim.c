@@ -210,6 +210,7 @@ static void topology_setup_done (void *cls,
         /* Generate maximum traffic to all peers */
         GNUNET_ATS_TEST_generate_traffic_start (&masters[c_m],
             &masters[c_m].partners[c_s],
+            GNUNET_ATS_TEST_TG_CONSTANT,
             10000,
             GNUNET_TIME_UNIT_FOREVER_REL);
       }
