@@ -47,6 +47,15 @@ get_delay (struct TrafficGenerator *tg)
       else
         delay.rel_value_us = (GNUNET_TIME_UNIT_SECONDS.rel_value_us / (tg->rate / TEST_MESSAGE_SIZE));
       break;
+    case GNUNET_ATS_TEST_TG_LINEAR:
+      GNUNET_break (0);
+      break;
+    case GNUNET_ATS_TEST_TG_RANDOM:
+      GNUNET_break (0);
+      break;
+    case GNUNET_ATS_TEST_TG_SINUS:
+      GNUNET_break (0);
+      break;
     default:
       return delay;
       break;
