@@ -61,7 +61,12 @@ get_delay (struct TrafficGenerator *tg)
       GNUNET_break (0);
       break;
     case GNUNET_ATS_TEST_TG_SINUS:
-      GNUNET_break (0);
+      time_delta = GNUNET_TIME_absolute_get_duration(tg->time_start);
+      time_delta.rel_value_us = time_delta.rel_value_us % tg->duration_period.rel_value_us;
+      delta_rate = (tg->max_rate - tg->base_rate) *
+          sin ( (2 * M_PI) / ((double) tg->duration_period.rel_value_us) * time_delta.rel_value_us);
+      //fprintf (stderr, "delta_rate %i\n", delta_rate);
+      cur_rate = tg->base_rate + delta_rate;
       break;
     default:
       return delay;
@@ -128,8 +133,9 @@ send_ping_ready_cb (void *cls, size_t size, void *buf)
     return TEST_MESSAGE_SIZE;
   }
   delay = get_delay (p->tg);
+  /*
   fprintf (stderr, "Delay for next transmission %llu ms\n",
-      (long long unsigned int) delay.rel_value_us / 1000);
+      (long long unsigned int) delay.rel_value_us / 1000);*/
   p->tg->next_ping_transmission = GNUNET_TIME_absolute_add(GNUNET_TIME_absolute_get(),
       delay);
 
