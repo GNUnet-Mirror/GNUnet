@@ -227,10 +227,14 @@ struct TrafficGenerator
 
   struct BenchmarkPeer *src;
   struct BenchmarkPartner *dest;
-  unsigned int rate;
+
+  long int base_rate;
+  long int max_rate;
+  struct GNUNET_TIME_Relative duration_period;
+
   GNUNET_SCHEDULER_TaskIdentifier send_task;
   struct GNUNET_TIME_Absolute next_ping_transmission;
-  struct GNUNET_TIME_Relative delta;
+  struct GNUNET_TIME_Absolute time_start;
 };
 
 
@@ -540,7 +544,9 @@ struct TrafficGenerator *
 GNUNET_ATS_TEST_generate_traffic_start (struct BenchmarkPeer *src,
     struct BenchmarkPartner *dest,
     enum TrafficGeneratorType type,
-    unsigned int rate,
+    long int base_rate,
+    long int max_rate,
+    struct GNUNET_TIME_Relative period,
     struct GNUNET_TIME_Relative duration);
 
 void
