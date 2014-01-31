@@ -288,8 +288,6 @@ phone_event_handler (void *cls,
     GNUNET_CONTAINER_DLL_remove (cl_head,
                                  cl_tail,
                                  cl);
-    GNUNET_assert (caller_num_gen > 0);
-    caller_num_gen--;
     GNUNET_free (cl->caller_id);
     if (cl == cl_active)
     {
@@ -919,17 +917,11 @@ do_reject (const char *args)
                                  cl);
     GNUNET_free (cl->caller_id);
     GNUNET_free (cl);
-    GNUNET_assert (caller_num_gen > 0);
-    caller_num_gen--;
     break;
   case PS_ACCEPTED:
     /* expected state, do rejection logic */
     GNUNET_assert (NULL != cl_active);
     GNUNET_CONVERSATION_caller_hang_up (cl_active->caller);
-    GNUNET_free (cl_active->caller_id);
-    GNUNET_free (cl_active);
-    GNUNET_assert (caller_num_gen > 0);
-    caller_num_gen--;
     cl_active = NULL;
     phone_state = PS_LISTEN;
     break;
