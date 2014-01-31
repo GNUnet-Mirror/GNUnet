@@ -1,23 +1,32 @@
-.TH GNUNET\-RESOLVER 1 "Jan 4, 2012" "GNUnet"
+.TH GNUNET\-TESTING 1 "Jan 4, 2012" "GNUnet"
 
 .SH NAME
-gnunet\-resolver \- build-in GNUnet stub resolver
+gnunet\-testing \- Command line tool to access the testing library.
 
 .SH SYNOPSIS
-.B gnunet\-resolver
-.RI [ options ] [ hostname ]
+.B gnunet\-testing
+.RI [ options ]
 .br
 
 .SH DESCRIPTION
-\fBgnunet\-resolver\fP uses build-in GNUnet stub resolver.
+\fBgnunet\-testing\fP is a command line tool to access the testing library.
 
 .SH OPTIONS
+.B
+.IP "\-C,  \-\-cfg"
+Create unique configuration files.
 .B
 .IP "\-c FILENAME,  \-\-config=FILENAME"
 Use the configuration file FILENAME.
 .B
+.IP "\-H, \-\-hostkeys"
+Host key file.
+.B
 .IP "\-h, \-\-help"
 Print short help on options.
+.B
+.IP "\-k, \-\-key"
+Create hostkey files from pre-computed hostkey list.
 .B
 .IP "\-L LOGLEVEL, \-\-loglevel=LOGLEVEL"
 Use LOGLEVEL for logging.  Valid values are DEBUG, INFO, WARNING and ERROR.
@@ -25,8 +34,11 @@ Use LOGLEVEL for logging.  Valid values are DEBUG, INFO, WARNING and ERROR.
 .IP "\-l LOGFILE, \-\-logfile=LOGFILE"
 Configure logging to write logs to LOGFILE.
 .B
-.IP "\-r, \-\-reverse"
-Perform a reverse lookup.
+.IP "\-n, \-\-number"
+Number of unique configuration files or hostkeys to create.
+.B
+.IP "\-t, \-\-template"
+Configuration template.
 .B
 .IP "\-v, \-\-version"
 Print GNUnet version number.
