@@ -404,7 +404,6 @@ libgnunet_plugin_ats_proportional_init (void *cls)
 
   GNUNET_assert (NULL != env);
   GNUNET_assert(NULL != env->cfg);
-  GNUNET_assert(NULL != env->stats);
   GNUNET_assert(NULL != env->bandwidth_changed_cb);
   GNUNET_assert(NULL != env->get_preferences);
   GNUNET_assert(NULL != env->get_property);

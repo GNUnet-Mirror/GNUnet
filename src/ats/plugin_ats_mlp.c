@@ -1951,7 +1951,6 @@ libgnunet_plugin_ats_mlp_init (void *cls)
   long long unsigned int max_iterations;
 
   GNUNET_assert (NULL != env->cfg);
-  GNUNET_assert (NULL != env->stats);
   GNUNET_assert (NULL != env->addresses);
   GNUNET_assert (NULL != env->bandwidth_changed_cb);
   GNUNET_assert (NULL != env->get_preferences);
