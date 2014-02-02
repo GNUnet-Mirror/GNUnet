@@ -333,7 +333,7 @@ notify_ready (void *cls, size_t size, void *buf)
   while (size - ret >= s);
   if (n < TOTAL_MSGS)
   {
-    th = GNUNET_TRANSPORT_notify_transmit_ready (p2->th, &p1->id, s, 0,
+    th = GNUNET_TRANSPORT_notify_transmit_ready (p2->th, &p1->id, s,
                                                  TIMEOUT_TRANSMIT,
                                                  &notify_ready, NULL);
     msg_scheduled = n;
@@ -380,7 +380,7 @@ static void
 sendtask ()
 {
   start_time = GNUNET_TIME_absolute_get ();
-  th = GNUNET_TRANSPORT_notify_transmit_ready (p2->th, &p1->id, get_size (0), 0,
+  th = GNUNET_TRANSPORT_notify_transmit_ready (p2->th, &p1->id, get_size (0),
                                                TIMEOUT_TRANSMIT, &notify_ready,
                                                NULL);
 }

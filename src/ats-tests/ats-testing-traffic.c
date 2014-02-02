@@ -77,6 +77,7 @@ get_delay (struct TrafficGenerator *tg)
   return delay;
 }
 
+
 static size_t
 send_ping_ready_cb (void *cls, size_t size, void *buf)
 {
@@ -96,24 +97,24 @@ send_ping_ready_cb (void *cls, size_t size, void *buf)
     return 0;
   }
 
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Master [%u]: Sending PING to [%u]\n",
-      p->me->no, p->dest->no);
-
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Master [%u]: Sending PING to [%u]\n",
+             p->me->no, p->dest->no);
   if (top->test_core)
   {
-      if (NULL == p->cth)
-      {
-        GNUNET_break (0);
-      }
-      p->cth = NULL;
+    if (NULL == p->cth)
+    {
+      GNUNET_break (0);
+    }
+    p->cth = NULL;
   }
   else
   {
-      if (NULL == p->tth)
-      {
-        GNUNET_break (0);
-      }
-      p->tth = NULL;
+    if (NULL == p->tth)
+    {
+      GNUNET_break (0);
+    }
+    p->tth = NULL;
   }
 
   msg = (struct GNUNET_MessageHeader *) &msgbuf;
@@ -145,29 +146,31 @@ send_ping_ready_cb (void *cls, size_t size, void *buf)
 
 static void
 comm_schedule_send (void *cls,
-    const struct GNUNET_SCHEDULER_TaskContext* tc)
+                    const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct BenchmarkPartner *p = cls;
 
   p->tg->send_task = GNUNET_SCHEDULER_NO_TASK;
-
   p->last_message_sent = GNUNET_TIME_absolute_get();
   if (GNUNET_YES == top->test_core)
   {
-    p->cth = GNUNET_CORE_notify_transmit_ready (
-      p->me->ch, GNUNET_NO,
-      GNUNET_CORE_PRIO_BEST_EFFORT,
-      GNUNET_TIME_UNIT_MINUTES, &p->dest->id,
-      TEST_MESSAGE_SIZE, &send_ping_ready_cb, p);
+    p->cth = GNUNET_CORE_notify_transmit_ready (p->me->ch, GNUNET_NO,
+                                                GNUNET_CORE_PRIO_BEST_EFFORT,
+                                                GNUNET_TIME_UNIT_MINUTES,
+                                                &p->dest->id,
+                                                TEST_MESSAGE_SIZE,
+                                                &send_ping_ready_cb, p);
   }
   else
   {
-    p->tth = GNUNET_TRANSPORT_notify_transmit_ready (
-      p->me->th, &p->dest->id, TEST_MESSAGE_SIZE, 0,GNUNET_TIME_UNIT_MINUTES,
-      &send_ping_ready_cb, p);
+    p->tth = GNUNET_TRANSPORT_notify_transmit_ready (p->me->th,
+                                                     &p->dest->id,
+                                                     TEST_MESSAGE_SIZE,
+                                                     GNUNET_TIME_UNIT_MINUTES,
+                                                     &send_ping_ready_cb, p);
   }
-
 }
+
 
 static size_t
 comm_send_pong_ready (void *cls, size_t size, void *buf)
@@ -223,10 +226,11 @@ GNUNET_ATS_TEST_traffic_handle_ping (struct BenchmarkPartner *p)
   {
     GNUNET_assert (NULL == p->tth);
     p->tth = GNUNET_TRANSPORT_notify_transmit_ready (p->me->th, &p->dest->id,
-        TEST_MESSAGE_SIZE, 0, GNUNET_TIME_UNIT_MINUTES, &comm_send_pong_ready,
+        TEST_MESSAGE_SIZE, GNUNET_TIME_UNIT_MINUTES, &comm_send_pong_ready,
         p);
   }
 }
+
 
 void
 GNUNET_ATS_TEST_traffic_handle_pong (struct BenchmarkPartner *p)
@@ -265,9 +269,8 @@ GNUNET_ATS_TEST_traffic_handle_pong (struct BenchmarkPartner *p)
  * Generate between the source master and the partner and send traffic with a
  * maximum rate.
  *
- * @base_rate traffic base rate to send data with
- * @max_rate  traffic maximum rate to send data with
- * @frequency
+ * @param base_rate traffic base rate to send data with
+ * @param max_rate  traffic maximum rate to send data with
  */
 struct TrafficGenerator *
 GNUNET_ATS_TEST_generate_traffic_start (struct BenchmarkPeer *src,
@@ -278,8 +281,7 @@ GNUNET_ATS_TEST_generate_traffic_start (struct BenchmarkPeer *src,
     struct GNUNET_TIME_Relative period,
     struct GNUNET_TIME_Relative duration)
 {
-  struct TrafficGenerator * tg;
-  tg = NULL;
+  struct TrafficGenerator *tg;
 
   if (NULL != dest->tg)
   {
@@ -318,10 +320,10 @@ GNUNET_ATS_TEST_generate_traffic_start (struct BenchmarkPeer *src,
   return tg;
 }
 
+
 void
 GNUNET_ATS_TEST_generate_traffic_stop (struct TrafficGenerator *tg)
 {
-
   GNUNET_CONTAINER_DLL_remove (tg_head, tg_tail, tg);
   tg->dest->tg = NULL;
 
@@ -332,22 +334,23 @@ GNUNET_ATS_TEST_generate_traffic_stop (struct TrafficGenerator *tg)
   }
   if (top->test_core)
   {
-      if (NULL != tg->dest->cth)
-      {
-          GNUNET_CORE_notify_transmit_ready_cancel (tg->dest->cth);
-          tg->dest->cth = NULL;
-      }
+    if (NULL != tg->dest->cth)
+    {
+      GNUNET_CORE_notify_transmit_ready_cancel (tg->dest->cth);
+      tg->dest->cth = NULL;
+    }
   }
   else
   {
-      if (NULL != tg->dest->tth)
-      {
-          GNUNET_TRANSPORT_notify_transmit_ready_cancel (tg->dest->tth);
-          tg->dest->tth = NULL;
-      }
+    if (NULL != tg->dest->tth)
+    {
+      GNUNET_TRANSPORT_notify_transmit_ready_cancel (tg->dest->tth);
+      tg->dest->tth = NULL;
+    }
   }
   GNUNET_free (tg);
 }
+
 
 /**
  * Stop all traffic generators

@@ -275,7 +275,7 @@ process_queue (struct Neighbour *n)
               (unsigned int) m->size, GNUNET_i2s (&n->peer),
               GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_remaining (m->deadline), GNUNET_NO));
   n->th =
-      GNUNET_TRANSPORT_notify_transmit_ready (transport, &n->peer, m->size, 0,
+      GNUNET_TRANSPORT_notify_transmit_ready (transport, &n->peer, m->size,
                                               GNUNET_TIME_absolute_get_remaining
                                               (m->deadline), &transmit_ready,
                                               n);

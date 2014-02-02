@@ -238,7 +238,7 @@ sendtask (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
               p2->no, GNUNET_i2s (&p2->id), p1->no, receiver_s);
   GNUNET_free (receiver_s);
   s_sending = GNUNET_YES;
-  th = GNUNET_TRANSPORT_notify_transmit_ready (p2->th, &p1->id, TEST_MESSAGE_SIZE, 0,
+  th = GNUNET_TRANSPORT_notify_transmit_ready (p2->th, &p1->id, TEST_MESSAGE_SIZE,
                                                TIMEOUT_TRANSMIT, &notify_ready,
                                                p1);
 }

@@ -714,8 +714,10 @@ transmit_data (void *cls, size_t size, void *buf)
   m->type = ntohs (GNUNET_MESSAGE_TYPE_DUMMY);
   memset (&m[1], 52, size - sizeof(struct GNUNET_MessageHeader));
   traffic_sent += size;
-  th = GNUNET_TRANSPORT_notify_transmit_ready (handle, &pid, BLOCKSIZE * 1024,
-      0, GNUNET_TIME_UNIT_FOREVER_REL, &transmit_data, NULL );
+  th = GNUNET_TRANSPORT_notify_transmit_ready (handle, &pid,
+                                               BLOCKSIZE * 1024,
+                                               GNUNET_TIME_UNIT_FOREVER_REL,
+                                               &transmit_data, NULL );
   if (verbosity > 0)
     FPRINTF (stdout, _("Transmitting %u bytes to %s\n"), (unsigned int) size,
         GNUNET_i2s (&pid));
@@ -767,8 +769,10 @@ notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
     start_time = GNUNET_TIME_absolute_get ();
     if (NULL == th)
       th = GNUNET_TRANSPORT_notify_transmit_ready (handle, peer,
-          BLOCKSIZE * 1024, 0, GNUNET_TIME_UNIT_FOREVER_REL, &transmit_data,
-          NULL );
+                                                   BLOCKSIZE * 1024,
+                                                   GNUNET_TIME_UNIT_FOREVER_REL,
+                                                   &transmit_data,
+                                                   NULL);
     else
       GNUNET_break(0);
     return;

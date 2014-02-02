@@ -202,9 +202,10 @@ sendtask (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if ((tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) != 0)
     return;
 
-  th = GNUNET_TRANSPORT_notify_transmit_ready (p1->th, &p2->id, 256, 0, TIMEOUT,
+  th = GNUNET_TRANSPORT_notify_transmit_ready (p1->th, &p2->id, 256, TIMEOUT,
                                                &notify_ready, &p1);
 }
+
 
 static void
 testing_connect_cb (struct PeerContext *p1, struct PeerContext *p2, void *cls)

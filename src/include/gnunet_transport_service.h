@@ -41,7 +41,7 @@ extern "C"
 /**
  * Version number of the transport API.
  */
-#define GNUNET_TRANSPORT_VERSION 0x00000000
+#define GNUNET_TRANSPORT_VERSION 0x00000001
 
 
 /**
@@ -451,6 +451,22 @@ struct GNUNET_TRANSPORT_TransmitHandle;
 
 
 /**
+ * Function called to notify a client about the connection begin ready
+ * to queue more data.  @a buf will be NULL and @a size zero if the
+ * connection was closed for writing in the meantime.
+ *
+ * @param cls closure
+ * @param size number of bytes available in @a buf
+ * @param buf where the callee should write the message
+ * @return number of bytes written to @a buf
+ */
+typedef size_t
+(*GNUNET_TRANSPORT_TransmitReadyNotify) (void *cls,
+                                         size_t size,
+                                         void *buf);
+
+
+/**
  * Check if we could queue a message of the given size for
  * transmission.  The transport service will take both its internal
  * buffers and bandwidth limits imposed by the other peer into
@@ -459,7 +475,6 @@ struct GNUNET_TRANSPORT_TransmitHandle;
  * @param handle connection to transport service
  * @param target who should receive the message
  * @param size how big is the message we want to transmit?
- * @param priority how important is the message? @deprecated - remove?
  * @param timeout after how long should we give up (and call
  *        notify with buf NULL and size 0)?
  * @param notify function to call when we are ready to
@@ -473,9 +488,8 @@ struct GNUNET_TRANSPORT_TransmitHandle *
 GNUNET_TRANSPORT_notify_transmit_ready (struct GNUNET_TRANSPORT_Handle *handle,
                                         const struct GNUNET_PeerIdentity *target,
                                         size_t size,
-                                        uint32_t priority,
                                         struct GNUNET_TIME_Relative timeout,
-                                        GNUNET_CONNECTION_TransmitReadyNotify notify,
+                                        GNUNET_TRANSPORT_TransmitReadyNotify notify,
                                         void *notify_cls);
 
 

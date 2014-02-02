@@ -285,14 +285,14 @@ struct OutboundMessage
 {
 
   /**
-   * Type will be GNUNET_MESSAGE_TYPE_TRANSPORT_SEND
+   * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_SEND
    */
   struct GNUNET_MessageHeader header;
 
   /**
-   * Message priority.
+   * Always zero.
    */
-  uint32_t priority GNUNET_PACKED;
+  uint32_t reserved GNUNET_PACKED;
 
   /**
    * Allowed delay.

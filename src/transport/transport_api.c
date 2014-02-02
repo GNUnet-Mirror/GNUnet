@@ -68,7 +68,7 @@ struct GNUNET_TRANSPORT_TransmitHandle
    * Function to call when notify_size bytes are available
    * for transmission.
    */
-  GNUNET_CONNECTION_TransmitReadyNotify notify;
+  GNUNET_TRANSPORT_TransmitReadyNotify notify;
 
   /**
    * Closure for notify.
@@ -90,11 +90,6 @@ struct GNUNET_TRANSPORT_TransmitHandle
    * How many bytes is our notify callback waiting for?
    */
   size_t notify_size;
-
-  /**
-   * How important is this message? Not used for control messages.
-   */
-  uint32_t priority;
 
 };
 
@@ -820,7 +815,7 @@ transport_notify_ready (void *cls, size_t size, void *buf)
                      GNUNET_SERVER_MAX_MESSAGE_SIZE);
       obm.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SEND);
       obm.header.size = htons (mret + sizeof (struct OutboundMessage));
-      obm.priority = htonl (th->priority);
+      obm.reserved = htonl (0);
       obm.timeout =
           GNUNET_TIME_relative_hton (GNUNET_TIME_absolute_get_remaining
                                      (th->timeout));
@@ -888,7 +883,8 @@ schedule_transmission_task (void *cls,
       return;                   /* no pending messages */
     size = n->th->notify_size + sizeof (struct OutboundMessage);
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Calling notify_transmit_ready\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Calling notify_transmit_ready\n");
   h->cth =
       GNUNET_CLIENT_notify_transmit_ready (h->client, size,
                                            GNUNET_TIME_UNIT_FOREVER_REL,
@@ -947,7 +943,7 @@ schedule_transmission (struct GNUNET_TRANSPORT_Handle *h)
  */
 static struct GNUNET_TRANSPORT_TransmitHandle *
 schedule_control_transmit (struct GNUNET_TRANSPORT_Handle *h, size_t size,
-                           GNUNET_CONNECTION_TransmitReadyNotify notify,
+                           GNUNET_TRANSPORT_TransmitReadyNotify notify,
                            void *notify_cls)
 {
   struct GNUNET_TRANSPORT_TransmitHandle *th;
@@ -1035,7 +1031,8 @@ reconnect (void *cls,
   h->client = GNUNET_CLIENT_connect ("transport", h->cfg);
 
   GNUNET_assert (NULL != h->client);
-  schedule_control_transmit (h, sizeof (struct StartMessage), &send_start, h);
+  schedule_control_transmit (h, sizeof (struct StartMessage),
+                             &send_start, h);
 }
 
 
@@ -1332,7 +1329,8 @@ GNUNET_TRANSPORT_set_traffic_metric (struct GNUNET_TRANSPORT_Handle *handle,
   msg->ats_count = htons (ats_count);
   msg->peer = (*peer);
   memcpy (&msg[1], ats, ats_count * sizeof (struct GNUNET_ATS_Information));
-  schedule_control_transmit (handle, len, &send_metric, msg);
+  schedule_control_transmit (handle, len,
+                             &send_metric, msg);
 }
 
 
@@ -1385,7 +1383,8 @@ GNUNET_TRANSPORT_offer_hello (struct GNUNET_TRANSPORT_Handle *handle,
   ohh->cont = cont;
   ohh->cls = cls;
   ohh->msg = msg;
-  ohh->tth = schedule_control_transmit (handle, size, &send_hello, ohh);
+  ohh->tth = schedule_control_transmit (handle, size,
+                                        &send_hello, ohh);
   GNUNET_CONTAINER_DLL_insert (handle->oh_head, handle->oh_tail, ohh);
   return ohh;
 }
@@ -1542,7 +1541,7 @@ GNUNET_TRANSPORT_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
   ret->ready_heap =
       GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
  schedule_control_transmit (ret, sizeof (struct StartMessage),
-                             &send_start, ret);
+                            &send_start, ret);
   return ret;
 }
 
@@ -1594,7 +1593,6 @@ GNUNET_TRANSPORT_disconnect (struct GNUNET_TRANSPORT_Handle *handle)
  * @param handle connection to transport service
  * @param target who should receive the message
  * @param size how big is the message we want to transmit?
- * @param priority how important is the message?
  * @param timeout after how long should we give up (and call
  *        notify with buf NULL and size 0)?
  * @param notify function to call when we are ready to
@@ -1607,9 +1605,9 @@ GNUNET_TRANSPORT_disconnect (struct GNUNET_TRANSPORT_Handle *handle)
 struct GNUNET_TRANSPORT_TransmitHandle *
 GNUNET_TRANSPORT_notify_transmit_ready (struct GNUNET_TRANSPORT_Handle *handle,
                                         const struct GNUNET_PeerIdentity *target,
-                                        size_t size, uint32_t priority,
+                                        size_t size,
                                         struct GNUNET_TIME_Relative timeout,
-                                        GNUNET_CONNECTION_TransmitReadyNotify notify,
+                                        GNUNET_TRANSPORT_TransmitReadyNotify notify,
                                         void *notify_cls)
 {
   struct Neighbour *n;
@@ -1637,7 +1635,6 @@ GNUNET_TRANSPORT_notify_transmit_ready (struct GNUNET_TRANSPORT_Handle *handle,
   th->notify_cls = notify_cls;
   th->timeout = GNUNET_TIME_relative_to_absolute (timeout);
   th->notify_size = size;
-  th->priority = priority;
   n->th = th;
   /* calculate when our transmission should be ready */
   delay = GNUNET_BANDWIDTH_tracker_get_delay (&n->out_tracker, size + n->traffic_overhead);

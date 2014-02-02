@@ -214,7 +214,7 @@ sendtask_request_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   s_sending = GNUNET_YES;
  	start_request = GNUNET_TIME_absolute_get();
-  th = GNUNET_TRANSPORT_notify_transmit_ready (p1->th, &p2->id, TEST_MESSAGE_SIZE, 0,
+  th = GNUNET_TRANSPORT_notify_transmit_ready (p1->th, &p2->id, TEST_MESSAGE_SIZE,
                                                TIMEOUT_TRANSMIT, &notify_request_ready,
                                                p2);
 }
@@ -274,7 +274,7 @@ sendtask_response_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
 
   s_sending = GNUNET_YES;
  	start_response = GNUNET_TIME_absolute_get();
-  th = GNUNET_TRANSPORT_notify_transmit_ready (p2->th, &p1->id, TEST_MESSAGE_SIZE, 0,
+  th = GNUNET_TRANSPORT_notify_transmit_ready (p2->th, &p1->id, TEST_MESSAGE_SIZE,
                                                TIMEOUT_TRANSMIT, &notify_response_ready,
                                                p1);
 }
