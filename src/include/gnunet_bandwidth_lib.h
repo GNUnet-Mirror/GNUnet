@@ -59,8 +59,8 @@ GNUNET_NETWORK_STRUCT_END
  *
  * @param cls a closure to pass
  */
-void
-typedef (*GNUNET_BANDWIDTH_tracker_update_cb) (void *cls);
+typedef void
+(*GNUNET_BANDWIDTH_tracker_update_cb) (void *cls);
 
 
 /**
@@ -72,8 +72,15 @@ typedef (*GNUNET_BANDWIDTH_tracker_update_cb) (void *cls);
  */
 struct GNUNET_BANDWIDTH_Tracker
 {
+  /**
+   * Closure for @e update_cb.
+   */
   void *update_cb_cls;
 
+  /**
+   * Function we call if the tracker's bandwidth is increased and a
+   * previously returned timeout might now expire earlier.
+   */
   GNUNET_BANDWIDTH_tracker_update_cb update_cb;
 
   /**

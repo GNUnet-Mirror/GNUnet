@@ -366,7 +366,6 @@ typedef void
  *      NULL for disconnect notification in monitor mode
  * @param valid_until when does this address expire
  * @param next_validation time of the next validation operation
- *
  */
 typedef void
 (*GNUNET_TRANSPORT_ValidationIterateCallback) (void *cls,
@@ -398,6 +397,49 @@ GNUNET_TRANSPORT_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
                           GNUNET_TRANSPORT_ReceiveCallback rec,
                           GNUNET_TRANSPORT_NotifyConnect nc,
                           GNUNET_TRANSPORT_NotifyDisconnect nd);
+
+
+/**
+ * Function called if we have "excess" bandwidth to a peer.
+ * The notification will happen the first time we have excess
+ * bandwidth, and then only again after the client has performed
+ * some transmission to the peer.
+ *
+ * Excess bandwidth is defined as being allowed (by ATS) to send
+ * more data, and us reaching the limit of the capacity build-up
+ * (which, if we go past it, means we don't use available bandwidth).
+ * See also the "max carry" in `struct GNUNET_BANDWIDTH_Tracker`.
+ *
+ * @param cls the closure
+ * @param peer peer that we have excess bandwidth to
+ */
+typedef void
+(*GNUNET_TRANSPORT_NotifyExcessBandwidth)(void *cls,
+                                          const struct GNUNET_PeerIdentity *neighbour);
+
+
+/**
+ * Connect to the transport service.  Note that the connection may
+ * complete (or fail) asynchronously.
+ *
+ * @param cfg configuration to use
+ * @param self our own identity (API should check that it matches
+ *             the identity found by transport), or NULL (no check)
+ * @param cls closure for the callbacks
+ * @param rec receive function to call, or NULL
+ * @param nc function to call on connect events, or NULL
+ * @param nd function to call on disconnect events, or NULL
+ * @param neb function to call if we have excess bandwidth to a peer
+ * @return NULL on error
+ */
+struct GNUNET_TRANSPORT_Handle *
+GNUNET_TRANSPORT_connect2 (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                           const struct GNUNET_PeerIdentity *self,
+                           void *cls,
+                           GNUNET_TRANSPORT_ReceiveCallback rec,
+                           GNUNET_TRANSPORT_NotifyConnect nc,
+                           GNUNET_TRANSPORT_NotifyDisconnect nd,
+                           GNUNET_TRANSPORT_NotifyExcessBandwidth neb);
 
 
 /**

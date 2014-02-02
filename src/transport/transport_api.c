@@ -268,6 +268,11 @@ struct GNUNET_TRANSPORT_Handle
   GNUNET_TRANSPORT_NotifyDisconnect nd_cb;
 
   /**
+   * function to call on excess bandwidth events
+   */
+  GNUNET_TRANSPORT_NotifyExcessBandwidth neb_cb;
+
+  /**
    * Head of DLL of control messages.
    */
   struct GNUNET_TRANSPORT_TransmitHandle *control_head;
@@ -1505,6 +1510,7 @@ GNUNET_TRANSPORT_get_hello_cancel (struct GNUNET_TRANSPORT_GetHelloHandle *ghh)
  * @param rec receive function to call
  * @param nc function to call on connect events
  * @param nd function to call on disconnect events
+ * @return NULL on error
  */
 struct GNUNET_TRANSPORT_Handle *
 GNUNET_TRANSPORT_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
@@ -1512,6 +1518,33 @@ GNUNET_TRANSPORT_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
                           GNUNET_TRANSPORT_ReceiveCallback rec,
                           GNUNET_TRANSPORT_NotifyConnect nc,
                           GNUNET_TRANSPORT_NotifyDisconnect nd)
+{
+  return GNUNET_TRANSPORT_connect2 (cfg, self, cls,
+                                    rec, nc, nd, NULL);
+}
+
+
+/**
+ * Connect to the transport service.  Note that the connection may
+ * complete (or fail) asynchronously.
+ *
+ * @param cfg configuration to use
+ * @param self our own identity (API should check that it matches
+ *             the identity found by transport), or NULL (no check)
+ * @param cls closure for the callbacks
+ * @param rec receive function to call
+ * @param nc function to call on connect events
+ * @param nd function to call on disconnect events
+ * @param neb function to call if we have excess bandwidth to a peer
+ * @return NULL on error
+ */
+struct GNUNET_TRANSPORT_Handle *
+GNUNET_TRANSPORT_connect2 (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                           const struct GNUNET_PeerIdentity *self, void *cls,
+                           GNUNET_TRANSPORT_ReceiveCallback rec,
+                           GNUNET_TRANSPORT_NotifyConnect nc,
+                           GNUNET_TRANSPORT_NotifyDisconnect nd,
+                           GNUNET_TRANSPORT_NotifyExcessBandwidth neb)
 {
   struct GNUNET_TRANSPORT_Handle *ret;
 
@@ -1526,6 +1559,7 @@ GNUNET_TRANSPORT_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
   ret->rec = rec;
   ret->nc_cb = nc;
   ret->nd_cb = nd;
+  ret->neb_cb = neb;
   ret->reconnect_delay = GNUNET_TIME_UNIT_ZERO;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Connecting to transport service.\n");
