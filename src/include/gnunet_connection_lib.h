@@ -273,18 +273,19 @@ GNUNET_CONNECTION_receive_cancel (struct GNUNET_CONNECTION_Handle *connection);
 
 
 /**
- * Function called to notify a client about the connection
- * begin ready to queue more data.  "buf" will be
- * NULL and "size" zero if the connection was closed for
- * writing in the meantime.
+ * Function called to notify a client about the connection begin ready
+ * to queue more data.  @a buf will be NULL and @a size zero if the
+ * connection was closed for writing in the meantime.
  *
  * @param cls closure
- * @param size number of bytes available in buf
+ * @param size number of bytes available in @a buf
  * @param buf where the callee should write the message
- * @return number of bytes written to buf
+ * @return number of bytes written to @a buf
  */
-typedef size_t (*GNUNET_CONNECTION_TransmitReadyNotify) (void *cls, size_t size,
-                                                         void *buf);
+typedef size_t
+(*GNUNET_CONNECTION_TransmitReadyNotify) (void *cls,
+                                          size_t size,
+                                          void *buf);
 
 
 /**
@@ -298,7 +299,7 @@ struct GNUNET_CONNECTION_TransmitHandle;
  * are free in the transmission buffer.  May call the notify
  * method immediately if enough space is available.  Note that
  * this function will abort if "size" is greater than
- * GNUNET_SERVER_MAX_MESSAGE_SIZE.
+ * #GNUNET_SERVER_MAX_MESSAGE_SIZE.
  *
  * Note that "notify" will be called either when enough
  * buffer space is available OR when the connection is destroyed.
