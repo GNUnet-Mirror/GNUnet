@@ -264,7 +264,8 @@ start_benchmark()
       for (c_s = 0; c_s < num_slaves; c_s++)
       {
         GNUNET_ATS_TEST_generate_traffic_start (&mps[c_m], &mps[c_m].partners[c_s],
-            UINT32_MAX, GNUNET_TIME_UNIT_FOREVER_REL);
+            GNUNET_ATS_TEST_TG_LINEAR, UINT32_MAX, UINT32_MAX,
+            GNUNET_TIME_UNIT_MINUTES, GNUNET_TIME_UNIT_FOREVER_REL);
       }
       if (pref_val != GNUNET_ATS_PREFERENCE_END)
         mps[c_m].ats_task = GNUNET_SCHEDULER_add_now(&ats_pref_task, &mps[c_m]);
