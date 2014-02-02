@@ -279,9 +279,7 @@ endif
 
 
 if ENABLE_TEST_RUN
-TESTS_ENVIRONMENT=export GNUNET_PREFIX=@libdir@;\
- export PATH=@prefix@/bin:$$PATH;\
- $(MONKEY)
+AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PATH=$${GNUNET_PREFIX:-@prefix@}/bin:$$PATH; $(MONKEY)
 TESTS = \
  test_fs_directory \
  test_fs_download \

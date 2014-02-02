@@ -48,7 +48,7 @@ check_PROGRAMS = \
 
 if HAVE_MHD
 if ENABLE_TEST_RUN
-TESTS_ENVIRONMENT=export GNUNET_PREFIX=@libdir@;export PATH=@prefix@/bin:$$PATH;
+AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PATH=$${GNUNET_PREFIX:-@prefix@}/bin:$$PATH;
 TESTS = \
  test_gnunet_daemon_hostlist \
  test_gnunet_daemon_hostlist_reconnect \

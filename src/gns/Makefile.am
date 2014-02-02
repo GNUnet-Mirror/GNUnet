@@ -277,7 +277,7 @@ check_SCRIPTS = \
 
 if ENABLE_TEST_RUN
 if HAVE_SQLITE
- TESTS_ENVIRONMENT=export GNUNET_PREFIX=@libdir@;export PATH=@prefix@/bin:$$PATH;
+ AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PATH=$${GNUNET_PREFIX:-@prefix@}/bin:$$PATH;
  TESTS = $(check_SCRIPTS)
 endif
 endif

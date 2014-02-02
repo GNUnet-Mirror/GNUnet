@@ -77,7 +77,7 @@ check_PROGRAMS = \
  test_consensus_api
 
 if ENABLE_TEST_RUN
-TESTS_ENVIRONMENT=export GNUNET_PREFIX=@libdir@;export PATH=@prefix@/bin:$$PATH;
+AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PATH=$${GNUNET_PREFIX:-@prefix@}/bin:$$PATH;
 TESTS = $(check_PROGRAMS)
 endif
 
