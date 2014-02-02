@@ -135,7 +135,9 @@ struct Plugin
  * @return 0 on success
  */
 static int
-sq_prepare (sqlite3 * dbh, const char *zSql, sqlite3_stmt ** ppStmt)
+sq_prepare (sqlite3 *dbh,
+            const char *zSql,
+            sqlite3_stmt **ppStmt)
 {
   char *dummy;
   int result;
@@ -211,7 +213,7 @@ create_indices (sqlite3 * dbh)
  *
  * @param cfg our configuration
  * @param plugin the plugin context (state for this module)
- * @return GNUNET_OK on success
+ * @return #GNUNET_OK on success
  */
 static int
 database_setup (const struct GNUNET_CONFIGURATION_Handle *cfg,
@@ -365,6 +367,7 @@ database_setup (const struct GNUNET_CONFIGURATION_Handle *cfg,
 /**
  * Shutdown database connection and associate data
  * structures.
+ *
  * @param plugin the plugin context (state for this module)
  */
 static void
@@ -428,7 +431,8 @@ database_shutdown (struct Plugin *plugin)
  * @param rid the ID of the row to delete
  */
 static int
-delete_by_rowid (struct Plugin *plugin, unsigned long long rid)
+delete_by_rowid (struct Plugin *plugin,
+                 unsigned long long rid)
 {
   if (SQLITE_OK != sqlite3_bind_int64 (plugin->delRow, 1, rid))
   {
@@ -462,7 +466,7 @@ delete_by_rowid (struct Plugin *plugin, unsigned long long rid)
  *
  * @param cls closure
  * @param key key for the item
- * @param size number of bytes in data
+ * @param size number of bytes in @a data
  * @param data content stored
  * @param type type of the content
  * @param priority priority of the content
@@ -473,10 +477,16 @@ delete_by_rowid (struct Plugin *plugin, unsigned long long rid)
  * @return #GNUNET_OK on success
  */
 static int
-sqlite_plugin_put (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
-                   const void *data, enum GNUNET_BLOCK_Type type,
-                   uint32_t priority, uint32_t anonymity, uint32_t replication,
-                   struct GNUNET_TIME_Absolute expiration, char **msg)
+sqlite_plugin_put (void *cls,
+                   const struct GNUNET_HashCode *key,
+                   uint32_t size,
+                   const void *data,
+                   enum GNUNET_BLOCK_Type type,
+                   uint32_t priority,
+                   uint32_t anonymity,
+                   uint32_t replication,
+                   struct GNUNET_TIME_Absolute expiration,
+                   char **msg)
 {
   struct Plugin *plugin = cls;
   int n;
@@ -574,11 +584,14 @@ sqlite_plugin_put (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
  *     MAX of any existing expiration time and
  *     this value
  * @param msg set to an error message
- * @return GNUNET_OK on success
+ * @return #GNUNET_OK on success
  */
 static int
-sqlite_plugin_update (void *cls, uint64_t uid, int delta,
-                      struct GNUNET_TIME_Absolute expire, char **msg)
+sqlite_plugin_update (void *cls,
+                      uint64_t uid,
+                      int delta,
+                      struct GNUNET_TIME_Absolute expire,
+                      char **msg)
 {
   struct Plugin *plugin = cls;
   int n;
@@ -624,11 +637,13 @@ sqlite_plugin_update (void *cls, uint64_t uid, int delta,
  * @param plugin the plugin
  * @param stmt the statement
  * @param proc processor to call
- * @param proc_cls closure for 'proc'
+ * @param proc_cls closure for @a proc
  */
 static void
-execute_get (struct Plugin *plugin, sqlite3_stmt * stmt,
-             PluginDatumProcessor proc, void *proc_cls)
+execute_get (struct Plugin *plugin,
+             sqlite3_stmt *stmt,
+             PluginDatumProcessor proc,
+             void *proc_cls)
 {
   int n;
   struct GNUNET_TIME_Absolute expiration;
@@ -645,8 +660,7 @@ execute_get (struct Plugin *plugin, sqlite3_stmt * stmt,
     if (sqlite3_column_bytes (stmt, 4) != sizeof (struct GNUNET_HashCode))
     {
       GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, "sqlite",
-                       _
-                       ("Invalid data in database.  Trying to fix (by deletion).\n"));
+                       _("Invalid data in database.  Trying to fix (by deletion).\n"));
       if (SQLITE_OK != sqlite3_reset (stmt))
         LOG_SQLITE (plugin, NULL,
                     GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
@@ -703,7 +717,6 @@ execute_get (struct Plugin *plugin, sqlite3_stmt * stmt,
 }
 
 
-
 /**
  * Select a subset of the items in the datastore and call
  * the given processor for the item.
@@ -715,7 +728,7 @@ execute_get (struct Plugin *plugin, sqlite3_stmt * stmt,
  *        Use 0 for any type.
  * @param proc function to call on each matching value;
  *        will be called once with a NULL value at the end
- * @param proc_cls closure for proc
+ * @param proc_cls closure for @a proc
  */
 static void
 sqlite_plugin_get_zero_anonymity (void *cls, uint64_t offset,
@@ -743,7 +756,6 @@ sqlite_plugin_get_zero_anonymity (void *cls, uint64_t offset,
 }
 
 
-
 /**
  * Get results for a particular key in the datastore.
  *
@@ -759,12 +771,15 @@ sqlite_plugin_get_zero_anonymity (void *cls, uint64_t offset,
  *     Use 0 for any type.
  * @param proc function to call on each matching value;
  *        will be called once with a NULL value at the end
- * @param proc_cls closure for proc
+ * @param proc_cls closure for @a proc
  */
 static void
-sqlite_plugin_get_key (void *cls, uint64_t offset, const struct GNUNET_HashCode * key,
-                       const struct GNUNET_HashCode * vhash,
-                       enum GNUNET_BLOCK_Type type, PluginDatumProcessor proc,
+sqlite_plugin_get_key (void *cls,
+                       uint64_t offset,
+                       const struct GNUNET_HashCode *key,
+                       const struct GNUNET_HashCode *vhash,
+                       enum GNUNET_BLOCK_Type type,
+                       PluginDatumProcessor proc,
                        void *proc_cls)
 {
   struct Plugin *plugin = cls;
@@ -838,20 +853,21 @@ sqlite_plugin_get_key (void *cls, uint64_t offset, const struct GNUNET_HashCode 
     return;
   }
   sqoff = 1;
-  ret =
-      sqlite3_bind_blob (stmt, sqoff++, key, sizeof (struct GNUNET_HashCode),
-                         SQLITE_TRANSIENT);
-  if ((vhash != NULL) && (ret == SQLITE_OK))
-    ret =
-        sqlite3_bind_blob (stmt, sqoff++, vhash, sizeof (struct GNUNET_HashCode),
+  ret = sqlite3_bind_blob (stmt, sqoff++, key,
+                           sizeof (struct GNUNET_HashCode),
                            SQLITE_TRANSIENT);
+  if ((vhash != NULL) && (ret == SQLITE_OK))
+    ret = sqlite3_bind_blob (stmt, sqoff++, vhash,
+                             sizeof (struct GNUNET_HashCode),
+                             SQLITE_TRANSIENT);
   if ((type != 0) && (ret == SQLITE_OK))
     ret = sqlite3_bind_int (stmt, sqoff++, type);
   if (ret == SQLITE_OK)
     ret = sqlite3_bind_int64 (stmt, sqoff++, limit_off);
   if (ret != SQLITE_OK)
   {
-    LOG_SQLITE (plugin, NULL, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+    LOG_SQLITE (plugin, NULL,
+                GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 "sqlite_bind");
     proc (proc_cls, NULL, 0, NULL, 0, 0, 0, GNUNET_TIME_UNIT_ZERO_ABS, 0);
     return;
@@ -861,9 +877,8 @@ sqlite_plugin_get_key (void *cls, uint64_t offset, const struct GNUNET_HashCode 
 }
 
 
-
 /**
- * Context for 'repl_proc' function.
+ * Context for #repl_proc() function.
  */
 struct ReplCtx
 {
@@ -874,7 +889,7 @@ struct ReplCtx
   PluginDatumProcessor proc;
 
   /**
-   * Closure for proc.
+   * Closure for @e proc.
    */
   void *proc_cls;
 
@@ -891,13 +906,13 @@ struct ReplCtx
 
 
 /**
- * Wrapper for the processor for 'sqlite_plugin_replication_get'.
+ * Wrapper for the processor for #sqlite_plugin_replication_get().
  * Decrements the replication counter and calls the original
  * processor.
  *
  * @param cls closure
  * @param key key for the content
- * @param size number of bytes in data
+ * @param size number of bytes in @a data
  * @param data content stored
  * @param type type of the content
  * @param priority priority of the content
@@ -905,23 +920,31 @@ struct ReplCtx
  * @param expiration expiration time for the content
  * @param uid unique identifier for the datum;
  *        maybe 0 if no unique identifier is available
- *
- * @return GNUNET_OK for normal return,
- *         GNUNET_NO to delete the item
+ * @return #GNUNET_OK for normal return,
+ *         #GNUNET_NO to delete the item
  */
 static int
-repl_proc (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
-           const void *data, enum GNUNET_BLOCK_Type type, uint32_t priority,
-           uint32_t anonymity, struct GNUNET_TIME_Absolute expiration,
+repl_proc (void *cls,
+           const struct GNUNET_HashCode *key,
+           uint32_t size,
+           const void *data,
+           enum GNUNET_BLOCK_Type type,
+           uint32_t priority,
+           uint32_t anonymity,
+           struct GNUNET_TIME_Absolute expiration,
            uint64_t uid)
 {
   struct ReplCtx *rc = cls;
   int ret;
 
-  ret =
-      rc->proc (rc->proc_cls, key, size, data, type, priority, anonymity,
-                expiration, uid);
-  if (key != NULL)
+  ret = rc->proc (rc->proc_cls,
+                  key,
+                  size, data,
+                  type,
+                  priority,
+                  anonymity,
+                  expiration, uid);
+  if (NULL != key)
   {
     rc->uid = uid;
     rc->have_uid = GNUNET_YES;
@@ -934,11 +957,11 @@ repl_proc (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
  * Get a random item for replication.  Returns a single random item
  * from those with the highest replication counters.  The item's
  * replication counter is decremented by one IF it was positive before.
- * Call 'proc' with all values ZERO or NULL if the datastore is empty.
+ * Call @a proc with all values ZERO or NULL if the datastore is empty.
  *
  * @param cls closure
  * @param proc function to call the value (once only).
- * @param proc_cls closure for proc
+ * @param proc_cls closure for @a proc
  */
 static void
 sqlite_plugin_get_replication (void *cls, PluginDatumProcessor proc,
@@ -1020,14 +1043,13 @@ sqlite_plugin_get_replication (void *cls, PluginDatumProcessor proc,
 }
 
 
-
 /**
  * Get a random item that has expired or has low priority.
- * Call 'proc' with all values ZERO or NULL if the datastore is empty.
+ * Call @a proc with all values ZERO or NULL if the datastore is empty.
  *
  * @param cls closure
  * @param proc function to call the value (once only).
- * @param proc_cls closure for proc
+ * @param proc_cls closure for @a proc
  */
 static void
 sqlite_plugin_get_expiration (void *cls, PluginDatumProcessor proc,
@@ -1056,13 +1078,12 @@ sqlite_plugin_get_expiration (void *cls, PluginDatumProcessor proc,
 }
 
 
-
 /**
  * Get all of the keys in the datastore.
  *
  * @param cls closure
  * @param proc function to call on each key
- * @param proc_cls closure for proc
+ * @param proc_cls closure for @a proc
  */
 static void
 sqlite_plugin_get_keys (void *cls,
@@ -1113,7 +1134,7 @@ sqlite_plugin_drop (void *cls)
  * Get an estimate of how much space the database is
  * currently using.
  *
- * @param cls the 'struct Plugin'
+ * @param cls the `struct Plugin`
  * @return the size of the database on disk (estimate)
  */
 static unsigned long long
@@ -1160,7 +1181,7 @@ sqlite_plugin_estimate_size (void *cls)
 /**
  * Entry point for the plugin.
  *
- * @param cls the "struct GNUNET_DATASTORE_PluginEnvironment*"
+ * @param cls the `struct GNUNET_DATASTORE_PluginEnvironment *`
  * @return NULL on error, othrewise the plugin context
  */
 void *
