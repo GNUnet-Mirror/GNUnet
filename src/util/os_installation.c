@@ -541,13 +541,13 @@ GNUNET_OS_installation_get_path (enum GNUNET_OS_InstallationPathKind dirkind)
   case GNUNET_OS_IPK_LIBDIR:
     if (isbasedir)
     {
-      dirname =
-          DIR_SEPARATOR_STR "lib" DIR_SEPARATOR_STR "gnunet" DIR_SEPARATOR_STR;
       GNUNET_asprintf (&tmp,
-                       "%s%s%s",
+                       "%s%s%s%s%s",
                        execpath,
-                       dirname,
-                       (NULL != multiarch) ? multiarch : "");
+                       DIR_SEPARATOR_STR "lib",
+                       (NULL != multiarch) ? DIR_SEPARATOR_STR : "",
+                       (NULL != multiarch) ? multiarch : "",
+                       DIR_SEPARATOR_STR "gnunet" DIR_SEPARATOR_STR);
       if (GNUNET_YES ==
           GNUNET_DISK_directory_test (tmp, GNUNET_YES))
       {
