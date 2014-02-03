@@ -257,12 +257,13 @@ static void topology_setup_done (void *cls,
         GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 250),
         GNUNET_ATS_PREFERENCE_BANDWIDTH);
 */
+  /*
   GNUNET_ATS_TEST_generate_preferences_start(&masters[0],&masters[0].partners[0],
         GNUNET_ATS_TEST_TG_SINUS, 10, 5,
         GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 5),
         GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 250),
         GNUNET_ATS_PREFERENCE_BANDWIDTH);
-
+*/
 #if 0
   int c_m;
   int c_s;

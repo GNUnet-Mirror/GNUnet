@@ -35,8 +35,10 @@ print_op (enum OperationType op)
       return "START_SEND";
     case STOP_SEND:
       return "STOP_SEND";
-    case SET_PREFERENCE:
-      return "SET_PREFERENCE";
+    case START_PREFERENCE:
+      return "START_PREFERENCE";
+    case STOP_PREFERENCE:
+      return "STOP_PREFERENCE";
     default:
       break;
   }
@@ -93,6 +95,7 @@ load_episode (struct Experiment *e, struct Episode *cur,
   char *op_name;
   char *op;
   char *type;
+  char *pref;
   int op_counter = 0;
   fprintf (stderr, "Parsing episode %u\n",cur->id);
   GNUNET_asprintf(&sec_name, "episode-%u", cur->id);
@@ -117,9 +120,13 @@ load_episode (struct Experiment *e, struct Episode *cur,
     {
       o->type = STOP_SEND;
     }
-    else if (0 == strcmp (op, "set_preference"))
+    else if (0 == strcmp (op, "start_preference"))
     {
-      o->type = SET_PREFERENCE;
+      o->type = START_PREFERENCE;
+    }
+    else if (0 == strcmp (op, "stop_preference"))
+    {
+      o->type = STOP_PREFERENCE;
     }
     else
     {
@@ -176,7 +183,7 @@ load_episode (struct Experiment *e, struct Episode *cur,
     GNUNET_asprintf(&op_name, "op-%u-type", op_counter);
     if ( (GNUNET_SYSERR != GNUNET_CONFIGURATION_get_value_string(cfg,
             sec_name, op_name, &type)) &&
-        (STOP_SEND != o->type))
+        ((STOP_SEND != o->type) || (STOP_PREFERENCE != o->type)))
     {
       /* Load arguments for set_rate, start_send, set_preference */
       if (0 == strcmp (type, "constant"))
@@ -247,6 +254,55 @@ load_episode (struct Experiment *e, struct Episode *cur,
         o->period = cur->duration;
       }
       GNUNET_free (op_name);
+
+      if (START_PREFERENCE == o->type)
+      {
+          /* Get frequency */
+          GNUNET_asprintf(&op_name, "op-%u-frequency", op_counter);
+          if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_time (cfg,
+              sec_name, op_name, &o->frequency))
+          {
+              fprintf (stderr, "Missing frequency in operation %u `%s' in episode %u\n",
+                  op_counter, op, cur->id);
+              GNUNET_free (type);
+              GNUNET_free (op_name);
+              GNUNET_free (op);
+              return GNUNET_SYSERR;
+          }
+          GNUNET_free (op_name);
+
+          /* Get preference */
+          GNUNET_asprintf(&op_name, "op-%u-pref", op_counter);
+          if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string (cfg,
+              sec_name, op_name, &pref))
+          {
+              fprintf (stderr, "Missing preference in operation %u `%s' in episode %u\n",
+                  op_counter, op, cur->id);
+              GNUNET_free (type);
+              GNUNET_free (op_name);
+              GNUNET_free (op);
+              GNUNET_free_non_null (pref);
+              return GNUNET_SYSERR;
+          }
+
+          if (0 == strcmp(pref, "bandwidth"))
+            o->pref_type = GNUNET_ATS_PREFERENCE_BANDWIDTH;
+          else if (0 == strcmp(pref, "latency"))
+            o->pref_type = GNUNET_ATS_PREFERENCE_LATENCY;
+          else
+          {
+              fprintf (stderr, "Invalid preference in operation %u `%s' in episode %u\n",
+                  op_counter, op, cur->id);
+              GNUNET_free (type);
+              GNUNET_free (op_name);
+              GNUNET_free (op);
+              GNUNET_free (pref);
+              GNUNET_free_non_null (pref);
+              return GNUNET_SYSERR;
+          }
+          GNUNET_free (pref);
+          GNUNET_free (op_name);
+      }
     }
 
     /* Safety checks */
@@ -261,11 +317,15 @@ load_episode (struct Experiment *e, struct Episode *cur,
       fprintf (stderr, "Selected max rate and base rate cannot be used for desired traffic form!\n");
     }
 
-    fprintf (stderr, "Found operation %u in episode %u: %s [%llu]->[%llu] == %s, %llu -> %llu in %s\n",
+    if ((START_SEND == o->type) || (START_PREFERENCE == o->type))
+      fprintf (stderr, "Found operation %u in episode %u: %s [%llu]->[%llu] == %s, %llu -> %llu in %s\n",
         op_counter, cur->id, print_op (o->type), o->src_id,
         o->dest_id, (NULL != type) ? type : "",
         o->base_rate, o->max_rate,
         GNUNET_STRINGS_relative_time_to_string (o->period, GNUNET_YES));
+    else
+      fprintf (stderr, "Found operation %u in episode %u: %s [%llu]->[%llu]\n",
+        op_counter, cur->id, print_op (o->type), o->src_id, o->dest_id);
 
     GNUNET_free_non_null (type);
     GNUNET_free (op);
@@ -396,7 +456,8 @@ enforce_stop_send (struct GNUNET_ATS_TEST_Operation *op)
 
   if (NULL != p->tg)
   {
-    fprintf (stderr, "Stopping traffic between master %llu slave %llu\n",op->src_id, op->dest_id);
+    fprintf (stderr, "Stopping traffic between master %llu slave %llu\n",
+        op->src_id, op->dest_id);
     GNUNET_ATS_TEST_generate_traffic_stop(p->tg);
     p->tg = NULL;
   }
@@ -404,9 +465,60 @@ enforce_stop_send (struct GNUNET_ATS_TEST_Operation *op)
 
 
 static void
-enforce_set_preference (struct GNUNET_ATS_TEST_Operation *op)
+enforce_start_preference (struct GNUNET_ATS_TEST_Operation *op)
 {
-  GNUNET_break (0);
+  struct BenchmarkPeer *peer;
+  struct BenchmarkPartner *partner;
+
+  peer = GNUNET_ATS_TEST_get_peer (op->src_id);
+  if (NULL == peer)
+  {
+    GNUNET_break (0);
+    return;
+  }
+
+  partner = GNUNET_ATS_TEST_get_partner (op->src_id, op->dest_id);
+  if (NULL == partner)
+  {
+    GNUNET_break (0);
+    return;
+  }
+
+  fprintf (stderr, "Found master %llu slave %llu\n",op->src_id, op->dest_id);
+
+  if (NULL != partner->pg)
+  {
+    fprintf (stderr, "Stopping traffic between master %llu slave %llu\n",
+        op->src_id, op->dest_id);
+    GNUNET_ATS_TEST_generate_preferences_stop(partner->pg);
+    partner->pg = NULL;
+  }
+
+  partner->pg = GNUNET_ATS_TEST_generate_preferences_start(peer, partner,
+      op->tg_type, op->base_rate, op->max_rate, op->period, op->frequency,
+      op->pref_type);
+}
+
+static void
+enforce_stop_preference (struct GNUNET_ATS_TEST_Operation *op)
+{
+  struct BenchmarkPartner *p;
+  p = GNUNET_ATS_TEST_get_partner (op->src_id, op->dest_id);
+  if (NULL == p)
+  {
+    GNUNET_break (0);
+    return;
+  }
+
+  fprintf (stderr, "Found master %llu slave %llu\n",op->src_id, op->dest_id);
+
+  if (NULL != p->pg)
+  {
+    fprintf (stderr, "Stopping preference between master %llu slave %llu\n",
+        op->src_id, op->dest_id);
+    GNUNET_ATS_TEST_generate_preferences_stop (p->pg);
+    p->pg = NULL;
+  }
 }
 
 static void enforce_episode (struct Episode *ep)
@@ -424,8 +536,11 @@ static void enforce_episode (struct Episode *ep)
       case STOP_SEND:
         enforce_stop_send (cur);
         break;
-      case SET_PREFERENCE:
-        enforce_set_preference (cur);
+      case START_PREFERENCE:
+        enforce_start_preference (cur);
+        break;
+      case STOP_PREFERENCE:
+        enforce_stop_preference (cur);
         break;
       default:
         break;

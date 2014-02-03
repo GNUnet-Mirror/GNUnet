@@ -462,7 +462,8 @@ enum OperationType
 {
   START_SEND,
   STOP_SEND,
-  SET_PREFERENCE
+  START_PREFERENCE,
+  STOP_PREFERENCE
 };
 
 struct Episode;
@@ -489,9 +490,11 @@ struct GNUNET_ATS_TEST_Operation
   long long unsigned int base_rate;
   long long unsigned int max_rate;
   struct GNUNET_TIME_Relative period;
+  struct GNUNET_TIME_Relative frequency;
 
   enum OperationType type;
   enum GeneratorType tg_type;
+  enum GNUNET_ATS_PreferenceKind pref_type;
 };
 
 struct Episode
