@@ -39,7 +39,7 @@ get_preference (struct PreferenceGenerator *pg)
   double delta_value;
   double pref_value;
 
-  /* Calculate the current transmission rate based on the type of traffic */
+  /* Calculate the current preference value */
   switch (pg->type) {
     case GNUNET_ATS_TEST_TG_CONSTANT:
       pref_value = pg->base_value;
