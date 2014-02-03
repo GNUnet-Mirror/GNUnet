@@ -471,36 +471,6 @@ adjust (unsigned char *buf, size_t size, size_t target)
 
 
 /**
- * Encrypts an element using the paillier crypto system
- *
- * @param c ciphertext (output)
- * @param m plaintext
- * @param g the public base
- * @param n the module from which which r is chosen (Z*_n)
- * @param n_square the module for encryption, for performance reasons.
- */
-static void
-encrypt_element (gcry_mpi_t c, gcry_mpi_t m, gcry_mpi_t g, gcry_mpi_t n, gcry_mpi_t n_square)
-{
-  gcry_mpi_t tmp;
-
-  GNUNET_assert (tmp = gcry_mpi_new (0));
-
-  while (0 >= gcry_mpi_cmp_ui (tmp, 1))
-  {
-    gcry_mpi_randomize (tmp, KEYBITS / 3, GCRY_WEAK_RANDOM);
-    // r must be 1 < r < n
-  }
-
-  gcry_mpi_powm (c, g, m, n_square);
-  gcry_mpi_powm (tmp, tmp, n, n_square);
-  gcry_mpi_mulm (c, tmp, c, n_square);
-
-  gcry_mpi_release (tmp);
-}
-
-
-/**
  * decrypts an element using the paillier crypto system
  *
  * @param m plaintext (output)
@@ -1211,7 +1181,9 @@ compute_service_response (struct ServiceSession * request,
   uint32_t count;
   gcry_mpi_t * rand = NULL;
   gcry_mpi_t * r = NULL;
+  struct GNUNET_CRYPTO_PaillierCiphertext * R;
   gcry_mpi_t * r_prime = NULL;
+  struct GNUNET_CRYPTO_PaillierCiphertext * R_prime;
   gcry_mpi_t * b;
   gcry_mpi_t * a_pi;
   gcry_mpi_t * a_pi_prime;
@@ -1220,10 +1192,7 @@ compute_service_response (struct ServiceSession * request,
   gcry_mpi_t * rand_pi_prime;
   gcry_mpi_t s = NULL;
   gcry_mpi_t s_prime = NULL;
-  gcry_mpi_t remote_n = NULL;
-  gcry_mpi_t remote_nsquare;
-  gcry_mpi_t remote_g = NULL;
-  gcry_sexp_t tmp_exp;
+  
   uint32_t value;
 
   count = request->used;
@@ -1257,42 +1226,6 @@ compute_service_response (struct ServiceSession * request,
   response->vector = NULL;
   q = NULL;
   p = NULL;
-  tmp_exp = gcry_sexp_find_token (request->remote_pubkey, "n", 0);
-  if (!tmp_exp)
-  {
-    GNUNET_break_op (0);
-    gcry_sexp_release (request->remote_pubkey);
-    request->remote_pubkey = NULL;
-    goto except;
-  }
-  remote_n = gcry_sexp_nth_mpi (tmp_exp, 1, GCRYMPI_FMT_USG);
-  if (!remote_n)
-  {
-    GNUNET_break (0);
-    gcry_sexp_release (tmp_exp);
-    goto except;
-  }
-  remote_nsquare = gcry_mpi_new (KEYBITS + 1);
-  gcry_mpi_mul (remote_nsquare, remote_n, remote_n);
-  gcry_sexp_release (tmp_exp);
-  tmp_exp = gcry_sexp_find_token (request->remote_pubkey, "g", 0);
-  gcry_sexp_release (request->remote_pubkey);
-  request->remote_pubkey = NULL;
-  if (!tmp_exp)
-  {
-    GNUNET_break_op (0);
-    gcry_mpi_release (remote_n);
-    goto except;
-  }
-  remote_g = gcry_sexp_nth_mpi (tmp_exp, 1, GCRYMPI_FMT_USG);
-  if (!remote_g)
-  {
-    GNUNET_break (0);
-    gcry_mpi_release (remote_n);
-    gcry_sexp_release (tmp_exp);
-    goto except;
-  }
-  gcry_sexp_release (tmp_exp);
 
   // generate r, p and q
   rand = initialize_mpi_vector (count);
@@ -1341,10 +1274,15 @@ compute_service_response (struct ServiceSession * request,
     // E(S - r_pi - b_pi)
     gcry_mpi_sub (r[i], my_offset, rand_pi[i]);
     gcry_mpi_sub (r[i], r[i], b_pi[i]);
-    encrypt_element (r[i], r[i], remote_g, remote_n, remote_nsquare);
-
+    GNUNET_CRYPTO_paillier_encrypt (&request->remote_pubkey, 
+                                    r[i], 
+                                    &R[i]);
+    
     // E(S - r_pi - b_pi) * E(S + a_pi) ==  E(2*S + a - r - b)
-    gcry_mpi_mulm (r[i], r[i], a_pi[i], remote_nsquare);
+    GNUNET_CRYPTO_paillier_hom_add (&request->remote_pubkey, 
+                                    &R[i], 
+                                    &A_pi[i], 
+                                    &R[i]);
   }
   GNUNET_free (a_pi);
   GNUNET_free (b_pi);
@@ -1355,10 +1293,15 @@ compute_service_response (struct ServiceSession * request,
   {
     // E(S - r_qi)
     gcry_mpi_sub (r_prime[i], my_offset, rand_pi_prime[i]);
-    encrypt_element (r_prime[i], r_prime[i], remote_g, remote_n, remote_nsquare);
+    GNUNET_CRYPTO_paillier_encrypt (&request->remote_pubkey, 
+                                    r_prime[i], 
+                                    &R_prime[i]);
 
     // E(S - r_qi) * E(S + a_qi) == E(2*S + a_qi - r_qi)
-    gcry_mpi_mulm (r_prime[i], r_prime[i], a_pi_prime[i], remote_nsquare);
+    GNUNET_CRYPTO_paillier_hom_add (&request->remote_pubkey, 
+                                    &R_prime[i], 
+                                    &A_pi_prime[i], 
+                                    &R_prime[i]);
   }
   GNUNET_free (a_pi_prime);
   GNUNET_free (rand_pi_prime);

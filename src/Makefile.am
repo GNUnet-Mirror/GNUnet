@@ -8,18 +8,19 @@ if HAVE_TESTING
  CONSENSUS = consensus
 # SECRETSHARING = secretsharing
  EXPERIMENTATION = experimentation
+# SCALARPRODUCT = scalarproduct
 endif
 
 if HAVE_EXPERIMENTAL
  EXP_DIR = \
   dv \
-  scalarproduct \
   multicast \
   env \
   psycstore \
   psyc \
   $(CONSENSUS) \
   $(SECRETSHARING) \
+  $(SCALARPRODUCT) \
   $(EXPERIMENTATION)
 endif
 
