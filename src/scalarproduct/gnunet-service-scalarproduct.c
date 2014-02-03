@@ -1191,7 +1191,9 @@ compute_service_response (struct ServiceSession * request,
   gcry_mpi_t * rand_pi;
   gcry_mpi_t * rand_pi_prime;
   gcry_mpi_t s = NULL;
+  struct GNUNET_CRYPTO_PaillierCiphertext * S;
   gcry_mpi_t s_prime = NULL;
+  struct GNUNET_CRYPTO_PaillierCiphertext * S_prime;
   
   uint32_t value;
 
@@ -1256,8 +1258,11 @@ compute_service_response (struct ServiceSession * request,
   memcpy (b_pi, b, sizeof (gcry_mpi_t) * count);
   memcpy (rand_pi, rand, sizeof (gcry_mpi_t) * count);
   memcpy (rand_pi_prime, rand, sizeof (gcry_mpi_t) * count);
+  
+  //todo get API-cryptoblocks, instead of MPI values
 
   // generate p and q permutations for a, b and r
+  // TODO: APIify
   GNUNET_assert (permute_vector (a_pi, p, count));
   GNUNET_assert (permute_vector (b_pi, p, count));
   GNUNET_assert (permute_vector (rand_pi, p, count));
@@ -1312,17 +1317,18 @@ compute_service_response (struct ServiceSession * request,
 
   // Calculate S' =  E(SUM( r_i^2 ))
   s_prime = compute_square_sum (rand, count);
-  encrypt_element (s_prime, s_prime, remote_g, remote_n, remote_nsquare);
+  GNUNET_CRYPTO_paillier_encrypt (&request->remote_pubkey, 
+                                  s_prime, 
+                                  &S_prime);
 
   // Calculate S = E(SUM( (r_i + b_i)^2 ))
   for (i = 0; i < count; i++) {
     gcry_mpi_add (rand[i], rand[i], b[i]);
   }
   s = compute_square_sum (rand, count);
-  encrypt_element (s, s, remote_g, remote_n, remote_nsquare);
-  gcry_mpi_release (remote_n);
-  gcry_mpi_release (remote_g);
-  gcry_mpi_release (remote_nsquare);
+  GNUNET_CRYPTO_paillier_encrypt (&request->remote_pubkey, 
+                                  s[i], 
+                                  &S);
 
   // release r and tmp
   for (i = 0; i < count; i++)
@@ -1330,7 +1336,7 @@ compute_service_response (struct ServiceSession * request,
     gcry_mpi_release (rand[i]);
 
   // copy the r[], r_prime[], S and Stick into a new message, prepare_service_response frees these
-  if (GNUNET_YES != prepare_service_response (s, s_prime, request))
+  if (GNUNET_YES != prepare_service_response (S, S_prime, request))
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, _ ("Failed to communicate with `%s', scalar product calculation aborted.\n"),
                 GNUNET_i2s (&request->peer));
   else
