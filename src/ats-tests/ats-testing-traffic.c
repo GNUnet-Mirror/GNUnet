@@ -48,7 +48,6 @@ get_delay (struct TrafficGenerator *tg)
       if (UINT32_MAX == tg->base_rate)
         return GNUNET_TIME_UNIT_ZERO;
       cur_rate = tg->base_rate;
-      return delay;
       break;
     case GNUNET_ATS_TEST_TG_LINEAR:
       time_delta = GNUNET_TIME_absolute_get_duration(tg->time_start);
@@ -56,7 +55,7 @@ get_delay (struct TrafficGenerator *tg)
       time_delta.rel_value_us = time_delta.rel_value_us % tg->duration_period.rel_value_us;
       delta_rate = ((double) time_delta.rel_value_us  / tg->duration_period.rel_value_us) *
           (tg->max_rate - tg->base_rate);
-      if ((tg->max_rate - tg->base_rate) > tg->base_rate)
+      if ((tg->max_rate < tg->base_rate) && ((tg->max_rate - tg->base_rate) > tg->base_rate))
       {
         /* This will cause an underflow */
         GNUNET_break (0);
@@ -88,9 +87,8 @@ get_delay (struct TrafficGenerator *tg)
 
   if (cur_rate < 0)
   {
-    cur_rate = 0;
+    cur_rate = 1;
   }
-
   /* Calculate the delay for the next message based on the current delay  */
   delay.rel_value_us =  GNUNET_TIME_UNIT_SECONDS.rel_value_us * TEST_MESSAGE_SIZE / cur_rate;
 
@@ -157,9 +155,9 @@ send_ping_ready_cb (void *cls, size_t size, void *buf)
     return TEST_MESSAGE_SIZE;
   }
   delay = get_delay (p->tg);
-  /*
-  fprintf (stderr, "Delay for next transmission %llu ms\n",
-      (long long unsigned int) delay.rel_value_us / 1000);*/
+
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Delay for next transmission %llu ms\n",
+      (long long unsigned int) delay.rel_value_us / 1000);
   p->tg->next_ping_transmission = GNUNET_TIME_absolute_add(GNUNET_TIME_absolute_get(),
       delay);
 
@@ -225,7 +223,7 @@ comm_send_pong_ready (void *cls, size_t size, void *buf)
 void
 GNUNET_ATS_TEST_traffic_handle_ping (struct BenchmarkPartner *p)
 {
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+  GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
       "Slave [%u]: Received PING from [%u], sending PONG\n", p->me->no,
       p->dest->no);
 
@@ -259,7 +257,7 @@ void
 GNUNET_ATS_TEST_traffic_handle_pong (struct BenchmarkPartner *p)
 {
   struct GNUNET_TIME_Relative left;
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+  GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
       "Master [%u]: Received PONG from [%u], next message\n", p->me->no,
       p->dest->no);
 
@@ -271,6 +269,9 @@ GNUNET_ATS_TEST_traffic_handle_pong (struct BenchmarkPartner *p)
       GNUNET_TIME_absolute_get()).rel_value_us;
 
   /* Schedule next send event */
+  if (NULL == p->tg)
+    return;
+
   left = GNUNET_TIME_absolute_get_remaining(p->tg->next_ping_transmission);
   if (UINT32_MAX == p->tg->base_rate)
   {
@@ -282,6 +283,11 @@ GNUNET_ATS_TEST_traffic_handle_pong (struct BenchmarkPartner *p)
   }
   else
   {
+    /* Enforce minimum transmission rate 1 msg / sec */
+    if (GNUNET_TIME_UNIT_SECONDS.rel_value_us == (left = GNUNET_TIME_relative_min (left, GNUNET_TIME_UNIT_SECONDS)).rel_value_us)
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+          "Enforcing minimum send rate between master [%u] and slave [%u]\n",
+          p->me->no, p->dest->no);
     p->tg->send_task = GNUNET_SCHEDULER_add_delayed (left,
         &comm_schedule_send, p);
   }
@@ -329,11 +335,38 @@ GNUNET_ATS_TEST_generate_traffic_start (struct BenchmarkPeer *src,
   tg->time_start = GNUNET_TIME_absolute_get();
   tg->next_ping_transmission = GNUNET_TIME_UNIT_FOREVER_ABS;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-      "Setting up traffic generator master[%u] `%s' and slave [%u] `%s' max %u Bips\n",
-      dest->me->no, GNUNET_i2s (&dest->me->id),
-      dest->dest->no, GNUNET_i2s (&dest->dest->id),
-      base_rate);
+  switch (type) {
+    case GNUNET_ATS_TEST_TG_CONSTANT:
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+          "Setting up constant traffic generator master[%u] `%s' and slave [%u] `%s' max %u Bips\n",
+          dest->me->no, GNUNET_i2s (&dest->me->id),
+          dest->dest->no, GNUNET_i2s (&dest->dest->id),
+          base_rate);
+      break;
+    case GNUNET_ATS_TEST_TG_LINEAR:
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+          "Setting up linear traffic generator master[%u] `%s' and slave [%u] `%s' min %u Bips max %u Bips\n",
+          dest->me->no, GNUNET_i2s (&dest->me->id),
+          dest->dest->no, GNUNET_i2s (&dest->dest->id),
+          base_rate, max_rate);
+      break;
+    case GNUNET_ATS_TEST_TG_SINUS:
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+          "Setting up sinus traffic generator master[%u] `%s' and slave [%u] `%s' baserate %u Bips, amplitude %u Bps\n",
+          dest->me->no, GNUNET_i2s (&dest->me->id),
+          dest->dest->no, GNUNET_i2s (&dest->dest->id),
+          base_rate, max_rate);
+      break;
+    case GNUNET_ATS_TEST_TG_RANDOM:
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+          "Setting up random traffic generator master[%u] `%s' and slave [%u] `%s' min %u Bips max %u Bps\n",
+          dest->me->no, GNUNET_i2s (&dest->me->id),
+          dest->dest->no, GNUNET_i2s (&dest->dest->id),
+          base_rate, max_rate);
+      break;
+    default:
+      break;
+  }
 
   if ( ((GNUNET_YES == top->test_core) && (NULL != dest->cth)) ||
        ((GNUNET_NO == top->test_core) && (NULL != dest->tth)) )

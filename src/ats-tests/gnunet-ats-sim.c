@@ -66,9 +66,9 @@ evaluate (struct GNUNET_TIME_Relative duration_total)
   struct BenchmarkPeer *mp;
   struct BenchmarkPartner *p;
 
-  unsigned int kb_sent_sec;
+  unsigned int b_sent_sec;
   double kb_sent_percent;
-  unsigned int kb_recv_sec;
+  unsigned int b_recv_sec;
   double kb_recv_percent;
   unsigned int rtt;
 
@@ -88,16 +88,16 @@ evaluate (struct GNUNET_TIME_Relative duration_total)
     {
       p = &mp->partners[c_s];
 
-      kb_sent_sec = 0;
-      kb_recv_sec = 0;
+      b_sent_sec = 0;
+      b_recv_sec = 0;
       kb_sent_percent = 0.0;
       kb_recv_percent = 0.0;
       rtt = 0;
 
       if (duration > 0)
       {
-          kb_sent_sec = (p->bytes_sent / 1024) / duration;
-          kb_recv_sec = (p->bytes_received / 1024) / duration;
+          b_sent_sec = p->bytes_sent / duration;
+          b_recv_sec = p->bytes_received / duration;
       }
 
       if (mp->total_bytes_sent > 0)
@@ -107,11 +107,11 @@ evaluate (struct GNUNET_TIME_Relative duration_total)
       if (1000 * p->messages_sent > 0)
           rtt = p->total_app_rtt / (1000 * p->messages_sent);
       fprintf (stderr,
-          "%c Master [%u] -> Slave [%u]: sent %u KiB/s (%.2f %%), received %u KiB/s (%.2f %%)\n",
+          "%c Master [%u] -> Slave [%u]: sent %u Bips (%.2f %%), received %u Bips (%.2f %%)\n",
           (mp->pref_partner == p->dest) ? '*' : ' ',
           mp->no, p->dest->no,
-          kb_sent_sec, kb_sent_percent,
-                  kb_recv_sec, kb_recv_percent);
+          b_sent_sec, kb_sent_percent,
+                  b_recv_sec, kb_recv_percent);
       fprintf (stderr,
           "%c Master [%u] -> Slave [%u]: Average application layer RTT: %u ms\n",
           (mp->pref_partner == p->dest) ? '*' : ' ',
@@ -213,7 +213,7 @@ static void topology_setup_done (void *cls,
   masters_p = masters;
   slaves_p = slaves;
 
-  l = GNUNET_ATS_TEST_logging_start (GNUNET_TIME_UNIT_SECONDS,
+  l = GNUNET_ATS_TEST_logging_start (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 100),
       e->name,
       masters_p,
       e->num_masters);

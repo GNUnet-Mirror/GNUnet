@@ -439,7 +439,6 @@ enum OperationType
 {
   START_SEND,
   STOP_SEND,
-  SET_RATE,
   SET_PREFERENCE
 };
 

@@ -35,8 +35,6 @@ print_op (enum OperationType op)
       return "START_SEND";
     case STOP_SEND:
       return "STOP_SEND";
-    case SET_RATE:
-      return "SET_RATE";
     case SET_PREFERENCE:
       return "SET_PREFERENCE";
     default:
@@ -118,10 +116,6 @@ load_episode (struct Experiment *e, struct Episode *cur,
     else if (0 == strcmp (op, "stop_send"))
     {
       o->type = STOP_SEND;
-    }
-    else if (0 == strcmp (op, "set_rate"))
-    {
-      o->type = SET_RATE;
     }
     else if (0 == strcmp (op, "set_preference"))
     {
@@ -253,7 +247,6 @@ load_episode (struct Experiment *e, struct Episode *cur,
         o->period = cur->duration;
       }
       GNUNET_free (op_name);
-
     }
 
     /* Safety checks */
@@ -357,35 +350,6 @@ timeout_experiment (void *cls, const struct GNUNET_SCHEDULER_TaskContext* tc)
 static void
 enforce_start_send (struct GNUNET_ATS_TEST_Operation *op)
 {
-  GNUNET_break (0);
-}
-
-static void
-enforce_stop_send (struct GNUNET_ATS_TEST_Operation *op)
-{
-  struct BenchmarkPartner *p;
-  p = GNUNET_ATS_TEST_get_partner (op->src_id, op->dest_id);
-  if (NULL == p)
-  {
-    GNUNET_break (0);
-    return;
-  }
-
-  fprintf (stderr, "Found master %llu slave %llu\n",op->src_id, op->dest_id);
-
-  if (NULL != p->tg)
-  {
-    fprintf (stderr, "Stopping traffic between master %llu slave %llu\n",op->src_id, op->dest_id);
-    GNUNET_ATS_TEST_generate_traffic_stop(p->tg);
-    p->tg = NULL;
-  }
-
-
-}
-
-static void
-enforce_set_rate (struct GNUNET_ATS_TEST_Operation *op)
-{
   struct BenchmarkPeer *peer;
   struct BenchmarkPartner *partner;
 
@@ -418,6 +382,28 @@ enforce_set_rate (struct GNUNET_ATS_TEST_Operation *op)
 }
 
 static void
+enforce_stop_send (struct GNUNET_ATS_TEST_Operation *op)
+{
+  struct BenchmarkPartner *p;
+  p = GNUNET_ATS_TEST_get_partner (op->src_id, op->dest_id);
+  if (NULL == p)
+  {
+    GNUNET_break (0);
+    return;
+  }
+
+  fprintf (stderr, "Found master %llu slave %llu\n",op->src_id, op->dest_id);
+
+  if (NULL != p->tg)
+  {
+    fprintf (stderr, "Stopping traffic between master %llu slave %llu\n",op->src_id, op->dest_id);
+    GNUNET_ATS_TEST_generate_traffic_stop(p->tg);
+    p->tg = NULL;
+  }
+}
+
+
+static void
 enforce_set_preference (struct GNUNET_ATS_TEST_Operation *op)
 {
   GNUNET_break (0);
@@ -437,9 +423,6 @@ static void enforce_episode (struct Episode *ep)
         break;
       case STOP_SEND:
         enforce_stop_send (cur);
-        break;
-      case SET_RATE:
-        enforce_set_rate (cur);
         break;
       case SET_PREFERENCE:
         enforce_set_preference (cur);
