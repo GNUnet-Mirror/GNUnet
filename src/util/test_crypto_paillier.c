@@ -30,7 +30,38 @@
 
 
 int
-main (int argc, char *argv[])
+test_crypto ()
+{
+  gcry_mpi_t plaintext;
+  gcry_mpi_t plaintext_result;
+  struct GNUNET_CRYPTO_PaillierCiphertext ciphertext;
+  struct GNUNET_CRYPTO_PaillierPublicKey public_key;
+  struct GNUNET_CRYPTO_PaillierPrivateKey private_key;
+
+  GNUNET_CRYPTO_paillier_create (&public_key, &private_key);
+
+  GNUNET_assert (NULL != (plaintext = gcry_mpi_new (0)));
+  GNUNET_assert (NULL != (plaintext_result = gcry_mpi_new (0)));
+
+  gcry_mpi_randomize (plaintext, GNUNET_CRYPTO_PAILLIER_BITS / 2, GCRY_WEAK_RANDOM);
+
+  GNUNET_CRYPTO_paillier_encrypt (&public_key, plaintext, &ciphertext);
+
+  GNUNET_CRYPTO_paillier_decrypt (&private_key, &public_key,
+                                  &ciphertext, plaintext_result);
+
+  if (0 != gcry_mpi_cmp (plaintext, plaintext_result))
+  {
+    printf ("paillier failed with plaintext of size %u\n", gcry_mpi_get_nbits (plaintext));
+    gcry_log_debugmpi("\n", plaintext);
+    gcry_log_debugmpi("\n", plaintext_result);
+    return 1;
+  }
+  return 0;
+}
+
+int
+test_hom()
 {
   int ret;
   gcry_mpi_t m1;
@@ -84,6 +115,18 @@ main (int argc, char *argv[])
   }
   
   return 0;
+}
+
+
+int
+main (int argc, char *argv[])
+{
+  int ret;
+  ret = test_crypto ();
+  if (0 != ret)
+    return ret;
+  ret = test_hom ();
+  return ret;
 }
 
 /* end of test_crypto_paillier.c */
