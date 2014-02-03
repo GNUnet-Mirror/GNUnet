@@ -93,8 +93,7 @@ GNUNET_CRYPTO_paillier_create (struct GNUNET_CRYPTO_PaillierPublicKey *public_ke
  * @param public_key Public key to use.
  * @param m Plaintext to encrypt.
  * @param[out] ciphertext Encrytion of @a plaintext with @a public_key.
- * @return guaranteed number of supported homomorphic operations >= 1, 
- *         -1 if less than one homomorphic operation is possible
+ * @return guaranteed number of supported homomorphic operations, can be zero
  */
 int
 GNUNET_CRYPTO_paillier_encrypt (const struct GNUNET_CRYPTO_PaillierPublicKey *public_key,
@@ -126,12 +125,9 @@ GNUNET_CRYPTO_paillier_encrypt (const struct GNUNET_CRYPTO_PaillierPublicKey *pu
   gcry_mpi_release (tmp1);
   gcry_mpi_release (tmp2);
   
-  // can we do at least one homomorphic operation with this value?
   if (possible_opts < 1)
-    // no, don't use paillier please!
-    return -1;
-  else
-    ciphertext->remaining_ops = htonl (possible_opts);
+    possible_opts = 0;
+  ciphertext->remaining_ops = htonl (possible_opts);
 
   GNUNET_assert (0 != (n_square = gcry_mpi_new (0)));
   GNUNET_assert (0 != (r = gcry_mpi_new (0)));
@@ -193,7 +189,7 @@ GNUNET_CRYPTO_paillier_decrypt (const struct GNUNET_CRYPTO_PaillierPrivateKey *p
   GNUNET_CRYPTO_mpi_scan_unsigned (&lambda, private_key->lambda, sizeof private_key->lambda);
   GNUNET_CRYPTO_mpi_scan_unsigned (&mu, private_key->mu, sizeof private_key->mu);
   GNUNET_CRYPTO_mpi_scan_unsigned (&n, public_key, sizeof *public_key);
-  GNUNET_CRYPTO_mpi_scan_unsigned (&c, ciphertext, sizeof *ciphertext);
+  GNUNET_CRYPTO_mpi_scan_unsigned (&c, ciphertext->bits, sizeof ciphertext->bits);
 
   gcry_mpi_mul (n_square, n, n);
   // m = c^lambda mod n^2
