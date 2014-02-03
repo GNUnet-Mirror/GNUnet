@@ -156,6 +156,9 @@ handle_conclude_done (void *cls,
  *              Inclusion of the local peer is optional.
  * @param session_id session identifier
  *                   Allows a group of peers to have more than consensus session.
+ * @param start start time of the consensus, conclude should be called before
+ *              the start time.
+ * @param deadline time when the consensus should have concluded
  * @param new_element_cb callback, called when a new element is added to the set by
  *                    another peer
  * @param new_element_cls closure for new_element
@@ -166,6 +169,8 @@ GNUNET_CONSENSUS_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
 			 unsigned int num_peers,
 			 const struct GNUNET_PeerIdentity *peers,
                          const struct GNUNET_HashCode *session_id,
+                         struct GNUNET_TIME_Absolute start,
+                         struct GNUNET_TIME_Absolute deadline,
                          GNUNET_CONSENSUS_ElementCallback new_element_cb,
                          void *new_element_cls)
 {
@@ -196,6 +201,8 @@ GNUNET_CONSENSUS_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
                             GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_JOIN);
 
   join_msg->session_id = consensus->session_id;
+  join_msg->start = GNUNET_TIME_absolute_hton (start);
+  join_msg->deadline = GNUNET_TIME_absolute_hton (deadline);
   join_msg->num_peers = htonl (num_peers);
   memcpy(&join_msg[1],
 	 peers,
@@ -266,12 +273,10 @@ GNUNET_CONSENSUS_insert (struct GNUNET_CONSENSUS_Handle *consensus,
  */
 void
 GNUNET_CONSENSUS_conclude (struct GNUNET_CONSENSUS_Handle *consensus,
-			   struct GNUNET_TIME_Absolute deadline,
 			   GNUNET_CONSENSUS_ConcludeCallback conclude,
 			   void *conclude_cls)
 {
   struct GNUNET_MQ_Envelope *ev;
-  struct GNUNET_CONSENSUS_ConcludeMessage *conclude_msg;
 
   GNUNET_assert (NULL != conclude);
   GNUNET_assert (NULL == consensus->conclude_cb);
@@ -279,9 +284,7 @@ GNUNET_CONSENSUS_conclude (struct GNUNET_CONSENSUS_Handle *consensus,
   consensus->conclude_cls = conclude_cls;
   consensus->conclude_cb = conclude;
 
-  ev = GNUNET_MQ_msg (conclude_msg, GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_CONCLUDE);
-  conclude_msg->deadline = GNUNET_TIME_absolute_hton (deadline);
-
+  ev = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_CONCLUDE);
   GNUNET_MQ_send (consensus->mq, ev);
 }
 

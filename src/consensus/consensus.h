@@ -41,30 +41,28 @@ struct GNUNET_CONSENSUS_JoinMessage
    */
   struct GNUNET_MessageHeader header;
 
+  /**
+   * Number of peers (at the end of this message) that want to
+   * participate in the consensus.
+   */
   uint32_t num_peers GNUNET_PACKED;
 
+  /**
+   * Session id of the consensus.
+   */
   struct GNUNET_HashCode session_id;
 
-  /* GNUNET_PeerIdentity[num_peers] */
-};
-
-
-struct GNUNET_CONSENSUS_ConcludeMessage
-{
   /**
-   * Type: GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_CONCLUDE
+   * Start time for the consensus.
    */
-  struct GNUNET_MessageHeader header;
+  struct GNUNET_TIME_AbsoluteNBO start;
 
   /**
-   * Padding, must be zero.
-   */
-  uint32_t reserved GNUNET_PACKED;
-
-  /**
-   * Deadline for conclude
+   * Deadline for conclude.
    */
   struct GNUNET_TIME_AbsoluteNBO deadline;
+
+  /* GNUNET_PeerIdentity[num_peers] */
 };
 
 

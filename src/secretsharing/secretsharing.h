@@ -57,6 +57,11 @@ struct GNUNET_SECRETSHARING_CreateMessage
   struct GNUNET_HashCode session_id GNUNET_PACKED;
 
   /**
+   * Start time for communication with the other peers.
+   */
+  struct GNUNET_TIME_AbsoluteNBO start;
+
+  /**
    * Deadline for the establishment of the crypto system.
    */
   struct GNUNET_TIME_AbsoluteNBO deadline;
@@ -129,6 +134,11 @@ struct GNUNET_SECRETSHARING_DecryptRequestMessage
    * Type: GNUNET_MESSAGE_TYPE_SECRETSHARING_CLIENT_DECRYPT_REQUEST
    */
   struct GNUNET_MessageHeader header;
+
+  /**
+   * Until when should the decryption start?
+   */
+  struct GNUNET_TIME_AbsoluteNBO start;
 
   /**
    * Until when should the decryption be finished?

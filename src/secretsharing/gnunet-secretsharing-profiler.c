@@ -49,6 +49,11 @@ static unsigned int decrypt = GNUNET_NO;
 static struct GNUNET_TIME_Relative timeout;
 
 /**
+ * When should dkg communication start?
+ */
+static struct GNUNET_TIME_Relative delay;
+
+/**
  * Handles for secretsharing sessions.
  */
 static struct GNUNET_SECRETSHARING_Session **session_handles;
@@ -85,9 +90,18 @@ static struct GNUNET_HashCode session_id;
 
 static int verbose;
 
-struct GNUNET_SECRETSHARING_Plaintext reference_plaintext;
+static struct GNUNET_SECRETSHARING_Plaintext reference_plaintext;
 
-struct GNUNET_SECRETSHARING_Ciphertext ciphertext;
+static struct GNUNET_SECRETSHARING_Ciphertext ciphertext;
+
+static struct GNUNET_TIME_Absolute dkg_start;
+
+static struct GNUNET_TIME_Absolute dkg_deadline;
+
+
+static struct GNUNET_TIME_Absolute decrypt_start;
+
+static struct GNUNET_TIME_Absolute decrypt_deadline;
 
 
 /**
@@ -236,7 +250,7 @@ decrypt_connect_adapter (void *cls,
               "decrypt connect adapter, %d peers\n",
               num_peers);
   *hp = GNUNET_SECRETSHARING_decrypt (cfg, shares[n], &ciphertext,
-                                      GNUNET_TIME_relative_to_absolute (GNUNET_TIME_UNIT_MINUTES),
+                                      decrypt_start, decrypt_deadline,
                                       decrypt_cb,
                                       hp);
 
@@ -315,6 +329,10 @@ secret_ready_cb (void *cls,
       return;
     }
 
+    decrypt_start = GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get (), delay);
+    decrypt_deadline = GNUNET_TIME_absolute_add (decrypt_start, timeout);
+
+
     // compute g^42
     GNUNET_SECRETSHARING_plaintext_generate_i (&reference_plaintext, 42);
     GNUNET_SECRETSHARING_encrypt (&common_pubkey, &reference_plaintext, &ciphertext);
@@ -350,7 +368,8 @@ session_connect_adapter (void *cls,
                                              num_peers,
                                              peer_ids,
                                              &session_id,
-                                             GNUNET_TIME_relative_to_absolute (timeout),
+                                             dkg_start,
+                                             dkg_deadline,
                                              threshold,
                                              &secret_ready_cb, sp);
   return *sp;
@@ -471,6 +490,9 @@ run (void *cls, char *const *args, const char *cfgfile,
   char *topology;
   int topology_cmp_result;
 
+  dkg_start = GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get (), delay);
+  dkg_deadline = GNUNET_TIME_absolute_add (dkg_start, timeout);
+
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_string (cfg, "testbed", "OVERLAY_TOPOLOGY", &topology))
   {
     fprintf (stderr,
@@ -513,6 +535,9 @@ main (int argc, char **argv)
       { 'n', "num-peers", NULL,
         gettext_noop ("number of peers in consensus"),
         GNUNET_YES, &GNUNET_GETOPT_set_uint, &num_peers },
+      { 'D', "delay", NULL,
+        gettext_noop ("dkg start delay"),
+        GNUNET_YES, &GNUNET_GETOPT_set_relative_time, &delay },
       { 't', "timeout", NULL,
         gettext_noop ("dkg timeout"),
         GNUNET_YES, &GNUNET_GETOPT_set_relative_time, &timeout },
@@ -527,7 +552,8 @@ main (int argc, char **argv)
         GNUNET_NO, &GNUNET_GETOPT_set_one, &verbose },
       GNUNET_GETOPT_OPTION_END
   };
-  timeout = GNUNET_TIME_UNIT_SECONDS;
+  delay = GNUNET_TIME_UNIT_ZERO;
+  timeout = GNUNET_TIME_UNIT_MINUTES;
   GNUNET_PROGRAM_run2 (argc, argv, "gnunet-secretsharing-profiler",
 		      "help",
 		      options, &run, NULL, GNUNET_YES);

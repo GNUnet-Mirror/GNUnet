@@ -25,6 +25,7 @@
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
+#include "gnunet_time_lib.h"
 #include "gnunet_consensus_service.h"
 #include "gnunet_testbed_service.h"
 
@@ -55,6 +56,16 @@ static unsigned int peers_done = 0;
 static unsigned *results_for_peer;
 
 static int verbose;
+
+/**
+ * Start time for all consensuses.
+ */
+static struct GNUNET_TIME_Absolute start;
+
+/**
+ * Deadline for all consensuses.
+ */
+static struct GNUNET_TIME_Absolute deadline;
 
 
 /**
@@ -172,7 +183,6 @@ do_consensus ()
 
   for (i = 0; i < num_peers; i++)
     GNUNET_CONSENSUS_conclude (consensus_handles[i],
-                               GNUNET_TIME_relative_to_absolute (conclude_timeout),
                                conclude_cb, &consensus_handles[i]);
 }
 
@@ -259,6 +269,8 @@ connect_adapter (void *cls,
   consensus = GNUNET_CONSENSUS_create (cfg,
                                        num_peers, peer_ids,
                                        &session_id,
+                                       start,
+                                       deadline,
                                        &new_element_cb, chp);
   *chp = (struct GNUNET_CONSENSUS_Handle *) consensus;
   return consensus;
@@ -395,6 +407,9 @@ run (void *cls, char *const *args, const char *cfgfile,
     fprintf (stderr, "k must be <=n\n");
     return;
   }
+
+  start = GNUNET_TIME_absolute_get ();
+  deadline = GNUNET_TIME_absolute_add (start, conclude_timeout);
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "running gnunet-consensus\n");

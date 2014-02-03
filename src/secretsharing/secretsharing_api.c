@@ -174,6 +174,7 @@ GNUNET_SECRETSHARING_create_session (const struct GNUNET_CONFIGURATION_Handle *c
                                      unsigned int num_peers,
                                      const struct GNUNET_PeerIdentity *peers,
                                      const struct GNUNET_HashCode *session_id,
+                                     struct GNUNET_TIME_Absolute start,
                                      struct GNUNET_TIME_Absolute deadline,
                                      unsigned int threshold,
                                      GNUNET_SECRETSHARING_SecretReadyCallback cb,
@@ -205,6 +206,7 @@ GNUNET_SECRETSHARING_create_session (const struct GNUNET_CONFIGURATION_Handle *c
   msg->threshold = htons (threshold);
   msg->num_peers = htons (num_peers);
   msg->session_id = *session_id;
+  msg->start = GNUNET_TIME_absolute_hton (start);
   msg->deadline = GNUNET_TIME_absolute_hton (deadline);
   memcpy (&msg[1], peers, num_peers * sizeof (struct GNUNET_PeerIdentity));
 
@@ -253,6 +255,7 @@ struct GNUNET_SECRETSHARING_DecryptionHandle *
 GNUNET_SECRETSHARING_decrypt (const struct GNUNET_CONFIGURATION_Handle *cfg,
                               struct GNUNET_SECRETSHARING_Share *share,
                               const struct GNUNET_SECRETSHARING_Ciphertext *ciphertext,
+                              struct GNUNET_TIME_Absolute start,
                               struct GNUNET_TIME_Absolute deadline,
                               GNUNET_SECRETSHARING_DecryptCallback decrypt_cb,
                               void *decrypt_cb_cls)
@@ -285,6 +288,7 @@ GNUNET_SECRETSHARING_decrypt (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
   GNUNET_assert (GNUNET_OK == GNUNET_SECRETSHARING_share_write (share, &msg[1], share_size, NULL));
 
+  msg->start = GNUNET_TIME_absolute_hton (start);
   msg->deadline = GNUNET_TIME_absolute_hton (deadline);
   msg->ciphertext = *ciphertext;
 

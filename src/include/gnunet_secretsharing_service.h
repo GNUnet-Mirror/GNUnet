@@ -190,6 +190,8 @@ typedef void (*GNUNET_SECRETSHARING_DecryptCallback) (void *cls,
  * @param num_peers number of peers in 'peers'
  * @param peers array of peers that we will share secrets with, can optionally contain the local peer
  * @param session_id unique session id
+ * @param start When should all peers be available for sharing the secret?
+ *              Random number generation can take place before the start time.
  * @param deadline point in time where the session must be established; taken as hint
  *                 by underlying consensus sessions
  * @param threshold minimum number of peers that must cooperate to decrypt a value
@@ -201,6 +203,7 @@ GNUNET_SECRETSHARING_create_session (const struct GNUNET_CONFIGURATION_Handle *c
                                      unsigned int num_peers,
                                      const struct GNUNET_PeerIdentity *peers,
                                      const struct GNUNET_HashCode *session_id,
+                                     struct GNUNET_TIME_Absolute start,
                                      struct GNUNET_TIME_Absolute deadline,
                                      unsigned int threshold,
                                      GNUNET_SECRETSHARING_SecretReadyCallback cb,
@@ -247,6 +250,7 @@ GNUNET_SECRETSHARING_encrypt (const struct GNUNET_SECRETSHARING_PublicKey *publi
  * @param share our secret share to use for decryption
  * @param ciphertext ciphertext to publish in order to decrypt it (if enough peers agree)
  * @param decrypt_cb callback called once the decryption succeeded
+ * @param start By when should the cooperation for decryption start?
  * @param deadline By when should the decryption be finished?
  * @param decrypt_cb_cls closure for @a decrypt_cb
  * @return handle to cancel the operation
@@ -255,6 +259,7 @@ struct GNUNET_SECRETSHARING_DecryptionHandle *
 GNUNET_SECRETSHARING_decrypt (const struct GNUNET_CONFIGURATION_Handle *cfg,
                               struct GNUNET_SECRETSHARING_Share *share,
                               const struct GNUNET_SECRETSHARING_Ciphertext *ciphertext,
+                              struct GNUNET_TIME_Absolute start,
                               struct GNUNET_TIME_Absolute deadline,
                               GNUNET_SECRETSHARING_DecryptCallback decrypt_cb,
                               void *decrypt_cb_cls);

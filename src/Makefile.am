@@ -6,7 +6,7 @@ if HAVE_TESTING
  TESTING = testing
  TESTBED = testbed
  CONSENSUS = consensus
-# SECRETSHARING = secretsharing
+ SECRETSHARING = secretsharing
  EXPERIMENTATION = experimentation
 # SCALARPRODUCT = scalarproduct
 endif

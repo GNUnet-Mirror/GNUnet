@@ -238,6 +238,11 @@ struct DecryptSession
   struct GNUNET_MQ_Handle *client_mq;
 
   /**
+   * When should we start communicating for decryption?
+   */
+  struct GNUNET_TIME_Absolute start;
+
+  /**
    * When would we like the ciphertext to be
    * decrypted?
    */
@@ -814,8 +819,8 @@ insert_round2_element (struct KeygenSession *ks)
 
   element_size = (sizeof (struct GNUNET_SECRETSHARING_KeygenRevealData) +
                   GNUNET_SECRETSHARING_ELGAMAL_BITS / 8 * ks->num_peers +
-                  GNUNET_SECRETSHARING_ELGAMAL_BITS / 8 * ks->threshold +
-                  GNUNET_CRYPTO_PAILLIER_BITS * 2 / 8 * ks->num_peers);
+                  sizeof (struct GNUNET_CRYPTO_PaillierCiphertext) * ks->num_peers +
+                  GNUNET_SECRETSHARING_ELGAMAL_BITS / 8 * ks->threshold);
 
   element = GNUNET_malloc (sizeof (struct GNUNET_SET_Element) + element_size);
   element->size = element_size;
@@ -857,13 +862,11 @@ insert_round2_element (struct KeygenSession *ks)
     memset (ciphertext, 0, sizeof *ciphertext);
     if (GNUNET_YES == ks->info[i].round1_valid)
     {
-      struct GNUNET_CRYPTO_PaillierPlaintext plaintext;
       gcry_mpi_set_ui (idx, i + 1);
       // evaluate the polynomial
       horner_eval (v, ks->presecret_polynomial, ks->threshold, idx, elgamal_q);
-      GNUNET_CRYPTO_mpi_print_unsigned (&plaintext, sizeof plaintext, v);
       // encrypt the result
-      GNUNET_CRYPTO_paillier_encrypt (&ks->info[i].paillier_public_key, &plaintext, ciphertext);
+      GNUNET_CRYPTO_paillier_encrypt (&ks->info[i].paillier_public_key, v, ciphertext);
     }
     pos += sizeof *ciphertext;
   }
@@ -904,7 +907,6 @@ keygen_round2_new_element (void *cls,
   const struct GNUNET_SECRETSHARING_KeygenRevealData *d;
   struct KeygenPeerInfo *info;
   unsigned char *pos;
-  struct GNUNET_CRYPTO_PaillierPlaintext plaintext;
   size_t expected_element_size;
 
   if (NULL == element)
@@ -915,7 +917,7 @@ keygen_round2_new_element (void *cls,
 
   expected_element_size = (sizeof (struct GNUNET_SECRETSHARING_KeygenRevealData) +
                   GNUNET_SECRETSHARING_ELGAMAL_BITS / 8 * ks->num_peers +
-                  GNUNET_CRYPTO_PAILLIER_BITS / 8 * 2 * ks->num_peers +
+                  sizeof (struct GNUNET_CRYPTO_PaillierCiphertext) * ks->num_peers +
                   GNUNET_SECRETSHARING_ELGAMAL_BITS / 8 * ks->threshold);
 
   if (element->size != expected_element_size)
@@ -960,7 +962,7 @@ keygen_round2_new_element (void *cls,
   // skip exponentiated pre-shares
   pos += GNUNET_SECRETSHARING_ELGAMAL_BITS / 8 * ks->num_peers;
   // skip encrypted pre-shares
-  pos += GNUNET_CRYPTO_PAILLIER_BITS * 2 / 8 * ks->num_peers;
+  pos += sizeof (struct GNUNET_CRYPTO_PaillierCiphertext) * ks->num_peers;
   // the first exponentiated coefficient is the public key share
   GNUNET_CRYPTO_mpi_scan_unsigned (&info->public_key_share, pos, GNUNET_SECRETSHARING_ELGAMAL_BITS / 8);
 
@@ -968,12 +970,11 @@ keygen_round2_new_element (void *cls,
   // skip exp. pre-shares
   pos += GNUNET_SECRETSHARING_ELGAMAL_BITS / 8 * ks->num_peers;
   // skip to the encrypted value for our peer
-  pos += GNUNET_CRYPTO_PAILLIER_BITS * 2 / 8 * ks->local_peer_idx;
+  pos += sizeof (struct GNUNET_CRYPTO_PaillierCiphertext) * ks->local_peer_idx;
 
+  GNUNET_assert (NULL != (info->decrypted_preshare = gcry_mpi_new (0)));
   GNUNET_CRYPTO_paillier_decrypt (&ks->paillier_private_key, &ks->info[ks->local_peer_idx].paillier_public_key,
-                                  (struct GNUNET_CRYPTO_PaillierCiphertext *) pos, &plaintext);
-  GNUNET_CRYPTO_mpi_scan_unsigned (&info->decrypted_preshare, &plaintext,
-                                   sizeof plaintext);
+                                  (struct GNUNET_CRYPTO_PaillierCiphertext *) pos, info->decrypted_preshare);
 
   // TODO: validate zero knowledge proofs
 
@@ -1009,13 +1010,13 @@ keygen_round1_conclude (void *cls)
   GNUNET_CONSENSUS_destroy (ks->consensus);
 
   ks->consensus = GNUNET_CONSENSUS_create (cfg, ks->num_peers, ks->peers, &ks->session_id,
+                                           time_between (ks->start_time, ks->deadline, 1, 2),
+                                           ks->deadline,
                                            keygen_round2_new_element, ks);
 
   insert_round2_element (ks);
 
   GNUNET_CONSENSUS_conclude (ks->consensus,
-                             /* last round, thus conclude at DKG deadline */
-                             ks->deadline,
                              keygen_round2_conclude,
                              ks);
 }
@@ -1104,6 +1105,8 @@ static void handle_client_keygen (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "first round of consensus with %u peers\n", ks->num_peers);
   ks->consensus = GNUNET_CONSENSUS_create (cfg, ks->num_peers, ks->peers, &msg->session_id,
+                                           GNUNET_TIME_absolute_ntoh (msg->start),
+                                           GNUNET_TIME_absolute_ntoh (msg->deadline),
                                            keygen_round1_new_element, ks);
 
   ks->info = GNUNET_new_array (ks->num_peers, struct KeygenPeerInfo);
@@ -1125,8 +1128,6 @@ static void handle_client_keygen (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "P%u: Concluding for round 1\n", ks->local_peer_idx);
 
   GNUNET_CONSENSUS_conclude (ks->consensus,
-                             /* half the overall time */
-                             time_between (ks->start_time, ks->deadline, 1, 2),
                              keygen_round1_conclude,
                              ks);
 
@@ -1259,6 +1260,9 @@ insert_decrypt_element (struct DecryptSession *ds)
   gcry_mpi_t x;
   gcry_mpi_t s;
 
+  /* make vagrind happy until we implement the real deal ... */
+  memset (&d, 0, sizeof d);
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "P%u: Inserting decrypt element\n",
               ds->share->my_peer);
 
@@ -1272,11 +1276,6 @@ insert_decrypt_element (struct DecryptSession *ds)
   element.data = (void *) &d;
   element.size = sizeof (struct GNUNET_SECRETSHARING_DecryptData);
   element.type = 0;
-
-  /* make vagrind happy until we implement the real deal ... */
-  memset (&d.nizk_commit1, 0, sizeof d.nizk_commit1);
-  memset (&d.nizk_commit2, 0, sizeof d.nizk_commit2);
-  memset (&d.nizk_response, 0, sizeof d.nizk_response);
 
   d.ciphertext = ds->ciphertext;
   d.peer = my_peer;
@@ -1317,6 +1316,7 @@ static void handle_client_decrypt (void *cls,
   GNUNET_CONTAINER_DLL_insert (decrypt_sessions_head, decrypt_sessions_tail, ds);
   ds->client = client;
   ds->client_mq = GNUNET_MQ_queue_for_server_client (client);
+  ds->start = GNUNET_TIME_absolute_ntoh (msg->start);
   ds->deadline = GNUNET_TIME_absolute_ntoh (msg->deadline);
   ds->ciphertext = msg->ciphertext;
 
@@ -1331,6 +1331,8 @@ static void handle_client_decrypt (void *cls,
                                            ds->share->num_peers,
                                            ds->share->peers,
                                            &session_id,
+                                           ds->start,
+                                           ds->deadline,
                                            &decrypt_new_element,
                                            ds);
 
@@ -1344,7 +1346,7 @@ static void handle_client_decrypt (void *cls,
 
   insert_decrypt_element (ds);
 
-  GNUNET_CONSENSUS_conclude (ds->consensus, ds->deadline, decrypt_conclude, ds);
+  GNUNET_CONSENSUS_conclude (ds->consensus, decrypt_conclude, ds);
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 

@@ -142,6 +142,11 @@ struct ConsensusSession
   struct GNUNET_MQ_Handle *client_mq;
 
   /**
+   * Time when the conclusion of the consensus should begin.
+   */
+  struct GNUNET_TIME_Absolute conclude_start;
+
+  /**
    * Timeout for all rounds together, single rounds will schedule a timeout task
    * with a fraction of the conclude timeout.
    * Only valid once the current round is not CONSENSUS_ROUND_BEGIN.
@@ -1039,6 +1044,9 @@ initialize_session (struct ConsensusSession *session,
     other_session = other_session->next;
   }
 
+  session->conclude_deadline = GNUNET_TIME_absolute_ntoh (join_msg->deadline);
+  session->conclude_start = GNUNET_TIME_absolute_ntoh (join_msg->start);
+
   session->local_peer_idx = get_peer_idx (&my_peer, session);
   GNUNET_assert (-1 != session->local_peer_idx);
   session->element_set = GNUNET_SET_create (cfg, GNUNET_SET_OPERATION_UNION);
@@ -1168,11 +1176,8 @@ client_conclude (void *cls,
                  const struct GNUNET_MessageHeader *message)
 {
   struct ConsensusSession *session;
-  struct GNUNET_CONSENSUS_ConcludeMessage *cmsg;
-
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "conclude requested\n");
-  cmsg = (struct GNUNET_CONSENSUS_ConcludeMessage *) message;
   session = get_session_by_client (client);
   if (NULL == session)
   {
@@ -1194,7 +1199,6 @@ client_conclude (void *cls,
   }
   else
   {
-    session->conclude_deadline = GNUNET_TIME_absolute_ntoh (cmsg->deadline);
     /* the 'begin' round is over, start with the next, actual round */
     round_over (session, NULL);
   }
@@ -1257,7 +1261,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 {
   static const struct GNUNET_SERVER_MessageHandler server_handlers[] = {
     {&client_conclude, NULL, GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_CONCLUDE,
-        sizeof (struct GNUNET_CONSENSUS_ConcludeMessage)},
+        sizeof (struct GNUNET_MessageHeader)},
     {&client_insert, NULL, GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_INSERT, 0},
     {&client_join, NULL, GNUNET_MESSAGE_TYPE_CONSENSUS_CLIENT_JOIN, 0},
     {NULL, NULL, 0, 0}

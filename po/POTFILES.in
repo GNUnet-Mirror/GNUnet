@@ -14,6 +14,11 @@ src/ats/gnunet-service-ats_scheduling.c
 src/ats/plugin_ats_mlp.c
 src/ats/plugin_ats_proportional.c
 src/ats/plugin_ats_ril.c
+src/ats-tests/ats-testing.c
+src/ats-tests/ats-testing-experiment.c
+src/ats-tests/ats-testing-log.c
+src/ats-tests/ats-testing-traffic.c
+src/ats-tests/gnunet-ats-sim.c
 src/ats-tool/gnunet-ats.c
 src/block/block.c
 src/block/plugin_block_template.c
