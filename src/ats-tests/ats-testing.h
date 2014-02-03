@@ -453,14 +453,23 @@ typedef void (*GNUNET_ATS_TESTING_EpisodeDoneCallback) (
 typedef void (*GNUNET_ATS_TESTING_ExperimentDoneCallback) (struct Experiment *e,
     struct GNUNET_TIME_Relative duration,int success);
 
+/**
+ * An operation in an experiment
+ */
 struct Operation
 {
   struct Operation *next;
   struct Operation *prev;
+
   long long unsigned int src_id;
   long long unsigned int dest_id;
-  long long unsigned int value;
+
+  long long unsigned int base_rate;
+  long long unsigned int max_rate;
+  struct GNUNET_TIME_Relative period;
+
   enum OperationType type;
+  enum TrafficGeneratorType tg_type;
 };
 
 struct Episode

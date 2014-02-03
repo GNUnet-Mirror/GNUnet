@@ -94,14 +94,15 @@ load_episode (struct Experiment *e, struct Episode *cur,
   char *sec_name;
   char *op_name;
   char *op;
-  int ep_counter = 0;
+  char *type;
+  int op_counter = 0;
   fprintf (stderr, "Parsing episode %u\n",cur->id);
   GNUNET_asprintf(&sec_name, "episode-%u", cur->id);
 
   while (1)
   {
-
-    GNUNET_asprintf(&op_name, "op-%u-operation", ep_counter);
+    /* Load operation */
+    GNUNET_asprintf(&op_name, "op-%u-operation", op_counter);
     if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string(cfg,
         sec_name, op_name, &op))
     {
@@ -128,72 +129,140 @@ load_episode (struct Experiment *e, struct Episode *cur,
     else
     {
       fprintf (stderr, "Invalid operation %u `%s' in episode %u\n",
-          ep_counter, op, cur->id);
+          op_counter, op, cur->id);
       GNUNET_free (op);
+      GNUNET_free (op_name);
       return GNUNET_SYSERR;
     }
-
     GNUNET_free (op_name);
-    GNUNET_asprintf(&op_name, "op-%u-src", ep_counter);
+
+    /* Get source */
+    GNUNET_asprintf(&op_name, "op-%u-src", op_counter);
     if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number (cfg,
         sec_name, op_name, &o->src_id))
     {
       fprintf (stderr, "Missing src in operation %u `%s' in episode %u\n",
-          ep_counter, op, cur->id);
+          op_counter, op, cur->id);
       GNUNET_free (op);
+      GNUNET_free (op_name);
       return GNUNET_SYSERR;
     }
     if (o->src_id > e->num_masters)
     {
       fprintf (stderr, "Invalid src %llu in operation %u `%s' in episode %u\n",
-          o->src_id, ep_counter, op, cur->id);
+          o->src_id, op_counter, op, cur->id);
       GNUNET_free (op);
+      GNUNET_free (op_name);
       return GNUNET_SYSERR;
     }
-
     GNUNET_free (op_name);
-    GNUNET_asprintf(&op_name, "op-%u-dest", ep_counter);
+
+    /* Get destination */
+    GNUNET_asprintf(&op_name, "op-%u-dest", op_counter);
     if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number (cfg,
         sec_name, op_name, &o->dest_id))
     {
       fprintf (stderr, "Missing src in operation %u `%s' in episode %u\n",
-          ep_counter, op, cur->id);
+          op_counter, op, cur->id);
       GNUNET_free (op);
+      GNUNET_free (op_name);
       return GNUNET_SYSERR;
     }
     if (o->dest_id > e->num_slaves)
     {
       fprintf (stderr, "Invalid destination %llu in operation %u `%s' in episode %u\n",
-          o->dest_id, ep_counter, op, cur->id);
+          o->dest_id, op_counter, op, cur->id);
       GNUNET_free (op);
+      GNUNET_free (op_name);
       return GNUNET_SYSERR;
     }
-
-
     GNUNET_free (op_name);
-    GNUNET_asprintf(&op_name, "op-%u-value", ep_counter);
-    if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number (cfg,
-        sec_name, op_name, &o->value))
+
+    GNUNET_asprintf(&op_name, "op-%u-type", op_counter);
+    if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string(cfg,
+        sec_name, op_name, &type))
     {
-      fprintf (stderr, "Missing value in operation %u `%s' in episode %u\n",
-          ep_counter, op, cur->id);
-      GNUNET_free (op);
-      return GNUNET_SYSERR;
-    }
-    if (o->dest_id > e->num_slaves)
-    {
-      fprintf (stderr, "Invalid destination %llu in operation %u `%s' in episode %u\n",
-          o->dest_id, ep_counter, op, cur->id);
-      GNUNET_free (op);
-      return GNUNET_SYSERR;
+      break;
     }
 
-    fprintf (stderr, "Found operation %u in episode %u: %s [%llu]->[%llu] == %llu\n",
-        ep_counter, cur->id, print_op (o->type), o->src_id, o->dest_id, o->value);
+    if (STOP_SEND != o->type)
+    {
+      /* Load arguments for set_rate, start_send, set_preference */
+      if (0 == strcmp (type, "constant"))
+      {
+        o->tg_type = GNUNET_ATS_TEST_TG_CONSTANT;
+      }
+      else if (0 == strcmp (type, "linear"))
+      {
+        o->tg_type = GNUNET_ATS_TEST_TG_LINEAR;
+      }
+      else if (0 == strcmp (type, "sinus"))
+      {
+        o->tg_type = GNUNET_ATS_TEST_TG_SINUS;
+      }
+      else if (0 == strcmp (type, "random"))
+      {
+        o->tg_type = GNUNET_ATS_TEST_TG_RANDOM;
+      }
+      else
+      {
+        fprintf (stderr, "Invalid type %u `%s' in episode %u\n",
+            op_counter, op, cur->id);
+        GNUNET_free (op);
+        GNUNET_free (op_name);
+        return GNUNET_SYSERR;
+      }
+      GNUNET_free (op_name);
+
+      /* Get base rate */
+      GNUNET_asprintf(&op_name, "op-%u-base-rate", op_counter);
+      if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number (cfg,
+          sec_name, op_name, &o->base_rate))
+      {
+        fprintf (stderr, "Missing base rate in operation %u `%s' in episode %u\n",
+            op_counter, op, cur->id);
+        GNUNET_free (op);
+        GNUNET_free (op_name);
+        return GNUNET_SYSERR;
+      }
+      GNUNET_free (op_name);
+
+      /* Get max rate */
+      GNUNET_asprintf(&op_name, "op-%u-max-rate", op_counter);
+      if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number (cfg,
+          sec_name, op_name, &o->max_rate))
+      {
+        if ((GNUNET_ATS_TEST_TG_LINEAR == o->tg_type) ||
+            (GNUNET_ATS_TEST_TG_RANDOM == o->tg_type) ||
+            (GNUNET_ATS_TEST_TG_SINUS == o->tg_type))
+        {
+          fprintf (stderr, "Missing max rate in operation %u `%s' in episode %u\n",
+              op_counter, op, cur->id);
+          GNUNET_free (op);
+          return GNUNET_SYSERR;
+        }
+      }
+      GNUNET_free (op_name);
+
+      {
+        /* Get period */
+        GNUNET_asprintf(&op_name, "op-%u-period", op_counter);
+        if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_time (cfg,
+            sec_name, op_name, &o->period))
+        {
+          o->period = cur->duration;
+        }
+        GNUNET_free (op_name);
+      }
+    }
+
+    fprintf (stderr, "Found operation %u in episode %u: %s [%llu]->[%llu] == %s, %llu -> %llu in %s\n",
+        op_counter, cur->id, print_op (o->type), o->src_id,
+        o->dest_id, type, o->base_rate, o->max_rate,
+        GNUNET_STRINGS_relative_time_to_string (o->period, GNUNET_YES));
 
     GNUNET_CONTAINER_DLL_insert (cur->head,cur->tail, o);
-    GNUNET_free (op_name);
-    ep_counter++;
+    op_counter++;
   }
   GNUNET_free (sec_name);
 
@@ -300,7 +369,7 @@ static void enforce_episode (struct Episode *ep)
   {
 
     fprintf (stderr, "Enforcing operation: %s [%llu]->[%llu] == %llu\n",
-        print_op (cur->type), cur->src_id, cur->dest_id, cur->value);
+        print_op (cur->type), cur->src_id, cur->dest_id, cur->base_rate);
     switch (cur->type) {
       case START_SEND:
         enforce_start_send (cur);
