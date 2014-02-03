@@ -456,10 +456,10 @@ typedef void (*GNUNET_ATS_TESTING_ExperimentDoneCallback) (struct Experiment *e,
 /**
  * An operation in an experiment
  */
-struct Operation
+struct GNUNET_ATS_TEST_Operation
 {
-  struct Operation *next;
-  struct Operation *prev;
+  struct GNUNET_ATS_TEST_Operation *next;
+  struct GNUNET_ATS_TEST_Operation *prev;
 
   long long unsigned int src_id;
   long long unsigned int dest_id;
@@ -478,8 +478,8 @@ struct Episode
   struct Episode *next;
   struct GNUNET_TIME_Relative duration;
 
-  struct Operation *head;
-  struct Operation *tail;
+  struct GNUNET_ATS_TEST_Operation *head;
+  struct GNUNET_ATS_TEST_Operation *tail;
 };
 
 
@@ -639,6 +639,12 @@ GNUNET_ATS_TEST_logging_write_to_file (struct LoggingHandle *l,
 /*
  * Topology related functions
  */
+
+struct BenchmarkPeer *
+GNUNET_ATS_TEST_get_peer (int src);
+
+struct BenchmarkPartner *
+GNUNET_ATS_TEST_get_partner (int src, int dest);
 
 /**
  * Create a topology for ats testing

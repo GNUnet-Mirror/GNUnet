@@ -757,7 +757,6 @@ GNUNET_ATS_TEST_logging_stop (struct LoggingHandle *l)
     GNUNET_SCHEDULER_cancel (l->log_task);
   l->log_task = GNUNET_SCHEDULER_NO_TASK;
   tc.reason = GNUNET_SCHEDULER_REASON_SHUTDOWN;
-  collect_log_task (l, &tc);
   l->running = GNUNET_NO;
 
   GNUNET_log(GNUNET_ERROR_TYPE_INFO,

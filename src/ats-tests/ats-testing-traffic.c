@@ -329,7 +329,7 @@ GNUNET_ATS_TEST_generate_traffic_start (struct BenchmarkPeer *src,
   tg->time_start = GNUNET_TIME_absolute_get();
   tg->next_ping_transmission = GNUNET_TIME_UNIT_FOREVER_ABS;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
       "Setting up traffic generator master[%u] `%s' and slave [%u] `%s' max %u Bips\n",
       dest->me->no, GNUNET_i2s (&dest->me->id),
       dest->dest->no, GNUNET_i2s (&dest->dest->id),

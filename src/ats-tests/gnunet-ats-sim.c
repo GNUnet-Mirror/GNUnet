@@ -123,12 +123,21 @@ evaluate (struct GNUNET_TIME_Relative duration_total)
 static void
 do_shutdown ()
 {
+  fprintf (stderr, "Shutdown\n");
   /* timeout */
+  if (NULL != l)
+  {
+    GNUNET_ATS_TEST_logging_stop (l);
+    GNUNET_ATS_TEST_logging_clean_up (l);
+    l = NULL;
+  }
   if (NULL != e)
   {
+    GNUNET_break (0);
     GNUNET_ATS_TEST_experimentation_stop (e);
     e = NULL;
   }
+  GNUNET_break (0);
   GNUNET_ATS_TEST_shutdown_topology ();
 }
 
@@ -237,6 +246,7 @@ static void topology_setup_done (void *cls,
             */
         /* Example: Generate traffic with a sinus form, a base rate of
          * 1000 Bytes/s, an amplitude of (max-base), and a period of 1 minute */
+        /*
         GNUNET_ATS_TEST_generate_traffic_start (&masters[c_m],
             &masters[c_m].partners[c_s],
             GNUNET_ATS_TEST_TG_SINUS,
@@ -244,6 +254,7 @@ static void topology_setup_done (void *cls,
             2000,
             GNUNET_TIME_UNIT_MINUTES,
             GNUNET_TIME_UNIT_FOREVER_REL);
+                        */
       }
   }
 

@@ -64,8 +64,8 @@ free_experiment (struct Experiment *e)
 {
   struct Episode *cur;
   struct Episode *next;
-  struct Operation *cur_o;
-  struct Operation *next_o;
+  struct GNUNET_ATS_TEST_Operation *cur_o;
+  struct GNUNET_ATS_TEST_Operation *next_o;
 
   next = e->start;
   for (cur = next; NULL != cur; cur = next)
@@ -90,7 +90,7 @@ static int
 load_episode (struct Experiment *e, struct Episode *cur,
     struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  struct Operation *o;
+  struct GNUNET_ATS_TEST_Operation *o;
   char *sec_name;
   char *op_name;
   char *op;
@@ -106,9 +106,10 @@ load_episode (struct Experiment *e, struct Episode *cur,
     if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string(cfg,
         sec_name, op_name, &op))
     {
+      GNUNET_free (op_name);
       break;
     }
-    o = GNUNET_new (struct Operation);
+    o = GNUNET_new (struct GNUNET_ATS_TEST_Operation);
     /* operations = set_rate, start_send, stop_send, set_preference */
     if (0 == strcmp (op, "start_send"))
     {
@@ -179,13 +180,9 @@ load_episode (struct Experiment *e, struct Episode *cur,
     GNUNET_free (op_name);
 
     GNUNET_asprintf(&op_name, "op-%u-type", op_counter);
-    if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string(cfg,
-        sec_name, op_name, &type))
-    {
-      break;
-    }
-
-    if (STOP_SEND != o->type)
+    if ( (GNUNET_SYSERR != GNUNET_CONFIGURATION_get_value_string(cfg,
+            sec_name, op_name, &type)) &&
+        (STOP_SEND != o->type))
     {
       /* Load arguments for set_rate, start_send, set_preference */
       if (0 == strcmp (type, "constant"))
@@ -208,6 +205,7 @@ load_episode (struct Experiment *e, struct Episode *cur,
       {
         fprintf (stderr, "Invalid type %u `%s' in episode %u\n",
             op_counter, op, cur->id);
+        GNUNET_free (type);
         GNUNET_free (op);
         GNUNET_free (op_name);
         return GNUNET_SYSERR;
@@ -221,6 +219,7 @@ load_episode (struct Experiment *e, struct Episode *cur,
       {
         fprintf (stderr, "Missing base rate in operation %u `%s' in episode %u\n",
             op_counter, op, cur->id);
+        GNUNET_free (type);
         GNUNET_free (op);
         GNUNET_free (op_name);
         return GNUNET_SYSERR;
@@ -238,22 +237,23 @@ load_episode (struct Experiment *e, struct Episode *cur,
         {
           fprintf (stderr, "Missing max rate in operation %u `%s' in episode %u\n",
               op_counter, op, cur->id);
+          GNUNET_free (type);
+          GNUNET_free (op_name);
           GNUNET_free (op);
           return GNUNET_SYSERR;
         }
       }
       GNUNET_free (op_name);
 
+      /* Get period */
+      GNUNET_asprintf(&op_name, "op-%u-period", op_counter);
+      if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_time (cfg,
+          sec_name, op_name, &o->period))
       {
-        /* Get period */
-        GNUNET_asprintf(&op_name, "op-%u-period", op_counter);
-        if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_time (cfg,
-            sec_name, op_name, &o->period))
-        {
-          o->period = cur->duration;
-        }
-        GNUNET_free (op_name);
+        o->period = cur->duration;
       }
+      GNUNET_free (op_name);
+
     }
 
     /* Safety checks */
@@ -270,8 +270,12 @@ load_episode (struct Experiment *e, struct Episode *cur,
 
     fprintf (stderr, "Found operation %u in episode %u: %s [%llu]->[%llu] == %s, %llu -> %llu in %s\n",
         op_counter, cur->id, print_op (o->type), o->src_id,
-        o->dest_id, type, o->base_rate, o->max_rate,
+        o->dest_id, (NULL != type) ? type : "",
+        o->base_rate, o->max_rate,
         GNUNET_STRINGS_relative_time_to_string (o->period, GNUNET_YES));
+
+    GNUNET_free_non_null (type);
+    GNUNET_free (op);
 
     GNUNET_CONTAINER_DLL_insert (cur->head,cur->tail, o);
     op_counter++;
@@ -351,32 +355,77 @@ timeout_experiment (void *cls, const struct GNUNET_SCHEDULER_TaskContext* tc)
 }
 
 static void
-enforce_start_send (struct Operation *op)
+enforce_start_send (struct GNUNET_ATS_TEST_Operation *op)
 {
   GNUNET_break (0);
 }
 
 static void
-enforce_stop_send (struct Operation *op)
+enforce_stop_send (struct GNUNET_ATS_TEST_Operation *op)
 {
-  GNUNET_break (0);
+  struct BenchmarkPartner *p;
+  p = GNUNET_ATS_TEST_get_partner (op->src_id, op->dest_id);
+  if (NULL == p)
+  {
+    GNUNET_break (0);
+    return;
+  }
+
+  fprintf (stderr, "Found master %llu slave %llu\n",op->src_id, op->dest_id);
+
+  if (NULL != p->tg)
+  {
+    fprintf (stderr, "Stopping traffic between master %llu slave %llu\n",op->src_id, op->dest_id);
+    GNUNET_ATS_TEST_generate_traffic_stop(p->tg);
+    p->tg = NULL;
+  }
+
+
 }
 
 static void
-enforce_set_rate (struct Operation *op)
+enforce_set_rate (struct GNUNET_ATS_TEST_Operation *op)
 {
-  GNUNET_break (0);
+  struct BenchmarkPeer *peer;
+  struct BenchmarkPartner *partner;
+
+  peer = GNUNET_ATS_TEST_get_peer (op->src_id);
+  if (NULL == peer)
+  {
+    GNUNET_break (0);
+    return;
+  }
+
+  partner = GNUNET_ATS_TEST_get_partner (op->src_id, op->dest_id);
+  if (NULL == partner)
+  {
+    GNUNET_break (0);
+    return;
+  }
+
+  fprintf (stderr, "Found master %llu slave %llu\n",op->src_id, op->dest_id);
+
+  if (NULL != partner->tg)
+  {
+    fprintf (stderr, "Stopping traffic between master %llu slave %llu\n",op->src_id, op->dest_id);
+    GNUNET_ATS_TEST_generate_traffic_stop(partner->tg);
+    partner->tg = NULL;
+  }
+
+  partner->tg = GNUNET_ATS_TEST_generate_traffic_start(peer, partner,
+      op->tg_type, op->base_rate, op->max_rate, op->period,
+      GNUNET_TIME_UNIT_FOREVER_REL);
 }
 
 static void
-enforce_set_preference (struct Operation *op)
+enforce_set_preference (struct GNUNET_ATS_TEST_Operation *op)
 {
   GNUNET_break (0);
 }
 
 static void enforce_episode (struct Episode *ep)
 {
-  struct Operation *cur;
+  struct GNUNET_ATS_TEST_Operation *cur;
   for (cur = ep->head; NULL != cur; cur = cur->next)
   {
 

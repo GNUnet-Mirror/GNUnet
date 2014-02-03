@@ -836,6 +836,23 @@ controller_event_cb (void *cls,
   }
 }
 
+struct BenchmarkPeer *
+GNUNET_ATS_TEST_get_peer (int src)
+{
+  if (src > top->num_masters)
+    return NULL;
+  return &top->mps[src];
+}
+
+struct BenchmarkPartner *
+GNUNET_ATS_TEST_get_partner (int src, int dest)
+{
+  if (src > top->num_masters)
+    return NULL;
+  if (dest > top->num_slaves)
+    return NULL;
+  return &top->mps[src].partners[dest];
+}
 
 /**
  * Create a topology for ats testing
@@ -897,6 +914,9 @@ GNUNET_ATS_TEST_shutdown_topology (void)
 {
   if (NULL == top)
     return;
+
+  GNUNET_free (top->mps);
+  GNUNET_free (top->sps);
 
   GNUNET_SCHEDULER_shutdown();
 }
