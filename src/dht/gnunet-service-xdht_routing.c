@@ -100,10 +100,19 @@ GDS_ROUTING_add (struct GNUNET_PeerIdentity *source,
     new_routing_entry->next_hop = next_hop;
     new_routing_entry->destination = dest;
     
+    /* If dest is already present in the routing table, then exit.*/
+    if (GNUNET_YES ==
+      GNUNET_CONTAINER_multipeermap_contains (routing_table,
+                                              dest))
+    {
+      GNUNET_break (0);
+      return;
+    }
+
     GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONTAINER_multipeermap_put (routing_table,
-                                                    dest, new_routing_entry,
-                                                    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+        GNUNET_CONTAINER_multipeermap_put (routing_table,
+                                           dest, new_routing_entry,
+                                           GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
 }
 
 
