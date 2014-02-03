@@ -93,7 +93,8 @@ GNUNET_CRYPTO_paillier_create (struct GNUNET_CRYPTO_PaillierPublicKey *public_ke
  * @param public_key Public key to use.
  * @param m Plaintext to encrypt.
  * @param[out] ciphertext Encrytion of @a plaintext with @a public_key.
- * @return guaranteed number of supported homomorphic operations >= 1, -1 for failure
+ * @return guaranteed number of supported homomorphic operations >= 1, 
+ *         -1 if less than one homomorphic operation is possible
  */
 int
 GNUNET_CRYPTO_paillier_encrypt (const struct GNUNET_CRYPTO_PaillierPublicKey *public_key,
@@ -114,16 +115,22 @@ GNUNET_CRYPTO_paillier_encrypt (const struct GNUNET_CRYPTO_PaillierPublicKey *pu
   GNUNET_assert (NULL != (tmp1 = gcry_mpi_set_ui (NULL, 1)));
   GNUNET_assert (NULL != (tmp2 = gcry_mpi_set_ui (NULL, 2)));
   gcry_mpi_mul_2exp (tmp1, tmp1, GNUNET_CRYPTO_PAILLIER_BITS);
-
+  
+  // count number of possible operations
+  // this would be nicer with gcry_mpi_get_nbits, however it does not return 
+  // the BITLENGTH of the given MPI's value, but the bits required
+  // to represent the number as MPI.
   for (possible_opts = -2; gcry_mpi_cmp (tmp1, m) > 0; possible_opts++) {
     gcry_mpi_div (tmp1, NULL, tmp1, tmp2, 0);
   }
   gcry_mpi_release (tmp1);
   gcry_mpi_release (tmp2);
+  
+  // can we do at least one homomorphic operation with this value?
   if (possible_opts < 1)
+    // no, don't use paillier please!
     return -1;
   else
-    // reduce by one to guarantee the final homomorphic operation
     ciphertext->remaining_ops = htonl (possible_opts);
 
   GNUNET_assert (0 != (n_square = gcry_mpi_new (0)));
