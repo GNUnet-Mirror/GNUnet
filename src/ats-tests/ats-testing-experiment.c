@@ -256,6 +256,18 @@ load_episode (struct Experiment *e, struct Episode *cur,
       }
     }
 
+    /* Safety checks */
+    if ((GNUNET_ATS_TEST_TG_LINEAR == o->tg_type) ||
+        (GNUNET_ATS_TEST_TG_SINUS == o->tg_type))
+    {
+      if ((o->max_rate - o->base_rate) > o->base_rate)
+      {
+        /* This will cause an underflow */
+        GNUNET_break (0);
+      }
+      fprintf (stderr, "Selected max rate and base rate cannot be used for desired traffic form!\n");
+    }
+
     fprintf (stderr, "Found operation %u in episode %u: %s [%llu]->[%llu] == %s, %llu -> %llu in %s\n",
         op_counter, cur->id, print_op (o->type), o->src_id,
         o->dest_id, type, o->base_rate, o->max_rate,

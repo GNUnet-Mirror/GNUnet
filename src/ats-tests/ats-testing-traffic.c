@@ -54,9 +54,13 @@ get_delay (struct TrafficGenerator *tg)
       time_delta = GNUNET_TIME_absolute_get_duration(tg->time_start);
       /* Calculate point of time in the current period */
       time_delta.rel_value_us = time_delta.rel_value_us % tg->duration_period.rel_value_us;
-
       delta_rate = ((double) time_delta.rel_value_us  / tg->duration_period.rel_value_us) *
           (tg->max_rate - tg->base_rate);
+      if ((tg->max_rate - tg->base_rate) > tg->base_rate)
+      {
+        /* This will cause an underflow */
+        GNUNET_break (0);
+      }
       cur_rate = tg->base_rate + delta_rate;
       break;
     case GNUNET_ATS_TEST_TG_RANDOM:
@@ -67,7 +71,7 @@ get_delay (struct TrafficGenerator *tg)
       time_delta = GNUNET_TIME_absolute_get_duration(tg->time_start);
       /* Calculate point of time in the current period */
       time_delta.rel_value_us = time_delta.rel_value_us % tg->duration_period.rel_value_us;
-      if ((tg->max_rate - tg->base_rate) < tg->base_rate)
+      if ((tg->max_rate - tg->base_rate) > tg->base_rate)
       {
         /* This will cause an underflow for second half of sinus period,
          * will be detected in general when experiments are loaded */
@@ -80,6 +84,11 @@ get_delay (struct TrafficGenerator *tg)
     default:
       return delay;
       break;
+  }
+
+  if (cur_rate < 0)
+  {
+    cur_rate = 0;
   }
 
   /* Calculate the delay for the next message based on the current delay  */

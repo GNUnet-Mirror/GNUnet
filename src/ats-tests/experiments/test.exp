@@ -21,7 +21,7 @@ op-1-dest = 2
 op-1-type = sinus
 op-1-period = 1 s
 op-1-base-rate= 10000
-op-1-max-rate = 20000
+op-1-max-rate = 15000
 
 op-2-operation = set_rate
 op-2-src = 0
