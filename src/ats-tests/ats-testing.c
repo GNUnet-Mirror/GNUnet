@@ -915,9 +915,6 @@ GNUNET_ATS_TEST_shutdown_topology (void)
   if (NULL == top)
     return;
 
-  GNUNET_free (top->mps);
-  GNUNET_free (top->sps);
-
   GNUNET_SCHEDULER_shutdown();
 }
 

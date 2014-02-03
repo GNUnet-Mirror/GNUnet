@@ -141,6 +141,7 @@ do_shutdown ()
   GNUNET_ATS_TEST_shutdown_topology ();
 }
 
+
 static void
 transport_recv_cb (void *cls,
                    const struct GNUNET_PeerIdentity * peer,
@@ -174,15 +175,23 @@ experiment_done_cb (struct Experiment *e, struct GNUNET_TIME_Relative duration,i
   }
   /* Stop logging */
   GNUNET_ATS_TEST_logging_stop (l);
+
+  /* Stop traffic generation */
+  GNUNET_ATS_TEST_generate_traffic_stop_all();
+
   evaluate (duration);
   if (opt_log)
     GNUNET_ATS_TEST_logging_write_to_file(l, opt_exp_file, opt_plot);
 
-  /* Stop traffic generation */
-  GNUNET_ATS_TEST_generate_traffic_stop_all();
+  if (NULL != l)
+  {
+    GNUNET_ATS_TEST_logging_stop (l);
+    GNUNET_ATS_TEST_logging_clean_up (l);
+    l = NULL;
+  }
+
   /* Clean up experiment */
   GNUNET_ATS_TEST_experimentation_stop (e);
-  GNUNET_ATS_TEST_logging_clean_up (l);
   e = NULL;
 
   /* Shutdown topology */
@@ -199,8 +208,6 @@ static void topology_setup_done (void *cls,
     struct BenchmarkPeer *masters,
     struct BenchmarkPeer *slaves)
 {
-  int c_m;
-  int c_s;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Topology setup complete!\n");
 
   masters_p = masters;
@@ -212,20 +219,22 @@ static void topology_setup_done (void *cls,
       e->num_masters);
   GNUNET_ATS_TEST_experimentation_run (e, &episode_done_cb, &experiment_done_cb);
 
+#if 0
+  int c_m;
+  int c_s;
   for (c_m = 0; c_m < e->num_masters; c_m++)
   {
       for (c_s = 0; c_s < e->num_slaves; c_s++)
       {
         /* Generate maximum traffic to all peers */
-        /* Example: Generate traffic with constant 10,000 Bytes/s
+        /* Example: Generate traffic with constant 10,000 Bytes/s */
         GNUNET_ATS_TEST_generate_traffic_start (&masters[c_m],
             &masters[c_m].partners[c_s],
             GNUNET_ATS_TEST_TG_CONSTANT,
             10000,
             GNUNET_TIME_UNIT_FOREVER_REL);
-         */
         /* Example: Generate traffic with an increasing rate from 1000 to 2000
-         * Bytes/s with in a minute
+         * Bytes/s with in a minute */
         GNUNET_ATS_TEST_generate_traffic_start (&masters[c_m],
             &masters[c_m].partners[c_s],
             GNUNET_ATS_TEST_TG_LINEAR,
@@ -233,9 +242,8 @@ static void topology_setup_done (void *cls,
             2000,
             GNUNET_TIME_UNIT_MINUTES,
             GNUNET_TIME_UNIT_FOREVER_REL);
-        */
         /* Example: Generate traffic with a random rate between 1000 to 2000
-         * Bytes/s
+         * Bytes/s */
         GNUNET_ATS_TEST_generate_traffic_start (&masters[c_m],
             &masters[c_m].partners[c_s],
             GNUNET_ATS_TEST_TG_RANDOM,
@@ -243,10 +251,8 @@ static void topology_setup_done (void *cls,
             2000,
             GNUNET_TIME_UNIT_FOREVER_REL,
             GNUNET_TIME_UNIT_FOREVER_REL);
-            */
         /* Example: Generate traffic with a sinus form, a base rate of
          * 1000 Bytes/s, an amplitude of (max-base), and a period of 1 minute */
-        /*
         GNUNET_ATS_TEST_generate_traffic_start (&masters[c_m],
             &masters[c_m].partners[c_s],
             GNUNET_ATS_TEST_TG_SINUS,
@@ -254,9 +260,9 @@ static void topology_setup_done (void *cls,
             2000,
             GNUNET_TIME_UNIT_MINUTES,
             GNUNET_TIME_UNIT_FOREVER_REL);
-                        */
       }
   }
+#endif
 
   timeout_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_add (GNUNET_TIME_UNIT_MINUTES,
       e->max_duration), &do_shutdown, NULL);

@@ -598,6 +598,11 @@ GNUNET_ATS_TEST_experimentation_stop (struct Experiment *e)
     GNUNET_SCHEDULER_cancel (e->experiment_timeout_task);
     e->experiment_timeout_task = GNUNET_SCHEDULER_NO_TASK;
   }
+  if (GNUNET_SCHEDULER_NO_TASK != e->episode_timeout_task)
+  {
+    GNUNET_SCHEDULER_cancel (e->episode_timeout_task);
+    e->episode_timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  }
   free_experiment (e);
 }
 
