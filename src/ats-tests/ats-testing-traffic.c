@@ -223,7 +223,7 @@ comm_send_pong_ready (void *cls, size_t size, void *buf)
 void
 GNUNET_ATS_TEST_traffic_handle_ping (struct BenchmarkPartner *p)
 {
-  GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
       "Slave [%u]: Received PING from [%u], sending PONG\n", p->me->no,
       p->dest->no);
 
@@ -257,7 +257,7 @@ void
 GNUNET_ATS_TEST_traffic_handle_pong (struct BenchmarkPartner *p)
 {
   struct GNUNET_TIME_Relative left;
-  GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
       "Master [%u]: Received PONG from [%u], next message\n", p->me->no,
       p->dest->no);
 

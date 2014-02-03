@@ -488,6 +488,7 @@ struct Experiment
   char *cfg_file;
   unsigned long long int num_masters;
   unsigned long long int num_slaves;
+  struct GNUNET_TIME_Relative log_freq;
   struct GNUNET_TIME_Relative max_duration;
   struct GNUNET_TIME_Relative total_duration;
   struct GNUNET_TIME_Absolute start_time;
@@ -594,10 +595,9 @@ GNUNET_ATS_TEST_generate_traffic_stop_all ();
  * @return the logging handle or NULL on error
  */
 struct LoggingHandle *
-GNUNET_ATS_TEST_logging_start (struct GNUNET_TIME_Relative log_frequency,
-    char * testname,
-    struct BenchmarkPeer *masters,
-    int num_masters);
+GNUNET_ATS_TEST_logging_start(struct GNUNET_TIME_Relative log_frequency,
+    char *testname, struct BenchmarkPeer *masters, int num_masters, int num_slaves,
+    int verbose);
 
 /**
  * Stop logging

@@ -142,7 +142,7 @@ load_episode (struct Experiment *e, struct Episode *cur,
       GNUNET_free (op_name);
       return GNUNET_SYSERR;
     }
-    if (o->src_id > e->num_masters)
+    if (o->src_id > (e->num_masters - 1))
     {
       fprintf (stderr, "Invalid src %llu in operation %u `%s' in episode %u\n",
           o->src_id, op_counter, op, cur->id);
@@ -163,7 +163,7 @@ load_episode (struct Experiment *e, struct Episode *cur,
       GNUNET_free (op_name);
       return GNUNET_SYSERR;
     }
-    if (o->dest_id > e->num_slaves)
+    if (o->dest_id > (e->num_slaves - 1))
     {
       fprintf (stderr, "Invalid destination %llu in operation %u `%s' in episode %u\n",
           o->dest_id, op_counter, op, cur->id);
@@ -552,6 +552,17 @@ GNUNET_ATS_TEST_experimentation_load (char *filename)
   else
     fprintf (stderr, "Experiment slaves: `%llu'\n",
         e->num_slaves);
+
+  if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_time(cfg, "experiment",
+      "log_freq", &e->log_freq))
+  {
+    fprintf (stderr, "Invalid %s", "log_freq");
+    free_experiment (e);
+    return NULL;
+  }
+  else
+    fprintf (stderr, "Experiment logging frequency: `%s'\n",
+        GNUNET_STRINGS_relative_time_to_string (e->log_freq, GNUNET_YES));
 
   if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_time(cfg, "experiment",
       "max_duration", &e->max_duration))

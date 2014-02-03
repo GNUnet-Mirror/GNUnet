@@ -52,6 +52,11 @@ static int opt_log;
  */
 static int opt_plot;
 
+/**
+ * cmd option -v: verbose logs
+ */
+static int opt_verbose;
+
 GNUNET_SCHEDULER_TaskIdentifier timeout_task;
 
 struct Experiment *e;
@@ -156,8 +161,13 @@ log_request__cb (void *cls, const struct GNUNET_HELLO_Address *address,
     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
     const struct GNUNET_ATS_Information *ats, uint32_t ats_count)
 {
+
   if (NULL != l)
-    GNUNET_ATS_TEST_logging_now (l);
+  {
+    //GNUNET_break (0);
+    //GNUNET_ATS_TEST_logging_now (l);
+  }
+
 }
 
 static void
@@ -213,10 +223,11 @@ static void topology_setup_done (void *cls,
   masters_p = masters;
   slaves_p = slaves;
 
-  l = GNUNET_ATS_TEST_logging_start (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 100),
+  l = GNUNET_ATS_TEST_logging_start (e->log_freq,
       e->name,
       masters_p,
-      e->num_masters);
+      e->num_masters, e->num_slaves,
+      opt_verbose);
   GNUNET_ATS_TEST_experimentation_run (e, &episode_done_cb, &experiment_done_cb);
 
 #if 0
@@ -289,6 +300,10 @@ parse_args (int argc, char *argv[])
     if (0 == strcmp (argv[c], "-p"))
     {
       opt_plot = GNUNET_YES;
+    }
+    if (0 == strcmp (argv[c], "-v"))
+    {
+      opt_verbose = GNUNET_YES;
     }
   }
 }
