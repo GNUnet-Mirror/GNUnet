@@ -54,7 +54,7 @@ noinst_PROGRAMS = \
  
 libgnunetatstesting_la_SOURCES = \
   ats-testing.c ats-testing-log.c ats-testing-traffic.c \
-  ats-testing-experiment.c
+  ats-testing-experiment.c ats-testing-preferences.c
 libgnunetatstesting_la_LIBADD = \
   $(top_builddir)/src/transport/libgnunettransport.la \
   $(top_builddir)/src/hello/libgnunethello.la \

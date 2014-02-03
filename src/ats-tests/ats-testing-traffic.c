@@ -310,7 +310,7 @@ GNUNET_ATS_TEST_traffic_handle_pong (struct BenchmarkPartner *p)
 struct TrafficGenerator *
 GNUNET_ATS_TEST_generate_traffic_start (struct BenchmarkPeer *src,
     struct BenchmarkPartner *dest,
-    enum TrafficGeneratorType type,
+    enum GeneratorType type,
     long int base_rate,
     long int max_rate,
     struct GNUNET_TIME_Relative period,

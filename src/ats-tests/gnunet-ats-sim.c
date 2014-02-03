@@ -136,13 +136,18 @@ do_shutdown ()
     GNUNET_ATS_TEST_logging_clean_up (l);
     l = NULL;
   }
+
+  /* Stop traffic generation */
+  GNUNET_ATS_TEST_generate_traffic_stop_all();
+
+  /* Stop all preference generations */
+  GNUNET_ATS_TEST_generate_preferences_stop_all ();
+
   if (NULL != e)
   {
-    GNUNET_break (0);
     GNUNET_ATS_TEST_experimentation_stop (e);
     e = NULL;
   }
-  GNUNET_break (0);
   GNUNET_ATS_TEST_shutdown_topology ();
 }
 
@@ -189,6 +194,9 @@ experiment_done_cb (struct Experiment *e, struct GNUNET_TIME_Relative duration,i
   /* Stop traffic generation */
   GNUNET_ATS_TEST_generate_traffic_stop_all();
 
+  /* Stop all preference generations */
+  GNUNET_ATS_TEST_generate_preferences_stop_all ();
+
   evaluate (duration);
   if (opt_log)
     GNUNET_ATS_TEST_logging_write_to_file(l, opt_exp_file, opt_plot);
@@ -229,6 +237,31 @@ static void topology_setup_done (void *cls,
       e->num_masters, e->num_slaves,
       opt_verbose);
   GNUNET_ATS_TEST_experimentation_run (e, &episode_done_cb, &experiment_done_cb);
+/*
+  GNUNET_ATS_TEST_generate_preferences_start(&masters[0],&masters[0].partners[0],
+      GNUNET_ATS_TEST_TG_CONSTANT, 1, 1, GNUNET_TIME_UNIT_SECONDS,
+      GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 250),
+      GNUNET_ATS_PREFERENCE_BANDWIDTH);
+*/
+/*
+  GNUNET_ATS_TEST_generate_preferences_start(&masters[0],&masters[0].partners[0],
+      GNUNET_ATS_TEST_TG_LINEAR, 1, 50,
+      GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 2),
+      GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 250),
+      GNUNET_ATS_PREFERENCE_BANDWIDTH);
+*/
+/*
+  GNUNET_ATS_TEST_generate_preferences_start(&masters[0],&masters[0].partners[0],
+        GNUNET_ATS_TEST_TG_RANDOM, 1, 50,
+        GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 2),
+        GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 250),
+        GNUNET_ATS_PREFERENCE_BANDWIDTH);
+*/
+  GNUNET_ATS_TEST_generate_preferences_start(&masters[0],&masters[0].partners[0],
+        GNUNET_ATS_TEST_TG_SINUS, 10, 5,
+        GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 5),
+        GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 250),
+        GNUNET_ATS_PREFERENCE_BANDWIDTH);
 
 #if 0
   int c_m;

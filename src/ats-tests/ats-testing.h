@@ -56,7 +56,7 @@ struct TrafficGenerator;
 
 struct LoggingHandle;
 
-enum TrafficGeneratorType
+enum GeneratorType
 {
   GNUNET_ATS_TEST_TG_LINEAR,
   GNUNET_ATS_TEST_TG_CONSTANT,
@@ -223,7 +223,7 @@ struct TrafficGenerator
   struct TrafficGenerator *prev;
   struct TrafficGenerator *next;
 
-  enum TrafficGeneratorType type;
+  enum GeneratorType type;
 
   struct BenchmarkPeer *src;
   struct BenchmarkPartner *dest;
@@ -237,6 +237,28 @@ struct TrafficGenerator
   struct GNUNET_TIME_Absolute time_start;
 };
 
+
+struct PreferenceGenerator
+{
+  struct PreferenceGenerator *prev;
+  struct PreferenceGenerator *next;
+
+  enum GeneratorType type;
+
+  struct BenchmarkPeer *src;
+  struct BenchmarkPartner *dest;
+
+  enum GNUNET_ATS_PreferenceKind kind;
+
+  long int base_value;
+  long int max_value;
+  struct GNUNET_TIME_Relative duration_period;
+  struct GNUNET_TIME_Relative frequency;
+
+  GNUNET_SCHEDULER_TaskIdentifier set_task;
+  struct GNUNET_TIME_Absolute next_ping_transmission;
+  struct GNUNET_TIME_Absolute time_start;
+};
 
 /**
  * Information about a benchmarking partner
@@ -264,6 +286,7 @@ struct BenchmarkPartner
   struct GNUNET_TRANSPORT_TransmitHandle *tth;
 
   struct TrafficGenerator *tg;
+  struct PreferenceGenerator *pg;
 
   /**
    * Timestamp to calculate communication layer delay
@@ -468,7 +491,7 @@ struct GNUNET_ATS_TEST_Operation
   struct GNUNET_TIME_Relative period;
 
   enum OperationType type;
-  enum TrafficGeneratorType tg_type;
+  enum GeneratorType tg_type;
 };
 
 struct Episode
@@ -565,7 +588,7 @@ GNUNET_ATS_TEST_traffic_handle_pong (struct BenchmarkPartner *p);
 struct TrafficGenerator *
 GNUNET_ATS_TEST_generate_traffic_start (struct BenchmarkPeer *src,
     struct BenchmarkPartner *dest,
-    enum TrafficGeneratorType type,
+    enum GeneratorType type,
     long int base_rate,
     long int max_rate,
     struct GNUNET_TIME_Relative period,
@@ -580,6 +603,21 @@ GNUNET_ATS_TEST_generate_traffic_stop (struct TrafficGenerator *tg);
 void
 GNUNET_ATS_TEST_generate_traffic_stop_all ();
 
+struct PreferenceGenerator *
+GNUNET_ATS_TEST_generate_preferences_start (struct BenchmarkPeer *src,
+    struct BenchmarkPartner *dest,
+    enum GeneratorType type,
+    long int base_value,
+    long int value_rate,
+    struct GNUNET_TIME_Relative period,
+    struct GNUNET_TIME_Relative frequency,
+    enum GNUNET_ATS_PreferenceKind kind);
+
+void
+GNUNET_ATS_TEST_generate_preferences_stop (struct PreferenceGenerator *pg);
+
+void
+GNUNET_ATS_TEST_generate_preferences_stop_all ();
 
 /*
  * Logging related functions
