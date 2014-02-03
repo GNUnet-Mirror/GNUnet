@@ -540,6 +540,19 @@ void
 GNUNET_ATS_TEST_traffic_handle_pong (struct BenchmarkPartner *p);
 
 
+/**
+ * Generate between the source master and the partner and send traffic with a
+ * maximum rate.
+ *
+ * @param src traffic source
+ * @param dest traffic partner
+ * @param type type of traffic to generate
+ * @param base_rate traffic base rate to send data with
+ * @param max_rate  traffic maximum rate to send data with
+ * @param period duration of a period of traffic generation (~ 1/frequency)
+ * @param duration how long to generate traffic
+ * @return the traffic generator
+ */
 struct TrafficGenerator *
 GNUNET_ATS_TEST_generate_traffic_start (struct BenchmarkPeer *src,
     struct BenchmarkPartner *dest,
@@ -597,7 +610,7 @@ GNUNET_ATS_TEST_logging_stop (struct LoggingHandle *l);
 /**
  * Log all data now
  *
- * @param llogging handle to use
+ * @param l logging handle to use
  */
 void
 GNUNET_ATS_TEST_logging_now (struct LoggingHandle *l);

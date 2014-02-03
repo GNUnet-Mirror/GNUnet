@@ -208,28 +208,41 @@ static void topology_setup_done (void *cls,
       for (c_s = 0; c_s < e->num_slaves; c_s++)
       {
         /* Generate maximum traffic to all peers */
-        /*
+        /* Example: Generate traffic with constant 10,000 Bytes/s
         GNUNET_ATS_TEST_generate_traffic_start (&masters[c_m],
             &masters[c_m].partners[c_s],
             GNUNET_ATS_TEST_TG_CONSTANT,
             10000,
             GNUNET_TIME_UNIT_FOREVER_REL);
          */
-        /*
+        /* Example: Generate traffic with an increasing rate from 1000 to 2000
+         * Bytes/s with in a minute
         GNUNET_ATS_TEST_generate_traffic_start (&masters[c_m],
             &masters[c_m].partners[c_s],
             GNUNET_ATS_TEST_TG_LINEAR,
-            100,
-            200,
+            1000,
+            2000,
             GNUNET_TIME_UNIT_MINUTES,
             GNUNET_TIME_UNIT_FOREVER_REL);
         */
+        /* Example: Generate traffic with a random rate between 1000 to 2000
+         * Bytes/s
+        GNUNET_ATS_TEST_generate_traffic_start (&masters[c_m],
+            &masters[c_m].partners[c_s],
+            GNUNET_ATS_TEST_TG_RANDOM,
+            1000,
+            2000,
+            GNUNET_TIME_UNIT_FOREVER_REL,
+            GNUNET_TIME_UNIT_FOREVER_REL);
+            */
+        /* Example: Generate traffic with a sinus form, a base rate of
+         * 1000 Bytes/s, an amplitude of (max-base), and a period of 1 minute */
         GNUNET_ATS_TEST_generate_traffic_start (&masters[c_m],
             &masters[c_m].partners[c_s],
             GNUNET_ATS_TEST_TG_SINUS,
             1000,
-            1500,
-            GNUNET_TIME_UNIT_SECONDS,
+            2000,
+            GNUNET_TIME_UNIT_MINUTES,
             GNUNET_TIME_UNIT_FOREVER_REL);
       }
   }

@@ -577,7 +577,7 @@ GNUNET_ATS_TEST_logging_write_to_file (struct LoggingHandle *l,
 /**
  * Log all data now
  *
- * @param llogging handle to use
+ * @param l logging handle to use
  */
 void
 GNUNET_ATS_TEST_logging_now (struct LoggingHandle *l)
@@ -799,12 +799,12 @@ GNUNET_ATS_TEST_logging_clean_up (struct LoggingHandle *l)
  * @param log_frequency the logging frequency
  * @param testname the testname
  * @param masters the master peers used for benchmarking
- * @oaram num_master the number of master peers
+ * @param num_masters the number of master peers
  * @return the logging handle or NULL on error
  */
 struct LoggingHandle *
-GNUNET_ATS_TEST_logging_start (struct GNUNET_TIME_Relative log_frequency,
-    char * testname, struct BenchmarkPeer *masters, int num_masters)
+GNUNET_ATS_TEST_logging_start(struct GNUNET_TIME_Relative log_frequency,
+    char *testname, struct BenchmarkPeer *masters, int num_masters)
 {
   struct LoggingHandle *l;
   int c_m;

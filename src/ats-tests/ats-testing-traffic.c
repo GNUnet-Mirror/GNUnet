@@ -40,9 +40,9 @@ get_delay (struct TrafficGenerator *tg)
   long long int cur_rate;
   long long int delta_rate;
 
-
   delay.rel_value_us = 0;
 
+  /* Calculate the current transmission rate based on the type of traffic */
   switch (tg->type) {
     case GNUNET_ATS_TEST_TG_CONSTANT:
       if (UINT32_MAX == tg->base_rate)
@@ -58,14 +58,14 @@ get_delay (struct TrafficGenerator *tg)
       cur_rate = tg->base_rate + delta_rate;
       break;
     case GNUNET_ATS_TEST_TG_RANDOM:
-      GNUNET_break (0);
+      cur_rate = tg->base_rate + GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+          tg->max_rate - tg->base_rate);
       break;
     case GNUNET_ATS_TEST_TG_SINUS:
       time_delta = GNUNET_TIME_absolute_get_duration(tg->time_start);
       time_delta.rel_value_us = time_delta.rel_value_us % tg->duration_period.rel_value_us;
       delta_rate = (tg->max_rate - tg->base_rate) *
           sin ( (2 * M_PI) / ((double) tg->duration_period.rel_value_us) * time_delta.rel_value_us);
-      //fprintf (stderr, "delta_rate %i\n", delta_rate);
       cur_rate = tg->base_rate + delta_rate;
       break;
     default:
@@ -73,7 +73,12 @@ get_delay (struct TrafficGenerator *tg)
       break;
   }
 
+  /* Calculate the delay for the next message based on the current delay  */
   delay.rel_value_us =  GNUNET_TIME_UNIT_SECONDS.rel_value_us * TEST_MESSAGE_SIZE / cur_rate;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      "Current rate is %u, calculated delay is %u \n",
+      cur_rate, delay.rel_value_us);
   return delay;
 }
 
@@ -269,8 +274,14 @@ GNUNET_ATS_TEST_traffic_handle_pong (struct BenchmarkPartner *p)
  * Generate between the source master and the partner and send traffic with a
  * maximum rate.
  *
+ * @param src traffic source
+ * @param dest traffic partner
+ * @param type type of traffic to generate
  * @param base_rate traffic base rate to send data with
  * @param max_rate  traffic maximum rate to send data with
+ * @param period duration of a period of traffic generation (~ 1/frequency)
+ * @param duration how long to generate traffic
+ * @return the traffic generator
  */
 struct TrafficGenerator *
 GNUNET_ATS_TEST_generate_traffic_start (struct BenchmarkPeer *src,
