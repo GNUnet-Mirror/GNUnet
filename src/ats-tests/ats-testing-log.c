@@ -140,6 +140,9 @@ struct PartnerLoggingTimestep
   uint32_t ats_cost_lan;
 
   uint32_t ats_cost_wlan;
+
+  double pref_bandwidth;
+  double pref_delay;
 };
 
 
@@ -492,7 +495,8 @@ GNUNET_ATS_TEST_logging_write_to_file (struct LoggingHandle *l,
       /* Header */
       GNUNET_asprintf (&data, "# master %u; slave %u ; experiment : %s\n"
           "timestamp; timestamp delta; #messages sent; #bytes sent; #throughput sent; #messages received; #bytes received; #throughput received; " \
-          "rtt; bw in; bw out; ats_cost_lan; ats_cost_wlan; ats_delay; ats_distance; ats_network_type; ats_utilization_up ;ats_utilization_down\n" ,
+          "rtt; bw in; bw out; ats_cost_lan; ats_cost_wlan; ats_delay; ats_distance; ats_network_type; ats_utilization_up ;ats_utilization_down;" \
+          "pref bandwidth; pref delay\n",
           c_m, c_s, experiment_name);
       if (GNUNET_SYSERR == GNUNET_DISK_file_write(f[c_s], data, strlen(data)))
         GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -541,7 +545,7 @@ GNUNET_ATS_TEST_logging_write_to_file (struct LoggingHandle *l,
 
         /* Assembling slave string */
         GNUNET_asprintf(&data,
-            "%llu;%llu;%u;%u;%u;%u;%u;%u;%.3f;%u;%u;%u;%u;%u;%u;%u;%u;%u;%u;\n",
+            "%llu;%llu;%u;%u;%u;%u;%u;%u;%.3f;%u;%u;%u;%u;%u;%u;%u;%u;%u;%u;%.3f;%.3f\n",
             (long long unsigned int) cur_lt->timestamp.abs_value_us,
             (long long unsigned int) GNUNET_TIME_absolute_get_difference(l->lp[c_m].start,
                 cur_lt->timestamp).rel_value_us / 1000,
@@ -561,7 +565,9 @@ GNUNET_ATS_TEST_logging_write_to_file (struct LoggingHandle *l,
             plt->ats_distance,
             plt->ats_network_type,
             plt->ats_utilization_up,
-            plt->ats_utilization_down);
+            plt->ats_utilization_down,
+            plt->pref_bandwidth,
+            plt->pref_delay);
 
         if (l->verbose)
           fprintf (stderr,
@@ -743,6 +749,8 @@ GNUNET_ATS_TEST_logging_now (struct LoggingHandle *l)
       slt->ats_utilization_up = p->ats_utilization_up;
       slt->bandwidth_in = p->bandwidth_in;
       slt->bandwidth_out = p->bandwidth_out;
+      slt->pref_bandwidth = p->pref_bandwidth;
+      slt->pref_delay = p->pref_delay;
 
       /* Total application level rtt  */
       if (NULL == prev_log_mlt)

@@ -108,6 +108,17 @@ set_pref_task (void *cls,
   GNUNET_ATS_performance_change_preference(p->me->ats_perf_handle,
       &p->dest->id, p->pg->kind, pref_value, GNUNET_ATS_PREFERENCE_END);
 
+  switch (p->pg->kind) {
+    case GNUNET_ATS_PREFERENCE_BANDWIDTH:
+      p->pref_bandwidth = pref_value;
+      break;
+    case GNUNET_ATS_PREFERENCE_LATENCY:
+      p->pref_delay = pref_value;
+      break;
+    default:
+      break;
+  }
+
   p->pg->set_task = GNUNET_SCHEDULER_add_delayed (p->pg->frequency,
       set_pref_task, p);
 

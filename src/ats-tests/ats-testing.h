@@ -339,6 +339,9 @@ struct BenchmarkPartner
   uint32_t ats_cost_lan;
 
   uint32_t ats_cost_wlan;
+
+  double pref_bandwidth;
+  double pref_delay;
 };
 
 /**
