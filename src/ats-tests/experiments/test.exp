@@ -1,40 +1,25 @@
 [experiment]
  name = test
  masters = 1
- slaves = 4
+ slaves = 2
  max_duration = 10 s
+ log_freq = 100 ms
  cfg_file = gnunet_ats_sim_default.conf
  
 [episode-0]
 # operations = set_rate, start_send, stop_send, set_preference
-duration = 2 s
-op-0-operation = set_rate
+duration = 10 s
+op-0-operation = start_send
 op-0-src = 0
-op-0-dest = 1
+op-0-dest = 0
 op-0-type = constant
 op-0-base-rate= 10000
 op-0-max-rate = 10000
 
-op-1-operation = set_rate
+op-1-operation = start_send
 op-1-src = 0
-op-1-dest = 2
+op-1-dest = 1
 op-1-type = sinus
-op-1-period = 1 s
+op-1-period = 5 s
 op-1-base-rate= 10000
 op-1-max-rate = 15000
-
-op-2-operation = set_rate
-op-2-src = 0
-op-2-dest = 3
-op-2-type = random
-op-2-period = 1 s
-op-2-base-rate= 10000
-op-2-max-rate = 20000
-
-op-3-operation = set_rate
-op-3-src = 0
-op-3-dest = 2
-op-3-type = linear
-op-3-period = 1 s
-op-3-base-rate= 10000
-op-3-max-rate = 20000
