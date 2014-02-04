@@ -1888,6 +1888,9 @@ GMP_set_hello (struct MeshPeer *peer, const struct GNUNET_HELLO_Message *hello)
   struct GNUNET_HELLO_Message *old;
   size_t size;
 
+  if (NULL == hello)
+    return;
+  
   old = GMP_get_hello (peer);
   if (NULL == old)
   {
