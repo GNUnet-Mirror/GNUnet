@@ -52,6 +52,7 @@
 #include "gnunet-service-mesh_tunnel.h"
 #include "gnunet-service-mesh_dht.h"
 #include "gnunet-service-mesh_peer.h"
+#include "gnunet-service-mesh_hello.h"
 
 
 /******************************************************************************/
@@ -107,6 +108,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   shutting_down = GNUNET_YES;
 
   GML_shutdown ();
+  GMH_shutdown ();
   GMD_shutdown ();
   GMC_shutdown ();
   GMT_shutdown ();
@@ -146,6 +148,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
               GNUNET_i2s (&my_full_id));
 
   GML_init (server);    /* Local clients */
+  GMH_shutdown (c);     /* Hellos */
   GMC_init (c);         /* Connections */
   GMP_init (c);         /* Peers */
   GMD_init (c);         /* DHT */

@@ -69,6 +69,7 @@ gnunet_service_mesh_SOURCES = \
  gnunet-service-mesh_local.c gnunet-service-mesh_local.h \
  gnunet-service-mesh_peer.c gnunet-service-mesh_peer.h \
  gnunet-service-mesh_dht.c gnunet-service-mesh_dht.h \
+ gnunet-service-mesh_hello.c gnunet-service-mesh_hello.h \
  mesh_path.c mesh_path.h \
  mesh_common.c \
  gnunet-service-mesh.c
@@ -78,12 +79,14 @@ gnunet_service_mesh_LDADD = \
   $(top_builddir)/src/core/libgnunetcore.la \
   $(top_builddir)/src/dht/libgnunetdht.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
   $(top_builddir)/src/block/libgnunetblock.la
 gnunet_service_mesh_DEPENDENCIES = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/core/libgnunetcore.la \
   $(top_builddir)/src/dht/libgnunetdht.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
   $(top_builddir)/src/block/libgnunetblock.la
 if LINUX
   gnunet_service_mesh_LDFLAGS = -lrt
