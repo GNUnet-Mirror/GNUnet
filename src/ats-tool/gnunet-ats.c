@@ -87,6 +87,9 @@ static struct GNUNET_CONFIGURATION_Handle *cfg;
 
 static GNUNET_SCHEDULER_TaskIdentifier end_task;
 
+static struct GNUNET_CONTAINER_MultiPeerMap *addresses;
+
+
 struct PendingResolutions
 {
   struct PendingResolutions *next;
@@ -102,9 +105,30 @@ struct PendingResolutions
   struct GNUNET_TRANSPORT_AddressToStringContext * tats_ctx;
 };
 
+struct ATSAddress
+{
+  struct GNUNET_HELLO_Address *address;
+  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out;
+  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in;
+};
+
+
+
 static struct PendingResolutions *head;
 
 static struct PendingResolutions *tail;
+
+static int
+free_addr_it (void *cls,
+    const struct GNUNET_PeerIdentity *key,
+    void *value)
+{
+  struct ATSAddress *a = value;
+  GNUNET_CONTAINER_multipeermap_remove (addresses, key, a);
+  GNUNET_HELLO_address_free (a->address);
+  GNUNET_free (a);
+  return GNUNET_OK;
+}
 
 static void
 end(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -136,6 +160,10 @@ end(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_free(pr);
     pending++;
   }
+
+  GNUNET_CONTAINER_multipeermap_iterate(addresses, &free_addr_it, NULL);
+  GNUNET_CONTAINER_multipeermap_destroy(addresses);
+
   if (0 < pending)
     fprintf (stderr, _("%u address resolutions had a timeout\n"), pending);
   if (op_list_used || op_list_all)
@@ -169,7 +197,8 @@ transport_addr_to_str_cb(void *cls, const char *address)
 
       if (ats_type > GNUNET_ATS_PropertyCount)
       {
-        GNUNET_break(0);
+        fprintf (stderr, "Invalid ATS property type %u %u for address %s\n", ats_type, pr->ats[c].type,
+            address);
         continue;
       }
 
@@ -224,6 +253,30 @@ transport_addr_to_str_cb(void *cls, const char *address)
   }
 }
 
+
+struct AddressFindCtx
+{
+  const struct GNUNET_HELLO_Address *src;
+  struct ATSAddress *res;
+};
+
+static int
+find_address_it (void *cls,
+    const struct GNUNET_PeerIdentity *key,
+    void *value)
+{
+  struct AddressFindCtx *actx = cls;
+  struct ATSAddress *exist = value;
+
+  if (0 == GNUNET_HELLO_address_cmp (actx->src, exist->address))
+  {
+    actx->res = exist;
+    return GNUNET_NO;
+  }
+
+  return GNUNET_YES;
+}
+
 static void
 ats_perf_cb(void *cls, const struct GNUNET_HELLO_Address *address, int active,
     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
@@ -231,6 +284,36 @@ ats_perf_cb(void *cls, const struct GNUNET_HELLO_Address *address, int active,
     const struct GNUNET_ATS_Information *ats, uint32_t ats_count)
 {
   struct PendingResolutions * pr;
+
+  if ((GNUNET_YES == op_monitor) && (GNUNET_NO == verbose))
+  {
+    struct AddressFindCtx actx;
+
+    actx.src = address;
+    actx.res = NULL;
+
+    GNUNET_CONTAINER_multipeermap_iterate (addresses, find_address_it, &actx);
+    if ((actx.res != NULL))
+    {
+      if ((bandwidth_in.value__ == actx.res->bandwidth_in.value__) &&
+          (bandwidth_out.value__ == actx.res->bandwidth_out.value__) )
+      {
+        return; /* Nothing to do here */
+      }
+      else
+      {
+        actx.res->bandwidth_in = bandwidth_in;
+        actx.res->bandwidth_out = bandwidth_out;
+      }
+    }
+
+    struct ATSAddress *a = GNUNET_new (struct ATSAddress);
+    a->address = GNUNET_HELLO_address_copy(address);
+    a->bandwidth_in = bandwidth_in;
+    a->bandwidth_out = bandwidth_out;
+    GNUNET_CONTAINER_multipeermap_put (addresses, &address->peer, a,
+        GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+  }
 
   if (NULL != address)
   {
@@ -341,6 +424,8 @@ testservice_ats(void *cls, int result)
   struct GNUNET_PeerIdentity pid;
   unsigned int c;
   unsigned int type;
+
+  addresses = GNUNET_CONTAINER_multipeermap_create (10, GNUNET_YES);
 
   if (GNUNET_YES != result)
   {
