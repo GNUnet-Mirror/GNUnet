@@ -180,7 +180,7 @@ GMH_get (const struct GNUNET_PeerIdentity *id)
  *
  * @param h Hello message.
  */
-void
+char *
 GMH_2s (const struct GNUNET_HELLO_Message *h)
 {
   return "hello (TODO)";
