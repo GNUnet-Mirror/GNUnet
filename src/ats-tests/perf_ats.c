@@ -272,7 +272,8 @@ start_benchmark()
     }
 
   if (GNUNET_YES == logging)
-    l = GNUNET_ATS_TEST_logging_start(log_frequency, testname, mps, num_masters);
+    l = GNUNET_ATS_TEST_logging_start (log_frequency, testname, mps,
+        num_masters, num_slaves, GNUNET_NO);
 }
 
 static void

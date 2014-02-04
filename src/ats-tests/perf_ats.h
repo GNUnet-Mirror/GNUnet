@@ -28,6 +28,7 @@
 #include "gnunet_testbed_service.h"
 #include "gnunet_ats_service.h"
 #include "gnunet_core_service.h"
+#include "ats-testing.h"
 
 #define TEST_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 120)
 #define BENCHMARK_DURATION GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
@@ -245,17 +246,6 @@ struct BenchmarkPeer
    */
   unsigned int total_bytes_received;
 };
-
-
-void
-GNUNET_ATS_TEST_logging_now (void);
-
-void
-GNUNET_ATS_TEST_logging_clean_up ();
-
-void
-GNUNET_ATS_TEST_logging_start (struct GNUNET_TIME_Relative log_frequency,
-    char * testname, struct BenchmarkPeer *masters, int num_masters);
 
 
 /* end of file perf_ats.h */
