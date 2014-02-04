@@ -159,6 +159,11 @@ struct MeshPeer
    * How many messages are in the queue to this peer.
    */
   unsigned int queue_n;
+
+  /**
+   * Hello message.
+   */
+  const struct GNUNET_HELLO_Message* hello;
 };
 
 
@@ -1440,19 +1445,6 @@ GMP_connect (struct MeshPeer *peer)
 
 
 /**
- * Set tunnel.
- *
- * @param peer Peer.
- * @param t Tunnel.
- */
-void
-GMP_set_tunnel (struct MeshPeer *peer, struct MeshTunnel3 *t)
-{
-  peer->tunnel = t;
-}
-
-
-/**
  * Chech whether there is a direct (core level)  connection to peer.
  *
  * @param peer Peer to check.
@@ -1815,6 +1807,19 @@ GMP_get_short_id (const struct MeshPeer *peer)
 
 
 /**
+ * Set tunnel.
+ *
+ * @param peer Peer.
+ * @param t Tunnel.
+ */
+void
+GMP_set_tunnel (struct MeshPeer *peer, struct MeshTunnel3 *t)
+{
+  peer->tunnel = t;
+}
+
+
+/**
  * Get the tunnel towards a peer.
  *
  * @param peer Peer to get from.
@@ -1825,6 +1830,33 @@ struct MeshTunnel3 *
 GMP_get_tunnel (const struct MeshPeer *peer)
 {
   return peer->tunnel;
+}
+
+
+/**
+ * Set the hello message.
+ *
+ * @param peer Peer whose message to set.
+ * @param hello Hello message.
+ */
+void
+GMP_set_hello (struct MeshPeer *peer, const struct GNUNET_HELLO_Message *hello)
+{
+  peer->hello = hello;
+}
+
+
+/**
+ * Get the hello message.
+ *
+ * @param peer Peer whose message to get.
+ *
+ * @return Hello message.
+ */
+const struct GNUNET_HELLO_Message *
+GMP_get_hello (struct MeshPeer *peer)
+{
+  return peer->hello;
 }
 
 

@@ -319,6 +319,25 @@ struct MeshTunnel3 *
 GMP_get_tunnel (const struct MeshPeer *peer);
 
 /**
+ * Set the hello message.
+ *
+ * @param peer Peer whose message to set.
+ * @param hello Hello message.
+ */
+void
+GMP_set_hello (struct MeshPeer *peer, const struct GNUNET_HELLO_Message *hello);
+
+/**
+ * Get the hello message.
+ *
+ * @param peer Peer whose message to get.
+ *
+ * @return Hello message.
+ */
+const struct GNUNET_HELLO_Message *
+GMP_get_hello (struct MeshPeer *peer);
+
+/**
  * Count the number of known paths toward the peer.
  *
  * @param peer Peer to get path info.
