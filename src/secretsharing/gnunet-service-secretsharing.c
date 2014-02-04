@@ -866,7 +866,7 @@ insert_round2_element (struct KeygenSession *ks)
       // evaluate the polynomial
       horner_eval (v, ks->presecret_polynomial, ks->threshold, idx, elgamal_q);
       // encrypt the result
-      GNUNET_CRYPTO_paillier_encrypt (&ks->info[i].paillier_public_key, v, ciphertext);
+      GNUNET_CRYPTO_paillier_encrypt (&ks->info[i].paillier_public_key, v, 0, ciphertext);
     }
     pos += sizeof *ciphertext;
   }

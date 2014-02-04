@@ -45,7 +45,7 @@ test_crypto ()
 
   gcry_mpi_randomize (plaintext, GNUNET_CRYPTO_PAILLIER_BITS / 2, GCRY_WEAK_RANDOM);
 
-  GNUNET_CRYPTO_paillier_encrypt (&public_key, plaintext, &ciphertext);
+  GNUNET_CRYPTO_paillier_encrypt (&public_key, plaintext, 0, &ciphertext);
 
   GNUNET_CRYPTO_paillier_decrypt (&private_key, &public_key,
                                   &ciphertext, plaintext_result);
@@ -88,16 +88,14 @@ test_hom()
   gcry_mpi_mul_2exp(m2,m2,GNUNET_CRYPTO_PAILLIER_BITS-3);
   gcry_mpi_add(result,m1,m2);
 
-  if (1 != (ret = GNUNET_CRYPTO_paillier_encrypt (&public_key, m1, &c1))){
+  if (1 != (ret = GNUNET_CRYPTO_paillier_encrypt (&public_key, m1, 0, &c1))){
     printf ("GNUNET_CRYPTO_paillier_encrypt 1 failed, should return 1 allowed operation, got %d!\n", ret);
     return 1;
   }
-  if (1 != (ret = GNUNET_CRYPTO_paillier_encrypt (&public_key, m2, &c2))){
+  if (1 != (ret = GNUNET_CRYPTO_paillier_encrypt (&public_key, m2, 0, &c2))){
     printf ("GNUNET_CRYPTO_paillier_encrypt 2 failed, should return 1 allowed operation, got %d!\n", ret);
     return 1;
   }
-  
-  GNUNET_CRYPTO_paillier_encrypt (&public_key, m2, &c2);
 
   if (0 != (ret = GNUNET_CRYPTO_paillier_hom_add (&public_key, &c1,&c2, &c_result))){
     printf ("GNUNET_CRYPTO_paillier_hom_add failed, expected 0 remaining operations, got %d!\n", ret);

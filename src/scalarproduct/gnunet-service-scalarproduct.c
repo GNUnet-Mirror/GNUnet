@@ -1280,7 +1280,8 @@ compute_service_response (struct ServiceSession * request,
     gcry_mpi_sub (r[i], my_offset, rand_pi[i]);
     gcry_mpi_sub (r[i], r[i], b_pi[i]);
     GNUNET_CRYPTO_paillier_encrypt (&request->remote_pubkey, 
-                                    r[i], 
+                                    r[i],
+                                    2,
                                     &R[i]);
     
     // E(S - r_pi - b_pi) * E(S + a_pi) ==  E(2*S + a - r - b)
@@ -1300,12 +1301,14 @@ compute_service_response (struct ServiceSession * request,
     gcry_mpi_sub (r_prime[i], my_offset, rand_pi_prime[i]);
     GNUNET_CRYPTO_paillier_encrypt (&request->remote_pubkey, 
                                     r_prime[i], 
+                                    2,
                                     &R_prime[i]);
 
     // E(S - r_qi) * E(S + a_qi) == E(2*S + a_qi - r_qi)
     GNUNET_CRYPTO_paillier_hom_add (&request->remote_pubkey, 
                                     &R_prime[i], 
-                                    &A_pi_prime[i], 
+                                    &A_pi_prime[i],
+                                    2,
                                     &R_prime[i]);
   }
   GNUNET_free (a_pi_prime);
@@ -1319,6 +1322,7 @@ compute_service_response (struct ServiceSession * request,
   s_prime = compute_square_sum (rand, count);
   GNUNET_CRYPTO_paillier_encrypt (&request->remote_pubkey, 
                                   s_prime, 
+                                  1,
                                   &S_prime);
 
   // Calculate S = E(SUM( (r_i + b_i)^2 ))
@@ -1327,7 +1331,8 @@ compute_service_response (struct ServiceSession * request,
   }
   s = compute_square_sum (rand, count);
   GNUNET_CRYPTO_paillier_encrypt (&request->remote_pubkey, 
-                                  s[i], 
+                                  s[i],
+                                  1,
                                   &S);
 
   // release r and tmp
