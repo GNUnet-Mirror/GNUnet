@@ -508,6 +508,46 @@ send_core_connection_ack (struct MeshConnection *c, size_t size, void *buf)
 /********************************   STATIC  ***********************************/
 /******************************************************************************/
 
+
+/**
+ * Get priority for a queued message.
+ *
+ * @param q Queued message
+ *
+ * @return CORE priority to use.
+ */
+static enum GNUNET_CORE_Priority
+get_priority (struct MeshPeerQueue *q)
+{
+  enum GNUNET_CORE_Priority low;
+  enum GNUNET_CORE_Priority high;
+
+  if (NULL == q)
+  {
+    GNUNET_break (0);
+    return GNUNET_CORE_PRIO_BACKGROUND;
+  }
+
+  /* Relayed traffic has lower priority, our own traffic has higher */
+  if (NULL == q->c || GNUNET_NO == GMC_is_origin (q->c, q->fwd))
+  {
+    low = GNUNET_CORE_PRIO_BEST_EFFORT;
+    high = GNUNET_CORE_PRIO_URGENT;
+  }
+  else
+  {
+    low = GNUNET_CORE_PRIO_URGENT;
+    high = GNUNET_CORE_PRIO_CRITICAL_CONTROL;
+  }
+
+  /* Bulky payload has lower priority, control traffic has higher. */
+  if (GNUNET_MESSAGE_TYPE_MESH_ENCRYPTED == q->type)
+    return low;
+  else
+    return high;
+}
+
+
 /**
  * Iterator over tunnel hash map entries to destroy the tunnel during shutdown.
  *
@@ -529,7 +569,6 @@ shutdown_tunnel (void *cls,
     GMT_destroy (t);
   return GNUNET_YES;
 }
-
 
 
 /**
@@ -792,6 +831,7 @@ search_handler (void *cls, const struct MeshPeerPath *path)
 }
 
 
+
 /**
  * Core callback to write a queued packet to core buffer
  *
@@ -837,8 +877,7 @@ queue_send (void *cls, size_t size, void *buf)
       LOG (GNUNET_ERROR_TYPE_DEBUG, "*   not enough room, reissue\n");
       peer->core_transmit =
           GNUNET_CORE_notify_transmit_ready (core_handle,
-                                             GNUNET_NO,
-                                             GNUNET_CORE_PRIO_CRITICAL_CONTROL,
+                                             GNUNET_NO, get_priority (queue),
                                              GNUNET_TIME_UNIT_FOREVER_REL,
                                              dst_id,
                                              queue->size,
@@ -910,8 +949,7 @@ queue_send (void *cls, size_t size, void *buf)
     {
       peer->core_transmit =
           GNUNET_CORE_notify_transmit_ready (core_handle,
-                                             GNUNET_NO,
-                                             GNUNET_CORE_PRIO_CRITICAL_CONTROL,
+                                             GNUNET_NO, get_priority (queue),
                                              GNUNET_TIME_UNIT_FOREVER_REL,
                                              dst_id,
                                              queue->size,
@@ -1079,8 +1117,7 @@ GMP_queue_add (struct MeshPeer *peer, void *cls, uint16_t type, size_t size,
                 GMP_2s (peer), size);
     peer->core_transmit =
         GNUNET_CORE_notify_transmit_ready (core_handle,
-                                           GNUNET_NO,
-                                           GNUNET_CORE_PRIO_CRITICAL_CONTROL,
+                                           GNUNET_NO, get_priority (queue),
                                            GNUNET_TIME_UNIT_FOREVER_REL,
                                            GNUNET_PEER_resolve2 (peer->id),
                                            size,
@@ -1196,8 +1233,7 @@ GMP_queue_unlock (struct MeshPeer *peer, struct MeshConnection *c)
   size = q->size;
   peer->core_transmit =
       GNUNET_CORE_notify_transmit_ready (core_handle,
-                                         GNUNET_NO,
-                                         GNUNET_CORE_PRIO_CRITICAL_CONTROL,
+                                         GNUNET_NO, get_priority (q),
                                          GNUNET_TIME_UNIT_FOREVER_REL,
                                          GNUNET_PEER_resolve2 (peer->id),
                                          size,
