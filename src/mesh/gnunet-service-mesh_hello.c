@@ -124,7 +124,7 @@ void
 GMH_init (const struct GNUNET_CONFIGURATION_Handle *c)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG, "init\n");
-  GNUNET_assert (NULL != nc);
+  GNUNET_assert (NULL == nc);
   peerinfo = GNUNET_PEERINFO_connect (c);
   nc = GNUNET_PEERINFO_notify (c, GNUNET_NO, &got_hello, NULL);
 }
