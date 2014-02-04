@@ -1930,6 +1930,9 @@ GMP_get_hello (struct MeshPeer *peer)
   struct GNUNET_TIME_Absolute expiration;
   struct GNUNET_TIME_Relative remaining;
 
+  if (NULL == peer->hello)
+    return NULL;
+  
   expiration = GNUNET_HELLO_get_last_expiration (peer->hello);
   remaining = GNUNET_TIME_absolute_get_remaining (expiration);
   if (0 == remaining.rel_value_us)
