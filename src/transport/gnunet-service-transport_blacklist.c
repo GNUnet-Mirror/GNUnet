@@ -104,6 +104,11 @@ struct Blacklisters
    */
   int waiting_for_reply;
 
+  /**
+   * GNUNET_YES if we have to call receive_done for this client
+   */
+  int call_receive_done;
+
 };
 
 
@@ -387,15 +392,20 @@ transmit_blacklist_message (void *cls, size_t size, void *buf)
     return 0;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Sending blacklist test for peer `%s' to client\n",
-              GNUNET_i2s (&bc->peer));
+              "Sending blacklist test for peer `%s' to client %p\n",
+              GNUNET_i2s (&bc->peer), bc->bl_pos->client);
   bl = bc->bl_pos;
   bm.header.size = htons (sizeof (struct BlacklistMessage));
   bm.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_QUERY);
   bm.is_allowed = htonl (0);
   bm.peer = bc->peer;
   memcpy (buf, &bm, sizeof (bm));
-  GNUNET_SERVER_receive_done (bl->client, GNUNET_OK);
+  if (GNUNET_YES == bl->call_receive_done)
+  {
+    GNUNET_SERVER_receive_done (bl->client, GNUNET_OK);
+    bl->call_receive_done = GNUNET_NO;
+  }
+
   bl->waiting_for_reply = GNUNET_YES;
   return sizeof (bm);
 }
@@ -540,11 +550,15 @@ GST_blacklist_handle_init (void *cls, struct GNUNET_SERVER_Client *client,
     }
     bl = bl->next;
   }
+
   GNUNET_SERVER_client_mark_monitor (client);
   bl = GNUNET_new (struct Blacklisters);
   bl->client = client;
+  bl->call_receive_done = GNUNET_YES;
   GNUNET_SERVER_client_keep (client);
   GNUNET_CONTAINER_DLL_insert_after (bl_head, bl_tail, bl_tail, bl);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "New blacklist client %p\n", client);
 
   /* confirm that all existing connections are OK! */
   tcc.bl = bl;
@@ -578,9 +592,14 @@ GST_blacklist_handle_reply (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Blacklist client %p sent reply for `%s'\n",
+      client, GNUNET_i2s(&msg->peer));
+
   bc = bl->bc;
   bl->bc = NULL;
   bl->waiting_for_reply = GNUNET_NO;
+  bl->call_receive_done = GNUNET_YES; /* Remember to call receive_done */
   if (NULL != bc)
   {
     /* only run this if the blacklist check has not been
@@ -592,6 +611,7 @@ GST_blacklist_handle_reply (void *cls, struct GNUNET_SERVER_Client *client,
       bc->cont (bc->cont_cls, &bc->peer, GNUNET_NO);
       GNUNET_CONTAINER_DLL_remove (bc_head, bc_tail, bc);
       GNUNET_SERVER_receive_done (bl->client, GNUNET_OK);
+      bl->call_receive_done = GNUNET_NO;
       GNUNET_free (bc);
       return;
     }
@@ -603,7 +623,7 @@ GST_blacklist_handle_reply (void *cls, struct GNUNET_SERVER_Client *client,
       bc->task = GNUNET_SCHEDULER_add_now (&do_blacklist_check, bc);
     }
   }
-  /* check if any other bc's are waiting for this blacklister */
+  /* check if any other blacklist checks are waiting for this blacklister */
   for (bc = bc_head; bc != NULL; bc = bc->next)
     if ((bc->bl_pos == bl) && (GNUNET_SCHEDULER_NO_TASK == bc->task))
     {
