@@ -131,6 +131,9 @@ GNUNET_CRYPTO_paillier_encrypt (const struct GNUNET_CRYPTO_PaillierPublicKey *pu
   
   if (possible_opts < 1)
     possible_opts = 0;
+  //soft-cap by caller
+  possible_opts = (desired_ops < possible_opts)? desired_ops : possible_opts;
+  
   ciphertext->remaining_ops = htonl (possible_opts);
 
   GNUNET_assert (0 != (n_square = gcry_mpi_new (0)));

@@ -88,11 +88,11 @@ test_hom()
   gcry_mpi_mul_2exp(m2,m2,GNUNET_CRYPTO_PAILLIER_BITS-3);
   gcry_mpi_add(result,m1,m2);
 
-  if (1 != (ret = GNUNET_CRYPTO_paillier_encrypt (&public_key, m1, 0, &c1))){
+  if (1 != (ret = GNUNET_CRYPTO_paillier_encrypt (&public_key, m1, 2, &c1))){
     printf ("GNUNET_CRYPTO_paillier_encrypt 1 failed, should return 1 allowed operation, got %d!\n", ret);
     return 1;
   }
-  if (1 != (ret = GNUNET_CRYPTO_paillier_encrypt (&public_key, m2, 0, &c2))){
+  if (1 != (ret = GNUNET_CRYPTO_paillier_encrypt (&public_key, m2, 2, &c2))){
     printf ("GNUNET_CRYPTO_paillier_encrypt 2 failed, should return 1 allowed operation, got %d!\n", ret);
     return 1;
   }
