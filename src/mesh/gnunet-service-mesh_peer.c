@@ -1321,6 +1321,11 @@ GMP_shutdown (void)
     GNUNET_CORE_disconnect (core_handle);
     core_handle = NULL;
   }
+  if (transport_handle != NULL)
+  {
+    GNUNET_TRANSPORT_disconnect (transport_handle);
+    transport_handle = NULL;
+  }
   GNUNET_PEER_change_rc (myid, -1);
 }
 
