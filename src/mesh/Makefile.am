@@ -81,6 +81,7 @@ gnunet_service_mesh_LDADD = \
   $(top_builddir)/src/dht/libgnunetdht.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
+  $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/block/libgnunetblock.la
 gnunet_service_mesh_DEPENDENCIES = \
   $(top_builddir)/src/util/libgnunetutil.la \
@@ -89,6 +90,7 @@ gnunet_service_mesh_DEPENDENCIES = \
   $(top_builddir)/src/dht/libgnunetdht.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
+  $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/block/libgnunetblock.la
 if LINUX
   gnunet_service_mesh_LDFLAGS = -lrt
