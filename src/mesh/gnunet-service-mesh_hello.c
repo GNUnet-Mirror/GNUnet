@@ -112,16 +112,24 @@ got_hello (void *cls, const struct GNUNET_PeerIdentity *id,
 /********************************    API    ***********************************/
 /******************************************************************************/
 
-
+/**
+ * Initialize the hello subsystem.
+ *
+ * @param c Configuration.
+ */
 void
 GMH_init (const struct GNUNET_CONFIGURATION_Handle *c)
 {
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "init\n");
   GNUNET_assert (NULL != nc);
   peerinfo = GNUNET_PEERINFO_connect (c);
   nc = GNUNET_PEERINFO_notify (c, GNUNET_NO, &got_hello, NULL);
 }
 
 
+/**
+ * Shut down the hello subsystem.
+ */
 void
 GMH_shutdown ()
 {
@@ -138,6 +146,11 @@ GMH_shutdown ()
 }
 
 
+/**
+ * Get own hello message.
+ *
+ * @return Own hello message.
+ */
 const struct GNUNET_HELLO_Message *
 GMH_get_mine (void)
 {
@@ -145,15 +158,29 @@ GMH_get_mine (void)
 }
 
 
+/**
+ * Get another peer's hello message.
+ *
+ * @param id ID of the peer whose hello message is requested.
+ *
+ * @return Hello message, if any (NULL possible).
+ */
 const struct GNUNET_HELLO_Message *
 GMH_get (const struct GNUNET_PeerIdentity *id)
 {
   return GMP_get_hello (GMP_get (id));
 }
 
+
+/**
+ * Convert a hello message to a string.
+ *
+ * @param h Hello message.
+ */
 void
-GMH_2s ()
+GMH_2s (const struct GNUNET_HELLO_Message *h)
 {
+  return "hello (TODO)";
 }
 
 
