@@ -799,6 +799,8 @@ set_primary_address (struct NeighbourMapEntry *n,
       n->primary_address.bandwidth_out);
 }
 
+#if 0
+TODO: Implement this
 /**
  * Clear the primary address of a neighbour since this primary address is not
  * valid anymore and notify monitoring about it
@@ -810,6 +812,8 @@ unset_primary_address (struct NeighbourMapEntry *n)
 {
 
 }
+
+#endif
 
 
 /**
@@ -1731,13 +1735,17 @@ GST_neighbours_register_quota_notification(void *cls,
   struct QuotaNotificationRequest *qnr;
   struct QNR_LookContext qnr_ctx;
 
+  if (NULL == registered_quota_notifications)
+  {
+    return; /* init or shutdown */
+  }
+
   qnr_ctx.peer = (*peer);
   qnr_ctx.plugin = plugin;
   qnr_ctx.session = session;
   qnr_ctx.res = NULL;
-  int res;
 
-  res = GNUNET_CONTAINER_multipeermap_get_multiple (registered_quota_notifications,
+  GNUNET_CONTAINER_multipeermap_get_multiple (registered_quota_notifications,
       peer, &find_notification_request, &qnr_ctx);
   if (NULL != qnr_ctx.res)
   {
@@ -1764,13 +1772,18 @@ GST_neighbours_unregister_quota_notification(void *cls,
     const struct GNUNET_PeerIdentity *peer, const char *plugin, struct Session *session)
 {
   struct QNR_LookContext qnr_ctx;
+
+  if (NULL == registered_quota_notifications)
+  {
+    return; /* init or shutdown */
+  }
+
   qnr_ctx.peer = (*peer);
   qnr_ctx.plugin = plugin;
   qnr_ctx.session = session;
   qnr_ctx.res = NULL;
-  int res;
 
-  res = GNUNET_CONTAINER_multipeermap_iterate (registered_quota_notifications,
+  GNUNET_CONTAINER_multipeermap_iterate (registered_quota_notifications,
       &find_notification_request, &qnr_ctx);
   if (NULL == qnr_ctx.res)
   {
@@ -1791,7 +1804,7 @@ GST_neighbours_unregister_quota_notification(void *cls,
 static int
 notification_cb(void *cls, const struct GNUNET_PeerIdentity *key, void *value)
 {
-  struct NeighbourMapEntry *n = cls;
+  /* struct NeighbourMapEntry *n = cls; */
   struct QuotaNotificationRequest *qnr = value;
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
   struct GNUNET_TIME_Relative delay;
@@ -1819,11 +1832,12 @@ int
 free_notification_cb(void *cls, const struct GNUNET_PeerIdentity *key,
     void *value)
 {
-  struct NeighbourMapEntry *n = cls;
+  /* struct NeighbourMapEntry *n = cls; */
   struct QuotaNotificationRequest *qnr = value;
 
   GNUNET_CONTAINER_multipeermap_remove (registered_quota_notifications, key,
       qnr);
+  GNUNET_free(qnr->plugin);
   GNUNET_free(qnr);
 
   return GNUNET_OK;
@@ -3868,6 +3882,7 @@ GST_neighbours_stop ()
   GNUNET_CONTAINER_multipeermap_iterate (registered_quota_notifications,
       &free_notification_cb, NULL);
   GNUNET_CONTAINER_multipeermap_destroy (registered_quota_notifications);
+  registered_quota_notifications = NULL;
 
   neighbours = NULL;
   callback_cls = NULL;
