@@ -1548,9 +1548,7 @@ handle_decrypted (struct MeshTunnel3 *t,
   uint16_t type;
 
   type = ntohs (msgh->type);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Got a %s message!\n",
-       GM_m2s (type));
+  LOG (GNUNET_ERROR_TYPE_INFO, "Got a %s message\n", GM_m2s (type));
 
   switch (type)
   {

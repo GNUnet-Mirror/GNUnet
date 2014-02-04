@@ -784,8 +784,8 @@ send_connection_ack (struct MeshConnection *connection, int fwd)
   struct MeshTunnel3 *t;
 
   t = connection->t;
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Send connection %s ACK\n",
-       GM_f2s (!fwd));
+  LOG (GNUNET_ERROR_TYPE_INFO, "Send %s ACK on connection %s\n",
+       GM_f2s (!fwd), GMC_2s (connection));
   GMP_queue_add (get_hop (connection, fwd), NULL,
                  GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK,
                  sizeof (struct GNUNET_MESH_ConnectionACK),
@@ -840,6 +840,8 @@ send_broken2 (struct GNUNET_HashCode *connection_id,
 {
   struct GNUNET_MESH_ConnectionBroken *msg;
   struct MeshPeer *neighbor;
+
+  LOG (GNUNET_ERROR_TYPE_INFO, "Send BROKEN on connection %s\n", GMC_2s (c));
 
   msg = GNUNET_new (struct GNUNET_MESH_ConnectionBroken);
   msg->header.size = htons (sizeof (struct GNUNET_MESH_ConnectionBroken));
@@ -1447,6 +1449,22 @@ build_path_from_peer_ids (struct GNUNET_PeerIdentity *peers,
   return path;
 }
 
+
+/**
+ * Log receipt of message on stderr (INFO level).
+ *
+ * @param message Message received.
+ * @param peer Peer who sent the message.
+ */
+static void
+log_message (const struct GNUNET_MessageHeader *message,
+             const struct GNUNET_PeerIdentity *peer)
+{
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "\n\n");
+  LOG (GNUNET_ERROR_TYPE_INFO, "Got a %s message from %s\n",
+       GM_m2s (ntohs (message->type)), GNUNET_i2s (peer));
+}
+
 /******************************************************************************/
 /********************************    API    ***********************************/
 /******************************************************************************/
@@ -1475,8 +1493,7 @@ GMC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
   unsigned int own_pos;
   uint16_t size;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "\n\n");
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Received a connection create msg\n");
+  log_message (message, peer);
 
   /* Check size */
   size = ntohs (message->size);
@@ -1602,8 +1619,8 @@ GMC_handle_confirm (void *cls, const struct GNUNET_PeerIdentity *peer,
   enum MeshConnectionState oldstate;
   int fwd;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "\n\n");
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Received a connection ACK msg\n");
+  log_message (message, peer);
+
   msg = (struct GNUNET_MESH_ConnectionACK *) message;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  on connection %s\n",
               GNUNET_h2s (&msg->cid));
@@ -1728,8 +1745,8 @@ GMC_handle_broken (void* cls,
   struct MeshConnection *c;
   int fwd;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-              "Received a CONNECTION BROKEN msg from %s\n", GNUNET_i2s (id));
+  log_message (message, id);
+
   msg = (struct GNUNET_MESH_ConnectionBroken *) message;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  regarding %s\n",
               GNUNET_i2s (&msg->peer1));
@@ -1781,13 +1798,10 @@ GMC_handle_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
   struct MeshConnection *c;
   int fwd;
 
+  log_message (message, peer);
+
   msg = (struct GNUNET_MESH_ConnectionDestroy *) message;
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-              "Got a CONNECTION DESTROY message from %s\n",
-              GNUNET_i2s (peer));
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-              "  for connection %s\n",
-              GNUNET_h2s (&msg->cid));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  on connection %s\n", GNUNET_h2s (&msg->cid));
   c = connection_get (&msg->cid);
   if (NULL == c)
   {
@@ -1844,7 +1858,6 @@ handle_mesh_encrypted (const struct GNUNET_PeerIdentity *peer,
   GNUNET_PEER_Id peer_id;
   uint32_t pid;
   uint32_t ttl;
-  uint16_t type;
   size_t size;
   int fwd;
 
@@ -1857,10 +1870,6 @@ handle_mesh_encrypted (const struct GNUNET_PeerIdentity *peer,
     GNUNET_break_op (0);
     return GNUNET_OK;
   }
-  type = ntohs (msg->header.type);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "\n\n");
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "got a %s message (#%u) from %s\n",
-       GM_m2s (type), ntohl (msg->pid), GNUNET_i2s (peer));
 
   /* Check connection */
   c = connection_get (&msg->cid);
@@ -1872,7 +1881,7 @@ handle_mesh_encrypted (const struct GNUNET_PeerIdentity *peer,
     return GNUNET_OK;
   }
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  on connection %s\n", GMC_2s (c));
+  LOG (GNUNET_ERROR_TYPE_INFO, "  on connection %s\n", GMC_2s (c));
 
   /* Check if origin is as expected */
   neighbor = get_prev_hop (c);
@@ -1972,7 +1981,6 @@ handle_mesh_kx (const struct GNUNET_PeerIdentity *peer,
   struct MeshPeer *neighbor;
   GNUNET_PEER_Id peer_id;
   size_t size;
-  uint16_t type;
   int fwd;
 
   /* Check size */
@@ -1984,10 +1992,6 @@ handle_mesh_kx (const struct GNUNET_PeerIdentity *peer,
     GNUNET_break_op (0);
     return GNUNET_OK;
   }
-  type = ntohs (msg->header.type);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "\n\n");
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "got a %s message from %s\n",
-       GM_m2s (type), GNUNET_i2s (peer));
 
   /* Check connection */
   c = connection_get (&msg->cid);
@@ -2071,6 +2075,8 @@ int
 GMC_handle_encrypted (void *cls, const struct GNUNET_PeerIdentity *peer,
                       const struct GNUNET_MessageHeader *message)
 {
+  log_message (message, peer);
+
   return handle_mesh_encrypted (peer,
                                 (struct GNUNET_MESH_Encrypted *)message);
 }
@@ -2090,6 +2096,8 @@ int
 GMC_handle_kx (void *cls, const struct GNUNET_PeerIdentity *peer,
                const struct GNUNET_MessageHeader *message)
 {
+  log_message (message, peer);
+
   return handle_mesh_kx (peer,
                          (struct GNUNET_MESH_KX *) message);
 }
@@ -2116,13 +2124,10 @@ GMC_handle_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
   uint32_t ack;
   int fwd;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "\n\n");
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Got an ACK packet from %s!\n",
-              GNUNET_i2s (peer));
+  log_message (message, peer);
+
   msg = (struct GNUNET_MESH_ACK *) message;
-
   c = connection_get (&msg->cid);
-
   if (NULL == c)
   {
     GNUNET_STATISTICS_update (stats, "# ack on unknown connection", 1,
@@ -2193,15 +2198,10 @@ GMC_handle_poll (void *cls, const struct GNUNET_PeerIdentity *peer,
   uint32_t pid;
   int fwd;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "\n\n");
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Got a POLL message from %s!\n",
-       GNUNET_i2s (peer));
+  log_message (message, peer);
 
   msg = (struct GNUNET_MESH_Poll *) message;
-
   c = connection_get (&msg->cid);
-
   if (NULL == c)
   {
     GNUNET_STATISTICS_update (stats, "# poll on unknown connection", 1,
@@ -2265,10 +2265,9 @@ GMC_handle_keepalive (void *cls, const struct GNUNET_PeerIdentity *peer,
   GNUNET_PEER_Id peer_id;
   int fwd;
 
-  msg = (struct GNUNET_MESH_ConnectionKeepAlive *) message;
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "got a keepalive packet from %s\n",
-              GNUNET_i2s (peer));
+  log_message (message, peer);
 
+  msg = (struct GNUNET_MESH_ConnectionKeepAlive *) message;
   c = connection_get (&msg->cid);
   if (NULL == c)
   {
@@ -2824,7 +2823,7 @@ GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   data = GNUNET_malloc (size);
   memcpy (data, message, size);
   type = ntohs (message->type);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Send %s (%u bytes) on connection %s\n",
+  LOG (GNUNET_ERROR_TYPE_INFO, "Send %s (%u bytes) on connection %s\n",
        GM_m2s (type), size, GMC_2s (c));
 
   fc = fwd ? &c->fwd_fc : &c->bck_fc;
@@ -2982,7 +2981,9 @@ GMC_send_create (struct MeshConnection *connection)
   size = sizeof (struct GNUNET_MESH_ConnectionCreate);
   size += connection->path->length * sizeof (struct GNUNET_PeerIdentity);
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Send connection create\n");
+  LOG (GNUNET_ERROR_TYPE_INFO, "Send %s (%u bytes) on connection %s\n",
+       GM_m2s (GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE),
+       size, GMC_2s (connection));
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  C_P+ %p %u (create)\n",
        connection, connection->pending_messages);
   connection->pending_messages++;

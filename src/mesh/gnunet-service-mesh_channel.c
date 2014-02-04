@@ -1077,16 +1077,15 @@ rel_message_free (struct MeshReliableMessage *copy, int update_time)
       rel->expected_delay.rel_value_us += time.rel_value_us;
       rel->expected_delay.rel_value_us /= 8;
     }
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "!!!  took %s\n",
-                GNUNET_STRINGS_relative_time_to_string (time, GNUNET_NO));
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "!!!  new expected delay %s\n",
-                GNUNET_STRINGS_relative_time_to_string (rel->expected_delay,
-                                                        GNUNET_NO));
+    LOG (GNUNET_ERROR_TYPE_INFO, "!!!  took %s, new delay %s\n",
+         GNUNET_STRINGS_relative_time_to_string (time, GNUNET_NO),
+         GNUNET_STRINGS_relative_time_to_string (rel->expected_delay,
+                                                 GNUNET_NO));
     rel->retry_timer = rel->expected_delay;
   }
   else
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! batch free, ignoring timing\n");
+    LOG (GNUNET_ERROR_TYPE_INFO, "!!! batch free, ignoring timing\n");
   }
   rel->ch->pending_messages--;
   if (NULL != copy->chq)
