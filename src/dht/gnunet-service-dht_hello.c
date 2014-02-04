@@ -65,6 +65,8 @@ GDS_HELLO_get (const struct GNUNET_PeerIdentity *peer)
  * @param peer id of the peer, NULL for last call
  * @param hello hello message for the peer (can be NULL)
  * @param err_msg error message (not used)
+ *
+ * FIXME this is called once per address. Merge instead of replacing?
  */
 static void
 process_hello (void *cls, const struct GNUNET_PeerIdentity *peer,
