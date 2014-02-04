@@ -108,6 +108,9 @@ got_hello (void *cls, const struct GNUNET_PeerIdentity *id,
   LOG (GNUNET_ERROR_TYPE_DEBUG, " hello for %s\n", GNUNET_i2s (id));
   peer = GMP_get (id);
   GMP_set_hello (peer, hello);
+
+  if (GMP_get_short_id (peer) == myid)
+    mine = hello;
 }
 
 
