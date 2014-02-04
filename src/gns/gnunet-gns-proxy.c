@@ -825,7 +825,7 @@ check_ssl_certificate (struct Socks5Request *s5r)
   if (CURLE_OK !=
       curl_easy_getinfo (s5r->curl,
 			 CURLINFO_TLS_SESSION,
-			 &tlsinfo))
+			 (struct curl_slist **) &tlsinfo))
     return GNUNET_SYSERR;
   if (CURLSSLBACKEND_GNUTLS != tlsinfo->backend)
   {
@@ -1337,7 +1337,7 @@ curl_task_download (void *cls,
       GNUNET_break (CURLE_OK ==
 		    curl_easy_getinfo (msg->easy_handle,
 				       CURLINFO_PRIVATE,
-				       &s5r));
+				       (char **) &s5r ));
       if (NULL == s5r)
       {
 	GNUNET_break (0);
