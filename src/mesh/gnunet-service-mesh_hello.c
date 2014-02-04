@@ -88,10 +88,10 @@ struct GNUNET_PEERINFO_NotifyContext* nc;
 /**
  * Process each hello message received from peerinfo.
  *
- * @param cls the 'struct GetUriContext'
- * @param peer identity of the peer
- * @param hello addresses of the peer
- * @param err_msg error message
+ * @param cls Closure (unused).
+ * @param peer Identity of the peer.
+ * @param hello Hello of the peer.
+ * @param err_msg Error message.
  */
 static void
 got_hello (void *cls, const struct GNUNET_PeerIdentity *id,
@@ -101,7 +101,10 @@ got_hello (void *cls, const struct GNUNET_PeerIdentity *id,
   struct MeshPeer *peer;
 
   if (NULL == id)
-    LOG (GNUNET_ERROR_TYPE_ERROR, "not a valid id\n");
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR, " hello with NULL id\n");
+    return;
+  }
 
   peer = GMP_get (id);
   GMP_set_hello (peer, hello);
