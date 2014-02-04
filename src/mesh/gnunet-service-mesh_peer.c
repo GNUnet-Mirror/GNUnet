@@ -1885,32 +1885,19 @@ GMP_get_tunnel (const struct MeshPeer *peer)
 void
 GMP_set_hello (struct MeshPeer *peer, const struct GNUNET_HELLO_Message *hello)
 {
-  struct GNUNET_TIME_Absolute expiration;
-  struct GNUNET_TIME_Relative remaining;
+  struct GNUNET_HELLO_Message *old;
   size_t size;
 
-  if (NULL == peer->hello)
+  old = GMP_get_hello (peer);
+  if (NULL == old)
   {
     size = GNUNET_HELLO_size (hello);
     peer->hello = GNUNET_malloc (size);
     memcpy (peer->hello, hello, size);
     return;
   }
-
-  expiration = GNUNET_HELLO_get_last_expiration (peer->hello);
-  remaining = GNUNET_TIME_absolute_get_remaining (expiration);
-  if (0 == remaining.rel_value_us)
-  {
-    GNUNET_free (peer->hello);
-    size = GNUNET_HELLO_size (hello);
-    peer->hello = GNUNET_malloc (size);
-    memcpy (peer->hello, hello, size);
-  }
   else
   {
-    struct GNUNET_HELLO_Message *old;
-
-    old = peer->hello;
     peer->hello = GNUNET_HELLO_merge (old, hello);
     GNUNET_free (old);
   }
@@ -1932,7 +1919,7 @@ GMP_get_hello (struct MeshPeer *peer)
 
   if (NULL == peer->hello)
     return NULL;
-  
+
   expiration = GNUNET_HELLO_get_last_expiration (peer->hello);
   remaining = GNUNET_TIME_absolute_get_remaining (expiration);
   if (0 == remaining.rel_value_us)
