@@ -1873,6 +1873,16 @@ GMP_set_hello (struct MeshPeer *peer, const struct GNUNET_HELLO_Message *hello)
 const struct GNUNET_HELLO_Message *
 GMP_get_hello (struct MeshPeer *peer)
 {
+  struct GNUNET_TIME_Absolute expiration;
+  struct GNUNET_TIME_Relative remaining;
+
+  expiration = GNUNET_HELLO_get_last_expiration (peer->hello);
+  remaining = GNUNET_TIME_absolute_get_remaining (expiration);
+  if (0 == remaining.rel_value_us)
+  {
+    GNUNET_free (peer->hello);
+    peer->hello = NULL;
+  }
   return peer->hello;
 }
 
