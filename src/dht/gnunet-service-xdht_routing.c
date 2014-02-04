@@ -92,25 +92,25 @@ GDS_ROUTING_add (struct GNUNET_PeerIdentity *source,
                  struct GNUNET_PeerIdentity *prev_hop,
                  struct GNUNET_PeerIdentity *next_hop)
 {
-    struct RoutingTrail *new_routing_entry;
+  struct RoutingTrail *new_routing_entry;
     
-    new_routing_entry = GNUNET_malloc (sizeof (struct RoutingTrail));
-    new_routing_entry->source = source;
-    new_routing_entry->previous_hop = prev_hop;
-    new_routing_entry->next_hop = next_hop;
-    new_routing_entry->destination = dest;
+  new_routing_entry = GNUNET_malloc (sizeof (struct RoutingTrail));
+  new_routing_entry->source = source;
+  new_routing_entry->previous_hop = prev_hop;
+  new_routing_entry->next_hop = next_hop;
+  new_routing_entry->destination = dest;
     
-    /* If dest is already present in the routing table, then exit.*/
-    if (GNUNET_YES ==
-      GNUNET_CONTAINER_multipeermap_contains (routing_table,
+  /* If dest is already present in the routing table, then exit.*/
+  if (GNUNET_YES ==
+    GNUNET_CONTAINER_multipeermap_contains (routing_table,
                                               dest))
-    {
-      GNUNET_break (0);
-      return;
-    }
+  {
+    GNUNET_break (0);
+    return;
+  }
 
-    GNUNET_assert (GNUNET_OK ==
-        GNUNET_CONTAINER_multipeermap_put (routing_table,
+  GNUNET_assert (GNUNET_OK ==
+    GNUNET_CONTAINER_multipeermap_put (routing_table,
                                            dest, new_routing_entry,
                                            GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
 }
@@ -125,13 +125,13 @@ GDS_Routing_search(struct GNUNET_PeerIdentity *source_peer,
                    struct GNUNET_PeerIdentity *destination_peer,
                    struct GNUNET_PeerIdentity *prev_hop)
 {
-    struct RoutingTrail *trail;
-    trail = (struct RoutingTrail *)(GNUNET_CONTAINER_multipeermap_get(routing_table,destination_peer));
+  struct RoutingTrail *trail;
+  trail = (struct RoutingTrail *)(GNUNET_CONTAINER_multipeermap_get(routing_table,destination_peer));
     
-    if(trail == NULL)
-        return NULL;
+  if(trail == NULL)
+      return NULL;
     
-    return trail->next_hop;
+  return trail->next_hop;
 }
 
 
@@ -161,6 +161,7 @@ GDS_ROUTING_process (enum GNUNET_BLOCK_Type type,
                      const struct GNUNET_PeerIdentity *get_path,
                      const void *data, size_t data_size)
 {
+
 }
 
 
@@ -169,7 +170,7 @@ GDS_ROUTING_process (enum GNUNET_BLOCK_Type type,
  */
 void
 GDS_ROUTING_init ()
-{
+{ 
   routing_table = GNUNET_CONTAINER_multipeermap_create (DHT_MAX_RECENT * 4 / 3, GNUNET_NO);
 }
 

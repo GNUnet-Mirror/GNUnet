@@ -21,7 +21,8 @@
 /**
  * @file dht/gnunet-service-xdht_clients.c
  * @brief GNUnet DHT service's client management code
- * @author Supriti Singh
+ * @author Christian Grothoff
+ * @author Nathan Evans
  */
 
 #include "platform.h"
