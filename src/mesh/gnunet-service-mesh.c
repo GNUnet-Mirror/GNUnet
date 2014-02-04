@@ -148,7 +148,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
               GNUNET_i2s (&my_full_id));
 
   GML_init (server);    /* Local clients */
-  GMH_shutdown (c);     /* Hellos */
+  GMH_init (c);         /* Hellos */
   GMC_init (c);         /* Connections */
   GMP_init (c);         /* Peers */
   GMD_init (c);         /* DHT */
