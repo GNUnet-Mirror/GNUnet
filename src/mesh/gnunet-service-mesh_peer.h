@@ -325,7 +325,7 @@ GMP_get_tunnel (const struct MeshPeer *peer);
  * @param hello Hello message.
  */
 void
-GMP_set_hello (struct MeshPeer *peer, const struct GNUNET_HELLO_Message *hello);
+GMP_set_hello (struct MeshPeer *peer, struct GNUNET_HELLO_Message *hello);
 
 /**
  * Get the hello message.
@@ -334,7 +334,7 @@ GMP_set_hello (struct MeshPeer *peer, const struct GNUNET_HELLO_Message *hello);
  *
  * @return Hello message.
  */
-const struct GNUNET_HELLO_Message *
+struct GNUNET_HELLO_Message *
 GMP_get_hello (struct MeshPeer *peer);
 
 /**

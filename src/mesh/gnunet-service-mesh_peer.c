@@ -22,6 +22,7 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 
+#include "gnunet_transport_service.h"
 #include "gnunet_core_service.h"
 #include "gnunet_statistics_service.h"
 
@@ -163,7 +164,7 @@ struct MeshPeer
   /**
    * Hello message.
    */
-  const struct GNUNET_HELLO_Message* hello;
+  struct GNUNET_HELLO_Message* hello;
 };
 
 
@@ -205,6 +206,8 @@ static unsigned long long drop_percent;
  * Handle to communicate with core.
  */
 static struct GNUNET_CORE_Handle *core_handle;
+
+static struct GNUNET_TRANSPORT_Handle *transport_handle;
 
 
 /******************************************************************************/
@@ -1292,12 +1295,17 @@ GMP_init (const struct GNUNET_CONFIGURATION_Handle *c)
                                      NULL,      /* Don't notify about all outbound messages */
                                      GNUNET_NO, /* For header-only out notification */
                                      core_handlers);    /* Register these handlers */
-  if (NULL == core_handle)
+  transport_handle = GNUNET_TRANSPORT_connect (c, &my_full_id,
+                                        NULL, /* cls */
+                                        NULL, NULL, NULL); /* Notify callbacks */
+
+  if (NULL == core_handle || NULL == transport_handle)
   {
     GNUNET_break (0);
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
+
 }
 
 /**
@@ -1363,6 +1371,24 @@ GMP_get_short (const GNUNET_PEER_Id peer)
 
 
 /**
+ * Try to connect to a peer on transport level.
+ *
+ * @param cls Closure (peer).
+ * @param tc TaskContext.
+ */
+static void
+try_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct MeshPeer *peer = cls;
+
+  if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
+    return;
+
+  GNUNET_TRANSPORT_try_connect (transport_handle,
+                                GNUNET_PEER_resolve2 (peer->id), NULL, NULL);
+}
+
+/**
  * Try to establish a new connection to this peer (in its tunnel).
  * If the peer doesn't have any path to it yet, try to get one.
  * If the peer already has some path, send a CREATE CONNECTION towards it.
@@ -1375,9 +1401,21 @@ GMP_connect (struct MeshPeer *peer)
   struct MeshTunnel3 *t;
   struct MeshPeerPath *p;
   struct MeshConnection *c;
+  struct GNUNET_HELLO_Message *hello;
   int rerun_search;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "peer_connect towards %s\n", GMP_2s (peer));
+
+  /* If we have a current hello, try to connect using it. */
+  hello = GMP_get_hello (peer);
+  if (NULL != hello)
+  {
+    struct GNUNET_MessageHeader *mh;
+
+    mh = GNUNET_HELLO_get_header (hello);
+    GNUNET_TRANSPORT_offer_hello (transport_handle, mh, try_connect, peer);
+  }
+
   t = peer->tunnel;
   c = NULL;
   rerun_search = GNUNET_NO;
@@ -1840,7 +1878,7 @@ GMP_get_tunnel (const struct MeshPeer *peer)
  * @param hello Hello message.
  */
 void
-GMP_set_hello (struct MeshPeer *peer, const struct GNUNET_HELLO_Message *hello)
+GMP_set_hello (struct MeshPeer *peer, struct GNUNET_HELLO_Message *hello)
 {
   struct GNUNET_TIME_Absolute expiration;
   struct GNUNET_TIME_Relative remaining;
@@ -1870,7 +1908,7 @@ GMP_set_hello (struct MeshPeer *peer, const struct GNUNET_HELLO_Message *hello)
  *
  * @return Hello message.
  */
-const struct GNUNET_HELLO_Message *
+struct GNUNET_HELLO_Message *
 GMP_get_hello (struct MeshPeer *peer)
 {
   struct GNUNET_TIME_Absolute expiration;
