@@ -841,7 +841,8 @@ send_broken2 (struct GNUNET_HashCode *connection_id,
   struct GNUNET_MESH_ConnectionBroken *msg;
   struct MeshPeer *neighbor;
 
-  LOG (GNUNET_ERROR_TYPE_INFO, "Send BROKEN on connection %s\n", GMC_2s (c));
+  LOG (GNUNET_ERROR_TYPE_INFO,
+       "Send BROKEN on unknown connection %s\n", GNUNET_h2s (connection_id));
 
   msg = GNUNET_new (struct GNUNET_MESH_ConnectionBroken);
   msg->header.size = htons (sizeof (struct GNUNET_MESH_ConnectionBroken));
