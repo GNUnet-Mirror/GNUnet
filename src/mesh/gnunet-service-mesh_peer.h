@@ -337,6 +337,15 @@ GMP_set_hello (struct MeshPeer *peer, const struct GNUNET_HELLO_Message *hello);
 struct GNUNET_HELLO_Message *
 GMP_get_hello (struct MeshPeer *peer);
 
+
+/**
+ * Try to connect to a peer on TRANSPORT level.
+ *
+ * @param peer Peer to whom to connect.
+ */
+void
+GMP_try_connect (struct MeshPeer *peer);
+
 /**
  * Count the number of known paths toward the peer.
  *

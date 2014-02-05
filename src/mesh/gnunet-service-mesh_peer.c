@@ -1407,20 +1407,12 @@ GMP_connect (struct MeshPeer *peer)
   struct MeshTunnel3 *t;
   struct MeshPeerPath *p;
   struct MeshConnection *c;
-  struct GNUNET_HELLO_Message *hello;
   int rerun_search;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "peer_connect towards %s\n", GMP_2s (peer));
 
   /* If we have a current hello, try to connect using it. */
-  hello = GMP_get_hello (peer);
-  if (NULL != hello)
-  {
-    struct GNUNET_MessageHeader *mh;
-
-    mh = GNUNET_HELLO_get_header (hello);
-    GNUNET_TRANSPORT_offer_hello (transport_handle, mh, try_connect, peer);
-  }
+  GMP_try_connect (peer);
 
   t = peer->tunnel;
   c = NULL;
@@ -1938,6 +1930,26 @@ GMP_get_hello (struct MeshPeer *peer)
     peer->hello = NULL;
   }
   return peer->hello;
+}
+
+
+/**
+ * Try to connect to a peer on TRANSPORT level.
+ *
+ * @param peer Peer to whom to connect.
+ */
+void
+GMP_try_connect (struct MeshPeer *peer)
+{
+  struct GNUNET_HELLO_Message *hello;
+  struct GNUNET_MessageHeader *mh;
+
+  hello = GMP_get_hello (peer);
+  if (NULL == hello)
+    return;
+
+  mh = GNUNET_HELLO_get_header (hello);
+  GNUNET_TRANSPORT_offer_hello (transport_handle, mh, try_connect, peer);
 }
 
 

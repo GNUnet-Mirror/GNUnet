@@ -222,16 +222,17 @@ dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
   struct GMD_search_handle *h = cls;
   struct GNUNET_HELLO_Message *hello;
   struct MeshPeerPath *p;
+  struct MeshPeer *peer;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Got results!\n");
   p = path_build_from_dht (get_path, get_path_length,
                            put_path, put_path_length);
+  peer = GMP_get_short (p->peers[p->length - 1]);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Got HELLO for %s\n", GMP_2s (peer));
   h->callback (h->cls, p);
   path_destroy (p);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Got type %u!\n", type);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Got size %u!\n", size);
   hello = (struct GNUNET_HELLO_Message *) data;
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "HELLO size %u!\n", GNUNET_HELLO_size (hello));
+  GMP_set_hello (peer, hello);
+  GMP_try_connect (peer);
   return;
 }
 
