@@ -1669,11 +1669,11 @@ handle_dht_p2p_put (void *cls,
   case GNUNET_YES:
     if (0 != memcmp (&test_key, &put->key, sizeof (struct GNUNET_HashCode)))
     {
-      char *put_s = GNUNET_strdup (GNUNET_h2s (&put->key));
+      char *put_s = GNUNET_strdup (GNUNET_h2s_full (&put->key));
       GNUNET_break_op (0);
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   "PUT with key `%s' for block with key %s\n",
-                  put_s, GNUNET_h2s (&test_key));
+                  put_s, GNUNET_h2s_full (&test_key));
       GNUNET_free (put_s);
       return GNUNET_YES;
     }
