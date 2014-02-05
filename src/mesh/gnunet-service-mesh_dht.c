@@ -384,7 +384,7 @@ GMD_search (const struct GNUNET_PeerIdentity *peer_id,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "  Starting DHT GET for peer %s\n", GNUNET_i2s (peer_id));
   memset (&phash, 0, sizeof (phash));
-  memcpy (&phash, &my_full_id, sizeof (my_full_id));
+  memcpy (&phash, peer_id, sizeof (*peer_id));
   h = GNUNET_new (struct GMD_search_handle);
   h->peer_id = GNUNET_PEER_intern (peer_id);
   h->callback = callback;
