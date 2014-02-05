@@ -25,10 +25,10 @@
 #include "gnunet_dht_service.h"
 #include "gnunet_statistics_service.h"
 
-#include "block_mesh.h"
 #include "mesh_path.h"
 #include "gnunet-service-mesh_dht.h"
 #include "gnunet-service-mesh_peer.h"
+#include "gnunet-service-mesh_hello.h"
 
 #define LOG(level, ...) GNUNET_log_from (level,"mesh-dht",__VA_ARGS__)
 
@@ -240,8 +240,9 @@ dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
 static void
 announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct PBlock block;
   struct GNUNET_HashCode phash;
+  struct GNUNET_HELLO_Message *hello;
+  size_t size;
 
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
   {
@@ -253,15 +254,16 @@ announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
    * - Set data expiration in function of X
    * - Adapt X to churn
    */
-  block.id = my_full_id;
+  hello = GMH_get_mine ();
+  size = GNUNET_HELLO_size (hello);
   GNUNET_CRYPTO_hash (&my_full_id, sizeof (struct GNUNET_PeerIdentity), &phash);
   GNUNET_DHT_put (dht_handle,   /* DHT handle */
                   &phash,       /* Key to use */
                   dht_replication_level,     /* Replication level */
                   GNUNET_DHT_RO_RECORD_ROUTE | GNUNET_DHT_RO_DEMULTIPLEX_EVERYWHERE,    /* DHT options */
-                  GNUNET_BLOCK_TYPE_MESH_PEER,       /* Block type */
-                  sizeof (block),  /* Size of the data */
-                  (const char *) &block, /* Data itself */
+                  GNUNET_BLOCK_TYPE_DHT_HELLO,       /* Block type */
+                  size,  /* Size of the data */
+                  (const char *) hello, /* Data itself */
                   GNUNET_TIME_UNIT_FOREVER_ABS,  /* Data expiration */
                   GNUNET_TIME_UNIT_FOREVER_REL, /* Retry time */
                   NULL,         /* Continuation */
@@ -364,13 +366,14 @@ GMD_search (const struct GNUNET_PeerIdentity *peer_id,
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "  Starting DHT GET for peer %s\n", GNUNET_i2s (peer_id));
-  GNUNET_CRYPTO_hash (peer_id, sizeof (struct GNUNET_PeerIdentity), &phash);
+  memset (&phash, 0, sizeof (phash));
+  memcpy (&phash, &my_full_id, sizeof (my_full_id));
   h = GNUNET_new (struct GMD_search_handle);
   h->peer_id = GNUNET_PEER_intern (peer_id);
   h->callback = callback;
   h->cls = cls;
   h->dhtget = GNUNET_DHT_get_start (dht_handle,    /* handle */
-                                    GNUNET_BLOCK_TYPE_MESH_PEER, /* type */
+                                    GNUNET_BLOCK_TYPE_DHT_HELLO, /* type */
                                     &phash,     /* key to search */
                                     dht_replication_level, /* replication level */
                                     GNUNET_DHT_RO_RECORD_ROUTE |

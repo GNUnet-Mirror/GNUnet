@@ -29,21 +29,6 @@ bin_PROGRAMS = \
 lib_LTLIBRARIES = \
   libgnunetmesh.la $(EXP_LIB)
 
-plugin_LTLIBRARIES = \
- libgnunet_plugin_block_mesh.la
-
-libgnunet_plugin_block_mesh_la_SOURCES = \
- plugin_block_mesh.c
-libgnunet_plugin_block_mesh_la_LIBADD = \
- $(top_builddir)/src/block/libgnunetblock.la \
- $(top_builddir)/src/util/libgnunetutil.la
-libgnunet_plugin_block_mesh_la_LDFLAGS = \
- $(GN_PLUGIN_LDFLAGS)
-libgnunet_plugin_block_mesh_la_DEPENDENCIES = \
- $(top_builddir)/src/block/libgnunetblock.la \
- $(top_builddir)/src/util/libgnunetutil.la
-
-
 libgnunetmesh_la_SOURCES = \
   mesh_api.c mesh_common.c
 libgnunetmesh_la_LIBADD = \
