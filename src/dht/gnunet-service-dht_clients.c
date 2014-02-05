@@ -511,8 +511,8 @@ handle_dht_local_put (void *cls, struct GNUNET_SERVER_Client *client,
                             ("# PUT requests received from clients"), 1,
                             GNUNET_NO);
   dht_msg = (const struct GNUNET_DHT_ClientPutMessage *) message;
-  LOG_TRAFFIC (GNUNET_ERROR_TYPE_DEBUG, "XDHT CLIENT-PUT %s @ %u\n",
-               GNUNET_h2s (&dht_msg->key), getpid ());
+  LOG_TRAFFIC (GNUNET_ERROR_TYPE_DEBUG, "R5N CLIENT-PUT %s\n",
+               GNUNET_h2s_full (&dht_msg->key));
   /* give to local clients */
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Handling local PUT of %u-bytes for query %s\n",
@@ -598,8 +598,8 @@ handle_dht_local_get (void *cls, struct GNUNET_SERVER_Client *client,
        "Received GET request for %s from local client %p, xq: %.*s\n",
        GNUNET_h2s (&get->key), client, xquery_size, xquery);
 
-  LOG_TRAFFIC (GNUNET_ERROR_TYPE_DEBUG, "XDHT CLIENT-GET %s @ %u\n",
-               GNUNET_h2s (&get->key), getpid ());
+  LOG_TRAFFIC (GNUNET_ERROR_TYPE_DEBUG, "R5N CLIENT-GET %s\n",
+               GNUNET_h2s_full (&get->key));
 
 
   cqr = GNUNET_malloc (sizeof (struct ClientQueryRecord) + xquery_size);
@@ -1023,10 +1023,10 @@ forward_reply (void *cls, const struct GNUNET_HashCode * key, void *value)
   int do_free;
   struct GNUNET_HashCode ch;
   unsigned int i;
-  
+
   LOG_TRAFFIC (GNUNET_ERROR_TYPE_DEBUG,
-	       "XDHT CLIENT-RESULT %s\n",
-               GNUNET_h2s (key));
+	       "R5N CLIENT-RESULT %s\n",
+               GNUNET_h2s_full (key));
   if ((record->type != GNUNET_BLOCK_TYPE_ANY) && (record->type != frc->type))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
