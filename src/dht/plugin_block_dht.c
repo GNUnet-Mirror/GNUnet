@@ -147,6 +147,7 @@ block_plugin_dht_get_key (void *cls, enum GNUNET_BLOCK_Type type,
     return GNUNET_NO;
   }
   hello = block;
+  memset (key, 0, sizeof (*key));
   pid = (struct GNUNET_PeerIdentity *) key;
   if (GNUNET_OK != GNUNET_HELLO_get_id (hello, pid))
   {
