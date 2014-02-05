@@ -105,7 +105,9 @@ got_hello (void *cls, const struct GNUNET_PeerIdentity *id,
     LOG (GNUNET_ERROR_TYPE_ERROR, " hello with NULL id\n");
     return;
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, " hello for %s\n", GNUNET_i2s (id));
+  LOG (GNUNET_ERROR_TYPE_INFO, " hello for %s (%d bytes), expires on %s\n",
+       GNUNET_i2s (id), NULL != hello ? GNUNET_HELLO_size (hello) : -1,
+       GNUNET_STRINGS_absolute_time_to_string(GNUNET_HELLO_get_last_expiration(hello)));
   if (NULL == hello)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, " hello is NULL\n");
@@ -115,7 +117,10 @@ got_hello (void *cls, const struct GNUNET_PeerIdentity *id,
   GMP_set_hello (peer, hello);
 
   if (GMP_get_short_id (peer) == myid)
-    mine = hello;
+  {
+    mine = GMP_get_hello (peer);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " updated mine to %p\n", mine);
+  }
 }
 
 
@@ -165,6 +170,7 @@ GMH_shutdown ()
 const struct GNUNET_HELLO_Message *
 GMH_get_mine (void)
 {
+  LOG (GNUNET_ERROR_TYPE_DEBUG, " mine is %p\n", mine);
   return mine;
 }
 

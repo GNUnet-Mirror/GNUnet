@@ -1888,20 +1888,23 @@ GMP_set_hello (struct MeshPeer *peer, const struct GNUNET_HELLO_Message *hello)
   struct GNUNET_HELLO_Message *old;
   size_t size;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "New hello for %s\n", GMP_2s (peer));
   if (NULL == hello)
     return;
 
   old = GMP_get_hello (peer);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, " old hello %p\n", old);
   if (NULL == old)
   {
     size = GNUNET_HELLO_size (hello);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " new size: %u\n", size);
     peer->hello = GNUNET_malloc (size);
     memcpy (peer->hello, hello, size);
-    return;
   }
   else
   {
     peer->hello = GNUNET_HELLO_merge (old, hello);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " merge! %p\n", peer->hello);
     GNUNET_free (old);
   }
 }
@@ -1920,6 +1923,7 @@ GMP_get_hello (struct MeshPeer *peer)
   struct GNUNET_TIME_Absolute expiration;
   struct GNUNET_TIME_Relative remaining;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Get hello\n");
   if (NULL == peer->hello)
     return NULL;
 
@@ -1927,6 +1931,8 @@ GMP_get_hello (struct MeshPeer *peer)
   remaining = GNUNET_TIME_absolute_get_remaining (expiration);
   if (0 == remaining.rel_value_us)
   {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " expired on %s\n",
+         GNUNET_STRINGS_absolute_time_to_string (expiration));
     GNUNET_free (peer->hello);
     peer->hello = NULL;
   }
