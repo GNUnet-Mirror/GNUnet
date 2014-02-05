@@ -228,10 +228,10 @@ dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
                            put_path, put_path_length);
   h->callback (h->cls, p);
   path_destroy (p);
-  LOG (GNUNET_ERROR_TYPE_ERROR, "Got type %u!\n", type);
-  LOG (GNUNET_ERROR_TYPE_ERROR, "Got size %u!\n", size);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Got type %u!\n", type);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Got size %u!\n", size);
   hello = (struct GNUNET_HELLO_Message *) data;
-  LOG (GNUNET_ERROR_TYPE_ERROR, "HELLO size %u!\n", GNUNET_HELLO_size (hello));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "HELLO size %u!\n", GNUNET_HELLO_size (hello));
   return;
 }
 
@@ -254,7 +254,7 @@ announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     announce_id_task = GNUNET_SCHEDULER_NO_TASK;
     return;
   }
-  LOG (GNUNET_ERROR_TYPE_ERROR, "Announce ID\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Announce ID\n");
 
   /* TODO
    * - Set data expiration in function of X
@@ -266,11 +266,11 @@ announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     /* Peerinfo gave us no hello yet, try again in a second. */
     announce_id_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
                                                      &announce_id, cls);
-    LOG (GNUNET_ERROR_TYPE_ERROR, "  no hello, waiting!\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  no hello, waiting!\n");
     return;
   }
 
-  LOG (GNUNET_ERROR_TYPE_ERROR, "Hello %p size: %u\n", hello, size);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Hello %p size: %u\n", hello, size);
   memset (&phash, 0, sizeof (phash));
   memcpy (&phash, &my_full_id, sizeof (my_full_id));
   GNUNET_DHT_put (dht_handle,   /* DHT handle */
