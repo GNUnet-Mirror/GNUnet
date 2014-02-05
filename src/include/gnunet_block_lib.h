@@ -80,7 +80,7 @@ enum GNUNET_BLOCK_Type
 
   /**
    * Type of a block that contains a HELLO for a peer (for
-   * DHT find-peer operations).
+   * DHT and MESH find-peer operations).
    */
   GNUNET_BLOCK_TYPE_DHT_HELLO = 7,
 
@@ -105,11 +105,6 @@ enum GNUNET_BLOCK_Type
    * Block for storing record data
    */
   GNUNET_BLOCK_TYPE_GNS_NAMERECORD = 11,
-
-  /**
-   * Block for storing mesh peers
-   */
-  GNUNET_BLOCK_TYPE_MESH_PEER = 20,
 
   /**
    * Block to store a mesh regex state
