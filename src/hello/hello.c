@@ -685,12 +685,12 @@ GNUNET_HELLO_equals (const struct GNUNET_HELLO_Message *h1,
 
 
 static int
-find_min_expire (void *cls, const struct GNUNET_HELLO_Address *address,
+find_max_expire (void *cls, const struct GNUNET_HELLO_Address *address,
                  struct GNUNET_TIME_Absolute expiration)
 {
-  struct GNUNET_TIME_Absolute *min = cls;
+  struct GNUNET_TIME_Absolute *max = cls;
 
-  *min = GNUNET_TIME_absolute_min (*min, expiration);
+  *max = GNUNET_TIME_absolute_max (*max, expiration);
   return GNUNET_OK;
 }
 
@@ -707,7 +707,7 @@ GNUNET_HELLO_get_last_expiration (const struct GNUNET_HELLO_Message *msg)
   struct GNUNET_TIME_Absolute ret;
 
   ret.abs_value_us = 0;
-  GNUNET_HELLO_iterate_addresses (msg, GNUNET_NO, &find_min_expire, &ret);
+  GNUNET_HELLO_iterate_addresses (msg, GNUNET_NO, &find_max_expire, &ret);
   return ret;
 }
 
