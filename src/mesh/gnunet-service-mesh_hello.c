@@ -100,9 +100,9 @@ got_hello (void *cls, const struct GNUNET_PeerIdentity *id,
 {
   struct MeshPeer *peer;
 
-  if (NULL == id)
+  if (NULL == id || NULL == hello)
   {
-    LOG (GNUNET_ERROR_TYPE_ERROR, " hello with NULL id\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " hello with id %p and msg %p\n", id, hello);
     return;
   }
   LOG (GNUNET_ERROR_TYPE_INFO, " hello for %s (%d bytes), expires on %s\n",
