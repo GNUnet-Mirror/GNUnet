@@ -1393,6 +1393,7 @@ try_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                 GNUNET_PEER_resolve2 (peer->id), NULL, NULL);
 }
 
+
 /**
  * Try to establish a new connection to this peer (in its tunnel).
  * If the peer doesn't have any path to it yet, try to get one.
