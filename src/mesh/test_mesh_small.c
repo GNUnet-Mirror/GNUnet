@@ -631,6 +631,9 @@ do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   enum GNUNET_MESH_ChannelOption flags;
 
+  if ((GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason) != 0)
+    return;
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test_task\n");
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "add peer 2\n");
 
