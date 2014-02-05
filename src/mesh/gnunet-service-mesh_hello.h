@@ -39,15 +39,30 @@ extern "C"
 
 #include "platform.h"
 #include "gnunet_util_lib.h"
+#include "gnunet_hello_lib.h"
 
 
+/**
+ * Initialize the hello subsystem.
+ *
+ * @param c Configuration.
+ */
 void
 GMH_init (const struct GNUNET_CONFIGURATION_Handle *c);
 
+/**
+ * Shut down the hello subsystem.
+ */
 void
 GMH_shutdown ();
 
-
+/**
+ * Get own hello message.
+ *
+ * @return Own hello message.
+ */
+const struct GNUNET_HELLO_Message *
+GMH_get_mine (void);
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
