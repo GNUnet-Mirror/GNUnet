@@ -673,21 +673,16 @@ get_prev_hop (const struct MeshConnection *c)
 {
   GNUNET_PEER_Id id;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  get prev hop %s [%u/%u]\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, " get prev hop %s [%u/%u]\n",
        GMC_2s (c), c->own_pos, c->path->length);
   if (0 == c->own_pos || c->path->length < 2)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  own pos is zero\n");
     id = c->path->peers[0];
-  }
   else
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  own pos is NOT zero\n");
     id = c->path->peers[c->own_pos - 1];
-  }
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  id: %u\n", id);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  ID: %s\n", GNUNET_i2s (GNUNET_PEER_resolve2 (id)));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  ID: %s (%u)\n",
+       GNUNET_i2s (GNUNET_PEER_resolve2 (id)), id);
+
   return GMP_get_short (id);
 }
 
@@ -704,21 +699,15 @@ get_next_hop (const struct MeshConnection *c)
 {
   GNUNET_PEER_Id id;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  get next hop %s [%u/%u]\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, " get next hop %s [%u/%u]\n",
        GMC_2s (c), c->own_pos, c->path->length);
   if ((c->path->length - 1) == c->own_pos || c->path->length < 2)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  own pos is end\n");
     id = c->path->peers[c->path->length - 1];
-  }
   else
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  own pos is NOT end\n");
     id = c->path->peers[c->own_pos + 1];
-  }
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  id: %u\n", id);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  ID: %s\n", GNUNET_i2s (GNUNET_PEER_resolve2 (id)));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  ID: %s (%u)\n",
+       GNUNET_i2s (GNUNET_PEER_resolve2 (id)), id);
 
   return GMP_get_short (id);
 }
