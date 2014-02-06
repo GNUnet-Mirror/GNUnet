@@ -1021,10 +1021,11 @@ schedule_next_keepalive (struct MeshConnection *c, int fwd)
     keepalive_task = &connection_bck_keepalive;
   }
 
-  /* Check that no one scheduled it before us (and alert in that case) */
+  /* Check that no one scheduled it before us */
   if (GNUNET_SCHEDULER_NO_TASK != *task_id)
   {
-    GNUNET_break (0);
+    /* No need for a _break. It can happen for instance when sending a SYNACK
+     * for a duplicate SYN: the first SYNACK scheduled the task. */
     GNUNET_SCHEDULER_cancel (*task_id);
   }
 
