@@ -216,7 +216,7 @@ broadcast_ipv4_mst_cb (void *cls, void *client,
 
 void
 udp_broadcast_receive (struct Plugin *plugin,
-                       const char * buf,
+                       const char *buf,
                        ssize_t size,
                        const struct sockaddr *addr,
                        size_t addrlen)
