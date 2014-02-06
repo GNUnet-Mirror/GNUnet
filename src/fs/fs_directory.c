@@ -47,23 +47,21 @@
  * Does the meta-data claim that this is a directory?
  * Checks if the mime-type is that of a GNUnet directory.
  *
- * @return GNUNET_YES if it is, GNUNET_NO if it is not, GNUNET_SYSERR if
- *  we have no mime-type information (treat as 'GNUNET_NO')
+ * @return #GNUNET_YES if it is, #GNUNET_NO if it is not, #GNUNET_SYSERR if
+ *  we have no mime-type information (treat as #GNUNET_NO)
  */
 int
-GNUNET_FS_meta_data_test_for_directory (const struct GNUNET_CONTAINER_MetaData
-                                        *md)
+GNUNET_FS_meta_data_test_for_directory (const struct GNUNET_CONTAINER_MetaData *md)
 {
   char *mime;
   int ret;
 
   if (NULL == md)
     return GNUNET_SYSERR;
-  mime =
-      GNUNET_CONTAINER_meta_data_get_by_type (md, EXTRACTOR_METATYPE_MIMETYPE);
-  if (mime == NULL)
+  mime = GNUNET_CONTAINER_meta_data_get_by_type (md, EXTRACTOR_METATYPE_MIMETYPE);
+  if (NULL == mime)
     return GNUNET_SYSERR;
-  ret = (0 == strcmp (mime, GNUNET_FS_DIRECTORY_MIME)) ? GNUNET_YES : GNUNET_NO;
+  ret = (0 == strcasecmp (mime, GNUNET_FS_DIRECTORY_MIME)) ? GNUNET_YES : GNUNET_NO;
   GNUNET_free (mime);
   return ret;
 }
