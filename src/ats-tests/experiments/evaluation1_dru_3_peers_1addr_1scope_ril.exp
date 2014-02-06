@@ -1,0 +1,46 @@
+[experiment]
+name = sc1_eval_dru_ril
+masters = 1
+slaves = 3
+max_duration = 20 s
+log_freq = 100 ms
+cfg_file = experiments/evaluation1_dru_3_peers_1addr_1scope_ril.conf
+ 
+[episode-0]
+# operations = start_send, stop_send, start_preference, stop_preference
+duration = 10 s
+op-0-operation = start_send
+op-0-src = 0
+op-0-dest = 0
+op-0-type = constant
+#op-0-period = 10 s
+op-0-base-rate= 10000
+#op-0-max-rate = 10000
+
+op-1-operation = start_send
+op-1-src = 0
+op-1-dest = 1
+op-1-type = constant
+#op-1-period = 10 s
+op-1-base-rate= 10000
+#op-1-max-rate = 10000
+
+op-2-operation = start_send
+op-2-src = 0
+op-2-dest = 2
+op-2-type = constant
+#op-1-period = 10 s
+op-2-base-rate= 10000
+#op-1-max-rate = 10000
+
+[episode-1]
+duration = 10 s
+op-0-operation = start_preference
+op-0-src = 0
+op-0-dest = 2
+op-0-type = constant
+#op-0-period = 10 s
+op-0-pref = bandwidth
+op-0-frequency = 1 s
+op-0-base-rate= 50
+#op-0-max-rate = 10000
