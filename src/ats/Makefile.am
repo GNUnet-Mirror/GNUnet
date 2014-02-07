@@ -17,6 +17,9 @@ if USE_COVERAGE
   AM_CFLAGS = -fprofile-arcs -ftest-coverage
 endif
 
+noinst_PROGRAMS = \
+ gnunet-ats-solver-eval
+
 if HAVE_LIBGLPK
   GN_LIBGLPK = -lglpk
   GN_MLP_LIB = libgnunet_plugin_ats_mlp.la
@@ -36,6 +39,18 @@ plugin_LTLIBRARIES = \
   libgnunet_plugin_ats_proportional.la \
   $(GN_MLP_LIB) \
   libgnunet_plugin_ats_ril.la
+
+gnunet_ats_solver_eval_SOURCES = \
+ gnunet-ats-solver-eval.c gnunet-service-ats_normalization.c 
+gnunet_ats_solver_eval_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/ats/libgnunetats.la \
+ $(top_builddir)/src/statistics/libgnunetstatistics.la \
+ $(LTLIBINTL)
+gnunet_ats_solver_eval_DEPENDENCIES = \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/ats/libgnunetats.la \
+ $(top_builddir)/src/statistics/libgnunetstatistics.la
 
 libgnunetats_la_SOURCES = \
   ats_api_scheduling.c \
