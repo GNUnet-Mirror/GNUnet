@@ -106,4 +106,37 @@ gns_resolve_name (int af,
   return 0;
 }
 
+#ifndef NSS_IPV6_ONLY
+/**
+ * Wrapper function that uses gnunet-namecache cli tool to resolve
+ * an hostnames from IPv4/6 addresses.
+ *
+ * @param addr the ip to resolve
+ * @param u the userdata (result struct)
+ * @return -1 on error else 0
+ */
+int
+namecache_resolve_ip4 (const ipv4_address_t* addr,
+		  struct userdata *u)
+{
+  return -1;
+}
+#endif
+
+#ifndef NSS_IPV4_ONLY
+/**
+ * Wrapper function that uses gnunet-namecache cli tool to resolve
+ * an hostnames from IPv4/6 addresses.
+ *
+ * @param addr the ip to resolve
+ * @param u the userdata (result struct)
+ * @return -1 on error else 0
+ */
+int
+namecache_resolve_ip6 (const ipv6_address_t* addr,
+		  struct userdata *u)
+{
+  return -1;
+}
+#endif
 /* end of nss_gns_query.c */

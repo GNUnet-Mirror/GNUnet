@@ -252,19 +252,104 @@ enum nss_status _nss_gns_gethostbyaddr_r(
     size_t buflen,
     int *errnop,
     int *h_errnop) {
-
-    /* we dont do this */
-
+  
+    struct userdata u;
     enum nss_status status = NSS_STATUS_UNAVAIL;
+    int r;
+    size_t addr_len, idx, astart;
 
     *errnop = EINVAL;
     *h_errnop = NO_RECOVERY;
 
-    /* Check for address types */
+    u.count = 0;
+    u.data_len = 0;
 
-    *h_errnop = NO_RECOVERY;
+    addr_len = af == AF_INET ? sizeof(ipv4_address_t) : sizeof(ipv6_address_t);
 
-    status = NSS_STATUS_NOTFOUND;
+    if (len < (int) addr_len ||
+#ifdef NSS_IPV4_ONLY
+      af != AF_INET
+#elif NSS_IPV6_ONLY
+      af != AF_INET6
+#else
+      (af != AF_INET && af != AF_INET6)
+#endif
+      ) {
+      *errnop = EINVAL;
+      *h_errnop = NO_RECOVERY;
+
+      goto finish;
+    }
+
+    if (buflen < sizeof((char*) addr_len)) {
+      *errnop = ERANGE;
+      *h_errnop = NO_RECOVERY;
+      status = NSS_STATUS_TRYAGAIN;
+      goto finish;
+    }
+
+#if ! defined(NSS_IPV6_ONLY) && ! defined(NSS_IPV4_ONLY)
+    if (af == AF_INET)
+#endif
+#ifndef NSS_IPV6_ONLY
+    r = namecache_resolve_ip4((const ipv4_address_t*) addr, &u);
+#endif
+#if ! defined(NSS_IPV6_ONLY) && ! defined(NSS_IPV4_ONLY)
+    else
+#endif
+#ifndef NSS_IPV4_ONLY
+      r = namecache_resolve_ip6((const ipv6_address_t*) addr, &u);
+#endif
+    if (0 > r) {
+      *errnop = ETIMEDOUT;
+      *h_errnop = HOST_NOT_FOUND;
+      //NODE we allow to leak this into DNS so no NOTFOUND
+      status = NSS_STATUS_UNAVAIL;
+      goto finish;
+    }
+
+    *((char**) buffer) = NULL;
+    result->h_aliases = (char**) buffer;
+    idx = sizeof(char*);
+
+    assert(u.count > 0);
+    assert(u.data.name[0]);
+
+    if (buflen <
+        strlen(u.data.name[0])+1+ /* official names */
+        sizeof(char*)+ /* alias names */
+        addr_len+  /* address */
+        sizeof(void*)*2 + /* address list */
+        sizeof(void*)) {  /* padding to get the alignment right */
+      *errnop = ERANGE;
+      *h_errnop = NO_RECOVERY;
+      status = NSS_STATUS_TRYAGAIN;
+      goto finish;
+    }
+
+    /* Official name */
+    strcpy(buffer+idx, u.data.name[0]); 
+    result->h_name = buffer+idx;
+    idx += strlen(u.data.name[0])+1;
+    
+    result->h_addrtype = af;
+    result->h_length = addr_len;
+
+    /* Address */
+    astart = idx;
+    memcpy(buffer+astart, addr, addr_len);
+    idx += addr_len;
+
+    /* Address array, idx might not be at pointer alignment anymore, so we need
+     * to ensure it is*/
+    ALIGN(idx);
+
+    ((char**) (buffer+idx))[0] = buffer+astart;
+    ((char**) (buffer+idx))[1] = NULL;
+    result->h_addr_list = (char**) (buffer+idx);
+
+    status = NSS_STATUS_SUCCESS;
+finish:
     return status;
 }
 
