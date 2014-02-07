@@ -21,24 +21,24 @@ op-1-operation = start_set_preference
 op-1-address-id = 1
 op-1-peer-id = 1
 # constant, linear, sinus, random
-op-1-gen-type = random
+op-1-gen-type = constant
 op-1-base-rate= 10000
-op-1-max-rate = 10000
-op-1-frequency = 100 ms
+op-1-max-rate = 100000
+op-1-frequency = 500 ms
 # BANDWIDTH, LATENCY
 op-1-pref = BANDWIDTH  
 
-op-2-operation = start_set_property
-op-2-address-id = 0
-op-2-peer-id = 0
+#op-2-operation = start_set_property
+#op-2-address-id = 0
+#op-2-peer-id = 0
 # constant, linear, sinus, random
-op-2-gen-type = random
-op-2-base-rate= 10000
-op-2-max-rate = 10000
-op-2-frequency = 10
+#op-2-gen-type = linear
+#op-2-base-rate= 10000
+#op-2-max-rate = 10000
+#op-2-frequency = 100 ms
 # bandwidth, latency
 # "TERMINATOR", "UTILIZATION_UP", "UTILIZATION_DOWN", "UTILIZATION_PAYLOAD_UP", "UTILIZATION_PAYLOAD_DOWN", "NETWORK_TYPE", "DELAY", "DISTANCE", "COST_WAN", "COST_LAN", "COST_WLAN"
-op-2-property = UTILIZATION_UP  
+#op-2-property = UTILIZATION_UP  
 
 [episode-1]
 duration = 2 s

@@ -144,6 +144,28 @@ struct PreferenceGenerator
 };
 
 
+struct PropertyGenerator
+{
+  struct PropertyGenerator *prev;
+  struct PropertyGenerator *next;
+
+  enum GeneratorType type;
+
+  unsigned int peer;
+  unsigned int address_id;
+
+  uint32_t ats_property;
+
+  long int base_value;
+  long int max_value;
+  struct GNUNET_TIME_Relative duration_period;
+  struct GNUNET_TIME_Relative frequency;
+
+  GNUNET_SCHEDULER_TaskIdentifier set_task;
+  struct GNUNET_TIME_Absolute next_ping_transmission;
+  struct GNUNET_TIME_Absolute time_start;
+};
+
 
 /* LEGACY */
 

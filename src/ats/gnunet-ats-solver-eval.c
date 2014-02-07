@@ -63,11 +63,233 @@ end_now ();
 
 
 /**
+ * Property Generators
+ */
+
+static struct PropertyGenerator *prop_gen_head;
+static struct PropertyGenerator *prop_gen_tail;
+
+static double
+get_property (struct PropertyGenerator *pg)
+{
+  struct GNUNET_TIME_Relative time_delta;
+  double delta_value;
+  double pref_value;
+
+  /* Calculate the current preference value */
+  switch (pg->type) {
+    case GNUNET_ATS_TEST_TG_CONSTANT:
+      pref_value = pg->base_value;
+      break;
+    case GNUNET_ATS_TEST_TG_LINEAR:
+      time_delta = GNUNET_TIME_absolute_get_duration(pg->time_start);
+      /* Calculate point of time in the current period */
+      time_delta.rel_value_us = time_delta.rel_value_us %
+          pg->duration_period.rel_value_us;
+      delta_value = ((double) time_delta.rel_value_us  /
+          pg->duration_period.rel_value_us) * (pg->max_value - pg->base_value);
+      if ((pg->max_value < pg->base_value) &&
+          ((pg->max_value - pg->base_value) > pg->base_value))
+      {
+        /* This will cause an underflow */
+        GNUNET_break (0);
+      }
+      pref_value = pg->base_value + delta_value;
+      break;
+    case GNUNET_ATS_TEST_TG_RANDOM:
+      delta_value =  (double) GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+          10000 * (pg->max_value - pg->base_value)) / 10000;
+      pref_value = pg->base_value + delta_value;
+      break;
+    case GNUNET_ATS_TEST_TG_SINUS:
+      time_delta = GNUNET_TIME_absolute_get_duration(pg->time_start);
+      /* Calculate point of time in the current period */
+      time_delta.rel_value_us = time_delta.rel_value_us %
+          pg->duration_period.rel_value_us;
+      if ((pg->max_value - pg->base_value) > pg->base_value)
+      {
+        /* This will cause an underflow for second half of sinus period,
+         * will be detected in general when experiments are loaded */
+        GNUNET_break (0);
+      }
+      delta_value = (pg->max_value - pg->base_value) *
+          sin ( (2 * M_PI) / ((double) pg->duration_period.rel_value_us) *
+              time_delta.rel_value_us);
+      pref_value = pg->base_value + delta_value;
+      break;
+    default:
+      pref_value = 0.0;
+      break;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Current property value is %f\n",
+      pref_value);
+  return pref_value;
+}
+
+
+static void
+set_prop_task (void *cls,
+                    const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct PropertyGenerator *pg = cls;
+  double pref_value;
+  pg->set_task = GNUNET_SCHEDULER_NO_TASK;
+
+  pref_value = get_property (pg);
+
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+      "Setting property for peer [%u] address [%u] for %s to %f\n",
+      pg->peer, pg->address_id,
+      GNUNET_ATS_print_property_type (pg->ats_property), pref_value);
+
+  /* set performance here!
+  GNUNET_ATS_performance_change_preference(p->me->ats_perf_handle,
+      &p->dest->id, p->pg->kind, pref_value, GNUNET_ATS_PREFERENCE_END);
+*/
+
+  switch (pg->ats_property) {
+    case GNUNET_ATS_PREFERENCE_BANDWIDTH:
+      //p->pref_bandwidth = pref_value;
+      break;
+    case GNUNET_ATS_PREFERENCE_LATENCY:
+      //p->pref_delay = pref_value;
+      break;
+    default:
+      break;
+  }
+
+  pg->set_task = GNUNET_SCHEDULER_add_delayed (pg->frequency,
+      &set_prop_task, pg);
+
+}
+
+static struct PropertyGenerator *
+find_prop_gen (unsigned int peer, unsigned int address,
+    uint32_t ats_property)
+{
+  struct PropertyGenerator *cur;
+  for (cur = prop_gen_head; NULL != cur; cur = cur->next)
+    if ((cur->peer == peer) && (cur->address_id == address) &&
+        (cur->ats_property == ats_property))
+      return cur;
+  return NULL;
+}
+
+void
+GNUNET_ATS_solver_generate_property_stop (struct PropertyGenerator *pg)
+{
+  GNUNET_CONTAINER_DLL_remove (prop_gen_head, prop_gen_tail, pg);
+
+  if (GNUNET_SCHEDULER_NO_TASK != pg->set_task)
+  {
+    GNUNET_SCHEDULER_cancel (pg->set_task);
+    pg->set_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+      "Removing old up preference generator peer [%u] address [%u] `%s'\n",
+      pg->peer, pg->address_id,
+      GNUNET_ATS_print_property_type(pg->ats_property));
+
+  GNUNET_free (pg);
+}
+
+
+/**
+ * Generate between the source master and the partner and set preferences with a
+ * value depending on the generator.
+ *
+ * @param src source
+ * @param dest partner
+ * @param type type of preferences to generate
+ * @param base_rate traffic base rate to send data with
+ * @param max_rate  traffic maximum rate to send data with
+ * @param period duration of a period of traffic generation (~ 1/frequency)
+ * @param duration how long to generate traffic
+ * @return the traffic generator
+ */
+struct PropertyGenerator *
+GNUNET_ATS_solver_generate_property_start (unsigned int peer,
+    unsigned int address_id,
+    enum GeneratorType type,
+    long int base_value,
+    long int value_rate,
+    struct GNUNET_TIME_Relative period,
+    struct GNUNET_TIME_Relative frequency,
+    uint32_t ats_property)
+{
+  struct PropertyGenerator *pg;
+
+  pg = GNUNET_new (struct PropertyGenerator);
+  GNUNET_CONTAINER_DLL_insert (prop_gen_head, prop_gen_tail, pg);
+  pg->type = type;
+  pg->peer = peer;
+  pg->address_id = address_id;
+  pg->ats_property = ats_property;
+  pg->base_value = base_value;
+  pg->max_value = value_rate;
+  pg->duration_period = period;
+  pg->frequency = frequency;
+  pg->time_start = GNUNET_TIME_absolute_get();
+
+  switch (type) {
+    case GNUNET_ATS_TEST_TG_CONSTANT:
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+          "Setting up constant property generator peer [%u] address [%u] `%s' max %u Bips\n",
+          pg->peer, pg->address_id,  GNUNET_ATS_print_property_type (ats_property),
+          base_value);
+      break;
+    case GNUNET_ATS_TEST_TG_LINEAR:
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+          "Setting up linear property generator peer [%u] address [%u] `%s' min %u Bips max %u Bips\n",
+          pg->peer, pg->address_id, GNUNET_ATS_print_property_type(ats_property),
+          base_value, value_rate);
+      break;
+    case GNUNET_ATS_TEST_TG_SINUS:
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+          "Setting up sinus property generator peer [%u] address [%u] `%s' baserate %u Bips, amplitude %u Bps\n",
+          pg->peer, pg->address_id, GNUNET_ATS_print_property_type(ats_property),
+          base_value, value_rate);
+
+      break;
+    case GNUNET_ATS_TEST_TG_RANDOM:
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+          "Setting up random property generator peer [%u] address [%u] `%s' min %u Bips max %u Bps\n",
+          pg->peer, pg->address_id, GNUNET_ATS_print_property_type(ats_property),
+          base_value, value_rate);
+      break;
+    default:
+      break;
+  }
+
+  pg->set_task = GNUNET_SCHEDULER_add_now (&set_prop_task, pg);
+  return pg;
+}
+
+
+
+/**
+ * Stop all preferences generators
+ */
+void
+GNUNET_ATS_solver_generate_property_stop_all ()
+{
+  struct PropertyGenerator *cur;
+  struct PropertyGenerator *next;
+  next = prop_gen_head;
+  for (cur = next; NULL != cur; cur = next)
+  {
+      next = cur->next;
+      GNUNET_ATS_solver_generate_property_stop (cur);
+  }
+}
+
+
+/**
  * Preference Generators
  */
 
-static struct PreferenceGenerator *pg_head;
-static struct PreferenceGenerator *pg_tail;
+static struct PreferenceGenerator *pref_gen_head;
+static struct PreferenceGenerator *pref_gen_tail;
 
 static double
 get_preference (struct PreferenceGenerator *pg)
@@ -168,7 +390,7 @@ find_pref_gen (unsigned int peer, unsigned int address,
     enum GNUNET_ATS_PreferenceKind kind)
 {
   struct PreferenceGenerator *cur;
-  for (cur = pg_head; NULL != cur; cur = cur->next)
+  for (cur = pref_gen_head; NULL != cur; cur = cur->next)
     if ((cur->peer == peer) && (cur->address_id == address) && (cur->kind == kind))
       return cur;
   return NULL;
@@ -177,7 +399,7 @@ find_pref_gen (unsigned int peer, unsigned int address,
 void
 GNUNET_ATS_solver_generate_preferences_stop (struct PreferenceGenerator *pg)
 {
-  GNUNET_CONTAINER_DLL_remove (pg_head, pg_tail, pg);
+  GNUNET_CONTAINER_DLL_remove (pref_gen_head, pref_gen_tail, pg);
 
   if (GNUNET_SCHEDULER_NO_TASK != pg->set_task)
   {
@@ -218,7 +440,7 @@ GNUNET_ATS_solver_generate_preferences_start (unsigned int peer,
   struct PreferenceGenerator *pg;
 
   pg = GNUNET_new (struct PreferenceGenerator);
-  GNUNET_CONTAINER_DLL_insert (pg_head, pg_tail, pg);
+  GNUNET_CONTAINER_DLL_insert (pref_gen_head, pref_gen_tail, pg);
   pg->type = type;
   pg->peer = peer;
   pg->address_id = address_id;
@@ -231,26 +453,26 @@ GNUNET_ATS_solver_generate_preferences_start (unsigned int peer,
 
   switch (type) {
     case GNUNET_ATS_TEST_TG_CONSTANT:
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
           "Setting up constant preference generator peer [%u] address [%u] `%s' max %u Bips\n",
           pg->peer, pg->address_id,  GNUNET_ATS_print_preference_type(kind),
           base_value);
       break;
     case GNUNET_ATS_TEST_TG_LINEAR:
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
           "Setting up linear preference generator peer [%u] address [%u] `%s' min %u Bips max %u Bips\n",
           pg->peer, pg->address_id, GNUNET_ATS_print_preference_type(kind),
           base_value, value_rate);
       break;
     case GNUNET_ATS_TEST_TG_SINUS:
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
           "Setting up sinus preference generator peer [%u] address [%u] `%s' baserate %u Bips, amplitude %u Bps\n",
           pg->peer, pg->address_id, GNUNET_ATS_print_preference_type(kind),
           base_value, value_rate);
 
       break;
     case GNUNET_ATS_TEST_TG_RANDOM:
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
           "Setting up random preference generator peer [%u] address [%u] `%s' min %u Bips max %u Bps\n",
           pg->peer, pg->address_id, GNUNET_ATS_print_preference_type(kind),
           base_value, value_rate);
@@ -273,7 +495,7 @@ GNUNET_ATS_solver_generate_preferences_stop_all ()
 {
   struct PreferenceGenerator *cur;
   struct PreferenceGenerator *next;
-  next = pg_head;
+  next = pref_gen_head;
   for (cur = next; NULL != cur; cur = next)
   {
       next = cur->next;
@@ -821,18 +1043,22 @@ load_op_start_set_property(struct GNUNET_ATS_TEST_Operation *o,
   if (0 == strcmp (type, "constant"))
   {
     o->tg_type = GNUNET_ATS_TEST_TG_CONSTANT;
+    GNUNET_break (0);
   }
   else if (0 == strcmp (type, "linear"))
   {
     o->tg_type = GNUNET_ATS_TEST_TG_LINEAR;
+    GNUNET_break (0);
   }
   else if (0 == strcmp (type, "sinus"))
   {
     o->tg_type = GNUNET_ATS_TEST_TG_SINUS;
+    GNUNET_break (0);
   }
   else if (0 == strcmp (type, "random"))
   {
     o->tg_type = GNUNET_ATS_TEST_TG_RANDOM;
+    GNUNET_break (0);
   }
   else
   {
@@ -1446,13 +1672,30 @@ enforce_del_address (struct GNUNET_ATS_TEST_Operation *op)
 static void
 enforce_start_property (struct GNUNET_ATS_TEST_Operation *op)
 {
+  struct PropertyGenerator *pg;
+  if (NULL != (pg = find_prop_gen (op->peer_id, op->address_id, op->prop_type)))
+  {
+    GNUNET_ATS_solver_generate_property_stop (pg);
+    GNUNET_free (pg);
+  }
 
+  GNUNET_ATS_solver_generate_property_start (op->peer_id,
+    op->address_id,
+    op->type,
+    op->base_rate,
+    op->max_rate,
+    op->period,
+    op->frequency,
+    op->prop_type);
 }
 
 static void
 enforce_stop_property (struct GNUNET_ATS_TEST_Operation *op)
 {
-
+  struct PropertyGenerator *pg = find_prop_gen(op->peer_id, op->address_id,
+      op->prop_type);
+  if (NULL != pg)
+      GNUNET_ATS_solver_generate_property_stop (pg);
 }
 
 static void
