@@ -1529,6 +1529,7 @@ fi
 if test "x$gnurl" = "x0"
 then
   AC_MSG_NOTICE([NOTICE: libgnurl not found.  http client support will not be compiled.])
+  AC_MSG_WARN([libgnurl not found.  hostlist daemon will not be compiled, and you probably WANT hostlist daemon])
 fi
 
 # bluetooth
