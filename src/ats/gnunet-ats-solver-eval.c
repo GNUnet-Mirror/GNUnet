@@ -307,6 +307,18 @@ load_op_del_address (struct GNUNET_ATS_TEST_Operation *o,
   return GNUNET_OK;
 }
 
+static enum GNUNET_ATS_Property
+parse_preference_string (const char * str)
+{
+  int c = 0;
+  char *props[GNUNET_ATS_PreferenceCount] = GNUNET_ATS_PreferenceTypeString;
+
+  for (c = 0; c < GNUNET_ATS_PreferenceCount; c++)
+    if (0 == strcmp(str, props[c]))
+      return c;
+  return 0;
+};
+
 static int
 load_op_start_set_preference (struct GNUNET_ATS_TEST_Operation *o,
     struct Episode *e,
@@ -441,29 +453,24 @@ load_op_start_set_preference (struct GNUNET_ATS_TEST_Operation *o,
       fprintf (stderr, "Missing preference in operation %u `%s' in episode %u\n",
           op_counter, op_name, e->id);
       GNUNET_free (op_name);
-      GNUNET_free_non_null (pref);
       return GNUNET_SYSERR;
   }
 
-  if (0 == strcmp(pref, "bandwidth"))
-    o->pref_type = GNUNET_ATS_PREFERENCE_BANDWIDTH;
-  else if (0 == strcmp(pref, "latency"))
-    o->pref_type = GNUNET_ATS_PREFERENCE_LATENCY;
-  else
+  if (0 == (o->pref_type = parse_preference_string(pref)))
   {
       fprintf (stderr, "Invalid preference in operation %u `%s' in episode %u\n",
           op_counter, op_name, e->id);
       GNUNET_free (op_name);
       GNUNET_free (pref);
-      GNUNET_free_non_null (pref);
       return GNUNET_SYSERR;
   }
   GNUNET_free (pref);
   GNUNET_free (op_name);
 
   fprintf (stderr,
-      "Found operation %s: [%llu:%llu] %llu\n",
-      "START_SET_PREFERENCE", o->peer_id, o->address_id, o->base_rate);
+      "Found operation %s: [%llu:%llu]: %s = %llu\n",
+      "START_SET_PREFERENCE", o->peer_id, o->address_id,
+      GNUNET_ATS_print_preference_type(o->pref_type), o->base_rate);
 
   return GNUNET_OK;
 }
@@ -510,28 +517,263 @@ load_op_stop_set_preference (struct GNUNET_ATS_TEST_Operation *o,
     fprintf (stderr, "Missing preference in operation %u `%s' in episode `%s'\n",
         op_counter, "STOP_SET_PREFERENCE", op_name);
       GNUNET_free (op_name);
+      return GNUNET_SYSERR;
+  }
+
+  if (0 == (o->pref_type = parse_preference_string(pref)))
+  {
+      fprintf (stderr, "Invalid preference in operation %u `%s' in episode %u\n",
+          op_counter, op_name, e->id);
+      GNUNET_free (op_name);
+      GNUNET_free (pref);
+      return GNUNET_SYSERR;
+  }
+  GNUNET_free (pref);
+  GNUNET_free (op_name);
+
+  fprintf (stderr,
+      "Found operation %s: [%llu:%llu]: %s\n",
+      "STOP_SET_PREFERENCE", o->peer_id, o->address_id,
+      GNUNET_ATS_print_preference_type(o->pref_type));
+  return GNUNET_OK;
+}
+
+static enum GNUNET_ATS_Property
+parse_property_string (const char * str)
+{
+  int c = 0;
+  char *props[GNUNET_ATS_PropertyCount] = GNUNET_ATS_PropertyStrings;
+
+  for (c = 0; c < GNUNET_ATS_PropertyCount; c++)
+    if (0 == strcmp(str, props[c]))
+      return c;
+  return 0;
+};
+
+static int
+load_op_start_set_property(struct GNUNET_ATS_TEST_Operation *o,
+    struct Episode *e,
+    int op_counter,
+    char *sec_name,
+    const struct GNUNET_CONFIGURATION_Handle *cfg)
+{
+  char *op_name;
+  char *type;
+  char *prop;
+
+  /* peer id */
+  GNUNET_asprintf(&op_name, "op-%u-peer-id", op_counter);
+  if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number (cfg,
+      sec_name, op_name, &o->peer_id))
+  {
+    fprintf (stderr, "Missing peer-id in operation %u  `%s' in episode `%s'\n",
+        op_counter, "START_SET_PROPERTY", op_name);
+    GNUNET_free (op_name);
+    return GNUNET_SYSERR;
+  }
+  GNUNET_free (op_name);
+
+  /* address id */
+  GNUNET_asprintf(&op_name, "op-%u-address-id", op_counter);
+  if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number (cfg,
+      sec_name, op_name, &o->address_id))
+  {
+    fprintf (stderr, "Missing address-id in operation %u `%s' in episode `%s'\n",
+        op_counter, "START_SET_PROPERTY", op_name);
+    GNUNET_free (op_name);
+    return GNUNET_SYSERR;
+  }
+  GNUNET_free (op_name);
+
+  /* generator */
+  GNUNET_asprintf(&op_name, "op-%u-gen-type", op_counter);
+  if ( (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string(cfg,
+          sec_name, op_name, &type)) )
+  {
+    fprintf (stderr, "Missing type in operation %u `%s' in episode `%s'\n",
+        op_counter, "START_SET_PROPERTY", op_name);
+    GNUNET_free (op_name);
+    return GNUNET_SYSERR;
+  }
+
+  /* Load arguments for set_rate, start_send, set_preference */
+  if (0 == strcmp (type, "constant"))
+  {
+    o->tg_type = GNUNET_ATS_TEST_TG_CONSTANT;
+  }
+  else if (0 == strcmp (type, "linear"))
+  {
+    o->tg_type = GNUNET_ATS_TEST_TG_LINEAR;
+  }
+  else if (0 == strcmp (type, "sinus"))
+  {
+    o->tg_type = GNUNET_ATS_TEST_TG_SINUS;
+  }
+  else if (0 == strcmp (type, "random"))
+  {
+    o->tg_type = GNUNET_ATS_TEST_TG_RANDOM;
+  }
+  else
+  {
+    fprintf (stderr, "Invalid generator type %u `%s' in episode %u\n",
+        op_counter, op_name, e->id);
+    GNUNET_free (type);
+    GNUNET_free (op_name);
+    return GNUNET_SYSERR;
+  }
+  GNUNET_free (type);
+  GNUNET_free (op_name);
+
+
+  /* Get base rate */
+  GNUNET_asprintf(&op_name, "op-%u-base-rate", op_counter);
+  if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number (cfg,
+      sec_name, op_name, &o->base_rate))
+  {
+    fprintf (stderr, "Missing base rate in operation %u `%s' in episode %u\n",
+        op_counter, op_name, e->id);
+    GNUNET_free (op_name);
+    return GNUNET_SYSERR;
+  }
+  GNUNET_free (op_name);
+
+
+  /* Get max rate */
+  GNUNET_asprintf(&op_name, "op-%u-max-rate", op_counter);
+  if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number (cfg,
+      sec_name, op_name, &o->max_rate))
+  {
+    if ((GNUNET_ATS_TEST_TG_LINEAR == o->tg_type) ||
+        (GNUNET_ATS_TEST_TG_RANDOM == o->tg_type) ||
+        (GNUNET_ATS_TEST_TG_SINUS == o->tg_type))
+    {
+      fprintf (stderr, "Missing max rate in operation %u `%s' in episode %u\n",
+          op_counter, op_name, e->id);
+      GNUNET_free (op_name);
+      return GNUNET_SYSERR;
+    }
+  }
+  GNUNET_free (op_name);
+
+  /* Get period */
+  GNUNET_asprintf(&op_name, "op-%u-period", op_counter);
+  if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_time (cfg,
+      sec_name, op_name, &o->period))
+  {
+    o->period = e->duration;
+  }
+  GNUNET_free (op_name);
+
+  /* Get frequency */
+  GNUNET_asprintf(&op_name, "op-%u-frequency", op_counter);
+  if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_time (cfg,
+      sec_name, op_name, &o->frequency))
+  {
+      fprintf (stderr, "Missing frequency in operation %u `%s' in episode %u\n",
+          op_counter, op_name, e->id);
+      GNUNET_free (op_name);
+      return GNUNET_SYSERR;
+  }
+  GNUNET_free (op_name);
+
+  /* Get preference */
+  GNUNET_asprintf(&op_name, "op-%u-property", op_counter);
+  if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string (cfg,
+      sec_name, op_name, &prop))
+  {
+      fprintf (stderr, "Missing property in operation %u `%s' in episode %u\n",
+          op_counter, op_name, e->id);
+      GNUNET_free (op_name);
+      GNUNET_free_non_null (prop);
+      return GNUNET_SYSERR;
+  }
+
+  if (0 == (o->prop_type = parse_property_string(prop)))
+  {
+      fprintf (stderr, "Invalid property in operation %u `%s' in episode %u\n",
+          op_counter, op_name, e->id);
+      GNUNET_free (op_name);
+      GNUNET_free (prop);
+      return GNUNET_SYSERR;
+  }
+
+  GNUNET_free (prop);
+  GNUNET_free (op_name);
+
+  fprintf (stderr,
+      "Found operation %s: [%llu:%llu] %s = %llu\n",
+      "START_SET_PROPERTY", o->peer_id, o->address_id,
+      GNUNET_ATS_print_property_type (o->prop_type), o->base_rate);
+
+  return GNUNET_OK;
+}
+
+static int
+load_op_stop_set_property (struct GNUNET_ATS_TEST_Operation *o,
+    struct Episode *e,
+    int op_counter,
+    char *sec_name,
+    const struct GNUNET_CONFIGURATION_Handle *cfg)
+{
+  char *op_name;
+  char *pref;
+
+  /* peer id */
+  GNUNET_asprintf(&op_name, "op-%u-peer-id", op_counter);
+  if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number (cfg,
+      sec_name, op_name, &o->peer_id))
+  {
+    fprintf (stderr, "Missing peer-id in operation %u  `%s' in episode `%s'\n",
+        op_counter, "STOP_SET_PROPERTY", op_name);
+    GNUNET_free (op_name);
+    return GNUNET_SYSERR;
+  }
+  GNUNET_free (op_name);
+
+  /* address id */
+  GNUNET_asprintf(&op_name, "op-%u-address-id", op_counter);
+  if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number (cfg,
+      sec_name, op_name, &o->address_id))
+  {
+    fprintf (stderr, "Missing address-id in operation %u `%s' in episode `%s'\n",
+        op_counter, "STOP_SET_PROPERTY", op_name);
+    GNUNET_free (op_name);
+    return GNUNET_SYSERR;
+  }
+  GNUNET_free (op_name);
+
+  /* Get property */
+  GNUNET_asprintf(&op_name, "op-%u-property", op_counter);
+  if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string (cfg,
+      sec_name, op_name, &pref))
+  {
+    fprintf (stderr, "Missing property in operation %u `%s' in episode `%s'\n",
+        op_counter, "STOP_SET_PROPERTY", op_name);
+      GNUNET_free (op_name);
       GNUNET_free_non_null (pref);
       return GNUNET_SYSERR;
   }
 
-  if (0 == strcmp(pref, "bandwidth"))
-    o->pref_type = GNUNET_ATS_PREFERENCE_BANDWIDTH;
-  else if (0 == strcmp(pref, "latency"))
-    o->pref_type = GNUNET_ATS_PREFERENCE_LATENCY;
-  else
+  if (0 == (o->prop_type = parse_property_string(pref)))
   {
-      fprintf (stderr, "Invalid preference in operation %u `%s' in episode %u\n",
+      fprintf (stderr, "Invalid property in operation %u `%s' in episode %u\n",
           op_counter, op_name, e->id);
       GNUNET_free (op_name);
       GNUNET_free (pref);
       GNUNET_free_non_null (pref);
       return GNUNET_SYSERR;
   }
+
   GNUNET_free (pref);
   GNUNET_free (op_name);
+
+  fprintf (stderr,
+      "Found operation %s: [%llu:%llu] %s\n",
+      "STOP_SET_PROPERTY", o->peer_id, o->address_id,
+      GNUNET_ATS_print_property_type (o->prop_type));
+
   return GNUNET_OK;
 }
-
 
 static int
 load_episode (struct Experiment *e, struct Episode *cur,
@@ -566,6 +808,7 @@ load_episode (struct Experiment *e, struct Episode *cur,
         GNUNET_free (o);
         GNUNET_free (op);
         GNUNET_free (op_name);
+        GNUNET_free (sec_name);
         return GNUNET_SYSERR;
       }
     }
@@ -578,16 +821,35 @@ load_episode (struct Experiment *e, struct Episode *cur,
         GNUNET_free (o);
         GNUNET_free (op);
         GNUNET_free (op_name);
+        GNUNET_free (sec_name);
         return GNUNET_SYSERR;
       }
     }
     else if (0 == strcmp (op, "start_set_property"))
     {
       o->type = SOLVER_OP_START_SET_PROPERTY;
+      if (GNUNET_SYSERR == load_op_start_set_property (o, cur,
+          op_counter, sec_name, cfg))
+      {
+        GNUNET_free (o);
+        GNUNET_free (op);
+        GNUNET_free (op_name);
+        GNUNET_free (sec_name);
+        return GNUNET_SYSERR;
+      }
     }
     else if (0 == strcmp (op, "stop_set_property"))
     {
       o->type = SOLVER_OP_STOP_SET_PROPERTY;
+      if (GNUNET_SYSERR == load_op_stop_set_property (o, cur,
+          op_counter, sec_name, cfg))
+      {
+        GNUNET_free (o);
+        GNUNET_free (op);
+        GNUNET_free (op_name);
+        GNUNET_free (sec_name);
+        return GNUNET_SYSERR;
+      }
     }
     else if (0 == strcmp (op, "start_set_preference"))
     {
@@ -598,6 +860,7 @@ load_episode (struct Experiment *e, struct Episode *cur,
         GNUNET_free (o);
         GNUNET_free (op);
         GNUNET_free (op_name);
+        GNUNET_free (sec_name);
         return GNUNET_SYSERR;
       }
     }
@@ -610,6 +873,7 @@ load_episode (struct Experiment *e, struct Episode *cur,
         GNUNET_free (o);
         GNUNET_free (op);
         GNUNET_free (op_name);
+        GNUNET_free (sec_name);
         return GNUNET_SYSERR;
       }
     }
@@ -617,8 +881,10 @@ load_episode (struct Experiment *e, struct Episode *cur,
     {
       fprintf (stderr, "Invalid operation %u `%s' in episode %u\n",
           op_counter, op, cur->id);
+      GNUNET_free (o);
       GNUNET_free (op);
       GNUNET_free (op_name);
+      GNUNET_free (sec_name);
       return GNUNET_SYSERR;
     }
     GNUNET_free (op);
@@ -1137,6 +1403,27 @@ GNUNET_ATS_solvers_experimentation_run (struct Experiment *e,
 
 }
 
+void
+GNUNET_ATS_solvers_experimentation_stop (struct Experiment *e)
+{
+  if (GNUNET_SCHEDULER_NO_TASK != e->experiment_timeout_task)
+  {
+    GNUNET_SCHEDULER_cancel (e->experiment_timeout_task);
+    e->experiment_timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  if (GNUNET_SCHEDULER_NO_TASK != e->episode_timeout_task)
+  {
+    GNUNET_SCHEDULER_cancel (e->episode_timeout_task);
+    e->episode_timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  if (NULL != e->cfg)
+  {
+    GNUNET_CONFIGURATION_destroy(e->cfg);
+    e->cfg = NULL;
+  }
+  free_experiment (e);
+}
+
 
 struct Experiment *
 GNUNET_ATS_solvers_experimentation_load (char *filename)
@@ -1229,34 +1516,20 @@ GNUNET_ATS_solvers_experimentation_load (char *filename)
     fprintf (stderr, "Experiment duration: `%s'\n",
         GNUNET_STRINGS_relative_time_to_string (e->max_duration, GNUNET_YES));
 
-  load_episodes (e, cfg);
+  if (GNUNET_SYSERR == load_episodes (e, cfg))
+  {
+    GNUNET_ATS_solvers_experimentation_stop (e);
+    GNUNET_CONFIGURATION_destroy (cfg);
+    e = NULL;
+    fprintf (stderr, "Failed to load experiment\n");
+    return NULL;
+  }
   fprintf (stderr, "Loaded %u episodes with total duration %s\n",
       e->num_episodes,
       GNUNET_STRINGS_relative_time_to_string (e->total_duration, GNUNET_YES));
 
   GNUNET_CONFIGURATION_destroy (cfg);
   return e;
-}
-
-void
-GNUNET_ATS_solvers_experimentation_stop (struct Experiment *e)
-{
-  if (GNUNET_SCHEDULER_NO_TASK != e->experiment_timeout_task)
-  {
-    GNUNET_SCHEDULER_cancel (e->experiment_timeout_task);
-    e->experiment_timeout_task = GNUNET_SCHEDULER_NO_TASK;
-  }
-  if (GNUNET_SCHEDULER_NO_TASK != e->episode_timeout_task)
-  {
-    GNUNET_SCHEDULER_cancel (e->episode_timeout_task);
-    e->episode_timeout_task = GNUNET_SCHEDULER_NO_TASK;
-  }
-  if (NULL != e->cfg)
-  {
-    GNUNET_CONFIGURATION_destroy(e->cfg);
-    e->cfg = NULL;
-  }
-  free_experiment (e);
 }
 
 /**
