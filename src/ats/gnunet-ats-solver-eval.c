@@ -118,6 +118,8 @@ free_experiment (struct Experiment *e)
     for (cur_o = next_o; NULL != cur_o; cur_o = next_o)
     {
       next_o = cur_o->next;
+      GNUNET_free_non_null (cur_o->address);
+      GNUNET_free_non_null (cur_o->plugin);
       GNUNET_free (cur_o);
     }
     GNUNET_free (cur);
@@ -131,6 +133,7 @@ free_experiment (struct Experiment *e)
 
 static int
 load_op_add_address (struct GNUNET_ATS_TEST_Operation *o,
+    struct Episode *e,
     int op_counter,
     char *sec_name,
     const struct GNUNET_CONFIGURATION_Handle *cfg)
@@ -218,6 +221,7 @@ load_op_add_address (struct GNUNET_ATS_TEST_Operation *o,
 
 static int
 load_op_del_address (struct GNUNET_ATS_TEST_Operation *o,
+    struct Episode *e,
     int op_counter,
     char *sec_name,
     const struct GNUNET_CONFIGURATION_Handle *cfg)
@@ -304,6 +308,232 @@ load_op_del_address (struct GNUNET_ATS_TEST_Operation *o,
 }
 
 static int
+load_op_start_set_preference (struct GNUNET_ATS_TEST_Operation *o,
+    struct Episode *e,
+    int op_counter,
+    char *sec_name,
+    const struct GNUNET_CONFIGURATION_Handle *cfg)
+{
+  char *op_name;
+  char *type;
+  char *pref;
+
+  /* peer id */
+  GNUNET_asprintf(&op_name, "op-%u-peer-id", op_counter);
+  if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number (cfg,
+      sec_name, op_name, &o->peer_id))
+  {
+    fprintf (stderr, "Missing peer-id in operation %u  `%s' in episode `%s'\n",
+        op_counter, "START_SET_PREFERENCE", op_name);
+    GNUNET_free (op_name);
+    return GNUNET_SYSERR;
+  }
+  GNUNET_free (op_name);
+
+  /* address id */
+  GNUNET_asprintf(&op_name, "op-%u-address-id", op_counter);
+  if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number (cfg,
+      sec_name, op_name, &o->address_id))
+  {
+    fprintf (stderr, "Missing address-id in operation %u `%s' in episode `%s'\n",
+        op_counter, "START_SET_PREFERENCE", op_name);
+    GNUNET_free (op_name);
+    return GNUNET_SYSERR;
+  }
+  GNUNET_free (op_name);
+
+  /* generator */
+  GNUNET_asprintf(&op_name, "op-%u-gen-type", op_counter);
+  if ( (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string(cfg,
+          sec_name, op_name, &type)) )
+  {
+    fprintf (stderr, "Missing type in operation %u `%s' in episode `%s'\n",
+        op_counter, "START_SET_PREFERENCE", op_name);
+    GNUNET_free (op_name);
+    return GNUNET_SYSERR;
+  }
+
+  /* Load arguments for set_rate, start_send, set_preference */
+  if (0 == strcmp (type, "constant"))
+  {
+    o->tg_type = GNUNET_ATS_TEST_TG_CONSTANT;
+  }
+  else if (0 == strcmp (type, "linear"))
+  {
+    o->tg_type = GNUNET_ATS_TEST_TG_LINEAR;
+  }
+  else if (0 == strcmp (type, "sinus"))
+  {
+    o->tg_type = GNUNET_ATS_TEST_TG_SINUS;
+  }
+  else if (0 == strcmp (type, "random"))
+  {
+    o->tg_type = GNUNET_ATS_TEST_TG_RANDOM;
+  }
+  else
+  {
+    fprintf (stderr, "Invalid generator type %u `%s' in episode %u\n",
+        op_counter, op_name, e->id);
+    GNUNET_free (type);
+    GNUNET_free (op_name);
+    return GNUNET_SYSERR;
+  }
+  GNUNET_free (type);
+  GNUNET_free (op_name);
+
+
+  /* Get base rate */
+  GNUNET_asprintf(&op_name, "op-%u-base-rate", op_counter);
+  if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number (cfg,
+      sec_name, op_name, &o->base_rate))
+  {
+    fprintf (stderr, "Missing base rate in operation %u `%s' in episode %u\n",
+        op_counter, op_name, e->id);
+    GNUNET_free (op_name);
+    return GNUNET_SYSERR;
+  }
+  GNUNET_free (op_name);
+
+
+  /* Get max rate */
+  GNUNET_asprintf(&op_name, "op-%u-max-rate", op_counter);
+  if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number (cfg,
+      sec_name, op_name, &o->max_rate))
+  {
+    if ((GNUNET_ATS_TEST_TG_LINEAR == o->tg_type) ||
+        (GNUNET_ATS_TEST_TG_RANDOM == o->tg_type) ||
+        (GNUNET_ATS_TEST_TG_SINUS == o->tg_type))
+    {
+      fprintf (stderr, "Missing max rate in operation %u `%s' in episode %u\n",
+          op_counter, op_name, e->id);
+      GNUNET_free (op_name);
+      return GNUNET_SYSERR;
+    }
+  }
+  GNUNET_free (op_name);
+
+  /* Get period */
+  GNUNET_asprintf(&op_name, "op-%u-period", op_counter);
+  if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_time (cfg,
+      sec_name, op_name, &o->period))
+  {
+    o->period = e->duration;
+  }
+  GNUNET_free (op_name);
+
+  /* Get frequency */
+  GNUNET_asprintf(&op_name, "op-%u-frequency", op_counter);
+  if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_time (cfg,
+      sec_name, op_name, &o->frequency))
+  {
+      fprintf (stderr, "Missing frequency in operation %u `%s' in episode %u\n",
+          op_counter, op_name, e->id);
+      GNUNET_free (op_name);
+      return GNUNET_SYSERR;
+  }
+  GNUNET_free (op_name);
+
+  /* Get preference */
+  GNUNET_asprintf(&op_name, "op-%u-pref", op_counter);
+  if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string (cfg,
+      sec_name, op_name, &pref))
+  {
+      fprintf (stderr, "Missing preference in operation %u `%s' in episode %u\n",
+          op_counter, op_name, e->id);
+      GNUNET_free (op_name);
+      GNUNET_free_non_null (pref);
+      return GNUNET_SYSERR;
+  }
+
+  if (0 == strcmp(pref, "bandwidth"))
+    o->pref_type = GNUNET_ATS_PREFERENCE_BANDWIDTH;
+  else if (0 == strcmp(pref, "latency"))
+    o->pref_type = GNUNET_ATS_PREFERENCE_LATENCY;
+  else
+  {
+      fprintf (stderr, "Invalid preference in operation %u `%s' in episode %u\n",
+          op_counter, op_name, e->id);
+      GNUNET_free (op_name);
+      GNUNET_free (pref);
+      GNUNET_free_non_null (pref);
+      return GNUNET_SYSERR;
+  }
+  GNUNET_free (pref);
+  GNUNET_free (op_name);
+
+  fprintf (stderr,
+      "Found operation %s: [%llu:%llu] %llu\n",
+      "START_SET_PREFERENCE", o->peer_id, o->address_id, o->base_rate);
+
+  return GNUNET_OK;
+}
+
+static int
+load_op_stop_set_preference (struct GNUNET_ATS_TEST_Operation *o,
+    struct Episode *e,
+    int op_counter,
+    char *sec_name,
+    const struct GNUNET_CONFIGURATION_Handle *cfg)
+{
+  char *op_name;
+  char *pref;
+
+  /* peer id */
+  GNUNET_asprintf(&op_name, "op-%u-peer-id", op_counter);
+  if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number (cfg,
+      sec_name, op_name, &o->peer_id))
+  {
+    fprintf (stderr, "Missing peer-id in operation %u  `%s' in episode `%s'\n",
+        op_counter, "STOP_SET_PREFERENCE", op_name);
+    GNUNET_free (op_name);
+    return GNUNET_SYSERR;
+  }
+  GNUNET_free (op_name);
+
+  /* address id */
+  GNUNET_asprintf(&op_name, "op-%u-address-id", op_counter);
+  if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number (cfg,
+      sec_name, op_name, &o->address_id))
+  {
+    fprintf (stderr, "Missing address-id in operation %u `%s' in episode `%s'\n",
+        op_counter, "STOP_SET_PREFERENCE", op_name);
+    GNUNET_free (op_name);
+    return GNUNET_SYSERR;
+  }
+  GNUNET_free (op_name);
+
+  /* Get preference */
+  GNUNET_asprintf(&op_name, "op-%u-pref", op_counter);
+  if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string (cfg,
+      sec_name, op_name, &pref))
+  {
+    fprintf (stderr, "Missing preference in operation %u `%s' in episode `%s'\n",
+        op_counter, "STOP_SET_PREFERENCE", op_name);
+      GNUNET_free (op_name);
+      GNUNET_free_non_null (pref);
+      return GNUNET_SYSERR;
+  }
+
+  if (0 == strcmp(pref, "bandwidth"))
+    o->pref_type = GNUNET_ATS_PREFERENCE_BANDWIDTH;
+  else if (0 == strcmp(pref, "latency"))
+    o->pref_type = GNUNET_ATS_PREFERENCE_LATENCY;
+  else
+  {
+      fprintf (stderr, "Invalid preference in operation %u `%s' in episode %u\n",
+          op_counter, op_name, e->id);
+      GNUNET_free (op_name);
+      GNUNET_free (pref);
+      GNUNET_free_non_null (pref);
+      return GNUNET_SYSERR;
+  }
+  GNUNET_free (pref);
+  GNUNET_free (op_name);
+  return GNUNET_OK;
+}
+
+
+static int
 load_episode (struct Experiment *e, struct Episode *cur,
     struct GNUNET_CONFIGURATION_Handle *cfg)
 {
@@ -311,8 +541,6 @@ load_episode (struct Experiment *e, struct Episode *cur,
   char *sec_name;
   char *op_name;
   char *op;
-  char *type;
-  char *pref;
   int op_counter = 0;
   fprintf (stderr, "Parsing episode %u\n",cur->id);
   GNUNET_asprintf(&sec_name, "episode-%u", cur->id);
@@ -332,7 +560,8 @@ load_episode (struct Experiment *e, struct Episode *cur,
     if (0 == strcmp (op, "address_add"))
     {
       o->type = SOLVER_OP_ADD_ADDRESS;
-      if (GNUNET_SYSERR == load_op_add_address (o, op_counter, sec_name, cfg))
+      if (GNUNET_SYSERR == load_op_add_address (o, cur,
+          op_counter, sec_name, cfg))
       {
         GNUNET_free (o);
         GNUNET_free (op);
@@ -343,7 +572,8 @@ load_episode (struct Experiment *e, struct Episode *cur,
     else if (0 == strcmp (op, "address_del"))
     {
       o->type = SOLVER_OP_DEL_ADDRESS;
-      if (GNUNET_SYSERR == load_op_del_address (o, op_counter, sec_name, cfg))
+      if (GNUNET_SYSERR == load_op_del_address (o, cur,
+          op_counter, sec_name, cfg))
       {
         GNUNET_free (o);
         GNUNET_free (op);
@@ -362,10 +592,26 @@ load_episode (struct Experiment *e, struct Episode *cur,
     else if (0 == strcmp (op, "start_set_preference"))
     {
       o->type = SOLVER_OP_START_SET_PREFERENCE;
+      if (GNUNET_SYSERR == load_op_start_set_preference (o, cur,
+          op_counter, sec_name, cfg))
+      {
+        GNUNET_free (o);
+        GNUNET_free (op);
+        GNUNET_free (op_name);
+        return GNUNET_SYSERR;
+      }
     }
     else if (0 == strcmp (op, "stop_set_preference"))
     {
       o->type = SOLVER_OP_STOP_SET_PREFERENCE;
+      if (GNUNET_SYSERR == load_op_stop_set_preference (o, cur,
+          op_counter, sec_name, cfg))
+      {
+        GNUNET_free (o);
+        GNUNET_free (op);
+        GNUNET_free (op_name);
+        return GNUNET_SYSERR;
+      }
     }
     else
     {
@@ -1040,6 +1286,9 @@ enum GNUNET_ATS_Solvers
 void
 GNUNET_ATS_solvers_solver_stop (struct GNUNET_ATS_TESTING_SolverHandle *sh)
 {
+ GNUNET_STATISTICS_destroy ((struct GNUNET_STATISTICS_Handle *) sh->env.stats,
+     GNUNET_NO);
+ GNUNET_CONTAINER_multipeermap_destroy(sh->env.addresses);
  GNUNET_PLUGIN_unload (sh->plugin, sh->solver);
  GNUNET_CONTAINER_multipeermap_destroy(sh->addresses);
  GNUNET_free (sh->plugin);
