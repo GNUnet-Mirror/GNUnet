@@ -1268,6 +1268,19 @@ GNUNET_CRYPTO_ecdsa_private_key_derive (const struct GNUNET_CRYPTO_EcdsaPrivateK
 
 
 /**
+ * Computes a new PeerIdentity using the Chord formula.
+ * new_peer_identity = ((my_identity + pow(2,i)) mod (pow(2,m)
+ * where m, size of struct GNUNET_PeerIdentity in bits.
+ * i, 0 <= i <= m 
+ * @param my_identity original PeerIdentity
+ * @param value of i. 
+ * @return finger_identity
+ */
+struct GNUNET_PeerIdentity *
+GNUNET_CRYPTO_compute_finger(struct GNUNET_PeerIdentity *my_identity,unsigned int index);
+
+
+/**
  * @ingroup crypto
  * Derive a public key from a given public key and a label.
  * Essentially calculates a public key 'V = H(l,P) * P'.

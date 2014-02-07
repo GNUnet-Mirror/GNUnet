@@ -485,7 +485,7 @@ static struct GNUNET_CORE_Handle *core_api;
 /**
  * The current finger index that we have found trail to.
  */
-static unsigned int current_finger_id;
+static unsigned int current_finger_index;
 
 
 /**
@@ -777,55 +777,28 @@ get_random_friend()
 
 
 /**
- * TODO: Check the logic of using current_finger_id again. 
- * This code is not correct. I need to check the pointers and 
- * correct use of memcpy and all the data type. 
- * Use Chord formula finger[i]=(n+2^(i-1))mod m,
- * where i = current finger map index - max. 256 bits
- * n = own peer identity - 256 bits
- * m = number of bits in peer id - 256 bits
- * @return finger_peer_id for which we have to find the trail through network.
+ * Find finger id to which we want to setup the trail
+ * @return finger id 
  */
-static 
+static
 struct GNUNET_PeerIdentity *
-finger_id_to_search()
+compute_finger_identity()
 {
-  struct GNUNET_PeerIdentity *finger_peer_id;
-  uint32_t peer_id;
-  uint32_t finger_id;
+  struct GNUNET_PeerIdentity *finger_identity;  
   
-  finger_peer_id = GNUNET_malloc (sizeof (struct GNUNET_PeerIdentity));
- 
-  /* Copy unsigned char array into peer_id. */
-  if (0 == memcpy(&peer_id,&my_identity.public_key.q_y,sizeof(uint32_t)))
-    return NULL;
+  finger_identity = GNUNET_CRYPTO_compute_finger(&my_identity,current_finger_index);
   
-  /* We do all the arithmetic operation on peer_id to get finger_id*/
-  finger_id = (uint32_t)(peer_id + pow(2,current_finger_id)) % MAX_FINGERS;
- 
-  /* Copy the finger_id to finger_peer_id. */
-  if (0 == memcpy(&finger_peer_id->public_key.q_y,&finger_id,sizeof(uint32_t)))
-    return NULL;
-  
-  
-  /* FIXME: Here I increment the index so that next time when we enter this 
-    function, then we begin the search from current index. Is it possible
-    to set this value when we add the finger id to our finger table. No, because
-    even there is a call going on to find the finger, we can start another call 
-    to search another peer.  */
-  current_finger_id = (current_finger_id+1) % MAX_FINGERS;
+  current_finger_index = (current_finger_index+1) % MAX_FINGERS;
   
   /* Check if you already have an entry in finger_peers for this finger_id.
-   If yes then again look for a new finger_id. */
-   /*if(NULL != GNUNET_CONTAINER_multipeermap_get(finger_peers,finger_peer_id))
+     If yes then again look for a new finger_id.
+     FIXME: Should we return NULL here? 
+   if(NULL != GNUNET_CONTAINER_multipeermap_get(finger_peers,finger_peer_id))
    {
-   
-     finger_peer_id = finger_id_to_search();
-   }
-  */
-  return finger_peer_id;
+     finger_peer_id = compute_finger_identity();
+   }*/
+  return finger_identity;
 }
-
 
 /**
  * TODO: Implement after testing friend/finger map.
@@ -838,7 +811,7 @@ finger_id_to_search()
  * @return peer identity of immediate predecessor.
  */
 static
-struct GNUNET_PeerIdentity*
+struct GNUNET_PeerIdentity *
 find_immediate_predecessor()
 {
   /* Using your own peer identity, calculate your predecessor
@@ -880,7 +853,7 @@ send_find_finger_trail_message (void *cls,
   else
   {
     /* Find the finger_peer_id for which we want to setup the trail */
-    finger_peer_id = finger_id_to_search();
+    finger_peer_id = compute_finger_identity();
   }
   
   /* Choose a friend randomly from your friend_peers map. */
@@ -897,7 +870,7 @@ send_find_finger_trail_message (void *cls,
       DHT_MINIMUM_FIND_FINGER_TRAIL_INTERVAL.rel_value_us +
       GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
                                 DHT_MAXIMUM_FIND_FINGER_TRAIL_INTERVAL.rel_value_us /
-                                (current_finger_id + 1));
+                                (current_finger_index + 1));
  
   find_finger_trail_task =
       GNUNET_SCHEDULER_add_delayed (next_send_time, &send_find_finger_trail_message,
@@ -1059,6 +1032,11 @@ handle_dht_p2p_result (void *cls, const struct GNUNET_PeerIdentity *peer,
  * FIXME:1. Check if current_destination field is set correctly. 
  * 2. Is it correct to use GNUNET_CMP_PEER_IDENTITY to find out the successor
  * of a finger. 
+ * 3. We should check the interval of the keys for which a peer is responsible
+ * when we are looking to find the correct peer to store a key. But 
+ * --> How do we maintain this interval?
+ * --> Should we check this interval when we are looking for trail to a finger
+ * as in this function? 
  * The code flow seems to be very large. Could do better. 
  * @param destination peer id's predecessor we are looking for. 
  * @return

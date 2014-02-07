@@ -1448,6 +1448,73 @@ GNUNET_CRYPTO_ecdsa_private_key_derive (const struct GNUNET_CRYPTO_EcdsaPrivateK
 
 
 /**
+ * Computes a new PeerIdentity using the Chord formula.
+ * new_peer_identity = ((my_identity + pow(2,i)) mod (pow(2,m)
+ * where m, size of struct GNUNET_PeerIdentity in bits.
+ * i, 0 <= i <= m 
+ * @param my_identity original PeerIdentity
+ * @param value of i. 
+ * @return finger_identity
+ */
+struct GNUNET_PeerIdentity *
+GNUNET_CRYPTO_compute_finger(struct GNUNET_PeerIdentity *my_identity, unsigned int index)
+{
+   gcry_mpi_t my_identity_mpi; 
+   gcry_mpi_t finger_identity_mpi;
+   gcry_mpi_t add;
+   gcry_mpi_t mod;
+   gcry_error_t rc;
+   struct GNUNET_PeerIdentity *finger_identity;
+   size_t read = 0; 
+   size_t write = 0;
+   
+   finger_identity = GNUNET_malloc(sizeof(struct GNUNET_PeerIdentity));
+   
+   /* Initialize my_identity_mpi. */
+   my_identity_mpi = gcry_mpi_new(8*sizeof(struct GNUNET_PeerIdentity));
+   
+   /* Copy my_identity into my_id */
+   if(0 != (rc = gcry_mpi_scan(&my_identity_mpi, GCRYMPI_FMT_USG, my_identity->public_key.q_y,
+                                 sizeof(struct GNUNET_PeerIdentity), &read)))
+   {
+     LOG_GCRY (GNUNET_ERROR_TYPE_DEBUG, "gcry_mpi_scan", rc);
+     GNUNET_free(finger_identity);
+     return NULL;
+   }
+ 
+   /* Initialize finger_identity_mpi */
+   finger_identity_mpi = gcry_mpi_new(8*sizeof(struct GNUNET_PeerIdentity));
+   
+   /* Initialize add */
+   add = gcry_mpi_new(8*sizeof(struct GNUNET_PeerIdentity));
+   
+   /* Set the index bit in add.*/
+   gcry_mpi_set_bit(add,index);
+   
+   /* Initialize mod */
+   mod = gcry_mpi_new(8*sizeof(struct GNUNET_PeerIdentity) + 1);
+   gcry_mpi_set_bit(mod,257);
+   gcry_mpi_sub_ui(mod,mod,(unsigned long)1);
+   
+     
+   /* finger_identity_mpi = (my_identity_mpi + add) % mod */
+   gcry_mpi_addm(finger_identity_mpi,my_identity_mpi,add,mod);
+   
+   
+   /* Copy finger_identity_mpi to finger_identity */
+   if(0 != (rc = gcry_mpi_print(GCRYMPI_FMT_USG,finger_identity->public_key.q_y,
+                                 32,&write,finger_identity_mpi)))
+   {
+     LOG_GCRY (GNUNET_ERROR_TYPE_DEBUG, "gcry_mpi_print", rc);
+     GNUNET_free(finger_identity);
+     return NULL;
+   }
+ 
+   return finger_identity;
+}
+
+
+/**
  * Derive a public key from a given public key and a label.
  * Essentially calculates a public key 'V = H(l,P) * P'.
  *
