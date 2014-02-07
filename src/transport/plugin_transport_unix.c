@@ -50,13 +50,6 @@
  */
 #define HOSTNAME_RESOLVE_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
-/**
- * Default "port" to use, if configuration does not specify.
- * Essentially just a number appended to the UNIX path.
- */
-#define UNIX_NAT_DEFAULT_PORT 22086
-
-
 #define LOG(kind,...) GNUNET_log_from (kind, "transport-unix",__VA_ARGS__)
 
 
@@ -315,11 +308,6 @@ struct Plugin
    * GNUNET_YES if we're already waiting for being allowed to write.
    */
   int with_ws;
-
-  /**
-   * Integer to append to unix domain socket.
-   */
-  uint16_t port;
 
 };
 
@@ -1572,7 +1560,6 @@ void *
 libgnunet_plugin_transport_unix_init (void *cls)
 {
   struct GNUNET_TRANSPORT_PluginEnvironment *env = cls;
-  unsigned long long port;
   struct GNUNET_TRANSPORT_PluginFunctions *api;
   struct Plugin *plugin;
   int sockets_created;
@@ -1588,16 +1575,19 @@ libgnunet_plugin_transport_unix_init (void *cls)
     api->string_to_address = &unix_string_to_address;
     return api;
   }
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_number (env->cfg, "transport-unix", "PORT",
-                                             &port))
-    port = UNIX_NAT_DEFAULT_PORT;
+
   plugin = GNUNET_new (struct Plugin);
-  plugin->port = port;
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_filename(env->cfg, "transport-unix", "UNIXPATH",
+                                             &plugin->unix_socket_path))
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         _("No UNIXPATH given in configuration!\n"));
+    GNUNET_free (plugin);
+    return NULL;
+  }
+
   plugin->env = env;
-  GNUNET_asprintf (&plugin->unix_socket_path,
-		   "/tmp/unix-plugin-sock.%d",
-                   plugin->port);
 
   /* Initialize my flags */
   myoptions = 0;

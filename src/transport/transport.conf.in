@@ -32,7 +32,7 @@ UNIX_MATCH_GID = YES
 
 
 [transport-unix]
-PORT = 22086
+UNIXPATH = $GNUNET_RUNTIME_DIR/gnunet-transport-plugin-unix.sock
 TESTING_IGNORE_KEYS = ACCEPT_FROM;
 
 [transport-tcp]
