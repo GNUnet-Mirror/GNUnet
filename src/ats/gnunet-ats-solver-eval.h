@@ -121,243 +121,27 @@ struct Experiment
   GNUNET_ATS_TESTING_ExperimentDoneCallback e_done_cb;
 };
 
-
-/**
- * A single logging time step for a partner
- */
-struct PartnerLoggingTimestep
+struct PreferenceGenerator
 {
-  /**
-   * Peer
-   */
-  struct BenchmarkPeer *slave;
+  struct PreferenceGenerator *prev;
+  struct PreferenceGenerator *next;
 
-  /**
-   * Total number of messages this peer has sent
-   */
-  unsigned int total_messages_sent;
+  enum GeneratorType type;
 
-  /**
-   * Total number of bytes this peer has sent
-   */
-  unsigned int total_bytes_sent;
+  unsigned int peer;
+  unsigned int address_id;
 
-  /**
-   * Total number of messages this peer has received
-   */
-  unsigned int total_messages_received;
+  enum GNUNET_ATS_PreferenceKind kind;
 
-  /**
-   * Total number of bytes this peer has received
-   */
-  unsigned int total_bytes_received;
-
-  /**
-   * Total outbound throughput for master in Bytes / s
-   */
-  unsigned int throughput_sent;
-
-  /**
-   * Total inbound throughput for master in Bytes / s
-   */
-  unsigned int throughput_recv;
-
-  /**
-   * Accumulated RTT for all messages
-   */
-  unsigned int total_app_rtt;
-
-  /**
-   * Current application level delay
-   */
-  unsigned int app_rtt;
-
-  /* Current ATS properties */
-
-  uint32_t ats_distance;
-
-  uint32_t ats_delay;
-
-  uint32_t bandwidth_in;
-
-  uint32_t bandwidth_out;
-
-  uint32_t ats_utilization_up;
-
-  uint32_t ats_utilization_down;
-
-  uint32_t ats_network_type;
-
-  uint32_t ats_cost_wan;
-
-  uint32_t ats_cost_lan;
-
-  uint32_t ats_cost_wlan;
-
-  double pref_bandwidth;
-  double pref_delay;
-};
-
-
-/**
- * A single logging time step for a peer
- */
-struct PeerLoggingTimestep
-{
-  /**
-   * Next in DLL
-   */
-  struct PeerLoggingTimestep *next;
-
-  /**
-   * Prev in DLL
-   */
-  struct PeerLoggingTimestep *prev;
-
-  /**
-   * Logging timestamp
-   */
-  struct GNUNET_TIME_Absolute timestamp;
-
-  /**
-   * Total number of messages this peer has sent
-   */
-  unsigned int total_messages_sent;
-
-  /**
-   * Total number of bytes this peer has sent
-   */
-  unsigned int total_bytes_sent;
-
-  /**
-   * Total number of messages this peer has received
-   */
-  unsigned int total_messages_received;
-
-  /**
-   * Total number of bytes this peer has received
-   */
-  unsigned int total_bytes_received;
-
-  /**
-   * Total outbound throughput for master in Bytes / s
-   */
-  unsigned int total_throughput_send;
-
-  /**
-   * Total inbound throughput for master in Bytes / s
-   */
-  unsigned int total_throughput_recv;
-
-  /**
-   * Logs for slaves
-   */
-  struct PartnerLoggingTimestep *slaves_log;
-};
-
-/**
- * Entry for a benchmark peer
- */
-struct LoggingPeer
-{
-  /**
-   * Peer
-   */
-  struct BenchmarkPeer *peer;
-
-  /**
-   * Start time
-   */
-  struct GNUNET_TIME_Absolute start;
-
-  /**
-   * DLL for logging entries: head
-   */
-  struct PeerLoggingTimestep *head;
-
-  /**
-   * DLL for logging entries: tail
-   */
-  struct PeerLoggingTimestep *tail;
-};
-
-
-struct LoggingHandle
-{
-  /**
-   * Logging task
-   */
-  GNUNET_SCHEDULER_TaskIdentifier log_task;
-
-  /**
-   * Reference to perf_ats' masters
-   */
-  int num_masters;
-  int num_slaves;
-  int running;
-  int verbose;
-  char *name;
+  long int base_value;
+  long int max_value;
+  struct GNUNET_TIME_Relative duration_period;
   struct GNUNET_TIME_Relative frequency;
 
-  /**
-   * Log structure of length num_peers
-   */
-  struct LoggingPeer *lp;
+  GNUNET_SCHEDULER_TaskIdentifier set_task;
+  struct GNUNET_TIME_Absolute next_ping_transmission;
+  struct GNUNET_TIME_Absolute time_start;
 };
-
-
-/**
- * Start logging
- *
- * @param log_frequency the logging frequency
- * @param testname the testname
- * @param masters the master peers used for benchmarking
- * @param num_master the number of master peers
- * @return the logging handle or NULL on error
- */
-struct LoggingHandle *
-GNUNET_ATS_TEST_logging_start(struct GNUNET_TIME_Relative log_frequency,
-    char *testname, struct BenchmarkPeer *masters, int num_masters, int num_slaves,
-    int verbose);
-
-/**
- * Stop logging
- *
- * @param l the logging handle
- */
-void
-GNUNET_ATS_TEST_logging_clean_up (struct LoggingHandle *l);
-
-/**
- * Stop logging
- *
- * @param l the logging handle
- */
-void
-GNUNET_ATS_TEST_logging_stop (struct LoggingHandle *l);
-
-/**
- * Log all data now
- *
- * @param l logging handle to use
- */
-void
-GNUNET_ATS_TEST_logging_now (struct LoggingHandle *l);
-
-
-/**
- * Write logging data to file
- *
- * @param l logging handle to use
- * @param test_name name of the current test
- * @param plots create gnuplots: GNUNET_YES or GNUNET_NO
- */
-void
-GNUNET_ATS_TEST_logging_write_to_file (struct LoggingHandle *l,
-    char *test_name, int plots);
-
-
-
 
 
 
@@ -417,7 +201,7 @@ typedef void (*GNUNET_ATS_TEST_TopologySetupDoneCallback) (void *cls,
  */
 typedef void
 (*GNUNET_ATS_TEST_LogRequest) (void *cls,
-    const struct GNUNET_HELLO_Address *address,
+    const struct GNUNET_HELLO_Address *address_id,
     int address_active,
     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
