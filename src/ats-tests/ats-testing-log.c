@@ -443,16 +443,10 @@ GNUNET_ATS_TEST_logging_write_to_file (struct LoggingHandle *l,
   timestamp = GNUNET_TIME_absolute_get();
 
   tmp_exp_name = experiment_name;
-  if (NULL != strchr (experiment_name,  '/'));
-  {
-    tmp_exp_name = strchr (experiment_name,  '/');
-    tmp_exp_name++;
-  }
-
   for (c_m = 0; c_m < l->num_masters; c_m++)
   {
     GNUNET_asprintf (&filename_master, "%s_%llu_master%u_%s",
-        tmp_exp_name, timestamp.abs_value_us, c_m, l->name);
+        experiment_name, timestamp.abs_value_us, c_m, l->name);
     fprintf (stderr, "Writing data for master %u to file `%s'\n",
         c_m,filename_master);
 

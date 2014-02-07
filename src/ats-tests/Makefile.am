@@ -50,7 +50,7 @@ TESTS = $(check_PROGRAMS)
 endif
 
 noinst_PROGRAMS = \
- gnunet-ats-sim
+ gnunet-ats-sim gnunet-solver-eval
  
 libgnunetatstesting_la_SOURCES = \
   ats-testing.c ats-testing-log.c ats-testing-traffic.c \
@@ -77,6 +77,17 @@ gnunet_ats_sim_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la  
 gnunet_ats_sim_DEPENDENCIES = \
  libgnunetatstesting.la \
+ $(top_builddir)/src/util/libgnunetutil.la
+
+
+gnunet_solver_eval_SOURCES = \
+ gnunet-solver-eval.c 
+gnunet_solver_eval_LDADD = \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/ats/libgnunetats.la \
+ $(top_builddir)/src/core/libgnunetcore.la \
+ $(top_builddir)/src/transport/libgnunettransport.la  
+gnunet_solver_eval_DEPENDENCIES = \
  $(top_builddir)/src/util/libgnunetutil.la
 
 
