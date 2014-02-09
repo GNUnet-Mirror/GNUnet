@@ -105,6 +105,11 @@ struct Neighbour
    */
   GNUNET_SCHEDULER_TaskIdentifier retry_plaintext_task;
 
+  /**
+   * #GNUNET_YES if this peer currently has excess bandwidth.
+   */
+  int has_excess_bandwidth;
+
 };
 
 
@@ -213,13 +218,13 @@ transmit_ready (void *cls, size_t size, void *buf)
 
   n->th = NULL;
   m = n->message_head;
-  if (m == NULL)
+  if (NULL == m)
   {
     GNUNET_break (0);
     return 0;
   }
   GNUNET_CONTAINER_DLL_remove (n->message_head, n->message_tail, m);
-  if (buf == NULL)
+  if (NULL == buf)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Transmission of message of type %u and size %u failed\n",
@@ -240,6 +245,7 @@ transmit_ready (void *cls, size_t size, void *buf)
               ntohs (((struct GNUNET_MessageHeader *) &m[1])->type),
               (unsigned int) ret, GNUNET_i2s (&n->peer));
   GNUNET_free (m);
+  n->has_excess_bandwidth = GNUNET_NO;
   process_queue (n);
   GNUNET_STATISTICS_update (GSC_stats,
                             gettext_noop
@@ -450,6 +456,54 @@ GSC_NEIGHBOURS_transmit (const struct GNUNET_PeerIdentity *target,
 
 
 /**
+ * One of our neighbours has excess bandwidth,
+ * remember this.
+ *
+ * @param cls NULL
+ * @param pid identity of the peer with excess bandwidth
+ */
+static void
+handle_transport_notify_excess_bw (void *cls,
+                                   const struct GNUNET_PeerIdentity *pid)
+{
+  struct Neighbour *n;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Peer %s has excess bandwidth available\n",
+              GNUNET_i2s (pid));
+  n = find_neighbour (pid);
+  if (NULL == n)
+  {
+    GNUNET_break (0);
+    return;
+  }
+  n->has_excess_bandwidth = GNUNET_YES;
+  GSC_SESSIONS_solicit (pid);
+}
+
+
+/**
+ * Check if the given neighbour has excess bandwidth available.
+ *
+ * @param target neighbour to check
+ * @return #GNUNET_YES if excess bandwidth is available, #GNUNET_NO if not
+ */
+int
+GSC_NEIGHBOURS_check_excess_bandwidth (const struct GNUNET_PeerIdentity *target)
+{
+  struct Neighbour *n;
+
+  n = find_neighbour (target);
+  if (NULL == n)
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+  return n->has_excess_bandwidth;
+}
+
+
+/**
  * Initialize neighbours subsystem.
  */
 int
@@ -457,10 +511,11 @@ GSC_NEIGHBOURS_init ()
 {
   neighbours = GNUNET_CONTAINER_multipeermap_create (128, GNUNET_NO);
   transport =
-      GNUNET_TRANSPORT_connect (GSC_cfg, &GSC_my_identity, NULL,
-                                &handle_transport_receive,
-                                &handle_transport_notify_connect,
-                                &handle_transport_notify_disconnect);
+      GNUNET_TRANSPORT_connect2 (GSC_cfg, &GSC_my_identity, NULL,
+                                 &handle_transport_receive,
+                                 &handle_transport_notify_connect,
+                                 &handle_transport_notify_disconnect,
+                                 &handle_transport_notify_excess_bw);
   if (NULL == transport)
   {
     GNUNET_CONTAINER_multipeermap_destroy (neighbours);

@@ -508,13 +508,20 @@ try_transmission (struct Session *session)
   enum GNUNET_CORE_Priority maxp;
   enum GNUNET_CORE_Priority maxpc;
   struct GSC_ClientActiveRequest *car;
+  int excess;
 
   if (GNUNET_YES != session->ready_to_transmit)
     return;
   msize = 0;
   min_deadline = GNUNET_TIME_UNIT_FOREVER_ABS;
-  /* check 'ready' messages */
-  maxp = GNUNET_CORE_PRIO_BACKGROUND;
+  /* if the peer has excess bandwidth, background traffic is allowed,
+     otherwise not */
+  excess = GSC_NEIGHBOURS_check_excess_bandwidth (&session->peer);
+  if (GNUNET_YES == excess)
+    maxp = GNUNET_CORE_PRIO_BACKGROUND;
+  else
+    maxp = GNUNET_CORE_PRIO_BEST_EFFORT;
+  /* determine highest priority of 'ready' messages we already solicited from clients */
   pos = session->sme_head;
   while ((NULL != pos) &&
          (msize + pos->size <= GNUNET_CONSTANTS_MAX_ENCRYPTED_MESSAGE_SIZE))
@@ -527,7 +534,12 @@ try_transmission (struct Session *session)
   }
   if (maxp < GNUNET_CORE_PRIO_CRITICAL_CONTROL)
   {
-    maxpc = GNUNET_CORE_PRIO_BACKGROUND;
+    /* if highest already solicited priority from clients is not critical,
+       check if there are higher-priority messages to be solicited from clients */
+    if (GNUNET_YES == excess)
+      maxpc = GNUNET_CORE_PRIO_BACKGROUND;
+    else
+      maxpc = GNUNET_CORE_PRIO_BEST_EFFORT;
     for (car = session->active_client_request_head; NULL != car; car = car->next)
     {
       if (GNUNET_YES == car->was_solicited)
@@ -545,11 +557,15 @@ try_transmission (struct Session *session)
   }
 
   now = GNUNET_TIME_absolute_get ();
-  if ((0 == msize) ||
-      ((msize < GNUNET_CONSTANTS_MAX_ENCRYPTED_MESSAGE_SIZE / 2) &&
-       (min_deadline.abs_value_us > now.abs_value_us)))
+  if ( ( (GNUNET_YES == excess) ||
+         (maxpc >= GNUNET_CORE_PRIO_BEST_EFFORT) ) &&
+       ( (0 == msize) ||
+         ( (msize < GNUNET_CONSTANTS_MAX_ENCRYPTED_MESSAGE_SIZE / 2) &&
+           (min_deadline.abs_value_us > now.abs_value_us))) )
   {
-    /* not enough ready yet, try to solicit more */
+    /* not enough ready yet (tiny message & cork possible), or no messages at all,
+       and either excess bandwidth or best-effort or higher message waiting at
+       client; in this case, we try to solicit more */
     solicit_messages (session,
                       msize);
     if (msize > 0)
@@ -565,7 +581,8 @@ try_transmission (struct Session *session)
     }
     return;
   }
-  /* create plaintext buffer of all messages, encrypt and transmit */
+  /* create plaintext buffer of all messages (that fit), encrypt and
+     transmit */
   {
     static unsigned long long total_bytes;
     static unsigned int total_msgs;

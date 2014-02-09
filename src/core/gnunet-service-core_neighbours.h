@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009, 2010, 2011 Christian Grothoff (and other contributing authors)
+     (C) 2009-2014 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -44,6 +44,16 @@ void
 GSC_NEIGHBOURS_transmit (const struct GNUNET_PeerIdentity *target,
                          const struct GNUNET_MessageHeader *msg,
                          struct GNUNET_TIME_Relative timeout);
+
+
+/**
+ * Check if the given neighbour has excess bandwidth available.
+ *
+ * @param target neighbour to check
+ * @return #GNUNET_YES if excess bandwidth is available, #GNUNET_NO if not
+ */
+int
+GSC_NEIGHBOURS_check_excess_bandwidth (const struct GNUNET_PeerIdentity *target);
 
 
 /**
