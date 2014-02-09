@@ -420,17 +420,23 @@ GNUNET_NETWORK_socket_bind (struct GNUNET_NETWORK_Handle *desc,
 #endif
 #ifndef WINDOWS
   {
-    /* set permissions of newly created UNIX domain socket to "user-only"; applications
-       can choose to relax this later */
+    /* set permissions of newly created non-abstract UNIX domain socket to
+       "user-only"; applications can choose to relax this later */
     mode_t old_mask = 0; /* assigned to make compiler happy */
+    const struct sockaddr_un *un;
+    int not_abstract = 0;
 
-    if (AF_UNIX == address->sa_family)
+    if ((AF_UNIX == address->sa_family)
+        && (NULL != (un = (const struct sockaddr_un *) address)->sun_path)
+        && ('\0' != un->sun_path[0]) ) /* Not an abstract socket */
+      not_abstract = 1;
+    if (not_abstract)
       old_mask = umask (S_IWGRP | S_IRGRP | S_IXGRP | S_IWOTH | S_IROTH | S_IXOTH);
 #endif
 
     ret = bind (desc->fd, address, address_len);
 #ifndef WINDOWS
-    if (AF_UNIX == address->sa_family)
+    if (not_abstract)
       (void) umask (old_mask);
   }
 #endif
@@ -460,7 +466,7 @@ GNUNET_NETWORK_socket_close (struct GNUNET_NETWORK_Handle *desc)
 {
   int ret;
 
-#ifdef MINGW
+#ifdef WINDOWS
   DWORD error = 0;
 
   SetLastError (0);
@@ -473,10 +479,15 @@ GNUNET_NETWORK_socket_close (struct GNUNET_NETWORK_Handle *desc)
 #else
   ret = close (desc->fd);
 #endif
-#ifndef MINGW
-  if ((desc->af == AF_UNIX) && (NULL != desc->addr))
+#ifndef WINDOWS
+  const struct sockaddr_un *un;
+
+  /* Cleanup the UNIX domain socket and its parent directories in case of non
+     abstract sockets */
+  if ((AF_UNIX == desc->af) && (NULL != desc->addr)
+      && (NULL != (un = (const struct sockaddr_un *) desc->addr)->sun_path)
+      && ('\0' != un->sun_path[0]))
   {
-    const struct sockaddr_un *un = (const struct sockaddr_un *) desc->addr;
     char *dirname = GNUNET_strndup (un->sun_path,
                                     sizeof (un->sun_path));
 

@@ -475,10 +475,13 @@ process_acl6 (struct GNUNET_STRINGS_IPv6NetworkPolicy **ret, struct GNUNET_SERVI
  * @param saddrs array to update
  * @param saddrlens where to store the address length
  * @param unixpath path to add
+ * @param abstract GNUNET_YES to add an abstract UNIX domain socket.  This
+ *          parameter is ignore on systems other than LINUX
  */
 static void
 add_unixpath (struct sockaddr **saddrs, socklen_t * saddrlens,
-              const char *unixpath)
+              const char *unixpath,
+              int abstract)
 {
 #ifdef AF_UNIX
   struct sockaddr_un *un;
@@ -486,6 +489,10 @@ add_unixpath (struct sockaddr **saddrs, socklen_t * saddrlens,
   un = GNUNET_new (struct sockaddr_un);
   un->sun_family = AF_UNIX;
   strncpy (un->sun_path, unixpath, sizeof (un->sun_path) - 1);
+#ifdef LINUX
+  if (GNUNET_YES == abstract)
+    un->sun_path[0] = '\0';
+#endif
 #if HAVE_SOCKADDR_IN_SIN_LEN
   un->sun_len = (u_char) sizeof (struct sockaddr_un);
 #endif
@@ -536,6 +543,7 @@ GNUNET_SERVICE_get_server_addresses (const char *service_name,
   unsigned int i;
   int resi;
   int ret;
+  int abstract;
   struct sockaddr **saddrs;
   socklen_t *saddrlens;
   char *hostname;
@@ -608,6 +616,7 @@ GNUNET_SERVICE_get_server_addresses (const char *service_name,
     hostname = NULL;
 
   unixpath = NULL;
+  abstract = GNUNET_NO;
 #ifdef AF_UNIX
   if ((GNUNET_YES ==
        GNUNET_CONFIGURATION_have_value (cfg, service_name, "UNIXPATH")) &&
@@ -628,8 +637,16 @@ GNUNET_SERVICE_get_server_addresses (const char *service_name,
       LOG (GNUNET_ERROR_TYPE_INFO,
 	   _("Using `%s' instead\n"), unixpath);
     }
-    if (GNUNET_OK !=
-	GNUNET_DISK_directory_create_for_file (unixpath))
+#ifdef LINUX
+    abstract = GNUNET_CONFIGURATION_get_value_yesno (cfg,
+                                                     "TESTING",
+                                                     "USE_ABSTRACT_SOCKETS");
+    if (GNUNET_SYSERR == abstract)
+      abstract = GNUNET_NO;
+#endif
+    if ((GNUNET_YES != abstract)
+        && (GNUNET_OK !=
+            GNUNET_DISK_directory_create_for_file (unixpath)))
       GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR,
 				"mkdir",
 				unixpath);
@@ -673,7 +690,7 @@ GNUNET_SERVICE_get_server_addresses (const char *service_name,
   {
     saddrs = GNUNET_malloc (2 * sizeof (struct sockaddr *));
     saddrlens = GNUNET_malloc (2 * sizeof (socklen_t));
-    add_unixpath (saddrs, saddrlens, unixpath);
+    add_unixpath (saddrs, saddrlens, unixpath, abstract);
     GNUNET_free_non_null (unixpath);
     GNUNET_free_non_null (hostname);
     *addrs = saddrs;
@@ -725,7 +742,7 @@ GNUNET_SERVICE_get_server_addresses (const char *service_name,
     i = 0;
     if (NULL != unixpath)
     {
-      add_unixpath (saddrs, saddrlens, unixpath);
+      add_unixpath (saddrs, saddrlens, unixpath, abstract);
       i++;
     }
     next = res;
@@ -777,7 +794,7 @@ GNUNET_SERVICE_get_server_addresses (const char *service_name,
       saddrlens = GNUNET_malloc ((resi + 1) * sizeof (socklen_t));
       if (NULL != unixpath)
       {
-        add_unixpath (saddrs, saddrlens, unixpath);
+        add_unixpath (saddrs, saddrlens, unixpath, abstract);
         i++;
       }
       saddrlens[i] = sizeof (struct sockaddr_in);
@@ -799,7 +816,7 @@ GNUNET_SERVICE_get_server_addresses (const char *service_name,
       i = 0;
       if (NULL != unixpath)
       {
-        add_unixpath (saddrs, saddrlens, unixpath);
+        add_unixpath (saddrs, saddrlens, unixpath, abstract);
         i++;
       }
       saddrlens[i] = sizeof (struct sockaddr_in6);
@@ -1168,7 +1185,8 @@ service_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 #ifndef WINDOWS
   if (NULL != sctx->addrs)
     for (i = 0; NULL != sctx->addrs[i]; i++)
-      if (AF_UNIX == sctx->addrs[i]->sa_family)
+      if ((AF_UNIX == sctx->addrs[i]->sa_family)
+          && ('\0' != ((const struct sockaddr_un *)sctx->addrs[i])->sun_path[0]))
         GNUNET_DISK_fix_permissions (((const struct sockaddr_un *)sctx->addrs[i])->sun_path,
                                      sctx->match_uid,
                                      sctx->match_gid);
@@ -1589,7 +1607,8 @@ GNUNET_SERVICE_start (const char *service_name,
 #ifndef WINDOWS
   if (NULL != sctx->addrs)
     for (i = 0; NULL != sctx->addrs[i]; i++)
-      if (AF_UNIX == sctx->addrs[i]->sa_family)
+      if ((AF_UNIX == sctx->addrs[i]->sa_family)
+          && ('\0' != ((const struct sockaddr_un *)sctx->addrs[i])->sun_path[0]))
         GNUNET_DISK_fix_permissions (((const struct sockaddr_un *)sctx->addrs[i])->sun_path,
                                      sctx->match_uid,
                                      sctx->match_gid);

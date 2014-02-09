@@ -832,6 +832,16 @@ GNUNET_CONNECTION_create_from_connect_to_unixpath (const struct
   un = GNUNET_new (struct sockaddr_un);
   un->sun_family = AF_UNIX;
   strncpy (un->sun_path, unixpath, sizeof (un->sun_path) - 1);
+#ifdef LINUX
+  {
+    int abstract;
+
+    abstract = GNUNET_CONFIGURATION_get_value_yesno (cfg, "TESTING",
+                                                     "USE_ABSTRACT_SOCKETS");
+    if (GNUNET_YES == abstract)
+      un->sun_path[0] = '\0';
+  }
+#endif
 #if HAVE_SOCKADDR_IN_SIN_LEN
   un->sun_len = (u_char) sizeof (struct sockaddr_un);
 #endif

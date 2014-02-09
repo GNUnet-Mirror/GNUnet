@@ -384,7 +384,8 @@ unix_address_to_string (void *cls, const void *addr, size_t addrlen)
 
 
 static struct sockaddr_un *
-unix_address_to_sockaddr (const char *unixpath,
+unix_address_to_sockaddr (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                          const char *unixpath,
                           socklen_t *sock_len)
 {
   struct sockaddr_un *un;
@@ -398,6 +399,17 @@ unix_address_to_sockaddr (const char *unixpath,
     slen = sizeof (un->sun_path) - 1;
   memcpy (un->sun_path, unixpath, slen);
   un->sun_path[slen] = '\0';
+#ifdef LINUX
+  {
+    int abstract;
+
+    abstract = GNUNET_CONFIGURATION_get_value_yesno (cfg,
+                                                     "TESTING",
+                                                     "USE_ABSTRACT_SOCKETS");
+    if (GNUNET_YES == abstract)
+      un->sun_path[0] = '\0';
+  }
+#endif
   slen = sizeof (struct sockaddr_un);
 #if HAVE_SOCKADDR_IN_SIN_LEN
   un->sun_len = (u_char) slen;
@@ -633,7 +645,9 @@ unix_real_send (void *cls,
 
   /* Prepare address */
   unixpath = (const char *)  &addr[1];
-  if (NULL == (un = unix_address_to_sockaddr (unixpath, &un_len)))
+  if (NULL == (un = unix_address_to_sockaddr (plugin->env->cfg,
+                                              unixpath,
+                                              &un_len)))
   {
     GNUNET_break (0);
     return -1;
@@ -1252,7 +1266,9 @@ unix_transport_server_start (void *cls)
   struct sockaddr_un *un;
   socklen_t un_len;
 
-  un = unix_address_to_sockaddr (plugin->unix_socket_path, &un_len);
+  un = unix_address_to_sockaddr (plugin->env->cfg,
+                                 plugin->unix_socket_path,
+                                 &un_len);
   plugin->ats_network = plugin->env->get_address_type (plugin->env->cls, (const struct sockaddr *) un, un_len);
   plugin->unix_sock.desc =
       GNUNET_NETWORK_socket_create (AF_UNIX, SOCK_DGRAM, 0);

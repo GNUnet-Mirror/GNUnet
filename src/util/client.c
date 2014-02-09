@@ -842,6 +842,7 @@ GNUNET_CLIENT_service_test (const char *service,
     /* probe UNIX support */
     struct sockaddr_un s_un;
     char *unixpath;
+    int abstract;
 
     unixpath = NULL;
     if ((GNUNET_OK ==
@@ -862,17 +863,29 @@ GNUNET_CLIENT_service_test (const char *service,
              _("Using `%s' instead\n"), unixpath);
       }
     }
-    if (NULL != unixpath)
+#ifdef LINUX
+    abstract = GNUNET_CONFIGURATION_get_value_yesno (cfg,
+                                                     "TESTING",
+                                                     "USE_ABSTRACT_SOCKETS");
+#else
+    abstract = GNUNET_NO;
+#endif
+    if ((NULL != unixpath) && (GNUNET_YES != abstract))
     {
       if (GNUNET_SYSERR == GNUNET_DISK_directory_create_for_file (unixpath))
         GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING,
-            "mkdir", unixpath);
+                                  "mkdir", unixpath);
+    }
+    if (NULL != unixpath)
+    {
       sock = GNUNET_NETWORK_socket_create (PF_UNIX, SOCK_STREAM, 0);
       if (NULL != sock)
       {
 	memset (&s_un, 0, sizeof (s_un));
 	s_un.sun_family = AF_UNIX;
         strncpy (s_un.sun_path, unixpath, sizeof (s_un.sun_path) - 1);
+        if (GNUNET_YES == abstract)
+          s_un.sun_path[0] = '\0';
 #if HAVE_SOCKADDR_IN_SIN_LEN
         s_un.sun_len = (u_char) sizeof (struct sockaddr_un);
 #endif
