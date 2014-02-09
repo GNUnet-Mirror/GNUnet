@@ -419,19 +419,26 @@ neighbour_find (struct GNUNET_TRANSPORT_Handle *h,
 }
 
 
-
+/**
+ * The outbound quota has changed in a way that may require
+ * us to reset the timeout.  Update the timeout.
+ *
+ * @param cls the `struct Neighbour` for which the timeout changed
+ */
 static void
 outbound_bw_tracker_update (void *cls)
 {
   struct Neighbour *n = cls;
   struct GNUNET_TIME_Relative delay;
+
   if (NULL == n->hn)
     return;
-
   delay = GNUNET_BANDWIDTH_tracker_get_delay (&n->out_tracker,
       n->th->notify_size + n->traffic_overhead);
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "New outbound delay %llu us\n",delay.rel_value_us);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "New outbound delay %llu us\n",
+       GNUNET_STRINGS_relative_time_to_string (delay,
+                                               GNUNET_NO));
   GNUNET_CONTAINER_heap_update_cost (n->h->ready_heap,
       n->hn, delay.rel_value_us);
   schedule_transmission (n->h);
@@ -517,7 +524,6 @@ neighbour_delete (void *cls,
   return GNUNET_YES;
 }
 
-static int reconnecting;
 
 /**
  * Function we use for handling incoming messages.
@@ -544,7 +550,7 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
   uint32_t bytes_physical;
 
   GNUNET_assert (NULL != h->client);
-  if (GNUNET_YES == reconnecting)
+  if (GNUNET_YES == h->reconnecting)
   {
     return;
   }
@@ -552,7 +558,7 @@ demultiplexer (void *cls, const struct GNUNET_MessageHeader *msg)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Error receiving from transport service, disconnecting temporarily.\n");
-    reconnecting = GNUNET_YES;
+    h->reconnecting = GNUNET_YES;
     disconnect_and_schedule_reconnect (h);
     return;
   }
@@ -1052,7 +1058,7 @@ reconnect (void *cls,
   GNUNET_assert (NULL == h->client);
   GNUNET_assert (NULL == h->control_head);
   GNUNET_assert (NULL == h->control_tail);
-  reconnecting = GNUNET_NO;
+  h->reconnecting = GNUNET_NO;
   h->client = GNUNET_CLIENT_connect ("transport", h->cfg);
 
   GNUNET_assert (NULL != h->client);
@@ -1140,7 +1146,7 @@ send_try_connect (void *cls, size_t size, void *buf)
   struct GNUNET_TRANSPORT_TryConnectHandle *tch = cls;
   struct TransportRequestConnectMessage msg;
 
-  if (buf == NULL)
+  if (NULL == buf)
   {
     if (NULL != tch->cb)
       tch->cb (tch->cb_cls, GNUNET_SYSERR);
@@ -1220,6 +1226,7 @@ GNUNET_TRANSPORT_try_connect_cancel (struct GNUNET_TRANSPORT_TryConnectHandle *t
   GNUNET_CONTAINER_DLL_remove (th->tc_head, th->tc_tail, tch);
   GNUNET_free (tch);
 }
+
 
 /**
  * Send HELLO message to the service.
@@ -1357,7 +1364,6 @@ GNUNET_TRANSPORT_set_traffic_metric (struct GNUNET_TRANSPORT_Handle *handle,
   schedule_control_transmit (handle, len,
                              &send_metric, msg);
 }
-
 
 
 /**
@@ -1628,10 +1634,10 @@ GNUNET_TRANSPORT_disconnect (struct GNUNET_TRANSPORT_Handle *handle)
   }
   GNUNET_free_non_null (handle->my_hello);
   handle->my_hello = NULL;
-  GNUNET_assert (handle->tc_head == NULL);
-  GNUNET_assert (handle->tc_tail == NULL);
-  GNUNET_assert (handle->hwl_head == NULL);
-  GNUNET_assert (handle->hwl_tail == NULL);
+  GNUNET_assert (NULL == handle->tc_head);
+  GNUNET_assert (NULL == handle->tc_tail);
+  GNUNET_assert (NULL == handle->hwl_head);
+  GNUNET_assert (NULL == handle->hwl_tail);
   GNUNET_CONTAINER_heap_destroy (handle->ready_heap);
   handle->ready_heap = NULL;
   GNUNET_free (handle);
