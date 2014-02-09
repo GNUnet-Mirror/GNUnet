@@ -439,6 +439,24 @@ outbound_bw_tracker_update (void *cls)
 
 
 /**
+ * Function called by the bandwidth tracker if we have excess
+ * bandwidth.
+ *
+ * @param cls the `struct Neighbour` that has excess bandwidth
+ */
+static void
+notify_excess_cb (void *cls)
+{
+  struct Neighbour *n = cls;
+  struct GNUNET_TRANSPORT_Handle *h = n->h;
+
+  if (NULL != h->neb_cb)
+    h->neb_cb (h->cls,
+               &n->id);
+}
+
+
+/**
  * Add neighbour to our list
  *
  * @return NULL if this API is currently disconnecting from the service
@@ -457,10 +475,12 @@ neighbour_add (struct GNUNET_TRANSPORT_Handle *h,
   n->h = h;
   n->is_ready = GNUNET_YES;
   n->traffic_overhead = 0;
-  GNUNET_BANDWIDTH_tracker_init (&n->out_tracker,
-                                 outbound_bw_tracker_update, n,
-                                 GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT,
-                                 MAX_BANDWIDTH_CARRY_S);
+  GNUNET_BANDWIDTH_tracker_init2 (&n->out_tracker,
+                                  &outbound_bw_tracker_update, n,
+                                  GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT,
+                                  MAX_BANDWIDTH_CARRY_S,
+                                  &notify_excess_cb,
+                                  n);
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONTAINER_multipeermap_put (h->neighbours,
                                                     &n->id, n,
