@@ -551,9 +551,9 @@ find_partners (struct ConsensusSession *session)
   while (largest_arc < session->num_peers)
     largest_arc <<= 1;
   num_ghosts = largest_arc - session->num_peers;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "largest arc: %u\n", largest_arc);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "arc: %u\n", arc);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "num ghosts: %u\n", num_ghosts);
+  // GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "largest arc: %u\n", largest_arc);
+  // GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "arc: %u\n", arc);
+  // GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "num ghosts: %u\n", num_ghosts);
 
   if (0 == (my_idx & arc))
   {
@@ -568,7 +568,7 @@ find_partners (struct ConsensusSession *session)
     if (my_idx < num_ghosts)
     {
       int ghost_partner_idx;
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "my index %d, arc %d, peers %u\n", my_idx, arc, session->num_peers);
+      // GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "my index %d, arc %d, peers %u\n", my_idx, arc, session->num_peers);
       ghost_partner_idx = (my_idx - (int) arc) % (int) session->num_peers;
       /* platform dependent; modulo sometimes returns negative values */
       if (ghost_partner_idx < 0)
@@ -576,7 +576,7 @@ find_partners (struct ConsensusSession *session)
       /* we only need to have a ghost partner if the partner is outgoing */
       if (0 == (ghost_partner_idx & arc))
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ghost partner is %d\n", ghost_partner_idx);
+        // GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ghost partner is %d\n", ghost_partner_idx);
         session->partner_incoming = &session->info[session->shuffle_inv[ghost_partner_idx]];
         GNUNET_assert (GNUNET_NO == session->partner_incoming->set_op_finished);
         return;
@@ -611,6 +611,9 @@ set_result_cb (void *cls,
   struct ConsensusPeerInformation *cpi = cls;
   unsigned int remote_idx = cpi - cpi->session->info;
   unsigned int local_idx = cpi->session->local_peer_idx;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "P%u: set result from P%u with status %u\n",
+              local_idx, remote_idx, (unsigned int) status);
 
   GNUNET_assert ((cpi == cpi->session->partner_outgoing) ||
                  (cpi == cpi->session->partner_incoming));
@@ -686,7 +689,7 @@ rounds_compare (struct ConsensusSession *session,
       return 1;
     if (session->exp_subround < ri->exp_subround)
       return -1;
-    if (session->exp_subround < ri->exp_subround)
+    if (session->exp_subround > ri->exp_subround)
       return 1;
     return 0;
   }
@@ -813,7 +816,12 @@ subround_over (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                             GNUNET_SET_RESULT_ADDED,
                             set_result_cb, session->partner_outgoing);
     GNUNET_free (msg);
-    GNUNET_SET_commit (session->partner_outgoing->set_op, session->element_set);
+    if (GNUNET_OK != GNUNET_SET_commit (session->partner_outgoing->set_op, session->element_set))
+    {
+      GNUNET_break (0);
+      session->partner_outgoing->set_op = NULL;
+      session->partner_outgoing->set_op_finished = GNUNET_YES;
+    }
   }
 
   /* commit to the delayed set operation */
@@ -829,7 +837,10 @@ subround_over (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     }
     if (cmp == 0)
     {
-      GNUNET_SET_commit (session->partner_incoming->delayed_set_op, session->element_set);
+      if (GNUNET_OK != GNUNET_SET_commit (session->partner_incoming->delayed_set_op, session->element_set))
+      {
+        GNUNET_break (0);
+      }
       session->partner_incoming->set_op = session->partner_incoming->delayed_set_op;
       session->partner_incoming->delayed_set_op = NULL;
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "P%d resumed delayed round with P%d\n",
@@ -1044,7 +1055,7 @@ set_listen_cb (void *cls,
       if (cmp > 0)
       {
         /* the other peer is too late */
-        GNUNET_break_op (0);
+        LOG_PP (GNUNET_ERROR_TYPE_DEBUG, cpi, "too late for the current round\n");
         return;
       }
       /* kill old request, if any. this is legal,
@@ -1060,8 +1071,20 @@ set_listen_cb (void *cls,
                                   set_result_cb, &session->info[index]);
       if (cmp == 0)
       {
+        /* we're in exactly the right round for the incoming request */
+        if (cpi != cpi->session->partner_incoming)
+        {
+          GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "P%u: got request from %u (with matching round), "
+                      "but incoming partner is %d\n", cpi->session->local_peer_idx, cpi - cpi->session->info,
+                      ((NULL == cpi->session->partner_incoming) ? -1 : (cpi->session->partner_incoming - cpi->session->info)));
+          GNUNET_SET_operation_cancel (set_op);
+          return;
+        }
         cpi->set_op = set_op;
-        GNUNET_SET_commit (set_op, session->element_set);
+        if (GNUNET_OK != GNUNET_SET_commit (set_op, session->element_set))
+        {
+          GNUNET_break (0);
+        }
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "P%d commited to set request from P%d\n", session->local_peer_idx, index);
       }
       else
@@ -1238,7 +1261,7 @@ client_insert (void *cls,
   GNUNET_free (element);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "P%u: element added\n", session->local_peer_idx);
+  // GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "P%u: element added\n", session->local_peer_idx);
 }
 
 

@@ -141,9 +141,32 @@ handle_conclude_done (void *cls,
 
   GNUNET_CONSENSUS_ConcludeCallback cc;
 
+  GNUNET_MQ_destroy (consensus->mq);
+  consensus->mq = NULL;
+
+  GNUNET_CLIENT_disconnect (consensus->client);
+  consensus->client = NULL;
+
+
   GNUNET_assert (NULL != (cc = consensus->conclude_cb));
   consensus->conclude_cb = NULL;
   cc (consensus->conclude_cls);
+}
+
+
+/**
+ * Generic error handler, called with the appropriate
+ * error code and the same closure specified at the creation of
+ * the message queue.
+ * Not every message queue implementation supports an error handler.
+ *
+ * @param cls closure, same closure as for the message handlers
+ * @param error error code
+ */
+static void
+mq_error_handler (void *cls, enum GNUNET_MQ_Error error)
+{
+  LOG (GNUNET_ERROR_TYPE_WARNING, "consensus service disconnected us\n");
 }
 
 
@@ -192,7 +215,7 @@ GNUNET_CONSENSUS_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
   consensus->session_id = *session_id;
   consensus->client = GNUNET_CLIENT_connect ("consensus", cfg);
   consensus->mq = GNUNET_MQ_queue_for_connection_client (consensus->client,
-                                                         mq_handlers, NULL, consensus);
+                                                         mq_handlers, mq_error_handler, consensus);
 
   GNUNET_assert (consensus->client != NULL);
 
@@ -298,7 +321,12 @@ GNUNET_CONSENSUS_conclude (struct GNUNET_CONSENSUS_Handle *consensus,
 void
 GNUNET_CONSENSUS_destroy (struct GNUNET_CONSENSUS_Handle *consensus)
 {
-  if (consensus->client != NULL)
+  if (NULL != consensus->mq)
+  {
+    GNUNET_MQ_destroy (consensus->mq);
+    consensus->mq = NULL;
+  }
+  if (NULL != consensus->client)
   {
     GNUNET_CLIENT_disconnect (consensus->client);
     consensus->client = NULL;
