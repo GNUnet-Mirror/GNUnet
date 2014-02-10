@@ -1139,7 +1139,14 @@ GNUNET_i2s_full (const struct GNUNET_PeerIdentity *pid)
 const char *
 GNUNET_a2s (const struct sockaddr *addr, socklen_t addrlen)
 {
-  static char buf[INET6_ADDRSTRLEN + 8];
+#ifndef WINDOWS
+#define LEN GNUNET_MAX ((INET6_ADDRSTRLEN + 8),         \
+                        (sizeof (struct sockaddr_un) - sizeof (sa_family_t)))
+#else
+#define LEN (INET6_ADDRSTRLEN + 8)
+#endif
+  static char buf[LEN];
+#undef LEN
   static char b2[6];
   const struct sockaddr_in *v4;
   const struct sockaddr_un *un;
