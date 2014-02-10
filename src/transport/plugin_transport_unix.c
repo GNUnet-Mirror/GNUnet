@@ -45,6 +45,13 @@
 
 #define PLUGIN_NAME "unix"
 
+enum UNIX_ADDRESS_OPTIONS
+{
+  UNIX_OPTIONS_NONE = 0,
+  UNIX_OPTIONS_USE_ABSTRACT_SOCKETS = 1
+};
+
+
 /**
  * How long until we give up on transmitting the welcome message?
  */
@@ -81,12 +88,6 @@ struct UNIXMessage
 };
 
 GNUNET_NETWORK_STRUCT_END
-
-/**
- * Address options
- */
-static uint32_t myoptions;
-
 /**
  * Handle for a session.
  */
@@ -298,6 +299,12 @@ struct Plugin
   struct UNIX_Sock_Info unix_sock;
 
   /**
+   * Address options in HBO
+   */
+  uint32_t myoptions;
+
+
+  /**
    * ATS network
    */
   struct GNUNET_ATS_Information ats_network;
@@ -309,6 +316,7 @@ struct Plugin
    */
   int with_ws;
 
+  int abstract;
 };
 
 
@@ -332,6 +340,29 @@ reschedule_session_timeout (struct Session *s);
 static void
 unix_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
+static struct sockaddr_un *
+unix_address_to_sockaddr (const char *unixpath,
+                          socklen_t *sock_len)
+{
+  struct sockaddr_un *un;
+  size_t slen;
+
+  GNUNET_assert (0 < strlen (unixpath));        /* sanity check */
+  un = GNUNET_new (struct sockaddr_un);
+  un->sun_family = AF_UNIX;
+  slen = strlen (unixpath);
+  if (slen >= sizeof (un->sun_path))
+    slen = sizeof (un->sun_path) - 1;
+  memcpy (un->sun_path, unixpath, slen);
+  un->sun_path[slen] = '\0';
+  slen = sizeof (struct sockaddr_un);
+#if HAVE_SOCKADDR_IN_SIN_LEN
+  un->sun_len = (u_char) slen;
+#endif
+  (*sock_len) = slen;
+  return un;
+}
+
 
 /**
  * Function called for a quick conversion of the binary address to
@@ -351,6 +382,7 @@ unix_address_to_string (void *cls, const void *addr, size_t addrlen)
   struct UnixAddress *ua = (struct UnixAddress *) addr;
   char *addrstr;
   size_t addr_str_len;
+  unsigned int off;
 
   if ((NULL == addr) || (sizeof (struct UnixAddress) > addrlen))
   {
@@ -377,46 +409,23 @@ unix_address_to_string (void *cls, const void *addr, size_t addrlen)
     return NULL ;
   }
 
+  off = 0;
+  if ('\0' == addrstr[0])
+    off++;
+  memset (rbuf, 0, sizeof (rbuf));
+  GNUNET_snprintf (rbuf, sizeof (rbuf) - 1, "%s.%u.%s%.*s",
+      PLUGIN_NAME,
+      ntohl (ua->options),
+      (off == 1) ? "@" : "",
+            (int) (addr_str_len - off),
+            &addrstr[off]);
+/*
   GNUNET_snprintf (rbuf, sizeof(rbuf), "%s.%u.%s", PLUGIN_NAME,
-      ntohl (ua->options), addrstr);
+      ntohl (ua->options), addrstr);*/
   return rbuf;
 }
 
 
-static struct sockaddr_un *
-unix_address_to_sockaddr (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                          const char *unixpath,
-                          socklen_t *sock_len)
-{
-  struct sockaddr_un *un;
-  size_t slen;
-
-  GNUNET_assert (0 < strlen (unixpath));        /* sanity check */
-  un = GNUNET_new (struct sockaddr_un);
-  un->sun_family = AF_UNIX;
-  slen = strlen (unixpath);
-  if (slen >= sizeof (un->sun_path))
-    slen = sizeof (un->sun_path) - 1;
-  memcpy (un->sun_path, unixpath, slen);
-  un->sun_path[slen] = '\0';
-#ifdef LINUX
-  {
-    int abstract;
-
-    abstract = GNUNET_CONFIGURATION_get_value_yesno (cfg,
-                                                     "TESTING",
-                                                     "USE_ABSTRACT_SOCKETS");
-    if (GNUNET_YES == abstract)
-      un->sun_path[0] = '\0';
-  }
-#endif
-  slen = sizeof (struct sockaddr_un);
-#if HAVE_SOCKADDR_IN_SIN_LEN
-  un->sun_len = (u_char) slen;
-#endif
-  (*sock_len) = slen;
-  return un;
-}
 
 
 /**
@@ -645,14 +654,18 @@ unix_real_send (void *cls,
 
   /* Prepare address */
   unixpath = (const char *)  &addr[1];
-  if (NULL == (un = unix_address_to_sockaddr (plugin->env->cfg,
-                                              unixpath,
+  if (NULL == (un = unix_address_to_sockaddr (unixpath,
                                               &un_len)))
   {
     GNUNET_break (0);
     return -1;
   }
 
+  if ((GNUNET_YES == plugin->abstract) &&
+      (0 != (UNIX_OPTIONS_USE_ABSTRACT_SOCKETS & ntohl(addr->options) )) )
+  {
+    un->sun_path[0] = '\0';
+  }
 resend:
   /* Send the data */
   sent = GNUNET_NETWORK_socket_sendto (send_handle, msgbuf, msgbuf_size,
@@ -811,6 +824,7 @@ unix_plugin_get_session (void *cls,
   struct UnixAddress *ua;
   char * addrstr;
   uint32_t addr_str_len;
+  uint32_t addr_option;
 
   GNUNET_assert (NULL != plugin);
   GNUNET_assert (NULL != address);
@@ -822,12 +836,19 @@ unix_plugin_get_session (void *cls,
     GNUNET_break (0);
     return NULL;
   }
-	addrstr = (char *) &ua[1];
-	addr_str_len = ntohl (ua->addrlen);
-	if (addr_str_len != address->address_length - sizeof (struct UnixAddress))
+  addrstr = (char *) &ua[1];
+  addr_str_len = ntohl (ua->addrlen);
+  addr_option = ntohl (ua->options);
+
+  if ( (0 != (UNIX_OPTIONS_USE_ABSTRACT_SOCKETS & addr_option)) &&
+    (GNUNET_NO == plugin->abstract))
   {
-		/* This can be a legacy address */
     return NULL;
+  }
+
+  if (addr_str_len != address->address_length - sizeof (struct UnixAddress))
+  {
+    return NULL; /* This can be a legacy address */
   }
 
   if ('\0' != addrstr[addr_str_len - 1])
@@ -1045,6 +1066,7 @@ unix_plugin_select_read (struct Plugin *plugin)
   ssize_t ret;
   int offset;
   int tsize;
+  int is_abstract;
   char *msgbuf;
   const struct GNUNET_MessageHeader *currhdr;
   uint16_t csize;
@@ -1074,11 +1096,21 @@ unix_plugin_select_read (struct Plugin *plugin)
   }
 
   GNUNET_assert (AF_UNIX == (un.sun_family));
+  is_abstract = GNUNET_NO;
+  if ('\0' == un.sun_path[0])
+  {
+    un.sun_path[0] = '@';
+    is_abstract = GNUNET_YES;
+  }
+
   ua_len = sizeof (struct UnixAddress) + strlen (un.sun_path) + 1;
   ua = GNUNET_malloc (ua_len);
   ua->addrlen = htonl (strlen (&un.sun_path[0]) +1);
-  ua->options = htonl (0);
   memcpy (&ua[1], &un.sun_path[0], strlen (un.sun_path) + 1);
+  if (is_abstract)
+    ua->options = htonl(UNIX_OPTIONS_USE_ABSTRACT_SOCKETS);
+  else
+    ua->options = htonl(UNIX_OPTIONS_NONE);
 
   msg = (struct UNIXMessage *) buf;
   csize = ntohs (msg->header.size);
@@ -1266,9 +1298,13 @@ unix_transport_server_start (void *cls)
   struct sockaddr_un *un;
   socklen_t un_len;
 
-  un = unix_address_to_sockaddr (plugin->env->cfg,
-                                 plugin->unix_socket_path,
+  un = unix_address_to_sockaddr (plugin->unix_socket_path,
                                  &un_len);
+  if (GNUNET_YES == plugin->abstract)
+  {
+    plugin->unix_socket_path[0] = '@';
+    un->sun_path[0] = '\0';
+  }
   plugin->ats_network = plugin->env->get_address_type (plugin->env->cls, (const struct sockaddr *) un, un_len);
   plugin->unix_sock.desc =
       GNUNET_NETWORK_socket_create (AF_UNIX, SOCK_DGRAM, 0);
@@ -1487,12 +1523,14 @@ address_notification (void *cls,
   struct GNUNET_HELLO_Address *address;
   size_t len;
   struct UnixAddress *ua;
+  char *unix_path;
 
   len = sizeof (struct UnixAddress) + strlen (plugin->unix_socket_path) + 1;
   ua = GNUNET_malloc (len);
-  ua->options = htonl (myoptions);
+  ua->options = htonl (plugin->myoptions);
   ua->addrlen = htonl(strlen (plugin->unix_socket_path) + 1);
-  memcpy (&ua[1], plugin->unix_socket_path, strlen (plugin->unix_socket_path) + 1);
+  unix_path = (char *) &ua[1];
+  memcpy (unix_path, plugin->unix_socket_path, strlen (plugin->unix_socket_path) + 1);
 
   plugin->address_update_task = GNUNET_SCHEDULER_NO_TASK;
   address = GNUNET_HELLO_address_allocate (plugin->env->my_identity,
@@ -1608,7 +1646,15 @@ libgnunet_plugin_transport_unix_init (void *cls)
   plugin->env = env;
 
   /* Initialize my flags */
-  myoptions = 0;
+#ifdef LINUX
+    plugin->abstract = GNUNET_CONFIGURATION_get_value_yesno (plugin->env->cfg,
+        "testing", "USE_ABSTRACT_SOCKETS");
+#endif
+  plugin->myoptions = UNIX_OPTIONS_NONE;
+  if (GNUNET_YES == plugin->abstract)
+  {
+    plugin->myoptions = UNIX_OPTIONS_USE_ABSTRACT_SOCKETS;
+  }
 
   api = GNUNET_new (struct GNUNET_TRANSPORT_PluginFunctions);
   api->cls = plugin;
@@ -1658,7 +1704,7 @@ libgnunet_plugin_transport_unix_done (void *cls)
 
   len = sizeof (struct UnixAddress) + strlen (plugin->unix_socket_path) + 1;
   ua = GNUNET_malloc (len);
-  ua->options = htonl (myoptions);
+  ua->options = htonl (plugin->myoptions);
   ua->addrlen = htonl(strlen (plugin->unix_socket_path) + 1);
   memcpy (&ua[1], plugin->unix_socket_path, strlen (plugin->unix_socket_path) + 1);
   address = GNUNET_HELLO_address_allocate (plugin->env->my_identity,

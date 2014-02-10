@@ -103,6 +103,9 @@ UNIX_PLUGIN_TIMEOUT_TEST = test_transport_api_timeout_unix
 UNIX_REL_TEST = test_transport_api_unreliability_unix
 UNIX_QUOTA_TEST = test_quota_compliance_unix \
      test_quota_compliance_unix_asymmetric
+if LINUX
+ UNIX_API_ABSTRACT_TEST = test_transport_api_unix_abstract
+endif     
 endif
 
 noinst_PROGRAMS = \
@@ -396,6 +399,7 @@ check_PROGRAMS = \
  test_transport_api_timeout_udp \
  $(UNIX_PLUGIN_TEST) \
  $(UNIX_PLUGIN_TIMEOUT_TEST) \
+ $(UNIX_API_ABSTRACT_TEST) \
  test_transport_api_udp_nat \
  $(HTTP_API_TEST) \
  $(HTTP_REVERSE_API_TEST) \
@@ -464,6 +468,7 @@ TESTS = \
  test_transport_api_timeout_udp \
  $(UNIX_PLUGIN_TEST) \
  $(UNIX_PLUGIN_TIMEOUT_TEST) \
+ $(UNIX_API_ABSTRACT_TEST) \
  test_transport_api_udp_nat \
  $(HTTP_API_TEST) \
  $(HTTP_API_TIMEOUT_TEST) \
@@ -886,6 +891,14 @@ test_transport_api_unix_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/transport/libgnunettransporttesting.la
 
+test_transport_api_unix_abstract_SOURCES = \
+ test_transport_api.c
+test_transport_api_unix_abstract_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/transport/libgnunettransporttesting.la
+
 # HTTP tests
 test_transport_api_http_SOURCES = \
  test_transport_api.c
@@ -1197,6 +1210,8 @@ test_transport_api_timeout_udp_peer1.conf\
 test_transport_api_timeout_udp_peer2.conf\
 test_transport_api_unix_peer1.conf\
 test_transport_api_unix_peer2.conf\
+test_transport_api_unix_abstract_peer1.conf \
+test_transport_api_unix_abstract_peer2.conf \
 test_transport_api_timeout_unix_peer1.conf\
 test_transport_api_timeout_unix_peer2.conf\
 test_transport_api_timeout_wlan_peer1.conf \
