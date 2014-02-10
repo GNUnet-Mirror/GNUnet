@@ -520,6 +520,7 @@ neighbour_delete (void *cls,
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multipeermap_remove (handle->neighbours, key,
                                                        n));
+  GNUNET_BANDWIDTH_tracker_notification_stop (&n->out_tracker);
   GNUNET_free (n);
   return GNUNET_YES;
 }
