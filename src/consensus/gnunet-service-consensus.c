@@ -1123,6 +1123,9 @@ initialize_session (struct ConsensusSession *session,
   session->conclude_deadline = GNUNET_TIME_absolute_ntoh (join_msg->deadline);
   session->conclude_start = GNUNET_TIME_absolute_ntoh (join_msg->start);
 
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "consensus with timeout %ums created\n",
+              (GNUNET_TIME_absolute_get_difference (session->conclude_start, session->conclude_deadline)).rel_value_us / 1000);
+
   session->local_peer_idx = get_peer_idx (&my_peer, session);
   GNUNET_assert (-1 != session->local_peer_idx);
   session->element_set = GNUNET_SET_create (cfg, GNUNET_SET_OPERATION_UNION);
