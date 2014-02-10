@@ -224,6 +224,7 @@ listener_destroy (struct Listener *listener)
   {
     struct GNUNET_SERVER_Client *client = listener->client;
     listener->client = NULL;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "disconnecting listener client\n");
     GNUNET_SERVER_client_disconnect (client);
     return;
   }
@@ -1053,24 +1054,30 @@ handle_client_cancel (void *cls,
     GNUNET_SERVER_client_disconnect (client);
     return;
   }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "client requested cancel for op %u\n", ntohl (msg->request_id));
+
   found = GNUNET_NO;
   for (op = set->ops_head; NULL != op; op = op->next)
   {
-    if (op->spec->client_request_id == msg->request_id)
+    if (op->spec->client_request_id == ntohl (msg->request_id))
     {
       found = GNUNET_YES;
       break;
     }
   }
 
-  if (GNUNET_NO == found)
-  {
-    GNUNET_break (0);
-    GNUNET_SERVER_client_disconnect (client);
-    return;
-  }
+  /* It may happen that the operation was destroyed due to
+   * the other peer disconnecting.  The client may not know about this
+   * yet and try to cancel the (non non-existent) operation.
+   */
+  if (GNUNET_NO != found)
+    _GSS_operation_destroy (op);
+  else
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "client canceled non-existent op\n");
 
-  _GSS_operation_destroy (op);
+
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
 

@@ -283,7 +283,13 @@ handle_result (void *cls, const struct GNUNET_MessageHeader *mh)
   result_status = ntohs (msg->result_status);
 
   oh = GNUNET_MQ_assoc_get (set->mq, ntohl (msg->request_id));
-  GNUNET_assert (NULL != oh);
+  // 'oh' can be NULL if we canceled the operation, but the service
+  // did not get the cancel message yet.
+  if (NULL == oh)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ignoring result from canceled operation\n");
+    return;
+  }
   /* status is not STATUS_OK => there's no attached element,
    * and this is the last result message we get */
   if (GNUNET_SET_STATUS_OK != result_status)
@@ -356,7 +362,7 @@ handle_client_listener_error (void *cls, enum GNUNET_MQ_Error error)
 {
   struct GNUNET_SET_ListenHandle *lh = cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "listener broke down, re-connecting\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "listener broke down, re-connecting\n");
   GNUNET_CLIENT_disconnect (lh->client);
   lh->client = NULL;
   GNUNET_MQ_destroy (lh->mq);
@@ -381,6 +387,7 @@ set_destroy (struct GNUNET_SET_Handle *set)
     set->destroy_requested = GNUNET_YES;
     return GNUNET_NO;
   }
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Really destroying set\n");
   GNUNET_CLIENT_disconnect (set->client);
   set->client = NULL;
   GNUNET_MQ_destroy (set->mq);
@@ -415,16 +422,21 @@ set_operation_cancel (struct GNUNET_SET_OperationHandle *oh)
   if (NULL != oh->set)
   {
     struct GNUNET_SET_OperationHandle *h_assoc;
+    struct GNUNET_SET_CancelMessage *m;
     struct GNUNET_MQ_Envelope *mqm;
 
     GNUNET_CONTAINER_DLL_remove (oh->set->ops_head, oh->set->ops_tail, oh);
     h_assoc = GNUNET_MQ_assoc_remove (oh->set->mq, oh->request_id);
     GNUNET_assert ((h_assoc == NULL) || (h_assoc == oh));
-    mqm = GNUNET_MQ_msg_header (GNUNET_MESSAGE_TYPE_SET_CANCEL);
+    mqm = GNUNET_MQ_msg (m, GNUNET_MESSAGE_TYPE_SET_CANCEL);
+    m->request_id = htonl (oh->request_id);
     GNUNET_MQ_send (oh->set->mq, mqm);
 
     if (GNUNET_YES == oh->set->destroy_requested)
+    {
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "destroying set after operation cancel\n");
       ret = set_destroy (oh->set);
+    }
   }
 
   GNUNET_free (oh);
@@ -450,6 +462,8 @@ static void
 handle_client_set_error (void *cls, enum GNUNET_MQ_Error error)
 {
   struct GNUNET_SET_Handle *set = cls;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "handling client set error\n");
 
   while (NULL != set->ops_head)
   {
@@ -836,12 +850,15 @@ GNUNET_SET_iterate (struct GNUNET_SET_Handle *set, GNUNET_SET_ElementIterator it
 {
   struct GNUNET_MQ_Envelope *ev;
 
+
   GNUNET_assert (NULL != iter);
 
   if (GNUNET_YES == set->invalid)
     return GNUNET_SYSERR;
   if (NULL != set->iterator)
     return GNUNET_NO;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "iterating set\n");
 
   set->iterator = iter;
   set->iterator_cls = cls;
