@@ -1277,6 +1277,8 @@ unix_transport_server_start (void *cls)
     GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "socket");
     return GNUNET_SYSERR;
   }
+  if ('\0' != un->sun_path[0])
+    GNUNET_DISK_directory_create_for_file (un->sun_path);
   if (GNUNET_OK !=
       GNUNET_NETWORK_socket_bind (plugin->unix_sock.desc, (const struct sockaddr *)  un, un_len))
   {
