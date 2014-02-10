@@ -1100,21 +1100,6 @@ handle_client_accept (void *cls,
   struct Operation *op;
 
   msg = (const struct GNUNET_SET_AcceptRejectMessage *) mh;
-  op = get_incoming (ntohl (msg->accept_reject_id));
-
-  // incoming operation does not exist
-  if (NULL == op)
-  {
-    GNUNET_break (0);
-    GNUNET_SERVER_client_disconnect (client);
-    return;
-  }
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "client accepting %u\n",
-              ntohl (msg->accept_reject_id));
-
-  GNUNET_assert (GNUNET_YES == op->is_incoming);
 
   // client without a set requested an operation
   set = set_get (client);
@@ -1125,6 +1110,30 @@ handle_client_accept (void *cls,
     GNUNET_SERVER_client_disconnect (client);
     return;
   }
+
+  op = get_incoming (ntohl (msg->accept_reject_id));
+
+  /* it is not an error if the set op does not exist -- it may
+   * have been destroyed when the partner peer disconnected. */
+  if (NULL == op)
+  {
+    struct GNUNET_SET_ResultMessage *result_message;
+    struct GNUNET_MQ_Envelope *ev;
+    ev = GNUNET_MQ_msg (result_message, GNUNET_MESSAGE_TYPE_SET_RESULT);
+    result_message->request_id = msg->request_id;
+    result_message->element_type = 0;
+    result_message->result_status = htons (GNUNET_SET_STATUS_FAILURE);
+    GNUNET_MQ_send (set->client_mq, ev);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "client accepting %u\n",
+              ntohl (msg->accept_reject_id));
+
+  GNUNET_assert (GNUNET_YES == op->is_incoming);
+
 
   op->spec->set = set;
 
