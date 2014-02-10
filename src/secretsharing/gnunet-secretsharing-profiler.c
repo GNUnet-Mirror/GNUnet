@@ -298,7 +298,12 @@ secret_ready_cb (void *cls,
   }
   else
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "secret ready for peer #%u\n", n);
+    ret = GNUNET_STRINGS_data_to_string (public_key, sizeof *public_key, pubkey_str, 1024);
+    GNUNET_assert (NULL != ret);
+    *ret = '\0';
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "key generation successful for peer #%u, pubkey %s\n", n,
+                pubkey_str);
+
     /* we're the first to get the key -> store it */
     if (num_generated == 1)
     {
@@ -311,12 +316,6 @@ secret_ready_cb (void *cls,
       return;
     }
   }
-
-  ret = GNUNET_STRINGS_data_to_string (public_key, sizeof *public_key, pubkey_str, 1024);
-  GNUNET_assert (NULL != ret);
-  *ret = '\0';
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "key generation successful for peer #%u, pubkey %s\n", n,
-              pubkey_str);
 
   // FIXME: destroy testbed operation
 

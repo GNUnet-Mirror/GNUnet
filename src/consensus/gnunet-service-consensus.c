@@ -36,6 +36,10 @@
 
 /**
  * Log macro that prefixes the local peer and the peer we are in contact with.
+ *
+ * @param kind log level
+ * @param cpi ConsensusPeerInformation of the partner peer
+ * @param m log message
  */
 #define LOG_PP(kind, cpi, m,...) GNUNET_log (kind, "P%d for P%d: " m, \
    cpi->session->local_peer_idx, (int) (cpi - cpi->session->info),##__VA_ARGS__)
@@ -44,7 +48,8 @@
 /**
  * Number of exponential rounds, used in the exp and completion round.
  */
-#define NUM_EXP_ROUNDS 4
+#define NUM_EXP_REPETITIONS 4
+
 
 /* forward declarations */
 
@@ -70,13 +75,7 @@ enum ConsensusRound
    */
   CONSENSUS_ROUND_EXCHANGE,
   /**
-   * Exchange which elements each peer has, but don't
-   * transmit the element's data, only their SHA-512 hashes.
-   * This round uses the all-to-all scheme.
-   */
-  CONSENSUS_ROUND_INVENTORY,
-  /**
-   * Collect and distribute missing values with the exponential scheme.
+   * Collect and distribute missing values.
    */
   CONSENSUS_ROUND_COMPLETION,
   /**
@@ -88,8 +87,7 @@ enum ConsensusRound
 
 
 /**
- * Complete information about the current round and all
- * subrounds.
+ * Information about the current round.
  */
 struct RoundInfo
 {
@@ -98,10 +96,10 @@ struct RoundInfo
    */
   enum ConsensusRound round;
   /**
-   * The current exp round, valid if
+   * The current exp round repetition, valid if
    * the main round is an exp round.
    */
-  uint32_t exp_round;
+  uint32_t exp_repetition;
   /**
    * The current exp subround, valid if
    * the main round is an exp round.
@@ -154,7 +152,7 @@ struct ConsensusSession
   struct GNUNET_TIME_Absolute conclude_deadline;
 
   /**
-   * Timeout task identifier for the current round.
+   * Timeout task identifier for the current round or subround.
    */
   GNUNET_SCHEDULER_TaskIdentifier round_timeout_tid;
 
@@ -192,7 +190,7 @@ struct ConsensusSession
   /**
    * Current round of the exponential scheme.
    */
-  uint32_t exp_round;
+  uint32_t exp_repetition;
 
   /**
    * Current sub-round of the exponential scheme.
@@ -200,12 +198,16 @@ struct ConsensusSession
   uint32_t exp_subround;
 
   /**
-   * The partner for the current exp-round
+   * The partner for the current exp-round.
+   * The local peer will initiate the set reconciliation with the
+   * outgoing peer.
    */
   struct ConsensusPeerInformation *partner_outgoing;
 
   /**
    * The partner for the current exp-round
+   * The incoming peer will initiate the set reconciliation with
+   * the incoming peer.
    */
   struct ConsensusPeerInformation *partner_incoming;
 
@@ -239,9 +241,9 @@ struct ConsensusPeerInformation
   struct ConsensusSession *session;
 
   /**
-   * We have finishes the exp-subround with the peer.
+   * Have we finished the set operation for this (sub-)round?
    */
-  int exp_subround_finished;
+  int set_op_finished;
 
   /**
    * Set operation we are currently executing with this peer.
@@ -286,16 +288,27 @@ static struct GNUNET_SERVER_Handle *srv;
 static struct GNUNET_PeerIdentity my_peer;
 
 
+/**
+ * Check if the current subround has finished.
+ * Must only be called when an exp-round is the current round.
+ *
+ * @param session session to check for exp-round completion
+ * @return GNUNET_YES if the subround has finished,
+ *         GNUNET_NO if not
+ */
 static int
 have_exp_subround_finished (const struct ConsensusSession *session)
 {
   int not_finished;
+
+  GNUNET_assert (CONSENSUS_ROUND_EXCHANGE == session->current_round);
+
   not_finished = 0;
   if ( (NULL != session->partner_outgoing) &&
-       (GNUNET_NO == session->partner_outgoing->exp_subround_finished) )
+       (GNUNET_NO == session->partner_outgoing->set_op_finished) )
     not_finished++;
   if ( (NULL != session->partner_incoming) &&
-       (GNUNET_NO == session->partner_incoming->exp_subround_finished) )
+       (GNUNET_NO == session->partner_incoming->set_op_finished) )
     not_finished++;
   if (0 == not_finished)
     return GNUNET_YES;
@@ -413,6 +426,8 @@ static void
 round_over (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct ConsensusSession *session;
+  unsigned int i;
+  int res;
 
   /* don't kick off next round if we're shutting down */
   if ((NULL != tc) && (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
@@ -421,24 +436,48 @@ round_over (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   session = cls;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "P%d: round over\n", session->local_peer_idx);
 
+  if (tc != NULL)
+    session->round_timeout_tid = GNUNET_SCHEDULER_NO_TASK;
+
   if (session->round_timeout_tid != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (session->round_timeout_tid);
     session->round_timeout_tid = GNUNET_SCHEDULER_NO_TASK;
   }
 
+  for (i = 0; i < session->num_peers; i++)
+  {
+    if (NULL != session->info[i].set_op)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "P%d: canceling stray op with P%d\n",
+                  session->local_peer_idx, i);
+      GNUNET_SET_operation_cancel (session->info[i].set_op);
+      session->info[i].set_op = NULL;
+    }
+    /* we're in the new round, nothing finished yet */
+    session->info[i].set_op_finished = GNUNET_NO;
+  }
+
   switch (session->current_round)
   {
     case CONSENSUS_ROUND_BEGIN:
       session->current_round = CONSENSUS_ROUND_EXCHANGE;
-      session->exp_round = 0;
+      session->exp_repetition = 0;
       subround_over (session, NULL);
       break;
     case CONSENSUS_ROUND_EXCHANGE:
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "P%d: finished, sending elements to client\n",
                   session->local_peer_idx);
       session->current_round = CONSENSUS_ROUND_FINISH;
-      GNUNET_SET_iterate (session->element_set, send_to_client_iter, session);
+      res = GNUNET_SET_iterate (session->element_set, send_to_client_iter, session);
+      if (GNUNET_SYSERR == res)
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "can't iterate set: set invalid\n");
+      }
+      else if (GNUNET_NO == res)
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "can't iterate set: iterator already active\n");
+      }
       break;
     default:
       GNUNET_assert (0);
@@ -465,7 +504,7 @@ shuffle (struct ConsensusSession *session)
     session->shuffle_inv = GNUNET_malloc (session->num_peers * sizeof (*session->shuffle_inv));
 
   GNUNET_CRYPTO_kdf (randomness, sizeof (randomness),
-		     &session->exp_round, sizeof (uint32_t),
+		     &session->exp_repetition, sizeof (uint32_t),
                      &session->global_id, sizeof (struct GNUNET_HashCode),
 		     NULL);
 
@@ -521,7 +560,7 @@ find_partners (struct ConsensusSession *session)
     /* we are outgoing */
     partner_idx = (my_idx + arc) % session->num_peers;
     session->partner_outgoing = &session->info[session->shuffle_inv[partner_idx]];
-    session->partner_outgoing->exp_subround_finished = GNUNET_NO;
+    GNUNET_assert (GNUNET_NO == session->partner_outgoing->set_op_finished);
     /* are we a 'ghost' of a peer that would exist if
      * the number of peers was a power of two, and thus have to partner
      * with an additional peer?
@@ -539,7 +578,7 @@ find_partners (struct ConsensusSession *session)
       {
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ghost partner is %d\n", ghost_partner_idx);
         session->partner_incoming = &session->info[session->shuffle_inv[ghost_partner_idx]];
-        session->partner_incoming->exp_subround_finished = GNUNET_NO;
+        GNUNET_assert (GNUNET_NO == session->partner_incoming->set_op_finished);
         return;
       }
     }
@@ -552,7 +591,7 @@ find_partners (struct ConsensusSession *session)
     partner_idx += session->num_peers;
   session->partner_outgoing = NULL;
   session->partner_incoming = &session->info[session->shuffle_inv[partner_idx]];
-  session->partner_incoming->exp_subround_finished = GNUNET_NO;
+  GNUNET_assert (GNUNET_NO == session->partner_incoming->set_op_finished);
 }
 
 
@@ -591,7 +630,7 @@ set_result_cb (void *cls,
     case GNUNET_SET_STATUS_DONE:
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "P%u: set result from P%u: done\n",
                   local_idx, remote_idx);
-      cpi->exp_subround_finished = GNUNET_YES;
+      cpi->set_op_finished = GNUNET_YES;
       cpi->set_op = NULL;
       if (have_exp_subround_finished (cpi->session) == GNUNET_YES)
       {
@@ -612,6 +651,7 @@ set_result_cb (void *cls,
 
   switch (cpi->session->current_round)
   {
+    case CONSENSUS_ROUND_COMPLETION:
     case CONSENSUS_ROUND_EXCHANGE:
       GNUNET_SET_add_element (cpi->session->element_set, element, NULL, NULL);
       break;
@@ -640,9 +680,9 @@ rounds_compare (struct ConsensusSession *session,
     return 1;
   if (session->current_round == CONSENSUS_ROUND_EXCHANGE)
   {
-    if (session->exp_round < ri->exp_round)
+    if (session->exp_repetition < ri->exp_repetition)
       return -1;
-    if (session->exp_round > ri->exp_round)
+    if (session->exp_repetition > ri->exp_repetition)
       return 1;
     if (session->exp_subround < ri->exp_subround)
       return -1;
@@ -650,8 +690,8 @@ rounds_compare (struct ConsensusSession *session,
       return 1;
     return 0;
   }
-  /* comparing rounds when we are not in a exp round */
-  GNUNET_assert (0);
+  /* other rounds have no subrounds / repetitions to compare */
+  return 0;
 }
 
 
@@ -667,12 +707,24 @@ static void
 subround_over (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct ConsensusSession *session;
+  struct GNUNET_TIME_Relative subround_timeout;
   int i;
 
   /* don't kick off next subround if we're shutting down */
   if ((NULL != tc) && (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
+
   session = cls;
+
+  GNUNET_assert (CONSENSUS_ROUND_EXCHANGE == session->current_round);
+
+  if (tc != NULL)
+  {
+    session->round_timeout_tid = GNUNET_SCHEDULER_NO_TASK;
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "P%u: consensus subround timed out\n",
+                session->local_peer_idx);
+  }
+
   /* cancel timeout */
   if (session->round_timeout_tid != GNUNET_SCHEDULER_NO_TASK)
   {
@@ -680,16 +732,29 @@ subround_over (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     session->round_timeout_tid = GNUNET_SCHEDULER_NO_TASK;
   }
 
-  if (session->exp_round >= NUM_EXP_ROUNDS)
+  for (i = 0; i < session->num_peers; i++)
+  {
+    if (NULL != session->info[i].set_op)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "P%d: canceling stray op with P%d\n",
+                  session->local_peer_idx, i);
+      GNUNET_SET_operation_cancel (session->info[i].set_op);
+      session->info[i].set_op = NULL;
+    }
+    /* we're in the new round, nothing finished yet */
+    session->info[i].set_op_finished = GNUNET_NO;
+  }
+
+  if (session->exp_repetition >= NUM_EXP_REPETITIONS)
   {
     round_over (session, NULL);
     return;
   }
 
-  if (session->exp_round == 0)
+  if (session->exp_repetition == 0)
   {
     /* initialize everything for the log-rounds */
-    session->exp_round = 1;
+    session->exp_repetition = 1;
     session->exp_subround = 0;
     if (NULL == session->shuffle)
       session->shuffle = GNUNET_malloc ((sizeof (int)) * session->num_peers);
@@ -701,7 +766,7 @@ subround_over (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   else if (session->exp_subround + 1 >= (int) ceil (log2 (session->num_peers)))
   {
     /* subrounds done, start new log-round */
-    session->exp_round++;
+    session->exp_repetition++;
     session->exp_subround = 0;
     shuffle (session);
   }
@@ -709,6 +774,14 @@ subround_over (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     session->exp_subround++;
   }
+
+  subround_timeout =
+      GNUNET_TIME_relative_divide (GNUNET_TIME_absolute_get_difference (session->conclude_start, session->conclude_deadline),
+                                   2 * NUM_EXP_REPETITIONS * ((int) ceil (log2 (session->num_peers))));
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "subround timeout: %u ms\n", subround_timeout.rel_value_us / 1000);
+
+  session->round_timeout_tid = GNUNET_SCHEDULER_add_delayed (subround_timeout, subround_over, session);
 
   /* determine the incoming and outgoing partner */
   find_partners (session);
@@ -724,11 +797,12 @@ subround_over (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     msg->header.type = htons (GNUNET_MESSAGE_TYPE_CONSENSUS_P2P_ROUND_CONTEXT);
     msg->header.size = htons (sizeof *msg);
     msg->round = htonl (session->current_round);
-    msg->exp_round = htonl (session->exp_round);
+    msg->exp_repetition = htonl (session->exp_repetition);
     msg->exp_subround = htonl (session->exp_subround);
 
     if (NULL != session->partner_outgoing->set_op)
     {
+      GNUNET_break (0);
       GNUNET_SET_operation_cancel (session->partner_outgoing->set_op);
     }
     session->partner_outgoing->set_op =
@@ -749,6 +823,7 @@ subround_over (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
     if (NULL != session->partner_incoming->set_op)
     {
+      GNUNET_break (0);
       GNUNET_SET_operation_cancel (session->partner_incoming->set_op);
       session->partner_incoming->set_op = NULL;
     }
@@ -780,7 +855,7 @@ subround_over (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     else
       in = (int) (session->partner_incoming - session->info);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "P%u: doing exp-round, r=%d, sub=%d, in: %d, out: %d\n", session->local_peer_idx,
-                session->exp_round, session->exp_subround, in, out);
+                session->exp_repetition, session->exp_subround, in, out);
   }
 #endif /* GNUNET_EXTRA_LOGGING */
 
@@ -837,18 +912,16 @@ compute_global_id (struct ConsensusSession *session,
 
 
 /**
- * Although GNUNET_CRYPTO_hash_cmp exisits, it does not have
- * the correct signature to be used with e.g. qsort.
- * We use this function instead.
+ * Compare two peer identities.
  *
- * @param h1 some hash code
- * @param h2 some hash code
+ * @param h1 some peer identity
+ * @param h2 some peer identity
  * @return 1 if h1 > h2, -1 if h1 < h2 and 0 if h1 == h2.
  */
 static int
-hash_cmp (const void *h1, const void *h2)
+peer_id_cmp (const void *h1, const void *h2)
 {
-  return GNUNET_CRYPTO_hash_cmp ((struct GNUNET_HashCode *) h1, (struct GNUNET_HashCode *) h2);
+  return memcmp (h1, h2, sizeof (struct GNUNET_PeerIdentity));
 }
 
 
@@ -894,7 +967,7 @@ initialize_session_peer_list (struct ConsensusSession *session,
     peers[session->num_peers - 1] = my_peer;
 
   memcpy (peers, msg_peers, listed_peers * sizeof (struct GNUNET_PeerIdentity));
-  qsort (peers, session->num_peers, sizeof (struct GNUNET_PeerIdentity), &hash_cmp);
+  qsort (peers, session->num_peers, sizeof (struct GNUNET_PeerIdentity), &peer_id_cmp);
 
   session->info = GNUNET_malloc (session->num_peers * sizeof (struct ConsensusPeerInformation));
 
@@ -954,7 +1027,7 @@ set_listen_cb (void *cls,
   }
 
   round_info.round = ntohl (msg->round);
-  round_info.exp_round = ntohl (msg->exp_round);
+  round_info.exp_repetition = ntohl (msg->exp_repetition);
   round_info.exp_subround = ntohl (msg->exp_subround);
 
   cpi = &session->info[index];
@@ -979,11 +1052,12 @@ set_listen_cb (void *cls,
        * complete the old one! */
       if (NULL != cpi->set_op)
       {
+        LOG_PP (GNUNET_ERROR_TYPE_INFO, cpi, "got new request from same peer, canceling old one\n");
         GNUNET_SET_operation_cancel (cpi->set_op);
         cpi->set_op = NULL;
       }
       set_op = GNUNET_SET_accept (request, GNUNET_SET_RESULT_ADDED,
-                                       set_result_cb, &session->info[index]);
+                                  set_result_cb, &session->info[index]);
       if (cmp == 0)
       {
         cpi->set_op = set_op;
@@ -992,10 +1066,12 @@ set_listen_cb (void *cls,
       }
       else
       {
-        /* if there's a exp subround running, mark it as finished, as the set op has been canceled! */
+        /* we still have wait until we have finished the current round,
+         * as the other peer's round is larger */
         cpi->delayed_set_op = set_op;
         cpi->delayed_round_info = round_info;
-        cpi->exp_subround_finished = GNUNET_YES;
+        /* The current setop is finished, as we canceled the current setop above. */
+        cpi->set_op_finished = GNUNET_YES;
         GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "P%d delaying set request from P%d\n", session->local_peer_idx, index);
       }
       break;
@@ -1242,7 +1318,10 @@ handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
     return;
   if ((CONSENSUS_ROUND_BEGIN == session->current_round) ||
       (CONSENSUS_ROUND_FINISH == session->current_round))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "client disconnected, destroying session\n");
     destroy_session (session);
+  }
   else
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "client disconnected, but waiting for consensus to finish\n");
 }

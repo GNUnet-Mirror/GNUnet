@@ -45,7 +45,7 @@ struct GNUNET_CONSENSUS_RoundContextMessage
    */
   struct GNUNET_MessageHeader header;
   uint32_t round;
-  uint32_t exp_round;
+  uint32_t exp_repetition;
   uint32_t exp_subround;
 };
 

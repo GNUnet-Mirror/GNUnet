@@ -37,6 +37,8 @@ static unsigned int num_values = 5;
 
 static struct GNUNET_TIME_Relative conclude_timeout;
 
+static struct GNUNET_TIME_Relative consensus_delay;
+
 static struct GNUNET_CONSENSUS_Handle **consensus_handles;
 
 static struct GNUNET_TESTBED_Operation **testbed_operations;
@@ -408,7 +410,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     return;
   }
 
-  start = GNUNET_TIME_absolute_get ();
+  start = GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get (), consensus_delay);
   deadline = GNUNET_TIME_absolute_add (start, conclude_timeout);
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -443,6 +445,9 @@ main (int argc, char **argv)
       { 't', "timeout", NULL,
         gettext_noop ("consensus timeout"),
         GNUNET_YES, &GNUNET_GETOPT_set_relative_time, &conclude_timeout },
+      { 'd', "delay", NULL,
+        gettext_noop ("delay until consensus starts"),
+        GNUNET_YES, &GNUNET_GETOPT_set_relative_time, &consensus_delay },
       { 'V', "verbose", NULL,
         gettext_noop ("be more verbose (print received values)"),
         GNUNET_NO, &GNUNET_GETOPT_set_one, &verbose },
