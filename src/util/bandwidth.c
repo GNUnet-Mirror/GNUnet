@@ -132,7 +132,9 @@ excess_trigger (void *cls,
   struct GNUNET_BANDWIDTH_Tracker *av = cls;
 
   av->excess_task = GNUNET_SCHEDULER_NO_TASK;
-  av->excess_cb (av->excess_cb_cls);
+
+  if (NULL != av->excess_cb)
+    av->excess_cb (av->excess_cb_cls);
 }
 
 
@@ -258,6 +260,25 @@ GNUNET_BANDWIDTH_tracker_init (struct GNUNET_BANDWIDTH_Tracker *av,
                                   max_carry_s,
                                   NULL, NULL);
 }
+
+
+/**
+ * Stop notifying about tracker updates and excess notifications
+ *
+ * @param av the respective trackers
+ */
+void
+GNUNET_BANDWIDTH_tracker_notification_stop (struct GNUNET_BANDWIDTH_Tracker *av)
+{
+  if (GNUNET_SCHEDULER_NO_TASK != av->excess_task)
+    GNUNET_SCHEDULER_cancel (av->excess_task);
+  av->excess_task = GNUNET_SCHEDULER_NO_TASK;
+  av->excess_cb = NULL;
+  av->excess_cb_cls = NULL;
+  av->update_cb = NULL;
+  av->update_cb_cls = NULL;
+}
+
 
 
 /**
