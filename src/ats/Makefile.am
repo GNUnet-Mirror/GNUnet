@@ -44,12 +44,12 @@ gnunet_ats_solver_eval_SOURCES = \
  gnunet-ats-solver-eval.c gnunet-service-ats_normalization.c 
 gnunet_ats_solver_eval_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/ats/libgnunetats.la \
+ libgnunetats.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(LTLIBINTL)
 gnunet_ats_solver_eval_DEPENDENCIES = \
  $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/ats/libgnunetats.la \
+ libgnunetats.la \
  $(top_builddir)/src/statistics/libgnunetstatistics.la
 
 libgnunetats_la_SOURCES = \
@@ -70,7 +70,9 @@ libgnunet_plugin_ats_proportional_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(LTLIBINTL)
 libgnunet_plugin_ats_proportional_la_DEPENDENCIES = \
-  libgnunetats.la
+  libgnunetats.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/util/libgnunetutil.la
 libgnunet_plugin_ats_proportional_la_LDFLAGS = \
   $(GN_PLUGIN_LDFLAGS)
 
@@ -85,7 +87,9 @@ libgnunet_plugin_ats_mlp_la_LIBADD = \
 libgnunet_plugin_ats_mlp_la_LDFLAGS = \
   $(GN_PLUGIN_LDFLAGS) $(GN_LIBGLPK)
 libgnunet_plugin_ats_mlp_la_DEPENDENCIES = \
-  libgnunetats.la
+  libgnunetats.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/util/libgnunetutil.la
 endif
 
 libgnunet_plugin_ats_ril_la_SOURCES = \
@@ -98,7 +102,9 @@ libgnunet_plugin_ats_ril_la_LIBADD = \
 libgnunet_plugin_ats_ril_la_LDFLAGS = \
   $(GN_PLUGIN_LDFLAGS)
 libgnunet_plugin_ats_ril_la_DEPENDENCIES = \
-  libgnunetats.la
+  libgnunetats.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
+  $(top_builddir)/src/util/libgnunetutil.la
 
 libexec_PROGRAMS = \
  gnunet-service-ats
