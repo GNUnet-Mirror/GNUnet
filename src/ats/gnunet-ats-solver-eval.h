@@ -162,8 +162,6 @@ struct Experiment
 {
   char *name;
   char *cfg_file;
-  unsigned long long int num_masters;
-  unsigned long long int num_slaves;
   struct GNUNET_TIME_Relative log_freq;
   struct GNUNET_TIME_Relative max_duration;
   struct GNUNET_TIME_Relative total_duration;

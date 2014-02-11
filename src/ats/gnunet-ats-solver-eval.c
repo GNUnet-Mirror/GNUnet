@@ -274,7 +274,8 @@ set_prop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     GNUNET_break (0);
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-        "Setting property generation for unknown address %u\n", pg->address_id);
+        "Setting property generation for unknown address [%u:%u]\n",
+        pg->peer, pg->address_id);
     return;
   }
 
@@ -286,8 +287,8 @@ set_prop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_ATS_print_property_type (pg->ats_property), pref_value);
 
 
-  atsi.type = pg->ats_property;
-  atsi.value = (uint32_t) pref_value;
+  atsi.type = htonl (pg->ats_property);
+  atsi.value = htonl ((uint32_t) pref_value);
 
   /* set performance here! */
   sh->env.sf.s_bulk_start (sh->solver);
@@ -701,8 +702,6 @@ create_experiment ()
   struct Experiment *e;
   e = GNUNET_new (struct Experiment);
   e->name = NULL;
-  e->num_masters = 0;
-  e->num_slaves = 0;
   e->start = NULL;
   e->total_duration = GNUNET_TIME_UNIT_ZERO;
   return e;
@@ -1545,6 +1544,7 @@ load_episodes (struct Experiment *e, struct GNUNET_CONFIGURATION_Handle *cfg)
     if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_time(cfg,
         sec_name, "duration", &e_duration))
     {
+      fprintf (stderr, "Missing duration in episode %u \n",e_counter);
       GNUNET_free (sec_name);
       break;
     }
@@ -1571,7 +1571,7 @@ load_episodes (struct Experiment *e, struct GNUNET_CONFIGURATION_Handle *cfg)
     if (NULL == last)
       e->start = cur;
     else
-    last->next = cur;
+      last->next = cur;
 
     GNUNET_free (sec_name);
     e_counter ++;
@@ -2018,28 +2018,6 @@ GNUNET_ATS_solvers_experimentation_load (char *filename)
 
   }
 
-  if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number(cfg, "experiment",
-      "masters", &e->num_masters))
-  {
-    fprintf (stderr, "Invalid %s", "masters");
-    free_experiment (e);
-    return NULL;
-  }
-  else
-    fprintf (stderr, "Experiment masters: `%llu'\n",
-        e->num_masters);
-
-  if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number(cfg, "experiment",
-      "slaves", &e->num_slaves))
-  {
-    fprintf (stderr, "Invalid %s", "slaves");
-    free_experiment (e);
-    return NULL;
-  }
-  else
-    fprintf (stderr, "Experiment slaves: `%llu'\n",
-        e->num_slaves);
-
   if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_time(cfg, "experiment",
       "log_freq", &e->log_freq))
   {
@@ -2078,9 +2056,23 @@ GNUNET_ATS_solvers_experimentation_load (char *filename)
   return e;
 }
 
+
+
 /**
  * Solver
  */
+
+static int
+free_all_it (void *cls,
+    const struct GNUNET_PeerIdentity *key,
+    void *value)
+{
+  struct ATS_Address *address = value;
+  GNUNET_CONTAINER_multipeermap_remove (sh->env.addresses, key, value);
+  GNUNET_free (address);
+
+  return GNUNET_OK;
+}
 
 void
 GNUNET_ATS_solvers_solver_stop (struct SolverHandle *sh)
@@ -2088,6 +2080,7 @@ GNUNET_ATS_solvers_solver_stop (struct SolverHandle *sh)
  GNUNET_STATISTICS_destroy ((struct GNUNET_STATISTICS_Handle *) sh->env.stats,
      GNUNET_NO);
  GNUNET_PLUGIN_unload (sh->plugin, sh->solver);
+ GNUNET_CONTAINER_multipeermap_iterate (sh->addresses, &free_all_it, NULL);
  GNUNET_CONTAINER_multipeermap_destroy(sh->addresses);
  GNUNET_free (sh->plugin);
  GNUNET_free (sh);
@@ -2330,10 +2323,15 @@ get_property_cb (void *cls, const struct ATS_Address *address)
 }
 
 static void
-normalized_property_changed_cb (void *cls, struct ATS_Address *peer,
+normalized_property_changed_cb (void *cls, struct ATS_Address *address,
     uint32_t type, double prop_rel)
 {
-  /* TODO */
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+      "Normalized property %s for peer `%s' changed to %.3f \n",
+      GNUNET_ATS_print_property_type (type), GNUNET_i2s (&address->peer),
+      prop_rel);
+
+  sh->env.sf.s_address_update_property (sh->solver, address, type, 0, prop_rel);
 }
 
 
@@ -2402,27 +2400,25 @@ GNUNET_ATS_solvers_solver_start (enum GNUNET_ATS_Solvers type)
   return sh;
 }
 
-static int
-free_all_it (void *cls,
-    const struct GNUNET_PeerIdentity *key,
-    void *value)
-{
-  struct ATS_Address *address = value;
-  GNUNET_CONTAINER_multipeermap_remove (sh->env.addresses, key, value);
-  GNUNET_free (address);
-
-  return GNUNET_OK;
-}
-
 static void
 done ()
 {
   struct TestPeer *cur;
   struct TestPeer *next;
-  /* Clean up experiment */
+
+  struct TestAddress *cur_a;
+  struct TestAddress *next_a;
+
+  /* Stop logging */
+  GNUNET_ATS_solver_logging_stop (l);
+
+  /* Stop all preference generation */
   GNUNET_ATS_solver_generate_preferences_stop_all ();
+
+  /* Stop all property generation */
   GNUNET_ATS_solver_generate_property_stop_all ();
 
+  /* Clean up experiment */
   if (NULL != e)
   {
     GNUNET_ATS_solvers_experimentation_stop (e);
@@ -2440,9 +2436,20 @@ done ()
   {
     next = cur->next;
     GNUNET_CONTAINER_DLL_remove (peer_head, peer_tail, cur);
-    GNUNET_CONTAINER_multipeermap_iterate (sh->env.addresses, &free_all_it, NULL);
-
+    next_a = cur->addr_head;
+    while  (NULL != (cur_a = next_a))
+    {
+      next_a = cur_a->next;
+      GNUNET_CONTAINER_DLL_remove (cur->addr_head, cur->addr_tail, cur_a);
+      GNUNET_free (cur_a);
+    }
     GNUNET_free (cur);
+  }
+
+  if (NULL != sh)
+  {
+    GNUNET_ATS_solvers_solver_stop (sh);
+    sh = NULL;
   }
   /* Shutdown */
   end_now();
@@ -2458,14 +2465,6 @@ experiment_done_cb (struct Experiment *e, struct GNUNET_TIME_Relative duration,i
   else
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Experiment failed \n");
 
-  /* Stop logging */
-  GNUNET_ATS_solver_logging_stop (l);
-
-  /* Stop traffic generation */
-  // GNUNET_ATS_TEST_generate_traffic_stop_all();
-
-  /* Stop all preference generations */
-  GNUNET_ATS_solver_generate_preferences_stop_all ();
 
   /*
   evaluate (duration);
