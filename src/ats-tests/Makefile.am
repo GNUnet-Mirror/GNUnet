@@ -61,9 +61,9 @@ libgnunetatstesting_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(GN_LIBINTL)
-libgnunettransporttesting_la_DEPENDENCIES = \
+libgnunetatstesting_la_DEPENDENCIES = \
   libgnunettransport.la
-libgnunettransporttesting_la_LDFLAGS = \
+libgnunetatstesting_la_LDFLAGS = \
  $(GN_LIB_LDFLAGS)
  
 gnunet_ats_sim_SOURCES = \
