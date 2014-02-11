@@ -296,7 +296,6 @@ set_prop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       pg->test_address->ats_addr, &atsi, 1);
   sh->env.sf.s_bulk_stop (sh->solver);
 
-
   switch (pg->ats_property) {
     case GNUNET_ATS_PREFERENCE_BANDWIDTH:
       //p->pref_bandwidth = pref_value;
@@ -515,20 +514,29 @@ set_pref_task (void *cls,
                     const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct PreferenceGenerator *pg = cls;
+  struct TestPeer *p;
   double pref_value;
   pg->set_task = GNUNET_SCHEDULER_NO_TASK;
+
+  if (NULL == (p = find_peer_by_id (pg->peer)))
+  {
+    GNUNET_break (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+        "Setting preference for unknown peer %u\n", pg->peer);
+    return;
+  }
 
   pref_value = get_preference (pg);
 
   GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-      "Setting preference for peer [%u] address [%u] for %s to %f\n",
-      pg->peer, pg->address_id,
+      "Setting preference for peer [%u] address [%u] for client %p pref %s to %f\n",
+      pg->peer, pg->address_id, NULL + (pg->client_id),
       GNUNET_ATS_print_preference_type (pg->kind), pref_value);
 
-  /* set performance here!
-  GNUNET_ATS_performance_change_preference(p->me->ats_perf_handle,
-      &p->dest->id, p->pg->kind, pref_value, GNUNET_ATS_PREFERENCE_END);
-*/
+  sh->env.sf.s_bulk_start (sh->solver);
+  GAS_normalization_normalize_preference (NULL + (pg->client_id), &p->peer_id,
+      pg->kind, pref_value);
+  sh->env.sf.s_bulk_stop (sh->solver);
 
   switch (pg->kind) {
     case GNUNET_ATS_PREFERENCE_BANDWIDTH:
@@ -591,6 +599,7 @@ GNUNET_ATS_solver_generate_preferences_stop (struct PreferenceGenerator *pg)
 struct PreferenceGenerator *
 GNUNET_ATS_solver_generate_preferences_start (unsigned int peer,
     unsigned int address_id,
+    unsigned int client_id,
     enum GeneratorType type,
     long int base_value,
     long int value_rate,
@@ -605,6 +614,7 @@ GNUNET_ATS_solver_generate_preferences_start (unsigned int peer,
   pg->type = type;
   pg->peer = peer;
   pg->address_id = address_id;
+  pg->client_id = client_id;
   pg->kind = kind;
   pg->base_value = base_value;
   pg->max_value = value_rate;
@@ -954,6 +964,18 @@ load_op_start_set_preference (struct GNUNET_ATS_TEST_Operation *o,
       sec_name, op_name, &o->address_id))
   {
     fprintf (stderr, "Missing address-id in operation %u `%s' in episode `%s'\n",
+        op_counter, "START_SET_PREFERENCE", op_name);
+    GNUNET_free (op_name);
+    return GNUNET_SYSERR;
+  }
+  GNUNET_free (op_name);
+
+  /* address id */
+  GNUNET_asprintf(&op_name, "op-%u-client-id", op_counter);
+  if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number (cfg,
+      sec_name, op_name, &o->client_id))
+  {
+    fprintf (stderr, "Missing client-id in operation %u `%s' in episode `%s'\n",
         op_counter, "START_SET_PREFERENCE", op_name);
     GNUNET_free (op_name);
     return GNUNET_SYSERR;
@@ -1483,7 +1505,6 @@ load_episode (struct Experiment *e, struct Episode *cur,
       o->type = SOLVER_OP_START_SET_PREFERENCE;
       res =  load_op_start_set_preference (o, cur,
           op_counter, sec_name, cfg);
-        break;
     }
     else if (0 == strcmp (op, "stop_set_preference"))
     {
@@ -1733,7 +1754,7 @@ enforce_start_property (struct GNUNET_ATS_TEST_Operation *op)
   {
     GNUNET_break (0);
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-        "Setting proprterty for unknown address %u\n", op->peer_id);
+        "Setting property for unknown address %u\n", op->peer_id);
     return;
   }
 
@@ -1761,14 +1782,24 @@ static void
 enforce_start_preference (struct GNUNET_ATS_TEST_Operation *op)
 {
   struct PreferenceGenerator *pg;
+  struct TestPeer *p;
   if (NULL != (pg = find_pref_gen (op->peer_id, op->address_id, op->pref_type)))
   {
     GNUNET_ATS_solver_generate_preferences_stop (pg);
     GNUNET_free (pg);
   }
 
+  if (NULL == (p = find_peer_by_id (op->peer_id)))
+  {
+    GNUNET_break (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+        "Starting preference generation for unknown peer %u\n", op->peer_id);
+    return;
+  }
+
   GNUNET_ATS_solver_generate_preferences_start (op->peer_id,
     op->address_id,
+    op->client_id,
     op->gen_type,
     op->base_rate,
     op->max_rate,
@@ -2335,6 +2366,21 @@ normalized_property_changed_cb (void *cls, struct ATS_Address *address,
 }
 
 
+static void
+normalized_preference_changed_cb (void *cls,
+    const struct GNUNET_PeerIdentity *peer,
+    enum GNUNET_ATS_PreferenceKind kind,
+    double pref_rel)
+{
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+      "Normalized preference %s for peer `%s' changed to %.3f \n",
+      GNUNET_ATS_print_preference_type (kind), GNUNET_i2s (peer),
+      pref_rel);
+
+  sh->env.sf.s_pref (sh->solver, peer, kind, pref_rel);
+}
+
+
 struct SolverHandle *
 GNUNET_ATS_solvers_solver_start (enum GNUNET_ATS_Solvers type)
 {
@@ -2374,7 +2420,8 @@ GNUNET_ATS_solvers_solver_start (enum GNUNET_ATS_Solvers type)
 
 
   /* start normalization */
-  GAS_normalization_start (NULL, NULL, &normalized_property_changed_cb, NULL );
+  GAS_normalization_start (&normalized_preference_changed_cb, NULL,
+      &normalized_property_changed_cb, NULL );
 
   /* load quotas */
   if (GNUNET_ATS_NetworkTypeCount != GNUNET_ATS_solvers_load_quotas (e->cfg,

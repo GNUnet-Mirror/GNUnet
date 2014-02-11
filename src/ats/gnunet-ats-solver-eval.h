@@ -125,6 +125,7 @@ struct GNUNET_ATS_TEST_Operation
 
   long long unsigned int address_id;
   long long unsigned int peer_id;
+  long long unsigned int client_id;
   long long unsigned int address_session;
   long long unsigned int address_network;
   char*address;
@@ -188,6 +189,7 @@ struct PreferenceGenerator
 
   unsigned int peer;
   unsigned int address_id;
+  unsigned int client_id;
 
   enum GNUNET_ATS_PreferenceKind kind;
 

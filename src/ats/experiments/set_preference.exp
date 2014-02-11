@@ -1,3 +1,5 @@
+# Example setting up two peers 
+
 [experiment]
  name = test
  max_duration = 15 s
@@ -37,45 +39,34 @@ op-3-peer-id = 1
 # Set delay
 duration = 5 s
 
-op-0-operation = start_set_property
+op-0-operation = start_set_preference
 op-0-address-id = 0
 op-0-peer-id = 0
+op-0-client-id = 1
 # constant, linear, sinus, random
-op-0-gen-type = random
+op-0-gen-type = constant
 op-0-base-rate= 10000
-op-0-max-rate = 20000
+op-0-max-rate = 10000
+op-0-period = 1000 ms
 op-0-frequency = 1000 ms
-# bandwidth, latency
-# "TERMINATOR", "UTILIZATION_UP", "UTILIZATION_DOWN", "UTILIZATION_PAYLOAD_UP", "UTILIZATION_PAYLOAD_DOWN", "NETWORK_TYPE", "DELAY", "DISTANCE", "COST_WAN", "COST_LAN", "COST_WLAN"
-op-0-property = DELAY  
+# BANDWIDTH, LATENCY
+op-0-pref = BANDWIDTH  
 
-op-1-operation = start_set_property
+
+op-1-operation = start_set_preference
 op-1-address-id = 1
 op-1-peer-id = 1
+op-1-client-id = 1
 # constant, linear, sinus, random
-op-1-gen-type = constant
-op-1-base-rate= 1
-op-1-max-rate = 1
-op-1-frequency = 1000 ms
-# bandwidth, latency
-# "TERMINATOR", "UTILIZATION_UP", "UTILIZATION_DOWN", "UTILIZATION_PAYLOAD_UP", "UTILIZATION_PAYLOAD_DOWN", "NETWORK_TYPE", "DELAY", "DISTANCE", "COST_WAN", "COST_LAN", "COST_WLAN"
-op-1-property = DELAY  
-
+op-1-gen-type = linear
+op-1-base-rate= 10000
+op-1-max-rate = 20000
+op-1-period = 1000 ms
+op-1-frequency = 100 ms
+# BANDWIDTH, LATENCY
+op-1-pref = BANDWIDTH  
 
 [episode-2]
-# Shutdown
-duration = 2 s
-op-0-operation = stop_set_property
-op-0-address-id = 0
-op-0-peer-id = 0
-op-0-property = DELAY
-
-op-1-operation = stop_set_property
-op-1-address-id = 1
-op-1-peer-id = 1
-op-1-property = DELAY
-
-[episode-3]
 # Shutdown
 duration = 2 s
 
@@ -93,11 +84,10 @@ op-2-address-network = 0
 op-2-address = 0_0_test
 op-2-plugin = test
 
-op-2-operation = address_del
-op-2-address-id = 1
-op-2-peer-id = 1
-op-2-address-session = 0
-op-2-address-network = 0
-op-2-address = 1_1_test
-op-2-plugin = test
-
+op-3-operation = address_del
+op-3-address-id = 1
+op-3-peer-id = 1
+op-3-address-session = 0
+op-3-address-network = 0
+op-3-address = 1_1_test
+op-3-plugin = test
