@@ -31,14 +31,28 @@
     .DEBUG {
       background-color:#CCC;
     }
+    .WARNING {
+      background-color:#EB9316;
+    }
+    .ERROR {
+      background-color:#D2322D;
+    }
 
   </style>
 </head>
 
 
 <body>
-
+<div class="btn-toolbar" role="toolbar">
+  <div class="btn-group">
+    <button class="btn btn-danger btn-showerror"><span class="glyphicon glyphicon-fire"></span> Error</button>
+    <button class="btn btn-warning btn-showwarn"><span class="glyphicon glyphicon-exclamation-sign"></span> Warning</button>
+    <button class="btn btn-info btn-showinfo"><span class="glyphicon glyphicon glyphicon-info-sign"></span> Info</button>
+    <button class="btn btn-default btn-showdebug"><span class="glyphicon glyphicon glyphicon-wrench"></span> Debug</button>
+</div>
+</div>
 <table class="table">
+  <thead>
   <tr>
     <th>Date Time</th>
     <th>uSec</th>
@@ -47,36 +61,46 @@
     <th>Message</th>
     <th></th>
   </tr>
+  </thead>
+  <tbody>
 <?php
 
 $path='log';
 
 function render_row ($d, $component, $pid, $level, $msg)
 {
-  $date = $d->format('Y-m-d'). '<br />' . $d->format('H:i:s');
+  $date = $d ? $d->format('Y-m-d'). '<br />' . $d->format('H:i:s') : "";
   echo "<tr class=\"$level\">";
   echo "<td class=\"date\">$date</td>";
   echo '<td class="usec">';
-  echo $d->format('u');
+  echo $d ? $d->format('u') : "";
   echo '</td>';
   echo "<td class=\"comp\">$component</td><td class=\"level\">$level</td><td>$msg&nbsp;</td>";
-  echo '<td><button class="btn btn-xs btn-default btn-show"><span class="glyphicon glyphicon-plus"></span></button>';
-  echo '<button class="btn btn-xs btn-default btn-hide"><span class="glyphicon glyphicon-minus"></span></button></td></tr>';
+  if ($level != "DEBUG")
+  {
+    echo '<td><button class="btn btn-xs btn-default btn-show"><span class="glyphicon glyphicon-plus"></span></button>';
+    echo '<button class="btn btn-xs btn-default btn-hide"><span class="glyphicon glyphicon-minus"></span></button></td></tr>';
+  }
+  else
+    echo '<td></td></tr>';
   $olddate = $date;
 } 
 
 function process ($line)
 {
   $a = explode (' ', $line);
+  if (count($a) < 6)
+    return;
   $date = DateTime::createFromFormat ("M d H:i:s-u", implode (' ', array_slice ($a, 0, 3)));
   $component = $a[3];
   $level = $a[4];
   $msg = implode (' ', array_slice ($a, 5));
   
-  render_row ($date, $component, 0, $level, $msg);
+  if ($level != "DEBUG")
+    render_row ($date, $component, 0, $level, $msg);
 }
 
-
+$t0 = microtime(true);
 $handle = @fopen($path, 'r');
 if ($handle) {
     while (($line = fgets($handle)) !== false) {
@@ -85,9 +109,11 @@ if ($handle) {
 } else {
    echo "<div class=\"alert alert-danger\">Error opening file $path.</div>";
 }
+$t1 = microtime(true);
+// echo $t1-$t0;
 
 ?>
-
+  </tbody>
 </table>
   <!-- jQuery -->
   <script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
@@ -96,24 +122,37 @@ if ($handle) {
 
   <script>
 
+    var types = ["ERROR", "WARNING", "INFO", "DEBUG"];
+    function showt (level)
+    {
+      $("tr").hide();
+      for (var index = 0; index < types.length; ++index) {
+	  $("."+types[index]).show();
+	  if (types[index] == level)
+	    return;
+      }
+    }
+
     function show (btn)
     {
       var tr = $(btn).parents("tr");
       tr.nextUntil("."+tr.attr("class")).show();
-      return;
     }
 
     function hide (btn)
     {
       var tr = $(btn).parents("tr");
       tr.nextUntil("."+tr.attr("class")).hide();
-      return;
     }
 
     $(function() {
       $(".DEBUG").hide();
       $(".btn-show").on ("click", function(){ show(this) });
       $(".btn-hide").on ("click", function(){ hide(this) });
+      $(".btn-showerror").on ("click", function(){ showt("ERROR") });
+      $(".btn-showwarn").on ("click", function(){ showt("WARNING") });
+      $(".btn-showinfo").on ("click", function(){ showt("INFO") });
+      $(".btn-showdebug").on ("click", function(){ showt("DEBUG") });
       console.log( "ready!" );
     });
   </script>
