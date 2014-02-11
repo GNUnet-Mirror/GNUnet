@@ -86,11 +86,11 @@ r_st (['-x'], normal = False, nofail = True, want_stdo = False, want_stde = True
 print ("PASS")
 
 print ("TEST: Set value...", end='')
-r_st (['-n', 'test', '-s', 'subsystem', '42'], nofail = True, want_stdo = False)
+r_st (['-n', 'test', '-s', 'subsystem', b'42'], nofail = True, want_stdo = False)
 print ("PASS")
 
 print ("TEST: Set another value...", end='')
-r_st (['-n', 'other', '-s', 'osystem', '43'], nofail = True, want_stdo = False)
+r_st (['-n', 'other', '-s', 'osystem', b'43'], nofail = True, want_stdo = False)
 print ("PASS")
 
 print ("TEST: Viewing all stats...", end='')
@@ -101,20 +101,20 @@ print ("PASS")
 
 print ("TEST: Viewing stats by name...", end='')
 rc, stdo, stde = r_st (['-n', 'other'], nofail = True, want_stdo = True)
-if len ([x for x in stdo.splitlines () if re.search ('43', x)]) != 1:
+if len ([x for x in stdo.splitlines () if re.search (b'43', x)]) != 1:
   fail ("FAIL: unexpected output:\n{}".format (stdo))
 print ("PASS")
 
 print ("TEST: Viewing stats by subsystem...", end='')
 rc, stdo, stde = r_st (['-s', 'subsystem'], nofail = True, want_stdo = True)
-if len ([x for x in stdo.splitlines () if re.search ('42', x)]) != 1:
+if len ([x for x in stdo.splitlines () if re.search (b'42', x)]) != 1:
   fail ("FAIL: unexpected output:\n{}".format (stdo))
 print ("PASS")
 
 print ("TEST: Set persistent value...", end='')
 rc, stdo, stde = r_st (['-n', 'lasting', '-s', 'subsystem', '40', '-p'], nofail = True, want_stdo = False)
 rc, stdo, stde = r_st ([], nofail = True, want_stdo = True)
-if len ([x for x in stdo.splitlines () if re.search ('40', x)]) != 1:
+if len ([x for x in stdo.splitlines () if re.search (b'40', x)]) != 1:
   fail ("FAIL: unexpected output:\n{}".format (stdo))
 print ("PASS")
 
@@ -122,14 +122,14 @@ restart ()
 
 print ("TEST: Checking persistence...", end='')
 rc, stdo, stde = r_st ([], nofail = True, want_stdo = True)
-if len ([x for x in stdo.splitlines () if re.search ('40', x)]) != 1:
+if len ([x for x in stdo.splitlines () if re.search (b'40', x)]) != 1:
   fail ("FAIL: unexpected output:\n{}".format (stdo))
 print ("PASS")
 
 print ("TEST: Removing persistence...", end='')
 rc, stdo, stde = r_st (['-n', 'lasting', '-s', 'subsystem', '40'], nofail = True, want_stdo = False)
 rc, stdo, stde = r_st ([], nofail = True, want_stdo = True)
-if len ([x for x in stdo.splitlines () if re.search ('!', x)]) != 0:
+if len ([x for x in stdo.splitlines () if re.search (b'!', x)]) != 0:
   fail ("FAIL: unexpected output:\n{}".format (stdo))
 print ("PASS")
 
@@ -137,7 +137,7 @@ restart ()
 
 print ("TEST: Checking removed persistence...", end='')
 rc, stdo, stde = r_st ([], nofail = True, want_stdo = True)
-if len ([x for x in stdo.splitlines () if re.search ('40', x)]) != 0:
+if len ([x for x in stdo.splitlines () if re.search (b'40', x)]) != 0:
   fail ("FAIL: unexpected output:\n{}".format (stdo))
 print ("PASS")
 
