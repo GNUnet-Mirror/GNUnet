@@ -202,6 +202,7 @@ struct PropertyGenerator
   unsigned int peer;
   unsigned int address_id;
 
+  struct ATS_Address *address;
   uint32_t ats_property;
 
   long int base_value;

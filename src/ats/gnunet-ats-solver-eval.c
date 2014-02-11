@@ -83,6 +83,41 @@ print_generator_type (enum GeneratorType g)
   }
 }
 
+struct AddressLookupCtx
+{
+  struct ATS_Address *res;
+  char *plugin;
+  char *addr;
+  unsigned int address_id;
+};
+
+int find_address_it (void *cls,
+                     const struct GNUNET_PeerIdentity *key,
+                     void *value)
+{
+  struct AddressLookupCtx *ctx = cls;
+  struct ATS_Address *addr = value;
+
+  if ( (0 == strcmp (ctx->plugin, addr->plugin)) &&
+       (0 == strcmp (ctx->addr, addr->addr)) )
+  {
+       ctx->res = addr;
+       return GNUNET_NO;
+  }
+  return GNUNET_YES;
+}
+
+static struct TestPeer *
+find_peer_by_id (int id)
+{
+  struct TestPeer *cur;
+  for (cur = peer_head; NULL != cur; cur = cur->next)
+    if (cur->id == id)
+      return cur;
+  return NULL;
+}
+
+
 /**
  * Logging
  */
@@ -218,8 +253,28 @@ static void
 set_prop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct PropertyGenerator *pg = cls;
+  struct TestPeer *p;
   double pref_value;
+  struct GNUNET_ATS_Information atsi;
+
   pg->set_task = GNUNET_SCHEDULER_NO_TASK;
+
+  if (NULL == (p = find_peer_by_id (pg->peer)))
+  {
+    GNUNET_break (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+        "Setting property generation for unknown peer %u\n", pg->peer);
+    return;
+  }
+
+  if (GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains_value (sh->addresses,
+      &p->peer_id, pg->address))
+  {
+    GNUNET_break (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+        "Setting property generation for unknown address %u\n", pg->address_id);
+    return;
+  }
 
   pref_value = get_property (pg);
 
@@ -228,10 +283,15 @@ set_prop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       pg->peer, pg->address_id,
       GNUNET_ATS_print_property_type (pg->ats_property), pref_value);
 
-  /* set performance here!
-  GNUNET_ATS_performance_change_preference(p->me->ats_perf_handle,
-      &p->dest->id, p->pg->kind, pref_value, GNUNET_ATS_PREFERENCE_END);
-*/
+
+  atsi.type = pg->ats_property;
+  atsi.value = (uint32_t) pref_value;
+
+  /* set performance here! */
+  sh->env.sf.s_bulk_start (sh->solver);
+  GAS_normalization_normalize_property (sh->addresses, pg->address, &atsi, 1);
+  sh->env.sf.s_bulk_stop (sh->solver);
+
 
   switch (pg->ats_property) {
     case GNUNET_ATS_PREFERENCE_BANDWIDTH:
@@ -296,6 +356,7 @@ GNUNET_ATS_solver_generate_property_stop (struct PropertyGenerator *pg)
 struct PropertyGenerator *
 GNUNET_ATS_solver_generate_property_start (unsigned int peer,
     unsigned int address_id,
+    struct ATS_Address *ats_address,
     enum GeneratorType type,
     long int base_value,
     long int value_rate,
@@ -309,6 +370,7 @@ GNUNET_ATS_solver_generate_property_start (unsigned int peer,
   GNUNET_CONTAINER_DLL_insert (prop_gen_head, prop_gen_tail, pg);
   pg->type = type;
   pg->peer = peer;
+  pg->address = ats_address;
   pg->address_id = address_id;
   pg->ats_property = ats_property;
   pg->base_value = base_value;
@@ -1530,16 +1592,6 @@ timeout_experiment (void *cls, const struct GNUNET_SCHEDULER_TaskContext* tc)
       GNUNET_SYSERR);
 }
 
-static struct TestPeer *
-find_peer_by_id (int id)
-{
-  struct TestPeer *cur;
-  for (cur = peer_head; NULL != cur; cur = cur->next)
-    if (cur->id == id)
-      return cur;
-  return NULL;
-}
-
 struct ATS_Address *
 create_ats_address (const struct GNUNET_PeerIdentity *peer,
                 const char *plugin_name,
@@ -1591,27 +1643,6 @@ enforce_add_address (struct GNUNET_ATS_TEST_Operation *op)
 
 }
 
-struct AddressLookupCtx
-{
-  struct ATS_Address *res;
-  struct GNUNET_ATS_TEST_Operation *op;
-};
-
-int find_address_it (void *cls,
-                     const struct GNUNET_PeerIdentity *key,
-                     void *value)
-{
-  struct AddressLookupCtx *ctx = cls;
-  struct ATS_Address *addr = value;
-
-  if ( (0 == strcmp (ctx->op->plugin, addr->plugin)) &&
-       (0 == strcmp (ctx->op->address, addr->addr)) )
-  {
-       ctx->res = addr;
-       return GNUNET_NO;
-  }
-  return GNUNET_YES;
-}
 
 static void
 enforce_del_address (struct GNUNET_ATS_TEST_Operation *op)
@@ -1627,7 +1658,8 @@ enforce_del_address (struct GNUNET_ATS_TEST_Operation *op)
     return;
   }
 
-  ctx.op = op;
+  ctx.plugin = op->plugin;
+  ctx.addr = op->address;
   ctx.res = NULL;
   GNUNET_CONTAINER_multipeermap_get_multiple (sh->addresses, &p->peer_id,
       find_address_it, &ctx);
@@ -1659,8 +1691,34 @@ enforce_start_property (struct GNUNET_ATS_TEST_Operation *op)
     GNUNET_free (pg);
   }
 
+  struct TestPeer *p;
+  struct AddressLookupCtx ctx;
+
+  if (NULL == (p = find_peer_by_id (op->peer_id)))
+  {
+    GNUNET_break (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+        "Starting property generation for unknown peer %u\n", op->peer_id);
+    return;
+  }
+
+  ctx.plugin = op->plugin;
+  ctx.addr = op->address;
+  ctx.res = NULL;
+  GNUNET_CONTAINER_multipeermap_get_multiple (sh->addresses, &p->peer_id,
+      find_address_it, &ctx);
+  if (NULL == ctx.res)
+  {
+    GNUNET_break (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+        "Starting property generation for unknown address for peer %u\n",
+        op->peer_id);
+    return;
+  }
+
   GNUNET_ATS_solver_generate_property_start (op->peer_id,
     op->address_id,
+    ctx.res,
     op->gen_type,
     op->base_rate,
     op->max_rate,
