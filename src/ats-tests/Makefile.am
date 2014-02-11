@@ -56,13 +56,12 @@ libgnunetatstesting_la_SOURCES = \
   ats-testing.c ats-testing-log.c ats-testing-traffic.c \
   ats-testing-experiment.c ats-testing-preferences.c
 libgnunetatstesting_la_LIBADD = \
-  $(top_builddir)/src/transport/libgnunettransport.la \
-  $(top_builddir)/src/hello/libgnunethello.la \
-  $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/testing/libgnunettesting.la \
+  $(top_builddir)/src/testbed/libgnunettestbed.la \
+  $(top_builddir)/src/ats/libgnunetats.la \
   $(GN_LIBINTL)
 libgnunetatstesting_la_DEPENDENCIES = \
-  libgnunettransport.la
+  $(top_builddir)/src/testbed/libgnunettestbed.la \
+  $(top_builddir)/src/ats/libgnunetats.la
 libgnunetatstesting_la_LDFLAGS = \
  $(GN_LIB_LDFLAGS)
  
