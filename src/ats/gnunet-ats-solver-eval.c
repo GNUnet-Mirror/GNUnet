@@ -1905,15 +1905,45 @@ enforce_stop_preference (struct GNUNET_ATS_TEST_Operation *op)
 static void
 enforce_start_request (struct GNUNET_ATS_TEST_Operation *op)
 {
+  struct TestPeer *p;
+  const struct ATS_Address *res;
+
+  if (NULL == (p = find_peer_by_id (op->peer_id)))
+  {
+    GNUNET_break (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+        "Requesting address for unknown peer %u\n", op->peer_id);
+    return;
+  }
+
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Requesting address for peer %u\n",
       op->peer_id);
+
+  res = sh->env.sf.s_get (sh->solver, &p->peer_id);
+  if (NULL != res)
+  {
+
+  }
+
 }
 
 static void
 enforce_stop_request (struct GNUNET_ATS_TEST_Operation *op)
 {
+  struct TestPeer *p;
+
+  if (NULL == (p = find_peer_by_id (op->peer_id)))
+  {
+    GNUNET_break (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+        "Requesting address for unknown peer %u\n", op->peer_id);
+    return;
+  }
+
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Stop requesting address for peer %u\n",
       op->peer_id);
+
+  sh->env.sf.s_get_stop (sh->solver, &p->peer_id);
 }
 
 static void enforce_episode (struct Episode *ep)
@@ -2092,7 +2122,7 @@ GNUNET_ATS_solvers_experimentation_load (char *filename)
   }
   else
   {
-    fprintf (stderr, "Experiment name: `%s'\n", e->cfg_file);
+    fprintf (stderr, "Experiment configuration: `%s'\n", e->cfg_file);
     e->cfg = GNUNET_CONFIGURATION_create();
     if (GNUNET_SYSERR == GNUNET_CONFIGURATION_load (e->cfg, e->cfg_file))
     {
@@ -2276,7 +2306,7 @@ GNUNET_ATS_solvers_load_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg,
           network_str[c], GNUNET_ATS_DefaultBandwidth);
       out_dest[c] = GNUNET_ATS_DefaultBandwidth;
     }
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Loaded quota for network `%s' (in/out): %llu %llu\n", network_str[c], in_dest[c], out_dest[c]);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Loaded quota for network `%s' (in/out): %llu %llu\n", network_str[c], in_dest[c], out_dest[c]);
     GNUNET_free (entry_out);
     GNUNET_free (entry_in);
   }
@@ -2384,9 +2414,14 @@ solver_bandwidth_changed_cb (void *cls, struct ATS_Address *address)
 {
   if ( (0 == ntohl (address->assigned_bw_out.value__)) &&
        (0 == ntohl (address->assigned_bw_in.value__)) )
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Solver notified to disconnect peer `%s'\n",
+                GNUNET_i2s (&address->peer));
     return;
+  }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Bandwidth changed addresses %s %p to %u Bps out / %u Bps in\n",
               GNUNET_i2s (&address->peer),
               address,
@@ -2423,8 +2458,6 @@ GNUNET_ATS_solvers_solver_start (enum GNUNET_ATS_Solvers type)
 {
   struct SolverHandle *sh;
   char * solver_str;
-  unsigned long long quotas_in[GNUNET_ATS_NetworkTypeCount];
-  unsigned long long quotas_out[GNUNET_ATS_NetworkTypeCount];
 
   switch (type) {
     case GNUNET_ATS_SOLVER_PROPORTIONAL:
@@ -2445,10 +2478,11 @@ GNUNET_ATS_solvers_solver_start (enum GNUNET_ATS_Solvers type)
   sh = GNUNET_new (struct SolverHandle);
   GNUNET_asprintf (&sh->plugin, "libgnunet_plugin_ats_%s", solver_str);
 
+  sh->addresses = GNUNET_CONTAINER_multipeermap_create (128, GNUNET_NO);
   /* setup environment */
   sh->env.cfg = e->cfg;
   sh->env.stats = GNUNET_STATISTICS_create ("ats", e->cfg);
-  sh->env.addresses = GNUNET_CONTAINER_multipeermap_create (128, GNUNET_NO);
+  sh->env.addresses = sh->addresses;
   sh->env.bandwidth_changed_cb = &solver_bandwidth_changed_cb;
   sh->env.get_preferences = &get_preferences_cb;
   sh->env.get_property = &get_property_cb;
@@ -2456,12 +2490,13 @@ GNUNET_ATS_solvers_solver_start (enum GNUNET_ATS_Solvers type)
   sh->env.info_cb = &solver_info_cb;
   sh->env.info_cb_cls = NULL;
 
+
   /* start normalization */
   GAS_normalization_start (NULL, NULL, &normalized_property_changed_cb, NULL );
 
   /* load quotas */
   if (GNUNET_ATS_NetworkTypeCount != GNUNET_ATS_solvers_load_quotas (e->cfg,
-      quotas_out, quotas_in, GNUNET_ATS_NetworkTypeCount))
+      sh->env.out_quota, sh->env.in_quota, GNUNET_ATS_NetworkTypeCount))
   {
     GNUNET_break(0);
     GNUNET_free (sh->plugin);
@@ -2480,9 +2515,6 @@ GNUNET_ATS_solvers_solver_start (enum GNUNET_ATS_Solvers type)
     end_now ();
     return NULL;
   }
-
-  sh->addresses = GNUNET_CONTAINER_multipeermap_create (10, GNUNET_NO);
-
   return sh;
 }
 

@@ -4,7 +4,7 @@
  slaves = 2
  max_duration = 15 s
  log_freq = 1000 ms
- cfg_file = gnunet_ats_sim_default.conf
+ cfg_file = experiments/gnunet_ats_sim_default.conf
  
 [episode-0]
 # operations = address_add, address_del, start_set_property, stop_set_property, 
@@ -60,10 +60,10 @@ op-1-address-id = 1
 op-1-peer-id = 1
 op-1-pref = BANDWIDTH  
 
-op-2-operation = stop_set_property
-op-2-address-id = 0
-op-2-peer-id = 0
-op-2-property = UTILIZATION_UP
+#op-2-operation = stop_set_property
+#op-2-address-id = 0
+#op-2-peer-id = 0
+#op-2-property = UTILIZATION_UP
 
-op-3-operation = stop_request
-op-3-peer-id = 0  
+op-2-operation = stop_request
+op-2-peer-id = 0  
