@@ -403,49 +403,6 @@ struct statfs
   long f_namelen;               /* maximum length of filenames */
   long f_spare[6];              /* spare for later */
 };
-
-/* Taken from the Wine project <http://www.winehq.org>
-    /wine/include/winternl.h */
-enum SYSTEM_INFORMATION_CLASS
-{
-  SystemBasicInformation = 0,
-  Unknown1,
-  SystemPerformanceInformation = 2,
-  SystemTimeOfDayInformation = 3, /* was SystemTimeInformation */
-  Unknown4,
-  SystemProcessInformation = 5,
-  Unknown6,
-  Unknown7,
-  SystemProcessorPerformanceInformation = 8,
-  Unknown9,
-  Unknown10,
-  SystemDriverInformation,
-  Unknown12,
-  Unknown13,
-  Unknown14,
-  Unknown15,
-  SystemHandleList,
-  Unknown17,
-  Unknown18,
-  Unknown19,
-  Unknown20,
-  SystemCacheInformation,
-  Unknown22,
-  SystemInterruptInformation = 23,
-  SystemExceptionInformation = 33,
-  SystemRegistryQuotaInformation = 37,
-  SystemLookasideInformation = 45
-};
-
-typedef struct
-{
-    LARGE_INTEGER IdleTime;
-    LARGE_INTEGER KernelTime;
-    LARGE_INTEGER UserTime;
-    LARGE_INTEGER Reserved1[2];
-    ULONG Reserved2;
-} SYSTEM_PROCESSOR_PERFORMANCE_INFORMATION;
-
 #define sleep(secs) (Sleep(secs * 1000))
 
 /*********************** statfs *****************************/
