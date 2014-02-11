@@ -61,6 +61,23 @@ static int res;
 static void
 end_now ();
 
+static char *
+print_generator_type (enum GeneratorType g)
+{
+  switch (g) {
+    case GNUNET_ATS_TEST_TG_CONSTANT:
+      return "CONSTANT";
+    case GNUNET_ATS_TEST_TG_LINEAR:
+      return "LINEAR";
+    case GNUNET_ATS_TEST_TG_RANDOM:
+      return "RANDOM";
+    case GNUNET_ATS_TEST_TG_SINUS:
+      return "SINUS";
+    default:
+      return "INVALID";
+      break;
+  }
+}
 
 /**
  * Property Generators
@@ -454,27 +471,27 @@ GNUNET_ATS_solver_generate_preferences_start (unsigned int peer,
   switch (type) {
     case GNUNET_ATS_TEST_TG_CONSTANT:
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-          "Setting up constant preference generator peer [%u] address [%u] `%s' max %u Bips\n",
-          pg->peer, pg->address_id,  GNUNET_ATS_print_preference_type(kind),
+          "Setting up %s preference generator peer [%u] address [%u] `%s' max %u Bips\n",
+          print_generator_type (type), pg->peer, pg->address_id,
+          GNUNET_ATS_print_preference_type(kind),
           base_value);
       break;
     case GNUNET_ATS_TEST_TG_LINEAR:
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-          "Setting up linear preference generator peer [%u] address [%u] `%s' min %u Bips max %u Bips\n",
-          pg->peer, pg->address_id, GNUNET_ATS_print_preference_type(kind),
+          "Setting up %s preference generator peer [%u] address [%u] `%s' min %u Bips max %u Bips\n",
+          print_generator_type (type), pg->peer, pg->address_id, GNUNET_ATS_print_preference_type(kind),
           base_value, value_rate);
       break;
     case GNUNET_ATS_TEST_TG_SINUS:
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-          "Setting up sinus preference generator peer [%u] address [%u] `%s' baserate %u Bips, amplitude %u Bps\n",
-          pg->peer, pg->address_id, GNUNET_ATS_print_preference_type(kind),
+          "Setting up %s preference generator peer [%u] address [%u] `%s' baserate %u Bips, amplitude %u Bps\n",
+          print_generator_type (type), pg->peer, pg->address_id, GNUNET_ATS_print_preference_type(kind),
           base_value, value_rate);
-
       break;
     case GNUNET_ATS_TEST_TG_RANDOM:
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-          "Setting up random preference generator peer [%u] address [%u] `%s' min %u Bips max %u Bps\n",
-          pg->peer, pg->address_id, GNUNET_ATS_print_preference_type(kind),
+          "Setting up %s preference generator peer [%u] address [%u] `%s' min %u Bips max %u Bps\n",
+          print_generator_type (type), pg->peer, pg->address_id, GNUNET_ATS_print_preference_type(kind),
           base_value, value_rate);
       break;
     default:
@@ -811,19 +828,19 @@ load_op_start_set_preference (struct GNUNET_ATS_TEST_Operation *o,
   /* Load arguments for set_rate, start_send, set_preference */
   if (0 == strcmp (type, "constant"))
   {
-    o->tg_type = GNUNET_ATS_TEST_TG_CONSTANT;
+    o->gen_type = GNUNET_ATS_TEST_TG_CONSTANT;
   }
   else if (0 == strcmp (type, "linear"))
   {
-    o->tg_type = GNUNET_ATS_TEST_TG_LINEAR;
+    o->gen_type = GNUNET_ATS_TEST_TG_LINEAR;
   }
   else if (0 == strcmp (type, "sinus"))
   {
-    o->tg_type = GNUNET_ATS_TEST_TG_SINUS;
+    o->gen_type = GNUNET_ATS_TEST_TG_SINUS;
   }
   else if (0 == strcmp (type, "random"))
   {
-    o->tg_type = GNUNET_ATS_TEST_TG_RANDOM;
+    o->gen_type = GNUNET_ATS_TEST_TG_RANDOM;
   }
   else
   {
@@ -855,9 +872,9 @@ load_op_start_set_preference (struct GNUNET_ATS_TEST_Operation *o,
   if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number (cfg,
       sec_name, op_name, &o->max_rate))
   {
-    if ((GNUNET_ATS_TEST_TG_LINEAR == o->tg_type) ||
-        (GNUNET_ATS_TEST_TG_RANDOM == o->tg_type) ||
-        (GNUNET_ATS_TEST_TG_SINUS == o->tg_type))
+    if ((GNUNET_ATS_TEST_TG_LINEAR == o->gen_type) ||
+        (GNUNET_ATS_TEST_TG_RANDOM == o->gen_type) ||
+        (GNUNET_ATS_TEST_TG_SINUS == o->gen_type))
     {
       fprintf (stderr, "Missing max rate in operation %u `%s' in episode %u\n",
           op_counter, op_name, e->id);
@@ -1042,22 +1059,22 @@ load_op_start_set_property(struct GNUNET_ATS_TEST_Operation *o,
   /* Load arguments for set_rate, start_send, set_preference */
   if (0 == strcmp (type, "constant"))
   {
-    o->tg_type = GNUNET_ATS_TEST_TG_CONSTANT;
+    o->gen_type = GNUNET_ATS_TEST_TG_CONSTANT;
     GNUNET_break (0);
   }
   else if (0 == strcmp (type, "linear"))
   {
-    o->tg_type = GNUNET_ATS_TEST_TG_LINEAR;
+    o->gen_type = GNUNET_ATS_TEST_TG_LINEAR;
     GNUNET_break (0);
   }
   else if (0 == strcmp (type, "sinus"))
   {
-    o->tg_type = GNUNET_ATS_TEST_TG_SINUS;
+    o->gen_type = GNUNET_ATS_TEST_TG_SINUS;
     GNUNET_break (0);
   }
   else if (0 == strcmp (type, "random"))
   {
-    o->tg_type = GNUNET_ATS_TEST_TG_RANDOM;
+    o->gen_type = GNUNET_ATS_TEST_TG_RANDOM;
     GNUNET_break (0);
   }
   else
@@ -1090,9 +1107,9 @@ load_op_start_set_property(struct GNUNET_ATS_TEST_Operation *o,
   if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number (cfg,
       sec_name, op_name, &o->max_rate))
   {
-    if ((GNUNET_ATS_TEST_TG_LINEAR == o->tg_type) ||
-        (GNUNET_ATS_TEST_TG_RANDOM == o->tg_type) ||
-        (GNUNET_ATS_TEST_TG_SINUS == o->tg_type))
+    if ((GNUNET_ATS_TEST_TG_LINEAR == o->gen_type) ||
+        (GNUNET_ATS_TEST_TG_RANDOM == o->gen_type) ||
+        (GNUNET_ATS_TEST_TG_SINUS == o->gen_type))
     {
       fprintf (stderr, "Missing max rate in operation %u `%s' in episode %u\n",
           op_counter, op_name, e->id);
@@ -1394,19 +1411,19 @@ load_episode (struct Experiment *e, struct Episode *cur,
       /* Load arguments for set_rate, start_send, set_preference */
       if (0 == strcmp (type, "constant"))
       {
-        o->tg_type = GNUNET_ATS_TEST_TG_CONSTANT;
+        o->gen_type = GNUNET_ATS_TEST_TG_CONSTANT;
       }
       else if (0 == strcmp (type, "linear"))
       {
-        o->tg_type = GNUNET_ATS_TEST_TG_LINEAR;
+        o->gen_type = GNUNET_ATS_TEST_TG_LINEAR;
       }
       else if (0 == strcmp (type, "sinus"))
       {
-        o->tg_type = GNUNET_ATS_TEST_TG_SINUS;
+        o->gen_type = GNUNET_ATS_TEST_TG_SINUS;
       }
       else if (0 == strcmp (type, "random"))
       {
-        o->tg_type = GNUNET_ATS_TEST_TG_RANDOM;
+        o->gen_type = GNUNET_ATS_TEST_TG_RANDOM;
       }
       else
       {
@@ -1438,9 +1455,9 @@ load_episode (struct Experiment *e, struct Episode *cur,
       if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number (cfg,
           sec_name, op_name, &o->max_rate))
       {
-        if ((GNUNET_ATS_TEST_TG_LINEAR == o->tg_type) ||
-            (GNUNET_ATS_TEST_TG_RANDOM == o->tg_type) ||
-            (GNUNET_ATS_TEST_TG_SINUS == o->tg_type))
+        if ((GNUNET_ATS_TEST_TG_LINEAR == o->gen_type) ||
+            (GNUNET_ATS_TEST_TG_RANDOM == o->gen_type) ||
+            (GNUNET_ATS_TEST_TG_SINUS == o->gen_type))
         {
           fprintf (stderr, "Missing max rate in operation %u `%s' in episode %u\n",
               op_counter, op, cur->id);
@@ -1512,8 +1529,8 @@ load_episode (struct Experiment *e, struct Episode *cur,
     }
 
     /* Safety checks */
-    if ((GNUNET_ATS_TEST_TG_LINEAR == o->tg_type) ||
-        (GNUNET_ATS_TEST_TG_SINUS == o->tg_type))
+    if ((GNUNET_ATS_TEST_TG_LINEAR == o->gen_type) ||
+        (GNUNET_ATS_TEST_TG_SINUS == o->gen_type))
     {
       if ((o->max_rate - o->base_rate) > o->base_rate)
       {
@@ -1708,9 +1725,12 @@ enforce_start_preference (struct GNUNET_ATS_TEST_Operation *op)
     GNUNET_free (pg);
   }
 
+  fprintf (stderr, "ENFORECE: %s, %u\n", print_generator_type (op->gen_type),
+      op->base_rate);
+
   GNUNET_ATS_solver_generate_preferences_start (op->peer_id,
     op->address_id,
-    op->type,
+    op->gen_type,
     op->base_rate,
     op->max_rate,
     op->period,
@@ -1987,6 +2007,7 @@ enum GNUNET_ATS_Solvers
   GNUNET_ATS_SOLVER_MLP,
   GNUNET_ATS_SOLVER_RIL,
 };
+
 
 void
 GNUNET_ATS_solvers_solver_stop (struct GNUNET_ATS_TESTING_SolverHandle *sh)
@@ -2483,7 +2504,8 @@ main (int argc, char *argv[])
     GNUNET_GETOPT_OPTION_END
   };
 
-  GNUNET_PROGRAM_run (argc, argv, argv[0], NULL, options, &run, argv[0]);
+  GNUNET_PROGRAM_run (argc, argv, "gnunet-ats-solver-eval",
+      NULL, options, &run, argv[0]);
 
   return res;
 }
