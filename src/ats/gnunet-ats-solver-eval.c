@@ -318,27 +318,34 @@ GNUNET_ATS_solver_generate_property_start (unsigned int peer,
   switch (type) {
     case GNUNET_ATS_TEST_TG_CONSTANT:
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-          "Setting up constant property generator peer [%u] address [%u] `%s' max %u Bips\n",
-          pg->peer, pg->address_id,  GNUNET_ATS_print_property_type (ats_property),
+          "Setting up %s property generator peer [%u] address [%u] `%s'"\
+          "max %u Bips\n",
+          print_generator_type(type), pg->peer, pg->address_id,
+          GNUNET_ATS_print_property_type (ats_property),
           base_value);
       break;
     case GNUNET_ATS_TEST_TG_LINEAR:
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-          "Setting up linear property generator peer [%u] address [%u] `%s' min %u Bips max %u Bips\n",
-          pg->peer, pg->address_id, GNUNET_ATS_print_property_type(ats_property),
+          "Setting up %s property generator peer [%u] address [%u] `%s' " \
+          "min %u Bips max %u Bips\n",
+          print_generator_type(type), pg->peer, pg->address_id,
+          GNUNET_ATS_print_property_type(ats_property),
           base_value, value_rate);
       break;
     case GNUNET_ATS_TEST_TG_SINUS:
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-          "Setting up sinus property generator peer [%u] address [%u] `%s' baserate %u Bips, amplitude %u Bps\n",
-          pg->peer, pg->address_id, GNUNET_ATS_print_property_type(ats_property),
+          "Setting up %s property generator peer [%u] address [%u] `%s' "\
+          "baserate %u Bips, amplitude %u Bps\n",
+          print_generator_type(type), pg->peer, pg->address_id,
+          GNUNET_ATS_print_property_type(ats_property),
           base_value, value_rate);
-
       break;
     case GNUNET_ATS_TEST_TG_RANDOM:
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-          "Setting up random property generator peer [%u] address [%u] `%s' min %u Bips max %u Bps\n",
-          pg->peer, pg->address_id, GNUNET_ATS_print_property_type(ats_property),
+          "Setting up %s property generator peer [%u] address [%u] `%s' "\
+          "min %u Bips max %u Bps\n",
+          print_generator_type(type), pg->peer, pg->address_id,
+          GNUNET_ATS_print_property_type(ats_property),
           base_value, value_rate);
       break;
     default:
@@ -1765,7 +1772,7 @@ enforce_start_property (struct GNUNET_ATS_TEST_Operation *op)
 
   GNUNET_ATS_solver_generate_property_start (op->peer_id,
     op->address_id,
-    op->type,
+    op->gen_type,
     op->base_rate,
     op->max_rate,
     op->period,
