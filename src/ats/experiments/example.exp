@@ -3,7 +3,7 @@
  masters = 1
  slaves = 2
  max_duration = 15 s
- log_freq = 100 ms
+ log_freq = 1000 ms
  cfg_file = gnunet_ats_sim_default.conf
  
 [episode-0]

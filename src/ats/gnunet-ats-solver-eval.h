@@ -82,7 +82,7 @@ struct GNUNET_ATS_TEST_Operation
   struct GNUNET_TIME_Relative frequency;
 
   enum OperationType type;
-  enum GeneratorType tg_type;
+  enum GeneratorType gen_type;
   enum GNUNET_ATS_PreferenceKind pref_type;
   enum GNUNET_ATS_Property prop_type;
 };
@@ -97,6 +97,11 @@ struct Episode
   struct GNUNET_ATS_TEST_Operation *tail;
 };
 
+struct LoggingHandle
+{
+  GNUNET_SCHEDULER_TaskIdentifier logging_task;
+  struct GNUNET_TIME_Relative log_freq;
+};
 
 struct Experiment
 {

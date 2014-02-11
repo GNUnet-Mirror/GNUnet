@@ -32,6 +32,8 @@
 
 static struct Experiment *e;
 
+static struct LoggingHandle *l;
+
 static struct GNUNET_ATS_TESTING_SolverHandle *sh;
 
 /**
@@ -77,6 +79,72 @@ print_generator_type (enum GeneratorType g)
       return "INVALID";
       break;
   }
+}
+
+/**
+ * Logging
+ */
+
+static void
+logging_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct LoggingHandle *l = cls;
+
+  l->logging_task = GNUNET_SCHEDULER_NO_TASK;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Logging\n");
+
+  l->logging_task = GNUNET_SCHEDULER_add_delayed (l->log_freq, &logging_task, l);
+
+}
+
+struct LoggingHandle *
+GNUNET_ATS_solver_logging_start (struct GNUNET_TIME_Relative freq)
+{
+  struct LoggingHandle *l;
+  l = GNUNET_new (struct LoggingHandle);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Start logging every  %s\n",
+      GNUNET_STRINGS_relative_time_to_string(freq, GNUNET_NO));
+
+  /* Iterate over peers */
+
+  l->log_freq = freq;
+  l->logging_task = GNUNET_SCHEDULER_add_now (&logging_task, l);
+
+  return l;
+}
+
+void
+GNUNET_ATS_solver_logging_now (struct LoggingHandle *l)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Logging\n");
+}
+
+void
+GNUNET_ATS_solver_logging_stop (struct LoggingHandle *l)
+{
+  if (GNUNET_SCHEDULER_NO_TASK != l->logging_task)
+    GNUNET_SCHEDULER_cancel (l->logging_task);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Stop logging\n");
+
+  l->logging_task = GNUNET_SCHEDULER_NO_TASK;
+}
+
+void
+GNUNET_ATS_solver_logging_eval (struct LoggingHandle *l)
+{
+
+}
+
+void
+GNUNET_ATS_solver_logging_free (struct LoggingHandle *l)
+{
+  if (GNUNET_SCHEDULER_NO_TASK != l->logging_task)
+    GNUNET_SCHEDULER_cancel (l->logging_task);
+  l->logging_task = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_free (l);
 }
 
 /**
@@ -145,8 +213,7 @@ get_property (struct PropertyGenerator *pg)
 
 
 static void
-set_prop_task (void *cls,
-                    const struct GNUNET_SCHEDULER_TaskContext *tc)
+set_prop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct PropertyGenerator *pg = cls;
   double pref_value;
@@ -1725,9 +1792,6 @@ enforce_start_preference (struct GNUNET_ATS_TEST_Operation *op)
     GNUNET_free (pg);
   }
 
-  fprintf (stderr, "ENFORECE: %s, %u\n", print_generator_type (op->gen_type),
-      op->base_rate);
-
   GNUNET_ATS_solver_generate_preferences_start (op->peer_id,
     op->address_id,
     op->gen_type,
@@ -2333,8 +2397,18 @@ done ()
 {
   /* Clean up experiment */
   GNUNET_ATS_solver_generate_preferences_stop_all ();
-  GNUNET_ATS_solvers_experimentation_stop (e);
-  e = NULL;
+
+  if (NULL != e)
+  {
+    GNUNET_ATS_solvers_experimentation_stop (e);
+    e = NULL;
+  }
+
+  if (NULL != l)
+  {
+    GNUNET_ATS_solver_logging_free (l);
+    l = NULL;
+  }
 
   /* Shutdown */
   end_now();
@@ -2351,7 +2425,7 @@ experiment_done_cb (struct Experiment *e, struct GNUNET_TIME_Relative duration,i
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Experiment failed \n");
 
   /* Stop logging */
-  // GNUNET_ATS_TEST_logging_stop (l);
+  GNUNET_ATS_solver_logging_stop (l);
 
   /* Stop traffic generation */
   // GNUNET_ATS_TEST_generate_traffic_stop_all();
@@ -2452,7 +2526,6 @@ run (void *cls, char * const *args, const char *cfgfile,
     return;
   }
 
-
   /* load solver */
   sh = GNUNET_ATS_solvers_solver_start (solver);
   if (NULL == sh)
@@ -2464,7 +2537,7 @@ run (void *cls, char * const *args, const char *cfgfile,
   }
 
   /* start logging */
-
+  l = GNUNET_ATS_solver_logging_start (e->log_freq);
 
   /* run experiment */
   GNUNET_ATS_solvers_experimentation_run (e, episode_done_cb,
