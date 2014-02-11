@@ -52,6 +52,47 @@ enum OperationType
   SOLVER_OP_STOP_REQUEST,
 };
 
+struct SolverHandle
+{
+  /**
+   * Solver plugin name
+   */
+  char *plugin;
+
+  /**
+   * Solver environment
+   */
+  struct GNUNET_ATS_PluginEnvironment env;
+
+  /**
+   * Solver handle
+   */
+  void *solver;
+
+  /**
+   * Address hashmap
+   */
+  struct GNUNET_CONTAINER_MultiPeerMap *addresses;
+};
+
+enum GNUNET_ATS_Solvers
+{
+  GNUNET_ATS_SOLVER_PROPORTIONAL,
+  GNUNET_ATS_SOLVER_MLP,
+  GNUNET_ATS_SOLVER_RIL,
+};
+
+
+struct TestPeer
+{
+  struct TestPeer *prev;
+  struct TestPeer *next;
+
+  int id;
+  struct GNUNET_PeerIdentity peer_id;
+};
+
+
 struct Episode;
 
 struct Experiment;

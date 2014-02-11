@@ -27,14 +27,16 @@
 #include "gnunet_util_lib.h"
 #include "gnunet-ats-solver-eval.h"
 
-
 #define BIG_M_STRING "unlimited"
 
 static struct Experiment *e;
 
 static struct LoggingHandle *l;
 
-static struct GNUNET_ATS_TESTING_SolverHandle *sh;
+static struct SolverHandle *sh;
+
+static struct TestPeer *peer_head;
+static struct TestPeer *peer_tail;
 
 /**
  * cmd option -e: experiment file
@@ -1452,7 +1454,7 @@ load_episode (struct Experiment *e, struct Episode *cur,
       return GNUNET_SYSERR;
     }
 
-    GNUNET_CONTAINER_DLL_insert (cur->head,cur->tail, o);
+    GNUNET_CONTAINER_DLL_insert_tail (cur->head,cur->tail, o);
     op_counter++;
   }
   GNUNET_free (sec_name);
@@ -1724,64 +1726,121 @@ timeout_experiment (void *cls, const struct GNUNET_SCHEDULER_TaskContext* tc)
       GNUNET_SYSERR);
 }
 
+static struct TestPeer *
+find_peer_by_id (int id)
+{
+  struct TestPeer *cur;
+  for (cur = peer_head; NULL != cur; cur = cur->next)
+    if (cur->id == id)
+      return cur;
+  return NULL;
+}
+
+struct ATS_Address *
+create_ats_address (const struct GNUNET_PeerIdentity *peer,
+                const char *plugin_name,
+                const void *plugin_addr, size_t plugin_addr_len,
+                uint32_t session_id)
+{
+  struct ATS_Address *aa = NULL;
+
+  aa = GNUNET_malloc (sizeof (struct ATS_Address) + plugin_addr_len + strlen (plugin_name) + 1);
+  aa->peer = *peer;
+  aa->addr_len = plugin_addr_len;
+  aa->addr = &aa[1];
+  aa->plugin = (char *) &aa[1] + plugin_addr_len;
+  memcpy (&aa[1], plugin_addr, plugin_addr_len);
+  memcpy (aa->plugin, plugin_name, strlen (plugin_name) + 1);
+  aa->session_id = session_id;
+  aa->active = GNUNET_NO;
+  aa->used = GNUNET_NO;
+  aa->solver_information = NULL;
+  aa->assigned_bw_in = GNUNET_BANDWIDTH_value_init(0);
+  aa->assigned_bw_out = GNUNET_BANDWIDTH_value_init(0);
+  return aa;
+}
+
 static void
 enforce_add_address (struct GNUNET_ATS_TEST_Operation *op)
 {
-  /*
-  struct BenchmarkPeer *peer;
-  struct BenchmarkPartner *partner;
+  struct ATS_Address *addr;
+  struct TestPeer *p;
 
-  peer = GNUNET_ATS_TEST_get_peer (op->src_id);
-  if (NULL == peer)
+  if (NULL == (p = find_peer_by_id (op->peer_id)))
   {
-    GNUNET_break (0);
-    return;
+    p = GNUNET_new (struct TestPeer);
+    p->id = op->peer_id;
+    memset (&p->peer_id, '0', sizeof (p->peer_id));
+    GNUNET_CONTAINER_DLL_insert (peer_head, peer_tail, p);
   }
 
-  partner = GNUNET_ATS_TEST_get_partner (op->src_id, op->dest_id);
-  if (NULL == partner)
+  addr = create_ats_address (&p->peer_id, op->plugin, op->address,
+      strlen (op->address) + 1, op->address_session);
+
+  GNUNET_CONTAINER_multipeermap_put (sh->addresses, &p->peer_id, addr,
+      GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Adding address %u for peer %u\n",
+      op->address_id, op->peer_id);
+
+  sh->env.sf.s_add (sh->solver, addr, op->address_network);
+
+}
+
+struct AddressLookupCtx
+{
+  struct ATS_Address *res;
+  struct GNUNET_ATS_TEST_Operation *op;
+};
+
+int find_address_it (void *cls,
+                     const struct GNUNET_PeerIdentity *key,
+                     void *value)
+{
+  struct AddressLookupCtx *ctx = cls;
+  struct ATS_Address *addr = value;
+
+  if ( (0 == strcmp (ctx->op->plugin, addr->plugin)) &&
+       (0 == strcmp (ctx->op->address, addr->addr)) )
   {
-    GNUNET_break (0);
-    return;
+       ctx->res = addr;
+       return GNUNET_NO;
   }
-
-  fprintf (stderr, "Found master %llu slave %llu\n",op->src_id, op->dest_id);
-
-  if (NULL != partner->tg)
-  {
-    fprintf (stderr, "Stopping traffic between master %llu slave %llu\n",op->src_id, op->dest_id);
-    GNUNET_ATS_TEST_generate_traffic_stop(partner->tg);
-    partner->tg = NULL;
-  }
-
-  partner->tg = GNUNET_ATS_TEST_generate_traffic_start(peer, partner,
-      op->tg_type, op->base_rate, op->max_rate, op->period,
-      GNUNET_TIME_UNIT_FOREVER_REL);
-   */
+  return GNUNET_YES;
 }
 
 static void
 enforce_del_address (struct GNUNET_ATS_TEST_Operation *op)
 {
-  /*
-  struct BenchmarkPartner *p;
-  p = GNUNET_ATS_TEST_get_partner (op->src_id, op->dest_id);
-  if (NULL == p)
+  struct TestPeer *p;
+  struct AddressLookupCtx ctx;
+
+  if (NULL == (p = find_peer_by_id (op->peer_id)))
   {
     GNUNET_break (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+        "Deleting address for unknown peer %u\n", op->peer_id);
     return;
   }
 
-  fprintf (stderr, "Found master %llu slave %llu\n",op->src_id, op->dest_id);
-
-  if (NULL != p->tg)
+  ctx.op = op;
+  ctx.res = NULL;
+  GNUNET_CONTAINER_multipeermap_get_multiple (sh->addresses, &p->peer_id,
+      find_address_it, &ctx);
+  if (NULL == ctx.res)
   {
-    fprintf (stderr, "Stopping traffic between master %llu slave %llu\n",
-        op->src_id, op->dest_id);
-    GNUNET_ATS_TEST_generate_traffic_stop(p->tg);
-    p->tg = NULL;
+    GNUNET_break (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+        "Deleting unknown address for peer %u\n", op->peer_id);
+    return;
   }
-  */
+
+  GNUNET_CONTAINER_multipeermap_remove (sh->addresses, &p->peer_id, ctx.res);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Removing address %u for peer %u\n",
+      op->address_id, op->peer_id);
+
+  sh->env.sf.s_del (sh->solver, ctx.res, GNUNET_NO);
 }
 
 static void
@@ -2108,24 +2167,8 @@ GNUNET_ATS_solvers_experimentation_load (char *filename)
  * Solver
  */
 
-struct GNUNET_ATS_TESTING_SolverHandle
-{
-  char * plugin;
-  struct GNUNET_ATS_PluginEnvironment env;
-  void *solver;
-  struct GNUNET_CONTAINER_MultiPeerMap *addresses;
-};
-
-enum GNUNET_ATS_Solvers
-{
-  GNUNET_ATS_SOLVER_PROPORTIONAL,
-  GNUNET_ATS_SOLVER_MLP,
-  GNUNET_ATS_SOLVER_RIL,
-};
-
-
 void
-GNUNET_ATS_solvers_solver_stop (struct GNUNET_ATS_TESTING_SolverHandle *sh)
+GNUNET_ATS_solvers_solver_stop (struct SolverHandle *sh)
 {
  GNUNET_STATISTICS_destroy ((struct GNUNET_STATISTICS_Handle *) sh->env.stats,
      GNUNET_NO);
@@ -2375,10 +2418,10 @@ normalized_property_changed_cb (void *cls, struct ATS_Address *peer,
 }
 
 
-struct GNUNET_ATS_TESTING_SolverHandle *
+struct SolverHandle *
 GNUNET_ATS_solvers_solver_start (enum GNUNET_ATS_Solvers type)
 {
-  struct GNUNET_ATS_TESTING_SolverHandle *sh;
+  struct SolverHandle *sh;
   char * solver_str;
   unsigned long long quotas_in[GNUNET_ATS_NetworkTypeCount];
   unsigned long long quotas_out[GNUNET_ATS_NetworkTypeCount];
@@ -2399,7 +2442,7 @@ GNUNET_ATS_solvers_solver_start (enum GNUNET_ATS_Solvers type)
       break;
   }
 
-  sh = GNUNET_new (struct GNUNET_ATS_TESTING_SolverHandle);
+  sh = GNUNET_new (struct SolverHandle);
   GNUNET_asprintf (&sh->plugin, "libgnunet_plugin_ats_%s", solver_str);
 
   /* setup environment */
