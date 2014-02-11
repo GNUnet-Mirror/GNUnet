@@ -90,8 +90,20 @@ struct TestPeer
 
   int id;
   struct GNUNET_PeerIdentity peer_id;
+
+  struct TestAddress *addr_head;
+  struct TestAddress *addr_tail;
 };
 
+
+struct TestAddress
+{
+  struct TestAddress *next;
+  struct TestAddress *prev;
+
+  int aid;
+  struct ATS_Address *ats_addr;
+};
 
 struct Episode;
 
@@ -202,7 +214,8 @@ struct PropertyGenerator
   unsigned int peer;
   unsigned int address_id;
 
-  struct ATS_Address *address;
+  struct TestPeer *test_peer;
+  struct TestAddress *test_address;
   uint32_t ats_property;
 
   long int base_value;

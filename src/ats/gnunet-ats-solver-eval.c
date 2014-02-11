@@ -88,8 +88,8 @@ struct AddressLookupCtx
   struct ATS_Address *res;
   char *plugin;
   char *addr;
-  unsigned int address_id;
 };
+
 
 int find_address_it (void *cls,
                      const struct GNUNET_PeerIdentity *key,
@@ -116,6 +116,17 @@ find_peer_by_id (int id)
       return cur;
   return NULL;
 }
+
+static struct TestAddress *
+find_address_by_id (struct TestPeer *peer, int aid)
+{
+  struct TestAddress *cur;
+  for (cur = peer->addr_head; NULL != cur; cur = cur->next)
+    if (cur->aid == aid)
+      return cur;
+  return NULL;
+}
+
 
 
 /**
@@ -253,22 +264,13 @@ static void
 set_prop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct PropertyGenerator *pg = cls;
-  struct TestPeer *p;
   double pref_value;
   struct GNUNET_ATS_Information atsi;
 
   pg->set_task = GNUNET_SCHEDULER_NO_TASK;
 
-  if (NULL == (p = find_peer_by_id (pg->peer)))
-  {
-    GNUNET_break (0);
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-        "Setting property generation for unknown peer %u\n", pg->peer);
-    return;
-  }
-
   if (GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains_value (sh->addresses,
-      &p->peer_id, pg->address))
+      &pg->test_peer->peer_id, pg->test_address->ats_addr))
   {
     GNUNET_break (0);
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -289,7 +291,8 @@ set_prop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   /* set performance here! */
   sh->env.sf.s_bulk_start (sh->solver);
-  GAS_normalization_normalize_property (sh->addresses, pg->address, &atsi, 1);
+  GAS_normalization_normalize_property (sh->addresses,
+      pg->test_address->ats_addr, &atsi, 1);
   sh->env.sf.s_bulk_stop (sh->solver);
 
 
@@ -356,7 +359,8 @@ GNUNET_ATS_solver_generate_property_stop (struct PropertyGenerator *pg)
 struct PropertyGenerator *
 GNUNET_ATS_solver_generate_property_start (unsigned int peer,
     unsigned int address_id,
-    struct ATS_Address *ats_address,
+    struct TestPeer *test_peer,
+    struct TestAddress *test_address,
     enum GeneratorType type,
     long int base_value,
     long int value_rate,
@@ -370,7 +374,8 @@ GNUNET_ATS_solver_generate_property_start (unsigned int peer,
   GNUNET_CONTAINER_DLL_insert (prop_gen_head, prop_gen_tail, pg);
   pg->type = type;
   pg->peer = peer;
-  pg->address = ats_address;
+  pg->test_address = test_address;
+  pg->test_peer = test_peer;
   pg->address_id = address_id;
   pg->ats_property = ats_property;
   pg->base_value = base_value;
@@ -1616,30 +1621,42 @@ create_ats_address (const struct GNUNET_PeerIdentity *peer,
   return aa;
 }
 
+
+
 static void
 enforce_add_address (struct GNUNET_ATS_TEST_Operation *op)
 {
-  struct ATS_Address *addr;
   struct TestPeer *p;
+  struct TestAddress *a;
 
   if (NULL == (p = find_peer_by_id (op->peer_id)))
   {
     p = GNUNET_new (struct TestPeer);
     p->id = op->peer_id;
-    memset (&p->peer_id, '0', sizeof (p->peer_id));
+    memset (&p->peer_id, op->peer_id, sizeof (p->peer_id));
     GNUNET_CONTAINER_DLL_insert (peer_head, peer_tail, p);
   }
 
-  addr = create_ats_address (&p->peer_id, op->plugin, op->address,
-      strlen (op->address) + 1, op->address_session);
+  if (NULL != (a = find_address_by_id (p, op->address_id)))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Duplicate address %u for peer %u\n",
+        op->address_id, op->peer_id);
+  }
 
-  GNUNET_CONTAINER_multipeermap_put (sh->addresses, &p->peer_id, addr,
-      GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+  a = GNUNET_new (struct TestAddress);
+  a->aid = op->address_id;
+  a->ats_addr = create_ats_address (&p->peer_id, op->plugin, op->address,
+      strlen (op->address) + 1, op->address_session);
+  memset (&p->peer_id, op->peer_id, sizeof (p->peer_id));
+  GNUNET_CONTAINER_DLL_insert (p->addr_head, p->addr_tail, a);
+
+  GNUNET_CONTAINER_multipeermap_put (sh->addresses, &p->peer_id, a->ats_addr,
+    GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Adding address %u for peer %u\n",
-      op->address_id, op->peer_id);
+    op->address_id, op->peer_id);
 
-  sh->env.sf.s_add (sh->solver, addr, op->address_network);
+  sh->env.sf.s_add (sh->solver, a->ats_addr, op->address_network);
 
 }
 
@@ -1648,6 +1665,7 @@ static void
 enforce_del_address (struct GNUNET_ATS_TEST_Operation *op)
 {
   struct TestPeer *p;
+  struct TestAddress *a;
   struct AddressLookupCtx ctx;
 
   if (NULL == (p = find_peer_by_id (op->peer_id)))
@@ -1671,6 +1689,15 @@ enforce_del_address (struct GNUNET_ATS_TEST_Operation *op)
     return;
   }
 
+  if (NULL == (a = find_address_by_id (p, op->address_id)))
+  {
+    GNUNET_break (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+        "Deleting address for unknown peer %u\n", op->peer_id);
+    return;
+  }
+  GNUNET_CONTAINER_DLL_remove (p->addr_head, p->addr_tail, a);
+
   GNUNET_CONTAINER_multipeermap_remove (sh->addresses, &p->peer_id, ctx.res);
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Removing address %u for peer %u\n",
@@ -1685,14 +1712,14 @@ static void
 enforce_start_property (struct GNUNET_ATS_TEST_Operation *op)
 {
   struct PropertyGenerator *pg;
+  struct TestPeer *p;
+  struct TestAddress *a;
+
   if (NULL != (pg = find_prop_gen (op->peer_id, op->address_id, op->prop_type)))
   {
     GNUNET_ATS_solver_generate_property_stop (pg);
     GNUNET_free (pg);
   }
-
-  struct TestPeer *p;
-  struct AddressLookupCtx ctx;
 
   if (NULL == (p = find_peer_by_id (op->peer_id)))
   {
@@ -1702,23 +1729,17 @@ enforce_start_property (struct GNUNET_ATS_TEST_Operation *op)
     return;
   }
 
-  ctx.plugin = op->plugin;
-  ctx.addr = op->address;
-  ctx.res = NULL;
-  GNUNET_CONTAINER_multipeermap_get_multiple (sh->addresses, &p->peer_id,
-      find_address_it, &ctx);
-  if (NULL == ctx.res)
+  if (NULL == (a = find_address_by_id (p, op->address_id)))
   {
     GNUNET_break (0);
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-        "Starting property generation for unknown address for peer %u\n",
-        op->peer_id);
+        "Setting proprterty for unknown address %u\n", op->peer_id);
     return;
   }
 
   GNUNET_ATS_solver_generate_property_start (op->peer_id,
     op->address_id,
-    ctx.res,
+    p, a,
     op->gen_type,
     op->base_rate,
     op->max_rate,
@@ -2419,7 +2440,6 @@ done ()
   {
     next = cur->next;
     GNUNET_CONTAINER_DLL_remove (peer_head, peer_tail, cur);
-    GNUNET_break (0);
     GNUNET_CONTAINER_multipeermap_iterate (sh->env.addresses, &free_all_it, NULL);
 
     GNUNET_free (cur);
