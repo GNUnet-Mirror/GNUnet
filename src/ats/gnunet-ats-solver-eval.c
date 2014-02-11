@@ -613,9 +613,13 @@ print_op (enum OperationType op)
     case SOLVER_OP_STOP_SET_PREFERENCE:
       return "STOP_STOP_PREFERENCE";
     case SOLVER_OP_START_SET_PROPERTY:
-          return "START_SET_PROPERTY";
+      return "START_SET_PROPERTY";
     case SOLVER_OP_STOP_SET_PROPERTY:
       return "STOP_SET_PROPERTY";
+    case SOLVER_OP_START_REQUEST:
+      return "START_REQUEST";
+    case SOLVER_OP_STOP_REQUEST:
+      return "STOP_REQUEST";
     default:
       break;
   }
@@ -1134,22 +1138,18 @@ load_op_start_set_property(struct GNUNET_ATS_TEST_Operation *o,
   if (0 == strcmp (type, "constant"))
   {
     o->gen_type = GNUNET_ATS_TEST_TG_CONSTANT;
-    GNUNET_break (0);
   }
   else if (0 == strcmp (type, "linear"))
   {
     o->gen_type = GNUNET_ATS_TEST_TG_LINEAR;
-    GNUNET_break (0);
   }
   else if (0 == strcmp (type, "sinus"))
   {
     o->gen_type = GNUNET_ATS_TEST_TG_SINUS;
-    GNUNET_break (0);
   }
   else if (0 == strcmp (type, "random"))
   {
     o->gen_type = GNUNET_ATS_TEST_TG_RANDOM;
-    GNUNET_break (0);
   }
   else
   {
@@ -1313,6 +1313,54 @@ load_op_stop_set_property (struct GNUNET_ATS_TEST_Operation *o,
   return GNUNET_OK;
 }
 
+
+static int
+load_op_start_request (struct GNUNET_ATS_TEST_Operation *o,
+    struct Episode *e,
+    int op_counter,
+    char *sec_name,
+    const struct GNUNET_CONFIGURATION_Handle *cfg)
+{
+  char *op_name;
+
+  /* peer id */
+  GNUNET_asprintf(&op_name, "op-%u-peer-id", op_counter);
+  if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number (cfg,
+      sec_name, op_name, &o->peer_id))
+  {
+    fprintf (stderr, "Missing peer-id in operation %u  `%s' in episode `%s'\n",
+        op_counter, "START_REQUEST", op_name);
+    GNUNET_free (op_name);
+    return GNUNET_SYSERR;
+  }
+  GNUNET_free (op_name);
+  return GNUNET_OK;
+}
+
+static int
+load_op_stop_request (struct GNUNET_ATS_TEST_Operation *o,
+    struct Episode *e,
+    int op_counter,
+    char *sec_name,
+    const struct GNUNET_CONFIGURATION_Handle *cfg)
+{
+  char *op_name;
+
+  /* peer id */
+  GNUNET_asprintf(&op_name, "op-%u-peer-id", op_counter);
+  if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number (cfg,
+      sec_name, op_name, &o->peer_id))
+  {
+    fprintf (stderr, "Missing peer-id in operation %u  `%s' in episode `%s'\n",
+        op_counter, "STOP_REQUEST", op_name);
+    GNUNET_free (op_name);
+    return GNUNET_SYSERR;
+  }
+  GNUNET_free (op_name);
+  return GNUNET_OK;
+}
+
+
 static int
 load_episode (struct Experiment *e, struct Episode *cur,
     struct GNUNET_CONFIGURATION_Handle *cfg)
@@ -1322,6 +1370,7 @@ load_episode (struct Experiment *e, struct Episode *cur,
   char *op_name;
   char *op;
   int op_counter = 0;
+  int res;
   fprintf (stderr, "Parsing episode %u\n",cur->id);
   GNUNET_asprintf(&sec_name, "episode-%u", cur->id);
 
@@ -1340,93 +1389,68 @@ load_episode (struct Experiment *e, struct Episode *cur,
     if (0 == strcmp (op, "address_add"))
     {
       o->type = SOLVER_OP_ADD_ADDRESS;
-      if (GNUNET_SYSERR == load_op_add_address (o, cur,
-          op_counter, sec_name, cfg))
-      {
-        GNUNET_free (o);
-        GNUNET_free (op);
-        GNUNET_free (op_name);
-        GNUNET_free (sec_name);
-        return GNUNET_SYSERR;
-      }
+      res = load_op_add_address (o, cur,
+          op_counter, sec_name, cfg);
     }
     else if (0 == strcmp (op, "address_del"))
     {
       o->type = SOLVER_OP_DEL_ADDRESS;
-      if (GNUNET_SYSERR == load_op_del_address (o, cur,
-          op_counter, sec_name, cfg))
-      {
-        GNUNET_free (o);
-        GNUNET_free (op);
-        GNUNET_free (op_name);
-        GNUNET_free (sec_name);
-        return GNUNET_SYSERR;
-      }
+      res = load_op_del_address (o, cur,
+          op_counter, sec_name, cfg);
     }
     else if (0 == strcmp (op, "start_set_property"))
     {
       o->type = SOLVER_OP_START_SET_PROPERTY;
-      if (GNUNET_SYSERR == load_op_start_set_property (o, cur,
-          op_counter, sec_name, cfg))
-      {
-        GNUNET_free (o);
-        GNUNET_free (op);
-        GNUNET_free (op_name);
-        GNUNET_free (sec_name);
-        return GNUNET_SYSERR;
-      }
+      res = load_op_start_set_property (o, cur,
+          op_counter, sec_name, cfg);
     }
     else if (0 == strcmp (op, "stop_set_property"))
     {
       o->type = SOLVER_OP_STOP_SET_PROPERTY;
-      if (GNUNET_SYSERR == load_op_stop_set_property (o, cur,
-          op_counter, sec_name, cfg))
-      {
-        GNUNET_free (o);
-        GNUNET_free (op);
-        GNUNET_free (op_name);
-        GNUNET_free (sec_name);
-        return GNUNET_SYSERR;
-      }
+      res = load_op_stop_set_property (o, cur,
+          op_counter, sec_name, cfg);
     }
     else if (0 == strcmp (op, "start_set_preference"))
     {
       o->type = SOLVER_OP_START_SET_PREFERENCE;
-      if (GNUNET_SYSERR == load_op_start_set_preference (o, cur,
-          op_counter, sec_name, cfg))
-      {
-        GNUNET_free (o);
-        GNUNET_free (op);
-        GNUNET_free (op_name);
-        GNUNET_free (sec_name);
-        return GNUNET_SYSERR;
-      }
+      res =  load_op_start_set_preference (o, cur,
+          op_counter, sec_name, cfg);
+        break;
     }
     else if (0 == strcmp (op, "stop_set_preference"))
     {
       o->type = SOLVER_OP_STOP_SET_PREFERENCE;
-      if (GNUNET_SYSERR == load_op_stop_set_preference (o, cur,
-          op_counter, sec_name, cfg))
-      {
-        GNUNET_free (o);
-        GNUNET_free (op);
-        GNUNET_free (op_name);
-        GNUNET_free (sec_name);
-        return GNUNET_SYSERR;
-      }
+      res =  load_op_stop_set_preference (o, cur,
+          op_counter, sec_name, cfg);
+    }
+    else if (0 == strcmp (op, "start_request"))
+    {
+      o->type = SOLVER_OP_START_REQUEST;
+      res = load_op_start_request (o, cur,
+          op_counter, sec_name, cfg);
+    }
+    else if (0 == strcmp (op, "stop_request"))
+    {
+      o->type = SOLVER_OP_STOP_REQUEST;
+      res = load_op_stop_request(o, cur,
+          op_counter, sec_name, cfg);
     }
     else
     {
       fprintf (stderr, "Invalid operation %u `%s' in episode %u\n",
           op_counter, op, cur->id);
+      res = GNUNET_SYSERR;
+    }
+
+    GNUNET_free (op);
+    GNUNET_free (op_name);
+
+    if (GNUNET_SYSERR == res)
+    {
       GNUNET_free (o);
-      GNUNET_free (op);
-      GNUNET_free (op_name);
       GNUNET_free (sec_name);
       return GNUNET_SYSERR;
     }
-    GNUNET_free (op);
-    GNUNET_free (op_name);
 
     GNUNET_CONTAINER_DLL_insert (cur->head,cur->tail, o);
     op_counter++;
@@ -1818,6 +1842,21 @@ enforce_stop_preference (struct GNUNET_ATS_TEST_Operation *op)
       GNUNET_ATS_solver_generate_preferences_stop (pg);
 }
 
+
+static void
+enforce_start_request (struct GNUNET_ATS_TEST_Operation *op)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Requesting address for peer %u\n",
+      op->peer_id);
+}
+
+static void
+enforce_stop_request (struct GNUNET_ATS_TEST_Operation *op)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Stop requesting address for peer %u\n",
+      op->peer_id);
+}
+
 static void enforce_episode (struct Episode *ep)
 {
   struct GNUNET_ATS_TEST_Operation *cur;
@@ -1853,6 +1892,16 @@ static void enforce_episode (struct Episode *ep)
         fprintf (stderr, "Enforcing operation: %s [%llu:%llu] == %llu\n",
             print_op (cur->type), cur->peer_id, cur->address_id, cur->base_rate);
         enforce_stop_preference (cur);
+        break;
+      case SOLVER_OP_START_REQUEST:
+        fprintf (stderr, "Enforcing operation: %s [%llu]\n",
+            print_op (cur->type), cur->peer_id);
+        enforce_start_request (cur);
+        break;
+      case SOLVER_OP_STOP_REQUEST:
+        fprintf (stderr, "Enforcing operation: %s [%llu]\n",
+            print_op (cur->type), cur->peer_id);
+        enforce_stop_request (cur);
         break;
       default:
         break;
@@ -2054,11 +2103,6 @@ GNUNET_ATS_solvers_experimentation_load (char *filename)
   GNUNET_CONFIGURATION_destroy (cfg);
   return e;
 }
-
-/**
- * Logging
- */
-
 
 /**
  * Solver
