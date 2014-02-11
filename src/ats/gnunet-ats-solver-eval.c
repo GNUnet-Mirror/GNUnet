@@ -60,6 +60,11 @@ static int opt_plot;
  */
 static int opt_verbose;
 
+/**
+ * cmd option -p: print logs
+ */
+static int opt_print;
+
 static int res;
 
 static void
@@ -133,14 +138,28 @@ find_address_by_id (struct TestPeer *peer, int aid)
  * Logging
  */
 
+void
+GNUNET_ATS_solver_logging_now (struct LoggingHandle *l)
+{
+  struct LoggingTimeStep *lts;
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Logging\n");
+
+  lts = GNUNET_new (struct LoggingTimeStep);
+  lts->timestamp = GNUNET_TIME_absolute_get();
+
+  /* Store logging data here */
+
+  GNUNET_CONTAINER_DLL_insert_tail(l->head, l->tail, lts);
+
+}
+
 static void
 logging_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct LoggingHandle *l = cls;
-
   l->logging_task = GNUNET_SCHEDULER_NO_TASK;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Logging\n");
+  GNUNET_ATS_solver_logging_now (l);
 
   l->logging_task = GNUNET_SCHEDULER_add_delayed (l->log_freq, &logging_task, l);
 
@@ -164,12 +183,6 @@ GNUNET_ATS_solver_logging_start (struct GNUNET_TIME_Relative freq)
 }
 
 void
-GNUNET_ATS_solver_logging_now (struct LoggingHandle *l)
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Logging\n");
-}
-
-void
 GNUNET_ATS_solver_logging_stop (struct LoggingHandle *l)
 {
   if (GNUNET_SCHEDULER_NO_TASK != l->logging_task)
@@ -183,15 +196,32 @@ GNUNET_ATS_solver_logging_stop (struct LoggingHandle *l)
 void
 GNUNET_ATS_solver_logging_eval (struct LoggingHandle *l)
 {
+  struct LoggingTimeStep *lts;
 
+  for (lts = l->head; NULL != lts; lts = lts->next)
+  {
+    fprintf (stderr, "Log %llu: \n", (long long unsigned int) lts->timestamp.abs_value_us);
+  }
 }
 
 void
 GNUNET_ATS_solver_logging_free (struct LoggingHandle *l)
 {
+  struct LoggingTimeStep *cur;
+  struct LoggingTimeStep *next;
+
   if (GNUNET_SCHEDULER_NO_TASK != l->logging_task)
     GNUNET_SCHEDULER_cancel (l->logging_task);
   l->logging_task = GNUNET_SCHEDULER_NO_TASK;
+
+  next = l->head;
+  while (NULL != (cur = next))
+  {
+    next = cur->next;
+    GNUNET_CONTAINER_DLL_remove (l->head, l->tail, cur);
+    GNUNET_free (cur);
+  }
+
   GNUNET_free (l);
 }
 
@@ -1717,7 +1747,6 @@ enforce_del_address (struct GNUNET_ATS_TEST_Operation *op)
         "Deleting address for unknown peer %u\n", op->peer_id);
     return;
   }
-  GNUNET_CONTAINER_DLL_remove (p->addr_head, p->addr_tail, a);
 
   GNUNET_CONTAINER_multipeermap_remove (sh->addresses, &p->peer_id, ctx.res);
 
@@ -2472,6 +2501,9 @@ done ()
     e = NULL;
   }
 
+  if (opt_print)
+    GNUNET_ATS_solver_logging_eval (l);
+
   if (NULL != l)
   {
     GNUNET_ATS_solver_logging_free (l);
@@ -2492,7 +2524,6 @@ done ()
     }
     GNUNET_free (cur);
   }
-
   if (NULL != sh)
   {
     GNUNET_ATS_solvers_solver_stop (sh);
@@ -2500,7 +2531,6 @@ done ()
   }
   /* Shutdown */
   end_now();
-
 }
 
 static void
@@ -2512,19 +2542,6 @@ experiment_done_cb (struct Experiment *e, struct GNUNET_TIME_Relative duration,i
   else
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Experiment failed \n");
 
-
-  /*
-  evaluate (duration);
-  if (opt_log)
-    GNUNET_ATS_TEST_logging_write_to_file(l, opt_exp_file, opt_plot);
-
-  if (NULL != l)
-  {
-    GNUNET_ATS_TEST_logging_stop (l);
-    GNUNET_ATS_TEST_logging_clean_up (l);
-    l = NULL;
-  }
-  */
   GNUNET_SCHEDULER_add_now (&done, NULL);
 }
 
@@ -2654,6 +2671,9 @@ main (int argc, char *argv[])
     {  'e', "experiment", NULL,
       gettext_noop ("experiment to use"),
       1, &GNUNET_GETOPT_set_one, &opt_verbose},
+    {  'p', "print", NULL,
+      gettext_noop ("print logging"),
+      0, &GNUNET_GETOPT_set_one, &opt_print},
     GNUNET_GETOPT_OPTION_END
   };
 

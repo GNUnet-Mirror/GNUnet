@@ -83,6 +83,15 @@ enum GNUNET_ATS_Solvers
 };
 
 
+struct LoggingTimeStep
+{
+  struct LoggingTimeStep *prev;
+  struct LoggingTimeStep *next;
+
+  struct GNUNET_TIME_Absolute timestamp;
+};
+
+
 struct TestPeer
 {
   struct TestPeer *prev;
@@ -157,6 +166,10 @@ struct LoggingHandle
 {
   GNUNET_SCHEDULER_TaskIdentifier logging_task;
   struct GNUNET_TIME_Relative log_freq;
+
+  struct LoggingTimeStep *head;
+
+  struct LoggingTimeStep *tail;
 };
 
 struct Experiment

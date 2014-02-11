@@ -37,7 +37,7 @@ op-3-peer-id = 1
 
 [episode-1]
 # Set delay
-duration = 5 s
+duration = 1 s
 
 op-0-operation = start_set_preference
 op-0-address-id = 0
