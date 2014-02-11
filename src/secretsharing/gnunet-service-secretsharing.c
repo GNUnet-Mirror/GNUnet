@@ -58,15 +58,15 @@ struct KeygenPeerInfo
   gcry_mpi_t presecret_commitment;
 
   /**
-   * The peer's preshare that we decrypted
-   * with out private key.
+   * Commitment to the preshare that is
+   * intended for our peer.
    */
-  gcry_mpi_t decrypted_preshare;
+  gcry_mpi_t preshare_commitment;
 
   /**
-   * Multiplicative share of the public key.
+   * Sigma (exponentiated share) for this peer.
    */
-  gcry_mpi_t public_key_share;
+  gcry_mpi_t sigma;
 
   /**
    * Did we successfully receive the round1 element
@@ -204,6 +204,17 @@ struct KeygenSession
    * of peers in the session.
    */
   unsigned int local_peer_idx;
+
+  /**
+   * Share of our peer.  Once preshares from other peers are received, they
+   * will be added to 'my'share.
+   */
+  gcry_mpi_t my_share;
+
+  /**
+   * Public key, will be updated when a round2 element arrives.
+   */
+  gcry_mpi_t public_key;
 };
 
 
@@ -593,6 +604,7 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
+
 /**
  * Generate the random coefficients of our pre-secret polynomial
  *
@@ -679,8 +691,7 @@ keygen_round1_new_element (void *cls,
     return;
   }
   info->paillier_public_key = d->pubkey;
-  // FIXME: does not make any sense / is wrong
-  GNUNET_CRYPTO_mpi_scan_unsigned (&info->presecret_commitment, &d->pubkey.n, GNUNET_CRYPTO_PAILLIER_BITS / 8);
+  GNUNET_CRYPTO_mpi_scan_unsigned (&info->presecret_commitment, &d->commitment, 512 / 8);
   info->round1_valid = GNUNET_YES;
 }
 
@@ -720,20 +731,8 @@ keygen_round2_conclude (void *cls)
   unsigned int i;
   unsigned int j;
   struct GNUNET_SECRETSHARING_Share *share;
-  /* our share */
-  gcry_mpi_t s;
-  /* public key */
-  gcry_mpi_t h;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "round2 conclude\n");
-
-  GNUNET_assert (0 != (s = gcry_mpi_new (GNUNET_SECRETSHARING_ELGAMAL_BITS)));
-  GNUNET_assert (0 != (h = gcry_mpi_new (GNUNET_SECRETSHARING_ELGAMAL_BITS)));
-
-  // multiplicative identity
-  gcry_mpi_set_ui (h, 1);
-  // additive identity
-  gcry_mpi_set_ui (s, 0);
 
   share = GNUNET_new (struct GNUNET_SECRETSHARING_Share);
 
@@ -744,29 +743,38 @@ keygen_round2_conclude (void *cls)
       share->num_peers++;
 
   share->peers = GNUNET_new_array (share->num_peers, struct GNUNET_PeerIdentity);
-  share->hom_share_commitments =
+  share->sigmas =
       GNUNET_new_array (share->num_peers, struct GNUNET_SECRETSHARING_FieldElement);
   share->original_indices = GNUNET_new_array (share->num_peers, uint16_t);
 
   /* maybe we're not even in the list of peers? */
   share->my_peer = share->num_peers;
 
-  j = 0;
+  j = 0; /* running index of valid peers */
   for (i = 0; i < ks->num_peers; i++)
   {
     if (GNUNET_YES == ks->info[i].round2_valid)
     {
-      gcry_mpi_addm (s, s, ks->info[i].decrypted_preshare, elgamal_p);
-      gcry_mpi_mulm (h, h, ks->info[i].public_key_share, elgamal_p);
-      share->peers[i] = ks->info[i].peer;
-      share->original_indices[i] = j++;
+      share->peers[j] = ks->info[i].peer;
+      GNUNET_CRYPTO_mpi_print_unsigned (&share->sigmas[j],
+                                        GNUNET_SECRETSHARING_ELGAMAL_BITS / 8,
+                                        ks->info[i].sigma);
+      share->original_indices[i] = j;
       if (0 == memcmp (&share->peers[i], &my_peer, sizeof (struct GNUNET_PeerIdentity)))
-        share->my_peer = i;
+        share->my_peer = j;
+      j += 1;
     }
   }
 
-  GNUNET_CRYPTO_mpi_print_unsigned (&share->my_share, GNUNET_SECRETSHARING_ELGAMAL_BITS / 8, s);
-  GNUNET_CRYPTO_mpi_print_unsigned (&share->public_key, GNUNET_SECRETSHARING_ELGAMAL_BITS / 8, h);
+  if (share->my_peer == share->num_peers)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "P%u: peer identity not in share\n", ks->local_peer_idx);
+  }
+
+  GNUNET_CRYPTO_mpi_print_unsigned (&share->my_share, GNUNET_SECRETSHARING_ELGAMAL_BITS / 8,
+                                    ks->my_share);
+  GNUNET_CRYPTO_mpi_print_unsigned (&share->public_key, GNUNET_SECRETSHARING_ELGAMAL_BITS / 8,
+                                    ks->public_key);
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "keygen completed with %u peers\n", share->num_peers);
 
@@ -792,8 +800,8 @@ keygen_round2_conclude (void *cls)
  * (1) The exponentiated pre-share polynomial coefficients A_{i,l}=g^{a_{i,l}}
  * (2) The exponentiated pre-shares y_{i,j}=g^{s_{i,j}}
  * (3) The encrypted pre-shares Y_{i,j}
- * (4) The zero knowledge proof for correctness of
- *    the encryption
+ * (4) The zero knowledge proof for fairness of
+ *     the encryption
  *
  * @param ks session to use
  */
@@ -899,6 +907,67 @@ insert_round2_element (struct KeygenSession *ks)
 }
 
 
+static gcry_mpi_t
+keygen_reveal_get_exp_preshare (struct KeygenSession *ks,
+                                const struct GNUNET_SECRETSHARING_KeygenRevealData *d,
+                                unsigned int idx)
+{
+  unsigned char *pos;
+  gcry_mpi_t exp_preshare;
+
+  GNUNET_assert (idx < ks->num_peers);
+
+  GNUNET_assert (NULL != (exp_preshare = gcry_mpi_new (0)));
+
+  pos = (void *) &d[1];
+  // skip exponentiated pre-shares we don't want
+  pos += GNUNET_SECRETSHARING_ELGAMAL_BITS / 8 * idx;
+  GNUNET_CRYPTO_mpi_scan_unsigned (&exp_preshare, pos, GNUNET_SECRETSHARING_ELGAMAL_BITS / 8);
+  return exp_preshare;
+}
+
+static gcry_mpi_t
+keygen_reveal_get_exp_coeff (struct KeygenSession *ks,
+                             const struct GNUNET_SECRETSHARING_KeygenRevealData *d,
+                             unsigned int idx)
+{
+  unsigned char *pos;
+  gcry_mpi_t exp_coeff;
+
+  GNUNET_assert (idx < ks->threshold);
+  GNUNET_assert (NULL != (exp_coeff = gcry_mpi_new (0)));
+
+  pos = (void *) &d[1];
+  // skip exponentiated pre-shares
+  pos += GNUNET_SECRETSHARING_ELGAMAL_BITS / 8 * ks->num_peers;
+  // skip encrypted pre-shares
+  pos += sizeof (struct GNUNET_CRYPTO_PaillierCiphertext) * ks->num_peers;
+  // skip exp. coeffs we are not interested in
+  pos += GNUNET_SECRETSHARING_ELGAMAL_BITS / 8 * idx;
+  // the first exponentiated coefficient is the public key share
+  GNUNET_CRYPTO_mpi_scan_unsigned (&exp_coeff, pos, GNUNET_SECRETSHARING_ELGAMAL_BITS / 8);
+  return exp_coeff;
+}
+
+
+static struct GNUNET_CRYPTO_PaillierCiphertext *
+keygen_reveal_get_enc_preshare (struct KeygenSession *ks,
+                                const struct GNUNET_SECRETSHARING_KeygenRevealData *d,
+                                unsigned int idx)
+{
+  unsigned char *pos;
+
+  GNUNET_assert (idx < ks->num_peers);
+
+  pos = (void *) &d[1];
+  // skip exponentiated pre-shares
+  pos += GNUNET_SECRETSHARING_ELGAMAL_BITS / 8 * ks->num_peers;
+  // skip encrypted pre-shares we're not interested in
+  pos += sizeof (struct GNUNET_CRYPTO_PaillierCiphertext) * idx;
+  return (struct GNUNET_CRYPTO_PaillierCiphertext *) pos;
+}
+
+
 static void
 keygen_round2_new_element (void *cls,
                            const struct GNUNET_SET_Element *element)
@@ -906,8 +975,11 @@ keygen_round2_new_element (void *cls,
   struct KeygenSession *ks = cls;
   const struct GNUNET_SECRETSHARING_KeygenRevealData *d;
   struct KeygenPeerInfo *info;
-  unsigned char *pos;
   size_t expected_element_size;
+  unsigned int j;
+  gcry_mpi_t tmp;
+  gcry_mpi_t public_key_share;
+  gcry_mpi_t preshare;
 
   if (NULL == element)
   {
@@ -958,26 +1030,6 @@ keygen_round2_new_element (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "got round2 element\n");
 
-  pos = (void *) &d[1];
-  // skip exponentiated pre-shares
-  pos += GNUNET_SECRETSHARING_ELGAMAL_BITS / 8 * ks->num_peers;
-  // skip encrypted pre-shares
-  pos += sizeof (struct GNUNET_CRYPTO_PaillierCiphertext) * ks->num_peers;
-  // the first exponentiated coefficient is the public key share
-  GNUNET_CRYPTO_mpi_scan_unsigned (&info->public_key_share, pos, GNUNET_SECRETSHARING_ELGAMAL_BITS / 8);
-
-  pos = (void *) &d[1];
-  // skip exp. pre-shares
-  pos += GNUNET_SECRETSHARING_ELGAMAL_BITS / 8 * ks->num_peers;
-  // skip to the encrypted value for our peer
-  pos += sizeof (struct GNUNET_CRYPTO_PaillierCiphertext) * ks->local_peer_idx;
-
-  GNUNET_assert (NULL != (info->decrypted_preshare = gcry_mpi_new (0)));
-  GNUNET_CRYPTO_paillier_decrypt (&ks->paillier_private_key, &ks->info[ks->local_peer_idx].paillier_public_key,
-                                  (struct GNUNET_CRYPTO_PaillierCiphertext *) pos, info->decrypted_preshare);
-
-  // TODO: validate zero knowledge proofs
-
   if (ntohl (d->purpose.size) !=
       element->size - offsetof (struct GNUNET_SECRETSHARING_KeygenRevealData, purpose))
   {
@@ -991,6 +1043,84 @@ keygen_round2_new_element (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "keygen reveal data with invalid signature in consensus\n");
     return;
   }
+
+  public_key_share = keygen_reveal_get_exp_coeff (ks, d, 0);
+  info->preshare_commitment = keygen_reveal_get_exp_preshare (ks, d, ks->local_peer_idx);
+
+  if (NULL == ks->public_key)
+  {
+    GNUNET_assert (NULL != (ks->public_key = gcry_mpi_new (0)));
+    gcry_mpi_set_ui (ks->public_key, 1);
+  }
+  gcry_mpi_mulm (ks->public_key, ks->public_key, public_key_share, elgamal_p);
+
+  GNUNET_assert (NULL != (preshare = gcry_mpi_new (0)));
+  GNUNET_CRYPTO_paillier_decrypt (&ks->paillier_private_key,
+                                  &ks->info[ks->local_peer_idx].paillier_public_key,
+                                  keygen_reveal_get_enc_preshare (ks, d, ks->local_peer_idx),
+                                  preshare);
+
+  GNUNET_assert (NULL != (tmp = gcry_mpi_new (0)));
+  gcry_mpi_powm (tmp, elgamal_g, preshare, elgamal_p);
+
+  // TODO: restore a valid secret from the decryption (the hard part, solving SVP with gauss)
+  if (0 != gcry_mpi_cmp (tmp, info->preshare_commitment))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "P%u: Got invalid presecret from P%u\n",
+                (unsigned int) ks->local_peer_idx, (unsigned int) (info - ks->info));
+    return;
+  }
+
+  if (NULL == ks->my_share)
+  {
+    GNUNET_assert (NULL != (ks->my_share = gcry_mpi_new (0)));
+  }
+  gcry_mpi_addm (ks->my_share, ks->my_share, preshare, elgamal_q);
+
+  for (j = 0; j < ks->num_peers; j++)
+  {
+    gcry_mpi_t presigma;
+    if (NULL == ks->info[j].sigma)
+    {
+      GNUNET_assert (NULL != (ks->info[j].sigma = gcry_mpi_new (0)));
+      gcry_mpi_set_ui (ks->info[j].sigma, 1);
+    }
+    presigma = keygen_reveal_get_exp_preshare (ks, d, j);
+    gcry_mpi_mulm (ks->info[j].sigma, ks->info[j].sigma, presigma, elgamal_p);
+  }
+
+  gcry_mpi_t prod;
+  GNUNET_assert (NULL != (prod = gcry_mpi_new (0)));
+  gcry_mpi_t j_to_k;
+  GNUNET_assert (NULL != (j_to_k = gcry_mpi_new (0)));
+  // validate that the polynomial sharing matches the additive sharing
+  for (j = 0; j < ks->num_peers; j++)
+  {
+    unsigned int k;
+    gcry_mpi_t tmp;
+    gcry_mpi_t exp_preshare;
+    gcry_mpi_set_ui (prod, 1);
+    for (k = 0; k < ks->threshold; k++)
+    {
+      // Using pow(double,double) is a bit sketchy.
+      // We count players from 1, but shares from 0.
+      gcry_mpi_set_ui (j_to_k, (unsigned int) pow(j+1, k)); 
+      tmp = keygen_reveal_get_exp_coeff (ks, d, k);
+      gcry_mpi_powm (tmp, tmp, j_to_k, elgamal_p);
+      gcry_mpi_mulm (prod, prod, tmp, elgamal_p);
+    }
+    exp_preshare = keygen_reveal_get_exp_preshare (ks, d, j);
+    gcry_mpi_mod (exp_preshare, exp_preshare, elgamal_p);
+    if (0 != gcry_mpi_cmp (prod, exp_preshare))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "P%u: reveal data from P%u incorrect\n",
+                  ks->local_peer_idx, j);
+      /* no need for further verification, round2 stays invalid ... */
+      return;
+    }
+  }
+
+  // TODO: verify proof of fair encryption (once implemented)
   
   info->round2_valid = GNUNET_YES;
 }
@@ -1205,6 +1335,23 @@ decrypt_conclude (void *cls)
 
 
 /**
+ * Get a string representation of an MPI.
+ * The caller must free the returned string.
+ *
+ * @param mpi mpi to convert to a string
+ * @return string representation of @a mpi, must be free'd by the caller
+ */
+static char *
+mpi_to_str (gcry_mpi_t mpi)
+{
+  unsigned char *buf;
+
+  GNUNET_assert (0 == gcry_mpi_aprint (GCRYMPI_FMT_HEX, &buf, NULL, mpi));
+  return (char *) buf;
+}
+
+
+/**
  * Called when a new partial decryption arrives.
  */
 static void
@@ -1214,6 +1361,27 @@ decrypt_new_element (void *cls,
   struct DecryptSession *session = cls;
   const struct GNUNET_SECRETSHARING_DecryptData *d;
   struct DecryptPeerInfo *info;
+  struct GNUNET_HashCode challenge_hash;
+
+  /* nizk response */
+  gcry_mpi_t r;
+  /* nizk challenge */
+  gcry_mpi_t challenge;
+  /* nizk commit1, g^\beta */
+  gcry_mpi_t commit1;
+  /* nizk commit2, c_1^\beta */
+  gcry_mpi_t commit2;
+  /* homomorphic commitment to the peer's share,
+   * public key share */
+  gcry_mpi_t sigma;
+  /* partial decryption we received */
+  gcry_mpi_t w;
+  /* ciphertext component #1 */
+  gcry_mpi_t c1;
+  /* temporary variable (for comparision) #1 */
+  gcry_mpi_t tmp1;
+  /* temporary variable (for comparision) #2 */
+  gcry_mpi_t tmp2;
 
   if (NULL == element)
   {
@@ -1246,19 +1414,101 @@ decrypt_new_element (void *cls,
     return;
   }
 
-  // FIXME: check NIZP first
+  if (0 != memcmp (&d->ciphertext, &session->ciphertext, sizeof (struct GNUNET_SECRETSHARING_Ciphertext)))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "P%u: got decrypt element with non-matching ciphertext from P%u\n",
+                (unsigned int) session->share->my_peer, (unsigned int) (info - session->info));
+
+    return;
+  }
+
+
+  GNUNET_CRYPTO_hash (offsetof (struct GNUNET_SECRETSHARING_DecryptData, ciphertext) + (char *) d,
+                      offsetof (struct GNUNET_SECRETSHARING_DecryptData, nizk_response) - 
+                          offsetof (struct GNUNET_SECRETSHARING_DecryptData, ciphertext),
+                      &challenge_hash);
+
+  GNUNET_CRYPTO_mpi_scan_unsigned (&challenge, &challenge_hash,
+                                   sizeof (struct GNUNET_HashCode));
+
+  GNUNET_CRYPTO_mpi_scan_unsigned (&sigma, &session->share->sigmas[info - session->info],
+                                   sizeof (struct GNUNET_SECRETSHARING_FieldElement));
+
+  GNUNET_CRYPTO_mpi_scan_unsigned (&c1, session->ciphertext.c1_bits,
+                                   sizeof (struct GNUNET_SECRETSHARING_FieldElement));
+
+  GNUNET_CRYPTO_mpi_scan_unsigned (&commit1, &d->nizk_commit1,
+                                   sizeof (struct GNUNET_SECRETSHARING_FieldElement));
+
+  GNUNET_CRYPTO_mpi_scan_unsigned (&commit2, &d->nizk_commit2,
+                                   sizeof (struct GNUNET_SECRETSHARING_FieldElement));
+
+  GNUNET_CRYPTO_mpi_scan_unsigned (&r, &d->nizk_response,
+                                   sizeof (struct GNUNET_SECRETSHARING_FieldElement));
+
+  GNUNET_CRYPTO_mpi_scan_unsigned (&w, &d->partial_decryption,
+                                   sizeof (struct GNUNET_SECRETSHARING_FieldElement));
+
+  GNUNET_assert (NULL != (tmp1 = gcry_mpi_new (0)));
+  GNUNET_assert (NULL != (tmp2 = gcry_mpi_new (0)));
+
+  // tmp1 = g^r
+  gcry_mpi_powm (tmp1, elgamal_g, r, elgamal_p);
+
+  // tmp2 = g^\beta * \sigma^challenge
+  gcry_mpi_powm (tmp2, sigma, challenge, elgamal_p);
+  gcry_mpi_mulm (tmp2, tmp2, commit1, elgamal_p);
+
+  if (0 != gcry_mpi_cmp (tmp1, tmp2))
+  {
+    char *tmp1_str;
+    char *tmp2_str;
+    tmp1_str = mpi_to_str (tmp1);
+    tmp2_str = mpi_to_str (tmp2);
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "P%u: Received invalid partial decryption from P%u (eqn 1), expected %s got %s\n",
+                session->share->my_peer, info - session->info, tmp1_str, tmp2_str);
+    GNUNET_free (tmp1_str);
+    GNUNET_free (tmp2_str);
+    // return;
+  }
+
+
+  gcry_mpi_powm (tmp1, c1, r, elgamal_p);
+
+  gcry_mpi_powm (tmp2, w, challenge, elgamal_p);
+  gcry_mpi_mulm (tmp2, tmp2, commit2, elgamal_p);
+
+
+  if (0 != gcry_mpi_cmp (tmp1, tmp2))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "P%u: Received invalid partial decryption from P%u (eqn 2)\n",
+                session->share->my_peer, info - session->info);
+    // return;
+  }
+
 
   GNUNET_CRYPTO_mpi_scan_unsigned (&info->partial_decryption, &d->partial_decryption,
                                    GNUNET_SECRETSHARING_ELGAMAL_BITS / 8);
 }
+
 
 static void
 insert_decrypt_element (struct DecryptSession *ds)
 {
   struct GNUNET_SECRETSHARING_DecryptData d;
   struct GNUNET_SET_Element element;
-  gcry_mpi_t x;
+  /* our share */
   gcry_mpi_t s;
+  /* partial decryption with our share */
+  gcry_mpi_t w;
+  /* first component of the elgamal ciphertext */
+  gcry_mpi_t c1;
+  /* nonce for dlog zkp */
+  gcry_mpi_t beta;
+  gcry_mpi_t tmp;
+  gcry_mpi_t challenge;
+  gcry_mpi_t sigma;
+  struct GNUNET_HashCode challenge_hash;
 
   /* make vagrind happy until we implement the real deal ... */
   memset (&d, 0, sizeof d);
@@ -1266,12 +1516,36 @@ insert_decrypt_element (struct DecryptSession *ds)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "P%u: Inserting decrypt element\n",
               ds->share->my_peer);
 
-  GNUNET_CRYPTO_mpi_scan_unsigned (&x, &ds->ciphertext.c1_bits,
+  GNUNET_assert (ds->share->my_peer < ds->share->num_peers);
+
+  GNUNET_CRYPTO_mpi_scan_unsigned (&c1, &ds->ciphertext.c1_bits,
                                    GNUNET_SECRETSHARING_ELGAMAL_BITS / 8);
   GNUNET_CRYPTO_mpi_scan_unsigned (&s, &ds->share->my_share,
                                    GNUNET_SECRETSHARING_ELGAMAL_BITS / 8);
+  GNUNET_CRYPTO_mpi_scan_unsigned (&sigma, &ds->share->sigmas[ds->share->my_peer],
+                                   GNUNET_SECRETSHARING_ELGAMAL_BITS / 8);
 
-  gcry_mpi_powm (x, x, s, elgamal_p);
+  GNUNET_assert (NULL != (w = gcry_mpi_new (0)));
+  GNUNET_assert (NULL != (beta = gcry_mpi_new (0)));
+  GNUNET_assert (NULL != (tmp = gcry_mpi_new (0)));
+
+  // FIXME: unnecessary, remove once crypto works
+  gcry_mpi_powm (tmp, elgamal_g, s, elgamal_p);
+  if (0 != gcry_mpi_cmp (tmp, sigma))
+  {
+    char *sigma_str = mpi_to_str (sigma);
+    char *tmp_str = mpi_to_str (tmp);
+    char *s_str = mpi_to_str (s);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Share of P%u is invalid, ref sigma %s, "
+                "computed sigma %s, s %s\n",
+                ds->share->my_peer,
+                sigma_str, tmp_str, s_str);
+    GNUNET_free (sigma_str);
+    GNUNET_free (tmp_str);
+    GNUNET_free (s_str);
+  }
+
+  gcry_mpi_powm (w, c1, s, elgamal_p);
 
   element.data = (void *) &d;
   element.size = sizeof (struct GNUNET_SECRETSHARING_DecryptData);
@@ -1279,12 +1553,41 @@ insert_decrypt_element (struct DecryptSession *ds)
 
   d.ciphertext = ds->ciphertext;
   d.peer = my_peer;
+  GNUNET_CRYPTO_mpi_print_unsigned (&d.partial_decryption, GNUNET_SECRETSHARING_ELGAMAL_BITS / 8, w);
+
+  // create the zero knowledge proof
+  // randomly choose beta such that 0 < beta < q
+  do 
+  {
+    gcry_mpi_randomize (beta, GNUNET_SECRETSHARING_ELGAMAL_BITS - 1, GCRY_WEAK_RANDOM);
+  } while ((gcry_mpi_cmp_ui (beta, 0) == 0) || (gcry_mpi_cmp (beta, elgamal_q) >= 0));
+  // tmp = g^beta
+  gcry_mpi_powm (tmp, elgamal_g, beta, elgamal_p);
+  GNUNET_CRYPTO_mpi_print_unsigned (&d.nizk_commit1, GNUNET_SECRETSHARING_ELGAMAL_BITS / 8, tmp);
+  // tmp = (c_1)^beta
+  gcry_mpi_powm (tmp, c1, beta, elgamal_p);
+  GNUNET_CRYPTO_mpi_print_unsigned (&d.nizk_commit2, GNUNET_SECRETSHARING_ELGAMAL_BITS / 8, tmp);
+
+  // the challenge is the hash of everything up to the response
+  GNUNET_CRYPTO_hash (offsetof (struct GNUNET_SECRETSHARING_DecryptData, ciphertext) + (char *) &d,
+                      offsetof (struct GNUNET_SECRETSHARING_DecryptData, nizk_response) - 
+                          offsetof (struct GNUNET_SECRETSHARING_DecryptData, ciphertext),
+                      &challenge_hash);
+
+  GNUNET_CRYPTO_mpi_scan_unsigned (&challenge, &challenge_hash,
+                                   sizeof (struct GNUNET_HashCode));
+
+  // compute the response in tmp,
+  // tmp = (c * s + beta) mod q
+  gcry_mpi_mulm (tmp, challenge, s, elgamal_q);
+  gcry_mpi_addm (tmp, tmp, beta, elgamal_q);
+
+  GNUNET_CRYPTO_mpi_print_unsigned (&d.nizk_response, GNUNET_SECRETSHARING_ELGAMAL_BITS / 8, tmp);
+
   d.purpose.size = htonl (element.size - offsetof (struct GNUNET_SECRETSHARING_DecryptData, purpose));
   d.purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_SECRETSHARING_DECRYPTION);
   
   GNUNET_CRYPTO_eddsa_sign (my_peer_private_key, &d.purpose, &d.signature);
-
-  GNUNET_CRYPTO_mpi_print_unsigned (&d.partial_decryption, GNUNET_SECRETSHARING_ELGAMAL_BITS / 8, x);
 
   GNUNET_CONSENSUS_insert (ds->consensus, &element, NULL, NULL);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "P%u: Inserting decrypt element done!\n",

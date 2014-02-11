@@ -62,8 +62,8 @@ GNUNET_SECRETSHARING_share_read (const void *data, size_t len, size_t *readlen)
   p += n;
 
   n = share->num_peers * sizeof (struct GNUNET_SECRETSHARING_FieldElement);
-  share->hom_share_commitments = GNUNET_malloc (n);
-  memcpy (share->hom_share_commitments, p, n);
+  share->sigmas= GNUNET_malloc (n);
+  memcpy (share->sigmas, p, n);
   p += n;
 
   n = share->num_peers * sizeof (uint16_t);
@@ -125,7 +125,7 @@ GNUNET_SECRETSHARING_share_write (const struct GNUNET_SECRETSHARING_Share *share
   p += n;
 
   n = share->num_peers * sizeof (struct GNUNET_SECRETSHARING_FieldElement);
-  memcpy (p, share->hom_share_commitments, n);
+  memcpy (p, share->sigmas, n);
   p += n;
 
   n = share->num_peers * sizeof (uint16_t);

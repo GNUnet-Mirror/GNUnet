@@ -198,8 +198,8 @@ struct GNUNET_SECRETSHARING_Share
   uint16_t my_peer;
 
   /**
-   * Public key. Must correspond to the product of
-   * the homomorphic share commitments.
+   * Public key.  Computed from the
+   * exponentiated coefficients.
    */
   struct GNUNET_SECRETSHARING_PublicKey public_key;
 
@@ -214,9 +214,10 @@ struct GNUNET_SECRETSHARING_Share
   struct GNUNET_PeerIdentity *peers;
 
   /*
-   * Homomorphic commitments to each peer's share (includes 'my_peer') 
+   * For each peer, store elgamal_g to the peer's
+   * share.
    */
-  struct GNUNET_SECRETSHARING_FieldElement *hom_share_commitments;
+  struct GNUNET_SECRETSHARING_FieldElement *sigmas;
 
   /*
    * Original indices of peers from the DKG round.
