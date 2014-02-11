@@ -453,7 +453,8 @@ libgnunet_plugin_ats_proportional_init (void *cls)
         "# ATS addresses %s total", cur->desc);
     GNUNET_asprintf (&cur->stat_active,
         "# ATS active addresses %s total", cur->desc);
-    LOG (GNUNET_ERROR_TYPE_INFO, "Added network %u `%s' %p\n", c, cur->desc, s);
+    LOG (GNUNET_ERROR_TYPE_INFO, "Added network %u `%s' (%llu/%llu)\n",
+        c, cur->desc, cur->total_quota_in, cur->total_quota_out);
   }
   return s;
 }
