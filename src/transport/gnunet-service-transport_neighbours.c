@@ -1915,6 +1915,9 @@ address_matches (const struct NeighbourAddress *a1,
 }
 
 
+/* We received a address suggestion after requesting an address in
+ * try_connect or after receiving a connect, switch to address
+ */
 static void
 address_suggest_cont (void *cls,
     const struct GNUNET_PeerIdentity *peer,
@@ -1923,7 +1926,8 @@ address_suggest_cont (void *cls,
     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
     const struct GNUNET_ATS_Information *ats, uint32_t ats_count)
 {
-
+  GST_neighbours_switch_to_address(peer, address, session, ats, ats_count,
+      bandwidth_in, bandwidth_out);
 }
 
 
@@ -1944,7 +1948,14 @@ struct BlacklistCheckSwitchContext
   struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out;
 };
 
-
+/**
+ * Black list check result for try_connect call
+ * If connection to the peer is allowed request adddress and
+ *
+ * @param cls blc_ctx bl context
+ * @param peer the peer
+ * @param result the result
+ */
 static void
 try_connect_bl_check_cont (void *cls,
     const struct GNUNET_PeerIdentity *peer, int result)
@@ -1963,7 +1974,8 @@ try_connect_bl_check_cont (void *cls,
     return;
   }
   n = setup_neighbour (peer);
-  set_state_and_timeout (n, GNUNET_TRANSPORT_PS_INIT_ATS, GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT));
+  set_state_and_timeout (n, GNUNET_TRANSPORT_PS_INIT_ATS,
+      GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT));
 
   GNUNET_ATS_reset_backoff (GST_ats, peer);
   n->suggest_handle = GNUNET_ATS_suggest_address (GST_ats, peer,
@@ -2043,7 +2055,7 @@ GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target)
     }
   }
 
-  /* Do blacklist check if connection is allowed */
+  /* Do blacklist check if connecting to this peer is allowed */
   blc_ctx = GNUNET_new (struct BlacklistCheckSwitchContext);
   GNUNET_CONTAINER_DLL_insert (pending_bc_head, pending_bc_tail, blc_ctx);
 
@@ -2134,13 +2146,15 @@ handle_test_blacklist_cont (void *cls,
     }
     if (GNUNET_OK == result)
     {
-      set_state_and_timeout (n, GNUNET_TRANSPORT_PS_CONNECT_SENT, GNUNET_TIME_relative_to_absolute (SETUP_CONNECTION_TIMEOUT));
+      set_state_and_timeout (n, GNUNET_TRANSPORT_PS_CONNECT_SENT,
+          GNUNET_TIME_relative_to_absolute (SETUP_CONNECTION_TIMEOUT));
       send_session_connect (&n->primary_address);
     }
     else
     {
       free_address (&n->primary_address);
-      set_state_and_timeout (n, GNUNET_TRANSPORT_PS_INIT_ATS, GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT));
+      set_state_and_timeout (n, GNUNET_TRANSPORT_PS_INIT_ATS,
+          GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT));
     }
     break;
   case GNUNET_TRANSPORT_PS_CONNECT_SENT:
@@ -2155,12 +2169,14 @@ handle_test_blacklist_cont (void *cls,
     }
     break;
   case GNUNET_TRANSPORT_PS_CONNECT_RECV_BLACKLIST_INBOUND:
-    set_state_and_timeout (n, GNUNET_TRANSPORT_PS_CONNECT_RECV_ATS, GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT));
+    set_state_and_timeout (n, GNUNET_TRANSPORT_PS_CONNECT_RECV_ATS,
+        GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT));
     GNUNET_ATS_reset_backoff (GST_ats, peer);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Suggesting address for peer %s to ATS\n",
                 GNUNET_i2s (peer));
-    n->suggest_handle = GNUNET_ATS_suggest_address (GST_ats, peer, &address_suggest_cont, n);
+    n->suggest_handle = GNUNET_ATS_suggest_address (GST_ats, peer,
+        &address_suggest_cont, n);
     break;
   case GNUNET_TRANSPORT_PS_CONNECT_RECV_ATS:
     /* waiting on ATS suggestion, don't care about blacklist */
@@ -2174,7 +2190,8 @@ handle_test_blacklist_cont (void *cls,
     }
     if (GNUNET_OK == result)
     {
-      set_state_and_timeout (n, GNUNET_TRANSPORT_PS_CONNECT_RECV_ACK, GNUNET_TIME_relative_to_absolute (SETUP_CONNECTION_TIMEOUT));
+      set_state_and_timeout (n, GNUNET_TRANSPORT_PS_CONNECT_RECV_ACK,
+          GNUNET_TIME_relative_to_absolute (SETUP_CONNECTION_TIMEOUT));
       send_session_connect_ack_message (bcc->na.address,
 					bcc->na.session,
 					n->connect_ack_timestamp);
@@ -2195,7 +2212,8 @@ handle_test_blacklist_cont (void *cls,
       }
       GNUNET_break (NULL != plugin);
       free_address (&n->primary_address);
-      set_state_and_timeout (n, GNUNET_TRANSPORT_PS_INIT_ATS, GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT));
+      set_state_and_timeout (n, GNUNET_TRANSPORT_PS_INIT_ATS,
+          GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT));
       GNUNET_ATS_reset_backoff (GST_ats, peer);
     }
     break;
