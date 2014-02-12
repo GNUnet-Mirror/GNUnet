@@ -37,18 +37,18 @@
 
 #define RIL_DEFAULT_STEP_TIME_MIN       GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 300)
 #define RIL_DEFAULT_STEP_TIME_MAX       GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 2000)
-#define RIL_DEFAULT_ALGORITHM           RIL_ALGO_Q
-#define RIL_DEFAULT_SELECT              RIL_SELECT_EGREEDY
+#define RIL_DEFAULT_ALGORITHM           RIL_ALGO_SARSA
+#define RIL_DEFAULT_SELECT              RIL_SELECT_SOFTMAX
 #define RIL_DEFAULT_WELFARE             RIL_WELFARE_NASH
-#define RIL_DEFAULT_DISCOUNT_BETA       2.0
+#define RIL_DEFAULT_DISCOUNT_BETA       0.6
 #define RIL_DEFAULT_DISCOUNT_GAMMA      0.5
 #define RIL_DEFAULT_GRADIENT_STEP_SIZE  0.001
 #define RIL_DEFAULT_TRACE_DECAY         0.5
 #define RIL_DEFAULT_EXPLORE_RATIO       1
 #define RIL_DEFAULT_EXPLORE_DECAY       0.95
 #define RIL_DEFAULT_RBF_DIVISOR         50
-#define RIL_DEFAULT_TEMPERATURE         10
-#define RIL_DEFAULT_TEMPERATURE_DECAY   0.999
+#define RIL_DEFAULT_TEMPERATURE         0.1
+#define RIL_DEFAULT_TEMPERATURE_DECAY   1
 
 #define RIL_INC_DEC_STEP_SIZE           1
 #define RIL_NOP_DECAY                   0.5
@@ -99,7 +99,7 @@ enum RIL_Welfare
 
 enum RIL_E_Modification
 {
-  RIL_E_DISCOUNT,
+  RIL_E_DECAY,
   RIL_E_ZERO,
   RIL_E_ACCUMULATE,
   RIL_E_REPLACE
@@ -173,17 +173,17 @@ struct RIL_Learning_Parameters
   /**
    * Initial exploration ratio value
    */
-  double explore_ratio_init;
+  double epsilon_init;
 
   /**
    * Ratio, with what probability an agent should explore in the e-greed policy
    */
-  double explore_ratio;
+  double epsilon;
 
   /**
    * Decay factor of the explore ratio
    */
-  double explore_ratio_decay;
+  double epsilon_decay;
 
   /**
    * Minimal interval time between steps in milliseconds
@@ -370,7 +370,7 @@ struct RIL_Scope
   /**
    * Number of active agents in scope
    */
-  unsigned int agent_count;
+  unsigned int active_agent_count;
 
   /**
    * The social welfare achieved in the scope
@@ -724,7 +724,7 @@ agent_update (struct RIL_Peer_Agent *agent, double reward, double *s_next, int a
  * Changes the eligibility trace vector e in various manners:
  * #RIL_E_ACCUMULATE - adds @a feature to each component as in accumulating eligibility traces
  * #RIL_E_REPLACE - resets each component to @a feature  as in replacing traces
- * #RIL_E_DISCOUNT - multiplies e with discount factor and lambda as in the update rule
+ * #RIL_E_DECAY - multiplies e with discount factor and lambda as in the update rule
  * #RIL_E_ZERO - sets e to 0 as in Watkin's Q-learning algorithm when exploring and when initializing
  *
  * @param agent the agent handle
@@ -750,7 +750,7 @@ agent_modify_eligibility (struct RIL_Peer_Agent *agent,
     case RIL_E_REPLACE:
       agent->E[action][i] = agent->E[action][i] > feature[i] ? agent->E[action][i] : feature[i];
       break;
-    case RIL_E_DISCOUNT:
+    case RIL_E_DECAY:
       for (k = 0; k < agent->n; k++)
       {
         agent->E[k][i] *= agent->envi->global_discount_variable * agent->envi->parameters.lambda;
@@ -964,7 +964,7 @@ agent_get_utility (struct RIL_Peer_Agent *agent)
 
   pref_match = preferences[GNUNET_ATS_PREFERENCE_LATENCY] * delay_norm;
   pref_match += preferences[GNUNET_ATS_PREFERENCE_BANDWIDTH] *
-      sqrt((double) (agent->bw_in/RIL_MIN_BW) * (double) (agent->bw_out/RIL_MIN_BW));
+      sqrt((double) (ril_get_atsi (agent->address_inuse, GNUNET_ATS_UTILIZATION_IN)/RIL_MIN_BW) * (double) (ril_get_atsi (agent->address_inuse, GNUNET_ATS_UTILIZATION_OUT)/RIL_MIN_BW));
 
 //  return (double) (agent->bw_in/RIL_MIN_BW);
 //  return sqrt((double) (agent->bw_in/RIL_MIN_BW) * (double) (agent->bw_out/RIL_MIN_BW));
@@ -1004,7 +1004,7 @@ ril_network_get_social_welfare (struct GAS_RIL_Handle *solver, struct RIL_Scope 
     {
       if (cur->is_active && cur->address_inuse && (cur->address_inuse->solver_information == scope))
       {
-        result *= pow(agent_get_utility(cur), 1.0 / (double) scope->agent_count);
+        result *= pow(agent_get_utility(cur), 1.0 / (double) scope->active_agent_count);
       }
     }
     return result;
@@ -1039,7 +1039,7 @@ envi_get_penalty (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
       over_out *= 2;
     }
   }
-  over_max = GNUNET_MAX (over_in , over_out) / RIL_MIN_BW;
+  over_max = (over_in + over_out) / RIL_MIN_BW;
 
   return -1.0 * (double) over_max;
 }
@@ -1065,11 +1065,12 @@ envi_get_reward (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
 
   net = agent->address_inuse->solver_information;
 
+  penalty = envi_get_penalty(solver, agent);
   objective = (agent_get_utility (agent) + net->social_welfare) / 2;
   delta = objective - agent->objective_old;
   agent->objective_old = objective;
 
-  if (delta != 0)
+  if (delta != 0 && penalty == 0)
   {
     agent->nop_bonus = delta * RIL_NOP_DECAY;
   }
@@ -1079,8 +1080,6 @@ envi_get_reward (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
   }
 
   steady = (RIL_ACTION_NOTHING == agent->a_old) ? agent->nop_bonus : 0;
-
-  penalty = envi_get_penalty(solver, agent);
 
   reward = delta + steady;
   return reward + penalty;
@@ -1323,14 +1322,14 @@ agent_select_egreedy (struct RIL_Peer_Agent *agent, double *state)
   double r = (double) GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
         UINT32_MAX) / (double) UINT32_MAX;
 
-  if (r < agent->envi->parameters.explore_ratio) //explore
+  if (r < agent->envi->parameters.epsilon) //explore
   {
     action = agent_get_action_random(agent);
     if (RIL_ALGO_Q == agent->envi->parameters.algorithm)
     {
       agent->eligibility_reset = GNUNET_YES;
     }
-    agent->envi->parameters.explore_ratio *= agent->envi->parameters.explore_ratio_decay;
+    agent->envi->parameters.epsilon *= agent->envi->parameters.epsilon_decay;
     return action;
   }
   else //exploit
@@ -1452,7 +1451,7 @@ agent_step (struct RIL_Peer_Agent *agent)
   }
   else
   {
-    agent_modify_eligibility (agent, RIL_E_DISCOUNT, NULL, -1);
+    agent_modify_eligibility (agent, RIL_E_DECAY, NULL, -1);
   }
   if (RIL_ACTION_INVALID != agent->a_old)
   {
@@ -1632,6 +1631,8 @@ ril_try_unblock_agent (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *age
 {
   struct RIL_Address_Wrapped *addr_wrap;
   struct RIL_Scope *net;
+  unsigned long long start_in;
+  unsigned long long start_out;
 
   for (addr_wrap = agent->addresses_head; NULL != addr_wrap; addr_wrap = addr_wrap->next)
   {
@@ -1639,7 +1640,11 @@ ril_try_unblock_agent (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *age
     if (ril_network_is_not_full(solver, net->type))
     {
       if (NULL == agent->address_inuse)
-        envi_set_active_suggestion (solver, agent, addr_wrap->address_naked, agent->bw_in, agent->bw_out, silent);
+      {
+        start_in = net->bw_in_available < net->bw_in_utilized ? (net->bw_in_available - net->bw_in_utilized) / 2 : RIL_MIN_BW;
+        start_out = net->bw_out_available < net->bw_out_utilized ? (net->bw_out_available - net->bw_out_utilized) / 2 : RIL_MIN_BW;
+        envi_set_active_suggestion (solver, agent, addr_wrap->address_naked, start_in, start_out, silent);
+      }
       return;
     }
   }
@@ -1794,7 +1799,7 @@ ril_networks_update_state (struct GAS_RIL_Handle *solver)
     net->bw_in_utilized = ril_network_get_utilized(solver, net->type, GNUNET_YES);
     net->bw_out_assigned = ril_network_get_assigned(solver, net->type, GNUNET_NO);
     net->bw_out_utilized = ril_network_get_utilized(solver, net->type, GNUNET_NO);
-    net->agent_count = ril_network_count_active_agents(solver, net);
+    net->active_agent_count = ril_network_count_active_agents(solver, net);
     net->social_welfare = ril_network_get_social_welfare(solver, net);
   }
 }
@@ -2118,7 +2123,7 @@ GAS_ril_address_change_preference (void *solver,
   struct GAS_RIL_Handle *s = solver;
 
   s->parameters.temperature = s->parameters.temperature_init;
-  s->parameters.explore_ratio = s->parameters.explore_ratio_init;
+  s->parameters.epsilon = s->parameters.epsilon_init;
   ril_step (s);
 }
 
@@ -2247,32 +2252,32 @@ libgnunet_plugin_ats_ril_init (void *cls)
 
   if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (env->cfg, "ats", "RIL_EXPLORE_RATIO", &string))
   {
-    solver->parameters.explore_ratio_init = strtod (string, NULL);
+    solver->parameters.epsilon_init = strtod (string, NULL);
     GNUNET_free (string);
-    if (solver->parameters.explore_ratio_init < 0 || solver->parameters.explore_ratio_init > 1)
+    if (solver->parameters.epsilon_init < 0 || solver->parameters.epsilon_init > 1)
     {
       LOG (GNUNET_ERROR_TYPE_WARNING, "RIL_EXPLORE_RATIO not configured in range [0,1]. Set to default value of %f instead.\n", RIL_DEFAULT_EXPLORE_RATIO);
-      solver->parameters.explore_ratio_init = RIL_DEFAULT_EXPLORE_RATIO;
+      solver->parameters.epsilon_init = RIL_DEFAULT_EXPLORE_RATIO;
     }
   }
   else
   {
-    solver->parameters.explore_ratio_init = RIL_DEFAULT_EXPLORE_RATIO;
+    solver->parameters.epsilon_init = RIL_DEFAULT_EXPLORE_RATIO;
   }
 
   if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (env->cfg, "ats", "RIL_EXPLORE_DECAY", &string))
   {
-    solver->parameters.explore_ratio_decay = strtod (string, NULL);
+    solver->parameters.epsilon_decay = strtod (string, NULL);
     GNUNET_free (string);
-    if (solver->parameters.explore_ratio_decay < 0 || solver->parameters.explore_ratio_decay > 1)
+    if (solver->parameters.epsilon_decay < 0 || solver->parameters.epsilon_decay > 1)
     {
       LOG (GNUNET_ERROR_TYPE_WARNING, "RIL_EXPLORE_RATIO not configured in range [0,1]. Set to default value of %f instead.\n", RIL_DEFAULT_EXPLORE_DECAY);
-      solver->parameters.explore_ratio_decay = RIL_DEFAULT_EXPLORE_DECAY;
+      solver->parameters.epsilon_decay = RIL_DEFAULT_EXPLORE_DECAY;
     }
   }
   else
   {
-    solver->parameters.explore_ratio_decay = RIL_DEFAULT_EXPLORE_DECAY;
+    solver->parameters.epsilon_decay = RIL_DEFAULT_EXPLORE_DECAY;
   }
 
   if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (env->cfg, "ats", "RIL_TEMPERATURE", &string))
@@ -2364,7 +2369,7 @@ libgnunet_plugin_ats_ril_init (void *cls)
       solver->parameters.beta,
       solver->parameters.lambda);
   LOG(GNUNET_ERROR_TYPE_DEBUG, "init()  exploration_ratio = %f, temperature = %f, ActionSelection = %s\n",
-      solver->parameters.explore_ratio,
+      solver->parameters.epsilon,
       solver->parameters.temperature,
       solver->parameters.select ? "EGREEDY" : "SOFTMAX");
   LOG(GNUNET_ERROR_TYPE_DEBUG, "init()  RBF_DIVISOR = %llu\n",
@@ -2445,7 +2450,7 @@ GAS_ril_address_add (void *solver, struct ATS_Address *address, uint32_t network
   }
 
   s->parameters.temperature = s->parameters.temperature_init;
-  s->parameters.explore_ratio = s->parameters.explore_ratio_init;
+  s->parameters.epsilon = s->parameters.epsilon_init;
 
   agent = ril_get_agent (s, &address->peer, GNUNET_YES);
 
@@ -2531,7 +2536,7 @@ GAS_ril_address_delete (void *solver, struct ATS_Address *address, int session_o
   }
 
   s->parameters.temperature = s->parameters.temperature_init;
-  s->parameters.explore_ratio = s->parameters.explore_ratio_init;
+  s->parameters.epsilon = s->parameters.epsilon_init;
 
   address_index = agent_address_get_index (agent, address);
   address_wrapped = agent_address_get_wrapped (agent, address);
@@ -2622,7 +2627,7 @@ GAS_ril_address_property_changed (void *solver,
   struct GAS_RIL_Handle *s = solver;
 
   s->parameters.temperature = s->parameters.temperature_init;
-  s->parameters.explore_ratio = s->parameters.explore_ratio_init;
+  s->parameters.epsilon = s->parameters.epsilon_init;
   ril_step (s);
 }
 
@@ -2688,7 +2693,7 @@ GAS_ril_address_change_network (void *solver,
       GNUNET_ATS_print_network_type (current_network), GNUNET_ATS_print_network_type (new_network));
 
   s->parameters.temperature = s->parameters.temperature_init;
-  s->parameters.explore_ratio = s->parameters.explore_ratio_init;
+  s->parameters.epsilon = s->parameters.epsilon_init;
 
   if (address->active && !ril_network_is_active (solver, new_network))
   {
@@ -2810,7 +2815,7 @@ GAS_ril_get_preferred_address (void *solver, const struct GNUNET_PeerIdentity *p
         "API_get_preferred_address() Activated agent for peer '%s', but no address available\n",
         GNUNET_i2s (peer));
     s->parameters.temperature = s->parameters.temperature_init;
-    s->parameters.explore_ratio = s->parameters.explore_ratio_init;
+    s->parameters.epsilon = s->parameters.epsilon_init;
   }
   return agent->address_inuse;
 }
@@ -2846,7 +2851,7 @@ GAS_ril_stop_get_preferred_address (void *solver, const struct GNUNET_PeerIdenti
   }
 
   s->parameters.temperature = s->parameters.temperature_init;
-  s->parameters.explore_ratio = s->parameters.explore_ratio_init;
+  s->parameters.epsilon = s->parameters.epsilon_init;
 
   agent->is_active = GNUNET_NO;
 
