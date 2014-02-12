@@ -1,0 +1,11 @@
+{
+  cache-libexecdir-value
+  Memcheck:Leak
+  fun:malloc
+  fun:GNUNET_xmalloc_unchecked_
+  fun:GNUNET_xmalloc_
+  fun:GNUNET_asprintf
+  fun:GNUNET_OS_installation_get_path
+  fun:GNUNET_OS_get_libexec_binary_path
+  ...
+}
