@@ -2038,6 +2038,7 @@ handle_tcp_welcome (void *cls, struct GNUNET_SERVER_Client *client,
   const struct sockaddr_in6 *s6;
   struct GNUNET_ATS_Information ats;
 
+
   if (0 == memcmp (&wm->clientIdentity, plugin->env->my_identity,
           sizeof(struct GNUNET_PeerIdentity)))
   {
@@ -2054,6 +2055,7 @@ handle_tcp_welcome (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_break_op(0);
     return;
   }
+
   LOG(GNUNET_ERROR_TYPE_DEBUG, "Received %s message from `%4s' %p\n", "WELCOME",
       GNUNET_i2s (&wm->clientIdentity), client);
   GNUNET_STATISTICS_update (plugin->env->stats,
@@ -2105,20 +2107,26 @@ handle_tcp_welcome (void *cls, struct GNUNET_SERVER_Client *client,
       ats = plugin->env->get_address_type (plugin->env->cls, vaddr, alen);
       session->ats_address_network_type = (enum GNUNET_ATS_Network_Type) ntohl (
           ats.value);
-      LOG(GNUNET_ERROR_TYPE_DEBUG, "Creating new%s session %p for peer `%s'\n",
-          GNUNET_HELLO_address_check_option (session->address, GNUNET_HELLO_ADDRESS_INFO_INBOUND) ? " inbound" : "",
-          session,
-          tcp_address_to_string(NULL, (void *) session->address->address,session->address->address_length));
+      LOG(GNUNET_ERROR_TYPE_DEBUG, "Creating new%s session %p for peer `%s' client %p \n",
+          GNUNET_HELLO_address_check_option (session->address,
+              GNUNET_HELLO_ADDRESS_INFO_INBOUND) ? " inbound" : "", session,
+          tcp_address_to_string(NULL, (void *) session->address->address,
+              session->address->address_length),
+          client);
       GNUNET_free(vaddr);
       GNUNET_SERVER_client_set_user_context(session->client, session);
       GNUNET_CONTAINER_multipeermap_put (plugin->sessionmap, &session->target,
           session, GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+
+      /* Notify transport and ATS about new session */
+      plugin->env->session_start (NULL, session->address, session, &ats, 1);
     }
     else
     {
       LOG(GNUNET_ERROR_TYPE_DEBUG,
           "Did not obtain TCP socket address for incoming connection\n");
       GNUNET_break(0);
+      return;
     }
   }
 
@@ -2131,9 +2139,6 @@ handle_tcp_welcome (void *cls, struct GNUNET_SERVER_Client *client,
   }
   session->last_activity = GNUNET_TIME_absolute_get ();
   session->expecting_welcome = GNUNET_NO;
-
-  /* Notify transport and ATS about new session */
-  plugin->env->session_start (NULL, session->address, session, &ats, 1);
 
   process_pending_messages (session);
   GNUNET_SERVER_client_set_timeout (client,
