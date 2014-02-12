@@ -112,6 +112,20 @@ cache_lookup (unsigned int peer_id)
 
 
 /**
+ * Free the resources occupied by a cache entry
+ *
+ * @param entry the cache entry to free
+ */
+static void
+free_entry (struct CacheEntry *entry)
+{
+  GNUNET_CONTAINER_DLL_remove (cache_head, cache_tail, entry);
+  GNUNET_free_non_null (entry->hello);
+  GNUNET_free (entry);
+}
+
+
+/**
  * Creates a new cache entry and then puts it into the cache's hashtable.
  *
  * @param peer_id the index of the peer to tag the newly created entry
@@ -131,6 +145,7 @@ add_entry (unsigned int peer_id)
                    GNUNET_CONTAINER_multihashmap32_remove (cache, (uint32_t)
                                                            entry->peer_id,
                                                            entry));
+    free_entry (entry);
   }
   entry = GNUNET_new (struct CacheEntry);
   entry->peer_id = peer_id;
@@ -162,8 +177,7 @@ cache_clear_iterator (void *cls, uint32_t key, void *value)
   GNUNET_assert (NULL != entry);
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multihashmap32_remove (cache, key, value));
-  GNUNET_free_non_null (entry->hello);
-  GNUNET_free (entry);
+  free_entry (entry);
   return GNUNET_YES;
 }
 
