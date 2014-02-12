@@ -1,0 +1,21 @@
+Index: gnunet-helper-testbed.c
+===================================================================
+--- gnunet-helper-testbed.c	(revision 32320)
++++ gnunet-helper-testbed.c	(working copy)
+@@ -462,7 +462,15 @@
+   testbed =
+       GNUNET_OS_start_process (PIPE_CONTROL,
+                                GNUNET_OS_INHERIT_STD_ERR /*verbose? */ , NULL,
+-                               NULL, binary, "gnunet-service-testbed", "-c",
++                               NULL, "valgrind",
++                               "valgrind",
++                               "--leak-check=full",
++                               "--show-reachable=yes",
++                               "--suppressions=$HOME/gnunet/src/util/util.supp",
++                               "--suppressions=$HOME/gnunet/src/testbed/misc.supp",
++                               "--suppressions=$HOME/gnunet/src/testbed/valgrind-zlib.supp",
++                               "--suppressions=$HOME/gnunet/src/testbed/x64_misc.supp",
++                               binary, "-c",
+                                config, NULL);
+   GNUNET_free (binary);
+   GNUNET_free (config);
