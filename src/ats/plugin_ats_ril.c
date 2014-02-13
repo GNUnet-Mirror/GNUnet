@@ -35,14 +35,14 @@
 #define RIL_INTERVAL_EXPONENT           10
 #define RIL_UTILITY_DELAY_MAX           1000
 
-#define RIL_DEFAULT_STEP_TIME_MIN       GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 300)
+#define RIL_DEFAULT_STEP_TIME_MIN       GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 200)
 #define RIL_DEFAULT_STEP_TIME_MAX       GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 2000)
 #define RIL_DEFAULT_ALGORITHM           RIL_ALGO_SARSA
 #define RIL_DEFAULT_SELECT              RIL_SELECT_SOFTMAX
 #define RIL_DEFAULT_WELFARE             RIL_WELFARE_NASH
 #define RIL_DEFAULT_DISCOUNT_BETA       0.6
 #define RIL_DEFAULT_DISCOUNT_GAMMA      0.5
-#define RIL_DEFAULT_GRADIENT_STEP_SIZE  0.001
+#define RIL_DEFAULT_GRADIENT_STEP_SIZE  0.01
 #define RIL_DEFAULT_TRACE_DECAY         0.5
 #define RIL_DEFAULT_EXPLORE_RATIO       1
 #define RIL_DEFAULT_EXPLORE_DECAY       0.95
@@ -557,7 +557,7 @@ agent_action_is_possible (struct RIL_Peer_Agent *agent, int action)
     break;
   case RIL_ACTION_BW_IN_DEC:
   case RIL_ACTION_BW_IN_HLV:
-    if (agent->bw_in <= RIL_MIN_BW)
+    if (agent->bw_in <= 0)
       return GNUNET_NO;
     else
       return GNUNET_YES;
@@ -571,7 +571,7 @@ agent_action_is_possible (struct RIL_Peer_Agent *agent, int action)
     break;
   case RIL_ACTION_BW_OUT_DEC:
   case RIL_ACTION_BW_OUT_HLV:
-    if (agent->bw_out <= RIL_MIN_BW)
+    if (agent->bw_out <= 0)
       return GNUNET_NO;
     else
       return GNUNET_YES;
@@ -673,6 +673,7 @@ agent_get_action_random (struct RIL_Peer_Agent *agent)
   }
 
   GNUNET_assert(GNUNET_NO);
+  return RIL_ACTION_INVALID;
 }
 
 
@@ -782,6 +783,16 @@ ril_inform (struct GAS_RIL_Handle *solver,
     solver->plugin_envi->info_cb (solver->plugin_envi->info_cb_cls, op, stat, GAS_INFO_NONE);
 }
 
+/**
+ * Calculates the maximum bandwidth an agent can assign in a network scope
+ *
+ * @param net
+ */
+static unsigned long long
+ril_get_max_bw (struct RIL_Scope *net)
+{
+  return GNUNET_MIN(2 * GNUNET_MAX(net->bw_in_available, net->bw_out_available), GNUNET_ATS_MaxBandwidth);
+}
 
 /**
  * Changes the active assignment suggestion of the handler and invokes the bw_changed callback to
@@ -895,7 +906,7 @@ envi_get_state (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
 
   state = GNUNET_malloc (sizeof(double) * agent->m);
 
-  max_bw = RIL_MAX_BW;
+  max_bw = ril_get_max_bw((struct RIL_Scope *) agent->address_inuse->solver_information);
 
   y[0] = (double) agent->bw_out;
   y[1] = (double) agent->bw_in;
@@ -964,7 +975,8 @@ agent_get_utility (struct RIL_Peer_Agent *agent)
 
   pref_match = preferences[GNUNET_ATS_PREFERENCE_LATENCY] * delay_norm;
   pref_match += preferences[GNUNET_ATS_PREFERENCE_BANDWIDTH] *
-      sqrt((double) (ril_get_atsi (agent->address_inuse, GNUNET_ATS_UTILIZATION_IN)/RIL_MIN_BW) * (double) (ril_get_atsi (agent->address_inuse, GNUNET_ATS_UTILIZATION_OUT)/RIL_MIN_BW));
+      sqrt((double) (agent->bw_in/RIL_MIN_BW) * (double) (agent->bw_out/RIL_MIN_BW));
+//      sqrt((double) (ril_get_atsi (agent->address_inuse, GNUNET_ATS_UTILIZATION_IN)/RIL_MIN_BW) * (double) (ril_get_atsi (agent->address_inuse, GNUNET_ATS_UTILIZATION_OUT)/RIL_MIN_BW));
 
 //  return (double) (agent->bw_in/RIL_MIN_BW);
 //  return sqrt((double) (agent->bw_in/RIL_MIN_BW) * (double) (agent->bw_out/RIL_MIN_BW));
@@ -1098,20 +1110,23 @@ envi_action_bw_double (struct GAS_RIL_Handle *solver,
     int direction_in)
 {
   unsigned long long new_bw;
+  unsigned long long max_bw;
+
+  max_bw = ril_get_max_bw((struct RIL_Scope *) agent->address_inuse->solver_information);
 
   if (direction_in)
   {
     new_bw = agent->bw_in * 2;
-    if (new_bw < agent->bw_in || new_bw > RIL_MAX_BW)
-      new_bw = RIL_MAX_BW;
+    if (new_bw < agent->bw_in || new_bw > max_bw)
+      new_bw = max_bw;
     envi_set_active_suggestion (solver, agent, agent->address_inuse, new_bw,
         agent->bw_out, GNUNET_NO);
   }
   else
   {
     new_bw = agent->bw_out * 2;
-    if (new_bw < agent->bw_out || new_bw > RIL_MAX_BW)
-      new_bw = RIL_MAX_BW;
+    if (new_bw < agent->bw_out || new_bw > max_bw)
+      new_bw = max_bw;
     envi_set_active_suggestion (solver, agent, agent->address_inuse, agent->bw_in,
         new_bw, GNUNET_NO);
   }
@@ -1136,16 +1151,16 @@ envi_action_bw_halven (struct GAS_RIL_Handle *solver,
   if (direction_in)
   {
     new_bw = agent->bw_in / 2;
-    if (new_bw < RIL_MIN_BW || new_bw > agent->bw_in)
-      new_bw = RIL_MIN_BW;
+    if (new_bw <= 0 || new_bw > agent->bw_in)
+      new_bw = 0;
     envi_set_active_suggestion (solver, agent, agent->address_inuse, new_bw, agent->bw_out,
         GNUNET_NO);
   }
   else
   {
     new_bw = agent->bw_out / 2;
-    if (new_bw < RIL_MIN_BW || new_bw > agent->bw_out)
-      new_bw = RIL_MIN_BW;
+    if (new_bw <= 0 || new_bw > agent->bw_out)
+      new_bw = 0;
     envi_set_active_suggestion (solver, agent, agent->address_inuse, agent->bw_in, new_bw,
         GNUNET_NO);
   }
@@ -1163,20 +1178,23 @@ static void
 envi_action_bw_inc (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent, int direction_in)
 {
   unsigned long long new_bw;
+  unsigned long long max_bw;
+
+  max_bw = ril_get_max_bw((struct RIL_Scope *) agent->address_inuse->solver_information);
 
   if (direction_in)
   {
     new_bw = agent->bw_in + (RIL_INC_DEC_STEP_SIZE * RIL_MIN_BW);
-    if (new_bw < agent->bw_in || new_bw > RIL_MAX_BW)
-      new_bw = RIL_MAX_BW;
+    if (new_bw < agent->bw_in || new_bw > max_bw)
+      new_bw = max_bw;
     envi_set_active_suggestion (solver, agent, agent->address_inuse, new_bw,
         agent->bw_out, GNUNET_NO);
   }
   else
   {
     new_bw = agent->bw_out + (RIL_INC_DEC_STEP_SIZE * RIL_MIN_BW);
-    if (new_bw < agent->bw_out || new_bw > RIL_MAX_BW)
-      new_bw = RIL_MAX_BW;
+    if (new_bw < agent->bw_out || new_bw > max_bw)
+      new_bw = max_bw;
     envi_set_active_suggestion (solver, agent, agent->address_inuse, agent->bw_in,
         new_bw, GNUNET_NO);
   }
@@ -1199,16 +1217,16 @@ envi_action_bw_dec (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent,
   if (direction_in)
   {
     new_bw = agent->bw_in - (RIL_INC_DEC_STEP_SIZE * RIL_MIN_BW);
-    if (new_bw < RIL_MIN_BW || new_bw > agent->bw_in)
-      new_bw = RIL_MIN_BW;
+    if (new_bw <= 0 || new_bw > agent->bw_in)
+      new_bw = 0;
     envi_set_active_suggestion (solver, agent, agent->address_inuse, new_bw, agent->bw_out,
         GNUNET_NO);
   }
   else
   {
     new_bw = agent->bw_out - (RIL_INC_DEC_STEP_SIZE * RIL_MIN_BW);
-    if (new_bw < RIL_MIN_BW || new_bw > agent->bw_out)
-      new_bw = RIL_MIN_BW;
+    if (new_bw <= 0 || new_bw > agent->bw_out)
+      new_bw = 0;
     envi_set_active_suggestion (solver, agent, agent->address_inuse, agent->bw_in, new_bw,
         GNUNET_NO);
   }
@@ -1398,6 +1416,7 @@ agent_select_softmax (struct RIL_Peer_Agent *agent, double *state)
     sum += p[i];
   }
   GNUNET_assert(GNUNET_NO);
+  return RIL_ACTION_INVALID;
 }
 
 /**
