@@ -665,7 +665,12 @@ create_listen_socket (struct sockaddr *sa, socklen_t addr_len,
     return;
   }
 #ifndef WINDOWS
-  if (AF_UNIX == sa->sa_family)
+  if ((AF_UNIX == sa->sa_family)
+#ifdef LINUX
+      /* Permission settings are not required when abstract sockets are used */
+      && ('\0' != ((const struct sockaddr_un *)sa)->sun_path[0])
+#endif      
+      )
   {
     match_uid =
       GNUNET_CONFIGURATION_get_value_yesno (cfg, sl->name,
