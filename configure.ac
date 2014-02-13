@@ -322,7 +322,7 @@ AC_RUN_IFELSE(
         if (!gcry_check_version (GCRYPT_VERSION))
         {
           fprintf (stderr, "Version mismatch %s <-> %s \n", gcry_check_version (NULL), GCRYPT_VERSION);
-          return 1; 
+          return 1;
         }
 
         gcry_control (GCRYCTL_DISABLE_SECMEM, 0);
@@ -1033,6 +1033,7 @@ AC_SUBST(GNUNETDNS_GROUP)
 
 # gnutls
 gnutls=0
+gnutls_dane=0
 AC_MSG_CHECKING(for gnutls)
 AC_ARG_WITH(gnutls,
    [  --with-gnutls=PFX   base of gnutls installation],
@@ -1044,6 +1045,9 @@ AC_ARG_WITH(gnutls,
         AC_CHECK_HEADERS([gnutls/abstract.h],
             AC_CHECK_LIB([gnutls], [gnutls_priority_set],
 	     gnutls=true))
+        AC_CHECK_HEADERS([gnutls/dane.h],
+            AC_CHECK_LIB([gnutls-dane], [dane_verify_crt_raw],
+	      gnutls_dane=1))
         ;;
       *)
         LDFLAGS="-L$with_gnutls/lib $LDFLAGS"
@@ -1052,20 +1056,23 @@ AC_ARG_WITH(gnutls,
             AC_CHECK_LIB([gnutls], [gnutls_priority_set],
               EXT_LIB_PATH="-L$with_gnutls/lib $EXT_LIB_PATH"
               gnutls=true))
+        AC_CHECK_HEADERS([gnutls/dane.h],
+            AC_CHECK_LIB([gnutls-dane], [dane_verify_crt_raw],
+	      gnutls_dane=1))
         ;;
     esac
    ],
    [AC_MSG_RESULT([--with-gnutls not specified])
     AC_CHECK_HEADERS([gnutls/abstract.h],
         AC_CHECK_LIB([gnutls], [gnutls_priority_set],
-          gnutls=true))])
+          gnutls=true))
+    AC_CHECK_HEADERS([gnutls/dane.h],
+    AC_CHECK_LIB([gnutls-dane], [dane_verify_crt_raw],
+ 	     gnutls_dane=1))
+   ])
 AM_CONDITIONAL(HAVE_GNUTLS, test x$gnutls = xtrue)
 AC_DEFINE_UNQUOTED([HAVE_GNUTLS], $gnutls, [We have GnuTLS])
 
-gnutls_dane=0
-AC_CHECK_HEADERS([gnutls/dane.h],
-   AC_CHECK_LIB([gnutls-dane], [dane_verify_crt_raw],
-	     gnutls_dane=1))
 AM_CONDITIONAL(HAVE_GNUTLS_DANE, test x$gnutls_dane = x1)
 AC_DEFINE_UNQUOTED([HAVE_GNUTLS_DANE], $gnutls_dane, [We have GnuTLS with DANE support])
 
@@ -1543,7 +1550,7 @@ if test x$gnutls != xtrue
 then
   AC_MSG_NOTICE([NOTICE: GnuTLS not found, gnunet-gns-proxy will not be built])
 else
-if test x$gnutls_dane != xtrue
+if test "x$gnutls_dane" != "x1"
 then
   AC_MSG_NOTICE([NOTICE: GnuTLS has no DANE support, DANE validation will not be possible])
 fi
