@@ -105,9 +105,9 @@ got_hello (void *cls, const struct GNUNET_PeerIdentity *id,
     LOG (GNUNET_ERROR_TYPE_DEBUG, " hello with id %p and msg %p\n", id, hello);
     return;
   }
-  LOG (GNUNET_ERROR_TYPE_INFO, " hello for %s (%d bytes), expires on %s\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, " hello for %s (%d bytes), expires on %s\n",
        GNUNET_i2s (id), NULL != hello ? GNUNET_HELLO_size (hello) : -1,
-       GNUNET_STRINGS_absolute_time_to_string(GNUNET_HELLO_get_last_expiration(hello)));
+       GNUNET_STRINGS_absolute_time_to_string (GNUNET_HELLO_get_last_expiration(hello)));
   if (NULL == hello)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, " hello is NULL\n");

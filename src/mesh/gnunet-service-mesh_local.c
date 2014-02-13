@@ -411,7 +411,7 @@ handle_channel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
   struct MeshChannel *ch;
   MESH_ChannelNumber chid;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "\n\nGot a DESTROY CHANNEL from client!\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Got a DESTROY CHANNEL from client!\n");
 
   /* Sanity check for client registration */
   if (NULL == (c = GML_client_get (client)))
@@ -471,7 +471,7 @@ handle_data (void *cls, struct GNUNET_SERVER_Client *client,
   size_t size;
   int fwd;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "\n\nGot data from a client!\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Got data from a client!\n");
 
   /* Sanity check for client registration */
   if (NULL == (c = GML_client_get (client)))
