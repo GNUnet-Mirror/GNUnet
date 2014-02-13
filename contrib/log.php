@@ -2,27 +2,35 @@
 
 $path='log';
 $lines = array();
+$peers = array();
 $ajax = FALSE;
 
 function render_row ($d, $component, $pid, $level, $msg, $c)
 {
   global $ajax;
+  global $peers;
   if (!$ajax && $level == "DEBUG")
     return;
-  $date = $d ? $d->format('Y-m-d'). '<br />' . $d->format('H:i:s') : "";
-  echo "<tr class=\"$level\" id=\"$c\">";
-  echo "<td class=\"date\"><small>$date</small></td>";
-  echo '<td class="usec">';
+
+  list($comp,$peer) = explode (',', preg_replace ('/(.*)-(\d*)/', '\1,\2', $component));
+  $peer = array_key_exists ($peer, $peers) ? $peers[$peer] : $peer;
+  $date = $d ? $d->format('Y-m-d'). $d->format('H:i:s') : "";
+  echo "<tr class=\"$level $peer\" id=\"$c\">";
+  echo "<td class=\"date\"><small>$date</td>";
+  echo '<td class="usec"><small>';
   echo $d ? $d->format('u') : "";
-  echo '</td>';
-  echo "<td class=\"comp\">$component</td><td class=\"level\">$level</td><td>$msg&nbsp;</td>";
+  echo '</small></td>';
+  echo "<td class=\"comp\">$comp</td><td class=\"peer\">$peer</td>";
+  echo "<td class=\"level\">$level</td><td>$msg&nbsp;</td>";
   if ($level != "DEBUG")
   {
-    echo '<td><button class="btn btn-xs btn-default btn-showup"><span class="glyphicon glyphicon-chevron-up"></span></button>';
-    echo '<button class="btn btn-xs btn-default btn-showdown"><span class="glyphicon glyphicon-chevron-down"></span></button></td></tr>';
+    echo '<td><div class="btn-group"><button class="btn btn-xs btn-default btn-showup"><span class="glyphicon glyphicon-chevron-up"></span></button>';
+    echo '<button class="btn btn-xs btn-default btn-showdown"><span class="glyphicon glyphicon-chevron-down"></span></button></div></td>';
+//     echo '</td>';
   }
   else
-    echo '<td></td></tr>';
+    echo '<td></td>';
+  echo '</tr>';
 }
 
 function render_rows ()
@@ -36,6 +44,7 @@ function render_rows ()
 function process ($line, $c)
 {
   global $lines;
+  global $peers;
   $a = explode (' ', $line);
   if (count($a) < 6)
     return;
@@ -43,6 +52,12 @@ function process ($line, $c)
   $component = $a[3];
   $level = $a[4];
   $msg = implode (' ', array_slice ($a, 5));
+
+  if (FALSE !== strpos($line, "STARTING SERVICE")) {
+    $id = preg_replace ("/.*\[(....)\].*\n/", '\1', $line);
+    $pid = preg_replace ("/.*[a-z-]*-([0-9]*).*\n/", '\1', $line);
+    $peers[$pid] = $id;
+  }
   
   $lines[] = array ($date, $component, 0, $level, $msg, $c);
 }
@@ -68,10 +83,12 @@ $handle = @fopen($path, 'r');
 if ($handle) {
     $c = 0;
     while (($line = fgets($handle)) !== false) {
-	if ((!$start || $c >= $start) && (!$stop || $c <= $stop)) {
+	if (!$start || $c >= $start) {
 	  process ($line, $c);
 	}
 	$c++;
+	if ($stop && $c > $stop)
+	  break;
     }
 } else {
    echo "<div class=\"alert alert-danger\">Error opening file $path.</div>";
@@ -102,9 +119,10 @@ if ($start !== null || $stop !== null) {
   <style>
     body {
       font-family: arial,sans-serif;
-      color:#444;
+/*       color:#444; */
     }
     table {
+      margin-top: 40px;
       font-size:12px;
       border-collapse:collapse;
     }
@@ -113,7 +131,11 @@ if ($start !== null || $stop !== null) {
       position: fixed;
       width: 75%;
       left: 50%;
-      margin: 0 0 0 -37.5%;
+      margin: 5% 0 0 -37.5%;
+    }
+    .btn-toolbar {
+      position: fixed;
+      top: 0px;
     }
     .level {
       display: none;
@@ -127,7 +149,13 @@ if ($start !== null || $stop !== null) {
     .ERROR {
       background-color:#D2322D;
     }
-
+    .btn-group {
+      min-width: 48px;
+    }
+    table.table tbody tr td {
+      padding: 0px 0px 0px 4px;
+      margin-bottom: 0px;
+    }
   </style>
 </head>
 
@@ -139,7 +167,12 @@ if ($start !== null || $stop !== null) {
     <button class="btn btn-warning btn-showwarn"><span class="glyphicon glyphicon-exclamation-sign"></span> Warning</button>
     <button class="btn btn-info btn-showinfo"><span class="glyphicon glyphicon glyphicon-info-sign"></span> Info</button>
     <button class="btn btn-default btn-showdebug"><span class="glyphicon glyphicon glyphicon-wrench"></span> Debug</button>
-</div>
+  </div>
+  <div class="btn-group">
+    <?php foreach($peers as $pid=>$id): ?>
+    <button class="btn btn-default active"><?php echo $id ?></button>
+    <?php endforeach ?>
+  </div>
 </div>
 <div id="msg" class="alert alert-success"></div>
 <table class="table">
@@ -148,6 +181,7 @@ if ($start !== null || $stop !== null) {
     <th>Date Time</th>
     <th>uSec</th>
     <th>Comp</th>
+    <th>Peer</th>
     <th class="level">Level</th>
     <th>Message</th>
     <th></th>
