@@ -505,7 +505,7 @@ GNUNET_NETWORK_socket_close (struct GNUNET_NETWORK_Handle *desc)
       while ((len > 0) && (dirname[len] != DIR_SEPARATOR))
         len--;
       dirname[len] = '\0';
-      if (0 != rmdir (dirname))
+      if ((0 != len) && (0 != rmdir (dirname)))
       {
         switch (errno)
         {
