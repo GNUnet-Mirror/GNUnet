@@ -41,6 +41,11 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
 static struct GNUNET_GNS_Handle *gns;
 
 /**
+ * Desired timeout for the lookup (default is no timeout).
+ */
+static struct GNUNET_TIME_Relative timeout;
+
+/**
  * GNS name to lookup. (-u option)
  */
 static char *lookup_name;
@@ -376,7 +381,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 	     _("Failed to connect to GNS\n"));
     return;
   }
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
+  GNUNET_SCHEDULER_add_delayed (timeout,
 				&do_shutdown, NULL);
   if (NULL != public_key)
   {
@@ -441,6 +446,9 @@ main (int argc, char *const *argv)
     {'t', "type", "TYPE",
       gettext_noop ("Specify the type of the record to lookup"), 1,
       &GNUNET_GETOPT_set_string, &lookup_type},
+    { 'T', "timeout", "DELAY",
+      gettext_noop ("Specify timeout for the lookup"), 1,
+      &GNUNET_GETOPT_set_relative_time, &timeout },
     {'r', "raw", NULL,
       gettext_noop ("No unneeded output"), 0,
       &GNUNET_GETOPT_set_one, &raw},
@@ -454,6 +462,7 @@ main (int argc, char *const *argv)
   };
   int ret;
 
+  timeout = GNUNET_TIME_UNIT_FOREVER_REL;
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
 

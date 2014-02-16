@@ -22,12 +22,6 @@ This is a quiet mode where only important information is displayed.
 For example a lookup for an IP address will only yield the IP address, no
 descriptive text.
 .B
-.IP "\-t TYPE, \-\-type=TYPE"
-Resource Record Type (TYPE) to look for.
-Supported TYPE's are: A, AAAA, CNAME, NS, PKEY, PSEU, TLSA, SRV, SOA, MX, LEHO, VPN, REV, PTR, TXT
-
-Defaults to "A".
-.B
 .IP "\-h, \-\-help"
 Print short help on options.
 .B
@@ -40,6 +34,15 @@ Resolve the specified name using the GNUnet Name System.
 .B
 .IP "\-p PKEY, \-\-public-key=PKEY"
 Public key of the zone to perform the lookup in.  This option should be used if the lookup is to be performed against a zone not controlled by this peer (alternatively, you could pass a ".zkey" for the name).
+.B
+.IP "\-T DELAY, \-\-timeout=DELAY"
+Set the timeout to DELAY.  By default, gnunet\-gns will continue to try to resolve the name until there is a definitive answer or until the user aborts with CTRL\-C.
+.B
+.IP "\-t TYPE, \-\-type=TYPE"
+Resource Record Type (TYPE) to look for.
+Supported TYPE's are: A, AAAA, CNAME, NS, PKEY, PSEU, TLSA, SRV, SOA, MX, LEHO, VPN, REV, PTR, TXT
+
+Defaults to "A".
 .B
 .IP "\-z NAME, \-\-zone=NAME"
 Name of the ego of the zone to lookup the record in.  The public key associated with the ego will be used for the zone.
