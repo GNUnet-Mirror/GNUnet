@@ -390,7 +390,7 @@ process_lookup_reply (struct GNUNET_GNS_LookupRequest *qe,
                                                              rd))
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
-	 _("Failed to serialize lookup reply from GNS service!\n"));
+	 _("Failed to deserialize lookup reply from GNS service!\n"));
     proc (proc_cls, 0, NULL);
   }
   else
@@ -526,7 +526,7 @@ GNUNET_GNS_lookup_cancel (struct GNUNET_GNS_LookupRequest *lr)
  * @param only_cached #GNUNET_YES to only check locally (not in the DHT)
  * @param shorten_zone_key the private key of the shorten zone (can be NULL)
  * @param proc processor to call on result
- * @param proc_cls closure for processor
+ * @param proc_cls closure for @a proc
  * @return handle to the get request
  */
 struct GNUNET_GNS_LookupRequest*
