@@ -1973,10 +1973,8 @@ start_dht_request (struct GNS_ResolverHandle *rh,
 
 
 /**
- * Process a records that were decrypted from a block that we
- * got from the namecache.  If the desired record type is not
- * included, we should query the DHT.  Otherwise, we should
- * simply call #handle_gns_resolution_result().
+ * Process a records that were decrypted from a block that we got from
+ * the namecache.  Simply calls #handle_gns_resolution_result().
  *
  * @param cls closure with the `struct GNS_ResolverHandle`
  * @param rd_count number of entries in @a rd array
@@ -1988,61 +1986,10 @@ handle_gns_namecache_resolution_result (void *cls,
                                         const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct GNS_ResolverHandle *rh = cls;
-  unsigned int i;
-  int found;
 
-  found = GNUNET_NO;
-  for (i=0;i<rd_count;i++)
-  {
-    if (rd[i].record_type == rh->record_type)
-    {
-      found = GNUNET_YES;
-      break;
-    }
-    switch (rd[i].record_type)
-    {
-    case GNUNET_GNSRECORD_TYPE_VPN:
-      if ( (GNUNET_DNSPARSER_TYPE_A == rh->record_type) ||
-           (GNUNET_DNSPARSER_TYPE_AAAA == rh->record_type) )
-      {
-        found = GNUNET_YES;
-        break;
-      }
-      break;
-    case GNUNET_DNSPARSER_TYPE_CNAME:
-    case GNUNET_GNSRECORD_TYPE_PKEY:
-    case GNUNET_GNSRECORD_TYPE_GNS2DNS:
-      /* delegations always count as 'found' */
-      found = GNUNET_YES;
-      break;
-    default:
-      break;
-    }
-  }
-  if (GNUNET_YES == found)
-  {
-    handle_gns_resolution_result (rh,
-                                  rd_count,
-                                  rd);
-  }
-  else
-  {
-    /* try DHT */
-    struct AuthorityChain *ac = rh->ac_tail;
-    const char *label = ac->label;
-    const struct GNUNET_CRYPTO_EcdsaPublicKey *auth = &ac->authority_info.gns_authority;
-    struct GNUNET_HashCode query;
-
-    GNUNET_GNSRECORD_query_from_public_key (auth,
-                                            label,
-                                            &query);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Starting DHT lookup for `%s' in zone `%s' under key `%s'\n",
-                ac->label,
-                GNUNET_GNSRECORD_z2s (&ac->authority_info.gns_authority),
-                GNUNET_h2s (&query));
-    start_dht_request (rh, &query);
-  }
+  handle_gns_resolution_result (rh,
+                                rd_count,
+                                rd);
 }
 
 
@@ -2140,10 +2087,11 @@ recursive_gns_resolution_namecache (struct GNS_ResolverHandle *rh)
 					  &query);
   if (GNUNET_YES == use_cache)
   {
-    rh->namecache_qe = GNUNET_NAMECACHE_lookup_block (namecache_handle,
-						    &query,
-						    &handle_namecache_block_response,
-						    rh);
+    rh->namecache_qe
+      = GNUNET_NAMECACHE_lookup_block (namecache_handle,
+                                       &query,
+                                       &handle_namecache_block_response,
+                                       rh);
     GNUNET_assert (NULL != rh->namecache_qe);
   }
   else
