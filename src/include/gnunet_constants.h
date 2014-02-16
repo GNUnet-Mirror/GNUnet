@@ -97,15 +97,13 @@ extern "C"
 
 
 /**
- * After how long do we expire an address in a HELLO that we just
- * validated?  This value is also used for our own addresses when we
- * create a HELLO.
+ * How long do we cache records at most in the DHT?
  */
 #define GNUNET_CONSTANTS_DHT_MAX_EXPIRATION GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 24)
 
 
 /**
- * Size of the 'struct EncryptedMessage' of the core (which
+ * Size of the `struct EncryptedMessage` of the core (which
  * is the per-message overhead of the core).
  */
 #define GNUNET_CONSTANTS_CORE_SIZE_ENCRYPTED_MESSAGE (24 + sizeof (struct GNUNET_HashCode))
@@ -116,8 +114,8 @@ extern "C"
  * Set to a value close to 64k but not so close that transports will
  * have trouble with their headers.
  *
- * Could theoretically be 64k minus (GNUNET_CONSTANTS_CORE_SIZE_ENCRYPTED_MESSAGE +
- * GNUNET_CONSTANTS_TRANSPORT_SIZE_OUTBOUND_MESSAGE), but we're going
+ * Could theoretically be 64k minus (#GNUNET_CONSTANTS_CORE_SIZE_ENCRYPTED_MESSAGE +
+ * #GNUNET_CONSTANTS_TRANSPORT_SIZE_OUTBOUND_MESSAGE), but we're going
  * to be more conservative for now.
  */
 #define GNUNET_CONSTANTS_MAX_ENCRYPTED_MESSAGE_SIZE (63 * 1024)
