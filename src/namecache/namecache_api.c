@@ -271,8 +271,8 @@ handle_block_cache_response (struct GNUNET_NAMECACHE_QueueEntry *qe,
   if (NULL != qe->cont)
     qe->cont (qe->cont_cls,
 	      res,
-	      (GNUNET_OK == res) ?
-	      NULL
+	      (GNUNET_OK == res)
+	      ? NULL
 	      : _("Namecache failed to cache block"));
   return GNUNET_OK;
 }
@@ -690,8 +690,6 @@ GNUNET_NAMECACHE_lookup_block (struct GNUNET_NAMECACHE_Handle *h,
   size_t msg_size;
   uint32_t rid;
 
-  GNUNET_assert (NULL != h);
-  GNUNET_assert (NULL != derived_hash);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Looking for block under %s\n",
        GNUNET_h2s (derived_hash));
