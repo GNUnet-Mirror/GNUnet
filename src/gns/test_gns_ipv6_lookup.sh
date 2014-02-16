@@ -13,7 +13,7 @@ then
 	exit 77
 fi
 
-rm -r `rm -rf /tmp/test-gnunet-gns-peer-1/`
+rm -rf `gnunet-config -c test_gns_lookup.conf -s PATHS -o GNUNET_HOME -f`
 which timeout &> /dev/null && DO_TIMEOUT="timeout 30"
 TEST_IP="dead::beef"
 gnunet-arm -s -c test_gns_lookup.conf
