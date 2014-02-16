@@ -61,6 +61,11 @@ static char *zone_ego_name;
 static char *public_key;
 
 /**
+ * Set to #GNUNET_YES if we must not use the DHT (only local lookup).
+ */
+static int only_cached;
+
+/**
  * raw output
  */
 static int raw;
@@ -206,7 +211,7 @@ lookup_with_keys (const struct GNUNET_CRYPTO_EcdsaPublicKey *pkey,
 					lookup_name,
 					pkey,
 					rtype,
-					GNUNET_NO, /* Use DHT */
+					only_cached,
 					shorten_key,
 					&process_lookup_result,
 					lookup_name);
@@ -328,6 +333,7 @@ identity_master_cb (void *cls,
 		    const char *name)
 {
   struct GNUNET_CRYPTO_EcdsaPublicKey pkey;
+  const char *dot;
 
   id_op = NULL;
   if (NULL == ego)
@@ -338,6 +344,11 @@ identity_master_cb (void *cls,
     return;
   }
   GNUNET_IDENTITY_ego_get_public_key (ego, &pkey);
+  /* if the name is of the form 'label.gnu', never go to the DHT */
+  dot = strchr (lookup_name, '.');
+  if ( (NULL != dot) &&
+       (0 == strcasecmp (dot, ".gnu")) )
+    only_cached = GNUNET_YES;
   lookup_with_public_key (&pkey);
 }
 
