@@ -576,7 +576,7 @@ GNUNET_GNS_lookup (struct GNUNET_GNS_Handle *handle,
   lookup_msg->header.type = htons (GNUNET_MESSAGE_TYPE_GNS_LOOKUP);
   lookup_msg->header.size = htons (msize);
   lookup_msg->id = htonl (lr->r_id);
-  lookup_msg->only_cached = htonl (only_cached);
+  lookup_msg->only_cached = htons (only_cached);
   lookup_msg->zone = *zone;
   lookup_msg->type = htonl (type);
   if (NULL != shorten_zone_key)
