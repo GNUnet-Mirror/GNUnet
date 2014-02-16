@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2012, 2013 Christian Grothoff (and other contributing authors)
+     (C) 2012, 2013, 2014 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -397,6 +397,17 @@ client_lookup (struct GNUNET_SERVER_Client *client)
 }
 
 
+/**
+ * Function called with the records for the #GNUNET_GNS_MASTERZONE_STR
+ * label in the zone.  Used to locate the #GNUNET_GNSRECORD_TYPE_NICK
+ * record, which (if found) is then copied to @a cls for future use.
+ *
+ * @param cls a `struct GNUNET_GNSRECORD_Data **` for storing the nick (if found)
+ * @param private_key the private key of the zone (unused)
+ * @param label should be #GNUNET_GNS_MASTERZONE_STR
+ * @param rd_count number of records in @a rd
+ * @param rd records stored under @a label in the zone
+ */
 static void
 lookup_nick_it (void *cls,
                 const struct GNUNET_CRYPTO_EcdsaPrivateKey *private_key,
@@ -430,6 +441,12 @@ lookup_nick_it (void *cls,
 }
 
 
+/**
+ * Return the NICK record for the zone (if it exists).
+ *
+ * @param zone private key for the zone to look for nick
+ * @return NULL if no NICK record was found
+ */
 static struct GNUNET_GNSRECORD_Data *
 get_nick_record (const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone)
 {
@@ -516,7 +533,7 @@ merge_with_nick_records ( const struct GNUNET_GNSRECORD_Data *nick_rd,
 
 
 /**
- * Generate a 'struct LookupNameResponseMessage' and send it to the
+ * Generate a `struct LookupNameResponseMessage` and send it to the
  * given client using the given notification context.
  *
  * @param nc notification context to use
@@ -720,6 +737,9 @@ refresh_block (struct GNUNET_SERVER_Client *client,
 }
 
 
+/**
+ * Closure for #lookup_it().
+ */
 struct RecordLookupContext
 {
   const char *label;
