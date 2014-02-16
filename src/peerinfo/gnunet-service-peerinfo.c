@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2001, 2002, 2004, 2005, 2007, 2009, 2010, 2012 Christian Grothoff (and other contributing authors)
+     (C) 2001-2014 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -26,9 +26,6 @@
  * structure of data/hosts/).
  *
  * @author Christian Grothoff
- *
- * TODO:
- * - notify clients when addresses in HELLO expire (#1933)
  */
 
 #include "platform.h"
@@ -83,10 +80,11 @@ struct TransmitContext
   struct GNUNET_SERVER_TransmitContext *tc;
 
   /**
-   * Include friend only HELLOs GNUNET_YES or _NO
+   * Include friend only HELLOs #GNUNET_YES or #GNUNET_NO
    */
   int friend_only;
 };
+
 
 /**
  * Result of reading a file
@@ -110,25 +108,25 @@ struct ReadHostFileContext
  */
 struct NotificationContext
 {
-	/**
-	 * Next in DLL
-	 */
-	struct NotificationContext *prev;
+  /**
+   * Next in DLL
+   */
+  struct NotificationContext *prev;
 
-	/**
-	 * Previous in DLL
-	 */
-	struct NotificationContext *next;
+  /**
+   * Previous in DLL
+   */
+  struct NotificationContext *next;
 
-	/**
-	 * Server client
-	 */
-	struct GNUNET_SERVER_Client *client;
+  /**
+   * Server client
+   */
+  struct GNUNET_SERVER_Client *client;
 
-	/**
-	 * Interested in friend only HELLO?
-	 */
-	int include_friend_only;
+  /**
+   * Interested in friend only HELLO?
+   */
+  int include_friend_only;
 };
 
 
@@ -173,7 +171,8 @@ static struct NotificationContext *nc_tail;
  * @return generated notification message
  */
 static struct InfoMessage *
-make_info_message (const struct HostEntry *he, int include_friend_only)
+make_info_message (const struct HostEntry *he,
+                   int include_friend_only)
 {
   struct InfoMessage *im;
   struct GNUNET_HELLO_Message *src;
@@ -201,10 +200,11 @@ make_info_message (const struct HostEntry *he, int include_friend_only)
  * @param cls pointer to the current time
  * @param address the address
  * @param expiration expiration time for the address
- * @return GNUNET_NO if expiration smaller than the current time
+ * @return #GNUNET_NO if expiration smaller than the current time
  */
 static int
-discard_expired (void *cls, const struct GNUNET_HELLO_Address *address,
+discard_expired (void *cls,
+                 const struct GNUNET_HELLO_Address *address,
                  struct GNUNET_TIME_Absolute expiration)
 {
   const struct GNUNET_TIME_Absolute *now = cls;
@@ -226,10 +226,11 @@ discard_expired (void *cls, const struct GNUNET_HELLO_Address *address,
  * @param cls pointer to the counter
  * @param address the address
  * @param expiration expiration time for the address
- * @return GNUNET_OK (always)
+ * @return #GNUNET_OK (always)
  */
 static int
-count_addresses (void *cls, const struct GNUNET_HELLO_Address *address,
+count_addresses (void *cls,
+                 const struct GNUNET_HELLO_Address *address,
                  struct GNUNET_TIME_Absolute expiration)
 {
   unsigned int *cnt = cls;
@@ -312,12 +313,10 @@ update_hello (const struct GNUNET_PeerIdentity *peer,
 
 /**
  * Try to read the HELLOs in the given filename and discard expired
- * addresses.  Removes the file if one the HELLO is mal-formed.  If all
+ * addresses.  Removes the file if one the HELLO is malformed.  If all
  * addresses are expired, the HELLO is also removed (but the HELLO
  * with the public key is still returned if it was found and valid).
- *
- * The file can contain multiple HELLO messages, but onlu a public and a friend only
- * HELLO should be included
+ * The file can contain multiple HELLO messages.
  *
  * @param fn name of the file
  * @param unlink_garbage if #GNUNET_YES, try to remove useless files
@@ -332,7 +331,6 @@ read_host_file (const char *fn,
   unsigned int size_total;
   struct GNUNET_TIME_Absolute now;
   unsigned int left;
-
   const struct GNUNET_HELLO_Message *hello;
   struct GNUNET_HELLO_Message *hello_clean;
   unsigned read_pos;
@@ -443,7 +441,7 @@ read_host_file (const char *fn,
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Found `%s' and `%s' HELLO message in file\n",
-	      (NULL != r->hello) ? "public" : "NO public",
+	      (NULL != r->hello) ? "public" : "NON-public",
 	      (NULL != r->friend_only_hello) ? "friend only" : "NO friend only");
 }
 
@@ -516,8 +514,8 @@ remove_garbage (const char *fullname)
 struct DirScanContext
 {
   /**
-   * GNUNET_YES if we should remove files that are broken,
-   * GNUNET_NO if the directory we are iterating over should
+   * #GNUNET_YES if we should remove files that are broken,
+   * #GNUNET_NO if the directory we are iterating over should
    * be treated as read-only by us.
    */
   int remove_files;
@@ -845,7 +843,7 @@ update_hello (const struct GNUNET_PeerIdentity *peer,
  * @param cls NULL to hit all hosts, otherwise specifies a particular target
  * @param key hostID
  * @param value information to transmit
- * @return GNUNET_YES (continue to iterate)
+ * @return #GNUNET_YES (continue to iterate)
  */
 static int
 add_to_tc (void *cls, const struct GNUNET_PeerIdentity *key, void *value)
@@ -902,7 +900,7 @@ add_to_tc (void *cls, const struct GNUNET_PeerIdentity *key, void *value)
  *
  * @param cls pointer to current time (struct GNUNET_TIME_Absolute)
  * @param fn filename to test to see if the HELLO expired
- * @return GNUNET_OK (continue iteration)
+ * @return #GNUNET_OK (continue iteration)
  */
 static int
 discard_hosts_helper (void *cls, const char *fn)
@@ -1086,10 +1084,10 @@ handle_get_all (void *cls, struct GNUNET_SERVER_Client *client,
  * Pass the given client the information we have in the respective
  * host entry; the client is already in the notification context.
  *
- * @param cls the 'struct GNUNET_SERVER_Client' to notify
+ * @param cls the `struct GNUNET_SERVER_Client` to notify
  * @param key key for the value (unused)
- * @param value the 'struct HostEntry' to notify the client about
- * @return GNUNET_YES (always, continue to iterate)
+ * @param value the `struct HostEntry` to notify the client about
+ * @return #GNUNET_YES (always, continue to iterate)
  */
 static int
 do_notify_entry (void *cls, const struct GNUNET_PeerIdentity *key, void *value)
@@ -1176,11 +1174,13 @@ disconnect_cb (void *cls,struct GNUNET_SERVER_Client *client)
  *
  * @param cls NULL
  * @param key key of the host entry
- * @param value the 'struct HostEntry' to free
- * @return GNUNET_YES (continue to iterate)
+ * @param value the `struct HostEntry` to free
+ * @return #GNUNET_YES (continue to iterate)
  */
 static int
-free_host_entry (void *cls, const struct GNUNET_PeerIdentity *key, void *value)
+free_host_entry (void *cls,
+                 const struct GNUNET_PeerIdentity *key,
+                 void *value)
 {
   struct HostEntry *he = value;
 
@@ -1198,7 +1198,8 @@ free_host_entry (void *cls, const struct GNUNET_PeerIdentity *key, void *value)
  * @param tc scheduler task context, unused
  */
 static void
-shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls,
+               const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct NotificationContext *cur;
   struct NotificationContext *next;
