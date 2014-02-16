@@ -147,6 +147,14 @@ GNUNET_FRIENDS_write_start (const struct GNUNET_CONFIGURATION_Handle *cfg)
 			       "topology", "FRIENDS");
     return NULL;
   }
+  if (GNUNET_OK !=
+      GNUNET_DISK_directory_create_for_file (fn))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _("Directory for file `%s' does not seem to be writable.\n"),
+                fn);
+    return NULL;
+  }
   if (GNUNET_OK == GNUNET_DISK_file_test (fn))
     GNUNET_DISK_file_backup (fn);
   w = GNUNET_new (struct GNUNET_FRIENDS_Writer);
