@@ -212,7 +212,7 @@ if ($start !== null || $stop !== null) {
 
     function showlevel (level)
     {
-      $("tr").hide();
+      $("tbody > tr").hide();
       $(".btn-showlevel").removeClass("active");
       $("#"+level).addClass("active");
       for (var index = 0; index < types.length; ++index) {
