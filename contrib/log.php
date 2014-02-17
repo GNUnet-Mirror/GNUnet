@@ -4,6 +4,7 @@ $path='log';
 $lines = array();
 $peers = array();
 $ajax = FALSE;
+$colors = array('#F00', '#0C0', '#44F', '#FF0', '#F0F', '#0FF');
 
 function render_row ($d, $component, $pid, $level, $msg, $c)
 {
@@ -15,7 +16,7 @@ function render_row ($d, $component, $pid, $level, $msg, $c)
   list($comp,$peer) = explode (',', preg_replace ('/(.*)-(\d*)/', '\1,\2', $component));
   $peer = array_key_exists ($peer, $peers) ? $peers[$peer] : $peer;
   $date = $d ? $d->format('Y-m-d'). $d->format('H:i:s') : "";
-  echo "<tr class=\"$level $peer\" id=\"$c\">";
+  echo "<tr class=\"$level P-$peer\" id=\"$c\">";
   echo "<td class=\"date\"><small>$date</td>";
   echo '<td class="usec"><small>';
   echo $d ? $d->format('u') : "";
@@ -118,8 +119,8 @@ if ($start !== null || $stop !== null) {
 
   <style>
     body {
-      font-family: arial,sans-serif;
-/*       color:#444; */
+      font-family: courier,sans-serif;
+      color:#000;
     }
     table {
       margin-top: 40px;
@@ -152,10 +153,19 @@ if ($start !== null || $stop !== null) {
     .btn-group {
       min-width: 48px;
     }
-    table.table tbody tr td {
-      padding: 0px 0px 0px 4px;
+    table.table tbody tr td,
+    table.table tbody th td {
+      padding: 0px 0px 0px 2px;
       margin-bottom: 0px;
     }
+<?php
+    $c = 0;
+    foreach ($peers as $peer) {
+      echo "table.table tbody tr.P-$peer td.peer {\n";
+      echo '  background-color: ' . $colors[$c] . ";\n";
+      echo "}\n";
+      echo "#P-$peer { color: " . $colors[$c++] . "}\n";
+    } ?>
   </style>
 </head>
 
@@ -170,7 +180,7 @@ if ($start !== null || $stop !== null) {
   </div>
   <div class="btn-group">
     <?php foreach($peers as $pid=>$id): ?>
-    <button id="<?php echo $id ?>" class="btn btn-default btn-showpeer active"><?php echo $id ?></button>
+    <button id="P-<?php echo $id ?>" class="btn btn-default btn-showpeer active"><?php echo $id ?></button>
     <?php endforeach ?>
     <button id="btn-showall" class="btn btn-default">All</button>
     <button id="btn-shownone" class="btn btn-default">None</button>
@@ -218,7 +228,7 @@ if ($start !== null || $stop !== null) {
       $("#"+level).addClass("active");
       for (var index = 0; index < types.length; ++index) {
         $(".btn-showpeer.active").each(function(){
-          $("."+types[index]+"."+this.id).show();
+          $("."+types[index]+".P-"+this.id).show();
         });
 	if (types[index] == level)
 	  return;
@@ -289,7 +299,7 @@ if ($start !== null || $stop !== null) {
 	var trs = $(resp);
         for (var peer in peers) {
           console.log (peer + "=>" + peers[peer]);
-          trs.filter("."+peer).removeClass(peer).addClass(peers[peer]).find("td.peer").html(peers[peer]);
+          trs.filter(".P-"+peer).removeClass('P-'+peer).addClass('P-'+peers[peer]).find("td.peer").html(peers[peer]);
         }
         console.log (trs);
 	if (loc.length > 0)
