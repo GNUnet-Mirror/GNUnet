@@ -222,7 +222,17 @@ if ($start !== null || $stop !== null) {
       }
     }
 
-    function show (btn, up)
+    function showpeer (peer)
+    {
+      $("#"+peer).toggleClass("active");
+      if ($("#"+peer).hasClass("active")) {
+        $("."+peer).show();
+      } else {
+        $("."+peer).hide();
+      }
+    }
+
+    function load_debug (btn, up)
     {
       var tr = $(btn).parents("tr");
       var level = tr.attr("class");
@@ -268,8 +278,8 @@ if ($start !== null || $stop !== null) {
     }
 
     $(function() {
-      $(".btn-showup").on ("click", function(){ show(this, true) });
-      $(".btn-showdown").on ("click", function(){ show(this, false) });
+      $(".btn-showup").on ("click", function(){ load_debug(this, true) });
+      $(".btn-showdown").on ("click", function(){ load_debug(this, false) });
       $(".btn-showlevel").on ("click", function(){ showlevel(this.id) });
       $(".btn-showpeer").on ("click", function(){ showpeer(this.id) });
     });
