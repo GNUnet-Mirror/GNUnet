@@ -172,8 +172,8 @@ if ($start !== null || $stop !== null) {
     <?php foreach($peers as $pid=>$id): ?>
     <button id="<?php echo $id ?>" class="btn btn-default btn-showpeer active"><?php echo $id ?></button>
     <?php endforeach ?>
-    <button id="all" class="btn btn-default btn-showpeer">All</button>
-    <button id="none" class="btn btn-default btn-showpeer">None</button>
+    <button id="btn-showall" class="btn btn-default">All</button>
+    <button id="btn-shownone" class="btn btn-default">None</button>
   </div>
 </div>
 <div id="msg" class="alert alert-success"></div>
@@ -220,6 +220,17 @@ if ($start !== null || $stop !== null) {
 	if (types[index] == level)
 	  return;
       }
+    }
+
+    function shownone()
+    {
+      $(".btn-showpeer").removeClass("active");
+      $("tbody > tr").hide();
+    }
+
+    function showall()
+    {
+      $(".btn-showpeer:not(.active)").each(function(){showpeer(this.id)});
     }
 
     function showpeer (peer)
@@ -294,6 +305,8 @@ if ($start !== null || $stop !== null) {
       $(".btn-showdown").on ("click", function(){ load_debug(this, false) });
       $(".btn-showlevel").on ("click", function(){ showlevel(this.id) });
       $(".btn-showpeer").on ("click", function(){ showpeer(this.id) });
+      $("#btn-showall").on ("click", function(){ showall() });
+      $("#btn-shownone").on ("click", function(){ shownone() });
     });
   </script>
 </body>
