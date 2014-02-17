@@ -226,7 +226,12 @@ if ($start !== null || $stop !== null) {
     {
       $("#"+peer).toggleClass("active");
       if ($("#"+peer).hasClass("active")) {
-        $("."+peer).show();
+        for (var index = 0; index < types.length; ++index) {
+          var className = "." + types[index] + "." + peer;
+          $(className).show();
+          if ($("#"+types[index]).hasClass("active"))
+            return;
+        }
       } else {
         $("."+peer).hide();
       }
