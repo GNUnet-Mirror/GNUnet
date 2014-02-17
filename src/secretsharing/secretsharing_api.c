@@ -144,6 +144,9 @@ handle_secret_ready (void *cls, const struct GNUNET_MessageHeader *msg)
   const struct GNUNET_SECRETSHARING_SecretReadyMessage *m = (const void *) msg;
   size_t share_size;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "got secret ready message of size %u\n",
+       ntohs (m->header.size));
+
   share_size = ntohs (m->header.size) - sizeof *m;
 
   share = GNUNET_SECRETSHARING_share_read (&m[1], share_size, NULL);

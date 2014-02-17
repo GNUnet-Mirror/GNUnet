@@ -786,6 +786,9 @@ keygen_round2_conclude (void *cls)
 
   GNUNET_assert (GNUNET_OK == GNUNET_SECRETSHARING_share_write (share, NULL, 0, &share_size));
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "writing share of size %u\n",
+              (unsigned int) share_size);
+
   ev = GNUNET_MQ_msg_extra (m, share_size,
                             GNUNET_MESSAGE_TYPE_SECRETSHARING_CLIENT_SECRET_READY);
 
