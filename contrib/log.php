@@ -201,6 +201,7 @@ if ($start !== null || $stop !== null) {
   <script>
 
     var types = ["ERROR", "WARNING", "INFO", "DEBUG"];
+    var peers = {<?php foreach($peers as $pid=>$id) echo "'$pid': '$id', "; ?>};
     var msg_timeout;
 
     function msg (content)
@@ -285,10 +286,16 @@ if ($start !== null || $stop !== null) {
 	data: { a: first, z: last }
       }).done(function ( resp ) {
 	var loc = $("#"+(first-1));
+	var trs = $(resp);
+        for (var peer in peers) {
+          console.log (peer + "=>" + peers[peer]);
+          trs.filter("."+peer).removeClass(peer).addClass(peers[peer]).find("td.peer").html(peers[peer]);
+        }
+        console.log (trs);
 	if (loc.length > 0)
-	  loc.after(resp);
+	  loc.after(trs);
 	else {
-	  $("#"+(last+1)).before(resp);
+	  $("#"+(last+1)).before(trs);
 	}
 	msg("Done loading " + (last-first+1) + " lines.");
       });
