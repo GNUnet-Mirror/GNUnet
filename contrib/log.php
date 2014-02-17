@@ -58,7 +58,7 @@ function process ($line, $c)
     $pid = preg_replace ("/.*[a-z-]*-([0-9]*).*\n/", '\1', $line);
     $peers[$pid] = $id;
   }
-  
+
   $lines[] = array ($date, $component, 0, $level, $msg, $c);
 }
 
@@ -108,7 +108,7 @@ if ($start !== null || $stop !== null) {
   <meta charset="utf-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  
+
   <title>GNUnet log view</title>
 
   <!-- Latest compiled and minified Bootstrap CSS -->
@@ -163,15 +163,17 @@ if ($start !== null || $stop !== null) {
 <body>
 <div class="btn-toolbar" role="toolbar">
   <div class="btn-group">
-    <button class="btn btn-danger btn-showerror"><span class="glyphicon glyphicon-fire"></span> Error</button>
-    <button class="btn btn-warning btn-showwarn"><span class="glyphicon glyphicon-exclamation-sign"></span> Warning</button>
-    <button class="btn btn-info btn-showinfo"><span class="glyphicon glyphicon glyphicon-info-sign"></span> Info</button>
-    <button class="btn btn-default btn-showdebug"><span class="glyphicon glyphicon glyphicon-wrench"></span> Debug</button>
+    <button id="ERROR" class="btn btn-danger btn-showlevel"><span class="glyphicon glyphicon-fire"></span> Error</button>
+    <button id="WARNING" class="btn btn-warning btn-showlevel"><span class="glyphicon glyphicon-exclamation-sign"></span> Warning</button>
+    <button id="INFO" class="btn btn-info btn-showlevel active"><span class="glyphicon glyphicon glyphicon-info-sign"></span> Info</button>
+    <button id="DEBUG" class="btn btn-default btn-showlevel"><span class="glyphicon glyphicon glyphicon-wrench"></span> Debug</button>
   </div>
   <div class="btn-group">
     <?php foreach($peers as $pid=>$id): ?>
-    <button class="btn btn-default active"><?php echo $id ?></button>
+    <button id="<?php echo $id ?>" class="btn btn-default btn-showpeer active"><?php echo $id ?></button>
     <?php endforeach ?>
+    <button id="all" class="btn btn-default btn-showpeer">All</button>
+    <button id="none" class="btn btn-default btn-showpeer">None</button>
   </div>
 </div>
 <div id="msg" class="alert alert-success"></div>
@@ -211,6 +213,8 @@ if ($start !== null || $stop !== null) {
     function showlevel (level)
     {
       $("tr").hide();
+      $(".btn-showlevel").removeClass("active");
+      $("#"+level).addClass("active");
       for (var index = 0; index < types.length; ++index) {
 	$("."+types[index]).show();
 	if (types[index] == level)
@@ -254,7 +258,7 @@ if ($start !== null || $stop !== null) {
 	msg("Done loading " + (last-first+1) + " lines.");
       });
       //tr.nextUntil("."+tr.attr("class")).show();
-      
+
     }
 
     function hide (btn)
@@ -266,10 +270,8 @@ if ($start !== null || $stop !== null) {
     $(function() {
       $(".btn-showup").on ("click", function(){ show(this, true) });
       $(".btn-showdown").on ("click", function(){ show(this, false) });
-      $(".btn-showerror").on ("click", function(){ showlevel("ERROR") });
-      $(".btn-showwarn").on ("click", function(){ showlevel("WARNING") });
-      $(".btn-showinfo").on ("click", function(){ showlevel("INFO") });
-      $(".btn-showdebug").on ("click", function(){ showlevel("DEBUG") });
+      $(".btn-showlevel").on ("click", function(){ showlevel(this.id) });
+      $(".btn-showpeer").on ("click", function(){ showpeer(this.id) });
     });
   </script>
 </body>
