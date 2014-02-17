@@ -216,7 +216,9 @@ if ($start !== null || $stop !== null) {
       $(".btn-showlevel").removeClass("active");
       $("#"+level).addClass("active");
       for (var index = 0; index < types.length; ++index) {
-	$("."+types[index]).show();
+        $(".btn-showpeer.active").each(function(){
+          $("."+types[index]+"."+this.id).show();
+        });
 	if (types[index] == level)
 	  return;
       }
