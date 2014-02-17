@@ -119,10 +119,11 @@ if ($start !== null || $stop !== null) {
 
   <style>
     body {
-      font-family: courier,sans-serif;
-      color:#000;
+      font-family: arial,sans-serif;
     }
     table {
+      font-family: courier,sans-serif;
+      color:#000;
       margin-top: 40px;
       font-size:12px;
       border-collapse:collapse;
@@ -228,7 +229,7 @@ if ($start !== null || $stop !== null) {
       $("#"+level).addClass("active");
       for (var index = 0; index < types.length; ++index) {
         $(".btn-showpeer.active").each(function(){
-          $("."+types[index]+".P-"+this.id).show();
+          $("."+types[index]+"."+this.id).show();
         });
 	if (types[index] == level)
 	  return;
