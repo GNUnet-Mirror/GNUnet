@@ -4,7 +4,10 @@ $path='log';
 $lines = array();
 $peers = array();
 $ajax = FALSE;
-$colors = array('#F00', '#0C0', '#44F', '#FF0', '#F0F', '#0FF');
+$colors = array('#F00', '#F80', '#FF0',
+                '#4F0', '#0A0',
+                '#22F', '#ADF', '#0FF', '#F0F', '#508', '#FAA',
+                '#FFF', '#AAA', '#666', '#222');
 
 function render_row ($d, $component, $pid, $level, $msg, $c)
 {
