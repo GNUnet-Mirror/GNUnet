@@ -119,6 +119,7 @@ GDS_NEIGHBOURS_handle_reply (const struct GNUNET_PeerIdentity *target,
                              const void *data, size_t data_size);
 
 
+
 /**
  * Initialize neighbours subsystem.
  *

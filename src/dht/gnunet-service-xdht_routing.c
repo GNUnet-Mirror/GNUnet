@@ -80,23 +80,21 @@ static struct GNUNET_CONTAINER_MultiPeerMap *routing_table;
 /**
  * FIXME: Change the name of variable. 
  * Ensure that everywhere in this file you are using destination as the key.
+ * Do we need prev field in routing table?
  * Add a new entry to our routing table.
  * @param source peer
  * @param destintation
- * @param prev_hop
  * @param next_hop
  */
 void
 GDS_ROUTING_add (struct GNUNET_PeerIdentity *source,
                  struct GNUNET_PeerIdentity *dest,
-                 struct GNUNET_PeerIdentity *prev_hop,
                  struct GNUNET_PeerIdentity *next_hop)
 {
   struct RoutingTrail *new_routing_entry;
     
   new_routing_entry = GNUNET_malloc (sizeof (struct RoutingTrail));
   new_routing_entry->source = source;
-  new_routing_entry->previous_hop = prev_hop;
   new_routing_entry->next_hop = next_hop;
   new_routing_entry->destination = dest;
     
@@ -121,9 +119,8 @@ GDS_ROUTING_add (struct GNUNET_PeerIdentity *source,
  * @return next hop peer id
  */
 struct GNUNET_PeerIdentity *
-GDS_Routing_search(struct GNUNET_PeerIdentity *source_peer,
-                   struct GNUNET_PeerIdentity *destination_peer,
-                   struct GNUNET_PeerIdentity *prev_hop)
+GDS_ROUTING_search(struct GNUNET_PeerIdentity *source_peer,
+                   struct GNUNET_PeerIdentity *destination_peer)
 {
   struct RoutingTrail *trail;
   trail = (struct RoutingTrail *)(GNUNET_CONTAINER_multipeermap_get(routing_table,destination_peer));

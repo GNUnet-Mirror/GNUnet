@@ -645,7 +645,7 @@ handle_core_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
   struct PeerInfo *ret;
   struct GNUNET_HashCode phash;
   int peer_bucket;
-
+ 
   /* Check for connect to self message */
   if (0 == memcmp (&my_identity, peer, sizeof (struct GNUNET_PeerIdentity)))
     return;
@@ -784,7 +784,7 @@ core_transmit_notify (void *cls, size_t size, void *buf)
   struct P2PPendingMessage *pending;
   size_t off;
   size_t msize;
-
+  
   peer->th = NULL;
   while ((NULL != (pending = peer->head)) &&
          (0 == GNUNET_TIME_absolute_get_remaining (pending->timeout).rel_value_us))

@@ -37,7 +37,6 @@
 void
 GDS_ROUTING_add (struct GNUNET_PeerIdentity *source,
                  struct GNUNET_PeerIdentity *destination_peer,
-                 struct GNUNET_PeerIdentity *prev_hop,
                  struct GNUNET_PeerIdentity *next_hop);
 
 
@@ -46,9 +45,8 @@ GDS_ROUTING_add (struct GNUNET_PeerIdentity *source,
  * @return next hop peer id
  */
 struct GNUNET_PeerIdentity *
-GDS_Routing_search(struct GNUNET_PeerIdentity *source_peer,
-                   struct GNUNET_PeerIdentity *destination_peer,
-                   struct GNUNET_PeerIdentity *prev_hop);
+GDS_ROUTING_search(struct GNUNET_PeerIdentity *source_peer,
+                   struct GNUNET_PeerIdentity *destination_peer);
 
 /**
  * Handle a reply (route to origin).  Only forwards the reply back to
