@@ -235,10 +235,17 @@ if ($start !== null || $stop !== null) {
     function load_debug (btn, up)
     {
       var tr = $(btn).parents("tr");
-      var level = tr.attr("class");
+      var level;
       var pos = parseInt(tr.attr("id"));
       var first = pos + 1;
       var last = pos - 1;
+      for (var index = 0; index < types.length; ++index) {
+        if (tr.hasClass(types[index]))
+        {
+          level = types[index];
+          break;
+        }
+      }
       if (up) {
 	if (parseInt(tr.prev().attr("id")) == last) {
 	  msg ("Already loaded");
