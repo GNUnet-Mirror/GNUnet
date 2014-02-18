@@ -876,6 +876,7 @@ adapt_parallelism (struct OperationQueue *queue)
   int sd;
   unsigned int nvals;
   unsigned int cnt;
+  unsigned int parallelism;
 
   avg = GNUNET_TIME_UNIT_ZERO;
   nvals = 0;
@@ -907,19 +908,17 @@ adapt_parallelism (struct OperationQueue *queue)
     adaptive_queue_set_max_active (queue, queue->max_active); /* no change */
     return;
   }
+  parallelism = 0;
   if (-1 == sd)
-    adaptive_queue_set_max_active (queue, queue->max_active + 1);
+    parallelism = queue->max_active + 1;
   if (sd <= -2)
-    adaptive_queue_set_max_active (queue, queue->max_active * 2);
-  if (1 == queue->max_active)
-  {
-    adaptive_queue_set_max_active (queue, 1);
-    return;
-  }
+    parallelism = queue->max_active * 2;
   if (1 == sd)
-    adaptive_queue_set_max_active (queue, queue->max_active - 1);
+    parallelism = queue->max_active - 1;
   if (2 <= sd)
-    adaptive_queue_set_max_active (queue, queue->max_active / 2);
+    parallelism = queue->max_active / 2;
+  parallelism = GNUNET_MAX (parallelism, ADAPTIVE_QUEUE_DEFAULT_MAX_ACTIVE);
+  adaptive_queue_set_max_active (queue, parallelism);
 
 #if 0                           /* old algorithm */
   if (sd < 0)
