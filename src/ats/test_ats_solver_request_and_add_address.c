@@ -140,8 +140,6 @@ address_suggest_cb (void *cls,
 
   GNUNET_assert (NULL != address);
   GNUNET_assert (NULL == session);
-  GNUNET_assert (ntohl(bandwidth_in.value__) > 0);
-  GNUNET_assert (ntohl(bandwidth_out.value__) > 0);
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Received sugggestion for peer `%s'\n",
       GNUNET_i2s (&address->peer));
