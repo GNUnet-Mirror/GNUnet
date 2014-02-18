@@ -1277,7 +1277,7 @@ GNUNET_CRYPTO_ecdsa_private_key_derive (const struct GNUNET_CRYPTO_EcdsaPrivateK
  * @return finger_identity
  */
 struct GNUNET_PeerIdentity *
-GNUNET_CRYPTO_compute_finger(struct GNUNET_PeerIdentity *my_identity,unsigned int index);
+GNUNET_CRYPTO_compute_finger_identity(struct GNUNET_PeerIdentity *my_identity,unsigned int index);
 
 
 /**
