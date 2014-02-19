@@ -142,6 +142,10 @@ if ($start !== null || $stop !== null) {
       position: fixed;
       top: 0px;
     }
+    .btn-xs {
+      font-size: 9px;
+      padding: 0 5px;
+    }
     .level {
       display: none;
     }
