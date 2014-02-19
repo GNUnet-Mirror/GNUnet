@@ -25,7 +25,7 @@ function render_row ($d, $component, $pid, $level, $msg, $c)
   echo $d ? $d->format('u') : "";
   echo '</small></td>';
   echo "<td class=\"comp\">$comp</td><td class=\"peer\">$peer</td>";
-  echo "<td class=\"level\">$level</td><td>$msg&nbsp;</td>";
+  echo "<td class=\"level\">$level</td><td><pre>$msg</pre></td>";
   if ($level != "DEBUG")
   {
     echo '<td><div class="btn-group"><button class="btn btn-xs btn-default btn-showup"><span class="glyphicon glyphicon-chevron-up"></span></button>';
@@ -125,11 +125,15 @@ if ($start !== null || $stop !== null) {
       font-family: arial,sans-serif;
     }
     table {
-      font-family: courier,sans-serif;
       color:#000;
       margin-top: 40px;
       font-size:12px;
       border-collapse:collapse;
+    }
+    pre {
+      padding: 0px;
+      margin: 0px;
+      border: 0px;
     }
     .alert {
       display: none;
