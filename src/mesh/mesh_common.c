@@ -314,7 +314,7 @@ GM_m2s (uint16_t m)
       sprintf(buf, "%u (UNKNOWN TYPE)", m);
       return buf;
   }
-  sprintf(buf, "%31s", t);
+  sprintf(buf, "{%22s}", t);
   return buf;
 }
 #else
