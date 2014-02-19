@@ -241,10 +241,17 @@ GM_m2s (uint16_t m)
       break;
 
       /**
-       * Local monitoring of service.
+       * Local monitoring of channels.
        */
-    case GNUNET_MESSAGE_TYPE_MESH_LOCAL_NACK:
-      t = "LOCAL_NACK";
+    case GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_CHANNELS:
+      t = "LOCAL_INFO_CHANNELS";
+      break;
+
+      /**
+       * Local monitoring of a channel.
+       */
+    case GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_CHANNEL:
+      t = "LOCAL_INFO_CHANNEL";
       break;
 
       /**
