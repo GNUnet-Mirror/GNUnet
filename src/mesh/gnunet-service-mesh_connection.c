@@ -773,7 +773,7 @@ send_connection_ack (struct MeshConnection *connection, int fwd)
   struct MeshTunnel3 *t;
 
   t = connection->t;
-  LOG (GNUNET_ERROR_TYPE_INFO, "Send %s ACK on connection %s\n",
+  LOG (GNUNET_ERROR_TYPE_INFO, "=> {%18s ACK} on connection %s\n",
        GM_f2s (!fwd), GMC_2s (connection));
   GMP_queue_add (get_hop (connection, fwd), NULL,
                  GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK,
@@ -2962,9 +2962,9 @@ GMC_send_create (struct MeshConnection *connection)
   size = sizeof (struct GNUNET_MESH_ConnectionCreate);
   size += connection->path->length * sizeof (struct GNUNET_PeerIdentity);
 
-  LOG (GNUNET_ERROR_TYPE_INFO, "Send %s (%u bytes) on connection %s\n",
+  LOG (GNUNET_ERROR_TYPE_INFO, "=> %s on connection %s  (%u bytes)\n",
        GM_m2s (GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE),
-       size, GMC_2s (connection));
+       GMC_2s (connection), size);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  C_P+ %p %u (create)\n",
        connection, connection->pending_messages);
   connection->pending_messages++;

@@ -960,7 +960,7 @@ send_kx (struct MeshTunnel3 *t,
 static void
 send_ephemeral (struct MeshTunnel3 *t)
 {
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "%s()\n", __FUNCTION__);
+  LOG (GNUNET_ERROR_TYPE_INFO, "=> EPHM for %s\n", GMT_2s (t));
 
   kx_msg.sender_status = htonl (t->estate);
   send_kx (t, &kx_msg.header);
@@ -976,7 +976,7 @@ send_ping (struct MeshTunnel3 *t)
 {
   struct GNUNET_MESH_KX_Ping msg;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "%s()\n", __FUNCTION__);
+  LOG (GNUNET_ERROR_TYPE_INFO, "=> PING for %s\n", GMT_2s (t));
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_KX_PING);
   msg.iv = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
@@ -1004,7 +1004,7 @@ send_pong (struct MeshTunnel3 *t, uint32_t challenge)
 {
   struct GNUNET_MESH_KX_Pong msg;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "%s()\n", __FUNCTION__);
+  LOG (GNUNET_ERROR_TYPE_INFO, "=> PONG for %s\n", GMT_2s (t));
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_KX_PONG);
   msg.iv = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
@@ -1435,7 +1435,7 @@ handle_ephemeral (struct MeshTunnel3 *t,
                   const struct GNUNET_MESH_KX_Ephemeral *msg)
 {
   struct GNUNET_HashCode km;
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  ephemeral key message\n");
+  LOG (GNUNET_ERROR_TYPE_INFO, "<= EPHM for %s\n", GMT_2s (t));
 
   if (GNUNET_OK != check_ephemeral (t, msg))
   {
@@ -1474,7 +1474,7 @@ handle_ping (struct MeshTunnel3 *t,
     return;
   }
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  ping message\n");
+  LOG (GNUNET_ERROR_TYPE_INFO, "<= PING for %s\n", GMT_2s (t));
   t_decrypt (t, &res.target, &msg->target, ping_encryption_size (), msg->iv);
   if (0 != memcmp (&my_full_id, &res.target, sizeof (my_full_id)))
   {
@@ -1505,7 +1505,7 @@ handle_pong (struct MeshTunnel3 *t,
 {
   uint32_t challenge;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "PONG received\n");
+  LOG (GNUNET_ERROR_TYPE_INFO, "<= PONG for %s\n", GMT_2s (t));
   if (GNUNET_SCHEDULER_NO_TASK == t->rekey_task)
   {
     GNUNET_STATISTICS_update (stats, "# duplicate PONG messages", 1, GNUNET_NO);
@@ -1548,7 +1548,7 @@ handle_decrypted (struct MeshTunnel3 *t,
   uint16_t type;
 
   type = ntohs (msgh->type);
-  LOG (GNUNET_ERROR_TYPE_INFO, "<- %s message\n", GM_m2s (type));
+  LOG (GNUNET_ERROR_TYPE_INFO, "<= %s on %s\n", GM_m2s (type), GMT_2s (t));
 
   switch (type)
   {
