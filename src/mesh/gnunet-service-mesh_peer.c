@@ -1073,10 +1073,8 @@ GMP_queue_add (struct MeshPeer *peer, void *cls, uint16_t type, size_t size,
   int priority;
   int call_core;
 
-  LOG (GNUNET_ERROR_TYPE_INFO,
-       "queue add %s %s towards %s (size %u) on c %p (%s)\n",
-       GM_f2s (fwd),  GM_m2s (type), GMP_2s(peer),
-       size, c, GMC_2s (c));
+  LOG (GNUNET_ERROR_TYPE_INFO, "qq %s %s towards %s (size %u) on c %p (%s)\n",
+       GM_m2s (type), GM_f2s (fwd), GMP_2s(peer), size, c, GMC_2s (c));
 
   if (NULL == peer->connections)
   {
