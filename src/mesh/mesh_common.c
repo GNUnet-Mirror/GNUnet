@@ -82,164 +82,232 @@ const char *
 GM_m2s (uint16_t m)
 {
   static char buf[32];
+  const char *t;
+
   switch (m)
-    {
+  {
       /**
        * Request the creation of a path
        */
-    case 256: return "CONNECTION_CREATE";
+    case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE:
+      t = "CONNECTION_CREATE";
+      break;
 
       /**
        * Request the modification of an existing path
        */
-    case 257: return "CONNECTION_ACK";
+    case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK:
+      t = "CONNECTION_ACK";
+      break;
 
       /**
        * Notify that a connection of a path is no longer valid
        */
-    case 258: return "CONNECTION_BROKEN";
+    case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_BROKEN:
+      t = "CONNECTION_BROKEN";
+      break;
 
       /**
        * At some point, the route will spontaneously change
        */
-    case 259: return "PATH_CHANGED";
+    case GNUNET_MESSAGE_TYPE_MESH_PATH_CHANGED:
+      t = "PATH_CHANGED";
+      break;
 
       /**
        * Transport payload data.
        */
-    case 260: return "DATA";
+    case GNUNET_MESSAGE_TYPE_MESH_DATA:
+      t = "DATA";
+      break;
 
     /**
      * Confirm receipt of payload data.
      */
-    case 261: return "DATA_ACK";
+    case GNUNET_MESSAGE_TYPE_MESH_DATA_ACK:
+      t = "DATA_ACK";
+      break;
 
       /**
        * Key exchange encapsulation.
        */
-    case 262: return "KX";
+    case GNUNET_MESSAGE_TYPE_MESH_KX:
+      t = "KX";
+      break;
 
       /**
        * New ephemeral key.
        */
-    case 263: return "KX_EPHEMERAL";
+    case GNUNET_MESSAGE_TYPE_MESH_KX_EPHEMERAL:
+      t = "KX_EPHEMERAL";
+      break;
 
       /**
        * Challenge to test peer's session key.
        */
-    case 264: return "KX_PING";
+    case GNUNET_MESSAGE_TYPE_MESH_KX_PING:
+      t = "KX_PING";
+      break;
 
       /**
        * Answer to session key challenge.
        */
-    case 265: return "KX_PONG";
+    case GNUNET_MESSAGE_TYPE_MESH_KX_PONG:
+      t = "KX_PONG";
+      break;
 
       /**
        * Request the destuction of a path
        */
-    case 266: return "CONNECTION_DESTROY";
+    case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_DESTROY:
+      t = "CONNECTION_DESTROY";
+      break;
 
       /**
        * ACK for a data packet.
        */
-    case 268: return "ACK";
+    case GNUNET_MESSAGE_TYPE_MESH_ACK:
+      t = "ACK";
+      break;
 
       /**
        * POLL for ACK.
        */
-    case 269: return "POLL";
+    case GNUNET_MESSAGE_TYPE_MESH_POLL:
+      t = "POLL";
+      break;
 
       /**
        * Announce origin is still alive.
        */
-    case 270: return "KEEPALIVE";
+    case GNUNET_MESSAGE_TYPE_MESH_KEEPALIVE:
+      t = "KEEPALIVE";
+      break;
 
     /**
        * Connect to the mesh service, specifying subscriptions
        */
-    case 272: return "LOCAL_CONNECT";
+    case GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT:
+      t = "LOCAL_CONNECT";
+      break;
 
       /**
        * Ask the mesh service to create a new tunnel
        */
-    case 273: return "CHANNEL_CREATE";
+    case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_CREATE:
+      t = "CHANNEL_CREATE";
+      break;
 
       /**
        * Ask the mesh service to destroy a tunnel
        */
-    case 274: return "CHANNEL_DESTROY";
+    case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_DESTROY:
+      t = "CHANNEL_DESTROY";
+      break;
 
       /**
        * Confirm the creation of a channel.
        */
-    case 275: return "CHANNEL_ACK";
+    case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_ACK:
+      t = "CHANNEL_ACK";
+      break;
 
       /**
        * Confirm the creation of a channel.
        */
-    case 276: return "CHANNEL_NACK";
+    case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_NACK:
+      t = "CHANNEL_NACK";
+      break;
 
       /**
        * Encrypted payload.
        */
-    case 280: return "ENCRYPTED";
+    case GNUNET_MESSAGE_TYPE_MESH_ENCRYPTED:
+      t = "ENCRYPTED";
+      break;
 
       /**
        * Local payload traffic
        */
-    case 285: return "LOCAL_DATA";
+    case GNUNET_MESSAGE_TYPE_MESH_LOCAL_DATA:
+      t = "LOCAL_DATA";
+      break;
 
       /**
        * Local ACK for data.
        */
-    case 286: return "LOCAL_ACK";
+    case GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK:
+      t = "LOCAL_ACK";
+      break;
 
       /**
        * Local monitoring of service.
        */
-    case 287: return "LOCAL_NACK";
+    case GNUNET_MESSAGE_TYPE_MESH_LOCAL_NACK:
+      t = "LOCAL_NACK";
+      break;
 
       /**
        * Local monitoring of service.
        */
-    case 292: return "LOCAL_INFO_TUNNELS";
+    case GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNELS:
+      t = "LOCAL_INFO_TUNNELS";
+      break;
 
       /**
        * Local monitoring of service.
        */
-    case 293: return "LOCAL_INFO_TUNNEL";
+    case GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNEL:
+      t = "LOCAL_INFO_TUNNEL";
+      break;
 
       /**
        * Local information about all connections of service.
        */
-    case 294: return "LOCAL_INFO_CONNECTIONS";
+    case GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_CONNECTIONS:
+      t = "LOCAL_INFO_CONNECTIONS";
+      break;
 
       /**
        * Local information of service about a specific connection.
        */
-    case 295: return "LOCAL_INFO_CONNECTION";
+    case GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_CONNECTION:
+      t = "LOCAL_INFO_CONNECTION";
+      break;
 
       /**
        * Local information about all peers known to the service.
        */
-      case 296: return "LOCAL_INFO_PEERS";
+    case GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_PEERS:
+      t = "LOCAL_INFO_PEERS";
+      break;
 
       /**
        * Local information of service about a specific peer.
        */
-    case 297: return "LOCAL_INFO_PEER";
+    case GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_PEER:
+      t = "LOCAL_INFO_PEER";
+      break;
 
       /**
        * Traffic (net-cat style) used by the Command Line Interface.
        */
-    case 298: return "CLI";
+    case GNUNET_MESSAGE_TYPE_MESH_CLI:
+      t = "CLI";
+      break;
 
       /**
        * 640kb should be enough for everybody
        */
-    case 299: return "RESERVE_END";
-    }
-  sprintf(buf, "%u (UNKNOWN TYPE)", m);
+    case 299:
+      t = "RESERVE_END";
+      break;
+
+    default:
+      sprintf(buf, "%u (UNKNOWN TYPE)", m);
+      return buf;
+  }
+  sprintf(buf, "%31s", t);
   return buf;
 }
 #else
