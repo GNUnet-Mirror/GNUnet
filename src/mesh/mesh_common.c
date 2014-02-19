@@ -87,157 +87,157 @@ GM_m2s (uint16_t m)
       /**
        * Request the creation of a path
        */
-    case 256: return "GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE";
+    case 256: return "CONNECTION_CREATE";
 
       /**
        * Request the modification of an existing path
        */
-    case 257: return "GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK";
+    case 257: return "CONNECTION_ACK";
 
       /**
        * Notify that a connection of a path is no longer valid
        */
-    case 258: return "GNUNET_MESSAGE_TYPE_MESH_CONNECTION_BROKEN";
+    case 258: return "CONNECTION_BROKEN";
 
       /**
        * At some point, the route will spontaneously change
        */
-    case 259: return "GNUNET_MESSAGE_TYPE_MESH_PATH_CHANGED";
+    case 259: return "PATH_CHANGED";
 
       /**
        * Transport payload data.
        */
-    case 260: return "GNUNET_MESSAGE_TYPE_MESH_DATA";
+    case 260: return "DATA";
 
     /**
      * Confirm receipt of payload data.
      */
-    case 261: return "GNUNET_MESSAGE_TYPE_MESH_DATA_ACK";
+    case 261: return "DATA_ACK";
 
       /**
        * Key exchange encapsulation.
        */
-    case 262: return "GNUNET_MESSAGE_TYPE_MESH_KX";
+    case 262: return "KX";
 
       /**
        * New ephemeral key.
        */
-    case 263: return "GNUNET_MESSAGE_TYPE_MESH_KX_EPHEMERAL";
+    case 263: return "KX_EPHEMERAL";
 
       /**
        * Challenge to test peer's session key.
        */
-    case 264: return "GNUNET_MESSAGE_TYPE_MESH_KX_PING";
+    case 264: return "KX_PING";
 
       /**
        * Answer to session key challenge.
        */
-    case 265: return "GNUNET_MESSAGE_TYPE_MESH_KX_PONG";
+    case 265: return "KX_PONG";
 
       /**
        * Request the destuction of a path
        */
-    case 266: return "GNUNET_MESSAGE_TYPE_MESH_CONNECTION_DESTROY";
+    case 266: return "CONNECTION_DESTROY";
 
       /**
        * ACK for a data packet.
        */
-    case 268: return "GNUNET_MESSAGE_TYPE_MESH_ACK";
+    case 268: return "ACK";
 
       /**
        * POLL for ACK.
        */
-    case 269: return "GNUNET_MESSAGE_TYPE_MESH_POLL";
+    case 269: return "POLL";
 
       /**
        * Announce origin is still alive.
        */
-    case 270: return "GNUNET_MESSAGE_TYPE_MESH_KEEPALIVE";
+    case 270: return "KEEPALIVE";
 
     /**
        * Connect to the mesh service, specifying subscriptions
        */
-    case 272: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT";
+    case 272: return "LOCAL_CONNECT";
 
       /**
        * Ask the mesh service to create a new tunnel
        */
-    case 273: return "GNUNET_MESSAGE_TYPE_MESH_CHANNEL_CREATE";
+    case 273: return "CHANNEL_CREATE";
 
       /**
        * Ask the mesh service to destroy a tunnel
        */
-    case 274: return "GNUNET_MESSAGE_TYPE_MESH_CHANNEL_DESTROY";
+    case 274: return "CHANNEL_DESTROY";
 
       /**
        * Confirm the creation of a channel.
        */
-    case 275: return "GNUNET_MESSAGE_TYPE_MESH_CHANNEL_ACK";
+    case 275: return "CHANNEL_ACK";
 
       /**
        * Confirm the creation of a channel.
        */
-    case 276: return "GNUNET_MESSAGE_TYPE_MESH_CHANNEL_NACK";
+    case 276: return "CHANNEL_NACK";
 
       /**
        * Encrypted payload.
        */
-    case 280: return "GNUNET_MESSAGE_TYPE_MESH_ENCRYPTED";
+    case 280: return "ENCRYPTED";
 
       /**
        * Local payload traffic
        */
-    case 285: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_DATA";
+    case 285: return "LOCAL_DATA";
 
       /**
        * Local ACK for data.
        */
-    case 286: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK";
+    case 286: return "LOCAL_ACK";
 
       /**
        * Local monitoring of service.
        */
-    case 287: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_NACK";
+    case 287: return "LOCAL_NACK";
 
       /**
        * Local monitoring of service.
        */
-    case 292: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNELS";
+    case 292: return "LOCAL_INFO_TUNNELS";
 
       /**
        * Local monitoring of service.
        */
-    case 293: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNEL";
+    case 293: return "LOCAL_INFO_TUNNEL";
 
       /**
        * Local information about all connections of service.
        */
-    case 294: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_CONNECTIONS";
+    case 294: return "LOCAL_INFO_CONNECTIONS";
 
       /**
        * Local information of service about a specific connection.
        */
-    case 295: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_CONNECTION";
+    case 295: return "LOCAL_INFO_CONNECTION";
 
       /**
        * Local information about all peers known to the service.
        */
-      case 296: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_PEERS";
+      case 296: return "LOCAL_INFO_PEERS";
 
       /**
        * Local information of service about a specific peer.
        */
-    case 297: return "GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_PEER";
+    case 297: return "LOCAL_INFO_PEER";
 
       /**
        * Traffic (net-cat style) used by the Command Line Interface.
        */
-    case 298: return "GNUNET_MESSAGE_TYPE_MESH_CLI";
+    case 298: return "CLI";
 
       /**
        * 640kb should be enough for everybody
        */
-    case 299: return "GNUNET_MESSAGE_TYPE_MESH_RESERVE_END";
+    case 299: return "RESERVE_END";
     }
   sprintf(buf, "%u (UNKNOWN TYPE)", m);
   return buf;
