@@ -1451,8 +1451,7 @@ static void
 log_message (const struct GNUNET_MessageHeader *message,
              const struct GNUNET_PeerIdentity *peer)
 {
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "\n\n");
-  LOG (GNUNET_ERROR_TYPE_INFO, "Got a %s message from %s\n",
+  LOG (GNUNET_ERROR_TYPE_INFO, "<- %s from %s\n",
        GM_m2s (ntohs (message->type)), GNUNET_i2s (peer));
 }
 
@@ -2814,7 +2813,7 @@ GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   data = GNUNET_malloc (size);
   memcpy (data, message, size);
   type = ntohs (message->type);
-  LOG (GNUNET_ERROR_TYPE_INFO, "Send %s (%u bytes) on connection %s\n",
+  LOG (GNUNET_ERROR_TYPE_INFO, "-> %s (%u bytes) on connection %s\n",
        GM_m2s (type), size, GMC_2s (c));
 
   fc = fwd ? &c->fwd_fc : &c->bck_fc;
