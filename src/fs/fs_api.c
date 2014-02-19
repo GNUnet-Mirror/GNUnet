@@ -687,7 +687,8 @@ get_write_handle_in_dir (struct GNUNET_FS_Handle *h, const char *ext,
  * @param ent entity identifier
  */
 void
-GNUNET_FS_remove_sync_file_ (struct GNUNET_FS_Handle *h, const char *ext,
+GNUNET_FS_remove_sync_file_ (struct GNUNET_FS_Handle *h,
+                             const char *ext,
                              const char *ent)
 {
   char *filename;
@@ -700,7 +701,8 @@ GNUNET_FS_remove_sync_file_ (struct GNUNET_FS_Handle *h, const char *ext,
   filename = get_serialization_file_name (h, ext, ent);
   if (NULL != filename)
   {
-    if (0 != UNLINK (filename))
+    if ( (0 != UNLINK (filename)) &&
+         (ENOENT != errno) )
       GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "unlink", filename);
     GNUNET_free (filename);
   }

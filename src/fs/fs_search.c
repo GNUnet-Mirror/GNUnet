@@ -341,12 +341,6 @@ GNUNET_FS_search_probe_progress_ (void *cls,
         GNUNET_SCHEDULER_add_delayed (sr->remaining_probe_time,
                                       &probe_failure_handler, sr);
     }
-    else
-    {
-      /* should only happen if the cancel task was already
-	 created on 'DOWNLOAD_INACTIVE' as we were out of time */
-      GNUNET_break (0 == sr->remaining_probe_time.rel_value_us);
-    }
     break;
   case GNUNET_FS_STATUS_DOWNLOAD_INACTIVE:
     if (GNUNET_SCHEDULER_NO_TASK != sr->probe_cancel_task)

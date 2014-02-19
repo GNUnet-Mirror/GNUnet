@@ -450,6 +450,18 @@ try_match_block (struct GNUNET_FS_DownloadContext *dc,
     return;
   if (dr->depth > 0)
   {
+    if ( (dc->offset > 0) ||
+         (dc->length < GNUNET_ntohll (dc->uri->data.chk.file_length)) )
+    {
+      /* NOTE: this test is not tight, but should suffice; the issue
+         here is that 'dr->num_children' may inherently only specify a
+         smaller range than what is in the original file;
+         thus, reconstruction of (some) inner blocks will fail.
+         FIXME: we might eventually want to write a tighter test to
+         maximize the circumstances under which we do succeed with
+         IBlock reconstruction. (need good tests though). */
+      return;
+    }
     complete = GNUNET_YES;
     for (i = 0; i < dr->num_children; i++)
     {
@@ -494,39 +506,43 @@ try_match_block (struct GNUNET_FS_DownloadContext *dc,
     }
     /* write block to disk */
     fn = (NULL != dc->filename) ? dc->filename : dc->temp_filename;
-    fh = GNUNET_DISK_file_open (fn,
-                                GNUNET_DISK_OPEN_READWRITE |
-                                GNUNET_DISK_OPEN_CREATE |
-                                GNUNET_DISK_OPEN_TRUNCATE,
-                                GNUNET_DISK_PERM_USER_READ |
-                                GNUNET_DISK_PERM_USER_WRITE |
-                                GNUNET_DISK_PERM_GROUP_READ |
-                                GNUNET_DISK_PERM_OTHER_READ);
-    if (NULL == fh)
+    if (NULL != fn)
     {
-      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "open", fn);
-      GNUNET_asprintf (&dc->emsg, _("Failed to open file `%s' for writing"),
-                       fn);
+      fh = GNUNET_DISK_file_open (fn,
+                                  GNUNET_DISK_OPEN_READWRITE |
+                                  GNUNET_DISK_OPEN_CREATE |
+                                  GNUNET_DISK_OPEN_TRUNCATE,
+                                  GNUNET_DISK_PERM_USER_READ |
+                                  GNUNET_DISK_PERM_USER_WRITE |
+                                  GNUNET_DISK_PERM_GROUP_READ |
+                                  GNUNET_DISK_PERM_OTHER_READ);
+      if (NULL == fh)
+      {
+        GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "open", fn);
+        GNUNET_asprintf (&dc->emsg,
+                         _("Failed to open file `%s' for writing"),
+                         fn);
+        GNUNET_DISK_file_close (fh);
+        dr->state = BRS_ERROR;
+        pi.status = GNUNET_FS_STATUS_DOWNLOAD_ERROR;
+        pi.value.download.specifics.error.message = dc->emsg;
+        GNUNET_FS_download_make_status_ (&pi, dc);
+        return;
+      }
+      if (data_len != GNUNET_DISK_file_write (fh, odata, odata_len))
+      {
+        GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "write", fn);
+        GNUNET_asprintf (&dc->emsg, _("Failed to open file `%s' for writing"),
+                         fn);
+        GNUNET_DISK_file_close (fh);
+        dr->state = BRS_ERROR;
+        pi.status = GNUNET_FS_STATUS_DOWNLOAD_ERROR;
+        pi.value.download.specifics.error.message = dc->emsg;
+        GNUNET_FS_download_make_status_ (&pi, dc);
+        return;
+      }
       GNUNET_DISK_file_close (fh);
-      dr->state = BRS_ERROR;
-      pi.status = GNUNET_FS_STATUS_DOWNLOAD_ERROR;
-      pi.value.download.specifics.error.message = dc->emsg;
-      GNUNET_FS_download_make_status_ (&pi, dc);
-      return;
     }
-    if (data_len != GNUNET_DISK_file_write (fh, odata, odata_len))
-    {
-      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_ERROR, "write", fn);
-      GNUNET_asprintf (&dc->emsg, _("Failed to open file `%s' for writing"),
-                       fn);
-      GNUNET_DISK_file_close (fh);
-      dr->state = BRS_ERROR;
-      pi.status = GNUNET_FS_STATUS_DOWNLOAD_ERROR;
-      pi.value.download.specifics.error.message = dc->emsg;
-      GNUNET_FS_download_make_status_ (&pi, dc);
-      return;
-    }
-    GNUNET_DISK_file_close (fh);
     /* signal success */
     dr->state = BRS_DOWNLOAD_UP;
     dc->completed = dc->length;
