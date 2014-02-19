@@ -134,6 +134,7 @@ if ($start !== null || $stop !== null) {
       padding: 0px;
       margin: 0px;
       border: 0px;
+      background-color: transparent;
     }
     .alert {
       display: none;
