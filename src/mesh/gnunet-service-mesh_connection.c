@@ -1453,9 +1453,8 @@ log_message (const struct GNUNET_MessageHeader *message,
              const struct GNUNET_PeerIdentity *peer,
              const struct GNUNET_HashCode *hash)
 {
-  LOG (GNUNET_ERROR_TYPE_INFO, "<- %s from %s on connection %s\n",
-       GM_m2s (ntohs (message->type)), GNUNET_i2s (peer),
-       GNUNET_h2s (hash));
+  LOG (GNUNET_ERROR_TYPE_INFO, "<- %s on connection %s from %s\n",
+       GM_m2s (ntohs (message->type)), GNUNET_h2s (hash), GNUNET_i2s (peer));
 }
 
 /******************************************************************************/
@@ -2805,8 +2804,8 @@ GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   data = GNUNET_malloc (size);
   memcpy (data, message, size);
   type = ntohs (message->type);
-  LOG (GNUNET_ERROR_TYPE_INFO, "-> %s (%u bytes) on connection %s\n",
-       GM_m2s (type), size, GMC_2s (c));
+  LOG (GNUNET_ERROR_TYPE_INFO, "-> %s on connection %s (%u bytes)\n",
+       GM_m2s (type), GMC_2s (c), size);
 
   fc = fwd ? &c->fwd_fc : &c->bck_fc;
   droppable = GNUNET_NO == force;

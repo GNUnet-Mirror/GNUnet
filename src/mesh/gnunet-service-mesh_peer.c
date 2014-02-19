@@ -882,16 +882,17 @@ queue_send (void *cls, size_t size, void *buf)
   /* Check if buffer size is enough for the message */
   if (queue->size > size)
   {
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "*   not enough room, reissue\n");
-      peer->core_transmit =
-          GNUNET_CORE_notify_transmit_ready (core_handle,
-                                             GNUNET_NO, get_priority (queue),
-                                             GNUNET_TIME_UNIT_FOREVER_REL,
-                                             dst_id,
-                                             queue->size,
-                                             &queue_send,
-                                             peer);
-      return 0;
+    LOG (GNUNET_ERROR_TYPE_WARNING, "not enough room (%u vs %u), reissue\n",
+         queue->size, size);
+    peer->core_transmit =
+      GNUNET_CORE_notify_transmit_ready (core_handle,
+                                         GNUNET_NO, get_priority (queue),
+                                         GNUNET_TIME_UNIT_FOREVER_REL,
+                                         dst_id,
+                                         queue->size,
+                                         &queue_send,
+                                         peer);
+    return 0;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "*   size %u ok\n", queue->size);
 
@@ -939,10 +940,15 @@ queue_send (void *cls, size_t size, void *buf)
   if (0 < drop_percent &&
       GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 101) < drop_percent)
   {
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-                "Dropping message of type %s\n",
-                GM_m2s (queue->type));
+    LOG (GNUNET_ERROR_TYPE_WARNING, "DD %s on connection\n",
+         GM_m2s (queue->type), GMC_2s (c));
     data_size = 0;
+  }
+  else
+  {
+    LOG (GNUNET_ERROR_TYPE_INFO,
+        "ss %s on connection %s (%p) %s (size %u)\n",
+        GM_m2s (queue->type), GMC_2s (c), c, GM_f2s (queue->fwd), data_size);
   }
 
   /* Free queue, but cls was freed by send_core_* */
@@ -1073,8 +1079,8 @@ GMP_queue_add (struct MeshPeer *peer, void *cls, uint16_t type, size_t size,
   int priority;
   int call_core;
 
-  LOG (GNUNET_ERROR_TYPE_INFO, "qq %s %s towards %s (size %u) on c %p (%s)\n",
-       GM_m2s (type), GM_f2s (fwd), GMP_2s(peer), size, c, GMC_2s (c));
+  LOG (GNUNET_ERROR_TYPE_INFO, "qq %s on connection %s (%p) %s towards %s (size %u)\n",
+       GM_m2s (type), GMC_2s (c), c, GM_f2s (fwd), GMP_2s(peer), size);
 
   if (NULL == peer->connections)
   {
