@@ -1,6 +1,6 @@
 #!/bin/sh
 cp log .log
-cat .log | grep "Mesh for peer" > __tmp_peers
+cat .log | grep "STARTING SERVICE " > __tmp_peers
 cat __tmp_peers | while read line; do
     PEER=`echo $line | sed -e 's/.*\[\(....\)\].*/\1/'`
     PID=`echo $line | sed -e 's/.*mesh-\([0-9]*\).*/\1/'`
