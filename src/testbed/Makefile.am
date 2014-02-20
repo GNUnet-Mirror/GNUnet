@@ -400,7 +400,7 @@ test_testbed_api_barriers_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  libgnunettestbed.la
 test_testbed_api_barriers_DEPENDENCIES = \
- gnunet-service-test-barriers
+ gnunet-service-test-barriers$(EXEEXT)
 
 gnunet_service_test_barriers_SOURCES = \
   gnunet-service-test-barriers.c \
