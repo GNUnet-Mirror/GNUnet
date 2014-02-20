@@ -1349,7 +1349,7 @@ GNUNET_TESTBED_is_host_habitable (const struct GNUNET_TESTBED_Host *host,
   free_argv (rsh_args);
   h->auxp =
       GNUNET_OS_start_process_vap (GNUNET_NO, GNUNET_OS_INHERIT_STD_ERR, NULL,
-                                   NULL, h->helper_argv[0], h->helper_argv);
+                                   NULL, NULL, h->helper_argv[0], h->helper_argv);
   if (NULL == h->auxp)
   {
     GNUNET_break (0);           /* Cannot exec SSH? */

@@ -146,7 +146,8 @@ main (int argc, char *argv_ign[])
                     NULL);
   binary = GNUNET_OS_get_libexec_binary_path ("gnunet-service-statistics");
   proc =
-      GNUNET_OS_start_process (GNUNET_YES, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL,
+      GNUNET_OS_start_process (GNUNET_YES, GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
+                               NULL, NULL, NULL,
 			       binary,
                                "gnunet-service-statistics",
                                "-c", "test_statistics_api_data.conf", NULL);
@@ -169,7 +170,8 @@ main (int argc, char *argv_ign[])
   ok = 1;
   /* restart to check persistence! */
   proc =
-      GNUNET_OS_start_process (GNUNET_YES, GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL,
+      GNUNET_OS_start_process (GNUNET_YES, GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
+                               NULL, NULL, NULL,
 			       binary,
                                "gnunet-service-statistics",
                                "-c", "test_statistics_api_data.conf", NULL);

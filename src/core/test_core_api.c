@@ -301,7 +301,7 @@ setup_peer (struct PeerContext *p, const char *cfgname)
   p->cfg = GNUNET_CONFIGURATION_create ();
   p->arm_proc =
     GNUNET_OS_start_process (GNUNET_YES, GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
-			     NULL, NULL,
+			     NULL, NULL, NULL,
 			     binary,
 			     "gnunet-service-arm",
                                "-c", cfgname, NULL);

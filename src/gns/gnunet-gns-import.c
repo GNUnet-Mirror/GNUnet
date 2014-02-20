@@ -129,8 +129,11 @@ run_process_and_wait (int pipe_control,
   va_end (apc2);
   if (arglen > 0)
     argp[-1] = '\0';
-  p = GNUNET_OS_start_process_va (pipe_control, std_inheritance, pipe_stdin,
-      pipe_stdout, filename, ap);
+  p = GNUNET_OS_start_process_va (pipe_control, std_inheritance,
+                                  pipe_stdin,
+                                  pipe_stdout,
+                                  NULL,
+                                  filename, ap);
   va_end (ap);
   if (NULL == p)
   {

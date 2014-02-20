@@ -70,7 +70,7 @@ main (int argc, char *argv[])
     argv2[cnt - 1] = argv[cnt];
   proc =
       GNUNET_OS_start_process_vap (GNUNET_NO, GNUNET_OS_INHERIT_STD_ALL, NULL,
-                                   NULL, argv2[0], argv2);
+                                   NULL, NULL, argv2[0], argv2);
   if (NULL == proc)
   {
     printf ("Cannot exec\n");

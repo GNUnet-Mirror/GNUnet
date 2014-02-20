@@ -367,7 +367,8 @@ main (int argc, char *argv[])
   fn = GNUNET_OS_get_libexec_binary_path ("gnunet-service-resolver");
   proc = GNUNET_OS_start_process (GNUNET_YES,
 				  GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
-				  NULL, NULL, fn,
+				  NULL, NULL, NULL,
+                                  fn,
 				  "gnunet-service-resolver",
                                   "-c", "test_resolver_api_data.conf", NULL);
   GNUNET_assert (NULL != proc);

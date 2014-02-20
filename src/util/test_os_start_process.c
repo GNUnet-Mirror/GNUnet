@@ -135,7 +135,8 @@ run_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   proc =
       GNUNET_OS_start_process (GNUNET_NO, GNUNET_OS_INHERIT_STD_ERR,
-                               hello_pipe_stdin, hello_pipe_stdout, fn,
+                               hello_pipe_stdin, hello_pipe_stdout, NULL,
+                               fn,
                                "test_gnunet_echo_hello", "-", NULL);
   GNUNET_free (fn);
 
@@ -203,7 +204,9 @@ check_kill ()
   }
   fn = GNUNET_OS_get_libexec_binary_path ("gnunet-service-resolver");
   proc =
-    GNUNET_OS_start_process (GNUNET_YES, GNUNET_OS_INHERIT_STD_ERR, hello_pipe_stdin, hello_pipe_stdout, fn,
+    GNUNET_OS_start_process (GNUNET_YES, GNUNET_OS_INHERIT_STD_ERR,
+                             hello_pipe_stdin, hello_pipe_stdout, NULL,
+                             fn,
 			     "gnunet-service-resolver", "-", NULL);
   sleep (1); /* give process time to start, so we actually use the pipe-kill mechanism! */
   GNUNET_free (fn);
@@ -234,7 +237,9 @@ check_instant_kill ()
   }
   fn = GNUNET_OS_get_libexec_binary_path ("gnunet-service-resolver");
   proc =
-    GNUNET_OS_start_process (GNUNET_YES, GNUNET_OS_INHERIT_STD_ERR, hello_pipe_stdin, hello_pipe_stdout, fn,
+    GNUNET_OS_start_process (GNUNET_YES, GNUNET_OS_INHERIT_STD_ERR,
+                             hello_pipe_stdin, hello_pipe_stdout, NULL,
+                             fn,
 			     "gnunet-service-resolver", "-", NULL);
   if (0 != GNUNET_OS_process_kill (proc, GNUNET_TERM_SIG))
   {

@@ -461,8 +461,9 @@ tokenizer_cb (void *cls, void *client,
   }
   testbed =
       GNUNET_OS_start_process (PIPE_CONTROL,
-                               GNUNET_OS_INHERIT_STD_ERR /*verbose? */ , NULL,
-                               NULL, binary, "gnunet-service-testbed", "-c",
+                               GNUNET_OS_INHERIT_STD_ERR /*verbose? */ ,
+                               NULL, NULL, NULL,
+                               binary, "gnunet-service-testbed", "-c",
                                config, NULL);
   GNUNET_free (binary);
   GNUNET_free (config);

@@ -491,7 +491,7 @@ start_shared_service_instance (struct SharedServiceInstance *i)
   GNUNET_free (binary);
   i->proc = GNUNET_OS_start_process (PIPE_CONTROL,
                                      GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
-                                     NULL, NULL,
+                                     NULL, NULL, NULL,
                                      libexec_binary,
                                      libexec_binary,
                                      "-c",

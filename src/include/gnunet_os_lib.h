@@ -310,6 +310,7 @@ GNUNET_OS_process_get_pid (struct GNUNET_OS_Process *proc);
  * @param std_inheritance a set of GNUNET_OS_INHERIT_STD_* flags
  * @param pipe_stdin pipe to use to send input to child process (or NULL)
  * @param pipe_stdout pipe to use to get output from child process (or NULL)
+ * @param pipe_stderr pipe to use to get error output from child process (or NULL)
  * @param filename name of the binary
  * @param argv NULL-terminated array of arguments to the process
  * @return pointer to process structure of the new process, NULL on error
@@ -319,6 +320,7 @@ GNUNET_OS_start_process_vap (int pipe_control,
                              enum GNUNET_OS_InheritStdioFlags std_inheritance,
 			     struct GNUNET_DISK_PipeHandle *pipe_stdin,
 			     struct GNUNET_DISK_PipeHandle *pipe_stdout,
+			     struct GNUNET_DISK_PipeHandle *pipe_stderr,
 			     const char *filename,
 			     char *const argv[]);
 
@@ -330,6 +332,7 @@ GNUNET_OS_start_process_vap (int pipe_control,
  * @param std_inheritance a set of GNUNET_OS_INHERIT_STD_* flags
  * @param pipe_stdin pipe to use to send input to child process (or NULL)
  * @param pipe_stdout pipe to use to get output from child process (or NULL)
+ * @param pipe_stderr pipe to use to get error output from child process (or NULL)
  * @param filename name of the binary
  * @param ... NULL-terminated list of arguments to the process
  * @return pointer to process structure of the new process, NULL on error
@@ -339,6 +342,7 @@ GNUNET_OS_start_process (int pipe_control,
                          enum GNUNET_OS_InheritStdioFlags std_inheritance,
 			 struct GNUNET_DISK_PipeHandle *pipe_stdin,
                          struct GNUNET_DISK_PipeHandle *pipe_stdout,
+                         struct GNUNET_DISK_PipeHandle *pipe_stderr,
                          const char *filename, ...);
 
 
@@ -349,6 +353,7 @@ GNUNET_OS_start_process (int pipe_control,
  * @param std_inheritance a set of GNUNET_OS_INHERIT_STD_* flags
  * @param pipe_stdin pipe to use to send input to child process (or NULL)
  * @param pipe_stdout pipe to use to get output from child process (or NULL)
+ * @param pipe_stderr pipe to use to get error output from child process (or NULL)
  * @param filename name of the binary
  * @param va NULL-terminated list of arguments to the process
  * @return pointer to process structure of the new process, NULL on error
@@ -358,6 +363,7 @@ GNUNET_OS_start_process_va (int pipe_control,
                             enum GNUNET_OS_InheritStdioFlags std_inheritance,
 			    struct GNUNET_DISK_PipeHandle *pipe_stdin,
                             struct GNUNET_DISK_PipeHandle *pipe_stdout,
+                            struct GNUNET_DISK_PipeHandle *pipe_stderr,
                             const char *filename, va_list va);
 
 /**

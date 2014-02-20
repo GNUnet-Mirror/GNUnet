@@ -665,8 +665,10 @@ do_test_configuration (const struct GNUNET_CONFIGURATION_Handle *cfg)
     {
       binary = GNUNET_OS_get_libexec_binary_path ("gnunet-service-resolver");
       resolver = GNUNET_OS_start_process (GNUNET_YES,
-          GNUNET_OS_INHERIT_STD_OUT_AND_ERR, NULL, NULL, binary,
-          "gnunet-service-resolver", NULL );
+                                          GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
+                                          NULL, NULL, NULL,
+                                          binary,
+                                          "gnunet-service-resolver", NULL );
       GNUNET_free(binary);
     }
     resolver_users++;

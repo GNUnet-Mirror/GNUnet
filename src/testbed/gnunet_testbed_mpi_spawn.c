@@ -246,7 +246,7 @@ run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   /* Spawn the new process here */
   LOG (GNUNET_ERROR_TYPE_INFO, _("Spawning process `%s'\n"), argv2[0]);
   child = GNUNET_OS_start_process_vap (GNUNET_NO, GNUNET_OS_INHERIT_STD_ALL, NULL,
-                                       NULL,
+                                       NULL, NULL,
                                        argv2[0], argv2);
   if (NULL == child)
   {

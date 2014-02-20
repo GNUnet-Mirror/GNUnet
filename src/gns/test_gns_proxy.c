@@ -401,6 +401,7 @@ run (void *cls,
                                         GNUNET_OS_INHERIT_STD_ALL,
                                         NULL,
                                         NULL,
+                                        NULL,
                                         "gnunet-gns-proxy",
                                         "gnunet-gns-proxy",
                                         "-c", tmp_cfgfile, NULL);

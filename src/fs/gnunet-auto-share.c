@@ -488,7 +488,7 @@ work (void *cls,
 	      _("Publishing `%s'\n"),
 	      wi->filename);
   publish_proc = GNUNET_OS_start_process_vap (GNUNET_YES,
-                                              0, NULL, NULL,
+                                              0, NULL, NULL, NULL,
 					      "gnunet-publish",
 					      argv);
   if (NULL == publish_proc)

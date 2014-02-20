@@ -503,6 +503,7 @@ start_process (int pipe_control,
                enum GNUNET_OS_InheritStdioFlags std_inheritance,
 	       struct GNUNET_DISK_PipeHandle *pipe_stdin,
 	       struct GNUNET_DISK_PipeHandle *pipe_stdout,
+	       struct GNUNET_DISK_PipeHandle *pipe_stderr,
 	       const SOCKTYPE *lsocks,
 	       const char *filename,
 	       char *const argv[])
@@ -523,6 +524,8 @@ start_process (int pipe_control,
   unsigned int ls;
   int fd_stdout_write;
   int fd_stdout_read;
+  int fd_stderr_write;
+  int fd_stderr_read;
   int fd_stdin_read;
   int fd_stdin_write;
 
@@ -582,6 +585,19 @@ start_process (int pipe_control,
 		   GNUNET_DISK_internal_file_handle_ (GNUNET_DISK_pipe_handle
 						      (pipe_stdin, GNUNET_DISK_PIPE_END_WRITE),
 						      &fd_stdin_write, sizeof (int)));
+  }
+  if (NULL != pipe_stderr)
+  {
+    GNUNET_assert (GNUNET_OK ==
+                   GNUNET_DISK_internal_file_handle_ (GNUNET_DISK_pipe_handle
+                                                      (pipe_stderr,
+                                                       GNUNET_DISK_PIPE_END_READ),
+                                                      &fd_stderr_read, sizeof (int)));
+    GNUNET_assert (GNUNET_OK ==
+                   GNUNET_DISK_internal_file_handle_ (GNUNET_DISK_pipe_handle
+                                                      (pipe_stderr,
+                                                       GNUNET_DISK_PIPE_END_WRITE),
+                                                      &fd_stderr_write, sizeof (int)));
   }
   lscp = NULL;
   ls = 0;
@@ -659,7 +675,14 @@ start_process (int pipe_control,
     GNUNET_break (0 == close (1));
     open_dev_null (1, O_WRONLY);
   }
-  if (0 == (std_inheritance & GNUNET_OS_INHERIT_STD_ERR))
+  if (NULL != pipe_stderr)
+  {
+    GNUNET_break (0 == close (fd_stderr_read));
+    if (-1 == dup2 (fd_stderr_write, 2))
+      LOG_STRERROR (GNUNET_ERROR_TYPE_ERROR, "dup2");
+    GNUNET_break (0 == close (fd_stderr_write));
+  }
+  else if (0 == (std_inheritance & GNUNET_OS_INHERIT_STD_ERR))
   {
     GNUNET_break (0 == close (2));
     open_dev_null (2, O_WRONLY);
@@ -1220,6 +1243,7 @@ GNUNET_OS_start_process_vap (int pipe_control,
                              enum GNUNET_OS_InheritStdioFlags std_inheritance,
 			     struct GNUNET_DISK_PipeHandle *pipe_stdin,
 			     struct GNUNET_DISK_PipeHandle *pipe_stdout,
+                             struct GNUNET_DISK_PipeHandle *pipe_stderr,
 			     const char *filename,
 			     char *const argv[])
 {
@@ -1227,6 +1251,7 @@ GNUNET_OS_start_process_vap (int pipe_control,
                         std_inheritance,
 			pipe_stdin,
 			pipe_stdout,
+                        pipe_stderr,
 			NULL,
 			filename,
 			argv);
@@ -1249,6 +1274,7 @@ GNUNET_OS_start_process_va (int pipe_control,
                             enum GNUNET_OS_InheritStdioFlags std_inheritance,
 			    struct GNUNET_DISK_PipeHandle *pipe_stdin,
                             struct GNUNET_DISK_PipeHandle *pipe_stdout,
+                            struct GNUNET_DISK_PipeHandle *pipe_stderr,
                             const char *filename, va_list va)
 {
   struct GNUNET_OS_Process *ret;
@@ -1271,6 +1297,7 @@ GNUNET_OS_start_process_va (int pipe_control,
                                      std_inheritance,
 				     pipe_stdin,
 				     pipe_stdout,
+                                     pipe_stderr,
 				     filename,
 				     argv);
   GNUNET_free (argv);
@@ -1294,14 +1321,20 @@ GNUNET_OS_start_process (int pipe_control,
                          enum GNUNET_OS_InheritStdioFlags std_inheritance,
 			 struct GNUNET_DISK_PipeHandle *pipe_stdin,
                          struct GNUNET_DISK_PipeHandle *pipe_stdout,
+                         struct GNUNET_DISK_PipeHandle *pipe_stderr,
                          const char *filename, ...)
 {
   struct GNUNET_OS_Process *ret;
   va_list ap;
 
   va_start (ap, filename);
-  ret = GNUNET_OS_start_process_va (pipe_control, std_inheritance, pipe_stdin,
-				    pipe_stdout, filename, ap);
+  ret = GNUNET_OS_start_process_va (pipe_control,
+                                    std_inheritance,
+                                    pipe_stdin,
+				    pipe_stdout,
+                                    pipe_stderr,
+                                    filename,
+                                    ap);
   va_end (ap);
   return ret;
 }
@@ -1332,6 +1365,7 @@ GNUNET_OS_start_process_v (int pipe_control,
                         std_inheritance,
 			NULL,
 			NULL,
+                        NULL,
 			lsocks,
 			filename,
 			argv);
@@ -1776,7 +1810,7 @@ GNUNET_OS_command_run (GNUNET_OS_LineProcessor proc, void *proc_cls,
     return NULL;
   va_start (ap, binary);
   /* redirect stdout, don't inherit stderr/stdin */
-  eip = GNUNET_OS_start_process_va (GNUNET_NO, 0, NULL, opipe, binary, ap);
+  eip = GNUNET_OS_start_process_va (GNUNET_NO, 0, NULL, opipe, NULL, binary, ap);
   va_end (ap);
   if (NULL == eip)
   {

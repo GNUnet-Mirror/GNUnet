@@ -907,7 +907,7 @@ start_gnunet_nat_server (struct GNUNET_NAT_Handle *h)
     /* Start the server process */
     binary = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-nat-server");
     h->server_proc =
-        GNUNET_OS_start_process (GNUNET_NO, 0, NULL, h->server_stdout,
+        GNUNET_OS_start_process (GNUNET_NO, 0, NULL, h->server_stdout, NULL,
                                  binary,
                                  "gnunet-helper-nat-server",
                                  h->internal_address, NULL);
@@ -1445,7 +1445,7 @@ GNUNET_NAT_run_client (struct GNUNET_NAT_Handle *h,
        (unsigned int) h->adv_port);
   binary = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-nat-client");
   proc =
-      GNUNET_OS_start_process (GNUNET_NO, 0, NULL, NULL,
+      GNUNET_OS_start_process (GNUNET_NO, 0, NULL, NULL, NULL,
                                binary,
                                "gnunet-helper-nat-client",
                                h->internal_address,

@@ -426,7 +426,7 @@ start_helper (struct GNUNET_HELPER_Handle *h)
       GNUNET_DISK_pipe_handle (h->helper_in, GNUNET_DISK_PIPE_END_WRITE);
   h->helper_proc =
     GNUNET_OS_start_process_vap (h->with_control_pipe, GNUNET_OS_INHERIT_STD_ERR,
-				 h->helper_in, h->helper_out,
+				 h->helper_in, h->helper_out, NULL,
 				 h->binary_name,
 				 h->binary_argv);
   if (NULL == h->helper_proc)

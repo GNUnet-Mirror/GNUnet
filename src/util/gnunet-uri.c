@@ -113,7 +113,7 @@ run (void *cls, char *const *args, const char *cfgfile,
 								GNUNET_DISK_PIPE_END_READ),
 				       &maint_child_death, NULL);
   p = GNUNET_OS_start_process (GNUNET_NO, 0,
-			       NULL, NULL,
+			       NULL, NULL, NULL,
 			       program,
 			       program,
 			       args[0],

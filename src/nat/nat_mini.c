@@ -213,8 +213,8 @@ GNUNET_NAT_mini_get_external_ipv4 (struct GNUNET_TIME_Relative timeout,
     return eh;
   }
   eh->eip =
-    GNUNET_OS_start_process (GNUNET_NO, 0, NULL, eh->opipe,
-                             "external-ip", "external-ip",
+      GNUNET_OS_start_process (GNUNET_NO, 0, NULL, eh->opipe, NULL,
+                               "external-ip", "external-ip",
                                NULL);
   if (NULL == eh->eip)
   {
