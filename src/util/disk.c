@@ -2635,12 +2635,14 @@ GNUNET_DISK_pipe_handle (const struct GNUNET_DISK_PipeHandle *p,
  * @param fh GNUnet file descriptor
  * @param dst destination buffer
  * @param dst_len length of dst
- * @return GNUNET_OK on success, GNUNET_SYSERR otherwise
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR otherwise
  */
 int
 GNUNET_DISK_internal_file_handle_ (const struct GNUNET_DISK_FileHandle *fh,
                                    void *dst, size_t dst_len)
 {
+  if (NULL == fh)
+    return GNUNET_SYSERR;
 #ifdef MINGW
   if (dst_len < sizeof (HANDLE))
     return GNUNET_SYSERR;
