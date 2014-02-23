@@ -48,6 +48,7 @@ struct TestbedConnectOperation
   struct GNUNET_TESTBED_Operation *connect_op;
 };
 
+struct GNUNET_CONFIGURATION_Handle *cfg;
 
 struct GNUNET_ATS_TEST_Topology *top;
 

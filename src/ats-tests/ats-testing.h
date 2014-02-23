@@ -535,8 +535,7 @@ struct Experiment
 /*
  * Experiment related functions
  */
-
-struct GNUNET_CONFIGURATION_Handle *cfg;
+extern struct GNUNET_CONFIGURATION_Handle *cfg;
 
 /**
  * Execute the specified experiment
