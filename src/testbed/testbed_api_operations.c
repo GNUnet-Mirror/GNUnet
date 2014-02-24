@@ -899,12 +899,12 @@ adapt_parallelism (struct OperationQueue *queue)
     return;
   }
   avg = GNUNET_TIME_relative_divide (avg, nvals);
+  GNUNET_TESTBED_SD_add_data_ (fctx->sd, (unsigned int) avg.rel_value_us);
   if (GNUNET_SYSERR ==
       GNUNET_TESTBED_SD_deviation_factor_ (fctx->sd,
                                            (unsigned int) avg.rel_value_us,
                                            &sd))
   {
-    GNUNET_TESTBED_SD_add_data_ (fctx->sd, (unsigned int) avg.rel_value_us);
     adaptive_queue_set_max_active (queue, queue->max_active); /* no change */
     return;
   }
