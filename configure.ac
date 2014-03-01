@@ -473,11 +473,14 @@ if test "$libidn" != "no"; then
      LDFLAGS="${LDFLAGS} -L$libidn/lib"
      CPPFLAGS="${CPPFLAGS} -I$libidn/include"
   fi
-  AC_CHECK_HEADER(idna.h,
-    AC_CHECK_LIB(idn, stringprep_check_version,
-      [libidn=yes LIBS="${LIBS} -lidn"],
-      AC_MSG_FAILURE([GNUnet requires libidn])),
-    AC_MSG_FAILURE([GNUnet requires libidn]))
+fi
+libidn=no
+AC_CHECK_HEADER(idna.h,
+  AC_CHECK_LIB(idn, stringprep_check_version,
+    [libidn=yes LIBS="${LIBS} -lidn"], []), [])
+if test "$libidn" != "yes"; then
+  AC_MSG_FAILURE([GNUnet requires libidn.
+libidn-1.13 should be sufficient, newer versions work too.])
 fi
 AC_MSG_RESULT($libidn)
 
