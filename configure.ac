@@ -1618,9 +1618,9 @@ to install everything.
 
 Each GNUnet user should be added to the 'gnunet' group (may
 require fresh login to come into effect):
-        adduser $USERNAME gnunet
+        adduser USERNAME gnunet
 (run the above command as root once for each of your users, replacing
-"$USERNAME" with the respective login names).  If you have a global IP
+"USERNAME" with the respective login names).  If you have a global IP
 address, no further configuration is required.
 
 Optionally, download and compile gnunet-gtk to get a GUI for
