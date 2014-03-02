@@ -350,7 +350,9 @@ identity_master_cb (void *cls,
   }
   GNUNET_IDENTITY_ego_get_public_key (ego, &pkey);
   /* if the name is of the form 'label.gnu', never go to the DHT */
-  dot = strchr (lookup_name, '.');
+  dot = NULL;
+  if (NULL != lookup_name)
+    dot = strchr (lookup_name, '.');
   if ( (NULL != dot) &&
        (0 == strcasecmp (dot, ".gnu")) )
     only_cached = GNUNET_YES;
