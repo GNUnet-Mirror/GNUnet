@@ -66,9 +66,10 @@ struct GNUNET_GNS_ClientLookupMessage
   struct GNUNET_CRYPTO_EcdsaPublicKey zone;
 
   /**
-   * Only check cached results
+   * Local options for where to look for results
+   * (an `enum GNUNET_GNS_LocalOptions` in NBO).
    */
-  int16_t only_cached GNUNET_PACKED;
+  int16_t options GNUNET_PACKED;
 
   /**
    * Is a shorten key attached?

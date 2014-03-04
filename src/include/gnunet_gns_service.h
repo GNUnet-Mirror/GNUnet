@@ -1,6 +1,6 @@
 /*
       This file is part of GNUnet
-      (C) 2012-2013 Christian Grothoff (and other contributing authors)
+      (C) 2012-2014 Christian Grothoff (and other contributing authors)
 
       GNUnet is free software; you can redistribute it and/or modify
       it under the terms of the GNU General Public License as published
@@ -88,13 +88,37 @@ typedef void (*GNUNET_GNS_LookupResultProcessor) (void *cls,
 
 
 /**
+ * Options for the GNS lookup.
+ */
+enum GNUNET_GNS_LocalOptions
+{
+  /**
+   * Defaults, look in cache, then in DHT.
+   */
+  GNUNET_GNS_LO_DEFAULT = 0,
+
+  /**
+   * Never look in the DHT, keep request to local cache.
+   */
+  GNUNET_GNS_LO_NO_DHT = 1,
+  
+  /**
+   * For the rightmost label, only look in the cache (it
+   * is our master zone), for the others, the DHT is OK.
+   */
+  GNUNET_GNS_LO_LOCAL_MASTER = 2
+
+};
+
+
+/**
  * Perform an asynchronous lookup operation on the GNS.
  *
  * @param handle handle to the GNS service
  * @param name the name to look up
  * @param zone zone to look in
  * @param type the GNS record type to look for
- * @param only_cached #GNUNET_YES to only check locally (not in the DHT)
+ * @param options local options for the lookup
  * @param shorten_zone_key the private key of the shorten zone (can be NULL);
  *                    specify to enable automatic shortening (given a PSEU
  *                    record, if a given pseudonym is not yet used in the
@@ -109,7 +133,7 @@ GNUNET_GNS_lookup (struct GNUNET_GNS_Handle *handle,
 		   const char *name,
 		   const struct GNUNET_CRYPTO_EcdsaPublicKey *zone,
 		   uint32_t type,
-		   int only_cached,
+		   enum GNUNET_GNS_LocalOptions options,
 		   const struct GNUNET_CRYPTO_EcdsaPrivateKey *shorten_zone_key,
 		   GNUNET_GNS_LookupResultProcessor proc,
 		   void *proc_cls);

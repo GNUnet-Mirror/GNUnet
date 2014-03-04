@@ -26,6 +26,7 @@
 #define GNS_RESOLVER_H
 #include "gns.h"
 #include "gnunet_dht_service.h"
+#include "gnunet_gns_service.h"
 #include "gnunet_namecache_service.h"
 
 /**
@@ -77,7 +78,7 @@ typedef void (*GNS_ResultProcessor)(void *cls,
  * @param record_type the record type to look up
  * @param name the name to look up
  * @param shorten_key optional private key for authority caching, can be NULL
- * @param only_cached GNUNET_NO to only check locally not DHT for performance
+ * @param options options set to control local lookup
  * @param proc the processor to call
  * @param proc_cls the closure to pass to @a proc
  * @return handle to cancel operation
@@ -87,7 +88,7 @@ GNS_resolver_lookup (const struct GNUNET_CRYPTO_EcdsaPublicKey *zone,
 		     uint32_t record_type,
 		     const char *name,
 		     const struct GNUNET_CRYPTO_EcdsaPrivateKey *shorten_key,
-		     int only_cached,
+		     enum GNUNET_GNS_LocalOptions options,
 		     GNS_ResultProcessor proc,
 		     void *proc_cls);
 

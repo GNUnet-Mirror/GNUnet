@@ -66,9 +66,9 @@ static char *zone_ego_name;
 static char *public_key;
 
 /**
- * Set to #GNUNET_YES if we must not use the DHT (only local lookup).
+ * Set to GNUNET_GNS_LO_LOCAL_MASTER if we are looking up in the master zone.
  */
-static int only_cached;
+static enum GNUNET_GNS_LocalOptions local_options;
 
 /**
  * raw output
@@ -216,7 +216,7 @@ lookup_with_keys (const struct GNUNET_CRYPTO_EcdsaPublicKey *pkey,
 					lookup_name,
 					pkey,
 					rtype,
-					only_cached,
+					local_options,
 					shorten_key,
 					&process_lookup_result,
 					lookup_name);
@@ -349,13 +349,16 @@ identity_master_cb (void *cls,
     return;
   }
   GNUNET_IDENTITY_ego_get_public_key (ego, &pkey);
+  /* main name is our own master zone, do no look for that in the DHT */
+  local_options = GNUNET_GNS_LO_LOCAL_MASTER;
+
   /* if the name is of the form 'label.gnu', never go to the DHT */
   dot = NULL;
   if (NULL != lookup_name)
     dot = strchr (lookup_name, '.');
   if ( (NULL != dot) &&
        (0 == strcasecmp (dot, ".gnu")) )
-    only_cached = GNUNET_YES;
+    local_options = GNUNET_GNS_LO_NO_DHT;
   lookup_with_public_key (&pkey);
 }
 

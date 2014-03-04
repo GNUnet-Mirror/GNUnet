@@ -365,7 +365,7 @@ struct GNS_ResolverHandle
   /**
    * Use only cache
    */
-  int only_cached;
+  enum GNUNET_GNS_LocalOptions options;
 
   /**
    * Desired type for the resolution.
@@ -1779,7 +1779,7 @@ handle_gns_resolution_result (void *cls,
         g2dc->rh->proc = &handle_gns2dns_result;
         g2dc->rh->proc_cls = rh;
         g2dc->rh->record_type = GNUNET_GNSRECORD_TYPE_ANY;
-        g2dc->rh->only_cached = GNUNET_NO;
+        g2dc->rh->options = GNUNET_GNS_LO_DEFAULT;
         g2dc->rh->loop_limiter = rh->loop_limiter + 1;
         rh->g2dc = g2dc;
         start_resolver_lookup (g2dc->rh);
@@ -2011,7 +2011,9 @@ handle_namecache_block_response (void *cls,
 
   GNUNET_assert (NULL != rh->namecache_qe);
   rh->namecache_qe = NULL;
-  if ( (GNUNET_NO == rh->only_cached) &&
+  if ( ( (GNUNET_GNS_LO_DEFAULT == rh->options) ||
+	 ( (GNUNET_GNS_LO_LOCAL_MASTER == rh->options) &&
+	   (ac != rh->ac_head) ) ) &&
        ( (NULL == block) ||
 	 (0 == GNUNET_TIME_absolute_get_remaining (GNUNET_TIME_absolute_ntoh (block->expiration_time)).rel_value_us) ) )
   {
@@ -2303,7 +2305,7 @@ start_resolver_lookup (struct GNS_ResolverHandle *rh)
  * @param record_type the record type to look up
  * @param name the name to look up
  * @param shorten_key a private key for use with PSEU import (can be NULL)
- * @param only_cached #GNUNET_NO to only check locally not DHT for performance
+ * @param options local options to control local lookup
  * @param proc the processor to call on result
  * @param proc_cls the closure to pass to @a proc
  * @return handle to cancel operation
@@ -2313,7 +2315,7 @@ GNS_resolver_lookup (const struct GNUNET_CRYPTO_EcdsaPublicKey *zone,
 		     uint32_t record_type,
 		     const char *name,
 		     const struct GNUNET_CRYPTO_EcdsaPrivateKey *shorten_key,
-		     int only_cached,
+		     enum GNUNET_GNS_LocalOptions options,
 		     GNS_ResultProcessor proc, void *proc_cls)
 {
   struct GNS_ResolverHandle *rh;
@@ -2330,7 +2332,7 @@ GNS_resolver_lookup (const struct GNUNET_CRYPTO_EcdsaPublicKey *zone,
   rh->authority_zone = *zone;
   rh->proc = proc;
   rh->proc_cls = proc_cls;
-  rh->only_cached = only_cached;
+  rh->options = options;
   rh->record_type = record_type;
   rh->name = GNUNET_strdup (name);
   rh->name_resolution_pos = strlen (name);

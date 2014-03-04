@@ -523,7 +523,7 @@ GNUNET_GNS_lookup_cancel (struct GNUNET_GNS_LookupRequest *lr)
  * @param name the name to look up
  * @param zone the zone to start the resolution in
  * @param type the record type to look up
- * @param only_cached #GNUNET_YES to only check locally (not in the DHT)
+ * @param options local options for the lookup
  * @param shorten_zone_key the private key of the shorten zone (can be NULL)
  * @param proc processor to call on result
  * @param proc_cls closure for @a proc
@@ -534,7 +534,7 @@ GNUNET_GNS_lookup (struct GNUNET_GNS_Handle *handle,
 		   const char *name,
 		   const struct GNUNET_CRYPTO_EcdsaPublicKey *zone,
 		   uint32_t type,
-		   int only_cached,
+		   enum GNUNET_GNS_LocalOptions options,
 		   const struct GNUNET_CRYPTO_EcdsaPrivateKey *shorten_zone_key,
 		   GNUNET_GNS_LookupResultProcessor proc,
 		   void *proc_cls)
@@ -576,7 +576,7 @@ GNUNET_GNS_lookup (struct GNUNET_GNS_Handle *handle,
   lookup_msg->header.type = htons (GNUNET_MESSAGE_TYPE_GNS_LOOKUP);
   lookup_msg->header.size = htons (msize);
   lookup_msg->id = htonl (lr->r_id);
-  lookup_msg->only_cached = htons (only_cached);
+  lookup_msg->options = htons ((uint16_t) options);
   lookup_msg->zone = *zone;
   lookup_msg->type = htonl (type);
   if (NULL != shorten_zone_key)

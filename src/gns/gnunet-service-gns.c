@@ -788,7 +788,7 @@ handle_lookup (void *cls,
 				     ntohl (sh_msg->type),
 				     name,
 				     key,
-				     ntohs (sh_msg->only_cached),
+				     (enum GNUNET_GNS_LocalOptions) ntohs (sh_msg->options),
 				     &send_lookup_response, clh);
   GNUNET_STATISTICS_update (statistics,
                             "Lookup attempts",
