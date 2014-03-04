@@ -241,15 +241,24 @@ GNUNET_BANDWIDTH_tracker_init2 (struct GNUNET_BANDWIDTH_Tracker *av,
 
 
 /**
+ * Stop notifying about tracker updates and excess notifications
+ *
+ * @param av the respective trackers
+ */
+void
+GNUNET_BANDWIDTH_tracker_notification_stop (struct GNUNET_BANDWIDTH_Tracker *av);
+
+
+/**
  * Notify the tracker that a certain number of bytes of bandwidth have
  * been consumed.  Note that it is legal to consume bytes even if not
  * enough bandwidth is available (in that case,
- * GNUNET_BANDWIDTH_tracker_get_delay may return non-zero delay values
+ * #GNUNET_BANDWIDTH_tracker_get_delay() may return non-zero delay values
  * even for a size of zero for a while).
  *
  * @param av tracker to update
  * @param size number of bytes consumed
- * @return GNUNET_YES if this consumption is above the limit
+ * @return #GNUNET_YES if this consumption is above the limit
  */
 int
 GNUNET_BANDWIDTH_tracker_consume (struct GNUNET_BANDWIDTH_Tracker *av,
