@@ -1,5 +1,5 @@
 /*
-     This file is part of GNUnet.  (C) 2001-2013 Christian Grothoff
+     This file is part of GNUnet.  (C) 2001-2014 Christian Grothoff
      (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
@@ -84,7 +84,7 @@ get_weak_random ()
 
 
 /**
- * Seed a weak random generator. Only GNUNET_CRYPTO_QUALITY_WEAK-mode generator
+ * Seed a weak random generator. Only #GNUNET_CRYPTO_QUALITY_WEAK-mode generator
  * can be seeded.
  *
  * @param seed the seed to use
@@ -138,14 +138,15 @@ GNUNET_CRYPTO_random_block (enum GNUNET_CRYPTO_Quality mode, void *buffer, size_
 
 
 /**
- * Produce a random value.
+ * Produce a random unsigned 32-bit number modulo @a i.
  *
  * @param mode desired quality of the random number
  * @param i the upper limit (exclusive) for the random number
  * @return a random value in the interval [0,i[.
  */
 uint32_t
-GNUNET_CRYPTO_random_u32 (enum GNUNET_CRYPTO_Quality mode, uint32_t i)
+GNUNET_CRYPTO_random_u32 (enum GNUNET_CRYPTO_Quality mode, 
+			  uint32_t i)
 {
 #ifdef gcry_fast_random_poll
   static unsigned int invokeCount;
@@ -194,13 +195,14 @@ GNUNET_CRYPTO_random_u32 (enum GNUNET_CRYPTO_Quality mode, uint32_t i)
 /**
  * Get an array with a random permutation of the
  * numbers 0...n-1.
- * @param mode GNUNET_RANDOM_QUALITY_STRONG if the strong (but expensive)
- *        PRNG should be used, GNUNET_RANDOM_QUALITY_WEAK otherwise
+ * @param mode #GNUNET_RANDOM_QUALITY_STRONG if the strong (but expensive)
+ *        PRNG should be used, #GNUNET_RANDOM_QUALITY_WEAK otherwise
  * @param n the size of the array
  * @return the permutation array (allocated from heap)
  */
 unsigned int *
-GNUNET_CRYPTO_random_permute (enum GNUNET_CRYPTO_Quality mode, unsigned int n)
+GNUNET_CRYPTO_random_permute (enum GNUNET_CRYPTO_Quality mode,
+			      unsigned int n)
 {
   unsigned int *ret;
   unsigned int i;
@@ -223,8 +225,7 @@ GNUNET_CRYPTO_random_permute (enum GNUNET_CRYPTO_Quality mode, unsigned int n)
 
 
 /**
- * Random on unsigned 64-bit values.
- *
+ * Generate random unsigned 64-bit value.
  *
  * @param mode desired quality of the random number
  * @param max value returned will be in range [0,max) (exclusive)
