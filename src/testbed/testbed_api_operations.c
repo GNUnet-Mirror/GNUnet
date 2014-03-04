@@ -33,7 +33,7 @@
  * The number of readings containing past operation's timing information that we
  * keep track of for adaptive queues
  */
-#define ADAPTIVE_QUEUE_DEFAULT_HISTORY 10
+#define ADAPTIVE_QUEUE_DEFAULT_HISTORY 40
 
 /**
  * The number of parallel opeartions we start with by default for adaptive
@@ -908,6 +908,7 @@ adapt_parallelism (struct OperationQueue *queue)
     adaptive_queue_set_max_active (queue, queue->max_active); /* no change */
     return;
   }
+
   parallelism = 0;
   if (-1 == sd)
     parallelism = queue->max_active + 1;
@@ -920,11 +921,12 @@ adapt_parallelism (struct OperationQueue *queue)
   parallelism = GNUNET_MAX (parallelism, ADAPTIVE_QUEUE_DEFAULT_MAX_ACTIVE);
   adaptive_queue_set_max_active (queue, parallelism);
 
-#if 0                           /* old algorithm */
+#if 0
+  /* old algorithm */
   if (sd < 0)
     sd = 0;
   GNUNET_assert (0 <= sd);
-  GNUNET_TESTBED_SD_add_data_ (fctx->sd, (unsigned int) avg.rel_value_us);
+  //GNUNET_TESTBED_SD_add_data_ (fctx->sd, (unsigned int) avg.rel_value_us);
   if (0 == sd)
   {
     adaptive_queue_set_max_active (queue, queue->max_active * 2);
