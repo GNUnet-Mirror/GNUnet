@@ -85,18 +85,6 @@ struct GNUNET_HELLO_Address
   struct GNUNET_PeerIdentity peer;
 
   /**
-   * Extended information about address
-   *
-   * This field contains additional #GNUNET_HELLO_AddressInfo flags e.g.
-   * to indicate an address is inbound and cannot be used to initiate an
-   * outbound connection.
-   *
-   * These information are only valid for the local peer and are not serialized
-   * when a #GNUNET_HELLO_Message is created
-   */
-  enum GNUNET_HELLO_AddressInfo local_info;
-
-  /**
    * Name of the transport plugin enabling the communication using
    * this address.
    */
@@ -108,11 +96,24 @@ struct GNUNET_HELLO_Address
   const void *address;
 
   /**
-   * Number of bytes in 'address'.
+   * Number of bytes in @e address.
    */
   size_t address_length;
 
+  /**
+   * Extended information about address
+   *
+   * This field contains additional #GNUNET_HELLO_AddressInfo flags e.g.
+   * to indicate an address is inbound and cannot be used to initiate an
+   * outbound connection.
+   *
+   * These information are only valid for the local peer and are not serialized
+   * when a #GNUNET_HELLO_Message is created
+   */
+  enum GNUNET_HELLO_AddressInfo local_info;
+
 };
+
 
 /**
  * Allocate an address struct.
@@ -120,15 +121,17 @@ struct GNUNET_HELLO_Address
  * @param peer the peer
  * @param transport_name plugin name
  * @param address binary address
- * @param address_length number of bytes in 'address'
+ * @param address_length number of bytes in @a address
  * @param local_info additional local information for the address
  * @return the address struct
  */
 struct GNUNET_HELLO_Address *
 GNUNET_HELLO_address_allocate (const struct GNUNET_PeerIdentity *peer,
-                               const char *transport_name, const void *address,
+                               const char *transport_name,
+                               const void *address,
                                size_t address_length,
                                enum GNUNET_HELLO_AddressInfo local_info);
+
 
 /**
  * Copy an address struct.
@@ -146,11 +149,12 @@ GNUNET_HELLO_address_copy (const struct GNUNET_HELLO_Address *address);
  *
  * @param a1 first address
  * @param a2 second address
- * @return 0 if the addresses are equal, -1 if a1<a2, 1 if a1>a2.
+ * @return 0 if the addresses are equal, -1 if @a a1< @a a2, 1 if @a a1> @a a2.
  */
 int
 GNUNET_HELLO_address_cmp (const struct GNUNET_HELLO_Address *a1,
                           const struct GNUNET_HELLO_Address *a2);
+
 
 /**
  * Get the size of an address struct.
@@ -161,16 +165,17 @@ GNUNET_HELLO_address_cmp (const struct GNUNET_HELLO_Address *a1,
 size_t
 GNUNET_HELLO_address_get_size (const struct GNUNET_HELLO_Address *address);
 
+
 /**
  * Check if an address has a local option set
  *
  * @param address the address to check
  * @param option the respective option to check for
- * @return GNUNET_YES or GNUNET_NO
+ * @return #GNUNET_YES or #GNUNET_NO
  */
 int
-GNUNET_HELLO_address_check_option (const struct GNUNET_HELLO_Address * address,
-    enum GNUNET_HELLO_AddressInfo option);
+GNUNET_HELLO_address_check_option (const struct GNUNET_HELLO_Address *address,
+                                   enum GNUNET_HELLO_AddressInfo option);
 
 
 /**
@@ -184,7 +189,7 @@ GNUNET_HELLO_address_check_option (const struct GNUNET_HELLO_Address * address,
 /**
  * A HELLO message is used to exchange information about
  * transports with other peers.  This struct is guaranteed
- * to start with a "GNUNET_MessageHeader", everything else
+ * to start with a `struct GNUNET_MessageHeader`, everything else
  * should be internal to the HELLO library.
  */
 struct GNUNET_HELLO_Message;
@@ -213,7 +218,8 @@ GNUNET_HELLO_is_friend_only (const struct GNUNET_HELLO_Message *h);
  */
 size_t
 GNUNET_HELLO_add_address (const struct GNUNET_HELLO_Address *address,
-                          struct GNUNET_TIME_Absolute expiration, char *target,
+                          struct GNUNET_TIME_Absolute expiration,
+                          char *target,
                           size_t max);
 
 
@@ -239,9 +245,13 @@ typedef size_t
  * expiration time and an iterator that spews the
  * transport addresses.
  *
- * If friend only is set to #GNUNET_YES we create a FRIEND_HELLO which will
- * not be gossiped to other peers
+ * If friend only is set to #GNUNET_YES we create a FRIEND_HELLO which
+ * will not be gossiped to other peers.
  *
+ * @param publicKey public key to include in the HELLO
+ * @param addrgen callback to invoke to get addresses
+ * @param addrgen_cls closure for @a addrgen
+ * @param friend_only should the returned HELLO be only visible to friends?
  * @return the hello message
  */
 struct GNUNET_HELLO_Message *
@@ -349,7 +359,7 @@ GNUNET_HELLO_iterate_addresses (const struct GNUNET_HELLO_Message *msg,
  * @param expiration_limit ignore addresses in old_hello
  *        that expired before the given time stamp
  * @param it iterator to call on each address
- * @param it_cls closure for it
+ * @param it_cls closure for @a it
  */
 void
 GNUNET_HELLO_iterate_new_addresses (const struct GNUNET_HELLO_Message *new_hello,
@@ -409,6 +419,7 @@ typedef struct GNUNET_TRANSPORT_PluginFunctions *
 char *
 GNUNET_HELLO_compose_uri (const struct GNUNET_HELLO_Message *hello,
                           GNUNET_HELLO_TransportPluginsFind plugins_find);
+
 
 /**
  * Parse a hello URI string to a hello message.

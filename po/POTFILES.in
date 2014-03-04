@@ -5,6 +5,7 @@ src/arm/gnunet-service-arm.c
 src/arm/mockup-service.c
 src/ats/ats_api_performance.c
 src/ats/ats_api_scheduling.c
+src/ats/gnunet-ats-solver-eval.c
 src/ats/gnunet-service-ats_addresses.c
 src/ats/gnunet-service-ats.c
 src/ats/gnunet-service-ats_normalization.c
@@ -17,8 +18,10 @@ src/ats/plugin_ats_ril.c
 src/ats-tests/ats-testing.c
 src/ats-tests/ats-testing-experiment.c
 src/ats-tests/ats-testing-log.c
+src/ats-tests/ats-testing-preferences.c
 src/ats-tests/ats-testing-traffic.c
 src/ats-tests/gnunet-ats-sim.c
+src/ats-tests/gnunet-solver-eval.c
 src/ats-tool/gnunet-ats.c
 src/block/block.c
 src/block/plugin_block_template.c
@@ -182,6 +185,7 @@ src/mesh/gnunet-service-mesh.c
 src/mesh/gnunet-service-mesh_channel.c
 src/mesh/gnunet-service-mesh_connection.c
 src/mesh/gnunet-service-mesh_dht.c
+src/mesh/gnunet-service-mesh_hello.c
 src/mesh/gnunet-service-mesh_local.c
 src/mesh/gnunet-service-mesh_peer.c
 src/mesh/gnunet-service-mesh_tunnel.c
@@ -190,7 +194,6 @@ src/mesh/mesh_common.c
 src/mesh/mesh_path.c
 src/mesh/mesh_test_lib.c
 src/mesh/mesh_tunnel_tree.c
-src/mesh/plugin_block_mesh.c
 src/multicast/gnunet-multicast.c
 src/multicast/gnunet-service-multicast.c
 src/multicast/multicast_api.c
