@@ -616,6 +616,20 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_DHT_P2P_TRAIL_SETUP_RESULT         158
 
+/**
+ * Verify if your immediate successor is still your immediate successor.
+ */
+#define GNUNET_MESSAGE_TYPE_DHT_P2P_VERIFY_SUCCESSOR           159
+
+/**
+ * Notify your new immediate successor that you are its new predecessor. 
+ */
+#define GNUNET_MESSAGE_TYPE_DHT_P2P_NOTIFY_SUCCESSOR           160
+
+/**
+ * Message which contains the immediate predecessor of requested successor
+ */
+#define GNUNET_MESSAGE_TYPE_DHT_P2P_VERIFY_SUCCESSOR_RESULT    161
 /*******************************************************************************
  * HOSTLIST message types
  ******************************************************************************/
