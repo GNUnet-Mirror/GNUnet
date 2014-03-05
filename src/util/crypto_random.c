@@ -145,7 +145,7 @@ GNUNET_CRYPTO_random_block (enum GNUNET_CRYPTO_Quality mode, void *buffer, size_
  * @return a random value in the interval [0,i[.
  */
 uint32_t
-GNUNET_CRYPTO_random_u32 (enum GNUNET_CRYPTO_Quality mode, 
+GNUNET_CRYPTO_random_u32 (enum GNUNET_CRYPTO_Quality mode,
 			  uint32_t i)
 {
 #ifdef gcry_fast_random_poll
@@ -270,6 +270,9 @@ GNUNET_CRYPTO_random_u64 (enum GNUNET_CRYPTO_Quality mode, uint64_t max)
 }
 
 
+/**
+ * Initialize libgcrypt.
+ */
 void __attribute__ ((constructor))
 GNUNET_CRYPTO_random_init ()
 {
@@ -302,11 +305,16 @@ GNUNET_CRYPTO_random_init ()
 }
 
 
+/**
+ * Nicely shut down libgcrypt.
+ */
 void __attribute__ ((destructor))
 GNUNET_CRYPTO_random_fini ()
 {
   gcry_set_progress_handler (NULL, NULL);
+#ifdef GCRYCTL_CLOSE_RANDOM_DEVICE
   (void) gcry_control (GCRYCTL_CLOSE_RANDOM_DEVICE, 0);
+#endif
 }
 
 
