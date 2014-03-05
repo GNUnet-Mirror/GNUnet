@@ -49,6 +49,10 @@
  */
 #define GNUNET_TIME_STD_EXPONENTIAL_BACKOFF_THRESHOLD GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 3)
 
+/**
+ * The size of the buffer we fill before sending out the message
+ */
+#define BUFFER_SIZE GNUNET_SERVER_MAX_MESSAGE_SIZE
 
 /**
  * The message queue for sending messages to the controller service
@@ -379,10 +383,9 @@ GNUNET_TESTBED_LOGGER_write (struct GNUNET_TESTBED_LOGGER_Handle *h,
 
   GNUNET_assert (0 != size);
   GNUNET_assert (NULL != data);
-  GNUNET_assert (size < (GNUNET_SERVER_MAX_MESSAGE_SIZE
-                         - sizeof (struct GNUNET_MessageHeader)));
+  GNUNET_assert (size < (BUFFER_SIZE - sizeof (struct GNUNET_MessageHeader)));
   fit_size = sizeof (struct GNUNET_MessageHeader) + h->bs + size;
-  if ( GNUNET_SERVER_MAX_MESSAGE_SIZE < fit_size )
+  if ( BUFFER_SIZE < fit_size )
     dispatch_buffer (h);
   if (NULL == h->buf)
   {
