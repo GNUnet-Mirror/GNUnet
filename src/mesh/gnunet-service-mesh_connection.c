@@ -1986,7 +1986,7 @@ handle_mesh_kx (const struct GNUNET_PeerIdentity *peer,
   /* Check size */
   size = ntohs (msg->header.size);
   if (size <
-      sizeof (struct GNUNET_MESH_Encrypted) +
+      sizeof (struct GNUNET_MESH_KX) +
       sizeof (struct GNUNET_MessageHeader))
   {
     GNUNET_break_op (0);
@@ -1998,7 +1998,7 @@ handle_mesh_kx (const struct GNUNET_PeerIdentity *peer,
   if (NULL == c)
   {
     GNUNET_STATISTICS_update (stats, "# unknown connection", 1, GNUNET_NO);
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "WARNING kx on unknown connection %s\n",
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "kx on unknown connection %s\n",
          GNUNET_h2s (&msg->cid));
     return GNUNET_OK;
   }
