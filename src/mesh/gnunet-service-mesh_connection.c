@@ -855,7 +855,7 @@ send_broken2 (struct GNUNET_HashCode *connection_id,
  * @param fwd Is this a FWD keepalive? (owner -> dest).
  */
 static void
-connection_keepalive (struct MeshConnection *c, int fwd)
+send_connection_keepalive (struct MeshConnection *c, int fwd)
 {
   struct GNUNET_MESH_ConnectionKeepAlive *msg;
   size_t size = sizeof (struct GNUNET_MESH_ConnectionKeepAlive);
@@ -920,11 +920,40 @@ connection_maintain (struct MeshConnection *c, int fwd)
       connection_recreate (c, fwd);
       break;
     case MESH_CONNECTION_READY:
-      connection_keepalive (c, fwd);
+      send_connection_keepalive (c, fwd);
       break;
     default:
       break;
   }
+}
+
+
+
+/**
+ * Keep the connection alive.
+ *
+ * @param c Connection to keep alive.
+ * @param fwd Direction.
+ * @param shutdown Are we shutting down? (Don't send traffic)
+ *                 Non-zero value for true, not necessarily GNUNET_YES.
+ */
+static void
+connection_keepalive (struct MeshConnection *c, int fwd, int shutdown)
+{
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "%s keepalive for %s\n",
+       GM_f2s (fwd), GMC_2s (c));
+
+  if (fwd)
+    c->fwd_maintenance_task = GNUNET_SCHEDULER_NO_TASK;
+  else
+    c->bck_maintenance_task = GNUNET_SCHEDULER_NO_TASK;
+
+  if (GNUNET_NO != shutdown)
+    return;
+
+  connection_maintain (c, fwd);
+
+  /* Next execution will be scheduled by message_sent */
 }
 
 
@@ -938,23 +967,14 @@ static void
 connection_fwd_keepalive (void *cls,
                           const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct MeshConnection *c = cls;
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "FWD keepalive for %s\n", GMC_2s (c));
-  c->fwd_maintenance_task = GNUNET_SCHEDULER_NO_TASK;
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
-
-  connection_maintain (c, GNUNET_YES);
-
-  /* Next execution will be scheduled by message_sent */
+  connection_keepalive ((struct MeshConnection *) cls,
+                        GNUNET_YES,
+                        tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN);
 }
 
 
 /**
  * Keep the connection alive in the BCK direction.
- *
- * TODO refactor and merge with connection_fwd_keepalive.
  *
  * @param cls Closure (connection to keepalive).
  * @param tc TaskContext.
@@ -963,15 +983,9 @@ static void
 connection_bck_keepalive (void *cls,
                           const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct MeshConnection *c = cls;
-
-  c->bck_maintenance_task = GNUNET_SCHEDULER_NO_TASK;
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
-
-  connection_maintain (c, GNUNET_NO);
-
-  /* Next execution will be scheduled by message_sent */
+  connection_keepalive ((struct MeshConnection *) cls,
+                        GNUNET_NO,
+                        tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN);
 }
 
 
