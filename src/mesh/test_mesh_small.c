@@ -767,31 +767,28 @@ main (int argc, char *argv[])
   }
   else if (strstr (argv[0], "_small_speed_ack") != NULL)
   {
-   /* Each peer is supposed to generate the following callbacks:
-    * 1 incoming channel (@dest)
-    * TOTAL_PACKETS received data packet (@dest)
-    * TOTAL_PACKETS received data packet (@orig)
-    * 1 received channel destroy (@dest)
-    * _________________________________
-    * 5 x ok expected per peer
-    */
+    /* Each peer is supposed to generate the following callbacks:
+     * 1 incoming channel (@dest)
+     * TOTAL_PACKETS received data packet (@dest)
+     * TOTAL_PACKETS received data packet (@orig)
+     * 1 received channel destroy (@dest)
+     */
+    ok_goal = TOTAL_PACKETS * 2 + 2;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "SPEED_ACK\n");
     test = SPEED_ACK;
     test_name = "speed ack";
-    ok_goal = TOTAL_PACKETS * 2 + 2;
   }
   else if (strstr (argv[0], "_small_speed") != NULL)
   {
-   /* Each peer is supposed to generate the following callbacks:
-    * 1 incoming channel (@dest)
-    * 1 initial packet (@dest)
-    * TOTAL_PACKETS received data packet (@dest)
-    * 1 received data packet (@orig)
-    * 1 received channel destroy (@dest)
-    * _________________________________
-    */
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "SPEED\n");
+    /* Each peer is supposed to generate the following callbacks:
+     * 1 incoming channel (@dest)
+     * 1 initial packet (@dest)
+     * TOTAL_PACKETS received data packet (@dest)
+     * 1 received data packet (@orig)
+     * 1 received channel destroy (@dest)
+     */
     ok_goal = TOTAL_PACKETS + 4;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "SPEED\n");
     if (strstr (argv[0], "_reliable") != NULL)
     {
       test = SPEED_REL;
@@ -813,13 +810,9 @@ main (int argc, char *argv[])
 
   if (strstr (argv[0], "backwards") != NULL)
   {
-    char *aux;
-
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "BACKWARDS (LEAF TO ROOT)\n");
     test_backwards = GNUNET_YES;
-    aux = GNUNET_malloc (32);
-    sprintf (aux, "backwards %s", test_name);
-    test_name = aux;
+    GNUNET_asprintf (&test_name, "backwards %s", test_name);
   }
 
   p_ids = 0;
