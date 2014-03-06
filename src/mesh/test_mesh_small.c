@@ -26,6 +26,7 @@
 #include "platform.h"
 #include "mesh_test_lib.h"
 #include "gnunet_mesh_service.h"
+#include "gnunet_statistics_service.h"
 #include <gauger.h>
 
 
@@ -49,6 +50,7 @@
  */
 #define SETUP 0
 #define FORWARD 1
+#define KEEPALIVE 2
 #define SPEED 3
 #define SPEED_ACK 4
 #define SPEED_REL 8
@@ -74,18 +76,10 @@ static int test_backwards = GNUNET_NO;
  */
 static int ok;
 
- /**
-  * Each peer is supposed to generate the following callbacks:
-  * 1 incoming channel (@dest)
-  * 1 connected peer (@orig)
-  * 1 received data packet (@dest)
-  * 1 received data packet (@orig)
-  * 1 received channel destroy (@dest)
-  * _________________________________
-  * 5 x ok expected per peer
-  */
+/**
+ * Number of events expected to conclude the test successfully.
+ */
 int ok_goal;
-
 
 /**
  * Size of each test packet
@@ -178,6 +172,14 @@ static struct GNUNET_MESH_Channel *incoming_ch;
  */
 static struct GNUNET_TIME_Absolute start_time;
 
+static struct GNUNET_TESTBED_Peer **testbed_peers;
+static struct GNUNET_STATISTICS_Handle *stats;
+static struct GNUNET_STATISTICS_GetHandle *stats_get;
+static struct GNUNET_TESTBED_Operation *stats_op;
+static unsigned int stats_peer;
+static unsigned int ka_sent;
+static unsigned int ka_received;
+
 
 /**
  * Show the results of the test (banwidth acheived) and log them to GAUGER
@@ -253,6 +255,8 @@ disconnect_mesh_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     GNUNET_SCHEDULER_cancel (shutdown_handle);
   }
+  if (NULL != stats_get)
+    GNUNET_STATISTICS_get_cancel (stats_get);
   shutdown_handle = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
 }
 
@@ -463,8 +467,7 @@ data_callback (void *cls, struct GNUNET_MESH_Channel *channel,
   if (client == expected_target_client) // Normally 4
   {
     data_received++;
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                " received data %u\n", data_received);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, " received data %u\n", data_received);
     if (SPEED != test || (ok_goal - 2) == ok)
     {
       GNUNET_MESH_notify_transmit_ready (channel, GNUNET_NO,
@@ -483,8 +486,7 @@ data_callback (void *cls, struct GNUNET_MESH_Channel *channel,
     if (test == SPEED_ACK || test == SPEED)
     {
       data_ack++;
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              " received ack %u\n", data_ack);
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, " received ack %u\n", data_ack);
       GNUNET_MESH_notify_transmit_ready (channel, GNUNET_NO,
                                          GNUNET_TIME_UNIT_FOREVER_REL,
                                          size_payload, &tmt_rdy, (void *) 1L);
@@ -515,6 +517,174 @@ data_callback (void *cls, struct GNUNET_MESH_Channel *channel,
   }
 
   return GNUNET_OK;
+}
+
+
+/**
+ * Adapter function called to establish a connection to the statistics service.
+ *
+ * @param cls closure
+ * @param cfg configuration of the peer to connect to; will be available until
+ *          GNUNET_TESTBED_operation_done() is called on the operation returned
+ *          from GNUNET_TESTBED_service_connect()
+ * @return service handle to return in 'op_result', NULL on error
+ */
+static void *
+stats_ca (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
+{
+  return GNUNET_STATISTICS_create ("<test_mesh>", cfg);
+}
+
+
+/**
+ * Adapter function called to destroy a connection to
+ * statistics service.
+ *
+ * @param cls Closure (unused).
+ * @param op_result service handle returned from the connect adapter
+ */
+static void
+stats_da (void *cls, void *op_result)
+{
+  GNUNET_assert (op_result == stats);
+  GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
+  stats = NULL;
+}
+
+
+/**
+ * Function called by testbed once we are connected to stats
+ * service. Get the statistics of interest.
+ *
+ * @param cls Closure (unused).
+ * @param op connect operation handle
+ * @param ca_result handle to stats service
+ * @param emsg error message on failure
+ */
+static void
+stats_connect_cb (void *cls,
+                  struct GNUNET_TESTBED_Operation *op,
+                  void *ca_result,
+                  const char *emsg);
+
+/**
+ * Stats callback. Finish the stats testbed operation and when all stats have
+ * been iterated, shutdown the test.
+ *
+ * @param cls closure
+ * @param success GNUNET_OK if statistics were
+ *        successfully obtained, GNUNET_SYSERR if not.
+ */
+static void
+stats_cont (void *cls, int success)
+{
+  GNUNET_TESTBED_operation_done (stats_op);
+  stats_get = NULL;
+  if (NULL == cls)
+  {
+    stats_op = GNUNET_TESTBED_service_connect (NULL,
+                                               testbed_peers[4],
+                                               "statistics",
+                                               &stats_connect_cb,
+                                               (void *)4,
+                                               &stats_ca,
+                                               &stats_da,
+                                               (void *)4);
+  }
+  else
+  {
+    if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
+      GNUNET_SCHEDULER_cancel (disconnect_task);
+    disconnect_task = GNUNET_SCHEDULER_add_now (&disconnect_mesh_peers,
+                                                (void *) __LINE__);
+  }
+}
+
+
+/**
+ * Process statistic values.
+ *
+ * @param cls closure
+ * @param subsystem name of subsystem that created the statistic
+ * @param name the name of the datum
+ * @param value the current value
+ * @param is_persistent GNUNET_YES if the value is persistent, GNUNET_NO if not
+ * @return GNUNET_OK to continue, GNUNET_SYSERR to abort iteration
+ */
+static int
+stats_iterator (void *cls, const char *subsystem, const char *name,
+                uint64_t value, int is_persistent)
+{
+  if (0 == strncmp("# keepalives sent", name,
+                   strlen("# keepalives sent"))
+      && 0 == stats_peer)
+    ka_sent = value;
+
+  if (0 == strncmp("# keepalives received", name,
+                   strlen ("# keepalives received"))
+      && 4 == stats_peer)
+    ka_received = value;
+
+  return GNUNET_OK;
+}
+
+
+/**
+ * Function called by testbed once we are connected to stats
+ * service. Get the statistics of interest.
+ *
+ * @param cls Closure (unused).
+ * @param op connect operation handle
+ * @param ca_result handle to stats service
+ * @param emsg error message on failure
+ */
+static void
+stats_connect_cb (void *cls,
+                  struct GNUNET_TESTBED_Operation *op,
+                  void *ca_result,
+                  const char *emsg)
+{
+  if (NULL == ca_result || NULL != emsg)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Failed to connect to statistics service: %s\n", emsg);
+    return;
+  }
+
+  stats = ca_result;
+
+  stats_get = GNUNET_STATISTICS_get (stats, "mesh", NULL,
+                                      GNUNET_TIME_UNIT_FOREVER_REL,
+                                      &stats_cont, &stats_iterator, cls);
+  if (NULL == stats_get)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Could not get statistics of peer %u!\n", cls);
+  }
+}
+
+
+/**
+ * Task check that keepalives were sent and received.
+ *
+ * @param cls Closure (NULL).
+ * @param tc Task Context.
+ */
+static void
+check_keepalives (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  if ((GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason) != 0)
+    return;
+
+  GNUNET_MESH_channel_destroy (ch);
+  stats_op = GNUNET_TESTBED_service_connect (NULL,
+                                             testbed_peers[0],
+                                             "statistics",
+                                             &stats_connect_cb,
+                                             NULL,
+                                             &stats_ca,
+                                             &stats_da,
+                                             NULL);
 }
 
 
@@ -560,9 +730,17 @@ incoming_channel (void *cls, struct GNUNET_MESH_Channel *channel,
   if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
   {
     GNUNET_SCHEDULER_cancel (disconnect_task);
-    disconnect_task = GNUNET_SCHEDULER_add_delayed (SHORT_TIME,
-                                                    &disconnect_mesh_peers,
-                                                    (void *) __LINE__);
+    if (KEEPALIVE == test)
+    {
+      struct GNUNET_TIME_Relative delay;
+      delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS , 5);
+      disconnect_task =
+        GNUNET_SCHEDULER_add_delayed (delay, &check_keepalives, NULL);
+    }
+    else
+      disconnect_task = GNUNET_SCHEDULER_add_delayed (SHORT_TIME,
+                                                      &disconnect_mesh_peers,
+                                                      (void *) __LINE__);
   }
 
   return NULL;
@@ -635,10 +813,7 @@ do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     return;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test_task\n");
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "add peer 2\n");
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "schedule timeout in TIMEOUT\n");
   if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
   {
     GNUNET_SCHEDULER_cancel (disconnect_task);
@@ -655,6 +830,9 @@ do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   disconnect_task = GNUNET_SCHEDULER_add_delayed (SHORT_TIME,
                                                   &disconnect_mesh_peers,
                                                   (void *) __LINE__);
+  if (KEEPALIVE == test)
+    return; /* Don't send any data. */
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Sending data initializer...\n");
   data_ack = 0;
@@ -720,6 +898,7 @@ tmain (void *cls,
   ok = 0;
   test_ctx = ctx;
   peers_running = num_peers;
+  testbed_peers = peers;
   h1 = meshes[0];
   h2 = meshes[num_peers - 1];
   disconnect_task = GNUNET_SCHEDULER_add_delayed (SHORT_TIME,
@@ -767,7 +946,7 @@ main (int argc, char *argv[])
   }
   else if (strstr (argv[0], "_small_speed_ack") != NULL)
   {
-    /* Each peer is supposed to generate the following callbacks:
+    /* Test is supposed to generate the following callbacks:
      * 1 incoming channel (@dest)
      * TOTAL_PACKETS received data packet (@dest)
      * TOTAL_PACKETS received data packet (@orig)
@@ -780,7 +959,7 @@ main (int argc, char *argv[])
   }
   else if (strstr (argv[0], "_small_speed") != NULL)
   {
-    /* Each peer is supposed to generate the following callbacks:
+    /* Test is supposed to generate the following callbacks:
      * 1 incoming channel (@dest)
      * 1 initial packet (@dest)
      * TOTAL_PACKETS received data packet (@dest)
@@ -800,6 +979,16 @@ main (int argc, char *argv[])
       test = SPEED;
       test_name = "speed";
     }
+  }
+  else if (strstr (argv[0], "_keepalive") != NULL)
+  {
+    test = KEEPALIVE;
+    /* Test is supposed to generate the following callbacks:
+     * 1 incoming channel (@dest)
+     * [wait]
+     * 1 received channel destroy (@dest)
+     */
+    ok_goal = 2;
   }
   else
   {
