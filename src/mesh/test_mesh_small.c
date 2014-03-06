@@ -619,12 +619,12 @@ stats_iterator (void *cls, const char *subsystem, const char *name,
               cls, subsystem, name, value);
   if (0 == strncmp("# keepalives sent", name,
                    strlen("# keepalives sent"))
-      && 0 == cls)
+      && 0 == (long) cls)
     ka_sent = value;
 
   if (0 == strncmp("# keepalives received", name,
                    strlen ("# keepalives received"))
-      && 4 == cls)
+      && 4 == (long) cls)
   {
     ka_received = value;
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, " sent: %u, received: %u\n",
