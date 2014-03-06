@@ -862,6 +862,7 @@ send_connection_keepalive (struct MeshConnection *c, int fwd)
   LOG (GNUNET_ERROR_TYPE_INFO,
        "keepalive %s for connection %s\n",
        GM_f2s (fwd), GMC_2s (c));
+  GNUNET_STATISTICS_update (stats, "# keepalives sent", 1, GNUNET_NO);
 
   GNUNET_assert (NULL != c->t);
   msg.size = htons (sizeof (msg));

@@ -1585,6 +1585,7 @@ handle_decrypted (struct MeshTunnel3 *t,
   {
     case GNUNET_MESSAGE_TYPE_MESH_KEEPALIVE:
       /* Do nothing, connection aleady got updated. */
+      GNUNET_STATISTICS_update (stats, "# keepalives received", 1, GNUNET_NO);
       break;
 
     case GNUNET_MESSAGE_TYPE_MESH_DATA:
