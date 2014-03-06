@@ -788,9 +788,11 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
     }
     return NULL;
   }
+
   type = ntohs (message->type);
   switch (type)
   {
+    case GNUNET_MESSAGE_TYPE_MESH_KEEPALIVE:
     case GNUNET_MESSAGE_TYPE_MESH_DATA:
     case GNUNET_MESSAGE_TYPE_MESH_DATA_ACK:
     case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_CREATE:
