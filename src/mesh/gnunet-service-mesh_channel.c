@@ -1490,9 +1490,7 @@ GMCH_send_data_ack (struct MeshChannel *ch, int fwd)
   }
   rel = fwd ? ch->dest_rel : ch->root_rel;
   ack = rel->mid_recv - 1;
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-              " !! Send DATA_ACK for %u\n",
-              ack);
+  LOG (GNUNET_ERROR_TYPE_INFO, "=> DATA_ACK for %u\n", ack);
 
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_DATA_ACK);
   msg.header.size = htons (sizeof (msg));
@@ -1940,9 +1938,9 @@ GMCH_handle_data (struct MeshChannel *ch,
   else
   {
     GNUNET_break_op (GM_is_pid_bigger (rel->mid_recv, mid));
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-                " !!! MID %u not expected (%u - %u), dropping!\n",
-                mid, rel->mid_recv, rel->mid_recv + 63);
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "MID %u not expected (%u - %u), dropping!\n",
+         mid, rel->mid_recv, rel->mid_recv + 63);
   }
 
   GMCH_send_data_ack (ch, fwd);
@@ -1984,8 +1982,7 @@ GMCH_handle_data_ack (struct MeshChannel *ch,
   }
 
   ack = ntohl (msg->mid);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! %s ACK %u\n",
-       (GNUNET_YES == fwd) ? "FWD" : "BCK", ack);
+  LOG (GNUNET_ERROR_TYPE_INFO, "<= %s ACK %u\n", GM_f2s (fwd), ack);
 
   if (GNUNET_YES == fwd)
   {
@@ -2006,12 +2003,12 @@ GMCH_handle_data_ack (struct MeshChannel *ch,
   {
     if (GM_is_pid_bigger (copy->mid, ack))
     {
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "!!!  head %u, out!\n", copy->mid);
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "  head %u, out!\n", copy->mid);
       channel_rel_free_sent (rel, msg);
       break;
     }
     work = GNUNET_YES;
-    LOG (GNUNET_ERROR_TYPE_DEBUG, " !!  id %u\n", copy->mid);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  id %u\n", copy->mid);
     next = copy->next;
     if (GNUNET_YES == rel_message_free (copy, GNUNET_YES))
       return;
@@ -2244,9 +2241,8 @@ GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   uint16_t type;
 
   type = ntohs (message->type);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "GMCH Send %s %s on channel %s\n",
-       GM_f2s (fwd), GM_m2s (type),
-       GMCH_2s (ch));
+  LOG (GNUNET_ERROR_TYPE_INFO, "=> %s %s on channel %s\n",
+       GM_m2s (type), GM_f2s (fwd), GMCH_2s (ch));
 
   if (GMT_is_loopback (ch->t))
   {
