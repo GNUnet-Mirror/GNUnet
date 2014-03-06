@@ -578,6 +578,7 @@ stats_connect_cb (void *cls,
 static void
 stats_cont (void *cls, int success)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "stats_cont for peer %u\n", cls);
   GNUNET_TESTBED_operation_done (stats_op);
   stats_get = NULL;
   if (NULL == cls)
@@ -615,6 +616,8 @@ static int
 stats_iterator (void *cls, const char *subsystem, const char *name,
                 uint64_t value, int is_persistent)
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  %u - %s [%s]: %llu\n",
+              cls, subsystem, name, value);
   if (0 == strncmp("# keepalives sent", name,
                    strlen("# keepalives sent"))
       && 0 == stats_peer)
@@ -655,12 +658,12 @@ stats_connect_cb (void *cls,
     return;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "stats for peer %u\n", cls);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "stats for peer %u\n", cls);
   stats = ca_result;
 
   stats_get = GNUNET_STATISTICS_get (stats, "mesh", NULL,
-                                      GNUNET_TIME_UNIT_FOREVER_REL,
-                                      &stats_cont, &stats_iterator, cls);
+                                     GNUNET_TIME_UNIT_FOREVER_REL,
+                                     &stats_cont, &stats_iterator, cls);
   if (NULL == stats_get)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
