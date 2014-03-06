@@ -2252,8 +2252,12 @@ GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
 
   switch (type)
   {
+    struct GNUNET_MESH_Data *payload;
     case GNUNET_MESSAGE_TYPE_MESH_DATA:
 
+      payload = (struct GNUNET_MESH_Data *) message;
+      LOG (GNUNET_ERROR_TYPE_INFO, "=> %s %u\n",
+           GM_m2s (type), ntohl(payload->mid));
       if (GNUNET_YES == ch->reliable)
       {
         chq = GNUNET_new (struct MeshChannelQueue);
