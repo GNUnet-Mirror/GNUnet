@@ -346,16 +346,13 @@ core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
  * Functions to handle messages from core
  */
 static struct GNUNET_CORE_MessageHandler core_handlers[] = {
-  {&GMC_handle_create, GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE,
-    0},
+  {&GMC_handle_create, GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE, 0},
   {&GMC_handle_confirm, GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK,
     sizeof (struct GNUNET_MESH_ConnectionACK)},
   {&GMC_handle_broken, GNUNET_MESSAGE_TYPE_MESH_CONNECTION_BROKEN,
     sizeof (struct GNUNET_MESH_ConnectionBroken)},
   {&GMC_handle_destroy, GNUNET_MESSAGE_TYPE_MESH_CONNECTION_DESTROY,
     sizeof (struct GNUNET_MESH_ConnectionDestroy)},
-  {&GMC_handle_keepalive, GNUNET_MESSAGE_TYPE_MESH_KEEPALIVE,
-    sizeof (struct GNUNET_MESH_ConnectionKeepAlive)},
   {&GMC_handle_ack, GNUNET_MESSAGE_TYPE_MESH_ACK,
     sizeof (struct GNUNET_MESH_ACK)},
   {&GMC_handle_poll, GNUNET_MESSAGE_TYPE_MESH_POLL,
