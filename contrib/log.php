@@ -3,6 +3,7 @@
 $path='log';
 $lines = array();
 $peers = array();
+$comps = array();
 $ajax = FALSE;
 $colors = array('#F00', '#F80', '#FF0',
                 '#4F0', '#0A0',
@@ -19,7 +20,7 @@ function render_row ($d, $component, $pid, $level, $msg, $c)
   list($comp,$peer) = explode (',', preg_replace ('/(.*)-(\d*)/', '\1,\2', $component));
   $peer = array_key_exists ($peer, $peers) ? $peers[$peer] : $peer;
   $date = $d ? $d->format('Y-m-d'). $d->format('H:i:s') : "";
-  echo "<tr class=\"$level P-$peer\" id=\"$c\">";
+  echo "<tr class=\"$level P-$peer C-$comp\" id=\"$c\">";
   echo "<td class=\"date\"><small>$date</td>";
   echo '<td class="usec"><small>';
   echo $d ? $d->format('u') : "";
@@ -30,7 +31,6 @@ function render_row ($d, $component, $pid, $level, $msg, $c)
   {
     echo '<td><div class="btn-group"><button class="btn btn-xs btn-default btn-showup"><span class="glyphicon glyphicon-chevron-up"></span></button>';
     echo '<button class="btn btn-xs btn-default btn-showdown"><span class="glyphicon glyphicon-chevron-down"></span></button></div></td>';
-//     echo '</td>';
   }
   else
     echo '<td></td>';
@@ -49,6 +49,7 @@ function process ($line, $c)
 {
   global $lines;
   global $peers;
+  global $comps;
   $a = explode (' ', $line);
   if (count($a) < 6)
     return;
@@ -64,6 +65,8 @@ function process ($line, $c)
   }
 
   $lines[] = array ($date, $component, 0, $level, $msg, $c);
+  $comp = preg_replace ('/(.*)-\d*/', '\1', $component);
+  $comps[$comp] = 1;
 }
 
 if (array_key_exists ('a', $_GET)) {
@@ -99,6 +102,7 @@ if ($handle) {
 }
 
 $t1 = microtime(true);
+/* Ajax request: don't render container HTML, just table rows. */
 if ($start !== null || $stop !== null) {
   render_rows();
   die();
@@ -188,15 +192,22 @@ if ($start !== null || $stop !== null) {
   <div class="btn-group">
     <button id="ERROR" class="btn btn-danger btn-showlevel"><span class="glyphicon glyphicon-fire"></span> Error</button>
     <button id="WARNING" class="btn btn-warning btn-showlevel"><span class="glyphicon glyphicon-exclamation-sign"></span> Warning</button>
-    <button id="INFO" class="btn btn-info btn-showlevel active"><span class="glyphicon glyphicon glyphicon-info-sign"></span> Info</button>
-    <button id="DEBUG" class="btn btn-default btn-showlevel"><span class="glyphicon glyphicon glyphicon-wrench"></span> Debug</button>
+    <button id="INFO" class="btn btn-default btn-showlevel active"><span class="glyphicon glyphicon glyphicon-info-sign"></span> Info</button>
+    <button id="DEBUG" class="btn btn-primary btn-showlevel"><span class="glyphicon glyphicon glyphicon-wrench"></span> Debug</button>
   </div>
   <div class="btn-group">
     <?php foreach($peers as $pid=>$id): ?>
-    <button id="P-<?php echo $id ?>" class="btn btn-default btn-showpeer active"><?php echo $id ?></button>
+    <button id="P-<?php echo $id ?>" class="btn btn-default btn-element btn-showpeer active"><?php echo $id ?></button>
     <?php endforeach ?>
-    <button id="btn-showall" class="btn btn-default">All</button>
-    <button id="btn-shownone" class="btn btn-default">None</button>
+    <button class="btn btn-default btn-showall">All</button>
+    <button class="btn btn-default btn-shownone">None</button>
+  </div>
+  <div class="btn-group">
+    <?php foreach($comps as $c=>$one): ?>
+    <button id="C-<?php echo $c ?>" class="btn btn-default btn-element btn-showcomp active"><?php echo $c ?></button>
+    <?php endforeach ?>
+    <button class="btn btn-default btn-showall">All</button>
+    <button class="btn btn-default btn-shownone">None</button>
   </div>
 </div>
 <div id="msg" class="alert alert-success"></div>
@@ -214,8 +225,10 @@ if ($start !== null || $stop !== null) {
   </thead>
   <tbody>
 <?php render_rows(); ?>
-  </tbody>
+  </tbody>default
 </table>
+<p>Processed in <?php echo $t1-$t0; ?> seconds.</p>
+<p>Rendered in <?php echo microtime(true)-$t1; ?> seconds.</p>
   <!-- jQuery -->
   <script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
   <!-- Latest compiled and minified Bootstrap JavaScript -->
@@ -248,15 +261,14 @@ if ($start !== null || $stop !== null) {
       }
     }
 
-    function shownone()
+    function shownone(btn)
     {
-      $(".btn-showpeer").removeClass("active");
-      $("tbody > tr").hide();
+      $(btn).parents(".btn-group").children(".btn-element.active").each(function(){$(this).click()});
     }
 
-    function showall()
+    function showall(btn)
     {
-      $(".btn-showpeer:not(.active)").each(function(){showpeer(this.id)});
+      $(btn).parents(".btn-group").children(".btn-element:not(.active)").each(function(){$(this).click()});
     }
 
     function showpeer (peer)
@@ -271,6 +283,21 @@ if ($start !== null || $stop !== null) {
         }
       } else {
         $("."+peer).hide();
+      }
+    }
+    
+    function showcomp (comp)
+    {
+      $("#"+comp).toggleClass("active");
+      if ($("#"+comp).hasClass("active")) {
+        for (var index = 0; index < types.length; ++index) {
+          var className = "." + types[index] + "." + comp;
+          $(className).show();
+          if ($("#"+types[index]).hasClass("active"))
+            return;
+        }
+      } else {
+        $("."+comp).hide();
       }
     }
 
@@ -337,8 +364,9 @@ if ($start !== null || $stop !== null) {
       $(".btn-showdown").on ("click", function(){ load_debug(this, false) });
       $(".btn-showlevel").on ("click", function(){ showlevel(this.id) });
       $(".btn-showpeer").on ("click", function(){ showpeer(this.id) });
-      $("#btn-showall").on ("click", function(){ showall() });
-      $("#btn-shownone").on ("click", function(){ shownone() });
+      $(".btn-showcomp").on ("click", function(){ showcomp(this.id) });
+      $(".btn-showall").on ("click", function(){ showall(this) });
+      $(".btn-shownone").on ("click", function(){ shownone(this) });
     });
   </script>
 </body>
