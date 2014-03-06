@@ -108,7 +108,8 @@ if ($start !== null || $stop !== null) {
   die();
 }
 // echo $t1-$t0;
-
+ksort($peers);
+ksort($comps);
 ?>
 <!DOCTYPE html>
 <html lang="en">
