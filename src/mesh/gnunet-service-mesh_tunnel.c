@@ -802,7 +802,7 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_ENCRYPTED);
   msg->iv = iv;
   GNUNET_assert (t_encrypt (t, &msg[1], message, size, iv) == size);
-  t_hmac (t, message, size, iv, GNUNET_YES, &msg->hmac);
+  t_hmac (t, &msg[1], size, iv, GNUNET_YES, &msg->hmac);
   msg->header.size = htons (sizeof (struct GNUNET_MESH_Encrypted) + size);
 
   if (NULL == c)
@@ -1652,11 +1652,11 @@ GMT_handle_encrypted (struct MeshTunnel3 *t,
   struct GNUNET_HashCode hmac;
 
   decrypted_size = t_decrypt (t, cbuf, &msg[1], payload_size, msg->iv);
-  t_hmac (t, cbuf, payload_size, msg->iv, GNUNET_NO, &hmac);
+  t_hmac (t, &msg[1], payload_size, msg->iv, GNUNET_NO, &hmac);
   if (0 != memcmp (&hmac, &msg->hmac, sizeof (struct GNUNET_HashCode)))
   {
     /* checksum failed */
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "Failed checksum validation for a message on tunnel `%s'\n",
                 GMT_2s (t));
     GNUNET_STATISTICS_update (stats, "# wrong HMAC", 1, GNUNET_NO);
