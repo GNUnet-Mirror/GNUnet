@@ -655,6 +655,7 @@ stats_connect_cb (void *cls,
     return;
   }
 
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "stats for peer %u\n", cls);
   stats = ca_result;
 
   stats_get = GNUNET_STATISTICS_get (stats, "mesh", NULL,
@@ -680,6 +681,8 @@ check_keepalives (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if ((GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason) != 0)
     return;
 
+  disconnect_task = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "check keepalives\n");
   GNUNET_MESH_channel_destroy (ch);
   stats_op = GNUNET_TESTBED_service_connect (NULL,
                                              testbed_peers[0],
