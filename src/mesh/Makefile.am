@@ -100,10 +100,11 @@ check_PROGRAMS = \
   test_mesh_single \
   test_mesh_local \
   test_mesh_small_forward \
-  test_mesh_small_signal  \
-  test_mesh_small_speed  \
-  test_mesh_small_speed_ack  \
-  test_mesh_small_speed_backwards  \
+  test_mesh_small_signal \
+  test_mesh_small_keepalive \
+  test_mesh_small_speed \
+  test_mesh_small_speed_ack \
+  test_mesh_small_speed_backwards \
   test_mesh_small_speed_reliable \
   test_mesh_small_speed_reliable_backwards
 endif
@@ -113,11 +114,14 @@ ld_mesh_test_lib = \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/mesh/libgnunetmeshtest.a \
   $(top_builddir)/src/mesh/libgnunetmesh.la \
-  $(top_builddir)/src/testbed/libgnunettestbed.la
+  $(top_builddir)/src/testbed/libgnunettestbed.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la
+
 
 dep_mesh_test_lib = \
   libgnunetmesh.la \
-  libgnunetmeshtest.a
+  libgnunetmeshtest.a \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la
 
 test_mesh_single_SOURCES = \
   test_mesh_single.c
@@ -138,6 +142,11 @@ test_mesh_small_signal_SOURCES = \
   test_mesh_small.c
 test_mesh_small_signal_LDADD = $(ld_mesh_test_lib)
 test_mesh_small_signal_DEPENDENCIES = $(dep_mesh_test_lib)
+
+test_mesh_small_keepalive_SOURCES = \
+  test_mesh_small.c
+test_mesh_small_keepalive_LDADD = $(ld_mesh_test_lib)
+test_mesh_small_keepalive_DEPENDENCIES = $(dep_mesh_test_lib)
 
 test_mesh_small_speed_SOURCES = \
   test_mesh_small.c
