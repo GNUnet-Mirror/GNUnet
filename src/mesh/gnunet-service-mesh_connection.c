@@ -344,6 +344,22 @@ schedule_next_keepalive (struct MeshConnection *c, int fwd);
 
 
 /**
+ * Resets the connection timeout task, some other message has done the
+ * task's job.
+ * - For the first peer on the direction this means to send
+ *   a keepalive or a path confirmation message (either create or ACK).
+ * - For all other peers, this means to destroy the connection,
+ *   due to lack of activity.
+ * Starts the timeout if no timeout was running (connection just created).
+ *
+ * @param c Connection whose timeout to reset.
+ * @param fwd Is this forward?
+ */
+static void
+connection_reset_timeout (struct MeshConnection *c, int fwd);
+
+
+/**
  * Get string description for tunnel state.
  *
  * @param s Tunnel state.
@@ -621,6 +637,7 @@ message_sent (void *cls,
              fc->last_pid_sent);
       }
       GMC_send_ack (c, fwd, GNUNET_NO);
+      connection_reset_timeout (c, fwd);
       break;
 
     case GNUNET_MESSAGE_TYPE_MESH_POLL:
@@ -1044,6 +1061,8 @@ schedule_next_keepalive (struct MeshConnection *c, int fwd)
 
   /* Schedule the task */
   *task_id = GNUNET_SCHEDULER_add_delayed (delay, keepalive_task, c);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "NEXT KEEPALIVE in %s\n",
+              GNUNET_STRINGS_relative_time_to_string (delay, GNUNET_YES));
 }
 
 
@@ -1269,25 +1288,22 @@ connection_bck_timeout (void *cls,
 static void
 connection_reset_timeout (struct MeshConnection *c, int fwd)
 {
-  GNUNET_SCHEDULER_TaskIdentifier *ti;
-  GNUNET_SCHEDULER_Task f;
-
-  ti = fwd ? &c->fwd_maintenance_task : &c->bck_maintenance_task;
-
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Connection %s reset timeout\n", GM_f2s (fwd));
-
-  if (GNUNET_SCHEDULER_NO_TASK != *ti)
-    GNUNET_SCHEDULER_cancel (*ti);
 
   if (GMC_is_origin (c, fwd)) /* Startpoint */
   {
-    f = fwd ? &connection_fwd_keepalive : &connection_bck_keepalive;
-    *ti = GNUNET_SCHEDULER_add_delayed (refresh_connection_time, f, c);
+    schedule_next_keepalive (c, fwd);
   }
   else /* Relay, endpoint. */
   {
     struct GNUNET_TIME_Relative delay;
+    GNUNET_SCHEDULER_TaskIdentifier *ti;
+    GNUNET_SCHEDULER_Task f;
 
+    ti = fwd ? &c->fwd_maintenance_task : &c->bck_maintenance_task;
+
+    if (GNUNET_SCHEDULER_NO_TASK != *ti)
+      GNUNET_SCHEDULER_cancel (*ti);
     delay = GNUNET_TIME_relative_multiply (refresh_connection_time, 4);
     f = fwd ? &connection_fwd_timeout : &connection_bck_timeout;
     *ti = GNUNET_SCHEDULER_add_delayed (delay, f, c);
