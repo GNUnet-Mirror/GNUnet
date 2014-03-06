@@ -624,7 +624,7 @@ extern "C"
 /**
  * Notify your new immediate successor that you are its new predecessor. 
  */
-#define GNUNET_MESSAGE_TYPE_DHT_P2P_NOTIFY_SUCCESSOR           160
+#define GNUNET_MESSAGE_TYPE_DHT_P2P_NOTIFY_NEW_SUCCESSOR           160
 
 /**
  * Message which contains the immediate predecessor of requested successor
