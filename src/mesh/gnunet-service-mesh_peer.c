@@ -500,9 +500,6 @@ send_core_connection_ack (struct MeshConnection *c, size_t size, void *buf)
   msg->header.size = htons (sizeof (struct GNUNET_MESH_ConnectionACK));
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK);
   msg->cid = *GMC_get_id (c);
-  msg->reserved = 0;
-
-  /* TODO add signature */
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "CONNECTION ACK sent!\n");
   return sizeof (struct GNUNET_MESH_ConnectionACK);

@@ -2818,13 +2818,11 @@ GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
     case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_DESTROY:
       dmsg = (struct GNUNET_MESH_ConnectionDestroy *) data;
       dmsg->cid = c->id;
-      dmsg->reserved = 0;
       break;
 
     case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_BROKEN:
       bmsg = (struct GNUNET_MESH_ConnectionBroken *) data;
       bmsg->cid = c->id;
-      bmsg->reserved = 0;
       break;
 
     case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE:

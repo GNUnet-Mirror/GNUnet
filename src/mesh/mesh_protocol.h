@@ -83,16 +83,10 @@ struct GNUNET_MESH_ConnectionACK
   struct GNUNET_MessageHeader header;
 
     /**
-     * Always 0.
-     */
-  uint32_t reserved GNUNET_PACKED;
-
-    /**
      * ID of the connection.
      */
   struct GNUNET_HashCode cid;
 
-  /* TODO: signature */
 };
 
 
@@ -105,11 +99,6 @@ struct GNUNET_MESH_KX
      * Type: GNUNET_MESSAGE_TYPE_MESH_KX.
      */
   struct GNUNET_MessageHeader header;
-
-    /**
-     * Always 0.
-     */
-  uint32_t reserved GNUNET_PACKED;
 
     /**
      * ID of the connection.
@@ -236,11 +225,6 @@ struct GNUNET_MESH_Encrypted
   struct GNUNET_MessageHeader header;
 
   /**
-   * Initialization Vector for payload encryption.
-   */
-  uint32_t iv GNUNET_PACKED;
-
-  /**
    * ID of the connection.
    */
   struct GNUNET_HashCode cid;
@@ -256,10 +240,25 @@ struct GNUNET_MESH_Encrypted
   uint32_t ttl GNUNET_PACKED;
 
   /**
+   * Initialization Vector for payload encryption.
+   */
+  uint32_t iv GNUNET_PACKED;
+
+  /**
+   * MAC of the encrypted message, used to verify message integrity.
+   * Everything after this value  will be encrypted and authenticated.
+   */
+  struct GNUNET_HashCode hmac;
+
+  /**
    * Encrypted content follows.
    */
 };
 
+
+/**
+ * Message to create a Channel.
+ */
 struct GNUNET_MESH_ChannelCreate
 {
   /**
@@ -283,6 +282,10 @@ struct GNUNET_MESH_ChannelCreate
   uint32_t opt GNUNET_PACKED;
 };
 
+
+/**
+ * Message to manage a Channel (ACK, NACK, Destroy).
+ */
 struct GNUNET_MESH_ChannelManage
 {
   /**
@@ -295,6 +298,7 @@ struct GNUNET_MESH_ChannelManage
    */
   MESH_ChannelNumber chid GNUNET_PACKED;
 };
+
 
 /**
  * Message for mesh data traffic.
@@ -408,11 +412,6 @@ struct GNUNET_MESH_ConnectionBroken
   struct GNUNET_MessageHeader header;
 
     /**
-     * Always 0.
-     */
-  uint32_t reserved GNUNET_PACKED;
-
-    /**
      * ID of the connection.
      */
   struct GNUNET_HashCode cid;
@@ -426,8 +425,6 @@ struct GNUNET_MESH_ConnectionBroken
      * ID of the endpoint
      */
   struct GNUNET_PeerIdentity peer2;
-
-  /* TODO: signature */
 };
 
 
@@ -442,16 +439,9 @@ struct GNUNET_MESH_ConnectionDestroy
   struct GNUNET_MessageHeader header;
 
     /**
-     * Always 0.
-     */
-  uint32_t reserved GNUNET_PACKED;
-
-    /**
      * ID of the connection.
      */
   struct GNUNET_HashCode cid;
-
-  /* TODO: signature */
 };
 
 
