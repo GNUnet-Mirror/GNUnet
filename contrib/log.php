@@ -254,8 +254,11 @@ ksort($comps);
       $(".btn-showlevel").removeClass("active");
       $("#"+level).addClass("active");
       for (var index = 0; index < types.length; ++index) {
-        $(".btn-showpeer.active").each(function(){
-          $("."+types[index]+"."+this.id).show();
+        $("#btn-showpeer > .btn-element.active").each(function(){
+	  var peer = this.id;
+	  $("#btn-showcomp > .btn-element.active").each(function(){
+	    $("."+types[index]+"."+peer+"."+this.id).show();
+	  });
         });
 	if (types[index] == level)
 	  return;
