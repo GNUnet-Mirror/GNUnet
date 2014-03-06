@@ -196,16 +196,16 @@ ksort($comps);
     <button id="INFO" class="btn btn-default btn-showlevel active"><span class="glyphicon glyphicon glyphicon-info-sign"></span> Info</button>
     <button id="DEBUG" class="btn btn-primary btn-showlevel"><span class="glyphicon glyphicon glyphicon-wrench"></span> Debug</button>
   </div>
-  <div class="btn-group">
+  <div id="btn-showpeer" class="btn-group">
     <?php foreach($peers as $pid=>$id): ?>
-    <button id="P-<?php echo $id ?>" class="btn btn-default btn-element btn-showpeer active"><?php echo $id ?></button>
+    <button id="P-<?php echo $id ?>" class="btn btn-default btn-element active"><?php echo $id ?></button>
     <?php endforeach ?>
     <button class="btn btn-default btn-showall">All</button>
     <button class="btn btn-default btn-shownone">None</button>
   </div>
-  <div class="btn-group">
+  <div id="btn-showcomp" class="btn-group">
     <?php foreach($comps as $c=>$one): ?>
-    <button id="C-<?php echo $c ?>" class="btn btn-default btn-element btn-showcomp active"><?php echo $c ?></button>
+    <button id="C-<?php echo $c ?>" class="btn btn-default btn-element active"><?php echo $c ?></button>
     <?php endforeach ?>
     <button class="btn btn-default btn-showall">All</button>
     <button class="btn btn-default btn-shownone">None</button>
@@ -276,12 +276,14 @@ ksort($comps);
     {
       $("#"+peer).toggleClass("active");
       if ($("#"+peer).hasClass("active")) {
-        for (var index = 0; index < types.length; ++index) {
-          var className = "." + types[index] + "." + peer;
-          $(className).show();
-          if ($("#"+types[index]).hasClass("active"))
-            return;
-        }
+	$("#btn-showcomp > .btn-element.active").each(function(){
+	  for (var index = 0; index < types.length; ++index) {
+	    var className = "." + types[index] + "." + peer + "." + this.id;
+	    $(className).show();
+	    if ($("#"+types[index]).hasClass("active"))
+	      return;
+	  }
+	});
       } else {
         $("."+peer).hide();
       }
@@ -291,12 +293,15 @@ ksort($comps);
     {
       $("#"+comp).toggleClass("active");
       if ($("#"+comp).hasClass("active")) {
-        for (var index = 0; index < types.length; ++index) {
-          var className = "." + types[index] + "." + comp;
-          $(className).show();
-          if ($("#"+types[index]).hasClass("active"))
-            return;
-        }
+	$("#btn-showpeer > .btn-element.active").each(function(){
+	  for (var index = 0; index < types.length; ++index) {
+	    var className = "." + types[index] + "." + comp + "." + this.id;
+	    console.log (className);
+	    $(className).show();
+	    if ($("#"+types[index]).hasClass("active"))
+	      return;
+	  }
+	});
       } else {
         $("."+comp).hide();
       }
@@ -364,8 +369,8 @@ ksort($comps);
       $(".btn-showup").on ("click", function(){ load_debug(this, true) });
       $(".btn-showdown").on ("click", function(){ load_debug(this, false) });
       $(".btn-showlevel").on ("click", function(){ showlevel(this.id) });
-      $(".btn-showpeer").on ("click", function(){ showpeer(this.id) });
-      $(".btn-showcomp").on ("click", function(){ showcomp(this.id) });
+      $("#btn-showpeer > .btn-element").on ("click", function(){ showpeer(this.id) });
+      $("#btn-showcomp > .btn-element").on ("click", function(){ showcomp(this.id) });
       $(".btn-showall").on ("click", function(){ showall(this) });
       $(".btn-shownone").on ("click", function(){ shownone(this) });
     });
