@@ -455,29 +455,6 @@ struct GNUNET_MESH_ConnectionDestroy
 };
 
 
-/**
- * Message to keep a connection alive.
- */
-struct GNUNET_MESH_ConnectionKeepAlive
-{
-  /**
-   * Type: GNUNET_MESSAGE_TYPE_MESH_(FWD|BCK)_KEEPALIVE
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Always 0.
-   */
-  uint32_t reserved GNUNET_PACKED;
-
-  /**
-   * ID of the connection.
-   */
-  struct GNUNET_HashCode cid;
-};
-
-
-
 GNUNET_NETWORK_STRUCT_END
 
 #if 0                           /* keep Emacsens' auto-indent happy */

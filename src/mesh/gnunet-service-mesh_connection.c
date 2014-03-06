@@ -857,21 +857,19 @@ send_broken2 (struct GNUNET_HashCode *connection_id,
 static void
 send_connection_keepalive (struct MeshConnection *c, int fwd)
 {
-  struct GNUNET_MESH_ConnectionKeepAlive *msg;
-  size_t size = sizeof (struct GNUNET_MESH_ConnectionKeepAlive);
-  char cbuf[size];
+  struct GNUNET_MessageHeader msg;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "sending %s keepalive for connection %s]\n",
+  LOG (GNUNET_ERROR_TYPE_INFO,
+       "keepalive %s for connection %s\n",
        GM_f2s (fwd), GMC_2s (c));
 
-  msg = (struct GNUNET_MESH_ConnectionKeepAlive *) cbuf;
-  msg->header.size = htons (size);
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_KEEPALIVE);
-  msg->cid = c->id;
-  msg->reserved = htonl (0);
+  GNUNET_assert (NULL != c->t);
+  msg.size = htons (sizeof (msg));
+  msg.type = htons (GNUNET_MESSAGE_TYPE_MESH_KEEPALIVE);
 
-  GMC_send_prebuilt_message (&msg->header, c, fwd, GNUNET_YES, NULL, NULL);
+  GNUNET_assert (NULL ==
+                 GMT_send_prebuilt_message (&msg, c->t, c,
+                                            GNUNET_NO, NULL, NULL));
 }
 
 
@@ -2235,71 +2233,6 @@ GMC_handle_poll (void *cls, const struct GNUNET_PeerIdentity *peer,
   fc->last_pid_recv = pid;
   fwd = fc == &c->bck_fc;
   GMC_send_ack (c, fwd, GNUNET_YES);
-
-  return GNUNET_OK;
-}
-
-
-/**
- * Core handler for mesh keepalives.
- *
- * @param cls closure
- * @param message message
- * @param peer peer identity this notification is about
- * @return GNUNET_OK to keep the connection open,
- *         GNUNET_SYSERR to close it (signal serious error)
- *
- * TODO: Check who we got this from, to validate route.
- */
-int
-GMC_handle_keepalive (void *cls, const struct GNUNET_PeerIdentity *peer,
-                      const struct GNUNET_MessageHeader *message)
-{
-  struct GNUNET_MESH_ConnectionKeepAlive *msg;
-  struct MeshConnection *c;
-  struct MeshPeer *neighbor;
-  GNUNET_PEER_Id peer_id;
-  int fwd;
-
-  msg = (struct GNUNET_MESH_ConnectionKeepAlive *) message;
-  log_message (message, peer, &msg->cid);
-  c = connection_get (&msg->cid);
-  if (NULL == c)
-  {
-    GNUNET_STATISTICS_update (stats, "# keepalive on unknown connection", 1,
-                              GNUNET_NO);
-    return GNUNET_OK;
-  }
-
-  /* Check if origin is as expected TODO refactor and reuse */
-  peer_id = GNUNET_PEER_search (peer);
-  neighbor = get_prev_hop (c);
-  if (peer_id == GMP_get_short_id (neighbor))
-  {
-    fwd = GNUNET_YES;
-  }
-  else
-  {
-    neighbor = get_next_hop (c);
-    if (peer_id == GMP_get_short_id (neighbor))
-    {
-      fwd = GNUNET_NO;
-    }
-    else
-    {
-      GNUNET_break_op (0);
-      return GNUNET_OK;
-    }
-  }
-
-  connection_change_state (c, MESH_CONNECTION_READY);
-  connection_reset_timeout (c, fwd);
-
-  if (GMC_is_terminal (c, fwd))
-    return GNUNET_OK;
-
-  GNUNET_STATISTICS_update (stats, "# keepalives forwarded", 1, GNUNET_NO);
-  GMC_send_prebuilt_message (message, c, fwd, GNUNET_YES, NULL, NULL);
 
   return GNUNET_OK;
 }

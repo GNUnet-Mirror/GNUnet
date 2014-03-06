@@ -419,6 +419,7 @@ GMT_cancel (struct MeshTunnel3Queue *q);
  *
  * @param message Message to send. Function modifies it.
  * @param t Tunnel on which this message is transmitted.
+ * @param c Connection to use (autoselect if NULL).
  * @param force Force the tunnel to take the message (buffer overfill).
  * @param cont Continuation to call once message is really sent.
  * @param cont_cls Closure for @c cont.
@@ -427,8 +428,8 @@ GMT_cancel (struct MeshTunnel3Queue *q);
  */
 struct MeshTunnel3Queue *
 GMT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
-                           struct MeshTunnel3 *t, int force,
-                           GMT_sent cont, void *cont_cls);
+                           struct MeshTunnel3 *t, struct MeshConnection *c,
+                           int force, GMT_sent cont, void *cont_cls);
 
 /**
  * Is the tunnel directed towards the local peer?

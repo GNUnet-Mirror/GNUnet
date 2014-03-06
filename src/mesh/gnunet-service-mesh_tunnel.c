@@ -724,6 +724,7 @@ queue_data (struct MeshTunnel3 *t, const struct GNUNET_MessageHeader *msg)
  *
  * @param message Message to send. Function modifies it.
  * @param t Tunnel on which this message is transmitted.
+ * @param c Connection to use (autoselect if NULL).
  * @param force Force the tunnel to take the message (buffer overfill).
  * @param cont Continuation to call once message is really sent.
  * @param cont_cls Closure for @c cont.
@@ -735,12 +736,11 @@ queue_data (struct MeshTunnel3 *t, const struct GNUNET_MessageHeader *msg)
  */
 static struct MeshTunnel3Queue *
 send_prebuilt_message (const struct GNUNET_MessageHeader *message,
-                       struct MeshTunnel3 *t, int force,
-                       GMT_sent cont, void *cont_cls,
+                       struct MeshTunnel3 *t, struct MeshConnection *c,
+                       int force, GMT_sent cont, void *cont_cls,
                        struct MeshTunnel3Queue *existing_q)
 {
   struct MeshTunnel3Queue *tq;
-  struct MeshConnection *c;
   struct GNUNET_MESH_Encrypted *msg;
   size_t size = ntohs (message->size);
   char cbuf[sizeof (struct GNUNET_MESH_Encrypted) + size];
@@ -776,7 +776,8 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   msg->iv = iv;
   GNUNET_assert (t_encrypt (t, &msg[1], message, size, iv) == size);
   msg->header.size = htons (sizeof (struct GNUNET_MESH_Encrypted) + size);
-  c = tunnel_get_connection (t);
+  if (NULL == c)
+    c = tunnel_get_connection (t);
   if (NULL == c)
   {
     if (GNUNET_SCHEDULER_NO_TASK != t->destroy_task
@@ -868,7 +869,7 @@ send_queued_data (struct MeshTunnel3 *t)
     next = tqd->next;
     room--;
     send_prebuilt_message ((struct GNUNET_MessageHeader *) &tqd[1],
-                           tqd->t, GNUNET_YES,
+                           tqd->t, NULL, GNUNET_YES,
                            NULL != tqd->tq ? tqd->tq->cont : NULL,
                            NULL != tqd->tq ? tqd->tq->cont_cls : NULL,
                            tqd->tq);
@@ -1179,7 +1180,7 @@ send_channel_destroy (struct MeshTunnel3 *t, unsigned int gid)
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "WARNING destroying unknown channel %u on tunnel %s\n",
        gid, GMT_2s (t));
-  send_prebuilt_message (&msg.header, t, GNUNET_YES, NULL, NULL, NULL);
+  send_prebuilt_message (&msg.header, t, NULL, GNUNET_YES, NULL, NULL, NULL);
 }
 
 
@@ -1552,6 +1553,10 @@ handle_decrypted (struct MeshTunnel3 *t,
 
   switch (type)
   {
+    case GNUNET_MESSAGE_TYPE_MESH_KEEPALIVE:
+      /* Do nothing, connection aleady got updated. */
+      break;
+
     case GNUNET_MESSAGE_TYPE_MESH_DATA:
       /* Don't send hop ACK, wait for client to ACK */
       handle_data (t, (struct GNUNET_MESH_Data *) msgh, fwd);
@@ -1585,7 +1590,7 @@ handle_decrypted (struct MeshTunnel3 *t,
 
     default:
       GNUNET_break_op (0);
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
+      LOG (GNUNET_ERROR_TYPE_WARNING,
            "end-to-end message not known (%u)\n",
            ntohs (msgh->type));
       GMT_debug (t);
@@ -2506,10 +2511,11 @@ GMT_cancel (struct MeshTunnel3Queue *q)
 
 /**
  * Sends an already built message on a tunnel, encrypting it and
- * choosing the best connection.
+ * choosing the best connection if not provided.
  *
  * @param message Message to send. Function modifies it.
  * @param t Tunnel on which this message is transmitted.
+ * @param c Connection to use (autoselect if NULL).
  * @param force Force the tunnel to take the message (buffer overfill).
  * @param cont Continuation to call once message is really sent.
  * @param cont_cls Closure for @c cont.
@@ -2518,10 +2524,10 @@ GMT_cancel (struct MeshTunnel3Queue *q)
  */
 struct MeshTunnel3Queue *
 GMT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
-                           struct MeshTunnel3 *t, int force,
-                           GMT_sent cont, void *cont_cls)
+                           struct MeshTunnel3 *t, struct MeshConnection *c,
+                           int force, GMT_sent cont, void *cont_cls)
 {
-  return send_prebuilt_message (message, t, force, cont, cont_cls, NULL);
+  return send_prebuilt_message (message, t, c, force, cont, cont_cls, NULL);
 }
 
 

@@ -857,8 +857,8 @@ fire_and_forget (const struct GNUNET_MessageHeader *msg,
                  struct MeshChannel *ch,
                  int force)
 {
-  GNUNET_break (NULL == GMT_send_prebuilt_message (msg, ch->t, force,
-                                                   NULL, NULL));
+  GNUNET_break (NULL == GMT_send_prebuilt_message (msg, ch->t, NULL,
+                                                   force, NULL, NULL));
 }
 
 
@@ -2290,9 +2290,9 @@ GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
         }
         LOG (GNUNET_ERROR_TYPE_DEBUG, "  new chq: %p\n", chq);
             chq->copy->chq = chq;
-            chq->tq = GMT_send_prebuilt_message (message, ch->t,
-                                          NULL != existing_copy,
-                                          &ch_message_sent, chq);
+            chq->tq = GMT_send_prebuilt_message (message, ch->t, NULL,
+                                                 NULL != existing_copy,
+                                                 &ch_message_sent, chq);
         /* q itself is stored in copy */
         GNUNET_assert (NULL != chq->tq || GNUNET_NO != ch->destroy);
       }
@@ -2329,7 +2329,7 @@ GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
           GNUNET_free (chq->rel->uniq);
         }
       }
-      chq->tq = GMT_send_prebuilt_message (message, ch->t, GNUNET_YES,
+      chq->tq = GMT_send_prebuilt_message (message, ch->t, NULL, GNUNET_YES,
                                            &ch_message_sent, chq);
       if (NULL == chq->tq)
       {
