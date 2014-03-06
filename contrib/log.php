@@ -299,7 +299,6 @@ ksort($comps);
 	$("#btn-showpeer > .btn-element.active").each(function(){
 	  for (var index = 0; index < types.length; ++index) {
 	    var className = "." + types[index] + "." + comp + "." + this.id;
-	    console.log (className);
 	    $(className).show();
 	    if ($("#"+types[index]).hasClass("active"))
 	      return;
@@ -347,10 +346,8 @@ ksort($comps);
 	var loc = $("#"+(first-1));
 	var trs = $(resp);
         for (var peer in peers) {
-          console.log (peer + "=>" + peers[peer]);
           trs.filter(".P-"+peer).removeClass('P-'+peer).addClass('P-'+peers[peer]).find("td.peer").html(peers[peer]);
         }
-        console.log (trs);
 	if (loc.length > 0)
 	  loc.after(trs);
 	else {
