@@ -176,7 +176,6 @@ static struct GNUNET_TESTBED_Peer **testbed_peers;
 static struct GNUNET_STATISTICS_Handle *stats;
 static struct GNUNET_STATISTICS_GetHandle *stats_get;
 static struct GNUNET_TESTBED_Operation *stats_op;
-static unsigned int stats_peer;
 static unsigned int ka_sent;
 static unsigned int ka_received;
 
@@ -620,14 +619,16 @@ stats_iterator (void *cls, const char *subsystem, const char *name,
               cls, subsystem, name, value);
   if (0 == strncmp("# keepalives sent", name,
                    strlen("# keepalives sent"))
-      && 0 == stats_peer)
+      && 0 == cls)
     ka_sent = value;
 
   if (0 == strncmp("# keepalives received", name,
                    strlen ("# keepalives received"))
-      && 4 == stats_peer)
+      && 4 == cls)
   {
     ka_received = value;
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, " sent: %u, received: %u\n",
+                ka_sent, ka_received);
     if (ka_sent < 2 || ka_sent > ka_received + 1)
       ok--;
   }
