@@ -717,6 +717,33 @@ queue_data (struct MeshTunnel3 *t, const struct GNUNET_MessageHeader *msg)
 }
 
 
+/**
+ * Calculate HMAC.
+ *
+ * @param t Tunnel to get keys from.
+ * @param plaintext Content to HMAC.
+ * @param size Size of @c plaintext.
+ * @param iv Initialization vector for the message.
+ * @param outgoing Is this an outgoing message that we encrypted?
+ * @param hmac Destination to store the HMAC.
+ */
+static void
+t_hmac (struct MeshTunnel3 *t, const void *plaintext, size_t size, uint32_t iv,
+        int outgoing, struct GNUNET_HashCode *hmac)
+{
+  struct GNUNET_CRYPTO_AuthKey auth_key;
+  static const char ctx[] = "mesh authentication key";
+  struct GNUNET_CRYPTO_SymmetricSessionKey *key;
+
+  key = outgoing ? &t->e_key : &t->d_key;
+  GNUNET_CRYPTO_hmac_derive_key (&auth_key, key,
+                                 &iv, sizeof (iv),
+                                 key, sizeof (*key),
+                                 ctx, sizeof (ctx),
+                                 NULL);
+  GNUNET_CRYPTO_hmac (&auth_key, plaintext, size, hmac);
+}
+
 
 /**
  * Sends an already built message on a tunnel, encrypting it and
@@ -775,7 +802,9 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_ENCRYPTED);
   msg->iv = iv;
   GNUNET_assert (t_encrypt (t, &msg[1], message, size, iv) == size);
+  t_hmac (t, message, size, iv, GNUNET_YES, &msg->hmac);
   msg->header.size = htons (sizeof (struct GNUNET_MESH_Encrypted) + size);
+
   if (NULL == c)
     c = tunnel_get_connection (t);
   if (NULL == c)
@@ -1619,8 +1648,19 @@ GMT_handle_encrypted (struct MeshTunnel3 *t,
   char cbuf [payload_size];
   struct GNUNET_MessageHeader *msgh;
   unsigned int off;
+  struct GNUNET_HashCode hmac;
 
   decrypted_size = t_decrypt (t, cbuf, &msg[1], payload_size, msg->iv);
+  t_hmac (t, cbuf, payload_size, msg->iv, GNUNET_NO, &hmac);
+  if (0 != memcmp (&hmac, &msg->hmac, sizeof (struct GNUNET_HashCode)))
+  {
+    /* checksum failed */
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Failed checksum validation for a message on tunnel `%s'\n",
+                GMT_2s (t));
+    GNUNET_STATISTICS_update (stats, "# wrong HMAC", 1, GNUNET_NO);
+    return;
+  }
   off = 0;
   while (off < decrypted_size)
   {
