@@ -623,7 +623,11 @@ stats_iterator (void *cls, const char *subsystem, const char *name,
   if (0 == strncmp("# keepalives received", name,
                    strlen ("# keepalives received"))
       && 4 == stats_peer)
+  {
     ka_received = value;
+    if (ka_sent < 2 || ka_sent > ka_received + 1)
+      ok--;
+  }
 
   return GNUNET_OK;
 }
