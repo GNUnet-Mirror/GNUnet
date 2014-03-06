@@ -110,7 +110,7 @@ enum GNUNET_PSYC_ChannelFlags
    * Past messages are only available to slaves who were admitted at the time
    * they were sent to the channel.
    */
-  GNUNET_PSYC_CHANNEL_RESTRICTED_HISTORY = 1 << 1,
+  GNUNET_PSYC_CHANNEL_RESTRICTED_HISTORY = 1 << 1
 };
 
 /**
@@ -132,7 +132,7 @@ enum GNUNET_PSYC_Policy
    */
   GNUNET_PSYC_CHANNEL_PRIVATE
     = GNUNET_PSYC_CHANNEL_ADMISSION_CONTROL
-    | GNUNET_PSYC_CHANNEL_RESTRICTED_HISTORY,
+    | GNUNET_PSYC_CHANNEL_RESTRICTED_HISTORY
 
 #if IDEAS_FOR_FUTURE
   /**
@@ -152,9 +152,7 @@ enum GNUNET_PSYC_Policy
    */
   GNUNET_PSYC_CHANNEL_CLOSED
     = GNUNET_PSYC_CHANNEL_ADMISSION_CONTROL,
-,
 #endif
-
 };
 
 
@@ -163,7 +161,12 @@ enum GNUNET_PSYC_MessageFlags
   /**
    * Historic message, retrieved from PSYCstore.
    */
-  GNUNET_PSYC_MESSAGE_HISTORIC = 1
+  GNUNET_PSYC_MESSAGE_HISTORIC = 1 << 0,
+
+  /**
+   * Request from slave to master.
+   */
+  GNUNET_PSYC_MESSAGE_REQUEST = 1 << 1
 };
 
 GNUNET_NETWORK_STRUCT_BEGIN
@@ -406,7 +409,7 @@ GNUNET_PSYC_master_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
 /**
  * Function called to provide data for a transmission via PSYC.
  *
- * Note that returning #GNUNET_OK or #GNUNET_SYSERR (but not #GNUNET_NO)
+ * Note that returning #GNUNET_YES or #GNUNET_SYSERR (but not #GNUNET_NO)
  * invalidates the respective transmission handle.
  *
  * @param cls Closure.
@@ -422,15 +425,43 @@ GNUNET_PSYC_master_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
  *         #GNUNET_YES if this completes the transmission (all data supplied)
  */
 typedef int
-(*GNUNET_PSYC_MasterTransmitNotify) (void *cls,
-                                     uint16_t *data_size,
-                                     void *data);
+(*GNUNET_PSYC_TransmitNotifyData) (void *cls,
+                                   uint16_t *data_size,
+                                   void *data);
 
+/**
+ * Function called to provide a modifier for a transmission via PSYC.
+ *
+ * Note that returning #GNUNET_YES or #GNUNET_SYSERR (but not #GNUNET_NO)
+ * invalidates the respective transmission handle.
+ *
+ * @param cls Closure.
+ * @param[in,out] data_size  Initially set to the number of bytes available in
+ *         @a data, should be set to the number of bytes written to data.
+ * @param[out] data  Where to write the modifier's name and value.
+ *         The function must copy at most @a data_size bytes to @a data.
+ *         When this callback is first called for a modifier, @a data should
+ *         contain: "name\0value".  If the whole value does not fit, subsequent
+ *         calls to this function should write continuations of the value to
+ *         @a data.
+ * @param oper  Where to write the operator of the modifier.  Only needed during
+ *         the first call to this callback at the beginning of the modifier.
+ *         In case of subsequent calls asking for value continuations @a oper is
+ *         set to #NULL.
+ * @return #GNUNET_SYSERR on error (fatal, aborts transmission)
+ *         #GNUNET_NO on success, if more data is to be transmitted later.
+ *         Should be used if @a data_size was not big enough to take all the
+ *         data for the modifier's value (the name must be always returned
+ *         during the first call to this callback).
+ *         If 0 is returned in @a data_size the transmission is paused,
+ *         and can be resumed with GNUNET_PSYC_master_transmit_resume().
+ *         #GNUNET_YES if this completes the modifier (the whole value is supplied).
+ */
 typedef int
-(*GNUNET_PSYC_MasterTransmitNotifyModifier) (void *cls,
-                                             uint16_t *data_size,
-                                             void *data,
-                                             uint8_t *oper);
+(*GNUNET_PSYC_TransmitNotifyModifier) (void *cls,
+                                       uint16_t *data_size,
+                                       void *data,
+                                       uint8_t *oper);
 
 /**
  * Flags for transmitting messages to a channel by the master.
@@ -477,8 +508,8 @@ struct GNUNET_PSYC_MasterTransmitHandle;
 struct GNUNET_PSYC_MasterTransmitHandle *
 GNUNET_PSYC_master_transmit (struct GNUNET_PSYC_Master *master,
                              const char *method_name,
-                             GNUNET_PSYC_MasterTransmitNotifyModifier notify_mod,
-                             GNUNET_PSYC_MasterTransmitNotify notify_data,
+                             GNUNET_PSYC_TransmitNotifyModifier notify_mod,
+                             GNUNET_PSYC_TransmitNotifyData notify_data,
                              void *notify_cls,
                              enum GNUNET_PSYC_MasterTransmitFlags flags);
 
@@ -588,29 +619,6 @@ GNUNET_PSYC_slave_part (struct GNUNET_PSYC_Slave *slave);
 
 
 /**
- * Function called to provide data for a transmission to the channel master
- * (a.k.a. the @e host of the channel).
- *
- * Note that returning #GNUNET_OK or #GNUNET_SYSERR (but not #GNUNET_NO)
- * invalidates the respective transmission handle.
- *
- * @param cls Closure.
- * @param[in,out] data_size Initially set to the number of bytes available in
- *        @a data, should be set to the number of bytes written to data
- *        (IN/OUT).
- * @param[out] data Where to write the body of the message to give to the method;
- *        function must copy at most @a *data_size bytes to @a data.
- * @return #GNUNET_SYSERR on error (fatal, aborts transmission).
- *         #GNUNET_NO on success, if more data is to be transmitted later.
- *         #GNUNET_YES if this completes the transmission (all data supplied).
- */
-typedef int
-(*GNUNET_PSYC_SlaveTransmitNotify) (void *cls,
-                                    size_t *data_size,
-                                    char *data);
-
-
-/**
  * Flags for transmitting messages to the channel master by a slave.
  */
 enum GNUNET_PSYC_SlaveTransmitFlags
@@ -630,8 +638,8 @@ struct GNUNET_PSYC_SlaveTransmitHandle;
  *
  * @param slave Slave handle.
  * @param method_name Which (PSYC) method should be invoked (on host).
- * @param env Environment containing transient variables for the message, or NULL.
- * @param notify Function to call when we are allowed to transmit (to get data).
+ * @param notify_mod Function to call to obtain modifiers.
+ * @param notify_data Function to call to obtain fragments of the data.
  * @param notify_cls Closure for @a notify.
  * @param flags Flags for the message being transmitted.
  * @return Transmission handle, NULL on error (i.e. more than one request queued).
@@ -639,8 +647,8 @@ struct GNUNET_PSYC_SlaveTransmitHandle;
 struct GNUNET_PSYC_SlaveTransmitHandle *
 GNUNET_PSYC_slave_transmit (struct GNUNET_PSYC_Slave *slave,
                             const char *method_name,
-                            const struct GNUNET_ENV_Environment *env,
-                            GNUNET_PSYC_SlaveTransmitNotify notify,
+                            GNUNET_PSYC_TransmitNotifyModifier notify_mod,
+                            GNUNET_PSYC_TransmitNotifyData notify_data,
                             void *notify_cls,
                             enum GNUNET_PSYC_SlaveTransmitFlags flags);
 

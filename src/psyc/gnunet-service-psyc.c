@@ -56,6 +56,7 @@ static struct GNUNET_SERVER_NotificationContext *nc;
 static struct GNUNET_PSYCSTORE_Handle *store;
 
 /**
+ * All connected masters and slaves.
  * Channel's pub_key_hash -> struct Channel
  */
 static struct GNUNET_CONTAINER_MultiHashMap *clients;
@@ -105,6 +106,15 @@ struct Channel
 
   uint8_t in_transmit;
   uint8_t is_master;
+
+  /**
+   * Ready to receive messages from client.
+   */
+  uint8_t ready;
+
+  /**
+   * Client disconnected.
+   */
   uint8_t disconnected;
 };
 
@@ -116,7 +126,6 @@ struct Master
   struct Channel channel;
   struct GNUNET_CRYPTO_EddsaPrivateKey priv_key;
   struct GNUNET_CRYPTO_EddsaPublicKey pub_key;
-  struct GNUNET_HashCode pub_key_hash;
 
   struct GNUNET_MULTICAST_Origin *origin;
   struct GNUNET_MULTICAST_OriginMessageHandle *tmit_handle;
@@ -144,6 +153,8 @@ struct Master
    * @see enum GNUNET_PSYC_Policy
    */
   uint32_t policy;
+
+  struct GNUNET_HashCode pub_key_hash;
 };
 
 
@@ -155,24 +166,26 @@ struct Slave
   struct Channel channel;
   struct GNUNET_CRYPTO_EddsaPrivateKey slave_key;
   struct GNUNET_CRYPTO_EddsaPublicKey chan_key;
-  struct GNUNET_HashCode chan_key_hash;
 
   struct GNUNET_MULTICAST_Member *member;
   struct GNUNET_MULTICAST_MemberRequestHandle *tmit_handle;
 
   struct GNUNET_PeerIdentity origin;
+
+  uint32_t relay_count;
   struct GNUNET_PeerIdentity *relays;
+
   struct GNUNET_MessageHeader *join_req;
 
   uint64_t max_message_id;
   uint64_t max_request_id;
 
-  uint32_t relay_count;
+  struct GNUNET_HashCode chan_key_hash;
 };
 
 
 static inline void
-transmit_message (struct Channel *ch);
+transmit_message (struct Channel *ch, uint8_t inc_msg_id);
 
 
 /**
@@ -235,14 +248,14 @@ client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
   if (NULL == client)
     return;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Client %p disconnected\n", client);
-
   struct Channel *ch
     = GNUNET_SERVER_client_get_user_context (client, struct Channel);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%p Client disconnected\n", ch);
+
   if (NULL == ch)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "User context is NULL in client_disconnect()\n");
+                "%p User context is NULL in client_disconnect()\n", ch);
     GNUNET_break (0);
     return;
   }
@@ -252,7 +265,7 @@ client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
   /* Send pending messages to multicast before cleanup. */
   if (NULL != ch->tmit_head)
   {
-    transmit_message (ch);
+    transmit_message (ch, GNUNET_NO);
   }
   else
   {
@@ -311,53 +324,22 @@ fragment_store_result (void *cls, int64_t result, const char *err_msg)
 
 
 /**
- * Iterator callback for sending a message to a client.
- *
- * @see message_cb()
- */
-static int
-message_to_client (void *cls, const struct GNUNET_HashCode *chan_key_hash,
-                   void *chan)
-{
-  const struct GNUNET_MessageHeader *msg = cls;
-  struct Channel *ch = chan;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Sending message of type %u and size %u to client 0x%zx.\n",
-              ntohs (msg->type), ntohs (msg->size), ch->client);
-
-  GNUNET_SERVER_notification_context_add (nc, ch->client);
-  GNUNET_SERVER_notification_context_unicast (nc, ch->client, msg, GNUNET_NO);
-
-  return GNUNET_YES;
-}
-
-
-/**
  * Incoming message fragment from multicast.
  *
- * Store it using PSYCstore and send it to all clients of the channel.
+ * Store it using PSYCstore and send it to the client of the channel.
  */
 static void
-message_cb (void *cls, const struct GNUNET_MessageHeader *msg)
+message_cb (struct Channel *ch,
+            const struct GNUNET_CRYPTO_EddsaPublicKey *chan_key,
+            const struct GNUNET_HashCode *chan_key_hash,
+            const struct GNUNET_MessageHeader *msg)
 {
   uint16_t type = ntohs (msg->type);
   uint16_t size = ntohs (msg->size);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received message of type %u and size %u from multicast.\n",
-              type, size);
-
-  struct Channel *ch = cls;
-  struct Master *mst = cls;
-  struct Slave *slv = cls;
-
-  /* const struct GNUNET_MULTICAST_MessageHeader *mmsg
-     = (const struct GNUNET_MULTICAST_MessageHeader *) msg; */
-  struct GNUNET_CRYPTO_EddsaPublicKey *chan_key
-    = ch->is_master ? &mst->pub_key : &slv->chan_key;
-  struct GNUNET_HashCode *chan_key_hash
-    = ch->is_master ? &mst->pub_key_hash : &slv->chan_key_hash;
+              "%p Received message of type %u and size %u from multicast.\n",
+              ch, type, size);
 
   switch (type)
   {
@@ -378,29 +360,19 @@ message_cb (void *cls, const struct GNUNET_MessageHeader *msg)
 
     const struct GNUNET_MULTICAST_MessageHeader *mmsg
       = (const struct GNUNET_MULTICAST_MessageHeader *) msg;
-    struct GNUNET_PSYC_MessageHeader *pmsg;
 
-    uint16_t size = ntohs (msg->size);
-    uint16_t psize = 0;
-    uint16_t pos = 0;
-
-    for (pos = 0; sizeof (*mmsg) + pos < size; pos += psize)
+    if (GNUNET_YES != GNUNET_PSYC_check_message_parts (size - sizeof (*mmsg),
+                                                       (const char *) &mmsg[1]))
     {
-      const struct GNUNET_MessageHeader *pmsg
-        = (const struct GNUNET_MessageHeader *) ((char *) &mmsg[1] + pos);
-      psize = ntohs (pmsg->size);
-      if (psize < sizeof (*pmsg) || sizeof (*mmsg) + pos + psize > size)
-      {
-        GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                    "Received invalid message part of type %u and size %u "
-                    "from multicast. Not sending to clients.\n",
-                    ntohs (pmsg->type), psize);
-        GNUNET_break_op (0);
-        return;
-      }
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "%p Received message with invalid parts from multicast. "
+                  "Dropping message.\n", ch);
+      GNUNET_break_op (0);
+      break;
     }
 
-    psize = sizeof (*pmsg) + size - sizeof (*mmsg);
+    struct GNUNET_PSYC_MessageHeader *pmsg;
+    uint16_t psize = sizeof (*pmsg) + size - sizeof (*mmsg);
     pmsg = GNUNET_malloc (psize);
     pmsg->header.size = htons (psize);
     pmsg->header.type = htons (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE);
@@ -408,39 +380,116 @@ message_cb (void *cls, const struct GNUNET_MessageHeader *msg)
 
     memcpy (&pmsg[1], &mmsg[1], size - sizeof (*mmsg));
 
-    GNUNET_CONTAINER_multihashmap_get_multiple (clients, chan_key_hash,
-                                                message_to_client,
-                                                (void *) pmsg);
+    GNUNET_SERVER_notification_context_add (nc, ch->client);
+    GNUNET_SERVER_notification_context_unicast (nc, ch->client,
+                                                (const struct GNUNET_MessageHeader *) pmsg,
+                                                GNUNET_NO);
     GNUNET_free (pmsg);
     break;
   }
   default:
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "Discarding unknown message of type %u and size %u.\n",
-                type, size);
+                "%p Dropping unknown message of type %u and size %u.\n",
+                ch, type, size);
   }
 }
 
 
 /**
- * Send a request received from multicast to a client.
+ * Incoming message fragment from multicast for a master.
  */
-static int
-request_to_client (void *cls, const struct GNUNET_HashCode *chan_key_hash,
-                   void *chan)
+static void
+master_message_cb (void *cls, const struct GNUNET_MessageHeader *msg)
 {
-  /* TODO */
+  struct Master *mst = cls;
+  GNUNET_assert (NULL != mst);
 
-  return GNUNET_YES;
+  struct GNUNET_CRYPTO_EddsaPublicKey *chan_key = &mst->pub_key;
+  struct GNUNET_HashCode *chan_key_hash = &mst->pub_key_hash;
+
+  message_cb (&mst->channel, chan_key, chan_key_hash, msg);
 }
 
 
+/**
+ * Incoming message fragment from multicast for a slave.
+ */
+static void
+slave_message_cb (void *cls, const struct GNUNET_MessageHeader *msg)
+{
+  struct Slave *slv = cls;
+  GNUNET_assert (NULL != slv);
+
+  struct GNUNET_CRYPTO_EddsaPublicKey *chan_key = &slv->chan_key;
+  struct GNUNET_HashCode *chan_key_hash = &slv->chan_key_hash;
+
+  message_cb (&slv->channel, chan_key, chan_key_hash, msg);
+}
+
+
+/**
+ * Incoming request fragment from multicast for a master.
+ *
+ * @param cls		Master.
+ * @param member_key	Sending member's public key.
+ * @param msg		The message.
+ * @param flags		Request flags.
+ */
 static void
 request_cb (void *cls, const struct GNUNET_CRYPTO_EddsaPublicKey *member_key,
-            const struct GNUNET_MessageHeader *req,
+            const struct GNUNET_MessageHeader *msg,
             enum GNUNET_MULTICAST_MessageFlags flags)
 {
+  struct Master *mst = cls;
+  struct Channel *ch = &mst->channel;
 
+  uint16_t type = ntohs (msg->type);
+  uint16_t size = ntohs (msg->size);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "%p Received request of type %u and size %u from multicast.\n",
+              ch, type, size);
+
+  switch (type)
+  {
+  case GNUNET_MESSAGE_TYPE_MULTICAST_REQUEST:
+  {
+    const struct GNUNET_MULTICAST_RequestHeader *req
+      = (const struct GNUNET_MULTICAST_RequestHeader *) msg;
+
+    if (GNUNET_YES != GNUNET_PSYC_check_message_parts (size - sizeof (*req),
+                                                       (const char *) &req[1]))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "%p Dropping message with invalid parts "
+                  "received from multicast.\n", ch);
+      GNUNET_break_op (0);
+      break;
+    }
+
+    struct GNUNET_PSYC_MessageHeader *pmsg;
+    uint16_t psize = sizeof (*pmsg) + size - sizeof (*req);
+    pmsg = GNUNET_malloc (psize);
+    pmsg->header.size = htons (psize);
+    pmsg->header.type = htons (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE);
+    pmsg->message_id = req->request_id;
+    pmsg->flags = htonl (GNUNET_PSYC_MESSAGE_REQUEST);
+
+    memcpy (&pmsg[1], &req[1], size - sizeof (*req));
+
+    GNUNET_SERVER_notification_context_add (nc, ch->client);
+    GNUNET_SERVER_notification_context_unicast (nc, ch->client,
+                                                (const struct GNUNET_MessageHeader *) pmsg,
+                                                GNUNET_NO);
+    GNUNET_free (pmsg);
+    break;
+  }
+  default:
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "%p Dropping unknown request of type %u and size %u.\n",
+                ch, type, size);
+    GNUNET_break_op (0);
+  }
 }
 
 
@@ -470,7 +519,8 @@ master_counters_cb (void *cls, int result, uint64_t max_fragment_id,
                                        max_fragment_id + 1,
                                        join_cb, membership_test_cb,
                                        replay_fragment_cb, replay_message_cb,
-                                       request_cb, message_cb, ch);
+                                       request_cb, master_message_cb, ch);
+    ch->ready = GNUNET_YES;
   }
   GNUNET_SERVER_notification_context_add (nc, ch->client);
   GNUNET_SERVER_notification_context_unicast (nc, ch->client, &res->header,
@@ -505,7 +555,8 @@ slave_counters_cb (void *cls, int result, uint64_t max_fragment_id,
                                       slv->join_req, join_cb,
                                       membership_test_cb,
                                       replay_fragment_cb, replay_message_cb,
-                                      message_cb, ch);
+                                      slave_message_cb, ch);
+    ch->ready = GNUNET_YES;
   }
 
   GNUNET_SERVER_notification_context_add (nc, ch->client);
@@ -529,9 +580,11 @@ handle_master_start (void *cls, struct GNUNET_SERVER_Client *client,
   mst->channel.is_master = GNUNET_YES;
   mst->policy = ntohl (req->policy);
   mst->priv_key = req->channel_key;
-  GNUNET_CRYPTO_eddsa_key_get_public (&mst->priv_key,
-                                                  &mst->pub_key);
+  GNUNET_CRYPTO_eddsa_key_get_public (&mst->priv_key, &mst->pub_key);
   GNUNET_CRYPTO_hash (&mst->pub_key, sizeof (mst->pub_key), &mst->pub_key_hash);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "%p Master connected to channel %s.\n",
+              mst, GNUNET_h2s (&mst->pub_key_hash));
 
   GNUNET_PSYCSTORE_counters_get (store, &mst->pub_key,
                                  master_counters_cb, mst);
@@ -561,14 +614,20 @@ handle_slave_join (void *cls, struct GNUNET_SERVER_Client *client,
                       &slv->chan_key_hash);
   slv->origin = req->origin;
   slv->relay_count = ntohl (req->relay_count);
+  if (0 < slv->relay_count)
+  {
+    const struct GNUNET_PeerIdentity *relays
+      = (const struct GNUNET_PeerIdentity *) &req[1];
+    slv->relays
+      = GNUNET_malloc (slv->relay_count * sizeof (struct GNUNET_PeerIdentity));
+    uint32_t i;
+    for (i = 0; i < slv->relay_count; i++)
+      memcpy (&slv->relays[i], &relays[i], sizeof (*relays));
+  }
 
-  const struct GNUNET_PeerIdentity *relays
-    = (const struct GNUNET_PeerIdentity *) &req[1];
-  slv->relays
-    = GNUNET_malloc (slv->relay_count * sizeof (struct GNUNET_PeerIdentity));
-  uint32_t i;
-  for (i = 0; i < slv->relay_count; i++)
-    memcpy (&slv->relays[i], &relays[i], sizeof (*relays));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "%p Slave connected to channel %s.\n",
+              slv, GNUNET_h2s (&slv->chan_key_hash));
 
   GNUNET_PSYCSTORE_counters_get (store, &slv->chan_key,
                                  slave_counters_cb, slv);
@@ -609,13 +668,14 @@ transmit_notify (void *cls, size_t *data_size, void *data)
 
   if (NULL == tmit_msg || *data_size < tmit_msg->size)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "transmit_notify: nothing to send.\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "%p transmit_notify: nothing to send.\n", ch);
     *data_size = 0;
     return GNUNET_NO;
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "transmit_notify: sending %u bytes.\n", tmit_msg->size);
+              "%p transmit_notify: sending %u bytes.\n", ch, tmit_msg->size);
 
   *data_size = tmit_msg->size;
   memcpy (data, tmit_msg->buf, *data_size);
@@ -630,7 +690,7 @@ transmit_notify (void *cls, size_t *data_size, void *data)
   {
     if (NULL != ch->tmit_head)
     {
-      transmit_message (ch);
+      transmit_message (ch, GNUNET_NO);
     }
     else if (ch->disconnected)
     {
@@ -644,19 +704,55 @@ transmit_notify (void *cls, size_t *data_size, void *data)
 
 
 /**
+ * Callback for the transmit functions of multicast.
+ */
+static int
+master_transmit_notify (void *cls, size_t *data_size, void *data)
+{
+  int ret = transmit_notify (cls, data_size, data);
+
+  if (GNUNET_YES == ret)
+  {
+    struct Master *mst = cls;
+    mst->tmit_handle = NULL;
+  }
+  return ret;
+}
+
+
+/**
+ * Callback for the transmit functions of multicast.
+ */
+static int
+slave_transmit_notify (void *cls, size_t *data_size, void *data)
+{
+  int ret = transmit_notify (cls, data_size, data);
+
+  if (GNUNET_YES == ret)
+  {
+    struct Slave *slv = cls;
+    slv->tmit_handle = NULL;
+  }
+  return ret;
+}
+
+
+/**
  * Transmit a message from a channel master to the multicast group.
  */
 static void
-master_transmit_message (struct Master *mst)
+master_transmit_message (struct Master *mst, uint8_t inc_msg_id)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "master_transmit_message()\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%p master_transmit_message()\n", mst);
   mst->channel.tmit_task = 0;
   if (NULL == mst->tmit_handle)
   {
+    if (GNUNET_YES == inc_msg_id)
+      mst->max_message_id++;
     mst->tmit_handle
-      = GNUNET_MULTICAST_origin_to_all (mst->origin, ++mst->max_message_id,
+      = GNUNET_MULTICAST_origin_to_all (mst->origin, mst->max_message_id,
                                         mst->max_group_generation,
-                                        transmit_notify, mst);
+                                        master_transmit_notify, mst);
   }
   else
   {
@@ -669,14 +765,16 @@ master_transmit_message (struct Master *mst)
  * Transmit a message from a channel slave to the multicast group.
  */
 static void
-slave_transmit_message (struct Slave *slv)
+slave_transmit_message (struct Slave *slv, uint8_t inc_msg_id)
 {
   slv->channel.tmit_task = 0;
   if (NULL == slv->tmit_handle)
   {
+    if (GNUNET_YES == inc_msg_id)
+      slv->max_message_id++;
     slv->tmit_handle
-      = GNUNET_MULTICAST_member_to_origin(slv->member, ++slv->max_request_id,
-                                          transmit_notify, slv);
+      = GNUNET_MULTICAST_member_to_origin (slv->member, slv->max_request_id,
+                                           slave_transmit_notify, slv);
   }
   else
   {
@@ -686,11 +784,11 @@ slave_transmit_message (struct Slave *slv)
 
 
 static inline void
-transmit_message (struct Channel *ch)
+transmit_message (struct Channel *ch, uint8_t inc_msg_id)
 {
   ch->is_master
-    ? master_transmit_message ((struct Master *) ch)
-    : slave_transmit_message ((struct Slave *) ch);
+    ? master_transmit_message ((struct Master *) ch, inc_msg_id)
+    : slave_transmit_message ((struct Slave *) ch, inc_msg_id);
 }
 
 
@@ -708,10 +806,9 @@ transmit_error (struct Channel *ch)
   tmit_msg->size = sizeof (*msg);
   tmit_msg->state = ch->tmit_state;
   GNUNET_CONTAINER_DLL_insert_tail (ch->tmit_head, ch->tmit_tail, tmit_msg);
-  transmit_message (ch);
+  transmit_message (ch, GNUNET_NO);
 
   /* FIXME: cleanup */
-  GNUNET_SERVER_client_disconnect (ch->client);
 }
 
 
@@ -720,40 +817,60 @@ transmit_error (struct Channel *ch)
  */
 static void
 handle_psyc_message (void *cls, struct GNUNET_SERVER_Client *client,
-                         const struct GNUNET_MessageHeader *msg)
+                     const struct GNUNET_MessageHeader *msg)
 {
   struct Channel *ch
     = GNUNET_SERVER_client_get_user_context (client, struct Channel);
   GNUNET_assert (NULL != ch);
 
+  if (GNUNET_YES != ch->ready)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "%p Ignoring message from client, channel is not ready yet.\n",
+                ch);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+
+  uint8_t inc_msg_id = GNUNET_NO;
   uint16_t size = ntohs (msg->size);
-  uint16_t psize = 0, pos = 0;
+  uint16_t psize = 0, ptype = 0, pos = 0;
 
   if (GNUNET_MULTICAST_FRAGMENT_MAX_PAYLOAD < size - sizeof (*msg))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Message payload too large\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%p Message payload too large\n", ch);
     GNUNET_break (0);
     transmit_error (ch);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "%p Received message from client.\n", ch);
+  GNUNET_PSYC_log_message (GNUNET_ERROR_TYPE_DEBUG, msg);
 
   for (pos = 0; sizeof (*msg) + pos < size; pos += psize)
   {
     const struct GNUNET_MessageHeader *pmsg
       = (const struct GNUNET_MessageHeader *) ((char *) &msg[1] + pos);
     psize = ntohs (pmsg->size);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Received message part of type %u and size %u "
-                "from client.\n", ntohs (pmsg->type), psize);
+    ptype = ntohs (pmsg->type);
     if (psize < sizeof (*pmsg) || sizeof (*msg) + pos + psize > size)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Received invalid message part of type %u and size %u "
-                  "from client.\n", ntohs (pmsg->type), psize);
+                  "%p Received invalid message part of type %u and size %u "
+                  "from client.\n", ch, ptype, psize);
       GNUNET_break (0);
       transmit_error (ch);
+      GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
       return;
     }
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "%p Received message part from client.\n", ch);
+    GNUNET_PSYC_log_message (GNUNET_ERROR_TYPE_DEBUG, pmsg);
+
+    if (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_METHOD == ptype)
+      inc_msg_id = GNUNET_YES;
   }
 
   size -= sizeof (*msg);
@@ -763,7 +880,7 @@ handle_psyc_message (void *cls, struct GNUNET_SERVER_Client *client,
   tmit_msg->size = size;
   tmit_msg->state = ch->tmit_state;
   GNUNET_CONTAINER_DLL_insert_tail (ch->tmit_head, ch->tmit_tail, tmit_msg);
-  transmit_message (ch);
+  transmit_message (ch, inc_msg_id);
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 };

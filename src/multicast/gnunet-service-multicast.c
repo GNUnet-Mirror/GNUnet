@@ -41,6 +41,71 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
+ * Handle a connecting client starting an origin.
+ */
+static void
+handle_origin_start (void *cls, struct GNUNET_SERVER_Client *client,
+                     const struct GNUNET_MessageHeader *msg)
+{
+
+}
+
+
+/**
+ * Handle a client stopping an origin.
+ */
+static void
+handle_origin_stop (void *cls, struct GNUNET_SERVER_Client *client,
+                    const struct GNUNET_MessageHeader *msg)
+{
+
+}
+
+
+/**
+ * Handle a connecting client joining a group.
+ */
+static void
+handle_member_join (void *cls, struct GNUNET_SERVER_Client *client,
+                     const struct GNUNET_MessageHeader *msg)
+{
+
+}
+
+
+/**
+ * Handle a client parting a group.
+ */
+static void
+handle_member_part (void *cls, struct GNUNET_SERVER_Client *client,
+                    const struct GNUNET_MessageHeader *msg)
+{
+
+}
+
+
+/**
+ * Incoming message from a client.
+ */
+static void
+handle_multicast_message (void *cls, struct GNUNET_SERVER_Client *client,
+                         const struct GNUNET_MessageHeader *msg)
+{
+
+}
+
+
+/**
+ * Incoming request from a client.
+ */
+static void
+handle_multicast_request (void *cls, struct GNUNET_SERVER_Client *client,
+                         const struct GNUNET_MessageHeader *msg)
+{
+
+}
+
+/**
  * Process multicast requests.
  *
  * @param cls closure
@@ -52,7 +117,24 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
-    /* FIXME: add handlers here! */
+    { &handle_origin_start, NULL,
+      GNUNET_MESSAGE_TYPE_MULTICAST_ORIGIN_START, 0 },
+
+    { &handle_origin_stop, NULL,
+      GNUNET_MESSAGE_TYPE_MULTICAST_ORIGIN_STOP, 0 },
+
+    { &handle_member_join, NULL,
+      GNUNET_MESSAGE_TYPE_MULTICAST_MEMBER_JOIN, 0 },
+
+    { &handle_member_part, NULL,
+      GNUNET_MESSAGE_TYPE_MULTICAST_MEMBER_PART, 0 },
+
+    { &handle_multicast_message, NULL,
+      GNUNET_MESSAGE_TYPE_MULTICAST_MESSAGE, 0 },
+
+    { &handle_multicast_request, NULL,
+      GNUNET_MESSAGE_TYPE_MULTICAST_REQUEST, 0 },
+
     {NULL, NULL, 0, 0}
   };
   /* FIXME: do setup here */

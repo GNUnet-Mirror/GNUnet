@@ -375,12 +375,11 @@ GNUNET_SOCIAL_home_announce_cancel (struct GNUNET_SOCIAL_Announcement *a);
  * Convert our home to a place so we can access it via the place API.
  *
  * @param home Handle for the home.
- * @param keep_active Keep home active after last application disconnected.
  * @return Place handle for the same home, valid as long as @a home is valid;
  *         do NOT try to GNUNET_SOCIAL_place_leave() this place, it's your home!
  */
 struct GNUNET_SOCIAL_Place *
-GNUNET_SOCIAL_home_get_place (struct GNUNET_SOCIAL_Home *home, int keep_active);
+GNUNET_SOCIAL_home_get_place (struct GNUNET_SOCIAL_Home *home);
 
 
 /**
@@ -390,9 +389,10 @@ GNUNET_SOCIAL_home_get_place (struct GNUNET_SOCIAL_Home *home, int keep_active);
  * Guests will be disconnected until the home is restarted.
  *
  * @param home Home to leave.
+ * @param keep_active Keep home active after last application disconnected.
  */
 void
-GNUNET_SOCIAL_home_leave (struct GNUNET_SOCIAL_Home *home);
+GNUNET_SOCIAL_home_leave (struct GNUNET_SOCIAL_Home *home, int keep_active);
 
 /**
  * Request entry to a place (home hosted by someone else).

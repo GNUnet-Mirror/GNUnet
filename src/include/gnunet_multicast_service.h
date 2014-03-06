@@ -160,7 +160,61 @@ struct GNUNET_MULTICAST_MessageHeader
   /* Followed by message body. */
 };
 
+
+/**
+ * Header of a request from a member to the origin.
+ */
+struct GNUNET_MULTICAST_RequestHeader
+{
+  /**
+   * Header for all requests from a member to the origin.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Public key of the sending member.
+   */
+  struct GNUNET_CRYPTO_EddsaPublicKey member_key;
+
+  /**
+   * ECC signature of the request fragment.
+   *
+   * Signature must match the public key of the multicast group.
+   */
+  struct GNUNET_CRYPTO_EddsaSignature signature;
+
+  /**
+   * Purpose for the signature and size of the signed data.
+   */
+  struct GNUNET_CRYPTO_EccSignaturePurpose purpose;
+
+  /**
+   * Number of the request fragment, monotonically increasing.
+   */
+  uint64_t fragment_id GNUNET_PACKED;
+
+  /**
+   * Byte offset of this @e fragment of the @e request.
+   */
+  uint64_t fragment_offset GNUNET_PACKED;
+
+  /**
+   * Number of the request this fragment belongs to.
+   *
+   * Set in GNUNET_MULTICAST_origin_to_all().
+   */
+  uint64_t request_id GNUNET_PACKED;
+
+  /**
+   * Flags for this request.
+   */
+  enum GNUNET_MULTICAST_MessageFlags flags GNUNET_PACKED;
+
+  /* Followed by request body. */
+};
+
 GNUNET_NETWORK_STRUCT_END
+
 
 /**
  * Maximum size of a multicast message fragment.
@@ -492,7 +546,7 @@ GNUNET_MULTICAST_replay_response2 (struct GNUNET_MULTICAST_ReplayHandle *rh,
  * @param next_fragment_id Next fragment ID to continue counting fragments from
  *        when restarting the origin.  1 for a new group.
  * @param join_cb Function called to approve / disapprove joining of a peer.
- * @param mem_test_cb Function multicast can use to test group membership.
+ * @param member_test_cb Function multicast can use to test group membership.
  * @param replay_frag_cb Function that can be called to replay a message fragment.
  * @param replay_msg_cb Function that can be called to replay a message.
  * @param request_cb Function called with message fragments from group members.
@@ -507,7 +561,7 @@ GNUNET_MULTICAST_origin_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                const struct GNUNET_CRYPTO_EddsaPrivateKey *priv_key,
                                uint64_t next_fragment_id,
                                GNUNET_MULTICAST_JoinCallback join_cb,
-                               GNUNET_MULTICAST_MembershipTestCallback mem_test_cb,
+                               GNUNET_MULTICAST_MembershipTestCallback member_test_cb,
                                GNUNET_MULTICAST_ReplayFragmentCallback replay_frag_cb,
                                GNUNET_MULTICAST_ReplayMessageCallback replay_msg_cb,
                                GNUNET_MULTICAST_RequestCallback request_cb,
@@ -756,14 +810,14 @@ struct GNUNET_MULTICAST_MemberRequestHandle;
  * Send a message to the origin of the multicast group.
  *
  * @param member Membership handle.
- * @param message_id Application layer ID for the message.  Opaque to multicast.
+ * @param request_id Application layer ID for the request.  Opaque to multicast.
  * @param notify Callback to call to get the message.
  * @param notify_cls Closure for @a notify.
  * @return Handle to cancel request, NULL on error (i.e. request already pending).
  */
 struct GNUNET_MULTICAST_MemberRequestHandle *
 GNUNET_MULTICAST_member_to_origin (struct GNUNET_MULTICAST_Member *member,
-                                   uint64_t message_id,
+                                   uint64_t request_id,
                                    GNUNET_MULTICAST_MemberTransmitNotify notify,
                                    void *notify_cls);
 

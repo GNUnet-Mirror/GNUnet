@@ -22,6 +22,7 @@
  * @file multicast/multicast.h
  * @brief multicast IPC messages
  * @author Christian Grothoff
+ * @author Gabor X Toth
  */
 #ifndef MULTICAST_H
 #define MULTICAST_H
@@ -30,12 +31,52 @@ GNUNET_NETWORK_STRUCT_BEGIN
 
 
 /**
+ * Header of a join request sent to the origin or another member.
+ */
+struct GNUNET_MULTICAST_JoinRequest
+{
+  /**
+   * Header for the join request.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * ECC signature of the rest of the fields of the join request.
+   *
+   * Signature must match the public key of the joining member.
+   */
+  struct GNUNET_CRYPTO_EddsaSignature signature;
+
+  /**
+   * Purpose for the signature and size of the signed data.
+   */
+  struct GNUNET_CRYPTO_EccSignaturePurpose purpose;
+
+  /**
+   * Public key of the target group.
+   */
+  struct GNUNET_CRYPTO_EddsaPublicKey group_key;
+
+  /**
+   * Public key of the joining member.
+   */
+  struct GNUNET_CRYPTO_EddsaPublicKey member_key;
+
+  /**
+   * Peer identity of the joining member.
+   */
+  struct GNUNET_PeerIdentity member_peer;
+
+  /* Followed by request body. */
+};
+
+
+/**
  * Message sent from the client to the service to notify the service
  * about a join decision.
  */
 struct MulticastJoinDecisionMessage
 {
-
   /**
    *
    */
@@ -327,9 +368,6 @@ struct MulticastUnicastToOriginCancelMessage
   uint64_t message_id;
 
 };
-
-
-
 
 
 GNUNET_NETWORK_STRUCT_END

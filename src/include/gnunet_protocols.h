@@ -2279,14 +2279,34 @@ extern "C"
 /* WIP: no numbers assigned yet */
 
 /**
+ * Start an origin.
+ */
+#define GNUNET_MESSAGE_TYPE_MULTICAST_ORIGIN_START 750
+
+/**
+ * Stop an origin.
+ */
+#define GNUNET_MESSAGE_TYPE_MULTICAST_ORIGIN_STOP 751
+
+/**
+ * Join a group as a member.
+ */
+#define GNUNET_MESSAGE_TYPE_MULTICAST_MEMBER_JOIN 752
+
+/**
+ * Leave a group.
+ */
+#define GNUNET_MESSAGE_TYPE_MULTICAST_MEMBER_PART 753
+
+/**
  * Multicast message from the origin to all members.
  */
-#define GNUNET_MESSAGE_TYPE_MULTICAST_MESSAGE 750
+#define GNUNET_MESSAGE_TYPE_MULTICAST_MESSAGE 754
 
 /**
  * A unicast message from a group member to the origin.
  */
-#define GNUNET_MESSAGE_TYPE_MULTICAST_REQUEST
+#define GNUNET_MESSAGE_TYPE_MULTICAST_REQUEST 755
 
 /**
  * A peer wants to join the group.
@@ -2364,14 +2384,6 @@ extern "C"
  */
 
 
-
-/*******************************************************************************
- * PSYC message types
- ******************************************************************************/
-
-/*******************************************************************************
- * PSYCSTORE message types
- ******************************************************************************/
 
 /*******************************************************************************
  * SOCIAL message types

@@ -435,7 +435,7 @@ database_setup (struct Plugin *plugin)
                &plugin->select_membership);
 
   sql_prepare (plugin->dbh,
-               "INSERT INTO messages\n"
+               "INSERT OR IGNORE INTO messages\n"
                " (channel_id, hop_counter, signature, purpose,\n"
                "  fragment_id, fragment_offset, message_id,\n"
                "  group_generation, multicast_flags, psycstore_flags, data)\n"

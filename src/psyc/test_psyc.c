@@ -37,7 +37,7 @@
 
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
 
-#define DEBUG_SERVICE 0
+#define DEBUG_SERVICE 1
 
 
 /**
@@ -66,7 +66,8 @@ struct GNUNET_PSYC_MasterTransmitHandle *mth;
 
 struct TransmitClosure
 {
-  struct GNUNET_PSYC_MasterTransmitHandle *handle;
+  struct GNUNET_PSYC_MasterTransmitHandle *mst_tmit;
+  struct GNUNET_PSYC_SlaveTransmitHandle *slv_tmit;
   struct GNUNET_ENV_Environment *env;
   char *data[16];
   const char *mod_value;
@@ -78,12 +79,30 @@ struct TransmitClosure
 
 struct TransmitClosure *tmit;
 
+
+enum
+{
+  TEST_NONE,
+  TEST_SLAVE_TRANSMIT,
+  TEST_MASTER_TRANSMIT,
+} test;
+
+
+static void
+master_transmit ();
+
+
 /**
  * Clean up all resources used.
  */
 static void
 cleanup ()
 {
+  if (NULL != slv)
+  {
+    GNUNET_PSYC_slave_part (slv);
+    slv = NULL;
+  }
   if (NULL != mst)
   {
     GNUNET_PSYC_master_stop (mst);
@@ -133,6 +152,8 @@ end_normally (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 end ()
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Ending tests.\n");
+
   if (end_badly_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (end_badly_task);
@@ -144,8 +165,8 @@ end ()
 
 
 static void
-message (void *cls, uint64_t message_id, uint32_t flags,
-         const struct GNUNET_MessageHeader *msg)
+master_message (void *cls, uint64_t message_id, uint32_t flags,
+                const struct GNUNET_MessageHeader *msg)
 {
   if (NULL == msg)
   {
@@ -158,12 +179,64 @@ message (void *cls, uint64_t message_id, uint32_t flags,
   uint16_t size = ntohs (msg->size);
 
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "Got message part of type %u and size %u "
+              "Master got message part of type %u and size %u "
               "belonging to message ID %llu with flags %u\n",
               type, size, message_id, flags);
 
-  if (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_END == type)
-    end ();
+  switch (test)
+  {
+  case TEST_SLAVE_TRANSMIT:
+    if (GNUNET_PSYC_MESSAGE_REQUEST != flags)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Unexpected request flags: %lu\n", flags);
+      GNUNET_assert (0);
+      return;
+    }
+    // FIXME: check rest of message
+
+    if (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_END == type)
+      master_transmit ();
+    break;
+
+  case TEST_MASTER_TRANSMIT:
+    break;
+
+  default:
+    GNUNET_assert (0);
+  }
+}
+
+
+static void
+slave_message (void *cls, uint64_t message_id, uint32_t flags,
+               const struct GNUNET_MessageHeader *msg)
+{
+  if (NULL == msg)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Error while receiving message %llu\n", message_id);
+    return;
+  }
+
+  uint16_t type = ntohs (msg->type);
+  uint16_t size = ntohs (msg->size);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "Slave got message part of type %u and size %u "
+              "belonging to message ID %llu with flags %u\n",
+              type, size, message_id, flags);
+
+  switch (test)
+  {
+  case TEST_MASTER_TRANSMIT:
+    if (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_END == type)
+      end ();
+    break;
+
+  default:
+    GNUNET_assert (0);
+  }
 }
 
 
@@ -175,7 +248,9 @@ join_request (void *cls, const struct GNUNET_CRYPTO_EddsaPublicKey *slave_key,
               struct GNUNET_PSYC_JoinHandle *jh)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "Got join request.");
+              "Got join request: %s (%zu vars)", method_name, variable_count);
+  GNUNET_PSYC_join_decision (jh, GNUNET_YES, 0, NULL, "_notice_join", NULL,
+                             "you're in", 9);
 }
 
 
@@ -185,7 +260,7 @@ transmit_resume (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Transmission resumed.\n");
   struct TransmitClosure *tmit = cls;
   tmit->paused = GNUNET_NO;
-  GNUNET_PSYC_master_transmit_resume (tmit->handle);
+  GNUNET_PSYC_master_transmit_resume (tmit->mst_tmit);
 }
 
 
@@ -204,35 +279,8 @@ tmit_notify_mod (void *cls, uint16_t *data_size, void *data, uint8_t *oper)
   uint16_t name_size = 0;
   size_t value_size = 0;
 
-  if (NULL != tmit->mod_value && 0 < tmit->mod_value_size)
-  { /* Modifier continuation */
-    value = tmit->mod_value;
-    if (tmit->mod_value_size <= *data_size)
-    {
-      value_size = tmit->mod_value_size;
-      tmit->mod_value = NULL;
-    }
-    else
-    {
-      value_size = *data_size;
-      tmit->mod_value += value_size;
-    }
-    tmit->mod_value_size -= value_size;
-
-    if (*data_size < value_size)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "value larger than buffer: %u < %zu\n",
-                  *data_size, value_size);
-      *data_size = 0;
-      return GNUNET_NO;
-    }
-
-    *data_size = value_size;
-    memcpy (data, value, value_size);
-  }
-  else if (NULL != oper)
-  {
+  if (NULL != oper)
+  { /* New modifier */
     if (GNUNET_NO == GNUNET_ENV_environment_shift (tmit->env, &op, &name,
                                                    (void *) &value, &value_size))
     { /* No more modifiers, continue with data */
@@ -259,6 +307,33 @@ tmit_notify_mod (void *cls, uint16_t *data_size, void *data, uint8_t *oper)
     ((char *)data)[name_size] = '\0';
     memcpy ((char *)data + name_size + 1, value, value_size);
   }
+  else if (NULL != tmit->mod_value && 0 < tmit->mod_value_size)
+  { /* Modifier continuation */
+    value = tmit->mod_value;
+    if (tmit->mod_value_size <= *data_size)
+    {
+      value_size = tmit->mod_value_size;
+      tmit->mod_value = NULL;
+    }
+    else
+    {
+      value_size = *data_size;
+      tmit->mod_value += value_size;
+    }
+    tmit->mod_value_size -= value_size;
+
+    if (*data_size < value_size)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "value larger than buffer: %u < %zu\n",
+                  *data_size, value_size);
+      *data_size = 0;
+      return GNUNET_NO;
+    }
+
+    *data_size = value_size;
+    memcpy (data, value, value_size);
+  }
 
   return 0 == tmit->mod_value_size ? GNUNET_YES : GNUNET_NO;
 }
@@ -268,6 +343,12 @@ static int
 tmit_notify_data (void *cls, uint16_t *data_size, void *data)
 {
   struct TransmitClosure *tmit = cls;
+  if (0 == tmit->data_count)
+  {
+    *data_size = 0;
+    return GNUNET_YES;
+  }
+
   uint16_t size = strlen (tmit->data[tmit->n]);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Transmit notify data: %lu bytes available, "
@@ -300,10 +381,52 @@ tmit_notify_data (void *cls, uint16_t *data_size, void *data)
 
 
 static void
-master_started (void *cls, uint64_t max_message_id)
+slave_joined (void *cls, uint64_t max_message_id)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Master started: %" PRIu64 "\n", max_message_id);
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Slave joined: %lu\n", max_message_id);
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Slave sending request to master.\n");
+
+  test = TEST_SLAVE_TRANSMIT;
+
+  tmit = GNUNET_new (struct TransmitClosure);
+  tmit->env = GNUNET_ENV_environment_create ();
+  GNUNET_ENV_environment_add (tmit->env, GNUNET_ENV_OP_ASSIGN,
+                              "_abc", "abc def", 7);
+  GNUNET_ENV_environment_add (tmit->env, GNUNET_ENV_OP_ASSIGN,
+                              "_abc_def", "abc def ghi", 11);
+  tmit->n = 0;
+  tmit->data[0] = "slave test";
+  tmit->data_count = 1;
+  tmit->slv_tmit
+    = GNUNET_PSYC_slave_transmit (slv, "_request_test", tmit_notify_mod,
+                                  tmit_notify_data, tmit,
+                                  GNUNET_PSYC_SLAVE_TRANSMIT_NONE);
+}
+
+static void
+slave_join ()
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Joining slave.\n");
+
+  struct GNUNET_PeerIdentity origin;
+  struct GNUNET_PeerIdentity relays[16];
+  struct GNUNET_ENV_Environment *env = GNUNET_ENV_environment_create ();
+  GNUNET_ENV_environment_add (env, GNUNET_ENV_OP_ASSIGN,
+                              "_foo", "bar baz", 7);
+  GNUNET_ENV_environment_add (env, GNUNET_ENV_OP_ASSIGN,
+                              "_foo_bar", "foo bar baz", 11);
+  slv = GNUNET_PSYC_slave_join (cfg, &channel_pub_key, slave_key, &origin,
+                                16, relays, &slave_message, &join_request, &slave_joined,
+                                NULL, "_request_join", env, "some data", 9);
+  GNUNET_ENV_environment_destroy (env);
+}
+
+
+static void
+master_transmit ()
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Master sending message to all.\n");
+  test = TEST_MASTER_TRANSMIT;
 
   tmit = GNUNET_new (struct TransmitClosure);
   tmit->env = GNUNET_ENV_environment_create ();
@@ -315,17 +438,19 @@ master_started (void *cls, uint64_t max_message_id)
   tmit->data[1] = "foo bar";
   tmit->data[2] = "foo bar baz";
   tmit->data_count = 3;
-  tmit->handle
-    = GNUNET_PSYC_master_transmit (mst, "_test", tmit_notify_mod,
+  tmit->mst_tmit
+    = GNUNET_PSYC_master_transmit (mst, "_notice_test", tmit_notify_mod,
                                    tmit_notify_data, tmit,
                                    GNUNET_PSYC_MASTER_TRANSMIT_INC_GROUP_GEN);
 }
 
 
 static void
-slave_joined (void *cls, uint64_t max_message_id)
+master_started (void *cls, uint64_t max_message_id)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Slave joined: %lu\n", max_message_id);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Master started: %" PRIu64 "\n", max_message_id);
+  slave_join ();
 }
 
 
@@ -355,21 +480,9 @@ run (void *cls,
   GNUNET_CRYPTO_eddsa_key_get_public (channel_key, &channel_pub_key);
   GNUNET_CRYPTO_eddsa_key_get_public (slave_key, &slave_pub_key);
 
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Starting master.\n");
   mst = GNUNET_PSYC_master_start (cfg, channel_key, GNUNET_PSYC_CHANNEL_PRIVATE,
-                                  &message, &join_request, &master_started, NULL);
-  return; /* FIXME: test slave */
-
-  struct GNUNET_PeerIdentity origin;
-  struct GNUNET_PeerIdentity relays[16];
-  struct GNUNET_ENV_Environment *env = GNUNET_ENV_environment_create ();
-  GNUNET_ENV_environment_add (env, GNUNET_ENV_OP_ASSIGN,
-                              "_foo", "bar baz", 7);
-  GNUNET_ENV_environment_add (env, GNUNET_ENV_OP_ASSIGN,
-                              "_foo_bar", "foo bar baz", 11);
-  slv = GNUNET_PSYC_slave_join (cfg, &channel_pub_key, slave_key, &origin,
-                                16, relays, &message, &join_request, &slave_joined,
-                                NULL, "_request_join", env, "some data", 9);
-  GNUNET_ENV_environment_destroy (env);
+                                  &master_message, &join_request, &master_started, NULL);
 }
 
 

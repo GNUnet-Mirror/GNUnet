@@ -27,7 +27,16 @@
 #ifndef PSYC_H
 #define PSYC_H
 
-#include "gnunet_common.h"
+#include "platform.h"
+#include "gnunet_psyc_service.h"
+
+
+int
+GNUNET_PSYC_check_message_parts (uint16_t data_size, const char *data);
+
+void
+GNUNET_PSYC_log_message (enum GNUNET_ErrorType kind,
+                         const struct GNUNET_MessageHeader *msg);
 
 
 enum MessageState

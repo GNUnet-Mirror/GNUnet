@@ -21,7 +21,7 @@ lib_LTLIBRARIES = libgnunetpsyc.la
 
 libgnunetpsyc_la_SOURCES = \
   psyc_api.c \
-  psyc.h
+  psyc_common.c
 libgnunetpsyc_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/env/libgnunetenv.la \
@@ -39,7 +39,8 @@ libexec_PROGRAMS = \
  gnunet-service-psyc
 
 gnunet_service_psyc_SOURCES = \
- gnunet-service-psyc.c
+ gnunet-service-psyc.c \
+ psyc_common.c
 gnunet_service_psyc_LDADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
@@ -51,6 +52,7 @@ gnunet_service_psyc_DEPENDENCIES = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/multicast/libgnunetmulticast.la \
   $(top_builddir)/src/psycstore/libgnunetpsycstore.la
+gnunet_service_psyc_CFLAGS = $(AM_CFLAGS)
 
 
 if HAVE_TESTING
