@@ -147,6 +147,11 @@ struct GNUNET_STATISTICS_GetHandle
   struct GNUNET_TIME_Absolute timeout;
 
   /**
+   * Task run on timeout.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+
+  /**
    * Associated value.
    */
   uint64_t value;
@@ -362,6 +367,11 @@ schedule_watch_request (struct GNUNET_STATISTICS_Handle *h,
 static void
 free_action_item (struct GNUNET_STATISTICS_GetHandle *gh)
 {
+  if (GNUNET_SCHEDULER_NO_TASK != gh->timeout_task)
+  {
+    GNUNET_SCHEDULER_cancel (gh->timeout_task);
+    gh->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  }
   GNUNET_free_non_null (gh->subsystem);
   GNUNET_free_non_null (gh->name);
   GNUNET_free (gh);
@@ -389,7 +399,10 @@ do_disconnect (struct GNUNET_STATISTICS_Handle *h)
     h->current = NULL;
     if ( (NULL != c->cont) &&
 	 (GNUNET_YES != c->aborted) )
+    {
       c->cont (c->cls, GNUNET_SYSERR);
+      c->cont = NULL;
+    }
     free_action_item (c);
   }
   if (NULL != h->client)
@@ -687,7 +700,10 @@ receive_stats (void *cls,
     h->current = NULL;
     schedule_action (h);
     if (NULL != c->cont)
+    {
       c->cont (c->cls, GNUNET_OK);
+      c->cont = NULL;
+    }
     free_action_item (c);
     return;
   case GNUNET_MESSAGE_TYPE_STATISTICS_VALUE:
@@ -1142,6 +1158,27 @@ schedule_action (struct GNUNET_STATISTICS_Handle *h)
 
 
 /**
+ * We have run into a timeout on a #GNUNET_STATISTICS_get() operation,
+ * call the continuation.
+ *
+ * @param cls the `struct GNUNET_STATISTICS_GetHandle`
+ * @param tc scheduler context
+ */
+static void
+run_get_timeout (void *cls,
+                 const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_STATISTICS_GetHandle *gh = cls;
+  GNUNET_STATISTICS_Callback cont = gh->cont;
+  void *cont_cls = gh->cls;
+
+  gh->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_STATISTICS_get_cancel (gh);
+  cont (cont_cls, GNUNET_SYSERR);
+}
+
+
+/**
  * Get statistic from the peer.
  *
  * @param handle identification of the statistics service
@@ -1188,6 +1225,9 @@ GNUNET_STATISTICS_get (struct GNUNET_STATISTICS_Handle *handle,
   ai->timeout = GNUNET_TIME_relative_to_absolute (timeout);
   ai->type = ACTION_GET;
   ai->msize = slen1 + slen2 + sizeof (struct GNUNET_MessageHeader);
+  ai->timeout_task = GNUNET_SCHEDULER_add_delayed (timeout,
+                                                   &run_get_timeout,
+                                                   ai);
   GNUNET_CONTAINER_DLL_insert_tail (handle->action_head, handle->action_tail,
 				    ai);
   schedule_action (handle);
@@ -1206,6 +1246,11 @@ GNUNET_STATISTICS_get_cancel (struct GNUNET_STATISTICS_GetHandle *gh)
 {
   if (NULL == gh)
     return;
+  if (GNUNET_SCHEDULER_NO_TASK != gh->timeout_task)
+  {
+    GNUNET_SCHEDULER_cancel (gh->timeout_task);
+    gh->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+  }
   gh->cont = NULL;
   if (gh->sh->current == gh)
   {
