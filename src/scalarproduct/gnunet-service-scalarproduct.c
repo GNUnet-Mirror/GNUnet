@@ -156,32 +156,37 @@ struct ServiceSession
   /**
    * Public key of the remote service, only used by bob
    */
-  struct GNUNET_CRYPTO_PaillierPublicKey remote_pubkey;
+  struct GNUNET_CRYPTO_PaillierPublicKey * remote_pubkey;
 
   /**
-   * E(ai)(Bob) or ai(Alice) after applying the mask
+   * ai(Alice) after applying the mask
    */
   gcry_mpi_t * a;
 
   /**
+   * E(ai)(Bob) after applying the mask
+   */
+  struct GNUNET_CRYPTO_PaillierCiphertext * e_a;
+
+  /**
    * Bob's permutation p of R
    */
-  gcry_mpi_t * r;
+  struct GNUNET_CRYPTO_PaillierCiphertext * r;
 
   /**
    * Bob's permutation q of R
    */
-  gcry_mpi_t * r_prime;
+  struct GNUNET_CRYPTO_PaillierCiphertext * r_prime;
 
   /**
    * Bob's s
    */
-  gcry_mpi_t s;
+  struct GNUNET_CRYPTO_PaillierCiphertext * s;
 
   /**
    * Bob's s'
    */
-  gcry_mpi_t s_prime;
+  struct GNUNET_CRYPTO_PaillierCiphertext * s_prime;
 
   /**
    * Bobs matching response session from the client
@@ -261,39 +266,14 @@ static struct GNUNET_MESH_Handle *my_mesh;
 static struct GNUNET_PeerIdentity me;
 
 /**
- * Service's own public key represented as string
+ * Service's own public key
  */
-static unsigned char * my_pubkey_external;
+static struct GNUNET_CRYPTO_PaillierPublicKey my_pubkey;
 
 /**
- * Service's own public key represented as string
+ * Service's own private key
  */
-static uint32_t my_pubkey_external_length = 0;
-
-/**
- * Service's own n
- */
-static gcry_mpi_t my_n;
-
-/**
- * Service's own n^2 (kept for performance)
- */
-static gcry_mpi_t my_nsquare;
-
-/**
- * Service's own public exponent
- */
-static gcry_mpi_t my_g;
-
-/**
- * Service's own private multiplier
- */
-static gcry_mpi_t my_mu;
-
-/**
- * Service's own private exponent
- */
-static gcry_mpi_t my_lambda;
+static struct GNUNET_CRYPTO_PaillierPrivateKey my_privkey;
 
 /**
  * Service's offset for values that could possibly be negative but are plaintext for encryption.
@@ -335,160 +315,6 @@ static int do_shutdown;
 ///////////////////////////////////////////////////////////////////////////////
 //                      Helper Functions
 ///////////////////////////////////////////////////////////////////////////////
-
-
-/**
- * Generates an Paillier private/public keyset and extracts the values using libgrcypt only
- */
-static void
-generate_keyset ()
-{
-  gcry_sexp_t gen_params;
-  gcry_sexp_t key;
-  gcry_sexp_t tmp_sexp;
-  gcry_mpi_t p;
-  gcry_mpi_t q;
-  gcry_mpi_t tmp1;
-  gcry_mpi_t tmp2;
-  gcry_mpi_t gcd;
-
-  size_t erroff = 0;
-
-  // we can still use the RSA keygen for generating p,q,n, but using e is pointless.
-  GNUNET_assert (0 == gcry_sexp_build (&gen_params, &erroff,
-                                       "(genkey(rsa(nbits %d)(rsa-use-e 3:257)))",
-                                       KEYBITS));
-
-  GNUNET_assert (0 == gcry_pk_genkey (&key, gen_params));
-  gcry_sexp_release (gen_params);
-
-  // get n and d of our publickey as MPI
-  tmp_sexp = gcry_sexp_find_token (key, "n", 0);
-  GNUNET_assert (tmp_sexp);
-  my_n = gcry_sexp_nth_mpi (tmp_sexp, 1, GCRYMPI_FMT_USG);
-  gcry_sexp_release (tmp_sexp);
-  tmp_sexp = gcry_sexp_find_token (key, "p", 0);
-  GNUNET_assert (tmp_sexp);
-  p = gcry_sexp_nth_mpi (tmp_sexp, 1, GCRYMPI_FMT_USG);
-  gcry_sexp_release (tmp_sexp);
-  tmp_sexp = gcry_sexp_find_token (key, "q", 0);
-  GNUNET_assert (tmp_sexp);
-  q = gcry_sexp_nth_mpi (tmp_sexp, 1, GCRYMPI_FMT_USG);
-  gcry_sexp_release (key);
-
-  tmp1 = gcry_mpi_new (0);
-  tmp2 = gcry_mpi_new (0);
-  gcd = gcry_mpi_new (0);
-  my_g = gcry_mpi_new (0);
-  my_mu = gcry_mpi_new (0);
-  my_nsquare = gcry_mpi_new (0);
-  my_lambda = gcry_mpi_new (0);
-
-  // calculate lambda
-  // lambda = frac{(p-1)*(q-1)}{gcd(p-1,q-1)}
-  gcry_mpi_sub_ui (tmp1, p, 1);
-  gcry_mpi_sub_ui (tmp2, q, 1);
-  gcry_mpi_gcd (gcd, tmp1, tmp2);
-  gcry_mpi_set (my_lambda, tmp1);
-  gcry_mpi_mul (my_lambda, my_lambda, tmp2);
-  gcry_mpi_div (my_lambda, NULL, my_lambda, gcd, 0);
-
-  // generate a g
-  gcry_mpi_mul (my_nsquare, my_n, my_n);
-  do {
-    // find a matching g
-    do {
-      gcry_mpi_randomize (my_g, KEYBITS * 2, GCRY_WEAK_RANDOM);
-      // g must be smaller than n^2
-      if (0 >= gcry_mpi_cmp (my_g, my_nsquare))
-        continue;
-
-      // g must have gcd == 1 with n^2
-      gcry_mpi_gcd (gcd, my_g, my_nsquare);
-    }
-    while (gcry_mpi_cmp_ui (gcd, 1));
-
-    // is this a valid g?
-    // if so, gcd(((g^lambda mod n^2)-1 )/n, n) = 1
-    gcry_mpi_powm (tmp1, my_g, my_lambda, my_nsquare);
-    gcry_mpi_sub_ui (tmp1, tmp1, 1);
-    gcry_mpi_div (tmp1, NULL, tmp1, my_n, 0);
-    gcry_mpi_gcd (gcd, tmp1, my_n);
-  }
-  while (gcry_mpi_cmp_ui (gcd, 1));
-
-  // calculate our mu based on g and n.
-  // mu = (((g^lambda mod n^2)-1 )/n)^-1 mod n
-  gcry_mpi_invm (my_mu, tmp1, my_n);
-
-  GNUNET_assert (0 == gcry_sexp_build (&key, &erroff,
-                                       "(public-key (paillier (n %M)(g %M)))",
-                                       my_n, my_g));
-
-  // get the length of this sexpression
-  my_pubkey_external_length = gcry_sexp_sprint (key,
-                                                GCRYSEXP_FMT_CANON,
-                                                NULL,
-                                                UINT16_MAX);
-
-  GNUNET_assert (my_pubkey_external_length > 0);
-  my_pubkey_external = GNUNET_malloc (my_pubkey_external_length);
-
-  // convert the sexpression to canonical format
-  gcry_sexp_sprint (key,
-                    GCRYSEXP_FMT_CANON,
-                    my_pubkey_external,
-                    my_pubkey_external_length);
-
-  gcry_sexp_release (key);
-
-  // offset has to be sufficiently small to allow computation of:
-  // m1+m2 mod n == (S + a) + (S + b) mod n,
-  // if we have more complex operations, this factor needs to be lowered
-  my_offset = gcry_mpi_new (KEYBITS / 3);
-  gcry_mpi_set_bit (my_offset, KEYBITS / 3);
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _ ("Generated key set with key length %d bits.\n"), KEYBITS);
-}
-
-
-/**
- * If target != size, move target bytes to the
- * end of the size-sized buffer and zero out the
- * first target-size bytes.
- *
- * @param buf original buffer
- * @param size number of bytes in the buffer
- * @param target target size of the buffer
- */
-static void
-adjust (unsigned char *buf, size_t size, size_t target)
-{
-  if (size < target) {
-    memmove (&buf[target - size], buf, size);
-    memset (buf, 0, target - size);
-  }
-}
-
-
-/**
- * decrypts an element using the paillier crypto system
- *
- * @param m plaintext (output)
- * @param c the ciphertext
- * @param mu the modifier to correct encryption
- * @param lambda the private exponent
- * @param n the outer module for decryption
- * @param n_square the inner module for decryption
- */
-static void
-decrypt_element (gcry_mpi_t m, gcry_mpi_t c, gcry_mpi_t mu, gcry_mpi_t lambda, gcry_mpi_t n, gcry_mpi_t n_square)
-{
-  gcry_mpi_powm (m, c, lambda, n_square);
-  gcry_mpi_sub_ui (m, m, 1);
-  gcry_mpi_div (m, NULL, m, n, 0);
-  gcry_mpi_mulm (m, m, mu, n);
-}
 
 
 /**
@@ -598,35 +424,6 @@ initialize_mpi_vector (uint32_t length)
 
 
 /**
- * permutes an MPI vector according to the given permutation vector
- *
- * @param vector the vector to permuted
- * @param perm the permutation to use
- * @param length the length of the vectors
- * @return the permuted vector (same as input), never NULL
- */
-static gcry_mpi_t *
-permute_vector (gcry_mpi_t * vector,
-                unsigned int * perm,
-                uint32_t length)
-{
-  gcry_mpi_t tmp[length];
-  uint32_t i;
-
-  GNUNET_assert (length > 0);
-
-  // backup old layout
-  memcpy (tmp, vector, length * sizeof (gcry_mpi_t));
-
-  // permute vector according to given
-  for (i = 0; i < length; i++)
-    vector[i] = tmp[perm[i]];
-
-  return vector;
-}
-
-
-/**
  * Finds a not terminated client/service session in the
  * given DLL based on session key, element count and state.
  *
@@ -664,6 +461,7 @@ find_matching_session (struct ServiceSession * tail,
   return NULL;
 }
 
+
 /**
  * Safely frees ALL memory areas referenced by a session.
  *
@@ -680,40 +478,38 @@ free_session_variables (struct ServiceSession * session)
     GNUNET_free (session->a);
     session->a = NULL;
   }
+  if (session->e_a) {
+    GNUNET_free (session->e_a);
+    session->e_a = NULL;
+  }
   if (session->mask) {
     GNUNET_free (session->mask);
     session->mask = NULL;
   }
   if (session->r) {
-    for (i = 0; i < session->used; i++)
-      if (session->r[i]) gcry_mpi_release (session->r[i]);
     GNUNET_free (session->r);
     session->r = NULL;
   }
   if (session->r_prime) {
-    for (i = 0; i < session->used; i++)
-      if (session->r_prime[i]) gcry_mpi_release (session->r_prime[i]);
     GNUNET_free (session->r_prime);
     session->r_prime = NULL;
   }
   if (session->s) {
-    gcry_mpi_release (session->s);
+    GNUNET_free (session->s);
     session->s = NULL;
   }
-
   if (session->s_prime) {
-    gcry_mpi_release (session->s_prime);
+    GNUNET_free (session->s_prime);
     session->s_prime = NULL;
   }
-
   if (session->product) {
     gcry_mpi_release (session->product);
     session->product = NULL;
   }
-
-  memset (&session->remote_pubkey,
-          0,
-          sizeof (session->remote_pubkey));
+  if (session->remote_pubkey) {
+    GNUNET_free (session->remote_pubkey);
+    session->remote_pubkey = NULL;
+  }
   if (session->vector) {
     GNUNET_free_non_null (session->vector);
     session->s = NULL;
@@ -742,7 +538,7 @@ handle_client_disconnect (void *cls,
 
   if (NULL != client)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              _ ("Client (%p) disconnected from us.\n"), client);
+                _ ("Client (%p) disconnected from us.\n"), client);
   else
     return;
 
@@ -884,8 +680,7 @@ prepare_client_response (void *cls,
   msg = GNUNET_malloc (msg_length);
   msg->key = session->key;
   msg->peer = session->peer;
-  if (product_exported != NULL)
-  {
+  if (product_exported != NULL) {
     memcpy (&msg[1], product_exported, product_length);
     GNUNET_free (product_exported);
   }
@@ -931,13 +726,12 @@ static void
 prepare_service_response_multipart (void *cls)
 {
   struct ServiceSession * session = cls;
-  unsigned char * current;
-  unsigned char * element_exported;
+  struct GNUNET_CRYPTO_PaillierCiphertext * payload;
   struct GNUNET_SCALARPRODUCT_multipart_message * msg;
   unsigned int i;
+  unsigned int j;
   uint32_t msg_length;
   uint32_t todo_count;
-  size_t element_length = 0; // initialized by gcry_mpi_print, but the compiler doesn't know that
 
   msg_length = sizeof (struct GNUNET_SCALARPRODUCT_multipart_message);
   todo_count = session->used - session->transferred;
@@ -946,41 +740,17 @@ prepare_service_response_multipart (void *cls)
     // send the currently possible maximum chunk, we always transfer both permutations
     todo_count = MULTIPART_ELEMENT_CAPACITY / 2;
 
-  msg_length += todo_count * PAILLIER_ELEMENT_LENGTH * 2;
+  msg_length += todo_count * sizeof (struct GNUNET_CRYPTO_PaillierCiphertext) * 2;
   msg = GNUNET_malloc (msg_length);
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_SCALARPRODUCT_ALICE_TO_BOB_MULTIPART);
   msg->header.size = htons (msg_length);
   msg->multipart_element_count = htonl (todo_count);
 
-  element_exported = GNUNET_malloc (PAILLIER_ELEMENT_LENGTH);
-  current = (unsigned char *) &msg[1];
-  // convert k[][]
-  for (i = session->transferred; i < session->transferred + todo_count; i++) {
-    //k[i][p]
-    memset (element_exported, 0, PAILLIER_ELEMENT_LENGTH);
-    GNUNET_assert (0 == gcry_mpi_print (GCRYMPI_FMT_USG,
-                                        element_exported, PAILLIER_ELEMENT_LENGTH,
-                                        &element_length,
-                                        session->r[i]));
-    adjust (element_exported, element_length, PAILLIER_ELEMENT_LENGTH);
-    memcpy (current, element_exported, PAILLIER_ELEMENT_LENGTH);
-    current += PAILLIER_ELEMENT_LENGTH;
-    //k[i][q]
-    memset (element_exported, 0, PAILLIER_ELEMENT_LENGTH);
-    GNUNET_assert (0 == gcry_mpi_print (GCRYMPI_FMT_USG,
-                                        element_exported, PAILLIER_ELEMENT_LENGTH,
-                                        &element_length,
-                                        session->r_prime[i]));
-    adjust (element_exported, element_length, PAILLIER_ELEMENT_LENGTH);
-    memcpy (current, element_exported, PAILLIER_ELEMENT_LENGTH);
-    current += PAILLIER_ELEMENT_LENGTH;
-  }
-  GNUNET_free (element_exported);
-  for (i = session->transferred; i < session->transferred; i++) {
-    gcry_mpi_release (session->r_prime[i]);
-    session->r_prime[i] = NULL;
-    gcry_mpi_release (session->r[i]);
-    session->r[i] = NULL;
+  payload = (struct GNUNET_CRYPTO_PaillierCiphertext *) &msg[1];
+  for (i = session->transferred, j=0; i < session->transferred + todo_count; i++) {
+    //r[i][p] and r[i][q]
+    memcpy (&payload[j++], &session->r[i], sizeof (struct GNUNET_CRYPTO_PaillierCiphertext));
+    memcpy (&payload[j++], &session->r_prime[i], sizeof (struct GNUNET_CRYPTO_PaillierCiphertext));
   }
   session->transferred += todo_count;
   session->msg = (struct GNUNET_MessageHeader *) msg;
@@ -1004,11 +774,11 @@ prepare_service_response_multipart (void *cls)
   if (session->transferred != session->used)
     // more multiparts
     session->state = WAITING_FOR_MULTIPART_TRANSMISSION;
-  else{
+  else {
     // final part
     session->state = FINALIZED;
-    GNUNET_free(session->r);
-    GNUNET_free(session->r_prime);
+    GNUNET_free (session->r_prime);
+    GNUNET_free (session->r);
     session->r_prime = NULL;
     session->r = NULL;
   }
@@ -1024,34 +794,29 @@ prepare_service_response_multipart (void *cls)
  *      S: $S := E_A(sum (r_i + b_i)^2)$
  *     S': $S' := E_A(sum r_i^2)$
  *
- * @param s         S: $S := E_A(sum (r_i + b_i)^2)$
- * @param s_prime    S': $S' := E_A(sum r_i^2)$
  * @param session  the associated requesting session with alice
  * @return #GNUNET_NO if we could not send our message
  *         #GNUNET_OK if the operation succeeded
  */
 static int
-prepare_service_response (gcry_mpi_t s,
-                          gcry_mpi_t s_prime,
-                          struct ServiceSession * session)
+prepare_service_response (struct ServiceSession * session)
 {
   struct GNUNET_SCALARPRODUCT_service_response * msg;
   uint32_t msg_length = 0;
-  unsigned char * current = NULL;
-  unsigned char * element_exported = NULL;
-  size_t element_length = 0;
+  struct GNUNET_CRYPTO_PaillierCiphertext * payload;
   int i;
 
   msg_length = sizeof (struct GNUNET_SCALARPRODUCT_service_response)
-          + 2 * PAILLIER_ELEMENT_LENGTH; // s, stick
+          + 2 * sizeof (struct GNUNET_CRYPTO_PaillierCiphertext); // s, stick
 
-  if (GNUNET_SERVER_MAX_MESSAGE_SIZE > msg_length + 2 * session->used * PAILLIER_ELEMENT_LENGTH) { //kp, kq
-    msg_length += +2 * session->used * PAILLIER_ELEMENT_LENGTH;
+  if (GNUNET_SERVER_MAX_MESSAGE_SIZE >
+      msg_length + 2 * session->used * sizeof (struct GNUNET_CRYPTO_PaillierCiphertext)) { //r, r'
+    msg_length += 2 * session->used * sizeof (struct GNUNET_CRYPTO_PaillierCiphertext);
     session->transferred = session->used;
   }
-  else {
-    session->transferred = (GNUNET_SERVER_MAX_MESSAGE_SIZE - 1 - msg_length) / (PAILLIER_ELEMENT_LENGTH * 2);
-  }
+  else
+    session->transferred = (GNUNET_SERVER_MAX_MESSAGE_SIZE - 1 - msg_length) /
+    (sizeof (struct GNUNET_CRYPTO_PaillierCiphertext) * 2);
 
   msg = GNUNET_malloc (msg_length);
 
@@ -1061,65 +826,21 @@ prepare_service_response (gcry_mpi_t s,
   msg->used_element_count = htonl (session->used);
   msg->contained_element_count = htonl (session->transferred);
   memcpy (&msg->key, &session->key, sizeof (struct GNUNET_HashCode));
-  current = (unsigned char *) &msg[1];
 
-  element_exported = GNUNET_malloc (PAILLIER_ELEMENT_LENGTH);
-  // 4 times the same logics with slight variations.
-  // doesn't really justify having 2 functions for that
-  // so i put it into blocks to enhance readability
-  // convert s
-  memset (element_exported, 0, PAILLIER_ELEMENT_LENGTH);
-  GNUNET_assert (0 == gcry_mpi_print (GCRYMPI_FMT_USG,
-                                      element_exported, PAILLIER_ELEMENT_LENGTH,
-                                      &element_length,
-                                      s));
-  adjust (element_exported, element_length, PAILLIER_ELEMENT_LENGTH);
-  memcpy (current, element_exported, PAILLIER_ELEMENT_LENGTH);
-  current += PAILLIER_ELEMENT_LENGTH;
-
-  // convert stick
-  memset (element_exported, 0, PAILLIER_ELEMENT_LENGTH);
-  GNUNET_assert (0 == gcry_mpi_print (GCRYMPI_FMT_USG,
-                                      element_exported, PAILLIER_ELEMENT_LENGTH,
-                                      &element_length,
-                                      s_prime));
-  adjust (element_exported, element_length, PAILLIER_ELEMENT_LENGTH);
-  memcpy (current, element_exported, PAILLIER_ELEMENT_LENGTH);
-  current += PAILLIER_ELEMENT_LENGTH;
-
+  payload = (struct GNUNET_CRYPTO_PaillierCiphertext *) &msg[1];
+  memcpy (&payload[0], session->s, sizeof (struct GNUNET_CRYPTO_PaillierCiphertext));
+  memcpy (&payload[1], session->s_prime, sizeof (struct GNUNET_CRYPTO_PaillierCiphertext));
+  GNUNET_free (session->s_prime);
+  session->s_prime = NULL;
+  GNUNET_free (session->s);
+  session->s = NULL;
+  
   // convert k[][]
   for (i = 0; i < session->transferred; i++) {
-    //k[i][p]
-    memset (element_exported, 0, PAILLIER_ELEMENT_LENGTH);
-    GNUNET_assert (0 == gcry_mpi_print (GCRYMPI_FMT_USG,
-                                        element_exported, PAILLIER_ELEMENT_LENGTH,
-                                        &element_length,
-                                        session->r[i]));
-    adjust (element_exported, element_length, PAILLIER_ELEMENT_LENGTH);
-    memcpy (current, element_exported, PAILLIER_ELEMENT_LENGTH);
-    current += PAILLIER_ELEMENT_LENGTH;
-    //k[i][q]
-    memset (element_exported, 0, PAILLIER_ELEMENT_LENGTH);
-    GNUNET_assert (0 == gcry_mpi_print (GCRYMPI_FMT_USG,
-                                        element_exported, PAILLIER_ELEMENT_LENGTH,
-                                        &element_length,
-                                        session->r_prime[i]));
-    adjust (element_exported, element_length, PAILLIER_ELEMENT_LENGTH);
-    memcpy (current, element_exported, PAILLIER_ELEMENT_LENGTH);
-    current += PAILLIER_ELEMENT_LENGTH;
+    //k[i][p] and k[i][q]
+    memcpy (&payload[2 + i*2], &session->r[i], sizeof (struct GNUNET_CRYPTO_PaillierCiphertext));
+    memcpy (&payload[3 + i*2], &session->r_prime[i], sizeof (struct GNUNET_CRYPTO_PaillierCiphertext));
   }
-
-  GNUNET_free (element_exported);
-  for (i = 0; i < session->transferred; i++) {
-    gcry_mpi_release (session->r_prime[i]);
-    session->r_prime[i] = NULL;
-    gcry_mpi_release (session->r[i]);
-    session->r[i] = NULL;
-  }
-  gcry_mpi_release (s);
-  session->s = NULL;
-  gcry_mpi_release (s_prime);
-  session->s_prime = NULL;
 
   session->msg = (struct GNUNET_MessageHeader *) msg;
   session->service_transmit_handle =
@@ -1142,13 +863,13 @@ prepare_service_response (gcry_mpi_t s,
   if (session->transferred != session->used)
     // multipart
     session->state = WAITING_FOR_MULTIPART_TRANSMISSION;
-  else{
+  else {
     //singlepart
     session->state = FINALIZED;
-    GNUNET_free(session->r);
-    GNUNET_free(session->r_prime);
-    session->r_prime = NULL;
+    GNUNET_free (session->r);
     session->r = NULL;
+    GNUNET_free (session->r_prime);
+    session->r_prime = NULL;
   }
 
   return GNUNET_OK;
@@ -1179,59 +900,42 @@ compute_service_response (struct ServiceSession * request,
   unsigned int * q;
   uint32_t count;
   gcry_mpi_t * rand = NULL;
-  gcry_mpi_t * r = NULL;
-  struct GNUNET_CRYPTO_PaillierCiphertext * R;
-  gcry_mpi_t * r_prime = NULL;
-  struct GNUNET_CRYPTO_PaillierCiphertext * R_prime;
+  gcry_mpi_t tmp;
   gcry_mpi_t * b;
-  gcry_mpi_t * a_pi;
-  gcry_mpi_t * a_pi_prime;
-  gcry_mpi_t * b_pi;
-  gcry_mpi_t * rand_pi;
-  gcry_mpi_t * rand_pi_prime;
-  gcry_mpi_t * s = NULL;
-  struct GNUNET_CRYPTO_PaillierCiphertext * S;
-  gcry_mpi_t s_prime = NULL;
-  struct GNUNET_CRYPTO_PaillierCiphertext * S_prime;
-
+  struct GNUNET_CRYPTO_PaillierCiphertext * a;
+  struct GNUNET_CRYPTO_PaillierCiphertext * r;
+  struct GNUNET_CRYPTO_PaillierCiphertext * r_prime;
+  struct GNUNET_CRYPTO_PaillierCiphertext * s;
+  struct GNUNET_CRYPTO_PaillierCiphertext * s_prime;
   uint32_t value;
 
   count = request->used;
-
-  b = GNUNET_malloc (sizeof (gcry_mpi_t) * count);
-  a_pi = GNUNET_malloc (sizeof (gcry_mpi_t) * count);
-  b_pi = GNUNET_malloc (sizeof (gcry_mpi_t) * count);
-  a_pi_prime = GNUNET_malloc (sizeof (gcry_mpi_t) * count);
-  rand_pi = GNUNET_malloc (sizeof (gcry_mpi_t) * count);
-  rand_pi_prime = GNUNET_malloc (sizeof (gcry_mpi_t) * count);
+  a = request->e_a;
+  b = initialize_mpi_vector (count);
+  q = GNUNET_CRYPTO_random_permute (GNUNET_CRYPTO_QUALITY_WEAK, count);
+  p = GNUNET_CRYPTO_random_permute (GNUNET_CRYPTO_QUALITY_WEAK, count);
+  rand = initialize_mpi_vector (count);
+  r = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_PaillierCiphertext) * count);
+  r_prime = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_PaillierCiphertext) * count);
+  s = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_PaillierCiphertext));
+  s_prime = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_PaillierCiphertext));
 
   // convert responder session to from long to mpi
-  for (i = 0, j = 0; i < response->total && j < count; i++)
-  {
-    if (request->mask[i / 8] & (1 << (i % 8)))
-    {
+  for (i = 0, j = 0; i < response->total && j < count; i++) {
+    if (request->mask[i / 8] & (1 << (i % 8))) {
       value = response->vector[i] >= 0 ? response->vector[i] : -response->vector[i];
       // long to gcry_mpi_t
       if (0 > response->vector[i])
-      {
-        b[j] = gcry_mpi_new (0);
         gcry_mpi_sub_ui (b[j], b[j], value);
-      }
-      else {
-        b[j] = gcry_mpi_set_ui (NULL, value);
-      }
+      else
+        b[j] = gcry_mpi_set_ui (b[j], value);
       j++;
     }
   }
   GNUNET_free (response->vector);
   response->vector = NULL;
-  q = NULL;
-  p = NULL;
 
-  // generate r, p and q
-  rand = initialize_mpi_vector (count);
-  for (i = 0; i < count; i++)
-  {
+  for (i = 0; i < count; i++) {
     int32_t svalue;
 
     svalue = (int32_t) GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, UINT32_MAX);
@@ -1244,120 +948,88 @@ compute_service_response (struct ServiceSession * request,
     else
       rand[i] = gcry_mpi_set_ui (rand[i], svalue);
   }
-  p = GNUNET_CRYPTO_random_permute (GNUNET_CRYPTO_QUALITY_WEAK, count);
-  q = GNUNET_CRYPTO_random_permute (GNUNET_CRYPTO_QUALITY_WEAK, count);
-  //initialize the result vectors
-  r = initialize_mpi_vector (count);
-  r_prime = initialize_mpi_vector (count);
 
-  // copy the REFERNCES of a, b and r into aq and bq. we will not change
-  // those values, thus we can work with the references
-  memcpy (a_pi, request->a, sizeof (gcry_mpi_t) * count);
-  memcpy (a_pi_prime, request->a, sizeof (gcry_mpi_t) * count);
-  memcpy (b_pi, b, sizeof (gcry_mpi_t) * count);
-  memcpy (rand_pi, rand, sizeof (gcry_mpi_t) * count);
-  memcpy (rand_pi_prime, rand, sizeof (gcry_mpi_t) * count);
-
-  //todo get API-cryptoblocks, instead of MPI values
-
-  // generate p and q permutations for a, b and r
-  // TODO: APIify
-  GNUNET_assert (permute_vector (a_pi, p, count));
-  GNUNET_assert (permute_vector (b_pi, p, count));
-  GNUNET_assert (permute_vector (rand_pi, p, count));
-  GNUNET_assert (permute_vector (a_pi_prime, q, count));
-  GNUNET_assert (permute_vector (rand_pi_prime, q, count));
-
+  tmp = gcry_mpi_new (0);
   // encrypt the element
   // for the sake of readability I decided to have dedicated permutation
   // vectors, which get rid of all the lookups in p/q.
   // however, ap/aq are not absolutely necessary but are just abstraction
   // Calculate Kp = E(S + a_pi) (+) E(S - r_pi - b_pi)
-  for (i = 0; i < count; i++)
-  {
+  for (i = 0; i < count; i++) {
     // E(S - r_pi - b_pi)
-    gcry_mpi_sub (r[i], my_offset, rand_pi[i]);
-    gcry_mpi_sub (r[i], r[i], b_pi[i]);
-    GNUNET_CRYPTO_paillier_encrypt (&request->remote_pubkey,
-                                    r[i],
+    gcry_mpi_sub (tmp, my_offset, rand[p[i]]);
+    gcry_mpi_sub (tmp, tmp, b[p[i]]);
+    GNUNET_CRYPTO_paillier_encrypt (request->remote_pubkey,
+                                    tmp,
                                     2,
-                                    &R[i]);
+                                    &r[i]);
 
     // E(S - r_pi - b_pi) * E(S + a_pi) ==  E(2*S + a - r - b)
-    GNUNET_CRYPTO_paillier_hom_add (&request->remote_pubkey,
-                                    &R[i],
-                                    &a_pi[i],
-                                    &R[i]);
+    GNUNET_CRYPTO_paillier_hom_add (request->remote_pubkey,
+                                    &r[i],
+                                    &a[p[i]],
+                                    &r[i]);
   }
-  GNUNET_free (a_pi);
-  GNUNET_free (b_pi);
-  GNUNET_free (rand_pi);
 
   // Calculate Kq = E(S + a_qi) (+) E(S - r_qi)
-  for (i = 0; i < count; i++)
-  {
+  for (i = 0; i < count; i++) {
     // E(S - r_qi)
-    gcry_mpi_sub (r_prime[i], my_offset, rand_pi_prime[i]);
-    GNUNET_CRYPTO_paillier_encrypt (&request->remote_pubkey,
-                                    r_prime[i],
-                                    2,
-                                    &R_prime[i]);
+    gcry_mpi_sub (tmp, my_offset, rand[q[i]]);
+    GNUNET_assert (2 == GNUNET_CRYPTO_paillier_encrypt (request->remote_pubkey,
+                                                        tmp,
+                                                        2,
+                                                        &r_prime[i]));
 
     // E(S - r_qi) * E(S + a_qi) == E(2*S + a_qi - r_qi)
-    GNUNET_CRYPTO_paillier_hom_add (&request->remote_pubkey,
-                                    &R_prime[i],
-                                    &a_pi_prime[i],
-                                    &R_prime[i]);
+    GNUNET_assert (1 == GNUNET_CRYPTO_paillier_hom_add (request->remote_pubkey,
+                                                        &r_prime[i],
+                                                        &a[q[i]],
+                                                        &r_prime[i]));
   }
-  GNUNET_free (a_pi_prime);
-  GNUNET_free (rand_pi_prime);
+
+  // Calculate S' =  E(SUM( r_i^2 ))
+  tmp = compute_square_sum (rand, count);
+  GNUNET_CRYPTO_paillier_encrypt (request->remote_pubkey,
+                                  tmp,
+                                  1,
+                                  s_prime);
+
+  // Calculate S = E(SUM( (r_i + b_i)^2 ))
+  for (i = 0; i < count; i++)
+    gcry_mpi_add (rand[i], rand[i], b[i]);
+  tmp = compute_square_sum (rand, count);
+  GNUNET_CRYPTO_paillier_encrypt (request->remote_pubkey,
+                                  tmp,
+                                  1,
+                                  s);
 
   request->r = r;
   request->r_prime = r_prime;
+  request->s = s;
+  request->s_prime = s_prime;
   request->response = response;
 
-  // Calculate S' =  E(SUM( r_i^2 ))
-  s_prime = compute_square_sum (rand, count);
-  GNUNET_CRYPTO_paillier_encrypt (&request->remote_pubkey,
-                                  s_prime,
-                                  1,
-                                  &S_prime);
-
-  // Calculate S = E(SUM( (r_i + b_i)^2 ))
+  // release rand, b and a
   for (i = 0; i < count; i++) {
-    gcry_mpi_add (rand[i], rand[i], b[i]);
-  }
-  s = compute_square_sum (rand, count);
-  GNUNET_CRYPTO_paillier_encrypt (&request->remote_pubkey,
-                                  s[i],
-                                  1,
-                                  &S);
-
-  // release r and tmp
-  for (i = 0; i < count; i++)
-    // rp, rq, aq, ap, bp, bq are released along with a, r, b respectively, (a and b are handled at except:)
     gcry_mpi_release (rand[i]);
+    gcry_mpi_release (b[i]);
+    gcry_mpi_release (request->a[i]);
+  }
+  gcry_mpi_release (tmp);
+  GNUNET_free (request->a);
+  request->a = NULL;
+  GNUNET_free (p);
+  GNUNET_free (q);
+  GNUNET_free (b);
+  GNUNET_free (rand);
 
   // copy the r[], r_prime[], S and Stick into a new message, prepare_service_response frees these
-  if (GNUNET_YES != prepare_service_response (S, S_prime, request))
+  if (GNUNET_YES != prepare_service_response (request))
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, _ ("Failed to communicate with `%s', scalar product calculation aborted.\n"),
                 GNUNET_i2s (&request->peer));
   else
     ret = GNUNET_OK;
 
-except:
-  for (i = 0; i < count; i++)
-  {
-    gcry_mpi_release (b[i]);
-    gcry_mpi_release (request->a[i]);
-  }
-
-  GNUNET_free (b);
-  GNUNET_free (request->a);
-  request->a = NULL;
-  GNUNET_free_non_null (p);
-  GNUNET_free_non_null (q);
-  GNUNET_free (rand);
   return ret;
 }
 
@@ -1375,14 +1047,12 @@ static void
 prepare_service_request_multipart (void *cls)
 {
   struct ServiceSession * session = cls;
-  unsigned char * current;
-  unsigned char * element_exported;
   struct GNUNET_SCALARPRODUCT_multipart_message * msg;
+  struct GNUNET_CRYPTO_PaillierCiphertext * payload;
   unsigned int i;
   unsigned int j;
   uint32_t msg_length;
   uint32_t todo_count;
-  size_t element_length = 0; // initialized by gcry_mpi_print, but the compiler doesn't know that
   gcry_mpi_t a;
   uint32_t value;
 
@@ -1393,24 +1063,21 @@ prepare_service_request_multipart (void *cls)
     // send the currently possible maximum chunk
     todo_count = MULTIPART_ELEMENT_CAPACITY;
 
-  msg_length += todo_count * PAILLIER_ELEMENT_LENGTH;
+  msg_length += todo_count * sizeof(struct GNUNET_CRYPTO_PaillierCiphertext);
   msg = GNUNET_malloc (msg_length);
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_SCALARPRODUCT_ALICE_TO_BOB_MULTIPART);
   msg->header.size = htons (msg_length);
   msg->multipart_element_count = htonl (todo_count);
 
-  element_exported = GNUNET_malloc (PAILLIER_ELEMENT_LENGTH);
-  a = gcry_mpi_new (KEYBITS * 2);
-  current = (unsigned char *) &msg[1];
+  a = gcry_mpi_new (0);
+  payload = (struct GNUNET_CRYPTO_PaillierCiphertext *) &msg[1];
   // encrypt our vector and generate string representations
-  for (i = session->last_processed, j = 0; i < session->total; i++)
-  {
+  for (i = session->last_processed, j = 0; i < session->total; i++) {
     // is this a used element?
     if (session->mask[i / 8] & 1 << (i % 8)) {
       if (todo_count <= j)
         break; //reached end of this message, can't include more
 
-      memset (element_exported, 0, PAILLIER_ELEMENT_LENGTH);
       value = session->vector[i] >= 0 ? session->vector[i] : -session->vector[i];
 
       a = gcry_mpi_set_ui (a, 0);
@@ -1420,27 +1087,12 @@ prepare_service_request_multipart (void *cls)
       else
         gcry_mpi_add_ui (a, a, value);
 
-      session->a[session->transferred + j++] = gcry_mpi_set (NULL, a);
+      session->a[session->transferred + j] = gcry_mpi_set (NULL, a);
       gcry_mpi_add (a, a, my_offset);
-      // FIXME: encrypt_element (a, a, my_g, my_n, my_nsquare);
-
-      // get representation as string
-      // we always supply some value, so gcry_mpi_print fails only if it can't reserve memory
-      GNUNET_assert (!gcry_mpi_print (GCRYMPI_FMT_USG,
-                                      element_exported, PAILLIER_ELEMENT_LENGTH,
-                                      &element_length,
-                                      a));
-
-      // move buffer content to the end of the buffer so it can easily be read by libgcrypt. also this now has fixed size
-      adjust (element_exported, element_length, PAILLIER_ELEMENT_LENGTH);
-
-      // copy over to the message
-      memcpy (current, element_exported, PAILLIER_ELEMENT_LENGTH);
-      current += PAILLIER_ELEMENT_LENGTH;
+      GNUNET_CRYPTO_paillier_encrypt (&my_pubkey, a, 3, &payload[j++]);
     }
   }
   gcry_mpi_release (a);
-  GNUNET_free (element_exported);
   session->transferred += todo_count;
 
   session->msg = (struct GNUNET_MessageHeader *) msg;
@@ -1482,12 +1134,11 @@ prepare_service_request (void *cls,
 {
   struct ServiceSession * session = cls;
   unsigned char * current;
-  unsigned char * element_exported;
   struct GNUNET_SCALARPRODUCT_service_request * msg;
+  struct GNUNET_CRYPTO_PaillierCiphertext * payload;
   unsigned int i;
   unsigned int j;
   uint32_t msg_length;
-  size_t element_length = 0; // initialized by gcry_mpi_print, but the compiler doesn't know that
   gcry_mpi_t a;
   uint32_t value;
 
@@ -1496,16 +1147,16 @@ prepare_service_request (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _ ("Successfully created new channel to peer (%s)!\n"), GNUNET_i2s (&session->peer));
 
   msg_length = sizeof (struct GNUNET_SCALARPRODUCT_service_request)
-          +session->mask_length
-          + my_pubkey_external_length;
+          + session->mask_length
+          + sizeof(struct GNUNET_CRYPTO_PaillierPublicKey);
 
-  if (GNUNET_SERVER_MAX_MESSAGE_SIZE > msg_length + session->used * PAILLIER_ELEMENT_LENGTH) {
-    msg_length += session->used * PAILLIER_ELEMENT_LENGTH;
+  if (GNUNET_SERVER_MAX_MESSAGE_SIZE > msg_length + session->used * sizeof(struct GNUNET_CRYPTO_PaillierCiphertext)) {
+    msg_length += session->used * sizeof(struct GNUNET_CRYPTO_PaillierCiphertext);
     session->transferred = session->used;
   }
   else {
     //create a multipart msg, first we calculate a new msg size for the head msg
-    session->transferred = (GNUNET_SERVER_MAX_MESSAGE_SIZE - 1 - msg_length) / PAILLIER_ELEMENT_LENGTH;
+    session->transferred = (GNUNET_SERVER_MAX_MESSAGE_SIZE - 1 - msg_length) / sizeof(struct GNUNET_CRYPTO_PaillierCiphertext);
   }
 
   msg = GNUNET_malloc (msg_length);
@@ -1514,7 +1165,6 @@ prepare_service_request (void *cls,
   msg->contained_element_count = htonl (session->transferred);
   memcpy (&msg->key, &session->key, sizeof (struct GNUNET_HashCode));
   msg->mask_length = htonl (session->mask_length);
-  msg->pk_length = htonl (my_pubkey_external_length);
   msg->element_count = htonl (session->total);
   msg->header.size = htons (msg_length);
 
@@ -1524,13 +1174,13 @@ prepare_service_request (void *cls,
   memcpy (current, session->mask, session->mask_length);
   // copy over our public key
   current += session->mask_length;
-  memcpy (current, my_pubkey_external, my_pubkey_external_length);
-  current += my_pubkey_external_length;
+  memcpy (current, &my_pubkey, sizeof(struct GNUNET_CRYPTO_PaillierPublicKey));
+  current += sizeof(struct GNUNET_CRYPTO_PaillierPublicKey);
+  payload = (struct GNUNET_CRYPTO_PaillierCiphertext *) current;
 
   // now copy over the element vector
-  element_exported = GNUNET_malloc (PAILLIER_ELEMENT_LENGTH);
   session->a = GNUNET_malloc (sizeof (gcry_mpi_t) * session->used);
-  a = gcry_mpi_new (KEYBITS * 2);
+  a = gcry_mpi_new (0);
   // encrypt our vector and generate string representations
   for (i = 0, j = 0; i < session->total; i++) {
     // if this is a used element...
@@ -1538,7 +1188,6 @@ prepare_service_request (void *cls,
       if (session->transferred <= j)
         break; //reached end of this message, can't include more
 
-      memset (element_exported, 0, PAILLIER_ELEMENT_LENGTH);
       value = session->vector[i] >= 0 ? session->vector[i] : -session->vector[i];
 
       a = gcry_mpi_set_ui (a, 0);
@@ -1548,27 +1197,12 @@ prepare_service_request (void *cls,
       else
         gcry_mpi_add_ui (a, a, value);
 
-      session->a[j++] = gcry_mpi_set (NULL, a);
+      session->a[j] = gcry_mpi_set (NULL, a);
       gcry_mpi_add (a, a, my_offset);
-      // FIXME: encrypt_element (a, a, my_g, my_n, my_nsquare);
-
-      // get representation as string
-      // we always supply some value, so gcry_mpi_print fails only if it can't reserve memory
-      GNUNET_assert (!gcry_mpi_print (GCRYMPI_FMT_USG,
-                                      element_exported, PAILLIER_ELEMENT_LENGTH,
-                                      &element_length,
-                                      a));
-
-      // move buffer content to the end of the buffer so it can easily be read by libgcrypt. also this now has fixed size
-      adjust (element_exported, element_length, PAILLIER_ELEMENT_LENGTH);
-
-      // copy over to the message
-      memcpy (current, element_exported, PAILLIER_ELEMENT_LENGTH);
-      current += PAILLIER_ELEMENT_LENGTH;
+      GNUNET_CRYPTO_paillier_encrypt (&my_pubkey, a, 3, &payload[j++]);
     }
   }
   gcry_mpi_release (a);
-  GNUNET_free (element_exported);
 
   session->msg = (struct GNUNET_MessageHeader *) msg;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, _ ("Transmitting service request.\n"));
@@ -1650,7 +1284,7 @@ handle_client_request (void *cls,
   if ((ntohs (msg->header.size) != (sizeof (struct GNUNET_SCALARPRODUCT_client_request) +element_count * sizeof (int32_t) + mask_length))
       || (0 == element_count)) {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _("Invalid message received from client, session information incorrect!\n"));
+                _ ("Invalid message received from client, session information incorrect!\n"));
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
@@ -1661,7 +1295,7 @@ handle_client_request (void *cls,
                                      element_count,
                                      NULL, NULL)) {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _("Duplicate session information received, cannot create new session with key `%s'\n"),
+                _ ("Duplicate session information received, cannot create new session with key `%s'\n"),
                 GNUNET_h2s (&msg->key));
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
@@ -1679,10 +1313,9 @@ handle_client_request (void *cls,
   session->vector = GNUNET_malloc (sizeof (int32_t) * element_count);
   vector = (int32_t *) & msg[1];
 
-  if (GNUNET_MESSAGE_TYPE_SCALARPRODUCT_CLIENT_TO_ALICE == msg_type)
-  {
+  if (GNUNET_MESSAGE_TYPE_SCALARPRODUCT_CLIENT_TO_ALICE == msg_type) {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                _("Got client-request-session with key %s, preparing channel to remote service.\n"),
+                _ ("Got client-request-session with key %s, preparing channel to remote service.\n"),
                 GNUNET_h2s (&session->key));
 
     session->role = ALICE;
@@ -1692,8 +1325,7 @@ handle_client_request (void *cls,
 
     // copy over the elements
     session->used = 0;
-    for (i = 0; i < element_count; i++)
-    {
+    for (i = 0; i < element_count; i++) {
       session->vector[i] = ntohl (vector[i]);
       if (session->vector[i] == 0)
         session->mask[i / 8] &= ~(1 << (i % 8));
@@ -1701,8 +1333,7 @@ handle_client_request (void *cls,
         session->used++;
     }
 
-    if (0 == session->used)
-    {
+    if (0 == session->used) {
       GNUNET_break_op (0);
       GNUNET_free (session->vector);
       GNUNET_free (session);
@@ -1710,8 +1341,7 @@ handle_client_request (void *cls,
       return;
     }
     //session with ourself makes no sense!
-    if (!memcmp (&msg->peer, &me, sizeof (struct GNUNET_PeerIdentity)))
-    {
+    if (!memcmp (&msg->peer, &me, sizeof (struct GNUNET_PeerIdentity))) {
       GNUNET_break (0);
       GNUNET_free (session->vector);
       GNUNET_free (session);
@@ -1724,9 +1354,9 @@ handle_client_request (void *cls,
                 _ ("Creating new channel for session with key %s.\n"),
                 GNUNET_h2s (&session->key));
     session->channel = GNUNET_MESH_channel_create (my_mesh, session,
-                                                 &session->peer,
-                                                 GNUNET_APPLICATION_TYPE_SCALARPRODUCT,
-                                                 GNUNET_MESH_OPTION_RELIABLE);
+                                                   &session->peer,
+                                                   GNUNET_APPLICATION_TYPE_SCALARPRODUCT,
+                                                   GNUNET_MESH_OPTION_RELIABLE);
     //prepare_service_request, channel_peer_disconnect_handler,
     if (!session->channel) {
       GNUNET_break (0);
@@ -1744,8 +1374,7 @@ handle_client_request (void *cls,
                                       session);
 
   }
-  else
-  {
+  else {
     struct ServiceSession * requesting_session;
     enum SessionState needed_state = SERVICE_REQUEST_RECEIVED;
 
@@ -1765,10 +1394,9 @@ handle_client_request (void *cls,
                                                 &session->key,
                                                 session->total,
                                                 &needed_state, NULL);
-    if (NULL != requesting_session)
-    {
+    if (NULL != requesting_session) {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  _("Got client-responder-session with key %s and a matching service-request-session set, processing.\n"),
+                  _ ("Got client-responder-session with key %s and a matching service-request-session set, processing.\n"),
                   GNUNET_h2s (&session->key));
       if (GNUNET_OK != compute_service_response (requesting_session, session))
         session->client_notification_task =
@@ -1776,10 +1404,9 @@ handle_client_request (void *cls,
                                         session);
 
     }
-    else
-    {
+    else {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  _("Got client-responder-session with key %s but NO matching service-request-session set, queuing element for later use.\n"),
+                  _ ("Got client-responder-session with key %s but NO matching service-request-session set, queuing element for later use.\n"),
                   GNUNET_h2s (&session->key));
       // no matching session exists yet, store the response
       // for later processing by handle_service_request()
@@ -1802,14 +1429,14 @@ handle_client_request (void *cls,
  */
 static void *
 channel_incoming_handler (void *cls,
-                         struct GNUNET_MESH_Channel *channel,
-                         const struct GNUNET_PeerIdentity *initiator,
-                         uint32_t port, enum GNUNET_MESH_ChannelOption options)
+                          struct GNUNET_MESH_Channel *channel,
+                          const struct GNUNET_PeerIdentity *initiator,
+                          uint32_t port, enum GNUNET_MESH_ChannelOption options)
 {
   struct ServiceSession * c = GNUNET_new (struct ServiceSession);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              _("New incoming channel from peer %s.\n"),
+              _ ("New incoming channel from peer %s.\n"),
               GNUNET_i2s (initiator));
 
   c->peer = *initiator;
@@ -1833,8 +1460,8 @@ channel_incoming_handler (void *cls,
  */
 static void
 channel_destruction_handler (void *cls,
-                            const struct GNUNET_MESH_Channel *channel,
-                            void *channel_ctx)
+                             const struct GNUNET_MESH_Channel *channel,
+                             void *channel_ctx)
 {
   struct ServiceSession * session = channel_ctx;
   struct ServiceSession * client_session;
@@ -1901,20 +1528,25 @@ compute_scalar_product (struct ServiceSession * session)
   gcry_mpi_t p;
   gcry_mpi_t p_prime;
   gcry_mpi_t tmp;
+  gcry_mpi_t r[session->used];
+  gcry_mpi_t r_prime[session->used];
+  gcry_mpi_t s;
+  gcry_mpi_t s_prime;
   unsigned int i;
 
   count = session->used;
   // due to the introduced static offset S, we now also have to remove this
   // from the E(a_pi)(+)E(-b_pi-r_pi) and E(a_qi)(+)E(-r_qi) twice each,
   // the result is E((S + a_pi) + (S -b_pi-r_pi)) and E(S + a_qi + S - r_qi)
-  for (i = 0; i < count; i++)
-  {
-    decrypt_element (session->r[i], session->r[i], my_mu, my_lambda, my_n, my_nsquare);
-    gcry_mpi_sub (session->r[i], session->r[i], my_offset);
-    gcry_mpi_sub (session->r[i], session->r[i], my_offset);
-    decrypt_element (session->r_prime[i], session->r_prime[i], my_mu, my_lambda, my_n, my_nsquare);
-    gcry_mpi_sub (session->r_prime[i], session->r_prime[i], my_offset);
-    gcry_mpi_sub (session->r_prime[i], session->r_prime[i], my_offset);
+  for (i = 0; i < count; i++) {
+    GNUNET_CRYPTO_paillier_decrypt (&my_privkey, &my_pubkey,
+                                    &session->r[i], r[i]);
+    gcry_mpi_sub (r[i], r[i], my_offset);
+    gcry_mpi_sub (r[i], r[i], my_offset);
+    GNUNET_CRYPTO_paillier_decrypt (&my_privkey, &my_pubkey,
+                                    &session->r_prime[i], r_prime[i]);
+    gcry_mpi_sub (r_prime[i], r_prime[i], my_offset);
+    gcry_mpi_sub (r_prime[i], r_prime[i], my_offset);
   }
 
   // calculate t = sum(ai)
@@ -1922,33 +1554,39 @@ compute_scalar_product (struct ServiceSession * session)
 
   // calculate U
   u = gcry_mpi_new (0);
-  tmp = compute_square_sum (session->r, count);
+  tmp = compute_square_sum (r, count);
   gcry_mpi_sub (u, u, tmp);
   gcry_mpi_release (tmp);
 
   //calculate U'
   u_prime = gcry_mpi_new (0);
-  tmp = compute_square_sum (session->r_prime, count);
+  tmp = compute_square_sum (r_prime, count);
   gcry_mpi_sub (u_prime, u_prime, tmp);
 
   GNUNET_assert (p = gcry_mpi_new (0));
   GNUNET_assert (p_prime = gcry_mpi_new (0));
+  GNUNET_assert (s = gcry_mpi_new (0));
+  GNUNET_assert (s_prime = gcry_mpi_new (0));
 
   // compute P
-  decrypt_element (session->s, session->s, my_mu, my_lambda, my_n, my_nsquare);
-  decrypt_element (session->s_prime, session->s_prime, my_mu, my_lambda, my_n, my_nsquare);
+  GNUNET_CRYPTO_paillier_decrypt (&my_privkey, &my_pubkey,
+                                    session->s, s);
+  GNUNET_CRYPTO_paillier_decrypt (&my_privkey, &my_pubkey,
+                                    session->s_prime, s_prime);
 
   // compute P
-  gcry_mpi_add (p, session->s, t);
+  gcry_mpi_add (p, s, t);
   gcry_mpi_add (p, p, u);
 
   // compute P'
-  gcry_mpi_add (p_prime, session->s_prime, t);
+  gcry_mpi_add (p_prime, s_prime, t);
   gcry_mpi_add (p_prime, p_prime, u_prime);
 
   gcry_mpi_release (t);
   gcry_mpi_release (u);
   gcry_mpi_release (u_prime);
+  gcry_mpi_release (s);
+  gcry_mpi_release (s_prime);
 
   // compute product
   gcry_mpi_sub (p, p, p_prime);
@@ -1957,10 +1595,21 @@ compute_scalar_product (struct ServiceSession * session)
   gcry_mpi_div (p, NULL, p, tmp, 0);
 
   gcry_mpi_release (tmp);
-  for (i = 0; i < count; i++)
+  for (i = 0; i < count; i++){
     gcry_mpi_release (session->a[i]);
+    gcry_mpi_release (r[i]);
+    gcry_mpi_release (r_prime[i]);
+  }
   GNUNET_free (session->a);
   session->a = NULL;
+  GNUNET_free (session->s);
+  session->s = NULL;
+  GNUNET_free (session->s_prime);
+  session->s_prime = NULL;
+  GNUNET_free (session->r);
+  session->r = NULL;
+  GNUNET_free (session->r_prime);
+  session->r_prime = NULL;
 
   return p;
 }
@@ -1984,12 +1633,10 @@ handle_service_request_multipart (void *cls,
 {
   struct ServiceSession * session;
   const struct GNUNET_SCALARPRODUCT_multipart_message * msg = (const struct GNUNET_SCALARPRODUCT_multipart_message *) message;
+  struct GNUNET_CRYPTO_PaillierCiphertext *payload;
   uint32_t used_elements;
   uint32_t contained_elements = 0;
   uint32_t msg_length;
-  unsigned char * current;
-  gcry_error_t rc;
-  int32_t i = -1;
 
   // are we in the correct state?
   session = (struct ServiceSession *) * channel_ctx;
@@ -2003,34 +1650,24 @@ handle_service_request_multipart (void *cls,
   used_elements = session->used;
   contained_elements = ntohl (msg->multipart_element_count);
   msg_length = sizeof (struct GNUNET_SCALARPRODUCT_multipart_message)
-          +contained_elements * PAILLIER_ELEMENT_LENGTH;
+          + contained_elements * sizeof(struct GNUNET_CRYPTO_PaillierCiphertext);
   //sanity check
   if ((ntohs (msg->header.size) != msg_length)
       || (used_elements < contained_elements + session->transferred)) {
     goto except;
   }
-  current = (unsigned char *) &msg[1];
+  payload = (struct GNUNET_CRYPTO_PaillierCiphertext *) &msg[1];
   if (contained_elements != 0) {
     // Convert each vector element to MPI_value
-    for (i = session->transferred; i < session->transferred + contained_elements; i++) {
-      size_t read = 0;
-      if (0 != (rc = gcry_mpi_scan (&session->a[i],
-                                    GCRYMPI_FMT_USG,
-                                    &current[i * PAILLIER_ELEMENT_LENGTH],
-                                    PAILLIER_ELEMENT_LENGTH,
-                                    &read))) {
-        LOG_GCRY (GNUNET_ERROR_TYPE_DEBUG, "gcry_mpi_scan", rc);
-        goto except;
-      }
-    }
+    memcpy(&session->e_a[session->transferred], payload, 
+           sizeof(struct GNUNET_CRYPTO_PaillierCiphertext) * contained_elements);
+    
     session->transferred += contained_elements;
 
-    if (session->transferred == used_elements)
-    {
+    if (session->transferred == used_elements) {
       // single part finished
       session->state = SERVICE_REQUEST_RECEIVED;
-      if (session->response)
-      {
+      if (session->response) {
         GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                     _ ("Got session with key %s and a matching element set, processing.\n"),
                     GNUNET_h2s (&session->key));
@@ -2041,11 +1678,10 @@ handle_service_request_multipart (void *cls,
       }
       else
         GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                    _("Got session with key %s without a matching element set, queueing.\n"),
+                    _ ("Got session with key %s without a matching element set, queueing.\n"),
                     GNUNET_h2s (&session->key));
     }
-    else
-    {
+    else {
       // multipart message
     }
   }
@@ -2084,14 +1720,12 @@ handle_service_request (void *cls,
   struct ServiceSession * session;
   const struct GNUNET_SCALARPRODUCT_service_request * msg = (const struct GNUNET_SCALARPRODUCT_service_request *) message;
   uint32_t mask_length;
-  uint32_t pk_length;
+  struct GNUNET_CRYPTO_PaillierCiphertext *payload;
   uint32_t used_elements;
   uint32_t contained_elements = 0;
   uint32_t element_count;
   uint32_t msg_length;
   unsigned char * current;
-  gcry_error_t rc;
-  int32_t i = -1;
   enum SessionState needed_state;
 
   session = (struct ServiceSession *) * channel_ctx;
@@ -2111,20 +1745,19 @@ handle_service_request (void *cls,
     return GNUNET_SYSERR;
   }
   mask_length = ntohl (msg->mask_length);
-  pk_length = ntohl (msg->pk_length);
   used_elements = ntohl (msg->total_element_count);
   contained_elements = ntohl (msg->contained_element_count);
   element_count = ntohl (msg->element_count);
   msg_length = sizeof (struct GNUNET_SCALARPRODUCT_service_request)
-          +mask_length + pk_length + contained_elements * PAILLIER_ELEMENT_LENGTH;
+          + mask_length + sizeof(struct GNUNET_CRYPTO_PaillierPublicKey) 
+          + contained_elements * sizeof(struct GNUNET_CRYPTO_PaillierCiphertext);
 
   //sanity check: is the message as long as the message_count fields suggests?
-  if ( (ntohs (msg->header.size) != msg_length) ||
-       (element_count < used_elements) ||
-       (used_elements < contained_elements) ||
-       (0 == used_elements) ||
-       (mask_length != (element_count / 8 + ((element_count % 8) ? 1 : 0))) )
-  {
+  if ((ntohs (msg->header.size) != msg_length) ||
+      (element_count < used_elements) ||
+      (used_elements < contained_elements) ||
+      (0 == used_elements) ||
+      (mask_length != (element_count / 8 + ((element_count % 8) ? 1 : 0)))) {
     GNUNET_free (session);
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
@@ -2133,8 +1766,7 @@ handle_service_request (void *cls,
                              &msg->key,
                              element_count,
                              NULL,
-                             NULL))
-  {
+                             NULL)) {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _ ("Got message with duplicate session key (`%s'), ignoring service request.\n"),
                 (const char *) &(msg->key));
@@ -2157,36 +1789,24 @@ handle_service_request (void *cls,
   current += mask_length;
 
   //convert the publickey to sexp
-  if (0 != (rc = gcry_sexp_new (&session->remote_pubkey, current, pk_length, 1))) {
-    LOG_GCRY (GNUNET_ERROR_TYPE_DEBUG, "gcry_sexp_new", rc);
-    GNUNET_free (session->mask);
-    GNUNET_free (session);
-    return GNUNET_SYSERR;
-  }
-  current += pk_length;
+  session->remote_pubkey = GNUNET_malloc(sizeof(struct GNUNET_CRYPTO_PaillierPublicKey));
+  memcpy(session->remote_pubkey, current, sizeof(struct GNUNET_CRYPTO_PaillierPublicKey));
+  current += sizeof(struct GNUNET_CRYPTO_PaillierPublicKey);
+  
+  payload = (struct GNUNET_CRYPTO_PaillierCiphertext*) current;
   //check if service queue contains a matching request
   needed_state = CLIENT_RESPONSE_RECEIVED;
   session->response = find_matching_session (from_client_tail,
                                              &session->key,
                                              session->total,
                                              &needed_state, NULL);
-
-  session->a = GNUNET_malloc (sizeof (gcry_mpi_t) * used_elements);
   session->state = WAITING_FOR_MULTIPART_TRANSMISSION;
   GNUNET_CONTAINER_DLL_insert (from_service_head, from_service_tail, session);
+  
+  session->e_a = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_PaillierCiphertext) * used_elements);
   if (contained_elements != 0) {
     // Convert each vector element to MPI_value
-    for (i = 0; i < contained_elements; i++) {
-      size_t read = 0;
-      if (0 != (rc = gcry_mpi_scan (&session->a[i],
-                                    GCRYMPI_FMT_USG,
-                                    &current[i * PAILLIER_ELEMENT_LENGTH],
-                                    PAILLIER_ELEMENT_LENGTH,
-                                    &read))) {
-        LOG_GCRY (GNUNET_ERROR_TYPE_DEBUG, "gcry_mpi_scan", rc);
-        goto invalid_msg;
-      }
-    }
+    memcpy(session->e_a, payload, sizeof (struct GNUNET_CRYPTO_PaillierCiphertext) * used_elements);
     if (contained_elements == used_elements) {
       // single part finished
       session->state = SERVICE_REQUEST_RECEIVED;
@@ -2238,13 +1858,11 @@ handle_service_response_multipart (void *cls,
 {
   struct ServiceSession * session;
   const struct GNUNET_SCALARPRODUCT_multipart_message * msg = (const struct GNUNET_SCALARPRODUCT_multipart_message *) message;
-  unsigned char * current;
-  size_t read;
+  struct GNUNET_CRYPTO_PaillierCiphertext * payload;
   size_t i;
   uint32_t contained = 0;
   size_t msg_size;
   size_t required_size;
-  int rc;
 
   GNUNET_assert (NULL != message);
   // are we in the correct state?
@@ -2253,33 +1871,24 @@ handle_service_response_multipart (void *cls,
     goto invalid_msg;
   }
   msg_size = ntohs (msg->header.size);
-  required_size = sizeof (struct GNUNET_SCALARPRODUCT_multipart_message) + 2 * PAILLIER_ELEMENT_LENGTH;
+  required_size = sizeof (struct GNUNET_SCALARPRODUCT_multipart_message) 
+                  + 2 * sizeof (struct GNUNET_CRYPTO_PaillierCiphertext);
   // shorter than minimum?
   if (required_size > msg_size) {
     goto invalid_msg;
   }
   contained = ntohl (msg->multipart_element_count);
   required_size = sizeof (struct GNUNET_SCALARPRODUCT_multipart_message)
-          + 2 * contained * PAILLIER_ELEMENT_LENGTH;
+          + 2 * contained * sizeof (struct GNUNET_CRYPTO_PaillierCiphertext);
   //sanity check: is the message as long as the message_count fields suggests?
   if ((required_size != msg_size) || (session->used < session->transferred + contained)) {
     goto invalid_msg;
   }
-  current = (unsigned char *) &msg[1];
+  payload = (struct GNUNET_CRYPTO_PaillierCiphertext *) &msg[1];
   // Convert each k[][perm] to its MPI_value
   for (i = 0; i < contained; i++) {
-    if (0 != (rc = gcry_mpi_scan (&session->r[i], GCRYMPI_FMT_USG, current,
-                                  PAILLIER_ELEMENT_LENGTH, &read))) {
-      LOG_GCRY (GNUNET_ERROR_TYPE_DEBUG, "gcry_mpi_scan", rc);
-      goto invalid_msg;
-    }
-    current += PAILLIER_ELEMENT_LENGTH;
-    if (0 != (rc = gcry_mpi_scan (&session->r_prime[i], GCRYMPI_FMT_USG, current,
-                                  PAILLIER_ELEMENT_LENGTH, &read))) {
-      LOG_GCRY (GNUNET_ERROR_TYPE_DEBUG, "gcry_mpi_scan", rc);
-      goto invalid_msg;
-    }
-    current += PAILLIER_ELEMENT_LENGTH;
+    memcpy(&session->r[session->transferred+i], &payload[2*i], sizeof (struct GNUNET_CRYPTO_PaillierCiphertext));
+    memcpy(&session->r_prime[session->transferred+i], &payload[2*i], sizeof (struct GNUNET_CRYPTO_PaillierCiphertext));
   }
   session->transferred += contained;
   if (session->transferred != session->used)
@@ -2288,15 +1897,15 @@ handle_service_response_multipart (void *cls,
   session->product = compute_scalar_product (session); //never NULL
 
 invalid_msg:
-  GNUNET_break_op (NULL != session->product);
+  GNUNET_break_op (NULL != session->product); //NULL if we never tried to compute it...
 
   // send message with product to client
-  if (ALICE == session->role){
+  if (ALICE == session->role) {
     session->state = FINALIZED;
     session->channel = NULL;
     session->client_notification_task =
-          GNUNET_SCHEDULER_add_now (&prepare_client_response,
-                                    session);
+            GNUNET_SCHEDULER_add_now (&prepare_client_response,
+                                      session);
   }
   // the channel has done its job, terminate our connection and the channel
   // the peer will be notified that the channel was destroyed via channel_destruction_handler
@@ -2323,13 +1932,11 @@ handle_service_response (void *cls,
 {
   struct ServiceSession * session;
   const struct GNUNET_SCALARPRODUCT_service_response * msg = (const struct GNUNET_SCALARPRODUCT_service_response *) message;
-  unsigned char * current;
-  size_t read;
+  struct GNUNET_CRYPTO_PaillierCiphertext * payload;
   size_t i;
   uint32_t contained = 0;
   size_t msg_size;
   size_t required_size;
-  int rc;
 
   GNUNET_assert (NULL != message);
   session = (struct ServiceSession *) * channel_ctx;
@@ -2339,15 +1946,15 @@ handle_service_response (void *cls,
   }
   //we need at least a full message without elements attached
   msg_size = ntohs (msg->header.size);
-  required_size = sizeof (struct GNUNET_SCALARPRODUCT_service_response) + 2 * PAILLIER_ELEMENT_LENGTH;
+  required_size = sizeof (struct GNUNET_SCALARPRODUCT_service_response) + 2 * sizeof (struct GNUNET_CRYPTO_PaillierCiphertext);
 
   if (required_size > msg_size) {
     goto invalid_msg;
   }
   contained = ntohl (msg->contained_element_count);
   required_size = sizeof (struct GNUNET_SCALARPRODUCT_service_response)
-          + 2 * contained * PAILLIER_ELEMENT_LENGTH
-          + 2 * PAILLIER_ELEMENT_LENGTH;
+          + 2 * contained * sizeof (struct GNUNET_CRYPTO_PaillierCiphertext)
+          + 2 * sizeof (struct GNUNET_CRYPTO_PaillierCiphertext);
   //sanity check: is the message as long as the message_count fields suggests?
   if ((msg_size != required_size) || (session->used < contained)) {
     goto invalid_msg;
@@ -2355,36 +1962,20 @@ handle_service_response (void *cls,
   session->state = WAITING_FOR_MULTIPART_TRANSMISSION;
   session->transferred = contained;
   //convert s
-  current = (unsigned char *) &msg[1];
-  if (0 != (rc = gcry_mpi_scan (&session->s, GCRYMPI_FMT_USG, current,
-                                PAILLIER_ELEMENT_LENGTH, &read))) {
-    LOG_GCRY (GNUNET_ERROR_TYPE_DEBUG, "gcry_mpi_scan", rc);
-    goto invalid_msg;
-  }
-  current += PAILLIER_ELEMENT_LENGTH;
-  //convert stick
-  if (0 != (rc = gcry_mpi_scan (&session->s_prime, GCRYMPI_FMT_USG, current,
-                                PAILLIER_ELEMENT_LENGTH, &read))) {
-    LOG_GCRY (GNUNET_ERROR_TYPE_DEBUG, "gcry_mpi_scan", rc);
-    goto invalid_msg;
-  }
-  current += PAILLIER_ELEMENT_LENGTH;
-  session->r = GNUNET_malloc (sizeof (gcry_mpi_t) * session->used);
-  session->r_prime = GNUNET_malloc (sizeof (gcry_mpi_t) * session->used);
+  payload = (struct GNUNET_CRYPTO_PaillierCiphertext *) &msg[1];
+  
+  session->s = GNUNET_malloc(sizeof(struct GNUNET_CRYPTO_PaillierCiphertext));
+  session->s_prime = GNUNET_malloc(sizeof(struct GNUNET_CRYPTO_PaillierCiphertext));
+  memcpy(session->s,&payload[0],sizeof(struct GNUNET_CRYPTO_PaillierCiphertext));
+  memcpy(session->s_prime,&payload[1],sizeof(struct GNUNET_CRYPTO_PaillierCiphertext));
+  
+  session->r = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_PaillierCiphertext) * session->used);
+  session->r_prime = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_PaillierCiphertext) * session->used);
+  
   // Convert each k[][perm] to its MPI_value
   for (i = 0; i < contained; i++) {
-    if (0 != (rc = gcry_mpi_scan (&session->r[i], GCRYMPI_FMT_USG, current,
-                                  PAILLIER_ELEMENT_LENGTH, &read))) {
-      LOG_GCRY (GNUNET_ERROR_TYPE_DEBUG, "gcry_mpi_scan", rc);
-      goto invalid_msg;
-    }
-    current += PAILLIER_ELEMENT_LENGTH;
-    if (0 != (rc = gcry_mpi_scan (&session->r_prime[i], GCRYMPI_FMT_USG, current,
-                                  PAILLIER_ELEMENT_LENGTH, &read))) {
-      LOG_GCRY (GNUNET_ERROR_TYPE_DEBUG, "gcry_mpi_scan", rc);
-      goto invalid_msg;
-    }
-    current += PAILLIER_ELEMENT_LENGTH;
+    memcpy(&session->r[i], &payload[2 + 2*i], sizeof (struct GNUNET_CRYPTO_PaillierCiphertext));
+    memcpy(&session->r_prime[i], &payload[3 + 2*i], sizeof (struct GNUNET_CRYPTO_PaillierCiphertext));
   }
   if (session->transferred != session->used)
     return GNUNET_OK; //wait for the other multipart chunks
@@ -2395,12 +1986,12 @@ handle_service_response (void *cls,
 invalid_msg:
   GNUNET_break_op (NULL != session->product);
   // send message with product to client
-  if (ALICE == session->role){
+  if (ALICE == session->role) {
     session->state = FINALIZED;
     session->channel = NULL;
     session->client_notification_task =
-          GNUNET_SCHEDULER_add_now (&prepare_client_response,
-                                    session);
+            GNUNET_SCHEDULER_add_now (&prepare_client_response,
+                                      session);
   }
   // the channel has done its job, terminate our connection and the channel
   // the peer will be notified that the channel was destroyed via channel_destruction_handler
@@ -2485,8 +2076,14 @@ run (void *cls,
     0
   };
   //generate private/public key set
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _ ("Generating Paillier-Keyset.\n"));
-  generate_keyset ();
+  GNUNET_CRYPTO_paillier_create (&my_pubkey, &my_privkey);
+  
+  // offset has to be sufficiently small to allow computation of:
+  // m1+m2 mod n == (S + a) + (S + b) mod n,
+  // if we have more complex operations, this factor needs to be lowered
+  my_offset = gcry_mpi_new (GNUNET_CRYPTO_PAILLIER_BITS / 3);
+  gcry_mpi_set_bit (my_offset, GNUNET_CRYPTO_PAILLIER_BITS / 3);
+  
   // register server callbacks and disconnect handler
   GNUNET_SERVER_add_handlers (server, server_handlers);
   GNUNET_SERVER_disconnect_notify (server,

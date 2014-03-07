@@ -36,21 +36,11 @@ extern "C"
 ///////////////////////////////////////////////////////////////////////////////
 //                      Defines
 ///////////////////////////////////////////////////////////////////////////////
-/**
- * Length of the key used for encryption
- */
-#define KEYBITS 2048
-
-/**
- * When performing our crypto, we may add two encrypted values with each
- * a maximal length of GNUNET_CRYPTO_RSA_DATA_ENCODING_LENGTH.
- */
-#define PAILLIER_ELEMENT_LENGTH (2*KEYBITS/sizeof(char))
 
 /**
  * Maximum count of elements we can put into a multipart message
  */
-#define MULTIPART_ELEMENT_CAPACITY ((GNUNET_SERVER_MAX_MESSAGE_SIZE - 1 - sizeof (struct GNUNET_SCALARPRODUCT_multipart_message)) / PAILLIER_ELEMENT_LENGTH)
+#define MULTIPART_ELEMENT_CAPACITY ((GNUNET_SERVER_MAX_MESSAGE_SIZE - 1 - sizeof (struct GNUNET_SCALARPRODUCT_multipart_message)) / sizeof (struct GNUNET_CRYPTO_PaillierCiphertext))
 
 /**
  * Log an error message at log-level 'level' that indicates
@@ -123,11 +113,6 @@ struct GNUNET_SCALARPRODUCT_service_request {
    * how many bytes the mask has
    */
   uint32_t mask_length GNUNET_PACKED;
-
-  /**
-   * the length of the publickey contained within this message
-   */
-  uint32_t pk_length GNUNET_PACKED;
 
   /**
    * the transaction/session key used to identify a session
