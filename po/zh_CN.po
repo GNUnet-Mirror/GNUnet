@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gnunet-0.8.1\n"
 "Report-Msgid-Bugs-To: gnunet-developers@mail.gnu.org\n"
-"POT-Creation-Date: 2014-02-03 20:43+0100\n"
+"POT-Creation-Date: 2014-03-07 20:51+0100\n"
 "PO-Revision-Date: 2011-07-09 12:12+0800\n"
 "Last-Translator: Wylmer Wang <wantinghard@gmail.com>\n"
 "Language-Team: Chinese (simplified) <i18n-zh@googlegroups.com>\n"
@@ -283,60 +283,60 @@ msgstr "无法创建用户账户："
 msgid "Unable to bind listening socket for service `%s' to address `%s': %s\n"
 msgstr ""
 
-#: src/arm/gnunet-service-arm.c:690
+#: src/arm/gnunet-service-arm.c:695
 #, c-format
 msgid "ARM now monitors connections to service `%s' at `%s'\n"
 msgstr ""
 
-#: src/arm/gnunet-service-arm.c:826
+#: src/arm/gnunet-service-arm.c:831
 #, c-format
 msgid "Preparing to stop `%s'\n"
 msgstr ""
 
-#: src/arm/gnunet-service-arm.c:1095
+#: src/arm/gnunet-service-arm.c:1100
 #, c-format
 msgid "Restarting service `%s'.\n"
 msgstr ""
 
-#: src/arm/gnunet-service-arm.c:1188
+#: src/arm/gnunet-service-arm.c:1193
 msgid "exit"
 msgstr ""
 
-#: src/arm/gnunet-service-arm.c:1193
+#: src/arm/gnunet-service-arm.c:1198
 msgid "signal"
 msgstr ""
 
-#: src/arm/gnunet-service-arm.c:1198
+#: src/arm/gnunet-service-arm.c:1203
 #, fuzzy
 msgid "unknown"
 msgstr "未知错误"
 
-#: src/arm/gnunet-service-arm.c:1204
+#: src/arm/gnunet-service-arm.c:1209
 #, fuzzy, c-format
 msgid "Service `%s' took %s to terminate\n"
 msgstr "服务已删除。\n"
 
-#: src/arm/gnunet-service-arm.c:1226
+#: src/arm/gnunet-service-arm.c:1231
 #, c-format
 msgid "Service `%s' terminated normally, will restart at any time\n"
 msgstr ""
 
-#: src/arm/gnunet-service-arm.c:1241
+#: src/arm/gnunet-service-arm.c:1246
 #, c-format
 msgid "Service `%s' terminated with status %s/%d, will restart in %s\n"
 msgstr ""
 
-#: src/arm/gnunet-service-arm.c:1495
+#: src/arm/gnunet-service-arm.c:1500
 #, fuzzy, c-format
 msgid "Starting default services `%s'\n"
 msgstr "卸载 GNUnet 服务"
 
-#: src/arm/gnunet-service-arm.c:1506
+#: src/arm/gnunet-service-arm.c:1511
 #, c-format
 msgid "Default service `%s' not configured correctly!\n"
 msgstr ""
 
-#: src/arm/gnunet-service-arm.c:1519
+#: src/arm/gnunet-service-arm.c:1524
 msgid ""
 "No default services configured, GNUnet will not really start right now.\n"
 msgstr ""
@@ -355,6 +355,7 @@ msgstr ""
 msgid "Received last message for %s \n"
 msgstr ""
 
+#: src/ats/gnunet-ats-solver-eval.c:2195 src/ats/gnunet-ats-solver-eval.c:2229
 #: src/ats/gnunet-service-ats_addresses.c:1980
 #: src/ats/gnunet-service-ats_addresses.c:2024
 #, c-format
@@ -363,11 +364,13 @@ msgid ""
 "%llu\n"
 msgstr ""
 
+#: src/ats/gnunet-ats-solver-eval.c:2201
 #: src/ats/gnunet-service-ats_addresses.c:1987
 #, c-format
 msgid "Outbound quota configure for network `%s' is %llu\n"
 msgstr ""
 
+#: src/ats/gnunet-ats-solver-eval.c:2208
 #: src/ats/gnunet-service-ats_addresses.c:1995
 #, c-format
 msgid ""
@@ -375,17 +378,35 @@ msgid ""
 "%llu\n"
 msgstr ""
 
+#: src/ats/gnunet-ats-solver-eval.c:2235
 #: src/ats/gnunet-service-ats_addresses.c:2031
 #, c-format
 msgid "Inbound quota configured for network `%s' is %llu\n"
 msgstr ""
 
+#: src/ats/gnunet-ats-solver-eval.c:2242
 #: src/ats/gnunet-service-ats_addresses.c:2039
 #, c-format
 msgid ""
 "No outbound quota configure for network `%s', assigning default bandwidth "
 "%llu\n"
 msgstr ""
+
+#: src/ats/gnunet-ats-solver-eval.c:2666
+#: src/ats-tests/gnunet-solver-eval.c:897
+msgid "solver to use"
+msgstr ""
+
+#: src/ats/gnunet-ats-solver-eval.c:2669 src/ats/gnunet-ats-solver-eval.c:2672
+#: src/ats-tests/gnunet-solver-eval.c:900
+#: src/ats-tests/gnunet-solver-eval.c:903
+msgid "experiment to use"
+msgstr ""
+
+#: src/ats/gnunet-ats-solver-eval.c:2675
+#, fuzzy
+msgid "print logging"
+msgstr "未知的命令“%s”。\n"
 
 #: src/ats/gnunet-service-ats_addresses.c:2217
 #, c-format
@@ -447,54 +468,54 @@ msgstr ""
 msgid "Using default quota configuration for network `%s' (in/out) %llu/%llu\n"
 msgstr ""
 
-#: src/ats/plugin_ats_proportional.c:1510
+#: src/ats/plugin_ats_proportional.c:1511
 #, fuzzy, c-format
 msgid "Invalid network type `%u' `%s': Disconnect!\n"
 msgstr "找不到主机“%s”的 IP：%s\n"
 
-#: src/ats-tests/ats-testing.c:71
+#: src/ats-tests/ats-testing.c:72
 msgid "Benchmarking done\n"
 msgstr ""
 
-#: src/ats-tests/ats-testing.c:104
+#: src/ats-tests/ats-testing.c:105
 #, fuzzy, c-format
 msgid "Failed to connect peer 0 and %u\n"
 msgstr "初始化“%s”服务失败。\n"
 
-#: src/ats-tests/ats-testing.c:412
+#: src/ats-tests/ats-testing.c:413
 #, c-format
 msgid "Connected master [%u] with slave [%u]\n"
 msgstr ""
 
-#: src/ats-tests/ats-testing.c:418
+#: src/ats-tests/ats-testing.c:419
 #, fuzzy, c-format
 msgid "Failed to connect master peer [%u] with slave [%u]\n"
 msgstr "初始化“%s”服务失败。\n"
 
-#: src/ats-tests/ats-testing.c:449
+#: src/ats-tests/ats-testing.c:450
 msgid "Connecting peers on CORE level\n"
 msgstr ""
 
-#: src/ats-tests/ats-testing.c:460
+#: src/ats-tests/ats-testing.c:461
 #, c-format
 msgid "Connecting master [%u] with slave [%u]\n"
 msgstr ""
 
-#: src/ats-tests/ats-testing.c:469
+#: src/ats-tests/ats-testing.c:470
 #, fuzzy, c-format
 msgid "Could not connect master [%u] and slave [%u]\n"
 msgstr "无法连接到 %s:%u：%s\n"
 
-#: src/ats-tests/ats-testing.c:489 src/ats-tests/ats-testing.c:670
+#: src/ats-tests/ats-testing.c:490 src/ats-tests/ats-testing.c:671
 #, fuzzy
 msgid "Initialization failed, shutdown\n"
 msgstr "插件机构初始化失败：%s！\n"
 
-#: src/ats-tests/ats-testing-log.c:840
+#: src/ats-tests/ats-testing-log.c:842
 msgid "Stop logging\n"
 msgstr ""
 
-#: src/ats-tests/ats-testing-log.c:889
+#: src/ats-tests/ats-testing-log.c:891
 #, fuzzy, c-format
 msgid "Start logging `%s'\n"
 msgstr "未知的命令“%s”。\n"
@@ -506,139 +527,143 @@ msgid ""
 "= %u KiB/s\n"
 msgstr ""
 
-#: src/ats-tool/gnunet-ats.c:145
+#: src/ats-tool/gnunet-ats.c:168
 #, c-format
 msgid "%u address resolutions had a timeout\n"
 msgstr ""
 
-#: src/ats-tool/gnunet-ats.c:147
+#: src/ats-tool/gnunet-ats.c:170
 #, c-format
 msgid "ATS returned results for %u addresses\n"
 msgstr ""
 
-#: src/ats-tool/gnunet-ats.c:205
+#: src/ats-tool/gnunet-ats.c:231
 #, c-format
 msgid ""
 "Peer `%s' plugin `%s', address `%s', `%s' bw out: %u Bytes/s, bw in %u Bytes/"
 "s, %s\n"
 msgstr ""
 
-#: src/ats-tool/gnunet-ats.c:333
+#: src/ats-tool/gnunet-ats.c:412
 #, c-format
 msgid "Quota for network `%11s' (in/out): %10s / %10s\n"
 msgstr ""
 
-#: src/ats-tool/gnunet-ats.c:352 src/namestore/gnunet-namestore.c:550
-#: src/transport/gnunet-transport.c:1134
+#: src/ats-tool/gnunet-ats.c:432 src/namestore/gnunet-namestore.c:550
+#: src/transport/gnunet-transport.c:1136
 #, fuzzy, c-format
 msgid "Service `%s' is not running\n"
 msgstr "服务已删除。\n"
 
-#: src/ats-tool/gnunet-ats.c:364 src/transport/gnunet-transport.c:1143
+#: src/ats-tool/gnunet-ats.c:444 src/transport/gnunet-transport.c:1145
 #, fuzzy, c-format
 msgid "Failed to parse peer identity `%s'\n"
 msgstr "解析配置文件“%s”失败\n"
 
-#: src/ats-tool/gnunet-ats.c:372
+#: src/ats-tool/gnunet-ats.c:453
 #, c-format
 msgid "Please select one operation : %s or %s or %s or %s or %s\n"
 msgstr ""
 
-#: src/ats-tool/gnunet-ats.c:388 src/ats-tool/gnunet-ats.c:407
-#: src/ats-tool/gnunet-ats.c:424 src/ats-tool/gnunet-ats.c:462
+#: src/ats-tool/gnunet-ats.c:469 src/ats-tool/gnunet-ats.c:488
+#: src/ats-tool/gnunet-ats.c:505 src/ats-tool/gnunet-ats.c:542
 #, fuzzy, c-format
 msgid "Cannot connect to ATS service, exiting...\n"
 msgstr "初始化“%s”服务失败。\n"
 
-#: src/ats-tool/gnunet-ats.c:397 src/ats-tool/gnunet-ats.c:414
+#: src/ats-tool/gnunet-ats.c:477 src/ats-tool/gnunet-ats.c:494
 #, fuzzy, c-format
 msgid "Cannot issue request to ATS service, exiting...\n"
 msgstr "初始化“%s”服务失败。\n"
 
-#: src/ats-tool/gnunet-ats.c:432
+#: src/ats-tool/gnunet-ats.c:514
 #, fuzzy, c-format
 msgid "No preference type given!\n"
 msgstr "无法获取有关用户“%s”的信息：%s\n"
 
-#: src/ats-tool/gnunet-ats.c:437
+#: src/ats-tool/gnunet-ats.c:519
 #, c-format
 msgid "No peer given!\n"
 msgstr ""
 
-#: src/ats-tool/gnunet-ats.c:455
+#: src/ats-tool/gnunet-ats.c:535
 msgid "Valid type required\n"
 msgstr ""
 
-#: src/ats-tool/gnunet-ats.c:513
+#: src/ats-tool/gnunet-ats.c:593
 msgid "get list of active addresses currently used"
 msgstr ""
 
-#: src/ats-tool/gnunet-ats.c:516
+#: src/ats-tool/gnunet-ats.c:595
 msgid "get list of all active addresses"
 msgstr ""
 
-#: src/ats-tool/gnunet-ats.c:519
+#: src/ats-tool/gnunet-ats.c:598
 #, fuzzy
 msgid "do not resolve IP addresses to hostnames"
 msgstr "GNUnet 现在使用 IP 地址 %s。\n"
 
-#: src/ats-tool/gnunet-ats.c:522
+#: src/ats-tool/gnunet-ats.c:600
 msgid "monitor mode"
 msgstr ""
 
-#: src/ats-tool/gnunet-ats.c:525
+#: src/ats-tool/gnunet-ats.c:602
 #, fuzzy
 msgid "set preference for the given peer"
 msgstr "无法获取有关用户“%s”的信息：%s\n"
 
-#: src/ats-tool/gnunet-ats.c:528
+#: src/ats-tool/gnunet-ats.c:604
 msgid "print all configured quotas"
 msgstr ""
 
-#: src/ats-tool/gnunet-ats.c:531
+#: src/ats-tool/gnunet-ats.c:606
 msgid "peer id"
 msgstr ""
 
-#: src/ats-tool/gnunet-ats.c:534
+#: src/ats-tool/gnunet-ats.c:609
 msgid "preference type to set: latency | bandwidth"
 msgstr ""
 
-#: src/ats-tool/gnunet-ats.c:537
+#: src/ats-tool/gnunet-ats.c:611
 msgid "preference value"
 msgstr ""
 
-#: src/ats-tool/gnunet-ats.c:540
+#: src/ats-tool/gnunet-ats.c:614
 msgid "verbose output (include ATS address properties)"
 msgstr ""
 
-#: src/ats-tool/gnunet-ats.c:549
+#: src/ats-tool/gnunet-ats.c:621
 #, fuzzy
 msgid "Print information about ATS state"
 msgstr "无法获取有关用户“%s”的信息：%s\n"
 
-#: src/consensus/gnunet-consensus-profiler.c:420
-#: src/secretsharing/gnunet-secretsharing-profiler.c:514
+#: src/consensus/gnunet-consensus-profiler.c:437
+#: src/secretsharing/gnunet-secretsharing-profiler.c:535
 #, fuzzy
 msgid "number of peers in consensus"
 msgstr "迭代次数"
 
-#: src/consensus/gnunet-consensus-profiler.c:423
+#: src/consensus/gnunet-consensus-profiler.c:440
 msgid "how many peers receive one value?"
 msgstr ""
 
-#: src/consensus/gnunet-consensus-profiler.c:426
+#: src/consensus/gnunet-consensus-profiler.c:443
 #: src/set/gnunet-set-profiler.c:286 src/set/gnunet-set-profiler.c:289
 #: src/set/gnunet-set-profiler.c:292
 #, fuzzy
 msgid "number of values"
 msgstr "迭代次数"
 
-#: src/consensus/gnunet-consensus-profiler.c:429
+#: src/consensus/gnunet-consensus-profiler.c:446
 msgid "consensus timeout"
 msgstr ""
 
-#: src/consensus/gnunet-consensus-profiler.c:432
-#: src/secretsharing/gnunet-secretsharing-profiler.c:526
+#: src/consensus/gnunet-consensus-profiler.c:449
+msgid "delay until consensus starts"
+msgstr ""
+
+#: src/consensus/gnunet-consensus-profiler.c:452
+#: src/secretsharing/gnunet-secretsharing-profiler.c:550
 msgid "be more verbose (print received values)"
 msgstr ""
 
@@ -1096,17 +1121,17 @@ msgid "Peer `%s'\n"
 msgstr ""
 
 #: src/core/gnunet-core.c:110 src/core/gnunet-core.c:138
-#: src/transport/gnunet-transport.c:824 src/transport/gnunet-transport.c:844
+#: src/transport/gnunet-transport.c:826 src/transport/gnunet-transport.c:846
 #, c-format
 msgid "%24s: %-17s %4s   (%u connections in total)\n"
 msgstr ""
 
-#: src/core/gnunet-core.c:112 src/transport/gnunet-transport.c:825
+#: src/core/gnunet-core.c:112 src/transport/gnunet-transport.c:827
 #, fuzzy
 msgid "Connected to"
 msgstr "“%s”已连接到“%s”。\n"
 
-#: src/core/gnunet-core.c:140 src/transport/gnunet-transport.c:845
+#: src/core/gnunet-core.c:140 src/transport/gnunet-transport.c:847
 #, fuzzy
 msgid "Disconnected from"
 msgstr "“%s”已连接到“%s”。\n"
@@ -1116,7 +1141,7 @@ msgstr "“%s”已连接到“%s”。\n"
 msgid "Invalid command line argument `%s'\n"
 msgstr "“%s”的参数无效。\n"
 
-#: src/core/gnunet-core.c:201 src/transport/gnunet-transport.c:1340
+#: src/core/gnunet-core.c:201 src/transport/gnunet-transport.c:1342
 msgid "provide information about all current connections (continuously)"
 msgstr ""
 
@@ -1274,20 +1299,20 @@ msgstr ""
 msgid "# PAYLOAD dropped (out of order)"
 msgstr ""
 
-#: src/core/gnunet-service-core_neighbours.c:163
+#: src/core/gnunet-service-core_neighbours.c:168
 msgid "# sessions terminated by transport disconnect"
 msgstr ""
 
-#: src/core/gnunet-service-core_neighbours.c:179
-#: src/core/gnunet-service-core_neighbours.c:329
+#: src/core/gnunet-service-core_neighbours.c:184
+#: src/core/gnunet-service-core_neighbours.c:335
 msgid "# neighbour entries allocated"
 msgstr ""
 
-#: src/core/gnunet-service-core_neighbours.c:246
+#: src/core/gnunet-service-core_neighbours.c:252
 msgid "# encrypted bytes given to transport"
 msgstr ""
 
-#: src/core/gnunet-service-core_neighbours.c:412
+#: src/core/gnunet-service-core_neighbours.c:418
 #, c-format
 msgid "Unsupported message of type %u (%u bytes) received from peer `%s'\n"
 msgstr ""
@@ -1296,15 +1321,15 @@ msgstr ""
 #: src/core/gnunet-service-core_sessions.c:286
 #: src/dht/gnunet-service-dht_neighbours.c:662
 #: src/dht/gnunet-service-dht_neighbours.c:727
-#: src/dht/gnunet-service-xdht_neighbours.c:939
+#: src/dht/gnunet-service-xdht_neighbours.c:1391
 #: src/fs/gnunet-service-fs_cp.c:606 src/fs/gnunet-service-fs_cp.c:1501
 #: src/topology/gnunet-daemon-topology.c:707
 #: src/topology/gnunet-daemon-topology.c:808
-#: src/transport/gnunet-service-transport_neighbours.c:848
-#: src/transport/gnunet-service-transport_neighbours.c:1080
-#: src/transport/gnunet-service-transport_neighbours.c:1089
-#: src/transport/gnunet-service-transport_neighbours.c:3202
-#: src/transport/gnunet-service-transport_neighbours.c:3463
+#: src/transport/gnunet-service-transport_neighbours.c:852
+#: src/transport/gnunet-service-transport_neighbours.c:1084
+#: src/transport/gnunet-service-transport_neighbours.c:1093
+#: src/transport/gnunet-service-transport_neighbours.c:3234
+#: src/transport/gnunet-service-transport_neighbours.c:3495
 msgid "# peers connected"
 msgstr ""
 
@@ -1384,7 +1409,7 @@ msgstr ""
 #: src/testbed/gnunet-daemon-testbed-underlay.c:55
 #: src/testbed/testbed_api_hosts.c:69 src/util/crypto_ecc.c:51
 #: src/util/crypto_mpi.c:39 src/include/gnunet_common.h:602
-#: src/include/gnunet_common.h:611 src/scalarproduct/scalarproduct.h:60
+#: src/include/gnunet_common.h:611 src/scalarproduct/scalarproduct.h:50
 #, fuzzy, c-format
 msgid "`%s' failed at %s:%d with error: %s\n"
 msgstr "“%s”于 %s:%d 处失败，错误为：%s\n"
@@ -1859,55 +1884,55 @@ msgid "Failed to connect to transport service!\n"
 msgstr "初始化“%s”服务失败。\n"
 
 #: src/dht/gnunet-service-dht_clients.c:417
-#: src/dht/gnunet-service-xdht_clients.c:417
+#: src/dht/gnunet-service-xdht_clients.c:418
 msgid "# GET requests from clients injected"
 msgstr ""
 
 #: src/dht/gnunet-service-dht_clients.c:511
-#: src/dht/gnunet-service-xdht_clients.c:512
+#: src/dht/gnunet-service-xdht_clients.c:513
 msgid "# PUT requests received from clients"
 msgstr ""
 
 #: src/dht/gnunet-service-dht_clients.c:595
-#: src/dht/gnunet-service-xdht_clients.c:597
+#: src/dht/gnunet-service-xdht_clients.c:598
 msgid "# GET requests received from clients"
 msgstr ""
 
 #: src/dht/gnunet-service-dht_clients.c:796
-#: src/dht/gnunet-service-xdht_clients.c:798
+#: src/dht/gnunet-service-xdht_clients.c:799
 msgid "# GET STOP requests received from clients"
 msgstr ""
 
 #: src/dht/gnunet-service-dht_clients.c:1037
-#: src/dht/gnunet-service-xdht_clients.c:1039
+#: src/dht/gnunet-service-xdht_clients.c:1040
 msgid "# Key match, type mismatches in REPLY to CLIENT"
 msgstr ""
 
 #: src/dht/gnunet-service-dht_clients.c:1050
-#: src/dht/gnunet-service-xdht_clients.c:1052
+#: src/dht/gnunet-service-xdht_clients.c:1053
 msgid "# Duplicate REPLIES to CLIENT request dropped"
 msgstr ""
 
 #: src/dht/gnunet-service-dht_clients.c:1087
-#: src/dht/gnunet-service-xdht_clients.c:1089
+#: src/dht/gnunet-service-xdht_clients.c:1090
 #, c-format
 msgid "Unsupported block type (%u) in request!\n"
 msgstr ""
 
 #: src/dht/gnunet-service-dht_clients.c:1110
-#: src/dht/gnunet-service-xdht_clients.c:1112
+#: src/dht/gnunet-service-xdht_clients.c:1113
 msgid "# RESULTS queued for clients"
 msgstr ""
 
 #: src/dht/gnunet-service-dht_clients.c:1164
 #: src/dht/gnunet-service-dht_clients.c:1207
-#: src/dht/gnunet-service-xdht_clients.c:1166
-#: src/dht/gnunet-service-xdht_clients.c:1208
+#: src/dht/gnunet-service-xdht_clients.c:1167
+#: src/dht/gnunet-service-xdht_clients.c:1209
 msgid "# REPLIES ignored for CLIENTS (no match)"
 msgstr ""
 
 #: src/dht/gnunet-service-dht_clients.c:1174
-#: src/dht/gnunet-service-xdht_clients.c:1176
+#: src/dht/gnunet-service-xdht_clients.c:1177
 msgid "Could not pass reply to client, message too big!\n"
 msgstr ""
 
@@ -1958,7 +1983,7 @@ msgstr ""
 msgid "# GET requests given to datacache"
 msgstr ""
 
-#: src/dht/gnunet-service-dht_hello.c:82
+#: src/dht/gnunet-service-dht_hello.c:84
 #: src/dht/gnunet-service-xdht_hello.c:82
 msgid "# HELLOs obtained from peerinfo"
 msgstr ""
@@ -1976,12 +2001,12 @@ msgid "# Queued messages discarded (peer disconnected)"
 msgstr ""
 
 #: src/dht/gnunet-service-dht_neighbours.c:819
-#: src/dht/gnunet-service-xdht_neighbours.c:540
+#: src/dht/gnunet-service-xdht_neighbours.c:708
 msgid "# Bytes transmitted to other peers"
 msgstr ""
 
 #: src/dht/gnunet-service-dht_neighbours.c:857
-#: src/dht/gnunet-service-xdht_neighbours.c:579
+#: src/dht/gnunet-service-xdht_neighbours.c:747
 msgid "# Bytes of bandwidth requested from core"
 msgstr ""
 
@@ -2010,9 +2035,10 @@ msgstr ""
 #: src/dht/gnunet-service-dht_neighbours.c:1323
 #: src/dht/gnunet-service-dht_neighbours.c:1440
 #: src/dht/gnunet-service-dht_neighbours.c:1543
-#: src/dht/gnunet-service-xdht_neighbours.c:616
-#: src/dht/gnunet-service-xdht_neighbours.c:1246
-#: src/dht/gnunet-service-xdht_neighbours.c:1330
+#: src/dht/gnunet-service-xdht_neighbours.c:801
+#: src/dht/gnunet-service-xdht_neighbours.c:869
+#: src/dht/gnunet-service-xdht_neighbours.c:928
+#: src/dht/gnunet-service-xdht_neighbours.c:997
 msgid "# P2P messages dropped due to full queue"
 msgstr ""
 
@@ -2104,11 +2130,11 @@ msgstr ""
 msgid "# DHT requests combined"
 msgstr ""
 
-#: src/dht/gnunet-service-xdht_neighbours.c:1179
+#: src/dht/gnunet-service-xdht_neighbours.c:1708
 msgid "# TRAIL SETUP requests received"
 msgstr ""
 
-#: src/dht/gnunet-service-xdht_neighbours.c:1182
+#: src/dht/gnunet-service-xdht_neighbours.c:1711
 msgid "# TRAIL SETUP bytes received"
 msgstr ""
 
@@ -2121,7 +2147,7 @@ msgstr ""
 msgid "Size mismatch for block\n"
 msgstr ""
 
-#: src/dht/plugin_block_dht.c:154
+#: src/dht/plugin_block_dht.c:155
 #, c-format
 msgid "Block of type %u is malformed\n"
 msgstr ""
@@ -2642,61 +2668,61 @@ msgstr "无法解析“%s”(%s)：%s\n"
 msgid "Short read reading from file `%s'!"
 msgstr ""
 
-#: src/fs/fs_api.c:1064
+#: src/fs/fs_api.c:1066
 #, fuzzy, c-format
 msgid "Failed to resume publishing information `%s': %s\n"
 msgstr "打开日志文件“%s”失败：%s\n"
 
-#: src/fs/fs_api.c:1569
+#: src/fs/fs_api.c:1571
 #, c-format
 msgid "Failure while resuming publishing operation `%s': %s\n"
 msgstr ""
 
-#: src/fs/fs_api.c:1583
+#: src/fs/fs_api.c:1585
 #, fuzzy, c-format
 msgid "Failed to resume publishing operation `%s': %s\n"
 msgstr "解析配置文件“%s”失败\n"
 
-#: src/fs/fs_api.c:2240
+#: src/fs/fs_api.c:2242
 #, c-format
 msgid "Failure while resuming unindexing operation `%s': %s\n"
 msgstr ""
 
-#: src/fs/fs_api.c:2250
+#: src/fs/fs_api.c:2252
 #, fuzzy, c-format
 msgid "Failed to resume unindexing operation `%s': %s\n"
 msgstr "解析配置文件“%s”失败\n"
 
-#: src/fs/fs_api.c:2376 src/fs/fs_api.c:2617
+#: src/fs/fs_api.c:2378 src/fs/fs_api.c:2619
 #, fuzzy, c-format
 msgid "Failed to resume sub-download `%s': %s\n"
 msgstr "打开日志文件“%s”失败：%s\n"
 
-#: src/fs/fs_api.c:2393
+#: src/fs/fs_api.c:2395
 #, fuzzy, c-format
 msgid "Failed to resume sub-search `%s': %s\n"
 msgstr "打开日志文件“%s”失败：%s\n"
 
-#: src/fs/fs_api.c:2407 src/fs/fs_api.c:2426 src/fs/fs_api.c:2909
+#: src/fs/fs_api.c:2409 src/fs/fs_api.c:2428 src/fs/fs_api.c:2911
 #, c-format
 msgid "Failure while resuming search operation `%s': %s\n"
 msgstr ""
 
-#: src/fs/fs_api.c:2608
+#: src/fs/fs_api.c:2610
 #, fuzzy, c-format
 msgid "Failed to resume sub-download `%s': could not open file `%s'\n"
 msgstr "解析配置文件“%s”失败\n"
 
-#: src/fs/fs_api.c:2853
+#: src/fs/fs_api.c:2855
 msgid "Could not resume running search, will resume as paused search\n"
 msgstr ""
 
-#: src/fs/fs_api.c:2947
+#: src/fs/fs_api.c:2949
 #, c-format
 msgid "Failure while resuming download operation `%s': %s\n"
 msgstr ""
 
-#: src/fs/fs_directory.c:210
+#: src/fs/fs_directory.c:208
 msgid "MAGIC mismatch.  This is not a GNUnet directory.\n"
 msgstr ""
 
@@ -2710,48 +2736,48 @@ msgstr ""
 msgid "Directory too large for system address space\n"
 msgstr ""
 
-#: src/fs/fs_download.c:508 src/fs/fs_download.c:520
+#: src/fs/fs_download.c:523 src/fs/fs_download.c:535
 #, fuzzy, c-format
 msgid "Failed to open file `%s' for writing"
 msgstr "打开日志文件“%s”失败：%s\n"
 
-#: src/fs/fs_download.c:889
+#: src/fs/fs_download.c:905
 #, c-format
 msgid "Failed to create directory for recursive download of `%s'\n"
 msgstr ""
 
-#: src/fs/fs_download.c:971
+#: src/fs/fs_download.c:987
 #, c-format
 msgid ""
 "Internal error or bogus download URI (expected %u bytes at depth %u and "
 "offset %llu/%llu, got %u bytes)"
 msgstr ""
 
-#: src/fs/fs_download.c:997
+#: src/fs/fs_download.c:1013
 msgid "internal error decrypting content"
 msgstr ""
 
-#: src/fs/fs_download.c:1020
+#: src/fs/fs_download.c:1036
 #, fuzzy, c-format
 msgid "Download failed: could not open file `%s': %s"
 msgstr "打开日志文件“%s”失败：%s\n"
 
-#: src/fs/fs_download.c:1030
+#: src/fs/fs_download.c:1046
 #, fuzzy, c-format
 msgid "Failed to seek to offset %llu in file `%s': %s"
 msgstr "打开日志文件“%s”失败：%s\n"
 
-#: src/fs/fs_download.c:1039
+#: src/fs/fs_download.c:1055
 #, fuzzy, c-format
 msgid "Failed to write block of %u bytes at offset %llu in file `%s': %s"
 msgstr "解析配置文件“%s”失败\n"
 
-#: src/fs/fs_download.c:1137
+#: src/fs/fs_download.c:1153
 #, fuzzy
 msgid "internal error decoding tree"
 msgstr "未知错误。\n"
 
-#: src/fs/fs_download.c:1928
+#: src/fs/fs_download.c:1944
 #, fuzzy
 msgid "Invalid URI"
 msgstr "无效条目。\n"
@@ -2872,12 +2898,12 @@ msgstr ""
 msgid "Internal error."
 msgstr "未知错误。\n"
 
-#: src/fs/fs_search.c:819
+#: src/fs/fs_search.c:813
 #, fuzzy, c-format
 msgid "Failed to parse URI `%s': %s\n"
 msgstr "运行 %s失败：%s %d\n"
 
-#: src/fs/fs_search.c:878
+#: src/fs/fs_search.c:872
 #, c-format
 msgid "Got result with unknown block type `%d', ignoring"
 msgstr ""
@@ -3335,7 +3361,7 @@ msgid "Option `%s' is required when using option `%s'.\n"
 msgstr ""
 
 #: src/fs/gnunet-publish.c:778 src/fs/gnunet-publish.c:785
-#: src/transport/gnunet-transport.c:1172 src/transport/gnunet-transport.c:1202
+#: src/transport/gnunet-transport.c:1174 src/transport/gnunet-transport.c:1204
 #, c-format
 msgid "Option `%s' makes no sense without option `%s'.\n"
 msgstr ""
@@ -3790,7 +3816,7 @@ msgstr ""
 
 #: src/gns/gns_api.c:393
 #, fuzzy
-msgid "Failed to serialize lookup reply from GNS service!\n"
+msgid "Failed to deserialize lookup reply from GNS service!\n"
 msgstr "初始化“%s”服务失败。\n"
 
 #: src/gns/gnunet-bcd.c:123
@@ -3877,54 +3903,58 @@ msgstr ""
 msgid "GNUnet DNS-to-GNS proxy (a DNS server)"
 msgstr ""
 
-#: src/gns/gnunet-gns.c:217
+#: src/gns/gnunet-gns.c:227
 #, c-format
 msgid "Please specify name to lookup!\n"
 msgstr ""
 
-#: src/gns/gnunet-gns.c:298
+#: src/gns/gnunet-gns.c:308
 #, c-format
 msgid "Ego for `%s' not found, cannot perform lookup.\n"
 msgstr ""
 
-#: src/gns/gnunet-gns.c:336 src/gns/gnunet-gns-helper-service-w32.c:798
+#: src/gns/gnunet-gns.c:347 src/gns/gnunet-gns-helper-service-w32.c:798
 #, c-format
 msgid ""
 "Ego for `gns-master' not found, cannot perform lookup.  Did you run gnunet-"
 "gns-import.sh?\n"
 msgstr ""
 
-#: src/gns/gnunet-gns.c:365 src/gns/gnunet-gns-helper-service-w32.c:828
+#: src/gns/gnunet-gns.c:386 src/gns/gnunet-gns-helper-service-w32.c:828
 #, fuzzy, c-format
 msgid "Failed to connect to GNS\n"
 msgstr "初始化“%s”服务失败。\n"
 
-#: src/gns/gnunet-gns.c:378
+#: src/gns/gnunet-gns.c:399
 #, c-format
 msgid "Public key `%s' is not well-formed\n"
 msgstr ""
 
-#: src/gns/gnunet-gns.c:428
+#: src/gns/gnunet-gns.c:449
 msgid "Lookup a record for the given name"
 msgstr ""
 
-#: src/gns/gnunet-gns.c:431
+#: src/gns/gnunet-gns.c:452
 msgid "Specify the type of the record to lookup"
 msgstr ""
 
-#: src/gns/gnunet-gns.c:434
+#: src/gns/gnunet-gns.c:455
+msgid "Specify timeout for the lookup"
+msgstr ""
+
+#: src/gns/gnunet-gns.c:458
 msgid "No unneeded output"
 msgstr ""
 
-#: src/gns/gnunet-gns.c:437
+#: src/gns/gnunet-gns.c:461
 msgid "Specify the public key of the zone to lookup the record in"
 msgstr ""
 
-#: src/gns/gnunet-gns.c:440
+#: src/gns/gnunet-gns.c:464
 msgid "Specify the name of the ego of the zone to lookup the record in"
 msgstr ""
 
-#: src/gns/gnunet-gns.c:453
+#: src/gns/gnunet-gns.c:478
 #, fuzzy
 msgid "GNUnet GNS resolver tool"
 msgstr "GNUnet 错误日志"
@@ -3942,7 +3972,7 @@ msgstr ""
 msgid "Failed to connect to identity service\n"
 msgstr "初始化“%s”服务失败。\n"
 
-#: src/gns/gnunet-gns-import.c:476
+#: src/gns/gnunet-gns-import.c:479
 msgid "This program will import some GNS authorities into your GNS namestore."
 msgstr ""
 
@@ -4120,12 +4150,12 @@ msgstr ""
 msgid "Failed to cache GNS resolution: %s\n"
 msgstr "打开日志文件“%s”失败：%s\n"
 
-#: src/gns/gnunet-service-gns_resolver.c:2173
+#: src/gns/gnunet-service-gns_resolver.c:2123
 #, c-format
 msgid "Zone %s was revoked, resolution fails\n"
 msgstr ""
 
-#: src/gns/gnunet-service-gns_resolver.c:2322
+#: src/gns/gnunet-service-gns_resolver.c:2272
 #, c-format
 msgid "Hostname `%s' is not well-formed, resolution fails\n"
 msgstr ""
@@ -4664,7 +4694,7 @@ msgstr "无法获取有关用户“%s”的信息：%s\n"
 msgid "provide information about all tunnels"
 msgstr "无法获取有关用户“%s”的信息：%s\n"
 
-#: src/mesh/gnunet-service-mesh_peer.c:377
+#: src/mesh/gnunet-service-mesh_peer.c:382
 msgid "Wrong CORE service\n"
 msgstr ""
 
@@ -4932,7 +4962,7 @@ msgstr "初始化“%s”服务失败。\n"
 msgid "GNU Name System First Come First Serve name registration service"
 msgstr ""
 
-#: src/namestore/gnunet-service-namestore.c:638
+#: src/namestore/gnunet-service-namestore.c:655
 #, fuzzy, c-format
 msgid "Failed to replicate block in namecache: %s\n"
 msgstr "发送消息失败。\n"
@@ -5116,43 +5146,43 @@ msgstr "值不在合法范围内。"
 msgid "Removing expired address of transport `%s'\n"
 msgstr ""
 
-#: src/peerinfo/gnunet-service-peerinfo.c:354
+#: src/peerinfo/gnunet-service-peerinfo.c:352
 #, fuzzy, c-format
 msgid "Failed to parse HELLO in file `%s': %s\n"
 msgstr "解析配置文件“%s”失败\n"
 
-#: src/peerinfo/gnunet-service-peerinfo.c:373
-#: src/peerinfo/gnunet-service-peerinfo.c:390
+#: src/peerinfo/gnunet-service-peerinfo.c:371
+#: src/peerinfo/gnunet-service-peerinfo.c:388
 #, fuzzy, c-format
 msgid "Failed to parse HELLO in file `%s'\n"
 msgstr "解析配置文件“%s”失败\n"
 
-#: src/peerinfo/gnunet-service-peerinfo.c:468
+#: src/peerinfo/gnunet-service-peerinfo.c:466
 msgid "# peers known"
 msgstr ""
 
-#: src/peerinfo/gnunet-service-peerinfo.c:505
+#: src/peerinfo/gnunet-service-peerinfo.c:503
 #, c-format
 msgid ""
 "File `%s' in directory `%s' does not match naming convention. Removed.\n"
 msgstr ""
 
-#: src/peerinfo/gnunet-service-peerinfo.c:655
+#: src/peerinfo/gnunet-service-peerinfo.c:653
 #, fuzzy, c-format
 msgid "Scanning directory `%s'\n"
 msgstr "解析配置文件“%s”失败\n"
 
-#: src/peerinfo/gnunet-service-peerinfo.c:660
+#: src/peerinfo/gnunet-service-peerinfo.c:658
 #, c-format
 msgid "Still no peers found in `%s'!\n"
 msgstr ""
 
-#: src/peerinfo/gnunet-service-peerinfo.c:996
+#: src/peerinfo/gnunet-service-peerinfo.c:994
 #, fuzzy, c-format
 msgid "Cleaning up directory `%s'\n"
 msgstr "解析配置文件“%s”失败\n"
 
-#: src/peerinfo/gnunet-service-peerinfo.c:1286
+#: src/peerinfo/gnunet-service-peerinfo.c:1287
 #, c-format
 msgid "Importing HELLOs from `%s'\n"
 msgstr ""
@@ -5733,145 +5763,136 @@ msgstr ""
 msgid "Calculate the Vectorproduct with a GNUnet peer."
 msgstr ""
 
-#: src/scalarproduct/gnunet-service-scalarproduct.c:450
-#, c-format
-msgid "Generated key set with key length %d bits.\n"
-msgstr ""
-
-#: src/scalarproduct/gnunet-service-scalarproduct.c:746
+#: src/scalarproduct/gnunet-service-scalarproduct.c:541
 #, fuzzy, c-format
 msgid "Client (%p) disconnected from us.\n"
 msgstr "“%s”已连接到“%s”。\n"
 
-#: src/scalarproduct/gnunet-service-scalarproduct.c:818
-#: src/scalarproduct/gnunet-service-scalarproduct.c:908
+#: src/scalarproduct/gnunet-service-scalarproduct.c:613
+#: src/scalarproduct/gnunet-service-scalarproduct.c:702
 #, fuzzy, c-format
 msgid "Could not send message to client (%p)!\n"
 msgstr "找不到接口“%s”的一个 IP 地址。\n"
 
-#: src/scalarproduct/gnunet-service-scalarproduct.c:824
+#: src/scalarproduct/gnunet-service-scalarproduct.c:619
 #, c-format
 msgid "Sending session-end notification to client (%p) for session %s\n"
 msgstr ""
 
-#: src/scalarproduct/gnunet-service-scalarproduct.c:918
+#: src/scalarproduct/gnunet-service-scalarproduct.c:712
 #, c-format
 msgid "Sent result to client (%p), this session (%s) has ended!\n"
 msgstr ""
 
-#: src/scalarproduct/gnunet-service-scalarproduct.c:997
-#: src/scalarproduct/gnunet-service-scalarproduct.c:1135
+#: src/scalarproduct/gnunet-service-scalarproduct.c:766
+#: src/scalarproduct/gnunet-service-scalarproduct.c:855
 msgid "Could not send service-response message via mesh!)\n"
 msgstr ""
 
-#: src/scalarproduct/gnunet-service-scalarproduct.c:1340
+#: src/scalarproduct/gnunet-service-scalarproduct.c:1028
 #, c-format
 msgid "Failed to communicate with `%s', scalar product calculation aborted.\n"
 msgstr ""
 
-#: src/scalarproduct/gnunet-service-scalarproduct.c:1444
-#: src/scalarproduct/gnunet-service-scalarproduct.c:1571
+#: src/scalarproduct/gnunet-service-scalarproduct.c:1099
+#: src/scalarproduct/gnunet-service-scalarproduct.c:1208
 msgid "Transmitting service request.\n"
 msgstr ""
 
-#: src/scalarproduct/gnunet-service-scalarproduct.c:1453
+#: src/scalarproduct/gnunet-service-scalarproduct.c:1108
 #, fuzzy
 msgid "Could not send service-request multipart message to channel!\n"
 msgstr "找不到接口“%s”的一个 IP 地址。\n"
 
-#: src/scalarproduct/gnunet-service-scalarproduct.c:1493
+#: src/scalarproduct/gnunet-service-scalarproduct.c:1147
 #, fuzzy, c-format
 msgid "Successfully created new channel to peer (%s)!\n"
 msgstr "“%s”已连接到“%s”。\n"
 
-#: src/scalarproduct/gnunet-service-scalarproduct.c:1580
+#: src/scalarproduct/gnunet-service-scalarproduct.c:1217
 #, fuzzy
 msgid "Could not send message to channel!\n"
 msgstr "找不到接口“%s”的一个 IP 地址。\n"
 
-#: src/scalarproduct/gnunet-service-scalarproduct.c:1637
+#: src/scalarproduct/gnunet-service-scalarproduct.c:1274
 msgid "Too short message received from client!\n"
 msgstr ""
 
-#: src/scalarproduct/gnunet-service-scalarproduct.c:1650
+#: src/scalarproduct/gnunet-service-scalarproduct.c:1287
 msgid "Invalid message received from client, session information incorrect!\n"
 msgstr ""
 
-#: src/scalarproduct/gnunet-service-scalarproduct.c:1661
+#: src/scalarproduct/gnunet-service-scalarproduct.c:1298
 #, c-format
 msgid ""
 "Duplicate session information received, cannot create new session with key `"
 "%s'\n"
 msgstr ""
 
-#: src/scalarproduct/gnunet-service-scalarproduct.c:1682
+#: src/scalarproduct/gnunet-service-scalarproduct.c:1318
 #, c-format
 msgid ""
 "Got client-request-session with key %s, preparing channel to remote "
 "service.\n"
 msgstr ""
 
-#: src/scalarproduct/gnunet-service-scalarproduct.c:1721
+#: src/scalarproduct/gnunet-service-scalarproduct.c:1354
 #, c-format
 msgid "Creating new channel for session with key %s.\n"
 msgstr ""
 
-#: src/scalarproduct/gnunet-service-scalarproduct.c:1768
+#: src/scalarproduct/gnunet-service-scalarproduct.c:1399
 #, c-format
 msgid ""
 "Got client-responder-session with key %s and a matching service-request-"
 "session set, processing.\n"
 msgstr ""
 
-#: src/scalarproduct/gnunet-service-scalarproduct.c:1779
+#: src/scalarproduct/gnunet-service-scalarproduct.c:1409
 #, c-format
 msgid ""
 "Got client-responder-session with key %s but NO matching service-request-"
 "session set, queuing element for later use.\n"
 msgstr ""
 
-#: src/scalarproduct/gnunet-service-scalarproduct.c:1809
+#: src/scalarproduct/gnunet-service-scalarproduct.c:1439
 #, fuzzy, c-format
 msgid "New incoming channel from peer %s.\n"
 msgstr "“%s”已连接到“%s”。\n"
 
-#: src/scalarproduct/gnunet-service-scalarproduct.c:1841
+#: src/scalarproduct/gnunet-service-scalarproduct.c:1471
 #, c-format
 msgid "Peer disconnected, terminating session %s with peer (%s)\n"
 msgstr ""
 
-#: src/scalarproduct/gnunet-service-scalarproduct.c:2032
-#: src/scalarproduct/gnunet-service-scalarproduct.c:2191
+#: src/scalarproduct/gnunet-service-scalarproduct.c:1672
+#: src/scalarproduct/gnunet-service-scalarproduct.c:1814
 #, c-format
 msgid "Got session with key %s and a matching element set, processing.\n"
 msgstr ""
 
-#: src/scalarproduct/gnunet-service-scalarproduct.c:2041
-#: src/scalarproduct/gnunet-service-scalarproduct.c:2198
+#: src/scalarproduct/gnunet-service-scalarproduct.c:1681
+#: src/scalarproduct/gnunet-service-scalarproduct.c:1821
 #, c-format
 msgid "Got session with key %s without a matching element set, queueing.\n"
 msgstr ""
 
-#: src/scalarproduct/gnunet-service-scalarproduct.c:2136
+#: src/scalarproduct/gnunet-service-scalarproduct.c:1771
 #, c-format
 msgid ""
 "Got message with duplicate session key (`%s'), ignoring service request.\n"
 msgstr ""
 
-#: src/scalarproduct/gnunet-service-scalarproduct.c:2420
+#: src/scalarproduct/gnunet-service-scalarproduct.c:2014
 msgid "Shutting down, initiating cleanup.\n"
 msgstr ""
 
-#: src/scalarproduct/gnunet-service-scalarproduct.c:2485
-msgid "Generating Paillier-Keyset.\n"
-msgstr ""
-
-#: src/scalarproduct/gnunet-service-scalarproduct.c:2500
+#: src/scalarproduct/gnunet-service-scalarproduct.c:2100
 #, fuzzy
 msgid "Connect to MESH failed\n"
 msgstr "“%s”已连接到“%s”。\n"
 
-#: src/scalarproduct/gnunet-service-scalarproduct.c:2504
+#: src/scalarproduct/gnunet-service-scalarproduct.c:2104
 msgid "Mesh initialized\n"
 msgstr ""
 
@@ -5901,19 +5922,23 @@ msgstr "初始化“%s”服务失败。\n"
 msgid "Failed to send a message to the scalarproduct service\n"
 msgstr "初始化“%s”服务失败。\n"
 
-#: src/secretsharing/gnunet-secretsharing-profiler.c:517
+#: src/secretsharing/gnunet-secretsharing-profiler.c:538
+msgid "dkg start delay"
+msgstr ""
+
+#: src/secretsharing/gnunet-secretsharing-profiler.c:541
 msgid "dkg timeout"
 msgstr ""
 
-#: src/secretsharing/gnunet-secretsharing-profiler.c:520
+#: src/secretsharing/gnunet-secretsharing-profiler.c:544
 msgid "threshold"
 msgstr ""
 
-#: src/secretsharing/gnunet-secretsharing-profiler.c:523
+#: src/secretsharing/gnunet-secretsharing-profiler.c:547
 msgid "also profile decryption"
 msgstr ""
 
-#: src/set/gnunet-service-set.c:1415
+#: src/set/gnunet-service-set.c:1431
 #, fuzzy
 msgid "Could not connect to mesh service\n"
 msgstr "无法连接到 %s:%u：%s\n"
@@ -6034,12 +6059,12 @@ msgstr ""
 msgid "Print statistics about GNUnet operations."
 msgstr ""
 
-#: src/statistics/statistics_api.c:506
+#: src/statistics/statistics_api.c:519
 #, fuzzy
 msgid "Could not save some persistent statistics\n"
 msgstr "初始化“%s”服务失败。\n"
 
-#: src/statistics/statistics_api.c:1074
+#: src/statistics/statistics_api.c:1090
 msgid ""
 "Failed to receive acknowledgement from statistics service, some statistics "
 "might have been lost!\n"
@@ -6136,7 +6161,7 @@ msgstr ""
 msgid "Daemon to restrict underlay network in testbed deployments"
 msgstr ""
 
-#: src/testbed/gnunet-service-testbed_cpustatus.c:727
+#: src/testbed/gnunet-service-testbed_cpustatus.c:730
 #, c-format
 msgid ""
 "Cannot open %s for writing load statistics.  Not logging load statistics\n"
@@ -6356,53 +6381,53 @@ msgstr ""
 msgid "Hostkeys file not found: %s\n"
 msgstr ""
 
-#: src/testing/testing.c:716
+#: src/testing/testing.c:718
 #, c-format
 msgid "Key number %u does not exist\n"
 msgstr ""
 
-#: src/testing/testing.c:1155
+#: src/testing/testing.c:1157
 #, c-format
 msgid ""
 "You attempted to create a testbed with more than %u hosts.  Please "
 "precompute more hostkeys first.\n"
 msgstr ""
 
-#: src/testing/testing.c:1164
+#: src/testing/testing.c:1166
 #, fuzzy, c-format
 msgid "Failed to initialize hostkey for peer %u\n"
 msgstr "初始化“%s”服务失败。\n"
 
-#: src/testing/testing.c:1174
+#: src/testing/testing.c:1176
 msgid "PRIVATE_KEY option in PEER section missing in configuration\n"
 msgstr ""
 
-#: src/testing/testing.c:1187
+#: src/testing/testing.c:1189
 #, fuzzy
 msgid "Failed to create configuration for peer (not enough free ports?)\n"
 msgstr "解析配置文件“%s”失败\n"
 
-#: src/testing/testing.c:1201
+#: src/testing/testing.c:1203
 #, fuzzy, c-format
 msgid "Cannot open hostkey file `%s': %s\n"
 msgstr "找不到接口“%s”的一个 IP 地址。\n"
 
-#: src/testing/testing.c:1213
+#: src/testing/testing.c:1215
 #, fuzzy, c-format
 msgid "Failed to write hostkey file for peer %u: %s\n"
 msgstr "发送消息失败。\n"
 
-#: src/testing/testing.c:1238
+#: src/testing/testing.c:1240
 #, fuzzy, c-format
 msgid "Failed to write configuration file `%s' for peer %u: %s\n"
 msgstr "解析配置文件“%s”失败\n"
 
-#: src/testing/testing.c:1340
+#: src/testing/testing.c:1342
 #, fuzzy, c-format
 msgid "Failed to start `%s': %s\n"
 msgstr "运行 %s失败：%s %d\n"
 
-#: src/testing/testing.c:1704
+#: src/testing/testing.c:1706
 #, fuzzy, c-format
 msgid "Failed to load configuration from %s\n"
 msgstr "解析配置文件“%s”失败\n"
@@ -6411,6 +6436,11 @@ msgstr "解析配置文件“%s”失败\n"
 #, fuzzy, c-format
 msgid "Syntax error in FRIENDS file at offset %llu, skipping bytes `%.*s'.\n"
 msgstr "配置文件“%s”第 %d 行有语法错误。\n"
+
+#: src/topology/friends.c:154
+#, c-format
+msgid "Directory for file `%s' does not seem to be writable.\n"
+msgstr ""
 
 #: src/topology/gnunet-daemon-topology.c:255
 msgid "# peers blacklisted"
@@ -6475,18 +6505,18 @@ msgstr ""
 msgid "GNUnet topology control (maintaining P2P mesh and F2F constraints)"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_blacklist.c:267
+#: src/transport/gnunet-service-transport_blacklist.c:272
 #, fuzzy, c-format
 msgid "Adding blacklisting entry for peer `%s'\n"
 msgstr "卸载 GNUnet 服务"
 
-#: src/transport/gnunet-service-transport_blacklist.c:275
+#: src/transport/gnunet-service-transport_blacklist.c:280
 #, c-format
 msgid "Adding blacklisting entry for peer `%s':`%s'\n"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_blacklist.c:455
-#: src/transport/gnunet-service-transport_blacklist.c:726
+#: src/transport/gnunet-service-transport_blacklist.c:465
+#: src/transport/gnunet-service-transport_blacklist.c:746
 msgid "# disconnects due to blacklist"
 msgstr ""
 
@@ -6545,148 +6575,148 @@ msgstr ""
 msgid "# refreshed my HELLO"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1027
+#: src/transport/gnunet-service-transport_neighbours.c:1031
 msgid "# DISCONNECT messages sent"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1163
-#: src/transport/gnunet-service-transport_neighbours.c:1573
+#: src/transport/gnunet-service-transport_neighbours.c:1167
+#: src/transport/gnunet-service-transport_neighbours.c:1577
 msgid "# bytes in message queue for other peers"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1168
+#: src/transport/gnunet-service-transport_neighbours.c:1172
 msgid "# messages transmitted to other peers"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1173
+#: src/transport/gnunet-service-transport_neighbours.c:1177
 msgid "# transmission failures for messages to other peers"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1230
+#: src/transport/gnunet-service-transport_neighbours.c:1234
 msgid "# messages timed out while in transport queue"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1287
+#: src/transport/gnunet-service-transport_neighbours.c:1291
 msgid "# keepalives sent"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1320
+#: src/transport/gnunet-service-transport_neighbours.c:1324
 msgid "# KEEPALIVE messages discarded (peer unknown)"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1328
+#: src/transport/gnunet-service-transport_neighbours.c:1332
 msgid "# KEEPALIVE messages discarded (no session)"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1375
+#: src/transport/gnunet-service-transport_neighbours.c:1379
 msgid "# KEEPALIVE_RESPONSE messages discarded (not connected)"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1384
+#: src/transport/gnunet-service-transport_neighbours.c:1388
 msgid "# KEEPALIVE_RESPONSE messages discarded (not expected)"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1392
+#: src/transport/gnunet-service-transport_neighbours.c:1396
 msgid "# KEEPALIVE_RESPONSE messages discarded (address changed)"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1400
+#: src/transport/gnunet-service-transport_neighbours.c:1404
 msgid "# KEEPALIVE_RESPONSE messages discarded (wrong nonce)"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1478
+#: src/transport/gnunet-service-transport_neighbours.c:1482
 msgid "# messages discarded due to lack of neighbour record"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1512
+#: src/transport/gnunet-service-transport_neighbours.c:1516
 msgid "# bandwidth quota violations by other peers"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1528
+#: src/transport/gnunet-service-transport_neighbours.c:1532
 msgid "# ms throttling suggested"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1620
+#: src/transport/gnunet-service-transport_neighbours.c:1624
 msgid "# SESSION_CONNECT messages sent"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1636
+#: src/transport/gnunet-service-transport_neighbours.c:1640
 #, fuzzy, c-format
 msgid "Failed to transmit CONNECT message via plugin to %s\n"
 msgstr "解析配置文件“%s”失败\n"
 
-#: src/transport/gnunet-service-transport_neighbours.c:1679
+#: src/transport/gnunet-service-transport_neighbours.c:1683
 msgid "# CONNECT_ACK messages sent"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:1947
+#: src/transport/gnunet-service-transport_neighbours.c:1972
 #, fuzzy, c-format
 msgid "Blacklisting dissaproved to connect to peer `%s'\n"
 msgstr "初始化“%s”服务失败。\n"
 
-#: src/transport/gnunet-service-transport_neighbours.c:2360
+#: src/transport/gnunet-service-transport_neighbours.c:2392
 msgid "# CONNECT messages received"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:2365
+#: src/transport/gnunet-service-transport_neighbours.c:2397
 #, c-format
 msgid "CONNECT request from peer `%s' ignored due impending shutdown\n"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:3167
+#: src/transport/gnunet-service-transport_neighbours.c:3199
 msgid "# CONNECT_ACK messages received"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:3175
+#: src/transport/gnunet-service-transport_neighbours.c:3207
 msgid "# unexpected CONNECT_ACK messages (no peer)"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:3190
-#: src/transport/gnunet-service-transport_neighbours.c:3226
+#: src/transport/gnunet-service-transport_neighbours.c:3222
+#: src/transport/gnunet-service-transport_neighbours.c:3258
 msgid "# unexpected CONNECT_ACK messages (not ready)"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:3239
+#: src/transport/gnunet-service-transport_neighbours.c:3271
 msgid "# unexpected CONNECT_ACK messages (waiting on ATS)"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:3269
+#: src/transport/gnunet-service-transport_neighbours.c:3301
 msgid "# unexpected CONNECT_ACK messages (disconnecting)"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:3438
+#: src/transport/gnunet-service-transport_neighbours.c:3470
 msgid "# SESSION_ACK messages received"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:3457
+#: src/transport/gnunet-service-transport_neighbours.c:3489
 msgid "# unexpected SESSION_ACK messages"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:3511
+#: src/transport/gnunet-service-transport_neighbours.c:3543
 msgid "# SET QUOTA messages ignored (no such peer)"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:3526
+#: src/transport/gnunet-service-transport_neighbours.c:3558
 msgid "# disconnects due to quota of 0"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:3554
+#: src/transport/gnunet-service-transport_neighbours.c:3586
 msgid "# disconnect messages ignored (old format)"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:3560
+#: src/transport/gnunet-service-transport_neighbours.c:3592
 msgid "# DISCONNECT messages received"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:3569
+#: src/transport/gnunet-service-transport_neighbours.c:3601
 msgid "# disconnect messages ignored (timestamp)"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:3605
+#: src/transport/gnunet-service-transport_neighbours.c:3637
 msgid "# other peer asked to disconnect from us"
 msgstr ""
 
-#: src/transport/gnunet-service-transport_neighbours.c:3704
+#: src/transport/gnunet-service-transport_neighbours.c:3736
 msgid "# disconnected from peer upon explicit request"
 msgstr ""
 
@@ -6846,126 +6876,126 @@ msgstr ""
 msgid "No port configured for plugin `%s', cannot test it\n"
 msgstr ""
 
-#: src/transport/gnunet-transport.c:722
+#: src/transport/gnunet-transport.c:724
 #, c-format
 msgid "Transmitting %u bytes to %s\n"
 msgstr ""
 
-#: src/transport/gnunet-transport.c:743
+#: src/transport/gnunet-transport.c:745
 #, fuzzy, c-format
 msgid "Successfully connected to `%s'\n"
 msgstr "“%s”已连接到“%s”。\n"
 
-#: src/transport/gnunet-transport.c:767
+#: src/transport/gnunet-transport.c:769
 #, c-format
 msgid ""
 "Successfully connected to `%s', starting to send benchmark data in %u Kb "
 "blocks\n"
 msgstr ""
 
-#: src/transport/gnunet-transport.c:802
+#: src/transport/gnunet-transport.c:804
 #, fuzzy, c-format
 msgid "Disconnected from peer `%s' while benchmarking\n"
 msgstr "“%s”已连接到“%s”。\n"
 
-#: src/transport/gnunet-transport.c:864
+#: src/transport/gnunet-transport.c:866
 #, c-format
 msgid "Received %u bytes from %s\n"
 msgstr ""
 
-#: src/transport/gnunet-transport.c:887
+#: src/transport/gnunet-transport.c:889
 #, c-format
 msgid "Peer `%s': %s %s in state `%s' until %s\n"
 msgstr ""
 
-#: src/transport/gnunet-transport.c:897
+#: src/transport/gnunet-transport.c:899
 #, fuzzy, c-format
 msgid "Peer `%s': %s %s\n"
 msgstr "运行 %s失败：%s %d\n"
 
-#: src/transport/gnunet-transport.c:1110
+#: src/transport/gnunet-transport.c:1112
 #, fuzzy
 msgid "Failed to send connect request to transport service\n"
 msgstr "初始化“%s”服务失败。\n"
 
-#: src/transport/gnunet-transport.c:1154
+#: src/transport/gnunet-transport.c:1156
 #, c-format
 msgid ""
 "Multiple operations given. Please choose only one operation: %s, %s, %s, %s, "
 "%s, %s\n"
 msgstr ""
 
-#: src/transport/gnunet-transport.c:1162
+#: src/transport/gnunet-transport.c:1164
 #, c-format
 msgid ""
 "No operation given. Please choose one operation: %s, %s, %s, %s, %s, %s\n"
 msgstr ""
 
-#: src/transport/gnunet-transport.c:1181 src/transport/gnunet-transport.c:1211
-#: src/transport/gnunet-transport.c:1234 src/transport/gnunet-transport.c:1277
+#: src/transport/gnunet-transport.c:1183 src/transport/gnunet-transport.c:1213
+#: src/transport/gnunet-transport.c:1236 src/transport/gnunet-transport.c:1279
 #, fuzzy
 msgid "Failed to connect to transport service\n"
 msgstr "初始化“%s”服务失败。\n"
 
-#: src/transport/gnunet-transport.c:1190 src/transport/gnunet-transport.c:1220
+#: src/transport/gnunet-transport.c:1192 src/transport/gnunet-transport.c:1222
 #, fuzzy
 msgid "Failed to send request to transport service\n"
 msgstr "初始化“%s”服务失败。\n"
 
-#: src/transport/gnunet-transport.c:1239
+#: src/transport/gnunet-transport.c:1241
 msgid "Starting to receive benchmark data\n"
 msgstr ""
 
-#: src/transport/gnunet-transport.c:1323
+#: src/transport/gnunet-transport.c:1325
 #, fuzzy
 msgid "print information for all peers (instead of only connected peers )"
 msgstr "无法获取有关用户“%s”的信息：%s\n"
 
-#: src/transport/gnunet-transport.c:1326
+#: src/transport/gnunet-transport.c:1328
 msgid "measure how fast we are receiving data from all peers (until CTRL-C)"
 msgstr ""
 
-#: src/transport/gnunet-transport.c:1328
+#: src/transport/gnunet-transport.c:1330
 #, fuzzy
 msgid "connect to a peer"
 msgstr "初始化“%s”服务失败。\n"
 
-#: src/transport/gnunet-transport.c:1331
+#: src/transport/gnunet-transport.c:1333
 #, fuzzy
 msgid "print information for all pending validations "
 msgstr "无法获取有关用户“%s”的信息：%s\n"
 
-#: src/transport/gnunet-transport.c:1334
+#: src/transport/gnunet-transport.c:1336
 #, fuzzy
 msgid "print information for all pending validations continously"
 msgstr "无法获取有关用户“%s”的信息：%s\n"
 
-#: src/transport/gnunet-transport.c:1337
+#: src/transport/gnunet-transport.c:1339
 msgid "provide information about all current connections (once)"
 msgstr ""
 
-#: src/transport/gnunet-transport.c:1343
+#: src/transport/gnunet-transport.c:1345
 msgid ""
 "provide information about all connects and disconnect events (continuously)"
 msgstr ""
 
-#: src/transport/gnunet-transport.c:1345
+#: src/transport/gnunet-transport.c:1347
 msgid "do not resolve hostnames"
 msgstr ""
 
-#: src/transport/gnunet-transport.c:1347
+#: src/transport/gnunet-transport.c:1349
 msgid "peer identity"
 msgstr ""
 
-#: src/transport/gnunet-transport.c:1349
+#: src/transport/gnunet-transport.c:1351
 msgid "send data for benchmarking to the other peer (until CTRL-C)"
 msgstr ""
 
-#: src/transport/gnunet-transport.c:1352
+#: src/transport/gnunet-transport.c:1354
 msgid "test transport configuration (involves external server)"
 msgstr ""
 
-#: src/transport/gnunet-transport.c:1361
+#: src/transport/gnunet-transport.c:1363
 #, fuzzy
 msgid "Direct access to transport service."
 msgstr "初始化“%s”服务失败。\n"
@@ -7041,19 +7071,19 @@ msgid "Could not initialize curl multi handle, failed to start %s plugin!\n"
 msgstr ""
 
 #: src/transport/plugin_transport_http_client.c:1696
-#: src/transport/plugin_transport_http_server.c:3006
+#: src/transport/plugin_transport_http_server.c:3007
 #, fuzzy, c-format
 msgid "Shutting down plugin `%s'\n"
 msgstr "未知的命令“%s”。\n"
 
 #: src/transport/plugin_transport_http_client.c:1721
-#: src/transport/plugin_transport_http_server.c:3062
+#: src/transport/plugin_transport_http_server.c:3063
 #, c-format
 msgid "Shutdown for plugin `%s' complete\n"
 msgstr ""
 
 #: src/transport/plugin_transport_http_client.c:1749
-#: src/transport/plugin_transport_http_server.c:2906
+#: src/transport/plugin_transport_http_server.c:2907
 #, fuzzy, c-format
 msgid "Maximum number of connections is %u\n"
 msgstr "增加 TCP/IP 的最大连接数"
@@ -7076,93 +7106,93 @@ msgid ""
 "Server reached maximum number connections (%u), rejecting new connection\n"
 msgstr ""
 
-#: src/transport/plugin_transport_http_server.c:1957
+#: src/transport/plugin_transport_http_server.c:1958
 msgid ""
 "Could not create a new TLS certificate, program `gnunet-transport-"
 "certificate-creation' could not be started!\n"
 msgstr ""
 
-#: src/transport/plugin_transport_http_server.c:1981
+#: src/transport/plugin_transport_http_server.c:1982
 #, c-format
 msgid "No usable TLS certificate found and creating one at `%s/%s' failed!\n"
 msgstr ""
 
-#: src/transport/plugin_transport_http_server.c:2404
+#: src/transport/plugin_transport_http_server.c:2405
 #, fuzzy
 msgid "Require valid port number for service in configuration!\n"
 msgstr "保存配置失败。"
 
-#: src/transport/plugin_transport_http_server.c:2436 src/util/service.c:696
+#: src/transport/plugin_transport_http_server.c:2437 src/util/service.c:713
 #, fuzzy, c-format
 msgid "Failed to resolve `%s': %s\n"
 msgstr "打开日志文件“%s”失败：%s\n"
 
-#: src/transport/plugin_transport_http_server.c:2453 src/util/service.c:713
+#: src/transport/plugin_transport_http_server.c:2454 src/util/service.c:730
 #, fuzzy, c-format
 msgid "Failed to find %saddress for `%s'.\n"
 msgstr "找不到接口“%s”的一个 IP 地址。\n"
 
-#: src/transport/plugin_transport_http_server.c:2564
+#: src/transport/plugin_transport_http_server.c:2565
 #, c-format
 msgid "Found %u addresses to report to NAT service\n"
 msgstr ""
 
-#: src/transport/plugin_transport_http_server.c:2636
+#: src/transport/plugin_transport_http_server.c:2637
 msgid "Disabling IPv6 since it is not supported on this system!\n"
 msgstr ""
 
-#: src/transport/plugin_transport_http_server.c:2729
+#: src/transport/plugin_transport_http_server.c:2730
 #, c-format
 msgid "IPv4 support is %s\n"
 msgstr ""
 
-#: src/transport/plugin_transport_http_server.c:2743
+#: src/transport/plugin_transport_http_server.c:2744
 #, c-format
 msgid "IPv6 support is %s\n"
 msgstr ""
 
-#: src/transport/plugin_transport_http_server.c:2750
+#: src/transport/plugin_transport_http_server.c:2751
 msgid "Neither IPv4 nor IPv6 are enabled! Fix in configuration\n"
 msgstr ""
 
-#: src/transport/plugin_transport_http_server.c:2761
+#: src/transport/plugin_transport_http_server.c:2762
 #, fuzzy
 msgid "Port is required! Fix in configuration\n"
 msgstr ""
 "\n"
 "结束配置。\n"
 
-#: src/transport/plugin_transport_http_server.c:2768
+#: src/transport/plugin_transport_http_server.c:2769
 #, c-format
 msgid "Using port %u\n"
 msgstr ""
 
-#: src/transport/plugin_transport_http_server.c:2783
+#: src/transport/plugin_transport_http_server.c:2784
 #, c-format
 msgid "Specific IPv4 address `%s' in configuration file is invalid!\n"
 msgstr ""
 
-#: src/transport/plugin_transport_http_server.c:2793
+#: src/transport/plugin_transport_http_server.c:2794
 #, fuzzy, c-format
 msgid "Binding to IPv4 address %s\n"
 msgstr "无效的进程优先级“%s”\n"
 
-#: src/transport/plugin_transport_http_server.c:2814
+#: src/transport/plugin_transport_http_server.c:2815
 #, c-format
 msgid "Specific IPv6 address `%s' in configuration file is invalid!\n"
 msgstr ""
 
-#: src/transport/plugin_transport_http_server.c:2824
+#: src/transport/plugin_transport_http_server.c:2825
 #, fuzzy, c-format
 msgid "Binding to IPv6 address %s\n"
 msgstr "无效的进程优先级“%s”\n"
 
-#: src/transport/plugin_transport_http_server.c:2876
+#: src/transport/plugin_transport_http_server.c:2877
 #, fuzzy, c-format
 msgid "Using external hostname `%s'\n"
 msgstr "卸载 GNUnet 服务"
 
-#: src/transport/plugin_transport_http_server.c:2892
+#: src/transport/plugin_transport_http_server.c:2893
 #, c-format
 msgid "Notifying transport only about hostname `%s'\n"
 msgstr ""
@@ -7217,7 +7247,7 @@ msgstr ""
 #: src/transport/plugin_transport_tcp.c:766
 #: src/transport/plugin_transport_tcp.c:932
 #: src/transport/plugin_transport_tcp.c:2012
-#: src/transport/plugin_transport_tcp.c:2550
+#: src/transport/plugin_transport_tcp.c:2555
 msgid "# TCP sessions active"
 msgstr ""
 
@@ -7255,39 +7285,39 @@ msgstr ""
 msgid "# transport-service disconnect requests for TCP"
 msgstr ""
 
-#: src/transport/plugin_transport_tcp.c:2060
+#: src/transport/plugin_transport_tcp.c:2062
 msgid "# TCP WELCOME messages received"
 msgstr ""
 
-#: src/transport/plugin_transport_tcp.c:2211
+#: src/transport/plugin_transport_tcp.c:2216
 msgid "# bytes received via TCP"
 msgstr ""
 
-#: src/transport/plugin_transport_tcp.c:2275
+#: src/transport/plugin_transport_tcp.c:2280
 msgid "# network-level TCP disconnect events"
 msgstr ""
 
-#: src/transport/plugin_transport_tcp.c:2429 src/util/service.c:589
-#: src/util/service.c:595
+#: src/transport/plugin_transport_tcp.c:2434 src/util/service.c:597
+#: src/util/service.c:603
 #, c-format
 msgid "Require valid port number for service `%s' in configuration!\n"
 msgstr ""
 
-#: src/transport/plugin_transport_tcp.c:2443
+#: src/transport/plugin_transport_tcp.c:2448
 #, fuzzy
 msgid "Failed to start service.\n"
 msgstr "初始化“%s”服务失败。\n"
 
-#: src/transport/plugin_transport_tcp.c:2539
+#: src/transport/plugin_transport_tcp.c:2544
 #, c-format
 msgid "TCP transport listening on port %llu\n"
 msgstr ""
 
-#: src/transport/plugin_transport_tcp.c:2543
+#: src/transport/plugin_transport_tcp.c:2548
 msgid "TCP transport not listening on any port (client only)\n"
 msgstr ""
 
-#: src/transport/plugin_transport_tcp.c:2546
+#: src/transport/plugin_transport_tcp.c:2551
 #, c-format
 msgid "TCP transport advertises itself as being on port %llu\n"
 msgstr ""
@@ -7310,47 +7340,52 @@ msgstr ""
 msgid "Failed to set IPv4 broadcast option for broadcast socket on port %d\n"
 msgstr ""
 
-#: src/transport/plugin_transport_udp.c:1405
+#: src/transport/plugin_transport_udp.c:1469
 #, c-format
 msgid ""
 "Trying to create session for address of unexpected length %u (should be %u "
 "or %u)\n"
 msgstr ""
 
-#: src/transport/plugin_transport_udp.c:2473
+#: src/transport/plugin_transport_udp.c:2579
 #, c-format
 msgid ""
 "UDP could not transmit message to `%s': Network seems down, please check "
 "your network configuration\n"
 msgstr ""
 
-#: src/transport/plugin_transport_udp.c:2487
+#: src/transport/plugin_transport_udp.c:2593
 msgid ""
 "UDP could not transmit IPv6 message! Please check your network configuration "
 "and disable IPv6 if your connection does not have a global IPv6 address\n"
 msgstr ""
 
-#: src/transport/plugin_transport_udp.c:2816
+#: src/transport/plugin_transport_udp.c:2934
 #, fuzzy
 msgid "Failed to open UDP sockets\n"
 msgstr "打开日志文件“%s”失败：%s\n"
 
-#: src/transport/plugin_transport_udp.c:2911
+#: src/transport/plugin_transport_udp.c:3029
 #, c-format
 msgid "Given `%s' option is out of range: %llu > %u\n"
 msgstr ""
 
-#: src/transport/plugin_transport_udp.c:2950
+#: src/transport/plugin_transport_udp.c:3070
 #, fuzzy, c-format
 msgid "Invalid IPv6 address: `%s'\n"
 msgstr "无效的进程优先级“%s”\n"
 
-#: src/transport/plugin_transport_udp.c:3020
+#: src/transport/plugin_transport_udp.c:3141
 #, fuzzy
 msgid "Failed to create network sockets, plugin failed\n"
 msgstr "发送消息失败。\n"
 
-#: src/transport/plugin_transport_unix.c:1622
+#: src/transport/plugin_transport_unix.c:1641
+#, fuzzy
+msgid "No UNIXPATH given in configuration!\n"
+msgstr "保存配置失败。"
+
+#: src/transport/plugin_transport_unix.c:1676
 #, fuzzy
 msgid "Failed to open UNIX listen socket\n"
 msgstr "打开日志文件“%s”失败：%s\n"
@@ -7420,7 +7455,7 @@ msgstr ""
 msgid "Helper binary `%s' not SUID, cannot run WLAN transport\n"
 msgstr ""
 
-#: src/transport/transport_api.c:710
+#: src/transport/transport_api.c:737
 #, c-format
 msgid "Received unexpected message of type %u in %s:%u\n"
 msgstr ""
@@ -7464,12 +7499,12 @@ msgstr ""
 msgid "Metadata `%s' failed to deserialize"
 msgstr ""
 
-#: src/util/client.c:261 src/util/client.c:857 src/util/service.c:625
+#: src/util/client.c:261 src/util/client.c:858 src/util/service.c:634
 #, c-format
 msgid "UNIXPATH `%s' too long, maximum length is %llu\n"
 msgstr ""
 
-#: src/util/client.c:265 src/util/client.c:862 src/util/service.c:629
+#: src/util/client.c:265 src/util/client.c:863 src/util/service.c:638
 #, fuzzy, c-format
 msgid "Using `%s' instead\n"
 msgstr "%s：选项“%s”有歧义\n"
@@ -7486,17 +7521,17 @@ msgstr ""
 msgid "Need a non-empty hostname for service `%s'.\n"
 msgstr ""
 
-#: src/util/client.c:995
+#: src/util/client.c:1008
 #, fuzzy, c-format
 msgid "Could not connect to service `%s', configuration broken.\n"
 msgstr "无法连接到 %s:%u：%s\n"
 
-#: src/util/client.c:1007
+#: src/util/client.c:1020
 #, c-format
 msgid "Failure to transmit request to service `%s'\n"
 msgstr ""
 
-#: src/util/client.c:1290
+#: src/util/client.c:1303
 msgid "Could not submit request, not expecting to receive a response.\n"
 msgstr ""
 
@@ -7534,20 +7569,20 @@ msgstr "消息“%.*s”重复了 %u 次，在最近 %llu 秒内\n"
 msgid "INVALID"
 msgstr ""
 
-#: src/util/common_logging.c:1150
+#: src/util/common_logging.c:1157
 msgid "unknown address"
 msgstr ""
 
-#: src/util/common_logging.c:1189
+#: src/util/common_logging.c:1196
 msgid "invalid address"
 msgstr ""
 
-#: src/util/common_logging.c:1207
+#: src/util/common_logging.c:1214
 #, fuzzy, c-format
 msgid "Configuration fails to specify option `%s' in section `%s'!\n"
 msgstr "配置不满足配置规范文件“%s”的约束！\n"
 
-#: src/util/common_logging.c:1228
+#: src/util/common_logging.c:1235
 #, fuzzy, c-format
 msgid ""
 "Configuration specifies invalid value for option `%s' in section `%s': %s\n"
@@ -7598,12 +7633,12 @@ msgid ""
 "Failed to establish TCP connection to `%s:%u', no further addresses to try.\n"
 msgstr ""
 
-#: src/util/connection.c:751 src/util/connection.c:909
+#: src/util/connection.c:751 src/util/connection.c:919
 #, fuzzy, c-format
 msgid "Trying to connect to `%s' (%p)\n"
 msgstr "无法连接到 %s:%u：%s\n"
 
-#: src/util/connection.c:900
+#: src/util/connection.c:910
 #, c-format
 msgid "Attempt to connect to `%s' failed\n"
 msgstr ""
@@ -7665,7 +7700,7 @@ msgstr "对驱动器“%2$s”的“%1$s”操作失败：%3$u\n"
 msgid "EdDSA signature verification failed at %s:%d: %s\n"
 msgstr "对驱动器“%2$s”的“%1$s”操作失败：%3$u\n"
 
-#: src/util/crypto_random.c:280
+#: src/util/crypto_random.c:284
 #, c-format
 msgid "libgcrypt has not the expected version (version %s is required).\n"
 msgstr "libgcrypt 的版本不符合预期(要求版本 %s)。\n"
@@ -7675,7 +7710,7 @@ msgstr "libgcrypt 的版本不符合预期(要求版本 %s)。\n"
 msgid "Expected `%s' to be a directory!\n"
 msgstr "“%s”应为目录！\n"
 
-#: src/util/disk.c:1546 src/util/service.c:1315
+#: src/util/disk.c:1546 src/util/service.c:1333
 #, c-format
 msgid "Cannot obtain information about user `%s': %s\n"
 msgstr "无法获取有关用户“%s”的信息：%s\n"
@@ -7950,7 +7985,7 @@ msgstr "创建用户出错"
 msgid "Unable to shorten unix path `%s' while keeping name unique\n"
 msgstr ""
 
-#: src/util/network.c:1344 src/util/network.c:1469
+#: src/util/network.c:1355 src/util/network.c:1480
 #, c-format
 msgid ""
 "Fatal internal logic error, process hangs in `%s' (abort with CTRL-C)!\n"
@@ -7998,17 +8033,17 @@ msgstr ""
 msgid "Could not determine plugin installation path.\n"
 msgstr "无法确定用户界面定义文件。"
 
-#: src/util/program.c:262 src/util/service.c:1449
+#: src/util/program.c:262 src/util/service.c:1467
 #, fuzzy, c-format
 msgid "Malformed configuration file `%s', exit ...\n"
 msgstr "解析配置文件“%s”失败\n"
 
-#: src/util/program.c:274 src/util/service.c:1464
+#: src/util/program.c:274 src/util/service.c:1482
 #, fuzzy, c-format
 msgid "Could not access configuration file `%s'\n"
 msgstr "找不到接口“%s”的一个 IP 地址。\n"
 
-#: src/util/program.c:279 src/util/service.c:1459
+#: src/util/program.c:279 src/util/service.c:1477
 #, fuzzy
 msgid "Malformed configuration, exit ...\n"
 msgstr "解析配置文件“%s”失败\n"
@@ -8090,70 +8125,70 @@ msgstr ""
 msgid "Could not parse IPv6 network specification `%s' for `%s:%s'\n"
 msgstr ""
 
-#: src/util/service.c:570
+#: src/util/service.c:578
 #, c-format
 msgid ""
 "Disabling IPv6 support for service `%s', failed to create IPv6 socket: %s\n"
 msgstr ""
 
-#: src/util/service.c:651
+#: src/util/service.c:668
 #, c-format
 msgid ""
 "Disabling UNIX domain socket support for service `%s', failed to create UNIX "
 "domain socket: %s\n"
 msgstr ""
 
-#: src/util/service.c:667
+#: src/util/service.c:684
 #, c-format
 msgid "Have neither PORT nor UNIXPATH for service `%s', but one is required\n"
 msgstr ""
 
-#: src/util/service.c:901
+#: src/util/service.c:918
 msgid "Could not access a pre-bound socket, will try to bind myself\n"
 msgstr ""
 
-#: src/util/service.c:950 src/util/service.c:968
+#: src/util/service.c:967 src/util/service.c:985
 #, c-format
 msgid "Specified value for `%s' of service `%s' is invalid\n"
 msgstr ""
 
-#: src/util/service.c:993
+#: src/util/service.c:1010
 #, c-format
 msgid "Could not access pre-bound socket %u, will try to bind myself\n"
 msgstr ""
 
-#: src/util/service.c:1163
+#: src/util/service.c:1180
 #, fuzzy, c-format
 msgid "Failed to start `%s' at `%s'\n"
 msgstr "运行 %s失败：%s %d\n"
 
-#: src/util/service.c:1204
+#: src/util/service.c:1222
 #, c-format
 msgid "Service `%s' runs at %s\n"
 msgstr ""
 
-#: src/util/service.c:1253
+#: src/util/service.c:1271
 msgid "Service process failed to initialize\n"
 msgstr ""
 
-#: src/util/service.c:1257
+#: src/util/service.c:1275
 msgid "Service process could not initialize server function\n"
 msgstr ""
 
-#: src/util/service.c:1261
+#: src/util/service.c:1279
 msgid "Service process failed to report status\n"
 msgstr ""
 
-#: src/util/service.c:1316
+#: src/util/service.c:1334
 msgid "No such user"
 msgstr "无此用户"
 
-#: src/util/service.c:1329
+#: src/util/service.c:1347
 #, c-format
 msgid "Cannot change user/group to `%s': %s\n"
 msgstr "无法更改用户/组为“%s”：%s\n"
 
-#: src/util/service.c:1399
+#: src/util/service.c:1417
 msgid "do daemonize (detach from terminal)"
 msgstr ""
 
@@ -8707,10 +8742,6 @@ msgstr ""
 #, fuzzy
 #~ msgid "Mesh service could not access hostkey.  Exiting.\n"
 #~ msgstr "找不到接口“%s”的一个 IP 地址。\n"
-
-#, fuzzy
-#~ msgid "Malformed %s `%s' given in configuration!\n"
-#~ msgstr "保存配置失败。"
 
 #, fuzzy
 #~ msgid "Configuration file `%s' for service `%s' not valid: %s\n"
