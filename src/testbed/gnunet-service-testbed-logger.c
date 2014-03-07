@@ -86,6 +86,16 @@ struct GNUNET_BIO_WriteHandle *bio;
 static GNUNET_SCHEDULER_TaskIdentifier shutdown_task_id;
 
 /**
+ * The number of connections we have
+ */
+static unsigned int nconn;
+
+/**
+ * Are we shutting down?
+ */
+static int in_shutdown;
+
+/**
  * Message handler for GNUNET_MESSAGE_TYPE_TESTBED_ADDHOST messages
  *
  * @param cls NULL
@@ -117,6 +127,15 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct MessageQueue *mq_entry;
 
   shutdown_task_id = GNUNET_SCHEDULER_NO_TASK;
+  in_shutdown = GNUNET_YES;
+  if (0 != nconn)
+  {
+    /* Delay shutdown if there are active connections */
+    shutdown_task_id = GNUNET_SCHEDULER_add_delayed
+        (GNUNET_TIME_UNIT_FOREVER_REL,
+         &shutdown_task, NULL);
+    return;
+  }
   while (NULL != (mq_entry = mq_head))
   {
     GNUNET_free (mq_entry->msg);
@@ -125,6 +144,51 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_free (mq_entry);
   }
   GNUNET_break (GNUNET_OK == GNUNET_BIO_write_close (bio));
+}
+
+
+/**
+ * Functions with this signature are called whenever a client
+ * is disconnected on the network level.
+ *
+ * @param cls closure
+ * @param client identification of the client; NULL
+ *        for the last call when the server is destroyed
+ */
+static void 
+client_disconnected (void *cls, struct GNUNET_SERVER_Client *client)
+{
+  if (NULL == client)
+  {
+    GNUNET_break (0 == nconn);
+    return;
+  }
+  nconn--;
+  if (GNUNET_YES != in_shutdown)
+    return;
+  GNUNET_assert (GNUNET_SCHEDULER_NO_TASK != shutdown_task_id);
+  GNUNET_SCHEDULER_cancel (shutdown_task_id);
+  shutdown_task_id = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
+}
+
+
+/**
+ * Functions with this signature are called whenever a client
+ * is connected on the network level.
+ *
+ * @param cls closure
+ * @param client identification of the client
+ */
+static void
+client_connected (void *cls, struct GNUNET_SERVER_Client *client)
+{
+  if (NULL == client)
+  {
+    GNUNET_break (0 == nconn);
+    return;
+  }
+  GNUNET_SERVER_client_persist_ (client);
+  nconn++;
 }
 
 
@@ -180,6 +244,8 @@ logger_run (void *cls, struct GNUNET_SERVER_Handle *server,
   }
   GNUNET_free (fn);
   GNUNET_SERVER_add_handlers (server, message_handlers);
+  GNUNET_SERVER_connect_notify (server, &client_connected, NULL);
+  GNUNET_SERVER_disconnect_notify (server, &client_disconnected, NULL);
   shutdown_task_id =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                     &shutdown_task, NULL);
