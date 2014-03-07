@@ -625,7 +625,7 @@ GNUNET_NAT_mini_map_start (uint16_t port,
 /**
  * Process output from our 'unmap' command.
  *
- * @param cls the 'struct GNUNET_NAT_MiniHandle'
+ * @param cls the `struct GNUNET_NAT_MiniHandle`
  * @param line line of output, NULL at the end
  */
 static void

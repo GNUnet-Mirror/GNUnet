@@ -105,7 +105,7 @@ UNIX_QUOTA_TEST = test_quota_compliance_unix \
      test_quota_compliance_unix_asymmetric
 if LINUX
  UNIX_API_ABSTRACT_TEST = test_transport_api_unix_abstract
-endif     
+endif
 endif
 
 noinst_PROGRAMS = \
@@ -212,11 +212,17 @@ gnunet_service_transport_SOURCES = \
  gnunet-service-transport_plugins.h gnunet-service-transport_plugins.c \
  gnunet-service-transport_validation.h gnunet-service-transport_validation.c \
  gnunet-service-transport_manipulation.h gnunet-service-transport_manipulation.c
+# Note that while gnunet-service-transport does not use libgnunetnat
+# directly, we must link against it as GNUNET_NAT_mini_map_stop will
+# leave a 'dangling' task to process_unmap_output which will cause
+# a crash on unloading of a plugin unless the service links against
+# that library as well.
 gnunet_service_transport_LDADD = \
   $(top_builddir)/src/transport/libgnunettransport.la \
   $(top_builddir)/src/ats/libgnunetats.la \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
+  $(top_builddir)/src/nat/libgnunetnat.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_GLPK) \
@@ -1095,6 +1101,7 @@ test_quota_compliance_wlan_asymmetric_LDADD = \
 test_quota_compliance_bluetooth_SOURCES = \
  test_quota_compliance.c
 test_quota_compliance_bluetooth_LDADD = \
+ $(top_builddir)/src/nat/libgnunetnat.la \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
