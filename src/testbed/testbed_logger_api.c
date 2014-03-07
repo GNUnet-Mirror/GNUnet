@@ -352,15 +352,21 @@ void
 GNUNET_TESTBED_LOGGER_disconnect (struct GNUNET_TESTBED_LOGGER_Handle *h)
 {
   struct MessageQueue *mq;
+  unsigned int lost;
 
   if (GNUNET_SCHEDULER_NO_TASK != h->flush_completion_task)
     GNUNET_SCHEDULER_cancel (h->flush_completion_task);
+  lost = 0;
   while (NULL != (mq = h->mq_head))
   {
     GNUNET_CONTAINER_DLL_remove (h->mq_head, h->mq_tail, mq);
     GNUNET_free (mq->msg);
     GNUNET_free (mq);
+    lost++;
   }
+  if (0 != lost)
+    LOG (GNUNET_ERROR_TYPE_WARNING, "Cleaning up %u unsent logger message[s]\n",
+         lost);
   GNUNET_CLIENT_disconnect (h->client);
   GNUNET_free (h);
 }
@@ -383,7 +389,7 @@ GNUNET_TESTBED_LOGGER_write (struct GNUNET_TESTBED_LOGGER_Handle *h,
 
   GNUNET_assert (0 != size);
   GNUNET_assert (NULL != data);
-  GNUNET_assert (size < (BUFFER_SIZE - sizeof (struct GNUNET_MessageHeader)));
+  GNUNET_assert (size <= (BUFFER_SIZE - sizeof (struct GNUNET_MessageHeader)));
   fit_size = sizeof (struct GNUNET_MessageHeader) + h->bs + size;
   if ( BUFFER_SIZE < fit_size )
     dispatch_buffer (h);
@@ -392,12 +398,15 @@ GNUNET_TESTBED_LOGGER_write (struct GNUNET_TESTBED_LOGGER_Handle *h,
     h->buf = GNUNET_malloc (size);
     h->bs = size;
     memcpy (h->buf, data, size);
-    return;
+    goto dispatch_ready;
   }
   h->buf = GNUNET_realloc (h->buf, h->bs + size);
   memcpy (h->buf + h->bs, data, size);
   h->bs += size;
-  return;
+
+ dispatch_ready:
+  if (BUFFER_SIZE == fit_size)
+    dispatch_buffer (h);
 }
 
 
