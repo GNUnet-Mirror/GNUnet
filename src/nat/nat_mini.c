@@ -669,13 +669,13 @@ GNUNET_NAT_mini_map_stop (struct GNUNET_NAT_MiniHandle *mini)
     GNUNET_OS_command_stop (mini->refresh_cmd);
     mini->refresh_cmd = NULL;
   }
+  if (NULL != mini->map_cmd)
+  {
+    GNUNET_OS_command_stop (mini->map_cmd);
+    mini->map_cmd = NULL;
+  }
   if (GNUNET_NO == mini->did_map)
   {
-    if (NULL != mini->map_cmd)
-    {
-      GNUNET_OS_command_stop (mini->map_cmd);
-      mini->map_cmd = NULL;
-    }
     GNUNET_free (mini);
     return;
   }
