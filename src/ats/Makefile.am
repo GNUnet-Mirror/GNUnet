@@ -41,7 +41,8 @@ plugin_LTLIBRARIES = \
   libgnunet_plugin_ats_ril.la
 
 gnunet_ats_solver_eval_SOURCES = \
- gnunet-ats-solver-eval.c gnunet-service-ats_normalization.c 
+ gnunet-ats-solver-eval.c gnunet-ats-solver-eval.h \
+ gnunet-service-ats_normalization.c
 gnunet_ats_solver_eval_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  libgnunetats.la \
