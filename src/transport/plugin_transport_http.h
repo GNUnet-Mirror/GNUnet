@@ -23,6 +23,8 @@
  * @brief http transport service plugin
  * @author Matthias Wachs
  */
+#ifndef PLUGIN_TRANSPORT_HTTP_H
+#define PLUGIN_TRANSPORT_HTTP_H
 
 #include "platform.h"
 #include "gnunet_common.h"
@@ -579,4 +581,6 @@ void
 notify_session_end (void *cls, const struct GNUNET_PeerIdentity *peer,
                     struct Session *s);
 
+/*#ifndef PLUGIN_TRANSPORT_HTTP_H*/
+#endif
 /* end of plugin_transport_http.h */

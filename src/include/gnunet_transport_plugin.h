@@ -654,4 +654,6 @@ struct GNUNET_TRANSPORT_PluginFunctions
 };
 
 
+/*#ifndef PLUGIN_TRANSPORT_H*/
 #endif
+/* end of gnunet_transport_plugin.h */

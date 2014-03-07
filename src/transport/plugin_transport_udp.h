@@ -25,6 +25,9 @@
  * @author Nathan Evans
  * @author Matthias Wachs
  */
+#ifndef PLUGIN_TRANSPORT_UDP_H
+#define PLUGIN_TRANSPORT_UDP_H
+
 #include "platform.h"
 #include "gnunet_hello_lib.h"
 #include "gnunet_util_lib.h"
@@ -301,4 +304,6 @@ setup_broadcast (struct Plugin *plugin,
 void
 stop_broadcast (struct Plugin *plugin);
 
+/*#ifndef PLUGIN_TRANSPORT_UDP_H*/
+#endif
 /* end of plugin_transport_udp.h */

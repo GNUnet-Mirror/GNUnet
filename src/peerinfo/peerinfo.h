@@ -23,9 +23,14 @@
  * @brief common internal definitions for peerinfo service
  * @author Christian Grothoff
  */
+
+#ifndef PEERINFO_H
+#define PEERINFO_H
+
 #include "gnunet_crypto_lib.h"
 #include "gnunet_time_lib.h"
 #include "gnunet_peerinfo_service.h"
+
 
 
 GNUNET_NETWORK_STRUCT_BEGIN
@@ -120,4 +125,6 @@ struct InfoMessage
 };
 GNUNET_NETWORK_STRUCT_END
 
+/*#ifndef PEERINFO_H*/
+#endif
 /* end of peerinfo.h */
