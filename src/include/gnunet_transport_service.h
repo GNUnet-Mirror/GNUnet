@@ -364,8 +364,10 @@ typedef void
  *      NULL if this is the final last callback for a iteration operation
  * @param address address,
  *      NULL for disconnect notification in monitor mode
+ * @param last_validation when was this address last validated
  * @param valid_until when does this address expire
  * @param next_validation time of the next validation operation
+ * @param state state in the validation state machine
  */
 typedef void
 (*GNUNET_TRANSPORT_ValidationIterateCallback) (void *cls,

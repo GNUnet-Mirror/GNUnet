@@ -8,7 +8,7 @@ if HAVE_TESTING
  CONSENSUS = consensus
  SECRETSHARING = secretsharing
  EXPERIMENTATION = experimentation
-# SCALARPRODUCT = scalarproduct
+ SCALARPRODUCT = scalarproduct
 endif
 
 if HAVE_EXPERIMENTAL
