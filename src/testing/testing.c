@@ -420,6 +420,8 @@ GNUNET_TESTING_system_create_with_portrange (const char *testdir,
                                                  &cfg_copy_iterator, ss->cfg);
     GNUNET_CONFIGURATION_iterate_section_values (tss.cfg, "TESTING",
                                                  &cfg_copy_iterator, ss->cfg);
+    GNUNET_CONFIGURATION_iterate_section_values (tss.cfg, "PATHS",
+                                                 &cfg_copy_iterator, ss->cfg);
     ss->share = tss.share;
     GNUNET_array_append (system->shared_services, system->n_shared_services,
                          ss);
