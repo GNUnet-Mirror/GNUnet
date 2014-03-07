@@ -66,11 +66,6 @@ struct MessageQueue
 };
 
 /**
- * Current Transmit Handle; NULL if no notify transmit exists currently
- */
-static struct GNUNET_SERVER_TransmitHandle *transmit_handle;
-
-/**
  * The message queue head
  */
 static struct MessageQueue *mq_head;
@@ -89,76 +84,6 @@ struct GNUNET_BIO_WriteHandle *bio;
  * The shutdown task handle
  */
 static GNUNET_SCHEDULER_TaskIdentifier shutdown_task_id;
-
-
-/**
- * Function called to notify a client about the connection begin ready to queue
- * more data.  "buf" will be NULL and "size" zero if the connection was closed
- * for writing in the meantime.
- *
- * @param cls NULL
- * @param size number of bytes available in buf
- * @param buf where the callee should write the message
- * @return number of bytes written to buf
- */
-static size_t
-transmit_ready_notify (void *cls, size_t size, void *buf)
-{
-  struct MessageQueue *mq_entry;
-
-  transmit_handle = NULL;
-  mq_entry = mq_head;
-  GNUNET_assert (NULL != mq_entry);
-  if (0 == size)
-    return 0;
-  GNUNET_assert (ntohs (mq_entry->msg->size) <= size);
-  size = ntohs (mq_entry->msg->size);
-  memcpy (buf, mq_entry->msg, size);
-  GNUNET_free (mq_entry->msg);
-  GNUNET_SERVER_client_drop (mq_entry->client);
-  GNUNET_CONTAINER_DLL_remove (mq_head, mq_tail, mq_entry);
-  GNUNET_free (mq_entry);
-  mq_entry = mq_head;
-  if (NULL != mq_entry)
-    transmit_handle =
-        GNUNET_SERVER_notify_transmit_ready (mq_entry->client,
-                                             ntohs (mq_entry->msg->size),
-                                             GNUNET_TIME_UNIT_FOREVER_REL,
-                                             &transmit_ready_notify, NULL);
-  return size;
-}
-
-
-/**
- * Queues a message in send queue for sending to the service
- *
- * @param client the client to whom the queued message has to be sent
- * @param msg the message to queue
- */
-void
-queue_message (struct GNUNET_SERVER_Client *client,
-                   struct GNUNET_MessageHeader *msg)
-{
-  struct MessageQueue *mq_entry;
-  uint16_t type;
-  uint16_t size;
-
-  type = ntohs (msg->type);
-  size = ntohs (msg->size);
-  mq_entry = GNUNET_new (struct MessageQueue);
-  mq_entry->msg = msg;
-  mq_entry->client = client;
-  GNUNET_SERVER_client_keep (client);
-  LOG_DEBUG ("Queueing message of type %u, size %u for sending\n", type,
-             ntohs (msg->size));
-  GNUNET_CONTAINER_DLL_insert_tail (mq_head, mq_tail, mq_entry);
-  if (NULL == transmit_handle)
-    transmit_handle =
-        GNUNET_SERVER_notify_transmit_ready (client, size,
-                                             GNUNET_TIME_UNIT_FOREVER_REL,
-                                             &transmit_ready_notify, NULL);
-}
-
 
 /**
  * Message handler for GNUNET_MESSAGE_TYPE_TESTBED_ADDHOST messages
@@ -192,8 +117,6 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct MessageQueue *mq_entry;
 
   shutdown_task_id = GNUNET_SCHEDULER_NO_TASK;
-  if (NULL != transmit_handle)
-    GNUNET_SERVER_notify_transmit_ready_cancel (transmit_handle);
   while (NULL != (mq_entry = mq_head))
   {
     GNUNET_free (mq_entry->msg);
