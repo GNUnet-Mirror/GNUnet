@@ -23,8 +23,9 @@
  * @brief scalarproduct service implementation
  * @author Christian M. Fuchs
  */
-#include <limits.h>
 #include "platform.h"
+#include <limits.h>
+#include <gcrypt.h>
 #include "gnunet_util_lib.h"
 #include "gnunet_core_service.h"
 #include "gnunet_mesh_service.h"
@@ -155,7 +156,7 @@ struct ServiceSession
   /**
    * Public key of the remote service, only used by bob
    */
-  gcry_sexp_t remote_pubkey;
+  struct GNUNET_CRYPTO_PaillierPublicKey remote_pubkey;
 
   /**
    * E(ai)(Bob) or ai(Alice) after applying the mask
@@ -710,11 +711,9 @@ free_session_variables (struct ServiceSession * session)
     session->product = NULL;
   }
 
-  if (session->remote_pubkey) {
-    gcry_sexp_release (session->remote_pubkey);
-    session->remote_pubkey = NULL;
-  }
-
+  memset (&session->remote_pubkey,
+          0,
+          sizeof (session->remote_pubkey));
   if (session->vector) {
     GNUNET_free_non_null (session->vector);
     session->s = NULL;
@@ -1190,11 +1189,11 @@ compute_service_response (struct ServiceSession * request,
   gcry_mpi_t * b_pi;
   gcry_mpi_t * rand_pi;
   gcry_mpi_t * rand_pi_prime;
-  gcry_mpi_t s = NULL;
+  gcry_mpi_t * s = NULL;
   struct GNUNET_CRYPTO_PaillierCiphertext * S;
   gcry_mpi_t s_prime = NULL;
   struct GNUNET_CRYPTO_PaillierCiphertext * S_prime;
-  
+
   uint32_t value;
 
   count = request->used;
@@ -1258,7 +1257,7 @@ compute_service_response (struct ServiceSession * request,
   memcpy (b_pi, b, sizeof (gcry_mpi_t) * count);
   memcpy (rand_pi, rand, sizeof (gcry_mpi_t) * count);
   memcpy (rand_pi_prime, rand, sizeof (gcry_mpi_t) * count);
-  
+
   //todo get API-cryptoblocks, instead of MPI values
 
   // generate p and q permutations for a, b and r
@@ -1279,15 +1278,15 @@ compute_service_response (struct ServiceSession * request,
     // E(S - r_pi - b_pi)
     gcry_mpi_sub (r[i], my_offset, rand_pi[i]);
     gcry_mpi_sub (r[i], r[i], b_pi[i]);
-    GNUNET_CRYPTO_paillier_encrypt (&request->remote_pubkey, 
+    GNUNET_CRYPTO_paillier_encrypt (&request->remote_pubkey,
                                     r[i],
                                     2,
                                     &R[i]);
-    
+
     // E(S - r_pi - b_pi) * E(S + a_pi) ==  E(2*S + a - r - b)
-    GNUNET_CRYPTO_paillier_hom_add (&request->remote_pubkey, 
-                                    &R[i], 
-                                    &A_pi[i], 
+    GNUNET_CRYPTO_paillier_hom_add (&request->remote_pubkey,
+                                    &R[i],
+                                    &a_pi[i],
                                     &R[i]);
   }
   GNUNET_free (a_pi);
@@ -1299,16 +1298,15 @@ compute_service_response (struct ServiceSession * request,
   {
     // E(S - r_qi)
     gcry_mpi_sub (r_prime[i], my_offset, rand_pi_prime[i]);
-    GNUNET_CRYPTO_paillier_encrypt (&request->remote_pubkey, 
-                                    r_prime[i], 
+    GNUNET_CRYPTO_paillier_encrypt (&request->remote_pubkey,
+                                    r_prime[i],
                                     2,
                                     &R_prime[i]);
 
     // E(S - r_qi) * E(S + a_qi) == E(2*S + a_qi - r_qi)
-    GNUNET_CRYPTO_paillier_hom_add (&request->remote_pubkey, 
-                                    &R_prime[i], 
-                                    &A_pi_prime[i],
-                                    2,
+    GNUNET_CRYPTO_paillier_hom_add (&request->remote_pubkey,
+                                    &R_prime[i],
+                                    &a_pi_prime[i],
                                     &R_prime[i]);
   }
   GNUNET_free (a_pi_prime);
@@ -1320,8 +1318,8 @@ compute_service_response (struct ServiceSession * request,
 
   // Calculate S' =  E(SUM( r_i^2 ))
   s_prime = compute_square_sum (rand, count);
-  GNUNET_CRYPTO_paillier_encrypt (&request->remote_pubkey, 
-                                  s_prime, 
+  GNUNET_CRYPTO_paillier_encrypt (&request->remote_pubkey,
+                                  s_prime,
                                   1,
                                   &S_prime);
 
@@ -1330,7 +1328,7 @@ compute_service_response (struct ServiceSession * request,
     gcry_mpi_add (rand[i], rand[i], b[i]);
   }
   s = compute_square_sum (rand, count);
-  GNUNET_CRYPTO_paillier_encrypt (&request->remote_pubkey, 
+  GNUNET_CRYPTO_paillier_encrypt (&request->remote_pubkey,
                                   s[i],
                                   1,
                                   &S);
@@ -1424,7 +1422,7 @@ prepare_service_request_multipart (void *cls)
 
       session->a[session->transferred + j++] = gcry_mpi_set (NULL, a);
       gcry_mpi_add (a, a, my_offset);
-      encrypt_element (a, a, my_g, my_n, my_nsquare);
+      // FIXME: encrypt_element (a, a, my_g, my_n, my_nsquare);
 
       // get representation as string
       // we always supply some value, so gcry_mpi_print fails only if it can't reserve memory
@@ -1552,7 +1550,7 @@ prepare_service_request (void *cls,
 
       session->a[j++] = gcry_mpi_set (NULL, a);
       gcry_mpi_add (a, a, my_offset);
-      encrypt_element (a, a, my_g, my_n, my_nsquare);
+      // FIXME: encrypt_element (a, a, my_g, my_n, my_nsquare);
 
       // get representation as string
       // we always supply some value, so gcry_mpi_print fails only if it can't reserve memory
