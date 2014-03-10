@@ -729,11 +729,12 @@ queue_data (struct MeshTunnel3 *t, const struct GNUNET_MessageHeader *msg)
  */
 static void
 t_hmac (struct MeshTunnel3 *t, const void *plaintext, size_t size, uint32_t iv,
-        int outgoing, struct GNUNET_HashCode *hmac)
+        int outgoing, struct GNUNET_MeshHash *hmac)
 {
   struct GNUNET_CRYPTO_AuthKey auth_key;
   static const char ctx[] = "mesh authentication key";
   struct GNUNET_CRYPTO_SymmetricSessionKey *key;
+  struct GNUNET_HashCode hash;
 
   key = outgoing ? &t->e_key : &t->d_key;
   GNUNET_CRYPTO_hmac_derive_key (&auth_key, key,
@@ -741,7 +742,8 @@ t_hmac (struct MeshTunnel3 *t, const void *plaintext, size_t size, uint32_t iv,
                                  key, sizeof (*key),
                                  ctx, sizeof (ctx),
                                  NULL);
-  GNUNET_CRYPTO_hmac (&auth_key, plaintext, size, hmac);
+  GNUNET_CRYPTO_hmac (&auth_key, plaintext, size, &hash);
+  memcpy (hmac, &hash, sizeof (*hmac));
 }
 
 
@@ -1649,11 +1651,11 @@ GMT_handle_encrypted (struct MeshTunnel3 *t,
   char cbuf [payload_size];
   struct GNUNET_MessageHeader *msgh;
   unsigned int off;
-  struct GNUNET_HashCode hmac;
+  struct GNUNET_MeshHash hmac;
 
   decrypted_size = t_decrypt (t, cbuf, &msg[1], payload_size, msg->iv);
   t_hmac (t, &msg[1], payload_size, msg->iv, GNUNET_NO, &hmac);
-  if (0 != memcmp (&hmac, &msg->hmac, sizeof (struct GNUNET_HashCode)))
+  if (0 != memcmp (&hmac, &msg->hmac, sizeof (hmac)))
   {
     /* checksum failed */
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
