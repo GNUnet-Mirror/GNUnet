@@ -727,7 +727,7 @@ static void
 iter_connection (void *cls, struct MeshConnection *c)
 {
   struct GNUNET_MESH_LocalInfoTunnel *msg = cls;
-  struct GNUNET_HashCode *h = (struct GNUNET_HashCode *) &msg[1];
+  struct GNUNET_MeshHash *h = (struct GNUNET_MeshHash *) &msg[1];
 
   h[msg->connections] = *(GMC_get_id (c));
   msg->connections++;
