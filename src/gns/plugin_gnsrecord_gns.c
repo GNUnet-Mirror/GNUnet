@@ -244,7 +244,7 @@ gns_string_to_value (void *cls,
 static struct {
   const char *name;
   uint32_t number;
-} name_map[] = {
+} gns_name_map[] = {
   { "PKEY",  GNUNET_GNSRECORD_TYPE_PKEY },
   { "NICK",  GNUNET_GNSRECORD_TYPE_NICK },
   { "LEHO",  GNUNET_GNSRECORD_TYPE_LEHO },
@@ -268,10 +268,10 @@ gns_typename_to_number (void *cls,
   unsigned int i;
 
   i=0;
-  while ( (name_map[i].name != NULL) &&
-	  (0 != strcasecmp (gns_typename, name_map[i].name)) )
+  while ( (gns_name_map[i].name != NULL) &&
+	  (0 != strcasecmp (gns_typename, gns_name_map[i].name)) )
     i++;
-  return name_map[i].number;
+  return gns_name_map[i].number;
 }
 
 
@@ -289,10 +289,10 @@ gns_number_to_typename (void *cls,
   unsigned int i;
 
   i=0;
-  while ( (name_map[i].name != NULL) &&
-	  (type != name_map[i].number) )
+  while ( (gns_name_map[i].name != NULL) &&
+	  (type != gns_name_map[i].number) )
     i++;
-  return name_map[i].name;
+  return gns_name_map[i].name;
 }
 
 

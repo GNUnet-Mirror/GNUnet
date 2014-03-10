@@ -56,7 +56,7 @@ struct Plugin
 /**
  * Array of our plugins.
  */
-static struct Plugin **plugins;
+static struct Plugin **gns_plugins;
 
 /**
  * Size of the 'plugins' array.
@@ -90,7 +90,7 @@ add_plugin (void *cls,
   plugin = GNUNET_new (struct Plugin);
   plugin->api = api;
   plugin->library_name = GNUNET_strdup (library_name);
-  GNUNET_array_append (plugins, num_plugins, plugin);
+  GNUNET_array_append (gns_plugins, num_plugins, plugin);
 }
 
 
@@ -119,15 +119,15 @@ GNSRECORD_fini ()
 
   for (i = 0; i < num_plugins; i++)
   {
-    plugin = plugins[i];
+    plugin = gns_plugins[i];
     GNUNET_break (NULL ==
                   GNUNET_PLUGIN_unload (plugin->library_name,
                                         plugin->api));
     GNUNET_free (plugin->library_name);
     GNUNET_free (plugin);
   }
-  GNUNET_free_non_null (plugins);
-  plugins = NULL;
+  GNUNET_free_non_null (gns_plugins);
+  gns_plugins = NULL;
   once = 0;
   num_plugins = 0;
 }
@@ -153,7 +153,7 @@ GNUNET_GNSRECORD_value_to_string (uint32_t type,
   init ();
   for (i = 0; i < num_plugins; i++)
   {
-    plugin = plugins[i];
+    plugin = gns_plugins[i];
     if (NULL != (ret = plugin->api->value_to_string (plugin->api->cls,
                                                      type,
                                                      data,
@@ -186,7 +186,7 @@ GNUNET_GNSRECORD_string_to_value (uint32_t type,
   init ();
   for (i = 0; i < num_plugins; i++)
   {
-    plugin = plugins[i];
+    plugin = gns_plugins[i];
     if (GNUNET_OK == plugin->api->string_to_value (plugin->api->cls,
                                                    type,
                                                    s,
@@ -214,7 +214,7 @@ GNUNET_GNSRECORD_typename_to_number (const char *dns_typename)
   init ();
   for (i = 0; i < num_plugins; i++)
   {
-    plugin = plugins[i];
+    plugin = gns_plugins[i];
     if (UINT32_MAX != (ret = plugin->api->typename_to_number (plugin->api->cls,
                                                               dns_typename)))
       return ret;
@@ -239,7 +239,7 @@ GNUNET_GNSRECORD_number_to_typename (uint32_t type)
   init ();
   for (i = 0; i < num_plugins; i++)
   {
-    plugin = plugins[i];
+    plugin = gns_plugins[i];
     if (NULL != (ret = plugin->api->number_to_typename (plugin->api->cls,
                                                         type)))
       return ret;
