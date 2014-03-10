@@ -63,7 +63,7 @@ struct GNUNET_MESH_ConnectionCreate
     /**
      * ID of the connection
      */
-  struct GNUNET_HashCode cid;
+  struct GNUNET_MeshHash cid;
 
     /**
      * path_length structs defining the *whole* path from the origin [0] to the
@@ -85,7 +85,7 @@ struct GNUNET_MESH_ConnectionACK
     /**
      * ID of the connection.
      */
-  struct GNUNET_HashCode cid;
+  struct GNUNET_MeshHash cid;
 
 };
 
@@ -103,7 +103,7 @@ struct GNUNET_MESH_KX
     /**
      * ID of the connection.
      */
-  struct GNUNET_HashCode cid;
+  struct GNUNET_MeshHash cid;
 
   /* Specific KX message follows. */
 };
@@ -227,7 +227,7 @@ struct GNUNET_MESH_Encrypted
   /**
    * ID of the connection.
    */
-  struct GNUNET_HashCode cid;
+  struct GNUNET_MeshHash cid;
 
   /**
    * ID of the packet (hop by hop).
@@ -248,7 +248,7 @@ struct GNUNET_MESH_Encrypted
    * MAC of the encrypted message, used to verify message integrity.
    * Everything after this value  will be encrypted and authenticated.
    */
-  struct GNUNET_HashCode hmac;
+  struct GNUNET_MeshHash hmac;
 
   /**
    * Encrypted content follows.
@@ -374,7 +374,7 @@ struct GNUNET_MESH_ACK
     /**
      * ID of the connection.
      */
-  struct GNUNET_HashCode cid;
+  struct GNUNET_MeshHash cid;
 };
 
 
@@ -383,20 +383,20 @@ struct GNUNET_MESH_ACK
  */
 struct GNUNET_MESH_Poll
 {
-  /**
-   * Type: GNUNET_MESSAGE_TYPE_MESH_POLL
-   */
+    /**
+     * Type: GNUNET_MESSAGE_TYPE_MESH_POLL
+     */
   struct GNUNET_MessageHeader header;
 
-  /**
-   * Last packet sent.
-   */
+    /**
+     * Last packet sent.
+     */
   uint32_t pid GNUNET_PACKED;
 
     /**
      * ID of the connection.
      */
-  struct GNUNET_HashCode cid;
+  struct GNUNET_MeshHash cid;
 
 };
 
@@ -414,7 +414,7 @@ struct GNUNET_MESH_ConnectionBroken
     /**
      * ID of the connection.
      */
-  struct GNUNET_HashCode cid;
+  struct GNUNET_MeshHash cid;
 
     /**
      * ID of the endpoint
@@ -441,7 +441,7 @@ struct GNUNET_MESH_ConnectionDestroy
     /**
      * ID of the connection.
      */
-  struct GNUNET_HashCode cid;
+  struct GNUNET_MeshHash cid;
 };
 
 
