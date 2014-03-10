@@ -34,9 +34,9 @@
 
 /* Avoid wasting space on 8-byte longs. */
 #if UINT_MAX >= 0xffffffff
-typedef unsigned int uLong;
+typedef unsigned int GNUNET_uLong;
 #elif ULONG_MAX >= 0xffffffff
-typedef unsigned long uLong;
+typedef unsigned long GNUNET_uLong;
 #else
 #error This compiler is not ANSI-compliant!
 #endif
@@ -44,8 +44,8 @@ typedef unsigned long uLong;
 #define Z_NULL  0
 
 
-#define POLYNOMIAL (uLong)0xedb88320
-static uLong crc_table[256];
+#define POLYNOMIAL (GNUNET_uLong)0xedb88320
+static GNUNET_uLong crc_table[256];
 
 /*
  * This routine writes each crc_table entry exactly once,
@@ -57,7 +57,7 @@ crc_init ()
 {
   static int once;
   unsigned int i, j;
-  uLong h = 1;
+  GNUNET_uLong h = 1;
 
   if (once)
     return;
@@ -82,8 +82,8 @@ crc_init ()
  * to data in little-endian byte and bit order to preserve the
  * property of detecting all burst errors of length 32 bits or less.
  */
-static uLong
-crc32 (uLong crc, const char *buf, size_t len)
+static GNUNET_uLong
+crc32 (GNUNET_uLong crc, const char *buf, size_t len)
 {
   crc_init ();
   GNUNET_assert (crc_table[255] != 0);
@@ -104,7 +104,7 @@ crc32 (uLong crc, const char *buf, size_t len)
 int32_t
 GNUNET_CRYPTO_crc32_n (const void *buf, size_t len)
 {
-  uLong crc;
+  GNUNET_uLong crc;
 
   crc = crc32 (0L, Z_NULL, 0);
   crc = crc32 (crc, (char *) buf, len);
