@@ -171,7 +171,7 @@ struct MeshConnection
   /**
    * ID of the connection.
    */
-  struct GNUNET_HashCode id;
+  struct GNUNET_MeshHash id;
 
   /**
    * State of the connection.
@@ -413,9 +413,16 @@ fc_init (struct MeshFlowControl *fc)
  * @param cid Connection ID.
  */
 static struct MeshConnection *
-connection_get (const struct GNUNET_HashCode *cid)
+connection_get (const struct GNUNET_MeshHash *cid)
 {
-  return GNUNET_CONTAINER_multihashmap_get (connections, cid);
+  struct GNUNET_HashCode hash;
+  struct GNUNET_MeshHash *aux;
+
+  memcpy (&hash, cid, sizeof (cid));
+  aux = (struct GNUNET_MeshHash *) &hash;
+  memset (&aux[1], 0, sizeof (hash) - sizeof (*cid));
+
+  return GNUNET_CONTAINER_multihashmap_get (connections, &hash);
 }
 
 
@@ -2507,7 +2514,7 @@ GMC_destroy (struct MeshConnection *c)
  *
  * @return ID of the connection.
  */
-const struct GNUNET_HashCode *
+const struct GNUNET_MeshHash *
 GMC_get_id (const struct MeshConnection *c)
 {
   return &c->id;

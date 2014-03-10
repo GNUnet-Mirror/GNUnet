@@ -289,7 +289,7 @@ GMC_destroy (struct MeshConnection *c);
  *
  * @return ID of the connection.
  */
-const struct GNUNET_HashCode *
+const struct GNUNET_MeshHash *
 GMC_get_id (const struct MeshConnection *c);
 
 /**
