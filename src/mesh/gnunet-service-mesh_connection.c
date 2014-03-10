@@ -839,7 +839,7 @@ send_broken (struct MeshConnection *c,
  * @param peer Peer to notify (neighbor who sent the connection).
  */
 static void
-send_broken2 (struct GNUNET_HashCode *connection_id,
+send_broken2 (struct GNUNET_MeshHash *connection_id,
              const struct GNUNET_PeerIdentity *id1,
              const struct GNUNET_PeerIdentity *id2,
              GNUNET_PEER_Id peer_id)
@@ -847,8 +847,8 @@ send_broken2 (struct GNUNET_HashCode *connection_id,
   struct GNUNET_MESH_ConnectionBroken *msg;
   struct MeshPeer *neighbor;
 
-  LOG (GNUNET_ERROR_TYPE_INFO,
-       "Send BROKEN on unknown connection %s\n", GNUNET_h2s (connection_id));
+  LOG (GNUNET_ERROR_TYPE_INFO, "=> BROKEN on unknown connection %s\n",
+       GNUNET_h2s (GM_h2hc (connection_id)));
 
   msg = GNUNET_new (struct GNUNET_MESH_ConnectionBroken);
   msg->header.size = htons (sizeof (struct GNUNET_MESH_ConnectionBroken));
@@ -1480,10 +1480,11 @@ build_path_from_peer_ids (struct GNUNET_PeerIdentity *peers,
 static void
 log_message (const struct GNUNET_MessageHeader *message,
              const struct GNUNET_PeerIdentity *peer,
-             const struct GNUNET_HashCode *hash)
+             const struct GNUNET_MeshHash *hash)
 {
   LOG (GNUNET_ERROR_TYPE_INFO, "<- %s on connection %s from %s\n",
-       GM_m2s (ntohs (message->type)), GNUNET_h2s (hash), GNUNET_i2s (peer));
+       GM_m2s (ntohs (message->type)), GNUNET_h2s (GM_h2hc (hash)),
+       GNUNET_i2s (peer));
 }
 
 /******************************************************************************/
@@ -1506,7 +1507,7 @@ GMC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
 {
   struct GNUNET_MESH_ConnectionCreate *msg;
   struct GNUNET_PeerIdentity *id;
-  struct GNUNET_HashCode *cid;
+  struct GNUNET_MeshHash *cid;
   struct MeshPeerPath *path;
   struct MeshPeer *dest_peer;
   struct MeshPeer *orig_peer;
@@ -1891,8 +1892,8 @@ handle_mesh_encrypted (const struct GNUNET_PeerIdentity *peer,
   if (NULL == c)
   {
     GNUNET_STATISTICS_update (stats, "# unknown connection", 1, GNUNET_NO);
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "WARNING enc on unknown connection %s\n",
-         GNUNET_h2s (&msg->cid));
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "enc on unknown connection %s\n",
+         GNUNET_h2s (GM_h2hc (&msg->cid)));
     return GNUNET_OK;
   }
 
@@ -2016,7 +2017,7 @@ handle_mesh_kx (const struct GNUNET_PeerIdentity *peer,
   {
     GNUNET_STATISTICS_update (stats, "# unknown connection", 1, GNUNET_NO);
     LOG (GNUNET_ERROR_TYPE_DEBUG, "kx on unknown connection %s\n",
-         GNUNET_h2s (&msg->cid));
+         GNUNET_h2s (GM_h2hc (&msg->cid)));
     return GNUNET_OK;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, " on connection %s\n", GMC_2s (c));
@@ -2219,7 +2220,7 @@ GMC_handle_poll (void *cls, const struct GNUNET_PeerIdentity *peer,
                               GNUNET_NO);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "WARNING POLL message on unknown connection %s!\n",
-         GNUNET_h2s (&msg->cid));
+         GNUNET_h2s (GM_h2hc (&msg->cid)));
     return GNUNET_OK;
   }
 
@@ -2391,7 +2392,7 @@ GMC_shutdown (void)
 
 
 struct MeshConnection *
-GMC_new (const struct GNUNET_HashCode *cid,
+GMC_new (const struct GNUNET_MeshHash *cid,
          struct MeshTunnel3 *t,
          struct MeshPeerPath *p,
          unsigned int own_pos)
@@ -2402,7 +2403,7 @@ GMC_new (const struct GNUNET_HashCode *cid,
   c->id = *cid;
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONTAINER_multihashmap_put (connections,
-                                                    &c->id, c,
+                                                    GMC_get_h (c), c,
                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   fc_init (&c->fwd_fc);
   fc_init (&c->bck_fc);
@@ -2494,7 +2495,8 @@ GMC_destroy (struct MeshConnection *c)
   }
 
   GNUNET_break (GNUNET_YES ==
-                GNUNET_CONTAINER_multihashmap_remove (connections, &c->id, c));
+                GNUNET_CONTAINER_multihashmap_remove (connections,
+                                                      GMC_get_h (c), c));
 
   GNUNET_STATISTICS_update (stats, "# connections", -1, GNUNET_NO);
   GNUNET_free (c);
@@ -2511,6 +2513,20 @@ const struct GNUNET_MeshHash *
 GMC_get_id (const struct MeshConnection *c)
 {
   return &c->id;
+}
+
+
+/**
+ * Get the connection ID.
+ *
+ * @param c Connection to get the ID from.
+ *
+ * @return ID of the connection.
+ */
+const struct GNUNET_HashCode *
+GMC_get_h (const struct MeshConnection *c)
+{
+  return GM_h2hc (&c->id);
 }
 
 
@@ -3048,8 +3064,8 @@ GMC_2s (const struct MeshConnection *c)
   {
     static char buf[128];
 
-    sprintf (buf, "%s (->%s)", GNUNET_h2s (&c->id), GMT_2s (c->t));
+    sprintf (buf, "%s (->%s)", GNUNET_h2s (GM_h2hc (GMC_get_id(c))), GMT_2s (c->t));
     return buf;
   }
-  return GNUNET_h2s (&c->id);
+  return GNUNET_h2s (GM_h2hc (&c->id));
 }
