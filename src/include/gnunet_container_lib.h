@@ -856,6 +856,7 @@ typedef int (*GNUNET_CONTAINER_PeerMapIterator) (void *cls,
                                                  void *value);
 
 
+struct GNUNET_CONTAINER_MultiPeerMap;
 /**
  * @ingroup hashmap
  * Create a multi peer map (hash map for public keys of peers).
@@ -1014,6 +1015,7 @@ GNUNET_CONTAINER_multipeermap_iterate (const struct GNUNET_CONTAINER_MultiPeerMa
                                        void *it_cls);
 
 
+struct GNUNET_CONTAINER_MultiPeerMapIterator;
 /**
  * @ingroup hashmap
  * Create an iterator for a multihashmap.
@@ -1824,6 +1826,7 @@ enum GNUNET_CONTAINER_SListDisposition
   GNUNET_CONTAINER_SLIST_DISPOSITION_DYNAMIC = 4
 };
 
+struct GNUNET_CONTAINER_SList_Elem;
 
 
 /**

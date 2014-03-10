@@ -1046,6 +1046,8 @@ GNUNET_CRYPTO_ecdsa_key_create_from_file (const char *filename);
 struct GNUNET_CRYPTO_EddsaPrivateKey *
 GNUNET_CRYPTO_eddsa_key_create_from_file (const char *filename);
 
+struct GNUNET_CONFIGURATION_Handle;
+
 
 /**
  * @ingroup crypto

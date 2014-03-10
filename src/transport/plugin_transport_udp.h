@@ -124,6 +124,8 @@ struct UDPMessage
 
 };
 
+struct UDP_MessageWrapper;
+
 
 /**
  * Encapsulation of all of the state of the plugin.

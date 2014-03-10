@@ -635,6 +635,8 @@ void
 GNUNET_TRANSPORT_get_hello_cancel (struct GNUNET_TRANSPORT_GetHelloHandle *ghh);
 
 
+struct GNUNET_TRANSPORT_OfferHelloHandle;
+
 /**
  * Offer the transport service the HELLO of another peer.  Note that
  * the transport service may just ignore this message if the HELLO is
@@ -729,6 +731,7 @@ GNUNET_TRANSPORT_is_connected (enum GNUNET_TRANSPORT_PeerState state);
 const char *
 GNUNET_TRANSPORT_vs2s (enum GNUNET_TRANSPORT_ValidationState state);
 
+struct GNUNET_TRANSPORT_PeerMonitoringContext;
 
 /**
  * Return information about a specific peer or all peers currently known to
@@ -774,6 +777,8 @@ GNUNET_TRANSPORT_monitor_peers (const struct GNUNET_CONFIGURATION_Handle *cfg,
 void
 GNUNET_TRANSPORT_monitor_peers_cancel (struct GNUNET_TRANSPORT_PeerMonitoringContext *pic);
 
+
+struct GNUNET_TRANSPORT_ValidationMonitoringContext;
 
 /**
  * Return information about pending address validation operations for a specific
