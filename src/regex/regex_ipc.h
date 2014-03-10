@@ -61,7 +61,7 @@ struct AnnounceMessage
 /**
  * Message to initiate regex search.
  */
-struct SearchMessage
+struct RegexSearchMessage
 {
   /**
    * Type is GNUNET_MESSAGE_TYPE_REGEX_SEARCH

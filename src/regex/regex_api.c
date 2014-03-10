@@ -193,7 +193,7 @@ struct GNUNET_REGEX_Search
   /**
    * Search message to transmit to the service.
    */
-  struct SearchMessage *msg;
+  struct RegexSearchMessage *msg;
 };
 
 
@@ -315,9 +315,9 @@ GNUNET_REGEX_search (const struct GNUNET_CONFIGURATION_Handle *cfg,
   }
   s->callback = callback;
   s->callback_cls = callback_cls;
-  s->msg = GNUNET_malloc (sizeof (struct SearchMessage) + slen);
+  s->msg = GNUNET_malloc (sizeof (struct RegexSearchMessage) + slen);
   s->msg->header.type = htons (GNUNET_MESSAGE_TYPE_REGEX_SEARCH);
-  s->msg->header.size = htons (sizeof (struct SearchMessage) + slen);
+  s->msg->header.size = htons (sizeof (struct RegexSearchMessage) + slen);
   memcpy (&s->msg[1], string, slen);
   retry_search (s);
   return s;

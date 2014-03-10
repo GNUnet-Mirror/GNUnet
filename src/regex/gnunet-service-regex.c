@@ -308,16 +308,16 @@ handle_search (void *cls,
 	       struct GNUNET_SERVER_Client *client,
 	       const struct GNUNET_MessageHeader *message)
 {
-  const struct SearchMessage *sm;
+  const struct RegexSearchMessage *sm;
   const char *string;
   struct ClientEntry *ce;
   uint16_t size;
 
   size = ntohs (message->size);
-  sm = (const struct SearchMessage *) message;
+  sm = (const struct RegexSearchMessage *) message;
   string = (const char *) &sm[1];
-  if ( (size <= sizeof (struct SearchMessage)) ||
-       ('\0' != string[size - sizeof (struct SearchMessage) - 1]) )
+  if ( (size <= sizeof (struct RegexSearchMessage)) ||
+       ('\0' != string[size - sizeof (struct RegexSearchMessage) - 1]) )
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
