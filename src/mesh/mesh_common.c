@@ -77,7 +77,7 @@ GM_min_pid (uint32_t a, uint32_t b)
 }
 
 
-struct GNUNET_HashCode *
+const struct GNUNET_HashCode *
 GM_h2hc (const struct GNUNET_MeshHash *id)
 {
   static struct GNUNET_HashCode hc;

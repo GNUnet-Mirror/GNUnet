@@ -329,7 +329,7 @@ GM_min_pid (uint32_t a, uint32_t b);
  *
  * @return A HashCode containing the original 256 bit hash right-padded with 0.
  */
-struct GNUNET_HashCode *
+const struct GNUNET_HashCode *
 GM_h2hc (const struct GNUNET_MeshHash *id);
 
 /**
