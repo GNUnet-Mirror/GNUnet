@@ -415,14 +415,7 @@ fc_init (struct MeshFlowControl *fc)
 static struct MeshConnection *
 connection_get (const struct GNUNET_MeshHash *cid)
 {
-  struct GNUNET_HashCode hash;
-  struct GNUNET_MeshHash *aux;
-
-  memcpy (&hash, cid, sizeof (cid));
-  aux = (struct GNUNET_MeshHash *) &hash;
-  memset (&aux[1], 0, sizeof (hash) - sizeof (*cid));
-
-  return GNUNET_CONTAINER_multihashmap_get (connections, &hash);
+  return GNUNET_CONTAINER_multihashmap_get (connections, GM_h2hc (cid));
 }
 
 

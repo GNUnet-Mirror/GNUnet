@@ -322,6 +322,17 @@ GM_min_pid (uint32_t a, uint32_t b);
 
 
 /**
+ * Convert a 256 bit MeshHash into a 512 HashCode to use in GNUNET_h2s,
+ * multihashmap, and other HashCode-based functions.
+ *
+ * @param id A 256 bit hash to expand.
+ *
+ * @return A HashCode containing the original 256 bit hash right-padded with 0.
+ */
+struct GNUNET_HashCode *
+GM_h2hc (const struct GNUNET_MeshHash *id);
+
+/**
  * Convert a message type into a string to help debug
  * Generated with:
  * FIND:        "#define ([^ ]+)[ ]*([0-9]+)"

@@ -77,6 +77,16 @@ GM_min_pid (uint32_t a, uint32_t b)
 }
 
 
+struct GNUNET_HashCode *
+GM_h2hc (const struct GNUNET_MeshHash *id)
+{
+  static struct GNUNET_HashCode hc;
+  memcpy (&hc, id, sizeof (*id));
+
+  return &hc;
+}
+
+
 #if !defined(GNUNET_CULL_LOGGING)
 const char *
 GM_m2s (uint16_t m)
