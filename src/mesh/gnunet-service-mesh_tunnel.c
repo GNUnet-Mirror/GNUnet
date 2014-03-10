@@ -2179,7 +2179,7 @@ struct MeshConnection *
 GMT_use_path (struct MeshTunnel3 *t, struct MeshPeerPath *p)
 {
   struct MeshConnection *c;
-  struct GNUNET_HashCode cid;
+  struct GNUNET_MeshHash cid;
   unsigned int own_pos;
 
   if (NULL == t || NULL == p)
@@ -2205,7 +2205,7 @@ GMT_use_path (struct MeshTunnel3 *t, struct MeshPeerPath *p)
     return NULL;
   }
 
-  GNUNET_CRYPTO_hash_create_random (GNUNET_CRYPTO_QUALITY_NONCE, &cid);
+  GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_NONCE, &cid, sizeof (cid));
   c = GMC_new (&cid, t, p, own_pos);
   if (NULL == c)
   {
