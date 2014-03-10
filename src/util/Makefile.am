@@ -118,7 +118,7 @@ libgnunetutil_la_SOURCES = \
   signal.c \
   strings.c \
   time.c \
-  speedup.c
+  speedup.c speedup.h
 
 libgnunetutil_la_LIBADD = \
   $(GCLIBADD) $(WINLIB) \

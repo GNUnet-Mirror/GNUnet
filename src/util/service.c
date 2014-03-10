@@ -28,6 +28,7 @@
 #include "gnunet_protocols.h"
 #include "gnunet_constants.h"
 #include "gnunet_resolver_service.h"
+#include "speedup.h"
 
 #if HAVE_MALLINFO
 #include <malloc.h>
@@ -43,22 +44,6 @@
 
 
 /* ******************* access control ******************** */
-
-/**
- * Start task that may speed up our system clock artificially
- *
- * @param cfg configuration to use
- * @return GNUNET_OK on success, GNUNET_SYSERR if the speedup was not configured
- */
-int
-GNUNET_SPEEDUP_start_ (const struct GNUNET_CONFIGURATION_Handle *cfg);
-
-/**
- * Stop tasks that modify clock behavior.
- */
-void
-GNUNET_SPEEDUP_stop_ (void);
-
 
 /**
  * Check if the given IP address is in the list of IP addresses.

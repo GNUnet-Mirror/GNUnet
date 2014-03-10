@@ -28,6 +28,7 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_resolver_service.h"
 #include "gnunet_constants.h"
+#include "speedup.h"
 #include <gcrypt.h>
 
 #define LOG(kind,...) GNUNET_log_from (kind, "util", __VA_ARGS__)
@@ -65,23 +66,6 @@ struct CommandContext
   const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 };
-
-
-/**
- * Start task that may speed up our system clock artificially
- *
- * @param cfg configuration to use
- * @return #GNUNET_OK on success, #GNUNET_SYSERR if the speedup was not configured
- */
-int
-GNUNET_SPEEDUP_start_ (const struct GNUNET_CONFIGURATION_Handle *cfg);
-
-
-/**
- * Stop tasks that modify clock behavior.
- */
-void
-GNUNET_SPEEDUP_stop_ (void);
 
 
 /**
