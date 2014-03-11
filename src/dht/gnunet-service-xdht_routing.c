@@ -44,6 +44,7 @@
 
 
 /**
+ * FIXME: Do we need a field prev_hop
  * Routing table entry .
  */
 struct RoutingTrail
@@ -57,11 +58,6 @@ struct RoutingTrail
    * Destination peer.
    */
   struct GNUNET_PeerIdentity *destination;
-
-  /**
-   * The peer this request was received from.
-   */
-  struct GNUNET_PeerIdentity *previous_hop;
 
   /**
    * The peer to which this request should be passed to.
@@ -93,11 +89,6 @@ GDS_ROUTING_add (struct GNUNET_PeerIdentity *source,
 {
   struct RoutingTrail *new_routing_entry;
     
-  new_routing_entry = GNUNET_malloc (sizeof (struct RoutingTrail));
-  new_routing_entry->source = source;
-  new_routing_entry->next_hop = next_hop;
-  new_routing_entry->destination = dest;
-    
   /* If dest is already present in the routing table, then exit.*/
   if (GNUNET_YES ==
     GNUNET_CONTAINER_multipeermap_contains (routing_table,
@@ -106,11 +97,16 @@ GDS_ROUTING_add (struct GNUNET_PeerIdentity *source,
     GNUNET_break (0);
     return;
   }
-
+  
+  new_routing_entry = GNUNET_malloc (sizeof (struct RoutingTrail));
+  new_routing_entry->source = source;
+  new_routing_entry->next_hop = next_hop;
+  new_routing_entry->destination = dest;
+  
   GNUNET_assert (GNUNET_OK ==
     GNUNET_CONTAINER_multipeermap_put (routing_table,
-                                           dest, new_routing_entry,
-                                           GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+                                       dest, new_routing_entry,
+                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
 }
 
 
