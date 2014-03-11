@@ -78,6 +78,10 @@ typedef void (*GNUNET_SCALARPRODUCT_DatumProcessor) (void *cls,
                                                      enum GNUNET_SCALARPRODUCT_ResponseStatus status,
                                                      gcry_mpi_t result);
 
+/**
+ * Entry in the request queue per client
+ */
+struct GNUNET_SCALARPRODUCT_ComputationHandle;
 
 /**
  * Request by Alice's client for computing a scalar product
