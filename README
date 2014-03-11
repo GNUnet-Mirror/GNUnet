@@ -31,7 +31,7 @@ These are the direct dependencies for running GNUnet:
 - libextractor  >= 0.6.1
 - libmicrohttpd >= 0.9.33
 - libgcrypt     >= 1.6
-- libgnurl      >= 7.34.0 (available from https://gnunet.org/gnurl)
+- libgnurl      >= 7.35.0 (available from https://gnunet.org/gnurl)
 - libunistring  >= 0.9.2
 - gnutls        >= 3.2.12
 - libidn        >= 1.0
