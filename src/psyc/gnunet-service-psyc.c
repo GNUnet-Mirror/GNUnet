@@ -24,6 +24,8 @@
  * @author Gabor X Toth
  */
 
+#include <inttypes.h>
+
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_constants.h"
@@ -77,6 +79,45 @@ struct TransmitMessage
   uint8_t state;
 };
 
+
+/**
+ * Cache for received message fragments.
+ * Message fragments are only sent to clients after all modifiers arrived.
+ *
+ * chan_key -> MultiHashMap chan_msgs
+ */
+static struct GNUNET_CONTAINER_MultiHashMap *recv_cache;
+
+
+/**
+ * Entry in the chan_msgs hashmap of @a recv_cache:
+ * fragment_id -> FragmentEntry
+ */
+struct FragmentEntry
+{
+  struct GNUNET_MULTICAST_MessageHeader *mmsg;
+  uint16_t ref_count;
+};
+
+
+/**
+ * Entry in the @a recv_msgs hash map of a @a Channel.
+ * message_id -> FragmentCache
+ */
+struct FragmentCache
+{
+  /**
+   * Total size of header fragments (METHOD & MODIFIERs)
+   */
+  uint64_t header_size;
+
+  /**
+   * Fragment IDs stored in @a recv_cache.
+   */
+  struct GNUNET_CONTAINER_Heap *fragments;
+};
+
+
 /**
  * Common part of the client context for both a master and slave channel.
  */
@@ -86,6 +127,12 @@ struct Channel
 
   struct TransmitMessage *tmit_head;
   struct TransmitMessage *tmit_tail;
+
+  /**
+   * Received fragments not yet sent to the client.
+   * message_id -> FragmentCache
+   */
+  struct GNUNET_CONTAINER_MultiHashMap *recv_msgs;
 
   GNUNET_SCHEDULER_TaskIdentifier tmit_task;
 
@@ -213,6 +260,8 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 client_cleanup (struct Channel *ch)
 {
+  /* FIXME: fragment_cache_clear */
+
   if (ch->is_master)
   {
     struct Master *mst = (struct Master *) ch;
@@ -323,6 +372,189 @@ fragment_store_result (void *cls, int64_t result, const char *err_msg)
 }
 
 
+static void
+message_to_client (struct Channel *ch,
+                   const struct GNUNET_MULTICAST_MessageHeader *mmsg)
+{
+  uint16_t size = ntohs (mmsg->header.size);
+  struct GNUNET_PSYC_MessageHeader *pmsg;
+  uint16_t psize = sizeof (*pmsg) + size - sizeof (*mmsg);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "%p Sending message to client. "
+              "fragment_id: %" PRIu64 ", message_id: %" PRIu64 "\n",
+              ch, GNUNET_ntohll (mmsg->fragment_id),
+              GNUNET_ntohll (mmsg->message_id));
+
+  pmsg = GNUNET_malloc (psize);
+  pmsg->header.size = htons (psize);
+  pmsg->header.type = htons (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE);
+  pmsg->message_id = mmsg->message_id;
+
+  memcpy (&pmsg[1], &mmsg[1], size - sizeof (*mmsg));
+
+  GNUNET_SERVER_notification_context_add (nc, ch->client);
+  GNUNET_SERVER_notification_context_unicast (nc, ch->client,
+                                              (const struct GNUNET_MessageHeader *) pmsg,
+                                              GNUNET_NO);
+  GNUNET_free (pmsg);
+}
+
+
+/**
+ * Convert an uint64_t in network byte order to a HashCode
+ * that can be used as key in a MultiHashMap
+ */
+static inline void
+hash_key_from_nll (struct GNUNET_HashCode *key, uint64_t n)
+{
+  /* use little-endian order, as idx_of MultiHashMap casts key to unsigned int */
+
+  n = ((n <<  8) & 0xFF00FF00FF00FF00ULL) | ((n >>  8) & 0x00FF00FF00FF00FFULL);
+  n = ((n << 16) & 0xFFFF0000FFFF0000ULL) | ((n >> 16) & 0x0000FFFF0000FFFFULL);
+
+  *key = (struct GNUNET_HashCode) {{ 0 }};
+  *((uint64_t *) key)
+    = (n << 32) | (n >> 32);
+}
+
+
+/**
+ * Convert an uint64_t in host byte order to a HashCode
+ * that can be used as key in a MultiHashMap
+ */
+static inline void
+hash_key_from_hll (struct GNUNET_HashCode *key, uint64_t n)
+{
+#if __BYTE_ORDER == __BIG_ENDIAN
+  hash_key_from_nll (key, n);
+#elif __BYTE_ORDER == __LITTLE_ENDIAN
+  *key = (struct GNUNET_HashCode) {{ 0 }};
+  *((uint64_t *) key) = n;
+#else
+  #error byteorder undefined
+#endif
+}
+
+
+static void
+fragment_cache_insert (struct Channel *ch,
+                       const struct GNUNET_HashCode *chan_key_hash,
+                       const struct GNUNET_HashCode *msg_id,
+                       struct FragmentCache *frag_cache,
+                       const struct GNUNET_MULTICAST_MessageHeader *mmsg,
+                       uint16_t last_part_type)
+{
+  uint16_t size = ntohs (mmsg->header.size);
+  struct GNUNET_CONTAINER_MultiHashMap
+    *chan_msgs = GNUNET_CONTAINER_multihashmap_get (recv_cache, chan_key_hash);
+
+  if (NULL == frag_cache)
+  {
+    frag_cache = GNUNET_new (struct FragmentCache);
+    frag_cache->fragments
+      = GNUNET_CONTAINER_heap_create (GNUNET_CONTAINER_HEAP_ORDER_MIN);
+
+    if (NULL == ch->recv_msgs)
+    {
+      ch->recv_msgs = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_NO);
+    }
+    GNUNET_CONTAINER_multihashmap_put (ch->recv_msgs, msg_id, frag_cache,
+                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
+
+    if (NULL == chan_msgs)
+    {
+      chan_msgs = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_NO);
+      GNUNET_CONTAINER_multihashmap_put (recv_cache, chan_key_hash, chan_msgs,
+                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
+    }
+  }
+
+  struct GNUNET_HashCode *frag_id = GNUNET_new (struct GNUNET_HashCode);
+  hash_key_from_nll (frag_id, mmsg->fragment_id);
+  struct FragmentEntry
+    *frag_entry = GNUNET_CONTAINER_multihashmap_get (chan_msgs, frag_id);
+  if (NULL == frag_entry)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "%p Adding message fragment to cache. "
+                "fragment_id: %" PRIu64 ", "
+                "header_size: %" PRIu64 " + %" PRIu64 ").\n",
+                ch, GNUNET_ntohll (mmsg->fragment_id),
+                frag_cache->header_size, size);
+    frag_entry = GNUNET_new (struct FragmentEntry);
+    frag_entry->ref_count = 1;
+    frag_entry->mmsg = GNUNET_malloc (size);
+    memcpy (frag_entry->mmsg, mmsg, size);
+    GNUNET_CONTAINER_multihashmap_put (chan_msgs, frag_id, frag_entry,
+                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
+  }
+  else
+  {
+    frag_entry->ref_count++;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "%p Message fragment already in cache. "
+                "fragment_id: %" PRIu64 ", ref_count: %u\n",
+                ch, GNUNET_ntohll (mmsg->fragment_id), frag_entry->ref_count);
+  }
+
+  switch (last_part_type)
+  {
+  case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_METHOD:
+  case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MODIFIER:
+  case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MOD_CONT:
+    frag_cache->header_size += size;
+  }
+  GNUNET_CONTAINER_heap_insert (frag_cache->fragments, frag_id,
+                                GNUNET_ntohll (mmsg->fragment_id));
+}
+
+
+static void
+fragment_cache_clear (struct Channel *ch,
+                      const struct GNUNET_HashCode *chan_key_hash,
+                      const struct GNUNET_HashCode *msg_id,
+                      struct FragmentCache *frag_cache,
+                      uint8_t send_to_client)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "%p Clearing message fragment cache.\n", ch);
+
+  struct GNUNET_CONTAINER_MultiHashMap
+    *chan_msgs = GNUNET_CONTAINER_multihashmap_get (recv_cache, chan_key_hash);
+  GNUNET_assert (NULL != chan_msgs);
+  struct GNUNET_HashCode *frag_id;
+
+  while ((frag_id = GNUNET_CONTAINER_heap_remove_root (frag_cache->fragments)))
+  {
+    struct FragmentEntry
+      *frag_entry = GNUNET_CONTAINER_multihashmap_get (chan_msgs, frag_id);
+    if (frag_entry != NULL)
+    {
+      if (GNUNET_YES == send_to_client)
+      {
+        message_to_client (ch, frag_entry->mmsg);
+      }
+      if (1 == frag_entry->ref_count)
+      {
+        GNUNET_CONTAINER_multihashmap_remove (chan_msgs, frag_id, frag_entry);
+        GNUNET_free (frag_entry->mmsg);
+        GNUNET_free (frag_entry);
+      }
+      else
+      {
+        frag_entry->ref_count--;
+      }
+    }
+    GNUNET_free (frag_id);
+  }
+
+  GNUNET_CONTAINER_multihashmap_remove (ch->recv_msgs, msg_id, frag_cache);
+  GNUNET_CONTAINER_heap_destroy (frag_cache->fragments);
+  GNUNET_free (frag_cache);
+}
+
+
 /**
  * Incoming message fragment from multicast.
  *
@@ -358,11 +590,15 @@ message_cb (struct Channel *ch,
                                    rcb, rcb_cls);
 #endif
 
-    const struct GNUNET_MULTICAST_MessageHeader *mmsg
-      = (const struct GNUNET_MULTICAST_MessageHeader *) msg;
+    const struct GNUNET_MULTICAST_MessageHeader
+      *mmsg = (const struct GNUNET_MULTICAST_MessageHeader *) msg;
 
-    if (GNUNET_YES != GNUNET_PSYC_check_message_parts (size - sizeof (*mmsg),
-                                                       (const char *) &mmsg[1]))
+    uint16_t ptype = GNUNET_PSYC_message_last_part (size - sizeof (*mmsg),
+                                                    (const char *) &mmsg[1]);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Last message part type %u\n", ptype);
+
+    if (GNUNET_NO == ptype)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   "%p Received message with invalid parts from multicast. "
@@ -371,20 +607,55 @@ message_cb (struct Channel *ch,
       break;
     }
 
-    struct GNUNET_PSYC_MessageHeader *pmsg;
-    uint16_t psize = sizeof (*pmsg) + size - sizeof (*mmsg);
-    pmsg = GNUNET_malloc (psize);
-    pmsg->header.size = htons (psize);
-    pmsg->header.type = htons (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE);
-    pmsg->message_id = mmsg->message_id;
+    struct GNUNET_HashCode msg_id;
+    hash_key_from_nll (&msg_id, mmsg->message_id);
 
-    memcpy (&pmsg[1], &mmsg[1], size - sizeof (*mmsg));
+    struct FragmentCache *frag_cache = NULL;
+    if (NULL != ch->recv_msgs)
+      frag_cache = GNUNET_CONTAINER_multihashmap_get (ch->recv_msgs, &msg_id);
 
-    GNUNET_SERVER_notification_context_add (nc, ch->client);
-    GNUNET_SERVER_notification_context_unicast (nc, ch->client,
-                                                (const struct GNUNET_MessageHeader *) pmsg,
-                                                GNUNET_NO);
-    GNUNET_free (pmsg);
+    switch (ptype)
+    {
+    case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_DATA:
+    case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_END:
+      /* FIXME: check state flag / max_state_message_id */
+      if (NULL == frag_cache)
+      {
+        message_to_client (ch, mmsg);
+        break;
+      }
+      else
+      {
+        if (GNUNET_ntohll (mmsg->fragment_offset) == frag_cache->header_size)
+        { /* first data fragment after the header, send cached fragments */
+          fragment_cache_clear (ch, chan_key_hash, &msg_id, frag_cache, GNUNET_YES);
+          message_to_client (ch, mmsg);
+          break;
+        }
+        else
+        { /* still missing fragments from the header, cache data fragment */
+          /* fall thru */
+        }
+      }
+
+    case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_METHOD:
+    case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MODIFIER:
+    case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MOD_CONT:
+      /* not all modifiers arrived yet, cache fragment */
+      fragment_cache_insert (ch, chan_key_hash, &msg_id, frag_cache, mmsg, ptype);
+      break;
+
+    case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_CANCEL:
+      if (NULL != frag_cache)
+      { /* fragments not yet sent to client, remove from cache */
+        fragment_cache_clear (ch, chan_key_hash, &msg_id, frag_cache, GNUNET_NO);
+      }
+      else
+      {
+        message_to_client (ch, mmsg);
+      }
+      break;
+    }
     break;
   }
   default:
@@ -457,8 +728,9 @@ request_cb (void *cls, const struct GNUNET_CRYPTO_EddsaPublicKey *member_key,
     const struct GNUNET_MULTICAST_RequestHeader *req
       = (const struct GNUNET_MULTICAST_RequestHeader *) msg;
 
-    if (GNUNET_YES != GNUNET_PSYC_check_message_parts (size - sizeof (*req),
-                                                       (const char *) &req[1]))
+    /* FIXME: see message_cb() */
+    if (GNUNET_NO == GNUNET_PSYC_message_last_part (size - sizeof (*req),
+                                                    (const char *) &req[1]))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   "%p Dropping message with invalid parts "
@@ -826,7 +1098,7 @@ handle_psyc_message (void *cls, struct GNUNET_SERVER_Client *client,
   if (GNUNET_YES != ch->ready)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "%p Ignoring message from client, channel is not ready yet.\n",
+                "%p Dropping message from client, channel is not ready yet.\n",
                 ch);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
@@ -912,11 +1184,12 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   store = GNUNET_PSYCSTORE_connect (cfg);
   stats = GNUNET_STATISTICS_create ("psyc", cfg);
   clients = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_YES);
+  recv_cache = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_YES);
   nc = GNUNET_SERVER_notification_context_create (server, 1);
   GNUNET_SERVER_add_handlers (server, handlers);
   GNUNET_SERVER_disconnect_notify (server, &client_disconnect, NULL);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
-                                NULL);
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
+                                &shutdown_task, NULL);
 }
 
 

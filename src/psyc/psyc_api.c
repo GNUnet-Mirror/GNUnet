@@ -336,7 +336,7 @@ recv_error (struct GNUNET_PSYC_Channel *ch)
 
 
 /**
- * Queue an incoming message part for transmission to the PSYC service.
+ * Queue a message part for transmission to the PSYC service.
  *
  * The message part is added to the current message buffer.
  * When this buffer is full, it is added to the transmission queue.
@@ -390,7 +390,7 @@ queue_message (struct GNUNET_PSYC_Channel *ch,
     op->msg->size = sizeof (*op->msg) + size;
     memcpy (&op->msg[1], msg, size);
   }
- 
+
   if (NULL != op
       && (GNUNET_YES == end
           || (GNUNET_MULTICAST_FRAGMENT_MAX_PAYLOAD
@@ -433,12 +433,12 @@ channel_transmit_mod (struct GNUNET_PSYC_Channel *ch)
     max_data_size = data_size = GNUNET_PSYC_MODIFIER_MAX_PAYLOAD;
     msg->type = htons (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MODIFIER);
     msg->size = sizeof (struct GNUNET_PSYC_MessageModifier);
-    notify_ret = ch->tmit.notify_mod (ch->tmit.notify_cls,
-                                      &data_size, &mod[1], &mod->oper);
+    notify_ret = ch->tmit.notify_mod (ch->tmit.notify_cls, &data_size, &mod[1],
+                                      &mod->oper, &mod->value_size);
     mod->name_size = strnlen ((char *) &mod[1], data_size);
     if (mod->name_size < data_size)
     {
-      mod->value_size = htons (data_size - 1 - mod->name_size);
+      mod->value_size = htonl (mod->value_size);
       mod->name_size = htons (mod->name_size);
     }
     else if (0 < data_size)
@@ -451,10 +451,10 @@ channel_transmit_mod (struct GNUNET_PSYC_Channel *ch)
   case MSG_STATE_MOD_CONT:
   {
     max_data_size = data_size = GNUNET_PSYC_MOD_CONT_MAX_PAYLOAD;
-    msg->type = htons (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MOD_CONT);    
+    msg->type = htons (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MOD_CONT);
     msg->size = sizeof (struct GNUNET_MessageHeader);
     notify_ret = ch->tmit.notify_mod (ch->tmit.notify_cls,
-                                      &data_size, &msg[1], NULL);
+                                      &data_size, &msg[1], NULL, NULL);
     break;
   }
   default:
@@ -669,6 +669,8 @@ handle_psyc_message (struct GNUNET_PSYC_Channel *ch,
     ch->recv_message_id = GNUNET_ntohll (msg->message_id);
     ch->recv_flags = flags;
     ch->recv_slave_key = msg->slave_key;
+    ch->recv_mod_value_size = 0;
+    ch->recv_mod_value_size_expected = 0;
   }
   else if (GNUNET_ntohll (msg->message_id) != ch->recv_message_id)
   {
@@ -703,7 +705,7 @@ handle_psyc_message (struct GNUNET_PSYC_Channel *ch,
     if (psize < sizeof (*pmsg) || sizeof (*msg) + pos + psize > size)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "Discarding message of type %u with invalid size %u.\n",
+                  "Dropping message of type %u with invalid size %u.\n",
                   ptype, psize);
       recv_error (ch);
       return;
@@ -753,7 +755,8 @@ handle_psyc_message (struct GNUNET_PSYC_Channel *ch,
       if (MSG_STATE_START != ch->recv_state)
       {
         LOG (GNUNET_ERROR_TYPE_WARNING,
-             "Discarding out of order message method.\n");
+             "Dropping out of order message method (%u).\n",
+             ch->recv_state);
         /* It is normal to receive an incomplete message right after connecting,
          * but should not happen later.
          * FIXME: add a check for this condition.
@@ -766,7 +769,7 @@ handle_psyc_message (struct GNUNET_PSYC_Channel *ch,
       if ('\0' != *((char *) meth + psize - 1))
       {
         LOG (GNUNET_ERROR_TYPE_WARNING,
-             "Discarding message with malformed method. "
+             "Dropping message with malformed method. "
              "Message ID: %" PRIu64 "\n", ch->recv_message_id);
         GNUNET_break_op (0);
         recv_error (ch);
@@ -782,7 +785,8 @@ handle_psyc_message (struct GNUNET_PSYC_Channel *ch,
             || MSG_STATE_MOD_CONT == ch->recv_state))
       {
         LOG (GNUNET_ERROR_TYPE_WARNING,
-             "Discarding out of order message modifier.\n");
+             "Dropping out of order message modifier (%u).\n",
+             ch->recv_state);
         GNUNET_break_op (0);
         recv_error (ch);
         return;
@@ -792,14 +796,14 @@ handle_psyc_message (struct GNUNET_PSYC_Channel *ch,
         = (struct GNUNET_PSYC_MessageModifier *) pmsg;
 
       uint16_t name_size = ntohs (mod->name_size);
-      ch->recv_mod_value_size_expected = ntohs (mod->value_size);
+      ch->recv_mod_value_size_expected = ntohl (mod->value_size);
       ch->recv_mod_value_size = psize - sizeof (*mod) - name_size - 1;
 
       if (psize < sizeof (*mod) + name_size + 1
           || '\0' != *((char *) &mod[1] + name_size)
           || ch->recv_mod_value_size_expected < ch->recv_mod_value_size)
       {
-        LOG (GNUNET_ERROR_TYPE_WARNING, "Discarding malformed modifier.\n");
+        LOG (GNUNET_ERROR_TYPE_WARNING, "Dropping malformed modifier.\n");
         GNUNET_break_op (0);
         recv_error (ch);
         return;
@@ -816,7 +820,11 @@ handle_psyc_message (struct GNUNET_PSYC_Channel *ch,
           || ch->recv_mod_value_size_expected < ch->recv_mod_value_size)
       {
         LOG (GNUNET_ERROR_TYPE_WARNING,
-             "Discarding out of order message modifier continuation.\n");
+             "Dropping out of order message modifier continuation "
+             "!(%u == %u || %u == %u) || %lu < %lu.\n",
+             MSG_STATE_MODIFIER, ch->recv_state,
+             MSG_STATE_MOD_CONT, ch->recv_state,
+             ch->recv_mod_value_size_expected, ch->recv_mod_value_size);
         GNUNET_break_op (0);
         recv_error (ch);
         return;
@@ -829,7 +837,11 @@ handle_psyc_message (struct GNUNET_PSYC_Channel *ch,
           || ch->recv_mod_value_size_expected != ch->recv_mod_value_size)
       {
         LOG (GNUNET_ERROR_TYPE_WARNING,
-             "Discarding out of order message data fragment.\n");
+             "Dropping out of order message data fragment "
+             "(%u < %u || %lu != %lu).\n",
+             ch->recv_state, MSG_STATE_METHOD,
+             ch->recv_mod_value_size_expected, ch->recv_mod_value_size);
+
         GNUNET_break_op (0);
         recv_error (ch);
         return;
@@ -1412,7 +1424,7 @@ GNUNET_PSYC_slave_transmit (struct GNUNET_PSYC_Slave *slave,
  * @param th Handle of the request that is being resumed.
  */
 void
-GNUNET_PSYC_slave_transmit_resume (struct GNUNET_PSYC_MasterTransmitHandle *th)
+GNUNET_PSYC_slave_transmit_resume (struct GNUNET_PSYC_SlaveTransmitHandle *th)
 {
   channel_transmit_resume ((struct GNUNET_PSYC_ChannelTransmitHandle *) th);
 }

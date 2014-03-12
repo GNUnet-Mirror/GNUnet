@@ -33,28 +33,33 @@
  * @param data_size  Size of @a data.
  * @param data       Data.
  *
- * @return GNUNET_YES or GNUNET_NO
+ * @return Message type number
+ *         or GNUNET_NO if the message contains invalid or no parts.
  */
-int
-GNUNET_PSYC_check_message_parts (uint16_t data_size, const char *data)
+uint16_t
+GNUNET_PSYC_message_last_part (uint16_t data_size, const char *data)
 {
   const struct GNUNET_MessageHeader *pmsg;
+  uint16_t ptype = GNUNET_NO;
   uint16_t psize = 0;
   uint16_t pos = 0;
 
-  for (pos = 0; data_size + pos < data_size; pos += psize)
+  for (pos = 0; pos < data_size; pos += psize)
   {
     pmsg = (const struct GNUNET_MessageHeader *) (data + pos);
     psize = ntohs (pmsg->size);
-    if (psize < sizeof (*pmsg) || data_size + pos + psize > data_size)
+    ptype = ntohs (pmsg->type);
+    if (psize < sizeof (*pmsg) || pos + psize > data_size
+        || ptype < GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_METHOD
+        || GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_CANCEL < ptype)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "Invalid message part of type %u and size %u.",
-                  ntohs (pmsg->type), psize);
+                  "Invalid message part of type %u and size %u.\n",
+                  ptype, psize);
       return GNUNET_NO;
     }
   }
-  return GNUNET_YES;
+  return ptype;
 }
 
 
@@ -89,7 +94,8 @@ GNUNET_PSYC_log_message (enum GNUNET_ErrorType kind,
     uint16_t name_size = ntohs (mod->name_size);
     char oper = ' ' < mod->oper ? mod->oper : ' ';
     GNUNET_log (kind, "\t%c%.*s\t%.*s\n", oper, name_size, &mod[1],
-                ntohs (mod->value_size), ((char *) &mod[1]) + name_size + 1);
+                size - sizeof (*mod) - name_size - 1,
+                ((char *) &mod[1]) + name_size + 1);
     break;
   }
   case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MOD_CONT:

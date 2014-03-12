@@ -35,7 +35,7 @@
 #include "gnunet_env_lib.h"
 #include "gnunet_psyc_service.h"
 
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
 #define DEBUG_SERVICE 1
 
@@ -72,6 +72,7 @@ struct TransmitClosure
   char *data[16];
   const char *mod_value;
   size_t mod_value_size;
+  uint8_t data_delay[16];
   uint8_t data_count;
   uint8_t paused;
   uint8_t n;
@@ -259,13 +260,16 @@ transmit_resume (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Transmission resumed.\n");
   struct TransmitClosure *tmit = cls;
-  tmit->paused = GNUNET_NO;
-  GNUNET_PSYC_master_transmit_resume (tmit->mst_tmit);
+  if (NULL != tmit->mst_tmit)
+    GNUNET_PSYC_master_transmit_resume (tmit->mst_tmit);
+  else
+    GNUNET_PSYC_slave_transmit_resume (tmit->slv_tmit);
 }
 
 
 static int
-tmit_notify_mod (void *cls, uint16_t *data_size, void *data, uint8_t *oper)
+tmit_notify_mod (void *cls, uint16_t *data_size, void *data, uint8_t *oper,
+                 uint32_t *full_value_size)
 {
   struct TransmitClosure *tmit = cls;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -288,6 +292,8 @@ tmit_notify_mod (void *cls, uint16_t *data_size, void *data, uint8_t *oper)
       return GNUNET_YES;
     }
 
+    GNUNET_assert (value_size < UINT32_MAX);
+    *full_value_size = value_size;
     *oper = op;
     name_size = strlen (name);
 
@@ -351,7 +357,7 @@ tmit_notify_data (void *cls, uint16_t *data_size, void *data)
 
   uint16_t size = strlen (tmit->data[tmit->n]);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Transmit notify data: %lu bytes available, "
+              "Transmit notify data: %u bytes available, "
               "processing fragment %u/%u (size %u).\n",
               *data_size, tmit->n + 1, tmit->data_count, size);
   if (*data_size < size)
@@ -361,17 +367,18 @@ tmit_notify_data (void *cls, uint16_t *data_size, void *data)
     return GNUNET_SYSERR;
   }
 
-  if (GNUNET_YES == tmit->paused && tmit->n == tmit->data_count - 1)
+  if (GNUNET_YES != tmit->paused && 0 < tmit->data_delay[tmit->n])
   {
-    /* Send last fragment later. */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Transmission paused.\n");
     tmit->paused = GNUNET_YES;
-    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                  (GNUNET_TIME_UNIT_SECONDS, 3),
-                                  &transmit_resume, tmit);
+    GNUNET_SCHEDULER_add_delayed (
+      GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS,
+                                     tmit->data_delay[tmit->n]),
+      &transmit_resume, tmit);
     *data_size = 0;
     return GNUNET_NO;
   }
+  tmit->paused = GNUNET_NO;
 
   *data_size = size;
   memcpy (data, tmit->data[tmit->n], size);
@@ -416,8 +423,9 @@ slave_join ()
   GNUNET_ENV_environment_add (env, GNUNET_ENV_OP_ASSIGN,
                               "_foo_bar", "foo bar baz", 11);
   slv = GNUNET_PSYC_slave_join (cfg, &channel_pub_key, slave_key, &origin,
-                                16, relays, &slave_message, &join_request, &slave_joined,
-                                NULL, "_request_join", env, "some data", 9);
+                                16, relays, &slave_message, &join_request,
+                                &slave_joined, NULL, "_request_join", env,
+                                "some data", 9);
   GNUNET_ENV_environment_destroy (env);
 }
 
@@ -427,17 +435,45 @@ master_transmit ()
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Master sending message to all.\n");
   test = TEST_MASTER_TRANSMIT;
+  uint32_t i, j;
+
+  char *name_max = "_test_max";
+  uint8_t name_max_size = sizeof ("_test_max");
+  char *val_max = GNUNET_malloc (GNUNET_PSYC_MODIFIER_MAX_PAYLOAD);
+  for (i = 0; i < GNUNET_PSYC_MODIFIER_MAX_PAYLOAD; i++)
+    val_max[i] = (0 == i % 10000) ? '0' + i / 10000 : '.';
+
+  char *name_cont = "_test_cont";
+  uint8_t name_cont_size = sizeof ("_test_cont");
+  char *val_cont = GNUNET_malloc (GNUNET_PSYC_MODIFIER_MAX_PAYLOAD
+                                  + GNUNET_PSYC_MOD_CONT_MAX_PAYLOAD);
+  for (i = 0; i < GNUNET_PSYC_MODIFIER_MAX_PAYLOAD - name_cont_size; i++)
+    val_cont[i] = (0 == i % 10000) ? '0' + i / 10000 : ':';
+  for (j = 0; j < GNUNET_PSYC_MOD_CONT_MAX_PAYLOAD; j++, i++)
+    val_cont[i] = (0 == j % 10000) ? '0' + j / 10000 : '!';
 
   tmit = GNUNET_new (struct TransmitClosure);
   tmit->env = GNUNET_ENV_environment_create ();
   GNUNET_ENV_environment_add (tmit->env, GNUNET_ENV_OP_ASSIGN,
                               "_foo", "bar baz", 7);
   GNUNET_ENV_environment_add (tmit->env, GNUNET_ENV_OP_ASSIGN,
+                              name_max, val_max,
+                              GNUNET_PSYC_MODIFIER_MAX_PAYLOAD
+                              - name_max_size);
+  GNUNET_ENV_environment_add (tmit->env, GNUNET_ENV_OP_ASSIGN,
                               "_foo_bar", "foo bar baz", 11);
+  GNUNET_ENV_environment_add (tmit->env, GNUNET_ENV_OP_ASSIGN,
+                              name_cont, val_cont,
+                              GNUNET_PSYC_MODIFIER_MAX_PAYLOAD - name_cont_size
+                              + GNUNET_PSYC_MOD_CONT_MAX_PAYLOAD);
   tmit->data[0] = "foo";
-  tmit->data[1] = "foo bar";
-  tmit->data[2] = "foo bar baz";
-  tmit->data_count = 3;
+  tmit->data[1] =  GNUNET_malloc (GNUNET_PSYC_DATA_MAX_PAYLOAD + 1);
+  for (i = 0; i < GNUNET_PSYC_DATA_MAX_PAYLOAD; i++)
+    tmit->data[1][i] = (0 == i % 10000) ? '0' + i / 10000 : '_';
+  tmit->data[2] = "foo bar";
+  tmit->data[3] = "foo bar baz";
+  tmit->data_delay[1] = 3;
+  tmit->data_count = 4;
   tmit->mst_tmit
     = GNUNET_PSYC_master_transmit (mst, "_notice_test", tmit_notify_mod,
                                    tmit_notify_data, tmit,

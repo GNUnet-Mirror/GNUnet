@@ -178,17 +178,21 @@ message_callback (void *cls, const struct GNUNET_HashCode *chan_key_hash,
   const struct GNUNET_MessageHeader *msg = cls;
   struct GNUNET_MULTICAST_Group *grp = group;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Calling message callback for a message of type %u and size %u.\n",
-              ntohs (msg->type), ntohs (msg->size));
-
   if (GNUNET_YES == grp->is_origin)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Calling origin's message callback "
+                "for a message of type %u and size %u.\n",
+              ntohs (msg->type), ntohs (msg->size));
     struct GNUNET_MULTICAST_Origin *orig = (struct GNUNET_MULTICAST_Origin *) grp;
     orig->message_cb (orig->cls, msg);
   }
   else
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Calling slave's message callback "
+                "for a message of type %u and size %u.\n",
+                ntohs (msg->type), ntohs (msg->size));
     struct GNUNET_MULTICAST_Member *mem = (struct GNUNET_MULTICAST_Member *) grp;
     mem->message_cb (mem->cls, msg);
   }
@@ -449,8 +453,8 @@ schedule_origin_to_all (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
   struct GNUNET_MULTICAST_Origin *orig = cls;
   struct GNUNET_MULTICAST_OriginMessageHandle *mh = &orig->msg_handle;
 
-  size_t buf_size = GNUNET_MULTICAST_FRAGMENT_MAX_PAYLOAD;
-  char buf[GNUNET_MULTICAST_FRAGMENT_MAX_PAYLOAD] = "";
+  size_t buf_size = GNUNET_MULTICAST_FRAGMENT_MAX_SIZE;
+  char buf[GNUNET_MULTICAST_FRAGMENT_MAX_SIZE] = "";
   struct GNUNET_MULTICAST_MessageHeader *msg
     = (struct GNUNET_MULTICAST_MessageHeader *) buf;
   int ret = mh->notify (mh->notify_cls, &buf_size, &msg[1]);
@@ -495,9 +499,9 @@ schedule_origin_to_all (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
   handle_multicast_message (&orig->grp, msg);
 
   if (GNUNET_NO == ret)
-    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                  (GNUNET_TIME_UNIT_SECONDS, 1),
-                                  schedule_origin_to_all, orig);
+    GNUNET_SCHEDULER_add_delayed (
+      GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1),
+      schedule_origin_to_all, orig);
 }
 
 
@@ -526,10 +530,10 @@ GNUNET_MULTICAST_origin_to_all (struct GNUNET_MULTICAST_Origin *origin,
   mh->notify = notify;
   mh->notify_cls = notify_cls;
 
-  /* FIXME: remove delay, it's there only for testing */
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                (GNUNET_TIME_UNIT_SECONDS, 1),
-                                schedule_origin_to_all, origin);
+  /* add some delay for testing */
+  GNUNET_SCHEDULER_add_delayed (
+    GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1),
+    schedule_origin_to_all, origin);
   return &origin->msg_handle;
 }
 

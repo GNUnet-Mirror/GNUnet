@@ -31,8 +31,8 @@
 #include "gnunet_psyc_service.h"
 
 
-int
-GNUNET_PSYC_check_message_parts (uint16_t data_size, const char *data);
+uint16_t
+GNUNET_PSYC_message_last_part (uint16_t data_size, const char *data);
 
 void
 GNUNET_PSYC_log_message (enum GNUNET_ErrorType kind,

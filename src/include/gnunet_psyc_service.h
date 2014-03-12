@@ -444,10 +444,14 @@ typedef int
  *         contain: "name\0value".  If the whole value does not fit, subsequent
  *         calls to this function should write continuations of the value to
  *         @a data.
- * @param oper  Where to write the operator of the modifier.  Only needed during
- *         the first call to this callback at the beginning of the modifier.
- *         In case of subsequent calls asking for value continuations @a oper is
- *         set to #NULL.
+ * @param[out] oper  Where to write the operator of the modifier.
+ *         Only needed during the first call to this callback at the beginning
+ *         of the modifier.  In case of subsequent calls asking for value
+ *         continuations @a oper is set to #NULL.
+ * @param[out] value_size  Where to write the full size of the value.
+ *         Only needed during the first call to this callback at the beginning
+ *         of the modifier.  In case of subsequent calls asking for value
+ *         continuations @a value_size is set to #NULL.
  * @return #GNUNET_SYSERR on error (fatal, aborts transmission)
  *         #GNUNET_NO on success, if more data is to be transmitted later.
  *         Should be used if @a data_size was not big enough to take all the
@@ -461,7 +465,8 @@ typedef int
 (*GNUNET_PSYC_TransmitNotifyModifier) (void *cls,
                                        uint16_t *data_size,
                                        void *data,
-                                       uint8_t *oper);
+                                       uint8_t *oper,
+                                       uint32_t *value_size);
 
 /**
  * Flags for transmitting messages to a channel by the master.
@@ -659,7 +664,7 @@ GNUNET_PSYC_slave_transmit (struct GNUNET_PSYC_Slave *slave,
  * @param th Handle of the request that is being resumed.
  */
 void
-GNUNET_PSYC_slave_transmit_resume (struct GNUNET_PSYC_MasterTransmitHandle *th);
+GNUNET_PSYC_slave_transmit_resume (struct GNUNET_PSYC_SlaveTransmitHandle *th);
 
 
 /**
