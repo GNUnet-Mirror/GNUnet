@@ -184,6 +184,21 @@ delay_ms_rnd (unsigned int max)
   return GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, rnd);
 }
 
+
+/**
+ * Get the index of a peer in the peers array.
+ *
+ * @param peer Peer whose index to get.
+ *
+ * @return Index of peer in peers.
+ */
+static unsigned int
+get_index (struct MeshPeer *peer)
+{
+  return peer - peers;
+}
+
+
 /**
  * Show the results of the test (banwidth acheived) and log them to GAUGER
  */
@@ -566,7 +581,8 @@ static void
 ping (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct MeshPeer *peer = (struct MeshPeer *) cls;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending data initializer...\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%u -> %u\n",
+              get_index (peer), peer->dest);
 
   GNUNET_MESH_notify_transmit_ready (peer->ch, GNUNET_NO,
                                      GNUNET_TIME_UNIT_FOREVER_REL,
@@ -608,7 +624,7 @@ do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     peers[i].ch = GNUNET_MESH_channel_create (peers[i].mesh, NULL,
                                               &peers[peers[i].dest].id,
                                               1, flags);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%u -> %u\n", i, peers[i].dest);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%u => %u\n", i, peers[i].dest);
     peers[i].ping_task = GNUNET_SCHEDULER_add_delayed (delay_ms_rnd(2000),
                                                        &ping, &peers[i]);
   }
