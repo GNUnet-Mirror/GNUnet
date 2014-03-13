@@ -2165,7 +2165,7 @@ GNUNET_TESTBED_shutdown_peers (struct GNUNET_TESTBED_Controller *c,
  * @return The peer's unique ID.
  */
 uint32_t
-GNUNET_TESTBED_get_index (struct GNUNET_TESTBED_Peer *peer)
+GNUNET_TESTBED_get_index (const struct GNUNET_TESTBED_Peer *peer)
 {
   return peer->unique_id;
 }
