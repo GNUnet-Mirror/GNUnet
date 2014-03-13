@@ -76,6 +76,9 @@ struct MeshPeer
    * Channel handle for the dest peer
    */
   struct GNUNET_MESH_Channel *incoming_ch;
+
+  unsigned int dest;
+  GNUNET_SCHEDULER_TaskIdentifier ping_task;
 };
 
 /**
@@ -543,6 +546,34 @@ channel_cleaner (void *cls, const struct GNUNET_MESH_Channel *channel,
 
 
 /**
+ * @brief Send data to destination
+ *
+ * @param cls Closure (peer).
+ * @param tc Task context.
+ */
+static void
+ping (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct MeshPeer *peer = (struct MeshPeer *) cls;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending data initializer...\n");
+
+  GNUNET_MESH_notify_transmit_ready (peer->ch, GNUNET_NO,
+                                     GNUNET_TIME_UNIT_FOREVER_REL,
+                                     size_payload, &tmt_rdy, (void *) 1L);
+}
+
+
+static struct GNUNET_TIME_Relative
+delay_ms_rnd (unsigned int max)
+{
+  unsigned int rnd;
+
+  rnd = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, max);
+  return GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, rnd);
+}
+
+
+/**
  * START THE TESTCASE ITSELF, AS WE ARE CONNECTED TO THE MESH SERVICES.
  *
  * Testcase continues when the root receives confirmation of connected peers,
@@ -555,6 +586,7 @@ static void
 do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   enum GNUNET_MESH_ChannelOption flags;
+  unsigned long i;
 
   if ((GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason) != 0)
     return;
@@ -568,17 +600,22 @@ do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                                   (void *) __LINE__);
 
   flags = GNUNET_MESH_OPTION_DEFAULT;
-  peers[0].ch = GNUNET_MESH_channel_create (peers[0].mesh, NULL,
-                                            &peers[TOTAL_PEERS -1].id,
-                                            1, flags);
-
+  for (i = 0; i < TOTAL_PEERS; i++)
+  {
+    peers[i].dest = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                              TOTAL_PEERS);
+    peers[i].ch = GNUNET_MESH_channel_create (peers[i].mesh, NULL,
+                                              &peers[peers[i].dest].id,
+                                              1, flags);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%u -> %u\n", i, peers[i].dest);
+    peers[i].ping_task = GNUNET_SCHEDULER_add_delayed (delay_ms_rnd(2000),
+                                                       &ping, &peers[i]);
+  }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending data initializer...\n");
   data_ack = 0;
   data_received = 0;
   data_sent = 0;
-  GNUNET_MESH_notify_transmit_ready (peers[0].ch, GNUNET_NO,
-                                     GNUNET_TIME_UNIT_FOREVER_REL,
-                                     size_payload, &tmt_rdy, (void *) 1L);
+
 }
 
 
@@ -592,7 +629,7 @@ do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  *             NULL if the operation is successfull
  */
 static void
-pi_cb (void *cls,
+peer_id_cb (void *cls,
        struct GNUNET_TESTBED_Operation *op,
        const struct GNUNET_TESTBED_PeerInformation *pinfo,
        const char *emsg)
@@ -651,7 +688,7 @@ tmain (void *cls,
     peers[i].op =
       GNUNET_TESTBED_peer_get_information (testbed_handles[i],
                                            GNUNET_TESTBED_PIT_IDENTITY,
-                                           &pi_cb, (void *) i);
+                                           &peer_id_cb, (void *) i);
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "requested peer ids\n");
   /* Continues from pi_cb -> do_test */
