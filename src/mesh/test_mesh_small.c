@@ -556,16 +556,17 @@ stats_iterator (void *cls, const struct GNUNET_TESTBED_Peer *peer,
                 const char *subsystem, const char *name,
                 uint64_t value, int is_persistent)
 {
+  static const char *s_sent = "# keepalives sent";
+  static const char *s_recv = "# keepalives received";
+  uint32_t i;
+
+  i = GNUNET_TESTBED_get_index (peer);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  %u - %s [%s]: %llu\n",
-              cls, subsystem, name, value);
-  if (0 == strncmp("# keepalives sent", name,
-                   strlen("# keepalives sent"))
-      && 0 == (long) cls)
+              i, subsystem, name, value);
+  if (0 == strncmp (s_sent, name, strlen (s_sent)) && 0 == i)
     ka_sent = value;
 
-  if (0 == strncmp("# keepalives received", name,
-                   strlen ("# keepalives received"))
-      && 4 == (long) cls)
+  if (0 == strncmp(s_recv, name, strlen (s_recv)) && 4 == i)
   {
     ka_received = value;
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, " sent: %u, received: %u\n",
