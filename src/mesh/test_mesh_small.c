@@ -515,8 +515,6 @@ data_callback (void *cls, struct GNUNET_MESH_Channel *channel,
 }
 
 
-
-
 /**
  * Stats callback. Finish the stats testbed operation and when all stats have
  * been iterated, shutdown the test.
@@ -835,7 +833,7 @@ int
 main (int argc, char *argv[])
 {
   initialized = GNUNET_NO;
-  uint32_t ports[2];
+  static uint32_t ports[2];
   const char *config_file;
 
   GNUNET_log_setup ("test", "DEBUG", NULL);
