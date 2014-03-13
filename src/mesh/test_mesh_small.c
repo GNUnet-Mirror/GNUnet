@@ -173,8 +173,6 @@ static struct GNUNET_MESH_Channel *incoming_ch;
 static struct GNUNET_TIME_Absolute start_time;
 
 static struct GNUNET_TESTBED_Peer **testbed_peers;
-static struct GNUNET_STATISTICS_Handle *stats;
-static struct GNUNET_STATISTICS_GetHandle *stats_get;
 static struct GNUNET_TESTBED_Operation *stats_op;
 static unsigned int ka_sent;
 static unsigned int ka_received;
@@ -254,8 +252,6 @@ disconnect_mesh_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     GNUNET_SCHEDULER_cancel (shutdown_handle);
   }
-  if (NULL != stats_get)
-    GNUNET_STATISTICS_get_cancel (stats_get);
   shutdown_handle = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
 }
 
@@ -519,85 +515,28 @@ data_callback (void *cls, struct GNUNET_MESH_Channel *channel,
 }
 
 
-/**
- * Adapter function called to establish a connection to the statistics service.
- *
- * @param cls closure
- * @param cfg configuration of the peer to connect to; will be available until
- *          GNUNET_TESTBED_operation_done() is called on the operation returned
- *          from GNUNET_TESTBED_service_connect()
- * @return service handle to return in 'op_result', NULL on error
- */
-static void *
-stats_ca (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
-{
-  return GNUNET_STATISTICS_create ("<test_mesh>", cfg);
-}
 
-
-/**
- * Adapter function called to destroy a connection to
- * statistics service.
- *
- * @param cls Closure (unused).
- * @param op_result service handle returned from the connect adapter
- */
-static void
-stats_da (void *cls, void *op_result)
-{
-  GNUNET_assert (op_result == stats);
-  GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
-  stats = NULL;
-}
-
-
-/**
- * Function called by testbed once we are connected to stats
- * service. Get the statistics of interest.
- *
- * @param cls Closure (unused).
- * @param op connect operation handle
- * @param ca_result handle to stats service
- * @param emsg error message on failure
- */
-static void
-stats_connect_cb (void *cls,
-                  struct GNUNET_TESTBED_Operation *op,
-                  void *ca_result,
-                  const char *emsg);
 
 /**
  * Stats callback. Finish the stats testbed operation and when all stats have
  * been iterated, shutdown the test.
  *
  * @param cls closure
- * @param success GNUNET_OK if statistics were
- *        successfully obtained, GNUNET_SYSERR if not.
+ * @param op the operation that has been finished
+ * @param emsg error message in case the operation has failed; will be NULL if
+ *          operation has executed successfully.
  */
 static void
-stats_cont (void *cls, int success)
+stats_cont (void *cls, struct GNUNET_TESTBED_Operation *op, const char *emsg)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "stats_cont for peer %u\n", cls);
   GNUNET_TESTBED_operation_done (stats_op);
-  stats_get = NULL;
-  if (NULL == cls)
-  {
-    stats_op = GNUNET_TESTBED_service_connect (NULL,
-                                               testbed_peers[4],
-                                               "statistics",
-                                               &stats_connect_cb,
-                                               (void *)4,
-                                               &stats_ca,
-                                               &stats_da,
-                                               (void *)4);
-  }
-  else
-  {
-    if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
-      GNUNET_SCHEDULER_cancel (disconnect_task);
-    disconnect_task = GNUNET_SCHEDULER_add_now (&disconnect_mesh_peers,
-                                                (void *) __LINE__);
-  }
+
+  if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
+    GNUNET_SCHEDULER_cancel (disconnect_task);
+  disconnect_task = GNUNET_SCHEDULER_add_now (&disconnect_mesh_peers,
+                                              (void *) __LINE__);
+
 }
 
 
@@ -605,6 +544,7 @@ stats_cont (void *cls, int success)
  * Process statistic values.
  *
  * @param cls closure
+ * @param peer the peer the statistic belong to
  * @param subsystem name of subsystem that created the statistic
  * @param name the name of the datum
  * @param value the current value
@@ -612,7 +552,8 @@ stats_cont (void *cls, int success)
  * @return GNUNET_OK to continue, GNUNET_SYSERR to abort iteration
  */
 static int
-stats_iterator (void *cls, const char *subsystem, const char *name,
+stats_iterator (void *cls, const struct GNUNET_TESTBED_Peer *peer,
+                const char *subsystem, const char *name,
                 uint64_t value, int is_persistent)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  %u - %s [%s]: %llu\n",
@@ -638,42 +579,6 @@ stats_iterator (void *cls, const char *subsystem, const char *name,
 
 
 /**
- * Function called by testbed once we are connected to stats
- * service. Get the statistics of interest.
- *
- * @param cls Closure (unused).
- * @param op connect operation handle
- * @param ca_result handle to stats service
- * @param emsg error message on failure
- */
-static void
-stats_connect_cb (void *cls,
-                  struct GNUNET_TESTBED_Operation *op,
-                  void *ca_result,
-                  const char *emsg)
-{
-  if (NULL == ca_result || NULL != emsg)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Failed to connect to statistics service: %s\n", emsg);
-    return;
-  }
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "stats for peer %u\n", cls);
-  stats = ca_result;
-
-  stats_get = GNUNET_STATISTICS_get (stats, "mesh", NULL,
-                                     GNUNET_TIME_UNIT_FOREVER_REL,
-                                     &stats_cont, &stats_iterator, cls);
-  if (NULL == stats_get)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Could not get statistics of peer %u!\n", cls);
-  }
-}
-
-
-/**
  * Task check that keepalives were sent and received.
  *
  * @param cls Closure (NULL).
@@ -688,14 +593,9 @@ check_keepalives (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   disconnect_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "check keepalives\n");
   GNUNET_MESH_channel_destroy (ch);
-  stats_op = GNUNET_TESTBED_service_connect (NULL,
-                                             testbed_peers[0],
-                                             "statistics",
-                                             &stats_connect_cb,
-                                             NULL,
-                                             &stats_ca,
-                                             &stats_da,
-                                             NULL);
+  stats_op = GNUNET_TESTBED_get_statistics (5, testbed_peers,
+                                            "mesh", NULL,
+                                            stats_iterator, stats_cont, NULL);
 }
 
 
