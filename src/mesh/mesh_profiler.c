@@ -90,17 +90,18 @@ struct MeshPeer
   struct MeshPeer *dest;
   struct MeshPeer *incoming;
   GNUNET_SCHEDULER_TaskIdentifier ping_task;
+  struct GNUNET_TIME_Absolute timestamp;
 };
 
 /**
  * Testbed peer handles.
  */
-struct GNUNET_TESTBED_Peer **testbed_handles;
+static struct GNUNET_TESTBED_Peer **testbed_handles;
 
 /**
  * Testbed Operation (to get stats).
  */
-struct GNUNET_TESTBED_Operation *stats_op;
+static struct GNUNET_TESTBED_Operation *stats_op;
 
 /**
  * How many events have happened
@@ -110,7 +111,7 @@ static int ok;
 /**
  * Number of events expected to conclude the test successfully.
  */
-int ok_goal;
+static int ok_goal;
 
 /**
  * Size of each test packet
@@ -125,7 +126,7 @@ struct MeshPeer peers[TOTAL_PEERS];
 /**
  * Peer ids counter.
  */
-unsigned int p_ids;
+static unsigned int p_ids;
 
 /**
  * Is the setup initialized?
@@ -140,7 +141,7 @@ static unsigned long long peers_running;
 /**
  * Test context (to shut down).
  */
-struct GNUNET_MESH_TEST_Context *test_ctx;
+static struct GNUNET_MESH_TEST_Context *test_ctx;
 
 /**
  * Task called to shutdown test.
@@ -164,10 +165,9 @@ static GNUNET_SCHEDULER_TaskIdentifier test_task;
 static struct GNUNET_TIME_Absolute start_time;
 
 /**
- *
+ * Flag to notify callbacks not to generate any new traffic anymore.
  */
-static unsigned int ka_sent;
-static unsigned int ka_received;
+static int test_finished;
 
 /**
  * Calculate a random delay.
@@ -267,7 +267,7 @@ disconnect_mesh_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
- * Abort test: schedule disconnect and shutdown immediately
+ * Finish test normally: schedule disconnect and shutdown
  *
  * @param line Line in the code the abort is requested from (__LINE__).
  */
@@ -281,7 +281,6 @@ abort_test (long line)
                                                 (void *) line);
   }
 }
-
 
 /**
  * Stats callback. Finish the stats testbed operation and when all stats have
@@ -322,24 +321,12 @@ stats_iterator (void *cls, const struct GNUNET_TESTBED_Peer *peer,
                 const char *subsystem, const char *name,
                 uint64_t value, int is_persistent)
 {
-  static const char *s_sent = "# keepalives sent";
-  static const char *s_recv = "# keepalives received";
   uint32_t i;
 
   i = GNUNET_TESTBED_get_index (peer);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  %u - %s [%s]: %llu\n",
               i, subsystem, name, value);
-  if (0 == strncmp (s_sent, name, strlen (s_sent)) && 0 == i)
-    ka_sent = value;
 
-  if (0 == strncmp(s_recv, name, strlen (s_recv)) && 4 == i)
-  {
-    ka_received = value;
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, " sent: %u, received: %u\n",
-                ka_sent, ka_received);
-    if (ka_sent < 2 || ka_sent > ka_received + 1)
-      ok--;
-  }
 
   return GNUNET_OK;
 }
@@ -363,6 +350,25 @@ collect_stats (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                             NULL, NULL,
                                             stats_iterator, stats_cont, NULL);
 }
+
+
+/**
+ * @brief Finish profiler normally.
+ *
+ * @param cls Closure (unused).
+ * @param tc Task context.
+ */
+static void
+finish_profiler (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  if ((GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason) != 0)
+    return;
+
+  test_finished = GNUNET_YES;
+  show_end_data();
+  GNUNET_SCHEDULER_add_now (&collect_stats, NULL);
+}
+
 
 
 /**
@@ -475,8 +481,8 @@ tmt_rdy (void *cls, size_t size, void *buf)
       GNUNET_SCHEDULER_add_now (&data_task, peer);
     }
   }
-
-  peers->ping_task = GNUNET_SCHEDULER_add_delayed (delay_ms_rnd (60 * 1000),
+  peer->timestamp = GNUNET_TIME_absolute_get ();
+  peer->ping_task = GNUNET_SCHEDULER_add_delayed (delay_ms_rnd (60 * 1000),
                                                    &ping, peer);
 
   return size_payload;
@@ -699,6 +705,8 @@ tmain (void *cls,
   GNUNET_assert (TOTAL_PEERS == num_peers);
   peers_running = num_peers;
   testbed_handles = testbed_handles;
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
+                                &finish_profiler, NULL);
   disconnect_task = GNUNET_SCHEDULER_add_delayed (SHORT_TIME,
                                                   &disconnect_mesh_peers,
                                                   (void *) __LINE__);
@@ -730,6 +738,7 @@ main (int argc, char *argv[])
   config_file = "test_mesh.conf";
 
   p_ids = 0;
+  test_finished = GNUNET_NO;
   ports[0] = 1;
   ports[1] = 0;
   GNUNET_MESH_TEST_run ("mesh_profiler", config_file, TOTAL_PEERS,
