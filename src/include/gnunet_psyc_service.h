@@ -113,6 +113,7 @@ enum GNUNET_PSYC_ChannelFlags
   GNUNET_PSYC_CHANNEL_RESTRICTED_HISTORY = 1 << 1
 };
 
+
 /**
  * PSYC channel policies.
  */
@@ -169,6 +170,7 @@ enum GNUNET_PSYC_MessageFlags
   GNUNET_PSYC_MESSAGE_REQUEST = 1 << 1
 };
 
+
 GNUNET_NETWORK_STRUCT_BEGIN
 
 /**
@@ -190,6 +192,7 @@ struct GNUNET_PSYC_MessageHeader
 
   /**
    * Number of the message this message part belongs to.
+   * Monotonically increasing from 1.
    */
   uint64_t message_id GNUNET_PACKED;
 
@@ -254,6 +257,7 @@ struct GNUNET_PSYC_MessageModifier
 
 GNUNET_NETWORK_STRUCT_END
 
+
 #define GNUNET_PSYC_MODIFIER_MAX_PAYLOAD        \
   GNUNET_MULTICAST_FRAGMENT_MAX_PAYLOAD         \
   - sizeof (struct GNUNET_PSYC_MessageModifier)
@@ -265,6 +269,7 @@ GNUNET_NETWORK_STRUCT_END
 #define GNUNET_PSYC_DATA_MAX_PAYLOAD            \
   GNUNET_MULTICAST_FRAGMENT_MAX_PAYLOAD         \
   - sizeof (struct GNUNET_MessageHeader)
+
 
 /**
  * Handle that identifies a join request.
@@ -362,7 +367,7 @@ struct GNUNET_PSYC_Master;
  * Function called after the channel master started.
  *
  * @param cls Closure.
- * @param last_message_id Last message ID sent to the channel.
+ * @param max_message_id Last message ID sent to the channel.
  */
 typedef void
 (*GNUNET_PSYC_MasterStartCallback) (void *cls, uint64_t max_message_id);

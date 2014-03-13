@@ -54,72 +54,6 @@ enum MessageState
 
 GNUNET_NETWORK_STRUCT_BEGIN
 
-/**** service -> library ****/
-
-/**
- * Answer from service to client about last operation.
- */
-struct OperationResult
-{
-  /**
-   * Type: GNUNET_MESSAGE_TYPE_PSYCSTORE_RESULT_CODE
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Operation ID.
-   */
-  uint32_t op_id GNUNET_PACKED;
-
-  /**
-   * Status code for the operation.
-   */
-  int64_t result_code GNUNET_PACKED;
-
-  /* followed by NUL-terminated error message (on error) */
-};
-
-
-struct CountersResult
-{
-  /**
-   * Type: GNUNET_MESSAGE_TYPE_PSYC_RESULT_COUNTERS
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Status code for the operation.
-   */
-  int32_t result_code GNUNET_PACKED;
-
-  uint64_t max_message_id;
-};
-
-
-#if REMOVE
-/**
- * Transmit acknowledgment.
- *
- * Sent after the last GNUNET_PSYC_MessageModifier and after each
- * GNUNET_PSYC_MessageData.
- *
- * This message acknowledges previously received messages and asks for the next
- * fragment of data.
- */
-struct TransmitAck
-{
-  /**
-   * Type: GNUNET_MESSAGE_TYPE_PSYC_TRANSMIT_ACK
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Buffer space available for the next data fragment.
-   */
-  uint16_t buf_avail;
-};
-#endif
-
 
 /**** library -> service ****/
 
@@ -203,37 +137,80 @@ struct StoryRequest
 };
 
 
-struct StateQuery
+struct StateRequest
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_PSYC_CHANNEL_STATE_QUERY
+   * Types:
+   * - GNUNET_MESSAGE_TYPE_PSYC_CHANNEL_STATE_GET
+   * - GNUNET_MESSAGE_TYPE_PSYC_CHANNEL_STATE_GET_PREFIX
    */
   struct GNUNET_MessageHeader header;
 
+  /**
+   * ID for this operation.
+   */
   uint64_t op_id;
 
   /* Followed by NUL-terminated name. */
 };
 
 
-struct StateResult
+/**** service -> library ****/
+
+
+struct CountersResult
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_PSYC_CHANNEL_STATE_RESULT
+   * Type: GNUNET_MESSAGE_TYPE_PSYC_RESULT_COUNTERS
    */
   struct GNUNET_MessageHeader header;
 
   /**
-   * Size of name, including NUL terminator.
+   * Status code for the operation.
    */
-  uint16_t name_size GNUNET_PACKED;
+  int32_t result_code GNUNET_PACKED;
 
   /**
-   * OR'd StateOpFlags
+   * Last message ID sent to the channel.
    */
-  uint8_t flags;
+  uint64_t max_message_id;
+};
 
-  /* Followed by NUL-terminated name, then the value. */
+/**
+ * Answer from service to client about last operation.
+ */
+struct OperationResult
+{
+  /**
+   * Types:
+   * - GNUNET_MESSAGE_TYPE_PSYC_RESULT_CODE
+   * - GNUNET_MESSAGE_TYPE_PSYC_CHANNEL_STORY_RESULT
+   * - GNUNET_MESSAGE_TYPE_PSYC_CHANNEL_STATE_RESULT
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Operation ID.
+   */
+  uint32_t op_id GNUNET_PACKED;
+
+  /**
+   * Status code for the operation.
+   */
+  int64_t result_code GNUNET_PACKED;
+
+  /* Followed by:
+   * - on error: NUL-terminated error message
+   * - on success: one of the following message types
+   *
+   *   For a STORY_RESULT:
+   *   - GNUNET_MESSAGE_TYPE_PSYC_MESSAGE
+   *
+   *   For a STATE_RESULT, one of:
+   *   - GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MODIFIER
+   *   - GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MOD_CONT
+   *   - GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_END
+   */
 };
 
 

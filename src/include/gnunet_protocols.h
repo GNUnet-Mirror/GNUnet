@@ -2126,64 +2126,84 @@ extern "C"
  * PSYC message types
  ******************************************************************************/
 
+/**
+ * C: client
+ * S: service
+ * M: muticast
+ */
+
+/** S->C: result of an operation */
 #define GNUNET_MESSAGE_TYPE_PSYC_RESULT_CODE 680
 
-
+/** C->S: request to start a master */
 #define GNUNET_MESSAGE_TYPE_PSYC_MASTER_START 681
 
+/** S->C: master start acknowledgement */
 #define GNUNET_MESSAGE_TYPE_PSYC_MASTER_START_ACK 682
 
-#define GNUNET_MESSAGE_TYPE_PSYC_MASTER_STOP 683
+/** C->S: request to start a master */
+#define GNUNET_MESSAGE_TYPE_PSYC_SLAVE_JOIN 683
 
+/** S->C: slave join acknowledgement */
+#define GNUNET_MESSAGE_TYPE_PSYC_SLAVE_JOIN_ACK 684
 
-#define GNUNET_MESSAGE_TYPE_PSYC_SLAVE_JOIN 684
+/* 685-686 */
 
-#define GNUNET_MESSAGE_TYPE_PSYC_SLAVE_JOIN_ACK 685
-
-#define GNUNET_MESSAGE_TYPE_PSYC_SLAVE_PART 686
-
-
+/** M->S->C: incoming join request from multicast */
 #define GNUNET_MESSAGE_TYPE_PSYC_JOIN_REQUEST 687
 
+/** C->S->M: decision about a join request */
 #define GNUNET_MESSAGE_TYPE_PSYC_JOIN_DECISION 688
 
 
+/** C->S: request to remove channel slave from the membership database. */
 #define GNUNET_MESSAGE_TYPE_PSYC_CHANNEL_SLAVE_ADD 689
 
+/** C->S: request to add channel slave to the membership database */
 #define GNUNET_MESSAGE_TYPE_PSYC_CHANNEL_SLAVE_RM 690
 
 
+/** M<->S<->C: PSYC message which contains one or more message parts. */
 #define GNUNET_MESSAGE_TYPE_PSYC_MESSAGE 691
 
+/** Message part: method */
 #define GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_METHOD 692
 
+/** Message part: modifier */
 #define GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MODIFIER 693
 
+/** Message part: modifier continuation */
 #define GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MOD_CONT 694
 
+/** Message part: data */
 #define GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_DATA 695
 
+/** Message part: end of message */
 #define GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_END 696
 
+/** Message part: message cancelled */
 #define GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_CANCEL 697
 
+/** S->C: message acknowledgment */
 #define GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_ACK 698
 
+/* 699-700 */
 
+/** C->S: client requests channel history from PSYCstore. */
 #define GNUNET_MESSAGE_TYPE_PSYC_STORY_REQUEST 701
 
-#define GNUNET_MESSAGE_TYPE_PSYC_STORY_RESPONSE 702
+/** S->C: result for a channel history request */
+#define GNUNET_MESSAGE_TYPE_PSYC_STORY_RESULT 702
 
 
+/** C->S: request best matching state variable from PSYCstore. */
 #define GNUNET_MESSAGE_TYPE_PSYC_STATE_GET 703
 
+/** C->S: request state variables with a given prefix from PSYCstore. */
 #define GNUNET_MESSAGE_TYPE_PSYC_STATE_GET_PREFIX 704
 
-#define GNUNET_MESSAGE_TYPE_PSYC_STATE_RESPONSE 705
-
-#define GNUNET_MESSAGE_TYPE_PSYC_STATE_MODIFIER 706
-
-#define GNUNET_MESSAGE_TYPE_PSYC_STATE_MOD_CONT 707
+/** S->C: result for a state request. */
+#define GNUNET_MESSAGE_TYPE_PSYC_STATE_RESULT 705
 
 
 /*******************************************************************************
@@ -2196,7 +2216,7 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_CONVERSATION_AUDIO 730
 
 /**
- * Client -> Server message register a phone.
+ * Client -> Server message to register a phone.
  */
 #define GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_REGISTER 731
 

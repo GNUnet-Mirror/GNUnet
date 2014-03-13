@@ -189,7 +189,8 @@ struct GNUNET_MULTICAST_RequestHeader
   struct GNUNET_CRYPTO_EccSignaturePurpose purpose;
 
   /**
-   * Number of the request fragment, monotonically increasing.
+   * Number of the request fragment.
+   * Monotonically increasing from 1.
    */
   uint64_t fragment_id GNUNET_PACKED;
 

@@ -63,6 +63,7 @@ static struct GNUNET_PSYCSTORE_Handle *store;
  */
 static struct GNUNET_CONTAINER_MultiHashMap *clients;
 
+
 /**
  * Message in the transmission queue.
  */
@@ -71,10 +72,18 @@ struct TransmitMessage
   struct TransmitMessage *prev;
   struct TransmitMessage *next;
 
-  char *buf;
-  uint16_t size;
   /**
-   * enum MessageState
+   * Buffer with message to be transmitted.
+   */
+  char *buf;
+
+  /**
+   * Size of @a buf
+   */
+  uint16_t size
+;
+  /**
+   * @see enum MessageState
    */
   uint8_t state;
 };
@@ -147,34 +156,57 @@ struct Channel
   uint32_t tmit_mod_value_size;
 
   /**
-   * enum MessageState
+   * @see enum MessageState
    */
   uint8_t tmit_state;
 
   uint8_t in_transmit;
+
+  /**
+   * Is this a channel master (#GNUNET_YES), or slave (#GNUNET_NO)?
+   */
   uint8_t is_master;
 
   /**
-   * Ready to receive messages from client.
+   * Ready to receive messages from client? #GNUNET_YES or #GNUNET_NO
    */
   uint8_t ready;
 
   /**
-   * Client disconnected.
+   * Is the client disconnected? #GNUNET_YES or #GNUNET_NO
    */
   uint8_t disconnected;
 };
+
 
 /**
  * Client context for a channel master.
  */
 struct Master
 {
+  /**
+   * Channel struct common for Master and Slave
+   */
   struct Channel channel;
+
+  /**
+   * Private key of the channel.
+   */
   struct GNUNET_CRYPTO_EddsaPrivateKey priv_key;
+
+  /**
+   * Public key of the channel.
+   */
   struct GNUNET_CRYPTO_EddsaPublicKey pub_key;
 
+  /**
+   * Handle for the multicast origin.
+   */
   struct GNUNET_MULTICAST_Origin *origin;
+
+  /**
+   * Transmit handle for multicast.
+   */
   struct GNUNET_MULTICAST_OriginMessageHandle *tmit_handle;
 
   /**
@@ -201,6 +233,9 @@ struct Master
    */
   uint32_t policy;
 
+  /**
+   * Hash of @a pub_key
+   */
   struct GNUNET_HashCode pub_key_hash;
 };
 
@@ -210,23 +245,64 @@ struct Master
  */
 struct Slave
 {
+  /**
+   * Channel struct common for Master and Slave
+   */
   struct Channel channel;
+
+  /**
+   * Private key of the slave.
+   */
   struct GNUNET_CRYPTO_EddsaPrivateKey slave_key;
+
+  /**
+   * Public key of the channel.
+   */
   struct GNUNET_CRYPTO_EddsaPublicKey chan_key;
 
+  /**
+   * Handle for the multicast member.
+   */
   struct GNUNET_MULTICAST_Member *member;
+
+  /**
+   * Transmit handle for multicast.
+   */
   struct GNUNET_MULTICAST_MemberRequestHandle *tmit_handle;
 
+  /**
+   * Peer identity of the origin.
+   */
   struct GNUNET_PeerIdentity origin;
 
+  /**
+   * Number of items in @a relays.
+   */
   uint32_t relay_count;
+
+  /**
+   * Relays that multicast can use to connect.
+   */
   struct GNUNET_PeerIdentity *relays;
 
+  /**
+   * Join request to be transmitted to the master on join.
+   */
   struct GNUNET_MessageHeader *join_req;
 
+  /**
+   * Maximum message ID for this channel.
+   */
   uint64_t max_message_id;
+
+  /**
+   * Maximum request ID for this channel.
+   */
   uint64_t max_request_id;
 
+  /**
+   * Hash of @a chan_key.
+   */
   struct GNUNET_HashCode chan_key_hash;
 };
 
@@ -323,8 +399,11 @@ client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
 }
 
 
+/**
+ * Master receives a join request from a slave.
+ */
 static void
-join_cb (void *cls, const struct GNUNET_CRYPTO_EddsaPublicKey *member_key,
+join_cb (void *cls, const struct GNUNET_CRYPTO_EddsaPublicKey *slave_key,
          const struct GNUNET_MessageHeader *join_req,
          struct GNUNET_MULTICAST_JoinHandle *jh)
 {
@@ -334,7 +413,7 @@ join_cb (void *cls, const struct GNUNET_CRYPTO_EddsaPublicKey *member_key,
 
 static void
 membership_test_cb (void *cls,
-                    const struct GNUNET_CRYPTO_EddsaPublicKey *member_key,
+                    const struct GNUNET_CRYPTO_EddsaPublicKey *slave_key,
                     uint64_t message_id, uint64_t group_generation,
                     struct GNUNET_MULTICAST_MembershipTestHandle *mth)
 {
@@ -344,7 +423,7 @@ membership_test_cb (void *cls,
 
 static void
 replay_fragment_cb (void *cls,
-                    const struct GNUNET_CRYPTO_EddsaPublicKey *member_key,
+                    const struct GNUNET_CRYPTO_EddsaPublicKey *slave_key,
                     uint64_t fragment_id, uint64_t flags,
                     struct GNUNET_MULTICAST_ReplayHandle *rh)
 
@@ -354,7 +433,7 @@ replay_fragment_cb (void *cls,
 
 static void
 replay_message_cb (void *cls,
-                   const struct GNUNET_CRYPTO_EddsaPublicKey *member_key,
+                   const struct GNUNET_CRYPTO_EddsaPublicKey *slave_key,
                    uint64_t message_id,
                    uint64_t fragment_offset,
                    uint64_t flags,
@@ -702,12 +781,12 @@ slave_message_cb (void *cls, const struct GNUNET_MessageHeader *msg)
  * Incoming request fragment from multicast for a master.
  *
  * @param cls		Master.
- * @param member_key	Sending member's public key.
+ * @param slave_key	Sending slave's public key.
  * @param msg		The message.
  * @param flags		Request flags.
  */
 static void
-request_cb (void *cls, const struct GNUNET_CRYPTO_EddsaPublicKey *member_key,
+request_cb (void *cls, const struct GNUNET_CRYPTO_EddsaPublicKey *slave_key,
             const struct GNUNET_MessageHeader *msg,
             enum GNUNET_MULTICAST_MessageFlags flags)
 {
@@ -1159,6 +1238,61 @@ handle_psyc_message (void *cls, struct GNUNET_SERVER_Client *client,
 
 
 /**
+ * Client requests to add a slave to the membership database.
+ */
+static void
+handle_slave_add (void *cls, struct GNUNET_SERVER_Client *client,
+                  const struct GNUNET_MessageHeader *msg)
+{
+
+}
+
+
+/**
+ * Client requests to remove a slave from the membership database.
+ */
+static void
+handle_slave_remove (void *cls, struct GNUNET_SERVER_Client *client,
+                     const struct GNUNET_MessageHeader *msg)
+{
+
+}
+
+
+/**
+ * Client requests channel history from PSYCstore.
+ */
+static void
+handle_story_request (void *cls, struct GNUNET_SERVER_Client *client,
+                      const struct GNUNET_MessageHeader *msg)
+{
+
+}
+
+
+/**
+ * Client requests best matching state variable from PSYCstore.
+ */
+static void
+handle_state_get (void *cls, struct GNUNET_SERVER_Client *client,
+                  const struct GNUNET_MessageHeader *msg)
+{
+
+}
+
+
+/**
+ * Client requests state variables with a given prefix from PSYCstore.
+ */
+static void
+handle_state_get_prefix (void *cls, struct GNUNET_SERVER_Client *client,
+                         const struct GNUNET_MessageHeader *msg)
+{
+
+}
+
+
+/**
  * Initialize the PSYC service.
  *
  * @param cls Closure.
@@ -1178,6 +1312,21 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 
     { &handle_psyc_message, NULL,
       GNUNET_MESSAGE_TYPE_PSYC_MESSAGE, 0 },
+
+    { &handle_slave_add, NULL,
+      GNUNET_MESSAGE_TYPE_PSYC_CHANNEL_SLAVE_ADD, 0 },
+
+    { &handle_slave_remove, NULL,
+      GNUNET_MESSAGE_TYPE_PSYC_CHANNEL_SLAVE_RM, 0 },
+
+    { &handle_story_request, NULL,
+      GNUNET_MESSAGE_TYPE_PSYC_STORY_REQUEST, 0 },
+
+    { &handle_state_get, NULL,
+      GNUNET_MESSAGE_TYPE_PSYC_STATE_GET, 0 },
+
+    { &handle_state_get_prefix, NULL,
+      GNUNET_MESSAGE_TYPE_PSYC_STATE_GET_PREFIX, 0 }
   };
 
   cfg = c;
