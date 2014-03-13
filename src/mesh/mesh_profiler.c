@@ -255,6 +255,90 @@ abort_test (long line)
   }
 }
 
+
+/**
+ * Stats callback. Finish the stats testbed operation and when all stats have
+ * been iterated, shutdown the test.
+ *
+ * @param cls closure
+ * @param op the operation that has been finished
+ * @param emsg error message in case the operation has failed; will be NULL if
+ *          operation has executed successfully.
+ */
+static void
+stats_cont (void *cls, struct GNUNET_TESTBED_Operation *op, const char *emsg)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "... collecting statistics done.\n");
+  GNUNET_TESTBED_operation_done (stats_op);
+
+  if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
+    GNUNET_SCHEDULER_cancel (disconnect_task);
+  disconnect_task = GNUNET_SCHEDULER_add_now (&disconnect_mesh_peers,
+                                              (void *) __LINE__);
+
+}
+
+
+/**
+ * Process statistic values.
+ *
+ * @param cls closure
+ * @param peer the peer the statistic belong to
+ * @param subsystem name of subsystem that created the statistic
+ * @param name the name of the datum
+ * @param value the current value
+ * @param is_persistent GNUNET_YES if the value is persistent, GNUNET_NO if not
+ * @return GNUNET_OK to continue, GNUNET_SYSERR to abort iteration
+ */
+static int
+stats_iterator (void *cls, const struct GNUNET_TESTBED_Peer *peer,
+                const char *subsystem, const char *name,
+                uint64_t value, int is_persistent)
+{
+  static const char *s_sent = "# keepalives sent";
+  static const char *s_recv = "# keepalives received";
+  uint32_t i;
+
+  i = GNUNET_TESTBED_get_index (peer);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  %u - %s [%s]: %llu\n",
+              i, subsystem, name, value);
+  if (0 == strncmp (s_sent, name, strlen (s_sent)) && 0 == i)
+    ka_sent = value;
+
+  if (0 == strncmp(s_recv, name, strlen (s_recv)) && 4 == i)
+  {
+    ka_received = value;
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, " sent: %u, received: %u\n",
+                ka_sent, ka_received);
+    if (ka_sent < 2 || ka_sent > ka_received + 1)
+      ok--;
+  }
+
+  return GNUNET_OK;
+}
+
+
+/**
+ * Task check that keepalives were sent and received.
+ *
+ * @param cls Closure (NULL).
+ * @param tc Task Context.
+ */
+static void
+collect_stats (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  if ((GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason) != 0)
+    return;
+
+  disconnect_task = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Start collecting statistics...\n");
+  GNUNET_MESH_channel_destroy (ch);
+  stats_op = GNUNET_TESTBED_get_statistics (TOTAL_PEERS, testbed_peers,
+                                            NULL, NULL,
+                                            stats_iterator, stats_cont, NULL);
+}
+
+
 /**
  * Transmit ready callback.
  *
@@ -499,186 +583,6 @@ data_callback (void *cls, struct GNUNET_MESH_Channel *channel,
 
 
 /**
- * Adapter function called to establish a connection to the statistics service.
- *
- * @param cls closure
- * @param cfg configuration of the peer to connect to; will be available until
- *          GNUNET_TESTBED_operation_done() is called on the operation returned
- *          from GNUNET_TESTBED_service_connect()
- * @return service handle to return in 'op_result', NULL on error
- */
-static void *
-stats_ca (void *cls, const struct GNUNET_CONFIGURATION_Handle *cfg)
-{
-  return GNUNET_STATISTICS_create ("<test_mesh>", cfg);
-}
-
-
-/**
- * Adapter function called to destroy a connection to
- * statistics service.
- *
- * @param cls Closure (unused).
- * @param op_result service handle returned from the connect adapter
- */
-static void
-stats_da (void *cls, void *op_result)
-{
-  GNUNET_assert (op_result == stats);
-  GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
-  stats = NULL;
-}
-
-
-/**
- * Function called by testbed once we are connected to stats
- * service. Get the statistics of interest.
- *
- * @param cls Closure (unused).
- * @param op connect operation handle
- * @param ca_result handle to stats service
- * @param emsg error message on failure
- */
-static void
-stats_connect_cb (void *cls,
-                  struct GNUNET_TESTBED_Operation *op,
-                  void *ca_result,
-                  const char *emsg);
-
-/**
- * Stats callback. Finish the stats testbed operation and when all stats have
- * been iterated, shutdown the test.
- *
- * @param cls closure
- * @param success GNUNET_OK if statistics were
- *        successfully obtained, GNUNET_SYSERR if not.
- */
-static void
-stats_cont (void *cls, int success)
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "stats_cont for peer %u\n", cls);
-  GNUNET_TESTBED_operation_done (stats_op);
-  stats_get = NULL;
-  if (NULL == cls)
-  {
-    stats_op = GNUNET_TESTBED_service_connect (NULL,
-                                               testbed_peers[4],
-                                               "statistics",
-                                               &stats_connect_cb,
-                                               (void *)4,
-                                               &stats_ca,
-                                               &stats_da,
-                                               (void *)4);
-  }
-  else
-  {
-    if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
-      GNUNET_SCHEDULER_cancel (disconnect_task);
-    disconnect_task = GNUNET_SCHEDULER_add_now (&disconnect_mesh_peers,
-                                                (void *) __LINE__);
-  }
-}
-
-
-/**
- * Process statistic values.
- *
- * @param cls closure
- * @param subsystem name of subsystem that created the statistic
- * @param name the name of the datum
- * @param value the current value
- * @param is_persistent GNUNET_YES if the value is persistent, GNUNET_NO if not
- * @return GNUNET_OK to continue, GNUNET_SYSERR to abort iteration
- */
-static int
-stats_iterator (void *cls, const char *subsystem, const char *name,
-                uint64_t value, int is_persistent)
-{
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  %u - %s [%s]: %llu\n",
-              cls, subsystem, name, value);
-  if (0 == strncmp("# keepalives sent", name,
-                   strlen("# keepalives sent"))
-      && 0 == (long) cls)
-    ka_sent = value;
-
-  if (0 == strncmp("# keepalives received", name,
-                   strlen ("# keepalives received"))
-      && 4 == (long) cls)
-  {
-    ka_received = value;
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, " sent: %u, received: %u\n",
-                ka_sent, ka_received);
-    if (ka_sent < 2 || ka_sent > ka_received + 1)
-      ok--;
-  }
-
-  return GNUNET_OK;
-}
-
-
-/**
- * Function called by testbed once we are connected to stats
- * service. Get the statistics of interest.
- *
- * @param cls Closure (unused).
- * @param op connect operation handle
- * @param ca_result handle to stats service
- * @param emsg error message on failure
- */
-static void
-stats_connect_cb (void *cls,
-                  struct GNUNET_TESTBED_Operation *op,
-                  void *ca_result,
-                  const char *emsg)
-{
-  if (NULL == ca_result || NULL != emsg)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Failed to connect to statistics service: %s\n", emsg);
-    return;
-  }
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "stats for peer %u\n", cls);
-  stats = ca_result;
-
-  stats_get = GNUNET_STATISTICS_get (stats, "mesh", NULL,
-                                     GNUNET_TIME_UNIT_FOREVER_REL,
-                                     &stats_cont, &stats_iterator, cls);
-  if (NULL == stats_get)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Could not get statistics of peer %u!\n", cls);
-  }
-}
-
-
-/**
- * Task check that keepalives were sent and received.
- *
- * @param cls Closure (NULL).
- * @param tc Task Context.
- */
-static void
-check_keepalives (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  if ((GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason) != 0)
-    return;
-
-  disconnect_task = GNUNET_SCHEDULER_NO_TASK;
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "check keepalives\n");
-  GNUNET_MESH_channel_destroy (ch);
-  stats_op = GNUNET_TESTBED_service_connect (NULL,
-                                             testbed_peers[0],
-                                             "statistics",
-                                             &stats_connect_cb,
-                                             NULL,
-                                             &stats_ca,
-                                             &stats_da,
-                                             NULL);
-}
-
-
-/**
  * Handlers, for diverse services
  */
 static struct GNUNET_MESH_MessageHandler handlers[] = {
@@ -725,7 +629,7 @@ incoming_channel (void *cls, struct GNUNET_MESH_Channel *channel,
       struct GNUNET_TIME_Relative delay;
       delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS , 5);
       disconnect_task =
-        GNUNET_SCHEDULER_add_delayed (delay, &check_keepalives, NULL);
+        GNUNET_SCHEDULER_add_delayed (delay, &collect_stats, NULL);
     }
     else
       disconnect_task = GNUNET_SCHEDULER_add_delayed (SHORT_TIME,
@@ -752,26 +656,7 @@ channel_cleaner (void *cls, const struct GNUNET_MESH_Channel *channel,
   long i = (long) cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Incoming channel disconnected at peer %d\n",
-              i);
-  if (4L == i)
-  {
-    ok++;
-    GNUNET_break (channel == incoming_ch);
-    incoming_ch = NULL;
-  }
-  else if (0L == i)
-  {
-    if (P2P_SIGNAL == test)
-    {
-      ok ++;
-    }
-    GNUNET_break (channel == ch);
-    ch = NULL;
-  }
-  else
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "Unknown peer! %d\n", i);
+              "Incoming channel disconnected at peer %d\n", i);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, " ok: %d\n", ok);
 
   if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
@@ -780,8 +665,6 @@ channel_cleaner (void *cls, const struct GNUNET_MESH_Channel *channel,
     disconnect_task = GNUNET_SCHEDULER_add_now (&disconnect_mesh_peers,
                                                 (void *) __LINE__);
   }
-
-  return;
 }
 
 
@@ -802,29 +685,18 @@ do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if ((GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason) != 0)
     return;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test_task\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Start profiler\n");
 
   if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
-  {
     GNUNET_SCHEDULER_cancel (disconnect_task);
-  }
-
-  flags = GNUNET_MESH_OPTION_DEFAULT;
-  if (SPEED_REL == test)
-  {
-    test = SPEED;
-    flags |= GNUNET_MESH_OPTION_RELIABLE;
-  }
-  ch = GNUNET_MESH_channel_create (h1, NULL, p_id[1], 1, flags);
-
   disconnect_task = GNUNET_SCHEDULER_add_delayed (SHORT_TIME,
                                                   &disconnect_mesh_peers,
                                                   (void *) __LINE__);
-  if (KEEPALIVE == test)
-    return; /* Don't send any data. */
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Sending data initializer...\n");
+  flags = GNUNET_MESH_OPTION_DEFAULT;
+  ch = GNUNET_MESH_channel_create (h1, NULL, p_id[1], 1, flags);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending data initializer...\n");
   data_ack = 0;
   data_received = 0;
   data_sent = 0;
@@ -832,6 +704,7 @@ do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                      GNUNET_TIME_UNIT_FOREVER_REL,
                                      size_payload, &tmt_rdy, (void *) 1L);
 }
+
 
 /**
  * Callback to be called when the requested peer information is available
@@ -850,8 +723,6 @@ pi_cb (void *cls,
 {
   long i = (long) cls;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "id callback for %ld\n", i);
-
   if (NULL == pinfo || NULL != emsg)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "pi_cb: %s\n", emsg);
@@ -859,11 +730,12 @@ pi_cb (void *cls,
     return;
   }
   p_id[i] = pinfo->result.id;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  id: %s\n", GNUNET_i2s (p_id[i]));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " %u  id: %s\n",
+              i, GNUNET_i2s (p_id[i]));
   p_ids++;
-  if (p_ids < 2)
+  if (p_ids < TOTAL_PEERS)
     return;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got all IDs, starting test\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Got all IDs, starting profiler\n");
   test_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
                                             &do_test, NULL);
 }
@@ -884,128 +756,49 @@ tmain (void *cls,
        struct GNUNET_TESTBED_Peer **peers,
        struct GNUNET_MESH_Handle **meshes)
 {
+  unsigned long i;
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test main\n");
   ok = 0;
   test_ctx = ctx;
+  GNUNET_assert (TOTAL_PEERS == num_peers);
   peers_running = num_peers;
   testbed_peers = peers;
-  h1 = meshes[0];
-  h2 = meshes[num_peers - 1];
   disconnect_task = GNUNET_SCHEDULER_add_delayed (SHORT_TIME,
                                                   &disconnect_mesh_peers,
                                                   (void *) __LINE__);
   shutdown_handle = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                                   &shutdown_task, NULL);
-  t_op[0] = GNUNET_TESTBED_peer_get_information (peers[0],
-                                                 GNUNET_TESTBED_PIT_IDENTITY,
-                                                 &pi_cb, (void *) 0L);
-  t_op[1] = GNUNET_TESTBED_peer_get_information (peers[num_peers - 1],
-                                                 GNUNET_TESTBED_PIT_IDENTITY,
-                                                 &pi_cb, (void *) 1L);
+  for (i = 0; i < TOTAL_PEERS; i++)
+  {
+    t_op[i] = GNUNET_TESTBED_peer_get_information (peers[i],
+                                                   GNUNET_TESTBED_PIT_IDENTITY,
+                                                   &pi_cb, (void *) i);
+  }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "requested peer ids\n");
+  /* Continues from pi_cb -> do_test */
 }
 
 
 /**
- * Main: start test
+ * Main: start profiler.
  */
 int
 main (int argc, char *argv[])
 {
   initialized = GNUNET_NO;
-  uint32_t ports[2];
+  static uint32_t ports[2];
   const char *config_file;
 
-  GNUNET_log_setup ("test", "DEBUG", NULL);
   config_file = "test_mesh.conf";
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Start\n");
-  if (strstr (argv[0], "_small_forward") != NULL)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "FORWARD\n");
-    test = FORWARD;
-    test_name = "unicast";
-    ok_goal = 4;
-  }
-  else if (strstr (argv[0], "_small_signal") != NULL)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "SIGNAL\n");
-    test = P2P_SIGNAL;
-    test_name = "signal";
-    ok_goal = 4;
-  }
-  else if (strstr (argv[0], "_small_speed_ack") != NULL)
-  {
-    /* Test is supposed to generate the following callbacks:
-     * 1 incoming channel (@dest)
-     * TOTAL_PACKETS received data packet (@dest)
-     * TOTAL_PACKETS received data packet (@orig)
-     * 1 received channel destroy (@dest)
-     */
-    ok_goal = TOTAL_PACKETS * 2 + 2;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "SPEED_ACK\n");
-    test = SPEED_ACK;
-    test_name = "speed ack";
-  }
-  else if (strstr (argv[0], "_small_speed") != NULL)
-  {
-    /* Test is supposed to generate the following callbacks:
-     * 1 incoming channel (@dest)
-     * 1 initial packet (@dest)
-     * TOTAL_PACKETS received data packet (@dest)
-     * 1 received data packet (@orig)
-     * 1 received channel destroy (@dest)
-     */
-    ok_goal = TOTAL_PACKETS + 4;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "SPEED\n");
-    if (strstr (argv[0], "_reliable") != NULL)
-    {
-      test = SPEED_REL;
-      test_name = "speed reliable";
-      config_file = "test_mesh_drop.conf";
-    }
-    else
-    {
-      test = SPEED;
-      test_name = "speed";
-    }
-  }
-  else if (strstr (argv[0], "_keepalive") != NULL)
-  {
-    test = KEEPALIVE;
-    /* Test is supposed to generate the following callbacks:
-     * 1 incoming channel (@dest)
-     * [wait]
-     * 1 received channel destroy (@dest)
-     */
-    ok_goal = 2;
-  }
-  else
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "UNKNOWN\n");
-    test = SETUP;
-    ok_goal = 0;
-  }
-
-  if (strstr (argv[0], "backwards") != NULL)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "BACKWARDS (LEAF TO ROOT)\n");
-    test_backwards = GNUNET_YES;
-    GNUNET_asprintf (&test_name, "backwards %s", test_name);
-  }
 
   p_ids = 0;
   ports[0] = 1;
   ports[1] = 0;
-  GNUNET_MESH_TEST_run ("test_mesh_small",
-                        config_file,
-                        5,
-                        &tmain,
-                        NULL, /* tmain cls */
-                        &incoming_channel,
-                        &channel_cleaner,
-                        handlers,
-                        ports);
+  GNUNET_MESH_TEST_run ("mesh_profiler", config_file, TOTAL_PEERS,
+                        &tmain, NULL, /* tmain cls */
+                        &incoming_channel, &channel_cleaner,
+                        handlers, ports);
 
   if (ok_goal > ok)
   {
