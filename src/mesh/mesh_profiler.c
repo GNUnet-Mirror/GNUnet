@@ -77,6 +77,16 @@ struct MeshPeer
    */
   struct GNUNET_MESH_Channel *incoming_ch;
 
+  /**
+   * Number of payload packes sent
+   */
+  int data_sent;
+
+  /**
+   * Number of payload packets received
+   */
+  int data_received;
+
   unsigned int dest;
   GNUNET_SCHEDULER_TaskIdentifier ping_task;
 };
@@ -122,21 +132,6 @@ unsigned int p_ids;
 static int initialized;
 
 /**
- * Number of payload packes sent
- */
-static int data_sent;
-
-/**
- * Number of payload packets received
- */
-static int data_received;
-
-/**
- * Number of payload packed explicitly (app level) acknowledged
- */
-static int data_ack;
-
-/**
  * Total number of currently running peers.
  */
 static unsigned long long peers_running;
@@ -173,6 +168,21 @@ static struct GNUNET_TIME_Absolute start_time;
 static unsigned int ka_sent;
 static unsigned int ka_received;
 
+/**
+ * Calculate a random delay.
+ *
+ * @param max Exclusive maximum, in ms.
+ *
+ * @return A time between 0 a max-1 ms.
+ */
+static struct GNUNET_TIME_Relative
+delay_ms_rnd (unsigned int max)
+{
+  unsigned int rnd;
+
+  rnd = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, max);
+  return GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, rnd);
+}
 
 /**
  * Show the results of the test (banwidth acheived) and log them to GAUGER
@@ -342,7 +352,7 @@ collect_stats (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /**
  * Transmit ready callback.
  *
- * @param cls Closure (message type).
+ * @param cls Closure (peer).
  * @param size Size of the tranmist buffer.
  * @param buf Pointer to the beginning of the buffer.
  *
@@ -355,25 +365,25 @@ tmt_rdy (void *cls, size_t size, void *buf);
 /**
  * Task to schedule a new data transmission.
  *
- * @param cls Closure (peer #).
+ * @param cls Closure (peer).
  * @param tc Task Context.
  */
 static void
 data_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  struct MeshPeer *peer = (struct MeshPeer *) cls;
   struct GNUNET_MESH_TransmitHandle *th;
   struct GNUNET_MESH_Channel *channel;
-  long n = (long) cls;
 
   if ((GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason) != 0)
     return;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Data task\n");
 
-  channel = peers[n].ch;
+  channel = peer->ch;
   th = GNUNET_MESH_notify_transmit_ready (channel, GNUNET_NO,
                                           GNUNET_TIME_UNIT_FOREVER_REL,
-                                          size_payload, &tmt_rdy, (void *) 1L);
+                                          size_payload, &tmt_rdy, peer);
   if (NULL == th)
     GNUNET_abort ();
 }
@@ -382,13 +392,14 @@ data_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /**
  * Transmit ready callback
  *
- * @param cls Closure (message type).
+ * @param cls Closure (peer).
  * @param size Size of the buffer we have.
  * @param buf Buffer to copy data to.
  */
 size_t
 tmt_rdy (void *cls, size_t size, void *buf)
 {
+  struct MeshPeer *peer = (struct MeshPeer *) cls;
   struct GNUNET_MessageHeader *msg = buf;
   uint32_t *data;
 
@@ -398,7 +409,7 @@ tmt_rdy (void *cls, size_t size, void *buf)
     GNUNET_break (ok >= ok_goal - 2);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "size %u, buf %p, data_sent %u, data_received %u\n",
-                size, buf, data_sent, data_received);
+                size, buf, peer->data_sent, peer->data_received);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ok %u, ok goal %u\n", ok, ok_goal);
 
     return 0;
@@ -406,7 +417,7 @@ tmt_rdy (void *cls, size_t size, void *buf)
   msg->size = htons (size);
   msg->type = htons ((long) cls);
   data = (uint32_t *) &msg[1];
-  *data = htonl (data_sent);
+  *data = htonl (peer->data_sent);
   if (GNUNET_NO == initialized)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -414,14 +425,14 @@ tmt_rdy (void *cls, size_t size, void *buf)
   }
   else
   {
-    data_sent++;
+    peer->data_sent++;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              " Sent packet %d\n", data_sent);
-    if (data_sent < TOTAL_PACKETS)
+              " Sent packet %d\n", peer->data_sent);
+    if (peer->data_sent < TOTAL_PACKETS)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              " Scheduling packet %d\n", data_sent + 1);
-      GNUNET_SCHEDULER_add_now (&data_task, NULL);
+              " Scheduling packet %d\n", peer->data_sent + 1);
+      GNUNET_SCHEDULER_add_now (&data_task, peer);
     }
   }
 
@@ -563,16 +574,6 @@ ping (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
-static struct GNUNET_TIME_Relative
-delay_ms_rnd (unsigned int max)
-{
-  unsigned int rnd;
-
-  rnd = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, max);
-  return GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, rnd);
-}
-
-
 /**
  * START THE TESTCASE ITSELF, AS WE ARE CONNECTED TO THE MESH SERVICES.
  *
@@ -611,11 +612,6 @@ do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     peers[i].ping_task = GNUNET_SCHEDULER_add_delayed (delay_ms_rnd(2000),
                                                        &ping, &peers[i]);
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending data initializer...\n");
-  data_ack = 0;
-  data_received = 0;
-  data_sent = 0;
-
 }
 
 
