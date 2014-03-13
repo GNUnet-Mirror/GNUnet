@@ -1335,6 +1335,18 @@ GNUNET_TESTBED_get_statistics (unsigned int num_peers,
                                GNUNET_TESTBED_OperationCompletionCallback cont,
                                void *cls);
 
+
+/**
+ * Return the index of the peer inside of the total peer array,
+ * aka. the peer's "unique ID".
+ *
+ * @param peer Peer handle.
+ *
+ * @return The peer's unique ID.
+ */
+uint32_t
+GNUNET_TESTBED_get_index (struct GNUNET_TESTBED_Peer *peer);
+
 /**
  * Handle for testbed run helper funtions
  */
