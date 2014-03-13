@@ -84,6 +84,7 @@ endif
 
 if HAVE_TESTING
  noinst_LIBRARIES = libgnunetmeshtest.a $(noinst_LIB_EXP)
+ noinst_PROGRAMS = gnunet-mesh-profiler
 endif
 
 libgnunetmeshtest_a_SOURCES = \
@@ -117,11 +118,17 @@ ld_mesh_test_lib = \
   $(top_builddir)/src/testbed/libgnunettestbed.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la
 
-
 dep_mesh_test_lib = \
   libgnunetmesh.la \
   libgnunetmeshtest.a \
   $(top_builddir)/src/statistics/libgnunetstatistics.la
+
+
+gnunet_mesh_profiler_SOURCES = \
+  mesh_profiler.c
+gnunet_mesh_profiler_LDADD = $(ld_mesh_test_lib)
+gnunet_mesh_profiler_DEPENDENCIES = $(dep_mesh_test_lib)
+
 
 test_mesh_single_SOURCES = \
   test_mesh_single.c

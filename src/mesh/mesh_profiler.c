@@ -27,7 +27,6 @@
 #include "mesh_test_lib.h"
 #include "gnunet_mesh_service.h"
 #include "gnunet_statistics_service.h"
-#include <gauger.h>
 
 
 /**
@@ -59,31 +58,35 @@ struct MeshPeer
   struct GNUNET_TESTBED_Operation *op;
 
   /**
-   * Testbed peer handle.
-   */
-  struct GNUNET_TESTBED_Peer *testbed_peer;
-
-  /**
    * Peer ID.
    */
-  struct GNUNET_PeerIdentity *id;
+  struct GNUNET_PeerIdentity id;
 
   /**
    * Mesh handle for the root peer
    */
-  static struct GNUNET_MESH_Handle *mesh;
+  struct GNUNET_MESH_Handle *mesh;
 
   /**
    * Channel handle for the root peer
    */
-  static struct GNUNET_MESH_Channel *ch;
+  struct GNUNET_MESH_Channel *ch;
 
   /**
    * Channel handle for the dest peer
    */
-  static struct GNUNET_MESH_Channel *incoming_ch;
+  struct GNUNET_MESH_Channel *incoming_ch;
 };
 
+/**
+ * Testbed peer handles.
+ */
+struct GNUNET_TESTBED_Peer **testbed_handles;
+
+/**
+ * Testbed Operation (to get stats).
+ */
+struct GNUNET_TESTBED_Operation *stats_op;
 
 /**
  * How many events have happened
@@ -186,9 +189,6 @@ show_end_data (void)
 	   4 * TOTAL_PACKETS * 1.0 / (total_time.rel_value_us / 1000)); // 4bytes * ms
   FPRINTF (stderr, "Test throughput: %f packets/s\n\n",
 	   TOTAL_PACKETS * 1000.0 / (total_time.rel_value_us / 1000)); // packets * ms
-  GAUGER ("MESH", test_name,
-          TOTAL_PACKETS * 1000.0 / (total_time.rel_value_us / 1000),
-          "packets/s");
 }
 
 
@@ -233,8 +233,6 @@ disconnect_mesh_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     GNUNET_SCHEDULER_cancel (shutdown_handle);
   }
-  if (NULL != stats_get)
-    GNUNET_STATISTICS_get_cancel (stats_get);
   shutdown_handle = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
 }
 
@@ -332,8 +330,7 @@ collect_stats (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   disconnect_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Start collecting statistics...\n");
-  GNUNET_MESH_channel_destroy (ch);
-  stats_op = GNUNET_TESTBED_get_statistics (TOTAL_PEERS, testbed_peers,
+  stats_op = GNUNET_TESTBED_get_statistics (TOTAL_PEERS, testbed_handles,
                                             NULL, NULL,
                                             stats_iterator, stats_cont, NULL);
 }
@@ -363,17 +360,19 @@ data_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_MESH_TransmitHandle *th;
   struct GNUNET_MESH_Channel *channel;
+  long n = (long) cls;
 
   if ((GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason) != 0)
     return;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Data task\n");
 
+  channel = peers[n].ch;
   th = GNUNET_MESH_notify_transmit_ready (channel, GNUNET_NO,
                                           GNUNET_TIME_UNIT_FOREVER_REL,
                                           size_payload, &tmt_rdy, (void *) 1L);
   if (NULL == th)
-    GNUNET_abort (0);
+    GNUNET_abort ();
 }
 
 
@@ -442,7 +441,7 @@ data_callback (void *cls, struct GNUNET_MESH_Channel *channel,
                void **channel_ctx,
                const struct GNUNET_MessageHeader *message)
 {
-  long client = (long) cls;
+//   long n = (long) cls;
 
   GNUNET_MESH_receive_done (channel);
 
@@ -606,9 +605,9 @@ pi_cb (void *cls,
     abort_test (__LINE__);
     return;
   }
-  peers[n].id = pinfo->result.id;
+  peers[n].id = *(pinfo->result.id);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " %u  id: %s\n",
-              i, GNUNET_i2s (p_id[i]));
+              n, GNUNET_i2s (&peers[n].id));
   p_ids++;
   if (p_ids < TOTAL_PEERS)
     return;
@@ -640,6 +639,7 @@ tmain (void *cls,
   test_ctx = ctx;
   GNUNET_assert (TOTAL_PEERS == num_peers);
   peers_running = num_peers;
+  testbed_handles = testbed_handles;
   disconnect_task = GNUNET_SCHEDULER_add_delayed (SHORT_TIME,
                                                   &disconnect_mesh_peers,
                                                   (void *) __LINE__);
@@ -647,10 +647,9 @@ tmain (void *cls,
                                                   &shutdown_task, NULL);
   for (i = 0; i < TOTAL_PEERS; i++)
   {
-    peers[i].testbed_peer = testbed_peers[i];
     peers[i].mesh = meshes[i];
     peers[i].op =
-      GNUNET_TESTBED_peer_get_information (peers[i].testbed_peer,
+      GNUNET_TESTBED_peer_get_information (testbed_handles[i],
                                            GNUNET_TESTBED_PIT_IDENTITY,
                                            &pi_cb, (void *) i);
   }
