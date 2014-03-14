@@ -1553,7 +1553,7 @@ GMP_add_connection (struct MeshPeer *peer,
        "peer %s ok, has %u connections.\n",
        GMP_2s (peer), GNUNET_CONTAINER_multihashmap_size (peer->connections));
   result = GNUNET_CONTAINER_multihashmap_put (peer->connections,
-                                              GMC_get_id (c),
+                                              GMC_get_h (c),
                                               c,
                                               GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -1769,7 +1769,7 @@ GMP_remove_connection (struct MeshPeer *peer,
        GMP_2s (peer), GNUNET_CONTAINER_multihashmap_size (peer->connections));
 
   return GNUNET_CONTAINER_multihashmap_remove (peer->connections,
-                                               GMC_get_id (c),
+                                               GMC_get_h (c),
                                                c);
 }
 
