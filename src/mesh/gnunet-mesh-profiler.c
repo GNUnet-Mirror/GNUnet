@@ -376,8 +376,10 @@ ping (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct MeshPeer *peer = (struct MeshPeer *) cls;
 
   peer->ping_task = GNUNET_SCHEDULER_NO_TASK;
+
   if ((GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason) != 0
-      || GNUNET_YES == test_finished)
+      || GNUNET_YES == test_finished
+      || 0 != peer->timestamp.abs_value_us)
     return;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "%u -> %u\n",
@@ -505,12 +507,21 @@ pong_handler (void *cls, struct GNUNET_MESH_Channel *channel,
   GNUNET_MESH_receive_done (channel);
   peer = &peers[n];
 
-  GNUNET_assert (0 != peer->timestamp.abs_value_us);
-  latency = GNUNET_TIME_absolute_get_duration (peer->incoming->timestamp);
-  FPRINTF (stderr, "%u -> %ld latency: %s\n",
-           get_index (peer->incoming), n,
-           GNUNET_STRINGS_relative_time_to_string (latency, GNUNET_NO));
-  peer->timestamp.abs_value_us = 0;
+  GNUNET_break (0 != peer->timestamp.abs_value_us);
+  latency = GNUNET_TIME_absolute_get_duration (peer->timestamp);
+  FPRINTF (stderr, "%ld latency: %s\n",
+           n, GNUNET_STRINGS_relative_time_to_string (latency, GNUNET_NO));
+
+  if (GNUNET_SCHEDULER_NO_TASK == peer->ping_task)
+  {
+    peer->timestamp = GNUNET_TIME_absolute_get ();
+    peer->ping_task = GNUNET_SCHEDULER_add_delayed (delay_ms_rnd (60 * 1000),
+                                                    &ping, peer);
+  }
+  else
+  {
+    peer->timestamp.abs_value_us = 0;
+  }
 
   return GNUNET_OK;
 }
