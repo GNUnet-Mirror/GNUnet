@@ -30,11 +30,6 @@
 
 
 /**
- * How namy messages to send
- */
-#define TOTAL_PACKETS 1000
-
-/**
  * How namy peers to run
  */
 #define TOTAL_PEERS 1000
