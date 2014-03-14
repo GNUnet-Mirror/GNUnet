@@ -18,7 +18,7 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file mesh/mesh_profiler.c
+ * @file mesh/gnunet-mesh-profiler.c
  *
  * @brief Profiler for mesh experiments.
  */
@@ -680,7 +680,7 @@ main (int argc, char *argv[])
   test_finished = GNUNET_NO;
   ports[0] = 1;
   ports[1] = 0;
-  GNUNET_MESH_TEST_run ("mesh_profiler", config_file, TOTAL_PEERS,
+  GNUNET_MESH_TEST_run ("mesh-profiler", config_file, TOTAL_PEERS,
                         &tmain, NULL, /* tmain cls */
                         &incoming_channel, &channel_cleaner,
                         handlers, ports);
