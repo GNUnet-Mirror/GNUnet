@@ -94,6 +94,11 @@ struct MeshPeer
 };
 
 /**
+ * GNUNET_PeerIdentity -> MeshPeer
+ */
+static struct GNUNET_CONTAINER_MultiPeerMap *ids;
+
+/**
  * Testbed peer handles.
  */
 static struct GNUNET_TESTBED_Peer **testbed_handles;
@@ -129,11 +134,6 @@ struct MeshPeer peers[TOTAL_PEERS];
 static unsigned int p_ids;
 
 /**
- * Is the setup initialized?
- */
-static int initialized;
-
-/**
  * Total number of currently running peers.
  */
 static unsigned long long peers_running;
@@ -158,11 +158,6 @@ static GNUNET_SCHEDULER_TaskIdentifier disconnect_task;
  */
 static GNUNET_SCHEDULER_TaskIdentifier test_task;
 
-/**
- * Time we started the data transmission (after channel has been established
- * and initilized).
- */
-static struct GNUNET_TIME_Absolute start_time;
 
 /**
  * Flag to notify callbacks not to generate any new traffic anymore.
@@ -206,18 +201,6 @@ get_index (struct MeshPeer *peer)
 static void
 show_end_data (void)
 {
-  static struct GNUNET_TIME_Absolute end_time;
-  static struct GNUNET_TIME_Relative total_time;
-
-  end_time = GNUNET_TIME_absolute_get();
-  total_time = GNUNET_TIME_absolute_get_difference(start_time, end_time);
-  FPRINTF (stderr, "Test time %s\n",
-	   GNUNET_STRINGS_relative_time_to_string (total_time,
-						   GNUNET_YES));
-  FPRINTF (stderr, "Test bandwidth: %f kb/s\n",
-	   4 * TOTAL_PACKETS * 1.0 / (total_time.rel_value_us / 1000)); // 4bytes * ms
-  FPRINTF (stderr, "Test throughput: %f packets/s\n\n",
-	   TOTAL_PACKETS * 1000.0 / (total_time.rel_value_us / 1000)); // packets * ms
 }
 
 
@@ -327,7 +310,6 @@ stats_iterator (void *cls, const struct GNUNET_TESTBED_Peer *peer,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  %u - %s [%s]: %llu\n",
               i, subsystem, name, value);
 
-
   return GNUNET_OK;
 }
 
@@ -385,33 +367,6 @@ tmt_rdy (void *cls, size_t size, void *buf);
 
 
 /**
- * Task to schedule a new data transmission.
- *
- * @param cls Closure (peer).
- * @param tc Task Context.
- */
-static void
-data_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct MeshPeer *peer = (struct MeshPeer *) cls;
-  struct GNUNET_MESH_TransmitHandle *th;
-  struct GNUNET_MESH_Channel *channel;
-
-  if ((GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason) != 0)
-    return;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Data task\n");
-
-  channel = peer->ch;
-  th = GNUNET_MESH_notify_transmit_ready (channel, GNUNET_NO,
-                                          GNUNET_TIME_UNIT_FOREVER_REL,
-                                          size_payload, &tmt_rdy, peer);
-  if (NULL == th)
-    GNUNET_abort ();
-}
-
-
-/**
  * @brief Send data to destination
  *
  * @param cls Closure (peer).
@@ -448,6 +403,7 @@ tmt_rdy (void *cls, size_t size, void *buf)
   struct MeshPeer *peer = (struct MeshPeer *) cls;
   struct GNUNET_MessageHeader *msg = buf;
   uint32_t *data;
+  unsigned int s;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "tmt_rdy called, filling buffer\n");
   if (size < size_payload || NULL == buf)
@@ -464,26 +420,20 @@ tmt_rdy (void *cls, size_t size, void *buf)
   msg->type = htons ((long) cls);
   data = (uint32_t *) &msg[1];
   *data = htonl (peer->data_sent);
-  if (GNUNET_NO == initialized)
+  if (0 == peer->data_sent)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "sending initializer\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sent: initializer\n");
+    s = 5;
   }
   else
   {
-    peer->data_sent++;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              " Sent packet %d\n", peer->data_sent);
-    if (peer->data_sent < TOTAL_PACKETS)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              " Scheduling packet %d\n", peer->data_sent + 1);
-      GNUNET_SCHEDULER_add_now (&data_task, peer);
-    }
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sent: msg %d\n", peer->data_sent);
+    s = 60;
   }
+  peer->data_sent++;
   peer->timestamp = GNUNET_TIME_absolute_get ();
-  peer->ping_task = GNUNET_SCHEDULER_add_delayed (delay_ms_rnd (60 * 1000),
-                                                   &ping, peer);
+  peer->ping_task = GNUNET_SCHEDULER_add_delayed (delay_ms_rnd (s * 1000),
+                                                  &ping, peer);
 
   return size_payload;
 }
@@ -492,7 +442,7 @@ tmt_rdy (void *cls, size_t size, void *buf)
 /**
  * Function is called whenever a message is received.
  *
- * @param cls closure (set from GNUNET_MESH_connect)
+ * @param cls closure (peer #, set from GNUNET_MESH_connect)
  * @param channel connection to the other end
  * @param channel_ctx place to store local state associated with the channel
  * @param message the actual message
@@ -504,28 +454,19 @@ data_callback (void *cls, struct GNUNET_MESH_Channel *channel,
                void **channel_ctx,
                const struct GNUNET_MessageHeader *message)
 {
-//   long n = (long) cls;
+  long n = (long) cls;
+  struct MeshPeer *peer;
+  struct GNUNET_TIME_Relative latency;
 
   GNUNET_MESH_receive_done (channel);
+  peer = &peers[n];
 
-
-  if (GNUNET_NO == initialized)
-  {
-    initialized = GNUNET_YES;
-    start_time = GNUNET_TIME_absolute_get ();
-    GNUNET_SCHEDULER_add_now (&data_task, NULL);
-  }
-  GNUNET_MESH_notify_transmit_ready (channel, GNUNET_NO,
-                                     GNUNET_TIME_UNIT_FOREVER_REL,
-                                     size_payload, &tmt_rdy, (void *) 1L);
-
-  if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
-  {
-    GNUNET_SCHEDULER_cancel (disconnect_task);
-    disconnect_task = GNUNET_SCHEDULER_add_delayed (SHORT_TIME,
-                                                    &disconnect_mesh_peers,
-                                                    (void *) __LINE__);
-  }
+  GNUNET_assert (0 != peer->timestamp.abs_value_us);
+  latency = GNUNET_TIME_absolute_get_duration (peer->incoming->timestamp);
+  FPRINTF (stderr, "%u -> %ld latency: %s\n",
+           get_index (peer->incoming), n,
+           GNUNET_STRINGS_relative_time_to_string (latency, GNUNET_NO));
+  peer->timestamp.abs_value_us = 0;
 
   return GNUNET_OK;
 }
@@ -558,12 +499,11 @@ incoming_channel (void *cls, struct GNUNET_MESH_Channel *channel,
                  uint32_t port, enum GNUNET_MESH_ChannelOption options)
 {
   long n = (long) cls;
+  struct MeshPeer *peer;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Incoming channel from %s to peer %ld\n",
-              GNUNET_i2s (initiator), n);
-  ok++;
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, " ok: %d\n", ok);
+  peer = GNUNET_CONTAINER_multipeermap_get (ids, initiator);
+  GNUNET_assert (NULL != peer);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "%u <= %u\n", n, get_index (peer));
   peers[n].incoming_ch = channel;
 
   if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
@@ -673,6 +613,9 @@ peer_id_cb (void *cls,
   peers[n].id = *(pinfo->result.id);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " %u  id: %s\n",
               n, GNUNET_i2s (&peers[n].id));
+  GNUNET_break (GNUNET_OK ==
+                GNUNET_CONTAINER_multipeermap_put (ids, &peers[n].id, &peers[n],
+                                                   GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST));
   p_ids++;
   if (p_ids < TOTAL_PEERS)
     return;
@@ -731,12 +674,13 @@ tmain (void *cls,
 int
 main (int argc, char *argv[])
 {
-  initialized = GNUNET_NO;
   static uint32_t ports[2];
   const char *config_file;
 
   config_file = "test_mesh.conf";
 
+  ids = GNUNET_CONTAINER_multipeermap_create (2 * TOTAL_PEERS, GNUNET_YES);
+  GNUNET_assert (NULL != ids);
   p_ids = 0;
   test_finished = GNUNET_NO;
   ports[0] = 1;
