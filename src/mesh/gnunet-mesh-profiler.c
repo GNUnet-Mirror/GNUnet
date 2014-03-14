@@ -29,10 +29,13 @@
 #include "gnunet_statistics_service.h"
 
 
+#define PING 1
+#define PONG 2
+
 /**
  * How namy peers to run
  */
-#define TOTAL_PEERS 1000
+#define TOTAL_PEERS 10
 
 /**
  * How long until we give up on connecting the peers?
@@ -208,7 +211,7 @@ show_end_data (void)
 static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Ending test.\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Ending test.\n");
   shutdown_handle = GNUNET_SCHEDULER_NO_TASK;
 }
 
@@ -302,7 +305,7 @@ stats_iterator (void *cls, const struct GNUNET_TESTBED_Peer *peer,
   uint32_t i;
 
   i = GNUNET_TESTBED_get_index (peer);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  %u - %s [%s]: %llu\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " STATS %u - %s [%s]: %llu\n",
               i, subsystem, name, value);
 
   return GNUNET_OK;
@@ -351,18 +354,30 @@ finish_profiler (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /**
  * Transmit ready callback.
  *
- * @param cls Closure (peer).
+ * @param cls Closure (unused).
  * @param size Size of the tranmist buffer.
  * @param buf Pointer to the beginning of the buffer.
  *
  * @return Number of bytes written to buf.
  */
 static size_t
-tmt_rdy (void *cls, size_t size, void *buf);
+tmt_ping_rdy (void *cls, size_t size, void *buf);
+
+/**
+ * Transmit ready callback.
+ *
+ * @param cls Closure (unused).
+ * @param size Size of the tranmist buffer.
+ * @param buf Pointer to the beginning of the buffer.
+ *
+ * @return Number of bytes written to buf.
+ */
+static size_t
+tmt_pong_rdy (void *cls, size_t size, void *buf);
 
 
 /**
- * @brief Send data to destination
+ * @brief Send a ping to destination
  *
  * @param cls Closure (peer).
  * @param tc Task context.
@@ -376,24 +391,38 @@ ping (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if ((GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason) != 0)
     return;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%u -> %u\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "%u -> %u\n",
               get_index (peer), get_index (peer->dest));
 
   GNUNET_MESH_notify_transmit_ready (peer->ch, GNUNET_NO,
                                      GNUNET_TIME_UNIT_FOREVER_REL,
-                                     size_payload, &tmt_rdy, peer);
+                                     size_payload, &tmt_ping_rdy, peer);
+}
+
+/**
+ * @brief Reply with a pong to origin.
+ *
+ * @param cls Closure (peer).
+ * @param tc Task context.
+ */
+static void
+pong (struct GNUNET_MESH_Channel *channel)
+{
+  GNUNET_MESH_notify_transmit_ready (channel, GNUNET_NO,
+                                     GNUNET_TIME_UNIT_FOREVER_REL,
+                                     size_payload, &tmt_pong_rdy, NULL);
 }
 
 
 /**
  * Transmit ready callback
  *
- * @param cls Closure (peer).
+ * @param cls Closure (unused).
  * @param size Size of the buffer we have.
  * @param buf Buffer to copy data to.
  */
 size_t
-tmt_rdy (void *cls, size_t size, void *buf)
+tmt_ping_rdy (void *cls, size_t size, void *buf)
 {
   struct MeshPeer *peer = (struct MeshPeer *) cls;
   struct GNUNET_MessageHeader *msg = buf;
@@ -412,7 +441,7 @@ tmt_rdy (void *cls, size_t size, void *buf)
     return 0;
   }
   msg->size = htons (size);
-  msg->type = htons ((long) cls);
+  msg->type = htons (PING);
   data = (uint32_t *) &msg[1];
   *data = htonl (peer->data_sent);
   if (0 == peer->data_sent)
@@ -435,7 +464,32 @@ tmt_rdy (void *cls, size_t size, void *buf)
 
 
 /**
- * Function is called whenever a message is received.
+ * Transmit ready callback
+ *
+ * @param cls Closure (unused).
+ * @param size Size of the buffer we have.
+ * @param buf Buffer to copy data to.
+ */
+size_t
+tmt_pong_rdy (void *cls, size_t size, void *buf)
+{
+  struct GNUNET_MessageHeader *msg = buf;
+  size_t size_payload = sizeof (struct GNUNET_MessageHeader);
+
+  if (size < size_payload || NULL == buf)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Cannot send PONG\n");
+    return 0;
+  }
+  msg->size = htons (size_payload);
+  msg->type = htons (PONG);
+
+  return size_payload;
+}
+
+
+/**
+ * Function is called whenever a PING message is received.
  *
  * @param cls closure (peer #, set from GNUNET_MESH_connect)
  * @param channel connection to the other end
@@ -445,9 +499,35 @@ tmt_rdy (void *cls, size_t size, void *buf)
  *         GNUNET_SYSERR to close it (signal serious error)
  */
 int
-data_callback (void *cls, struct GNUNET_MESH_Channel *channel,
-               void **channel_ctx,
-               const struct GNUNET_MessageHeader *message)
+ping_handler (void *cls, struct GNUNET_MESH_Channel *channel,
+              void **channel_ctx,
+              const struct GNUNET_MessageHeader *message)
+{
+  long n = (long) cls;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%u got PING\n", n);
+  GNUNET_MESH_receive_done (channel);
+  if (GNUNET_NO == test_finished)
+    pong (channel);
+
+  return GNUNET_OK;
+}
+
+
+/**
+ * Function is called whenever a PONG message is received.
+ *
+ * @param cls closure (peer #, set from GNUNET_MESH_connect)
+ * @param channel connection to the other end
+ * @param channel_ctx place to store local state associated with the channel
+ * @param message the actual message
+ * @return GNUNET_OK to keep the connection open,
+ *         GNUNET_SYSERR to close it (signal serious error)
+ */
+int
+pong_handler (void *cls, struct GNUNET_MESH_Channel *channel,
+              void **channel_ctx,
+              const struct GNUNET_MessageHeader *message)
 {
   long n = (long) cls;
   struct MeshPeer *peer;
@@ -471,7 +551,8 @@ data_callback (void *cls, struct GNUNET_MESH_Channel *channel,
  * Handlers, for diverse services
  */
 static struct GNUNET_MESH_MessageHandler handlers[] = {
-  {&data_callback, 1, sizeof (struct GNUNET_MessageHeader)},
+  {&ping_handler, PING, sizeof (struct GNUNET_MessageHeader)},
+  {&pong_handler, PONG, sizeof (struct GNUNET_MessageHeader)},
   {NULL, 0, 0}
 };
 
@@ -540,6 +621,20 @@ channel_cleaner (void *cls, const struct GNUNET_MESH_Channel *channel,
 }
 
 
+static struct MeshPeer *
+select_random_peer (struct MeshPeer *peer)
+{
+  unsigned int r;
+
+  do
+  {
+    r = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, TOTAL_PEERS);
+  } while (NULL != peers[r].incoming);
+  peers[r].incoming = peer;
+
+  return &peers[r];
+}
+
 /**
  * START THE TESTCASE ITSELF, AS WE ARE CONNECTED TO THE MESH SERVICES.
  *
@@ -569,13 +664,13 @@ do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   flags = GNUNET_MESH_OPTION_DEFAULT;
   for (i = 0; i < TOTAL_PEERS; i++)
   {
-    unsigned int r;
-    r = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, TOTAL_PEERS);
-    peers[i].dest = &peers[r];
+
+    peers[i].dest = select_random_peer (&peers[i]);
     peers[i].ch = GNUNET_MESH_channel_create (peers[i].mesh, NULL,
                                               &peers[i].dest->id,
                                               1, flags);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%u => %u\n", i, r);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "%u => %u\n",
+                i, get_index (peers[i].dest));
     peers[i].ping_task = GNUNET_SCHEDULER_add_delayed (delay_ms_rnd (2000),
                                                        &ping, &peers[i]);
   }
@@ -606,7 +701,7 @@ peer_id_cb (void *cls,
     return;
   }
   peers[n].id = *(pinfo->result.id);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " %u  id: %s\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, " %u  id: %s\n",
               n, GNUNET_i2s (&peers[n].id));
   GNUNET_break (GNUNET_OK ==
                 GNUNET_CONTAINER_multipeermap_put (ids, &peers[n].id, &peers[n],
@@ -642,7 +737,7 @@ tmain (void *cls,
   test_ctx = ctx;
   GNUNET_assert (TOTAL_PEERS == num_peers);
   peers_running = num_peers;
-  testbed_handles = testbed_handles;
+  testbed_handles = testbed_peers;
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
                                 &finish_profiler, NULL);
   disconnect_task = GNUNET_SCHEDULER_add_delayed (SHORT_TIME,
@@ -652,6 +747,7 @@ tmain (void *cls,
                                                   &shutdown_task, NULL);
   for (i = 0; i < TOTAL_PEERS; i++)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "requesting id %ld\n", i);
     peers[i].mesh = meshes[i];
     peers[i].op =
       GNUNET_TESTBED_peer_get_information (testbed_handles[i],
@@ -695,5 +791,5 @@ main (int argc, char *argv[])
   return 0;
 }
 
-/* end of test_mesh_small.c */
+/* end of gnunet-mesh-profiler.c */
 
