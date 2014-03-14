@@ -354,26 +354,14 @@ finish_profiler (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /**
  * Transmit ready callback.
  *
- * @param cls Closure (unused).
+ * @param cls Closure (peer for PING, NULL for PONG).
  * @param size Size of the tranmist buffer.
  * @param buf Pointer to the beginning of the buffer.
  *
  * @return Number of bytes written to buf.
  */
 static size_t
-tmt_ping_rdy (void *cls, size_t size, void *buf);
-
-/**
- * Transmit ready callback.
- *
- * @param cls Closure (unused).
- * @param size Size of the tranmist buffer.
- * @param buf Pointer to the beginning of the buffer.
- *
- * @return Number of bytes written to buf.
- */
-static size_t
-tmt_pong_rdy (void *cls, size_t size, void *buf);
+tmt_rdy (void *cls, size_t size, void *buf);
 
 
 /**
@@ -396,7 +384,7 @@ ping (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   GNUNET_MESH_notify_transmit_ready (peer->ch, GNUNET_NO,
                                      GNUNET_TIME_UNIT_FOREVER_REL,
-                                     size_payload, &tmt_ping_rdy, peer);
+                                     size_payload, &tmt_rdy, peer);
 }
 
 /**
@@ -410,19 +398,19 @@ pong (struct GNUNET_MESH_Channel *channel)
 {
   GNUNET_MESH_notify_transmit_ready (channel, GNUNET_NO,
                                      GNUNET_TIME_UNIT_FOREVER_REL,
-                                     size_payload, &tmt_pong_rdy, NULL);
+                                     size_payload, &tmt_rdy, NULL);
 }
 
 
 /**
  * Transmit ready callback
  *
- * @param cls Closure (unused).
+ * @param cls Closure (peer for PING, NULL for PONG).
  * @param size Size of the buffer we have.
  * @param buf Buffer to copy data to.
  */
-size_t
-tmt_ping_rdy (void *cls, size_t size, void *buf)
+static size_t
+tmt_rdy (void *cls, size_t size, void *buf)
 {
   struct MeshPeer *peer = (struct MeshPeer *) cls;
   struct GNUNET_MessageHeader *msg = buf;
@@ -432,15 +420,20 @@ tmt_ping_rdy (void *cls, size_t size, void *buf)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "tmt_rdy called, filling buffer\n");
   if (size < size_payload || NULL == buf)
   {
-    GNUNET_break (ok >= ok_goal - 2);
+    GNUNET_break (0);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "size %u, buf %p, data_sent %u, data_received %u\n",
                 size, buf, peer->data_sent, peer->data_received);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ok %u, ok goal %u\n", ok, ok_goal);
 
     return 0;
   }
   msg->size = htons (size);
+  if (NULL == peer)
+  {
+    msg->type = htons (PONG);
+    return sizeof (*msg);
+  }
+
   msg->type = htons (PING);
   data = (uint32_t *) &msg[1];
   *data = htonl (peer->data_sent);
@@ -458,31 +451,6 @@ tmt_ping_rdy (void *cls, size_t size, void *buf)
   peer->timestamp = GNUNET_TIME_absolute_get ();
   peer->ping_task = GNUNET_SCHEDULER_add_delayed (delay_ms_rnd (s * 1000),
                                                   &ping, peer);
-
-  return size_payload;
-}
-
-
-/**
- * Transmit ready callback
- *
- * @param cls Closure (unused).
- * @param size Size of the buffer we have.
- * @param buf Buffer to copy data to.
- */
-size_t
-tmt_pong_rdy (void *cls, size_t size, void *buf)
-{
-  struct GNUNET_MessageHeader *msg = buf;
-  size_t size_payload = sizeof (struct GNUNET_MessageHeader);
-
-  if (size < size_payload || NULL == buf)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Cannot send PONG\n");
-    return 0;
-  }
-  msg->size = htons (size_payload);
-  msg->type = htons (PONG);
 
   return size_payload;
 }
