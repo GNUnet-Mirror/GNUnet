@@ -125,7 +125,7 @@ dep_mesh_test_lib = \
 
 
 gnunet_mesh_profiler_SOURCES = \
-  mesh_profiler.c
+  gnunet-mesh-profiler.c
 gnunet_mesh_profiler_LDADD = $(ld_mesh_test_lib)
 gnunet_mesh_profiler_DEPENDENCIES = $(dep_mesh_test_lib)
 
