@@ -376,7 +376,8 @@ ping (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct MeshPeer *peer = (struct MeshPeer *) cls;
 
   peer->ping_task = GNUNET_SCHEDULER_NO_TASK;
-  if ((GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason) != 0)
+  if ((GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason) != 0
+      || GNUNET_YES == test_finished)
     return;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "%u -> %u\n",
