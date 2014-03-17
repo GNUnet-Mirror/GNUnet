@@ -248,6 +248,10 @@ disconnect_mesh_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   for (i = 0; i < TOTAL_PEERS; i++)
   {
     GNUNET_TESTBED_operation_done (peers[i].op);
+
+    if (peers[i].up != GNUNET_YES)
+      continue;
+
     GNUNET_MESH_channel_destroy (peers[i].ch);
     if (NULL != peers[i].incoming_ch)
       GNUNET_MESH_channel_destroy (peers[i].incoming_ch);
