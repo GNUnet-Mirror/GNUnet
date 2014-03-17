@@ -360,7 +360,7 @@ connection_reset_timeout (struct MeshConnection *c, int fwd);
 
 
 /**
- * Get string description for tunnel state.
+ * Get string description for tunnel state. Reentrant.
  *
  * @param s Tunnel state.
  *
@@ -424,16 +424,13 @@ connection_change_state (struct MeshConnection* c,
                          enum MeshConnectionState state)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-              "Connection %s state was %s\n",
-              GMC_2s (c), GMC_state2s (c->state));
+       "Connection %s state %s -> %s\n",
+       GMC_2s (c), GMC_state2s (c->state), GMC_state2s (state));
   if (MESH_CONNECTION_DESTROYED == c->state)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "state not changing anymore\n");
     return;
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-              "Connection %s state is now %s\n",
-              GMC_2s (c), GMC_state2s (state));
   c->state = state;
   if (MESH_CONNECTION_READY == state)
     c->create_retry = 1;
