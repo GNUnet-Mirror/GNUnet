@@ -415,6 +415,14 @@ adjust_running_peers (unsigned int target)
     peers[r].ping_task = GNUNET_SCHEDULER_NO_TASK;
 
     peers[r].up = run;
+
+    GNUNET_MESH_channel_destroy (peers[r].ch);
+    peers[r].ch = NULL;
+    GNUNET_MESH_channel_destroy (peers[r].dest->incoming_ch);
+    peers[r].dest->incoming_ch = NULL;
+    GNUNET_MESH_disconnect (peers[r].mesh);
+    peers[r].mesh = NULL;
+
     op = GNUNET_TESTBED_peer_manage_service (&peers[r], testbed_handles[r],
                                              "mesh", NULL, NULL, run);
     GNUNET_break (NULL != op);
