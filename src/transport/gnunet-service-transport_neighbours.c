@@ -2510,11 +2510,21 @@ switch_address_bl_check_cont (void *cls,
           blc_ctx->session,
           GNUNET_i2s (&blc_ctx->address->peer));
     }
+    if (NULL == (papi = GST_plugins_find (blc_ctx->address->transport_name)))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+          "Plugin `%s' for suggested address `%s' session %p for peer `%s' is not available\n",
+          blc_ctx->address->transport_name,
+          GST_plugins_a2s (blc_ctx->address),
+          blc_ctx->session,
+          GNUNET_i2s (&blc_ctx->address->peer));
+    }
     /* Delete address (or session if existing) in ATS */
     GNUNET_ATS_address_destroyed (GST_ats, blc_ctx->address, blc_ctx->session);
 
+    /* Remove blacklist check and clean up */
     GNUNET_CONTAINER_DLL_remove (pending_bc_head, pending_bc_tail, blc_ctx);
-    GNUNET_HELLO_address_free(blc_ctx->address);
+    GNUNET_HELLO_address_free (blc_ctx->address);
     GNUNET_free_non_null (blc_ctx->ats);
     GNUNET_free (blc_ctx);
     return;
@@ -2535,13 +2545,21 @@ switch_address_bl_check_cont (void *cls,
   }
   if (NULL == blc_ctx->session)
   {
+    /* No session could be obtained, remove blacklist check and clean up */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Failed to obtain new session for peer `%s' and  address '%s'\n",
                 GNUNET_i2s (&blc_ctx->address->peer),
                 GST_plugins_a2s (blc_ctx->address));
+    /* Delete address in ATS */
     GNUNET_ATS_address_destroyed (GST_ats, blc_ctx->address, NULL);
+
+    GNUNET_CONTAINER_DLL_remove (pending_bc_head, pending_bc_tail, blc_ctx);
+    GNUNET_HELLO_address_free (blc_ctx->address);
+    GNUNET_free_non_null (blc_ctx->ats);
+    GNUNET_free (blc_ctx);
     return;
   }
+
   switch (n->state)
   {
   case GNUNET_TRANSPORT_PS_NOT_CONNECTED:
@@ -2736,7 +2754,7 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
     return;
   }
 
-  /* Obtain an session for this address from plugin */
+  /* Check if plugin is available */
   if (NULL == (papi = GST_plugins_find (address->transport_name)))
   {
     /* we don't have the plugin for this address */
