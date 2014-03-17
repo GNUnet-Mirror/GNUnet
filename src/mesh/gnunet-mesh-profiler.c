@@ -433,8 +433,6 @@ adjust_running_peers (unsigned int target)
         GNUNET_MESH_channel_destroy (peers[r].dest->incoming_ch);
       peers[r].dest->incoming_ch = NULL;
     }
-    GNUNET_MESH_disconnect (peers[r].mesh);
-    peers[r].mesh = NULL;
 
     op = GNUNET_TESTBED_peer_manage_service (&peers[r], testbed_handles[r],
                                              "mesh", NULL, NULL, run);
