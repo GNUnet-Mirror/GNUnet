@@ -1969,7 +1969,7 @@ try_connect_bl_check_cont (void *cls,
   if (GNUNET_OK != result)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-        _("Blacklisting dissaproved to connect to peer `%s'\n"),
+        _("Blacklisting disapproved to connect to peer `%s'\n"),
         GNUNET_i2s (peer));
     return;
   }

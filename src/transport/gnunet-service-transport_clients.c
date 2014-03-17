@@ -766,11 +766,16 @@ try_connect_if_allowed (void *cls,
 {
   if (GNUNET_OK != result)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Blacklist refuses connection attempt to peer `%s'\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                _("Blacklist refuses connection attempt to peer `%s'\n"),
                 GNUNET_i2s (peer));
     return;                     /* not allowed */
   }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              _("Blacklist allows connection attempt to peer `%s'\n"),
+              GNUNET_i2s (peer));
+
   GST_neighbours_try_connect (peer);
 }
 
