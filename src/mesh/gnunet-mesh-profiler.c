@@ -247,7 +247,8 @@ disconnect_mesh_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   disconnect_task = GNUNET_SCHEDULER_NO_TASK;
   for (i = 0; i < TOTAL_PEERS; i++)
   {
-    GNUNET_TESTBED_operation_done (peers[i].op);
+    if (NULL != peers[i].op)
+      GNUNET_TESTBED_operation_done (peers[i].op);
 
     if (peers[i].up != GNUNET_YES)
       continue;
@@ -675,7 +676,7 @@ channel_cleaner (void *cls, const struct GNUNET_MESH_Channel *channel,
   struct MeshPeer *peer = &peers[n];
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Incoming channel %p disconnected at peer %ld\n", channel, n);
+              "Channel %p disconnected at peer %ld\n", channel, n);
   if (peer->ch == channel)
     peer->ch = NULL;
 }
@@ -768,6 +769,10 @@ peer_id_cb (void *cls,
   GNUNET_break (GNUNET_OK ==
                 GNUNET_CONTAINER_multipeermap_put (ids, &peers[n].id, &peers[n],
                                                    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST));
+
+  GNUNET_TESTBED_operation_done (peers[n].op);
+  peers[n].op = NULL;
+
   p_ids++;
   if (p_ids < TOTAL_PEERS)
     return;
