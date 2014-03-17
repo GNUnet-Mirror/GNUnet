@@ -40,7 +40,7 @@
 /**
  * Duration of each round.
  */
-#define ROUND_TIME GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 20)
+#define ROUND_TIME GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
 /**
  * Paximum ping period in milliseconds. Real period = rand (0, PING_PERIOD)
@@ -249,7 +249,8 @@ disconnect_mesh_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     GNUNET_TESTBED_operation_done (peers[i].op);
     GNUNET_MESH_channel_destroy (peers[i].ch);
-    GNUNET_MESH_channel_destroy (peers[i].incoming_ch);
+    if (NULL != peers[i].incoming_ch)
+      GNUNET_MESH_channel_destroy (peers[i].incoming_ch);
   }
   GNUNET_MESH_TEST_cleanup (test_ctx);
   if (GNUNET_SCHEDULER_NO_TASK != shutdown_handle)
