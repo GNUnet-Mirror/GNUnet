@@ -379,6 +379,7 @@ adjust_running_peers (unsigned int target)
 
   GNUNET_assert (target <= TOTAL_PEERS);
 
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "adjust peers to %u\n", target);
   if (target > peers_running)
   {
     delta = target - peers_running;
@@ -411,7 +412,7 @@ adjust_running_peers (unsigned int target)
  * @param tc Task context.
  */
 static void
-next_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+next_rnd (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   long round = (long) cls;
 
@@ -421,12 +422,13 @@ next_round (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "ROUND %ld\n", round);
   if (0.0 == rounds[round])
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Finishing\n");
     GNUNET_SCHEDULER_add_now (&finish_profiler, NULL);
     return;
   }
   adjust_running_peers (rounds[round] * TOTAL_PEERS);
 
-  GNUNET_SCHEDULER_add_delayed (ROUND_TIME, &next_round, (void *) (round + 1));
+  GNUNET_SCHEDULER_add_delayed (ROUND_TIME, &next_rnd, (void *) (round + 1));
 }
 
 
@@ -578,8 +580,9 @@ pong_handler (void *cls, struct GNUNET_MESH_Channel *channel,
 
   GNUNET_break (0 != peer->timestamp.abs_value_us);
   latency = GNUNET_TIME_absolute_get_duration (peer->timestamp);
-  FPRINTF (stderr, "%ld latency: %s\n",
-           n, GNUNET_STRINGS_relative_time_to_string (latency, GNUNET_NO));
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "%u <- %u latency: %s\n",
+              get_index (peer), get_index (peer->dest),
+              GNUNET_STRINGS_relative_time_to_string (latency, GNUNET_NO));
 
   if (GNUNET_SCHEDULER_NO_TASK == peer->ping_task)
   {
@@ -724,7 +727,7 @@ start_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                                        &ping, &peers[i]);
   }
   peers_running = TOTAL_PEERS;
-  GNUNET_SCHEDULER_add_delayed (ROUND_TIME, &next_round, NULL);
+  GNUNET_SCHEDULER_add_delayed (ROUND_TIME, &next_rnd, NULL);
 }
 
 
