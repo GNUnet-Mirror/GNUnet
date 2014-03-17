@@ -394,9 +394,9 @@ adjust_running_peers (unsigned int target)
   {
     do {
       r = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, TOTAL_PEERS);
-    } while (!run == peers[r].up);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "St%s peer %\n",
-                run ? "arting" : "opping", GNUNET_i2s (&peers[r].id));
+    } while (peers[r].up == run);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "St%s peer %u: %s\n",
+                run ? "arting" : "opping", r, GNUNET_i2s (&peers[r].id));
     op = GNUNET_TESTBED_peer_manage_service (&peers[r], testbed_handles[r],
                                              "mesh", NULL, NULL, run);
     GNUNET_break (NULL != op);
