@@ -450,7 +450,7 @@ GNUNET_TIME_relative_ntoh (struct GNUNET_TIME_RelativeNBO a);
 
 
 /**
- * Convert relative time to network byte order.
+ * Convert absolute time to network byte order.
  *
  * @param a time to convert
  * @return converted time value
@@ -460,7 +460,7 @@ GNUNET_TIME_absolute_hton (struct GNUNET_TIME_Absolute a);
 
 
 /**
- * Convert relative time from network byte order.
+ * Convert absolute time from network byte order.
  *
  * @param a time to convert
  * @return converted time value
