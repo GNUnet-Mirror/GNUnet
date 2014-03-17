@@ -809,8 +809,8 @@ clients_handle_request_connect (void *cls, struct GNUNET_SERVER_Client *client,
   }
   else
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Received a request connect message for peer `%s'\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                _("Received a request connect message for peer `%s'\n"),
                 GNUNET_i2s (&trcm->peer));
 
     (void) GST_blacklist_test_allowed (&trcm->peer, NULL, &try_connect_if_allowed,

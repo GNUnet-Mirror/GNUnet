@@ -832,7 +832,7 @@ free_neighbour (struct NeighbourMapEntry *n,
   struct GNUNET_HELLO_Address *backup_primary;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Freeing neighbur state of peer `%s'\n",
+              "Freeing neighbour state of peer `%s'\n",
               GNUNET_i2s (&n->id));
   n->is_active = NULL; /* always free'd by its own continuation! */
 
@@ -854,6 +854,7 @@ free_neighbour (struct NeighbourMapEntry *n,
 			   GNUNET_NO);
     disconnect_notify_cb (callback_cls, &n->id);
   }
+  /* Mark peer as disconnected */
   set_state (n, GNUNET_TRANSPORT_PS_DISCONNECT_FINISHED);
 
   if (NULL != n->primary_address.address)
@@ -2504,7 +2505,7 @@ switch_address_bl_check_cont (void *cls,
     if (result == GNUNET_NO)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-          "Blacklist denied to switch to suggested address `%s' sesion %p for peer `%s'\n",
+          "Blacklist denied to switch to suggested address `%s' session %p for peer `%s'\n",
           GST_plugins_a2s (blc_ctx->address),
           blc_ctx->session,
           GNUNET_i2s (&blc_ctx->address->peer));
@@ -2519,8 +2520,8 @@ switch_address_bl_check_cont (void *cls,
     return;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-      "Blacklist accepted to switch to suggested address `%s' for peer `%s'\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+      "Blacklist accepted to switch to suggested address `%s' session %p for peer `%s'\n",
       GST_plugins_a2s (blc_ctx->address),
       blc_ctx->session,
       GNUNET_i2s (&blc_ctx->address->peer));
@@ -2536,7 +2537,8 @@ switch_address_bl_check_cont (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Failed to obtain new session for peer `%s' and  address '%s'\n",
-                GNUNET_i2s (&blc_ctx->address->peer), GST_plugins_a2s (blc_ctx->address));
+                GNUNET_i2s (&blc_ctx->address->peer),
+                GST_plugins_a2s (blc_ctx->address));
     GNUNET_ATS_address_destroyed (GST_ats, blc_ctx->address, NULL);
     return;
   }
@@ -2949,7 +2951,7 @@ master_task (void *cls,
 
   n->task = GNUNET_SCHEDULER_NO_TASK;
   delay = GNUNET_TIME_absolute_get_remaining (n->timeout);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 	      "Master task runs for neighbour `%s' in state %s with timeout in %s\n",
 	      GNUNET_i2s (&n->id),
 	      GNUNET_TRANSPORT_ps2s(n->state),
@@ -2960,7 +2962,6 @@ master_task (void *cls,
   case GNUNET_TRANSPORT_PS_NOT_CONNECTED:
     /* invalid state for master task, clean up */
     GNUNET_break (0);
-    set_state (n, GNUNET_TRANSPORT_PS_DISCONNECT_FINISHED);
     free_neighbour (n, GNUNET_NO);
     return;
   case GNUNET_TRANSPORT_PS_INIT_ATS:
@@ -2969,7 +2970,6 @@ master_task (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		  "Connection to `%s' timed out waiting for ATS to provide address\n",
 		  GNUNET_i2s (&n->id));
-      set_state (n, GNUNET_TRANSPORT_PS_DISCONNECT_FINISHED);
       free_neighbour (n, GNUNET_NO);
       return;
     }
@@ -2980,7 +2980,6 @@ master_task (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Connection to `%s' timed out waiting for BLACKLIST to approve address\n",
 		  GNUNET_i2s (&n->id));
-      set_state (n, GNUNET_TRANSPORT_PS_DISCONNECT_FINISHED);
       free_neighbour (n, GNUNET_NO);
       return;
     }
@@ -3007,7 +3006,6 @@ master_task (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Connection to `%s' timed out waiting BLACKLIST to approve address to use for received CONNECT\n",
                   GNUNET_i2s (&n->id));
-      set_state (n, GNUNET_TRANSPORT_PS_DISCONNECT_FINISHED);
       free_neighbour (n, GNUNET_NO);
       return;
     }
@@ -3018,7 +3016,6 @@ master_task (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Connection to `%s' timed out waiting ATS to provide address to use for CONNECT_ACK\n",
 		  GNUNET_i2s (&n->id));
-      set_state (n, GNUNET_TRANSPORT_PS_DISCONNECT_FINISHED);
       free_neighbour (n, GNUNET_NO);
       return;
     }
@@ -3029,7 +3026,6 @@ master_task (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		  "Connection to `%s' timed out waiting BLACKLIST to approve address to use for CONNECT_ACK\n",
 		  GNUNET_i2s (&n->id));
-      set_state (n, GNUNET_TRANSPORT_PS_DISCONNECT_FINISHED);
       free_neighbour (n, GNUNET_NO);
       return;
     }
@@ -3852,7 +3848,6 @@ disconnect_all_neighbours (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Disconnecting peer `%4s', %s\n",
               GNUNET_i2s (&n->id), "SHUTDOWN_TASK");
-  set_state (n, GNUNET_TRANSPORT_PS_DISCONNECT_FINISHED);
   free_neighbour (n, GNUNET_NO);
   return GNUNET_OK;
 }
