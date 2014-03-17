@@ -33,9 +33,15 @@
 #define PONG 2
 
 /**
- * How namy peers to run
+ * How many peers to run
  */
 #define TOTAL_PEERS 10
+
+/**
+ * How many peers do pinging
+ */
+#define PING_PEERS 1
+
 
 /**
  * Duration of each round.
@@ -405,8 +411,10 @@ adjust_running_peers (unsigned int target)
   for (i = 0; i < delta; i++)
   {
     do {
-      r = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, TOTAL_PEERS);
-    } while (peers[r].up == run);
+      r = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                    TOTAL_PEERS - PING_PEERS);
+      r += PING_PEERS;
+    } while (peers[r].up == run || NULL != peers[r].incoming);
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "St%s peer %u: %s\n",
                 run ? "arting" : "opping", r, GNUNET_i2s (&peers[r].id));
 
@@ -416,10 +424,15 @@ adjust_running_peers (unsigned int target)
 
     peers[r].up = run;
 
-    GNUNET_MESH_channel_destroy (peers[r].ch);
+    if (NULL != peers[r].ch)
+      GNUNET_MESH_channel_destroy (peers[r].ch);
     peers[r].ch = NULL;
-    GNUNET_MESH_channel_destroy (peers[r].dest->incoming_ch);
-    peers[r].dest->incoming_ch = NULL;
+    if (NULL != peers[r].dest)
+    {
+      if (NULL != peers[r].dest->incoming_ch)
+        GNUNET_MESH_channel_destroy (peers[r].dest->incoming_ch);
+      peers[r].dest->incoming_ch = NULL;
+    }
     GNUNET_MESH_disconnect (peers[r].mesh);
     peers[r].mesh = NULL;
 
@@ -725,7 +738,7 @@ start_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Start profiler\n");
 
   flags = GNUNET_MESH_OPTION_DEFAULT;
-  for (i = 0; i < TOTAL_PEERS; i++)
+  for (i = 0; i < PING_PEERS; i++)
   {
 
     peers[i].dest = select_random_peer (&peers[i]);
@@ -804,6 +817,7 @@ tmain (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test main\n");
   ok = 0;
   test_ctx = ctx;
+  GNUNET_assert (TOTAL_PEERS > 2 * PING_PEERS);
   GNUNET_assert (TOTAL_PEERS == num_peers);
   peers_running = num_peers;
   testbed_handles = testbed_peers;
