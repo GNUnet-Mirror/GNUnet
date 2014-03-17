@@ -192,6 +192,7 @@
 /src/arm/.deps
 
 # /src/ats/
+/src/ats/gnunet-ats-solver-eval
 /src/ats/test_ats_solver_preferences_ril
 /src/ats/test_ats_solver_preferences_proportional
 /src/ats/test_ats_solver_preferences_mlp
@@ -262,6 +263,7 @@
 /src/ats/.deps
 
 # /src/ats-tests/
+/src/ats-tests/gnunet-solver-eval
 /src/ats-tests/gnunet-ats-sim
 /src/ats-tests/perf_ats_proportional_transport_none
 /src/ats-tests/perf_ats_proportional_transport_latency
@@ -768,6 +770,7 @@
 /src/mesh/mesh.conf
 /src/mesh/test_mesh_path_api
 /src/mesh/mesh_topo_initial
+/src/mesh/gnunet-mesh-profiler
 /src/mesh/test_mesh_single
 /src/mesh/test_mesh_small_forward
 /src/mesh/test_mesh_small_signal
