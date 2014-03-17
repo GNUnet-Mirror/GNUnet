@@ -242,8 +242,7 @@ disconnect_mesh_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   unsigned int i;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "disconnecting mesh service of peers, called from line %ld\n",
-              line);
+              "disconnecting mesh service, called from line %ld\n", line);
   disconnect_task = GNUNET_SCHEDULER_NO_TASK;
   for (i = 0; i < TOTAL_PEERS; i++)
   {
@@ -254,9 +253,16 @@ disconnect_mesh_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       continue;
 
     if (NULL != peers[i].ch)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "%u: channel %p\n", i, peers[i].ch);
       GNUNET_MESH_channel_destroy (peers[i].ch);
+    }
     if (NULL != peers[i].incoming_ch)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "%u: incoming channel %p\n",
+                  i, peers[i].incoming_ch);
       GNUNET_MESH_channel_destroy (peers[i].incoming_ch);
+    }
   }
   GNUNET_MESH_TEST_cleanup (test_ctx);
   if (GNUNET_SCHEDULER_NO_TASK != shutdown_handle)
@@ -344,7 +350,6 @@ collect_stats (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if ((GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason) != 0)
     return;
 
-  disconnect_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Start collecting statistics...\n");
   stats_op = GNUNET_TESTBED_get_statistics (TOTAL_PEERS, testbed_handles,
                                             NULL, NULL,
@@ -645,17 +650,11 @@ incoming_channel (void *cls, struct GNUNET_MESH_Channel *channel,
 
   peer = GNUNET_CONTAINER_multipeermap_get (ids, initiator);
   GNUNET_assert (NULL != peer);
+  GNUNET_assert (peer == peers[n].incoming);
+  GNUNET_assert (peer->dest == &peers[n]);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "%u <= %u %p\n",
               n, get_index (peer), channel);
   peers[n].incoming_ch = channel;
-
-  if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
-  {
-    GNUNET_SCHEDULER_cancel (disconnect_task);
-    disconnect_task = GNUNET_SCHEDULER_add_delayed (SHORT_TIME,
-                                                    &disconnect_mesh_peers,
-                                                    (void *) __LINE__);
-  }
 
   return NULL;
 }
@@ -716,12 +715,6 @@ start_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     return;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Start profiler\n");
-
-  if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
-    GNUNET_SCHEDULER_cancel (disconnect_task);
-  disconnect_task = GNUNET_SCHEDULER_add_delayed (SHORT_TIME,
-                                                  &disconnect_mesh_peers,
-                                                  (void *) __LINE__);
 
   flags = GNUNET_MESH_OPTION_DEFAULT;
   for (i = 0; i < TOTAL_PEERS; i++)
