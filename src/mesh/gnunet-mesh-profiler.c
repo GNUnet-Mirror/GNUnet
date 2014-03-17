@@ -643,7 +643,8 @@ incoming_channel (void *cls, struct GNUNET_MESH_Channel *channel,
 
   peer = GNUNET_CONTAINER_multipeermap_get (ids, initiator);
   GNUNET_assert (NULL != peer);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "%u <= %u\n", n, get_index (peer));
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "%u <= %u %p\n",
+              n, get_index (peer), channel);
   peers[n].incoming_ch = channel;
 
   if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
@@ -674,7 +675,7 @@ channel_cleaner (void *cls, const struct GNUNET_MESH_Channel *channel,
   struct MeshPeer *peer = &peers[n];
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Incoming channel disconnected at peer %ld\n", n);
+              "Incoming channel %p disconnected at peer %ld\n", channel, n);
   if (peer->ch == channel)
     peer->ch = NULL;
 }
@@ -728,8 +729,8 @@ start_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     peers[i].ch = GNUNET_MESH_channel_create (peers[i].mesh, NULL,
                                               &peers[i].dest->id,
                                               1, flags);
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "%u => %u\n",
-                i, get_index (peers[i].dest));
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "%u => %u %p\n",
+                i, get_index (peers[i].dest), peers[i].ch);
     peers[i].ping_task = GNUNET_SCHEDULER_add_delayed (delay_ms_rnd (2000),
                                                        &ping, &peers[i]);
   }
