@@ -2970,7 +2970,7 @@ master_task (void *cls,
 
   n->task = GNUNET_SCHEDULER_NO_TASK;
   delay = GNUNET_TIME_absolute_get_remaining (n->timeout);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Master task runs for neighbour `%s' in state %s with timeout in %s\n",
 	      GNUNET_i2s (&n->id),
 	      GNUNET_TRANSPORT_ps2s(n->state),
@@ -3404,7 +3404,7 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
     free_neighbour (n, GNUNET_NO);
     return GNUNET_YES;
   case GNUNET_TRANSPORT_PS_CONNECTED:
-    set_state_and_timeout (n, GNUNET_TRANSPORT_PS_INIT_ATS, GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT));
+    set_state_and_timeout (n, GNUNET_TRANSPORT_PS_RECONNECT_ATS, GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT));
     free_address (&n->primary_address);
     break;
   case GNUNET_TRANSPORT_PS_RECONNECT_ATS:
