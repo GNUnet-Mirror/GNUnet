@@ -104,9 +104,24 @@ struct MeshPeer
 
   int up;
 
+  /**
+   * Destinaton to ping.
+   */
   struct MeshPeer *dest;
+
+  /**
+   * Incoming channel for pings.
+   */
   struct MeshPeer *incoming;
+
+  /**
+   * Task to do the next ping.
+   */
   GNUNET_SCHEDULER_TaskIdentifier ping_task;
+
+  /**
+   * Time the last ping was sent.
+   */
   struct GNUNET_TIME_Absolute timestamp;
 };
 
