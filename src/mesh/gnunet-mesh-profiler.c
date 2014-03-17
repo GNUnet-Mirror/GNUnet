@@ -404,6 +404,8 @@ adjust_running_peers (unsigned int target)
     op = GNUNET_TESTBED_peer_manage_service (&peers[r], testbed_handles[r],
                                              "mesh", NULL, NULL, run);
     GNUNET_break (NULL != op);
+    peers_running += run ? 1 : -1;
+    GNUNET_assert (peers_running > 0);
   }
 }
 
