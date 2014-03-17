@@ -1800,12 +1800,8 @@ GMT_change_cstate (struct MeshTunnel3* t, enum MeshTunnel3CState cstate)
 {
   if (NULL == t)
     return;
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-              "Tunnel %s cstate was %s\n",
-              GMP_2s (t->peer), cstate2s (t->cstate));
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-              "Tunnel %s cstate is now %s\n",
-              GMP_2s (t->peer), cstate2s (cstate));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Tunnel %s cstate %s => %s\n",
+       GMP_2s (t->peer), cstate2s (t->cstate), cstate2s (cstate));
   if (myid != GMP_get_short_id (t->peer) &&
       MESH_TUNNEL3_READY != t->cstate &&
       MESH_TUNNEL3_READY == cstate)
@@ -1813,12 +1809,12 @@ GMT_change_cstate (struct MeshTunnel3* t, enum MeshTunnel3CState cstate)
     t->cstate = cstate;
     if (MESH_TUNNEL3_KEY_OK == t->estate)
     {
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "  triggered send queued data\n");
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "  cstate triggered send queued data\n");
       send_queued_data (t);
     }
     else if (MESH_TUNNEL3_KEY_UNINITIALIZED == t->estate)
     {
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "  triggered rekey\n");
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "  cstate triggered rekey\n");
       rekey_tunnel (t, NULL);
     }
   }
@@ -1826,6 +1822,7 @@ GMT_change_cstate (struct MeshTunnel3* t, enum MeshTunnel3CState cstate)
 
   if (MESH_TUNNEL3_READY == cstate && 3 <= GMT_count_connections (t))
   {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  cstate triggered stop dht\n");
     GMP_stop_search (t->peer);
   }
 }
@@ -1926,8 +1923,8 @@ GMT_remove_connection (struct MeshTunnel3 *t,
       && GNUNET_NO == shutting_down)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  no more connections, getting new ones\n");
-    GMP_connect (t->peer);
     t->cstate = MESH_TUNNEL3_SEARCHING;
+    GMP_connect (t->peer);
     return;
   }
 
