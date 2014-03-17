@@ -409,7 +409,7 @@ adjust_running_peers (unsigned int target)
       GNUNET_SCHEDULER_cancel (peers[r].ping_task);
     peers[r].ping_task = GNUNET_SCHEDULER_NO_TASK;
 
-    peers[r].up = GNUNET_NO;
+    peers[r].up = run;
     op = GNUNET_TESTBED_peer_manage_service (&peers[r], testbed_handles[r],
                                              "mesh", NULL, NULL, run);
     GNUNET_break (NULL != op);
