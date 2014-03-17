@@ -276,18 +276,19 @@ core_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
   struct MeshPeer *mp;
   struct MeshPeerPath *path;
+  char own_id[16];
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Peer connected\n");
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "     %s\n", GNUNET_i2s (&my_full_id));
+  strncpy (own_id, GNUNET_i2s (&my_full_id), 15);
   mp = GMP_get (peer);
   if (myid == mp->id)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "     (self)\n");
+    LOG (GNUNET_ERROR_TYPE_INFO, "CONNECTED %s (self)\n", own_id);
     path = path_new (1);
   }
   else
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "     %s\n", GNUNET_i2s (peer));
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "CONNECTED %s <= %s\n",
+         own_id, GNUNET_i2s (peer));
     path = path_new (2);
     path->peers[1] = mp->id;
     GNUNET_PEER_change_rc (mp->id, 1);
@@ -313,8 +314,9 @@ core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
   struct MeshPeer *p;
   struct MeshPeerPath *direct_path;
+  char own_id[16];
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Peer disconnected\n");
+  strncpy (own_id, GNUNET_i2s (&my_full_id), 15);
   p = GNUNET_CONTAINER_multipeermap_get (peers, peer);
   if (NULL == p)
   {
@@ -322,10 +324,10 @@ core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
     return;
   }
   if (myid == p->id)
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "     (self: %s)\n", GMP_2s (p));
+    LOG (GNUNET_ERROR_TYPE_INFO, "DISCONNECTED %s (self)\n", own_id);
   else
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "     %s\n", GMP_2s (p));
-
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "DISCONNECTED %s <= %s\n",
+         own_id, GNUNET_i2s (peer));
   direct_path = pop_direct_path (p);
   GNUNET_CONTAINER_multihashmap_iterate (p->connections, &notify_broken, p);
   GNUNET_CONTAINER_multihashmap_destroy (p->connections);
