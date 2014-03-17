@@ -65,6 +65,30 @@
 
 static float rounds[] = {0.8, 0.7, 0.6, 0.5, 0.0};
 
+/**
+ * Message type for pings.
+ */
+struct MeshPingMessage
+{
+  /**
+   * Header. Type PING/PONG.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Message number.
+   */
+  uint32_t counter;
+
+  /**
+   * Time the message was sent.
+   */
+  struct GNUNET_TIME_AbsoluteNBO timestamp;
+};
+
+/**
+ * Peer description.
+ */
 struct MeshPeer
 {
   /**
@@ -118,11 +142,6 @@ struct MeshPeer
    * Task to do the next ping.
    */
   GNUNET_SCHEDULER_TaskIdentifier ping_task;
-
-  /**
-   * Time the last ping was sent.
-   */
-  struct GNUNET_TIME_Absolute timestamp;
 };
 
 /**
@@ -149,11 +168,6 @@ static int ok;
  * Number of events expected to conclude the test successfully.
  */
 static int ok_goal;
-
-/**
- * Size of each test packet
- */
-size_t size_payload = sizeof (struct GNUNET_MessageHeader) + sizeof (uint32_t);
 
 /**
  * Operation to get peer ids.
@@ -486,7 +500,7 @@ next_rnd (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
- * Transmit ready callback.
+ * Transmit ping callback.
  *
  * @param cls Closure (peer for PING, NULL for PONG).
  * @param size Size of the tranmist buffer.
@@ -495,7 +509,34 @@ next_rnd (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @return Number of bytes written to buf.
  */
 static size_t
-tmt_rdy (void *cls, size_t size, void *buf);
+tmt_rdy_ping (void *cls, size_t size, void *buf);
+
+
+/**
+ * Transmit pong callback.
+ *
+ * @param cls Closure (copy of PING message, to be freed).
+ * @param size Size of the buffer we have.
+ * @param buf Buffer to copy data to.
+ */
+static size_t
+tmt_rdy_pong (void *cls, size_t size, void *buf)
+{
+  struct MeshPingMessage *ping = cls;
+  struct MeshPingMessage *pong;
+
+  if (0 == size || NULL == buf)
+  {
+    GNUNET_free (ping);
+    return 0;
+  }
+  pong = (struct MeshPingMessage *) buf;
+  memcpy (pong, ping, sizeof (*ping));
+  pong->header.type = htons (PONG);
+
+  GNUNET_free (ping);
+  return sizeof (*ping);
+}
 
 
 /**
@@ -512,16 +553,16 @@ ping (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   peer->ping_task = GNUNET_SCHEDULER_NO_TASK;
 
   if ((GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason) != 0
-      || GNUNET_YES == test_finished
-      || 0 != peer->timestamp.abs_value_us)
+      || GNUNET_YES == test_finished)
     return;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "%u -> %u\n",
-              get_index (peer), get_index (peer->dest));
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "%u -> %u (%u)\n",
+              get_index (peer), get_index (peer->dest), peer->data_sent);
 
   GNUNET_MESH_notify_transmit_ready (peer->ch, GNUNET_NO,
                                      GNUNET_TIME_UNIT_FOREVER_REL,
-                                     size_payload, &tmt_rdy, peer);
+                                     sizeof (struct MeshPingMessage),
+                                     &tmt_rdy_ping, peer);
 }
 
 /**
@@ -531,30 +572,34 @@ ping (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param tc Task context.
  */
 static void
-pong (struct GNUNET_MESH_Channel *channel)
+pong (struct GNUNET_MESH_Channel *channel, const struct MeshPingMessage *ping)
 {
+  struct MeshPingMessage *copy;
+
+  copy = GNUNET_new (struct MeshPingMessage);
+  memcpy (copy, ping, sizeof (*ping));
   GNUNET_MESH_notify_transmit_ready (channel, GNUNET_NO,
                                      GNUNET_TIME_UNIT_FOREVER_REL,
-                                     size_payload, &tmt_rdy, NULL);
+                                     sizeof (struct MeshPingMessage),
+                                     &tmt_rdy_pong, copy);
 }
 
 
 /**
- * Transmit ready callback
+ * Transmit ping callback
  *
- * @param cls Closure (peer for PING, NULL for PONG).
+ * @param cls Closure (peer).
  * @param size Size of the buffer we have.
  * @param buf Buffer to copy data to.
  */
 static size_t
-tmt_rdy (void *cls, size_t size, void *buf)
+tmt_rdy_ping (void *cls, size_t size, void *buf)
 {
   struct MeshPeer *peer = (struct MeshPeer *) cls;
-  struct GNUNET_MessageHeader *msg = buf;
-  uint32_t *data;
+  struct MeshPingMessage *msg = buf;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "tmt_rdy called, filling buffer\n");
-  if (size < size_payload || NULL == buf)
+  if (size < sizeof (struct MeshPingMessage) || NULL == buf)
   {
     GNUNET_break (0);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -563,23 +608,15 @@ tmt_rdy (void *cls, size_t size, void *buf)
 
     return 0;
   }
-  msg->size = htons (size);
-  if (NULL == peer)
-  {
-    msg->type = htons (PONG);
-    return sizeof (*msg);
-  }
-
-  msg->type = htons (PING);
-  data = (uint32_t *) &msg[1];
-  *data = htonl (peer->data_sent);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sent: msg %d\n", peer->data_sent);
-  peer->data_sent++;
-  peer->timestamp = GNUNET_TIME_absolute_get ();
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending: msg %d\n", peer->data_sent);
+  msg->header.size = htons (size);
+  msg->header.type = htons (PING);
+  msg->counter = htonl (peer->data_sent++);
+  msg->timestamp = GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get ());
   peer->ping_task = GNUNET_SCHEDULER_add_delayed (delay_ms_rnd (PING_PERIOD),
                                                   &ping, peer);
 
-  return size_payload;
+  return sizeof (struct MeshPingMessage);
 }
 
 
@@ -603,7 +640,7 @@ ping_handler (void *cls, struct GNUNET_MESH_Channel *channel,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%u got PING\n", n);
   GNUNET_MESH_receive_done (channel);
   if (GNUNET_NO == test_finished)
-    pong (channel);
+    pong (channel, (struct MeshPingMessage *) message);
 
   return GNUNET_OK;
 }
@@ -626,27 +663,20 @@ pong_handler (void *cls, struct GNUNET_MESH_Channel *channel,
 {
   long n = (long) cls;
   struct MeshPeer *peer;
+  struct MeshPingMessage *msg;
+  struct GNUNET_TIME_Absolute send_time;
   struct GNUNET_TIME_Relative latency;
 
   GNUNET_MESH_receive_done (channel);
   peer = &peers[n];
 
-  GNUNET_break (0 != peer->timestamp.abs_value_us);
-  latency = GNUNET_TIME_absolute_get_duration (peer->timestamp);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "%u <- %u latency: %s\n",
-              get_index (peer), get_index (peer->dest),
-              GNUNET_STRINGS_relative_time_to_string (latency, GNUNET_NO));
+  msg = (struct MeshPingMessage *) message;
 
-  if (GNUNET_SCHEDULER_NO_TASK == peer->ping_task)
-  {
-    peer->timestamp = GNUNET_TIME_absolute_get ();
-    peer->ping_task = GNUNET_SCHEDULER_add_delayed (delay_ms_rnd (60 * 1000),
-                                                    &ping, peer);
-  }
-  else
-  {
-    peer->timestamp.abs_value_us = 0;
-  }
+  send_time = GNUNET_TIME_absolute_ntoh (msg->timestamp);
+  latency = GNUNET_TIME_absolute_get_duration (send_time);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "%u <- %u (%u) latency: %s\n",
+              get_index (peer), get_index (peer->dest), ntohl (msg->counter),
+              GNUNET_STRINGS_relative_time_to_string (latency, GNUNET_NO));
 
   return GNUNET_OK;
 }
@@ -656,8 +686,8 @@ pong_handler (void *cls, struct GNUNET_MESH_Channel *channel,
  * Handlers, for diverse services
  */
 static struct GNUNET_MESH_MessageHandler handlers[] = {
-  {&ping_handler, PING, sizeof (struct GNUNET_MessageHeader)},
-  {&pong_handler, PONG, sizeof (struct GNUNET_MessageHeader)},
+  {&ping_handler, PING, sizeof (struct MeshPingMessage)},
+  {&pong_handler, PONG, sizeof (struct MeshPingMessage)},
   {NULL, 0, 0}
 };
 
