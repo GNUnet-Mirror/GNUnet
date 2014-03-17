@@ -659,17 +659,12 @@ channel_cleaner (void *cls, const struct GNUNET_MESH_Channel *channel,
                  void *channel_ctx)
 {
   long n = (long) cls;
+  struct MeshPeer *peer = &peers[n];
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Incoming channel disconnected at peer %ld\n", n);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, " ok: %d\n", ok);
-
-  if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
-  {
-    GNUNET_SCHEDULER_cancel (disconnect_task);
-    disconnect_task = GNUNET_SCHEDULER_add_now (&disconnect_mesh_peers,
-                                                (void *) __LINE__);
-  }
+  if (peer->ch == channel)
+    peer->ch = NULL;
 }
 
 
