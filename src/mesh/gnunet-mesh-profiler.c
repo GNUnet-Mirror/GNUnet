@@ -398,8 +398,11 @@ adjust_running_peers (unsigned int target)
     } while (peers[r].up == run);
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "St%s peer %u: %s\n",
                 run ? "arting" : "opping", r, GNUNET_i2s (&peers[r].id));
-    GNUNET_SCHEDULER_cancel (peers[r].ping_task);
+
+    if (GNUNET_SCHEDULER_NO_TASK != peers[r].ping_task)
+      GNUNET_SCHEDULER_cancel (peers[r].ping_task);
     peers[r].ping_task = GNUNET_SCHEDULER_NO_TASK;
+
     peers[r].up = GNUNET_NO;
     op = GNUNET_TESTBED_peer_manage_service (&peers[r], testbed_handles[r],
                                              "mesh", NULL, NULL, run);
