@@ -2567,12 +2567,13 @@ switch_address_bl_check_cont (void *cls,
     free_neighbour (n, GNUNET_NO);
     return;
   case GNUNET_TRANSPORT_PS_INIT_ATS:
+    /* We requested an address and ATS suggests one:
+     * set primary address and send CONNECT message*/
     set_primary_address (n, blc_ctx->address, blc_ctx->session,
         blc_ctx->bandwidth_in, blc_ctx->bandwidth_out, GNUNET_NO);
-    set_state_and_timeout (n, GNUNET_TRANSPORT_PS_INIT_BLACKLIST,
-        GNUNET_TIME_relative_to_absolute (BLACKLIST_RESPONSE_TIMEOUT));
-    check_blacklist (&n->id, n->connect_ack_timestamp,
-                     blc_ctx->address, blc_ctx->session);
+    set_state_and_timeout (n, GNUNET_TRANSPORT_PS_CONNECT_SENT,
+        GNUNET_TIME_relative_to_absolute (SETUP_CONNECTION_TIMEOUT));
+    send_session_connect (&n->primary_address);
     break;
   case GNUNET_TRANSPORT_PS_INIT_BLACKLIST:
     /* ATS suggests a different address, switch again */
