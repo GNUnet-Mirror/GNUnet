@@ -39,7 +39,7 @@
  * How long do we wait for the NAT test to report success?
  * Should match NAT_SERVER_TIMEOUT in 'nat_test.c'.
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 #define RESOLUTION_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 #define OP_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
@@ -197,11 +197,6 @@ static int verbosity;
 struct GNUNET_OS_Process *resolver;
 
 /**
- * Number of tasks running that still need the resolver.
- */
-static unsigned int resolver_users;
-
-/**
  * Number of address resolutions pending
  */
 static unsigned int address_resolutions;
@@ -211,12 +206,30 @@ static unsigned int address_resolutions;
  */
 static unsigned int address_resolution_in_progress;
 
+/**
+ * DLL for NAT Test Contexts: head
+ */
+struct TestContext *head;
+
+/**
+ * DLL for NAT Test Contexts: tail
+ */
+struct TestContext *tail;
 
 /**
  * Context for a plugin test.
  */
 struct TestContext
 {
+  /**
+   * Previous in DLL
+   */
+  struct TestContext *prev;
+
+  /**
+   * Next in DLL
+   */
+  struct TestContext *next;
 
   /**
    * Handle to the active NAT test.
@@ -231,7 +244,17 @@ struct TestContext
   /**
    * Name of plugin under test.
    */
-  const char *name;
+  char *name;
+
+  /**
+   * Bound port
+   */
+  unsigned long long bnd_port;
+
+  /**
+   * Advertised ports
+   */
+  unsigned long long adv_port;
 
 };
 
@@ -399,6 +422,9 @@ operation_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 }
 
+static void
+run_nat_test ();
+
 /**
  * Display the result of the test.
  *
@@ -426,14 +452,19 @@ display_test_result (struct TestContext *tc, int result)
     GNUNET_NAT_test_stop (tc->tst);
     tc->tst = NULL;
   }
-  GNUNET_free(tc);
-  resolver_users--;
-  if ((0 == resolver_users) && (NULL != resolver))
+
+  GNUNET_CONTAINER_DLL_remove (head, tail, tc);
+  GNUNET_free (tc->name);
+  GNUNET_free (tc);
+
+  if ((NULL == head) && (NULL != resolver))
   {
     GNUNET_break(0 == GNUNET_OS_process_kill (resolver, GNUNET_TERM_SIG));
     GNUNET_OS_process_destroy (resolver);
     resolver = NULL;
   }
+  if (NULL != head)
+    run_nat_test ();
 }
 
 /**
@@ -448,7 +479,6 @@ static void
 result_callback (void *cls, int success, const char *emsg)
 {
   struct TestContext *tc = cls;
-
   display_test_result (tc, success);
 }
 
@@ -620,6 +650,22 @@ void process_validation_cb (void *cls,
      valid_until, next_validation, state);
 }
 
+static void
+run_nat_test ()
+{
+  head->tst = GNUNET_NAT_test_start (cfg,
+      (0 == strcasecmp (head->name, "udp")) ? GNUNET_NO : GNUNET_YES,
+      (uint16_t) head->bnd_port,
+      (uint16_t) head->adv_port,
+      &result_callback, head);
+  if (NULL == head->tst)
+  {
+    display_test_result (head, GNUNET_SYSERR);
+    return;
+  }
+  head->tsk = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &fail_timeout, head);
+}
+
 /**
  * Test our plugin's configuration (NAT traversal, etc.).
  *
@@ -644,10 +690,10 @@ do_test_configuration (const struct GNUNET_CONFIGURATION_Handle *cfg)
     ret = 4;
     return;
   }
+
   for (tok = strtok (plugins, " "); tok != NULL ; tok = strtok (NULL, " "))
   {
     char section[12 + strlen (tok)];
-
     GNUNET_snprintf (section, sizeof(section), "transport-%s", tok);
     if (GNUNET_OK
         != GNUNET_CONFIGURATION_get_value_number (cfg, section, "PORT",
@@ -661,31 +707,27 @@ do_test_configuration (const struct GNUNET_CONFIGURATION_Handle *cfg)
         != GNUNET_CONFIGURATION_get_value_number (cfg, section,
             "ADVERTISED_PORT", &adv_port))
       adv_port = bnd_port;
-    if (NULL == resolver)
-    {
-      binary = GNUNET_OS_get_libexec_binary_path ("gnunet-service-resolver");
-      resolver = GNUNET_OS_start_process (GNUNET_YES,
-                                          GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
-                                          NULL, NULL, NULL,
-                                          binary,
-                                          "gnunet-service-resolver", NULL );
-      GNUNET_free(binary);
-    }
-    resolver_users++;
-    GNUNET_RESOLVER_connect (cfg);
+
     tc = GNUNET_new (struct TestContext);
     tc->name = GNUNET_strdup (tok);
-    tc->tst = GNUNET_NAT_test_start (cfg,
-        (0 == strcasecmp (tok, "udp")) ? GNUNET_NO : GNUNET_YES,
-        (uint16_t) bnd_port, (uint16_t) adv_port, &result_callback, tc);
-    if (NULL == tc->tst)
-    {
-      display_test_result (tc, GNUNET_SYSERR);
-      continue;
-    }
-    tc->tsk = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &fail_timeout, tc);
+    tc->adv_port = adv_port;
+    tc->bnd_port = bnd_port;
+    GNUNET_CONTAINER_DLL_insert_tail (head, tail, tc);
   }
   GNUNET_free(plugins);
+
+  if ((NULL != head) && (NULL == resolver))
+  {
+    binary = GNUNET_OS_get_libexec_binary_path ("gnunet-service-resolver");
+    resolver = GNUNET_OS_start_process (GNUNET_YES,
+                                        GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
+                                        NULL, NULL, NULL,
+                                        binary,
+                                        "gnunet-service-resolver", NULL );
+    GNUNET_free(binary);
+    GNUNET_RESOLVER_connect (cfg);
+    run_nat_test ();
+  }
 }
 
 /**
