@@ -35,7 +35,7 @@ Christian Grothoff $\qquad$ Bart Polot $\qquad$ Matthias Wachs
 
 \today
 \end{center}
-This tutorials explains how to install GNUnet on a GNU/Linux system ond gives an introduction how 
+This tutorials explains how to install GNUnet on a GNU/Linux system and gives an introduction how 
 GNUnet can be used to develop a Peer-to-Peer application. Detailed installation instructions for 
 various operating systems and a detailed list of all dependencies can found on our website at 
 \url{https://gnunet.org/installation}. 
@@ -74,7 +74,7 @@ $ gpg --verify gnunet-0.9.5a.tar.gz.sig gnunet-0.9.5a.tar.gz
 After successfully verifying the integrity you can extract the tarball using
 \begin{lstlisting}
 $ tar xvzf gnunet-0.9.5a.tar.gz
-$ mv gnunet-0.9.5a gnunet # we will use the directory "gnunet" in the reminder of this document
+$ mv gnunet-0.9.5a gnunet # we will use the directory "gnunet" in the remainder of this document
 $ cd gnunet
 \end{lstlisting}
 
@@ -107,19 +107,27 @@ The remainder of this tutorial assumes that you have SVN HEAD checked out.
 
 \subsection{Compiling and Installing GNUnet}
 
-First, you need to install the latest {\tt
-  libgnupgerror}\footnote{\url{ftp://ftp.gnupg.org/gcrypt/libgpg-error/libgpg-error-1.11.tar.bz2}}
-and {\tt libgcrypt} version from Git.  The current GNUnet code uses
-ECC functions not available in any released version of libgcrypt.
+First, you need to install at least  {\tt
+  libgnupgerror} version 1.12\footnote{\url{ftp://ftp.gnupg.org/gcrypt/libgpg-error/libgpg-error-1.12.tar.bz2}}and {\tt libgcrypt} version 1.6\footnote{\url{ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.6.0.tar.bz2}}.  
 
 \lstset{language=bash}
 \begin{lstlisting}
-$ git clone git://git.gnupg.org/libgcrypt.git
-$ cd libgcrypt
-$ ./autogen.sh
+$ wget ftp://ftp.gnupg.org/gcrypt/libgpg-error/libgpg-error-1.12.tar.bz2
+$ tar xf libgpg-error-1.12.tar.bz2
+$ cd libgpg-error-1.12
 $ ./configure
-$ sudo make install 
-$ sudo ldconfig
+$ sudo make install
+$ cd ..
+\end{lstlisting}
+
+\lstset{language=bash}
+\begin{lstlisting}
+$ wget ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.6.0.tar.bz2
+$ tar xf libgcrypt-1.6.0.tar.bz2
+$ cd libgcrypt-1.6.0
+$ ./configure
+$ sudo make install
+$ cd ..
 \end{lstlisting}
 
 \label{sub:install}
@@ -238,10 +246,10 @@ $ touch peer1.conf
 Now add the following lines to peer1.conf to use this directory. For simplified usage we want to prevent 
 the peer to connect to the GNUnet network since this could lead to confusing output. This modifications will replace the default settings:
 \begin{lstlisting}
-$ [PATHS]
-$ SERVICEHOME = ~/gnunet1/ # Use this directory to store GNUnet data
-$ [hostlist]
-$ SERVERS = # prevent bootstrapping
+[PATHS]
+GNUNET_HOME = ~/gnunet1/ # Use this directory to store GNUnet data
+[hostlist]
+SERVERS = # prevent bootstrapping
 \end{lstlisting}
 
 \subsection{Start a peer}
@@ -285,7 +293,7 @@ Now open a separate terminal and change again to the \lstinline|gnunet/src/dht| 
 \begin{lstlisting}
 $ cd ~/gnunet/src/dht
 $ ./gnunet-dht-put -c ~/peer1.conf -k KEY -d VALUE # put VALUE under KEY in the DHT 
-$ ./gnunet/src/dht/gnunet-dht-get ~/peer1.conf -k KEY # get key KEY from the DHT
+$ ./gnunet/src/dht/gnunet-dht-get -c ~/peer1.conf -k KEY # get key KEY from the DHT
 $ gnunet-statistics -c ~/peer1.conf # print statistics about current GNUnet state
 $ gnunet-statistics -c ~/peer1.conf -s dht # print statistics about DHT service
 \end{lstlisting}
@@ -694,7 +702,8 @@ memcpy(&msg[1], &payload, payload_size);
 
 \exercise{Define a message struct that includes a 32-bit
 unsigned integer in addition to the standard GNUnet MessageHeader.
-Add a C struct and define a fresh protocol number for your message.}
+Add a C struct and define a fresh protocol number for your message.
+(Protocol numbers in gnunet-ext are defined in \lstinline|gnunet-ext/src/include/gnunet_protocols_ext.h|)}
 
 
 \subsubsection{Sending Requests to the Service}
@@ -1098,10 +1107,10 @@ dht_handle = GNUNET_DHT_connect (cfg, parallel_requests);
 \end{lstlisting}
 The second parameter indicates how many requests in parallel to expect.
 It is not a hard limit, but a good approximation will make the DHT more
-efficiently.
+efficient.
 
 \subsection{Storing data in the DHT}
-Since the DHT is a dynamic environment (peers join a leave frequently)
+Since the DHT is a dynamic environment (peers join and leave frequently)
 the data that we put in the DHT does not stay there indefinitely. It is
 important to ``refresh'' the data periodically by simply storing it again,
 in order to make sure other peers can access it.
@@ -1302,22 +1311,24 @@ libgnunet_plugin_block_SERVICE_done (void *cls)
 \subsubsection{Integration of the plugin with the build system}
 
 In order to compile the plugin, the {\tt Makefile.am} file for the
-service should contain a rule similar to this:
+service \texttt{SERVICE} should contain a rule similar to this:
 
 \lstset{language=make}
 \begin{lstlisting}
-plugin_LTLIBRARIES = \
-  libgnunet_plugin_block_SERVICE.la
-libgnunet_plugin_block_SERVICE_la_SOURCES = \
-  plugin_block_SERVICE.c
-libgnunet_plugin_block_SERVICE_la_LIBADD = \
-  $(top_builddir)/src/hello/libgnunethello.la \
-  $(top_builddir)/src/block/libgnunetblock.la \
-  $(top_builddir)/src/util/libgnunetutil.la
-libgnunet_plugin_block_SERVICE_la_LDFLAGS = \
- $(GN_PLUGIN_LDFLAGS)
-libgnunet_plugin_block_SERVICE_la_DEPENDENCIES = \
-  $(top_builddir)/src/block/libgnunetblock.la
+  plugindir = $(libdir)/gnunet
+   
+  plugin_LTLIBRARIES = \
+	  libgnunet_plugin_block_ext.la
+  libgnunet_plugin_block_ext_la_SOURCES = \
+	  plugin_block_ext.c
+  libgnunet_plugin_block_ext_la_LIBADD = \
+	  $(prefix)/lib/libgnunethello.la \
+	  $(prefix)/lib/libgnunetblock.la \
+	  $(prefix)/lib/libgnunetutil.la
+  libgnunet_plugin_block_ext_la_LDFLAGS = \
+	  $(GN_PLUGIN_LDFLAGS)
+  libgnunet_plugin_block_ext_la_DEPENDENCIES = \
+	  $(prefix)/lib/libgnunetblock.la
 \end{lstlisting}
 % $
 
