@@ -1113,11 +1113,10 @@ process_peer_monitoring_cb (void *cls, const struct GNUNET_PeerIdentity *peer,
     {
       return; /* No real change */
     }
-    if ( ((NULL != address) && (NULL != m->address)) &&
+    if ( (m->state == state) && ((NULL != address) && (NULL != m->address)) &&
         (0 == GNUNET_HELLO_address_cmp(m->address, address)) )
       return; /* No real change */
   }
-
 
   if (NULL != m->address)
   {
