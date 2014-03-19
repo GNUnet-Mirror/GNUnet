@@ -578,6 +578,8 @@ free_address (struct NeighbourAddress *na)
     GNUNET_ATS_address_in_use (GST_ats, na->address, na->session, GNUNET_NO);
   }
 
+  na->bandwidth_in = GNUNET_BANDWIDTH_value_init (0);
+  na->bandwidth_out = GNUNET_BANDWIDTH_value_init (0);
   na->ats_active = GNUNET_NO;
   na->keep_alive_nonce = 0;
   if (NULL != na->address)
@@ -799,8 +801,6 @@ set_primary_address (struct NeighbourMapEntry *n,
       n->primary_address.bandwidth_out);
 }
 
-#if 0
-TODO: Implement this
 /**
  * Clear the primary address of a neighbour since this primary address is not
  * valid anymore and notify monitoring about it
@@ -810,10 +810,18 @@ TODO: Implement this
 static void
 unset_primary_address (struct NeighbourMapEntry *n)
 {
+  /* Unset primary address */
+  free_address (&n->primary_address);
 
+  /* Notify monitoring about it */
+  neighbour_change_cb (callback_cls,
+      &n->id,
+      NULL,
+      n->state, n->timeout,
+      n->primary_address.bandwidth_in,
+      n->primary_address.bandwidth_out);
 }
 
-#endif
 
 
 /**
@@ -854,6 +862,7 @@ free_neighbour (struct NeighbourMapEntry *n,
 			   GNUNET_NO);
     disconnect_notify_cb (callback_cls, &n->id);
   }
+
   /* Mark peer as disconnected */
   set_state (n, GNUNET_TRANSPORT_PS_DISCONNECT_FINISHED);
 
@@ -863,7 +872,7 @@ free_neighbour (struct NeighbourMapEntry *n,
     backup_primary = NULL;
 
   /* free addresses and mark as unused */
-  free_address (&n->primary_address);
+  unset_primary_address (n);
   free_address (&n->alternative_address);
 
   /* cut all transport-level connection for this peer */
@@ -1644,8 +1653,10 @@ send_session_connect (struct NeighbourAddress *na)
     GNUNET_ATS_address_destroyed (GST_ats, na->address, NULL);
 
     /* Remove address and request and additional one */
-    /* TODO */
+    unset_primary_address (n);
 
+    set_state_and_timeout (n, GNUNET_TRANSPORT_PS_INIT_ATS,
+        GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT));
     return;
   }
 
@@ -3420,7 +3431,7 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
                 GST_plugins_a2s (n->primary_address.address), n->primary_address.session,
                 GNUNET_i2s (peer));
     GNUNET_ATS_address_destroyed (GST_ats, n->primary_address.address, NULL);
-    free_address (&n->primary_address);
+    unset_primary_address (n);
     set_state_and_timeout (n, GNUNET_TRANSPORT_PS_INIT_ATS,
         GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT));
     break;
@@ -3433,9 +3444,9 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
     free_neighbour (n, GNUNET_NO);
     return GNUNET_YES;
   case GNUNET_TRANSPORT_PS_CONNECTED:
+    unset_primary_address (n);
     set_state_and_timeout (n, GNUNET_TRANSPORT_PS_RECONNECT_ATS,
         GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT));
-    free_address (&n->primary_address);
     break;
   case GNUNET_TRANSPORT_PS_RECONNECT_ATS:
     /* we don't have an address, how can it go down? */
