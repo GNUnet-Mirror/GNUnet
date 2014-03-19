@@ -608,8 +608,8 @@ set_state (struct NeighbourMapEntry *n, enum GNUNET_TRANSPORT_PeerState s)
       n->state, n->timeout,
       n->primary_address.bandwidth_in,
       n->primary_address.bandwidth_out);
-
 }
+
 
 /**
  * Set net state and state timeout for this neighbour and notify monitoring
@@ -858,9 +858,7 @@ free_neighbour (struct NeighbourMapEntry *n,
   set_state (n, GNUNET_TRANSPORT_PS_DISCONNECT_FINISHED);
 
   if (NULL != n->primary_address.address)
-  {
     backup_primary = GNUNET_HELLO_address_copy (n->primary_address.address);
-  }
   else
     backup_primary = NULL;
 
@@ -868,33 +866,26 @@ free_neighbour (struct NeighbourMapEntry *n,
   free_address (&n->primary_address);
   free_address (&n->alternative_address);
 
-  /* FIXME: Note that if we are switching between two TCP sessions to
-     the same peer, we might want to selectively kill only one of
-     them! Killing all sessions like this seems to be very, very
-     wrong. */
-
-  /* cut transport-level connection */
+  /* cut all transport-level connection for this peer */
   if ((GNUNET_NO == keep_sessions) &&
       (NULL != backup_primary) &&
       (NULL != (papi = GST_plugins_find (backup_primary->transport_name))))
     papi->disconnect_peer (papi->cls, &n->id);
 
-  GNUNET_free_non_null (backup_primary);
-
+  if (NULL != backup_primary)
+    GNUNET_HELLO_address_free (backup_primary);
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multipeermap_remove (neighbours,
                                                        &n->id, n));
 
-  // FIXME-ATS-API: we might want to be more specific about
-  // which states we do this from in the future (ATS should
-  // have given us a 'suggest_address' handle, and if we have
-  // such a handle, we should cancel the operation here!
+  /* Cancel address requests for this peer */
   if (NULL != n->suggest_handle)
   {
     GNUNET_ATS_suggest_address_cancel (GST_ats, &n->id);
     n->suggest_handle = NULL;
   }
 
+  /* Cancel the master task */
   if (GNUNET_SCHEDULER_NO_TASK != n->task)
   {
     GNUNET_SCHEDULER_cancel (n->task);
@@ -1604,6 +1595,7 @@ send_session_connect (struct NeighbourAddress *na)
 {
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
   struct SessionConnectMessage connect_msg;
+  struct NeighbourMapEntry *n;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Sending SESSION_CONNECT message to peer %s\n",
@@ -1640,7 +1632,24 @@ send_session_connect (struct NeighbourAddress *na)
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 _("Failed to transmit CONNECT message via plugin to %s\n"),
                 GST_plugins_a2s (na->address));
+
+    n = lookup_neighbour (&na->address->peer);
+    if (NULL == n)
+    {
+      GNUNET_break (0);
+      return;
+    }
+    /* Hard failure to send the CONNECT message with this address:
+       Destroy address and session */
+    GNUNET_ATS_address_destroyed (GST_ats, na->address, na->session);
+    GNUNET_ATS_address_destroyed (GST_ats, na->address, NULL);
+
+    /* Remove address and request and additional one */
+    /* TODO */
+
+    return;
   }
+
   GST_neighbours_notify_data_sent (&na->address->peer,
                                    na->address,
                                    na->session,
@@ -1974,10 +1983,13 @@ try_connect_bl_check_cont (void *cls,
         GNUNET_i2s (peer));
     return;
   }
+
+  /* Setup a new neighbour */
   n = setup_neighbour (peer);
+
+  /* Request address suggestions for this peer */
   set_state_and_timeout (n, GNUNET_TRANSPORT_PS_INIT_ATS,
       GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT));
-
   GNUNET_ATS_reset_backoff (GST_ats, peer);
   n->suggest_handle = GNUNET_ATS_suggest_address (GST_ats, peer,
       &address_suggest_cont, n);
@@ -2154,6 +2166,7 @@ handle_test_blacklist_cont (void *cls,
     else
     {
       free_address (&n->primary_address);
+      GNUNET_break (0);
       set_state_and_timeout (n, GNUNET_TRANSPORT_PS_INIT_ATS,
           GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT));
     }
@@ -2519,8 +2532,16 @@ switch_address_bl_check_cont (void *cls,
           blc_ctx->session,
           GNUNET_i2s (&blc_ctx->address->peer));
     }
-    /* Delete address (or session if existing) in ATS */
+
+    /* This address is blacklisted, delete address and session (if existing) in ATS */
     GNUNET_ATS_address_destroyed (GST_ats, blc_ctx->address, blc_ctx->session);
+
+    if ( (GNUNET_YES == (GNUNET_HELLO_address_check_option (blc_ctx->address,
+          GNUNET_HELLO_ADDRESS_INFO_INBOUND))) && (NULL != blc_ctx->session))
+    {
+      /* This is an inbound address, destroy full  address */
+      GNUNET_ATS_address_destroyed (GST_ats, blc_ctx->address, NULL );
+    }
 
     /* Remove blacklist check and clean up */
     GNUNET_CONTAINER_DLL_remove (pending_bc_head, pending_bc_tail, blc_ctx);
@@ -3380,6 +3401,7 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
   }
 
   n->expect_latency_response = GNUNET_NO;
+  /* The session for neighbour's primary address died */
   switch (n->state)
   {
   case GNUNET_TRANSPORT_PS_NOT_CONNECTED:
@@ -3392,8 +3414,16 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
     return GNUNET_YES;
   case GNUNET_TRANSPORT_PS_INIT_BLACKLIST:
   case GNUNET_TRANSPORT_PS_CONNECT_SENT:
+    /* The session used to send the CONNECT terminated:
+     * this implies a connect error*/
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Could not send CONNECT message with address `%s' session %p: session terminated, requesting new address\n",
+                GST_plugins_a2s (n->primary_address.address), n->primary_address.session,
+                GNUNET_i2s (peer));
+    GNUNET_ATS_address_destroyed (GST_ats, n->primary_address.address, NULL);
     free_address (&n->primary_address);
-    set_state_and_timeout (n, GNUNET_TRANSPORT_PS_INIT_ATS, GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT));
+    set_state_and_timeout (n, GNUNET_TRANSPORT_PS_INIT_ATS,
+        GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT));
     break;
   case GNUNET_TRANSPORT_PS_CONNECT_RECV_BLACKLIST_INBOUND:
   case GNUNET_TRANSPORT_PS_CONNECT_RECV_ATS:
@@ -3404,7 +3434,8 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
     free_neighbour (n, GNUNET_NO);
     return GNUNET_YES;
   case GNUNET_TRANSPORT_PS_CONNECTED:
-    set_state_and_timeout (n, GNUNET_TRANSPORT_PS_RECONNECT_ATS, GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT));
+    set_state_and_timeout (n, GNUNET_TRANSPORT_PS_RECONNECT_ATS,
+        GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT));
     free_address (&n->primary_address);
     break;
   case GNUNET_TRANSPORT_PS_RECONNECT_ATS:
