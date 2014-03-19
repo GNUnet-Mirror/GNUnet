@@ -941,8 +941,10 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
       &plugin_env_session_end,
       &plugin_env_address_to_type,
       &plugin_env_update_metrics);
-  GST_neighbours_start (NULL, &neighbours_connect_notification,
-      &neighbours_disconnect_notification, &neighbours_changed_notification,
+  GST_neighbours_start (NULL,
+      &neighbours_connect_notification,
+      &neighbours_disconnect_notification,
+      &neighbours_changed_notification,
       (max_fd / 3) * 2);
   GST_clients_start (GST_server);
   GST_validation_start (&validation_changed_notification, NULL, (max_fd / 3));
