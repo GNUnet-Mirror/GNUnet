@@ -1033,7 +1033,7 @@ send_disconnect (struct NeighbourMapEntry *n)
 static void
 disconnect_neighbour (struct NeighbourMapEntry *n)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Disconnecting from peer %s in state %s\n",
               GNUNET_i2s (&n->id),
               GNUNET_TRANSPORT_ps2s (n->state));
@@ -1045,7 +1045,6 @@ disconnect_neighbour (struct NeighbourMapEntry *n)
   case GNUNET_TRANSPORT_PS_INIT_ATS:
   case GNUNET_TRANSPORT_PS_INIT_BLACKLIST:
     /* other peer is completely unaware of us, no need to send DISCONNECT */
-    set_state (n, GNUNET_TRANSPORT_PS_DISCONNECT_FINISHED);
     free_neighbour (n, GNUNET_NO);
     return;
   case GNUNET_TRANSPORT_PS_CONNECT_SENT:
