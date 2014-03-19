@@ -1592,6 +1592,48 @@ GST_neighbours_send (const struct GNUNET_PeerIdentity *target, const void *msg,
   n->task = GNUNET_SCHEDULER_add_now (&master_task, n);
 }
 
+static void
+send_session_connect_cont (void *cls,
+                      const struct GNUNET_PeerIdentity *target,
+                      int result,
+                      size_t size_payload,
+                      size_t size_on_wire)
+{
+  struct NeighbourMapEntry *n;
+
+  n = lookup_neighbour (target);
+  if (NULL == n)
+  {
+    GNUNET_break (0); /* TESTING */
+    return;
+  }
+
+  if (GNUNET_TRANSPORT_PS_CONNECT_SENT != n->state)
+  {
+    GNUNET_break (0); /* TESTING */
+    return;
+  }
+  if (GNUNET_OK == result)
+    return;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+            _("Failed to send CONNECT message to peer `%s'\n"),
+            (GNUNET_OK == result) ? "OK" : "ERROR");
+
+  /* Failed to send CONNECT message with this address */
+  GNUNET_ATS_address_destroyed (GST_ats, n->primary_address.address,
+      n->primary_address.session);
+  GNUNET_ATS_address_destroyed (GST_ats, n->primary_address.address,
+      NULL);
+
+  /* Remove address and request and additional one */
+  unset_primary_address (n);
+
+  set_state_and_timeout (n, GNUNET_TRANSPORT_PS_INIT_ATS,
+      GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT));
+  return;
+
+}
 
 /**
  * Send a SESSION_CONNECT message via the given address.
@@ -1634,8 +1676,8 @@ send_session_connect (struct NeighbourAddress *na)
                   na->session,
                   (const char *) &connect_msg, sizeof (struct SessionConnectMessage),
                   UINT_MAX,
-                  GNUNET_TIME_UNIT_FOREVER_REL,
-                  NULL, NULL))
+                  SETUP_CONNECTION_TIMEOUT,
+                  send_session_connect_cont, NULL))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 _("Failed to transmit CONNECT message via plugin to %s\n"),
