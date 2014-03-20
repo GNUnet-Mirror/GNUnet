@@ -1604,13 +1604,17 @@ send_session_connect_cont (void *cls,
   n = lookup_neighbour (target);
   if (NULL == n)
   {
-    GNUNET_break (0); /* TESTING */
+    /* CONNECT continuation was called after neighbor was freed,
+     * for example due to a time out for the state or the session
+     * used was already terminated: nothing to do here... */
     return;
   }
 
   if (GNUNET_TRANSPORT_PS_CONNECT_SENT != n->state)
   {
-    GNUNET_break (0); /* TESTING */
+    /* CONNECT continuation was called after neighbor changed state,
+     * for example due to a time out for the state or the session
+     * used was already terminated: nothing to do here... */
     return;
   }
   if (GNUNET_OK == result)
