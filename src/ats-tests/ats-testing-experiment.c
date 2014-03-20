@@ -188,19 +188,19 @@ load_episode (struct Experiment *e, struct Episode *cur,
       /* Load arguments for set_rate, start_send, set_preference */
       if (0 == strcmp (type, "constant"))
       {
-        o->tg_type = GNUNET_ATS_TEST_TG_CONSTANT;
+        o->gen_type = GNUNET_ATS_TEST_TG_CONSTANT;
       }
       else if (0 == strcmp (type, "linear"))
       {
-        o->tg_type = GNUNET_ATS_TEST_TG_LINEAR;
+        o->gen_type = GNUNET_ATS_TEST_TG_LINEAR;
       }
       else if (0 == strcmp (type, "sinus"))
       {
-        o->tg_type = GNUNET_ATS_TEST_TG_SINUS;
+        o->gen_type = GNUNET_ATS_TEST_TG_SINUS;
       }
       else if (0 == strcmp (type, "random"))
       {
-        o->tg_type = GNUNET_ATS_TEST_TG_RANDOM;
+        o->gen_type = GNUNET_ATS_TEST_TG_RANDOM;
       }
       else
       {
@@ -232,9 +232,9 @@ load_episode (struct Experiment *e, struct Episode *cur,
       if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number (cfg,
           sec_name, op_name, &o->max_rate))
       {
-        if ((GNUNET_ATS_TEST_TG_LINEAR == o->tg_type) ||
-            (GNUNET_ATS_TEST_TG_RANDOM == o->tg_type) ||
-            (GNUNET_ATS_TEST_TG_SINUS == o->tg_type))
+        if ((GNUNET_ATS_TEST_TG_LINEAR == o->gen_type) ||
+            (GNUNET_ATS_TEST_TG_RANDOM == o->gen_type) ||
+            (GNUNET_ATS_TEST_TG_SINUS == o->gen_type))
         {
           fprintf (stderr, "Missing max rate in operation %u `%s' in episode %u\n",
               op_counter, op, cur->id);
@@ -306,8 +306,8 @@ load_episode (struct Experiment *e, struct Episode *cur,
     }
 
     /* Safety checks */
-    if ((GNUNET_ATS_TEST_TG_LINEAR == o->tg_type) ||
-        (GNUNET_ATS_TEST_TG_SINUS == o->tg_type))
+    if ((GNUNET_ATS_TEST_TG_LINEAR == o->gen_type) ||
+        (GNUNET_ATS_TEST_TG_SINUS == o->gen_type))
     {
       if ((o->max_rate - o->base_rate) > o->base_rate)
       {
@@ -437,7 +437,7 @@ enforce_start_send (struct GNUNET_ATS_TEST_Operation *op)
   }
 
   partner->tg = GNUNET_ATS_TEST_generate_traffic_start(peer, partner,
-      op->tg_type, op->base_rate, op->max_rate, op->period,
+      op->gen_type, op->base_rate, op->max_rate, op->period,
       GNUNET_TIME_UNIT_FOREVER_REL);
 }
 
@@ -495,7 +495,7 @@ enforce_start_preference (struct GNUNET_ATS_TEST_Operation *op)
   }
 
   partner->pg = GNUNET_ATS_TEST_generate_preferences_start(peer, partner,
-      op->tg_type, op->base_rate, op->max_rate, op->period, op->frequency,
+      op->gen_type, op->base_rate, op->max_rate, op->period, op->frequency,
       op->pref_type);
 }
 

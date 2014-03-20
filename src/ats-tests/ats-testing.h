@@ -496,7 +496,7 @@ struct GNUNET_ATS_TEST_Operation
   struct GNUNET_TIME_Relative frequency;
 
   enum OperationType type;
-  enum GeneratorType tg_type;
+  enum GeneratorType gen_type;
   enum GNUNET_ATS_PreferenceKind pref_type;
 };
 
