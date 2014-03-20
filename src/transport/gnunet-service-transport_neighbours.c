@@ -2858,7 +2858,7 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
     "ATS tells us to switch to %s address '%s' session %p for "
     "peer `%s' in state %s/%d (quota in/out %u %u )\n",
     GNUNET_HELLO_address_check_option (address,
-        GNUNET_HELLO_ADDRESS_INFO_INBOUND) ? "inbound" : "",
+        GNUNET_HELLO_ADDRESS_INFO_INBOUND) ? "inbound" : "outbound",
     GST_plugins_a2s (address), session, GNUNET_i2s (peer),
     GNUNET_TRANSPORT_ps2s (n->state), n->send_connect_ack,
     ntohl (bandwidth_in.value__), ntohl (bandwidth_out.value__));
