@@ -609,6 +609,20 @@ GNUNET_ATS_TEST_generate_traffic_stop (struct TrafficGenerator *tg);
 void
 GNUNET_ATS_TEST_generate_traffic_stop_all ();
 
+/**
+ * Generate between the source master and the partner and set preferences with a
+ * value depending on the generator.
+ *
+ * @param src source
+ * @param dest partner
+ * @param type type of preferences to generate
+ * @param base_value traffic base rate to send data with
+ * @param value_rate  traffic maximum rate to send data with
+ * @param period duration of a period of preferences generation (~ 1/frequency)
+ * @param frequency how long to generate preferences
+ * @param kind ATS preference to generate
+ * @return the traffic generator
+ */
 struct PreferenceGenerator *
 GNUNET_ATS_TEST_generate_preferences_start (struct BenchmarkPeer *src,
     struct BenchmarkPartner *dest,
@@ -635,7 +649,9 @@ GNUNET_ATS_TEST_generate_preferences_stop_all ();
  * @param log_frequency the logging frequency
  * @param testname the testname
  * @param masters the master peers used for benchmarking
- * @param num_master the number of master peers
+ * @param num_masters the number of master peers
+ * @param num_slaves the number of slave peers
+ * @param verbose verbose logging
  * @return the logging handle or NULL on error
  */
 struct LoggingHandle *
@@ -699,8 +715,8 @@ GNUNET_ATS_TEST_get_partner (int src, int dest);
  * @param test_core connect to CORE service (GNUNET_YES) or transport (GNUNET_NO)
  * @param done_cb function to call when topology is setup
  * @param done_cb_cls cls for callback
- * @param recv_cb callback to call when data are received
- * @param perf_cb callback to call when performance info are received
+ * @param transport_recv_cb callback to call when data are received
+ * @param log_request_cb callback to call when logging is required
  */
 void
 GNUNET_ATS_TEST_create_topology (char *name, char *cfg_file,

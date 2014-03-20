@@ -731,6 +731,7 @@ agent_update (struct RIL_Peer_Agent *agent, double reward, double *s_next, int a
  * @param agent the agent handle
  * @param mod the kind of modification
  * @param feature the feature vector
+ * @param action the action to take
  */
 static void
 agent_modify_eligibility (struct RIL_Peer_Agent *agent,

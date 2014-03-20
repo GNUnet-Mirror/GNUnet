@@ -878,6 +878,8 @@ GNUNET_ATS_TEST_logging_clean_up (struct LoggingHandle *l)
  * @param testname the testname
  * @param masters the master peers used for benchmarking
  * @param num_masters the number of master peers
+ * @param num_slaves the number of slave peers
+ * @param verbose verbose logging
  * @return the logging handle or NULL on error
  */
 struct LoggingHandle *

@@ -865,8 +865,8 @@ GNUNET_ATS_TEST_get_partner (int src, int dest)
  * @param test_core connect to CORE service (GNUNET_YES) or transport (GNUNET_NO)
  * @param done_cb function to call when topology is setup
  * @param done_cb_cls cls for callback
- * @param recv_cb callback to call when data are received
- * @param perf_cb callback to call when performance info are received
+ * @param transport_recv_cb callback to call when data are received
+ * @param log_request_cb callback to call when logging is required
  */
 void
 GNUNET_ATS_TEST_create_topology (char *name, char *cfg_file,

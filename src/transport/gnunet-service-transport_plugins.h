@@ -40,6 +40,8 @@
  * plugin that caused the call.
  *
  * @param recv_cb function to call when data is received
+ * @param register_quota_cb function to call to register a quota callback
+ * @param unregister_quota_cb function to call to unregister a quota callback
  * @param address_cb function to call when our public addresses changed
  * @param session_start_cb function to call when a session was created
  * @param session_end_cb function to call when a session was terminated

@@ -374,17 +374,20 @@ GNUNET_ATS_solver_generate_property_stop (struct PropertyGenerator *pg)
 
 
 /**
- * Generate between the source master and the partner and set preferences with a
+ * Generate between the source master and the partner and set property with a
  * value depending on the generator.
  *
- * @param src source
- * @param dest partner
- * @param type type of preferences to generate
- * @param base_rate traffic base rate to send data with
- * @param max_rate  traffic maximum rate to send data with
- * @param period duration of a period of traffic generation (~ 1/frequency)
- * @param duration how long to generate traffic
- * @return the traffic generator
+ * @param peer source
+ * @param address_id partner
+ * @param test_peer the peer
+ * @param test_address the address
+ * @param type type of generator
+ * @param base_value base value
+ * @param value_rate maximum value
+ * @param period duration of a period of generation (~ 1/frequency)
+ * @param frequency how long to generate property
+ * @param ats_property ATS property to generate
+ * @return the property generator
  */
 struct PropertyGenerator *
 GNUNET_ATS_solver_generate_property_start (unsigned int peer,
@@ -614,17 +617,19 @@ GNUNET_ATS_solver_generate_preferences_stop (struct PreferenceGenerator *pg)
 
 
 /**
- * Generate between the source master and the partner and set preferences with a
+ * Generate between the source master and the partner and set property with a
  * value depending on the generator.
  *
- * @param src source
- * @param dest partner
- * @param type type of preferences to generate
- * @param base_rate traffic base rate to send data with
- * @param max_rate  traffic maximum rate to send data with
- * @param period duration of a period of traffic generation (~ 1/frequency)
- * @param duration how long to generate traffic
- * @return the traffic generator
+ * @param peer source
+ * @param address_id partner
+ * @param client_id the client
+ * @param type type of generator
+ * @param base_value base value
+ * @param value_rate maximum value
+ * @param period duration of a period of generation (~ 1/frequency)
+ * @param frequency how long to generate property
+ * @param kind ATS preference to generate
+ * @return the preference generator
  */
 struct PreferenceGenerator *
 GNUNET_ATS_solver_generate_preferences_start (unsigned int peer,
@@ -2253,6 +2258,7 @@ GNUNET_ATS_solvers_load_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg,
 /**
  * Information callback for the solver
  *
+ * @param cls the closure
  * @param op the solver operation
  * @param stat status of the solver operation
  * @param add additional solver information

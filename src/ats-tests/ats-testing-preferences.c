@@ -132,11 +132,12 @@ set_pref_task (void *cls,
  * @param src source
  * @param dest partner
  * @param type type of preferences to generate
- * @param base_rate traffic base rate to send data with
- * @param max_rate  traffic maximum rate to send data with
- * @param period duration of a period of traffic generation (~ 1/frequency)
- * @param duration how long to generate traffic
- * @return the traffic generator
+ * @param base_value traffic base rate to send data with
+ * @param value_rate  traffic maximum rate to send data with
+ * @param period duration of a period of preferences generation (~ 1/frequency)
+ * @param frequency how long to generate preferences
+ * @param kind ATS preference to generate
+ * @return the preference generator
  */
 struct PreferenceGenerator *
 GNUNET_ATS_TEST_generate_preferences_start (struct BenchmarkPeer *src,
