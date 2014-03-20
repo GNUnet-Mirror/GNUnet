@@ -400,34 +400,46 @@ plugin_env_address_change_notification (void *cls, int add_remove,
  * from the "TransmitFunction".
  *
  * @param cls closure
- * @param peer which peer was the session for
+ * @param address which address was the session for
  * @param session which session is being destoyed
  */
 static void
-plugin_env_session_end (void *cls, const struct GNUNET_PeerIdentity *peer,
+plugin_env_session_end (void *cls, const struct GNUNET_HELLO_Address *address,
     struct Session *session)
 {
-  const char *transport_name = cls;
-  struct GNUNET_HELLO_Address address;
   struct SessionKiller *sk;
 
-  GNUNET_assert(strlen (transport_name) > 0);
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Session %p to peer `%s' ended \n",
-      session, GNUNET_i2s (peer));
-  if (NULL != session)
-    GNUNET_log_from(GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
-        "transport-ats", "Telling ATS to destroy session %p from peer %s\n",
-        session, GNUNET_i2s (peer));
+  if (NULL == address)
+  {
+    GNUNET_break (0);
+    return;
+  }
 
-  memset (&address, '\0', sizeof (address));
-  address.peer = *peer;
-  address.address = NULL;
-  address.address_length = 0;
-  address.transport_name = transport_name;
-  GST_neighbours_session_terminated (peer, session);
+  if (NULL == session)
+  {
+    GNUNET_break (0);
+    return;
+  }
+
+  GNUNET_assert(strlen (address->transport_name) > 0);
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Session %p to peer `%s' ended \n",
+      session, GNUNET_i2s (&address->peer));
+
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+      "Notification from plugin `%s' about terminated %ssession %p from peer `%s' address `%s'\n",
+      address->transport_name,
+      GNUNET_HELLO_address_check_option (address,
+          GNUNET_HELLO_ADDRESS_INFO_INBOUND) ? "inbound " : "", session,
+      GNUNET_i2s (&address->peer), GST_plugins_a2s (address));
+
+  GST_neighbours_session_terminated (&address->peer, session);
+
+  GNUNET_log_from(GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
+      "transport-ats", "Telling ATS to destroy session %p from peer %s\n",
+      session, GNUNET_i2s (&address->peer));
 
   /* Tell ATS that session has ended */
-  GNUNET_ATS_address_destroyed (GST_ats, &address, session);
+  GNUNET_ATS_address_destroyed (GST_ats, address, session);
   for (sk = sk_head; NULL != sk; sk = sk->next)
   {
     if (sk->session == session)
@@ -622,7 +634,6 @@ plugin_env_session_start (void *cls, struct GNUNET_HELLO_Address *address,
     GNUNET_break(0);
     return;
   }
-
   GNUNET_log(GNUNET_ERROR_TYPE_INFO,
       "Notification from plugin `%s' about new %ssession %p from peer `%s' address `%s'\n",
       address->transport_name,

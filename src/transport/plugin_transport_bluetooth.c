@@ -661,7 +661,7 @@ free_session (struct Session *session)
   struct PendingMessage *pm;
 
   endpoint->plugin->env->session_end (endpoint->plugin->env->cls,
-				      &session->target,
+				      session->address,
 				      session);
   while (NULL != (pm = session->pending_message_head))
   {

@@ -1256,7 +1256,7 @@ udp_disconnect_session (void *cls, struct Session *s)
       GNUNET_free(udpw);
     }
   }
-  plugin->env->session_end (plugin->env->cls, &s->target, s);
+  plugin->env->session_end (plugin->env->cls, s->address, s);
 
   if (NULL != s->frag_ctx)
   {

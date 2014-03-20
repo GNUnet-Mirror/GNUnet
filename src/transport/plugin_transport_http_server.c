@@ -1637,7 +1637,7 @@ server_disconnect_cb (void *cls, struct MHD_Connection *connection,
     {
         /* Notify transport immediately that this session is invalid */
         s->session_ended = GNUNET_YES;
-        plugin->env->session_end (plugin->env->cls, &s->target, s);
+        plugin->env->session_end (plugin->env->cls, s->address, s);
     }
     server_delete_session (plugin, s);
   }
@@ -3048,7 +3048,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
     {
       /* Notify transport immediately that this session is invalid */
       pos->session_ended = GNUNET_YES;
-      plugin->env->session_end (plugin->env->cls, &pos->target, pos);
+      plugin->env->session_end (plugin->env->cls, pos->address, pos);
     }
     server_delete_session (plugin, pos);
   }

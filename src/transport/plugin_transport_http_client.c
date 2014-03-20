@@ -676,7 +676,7 @@ http_client_session_disconnect (void *cls,
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                    "Session %p: notifying transport about ending session\n",s);
 
-  plugin->env->session_end (plugin->env->cls, &s->target, s);
+  plugin->env->session_end (plugin->env->cls, s->address, s);
   client_delete_session (s);
 
   /* Re-schedule since handles have changed */

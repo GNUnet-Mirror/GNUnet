@@ -782,7 +782,7 @@ tcp_disconnect_session (void *cls, struct Session *session)
   plugin->env->unregister_quota_notification (plugin->env->cls,
       &session->target, PLUGIN_NAME, session);
   session->plugin->env->session_end (session->plugin->env->cls,
-      &session->target, session);
+      session->address, session);
 
   if (GNUNET_SCHEDULER_NO_TASK != session->nat_connection_timeout)
   {

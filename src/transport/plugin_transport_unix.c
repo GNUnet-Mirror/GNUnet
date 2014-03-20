@@ -548,7 +548,7 @@ unix_session_disconnect (void *cls,
        "Disconnecting session for peer `%s' `%s'\n",
        GNUNET_i2s (&s->target),
        unix_address_to_string (NULL, s->address->address, s->address->address_length) );
-  plugin->env->session_end (plugin->env->cls, &s->target, s);
+  plugin->env->session_end (plugin->env->cls, s->address, s);
   removed = GNUNET_NO;
   next = plugin->msg_head;
   while (NULL != next)
