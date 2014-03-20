@@ -426,10 +426,10 @@ plugin_env_session_end (void *cls, const struct GNUNET_HELLO_Address *address,
       session, GNUNET_i2s (&address->peer));
 
   GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-      "Notification from plugin `%s' about terminated %ssession %p from peer `%s' address `%s'\n",
+      "Notification from plugin `%s' about terminated %s session %p from peer `%s' address `%s'\n",
       address->transport_name,
       GNUNET_HELLO_address_check_option (address,
-          GNUNET_HELLO_ADDRESS_INFO_INBOUND) ? "inbound " : "", session,
+          GNUNET_HELLO_ADDRESS_INFO_INBOUND) ? "inbound" : "outbound", session,
       GNUNET_i2s (&address->peer), GST_plugins_a2s (address));
 
   GST_neighbours_session_terminated (&address->peer, session);
@@ -635,10 +635,10 @@ plugin_env_session_start (void *cls, struct GNUNET_HELLO_Address *address,
     return;
   }
   GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-      "Notification from plugin `%s' about new %ssession %p from peer `%s' address `%s'\n",
+      "Notification from plugin `%s' about new %s session %p from peer `%s' address `%s'\n",
       address->transport_name,
       GNUNET_HELLO_address_check_option (address,
-          GNUNET_HELLO_ADDRESS_INFO_INBOUND) ? "inbound " : "",
+          GNUNET_HELLO_ADDRESS_INFO_INBOUND) ? "inbound" : "outbound",
       session, GNUNET_i2s (&address->peer), GST_plugins_a2s (address));
   GST_ats_add_address (address, session, ats, ats_count);
 }
