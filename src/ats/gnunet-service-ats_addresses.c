@@ -1057,8 +1057,8 @@ destroy_by_session_id (void *cls,
       GNUNET_break(0);
       return GNUNET_OK;
     }
-
-    if (aa->addr_len == 0)
+    if (GNUNET_HELLO_ADDRESS_INFO_INBOUND ==
+        (aa->local_address_info && GNUNET_HELLO_ADDRESS_INFO_INBOUND))
     {
       /* Inbound connection died, delete full address */
       GNUNET_log(GNUNET_ERROR_TYPE_INFO,
