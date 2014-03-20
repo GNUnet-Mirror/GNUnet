@@ -413,7 +413,7 @@ free_session (struct Session *session)
   if (GNUNET_YES == session->active)
   {
     plugin->env->session_end (plugin->env->cls,
-			      &session->sender,
+			      session->address,
 			      session);
     session->active = GNUNET_NO;
   }
