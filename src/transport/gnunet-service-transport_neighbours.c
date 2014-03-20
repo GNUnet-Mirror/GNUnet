@@ -2661,13 +2661,20 @@ switch_address_bl_check_cont (void *cls,
                      blc_ctx->address, blc_ctx->session);
     break;
   case GNUNET_TRANSPORT_PS_CONNECT_SENT:
+    /* waiting on CONNECT_ACK, send ACK if one is pending */
+    if (1 == n->send_connect_ack)
+    {
+      n->send_connect_ack = 2;
+      send_session_connect_ack_message (n->primary_address.address,
+                                        n->primary_address.session,
+                                        n->connect_ack_timestamp);
+    }
     /* ATS suggests a different address, switch again */
     set_primary_address (n, blc_ctx->address, blc_ctx->session,
         blc_ctx->bandwidth_in, blc_ctx->bandwidth_out, GNUNET_NO);
-    set_state_and_timeout (n, GNUNET_TRANSPORT_PS_INIT_BLACKLIST,
-        GNUNET_TIME_relative_to_absolute (BLACKLIST_RESPONSE_TIMEOUT));
-    check_blacklist (&n->id, n->connect_ack_timestamp,
-                     blc_ctx->address, blc_ctx->session);
+    set_state_and_timeout (n, GNUNET_TRANSPORT_PS_CONNECT_SENT,
+        GNUNET_TIME_relative_to_absolute (SETUP_CONNECTION_TIMEOUT));
+    send_session_connect (&n->primary_address);
     break;
   case GNUNET_TRANSPORT_PS_CONNECT_RECV_ATS:
     set_primary_address (n, blc_ctx->address, blc_ctx->session,
