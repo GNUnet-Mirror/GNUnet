@@ -730,7 +730,10 @@ GNUNET_ATS_address_in_use (struct GNUNET_ATS_SchedulingHandle *sh,
 
 
 /**
- * A session got destroyed, stop including it as a valid address.
+ * An address got destroyed, stop including it as a valid address.
+ *
+ * If a session is given, only the session will be removed, if no session is
+ * given the full address will be deleted.
  *
  * @param sh handle
  * @param address the address

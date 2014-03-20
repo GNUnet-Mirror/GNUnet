@@ -78,7 +78,7 @@ struct SessionHeader
  */
 typedef void
 (*GNUNET_TRANSPORT_SessionEnd) (void *cls,
-                                const struct GNUNET_PeerIdentity *peer,
+                                const struct GNUNET_HELLO_Address *address,
                                 struct Session *session);
 
 /**
