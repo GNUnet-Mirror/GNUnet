@@ -788,6 +788,12 @@ start_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     peers[i].ch = GNUNET_MESH_channel_create (peers[i].mesh, NULL,
                                               &peers[i].dest->id,
                                               1, flags);
+    if (NULL == peers[i].ch)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Channel %lu failed\n", i);
+      GNUNET_SCHEDULER_shutdown ();
+      return;
+    }
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "%u => %u %p\n",
                 i, get_index (peers[i].dest), peers[i].ch);
     peers[i].ping_task = GNUNET_SCHEDULER_add_delayed (delay_ms_rnd (2000),
