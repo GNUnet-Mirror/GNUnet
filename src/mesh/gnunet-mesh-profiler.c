@@ -45,7 +45,7 @@
 /**
  * Duration of each round.
  */
-#define ROUND_TIME GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
+#define ROUND_TIME GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
 
 /**
  * Paximum ping period in milliseconds. Real period = rand (0, PING_PERIOD)
@@ -63,14 +63,14 @@
 #define SHORT_TIME GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)
 
 /**
+ * Total number of rounds.
+ */
+#define number_rounds sizeof(rounds)/sizeof(rounds[0])
+
+/**
  * Ratio of peers active. First round always is 1.0.
  */
 static float rounds[] = {0.8, 0.7, 0.6, 0.5, 0.0};
-
-/**
- * Total number of rounds.
- */
-static const unsigned int number_rounds = sizeof(rounds)/sizeof(rounds[0]);
 
 /**
  * Message type for pings.
@@ -271,8 +271,9 @@ show_end_data (void)
     for (j = 0; j < PING_PEERS; j++)
     {
       peer = &peers[j];
-      FPRINTF (stdout, "ROUND %u PEER %u: %f, PINGS: %u, PONGS: %u\n",
-               i, j, ((float)peer->sum_delay[i])/peer->pongs[i],
+      FPRINTF (stdout,
+               "ROUND %3u PEER %3u: %10.2f / %10.2f, PINGS: %3u, PONGS: %3u\n",
+               i, j, peer->mean[i], sqrt (peer->var[i] / (peer->pongs[i] - 1)),
                peer->pings[i], peer->pongs[i]);
     }
   }
@@ -696,7 +697,8 @@ pong_handler (void *cls, struct GNUNET_MESH_Channel *channel,
   struct MeshPingMessage *msg;
   struct GNUNET_TIME_Absolute send_time;
   struct GNUNET_TIME_Relative latency;
-  unsigned int ping_round;
+  unsigned int r /* Ping round */;
+  float delta;
 
   GNUNET_MESH_receive_done (channel);
   peer = &peers[n];
@@ -705,12 +707,16 @@ pong_handler (void *cls, struct GNUNET_MESH_Channel *channel,
 
   send_time = GNUNET_TIME_absolute_ntoh (msg->timestamp);
   latency = GNUNET_TIME_absolute_get_duration (send_time);
-  ping_round = ntohl (msg->round_number);
+  r = ntohl (msg->round_number);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "%u <- %u (%u) latency: %s\n",
               get_index (peer), get_index (peer->dest), ntohl (msg->counter),
               GNUNET_STRINGS_relative_time_to_string (latency, GNUNET_NO));
-  peer->sum_delay[ping_round] += latency.rel_value_us;
-  peer->pongs[ping_round]++;
+
+  /* Online variance calculation */
+  peer->pongs[r]++;
+  delta = latency.rel_value_us - peer->mean[r];
+  peer->mean[r] = peer->mean[r] + delta/peer->pongs[r];
+  peer->var[r] += delta * (latency.rel_value_us - peer->mean[r]);
 
   return GNUNET_OK;
 }
