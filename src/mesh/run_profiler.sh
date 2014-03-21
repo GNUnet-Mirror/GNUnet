@@ -18,4 +18,4 @@ echo "using $PEERS peers, $LINKS links";
     
 sed -e "s/%LINKS%/$LINKS/g" profiler.conf > .profiler.conf
 
-./gnunet-mesh-profiler $PEERS
+./gnunet-mesh-profiler $PEERS |& tee log
