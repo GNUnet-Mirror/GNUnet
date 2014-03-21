@@ -946,7 +946,7 @@ main (int argc, char *argv[])
   static uint32_t ports[2];
   const char *config_file;
 
-  config_file = "profiler.conf";
+  config_file = ".profiler.conf";
 
   if (2 > argc)
   {

@@ -16,6 +16,6 @@ LINKS=`echo "l($PEERS) * $PEERS" | bc -l`
 LINKS=`printf "%.0f" $LINKS`
 echo "using $PEERS peers, $LINKS links";
     
-sed -e "s/%LINKS%/$LINKS/g" .profiler.template > profiler.conf
+sed -e "s/%LINKS%/$LINKS/g" profiler.conf > .profiler.conf
 
 ./gnunet-mesh-profiler $PEERS
