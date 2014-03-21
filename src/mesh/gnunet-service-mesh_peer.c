@@ -289,7 +289,7 @@ core_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
   }
   else
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "CONNECTED %s <= %s\n",
+    LOG (GNUNET_ERROR_TYPE_INFO, "CONNECTED %s <= %s\n",
          own_id, GNUNET_i2s (peer));
     path = path_new (2);
     path->peers[1] = mp->id;
