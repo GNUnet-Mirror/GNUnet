@@ -1620,9 +1620,11 @@ send_session_connect_cont (void *cls,
   if (GNUNET_OK == result)
     return;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-            _("Failed to send CONNECT message to peer `%s'\n"),
-            (GNUNET_OK == result) ? "OK" : "ERROR");
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+            _("Failed to send CONNECT message to peer `%s' using address `%s' session %p\n"),
+            GNUNET_i2s (target),
+            GST_plugins_a2s (n->primary_address.address),
+            n->primary_address.session);
 
   /* Failed to send CONNECT message with this address */
   GNUNET_ATS_address_destroyed (GST_ats, n->primary_address.address,

@@ -2653,8 +2653,12 @@ udp_select_send (struct Plugin *plugin,
   }
   else
   {
-    GNUNET_break (0);
+    call_continuation (udpw, GNUNET_OK);
+    dequeue (plugin, udpw);
+    GNUNET_free (udpw);
+    return GNUNET_SYSERR;
   }
+
   sent = GNUNET_NETWORK_socket_sendto (sock, udpw->msg_buf, udpw->msg_size, a,
       slen);
 
