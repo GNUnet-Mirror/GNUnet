@@ -899,7 +899,7 @@ main (int argc, char *argv[])
   static uint32_t ports[2];
   const char *config_file;
 
-  config_file = "test_mesh.conf";
+  config_file = "profiler.conf";
 
   ids = GNUNET_CONTAINER_multipeermap_create (2 * TOTAL_PEERS, GNUNET_YES);
   GNUNET_assert (NULL != ids);
