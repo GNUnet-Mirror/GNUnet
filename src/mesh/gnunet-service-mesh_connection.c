@@ -1443,8 +1443,8 @@ build_path_from_peer_ids (struct GNUNET_PeerIdentity *peers,
       if (path->peers[j] == shortid)
       {
         LOG (GNUNET_ERROR_TYPE_DEBUG, "    already exists at pos %u\n", j);
-        offset += i - j;
-        LOG (GNUNET_ERROR_TYPE_DEBUG, "    offset now\n", offset);
+        offset = i - j;
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "    offset now %u\n", offset);
         GNUNET_PEER_change_rc (shortid, -1);
       }
     }
