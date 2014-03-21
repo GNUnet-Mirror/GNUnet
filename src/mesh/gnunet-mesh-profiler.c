@@ -35,23 +35,22 @@
 /**
  * How many peers to run
  */
-#define TOTAL_PEERS 10
+#define TOTAL_PEERS 20
 
 /**
  * How many peers do pinging
  */
-#define PING_PEERS 1
-
+#define PING_PEERS 3
 
 /**
  * Duration of each round.
  */
-#define ROUND_TIME GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
+#define ROUND_TIME GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
 
 /**
  * Paximum ping period in milliseconds. Real period = rand (0, PING_PERIOD)
  */
-#define PING_PERIOD 2000
+#define PING_PERIOD 1000
 
 /**
  * How long until we give up on connecting the peers?
@@ -63,7 +62,15 @@
  */
 #define SHORT_TIME GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)
 
+/**
+ * Ratio of peers active. First round always is 1.0.
+ */
 static float rounds[] = {0.8, 0.7, 0.6, 0.5, 0.0};
+
+/**
+ * Total number of rounds.
+ */
+static const unsigned int number_rounds = sizeof(rounds)/sizeof(rounds[0]);
 
 /**
  * Message type for pings.
@@ -84,6 +91,11 @@ struct MeshPingMessage
    * Time the message was sent.
    */
   struct GNUNET_TIME_AbsoluteNBO timestamp;
+
+  /**
+   * Round number.
+   */
+  uint32_t round_number;
 };
 
 /**
@@ -126,6 +138,9 @@ struct MeshPeer
    */
   int data_received;
 
+  /**
+   * Is peer up?
+   */
   int up;
 
   /**
@@ -142,6 +157,12 @@ struct MeshPeer
    * Task to do the next ping.
    */
   GNUNET_SCHEDULER_TaskIdentifier ping_task;
+
+  float mean[number_rounds];
+  float var[number_rounds];
+  unsigned int pongs[number_rounds];
+  unsigned int pings[number_rounds];
+
 };
 
 /**
@@ -158,16 +179,6 @@ static struct GNUNET_TESTBED_Peer **testbed_handles;
  * Testbed Operation (to get stats).
  */
 static struct GNUNET_TESTBED_Operation *stats_op;
-
-/**
- * How many events have happened
- */
-static int ok;
-
-/**
- * Number of events expected to conclude the test successfully.
- */
-static int ok_goal;
 
 /**
  * Operation to get peer ids.
@@ -204,6 +215,10 @@ static GNUNET_SCHEDULER_TaskIdentifier disconnect_task;
  */
 static GNUNET_SCHEDULER_TaskIdentifier test_task;
 
+/**
+ * Round number.
+ */
+static unsigned int current_round;
 
 /**
  * Flag to notify callbacks not to generate any new traffic anymore.
@@ -247,6 +262,20 @@ get_index (struct MeshPeer *peer)
 static void
 show_end_data (void)
 {
+  struct MeshPeer *peer;
+  unsigned int i;
+  unsigned int j;
+
+  for (i = 0; i < number_rounds; i++)
+  {
+    for (j = 0; j < PING_PEERS; j++)
+    {
+      peer = &peers[j];
+      FPRINTF (stdout, "ROUND %u PEER %u: %f, PINGS: %u, PONGS: %u\n",
+               i, j, ((float)peer->sum_delay[i])/peer->pongs[i],
+               peer->pings[i], peer->pongs[i]);
+    }
+  }
 }
 
 
@@ -481,21 +510,20 @@ adjust_running_peers (unsigned int target)
 static void
 next_rnd (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  long round = (long) cls;
-
   if ((GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason) != 0)
     return;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "ROUND %ld\n", round);
-  if (0.0 == rounds[round])
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "ROUND %ld\n", current_round);
+  if (0.0 == rounds[current_round])
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Finishing\n");
     GNUNET_SCHEDULER_add_now (&finish_profiler, NULL);
     return;
   }
-  adjust_running_peers (rounds[round] * TOTAL_PEERS);
+  adjust_running_peers (rounds[current_round] * TOTAL_PEERS);
+  current_round++;
 
-  GNUNET_SCHEDULER_add_delayed (ROUND_TIME, &next_rnd, (void *) (round + 1));
+  GNUNET_SCHEDULER_add_delayed (ROUND_TIME, &next_rnd, NULL);
 }
 
 
@@ -612,7 +640,9 @@ tmt_rdy_ping (void *cls, size_t size, void *buf)
   msg->header.size = htons (size);
   msg->header.type = htons (PING);
   msg->counter = htonl (peer->data_sent++);
+  msg->round_number = htonl (current_round);
   msg->timestamp = GNUNET_TIME_absolute_hton (GNUNET_TIME_absolute_get ());
+  peer->pings[current_round]++;
   peer->ping_task = GNUNET_SCHEDULER_add_delayed (delay_ms_rnd (PING_PERIOD),
                                                   &ping, peer);
 
@@ -666,6 +696,7 @@ pong_handler (void *cls, struct GNUNET_MESH_Channel *channel,
   struct MeshPingMessage *msg;
   struct GNUNET_TIME_Absolute send_time;
   struct GNUNET_TIME_Relative latency;
+  unsigned int ping_round;
 
   GNUNET_MESH_receive_done (channel);
   peer = &peers[n];
@@ -674,9 +705,12 @@ pong_handler (void *cls, struct GNUNET_MESH_Channel *channel,
 
   send_time = GNUNET_TIME_absolute_ntoh (msg->timestamp);
   latency = GNUNET_TIME_absolute_get_duration (send_time);
+  ping_round = ntohl (msg->round_number);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "%u <- %u (%u) latency: %s\n",
               get_index (peer), get_index (peer->dest), ntohl (msg->counter),
               GNUNET_STRINGS_relative_time_to_string (latency, GNUNET_NO));
+  peer->sum_delay[ping_round] += latency.rel_value_us;
+  peer->pongs[ping_round]++;
 
   return GNUNET_OK;
 }
@@ -800,6 +834,13 @@ start_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                                        &ping, &peers[i]);
   }
   peers_running = TOTAL_PEERS;
+  if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
+    GNUNET_SCHEDULER_cancel (disconnect_task);
+  disconnect_task =
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(ROUND_TIME,
+                                                                number_rounds + 1),
+                                  &disconnect_mesh_peers,
+                                  (void *) __LINE__);
   GNUNET_SCHEDULER_add_delayed (ROUND_TIME, &next_rnd, NULL);
 }
 
@@ -864,7 +905,6 @@ tmain (void *cls,
   unsigned long i;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test main\n");
-  ok = 0;
   test_ctx = ctx;
   GNUNET_assert (TOTAL_PEERS > 2 * PING_PEERS);
   GNUNET_assert (TOTAL_PEERS == num_peers);
@@ -912,13 +952,6 @@ main (int argc, char *argv[])
                         &incoming_channel, &channel_cleaner,
                         handlers, ports);
 
-  if (ok_goal > ok)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "FAILED! (%d/%d)\n", ok, ok_goal);
-    return 1;
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "success\n");
   return 0;
 }
 
