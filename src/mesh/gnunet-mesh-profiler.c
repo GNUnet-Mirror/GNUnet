@@ -34,11 +34,6 @@
 
 
 /**
- * Duration of each round.
- */
-#define ROUND_TIME GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
-
-/**
  * Paximum ping period in milliseconds. Real period = rand (0, PING_PERIOD)
  */
 #define PING_PERIOD 1000
@@ -61,7 +56,7 @@
 /**
  * Ratio of peers active. First round always is 1.0.
  */
-static float rounds[] = {0.8, 0.6, 0.4, 0.2, 0.0};
+static float rounds[] = {0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.0};
 
 /**
  * Message type for pings.
@@ -155,6 +150,11 @@ struct MeshPeer
   unsigned int pings[number_rounds];
 
 };
+
+/**
+ * Duration of each round.
+ */
+static struct GNUNET_TIME_Relative round_time;
 
 /**
  * GNUNET_PeerIdentity -> MeshPeer
@@ -525,7 +525,7 @@ next_rnd (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   adjust_running_peers (rounds[current_round] * peers_total);
   current_round++;
 
-  GNUNET_SCHEDULER_add_delayed (ROUND_TIME, &next_rnd, NULL);
+  GNUNET_SCHEDULER_add_delayed (round_time, &next_rnd, NULL);
 }
 
 
@@ -844,11 +844,11 @@ start_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
     GNUNET_SCHEDULER_cancel (disconnect_task);
   disconnect_task =
-    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(ROUND_TIME,
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(round_time,
                                                                 number_rounds + 1),
                                   &disconnect_mesh_peers,
                                   (void *) __LINE__);
-  GNUNET_SCHEDULER_add_delayed (ROUND_TIME, &next_rnd, NULL);
+  GNUNET_SCHEDULER_add_delayed (round_time, &next_rnd, NULL);
 }
 
 
@@ -947,12 +947,20 @@ main (int argc, char *argv[])
 
   config_file = ".profiler.conf";
 
-  if (3 > argc)
+  if (4 > argc)
   {
-    fprintf (stderr, "usage: %s PEERS PINGS\n", argv[0]);
+    fprintf (stderr, "usage: %s ROUND_TIME PEERS PINGS\n", argv[0]);
+    fprintf (stderr, "example: %s 30s 16 1\n", argv[0]);
     return 1;
   }
-  peers_total = atoll (argv[1]);
+
+  if (GNUNET_OK != GNUNET_STRINGS_fancy_time_to_relative (argv[1], &round_time))
+  {
+    fprintf (stderr, "%s is not a valid time\n", argv[1]);
+    return 1;
+  }
+
+  peers_total = atoll (argv[2]);
   if (2 > peers_total)
   {
     fprintf (stderr, "%s peers is not valid (> 2)\n", argv[1]);
@@ -960,7 +968,7 @@ main (int argc, char *argv[])
   }
   peers = GNUNET_malloc (sizeof (struct MeshPeer) * peers_total);
 
-  peers_pinging = atoll (argv[2]);
+  peers_pinging = atoll (argv[3]);
 
   if (peers_total < 2 * peers_pinging)
   {
