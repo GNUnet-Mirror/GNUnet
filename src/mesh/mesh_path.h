@@ -150,6 +150,13 @@ path_is_valid (const struct MeshPeerPath *path);
 int
 path_destroy (struct MeshPeerPath *p);
 
+/**
+ * Path -> allocated one line string. Caller must free.
+ *
+ * @param p Path.
+ */
+char *
+path_2s (struct MeshPeerPath *p);
 
 /**
  * Print info about the path for debug.

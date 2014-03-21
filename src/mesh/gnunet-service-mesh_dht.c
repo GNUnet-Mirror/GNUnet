@@ -223,9 +223,13 @@ dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
   struct GNUNET_HELLO_Message *hello;
   struct MeshPeerPath *p;
   struct MeshPeer *peer;
+  char *s;
 
   p = path_build_from_dht (get_path, get_path_length,
                            put_path, put_path_length);
+  s = path_2s (p);
+  LOG (GNUNET_ERROR_TYPE_INFO, "Got path from DHT: %s\n", s);
+  GNUNET_free_non_null (s);
   peer = GMP_get_short (p->peers[p->length - 1]);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Got HELLO for %s\n", GMP_2s (peer));
   h->callback (h->cls, p);
