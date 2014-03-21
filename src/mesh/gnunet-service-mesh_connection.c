@@ -1741,7 +1741,7 @@ GMC_handle_confirm (void *cls, const struct GNUNET_PeerIdentity *peer,
 
 
 /**
- * Core handler for notifications of broken paths
+ * Core handler for notifications of broken connections.
  *
  * @param cls Closure (unused).
  * @param id Peer identity of sending neighbor.
@@ -1775,11 +1775,20 @@ GMC_handle_broken (void* cls,
   fwd = is_fwd (c, id);
   if (GMC_is_terminal (c, fwd))
   {
+    struct GNUNET_MessageHeader *msg;
+    struct MeshPeer *peer;
+
+    peer = get_hop (c, !fwd);
     path_invalidate (c->path);
-    if (0 < c->pending_messages)
-      c->destroy = GNUNET_YES;
-    else
-      GMC_destroy (c);
+    c->state = MESH_CONNECTION_DESTROYED;
+    while (NULL != (msg = GMP_connection_pop (peer, c)))
+    {
+      GNUNET_assert (NULL ==
+                     GMT_send_prebuilt_message (msg, c->t, NULL, GNUNET_YES,
+                                                NULL, NULL));
+    }
+
+    GMC_destroy (c);
   }
   else
   {
