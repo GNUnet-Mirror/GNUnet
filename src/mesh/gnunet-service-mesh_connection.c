@@ -2360,7 +2360,7 @@ GMC_init (const struct GNUNET_CONFIGURATION_Handle *c)
     return;
   }
   create_connection_time = GNUNET_TIME_UNIT_SECONDS;
-  connections = GNUNET_CONTAINER_multihashmap_create (1024, GNUNET_YES);
+  connections = GNUNET_CONTAINER_multihashmap_create (1024, GNUNET_NO);
 }
 
 
