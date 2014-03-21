@@ -2102,6 +2102,11 @@ handle_tcp_welcome (void *cls, struct GNUNET_SERVER_Client *client,
             PLUGIN_NAME, &t6, sizeof (t6),
             GNUNET_HELLO_ADDRESS_INFO_INBOUND);
       }
+      else
+      {
+        GNUNET_break (0);
+        return;
+      }
       session = create_session (plugin, address, client, GNUNET_NO);
       GNUNET_HELLO_address_free (address);
       ats = plugin->env->get_address_type (plugin->env->cls, vaddr, alen);
