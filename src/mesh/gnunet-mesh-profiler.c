@@ -913,13 +913,6 @@ tmain (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test main\n");
   test_ctx = ctx;
-  if (peers_total < 2 * peers_pinging)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "not enough peers, total should be > 2 * peers_pinging\n");
-    GNUNET_MESH_TEST_cleanup (ctx);
-    return;
-  }
   GNUNET_assert (peers_total == num_peers);
   peers_running = num_peers;
   testbed_handles = testbed_peers;
@@ -968,6 +961,13 @@ main (int argc, char *argv[])
   peers = GNUNET_malloc (sizeof (struct MeshPeer) * peers_total);
 
   peers_pinging = atoll (argv[2]);
+
+  if (peers_total < 2 * peers_pinging)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "not enough peers, total should be > 2 * peers_pinging\n");
+    return 1;
+  }
 
   ids = GNUNET_CONTAINER_multipeermap_create (2 * peers_total, GNUNET_YES);
   GNUNET_assert (NULL != ids);
