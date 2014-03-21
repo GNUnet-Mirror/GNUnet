@@ -21,4 +21,4 @@ echo "using $PEERS peers, $LINKS links";
     
 sed -e "s/%LINKS%/$LINKS/g" profiler.conf > .profiler.conf
 
-./gnunet-mesh-profiler $ROUNDTIME $PEERS $PINGS |& tee log
+./gnunet-mesh-profiler $ROUNDTIME $PEERS $PINGS |& tee log | grep -v DEBUG
