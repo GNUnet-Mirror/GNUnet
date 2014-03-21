@@ -776,8 +776,8 @@ queue_is_sendable (struct MeshPeerQueue *q)
       GNUNET_break (0);
   }
 
-  if (GMC_is_sendable (q->c, q->fwd))
-    return GNUNET_YES;
+  if (GNUNET_MESSAGE_TYPE_MESH_CONNECTION_BROKEN != q->type)
+    return GMC_is_sendable (q->c, q->fwd);
 
   return GNUNET_NO;
 }
