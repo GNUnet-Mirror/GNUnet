@@ -913,7 +913,13 @@ tmain (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test main\n");
   test_ctx = ctx;
-  GNUNET_assert (peers_total > 2 * PING_PEERS);
+  if (peers_total < 2 * PING_PEERS)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "not enough peers, total should be > 2 * PING_PEERS\n");
+    GNUNET_MESH_TEST_cleanup (ctx);
+    return;
+  }
   GNUNET_assert (peers_total == num_peers);
   peers_running = num_peers;
   testbed_handles = testbed_peers;
