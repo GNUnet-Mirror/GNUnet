@@ -965,6 +965,7 @@ main (int argc, char *argv[])
     fprintf (stderr, "%s peers is not valid (> 2)\n", argv[1]);
     return 1;
   }
+  peers = GNUNET_malloc (sizeof (struct MeshPeer) * peers_total);
 
   ids = GNUNET_CONTAINER_multipeermap_create (2 * peers_total, GNUNET_YES);
   GNUNET_assert (NULL != ids);
@@ -976,6 +977,7 @@ main (int argc, char *argv[])
                         &tmain, NULL, /* tmain cls */
                         &incoming_channel, &channel_cleaner,
                         handlers, ports);
+  GNUNET_free (peers);
 
   return 0;
 }
