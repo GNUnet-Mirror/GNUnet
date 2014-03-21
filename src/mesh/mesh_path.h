@@ -64,7 +64,7 @@ struct MeshPeerPath
     /**
      * Path's score, how reliable is the path.
      */
-  int score;
+//   int score;
 
   /**
    * Task to delete the path.
