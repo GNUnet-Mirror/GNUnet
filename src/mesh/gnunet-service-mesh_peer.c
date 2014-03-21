@@ -1345,8 +1345,15 @@ GMP_init (const struct GNUNET_CONFIGURATION_Handle *c)
     transport_handle = GNUNET_TRANSPORT_connect (c, &my_full_id, NULL, /* cls */
                                                  /* Notify callbacks */
                                                  NULL, NULL, NULL);
-
   }
+  else
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING, "**************************************\n");
+    LOG (GNUNET_ERROR_TYPE_WARNING, "*  DISABLE TRYING CONNECT in config  *\n");
+    LOG (GNUNET_ERROR_TYPE_WARNING, "*  Use this only for test purposes.  *\n");
+    LOG (GNUNET_ERROR_TYPE_WARNING, "**************************************\n");
+  }
+
 
 
   if (NULL == core_handle)

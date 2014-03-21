@@ -652,7 +652,7 @@ tunnel_get_connection (struct MeshTunnel3 *t)
   unsigned int qn;
   unsigned int lowest_q;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "tunnel_get_connection %s\n", GMP_2s (t->peer));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "tunnel_get_connection %s\n", GMT_2s (t));
   best = NULL;
   lowest_q = UINT_MAX;
   for (iter = t->connection_head; NULL != iter; iter = iter->next)
