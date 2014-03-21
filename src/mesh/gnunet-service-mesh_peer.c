@@ -1220,6 +1220,50 @@ connection_get_first_message (struct MeshPeer *peer, struct MeshConnection *c)
 }
 
 
+/**
+ * Get the first message for a connection and unqueue it.
+ *
+ * @param peer Neighboring peer.
+ * @param c Connection.
+ *
+ * @return First message for this connection.
+ */
+struct GNUNET_MessageHeader *
+GMP_connection_pop (struct MeshPeer *peer, struct MeshConnection *c)
+{
+  struct MeshPeerQueue *q;
+  struct GNUNET_MessageHeader *msg;
+
+  for (q = peer->queue_head; NULL != q; q = q->next)
+  {
+    if (q->c != c)
+      continue;
+    switch (q->type)
+    {
+      case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE:
+      case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK:
+      case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_DESTROY:
+      case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_BROKEN:
+      case GNUNET_MESSAGE_TYPE_MESH_ACK:
+      case GNUNET_MESSAGE_TYPE_MESH_POLL:
+        GMP_queue_destroy (q, GNUNET_YES);
+        continue;
+
+      case GNUNET_MESSAGE_TYPE_MESH_KX:
+      case GNUNET_MESSAGE_TYPE_MESH_ENCRYPTED:
+        msg = (struct GNUNET_MessageHeader *) q->cls;
+        GMP_queue_destroy (q, GNUNET_NO);
+        return msg;
+
+      default:
+        GNUNET_break (0);
+    }
+  }
+
+  return NULL;
+}
+
+
 void
 GMP_queue_unlock (struct MeshPeer *peer, struct MeshConnection *c)
 {

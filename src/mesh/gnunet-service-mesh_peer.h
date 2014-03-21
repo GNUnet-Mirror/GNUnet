@@ -160,6 +160,17 @@ GMP_queue_add (struct MeshPeer *peer, void *cls, uint16_t type, size_t size,
 void
 GMP_queue_cancel (struct MeshPeer *peer, struct MeshConnection *c);
 
+/**
+ * Get the first message for a connection and unqueue it.
+ *
+ * @param peer Neighboring peer.
+ * @param c Connection.
+ *
+ * @return First message for this connection.
+ */
+struct GNUNET_MessageHeader *
+GMP_connection_pop (struct MeshPeer *peer, struct MeshConnection *c);
+
 void
 GMP_queue_unlock (struct MeshPeer *peer, struct MeshConnection *c);
 
