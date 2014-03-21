@@ -34,11 +34,6 @@
 
 
 /**
- * How many peers do pinging
- */
-#define PING_PEERS 3
-
-/**
  * Duration of each round.
  */
 #define ROUND_TIME GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
@@ -66,7 +61,7 @@
 /**
  * Ratio of peers active. First round always is 1.0.
  */
-static float rounds[] = {0.8, 0.7, 0.6, 0.5, 0.0};
+static float rounds[] = {0.8, 0.6, 0.4, 0.2, 0.0};
 
 /**
  * Message type for pings.
@@ -197,6 +192,11 @@ static unsigned long long peers_total;
 static unsigned long long peers_running;
 
 /**
+ * Number of peers doing pings.
+ */
+static unsigned long long peers_pinging;
+
+/**
  * Test context (to shut down).
  */
 static struct GNUNET_MESH_TEST_Context *test_ctx;
@@ -269,7 +269,7 @@ show_end_data (void)
 
   for (i = 0; i < number_rounds; i++)
   {
-    for (j = 0; j < PING_PEERS; j++)
+    for (j = 0; j < peers_pinging; j++)
     {
       peer = &peers[j];
       FPRINTF (stdout,
@@ -472,8 +472,8 @@ adjust_running_peers (unsigned int target)
   {
     do {
       r = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
-                                    peers_total - PING_PEERS);
-      r += PING_PEERS;
+                                    peers_total - peers_pinging);
+      r += peers_pinging;
     } while (peers[r].up == run || NULL != peers[r].incoming);
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "St%s peer %u: %s\n",
                 run ? "arting" : "opping", r, GNUNET_i2s (&peers[r].id));
@@ -822,7 +822,7 @@ start_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Start profiler\n");
 
   flags = GNUNET_MESH_OPTION_DEFAULT;
-  for (i = 0; i < PING_PEERS; i++)
+  for (i = 0; i < peers_pinging; i++)
   {
 
     peers[i].dest = select_random_peer (&peers[i]);
@@ -913,10 +913,10 @@ tmain (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test main\n");
   test_ctx = ctx;
-  if (peers_total < 2 * PING_PEERS)
+  if (peers_total < 2 * peers_pinging)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "not enough peers, total should be > 2 * PING_PEERS\n");
+                "not enough peers, total should be > 2 * peers_pinging\n");
     GNUNET_MESH_TEST_cleanup (ctx);
     return;
   }
@@ -954,9 +954,9 @@ main (int argc, char *argv[])
 
   config_file = ".profiler.conf";
 
-  if (2 > argc)
+  if (3 > argc)
   {
-    fprintf (stderr, "usage: %s PEERS\n", argv[0]);
+    fprintf (stderr, "usage: %s PEERS PINGS\n", argv[0]);
     return 1;
   }
   peers_total = atoll (argv[1]);
@@ -966,6 +966,8 @@ main (int argc, char *argv[])
     return 1;
   }
   peers = GNUNET_malloc (sizeof (struct MeshPeer) * peers_total);
+
+  peers_pinging = atoll (argv[2]);
 
   ids = GNUNET_CONTAINER_multipeermap_create (2 * peers_total, GNUNET_YES);
   GNUNET_assert (NULL != ids);

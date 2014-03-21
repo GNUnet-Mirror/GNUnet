@@ -1,7 +1,7 @@
 #!/bin/sh
 
-if [ "$#" -lt "1" ]; then
-    echo "usage: $0 PEERS";
+if [ "$#" -lt "2" ]; then
+    echo "usage: $0 PEERS PINGING_PEERS";
     exit 1;
 fi
 
@@ -18,4 +18,4 @@ echo "using $PEERS peers, $LINKS links";
     
 sed -e "s/%LINKS%/$LINKS/g" profiler.conf > .profiler.conf
 
-./gnunet-mesh-profiler $PEERS |& tee log
+./gnunet-mesh-profiler $PEERS $2 |& tee log
