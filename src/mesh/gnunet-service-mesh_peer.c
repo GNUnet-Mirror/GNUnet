@@ -207,8 +207,10 @@ static unsigned long long drop_percent;
  */
 static struct GNUNET_CORE_Handle *core_handle;
 
+/**
+ * Handle to try to start new connections.
+ */
 static struct GNUNET_TRANSPORT_Handle *transport_handle;
-
 
 /******************************************************************************/
 /***************************** CORE CALLBACKS *********************************/
@@ -1277,12 +1279,11 @@ GMP_init (const struct GNUNET_CONFIGURATION_Handle *c)
   }
   else
   {
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-                "\n***************************************\n"
-                "Mesh is running with drop mode enabled.\n"
-                "This is NOT a good idea!\n"
-                "Remove the DROP_PERCENT option from your configuration.\n"
-                "***************************************\n");
+    LOG (GNUNET_ERROR_TYPE_WARNING, "**************************************\n");
+    LOG (GNUNET_ERROR_TYPE_WARNING, "Mesh is running with DROP enabled.\n");
+    LOG (GNUNET_ERROR_TYPE_WARNING, "This is NOT a good idea!\n");
+    LOG (GNUNET_ERROR_TYPE_WARNING, "Remove DROP_PERCENT from config file.\n");
+    LOG (GNUNET_ERROR_TYPE_WARNING, "**************************************\n");
   }
 
   core_handle = GNUNET_CORE_connect (c, /* Main configuration */
@@ -1295,11 +1296,17 @@ GMP_init (const struct GNUNET_CONFIGURATION_Handle *c)
                                      NULL,      /* Don't notify about all outbound messages */
                                      GNUNET_NO, /* For header-only out notification */
                                      core_handlers);    /* Register these handlers */
-  transport_handle = GNUNET_TRANSPORT_connect (c, &my_full_id,
-                                        NULL, /* cls */
-                                        NULL, NULL, NULL); /* Notify callbacks */
+  if (GNUNET_YES !=
+    GNUNET_CONFIGURATION_get_value_yesno (c, "MESH", "DISABLE_TRY_CONNECT"))
+  {
+    transport_handle = GNUNET_TRANSPORT_connect (c, &my_full_id, NULL, /* cls */
+                                                 /* Notify callbacks */
+                                                 NULL, NULL, NULL);
 
-  if (NULL == core_handle || NULL == transport_handle)
+  }
+
+
+  if (NULL == core_handle)
   {
     GNUNET_break (0);
     GNUNET_SCHEDULER_shutdown ();
@@ -1950,6 +1957,9 @@ GMP_try_connect (struct MeshPeer *peer)
 {
   struct GNUNET_HELLO_Message *hello;
   struct GNUNET_MessageHeader *mh;
+
+  if (NULL == transport_handle)
+    return;
 
   hello = GMP_get_hello (peer);
   if (NULL == hello)
