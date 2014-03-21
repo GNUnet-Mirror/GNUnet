@@ -1642,6 +1642,10 @@ GMP_add_path (struct MeshPeer *peer, struct MeshPeerPath *path,
       LOG (GNUNET_ERROR_TYPE_DEBUG, "  added\n");
       GNUNET_CONTAINER_DLL_insert_before (peer->path_head,
                                           peer->path_tail, aux, path);
+      if (NULL != peer->tunnel && 3 < GMT_count_connections (peer->tunnel))
+      {
+        GMP_connect (peer);
+      }
       return path;
     }
     else
@@ -1657,6 +1661,10 @@ GMP_add_path (struct MeshPeer *peer, struct MeshPeerPath *path,
   GNUNET_CONTAINER_DLL_insert_tail (peer->path_head, peer->path_tail,
                                     path);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  added last\n");
+  if (NULL != peer->tunnel && 3 < GMT_count_connections (peer->tunnel))
+  {
+    GMP_connect (peer);
+  }
   return path;
 }
 
