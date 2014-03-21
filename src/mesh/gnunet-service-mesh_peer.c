@@ -1612,7 +1612,7 @@ GMP_add_path (struct MeshPeer *peer, struct MeshPeerPath *path,
   {
     if (path->peers[l] == myid)
     {
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "shortening path by %u\n", l);
+      LOG (GNUNET_ERROR_TYPE_DEBUG, " shortening path by %u\n", l);
       for (l2 = 0; l2 < path->length - l; l2++)
       {
         path->peers[l2] = path->peers[l + l2];
@@ -1624,7 +1624,7 @@ GMP_add_path (struct MeshPeer *peer, struct MeshPeerPath *path,
     }
   }
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "adding path [%u]\n", path->length);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, " final length: %u\n", path->length);
 
   l = path_get_length (path);
   if (0 == l)
