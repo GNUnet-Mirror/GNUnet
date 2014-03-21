@@ -115,6 +115,11 @@ struct MeshPeer
   struct GNUNET_MESH_Channel *incoming_ch;
 
   /**
+   * Channel handle for a warmup channel.
+   */
+  struct GNUNET_MESH_Channel *warmup_ch;
+
+  /**
    * Number of payload packes sent
    */
   int data_sent;
@@ -221,6 +226,12 @@ static GNUNET_SCHEDULER_TaskIdentifier test_task;
  */
 static unsigned int current_round;
 
+
+/**
+ * Do preconnect? (Each peer creates a tunnel to one other peer).
+ */
+static int do_warmup;
+
 /**
  * Flag to notify callbacks not to generate any new traffic anymore.
  */
@@ -322,6 +333,12 @@ disconnect_mesh_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO, "%u: channel %p\n", i, peers[i].ch);
       GNUNET_MESH_channel_destroy (peers[i].ch);
+    }
+    if (NULL != peers[i].warmup_ch)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "%u: warmup channel %p\n",
+                  i, peers[i].warmup_ch);
+      GNUNET_MESH_channel_destroy (peers[i].warmup_ch);
     }
     if (NULL != peers[i].incoming_ch)
     {
@@ -755,6 +772,12 @@ incoming_channel (void *cls, struct GNUNET_MESH_Channel *channel,
 
   peer = GNUNET_CONTAINER_multipeermap_get (ids, initiator);
   GNUNET_assert (NULL != peer);
+  if (NULL == peers[n].incoming)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "WARMUP %u <= %u\n",
+                n, get_index (peer), channel);
+    return NULL;
+  }
   GNUNET_assert (peer == peers[n].incoming);
   GNUNET_assert (peer->dest == &peers[n]);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "%u <= %u %p\n",
@@ -787,6 +810,13 @@ channel_cleaner (void *cls, const struct GNUNET_MESH_Channel *channel,
 }
 
 
+/**
+ * Select a random peer that has no incoming channel
+ *
+ * @param peer ID of the peer connecting. NULL if irrelevant (warmup).
+ *
+ * @return Random peer not yet connected to.
+ */
 static struct MeshPeer *
 select_random_peer (struct MeshPeer *peer)
 {
@@ -824,7 +854,6 @@ start_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   flags = GNUNET_MESH_OPTION_DEFAULT;
   for (i = 0; i < peers_pinging; i++)
   {
-
     peers[i].dest = select_random_peer (&peers[i]);
     peers[i].ch = GNUNET_MESH_channel_create (peers[i].mesh, NULL,
                                               &peers[i].dest->id,
@@ -832,7 +861,7 @@ start_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     if (NULL == peers[i].ch)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Channel %lu failed\n", i);
-      GNUNET_SCHEDULER_shutdown ();
+      GNUNET_MESH_TEST_cleanup (test_ctx);
       return;
     }
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "%u => %u %p\n",
@@ -853,6 +882,32 @@ start_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
+ * Do warmup: create some channels to spread information about the topology.
+ */
+static void
+warmup (void)
+{
+  struct MeshPeer *peer;
+  unsigned int i;
+
+  for (i = 0; i < peers_total; i++)
+  {
+    peer = select_random_peer (NULL);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "WARMUP %u => %u\n",
+                i, get_index (peer));
+    peers[i].warmup_ch =
+      GNUNET_MESH_channel_create (peers[i].mesh, NULL, &peer->id,
+                                  1, GNUNET_MESH_OPTION_DEFAULT);
+    if (NULL == peers[i].warmup_ch)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Warmup %u failed\n", i);
+      GNUNET_MESH_TEST_cleanup (test_ctx);
+      return;
+    }
+  }
+}
+
+/**
  * Callback to be called when the requested peer information is available
  *
  * @param cls the closure from GNUNET_TESTBED_peer_get_information()
@@ -868,6 +923,7 @@ peer_id_cb (void *cls,
        const char *emsg)
 {
   long n = (long) cls;
+  struct GNUNET_TIME_Relative delay;
 
   if (NULL == pinfo || NULL != emsg)
   {
@@ -889,8 +945,11 @@ peer_id_cb (void *cls,
   if (p_ids < peers_total)
     return;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Got all IDs, starting profiler\n");
-  test_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-                                            &start_test, NULL);
+  if (do_warmup)
+    warmup();
+  delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
+                                         150 * peers_total);
+  test_task = GNUNET_SCHEDULER_add_delayed (delay, &start_test, NULL);
 }
 
 /**
@@ -949,8 +1008,8 @@ main (int argc, char *argv[])
 
   if (4 > argc)
   {
-    fprintf (stderr, "usage: %s ROUND_TIME PEERS PINGS\n", argv[0]);
-    fprintf (stderr, "example: %s 30s 16 1\n", argv[0]);
+    fprintf (stderr, "usage: %s ROUND_TIME PEERS PINGS [DO_WARMUP]\n", argv[0]);
+    fprintf (stderr, "example: %s 30s 16 1 Y\n", argv[0]);
     return 1;
   }
 
@@ -976,6 +1035,8 @@ main (int argc, char *argv[])
                 "not enough peers, total should be > 2 * peers_pinging\n");
     return 1;
   }
+
+  do_warmup = (5 > argc || argv[4][0] == 'N');
 
   ids = GNUNET_CONTAINER_multipeermap_create (2 * peers_total, GNUNET_YES);
   GNUNET_assert (NULL != ids);
