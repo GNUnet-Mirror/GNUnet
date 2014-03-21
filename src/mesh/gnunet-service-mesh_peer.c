@@ -1481,7 +1481,12 @@ GMP_connect (struct MeshPeer *peer)
     p = peer_get_best_path (peer);
     if (NULL != p)
     {
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "  %u hops\n", p->length);
+      char *s;
+
+      s = path_2s (p);
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "  path to use: %s\n", s);
+      GNUNET_free (s);
+
       c = GMT_use_path (t, p);
       if (NULL == c)
       {
