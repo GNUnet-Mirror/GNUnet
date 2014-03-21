@@ -1768,7 +1768,7 @@ GMC_handle_broken (void* cls,
   c = connection_get (&msg->cid);
   if (NULL == c)
   {
-    GNUNET_break_op (0);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  duplicate CONNECTION_BROKEN\n");
     return GNUNET_OK;
   }
 
