@@ -32,10 +32,6 @@
 #define PING 1
 #define PONG 2
 
-/**
- * How many peers to run
- */
-#define TOTAL_PEERS 20
 
 /**
  * How many peers do pinging
@@ -183,7 +179,7 @@ static struct GNUNET_TESTBED_Operation *stats_op;
 /**
  * Operation to get peer ids.
  */
-struct MeshPeer peers[TOTAL_PEERS];
+struct MeshPeer *peers;
 
 /**
  * Peer ids counter.
@@ -191,7 +187,12 @@ struct MeshPeer peers[TOTAL_PEERS];
 static unsigned int p_ids;
 
 /**
- * Total number of currently running peers.
+ * Total number of peers.
+ */
+static unsigned long long peers_total;
+
+/**
+ * Number of currently running peers.
  */
 static unsigned long long peers_running;
 
@@ -309,7 +310,7 @@ disconnect_mesh_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "disconnecting mesh service, called from line %ld\n", line);
   disconnect_task = GNUNET_SCHEDULER_NO_TASK;
-  for (i = 0; i < TOTAL_PEERS; i++)
+  for (i = 0; i < peers_total; i++)
   {
     if (NULL != peers[i].op)
       GNUNET_TESTBED_operation_done (peers[i].op);
@@ -416,7 +417,7 @@ collect_stats (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     return;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Start collecting statistics...\n");
-  stats_op = GNUNET_TESTBED_get_statistics (TOTAL_PEERS, testbed_handles,
+  stats_op = GNUNET_TESTBED_get_statistics (peers_total, testbed_handles,
                                             NULL, NULL,
                                             stats_iterator, stats_cont, NULL);
 }
@@ -453,7 +454,7 @@ adjust_running_peers (unsigned int target)
   unsigned int i;
   unsigned int r;
 
-  GNUNET_assert (target <= TOTAL_PEERS);
+  GNUNET_assert (target <= peers_total);
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "adjust peers to %u\n", target);
   if (target > peers_running)
@@ -471,7 +472,7 @@ adjust_running_peers (unsigned int target)
   {
     do {
       r = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
-                                    TOTAL_PEERS - PING_PEERS);
+                                    peers_total - PING_PEERS);
       r += PING_PEERS;
     } while (peers[r].up == run || NULL != peers[r].incoming);
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "St%s peer %u: %s\n",
@@ -521,7 +522,7 @@ next_rnd (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_SCHEDULER_add_now (&finish_profiler, NULL);
     return;
   }
-  adjust_running_peers (rounds[current_round] * TOTAL_PEERS);
+  adjust_running_peers (rounds[current_round] * peers_total);
   current_round++;
 
   GNUNET_SCHEDULER_add_delayed (ROUND_TIME, &next_rnd, NULL);
@@ -793,7 +794,7 @@ select_random_peer (struct MeshPeer *peer)
 
   do
   {
-    r = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, TOTAL_PEERS);
+    r = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, peers_total);
   } while (NULL != peers[r].incoming);
   peers[r].incoming = peer;
 
@@ -839,7 +840,7 @@ start_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     peers[i].ping_task = GNUNET_SCHEDULER_add_delayed (delay_ms_rnd (2000),
                                                        &ping, &peers[i]);
   }
-  peers_running = TOTAL_PEERS;
+  peers_running = peers_total;
   if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
     GNUNET_SCHEDULER_cancel (disconnect_task);
   disconnect_task =
@@ -885,7 +886,7 @@ peer_id_cb (void *cls,
   peers[n].op = NULL;
 
   p_ids++;
-  if (p_ids < TOTAL_PEERS)
+  if (p_ids < peers_total)
     return;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Got all IDs, starting profiler\n");
   test_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
@@ -912,8 +913,8 @@ tmain (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test main\n");
   test_ctx = ctx;
-  GNUNET_assert (TOTAL_PEERS > 2 * PING_PEERS);
-  GNUNET_assert (TOTAL_PEERS == num_peers);
+  GNUNET_assert (peers_total > 2 * PING_PEERS);
+  GNUNET_assert (peers_total == num_peers);
   peers_running = num_peers;
   testbed_handles = testbed_peers;
   disconnect_task = GNUNET_SCHEDULER_add_delayed (SHORT_TIME,
@@ -921,7 +922,7 @@ tmain (void *cls,
                                                   (void *) __LINE__);
   shutdown_handle = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                                   &shutdown_task, NULL);
-  for (i = 0; i < TOTAL_PEERS; i++)
+  for (i = 0; i < peers_total; i++)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "requesting id %ld\n", i);
     peers[i].up = GNUNET_YES;
@@ -947,13 +948,25 @@ main (int argc, char *argv[])
 
   config_file = "profiler.conf";
 
-  ids = GNUNET_CONTAINER_multipeermap_create (2 * TOTAL_PEERS, GNUNET_YES);
+  if (2 > argc)
+  {
+    fprintf (stderr, "usage: %s PEERS\n", argv[0]);
+    return 1;
+  }
+  peers_total = atoll (argv[1]);
+  if (2 > peers_total)
+  {
+    fprintf (stderr, "%s peers is not valid (> 2)\n", argv[1]);
+    return 1;
+  }
+
+  ids = GNUNET_CONTAINER_multipeermap_create (2 * peers_total, GNUNET_YES);
   GNUNET_assert (NULL != ids);
   p_ids = 0;
   test_finished = GNUNET_NO;
   ports[0] = 1;
   ports[1] = 0;
-  GNUNET_MESH_TEST_run ("mesh-profiler", config_file, TOTAL_PEERS,
+  GNUNET_MESH_TEST_run ("mesh-profiler", config_file, peers_total,
                         &tmain, NULL, /* tmain cls */
                         &incoming_channel, &channel_cleaner,
                         handlers, ports);
