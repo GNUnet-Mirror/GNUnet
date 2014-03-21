@@ -761,16 +761,11 @@
 /src/mesh/libgnunetmeshtest.a
 /src/mesh/test_mesh_small_multicast
 /src/mesh/test_mesh_small_unicast
-/src/mesh/test_mesh_local_2
-/src/mesh/test_mesh_local_1
-/src/mesh/gnunet-regex-profiler
-/src/mesh/gnunet-daemon-regexprofiler
-/src/mesh/gnunet-service-mesh-new
-/src/mesh/gnunet-service-mesh_new
 /src/mesh/mesh.conf
 /src/mesh/test_mesh_path_api
 /src/mesh/mesh_topo_initial
 /src/mesh/gnunet-mesh-profiler
+/src/mesh/.profiler.conf
 /src/mesh/test_mesh_single
 /src/mesh/test_mesh_small_forward
 /src/mesh/test_mesh_small_signal
@@ -800,7 +795,7 @@
 /src/mesh/gnunet-mesh
 /src/mesh/*log
 /src/mesh/*.trs
-/src/mesh/gnunet-service-mesh-enc
+
 
 # /src/multicast/
 /src/multicast/multicast.conf
