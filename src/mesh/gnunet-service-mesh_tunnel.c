@@ -36,6 +36,8 @@
 
 #define REKEY_WAIT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 5)
 
+#define CONNECTIONS_PER_TUNNEL 3
+
 /******************************************************************************/
 /********************************   STRUCTS  **********************************/
 /******************************************************************************/
@@ -47,11 +49,36 @@ struct MeshTChannel
   struct MeshChannel *ch;
 };
 
+
+/**
+ * Connection list and metadata.
+ */
 struct MeshTConnection
 {
+  /**
+   * Next in DLL.
+   */
   struct MeshTConnection *next;
+
+  /**
+   * Prev in DLL.
+   */
   struct MeshTConnection *prev;
+
+  /**
+   * Connection handle.
+   */
   struct MeshConnection *c;
+
+  /**
+   * Creation time, to keep oldest connection alive.
+   */
+  struct GNUNET_TIME_Absolute created;
+
+  /**
+   * Connection throughput, to keep fastest connection alive.
+   */
+  uint32_t throughput;
 };
 
 /**
@@ -1820,7 +1847,8 @@ GMT_change_cstate (struct MeshTunnel3* t, enum MeshTunnel3CState cstate)
   }
   t->cstate = cstate;
 
-  if (MESH_TUNNEL3_READY == cstate && 3 <= GMT_count_connections (t))
+  if (MESH_TUNNEL3_READY == cstate
+      && CONNECTIONS_PER_TUNNEL <= GMT_count_connections (t))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  cstate triggered stop dht\n");
     GMP_stop_search (t->peer);
@@ -1856,6 +1884,36 @@ GMT_change_estate (struct MeshTunnel3* t, enum MeshTunnel3EState state)
 
 
 /**
+ * Check that the tunnel doesn't have too many connections,
+ * remove one if necessary.
+ *
+ * For the time being, this means the newest connection.
+ *
+ * @param t Tunnel to check.
+ */
+static void
+check_connection_count (struct MeshTunnel3 *t)
+{
+  if (GMT_count_connections (t) > CONNECTIONS_PER_TUNNEL)
+  {
+    struct MeshTConnection *iter;
+    struct MeshTConnection *c;
+
+    for (iter = t->connection_head; NULL != iter; iter = iter->next)
+    {
+      if (NULL == c || iter->created.abs_value_us > c->created.abs_value_us)
+      {
+        c = iter;
+      }
+    }
+    if (NULL != c)
+      GMC_destroy (c->c);
+    else
+      GNUNET_break (0);
+  }
+}
+
+/**
  * Add a connection to a tunnel.
  *
  * @param t Tunnel.
@@ -1874,7 +1932,11 @@ GMT_add_connection (struct MeshTunnel3 *t, struct MeshConnection *c)
 
   aux = GNUNET_new (struct MeshTConnection);
   aux->c = c;
-  GNUNET_CONTAINER_DLL_insert_tail (t->connection_head, t->connection_tail, aux);
+  aux->created = GNUNET_TIME_absolute_get ();
+
+  GNUNET_CONTAINER_DLL_insert (t->connection_head, t->connection_tail, aux);
+
+  check_connection_count (t);
 }
 
 
@@ -2198,7 +2260,7 @@ GMT_use_path (struct MeshTunnel3 *t, struct MeshPeerPath *p)
     if (p->peers[own_pos] == myid)
       break;
   }
-  if (own_pos > p->length - 1)
+  if (own_pos >= p->length)
   {
     GNUNET_break_op (0);
     return NULL;
