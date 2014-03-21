@@ -195,7 +195,7 @@ path_2s (struct MeshPeerPath *p)
     GNUNET_asprintf (&s, "%s %s",
                      old, GNUNET_i2s (GNUNET_PEER_resolve2 (p->peers[i])));
     GNUNET_free_non_null (old);
-    old = s;  old = "";
+    old = s;
   }
   return s;
 }
