@@ -2448,6 +2448,7 @@ GMT_get_next_chid (struct MeshTunnel3 *t)
     mask = 0x4000000;
   else
     mask = 0x0;
+  t->next_chid |= mask;
 
   while (NULL != GMT_get_channel (t, t->next_chid))
   {
