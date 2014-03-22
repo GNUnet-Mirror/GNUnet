@@ -235,7 +235,12 @@ mesh_test_run (void *cls,
   struct GNUNET_MESH_TEST_Context *ctx = cls;
   unsigned int i;
 
-  GNUNET_assert (num_peers == ctx->num_peers);
+  if  (num_peers != ctx->num_peers)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Peers started %u/%u, ending\n",
+                num_peers, ctx->num_peers);
+    exit (1);
+  }
   ctx->peers = peers;
   for (i = 0; i < num_peers; i++)
   {
@@ -252,6 +257,7 @@ mesh_test_run (void *cls,
                                                   &mesh_connect_adapter,
                                                   &mesh_disconnect_adapter,
                                                   newctx);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "op handle %p\n", ctx->ops[i]);
   }
 }
 
