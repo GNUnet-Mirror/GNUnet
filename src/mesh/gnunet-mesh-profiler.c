@@ -46,7 +46,7 @@
 /**
  * Time to wait for stuff that should be rather fast
  */
-#define SHORT_TIME GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 60)
+#define SHORT_TIME GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 300)
 
 /**
  * Total number of rounds.
@@ -982,7 +982,8 @@ peer_id_cb (void *cls,
     test_task = GNUNET_SCHEDULER_add_delayed (delay, &start_test, NULL);
     return; /* start_test from incoming_channel */
   }
-  test_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Starting in a minute...\n");
+  test_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
                                             &start_test, NULL);
 }
 
@@ -1024,7 +1025,7 @@ tmain (void *cls,
                                            GNUNET_TESTBED_PIT_IDENTITY,
                                            &peer_id_cb, (void *) i);
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "requested peer ids\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "requested peer ids\n");
   /* Continues from pi_cb -> do_test */
 }
 

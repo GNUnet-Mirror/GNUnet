@@ -17,7 +17,7 @@ fi
 
 LINKS=`echo "l($PEERS)/l(2) * $PEERS" | bc -l`
 LINKS=`printf "%.0f" $LINKS`
-NSE=`echo "l($PEERS)/l(10)" | bc -l`
+NSE=`echo "l($PEERS)/l(2)" | bc -l`
 echo "using $PEERS peers, $LINKS links";
     
 sed -e "s/%LINKS%/$LINKS/;s/%NSE%/$NSE/" profiler.conf > .profiler.conf
