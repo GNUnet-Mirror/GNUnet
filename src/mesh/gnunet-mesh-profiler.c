@@ -797,8 +797,12 @@ incoming_channel (void *cls, struct GNUNET_MESH_Channel *channel,
     peers_warmup++;
     if (peers_warmup < peers_total)
       return NULL;
-    test_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-                                              &start_test, NULL);
+    if (GNUNET_SCHEDULER_NO_TASK != test_task)
+    {
+      GNUNET_SCHEDULER_cancel (test_task);
+      test_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+                                                &start_test, NULL);
+    }
     return NULL;
   }
   GNUNET_assert (peer == peers[n].incoming);
@@ -869,6 +873,7 @@ start_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   enum GNUNET_MESH_ChannelOption flags;
   unsigned long i;
 
+  test_task = GNUNET_SCHEDULER_NO_TASK;
   if ((GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason) != 0)
     return;
 
@@ -969,7 +974,12 @@ peer_id_cb (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Got all IDs, starting profiler\n");
   if (do_warmup)
   {
+    struct GNUNET_TIME_Relative delay;
+
     warmup();
+    delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
+                                           100 * peers_total);
+    test_task = GNUNET_SCHEDULER_add_delayed (delay, &start_test, NULL);
     return; /* start_test from incoming_channel */
   }
   test_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
