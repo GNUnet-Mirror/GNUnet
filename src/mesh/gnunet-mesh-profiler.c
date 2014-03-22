@@ -226,7 +226,6 @@ static GNUNET_SCHEDULER_TaskIdentifier test_task;
  */
 static unsigned int current_round;
 
-
 /**
  * Do preconnect? (Each peer creates a tunnel to one other peer).
  */
@@ -1061,7 +1060,7 @@ main (int argc, char *argv[])
     return 1;
   }
 
-  do_warmup = (5 > argc || argv[4][0] == 'N');
+  do_warmup = (5 > argc || argv[4][0] != 'N');
 
   ids = GNUNET_CONTAINER_multipeermap_create (2 * peers_total, GNUNET_YES);
   GNUNET_assert (NULL != ids);
