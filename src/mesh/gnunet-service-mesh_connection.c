@@ -1775,16 +1775,17 @@ GMC_handle_broken (void* cls,
   fwd = is_fwd (c, id);
   if (GMC_is_terminal (c, fwd))
   {
-    struct GNUNET_MessageHeader *msg;
+    struct GNUNET_MessageHeader *out_msg;
     struct MeshPeer *peer;
 
     peer = get_hop (c, !fwd);
     path_invalidate (c->path);
+    GMP_notify_broken_link (c->t, &msg->peer1, &msg->peer2);
     c->state = MESH_CONNECTION_DESTROYED;
-    while (NULL != (msg = GMP_connection_pop (peer, c)))
+    while (NULL != (out_msg = GMP_connection_pop (peer, c)))
     {
       GNUNET_assert (NULL ==
-                     GMT_send_prebuilt_message (msg, c->t, NULL, GNUNET_YES,
+                     GMT_send_prebuilt_message (out_msg, c->t, NULL, GNUNET_YES,
                                                 NULL, NULL));
     }
 

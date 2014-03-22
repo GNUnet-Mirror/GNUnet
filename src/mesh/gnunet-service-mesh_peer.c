@@ -1234,6 +1234,7 @@ GMP_connection_pop (struct MeshPeer *peer, struct MeshConnection *c)
   struct MeshPeerQueue *q;
   struct GNUNET_MessageHeader *msg;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Connection pop on %s\n", GMC_2s (c));
   for (q = peer->queue_head; NULL != q; q = q->next)
   {
     if (q->c != c)
@@ -2024,6 +2025,57 @@ GMP_try_connect (struct MeshPeer *peer)
 
   mh = GNUNET_HELLO_get_header (hello);
   GNUNET_TRANSPORT_offer_hello (transport_handle, mh, try_connect, peer);
+}
+
+
+/**
+ * Notify a peer that a link between two other peers is broken. If any path
+ * used that link, eliminate it.
+ *
+ * @param peer Peer affected by the change.
+ * @param peer1 Peer whose link is broken.
+ * @param peer2 Peer whose link is broken.
+ */
+void
+GMP_notify_broken_link (struct MeshPeer *peer,
+                        struct GNUNET_PeerIdentity *peer1,
+                        struct GNUNET_PeerIdentity *peer2)
+{
+  struct MeshPeerPath *iter;
+  struct MeshPeerPath *next;
+  unsigned int i;
+  GNUNET_PEER_Id p1;
+  GNUNET_PEER_Id p2;
+
+  p1 = GNUNET_PEER_search (peer1);
+  p2 = GNUNET_PEER_search (peer2);
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Link %u-%u broken\n", p1, p2);
+  if (0 == p1 || 0 == p2)
+  {
+    /* We don't even know them */
+    return;
+  }
+
+  for (iter = peer->path_head; NULL != iter; iter = next)
+  {
+    next = iter->next;
+    for (i = 0; i < iter->length - 1; i++)
+    {
+      if ((iter->peers[i] == p1 && iter->peers[i + 1] == p2)
+          || (iter->peers[i] == p2 && iter->peers[i + 1] == p1))
+      {
+        char *s;
+
+        s = path_2s (iter);
+        LOG (GNUNET_ERROR_TYPE_DEBUG, " - destroying %s\n", s);
+        GNUNET_free (s);
+
+        GNUNET_CONTAINER_DLL_remove (peer->path_head, peer->path_tail, iter);
+        path_destroy (iter);
+      }
+    }
+  }
 }
 
 

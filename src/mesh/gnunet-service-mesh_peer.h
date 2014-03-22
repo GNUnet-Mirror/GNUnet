@@ -358,6 +358,19 @@ void
 GMP_try_connect (struct MeshPeer *peer);
 
 /**
+ * Notify a peer that a link between two other peers is broken. If any path
+ * used that link, eliminate it.
+ *
+ * @param peer Peer affected by the change.
+ * @param peer1 Peer whose link is broken.
+ * @param peer2 Peer whose link is broken.
+ */
+void
+GMP_notify_broken_link (struct MeshPeer *peer,
+                        struct GNUNET_PeerIdentity *peer1,
+                        struct GNUNET_PeerIdentity *peer2);
+
+/**
  * Count the number of known paths toward the peer.
  *
  * @param peer Peer to get path info.
