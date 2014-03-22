@@ -1358,10 +1358,7 @@ handle_ch_create (struct MeshTunnel3 *t,
     /* Probably a retransmission, safe to ignore */
     LOG (GNUNET_ERROR_TYPE_DEBUG, "   already exists...\n");
   }
-  else
-  {
-    ch = GMCH_handle_create (t, msg);
-  }
+  ch = GMCH_handle_create (t, msg);
   if (NULL != ch)
     GMT_add_channel (t, ch);
 }
