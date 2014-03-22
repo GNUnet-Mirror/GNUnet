@@ -2120,6 +2120,12 @@ GMCH_handle_create (struct MeshTunnel3 *t,
   else
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  duplicate create channel\n");
+    if (GNUNET_SCHEDULER_NO_TASK != ch->dest_rel->retry_task)
+    {
+      /* we were waiting to re-send our 'SYNACK', wait no more! */
+      GNUNET_SCHEDULER_cancel (ch->dest_rel->retry_task);
+      ch->dest_rel->retry_task = GNUNET_SCHEDULER_NO_TASK;
+    }
   }
   send_ack (ch, GNUNET_YES);
 
