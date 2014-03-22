@@ -15,11 +15,11 @@ if [ $PEERS -eq 1 ]; then
     exit 1;
 fi
 
-LINKS=`echo "l($PEERS) * $PEERS" | bc -l`
+LINKS=`echo "l($PEERS) * l($PEERS) * $PEERS" | bc -l`
 LINKS=`printf "%.0f" $LINKS`
 NSE=`echo "l($PEERS)/l(10)" | bc -l`
 echo "using $PEERS peers, $LINKS links";
     
 sed -e "s/%LINKS%/$LINKS/;s/%NSE%/$NSE/" profiler.conf > .profiler.conf
 
-./gnunet-mesh-profiler $ROUNDTIME $PEERS $PINGS |& tee log | grep -v DEBUG
+./gnunet-mesh-profiler $ROUNDTIME $PEERS $PINGS $4 |& tee log | grep -v DEBUG
