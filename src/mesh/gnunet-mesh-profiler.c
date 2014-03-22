@@ -983,7 +983,7 @@ peer_id_cb (void *cls,
     return; /* start_test from incoming_channel */
   }
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Starting in a second...\n");
-  test_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_,
+  test_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
                                             &start_test, NULL);
 }
 
