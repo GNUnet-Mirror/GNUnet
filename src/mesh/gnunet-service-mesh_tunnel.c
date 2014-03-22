@@ -2445,7 +2445,7 @@ GMT_get_next_chid (struct MeshTunnel3 *t)
    */
   result = GNUNET_CRYPTO_cmp_peer_identity (&my_full_id, GMP_get_id (t->peer));
   if (0 > result)
-    mask = 0x4000000;
+    mask = 0x40000000;
   else
     mask = 0x0;
   t->next_chid |= mask;
