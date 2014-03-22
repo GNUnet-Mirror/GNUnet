@@ -1664,12 +1664,7 @@ GMP_add_path (struct MeshPeer *peer, struct MeshPeerPath *path,
     path_destroy (path);
     return NULL;
   }
-  if (2 >= path->length && GNUNET_NO == trusted)
-  {
-    /* Only allow CORE to tell us about direct paths */
-    path_destroy (path);
-    return NULL;
-  }
+
   for (l = 1; l < path->length; l++)
   {
     if (path->peers[l] == myid)
@@ -1687,6 +1682,13 @@ GMP_add_path (struct MeshPeer *peer, struct MeshPeerPath *path,
   }
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, " final length: %u\n", path->length);
+
+  if (2 >= path->length && GNUNET_NO == trusted)
+  {
+    /* Only allow CORE to tell us about direct paths */
+    path_destroy (path);
+    return NULL;
+  }
 
   l = path_get_length (path);
   if (0 == l)
