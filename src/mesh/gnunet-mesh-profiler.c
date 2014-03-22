@@ -982,8 +982,8 @@ peer_id_cb (void *cls,
     test_task = GNUNET_SCHEDULER_add_delayed (delay, &start_test, NULL);
     return; /* start_test from incoming_channel */
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Starting in a minute...\n");
-  test_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Starting in a second...\n");
+  test_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_,
                                             &start_test, NULL);
 }
 
