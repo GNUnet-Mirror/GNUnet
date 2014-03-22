@@ -1588,7 +1588,7 @@ GMC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
   orig_peer = GMP_get (&id[0]);
 
   /* Is it a connection to us? */
-  if (c->own_pos == size - 1)
+  if (c->own_pos == path->length - 1)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  It's for us!\n");
     GMP_add_path_to_origin (orig_peer, path_duplicate (path), GNUNET_YES);
