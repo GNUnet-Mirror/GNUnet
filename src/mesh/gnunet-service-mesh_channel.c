@@ -332,9 +332,10 @@ send_create (struct MeshChannel *ch);
  *
  * @param ch The channel to confirm.
  * @param fwd Should we send a FWD ACK? (going dest->root)
+ * @param reaction This ACK is a reaction to a duplicate CREATE, don't save.
  */
 static void
-send_ack (struct MeshChannel *ch, int fwd);
+send_ack (struct MeshChannel *ch, int fwd, int reaction);
 
 
 
@@ -703,7 +704,7 @@ channel_recreate (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   else if (rel == rel->ch->dest_rel)
   {
-    send_ack (rel->ch, GNUNET_YES);
+    send_ack (rel->ch, GNUNET_YES, GNUNET_NO);
   }
   else
   {
@@ -827,9 +828,10 @@ send_create (struct MeshChannel *ch)
  *
  * @param ch The channel to confirm.
  * @param fwd Should we send a FWD ACK? (going dest->root)
+ * @param reaction This ACK is a reaction to a duplicate CREATE, don't save.
  */
 static void
-send_ack (struct MeshChannel *ch, int fwd)
+send_ack (struct MeshChannel *ch, int fwd, int reaction)
 {
   struct GNUNET_MESH_ChannelManage msg;
 
@@ -840,7 +842,7 @@ send_ack (struct MeshChannel *ch, int fwd)
        GM_f2s (fwd), GMCH_2s (ch));
 
   msg.chid = htonl (ch->gid);
-  GMCH_send_prebuilt_message (&msg.header, ch, !fwd, NULL);
+  GMCH_send_prebuilt_message (&msg.header, ch, !fwd, reaction ? &msg : NULL);
 }
 
 
@@ -1164,7 +1166,7 @@ channel_confirm (struct MeshChannel *ch, int fwd)
 
   /* In case of a FWD ACK (SYNACK) send a BCK ACK (ACK). */
   if (GNUNET_YES == fwd)
-    send_ack (ch, GNUNET_NO);
+    send_ack (ch, GNUNET_NO, GNUNET_NO);
 }
 
 
@@ -2065,7 +2067,9 @@ GMCH_handle_create (struct MeshTunnel3 *t,
   struct MeshChannel *ch;
   struct MeshClient *c;
   int new_channel;
+  int reaction;
 
+  reaction = GNUNET_NO;
   chid = ntohl (msg->chid);
   ch = GMT_get_channel (t, chid);
   if (NULL == ch)
@@ -2120,14 +2124,16 @@ GMCH_handle_create (struct MeshTunnel3 *t,
   else
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  duplicate create channel\n");
+    reaction = GNUNET_YES;
     if (GNUNET_SCHEDULER_NO_TASK != ch->dest_rel->retry_task)
     {
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "  clearing retry task\n");
       /* we were waiting to re-send our 'SYNACK', wait no more! */
       GNUNET_SCHEDULER_cancel (ch->dest_rel->retry_task);
       ch->dest_rel->retry_task = GNUNET_SCHEDULER_NO_TASK;
     }
   }
-  send_ack (ch, GNUNET_YES);
+  send_ack (ch, GNUNET_YES, reaction);
 
   return ch;
 }
@@ -2310,7 +2316,7 @@ GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
 
 
     case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_ACK:
-      if (GNUNET_YES == fwd)
+      if (GNUNET_YES == fwd || NULL != existing_copy)
       {
         /* BCK ACK (going FWD) is just a response for a SYNACK, don't keep*/
         fire_and_forget (message, ch, GNUNET_YES);
