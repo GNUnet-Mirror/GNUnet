@@ -1807,9 +1807,7 @@ GMP_remove_path (struct MeshPeer *peer, struct MeshPeerPath *path)
     if (0 == memcmp (path->peers, iter->peers,
                      sizeof (GNUNET_PEER_Id) * path->length))
     {
-      GNUNET_CONTAINER_DLL_remove (peer->path_head, peer->path_tail, iter);
-      if (path != iter)
-        path_destroy (iter);
+      path_invalidate (iter);
     }
   }
   path_destroy (path);
@@ -2067,11 +2065,10 @@ GMP_notify_broken_link (struct MeshPeer *peer,
         char *s;
 
         s = path_2s (iter);
-        LOG (GNUNET_ERROR_TYPE_DEBUG, " - destroying %s\n", s);
+        LOG (GNUNET_ERROR_TYPE_DEBUG, " - invalidating %s\n", s);
         GNUNET_free (s);
 
-        GNUNET_CONTAINER_DLL_remove (peer->path_head, peer->path_tail, iter);
-        path_destroy (iter);
+        path_invalidate (iter);
       }
     }
   }
