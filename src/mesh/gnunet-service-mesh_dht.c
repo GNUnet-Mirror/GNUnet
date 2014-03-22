@@ -254,7 +254,7 @@ announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   const struct GNUNET_HELLO_Message *hello;
   size_t size;
   struct GNUNET_TIME_Absolute expiration;
-  struct GNUNET_TIME_Absolute retry_time;
+  struct GNUNET_TIME_Relative retry_time;
 
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
   {
