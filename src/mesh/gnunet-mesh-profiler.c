@@ -242,6 +242,20 @@ static unsigned int peers_warmup;
  */
 static int test_finished;
 
+
+/**
+ * START THE TEST ITSELF, AS WE ARE CONNECTED TO THE MESH SERVICES.
+ *
+ * Testcase continues when the root receives confirmation of connected peers,
+ * on callback funtion ch.
+ *
+ * @param cls Closure (unsued).
+ * @param tc Task Context.
+ */
+static void
+start_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+
 /**
  * Calculate a random delay.
  *
@@ -779,8 +793,8 @@ incoming_channel (void *cls, struct GNUNET_MESH_Channel *channel,
   GNUNET_assert (NULL != peer);
   if (NULL == peers[n].incoming)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "WARMUP %u <= %u\n",
-                n, get_index (peer), channel);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "WARMUP %3u: %u <= %u\n",
+                peers_warmup, n, get_index (peer));
     peers_warmup++;
     if (peers_warmup < peers_total)
       return NULL;
