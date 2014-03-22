@@ -1450,8 +1450,8 @@ build_path_from_peer_ids (struct GNUNET_PeerIdentity *peers,
     }
     LOG (GNUNET_ERROR_TYPE_DEBUG, "    storing at %u\n", i - offset);
     path->peers[i - offset] = shortid;
-    if (path->peers[i] == myid)
-      *own_pos = i;
+    if (path->peers[i - offset] == myid)
+      *own_pos = i - offset;
   }
   path->length -= offset;
 
