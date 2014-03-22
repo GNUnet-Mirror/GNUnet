@@ -17,8 +17,9 @@ fi
 
 LINKS=`echo "l($PEERS) * $PEERS" | bc -l`
 LINKS=`printf "%.0f" $LINKS`
+NSE=`echo "l($PEERS)/l(10)" | bc -l`
 echo "using $PEERS peers, $LINKS links";
     
-sed -e "s/%LINKS%/$LINKS/g" profiler.conf > .profiler.conf
+sed -e "s/%LINKS%/$LINKS/;s/%NSE%/$NSE/" profiler.conf > .profiler.conf
 
 ./gnunet-mesh-profiler $ROUNDTIME $PEERS $PINGS |& tee log | grep -v DEBUG
