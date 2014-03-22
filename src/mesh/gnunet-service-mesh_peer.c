@@ -870,7 +870,7 @@ queue_send (void *cls, size_t size, void *buf)
   queue = peer_get_first_message (peer);
   if (NULL == queue)
   {
-    GNUNET_break (0); /* Core tmt_rdy should've been canceled */
+    GNUNET_assert (0); /* Core tmt_rdy should've been canceled */
     return 0;
   }
   c = queue->c;
@@ -1807,7 +1807,9 @@ GMP_remove_path (struct MeshPeer *peer, struct MeshPeerPath *path)
     if (0 == memcmp (path->peers, iter->peers,
                      sizeof (GNUNET_PEER_Id) * path->length))
     {
-      path_invalidate (iter);
+      GNUNET_CONTAINER_DLL_remove (peer->path_head, peer->path_tail, iter);
+      if (iter != path)
+        path_destroy (iter);
     }
   }
   path_destroy (path);
