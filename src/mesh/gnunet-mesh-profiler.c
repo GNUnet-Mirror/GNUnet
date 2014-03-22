@@ -233,6 +233,11 @@ static unsigned int current_round;
 static int do_warmup;
 
 /**
+ * Warmup progress.
+ */
+static unsigned int peers_warmup;
+
+/**
  * Flag to notify callbacks not to generate any new traffic anymore.
  */
 static int test_finished;
@@ -776,6 +781,11 @@ incoming_channel (void *cls, struct GNUNET_MESH_Channel *channel,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "WARMUP %u <= %u\n",
                 n, get_index (peer), channel);
+    peers_warmup++;
+    if (peers_warmup < peers_total)
+      return NULL;
+    test_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+                                              &start_test, NULL);
     return NULL;
   }
   GNUNET_assert (peer == peers[n].incoming);
@@ -923,7 +933,6 @@ peer_id_cb (void *cls,
        const char *emsg)
 {
   long n = (long) cls;
-  struct GNUNET_TIME_Relative delay;
 
   if (NULL == pinfo || NULL != emsg)
   {
@@ -946,10 +955,12 @@ peer_id_cb (void *cls,
     return;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Got all IDs, starting profiler\n");
   if (do_warmup)
+  {
     warmup();
-  delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
-                                         150 * peers_total);
-  test_task = GNUNET_SCHEDULER_add_delayed (delay, &start_test, NULL);
+    return; /* start_test from incoming_channel */
+  }
+  test_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+                                            &start_test, NULL);
 }
 
 /**
