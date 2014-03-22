@@ -254,6 +254,7 @@ announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   const struct GNUNET_HELLO_Message *hello;
   size_t size;
   struct GNUNET_TIME_Absolute expiration;
+  struct GNUNET_TIME_Absolute retry_time;
 
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
   {
@@ -276,6 +277,7 @@ announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     return;
   }
   expiration = GNUNET_HELLO_get_last_expiration (hello);
+  retry_time = GNUNET_TIME_absolute_get_remaining (expiration);
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Hello %p size: %u\n", hello, size);
   memset (&phash, 0, sizeof (phash));
@@ -289,7 +291,7 @@ announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                   size,  /* Size of the data */
                   (const char *) hello, /* Data itself */
                   expiration,  /* Data expiration */
-                  GNUNET_TIME_UNIT_FOREVER_REL, /* Retry time */
+                  retry_time, /* Retry time */
                   NULL,         /* Continuation */
                   NULL);        /* Continuation closure */
   announce_id_task =
