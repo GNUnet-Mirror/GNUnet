@@ -855,7 +855,7 @@ send_broken2 (struct GNUNET_MeshHash *connection_id,
   msg->peer2 = *id2;
   neighbor = GMP_get_short (peer_id);
   GMP_queue_add (neighbor, msg,
-                 GNUNET_MESSAGE_TYPE_MESH_ENCRYPTED,
+                 GNUNET_MESSAGE_TYPE_MESH_CONNECTION_BROKEN,
                  sizeof (struct GNUNET_MESH_ConnectionBroken),
                  NULL, GNUNET_SYSERR, /* connection, fwd */
                  NULL, NULL); /* continuation */
