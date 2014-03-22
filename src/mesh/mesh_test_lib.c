@@ -177,7 +177,10 @@ mesh_connect_cb (void *cls,
   }
   for (i = 0; i < ctx->num_peers; i++)
     if (op == ctx->ops[i])
+    {
       ctx->meshes[i] = ca_result;
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "...mesh %u connected\n", i);
+    }
   for (i = 0; i < ctx->num_peers; i++)
     if (NULL == ctx->meshes[i])
       return; /* still some MESH connections missing */
@@ -240,6 +243,7 @@ mesh_test_run (void *cls,
     newctx = GNUNET_new (struct GNUNET_MESH_TEST_AdapterContext);
     newctx->peer = i;
     newctx->ctx = ctx;
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Connecting to mesh %u\n", i);
     ctx->ops[i] = GNUNET_TESTBED_service_connect (ctx,
                                                   peers[i],
                                                   "mesh",
