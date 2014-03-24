@@ -3063,7 +3063,7 @@ master_task (void *cls,
 
   n->task = GNUNET_SCHEDULER_NO_TASK;
   delay = GNUNET_TIME_absolute_get_remaining (n->timeout);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 	      "Master task runs for neighbour `%s' in state %s with timeout in %s\n",
 	      GNUNET_i2s (&n->id),
 	      GNUNET_TRANSPORT_ps2s(n->state),
@@ -3330,7 +3330,8 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
                   "CONNECT_ACK ignored as the timestamp does not match our CONNECT request\n");
       return GNUNET_OK;
     }
-    set_state_and_timeout (n, GNUNET_TRANSPORT_PS_CONNECTED, GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT));
+    set_state_and_timeout (n, GNUNET_TRANSPORT_PS_CONNECTED,
+        GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT));
     GNUNET_STATISTICS_set (GST_stats,
 			   gettext_noop ("# peers connected"),
 			   ++neighbours_connected,
@@ -3374,7 +3375,8 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
     break;
   case GNUNET_TRANSPORT_PS_RECONNECT_SENT:
     /* new address worked; go back to connected! */
-    set_state (n, GNUNET_TRANSPORT_PS_CONNECTED);
+    set_state_and_timeout (n, GNUNET_TRANSPORT_PS_CONNECTED,
+        GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT));
     send_session_ack_message (n);
     break;
   case GNUNET_TRANSPORT_PS_CONNECTED_SWITCHING_BLACKLIST:
@@ -3660,7 +3662,7 @@ GST_neighbours_set_incoming_quota (const struct GNUNET_PeerIdentity *neighbour,
   GNUNET_BANDWIDTH_tracker_update_quota (&n->in_tracker, quota);
   if (0 != ntohl (quota.value__))
     return;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Disconnecting peer `%4s' due to SET_QUOTA\n",
               GNUNET_i2s (&n->id));
   if (GNUNET_YES == test_connected (n))
@@ -3685,7 +3687,7 @@ GST_neighbours_handle_disconnect_message (const struct GNUNET_PeerIdentity *peer
   struct NeighbourMapEntry *n;
   const struct SessionDisconnectMessage *sdm;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Received DISCONNECT message from peer `%s'\n",
               GNUNET_i2s (peer));
   if (ntohs (msg->size) != sizeof (struct SessionDisconnectMessage))
@@ -3845,7 +3847,7 @@ GST_neighbours_force_disconnect (const struct GNUNET_PeerIdentity *target)
 			      gettext_noop
 			      ("# disconnected from peer upon explicit request"), 1,
 			      GNUNET_NO);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Forced disconnect from peer %s\n",
               GNUNET_i2s (target));
   disconnect_neighbour (n);
