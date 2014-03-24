@@ -52,17 +52,17 @@ struct RoutingTrail
   /**
    * Source peer .
    */
-  struct GNUNET_PeerIdentity *source;
+  struct GNUNET_PeerIdentity source;
 
   /**
    * Destination peer.
    */
-  struct GNUNET_PeerIdentity *destination;
+  struct GNUNET_PeerIdentity destination;
 
   /**
    * The peer to which this request should be passed to.
    */
-  struct GNUNET_PeerIdentity *next_hop;
+  struct GNUNET_PeerIdentity next_hop;
   
 };
 
@@ -91,17 +91,16 @@ GDS_ROUTING_add (struct GNUNET_PeerIdentity *source,
     
   /* If dest is already present in the routing table, then exit.*/
   if (GNUNET_YES ==
-    GNUNET_CONTAINER_multipeermap_contains (routing_table,
-                                              dest))
+      GNUNET_CONTAINER_multipeermap_contains (routing_table, dest))
   {
     GNUNET_break (0);
     return;
   }
   
   new_routing_entry = GNUNET_malloc (sizeof (struct RoutingTrail));
-  new_routing_entry->source = source;
-  new_routing_entry->next_hop = next_hop;
-  new_routing_entry->destination = dest;
+  memcpy (&(new_routing_entry->source) , source, sizeof (struct GNUNET_PeerIdentity));
+  memcpy (&(new_routing_entry->next_hop), next_hop, sizeof (struct GNUNET_PeerIdentity));
+  memcpy (&(new_routing_entry->destination), dest, sizeof (struct GNUNET_PeerIdentity));
   
   GNUNET_assert (GNUNET_OK ==
     GNUNET_CONTAINER_multipeermap_put (routing_table,
@@ -124,7 +123,7 @@ GDS_ROUTING_search(struct GNUNET_PeerIdentity *source_peer,
   if(trail == NULL)
       return NULL;
     
-  return trail->next_hop;
+  return &(trail->next_hop);
 }
 
 
