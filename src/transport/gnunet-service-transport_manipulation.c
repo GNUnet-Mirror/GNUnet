@@ -696,6 +696,7 @@ GST_manipulation_peer_disconnect(const struct GNUNET_PeerIdentity *peer)
       if (GNUNET_SCHEDULER_NO_TASK != generic_send_delay_task)
         {
           GNUNET_SCHEDULER_cancel(generic_send_delay_task);
+          generic_send_delay_task = GNUNET_SCHEDULER_NO_TASK;
           if (NULL != generic_dqe_head)
             generic_send_delay_task = GNUNET_SCHEDULER_add_delayed(
                 GNUNET_TIME_absolute_get_remaining(generic_dqe_head->sent_at),
