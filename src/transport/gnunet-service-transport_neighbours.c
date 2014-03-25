@@ -1673,7 +1673,6 @@ send_session_connect_cont (void *cls,
   set_state_and_timeout (n, GNUNET_TRANSPORT_PS_INIT_ATS,
       GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT));
   return;
-
 }
 
 /**
@@ -1750,6 +1749,55 @@ send_session_connect (struct NeighbourAddress *na)
 }
 
 
+static void
+send_session_connect_ack_cont (void *cls,
+                      const struct GNUNET_PeerIdentity *target,
+                      int result,
+                      size_t size_payload,
+                      size_t size_on_wire)
+{
+  struct NeighbourMapEntry *n;
+
+  n = lookup_neighbour (target);
+  if (NULL == n)
+  {
+    /* CONNECT_ACK continuation was called after neighbor was freed,
+     * for example due to a time out for the state or the session
+     * used was already terminated: nothing to do here... */
+    return;
+  }
+
+  if (GNUNET_TRANSPORT_PS_CONNECT_RECV_ACK != n->state)
+  {
+    /* CONNECT_ACK continuation was called after neighbor changed state,
+     * for example due to a time out for the state or the session
+     * used was already terminated: nothing to do here... */
+    return;
+  }
+  if (GNUNET_OK == result)
+    return;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+            _("Failed to send CONNECT_ACK message to peer `%s' using address `%s' session %p\n"),
+            GNUNET_i2s (target),
+            GST_plugins_a2s (n->primary_address.address),
+            n->primary_address.session);
+
+  /* Failed to send CONNECT_ACK message with this address */
+  GNUNET_ATS_address_destroyed (GST_ats, n->primary_address.address,
+      n->primary_address.session);
+  GNUNET_ATS_address_destroyed (GST_ats, n->primary_address.address,
+      NULL);
+
+  /* Remove address and request and additional one */
+  unset_primary_address (n);
+
+  set_state_and_timeout (n, GNUNET_TRANSPORT_PS_CONNECT_RECV_ATS,
+      GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT));
+  return;
+}
+
+
 /**
  * Send a CONNECT_ACK message via the given address.
  *
@@ -1795,7 +1843,7 @@ send_connect_ack_message (const struct GNUNET_HELLO_Address *address,
 		     (const char *) &connect_msg, sizeof (struct SessionConnectMessage),
 		     UINT_MAX,
 		     GNUNET_TIME_UNIT_FOREVER_REL,
-		     NULL, NULL))
+		     send_session_connect_ack_cont, NULL))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 _("Failed to transmit CONNECT_ACK message via plugin to %s\n"),
@@ -1816,13 +1864,11 @@ send_connect_ack_message (const struct GNUNET_HELLO_Address *address,
       GNUNET_ATS_address_destroyed (GST_ats, address, NULL);
     }
     else
-    {
       GNUNET_ATS_address_destroyed (GST_ats, address, session);
-    }
 
     /* Remove address and request and additional one */
     unset_primary_address (n);
-    set_state_and_timeout (n, GNUNET_TRANSPORT_PS_INIT_ATS,
+    set_state_and_timeout (n, GNUNET_TRANSPORT_PS_CONNECT_RECV_ATS,
         GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT));
     return;
   }
@@ -2182,6 +2228,7 @@ GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target)
     case GNUNET_TRANSPORT_PS_DISCONNECT_FINISHED:
       /* should not be possible */
       GNUNET_assert (0);
+      return;
     default:
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   "Unhandled state `%s'\n",
@@ -2227,9 +2274,25 @@ handle_connect_blacklist_check_cont (void *cls,
               "Connection to new address of peer `%s' based on blacklist is `%s'\n",
               GNUNET_i2s (peer),
               (GNUNET_OK == result) ? "allowed" : "FORBIDDEN");
+
+  if (NULL == (n = lookup_neighbour (peer)))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "No neighbor entry for peer `%s', ignoring blacklist result\n",
+                GNUNET_i2s (peer));
+    goto cleanup; /* nobody left to care about new address */
+  }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Blacklist check after CONNECT for peer `%s' in state %s/%s: %s\n",
+              GNUNET_i2s (peer),
+              GNUNET_TRANSPORT_ps2s (n->state),
+              print_ack_state (n->ack_state),
+              (GNUNET_OK == result) ? "OK" : "FAIL");
+
   if (GNUNET_OK == result)
   {
-    /* Blacklist agreed on connecting to a peer with this address */
+    /* Blacklist agreed on connecting to a peer with this address, notify ATS */
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
         "Notifying ATS peer's `%s' %s address `%s' session %p\n",
         GNUNET_i2s (peer),
@@ -2239,28 +2302,15 @@ handle_connect_blacklist_check_cont (void *cls,
     GST_ats_add_address (bcc->na.address, bcc->na.session, NULL, 0);
   }
 
-  if (NULL == (n = lookup_neighbour (peer)))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "No neighbor entry for peer `%s', ignoring blacklist result\n",
-                GNUNET_i2s (peer));
-    goto cleanup; /* nobody left to care about new address */
-  }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received connect blacklist check result for peer `%s' in state %s/%s\n",
-              GNUNET_i2s (peer),
-              GNUNET_TRANSPORT_ps2s (n->state),
-              print_ack_state (n->ack_state));
   switch (n->state)
   {
   case GNUNET_TRANSPORT_PS_NOT_CONNECTED:
-    /* this should not be possible */
+    /* This should not be possible */
     GNUNET_break (0);
     free_neighbour (n, GNUNET_NO);
     break;
   case GNUNET_TRANSPORT_PS_INIT_ATS:
-    /* waiting on ATS suggestion; still, pass address to ATS as a
-       possibility */
+    /* Waiting on ATS suggestion */
     break;
   case GNUNET_TRANSPORT_PS_CONNECT_SENT:
 #if 0
@@ -2284,19 +2334,25 @@ handle_connect_blacklist_check_cont (void *cls,
        * with this peer, request an address from ATS*/
       set_state_and_timeout (n, GNUNET_TRANSPORT_PS_CONNECT_RECV_ATS,
           GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT));
-      GNUNET_ATS_reset_backoff (GST_ats, peer);
+
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Requesting address for peer %s to ATS\n",
                   GNUNET_i2s (peer));
       if (NULL == n->suggest_handle)
         n->suggest_handle = GNUNET_ATS_suggest_address (GST_ats, peer,
             &address_suggest_cont, n);
-      else
-        GNUNET_ATS_reset_backoff (GST_ats, peer);
+      GNUNET_ATS_reset_backoff (GST_ats, peer);
     }
     else
     {
-      /* FIXME: state handling required! */
+      /* We received a CONNECT message from a peer, but blacklist denies to
+       * communicate with this peer and this address
+       * - Previous state: NOT_CONNECTED:
+       * We can free the neighbour, since the CONNECT created it
+       * - Previous state INIT_ATS:
+       *
+       * */
+      free_neighbour (n, GNUNET_NO);
     }
     break;
   case GNUNET_TRANSPORT_PS_CONNECT_RECV_ATS:
@@ -2343,6 +2399,9 @@ handle_connect_blacklist_check_cont (void *cls,
     if ( (GNUNET_OK == result) &&
 	 (ACK_SEND_CONNECT_ACK == n->ack_state) )
     {
+      /* TODO: Why should this happen? */
+      /* *Debug message: */ GNUNET_break (0);
+
       n->ack_state = ACK_SEND_SESSION_ACK;
       send_connect_ack_message (n->primary_address.address,
 					n->primary_address.session,
@@ -2536,10 +2595,11 @@ GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
   n->connect_ack_timestamp = ts;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Received SESSION_CONNECT for peer `%s' in state %s/%s\n",
+              "Received CONNECT for peer `%s' in state %s/%s\n",
               GNUNET_i2s (peer),
               GNUNET_TRANSPORT_ps2s (n->state),
               print_ack_state (n->ack_state));
+
   switch (n->state)
   {
   case GNUNET_TRANSPORT_PS_NOT_CONNECTED:
@@ -2552,7 +2612,8 @@ GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
     /* CONNECT message takes priority over us asking ATS for address */
     set_state_and_timeout (n, GNUNET_TRANSPORT_PS_CONNECT_RECV_BLACKLIST_INBOUND,
         GNUNET_TIME_relative_to_absolute (BLACKLIST_RESPONSE_TIMEOUT));
-    /* fallthrough */
+    connect_check_blacklist (peer, ts, address, session);
+    break;
   case GNUNET_TRANSPORT_PS_CONNECT_SENT:
   case GNUNET_TRANSPORT_PS_CONNECT_RECV_BLACKLIST_INBOUND:
   case GNUNET_TRANSPORT_PS_CONNECT_RECV_ATS:
@@ -2732,23 +2793,23 @@ switch_address_bl_check_cont (void *cls,
         GNUNET_TIME_relative_to_absolute (SETUP_CONNECTION_TIMEOUT));
     send_session_connect (&n->primary_address);
     break;
+  case GNUNET_TRANSPORT_PS_CONNECT_RECV_BLACKLIST_INBOUND:
+    /* We received an suggestion while waiting for a CONNECT blacklist check,
+     * this suggestion was permitted by a blacklist check, so send ACK*/
   case GNUNET_TRANSPORT_PS_CONNECT_RECV_ATS:
+    /* We requested an address and ATS suggests one:
+     * set primary address and send CONNECT_ACK message*/
     set_primary_address (n, blc_ctx->address, blc_ctx->session,
         blc_ctx->bandwidth_in, blc_ctx->bandwidth_out, GNUNET_NO);
     /* Send an ACK message as a response to the CONNECT msg */
     set_state_and_timeout (n, GNUNET_TRANSPORT_PS_CONNECT_RECV_ACK,
         GNUNET_TIME_relative_to_absolute (SETUP_CONNECTION_TIMEOUT));
     send_connect_ack_message (n->primary_address.address,
-                                      n->primary_address.session,
-                                      n->connect_ack_timestamp);
+                              n->primary_address.session,
+                              n->connect_ack_timestamp);
     if (ACK_SEND_CONNECT_ACK == n->ack_state)
       n->ack_state = ACK_SEND_SESSION_ACK;
 
-    break;
-  case GNUNET_TRANSPORT_PS_CONNECT_RECV_BLACKLIST_INBOUND:
-    set_timeout (n, GNUNET_TIME_relative_to_absolute (BLACKLIST_RESPONSE_TIMEOUT));
-    /* REMOVE */ connect_check_blacklist (&n->id, n->connect_ack_timestamp,
-        blc_ctx->address, blc_ctx->session);
     break;
   case GNUNET_TRANSPORT_PS_CONNECT_RECV_BLACKLIST:
   case GNUNET_TRANSPORT_PS_CONNECT_RECV_ACK:
@@ -3161,7 +3222,7 @@ master_task (void *cls,
   case GNUNET_TRANSPORT_PS_CONNECT_RECV_BLACKLIST_INBOUND:
     if (0 == delay.rel_value_us)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                   "Connection to `%s' timed out waiting BLACKLIST to approve address to use for received CONNECT\n",
                   GNUNET_i2s (&n->id));
       free_neighbour (n, GNUNET_NO);
