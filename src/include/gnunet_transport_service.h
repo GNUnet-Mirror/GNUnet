@@ -119,12 +119,6 @@ enum GNUNET_TRANSPORT_PeerState
   GNUNET_TRANSPORT_PS_INIT_ATS,
 
   /**
-   * Asked to initiate connection, trying to get address approved
-   * by blacklist.
-   */
-  GNUNET_TRANSPORT_PS_INIT_BLACKLIST,
-
-  /**
    * Sent CONNECT message to other peer, waiting for CONNECT_ACK
    */
   GNUNET_TRANSPORT_PS_CONNECT_SENT,
@@ -133,11 +127,6 @@ enum GNUNET_TRANSPORT_PeerState
    * Received a CONNECT, asking ATS about address suggestions.
    */
   GNUNET_TRANSPORT_PS_CONNECT_RECV_ATS,
-
-  /**
-   * Received CONNECT from other peer, got an address, checking with blacklist.
-   */
-  GNUNET_TRANSPORT_PS_CONNECT_RECV_BLACKLIST,
 
   /**
    * CONNECT request from other peer was SESSION_ACK'ed, waiting for
@@ -157,24 +146,11 @@ enum GNUNET_TRANSPORT_PeerState
   GNUNET_TRANSPORT_PS_RECONNECT_ATS,
 
   /**
-   * Connection got into trouble, rest of the system still believes
-   * it to be up; we are checking the new address against the blacklist.
-   */
-  GNUNET_TRANSPORT_PS_RECONNECT_BLACKLIST,
-
-  /**
    * Sent CONNECT over new address (either by ATS telling us to switch
    * addresses or from RECONNECT_ATS); if this fails, we need to tell
    * the rest of the system about a disconnect.
    */
   GNUNET_TRANSPORT_PS_RECONNECT_SENT,
-
-  /**
-   * We have some primary connection, but ATS suggested we switch
-   * to some alternative; we're now checking the alternative against
-   * the blacklist.
-   */
-  GNUNET_TRANSPORT_PS_CONNECTED_SWITCHING_BLACKLIST,
 
   /**
    * We have some primary connection, but ATS suggested we switch
