@@ -2284,18 +2284,6 @@ handle_connect_blacklist_check_cont (void *cls,
               print_ack_state (n->ack_state),
               (GNUNET_OK == result) ? "OK" : "FAIL");
 
-  if (GNUNET_OK == result)
-  {
-    /* Blacklist agreed on connecting to a peer with this address, notify ATS */
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-        "Notifying ATS peer's `%s' %s address `%s' session %p\n",
-        GNUNET_i2s (peer),
-        (GNUNET_YES == GNUNET_HELLO_address_check_option(bcc->na.address,
-            GNUNET_HELLO_ADDRESS_INFO_INBOUND)) ? "inbound" : "outbound",
-        GST_plugins_a2s (bcc->na.address), bcc->na.session);
-    GST_ats_add_address (bcc->na.address, bcc->na.session, NULL, 0);
-  }
-
   switch (n->state)
   {
   case GNUNET_TRANSPORT_PS_NOT_CONNECTED:
@@ -2508,14 +2496,12 @@ GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
     connect_check_blacklist (peer, ts, address, session);
     break;
   case GNUNET_TRANSPORT_PS_CONNECTED:
-    /* we are already connected and can thus send the ACK immediately;
-       still, it can never hurt to have an alternative address, so also
-       tell ATS  about it */
+    /* we are already connected and can thus send the ACK immediately */
     GNUNET_assert (NULL != n->primary_address.address);
     GNUNET_assert (NULL != n->primary_address.session);
     n->ack_state = ACK_UNDEFINED;
     send_connect_ack_message (n->primary_address.address,
-				      n->primary_address.session, ts);
+                              n->primary_address.session, ts);
     connect_check_blacklist (peer, ts, address, session);
     break;
   case GNUNET_TRANSPORT_PS_RECONNECT_ATS:
