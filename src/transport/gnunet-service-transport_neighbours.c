@@ -3179,7 +3179,6 @@ master_task (void *cls,
       GNUNET_ATS_address_destroyed (GST_ats, n->primary_address.address, NULL);
 
       /* Remove address and request and additional one */
-      GNUNET_break (0);
       unset_primary_address (n);
       set_state_and_timeout (n, GNUNET_TRANSPORT_PS_INIT_ATS,
           GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT));
