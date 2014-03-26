@@ -350,9 +350,7 @@ connect_bl_check_cont (void *cls,
   else
   {
     /* Blacklist denies to speak to this peer */
-    GNUNET_break (0);
     kill_session (blctx->address->transport_name, blctx->session);
-    GNUNET_break (0);
   }
 
   GNUNET_CONTAINER_DLL_remove (bc_head, bc_tail, blctx);
