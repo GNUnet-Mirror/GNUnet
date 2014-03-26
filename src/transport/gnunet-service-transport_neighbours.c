@@ -838,7 +838,7 @@ set_primary_address (struct NeighbourMapEntry *n,
 }
 
 /**
- * Clear the primary address of a neighbour since this primary address is not
+ * Clear the primary address of a neighbour since this address is not
  * valid anymore and notify monitoring about it
  *
  * @param n the neighbour
@@ -858,7 +858,18 @@ unset_primary_address (struct NeighbourMapEntry *n)
       n->primary_address.bandwidth_out);
 }
 
-
+/**
+ * Clear the alternative address of a neighbour since this address is not
+ * valid anymore
+ *
+ * @param n the neighbour
+ */
+static void
+unset_alternative_address (struct NeighbourMapEntry *n)
+{
+  /* Unset primary address */
+  free_address (&n->alternative_address);
+}
 
 /**
  * Free a neighbour map entry.
@@ -1640,7 +1651,8 @@ send_session_connect_cont (void *cls,
   }
 
   if ( (GNUNET_TRANSPORT_PS_CONNECT_SENT != n->state) &&
-       (GNUNET_TRANSPORT_PS_RECONNECT_SENT != n->state) )
+       (GNUNET_TRANSPORT_PS_RECONNECT_SENT != n->state) &&
+       (GNUNET_TRANSPORT_PS_CONNECTED_SWITCHING_CONNECT_SENT != n->state))
   {
     /* CONNECT continuation was called after neighbor changed state,
      * for example due to a time out for the state or the session
@@ -1656,34 +1668,40 @@ send_session_connect_cont (void *cls,
             GST_plugins_a2s (n->primary_address.address),
             n->primary_address.session);
 
-  /* Failed to send CONNECT message with this address */
-  GNUNET_ATS_address_destroyed (GST_ats, n->primary_address.address,
-      n->primary_address.session);
-  GNUNET_ATS_address_destroyed (GST_ats, n->primary_address.address,
-      NULL);
-
-  /* Remove address and request and additional one */
-  unset_primary_address (n);
-
-  if (n->state == GNUNET_TRANSPORT_PS_RECONNECT_SENT)
-  {
+  switch (n->state) {
+  case GNUNET_TRANSPORT_PS_CONNECT_SENT:
+    /* Remove address and request and additional one */
+    GNUNET_ATS_address_destroyed (GST_ats, n->primary_address.address,
+        n->primary_address.session);
+    GNUNET_ATS_address_destroyed (GST_ats, n->primary_address.address, NULL );
+    unset_primary_address (n);
     set_state_and_timeout (n, GNUNET_TRANSPORT_PS_RECONNECT_ATS,
-      GNUNET_TIME_relative_to_absolute (FAST_RECONNECT_TIMEOUT));
-
-  }
-  else if (n->state == GNUNET_TRANSPORT_PS_INIT_ATS)
-  {
+        GNUNET_TIME_relative_to_absolute (FAST_RECONNECT_TIMEOUT));
+    break;
+  case GNUNET_TRANSPORT_PS_RECONNECT_SENT:
+    /* Remove address and request and additional one */
+    GNUNET_ATS_address_destroyed (GST_ats, n->primary_address.address,
+        n->primary_address.session);
+    GNUNET_ATS_address_destroyed (GST_ats, n->primary_address.address, NULL );
+    unset_primary_address (n);
     set_state_and_timeout (n, GNUNET_TRANSPORT_PS_INIT_ATS,
-      GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT));
+        GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT));
+    break;
+  case GNUNET_TRANSPORT_PS_CONNECTED_SWITCHING_CONNECT_SENT:
+    /* Remove address and request and go back to primary address */
+    GNUNET_ATS_address_destroyed (GST_ats, n->alternative_address.address,
+        n->alternative_address.session);
+    GNUNET_ATS_address_destroyed (GST_ats, n->alternative_address.address,
+        NULL );
+    unset_alternative_address (n);
+    set_state_and_timeout (n, GNUNET_TRANSPORT_PS_CONNECTED,
+        GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT));
+    break;
+  default:
+    GNUNET_break(0);
+    disconnect_neighbour (n);
+    break;
   }
-  else
-  {
-    GNUNET_break (0);
-    set_state_and_timeout (n, GNUNET_TRANSPORT_PS_INIT_ATS,
-      GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT));
-  }
-
-  return;
 }
 
 /**
@@ -1740,31 +1758,35 @@ send_session_connect (struct NeighbourAddress *na)
       GNUNET_break (0);
       return;
     }
-    /* Hard failure to send the CONNECT message with this address:
-       Destroy address and session */
+
+    switch (n->state) {
+      case GNUNET_TRANSPORT_PS_CONNECT_SENT:
+        /* Remove address and request and additional one */
+        unset_primary_address (n);
+        set_state_and_timeout (n, GNUNET_TRANSPORT_PS_RECONNECT_ATS,
+          GNUNET_TIME_relative_to_absolute (FAST_RECONNECT_TIMEOUT));
+        /* Hard failure to send the CONNECT message with this address:
+           Destroy address and session */
+        break;
+      case GNUNET_TRANSPORT_PS_RECONNECT_SENT:
+        /* Remove address and request and additional one */
+        unset_primary_address (n);
+        set_state_and_timeout (n, GNUNET_TRANSPORT_PS_INIT_ATS,
+          GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT));
+        break;
+      case GNUNET_TRANSPORT_PS_CONNECTED_SWITCHING_CONNECT_SENT:
+        /* Remove address and request and additional one */
+        unset_alternative_address (n);
+        set_state_and_timeout (n, GNUNET_TRANSPORT_PS_CONNECTED,
+          GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT));
+        break;
+      default:
+        GNUNET_break (0);
+        disconnect_neighbour (n);
+        break;
+    }
     GNUNET_ATS_address_destroyed (GST_ats, na->address, na->session);
     GNUNET_ATS_address_destroyed (GST_ats, na->address, NULL);
-
-    /* Remove address and request and additional one */
-    unset_primary_address (n);
-    if (n->state == GNUNET_TRANSPORT_PS_RECONNECT_SENT)
-    {
-      set_state_and_timeout (n, GNUNET_TRANSPORT_PS_RECONNECT_ATS,
-        GNUNET_TIME_relative_to_absolute (FAST_RECONNECT_TIMEOUT));
-
-    }
-    else if (n->state == GNUNET_TRANSPORT_PS_INIT_ATS)
-    {
-      set_state_and_timeout (n, GNUNET_TRANSPORT_PS_INIT_ATS,
-        GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT));
-    }
-    else
-    {
-      GNUNET_break (0);
-      set_state_and_timeout (n, GNUNET_TRANSPORT_PS_INIT_ATS,
-        GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT));
-    }
-    return;
   }
   GST_neighbours_notify_data_sent (&na->address->peer,
                                    na->address,
@@ -3062,7 +3084,7 @@ master_task (void *cls,
   case GNUNET_TRANSPORT_PS_CONNECT_RECV_ATS:
     if (0 == delay.rel_value_us)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		  "Connection to `%s' timed out waiting ATS to provide address to use for CONNECT_ACK\n",
 		  GNUNET_i2s (&n->id));
       free_neighbour (n, GNUNET_NO);
@@ -3072,7 +3094,7 @@ master_task (void *cls,
   case GNUNET_TRANSPORT_PS_CONNECT_RECV_ACK:
     if (0 == delay.rel_value_us)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		  "Connection to `%s' timed out waiting for other peer to send SESSION_ACK\n",
 		  GNUNET_i2s (&n->id));
       disconnect_neighbour (n);
@@ -3082,7 +3104,7 @@ master_task (void *cls,
   case GNUNET_TRANSPORT_PS_CONNECTED:
     if (0 == delay.rel_value_us)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		  "Connection to `%s' timed out, missing KEEPALIVE_RESPONSEs\n",
 		  GNUNET_i2s (&n->id));
       disconnect_neighbour (n);
@@ -3094,7 +3116,7 @@ master_task (void *cls,
   case GNUNET_TRANSPORT_PS_RECONNECT_ATS:
     if (0 == delay.rel_value_us)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		  "Connection to `%s' timed out, waiting for ATS replacement address\n",
 		  GNUNET_i2s (&n->id));
       disconnect_neighbour (n);
@@ -3104,7 +3126,7 @@ master_task (void *cls,
   case GNUNET_TRANSPORT_PS_RECONNECT_SENT:
     if (0 == delay.rel_value_us)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		  "Connection to `%s' timed out, waiting for other peer to CONNECT_ACK replacement address\n",
 		  GNUNET_i2s (&n->id));
       disconnect_neighbour (n);
@@ -3114,7 +3136,7 @@ master_task (void *cls,
   case GNUNET_TRANSPORT_PS_CONNECTED_SWITCHING_CONNECT_SENT:
     if (0 == delay.rel_value_us)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		  "Connection to `%s' timed out, missing KEEPALIVE_RESPONSEs (after trying to CONNECT on alternative address)\n",
 		  GNUNET_i2s (&n->id));
       disconnect_neighbour (n);
@@ -3124,7 +3146,7 @@ master_task (void *cls,
     send_keepalive (n);
     break;
   case GNUNET_TRANSPORT_PS_DISCONNECT:
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		"Cleaning up connection to `%s' after sending DISCONNECT\n",
 		GNUNET_i2s (&n->id));
     free_neighbour (n, GNUNET_NO);
