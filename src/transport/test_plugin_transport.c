@@ -475,9 +475,11 @@ env_get_our_hello ()
 }
 
 static void
-env_session_end (void *cls, const struct GNUNET_PeerIdentity *peer,
-    struct Session * session)
+env_session_end (void *cls,
+                 const struct GNUNET_HELLO_Address *address,
+                 struct Session *session)
 {
+
 }
 
 static void
