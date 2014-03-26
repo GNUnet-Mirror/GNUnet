@@ -76,10 +76,16 @@ service_list (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "%u services are are currently running\n",
 	      count);
-  GNUNET_break (count == 1);
-  GNUNET_break (0 == strcasecmp (list[0], "resolver (gnunet-service-resolver)"));
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got service list, now stopping arm\n");
-  ret = 0;
+  if (GNUNET_ARM_REQUEST_SENT_OK != rs)
+    goto stop_arm;
+  if (1 == count)
+  {
+    GNUNET_break (0 == strcasecmp (list[0], "resolver (gnunet-service-resolver)"));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Got service list, now stopping arm\n");
+    ret = 0;
+  }
+
+ stop_arm:
   GNUNET_ARM_request_service_stop (arm, "arm", TIMEOUT, arm_stop_cb, NULL);
 }
 
