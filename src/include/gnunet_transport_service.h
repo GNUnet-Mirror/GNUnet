@@ -48,7 +48,8 @@ extern "C"
  * Possible state of a neighbour.  Initially, we are #GNUNET_TRANSPORT_PS_NOT_CONNECTED.
  *
  * Then, there are two main paths. If we receive a CONNECT message, we
- * first run a check against the blacklist (#GNUNET_TRANSPORT_PS_CONNECT_RECV_BLACKLIST_INBOUND).
+ * first run a check against the blacklist if we are allowed to communicate with
+ * this peer (#GNUNET_TRANSPORT_PS_CONNECT_RECV_BLACKLIST_INBOUND).
  * If this check is successful, we give the inbound address to ATS.
  * After the check we ask ATS for a suggestion (#GNUNET_TRANSPORT_PS_CONNECT_RECV_ATS).
  * If ATS makes a suggestion, we ALSO give that suggestion to the blacklist
@@ -127,11 +128,6 @@ enum GNUNET_TRANSPORT_PeerState
    * Sent CONNECT message to other peer, waiting for CONNECT_ACK
    */
   GNUNET_TRANSPORT_PS_CONNECT_SENT,
-
-  /**
-   * Received a CONNECT, do a blacklist check for inbound address
-   */
-  GNUNET_TRANSPORT_PS_CONNECT_RECV_BLACKLIST_INBOUND,
 
   /**
    * Received a CONNECT, asking ATS about address suggestions.
