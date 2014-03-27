@@ -124,6 +124,11 @@ static int monitor_validation;
 static int try_connect;
 
 /**
+ * Option -D.
+ */
+static int try_disconnect;
+
+/**
  * Option -n.
  */
 static int numeric;
@@ -836,6 +841,25 @@ notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
   if (0 != memcmp (&pid, peer, sizeof(struct GNUNET_PeerIdentity)))
     return;
 
+  if (try_disconnect)
+  {
+    /* all done, terminate instantly */
+    FPRINTF (stdout, _("Successfully disconnected from `%s'\n"),
+        GNUNET_i2s_full (peer));
+    ret = 0;
+
+    if (GNUNET_SCHEDULER_NO_TASK != op_timeout)
+    {
+      GNUNET_SCHEDULER_cancel (op_timeout);
+      op_timeout = GNUNET_SCHEDULER_NO_TASK;
+    }
+
+    if (GNUNET_SCHEDULER_NO_TASK != end)
+      GNUNET_SCHEDULER_cancel (end);
+    end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL );
+    return;
+  }
+
   if (NULL != th)
   {
     GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
@@ -1159,6 +1183,31 @@ try_connect_cb (void *cls, const int result)
   }
 }
 
+static void
+try_disconnect_cb (void *cls, const int result)
+{
+  static int retries = 0;
+  if (GNUNET_OK == result)
+  {
+    tc_handle = NULL;
+    return;
+  }
+  retries++;
+  if (retries < 10)
+    tc_handle = GNUNET_TRANSPORT_try_disconnect (handle, &pid, try_disconnect_cb,
+        NULL );
+  else
+  {
+    FPRINTF (stderr, "%s",
+        _("Failed to send connect request to transport service\n") );
+    if (GNUNET_SCHEDULER_NO_TASK != end)
+      GNUNET_SCHEDULER_cancel (end);
+    ret = 1;
+    end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL );
+    return;
+  }
+}
+
 /**
  * Function called with the result of the check if the 'transport'
  * service is running.
@@ -1188,7 +1237,7 @@ testservice_task (void *cls, int result)
   }
 
   counter = benchmark_send + benchmark_receive + iterate_connections
-      + monitor_connections + monitor_connects + try_connect
+      + monitor_connections + monitor_connects + try_connect + try_disconnect +
       + iterate_validation + monitor_validation;
 
   if (1 < counter)
@@ -1226,6 +1275,36 @@ testservice_task (void *cls, int result)
       return;
     }
     tc_handle = GNUNET_TRANSPORT_try_connect (handle, &pid, try_connect_cb,
+        NULL );
+    if (NULL == tc_handle)
+    {
+      FPRINTF (stderr, "%s",
+          _("Failed to send request to transport service\n") );
+      ret = 1;
+      return;
+    }
+    op_timeout = GNUNET_SCHEDULER_add_delayed (OP_TIMEOUT, &operation_timeout,
+        NULL );
+
+  }
+  else if (try_disconnect) /* -D: Disconnect from peer */
+  {
+    if (NULL == cpid)
+    {
+      FPRINTF (stderr, _("Option `%s' makes no sense without option `%s'.\n"),
+          "-D", "-p");
+      ret = 1;
+      return;
+    }
+    handle = GNUNET_TRANSPORT_connect (cfg, NULL, NULL, &notify_receive,
+        &notify_connect, &notify_disconnect);
+    if (NULL == handle)
+    {
+      FPRINTF (stderr, "%s", _("Failed to connect to transport service\n") );
+      ret = 1;
+      return;
+    }
+    tc_handle = GNUNET_TRANSPORT_try_disconnect (handle, &pid, try_disconnect_cb,
         NULL );
     if (NULL == tc_handle)
     {
@@ -1367,9 +1446,13 @@ main (int argc, char * const *argv)
               0, &GNUNET_GETOPT_set_one, &iterate_all },
           { 'b', "benchmark", NULL,
               gettext_noop ("measure how fast we are receiving data from all peers (until CTRL-C)"),
-              0, &GNUNET_GETOPT_set_one, &benchmark_receive }, { 'C', "connect",
+              0, &GNUNET_GETOPT_set_one, &benchmark_receive },
+          { 'C', "connect",
               NULL, gettext_noop ("connect to a peer"), 0,
               &GNUNET_GETOPT_set_one, &try_connect },
+          { 'D', "disconnect",
+              NULL, gettext_noop ("disconnect to a peer"), 0,
+              &GNUNET_GETOPT_set_one, &try_disconnect },
           { 'd', "validation", NULL,
               gettext_noop ("print information for all pending validations "),
               0, &GNUNET_GETOPT_set_one, &iterate_validation },

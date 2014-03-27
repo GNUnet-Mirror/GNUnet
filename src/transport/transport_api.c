@@ -203,6 +203,8 @@ struct GNUNET_TRANSPORT_TryConnectHandle
 
   GNUNET_TRANSPORT_TryConnectCallback cb;
 
+  int connect;
+
   /**
    * Closure for @e cb.
    */
@@ -1166,7 +1168,7 @@ send_try_connect (void *cls, size_t size, void *buf)
   GNUNET_assert (size >= sizeof (struct TransportRequestConnectMessage));
   msg.header.size = htons (sizeof (struct TransportRequestConnectMessage));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_REQUEST_CONNECT);
-  msg.reserved = htonl (0);
+  msg.connect = htonl (tch->connect);
   msg.peer = tch->pid;
   memcpy (buf, &msg, sizeof (msg));
   if (NULL != tch->cb)
@@ -1203,6 +1205,7 @@ GNUNET_TRANSPORT_try_connect (struct GNUNET_TRANSPORT_Handle *handle,
   tch->pid = *(target);
   tch->cb = cb;
   tch->cb_cls = cb_cls;
+  tch->connect = GNUNET_YES;
   tch->tth = schedule_control_transmit (handle,
                                         sizeof (struct TransportRequestConnectMessage),
                                         &send_try_connect, tch);
@@ -1221,12 +1224,69 @@ void
 GNUNET_TRANSPORT_try_connect_cancel (struct GNUNET_TRANSPORT_TryConnectHandle *tch)
 {
   struct GNUNET_TRANSPORT_Handle *th;
+  GNUNET_assert (GNUNET_YES == tch->connect);
 
   th = tch->th;
   cancel_control_transmit (th, tch->tth);
   GNUNET_CONTAINER_DLL_remove (th->tc_head, th->tc_tail, tch);
   GNUNET_free (tch);
 }
+
+/**
+ * Ask the transport service to shutdown a connection to
+ * the given peer.
+ *
+ * @param handle connection to transport service
+ * @param target who we should try to connect to
+ * @param cb callback to be called when request was transmitted to transport
+ *         service
+ * @param cb_cls closure for the callback
+ * @return a `struct GNUNET_TRANSPORT_TryConnectHandle` handle or
+ *         NULL on failure (cb will not be called)
+ */
+struct GNUNET_TRANSPORT_TryConnectHandle *
+GNUNET_TRANSPORT_try_disconnect (struct GNUNET_TRANSPORT_Handle *handle,
+                              const struct GNUNET_PeerIdentity *target,
+                              GNUNET_TRANSPORT_TryConnectCallback cb,
+                              void *cb_cls)
+{
+  struct GNUNET_TRANSPORT_TryConnectHandle *tch = NULL;
+
+  if (NULL == handle->client)
+      return NULL;
+  tch = GNUNET_new (struct GNUNET_TRANSPORT_TryConnectHandle);
+  tch->th = handle;
+  tch->pid = *(target);
+  tch->cb = cb;
+  tch->cb_cls = cb_cls;
+  tch->connect = GNUNET_NO;
+  tch->tth = schedule_control_transmit (handle,
+                                        sizeof (struct TransportRequestConnectMessage),
+                                        &send_try_connect, tch);
+  GNUNET_CONTAINER_DLL_insert(handle->tc_head, handle->tc_tail, tch);
+  return tch;
+}
+
+
+/**
+ * Cancel the request to transport to try a disconnect
+ * Callback will not be called
+ *
+ * @param tch the handle to cancel
+ */
+void
+GNUNET_TRANSPORT_try_disconnect_cancel (struct GNUNET_TRANSPORT_TryConnectHandle *tch)
+{
+  struct GNUNET_TRANSPORT_Handle *th;
+  GNUNET_assert (GNUNET_NO == tch->connect);
+
+  th = tch->th;
+  cancel_control_transmit (th, tch->tth);
+  GNUNET_CONTAINER_DLL_remove (th->tc_head, th->tc_tail, tch);
+  GNUNET_free (tch);
+}
+
+
 
 
 /**

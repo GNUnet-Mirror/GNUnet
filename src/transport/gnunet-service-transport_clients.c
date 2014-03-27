@@ -794,27 +794,59 @@ clients_handle_request_connect (void *cls, struct GNUNET_SERVER_Client *client,
   const struct TransportRequestConnectMessage *trcm =
       (const struct TransportRequestConnectMessage *) message;
 
-  GNUNET_STATISTICS_update (GST_stats,
-                            gettext_noop
-                            ("# REQUEST CONNECT messages received"), 1,
-                            GNUNET_NO);
-
-  if (0 == memcmp (&trcm->peer, &GST_my_identity,
-  		sizeof (struct GNUNET_PeerIdentity)))
+  if (GNUNET_YES == ntohl (trcm->connect))
   {
-    GNUNET_break_op (0);
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "Received a request connect message myself `%s'\n",
-                GNUNET_i2s (&trcm->peer));
+    GNUNET_STATISTICS_update (GST_stats,
+                              gettext_noop
+                              ("# REQUEST CONNECT messages received"), 1,
+                              GNUNET_NO);
+
+    if (0 == memcmp (&trcm->peer, &GST_my_identity,
+                  sizeof (struct GNUNET_PeerIdentity)))
+    {
+      GNUNET_break_op (0);
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "Received a request connect message myself `%s'\n",
+                  GNUNET_i2s (&trcm->peer));
+    }
+    else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  _("Received a request connect message for peer `%s'\n"),
+                  GNUNET_i2s (&trcm->peer));
+
+      (void) GST_blacklist_test_allowed (&trcm->peer, NULL, &try_connect_if_allowed,
+                                       NULL);
+    }
+  }
+  else if (GNUNET_NO == ntohl (trcm->connect))
+  {
+    GNUNET_STATISTICS_update (GST_stats,
+                              gettext_noop
+                              ("# REQUEST DISCONNECT messages received"), 1,
+                              GNUNET_NO);
+
+    if (0 == memcmp (&trcm->peer, &GST_my_identity,
+                  sizeof (struct GNUNET_PeerIdentity)))
+    {
+      GNUNET_break_op (0);
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  "Received a request disconnect message myself `%s'\n",
+                  GNUNET_i2s (&trcm->peer));
+    }
+    else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  _("Received a request disconnect message for peer `%s'\n"),
+                  GNUNET_i2s (&trcm->peer));
+      (void) GST_neighbours_force_disconnect (&trcm->peer);
+    }
   }
   else
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                _("Received a request connect message for peer `%s'\n"),
-                GNUNET_i2s (&trcm->peer));
-
-    (void) GST_blacklist_test_allowed (&trcm->peer, NULL, &try_connect_if_allowed,
-                                     NULL);
+    GNUNET_break_op (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
   }
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }

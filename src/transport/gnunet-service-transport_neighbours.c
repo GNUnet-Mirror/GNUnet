@@ -46,7 +46,7 @@
  * Time we give plugin to transmit DISCONNECT message before the
  * neighbour entry self-destructs.
  */
-#define DISCONNECT_SENT_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 100)
+#define DISCONNECT_SENT_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 500)
 
 /**
  * How often must a peer violate bandwidth quotas before we start
@@ -1054,7 +1054,7 @@ send_disconnect (struct NeighbourMapEntry *n)
 {
   struct SessionDisconnectMessage disconnect_msg;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Sending DISCONNECT message to peer `%4s'\n",
               GNUNET_i2s (&n->id));
   disconnect_msg.header.size = htons (sizeof (struct SessionDisconnectMessage));
@@ -1075,10 +1075,9 @@ send_disconnect (struct NeighbourMapEntry *n)
                                          &disconnect_msg.purpose,
                                          &disconnect_msg.signature));
 
-  (void) send_with_session (n,
-			    (const char *) &disconnect_msg, sizeof (disconnect_msg),
-			    UINT32_MAX, GNUNET_TIME_UNIT_FOREVER_REL,
-			    GNUNET_NO, &send_disconnect_cont, NULL);
+  (void) send_with_session (n, (const char *) &disconnect_msg,
+      sizeof (disconnect_msg), UINT32_MAX, GNUNET_TIME_UNIT_FOREVER_REL,
+      GNUNET_NO, &send_disconnect_cont, NULL );
   GNUNET_STATISTICS_update (GST_stats,
                             gettext_noop
                             ("# DISCONNECT messages sent"), 1,
@@ -1113,7 +1112,6 @@ disconnect_neighbour (struct NeighbourMapEntry *n)
     break;
   case GNUNET_TRANSPORT_PS_CONNECT_RECV_ATS:
     /* we never ACK'ed the other peer's request, no need to send DISCONNECT */
-    set_state (n, GNUNET_TRANSPORT_PS_DISCONNECT_FINISHED);
     free_neighbour (n, GNUNET_NO);
     return;
   case GNUNET_TRANSPORT_PS_CONNECT_RECV_ACK:
@@ -1121,6 +1119,7 @@ disconnect_neighbour (struct NeighbourMapEntry *n)
     send_disconnect (n);
     set_state (n, GNUNET_TRANSPORT_PS_DISCONNECT);
     break;
+  case GNUNET_TRANSPORT_PS_CONNECTED_SWITCHING_CONNECT_SENT:
   case GNUNET_TRANSPORT_PS_CONNECTED:
   case GNUNET_TRANSPORT_PS_RECONNECT_SENT:
     /* we are currently connected, need to send disconnect and do
@@ -1134,13 +1133,9 @@ disconnect_neighbour (struct NeighbourMapEntry *n)
     set_state (n, GNUNET_TRANSPORT_PS_DISCONNECT);
     break;
   case GNUNET_TRANSPORT_PS_RECONNECT_ATS:
-    /* ATS address request timeout, disconnect without sending disconnect message */
-    GNUNET_STATISTICS_set (GST_stats,
-                           gettext_noop ("# peers connected"),
-                           --neighbours_connected,
-                           GNUNET_NO);
-    disconnect_notify_cb (callback_cls, &n->id);
-    set_state (n, GNUNET_TRANSPORT_PS_DISCONNECT);
+    /* Disconnecting while waiting for an ATS address to reconnect,
+     * cannot send DISCONNECT */
+    free_neighbour (n, GNUNET_NO);
     break;
   case GNUNET_TRANSPORT_PS_DISCONNECT:
     /* already disconnected, ignore */
@@ -1680,7 +1675,7 @@ send_session_connect_cont (void *cls,
         n->primary_address.session);
     GNUNET_ATS_address_destroyed (GST_ats, n->primary_address.address, NULL );
     unset_primary_address (n);
-    set_state_and_timeout (n, GNUNET_TRANSPORT_PS_RECONNECT_ATS,
+    set_state_and_timeout (n, GNUNET_TRANSPORT_PS_INIT_ATS,
         GNUNET_TIME_relative_to_absolute (FAST_RECONNECT_TIMEOUT));
     break;
   case GNUNET_TRANSPORT_PS_RECONNECT_SENT:
@@ -1689,7 +1684,7 @@ send_session_connect_cont (void *cls,
         n->primary_address.session);
     GNUNET_ATS_address_destroyed (GST_ats, n->primary_address.address, NULL );
     unset_primary_address (n);
-    set_state_and_timeout (n, GNUNET_TRANSPORT_PS_INIT_ATS,
+    set_state_and_timeout (n, GNUNET_TRANSPORT_PS_RECONNECT_ATS,
         GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT));
     break;
   case GNUNET_TRANSPORT_PS_CONNECTED_SWITCHING_CONNECT_SENT:
@@ -1769,7 +1764,7 @@ send_session_connect (struct NeighbourAddress *na)
       case GNUNET_TRANSPORT_PS_CONNECT_SENT:
         /* Remove address and request and additional one */
         unset_primary_address (n);
-        set_state_and_timeout (n, GNUNET_TRANSPORT_PS_RECONNECT_ATS,
+        set_state_and_timeout (n, GNUNET_TRANSPORT_PS_INIT_ATS,
           GNUNET_TIME_relative_to_absolute (FAST_RECONNECT_TIMEOUT));
         /* Hard failure to send the CONNECT message with this address:
            Destroy address and session */
@@ -1777,7 +1772,7 @@ send_session_connect (struct NeighbourAddress *na)
       case GNUNET_TRANSPORT_PS_RECONNECT_SENT:
         /* Remove address and request and additional one */
         unset_primary_address (n);
-        set_state_and_timeout (n, GNUNET_TRANSPORT_PS_INIT_ATS,
+        set_state_and_timeout (n, GNUNET_TRANSPORT_PS_RECONNECT_ATS,
           GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT));
         break;
       case GNUNET_TRANSPORT_PS_CONNECTED_SWITCHING_CONNECT_SENT:
@@ -3284,6 +3279,7 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
     free_neighbour (n, GNUNET_NO);
     return GNUNET_YES;
   case GNUNET_TRANSPORT_PS_CONNECTED:
+    /* Our primary connection died, try a fast reconnect */
     unset_primary_address (n);
     set_state_and_timeout (n, GNUNET_TRANSPORT_PS_RECONNECT_ATS,
         GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT));
@@ -3315,7 +3311,9 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
     free_address (&n->primary_address);
     n->primary_address = n->alternative_address;
     memset (&n->alternative_address, 0, sizeof (struct NeighbourAddress));
-    set_state_and_timeout (n, GNUNET_TRANSPORT_PS_RECONNECT_ATS, GNUNET_TIME_relative_to_absolute (FAST_RECONNECT_TIMEOUT));
+    /* FIXME: Why GNUNET_TRANSPORT_PS_RECONNECT_ATS ?*/
+    set_state_and_timeout (n, GNUNET_TRANSPORT_PS_RECONNECT_ATS,
+        GNUNET_TIME_relative_to_absolute (FAST_RECONNECT_TIMEOUT));
     break;
   case GNUNET_TRANSPORT_PS_DISCONNECT:
     free_address (&n->primary_address);
@@ -3473,6 +3471,21 @@ GST_neighbours_set_incoming_quota (const struct GNUNET_PeerIdentity *neighbour,
   disconnect_neighbour (n);
 }
 
+void delayed_disconnect (void *cls,
+    const struct GNUNET_SCHEDULER_TaskContext* tc)
+{
+  struct NeighbourMapEntry *n = cls;
+  if (GNUNET_YES == test_connected (n))
+    GNUNET_STATISTICS_update (GST_stats,
+                              gettext_noop
+                              ("# other peer asked to disconnect from us"), 1,
+                              GNUNET_NO);
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "Disconnecting by request from peer %s\n",
+              GNUNET_i2s (&n->id));
+  free_neighbour (n, GNUNET_NO);
+}
+
 
 /**
  * We received a disconnect message from the given peer,
@@ -3493,10 +3506,10 @@ GST_neighbours_handle_disconnect_message (const struct GNUNET_PeerIdentity *peer
               GNUNET_i2s (peer));
   if (ntohs (msg->size) != sizeof (struct SessionDisconnectMessage))
   {
-    // GNUNET_break_op (0);
+    GNUNET_break_op (0);
     GNUNET_STATISTICS_update (GST_stats,
                               gettext_noop
-                              ("# disconnect messages ignored (old format)"), 1,
+                              ("# disconnect messages ignored (malformed)"), 1,
                               GNUNET_NO);
     return;
   }
@@ -3544,15 +3557,7 @@ GST_neighbours_handle_disconnect_message (const struct GNUNET_PeerIdentity *peer
     GNUNET_break_op (0);
     return;
   }
-  if (GNUNET_YES == test_connected (n))
-    GNUNET_STATISTICS_update (GST_stats,
-			      gettext_noop
-			      ("# other peer asked to disconnect from us"), 1,
-			      GNUNET_NO);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Disconnecting by request from peer %s\n",
-              GNUNET_i2s (peer));
-  disconnect_neighbour (n);
+  GNUNET_SCHEDULER_add_now (&delayed_disconnect, n);
 }
 
 
@@ -3782,9 +3787,8 @@ GST_neighbours_stop ()
     util_transmission_tk = GNUNET_SCHEDULER_NO_TASK;
   }
 
-  GNUNET_CONTAINER_multipeermap_iterate (neighbours,
-					 &disconnect_all_neighbours,
-                                         NULL);
+  GNUNET_CONTAINER_multipeermap_iterate (neighbours, &disconnect_all_neighbours,
+      NULL );
   GNUNET_CONTAINER_multipeermap_destroy (neighbours);
 
   next = pending_bc_head;

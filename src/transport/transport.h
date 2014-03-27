@@ -176,9 +176,9 @@ struct TransportRequestConnectMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * For alignment.
+   * Connect (GNUNET_YES) or connect (GNUNET_NO).
    */
-  uint32_t reserved;
+  uint32_t connect;
 
   /**
    * Identity of the peer we would like to connect to.
