@@ -231,7 +231,6 @@ client_disconnect_notification (void *cls, struct GNUNET_SERVER_Client *client)
       }
       if (bc->task == GNUNET_SCHEDULER_NO_TASK)
         bc->task = GNUNET_SCHEDULER_add_now (&do_blacklist_check, bc);
-      break;
     }
     GNUNET_CONTAINER_DLL_remove (bl_head, bl_tail, bl);
     GNUNET_SERVER_client_drop (bl->client);
