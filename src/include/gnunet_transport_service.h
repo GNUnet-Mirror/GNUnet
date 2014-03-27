@@ -129,7 +129,7 @@ enum GNUNET_TRANSPORT_PeerState
   GNUNET_TRANSPORT_PS_CONNECT_RECV_ATS,
 
   /**
-   * CONNECT request from other peer was SESSION_ACK'ed, waiting for
+   * CONNECT request from other peer was CONNECT_ACK'ed, waiting for
    * SESSION_ACK.
    */
   GNUNET_TRANSPORT_PS_CONNECT_RECV_ACK,
@@ -458,6 +458,35 @@ GNUNET_TRANSPORT_try_connect (struct GNUNET_TRANSPORT_Handle *handle,
  */
 void
 GNUNET_TRANSPORT_try_connect_cancel (struct GNUNET_TRANSPORT_TryConnectHandle *tch);
+
+
+/**
+ * Ask the transport service to establish a disconnect from
+ * the given peer.
+ *
+ * @param handle connection to transport service
+ * @param target who we should try to disconnect from
+ * @param cb callback to be called when request was transmitted to transport
+ *         service
+ * @param cb_cls closure for the callback @a cb
+ * @return a `struct GNUNET_TRANSPORT_TryConnectHandle` handle or
+ *         NULL on failure (@a cb will not be called)
+ */
+struct GNUNET_TRANSPORT_TryConnectHandle *
+GNUNET_TRANSPORT_try_disconnect (struct GNUNET_TRANSPORT_Handle *handle,
+                              const struct GNUNET_PeerIdentity *target,
+                              GNUNET_TRANSPORT_TryConnectCallback cb,
+                              void *cb_cls);
+
+
+/**
+ * Cancel the request to transport to try a disconnect
+ * Callback will not be called
+ *
+ * @param tch GNUNET_TRANSPORT_TryConnectHandle handle to cancel
+ */
+void
+GNUNET_TRANSPORT_try_disconnect_cancel (struct GNUNET_TRANSPORT_TryConnectHandle *tch);
 
 
 /**
