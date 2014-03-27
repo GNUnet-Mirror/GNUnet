@@ -3041,7 +3041,7 @@ master_task (void *cls,
 
   n->task = GNUNET_SCHEDULER_NO_TASK;
   delay = GNUNET_TIME_absolute_get_remaining (n->timeout);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Master task runs for neighbour `%s' in state %s with timeout in %s\n",
 	      GNUNET_i2s (&n->id),
 	      GNUNET_TRANSPORT_ps2s(n->state),
@@ -3418,6 +3418,8 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
                 GST_plugins_a2s (n->primary_address.address),
                 n->primary_address.session,
                 GNUNET_i2s (peer));
+
+    /* Destroy the address since it cannot be used */
     GNUNET_ATS_address_destroyed (GST_ats, n->primary_address.address, NULL);
     unset_primary_address (n);
     set_state_and_timeout (n, GNUNET_TRANSPORT_PS_INIT_ATS,
@@ -3445,6 +3447,8 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
                 GST_plugins_a2s (n->primary_address.address),
                 n->primary_address.session,
                 GNUNET_i2s (peer));
+
+    /* Destroy the address since it cannot be used */
     GNUNET_ATS_address_destroyed (GST_ats, n->primary_address.address, NULL);
     unset_primary_address (n);
     set_state_and_timeout (n, GNUNET_TRANSPORT_PS_RECONNECT_ATS,
@@ -3453,6 +3457,8 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
   case GNUNET_TRANSPORT_PS_CONNECTED_SWITCHING_CONNECT_SENT:
     /* primary went down while we were waiting for CONNECT_ACK on secondary;
        secondary as primary */
+
+    /* Destroy the address since it cannot be used */
     GNUNET_ATS_address_destroyed (GST_ats, n->primary_address.address, NULL);
     free_address (&n->primary_address);
     n->primary_address = n->alternative_address;
@@ -3522,15 +3528,14 @@ GST_neighbours_handle_session_ack (const struct GNUNET_MessageHeader *message,
 
   /* TODO I have no idea we we should state GNUNET_TRANSPORT_PS_CONNECT_SENT
    * Perhaps SWITCHING? Have to check */
-  if ( /*(*/ (GNUNET_TRANSPORT_PS_CONNECT_RECV_ACK != n->state) /* &&
-	 (GNUNET_TRANSPORT_PS_CONNECT_SENT != n->state) ) ||
-       (ACK_SEND_SESSION_ACK != n->ack_state) */)
+  if (  (GNUNET_TRANSPORT_PS_CONNECT_RECV_ACK != n->state) /*&&
+	 (GNUNET_TRANSPORT_PS_RECONNECT_SENT != n->state) ) ||
+         (ACK_SEND_SESSION_ACK != n->ack_state)*/)
   {
-    if (GNUNET_TRANSPORT_PS_CONNECT_SENT != n->state)
-      GNUNET_break (0); /* TESTING */
+    GNUNET_break (0); /* TESTING */
 
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "Received SESSION_ACK message from peer `%s' in state %s/%s\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Received unexpected SESSION_ACK message from peer `%s' in state %s/%s\n",
                 GNUNET_i2s (peer),
                 GNUNET_TRANSPORT_ps2s (n->state),
                 print_ack_state (n->ack_state));
@@ -3539,6 +3544,7 @@ GST_neighbours_handle_session_ack (const struct GNUNET_MessageHeader *message,
                               GNUNET_NO);
     return GNUNET_OK;
   }
+
   /* We are connected */
   set_state_and_timeout (n, GNUNET_TRANSPORT_PS_CONNECTED, GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT));
   GNUNET_STATISTICS_set (GST_stats,
