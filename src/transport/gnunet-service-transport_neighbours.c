@@ -1716,9 +1716,10 @@ send_session_connect (struct NeighbourAddress *na)
   struct SessionConnectMessage connect_msg;
   struct NeighbourMapEntry *n;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Sending SESSION_CONNECT message to peer %s\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Sending SESSION_CONNECT message to peer `%s'\n",
               GNUNET_i2s (&na->address->peer));
+
   if (NULL == (papi = GST_plugins_find (na->address->transport_name)))
   {
     GNUNET_break (0);
@@ -1860,9 +1861,10 @@ send_connect_ack_message (const struct GNUNET_HELLO_Address *address,
   struct SessionConnectMessage connect_msg;
   struct NeighbourMapEntry *n;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Sending CONNECT_ACK to peer `%s'\n",
               GNUNET_i2s (&address->peer));
+
   if (NULL == (papi = GST_plugins_find (address->transport_name)))
   {
     GNUNET_break (0);
@@ -3189,6 +3191,9 @@ send_session_ack_message (struct NeighbourMapEntry *n)
 {
   struct GNUNET_MessageHeader msg;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Sending SESSION_ACK message to peer `%s'\n",
+              GNUNET_i2s (&n->id));
+
   msg.size = htons (sizeof (struct GNUNET_MessageHeader));
   msg.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_SESSION_ACK);
   (void) send_with_session(n,
@@ -3408,8 +3413,10 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
     /* The session used to send the CONNECT terminated:
      * this implies a connect error*/
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "Could not send CONNECT message with address `%s' session %p: session terminated, requesting new address\n",
-                GST_plugins_a2s (n->primary_address.address), n->primary_address.session,
+                "Failed to send CONNECT in %s with `%s' %p: session terminated\n",
+                "CONNECT_SENT",
+                GST_plugins_a2s (n->primary_address.address),
+                n->primary_address.session,
                 GNUNET_i2s (peer));
     GNUNET_ATS_address_destroyed (GST_ats, n->primary_address.address, NULL);
     unset_primary_address (n);
@@ -3432,7 +3439,16 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
     GNUNET_break (0);
     break;
   case GNUNET_TRANSPORT_PS_RECONNECT_SENT:
-    set_state_and_timeout (n, GNUNET_TRANSPORT_PS_RECONNECT_ATS, GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT));
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Failed to send CONNECT in %s with `%s' %p: session terminated\n",
+                "RECONNECT_SENT",
+                GST_plugins_a2s (n->primary_address.address),
+                n->primary_address.session,
+                GNUNET_i2s (peer));
+    GNUNET_ATS_address_destroyed (GST_ats, n->primary_address.address, NULL);
+    unset_primary_address (n);
+    set_state_and_timeout (n, GNUNET_TRANSPORT_PS_RECONNECT_ATS,
+        GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT));
     break;
   case GNUNET_TRANSPORT_PS_CONNECTED_SWITCHING_CONNECT_SENT:
     /* primary went down while we were waiting for CONNECT_ACK on secondary;
