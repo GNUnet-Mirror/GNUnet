@@ -589,7 +589,7 @@ transmit_ping_if_allowed (void *cls,
                           message_buf, tsize,
                           PING_PRIORITY, ACCEPTABLE_PING_DELAY,
                           NULL, NULL);
-        network = papi->get_network (ve->address, session);
+        network = papi->get_network (papi->cls, session);
         if (GNUNET_ATS_NET_UNSPECIFIED == network)
         {
           GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
