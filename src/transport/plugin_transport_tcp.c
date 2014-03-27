@@ -2376,7 +2376,11 @@ try_connection_reversal (void *cls, const struct sockaddr *addr,
 static enum GNUNET_ATS_Network_Type
 tcp_get_network (void *cls, struct Session *session)
 {
-  GNUNET_assert(NULL != session);
+  struct Plugin * plugin = cls;
+  GNUNET_assert (NULL != plugin);
+  GNUNET_assert (NULL != session);
+  if (GNUNET_SYSERR == find_session (plugin,session))
+    return GNUNET_ATS_NET_UNSPECIFIED;
   return session->ats_address_network_type;
 }
 
