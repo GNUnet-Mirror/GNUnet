@@ -2270,174 +2270,6 @@ GST_neighbours_try_connect (const struct GNUNET_PeerIdentity *target)
 
 
 /**
- * Function called with the result of a blacklist check.
- *
- * @param cls closure with the `struct BlackListCheckContext`
- * @param peer peer this check affects
- * @param result #GNUNET_OK if the address is allowed
- */
-static void
-handle_connect_blacklist_check_cont (void *cls,
-			    const struct GNUNET_PeerIdentity *peer,
-			    int result)
-{
-  struct BlackListCheckContext *bcc = cls;
-  struct NeighbourMapEntry *n;
-
-  bcc->bc = NULL;
-  GNUNET_CONTAINER_DLL_remove (bc_head,
-			       bc_tail,
-			       bcc);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Connection to new address of peer `%s' based on blacklist is `%s'\n",
-              GNUNET_i2s (peer),
-              (GNUNET_OK == result) ? "allowed" : "FORBIDDEN");
-
-  if (NULL == (n = lookup_neighbour (peer)))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "No neighbor entry for peer `%s', ignoring blacklist result\n",
-                GNUNET_i2s (peer));
-    goto cleanup; /* nobody left to care about new address */
-  }
-
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Blacklist check after CONNECT for peer `%s' in state %s/%s: %s\n",
-              GNUNET_i2s (peer),
-              GNUNET_TRANSPORT_ps2s (n->state),
-              print_ack_state (n->ack_state),
-              (GNUNET_OK == result) ? "OK" : "FAIL");
-
-  switch (n->state)
-  {
-  case GNUNET_TRANSPORT_PS_NOT_CONNECTED:
-    /* This should not be possible */
-    GNUNET_break (0);
-    free_neighbour (n, GNUNET_NO);
-    break;
-  case GNUNET_TRANSPORT_PS_INIT_ATS:
-    /* Waiting on ATS suggestion */
-    break;
-  case GNUNET_TRANSPORT_PS_CONNECT_SENT:
-#if 0
-    /* TODO Why should I send an connect ACK message */
-    /* waiting on CONNECT_ACK, send ACK if one is pending */
-
-    if ( (GNUNET_OK == result) &&
-	 (ACK_SEND_CONNECT_ACK == n->ack_state) )
-    {
-      n->ack_state = ACK_SEND_SESSION_ACK;
-      send_connect_ack_message (n->primary_address.address,
-					n->primary_address.session,
-					n->connect_ack_timestamp);
-    }
-#endif
-    break;
-  case GNUNET_TRANSPORT_PS_CONNECT_RECV_ATS:
-    /* waiting on ATS suggestion, don't care about blacklist */
-    break;
-  case GNUNET_TRANSPORT_PS_CONNECT_RECV_ACK:
-    /* waiting on SESSION_ACK, send ACK if one is pending */
-    if ( (GNUNET_OK == result) &&
-	 (ACK_SEND_CONNECT_ACK == n->ack_state) )
-    {
-      /* TODO: Why should this happen? */
-      /* *Debug message: */ GNUNET_break (0);
-
-      n->ack_state = ACK_SEND_SESSION_ACK;
-      send_connect_ack_message (n->primary_address.address,
-					n->primary_address.session,
-					n->connect_ack_timestamp);
-    }
-    break;
-  case GNUNET_TRANSPORT_PS_CONNECTED:
-    /* already connected, don't care about blacklist */
-    break;
-  case GNUNET_TRANSPORT_PS_RECONNECT_ATS:
-    /* still waiting on ATS suggestion, don't care about blacklist */
-    break;
-  case GNUNET_TRANSPORT_PS_RECONNECT_SENT:
-    /* waiting on CONNECT_ACK, don't care about blacklist */
-    if ( (GNUNET_OK == result) &&
-	 (ACK_SEND_CONNECT_ACK == n->ack_state) )
-    {
-      n->ack_state = ACK_SEND_SESSION_ACK;
-      send_connect_ack_message (n->primary_address.address,
-					n->primary_address.session,
-					n->connect_ack_timestamp);
-    }
-    break;
-  case GNUNET_TRANSPORT_PS_CONNECTED_SWITCHING_CONNECT_SENT:
-    /* waiting on CONNECT_ACK, don't care about blacklist */
-    if ( (GNUNET_OK == result) &&
-	 (ACK_SEND_CONNECT_ACK == n->ack_state) )
-    {
-      n->ack_state = ACK_SEND_SESSION_ACK;
-      send_connect_ack_message (n->primary_address.address,
-					n->primary_address.session,
-					n->connect_ack_timestamp);
-    }
-    break;
-  case GNUNET_TRANSPORT_PS_DISCONNECT:
-    /* Nothing to do here, ATS will already do what can be done */
-    break;
-  case GNUNET_TRANSPORT_PS_DISCONNECT_FINISHED:
-    /* should not be possible */
-    GNUNET_assert (0);
-    break;
-  default:
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Unhandled state `%s'\n",
-                GNUNET_TRANSPORT_ps2s (n->state));
-    GNUNET_break (0);
-    free_neighbour (n, GNUNET_NO);
-    break;
-  }
- cleanup:
-  GNUNET_HELLO_address_free (bcc->na.address);
-  GNUNET_free (bcc);
-}
-
-
-/**
- * We received a CONNECT message and want to know if connecting to a particular
- * peer via a particular address is allowed.  Check it!
- *
- * @param peer identity of the peer to switch the address for
- * @param ts time at which the check was initiated
- * @param address address of the other peer, NULL if other peer
- *                       connected to us
- * @param session session to use (or NULL)
- */
-static void
-connect_check_blacklist (const struct GNUNET_PeerIdentity *peer,
-		 struct GNUNET_TIME_Absolute ts,
-		 const struct GNUNET_HELLO_Address *address,
-		 struct Session *session)
-{
-  struct BlackListCheckContext *bcc;
-  struct GST_BlacklistCheck *bc;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Checking peer `%s' against blacklist\n",
-              GNUNET_i2s (peer));
-  bcc = GNUNET_new (struct BlackListCheckContext);
-  bcc->na.address = GNUNET_HELLO_address_copy (address);
-  bcc->na.session = session;
-  bcc->na.connect_timestamp = ts;
-  GNUNET_CONTAINER_DLL_insert (bc_head,
-			       bc_tail,
-			       bcc);
-  if (NULL != (bc = GST_blacklist_test_allowed (peer,
-        (NULL != address) ? address->transport_name : NULL,
-        &handle_connect_blacklist_check_cont, bcc)))
-    bcc->bc = bc;
-  /* if NULL == bc, 'cont' was already called and 'bcc' already free'd, so
-     we must only store 'bc' if 'bc' is non-NULL... */
-}
-
-
-/**
  * We received a 'SESSION_CONNECT' message from the other peer.
  * Consider switching to it.
  *
@@ -2512,12 +2344,13 @@ GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
     set_state_and_timeout (n, GNUNET_TRANSPORT_PS_CONNECT_RECV_ATS,
         GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT));
     break;
-  case GNUNET_TRANSPORT_PS_CONNECT_SENT:
   case GNUNET_TRANSPORT_PS_CONNECT_RECV_ATS:
+    break;
+  case GNUNET_TRANSPORT_PS_CONNECT_SENT:
   case GNUNET_TRANSPORT_PS_CONNECT_RECV_ACK:
-    /* It can never hurt to have an alternative address in the above cases,
-       see if it is allowed */
-    connect_check_blacklist (peer, ts, address, session);
+    /* Send ACK immediately */
+    send_connect_ack_message (n->primary_address.address,
+                              n->primary_address.session, ts);
     break;
   case GNUNET_TRANSPORT_PS_CONNECTED:
     /* we are already connected and can thus send the ACK immediately */
@@ -2526,13 +2359,19 @@ GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
     n->ack_state = ACK_UNDEFINED;
     send_connect_ack_message (n->primary_address.address,
                               n->primary_address.session, ts);
-    connect_check_blacklist (peer, ts, address, session);
     break;
   case GNUNET_TRANSPORT_PS_RECONNECT_ATS:
+    /* We wait for ATS address suggestion */
+    break;
   case GNUNET_TRANSPORT_PS_RECONNECT_SENT:
     /* It can never hurt to have an alternative address in the above cases,
        see if it is allowed */
-    connect_check_blacklist (peer, ts, address, session);
+    if (ACK_SEND_CONNECT_ACK == n->ack_state)
+    {
+      n->ack_state = ACK_SEND_SESSION_ACK;
+      send_connect_ack_message (n->primary_address.address,
+          n->primary_address.session, n->connect_ack_timestamp);
+    }
     break;
   case GNUNET_TRANSPORT_PS_CONNECTED_SWITCHING_CONNECT_SENT:
     /* we are already connected and can thus send the ACK immediately;
@@ -2542,8 +2381,7 @@ GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
     GNUNET_assert (NULL != n->primary_address.session);
     n->ack_state = ACK_UNDEFINED;
     send_connect_ack_message (n->primary_address.address,
-				      n->primary_address.session, ts);
-    connect_check_blacklist (peer, ts, address, session);
+        n->primary_address.session, ts);
     break;
   case GNUNET_TRANSPORT_PS_DISCONNECT:
     /* get rid of remains without terminating sessions, ready to re-try */
