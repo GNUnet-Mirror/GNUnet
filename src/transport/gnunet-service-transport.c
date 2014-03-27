@@ -329,8 +329,12 @@ connect_bl_check_cont (void *cls,
   if (GNUNET_OK == result)
   {
     /* Blacklist allows to speak to this peer, forward CONNECT to neighbours  */
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Received CONNECT message from peer `%s' with `%s' %p\n",
+                GNUNET_i2s (peer), GST_plugins_a2s (blctx->address), blctx->session);
+
     if (GNUNET_OK != GST_neighbours_handle_connect (blctx->msg,
-          &blctx->address->peer, blctx->address, blctx->session))
+        &blctx->address->peer))
     {
       cancel_pending_blacklist_checks (blctx->address, blctx->session);
       kill_session (blctx->address->transport_name, blctx->session);

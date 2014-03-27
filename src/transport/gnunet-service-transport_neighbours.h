@@ -276,16 +276,11 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
  *
  * @param message possibly a 'struct SessionConnectMessage' (check format)
  * @param peer identity of the peer to switch the address for
- * @param address address of the other peer, NULL if other peer
- *                       connected to us
- * @param session session to use (or NULL)
  * @return #GNUNET_OK if the message was fine, #GNUNET_SYSERR on serious error
  */
 int
 GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
-                               const struct GNUNET_PeerIdentity *peer,
-                               const struct GNUNET_HELLO_Address *address,
-                               struct Session *session);
+                               const struct GNUNET_PeerIdentity *peer);
 
 
 /**
