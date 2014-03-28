@@ -692,7 +692,7 @@ set_timeout (struct NeighbourMapEntry *n,
     struct GNUNET_TIME_Absolute timeout)
 {
   n->timeout = timeout;
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Neighbour `%s' changed timeout %s\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Neighbour `%s' changed timeout %s\n",
       GNUNET_i2s (&n->id),
       GNUNET_STRINGS_absolute_time_to_string (timeout));
   neighbour_change_cb (callback_cls,
@@ -2455,7 +2455,7 @@ switch_address_bl_check_cont (void *cls,
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-      "Blacklist accepted to switch to suggested address `%s' session %p for peer `%s'\n",
+      "Blacklist accepted address `%s' session %p for peer `%s'\n",
       GST_plugins_a2s (blc_ctx->address),
       blc_ctx->session,
       GNUNET_i2s (&blc_ctx->address->peer));
@@ -2696,7 +2696,7 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-    "ATS tells us to switch to %s address '%s' session %p for "
+    "ATS suggests %s address '%s' session %p for "
     "peer `%s' in state %s/%s (quota in/out %u %u )\n",
     GNUNET_HELLO_address_check_option (address,
         GNUNET_HELLO_ADDRESS_INFO_INBOUND) ? "inbound" : "outbound",
@@ -3143,7 +3143,7 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
                               1, GNUNET_NO);
     break;
   case GNUNET_TRANSPORT_PS_CONNECTED:
-    /* duplicate CONNECT_ACK, let's answer by duplciate SESSION_ACK just in case */
+    /* duplicate CONNECT_ACK, let's answer by duplicate SESSION_ACK just in case */
     send_session_ack_message (n);
     break;
   case GNUNET_TRANSPORT_PS_RECONNECT_ATS:
@@ -3373,22 +3373,26 @@ GST_neighbours_handle_session_ack (const struct GNUNET_MessageHeader *message,
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
-  /* check if we are in a plausible state for having sent
-     a CONNECT_ACK.  If not, return, otherwise break */
+  /* Check if we are in a plausible state for having sent
+     a CONNECT_ACK.  If not, return, otherwise break.
 
-  /* TODO I have no idea we we should state GNUNET_TRANSPORT_PS_CONNECT_SENT
-   * Perhaps SWITCHING? Have to check */
-  if (  (GNUNET_TRANSPORT_PS_CONNECT_RECV_ACK != n->state) /*&&
-	 (GNUNET_TRANSPORT_PS_RECONNECT_SENT != n->state) ) ||
-         (ACK_SEND_SESSION_ACK != n->ack_state)*/)
+     The remote peers sends a SESSION_ACK as a response for a CONNECT_ACK
+     message.
+
+     We expect a SESSION_ACK:
+     - If a remote peer has sent a CONNECT, we responded with a CONNECT_ACK and
+     now wait for the ACK to finally be connected
+     - If we sent a CONNECT_ACK to this peer before */
+
+  if (   (GNUNET_TRANSPORT_PS_CONNECT_RECV_ACK != n->state) ||
+         (ACK_SEND_SESSION_ACK != n->ack_state))
   {
-    GNUNET_break (0); /* TESTING */
-
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Received unexpected SESSION_ACK message from peer `%s' in state %s/%s\n",
                 GNUNET_i2s (peer),
                 GNUNET_TRANSPORT_ps2s (n->state),
                 print_ack_state (n->ack_state));
+
     GNUNET_STATISTICS_update (GST_stats,
                               gettext_noop ("# unexpected SESSION_ACK messages"), 1,
                               GNUNET_NO);
