@@ -28,14 +28,6 @@
 #include "gnunet-service-xdht_routing.h"
 #include "gnunet-service-xdht.h"
 
-/* FIXME
- * 1. We need field to understand which routing table is for which peer.
- * 2. Better function names and variable names.
- * 3. Use destination peer id as key for routing table. 
- * 4. What does GDS stands for?
- * 
- */
-
 
 /**
  * Number of requests we track at most (for routing replies).
@@ -109,7 +101,7 @@ GDS_ROUTING_add (struct GNUNET_PeerIdentity *source,
 }
 
 
-/**
+/**FIXME: Test if its correct or not.
  * Find the next hop to send packet to .
  * @return next hop peer id
  */
@@ -153,7 +145,7 @@ GDS_ROUTING_process (enum GNUNET_BLOCK_Type type,
                      const struct GNUNET_PeerIdentity *get_path,
                      const void *data, size_t data_size)
 {
-
+  return;
 }
 
 

@@ -1601,8 +1601,7 @@ core_init (void *cls,
  *         #GNUNET_SYSERR to close it (signal serious error)
  */
 static int
-handle_dht_p2p_put (void *cls,
-		    const struct GNUNET_PeerIdentity *peer,
+handle_dht_p2p_put (void *cls, const struct GNUNET_PeerIdentity *peer,
                     const struct GNUNET_MessageHeader *message)
 {
   const struct PeerPutMessage *put;
@@ -1645,6 +1644,7 @@ handle_dht_p2p_put (void *cls,
   payload_size =
       msize - (sizeof (struct PeerPutMessage) +
                putlen * sizeof (struct GNUNET_PeerIdentity));
+  
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "PUT for `%s' from %s\n",
               GNUNET_h2s (&put->key), GNUNET_i2s (peer));
   GNUNET_CRYPTO_hash (peer, sizeof (struct GNUNET_PeerIdentity), &phash);

@@ -32,6 +32,19 @@
 #include "gnunet_dht_service.h"
 
 /**
+ * FIXME: Change the comment to explain about usage of this in find successor.
+ * Field in trail setup message to understand if the message is sent to an
+ * intermediate finger, friend or me. 
+ */
+enum current_destination_type
+{
+  FRIEND ,
+  FINGER ,
+  MY_ID ,
+  VALUE
+};
+
+/**
  * Perform a PUT operation.  Forwards the given request to other
  * peers.   Does not store the data locally.  Does not give the
  * data to local clients.  May do nothing if this is the only
@@ -40,15 +53,14 @@
  *
  * @param type type of the block
  * @param options routing options
- * @param desired_replication_level desired replication level
+ * @param desired_replication_level desired replication count
  * @param expiration_time when does the content expire
  * @param hop_count how many hops has this message traversed so far
- * @param bf Bloom filter of peers this PUT has already traversed
  * @param key key for the content
- * @param put_path_length number of entries in put_path
+ * @param put_path_length number of entries in @a put_path
  * @param put_path peers this request has traversed so far (if tracked)
  * @param data payload to store
- * @param data_size number of bytes in data
+ * @param data_size number of bytes in @a data
  */
 void
 GDS_NEIGHBOURS_handle_put (enum GNUNET_BLOCK_Type type,
@@ -56,39 +68,44 @@ GDS_NEIGHBOURS_handle_put (enum GNUNET_BLOCK_Type type,
                            uint32_t desired_replication_level,
                            struct GNUNET_TIME_Absolute expiration_time,
                            uint32_t hop_count,
-                           struct GNUNET_CONTAINER_BloomFilter *bf,
-                           const struct GNUNET_HashCode * key,
+                           struct GNUNET_HashCode * key,
                            unsigned int put_path_length,
                            struct GNUNET_PeerIdentity *put_path,
-                           const void *data, size_t data_size);
+                           const void *data, size_t data_size,
+                           struct GNUNET_PeerIdentity *current_destination,
+                           enum current_destination_type *dest_type,
+                           struct GNUNET_PeerIdentity *target_peer_id);
 
 
 /**
- * Perform a GET operation.  Forwards the given request to other
- * peers.  Does not lookup the key locally.  May do nothing if this is
- * the only peer in the network (or if we are the closest peer in the
- * network).
- *
- * @param type type of the block
- * @param options routing options
- * @param desired_replication_level desired replication count
- * @param hop_count how many hops did this request traverse so far?
- * @param key key for the content
- * @param xquery extended query
- * @param xquery_size number of bytes in xquery
- * @param reply_bf bloomfilter to filter duplicates
- * @param reply_bf_mutator mutator for reply_bf
- * @param peer_bf filter for peers not to select (again, updated)
+ * 
+ * @param source_peer
+ * @param get_path
+ * @param get_path_length
+ * @param key
  */
 void
-GDS_NEIGHBOURS_handle_get (enum GNUNET_BLOCK_Type type,
-                           enum GNUNET_DHT_RouteOption options,
-                           uint32_t desired_replication_level,
-                           uint32_t hop_count, const struct GNUNET_HashCode * key,
-                           const void *xquery, size_t xquery_size,
-                           const struct GNUNET_CONTAINER_BloomFilter *reply_bf,
-                           uint32_t reply_bf_mutator,
-                           struct GNUNET_CONTAINER_BloomFilter *peer_bf);
+GDS_NEIGHBOURS_handle_get (struct GNUNET_PeerIdentity *source_peer, 
+                           struct GNUNET_PeerIdentity *get_path,
+                           unsigned int get_path_length,
+                           struct GNUNET_HashCode *key,
+                           struct GNUNET_PeerIdentity *target_peer,
+                           struct GNUNET_PeerIdentity *current_destination,
+                           enum current_destination_type *type);
+
+/**
+ * 
+ * @param source_peer
+ * @param get_path
+ * @param get_path_length
+ * @param destination_peer
+ */
+void 
+GDS_NEIGHBOURS_send_get_result (struct GNUNET_PeerIdentity *source_peer,
+                                struct GNUNET_PeerIdentity *get_path,
+                                unsigned int get_path_length,
+                                struct GNUNET_PeerIdentity *destination_peer,
+                                unsigned int current_path_index);
 
 
 /**

@@ -164,8 +164,8 @@ datacache_get_iterator (void *cls,
                               gettext_noop
                               ("# Good RESULTS found in datacache"), 1,
                               GNUNET_NO);
-    GDS_CLIENTS_handle_reply (exp, key, 0, NULL, put_path_length, put_path,
-                              type, size, data);
+    /* GDS_CLIENTS_handle_reply (exp, key, 0, NULL, put_path_length, put_path,
+                              type, size, data);*/
     /* forward to other peers */
     GDS_ROUTING_process (type, exp, key, put_path_length, put_path, 0, NULL,
                          data, size);

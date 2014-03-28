@@ -21,8 +21,7 @@
 /**
  * @file dht/gnunet-service-xdht_clients.h
  * @brief GNUnet DHT service's client management code
- * @author Christian Grothoff
- * @author Nathan Evans
+ * @author Supriti Singh
  */
 #ifndef GNUNET_SERVICE_XDHT_CLIENT_H
 #define GNUNET_SERVICE_XDHT_CLIENT_H
@@ -128,6 +127,12 @@ GDS_CLIENTS_process_put (uint32_t options,
                          const struct GNUNET_HashCode * key,
                          const void *data,
                          size_t size);
+
+/**
+ * 
+ */
+void 
+GDS_CLIENTS_process_get_result();
 
 /**
  * Initialize client subsystem.

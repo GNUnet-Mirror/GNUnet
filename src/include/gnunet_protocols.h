@@ -630,6 +630,11 @@ extern "C"
  * Message which contains the immediate predecessor of requested successor
  */
 #define GNUNET_MESSAGE_TYPE_DHT_P2P_VERIFY_SUCCESSOR_RESULT    161
+
+/**
+ * Message which contains the get result. 
+ */
+#define GNUNET_MESSAGE_TYPE_DHT_P2P_GET_RESULT                 162
 /*******************************************************************************
  * HOSTLIST message types
  ******************************************************************************/
