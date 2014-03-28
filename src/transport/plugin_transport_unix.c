@@ -1672,9 +1672,15 @@ libgnunet_plugin_transport_unix_init (void *cls)
   api->get_network = &unix_get_network;
   api->update_session_timeout = &unix_plugin_update_session_timeout;
   sockets_created = unix_transport_server_start (plugin);
-  if (0 == sockets_created)
+  if ((0 == sockets_created) || (GNUNET_SYSERR == sockets_created))
+  {
     LOG (GNUNET_ERROR_TYPE_WARNING,
 	 _("Failed to open UNIX listen socket\n"));
+    GNUNET_free (api);
+    GNUNET_free (plugin->unix_socket_path);
+    GNUNET_free (plugin);
+    return NULL;
+  }
   plugin->session_map = GNUNET_CONTAINER_multipeermap_create (10, GNUNET_NO);
   plugin->address_update_task = GNUNET_SCHEDULER_add_now (&address_notification, plugin);
   return api;
