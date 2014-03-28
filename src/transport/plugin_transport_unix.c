@@ -880,6 +880,7 @@ unix_plugin_get_session (void *cls,
   s = GNUNET_new (struct Session);
   s->target = address->peer;
   s->address = GNUNET_HELLO_address_copy (address);
+  s->plugin = plugin;
   GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == s->timeout_task);
   s->timeout_task = GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
 						  &session_timeout,
