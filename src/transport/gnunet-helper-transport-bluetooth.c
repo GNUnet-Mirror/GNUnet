@@ -97,6 +97,11 @@
 #endif
 
 /**
+ * In bluez library, the maximum name length of a device is 8
+ */
+#define BLUEZ_DEVNAME_SIZE  8
+
+/**
  * struct for storing the information of the hardware.  There is only
  * one of these.
  */
@@ -1156,7 +1161,7 @@ open_device (struct HardwareInfos *dev)
 
       memset (&dev_info, 0, sizeof(struct hci_dev_info));
       dev_info.dev_id = request.dev[i].dev_id;
-      strncpy (dev_info.name, dev->iface, IFNAMSIZ);
+      strncpy (dev_info.name, dev->iface, BLUEZ_DEVNAME_SIZE);
 
       if (ioctl (fd_hci, HCIGETDEVINFO, (void *) &dev_info))
       {
@@ -1165,7 +1170,7 @@ open_device (struct HardwareInfos *dev)
         return 1;
       }
 
-      if (strcmp (dev_info.name, dev->iface) == 0)
+      if (strncmp (dev_info.name, dev->iface, BLUEZ_DEVNAME_SIZE) == 0)
       {
 
         dev_id = dev_info.dev_id; //the device was found
