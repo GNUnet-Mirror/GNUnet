@@ -1136,7 +1136,7 @@ disconnect_neighbour (struct NeighbourMapEntry *n)
     /* Disconnecting while waiting for an ATS address to reconnect,
      * cannot send DISCONNECT */
     free_neighbour (n, GNUNET_NO);
-    break;
+    return;
   case GNUNET_TRANSPORT_PS_DISCONNECT:
     /* already disconnected, ignore */
     break;
