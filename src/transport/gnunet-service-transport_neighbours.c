@@ -343,6 +343,11 @@ struct NeighbourMapEntry
   GNUNET_SCHEDULER_TaskIdentifier task;
 
   /**
+   * Task to disconnect neighbour after we received a DISCONNECT message
+   */
+  GNUNET_SCHEDULER_TaskIdentifier delayed_disconnect_task;
+
+  /**
    * At what time should we sent the next keep-alive message?
    */
   struct GNUNET_TIME_Absolute keep_alive_time;
@@ -944,6 +949,13 @@ free_neighbour (struct NeighbourMapEntry *n,
   {
     GNUNET_ATS_suggest_address_cancel (GST_ats, &n->id);
     n->suggest_handle = NULL;
+  }
+
+  /* Cancel the disconnect task */
+  if (GNUNET_SCHEDULER_NO_TASK != n->delayed_disconnect_task)
+  {
+    GNUNET_SCHEDULER_cancel (n->delayed_disconnect_task);
+    n->delayed_disconnect_task = GNUNET_SCHEDULER_NO_TASK;
   }
 
   /* Cancel the master task */
@@ -3479,11 +3491,8 @@ void delayed_disconnect (void *cls,
     const struct GNUNET_SCHEDULER_TaskContext* tc)
 {
   struct NeighbourMapEntry *n = cls;
-  if (GNUNET_YES == test_connected (n))
-    GNUNET_STATISTICS_update (GST_stats,
-                              gettext_noop
-                              ("# other peer asked to disconnect from us"), 1,
-                              GNUNET_NO);
+
+  n->delayed_disconnect_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
               "Disconnecting by request from peer %s\n",
               GNUNET_i2s (&n->id));
@@ -3561,7 +3570,7 @@ GST_neighbours_handle_disconnect_message (const struct GNUNET_PeerIdentity *peer
     GNUNET_break_op (0);
     return;
   }
-  GNUNET_SCHEDULER_add_now (&delayed_disconnect, n);
+  n->delayed_disconnect_task = GNUNET_SCHEDULER_add_now (&delayed_disconnect, n);
 }
 
 
