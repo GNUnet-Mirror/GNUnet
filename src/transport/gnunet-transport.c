@@ -950,7 +950,9 @@ print_info (const struct GNUNET_PeerIdentity *id, const char *transport,
     const char *addr, enum GNUNET_TRANSPORT_PeerState state,
     struct GNUNET_TIME_Absolute state_timeout)
 {
-  if ((GNUNET_YES == iterate_all) || (GNUNET_YES == monitor_connections) )
+
+  if ( ((GNUNET_YES == iterate_connections) && (GNUNET_YES == iterate_all)) ||
+       (GNUNET_YES == monitor_connections) )
   {
     FPRINTF (stdout, _("Peer `%s': %s %s in state `%s' until %s\n"),
         GNUNET_i2s (id),
@@ -959,12 +961,12 @@ print_info (const struct GNUNET_PeerIdentity *id, const char *transport,
         GNUNET_TRANSPORT_ps2s (state),
         GNUNET_STRINGS_absolute_time_to_string (state_timeout));
   }
-  else
+  else if ( (GNUNET_YES == iterate_connections) &&
+             (GNUNET_TRANSPORT_is_connected(state)) )
   {
     /* Only connected peers, skip state */
     FPRINTF (stdout, _("Peer `%s': %s %s\n"), GNUNET_i2s (id), transport, addr);
   }
-
 }
 
 static void
