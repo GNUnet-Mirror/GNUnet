@@ -1701,6 +1701,8 @@ send_session_connect_cont (void *cls,
     break;
   case GNUNET_TRANSPORT_PS_CONNECTED_SWITCHING_CONNECT_SENT:
     /* Remove address and request and go back to primary address */
+    GNUNET_STATISTICS_update (GST_stats, gettext_noop
+        ("# Failed attempts to switch addresses (failed to send CONNECT CONT)"), 1, GNUNET_NO);
     GNUNET_ATS_address_destroyed (GST_ats, n->alternative_address.address,
         n->alternative_address.session);
     GNUNET_ATS_address_destroyed (GST_ats, n->alternative_address.address,
@@ -1788,6 +1790,8 @@ send_session_connect (struct NeighbourAddress *na)
           GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT));
         break;
       case GNUNET_TRANSPORT_PS_CONNECTED_SWITCHING_CONNECT_SENT:
+        GNUNET_STATISTICS_update (GST_stats, gettext_noop
+            ("# Failed attempts to switch addresses (failed to send CONNECT)"), 1, GNUNET_NO);
         /* Remove address and request and additional one */
         unset_alternative_address (n);
         set_state_and_timeout (n, GNUNET_TRANSPORT_PS_CONNECTED,
@@ -2580,6 +2584,8 @@ switch_address_bl_check_cont (void *cls,
         blc_ctx->bandwidth_in, blc_ctx->bandwidth_out);
     set_state_and_timeout (n, GNUNET_TRANSPORT_PS_CONNECTED_SWITCHING_CONNECT_SENT,
         GNUNET_TIME_relative_to_absolute (SETUP_CONNECTION_TIMEOUT));
+    GNUNET_STATISTICS_update (GST_stats, gettext_noop
+        ("# Attempts to switch addresses"), 1, GNUNET_NO);
     send_session_connect (&n->alternative_address);
     break;
   case GNUNET_TRANSPORT_PS_RECONNECT_ATS:
@@ -2606,7 +2612,8 @@ switch_address_bl_check_cont (void *cls,
     send_session_connect (&n->primary_address);
     break;
   case GNUNET_TRANSPORT_PS_CONNECTED_SWITCHING_CONNECT_SENT:
-    if (n->primary_address.session == blc_ctx->session)
+    if ( (0 == GNUNET_HELLO_address_cmp(n->primary_address.address,
+        blc_ctx->address) && n->primary_address.session == blc_ctx->session) )
     {
       /* ATS switches back to still-active session */
       free_address (&n->alternative_address);
@@ -3000,6 +3007,8 @@ master_task (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		  "Connection to `%s' timed out, missing KEEPALIVE_RESPONSEs (after trying to CONNECT on alternative address)\n",
 		  GNUNET_i2s (&n->id));
+      GNUNET_STATISTICS_update (GST_stats, gettext_noop
+          ("# Failed attempts to switch addresses (no response)"), 1, GNUNET_NO);
       disconnect_neighbour (n);
       return;
     }
@@ -3178,12 +3187,16 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
         GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT));
     GNUNET_break (GNUNET_NO == n->alternative_address.ats_active);
 
+    /* Notify about session... perhaps we obtained it */
     GST_ats_add_address (n->alternative_address.address,
-                         n->alternative_address.session,
-                         NULL, 0);
+        n->alternative_address.session, NULL, 0);
+    /* Set primary addresses */
     set_primary_address (n, n->alternative_address.address,
         n->alternative_address.session, n->alternative_address.bandwidth_in,
         n->alternative_address.bandwidth_out, GNUNET_YES);
+
+    GNUNET_STATISTICS_update (GST_stats, gettext_noop
+        ("# Successful attempts to switch addresses"), 1, GNUNET_NO);
 
     free_address (&n->alternative_address);
     send_session_ack_message (n);
@@ -3250,8 +3263,7 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
       if ( (GNUNET_TRANSPORT_PS_CONNECTED_SWITCHING_CONNECT_SENT == n->state) )
         set_state (n, GNUNET_TRANSPORT_PS_CONNECTED);
       else
-	GNUNET_break (0);
-      free_address (&n->alternative_address);
+        free_address (&n->alternative_address);
     }
     return GNUNET_NO; /* doesn't affect us further */
   }
@@ -3318,12 +3330,14 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
     /* primary went down while we were waiting for CONNECT_ACK on secondary;
        secondary as primary */
 
-    /* Destroy the address since it cannot be used */
-    GNUNET_ATS_address_destroyed (GST_ats, n->primary_address.address, NULL);
+    /* Destroy the inbound address since it cannot be used */
+    if (GNUNET_YES
+        == GNUNET_HELLO_address_check_option (n->primary_address.address,
+            GNUNET_HELLO_ADDRESS_INFO_INBOUND))
+      GNUNET_ATS_address_destroyed (GST_ats, n->primary_address.address, NULL);
     free_address (&n->primary_address);
     n->primary_address = n->alternative_address;
     memset (&n->alternative_address, 0, sizeof (struct NeighbourAddress));
-    /* FIXME: Why GNUNET_TRANSPORT_PS_RECONNECT_ATS ?*/
     set_state_and_timeout (n, GNUNET_TRANSPORT_PS_RECONNECT_ATS,
         GNUNET_TIME_relative_to_absolute (FAST_RECONNECT_TIMEOUT));
     break;
