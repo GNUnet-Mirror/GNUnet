@@ -358,6 +358,36 @@ connect_bl_check_cont (void *cls,
 }
 
 /**
+ * Black list check result for try_connect call
+ * If connection to the peer is allowed request adddress and
+ *
+ * @param cls blc_ctx bl context
+ * @param peer the peer
+ * @param result the result
+ */
+static void
+connect_transport_bl_check_cont (void *cls,
+    const struct GNUNET_PeerIdentity *peer, int result)
+{
+  struct BlacklistCheckContext *blctx = cls;
+
+  GNUNET_CONTAINER_DLL_remove (bc_head, bc_tail, blctx);
+  blctx->blc = NULL;
+
+  if (GNUNET_OK == result)
+  {
+    /* Blacklist allows to speak to this transport */
+    GST_ats_add_address(blctx->address, blctx->session, blctx->ats, blctx->ats_count);
+  }
+
+  if (NULL != blctx->address)
+    GNUNET_HELLO_address_free (blctx->address);
+  GNUNET_free (blctx->msg);
+  GNUNET_free (blctx);
+}
+
+
+/**
  * Function called by the transport for each received message.
  *
  * @param cls closure, const char* with the name of the plugin we received the message from
@@ -437,6 +467,18 @@ GST_receive_callback (void *cls,
     GNUNET_CONTAINER_DLL_insert (bc_head, bc_tail, blctx);
     if (NULL != (blc = GST_blacklist_test_allowed (&address->peer, NULL,
           &connect_bl_check_cont, blctx)))
+    {
+      blctx->blc = blc;
+    }
+
+    blctx = GNUNET_new (struct BlacklistCheckContext);
+    blctx->address = GNUNET_HELLO_address_copy (address);
+    blctx->session = session;
+    blctx->msg = GNUNET_malloc (ntohs(message->size));
+    memcpy (blctx->msg, message, ntohs(message->size));
+    GNUNET_CONTAINER_DLL_insert (bc_head, bc_tail, blctx);
+    if (NULL != (blc = GST_blacklist_test_allowed (&address->peer,
+        address->transport_name, &connect_transport_bl_check_cont, blctx)))
     {
       blctx->blc = blc;
     }
@@ -650,10 +692,10 @@ GST_ats_add_address (const struct GNUNET_HELLO_Address *address,
   ats2[0].value = htonl (net);
   memcpy (&ats2[1], ats, sizeof(struct GNUNET_ATS_Information) * ats_count);
   GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-      "Notifying ATS about peer `%s''s new address `%s' session %p in network %s %u\n",
+      "Notifying ATS about peer `%s''s new address `%s' session %p in network %s\n",
       GNUNET_i2s (&address->peer),
       (0 == address->address_length) ? "<inbound>" : GST_plugins_a2s (address),
-      session, GNUNET_ATS_print_network_type (net), net);
+      session, GNUNET_ATS_print_network_type (net));
   GNUNET_ATS_address_add (GST_ats, address, session, ats2, ats_count + 1);
 }
 
