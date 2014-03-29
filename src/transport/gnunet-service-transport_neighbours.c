@@ -3507,7 +3507,7 @@ void delayed_disconnect (void *cls,
   struct NeighbourMapEntry *n = cls;
 
   n->delayed_disconnect_task = GNUNET_SCHEDULER_NO_TASK;
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Disconnecting by request from peer %s\n",
               GNUNET_i2s (&n->id));
   free_neighbour (n, GNUNET_NO);
