@@ -1429,7 +1429,8 @@ client_connect (struct Session *s)
   if ((GNUNET_SYSERR == client_connect_get (s)) ||
       (GNUNET_SYSERR == client_connect_put (s)))
   {
-    GNUNET_break (0);
+    plugin->env->session_end (plugin->env->cls, s->address, s);
+    client_delete_session (s);
     return GNUNET_SYSERR;
   }
 
