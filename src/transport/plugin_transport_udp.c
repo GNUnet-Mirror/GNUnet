@@ -2177,7 +2177,8 @@ ack_proc (void *cls, uint32_t id, const struct GNUNET_MessageHeader *msg)
   s = l_ctx.res;
   if (NULL == s)
   {
-    GNUNET_break (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Trying to transmit ACK to peer `%s' but not session found!\n",
+        GNUNET_a2s(rc->src_addr, rc->addr_len));
     return;
   }
   if (s->flow_delay_for_other_peer.rel_value_us <= UINT32_MAX)
