@@ -33,10 +33,10 @@
  * Signature of a function called on each friend found.
  *
  * @param cls closure
- * @param friend peer identity of the friend
+ * @param friend_id peer identity of the friend
  */
 typedef void (*GNUNET_FRIENDS_Callback)(void *cls,
-                                        const struct GNUNET_PeerIdentity *friend);
+                                        const struct GNUNET_PeerIdentity *friend_id);
 
 
 /**
@@ -84,12 +84,12 @@ GNUNET_FRIENDS_write_stop (struct GNUNET_FRIENDS_Writer *w);
  * Add a friend to the friends file.
  *
  * @param w write handle
- * @param friend friend to add
+ * @param friend_id friend to add
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
 GNUNET_FRIENDS_write (struct GNUNET_FRIENDS_Writer *w,
-                      const struct GNUNET_PeerIdentity *friend);
+                      const struct GNUNET_PeerIdentity *friend_id);
 
 
 #endif

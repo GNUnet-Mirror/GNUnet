@@ -194,18 +194,18 @@ GNUNET_FRIENDS_write_stop (struct GNUNET_FRIENDS_Writer *w)
  * Add a friend to the friends file.
  *
  * @param w write handle
- * @param friend friend to add
+ * @param friend_id friend to add
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
 GNUNET_FRIENDS_write (struct GNUNET_FRIENDS_Writer *w,
-                      const struct GNUNET_PeerIdentity *friend)
+                      const struct GNUNET_PeerIdentity *friend_id)
 {
   char *buf;
   char *ret;
   size_t slen;
 
-  ret = GNUNET_CRYPTO_eddsa_public_key_to_string (&friend->public_key);
+  ret = GNUNET_CRYPTO_eddsa_public_key_to_string (&friend_id->public_key);
   GNUNET_asprintf (&buf,
                    "%s\n",
                    ret);
