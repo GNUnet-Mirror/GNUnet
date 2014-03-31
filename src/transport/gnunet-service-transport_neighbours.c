@@ -3431,15 +3431,16 @@ GST_neighbours_handle_session_ack (const struct GNUNET_MessageHeader *message,
     /* Notify about connection */
     connect_notify_cb (callback_cls, &n->id,
                      n->primary_address.bandwidth_in,
-                     n->primary_address.bandwidth_out);
+                     n->primary_address.bandwidth_out);\
+
+     GNUNET_STATISTICS_set (GST_stats,
+                            gettext_noop ("# peers connected"),
+                            ++neighbours_connected,
+                            GNUNET_NO);
   }
 
   set_state_and_timeout (n, GNUNET_TRANSPORT_PS_CONNECTED,
       GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT));
-  GNUNET_STATISTICS_set (GST_stats,
-			 gettext_noop ("# peers connected"),
-			 ++neighbours_connected,
-			 GNUNET_NO);
 
   /* Add session to ATS since no session was given (NULL) and we may have
    * obtained a new session */
