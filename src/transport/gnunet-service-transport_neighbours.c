@@ -3410,10 +3410,10 @@ GST_neighbours_handle_session_ack (const struct GNUNET_MessageHeader *message,
      now wait for the ACK to finally be connected
      - If we sent a CONNECT_ACK to this peer before */
 
-  if (   (GNUNET_TRANSPORT_PS_CONNECT_RECV_ACK != n->state) ||
+  if (   (GNUNET_TRANSPORT_PS_CONNECT_RECV_ACK != n->state) &&
          (ACK_SEND_SESSION_ACK != n->ack_state))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "Received unexpected SESSION_ACK message from peer `%s' in state %s/%s\n",
                 GNUNET_i2s (peer),
                 GNUNET_TRANSPORT_ps2s (n->state),
