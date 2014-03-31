@@ -26,6 +26,14 @@
 #ifndef GNUNET_FRIENDS_LIB_H
 #define GNUNET_FRIENDS_LIB_H
 
+#ifdef __cplusplus
+extern "C"
+{
+#if 0                           /* keep Emacsens' auto-indent happy */
+}
+#endif
+#endif
+
 #include "gnunet_util_lib.h"
 
 
@@ -91,5 +99,12 @@ int
 GNUNET_FRIENDS_write (struct GNUNET_FRIENDS_Writer *w,
                       const struct GNUNET_PeerIdentity *friend_id);
 
+
+					  #if 0                           /* keep Emacsens' auto-indent happy */
+{
+#endif
+#ifdef __cplusplus
+}
+#endif
 
 #endif
