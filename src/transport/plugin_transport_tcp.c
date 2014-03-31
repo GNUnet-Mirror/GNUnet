@@ -1783,7 +1783,8 @@ tcp_plugin_address_pretty_printer (void *cls, const char *type,
   else
   {
     /* invalid address */
-    GNUNET_break_op(0);
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+        "Trying to print invalid `%s' address with size %u\n", type, addrlen);
     asc (asc_cls, NULL );
     return;
   }
