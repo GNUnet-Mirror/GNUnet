@@ -109,9 +109,9 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   GML_shutdown ();
   GMH_shutdown ();
-  GMD_shutdown ();
   GMC_shutdown ();
   GMT_shutdown ();
+  GMD_shutdown ();
   GMP_shutdown ();
 
   GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
