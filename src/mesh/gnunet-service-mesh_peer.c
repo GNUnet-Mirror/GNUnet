@@ -1044,6 +1044,12 @@ GMP_queue_destroy (struct MeshPeerQueue *queue, int clear_cls)
                      GNUNET_TIME_absolute_get_duration (queue->start_waiting));
   }
 
+  if (NULL == peer_get_first_message (peer) && NULL != peer->core_transmit)
+  {
+    GNUNET_CORE_notify_transmit_ready_cancel (peer->core_transmit);
+    peer->core_transmit = NULL;
+  }
+
   GNUNET_free (queue);
 }
 
