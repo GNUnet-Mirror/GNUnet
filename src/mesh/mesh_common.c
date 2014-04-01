@@ -46,7 +46,7 @@ GM_f2s (int fwd)
   }
   else
   {
-    GNUNET_break (0);
+    /* Not an error, can happen with CONNECTION_BROKEN messages. */
     return "";
   }
 }
