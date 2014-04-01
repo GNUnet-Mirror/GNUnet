@@ -776,10 +776,7 @@ queue_is_sendable (struct MeshPeerQueue *q)
       GNUNET_break (0);
   }
 
-  if (GNUNET_MESSAGE_TYPE_MESH_CONNECTION_BROKEN != q->type)
-    return GMC_is_sendable (q->c, q->fwd);
-
-  return GNUNET_NO;
+  return GMC_is_sendable (q->c, q->fwd);
 }
 
 
@@ -797,6 +794,7 @@ peer_get_first_message (const struct MeshPeer *peer)
 
   for (q = peer->queue_head; NULL != q; q = q->next)
   {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Checking %p towards %s\n", q, GMC_2s (q->c));
     if (queue_is_sendable (q))
       return q;
   }
