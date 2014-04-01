@@ -101,6 +101,11 @@ union MeshInfoCB {
   /**
    * Monitor callback
    */
+  GNUNET_MESH_PeerCB peer_cb;
+
+  /**
+   * Monitor callback
+   */
   GNUNET_MESH_TunnelsCB tunnels_cb;
 
   /**
@@ -1780,6 +1785,45 @@ GNUNET_MESH_get_peers_cancel (struct GNUNET_MESH_Handle *h)
   h->info_cb.peers_cb = NULL;
   h->info_cls = NULL;
   return cls;
+}
+
+
+/**
+ * Request information about a peer known to the running mesh peer.
+ * The callback will be called for the tunnel once.
+ * Only one info request (of any kind) can be active at once.
+ *
+ * WARNING: unstable API, likely to change in the future!
+ *
+ * @param h Handle to the mesh peer.
+ * @param id Peer whose tunnel to examine.
+ * @param callback Function to call with the requested data.
+ * @param callback_cls Closure for @c callback.
+ *
+ * @return #GNUNET_OK / #GNUNET_SYSERR
+ */
+int
+GNUNET_MESH_get_peer (struct GNUNET_MESH_Handle *h,
+                      const struct GNUNET_PeerIdentity *id,
+                      GNUNET_MESH_PeerCB callback,
+                      void *callback_cls)
+{
+  struct GNUNET_MESH_LocalInfo msg;
+
+  if (NULL != h->info_cb.peer_cb)
+  {
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
+  }
+
+  memset (&msg, 0, sizeof (msg));
+  msg.header.size = htons (sizeof (msg));
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_PEER);
+  msg.peer = *id;
+  send_packet (h, &msg.header, NULL);
+  h->info_cb.peer_cb = callback;
+  h->info_cls = callback_cls;
+  return GNUNET_OK;
 }
 
 

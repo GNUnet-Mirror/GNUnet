@@ -465,6 +465,29 @@ peers_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
            GNUNET_i2s_full (peer), tunnel ? 'Y' : 'N', n_paths);
 }
 
+/**
+ * Method called to retrieve information about a specific peer
+ * known to the service.
+ *
+ * @param cls Closure.
+ * @param peer Peer ID.
+ * @param tunnel Do we have a tunnel towards this peer? #GNUNET_YES/#GNUNET_NO
+ * @param neighbor Is this a direct neighbor? #GNUNET_YES/#GNUNET_NO
+ * @param n_paths Number of paths known towards peer.
+ * @param paths Array of PEER_IDs representing all paths to reach the peer.
+ *              Each path starts with the local peer.
+ *              Each path ends with the destination peer (given in @c peer).
+ */
+void
+peer_callback (void *cls,
+               const struct GNUNET_PeerIdentity *peer,
+               int tunnel,
+               int neighbor,
+               unsigned int n_paths,
+               struct GNUNET_PeerIdentity *paths)
+{
+}
+
 
 /**
  * Method called to retrieve information about all tunnels in MESH.
@@ -558,6 +581,32 @@ get_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     return;
   }
   GNUNET_MESH_get_peers (mh, &peers_callback, NULL);
+}
+
+
+/**
+ * Call MESH's monitor API, get info of one peer.
+ *
+ * @param cls Closure (unused).
+ * @param tc TaskContext
+ */
+static void
+show_peer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_PeerIdentity pid;
+
+  if (GNUNET_OK !=
+    GNUNET_CRYPTO_eddsa_public_key_from_string (peer_id,
+                                                strlen (peer_id),
+                                                &pid.public_key))
+  {
+    fprintf (stderr,
+             _("Invalid peer ID `%s'\n"),
+             peer_id);
+    GNUNET_SCHEDULER_shutdown();
+    return;
+  }
+  GNUNET_MESH_get_peer (mh, &pid, peer_callback, NULL);
 }
 
 /**
@@ -681,6 +730,11 @@ run (void *cls, char *const *args, const char *cfgfile,
     endch = &channel_ended;
     ports = GNUNET_malloc (sizeof (uint32_t) * 2);
     ports[0] = listen_port;
+  }
+  else if (NULL != peer_id)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Show peer\n");
+    GNUNET_SCHEDULER_add_now (&show_peer, NULL);
   }
   else if (NULL != tunnel_id)
   {

@@ -410,6 +410,26 @@ typedef void (*GNUNET_MESH_PeersCB) (void *cls,
                                      int tunnel, unsigned int n_paths,
                                      unsigned int best_path);
 
+/**
+ * Method called to retrieve information about a specific peer
+ * known to the service.
+ *
+ * @param cls Closure.
+ * @param peer Peer ID.
+ * @param tunnel Do we have a tunnel towards this peer? #GNUNET_YES/#GNUNET_NO
+ * @param neighbor Is this a direct neighbor? #GNUNET_YES/#GNUNET_NO
+ * @param n_paths Number of paths known towards peer.
+ * @param paths Array of PEER_IDs representing all paths to reach the peer.
+ *              Each path starts with the local peer.
+ *              Each path ends with the destination peer (given in @c peer).
+ */
+typedef void (*GNUNET_MESH_PeerCB) (void *cls,
+                                    const struct GNUNET_PeerIdentity *peer,
+                                    int tunnel,
+                                    int neighbor,
+                                    unsigned int n_paths,
+                                    struct GNUNET_PeerIdentity *paths);
+
 
 /**
  * Method called to retrieve information about all tunnels in MESH, called
@@ -504,6 +524,27 @@ GNUNET_MESH_get_peers (struct GNUNET_MESH_Handle *h,
  */
 void *
 GNUNET_MESH_get_peers_cancel (struct GNUNET_MESH_Handle *h);
+
+
+/**
+ * Request information about a peer known to the running mesh peer.
+ * The callback will be called for the tunnel once.
+ * Only one info request (of any kind) can be active at once.
+ *
+ * WARNING: unstable API, likely to change in the future!
+ *
+ * @param h Handle to the mesh peer.
+ * @param id Peer whose tunnel to examine.
+ * @param callback Function to call with the requested data.
+ * @param callback_cls Closure for @c callback.
+ *
+ * @return #GNUNET_OK / #GNUNET_SYSERR
+ */
+int
+GNUNET_MESH_get_peer (struct GNUNET_MESH_Handle *h,
+                      const struct GNUNET_PeerIdentity *id,
+                      GNUNET_MESH_PeerCB callback,
+                      void *callback_cls);
 
 /**
  * Request information about tunnels of the running mesh peer.
