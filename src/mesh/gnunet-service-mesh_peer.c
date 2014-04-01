@@ -1924,7 +1924,11 @@ void
 GMP_set_tunnel (struct MeshPeer *peer, struct MeshTunnel3 *t)
 {
   peer->tunnel = t;
-}
+  if (NULL == t && NULL != peer->search_h)
+  {
+    GMD_search_stop (peer->search_h);
+    peer->search_h = NULL;
+  }
 
 
 /**
