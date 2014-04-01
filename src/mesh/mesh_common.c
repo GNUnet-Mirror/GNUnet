@@ -87,6 +87,18 @@ GM_h2hc (const struct GNUNET_MeshHash *id)
 }
 
 
+const char *
+GM_h2s (const struct GNUNET_MeshHash *id)
+{
+  static char s[53];
+
+  memcpy (s, GNUNET_h2s_full (GM_h2hc (id)), 52);
+  s[52] = '\0';
+
+  return s;
+}
+
+
 #if !defined(GNUNET_CULL_LOGGING)
 const char *
 GM_m2s (uint16_t m)
