@@ -483,7 +483,7 @@ tcp_nat_port_map_callback (void *cls, int add_remove,
     t4.ipv4_addr = ((struct sockaddr_in *) addr)->sin_addr.s_addr;
     t4.t4_port = ((struct sockaddr_in *) addr)->sin_port;
     arg = &t4;
-    args = sizeof(t4);
+    args = sizeof (t4);
     break;
   case AF_INET6:
     GNUNET_assert(addrlen == sizeof(struct sockaddr_in6));
@@ -493,13 +493,15 @@ tcp_nat_port_map_callback (void *cls, int add_remove,
     t6.options = htonl (myoptions);
     t6.t6_port = ((struct sockaddr_in6 *) addr)->sin6_port;
     arg = &t6;
-    args = sizeof(t6);
+    args = sizeof (t6);
     break;
   default:
     GNUNET_break(0);
     return;
   }
   /* modify our published address list */
+  GNUNET_assert ((args == sizeof (struct IPv4TcpAddress)) ||
+      (args == sizeof (struct IPv6TcpAddress)));
   address = GNUNET_HELLO_address_allocate (plugin->env->my_identity,
       PLUGIN_NAME, arg, args, GNUNET_HELLO_ADDRESS_INFO_NONE);
   plugin->env->notify_address (plugin->env->cls, add_remove, address);
@@ -549,12 +551,6 @@ tcp_address_to_string (void *cls, const void *addr, size_t addrlen)
     memcpy (&a4, &t4->ipv4_addr, sizeof(a4));
     sb = &a4;
     break;
-  case 0:
-  {
-    GNUNET_snprintf (rbuf, sizeof(rbuf), "%s",
-        TRANSPORT_SESSION_INBOUND_STRING);
-    return rbuf;
-  }
   default:
     LOG(GNUNET_ERROR_TYPE_WARNING, _("Unexpected address length: %u bytes\n"),
         (unsigned int ) addrlen);
@@ -1774,12 +1770,6 @@ tcp_plugin_address_pretty_printer (void *cls, const char *type,
     sb = &a4;
     sbs = sizeof(a4);
   }
-  else if (0 == addrlen)
-  {
-    asc (asc_cls, TRANSPORT_SESSION_INBOUND_STRING);
-    asc (asc_cls, NULL );
-    return;
-  }
   else
   {
     /* invalid address */
@@ -1980,22 +1970,24 @@ handle_tcp_nat_probe (void *cls, struct GNUNET_SERVER_Client *client,
   case AF_INET:
     s4 = vaddr;
     t4 = GNUNET_new (struct IPv4TcpAddress);
-    t4->options = 0;
+    t4->options = htonl(0);
     t4->t4_port = s4->sin_port;
     t4->ipv4_addr = s4->sin_addr.s_addr;
     session->address = GNUNET_HELLO_address_allocate (
         &tcp_nat_probe->clientIdentity, PLUGIN_NAME, &t4,
-        sizeof(struct IPv4TcpAddress), GNUNET_HELLO_ADDRESS_INFO_NONE);
+        sizeof(struct IPv4TcpAddress),
+        GNUNET_HELLO_ADDRESS_INFO_NONE);
     break;
   case AF_INET6:
     s6 = vaddr;
     t6 = GNUNET_new (struct IPv6TcpAddress);
-    t6->options = 0;
+    t6->options = htonl(0);
     t6->t6_port = s6->sin6_port;
     memcpy (&t6->ipv6_addr, &s6->sin6_addr, sizeof(struct in6_addr));
     session->address = GNUNET_HELLO_address_allocate (
-        &tcp_nat_probe->clientIdentity, PLUGIN_NAME, &t6,
-        sizeof(struct IPv6TcpAddress), GNUNET_HELLO_ADDRESS_INFO_NONE);
+        &tcp_nat_probe->clientIdentity,
+        PLUGIN_NAME, &t6, sizeof(struct IPv6TcpAddress),
+        GNUNET_HELLO_ADDRESS_INFO_NONE);
     break;
   default:
     GNUNET_break_op(0);
