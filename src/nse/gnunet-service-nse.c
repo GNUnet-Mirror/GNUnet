@@ -92,10 +92,22 @@ static struct GNUNET_TIME_Relative gnunet_nse_interval;
 static struct GNUNET_TIME_Relative proof_find_delay;
 
 #if ENABLE_NSE_HISTOGRAM
+
+/**
+ * Handle to test if testbed logger service is running or not
+ */
+struct GNUNET_CLIENT_TestHandle *logger_test;
+
 /**
  * Handle for writing when we received messages to disk.
  */
 static struct GNUNET_TESTBED_LOGGER_Handle *lh;
+
+/**
+ * Handle for writing message received timestamp information to disk.
+ */
+static struct GNUNET_BIO_WriteHandle *histogram;
+
 #endif
 
 
@@ -1049,7 +1061,10 @@ handle_p2p_size_estimate (void *cls,
     uint64_t t;
 
     t = GNUNET_TIME_absolute_get().abs_value_us;
-    GNUNET_TESTBED_LOGGER_write (lh, &t, sizeof (uint64_t));
+    if (NULL != lh)
+      GNUNET_TESTBED_LOGGER_write (lh, &t, sizeof (uint64_t));
+    if (NULL != histogram)
+      GNUNET_BIO_write_int64 (histogram, t);
   }
 #endif
   incoming_flood = (const struct GNUNET_NSE_FloodMessage *) message;
@@ -1347,9 +1362,22 @@ shutdown_task (void *cls,
     my_private_key = NULL;
   }
 #if ENABLE_NSE_HISTOGRAM
-  struct GNUNET_TIME_Relative timeout;
-  timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30);
-  GNUNET_TESTBED_LOGGER_flush (lh, timeout, &flush_comp_cb, NULL);
+  if (NULL != logger_test)
+  {
+    GNUNET_CLIENT_service_test_cancel (logger_test);
+    logger_test = NULL;
+  }
+  if (NULL != lh)
+  {
+    struct GNUNET_TIME_Relative timeout;
+    timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30);
+    GNUNET_TESTBED_LOGGER_flush (lh, timeout, &flush_comp_cb, NULL);
+  }
+  if (NULL != histogram)
+  {
+    GNUNET_BIO_write_close (histogram);
+    histogram = NULL;
+  }
 #endif
 }
 
@@ -1398,6 +1426,33 @@ core_init (void *cls,
                                     (next_timestamp), &update_flood_message,
                                     NULL);
 }
+
+#if ENABLE_NSE_HISTOGRAM
+/**
+ * Function called with the status of the testbed logger service
+ *
+ * @param cls NULL
+ * @param status GNUNET_YES if the service is running,
+ *               GNUNET_NO if the service is not running
+ *               GNUNET_SYSERR if the configuration is invalid
+ */
+static void
+status_cb (void *cls, int status)
+{
+  logger_test = NULL;
+  if (GNUNET_YES != status)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Testbed logger not running\n");
+    return;
+  }
+  if (NULL == (lh = GNUNET_TESTBED_LOGGER_connect (cfg)))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Cannot connect to the testbed logger.  Exiting.\n");
+    GNUNET_SCHEDULER_shutdown ();
+  }
+}
+#endif
 
 
 /**
@@ -1465,12 +1520,27 @@ run (void *cls,
   }
 
 #if ENABLE_NSE_HISTOGRAM
-  if (NULL == (lh = GNUNET_TESTBED_LOGGER_connect (cfg)))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Cannot connect to the testbed logger.  Exiting.\n");
-    GNUNET_SCHEDULER_shutdown ();
-    return;
+    char *histogram_dir;
+    char *histogram_fn;
+
+    if (GNUNET_OK ==
+        GNUNET_CONFIGURATION_get_value_filename (cfg, "NSE", "HISTOGRAM_DIR",
+                                                 &histogram_dir))
+    {
+      GNUNET_assert (0 < GNUNET_asprintf (&histogram_fn, "%s/timestamps",
+                                          histogram_dir));
+      GNUNET_free (histogram_dir);
+      histogram = GNUNET_BIO_write_open (histogram_fn);
+      GNUNET_free (histogram_fn);
+      if (NULL == histogram)
+        GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Unable to open histogram file\n");
+    }
+    logger_test =
+        GNUNET_CLIENT_service_test ("testbed-logger", cfg,
+                                    GNUNET_TIME_UNIT_SECONDS,
+                                    &status_cb, NULL);
+    
   }
 #endif
 
