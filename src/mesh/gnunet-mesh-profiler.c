@@ -666,7 +666,7 @@ tmt_rdy_ping (void *cls, size_t size, void *buf)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "tmt_rdy called, filling buffer\n");
   if (size < sizeof (struct MeshPingMessage) || NULL == buf)
   {
-    GNUNET_break (0);
+    GNUNET_break (GNUNET_YES == test_finished);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "size %u, buf %p, data_sent %u, data_received %u\n",
                 size, buf, peer->data_sent, peer->data_received);
