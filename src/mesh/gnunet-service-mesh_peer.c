@@ -946,7 +946,7 @@ queue_send (void *cls, size_t size, void *buf)
   }
 
   /* Free queue, but cls was freed by send_core_* */
-  GMP_queue_destroy (queue, GNUNET_NO);
+  GMP_queue_destroy (queue, GNUNET_NO, GNUNET_YES);
 
   /* If more data in queue, send next */
   queue = peer_get_first_message (peer);
@@ -993,9 +993,10 @@ queue_send (void *cls, size_t size, void *buf)
  *
  * @param queue Queue handler to cancel.
  * @param clear_cls Is it necessary to free associated cls?
+ * @param sent Was it really sent? (Could have been canceled)
  */
 void
-GMP_queue_destroy (struct MeshPeerQueue *queue, int clear_cls)
+GMP_queue_destroy (struct MeshPeerQueue *queue, int clear_cls, int sent)
 {
   struct MeshPeer *peer;
 
@@ -1039,7 +1040,7 @@ GMP_queue_destroy (struct MeshPeerQueue *queue, int clear_cls)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "#   Calling callback\n");
     queue->callback (queue->callback_cls,
-                     queue->c, queue->type,
+                     queue->c, sent, queue->type,
                      queue->fwd, queue->size,
                      GNUNET_TIME_absolute_get_duration (queue->start_waiting));
   }
@@ -1137,11 +1138,16 @@ GMP_queue_add (struct MeshPeer *peer, void *cls, uint16_t type, size_t size,
                                            peer);
     queue->start_waiting = GNUNET_TIME_absolute_get ();
   }
+  else if (GNUNET_NO == call_core)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "core tmt rdy towards %s not needed\n",
+         GMP_2s (peer));
+
+  }
   else
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-                "core tmt rdy towards %s already called\n",
-                GMP_2s (peer));
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "core tmt rdy towards %s already called\n",
+         GMP_2s (peer));
 
   }
   return queue;
@@ -1168,7 +1174,7 @@ GMP_queue_cancel (struct MeshPeer *peer, struct MeshConnection *c)
     if (q->c == c)
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG, "GMP_cancel_queue %s\n", GM_m2s (q->type));
-      GMP_queue_destroy (q, GNUNET_YES);
+      GMP_queue_destroy (q, GNUNET_YES, GNUNET_NO);
 
       /* Get next from prev, q->next might be already freed:
        * queue destroy -> callback -> GMC_destroy -> cancel_queues -> here
@@ -1250,13 +1256,13 @@ GMP_connection_pop (struct MeshPeer *peer, struct MeshConnection *c)
       case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_BROKEN:
       case GNUNET_MESSAGE_TYPE_MESH_ACK:
       case GNUNET_MESSAGE_TYPE_MESH_POLL:
-        GMP_queue_destroy (q, GNUNET_YES);
+        GMP_queue_destroy (q, GNUNET_YES, GNUNET_NO);
         continue;
 
       case GNUNET_MESSAGE_TYPE_MESH_KX:
       case GNUNET_MESSAGE_TYPE_MESH_ENCRYPTED:
         msg = (struct GNUNET_MessageHeader *) q->cls;
-        GMP_queue_destroy (q, GNUNET_NO);
+        GMP_queue_destroy (q, GNUNET_NO, GNUNET_NO);
         return msg;
 
       default:

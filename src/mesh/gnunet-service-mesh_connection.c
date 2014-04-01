@@ -557,6 +557,7 @@ send_ack (struct MeshConnection *c, unsigned int buffer, int fwd, int force)
  *
  * @param cls Closure (ConnectionQueue Handle).
  * @param c Connection this message was on.
+ * @param sent Was it really sent? (Could have been canceled)
  * @param type Type of message sent.
  * @param fwd Was this a FWD going message?
  * @param size Size of the message.
@@ -564,8 +565,8 @@ send_ack (struct MeshConnection *c, unsigned int buffer, int fwd, int force)
  */
 static void
 message_sent (void *cls,
-              struct MeshConnection *c, uint16_t type,
-              int fwd, size_t size,
+              struct MeshConnection *c, int sent,
+              uint16_t type, int fwd, size_t size,
               struct GNUNET_TIME_Relative wait)
 {
   struct MeshConnectionPerformance *p;
@@ -575,10 +576,8 @@ message_sent (void *cls,
   int forced;
 
   fc = fwd ? &c->fwd_fc : &c->bck_fc;
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "!  sent %s %s\n",
-       GM_f2s (fwd),
-       GM_m2s (type));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "!  %ssent %s %s\n",
+       sent ? "" : "not ", GM_f2s (fwd), GM_m2s (type));
   LOG (GNUNET_ERROR_TYPE_DEBUG, "!  C_P- %p %u\n", c, c->pending_messages);
   if (NULL != q)
   {
@@ -618,7 +617,9 @@ message_sent (void *cls,
       break;
 
     case GNUNET_MESSAGE_TYPE_MESH_ENCRYPTED:
-      fc->last_pid_sent++;
+      if (GNUNET_YES == sent)
+        fc->last_pid_sent++;
+
       LOG (GNUNET_ERROR_TYPE_DEBUG, "!  Q_N- %p %u\n", fc, fc->queue_n);
       if (GNUNET_NO == forced)
       {
@@ -633,8 +634,11 @@ message_sent (void *cls,
              "!   forced, Q_N not accounting pid %u\n",
              fc->last_pid_sent);
       }
-      GMC_send_ack (c, fwd, GNUNET_NO);
-      connection_reset_timeout (c, fwd);
+      if (GNUNET_YES == sent)
+      {
+        GMC_send_ack (c, fwd, GNUNET_NO);
+        connection_reset_timeout (c, fwd);
+      }
       break;
 
     case GNUNET_MESSAGE_TYPE_MESH_POLL:
@@ -2936,7 +2940,7 @@ GMC_cancel (struct MeshConnectionQueue *q)
   LOG (GNUNET_ERROR_TYPE_DEBUG, "!  GMC cancel message\n");
 
   /* queue destroy calls message_sent, which calls q->cont and frees q */
-  GMP_queue_destroy (q->q, GNUNET_YES);
+  GMP_queue_destroy (q->q, GNUNET_YES, GNUNET_NO);
 }
 
 
