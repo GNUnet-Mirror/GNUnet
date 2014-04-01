@@ -26,6 +26,7 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_mesh_service.h"
+#include "mesh.h"
 
 
 /**
@@ -510,7 +511,7 @@ tunnel_callback (void *cls,
                  unsigned int n_channels,
                  unsigned int n_connections,
                  uint32_t *channels,
-                 struct GNUNET_HashCode *connections,
+                 struct GNUNET_MeshHash *connections,
                  unsigned int estate,
                  unsigned int cstate)
 {
@@ -524,7 +525,7 @@ tunnel_callback (void *cls,
       FPRINTF (stdout, "   %u\n", channels[i]);
     FPRINTF (stdout, "- %u connections\n", n_connections);
     for (i = 0; i < n_connections; i++)
-      FPRINTF (stdout, "   %s\n", GNUNET_h2s_full (&connections[i]));
+      FPRINTF (stdout, "   %s\n", GM_h2s (&connections[i]));
     FPRINTF (stdout, "- enc state: %u\n", estate);
     FPRINTF (stdout, "- con state: %u\n", cstate);
   }
@@ -740,9 +741,9 @@ main (int argc, char *const *argv)
 //     {'a', "channel", "TUNNEL_ID:CHANNEL_ID",
 //      gettext_noop ("provide information about a particular channel"),
 //      GNUNET_YES, &GNUNET_GETOPT_set_string, &channel_id},
-//     {'b', "connection", "TUNNEL_ID:CONNECTION_ID",
-//      gettext_noop ("provide information about a particular connection"),
-//      GNUNET_YES, &GNUNET_GETOPT_set_string, &conn_id},
+    {'C', "connection", "CONNECTION_ID",
+     gettext_noop ("provide information about a particular connection"),
+     GNUNET_YES, &GNUNET_GETOPT_set_string, &conn_id},
     {'e', "echo", NULL,
      gettext_noop ("activate echo mode"),
      GNUNET_NO, &GNUNET_GETOPT_set_one, &echo},

@@ -805,7 +805,7 @@ handle_show_tunnel (void *cls, struct GNUNET_SERVER_Client *client,
   c_n = GMT_count_connections (t);
 
   size = sizeof (struct GNUNET_MESH_LocalInfoTunnel);
-  size += c_n * sizeof (struct GNUNET_HashCode);
+  size += c_n * sizeof (struct GNUNET_MeshHash);
   size += ch_n * sizeof (MESH_ChannelNumber);
 
   resp = GNUNET_malloc (size);
