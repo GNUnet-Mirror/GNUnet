@@ -90,17 +90,6 @@ typedef uint32_t MESH_ChannelNumber;
 
 
 /**
- * Hash to be used in Mesh communication. Only 256 bits needed,
- * instead of the 512 from @c GNUNET_HashCode.
- *
- */
-struct GNUNET_MeshHash
-{
-  unsigned char bits[256 / 8];
-};
-
-
-/**
  * Message for a client to create and destroy channels.
  */
 struct GNUNET_MESH_ChannelMessage
@@ -331,6 +320,13 @@ GM_min_pid (uint32_t a, uint32_t b);
  */
 const struct GNUNET_HashCode *
 GM_h2hc (const struct GNUNET_MeshHash *id);
+
+/**
+ * Get a string from a Mesh Hash (256 bits).
+ * WARNING: Not reentrant (based on GNUNET_h2s).
+ */
+const char *
+GM_h2s (const struct GNUNET_MeshHash *id);
 
 /**
  * Convert a message type into a string to help debug

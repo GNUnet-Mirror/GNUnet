@@ -54,6 +54,15 @@ struct GNUNET_MESH_Handle;
  */
 struct GNUNET_MESH_Channel;
 
+/**
+ * Hash to be used in Mesh communication. Only 256 bits needed,
+ * instead of the 512 from @c GNUNET_HashCode.
+ *
+ */
+struct GNUNET_MeshHash
+{
+  unsigned char bits[256 / 8];
+};
 
 /**
  * Channel options.
@@ -442,7 +451,7 @@ typedef void (*GNUNET_MESH_TunnelCB) (void *cls,
                                       unsigned int n_channels,
                                       unsigned int n_connections,
                                       uint32_t *channels,
-                                      struct GNUNET_HashCode *connections,
+                                      struct GNUNET_MeshHash *connections,
                                       unsigned int estate,
                                       unsigned int cstate);
 
