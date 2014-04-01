@@ -40,6 +40,11 @@ static int monitor_connections;
 static int request_peers;
 
 /**
+ * Option --peer
+ */
+static char *peer_id;
+
+/**
  * Option -T.
  */
 static int request_tunnels;
@@ -750,12 +755,15 @@ main (int argc, char *const *argv)
 //     {'m', "monitor", NULL,
 //      gettext_noop ("provide information about all tunnels (continuously) NOT IMPLEMENTED"), /* FIXME */
 //      GNUNET_NO, &GNUNET_GETOPT_set_one, &monitor_connections},
-    {'p', "port", NULL,
+    {'o', "open-port", NULL,
      gettext_noop ("port to listen to (default; 0)"),
      GNUNET_YES, &GNUNET_GETOPT_set_uint, &listen_port},
-    {'P', "peers", NULL,
+    {'p', "peer", "PEER_ID",
     gettext_noop ("provide information about all peers"),
-    GNUNET_NO, &GNUNET_GETOPT_set_one, &request_peers},
+    GNUNET_NO, &GNUNET_GETOPT_set_string, &peer_id},
+    {'P', "peers", NULL,
+      gettext_noop ("provide information about all peers"),
+      GNUNET_NO, &GNUNET_GETOPT_set_one, &request_peers},
     {'t', "tunnel", "TUNNEL_ID",
      gettext_noop ("provide information about a particular tunnel"),
      GNUNET_YES, &GNUNET_GETOPT_set_string, &tunnel_id},
