@@ -1896,7 +1896,7 @@ check_connection_count (struct MeshTunnel3 *t)
     struct MeshTConnection *iter;
     struct MeshTConnection *c;
 
-    for (iter = t->connection_head; NULL != iter; iter = iter->next)
+    for (c = iter = t->connection_head; NULL != iter; iter = iter->next)
     {
       if (NULL == c || iter->created.abs_value_us > c->created.abs_value_us)
       {
