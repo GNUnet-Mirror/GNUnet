@@ -1682,7 +1682,7 @@ GMT_handle_encrypted (struct MeshTunnel3 *t,
   if (0 != memcmp (&hmac, &msg->hmac, sizeof (hmac)))
   {
     /* checksum failed */
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Failed checksum validation for a message on tunnel `%s'\n",
                 GMT_2s (t));
     GNUNET_STATISTICS_update (stats, "# wrong HMAC", 1, GNUNET_NO);
