@@ -1060,6 +1060,70 @@ process_get_peers (struct GNUNET_MESH_Handle *h,
 
 
 /**
+ * Process a local peer info reply, pass info to the user.
+ *
+ * @param h Mesh handle.
+ * @param message Message itself.
+ */
+static void
+process_get_peer (struct GNUNET_MESH_Handle *h,
+                  const struct GNUNET_MessageHeader *message)
+{
+  struct GNUNET_MESH_LocalInfoTunnel *msg;
+  size_t esize;
+  size_t msize;
+  unsigned int ch_n;
+  unsigned int c_n;
+  struct GNUNET_MeshHash *conns;
+  MESH_ChannelNumber *chns;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Get Tunnel messasge received\n");
+  if (NULL == h->info_cb.tunnel_cb)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  ignored\n");
+    return;
+  }
+
+  /* Verify message sanity */
+  msg = (struct GNUNET_MESH_LocalInfoTunnel *) message;
+  msize = ntohs (message->size);
+  esize = sizeof (struct GNUNET_MESH_LocalInfoTunnel);
+  if (esize > msize)
+  {
+    GNUNET_break_op (0);
+    h->info_cb.tunnel_cb (h->info_cls, NULL, 0, 0, NULL, NULL, 0, 0);
+    goto clean_cls;
+  }
+  ch_n = ntohl (msg->channels);
+  c_n = ntohl (msg->connections);
+  esize += ch_n * sizeof (MESH_ChannelNumber);
+  esize += c_n * sizeof (struct GNUNET_MeshHash);
+  if (msize != esize)
+  {
+    GNUNET_break_op (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "m:%u, e: %u (%u ch, %u conn)\n",
+                msize, esize, ch_n, c_n);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%u (%u ch, %u conn)\n",
+                sizeof (struct GNUNET_MESH_LocalInfoTunnel),
+                sizeof (MESH_ChannelNumber), sizeof (struct GNUNET_HashCode));
+    h->info_cb.tunnel_cb (h->info_cls, NULL, 0, 0, NULL, NULL, 0, 0);
+    goto clean_cls;
+  }
+
+  /* Call Callback with tunnel info. */
+  conns = (struct GNUNET_MeshHash *) &msg[1];
+  chns = (MESH_ChannelNumber *) &conns[c_n];
+  h->info_cb.tunnel_cb (h->info_cls, &msg->destination,
+                        ch_n, c_n, chns, conns,
+                        ntohs (msg->estate), ntohs (msg->cstate));
+
+  clean_cls:
+  h->info_cb.tunnel_cb = NULL;
+  h->info_cls = NULL;
+}
+
+
+/**
  * Process a local reply about info on all tunnels, pass info to the user.
  *
  * @param h Mesh handle.
@@ -1095,7 +1159,6 @@ process_get_tunnels (struct GNUNET_MESH_Handle *h,
                          ntohs (msg->estate), ntohs (msg->cstate));
 
 }
-
 
 
 /**
@@ -1161,6 +1224,7 @@ clean_cls:
   h->info_cls = NULL;
 }
 
+
 /**
  * Function to process all messages received from the service
  *
@@ -1209,6 +1273,9 @@ msg_received (void *cls, const struct GNUNET_MessageHeader *msg)
 //     break;
   case GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_PEERS:
     process_get_peers (h, msg);
+    break;
+  case GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_PEER:
+    process_get_peer (h, msg);
     break;
   case GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNELS:
     process_get_tunnels (h, msg);
