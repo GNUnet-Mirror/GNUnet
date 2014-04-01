@@ -323,6 +323,9 @@ channel_incoming (void *cls,
 static void
 send_echo (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) || NULL == ch)
+    return;
+
   GNUNET_MESH_notify_transmit_ready (ch, GNUNET_NO,
                                      GNUNET_TIME_UNIT_FOREVER_REL,
                                      sizeof (struct GNUNET_MessageHeader),
