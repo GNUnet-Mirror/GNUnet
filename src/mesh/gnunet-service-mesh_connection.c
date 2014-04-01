@@ -2750,12 +2750,16 @@ GMC_is_sendable (struct MeshConnection *c, int fwd)
 {
   struct MeshFlowControl *fc;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG, " checking sendability of %s traffic on %s\n",
+       GM_f2s (fwd), GMC_2s (c));
   if (NULL == c)
   {
     GNUNET_break (0);
     return GNUNET_YES;
   }
   fc = fwd ? &c->fwd_fc : &c->bck_fc;
+  LOG (GNUNET_ERROR_TYPE_DEBUG, " last ack recv: %u, last pid sent: %u\n",
+       fc->last_ack_recv, fc->last_pid_sent);
   if (GM_is_pid_bigger (fc->last_ack_recv, fc->last_pid_sent))
     return GNUNET_YES;
   return GNUNET_NO;
