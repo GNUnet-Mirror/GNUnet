@@ -784,7 +784,7 @@ queue_is_sendable (struct MeshPeerQueue *q)
  *
  * @param peer The destination peer.
  *
- * @return Best current known path towards the peer, if any.
+ * @return First transmittable message, if any. Otherwise, NULL.
  */
 static struct MeshPeerQueue *
 peer_get_first_message (const struct MeshPeer *peer)
