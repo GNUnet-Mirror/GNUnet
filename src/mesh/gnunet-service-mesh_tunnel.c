@@ -2288,6 +2288,9 @@ GMT_count_connections (struct MeshTunnel3 *t)
   struct MeshTConnection *iter;
   unsigned int count;
 
+  if (NULL == t)
+    return 0;
+
   for (count = 0, iter = t->connection_head; NULL != iter; iter = iter->next)
     if (MESH_CONNECTION_DESTROYED != GMC_get_state (iter->c))
       count++;
