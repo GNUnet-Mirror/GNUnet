@@ -1201,6 +1201,32 @@ fragmented_message_done (struct UDP_FragmentationContext *fc,
   GNUNET_free(fc);
 }
 
+/**
+ * Scan the heap for a receive context with the given address.
+ *
+ * @param cls the `struct FindReceiveContext`
+ * @param node internal node of the heap
+ * @param element value stored at the node (a 'struct ReceiveContext')
+ * @param cost cost associated with the node
+ * @return #GNUNET_YES if we should continue to iterate,
+ *         #GNUNET_NO if not.
+ */
+static int
+find_receive_context (void *cls, struct GNUNET_CONTAINER_HeapNode *node,
+    void *element, GNUNET_CONTAINER_HeapCostType cost)
+{
+  struct FindReceiveContext *frc = cls;
+  struct DefragContext *e = element;
+
+  if ((frc->addr_len == e->addr_len)
+      && (0 == memcmp (frc->addr, e->src_addr, frc->addr_len)))
+  {
+    frc->rc = e;
+    return GNUNET_NO;
+  }
+  return GNUNET_YES;
+}
+
 
 /**
  * Functions with this signature are called whenever we need
@@ -1217,6 +1243,7 @@ udp_disconnect_session (void *cls, struct Session *s)
   struct Plugin *plugin = cls;
   struct UDP_MessageWrapper *udpw;
   struct UDP_MessageWrapper *next;
+  struct FindReceiveContext frc;
 
   GNUNET_assert(GNUNET_YES != s->in_destroy);
   LOG(GNUNET_ERROR_TYPE_DEBUG, "Session %p to peer `%s' address ended\n", s,
@@ -1232,6 +1259,20 @@ udp_disconnect_session (void *cls, struct Session *s)
   {
     /* Remove fragmented message due to disconnect */
     fragmented_message_done (s->frag_ctx, GNUNET_SYSERR);
+  }
+
+  frc.rc = NULL;
+  frc.addr = s->address->address;
+  frc.addr_len = s->address->address_length;
+  /* Lookup existing receive context for this address */
+  GNUNET_CONTAINER_heap_iterate (plugin->defrag_ctxs,
+      &find_receive_context, &frc);
+  if (NULL != frc.rc)
+  {
+      struct DefragContext *d_ctx = frc.rc;
+      GNUNET_CONTAINER_heap_remove_node (d_ctx->hnode);
+      GNUNET_DEFRAGMENT_context_destroy (d_ctx->defrag);
+      GNUNET_free (d_ctx);
   }
 
   next = plugin->ipv4_queue_head;
@@ -2016,34 +2057,6 @@ process_udp_message (struct Plugin *plugin,
     free_session (s);
 }
 
-
-/**
- * Scan the heap for a receive context with the given address.
- *
- * @param cls the `struct FindReceiveContext`
- * @param node internal node of the heap
- * @param element value stored at the node (a 'struct ReceiveContext')
- * @param cost cost associated with the node
- * @return #GNUNET_YES if we should continue to iterate,
- *         #GNUNET_NO if not.
- */
-static int
-find_receive_context (void *cls, struct GNUNET_CONTAINER_HeapNode *node,
-    void *element, GNUNET_CONTAINER_HeapCostType cost)
-{
-  struct FindReceiveContext *frc = cls;
-  struct DefragContext *e = element;
-
-  if ((frc->addr_len == e->addr_len)
-      && (0 == memcmp (frc->addr, e->src_addr, frc->addr_len)))
-  {
-    frc->rc = e;
-    return GNUNET_NO;
-  }
-  return GNUNET_YES;
-}
-
-
 /**
  * Process a defragmented message.
  *
@@ -2177,8 +2190,14 @@ ack_proc (void *cls, uint32_t id, const struct GNUNET_MessageHeader *msg)
   s = l_ctx.res;
   if (NULL == s)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Trying to transmit ACK to peer `%s' but not session found!\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+        "Trying to transmit ACK to peer `%s' but not session found!\n",
         GNUNET_a2s(rc->src_addr, rc->addr_len));
+
+    GNUNET_CONTAINER_heap_remove_node (rc->hnode);
+    GNUNET_DEFRAGMENT_context_destroy (rc->defrag);
+    GNUNET_free (rc);
+
     return;
   }
   if (s->flow_delay_for_other_peer.rel_value_us <= UINT32_MAX)
