@@ -47,46 +47,38 @@ extern "C"
 /**
  * Possible state of a neighbour.  Initially, we are #GNUNET_TRANSPORT_PS_NOT_CONNECTED.
  *
- * Then, there are two main paths. If we receive a CONNECT message, we
- * first run a check against the blacklist if we are allowed to communicate with
- * this peer (#GNUNET_TRANSPORT_PS_CONNECT_RECV_BLACKLIST_INBOUND).
- * If this check is successful, we give the inbound address to ATS.
- * After the check we ask ATS for a suggestion (#GNUNET_TRANSPORT_PS_CONNECT_RECV_ATS).
- * If ATS makes a suggestion, we ALSO give that suggestion to the blacklist
- * (#GNUNET_TRANSPORT_PS_CONNECT_RECV_BLACKLIST).  Once the blacklist approves the
- * address we got from ATS, we send our CONNECT_ACK and go to
- * #GNUNET_TRANSPORT_PS_CONNECT_RECV_ACK.  If we receive a SESSION_ACK, we go to
- * #GNUNET_TRANSPORT_PS_CONNECTED (and notify everyone about the new connection).
- * If the operation times out, we go to #GNUNET_TRANSPORT_PS_DISCONNECT.
+ * Then, there are two main paths. If we receive a CONNECT message, we give
+ * the inbound address to ATS. After the check we ask ATS for a suggestion
+ * (#GNUNET_TRANSPORT_PS_CONNECT_RECV_ATS). If ATS makes a suggestion, we
+ * send our CONNECT_ACK and go to #GNUNET_TRANSPORT_PS_CONNECT_RECV_ACK.
+ * If we receive a SESSION_ACK, we go to #GNUNET_TRANSPORT_PS_CONNECTED
+ * (and notify everyone about the new connection). If the operation times out,
+ * we go to #GNUNET_TRANSPORT_PS_DISCONNECT.
  *
  * The other case is where we transmit a CONNECT message first.  We
- * start with #GNUNET_TRANSPORT_PS_INIT_ATS.  If we get an address, we enter
- * #GNUNET_TRANSPORT_PS_INIT_BLACKLIST and check the blacklist.  If the blacklist is OK
- * with the connection, we actually send the CONNECT message and go to
- * state #GNUNET_TRANSPORT_PS_CONNECT_SENT.  Once we receive a CONNECT_ACK, we go to
- * #GNUNET_TRANSPORT_PS_CONNECTED (and notify everyone about the new connection and send
+ * start with #GNUNET_TRANSPORT_PS_INIT_ATS.  If we get an address, we send
+ * the CONNECT message and go to state #GNUNET_TRANSPORT_PS_CONNECT_SENT.
+ * Once we receive a CONNECT_ACK, we go to #GNUNET_TRANSPORT_PS_CONNECTED
+ * (and notify everyone about the new connection and send
  * back a SESSION_ACK).  If the operation times out, we go to
  * #GNUNET_TRANSPORT_PS_DISCONNECT.
  *
  * If the session is in trouble (i.e. transport-level disconnect or
  * timeout), we go to #GNUNET_TRANSPORT_PS_RECONNECT_ATS where we ask ATS for a new
  * address (we don't notify anyone about the disconnect yet).  Once we
- * have a new address, we go to #GNUNET_TRANSPORT_PS_RECONNECT_BLACKLIST to check the new
- * address against the blacklist.  If the blacklist approves, we enter
- * #GNUNET_TRANSPORT_PS_RECONNECT_SENT and send a CONNECT message.  If we receive a
+ * have a new address, we enter #GNUNET_TRANSPORT_PS_RECONNECT_SENT and send a
+ * CONNECT message.  If we receive a
  * CONNECT_ACK, we go to #GNUNET_TRANSPORT_PS_CONNECTED and nobody noticed that we had
  * trouble; we also send a SESSION_ACK at this time just in case.  If
  * the operation times out, we go to #GNUNET_TRANSPORT_PS_DISCONNECT (and notify everyone
  * about the lost connection).
  *
  * If ATS decides to switch addresses while we have a normal
- * connection, we go to #GNUNET_TRANSPORT_PS_CONNECTED_SWITCHING_BLACKLIST to check the
- * new address against the blacklist.  If the blacklist approves, we
- * go to #GNUNET_TRANSPORT_PS_CONNECTED_SWITCHING_CONNECT_SENT and send a
- * SESSION_CONNECT.  If we get a SESSION_ACK back, we switch the
+ * connection, we go to #GNUNET_TRANSPORT_PS_CONNECTED_SWITCHING_CONNECT_SENT
+ * and send a SESSION_CONNECT.  If we get a SESSION_ACK back, we switch the
  * primary connection to the suggested alternative from ATS, go back
  * to #GNUNET_TRANSPORT_PS_CONNECTED and send a SESSION_ACK to the other peer just to be
- * sure.  If the operation times out (or the blacklist disapproves),
+ * sure.  If the operation times out
  * we go to #GNUNET_TRANSPORT_PS_CONNECTED (and notify ATS that the given alternative
  * address is "invalid").
  *

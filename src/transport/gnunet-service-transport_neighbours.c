@@ -413,7 +413,7 @@ struct NeighbourMapEntry
    * Flag to set if we still need to send a CONNECT_ACK message to the other peer
    * (once we have an address to use and the peer has been allowed by our
    * blacklist).  Initially set to #ACK_UNDEFINED. Set to #ACK_SEND_CONNECT_ACK
-   * if we need to send a CONNECT_ACK.  Set to #SESSION_ACK if we did
+   * if we need to send a CONNECT_ACK.  Set to #ACK_SEND_SESSION_ACK if we did
    * send a CONNECT_ACK and should go to 'S_CONNECTED' upon receiving a
    * 'SESSION_ACK' (regardless of what our own state machine might say).
    */
@@ -447,7 +447,7 @@ struct NeighbourMapEntry
 
 
 /**
- * Context for blacklist checks and the #handle_test_blacklist_cont()
+ * Context for blacklist checks and the #try_connect_bl_check_cont()
  * function.  Stores information about ongoing blacklist checks.
  */
 struct BlackListCheckContext
