@@ -216,19 +216,7 @@ address_suggest_cb (void *cls,
   {
     if (NULL == second_suggestion)
     {
-      GNUNET_assert (NULL != address);
-      GNUNET_assert (NULL == session);
-      GNUNET_assert (ntohl(bandwidth_in.value__) > 0);
-      GNUNET_assert (ntohl(bandwidth_out.value__) > 0);
-
       if ((NULL == address) || (NULL != session))
-      {
-        GNUNET_break (0);
-        end_badly_now ();
-        return;
-      }
-      if ((ntohl(bandwidth_in.value__) == 0) ||
-          (ntohl(bandwidth_out.value__) == 0))
       {
         GNUNET_break (0);
         end_badly_now ();
