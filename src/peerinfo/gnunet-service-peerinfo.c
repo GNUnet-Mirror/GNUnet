@@ -1071,6 +1071,7 @@ handle_get_all (void *cls, struct GNUNET_SERVER_Client *client,
   lapm = (const struct ListAllPeersMessage *) message;
   tcx.friend_only = ntohl (lapm->include_friend_only);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "`%s' message received\n", "GET_ALL");
+  GNUNET_SERVER_disable_receive_done_warning (client);
   tcx.tc = GNUNET_SERVER_transmit_context_create (client);
   GNUNET_CONTAINER_multipeermap_iterate (hostmap, &add_to_tc, &tcx);
   GNUNET_SERVER_transmit_context_append_data (tcx.tc, NULL, 0,
