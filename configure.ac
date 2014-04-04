@@ -1532,7 +1532,7 @@ fi
 # sqlite
 if test "x$sqlite" = "x0"
 then
-  AC_MSG_NOTICE([NOTICE: sqlite not found.  sqLite support will not be compiled.])
+  AC_MSG_ERROR([ERROR: sqlite3 not found, but sqlite3 is required.])
 fi
 
 # libgnurl
