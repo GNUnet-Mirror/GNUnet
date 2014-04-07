@@ -24,6 +24,8 @@
  * @author Christian Grothoff
  * @author Matthias Wachs
  */
+#ifndef GNUNET_DAEMON_EXPERIMENTATION_H
+#define GNUNET_DAEMON_EXPERIMENTATION_H
 #include "platform.h"
 #include "gnunet_getopt_lib.h"
 #include "gnunet_util_lib.h"
@@ -493,4 +495,5 @@ void
 GED_storage_stop (void);
 
 
+#endif /* #ifndef GNUNET_DAEMON_EXPERIMENTATION_H */
 /* end of gnunet-daemon-experimentation.h */

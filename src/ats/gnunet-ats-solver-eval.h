@@ -23,6 +23,8 @@
  * @author Christian Grothoff
  * @author Matthias Wachs
  */
+#ifndef GNUNET_ATS_SOLVER_EVAL_H
+#define GNUNET_ATS_SOLVER_EVAL_H
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_ats_plugin.h"
@@ -810,4 +812,5 @@ GNUNET_ATS_TEST_create_topology (char *name, char *cfg_file,
 void
 GNUNET_ATS_TEST_shutdown_topology (void);
 #endif
+#endif /* #ifndef GNUNET_ATS_SOLVER_EVAL_H */
 /* end of file ats-testing.h */
