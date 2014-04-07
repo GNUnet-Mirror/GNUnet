@@ -2425,8 +2425,10 @@ switch_address_bl_check_cont (void *cls,
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
   struct NeighbourMapEntry *n;
 
+  papi = GST_plugins_find (blc_ctx->address->transport_name);
+
   if ( (NULL == (n = lookup_neighbour (peer))) || (result == GNUNET_NO) ||
-       (NULL == (papi = GST_plugins_find (blc_ctx->address->transport_name))) )
+       (NULL == (papi)) )
   {
     if (NULL == n)
     {
@@ -2442,7 +2444,7 @@ switch_address_bl_check_cont (void *cls,
           blc_ctx->session,
           GNUNET_i2s (&blc_ctx->address->peer));
     }
-    if (NULL == (papi = GST_plugins_find (blc_ctx->address->transport_name)))
+    if (NULL == papi)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
           "Plugin `%s' for suggested address `%s' session %p for peer `%s' is not available\n",
