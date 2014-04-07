@@ -528,6 +528,10 @@ static void
 stats_cont (void *cls, struct GNUNET_TESTBED_Operation *op, const char *emsg)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "stats_cont for peer %u\n", cls);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, " sent: %u, received: %u\n",
+              ka_sent, ka_received);
+  if (ka_sent < 2 || ka_sent > ka_received + 1)
+    ok--;
   GNUNET_TESTBED_operation_done (stats_op);
 
   if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
@@ -565,13 +569,7 @@ stats_iterator (void *cls, const struct GNUNET_TESTBED_Peer *peer,
     ka_sent = value;
 
   if (0 == strncmp(s_recv, name, strlen (s_recv)) && 4 == i)
-  {
     ka_received = value;
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, " sent: %u, received: %u\n",
-                ka_sent, ka_received);
-    if (ka_sent < 2 || ka_sent > ka_received + 1)
-      ok--;
-  }
 
   return GNUNET_OK;
 }
@@ -672,8 +670,7 @@ channel_cleaner (void *cls, const struct GNUNET_MESH_Channel *channel,
   long i = (long) cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Incoming channel disconnected at peer %d\n",
-              i);
+              "Incoming channel disconnected at peer %ld\n", i);
   if (4L == i)
   {
     ok++;
