@@ -1248,7 +1248,7 @@ envi_action_address_switch (struct GAS_RIL_Handle *solver,
   struct RIL_Address_Wrapped *cur;
   int i = 0;
 
-  cur = agent_address_get_wrapped(agent, agent->address_inuse);
+  //cur = agent_address_get_wrapped(agent, agent->address_inuse);
 
   for (cur = agent->addresses_head; NULL != cur; cur = cur->next)
   {
