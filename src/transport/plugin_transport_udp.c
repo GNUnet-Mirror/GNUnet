@@ -1265,14 +1265,17 @@ udp_disconnect_session (void *cls, struct Session *s)
   frc.addr = s->address->address;
   frc.addr_len = s->address->address_length;
   /* Lookup existing receive context for this address */
-  GNUNET_CONTAINER_heap_iterate (plugin->defrag_ctxs,
-      &find_receive_context, &frc);
-  if (NULL != frc.rc)
+  if (NULL != plugin->defrag_ctxs)
   {
-      struct DefragContext *d_ctx = frc.rc;
-      GNUNET_CONTAINER_heap_remove_node (d_ctx->hnode);
-      GNUNET_DEFRAGMENT_context_destroy (d_ctx->defrag);
-      GNUNET_free (d_ctx);
+    GNUNET_CONTAINER_heap_iterate (plugin->defrag_ctxs,
+        &find_receive_context, &frc);
+    if (NULL != frc.rc)
+    {
+        struct DefragContext *d_ctx = frc.rc;
+        GNUNET_CONTAINER_heap_remove_node (d_ctx->hnode);
+        GNUNET_DEFRAGMENT_context_destroy (d_ctx->defrag);
+        GNUNET_free (d_ctx);
+  }
   }
 
   next = plugin->ipv4_queue_head;
