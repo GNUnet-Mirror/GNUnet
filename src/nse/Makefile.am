@@ -16,6 +16,15 @@ libexecdir= $(pkglibdir)/libexec/
 pkgcfg_DATA = \
   nse.conf
 
+bin_PROGRAMS = gnunet-nse
+
+gnunet_nse_SOURCES = gnunet-nse.c
+gnunet_nse_LDFLAGS = \
+  libgnunetnse.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(XLIB) $(GN_LIBINTL)
+gnunet_nse_DEPENDENCIES = \
+  $(top_builddir)/src/util/libgnunetutil.la
 
 lib_LTLIBRARIES = libgnunetnse.la
 
