@@ -106,13 +106,8 @@ got_hello (void *cls, const struct GNUNET_PeerIdentity *id,
     return;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, " hello for %s (%d bytes), expires on %s\n",
-       GNUNET_i2s (id), NULL != hello ? GNUNET_HELLO_size (hello) : -1,
+       GNUNET_i2s (id), GNUNET_HELLO_size (hello),
        GNUNET_STRINGS_absolute_time_to_string (GNUNET_HELLO_get_last_expiration(hello)));
-  if (NULL == hello)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, " hello is NULL\n");
-    return;
-  }
   peer = GMP_get (id);
   GMP_set_hello (peer, hello);
 
