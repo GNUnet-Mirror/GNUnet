@@ -1422,7 +1422,6 @@ load_op_stop_set_property (struct GNUNET_ATS_TEST_Operation *o,
       fprintf (stderr, "Invalid property in operation %u `%s' in episode %u\n",
           op_counter, op_name, e->id);
       GNUNET_free (op_name);
-      GNUNET_free (pref);
       GNUNET_free_non_null (pref);
       return GNUNET_SYSERR;
   }
@@ -1693,10 +1692,11 @@ enforce_add_address (struct GNUNET_ATS_TEST_Operation *op)
     GNUNET_CONTAINER_DLL_insert (peer_head, peer_tail, p);
   }
 
-  if (NULL != (a = find_address_by_id (p, op->address_id)))
+  if (NULL != (find_address_by_id (p, op->address_id)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Duplicate address %u for peer %u\n",
         op->address_id, op->peer_id);
+    return;
   }
 
   a = GNUNET_new (struct TestAddress);
@@ -1721,7 +1721,6 @@ static void
 enforce_del_address (struct GNUNET_ATS_TEST_Operation *op)
 {
   struct TestPeer *p;
-  struct TestAddress *a;
   struct AddressLookupCtx ctx;
 
   if (NULL == (p = find_peer_by_id (op->peer_id)))
@@ -1745,7 +1744,7 @@ enforce_del_address (struct GNUNET_ATS_TEST_Operation *op)
     return;
   }
 
-  if (NULL == (a = find_address_by_id (p, op->address_id)))
+  if (NULL == (find_address_by_id (p, op->address_id)))
   {
     GNUNET_break (0);
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -1816,14 +1815,13 @@ static void
 enforce_start_preference (struct GNUNET_ATS_TEST_Operation *op)
 {
   struct PreferenceGenerator *pg;
-  struct TestPeer *p;
   if (NULL != (pg = find_pref_gen (op->peer_id, op->address_id, op->pref_type)))
   {
     GNUNET_ATS_solver_generate_preferences_stop (pg);
     GNUNET_free (pg);
   }
 
-  if (NULL == (p = find_peer_by_id (op->peer_id)))
+  if (NULL == (find_peer_by_id (op->peer_id)))
   {
     GNUNET_break (0);
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -2133,7 +2131,8 @@ free_all_it (void *cls,
     void *value)
 {
   struct ATS_Address *address = value;
-  GNUNET_CONTAINER_multipeermap_remove (sh->env.addresses, key, value);
+  GNUNET_break (GNUNET_OK != GNUNET_CONTAINER_multipeermap_remove (sh->env.addresses,
+      key, value));
   GNUNET_free (address);
 
   return GNUNET_OK;
