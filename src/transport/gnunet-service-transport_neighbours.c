@@ -2678,7 +2678,6 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
 {
   struct NeighbourMapEntry *n;
   struct GST_BlacklistCheck *blc;
-  struct GNUNET_TRANSPORT_PluginFunctions *papi;
   struct BlacklistCheckSwitchContext *blc_ctx;
   int c;
 
@@ -2695,7 +2694,7 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
   }
 
   /* Check if plugin is available */
-  if (NULL == (papi = GST_plugins_find (address->transport_name)))
+  if (NULL == (GST_plugins_find (address->transport_name)))
   {
     /* we don't have the plugin for this address */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
