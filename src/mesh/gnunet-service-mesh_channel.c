@@ -357,6 +357,30 @@ is_loopback (const struct MeshChannel *ch)
 
 
 /**
+ * Save a copy of the data message for later retransmission.
+ *
+ * @param msg Message to copy.
+ * @param mid Message ID.
+ * @param rel Reliability data for retransmission.
+ */
+static struct MeshReliableMessage *
+copy_message (const struct GNUNET_MESH_Data *msg, uint32_t mid,
+              struct MeshChannelReliability *rel)
+{
+  struct MeshReliableMessage *copy;
+  uint16_t size;
+
+  size = ntohs (msg->header.size);
+  copy = GNUNET_malloc (sizeof (*copy) + size);
+  copy->mid = mid;
+  copy->rel = rel;
+  copy->type = GNUNET_MESSAGE_TYPE_MESH_DATA;
+  memcpy (&copy[1], msg, size);
+
+  return copy;
+}
+
+/**
  * We have received a message out of order, or the client is not ready.
  * Buffer it until we receive an ACK from the client or the missing
  * message from the channel.
@@ -371,18 +395,10 @@ add_buffered_data (const struct GNUNET_MESH_Data *msg,
   struct MeshReliableMessage *copy;
   struct MeshReliableMessage *prev;
   uint32_t mid;
-  uint16_t size;
 
-  size = ntohs (msg->header.size);
   mid = ntohl (msg->mid);
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "add_buffered_data %u\n", mid);
-
-  copy = GNUNET_malloc (sizeof (*copy) + size);
-  copy->mid = mid;
-  copy->rel = rel;
-  copy->type = GNUNET_MESSAGE_TYPE_MESH_DATA;
-  memcpy (&copy[1], msg, size);
 
   rel->n_recv++;
 
@@ -391,17 +407,24 @@ add_buffered_data (const struct GNUNET_MESH_Data *msg,
   for (prev = rel->head_recv; NULL != prev; prev = prev->next)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, " prev %u\n", prev->mid);
-    if (GM_is_pid_bigger (prev->mid, mid))
+    if (prev->mid == mid)
+    {
+      LOG (GNUNET_ERROR_TYPE_DEBUG, " already there!\n");
+      return;
+    }
+    else if (GM_is_pid_bigger (prev->mid, mid))
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG, " bingo!\n");
+      copy = copy_message (msg, mid, rel);
       GNUNET_CONTAINER_DLL_insert_before (rel->head_recv, rel->tail_recv,
                                           prev, copy);
       return;
     }
   }
-    LOG (GNUNET_ERROR_TYPE_DEBUG, " insert at tail!\n");
-    GNUNET_CONTAINER_DLL_insert_tail (rel->head_recv, rel->tail_recv, copy);
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "add_buffered_data END\n");
+  copy = copy_message (msg, mid, rel);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, " insert at tail!\n");
+  GNUNET_CONTAINER_DLL_insert_tail (rel->head_recv, rel->tail_recv, copy);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "add_buffered_data END\n");
 }
 
 
@@ -796,7 +819,6 @@ ch_message_sent (void *cls,
                                                         &channel_recreate, rel);
       }
       break;
-
 
     default:
       GNUNET_break (0);
