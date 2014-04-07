@@ -1937,6 +1937,8 @@ handle_mesh_encrypted (const struct GNUNET_PeerIdentity *peer,
   /* Check PID */
   fc = fwd ? &c->bck_fc : &c->fwd_fc;
   pid = ntohl (msg->pid);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, " PID %u (expected %u+)\n",
+       pid, fc->last_pid_recv + 1);
   if (GM_is_pid_bigger (pid, fc->last_ack_sent))
   {
     GNUNET_STATISTICS_update (stats, "# unsolicited message", 1, GNUNET_NO);
@@ -1949,7 +1951,7 @@ handle_mesh_encrypted (const struct GNUNET_PeerIdentity *peer,
   {
     GNUNET_STATISTICS_update (stats, "# duplicate PID", 1, GNUNET_NO);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-                " Pid %u not expected (%u+), dropping!\n",
+                " PID %u not expected (%u+), dropping!\n",
                 pid, fc->last_pid_recv + 1);
     return GNUNET_OK;
   }

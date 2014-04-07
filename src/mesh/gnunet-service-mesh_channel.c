@@ -1128,19 +1128,17 @@ channel_confirm (struct MeshChannel *ch, int fwd)
     GNUNET_break (GNUNET_NO != ch->destroy);
     return;
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-              "  channel confirm %s %s\n",
-              GM_f2s (fwd), GMCH_2s (ch));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  channel confirm %s %s\n",
+       GM_f2s (fwd), GMCH_2s (ch));
   oldstate = ch->state;
   ch->state = MESH_CHANNEL_READY;
 
   if (MESH_CHANNEL_READY != oldstate || GNUNET_YES == is_loopback (ch))
   {
     rel->client_ready = GNUNET_YES;
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "  !! retry timer confirm %s\n",
-         GNUNET_STRINGS_relative_time_to_string (rel->retry_timer, GNUNET_NO));
     rel->expected_delay = rel->retry_timer;
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  !! retry timer confirm %s\n",
+         GNUNET_STRINGS_relative_time_to_string (rel->retry_timer, GNUNET_NO));
     if (GMT_get_connections_buffer (ch->t) > 0 || GMT_is_loopback (ch->t))
       send_client_ack (ch, fwd);
 
