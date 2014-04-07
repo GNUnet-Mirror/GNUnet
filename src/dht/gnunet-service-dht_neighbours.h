@@ -75,16 +75,17 @@ GDS_NEIGHBOURS_handle_put (enum GNUNET_BLOCK_Type type,
  * @param hop_count how many hops did this request traverse so far?
  * @param key key for the content
  * @param xquery extended query
- * @param xquery_size number of bytes in xquery
+ * @param xquery_size number of bytes in @a xquery
  * @param reply_bf bloomfilter to filter duplicates
- * @param reply_bf_mutator mutator for reply_bf
+ * @param reply_bf_mutator mutator for @a reply_bf
  * @param peer_bf filter for peers not to select (again, updated)
  */
 void
 GDS_NEIGHBOURS_handle_get (enum GNUNET_BLOCK_Type type,
                            enum GNUNET_DHT_RouteOption options,
                            uint32_t desired_replication_level,
-                           uint32_t hop_count, const struct GNUNET_HashCode * key,
+                           uint32_t hop_count,
+                           const struct GNUNET_HashCode *key,
                            const void *xquery, size_t xquery_size,
                            const struct GNUNET_CONTAINER_BloomFilter *reply_bf,
                            uint32_t reply_bf_mutator,

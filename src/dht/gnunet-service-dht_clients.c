@@ -110,7 +110,7 @@ struct ClientList
 
 
 /**
- * Entry in the DHT routing table for a client's GET request.
+ * Entry in the local forwarding map for a client's GET request.
  */
 struct ClientQueryRecord
 {
@@ -253,7 +253,7 @@ static struct ClientMonitorRecord *monitor_head;
 static struct ClientMonitorRecord *monitor_tail;
 
 /**
- * Hashmap for fast key based lookup, maps keys to 'struct ClientQueryRecord' entries.
+ * Hashmap for fast key based lookup, maps keys to `struct ClientQueryRecord` entries.
  */
 static struct GNUNET_CONTAINER_MultiHashMap *forward_map;
 
@@ -427,7 +427,9 @@ transmit_request (struct ClientQueryRecord *cqr)
                                          GNUNET_CONSTANTS_BLOOMFILTER_K);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Initiating GET for %s, replication %u, already have %u replies\n",
-       GNUNET_h2s(&cqr->key), cqr->replication, cqr->seen_replies_count);
+       GNUNET_h2s (&cqr->key),
+       cqr->replication,
+       cqr->seen_replies_count);
   GDS_NEIGHBOURS_handle_get (cqr->type, cqr->msg_options, cqr->replication,
                              0 /* hop count */ ,
                              &cqr->key, cqr->xquery, cqr->xquery_size, reply_bf,
