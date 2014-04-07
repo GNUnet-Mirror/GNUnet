@@ -1426,7 +1426,7 @@ testservice_task (void *cls, int result)
     GNUNET_break(0);
     return;
   }
-  GNUNET_break (0);
+
   end = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
       &shutdown_task, NULL );
 
