@@ -78,7 +78,7 @@ GM_min_pid (uint32_t a, uint32_t b)
 
 
 const struct GNUNET_HashCode *
-GM_h2hc (const struct GNUNET_MeshHash *id)
+GM_h2hc (const struct GNUNET_MESH_Hash *id)
 {
   static struct GNUNET_HashCode hc;
   memcpy (&hc, id, sizeof (*id));
@@ -88,7 +88,7 @@ GM_h2hc (const struct GNUNET_MeshHash *id)
 
 
 const char *
-GM_h2s (const struct GNUNET_MeshHash *id)
+GM_h2s (const struct GNUNET_MESH_Hash *id)
 {
   static char s[53];
 

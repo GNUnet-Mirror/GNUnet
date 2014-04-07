@@ -542,7 +542,7 @@ tunnel_callback (void *cls,
                  unsigned int n_channels,
                  unsigned int n_connections,
                  uint32_t *channels,
-                 struct GNUNET_MeshHash *connections,
+                 struct GNUNET_MESH_Hash *connections,
                  unsigned int estate,
                  unsigned int cstate)
 {

@@ -756,7 +756,7 @@ queue_data (struct MeshTunnel3 *t, const struct GNUNET_MessageHeader *msg)
  */
 static void
 t_hmac (struct MeshTunnel3 *t, const void *plaintext, size_t size, uint32_t iv,
-        int outgoing, struct GNUNET_MeshHash *hmac)
+        int outgoing, struct GNUNET_MESH_Hash *hmac)
 {
   struct GNUNET_CRYPTO_AuthKey auth_key;
   static const char ctx[] = "mesh authentication key";
@@ -1675,7 +1675,7 @@ GMT_handle_encrypted (struct MeshTunnel3 *t,
   char cbuf [payload_size];
   struct GNUNET_MessageHeader *msgh;
   unsigned int off;
-  struct GNUNET_MeshHash hmac;
+  struct GNUNET_MESH_Hash hmac;
 
   decrypted_size = t_decrypt (t, cbuf, &msg[1], payload_size, msg->iv);
   t_hmac (t, &msg[1], payload_size, msg->iv, GNUNET_NO, &hmac);
@@ -2237,7 +2237,7 @@ struct MeshConnection *
 GMT_use_path (struct MeshTunnel3 *t, struct MeshPeerPath *p)
 {
   struct MeshConnection *c;
-  struct GNUNET_MeshHash cid;
+  struct GNUNET_MESH_Hash cid;
   unsigned int own_pos;
 
   if (NULL == t || NULL == p)

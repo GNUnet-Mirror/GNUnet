@@ -1074,7 +1074,7 @@ process_get_peer (struct GNUNET_MESH_Handle *h,
   size_t msize;
   unsigned int ch_n;
   unsigned int c_n;
-  struct GNUNET_MeshHash *conns;
+  struct GNUNET_MESH_Hash *conns;
   MESH_ChannelNumber *chns;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Get Tunnel messasge received\n");
@@ -1097,7 +1097,7 @@ process_get_peer (struct GNUNET_MESH_Handle *h,
   ch_n = ntohl (msg->channels);
   c_n = ntohl (msg->connections);
   esize += ch_n * sizeof (MESH_ChannelNumber);
-  esize += c_n * sizeof (struct GNUNET_MeshHash);
+  esize += c_n * sizeof (struct GNUNET_MESH_Hash);
   if (msize != esize)
   {
     GNUNET_break_op (0);
@@ -1111,7 +1111,7 @@ process_get_peer (struct GNUNET_MESH_Handle *h,
   }
 
   /* Call Callback with tunnel info. */
-  conns = (struct GNUNET_MeshHash *) &msg[1];
+  conns = (struct GNUNET_MESH_Hash *) &msg[1];
   chns = (MESH_ChannelNumber *) &conns[c_n];
   h->info_cb.tunnel_cb (h->info_cls, &msg->destination,
                         ch_n, c_n, chns, conns,
@@ -1176,7 +1176,7 @@ process_get_tunnel (struct GNUNET_MESH_Handle *h,
   size_t msize;
   unsigned int ch_n;
   unsigned int c_n;
-  struct GNUNET_MeshHash *conns;
+  struct GNUNET_MESH_Hash *conns;
   MESH_ChannelNumber *chns;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Get Tunnel messasge received\n");
@@ -1199,7 +1199,7 @@ process_get_tunnel (struct GNUNET_MESH_Handle *h,
   ch_n = ntohl (msg->channels);
   c_n = ntohl (msg->connections);
   esize += ch_n * sizeof (MESH_ChannelNumber);
-  esize += c_n * sizeof (struct GNUNET_MeshHash);
+  esize += c_n * sizeof (struct GNUNET_MESH_Hash);
   if (msize != esize)
   {
     GNUNET_break_op (0);
@@ -1213,7 +1213,7 @@ process_get_tunnel (struct GNUNET_MESH_Handle *h,
   }
 
   /* Call Callback with tunnel info. */
-  conns = (struct GNUNET_MeshHash *) &msg[1];
+  conns = (struct GNUNET_MESH_Hash *) &msg[1];
   chns = (MESH_ChannelNumber *) &conns[c_n];
   h->info_cb.tunnel_cb (h->info_cls, &msg->destination,
                 ch_n, c_n, chns, conns,

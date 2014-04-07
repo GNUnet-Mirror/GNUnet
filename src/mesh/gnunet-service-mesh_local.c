@@ -727,7 +727,7 @@ static void
 iter_connection (void *cls, struct MeshConnection *c)
 {
   struct GNUNET_MESH_LocalInfoTunnel *msg = cls;
-  struct GNUNET_MeshHash *h = (struct GNUNET_MeshHash *) &msg[1];
+  struct GNUNET_MESH_Hash *h = (struct GNUNET_MESH_Hash *) &msg[1];
 
   h[msg->connections] = *(GMC_get_id (c));
   msg->connections++;
@@ -805,7 +805,7 @@ handle_show_tunnel (void *cls, struct GNUNET_SERVER_Client *client,
   c_n = GMT_count_connections (t);
 
   size = sizeof (struct GNUNET_MESH_LocalInfoTunnel);
-  size += c_n * sizeof (struct GNUNET_MeshHash);
+  size += c_n * sizeof (struct GNUNET_MESH_Hash);
   size += ch_n * sizeof (MESH_ChannelNumber);
 
   resp = GNUNET_malloc (size);

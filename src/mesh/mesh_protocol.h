@@ -63,7 +63,7 @@ struct GNUNET_MESH_ConnectionCreate
     /**
      * ID of the connection
      */
-  struct GNUNET_MeshHash cid;
+  struct GNUNET_MESH_Hash cid;
 
     /**
      * path_length structs defining the *whole* path from the origin [0] to the
@@ -85,7 +85,7 @@ struct GNUNET_MESH_ConnectionACK
     /**
      * ID of the connection.
      */
-  struct GNUNET_MeshHash cid;
+  struct GNUNET_MESH_Hash cid;
 
 };
 
@@ -103,7 +103,7 @@ struct GNUNET_MESH_KX
     /**
      * ID of the connection.
      */
-  struct GNUNET_MeshHash cid;
+  struct GNUNET_MESH_Hash cid;
 
   /* Specific KX message follows. */
 };
@@ -227,7 +227,7 @@ struct GNUNET_MESH_Encrypted
   /**
    * ID of the connection.
    */
-  struct GNUNET_MeshHash cid;
+  struct GNUNET_MESH_Hash cid;
 
   /**
    * ID of the packet (hop by hop).
@@ -248,7 +248,7 @@ struct GNUNET_MESH_Encrypted
    * MAC of the encrypted message, used to verify message integrity.
    * Everything after this value  will be encrypted and authenticated.
    */
-  struct GNUNET_MeshHash hmac;
+  struct GNUNET_MESH_Hash hmac;
 
   /**
    * Encrypted content follows.
@@ -374,7 +374,7 @@ struct GNUNET_MESH_ACK
     /**
      * ID of the connection.
      */
-  struct GNUNET_MeshHash cid;
+  struct GNUNET_MESH_Hash cid;
 };
 
 
@@ -396,7 +396,7 @@ struct GNUNET_MESH_Poll
     /**
      * ID of the connection.
      */
-  struct GNUNET_MeshHash cid;
+  struct GNUNET_MESH_Hash cid;
 
 };
 
@@ -414,7 +414,7 @@ struct GNUNET_MESH_ConnectionBroken
     /**
      * ID of the connection.
      */
-  struct GNUNET_MeshHash cid;
+  struct GNUNET_MESH_Hash cid;
 
     /**
      * ID of the endpoint
@@ -441,7 +441,7 @@ struct GNUNET_MESH_ConnectionDestroy
     /**
      * ID of the connection.
      */
-  struct GNUNET_MeshHash cid;
+  struct GNUNET_MESH_Hash cid;
 };
 
 

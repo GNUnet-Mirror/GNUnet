@@ -266,7 +266,7 @@ GMC_shutdown (void);
  * @return Newly created connection, NULL in case of error (own id not in path).
  */
 struct MeshConnection *
-GMC_new (const struct GNUNET_MeshHash *cid,
+GMC_new (const struct GNUNET_MESH_Hash *cid,
          struct MeshTunnel3 *t,
          struct MeshPeerPath *p,
          unsigned int own_pos);
@@ -289,7 +289,7 @@ GMC_destroy (struct MeshConnection *c);
  *
  * @return ID of the connection.
  */
-const struct GNUNET_MeshHash *
+const struct GNUNET_MESH_Hash *
 GMC_get_id (const struct MeshConnection *c);
 
 

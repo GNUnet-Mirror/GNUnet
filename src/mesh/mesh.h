@@ -319,14 +319,14 @@ GM_min_pid (uint32_t a, uint32_t b);
  * @return A HashCode containing the original 256 bit hash right-padded with 0.
  */
 const struct GNUNET_HashCode *
-GM_h2hc (const struct GNUNET_MeshHash *id);
+GM_h2hc (const struct GNUNET_MESH_Hash *id);
 
 /**
  * Get a string from a Mesh Hash (256 bits).
  * WARNING: Not reentrant (based on GNUNET_h2s).
  */
 const char *
-GM_h2s (const struct GNUNET_MeshHash *id);
+GM_h2s (const struct GNUNET_MESH_Hash *id);
 
 /**
  * Convert a message type into a string to help debug

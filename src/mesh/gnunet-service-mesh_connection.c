@@ -171,7 +171,7 @@ struct MeshConnection
   /**
    * ID of the connection.
    */
-  struct GNUNET_MeshHash id;
+  struct GNUNET_MESH_Hash id;
 
   /**
    * State of the connection.
@@ -413,7 +413,7 @@ fc_init (struct MeshFlowControl *fc)
  * @param cid Connection ID.
  */
 static struct MeshConnection *
-connection_get (const struct GNUNET_MeshHash *cid)
+connection_get (const struct GNUNET_MESH_Hash *cid)
 {
   return GNUNET_CONTAINER_multihashmap_get (connections, GM_h2hc (cid));
 }
@@ -840,7 +840,7 @@ send_broken (struct MeshConnection *c,
  * @param peer Peer to notify (neighbor who sent the connection).
  */
 static void
-send_broken2 (struct GNUNET_MeshHash *connection_id,
+send_broken2 (struct GNUNET_MESH_Hash *connection_id,
              const struct GNUNET_PeerIdentity *id1,
              const struct GNUNET_PeerIdentity *id2,
              GNUNET_PEER_Id peer_id)
@@ -1481,7 +1481,7 @@ build_path_from_peer_ids (struct GNUNET_PeerIdentity *peers,
 static void
 log_message (const struct GNUNET_MessageHeader *message,
              const struct GNUNET_PeerIdentity *peer,
-             const struct GNUNET_MeshHash *hash)
+             const struct GNUNET_MESH_Hash *hash)
 {
   LOG (GNUNET_ERROR_TYPE_INFO, "<- %s on connection %s from %s\n",
        GM_m2s (ntohs (message->type)), GNUNET_h2s (GM_h2hc (hash)),
@@ -1508,7 +1508,7 @@ GMC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
 {
   struct GNUNET_MESH_ConnectionCreate *msg;
   struct GNUNET_PeerIdentity *id;
-  struct GNUNET_MeshHash *cid;
+  struct GNUNET_MESH_Hash *cid;
   struct MeshPeerPath *path;
   struct MeshPeer *dest_peer;
   struct MeshPeer *orig_peer;
@@ -2405,7 +2405,7 @@ GMC_shutdown (void)
 
 
 struct MeshConnection *
-GMC_new (const struct GNUNET_MeshHash *cid,
+GMC_new (const struct GNUNET_MESH_Hash *cid,
          struct MeshTunnel3 *t,
          struct MeshPeerPath *p,
          unsigned int own_pos)
@@ -2522,7 +2522,7 @@ GMC_destroy (struct MeshConnection *c)
  *
  * @return ID of the connection.
  */
-const struct GNUNET_MeshHash *
+const struct GNUNET_MESH_Hash *
 GMC_get_id (const struct MeshConnection *c)
 {
   return &c->id;

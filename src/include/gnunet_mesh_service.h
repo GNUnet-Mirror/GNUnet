@@ -59,7 +59,7 @@ struct GNUNET_MESH_Channel;
  * instead of the 512 from @c GNUNET_HashCode.
  *
  */
-struct GNUNET_MeshHash
+struct GNUNET_MESH_Hash
 {
   unsigned char bits[256 / 8];
 };
