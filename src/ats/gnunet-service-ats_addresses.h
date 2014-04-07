@@ -392,6 +392,10 @@ struct ATS_Address
 };
 
 
+/**
+ * Handle for ATS address component
+ */
+struct GAS_Addresses_Handle;
 
 /**
  * Initialize address subsystem. The addresses subsystem manages the addresses
