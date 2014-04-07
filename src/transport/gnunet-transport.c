@@ -263,6 +263,27 @@ struct TestContext
 
 };
 
+static struct ValidationResolutionContext *vc_head;
+static struct ValidationResolutionContext *vc_tail;
+
+struct ValidationResolutionContext
+{
+  struct ValidationResolutionContext *next;
+  struct ValidationResolutionContext *prev;
+
+  struct GNUNET_PeerIdentity id;
+  struct GNUNET_HELLO_Address *addrcp;
+  struct GNUNET_TIME_Absolute last_validation;
+  struct GNUNET_TIME_Absolute valid_until;
+  struct GNUNET_TIME_Absolute next_validation;
+  enum GNUNET_TRANSPORT_ValidationState state;
+
+  struct GNUNET_TRANSPORT_AddressToStringContext *asc;
+
+  char *transport;
+  int printed;
+};
+
 struct MonitoredPeer
 {
   enum GNUNET_TRANSPORT_PeerState state;
@@ -293,6 +314,8 @@ static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_TIME_Relative duration;
+  struct ValidationResolutionContext *cur;
+  struct ValidationResolutionContext *next;
   end = GNUNET_SCHEDULER_NO_TASK;
   if (GNUNET_SCHEDULER_NO_TASK != op_timeout)
   {
@@ -314,6 +337,19 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_TRANSPORT_monitor_validation_entries_cancel (vic);
     vic = NULL;
   }
+
+  next = vc_head;
+  for (cur = next; NULL != cur; cur = next)
+  {
+    next = cur->next;
+
+    GNUNET_TRANSPORT_address_to_string_cancel (cur->asc);
+    GNUNET_CONTAINER_DLL_remove (vc_head, vc_tail, cur);
+    GNUNET_free (cur->transport);
+    GNUNET_HELLO_address_free (cur->addrcp);
+    GNUNET_free (cur);
+  }
+
   if (NULL != th)
   {
     GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
@@ -365,26 +401,7 @@ struct PeerResolutionContext
   int printed;
 };
 
-static struct ValidationResolutionContext *vc_head;
-static struct ValidationResolutionContext *vc_tail;
 
-struct ValidationResolutionContext
-{
-  struct ValidationResolutionContext *next;
-  struct ValidationResolutionContext *prev;
-
-  struct GNUNET_PeerIdentity id;
-  struct GNUNET_HELLO_Address *addrcp;
-  struct GNUNET_TIME_Absolute last_validation;
-  struct GNUNET_TIME_Absolute valid_until;
-  struct GNUNET_TIME_Absolute next_validation;
-  enum GNUNET_TRANSPORT_ValidationState state;
-
-  struct GNUNET_TRANSPORT_AddressToStringContext *asc;
-
-  char *transport;
-  int printed;
-};
 
 static void
 operation_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -1409,7 +1426,7 @@ testservice_task (void *cls, int result)
     GNUNET_break(0);
     return;
   }
-
+  GNUNET_break (0);
   end = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
       &shutdown_task, NULL );
 
