@@ -297,7 +297,8 @@ struct MonitoredPeer
     void *value)
 {
    struct MonitoredPeer *m = value;
-   GNUNET_CONTAINER_multipeermap_remove (monitored_peers, key, value);
+   GNUNET_assert (GNUNET_OK == GNUNET_CONTAINER_multipeermap_remove (monitored_peers,
+       key, value));
    GNUNET_free_non_null (m->address);
    GNUNET_free (value);
    return GNUNET_OK;
