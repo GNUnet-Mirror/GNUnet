@@ -15,9 +15,9 @@
   }
 
 
-\lstset{ 
+\lstset{
 language=bash,
-basicstyle=\ttfamily,  
+basicstyle=\ttfamily,
 upquote=true,
 columns=fullflexible,
 literate={*}{{\char42}}1
@@ -29,39 +29,41 @@ literate={*}{{\char42}}1
 \begin{document}
 
 \begin{center}
-\large {A Tutorial for GNUnet 0.9.x (C version)}
+\large {A Tutorial for GNUnet 0.10.x (C version)}
 
 Christian Grothoff $\qquad$ Bart Polot $\qquad$ Matthias Wachs
 
 \today
 \end{center}
-This tutorials explains how to install GNUnet on a GNU/Linux system and gives an introduction how 
-GNUnet can be used to develop a Peer-to-Peer application. Detailed installation instructions for 
-various operating systems and a detailed list of all dependencies can found on our website at 
-\url{https://gnunet.org/installation}. 
+This tutorials explains how to install GNUnet on a GNU/Linux system and gives an introduction how
+GNUnet can be used to develop a Peer-to-Peer application. Detailed installation instructions for
+various operating systems and a detailed list of all dependencies can found on our website at
+\url{https://gnunet.org/installation}.
 
-\textbf{Please read this tutorial carefully since every single step is important and do not hesitate to contact the GNUnet team if you have any questions or problems! Check here how to contact the GNUnet team:
-\url{https://gnunet.org/contact_information}}
+\textbf{Please read this tutorial carefully since every single step is
+  important and do not hesitate to contact the GNUnet team if you have
+  any questions or problems! Check here how to contact the GNUnet
+  team: \url{https://gnunet.org/contact_information}}
 
 
 \section{Installing GNUnet}
-First of all you have to install a current version of GNUnet. You can download a 
-tarball of a stable version from GNU FTP mirrors or obtain the latest development 
+First of all you have to install a current version of GNUnet. You can download a
+tarball of a stable version from GNU FTP mirrors or obtain the latest development
 version from our Subversion repository.
 
-Most of the time you should prefer to download the stable version since with the 
-latest development version things can be broken, functionality can be changed or tests 
-can fail. You should only use the development version if you know that you require a 
+Most of the time you should prefer to download the stable version since with the
+latest development version things can be broken, functionality can be changed or tests
+can fail. You should only use the development version if you know that you require a
 certain feature or a certain issue has been fixed since the last release.
 
 \subsection{Obtaining a stable version}
 You can download the latest stable version of GNUnet from GNU FTP mirrors:
 \begin{center}
-\url{ftp://ftp.gnu.org/gnu/gnunet/gnunet-0.9.5a.tar.gz}
+\url{ftp://ftp.gnu.org/gnu/gnunet/gnunet-0.10.x.tar.gz}
 \end{center}
 You should also download the signature file and verify the integrity of the tarball.
 \begin{center}
-\url{ftp://ftp.gnu.org/gnu/gnunet/gnunet-0.9.5a.tar.gz.sig}
+\url{ftp://ftp.gnu.org/gnu/gnunet/gnunet-0.10.x.tar.gz.sig}
 \end{center}
 To verify the signature you should first import the GPG key used to sign the tarball
 \begin{lstlisting}
@@ -69,28 +71,28 @@ $ gpg --keyserver keys.gnupg.net --recv-keys 48426C7E
 \end{lstlisting}
 And use this key to verify the tarball's signature
 \begin{lstlisting}
-$ gpg --verify gnunet-0.9.5a.tar.gz.sig gnunet-0.9.5a.tar.gz
+$ gpg --verify gnunet-0.10.x.tar.gz.sig gnunet-0.10.x.tar.gz
 \end{lstlisting}
 After successfully verifying the integrity you can extract the tarball using
 \begin{lstlisting}
-$ tar xvzf gnunet-0.9.5a.tar.gz
-$ mv gnunet-0.9.5a gnunet # we will use the directory "gnunet" in the remainder of this document
+$ tar xvzf gnunet-0.10.x.tar.gz
+$ mv gnunet-0.10.x gnunet # we will use the directory "gnunet" in the remainder of this document
 $ cd gnunet
 \end{lstlisting}
 
 \subsection{Installing Build Tool Chain and Dependencies}
 To successfully compile GNUnet you need the tools to build GNUnet and the required dependencies.
-Please have a look at \url{https://gnunet.org/dependencies} for a list of required dependencies 
+Please have a look at \url{https://gnunet.org/dependencies} for a list of required dependencies
 and \url{https://gnunet.org/generic_installation} for specific instructions for your operating system.
 
 Please check the notes at the end of the configure process about required dependencies.
 
 For GNUNet bootstrapping support and the http(s) plugin you should install \texttt{libcurl}.
-For the filesharing service you should install at least one of the datastore backends \texttt{mysql}, 
+For the filesharing service you should install at least one of the datastore backends \texttt{mysql},
 \texttt{sqlite} or \texttt{postgresql}.
 
 \subsection{Obtaining the latest version from Subversion}
-The latest development version can obtained from our Subversion (\textit{svn}) repository. To obtain 
+The latest development version can obtained from our Subversion (\textit{svn}) repository. To obtain
 the code you need Subversion installed and checkout the repository using:
 \lstset{language=bash}
 \begin{lstlisting}
@@ -107,8 +109,10 @@ The remainder of this tutorial assumes that you have SVN HEAD checked out.
 
 \subsection{Compiling and Installing GNUnet}
 
-First, you need to install at least  {\tt
-  libgnupgerror} version 1.12\footnote{\url{ftp://ftp.gnupg.org/gcrypt/libgpg-error/libgpg-error-1.12.tar.bz2}}and {\tt libgcrypt} version 1.6\footnote{\url{ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.6.0.tar.bz2}}.  
+First, you need to install at least {\tt libgnupgerror} version
+1.12\footnote{\url{ftp://ftp.gnupg.org/gcrypt/libgpg-error/libgpg-error-1.12.tar.bz2}}
+and {\tt libgcrypt} version
+1.6\footnote{\url{ftp://ftp.gnupg.org/gcrypt/libgcrypt/libgcrypt-1.6.0.tar.bz2}}.
 
 \lstset{language=bash}
 \begin{lstlisting}
@@ -131,23 +135,35 @@ $ cd ..
 \end{lstlisting}
 
 \label{sub:install}
-Assuming all dependencies are installed, the following commands will compile and install GNUnet in your 
-home directory. You can specify the directory where GNUnet will be installed by changing the \lstinline|--prefix| value when calling \lstinline|./configure|.  If you do not specifiy a prefix, GNUnet is installed in the directory \lstinline|/usr/local|. When developing new applications you may want to enable 
-verbose logging by adding \lstinline|--enable-logging=verbose|:
+Assuming all dependencies are installed, the following commands will
+compile and install GNUnet in your home directory. You can specify the
+directory where GNUnet will be installed by changing the
+\lstinline|--prefix| value when calling \lstinline|./configure|.  If
+you do not specifiy a prefix, GNUnet is installed in the directory
+\lstinline|/usr/local|. When developing new applications you may want
+to enable verbose logging by adding
+\lstinline|--enable-logging=verbose|:
 
 \lstset{language=bash}
 \begin{lstlisting}
 $ ./configure --prefix=$HOME --enable-logging
 $ make
-$ make install 
+$ make install
 \end{lstlisting}
 
-After installing GNUnet you have to set the \lstinline|GNUNET_PREFIX| environmental variable used by GNUnet to detect it's installation directory and add your GNUnet installation to your path environmental variable.
-This configuration is only valid for the current shell session, so you should add \lstinline|export GNUNET_PREFIX=$HOME| to your \lstinline|.bash_rc| or \lstinline|.profile| to be sure the environment variable is always set. In addition you have to create the \lstinline|.gnunet| directory in your home directory where GNUnet stores it's data and an empty GNUnet configuration file:
+After installing GNUnet you have to set the \lstinline|GNUNET_PREFIX|
+environmental variable used by GNUnet to detect it's installation
+directory and add your GNUnet installation to your path environmental
+variable.  This configuration is only valid for the current shell
+session, so you should add \lstinline|export GNUNET_PREFIX=$HOME| to
+your \lstinline|.bash_rc| or \lstinline|.profile| to be sure the
+environment variable is always set. In addition you have to create the
+\lstinline|.gnunet| directory in your home directory where GNUnet
+stores it's data and an empty GNUnet configuration file:
 
 \lstset{language=bash}
 \begin{lstlisting}
-$ export GNUNET_PREFIX=$HOME 
+$ export GNUNET_PREFIX=$HOME
 $ export PATH=$PATH:$GNUNET_PREFIX/bin
 $ echo export GNUNET_PREFIX=$HOME >> ~/.bashrc
 $ echo export PATH=$GNUNET_PREFIX/bin:$PATH >> ~/.bashrc
@@ -157,14 +173,18 @@ $ touch ~/.gnunet/gnunet.conf
 % $
 
 \subsection{Common Issues - Check your GNUnet installation}
-You should check your installation to ensure that installing GNUnet was successful up to this point. You should be able to access GNUnet's binaries and run GNUnet's self check.
-\begin{lstlisting}
-$ which gnunet-arm 
-\end{lstlisting}
-should return \lstinline|$GNUNET_PREFIX/bin/gnunet-arm|. It should be located in your GNUnet installation and the output should not be empty. If you see an output like:
+You should check your installation to ensure that installing GNUnet
+was successful up to this point. You should be able to access GNUnet's
+binaries and run GNUnet's self check.
 \begin{lstlisting}
 $ which gnunet-arm
-$ 
+\end{lstlisting}
+should return \lstinline|$GNUNET_PREFIX/bin/gnunet-arm|. It should be
+located in your GNUnet installation and the output should not be
+empty. If you see an output like:
+\begin{lstlisting}
+$ which gnunet-arm
+$
 \end{lstlisting}
 check your {\tt PATH} variable to ensure GNUnet's {\tt bin} directory is included.
 
@@ -172,7 +192,7 @@ GNUnet provides tests for all of it's subcomponents. Run
 \begin{lstlisting}
 $ make check
 \end{lstlisting}
-to execute tests for all components. {\tt make check} traverses all subdirectories in {\tt src}. 
+to execute tests for all components. {\tt make check} traverses all subdirectories in {\tt src}.
 For every subdirectory you should get a message like this:
 
 \begin{lstlisting}
@@ -195,9 +215,9 @@ double check your {\tt GNUNET\_PREFIX} environmental variable and double check t
 
 \section{Background: GNUnet Architecture}
 GNUnet is organized in layers and services. Each service is composed of a
-main service implementation and a client library for other programs to use 
-the service's functionality, described by an API. This approach is shown in 
-figure~\ref{fig:service}. Some services provide an additional command line 
+main service implementation and a client library for other programs to use
+the service's functionality, described by an API. This approach is shown in
+figure~\ref{fig:service}. Some services provide an additional command line
 tool to enable the user to interact with the service.
 
 Very often it is other GNUnet services that will use these APIs to build the
@@ -213,14 +233,14 @@ a DHT). See figure ~\ref{fig:interaction} for an illustration of this approach.
                 \includegraphics[width=\textwidth]{figs/Service.pdf}
                 \caption{Service with API and network protocol}
                 \label{fig:service}
-        \end{subfigure}    
+        \end{subfigure}
         ~~~~~~~~~~
         \begin{subfigure}[b]{0.3\textwidth}
                 \centering
                 \includegraphics[width=\textwidth]{figs/System.pdf}
                 \caption{Service interaction}
                 \label{fig:interaction}
-        \end{subfigure}  
+        \end{subfigure}
   \end{center}
   \caption{GNUnet's layered system architecture}
 \end{figure}
@@ -236,15 +256,17 @@ the programmer.
 \subsection{Configure your peer}
 First of all we need to configure your peer. Each peer is started with a configuration containing settings for GNUnet itself and it's services. This configuration is based on the default configuration shipped with GNUnet and can be modified. The default configuration is located in the {\tt \$GNUNET\_PREFIX/share/gnunet/config.d} directory. When starting a peer, you can specify a customized configuration using the the {\tt$-c$} command line switch when starting the ARM service and all other services. When using a modified configuration the default values are loaded and only values specified in the configuration file will replace the default values.
 
-Since we want to start additional peers later, we need 
+Since we want to start additional peers later, we need
 some modifications from the default configuration. We need to create a separate service home and a file containing our modifications for this peer:
 \begin{lstlisting}
 $ mkdir ~/gnunet1/
 $ touch peer1.conf
 \end{lstlisting}
 
-Now add the following lines to peer1.conf to use this directory. For simplified usage we want to prevent 
-the peer to connect to the GNUnet network since this could lead to confusing output. This modifications will replace the default settings:
+Now add the following lines to peer1.conf to use this directory. For
+simplified usage we want to prevent the peer to connect to the GNUnet
+network since this could lead to confusing output. This modifications
+will replace the default settings:
 \begin{lstlisting}
 [PATHS]
 GNUNET_HOME = ~/gnunet1/ # Use this directory to store GNUnet data
@@ -253,9 +275,9 @@ SERVERS = # prevent bootstrapping
 \end{lstlisting}
 
 \subsection{Start a peer}
-Each GNUnet instance (called peer) has an identity (\textit{peer ID}) based on a 
-cryptographic public private key pair. The peer ID is the printable hash of the 
-public key. So before starting the peer, you may want to just generate the peer's private 
+Each GNUnet instance (called peer) has an identity (\textit{peer ID}) based on a
+cryptographic public private key pair. The peer ID is the printable hash of the
+public key. So before starting the peer, you may want to just generate the peer's private
 key using the command
 \lstset{language=bash}
 \begin{lstlisting}
@@ -269,16 +291,16 @@ I am peer `0PA02UVRKQTS2C .. JL5Q78F6H0B1ACPV1CJI59MEQUMQCC5G'.
 
 GNUnet services are controlled by a master service the so called \textit{Automatic Restart Manager} (ARM).
 ARM starts, stops and even restarts services automatically or on demand when a client connects.
-You interact with the ARM service using the \lstinline|gnunet-arm| tool. 
-GNUnet can then be started with \lstinline|gnunet-arm -s| and stopped with 
-\lstinline|gnunet-arm -e|.  An additional service not automatically started 
-can be started using \lstinline|gnunet-arm -i <service name>| and stopped 
-using \lstinline|gnunet-arm -k <servicename>|. 
+You interact with the ARM service using the \lstinline|gnunet-arm| tool.
+GNUnet can then be started with \lstinline|gnunet-arm -s| and stopped with
+\lstinline|gnunet-arm -e|.  An additional service not automatically started
+can be started using \lstinline|gnunet-arm -i <service name>| and stopped
+using \lstinline|gnunet-arm -k <servicename>|.
 
 \subsection{Monitor a peer}
-In this section, we will monitor the behaviour of our peer's DHT service with respect to a 
+In this section, we will monitor the behaviour of our peer's DHT service with respect to a
 specific key. First we will start GNUnet and then start the DHT service and use the DHT monitor tool
-to monitor the PUT and GET commands we issue ussing the \lstinline|gnunet-dht-put| and 
+to monitor the PUT and GET commands we issue ussing the \lstinline|gnunet-dht-put| and
 \lstinline|gnunet-dht-get| command. Using the ``monitor'' line given below, you can observe the behavior of
 your own peer's DHT with respect to the specified KEY:
 
@@ -292,7 +314,7 @@ $ ./gnunet-dht-monitor -c ~/peer1.conf -k KEY
 Now open a separate terminal and change again to the \lstinline|gnunet/src/dht| directory:
 \begin{lstlisting}
 $ cd ~/gnunet/src/dht
-$ ./gnunet-dht-put -c ~/peer1.conf -k KEY -d VALUE # put VALUE under KEY in the DHT 
+$ ./gnunet-dht-put -c ~/peer1.conf -k KEY -d VALUE # put VALUE under KEY in the DHT
 $ ./gnunet/src/dht/gnunet-dht-get -c ~/peer1.conf -k KEY # get key KEY from the DHT
 $ gnunet-statistics -c ~/peer1.conf # print statistics about current GNUnet state
 $ gnunet-statistics -c ~/peer1.conf -s dht # print statistics about DHT service
@@ -302,10 +324,10 @@ $ gnunet-statistics -c ~/peer1.conf -s dht # print statistics about DHT service
 \subsubsection{Setup a second peer}
 We will now start a second peer on your machine.
 For the second peer, you will need to manually create a modified
-configuration file to avoid conflicts with ports and directories.  
+configuration file to avoid conflicts with ports and directories.
 A peers configuration file is by default located in {\tt ~/.gnunet/gnunet.conf}.
 This file is typically very short or even empty as only the differences to the
-defaults need to be specified.  The defaults are located in 
+defaults need to be specified.  The defaults are located in
 many files in the {\tt \$GNUNET\_PREFIX/share/gnunet/config.d} directory.
 
 To configure the second peer, use the files {\tt
@@ -321,7 +343,7 @@ Now you have to edit {\tt peer2.conf} and change:
   \itemsep0em
   \item{\texttt{SERVICEHOME} under \texttt{PATHS}}
   \item{Every (uncommented) value for ``\texttt{PORT}'' (add 10000) in any
-        section (the option may be commented out if \texttt{PORT} is 
+        section (the option may be commented out if \texttt{PORT} is
         prefixed by "\#", in this case, UNIX domain sockets are used
         and the PORT option does not need to be touched) }
   \item{Every value for ``\texttt{UNIXPATH}'' in any section (e.g. by adding a "-p2" suffix)}
@@ -360,7 +382,9 @@ If you want the two peers to connect, you have multiple options:
   \item Setup a bootstrap server
   \item Connect manually
 \end{itemize}
-To setup peer 1 as bootstrapping server change the configuration of the first one to be a hostlist server by adding the following lines to \texttt{peer1.conf} to enable bootstrapping server:
+To setup peer 1 as bootstrapping server change the configuration of
+the first one to be a hostlist server by adding the following lines to
+\texttt{peer1.conf} to enable bootstrapping server:
  \begin{lstlisting}
 [hostlist]
 OPTIONS = -p
@@ -377,7 +401,7 @@ $ gnunet-arm -c peer2.conf -s # start second peer
 Note that if you start your peers without changing these settings, they
 will use the ``global'' hostlist servers of the GNUnet P2P network and
 likely connect to those peers.  At that point, debugging might become
-tricky as you're going to be connected to many more peers and would 
+tricky as you're going to be connected to many more peers and would
 likely observe traffic and behaviors that are not explicitly controlled
 by you.
 
@@ -391,7 +415,7 @@ If you want to use the \texttt{peerinfo} tool to connect your peers, you should:
  \item{Give the output to the second peer by running {\tt gnunet-peerinfo -c peer2.conf -p '<output>'}}
 \end{itemize}
 
-Check that they are connected using {\tt gnunet-core -c peer1.conf}, which should give you the other peer's 
+Check that they are connected using {\tt gnunet-core -c peer1.conf}, which should give you the other peer's
 peer identity:
 \begin{lstlisting}
 $ gnunet-core -c peer1.conf
@@ -416,7 +440,7 @@ This function takes a configuration file which will be used as a template
 configuration for the peers.  The testbed takes care of modifying relevant
 options in the peers' configuration such as SERVICEHOME, PORT, UNIXPATH to
 unique values so that peers run without running into conflicts.  It also checks
-and assigns the ports in configurations only if they are free.  
+and assigns the ports in configurations only if they are free.
 
 Additionally, the testbed service also reads its options from the same
 configuration file.  Various available options and details about them can be
@@ -506,7 +530,7 @@ remainder of this document. The functionality of a GNUnet service is implemented
 \itemsep0em
   \item the GNUnet service (\lstinline|gnunet-ext/src/ext/gnunet-service-ext.c|)
   \item the client API (\lstinline|gnunet-ext/src/ext/ext_api.c|)
-  \item the client application using the service API (\lstinline|gnunet-ext/src/ext/gnunet-ext.c|) 
+  \item the client application using the service API (\lstinline|gnunet-ext/src/ext/gnunet-ext.c|)
 
 
 \end{itemize}
@@ -514,7 +538,7 @@ remainder of this document. The functionality of a GNUnet service is implemented
 The interfaces for these entities are defined in:
 \begin{itemize}
 \itemsep0em
-  \item client API interface (\lstinline|gnunet-ext/src/ext/ext.h|) 
+  \item client API interface (\lstinline|gnunet-ext/src/ext/ext.h|)
   \item the service interface (\lstinline|gnunet-ext/src/include/gnunet_service_SERVICE.h|)
   \item the P2P protocol (\lstinline|gnunet-ext/src/include/gnunet_protocols_ext.h|)
 \end{itemize}
@@ -533,10 +557,10 @@ In addition the \texttt{ext} systems provides:
 The first step for writing any extension with a new service is to
 ensure that the {\tt ext.conf.in} file contains entries for the
 \texttt{UNIXPATH}, \texttt{PORT} and \texttt{BINARY} for the service in a section named after
-the service. 
+the service.
 
-If you want to adapt the template rename the {\tt ext.conf.in} to match your 
-services name, you have to modify the \texttt{AC\_OUTPUT} section in {\tt configure.ac} 
+If you want to adapt the template rename the {\tt ext.conf.in} to match your
+services name, you have to modify the \texttt{AC\_OUTPUT} section in {\tt configure.ac}
 in the \texttt{gnunet-ext} root.
 
 \section{Writing a Client Application}
@@ -612,9 +636,9 @@ the {\tt --help} argument and error handling are taken care of when
 using this approach.  Other {\tt GNUNET\_GETOPT\_}-functions can be used
 to obtain integer value options, increment counters, etc.  You can
 even write custom option parsers for special circumstances not covered
-by the available handlers. To check if an argument was specified by the 
-user you initialize the variable with a specific value (e.g. NULL for 
-a string and GNUNET\_SYSERR for a integer) and check after parsing 
+by the available handlers. To check if an argument was specified by the
+user you initialize the variable with a specific value (e.g. NULL for
+a string and GNUNET\_SYSERR for a integer) and check after parsing
 happened if the values were modified.
 
 Inside the {\tt run} method, the program would perform the
@@ -629,7 +653,7 @@ of {\tt run}.  What happens if the user gives invalid arguments?}
 \subsection{Writing a Client Library}
 
 The first and most important step in writing a client library is to
-decide on an API for the library.  Typical API calls include 
+decide on an API for the library.  Typical API calls include
 connecting to the service, performing application-specific requests
 and cleaning up.  Many examples for such service APIs can be found
 in the {\tt gnunet/src/include/gnunet\_*\_service.h} files.
@@ -658,14 +682,14 @@ with the service, a connection must be created:
   client = GNUNET_CLIENT_connect ("service-name", cfg);
 \end{lstlisting}
 
-As a result a {\tt GNUNET\_CLIENT\_Connection} handle is returned 
+As a result a {\tt GNUNET\_CLIENT\_Connection} handle is returned
 which has to used in later API calls related to this service.
 The complete client API can be found in {\tt gnunet\_client\_lib.h}
 
 \subsubsection{GNUnet Messages}
 
 In GNUnet, messages are always sent beginning with a {\tt struct GNUNET\_MessageHeader}
-in big endian format. This header defines the size and the type of the 
+in big endian format. This header defines the size and the type of the
 message, the payload follows after this header.
 
 \lstset{language=c}
@@ -692,7 +716,7 @@ A common way to create a message is:
 
 \lstset{language=c}
 \begin{lstlisting}
-struct GNUNET_MessageHeader *msg = 
+struct GNUNET_MessageHeader *msg =
   GNUNET_malloc(payload_size + sizeof(struct GNUNET_MessageHeader));
 msg->size = htons(payload_size + sizeof(struct GNUNET_MessageHeader));
 msg->type = htons(GNUNET_MY_MESSAGE_TYPE);
@@ -727,7 +751,7 @@ transmit_cb (void *cls, size_t size, void *buf)
   return msg_size;
 }
 
-// ...	
+// ...
 th = GNUNET_CLIENT_notify_transmit_ready (client,
 					  msg_size,
  				    timeout,
@@ -737,17 +761,17 @@ th = GNUNET_CLIENT_notify_transmit_ready (client,
 \end{lstlisting}
 
 The client-service protocoll calls {\tt GNUNET\_CLIENT\_notify\_transmit\_ready}
-to be notified when the client is ready to send data to the service. 
-Besides other arguments, you have to pass the client returned 
-from the {\tt connect} call, the message size and the callback function to 
-call when the client is ready to send. 
+to be notified when the client is ready to send data to the service.
+Besides other arguments, you have to pass the client returned
+from the {\tt connect} call, the message size and the callback function to
+call when the client is ready to send.
 
 Only a single transmission request can be queued per client at the
 same time using this API.  The handle {\tt th} can be used to cancel
-the request if necessary (for example, during shutdown).  
+the request if necessary (for example, during shutdown).
 
-When {\tt transmit\_cb} is called the message is copied in the buffer provided and 
-the number of bytes copied into the buffer is returned. {\tt transmit\_cb} 
+When {\tt transmit\_cb} is called the message is copied in the buffer provided and
+the number of bytes copied into the buffer is returned. {\tt transmit\_cb}
 could also return 0 if for some reason no message
 could be constructed; this is not an error and the connection to the
 service will persist in this case.
@@ -778,7 +802,7 @@ receive_message (void *cls, const struct GNUNET_MessageHeader *msg)
   // process 'msg'
 }
 
-// ... 
+// ...
   GNUNET_CLIENT_receive (client,
                          &receive_message,
                          arg,
@@ -793,7 +817,7 @@ message.  To receive additional messages, {\tt
 \exercise{Expand your helper function to receive a
 response message (for example, containing just the GNUnet MessageHeader
 without any payload).  Upon receiving the service's response, you should
-call a callback provided to your helper function's API.  You'll need to 
+call a callback provided to your helper function's API.  You'll need to
 define a new 'struct' to hold your local context (``closure'').}
 
 
@@ -809,7 +833,7 @@ For example, send a 32-bit integer value based on a number given
 at the command-line to the service.}
 
 
-  
+
 \section{Writing a Service}
 
 Before you can test the client you've written so far, you'll need to also
@@ -848,18 +872,18 @@ Here is a starting point for your main function for your service:
 static void my_main (void *cls,
                      struct GNUNET_SERVER_Handle *server,
                      const struct GNUNET_CONFIGURATION_Handle *cfg)
-{ 
-   /* do work */  
+{
+   /* do work */
 }
 
-int main (int argc, char *const*argv) 
+int main (int argc, char *const*argv)
 {
-  if (GNUNET_OK != 
-      GNUNET_SERVICE_run (argc, argv, "my", 
-                          GNUNET_SERVICE_OPTION_NONE, 
+  if (GNUNET_OK !=
+      GNUNET_SERVICE_run (argc, argv, "my",
+                          GNUNET_SERVICE_OPTION_NONE,
                           &my_main, NULL);
     return 1;
-  return 0;    
+  return 0;
 }
 \end{lstlisting}
 
@@ -883,28 +907,28 @@ handle_set (void *cls,
 	    struct GNUNET_SERVER_Client *client,
 	    const struct GNUNET_MessageHeader *message)
 {
-  GNUNET_SERVER_receive_done (client, GNUNET_OK); 
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 static void
 handle_get (void *cls,
 	    struct GNUNET_SERVER_Client *client,
 	    const struct GNUNET_MessageHeader *message)
 {
-  GNUNET_SERVER_receive_done (client, GNUNET_OK); 
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
 static void my_main (void *cls,
                      struct GNUNET_SERVER_Handle *server,
                      const struct GNUNET_CONFIGURATION_Handle *cfg)
-{ 
+{
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
     {&handle_set, NULL, GNUNET_MESSAGE_TYPE_MYNAME_SET, 0},
     {&handle_get, NULL, GNUNET_MESSAGE_TYPE_MYNAME_GET, 0},
     {NULL, NULL, 0, 0}
   };
   GNUNET_SERVER_add_handlers (server, handlers);
-   /* do more setup work */  
-} 
+   /* do more setup work */
+}
 \end{lstlisting}
 
 Each handler function {\bf must} eventually (possibly in some
@@ -943,7 +967,7 @@ transmit_cb (void *cls, size_t size, void *buf)
   return msg_size;
 }
 
-// ...	
+// ...
 struct GNUNET_SERVER_TransmitHandle *th;
 th = GNUNET_SERVER_notify_transmit_ready (client,
 					  msg_size,
@@ -955,7 +979,7 @@ th = GNUNET_SERVER_notify_transmit_ready (client,
 Only a single transmission request can be queued per client
 at the same time using this API.
 Additional APIs for sending messages to clients can be found
-in the {\tt gnunet\_server\_lib.h} header.  
+in the {\tt gnunet\_server\_lib.h} header.
 
 
 \exercise{Change the service respond to the request from your
@@ -964,7 +988,7 @@ client.  Make sure you handle malformed messages in both directions.}
 
 \section{Interacting directly with other Peers using the CORE Service}
 
-One of the most important services in GNUnet is the \texttt{CORE} service 
+One of the most important services in GNUnet is the \texttt{CORE} service
 managing connections between peers and handling encryption between peers.
 
 One of the first things any service that extends the P2P protocol typically does
@@ -1043,14 +1067,14 @@ the two peers are connected?  Why?}
 
 \subsection{Sending P2P Messages}
 
-In response to events (connect, disconnect, inbound messages, 
+In response to events (connect, disconnect, inbound messages,
 timing, etc.) services can then use this API to transmit messages:
 
 \lstset{language=C}
 \begin{lstlisting}
-typedef size_t 
+typedef size_t
 (*GNUNET_CONNECTION_TransmitReadyNotify) (void *cls,
-                                          size_t size, 
+                                          size_t size,
                                           void *buf)
 {
     /* Fill "*buf" with up to "size" bytes, must start with GNUNET_MessageHeader */
@@ -1133,7 +1157,7 @@ message_sent_cont (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 struct GNUNET_DHT_PutHandle *
-GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle, 
+GNUNET_DHT_put (struct GNUNET_DHT_Handle *handle,
                 const struct GNUNET_HashCode * key,
                 uint32_t desired_replication_level,
                 enum GNUNET_DHT_RouteOption options, /* Route options, see next call */
@@ -1190,7 +1214,7 @@ get_handle =
                             cls)
 \end{lstlisting}
 
-\exercise{Store a value in the DHT and after a while retrieve it. Show the IDs of all 
+\exercise{Store a value in the DHT and after a while retrieve it. Show the IDs of all
 the peers the requests have gone through. In order to convert a peer ID to a string, use
 the function GNUNET\_i2s. Pay attention to the route option parameters in both calls!}
 
@@ -1235,8 +1259,8 @@ block_plugin_SERVICE_evaluate (void *cls,
 }
 \end{lstlisting}
 
-Note that it is mandatory to detect duplicate replies in this 
-function and return the respective status code.  Duplicate 
+Note that it is mandatory to detect duplicate replies in this
+function and return the respective status code.  Duplicate
 detection should be done by setting the respective bits in
 the Bloom filter {\tt bf}.  Failure to do so may cause replies
 to circle in the network.
@@ -1291,7 +1315,7 @@ libgnunet_plugin_block_SERVICE_init (void *cls)
 
 \subsubsection{Shutdown of the plugin}
 
-Following GNUnet's general plugin API concept, the plugin must 
+Following GNUnet's general plugin API concept, the plugin must
 export a second function for cleaning up.  It usually does very
 little.
 
@@ -1316,7 +1340,7 @@ service \texttt{SERVICE} should contain a rule similar to this:
 \lstset{language=make}
 \begin{lstlisting}
   plugindir = $(libdir)/gnunet
-   
+
   plugin_LTLIBRARIES = \
 	  libgnunet_plugin_block_ext.la
   libgnunet_plugin_block_ext_la_SOURCES = \
@@ -1405,7 +1429,7 @@ monitor_handle = GNUNET_DHT_monitor_start (dht_handle,
 
 \section{Debugging with {\tt gnunet-arm}}
 
-Even if services are managed by {\tt gnunet-arm}, you can start them with 
+Even if services are managed by {\tt gnunet-arm}, you can start them with
 {\tt gdb} or {\tt valgrind}.  For example, you could add the following lines
 to your configuration file to start the DHT service in a {\tt gdb} session in a
 fresh {\tt xterm}:
@@ -1420,19 +1444,19 @@ Alternatively, you can stop a service that was started via ARM and run it manual
 \lstset{language=bash}
 \begin{lstlisting}
 $ gnunet-arm -k dht
-$ gdb --args gnunet-service-dht -L DEBUG 
-$ valgrind gnunet-service-dht -L DEBUG 
+$ gdb --args gnunet-service-dht -L DEBUG
+$ valgrind gnunet-service-dht -L DEBUG
 \end{lstlisting}
 % $
 
 Assuming other services are well-written, they will automatically re-integrate the
 restarted service with the peer.
 
-GNUnet provides a powerful logging mechanism providing log levels \texttt{ERROR}, 
-\texttt{WARNING}, \texttt{INFO} and \texttt{DEBUG}. The current log level is 
+GNUnet provides a powerful logging mechanism providing log levels \texttt{ERROR},
+\texttt{WARNING}, \texttt{INFO} and \texttt{DEBUG}. The current log level is
 configured using the \lstinline|$GNUNET_FORCE_LOG| environmental variable.
-The \texttt{DEBUG} level is only available if \lstinline|--enable-logging=verbose| was used when 
-running \texttt{configure}. More details about logging can be found under 
+The \texttt{DEBUG} level is only available if \lstinline|--enable-logging=verbose| was used when
+running \texttt{configure}. More details about logging can be found under
 \url{https://gnunet.org/logging}.
 
 You should also probably enable the creation of core files, by setting
