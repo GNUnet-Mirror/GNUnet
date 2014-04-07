@@ -2081,8 +2081,8 @@ free_notification_cb(void *cls, const struct GNUNET_PeerIdentity *key,
   /* struct NeighbourMapEntry *n = cls; */
   struct QuotaNotificationRequest *qnr = value;
 
-  GNUNET_CONTAINER_multipeermap_remove (registered_quota_notifications, key,
-      qnr);
+  GNUNET_break (GNUNET_OK != GNUNET_CONTAINER_multipeermap_remove (registered_quota_notifications, key,
+      qnr));
   GNUNET_free(qnr->plugin);
   GNUNET_free(qnr);
 

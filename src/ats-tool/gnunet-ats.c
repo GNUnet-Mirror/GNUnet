@@ -124,7 +124,8 @@ free_addr_it (void *cls,
     void *value)
 {
   struct ATSAddress *a = value;
-  GNUNET_CONTAINER_multipeermap_remove (addresses, key, a);
+  GNUNET_break (GNUNET_OK != GNUNET_CONTAINER_multipeermap_remove (addresses,
+      key, a));
   GNUNET_HELLO_address_free (a->address);
   GNUNET_free (a);
   return GNUNET_OK;
