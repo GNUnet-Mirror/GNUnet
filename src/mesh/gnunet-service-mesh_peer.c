@@ -1241,11 +1241,13 @@ struct GNUNET_MessageHeader *
 GMP_connection_pop (struct MeshPeer *peer, struct MeshConnection *c)
 {
   struct MeshPeerQueue *q;
+  struct MeshPeerQueue *next;
   struct GNUNET_MessageHeader *msg;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Connection pop on %s\n", GMC_2s (c));
-  for (q = peer->queue_head; NULL != q; q = q->next)
+  for (q = peer->queue_head; NULL != q; q = next)
   {
+    next = q->next;
     if (q->c != c)
       continue;
     switch (q->type)
