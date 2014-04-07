@@ -1315,7 +1315,17 @@ unix_transport_server_start (void *cls)
     return GNUNET_SYSERR;
   }
   if ('\0' != un->sun_path[0])
-    GNUNET_DISK_directory_create_for_file (un->sun_path);
+  {
+    if (GNUNET_OK != GNUNET_DISK_directory_create_for_file (un->sun_path))
+    {
+      LOG (GNUNET_ERROR_TYPE_ERROR, _("Cannot create path to `%s'\n"),
+          un->sun_path);
+      GNUNET_NETWORK_socket_close (plugin->unix_sock.desc);
+      plugin->unix_sock.desc = NULL;
+      GNUNET_free (un);
+      return GNUNET_SYSERR;
+    }
+  }
   if (GNUNET_OK !=
       GNUNET_NETWORK_socket_bind (plugin->unix_sock.desc, (const struct sockaddr *)  un, un_len))
   {
