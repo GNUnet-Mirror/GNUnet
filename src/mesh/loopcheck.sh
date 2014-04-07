@@ -2,7 +2,7 @@
 
 while true; do
     date;
-    make check || break;
+    taskset 1 make check || break;
     grep Assert *log && break
     ls core* &> /dev/null && break
 done
