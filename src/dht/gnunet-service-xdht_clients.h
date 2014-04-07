@@ -21,10 +21,11 @@
 /**
  * @file dht/gnunet-service-xdht_clients.h
  * @brief GNUnet DHT service's client management code
- * @author Supriti Singh
+ * @author Christian Grothoff
+ * @author Nathan Evans
  */
-#ifndef GNUNET_SERVICE_XDHT_CLIENT_H
-#define GNUNET_SERVICE_XDHT_CLIENT_H
+#ifndef GNUNET_SERVICE_DHT_CLIENT_H
+#define GNUNET_SERVICE_DHT_CLIENT_H
 
 #include "gnunet_util_lib.h"
 #include "gnunet_block_lib.h"
@@ -36,17 +37,17 @@
  *
  * @param expiration when will the reply expire
  * @param key the query this reply is for
- * @param get_path_length number of peers in 'get_path'
+ * @param get_path_length number of peers in @a get_path
  * @param get_path path the reply took on get
- * @param put_path_length number of peers in 'put_path'
+ * @param put_path_length number of peers in @a put_path
  * @param put_path path the reply took on put
  * @param type type of the reply
- * @param data_size number of bytes in 'data'
+ * @param data_size number of bytes in @a data
  * @param data application payload data
  */
 void
 GDS_CLIENTS_handle_reply (struct GNUNET_TIME_Absolute expiration,
-                          const struct GNUNET_HashCode * key,
+                          const struct GNUNET_HashCode *key,
                           unsigned int get_path_length,
                           const struct GNUNET_PeerIdentity *get_path,
                           unsigned int put_path_length,
@@ -74,7 +75,8 @@ GDS_CLIENTS_process_get (uint32_t options,
                          uint32_t desired_replication_level,
                          unsigned int path_length,
                          const struct GNUNET_PeerIdentity *path,
-                         const struct GNUNET_HashCode * key);
+                         const struct GNUNET_HashCode *key);
+
 
 /**
  * Check if some client is monitoring GET RESP messages and notify
@@ -82,13 +84,13 @@ GDS_CLIENTS_process_get (uint32_t options,
  *
  * @param type The type of data in the result.
  * @param get_path Peers on GET path (or NULL if not recorded).
- * @param get_path_length number of entries in get_path.
+ * @param get_path_length number of entries in @a get_path.
  * @param put_path peers on the PUT path (or NULL if not recorded).
- * @param put_path_length number of entries in get_path.
+ * @param put_path_length number of entries in @a get_path.
  * @param exp Expiration time of the data.
- * @param key Key of the data.
+ * @param key Key of the @a data.
  * @param data Pointer to the result data.
- * @param size Number of bytes in data.
+ * @param size Number of bytes in @a data.
  */
 void
 GDS_CLIENTS_process_get_resp (enum GNUNET_BLOCK_Type type,
@@ -100,6 +102,7 @@ GDS_CLIENTS_process_get_resp (enum GNUNET_BLOCK_Type type,
                               const struct GNUNET_HashCode * key,
                               const void *data,
                               size_t size);
+
 
 /**
  * Check if some client is monitoring PUT messages and notify
@@ -127,12 +130,6 @@ GDS_CLIENTS_process_put (uint32_t options,
                          const struct GNUNET_HashCode * key,
                          const void *data,
                          size_t size);
-
-/**
- * 
- */
-void 
-GDS_CLIENTS_process_get_result();
 
 /**
  * Initialize client subsystem.

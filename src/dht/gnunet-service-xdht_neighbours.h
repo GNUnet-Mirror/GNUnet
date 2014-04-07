@@ -68,12 +68,12 @@ GDS_NEIGHBOURS_handle_put (enum GNUNET_BLOCK_Type type,
                            uint32_t desired_replication_level,
                            struct GNUNET_TIME_Absolute expiration_time,
                            uint32_t hop_count,
-                           struct GNUNET_HashCode * key,
+                           const struct GNUNET_HashCode * key,
                            unsigned int put_path_length,
                            struct GNUNET_PeerIdentity *put_path,
                            const void *data, size_t data_size,
                            struct GNUNET_PeerIdentity *current_destination,
-                           enum current_destination_type *dest_type,
+                           enum current_destination_type dest_type,
                            struct GNUNET_PeerIdentity *target_peer_id);
 
 
@@ -94,18 +94,25 @@ GDS_NEIGHBOURS_handle_get (struct GNUNET_PeerIdentity *source_peer,
                            enum current_destination_type *type);
 
 /**
- * 
+ * Send get result back to requesting client.
  * @param source_peer
  * @param get_path
  * @param get_path_length
+ * @param key
  * @param destination_peer
+ * @param current_path_index
+ * @param data
+ * @param data_size
  */
 void 
 GDS_NEIGHBOURS_send_get_result (struct GNUNET_PeerIdentity *source_peer,
                                 struct GNUNET_PeerIdentity *get_path,
                                 unsigned int get_path_length,
+                                struct GNUNET_HashCode *key,
                                 struct GNUNET_PeerIdentity *destination_peer,
-                                unsigned int current_path_index);
+                                unsigned int current_path_index,
+                                const void *data, size_t data_size,
+                                struct GNUNET_PeerIdentity *next_peer);
 
 
 /**

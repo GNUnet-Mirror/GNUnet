@@ -34,10 +34,11 @@
 /**
  * Add a new entry to our routing table.
 */
-void
+int
 GDS_ROUTING_add (struct GNUNET_PeerIdentity *source,
                  struct GNUNET_PeerIdentity *destination_peer,
-                 struct GNUNET_PeerIdentity *next_hop);
+                 struct GNUNET_PeerIdentity *next_hop,
+                 const struct GNUNET_PeerIdentity *prev_hop);
 
 
 /**
@@ -46,7 +47,8 @@ GDS_ROUTING_add (struct GNUNET_PeerIdentity *source,
  */
 struct GNUNET_PeerIdentity *
 GDS_ROUTING_search(struct GNUNET_PeerIdentity *source_peer,
-                   struct GNUNET_PeerIdentity *destination_peer);
+                   struct GNUNET_PeerIdentity *destination_peer,
+                   const struct GNUNET_PeerIdentity *prev_hop);
 
 /**
  * Handle a reply (route to origin).  Only forwards the reply back to

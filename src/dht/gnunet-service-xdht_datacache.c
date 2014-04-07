@@ -61,7 +61,7 @@ GDS_DATACACHE_handle_put (struct GNUNET_TIME_Absolute expiration,
                           const void *data)
 {
   int r;
-
+  
   if (NULL == datacache)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
