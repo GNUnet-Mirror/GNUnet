@@ -563,6 +563,17 @@ start_process (int pipe_control,
     childpipe_write = NULL;
     childpipe_read_fd = -1;
   }
+  if (NULL != pipe_stdin)
+  {
+    GNUNET_assert (GNUNET_OK ==
+		   GNUNET_DISK_internal_file_handle_ (GNUNET_DISK_pipe_handle
+						      (pipe_stdin, GNUNET_DISK_PIPE_END_READ),
+						      &fd_stdin_read, sizeof (int)));
+    GNUNET_assert (GNUNET_OK ==
+		   GNUNET_DISK_internal_file_handle_ (GNUNET_DISK_pipe_handle
+						      (pipe_stdin, GNUNET_DISK_PIPE_END_WRITE),
+						      &fd_stdin_write, sizeof (int)));
+  }
   if (NULL != pipe_stdout)
   {
     GNUNET_assert (GNUNET_OK ==
@@ -574,17 +585,6 @@ start_process (int pipe_control,
 		   GNUNET_DISK_internal_file_handle_ (GNUNET_DISK_pipe_handle
 						      (pipe_stdout, GNUNET_DISK_PIPE_END_READ),
 						      &fd_stdout_read, sizeof (int)));
-  }
-  if (NULL != pipe_stdin)
-  {
-    GNUNET_assert (GNUNET_OK ==
-		   GNUNET_DISK_internal_file_handle_ (GNUNET_DISK_pipe_handle
-						      (pipe_stdin, GNUNET_DISK_PIPE_END_READ),
-						      &fd_stdin_read, sizeof (int)));
-    GNUNET_assert (GNUNET_OK ==
-		   GNUNET_DISK_internal_file_handle_ (GNUNET_DISK_pipe_handle
-						      (pipe_stdin, GNUNET_DISK_PIPE_END_WRITE),
-						      &fd_stdin_write, sizeof (int)));
   }
   if (NULL != pipe_stderr)
   {
