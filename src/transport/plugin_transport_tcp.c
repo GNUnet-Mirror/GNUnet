@@ -2098,6 +2098,7 @@ handle_tcp_welcome (void *cls, struct GNUNET_SERVER_Client *client,
       else
       {
         GNUNET_break (0);
+        GNUNET_free_non_null (vaddr);
         return;
       }
       session = create_session (plugin, address, client, GNUNET_NO);
