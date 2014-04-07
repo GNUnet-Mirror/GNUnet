@@ -575,16 +575,18 @@ message_sent (void *cls,
   double usecsperbyte;
   int forced;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "connection message_sent\n");
+
   fc = fwd ? &c->fwd_fc : &c->bck_fc;
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "!  %ssent %s %s\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, " %ssent %s %s\n",
        sent ? "" : "not ", GM_f2s (fwd), GM_m2s (type));
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "!  C_P- %p %u\n", c, c->pending_messages);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, " C_P- %p %u\n", c, c->pending_messages);
   if (NULL != q)
   {
     forced = q->forced;
     if (NULL != q->cont)
     {
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "!  calling cont\n");
+      LOG (GNUNET_ERROR_TYPE_DEBUG, " calling cont\n");
       q->cont (q->cont_cls, c, q, type, fwd, size);
     }
     GNUNET_free (q);

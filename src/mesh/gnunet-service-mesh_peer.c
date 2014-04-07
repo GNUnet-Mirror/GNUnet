@@ -1004,8 +1004,8 @@ GMP_queue_destroy (struct MeshPeerQueue *queue, int clear_cls, int sent)
 
   if (GNUNET_YES == clear_cls)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "#   queue destroy type %s\n",
-                GM_m2s (queue->type));
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "queue destroy type %s\n",
+         GM_m2s (queue->type));
     switch (queue->type)
     {
       case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_DESTROY:
@@ -1024,8 +1024,8 @@ GMP_queue_destroy (struct MeshPeerQueue *queue, int clear_cls, int sent)
 
       default:
         GNUNET_break (0);
-        LOG (GNUNET_ERROR_TYPE_ERROR, "#   type %s unknown!\n",
-                    GM_m2s (queue->type));
+        LOG (GNUNET_ERROR_TYPE_ERROR, " type %s unknown!\n",
+             GM_m2s (queue->type));
     }
   }
   GNUNET_CONTAINER_DLL_remove (peer->queue_head, peer->queue_tail, queue);
@@ -1038,7 +1038,7 @@ GMP_queue_destroy (struct MeshPeerQueue *queue, int clear_cls, int sent)
 
   if (NULL != queue->callback)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "#   Calling callback\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " calling callback\n");
     queue->callback (queue->callback_cls,
                      queue->c, sent, queue->type,
                      queue->fwd, queue->size,

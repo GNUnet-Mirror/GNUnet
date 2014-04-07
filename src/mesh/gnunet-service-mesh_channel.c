@@ -733,6 +733,9 @@ ch_message_sent (void *cls,
   struct MeshReliableMessage *copy = chq->copy;
   struct MeshChannelReliability *rel;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "channel message sent callback %s\n",
+       GM_m2s (chq->type));
+
   switch (chq->type)
   {
     case GNUNET_MESSAGE_TYPE_MESH_DATA:
@@ -837,8 +840,7 @@ send_ack (struct MeshChannel *ch, int fwd, int reaction)
 
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CHANNEL_ACK);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "  sending channel %s ack for channel %s\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  sending channel %s ack for channel %s\n",
        GM_f2s (fwd), GMCH_2s (ch));
 
   msg.chid = htonl (ch->gid);
@@ -2267,7 +2269,7 @@ GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
 
       payload = (struct GNUNET_MESH_Data *) message;
       LOG (GNUNET_ERROR_TYPE_INFO, "=> %s %u\n",
-           GM_m2s (type), ntohl(payload->mid));
+           GM_m2s (type), ntohl (payload->mid));
       if (GNUNET_YES == ch->reliable)
       {
         chq = GNUNET_new (struct MeshChannelQueue);

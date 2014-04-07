@@ -688,12 +688,14 @@ tunnel_get_connection (struct MeshTunnel3 *t)
  * @param size Size of the message.
  */
 static void
-message_sent (void *cls,
+tun_message_sent (void *cls,
               struct MeshConnection *c,
               struct MeshConnectionQueue *q,
               uint16_t type, int fwd, size_t size)
 {
   struct MeshTunnel3Queue *qt = cls;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "tun_message_sent\n");
 
   GNUNET_assert (NULL != qt->cont);
   qt->cont (qt->cont_cls, GMC_get_tunnel (c), qt, type, size);
@@ -883,7 +885,7 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
     tq->tqd = NULL;
   }
   tq->cq = GMC_send_prebuilt_message (&msg->header, c, fwd, force,
-                                      &message_sent, tq);
+                                      &tun_message_sent, tq);
   tq->cont = cont;
   tq->cont_cls = cont_cls;
 
@@ -2596,7 +2598,7 @@ GMT_cancel (struct MeshTunnel3Queue *q)
   if (NULL != q->cq)
   {
     GMC_cancel (q->cq);
-    /* message_sent() will be called and free q */
+    /* tun_message_sent() will be called and free q */
   }
   else if (NULL != q->tqd)
   {
