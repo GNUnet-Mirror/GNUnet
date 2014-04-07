@@ -592,7 +592,7 @@ GNUNET_ATS_TEST_logging_write_to_file (struct LoggingHandle *l,
       {
         GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
             "Cannot close log file for master[%u] slave[%u]\n", c_m, c_s);
-        return;
+        continue;
       }
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
           "Data file successfully written to log file for `%s'\n",
@@ -615,7 +615,7 @@ GNUNET_ATS_TEST_logging_write_to_file (struct LoggingHandle *l,
       write_bw_gnuplot_script (filename_master, &l->lp[c_m], filename_slaves, l->num_slaves);
     }
   }
-
+  GNUNET_free (filename_master);
 }
 
 /**
