@@ -333,7 +333,6 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_CORE_SEND 76
 
-
 /**
  * Request for peer iteration from CORE service.
  */
@@ -622,7 +621,7 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_DHT_P2P_VERIFY_SUCCESSOR           159
 
 /**
- * Notify your new immediate successor that you are its new predecessor. 
+ * Notify your new immediate successor that you are its new predecessor.
  */
 #define GNUNET_MESSAGE_TYPE_DHT_P2P_NOTIFY_NEW_SUCCESSOR           160
 
@@ -632,7 +631,7 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_DHT_P2P_VERIFY_SUCCESSOR_RESULT    161
 
 /**
- * Message which contains the get result. 
+ * Message which contains the get result.
  */
 #define GNUNET_MESSAGE_TYPE_DHT_P2P_GET_RESULT                 162
 /*******************************************************************************

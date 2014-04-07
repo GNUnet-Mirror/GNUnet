@@ -31,6 +31,8 @@
 #include "gnunet-service-core_sessions.h"
 #include "gnunet-service-core_clients.h"
 #include "gnunet_constants.h"
+#include "core.h"
+
 
 /**
  * How often do we transmit our typemap?
@@ -730,14 +732,13 @@ GSC_SESSIONS_transmit (struct GSC_ClientActiveRequest *car,
 
 
 /**
- * Helper function for GSC_SESSIONS_handle_client_iterate_peers.
+ * Helper function for #GSC_SESSIONS_handle_client_iterate_peers().
  *
  * @param cls the `struct GNUNET_SERVER_TransmitContext` to queue replies
  * @param key identity of the connected peer
  * @param value the `struct Neighbour` for the peer
- * @return GNUNET_OK (continue to iterate)
+ * @return #GNUNET_OK (continue to iterate)
  */
-#include "core.h"
 static int
 queue_connect_message (void *cls,
                        const struct GNUNET_PeerIdentity *key,
@@ -769,8 +770,7 @@ queue_connect_message (void *cls,
 void
 GSC_SESSIONS_handle_client_iterate_peers (void *cls,
                                           struct GNUNET_SERVER_Client *client,
-                                          const struct GNUNET_MessageHeader
-                                          *message)
+                                          const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_MessageHeader done_msg;
   struct GNUNET_SERVER_TransmitContext *tc;

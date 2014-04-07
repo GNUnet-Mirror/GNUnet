@@ -43,7 +43,7 @@
 
 
 /**
- * Data structure for each client connected to the core service.
+ * Data structure for each client connected to the CORE service.
  */
 struct GSC_Client
 {
@@ -64,14 +64,14 @@ struct GSC_Client
 
   /**
    * Array of the types of messages this peer cares
-   * about (with "tcnt" entries).  Allocated as part
+   * about (with @e tcnt entries).  Allocated as part
    * of this client struct, do not free!
    */
   const uint16_t *types;
 
   /**
    * Map of peer identities to active transmission requests of this
-   * client to the peer (of type 'struct GSC_ClientActiveRequest').
+   * client to the peer (of type `struct GSC_ClientActiveRequest`).
    */
   struct GNUNET_CONTAINER_MultiPeerMap *requests;
 
@@ -88,7 +88,7 @@ struct GSC_Client
 
   /**
    * Number of types of incoming messages this client
-   * specifically cares about.  Size of the "types" array.
+   * specifically cares about.  Size of the @e types array.
    */
   unsigned int tcnt;
 
@@ -190,7 +190,7 @@ GSC_CLIENTS_send_to_client (struct GNUNET_SERVER_Client *client,
  *
  * @param type message type
  * @param c client to test
- * @return GNUNET_YES if 'c' is interested, GNUNET_NO if not.
+ * @return #GNUNET_YES if @a c is interested, #GNUNET_NO if not.
  */
 static int
 type_match (uint16_t type, struct GSC_Client *c)
@@ -225,7 +225,7 @@ send_to_all_clients (const struct GNUNET_PeerIdentity *partner,
   struct GSC_Client *c;
   int tm;
 
-  for (c = client_head; c != NULL; c = c->next)
+  for (c = client_head; NULL != c; c = c->next)
   {
     tm = type_match (type, c);
     if (!  ( (0 != (c->options & options)) ||
@@ -408,7 +408,7 @@ handle_client_send_request (void *cls, struct GNUNET_SERVER_Client *client,
 
 
 /**
- * Closure for the 'client_tokenizer_callback'.
+ * Closure for the #client_tokenizer_callback().
  */
 struct TokenizerContext
 {
@@ -436,7 +436,7 @@ struct TokenizerContext
  *
  * @param cls unused
  * @param client the client issuing the request
- * @param message the "struct SendMessage"
+ * @param message the `struct SendMessage`
  */
 static void
 handle_client_send (void *cls, struct GNUNET_SERVER_Client *client,

@@ -1225,8 +1225,6 @@ start_process (int pipe_control,
 }
 
 
-
-
 /**
  * Start a process.
  *
@@ -1234,6 +1232,7 @@ start_process (int pipe_control,
  * @param std_inheritance a set of GNUNET_OS_INHERIT_STD_* flags
  * @param pipe_stdin pipe to use to send input to child process (or NULL)
  * @param pipe_stdout pipe to use to get output from child process (or NULL)
+ * @param pipe_stderr pipe to use to get output from child process (or NULL)
  * @param filename name of the binary
  * @param argv NULL-terminated array of arguments to the process
  * @return pointer to process structure of the new process, NULL on error
@@ -1265,6 +1264,7 @@ GNUNET_OS_start_process_vap (int pipe_control,
  * @param std_inheritance a set of GNUNET_OS_INHERIT_STD_* flags
  * @param pipe_stdin pipe to use to send input to child process (or NULL)
  * @param pipe_stdout pipe to use to get output from child process (or NULL)
+ * @param pipe_stderr pipe to use to get output from child process (or NULL)
  * @param filename name of the binary
  * @param va NULL-terminated list of arguments to the process
  * @return pointer to process structure of the new process, NULL on error

@@ -77,7 +77,7 @@ struct EphemeralKeyMessage
 {
 
   /**
-   * Message type is CORE_EPHEMERAL_KEY.
+   * Message type is #GNUNET_MESSAGE_TYPE_CORE_EPHEMERAL_KEY.
    */
   struct GNUNET_MessageHeader header;
 
@@ -128,7 +128,7 @@ struct EphemeralKeyMessage
 struct PingMessage
 {
   /**
-   * Message type is CORE_PING.
+   * Message type is #GNUNET_MESSAGE_TYPE_CORE_PING.
    */
   struct GNUNET_MessageHeader header;
 
@@ -156,7 +156,7 @@ struct PingMessage
 struct PongMessage
 {
   /**
-   * Message type is CORE_PONG.
+   * Message type is #GNUNET_MESSAGE_TYPE_CORE_PONG.
    */
   struct GNUNET_MessageHeader header;
 
@@ -191,7 +191,7 @@ struct PongMessage
 struct EncryptedMessage
 {
   /**
-   * Message type is either CORE_ENCRYPTED_MESSAGE.
+   * Message type is either #GNUNET_MESSAGE_TYPE_CORE_ENCRYPTED_MESSAGE.
    */
   struct GNUNET_MessageHeader header;
 
@@ -509,15 +509,15 @@ derive_aes_key (const struct GNUNET_PeerIdentity *sender,
 
 
 /**
- * Encrypt size bytes from in and write the result to out.  Use the
- * key for outbound traffic of the given neighbour.
+ * Encrypt size bytes from @a in and write the result to @a out.  Use the
+ * @a kx key for outbound traffic of the given neighbour.
  *
  * @param kx key information context
  * @param iv initialization vector to use
  * @param in ciphertext
  * @param out plaintext
- * @param size size of in/out
- * @return GNUNET_OK on success
+ * @param size size of @a in/@a out
+ * @return #GNUNET_OK on success
  */
 static int
 do_encrypt (struct GSC_KeyExchangeInfo *kx,
@@ -549,8 +549,8 @@ do_encrypt (struct GSC_KeyExchangeInfo *kx,
 
 
 /**
- * Decrypt size bytes from in and write the result to out.  Use the
- * key for inbound traffic of the given neighbour.  This function does
+ * Decrypt size bytes from @a in and write the result to @a out.  Use the
+ * @a kx key for inbound traffic of the given neighbour.  This function does
  * NOT do any integrity-checks on the result.
  *
  * @param kx key information context
@@ -609,13 +609,14 @@ send_key (struct GSC_KeyExchangeInfo *kx);
 
 
 /**
- * Task that will retry "send_key" if our previous attempt failed.
+ * Task that will retry #send_key() if our previous attempt failed.
  *
- * @param cls our 'struct GSC_KeyExchangeInfo'
+ * @param cls our `struct GSC_KeyExchangeInfo`
  * @param tc scheduler context
  */
 static void
-set_key_retry_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+set_key_retry_task (void *cls,
+                    const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GSC_KeyExchangeInfo *kx = cls;
 
@@ -694,7 +695,7 @@ GSC_KX_start (const struct GNUNET_PeerIdentity *pid)
     /* peer with "higher" identity starts a delayed  KX, if the "lower" peer
      * does not start a KX since he sees no reasons to do so  */
     kx->retry_set_key_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-          &set_key_retry_task, kx);
+                                                           &set_key_retry_task, kx);
   }
   return kx;
 }

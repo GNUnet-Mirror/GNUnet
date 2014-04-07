@@ -118,7 +118,7 @@ GSC_KX_stop (struct GSC_KeyExchangeInfo *kx);
  * Initialize KX subsystem.
  *
  * @param pk private key to use for the peer
- * @return GNUNET_OK on success, GNUNET_SYSERR on failure
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
  */
 int
 GSC_KX_init (struct GNUNET_CRYPTO_EddsaPrivateKey *pk);

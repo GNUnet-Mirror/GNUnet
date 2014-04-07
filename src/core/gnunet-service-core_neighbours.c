@@ -531,8 +531,8 @@ GSC_NEIGHBOURS_init ()
  *
  * @param cls unused
  * @param key peer identity
- * @param value the 'struct Neighbour' to free
- * @return GNUNET_OK (continue to iterate)
+ * @param value the `struct Neighbour` to free
+ * @return #GNUNET_OK (continue to iterate)
  */
 static int
 free_neighbour_helper (void *cls,
