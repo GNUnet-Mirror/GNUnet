@@ -1,6 +1,6 @@
 /*
       This file is part of GNUnet
-     (C) 2011 Christian Grothoff (and other contributing authors)
+     (C) 2011, 2014 Christian Grothoff (and other contributing authors)
 
       GNUnet is free software; you can redistribute it and/or modify
       it under the terms of the GNU General Public License as published
@@ -43,7 +43,7 @@ main (int argc,
 	     _("Testcases will not work!\n"));
     return 1;
   }
-  dirname = DIR_SEPARATOR_STR "share" DIR_SEPARATOR_STR "gnunet" DIR_SEPARATOR_STR "config.d";
+  dirname = DIR_SEPARATOR_STR ".." DIR_SEPARATOR_STR "share" DIR_SEPARATOR_STR "gnunet" DIR_SEPARATOR_STR "config.d";
   {
     char tmp[strlen (basename) + strlen (dirname) + 1];
     sprintf (tmp, "%s%s", basename, dirname);
