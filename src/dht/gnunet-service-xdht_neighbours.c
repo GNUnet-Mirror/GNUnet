@@ -317,7 +317,7 @@ struct PeerTrailSetupResultMessage
 {
   
   /**
-   * Type: #GNUNET_MESSAGE_TYPE_DHT_P2P_TRAIL_RESULT_SETUP
+   * Type: #GNUNET_MESSAGE_TYPE_DHT_P2P_TRAIL_SETUP_RESULT
    */
   struct GNUNET_MessageHeader header;
   

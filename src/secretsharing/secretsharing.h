@@ -38,7 +38,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
 struct GNUNET_SECRETSHARING_FieldElement
 {
   /**
-   * Value of an element in <elgamal_g>.
+   * Value of an element in &lt;elgamal_g&gt;.
    */
   unsigned char bits[GNUNET_SECRETSHARING_ELGAMAL_BITS / 8];
 };
@@ -209,7 +209,7 @@ struct GNUNET_SECRETSHARING_Share
   struct GNUNET_SECRETSHARING_FieldElement my_share;
 
   /**
-   * Peer identities (includes 'my_peer') 
+   * Peer identities (includes 'my_peer')
    */
   struct GNUNET_PeerIdentity *peers;
 

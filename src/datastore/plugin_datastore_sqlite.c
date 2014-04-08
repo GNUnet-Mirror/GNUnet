@@ -906,7 +906,7 @@ struct ReplCtx
 
 
 /**
- * Wrapper for the processor for #sqlite_plugin_replication_get().
+ * Wrapper for the processor for #sqlite_plugin_get_replication().
  * Decrements the replication counter and calls the original
  * processor.
  *
