@@ -25,7 +25,7 @@ libgnunetstatistics_la_LIBADD = \
   $(GN_LIBINTL) $(XLIB)
 libgnunetstatistics_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)  $(WINFLAGS) \
-  -version-info 1:2:1
+  -version-info 1:3:1
 
 libexec_PROGRAMS = \
  gnunet-service-statistics

@@ -68,7 +68,7 @@ libgnunetregex_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la 
 libgnunetregex_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) \
-   -version-info 3:0:0
+   -version-info 3:1:0
 
 
 plugin_LTLIBRARIES = \
