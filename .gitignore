@@ -895,6 +895,7 @@
 /src/nse/gnunet-service-nse
 /src/nse/gnunet-nse-profiler
 /src/nse/.deps
+/src/nse/gnunet-nse
 
 # /src/peerinfo/
 /src/peerinfo/test_peerinfo_shipped_hellos
