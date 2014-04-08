@@ -165,20 +165,10 @@ test_mesh_small_speed_ack_SOURCES = \
 test_mesh_small_speed_ack_LDADD = $(ld_mesh_test_lib)
 test_mesh_small_speed_ack_DEPENDENCIES = $(dep_mesh_test_lib)
 
-test_mesh_small_speed_nobuf_SOURCES = \
-  test_mesh_small.c
-test_mesh_small_speed_nobuf_LDADD = $(ld_mesh_test_lib)
-test_mesh_small_speed_nobuf_DEPENDENCIES = $(dep_mesh_test_lib)
-
 test_mesh_small_speed_backwards_SOURCES = \
   test_mesh_small.c
 test_mesh_small_speed_backwards_LDADD = $(ld_mesh_test_lib)
 test_mesh_small_speed_backwards_DEPENDENCIES = $(dep_mesh_test_lib)
-
-test_mesh_small_speed_nobuf_backwards_SOURCES = \
-  test_mesh_small.c
-test_mesh_small_speed_nobuf_backwards_LDADD = $(ld_mesh_test_lib)
-test_mesh_small_speed_nobuf_backwards_DEPENDENCIES = $(dep_mesh_test_lib)
 
 test_mesh_small_speed_reliable_SOURCES = \
   test_mesh_small.c
