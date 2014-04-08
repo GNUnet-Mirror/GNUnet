@@ -878,10 +878,18 @@ static void
 send_connection_keepalive (struct MeshConnection *c, int fwd)
 {
   struct GNUNET_MessageHeader msg;
+  struct MeshFlowControl *fc;
 
   LOG (GNUNET_ERROR_TYPE_INFO,
        "keepalive %s for connection %s\n",
        GM_f2s (fwd), GMC_2s (c));
+
+  fc = fwd ? &c->fwd_fc : &c->bck_fc;
+  if (0 < fc->queue_n)
+  {
+    LOG (GNUNET_ERROR_TYPE_INFO, "not sending keepalive, traffic in queue\n");
+  }
+
   GNUNET_STATISTICS_update (stats, "# keepalives sent", 1, GNUNET_NO);
 
   GNUNET_assert (NULL != c->t);
@@ -2896,7 +2904,7 @@ GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   {
     GNUNET_STATISTICS_update (stats, "# messages dropped (buffer full)",
                               1, GNUNET_NO);
-    GNUNET_break (0); //FIXME keepalives can trigger this, dont send if queue
+    GNUNET_break (0);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
                 "queue full: %u/%u\n",
                 fc->queue_n, fc->queue_max);
