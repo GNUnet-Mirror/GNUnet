@@ -2131,7 +2131,7 @@ free_all_it (void *cls,
     void *value)
 {
   struct ATS_Address *address = value;
-  GNUNET_break (GNUNET_OK != GNUNET_CONTAINER_multipeermap_remove (sh->env.addresses,
+  GNUNET_break (GNUNET_OK == GNUNET_CONTAINER_multipeermap_remove (sh->env.addresses,
       key, value));
   GNUNET_free (address);
 
