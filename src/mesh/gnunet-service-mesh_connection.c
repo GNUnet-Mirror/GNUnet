@@ -2896,7 +2896,7 @@ GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   {
     GNUNET_STATISTICS_update (stats, "# messages dropped (buffer full)",
                               1, GNUNET_NO);
-    GNUNET_break (0);
+    GNUNET_break (0); //FIXME keepalives can trigger this, dont send if queue
     LOG (GNUNET_ERROR_TYPE_DEBUG,
                 "queue full: %u/%u\n",
                 fc->queue_n, fc->queue_max);
