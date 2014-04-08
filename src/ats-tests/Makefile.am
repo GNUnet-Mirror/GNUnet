@@ -136,7 +136,7 @@ perf_ats_proportional_transport_bandwidth_LDADD = \
 perf_ats_proportional_transport_bandwidth_DEPENDENCIES = \
  libgnunetatstesting.la \
  $(top_builddir)/src/util/libgnunetutil.la
-
+ 
 perf_ats_proportional_core_latency_SOURCES = \
   perf_ats.c
 perf_ats_proportional_core_latency_LDADD = \
@@ -163,7 +163,6 @@ perf_ats_proportional_transport_latency_DEPENDENCIES = \
  libgnunetatstesting.la \
  $(top_builddir)/src/util/libgnunetutil.la
 
-if FALSE
 perf_ats_mlp_core_none_SOURCES = \
   perf_ats.c
 perf_ats_mlp_core_none_LDADD = \
@@ -241,7 +240,6 @@ perf_ats_mlp_transport_latency_LDADD = \
 perf_ats_mlp_transport_latencyDEPENDENCIES = \
  $(top_builddir)/src/ats-tests/libgnunetatstesting.la \
  $(top_builddir)/src/util/libgnunetutil.la
-endif
 
 #perf_ats_ril_core_none_SOURCES = \
 #  perf_ats.c
