@@ -1892,7 +1892,6 @@ GMP_stop_search (struct MeshPeer *peer)
 {
   if (NULL == peer->search_h)
   {
-    GNUNET_break (0);
     return;
   }
 
