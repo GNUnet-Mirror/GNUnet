@@ -20,7 +20,7 @@ endif
 lib_LTLIBRARIES = libgnunetpsyc.la
 
 libgnunetpsyc_la_SOURCES = \
-  psyc_api.c \
+  psyc_api.c psyc.h \
   psyc_common.c
 libgnunetpsyc_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \

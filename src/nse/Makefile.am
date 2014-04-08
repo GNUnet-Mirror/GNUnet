@@ -24,6 +24,7 @@ gnunet_nse_LDFLAGS = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(XLIB) $(GN_LIBINTL)
 gnunet_nse_DEPENDENCIES = \
+  libgnunetnse.la \
   $(top_builddir)/src/util/libgnunetutil.la
 
 lib_LTLIBRARIES = libgnunetnse.la
