@@ -60,7 +60,7 @@ extern "C"
 /**
  * Version of the API (for entire gnunetutil.so library).
  */
-#define GNUNET_UTIL_VERSION 0x000A0000
+#define GNUNET_UTIL_VERSION 0x000A0100
 
 /**
  * Named constants for return values.  The following invariants hold:

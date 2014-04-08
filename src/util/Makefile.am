@@ -129,7 +129,7 @@ libgnunetutil_la_LIBADD = \
 
 libgnunetutil_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) \
-  -version-info 11:0:2
+  -version-info 12:0:0
 
 if HAVE_TESTING
   GNUNET_ECC = gnunet-ecc
