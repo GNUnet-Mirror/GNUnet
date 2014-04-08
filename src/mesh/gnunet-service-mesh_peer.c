@@ -302,8 +302,8 @@ core_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
 
   mp->connections = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_YES);
 
-  if (NULL != GMP_get_tunnel (peer))
-    GMP_connect (peer);
+  if (NULL != GMP_get_tunnel (mp))
+    GMP_connect (mp);
 
   return;
 }
