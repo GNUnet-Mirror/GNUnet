@@ -600,6 +600,16 @@ send_client_buffered_data (struct MeshChannel *ch,
            " reliable && don't have %u, next is %u\n",
            rel->mid_recv,
            copy->mid);
+      if (GNUNET_YES == ch->destroy)
+      {
+        /* We don't have the next data piece and the remote peer has closed the
+         * channel. We won't receive it anymore, so just destroy the channel.
+         * FIXME: wait some time to allow other connections to
+         *        deliver missing messages
+         */
+        send_destroy (ch, GNUNET_YES);
+        GMCH_destroy (ch);
+      }
     }
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "send_buffered_data END\n");
