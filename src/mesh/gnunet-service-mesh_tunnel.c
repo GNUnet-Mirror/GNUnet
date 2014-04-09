@@ -2155,6 +2155,7 @@ GMT_destroy_empty (struct MeshTunnel3 *t)
 void
 GMT_destroy_if_empty (struct MeshTunnel3 *t)
 {
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Tunnel %s destroy if empty\n", GMT_2s (t));
   if (1 < GMT_count_channels (t))
     return;
 
