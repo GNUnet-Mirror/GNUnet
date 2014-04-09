@@ -302,8 +302,11 @@ core_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
 
   mp->connections = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_YES);
 
-  if (NULL != GMP_get_tunnel (mp))
+  if (NULL != GMP_get_tunnel (mp) &&
+      0 > GNUNET_CRYPTO_cmp_peer_identity (&my_full_id, peer))
+  {
     GMP_connect (mp);
+  }
 
   return;
 }
@@ -1356,7 +1359,7 @@ GMP_init (const struct GNUNET_CONFIGURATION_Handle *c)
                                      GNUNET_NO, /* For header-only out notification */
                                      core_handlers);    /* Register these handlers */
   if (GNUNET_YES !=
-    GNUNET_CONFIGURATION_get_value_yesno (c, "MESH", "DISABLE_TRY_CONNECT"))
+      GNUNET_CONFIGURATION_get_value_yesno (c, "MESH", "DISABLE_TRY_CONNECT"))
   {
     transport_handle = GNUNET_TRANSPORT_connect (c, &my_full_id, NULL, /* cls */
                                                  /* Notify callbacks */
