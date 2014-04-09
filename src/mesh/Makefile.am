@@ -100,14 +100,14 @@ if HAVE_TESTING
 check_PROGRAMS = \
   test_mesh_single \
   test_mesh_local \
-  test_mesh_small_forward \
-  test_mesh_small_signal \
-  test_mesh_small_keepalive \
-  test_mesh_small_speed \
-  test_mesh_small_speed_ack \
-  test_mesh_small_speed_backwards \
-  test_mesh_small_speed_reliable \
-  test_mesh_small_speed_reliable_backwards
+  test_mesh_forward \
+  test_mesh_signal \
+  test_mesh_keepalive \
+  test_mesh_speed \
+  test_mesh_speed_ack \
+  test_mesh_speed_backwards \
+  test_mesh_speed_reliable \
+  test_mesh_speed_reliable_backwards
 endif
 
 ld_mesh_test_lib = \
@@ -140,45 +140,45 @@ test_mesh_local_SOURCES = \
 test_mesh_local_LDADD = $(ld_mesh_test_lib)
 test_mesh_local_DEPENDENCIES = $(dep_mesh_test_lib)
 
-test_mesh_small_forward_SOURCES = \
-  test_mesh_small.c
-test_mesh_small_forward_LDADD = $(ld_mesh_test_lib)
-test_mesh_small_forward_DEPENDENCIES = $(dep_mesh_test_lib)
+test_mesh_forward_SOURCES = \
+  test_mesh.c
+test_mesh_forward_LDADD = $(ld_mesh_test_lib)
+test_mesh_forward_DEPENDENCIES = $(dep_mesh_test_lib)
 
-test_mesh_small_signal_SOURCES = \
-  test_mesh_small.c
-test_mesh_small_signal_LDADD = $(ld_mesh_test_lib)
-test_mesh_small_signal_DEPENDENCIES = $(dep_mesh_test_lib)
+test_mesh_signal_SOURCES = \
+  test_mesh.c
+test_mesh_signal_LDADD = $(ld_mesh_test_lib)
+test_mesh_signal_DEPENDENCIES = $(dep_mesh_test_lib)
 
-test_mesh_small_keepalive_SOURCES = \
-  test_mesh_small.c
-test_mesh_small_keepalive_LDADD = $(ld_mesh_test_lib)
-test_mesh_small_keepalive_DEPENDENCIES = $(dep_mesh_test_lib)
+test_mesh_keepalive_SOURCES = \
+  test_mesh.c
+test_mesh_keepalive_LDADD = $(ld_mesh_test_lib)
+test_mesh_keepalive_DEPENDENCIES = $(dep_mesh_test_lib)
 
-test_mesh_small_speed_SOURCES = \
-  test_mesh_small.c
-test_mesh_small_speed_LDADD = $(ld_mesh_test_lib)
-test_mesh_small_speed_DEPENDENCIES = $(dep_mesh_test_lib)
+test_mesh_speed_SOURCES = \
+  test_mesh.c
+test_mesh_speed_LDADD = $(ld_mesh_test_lib)
+test_mesh_speed_DEPENDENCIES = $(dep_mesh_test_lib)
 
-test_mesh_small_speed_ack_SOURCES = \
-  test_mesh_small.c
-test_mesh_small_speed_ack_LDADD = $(ld_mesh_test_lib)
-test_mesh_small_speed_ack_DEPENDENCIES = $(dep_mesh_test_lib)
+test_mesh_speed_ack_SOURCES = \
+  test_mesh.c
+test_mesh_speed_ack_LDADD = $(ld_mesh_test_lib)
+test_mesh_speed_ack_DEPENDENCIES = $(dep_mesh_test_lib)
 
-test_mesh_small_speed_backwards_SOURCES = \
-  test_mesh_small.c
-test_mesh_small_speed_backwards_LDADD = $(ld_mesh_test_lib)
-test_mesh_small_speed_backwards_DEPENDENCIES = $(dep_mesh_test_lib)
+test_mesh_speed_backwards_SOURCES = \
+  test_mesh.c
+test_mesh_speed_backwards_LDADD = $(ld_mesh_test_lib)
+test_mesh_speed_backwards_DEPENDENCIES = $(dep_mesh_test_lib)
 
-test_mesh_small_speed_reliable_SOURCES = \
-  test_mesh_small.c
-test_mesh_small_speed_reliable_LDADD = $(ld_mesh_test_lib)
-test_mesh_small_speed_reliable_DEPENDENCIES = $(dep_mesh_test_lib)
+test_mesh_speed_reliable_SOURCES = \
+  test_mesh.c
+test_mesh_speed_reliable_LDADD = $(ld_mesh_test_lib)
+test_mesh_speed_reliable_DEPENDENCIES = $(dep_mesh_test_lib)
 
-test_mesh_small_speed_reliable_backwards_SOURCES = \
-  test_mesh_small.c
-test_mesh_small_speed_reliable_backwards_LDADD = $(ld_mesh_test_lib)
-test_mesh_small_speed_reliable_backwards_DEPENDENCIES = $(dep_mesh_test_lib)
+test_mesh_speed_reliable_backwards_SOURCES = \
+  test_mesh.c
+test_mesh_speed_reliable_backwards_LDADD = $(ld_mesh_test_lib)
+test_mesh_speed_reliable_backwards_DEPENDENCIES = $(dep_mesh_test_lib)
 
 
 if ENABLE_TEST_RUN
