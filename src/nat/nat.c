@@ -1045,7 +1045,11 @@ upnp_add (void *cls,
     return;                     /* only remove once */
   }
   /* asked to remove address that does not exist */
+  LOG (GNUNET_ERROR_TYPE_ERROR,
+       "Asked to remove unkown address `%s'\n",
+       GNUNET_a2s(addr, addrlen));
   GNUNET_break (0);
+
 }
 
 
