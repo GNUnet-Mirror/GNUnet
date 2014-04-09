@@ -1072,8 +1072,8 @@ schedule_next_keepalive (struct MeshConnection *c, int fwd)
 
   /* Schedule the task */
   *task_id = GNUNET_SCHEDULER_add_delayed (delay, keepalive_task, c);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "next keepalive in %s\n",
-              GNUNET_STRINGS_relative_time_to_string (delay, GNUNET_YES));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "next keepalive in %s\n",
+       GNUNET_STRINGS_relative_time_to_string (delay, GNUNET_YES));
 }
 
 
