@@ -719,7 +719,7 @@ void process_validation_cb (void *cls,
 static void
 run_nat_test ()
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
       "Running test for plugin `%s' using bind port %u and advertised port %u \n",
       head->name, (uint16_t) head->bnd_port, (uint16_t) head->adv_port);
 
