@@ -39,7 +39,7 @@
  * How long do we wait for the NAT test to report success?
  * Should match NAT_SERVER_TIMEOUT in 'nat_test.c'.
  */
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 20)
 #define RESOLUTION_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 #define OP_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
@@ -263,6 +263,24 @@ struct TestContext
 
 };
 
+enum TestResult
+{
+  /* NAT returned success */
+  NAT_TEST_SUCCESS = GNUNET_OK,
+
+  /* NAT returned failure  */
+  NAT_TEST_FAIL = GNUNET_NO,
+
+  /* NAT returned failure while running test */
+  NAT_TEST_INTERNAL_FAIL = GNUNET_SYSERR,
+
+  /* We could not start the test */
+  NAT_TEST_FAILED_TO_START = 2,
+
+  /* We had a timeout while running the test */
+  NAT_TEST_TIMEOUT = 3,
+};
+
 static struct ValidationResolutionContext *vc_head;
 static struct ValidationResolutionContext *vc_tail;
 
@@ -455,8 +473,33 @@ run_nat_test ();
  * @param result #GNUNET_YES on success
  */
 static void
-display_test_result (struct TestContext *tc, int result)
+display_test_result (struct TestContext *tc, enum TestResult result)
 {
+  switch (result) {
+    case NAT_TEST_FAIL:
+      FPRINTF (stderr, _("Configuration for plugin `%s' did not work!\n"),
+          tc->name);
+      break;
+    case NAT_TEST_SUCCESS:
+      FPRINTF (stderr, _("Configuration for plugin `%s' did work!\n"),
+          tc->name);
+      break;
+    case NAT_TEST_INTERNAL_FAIL:
+      FPRINTF (stderr, _("Internal NAT error while running test for plugin `%s'\n"),
+          tc->name);
+      break;
+    case NAT_TEST_FAILED_TO_START:
+      FPRINTF (stderr, _("Failed to start NAT test for plugin `%s'\n"),
+          tc->name);
+      break;
+    case NAT_TEST_TIMEOUT:
+      FPRINTF (stderr, _("Timeout while waiting for result of NAT test for plugin `%s'\n"),
+          tc->name);
+      break;
+    default:
+      break;
+  }
+
   if (GNUNET_YES != result)
   {
     FPRINTF (stderr, "Configuration for plugin `%s' did not work!\n", tc->name);
@@ -518,7 +561,7 @@ fail_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct TestContext *tstc = cls;
 
   tstc->tsk = GNUNET_SCHEDULER_NO_TASK;
-  display_test_result (tstc, GNUNET_NO);
+  display_test_result (tstc, NAT_TEST_TIMEOUT);
 }
 
 
@@ -676,6 +719,10 @@ void process_validation_cb (void *cls,
 static void
 run_nat_test ()
 {
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+      "Running test for plugin `%s' using bind port %u and advertised port %u \n",
+      head->name, (uint16_t) head->bnd_port, (uint16_t) head->adv_port);
+
   head->tst = GNUNET_NAT_test_start (cfg,
       (0 == strcasecmp (head->name, "udp")) ? GNUNET_NO : GNUNET_YES,
       (uint16_t) head->bnd_port,
@@ -683,7 +730,7 @@ run_nat_test ()
       &result_callback, head);
   if (NULL == head->tst)
   {
-    display_test_result (head, GNUNET_SYSERR);
+    display_test_result (head, NAT_TEST_FAILED_TO_START);
     return;
   }
   head->tsk = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &fail_timeout, head);
@@ -726,8 +773,7 @@ do_test_configuration (const struct GNUNET_CONFIGURATION_Handle *cfg)
           _("No port configured for plugin `%s', cannot test it\n"), tok);
       continue;
     }
-    if (GNUNET_OK
-        != GNUNET_CONFIGURATION_get_value_number (cfg, section,
+    if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_number (cfg, section,
             "ADVERTISED_PORT", &adv_port))
       adv_port = bnd_port;
 
@@ -747,6 +793,12 @@ do_test_configuration (const struct GNUNET_CONFIGURATION_Handle *cfg)
                                         NULL, NULL, NULL,
                                         binary,
                                         "gnunet-service-resolver", NULL );
+    if (NULL == resolver)
+    {
+      FPRINTF (stderr, _("Failed to start resolver!\n"));
+      return;
+    }
+
     GNUNET_free(binary);
     GNUNET_RESOLVER_connect (cfg);
     run_nat_test ();
