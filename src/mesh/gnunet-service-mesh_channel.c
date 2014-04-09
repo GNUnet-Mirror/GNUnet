@@ -927,7 +927,7 @@ send_destroy (struct MeshChannel *ch, int local_only)
   /* If root is not NULL, notify.
    * If it's NULL, check lid_root. When a local destroy comes in, root
    * is set to NULL but lid_root is left untouched. In this case, do nothing,
-   * the client is the one who reuqested the channel to be destroyed.
+   * the client is the one who requested the channel to be destroyed.
    */
   if (NULL != ch->root)
     GML_send_channel_destroy (ch->root, ch->lid_root);
@@ -1127,7 +1127,6 @@ rel_message_free (struct MeshReliableMessage *copy, int update_time)
   {
     struct MeshTunnel3 *t = rel->ch->t;
     GMCH_destroy (rel->ch);
-    GMT_destroy_if_empty (t);
     return GNUNET_YES;
   }
   return GNUNET_NO;
@@ -1341,6 +1340,7 @@ void
 GMCH_destroy (struct MeshChannel *ch)
 {
   struct MeshClient *c;
+  struct MeshTunnel3 *t;
 
   if (NULL == ch)
     return;
@@ -1367,10 +1367,12 @@ GMCH_destroy (struct MeshChannel *ch)
   channel_rel_free_all (ch->root_rel);
   channel_rel_free_all (ch->dest_rel);
 
-  GMT_remove_channel (ch->t, ch);
+  t = ch->t;
+  GMT_remove_channel (t, ch);
   GNUNET_STATISTICS_update (stats, "# channels", -1, GNUNET_NO);
 
   GNUNET_free (ch);
+  GMT_destroy_if_empty (t);
 }
 
 
@@ -1792,10 +1794,7 @@ GMCH_handle_local_destroy (struct MeshChannel *ch,
   t = ch->t;
   send_destroy (ch, GNUNET_NO);
   if (0 == ch->pending_messages)
-  {
     GMCH_destroy (ch);
-    GMT_destroy_if_empty (t);
-  }
 }
 
 
@@ -2222,8 +2221,6 @@ GMCH_handle_destroy (struct MeshChannel *ch,
                      const struct GNUNET_MESH_ChannelManage *msg,
                      int fwd)
 {
-  struct MeshTunnel3 *t;
-
   /* If this is a remote (non-loopback) channel, find 'fwd'. */
   if (GNUNET_SYSERR == fwd)
   {
@@ -2243,10 +2240,9 @@ GMCH_handle_destroy (struct MeshChannel *ch,
     return;
   }
 
-  t = ch->t;
+
   send_destroy (ch, GNUNET_YES);
   GMCH_destroy (ch);
-  GMT_destroy_if_empty (t);
 }
 
 
