@@ -600,7 +600,6 @@ send_client_buffered_data (struct MeshChannel *ch,
            " reliable && don't have %u, next is %u\n",
            rel->mid_recv,
            copy->mid);
-      return;
     }
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "send_buffered_data END\n");
@@ -1125,7 +1124,6 @@ rel_message_free (struct MeshReliableMessage *copy, int update_time)
 
   if (GNUNET_NO != rel->ch->destroy && 0 == rel->ch->pending_messages)
   {
-    struct MeshTunnel3 *t = rel->ch->t;
     GMCH_destroy (rel->ch);
     return GNUNET_YES;
   }
@@ -1671,7 +1669,16 @@ GMCH_handle_local_ack (struct MeshChannel *ch, int fwd)
 
   rel->client_ready = GNUNET_YES;
   send_client_buffered_data (ch, c, fwd);
-  if (is_loopback (ch))
+
+  if (GNUNET_YES == ch->destroy && 0 == rel->n_recv)
+  {
+    send_destroy (ch, GNUNET_YES);
+    GMCH_destroy (ch);
+  }
+  /* if loopback is marked for destruction, no need to ACK to the other peer,
+   * it requested the destruction and is already gone, therefore, else if.
+   */
+  else if (is_loopback (ch))
   {
     unsigned int buffer;
 
@@ -1774,8 +1781,6 @@ GMCH_handle_local_destroy (struct MeshChannel *ch,
                            struct MeshClient *c,
                            int is_root)
 {
-  struct MeshTunnel3 *t;
-
   ch->destroy = GNUNET_YES;
   /* Cleanup after the tunnel */
   if (GNUNET_NO == is_root && c == ch->dest)
@@ -1791,7 +1796,6 @@ GMCH_handle_local_destroy (struct MeshChannel *ch,
     ch->root = NULL;
   }
 
-  t = ch->t;
   send_destroy (ch, GNUNET_NO);
   if (0 == ch->pending_messages)
     GMCH_destroy (ch);
@@ -2221,6 +2225,8 @@ GMCH_handle_destroy (struct MeshChannel *ch,
                      const struct GNUNET_MESH_ChannelManage *msg,
                      int fwd)
 {
+  struct MeshChannelReliability *rel;
+
   /* If this is a remote (non-loopback) channel, find 'fwd'. */
   if (GNUNET_SYSERR == fwd)
   {
@@ -2240,9 +2246,16 @@ GMCH_handle_destroy (struct MeshChannel *ch,
     return;
   }
 
-
-  send_destroy (ch, GNUNET_YES);
-  GMCH_destroy (ch);
+  rel = fwd ? ch->dest_rel : ch->root_rel;
+  if (0 == rel->n_recv)
+  {
+    send_destroy (ch, GNUNET_YES);
+    GMCH_destroy (ch);
+  }
+  else
+  {
+    ch->destroy = GNUNET_YES;
+  }
 }
 
 
