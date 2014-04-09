@@ -18,7 +18,7 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file mesh/test_mesh_small.c
+ * @file mesh/test_mesh.c
  *
  * @brief Test for the mesh service: retransmission of traffic.
  */
@@ -33,7 +33,7 @@
 /**
  * How namy messages to send
  */
-#define TOTAL_PACKETS 1000
+#define TOTAL_PACKETS 100
 
 /**
  * How long until we give up on connecting the peers?
@@ -172,9 +172,24 @@ static struct GNUNET_MESH_Channel *incoming_ch;
  */
 static struct GNUNET_TIME_Absolute start_time;
 
+/**
+ * Peers handle.
+ */
 static struct GNUNET_TESTBED_Peer **testbed_peers;
+
+/**
+ * Statistics operation handle.
+ */
 static struct GNUNET_TESTBED_Operation *stats_op;
+
+/**
+ * Keepalives sent.
+ */
 static unsigned int ka_sent;
+
+/**
+ * Keepalives received.
+ */
 static unsigned int ka_received;
 
 
@@ -837,21 +852,21 @@ main (int argc, char *argv[])
   config_file = "test_mesh.conf";
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Start\n");
-  if (strstr (argv[0], "_small_forward") != NULL)
+  if (strstr (argv[0], "_mesh_forward") != NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "FORWARD\n");
     test = FORWARD;
     test_name = "unicast";
     ok_goal = 4;
   }
-  else if (strstr (argv[0], "_small_signal") != NULL)
+  else if (strstr (argv[0], "_mesh_signal") != NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "SIGNAL\n");
     test = P2P_SIGNAL;
     test_name = "signal";
     ok_goal = 4;
   }
-  else if (strstr (argv[0], "_small_speed_ack") != NULL)
+  else if (strstr (argv[0], "_mesh_speed_ack") != NULL)
   {
     /* Test is supposed to generate the following callbacks:
      * 1 incoming channel (@dest)
@@ -864,7 +879,7 @@ main (int argc, char *argv[])
     test = SPEED_ACK;
     test_name = "speed ack";
   }
-  else if (strstr (argv[0], "_small_speed") != NULL)
+  else if (strstr (argv[0], "_mesh_speed") != NULL)
   {
     /* Test is supposed to generate the following callbacks:
      * 1 incoming channel (@dest)
@@ -934,5 +949,5 @@ main (int argc, char *argv[])
   return 0;
 }
 
-/* end of test_mesh_small.c */
+/* end of test_mesh.c */
 
