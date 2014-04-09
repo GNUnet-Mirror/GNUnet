@@ -499,6 +499,38 @@ channel_get_options (struct MeshChannel *ch)
 
 
 /**
+ * Notify a client that the channel is no longer valid.
+ *
+ * @param ch Channel that is destroyed.
+ * @param local_only Should we avoid sending it to other peers?
+ */
+static void
+send_destroy (struct MeshChannel *ch, int local_only)
+{
+  struct GNUNET_MESH_ChannelManage msg;
+
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CHANNEL_DESTROY);
+  msg.header.size = htons (sizeof (msg));
+  msg.chid = htonl (ch->gid);
+
+  /* If root is not NULL, notify.
+   * If it's NULL, check lid_root. When a local destroy comes in, root
+   * is set to NULL but lid_root is left untouched. In this case, do nothing,
+   * the client is the one who requested the channel to be destroyed.
+   */
+  if (NULL != ch->root)
+    GML_send_channel_destroy (ch->root, ch->lid_root);
+  else if (0 == ch->lid_root && GNUNET_NO == local_only)
+    GMCH_send_prebuilt_message (&msg.header, ch, GNUNET_NO, NULL);
+
+  if (NULL != ch->dest)
+    GML_send_channel_destroy (ch->dest, ch->lid_dest);
+  else if (0 == ch->lid_dest && GNUNET_NO == local_only)
+    GMCH_send_prebuilt_message (&msg.header, ch, GNUNET_YES, NULL);
+}
+
+
+/**
  * Notify the destination client that a new incoming channel was created.
  *
  * @param ch Channel that was created.
@@ -915,38 +947,6 @@ send_nack (struct MeshChannel *ch)
 
   msg.chid = htonl (ch->gid);
   GMCH_send_prebuilt_message (&msg.header, ch, GNUNET_NO, NULL);
-}
-
-
-/**
- * Notify a client that the channel is no longer valid.
- *
- * @param ch Channel that is destroyed.
- * @param local_only Should we avoid sending it to other peers?
- */
-static void
-send_destroy (struct MeshChannel *ch, int local_only)
-{
-  struct GNUNET_MESH_ChannelManage msg;
-
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CHANNEL_DESTROY);
-  msg.header.size = htons (sizeof (msg));
-  msg.chid = htonl (ch->gid);
-
-  /* If root is not NULL, notify.
-   * If it's NULL, check lid_root. When a local destroy comes in, root
-   * is set to NULL but lid_root is left untouched. In this case, do nothing,
-   * the client is the one who requested the channel to be destroyed.
-   */
-  if (NULL != ch->root)
-    GML_send_channel_destroy (ch->root, ch->lid_root);
-  else if (0 == ch->lid_root && GNUNET_NO == local_only)
-    GMCH_send_prebuilt_message (&msg.header, ch, GNUNET_NO, NULL);
-
-  if (NULL != ch->dest)
-    GML_send_channel_destroy (ch->dest, ch->lid_dest);
-  else if (0 == ch->lid_dest && GNUNET_NO == local_only)
-    GMCH_send_prebuilt_message (&msg.header, ch, GNUNET_YES, NULL);
 }
 
 
