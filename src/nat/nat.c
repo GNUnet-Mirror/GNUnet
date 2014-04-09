@@ -710,7 +710,7 @@ process_interfaces (void *cls, const char *name, int isDefault,
     {
       return GNUNET_OK;
     }
-    if (GNUNET_YES == h->use_localaddresses)
+    if ((GNUNET_YES == h->use_localaddresses) || (value != 0))
     {
       add_ip_to_address_list (h, LAL_INTERFACE_ADDRESS, &s4->sin_addr,
                               sizeof (struct in_addr));
