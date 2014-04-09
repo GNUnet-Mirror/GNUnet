@@ -810,8 +810,8 @@ main (int argc, char *const *argv)
      gettext_noop ("activate echo mode"),
      GNUNET_NO, &GNUNET_GETOPT_set_one, &echo},
 //     {'m', "monitor", NULL,
-//      gettext_noop ("provide information about all tunnels (continuously) NOT IMPLEMENTED"), /* FIXME */
-//      GNUNET_NO, &GNUNET_GETOPT_set_one, &monitor_connections},
+//      gettext_noop ("provide information about all events (continuously)"),
+//      GNUNET_NO, &GNUNET_GETOPT_set_one, &monitor_mode},
     {'o', "open-port", NULL,
      gettext_noop ("port to listen to (default; 0)"),
      GNUNET_YES, &GNUNET_GETOPT_set_uint, &listen_port},
