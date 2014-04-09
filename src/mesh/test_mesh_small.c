@@ -353,11 +353,11 @@ tmt_rdy (void *cls, size_t size, void *buf)
               "tmt_rdy called, filling buffer\n");
   if (size < size_payload || NULL == buf)
   {
-    GNUNET_break (ok >= ok_goal - 2);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "size %u, buf %p, data_sent %u, data_received %u\n",
                 size, buf, data_sent, data_received);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ok %u, ok goal %u\n", ok, ok_goal);
+    GNUNET_break (ok >= ok_goal - 2);
 
     return 0;
   }
