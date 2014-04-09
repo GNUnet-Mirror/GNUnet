@@ -2439,6 +2439,7 @@ GMC_new (const struct GNUNET_MESH_Hash *cid,
   GNUNET_assert (own_pos <= p->length - 1);
   c->own_pos = own_pos;
   c->path = p;
+  p->c = c;
 
   if (GNUNET_OK != register_neighbors (c))
   {

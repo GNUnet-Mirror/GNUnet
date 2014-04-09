@@ -24,6 +24,8 @@
  * @author Bartlomiej Polot
  */
 
+#include "gnunet-service-mesh_connection.h"
+
 #ifndef MESH_PATH_H_
 #define MESH_PATH_H_
 
@@ -60,6 +62,11 @@ struct MeshPeerPath
      * Number of peers (hops) in the path
      */
   unsigned int length;
+
+    /**
+     * User defined data store.
+     */
+  struct MeshConnection *c;
 
     /**
      * Path's score, how reliable is the path.

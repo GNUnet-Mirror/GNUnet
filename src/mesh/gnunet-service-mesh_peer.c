@@ -744,11 +744,10 @@ peer_get_best_path (const struct MeshPeer *peer)
   best_p = NULL;
   for (p = peer->path_head; NULL != p; p = p->next)
   {
-    if (GNUNET_YES == GMT_is_path_used (peer->tunnel, p))
-      continue; /* If path is already in use, skip it. */
-
     if (GNUNET_NO == path_is_valid (p))
       continue; /* Don't use invalid paths. */
+    if (GNUNET_YES == GMT_is_path_used (peer->tunnel, p))
+      continue; /* If path is already in use, skip it. */
 
     if ((cost = GMT_get_path_cost (peer->tunnel, p)) < best_cost)
     {
@@ -760,6 +759,16 @@ peer_get_best_path (const struct MeshPeer *peer)
 }
 
 
+/**
+ * Is this queue element sendable?
+ *
+ * - All management traffic is always sendable.
+ * - For payload traffic, check the connection flow control.
+ *
+ * @param q Queue element to inspect.
+ *
+ * @return #GNUNET_YES if it is sendable, #GNUNET_NO otherwise.
+ */
 static int
 queue_is_sendable (struct MeshPeerQueue *q)
 {
