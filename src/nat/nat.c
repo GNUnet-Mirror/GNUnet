@@ -1024,32 +1024,51 @@ upnp_add (void *cls,
   struct LocalAddressList *pos;
   struct LocalAddressList *next;
 
+
   if (GNUNET_YES == add_remove)
   {
     add_to_address_list (h, LAL_UPNP, addr, addrlen);
     return;
   }
-  /* remove address */
-  next = h->lal_head;
-  while (NULL != (pos = next))
+  else if (GNUNET_NO == add_remove)
   {
-    next = pos->next;
-    if ((pos->source != LAL_UPNP) || (pos->addrlen != addrlen) ||
-        (0 != memcmp (&pos[1], addr, addrlen)))
-      continue;
-    GNUNET_CONTAINER_DLL_remove (h->lal_head, h->lal_tail, pos);
-    if (NULL != h->address_callback)
-      h->address_callback (h->callback_cls, GNUNET_NO,
-                           (const struct sockaddr *) &pos[1], pos->addrlen);
-    GNUNET_free (pos);
-    return;                     /* only remove once */
+    /* remove address */
+    next = h->lal_head;
+    while (NULL != (pos = next))
+    {
+      next = pos->next;
+      if ((pos->source != LAL_UPNP) || (pos->addrlen != addrlen) ||
+          (0 != memcmp (&pos[1], addr, addrlen)))
+        continue;
+      GNUNET_CONTAINER_DLL_remove (h->lal_head, h->lal_tail, pos);
+      if (NULL != h->address_callback)
+        h->address_callback (h->callback_cls, GNUNET_NO,
+                             (const struct sockaddr *) &pos[1], pos->addrlen);
+      GNUNET_free (pos);
+      return;                     /* only remove once */
+    }
+    /* asked to remove address that does not exist */
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         "Asked to remove unkown address `%s'\n",
+         GNUNET_a2s(addr, addrlen));
+    GNUNET_break (0);
   }
-  /* asked to remove address that does not exist */
-  LOG (GNUNET_ERROR_TYPE_ERROR,
-       "Asked to remove unkown address `%s'\n",
-       GNUNET_a2s(addr, addrlen));
-  GNUNET_break (0);
+  else if (GNUNET_SYSERR == add_remove)
+  {
+    /* Error while running upnp client */
+    if (NULL != emsg)
+      LOG (GNUNET_ERROR_TYPE_ERROR,
+          _("Error while running upnp client: `%s'\n"), emsg);
+    else
+      LOG (GNUNET_ERROR_TYPE_ERROR,
+          _("Error while running upnp client \n"));
+    return;
+  }
+  else
+  {
 
+    GNUNET_break (0);
+  }
 }
 
 
@@ -1072,9 +1091,19 @@ add_minis (struct GNUNET_NAT_Handle *h,
       return;                   /* already got this port */
     ml = ml->next;
   }
+
   ml = GNUNET_new (struct MiniList);
   ml->port = port;
   ml->mini = GNUNET_NAT_mini_map_start (port, h->is_tcp, &upnp_add, h);
+
+  if (NULL == ml->mini)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+        _("Failed to run upnp client for port %u\n"), ml->port);
+    GNUNET_free (ml);
+    return;
+  }
+
   GNUNET_CONTAINER_DLL_insert (h->mini_head, h->mini_tail, ml);
 }
 
@@ -1112,7 +1141,12 @@ add_from_bind (void *cls,
         add_to_address_list (h, LAL_BINDTO_ADDRESS, sa,
                              sizeof (struct sockaddr_in));
       if (h->enable_upnp)
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+            "Running upnp client for address `%s'\n",
+            GNUNET_a2s (sa,sizeof (struct sockaddr_in)));
         add_minis (h, ntohs (v4->sin_port));
+      }
       break;
     case AF_INET6:
       if (sizeof (struct sockaddr_in6) != h->local_addrlens[i])
@@ -1253,6 +1287,15 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
   if (NULL == reversal_callback)
     h->enable_nat_server = GNUNET_NO;
+
+  /* Check for UPnP client, disable immediately if not available */
+  if (GNUNET_SYSERR ==
+      GNUNET_OS_check_helper_binary ("upnpc", GNUNET_NO, NULL))
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+        _("UPnP enable in configuration, but UPnP client `upnpc` command not found, disabling UPnP \n"));
+    h->enable_upnp = GNUNET_NO;
+  }
 
   /* Check if NAT was hole-punched */
   if ((NULL != h->address_callback) &&
