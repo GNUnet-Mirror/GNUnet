@@ -47,7 +47,7 @@ gnunet_service_secretsharing_LDADD = \
   $(LIBGCRYPT_LIBS) \
   $(GN_LIBINTL)
 gnunet_service_secretsharing_DEPENDENCIES = \
-  $(top_builddir)/src/set/libgnunetset.la
+  $(top_builddir)/src/consensus/libgnunetconsensus.la
 
 libgnunetsecretsharing_la_SOURCES = \
   secretsharing_api.c \
