@@ -21,7 +21,7 @@ Dependencies:
 
 Please note that for many of its dependencies GNUnet requires very
 recent versions of the libraries which are often NOT to be found in
-stable distributions in 2011.  While using older packages may in some
+stable distributions in 2014.  While using older packages may in some
 cases on some operating systems may seem to work in some limited
 fashion, we are in many cases aware of serious problems with older
 packages.  Hence please make sure to use  the versions listed below.
