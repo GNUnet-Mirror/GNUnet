@@ -3111,7 +3111,8 @@ GMC_2s (const struct MeshConnection *c)
   {
     static char buf[128];
 
-    sprintf (buf, "%s (->%s)", GNUNET_h2s (GM_h2hc (GMC_get_id(c))), GMT_2s (c->t));
+    sprintf (buf, "%s (->%s)",
+             GNUNET_h2s (GM_h2hc (GMC_get_id (c))), GMT_2s (c->t));
     return buf;
   }
   return GNUNET_h2s (GM_h2hc (&c->id));
