@@ -579,15 +579,18 @@ message_sent (void *cls,
   struct MeshConnectionQueue *q = cls;
   double usecsperbyte;
   int forced;
+  uint32_t pid;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "connection message_sent\n");
 
   fc = fwd ? &c->fwd_fc : &c->bck_fc;
+  pid = 0;
   LOG (GNUNET_ERROR_TYPE_DEBUG, " %ssent %s %s\n",
        sent ? "" : "not ", GM_f2s (fwd), GM_m2s (type));
   LOG (GNUNET_ERROR_TYPE_DEBUG, " C_P- %p %u\n", c, c->pending_messages);
   if (NULL != q)
   {
+    pid = q->pid;
     forced = q->forced;
     if (NULL != q->cont)
     {
@@ -625,7 +628,10 @@ message_sent (void *cls,
 
     case GNUNET_MESSAGE_TYPE_MESH_ENCRYPTED:
       if (GNUNET_YES == sent)
-        fc->last_pid_sent = q->pid;
+      {
+        GNUNET_assert (NULL != q);
+        fc->last_pid_sent = pid;
+      }
 
       LOG (GNUNET_ERROR_TYPE_DEBUG, "!  Q_N- %p %u\n", fc, fc->queue_n);
       if (GNUNET_NO == forced)
