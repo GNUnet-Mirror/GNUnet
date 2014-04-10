@@ -2135,6 +2135,9 @@ delayed_destroy (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 void
 GMT_destroy_empty (struct MeshTunnel3 *t)
 {
+  if (GNUNET_YES == shutting_down)
+    return; /* Will be destroyed immediately anyway */
+
   if (GNUNET_SCHEDULER_NO_TASK != t->destroy_task)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -2197,12 +2200,6 @@ GMT_destroy (struct MeshTunnel3 *t)
     return;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "destroying tunnel %s\n", GMP_2s (t->peer));
-  if (GNUNET_SCHEDULER_NO_TASK != t->destroy_task)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "cancelling %llX\n", t->destroy_task);
-    GNUNET_SCHEDULER_cancel (t->destroy_task);
-    t->destroy_task = GNUNET_SCHEDULER_NO_TASK;
-  }
 
   GNUNET_break (GNUNET_YES ==
                 GNUNET_CONTAINER_multipeermap_remove (tunnels,
@@ -2218,6 +2215,13 @@ GMT_destroy (struct MeshTunnel3 *t)
     next_ch = iter_ch->next;
     GMCH_destroy (iter_ch->ch);
     /* Should only happen on shutdown, but it's ok. */
+  }
+
+  if (GNUNET_SCHEDULER_NO_TASK != t->destroy_task)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "cancelling %llX\n", t->destroy_task);
+    GNUNET_SCHEDULER_cancel (t->destroy_task);
+    t->destroy_task = GNUNET_SCHEDULER_NO_TASK;
   }
 
   GNUNET_STATISTICS_update (stats, "# tunnels", -1, GNUNET_NO);
