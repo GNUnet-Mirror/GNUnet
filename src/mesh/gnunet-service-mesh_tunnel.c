@@ -1978,7 +1978,7 @@ GMT_remove_connection (struct MeshTunnel3 *t,
   }
 
   /* Start new connections if needed */
-  if (NULL == t->connection_head
+  if (3 < GMT_count_connections (t)
       && GNUNET_SCHEDULER_NO_TASK == t->destroy_task
       && MESH_TUNNEL3_SHUTDOWN != t->cstate
       && GNUNET_NO == shutting_down)
