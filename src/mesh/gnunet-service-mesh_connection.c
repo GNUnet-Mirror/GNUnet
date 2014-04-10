@@ -587,7 +587,6 @@ message_sent (void *cls,
   pid = 0;
   LOG (GNUNET_ERROR_TYPE_DEBUG, " %ssent %s %s\n",
        sent ? "" : "not ", GM_f2s (fwd), GM_m2s (type));
-  LOG (GNUNET_ERROR_TYPE_DEBUG, " C_P- %p %u\n", c, c->pending_messages);
   if (NULL != q)
   {
     pid = q->pid;
@@ -608,6 +607,13 @@ message_sent (void *cls,
   {
     forced = GNUNET_NO;
   }
+  if (NULL == c)
+  {
+    GNUNET_break (type == GNUNET_MESSAGE_TYPE_MESH_CONNECTION_BROKEN ||
+                  type == GNUNET_MESSAGE_TYPE_MESH_CONNECTION_DESTROY);
+    return;
+  }
+  LOG (GNUNET_ERROR_TYPE_DEBUG, " C_P- %p %u\n", c, c->pending_messages);
   c->pending_messages--;
   if (GNUNET_YES == c->destroy && 0 == c->pending_messages)
   {
