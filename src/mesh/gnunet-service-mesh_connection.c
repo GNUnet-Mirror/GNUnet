@@ -2799,6 +2799,20 @@ GMC_is_sendable (struct MeshConnection *c, int fwd)
   return GNUNET_NO;
 }
 
+
+/**
+ * Check if this connection is a direct one (never trim a direct connection).
+ *
+ * @param c Connection.
+ *
+ * @return #GNUNET_YES in case it's a direct connection, #GNUNET_NO otherwise.
+ */
+int
+GMC_is_direct (struct MeshConnection *c)
+{
+  return (c->path->length == 2) ? GNUNET_YES : GNUNET_NO;
+}
+
 /**
  * Sends an already built message on a connection, properly registering
  * all used resources.

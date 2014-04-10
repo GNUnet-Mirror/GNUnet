@@ -445,6 +445,16 @@ int
 GMC_is_sendable (struct MeshConnection *c, int fwd);
 
 /**
+ * Check if this connection is a direct one (never trim a direct connection).
+ *
+ * @param c Connection.
+ *
+ * @return #GNUNET_YES in case it's a direct connection, #GNUNET_NO otherwise.
+ */
+int
+GMC_is_direct (struct MeshConnection *c);
+
+/**
  * Cancel a previously sent message while it's in the queue.
  *
  * ONLY can be called before the continuation given to the send function

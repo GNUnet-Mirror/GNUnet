@@ -1886,34 +1886,51 @@ GMT_change_estate (struct MeshTunnel3* t, enum MeshTunnel3EState state)
 
 
 /**
- * Check that the tunnel doesn't have too many connections,
- * remove one if necessary.
+ * @brief Check if tunnel has too many connections, and remove one if necessary.
  *
- * For the time being, this means the newest connection.
+ * Currently this means the newest connection, unless it is a direct one.
+ * Implemented as a task to avoid freeing a connection that is in the middle
+ * of being created/processed.
  *
- * @param t Tunnel to check.
+ * @param cls Closure (Tunnel to check).
+ * @param tc Task context.
  */
 static void
-check_connection_count (struct MeshTunnel3 *t)
+trim_connections (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  if (GMT_count_connections (t) > CONNECTIONS_PER_TUNNEL)
+  struct MeshTunnel3 *t = cls;
+
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+    return;
+
+  if (GMT_count_connections (t) > 2 * CONNECTIONS_PER_TUNNEL)
   {
     struct MeshTConnection *iter;
     struct MeshTConnection *c;
 
     for (c = iter = t->connection_head; NULL != iter; iter = iter->next)
     {
-      if (NULL == c || iter->created.abs_value_us > c->created.abs_value_us)
+      if ((NULL == c || iter->created.abs_value_us > c->created.abs_value_us)
+          && GNUNET_NO == GMC_is_direct (iter->c))
       {
         c = iter;
       }
     }
     if (NULL != c)
+    {
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "Too many connections on tunnel %s\n",
+           GMT_2s (t));
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "Destroying connection %s\n",
+           GMC_2s (c->c));
       GMC_destroy (c->c);
+    }
     else
+    {
       GNUNET_break (0);
+    }
   }
 }
+
 
 /**
  * Add a connection to a tunnel.
@@ -1928,6 +1945,8 @@ GMT_add_connection (struct MeshTunnel3 *t, struct MeshConnection *c)
 
   GNUNET_assert (NULL != c);
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "add connection %s\n", GMC_2s (c));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, " to tunnel %s\n", GMT_2s (t));
   for (aux = t->connection_head; aux != NULL; aux = aux->next)
     if (aux->c == c)
       return;
@@ -1938,7 +1957,7 @@ GMT_add_connection (struct MeshTunnel3 *t, struct MeshConnection *c)
 
   GNUNET_CONTAINER_DLL_insert (t->connection_head, t->connection_tail, aux);
 
-  check_connection_count (t);
+  GNUNET_SCHEDULER_add_now (&trim_connections, t);
 }
 
 
