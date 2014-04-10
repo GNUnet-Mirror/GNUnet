@@ -950,7 +950,7 @@ queue_send (void *cls, size_t size, void *buf)
   if (0 < drop_percent &&
       GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 101) < drop_percent)
   {
-    LOG (GNUNET_ERROR_TYPE_WARNING, "DD %s on connection\n",
+    LOG (GNUNET_ERROR_TYPE_WARNING, "DD %s on connection %s\n",
          GM_m2s (queue->type), GMC_2s (c));
     data_size = 0;
   }
