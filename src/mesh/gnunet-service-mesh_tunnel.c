@@ -694,11 +694,13 @@ tun_message_sent (void *cls,
               uint16_t type, int fwd, size_t size)
 {
   struct MeshTunnel3Queue *qt = cls;
+  struct MeshTunnel3 *t;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "tun_message_sent\n");
 
   GNUNET_assert (NULL != qt->cont);
-  qt->cont (qt->cont_cls, GMC_get_tunnel (c), qt, type, size);
+  t = NULL == c ? NULL : GMC_get_tunnel (c);
+  qt->cont (qt->cont_cls, t, qt, type, size);
   GNUNET_free (qt);
 }
 
