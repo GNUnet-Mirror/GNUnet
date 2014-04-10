@@ -333,7 +333,7 @@ addr_cb (void *cls,
 	 GNUNET_a2s (addr, addrlen));
     return;                     /* ignore IPv6 here */
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
+  LOG (GNUNET_ERROR_TYPE_INFO,
        "Asking gnunet-nat-server to connect to `%s'\n",
        GNUNET_a2s (addr, addrlen));
   sa = (const struct sockaddr_in *) addr;
@@ -445,9 +445,19 @@ GNUNET_NAT_test_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
 	 "NAT test listens on port %u (%s)\n",
 	 bnd_port,
 	 (GNUNET_YES == is_tcp) ? "tcp" : "udp");
-    ret->nat =
-        GNUNET_NAT_register (cfg, is_tcp, adv_port, 1, addrs, addrlens,
+    ret->nat = GNUNET_NAT_register (cfg, is_tcp, adv_port, 1, addrs, addrlens,
                              &addr_cb, NULL, ret);
+    if (NULL == ret->nat)
+    {
+      LOG (GNUNET_ERROR_TYPE_ERROR,
+          _("NAT test failed to start NAT library\n"));
+      if (GNUNET_SCHEDULER_NO_TASK != ret->ltask)
+        GNUNET_SCHEDULER_cancel (ret->ltask);
+      if (NULL != ret->lsock)
+        GNUNET_NETWORK_socket_close (ret->lsock);
+      GNUNET_free (ret);
+      return NULL;
+    }
   }
   return ret;
 }
