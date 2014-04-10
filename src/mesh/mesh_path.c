@@ -189,7 +189,7 @@ path_2s (struct MeshPeerPath *p)
   char *old;
   unsigned int i;
 
-  s = old = NULL;
+  old = GNUNET_strdup ("");
   for (i = 0; i < p->length; i++)
   {
     GNUNET_asprintf (&s, "%s %s",
