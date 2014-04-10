@@ -857,6 +857,12 @@ process_incoming_data (struct GNUNET_MESH_Handle *h,
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Got a data message!\n");
   dmsg = (struct GNUNET_MESH_LocalData *) message;
   ch = retrieve_channel (h, ntohl (dmsg->id));
+  if (NULL == ch)
+  {
+    GNUNET_break (0);
+    return;
+  }
+
   payload = (struct GNUNET_MessageHeader *) &dmsg[1];
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  %s data on channel %s [%X]\n",
        GM_f2s (ch->chid >= GNUNET_MESH_LOCAL_CHANNEL_ID_SERV),
