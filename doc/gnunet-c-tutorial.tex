@@ -146,27 +146,20 @@ to enable verbose logging by adding
 
 \lstset{language=bash}
 \begin{lstlisting}
-$ ./configure --prefix=$HOME --enable-logging
+$ ./configure --prefix=$PREFIX --enable-logging
 $ make
 $ make install
 \end{lstlisting}
 
-After installing GNUnet you have to set the \lstinline|GNUNET_PREFIX|
-environmental variable used by GNUnet to detect it's installation
-directory and add your GNUnet installation to your path environmental
-variable.  This configuration is only valid for the current shell
-session, so you should add \lstinline|export GNUNET_PREFIX=$HOME| to
-your \lstinline|.bash_rc| or \lstinline|.profile| to be sure the
-environment variable is always set. In addition you have to create the
-\lstinline|.gnunet| directory in your home directory where GNUnet
-stores it's data and an empty GNUnet configuration file:
+After installing GNUnet you have to add your GNUnet installation to your path
+environmental variable. In addition you have to create the \lstinline|.gnunet|
+directory in your home directory where GNUnet stores it's data and an empty
+GNUnet configuration file:
 
 \lstset{language=bash}
 \begin{lstlisting}
-$ export GNUNET_PREFIX=$HOME
-$ export PATH=$PATH:$GNUNET_PREFIX/bin
-$ echo export GNUNET_PREFIX=$HOME >> ~/.bashrc
-$ echo export PATH=$GNUNET_PREFIX/bin:$PATH >> ~/.bashrc
+$ export PATH=$PATH:$PREFIX/bin
+$ echo export PATH=$PREFIX/bin:\textbackslash$PATH >> ~/.bashrc
 $ mkdir ~/.gnunet/
 $ touch ~/.gnunet/gnunet.conf
 \end{lstlisting}
@@ -179,7 +172,7 @@ binaries and run GNUnet's self check.
 \begin{lstlisting}
 $ which gnunet-arm
 \end{lstlisting}
-should return \lstinline|$GNUNET_PREFIX/bin/gnunet-arm|. It should be
+should return \lstinline|$PREFIX/bin/gnunet-arm|. It should be
 located in your GNUnet installation and the output should not be
 empty. If you see an output like:
 \begin{lstlisting}
@@ -336,7 +329,7 @@ configuration file:
 %
 \lstset{language=bash}
 \begin{lstlisting}
-$ cat $GNUNET_PREFIX/share/gnunet/config.d/*.conf > peer2.conf
+$ cat $PREFIX/share/gnunet/config.d/*.conf > peer2.conf
 \end{lstlisting}
 Now you have to edit {\tt peer2.conf} and change:
 \begin{itemize}
@@ -515,7 +508,7 @@ obtained as follows:
 $ svn checkout https://gnunet.org/svn/gnunet-ext/
 $ cd gnunet-ext/
 $ ./bootstrap
-$ ./configure --prefix=$HOME --with-gnunet=$GNUNET_PREFIX
+$ ./configure --prefix=$PREFIX --with-gnunet=$PREFIX
 $ make
 $ make install
 $ make check
