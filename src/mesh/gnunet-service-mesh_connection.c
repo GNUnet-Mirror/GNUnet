@@ -1225,10 +1225,8 @@ connection_poll (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
 
   c = fc->c;
-  LOG (GNUNET_ERROR_TYPE_DEBUG, " *** Polling!\n");
-  LOG (GNUNET_ERROR_TYPE_DEBUG, " *** connection [%s]\n", GMC_2s (c));
-  LOG (GNUNET_ERROR_TYPE_DEBUG, " ***   %s\n",
-       fc == &c->fwd_fc ? "FWD" : "BCK");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, " *** Polling connection %s %s\n",
+       GMC_2s (c), fc == &c->fwd_fc ? "FWD" : "BCK");
 
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_POLL);
   msg.header.size = htons (sizeof (msg));
