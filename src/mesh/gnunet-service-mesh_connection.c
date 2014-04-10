@@ -239,6 +239,11 @@ struct MeshConnectionQueue
   int forced;
 
   /**
+   * Packet ID of the message, if relevant.
+   */
+  uint32_t pid;
+
+  /**
    * Continuation to call once sent.
    */
   GMC_sent cont;
@@ -620,7 +625,7 @@ message_sent (void *cls,
 
     case GNUNET_MESSAGE_TYPE_MESH_ENCRYPTED:
       if (GNUNET_YES == sent)
-        fc->last_pid_sent++;
+        fc->last_pid_sent = q->pid;
 
       LOG (GNUNET_ERROR_TYPE_DEBUG, "!  Q_N- %p %u\n", fc, fc->queue_n);
       if (GNUNET_NO == forced)
@@ -1952,9 +1957,10 @@ handle_mesh_encrypted (const struct GNUNET_PeerIdentity *peer,
   if (GM_is_pid_bigger (pid, fc->last_ack_sent))
   {
     GNUNET_STATISTICS_update (stats, "# unsolicited message", 1, GNUNET_NO);
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-                "WARNING Received PID %u, (prev %u), ACK %u\n",
-                pid, fc->last_pid_recv, fc->last_ack_sent);
+    GNUNET_break_op (0);
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "Received PID %u, (prev %u), ACK %u\n",
+         pid, fc->last_pid_recv, fc->last_ack_sent);
     return GNUNET_OK;
   }
   if (GNUNET_NO == GM_is_pid_bigger (pid, fc->last_pid_recv))
@@ -2775,8 +2781,9 @@ GMC_is_sendable (struct MeshConnection *c, int fwd)
     return GNUNET_YES;
   }
   fc = fwd ? &c->fwd_fc : &c->bck_fc;
-  LOG (GNUNET_ERROR_TYPE_DEBUG, " last ack recv: %u, last pid sent: %u\n",
-       fc->last_ack_recv, fc->last_pid_sent);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       " last ack recv: %u, last pid sent: %u, next pid %u\n",
+       fc->last_ack_recv, fc->last_pid_sent, fc->next_pid);
   if (GM_is_pid_bigger (fc->last_ack_recv, fc->last_pid_sent))
     return GNUNET_YES;
   return GNUNET_NO;
@@ -2805,6 +2812,7 @@ GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
 {
   struct MeshFlowControl *fc;
   struct MeshConnectionQueue *q;
+  uint32_t pid;
   void *data;
   size_t size;
   uint16_t type;
@@ -2819,6 +2827,7 @@ GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
 
   fc = fwd ? &c->fwd_fc : &c->bck_fc;
   droppable = GNUNET_NO == force;
+  pid = 0;
   switch (type)
   {
     struct GNUNET_MESH_Encrypted *emsg;
@@ -2840,14 +2849,15 @@ GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
       }
       emsg->cid = c->id;
       emsg->ttl = htonl (ttl - 1);
-      emsg->pid = htonl (fc->next_pid++);
+      pid = fc->next_pid++;
+      emsg->pid = htonl (pid);
       LOG (GNUNET_ERROR_TYPE_DEBUG, "  Q_N+ %p %u\n", fc, fc->queue_n);
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "pid %u\n", pid);
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "last pid sent %u\n", fc->last_pid_sent);
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "     ack recv %u\n", fc->last_ack_recv);
       if (GNUNET_YES == droppable)
       {
         fc->queue_n++;
-        LOG (GNUNET_ERROR_TYPE_DEBUG, "pid %u\n", ntohl (emsg->pid));
-        LOG (GNUNET_ERROR_TYPE_DEBUG, "last pid sent %u\n", fc->last_pid_sent);
-        LOG (GNUNET_ERROR_TYPE_DEBUG, "     ack recv %u\n", fc->last_ack_recv);
       }
       else
       {
@@ -2923,6 +2933,7 @@ GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
 
   q = GNUNET_new (struct MeshConnectionQueue);
   q->forced = !droppable;
+  q->pid = pid;
   q->q = GMP_queue_add (get_hop (c, fwd), data, type, size, c, fwd,
                         &message_sent, q);
   if (NULL == q->q)
