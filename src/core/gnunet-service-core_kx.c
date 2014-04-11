@@ -1684,6 +1684,7 @@ GSC_KX_handle_client_monitor_peers (void *cls,
   struct MonitorNotifyMessage done_msg;
   struct GSC_KeyExchangeInfo *kx;
 
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
   GNUNET_SERVER_notification_context_add (nc,
                                           client);
   for (kx = kx_head; NULL != kx; kx = kx->next)
