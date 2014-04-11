@@ -1080,6 +1080,7 @@ update_timeout (struct GSC_KeyExchangeInfo *kx)
   kx->timeout =
       GNUNET_TIME_relative_to_absolute
       (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
+  monitor_notify_all (kx);
   if (kx->keep_alive_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (kx->keep_alive_task);
   kx->keep_alive_task =
