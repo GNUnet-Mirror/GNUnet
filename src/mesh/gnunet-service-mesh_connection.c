@@ -2998,7 +2998,7 @@ GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   }
   q->cont = cont;
   q->cont_cls = cont_cls;
-  return q;
+  return (NULL == cont) ? NULL : q;
 }
 
 
