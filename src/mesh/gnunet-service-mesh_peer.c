@@ -897,12 +897,12 @@ queue_send (void *cls, size_t size, void *buf)
   size_t data_size;
 
   peer->core_transmit = NULL;
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "* Queue send towards %s (max %u)\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Queue send towards %s (max %u)\n",
        GMP_2s (peer), size);
 
   if (NULL == buf || 0 == size)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "* Buffer size 0.\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Buffer size 0.\n");
     return 0;
   }
 
@@ -932,7 +932,7 @@ queue_send (void *cls, size_t size, void *buf)
                                          peer);
     return 0;
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "*   size %u ok\n", queue->size);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  size %u ok\n", queue->size);
 
   /* Fill buf */
   switch (queue->type)
@@ -943,18 +943,18 @@ queue_send (void *cls, size_t size, void *buf)
     case GNUNET_MESSAGE_TYPE_MESH_KX:
     case GNUNET_MESSAGE_TYPE_MESH_ACK:
     case GNUNET_MESSAGE_TYPE_MESH_POLL:
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "*   raw: %s\n", GM_m2s (queue->type));
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "  raw %s\n", GM_m2s (queue->type));
       data_size = send_core_data_raw (queue->cls, size, buf);
       break;
     case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE:
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "*   path create\n");
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "  path create\n");
       if (GMC_is_origin (c, GNUNET_YES))
         data_size = send_core_connection_create (queue->c, size, buf);
       else
         data_size = send_core_data_raw (queue->cls, size, buf);
       break;
     case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK:
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "*   path ack\n");
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "  path ack\n");
       if (GMC_is_origin (c, GNUNET_NO) ||
           GMC_is_origin (c, GNUNET_YES))
         data_size = send_core_connection_ack (queue->c, size, buf);
@@ -970,7 +970,7 @@ queue_send (void *cls, size_t size, void *buf)
       break;
     default:
       GNUNET_break (0);
-      LOG (GNUNET_ERROR_TYPE_WARNING, "*   type unknown: %u\n", queue->type);
+      LOG (GNUNET_ERROR_TYPE_WARNING, "  type unknown: %u\n", queue->type);
       data_size = 0;
   }
 
