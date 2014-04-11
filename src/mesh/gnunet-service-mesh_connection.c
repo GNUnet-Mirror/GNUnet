@@ -659,6 +659,11 @@ message_sent (void *cls,
       }
       break;
 
+    case GNUNET_MESSAGE_TYPE_MESH_KX:
+      if (GNUNET_YES == sent)
+        connection_reset_timeout (c, fwd);
+      break;
+
     case GNUNET_MESSAGE_TYPE_MESH_POLL:
       fc->poll_msg = NULL;
       break;
