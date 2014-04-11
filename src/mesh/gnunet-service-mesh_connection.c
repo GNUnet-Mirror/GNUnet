@@ -815,7 +815,7 @@ send_connection_ack (struct MeshConnection *connection, int fwd)
   struct MeshTunnel3 *t;
 
   t = connection->t;
-  LOG (GNUNET_ERROR_TYPE_INFO, "=> {%18s ACK} on connection %s\n",
+  LOG (GNUNET_ERROR_TYPE_INFO, "===> {%14s ACK} on connection %s\n",
        GM_f2s (!fwd), GMC_2s (connection));
   GMP_queue_add (get_hop (connection, fwd), NULL,
                  GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK,
@@ -875,7 +875,7 @@ send_broken2 (struct GNUNET_MESH_Hash *connection_id,
   struct GNUNET_MESH_ConnectionBroken *msg;
   struct MeshPeer *neighbor;
 
-  LOG (GNUNET_ERROR_TYPE_INFO, "=> BROKEN on unknown connection %s\n",
+  LOG (GNUNET_ERROR_TYPE_INFO, "===> BROKEN on unknown connection %s\n",
        GNUNET_h2s (GM_h2hc (connection_id)));
 
   msg = GNUNET_new (struct GNUNET_MESH_ConnectionBroken);
@@ -3036,7 +3036,7 @@ GMC_send_create (struct MeshConnection *connection)
   size = sizeof (struct GNUNET_MESH_ConnectionCreate);
   size += connection->path->length * sizeof (struct GNUNET_PeerIdentity);
 
-  LOG (GNUNET_ERROR_TYPE_INFO, "=> %s on connection %s  (%u bytes)\n",
+  LOG (GNUNET_ERROR_TYPE_INFO, "===> %s on connection %s  (%u bytes)\n",
        GM_m2s (GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE),
        GMC_2s (connection), size);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  C_P+ %p %u (create)\n",

@@ -1506,7 +1506,7 @@ handle_ephemeral (struct MeshTunnel3 *t,
                   const struct GNUNET_MESH_KX_Ephemeral *msg)
 {
   struct GNUNET_HashCode km;
-  LOG (GNUNET_ERROR_TYPE_INFO, "<= EPHM for %s\n", GMT_2s (t));
+  LOG (GNUNET_ERROR_TYPE_INFO, "<=== EPHM for %s\n", GMT_2s (t));
 
   if (GNUNET_OK != check_ephemeral (t, msg))
   {
@@ -1545,7 +1545,7 @@ handle_ping (struct MeshTunnel3 *t,
     return;
   }
 
-  LOG (GNUNET_ERROR_TYPE_INFO, "<= PING for %s\n", GMT_2s (t));
+  LOG (GNUNET_ERROR_TYPE_INFO, "<=== PING for %s\n", GMT_2s (t));
   t_decrypt (t, &res.target, &msg->target, ping_encryption_size (), msg->iv);
   if (0 != memcmp (&my_full_id, &res.target, sizeof (my_full_id)))
   {
@@ -1576,7 +1576,7 @@ handle_pong (struct MeshTunnel3 *t,
 {
   uint32_t challenge;
 
-  LOG (GNUNET_ERROR_TYPE_INFO, "<= PONG for %s\n", GMT_2s (t));
+  LOG (GNUNET_ERROR_TYPE_INFO, "<=== PONG for %s\n", GMT_2s (t));
   if (GNUNET_SCHEDULER_NO_TASK == t->rekey_task)
   {
     GNUNET_STATISTICS_update (stats, "# duplicate PONG messages", 1, GNUNET_NO);
@@ -1619,7 +1619,7 @@ handle_decrypted (struct MeshTunnel3 *t,
   uint16_t type;
 
   type = ntohs (msgh->type);
-  LOG (GNUNET_ERROR_TYPE_INFO, "<= %s on %s\n", GM_m2s (type), GMT_2s (t));
+  LOG (GNUNET_ERROR_TYPE_INFO, "<=== %s on %s\n", GM_m2s (type), GMT_2s (t));
 
   switch (type)
   {
