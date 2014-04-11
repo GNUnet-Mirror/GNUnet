@@ -639,6 +639,8 @@ message_sent (void *cls,
       {
         GNUNET_assert (NULL != q);
         fc->last_pid_sent = pid;
+        GMC_send_ack (c, fwd, GNUNET_NO);
+        connection_reset_timeout (c, fwd);
       }
 
       LOG (GNUNET_ERROR_TYPE_DEBUG, "!  Q_N- %p %u\n", fc, fc->queue_n);
@@ -654,11 +656,6 @@ message_sent (void *cls,
         LOG (GNUNET_ERROR_TYPE_DEBUG,
              "!   forced, Q_N not accounting pid %u\n",
              fc->last_pid_sent);
-      }
-      if (GNUNET_YES == sent)
-      {
-        GMC_send_ack (c, fwd, GNUNET_NO);
-        connection_reset_timeout (c, fwd);
       }
       break;
 
