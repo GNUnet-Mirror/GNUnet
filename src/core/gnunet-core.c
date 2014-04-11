@@ -119,10 +119,12 @@ monitor_cb (void *cls,
   }
   now_str = GNUNET_STRINGS_absolute_time_to_string (now);
   FPRINTF (stdout,
-           _("%24s: %-17s %4s\n"),
+           _("%24s: %-30s %4s (timeout in %6s)\n"),
            now_str,
            state_str,
-           GNUNET_i2s (peer));
+           GNUNET_i2s (peer),
+           GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_remaining (timeout),
+                                                   GNUNET_YES));
 }
 
 

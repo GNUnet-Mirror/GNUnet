@@ -168,6 +168,7 @@ transmit_monitor_request (void *cls,
   struct GNUNET_MessageHeader *msg;
   int msize;
 
+  mh->th = NULL;
   msize = sizeof (struct GNUNET_MessageHeader);
   if ((size < msize) || (NULL == buf))
   {
