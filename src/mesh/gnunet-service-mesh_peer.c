@@ -212,8 +212,31 @@ static struct GNUNET_CORE_Handle *core_handle;
  */
 static struct GNUNET_TRANSPORT_Handle *transport_handle;
 
+
 /******************************************************************************/
-/***************************** CORE CALLBACKS *********************************/
+/*****************************     DEBUG      *********************************/
+/******************************************************************************/
+
+static void
+queue_debug (struct MeshPeer *peer)
+{
+  struct MeshPeerQueue *q;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Messages queued towards %s\n", GMP_2s (peer));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  core tmt rdy: %p\n", peer->core_transmit);
+
+  for (q = peer->queue_head; NULL != q; q = q->next)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  - %s %s on %s\n",
+         GM_m2s (q->type), GM_f2s (q->fwd), GMC_2s (q->c));
+  }
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "End queued towards %s\n", GMP_2s (peer));
+}
+
+
+/******************************************************************************/
+/*****************************  CORE HELPERS  *********************************/
 /******************************************************************************/
 
 
@@ -266,6 +289,9 @@ pop_direct_path (struct MeshPeer *peer)
 }
 
 
+/******************************************************************************/
+/***************************** CORE CALLBACKS *********************************/
+/******************************************************************************/
 
 /**
  * Method called whenever a given peer connects.
@@ -410,6 +436,7 @@ core_init (void *cls,
   GML_start ();
   return;
 }
+
 
 /**
   * Core callback to write a pre-constructed data packet to core buffer
