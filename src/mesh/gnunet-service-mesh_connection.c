@@ -549,8 +549,9 @@ send_ack (struct MeshConnection *c, unsigned int buffer, int fwd, int force)
   msg.ack = htonl (ack);
   msg.cid = c->id;
 
-  prev_fc->ack_msg = GMC_send_prebuilt_message (&msg.header, c,
-                                                !fwd, GNUNET_YES,
+  prev_fc->ack_msg = GMC_send_prebuilt_message (&msg.header,
+                                                GNUNET_MESSAGE_TYPE_MESH_ACK,
+                                                ack, c, !fwd, GNUNET_YES,
                                                 &ack_sent, prev_fc);
 }
 
@@ -818,6 +819,7 @@ send_connection_ack (struct MeshConnection *connection, int fwd)
        GM_f2s (!fwd), GMC_2s (connection));
   GMP_queue_add (get_hop (connection, fwd), NULL,
                  GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK,
+                 GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK, 0,
                  sizeof (struct GNUNET_MESH_ConnectionACK),
                  connection, fwd, &message_sent, NULL);
   connection->pending_messages++;
@@ -849,7 +851,9 @@ send_broken (struct MeshConnection *c,
   msg.cid = c->id;
   msg.peer1 = *id1;
   msg.peer2 = *id2;
-  GMC_send_prebuilt_message (&msg.header, c, fwd, GNUNET_YES, NULL, NULL);
+  GMC_send_prebuilt_message (&msg.header,
+                             GNUNET_MESSAGE_TYPE_MESH_CONNECTION_BROKEN, 0,
+                             c, fwd, GNUNET_YES, NULL, NULL);
 }
 
 
@@ -883,6 +887,7 @@ send_broken2 (struct GNUNET_MESH_Hash *connection_id,
   neighbor = GMP_get_short (peer_id);
   GMP_queue_add (neighbor, msg,
                  GNUNET_MESSAGE_TYPE_MESH_CONNECTION_BROKEN,
+                 GNUNET_MESSAGE_TYPE_MESH_CONNECTION_BROKEN, 2,
                  sizeof (struct GNUNET_MESH_ConnectionBroken),
                  NULL, GNUNET_SYSERR, /* connection, fwd */
                  NULL, NULL); /* continuation */
@@ -1236,9 +1241,12 @@ connection_poll (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   msg.header.size = htons (sizeof (msg));
   msg.pid = htonl (fc->last_pid_sent);
   LOG (GNUNET_ERROR_TYPE_DEBUG, " *** last pid sent: %u!\n", fc->last_pid_sent);
-  fc->poll_msg = GMC_send_prebuilt_message (&msg.header, c,
-                                            fc == &c->fwd_fc, GNUNET_YES,
-                                            &poll_sent, fc);
+  fc->poll_msg =
+      GMC_send_prebuilt_message (&msg.header,
+                                 GNUNET_MESSAGE_TYPE_MESH_POLL,
+                                 fc->last_pid_sent,
+                                 c, fc == &c->fwd_fc, GNUNET_YES,
+                                 &poll_sent, fc);
 }
 
 
@@ -1512,7 +1520,7 @@ log_message (const struct GNUNET_MessageHeader *message,
              const struct GNUNET_PeerIdentity *peer,
              const struct GNUNET_MESH_Hash *hash)
 {
-  LOG (GNUNET_ERROR_TYPE_INFO, "<- %s on connection %s from %s\n",
+  LOG (GNUNET_ERROR_TYPE_INFO, "<-- %s on connection %s from %s\n",
        GM_m2s (ntohs (message->type)), GNUNET_h2s (GM_h2hc (hash)),
        GNUNET_i2s (peer));
 }
@@ -1640,7 +1648,9 @@ GMC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  Retransmitting.\n");
     GMP_add_path (dest_peer, path_duplicate (path), GNUNET_NO);
     GMP_add_path_to_origin (orig_peer, path_duplicate (path), GNUNET_NO);
-    GMC_send_prebuilt_message (message, c, GNUNET_YES, GNUNET_YES,
+    GMC_send_prebuilt_message (message,
+                               GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE, 0,
+                               c, GNUNET_YES, GNUNET_YES,
                                NULL, NULL);
   }
   path_destroy (path);
@@ -1768,7 +1778,9 @@ GMC_handle_confirm (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  not for us, retransmitting...\n");
-  GMC_send_prebuilt_message (message, c, fwd, GNUNET_YES, NULL, NULL);
+  GMC_send_prebuilt_message (message,
+                             GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK, 0,
+                             c, fwd, GNUNET_YES, NULL, NULL);
   return GNUNET_OK;
 }
 
@@ -1828,7 +1840,9 @@ GMC_handle_broken (void* cls,
   }
   else
   {
-    GMC_send_prebuilt_message (message, c, fwd, GNUNET_YES, NULL, NULL);
+    GMC_send_prebuilt_message (message,
+                               GNUNET_MESSAGE_TYPE_MESH_CONNECTION_BROKEN, 0,
+                               c, fwd, GNUNET_YES, NULL, NULL);
     c->destroy = GNUNET_YES;
     connection_cancel_queues (c, !fwd);
   }
@@ -1877,10 +1891,12 @@ GMC_handle_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
     return GNUNET_OK;
   }
   if (GNUNET_NO == GMC_is_terminal (c, fwd))
-    GMC_send_prebuilt_message (message, c, fwd, GNUNET_YES, NULL, NULL);
+    GMC_send_prebuilt_message (message,
+                               GNUNET_MESSAGE_TYPE_MESH_CONNECTION_DESTROY, 0,
+                               c, fwd, GNUNET_YES, NULL, NULL);
   else if (0 == c->pending_messages)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "!  directly destroying connection!\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  directly destroying connection!\n");
     GMC_destroy (c);
     return GNUNET_OK;
   }
@@ -2020,7 +2036,9 @@ handle_mesh_encrypted (const struct GNUNET_PeerIdentity *peer,
   }
 
   GNUNET_STATISTICS_update (stats, "# messages forwarded", 1, GNUNET_NO);
-  GMC_send_prebuilt_message (&msg->header, c, fwd, GNUNET_NO, NULL, NULL);
+  GMC_send_prebuilt_message (&msg->header,
+                             GNUNET_MESSAGE_TYPE_MESH_ENCRYPTED, 0,
+                             c, fwd, GNUNET_NO, NULL, NULL);
 
   return GNUNET_OK;
 }
@@ -2118,7 +2136,8 @@ handle_mesh_kx (const struct GNUNET_PeerIdentity *peer,
   /* Message not for us: forward to next hop */
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  not for us, retransmitting...\n");
   GNUNET_STATISTICS_update (stats, "# messages forwarded", 1, GNUNET_NO);
-  GMC_send_prebuilt_message (&msg->header, c, fwd, GNUNET_NO, NULL, NULL);
+  GMC_send_prebuilt_message (&msg->header, GNUNET_MESSAGE_TYPE_MESH_KX, 0,
+                             c, fwd, GNUNET_NO, NULL, NULL);
 
   return GNUNET_OK;
 }
@@ -2827,6 +2846,7 @@ GMC_is_direct (struct MeshConnection *c)
  *
  * @param message Message to send. Function makes a copy of it.
  *                If message is not hop-by-hop, decrements TTL of copy.
+ * @param payload_type Type of payload, in case the message is encrypted.
  * @param c Connection on which this message is transmitted.
  * @param fwd Is this a fwd message?
  * @param force Force the connection to accept the message (buffer overfill).
@@ -2839,6 +2859,7 @@ GMC_is_direct (struct MeshConnection *c)
  */
 struct MeshConnectionQueue *
 GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
+                           uint16_t payload_type, uint32_t payload_id,
                            struct MeshConnection *c, int fwd, int force,
                            GMC_sent cont, void *cont_cls)
 {
@@ -2854,8 +2875,8 @@ GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   data = GNUNET_malloc (size);
   memcpy (data, message, size);
   type = ntohs (message->type);
-  LOG (GNUNET_ERROR_TYPE_INFO, "-> %s on connection %s (%u bytes)\n",
-       GM_m2s (type), GMC_2s (c), size);
+  LOG (GNUNET_ERROR_TYPE_INFO, "--> %s (%s %u) on connection %s (%u bytes)\n",
+       GM_m2s (type), GM_m2s (payload_type), payload_id, GMC_2s (c), size);
 
   fc = fwd ? &c->fwd_fc : &c->bck_fc;
   droppable = GNUNET_NO == force;
@@ -2961,13 +2982,13 @@ GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   }
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  C_P+ %p %u\n", c, c->pending_messages);
-  c->pending_messages++;
+//   c->pending_messages++;
 
   q = GNUNET_new (struct MeshConnectionQueue);
   q->forced = !droppable;
   q->pid = pid;
-  q->q = GMP_queue_add (get_hop (c, fwd), data, type, size, c, fwd,
-                        &message_sent, q);
+  q->q = GMP_queue_add (get_hop (c, fwd), data, type, payload_type, payload_id,
+                        size, c, fwd, &message_sent, q);
   if (NULL == q->q)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "WARNING dropping msg on %s\n", GMC_2s (c));
@@ -3025,6 +3046,7 @@ GMC_send_create (struct MeshConnection *connection)
   connection->maintenance_q =
     GMP_queue_add (get_next_hop (connection), NULL,
                    GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE,
+                   GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE, 0,
                    size, connection, GNUNET_YES, &message_sent, NULL);
 
   state = GMT_get_cstate (connection->t);
@@ -3060,11 +3082,13 @@ GMC_send_destroy (struct MeshConnection *c)
               GMC_2s (c));
 
   if (GNUNET_NO == GMC_is_terminal (c, GNUNET_YES))
-    GMC_send_prebuilt_message (&msg.header, c,
-                               GNUNET_YES, GNUNET_YES, NULL, NULL);
+    GMC_send_prebuilt_message (&msg.header,
+                               GNUNET_MESSAGE_TYPE_MESH_CONNECTION_DESTROY, 0,
+                               c, GNUNET_YES, GNUNET_YES, NULL, NULL);
   if (GNUNET_NO == GMC_is_terminal (c, GNUNET_NO))
-    GMC_send_prebuilt_message (&msg.header, c,
-                               GNUNET_NO, GNUNET_YES, NULL, NULL);
+    GMC_send_prebuilt_message (&msg.header,
+                               GNUNET_MESSAGE_TYPE_MESH_CONNECTION_DESTROY, 0,
+                               c, GNUNET_NO, GNUNET_YES, NULL, NULL);
   c->destroy = GNUNET_YES;
   c->state = MESH_CONNECTION_DESTROYED;
 }

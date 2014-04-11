@@ -148,8 +148,9 @@ GMP_queue_destroy (struct MeshPeerQueue *queue, int clear_cls, int sent);
  *         message has been sent and therefore the handle is no longer valid.
  */
 struct MeshPeerQueue *
-GMP_queue_add (struct MeshPeer *peer, void *cls, uint16_t type, size_t size,
-               struct MeshConnection *c, int fwd,
+GMP_queue_add (struct MeshPeer *peer, void *cls, uint16_t type,
+               uint16_t payload_type, uint32_t payload_id,
+               size_t size, struct MeshConnection *c, int fwd,
                GMP_sent cont, void *cont_cls);
 
 /**

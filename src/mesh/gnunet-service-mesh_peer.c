@@ -75,12 +75,22 @@ struct MeshPeerQueue
      */
   void *cls;
 
-    /**
-     * Type of message
-     */
+  /**
+   * Type of message
+   */
   uint16_t type;
 
-    /**
+  /**
+   * Type of message
+   */
+  uint16_t payload_type;
+
+  /**
+   * Type of message
+   */
+  uint32_t payload_id;
+
+  /**
      * Size of the message
      */
   size_t size;
@@ -984,8 +994,9 @@ queue_send (void *cls, size_t size, void *buf)
   else
   {
     LOG (GNUNET_ERROR_TYPE_INFO,
-        "ss %s on connection %s (%p) %s (size %u)\n",
-        GM_m2s (queue->type), GMC_2s (c), c, GM_f2s (queue->fwd), data_size);
+         "snd %s (%s %u) on connection %s (%p) %s (size %u)\n",
+         GM_m2s (queue->type), GM_m2s (queue->payload_type),
+         queue->payload_type, GMC_2s (c), c, GM_f2s (queue->fwd), data_size);
   }
 
   /* Free queue, but cls was freed by send_core_* */
@@ -1116,7 +1127,8 @@ GMP_queue_destroy (struct MeshPeerQueue *queue, int clear_cls, int sent)
  *         message has been sent and therefore the handle is no longer valid.
  */
 struct MeshPeerQueue *
-GMP_queue_add (struct MeshPeer *peer, void *cls, uint16_t type, size_t size,
+GMP_queue_add (struct MeshPeer *peer, void *cls, uint16_t type,
+               uint16_t payload_type, uint32_t payload_id, size_t size,
                struct MeshConnection *c, int fwd,
                GMP_sent cont, void *cont_cls)
 {
@@ -1124,8 +1136,10 @@ GMP_queue_add (struct MeshPeer *peer, void *cls, uint16_t type, size_t size,
   int priority;
   int call_core;
 
-  LOG (GNUNET_ERROR_TYPE_INFO, "qq %s on connection %s (%p) %s towards %s (size %u)\n",
-       GM_m2s (type), GMC_2s (c), c, GM_f2s (fwd), GMP_2s(peer), size);
+  LOG (GNUNET_ERROR_TYPE_INFO,
+       "que %s (%s %u) on connection %s (%p) %s towards %s (size %u)\n",
+       GM_m2s (type), GM_m2s (payload_type), payload_id,
+       GMC_2s (c), c, GM_f2s (fwd), GMP_2s (peer), size);
 
   if (NULL == peer->connections)
   {
@@ -1150,6 +1164,8 @@ GMP_queue_add (struct MeshPeer *peer, void *cls, uint16_t type, size_t size,
   queue = GNUNET_new (struct MeshPeerQueue);
   queue->cls = cls;
   queue->type = type;
+  queue->payload_type = payload_type;
+  queue->payload_id = payload_id;
   queue->size = size;
   queue->peer = peer;
   queue->c = c;

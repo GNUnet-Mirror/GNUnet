@@ -1524,7 +1524,7 @@ GMCH_send_data_ack (struct MeshChannel *ch, int fwd)
   }
   rel = fwd ? ch->dest_rel : ch->root_rel;
   ack = rel->mid_recv - 1;
-  LOG (GNUNET_ERROR_TYPE_INFO, "=> DATA_ACK for %u\n", ack);
+  LOG (GNUNET_ERROR_TYPE_INFO, "===> DATA_ACK for %u\n", ack);
 
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_DATA_ACK);
   msg.header.size = htons (sizeof (msg));
@@ -1941,7 +1941,7 @@ GMCH_handle_data (struct MeshChannel *ch,
   GNUNET_STATISTICS_update (stats, "# data received", 1, GNUNET_NO);
 
   mid = ntohl (msg->mid);
-  LOG (GNUNET_ERROR_TYPE_INFO, "<= DATA %u %s on channel %s\n",
+  LOG (GNUNET_ERROR_TYPE_INFO, "<=== DATA %u %s on channel %s\n",
        mid, GM_f2s (fwd), GMCH_2s (ch));
 
   if (GNUNET_NO == ch->reliable ||
@@ -2020,7 +2020,7 @@ GMCH_handle_data_ack (struct MeshChannel *ch,
   }
 
   ack = ntohl (msg->mid);
-  LOG (GNUNET_ERROR_TYPE_INFO, "<= %s ACK %u\n", GM_f2s (fwd), ack);
+  LOG (GNUNET_ERROR_TYPE_INFO, "<=== %s ACK %u\n", GM_f2s (fwd), ack);
 
   if (GNUNET_YES == fwd)
   {
@@ -2295,7 +2295,7 @@ GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   uint16_t type;
 
   type = ntohs (message->type);
-  LOG (GNUNET_ERROR_TYPE_INFO, "=> %s %s on channel %s\n",
+  LOG (GNUNET_ERROR_TYPE_INFO, "===> %s %s on channel %s\n",
        GM_m2s (type), GM_f2s (fwd), GMCH_2s (ch));
 
   if (GMT_is_loopback (ch->t))
@@ -2310,7 +2310,7 @@ GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
     case GNUNET_MESSAGE_TYPE_MESH_DATA:
 
       payload = (struct GNUNET_MESH_Data *) message;
-      LOG (GNUNET_ERROR_TYPE_INFO, "=> %s %u\n",
+      LOG (GNUNET_ERROR_TYPE_INFO, "===> %s %u\n",
            GM_m2s (type), ntohl (payload->mid));
       if (GNUNET_YES == ch->reliable)
       {

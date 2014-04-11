@@ -472,6 +472,7 @@ GMC_cancel (struct MeshConnectionQueue *q);
  *
  * @param message Message to send. Function makes a copy of it.
  *                If message is not hop-by-hop, decrements TTL of copy.
+ * @param payload_type Type of payload, in case the message is encrypted.
  * @param c Connection on which this message is transmitted.
  * @param fwd Is this a fwd message?
  * @param force Force the connection to accept the message (buffer overfill).
@@ -484,6 +485,7 @@ GMC_cancel (struct MeshConnectionQueue *q);
  */
 struct MeshConnectionQueue *
 GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
+                           uint16_t payload_type, uint32_t payload_id,
                            struct MeshConnection *c, int fwd, int force,
                            GMC_sent cont, void *cont_cls);
 

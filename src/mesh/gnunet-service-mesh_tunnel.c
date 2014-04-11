@@ -804,6 +804,7 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   struct GNUNET_MESH_Encrypted *msg;
   size_t size = ntohs (message->size);
   char cbuf[sizeof (struct GNUNET_MESH_Encrypted) + size];
+  uint32_t mid;
   uint32_t iv;
   uint16_t type;
   int fwd;
@@ -851,12 +852,18 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
     return NULL;
   }
 
+  mid = 0;
   type = ntohs (message->type);
   switch (type)
   {
-    case GNUNET_MESSAGE_TYPE_MESH_KEEPALIVE:
     case GNUNET_MESSAGE_TYPE_MESH_DATA:
     case GNUNET_MESSAGE_TYPE_MESH_DATA_ACK:
+      if (GNUNET_MESSAGE_TYPE_MESH_DATA == type)
+        mid = ntohl (((struct GNUNET_MESH_Data *) message)->mid);
+      else
+        mid = ntohl (((struct GNUNET_MESH_DataACK *) message)->mid);
+      /* Fall thru */
+    case GNUNET_MESSAGE_TYPE_MESH_KEEPALIVE:
     case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_CREATE:
     case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_DESTROY:
     case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_ACK:
@@ -865,8 +872,7 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
       msg->ttl = htonl (default_ttl);
       break;
     default:
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "unkown type %s\n",
-           GM_m2s (type));
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "unkown type %s\n", GM_m2s (type));
       GNUNET_break (0);
   }
 
@@ -874,7 +880,9 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
 
   if (NULL == cont)
   {
-    (void) GMC_send_prebuilt_message (&msg->header, c, fwd, force, NULL, NULL);
+    GNUNET_break (NULL ==
+                  GMC_send_prebuilt_message (&msg->header, type, mid,
+                                             c, fwd, force, NULL, NULL));
     return NULL;
   }
   if (NULL == existing_q)
@@ -886,7 +894,7 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
     tq = existing_q;
     tq->tqd = NULL;
   }
-  tq->cq = GMC_send_prebuilt_message (&msg->header, c, fwd, force,
+  tq->cq = GMC_send_prebuilt_message (&msg->header, type, mid, c, fwd, force,
                                       &tun_message_sent, tq);
   tq->cont = cont;
   tq->cont_cls = cont_cls;
@@ -1012,7 +1020,8 @@ send_kx (struct MeshTunnel3 *t,
 
   fwd = GMC_is_origin (t->connection_head->c, GNUNET_YES);
   /* TODO save handle and cancel in case of a unneeded retransmission */
-  GMC_send_prebuilt_message (&msg->header, c, fwd, GNUNET_YES, NULL, NULL);
+  GMC_send_prebuilt_message (&msg->header, GNUNET_MESSAGE_TYPE_MESH_KX,
+                             message->type, c, fwd, GNUNET_YES, NULL, NULL);
 }
 
 
