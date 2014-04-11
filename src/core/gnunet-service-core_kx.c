@@ -237,50 +237,6 @@ GNUNET_NETWORK_STRUCT_END
 
 
 /**
- * State machine for our P2P encryption handshake.  Everyone starts in
- * "DOWN", if we receive the other peer's key (other peer initiated)
- * we start in state RECEIVED (since we will immediately send our
- * own); otherwise we start in SENT.  If we get back a PONG from
- * within either state, we move up to CONFIRMED (the PONG will always
- * be sent back encrypted with the key we sent to the other peer).
- */
-enum KxStateMachine
-{
-  /**
-   * No handshake yet.
-   */
-  KX_STATE_DOWN,
-
-  /**
-   * We've sent our session key.
-   */
-  KX_STATE_KEY_SENT,
-
-  /**
-   * We've received the other peers session key.
-   */
-  KX_STATE_KEY_RECEIVED,
-
-  /**
-   * The other peer has confirmed our session key + PING with a PONG
-   * message encrypted with his session key (which we got).  Key
-   * exchange is done.
-   */
-  KX_STATE_UP,
-
-  /**
-   * We're rekeying (or had a timeout), so we have sent the other peer
-   * our new ephemeral key, but we did not get a matching PONG yet.
-   * This is equivalent to being 'KX_STATE_KEY_RECEIVED', except that
-   * the session is marked as 'up' with sessions (as we don't want to
-   * drop and re-establish P2P connections simply due to rekeying).
-   */
-  KX_STATE_REKEY_SENT
-
-};
-
-
-/**
  * Information about the status of a key exchange with another peer.
  */
 struct GSC_KeyExchangeInfo
@@ -373,7 +329,7 @@ struct GSC_KeyExchangeInfo
   /**
    * What is our connection status?
    */
-  enum KxStateMachine status;
+  enum GNUNET_CORE_KxState status;
 
 };
 
@@ -413,6 +369,57 @@ static struct GSC_KeyExchangeInfo *kx_tail;
  * ephemeral key.
  */
 static GNUNET_SCHEDULER_TaskIdentifier rekey_task;
+
+/**
+ * Notification context for all monitors.
+ */
+static struct GNUNET_SERVER_NotificationContext *nc;
+
+
+/**
+ * Inform the given monitor about the KX state of
+ * the given peer.
+ *
+ * @param mc monitor to inform
+ * @param kx key exchange state to inform about
+ */
+static void
+monitor_notify (struct GNUNET_SERVER_Client *client,
+                struct GSC_KeyExchangeInfo *kx)
+{
+  struct MonitorNotifyMessage msg;
+
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_MONITOR_NOTIFY);
+  msg.header.size = htons (sizeof (msg));
+  msg.state = htonl ((uint32_t) kx->status);
+  msg.peer = kx->peer;
+  msg.timeout = GNUNET_TIME_absolute_hton (kx->timeout);
+  GNUNET_SERVER_notification_context_unicast (nc,
+                                              client,
+                                              &msg.header,
+                                              GNUNET_NO);
+}
+
+
+/**
+ * Inform all monitors about the KX state of the given peer.
+ *
+ * @param kx key exchange state to inform about
+ */
+static void
+monitor_notify_all (struct GSC_KeyExchangeInfo *kx)
+{
+  struct MonitorNotifyMessage msg;
+
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_MONITOR_NOTIFY);
+  msg.header.size = htons (sizeof (msg));
+  msg.state = htonl ((uint32_t) kx->status);
+  msg.peer = kx->peer;
+  msg.timeout = GNUNET_TIME_absolute_hton (kx->timeout);
+  GNUNET_SERVER_notification_context_broadcast (nc,
+                                                &msg.header,
+                                                GNUNET_NO);
+}
 
 
 /**
@@ -570,8 +577,9 @@ do_decrypt (struct GSC_KeyExchangeInfo *kx,
     GNUNET_break (0);
     return GNUNET_NO;
   }
-  if ( (kx->status != KX_STATE_KEY_RECEIVED) && (kx->status != KX_STATE_UP) &&
-       (kx->status != KX_STATE_REKEY_SENT) )
+  if ( (kx->status != GNUNET_CORE_KX_STATE_KEY_RECEIVED) &&
+       (kx->status != GNUNET_CORE_KX_STATE_UP) &&
+       (kx->status != GNUNET_CORE_KX_STATE_REKEY_SENT) )
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
@@ -622,7 +630,7 @@ set_key_retry_task (void *cls,
 
   kx->retry_set_key_task = GNUNET_SCHEDULER_NO_TASK;
   kx->set_key_retry_frequency = GNUNET_TIME_STD_BACKOFF (kx->set_key_retry_frequency);
-  GNUNET_assert (KX_STATE_DOWN != kx->status);
+  GNUNET_assert (GNUNET_CORE_KX_STATE_DOWN != kx->status);
   send_key (kx);
 }
 
@@ -678,10 +686,14 @@ GSC_KX_start (const struct GNUNET_PeerIdentity *pid)
   GNUNET_CONTAINER_DLL_insert (kx_head,
 			       kx_tail,
 			       kx);
-  GNUNET_CRYPTO_hash (pid, sizeof (struct GNUNET_PeerIdentity), &h1);
-  GNUNET_CRYPTO_hash (&GSC_my_identity, sizeof (struct GNUNET_PeerIdentity), &h2);
-
-  kx->status = KX_STATE_KEY_SENT;
+  kx->status = GNUNET_CORE_KX_STATE_KEY_SENT;
+  monitor_notify_all (kx);
+  GNUNET_CRYPTO_hash (pid,
+                      sizeof (struct GNUNET_PeerIdentity),
+                      &h1);
+  GNUNET_CRYPTO_hash (&GSC_my_identity,
+                      sizeof (struct GNUNET_PeerIdentity),
+                      &h2);
   if (0 < GNUNET_CRYPTO_hash_cmp (&h1,
 				  &h2))
   {
@@ -722,6 +734,8 @@ GSC_KX_stop (struct GSC_KeyExchangeInfo *kx)
     GNUNET_SCHEDULER_cancel (kx->keep_alive_task);
     kx->keep_alive_task = GNUNET_SCHEDULER_NO_TASK;
   }
+  kx->status = GNUNET_CORE_KX_PEER_DISCONNECT;
+  monitor_notify_all (kx);
   GNUNET_CONTAINER_DLL_remove (kx_head,
 			       kx_tail,
 			       kx);
@@ -791,7 +805,7 @@ GSC_KX_handle_ephemeral_key (struct GSC_KeyExchangeInfo *kx,
   struct GNUNET_TIME_Absolute start_t;
   struct GNUNET_TIME_Absolute end_t;
   struct GNUNET_TIME_Absolute now;
-  enum KxStateMachine sender_status;
+  enum GNUNET_CORE_KxState sender_status;
   uint16_t size;
 
   size = ntohs (msg->size);
@@ -802,9 +816,9 @@ GSC_KX_handle_ephemeral_key (struct GSC_KeyExchangeInfo *kx,
   }
   m = (const struct EphemeralKeyMessage *) msg;
   end_t = GNUNET_TIME_absolute_ntoh (m->expiration_time);
-  if ( ( (KX_STATE_KEY_RECEIVED == kx->status) ||
-	 (KX_STATE_UP == kx->status) ||
-	 (KX_STATE_REKEY_SENT == kx->status) ) &&
+  if ( ( (GNUNET_CORE_KX_STATE_KEY_RECEIVED == kx->status) ||
+	 (GNUNET_CORE_KX_STATE_UP == kx->status) ||
+	 (GNUNET_CORE_KX_STATE_REKEY_SENT == kx->status) ) &&
        (end_t.abs_value_us <= kx->foreign_key_expires.abs_value_us) )
   {
     GNUNET_STATISTICS_update (GSC_stats, gettext_noop ("# old ephemeral keys ignored"),
@@ -862,18 +876,18 @@ GSC_KX_handle_ephemeral_key (struct GSC_KeyExchangeInfo *kx,
                             GNUNET_NO);
 
   /* check if we still need to send the sender our key */
-  sender_status = (enum KxStateMachine) ntohl (m->sender_status);
+  sender_status = (enum GNUNET_CORE_KxState) ntohl (m->sender_status);
   switch (sender_status)
   {
-  case KX_STATE_DOWN:
+  case GNUNET_CORE_KX_STATE_DOWN:
     GNUNET_break_op (0);
     break;
-  case KX_STATE_KEY_SENT:
+  case GNUNET_CORE_KX_STATE_KEY_SENT:
     /* fine, need to send our key after updating our status, see below */
     break;
-  case KX_STATE_KEY_RECEIVED:
-  case KX_STATE_UP:
-  case KX_STATE_REKEY_SENT:
+  case GNUNET_CORE_KX_STATE_KEY_RECEIVED:
+  case GNUNET_CORE_KX_STATE_UP:
+  case GNUNET_CORE_KX_STATE_REKEY_SENT:
     /* other peer already got our key */
     break;
   default:
@@ -883,35 +897,38 @@ GSC_KX_handle_ephemeral_key (struct GSC_KeyExchangeInfo *kx,
   /* check if we need to confirm everything is fine via PING + PONG */
   switch (kx->status)
   {
-  case KX_STATE_DOWN:
+  case GNUNET_CORE_KX_STATE_DOWN:
     GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == kx->keep_alive_task);
-    kx->status = KX_STATE_KEY_RECEIVED;
-    if (KX_STATE_KEY_SENT == sender_status)
+    kx->status = GNUNET_CORE_KX_STATE_KEY_RECEIVED;
+    monitor_notify_all (kx);
+    if (GNUNET_CORE_KX_STATE_KEY_SENT == sender_status)
       send_key (kx);
     send_ping (kx);
     break;
-  case KX_STATE_KEY_SENT:
+  case GNUNET_CORE_KX_STATE_KEY_SENT:
     GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == kx->keep_alive_task);
-    kx->status = KX_STATE_KEY_RECEIVED;
-    if (KX_STATE_KEY_SENT == sender_status)
+    kx->status = GNUNET_CORE_KX_STATE_KEY_RECEIVED;
+    monitor_notify_all (kx);
+    if (GNUNET_CORE_KX_STATE_KEY_SENT == sender_status)
       send_key (kx);
     send_ping (kx);
     break;
-  case KX_STATE_KEY_RECEIVED:
+  case GNUNET_CORE_KX_STATE_KEY_RECEIVED:
     GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == kx->keep_alive_task);
-    if (KX_STATE_KEY_SENT == sender_status)
+    if (GNUNET_CORE_KX_STATE_KEY_SENT == sender_status)
       send_key (kx);
     send_ping (kx);
     break;
-  case KX_STATE_UP:
-    kx->status = KX_STATE_REKEY_SENT;
-    if (KX_STATE_KEY_SENT == sender_status)
+  case GNUNET_CORE_KX_STATE_UP:
+    kx->status = GNUNET_CORE_KX_STATE_REKEY_SENT;
+    monitor_notify_all (kx);
+    if (GNUNET_CORE_KX_STATE_KEY_SENT == sender_status)
       send_key (kx);
     /* we got a new key, need to reconfirm! */
     send_ping (kx);
     break;
-  case KX_STATE_REKEY_SENT:
-    if (KX_STATE_KEY_SENT == sender_status)
+  case GNUNET_CORE_KX_STATE_REKEY_SENT:
+    if (GNUNET_CORE_KX_STATE_KEY_SENT == sender_status)
       send_key (kx);
     /* we got a new key, need to reconfirm! */
     send_ping (kx);
@@ -950,9 +967,9 @@ GSC_KX_handle_ping (struct GSC_KeyExchangeInfo *kx,
   GNUNET_STATISTICS_update (GSC_stats,
                             gettext_noop ("# PING messages received"), 1,
                             GNUNET_NO);
-  if ( (kx->status != KX_STATE_KEY_RECEIVED) &&
-       (kx->status != KX_STATE_UP) &&
-       (kx->status != KX_STATE_REKEY_SENT))
+  if ( (kx->status != GNUNET_CORE_KX_STATE_KEY_RECEIVED) &&
+       (kx->status != GNUNET_CORE_KX_STATE_UP) &&
+       (kx->status != GNUNET_CORE_KX_STATE_REKEY_SENT))
   {
     /* ignore */
     GNUNET_STATISTICS_update (GSC_stats,
@@ -1029,7 +1046,8 @@ send_keep_alive (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                               gettext_noop ("# sessions terminated by timeout"),
                               1, GNUNET_NO);
     GSC_SESSIONS_end (&kx->peer);
-    kx->status = KX_STATE_KEY_SENT;
+    kx->status = GNUNET_CORE_KX_STATE_KEY_SENT;
+    monitor_notify_all (kx);
     send_key (kx);
     return;
   }
@@ -1097,21 +1115,21 @@ GSC_KX_handle_pong (struct GSC_KeyExchangeInfo *kx,
                             GNUNET_NO);
   switch (kx->status)
   {
-  case KX_STATE_DOWN:
+  case GNUNET_CORE_KX_STATE_DOWN:
     GNUNET_STATISTICS_update (GSC_stats,
 			      gettext_noop ("# PONG messages dropped (connection down)"), 1,
 			      GNUNET_NO);
     return;
-  case KX_STATE_KEY_SENT:
+  case GNUNET_CORE_KX_STATE_KEY_SENT:
     GNUNET_STATISTICS_update (GSC_stats,
 			      gettext_noop ("# PONG messages dropped (out of order)"), 1,
 			      GNUNET_NO);
     return;
-  case KX_STATE_KEY_RECEIVED:
+  case GNUNET_CORE_KX_STATE_KEY_RECEIVED:
     break;
-  case KX_STATE_UP:
+  case GNUNET_CORE_KX_STATE_UP:
     break;
-  case KX_STATE_REKEY_SENT:
+  case GNUNET_CORE_KX_STATE_REKEY_SENT:
     break;
   default:
     GNUNET_break (0);
@@ -1159,35 +1177,37 @@ GSC_KX_handle_pong (struct GSC_KeyExchangeInfo *kx,
   }
   switch (kx->status)
   {
-  case KX_STATE_DOWN:
+  case GNUNET_CORE_KX_STATE_DOWN:
     GNUNET_assert (0);           /* should be impossible */
     return;
-  case KX_STATE_KEY_SENT:
+  case GNUNET_CORE_KX_STATE_KEY_SENT:
     GNUNET_assert (0);           /* should be impossible */
     return;
-  case KX_STATE_KEY_RECEIVED:
+  case GNUNET_CORE_KX_STATE_KEY_RECEIVED:
     GNUNET_STATISTICS_update (GSC_stats,
                               gettext_noop
                               ("# session keys confirmed via PONG"), 1,
                               GNUNET_NO);
-    kx->status = KX_STATE_UP;
+    kx->status = GNUNET_CORE_KX_STATE_UP;
+    monitor_notify_all (kx);
     GSC_SESSIONS_create (&kx->peer, kx);
     GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == kx->keep_alive_task);
     update_timeout (kx);
     break;
-  case KX_STATE_UP:
+  case GNUNET_CORE_KX_STATE_UP:
     GNUNET_STATISTICS_update (GSC_stats,
                               gettext_noop
                               ("# timeouts prevented via PONG"), 1,
                               GNUNET_NO);
     update_timeout (kx);
     break;
-  case KX_STATE_REKEY_SENT:
+  case GNUNET_CORE_KX_STATE_REKEY_SENT:
     GNUNET_STATISTICS_update (GSC_stats,
                               gettext_noop
                               ("# rekey operations confirmed via PONG"), 1,
                               GNUNET_NO);
-    kx->status = KX_STATE_UP;
+    kx->status = GNUNET_CORE_KX_STATE_UP;
+    monitor_notify_all (kx);
     update_timeout (kx);
     break;
   default:
@@ -1205,7 +1225,7 @@ GSC_KX_handle_pong (struct GSC_KeyExchangeInfo *kx,
 static void
 send_key (struct GSC_KeyExchangeInfo *kx)
 {
-  GNUNET_assert (KX_STATE_DOWN != kx->status);
+  GNUNET_assert (GNUNET_CORE_KX_STATE_DOWN != kx->status);
   if (GNUNET_SCHEDULER_NO_TASK != kx->retry_set_key_task)
   {
      GNUNET_SCHEDULER_cancel (kx->retry_set_key_task);
@@ -1321,7 +1341,7 @@ GSC_KX_handle_encrypted_message (struct GSC_KeyExchangeInfo *kx,
     return;
   }
   m = (const struct EncryptedMessage *) msg;
-  if (KX_STATE_UP != kx->status)
+  if (GNUNET_CORE_KX_STATE_UP != kx->status)
   {
     GNUNET_STATISTICS_update (GSC_stats,
                               gettext_noop
@@ -1343,7 +1363,8 @@ GSC_KX_handle_encrypted_message (struct GSC_KeyExchangeInfo *kx,
       GNUNET_SCHEDULER_cancel (kx->keep_alive_task);
       kx->keep_alive_task = GNUNET_SCHEDULER_NO_TASK;
     }
-    kx->status = KX_STATE_KEY_SENT;
+    kx->status = GNUNET_CORE_KX_STATE_KEY_SENT;
+    monitor_notify_all (kx);
     send_key (kx);
     return;
   }
@@ -1473,7 +1494,7 @@ deliver_message (void *cls,
 {
   struct DeliverMessageContext *dmc = client;
 
-  if (KX_STATE_UP != dmc->kx->status)
+  if (GNUNET_CORE_KX_STATE_UP != dmc->kx->status)
   {
     GNUNET_STATISTICS_update (GSC_stats,
                               gettext_noop
@@ -1560,15 +1581,18 @@ do_rekey (void *cls,
   sign_ephemeral_key ();
   for (pos = kx_head; NULL != pos; pos = pos->next)
   {
-    if (KX_STATE_UP == pos->status)
+    if (GNUNET_CORE_KX_STATE_UP == pos->status)
     {
-      pos->status = KX_STATE_REKEY_SENT;
+      pos->status = GNUNET_CORE_KX_STATE_REKEY_SENT;
+      monitor_notify_all (pos);
       derive_session_keys (pos);
     }
-    if (KX_STATE_DOWN == pos->status)
+    if (GNUNET_CORE_KX_STATE_DOWN == pos->status)
     {
-      pos->status = KX_STATE_KEY_SENT;
+      pos->status = GNUNET_CORE_KX_STATE_KEY_SENT;
+      monitor_notify_all (pos);
     }
+    monitor_notify_all (pos);
     send_key (pos);
   }
 }
@@ -1578,11 +1602,15 @@ do_rekey (void *cls,
  * Initialize KX subsystem.
  *
  * @param pk private key to use for the peer
+ * @param server the server of the CORE service
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
  */
 int
-GSC_KX_init (struct GNUNET_CRYPTO_EddsaPrivateKey *pk)
+GSC_KX_init (struct GNUNET_CRYPTO_EddsaPrivateKey *pk,
+             struct GNUNET_SERVER_Handle *server)
 {
+  nc = GNUNET_SERVER_notification_context_create (server,
+                                                  1);
   my_private_key = pk;
   GNUNET_CRYPTO_eddsa_key_get_public (my_private_key,
 						  &GSC_my_identity.public_key);
@@ -1629,6 +1657,46 @@ GSC_KX_done ()
     GNUNET_SERVER_mst_destroy (mst);
     mst = NULL;
   }
+  if (NULL != nc)
+  {
+    GNUNET_SERVER_notification_context_destroy (nc);
+    nc = NULL;
+  }
 }
+
+
+/**
+ * Handle #GNUNET_MESSAGE_TYPE_CORE_MONITOR_PEERS request.  For this
+ * request type, the client does not have to have transmitted an INIT
+ * request.  All current peers are returned, regardless of which
+ * message types they accept.
+ *
+ * @param cls unused
+ * @param client client sending the iteration request
+ * @param message iteration request message
+ */
+void
+GSC_KX_handle_client_monitor_peers (void *cls,
+                                    struct GNUNET_SERVER_Client *client,
+                                    const struct GNUNET_MessageHeader *message)
+{
+  struct MonitorNotifyMessage done_msg;
+  struct GSC_KeyExchangeInfo *kx;
+
+  GNUNET_SERVER_notification_context_add (nc,
+                                          client);
+  for (kx = kx_head; NULL != kx; kx = kx->next)
+    monitor_notify (client, kx);
+  done_msg.header.size = htons (sizeof (struct MonitorNotifyMessage));
+  done_msg.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_MONITOR_NOTIFY);
+  done_msg.state = htonl ((uint32_t) GNUNET_CORE_KX_ITERATION_FINISHED);
+  memset (&done_msg.peer, 0, sizeof (struct GNUNET_PeerIdentity));
+  done_msg.timeout = GNUNET_TIME_absolute_hton (GNUNET_TIME_UNIT_FOREVER_ABS);
+  GNUNET_SERVER_notification_context_unicast (nc,
+                                              client,
+                                              &done_msg.header,
+                                              GNUNET_NO);
+}
+
 
 /* end of gnunet-service-core_kx.c */

@@ -732,59 +732,6 @@ GSC_SESSIONS_transmit (struct GSC_ClientActiveRequest *car,
 
 
 /**
- * Helper function for #GSC_SESSIONS_handle_client_iterate_peers().
- *
- * @param cls the `struct GNUNET_SERVER_TransmitContext` to queue replies
- * @param key identity of the connected peer
- * @param value the `struct Neighbour` for the peer
- * @return #GNUNET_OK (continue to iterate)
- */
-static int
-queue_connect_message (void *cls,
-                       const struct GNUNET_PeerIdentity *key,
-                       void *value)
-{
-  struct GNUNET_SERVER_TransmitContext *tc = cls;
-  struct Session *session = value;
-  struct ConnectNotifyMessage cnm;
-
-  /* FIXME: code duplication with clients... */
-  cnm.header.size = htons (sizeof (struct ConnectNotifyMessage));
-  cnm.header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_CONNECT);
-  cnm.reserved = htonl (0);
-  cnm.peer = session->peer;
-  GNUNET_SERVER_transmit_context_append_message (tc, &cnm.header);
-  return GNUNET_OK;
-}
-
-
-/**
- * Handle CORE_ITERATE_PEERS request. For this request type, the client
- * does not have to have transmitted an INIT request.  All current peers
- * are returned, regardless of which message types they accept.
- *
- * @param cls unused
- * @param client client sending the iteration request
- * @param message iteration request message
- */
-void
-GSC_SESSIONS_handle_client_iterate_peers (void *cls,
-                                          struct GNUNET_SERVER_Client *client,
-                                          const struct GNUNET_MessageHeader *message)
-{
-  struct GNUNET_MessageHeader done_msg;
-  struct GNUNET_SERVER_TransmitContext *tc;
-
-  tc = GNUNET_SERVER_transmit_context_create (client);
-  GNUNET_CONTAINER_multipeermap_iterate (sessions, &queue_connect_message, tc);
-  done_msg.size = htons (sizeof (struct GNUNET_MessageHeader));
-  done_msg.type = htons (GNUNET_MESSAGE_TYPE_CORE_ITERATE_PEERS_END);
-  GNUNET_SERVER_transmit_context_append_message (tc, &done_msg);
-  GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
-}
-
-
-/**
  * We've received a typemap message from a peer, update ours.
  * Notifies clients about the session.
  *

@@ -62,7 +62,7 @@ struct InitMessage
 {
 
   /**
-   * Header with type GNUNET_MESSAGE_TYPE_CORE_INIT.
+   * Header with type #GNUNET_MESSAGE_TYPE_CORE_INIT.
    */
   struct GNUNET_MessageHeader header;
 
@@ -82,7 +82,7 @@ struct InitReplyMessage
 {
 
   /**
-   * Header with type GNUNET_MESSAGE_TYPE_CORE_INIT_REPLY
+   * Header with type #GNUNET_MESSAGE_TYPE_CORE_INIT_REPLY
    */
   struct GNUNET_MessageHeader header;
 
@@ -106,7 +106,7 @@ struct InitReplyMessage
 struct ConnectNotifyMessage
 {
   /**
-   * Header with type GNUNET_MESSAGE_TYPE_CORE_NOTIFY_CONNECT
+   * Header with type #GNUNET_MESSAGE_TYPE_CORE_NOTIFY_CONNECT
    */
   struct GNUNET_MessageHeader header;
 
@@ -130,7 +130,7 @@ struct ConnectNotifyMessage
 struct DisconnectNotifyMessage
 {
   /**
-   * Header with type GNUNET_MESSAGE_TYPE_CORE_NOTIFY_DISCONNECT.
+   * Header with type #GNUNET_MESSAGE_TYPE_CORE_NOTIFY_DISCONNECT.
    */
   struct GNUNET_MessageHeader header;
 
@@ -159,8 +159,8 @@ struct DisconnectNotifyMessage
 struct NotifyTrafficMessage
 {
   /**
-   * Header with type GNUNET_MESSAGE_TYPE_CORE_NOTIFY_INBOUND
-   * or GNUNET_MESSAGE_TYPE_CORE_NOTIFY_OUTBOUND.
+   * Header with type #GNUNET_MESSAGE_TYPE_CORE_NOTIFY_INBOUND
+   * or #GNUNET_MESSAGE_TYPE_CORE_NOTIFY_OUTBOUND.
    */
   struct GNUNET_MessageHeader header;
 
@@ -287,6 +287,35 @@ struct SendMessage
    * Always 0.
    */
   uint32_t reserved GNUNET_PACKED;
+
+};
+
+
+/**
+ * Message sent by the service to monitor clients to notify them
+ * about a peer changing status.
+ */
+struct MonitorNotifyMessage
+{
+  /**
+   * Header with type #GNUNET_MESSAGE_TYPE_CORE_MONITOR_NOTIFY
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * New peer state, an `enum GNUNET_CORE_KxState` in NBO.
+   */
+  uint32_t state GNUNET_PACKED;
+
+  /**
+   * Identity of the peer.
+   */
+  struct GNUNET_PeerIdentity peer;
+
+  /**
+   * How long will we stay in this state (if nothing else happens)?
+   */
+  struct GNUNET_TIME_AbsoluteNBO timeout;
 
 };
 

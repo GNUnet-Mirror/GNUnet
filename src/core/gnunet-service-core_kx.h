@@ -118,10 +118,12 @@ GSC_KX_stop (struct GSC_KeyExchangeInfo *kx);
  * Initialize KX subsystem.
  *
  * @param pk private key to use for the peer
+ * @param server the server of the CORE service
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
  */
 int
-GSC_KX_init (struct GNUNET_CRYPTO_EddsaPrivateKey *pk);
+GSC_KX_init (struct GNUNET_CRYPTO_EddsaPrivateKey *pk,
+             struct GNUNET_SERVER_Handle *server);
 
 
 /**
@@ -129,6 +131,23 @@ GSC_KX_init (struct GNUNET_CRYPTO_EddsaPrivateKey *pk);
  */
 void
 GSC_KX_done (void);
+
+
+/**
+ * Handle #GNUNET_MESSAGE_TYPE_CORE_MONITOR_PEERS request.  For this
+ * request type, the client does not have to have transmitted an INIT
+ * request.  All current peers are returned, regardless of which
+ * message types they accept.
+ *
+ * @param cls unused
+ * @param client client sending the iteration request
+ * @param message iteration request message
+ */
+void
+GSC_KX_handle_client_monitor_peers (void *cls,
+                                    struct GNUNET_SERVER_Client *client,
+                                    const struct GNUNET_MessageHeader *message);
+
 
 #endif
 /* end of gnunet-service-core_kx.h */

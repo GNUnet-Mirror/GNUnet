@@ -334,14 +334,14 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_CORE_SEND 76
 
 /**
- * Request for peer iteration from CORE service.
+ * Request for connection monitoring from CORE service.
  */
-#define GNUNET_MESSAGE_TYPE_CORE_ITERATE_PEERS 78
+#define GNUNET_MESSAGE_TYPE_CORE_MONITOR_PEERS 78
 
 /**
- * Last reply from core to request for peer iteration from CORE service.
+ * Reply for monitor by CORE service.
  */
-#define GNUNET_MESSAGE_TYPE_CORE_ITERATE_PEERS_END 79
+#define GNUNET_MESSAGE_TYPE_CORE_MONITOR_NOTIFY 79
 
 /**
  * Encapsulation for an encrypted message between peers.

@@ -101,20 +101,21 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
                                                &keyfile))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _
-                ("Core service is lacking HOSTKEY configuration setting.  Exiting.\n"));
+                _("Core service is lacking HOSTKEY configuration setting.  Exiting.\n"));
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
   GSC_stats = GNUNET_STATISTICS_create ("core", GSC_cfg);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
+                                &shutdown_task,
                                 NULL);
   GNUNET_SERVER_suspend (server);
   GSC_TYPEMAP_init ();
   pk = GNUNET_CRYPTO_eddsa_key_create_from_file (keyfile);
   GNUNET_free (keyfile);
   GNUNET_assert (NULL != pk);
-  if ((GNUNET_OK != GSC_KX_init (pk)) ||
+  if ((GNUNET_OK != GSC_KX_init (pk,
+                                 server)) ||
       (GNUNET_OK != GSC_NEIGHBOURS_init ()))
   {
     GNUNET_SCHEDULER_shutdown ();
@@ -123,7 +124,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   GSC_SESSIONS_init ();
   GSC_CLIENTS_init (GSC_server);
   GNUNET_SERVER_resume (GSC_server);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Core service of `%4s' ready.\n"),
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              _("Core service of `%4s' ready.\n"),
               GNUNET_i2s (&GSC_my_identity));
 }
 
@@ -139,7 +141,8 @@ int
 main (int argc, char *const *argv)
 {
   return (GNUNET_OK ==
-          GNUNET_SERVICE_run (argc, argv, "core", GNUNET_SERVICE_OPTION_NONE,
+          GNUNET_SERVICE_run (argc, argv, "core",
+                              GNUNET_SERVICE_OPTION_NONE,
                               &run, NULL)) ? 0 : 1;
 }
 

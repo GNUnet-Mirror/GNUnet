@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009-2013 Christian Grothoff (and other contributing authors)
+     (C) 2009-2014 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -280,31 +280,132 @@ GNUNET_CORE_notify_transmit_ready (struct GNUNET_CORE_Handle *handle,
  * @param th handle that was returned by "notify_transmit_ready".
  */
 void
-GNUNET_CORE_notify_transmit_ready_cancel (struct GNUNET_CORE_TransmitHandle
-                                          *th);
+GNUNET_CORE_notify_transmit_ready_cancel (struct GNUNET_CORE_TransmitHandle *th);
 
 
 /**
- * Iterate over all connected peers.  Calls @a peer_cb with each
- * connected peer, and then once with NULL to indicate that all peers
- * have been handled.  Normal users of the CORE API are not expected
- * to use this function.  It is different in that it truly lists
- * all connections, not just those relevant to the application.  This
- * function is used by special applications for diagnostics.  This
- * function is NOT part of the 'versioned', 'official' API.
+ * Handle to a CORE monitoring operation.
+ */
+struct GNUNET_CORE_MonitorHandle;
+
+
+/**
+ * State machine for our P2P encryption handshake.  Everyone starts in
+ * #GNUNET_CORE_KX_STATE_DOWN, if we receive the other peer's key
+ * (other peer initiated) we start in state
+ * #GNUNET_CORE_KX_STATE_KEY_RECEIVED (since we will immediately send
+ * our own); otherwise we start in #GNUNET_CORE_KX_STATE_KEY_SENT.  If
+ * we get back a PONG from within either state, we move up to
+ * #GNUNET_CORE_KX_STATE_UP (the PONG will always be sent back
+ * encrypted with the key we sent to the other peer).  Eventually,
+ * we will try to rekey, for this we will enter
+ * #GNUNET_CORE_KX_STATE_REKEY_SENT until the rekey operation is
+ * confirmed by a PONG from the other peer.
+ */
+enum GNUNET_CORE_KxState
+{
+  /**
+   * No handshake yet.
+   */
+  GNUNET_CORE_KX_STATE_DOWN,
+
+  /**
+   * We've sent our session key.
+   */
+  GNUNET_CORE_KX_STATE_KEY_SENT,
+
+  /**
+   * We've received the other peers session key.
+   */
+  GNUNET_CORE_KX_STATE_KEY_RECEIVED,
+
+  /**
+   * The other peer has confirmed our session key + PING with a PONG
+   * message encrypted with his session key (which we got).  Key
+   * exchange is done.
+   */
+  GNUNET_CORE_KX_STATE_UP,
+
+  /**
+   * We're rekeying (or had a timeout), so we have sent the other peer
+   * our new ephemeral key, but we did not get a matching PONG yet.
+   * This is equivalent to being #GNUNET_CORE_KX_STATE_KEY_RECEIVED,
+   * except that the session is marked as 'up' with sessions (as we
+   * don't want to drop and re-establish P2P connections simply due to
+   * rekeying).
+   */
+  GNUNET_CORE_KX_STATE_REKEY_SENT,
+
+  /**
+   * Last state of a KX (when it is being terminated).  Set
+   * just before CORE frees the internal state for this peer.
+   */
+  GNUNET_CORE_KX_PEER_DISCONNECT,
+
+  /**
+   * This is not a state in a peer's state machine, but a special
+   * value used with the #GNUNET_CORE_MonitorCallback to indicate
+   * that we finished the initial iteration over the peers.
+   */
+  GNUNET_CORE_KX_ITERATION_FINISHED,
+
+  /**
+   * This is not a state in a peer's state machine, but a special
+   * value used with the #GNUNET_CORE_MonitorCallback to indicate
+   * that we lost the connection to the CORE service (and will try
+   * to reconnect).  If this happens, most likely the CORE service
+   * crashed and thus all connection state should be assumed lost.
+   */
+  GNUNET_CORE_KX_CORE_DISCONNECT
+
+};
+
+
+/**
+ * Function called by the monitor callback whenever
+ * a peer's connection status changes.
  *
- * FIXME: we should probably make it possible to 'cancel' the
- * operation...
+ * @param cls closure
+ * @param pid identity of the peer this update is about
+ * @param state current key exchange state of the peer
+ * @param timeout when does the current state expire
+ */
+typedef void
+(*GNUNET_CORE_MonitorCallback)(void *cls,
+                               const struct GNUNET_PeerIdentity *pid,
+                               enum GNUNET_CORE_KxState state,
+                               struct GNUNET_TIME_Absolute timeout);
+
+
+/**
+ * Monitor connectivity and KX status of all peers known to CORE.
+ * Calls @a peer_cb with the current status for each connected peer,
+ * and then once with NULL to indicate that all peers that are
+ * currently active have been handled.  After that, the iteration
+ * continues until it is cancelled.  Normal users of the CORE API are
+ * not expected to use this function.  It is different in that it
+ * truly lists all connections (including those where the KX is in
+ * progress), not just those relevant to the application.  This
+ * function is used by special applications for diagnostics.
  *
  * @param cfg configuration handle
  * @param peer_cb function to call with the peer information
- * @param cb_cls closure for @a peer_cb
- * @return #GNUNET_OK on success, #GNUNET_SYSERR on errors
+ * @param peer_cb_cls closure for @a peer_cb
+ * @return NULL on error
  */
-int
-GNUNET_CORE_iterate_peers (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                           GNUNET_CORE_ConnectEventHandler peer_cb,
-                           void *cb_cls);
+struct GNUNET_CORE_MonitorHandle *
+GNUNET_CORE_monitor_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                           GNUNET_CORE_MonitorCallback peer_cb,
+                           void *peer_cb_cls);
+
+
+/**
+ * Stop monitoring CORE activity.
+ *
+ * @param mh monitor to stop
+ */
+void
+GNUNET_CORE_monitor_stop (struct GNUNET_CORE_MonitorHandle *mh);
 
 
 /**

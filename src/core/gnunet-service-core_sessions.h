@@ -118,6 +118,7 @@ GSC_SESSIONS_broadcast (const struct GNUNET_MessageHeader *msg);
 void
 GSC_SESSIONS_notify_client_about_sessions (struct GSC_Client *client);
 
+
 /**
  * We've received a typemap message from a peer, update ours.
  * Notifies clients about the session.
@@ -141,22 +142,6 @@ GSC_SESSIONS_set_typemap (const struct GNUNET_PeerIdentity *peer,
 void
 GSC_SESSIONS_add_to_typemap (const struct GNUNET_PeerIdentity *peer,
                              uint16_t type);
-
-
-/**
- * Handle CORE_ITERATE_PEERS request.  For this request type, the client
- * does not have to have transmitted an INIT request.  All current peers
- * are returned, regardless of which message types they accept.
- *
- * @param cls unused
- * @param client client sending the iteration request
- * @param message iteration request message
- */
-void
-GSC_SESSIONS_handle_client_iterate_peers (void *cls,
-                                          struct GNUNET_SERVER_Client *client,
-                                          const struct GNUNET_MessageHeader
-                                          *message);
 
 
 /**

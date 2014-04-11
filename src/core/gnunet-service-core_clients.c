@@ -600,11 +600,12 @@ destroy_active_client_request (void *cls,
  * @param client identification of the client
  */
 static void
-handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
+handle_client_disconnect (void *cls,
+                          struct GNUNET_SERVER_Client *client)
 {
   struct GSC_Client *c;
 
-  if (client == NULL)
+  if (NULL == client)
     return;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Client %p has disconnected from core service.\n", client);
@@ -840,8 +841,8 @@ GSC_CLIENTS_init (struct GNUNET_SERVER_Handle *server)
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
     {&handle_client_init, NULL,
      GNUNET_MESSAGE_TYPE_CORE_INIT, 0},
-    {&GSC_SESSIONS_handle_client_iterate_peers, NULL,
-     GNUNET_MESSAGE_TYPE_CORE_ITERATE_PEERS,
+    {&GSC_KX_handle_client_monitor_peers, NULL,
+     GNUNET_MESSAGE_TYPE_CORE_MONITOR_PEERS,
      sizeof (struct GNUNET_MessageHeader)},
     {&handle_client_send_request, NULL,
      GNUNET_MESSAGE_TYPE_CORE_SEND_REQUEST,
@@ -855,7 +856,8 @@ GSC_CLIENTS_init (struct GNUNET_SERVER_Handle *server)
   client_mst = GNUNET_SERVER_mst_create (&client_tokenizer_callback, NULL);
   notifier =
       GNUNET_SERVER_notification_context_create (server, MAX_NOTIFY_QUEUE);
-  GNUNET_SERVER_disconnect_notify (server, &handle_client_disconnect, NULL);
+  GNUNET_SERVER_disconnect_notify (server,
+                                   &handle_client_disconnect, NULL);
   GNUNET_SERVER_add_handlers (server, handlers);
 }
 
