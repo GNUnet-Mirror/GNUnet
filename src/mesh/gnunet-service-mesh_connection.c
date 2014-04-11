@@ -2799,7 +2799,11 @@ GMC_is_sendable (struct MeshConnection *c, int fwd)
        " last ack recv: %u, last pid sent: %u, next pid %u\n",
        fc->last_ack_recv, fc->last_pid_sent, fc->next_pid);
   if (GM_is_pid_bigger (fc->last_ack_recv, fc->last_pid_sent))
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " sendable\n");
     return GNUNET_YES;
+  }
+  LOG (GNUNET_ERROR_TYPE_DEBUG, " not sendable\n");
   return GNUNET_NO;
 }
 
