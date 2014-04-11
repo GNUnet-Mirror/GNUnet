@@ -1021,6 +1021,7 @@ queue_send (void *cls, size_t size, void *buf)
   }
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "*  Return %d\n", data_size);
+  queue_debug (peer);
   return data_size;
 }
 
