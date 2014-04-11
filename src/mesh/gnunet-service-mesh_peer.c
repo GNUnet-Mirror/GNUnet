@@ -1129,7 +1129,7 @@ GMP_queue_add (struct MeshPeer *peer, void *cls, uint16_t type, size_t size,
   if (NULL == peer->connections)
   {
     /* We are not connected to this peer, ignore request. */
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "WARNING %s not a neighbor\n", GMP_2s (peer));
+    LOG (GNUNET_ERROR_TYPE_WARNING, "%s not a neighbor\n", GMP_2s (peer));
     GNUNET_STATISTICS_update (stats, "# messages dropped due to wrong hop", 1,
                               GNUNET_NO);
     return NULL;
@@ -1169,8 +1169,8 @@ GMP_queue_add (struct MeshPeer *peer, void *cls, uint16_t type, size_t size,
   if (NULL == peer->core_transmit && GNUNET_YES == call_core)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-                "calling core tmt rdy towards %s for %u bytes\n",
-                GMP_2s (peer), size);
+         "calling core tmt rdy towards %s for %u bytes\n",
+         GMP_2s (peer), size);
     peer->core_transmit =
         GNUNET_CORE_notify_transmit_ready (core_handle,
                                            GNUNET_NO, get_priority (queue),
