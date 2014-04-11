@@ -20,7 +20,7 @@
 
 /**
  * @file core/gnunet-core.c
- * @brief Print information about other known _connected_ peers.
+ * @brief Print information about other peers known to CORE.
  * @author Nathan Evans
  */
 #include "platform.h"
@@ -34,11 +34,6 @@
 static int monitor_connections;
 
 /**
- * Current number of connections in monitor mode
- */
-// static unsigned int monitor_connections_counter;
-
-/**
  * Handle to the CORE monitor.
  */
 static struct GNUNET_CORE_MonitorHandle *mh;
@@ -48,7 +43,7 @@ static struct GNUNET_CORE_MonitorHandle *mh;
  * Task run in monitor mode when the user presses CTRL-C to abort.
  * Stops monitoring activity.
  *
- * @param cls the 'struct GNUNET_TRANSPORT_PeerIterateContext *'
+ * @param cls NULL
  * @param tc scheduler context
  */
 static void
@@ -80,53 +75,54 @@ monitor_cb (void *cls,
 {
   struct GNUNET_TIME_Absolute now = GNUNET_TIME_absolute_get();
   const char *now_str;
+  const char *state_str;
 
-  if ( (NULL == peer) &&
+  if ( ( (NULL == peer) ||
+         (GNUNET_CORE_KX_ITERATION_FINISHED == state) ) &&
        (GNUNET_NO == monitor_connections) )
   {
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
+
+  switch (state)
+  {
+  case GNUNET_CORE_KX_STATE_DOWN:
+    /* should never happen, as we immediately send the key */
+    state_str = _("fresh connection");
+    break;
+  case GNUNET_CORE_KX_STATE_KEY_SENT:
+    state_str = _("key sent");
+    break;
+  case GNUNET_CORE_KX_STATE_KEY_RECEIVED:
+    state_str = _("key received");
+    break;
+  case GNUNET_CORE_KX_STATE_UP:
+    state_str = _("connection established");
+    break;
+  case GNUNET_CORE_KX_STATE_REKEY_SENT:
+    state_str = _("rekeying");
+    break;
+  case GNUNET_CORE_KX_PEER_DISCONNECT:
+    state_str = _("disconnected");
+    break;
+  case GNUNET_CORE_KX_ITERATION_FINISHED:
+    return;
+  case GNUNET_CORE_KX_CORE_DISCONNECT:
+    FPRINTF (stderr,
+             "%s\n",
+             _("Connection to CORE service lost (reconnecting)"));
+    return;
+  default:
+    state_str = _("unknown state");
+    break;
+  }
   now_str = GNUNET_STRINGS_absolute_time_to_string (now);
   FPRINTF (stdout,
-           _("%24s: %-17s %d %4s\n"),
+           _("%24s: %-17s %4s\n"),
            now_str,
-           "FIXME",
-           state,
+           state_str,
            GNUNET_i2s (peer));
-}
-
-
-/**
- * Function called with the result of the check if the CORE
- * service is running.
- *
- * @param cls closure with our configuration
- * @param result #GNUNET_YES if CORE is running
- */
-static void
-testservice_task (void *cls,
-                  int result)
-{
-  const struct GNUNET_CONFIGURATION_Handle *cfg = cls;
-
-  if (GNUNET_OK != result)
-  {
-    FPRINTF (stderr, _("Service `%s' is not running\n"), "core");
-    return;
-  }
-
-  mh = GNUNET_CORE_monitor_start (cfg,
-                                  &monitor_cb,
-                                  NULL);
-  if (NULL == mh)
-  {
-    GNUNET_SCHEDULER_add_now (shutdown_task, NULL);
-    fprintf (stderr, ("Failed to connect to CORE service!\n"));
-    return;
-  }
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                &shutdown_task, NULL);
 }
 
 
@@ -149,9 +145,18 @@ run (void *cls, char *const *args, const char *cfgfile,
              args[0]);
     return;
   }
-  GNUNET_CLIENT_service_test ("core", cfg,
-                              GNUNET_TIME_UNIT_SECONDS,
-                              &testservice_task, (void *) cfg);
+  mh = GNUNET_CORE_monitor_start (cfg,
+                                  &monitor_cb,
+                                  NULL);
+  if (NULL == mh)
+  {
+    FPRINTF (stderr,
+             "%s",
+             _("Failed to connect to CORE service!\n"));
+    return;
+  }
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
+                                &shutdown_task, NULL);
 }
 
 
@@ -163,7 +168,8 @@ run (void *cls, char *const *args, const char *cfgfile,
  * @return 0 ok, 1 on error
  */
 int
-main (int argc, char *const *argv)
+main (int argc,
+      char *const *argv)
 {
   int res;
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {

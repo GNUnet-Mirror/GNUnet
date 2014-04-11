@@ -182,6 +182,7 @@ src/identity/identity_api.c
 src/identity/identity_api_lookup.c
 src/mesh/gnunet-mesh.c
 src/mesh/gnunet-mesh-profiler.c
+src/mesh/gnunet-mesh-profiler.c
 src/mesh/gnunet-service-mesh.c
 src/mesh/gnunet-service-mesh_channel.c
 src/mesh/gnunet-service-mesh_connection.c
