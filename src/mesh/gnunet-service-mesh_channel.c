@@ -1941,13 +1941,14 @@ GMCH_handle_data (struct MeshChannel *ch,
   GNUNET_STATISTICS_update (stats, "# data received", 1, GNUNET_NO);
 
   mid = ntohl (msg->mid);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "!! got mid %u\n", mid);
+  LOG (GNUNET_ERROR_TYPE_INFO, "<= DATA %u %s on channel %s\n",
+       mid, GM_f2s (fwd), GMCH_2s (ch));
 
   if (GNUNET_NO == ch->reliable ||
       ( !GM_is_pid_bigger (rel->mid_recv, mid) &&
         GM_is_pid_bigger (rel->mid_recv + 64, mid) ) )
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! RECV %u (%u)\n",
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "RECV %u (%u)\n",
          mid, ntohs (msg->header.size));
     if (GNUNET_YES == ch->reliable)
     {
