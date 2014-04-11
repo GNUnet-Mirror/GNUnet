@@ -1193,6 +1193,7 @@ GMP_queue_add (struct MeshPeer *peer, void *cls, uint16_t type, size_t size,
          GMP_2s (peer));
 
   }
+  queue_debug (peer);
   return queue;
 }
 
