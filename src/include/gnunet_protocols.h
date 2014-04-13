@@ -634,6 +634,11 @@ extern "C"
  * Message which contains the get result.
  */
 #define GNUNET_MESSAGE_TYPE_DHT_P2P_GET_RESULT                 162
+
+/**
+ * Trail Rejection Message. 
+ */
+#define GNUNET_MESSAGE_TYPE_DHT_P2P_TRAIL_REJECTION            163
 /*******************************************************************************
  * HOSTLIST message types
  ******************************************************************************/

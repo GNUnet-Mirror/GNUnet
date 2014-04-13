@@ -84,8 +84,8 @@ static struct GNUNET_CONTAINER_MultiPeerMap *routing_table;
 int
 GDS_ROUTING_add (struct GNUNET_PeerIdentity *source,
                  struct GNUNET_PeerIdentity *dest,
-                 struct GNUNET_PeerIdentity *next_hop,
-                 const struct GNUNET_PeerIdentity *prev_hop)
+                 const struct GNUNET_PeerIdentity *next_hop,
+                 struct GNUNET_PeerIdentity *prev_hop)
 {
   struct RoutingTrail *new_routing_entry;
     
@@ -102,6 +102,33 @@ GDS_ROUTING_add (struct GNUNET_PeerIdentity *source,
     GNUNET_CONTAINER_multipeermap_put (routing_table,
                                        dest, new_routing_entry,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
+  
+  /* SUPU TEST CODE */
+  /* Here I want to see if routing table is correct or not. */
+  int test_index;
+  struct GNUNET_CONTAINER_MultiPeerMapIterator *test_iter;
+  struct GNUNET_PeerIdentity *print_peer;
+  print_peer = GNUNET_malloc (sizeof (struct GNUNET_PeerIdentity));
+  struct RoutingTrail *test_trail;
+  test_iter = GNUNET_CONTAINER_multipeermap_iterator_create (routing_table); 
+  for (test_index = 0; test_index < GNUNET_CONTAINER_multipeermap_size (routing_table); test_index++)
+  {
+    FPRINTF (stderr,_("\nSUPU %s, %s, %d, entry[%d]"),__FILE__, __func__,__LINE__,test_index);
+    if(GNUNET_YES == GNUNET_CONTAINER_multipeermap_iterator_next (test_iter, NULL,
+                                                                 (const void **)&test_trail)) 
+    {
+      memcpy (print_peer, &(test_trail->source),sizeof (struct GNUNET_PeerIdentity));
+      FPRINTF (stderr,_("\nSUPU %s, %s, %d, test_trail->source =%s"),__FILE__, __func__,__LINE__,GNUNET_i2s (print_peer));
+      memcpy (print_peer, &(test_trail->destination),sizeof (struct GNUNET_PeerIdentity));
+      FPRINTF (stderr,_("\nSUPU %s, %s, %d, test_trail->destination =%s"),__FILE__, __func__,__LINE__,GNUNET_i2s(print_peer));
+      memcpy (print_peer, &(test_trail->prev_hop),sizeof (struct GNUNET_PeerIdentity));
+      FPRINTF (stderr,_("\nSUPU %s, %s, %d, test_trail->prev_hop =%s"),__FILE__, __func__,__LINE__,GNUNET_i2s(print_peer));
+      memcpy (print_peer, &(test_trail->next_hop),sizeof (struct GNUNET_PeerIdentity));
+      FPRINTF (stderr,_("\nSUPU %s, %s, %d, test_trail->next_hop =%s"),__FILE__, __func__,__LINE__,GNUNET_i2s(print_peer));
+      
+    }
+  }
+  /* SUPU TEST CODE ENDS*/
   return GNUNET_YES;
 }
 
@@ -189,6 +216,18 @@ GDS_ROUTING_process (enum GNUNET_BLOCK_Type type,
                      const void *data, size_t data_size)
 {
   return;
+}
+
+/**
+ * Check if the size of routing table has crossed threshold. 
+ * @return 
+ */
+int
+GDS_ROUTING_size ()
+{
+  int ret;
+  ret = (GNUNET_CONTAINER_multipeermap_size(routing_table) > ROUTING_TABLE_THRESHOLD) ? 0:1;
+  return ret;    
 }
 
 

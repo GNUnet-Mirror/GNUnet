@@ -37,8 +37,8 @@
 int
 GDS_ROUTING_add (struct GNUNET_PeerIdentity *source,
                  struct GNUNET_PeerIdentity *destination_peer,
-                 struct GNUNET_PeerIdentity *next_hop,
-                 const struct GNUNET_PeerIdentity *prev_hop);
+                 const struct GNUNET_PeerIdentity *next_hop,
+                 struct GNUNET_PeerIdentity *prev_hop);
 
 
 /**
@@ -75,6 +75,12 @@ GDS_ROUTING_process (enum GNUNET_BLOCK_Type type,
                      unsigned int get_path_length,
                      const struct GNUNET_PeerIdentity *get_path,
                      const void *data, size_t data_size);
+
+/**
+ * Check if size of routing table is greater than threshold or not. 
+ */
+int
+GDS_ROUTING_size (void);
 
 /**
  * Initialize routing subsystem.

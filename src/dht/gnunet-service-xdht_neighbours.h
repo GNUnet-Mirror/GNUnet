@@ -73,6 +73,7 @@ GDS_NEIGHBOURS_handle_put (enum GNUNET_BLOCK_Type type,
                            struct GNUNET_PeerIdentity *put_path,
                            const void *data, size_t data_size,
                            struct GNUNET_PeerIdentity *current_destination,
+                           struct GNUNET_PeerIdentity *current_source,
                            enum current_destination_type dest_type,
                            struct GNUNET_PeerIdentity *target_peer_id);
 
@@ -85,34 +86,71 @@ GDS_NEIGHBOURS_handle_put (enum GNUNET_BLOCK_Type type,
  * @param key
  */
 void
-GDS_NEIGHBOURS_handle_get (struct GNUNET_PeerIdentity *source_peer, 
-                           struct GNUNET_PeerIdentity *get_path,
+GDS_NEIGHBOURS_handle_get (enum GNUNET_BLOCK_Type block_type,
+                           enum GNUNET_DHT_RouteOption options,
+                           uint32_t desired_replication_level,
+                           uint32_t hop_count,
+                           struct GNUNET_PeerIdentity *get_peer_path,
                            unsigned int get_path_length,
                            struct GNUNET_HashCode *key,
                            struct GNUNET_PeerIdentity *target_peer,
                            struct GNUNET_PeerIdentity *current_destination,
-                           enum current_destination_type *type);
+                           struct GNUNET_PeerIdentity *current_source,
+                           enum current_destination_type *current_dest_type);
+
 
 /**
- * Send get result back to requesting client.
- * @param source_peer
+ * FIXME: I am removing source peer as the first element in the trail
+ * is source identity.
+ * Send get result back to requesting client. 
+ * @param expiration when will the reply expire
+ * @param key the query this reply is for
+ * @param get_path_length number of peers in @a get_path
+ * @param get_path path the reply took on get
+ * @param put_path_length number of peers in @a put_path
+ * @param put_path path the reply took on put
+ * @param type type of the reply
+ * @param data_size number of bytes in @a data
+ * @param data application payload data
  * @param get_path
  * @param get_path_length
- * @param key
- * @param destination_peer
- * @param current_path_index
- * @param data
- * @param data_size
  */
 void 
-GDS_NEIGHBOURS_send_get_result (struct GNUNET_PeerIdentity *source_peer,
+GDS_NEIGHBOURS_send_get_result (struct GNUNET_TIME_Absolute expiration,
+                                const struct GNUNET_HashCode *key,
+                                unsigned int put_path_length,
+                                const struct GNUNET_PeerIdentity *put_path,
+                                enum GNUNET_BLOCK_Type type, size_t data_size,
+                                const void *data,
                                 struct GNUNET_PeerIdentity *get_path,
                                 unsigned int get_path_length,
-                                struct GNUNET_HashCode *key,
-                                struct GNUNET_PeerIdentity *destination_peer,
-                                unsigned int current_path_index,
-                                const void *data, size_t data_size,
-                                struct GNUNET_PeerIdentity *next_peer);
+                                unsigned int current_trail_index,
+                                struct GNUNET_PeerIdentity *next_hop);
+
+/**
+ * FIXME: Here you should update the fields of struct PeerGetResultMessage.
+ * At the end of this message you should add the data and get path and send 
+ * to the original requesting client. and there you should call GDS_CLIENT_handle_reply
+ * with correct parameter. 
+ * @param expiration
+ * @param key
+ * @param get_path_length
+ * @param get_path
+ * @param put_path_length
+ * @param put_path
+ * @param type
+ * @param data_size
+ * @param data
+ */
+void 
+GDS_NEIGHBOURS_datacache_get (struct GNUNET_TIME_Absolute expiration,
+                              const struct GNUNET_HashCode *key,
+                              unsigned int get_path_length,
+                              const struct GNUNET_PeerIdentity *get_path,
+                              unsigned int put_path_length,
+                              const struct GNUNET_PeerIdentity *put_path,
+                              enum GNUNET_BLOCK_Type type, size_t data_size,
+                              const void *data);
 
 
 /**

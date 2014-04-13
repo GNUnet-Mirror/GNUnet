@@ -19,13 +19,13 @@
 */
 
 /**
- * @file dht/gnunet-service-xdht_datacache.h
+ * @file dht/gnunet-service-dht_datacache.h
  * @brief GNUnet DHT service's datacache integration
  * @author Christian Grothoff
  * @author Nathan Evans
  */
-#ifndef GNUNET_SERVICE_XDHT_DATACACHE_H
-#define GNUNET_SERVICE_XDHT_DATACACHE_H
+#ifndef GNUNET_SERVICE_DHT_DATACACHE_H
+#define GNUNET_SERVICE_DHT_DATACACHE_H
 
 #include "gnunet_util_lib.h"
 #include "gnunet_block_lib.h"
@@ -67,7 +67,11 @@ GDS_DATACACHE_handle_get (const struct GNUNET_HashCode * key,
                           enum GNUNET_BLOCK_Type type, const void *xquery,
                           size_t xquery_size,
                           struct GNUNET_CONTAINER_BloomFilter **reply_bf,
-                          uint32_t reply_bf_mutator);
+                          uint32_t reply_bf_mutator,
+                          uint32_t get_path_length,
+                          struct GNUNET_PeerIdentity *get_path,
+                          unsigned int current_trail_index,
+                          struct GNUNET_PeerIdentity *next_hop);
 
 
 /**

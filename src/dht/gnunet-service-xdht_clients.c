@@ -843,15 +843,14 @@ transmit_request (struct ClientQueryRecord *cqr)
        GNUNET_h2s (&cqr->key),
        cqr->replication,
        cqr->seen_replies_count);
-#if 0
-  /* FIXME: Change it to your own handle_get. */
-  GDS_NEIGHBOURS_handle_get (cqr->type, cqr->msg_options, cqr->replication,
-                             0 /* hop count */ ,
-                             &cqr->key, cqr->xquery, cqr->xquery_size, reply_bf,
-                             reply_bf_mutator, peer_bf);
-#endif 
-  
 
+  /* FIXME: Here I am passing NULL for parameters check if its correct or 
+   not. */
+#if 0
+  GDS_NEIGHBOURS_handle_get (cqr->type, cqr->msg_options, cqr->replication,
+                             0 /* hop count */ ,NULL, NULL, 0, 
+                             &cqr->key, NULL, NULL, 0);
+#endif
   /* exponential back-off for retries.
    * max GNUNET_TIME_STD_EXPONENTIAL_BACKOFF_THRESHOLD (15 min) */
   cqr->retry_frequency = GNUNET_TIME_STD_BACKOFF (cqr->retry_frequency);
@@ -940,14 +939,14 @@ handle_dht_local_put (void *cls, struct GNUNET_SERVER_Client *client,
                             ntohl (put_msg->type),
                             size - sizeof (struct GNUNET_DHT_ClientPutMessage),
                             &put_msg[1]);
-  /* store locally */
+  /* FIXME: Should we store locally? */
   GDS_DATACACHE_handle_put (GNUNET_TIME_absolute_ntoh (put_msg->expiration),
                             &put_msg->key, 0, NULL, ntohl (put_msg->type),
                             size - sizeof (struct GNUNET_DHT_ClientPutMessage),
                             &put_msg[1]);
   
-  /* FIXME: At the moment we don't use replication in x-vine. But keep it for 
-   time being. Check all the fields again. */
+  /* FIXME: Is it correct to pass NULL for current destination and current
+   source. */
   GDS_NEIGHBOURS_handle_put (ntohl (put_msg->type), ntohl (put_msg->options),
                              ntohl (put_msg->desired_replication_level),
                              GNUNET_TIME_absolute_ntoh (put_msg->expiration),
@@ -955,7 +954,7 @@ handle_dht_local_put (void *cls, struct GNUNET_SERVER_Client *client,
                              &put_msg->key, 0, NULL, &put_msg[1],
                              size -
                              sizeof (struct GNUNET_DHT_ClientPutMessage),
-                             NULL, 0, NULL);
+                             NULL, NULL, 0, NULL);
   
   GDS_CLIENTS_process_put (ntohl (put_msg->options),
                            ntohl (put_msg->type),
@@ -1047,9 +1046,12 @@ handle_dht_local_get (void *cls, struct GNUNET_SERVER_Client *client,
   if (GNUNET_SCHEDULER_NO_TASK != retry_task)
     GNUNET_SCHEDULER_cancel (retry_task);
   retry_task = GNUNET_SCHEDULER_add_now (&transmit_next_request_task, NULL);
-  /* perform local lookup */
+  /* perform local lookup 
+   * FIXME: Should we call it here or in neighbours file. And how to handle
+   * this case where we may get the data locally. You really need to rethink
+   * this design again. 
   GDS_DATACACHE_handle_get (&get->key, cqr->type, cqr->xquery, xquery_size,
-                            NULL, 0);
+                            NULL, 0); */
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
