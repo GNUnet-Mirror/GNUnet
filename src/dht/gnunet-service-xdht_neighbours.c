@@ -186,29 +186,20 @@ struct PeerGetResultMessage
   uint32_t type GNUNET_PACKED;
   
   /**
-   * Peer which is sending get result message.
-   */
-  struct GNUNET_PeerIdentity source_peer;
-  
-  /**
    * Peer which will receive the get result message. 
    */
-  struct GNUNET_PeerIdentity destination_peer;
+  struct GNUNET_PeerIdentity source_peer;
 
   /**
    * Current index in get path. 
    */
   unsigned int current_path_index;
-  /**
-   * Number of peers recorded in the outgoing path from source to the
-   * storgage location of this message.
-   */
-  uint32_t put_path_length GNUNET_PACKED;
   
   /**
-   * When does this entry expire?
+   * Number of peers recorded in the outgoing path from source to the
+   * stored location of this message.
    */
-  struct GNUNET_TIME_AbsoluteNBO expiration;
+  uint32_t put_path_length GNUNET_PACKED;
   
   /**
    * Length of the GET path that follows (if tracked).
@@ -218,7 +209,7 @@ struct PeerGetResultMessage
   /**
    * When does the content expire?
    */
-  struct GNUNET_TIME_AbsoluteNBO expiration_time;
+  struct GNUNET_TIME_Absolute expiration_time;
 
   /**
    * The key of the corresponding GET request.
@@ -1627,7 +1618,6 @@ void finger_table_add (struct GNUNET_PeerIdentity *finger_identity,
       {
         if (0 == GNUNET_CRYPTO_cmp_peer_identity (&(existing_finger->finger_identity),finger_identity))
         {
-          FPRINTF (stderr,_("\nSUPU Entries are same. %s, %s, %d"),    __FILE__, __func__,__LINE__);
           /* FIXME: Here you should check if the trail is same. If yes then don't add the entry. it
            seems to be very suboptimal. */
           if ((existing_finger->trail_length) == trail_length)
@@ -1656,20 +1646,17 @@ void finger_table_add (struct GNUNET_PeerIdentity *finger_identity,
           int ret;
           if (finger_map_index == 1)
           {
-            FPRINTF (stderr,_("\nSUPUP Predecessor are different %s, %s, %d"),    __FILE__, __func__,__LINE__);
             ret = compare_predecessor (&(existing_finger->finger_identity),
                                        finger_identity);
             goto add_new_entry;
           }
           else
           {
-            FPRINTF (stderr,_("\nSUPU %s, %s, %d"),    __FILE__, __func__,__LINE__);
             ret = compare_finger_identity (&(existing_finger->finger_identity),
                                           finger_identity);
           }
           if (ret > 0)
           {
-            FPRINTF (stderr,_("\nSUPU Adding the new one and removing the old one %s, %s, %d"),    __FILE__, __func__,__LINE__);
             GNUNET_assert (GNUNET_YES ==
                        GNUNET_CONTAINER_multipeermap_remove (finger_peermap,
                                                              &(existing_finger->finger_identity),
@@ -1678,7 +1665,6 @@ void finger_table_add (struct GNUNET_PeerIdentity *finger_identity,
           }
           else
           {
-            FPRINTF (stderr,_("\nSUPU Nothing to do return %s, %s, %d"),    __FILE__, __func__,__LINE__);
             return;
           }
         }
@@ -1722,45 +1708,7 @@ void finger_table_add (struct GNUNET_PeerIdentity *finger_identity,
                  GNUNET_CONTAINER_multipeermap_put (finger_peermap,
                                                     &(new_finger_entry->finger_identity),
                                                     new_finger_entry,
-                                                    GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE)); /* Fixme: change to multiple */
-  /* SUPU TEST CODE */
-  /* Here I want to iterate over finger peer map, print its id and the trail
-   to reach to the finger. */
-  int test_index;
-  struct GNUNET_CONTAINER_MultiPeerMapIterator *test_iter;
-  struct FingerInfo *test_finger;
-  test_iter = GNUNET_CONTAINER_multipeermap_iterator_create (finger_peermap); 
-  FPRINTF (stderr,_("\nSUPU #### %s, %s, %d, size = %d####"),__FILE__, __func__,__LINE__,GNUNET_CONTAINER_multipeermap_size (finger_peermap));
-  for (test_index = 0; test_index < GNUNET_CONTAINER_multipeermap_size (finger_peermap); test_index++)
-  {
-    FPRINTF (stderr,_("\nSUPU *********%s, %s, %d, %d entry*********"),__FILE__, __func__,__LINE__,test_index);
-    if(GNUNET_YES == GNUNET_CONTAINER_multipeermap_iterator_next (test_iter, &key_ret,
-                                                                 (const void **)&test_finger)) 
-    {
-      FPRINTF (stderr,_("\nSUPU %s, %s, %d "),__FILE__, __func__,__LINE__);
-      struct GNUNET_PeerIdentity *print_peer;
-      struct TrailPeerList *iterator;
-      int z;
-      iterator = GNUNET_malloc (sizeof (struct TrailPeerList));
-      print_peer = GNUNET_malloc (sizeof (struct GNUNET_PeerIdentity));
-      memcpy (print_peer, &(test_finger->finger_identity), sizeof (struct GNUNET_PeerIdentity));
-      FPRINTF (stderr,_("\nSUPU %s, %s, %d, finger_index = %d"),    __FILE__, __func__,__LINE__,test_finger->finger_map_index);
-      FPRINTF (stderr,_("\nSUPU %s, %s, %d, finger_identity = %s"),  
-              __FILE__, __func__,__LINE__, GNUNET_i2s (print_peer));
-      iterator = test_finger->head;
-      z = 0;
-      while (z < test_finger->trail_length)
-      {
-        memcpy (print_peer, &(iterator->peer), sizeof (struct GNUNET_PeerIdentity));
-        FPRINTF (stderr,_("\nSUPU %s, %s, %d, trail[%d] = %s"),__FILE__, __func__,__LINE__,z,GNUNET_i2s (print_peer));
-        z++;
-        iterator = iterator->next;
-      }
-    }
-  }
-  FPRINTF (stderr,_("\nSUPU End of loop%s, %s, %d"),__FILE__, __func__,__LINE__);
-  /* SUPU TEST CODE ENDS */
-
+                                                    GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE)); 
   
   if (1 == GNUNET_CONTAINER_multipeermap_size (finger_peermap)
       && (new_finger_entry->finger_map_index!= 1))
@@ -1962,10 +1910,11 @@ find_successor (uint64_t value, struct GNUNET_PeerIdentity *current_destination,
  * @param desired_replication_level desired replication count
  * @param hop_count how many hops did this request traverse so far?
  * @param get_peer_path Peer list to reach to final destination which contains the data.
- * @param get_path_length Total numbers of peer in get_path
+ * @param get_path_length Total numbers of peer in @a get_path
  * @param key Key key for the content
  * @param target_peer Next peer to forward the message to.
- * @param current_destination Peer which will get this message. 
+ * @param current_destination Peer which will get this message.
+ * @param current_source Peer for @a current_destination is the finger. 
  * @param current_dest_type Type of current destination can be either FRIEND or FINGER
  */
 void
@@ -1979,15 +1928,19 @@ GDS_NEIGHBOURS_handle_get (enum GNUNET_BLOCK_Type block_type,
                            struct GNUNET_PeerIdentity *target_peer,
                            struct GNUNET_PeerIdentity *current_destination,
                            struct GNUNET_PeerIdentity *current_source,
-                           enum current_destination_type *current_dest_type)
+                           enum current_destination_type current_dest_type)
 {
   struct PeerGetMessage *get_request;
   struct P2PPendingMessage *pending;
   struct GNUNET_PeerIdentity *get_path;
   struct FriendInfo *target_friend;
+  struct GNUNET_PeerIdentity *next_hop;  
+  struct GNUNET_PeerIdentity *current_dest;
+  enum current_destination_type dest_type;
   uint64_t key_value;
   size_t msize;
   
+  FPRINTF (stderr,_("\nSUPU %s, %s, %d"),__FILE__, __func__,__LINE__);
   msize = sizeof (struct PeerGetMessage) + 
           (get_path_length * sizeof (struct GNUNET_PeerIdentity));
   
@@ -1998,39 +1951,34 @@ GDS_NEIGHBOURS_handle_get (enum GNUNET_BLOCK_Type block_type,
   }
   
   memcpy (&key_value, key, sizeof (uint64_t));
-  
-  /* FIXME: Is this correct comparison? */
+
   if (NULL == target_peer)
   {
-    /* We have received the request from the client file and we don't know
-     to which peer should we forward the message to. */
-    struct GNUNET_PeerIdentity *next_hop;  
-    next_hop = find_successor (key_value, current_destination, current_dest_type);
+    FPRINTF (stderr,_("\nSUPU %s, %s, %d"),__FILE__, __func__,__LINE__);
+    current_dest = GNUNET_malloc (sizeof (struct GNUNET_PeerIdentity));
+    dest_type = MY_ID;
+    next_hop = find_successor (key_value, current_dest, &dest_type);
     
-    if (*current_dest_type == MY_ID)
+    if (dest_type == MY_ID)
     {
+      FPRINTF (stderr,_("\nSUPU %s, %s, %d"),__FILE__, __func__,__LINE__);
       get_path = GNUNET_malloc (sizeof (struct GNUNET_PeerIdentity));
       memcpy (get_path, &my_identity, sizeof (struct GNUNET_PeerIdentity));
       get_path_length = 1;
-      /* FIXME: At the moment I am just passing null,0 for values which I don't
-       have. Also, handle return type. Modify this function and pass get path
-       and get path length and then in datacache_handle. here in this case
-       you can diretly call gds_client_handle_reply. */
-#if 0
-      GDS_DATACACHE_handle_get (&(get_request->key),(get_request->block_type), 
-                                get_path, get_path_length,get_path_length - 1,NULL);
-#endif
+      GDS_DATACACHE_handle_get (key,block_type, NULL, 0, 
+                                NULL, 0, get_path_length, get_path, 0, NULL,&my_identity);
       return;
     }
     else 
     {
-      if (*current_dest_type == FINGER)
+      if (dest_type == FINGER)
       {
         memcpy (current_source, &my_identity, sizeof (struct GNUNET_PeerIdentity));
       }
-      
       target_friend = GNUNET_CONTAINER_multipeermap_get (friend_peermap, next_hop);
     }
+    current_dest_type = dest_type;
+    
   }
   else
     target_friend = GNUNET_CONTAINER_multipeermap_get (friend_peermap, target_peer);
@@ -2043,13 +1991,17 @@ GDS_NEIGHBOURS_handle_get (enum GNUNET_BLOCK_Type block_type,
   get_request->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_P2P_GET);
   get_request->get_path_length = htonl (get_path_length);
   get_request->key = *key;
-  memcpy (&(get_request->current_destination), current_destination, sizeof (struct GNUNET_PeerIdentity));
+  if (current_destination != NULL)
+    memcpy (&(get_request->current_destination), current_destination, sizeof (struct GNUNET_PeerIdentity));
+  else
+    memcpy (&(get_request->current_destination), current_dest, sizeof (struct GNUNET_PeerIdentity));
   /* FIXME: Is this comparison correct? */
   if (current_source != NULL)
     memcpy (&(get_request->current_source), current_source, sizeof (struct GNUNET_PeerIdentity));
-  get_request->current_dest_type = htonl (*current_dest_type);
+  get_request->current_dest_type = htonl (current_dest_type);
   get_path = (struct GNUNET_PeerIdentity *) &get_request[1];
-  memcpy (get_path, get_peer_path, get_path_length * sizeof (struct GNUNET_PeerIdentity));
+  if (get_path_length > 0)
+    memcpy (get_path, get_peer_path, get_path_length * sizeof (struct GNUNET_PeerIdentity));
   GNUNET_CONTAINER_DLL_insert_tail (target_friend->head, target_friend->tail, pending);
   target_friend->pending_count++;
   process_friend_queue (target_friend);
@@ -2128,6 +2080,9 @@ GDS_NEIGHBOURS_handle_put (enum GNUNET_BLOCK_Type block_type,
   struct P2PPendingMessage *pending;
   struct FriendInfo *target_friend;
   struct GNUNET_PeerIdentity *pp;
+  struct GNUNET_PeerIdentity *next_hop;  
+  struct GNUNET_PeerIdentity *current_dest;
+  enum current_destination_type curr_dest_type;
   size_t msize;
   uint64_t key_value;
   
@@ -2147,20 +2102,19 @@ GDS_NEIGHBOURS_handle_put (enum GNUNET_BLOCK_Type block_type,
   }
   
   memcpy (&key_value, key, sizeof (uint64_t)); 
-  struct GNUNET_PeerIdentity *current_dest;
-  current_dest = GNUNET_malloc (sizeof (struct GNUNET_PeerIdentity));
+ 
   if (target_peer == NULL)
   {
-     /* This is the first time the call has been made from handle_dht_local_put.
-     So, you need to search for the next peer to send this message to. */
-    struct GNUNET_PeerIdentity *next_hop;  
-   
-    next_hop = find_successor (key_value, current_dest, &dest_type);  
-    if (dest_type == MY_ID)
+    FPRINTF (stderr,_("\nSUPU %s, %s, %d"),__FILE__, __func__,__LINE__);
+    curr_dest_type = MY_ID;
+    current_dest = GNUNET_malloc (sizeof (struct GNUNET_PeerIdentity));
+    next_hop = find_successor (key_value, current_dest, &curr_dest_type);  
+    if (curr_dest_type == MY_ID)
     {
       /* FIXME: Choose one place to do datacache_put. I am doing put only if its
          destination so I will do no put operation
        in the client file.*/
+      FPRINTF (stderr,_("\nSUPU %s, %s, %d"),__FILE__, __func__,__LINE__);
       GDS_DATACACHE_handle_put (expiration_time, key, put_path_length, put_path,
                                 block_type, data_size, data);
       return;
@@ -2168,12 +2122,14 @@ GDS_NEIGHBOURS_handle_put (enum GNUNET_BLOCK_Type block_type,
     else
     {
       /* Find the friend corresponding to next_hop */
-      if (dest_type == FINGER)
+      if (curr_dest_type == FINGER)
       {
+        FPRINTF (stderr,_("\nSUPU %s, %s, %d"),__FILE__, __func__,__LINE__);
         memcpy (current_source, &my_identity, sizeof (struct GNUNET_PeerIdentity));
       }
       target_friend = GNUNET_CONTAINER_multipeermap_get (friend_peermap, next_hop);
     }
+    dest_type = curr_dest_type;
   }
   else
     target_friend = GNUNET_CONTAINER_multipeermap_get (friend_peermap, target_peer);
@@ -2191,14 +2147,16 @@ GDS_NEIGHBOURS_handle_put (enum GNUNET_BLOCK_Type block_type,
   ppm->desired_replication_level = htonl (desired_replication_level);
   ppm->put_path_length = htonl (put_path_length);
   ppm->expiration_time = GNUNET_TIME_absolute_hton (expiration_time);
+  ppm->current_destination_type = dest_type;
   /* FIXME: Here I am checking if we have a value in current_source then only copy.
    I am not sure if this checking is correct or not. */
   if (current_source != NULL)
+  {
+    FPRINTF (stderr,_("\nSUPU %s, %s, %d"),__FILE__, __func__,__LINE__);
     memcpy (&(ppm->current_source), current_source, sizeof (struct GNUNET_PeerIdentity));
-  
-  /* FIXME: here current_destination is the parameter, current_dest is what you
-   get when you call find_successor. names don't do justice to the function.
-   Please change it*/
+  }
+  else
+    FPRINTF (stderr,_("\nSUPU %s, %s, %d"),__FILE__, __func__,__LINE__);
   if (current_destination != NULL)
     memcpy (&(ppm->current_destination), current_destination, sizeof (struct GNUNET_PeerIdentity));
   else
@@ -2223,11 +2181,6 @@ GDS_NEIGHBOURS_handle_put (enum GNUNET_BLOCK_Type block_type,
 
 
 /**
- * FIXME: I am removing source peer as the first element in the trail
- * is source identity.
- * If I am adding myself when I am source then I don't need destination 
- * peer in get but if I am not adding then I need it. At the moment I am removing
- * it but will check later if its wrong. 
  * Send get result back to requesting client. 
  * @param expiration when will the reply expire
  * @param key the query this reply is for
@@ -2251,10 +2204,12 @@ GDS_NEIGHBOURS_send_get_result (struct GNUNET_TIME_Absolute expiration,
                                 struct GNUNET_PeerIdentity *get_path,
                                 unsigned int get_path_length,
                                 unsigned int current_path_index,
-                                struct GNUNET_PeerIdentity *next_hop)
+                                struct GNUNET_PeerIdentity *next_hop,
+                                struct GNUNET_PeerIdentity *source_peer)
 {
   struct PeerGetResultMessage *get_result;
   struct GNUNET_PeerIdentity *get_result_path;
+  struct GNUNET_PeerIdentity *pp;
   struct P2PPendingMessage *pending;
   struct FriendInfo *target_friend;
   size_t msize;
@@ -2267,23 +2222,32 @@ GDS_NEIGHBOURS_send_get_result (struct GNUNET_TIME_Absolute expiration,
     GNUNET_break (0);
     return;
   }
-  /* GET_REULT should have all the things which we want to pass in client_handle_reply
-   put path put path length get path get length data data_size. and rest things
-   are required to reach to the correct peer. */
+  
+  if (current_path_index == 0)
+  {
+    FPRINTF (stderr,_("\nSUPU %s, %s, %d"),__FILE__, __func__,__LINE__);
+    GDS_CLIENTS_handle_reply (expiration, key, get_path_length, get_path, put_path_length,
+                              put_path, type, data_size, data);
+    return;
+  }
   pending = GNUNET_malloc (sizeof (struct P2PPendingMessage) + msize);
-  pending->importance = 0;    /* FIXME */
-  /* FIXME: Should we add an expiration time like in put message. */
+  pending->importance = 0;   
   get_result = (struct PeerGetResultMessage *)&pending[1];
   pending->msg = &get_result->header;
   get_result->header.size = htons (msize);
   get_result->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_P2P_GET_RESULT);
   get_result->current_path_index = current_path_index;
   get_result->key = *key;
+  memcpy (&(get_result->source_peer), source_peer, sizeof (struct GNUNET_PeerIdentity));
+  get_result->expiration_time = expiration;
   
   get_result_path = (struct GNUNET_PeerIdentity *)&get_result[1];
   memcpy (get_result_path, get_path,
-           sizeof (struct GNUNET_PeerIdentity) * get_path_length);
+          sizeof (struct GNUNET_PeerIdentity) * get_path_length);
   memcpy (&get_result_path[get_path_length], data, data_size);
+  /* FIXME: Is this correct? */
+  pp = (struct GNUNET_PeerIdentity *)&get_result_path[1];
+  memcpy (pp, put_path,sizeof (struct GNUNET_PeerIdentity) * put_path_length);
   
   target_friend = GNUNET_CONTAINER_multipeermap_get (friend_peermap, next_hop);
   GNUNET_CONTAINER_DLL_insert_tail (target_friend->head, target_friend->tail, pending);
@@ -2307,10 +2271,12 @@ handle_dht_p2p_get_result (void *cls, const struct GNUNET_PeerIdentity *peer,
    the requesting client and send back the result. */
   struct PeerGetResultMessage *get_result;
   struct GNUNET_PeerIdentity *get_path;
-  //void *payload;
-  //size_t payload_size;
+  struct GNUNET_PeerIdentity *put_path;
+  void *payload;
+  size_t payload_size;
   size_t msize;
   unsigned int getlen;
+  unsigned int putlen;
   int current_path_index;
   
   msize = ntohs (message->size);
@@ -2322,53 +2288,51 @@ handle_dht_p2p_get_result (void *cls, const struct GNUNET_PeerIdentity *peer,
   
   get_result = (struct PeerGetResultMessage *)message;
   getlen = ntohl (get_result->get_path_length);
+  putlen = ntohl (get_result->put_path_length);
   
   if ((msize <
        sizeof (struct PeerGetResultMessage) +
-       getlen * sizeof (struct GNUNET_PeerIdentity)) ||
+       getlen * sizeof (struct GNUNET_PeerIdentity) + 
+       putlen * sizeof (struct GNUNET_PeerIdentity)) ||
       (getlen >
-       GNUNET_SERVER_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_PeerIdentity)))
+       GNUNET_SERVER_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_PeerIdentity) ||
+      (putlen >
+         GNUNET_SERVER_MAX_MESSAGE_SIZE / sizeof (struct GNUNET_PeerIdentity))))
   {
     GNUNET_break_op (0);
     return GNUNET_YES;
   }
   
-  /* FIXME: Get the put_path */
   get_path = (struct GNUNET_PeerIdentity *) &get_result[1];
-  //payload = &get_path[getlen];
-  /* payload_size = msize - (sizeof (struct PeerGetResultMessage) + 
-                          getlen * sizeof (struct GNUNET_PeerIdentity));*/
-  current_path_index = ntohl (get_result->current_path_index);
+  payload = &get_path[getlen];
+  payload_size = msize - (sizeof (struct PeerGetResultMessage) + 
+                          getlen * sizeof (struct GNUNET_PeerIdentity));
+  /* FIXME: Check if its correct or not. */
+  if (putlen > 0)
+    put_path = &get_path[1];
   
-  /* Here you just have to check if you are the destination or not if not 
-   then read the next peer and send the message. */
-  if (0 == (GNUNET_CRYPTO_cmp_peer_identity (&my_identity, &(get_result->destination_peer))))
+  current_path_index = ntohl (get_result->current_path_index);
+  if (0 == (GNUNET_CRYPTO_cmp_peer_identity (&my_identity, &(get_path[0]))))
   {
-    /* I am the destination. Call the function in client file.
-     * FIXME: Here I don't know how I communicate the result back to client
-       file.  */
     //GDS_CLIENTS_process_get_result();
+    GDS_CLIENTS_handle_reply (get_result->expiration_time, &(get_result->key), 
+                              getlen, get_path, putlen,
+                              put_path, get_result->type, payload_size, payload);
     return GNUNET_YES;
   }
   else
   {
-    /* Read the element from the get path at trail index. set the trail index 
-     and call gds_neighbours_send_get_result.*/
     struct GNUNET_PeerIdentity *next_hop;
-    
     next_hop = GNUNET_malloc (sizeof (struct GNUNET_PeerIdentity));
-    memcpy (next_hop, &get_path[current_path_index], sizeof (struct GNUNET_PeerIdentity));
- 
-    
     if (current_path_index != 0)
       current_path_index--;
-#if 0
-    GDS_NEIGHBOURS_send_get_result ((get_result->expiration), get_result->key,
-                                     get_result->put_path_length, put_path,
-                                     get_result->type, payload, payload_size
+    memcpy (next_hop, &get_path[current_path_index], sizeof (struct GNUNET_PeerIdentity));
+  
+    GDS_NEIGHBOURS_send_get_result (get_result->expiration_time, &(get_result->key),
+                                     putlen, put_path,
+                                     get_result->type, payload_size,payload,
                                      get_path, getlen,current_path_index,
-                                     next_hop);
-#endif
+                                     next_hop, &(get_result->source_peer));
     return GNUNET_YES;
   }  
   return GNUNET_SYSERR;
@@ -2376,6 +2340,8 @@ handle_dht_p2p_get_result (void *cls, const struct GNUNET_PeerIdentity *peer,
 
 
 /**
+ * FIXME: Can refactor the code where we are setting the current source and
+ * current_dest_type
  * Core handler for p2p put requests.
  *
  * @param cls closure
@@ -2394,6 +2360,7 @@ handle_dht_p2p_put (void *cls, const struct GNUNET_PeerIdentity *peer,
   enum GNUNET_DHT_RouteOption options;
   enum current_destination_type current_dst_type;
   struct GNUNET_PeerIdentity *current_destination;
+  struct GNUNET_PeerIdentity *current_source;
   struct GNUNET_PeerIdentity *next_hop;
   struct GNUNET_HashCode test_key;
   uint64_t key_value;
@@ -2402,9 +2369,15 @@ handle_dht_p2p_put (void *cls, const struct GNUNET_PeerIdentity *peer,
   size_t msize;
   uint32_t putlen;
   
+  msize = ntohs (message->size);
+  if (msize < sizeof (struct PeerPutMessage))
+  {
+    GNUNET_break_op (0);
+    return GNUNET_YES;
+  }
+  
   put = (struct PeerPutMessage *) message;
   putlen = ntohl (put->put_path_length);
-  msize = ntohs (message->size);
    
   if ((msize <
        sizeof (struct PeerPutMessage) +
@@ -2473,6 +2446,7 @@ handle_dht_p2p_put (void *cls, const struct GNUNET_PeerIdentity *peer,
   struct GNUNET_PeerIdentity pp[putlen + 1];
 
   /* extend 'put path' by sender */
+  /* FIXME: Check what are we doing here? */
   if (0 != (options & GNUNET_DHT_RO_RECORD_ROUTE))
   {
     memcpy (pp, put_path, putlen * sizeof (struct GNUNET_PeerIdentity));
@@ -2486,21 +2460,34 @@ handle_dht_p2p_put (void *cls, const struct GNUNET_PeerIdentity *peer,
    memcpy (current_destination, &(put->current_destination), sizeof (struct GNUNET_PeerIdentity));
    current_dst_type = ntohl (put->current_destination_type);
    memcpy (&key_value, &(put->key), sizeof (uint64_t));
-   
+   current_source = GNUNET_malloc (sizeof (struct GNUNET_PeerIdentity));
    if (current_dst_type == FRIEND)
    {
-     next_hop = find_successor (key_value, current_destination, &current_dst_type);
+     next_hop = find_successor (key_value, current_destination, &current_dst_type); 
+     if (current_dst_type == FINGER)
+     {
+       memcpy (current_source, &my_identity, sizeof (struct GNUNET_PeerIdentity));
+     }
+     else
+       current_source = NULL;
    }
    else if (current_dst_type == FINGER)
    {
      if (0 == GNUNET_CRYPTO_cmp_peer_identity (&my_identity, current_destination))
      {
        next_hop = find_successor (key_value, current_destination, &current_dst_type);
+       if (current_dst_type == FINGER)
+       {
+         memcpy (current_source, &my_identity, sizeof (struct GNUNET_PeerIdentity));
+       }
+       else
+         current_source = NULL;
      } 
      else
      {
        next_hop = GDS_ROUTING_search (&(put->current_source), current_destination, peer);
-       current_dst_type = FRIEND;
+       memcpy (current_source, &(put->current_source), sizeof (struct GNUNET_PeerIdentity));
+       current_dst_type = FINGER;
      }
    }
   
@@ -2513,15 +2500,6 @@ handle_dht_p2p_put (void *cls, const struct GNUNET_PeerIdentity *peer,
    }
    else
    {
-     struct GNUNET_PeerIdentity *current_source;
-     if (current_dst_type == FINGER)
-     {
-       current_source = GNUNET_malloc (sizeof (struct GNUNET_PeerIdentity));
-       memcpy (current_source, &my_identity, sizeof (struct GNUNET_PeerIdentity));
-     }
-     else
-       current_source = NULL;
-     
      GDS_CLIENTS_process_put (options,
                               ntohl (put->block_type),
                               ntohl (put->hop_count),
@@ -2545,10 +2523,6 @@ handle_dht_p2p_put (void *cls, const struct GNUNET_PeerIdentity *peer,
 
 
 /**
- * FIXME
- * 1. I don't do block evalute as it uses xquery and bf for evaluation.Is
- * it okay if I just pass NULL. I am anyways going to pass NULL in case of 
- * datacache_get? 
  * Core handler for p2p get requests.
  *
  * @param cls closure
@@ -2599,21 +2573,35 @@ handle_dht_p2p_get (void *cls, const struct GNUNET_PeerIdentity *peer,
   current_dest_type = ntohl (get->current_dest_type);
   block_type = ntohl (get->block_type);
   options = ntohl (get->options);
- 
+  struct GNUNET_PeerIdentity *current_source;
+  current_source = GNUNET_malloc (sizeof (struct GNUNET_PeerIdentity));
+  
   if (current_dest_type == FRIEND)
   {
     next_hop = find_successor (key_value, current_destination, &current_dest_type);
+    if (current_dest_type == FINGER)
+    {
+      memcpy (current_source, &my_identity, sizeof (struct GNUNET_PeerIdentity));
+    }
+    else
+      current_source = NULL;
   }
   else if (current_dest_type == FINGER)
   {
      if (0 == GNUNET_CRYPTO_cmp_peer_identity (&my_identity, current_destination))
      {
        next_hop = find_successor (key_value, current_destination, &current_dest_type);
+       if (current_dest_type == FINGER)
+       {
+         memcpy (current_source, &my_identity, sizeof (struct GNUNET_PeerIdentity));
+       }
+       else
+        current_source = NULL;
      } 
      else
      {
        next_hop = GDS_ROUTING_search (&(get->current_source), current_destination, peer);
-       current_dest_type = FRIEND;
+       current_dest_type = FINGER;
      }
   }
   
@@ -2626,37 +2614,23 @@ handle_dht_p2p_get (void *cls, const struct GNUNET_PeerIdentity *peer,
   if (current_dest_type == MY_ID)
   {
     struct GNUNET_PeerIdentity final_get_path[get_length+1];
-    memcpy (final_get_path, get_path, get_length * sizeof (struct GNUNET_PeerIdentity));
-    memcpy (final_get_path, &my_identity, sizeof (struct GNUNET_PeerIdentity));
+    memcpy (final_get_path, gp, get_length * sizeof (struct GNUNET_PeerIdentity));
+    memcpy (&final_get_path[get_length+1], &my_identity, sizeof (struct GNUNET_PeerIdentity));
     get_length = get_length + 1;
     struct GNUNET_PeerIdentity *next_hop;
     next_hop = GNUNET_malloc (sizeof (struct GNUNET_PeerIdentity));
-    /* FIXME: Check if we need to have a check on get length. */
     memcpy (next_hop, &final_get_path[get_length-2], sizeof (struct GNUNET_PeerIdentity));
-#if 0
-    GDS_DATACACHE_handle_get (&(get->key),(get->block_type),
-                             final_get_path, get_length,get_length - 1,next_hop);
-#endif
+    GDS_DATACACHE_handle_get (&(get->key),(get->block_type), NULL, 0, NULL, 0,
+                              get_length, final_get_path,get_length - 1,next_hop, &my_identity);
+
     return GNUNET_YES;
   }
   else
   {
-    struct GNUNET_PeerIdentity *current_source;
-    current_source = GNUNET_malloc (sizeof (struct GNUNET_PeerIdentity));
-    if (current_dest_type == FINGER)
-    {
-      memcpy (current_source, &my_identity, sizeof (struct GNUNET_PeerIdentity));
-    }
-    else
-      /* FIXME: Is this correct? */
-    {
-      /* how to handle the case when we don't have any value for current source.*/
-    }
-    
     GDS_NEIGHBOURS_handle_get (block_type, options, get->desired_replication_level,
                                get->hop_count, gp,
                                get_length, &(get->key),next_hop,
-                               current_destination, &(get->current_source),&current_dest_type);
+                               current_destination, &(get->current_source),current_dest_type);
     
     return GNUNET_YES;
   }

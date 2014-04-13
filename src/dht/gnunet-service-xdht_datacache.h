@@ -71,7 +71,8 @@ GDS_DATACACHE_handle_get (const struct GNUNET_HashCode * key,
                           uint32_t get_path_length,
                           struct GNUNET_PeerIdentity *get_path,
                           unsigned int current_trail_index,
-                          struct GNUNET_PeerIdentity *next_hop);
+                          struct GNUNET_PeerIdentity *next_hop,
+                          struct GNUNET_PeerIdentity *source_peer);
 
 
 /**

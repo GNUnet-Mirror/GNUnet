@@ -846,11 +846,11 @@ transmit_request (struct ClientQueryRecord *cqr)
 
   /* FIXME: Here I am passing NULL for parameters check if its correct or 
    not. */
-#if 0
+  FPRINTF (stderr,_("\nSUPU %s, %s, %d"),__FILE__, __func__,__LINE__);
   GDS_NEIGHBOURS_handle_get (cqr->type, cqr->msg_options, cqr->replication,
-                             0 /* hop count */ ,NULL, NULL, 0, 
-                             &cqr->key, NULL, NULL, 0);
-#endif
+                             0 /* hop count */ ,NULL, 0, 
+                             &cqr->key, NULL, NULL, NULL, 0);
+
   /* exponential back-off for retries.
    * max GNUNET_TIME_STD_EXPONENTIAL_BACKOFF_THRESHOLD (15 min) */
   cqr->retry_frequency = GNUNET_TIME_STD_BACKOFF (cqr->retry_frequency);
@@ -913,7 +913,7 @@ handle_dht_local_put (void *cls, struct GNUNET_SERVER_Client *client,
   struct PendingMessage *pm;
   struct GNUNET_DHT_ClientPutConfirmationMessage *conf;
   uint16_t size;
-  
+  FPRINTF (stderr,_("\nSUPU %s, %s, %d"),__FILE__, __func__,__LINE__);
   size = ntohs (message->size);
   if (size < sizeof (struct GNUNET_DHT_ClientPutMessage))
   {

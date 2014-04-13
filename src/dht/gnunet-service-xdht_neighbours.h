@@ -96,7 +96,7 @@ GDS_NEIGHBOURS_handle_get (enum GNUNET_BLOCK_Type block_type,
                            struct GNUNET_PeerIdentity *target_peer,
                            struct GNUNET_PeerIdentity *current_destination,
                            struct GNUNET_PeerIdentity *current_source,
-                           enum current_destination_type *current_dest_type);
+                           enum current_destination_type current_dest_type);
 
 
 /**
@@ -125,7 +125,8 @@ GDS_NEIGHBOURS_send_get_result (struct GNUNET_TIME_Absolute expiration,
                                 struct GNUNET_PeerIdentity *get_path,
                                 unsigned int get_path_length,
                                 unsigned int current_trail_index,
-                                struct GNUNET_PeerIdentity *next_hop);
+                                struct GNUNET_PeerIdentity *next_hop,
+                                struct GNUNET_PeerIdentity *source_peer);
 
 /**
  * FIXME: Here you should update the fields of struct PeerGetResultMessage.
