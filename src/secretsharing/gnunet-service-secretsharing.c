@@ -558,6 +558,27 @@ decrypt_session_destroy (struct DecryptSession *ds)
     ds->consensus = NULL;
   }
 
+  if (NULL != ds->info)
+  {
+    unsigned int i;
+    for (i = 0; i < ds->share->num_peers; i++)
+    {
+      if (NULL != ds->info[i].partial_decryption)
+      {
+        gcry_mpi_release (ds->info[i].partial_decryption);
+        ds->info[i].partial_decryption = NULL;
+      }
+    }
+    GNUNET_free (ds->info);
+    ds->info = NULL;
+  }
+
+  if (NULL != ds->share)
+  {
+    GNUNET_SECRETSHARING_share_destroy (ds->share);
+    ds->share = NULL;
+  }
+
   if (NULL != ds->client_mq)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "destroying decrypt MQ\n");
@@ -1429,6 +1450,14 @@ decrypt_conclude (void *cls)
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "sent decrypt done to client\n");
 
+  GNUNET_free (indices);
+
+  gcry_mpi_release(lagrange);
+  gcry_mpi_release(m);
+  gcry_mpi_release(tmp);
+  gcry_mpi_release(prod);
+  gcry_mpi_release(c_2);
+
   // FIXME: what if not enough peers participated?
 }
 
@@ -1568,7 +1597,7 @@ decrypt_new_element (void *cls,
                 session->share->my_peer, info - session->info, tmp1_str, tmp2_str);
     GNUNET_free (tmp1_str);
     GNUNET_free (tmp2_str);
-    // return;
+    goto cleanup;
   }
 
 
@@ -1582,12 +1611,22 @@ decrypt_new_element (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "P%u: Received invalid partial decryption from P%u (eqn 2)\n",
                 session->share->my_peer, info - session->info);
-    // return;
+    goto cleanup;
   }
 
 
   GNUNET_CRYPTO_mpi_scan_unsigned (&info->partial_decryption, &d->partial_decryption,
                                    GNUNET_SECRETSHARING_ELGAMAL_BITS / 8);
+cleanup:
+  gcry_mpi_release (tmp1);
+  gcry_mpi_release (tmp2);
+  gcry_mpi_release (sigma);
+  gcry_mpi_release (commit1);
+  gcry_mpi_release (commit2);
+  gcry_mpi_release (r);
+  gcry_mpi_release (w);
+  gcry_mpi_release (challenge);
+  gcry_mpi_release (c1);
 }
 
 
@@ -1691,6 +1730,14 @@ insert_decrypt_element (struct DecryptSession *ds)
   GNUNET_CONSENSUS_insert (ds->consensus, &element, NULL, NULL);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "P%u: Inserting decrypt element done!\n",
               ds->share->my_peer);
+
+  gcry_mpi_release (s);
+  gcry_mpi_release (w);
+  gcry_mpi_release (c1);
+  gcry_mpi_release (beta);
+  gcry_mpi_release (tmp);
+  gcry_mpi_release (challenge);
+  gcry_mpi_release (sigma);
 }
 
 

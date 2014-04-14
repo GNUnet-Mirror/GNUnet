@@ -294,7 +294,7 @@ decrypt_disconnect_adapter(void *cls, void *op_result)
     *dh = NULL;
   }
 
-  GNUNET_assert (NULL == connect_ops[n]);
+  GNUNET_assert (NULL != connect_ops[n]);
   connect_ops[n] = NULL;
 }
 
@@ -493,7 +493,10 @@ handle_shutdown (void *cls,
     unsigned int i;
     for (i = 0; i < num_peers; i++)
       if (NULL != connect_ops[i])
+      {
+        // the disconnect callback will set the op to NULL
         GNUNET_TESTBED_operation_done (connect_ops[i]);
+      }
     GNUNET_free (connect_ops);
   }
 
