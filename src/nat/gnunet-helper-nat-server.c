@@ -372,6 +372,9 @@ process_icmp_response ()
     /* different type than what we want */
     return;
   }
+  /* grab source IP of 1st IP header */
+  source_ip.s_addr = ip_pkt.src_ip;
+
   /* skip 2nd IP header */
   memcpy (&ip_pkt, &buf[off], sizeof (struct ip_header));
   off += sizeof (struct ip_header);
@@ -408,7 +411,6 @@ process_icmp_response ()
     return;
   }
 
-  source_ip.s_addr = ip_pkt.src_ip;
   if (port == 0)
     fprintf (stdout, "%s\n",
              inet_ntop (AF_INET, &source_ip, buf, sizeof (buf)));
