@@ -1815,7 +1815,7 @@ client_configure_plugin (struct HTTP_Client_Plugin *plugin)
     max_connections = 128;
   plugin->max_connections = max_connections;
 
-  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                    _("Maximum number of connections is %u\n"),
                    plugin->max_connections);
 
@@ -1823,14 +1823,14 @@ client_configure_plugin (struct HTTP_Client_Plugin *plugin)
   if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (plugin->env->cfg,
       plugin->name, "PROXY", &plugin->proxy_hostname))
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                      "Found proxy host: `%s'\n",
                      plugin->proxy_hostname);
     /* proxy username */
     if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (plugin->env->cfg,
         plugin->name, "PROXY_USERNAME", &plugin->proxy_username))
     {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                        "Found proxy username name: `%s'\n",
                        plugin->proxy_username);
     }
@@ -1839,7 +1839,7 @@ client_configure_plugin (struct HTTP_Client_Plugin *plugin)
     if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (plugin->env->cfg,
         plugin->name, "PROXY_PASSWORD", &plugin->proxy_password))
     {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                        "Found proxy password name: `%s'\n",
                        plugin->proxy_password);
     }
@@ -1877,7 +1877,7 @@ client_configure_plugin (struct HTTP_Client_Plugin *plugin)
         return GNUNET_SYSERR;
       }
 
-      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                        "Found proxy type: `%s'\n", proxy_type);
     }
 
