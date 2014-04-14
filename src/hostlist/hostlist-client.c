@@ -116,9 +116,24 @@ static struct GNUNET_STATISTICS_Handle *stats;
 static struct GNUNET_TRANSPORT_Handle *transport;
 
 /**
- * Proxy that we are using (can be NULL).
+ * Proxy hostname or ip we are using (can be NULL).
  */
 static char *proxy;
+
+/**
+ * Proxy username we are using (can be NULL).
+ */
+static char *proxy_username;
+
+/**
+ * Proxy password we are using (can be NULL).
+ */
+static char *proxy_password;
+
+/**
+ * Proxy type we are using (can be NULL).
+ */
+static curl_proxytype proxy_type;
 
 /**
  * Number of bytes valid in 'download_buffer'.
@@ -1435,6 +1450,7 @@ GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
                               GNUNET_CORE_MessageCallback *msgh, int learn)
 {
   char *filename;
+  char *proxytype_str;
   int result;
 
   GNUNET_assert (NULL != st);
@@ -1451,10 +1467,73 @@ GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
   }
   cfg = c;
   stats = st;
-  if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_string (cfg, "HOSTLIST", "HTTP-PROXY",
-                                             &proxy))
-    proxy = NULL;
+
+  /* Read proxy configuration */
+  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (cfg,
+      "HOSTLIST", "PROXY", &proxy))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                     "Found proxy host: `%s'\n",
+                     proxy);
+    /* proxy username */
+    if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (cfg,
+        "HOSTLIST", "PROXY_USERNAME", &proxy_username))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                       "Found proxy username name: `%s'\n",
+                       proxy_username);
+    }
+
+    /* proxy password */
+    if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (cfg,
+        "HOSTLIST", "PROXY_PASSWORD", &proxy_password))
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                       "Found proxy password name: `%s'\n",
+                       proxy_password);
+    }
+
+    /* proxy type */
+    if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (cfg,
+        "HOSTLIST", "PROXY_TYPE", &proxytype_str))
+    {
+      GNUNET_STRINGS_utf8_toupper (proxytype_str, proxytype_str);
+
+      if (0 == strcmp(proxytype_str, "HTTP"))
+        proxy_type = CURLPROXY_HTTP;
+      else if (0 == strcmp(proxytype_str, "HTTP_1_0"))
+        proxy_type = CURLPROXY_HTTP_1_0;
+      else if (0 == strcmp(proxytype_str, "SOCKS4"))
+        proxy_type = CURLPROXY_SOCKS4;
+      else if (0 == strcmp(proxytype_str, "SOCKS5"))
+        proxy_type = CURLPROXY_SOCKS5;
+      else if (0 == strcmp(proxytype_str, "SOCKS4A"))
+        proxy_type = CURLPROXY_SOCKS4A;
+      else if (0 == strcmp(proxytype_str, "SOCKS5_HOSTNAME "))
+        proxy_type = CURLPROXY_SOCKS5_HOSTNAME ;
+      else
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+             _("Invalid proxy type: `%s', disabling proxy! Check configuration!\n"),
+             proxytype_str);
+        GNUNET_free (proxytype_str);
+
+        GNUNET_free (proxy);
+        proxy = NULL;
+        GNUNET_free_non_null (proxy_username);
+        proxy_username = NULL;
+        GNUNET_free_non_null (proxy_password);
+        proxy_password = NULL;
+
+        return GNUNET_SYSERR;
+      }
+
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                       "Found proxy type: `%s'\n", proxy_type);
+    }
+    GNUNET_free_non_null (proxytype_str);
+  }
+
   stat_learning = learn;
   *ch = &handler_connect;
   *dh = &handler_disconnect;
@@ -1559,6 +1638,11 @@ GNUNET_HOSTLIST_client_stop ()
   }
   GNUNET_free_non_null (proxy);
   proxy = NULL;
+  GNUNET_free_non_null (proxy_username);
+  proxy_username = NULL;
+  GNUNET_free_non_null (proxy_password);
+  proxy_password = NULL;
+
   cfg = NULL;
 }
 
