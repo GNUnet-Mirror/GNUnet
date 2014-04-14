@@ -23,8 +23,8 @@
  * @brief API for sensor
  * @author Omar Tarabai
  */
-#include <gnunet/platform.h>
-#include <gnunet/gnunet_util_lib.h>
+#include "platform.h"
+#include "gnunet_util_lib.h"
 #include "sensor.h"
 
 #define LOG(kind,...) GNUNET_log_from (kind, "sensor-api",__VA_ARGS__)

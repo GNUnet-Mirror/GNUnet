@@ -23,8 +23,8 @@
  * @brief sensor service implementation
  * @author Christian Grothoff
  */
-#include <gnunet/platform.h>
-#include <gnunet/gnunet_util_lib.h>
+#include "platform.h"
+#include "gnunet_util_lib.h"
 #include "sensor.h"
 
 /**

@@ -23,8 +23,8 @@
  * @brief sensor tool
  * @author Omar Tarabai
  */
-#include <gnunet/platform.h>
-#include <gnunet/gnunet_util_lib.h>
+#include "platform.h"
+#include "gnunet_util_lib.h"
 #include "gnunet_sensor_service.h"
 
 static int ret;

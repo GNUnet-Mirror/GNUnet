@@ -2407,9 +2407,33 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_SECRETSHARING_CLIENT_SECRET_READY 783
 
 
+/*******************************************************************************
+ * SENSOR message types
+ ******************************************************************************/
 
 /**
- * Next available: 800
+ * Request information about all sensors
+ */
+#define GNUNET_MESSAGE_TYPE_SENSOR_GETALL 800
+
+/**
+ * Request information about one sensor
+ */
+#define GNUNET_MESSAGE_TYPE_SENSOR_GET 801
+
+/**
+ * Message carrying sensor information
+ */
+#define GNUNET_MESSAGE_TYPE_SENSOR_INFO 802
+
+/**
+ * End of an iteration sequence
+ */
+#define GNUNET_MESSAGE_TYPE_SENSOR_END 803
+
+
+/**
+ * Next available: 830
  */
 
 
