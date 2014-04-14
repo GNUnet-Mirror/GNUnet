@@ -1,0 +1,7 @@
+[sensor]
+BINARY = gnunet-service-sensor
+UNIXPATH = /tmp/gnunet-service-sensor.sock
+HOME = $SERVICEHOME
+# PORT = 2106
+@UNIXONLY@ PORT = 2087
+
