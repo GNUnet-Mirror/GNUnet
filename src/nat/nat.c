@@ -1293,7 +1293,7 @@ GNUNET_NAT_register (const struct GNUNET_CONFIGURATION_Handle *cfg,
       GNUNET_OS_check_helper_binary ("upnpc", GNUNET_NO, NULL))
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
-        _("UPnP enable in configuration, but UPnP client `upnpc` command not found, disabling UPnP \n"));
+        _("UPnP enabled in configuration, but UPnP client `upnpc` command not found, disabling UPnP \n"));
     h->enable_upnp = GNUNET_NO;
   }
 
