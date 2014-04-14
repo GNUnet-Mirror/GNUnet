@@ -867,10 +867,10 @@ send_broken (struct MeshConnection *c,
  * @param peer Peer to notify (neighbor who sent the connection).
  */
 static void
-send_broken2 (struct GNUNET_MESH_Hash *connection_id,
-             const struct GNUNET_PeerIdentity *id1,
-             const struct GNUNET_PeerIdentity *id2,
-             GNUNET_PEER_Id peer_id)
+send_broken_unknown (struct GNUNET_MESH_Hash *connection_id,
+                     const struct GNUNET_PeerIdentity *id1,
+                     const struct GNUNET_PeerIdentity *id2,
+                     GNUNET_PEER_Id peer_id)
 {
   struct GNUNET_MESH_ConnectionBroken *msg;
   struct MeshPeer *neighbor;
@@ -883,7 +883,10 @@ send_broken2 (struct GNUNET_MESH_Hash *connection_id,
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CONNECTION_BROKEN);
   msg->cid = *connection_id;
   msg->peer1 = *id1;
-  msg->peer2 = *id2;
+  if (NULL != id2)
+    msg->peer2 = *id2;
+  else
+    memset (&msg->peer2, 0, sizeof (msg->peer2));
   neighbor = GMP_get_short (peer_id);
   GMP_queue_add (neighbor, msg,
                  GNUNET_MESSAGE_TYPE_MESH_CONNECTION_BROKEN,
@@ -1608,7 +1611,7 @@ GMC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
         GNUNET_break (0);
         return GNUNET_OK;
       }
-      send_broken2 (cid, &my_full_id,
+      send_broken_unknown (cid, &my_full_id,
                     GNUNET_PEER_resolve2 (path->peers[own_pos + 1]),
                     path->peers[own_pos - 1]);
       path_destroy (path);
