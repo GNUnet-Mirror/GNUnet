@@ -862,8 +862,8 @@ send_broken (struct MeshConnection *c,
  * isn't even created.
  *
  * @param connection_id Connection ID.
- * @param id1 Peer that has disconnected.
- * @param id2 Peer that has disconnected.
+ * @param id1 Peer that has disconnected, probably local peer.
+ * @param id2 Peer that has disconnected can be NULL if unknown.
  * @param peer Peer to notify (neighbor who sent the connection).
  */
 static void
