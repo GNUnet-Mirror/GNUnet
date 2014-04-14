@@ -1,0 +1,30 @@
+[gnunetversion]
+
+VERSION = 1.0
+DESCRIPTION = Gets gnunet version number
+CATEGORY = P2P-Software
+
+# Start and end time format: %Y-%m-%d %H:%M:%S
+#START_TIME = 
+#END_TIME = 
+INTERVAL = 86400
+#LIFETIME = 
+
+#CAPABILITIES = 
+
+SOURCE = process
+
+#GNUNET_STAT_SERVICE = 
+#GNUNET_STAT_NAME = 
+
+EXT_PROCESS = gnunet-arm -v
+#EXT_ARGS = 
+
+EXPECTED_DATATYPE = string
+
+# Reporting mechanism
+COLLECTION_POINT = JLAPIAOB2DJA4B4I676TCOCVU0DUIRMKKUSM71BLLGCV3OHMUQ80
+COLLECTION_INTERVAL = 86400
+
+P2P_REPORT = NO
+#P2P_INTERVAL = 
