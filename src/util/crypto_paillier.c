@@ -107,7 +107,6 @@ GNUNET_CRYPTO_paillier_encrypt (const struct GNUNET_CRYPTO_PaillierPublicKey *pu
   int possible_opts;
   gcry_mpi_t n_square;
   gcry_mpi_t r;
-  gcry_mpi_t g;
   gcry_mpi_t c;
   gcry_mpi_t n;
   gcry_mpi_t tmp1;
@@ -138,7 +137,6 @@ GNUNET_CRYPTO_paillier_encrypt (const struct GNUNET_CRYPTO_PaillierPublicKey *pu
 
   GNUNET_assert (0 != (n_square = gcry_mpi_new (0)));
   GNUNET_assert (0 != (r = gcry_mpi_new (0)));
-  GNUNET_assert (0 != (g = gcry_mpi_new (0)));
   GNUNET_assert (0 != (c = gcry_mpi_new (0)));
 
   GNUNET_CRYPTO_mpi_scan_unsigned (&n, public_key, sizeof (struct GNUNET_CRYPTO_PaillierPublicKey));
