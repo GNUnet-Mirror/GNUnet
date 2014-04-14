@@ -859,7 +859,7 @@ send_broken (struct MeshConnection *c,
 
 /**
  * Send a notification that a connection is broken, when a connection
- * isn't even created.
+ * isn't even known to the local peer.
  *
  * @param connection_id Connection ID.
  * @param id1 Peer that has disconnected, probably local peer.
@@ -870,7 +870,7 @@ static void
 send_broken_unknown (struct GNUNET_MESH_Hash *connection_id,
                      const struct GNUNET_PeerIdentity *id1,
                      const struct GNUNET_PeerIdentity *id2,
-                     GNUNET_PEER_Id peer_id)
+                     const struct GNUNET_PeerIdentity *peer_id)
 {
   struct GNUNET_MESH_ConnectionBroken *msg;
   struct MeshPeer *neighbor;
@@ -887,7 +887,7 @@ send_broken_unknown (struct GNUNET_MESH_Hash *connection_id,
     msg->peer2 = *id2;
   else
     memset (&msg->peer2, 0, sizeof (msg->peer2));
-  neighbor = GMP_get_short (peer_id);
+  neighbor = GMP_get (peer_id);
   GMP_queue_add (neighbor, msg,
                  GNUNET_MESSAGE_TYPE_MESH_CONNECTION_BROKEN,
                  GNUNET_MESSAGE_TYPE_MESH_CONNECTION_BROKEN, 2,
@@ -1612,8 +1612,8 @@ GMC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
         return GNUNET_OK;
       }
       send_broken_unknown (cid, &my_full_id,
-                    GNUNET_PEER_resolve2 (path->peers[own_pos + 1]),
-                    path->peers[own_pos - 1]);
+                           GNUNET_PEER_resolve2 (path->peers[own_pos + 1]),
+                           peer);
       path_destroy (path);
       return GNUNET_OK;
     }
