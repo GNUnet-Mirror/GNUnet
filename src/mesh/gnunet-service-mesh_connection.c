@@ -1690,6 +1690,7 @@ GMC_handle_confirm (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_STATISTICS_update (stats, "# control on unknown connection",
                               1, GNUNET_NO);
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  don't know the connection!\n");
+    send_broken_unknown (&msg->cid, &my_full_id, NULL, peer);
     return GNUNET_OK;
   }
 
@@ -1955,6 +1956,7 @@ handle_mesh_encrypted (const struct GNUNET_PeerIdentity *peer,
     GNUNET_STATISTICS_update (stats, "# unknown connection", 1, GNUNET_NO);
     LOG (GNUNET_ERROR_TYPE_DEBUG, "enc on unknown connection %s\n",
          GNUNET_h2s (GM_h2hc (&msg->cid)));
+    send_broken_unknown (&msg->cid, &my_full_id, NULL, peer);
     return GNUNET_OK;
   }
 
@@ -2084,6 +2086,7 @@ handle_mesh_kx (const struct GNUNET_PeerIdentity *peer,
     GNUNET_STATISTICS_update (stats, "# unknown connection", 1, GNUNET_NO);
     LOG (GNUNET_ERROR_TYPE_DEBUG, "kx on unknown connection %s\n",
          GNUNET_h2s (GM_h2hc (&msg->cid)));
+    send_broken_unknown (&msg->cid, &my_full_id, NULL, peer);
     return GNUNET_OK;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, " on connection %s\n", GMC_2s (c));
@@ -2212,6 +2215,7 @@ GMC_handle_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
   {
     GNUNET_STATISTICS_update (stats, "# ack on unknown connection", 1,
                               GNUNET_NO);
+    send_broken_unknown (&msg->cid, &my_full_id, NULL, peer);
     return GNUNET_OK;
   }
 
@@ -2285,9 +2289,9 @@ GMC_handle_poll (void *cls, const struct GNUNET_PeerIdentity *peer,
   {
     GNUNET_STATISTICS_update (stats, "# poll on unknown connection", 1,
                               GNUNET_NO);
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "WARNING POLL message on unknown connection %s!\n",
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "POLL message on unknown connection %s!\n",
          GNUNET_h2s (GM_h2hc (&msg->cid)));
+    send_broken_unknown (&msg->cid, &my_full_id, NULL, peer);
     return GNUNET_OK;
   }
 
