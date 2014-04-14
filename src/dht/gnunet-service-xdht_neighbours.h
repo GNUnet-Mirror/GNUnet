@@ -36,11 +36,31 @@
  * Field in trail setup message to understand if the message is sent to an
  * intermediate finger, friend or me. 
  */
-enum current_destination_type
+enum current_destination_type /* FIXME: enum GSX_CurrentDestinationType */
 {
-  FRIEND ,
-  FINGER ,
-  MY_ID ,
+  /**
+   * Look in friend AND finger tables for a trail to the key.
+   */
+  /* FIXME: GSX_CDT_ */ FRIEND,
+  
+  /**
+   * Look in the routing table to follow a trail to reach to the
+   * destination.  It is also allowed (but currently not implemented)
+   * to look into friend/finger tables for a better trail to the key
+   * and (if one is found) 'abort' the current trail and switch to
+   * the better one.
+   */
+  FINGER,
+
+  /**
+   * "Returned" if the origin is the closest peer to the destination;
+   * Must not be passed to "GDS_NEIGHBOURS_handle_put".
+   */
+  MY_ID,
+
+  /**
+   * FIXME.
+   */
   VALUE
 };
 
