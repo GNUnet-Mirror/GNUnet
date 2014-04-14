@@ -57,3 +57,13 @@ test_sensor_api_SOURCES = \
 test_sensor_api_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la  
 
+pkgsensordir = sensors
+
+install-data-local:
+	$(mkinstalldirs) $(datadir)/$(PACKAGE)/$(pkgsensordir)
+	@$(NORMAL_INSTALL)
+	for sensor in $(pkgsensordir)/*; do \
+	  if test -f $$sensor; then \
+	    $(INSTALL_DATA) $$sensor $(datadir)/$(PACKAGE)/$(pkgsensordir)/ ; \
+	  fi \
+	done

@@ -383,11 +383,9 @@ get_sensor_dir()
   char* datadir;
   char* sensordir;
 
-  datadir = GNUNET_OS_installation_get_path(GNUNET_OS_IPK_SELF_PREFIX);
-  //should eval to '$prefix/share/gnunet-mi/sensors/'
-  //TODO: is there a better way?
-  GNUNET_asprintf(&sensordir, "%sshare%sgnunet-mi%ssensors%s",
-      datadir, DIR_SEPARATOR_STR, DIR_SEPARATOR_STR, DIR_SEPARATOR_STR);
+  datadir = GNUNET_OS_installation_get_path(GNUNET_OS_IPK_DATADIR);
+  GNUNET_asprintf(&sensordir, "%ssensors%s",
+      datadir, DIR_SEPARATOR_STR);
 
   return sensordir;
 }
