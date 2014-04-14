@@ -162,6 +162,7 @@ GNUNET_CRYPTO_paillier_encrypt (const struct GNUNET_CRYPTO_PaillierPublicKey *pu
                                     c);
 
   gcry_mpi_release (n_square);
+  gcry_mpi_release (n);
   gcry_mpi_release (r);
   gcry_mpi_release (c);
 
