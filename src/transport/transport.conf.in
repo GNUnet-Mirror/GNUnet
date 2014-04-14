@@ -64,6 +64,22 @@ TESTING_IGNORE_KEYS = ACCEPT_FROM;
 [transport-http_client]
 MAX_CONNECTIONS = 128
 TESTING_IGNORE_KEYS = ACCEPT_FROM;
+# Hostname or IP of proxy server
+# PROXY =
+
+# User name for proxy server
+# PROXY_USERNAME = 
+# User password for proxy server
+# PROXY_PASSWORD = 
+
+# Type of proxy server, 
+# Valid values: HTTP, SOCKS4, SOCKS5, SOCKS4A, SOCKS5_HOSTNAME
+# Default: HTTP
+# PROXY_TYPE = HTTP
+
+# Enable tunneling proxy request instead of having proxy server evaluate it
+# Experimental, default: NO
+# PROXY_HTTP_TUNNELING = NO
 
 [transport-http_server]
 #EXTERNAL_HOSTNAME = <your hostname/path>
@@ -75,6 +91,24 @@ TESTING_IGNORE_KEYS = ACCEPT_FROM;
 [transport-https_client]
 MAX_CONNECTIONS = 128
 TESTING_IGNORE_KEYS = ACCEPT_FROM;
+# Hostname or IP of proxy server
+# PROXY =
+
+# User name for proxy server
+# PROXY_USERNAME = 
+# User password for proxy server
+# PROXY_PASSWORD = 
+
+# Type of proxy server, 
+# Valid values: HTTP, SOCKS4, SOCKS5, SOCKS4A, SOCKS5_HOSTNAME
+# Default: HTTP
+# PROXY_TYPE = HTTP
+
+# Enable tunneling proxy request instead of having proxy server evaluate it
+# Experimental, default: NO
+# PROXY_HTTP_TUNNELING = NO
+
+
 
 [transport-https_server]
 # EXTERNAL_HOSTNAME = <your hostname/path>

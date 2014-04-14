@@ -275,6 +275,39 @@ struct HTTP_Client_Plugin
   char *protocol;
 
   /**
+   * Proxy configuration: hostname or ip of the proxy server
+   */
+  char *proxy_hostname;
+
+  /**
+   * Username for the proxy server
+   */
+  char *proxy_username;
+
+  /**
+   * Password for the proxy server
+   */
+  char *proxy_password;
+
+  /**
+   * Type of proxy server:
+   *
+   * Valid values as supported by curl:
+   * CURLPROXY_HTTP, CURLPROXY_HTTP_1_0 CURLPROXY_SOCKS4, CURLPROXY_SOCKS5,
+   * CURLPROXY_SOCKS4A, CURLPROXY_SOCKS5_HOSTNAME
+   */
+  curl_proxytype proxytype;
+
+  /**
+   * Use proxy tunneling:
+   * Tunnel all operations through a given HTTP instead of have the proxy
+   * evaluate the HTTP request
+   *
+   * Default: GNUNET_NO, GNUNET_yes experimental
+   */
+  int proxy_use_httpproxytunnel;
+
+  /**
    * My options to be included in the address
    */
   uint32_t options;
@@ -1269,6 +1302,21 @@ client_connect_get (struct Session *s)
   curl_easy_setopt (s->client_get, CURLOPT_REDIR_PROTOCOLS, CURLPROTO_HTTP);
 #endif
 
+  if (s->plugin->proxy_hostname != NULL)
+  {
+    curl_easy_setopt (s->client_get, CURLOPT_PROXY, s->plugin->proxy_hostname);
+    curl_easy_setopt (s->client_get, CURLOPT_PROXYTYPE, s->plugin->proxytype);
+    if (NULL != s->plugin->proxy_username)
+      curl_easy_setopt (s->client_get, CURLOPT_PROXYUSERNAME,
+          s->plugin->proxy_username);
+    if (NULL != s->plugin->proxy_password)
+      curl_easy_setopt (s->client_get, CURLOPT_PROXYPASSWORD,
+          s->plugin->proxy_password);
+    if (GNUNET_YES == s->plugin->proxy_use_httpproxytunnel)
+      curl_easy_setopt (s->client_get, CURLOPT_HTTPPROXYTUNNEL,
+          s->plugin->proxy_use_httpproxytunnel);
+  }
+
   curl_easy_setopt (s->client_get, CURLOPT_URL, s->url);
   //curl_easy_setopt (s->client_get, CURLOPT_HEADERFUNCTION, &curl_get_header_cb);
   //curl_easy_setopt (s->client_get, CURLOPT_WRITEHEADER, ps);
@@ -1353,6 +1401,21 @@ client_connect_put (struct Session *s)
   curl_easy_setopt (s->client_get, CURLOPT_PROTOCOLS, CURLPROTO_HTTP);
   curl_easy_setopt (s->client_get, CURLOPT_REDIR_PROTOCOLS, CURLPROTO_HTTP);
 #endif
+  if (s->plugin->proxy_hostname != NULL)
+  {
+    curl_easy_setopt (s->client_put, CURLOPT_PROXY, s->plugin->proxy_hostname);
+    curl_easy_setopt (s->client_put, CURLOPT_PROXYTYPE, s->plugin->proxytype);
+    if (NULL != s->plugin->proxy_username)
+      curl_easy_setopt (s->client_put, CURLOPT_PROXYUSERNAME,
+          s->plugin->proxy_username);
+    if (NULL != s->plugin->proxy_password)
+      curl_easy_setopt (s->client_put, CURLOPT_PROXYPASSWORD,
+          s->plugin->proxy_password);
+    if (GNUNET_YES == s->plugin->proxy_use_httpproxytunnel)
+      curl_easy_setopt (s->client_put, CURLOPT_HTTPPROXYTUNNEL,
+          s->plugin->proxy_use_httpproxytunnel);
+  }
+
   curl_easy_setopt (s->client_put, CURLOPT_URL, s->url);
   curl_easy_setopt (s->client_put, CURLOPT_UPLOAD, 1L);
   //curl_easy_setopt (s->client_put, CURLOPT_HEADERFUNCTION, &client_curl_header);
@@ -1722,6 +1785,10 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
                    _("Shutdown for plugin `%s' complete\n"),
                    plugin->name);
 
+  GNUNET_free_non_null (plugin->proxy_hostname);
+  GNUNET_free_non_null (plugin->proxy_username);
+  GNUNET_free_non_null (plugin->proxy_password);
+
   GNUNET_free (plugin);
   GNUNET_free (api);
   return NULL;
@@ -1738,6 +1805,8 @@ static int
 client_configure_plugin (struct HTTP_Client_Plugin *plugin)
 {
   unsigned long long max_connections;
+  char *proxy_type;
+
 
   /* Optional parameters */
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_number (plugin->env->cfg,
@@ -1746,9 +1815,81 @@ client_configure_plugin (struct HTTP_Client_Plugin *plugin)
     max_connections = 128;
   plugin->max_connections = max_connections;
 
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+  GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
                    _("Maximum number of connections is %u\n"),
                    plugin->max_connections);
+
+  /* Read proxy configuration */
+  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (plugin->env->cfg,
+      plugin->name, "PROXY", &plugin->proxy_hostname))
+  {
+    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+                     "Found proxy host: `%s'\n",
+                     plugin->proxy_hostname);
+    /* proxy username */
+    if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (plugin->env->cfg,
+        plugin->name, "PROXY_USERNAME", &plugin->proxy_username))
+    {
+      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+                       "Found proxy username name: `%s'\n",
+                       plugin->proxy_username);
+    }
+
+    /* proxy password */
+    if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (plugin->env->cfg,
+        plugin->name, "PROXY_PASSWORD", &plugin->proxy_password))
+    {
+      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+                       "Found proxy password name: `%s'\n",
+                       plugin->proxy_password);
+    }
+
+    /* proxy type */
+    if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (plugin->env->cfg,
+        plugin->name, "PROXY_TYPE", &proxy_type))
+    {
+      GNUNET_STRINGS_utf8_toupper (proxy_type, proxy_type);
+
+      if (0 == strcmp(proxy_type, "HTTP"))
+        plugin->proxytype = CURLPROXY_HTTP;
+      else if (0 == strcmp(proxy_type, "SOCKS4"))
+        plugin->proxytype = CURLPROXY_SOCKS4;
+      else if (0 == strcmp(proxy_type, "SOCKS5"))
+        plugin->proxytype = CURLPROXY_SOCKS5;
+      else if (0 == strcmp(proxy_type, "SOCKS4A"))
+        plugin->proxytype = CURLPROXY_SOCKS4A;
+      else if (0 == strcmp(proxy_type, "SOCKS5_HOSTNAME "))
+        plugin->proxytype = CURLPROXY_SOCKS5_HOSTNAME ;
+      else
+      {
+        GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+             _("Invalid proxy type: `%s', disabling proxy! Check configuration!\n"),
+             proxy_type);
+
+        GNUNET_free (proxy_type);
+        GNUNET_free (plugin->proxy_hostname);
+        plugin->proxy_hostname = NULL;
+        GNUNET_free_non_null (plugin->proxy_username);
+        plugin->proxy_username = NULL;
+        GNUNET_free_non_null (plugin->proxy_password);
+        plugin->proxy_password = NULL;
+
+        return GNUNET_SYSERR;
+      }
+
+      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+                       "Found proxy type: `%s'\n", proxy_type);
+    }
+
+    /* proxy http tunneling */
+    if (GNUNET_SYSERR == (plugin->proxy_use_httpproxytunnel == GNUNET_CONFIGURATION_get_value_yesno (plugin->env->cfg,
+        plugin->name, "PROXY_HTTP_TUNNELING")))
+      plugin->proxy_use_httpproxytunnel = GNUNET_NO;
+
+    GNUNET_free_non_null (proxy_type);
+  }
+
+
   return GNUNET_OK;
 }
 
