@@ -9,6 +9,7 @@ if HAVE_TESTING
  SECRETSHARING = secretsharing
  EXPERIMENTATION = experimentation
  SCALARPRODUCT = scalarproduct
+ SENSOR = sensor
 endif
 
 if HAVE_EXPERIMENTAL
@@ -21,7 +22,8 @@ if HAVE_EXPERIMENTAL
   $(CONSENSUS) \
   $(SECRETSHARING) \
   $(SCALARPRODUCT) \
-  $(EXPERIMENTATION)
+  $(EXPERIMENTATION) \
+  $(SENSOR)
 endif
 
 

@@ -26,9 +26,8 @@
 #ifndef GNUNET_SENSOR_SERVICE_H
 #define GNUNET_SENSOR_SERVICE_H
 
-#include <gnunet/platform.h>
-#include <gnunet/gnunet_util_lib.h>
-#include "gnunet_protocols_mi.h"
+#include "platform.h"
+#include "gnunet_util_lib.h"
 
 #ifdef __cplusplus
 extern "C"
