@@ -539,12 +539,24 @@ compute_lagrange_coefficient (gcry_mpi_t coeff, unsigned int j,
 }
 
 
+/**
+ * Destroy a decrypt session, removing it from
+ * the linked list of decrypt sessions.
+ *
+ * @param ds decrypt session to destroy
+ */
 static void
 decrypt_session_destroy (struct DecryptSession *ds)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "destroying decrypt session\n");
 
   GNUNET_CONTAINER_DLL_remove (decrypt_sessions_head, decrypt_sessions_tail, ds);
+
+  if (NULL != ds->consensus)
+  {
+    GNUNET_CONSENSUS_destroy (ds->consensus);
+    ds->consensus = NULL;
+  }
 
   if (NULL != ds->client_mq)
   {
@@ -569,6 +581,12 @@ keygen_session_destroy (struct KeygenSession *ks)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "destroying keygen session\n");
 
   GNUNET_CONTAINER_DLL_remove (keygen_sessions_head, keygen_sessions_tail, ks);
+
+  if (NULL != ks->consensus)
+  {
+    GNUNET_CONSENSUS_destroy (ks->consensus);
+    ks->consensus = NULL;
+  }
 
   if (NULL != ks->client_mq)
   {
@@ -733,6 +751,9 @@ keygen_round2_conclude (void *cls)
   struct GNUNET_SECRETSHARING_Share *share;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "round2 conclude\n");
+
+  GNUNET_CONSENSUS_destroy (ks->consensus);
+  ks->consensus = NULL;
 
   share = GNUNET_new (struct GNUNET_SECRETSHARING_Share);
 
@@ -1288,6 +1309,9 @@ decrypt_conclude (void *cls)
   unsigned int num;
   unsigned int i;
   unsigned int j;
+
+  GNUNET_CONSENSUS_destroy (ds->consensus);
+  ds->consensus = NULL;
 
   GNUNET_assert (0 != (lagrange = gcry_mpi_new (0)));
   GNUNET_assert (0 != (m = gcry_mpi_new (0)));
