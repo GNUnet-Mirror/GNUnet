@@ -218,7 +218,7 @@ version_parse(char *version, uint16_t *major, uint16_t *minor)
  * @param sectionname configuration section containing definition
  */
 static struct SensorInfo *
-load_sensor_from_cfg(struct GNUNET_CONFIGURATION_Handle *cfg, char *sectionname)
+load_sensor_from_cfg(struct GNUNET_CONFIGURATION_Handle *cfg, const char *sectionname)
 {
   struct SensorInfo *sensor;
   char *versionstr;
@@ -263,7 +263,7 @@ static struct SensorInfo *
 load_sensor_from_file(const char *filename)
 {
   struct GNUNET_CONFIGURATION_Handle *sensorcfg;
-  char *filebasename;
+  const char *filebasename;
   struct SensorInfo *sensor;
 
   //test file
