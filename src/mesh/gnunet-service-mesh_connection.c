@@ -867,7 +867,7 @@ send_broken (struct MeshConnection *c,
  * @param peer Peer to notify (neighbor who sent the connection).
  */
 static void
-send_broken_unknown (struct GNUNET_MESH_Hash *connection_id,
+send_broken_unknown (const struct GNUNET_MESH_Hash *connection_id,
                      const struct GNUNET_PeerIdentity *id1,
                      const struct GNUNET_PeerIdentity *id2,
                      const struct GNUNET_PeerIdentity *peer_id)
