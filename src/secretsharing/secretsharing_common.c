@@ -135,3 +135,16 @@ GNUNET_SECRETSHARING_share_write (const struct GNUNET_SECRETSHARING_Share *share
 }
 
 
+void
+GNUNET_SECRETSHARING_share_destroy (struct GNUNET_SECRETSHARING_Share *share)
+{
+  GNUNET_free (share->original_indices);
+  share->original_indices = NULL;
+  GNUNET_free (share->sigmas);
+  share->sigmas = NULL;
+  GNUNET_free (share->peers);
+  share->peers = NULL;
+  GNUNET_free (share);
+}
+
+

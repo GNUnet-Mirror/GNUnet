@@ -574,6 +574,26 @@ decrypt_session_destroy (struct DecryptSession *ds)
   GNUNET_free (ds);
 }
 
+static void
+keygen_info_destroy (struct KeygenPeerInfo *info)
+{
+  if (NULL != info->sigma)
+  {
+    gcry_mpi_release (info->sigma);
+    info->sigma = NULL;
+  }
+  if (NULL != info->presecret_commitment)
+  {
+    gcry_mpi_release (info->presecret_commitment);
+    info->presecret_commitment = NULL;
+  }
+  if (NULL != info->preshare_commitment)
+  {
+    gcry_mpi_release (info->preshare_commitment);
+    info->presecret_commitment = NULL;
+  }
+}
+
 
 static void
 keygen_session_destroy (struct KeygenSession *ks)
@@ -582,10 +602,32 @@ keygen_session_destroy (struct KeygenSession *ks)
 
   GNUNET_CONTAINER_DLL_remove (keygen_sessions_head, keygen_sessions_tail, ks);
 
+  if (NULL != ks->info)
+  {
+    unsigned int i;
+    for (i = 0; i < ks->num_peers; i++)
+      keygen_info_destroy (&ks->info[i]);
+    GNUNET_free (ks->info);
+    ks->info = NULL;
+  }
+
   if (NULL != ks->consensus)
   {
     GNUNET_CONSENSUS_destroy (ks->consensus);
     ks->consensus = NULL;
+  }
+
+  if (NULL != ks->presecret_polynomial)
+  {
+    unsigned int i;
+    for (i = 0; i < ks->threshold; i++)
+    {
+      GNUNET_assert (NULL != ks->presecret_polynomial[i]);
+      gcry_mpi_release (ks->presecret_polynomial[i]);
+      ks->presecret_polynomial[i] = NULL;
+    }
+    GNUNET_free (ks->presecret_polynomial);
+    ks->presecret_polynomial = NULL;
   }
 
   if (NULL != ks->client_mq)
@@ -593,6 +635,24 @@ keygen_session_destroy (struct KeygenSession *ks)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "destroying keygen MQ\n");
     GNUNET_MQ_destroy (ks->client_mq);
     ks->client_mq = NULL;
+  }
+
+  if (NULL != ks->my_share)
+  {
+    gcry_mpi_release (ks->my_share);
+    ks->my_share = NULL;
+  }
+
+  if (NULL != ks->public_key)
+  {
+    gcry_mpi_release (ks->public_key);
+    ks->public_key = NULL;
+  }
+
+  if (NULL != ks->peers)
+  {
+    GNUNET_free (ks->peers);
+    ks->peers = NULL;
   }
 
   if (NULL != ks->client)
@@ -802,9 +862,6 @@ keygen_round2_conclude (void *cls)
   /* Write the share. If 0 peers completed the dkg, an empty
    * share will be sent. */
 
-  m = GNUNET_malloc (sizeof (struct GNUNET_SECRETSHARING_SecretReadyMessage) +
-                     ks->num_peers * sizeof (struct GNUNET_PeerIdentity));
-
   GNUNET_assert (GNUNET_OK == GNUNET_SECRETSHARING_share_write (share, NULL, 0, &share_size));
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "writing share of size %u\n",
@@ -814,6 +871,9 @@ keygen_round2_conclude (void *cls)
                             GNUNET_MESSAGE_TYPE_SECRETSHARING_CLIENT_SECRET_READY);
 
   GNUNET_assert (GNUNET_OK == GNUNET_SECRETSHARING_share_write (share, &m[1], share_size, NULL));
+
+  GNUNET_SECRETSHARING_share_destroy (share);
+  share = NULL;
 
   GNUNET_MQ_send (ks->client_mq, ev);
 }
@@ -840,14 +900,12 @@ insert_round2_element (struct KeygenSession *ks)
   unsigned int i;
   gcry_mpi_t idx;
   gcry_mpi_t v;
-  gcry_mpi_t c;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "P%u: Inserting round2 element\n",
               ks->local_peer_idx);
 
   GNUNET_assert (NULL != (v = gcry_mpi_new (GNUNET_SECRETSHARING_ELGAMAL_BITS)));
   GNUNET_assert (NULL != (idx = gcry_mpi_new (GNUNET_SECRETSHARING_ELGAMAL_BITS)));
-  GNUNET_assert (NULL != (c = gcry_mpi_new (GNUNET_SECRETSHARING_ELGAMAL_BITS)));
 
   element_size = (sizeof (struct GNUNET_SECRETSHARING_KeygenRevealData) +
                   GNUNET_SECRETSHARING_ELGAMAL_BITS / 8 * ks->num_peers +
@@ -941,8 +999,6 @@ keygen_reveal_get_exp_preshare (struct KeygenSession *ks,
 
   GNUNET_assert (idx < ks->num_peers);
 
-  GNUNET_assert (NULL != (exp_preshare = gcry_mpi_new (0)));
-
   pos = (void *) &d[1];
   // skip exponentiated pre-shares we don't want
   pos += GNUNET_SECRETSHARING_ELGAMAL_BITS / 8 * idx;
@@ -959,7 +1015,6 @@ keygen_reveal_get_exp_coeff (struct KeygenSession *ks,
   gcry_mpi_t exp_coeff;
 
   GNUNET_assert (idx < ks->threshold);
-  GNUNET_assert (NULL != (exp_coeff = gcry_mpi_new (0)));
 
   pos = (void *) &d[1];
   // skip exponentiated pre-shares
@@ -1001,6 +1056,7 @@ keygen_round2_new_element (void *cls,
   struct KeygenPeerInfo *info;
   size_t expected_element_size;
   unsigned int j;
+  int cmp_result;
   gcry_mpi_t tmp;
   gcry_mpi_t public_key_share;
   gcry_mpi_t preshare;
@@ -1077,6 +1133,9 @@ keygen_round2_new_element (void *cls,
     gcry_mpi_set_ui (ks->public_key, 1);
   }
   gcry_mpi_mulm (ks->public_key, ks->public_key, public_key_share, elgamal_p);
+  
+  gcry_mpi_release (public_key_share);
+  public_key_share = NULL;
 
   GNUNET_assert (NULL != (preshare = gcry_mpi_new (0)));
   GNUNET_CRYPTO_paillier_decrypt (&ks->paillier_private_key,
@@ -1088,7 +1147,10 @@ keygen_round2_new_element (void *cls,
   gcry_mpi_powm (tmp, elgamal_g, preshare, elgamal_p);
 
   // TODO: restore a valid secret from the decryption (the hard part, solving SVP with gauss)
-  if (0 != gcry_mpi_cmp (tmp, info->preshare_commitment))
+  cmp_result = gcry_mpi_cmp (tmp, info->preshare_commitment);
+  gcry_mpi_release (tmp);
+  tmp = NULL;
+  if (0 != cmp_result)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "P%u: Got invalid presecret from P%u\n",
                 (unsigned int) ks->local_peer_idx, (unsigned int) (info - ks->info));
@@ -1111,6 +1173,7 @@ keygen_round2_new_element (void *cls,
     }
     presigma = keygen_reveal_get_exp_preshare (ks, d, j);
     gcry_mpi_mulm (ks->info[j].sigma, ks->info[j].sigma, presigma, elgamal_p);
+    gcry_mpi_release (presigma);
   }
 
   gcry_mpi_t prod;
@@ -1121,21 +1184,26 @@ keygen_round2_new_element (void *cls,
   for (j = 0; j < ks->num_peers; j++)
   {
     unsigned int k;
-    gcry_mpi_t tmp;
+    int cmp_result;
     gcry_mpi_t exp_preshare;
     gcry_mpi_set_ui (prod, 1);
     for (k = 0; k < ks->threshold; k++)
     {
       // Using pow(double,double) is a bit sketchy.
       // We count players from 1, but shares from 0.
+      gcry_mpi_t tmp;
       gcry_mpi_set_ui (j_to_k, (unsigned int) pow(j+1, k)); 
       tmp = keygen_reveal_get_exp_coeff (ks, d, k);
       gcry_mpi_powm (tmp, tmp, j_to_k, elgamal_p);
       gcry_mpi_mulm (prod, prod, tmp, elgamal_p);
+      gcry_mpi_release (tmp);
     }
     exp_preshare = keygen_reveal_get_exp_preshare (ks, d, j);
     gcry_mpi_mod (exp_preshare, exp_preshare, elgamal_p);
-    if (0 != gcry_mpi_cmp (prod, exp_preshare))
+    cmp_result = gcry_mpi_cmp (prod, exp_preshare);
+    gcry_mpi_release (exp_preshare);
+    exp_preshare = NULL;
+    if (0 != cmp_result)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "P%u: reveal data from P%u incorrect\n",
                   ks->local_peer_idx, j);
@@ -1147,6 +1215,10 @@ keygen_round2_new_element (void *cls,
   // TODO: verify proof of fair encryption (once implemented)
   
   info->round2_valid = GNUNET_YES;
+
+  gcry_mpi_release (preshare);
+  gcry_mpi_release (prod);
+  gcry_mpi_release (j_to_k);
 }
 
 
