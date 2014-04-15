@@ -926,7 +926,14 @@ download_hostlist ()
                             gettext_noop ("# hostlist downloads initiated"), 1,
                             GNUNET_NO);
   if (proxy != NULL)
+  {
     CURL_EASY_SETOPT (curl, CURLOPT_PROXY, proxy);
+    CURL_EASY_SETOPT (curl, CURLOPT_PROXYTYPE, proxy_type);
+    if (NULL != proxy_username)
+      CURL_EASY_SETOPT (curl, CURLOPT_PROXYUSERNAME, proxy_username);
+    if (NULL != proxy_password)
+      CURL_EASY_SETOPT (curl, CURLOPT_PROXYPASSWORD, proxy_password);
+  }
   download_pos = 0;
   stat_bogus_url = 0;
   CURL_EASY_SETOPT (curl, CURLOPT_WRITEFUNCTION, &callback_download);
@@ -1499,6 +1506,7 @@ GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
     {
       GNUNET_STRINGS_utf8_toupper (proxytype_str, proxytype_str);
 
+      proxy_type = CURLPROXY_HTTP;
       if (0 == strcmp(proxytype_str, "HTTP"))
         proxy_type = CURLPROXY_HTTP;
       else if (0 == strcmp(proxytype_str, "HTTP_1_0"))
@@ -1509,7 +1517,7 @@ GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
         proxy_type = CURLPROXY_SOCKS5;
       else if (0 == strcmp(proxytype_str, "SOCKS4A"))
         proxy_type = CURLPROXY_SOCKS4A;
-      else if (0 == strcmp(proxytype_str, "SOCKS5_HOSTNAME "))
+      else if (0 == strcmp(proxytype_str, "SOCKS5_HOSTNAME"))
         proxy_type = CURLPROXY_SOCKS5_HOSTNAME ;
       else
       {
@@ -1527,9 +1535,6 @@ GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
 
         return GNUNET_SYSERR;
       }
-
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                       "Found proxy type: `%s'\n", proxy_type);
     }
     GNUNET_free_non_null (proxytype_str);
   }
