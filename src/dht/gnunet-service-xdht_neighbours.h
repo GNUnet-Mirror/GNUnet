@@ -21,120 +21,100 @@
 /**
  * @file dht/gnunet-service-xdht_neighbours.h
  * @brief GNUnet DHT routing code
- * @author Christian Grothoff
- * @author Nathan Evans
+ * @author Supriti Singh
  */
+
 #ifndef GNUNET_SERVICE_XDHT_NEIGHBOURS_H
 #define GNUNET_SERVICE_XDHT_NEIGHBOURS_H
 
 #include "gnunet_util_lib.h"
 #include "gnunet_block_lib.h"
-#include "gnunet_dht_service.h"
+#include "gnunet_xdht_service.h"
 
-/**
- * FIXME: Change the comment to explain about usage of this in find successor.
- * Field in trail setup message to understand if the message is sent to an
- * intermediate finger, friend or me. 
- */
-enum current_destination_type /* FIXME: enum GSX_CurrentDestinationType */
-{
-  /**
-   * Look in friend AND finger tables for a trail to the key.
-   */
-  /* FIXME: GSX_CDT_ */ FRIEND,
-  
-  /**
-   * Look in the routing table to follow a trail to reach to the
-   * destination.  It is also allowed (but currently not implemented)
-   * to look into friend/finger tables for a better trail to the key
-   * and (if one is found) 'abort' the current trail and switch to
-   * the better one.
-   */
-  FINGER,
 
-  /**
-   * "Returned" if the origin is the closest peer to the destination;
-   * Must not be passed to "GDS_NEIGHBOURS_handle_put".
-   */
-  MY_ID,
-
-  /**
-   * FIXME.
-   */
-  VALUE
-};
-
-/**
- * Perform a PUT operation.  Forwards the given request to other
- * peers.   Does not store the data locally.  Does not give the
- * data to local clients.  May do nothing if this is the only
- * peer in the network (or if we are the closest peer in the
- * network).
- *
- * @param type type of the block
- * @param options routing options
- * @param desired_replication_level desired replication count
- * @param expiration_time when does the content expire
- * @param hop_count how many hops has this message traversed so far
- * @param key key for the content
- * @param put_path_length number of entries in @a put_path
- * @param put_path peers this request has traversed so far (if tracked)
- * @param data payload to store
- * @param data_size number of bytes in @a data
+/** FIXME: by default I keep current_source, and destination as my own id.
+ * in case we find a finger then we update current_source in the 
+ * find_successor message. 
+ * Construct a Put message and send it to target_peer. 
+ * @param key Key for the content  
+ * @param data Content to store
+ * @param data_size Size of content @a data in bytes
+ * @param block_type Type of the block
+ * @param options Routing options
+ * @param desired_replication_level Desired replication count
+ * @param expiration_time When does the content expire
+ * @param current_destination 
+ * @param current_source 
+ * @param target_peer Peer to which this message will be forwarded.
+ * @param hop_count Number of hops traversed so far.
+ * @param put_path_length Total number of peers in @a put_path
+ * @param put_path Number of peers traversed so far 
  */
 void
-GDS_NEIGHBOURS_handle_put (enum GNUNET_BLOCK_Type type,
-                           enum GNUNET_DHT_RouteOption options,
-                           uint32_t desired_replication_level,
-                           struct GNUNET_TIME_Absolute expiration_time,
-                           uint32_t hop_count,
-                           const struct GNUNET_HashCode * key,
-                           unsigned int put_path_length,
-                           struct GNUNET_PeerIdentity *put_path,
-                           const void *data, size_t data_size,
-                           struct GNUNET_PeerIdentity *current_destination,
-                           struct GNUNET_PeerIdentity *current_source,
-                           enum current_destination_type dest_type,
-                           struct GNUNET_PeerIdentity *target_peer_id);
+GDS_NEIGHBOURS_send_put (const struct GNUNET_HashCode *key,
+                         const void *data, size_t data_size,
+                         enum GNUNET_BLOCK_Type block_type,
+                         enum GNUNET_DHT_RouteOption options,
+                         uint32_t desired_replication_level,
+                         struct GNUNET_TIME_Absolute expiration_time,
+                         struct GNUNET_PeerIdentity *current_destination,
+                         struct GNUNET_PeerIdentity *current_source,
+                         struct GNUNET_PeerIdentity *target_peer,
+                         uint32_t hop_count,
+                         uint32_t put_path_length,
+                         struct GNUNET_PeerIdentity *put_path);
 
 
-/**
- * 
- * @param source_peer
- * @param get_path
- * @param get_path_length
- * @param key
+/** FIXME: by default I keep current_source, and destination as my own id.
+ * in case we find a finger then we update current_source in the 
+ * find_successor message. 
+ * Construct a Get message and send it to target_peer. 
+ * @param key Key for the content  
+ * @param data Content to store
+ * @param data_size Size of content @a data in bytes
+ * @param block_type Type of the block
+ * @param options Routing options
+ * @param desired_replication_level Desired replication count
+ * @param expiration_time When does the content expire
+ * @param current_destination 
+ * @param current_source 
+ * @param target_peer Peer to which this message will be forwarded.
+ * @param hop_count Number of hops traversed so far.
+ * @param put_path_length Total number of peers in @a put_path
+ * @param put_path Number of peers traversed so far 
  */
 void
-GDS_NEIGHBOURS_handle_get (enum GNUNET_BLOCK_Type block_type,
-                           enum GNUNET_DHT_RouteOption options,
-                           uint32_t desired_replication_level,
-                           uint32_t hop_count,
-                           struct GNUNET_PeerIdentity *get_peer_path,
-                           unsigned int get_path_length,
-                           struct GNUNET_HashCode *key,
-                           struct GNUNET_PeerIdentity *target_peer,
-                           struct GNUNET_PeerIdentity *current_destination,
-                           struct GNUNET_PeerIdentity *current_source,
-                           enum current_destination_type current_dest_type);
+GDS_NEIGHBOURS_send_get (const struct GNUNET_HashCode *key,
+                         enum GNUNET_BLOCK_Type block_type,
+                         enum GNUNET_DHT_RouteOption options,
+                         uint32_t desired_replication_level,
+                         struct GNUNET_PeerIdentity *current_destination,
+                         struct GNUNET_PeerIdentity *current_source,
+                         struct GNUNET_PeerIdentity *target_peer,
+                         uint32_t hop_count,
+                         uint32_t get_path_length,
+                         struct GNUNET_PeerIdentity *get_path);
 
 
 /**
- * FIXME: I am removing source peer as the first element in the trail
- * is source identity.
- * Send get result back to requesting client. 
- * @param expiration when will the reply expire
- * @param key the query this reply is for
- * @param get_path_length number of peers in @a get_path
- * @param get_path path the reply took on get
- * @param put_path_length number of peers in @a put_path
- * @param put_path path the reply took on put
- * @param type type of the reply
- * @param data_size number of bytes in @a data
- * @param data application payload data
- * @param get_path
- * @param get_path_length
+ * Send the get result to requesting client.
+ * @param expiration When will this result expire?
+ * @param key Key of the requested data.
+ * @param put_path_length Number of peers in @a put_path
+ * @param put_path Path taken to put the data at its stored location.
+ * @param type Block type
+ * @param data_size Size of the @a data 
+ * @param data Payload to store
+ * @param get_path Path taken to reach to the location of the key.
+ * @param get_path_length Number of peers in @a get_path
+ * @param current_get_path_index Index in get_path
+ * @param next_hop Next peer to forward the message to. 
+ * @param source_peer Peer which has the data for the key.
  */
+/* FIXME: Remove redundant arguments  
+ * 1.remove get_path_index from message and just look up into the get path
+ for your location and get the next peer. 
+ * 2. Remove next_hop, source_peer */
 void 
 GDS_NEIGHBOURS_send_get_result (struct GNUNET_TIME_Absolute expiration,
                                 const struct GNUNET_HashCode *key,
@@ -144,40 +124,14 @@ GDS_NEIGHBOURS_send_get_result (struct GNUNET_TIME_Absolute expiration,
                                 const void *data,
                                 struct GNUNET_PeerIdentity *get_path,
                                 unsigned int get_path_length,
-                                unsigned int current_trail_index,
                                 struct GNUNET_PeerIdentity *next_hop,
                                 struct GNUNET_PeerIdentity *source_peer);
 
 /**
- * FIXME: Here you should update the fields of struct PeerGetResultMessage.
- * At the end of this message you should add the data and get path and send 
- * to the original requesting client. and there you should call GDS_CLIENT_handle_reply
- * with correct parameter. 
- * @param expiration
- * @param key
- * @param get_path_length
- * @param get_path
- * @param put_path_length
- * @param put_path
- * @param type
- * @param data_size
- * @param data
- */
-void 
-GDS_NEIGHBOURS_datacache_get (struct GNUNET_TIME_Absolute expiration,
-                              const struct GNUNET_HashCode *key,
-                              unsigned int get_path_length,
-                              const struct GNUNET_PeerIdentity *get_path,
-                              unsigned int put_path_length,
-                              const struct GNUNET_PeerIdentity *put_path,
-                              enum GNUNET_BLOCK_Type type, size_t data_size,
-                              const void *data);
-
-
-/**
  * Initialize neighbours subsystem.
  *
- * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ * @return #GNUNET_OK on success, 
+ *         #GNUNET_SYSERR on error
  */
 int
 GDS_NEIGHBOURS_init (void);
@@ -191,12 +145,12 @@ GDS_NEIGHBOURS_done (void);
 
 
 /**
- * Get the ID of the local node.
+ * Get my identity
  *
- * @return identity of the local node
+ * @return my identity
  */
 struct GNUNET_PeerIdentity *
-GDS_NEIGHBOURS_get_id ();
+GDS_NEIGHBOURS_get_my_id (void);
 
 
 #endif

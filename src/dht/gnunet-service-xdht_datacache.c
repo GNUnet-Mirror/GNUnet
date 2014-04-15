@@ -148,27 +148,22 @@ struct GetRequestContext
   enum GNUNET_BLOCK_EvaluationResult eval;
   
   /**
-   *
+   * Peeer which has the data for the key.
    */
   struct GNUNET_PeerIdentity source_peer;
   
   /**
-   *
-   */
-  unsigned int current_trail_index;
-  
-  /**
-   *
+   * Next hop to forward the get result to.
    */
   struct GNUNET_PeerIdentity next_hop;
   
   /**
-   * Head of trail to reach this finger.
+   * Head of get path.
    */
   struct GetPath *head;
   
   /**
-   * Tail of trail to reach this finger.
+   * Tail of get path.
    */
   struct GetPath *tail;
   /* get_path */
@@ -230,7 +225,7 @@ datacache_get_iterator (void *cls,
     }
     GDS_NEIGHBOURS_send_get_result (exp, key, put_path_length, put_path,
                                     type, size, data, get_path, ctx->get_path_length,
-                                    ctx->current_trail_index, &(ctx->next_hop),
+                                    &(ctx->next_hop),
                                     &(ctx->source_peer));
     
     /* forward to other peers */
@@ -295,7 +290,6 @@ GDS_DATACACHE_handle_get (const struct GNUNET_HashCode * key,
                           uint32_t reply_bf_mutator,
                           uint32_t get_path_length,
                           struct GNUNET_PeerIdentity *get_path,
-                          unsigned int current_trail_index,
                           struct GNUNET_PeerIdentity *next_hop,
                           struct GNUNET_PeerIdentity *source_peer)
 {
@@ -316,7 +310,7 @@ GDS_DATACACHE_handle_get (const struct GNUNET_HashCode * key,
   ctx.get_path_length = get_path_length;
   if (next_hop != NULL)
     memcpy (&(ctx.next_hop), next_hop, sizeof (struct GNUNET_PeerIdentity));
-  ctx.current_trail_index = current_trail_index;
+ 
   /* FIXME: add the get path into ctx and then call gds_neighbours_handle_get*/
   int i = 0;
   while (i < get_path_length)

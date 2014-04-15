@@ -845,12 +845,14 @@ transmit_request (struct ClientQueryRecord *cqr)
        cqr->seen_replies_count);
 
   /* FIXME: Here I am passing NULL for parameters check if its correct or 
-   not. */
+   not. Here I don't want address to be const just the value how do I do it? */
   FPRINTF (stderr,_("\nSUPU %s, %s, %d"),__FILE__, __func__,__LINE__);
-  GDS_NEIGHBOURS_handle_get (cqr->type, cqr->msg_options, cqr->replication,
-                             0 /* hop count */ ,NULL, 0, 
-                             &cqr->key, NULL, NULL, NULL, 0);
-
+  struct GNUNET_PeerIdentity *my_identity;
+  my_identity = GDS_NEIGHBOURS_get_my_id ();
+  GDS_NEIGHBOURS_send_get (&cqr->key, cqr->type, cqr->msg_options, 
+                           cqr->replication, my_identity, my_identity, NULL,
+                           0, 0, NULL);
+  
   /* exponential back-off for retries.
    * max GNUNET_TIME_STD_EXPONENTIAL_BACKOFF_THRESHOLD (15 min) */
   cqr->retry_frequency = GNUNET_TIME_STD_BACKOFF (cqr->retry_frequency);
@@ -947,21 +949,22 @@ handle_dht_local_put (void *cls, struct GNUNET_SERVER_Client *client,
   
   /* FIXME: Is it correct to pass NULL for current destination and current
    source. */
-  GDS_NEIGHBOURS_handle_put (ntohl (put_msg->type), ntohl (put_msg->options),
-                             ntohl (put_msg->desired_replication_level),
-                             GNUNET_TIME_absolute_ntoh (put_msg->expiration),
-                             0 /* hop count */ ,
-                             &put_msg->key, 0, NULL, &put_msg[1],
-                             size -
-                             sizeof (struct GNUNET_DHT_ClientPutMessage),
-                             NULL, NULL, 0, NULL);
+  struct GNUNET_PeerIdentity *my_identity;
+  my_identity = GDS_NEIGHBOURS_get_my_id();
+  GDS_NEIGHBOURS_send_put (&put_msg->key, &put_msg[1],
+                           size - sizeof (struct GNUNET_DHT_ClientPutMessage),
+                           ntohl (put_msg->type), ntohl (put_msg->options),
+                           ntohl (put_msg->desired_replication_level),
+                           GNUNET_TIME_absolute_ntoh (put_msg->expiration),
+                           my_identity, my_identity, NULL, 0, 0, NULL);
+                           
   
   GDS_CLIENTS_process_put (ntohl (put_msg->options),
                            ntohl (put_msg->type),
                            0,
                            ntohl (put_msg->desired_replication_level),
                            1,
-                           GDS_NEIGHBOURS_get_id(),
+                           GDS_NEIGHBOURS_get_my_id(),
                            GNUNET_TIME_absolute_ntoh (put_msg->expiration),
                            &put_msg->key,
                            &put_msg[1],
@@ -1040,7 +1043,7 @@ handle_dht_local_get (void *cls, struct GNUNET_SERVER_Client *client,
                            0,
                            ntohl (get->desired_replication_level),
                            1,
-                           GDS_NEIGHBOURS_get_id(),
+                           GDS_NEIGHBOURS_get_my_id(),
                            &get->key);
   /* start remote requests */
   if (GNUNET_SCHEDULER_NO_TASK != retry_task)
