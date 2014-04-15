@@ -721,13 +721,15 @@ set_pref_task (void *cls,
 }
 
 static struct PreferenceGenerator *
-find_pref_gen (unsigned int peer, unsigned int address,
-    enum GNUNET_ATS_PreferenceKind kind)
+find_pref_gen (unsigned int peer, enum GNUNET_ATS_PreferenceKind kind)
 {
   struct PreferenceGenerator *cur;
   for (cur = pref_gen_head; NULL != cur; cur = cur->next)
-    if ((cur->peer == peer) && (cur->kind == kind))
-      return cur;
+    if (cur->peer == peer)
+    {
+      if ((cur->kind == kind) || (GNUNET_ATS_PREFERENCE_END == kind))
+        return cur;
+    }
   return NULL;
 }
 
@@ -1844,6 +1846,7 @@ enforce_del_address (struct GNUNET_ATS_TEST_Operation *op)
   struct TestPeer *p;
   struct TestAddress *a;
   struct AddressLookupCtx ctx;
+  struct PropertyGenerator *pg;
 
   if (NULL == (p = find_peer_by_id (op->peer_id)))
   {
@@ -1872,6 +1875,11 @@ enforce_del_address (struct GNUNET_ATS_TEST_Operation *op)
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
         "Deleting address for unknown peer %u\n", op->peer_id);
     return;
+  }
+
+  while (NULL != (pg = find_prop_gen (p->id, a->aid, 0)))
+  {
+    GNUNET_ATS_solver_generate_property_stop (pg);
   }
 
   GNUNET_CONTAINER_DLL_remove(p->addr_head, p->addr_tail, a);
@@ -1940,7 +1948,7 @@ static void
 enforce_start_preference (struct GNUNET_ATS_TEST_Operation *op)
 {
   struct PreferenceGenerator *pg;
-  if (NULL != (pg = find_pref_gen (op->peer_id, op->address_id, op->pref_type)))
+  if (NULL != (pg = find_pref_gen (op->peer_id, op->pref_type)))
   {
     GNUNET_ATS_solver_generate_preferences_stop (pg);
     GNUNET_free (pg);
@@ -1968,7 +1976,7 @@ enforce_start_preference (struct GNUNET_ATS_TEST_Operation *op)
 static void
 enforce_stop_preference (struct GNUNET_ATS_TEST_Operation *op)
 {
-  struct PreferenceGenerator *pg = find_pref_gen(op->peer_id, op->address_id,
+  struct PreferenceGenerator *pg = find_pref_gen(op->peer_id,
       op->pref_type);
   if (NULL != pg)
       GNUNET_ATS_solver_generate_preferences_stop (pg);
