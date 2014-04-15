@@ -122,6 +122,16 @@ find_peer_by_id (int id)
   return NULL;
 }
 
+static struct TestPeer *
+find_peer_by_pid (const struct GNUNET_PeerIdentity *pid)
+{
+  struct TestPeer *cur;
+  for (cur = peer_head; NULL != cur; cur = cur->next)
+    if (0 == memcmp (&cur->peer_id, pid, sizeof (struct GNUNET_PeerIdentity)))
+      return cur;
+  return NULL;
+}
+
 static struct TestAddress *
 find_address_by_id (struct TestPeer *peer, int aid)
 {
@@ -133,6 +143,18 @@ find_address_by_id (struct TestPeer *peer, int aid)
 }
 
 
+static struct TestAddress *
+find_address_by_ats_address (struct TestPeer *p, struct ATS_Address *addr)
+{
+  struct TestAddress *cur;
+  for (cur = p->addr_head; NULL != cur; cur = cur->next)
+    if ((0 == strcmp(cur->ats_addr->plugin, addr->plugin)) &&
+         (cur->ats_addr->addr_len == addr->addr_len) &&
+        (0 == memcmp (cur->ats_addr->addr, addr->addr, addr->addr_len)))
+      return cur;
+  return NULL;
+}
+
 
 /**
  * Logging
@@ -142,15 +164,60 @@ void
 GNUNET_ATS_solver_logging_now (struct LoggingHandle *l)
 {
   struct LoggingTimeStep *lts;
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Logging\n");
+  struct TestPeer *cur;
+  struct TestAddress *cur_addr;
+  struct LoggingPeer *log_p;
+  struct LoggingAddress *log_a;
+  int c;
 
   lts = GNUNET_new (struct LoggingTimeStep);
+  GNUNET_CONTAINER_DLL_insert_tail(l->head, l->tail, lts);
   lts->timestamp = GNUNET_TIME_absolute_get();
+  if (NULL == lts->prev)
+    lts->delta = GNUNET_TIME_UNIT_ZERO;
+  else
+    lts->delta = GNUNET_TIME_absolute_get_duration(lts->prev->timestamp);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Logging %llu, delta %llu\n",
+      lts->timestamp.abs_value_us, lts->delta.rel_value_us);
+
 
   /* Store logging data here */
+  for (cur = peer_head; NULL != cur; cur = cur->next)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Logging peer id %u\n", cur->peer_id);
 
-  GNUNET_CONTAINER_DLL_insert_tail(l->head, l->tail, lts);
+    log_p = GNUNET_new (struct LoggingPeer);
+    log_p->id = cur->id;
+    log_p->peer_id = cur->peer_id;
+    for (c = 0; c < GNUNET_ATS_PreferenceCount; c++)
+    {
+      log_p->pref_norm[c] = cur->pref_norm[c];
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "\t %s = %.2f\n", GNUNET_ATS_print_preference_type(c), log_p->pref_norm[c]);
+    }
+    GNUNET_CONTAINER_DLL_insert_tail(lts->head, lts->tail, log_p);
 
+    for (cur_addr = cur->addr_head; NULL != cur_addr; cur_addr = cur_addr->next)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Logging peer id %u address %u\n", cur->peer_id, cur_addr->aid);
+      log_a = GNUNET_new (struct LoggingAddress);
+      log_a->aid = cur_addr->aid;
+      log_a->active = cur_addr->ats_addr->active;
+      log_a->used = cur_addr->ats_addr->used;
+      log_a->assigned_bw_in = cur_addr->ats_addr->assigned_bw_in;
+      log_a->assigned_bw_out = cur_addr->ats_addr->assigned_bw_out;
+      for (c = 0; c < GNUNET_ATS_PropertyCount; c++)
+      {
+        log_a->prop_norm[c] = cur_addr->prop_norm[c];
+        GNUNET_log (GNUNET_ERROR_TYPE_INFO, "\t %s = %.2f\n", GNUNET_ATS_print_property_type(c), log_a->prop_norm[c]);
+      }
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "\t Active = %i\n", log_a->active);
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "\t BW in = %llu\n", ntohl(log_a->assigned_bw_in.value__));
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "\t BW out = %llu\n", ntohl(log_a->assigned_bw_out.value__));
+
+      GNUNET_CONTAINER_DLL_insert_tail(log_p->addr_head, log_p->addr_tail, log_a);
+    }
+  }
 }
 
 static void
@@ -173,12 +240,8 @@ GNUNET_ATS_solver_logging_start (struct GNUNET_TIME_Relative freq)
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Start logging every  %s\n",
       GNUNET_STRINGS_relative_time_to_string(freq, GNUNET_NO));
-
-  /* Iterate over peers */
-
   l->log_freq = freq;
   l->logging_task = GNUNET_SCHEDULER_add_now (&logging_task, l);
-
   return l;
 }
 
@@ -197,29 +260,78 @@ void
 GNUNET_ATS_solver_logging_eval (struct LoggingHandle *l)
 {
   struct LoggingTimeStep *lts;
+  struct LoggingPeer *log_p;
+  struct LoggingAddress *log_a;
+  int c;
 
   for (lts = l->head; NULL != lts; lts = lts->next)
   {
-    fprintf (stderr, "Log %llu: \n", (long long unsigned int) lts->timestamp.abs_value_us);
+    fprintf (stderr, "Log %llu %llu: \n",
+        (long long unsigned int) lts->timestamp.abs_value_us,
+        (long long unsigned int) lts->delta.rel_value_us);
+
+    for (log_p = lts->head; NULL != log_p; log_p = log_p->next)
+    {
+      fprintf (stderr,"\tLogging peer id %u\n", log_p->id);
+      for (c = 0; c < GNUNET_ATS_PreferenceCount; c++)
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_INFO, "\t %s = %.2f\n", GNUNET_ATS_print_preference_type(c), log_p->pref_norm[c]);
+      }
+
+      for (log_a = log_p->addr_head; NULL != log_a; log_a = log_a->next)
+      {
+        fprintf (stderr, "\tPeer id %u address %u: %u %u %u\n",
+            log_p->id, log_a->aid, log_a->active,
+            ntohl(log_a->assigned_bw_in.value__),
+            ntohl(log_a->assigned_bw_out.value__));
+
+        for (c = 0; c < GNUNET_ATS_PropertyCount; c++)
+        {
+          fprintf(stderr, "\t %s = %.2f\n", GNUNET_ATS_print_property_type(c), log_a->prop_norm[c]);
+        }
+      }
+    }
   }
 }
 
 void
 GNUNET_ATS_solver_logging_free (struct LoggingHandle *l)
 {
-  struct LoggingTimeStep *cur;
-  struct LoggingTimeStep *next;
+  struct LoggingTimeStep *lts_cur;
+  struct LoggingTimeStep *lts_next;
+  struct LoggingPeer *log_p_cur;
+  struct LoggingPeer *log_p_next;
+  struct LoggingAddress *log_a_cur;
+  struct LoggingAddress *log_a_next;
 
   if (GNUNET_SCHEDULER_NO_TASK != l->logging_task)
     GNUNET_SCHEDULER_cancel (l->logging_task);
   l->logging_task = GNUNET_SCHEDULER_NO_TASK;
 
-  next = l->head;
-  while (NULL != (cur = next))
+  lts_next = l->head;
+  while (NULL != (lts_cur = lts_next))
   {
-    next = cur->next;
-    GNUNET_CONTAINER_DLL_remove (l->head, l->tail, cur);
-    GNUNET_free (cur);
+    lts_next = lts_cur->next;
+    GNUNET_CONTAINER_DLL_remove (l->head, l->tail, lts_cur);
+
+    log_p_next = lts_cur->head;
+    while (NULL != (log_p_cur = log_p_next))
+    {
+      log_p_next = log_p_cur->next;
+
+      log_a_next = log_p_cur->addr_head;
+      while (NULL != (log_a_cur = log_a_next))
+      {
+        log_a_next = log_a_cur->next;
+        GNUNET_CONTAINER_DLL_remove (log_p_cur->addr_head, log_p_cur->addr_tail, log_a_cur);
+        GNUNET_free (log_a_cur);
+      }
+
+      GNUNET_CONTAINER_DLL_remove (lts_cur->head, lts_cur->tail, log_p_cur);
+      GNUNET_free (log_p_cur);
+    }
+
+    GNUNET_free (lts_cur);
   }
 
   GNUNET_free (l);
@@ -294,6 +406,8 @@ static void
 set_prop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct PropertyGenerator *pg = cls;
+  struct TestPeer *p;
+  struct TestAddress *a;
   double pref_value;
   struct GNUNET_ATS_Information atsi;
 
@@ -308,6 +422,18 @@ set_prop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         pg->peer, pg->address_id);
     return;
   }
+  if (NULL == (p = find_peer_by_id (pg->peer)))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+        "Setting property generation for unknown peer %u\n",
+        pg->peer);
+  }
+  if (NULL == (a = find_address_by_id (p, pg->address_id)))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+        "Setting property generation for unknown peer %u\n",
+        pg->peer);
+  }
 
   pref_value = get_property (pg);
 
@@ -315,7 +441,6 @@ set_prop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       "Setting property for peer [%u] address [%u] for %s to %f\n",
       pg->peer, pg->address_id,
       GNUNET_ATS_print_property_type (pg->ats_property), pref_value);
-
 
   atsi.type = htonl (pg->ats_property);
   atsi.value = htonl ((uint32_t) pref_value);
@@ -325,17 +450,6 @@ set_prop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GAS_normalization_normalize_property (sh->addresses,
       pg->test_address->ats_addr, &atsi, 1);
   sh->env.sf.s_bulk_stop (sh->solver);
-
-  switch (pg->ats_property) {
-    case GNUNET_ATS_PREFERENCE_BANDWIDTH:
-      //p->pref_bandwidth = pref_value;
-      break;
-    case GNUNET_ATS_PREFERENCE_LATENCY:
-      //p->pref_delay = pref_value;
-      break;
-    default:
-      break;
-  }
 
   pg->set_task = GNUNET_SCHEDULER_add_delayed (pg->frequency,
       &set_prop_task, pg);
@@ -863,7 +977,7 @@ load_op_add_address (struct GNUNET_ATS_TEST_Operation *o,
   }
   GNUNET_free (op_name);
 
-  fprintf (stderr,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
       "Found operation %s: [%llu:%llu] address `%s' plugin `%s' \n",
       "ADD_ADDRESS", o->peer_id, o->address_id, o->address, o->plugin);
 
@@ -951,7 +1065,7 @@ load_op_del_address (struct GNUNET_ATS_TEST_Operation *o,
   }
   GNUNET_free (op_name);
 
-  fprintf (stderr,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
       "Found operation %s: [%llu:%llu] address `%s' plugin `%s' \n",
       "DEL_ADDRESS", o->peer_id, o->address_id, o->address, o->plugin);
 
@@ -1130,7 +1244,7 @@ load_op_start_set_preference (struct GNUNET_ATS_TEST_Operation *o,
   GNUNET_free (pref);
   GNUNET_free (op_name);
 
-  fprintf (stderr,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
       "Found operation %s: [%llu:%llu]: %s = %llu\n",
       "START_SET_PREFERENCE", o->peer_id, o->address_id,
       GNUNET_ATS_print_preference_type(o->pref_type), o->base_rate);
@@ -1194,7 +1308,7 @@ load_op_stop_set_preference (struct GNUNET_ATS_TEST_Operation *o,
   GNUNET_free (pref);
   GNUNET_free (op_name);
 
-  fprintf (stderr,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
       "Found operation %s: [%llu:%llu]: %s\n",
       "STOP_SET_PREFERENCE", o->peer_id, o->address_id,
       GNUNET_ATS_print_preference_type(o->pref_type));
@@ -1363,7 +1477,7 @@ load_op_start_set_property(struct GNUNET_ATS_TEST_Operation *o,
   GNUNET_free (prop);
   GNUNET_free (op_name);
 
-  fprintf (stderr,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
       "Found operation %s: [%llu:%llu] %s = %llu\n",
       "START_SET_PROPERTY", o->peer_id, o->address_id,
       GNUNET_ATS_print_property_type (o->prop_type), o->base_rate);
@@ -1429,7 +1543,7 @@ load_op_stop_set_property (struct GNUNET_ATS_TEST_Operation *o,
   GNUNET_free (pref);
   GNUNET_free (op_name);
 
-  fprintf (stderr,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
       "Found operation %s: [%llu:%llu] %s\n",
       "STOP_SET_PROPERTY", o->peer_id, o->address_id,
       GNUNET_ATS_print_property_type (o->prop_type));
@@ -1495,7 +1609,7 @@ load_episode (struct Experiment *e, struct Episode *cur,
   char *op;
   int op_counter = 0;
   int res;
-  fprintf (stderr, "Parsing episode %u\n",cur->id);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "=== Parsing episode %u\n",cur->id);
   GNUNET_asprintf(&sec_name, "episode-%u", cur->id);
 
   while (1)
@@ -1599,7 +1713,6 @@ load_episodes (struct Experiment *e, struct GNUNET_CONFIGURATION_Handle *cfg)
     if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_time(cfg,
         sec_name, "duration", &e_duration))
     {
-      fprintf (stderr, "Missing duration in episode %u \n",e_counter);
       GNUNET_free (sec_name);
       break;
     }
@@ -1615,7 +1728,7 @@ load_episodes (struct Experiment *e, struct GNUNET_CONFIGURATION_Handle *cfg)
       return GNUNET_SYSERR;
     }
 
-    fprintf (stderr, "Found episode %u with duration %s \n",
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Found episode %u with duration %s \n",
         e_counter,
         GNUNET_STRINGS_relative_time_to_string(cur->duration, GNUNET_YES));
 
@@ -1712,6 +1825,8 @@ enforce_add_address (struct GNUNET_ATS_TEST_Operation *op)
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Adding address %u for peer %u\n",
     op->address_id, op->peer_id);
 
+
+
   sh->env.sf.s_add (sh->solver, a->ats_addr, op->address_network);
 
 }
@@ -1721,6 +1836,7 @@ static void
 enforce_del_address (struct GNUNET_ATS_TEST_Operation *op)
 {
   struct TestPeer *p;
+  struct TestAddress *a;
   struct AddressLookupCtx ctx;
 
   if (NULL == (p = find_peer_by_id (op->peer_id)))
@@ -1744,13 +1860,16 @@ enforce_del_address (struct GNUNET_ATS_TEST_Operation *op)
     return;
   }
 
-  if (NULL == (find_address_by_id (p, op->address_id)))
+  if (NULL == (a =find_address_by_id (p, op->address_id)))
   {
     GNUNET_break (0);
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
         "Deleting address for unknown peer %u\n", op->peer_id);
     return;
   }
+
+  GNUNET_CONTAINER_DLL_remove(p->addr_head, p->addr_tail, a);
+  GNUNET_free (a);
 
   GNUNET_CONTAINER_multipeermap_remove (sh->addresses, &p->peer_id, ctx.res);
 
@@ -1872,7 +1991,6 @@ enforce_start_request (struct GNUNET_ATS_TEST_Operation *op)
   {
 
   }
-
 }
 
 static void
@@ -1995,13 +2113,13 @@ GNUNET_ATS_solvers_experimentation_run (struct Experiment *e,
   e->experiment_timeout_task = GNUNET_SCHEDULER_add_delayed (e->max_duration,
       &timeout_experiment, e);
 
-
   /* Start */
   if (NULL == e->start)
   {
     GNUNET_break (0);
     return;
   }
+
   e->cur = e->start;
   fprintf (stderr, "Running episode %u with timeout %s\n",
       e->cur->id,
@@ -2059,7 +2177,7 @@ GNUNET_ATS_solvers_experimentation_load (char *filename)
     return NULL;
   }
   else
-    fprintf (stderr, "Experiment name: `%s'\n", e->name);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Experiment name: `%s'\n", e->name);
 
   if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_filename (cfg, "experiment",
       "cfg_file", &e->cfg_file))
@@ -2070,7 +2188,7 @@ GNUNET_ATS_solvers_experimentation_load (char *filename)
   }
   else
   {
-    fprintf (stderr, "Experiment configuration: `%s'\n", e->cfg_file);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Experiment configuration: `%s'\n", e->cfg_file);
     e->cfg = GNUNET_CONFIGURATION_create();
     if (GNUNET_SYSERR == GNUNET_CONFIGURATION_load (e->cfg, e->cfg_file))
     {
@@ -2089,7 +2207,7 @@ GNUNET_ATS_solvers_experimentation_load (char *filename)
     return NULL;
   }
   else
-    fprintf (stderr, "Experiment logging frequency: `%s'\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Experiment logging frequency: `%s'\n",
         GNUNET_STRINGS_relative_time_to_string (e->log_freq, GNUNET_YES));
 
   if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_time(cfg, "experiment",
@@ -2100,7 +2218,7 @@ GNUNET_ATS_solvers_experimentation_load (char *filename)
     return NULL;
   }
   else
-    fprintf (stderr, "Experiment duration: `%s'\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Experiment duration: `%s'\n",
         GNUNET_STRINGS_relative_time_to_string (e->max_duration, GNUNET_YES));
 
   if (GNUNET_SYSERR == load_episodes (e, cfg))
@@ -2111,7 +2229,7 @@ GNUNET_ATS_solvers_experimentation_load (char *filename)
     fprintf (stderr, "Failed to load experiment\n");
     return NULL;
   }
-  fprintf (stderr, "Loaded %u episodes with total duration %s\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Loaded %u episodes with total duration %s\n",
       e->num_episodes,
       GNUNET_STRINGS_relative_time_to_string (e->total_duration, GNUNET_YES));
 
@@ -2293,56 +2411,56 @@ solver_info_cb (void *cls,
   switch (op)
   {
     case GAS_OP_SOLVE_START:
-      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
           "Solver notifies `%s' with result `%s' `%s'\n", "GAS_OP_SOLVE_START",
           (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL", add_info);
       return;
     case GAS_OP_SOLVE_STOP:
-      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
           "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_STOP",
           (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL", add_info);
       return;
 
     case GAS_OP_SOLVE_SETUP_START:
-      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
           "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_SETUP_START",
           (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL");
       return;
 
     case GAS_OP_SOLVE_SETUP_STOP:
-      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
           "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_SETUP_STOP",
           (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL");
       return;
 
     case GAS_OP_SOLVE_MLP_LP_START:
-      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
           "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_LP_START",
           (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL");
       return;
     case GAS_OP_SOLVE_MLP_LP_STOP:
-      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
           "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_LP_STOP",
           (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL");
       return;
 
     case GAS_OP_SOLVE_MLP_MLP_START:
-      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
           "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_MLP_START",
           (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL");
       return;
     case GAS_OP_SOLVE_MLP_MLP_STOP:
-      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
           "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_MLP_STOP",
           (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL");
       return;
     case GAS_OP_SOLVE_UPDATE_NOTIFICATION_START:
-      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
           "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_UPDATE_NOTIFICATION_START",
           (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL");
       return;
     case GAS_OP_SOLVE_UPDATE_NOTIFICATION_STOP:
-      GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+      GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
           "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_UPDATE_NOTIFICATION_STOP",
           (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL");
       return;
@@ -2354,6 +2472,7 @@ solver_info_cb (void *cls,
 static void
 solver_bandwidth_changed_cb (void *cls, struct ATS_Address *address)
 {
+  GNUNET_break (0);
   if ( (0 == ntohl (address->assigned_bw_out.value__)) &&
        (0 == ntohl (address->assigned_bw_in.value__)) )
   {
@@ -2388,6 +2507,28 @@ get_property_cb (void *cls, const struct ATS_Address *address)
 }
 
 static void
+set_updated_property ( struct ATS_Address *address, uint32_t type, double prop_rel)
+{
+  struct TestPeer *p;
+  struct TestAddress *a;
+
+  if (NULL == (p = find_peer_by_pid (&address->peer)))
+  {
+    GNUNET_break (0);
+    return;
+  }
+
+  if (NULL == (a = find_address_by_ats_address (p, address)))
+  {
+    GNUNET_break (0);
+    return;
+  }
+  a->prop_norm[type] = prop_rel;
+  sh->env.sf.s_address_update_property (sh->solver, address, type, 0, prop_rel);
+}
+
+
+static void
 normalized_property_changed_cb (void *cls, struct ATS_Address *address,
     uint32_t type, double prop_rel)
 {
@@ -2396,7 +2537,24 @@ normalized_property_changed_cb (void *cls, struct ATS_Address *address,
       GNUNET_ATS_print_property_type (type), GNUNET_i2s (&address->peer),
       prop_rel);
 
-  sh->env.sf.s_address_update_property (sh->solver, address, type, 0, prop_rel);
+  set_updated_property (address, type, prop_rel);
+}
+
+static void
+set_updated_preference (const struct GNUNET_PeerIdentity *peer,
+    enum GNUNET_ATS_PreferenceKind kind,
+    double pref_rel)
+{
+  struct TestPeer *p;
+
+  if (NULL == (p = find_peer_by_pid (peer)))
+  {
+    GNUNET_break (0);
+    return;
+  }
+
+  p->pref_norm[kind] = pref_rel;
+  sh->env.sf.s_pref (sh->solver, peer, kind, pref_rel);
 }
 
 
@@ -2411,7 +2569,7 @@ normalized_preference_changed_cb (void *cls,
       GNUNET_ATS_print_preference_type (kind), GNUNET_i2s (peer),
       pref_rel);
 
-  sh->env.sf.s_pref (sh->solver, peer, kind, pref_rel);
+  set_updated_preference(peer, kind, pref_rel);
 }
 
 
@@ -2619,6 +2777,7 @@ run (void *cls, char * const *args, const char *cfgfile,
   }
 
   /* load experiment */
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "=== Loading experiment\n");
   e = GNUNET_ATS_solvers_experimentation_load (opt_exp_file);
   if (NULL == e)
   {
@@ -2629,6 +2788,7 @@ run (void *cls, char * const *args, const char *cfgfile,
   }
 
   /* load solver */
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "=== Loading solver\n");
   sh = GNUNET_ATS_solvers_solver_start (solver);
   if (NULL == sh)
   {
@@ -2639,9 +2799,11 @@ run (void *cls, char * const *args, const char *cfgfile,
   }
 
   /* start logging */
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "=== Start logging \n");
   l = GNUNET_ATS_solver_logging_start (e->log_freq);
 
   /* run experiment */
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "=== Running experiment \n");
   GNUNET_ATS_solvers_experimentation_run (e, episode_done_cb,
       experiment_done_cb);
 

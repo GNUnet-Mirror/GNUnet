@@ -10,7 +10,7 @@
 
 # operations = address_add, address_del, start_set_property, stop_set_property, 
 # start_set_preference, stop_preference, start_request, stop_request
-duration = 5 s
+duration = 0
 op-0-operation = address_add
 op-0-address-id = 0
 op-0-peer-id = 0

@@ -90,7 +90,39 @@ struct LoggingTimeStep
   struct LoggingTimeStep *prev;
   struct LoggingTimeStep *next;
 
+  struct LoggingPeer *head;
+  struct LoggingPeer *tail;
+
   struct GNUNET_TIME_Absolute timestamp;
+  struct GNUNET_TIME_Relative delta;
+};
+
+struct LoggingPeer
+{
+  struct LoggingPeer *prev;
+  struct LoggingPeer *next;
+
+  int id;
+  struct GNUNET_PeerIdentity peer_id;
+  double pref_norm[GNUNET_ATS_PreferenceCount];
+
+  struct LoggingAddress *addr_head;
+  struct LoggingAddress *addr_tail;
+};
+
+
+struct LoggingAddress
+{
+  struct LoggingAddress *next;
+  struct LoggingAddress *prev;
+
+  int aid;
+  int active;
+  int used;
+  struct GNUNET_BANDWIDTH_Value32NBO assigned_bw_in;
+  struct GNUNET_BANDWIDTH_Value32NBO assigned_bw_out;
+
+  double prop_norm[GNUNET_ATS_PropertyCount];
 };
 
 
@@ -101,6 +133,7 @@ struct TestPeer
 
   int id;
   struct GNUNET_PeerIdentity peer_id;
+  double pref_norm[GNUNET_ATS_PreferenceCount];
 
   struct TestAddress *addr_head;
   struct TestAddress *addr_tail;
@@ -114,6 +147,8 @@ struct TestAddress
 
   int aid;
   struct ATS_Address *ats_addr;
+
+  double prop_norm[GNUNET_ATS_PropertyCount];
 };
 
 struct Episode;
