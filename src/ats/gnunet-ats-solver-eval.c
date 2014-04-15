@@ -192,8 +192,11 @@ GNUNET_ATS_solver_logging_now (struct LoggingHandle *l)
     log_p->peer_id = cur->peer_id;
     for (c = 0; c < GNUNET_ATS_PreferenceCount; c++)
     {
+      log_p->pref_abs[c] = cur->pref_abs[c];
       log_p->pref_norm[c] = cur->pref_norm[c];
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "\t %s = %.2f\n", GNUNET_ATS_print_preference_type(c), log_p->pref_norm[c]);
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "\t %s = %.2f %.2f [abs/rel]\n",
+          GNUNET_ATS_print_preference_type(c),
+          log_p->pref_abs[c], log_p->pref_norm[c]);
     }
     GNUNET_CONTAINER_DLL_insert_tail(lts->head, lts->tail, log_p);
 
@@ -208,8 +211,11 @@ GNUNET_ATS_solver_logging_now (struct LoggingHandle *l)
       log_a->assigned_bw_out = cur_addr->ats_addr->assigned_bw_out;
       for (c = 0; c < GNUNET_ATS_PropertyCount; c++)
       {
+        log_a->prop_abs[c] = cur_addr->prop_abs[c];
         log_a->prop_norm[c] = cur_addr->prop_norm[c];
-        GNUNET_log (GNUNET_ERROR_TYPE_INFO, "\t %s = %.2f\n", GNUNET_ATS_print_property_type(c), log_a->prop_norm[c]);
+        GNUNET_log (GNUNET_ERROR_TYPE_INFO, "\t %s = %.2f %.2f [abs/rel]\n",
+            GNUNET_ATS_print_property_type(c),
+            log_a->prop_abs[c], log_a->prop_norm[c]);
       }
       GNUNET_log (GNUNET_ERROR_TYPE_INFO, "\t Active = %i\n", log_a->active);
       GNUNET_log (GNUNET_ERROR_TYPE_INFO, "\t BW in = %llu\n", ntohl(log_a->assigned_bw_in.value__));
@@ -275,7 +281,9 @@ GNUNET_ATS_solver_logging_eval (struct LoggingHandle *l)
       fprintf (stderr,"\tLogging peer id %u\n", log_p->id);
       for (c = 0; c < GNUNET_ATS_PreferenceCount; c++)
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_INFO, "\t %s = %.2f\n", GNUNET_ATS_print_preference_type(c), log_p->pref_norm[c]);
+        fprintf(stderr,"\t %s = %.2f %.2f [abs/rel]\n",
+            GNUNET_ATS_print_preference_type(c),
+            log_p->pref_abs[c], log_p->pref_norm[c]);
       }
 
       for (log_a = log_p->addr_head; NULL != log_a; log_a = log_a->next)
@@ -287,7 +295,9 @@ GNUNET_ATS_solver_logging_eval (struct LoggingHandle *l)
 
         for (c = 0; c < GNUNET_ATS_PropertyCount; c++)
         {
-          fprintf(stderr, "\t %s = %.2f\n", GNUNET_ATS_print_property_type(c), log_a->prop_norm[c]);
+          fprintf(stderr, "\t %s = %.2f %.2f [abs/rel]\n",
+              GNUNET_ATS_print_property_type(c),
+              log_a->prop_abs[c], log_a->prop_norm[c]);
         }
       }
     }
@@ -312,7 +322,6 @@ GNUNET_ATS_solver_logging_free (struct LoggingHandle *l)
   while (NULL != (lts_cur = lts_next))
   {
     lts_next = lts_cur->next;
-    GNUNET_CONTAINER_DLL_remove (l->head, l->tail, lts_cur);
 
     log_p_next = lts_cur->head;
     while (NULL != (log_p_cur = log_p_next))
@@ -323,6 +332,7 @@ GNUNET_ATS_solver_logging_free (struct LoggingHandle *l)
       while (NULL != (log_a_cur = log_a_next))
       {
         log_a_next = log_a_cur->next;
+
         GNUNET_CONTAINER_DLL_remove (log_p_cur->addr_head, log_p_cur->addr_tail, log_a_cur);
         GNUNET_free (log_a_cur);
       }
@@ -331,6 +341,7 @@ GNUNET_ATS_solver_logging_free (struct LoggingHandle *l)
       GNUNET_free (log_p_cur);
     }
 
+    GNUNET_CONTAINER_DLL_remove (l->head, l->tail, lts_cur);
     GNUNET_free (lts_cur);
   }
 
@@ -436,6 +447,7 @@ set_prop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
 
   pref_value = get_property (pg);
+  a->prop_abs[pg->ats_property] = pref_value;
 
   GNUNET_log(GNUNET_ERROR_TYPE_INFO,
       "Setting property for peer [%u] address [%u] for %s to %f\n",
@@ -456,15 +468,21 @@ set_prop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 }
 
+/**
+ * Set ats_property to 0 to find all pgs
+ */
+
 static struct PropertyGenerator *
 find_prop_gen (unsigned int peer, unsigned int address,
     uint32_t ats_property)
 {
   struct PropertyGenerator *cur;
   for (cur = prop_gen_head; NULL != cur; cur = cur->next)
-    if ((cur->peer == peer) && (cur->address_id == address) &&
-        (cur->ats_property == ats_property))
-      return cur;
+    if ((cur->peer == peer) && (cur->address_id == address))
+    {
+      if ((cur->ats_property == ats_property) || (0 == ats_property))
+        return cur;
+    }
   return NULL;
 }
 
@@ -674,10 +692,11 @@ set_pref_task (void *cls,
   }
 
   pref_value = get_preference (pg);
+  p->pref_abs[pg->kind] = pref_value;
 
   GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-      "Setting preference for peer [%u] address [%u] for client %p pref %s to %f\n",
-      pg->peer, pg->address_id, NULL + (pg->client_id),
+      "Setting preference for peer [%u] for client %p pref %s to %f\n",
+      pg->peer, NULL + (pg->client_id),
       GNUNET_ATS_print_preference_type (pg->kind), pref_value);
 
   sh->env.sf.s_bulk_start (sh->solver);
@@ -707,7 +726,7 @@ find_pref_gen (unsigned int peer, unsigned int address,
 {
   struct PreferenceGenerator *cur;
   for (cur = pref_gen_head; NULL != cur; cur = cur->next)
-    if ((cur->peer == peer) && (cur->address_id == address) && (cur->kind == kind))
+    if ((cur->peer == peer) && (cur->kind == kind))
       return cur;
   return NULL;
 }
@@ -723,8 +742,8 @@ GNUNET_ATS_solver_generate_preferences_stop (struct PreferenceGenerator *pg)
     pg->set_task = GNUNET_SCHEDULER_NO_TASK;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-      "Removing old up preference generator peer [%u] address [%u] `%s'\n",
-      pg->peer, pg->address_id, GNUNET_ATS_print_preference_type(pg->kind));
+      "Removing old up preference generator peer [%u] `%s'\n",
+      pg->peer, GNUNET_ATS_print_preference_type(pg->kind));
 
   GNUNET_free (pg);
 }
@@ -762,7 +781,6 @@ GNUNET_ATS_solver_generate_preferences_start (unsigned int peer,
   GNUNET_CONTAINER_DLL_insert (pref_gen_head, pref_gen_tail, pg);
   pg->type = type;
   pg->peer = peer;
-  pg->address_id = address_id;
   pg->client_id = client_id;
   pg->kind = kind;
   pg->base_value = base_value;
@@ -774,27 +792,27 @@ GNUNET_ATS_solver_generate_preferences_start (unsigned int peer,
   switch (type) {
     case GNUNET_ATS_TEST_TG_CONSTANT:
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-          "Setting up %s preference generator peer [%u] address [%u] `%s' max %u Bips\n",
-          print_generator_type (type), pg->peer, pg->address_id,
+          "Setting up %s preference generator peer [%u] `%s' max %u Bips\n",
+          print_generator_type (type), pg->peer,
           GNUNET_ATS_print_preference_type(kind),
           base_value);
       break;
     case GNUNET_ATS_TEST_TG_LINEAR:
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-          "Setting up %s preference generator peer [%u] address [%u] `%s' min %u Bips max %u Bips\n",
-          print_generator_type (type), pg->peer, pg->address_id, GNUNET_ATS_print_preference_type(kind),
+          "Setting up %s preference generator peer [%u] `%s' min %u Bips max %u Bips\n",
+          print_generator_type (type), pg->peer, GNUNET_ATS_print_preference_type(kind),
           base_value, value_rate);
       break;
     case GNUNET_ATS_TEST_TG_SINUS:
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-          "Setting up %s preference generator peer [%u] address [%u] `%s' baserate %u Bips, amplitude %u Bps\n",
-          print_generator_type (type), pg->peer, pg->address_id, GNUNET_ATS_print_preference_type(kind),
+          "Setting up %s preference generator peer [%u] `%s' baserate %u Bips, amplitude %u Bps\n",
+          print_generator_type (type), pg->peer, GNUNET_ATS_print_preference_type(kind),
           base_value, value_rate);
       break;
     case GNUNET_ATS_TEST_TG_RANDOM:
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-          "Setting up %s preference generator peer [%u] address [%u] `%s' min %u Bips max %u Bps\n",
-          print_generator_type (type), pg->peer, pg->address_id, GNUNET_ATS_print_preference_type(kind),
+          "Setting up %s preference generator peer [%u] `%s' min %u Bips max %u Bps\n",
+          print_generator_type (type), pg->peer, GNUNET_ATS_print_preference_type(kind),
           base_value, value_rate);
       break;
     default:
@@ -1101,18 +1119,6 @@ load_op_start_set_preference (struct GNUNET_ATS_TEST_Operation *o,
       sec_name, op_name, &o->peer_id))
   {
     fprintf (stderr, "Missing peer-id in operation %u  `%s' in episode `%s'\n",
-        op_counter, "START_SET_PREFERENCE", op_name);
-    GNUNET_free (op_name);
-    return GNUNET_SYSERR;
-  }
-  GNUNET_free (op_name);
-
-  /* address id */
-  GNUNET_asprintf(&op_name, "op-%u-address-id", op_counter);
-  if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number (cfg,
-      sec_name, op_name, &o->address_id))
-  {
-    fprintf (stderr, "Missing address-id in operation %u `%s' in episode `%s'\n",
         op_counter, "START_SET_PREFERENCE", op_name);
     GNUNET_free (op_name);
     return GNUNET_SYSERR;

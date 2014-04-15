@@ -63,8 +63,7 @@ op-1-base-rate= 10000
 op-1-max-rate = 20000
 op-1-period = 1000 ms
 op-1-frequency = 100 ms
-# BANDWIDTH, LATENCY
-op-1-pref = BANDWIDTH  
+op-1-prop = DELAY  
 
 [episode-2]
 # Shutdown

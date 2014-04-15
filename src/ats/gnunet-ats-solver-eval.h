@@ -104,6 +104,7 @@ struct LoggingPeer
 
   int id;
   struct GNUNET_PeerIdentity peer_id;
+  double pref_abs[GNUNET_ATS_PreferenceCount];
   double pref_norm[GNUNET_ATS_PreferenceCount];
 
   struct LoggingAddress *addr_head;
@@ -122,6 +123,7 @@ struct LoggingAddress
   struct GNUNET_BANDWIDTH_Value32NBO assigned_bw_in;
   struct GNUNET_BANDWIDTH_Value32NBO assigned_bw_out;
 
+  double prop_abs[GNUNET_ATS_PropertyCount];
   double prop_norm[GNUNET_ATS_PropertyCount];
 };
 
@@ -133,6 +135,8 @@ struct TestPeer
 
   int id;
   struct GNUNET_PeerIdentity peer_id;
+
+  double pref_abs[GNUNET_ATS_PreferenceCount];
   double pref_norm[GNUNET_ATS_PreferenceCount];
 
   struct TestAddress *addr_head;
@@ -148,6 +152,7 @@ struct TestAddress
   int aid;
   struct ATS_Address *ats_addr;
 
+  double prop_abs[GNUNET_ATS_PropertyCount];
   double prop_norm[GNUNET_ATS_PropertyCount];
 };
 
@@ -238,7 +243,6 @@ struct PreferenceGenerator
   enum GeneratorType type;
 
   unsigned int peer;
-  unsigned int address_id;
   unsigned int client_id;
 
   enum GNUNET_ATS_PreferenceKind kind;
