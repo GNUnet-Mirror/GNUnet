@@ -149,7 +149,7 @@ GDS_NEIGHBOURS_done (void);
  *
  * @return my identity
  */
-struct GNUNET_PeerIdentity *
+const struct GNUNET_PeerIdentity *
 GDS_NEIGHBOURS_get_my_id (void);
 
 

@@ -844,13 +844,18 @@ transmit_request (struct ClientQueryRecord *cqr)
        cqr->replication,
        cqr->seen_replies_count);
 
-  /* FIXME: Here I am passing NULL for parameters check if its correct or 
-   not. Here I don't want address to be const just the value how do I do it? */
-  FPRINTF (stderr,_("\nSUPU %s, %s, %d"),__FILE__, __func__,__LINE__);
-  struct GNUNET_PeerIdentity *my_identity;
+  /* FIXME: Is it correct to pass your identity as default current_destination
+   * and current_source. also is it correct to copy your identity into a new
+   * address and then pass this address. address at which your identity is 
+   * stored should be const or else you may overwrite it and you lose your
+   * identity value.  */ 
+  
+  const struct GNUNET_PeerIdentity *my_identity;
+  struct GNUNET_PeerIdentity copy_my_identity;
   my_identity = GDS_NEIGHBOURS_get_my_id ();
+  memcpy (&copy_my_identity, my_identity, sizeof(struct GNUNET_PeerIdentity));
   GDS_NEIGHBOURS_send_get (&cqr->key, cqr->type, cqr->msg_options, 
-                           cqr->replication, my_identity, my_identity, NULL,
+                           cqr->replication, &copy_my_identity, &copy_my_identity, NULL,
                            0, 0, NULL);
   
   /* exponential back-off for retries.
@@ -947,16 +952,21 @@ handle_dht_local_put (void *cls, struct GNUNET_SERVER_Client *client,
                             size - sizeof (struct GNUNET_DHT_ClientPutMessage),
                             &put_msg[1]);
   
-  /* FIXME: Is it correct to pass NULL for current destination and current
-   source. */
-  struct GNUNET_PeerIdentity *my_identity;
+  /* FIXME: Is it correct to pass your identity as default current_destination
+   * and current_source. also is it correct to copy your identity into a new
+   * address and then pass this address. address at which your identity is 
+   * stored should be const or else you may overwrite it and you lose your
+   * identity value.  */
+  const struct GNUNET_PeerIdentity *my_identity;
+  struct GNUNET_PeerIdentity copy_my_identity;
   my_identity = GDS_NEIGHBOURS_get_my_id();
+  memcpy (&copy_my_identity, my_identity, sizeof(struct GNUNET_PeerIdentity));
   GDS_NEIGHBOURS_send_put (&put_msg->key, &put_msg[1],
                            size - sizeof (struct GNUNET_DHT_ClientPutMessage),
                            ntohl (put_msg->type), ntohl (put_msg->options),
                            ntohl (put_msg->desired_replication_level),
                            GNUNET_TIME_absolute_ntoh (put_msg->expiration),
-                           my_identity, my_identity, NULL, 0, 0, NULL);
+                           &copy_my_identity, &copy_my_identity, NULL, 0, 0, NULL);
                            
   
   GDS_CLIENTS_process_put (ntohl (put_msg->options),

@@ -228,9 +228,6 @@ datacache_get_iterator (void *cls,
                                     &(ctx->next_hop),
                                     &(ctx->source_peer));
     
-    /* forward to other peers */
-    GDS_ROUTING_process (type, exp, key, put_path_length, put_path, 0, NULL,
-                         data, size);
     break;
   case GNUNET_BLOCK_EVALUATION_OK_DUPLICATE:
     GNUNET_STATISTICS_update (GDS_stats,

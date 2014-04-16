@@ -33,12 +33,26 @@
 
 /**
  * Add a new entry to our routing table.
-*/
+ * @param source peer Source of the trail.
+ * @param destintation Destination of the trail.
+ * @param next_hop Next peer to forward the message to reach the destination.
+ * @return GNUNET_YES
+ *         GNUNET_SYSERR If the number of routing entries crossed thershold.
+ */
 int
-GDS_ROUTING_add (struct GNUNET_PeerIdentity *source,
-                 struct GNUNET_PeerIdentity *destination_peer,
+GDS_ROUTING_add (const struct GNUNET_PeerIdentity *source,
+                 const struct GNUNET_PeerIdentity *dest,
                  const struct GNUNET_PeerIdentity *next_hop,
                  struct GNUNET_PeerIdentity *prev_hop);
+
+
+/**
+ * Iterate over routing table and remove entries for which peer is a part. 
+ * @param peer
+ * @return 
+ */
+void
+GDS_ROUTING_remove_entry (const struct GNUNET_PeerIdentity *peer);
 
 
 /**
@@ -50,37 +64,12 @@ GDS_ROUTING_search(struct GNUNET_PeerIdentity *source_peer,
                    struct GNUNET_PeerIdentity *destination_peer,
                    const struct GNUNET_PeerIdentity *prev_hop);
 
-/**
- * Handle a reply (route to origin).  Only forwards the reply back to
- * other peers waiting for it.  Does not do local caching or
- * forwarding to local clients.  Essentially calls
- * GDS_NEIGHBOURS_handle_reply for all peers that sent us a matching
- * request recently.
- *
- * @param type type of the block
- * @param expiration_time when does the content expire
- * @param key key for the content
- * @param put_path_length number of entries in @a put_path
- * @param put_path peers the original PUT traversed (if tracked)
- * @param get_path_length number of entries in @a get_path
- * @param get_path peers this reply has traversed so far (if tracked)
- * @param data payload of the reply
- * @param data_size number of bytes in @a data
- */
-void
-GDS_ROUTING_process (enum GNUNET_BLOCK_Type type,
-                     struct GNUNET_TIME_Absolute expiration_time,
-                     const struct GNUNET_HashCode * key, unsigned int put_path_length,
-                     const struct GNUNET_PeerIdentity *put_path,
-                     unsigned int get_path_length,
-                     const struct GNUNET_PeerIdentity *get_path,
-                     const void *data, size_t data_size);
 
 /**
  * Check if size of routing table is greater than threshold or not. 
  */
 int
-GDS_ROUTING_size (void);
+GDS_ROUTING_check_threshold (void);
 
 /**
  * Initialize routing subsystem.

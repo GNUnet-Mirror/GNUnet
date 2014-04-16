@@ -72,69 +72,39 @@ struct RoutingTrail
  */
 static struct GNUNET_CONTAINER_MultiPeerMap *routing_table;
 
-
 /**
- * Add a new entry to our routing table.
- * @param source peer Source of the trail.
- * @param destintation Destination of the trail.
- * @param next_hop Next peer to forward the message to reach the destination.
- * @return GNUNET_YES
- *         GNUNET_SYSERR If the number of routing entries crossed thershold.
+ * Iterate over routing table and remove entries for which peer is a part. 
+ * @param cls closure
+ * @param key current public key
+ * @param value value in the hash map
+ * @return #GNUNET_YES if we should continue to
+ *         iterate,
+ *         #GNUNET_NO if not.
  */
-int
-GDS_ROUTING_add (struct GNUNET_PeerIdentity *source,
-                 struct GNUNET_PeerIdentity *dest,
-                 const struct GNUNET_PeerIdentity *next_hop,
-                 struct GNUNET_PeerIdentity *prev_hop)
+static int
+remove_routing_entry (void *cls,
+                      const struct GNUNET_PeerIdentity *key,
+                      void *value)
 {
-  struct RoutingTrail *new_routing_entry;
-    
-  if (GNUNET_CONTAINER_multipeermap_size(routing_table) > ROUTING_TABLE_THRESHOLD)
-    return GNUNET_SYSERR;
-  //FPRINTF (stderr,_("\nSUPU ROUTING ADD %s, %s, %d"),__FILE__, __func__,__LINE__);
-  new_routing_entry = GNUNET_malloc (sizeof (struct RoutingTrail));
-  memcpy (&(new_routing_entry->source) , source, sizeof (struct GNUNET_PeerIdentity));
-  memcpy (&(new_routing_entry->next_hop), next_hop, sizeof (struct GNUNET_PeerIdentity));
-  memcpy (&(new_routing_entry->destination), dest, sizeof (struct GNUNET_PeerIdentity));
-  memcpy (&(new_routing_entry->prev_hop), prev_hop, sizeof (struct GNUNET_PeerIdentity));
+  struct RoutingTrail *remove_entry = value;
+  const struct GNUNET_PeerIdentity *disconnected_peer = cls;
   
-  GNUNET_assert (GNUNET_OK ==
-    GNUNET_CONTAINER_multipeermap_put (routing_table,
-                                       dest, new_routing_entry,
-                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
-  
-  /* SUPU TEST CODE */
-  /* Here I want to see if routing table is correct or not. */
-  int test_index;
-  struct GNUNET_CONTAINER_MultiPeerMapIterator *test_iter;
-  struct GNUNET_PeerIdentity *print_peer;
-  print_peer = GNUNET_malloc (sizeof (struct GNUNET_PeerIdentity));
-  struct RoutingTrail *test_trail;
-  test_iter = GNUNET_CONTAINER_multipeermap_iterator_create (routing_table); 
-  for (test_index = 0; test_index < GNUNET_CONTAINER_multipeermap_size (routing_table); test_index++)
+  if ((0 == GNUNET_CRYPTO_cmp_peer_identity (&(remove_entry->source), disconnected_peer)) ||
+      (0 == GNUNET_CRYPTO_cmp_peer_identity (&(remove_entry->destination), disconnected_peer)) ||    
+      (0 == GNUNET_CRYPTO_cmp_peer_identity (&(remove_entry->next_hop), disconnected_peer)) ||
+      (0 == GNUNET_CRYPTO_cmp_peer_identity (&(remove_entry->prev_hop), disconnected_peer)))
   {
-    FPRINTF (stderr,_("\nSUPU %s, %s, %d, entry[%d]"),__FILE__, __func__,__LINE__,test_index);
-    if(GNUNET_YES == GNUNET_CONTAINER_multipeermap_iterator_next (test_iter, NULL,
-                                                                 (const void **)&test_trail)) 
-    {
-      memcpy (print_peer, &(test_trail->source),sizeof (struct GNUNET_PeerIdentity));
-      FPRINTF (stderr,_("\nSUPU %s, %s, %d, test_trail->source =%s"),__FILE__, __func__,__LINE__,GNUNET_i2s (print_peer));
-      memcpy (print_peer, &(test_trail->destination),sizeof (struct GNUNET_PeerIdentity));
-      FPRINTF (stderr,_("\nSUPU %s, %s, %d, test_trail->destination =%s"),__FILE__, __func__,__LINE__,GNUNET_i2s(print_peer));
-      memcpy (print_peer, &(test_trail->prev_hop),sizeof (struct GNUNET_PeerIdentity));
-      FPRINTF (stderr,_("\nSUPU %s, %s, %d, test_trail->prev_hop =%s"),__FILE__, __func__,__LINE__,GNUNET_i2s(print_peer));
-      memcpy (print_peer, &(test_trail->next_hop),sizeof (struct GNUNET_PeerIdentity));
-      FPRINTF (stderr,_("\nSUPU %s, %s, %d, test_trail->next_hop =%s"),__FILE__, __func__,__LINE__,GNUNET_i2s(print_peer));
-      
-    }
+    GNUNET_assert (GNUNET_YES ==
+                   GNUNET_CONTAINER_multipeermap_remove (routing_table,
+                                                         key, 
+                                                         remove_entry));
   }
-  /* SUPU TEST CODE ENDS*/
   return GNUNET_YES;
 }
 
 
 /**
- * Iterate over multiple entries for same destinational value and get
+ * Iterate over multiple entries for same destination value and get
  * the correct next hop.
  * @param cls struct RoutingTrail
  * @param key Destination identity
@@ -162,6 +132,53 @@ get_next_hop (void *cls, const struct GNUNET_PeerIdentity *key, void *value)
 
 
 /**
+ * Add a new entry to our routing table.
+ * @param source peer Source of the trail.
+ * @param destintation Destination of the trail.
+ * @param next_hop Next peer to forward the message to reach the destination.
+ * @return GNUNET_YES
+ *         GNUNET_SYSERR If the number of routing entries crossed thershold.
+ */
+int
+GDS_ROUTING_add (const struct GNUNET_PeerIdentity *source,
+                 const struct GNUNET_PeerIdentity *dest,
+                 const struct GNUNET_PeerIdentity *next_hop,
+                 struct GNUNET_PeerIdentity *prev_hop)
+{
+  struct RoutingTrail *new_routing_entry;
+    
+  if (GNUNET_CONTAINER_multipeermap_size(routing_table) > ROUTING_TABLE_THRESHOLD)
+    return GNUNET_SYSERR;
+ 
+  new_routing_entry = GNUNET_malloc (sizeof (struct RoutingTrail));
+  memcpy (&(new_routing_entry->source) , source, sizeof (struct GNUNET_PeerIdentity));
+  memcpy (&(new_routing_entry->next_hop), next_hop, sizeof (struct GNUNET_PeerIdentity));
+  memcpy (&(new_routing_entry->destination), dest, sizeof (struct GNUNET_PeerIdentity));
+  memcpy (&(new_routing_entry->prev_hop), prev_hop, sizeof (struct GNUNET_PeerIdentity));
+  
+  GNUNET_assert (GNUNET_OK ==
+    GNUNET_CONTAINER_multipeermap_put (routing_table,
+                                       dest, new_routing_entry,
+                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
+
+  return GNUNET_YES;
+}
+
+
+/**
+ * Iterate over routing table and remove entries for which peer is a part. 
+ * @param peer
+ * @return 
+ */
+void
+GDS_ROUTING_remove_entry (const struct GNUNET_PeerIdentity *peer)
+{
+  GNUNET_CONTAINER_multipeermap_iterate (routing_table, &remove_routing_entry,
+                                         (void *)peer);
+}
+
+
+/**
  * Find the next hop to send packet to.
  * @param source_peer Source of the trail.
  * @param destination_peer Destination of the trail.
@@ -178,8 +195,7 @@ GDS_ROUTING_search(struct GNUNET_PeerIdentity *source_peer,
   memcpy (&(trail->destination), destination_peer, sizeof (struct GNUNET_PeerIdentity));
   memcpy (&(trail->source), source_peer, sizeof (struct GNUNET_PeerIdentity));
   memcpy (&(trail->prev_hop), prev_hop, sizeof (struct GNUNET_PeerIdentity));
-  //trail->next_hop = NULL;
-  //FPRINTF (stderr,_("\nSUPU ROUTING SEARCH %s, %s, %d"),__FILE__, __func__,__LINE__);
+
   GNUNET_CONTAINER_multipeermap_get_multiple (routing_table, destination_peer,
                                               get_next_hop, trail);
   if(trail != NULL)
@@ -189,41 +205,12 @@ GDS_ROUTING_search(struct GNUNET_PeerIdentity *source_peer,
 }
 
 
-/**FIXME: Old implementation just to remove error
- * Handle a reply (route to origin).  Only forwards the reply back to
- * other peers waiting for it.  Does not do local caching or
- * forwarding to local clients.  Essentially calls
- * GDS_NEIGHBOURS_handle_reply for all peers that sent us a matching
- * request recently.
- *
- * @param type type of the block
- * @param expiration_time when does the content expire
- * @param key key for the content
- * @param put_path_length number of entries in put_path
- * @param put_path peers the original PUT traversed (if tracked)
- * @param get_path_length number of entries in get_path
- * @param get_path peers this reply has traversed so far (if tracked)
- * @param data payload of the reply
- * @param data_size number of bytes in data
- */
-void
-GDS_ROUTING_process (enum GNUNET_BLOCK_Type type,
-                     struct GNUNET_TIME_Absolute expiration_time,
-                     const struct GNUNET_HashCode * key, unsigned int put_path_length,
-                     const struct GNUNET_PeerIdentity *put_path,
-                     unsigned int get_path_length,
-                     const struct GNUNET_PeerIdentity *get_path,
-                     const void *data, size_t data_size)
-{
-  return;
-}
-
 /**
  * Check if the size of routing table has crossed threshold. 
  * @return 
  */
 int
-GDS_ROUTING_size ()
+GDS_ROUTING_check_threshold ()
 {
   int ret;
   ret = (GNUNET_CONTAINER_multipeermap_size(routing_table) > ROUTING_TABLE_THRESHOLD) ? 0:1;
@@ -235,7 +222,7 @@ GDS_ROUTING_size ()
  * Initialize routing subsystem.
  */
 void
-GDS_ROUTING_init ()
+GDS_ROUTING_init (void)
 { 
   routing_table = GNUNET_CONTAINER_multipeermap_create (DHT_MAX_RECENT * 4 / 3, GNUNET_NO);
 }
@@ -245,7 +232,7 @@ GDS_ROUTING_init ()
  * Shutdown routing subsystem.
  */
 void
-GDS_ROUTING_done ()
+GDS_ROUTING_done (void)
 {
   GNUNET_assert (0 == GNUNET_CONTAINER_multipeermap_size (routing_table));
   GNUNET_CONTAINER_multipeermap_destroy (routing_table);
