@@ -908,7 +908,6 @@ get_network (struct GAS_PROPORTIONAL_Handle *s, uint32_t type)
   int c;
   for (c = 0; c < s->network_count; c++)
   {
-    fprintf (stderr, "%u == %u \n", s->network_entries[c].type,type);
     if (s->network_entries[c].type == type)
       return &s->network_entries[c];
   }
