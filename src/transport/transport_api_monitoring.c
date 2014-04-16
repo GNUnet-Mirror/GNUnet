@@ -375,6 +375,10 @@ reconnect_val_ctx (struct GNUNET_TRANSPORT_ValidationMonitoringContext *val_ctx)
   GNUNET_assert (GNUNET_NO == val_ctx->one_shot);
   GNUNET_CLIENT_disconnect (val_ctx->client);
   val_ctx->client = NULL;
+  /* notify clients about (re)connect */
+  val_ctx->cb (val_ctx->cb_cls, NULL, NULL,
+               GNUNET_TIME_UNIT_ZERO_ABS, GNUNET_TIME_UNIT_ZERO_ABS,
+               GNUNET_TIME_UNIT_ZERO_ABS, GNUNET_TRANSPORT_VS_TIMEOUT);
   val_ctx->backoff = GNUNET_TIME_STD_BACKOFF (val_ctx->backoff);
   val_ctx->reconnect_task = GNUNET_SCHEDULER_add_delayed (val_ctx->backoff,
                                                           &do_val_connect,
@@ -384,7 +388,7 @@ reconnect_val_ctx (struct GNUNET_TRANSPORT_ValidationMonitoringContext *val_ctx)
 /**
  * Function called with responses from the service.
  *
- * @param cls our 'struct GNUNET_TRANSPORT_PeerMonitoringContext*'
+ * @param cls our `struct GNUNET_TRANSPORT_PeerMonitoringContext *`
  * @param msg NULL on timeout or error, otherwise presumably a
  *        message with the human-readable address
  */
@@ -400,7 +404,7 @@ val_response_processor (void *cls, const struct GNUNET_MessageHeader *msg)
   size_t tlen;
   size_t alen;
 
-  if (msg == NULL)
+  if (NULL == msg)
   {
     if (val_ctx->one_shot)
     {
@@ -530,15 +534,17 @@ val_response_processor (void *cls, const struct GNUNET_MessageHeader *msg)
     GNUNET_HELLO_address_free (address);
   }
   /* expect more replies */
-  GNUNET_CLIENT_receive (val_ctx->client, &val_response_processor,
-      val_ctx, GNUNET_TIME_absolute_get_remaining (val_ctx->timeout));
+  GNUNET_CLIENT_receive (val_ctx->client,
+                         &val_response_processor,
+                         val_ctx,
+                         GNUNET_TIME_absolute_get_remaining (val_ctx->timeout));
 }
 
 
 /**
  * Function called with responses from the service.
  *
- * @param cls our 'struct GNUNET_TRANSPORT_PeerMonitoringContext*'
+ * @param cls our `struct GNUNET_TRANSPORT_PeerMonitoringContext *`
  * @param msg NULL on timeout or error, otherwise presumably a
  *        message with the human-readable address
  */
@@ -577,6 +583,7 @@ peer_response_processor (void *cls, const struct GNUNET_MessageHeader *msg)
     /* Done! */
     if (pal_ctx->one_shot)
     {
+      /* iteration finished */
       pal_ctx->cb (pal_ctx->cb_cls, NULL, NULL,
           GNUNET_TRANSPORT_PS_NOT_CONNECTED, GNUNET_TIME_UNIT_ZERO_ABS);
       GNUNET_TRANSPORT_monitor_peers_cancel (pal_ctx);
@@ -594,6 +601,7 @@ peer_response_processor (void *cls, const struct GNUNET_MessageHeader *msg)
     GNUNET_break (0);
     if (pal_ctx->one_shot)
     {
+      /* iteration finished (with error) */
       pal_ctx->cb (pal_ctx->cb_cls, NULL, NULL,
           GNUNET_TRANSPORT_PS_NOT_CONNECTED, GNUNET_TIME_UNIT_ZERO_ABS);
       GNUNET_TRANSPORT_monitor_peers_cancel (pal_ctx);
@@ -697,19 +705,19 @@ peer_response_processor (void *cls, const struct GNUNET_MessageHeader *msg)
  * @param cfg configuration to use
  * @param peer a specific peer identity to obtain information for,
  *      NULL for all peers
- * @param one_shot GNUNET_YES to return the current state and then end (with NULL+NULL),
- *                 GNUNET_NO to monitor peers continuously
+ * @param one_shot #GNUNET_YES to return the current state and then end (with NULL+NULL),
+ *                 #GNUNET_NO to monitor peers continuously
  * @param timeout how long is the lookup allowed to take at most
  * @param peer_callback function to call with the results
- * @param peer_callback_cls closure for peer_address_callback
+ * @param peer_callback_cls closure for @a peer_address_callback
  */
 struct GNUNET_TRANSPORT_PeerMonitoringContext *
 GNUNET_TRANSPORT_monitor_peers (const struct GNUNET_CONFIGURATION_Handle *cfg,
-    const struct GNUNET_PeerIdentity *peer,
-    int one_shot,
-    struct GNUNET_TIME_Relative timeout,
-    GNUNET_TRANSPORT_PeerIterateCallback peer_callback,
-    void *peer_callback_cls)
+                                const struct GNUNET_PeerIdentity *peer,
+                                int one_shot,
+                                struct GNUNET_TIME_Relative timeout,
+                                GNUNET_TRANSPORT_PeerIterateCallback peer_callback,
+                                void *peer_callback_cls)
 {
   struct GNUNET_TRANSPORT_PeerMonitoringContext *pal_ctx;
   struct GNUNET_CLIENT_Connection *client;
