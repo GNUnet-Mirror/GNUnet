@@ -172,7 +172,11 @@ enum GNUNET_TRANSPORT_PeerState
 
 
 /**
- * Current state of a validation process
+ * Current state of a validation process.
+ *
+ * FIXME: what state is used to indicate that a validation
+ * was successful? If that is clarified/determined, "UGH" in
+ * ~gnunet-peerinfo-gtk.c:1103 should be resolved.
  */
 enum GNUNET_TRANSPORT_ValidationState
 {
@@ -446,7 +450,7 @@ GNUNET_TRANSPORT_try_connect (struct GNUNET_TRANSPORT_Handle *handle,
  * Cancel the request to transport to try a connect
  * Callback will not be called
  *
- * @param tch GNUNET_TRANSPORT_TryConnectHandle handle to cancel
+ * @param tch handle to cancel
  */
 void
 GNUNET_TRANSPORT_try_connect_cancel (struct GNUNET_TRANSPORT_TryConnectHandle *tch);
@@ -466,16 +470,16 @@ GNUNET_TRANSPORT_try_connect_cancel (struct GNUNET_TRANSPORT_TryConnectHandle *t
  */
 struct GNUNET_TRANSPORT_TryConnectHandle *
 GNUNET_TRANSPORT_try_disconnect (struct GNUNET_TRANSPORT_Handle *handle,
-                              const struct GNUNET_PeerIdentity *target,
-                              GNUNET_TRANSPORT_TryConnectCallback cb,
-                              void *cb_cls);
+                                 const struct GNUNET_PeerIdentity *target,
+                                 GNUNET_TRANSPORT_TryConnectCallback cb,
+                                 void *cb_cls);
 
 
 /**
  * Cancel the request to transport to try a disconnect
  * Callback will not be called
  *
- * @param tch GNUNET_TRANSPORT_TryConnectHandle handle to cancel
+ * @param tch handle for operation to cancel
  */
 void
 GNUNET_TRANSPORT_try_disconnect_cancel (struct GNUNET_TRANSPORT_TryConnectHandle *tch);
@@ -628,6 +632,9 @@ void
 GNUNET_TRANSPORT_get_hello_cancel (struct GNUNET_TRANSPORT_GetHelloHandle *ghh);
 
 
+/**
+ * Handle for a #GNUNET_TRANSPORT_offer_hello operation
+ */
 struct GNUNET_TRANSPORT_OfferHelloHandle;
 
 /**
@@ -724,6 +731,10 @@ GNUNET_TRANSPORT_is_connected (enum GNUNET_TRANSPORT_PeerState state);
 const char *
 GNUNET_TRANSPORT_vs2s (enum GNUNET_TRANSPORT_ValidationState state);
 
+
+/**
+ * Handle for a #GNUNET_TRANSPORT_monitor_peers operation.
+ */
 struct GNUNET_TRANSPORT_PeerMonitoringContext;
 
 /**
@@ -771,6 +782,9 @@ void
 GNUNET_TRANSPORT_monitor_peers_cancel (struct GNUNET_TRANSPORT_PeerMonitoringContext *pic);
 
 
+/**
+ * Handle for a #GNUNET_TRANSPORT_monitor_validation_entries() operation.
+ */
 struct GNUNET_TRANSPORT_ValidationMonitoringContext;
 
 /**
