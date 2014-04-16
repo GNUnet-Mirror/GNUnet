@@ -1079,6 +1079,7 @@ load_op_add_address (struct GNUNET_ATS_TEST_Operation *o,
     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   char *op_name;
+  char *op_network;
 
   /* peer pid */
   GNUNET_asprintf(&op_name, "op-%u-peer-id", op_counter);
@@ -1142,14 +1143,51 @@ load_op_add_address (struct GNUNET_ATS_TEST_Operation *o,
 
   /* network */
   GNUNET_asprintf(&op_name, "op-%u-address-network", op_counter);
-  if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number (cfg,
-      sec_name, op_name, &o->address_network))
+  if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string (cfg,
+      sec_name, op_name, &op_network))
   {
     fprintf (stderr, "Missing address-network in operation %u `%s' in episode `%s'\n",
         op_counter, "ADD_ADDRESS", op_name);
     GNUNET_free (op_name);
     return GNUNET_SYSERR;
   }
+  else
+  {
+    GNUNET_STRINGS_utf8_toupper (op_network,op_network);
+    if (0 == strcmp(op_network, "UNSPECIFIED"))
+    {
+      o->address_network = GNUNET_ATS_NET_UNSPECIFIED;
+    }
+    else if (0 == strcmp(op_network, "LOOPBACK"))
+    {
+      o->address_network = GNUNET_ATS_NET_LOOPBACK;
+    }
+    else if (0 == strcmp(op_network, "LAN"))
+    {
+      o->address_network = GNUNET_ATS_NET_LAN;
+    }
+    else if (0 == strcmp(op_network, "WAN"))
+    {
+      o->address_network = GNUNET_ATS_NET_WAN;
+    }
+    else if (0 == strcmp(op_network, "WLAN"))
+    {
+      o->address_network = GNUNET_ATS_NET_WLAN;
+    }
+    else if (0 == strcmp(op_network, "BT"))
+    {
+      o->address_network = GNUNET_ATS_NET_BT;
+    }
+    else
+    {
+      fprintf (stderr, "Invalid address-network in operation %u `%s' in episode `%s': `%s'\n",
+          op_counter, "ADD_ADDRESS", op_name, op_network);
+      GNUNET_free (op_network);
+      GNUNET_free (op_name);
+      return GNUNET_SYSERR;
+    }
+  }
+  GNUNET_free (op_network);
   GNUNET_free (op_name);
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -1167,6 +1205,7 @@ load_op_del_address (struct GNUNET_ATS_TEST_Operation *o,
     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   char *op_name;
+  char *op_network;
 
   /* peer pid */
   GNUNET_asprintf(&op_name, "op-%u-peer-id", op_counter);
@@ -1230,14 +1269,51 @@ load_op_del_address (struct GNUNET_ATS_TEST_Operation *o,
 
   /* network */
   GNUNET_asprintf(&op_name, "op-%u-address-network", op_counter);
-  if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number (cfg,
-      sec_name, op_name, &o->address_network))
+  if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string (cfg,
+      sec_name, op_name, &op_network))
   {
     fprintf (stderr, "Missing address-network in operation %u `%s' in episode `%s'\n",
-        op_counter, "DEL_ADDRESS", op_name);
+        op_counter, "ADD_ADDRESS", op_name);
     GNUNET_free (op_name);
     return GNUNET_SYSERR;
   }
+  else
+  {
+    GNUNET_STRINGS_utf8_toupper (op_network,op_network);
+    if (0 == strcmp(op_network, "UNSPECIFIED"))
+    {
+      o->address_network = GNUNET_ATS_NET_UNSPECIFIED;
+    }
+    else if (0 == strcmp(op_network, "LOOPBACK"))
+    {
+      o->address_network = GNUNET_ATS_NET_LOOPBACK;
+    }
+    else if (0 == strcmp(op_network, "LAN"))
+    {
+      o->address_network = GNUNET_ATS_NET_LAN;
+    }
+    else if (0 == strcmp(op_network, "WAN"))
+    {
+      o->address_network = GNUNET_ATS_NET_WAN;
+    }
+    else if (0 == strcmp(op_network, "WLAN"))
+    {
+      o->address_network = GNUNET_ATS_NET_WLAN;
+    }
+    else if (0 == strcmp(op_network, "BT"))
+    {
+      o->address_network = GNUNET_ATS_NET_BT;
+    }
+    else
+    {
+      fprintf (stderr, "Invalid address-network in operation %u `%s' in episode `%s': `%s'\n",
+          op_counter, "ADD_ADDRESS", op_name, op_network);
+      GNUNET_free (op_network);
+      GNUNET_free (op_name);
+      return GNUNET_SYSERR;
+    }
+  }
+  GNUNET_free (op_network);
   GNUNET_free (op_name);
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -1989,8 +2065,8 @@ enforce_add_address (struct GNUNET_ATS_TEST_Operation *op)
   GNUNET_CONTAINER_multipeermap_put (sh->addresses, &p->peer_id, a->ats_addr,
     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Adding address %u for peer %u\n",
-    op->address_id, op->peer_id);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Adding address %u for peer %u in network `%s'\n",
+    op->address_id, op->peer_id, GNUNET_ATS_print_network_type(op->address_network));
 
   sh->env.sf.s_add (sh->solver, a->ats_addr, op->address_network);
 
