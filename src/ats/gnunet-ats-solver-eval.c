@@ -53,7 +53,7 @@ static int opt_log;
 /**
  * cmd option -p: enable plots
  */
-static int opt_plot;
+static int opt_save;
 
 /**
  * cmd option -v: verbose logs
@@ -262,6 +262,105 @@ GNUNET_ATS_solver_logging_stop (struct LoggingHandle *l)
   l->logging_task = GNUNET_SCHEDULER_NO_TASK;
 }
 
+static struct LoggingFileHandle *
+find_logging_file_handle (struct LoggingFileHandle *lf_head,
+    struct LoggingFileHandle *lf_tail,
+    int peer_id, int address_id)
+{
+  struct LoggingFileHandle *res;
+
+  for (res = lf_head; NULL != res; res = res->next)
+    if ((res->pid == peer_id) && (res->pid == address_id))
+      return res;
+  return NULL;
+
+}
+
+void
+GNUNET_ATS_solver_logging_write_to_disk (struct LoggingHandle *l)
+{
+  struct LoggingTimeStep *lts;
+  struct LoggingPeer *log_p;
+  struct LoggingAddress *log_a;
+  struct LoggingFileHandle *lf_head;
+  struct LoggingFileHandle *lf_tail;
+  struct LoggingFileHandle *cur;
+  struct LoggingFileHandle *next;
+  char * filename;
+  char * datastring;
+  int c;
+
+
+  lf_head = NULL;
+  lf_tail = NULL;
+
+  for (lts = l->head; NULL != lts; lts = lts->next)
+  {
+
+    fprintf (stderr, "Log step %llu %llu: \n",
+        (long long unsigned int) lts->timestamp.abs_value_us,
+        (long long unsigned int) lts->delta.rel_value_us);
+
+    for (log_p = lts->head; NULL != log_p; log_p = log_p->next)
+    {
+      for (log_a = log_p->addr_head; NULL != log_a; log_a = log_a->next)
+      {
+
+        cur = find_logging_file_handle (lf_head, lf_tail, log_p->id,
+            log_a->aid);
+        if (NULL == cur)
+        {
+          cur = GNUNET_new (struct LoggingFileHandle);
+          cur->aid = log_a->aid;
+          cur->pid = log_p->id;
+
+          fprintf (stderr, "Add logging for %i %i: \n",
+              cur->pid, cur->aid);
+
+          GNUNET_asprintf (&filename, "%s_%s_%u_%u_%llu.log", e->log_prefix, opt_solver,
+              cur->aid, cur->pid, l->head->timestamp.abs_value_us);
+          cur->f_hd = GNUNET_DISK_file_open (filename,
+              GNUNET_DISK_OPEN_READWRITE |
+              GNUNET_DISK_OPEN_CREATE |
+              GNUNET_DISK_OPEN_TRUNCATE,
+              GNUNET_DISK_PERM_USER_READ |
+              GNUNET_DISK_PERM_USER_WRITE |
+              GNUNET_DISK_PERM_GROUP_READ |
+              GNUNET_DISK_PERM_OTHER_READ);
+          if (NULL == cur->f_hd)
+          {
+            fprintf (stderr, "Cannot open `%s' to write log data!\n", filename);
+            GNUNET_free (filename);
+            goto cleanup;
+          }
+          GNUNET_free (filename);
+          GNUNET_CONTAINER_DLL_insert (lf_head, lf_tail, cur);
+        }
+
+        GNUNET_asprintf(&datastring,"%i;%u;%u\n",
+            log_a->active,
+            ntohl (log_a->assigned_bw_in.value__),
+            ntohl (log_a->assigned_bw_out.value__));
+        GNUNET_DISK_file_write (cur->f_hd, datastring, strlen(datastring));
+        GNUNET_free (datastring);
+
+      }
+    }
+  }
+
+cleanup:
+  next = lf_head;
+  for (cur = next; NULL != cur; cur = next)
+  {
+    next = cur->next;
+    GNUNET_CONTAINER_DLL_remove (lf_head, lf_tail, cur);
+    if (NULL != cur->f_hd)
+      GNUNET_DISK_file_close (cur->f_hd);
+    GNUNET_free (cur);
+  }
+
+}
+
 void
 GNUNET_ATS_solver_logging_eval (struct LoggingHandle *l)
 {
@@ -278,7 +377,7 @@ GNUNET_ATS_solver_logging_eval (struct LoggingHandle *l)
 
     for (log_p = lts->head; NULL != log_p; log_p = log_p->next)
     {
-      fprintf (stderr,"\tLogging peer id %u\n", log_p->id);
+      fprintf (stderr,"\tLogging peer pid %u\n", log_p->id);
       for (c = 0; c < GNUNET_ATS_PreferenceCount; c++)
       {
         fprintf(stderr,"\t %s = %.2f %.2f [abs/rel]\n",
@@ -288,7 +387,7 @@ GNUNET_ATS_solver_logging_eval (struct LoggingHandle *l)
 
       for (log_a = log_p->addr_head; NULL != log_a; log_a = log_a->next)
       {
-        fprintf (stderr, "\tPeer id %u address %u: %u %u %u\n",
+        fprintf (stderr, "\tPeer pid %u address %u: %u %u %u\n",
             log_p->id, log_a->aid, log_a->active,
             ntohl(log_a->assigned_bw_in.value__),
             ntohl(log_a->assigned_bw_out.value__));
@@ -911,6 +1010,7 @@ free_experiment (struct Experiment *e)
   }
 
   GNUNET_free_non_null (e->name);
+  GNUNET_free_non_null (e->log_prefix);
   GNUNET_free_non_null (e->cfg_file);
   GNUNET_free (e);
 }
@@ -925,7 +1025,7 @@ load_op_add_address (struct GNUNET_ATS_TEST_Operation *o,
 {
   char *op_name;
 
-  /* peer id */
+  /* peer pid */
   GNUNET_asprintf(&op_name, "op-%u-peer-id", op_counter);
   if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number (cfg,
       sec_name, op_name, &o->peer_id))
@@ -937,7 +1037,7 @@ load_op_add_address (struct GNUNET_ATS_TEST_Operation *o,
   }
   GNUNET_free (op_name);
 
-  /* address id */
+  /* address pid */
   GNUNET_asprintf(&op_name, "op-%u-address-id", op_counter);
   if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number (cfg,
       sec_name, op_name, &o->address_id))
@@ -1013,7 +1113,7 @@ load_op_del_address (struct GNUNET_ATS_TEST_Operation *o,
 {
   char *op_name;
 
-  /* peer id */
+  /* peer pid */
   GNUNET_asprintf(&op_name, "op-%u-peer-id", op_counter);
   if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number (cfg,
       sec_name, op_name, &o->peer_id))
@@ -1025,7 +1125,7 @@ load_op_del_address (struct GNUNET_ATS_TEST_Operation *o,
   }
   GNUNET_free (op_name);
 
-  /* address id */
+  /* address pid */
   GNUNET_asprintf(&op_name, "op-%u-address-id", op_counter);
   if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number (cfg,
       sec_name, op_name, &o->address_id))
@@ -1115,7 +1215,7 @@ load_op_start_set_preference (struct GNUNET_ATS_TEST_Operation *o,
   char *type;
   char *pref;
 
-  /* peer id */
+  /* peer pid */
   GNUNET_asprintf(&op_name, "op-%u-peer-id", op_counter);
   if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number (cfg,
       sec_name, op_name, &o->peer_id))
@@ -1127,8 +1227,8 @@ load_op_start_set_preference (struct GNUNET_ATS_TEST_Operation *o,
   }
   GNUNET_free (op_name);
 
-  /* address id */
-  GNUNET_asprintf(&op_name, "op-%u-client-id", op_counter);
+  /* address pid */
+  GNUNET_asprintf(&op_name, "op-%u-client-pid", op_counter);
   if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number (cfg,
       sec_name, op_name, &o->client_id))
   {
@@ -1270,7 +1370,7 @@ load_op_stop_set_preference (struct GNUNET_ATS_TEST_Operation *o,
   char *op_name;
   char *pref;
 
-  /* peer id */
+  /* peer pid */
   GNUNET_asprintf(&op_name, "op-%u-peer-id", op_counter);
   if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number (cfg,
       sec_name, op_name, &o->peer_id))
@@ -1282,7 +1382,7 @@ load_op_stop_set_preference (struct GNUNET_ATS_TEST_Operation *o,
   }
   GNUNET_free (op_name);
 
-  /* address id */
+  /* address pid */
   GNUNET_asprintf(&op_name, "op-%u-address-id", op_counter);
   if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number (cfg,
       sec_name, op_name, &o->address_id))
@@ -1346,7 +1446,7 @@ load_op_start_set_property(struct GNUNET_ATS_TEST_Operation *o,
   char *type;
   char *prop;
 
-  /* peer id */
+  /* peer pid */
   GNUNET_asprintf(&op_name, "op-%u-peer-id", op_counter);
   if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number (cfg,
       sec_name, op_name, &o->peer_id))
@@ -1358,7 +1458,7 @@ load_op_start_set_property(struct GNUNET_ATS_TEST_Operation *o,
   }
   GNUNET_free (op_name);
 
-  /* address id */
+  /* address pid */
   GNUNET_asprintf(&op_name, "op-%u-address-id", op_counter);
   if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number (cfg,
       sec_name, op_name, &o->address_id))
@@ -1503,7 +1603,7 @@ load_op_stop_set_property (struct GNUNET_ATS_TEST_Operation *o,
   char *op_name;
   char *pref;
 
-  /* peer id */
+  /* peer pid */
   GNUNET_asprintf(&op_name, "op-%u-peer-id", op_counter);
   if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number (cfg,
       sec_name, op_name, &o->peer_id))
@@ -1515,7 +1615,7 @@ load_op_stop_set_property (struct GNUNET_ATS_TEST_Operation *o,
   }
   GNUNET_free (op_name);
 
-  /* address id */
+  /* address pid */
   GNUNET_asprintf(&op_name, "op-%u-address-id", op_counter);
   if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number (cfg,
       sec_name, op_name, &o->address_id))
@@ -1569,7 +1669,7 @@ load_op_start_request (struct GNUNET_ATS_TEST_Operation *o,
 {
   char *op_name;
 
-  /* peer id */
+  /* peer pid */
   GNUNET_asprintf(&op_name, "op-%u-peer-id", op_counter);
   if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number (cfg,
       sec_name, op_name, &o->peer_id))
@@ -1592,7 +1692,7 @@ load_op_stop_request (struct GNUNET_ATS_TEST_Operation *o,
 {
   char *op_name;
 
-  /* peer id */
+  /* peer pid */
   GNUNET_asprintf(&op_name, "op-%u-peer-id", op_counter);
   if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number (cfg,
       sec_name, op_name, &o->peer_id))
@@ -1631,6 +1731,9 @@ load_episode (struct Experiment *e, struct Episode *cur,
       break;
     }
     o = GNUNET_new (struct GNUNET_ATS_TEST_Operation);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "==== Parsing operation %u: `%s'\n",
+        cur->id, op_name);
+
     /* operations = set_rate, start_send, stop_send, set_preference */
     if (0 == strcmp (op, "address_add"))
     {
@@ -2193,6 +2296,17 @@ GNUNET_ATS_solvers_experimentation_load (char *filename)
   else
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Experiment name: `%s'\n", e->name);
 
+  if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string(cfg, "experiment",
+      "log_prefix", &e->log_prefix))
+  {
+    fprintf (stderr, "Invalid %s", "name");
+    free_experiment (e);
+    return NULL;
+  }
+  else
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Experiment logging prefix: `%s'\n",
+        e->log_prefix);
+
   if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_filename (cfg, "experiment",
       "cfg_file", &e->cfg_file))
   {
@@ -2670,20 +2784,28 @@ done ()
   /* Stop all property generation */
   GNUNET_ATS_solver_generate_property_stop_all ();
 
-  /* Clean up experiment */
-  if (NULL != e)
-  {
-    GNUNET_ATS_solvers_experimentation_stop (e);
-    e = NULL;
-  }
-
   if (opt_print)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "== Printing log information \n");
     GNUNET_ATS_solver_logging_eval (l);
+  }
+  if (opt_save)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "== Saving log information \n");
+    GNUNET_ATS_solver_logging_write_to_disk (l);
+  }
 
   if (NULL != l)
   {
     GNUNET_ATS_solver_logging_free (l);
     l = NULL;
+  }
+
+  /* Clean up experiment */
+  if (NULL != e)
+  {
+    GNUNET_ATS_solvers_experimentation_stop (e);
+    e = NULL;
   }
 
   next = peer_head;
@@ -2836,7 +2958,7 @@ main (int argc, char *argv[])
   opt_exp_file = NULL;
   opt_solver = NULL;
   opt_log = GNUNET_NO;
-  opt_plot = GNUNET_NO;
+  opt_save = GNUNET_NO;
 
   res = 0;
 
@@ -2848,12 +2970,15 @@ main (int argc, char *argv[])
     {  'e', "experiment", NULL,
       gettext_noop ("experiment to use"),
       1, &GNUNET_GETOPT_set_string, &opt_exp_file},
-    {  'e', "experiment", NULL,
-      gettext_noop ("experiment to use"),
-      1, &GNUNET_GETOPT_set_one, &opt_verbose},
+    {  'V', "verbose", NULL,
+      gettext_noop ("be verbose"),
+      0, &GNUNET_GETOPT_set_one, &opt_verbose},
     {  'p', "print", NULL,
       gettext_noop ("print logging"),
       0, &GNUNET_GETOPT_set_one, &opt_print},
+    {  'f', "file", NULL,
+        gettext_noop ("save logging to disk"),
+        0, &GNUNET_GETOPT_set_one, &opt_save},
     GNUNET_GETOPT_OPTION_END
   };
 
