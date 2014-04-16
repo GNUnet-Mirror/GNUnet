@@ -339,6 +339,9 @@ reconnect_peer_ctx (struct GNUNET_TRANSPORT_PeerMonitoringContext *pal_ctx)
   GNUNET_assert (GNUNET_NO == pal_ctx->one_shot);
   GNUNET_CLIENT_disconnect (pal_ctx->client);
   pal_ctx->client = NULL;
+  pal_ctx->cb (pal_ctx->cb_cls, NULL, NULL,
+               GNUNET_TRANSPORT_PS_NOT_CONNECTED,
+               GNUNET_TIME_UNIT_ZERO_ABS);
   pal_ctx->backoff = GNUNET_TIME_STD_BACKOFF (pal_ctx->backoff);
   pal_ctx->reconnect_task = GNUNET_SCHEDULER_add_delayed (pal_ctx->backoff,
 							  &do_peer_connect,
@@ -549,7 +552,8 @@ val_response_processor (void *cls, const struct GNUNET_MessageHeader *msg)
  *        message with the human-readable address
  */
 static void
-peer_response_processor (void *cls, const struct GNUNET_MessageHeader *msg)
+peer_response_processor (void *cls,
+                         const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_TRANSPORT_PeerMonitoringContext *pal_ctx = cls;
   struct PeerIterateResponseMessage *pir_msg;
@@ -560,7 +564,7 @@ peer_response_processor (void *cls, const struct GNUNET_MessageHeader *msg)
   size_t alen;
   size_t tlen;
 
-  if (msg == NULL)
+  if (NULL == msg)
   {
     if (pal_ctx->one_shot)
     {

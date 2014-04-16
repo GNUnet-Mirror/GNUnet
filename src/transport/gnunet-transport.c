@@ -701,6 +701,14 @@ process_validation_cb (void *cls,
 {
   if ((NULL == peer) && (NULL == address))
   {
+    if (monitor_validation)
+    {
+      FPRINTF (stdout,
+               "%s",
+               _("Monitor disconnected from transport service. Reconnecting.\n"));
+      return;
+    }
+
     /* done */
     vic = NULL;
     if (GNUNET_SCHEDULER_NO_TASK != end)
@@ -851,6 +859,7 @@ transmit_data (void *cls, size_t size, void *buf)
   return size;
 }
 
+
 /**
  * Function called to notify transport users that another
  * peer connected to us.
@@ -971,6 +980,7 @@ monitor_notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
       _("Connected to"), GNUNET_i2s (peer), monitor_connect_counter);
 }
 
+
 /**
  * Function called to notify transport users that another
  * peer disconnected from us.
@@ -991,6 +1001,7 @@ monitor_notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
       _("Disconnected from"), GNUNET_i2s (peer), monitor_connect_counter);
 }
 
+
 /**
  * Function called by the transport for each received message.
  *
@@ -999,8 +1010,9 @@ monitor_notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
  * @param message the message
  */
 static void
-notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
-    const struct GNUNET_MessageHeader *message)
+notify_receive (void *cls,
+                const struct GNUNET_PeerIdentity *peer,
+                const struct GNUNET_MessageHeader *message)
 {
   if (benchmark_receive)
   {
@@ -1140,7 +1152,6 @@ resolve_peer_address (const struct GNUNET_PeerIdentity *id,
  *  NULL on disconnect or when done
  * @param state current state this peer is in
  * @param state_timeout time out for the current state
- *
  */
 static void
 process_peer_iteration_cb (void *cls,
@@ -1151,12 +1162,6 @@ process_peer_iteration_cb (void *cls,
 {
   if (NULL == peer)
   {
-    if (monitor_connections)
-    {
-      FPRINTF (stdout,
-               _("Monitor disconnected from transport service. Reconnecting.\n"));
-      return;
-    }
     /* done */
     address_resolution_in_progress = GNUNET_NO;
     pic = NULL;
@@ -1166,13 +1171,14 @@ process_peer_iteration_cb (void *cls,
     return;
   }
 
-  if ((GNUNET_NO == iterate_all) && (GNUNET_NO == GNUNET_TRANSPORT_is_connected(state)) )
+  if ( (GNUNET_NO == iterate_all) &&
+       (GNUNET_NO == GNUNET_TRANSPORT_is_connected(state)) )
       return; /* Display only connected peers */
 
   if (GNUNET_SCHEDULER_NO_TASK != op_timeout)
     GNUNET_SCHEDULER_cancel (op_timeout);
   op_timeout = GNUNET_SCHEDULER_add_delayed (OP_TIMEOUT, &operation_timeout,
-      NULL );
+                                             NULL);
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
              "Received address for peer `%s': %s\n",
@@ -1197,28 +1203,26 @@ process_peer_iteration_cb (void *cls,
  *
  */
 static void
-process_peer_monitoring_cb (void *cls, const struct GNUNET_PeerIdentity *peer,
-    const struct GNUNET_HELLO_Address *address,
-    enum GNUNET_TRANSPORT_PeerState state,
-    struct GNUNET_TIME_Absolute state_timeout)
+process_peer_monitoring_cb (void *cls,
+                            const struct GNUNET_PeerIdentity *peer,
+                            const struct GNUNET_HELLO_Address *address,
+                            enum GNUNET_TRANSPORT_PeerState state,
+                            struct GNUNET_TIME_Absolute state_timeout)
 {
   struct MonitoredPeer *m;
 
-  if (peer == NULL )
+  if (NULL == peer)
   {
-    /* done */
-    address_resolution_in_progress = GNUNET_NO;
-    pic = NULL;
-    if (GNUNET_SCHEDULER_NO_TASK != end)
-      GNUNET_SCHEDULER_cancel (end);
-    end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL );
+    FPRINTF (stdout,
+             "%s",
+             _("Monitor disconnected from transport service. Reconnecting.\n"));
     return;
   }
 
   if (GNUNET_SCHEDULER_NO_TASK != op_timeout)
     GNUNET_SCHEDULER_cancel (op_timeout);
   op_timeout = GNUNET_SCHEDULER_add_delayed (OP_TIMEOUT, &operation_timeout,
-      NULL );
+                                             NULL);
 
   if (NULL == (m = GNUNET_CONTAINER_multipeermap_get (monitored_peers, peer)))
   {
@@ -1490,7 +1494,8 @@ testservice_task (void *cls, int result)
   {
     monitor_connect_counter = 0;
     handle = GNUNET_TRANSPORT_connect (cfg, NULL, NULL, NULL,
-        &monitor_notify_connect, &monitor_notify_disconnect);
+                                       &monitor_notify_connect,
+                                       &monitor_notify_disconnect);
     if (NULL == handle)
     {
       FPRINTF (stderr, "%s", _("Failed to connect to transport service\n") );
