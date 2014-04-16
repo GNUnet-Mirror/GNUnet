@@ -55,6 +55,7 @@ struct PendingMessage
   int is_init;
 };
 
+
 /**
  * Linked list of pending reservations.
  */
@@ -87,13 +88,13 @@ struct GNUNET_ATS_ReservationContext
   GNUNET_ATS_ReservationCallback rcb;
 
   /**
-   * Closure for 'rcb'
+   * Closure for @e rcb
    */
   void *rcb_cls;
 
   /**
    * Do we need to undo this reservation if it succeeded?  Set to
-   * GNUNET_YES if a reservation is cancelled.  (at that point, 'info'
+   * #GNUNET_YES if a reservation is cancelled.  (at that point, 'info'
    * is also set to NULL; however, info will ALSO be NULL for the
    * reservation context that is created to undo the original request,
    * so 'info' being NULL cannot be used to check if undo is
@@ -101,6 +102,7 @@ struct GNUNET_ATS_ReservationContext
    */
   int undo;
 };
+
 
 /**
  * Linked list of pending reservations.
@@ -154,6 +156,7 @@ struct GNUNET_ATS_AddressListHandle
   uint32_t id;
 };
 
+
 /**
  * ATS Handle to obtain and/or modify performance information.
  */
@@ -171,7 +174,7 @@ struct GNUNET_ATS_PerformanceHandle
   GNUNET_ATS_AddressInformationCallback addr_info_cb;
 
   /**
-   * Closure for 'addr_info_cb'.
+   * Closure for @e addr_info_cb.
    */
   void *addr_info_cb_cls;
 
@@ -239,6 +242,7 @@ struct GNUNET_ATS_PerformanceHandle
 static void
 reconnect (struct GNUNET_ATS_PerformanceHandle *ph);
 
+
 /**
  * Re-establish the connection to the ATS service.
  *
@@ -246,13 +250,15 @@ reconnect (struct GNUNET_ATS_PerformanceHandle *ph);
  * @param tc scheduler context
  */
 static void
-reconnect_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+reconnect_task (void *cls,
+                const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_ATS_PerformanceHandle *ph = cls;
 
   ph->task = GNUNET_SCHEDULER_NO_TASK;
   reconnect (ph);
 }
+
 
 /**
  * Transmit messages from the message queue to the service
@@ -263,15 +269,18 @@ reconnect_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 do_transmit (struct GNUNET_ATS_PerformanceHandle *ph);
 
+
 /**
  * Type of a function to call when we receive a message
  * from the service.
  *
- * @param cls the 'struct GNUNET_ATS_SchedulingHandle'
+ * @param cls the `struct GNUNET_ATS_SchedulingHandle`
  * @param msg message received, NULL on timeout or fatal error
  */
 static void
-process_ats_message (void *cls, const struct GNUNET_MessageHeader *msg);
+process_ats_message (void *cls,
+                     const struct GNUNET_MessageHeader *msg);
+
 
 /**
  * We can now transmit a message to ATS. Do it.
@@ -304,6 +313,7 @@ transmit_message_to_ats (void *cls, size_t size, void *buf)
   return ret;
 }
 
+
 /**
  * Transmit messages from the message queue to the service
  * (if there are any, and if we are not already trying).
@@ -325,16 +335,17 @@ do_transmit (struct GNUNET_ATS_PerformanceHandle *ph)
       GNUNET_TIME_UNIT_FOREVER_REL, GNUNET_YES, &transmit_message_to_ats, ph);
 }
 
+
 /**
  * We received a peer information message.  Validate and process it.
  *
  * @param ph our context with the callback
  * @param msg the message
- * @return GNUNET_OK if the message was well-formed
+ * @return #GNUNET_OK if the message was well-formed
  */
 static int
 process_pi_message (struct GNUNET_ATS_PerformanceHandle *ph,
-    const struct GNUNET_MessageHeader *msg)
+                    const struct GNUNET_MessageHeader *msg)
 {
   const struct PeerInformationMessage *pi;
   const struct GNUNET_ATS_Information *atsi;
@@ -379,22 +390,27 @@ process_pi_message (struct GNUNET_ATS_PerformanceHandle *ph,
     address.address_length = plugin_address_length;
     address.transport_name = plugin_name;
 
-    ph->addr_info_cb (ph->addr_info_cb_cls, &address, addr_active,
-        pi->bandwidth_out, pi->bandwidth_in, atsi, ats_count);
+    ph->addr_info_cb (ph->addr_info_cb_cls,
+                      &address,
+                      addr_active,
+                      pi->bandwidth_out,
+                      pi->bandwidth_in,
+                      atsi, ats_count);
   }
   return GNUNET_OK;
 }
+
 
 /**
  * We received a reservation result message.  Validate and process it.
  *
  * @param ph our context with the callback
  * @param msg the message
- * @return GNUNET_OK if the message was well-formed
+ * @return #GNUNET_OK if the message was well-formed
  */
 static int
 process_rr_message (struct GNUNET_ATS_PerformanceHandle *ph,
-    const struct GNUNET_MessageHeader *msg)
+                    const struct GNUNET_MessageHeader *msg)
 {
   const struct ReservationResultMessage *rr;
   struct GNUNET_ATS_ReservationContext *rc;
@@ -434,16 +450,17 @@ process_rr_message (struct GNUNET_ATS_PerformanceHandle *ph,
   return GNUNET_OK;
 }
 
+
 /**
  * We received a reservation result message.  Validate and process it.
  *
  * @param ph our context with the callback
  * @param msg the message
- * @return GNUNET_OK if the message was well-formed
+ * @return #GNUNET_OK if the message was well-formed
  */
 static int
 process_ar_message (struct GNUNET_ATS_PerformanceHandle *ph,
-    const struct GNUNET_MessageHeader *msg)
+                    const struct GNUNET_MessageHeader *msg)
 {
   const struct PeerInformationMessage *pi;
   struct GNUNET_ATS_AddressListHandle *alh;
@@ -534,6 +551,7 @@ process_ar_message (struct GNUNET_ATS_PerformanceHandle *ph,
   return GNUNET_OK;
 }
 
+
 /**
  * Type of a function to call when we receive a message
  * from the service.
@@ -569,16 +587,19 @@ process_ats_message (void *cls, const struct GNUNET_MessageHeader *msg)
   GNUNET_CLIENT_receive (ph->client, &process_ats_message, ph,
       GNUNET_TIME_UNIT_FOREVER_REL);
   return;
-  reconnect: if (NULL != ph->th)
+ reconnect:
+  if (NULL != ph->th)
   {
     GNUNET_CLIENT_notify_transmit_ready_cancel (ph->th);
     ph->th = NULL;
   }
   GNUNET_CLIENT_disconnect (ph->client);
   ph->client = NULL;
+  /* FIXME: need to signal monitor that we were disconnected! */
   ph->task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-      &reconnect_task, ph);
+                                           &reconnect_task, ph);
 }
+
 
 /**
  * Re-establish the connection to the ATS service.
@@ -613,6 +634,7 @@ reconnect (struct GNUNET_ATS_PerformanceHandle *ph)
   do_transmit (ph);
 }
 
+
 /**
  * Get handle to access performance API of the ATS subsystem.
  *
@@ -624,7 +646,8 @@ reconnect (struct GNUNET_ATS_PerformanceHandle *ph)
  */
 struct GNUNET_ATS_PerformanceHandle *
 GNUNET_ATS_performance_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
-    GNUNET_ATS_AddressInformationCallback addr_info_cb, void *addr_info_cb_cls)
+                             GNUNET_ATS_AddressInformationCallback addr_info_cb,
+                             void *addr_info_cb_cls)
 {
   struct GNUNET_ATS_PerformanceHandle *ph;
 
@@ -636,6 +659,7 @@ GNUNET_ATS_performance_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
   reconnect (ph);
   return ph;
 }
+
 
 /**
  * Client is done using the ATS performance subsystem, release resources.
@@ -680,6 +704,7 @@ GNUNET_ATS_performance_done (struct GNUNET_ATS_PerformanceHandle *ph)
   GNUNET_free(ph);
 }
 
+
 /**
  * Reserve inbound bandwidth from the given peer.  ATS will look at
  * the current amount of traffic we receive from the peer and ensure
@@ -696,8 +721,9 @@ GNUNET_ATS_performance_done (struct GNUNET_ATS_PerformanceHandle *ph)
  */
 struct GNUNET_ATS_ReservationContext *
 GNUNET_ATS_reserve_bandwidth (struct GNUNET_ATS_PerformanceHandle *ph,
-    const struct GNUNET_PeerIdentity *peer, int32_t amount,
-    GNUNET_ATS_ReservationCallback rcb, void *rcb_cls)
+                              const struct GNUNET_PeerIdentity *peer,
+                              int32_t amount,
+                              GNUNET_ATS_ReservationCallback rcb, void *rcb_cls)
 {
   struct GNUNET_ATS_ReservationContext *rc;
   struct PendingMessage *p;
@@ -726,6 +752,7 @@ GNUNET_ATS_reserve_bandwidth (struct GNUNET_ATS_PerformanceHandle *ph,
   return rc;
 }
 
+
 /**
  * Cancel request for reserving bandwidth.
  *
@@ -736,6 +763,7 @@ GNUNET_ATS_reserve_bandwidth_cancel (struct GNUNET_ATS_ReservationContext *rc)
 {
   rc->rcb = NULL;
 }
+
 
 /**
  * Get information about addresses known to the ATS subsystem.
@@ -750,10 +778,11 @@ GNUNET_ATS_reserve_bandwidth_cancel (struct GNUNET_ATS_ReservationContext *rc)
  * @return ats performance context
  */
 struct GNUNET_ATS_AddressListHandle*
-GNUNET_ATS_performance_list_addresses (
-    struct GNUNET_ATS_PerformanceHandle *handle,
-    const struct GNUNET_PeerIdentity *peer, int all,
-    GNUNET_ATS_AddressInformationCallback infocb, void *infocb_cls)
+GNUNET_ATS_performance_list_addresses (struct GNUNET_ATS_PerformanceHandle *handle,
+                                       const struct GNUNET_PeerIdentity *peer,
+                                       int all,
+                                       GNUNET_ATS_AddressInformationCallback infocb,
+                                       void *infocb_cls)
 {
   struct GNUNET_ATS_AddressListHandle *alh;
   struct PendingMessage *p;
@@ -803,14 +832,14 @@ GNUNET_ATS_performance_list_addresses (
   return alh;
 }
 
+
 /**
  * Cancel a pending address listing operation
  *
  * @param handle the GNUNET_ATS_AddressListHandle handle to cancel
  */
 void
-GNUNET_ATS_performance_list_addresses_cancel (
-    struct GNUNET_ATS_AddressListHandle *handle)
+GNUNET_ATS_performance_list_addresses_cancel (struct GNUNET_ATS_AddressListHandle *handle)
 {
   GNUNET_assert(NULL != handle);
 
@@ -818,6 +847,7 @@ GNUNET_ATS_performance_list_addresses_cancel (
       handle->ph->addresslist_tail, handle);
   GNUNET_free(handle);
 }
+
 
 /**
  * Convert a GNUNET_ATS_PreferenceType to a string
@@ -834,6 +864,7 @@ GNUNET_ATS_print_preference_type (uint32_t type)
   return NULL ;
 }
 
+
 /**
  * Change preferences for the given peer. Preference changes are forgotten if peers
  * disconnect.
@@ -843,9 +874,8 @@ GNUNET_ATS_print_preference_type (uint32_t type)
  * @param ... 0-terminated specification of the desired changes
  */
 void
-GNUNET_ATS_performance_change_preference (
-    struct GNUNET_ATS_PerformanceHandle *ph,
-    const struct GNUNET_PeerIdentity *peer, ...)
+GNUNET_ATS_performance_change_preference (struct GNUNET_ATS_PerformanceHandle *ph,
+                                          const struct GNUNET_PeerIdentity *peer, ...)
 {
   struct PendingMessage *p;
   struct ChangePreferenceMessage *m;
@@ -915,6 +945,7 @@ GNUNET_ATS_performance_change_preference (
   do_transmit (ph);
 }
 
+
 /**
  * Send feedback to ATS on how good a the requirements for a peer and a
  * preference is satisfied by ATS
@@ -926,8 +957,8 @@ GNUNET_ATS_performance_change_preference (
  */
 void
 GNUNET_ATS_performance_give_feedback (struct GNUNET_ATS_PerformanceHandle *ph,
-    const struct GNUNET_PeerIdentity *peer,
-    const struct GNUNET_TIME_Relative scope, ...)
+                                      const struct GNUNET_PeerIdentity *peer,
+                                      const struct GNUNET_TIME_Relative scope, ...)
 {
   struct PendingMessage *p;
   struct FeedbackPreferenceMessage *m;
