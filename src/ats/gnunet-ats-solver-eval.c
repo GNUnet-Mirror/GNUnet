@@ -206,6 +206,7 @@ GNUNET_ATS_solver_logging_now (struct LoggingHandle *l)
       log_a = GNUNET_new (struct LoggingAddress);
       log_a->aid = cur_addr->aid;
       log_a->active = cur_addr->ats_addr->active;
+      log_a->network = cur_addr->network;
       log_a->used = cur_addr->ats_addr->used;
       log_a->assigned_bw_in = cur_addr->ats_addr->assigned_bw_in;
       log_a->assigned_bw_out = cur_addr->ats_addr->assigned_bw_out;
@@ -290,6 +291,8 @@ GNUNET_ATS_solver_logging_write_to_disk (struct LoggingHandle *l)
   char * datastring;
   char * propstring;
   char * propstring_tmp;
+  char * prefstring;
+  char * prefstring_tmp;
   int c;
 
 
@@ -338,12 +341,12 @@ GNUNET_ATS_solver_logging_write_to_disk (struct LoggingHandle *l)
           GNUNET_free (filename);
           GNUNET_CONTAINER_DLL_insert (lf_head, lf_tail, cur);
 
-          GNUNET_asprintf(&datastring,"#timestamp_abs; addr_active; bw in; bw out; " \
+          GNUNET_asprintf(&datastring,"#timestamp_abs; addr net; addr_active; bw in; bw out; " \
               "UTILIZATION_UP [abs/rel]; UTILIZATION_UP; UTILIZATION_DOWN; UTILIZATION_DOWN; " \
-              "UTILIZATION_PAYLOAD_UP; UTILIZATION_PAYLOAD_UP; UTILIZATION_PAYLOAD_DOWN; UTILIZATION_PAYLOAD_DOWN; "\
-              "NETWORK_TYPE; NETWORK_TYPE; DELAY; DELAY; " \
+              "UTILIZATION_PAYLOAD_UP; UTILIZATION_PAYLOAD_UP; UTILIZATION_PAYLOAD_DOWN; UTILIZATION_PAYLOAD_DOWN;"\
+              "DELAY; DELAY; " \
               "DISTANCE ;DISTANCE ; COST_WAN; COST_WAN; COST_LAN; COST_LAN; " \
-              "COST_WLAN; COST_WLAN\n",
+              "COST_WLAN; COST_WLAN; PREF BW abs; PREF BW rel; PREF LATENCY abs; PREF LATENCY rel;\n",
               lts->timestamp.abs_value_us,
               log_a->active,
               ntohl (log_a->assigned_bw_in.value__),
@@ -353,9 +356,25 @@ GNUNET_ATS_solver_logging_write_to_disk (struct LoggingHandle *l)
 
         }
 
+        prefstring = GNUNET_strdup("");
+        for (c = 1; c < GNUNET_ATS_PreferenceCount; c++)
+        {
+          fprintf(stderr,"\t %s = %.2f %.2f [abs/rel]\n",
+              GNUNET_ATS_print_preference_type(c),
+              log_p->pref_abs[c], log_p->pref_norm[c]);
+
+          GNUNET_asprintf(&prefstring_tmp,"%s;%.3f;%.3f",
+              prefstring, log_p->pref_abs[c], log_p->pref_norm[c]);
+          GNUNET_free (prefstring);
+          prefstring = GNUNET_strdup(prefstring_tmp);
+          GNUNET_free (prefstring_tmp);
+        }
+
         propstring = GNUNET_strdup("");
         for (c = 1; c < GNUNET_ATS_PropertyCount; c++)
         {
+          if (GNUNET_ATS_NETWORK_TYPE == c)
+            continue;
           fprintf(stderr, "\t %s = %.2f %.2f [abs/rel]\n",
               GNUNET_ATS_print_property_type(c),
               log_a->prop_abs[c], log_a->prop_norm[c]);
@@ -366,13 +385,17 @@ GNUNET_ATS_solver_logging_write_to_disk (struct LoggingHandle *l)
           GNUNET_free (propstring_tmp);
         }
 
-        GNUNET_asprintf(&datastring,"%llu;%i;%u;%u;%s\n",
+
+        GNUNET_asprintf(&datastring,"%llu;%u;%i;%u;%u;%s\n",
             lts->timestamp.abs_value_us,
+            log_a->network,
             log_a->active,
             ntohl (log_a->assigned_bw_in.value__),
-            ntohl (log_a->assigned_bw_out.value__),propstring);
+            ntohl (log_a->assigned_bw_out.value__),
+            propstring, prefstring);
         GNUNET_DISK_file_write (cur->f_hd, datastring, strlen(datastring));
         GNUNET_free (datastring);
+        GNUNET_free (prefstring);
         GNUNET_free (propstring);
       }
     }
@@ -408,7 +431,7 @@ GNUNET_ATS_solver_logging_eval (struct LoggingHandle *l)
     for (log_p = lts->head; NULL != log_p; log_p = log_p->next)
     {
       fprintf (stderr,"\tLogging peer pid %u\n", log_p->id);
-      for (c = 0; c < GNUNET_ATS_PreferenceCount; c++)
+      for (c = 1; c < GNUNET_ATS_PreferenceCount; c++)
       {
         fprintf(stderr,"\t %s = %.2f %.2f [abs/rel]\n",
             GNUNET_ATS_print_preference_type(c),
@@ -422,8 +445,10 @@ GNUNET_ATS_solver_logging_eval (struct LoggingHandle *l)
             ntohl(log_a->assigned_bw_in.value__),
             ntohl(log_a->assigned_bw_out.value__));
 
-        for (c = 0; c < GNUNET_ATS_PropertyCount; c++)
+        for (c = 1; c < GNUNET_ATS_PropertyCount; c++)
         {
+          if (GNUNET_ATS_NETWORK_TYPE == c)
+            continue;
           fprintf(stderr, "\t %s = %.2f %.2f [abs/rel]\n",
               GNUNET_ATS_print_property_type(c),
               log_a->prop_abs[c], log_a->prop_norm[c]);
@@ -1258,7 +1283,7 @@ load_op_start_set_preference (struct GNUNET_ATS_TEST_Operation *o,
   GNUNET_free (op_name);
 
   /* address pid */
-  GNUNET_asprintf(&op_name, "op-%u-client-pid", op_counter);
+  GNUNET_asprintf(&op_name, "op-%u-client-id", op_counter);
   if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_number (cfg,
       sec_name, op_name, &o->client_id))
   {
@@ -1955,6 +1980,7 @@ enforce_add_address (struct GNUNET_ATS_TEST_Operation *op)
 
   a = GNUNET_new (struct TestAddress);
   a->aid = op->address_id;
+  a->network = op->address_network;
   a->ats_addr = create_ats_address (&p->peer_id, op->plugin, op->address,
       strlen (op->address) + 1, op->address_session);
   memset (&p->peer_id, op->peer_id, sizeof (p->peer_id));
@@ -1965,8 +1991,6 @@ enforce_add_address (struct GNUNET_ATS_TEST_Operation *op)
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Adding address %u for peer %u\n",
     op->address_id, op->peer_id);
-
-
 
   sh->env.sf.s_add (sh->solver, a->ats_addr, op->address_network);
 

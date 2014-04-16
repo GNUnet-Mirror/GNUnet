@@ -135,6 +135,7 @@ struct LoggingAddress
   int aid;
   int active;
   int used;
+  uint32_t network;
   struct GNUNET_BANDWIDTH_Value32NBO assigned_bw_in;
   struct GNUNET_BANDWIDTH_Value32NBO assigned_bw_out;
 
@@ -166,6 +167,7 @@ struct TestAddress
 
   int aid;
   struct ATS_Address *ats_addr;
+  uint32_t network;
 
   double prop_abs[GNUNET_ATS_PropertyCount];
   double prop_norm[GNUNET_ATS_PropertyCount];
