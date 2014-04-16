@@ -29,7 +29,7 @@
 
 #include "gnunet_util_lib.h"
 #include "gnunet_block_lib.h"
-#include "gnunet_xdht_service.h"
+#include "gnunet_dht_service.h"
 
 
 /** FIXME: by default I keep current_source, and destination as my own id.
