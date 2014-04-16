@@ -736,6 +736,12 @@ find_best_address_it (void *cls,
         GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_difference (now, current->blocked_until), GNUNET_YES));
     return GNUNET_OK;
   }
+  if (NULL == asi)
+  {
+    GNUNET_break (0);
+    return GNUNET_OK;
+  }
+
   if (GNUNET_NO == is_bandwidth_available_in_network (asi->network))
     return GNUNET_OK; /* There's no bandwidth available in this network */
 
@@ -902,6 +908,7 @@ get_network (struct GAS_PROPORTIONAL_Handle *s, uint32_t type)
   int c;
   for (c = 0; c < s->network_count; c++)
   {
+    fprintf (stderr, "%u == %u \n", s->network_entries[c].type,type);
     if (s->network_entries[c].type == type)
       return &s->network_entries[c];
   }
@@ -1394,6 +1401,12 @@ GAS_proportional_address_property_changed (void *solver,
 
   s = (struct GAS_PROPORTIONAL_Handle *) solver;
   asi = address->solver_information;
+  if (NULL == asi)
+  {
+    GNUNET_break(0);
+    return;
+  }
+
   n = asi->network;
 
   if (NULL == n)
@@ -1486,6 +1499,14 @@ GAS_proportional_address_change_network (void *solver,
     return;
   }
 
+  asi = address->solver_information;
+  if (NULL == asi)
+  {
+    GNUNET_break(0);
+    return;
+  }
+
+
   /* Network changed */
   LOG(GNUNET_ERROR_TYPE_DEBUG,
       "Network type changed, moving %s address from `%s' to `%s'\n",
@@ -1521,7 +1542,6 @@ GAS_proportional_address_change_network (void *solver,
   }
 
   /* Add to new network and update*/
-  asi = address->solver_information;
   asi->network = new_net;
   GAS_proportional_address_add (solver, address, new_network);
   if (GNUNET_YES == save_active)
@@ -1569,6 +1589,12 @@ GAS_proportional_address_add (void *solver, struct ATS_Address *address,
   if (NULL == net)
   {
     GNUNET_break(0);
+
+    LOG(GNUNET_ERROR_TYPE_ERROR,
+        "Unknown network %u `%s' for new address %p for peer `%s'\n",
+        network, GNUNET_ATS_print_network_type(network),
+        address, GNUNET_i2s(&address->peer));
+
     return;
   }
 

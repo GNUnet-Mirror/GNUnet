@@ -2835,6 +2835,7 @@ GNUNET_ATS_solvers_solver_start (enum GNUNET_ATS_Solvers type)
 {
   struct SolverHandle *sh;
   char * solver_str;
+  int c;
 
   switch (type) {
     case GNUNET_ATS_SOLVER_PROPORTIONAL:
@@ -2866,6 +2867,10 @@ GNUNET_ATS_solvers_solver_start (enum GNUNET_ATS_Solvers type)
   sh->env.network_count = GNUNET_ATS_NetworkTypeCount;
   sh->env.info_cb = &solver_info_cb;
   sh->env.info_cb_cls = NULL;
+  sh->env.network_count = GNUNET_ATS_NetworkTypeCount;
+  int networks[GNUNET_ATS_NetworkTypeCount] = GNUNET_ATS_NetworkType;
+  for (c = 0; c < GNUNET_ATS_NetworkTypeCount; c++)
+    sh->env.networks[c] = networks[c];
 
 
   /* start normalization */
