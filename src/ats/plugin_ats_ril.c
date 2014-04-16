@@ -1502,7 +1502,7 @@ agent_step (struct RIL_Peer_Agent *agent)
 
   GNUNET_assert(RIL_ACTION_INVALID != a_next);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "step()  Step# %llu  R: %f  IN %llu  OUT %llu  A: %d\n",
+  LOG (GNUNET_ERROR_TYPE_INFO, "step()  Step# %llu  R: %f  IN %llu  OUT %llu  A: %d\n",
         agent->step_count,
         reward,
         agent->bw_in/1024,
