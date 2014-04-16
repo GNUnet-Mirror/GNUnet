@@ -288,6 +288,8 @@ GNUNET_ATS_solver_logging_write_to_disk (struct LoggingHandle *l)
   struct LoggingFileHandle *next;
   char * filename;
   char * datastring;
+  char * propstring;
+  char * propstring_tmp;
   int c;
 
 
@@ -335,15 +337,43 @@ GNUNET_ATS_solver_logging_write_to_disk (struct LoggingHandle *l)
           }
           GNUNET_free (filename);
           GNUNET_CONTAINER_DLL_insert (lf_head, lf_tail, cur);
+
+          GNUNET_asprintf(&datastring,"#timestamp_abs; addr_active; bw in; bw out; " \
+              "UTILIZATION_UP [abs/rel]; UTILIZATION_UP; UTILIZATION_DOWN; UTILIZATION_DOWN; " \
+              "UTILIZATION_PAYLOAD_UP; UTILIZATION_PAYLOAD_UP; UTILIZATION_PAYLOAD_DOWN; UTILIZATION_PAYLOAD_DOWN; "\
+              "NETWORK_TYPE; NETWORK_TYPE; DELAY; DELAY; " \
+              "DISTANCE ;DISTANCE ; COST_WAN; COST_WAN; COST_LAN; COST_LAN; " \
+              "COST_WLAN; COST_WLAN\n",
+              lts->timestamp.abs_value_us,
+              log_a->active,
+              ntohl (log_a->assigned_bw_in.value__),
+              ntohl (log_a->assigned_bw_out.value__));
+          GNUNET_DISK_file_write (cur->f_hd, datastring, strlen(datastring));
+          GNUNET_free (datastring);
+
         }
 
-        GNUNET_asprintf(&datastring,"%i;%u;%u\n",
+        propstring = GNUNET_strdup("");
+        for (c = 1; c < GNUNET_ATS_PropertyCount; c++)
+        {
+          fprintf(stderr, "\t %s = %.2f %.2f [abs/rel]\n",
+              GNUNET_ATS_print_property_type(c),
+              log_a->prop_abs[c], log_a->prop_norm[c]);
+          GNUNET_asprintf(&propstring_tmp,"%s;%.3f;%.3f",
+              propstring, log_a->prop_abs[c], log_a->prop_norm[c]);
+          GNUNET_free (propstring);
+          propstring = GNUNET_strdup(propstring_tmp);
+          GNUNET_free (propstring_tmp);
+        }
+
+        GNUNET_asprintf(&datastring,"%llu;%i;%u;%u;%s\n",
+            lts->timestamp.abs_value_us,
             log_a->active,
             ntohl (log_a->assigned_bw_in.value__),
-            ntohl (log_a->assigned_bw_out.value__));
+            ntohl (log_a->assigned_bw_out.value__),propstring);
         GNUNET_DISK_file_write (cur->f_hd, datastring, strlen(datastring));
         GNUNET_free (datastring);
-
+        GNUNET_free (propstring);
       }
     }
   }
