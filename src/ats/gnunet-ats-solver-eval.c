@@ -194,7 +194,7 @@ GNUNET_ATS_solver_logging_now (struct LoggingHandle *l)
     {
       log_p->pref_abs[c] = cur->pref_abs[c];
       log_p->pref_norm[c] = cur->pref_norm[c];
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "\t %s = %.2f %.2f [abs/rel]\n",
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "\t %s = %.2f %.2f [abs/rel]\n",
           GNUNET_ATS_print_preference_type(c),
           log_p->pref_abs[c], log_p->pref_norm[c]);
     }
@@ -213,13 +213,13 @@ GNUNET_ATS_solver_logging_now (struct LoggingHandle *l)
       {
         log_a->prop_abs[c] = cur_addr->prop_abs[c];
         log_a->prop_norm[c] = cur_addr->prop_norm[c];
-        GNUNET_log (GNUNET_ERROR_TYPE_INFO, "\t %s = %.2f %.2f [abs/rel]\n",
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "\t %s = %.2f %.2f [abs/rel]\n",
             GNUNET_ATS_print_property_type(c),
             log_a->prop_abs[c], log_a->prop_norm[c]);
       }
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "\t Active = %i\n", log_a->active);
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "\t BW in = %llu\n", ntohl(log_a->assigned_bw_in.value__));
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "\t BW out = %llu\n", ntohl(log_a->assigned_bw_out.value__));
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "\t Active = %i\n", log_a->active);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "\t BW in = %llu\n", ntohl(log_a->assigned_bw_in.value__));
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "\t BW out = %llu\n", ntohl(log_a->assigned_bw_out.value__));
 
       GNUNET_CONTAINER_DLL_insert_tail(log_p->addr_head, log_p->addr_tail, log_a);
     }
@@ -272,7 +272,7 @@ GNUNET_ATS_solver_logging_eval (struct LoggingHandle *l)
 
   for (lts = l->head; NULL != lts; lts = lts->next)
   {
-    fprintf (stderr, "Log %llu %llu: \n",
+    fprintf (stderr, "Log step %llu %llu: \n",
         (long long unsigned int) lts->timestamp.abs_value_us,
         (long long unsigned int) lts->delta.rel_value_us);
 
@@ -2486,7 +2486,6 @@ solver_info_cb (void *cls,
 static void
 solver_bandwidth_changed_cb (void *cls, struct ATS_Address *address)
 {
-  GNUNET_break (0);
   if ( (0 == ntohl (address->assigned_bw_out.value__)) &&
        (0 == ntohl (address->assigned_bw_in.value__)) )
   {
