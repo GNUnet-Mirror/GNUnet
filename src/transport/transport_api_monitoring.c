@@ -388,6 +388,7 @@ reconnect_val_ctx (struct GNUNET_TRANSPORT_ValidationMonitoringContext *val_ctx)
                                                           val_ctx);
 }
 
+
 /**
  * Function called with responses from the service.
  *
@@ -396,7 +397,8 @@ reconnect_val_ctx (struct GNUNET_TRANSPORT_ValidationMonitoringContext *val_ctx)
  *        message with the human-readable address
  */
 static void
-val_response_processor (void *cls, const struct GNUNET_MessageHeader *msg)
+val_response_processor (void *cls,
+                        const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_TRANSPORT_ValidationMonitoringContext *val_ctx = cls;
   struct ValidationIterateResponseMessage *vr_msg;
