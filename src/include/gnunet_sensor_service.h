@@ -99,6 +99,30 @@ typedef void (*GNUNET_SENSOR_Continuation)(void *cls,
 struct GNUNET_SENSOR_Handle *
 GNUNET_SENSOR_connect (const struct GNUNET_CONFIGURATION_Handle *cfg);
 
+/**
+ * Disconnect from the sensor service
+ *
+ * @param h handle to disconnect
+ */
+void
+GNUNET_SENSOR_disconnect(struct GNUNET_SENSOR_Handle *h);
+
+/**
+ * Client asking to iterate all available sensors
+ *
+ * @param h Handle to SENSOR service
+ * @param timeout how long to wait until timing out
+ * @param sensorname information on one sensor only, can be NULL to get all
+ * @param sensorname_len length of the sensorname parameter
+ * @param callback the method to call for each sensor
+ * @param callback_cls closure for callback
+ * @return iterator context
+ */
+struct GNUNET_SENSOR_SensorIteratorContext *
+GNUNET_SENSOR_iterate_sensors (struct GNUNET_SENSOR_Handle *h,
+    struct GNUNET_TIME_Relative timeout,
+    const char* sensorname, size_t sensorname_len,
+    GNUNET_SENSOR_SensorIteratorCB callback, void *callback_cls);
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
