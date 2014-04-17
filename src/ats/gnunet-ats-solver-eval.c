@@ -38,6 +38,9 @@ static struct SolverHandle *sh;
 static struct TestPeer *peer_head;
 static struct TestPeer *peer_tail;
 
+static double default_properties[GNUNET_ATS_PropertyCount];
+static double default_preferences[GNUNET_ATS_PreferenceCount];
+
 /**
  * cmd option -e: experiment file
  */
@@ -149,7 +152,7 @@ find_address_by_id (struct TestPeer *peer, int aid)
 
 
 static struct TestAddress *
-find_address_by_ats_address (struct TestPeer *p, struct ATS_Address *addr)
+find_address_by_ats_address (struct TestPeer *p, const struct ATS_Address *addr)
 {
   struct TestAddress *cur;
   for (cur = p->addr_head; NULL != cur; cur = cur->next)
@@ -307,9 +310,8 @@ GNUNET_ATS_solver_logging_write_to_disk (struct LoggingHandle *l)
   for (lts = l->head; NULL != lts; lts = lts->next)
   {
 
-    fprintf (stderr, "Log step %llu %llu: \n",
-        (long long unsigned int) lts->timestamp.abs_value_us,
-        (long long unsigned int) lts->delta.rel_value_us);
+    fprintf (stderr, "Writing log step %llu\n",
+        (long long unsigned int) lts->timestamp.abs_value_us);
 
     for (log_p = lts->head; NULL != log_p; log_p = log_p->next)
     {
@@ -324,11 +326,13 @@ GNUNET_ATS_solver_logging_write_to_disk (struct LoggingHandle *l)
           cur->aid = log_a->aid;
           cur->pid = log_p->id;
 
-          fprintf (stderr, "Add logging for %i %i: \n",
-              cur->pid, cur->aid);
-
           GNUNET_asprintf (&filename, "%s_%s_%u_%u_%llu.log", e->log_prefix, opt_solver,
               cur->aid, cur->pid, l->head->timestamp.abs_value_us);
+
+          fprintf (stderr, "Add writing log data for %i %i to file `%s'\n",
+              cur->pid, cur->aid, filename);
+
+
           cur->f_hd = GNUNET_DISK_file_open (filename,
               GNUNET_DISK_OPEN_READWRITE |
               GNUNET_DISK_OPEN_CREATE |
@@ -364,25 +368,30 @@ GNUNET_ATS_solver_logging_write_to_disk (struct LoggingHandle *l)
         prefstring = GNUNET_strdup("");
         for (c = 1; c < GNUNET_ATS_PreferenceCount; c++)
         {
+          /*
           fprintf(stderr,"\t %s = %.2f %.2f [abs/rel]\n",
               GNUNET_ATS_print_preference_type(c),
               log_p->pref_abs[c], log_p->pref_norm[c]);
-
-          GNUNET_asprintf(&prefstring_tmp,"%s;%.3f;%.3f",
+           */
+          GNUNET_asprintf(&prefstring_tmp,"%s|%.3f|%.3f",
               prefstring, log_p->pref_abs[c], log_p->pref_norm[c]);
+
+
           GNUNET_free (prefstring);
           prefstring = GNUNET_strdup(prefstring_tmp);
           GNUNET_free (prefstring_tmp);
         }
+
 
         propstring = GNUNET_strdup("");
         for (c = 1; c < GNUNET_ATS_PropertyCount; c++)
         {
           if (GNUNET_ATS_NETWORK_TYPE == c)
             continue;
+          /*
           fprintf(stderr, "\t %s = %.2f %.2f [abs/rel]\n",
               GNUNET_ATS_print_property_type(c),
-              log_a->prop_abs[c], log_a->prop_norm[c]);
+              log_a->prop_abs[c], log_a->prop_norm[c]);*/
           GNUNET_asprintf(&propstring_tmp,"%s;%.3f;%.3f",
               propstring, log_a->prop_abs[c], log_a->prop_norm[c]);
           GNUNET_free (propstring);
@@ -390,14 +399,14 @@ GNUNET_ATS_solver_logging_write_to_disk (struct LoggingHandle *l)
           GNUNET_free (propstring_tmp);
         }
 
-
-        GNUNET_asprintf(&datastring,"%llu;%u;%i;%u;%u;%s\n",
+        GNUNET_asprintf(&datastring,"%llu;%u;%i;%u;%u;%s;%s\n",
             lts->timestamp.abs_value_us,
             log_a->network,
             log_a->active,
             ntohl (log_a->assigned_bw_in.value__),
             ntohl (log_a->assigned_bw_out.value__),
             propstring, prefstring);
+
         GNUNET_DISK_file_write (cur->f_hd, datastring, strlen(datastring));
         GNUNET_free (datastring);
         GNUNET_free (prefstring);
@@ -578,7 +587,7 @@ set_prop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct PropertyGenerator *pg = cls;
   struct TestPeer *p;
   struct TestAddress *a;
-  double pref_value;
+  double prop_value;
   struct GNUNET_ATS_Information atsi;
 
   pg->set_task = GNUNET_SCHEDULER_NO_TASK;
@@ -605,22 +614,25 @@ set_prop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         pg->peer);
   }
 
-  pref_value = get_property (pg);
-  a->prop_abs[pg->ats_property] = pref_value;
+  prop_value = get_property (pg);
+  a->prop_abs[pg->ats_property] = prop_value;
 
   GNUNET_log(GNUNET_ERROR_TYPE_INFO,
       "Setting property for peer [%u] address [%u] for %s to %f\n",
       pg->peer, pg->address_id,
-      GNUNET_ATS_print_property_type (pg->ats_property), pref_value);
+      GNUNET_ATS_print_property_type (pg->ats_property), prop_value);
 
   atsi.type = htonl (pg->ats_property);
-  atsi.value = htonl ((uint32_t) pref_value);
+  atsi.value = htonl ((uint32_t) prop_value);
 
   /* set performance here! */
   sh->env.sf.s_bulk_start (sh->solver);
   if (GNUNET_YES == opt_disable_normalization)
   {
-    GNUNET_break (0);
+    a->prop_abs[pg->ats_property] = prop_value;
+    a->prop_norm[pg->ats_property] = prop_value;
+    sh->env.sf.s_address_update_property (sh->solver, a->ats_addr,
+        pg->ats_property, prop_value, prop_value);
   }
   else
     GAS_normalization_normalize_property (sh->addresses,
@@ -866,7 +878,9 @@ set_pref_task (void *cls,
   sh->env.sf.s_bulk_start (sh->solver);
   if (GNUNET_YES == opt_disable_normalization)
   {
-    GNUNET_break (0);
+    p->pref_abs[pg->kind] = pref_value;
+    p->pref_norm[pg->kind] = pref_value;
+    sh->env.sf.s_pref (sh->solver, &p->peer_id, pg->kind, pref_value);
   }
   else
     GAS_normalization_normalize_preference (NULL + (pg->client_id),
@@ -2053,12 +2067,19 @@ enforce_add_address (struct GNUNET_ATS_TEST_Operation *op)
 {
   struct TestPeer *p;
   struct TestAddress *a;
+  int c;
 
   if (NULL == (p = find_peer_by_id (op->peer_id)))
   {
     p = GNUNET_new (struct TestPeer);
     p->id = op->peer_id;
     memset (&p->peer_id, op->peer_id, sizeof (p->peer_id));
+    for (c = 0; c < GNUNET_ATS_PreferenceCount; c++)
+    {
+      p->pref_abs[c] = DEFAULT_ABS_PREFERENCE;
+      p->pref_norm[c] = DEFAULT_REL_PREFERENCE;
+    }
+
     GNUNET_CONTAINER_DLL_insert (peer_head, peer_tail, p);
   }
 
@@ -2076,6 +2097,9 @@ enforce_add_address (struct GNUNET_ATS_TEST_Operation *op)
       strlen (op->address) + 1, op->address_session);
   memset (&p->peer_id, op->peer_id, sizeof (p->peer_id));
   GNUNET_CONTAINER_DLL_insert (p->addr_head, p->addr_tail, a);
+
+  for (c = 0; c < GNUNET_ATS_PropertyCount; c++)
+    a->prop_norm[c] = DEFAULT_REL_QUALITY;
 
   GNUNET_CONTAINER_multipeermap_put (sh->addresses, &p->peer_id, a->ats_addr,
     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
@@ -2771,11 +2795,12 @@ solver_bandwidth_changed_cb (void *cls, struct ATS_Address *address)
 const double *
 get_preferences_cb (void *cls, const struct GNUNET_PeerIdentity *id)
 {
-
+  struct TestPeer *p;
   if (GNUNET_YES == opt_disable_normalization)
   {
-    GNUNET_break (0);
-    return NULL;
+    if (NULL == (p = find_peer_by_pid (id)))
+      return NULL;
+    return p->pref_abs;
   }
   else
     return GAS_normalization_get_preferences_by_peer (id);
@@ -2785,10 +2810,14 @@ get_preferences_cb (void *cls, const struct GNUNET_PeerIdentity *id)
 const double *
 get_property_cb (void *cls, const struct ATS_Address *address)
 {
+  struct TestPeer *p;
+  struct TestAddress *a;
+
   if (GNUNET_YES == opt_disable_normalization)
   {
-    GNUNET_break (0);
-    return NULL;
+    p = find_peer_by_pid (&address->peer);
+    a = find_address_by_ats_address (p, address);
+    return a->prop_abs;
   }
   else
     return GAS_normalization_get_properties ((struct ATS_Address *) address);
@@ -2812,7 +2841,7 @@ set_updated_property ( struct ATS_Address *address, uint32_t type, double prop_r
     return;
   }
   a->prop_norm[type] = prop_rel;
-  sh->env.sf.s_address_update_property (sh->solver, address, type, 0, prop_rel);
+  sh->env.sf.s_address_update_property (sh->solver, address, type, a->prop_abs [type], prop_rel);
 }
 
 
@@ -3041,6 +3070,7 @@ run (void *cls, char * const *args, const char *cfgfile,
     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   enum GNUNET_ATS_Solvers solver;
+  int c;
 
   if (NULL == opt_exp_file)
   {
@@ -3077,6 +3107,12 @@ run (void *cls, char * const *args, const char *cfgfile,
     end_now ();
     return;
   }
+
+  for (c = 0; c < GNUNET_ATS_PropertyCount; c++)
+    default_properties[c] = DEFAULT_REL_QUALITY;
+
+  for (c = 0; c < GNUNET_ATS_PreferenceCount; c++)
+    default_preferences[c] = DEFAULT_REL_PREFERENCE;
 
   /* load experiment */
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "=== Loading experiment\n");
