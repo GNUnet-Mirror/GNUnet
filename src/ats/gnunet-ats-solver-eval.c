@@ -65,6 +65,11 @@ static int opt_verbose;
  */
 static int opt_print;
 
+/**
+ * cmd option -d: disable normalization
+ */
+static int opt_disable_normalization;
+
 static int res;
 
 static void
@@ -613,7 +618,12 @@ set_prop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   /* set performance here! */
   sh->env.sf.s_bulk_start (sh->solver);
-  GAS_normalization_normalize_property (sh->addresses,
+  if (GNUNET_YES == opt_disable_normalization)
+  {
+    GNUNET_break (0);
+  }
+  else
+    GAS_normalization_normalize_property (sh->addresses,
       pg->test_address->ats_addr, &atsi, 1);
   sh->env.sf.s_bulk_stop (sh->solver);
 
@@ -854,8 +864,13 @@ set_pref_task (void *cls,
       GNUNET_ATS_print_preference_type (pg->kind), pref_value);
 
   sh->env.sf.s_bulk_start (sh->solver);
-  GAS_normalization_normalize_preference (NULL + (pg->client_id), &p->peer_id,
-      pg->kind, pref_value);
+  if (GNUNET_YES == opt_disable_normalization)
+  {
+    GNUNET_break (0);
+  }
+  else
+    GAS_normalization_normalize_preference (NULL + (pg->client_id),
+        &p->peer_id, pg->kind, pref_value);
   sh->env.sf.s_bulk_stop (sh->solver);
 
   switch (pg->kind) {
@@ -2520,6 +2535,9 @@ GNUNET_ATS_solvers_solver_stop (struct SolverHandle *sh)
  GNUNET_STATISTICS_destroy ((struct GNUNET_STATISTICS_Handle *) sh->env.stats,
      GNUNET_NO);
  GNUNET_PLUGIN_unload (sh->plugin, sh->solver);
+
+ GAS_normalization_stop();
+
  GNUNET_CONTAINER_multipeermap_iterate (sh->addresses, &free_all_it, NULL);
  GNUNET_CONTAINER_multipeermap_destroy(sh->addresses);
  GNUNET_free (sh->plugin);
@@ -2753,14 +2771,27 @@ solver_bandwidth_changed_cb (void *cls, struct ATS_Address *address)
 const double *
 get_preferences_cb (void *cls, const struct GNUNET_PeerIdentity *id)
 {
-  return GAS_normalization_get_preferences_by_peer (id);
+
+  if (GNUNET_YES == opt_disable_normalization)
+  {
+    GNUNET_break (0);
+    return NULL;
+  }
+  else
+    return GAS_normalization_get_preferences_by_peer (id);
 }
 
 
 const double *
 get_property_cb (void *cls, const struct ATS_Address *address)
 {
-  return GAS_normalization_get_properties ((struct ATS_Address *) address);
+  if (GNUNET_YES == opt_disable_normalization)
+  {
+    GNUNET_break (0);
+    return NULL;
+  }
+  else
+    return GAS_normalization_get_properties ((struct ATS_Address *) address);
 }
 
 static void
@@ -2962,6 +2993,7 @@ done ()
     GNUNET_ATS_solvers_solver_stop (sh);
     sh = NULL;
   }
+
   /* Shutdown */
   end_now();
 }
@@ -3114,6 +3146,9 @@ main (int argc, char *argv[])
     {  'f', "file", NULL,
         gettext_noop ("save logging to disk"),
         0, &GNUNET_GETOPT_set_one, &opt_save},
+    {  'd', "dn", NULL,
+        gettext_noop ("disable normalization"),
+        0, &GNUNET_GETOPT_set_one, &opt_disable_normalization},
     GNUNET_GETOPT_OPTION_END
   };
 
