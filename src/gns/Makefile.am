@@ -140,7 +140,8 @@ gnunet_dns2gns_DEPENDENCIES = \
 
 gnunet_gns_proxy_SOURCES = \
  gnunet-gns-proxy.c
-gnunet_gns_proxy_LDADD = -lmicrohttpd -lgnurl -lgnutls \
+gnunet_gns_proxy_CPPFLAGS = $(AM_CPPFLAGS) $(LIBGNURL_CPPFLAGS)
+gnunet_gns_proxy_LDADD = -lmicrohttpd $(LIBGNURL) -lgnutls \
   $(top_builddir)/src/gns/libgnunetgns.la \
   $(top_builddir)/src/identity/libgnunetidentity.la \
   $(top_builddir)/src/util/libgnunetutil.la \
