@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2012, 2013 Christian Grothoff (and other contributing authors)
+     (C) 2012, 2013, 2014 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -102,12 +102,17 @@ static int del;
 /**
  * Is record public (opposite of #GNUNET_GNSRECORD_RF_PRIVATE)
  */
-static int public;
+static int is_public;
 
 /**
  * Is record a shadow record (#GNUNET_GNSRECORD_RF_SHADOW_RECORD)
  */
-static int shadow;
+static int is_shadow;
+
+/**
+ * Is record pending approval (#GNUNET_GNSRECORD_RF_PENDING)
+ */
+static int is_pending;
 
 /**
  * Queue entry for the 'del' operation.
@@ -475,10 +480,12 @@ get_existing_record (void *cls,
   rde->data = data;
   rde->data_size = data_size;
   rde->record_type = type;
-  if (1 == shadow)
+  if (1 == is_shadow)
     rde->flags |= GNUNET_GNSRECORD_RF_SHADOW_RECORD;
-  if (1 != public)
+  if (1 != is_public)
     rde->flags |= GNUNET_GNSRECORD_RF_PRIVATE;
+  if (1 == is_pending)
+    rde->flags |= GNUNET_GNSRECORD_RF_PENDING;
   if (GNUNET_YES == etime_is_rel)
   {
     rde->expiration_time = etime_rel.rel_value_us;
@@ -732,7 +739,7 @@ testservice_task (void *cls,
     else
       rd.expiration_time = GNUNET_TIME_UNIT_FOREVER_ABS.abs_value_us;
 
-    if (1 == shadow)
+    if (1 == is_shadow)
       rd.flags |= GNUNET_GNSRECORD_RF_SHADOW_RECORD;
     add_qe_uri = GNUNET_NAMESTORE_records_store (ns,
 						 &zone_pkey,
@@ -905,8 +912,9 @@ run (void *cls, char *const *args, const char *cfgfile,
 int
 main (int argc, char *const *argv)
 {
-  public = -1;
-  shadow = -1;
+  is_public = -1;
+  is_pending = -1;
+  is_shadow = -1;
 
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
     {'a', "add", NULL,
@@ -944,10 +952,13 @@ main (int argc, char *const *argv)
      &GNUNET_GETOPT_set_string, &value},
     {'p', "public", NULL,
      gettext_noop ("create or list public record"), 0,
-     &GNUNET_GETOPT_set_one, &public},
+     &GNUNET_GETOPT_set_one, &is_public},
+    {'P', "pending", NULL,
+     gettext_noop ("create record that is pending approval (and thus for now inactive)"), 0,
+     &GNUNET_GETOPT_set_one, &is_pending},
     {'s', "shadow", NULL,
      gettext_noop ("create shadow record (only valid if all other records of the same type have expired"), 0,
-     &GNUNET_GETOPT_set_one, &shadow},
+     &GNUNET_GETOPT_set_one, &is_shadow},
     {'z', "zone", "EGO",
      gettext_noop ("name of the ego controlling the zone"), 1,
      &GNUNET_GETOPT_set_string, &ego_name},

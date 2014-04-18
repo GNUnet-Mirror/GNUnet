@@ -1,4 +1,4 @@
-.TH GNUNET\-NAMESTORE 1 "Mar 5, 2012" "GNUnet"
+.TH GNUNET\-NAMESTORE 1 "Apr 15, 2014" "GNUnet"
 
 .SH NAME
 gnunet\-namestore \- manipulate GNUnet zones
@@ -9,7 +9,7 @@ gnunet\-namestore \- manipulate GNUnet zones
 .br
 
 .SH DESCRIPTION
-\fBgnunet\-namestore\fP can be used to create and manipulate a GNS zone.
+\fBgnunet\-namestore\fP can be used to manipulate records in a GNS zone.
 
 .SH OPTIONS
 .B
@@ -31,6 +31,9 @@ Specifies expiration time of record to add; format is relative time, i.e "1 h" o
 .IP "\-h, \-\-help"
 Print short help on options.
 .B
+.IP "\-i NICKNAME, \-\-nick=NICKNAME"
+Set the desired NICKNAME for the zone. The nickname will be included in all (public) records and used as the suggested name for this zone.
+.B
 .IP "\-L LOGLEVEL, \-\-loglevel=LOGLEVEL"
 Use LOGLEVEL for logging.  Valid values are DEBUG, INFO, WARNING and ERROR.
 .B
@@ -40,8 +43,17 @@ Monitor changes to the zone on an ongoing basis (in contrast to \-D, which merel
 .IP "\-n NAME, \-\-name=NAME"
 Name of the record to add/delete/display
 .B
+.IP "\-p, \-\-public"
+Create a record that is public (shared with other users that know the label)
+.B
+.IP "\-P, \-\-pending"
+Create a record that is pending approval (stored in the namestore but unavailable for resolution to anyone)
+.B
 .IP "\-r PKEY, \-\-reverse=PKEY"
 Determine our GNS name for the given public key (reverse lookup of the PKEY) in the given zone.
+.B
+.IP "\-s, \-\-shadow"
+Create a record that is a shadow record.  Shadow records are only used once all other records of the same type under the same label have expired.
 .B
 .IP "\-t TYPE, \-\-type=TYPE"
 Type of the record to add/delete/display (i.e. "A", "AAAA", "NS", "PKEY", "MX" etc.)
@@ -64,4 +76,5 @@ Report bugs by using Mantis <https://gnunet.org/bugs/> or by sending electronic 
 
 
 .SH "SEE ALSO"
-\fBgnunet\-gns\fP(1)
+\fBgnunet\-gns\fP(1), \fBgnunet\-namestore\-gtk\fP(1)
+
