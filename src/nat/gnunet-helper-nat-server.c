@@ -463,7 +463,9 @@ make_udp_socket (const struct in_addr *my_ip)
   ret = socket (AF_INET, SOCK_DGRAM, 0);
   if (-1 == ret)
   {
-    fprintf (stderr, "Error opening UDP socket: %s\n", strerror (errno));
+    fprintf (stderr,
+             "Error opening UDP socket: %s\n",
+             strerror (errno));
     return -1;
   }
   memset (&addr, 0, sizeof (addr));
@@ -474,9 +476,13 @@ make_udp_socket (const struct in_addr *my_ip)
   addr.sin_addr = *my_ip;
   addr.sin_port = htons (NAT_TRAV_PORT);
 
-  if (0 != bind (ret, &addr, sizeof (addr)))
+  if (0 != bind (ret,
+                 (struct sockaddr *) &addr,
+                 sizeof (addr)))
   {
-    fprintf (stderr, "Error binding UDP socket to port %u: %s\n", NAT_TRAV_PORT,
+    fprintf (stderr,
+             "Error binding UDP socket to port %u: %s\n",
+             NAT_TRAV_PORT,
              strerror (errno));
     (void) close (ret);
     return -1;
