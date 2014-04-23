@@ -850,7 +850,7 @@ GNUNET_CONTAINER_bloomfilter_remove (struct GNUNET_CONTAINER_BloomFilter *bf,
  */
 void
 GNUNET_CONTAINER_bloomfilter_resize (struct GNUNET_CONTAINER_BloomFilter *bf,
-                                     GNUNET_HashCodeIterator iterator,
+                                     GNUNET_CONTAINER_HashCodeIterator iterator,
                                      void *iterator_cls, size_t size,
                                      unsigned int k)
 {

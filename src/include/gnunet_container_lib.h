@@ -61,14 +61,14 @@ struct GNUNET_CONTAINER_BloomFilter;
 
 /**
  * @ingroup bloomfilter
- * Iterator over struct GNUNET_HashCodes.
+ * Iterator over `struct GNUNET_HashCode`.
  *
  * @param cls closure
  * @param next set to the next hash code
  * @return #GNUNET_YES if next was updated
  *         #GNUNET_NO if there are no more entries
  */
-typedef int (*GNUNET_HashCodeIterator) (void *cls,
+typedef int (*GNUNET_CONTAINER_HashCodeIterator) (void *cls,
                                         struct GNUNET_HashCode *next);
 
 
@@ -260,7 +260,7 @@ GNUNET_CONTAINER_bloomfilter_or2 (struct GNUNET_CONTAINER_BloomFilter *bf,
  */
 void
 GNUNET_CONTAINER_bloomfilter_resize (struct GNUNET_CONTAINER_BloomFilter *bf,
-                                     GNUNET_HashCodeIterator iterator,
+                                     GNUNET_CONTAINER_HashCodeIterator iterator,
                                      void *iterator_cls, size_t size,
                                      unsigned int k);
 
