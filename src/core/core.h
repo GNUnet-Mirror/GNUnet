@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009, 2010 Christian Grothoff (and other contributing authors)
+     (C) 2009-2014 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -43,10 +43,32 @@
  * transmitted to the client.
  */
 #define GNUNET_CORE_OPTION_NOTHING             0
+
+/**
+ * Client cares about connectivity changes.
+ */
 #define GNUNET_CORE_OPTION_SEND_STATUS_CHANGE  4
+
+/**
+ * Client wants all inbound messages in full.
+ */
 #define GNUNET_CORE_OPTION_SEND_FULL_INBOUND   8
+
+/**
+ * Client just wants the 4-byte message headers of
+ * all inbound messages.
+ */
 #define GNUNET_CORE_OPTION_SEND_HDR_INBOUND   16
+
+/**
+ * Client wants all outbound messages in full.
+ */
 #define GNUNET_CORE_OPTION_SEND_FULL_OUTBOUND 32
+
+/**
+ * Client just wants the 4-byte message headers of
+ * all outbound messages.
+ */
 #define GNUNET_CORE_OPTION_SEND_HDR_OUTBOUND  64
 
 
