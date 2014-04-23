@@ -378,6 +378,11 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_CORE_EPHEMERAL_KEY 88
 
+/**
+ * Other peer confirms having received the type map
+ */
+#define GNUNET_MESSAGE_TYPE_CORE_CONFIRM_TYPE_MAP 89
+
 
 /*******************************************************************************
  * DATASTORE message types
@@ -636,7 +641,7 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_DHT_P2P_GET_RESULT                 162
 
 /**
- * Trail Rejection Message. 
+ * Trail Rejection Message.
  */
 #define GNUNET_MESSAGE_TYPE_DHT_P2P_TRAIL_REJECTION            163
 /*******************************************************************************

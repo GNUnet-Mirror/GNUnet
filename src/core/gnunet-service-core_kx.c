@@ -821,13 +821,15 @@ GSC_KX_handle_ephemeral_key (struct GSC_KeyExchangeInfo *kx,
 	 (GNUNET_CORE_KX_STATE_REKEY_SENT == kx->status) ) &&
        (end_t.abs_value_us <= kx->foreign_key_expires.abs_value_us) )
   {
-    GNUNET_STATISTICS_update (GSC_stats, gettext_noop ("# old ephemeral keys ignored"),
+    GNUNET_STATISTICS_update (GSC_stats,
+                              gettext_noop ("# old ephemeral keys ignored"),
 			      1, GNUNET_NO);
     return;
   }
   start_t = GNUNET_TIME_absolute_ntoh (m->creation_time);
 
-  GNUNET_STATISTICS_update (GSC_stats, gettext_noop ("# ephemeral keys received"),
+  GNUNET_STATISTICS_update (GSC_stats,
+                            gettext_noop ("# ephemeral keys received"),
                             1, GNUNET_NO);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -884,11 +886,17 @@ GSC_KX_handle_ephemeral_key (struct GSC_KeyExchangeInfo *kx,
     break;
   case GNUNET_CORE_KX_STATE_KEY_SENT:
     /* fine, need to send our key after updating our status, see below */
+    GSC_SESSIONS_reinit (&kx->peer);
     break;
   case GNUNET_CORE_KX_STATE_KEY_RECEIVED:
+    /* other peer already got our key, but typemap did go down */
+    GSC_SESSIONS_reinit (&kx->peer);
+    break;
   case GNUNET_CORE_KX_STATE_UP:
+    /* other peer already got our key, typemap NOT down */
+    break;
   case GNUNET_CORE_KX_STATE_REKEY_SENT:
-    /* other peer already got our key */
+    /* other peer already got our key, typemap NOT down */
     break;
   default:
     GNUNET_break (0);
@@ -1508,6 +1516,9 @@ deliver_message (void *cls,
   case GNUNET_MESSAGE_TYPE_CORE_BINARY_TYPE_MAP:
   case GNUNET_MESSAGE_TYPE_CORE_COMPRESSED_TYPE_MAP:
     GSC_SESSIONS_set_typemap (dmc->peer, m);
+    return GNUNET_OK;
+  case GNUNET_MESSAGE_TYPE_CORE_CONFIRM_TYPE_MAP:
+    GSC_SESSIONS_confirm_typemap (dmc->peer, m);
     return GNUNET_OK;
   default:
     GSC_CLIENTS_deliver_message (dmc->peer, m,

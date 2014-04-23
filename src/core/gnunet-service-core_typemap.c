@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2011 Christian Grothoff (and other contributing authors)
+     (C) 2011-2014 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -50,6 +50,63 @@ static struct GSC_TypeMap my_type_map;
  * Counters for message types this peer is able to handle.
  */
 static uint8_t map_counters[UINT16_MAX + 1];
+
+/**
+ * Current hash of our (uncompressed) type map.
+ * Lazily computed when needed.
+ */
+static struct GNUNET_HashCode my_tm_hash;
+
+/**
+ * Is #my_tm_hash() current with respect to our type map?
+ */
+static int hash_current;
+
+
+/**
+ * Our type map changed, recompute its hash.
+ */
+static void
+rehash_typemap ()
+{
+  hash_current = GNUNET_NO;
+}
+
+
+/**
+ * Hash the contents of a type map.
+ *
+ * @param tm map to hash
+ * @param hc where to store the hash code
+ */
+void
+GSC_TYPEMAP_hash (const struct GSC_TypeMap *tm,
+                  struct GNUNET_HashCode *hc)
+{
+  GNUNET_CRYPTO_hash (tm,
+                      sizeof (struct GSC_TypeMap),
+                      hc);
+}
+
+
+/**
+ * Check if the given hash matches our current type map.
+ *
+ * @param hc hash code to check if it matches our type map
+ * @return #GNUNET_YES if the hash matches, #GNUNET_NO if not
+ */
+int
+GSC_TYPEMAP_check_hash (const struct GNUNET_HashCode *hc)
+{
+  if (GNUNET_NO == hash_current)
+  {
+    GSC_TYPEMAP_hash (&my_type_map,
+                      &my_tm_hash);
+    hash_current = GNUNET_YES;
+  }
+  return (0 == memcmp (hc, &my_tm_hash, sizeof (struct GNUNET_HashCode)))
+    ? GNUNET_YES : GNUNET_NO;
+}
 
 
 /**
@@ -152,7 +209,7 @@ broadcast_my_type_map ()
   GNUNET_STATISTICS_update (GSC_stats,
                             gettext_noop ("# updates to my type map"), 1,
                             GNUNET_NO);
-  GSC_SESSIONS_broadcast (hdr);
+  GSC_SESSIONS_broadcast_typemap (hdr);
   GNUNET_free (hdr);
 }
 
@@ -180,7 +237,10 @@ GSC_TYPEMAP_add (const uint16_t *types,
     }
   }
   if (GNUNET_YES == changed)
+  {
+    rehash_typemap ();
     broadcast_my_type_map ();
+  }
 }
 
 
@@ -207,7 +267,10 @@ GSC_TYPEMAP_remove (const uint16_t *types,
     }
   }
   if (GNUNET_YES == changed)
+  {
+    rehash_typemap ();
     broadcast_my_type_map ();
+  }
 }
 
 

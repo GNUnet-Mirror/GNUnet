@@ -67,6 +67,27 @@ GSC_TYPEMAP_compute_type_map_message (void);
 
 
 /**
+ * Check if the given hash matches our current type map.
+ *
+ * @param hc hash code to check if it matches our type map
+ * @return #GNUNET_YES if the hash matches, #GNUNET_NO if not
+ */
+int
+GSC_TYPEMAP_check_hash (const struct GNUNET_HashCode *hc);
+
+
+/**
+ * Hash the contents of a type map.
+ *
+ * @param tm map to hash
+ * @param hc where to store the hash code
+ */
+void
+GSC_TYPEMAP_hash (const struct GSC_TypeMap *tm,
+                  struct GNUNET_HashCode *hc);
+
+
+/**
  * Extract a type map from a
  * #GNUNET_MESSAGE_TYPE_CORE_COMRESSED_TYPE_MAP or
  * #GNUNET_MESSAGE_TYPE_CORE_BINARY_TYPE_MAP message.

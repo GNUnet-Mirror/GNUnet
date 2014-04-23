@@ -137,6 +137,12 @@ struct Session
   GNUNET_SCHEDULER_TaskIdentifier typemap_task;
 
   /**
+   * Retransmission delay we currently use for the typemap
+   * transmissions (if not confirmed).
+   */
+  struct GNUNET_TIME_Relative typemap_delay;
+
+  /**
    * Is the neighbour queue empty and thus ready for us
    * to transmit an encrypted message?
    */
@@ -149,6 +155,34 @@ struct Session
    */
   int first_typemap;
 };
+
+
+GNUNET_NETWORK_STRUCT_BEGIN
+
+/**
+ * Message sent to confirm that a typemap was received.
+ */
+struct TypeMapConfirmationMessage
+{
+
+  /**
+   * Header with type #GNUNET_MESSAGE_TYPE_CORE_CONFIRM_TYPE_MAP.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Reserved, always zero.
+   */
+  uint32_t reserved GNUNET_PACKED;
+
+  /**
+   * Hash of the (decompressed) type map that was received.
+   */
+  struct GNUNET_HashCode tm_hash;
+
+};
+
+GNUNET_NETWORK_STRUCT_END
 
 
 /**
@@ -203,10 +237,16 @@ GSC_SESSIONS_end (const struct GNUNET_PeerIdentity *pid)
   }
   while (NULL != (sme = session->sme_head))
   {
-    GNUNET_CONTAINER_DLL_remove (session->sme_head, session->sme_tail, sme);
+    GNUNET_CONTAINER_DLL_remove (session->sme_head,
+                                 session->sme_tail,
+                                 sme);
     GNUNET_free (sme);
   }
-  GNUNET_SCHEDULER_cancel (session->typemap_task);
+  if (GNUNET_SCHEDULER_NO_TASK != session->typemap_task)
+  {
+    GNUNET_SCHEDULER_cancel (session->typemap_task);
+    session->typemap_task = GNUNET_SCHEDULER_NO_TASK;
+  }
   GSC_CLIENTS_notify_clients_about_neighbour (&session->peer,
                                               session->tmap, NULL);
   GNUNET_assert (GNUNET_YES ==
@@ -224,7 +264,7 @@ GSC_SESSIONS_end (const struct GNUNET_PeerIdentity *pid)
 
 /**
  * Transmit our current typemap message to the other peer.
- * (Done periodically in case an update got lost).
+ * (Done periodically until the typemap is confirmed).
  *
  * @param cls the `struct Session *`
  * @param tc unused
@@ -237,26 +277,38 @@ transmit_typemap_task (void *cls,
   struct GNUNET_MessageHeader *hdr;
   struct GNUNET_TIME_Relative delay;
 
-  if (0 == session->first_typemap)
-  {
-    delay = TYPEMAP_FREQUENCY_FIRST;
-    session->first_typemap = 1;
-  }
-  else
-  {
-    delay = TYPEMAP_FREQUENCY;
-  }
+  session->typemap_delay = GNUNET_TIME_STD_BACKOFF (session->typemap_delay);
+  delay = session->typemap_delay;
   /* randomize a bit to avoid spont. sync */
   delay.rel_value_us +=
       GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 1000 * 1000);
   session->typemap_task =
-      GNUNET_SCHEDULER_add_delayed (delay, &transmit_typemap_task, session);
+      GNUNET_SCHEDULER_add_delayed (delay,
+                                    &transmit_typemap_task, session);
   GNUNET_STATISTICS_update (GSC_stats,
                             gettext_noop ("# type map refreshes sent"), 1,
                             GNUNET_NO);
   hdr = GSC_TYPEMAP_compute_type_map_message ();
   GSC_KX_encrypt_and_transmit (session->kxinfo, hdr, ntohs (hdr->size));
   GNUNET_free (hdr);
+}
+
+
+/**
+ * Restart the typemap task for the given session.
+ *
+ * @param session session to restart typemap transmission for
+ */
+static void
+start_typemap_task (struct Session *session)
+{
+  if (GNUNET_SCHEDULER_NO_TASK != session->typemap_task)
+    GNUNET_SCHEDULER_cancel (session->typemap_task);
+  session->typemap_delay = GNUNET_TIME_UNIT_SECONDS;
+  session->typemap_task =
+    GNUNET_SCHEDULER_add_delayed (session->typemap_delay,
+                                  &transmit_typemap_task,
+                                  session);
 }
 
 
@@ -279,10 +331,9 @@ GSC_SESSIONS_create (const struct GNUNET_PeerIdentity *peer,
   session->tmap = GSC_TYPEMAP_create ();
   session->peer = *peer;
   session->kxinfo = kx;
-  session->typemap_task =
-      GNUNET_SCHEDULER_add_now (&transmit_typemap_task, session);
   GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONTAINER_multipeermap_put (sessions, peer,
+                 GNUNET_CONTAINER_multipeermap_put (sessions,
+                                                    &session->peer,
                                                     session,
                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   GNUNET_STATISTICS_set (GSC_stats, gettext_noop ("# peers connected"),
@@ -290,6 +341,79 @@ GSC_SESSIONS_create (const struct GNUNET_PeerIdentity *peer,
                          GNUNET_NO);
   GSC_CLIENTS_notify_clients_about_neighbour (peer,
                                               NULL, session->tmap);
+  start_typemap_task (session);
+}
+
+
+/**
+ * The other peer has indicated that he 'lost' the session
+ * (KX down), reinitialize the session on our end, in particular
+ * this means to restart the typemap transmission.
+ *
+ * @param peer peer that is now connected
+ */
+void
+GSC_SESSIONS_reinit (const struct GNUNET_PeerIdentity *peer)
+{
+  struct Session *session;
+
+  session = find_session (peer);
+  if (NULL == session)
+  {
+    /* KX/session is new for both sides; thus no need to restart what
+       has not yet begun */
+    return;
+  }
+  start_typemap_task (session);
+}
+
+
+/**
+ * The other peer has confirmed receiving our type map,
+ * check if it is current and if so, stop retransmitting it.
+ *
+ * @param peer peer that confirmed the type map
+ * @param msg confirmation message we received
+ */
+void
+GSC_SESSIONS_confirm_typemap (const struct GNUNET_PeerIdentity *peer,
+                              const struct GNUNET_MessageHeader *msg)
+{
+  const struct TypeMapConfirmationMessage *cmsg;
+  struct Session *session;
+
+  session = find_session (peer);
+  if (NULL == session)
+  {
+    GNUNET_break (0);
+    return;
+  }
+  if (ntohs (msg->size) != sizeof (struct TypeMapConfirmationMessage))
+  {
+    GNUNET_break_op (0);
+    return;
+  }
+  cmsg = (const struct TypeMapConfirmationMessage *) msg;
+  if (GNUNET_YES !=
+      GSC_TYPEMAP_check_hash (&cmsg->tm_hash))
+  {
+    /* our typemap has changed in the meantime, do not
+       accept confirmation */
+    GNUNET_STATISTICS_update (GSC_stats,
+                              gettext_noop
+                              ("# outdated typemap confirmations received"),
+                              1, GNUNET_NO);
+    return;
+  }
+  if (GNUNET_SCHEDULER_NO_TASK != session->typemap_task)
+  {
+    GNUNET_SCHEDULER_cancel (session->typemap_task);
+    session->typemap_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  GNUNET_STATISTICS_update (GSC_stats,
+                            gettext_noop
+                            ("# valid typemap confirmations received"),
+                            1, GNUNET_NO);
 }
 
 
@@ -325,7 +449,8 @@ void
 GSC_SESSIONS_notify_client_about_sessions (struct GSC_Client *client)
 {
   /* notify new client about existing sessions */
-  GNUNET_CONTAINER_multipeermap_iterate (sessions, &notify_client_about_session,
+  GNUNET_CONTAINER_multipeermap_iterate (sessions,
+                                         &notify_client_about_session,
                                          client);
 }
 
@@ -592,11 +717,14 @@ try_transmission (struct Session *session)
     size_t used;
 
     used = 0;
-    while ((NULL != (pos = session->sme_head)) && (used + pos->size <= msize))
+    while ( (NULL != (pos = session->sme_head)) &&
+            (used + pos->size <= msize) )
     {
       memcpy (&pbuf[used], &pos[1], pos->size);
       used += pos->size;
-      GNUNET_CONTAINER_DLL_remove (session->sme_head, session->sme_tail, pos);
+      GNUNET_CONTAINER_DLL_remove (session->sme_head,
+                                   session->sme_tail,
+                                   pos);
       GNUNET_free (pos);
     }
     /* compute average payload size */
@@ -619,7 +747,8 @@ try_transmission (struct Session *session)
 
 
 /**
- * Send a message to the neighbour now.
+ * Send an updated typemap message to the neighbour now,
+ * and restart typemap transmissions.
  *
  * @param cls the message
  * @param key neighbour's identity
@@ -627,38 +756,42 @@ try_transmission (struct Session *session)
  * @return always #GNUNET_OK
  */
 static int
-do_send_message (void *cls,
-                 const struct GNUNET_PeerIdentity *key,
-                 void *value)
+do_restart_typemap_message (void *cls,
+                            const struct GNUNET_PeerIdentity *key,
+                            void *value)
 {
   const struct GNUNET_MessageHeader *hdr = cls;
   struct Session *session = value;
-  struct SessionMessageEntry *m;
+  struct SessionMessageEntry *sme;
   uint16_t size;
 
   size = ntohs (hdr->size);
-  m = GNUNET_malloc (sizeof (struct SessionMessageEntry) + size);
-  memcpy (&m[1], hdr, size);
-  m->size = size;
-  m->priority = GNUNET_CORE_PRIO_CRITICAL_CONTROL;
-  GNUNET_CONTAINER_DLL_insert_tail (session->sme_head, session->sme_tail, m);
+  sme = GNUNET_malloc (sizeof (struct SessionMessageEntry) + size);
+  memcpy (&sme[1], hdr, size);
+  sme->size = size;
+  sme->priority = GNUNET_CORE_PRIO_CRITICAL_CONTROL;
+  GNUNET_CONTAINER_DLL_insert (session->sme_head,
+                               session->sme_tail,
+                               sme);
   try_transmission (session);
+  start_typemap_task (session);
   return GNUNET_OK;
 }
 
 
 /**
- * Broadcast a message to all neighbours.
+ * Broadcast an updated typemap message to all neighbours.
+ * Restarts the retransmissions until the typemaps are confirmed.
  *
  * @param msg message to transmit
  */
 void
-GSC_SESSIONS_broadcast (const struct GNUNET_MessageHeader *msg)
+GSC_SESSIONS_broadcast_typemap (const struct GNUNET_MessageHeader *msg)
 {
   if (NULL == sessions)
     return;
   GNUNET_CONTAINER_multipeermap_iterate (sessions,
-                                         &do_send_message,
+                                         &do_restart_typemap_message,
                                          (void *) msg);
 }
 
@@ -732,7 +865,7 @@ GSC_SESSIONS_transmit (struct GSC_ClientActiveRequest *car,
 
 
 /**
- * We've received a typemap message from a peer, update ours.
+ * We have received a typemap message from a peer, update ours.
  * Notifies clients about the session.
  *
  * @param peer peer this is about
@@ -744,6 +877,8 @@ GSC_SESSIONS_set_typemap (const struct GNUNET_PeerIdentity *peer,
 {
   struct Session *session;
   struct GSC_TypeMap *nmap;
+  struct SessionMessageEntry *sme;
+  struct TypeMapConfirmationMessage *tmc;
 
   nmap = GSC_TYPEMAP_get_from_message (msg);
   if (NULL == nmap)
@@ -754,8 +889,24 @@ GSC_SESSIONS_set_typemap (const struct GNUNET_PeerIdentity *peer,
     GNUNET_break (0);
     return;
   }
+  sme = GNUNET_malloc (sizeof (struct SessionMessageEntry) +
+                       sizeof (struct TypeMapConfirmationMessage));
+  sme->deadline = GNUNET_TIME_absolute_get ();
+  sme->size = sizeof (struct TypeMapConfirmationMessage);
+  sme->priority = GNUNET_CORE_PRIO_CRITICAL_CONTROL;
+  tmc = (struct TypeMapConfirmationMessage *) &sme[1];
+  tmc->header.size = htons (sizeof (struct TypeMapConfirmationMessage));
+  tmc->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_CONFIRM_TYPE_MAP);
+  tmc->reserved = htonl (0);
+  GSC_TYPEMAP_hash (nmap,
+                    &tmc->tm_hash);
+  GNUNET_CONTAINER_DLL_insert (session->sme_head,
+                               session->sme_tail,
+                               sme);
+  try_transmission (session);
   GSC_CLIENTS_notify_clients_about_neighbour (peer,
-                                              session->tmap, nmap);
+                                              session->tmap,
+                                              nmap);
   GSC_TYPEMAP_destroy (session->tmap);
   session->tmap = nmap;
 }
@@ -776,7 +927,9 @@ GSC_SESSIONS_add_to_typemap (const struct GNUNET_PeerIdentity *peer,
   struct Session *session;
   struct GSC_TypeMap *nmap;
 
-  if (0 == memcmp (peer, &GSC_my_identity, sizeof (struct GNUNET_PeerIdentity)))
+  if (0 == memcmp (peer,
+                   &GSC_my_identity,
+                   sizeof (struct GNUNET_PeerIdentity)))
     return;
   session = find_session (peer);
   GNUNET_assert (NULL != session);
@@ -796,12 +949,14 @@ GSC_SESSIONS_add_to_typemap (const struct GNUNET_PeerIdentity *peer,
 void
 GSC_SESSIONS_init ()
 {
-  sessions = GNUNET_CONTAINER_multipeermap_create (128, GNUNET_NO);
+  sessions = GNUNET_CONTAINER_multipeermap_create (128,
+                                                   GNUNET_YES);
 }
 
 
 /**
- * Helper function for GSC_SESSIONS_handle_client_iterate_peers.
+ * Helper function for #GSC_SESSIONS_done() to free all
+ * active sessions.
  *
  * @param cls NULL
  * @param key identity of the connected peer
@@ -828,7 +983,8 @@ GSC_SESSIONS_done ()
 {
   if (NULL != sessions)
   {
-    GNUNET_CONTAINER_multipeermap_iterate (sessions, &free_session_helper, NULL);
+    GNUNET_CONTAINER_multipeermap_iterate (sessions,
+                                           &free_session_helper, NULL);
     GNUNET_CONTAINER_multipeermap_destroy (sessions);
     sessions = NULL;
   }

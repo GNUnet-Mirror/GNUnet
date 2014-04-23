@@ -42,6 +42,29 @@ GSC_SESSIONS_create (const struct GNUNET_PeerIdentity *peer,
 
 
 /**
+ * The other peer has indicated that he 'lost' the session
+ * (KX down), reinitialize the session on our end, in particular
+ * this means to restart the typemap transmission.
+ *
+ * @param peer peer that is now connected
+ */
+void
+GSC_SESSIONS_reinit (const struct GNUNET_PeerIdentity *peer);
+
+
+/**
+ * The other peer has confirmed receiving our type map,
+ * check if it is current and if so, stop retransmitting it.
+ *
+ * @param peer peer that confirmed the type map
+ * @param msg confirmation message we received
+ */
+void
+GSC_SESSIONS_confirm_typemap (const struct GNUNET_PeerIdentity *peer,
+                              const struct GNUNET_MessageHeader *msg);
+
+
+/**
  * End the session with the given peer (we are no longer
  * connected).
  *
@@ -102,12 +125,13 @@ GSC_SESSIONS_transmit (struct GSC_ClientActiveRequest *car,
 
 
 /**
- * Broadcast a message to all neighbours.
+ * Broadcast an updated typemap message to all neighbours.
+ * Restarts the retransmissions until the typemaps are confirmed.
  *
  * @param msg message to transmit
  */
 void
-GSC_SESSIONS_broadcast (const struct GNUNET_MessageHeader *msg);
+GSC_SESSIONS_broadcast_typemap (const struct GNUNET_MessageHeader *msg);
 
 
 /**
