@@ -35,17 +35,6 @@
 
 
 /**
- * How often do we transmit our typemap?
- */
-#define TYPEMAP_FREQUENCY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5)
-
-/**
- * How often do we transmit our typemap on first attempt?
- */
-#define TYPEMAP_FREQUENCY_FIRST GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
-
-
-/**
  * Message ready for encryption.  This struct is followed by the
  * actual content of the message.
  */
