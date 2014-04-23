@@ -77,12 +77,14 @@ GSC_TYPEMAP_compute_type_map_message ()
        compress2 ((Bytef *) tmp, &dlen, (const Bytef *) &my_type_map,
                   sizeof (my_type_map), 9)) || (dlen >= sizeof (my_type_map)))
   {
+    /* compression failed, use uncompressed map */
     dlen = sizeof (my_type_map);
     memcpy (tmp, &my_type_map, sizeof (my_type_map));
     hdr->type = htons (GNUNET_MESSAGE_TYPE_CORE_BINARY_TYPE_MAP);
   }
   else
   {
+    /* compression worked, use compressed map */
     hdr->type = htons (GNUNET_MESSAGE_TYPE_CORE_COMPRESSED_TYPE_MAP);
   }
   hdr->size = htons ((uint16_t) dlen + sizeof (struct GNUNET_MessageHeader));
@@ -157,9 +159,13 @@ broadcast_my_type_map ()
 
 /**
  * Add a set of types to our type map.
+ *
+ * @param types array of message types supported by this peer
+ * @param tlen number of entries in @a types
  */
 void
-GSC_TYPEMAP_add (const uint16_t * types, unsigned int tlen)
+GSC_TYPEMAP_add (const uint16_t *types,
+                 unsigned int tlen)
 {
   unsigned int i;
   int changed;
@@ -180,9 +186,13 @@ GSC_TYPEMAP_add (const uint16_t * types, unsigned int tlen)
 
 /**
  * Remove a set of types from our type map.
+ *
+ * @param types array of message types no longer supported by this peer
+ * @param tlen number of entries in @a types
  */
 void
-GSC_TYPEMAP_remove (const uint16_t * types, unsigned int tlen)
+GSC_TYPEMAP_remove (const uint16_t *types,
+                    unsigned int tlen)
 {
   unsigned int i;
   int changed;
@@ -207,11 +217,12 @@ GSC_TYPEMAP_remove (const uint16_t * types, unsigned int tlen)
  *
  * @param tmap map to test
  * @param types array of types
- * @param tcnt number of entries in types
- * @return GNUNET_YES if a type is in the map, GNUNET_NO if not
+ * @param tcnt number of entries in @a types
+ * @return #GNUNET_YES if a type is in the map, #GNUNET_NO if not
  */
 int
-GSC_TYPEMAP_test_match (const struct GSC_TypeMap *tmap, const uint16_t * types,
+GSC_TYPEMAP_test_match (const struct GSC_TypeMap *tmap,
+                        const uint16_t *types,
                         unsigned int tcnt)
 {
   unsigned int i;
@@ -232,11 +243,12 @@ GSC_TYPEMAP_test_match (const struct GSC_TypeMap *tmap, const uint16_t * types,
  *
  * @param tmap map to extend (not changed)
  * @param types array of types to add
- * @param tcnt number of entries in types
+ * @param tcnt number of entries in @a types
  * @return updated type map (fresh copy)
  */
 struct GSC_TypeMap *
-GSC_TYPEMAP_extend (const struct GSC_TypeMap *tmap, const uint16_t * types,
+GSC_TYPEMAP_extend (const struct GSC_TypeMap *tmap,
+                    const uint16_t *types,
                     unsigned int tcnt)
 {
   struct GSC_TypeMap *ret;
