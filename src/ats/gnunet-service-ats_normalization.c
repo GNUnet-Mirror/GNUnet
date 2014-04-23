@@ -522,9 +522,10 @@ GAS_normalization_get_preferences_by_peer (const struct GNUNET_PeerIdentity *id)
  * @param pref the preference type
  * @return the value
  */
-const double
+double
 GAS_normalization_get_preferences_by_client (const void *client,
-    struct GNUNET_PeerIdentity *peer, enum GNUNET_ATS_PreferenceKind pref)
+                                             const struct GNUNET_PeerIdentity *peer,
+                                             enum GNUNET_ATS_PreferenceKind pref)
 {
   struct PreferenceClient *c_cur;
   struct PreferencePeer *p_cur;
@@ -575,10 +576,10 @@ GAS_normalization_get_properties (struct ATS_Address *address)
   return norm_values;
 }
 
+
 /**
  * Quality Normalization
  */
-
 struct Property
 {
   uint32_t prop_type;

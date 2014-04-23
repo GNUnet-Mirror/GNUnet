@@ -48,6 +48,7 @@ typedef void
     uint32_t type,
     double prop_rel);
 
+
 /**
  * Get the normalized preference values for a specific peer
  *
@@ -78,9 +79,10 @@ GAS_normalization_get_properties (struct ATS_Address *address);
  * @param pref the preference type
  * @return the value
  */
-const double
+double
 GAS_normalization_get_preferences_by_client (const void *client,
-    struct GNUNET_PeerIdentity *peer, enum GNUNET_ATS_PreferenceKind pref);
+                                             const struct GNUNET_PeerIdentity *peer,
+                                             enum GNUNET_ATS_PreferenceKind pref);
 
 /**
  * Normalize an updated preference value
@@ -118,6 +120,7 @@ GAS_normalization_normalize_property (struct GNUNET_CONTAINER_MultiPeerMap *addr
  */
 void
 GAS_normalization_preference_client_disconnect (void *client);
+
 
 /**
  * Start the normalization component
