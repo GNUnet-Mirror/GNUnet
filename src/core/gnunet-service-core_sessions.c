@@ -500,16 +500,17 @@ GSC_SESSIONS_queue_request (struct GSC_ClientActiveRequest *car)
 void
 GSC_SESSIONS_dequeue_request (struct GSC_ClientActiveRequest *car)
 {
-  struct Session *s;
+  struct Session *session;
 
   if (0 ==
       memcmp (&car->target, &GSC_my_identity,
               sizeof (struct GNUNET_PeerIdentity)))
     return;
-  s = find_session (&car->target);
-  GNUNET_assert (NULL != s);
-  GNUNET_CONTAINER_DLL_remove (s->active_client_request_head,
-                               s->active_client_request_tail, car);
+  session = find_session (&car->target);
+  GNUNET_assert (NULL != session);
+  GNUNET_CONTAINER_DLL_remove (session->active_client_request_head,
+                               session->active_client_request_tail,
+                               car);
 }
 
 
@@ -671,7 +672,11 @@ try_transmission (struct Session *session)
       return;
     }
   }
-
+  else
+  {
+    /* never solicit more, we have critical messages to process */
+    excess = GNUNET_NO;
+  }
   now = GNUNET_TIME_absolute_get ();
   if ( ( (GNUNET_YES == excess) ||
          (maxpc >= GNUNET_CORE_PRIO_BEST_EFFORT) ) &&
