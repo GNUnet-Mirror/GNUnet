@@ -674,7 +674,7 @@ stop_broadcast (struct Plugin *plugin)
             (plugin->sockv6, IPPROTO_IPV6, IPV6_LEAVE_GROUP,
              &multicastRequest, sizeof (multicastRequest)))
         {
-          GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, setsockopt);
+          GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "setsockopt");
         }
         else
         {
