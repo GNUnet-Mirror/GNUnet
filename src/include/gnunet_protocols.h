@@ -644,6 +644,11 @@ extern "C"
  * Trail Rejection Message.
  */
 #define GNUNET_MESSAGE_TYPE_DHT_P2P_TRAIL_REJECTION            163
+
+/**
+ * Trail Tear down Message. 
+ */
+#define GNUNET_MESSAGE_TYPE_DHT_P2P_TRAIL_TEARDOWN             164
 /*******************************************************************************
  * HOSTLIST message types
  ******************************************************************************/

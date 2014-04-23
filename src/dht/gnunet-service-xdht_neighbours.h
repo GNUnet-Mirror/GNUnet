@@ -57,8 +57,8 @@ GDS_NEIGHBOURS_send_put (const struct GNUNET_HashCode *key,
                          enum GNUNET_DHT_RouteOption options,
                          uint32_t desired_replication_level,
                          struct GNUNET_TIME_Absolute expiration_time,
-                         struct GNUNET_PeerIdentity *current_destination,
-                         struct GNUNET_PeerIdentity *current_source,
+                         struct GNUNET_PeerIdentity current_destination,
+                         struct GNUNET_PeerIdentity current_source,
                          struct GNUNET_PeerIdentity *target_peer,
                          uint32_t hop_count,
                          uint32_t put_path_length,
@@ -88,8 +88,8 @@ GDS_NEIGHBOURS_send_get (const struct GNUNET_HashCode *key,
                          enum GNUNET_BLOCK_Type block_type,
                          enum GNUNET_DHT_RouteOption options,
                          uint32_t desired_replication_level,
-                         struct GNUNET_PeerIdentity *current_destination,
-                         struct GNUNET_PeerIdentity *current_source,
+                         struct GNUNET_PeerIdentity current_destination,
+                         struct GNUNET_PeerIdentity current_source,
                          struct GNUNET_PeerIdentity *target_peer,
                          uint32_t hop_count,
                          uint32_t get_path_length,
@@ -149,7 +149,7 @@ GDS_NEIGHBOURS_done (void);
  *
  * @return my identity
  */
-const struct GNUNET_PeerIdentity *
+struct GNUNET_PeerIdentity 
 GDS_NEIGHBOURS_get_my_id (void);
 
 

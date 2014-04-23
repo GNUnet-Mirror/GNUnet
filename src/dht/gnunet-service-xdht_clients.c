@@ -850,12 +850,10 @@ transmit_request (struct ClientQueryRecord *cqr)
    * stored should be const or else you may overwrite it and you lose your
    * identity value.  */ 
   
-  const struct GNUNET_PeerIdentity *my_identity;
-  struct GNUNET_PeerIdentity copy_my_identity;
+  struct GNUNET_PeerIdentity my_identity;
   my_identity = GDS_NEIGHBOURS_get_my_id ();
-  memcpy (&copy_my_identity, my_identity, sizeof(struct GNUNET_PeerIdentity));
   GDS_NEIGHBOURS_send_get (&cqr->key, cqr->type, cqr->msg_options, 
-                           cqr->replication, &copy_my_identity, &copy_my_identity, NULL,
+                           cqr->replication, my_identity, my_identity, NULL,
                            0, 0, NULL);
   
   /* exponential back-off for retries.
@@ -957,24 +955,22 @@ handle_dht_local_put (void *cls, struct GNUNET_SERVER_Client *client,
    * address and then pass this address. address at which your identity is 
    * stored should be const or else you may overwrite it and you lose your
    * identity value.  */
-  const struct GNUNET_PeerIdentity *my_identity;
-  struct GNUNET_PeerIdentity copy_my_identity;
+  struct GNUNET_PeerIdentity my_identity;
   my_identity = GDS_NEIGHBOURS_get_my_id();
-  memcpy (&copy_my_identity, my_identity, sizeof(struct GNUNET_PeerIdentity));
   GDS_NEIGHBOURS_send_put (&put_msg->key, &put_msg[1],
                            size - sizeof (struct GNUNET_DHT_ClientPutMessage),
                            ntohl (put_msg->type), ntohl (put_msg->options),
                            ntohl (put_msg->desired_replication_level),
                            GNUNET_TIME_absolute_ntoh (put_msg->expiration),
-                           &copy_my_identity, &copy_my_identity, NULL, 0, 0, NULL);
+                           my_identity, my_identity, NULL, 0, 0, NULL);
                            
-  
+
   GDS_CLIENTS_process_put (ntohl (put_msg->options),
                            ntohl (put_msg->type),
                            0,
                            ntohl (put_msg->desired_replication_level),
                            1,
-                           GDS_NEIGHBOURS_get_my_id(),
+                           &my_identity,
                            GNUNET_TIME_absolute_ntoh (put_msg->expiration),
                            &put_msg->key,
                            &put_msg[1],
@@ -1048,12 +1044,15 @@ handle_dht_local_get (void *cls, struct GNUNET_SERVER_Client *client,
   // FIXME use cqr->key, set multihashmap create to GNUNET_YES
   GNUNET_CONTAINER_multihashmap_put (forward_map, &get->key, cqr,
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+  
+  struct GNUNET_PeerIdentity my_identity;
+  my_identity = GDS_NEIGHBOURS_get_my_id();
   GDS_CLIENTS_process_get (ntohl (get->options),
                            ntohl (get->type),
                            0,
                            ntohl (get->desired_replication_level),
                            1,
-                           GDS_NEIGHBOURS_get_my_id(),
+                           &my_identity,
                            &get->key);
   /* start remote requests */
   if (GNUNET_SCHEDULER_NO_TASK != retry_task)
