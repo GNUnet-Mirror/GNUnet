@@ -21,7 +21,7 @@
 /**
  * @file sensor/gnunet-service-sensor.c
  * @brief sensor service implementation
- * @author Christian Grothoff
+ * @author Omar Tarabai
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"

@@ -1,6 +1,6 @@
 /*
       This file is part of GNUnet
-      (C) 2012-2013 Christian Grothoff (and other contributing authors)
+      (C) 
 
       GNUnet is free software; you can redistribute it and/or modify
       it under the terms of the GNU General Public License as published
@@ -17,47 +17,32 @@
       Free Software Foundation, Inc., 59 Temple Place - Suite 330,
       Boston, MA 02111-1307, USA.
  */
+
 /**
- * @file sensor/sensor.h
- * @brief IPC messages
+ * @file include/gnunet_peerstore_service.h
+ * @brief API to the peerstore service
  * @author Omar Tarabai
  */
+#ifndef GNUNET_PEERSTORE_SERVICE_H
+#define GNUNET_PEERSTORE_SERVICE_H
 
-#include "gnunet_sensor_service.h"
+#include "platform.h"
+#include "gnunet_util_lib.h"
 
-
-GNUNET_NETWORK_STRUCT_BEGIN
-
-/**
- * Carries a summary of a sensor
- *
- */
-struct SensorInfoMessage
+#ifdef __cplusplus
+extern "C"
 {
-  /**
-   * Message header
-   */
-  struct GNUNET_MessageHeader header;
+#if 0                           /* keep Emacsens' auto-indent happy */
+}
+#endif
+#endif
 
-  /**
-   * Length of sensor name (name follows the struct)
-   */
-  size_t name_len;
 
-  /**
-   * First part of version number
-   */
-  uint16_t version_major;
+#if 0                           /* keep Emacsens' auto-indent happy */
+{
+#endif
+#ifdef __cplusplus
+}
+#endif
 
-  /**
-   * Second part of version number
-   */
-  uint16_t version_minor;
-
-  /**
-   * Length of sensor description (description itself follows)
-   */
-  size_t description_len;
-};
-
-GNUNET_NETWORK_STRUCT_END
+#endif

@@ -18,46 +18,15 @@
       Boston, MA 02111-1307, USA.
  */
 /**
- * @file sensor/sensor.h
+ * @file peerstore/peerstore.h
  * @brief IPC messages
  * @author Omar Tarabai
  */
 
-#include "gnunet_sensor_service.h"
+#include "gnunet_peerstore_service.h"
 
 
 GNUNET_NETWORK_STRUCT_BEGIN
 
-/**
- * Carries a summary of a sensor
- *
- */
-struct SensorInfoMessage
-{
-  /**
-   * Message header
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Length of sensor name (name follows the struct)
-   */
-  size_t name_len;
-
-  /**
-   * First part of version number
-   */
-  uint16_t version_major;
-
-  /**
-   * Second part of version number
-   */
-  uint16_t version_minor;
-
-  /**
-   * Length of sensor description (description itself follows)
-   */
-  size_t description_len;
-};
 
 GNUNET_NETWORK_STRUCT_END

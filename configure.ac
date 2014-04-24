@@ -1458,6 +1458,8 @@ src/nse/nse.conf
 src/peerinfo/Makefile
 src/peerinfo/peerinfo.conf
 src/peerinfo-tool/Makefile
+src/peerstore/Makefile
+src/peerstore/peerstore.conf
 src/postgres/Makefile
 src/psyc/Makefile
 src/psyc/psyc.conf

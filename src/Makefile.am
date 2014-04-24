@@ -10,6 +10,7 @@ if HAVE_TESTING
  EXPERIMENTATION = experimentation
  SCALARPRODUCT = scalarproduct
  SENSOR = sensor
+ PEERSTORE = peerstore
 endif
 
 if HAVE_EXPERIMENTAL
@@ -23,7 +24,8 @@ if HAVE_EXPERIMENTAL
   $(SECRETSHARING) \
   $(SCALARPRODUCT) \
   $(EXPERIMENTATION) \
-  $(SENSOR)
+  $(SENSOR) \
+  $(PEERSTORE)
 endif
 
 
