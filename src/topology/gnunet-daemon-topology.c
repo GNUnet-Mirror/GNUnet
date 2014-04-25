@@ -1209,7 +1209,9 @@ cleaning_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param c configuration
  */
 static void
-run (void *cls, char *const *args, const char *cfgfile,
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   static struct GNUNET_CORE_MessageHandler handlers[] = {
@@ -1243,8 +1245,12 @@ run (void *cls, char *const *args, const char *cfgfile,
     blacklist = GNUNET_TRANSPORT_blacklist (cfg, &blacklist_check, NULL);
   transport = GNUNET_TRANSPORT_connect (cfg, NULL, NULL, NULL, NULL, NULL);
   handle =
-      GNUNET_CORE_connect (cfg, NULL, &core_init, &connect_notify,
-                           &disconnect_notify, NULL, GNUNET_NO, NULL, GNUNET_NO,
+      GNUNET_CORE_connect (cfg, NULL,
+                           &core_init,
+                           &connect_notify,
+                           &disconnect_notify,
+                           NULL, GNUNET_NO,
+                           NULL, GNUNET_NO,
                            handlers);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleaning_task,
                                 NULL);
