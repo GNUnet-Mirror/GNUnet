@@ -431,7 +431,8 @@ monitor_notify_all (struct GSC_KeyExchangeInfo *kx)
  */
 static void
 derive_auth_key (struct GNUNET_CRYPTO_AuthKey *akey,
-                 const struct GNUNET_CRYPTO_SymmetricSessionKey *skey, uint32_t seed)
+                 const struct GNUNET_CRYPTO_SymmetricSessionKey *skey,
+                 uint32_t seed)
 {
   static const char ctx[] = "authentication key";
 
@@ -1176,7 +1177,8 @@ GSC_KX_handle_pong (struct GSC_KeyExchangeInfo *kx,
                 "PONG", GNUNET_i2s (&t.target), (unsigned int) t.challenge);
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received PONG from `%s'\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received PONG from `%s'\n",
               GNUNET_i2s (&kx->peer));
   /* no need to resend key any longer */
   if (GNUNET_SCHEDULER_NO_TASK != kx->retry_set_key_task)

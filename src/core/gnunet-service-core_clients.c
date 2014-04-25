@@ -259,10 +259,11 @@ send_to_all_clients (const struct GNUNET_PeerIdentity *partner,
  *
  * @param cls unused
  * @param client new client that sent INIT
- * @param message the 'struct InitMessage' (presumably)
+ * @param message the `struct InitMessage` (presumably)
  */
 static void
-handle_client_init (void *cls, struct GNUNET_SERVER_Client *client,
+handle_client_init (void *cls,
+                    struct GNUNET_SERVER_Client *client,
                     const struct GNUNET_MessageHeader *message)
 {
   const struct InitMessage *im;
@@ -328,10 +329,11 @@ handle_client_init (void *cls, struct GNUNET_SERVER_Client *client,
  *
  * @param cls unused
  * @param client new client that sent CORE_SEND_REQUEST
- * @param message the 'struct SendMessageRequest' (presumably)
+ * @param message the `struct SendMessageRequest` (presumably)
  */
 static void
-handle_client_send_request (void *cls, struct GNUNET_SERVER_Client *client,
+handle_client_send_request (void *cls,
+                            struct GNUNET_SERVER_Client *client,
                             const struct GNUNET_MessageHeader *message)
 {
   const struct SendMessageRequest *req;
@@ -439,7 +441,8 @@ struct TokenizerContext
  * @param message the `struct SendMessage`
  */
 static void
-handle_client_send (void *cls, struct GNUNET_SERVER_Client *client,
+handle_client_send (void *cls,
+                    struct GNUNET_SERVER_Client *client,
                     const struct GNUNET_MessageHeader *message)
 {
   const struct SendMessage *sm;
@@ -699,8 +702,7 @@ GSC_CLIENTS_reject_request (struct GSC_ClientActiveRequest *car)
  */
 void
 GSC_CLIENTS_notify_client_about_neighbour (struct GSC_Client *client,
-                                           const struct GNUNET_PeerIdentity
-                                           *neighbour,
+                                           const struct GNUNET_PeerIdentity *neighbour,
                                            const struct GSC_TypeMap *tmap_old,
                                            const struct GSC_TypeMap *tmap_new)
 {
@@ -736,7 +738,8 @@ GSC_CLIENTS_notify_client_about_neighbour (struct GSC_Client *client,
     cnm->header.size = htons (size);
     cnm->header.type = htons (GNUNET_MESSAGE_TYPE_CORE_NOTIFY_CONNECT);
     cnm->reserved = htonl (0);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending `%s' message to client.\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Sending `%s' message to client.\n",
                 "NOTIFY_CONNECT");
     cnm->peer = *neighbour;
     send_to_client (client, &cnm->header, GNUNET_NO);
@@ -770,14 +773,13 @@ GSC_CLIENTS_notify_client_about_neighbour (struct GSC_Client *client,
  * @param tmap_new updated type map for the neighbour, NULL for disconnect
  */
 void
-GSC_CLIENTS_notify_clients_about_neighbour (const struct GNUNET_PeerIdentity
-                                            *neighbour,
+GSC_CLIENTS_notify_clients_about_neighbour (const struct GNUNET_PeerIdentity *neighbour,
                                             const struct GSC_TypeMap *tmap_old,
                                             const struct GSC_TypeMap *tmap_new)
 {
   struct GSC_Client *c;
 
-  for (c = client_head; c != NULL; c = c->next)
+  for (c = client_head; NULL != c; c = c->next)
     GSC_CLIENTS_notify_client_about_neighbour (c, neighbour,
                                                tmap_old, tmap_new);
 }

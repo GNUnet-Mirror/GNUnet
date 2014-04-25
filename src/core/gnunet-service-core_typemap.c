@@ -247,8 +247,8 @@ GSC_TYPEMAP_add (const uint16_t *types,
 /**
  * Remove a set of types from our type map.
  *
- * @param types array of message types no longer supported by this peer
- * @param tlen number of entries in @a types
+ * @param types array of types to remove
+ * @param tlen length of the @a types array
  */
 void
 GSC_TYPEMAP_remove (const uint16_t *types,

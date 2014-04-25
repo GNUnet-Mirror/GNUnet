@@ -191,7 +191,7 @@ struct ControlMessage
   GNUNET_CORE_ControlContinuation cont;
 
   /**
-   * Closure for 'cont'.
+   * Closure for @e cont.
    */
   void *cont_cls;
 
@@ -761,6 +761,7 @@ main_notify_handler (void *cls,
   int trigger;
   uint16_t msize;
   uint16_t et;
+
   if (NULL == msg)
   {
     LOG (GNUNET_ERROR_TYPE_INFO,
@@ -795,7 +796,8 @@ main_notify_handler (void *cls,
     {
       /* mark so we don't call init on reconnect */
       h->init = NULL;
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "Connected to core service of peer `%s'.\n",
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Connected to core service of peer `%s'.\n",
            GNUNET_i2s (&h->me));
       init (h->cls, &h->me);
     }

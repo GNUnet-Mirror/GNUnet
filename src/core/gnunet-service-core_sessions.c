@@ -329,7 +329,8 @@ GSC_SESSIONS_create (const struct GNUNET_PeerIdentity *peer,
                          GNUNET_CONTAINER_multipeermap_size (sessions),
                          GNUNET_NO);
   GSC_CLIENTS_notify_clients_about_neighbour (peer,
-                                              NULL, session->tmap);
+                                              NULL,
+                                              session->tmap);
   start_typemap_task (session);
 }
 
@@ -422,7 +423,8 @@ notify_client_about_session (void *cls,
   struct GSC_Client *client = cls;
   struct Session *session = value;
 
-  GSC_CLIENTS_notify_client_about_neighbour (client, &session->peer,
+  GSC_CLIENTS_notify_client_about_neighbour (client,
+                                             &session->peer,
                                              NULL,      /* old TMAP: none */
                                              session->tmap);
   return GNUNET_OK;
