@@ -33,6 +33,11 @@
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 /**
+ * Database handle
+ */
+static struct GNUNET_PEERSTORE_PluginFunctions *db;
+
+/**
  * Task run during shutdown.
  *
  * @param cls unused
@@ -80,16 +85,23 @@ run (void *cls,
   if (GNUNET_OK !=
         GNUNET_CONFIGURATION_get_value_string (cfg, "peerstore", "DATABASE",
                                                &database))
-  {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "No database backend configured\n");
-    return;
-  }
-  GNUNET_asprintf (&db_lib_name, "libgnunet_plugin_peerstore_%s", database);
 
-  GNUNET_SERVER_add_handlers (server, handlers);
-  GNUNET_SERVER_disconnect_notify (server, 
-				   &handle_client_disconnect,
-				   NULL);
+  else
+  {
+    GNUNET_asprintf (&db_lib_name, "libgnunet_plugin_peerstore_%s", database);
+    db = GNUNET_PLUGIN_load(db_lib_name, (void *) cfg);
+    GNUNET_free(database);
+  }
+  if(NULL == db)
+	  GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Could not load database backend `%s'\n", db_lib_name);
+  else
+  {
+    GNUNET_SERVER_add_handlers (server, handlers);
+    GNUNET_SERVER_disconnect_notify (server,
+             &handle_client_disconnect,
+             NULL);
+  }
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
 				&shutdown_task,
 				NULL);

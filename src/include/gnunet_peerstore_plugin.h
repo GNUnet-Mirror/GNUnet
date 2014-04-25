@@ -59,5 +59,5 @@ struct GNUNET_PEERSTORE_PluginFunctions
 }
 #endif
 
-/* end of gnunet_namestore_plugin.h */
+/* end of gnunet_peerstore_plugin.h */
 #endif

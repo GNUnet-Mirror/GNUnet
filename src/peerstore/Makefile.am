@@ -1,5 +1,7 @@
 AM_CPPFLAGS = -I$(top_srcdir)/src/include
 
+plugindir = $(libdir)/gnunet
+
 pkgcfgdir= $(pkgdatadir)/config.d/
 
 libexecdir= $(pkglibdir)/libexec/
@@ -43,6 +45,21 @@ libgnunetpeerstore_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la
 libgnunetpeerstore_la_LDFLAGS = \
   $(GNUNET_LDFLAGS)
+
+plugin_LTLIBRARIES = \
+  libgnunet_plugin_peerstore_file.la
+  
+libgnunet_plugin_peerstore_file_la_SOURCES = \
+  plugin_peerstore_file.c
+libgnunet_plugin_peerstore_file_la_LIBADD = \
+  $(top_builddir)/src/peerstore/libgnunetpeerstore.la  \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(LTLIBINTL)
+libgnunet_plugin_peerstore_file_la_LDFLAGS = \
+ $(GN_PLUGIN_LDFLAGS)
+libgnunet_plugin_peerstore_file_la_DEPENDENCIES = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  libgnunetpeerstore.la
 
 check_PROGRAMS = \
  test_peerstore_api
