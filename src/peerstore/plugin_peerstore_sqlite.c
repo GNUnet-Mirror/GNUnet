@@ -80,6 +80,51 @@ struct Plugin
 };
 
 /**
+ * Store a record in the peerstore.
+ * Key is the combination of sub system and peer identity.
+ * One key can store multiple values.
+ *
+ * @param cls closure (internal context for the plugin)
+ * @param sub_system name of the GNUnet sub system responsible
+ * @param peer peer identity
+ * @param value value to be stored
+ * @param size size of value to be stored
+ * @return #GNUNET_OK on success, else #GNUNET_SYSERR
+ */
+static int
+peerstore_sqlite_store_record (void *cls,
+        const char *sub_system,
+        const struct GNUNET_PeerIdentity *peer,
+        const void *value,
+        size_t size)
+{
+  struct Plugin *plugin = cls;
+  sqlite3_stmt *stmt = plugin->insert_peerstoredata;
+
+  //FIXME: check if value exists with the same key first
+
+  if(SQLITE_OK != sqlite3_bind_text(stmt, 1, sub_system, sizeof(sub_system), SQLITE_STATIC)
+      || SQLITE_OK != sqlite3_bind_blob(stmt, 2, peer, sizeof(struct GNUNET_PeerIdentity), SQLITE_STATIC)
+      || SQLITE_OK != sqlite3_bind_blob(stmt, 3, value, size, SQLITE_STATIC))
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                    "sqlite3_bind");
+  else if (SQLITE_DONE != sqlite3_step (stmt))
+  {
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                "sqlite3_step");
+  }
+  if (SQLITE_OK != sqlite3_reset (stmt))
+  {
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                "sqlite3_reset");
+    return GNUNET_SYSERR;
+  }
+
+  return GNUNET_OK;
+}
+
+
+/**
  * @brief Prepare a SQL statement
  *
  * @param dbh handle to the database
@@ -243,7 +288,8 @@ libgnunet_plugin_peerstore_sqlite_init (void *cls)
   }
   api = GNUNET_new (struct GNUNET_PEERSTORE_PluginFunctions);
   api->cls = &plugin;
-  LOG(GNUNET_ERROR_TYPE_INFO, "Sqlite plugin is running\n");
+  api->store_record = &peerstore_sqlite_store_record;
+  LOG(GNUNET_ERROR_TYPE_DEBUG, "Sqlite plugin is running\n");
   return api;
 }
 
@@ -262,7 +308,7 @@ libgnunet_plugin_peerstore_sqlite_done (void *cls)
   database_shutdown (plugin);
   plugin->cfg = NULL;
   GNUNET_free (api);
-  LOG (GNUNET_ERROR_TYPE_INFO, "Sqlite plugin is finished\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Sqlite plugin is finished\n");
   return NULL;
 
 }

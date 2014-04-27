@@ -49,6 +49,25 @@ struct GNUNET_PEERSTORE_PluginFunctions
    */
   void *cls;
 
+  /**
+   * Store a record in the peerstore.
+   * Key is the combination of sub system and peer identity.
+   * One key can store multiple values.
+   *
+   * @param cls closure (internal context for the plugin)
+   * @param sub_system name of the GNUnet sub system responsible
+   * @param peer peer identity
+   * @param value value to be stored
+   * @param size size of value to be stored
+   * @return #GNUNET_OK on success, else #GNUNET_SYSERR
+   */
+  int
+  (*store_record) (void *cls,
+          const char *sub_system,
+          const struct GNUNET_PeerIdentity *peer,
+          const void *value,
+          size_t size);
+
 };
 
 

@@ -33,6 +33,11 @@
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 /**
+ * Database plugin library name
+ */
+char *db_lib_name;
+
+/**
  * Database handle
  */
 static struct GNUNET_PEERSTORE_PluginFunctions *db;
@@ -47,6 +52,12 @@ static void
 shutdown_task (void *cls,
 	       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  if(NULL != db_lib_name)
+  {
+    GNUNET_break (NULL == GNUNET_PLUGIN_unload (db_lib_name, db));
+    GNUNET_free (db_lib_name);
+    db_lib_name = NULL;
+  }
 }
 
 
@@ -79,7 +90,6 @@ run (void *cls,
     {NULL, NULL, 0, 0}
   };
   char *database;
-  char *db_lib_name;
 
   cfg = c;
   if (GNUNET_OK !=
