@@ -47,17 +47,17 @@ libgnunetpeerstore_la_LDFLAGS = \
   $(GNUNET_LDFLAGS)
 
 plugin_LTLIBRARIES = \
-  libgnunet_plugin_peerstore_file.la
+  libgnunet_plugin_peerstore_sqlite.la
   
-libgnunet_plugin_peerstore_file_la_SOURCES = \
-  plugin_peerstore_file.c
-libgnunet_plugin_peerstore_file_la_LIBADD = \
+libgnunet_plugin_peerstore_sqlite_la_SOURCES = \
+  plugin_peerstore_sqlite.c
+libgnunet_plugin_peerstore_sqlite_la_LIBADD = \
   $(top_builddir)/src/peerstore/libgnunetpeerstore.la  \
-  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) -lsqlite3 \
   $(LTLIBINTL)
-libgnunet_plugin_peerstore_file_la_LDFLAGS = \
+libgnunet_plugin_peerstore_sqlite_la_LDFLAGS = \
  $(GN_PLUGIN_LDFLAGS)
-libgnunet_plugin_peerstore_file_la_DEPENDENCIES = \
+libgnunet_plugin_peerstore_sqlite_la_DEPENDENCIES = \
   $(top_builddir)/src/util/libgnunetutil.la \
   libgnunetpeerstore.la
 

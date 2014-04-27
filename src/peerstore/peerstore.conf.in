@@ -4,5 +4,8 @@ UNIXPATH = /tmp/gnunet-service-peerstore.sock
 HOME = $SERVICEHOME
 # PORT = 2106
 @UNIXONLY@ PORT = 2088
-DATABASE = file
+DATABASE = sqlite
+
+[peerstore-sqlite]
+FILENAME = $GNUNET_DATA_HOME/peerstore/sqlite.db
 
