@@ -64,6 +64,20 @@ GDS_ROUTING_search(struct GNUNET_PeerIdentity *source_peer,
                    struct GNUNET_PeerIdentity *destination_peer,
                    const struct GNUNET_PeerIdentity *prev_hop);
 
+/**
+ * Remove the trail as result of trail tear down message. 
+ * @param source_peer Source of the trail.
+ * @param destination_peer Destination of the trail.
+ * @param next_hop Next hop
+ * @param prev_hop Previous hop. 
+ * @return #GNUNET_YES if successful
+ *         #GNUNET_NO if not successful. 
+ */
+int
+GDS_ROUTING_remove_trail (struct GNUNET_PeerIdentity *source_peer,
+                          struct GNUNET_PeerIdentity *destination_peer, 
+                          const struct GNUNET_PeerIdentity *prev_hop);
+
 
 /**
  * Check if size of routing table is greater than threshold or not. 

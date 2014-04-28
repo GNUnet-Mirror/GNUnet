@@ -28,6 +28,10 @@
 #include "gnunet-service-xdht_routing.h"
 #include "gnunet-service-xdht.h"
 
+/* TODO
+ 1. to understand if we really need all the four fields.
+ 2. if we can merge remove_peer and remove_trail 
+ 3. do we need next_hop to uniquely identify a trail in remove_trail. */
 
 /**
  * Number of requests we track at most (for routing replies).
@@ -178,6 +182,22 @@ GDS_ROUTING_remove_entry (const struct GNUNET_PeerIdentity *peer)
 }
 
 
+/** FIXME:TODO URGNET  Need to understand if we need next hop to uniquely identify an entry 
+ * in routing table or not. 
+ * Remove the trail as result of trail tear down message. 
+ * @param source_peer Source of the trail.
+ * @param destination_peer Destination of the trail.
+ * @param next_hop Next hop
+ * @param prev_hop Previous hop. 
+ */
+int
+GDS_ROUTING_remove_trail (struct GNUNET_PeerIdentity *source_peer,
+                          struct GNUNET_PeerIdentity *destination_peer, 
+                          const struct GNUNET_PeerIdentity *prev_hop)
+{
+  return GNUNET_NO;
+}
+
 /**
  * Find the next hop to send packet to.
  * @param source_peer Source of the trail.
@@ -213,7 +233,7 @@ int
 GDS_ROUTING_check_threshold ()
 {
   int ret;
-  ret = (GNUNET_CONTAINER_multipeermap_size(routing_table) > ROUTING_TABLE_THRESHOLD) ? 0:1;
+  ret = (GNUNET_CONTAINER_multipeermap_size(routing_table) > ROUTING_TABLE_THRESHOLD) ? 1:0;
   return ret;    
 }
 
