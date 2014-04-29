@@ -236,6 +236,9 @@ struct Experiment
   char *name;
   char *log_prefix;
   char *cfg_file;
+  char *log_output_dir;
+  int log_append_time_stamp;
+
   struct GNUNET_TIME_Relative log_freq;
   struct GNUNET_TIME_Relative max_duration;
   struct GNUNET_TIME_Relative total_duration;

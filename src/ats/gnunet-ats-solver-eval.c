@@ -286,7 +286,8 @@ find_logging_file_handle (struct LoggingFileHandle *lf_head,
 }
 
 void
-GNUNET_ATS_solver_logging_write_to_disk (struct LoggingHandle *l)
+GNUNET_ATS_solver_logging_write_to_disk (struct LoggingHandle *l, int add_time_stamp,
+    char *output_dir)
 {
   struct LoggingTimeStep *lts;
   struct LoggingPeer *log_p;
@@ -326,8 +327,14 @@ GNUNET_ATS_solver_logging_write_to_disk (struct LoggingHandle *l)
           cur->aid = log_a->aid;
           cur->pid = log_p->id;
 
-          GNUNET_asprintf (&filename, "%s_%s_%u_%u_%llu.log", e->log_prefix, opt_solver,
-              cur->aid, cur->pid, l->head->timestamp.abs_value_us);
+          if (GNUNET_YES == add_time_stamp)
+            GNUNET_asprintf (&filename, "%s_%s_%u_%u_%llu.log",
+                e->log_prefix, opt_solver,
+                cur->aid, cur->pid, l->head->timestamp.abs_value_us);
+          else
+            GNUNET_asprintf (&filename, "%s_%s_%u_%u.log",
+                e->log_prefix, opt_solver,
+                cur->aid, cur->pid);
 
           fprintf (stderr, "Add writing log data for %i %i to file `%s'\n",
               cur->pid, cur->aid, filename);
@@ -2476,6 +2483,23 @@ GNUNET_ATS_solvers_experimentation_load (char *filename)
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Experiment logging prefix: `%s'\n",
         e->log_prefix);
 
+  if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string(cfg, "experiment",
+      "log_output_dir", &e->log_output_dir))
+  {
+    e->log_output_dir = NULL;
+  }
+  else
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Experiment logging output directory: `%s'\n",
+        e->log_output_dir);
+
+
+  if (GNUNET_SYSERR == (e->log_append_time_stamp = GNUNET_CONFIGURATION_get_value_yesno(cfg,
+      "experiment", "log_append_time_stamp")))
+    e->log_append_time_stamp = GNUNET_NO;
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Experiment logging output directory: `%s'\n",
+      (GNUNET_YES == e->log_append_time_stamp) ? "yes" : "no");
+
+
   if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_filename (cfg, "experiment",
       "cfg_file", &e->cfg_file))
   {
@@ -2987,7 +3011,8 @@ done ()
   if (opt_save)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "== Saving log information \n");
-    GNUNET_ATS_solver_logging_write_to_disk (l);
+    GNUNET_ATS_solver_logging_write_to_disk (l, e->log_append_time_stamp,
+        e->log_output_dir);
   }
 
   if (NULL != l)
