@@ -78,6 +78,7 @@ static int res;
 static void
 end_now ();
 
+
 static char *
 print_generator_type (enum GeneratorType g)
 {
@@ -303,7 +304,22 @@ GNUNET_ATS_solver_logging_write_to_disk (struct LoggingHandle *l, int add_time_s
   char * prefstring;
   char * prefstring_tmp;
   int c;
+  int use_dir;
 
+  use_dir = GNUNET_NO;
+  if (NULL != output_dir)
+  {
+    if (GNUNET_OK != GNUNET_DISK_directory_create_for_file (output_dir))
+    {
+      fprintf (stderr, "Failed to create directory `%s'\n", output_dir);
+      return;
+    }
+    else
+    {
+      fprintf (stderr, "Created directory `%s'\n", output_dir);
+      use_dir = GNUNET_YES;
+    }
+  }
 
   lf_head = NULL;
   lf_tail = NULL;
@@ -328,11 +344,15 @@ GNUNET_ATS_solver_logging_write_to_disk (struct LoggingHandle *l, int add_time_s
           cur->pid = log_p->id;
 
           if (GNUNET_YES == add_time_stamp)
-            GNUNET_asprintf (&filename, "%s_%s_%u_%u_%llu.log",
+            GNUNET_asprintf (&filename, "%s%s_%s_%u_%u_%llu.log",
+                (GNUNET_YES == use_dir) ? output_dir : "",
+                (GNUNET_YES == use_dir) ? DIR_SEPARATOR_STR : "",
                 e->log_prefix, opt_solver,
                 cur->aid, cur->pid, l->head->timestamp.abs_value_us);
           else
-            GNUNET_asprintf (&filename, "%s_%s_%u_%u.log",
+            GNUNET_asprintf (&filename, "%s%s%s_%s_%u_%u.log",
+                (GNUNET_YES == use_dir) ? output_dir : "",
+                (GNUNET_YES == use_dir) ? DIR_SEPARATOR_STR : "",
                 e->log_prefix, opt_solver,
                 cur->aid, cur->pid);
 
@@ -1102,6 +1122,7 @@ free_experiment (struct Experiment *e)
 
   GNUNET_free_non_null (e->name);
   GNUNET_free_non_null (e->log_prefix);
+  GNUNET_free_non_null (e->log_output_dir);
   GNUNET_free_non_null (e->cfg_file);
   GNUNET_free (e);
 }
@@ -2483,7 +2504,7 @@ GNUNET_ATS_solvers_experimentation_load (char *filename)
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Experiment logging prefix: `%s'\n",
         e->log_prefix);
 
-  if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string(cfg, "experiment",
+  if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_filename (cfg, "experiment",
       "log_output_dir", &e->log_output_dir))
   {
     e->log_output_dir = NULL;
@@ -2495,8 +2516,8 @@ GNUNET_ATS_solvers_experimentation_load (char *filename)
 
   if (GNUNET_SYSERR == (e->log_append_time_stamp = GNUNET_CONFIGURATION_get_value_yesno(cfg,
       "experiment", "log_append_time_stamp")))
-    e->log_append_time_stamp = GNUNET_NO;
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Experiment logging output directory: `%s'\n",
+    e->log_append_time_stamp = GNUNET_YES;
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Experiment logging append timestamp: `%s'\n",
       (GNUNET_YES == e->log_append_time_stamp) ? "yes" : "no");
 
 
