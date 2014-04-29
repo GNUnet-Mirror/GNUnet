@@ -344,17 +344,22 @@ GNUNET_ATS_solver_logging_write_to_disk (struct LoggingHandle *l, int add_time_s
           cur->pid = log_p->id;
 
           if (GNUNET_YES == add_time_stamp)
-            GNUNET_asprintf (&filename, "%s%s_%s_%u_%u_%llu.log",
+            GNUNET_asprintf (&filename, "%s%s%s_%s_%u_%u_%llu.log",
                 (GNUNET_YES == use_dir) ? output_dir : "",
                 (GNUNET_YES == use_dir) ? DIR_SEPARATOR_STR : "",
-                e->log_prefix, opt_solver,
-                cur->aid, cur->pid, l->head->timestamp.abs_value_us);
+                e->log_prefix,
+                opt_solver,
+                cur->aid,
+                cur->pid,
+                l->head->timestamp.abs_value_us);
           else
             GNUNET_asprintf (&filename, "%s%s%s_%s_%u_%u.log",
                 (GNUNET_YES == use_dir) ? output_dir : "",
                 (GNUNET_YES == use_dir) ? DIR_SEPARATOR_STR : "",
-                e->log_prefix, opt_solver,
-                cur->aid, cur->pid);
+                e->log_prefix,
+                opt_solver,
+                cur->aid,
+                cur->pid);
 
           fprintf (stderr, "Add writing log data for %i %i to file `%s'\n",
               cur->pid, cur->aid, filename);
