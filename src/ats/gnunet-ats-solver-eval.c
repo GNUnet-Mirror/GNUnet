@@ -382,16 +382,12 @@ GNUNET_ATS_solver_logging_write_to_disk (struct LoggingHandle *l, int add_time_s
           GNUNET_free (filename);
           GNUNET_CONTAINER_DLL_insert (lf_head, lf_tail, cur);
 
-          GNUNET_asprintf(&datastring,"#timestamp_abs; addr net; addr_active; bw in; bw out; " \
+          GNUNET_asprintf(&datastring,"#timestamp_abs; ; addr net; addr_active; bw in; bw out; " \
               "UTILIZATION_UP [abs/rel]; UTILIZATION_UP; UTILIZATION_DOWN; UTILIZATION_DOWN; " \
               "UTILIZATION_PAYLOAD_UP; UTILIZATION_PAYLOAD_UP; UTILIZATION_PAYLOAD_DOWN; UTILIZATION_PAYLOAD_DOWN;"\
               "DELAY; DELAY; " \
               "DISTANCE ;DISTANCE ; COST_WAN; COST_WAN; COST_LAN; COST_LAN; " \
-              "COST_WLAN; COST_WLAN; PREF BW abs; PREF BW rel; PREF LATENCY abs; PREF LATENCY rel;\n",
-              lts->timestamp.abs_value_us,
-              log_a->active,
-              ntohl (log_a->assigned_bw_in.value__),
-              ntohl (log_a->assigned_bw_out.value__));
+              "COST_WLAN; COST_WLAN; PREF BW abs; PREF BW rel; PREF LATENCY abs; PREF LATENCY rel;\n");
           GNUNET_DISK_file_write (cur->f_hd, datastring, strlen(datastring));
           GNUNET_free (datastring);
 
@@ -405,7 +401,7 @@ GNUNET_ATS_solver_logging_write_to_disk (struct LoggingHandle *l, int add_time_s
               GNUNET_ATS_print_preference_type(c),
               log_p->pref_abs[c], log_p->pref_norm[c]);
            */
-          GNUNET_asprintf(&prefstring_tmp,"%s|%.3f|%.3f",
+          GNUNET_asprintf(&prefstring_tmp,"%s;%.3f;%.3f",
               prefstring, log_p->pref_abs[c], log_p->pref_norm[c]);
 
 
@@ -432,7 +428,7 @@ GNUNET_ATS_solver_logging_write_to_disk (struct LoggingHandle *l, int add_time_s
         }
 
         GNUNET_asprintf(&datastring,"%llu;%u;%i;%u;%u;%s;%s\n",
-            lts->timestamp.abs_value_us,
+            GNUNET_TIME_absolute_get_difference(l->head->timestamp, lts->timestamp).rel_value_us / 1000,
             log_a->network,
             log_a->active,
             ntohl (log_a->assigned_bw_in.value__),

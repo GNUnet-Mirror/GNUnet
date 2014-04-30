@@ -1659,8 +1659,10 @@ run (void *cls, char * const *args, const char *cfgfile,
   /* Do the benchmark */
   for (ph.current_iteration = 1; ph.current_iteration <= ph.total_iterations; ph.current_iteration++)
   {
+    fprintf (stderr, "Iteration %u of %u starting\n", ph.current_iteration, ph.total_iterations);
     perf_run_iteration ();
     evaluate (ph.current_iteration);
+    fprintf (stderr, "Iteration %u of %u done\n", ph.current_iteration, ph.total_iterations);
   }
   evaluate_average ();
 
