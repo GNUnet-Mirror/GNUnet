@@ -194,7 +194,7 @@ GNUNET_ATS_solver_logging_now (struct LoggingHandle *l)
   /* Store logging data here */
   for (cur = peer_head; NULL != cur; cur = cur->next)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Logging peer id %u\n", cur->peer_id);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Logging peer id %llu\n", cur->id);
 
     log_p = GNUNET_new (struct LoggingPeer);
     log_p->id = cur->id;
@@ -211,7 +211,8 @@ GNUNET_ATS_solver_logging_now (struct LoggingHandle *l)
 
     for (cur_addr = cur->addr_head; NULL != cur_addr; cur_addr = cur_addr->next)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Logging peer id %u address %u\n", cur->peer_id, cur_addr->aid);
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Logging peer id %llu address %llu\n",
+          cur->peer_id, cur_addr->aid);
       log_a = GNUNET_new (struct LoggingAddress);
       log_a->aid = cur_addr->aid;
       log_a->active = cur_addr->ats_addr->active;
@@ -231,7 +232,7 @@ GNUNET_ATS_solver_logging_now (struct LoggingHandle *l)
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "\t BW in = %llu\n", ntohl(log_a->assigned_bw_in.value__));
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "\t BW out = %llu\n", ntohl(log_a->assigned_bw_out.value__));
 
-      GNUNET_CONTAINER_DLL_insert_tail(log_p->addr_head, log_p->addr_tail, log_a);
+      GNUNET_CONTAINER_DLL_insert_tail (log_p->addr_head, log_p->addr_tail, log_a);
     }
   }
 }
@@ -280,7 +281,7 @@ find_logging_file_handle (struct LoggingFileHandle *lf_head,
   struct LoggingFileHandle *res;
 
   for (res = lf_head; NULL != res; res = res->next)
-    if ((res->pid == peer_id) && (res->pid == address_id))
+    if ((res->pid == peer_id) && (res->aid == address_id))
       return res;
   return NULL;
 
@@ -361,7 +362,7 @@ GNUNET_ATS_solver_logging_write_to_disk (struct LoggingHandle *l, int add_time_s
                 cur->aid,
                 cur->pid);
 
-          fprintf (stderr, "Add writing log data for %i %i to file `%s'\n",
+          fprintf (stderr, "Add writing log data for %llu %llu to file `%s'\n",
               cur->pid, cur->aid, filename);
 
 
@@ -472,7 +473,7 @@ GNUNET_ATS_solver_logging_eval (struct LoggingHandle *l)
 
     for (log_p = lts->head; NULL != log_p; log_p = log_p->next)
     {
-      fprintf (stderr,"\tLogging peer pid %u\n", log_p->id);
+      fprintf (stderr,"\tLogging peer pid %llu\n", log_p->id);
       for (c = 1; c < GNUNET_ATS_PreferenceCount; c++)
       {
         fprintf(stderr,"\t %s = %.2f %.2f [abs/rel]\n",
@@ -482,7 +483,7 @@ GNUNET_ATS_solver_logging_eval (struct LoggingHandle *l)
 
       for (log_a = log_p->addr_head; NULL != log_a; log_a = log_a->next)
       {
-        fprintf (stderr, "\tPeer pid %u address %u: %u %u %u\n",
+        fprintf (stderr, "\tPeer pid %llu address %llu: %u %u %u\n",
             log_p->id, log_a->aid, log_a->active,
             ntohl(log_a->assigned_bw_in.value__),
             ntohl(log_a->assigned_bw_out.value__));
@@ -2074,11 +2075,12 @@ enforce_add_address (struct GNUNET_ATS_TEST_Operation *op)
 
   a = GNUNET_new (struct TestAddress);
   a->aid = op->address_id;
+  fprintf (stderr, "XXXX : %llu %llu \n", a->aid, op->address_id);
   a->network = op->address_network;
   a->ats_addr = create_ats_address (&p->peer_id, op->plugin, op->address,
       strlen (op->address) + 1, op->address_session);
   memset (&p->peer_id, op->peer_id, sizeof (p->peer_id));
-  GNUNET_CONTAINER_DLL_insert (p->addr_head, p->addr_tail, a);
+  GNUNET_CONTAINER_DLL_insert_tail (p->addr_head, p->addr_tail, a);
 
   for (c = 0; c < GNUNET_ATS_PropertyCount; c++)
     a->prop_norm[c] = DEFAULT_REL_QUALITY;

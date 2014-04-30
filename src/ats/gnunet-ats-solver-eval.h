@@ -92,10 +92,10 @@ struct LoggingFileHandle
   struct LoggingFileHandle *prev;
 
   /* peer id */
-  int pid;
+  long long unsigned int pid;
 
   /* address id */
-  int aid;
+  long long unsigned int aid;
 
   struct GNUNET_DISK_FileHandle *f_hd;
 
@@ -118,7 +118,7 @@ struct LoggingPeer
   struct LoggingPeer *prev;
   struct LoggingPeer *next;
 
-  int id;
+  long long unsigned int id;
   struct GNUNET_PeerIdentity peer_id;
   double pref_abs[GNUNET_ATS_PreferenceCount];
   double pref_norm[GNUNET_ATS_PreferenceCount];
@@ -132,7 +132,7 @@ struct LoggingAddress
   struct LoggingAddress *next;
   struct LoggingAddress *prev;
 
-  int aid;
+  long long unsigned int aid;
   int active;
   int used;
   uint32_t network;
@@ -149,7 +149,7 @@ struct TestPeer
   struct TestPeer *prev;
   struct TestPeer *next;
 
-  int id;
+  long long unsigned int id;
   struct GNUNET_PeerIdentity peer_id;
 
   double pref_abs[GNUNET_ATS_PreferenceCount];
@@ -165,7 +165,7 @@ struct TestAddress
   struct TestAddress *next;
   struct TestAddress *prev;
 
-  int aid;
+  long long unsigned int aid;
   struct ATS_Address *ats_addr;
   uint32_t network;
 
@@ -194,8 +194,9 @@ struct GNUNET_ATS_TEST_Operation
   long long unsigned int address_id;
   long long unsigned int peer_id;
   long long unsigned int client_id;
+
   long long unsigned int address_session;
-  long long unsigned int address_network;
+  unsigned int address_network;
   char*address;
   char*plugin;
 
@@ -263,7 +264,7 @@ struct PreferenceGenerator
 
   enum GeneratorType type;
 
-  unsigned int peer;
+  long long unsigned int peer;
   unsigned int client_id;
 
   enum GNUNET_ATS_PreferenceKind kind;
@@ -286,8 +287,8 @@ struct PropertyGenerator
 
   enum GeneratorType type;
 
-  unsigned int peer;
-  unsigned int address_id;
+  long long unsigned int peer;
+  long long unsigned int address_id;
 
   struct TestPeer *test_peer;
   struct TestAddress *test_address;
