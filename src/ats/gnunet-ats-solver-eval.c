@@ -1263,7 +1263,7 @@ load_op_del_address (struct GNUNET_ATS_TEST_Operation *o,
     const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   char *op_name;
-  char *op_network;
+  //char *op_network;
 
   /* peer pid */
   GNUNET_asprintf(&op_name, "op-%u-peer-id", op_counter);
@@ -1289,6 +1289,7 @@ load_op_del_address (struct GNUNET_ATS_TEST_Operation *o,
   }
   GNUNET_free (op_name);
 
+#if 0
   /* plugin */
   GNUNET_asprintf(&op_name, "op-%u-plugin", op_counter);
   if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string (cfg,
@@ -1324,55 +1325,7 @@ load_op_del_address (struct GNUNET_ATS_TEST_Operation *o,
     return GNUNET_SYSERR;
   }
   GNUNET_free (op_name);
-
-  /* network */
-  GNUNET_asprintf(&op_name, "op-%u-address-network", op_counter);
-  if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string (cfg,
-      sec_name, op_name, &op_network))
-  {
-    fprintf (stderr, "Missing address-network in operation %u `%s' in episode `%s'\n",
-        op_counter, "ADD_ADDRESS", op_name);
-    GNUNET_free (op_name);
-    return GNUNET_SYSERR;
-  }
-  else
-  {
-    GNUNET_STRINGS_utf8_toupper (op_network,op_network);
-    if (0 == strcmp(op_network, "UNSPECIFIED"))
-    {
-      o->address_network = GNUNET_ATS_NET_UNSPECIFIED;
-    }
-    else if (0 == strcmp(op_network, "LOOPBACK"))
-    {
-      o->address_network = GNUNET_ATS_NET_LOOPBACK;
-    }
-    else if (0 == strcmp(op_network, "LAN"))
-    {
-      o->address_network = GNUNET_ATS_NET_LAN;
-    }
-    else if (0 == strcmp(op_network, "WAN"))
-    {
-      o->address_network = GNUNET_ATS_NET_WAN;
-    }
-    else if (0 == strcmp(op_network, "WLAN"))
-    {
-      o->address_network = GNUNET_ATS_NET_WLAN;
-    }
-    else if (0 == strcmp(op_network, "BT"))
-    {
-      o->address_network = GNUNET_ATS_NET_BT;
-    }
-    else
-    {
-      fprintf (stderr, "Invalid address-network in operation %u `%s' in episode `%s': `%s'\n",
-          op_counter, "ADD_ADDRESS", op_name, op_network);
-      GNUNET_free (op_network);
-      GNUNET_free (op_name);
-      return GNUNET_SYSERR;
-    }
-  }
-  GNUNET_free (op_network);
-  GNUNET_free (op_name);
+#endif
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
       "Found operation %s: [%llu:%llu] address `%s' plugin `%s' \n",
@@ -2146,7 +2099,6 @@ enforce_del_address (struct GNUNET_ATS_TEST_Operation *op)
 {
   struct TestPeer *p;
   struct TestAddress *a;
-  struct AddressLookupCtx ctx;
   struct PropertyGenerator *pg;
 
   if (NULL == (p = find_peer_by_id (op->peer_id)))
@@ -2154,19 +2106,6 @@ enforce_del_address (struct GNUNET_ATS_TEST_Operation *op)
     GNUNET_break (0);
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
         "Deleting address for unknown peer %u\n", op->peer_id);
-    return;
-  }
-
-  ctx.plugin = op->plugin;
-  ctx.addr = op->address;
-  ctx.res = NULL;
-  GNUNET_CONTAINER_multipeermap_get_multiple (sh->addresses, &p->peer_id,
-      find_address_it, &ctx);
-  if (NULL == ctx.res)
-  {
-    GNUNET_break (0);
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-        "Deleting unknown address for peer %u\n", op->peer_id);
     return;
   }
 
@@ -2184,15 +2123,14 @@ enforce_del_address (struct GNUNET_ATS_TEST_Operation *op)
   }
 
   GNUNET_CONTAINER_DLL_remove(p->addr_head, p->addr_tail, a);
-  GNUNET_free (a);
-
-  GNUNET_CONTAINER_multipeermap_remove (sh->addresses, &p->peer_id, ctx.res);
+  GNUNET_CONTAINER_multipeermap_remove (sh->addresses, &p->peer_id, a->ats_addr);
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Removing address %u for peer %u\n",
       op->address_id, op->peer_id);
 
-  sh->env.sf.s_del (sh->solver, ctx.res, GNUNET_NO);
-  GNUNET_free (ctx.res);
+  sh->env.sf.s_del (sh->solver, a->ats_addr, GNUNET_NO);
+  GNUNET_free (a->ats_addr);
+  GNUNET_free (a);
 
 }
 
