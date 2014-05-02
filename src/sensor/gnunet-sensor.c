@@ -29,10 +29,15 @@
 
 static int ret;
 
-/*
+/**
  * option '-a'
  */
 static int get_all;
+
+/**
+ * option '-g'
+ */
+static char *get_sensor;
 
 /*
  * Handle to sensor service
@@ -106,14 +111,23 @@ run (void *cls,
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                   &shutdown_task,
                                   NULL);
+  sensor_handle = GNUNET_SENSOR_connect(cfg);
+  GNUNET_assert(NULL != sensor_handle);
   if(GNUNET_YES == get_all)
   {
-    sensor_handle = GNUNET_SENSOR_connect(cfg);
-    GNUNET_assert(NULL != sensor_handle);
     GNUNET_SENSOR_iterate_sensors(sensor_handle,
         GNUNET_TIME_UNIT_FOREVER_REL,
         NULL,
         0,
+        &print_sensor_info,
+        NULL);
+  }
+  else if(NULL != get_sensor)
+  {
+    GNUNET_SENSOR_iterate_sensors(sensor_handle,
+        GNUNET_TIME_UNIT_FOREVER_REL,
+        get_sensor,
+        strlen(get_sensor),
         &print_sensor_info,
         NULL);
   }
@@ -133,8 +147,11 @@ main (int argc, char *const *argv)
 {
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
       {'a', "all", NULL,
-          gettext_noop("Retrieve names of all defined sensors"),
+          gettext_noop("Retrieve information about all defined sensors"),
       0, &GNUNET_GETOPT_set_one, &get_all},
+      {'g', "get-sensor", NULL,
+          gettext_noop("Retrieve information about a single sensor"),
+      1, &GNUNET_GETOPT_set_string, &get_sensor},
     GNUNET_GETOPT_OPTION_END
   };
   return (GNUNET_OK ==

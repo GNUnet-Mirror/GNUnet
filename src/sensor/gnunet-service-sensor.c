@@ -320,7 +320,7 @@ add_sensor_to_hashmap(struct SensorInfo *sensor, struct GNUNET_CONTAINER_MultiHa
   struct GNUNET_HashCode key;
   struct SensorInfo *existing;
 
-  GNUNET_CRYPTO_hash(sensor->name, sizeof(sensor->name), &key);
+  GNUNET_CRYPTO_hash(sensor->name, strlen(sensor->name), &key);
   existing = GNUNET_CONTAINER_multihashmap_get(map, &key);
   if(NULL != existing) //sensor with same name already exists
   {
@@ -472,17 +472,24 @@ handle_get_sensor (void *cls, struct GNUNET_SERVER_Client *client,
   struct SensorInfoMessage *msg;
 
   sensorname = (char *)&message[1];
-  sensorname_len = message->size - sizeof(struct GNUNET_MessageHeader);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "`%s' message received for sensor `%.*s\n",
-              "GET SENSOR", sensorname_len, sensorname);
+  sensorname_len = ntohs(message->size) - sizeof(struct GNUNET_MessageHeader);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "`%s' message received for sensor (%d) `%.*s'\n",
+              "GET SENSOR", sensorname_len, sensorname_len, sensorname);
   tc = GNUNET_SERVER_transmit_context_create (client);
   GNUNET_CRYPTO_hash(sensorname, sensorname_len, &key);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Created key hash for requested sensor\n");
   sensorinfo = (struct SensorInfo *)GNUNET_CONTAINER_multihashmap_get(sensors, &key);
-  msg = create_sensor_info_msg(sensorinfo);
-  GNUNET_SERVER_transmit_context_append_message(tc, (struct GNUNET_MessageHeader *)msg);
+  if(NULL != sensorinfo)
+  {
+    msg = create_sensor_info_msg(sensorinfo);
+    GNUNET_SERVER_transmit_context_append_message(tc, (struct GNUNET_MessageHeader *)msg);
+    GNUNET_free(msg);
+  }
+  else
+    GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Requested sensor `%.*s' was not found\n",
+        sensorname_len, sensorname);
+  GNUNET_SERVER_transmit_context_append_data(tc, NULL, 0, GNUNET_MESSAGE_TYPE_SENSOR_END);
   GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
-
-  GNUNET_free(msg);
 }
 
 /**
@@ -542,9 +549,9 @@ run (void *cls,
 {
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
     {&handle_get_sensor, NULL, GNUNET_MESSAGE_TYPE_SENSOR_GET,
-     sizeof (struct GNUNET_MessageHeader)},
-    {&handle_get_all_sensors, NULL, GNUNET_MESSAGE_TYPE_SENSOR_GETALL,
      0},
+    {&handle_get_all_sensors, NULL, GNUNET_MESSAGE_TYPE_SENSOR_GETALL,
+     sizeof (struct GNUNET_MessageHeader)},
     {NULL, NULL, 0, 0}
   };
 
