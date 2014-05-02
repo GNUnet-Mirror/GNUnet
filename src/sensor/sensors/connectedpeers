@@ -3,7 +3,7 @@
 VERSION = 1.0
 DESCRIPTION = Gets the number of connected peers from core
 CATEGORY = P2P-Connectivity
-ENABLED = NO
+ENABLED = YES
 
 # Start and end time format: %Y-%m-%d %H:%M:%S
 #START_TIME = 

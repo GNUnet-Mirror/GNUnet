@@ -82,7 +82,7 @@ struct SensorInfo
   /*
    * Time interval to collect sensor information (e.g. every 1 min)
    */
-  struct GNUNET_TIME_Relative *interval;
+  struct GNUNET_TIME_Relative interval;
 
   /*
    * Lifetime of an information sample after which it is deleted from storage
@@ -144,6 +144,11 @@ struct SensorInfo
    */
   struct GNUNET_TIME_Relative *p2p_interval;
 
+  /**
+   * Execution task (OR GNUNET_SCHEDULER_NO_TASK)
+   */
+  GNUNET_SCHEDULER_TaskIdentifier execution_task;
+
 };
 
 /**
@@ -157,6 +162,29 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
 struct GNUNET_CONTAINER_MultiHashMap *sensors;
 
 /**
+ * Remove sensor execution from scheduler
+ *
+ * @param cls unused
+ * @param key hash of sensor name, key to hashmap
+ * @param value a 'struct SensorInfo *'
+ * @return #GNUNET_YES if we should continue to
+ *         iterate,
+ *         #GNUNET_NO if not.
+ */
+int unschedule_sensor(void *cls,
+    const struct GNUNET_HashCode *key, void *value)
+{
+  struct SensorInfo *sensorinfo = value;
+
+  if(GNUNET_SCHEDULER_NO_TASK != sensorinfo->execution_task)
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Unscheduling sensor `%s'\n", sensorinfo->name);
+    GNUNET_SCHEDULER_cancel(sensorinfo->execution_task);
+  }
+  return GNUNET_YES;
+}
+
+/**
  * Task run during shutdown.
  *
  * @param cls unused
@@ -166,6 +194,7 @@ static void
 shutdown_task (void *cls,
 	       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  GNUNET_CONTAINER_multihashmap_iterate(sensors, &unschedule_sensor, NULL);
   GNUNET_SCHEDULER_shutdown();
 }
 
@@ -232,7 +261,6 @@ load_sensor_from_cfg(struct GNUNET_CONFIGURATION_Handle *cfg, const char *sectio
   char *starttime_str;
   char *endtime_str;
   unsigned long long interval_sec;
-  struct GNUNET_TIME_Relative interval;
 
   sensor = GNUNET_new(struct SensorInfo);
   //name
@@ -290,9 +318,10 @@ load_sensor_from_cfg(struct GNUNET_CONFIGURATION_Handle *cfg, const char *sectio
     GNUNET_free(sensor);
     return NULL;
   }
-  interval = GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, interval_sec);
-  sensor->interval = &interval;
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Interval loaded: %" PRIu64 "\n", sensor->interval->rel_value_us);
+  sensor->interval = GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, interval_sec);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Interval loaded: %" PRIu64 "\n", sensor->interval.rel_value_us);
+  //execution task
+  sensor->execution_task = GNUNET_SCHEDULER_NO_TASK;
 
   return sensor;
 }
@@ -591,20 +620,20 @@ should_run_sensor(struct SensorInfo *sensorinfo)
 
   if(GNUNET_NO == sensorinfo->enabled)
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Sensor `%s' is disabled, will not run\n");
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Sensor `%s' is disabled, will not run\n", sensorinfo->name);
     return GNUNET_NO;
   }
   now = GNUNET_TIME_absolute_get();
   if(NULL != sensorinfo->start_time
       && now.abs_value_us < sensorinfo->start_time->abs_value_us)
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Start time for sensor `%s' not reached yet, will not run\n");
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Start time for sensor `%s' not reached yet, will not run\n", sensorinfo->name);
     return GNUNET_NO;
   }
   if(NULL != sensorinfo->end_time
       && now.abs_value_us >= sensorinfo->end_time->abs_value_us)
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_INFO, "End time for sensor `%s' passed, will not run\n");
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO, "End time for sensor `%s' passed, will not run\n", sensorinfo->name);
     return GNUNET_NO;
   }
   return GNUNET_YES;
@@ -622,9 +651,10 @@ run_sensor (void *cls,
 {
   struct SensorInfo *sensorinfo = cls;
 
+  sensorinfo->execution_task = GNUNET_SCHEDULER_NO_TASK;
   if(GNUNET_NO == should_run_sensor(sensorinfo))
     return;
-  //GNUNET_SCHEDULER_add_delayed(*sensorinfo->interval, &run_sensor, sensorinfo);
+  sensorinfo->execution_task = GNUNET_SCHEDULER_add_delayed(sensorinfo->interval, &run_sensor, sensorinfo);
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Starting the execution of sensor `%s'\n", sensorinfo->name);
 }
 
@@ -645,7 +675,14 @@ int schedule_sensor(void *cls,
 
   if(GNUNET_NO == should_run_sensor(sensorinfo))
     return GNUNET_YES;
-  GNUNET_SCHEDULER_add_delayed(*sensorinfo->interval, &run_sensor, sensorinfo);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Scheduling sensor `%s' to run after %" PRIu64 " microseconds\n",
+      sensorinfo->name, sensorinfo->interval.rel_value_us);
+  if(GNUNET_SCHEDULER_NO_TASK != sensorinfo->execution_task)
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Sensor `%s' execution task already set, this should not happen\n", sensorinfo->name);
+    return GNUNET_NO;
+  }
+  sensorinfo->execution_task = GNUNET_SCHEDULER_add_delayed(sensorinfo->interval, &run_sensor, sensorinfo);
   return GNUNET_YES;
 }
 
