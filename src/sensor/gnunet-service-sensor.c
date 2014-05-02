@@ -23,6 +23,7 @@
  * @brief sensor service implementation
  * @author Omar Tarabai
  */
+#include <inttypes.h>
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "sensor.h"
@@ -57,6 +58,11 @@ struct SensorInfo
    * Sensor description
    */
   char *description;
+
+  /*
+   * Sensor currently enabled
+   */
+  int enabled;
 
   /*
    * Category under which the sensor falls (e.g. tcp, datastore)
@@ -160,6 +166,7 @@ static void
 shutdown_task (void *cls,
 	       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  GNUNET_SCHEDULER_shutdown();
 }
 
 
@@ -221,25 +228,30 @@ static struct SensorInfo *
 load_sensor_from_cfg(struct GNUNET_CONFIGURATION_Handle *cfg, const char *sectionname)
 {
   struct SensorInfo *sensor;
-  char *versionstr;
+  char *version_str;
+  char *starttime_str;
+  char *endtime_str;
+  unsigned long long interval_sec;
+  struct GNUNET_TIME_Relative interval;
 
   sensor = GNUNET_new(struct SensorInfo);
   //name
   sensor->name = GNUNET_strdup(sectionname);
   //version
-  if(GNUNET_OK != GNUNET_CONFIGURATION_get_value_string(cfg, sectionname, "VERSION", &versionstr) ||
-      NULL == versionstr)
+  if(GNUNET_OK != GNUNET_CONFIGURATION_get_value_string(cfg, sectionname, "VERSION", &version_str))
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR, _("Error reading sensor version\n"));
     GNUNET_free(sensor);
     return NULL;
   }
-  if(GNUNET_OK != version_parse(versionstr, &(sensor->version_major), &(sensor->version_minor)))
+  if(GNUNET_OK != version_parse(version_str, &(sensor->version_major), &(sensor->version_minor)))
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR, _("Invalid sensor version number, format should be major.minor\n"));
     GNUNET_free(sensor);
+    GNUNET_free(version_str);
     return NULL;
   }
+  GNUNET_free(version_str);
   //description
   GNUNET_CONFIGURATION_get_value_string(cfg, sectionname, "DESCRIPTION", &sensor->description);
   //category
@@ -250,6 +262,37 @@ load_sensor_from_cfg(struct GNUNET_CONFIGURATION_Handle *cfg, const char *sectio
     GNUNET_free(sensor);
     return NULL;
   }
+  //enabled
+  if(GNUNET_NO == GNUNET_CONFIGURATION_get_value_yesno(cfg, sectionname, "ENABLED"))
+    sensor->enabled = GNUNET_NO;
+  else
+    sensor->enabled = GNUNET_YES;
+  //start time
+  sensor->start_time = NULL;
+  if(GNUNET_OK == GNUNET_CONFIGURATION_get_value_string(cfg, sectionname, "START_TIME", &starttime_str))
+  {
+    GNUNET_STRINGS_fancy_time_to_absolute(starttime_str, sensor->start_time);
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Start time loaded: `%s'. Parsed: %d\n", starttime_str, (NULL != sensor->start_time));
+    GNUNET_free(starttime_str);
+  }
+  //end time
+  sensor->end_time = NULL;
+  if(GNUNET_OK == GNUNET_CONFIGURATION_get_value_string(cfg, sectionname, "END_TIME", &endtime_str))
+  {
+    GNUNET_STRINGS_fancy_time_to_absolute(endtime_str, sensor->end_time);
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "End time loaded: `%s'. Parsed: %d\n", endtime_str, (NULL != sensor->end_time));
+    GNUNET_free(endtime_str);
+  }
+  //interval
+  if(GNUNET_OK != GNUNET_CONFIGURATION_get_value_number(cfg, sectionname, "INTERVAL", &interval_sec))
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, _("Error reading sensor run interval\n"));
+    GNUNET_free(sensor);
+    return NULL;
+  }
+  interval = GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, interval_sec);
+  sensor->interval = &interval;
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Interval loaded: %" PRIu64 "\n", sensor->interval->rel_value_us);
 
   return sensor;
 }
@@ -332,6 +375,7 @@ add_sensor_to_hashmap(struct SensorInfo *sensor, struct GNUNET_CONTAINER_MultiHa
     else
     {
       GNUNET_CONTAINER_multihashmap_remove(map, &key, existing); //remove the old version
+      GNUNET_free(existing);
       GNUNET_log(GNUNET_ERROR_TYPE_INFO, _("Upgrading sensor `%s' to a newer version\n"), sensor->name);
     }
   }
@@ -536,6 +580,86 @@ handle_get_all_sensors (void *cls, struct GNUNET_SERVER_Client *client,
 }
 
 /**
+ * Do a series of checks to determine if sensor should execute
+ *
+ * @return #GNUNET_YES / #GNUNET_NO
+ */
+static int
+should_run_sensor(struct SensorInfo *sensorinfo)
+{
+  struct GNUNET_TIME_Absolute now;
+
+  if(GNUNET_NO == sensorinfo->enabled)
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Sensor `%s' is disabled, will not run\n");
+    return GNUNET_NO;
+  }
+  now = GNUNET_TIME_absolute_get();
+  if(NULL != sensorinfo->start_time
+      && now.abs_value_us < sensorinfo->start_time->abs_value_us)
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Start time for sensor `%s' not reached yet, will not run\n");
+    return GNUNET_NO;
+  }
+  if(NULL != sensorinfo->end_time
+      && now.abs_value_us >= sensorinfo->end_time->abs_value_us)
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO, "End time for sensor `%s' passed, will not run\n");
+    return GNUNET_NO;
+  }
+  return GNUNET_YES;
+}
+
+/**
+ * Actual execution of a sensor
+ *
+ * @param cls 'struct SensorInfo'
+ * @param tc unsed
+ */
+void
+run_sensor (void *cls,
+    const struct GNUNET_SCHEDULER_TaskContext * tc)
+{
+  struct SensorInfo *sensorinfo = cls;
+
+  if(GNUNET_NO == should_run_sensor(sensorinfo))
+    return;
+  //GNUNET_SCHEDULER_add_delayed(*sensorinfo->interval, &run_sensor, sensorinfo);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Starting the execution of sensor `%s'\n", sensorinfo->name);
+}
+
+/**
+ * Starts the execution of a sensor
+ *
+ * @param cls unused
+ * @param key hash of sensor name, key to hashmap
+ * @param value a 'struct SensorInfo *'
+ * @return #GNUNET_YES if we should continue to
+ *         iterate,
+ *         #GNUNET_NO if not.
+ */
+int schedule_sensor(void *cls,
+    const struct GNUNET_HashCode *key, void *value)
+{
+  struct SensorInfo *sensorinfo = value;
+
+  if(GNUNET_NO == should_run_sensor(sensorinfo))
+    return GNUNET_YES;
+  GNUNET_SCHEDULER_add_delayed(*sensorinfo->interval, &run_sensor, sensorinfo);
+  return GNUNET_YES;
+}
+
+/**
+ * Starts the execution of all enabled sensors
+ *
+ */
+static void
+schedule_all_sensors()
+{
+  GNUNET_CONTAINER_multihashmap_iterate(sensors, &schedule_sensor, NULL);
+}
+
+/**
  * Process statistics requests.
  *
  * @param cls closure
@@ -558,6 +682,7 @@ run (void *cls,
   cfg = c;
   sensors = GNUNET_CONTAINER_multihashmap_create(10, GNUNET_NO);
   reload_sensors();
+  schedule_all_sensors();
   GNUNET_SERVER_add_handlers (server, handlers);
   GNUNET_SERVER_disconnect_notify (server, 
 				   &handle_client_disconnect,

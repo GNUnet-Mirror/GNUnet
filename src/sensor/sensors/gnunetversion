@@ -3,10 +3,12 @@
 VERSION = 1.0
 DESCRIPTION = Gets gnunet version number
 CATEGORY = P2P-Software
+ENABLED = YES
 
 # Start and end time format: %Y-%m-%d %H:%M:%S
 #START_TIME = 
 #END_TIME = 
+#Interval in seconds
 INTERVAL = 86400
 #LIFETIME = 
 
