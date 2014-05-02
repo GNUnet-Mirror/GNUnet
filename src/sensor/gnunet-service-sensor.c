@@ -365,9 +365,9 @@ reload_sensors_dir_cb(void *cls, const char *filename)
     return GNUNET_OK;
   }
   if(GNUNET_YES == add_sensor_to_hashmap(sensor, sensors))
-    GNUNET_log(GNUNET_ERROR_TYPE_INFO, _("Sensor `%s' added to global hashmap\n"), sensor->name);
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, _("Sensor `%s' added to global hashmap\n"), sensor->name);
   else
-    GNUNET_log(GNUNET_ERROR_TYPE_INFO, ("Could not add sensor `%s' to global hashmap\n"), sensor->name);
+    GNUNET_log(GNUNET_ERROR_TYPE_WARNING, ("Could not add sensor `%s' to global hashmap\n"), sensor->name);
 
   return GNUNET_OK;
 }
@@ -413,7 +413,7 @@ reload_sensors()
 /**
  * Creates a structure with basic sensor info to be sent to a client
  *
- * @parm sensor sensor information
+ * @param sensor sensor information
  * @return message ready to be sent to client
  */
 static struct SensorInfoMessage *
@@ -423,6 +423,7 @@ create_sensor_info_msg(struct SensorInfo *sensor)
   uint16_t len;
   size_t name_len;
   size_t desc_len;
+  char *str_ptr;
 
   name_len = strlen(sensor->name);
   if(NULL == sensor->description)
@@ -440,8 +441,14 @@ create_sensor_info_msg(struct SensorInfo *sensor)
   msg->description_len = htons(desc_len);
   msg->version_major = htons(sensor->version_major);
   msg->version_minor = htons(sensor->version_minor);
-  memcpy(&msg[1], sensor->name, name_len);
-  memcpy((&msg[1]) + name_len, sensor->description, desc_len);
+  str_ptr = (char*) &msg[1];
+  memcpy(str_ptr, sensor->name, name_len);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Sending sensor name (%d): %.*s\n",
+        name_len, name_len, str_ptr);
+  str_ptr += name_len;
+  memcpy(str_ptr, sensor->description, desc_len);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Sending sensor description (%d): %.*s\n",
+          desc_len, desc_len, str_ptr);
 
   return msg;
 }

@@ -366,7 +366,7 @@ sensor_handler(void *cls, const struct GNUNET_MessageHeader *msg)
   struct SensorInfoShort *sensor;
   size_t name_len;
   size_t desc_len;
-
+  char *str_ptr;
 
   h->in_receive = GNUNET_NO;
   if (NULL == msg)
@@ -400,7 +400,7 @@ sensor_handler(void *cls, const struct GNUNET_MessageHeader *msg)
   if (GNUNET_MESSAGE_TYPE_SENSOR_END == ntohs (msg->type))
   {
     /* normal end of list of sensors, signal end, process next pending request */
-    LOG (GNUNET_ERROR_TYPE_INFO,
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Received end of list of sensors from `%s' service\n", "SENSOR");
     GNUNET_SENSOR_iterate_sensor_cancel(ic);
     trigger_transmit (h);
@@ -432,9 +432,17 @@ sensor_handler(void *cls, const struct GNUNET_MessageHeader *msg)
     return;
   }
   sensor = GNUNET_new(struct SensorInfoShort);
-  sensor->name = GNUNET_strndup((char *)&im[1], name_len);
+  str_ptr = (char *)&im[1];
+  sensor->name = GNUNET_strndup(str_ptr, name_len);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Received sensor name (%d): %.*s\n",
+               name_len, name_len, str_ptr);
+  str_ptr += name_len;
   if(desc_len > 0)
-    sensor->description = GNUNET_strndup((char *)((&im[1]) + name_len), desc_len);
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Received sensor description (%d): %.*s\n",
+                 desc_len, desc_len, str_ptr);
+    sensor->description = GNUNET_strndup(str_ptr, desc_len);
+  }
   sensor->version_major = ntohs(im->version_major);
   sensor->version_minor = ntohs(im->version_minor);
   h->in_receive = GNUNET_YES;

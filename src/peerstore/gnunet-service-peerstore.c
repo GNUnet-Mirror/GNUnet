@@ -75,7 +75,7 @@ handle_client_disconnect (void *cls,
 }
 
 /**
- * Process statistics requests.
+ * Peerstore service runner.
  *
  * @param cls closure
  * @param server the initialized server
