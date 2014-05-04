@@ -10,7 +10,7 @@ ENABLED = YES
 #END_TIME = 
 #Interval in seconds
 INTERVAL = 86400
-#LIFETIME = 
+LIFETIME = 86400
 
 #CAPABILITIES = 
 
@@ -19,8 +19,8 @@ SOURCE = process
 #GNUNET_STAT_SERVICE = 
 #GNUNET_STAT_NAME = 
 
-EXT_PROCESS = gnunet-arm -v
-#EXT_ARGS = 
+EXT_PROCESS = gnunet-arm
+EXT_ARGS = -v
 
 EXPECTED_DATATYPE = string
 

@@ -29,6 +29,11 @@
 #include "sensor.h"
 
 /**
+ * Minimum sensor execution interval (in seconds)
+ */
+#define MIN_INTERVAL 30
+
+/**
  * Structure containing sensor definition
  */
 struct SensorInfo
@@ -87,7 +92,7 @@ struct SensorInfo
   /*
    * Lifetime of an information sample after which it is deleted from storage
    */
-  struct GNUNET_TIME_Relative *lifetime;
+  struct GNUNET_TIME_Relative lifetime;
 
   /*
    * A set of required peer capabilities for the sensor to collect meaningful information (e.g. ipv6)
@@ -108,6 +113,11 @@ struct SensorInfo
    * Name of the gnunet-statistics entry
    */
   char *gnunet_stat_name;
+
+  /**
+   * Handle to statistics get request (OR GNUNET_SCHEDULER_NO_TASK)
+   */
+  struct GNUNET_STATISTICS_GetHandle *gnunet_stat_get_handle;
 
   /*
    * Name of the external process to be executed
@@ -162,6 +172,21 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
 struct GNUNET_CONTAINER_MultiHashMap *sensors;
 
 /**
+ * Supported sources of sensor information
+ */
+static const char *sources[] = { "gnunet-statistics", "process", NULL };
+
+/**
+ * Supported datatypes of sensor information
+ */
+static const char *datatypes[] = { "uint64", "double", "string", NULL };
+
+/**
+ * Handle to statistics service
+ */
+struct GNUNET_STATISTICS_Handle *statistics;
+
+/**
  * Remove sensor execution from scheduler
  *
  * @param cls unused
@@ -176,6 +201,11 @@ int unschedule_sensor(void *cls,
 {
   struct SensorInfo *sensorinfo = value;
 
+  if(NULL != sensorinfo->gnunet_stat_get_handle)
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Canceling a statistics get request for sensor `%s'\n", sensorinfo->name);
+    GNUNET_STATISTICS_get_cancel(sensorinfo->gnunet_stat_get_handle);
+  }
   if(GNUNET_SCHEDULER_NO_TASK != sensorinfo->execution_task)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Unscheduling sensor `%s'\n", sensorinfo->name);
@@ -195,6 +225,8 @@ shutdown_task (void *cls,
 	       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_CONTAINER_multihashmap_iterate(sensors, &unschedule_sensor, NULL);
+  if(NULL != statistics)
+    GNUNET_STATISTICS_destroy(statistics, GNUNET_YES);
   GNUNET_SCHEDULER_shutdown();
 }
 
@@ -260,7 +292,7 @@ load_sensor_from_cfg(struct GNUNET_CONFIGURATION_Handle *cfg, const char *sectio
   char *version_str;
   char *starttime_str;
   char *endtime_str;
-  unsigned long long interval_sec;
+  unsigned long long time_sec;
 
   sensor = GNUNET_new(struct SensorInfo);
   //name
@@ -312,14 +344,72 @@ load_sensor_from_cfg(struct GNUNET_CONFIGURATION_Handle *cfg, const char *sectio
     GNUNET_free(endtime_str);
   }
   //interval
-  if(GNUNET_OK != GNUNET_CONFIGURATION_get_value_number(cfg, sectionname, "INTERVAL", &interval_sec))
+  if(GNUNET_OK != GNUNET_CONFIGURATION_get_value_number(cfg, sectionname, "INTERVAL", &time_sec))
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR, _("Error reading sensor run interval\n"));
     GNUNET_free(sensor);
     return NULL;
   }
-  sensor->interval = GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, interval_sec);
+  if(time_sec < MIN_INTERVAL)
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, _("Sensor run interval too low (%" PRIu64 " < %d)\n"),
+        time_sec, MIN_INTERVAL);
+    GNUNET_free(sensor);
+    return NULL;
+  }
+  sensor->interval = GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, time_sec);
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Interval loaded: %" PRIu64 "\n", sensor->interval.rel_value_us);
+  //lifetime
+  if(GNUNET_OK == GNUNET_CONFIGURATION_get_value_number(cfg, sectionname, "LIFETIME", &time_sec))
+  {
+    sensor->lifetime = GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, time_sec);
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Lifetime loaded: %" PRIu64 "\n", sensor->lifetime.rel_value_us);
+  }
+  else
+    sensor->lifetime = GNUNET_TIME_UNIT_FOREVER_REL;
+  //capabilities TODO
+  //source
+  if(GNUNET_OK != GNUNET_CONFIGURATION_get_value_choice(cfg, sectionname, "SOURCE", sources, &sensor->source))
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, _("Error reading sensor source\n"));
+    GNUNET_free(sensor);
+    return NULL;
+  }
+  if(sources[0] == sensor->source) //gnunet-statistics
+  {
+    if(GNUNET_OK != GNUNET_CONFIGURATION_get_value_string(cfg, sectionname, "GNUNET_STAT_SERVICE", &sensor->gnunet_stat_service) ||
+        GNUNET_OK != GNUNET_CONFIGURATION_get_value_string(cfg, sectionname, "GNUNET_STAT_NAME", &sensor->gnunet_stat_name))
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR, _("Error reading sensor gnunet-statistics source information\n"));
+      GNUNET_free(sensor);
+      return NULL;
+    }
+    sensor->gnunet_stat_get_handle = NULL;
+  }
+  else if(sources[1] == sensor->source) //process
+  {
+    if(GNUNET_OK != GNUNET_CONFIGURATION_get_value_string(cfg, sectionname, "EXT_PROCESS", &sensor->ext_process))
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR, _("Error reading sensor process name\n"));
+      GNUNET_free(sensor);
+      return NULL;
+    }
+    GNUNET_CONFIGURATION_get_value_string(cfg, sectionname, "EXT_ARGS", &sensor->ext_args);
+  }
+  //expected datatype
+  if(GNUNET_OK != GNUNET_CONFIGURATION_get_value_choice(cfg, sectionname, "EXPECTED_DATATYPE", datatypes, &sensor->expected_datatype))
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, _("Error reading sensor expected datatype\n"));
+    GNUNET_free(sensor);
+    return NULL;
+  }
+  if(sources[0] == sensor->source && datatypes[0] != sensor->expected_datatype)
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, _("Invalid expected datatype, gnunet-statistics returns uint64 values\n"));
+    GNUNET_free(sensor);
+    return NULL;
+  }
+  //TODO: reporting mechanism
   //execution task
   sensor->execution_task = GNUNET_SCHEDULER_NO_TASK;
 
@@ -640,6 +730,28 @@ should_run_sensor(struct SensorInfo *sensorinfo)
 }
 
 /**
+ * Callback function to process statistic values
+ *
+ * @param cls 'struct SensorInfo *'
+ * @param subsystem name of subsystem that created the statistic
+ * @param name the name of the datum
+ * @param value the current value
+ * @param is_persistent #GNUNET_YES if the value is persistent, #GNUNET_NO if not
+ * @return #GNUNET_OK to continue, #GNUNET_SYSERR to abort iteration
+ */
+int sensor_statistics_iterator (void *cls,
+    const char *subsystem,
+    const char *name,
+    uint64_t value,
+    int is_persistent)
+{
+  struct SensorInfo *sensorinfo = cls;
+
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Received a value for sensor `%s': %" PRIu64 "\n", sensorinfo->name, value);
+  return GNUNET_OK;
+}
+
+/**
  * Actual execution of a sensor
  *
  * @param cls 'struct SensorInfo'
@@ -656,6 +768,18 @@ run_sensor (void *cls,
     return;
   sensorinfo->execution_task = GNUNET_SCHEDULER_add_delayed(sensorinfo->interval, &run_sensor, sensorinfo);
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Starting the execution of sensor `%s'\n", sensorinfo->name);
+  if(sources[0] == sensorinfo->source) //gnunet-statistics
+  {
+    if(NULL == statistics)
+      statistics = GNUNET_STATISTICS_create("sensor", cfg);
+    GNUNET_STATISTICS_get(statistics,
+        sensorinfo->gnunet_stat_service,
+        sensorinfo->gnunet_stat_name,
+        GNUNET_TIME_UNIT_FOREVER_REL,
+        NULL,
+        &sensor_statistics_iterator,
+        sensorinfo);
+  }
 }
 
 /**
