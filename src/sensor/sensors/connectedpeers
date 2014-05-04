@@ -17,7 +17,7 @@ INTERVAL = 60
 SOURCE = gnunet-statistics
 
 GNUNET_STAT_SERVICE = core
-GNUNET_STAT_NAME = '# peers connected'
+GNUNET_STAT_NAME = # peers connected
 
 #EXT_PROCESS = 
 #EXT_ARGS = 

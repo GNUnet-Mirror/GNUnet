@@ -771,8 +771,10 @@ run_sensor (void *cls,
   if(sources[0] == sensorinfo->source) //gnunet-statistics
   {
     if(NULL == statistics)
+    {
       statistics = GNUNET_STATISTICS_create("sensor", cfg);
-    GNUNET_STATISTICS_get(statistics,
+    }
+    sensorinfo->gnunet_stat_get_handle = GNUNET_STATISTICS_get(statistics,
         sensorinfo->gnunet_stat_service,
         sensorinfo->gnunet_stat_name,
         GNUNET_TIME_UNIT_FOREVER_REL,
