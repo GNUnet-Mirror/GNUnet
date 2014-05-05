@@ -373,12 +373,12 @@ get_performance_info (struct ATS_Address *address, uint32_t type)
   GNUNET_assert (NULL != address);
 
   if ((NULL == address->atsi) || (0 == address->atsi_count))
-      return GNUNET_ATS_VALUE_UNDEFINED;
+    return GNUNET_ATS_VALUE_UNDEFINED;
 
   for (c1 = 0; c1 < address->atsi_count; c1++)
   {
-      if (ntohl(address->atsi[c1].type) == type)
-        return ntohl(address->atsi[c1].value);
+    if (ntohl (address->atsi[c1].type) == type)
+      return ntohl (address->atsi[c1].value);
   }
   return GNUNET_ATS_VALUE_UNDEFINED;
 }
@@ -737,7 +737,10 @@ mlp_create_problem_add_address_information (void *cls,
   {
     addr_net = get_performance_info (address, GNUNET_ATS_NETWORK_TYPE);
     if (GNUNET_ATS_VALUE_UNDEFINED == addr_net)
-            addr_net = GNUNET_ATS_NET_UNSPECIFIED;
+    {
+      GNUNET_break (0);
+      addr_net = GNUNET_ATS_NET_UNSPECIFIED;
+    }
 
     if (mlp->pv.quota_index[c] == addr_net)
     {

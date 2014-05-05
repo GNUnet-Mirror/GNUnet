@@ -211,8 +211,8 @@ GNUNET_ATS_solver_logging_now (struct LoggingHandle *l)
 
     for (cur_addr = cur->addr_head; NULL != cur_addr; cur_addr = cur_addr->next)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Logging peer id %llu address %llu\n",
-          cur->peer_id, cur_addr->aid);
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Logging peer id %llu address %llu \n",
+          cur->id, cur_addr->aid);
       log_a = GNUNET_new (struct LoggingAddress);
       log_a->aid = cur_addr->aid;
       log_a->active = cur_addr->ats_addr->active;
@@ -362,7 +362,7 @@ GNUNET_ATS_solver_logging_write_to_disk (struct LoggingHandle *l, int add_time_s
                 cur->aid,
                 cur->pid);
 
-          fprintf (stderr, "Add writing log data for %llu %llu to file `%s'\n",
+          fprintf (stderr, "Add writing log data for peer %llu address %llu to file `%s'\n",
               cur->pid, cur->aid, filename);
 
 
@@ -2022,12 +2022,19 @@ timeout_experiment (void *cls, const struct GNUNET_SCHEDULER_TaskContext* tc)
 struct ATS_Address *
 create_ats_address (const struct GNUNET_PeerIdentity *peer,
                 const char *plugin_name,
-                const void *plugin_addr, size_t plugin_addr_len,
-                uint32_t session_id)
+                const void *plugin_addr,
+                size_t plugin_addr_len,
+                uint32_t session_id,
+                uint32_t network)
 {
   struct ATS_Address *aa = NULL;
 
   aa = GNUNET_malloc (sizeof (struct ATS_Address) + plugin_addr_len + strlen (plugin_name) + 1);
+  aa->atsi = GNUNET_new (struct GNUNET_ATS_Information);
+  aa->atsi[0].type = htonl (GNUNET_ATS_NETWORK_TYPE);
+  aa->atsi[0].value = htonl (network);
+  aa->atsi_count = 1;
+
   aa->peer = *peer;
   aa->addr_len = plugin_addr_len;
   aa->addr = &aa[1];
@@ -2040,6 +2047,7 @@ create_ats_address (const struct GNUNET_PeerIdentity *peer,
   aa->solver_information = NULL;
   aa->assigned_bw_in = GNUNET_BANDWIDTH_value_init(0);
   aa->assigned_bw_out = GNUNET_BANDWIDTH_value_init(0);
+
   return aa;
 }
 
@@ -2075,10 +2083,9 @@ enforce_add_address (struct GNUNET_ATS_TEST_Operation *op)
 
   a = GNUNET_new (struct TestAddress);
   a->aid = op->address_id;
-  fprintf (stderr, "XXXX : %llu %llu \n", a->aid, op->address_id);
   a->network = op->address_network;
   a->ats_addr = create_ats_address (&p->peer_id, op->plugin, op->address,
-      strlen (op->address) + 1, op->address_session);
+      strlen (op->address) + 1, op->address_session, op->address_network);
   memset (&p->peer_id, op->peer_id, sizeof (p->peer_id));
   GNUNET_CONTAINER_DLL_insert_tail (p->addr_head, p->addr_tail, a);
 
@@ -2089,7 +2096,7 @@ enforce_add_address (struct GNUNET_ATS_TEST_Operation *op)
     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Adding address %u for peer %u in network `%s'\n",
-    op->address_id, op->peer_id, GNUNET_ATS_print_network_type(op->address_network));
+    op->address_id, op->peer_id, GNUNET_ATS_print_network_type(a->network));
 
   sh->env.sf.s_add (sh->solver, a->ats_addr, op->address_network);
 
@@ -2131,6 +2138,7 @@ enforce_del_address (struct GNUNET_ATS_TEST_Operation *op)
       op->address_id, op->peer_id);
 
   sh->env.sf.s_del (sh->solver, a->ats_addr, GNUNET_NO);
+  GNUNET_free_non_null(a->ats_addr->atsi);
   GNUNET_free (a->ats_addr);
   GNUNET_free (a);
 
@@ -2244,7 +2252,10 @@ enforce_start_request (struct GNUNET_ATS_TEST_Operation *op)
   res = sh->env.sf.s_get (sh->solver, &p->peer_id);
   if (NULL != res)
   {
-
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Requesting address for peer %u: %llu %llu\n",
+        op->peer_id,
+        ntohl(res->assigned_bw_in.value__),
+        ntohl(res->assigned_bw_out.value__));
   }
 }
 
