@@ -154,10 +154,15 @@ struct SensorInfo
    */
   struct GNUNET_TIME_Relative *p2p_interval;
 
-  /**
+  /*
    * Execution task (OR GNUNET_SCHEDULER_NO_TASK)
    */
   GNUNET_SCHEDULER_TaskIdentifier execution_task;
+
+  /*
+   * Is the sensor being executed
+   */
+  int running;
 
 };
 
@@ -185,6 +190,8 @@ static const char *datatypes[] = { "uint64", "double", "string", NULL };
  * Handle to statistics service
  */
 struct GNUNET_STATISTICS_Handle *statistics;
+
+//TODO: logging macro that includes sensor info
 
 /**
  * Remove sensor execution from scheduler
@@ -412,6 +419,8 @@ load_sensor_from_cfg(struct GNUNET_CONFIGURATION_Handle *cfg, const char *sectio
   //TODO: reporting mechanism
   //execution task
   sensor->execution_task = GNUNET_SCHEDULER_NO_TASK;
+  //running
+  sensor->running = GNUNET_NO;
 
   return sensor;
 }
@@ -706,6 +715,7 @@ handle_get_all_sensors (void *cls, struct GNUNET_SERVER_Client *client,
 static int
 should_run_sensor(struct SensorInfo *sensorinfo)
 {
+  //FIXME: some checks should disable the sensor (e.g. expired)
   struct GNUNET_TIME_Absolute now;
 
   if(GNUNET_NO == sensorinfo->enabled)
@@ -752,21 +762,42 @@ int sensor_statistics_iterator (void *cls,
 }
 
 /**
+ * Continuation called after sensor gets all gnunet statistics values
+ *
+ * @param cls 'struct SensorInfo *'
+ * @param success #GNUNET_OK if statistics were
+ *        successfully obtained, #GNUNET_SYSERR if not.
+ */
+void end_sensor_run_stat (void *cls, int success)
+{
+  struct SensorInfo *sensorinfo = cls;
+
+  sensorinfo->gnunet_stat_get_handle = NULL;
+  sensorinfo->running = GNUNET_NO;
+}
+
+/**
  * Actual execution of a sensor
  *
  * @param cls 'struct SensorInfo'
  * @param tc unsed
  */
 void
-run_sensor (void *cls,
+sensor_run (void *cls,
     const struct GNUNET_SCHEDULER_TaskContext * tc)
 {
   struct SensorInfo *sensorinfo = cls;
+  int check_result;
 
-  sensorinfo->execution_task = GNUNET_SCHEDULER_NO_TASK;
+  sensorinfo->execution_task = GNUNET_SCHEDULER_add_delayed(sensorinfo->interval, &sensor_run, sensorinfo);
+  if(GNUNET_YES == sensorinfo->running) //FIXME: should we try to kill?
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_WARNING, "Sensor `%s' running for too long, will try again next interval\n", sensorinfo->name);
+    return;
+  }
   if(GNUNET_NO == should_run_sensor(sensorinfo))
     return;
-  sensorinfo->execution_task = GNUNET_SCHEDULER_add_delayed(sensorinfo->interval, &run_sensor, sensorinfo);
+  sensorinfo->running = GNUNET_YES;
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Starting the execution of sensor `%s'\n", sensorinfo->name);
   if(sources[0] == sensorinfo->source) //gnunet-statistics
   {
@@ -777,10 +808,40 @@ run_sensor (void *cls,
     sensorinfo->gnunet_stat_get_handle = GNUNET_STATISTICS_get(statistics,
         sensorinfo->gnunet_stat_service,
         sensorinfo->gnunet_stat_name,
-        GNUNET_TIME_UNIT_FOREVER_REL,
-        NULL,
+        sensorinfo->interval, //try to get values only for the interval of the sensor
+        &end_sensor_run_stat,
         &sensor_statistics_iterator,
         sensorinfo);
+  }
+  else if(sources[1] == sensorinfo->source)
+  {
+    //check if the process exists in $PATH
+    check_result =
+        GNUNET_OS_check_helper_binary(sensorinfo->ext_process, GNUNET_NO, NULL); //search in $PATH
+    if(GNUNET_SYSERR == check_result)
+    {
+      //search in sensor directory
+
+    }
+    if(GNUNET_SYSERR == check_result)
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Sensor `%s' process `%s' problem: binary doesn't exist or not executable\n",
+          sensorinfo->name,
+          sensorinfo->ext_process);
+      //FIXME: disable sensor here?
+      sensorinfo->running = GNUNET_NO;
+      return;
+    }
+    else if(GNUNET_NO == check_result)
+    {
+
+    }
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Process started for sensor `%s'\n", sensorinfo->name);
+  }
+  else
+  {
+    sensorinfo->running = GNUNET_NO;
+    GNUNET_break(0); //shouldn't happen
   }
 }
 
@@ -788,7 +849,7 @@ run_sensor (void *cls,
  * Starts the execution of a sensor
  *
  * @param cls unused
- * @param key hash of sensor name, key to hashmap
+ * @param key hash of sensor name, key to hashmap (unused)
  * @param value a 'struct SensorInfo *'
  * @return #GNUNET_YES if we should continue to
  *         iterate,
@@ -808,7 +869,7 @@ int schedule_sensor(void *cls,
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Sensor `%s' execution task already set, this should not happen\n", sensorinfo->name);
     return GNUNET_NO;
   }
-  sensorinfo->execution_task = GNUNET_SCHEDULER_add_delayed(sensorinfo->interval, &run_sensor, sensorinfo);
+  sensorinfo->execution_task = GNUNET_SCHEDULER_add_delayed(sensorinfo->interval, &sensor_run, sensorinfo);
   return GNUNET_YES;
 }
 
