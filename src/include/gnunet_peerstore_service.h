@@ -37,6 +37,32 @@ extern "C"
 #endif
 #endif
 
+/**
+ * Handle to the peerstore service.
+ */
+struct GNUNET_PEERSTORE_Handle;
+
+/**
+ * Context for add requests
+ */
+struct GNUNET_PEERSTORE_AddContext;
+
+/**
+ * Continuation called with a status result.
+ *
+ * @param cls closure
+ * @param emsg error message, NULL on success
+ */
+typedef void (*GNUNET_PEERSTORE_Continuation)(void *cls,
+               const char *emsg);
+
+/**
+ * Continuation called after an Add is completed
+ *
+ * @param cls closure
+ * @param success #GNUNET_YES / #GNUNET_NO
+ */
+typedef void (*GNUNET_PEERSTORE_AddContinuation)(void *cls, int success);
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
