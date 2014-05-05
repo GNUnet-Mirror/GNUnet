@@ -230,7 +230,7 @@ GNUNET_ATS_solver_logging_now (struct LoggingHandle *l)
       }
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "\t Active = %i\n", log_a->active);
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "\t BW in = %llu\n", ntohl(log_a->assigned_bw_in.value__));
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "\t BW out = %llu\n", ntohl(log_a->assigned_bw_out.value__));
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "\t BW out = %llu\n", ntohl(log_a->assigned_bw_out.value__));
 
       GNUNET_CONTAINER_DLL_insert_tail (log_p->addr_head, log_p->addr_tail, log_a);
     }
@@ -345,22 +345,22 @@ GNUNET_ATS_solver_logging_write_to_disk (struct LoggingHandle *l, int add_time_s
           cur->pid = log_p->id;
 
           if (GNUNET_YES == add_time_stamp)
-            GNUNET_asprintf (&filename, "%s%s%s_%s_%u_%u_%llu.log",
+            GNUNET_asprintf (&filename, "%s%s%s_%s_p%u_a%u_%llu.log",
                 (GNUNET_YES == use_dir) ? output_dir : "",
                 (GNUNET_YES == use_dir) ? DIR_SEPARATOR_STR : "",
                 e->log_prefix,
                 opt_solver,
-                cur->aid,
                 cur->pid,
+                cur->aid,
                 l->head->timestamp.abs_value_us);
           else
-            GNUNET_asprintf (&filename, "%s%s%s_%s_%u_%u.log",
+            GNUNET_asprintf (&filename, "%s%s%s_%s_p%u_a%u.log",
                 (GNUNET_YES == use_dir) ? output_dir : "",
                 (GNUNET_YES == use_dir) ? DIR_SEPARATOR_STR : "",
                 e->log_prefix,
                 opt_solver,
-                cur->aid,
-                cur->pid);
+                cur->pid,
+                cur->aid);
 
           fprintf (stderr, "Add writing log data for peer %llu address %llu to file `%s'\n",
               cur->pid, cur->aid, filename);
@@ -2131,13 +2131,19 @@ enforce_del_address (struct GNUNET_ATS_TEST_Operation *op)
     GNUNET_ATS_solver_generate_property_stop (pg);
   }
 
-  GNUNET_CONTAINER_DLL_remove(p->addr_head, p->addr_tail, a);
   GNUNET_CONTAINER_multipeermap_remove (sh->addresses, &p->peer_id, a->ats_addr);
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Removing address %u for peer %u\n",
       op->address_id, op->peer_id);
 
   sh->env.sf.s_del (sh->solver, a->ats_addr, GNUNET_NO);
+
+  if (NULL != l)
+  {
+    GNUNET_ATS_solver_logging_now (l);
+  }
+  GNUNET_CONTAINER_DLL_remove(p->addr_head, p->addr_tail, a);
+
   GNUNET_free_non_null(a->ats_addr->atsi);
   GNUNET_free (a->ats_addr);
   GNUNET_free (a);
@@ -2252,10 +2258,12 @@ enforce_start_request (struct GNUNET_ATS_TEST_Operation *op)
   res = sh->env.sf.s_get (sh->solver, &p->peer_id);
   if (NULL != res)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Requesting address for peer %u: %llu %llu\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Suggested address for peer %u: %llu %llu\n",
         op->peer_id,
         ntohl(res->assigned_bw_in.value__),
         ntohl(res->assigned_bw_out.value__));
+    if (NULL != l)
+      GNUNET_ATS_solver_logging_now (l);
   }
 }
 
@@ -2276,6 +2284,12 @@ enforce_stop_request (struct GNUNET_ATS_TEST_Operation *op)
       op->peer_id);
 
   sh->env.sf.s_get_stop (sh->solver, &p->peer_id);
+
+  if (NULL != l)
+  {
+    GNUNET_ATS_solver_logging_now (l);
+  }
+
 }
 
 static void enforce_episode (struct Episode *ep)
@@ -2782,10 +2796,13 @@ solver_bandwidth_changed_cb (void *cls, struct ATS_Address *address)
               "Bandwidth changed addresses %s %p to %u Bps out / %u Bps in\n",
               GNUNET_i2s (&address->peer),
               address,
-              (unsigned int) ntohl (address->assigned_bw_out.value__),
+              (unsigned int) ntohl  (address->assigned_bw_out.value__),
               (unsigned int) ntohl (address->assigned_bw_in.value__));
   /*if (GNUNET_YES == ph.bulk_running)
     GNUNET_break (0);*/
+  if (NULL != l)
+    GNUNET_ATS_solver_logging_now (l);
+
   return;
 }
 

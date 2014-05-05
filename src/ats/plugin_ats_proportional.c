@@ -573,13 +573,15 @@ distribute_bandwidth (struct GAS_PROPORTIONAL_Handle *s,
   unsigned long long assigned_quota_out = 0;
 
 
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
+  LOG(GNUNET_ERROR_TYPE_INFO,
       "Recalculate quota for network type `%s' for %u addresses (in/out): %llu/%llu \n",
       net->desc, net->active_addresses, net->total_quota_in,
       net->total_quota_in);
 
   if (net->active_addresses == 0)
+  {
     return; /* no addresses to update */
+  }
 
   /* Idea
    * Assign every peer in network minimum Bandwidth
@@ -641,7 +643,7 @@ distribute_bandwidth (struct GAS_PROPORTIONAL_Handle *s,
       assigned_quota_out = min_bw
           + ((cur_pref / total_prefs) * remaining_quota_out);
 
-      LOG(GNUNET_ERROR_TYPE_DEBUG,
+      LOG (GNUNET_ERROR_TYPE_INFO,
           "New quota for peer `%s' with preference (cur/total) %.3f/%.3f (in/out): %llu / %llu\n",
           GNUNET_i2s (&cur->addr->peer), cur_pref, total_prefs,
           assigned_quota_in, assigned_quota_out);
@@ -829,7 +831,20 @@ propagate_bandwidth (struct GAS_PROPORTIONAL_Handle *s,
            (cur->addr->assigned_bw_out.value__ != asi->calculated_quota_out_NBO) )
       {
         cur->addr->assigned_bw_in.value__ = asi->calculated_quota_in_NBO;
-        cur->addr->assigned_bw_out.value__ = asi->calculated_quota_in_NBO;
+        cur->addr->assigned_bw_out.value__ = asi->calculated_quota_out_NBO;
+
+        /* Reset for next iteration */
+        asi->calculated_quota_in_NBO = htonl (0);
+        asi->calculated_quota_out_NBO = htonl (0);
+
+        LOG (GNUNET_ERROR_TYPE_DEBUG,
+            "Bandwidth for %s address %p for peer `%s' changed to %u/%u\n",
+            (GNUNET_NO == cur->addr->active) ? "inactive" : "active",
+            cur->addr,
+            GNUNET_i2s (&cur->addr->peer),
+            ntohl (cur->addr->assigned_bw_in.value__),
+            ntohl (cur->addr->assigned_bw_out.value__ ));
+
         /* Notify on change */
         if ((GNUNET_YES == cur->addr->active) && (cur->addr != address_except))
           s->bw_changed (s->bw_changed_cls, cur->addr);
@@ -856,6 +871,11 @@ distribute_bandwidth_in_network (struct GAS_PROPORTIONAL_Handle *s,
 
   if (NULL != n)
   {
+    LOG (GNUNET_ERROR_TYPE_INFO,
+        "Redistributing bandwidth in network %s with %u active and %u total addresses\n",
+        GNUNET_ATS_print_network_type(n->type),
+        n->active_addresses, n->total_addresses);
+
     if (NULL != s->env->info_cb)
       s->env->info_cb(s->env->info_cb_cls, GAS_OP_SOLVE_START,
           GAS_STAT_SUCCESS, GAS_INFO_PROP_SINGLE);
@@ -1174,6 +1194,7 @@ GAS_proportional_get_preferred_address (void *solver,
     prev->active = GNUNET_NO; /* No active any longer */
     prev->assigned_bw_in = BANDWIDTH_ZERO; /* no bandwidth assigned */
     prev->assigned_bw_out = BANDWIDTH_ZERO; /* no bandwidth assigned */
+
     if (GNUNET_SYSERR == addresse_decrement (s, net_prev, GNUNET_NO, GNUNET_YES))
       GNUNET_break(0);
     distribute_bandwidth_in_network (s, net_prev, NULL);
@@ -1212,18 +1233,24 @@ GAS_proportional_stop_get_preferred_address (void *solver,
     GNUNET_assert (GNUNET_OK == GNUNET_CONTAINER_multipeermap_remove (s->requests, peer,
 					  NULL));
 
-  cur = get_active_address (s,
-			    s->addresses, peer);
+  cur = get_active_address (s, s->addresses, peer);
   if (NULL != cur)
   {
+    LOG(GNUNET_ERROR_TYPE_INFO,
+        "Disabling %s address %p for peer `%s'\n",
+        (GNUNET_NO == cur->active) ? "inactive" : "active", cur,
+        GNUNET_i2s (&cur->peer));
+
     /* Disabling current address */
     asi = cur->solver_information;
     cur_net = asi->network ;
     cur->active = GNUNET_NO; /* No active any longer */
     cur->assigned_bw_in = BANDWIDTH_ZERO; /* no bandwidth assigned */
     cur->assigned_bw_out = BANDWIDTH_ZERO; /* no bandwidth assigned */
+
     if (GNUNET_SYSERR == addresse_decrement (s, cur_net, GNUNET_NO, GNUNET_YES))
       GNUNET_break(0);
+
     distribute_bandwidth_in_network (s, cur_net, NULL );
   }
   return;
@@ -1304,6 +1331,8 @@ GAS_proportional_address_delete (void *solver, struct ATS_Address *address,
     address->active = GNUNET_NO;
     address->assigned_bw_in = BANDWIDTH_ZERO;
     address->assigned_bw_out = BANDWIDTH_ZERO;
+    asi->calculated_quota_in_NBO = htonl (0);
+    asi->calculated_quota_out_NBO = htonl (0);
 
     if (GNUNET_SYSERR == addresse_decrement (s, net, GNUNET_NO, GNUNET_YES))
       GNUNET_break(0);
@@ -1604,8 +1633,8 @@ GAS_proportional_address_add (void *solver, struct ATS_Address *address,
 
   asi = GNUNET_new (struct AddressSolverInformation);
   asi->network = net;
-  asi->calculated_quota_in_NBO = 0;
-  asi->calculated_quota_out_NBO = 0;
+  asi->calculated_quota_in_NBO = htonl (0);
+  asi->calculated_quota_out_NBO = htonl (0);
   aw->addr->solver_information = asi;
 
   if (GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains (s->requests, &address->peer))
