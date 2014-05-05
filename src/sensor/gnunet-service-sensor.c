@@ -777,6 +777,24 @@ void end_sensor_run_stat (void *cls, int success)
 }
 
 /**
+ * Callback for output of executed sensor process
+ *
+ * @param cls 'struct SensorInfo *'
+ * @param line line of output from a command, NULL for the end
+ */
+void sensor_process_callback (void *cls, const char *line)
+{
+  struct SensorInfo *sensorinfo = cls;
+
+  if(NULL == line)
+  {
+    sensorinfo->running = GNUNET_NO;
+    return;
+  }
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Received a value for sensor `%s': %s\n", sensorinfo->name, line);
+}
+
+/**
  * Actual execution of a sensor
  *
  * @param cls 'struct SensorInfo'
@@ -788,6 +806,8 @@ sensor_run (void *cls,
 {
   struct SensorInfo *sensorinfo = cls;
   int check_result;
+  char *sensors_dir;
+  char *process_path;
 
   sensorinfo->execution_task = GNUNET_SCHEDULER_add_delayed(sensorinfo->interval, &sensor_run, sensorinfo);
   if(GNUNET_YES == sensorinfo->running) //FIXME: should we try to kill?
@@ -815,13 +835,45 @@ sensor_run (void *cls,
   }
   else if(sources[1] == sensorinfo->source)
   {
+    /*GNUNET_OS_start_process_s(GNUNET_NO,
+        GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
+        NULL,
+        "touch",
+        "touch /home/omar/hiii");*/
+    /*GNUNET_OS_start_process(GNUNET_NO,
+        GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
+        NULL,
+        NULL,
+        NULL,
+        "/home/omar/workspace/gnunet/src/sensor/sensors/averagepingrtt-files/avgping.sh",
+        "avgping.sh",
+        NULL);
+    GNUNET_OS_start_process(GNUNET_NO,
+        GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
+        NULL,
+        NULL,
+        NULL,
+        "whoami",
+        "whoami",
+        NULL);*/
+    //FIXME: break execution if process is a path
     //check if the process exists in $PATH
+    process_path = GNUNET_strdup(sensorinfo->ext_process);
     check_result =
         GNUNET_OS_check_helper_binary(sensorinfo->ext_process, GNUNET_NO, NULL); //search in $PATH
     if(GNUNET_SYSERR == check_result)
     {
       //search in sensor directory
-
+      sensors_dir = get_sensor_dir();
+      GNUNET_free(process_path);
+      GNUNET_asprintf(&process_path, "%s%s-files%s%s",
+          sensors_dir,
+          sensorinfo->name,
+          DIR_SEPARATOR_STR,
+          sensorinfo->ext_process);
+      GNUNET_free(sensors_dir);
+      check_result =
+        GNUNET_OS_check_helper_binary(process_path, GNUNET_NO, NULL);
     }
     if(GNUNET_SYSERR == check_result)
     {
@@ -830,12 +882,25 @@ sensor_run (void *cls,
           sensorinfo->ext_process);
       //FIXME: disable sensor here?
       sensorinfo->running = GNUNET_NO;
+      GNUNET_free(process_path);
       return;
     }
-    else if(GNUNET_NO == check_result)
-    {
-
-    }
+    /*GNUNET_OS_start_process(GNUNET_NO,
+        GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
+        NULL,
+        NULL,
+        NULL,
+        process_path,
+        sensorinfo->ext_process,
+        sensorinfo->ext_args,
+        NULL)*/
+    GNUNET_OS_command_run(&sensor_process_callback,
+        sensorinfo,
+        GNUNET_TIME_UNIT_FOREVER_REL,
+        process_path,
+        sensorinfo->ext_process,
+        sensorinfo->ext_args,
+        NULL);
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Process started for sensor `%s'\n", sensorinfo->name);
   }
   else

@@ -64,7 +64,5 @@ install-data-local:
 	$(mkinstalldirs) $(datadir)/$(PACKAGE)/$(pkgsensordir)
 	@$(NORMAL_INSTALL)
 	for sensor in $(pkgsensordir)/*; do \
-	  if test -f $$sensor; then \
-	    $(INSTALL_DATA) $$sensor $(datadir)/$(PACKAGE)/$(pkgsensordir)/ ; \
-	  fi \
+	  cp -a $$sensor $(datadir)/$(PACKAGE)/$(pkgsensordir)/ ; \
 	done
