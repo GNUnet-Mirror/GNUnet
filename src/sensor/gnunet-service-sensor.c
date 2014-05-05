@@ -835,27 +835,6 @@ sensor_run (void *cls,
   }
   else if(sources[1] == sensorinfo->source)
   {
-    /*GNUNET_OS_start_process_s(GNUNET_NO,
-        GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
-        NULL,
-        "touch",
-        "touch /home/omar/hiii");*/
-    /*GNUNET_OS_start_process(GNUNET_NO,
-        GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
-        NULL,
-        NULL,
-        NULL,
-        "/home/omar/workspace/gnunet/src/sensor/sensors/averagepingrtt-files/avgping.sh",
-        "avgping.sh",
-        NULL);
-    GNUNET_OS_start_process(GNUNET_NO,
-        GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
-        NULL,
-        NULL,
-        NULL,
-        "whoami",
-        "whoami",
-        NULL);*/
     //FIXME: break execution if process is a path
     //check if the process exists in $PATH
     process_path = GNUNET_strdup(sensorinfo->ext_process);
@@ -885,15 +864,6 @@ sensor_run (void *cls,
       GNUNET_free(process_path);
       return;
     }
-    /*GNUNET_OS_start_process(GNUNET_NO,
-        GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
-        NULL,
-        NULL,
-        NULL,
-        process_path,
-        sensorinfo->ext_process,
-        sensorinfo->ext_args,
-        NULL)*/
     GNUNET_OS_command_run(&sensor_process_callback,
         sensorinfo,
         GNUNET_TIME_UNIT_FOREVER_REL,
