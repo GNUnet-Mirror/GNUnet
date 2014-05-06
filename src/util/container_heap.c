@@ -163,10 +163,10 @@ GNUNET_CONTAINER_heap_destroy (struct GNUNET_CONTAINER_Heap *heap)
 
 
 /**
- * Get element stored at root of heap.
+ * Get element stored at the root of @a heap.
  *
- * @param heap heap to inspect
- * @return NULL if heap is empty
+ * @param heap  Heap to inspect.
+ * @return Element at the root, or NULL if heap is empty.
  */
 void *
 GNUNET_CONTAINER_heap_peek (const struct GNUNET_CONTAINER_Heap *heap)
@@ -174,6 +174,30 @@ GNUNET_CONTAINER_heap_peek (const struct GNUNET_CONTAINER_Heap *heap)
   if (heap->root == NULL)
     return NULL;
   return heap->root->element;
+}
+
+
+/**
+ * Get @a element and @a cost stored at the root of @a heap.
+ *
+ * @param[in]  heap     Heap to inspect.
+ * @param[out] element  Root element is returned here.
+ * @param[out] cost     Cost of @a element is returned here.
+ * @return #GNUNET_YES if an element is returned,
+ *         #GNUNET_NO  if the heap is empty.
+ */
+int
+GNUNET_CONTAINER_heap_peek2 (const struct GNUNET_CONTAINER_Heap *heap,
+                             void **element,
+                             GNUNET_CONTAINER_HeapCostType *cost)
+{
+  if (NULL == heap->root)
+    return GNUNET_NO;
+  if (NULL != element)
+    *element = heap->root->element;
+  if (NULL != cost)
+    *cost = heap->root->cost;
+  return GNUNET_YES;
 }
 
 
@@ -202,6 +226,7 @@ GNUNET_CONTAINER_heap_node_get_cost (const struct GNUNET_CONTAINER_HeapNode
 {
   return node->cost;
 }
+
 
 /**
  * Iterate over the children of the given node.
