@@ -1395,11 +1395,11 @@ client_connect_put (struct Session *s)
       curl_easy_setopt (s->client_put, CURLOPT_SSL_VERIFYHOST, 0);
     }
   }
-  curl_easy_setopt (s->client_get, CURLOPT_PROTOCOLS, CURLPROTO_HTTPS);
-  curl_easy_setopt (s->client_get, CURLOPT_REDIR_PROTOCOLS, CURLPROTO_HTTPS);
+  curl_easy_setopt (s->client_put, CURLOPT_PROTOCOLS, CURLPROTO_HTTPS);
+  curl_easy_setopt (s->client_put, CURLOPT_REDIR_PROTOCOLS, CURLPROTO_HTTPS);
 #else
-  curl_easy_setopt (s->client_get, CURLOPT_PROTOCOLS, CURLPROTO_HTTP);
-  curl_easy_setopt (s->client_get, CURLOPT_REDIR_PROTOCOLS, CURLPROTO_HTTP);
+  curl_easy_setopt (s->client_put, CURLOPT_PROTOCOLS, CURLPROTO_HTTP);
+  curl_easy_setopt (s->client_put, CURLOPT_REDIR_PROTOCOLS, CURLPROTO_HTTP);
 #endif
   if (s->plugin->proxy_hostname != NULL)
   {
