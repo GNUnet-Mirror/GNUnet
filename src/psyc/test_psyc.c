@@ -35,9 +35,9 @@
 #include "gnunet_env_lib.h"
 #include "gnunet_psyc_service.h"
 
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
 
-#define DEBUG_SERVICE 1
+#define DEBUG_SERVICE 0
 
 
 /**
@@ -120,7 +120,7 @@ cleanup ()
 
 
 /**
- * Terminate the testcase (failure).
+ * Terminate the test case (failure).
  *
  * @param cls NULL
  * @param tc scheduler context
@@ -134,7 +134,7 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
- * Terminate the testcase (success).
+ * Terminate the test case (success).
  *
  * @param cls NULL
  * @param tc scheduler context
@@ -148,7 +148,7 @@ end_normally (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
- * Finish the testcase (successfully).
+ * Finish the test case (successfully).
  */
 static void
 end ()
@@ -518,7 +518,8 @@ run (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Starting master.\n");
   mst = GNUNET_PSYC_master_start (cfg, channel_key, GNUNET_PSYC_CHANNEL_PRIVATE,
-                                  &master_message, &join_request, &master_started, NULL);
+                                  &master_message, &join_request,
+                                  &master_started, NULL);
 }
 
 

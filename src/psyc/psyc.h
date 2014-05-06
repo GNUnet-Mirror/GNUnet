@@ -31,8 +31,9 @@
 #include "gnunet_psyc_service.h"
 
 
-uint16_t
-GNUNET_PSYC_message_last_part (uint16_t data_size, const char *data);
+int
+GNUNET_PSYC_check_message_parts (uint16_t data_size, const char *data,
+                                 uint16_t *first_ptype, uint16_t *last_ptype);
 
 void
 GNUNET_PSYC_log_message (enum GNUNET_ErrorType kind,
@@ -41,14 +42,26 @@ GNUNET_PSYC_log_message (enum GNUNET_ErrorType kind,
 
 enum MessageState
 {
-  MSG_STATE_START = 0,
-  MSG_STATE_HEADER = 1,
-  MSG_STATE_METHOD = 2,
+  MSG_STATE_START    = 0,
+  MSG_STATE_HEADER   = 1,
+  MSG_STATE_METHOD   = 2,
   MSG_STATE_MODIFIER = 3,
   MSG_STATE_MOD_CONT = 4,
-  MSG_STATE_DATA = 5,
-  MSG_STATE_END = 6,
-  MSG_STATE_CANCEL = 7,
+  MSG_STATE_DATA     = 5,
+  MSG_STATE_END      = 6,
+  MSG_STATE_CANCEL   = 7,
+  MSG_STATE_ERROR    = 8,
+};
+
+
+enum MessageFragmentState
+{
+  MSG_FRAG_STATE_START    = 0,
+  MSG_FRAG_STATE_HEADER   = 1,
+  MSG_FRAG_STATE_DATA     = 2,
+  MSG_FRAG_STATE_END      = 3,
+  MSG_FRAG_STATE_CANCEL   = 4,
+  MSG_FRAG_STATE_DROP     = 5,
 };
 
 

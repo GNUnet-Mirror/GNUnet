@@ -2148,7 +2148,7 @@ extern "C"
 /**
  * C: client
  * S: service
- * M: muticast
+ * M: multicast
  */
 
 /** S->C: result of an operation */

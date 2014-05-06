@@ -1099,9 +1099,9 @@ GNUNET_PSYCSTORE_state_sync (struct GNUNET_PSYCSTORE_Handle *h,
     req->message_id = GNUNET_htonll (message_id);
     req->name_size = htons (name_size);
     req->flags
-      = 0 == i
+      = (0 == i)
       ? STATE_OP_FIRST
-      : modifier_count - 1 == i
+      : (modifier_count - 1 == i)
       ? STATE_OP_LAST
       : 0;
 

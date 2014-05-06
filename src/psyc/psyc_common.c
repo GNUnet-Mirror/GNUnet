@@ -30,36 +30,48 @@
 /**
  * Check if @a data contains a series of valid message parts.
  *
- * @param data_size  Size of @a data.
- * @param data       Data.
+ * @param      data_size    Size of @a data.
+ * @param      data	    Data.
+ * @param[out] first_ptype  Type of first message part.
+ * @param[out] last_ptype   Type of last message part.
  *
- * @return Message type number
- *         or GNUNET_NO if the message contains invalid or no parts.
+ * @return Number of message parts found in @a data.
+ *         or GNUNET_SYSERR if the message contains invalid parts.
  */
-uint16_t
-GNUNET_PSYC_message_last_part (uint16_t data_size, const char *data)
+int
+GNUNET_PSYC_check_message_parts (uint16_t data_size, const char *data,
+                                 uint16_t *first_ptype, uint16_t *last_ptype)
 {
   const struct GNUNET_MessageHeader *pmsg;
-  uint16_t ptype = GNUNET_NO;
-  uint16_t psize = 0;
-  uint16_t pos = 0;
+  uint16_t parts = 0, ptype = 0, psize = 0, pos = 0;
+  if (NULL != first_ptype)
+    *first_ptype = 0;
+  if (NULL != last_ptype)
+    *last_ptype = 0;
 
-  for (pos = 0; pos < data_size; pos += psize)
+  for (pos = 0; pos < data_size; pos += psize, parts++)
   {
     pmsg = (const struct GNUNET_MessageHeader *) (data + pos);
     psize = ntohs (pmsg->size);
     ptype = ntohs (pmsg->type);
-    if (psize < sizeof (*pmsg) || pos + psize > data_size
+    if (0 == parts && NULL != first_ptype)
+      *first_ptype = ptype;
+    if (NULL != last_ptype
+        && *last_ptype < GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_END)
+      *last_ptype = ptype;
+    if (psize < sizeof (*pmsg)
+        || pos + psize > data_size
         || ptype < GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_METHOD
         || GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_CANCEL < ptype)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   "Invalid message part of type %u and size %u.\n",
                   ptype, psize);
-      return GNUNET_NO;
+      return GNUNET_SYSERR;
     }
+    /* FIXME: check message part order */
   }
-  return ptype;
+  return parts;
 }
 
 

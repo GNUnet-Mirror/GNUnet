@@ -167,7 +167,23 @@ enum GNUNET_PSYC_MessageFlags
   /**
    * Request from slave to master.
    */
-  GNUNET_PSYC_MESSAGE_REQUEST = 1 << 1
+  GNUNET_PSYC_MESSAGE_REQUEST = 1 << 1,
+
+  /**
+   * Message can be delivered out of order.
+   */
+  GNUNET_PSYC_MESSAGE_ORDER_ANY = 1 << 2
+};
+
+
+/**
+ * Values for the @a state_delta field of GNUNET_PSYC_MessageHeader.
+ */
+enum GNUNET_PSYC_StateDeltaValues
+{
+  GNUNET_PSYC_STATE_RESET = 0,
+
+  GNUNET_PSYC_STATE_NOT_MODIFIED = UINT64_MAX
 };
 
 
@@ -175,6 +191,8 @@ GNUNET_NETWORK_STRUCT_BEGIN
 
 /**
  * Header of a PSYC message.
+ *
+ * Only present when receiving a message.
  */
 struct GNUNET_PSYC_MessageHeader
 {
@@ -222,6 +240,12 @@ struct GNUNET_PSYC_MessageMethod
    * OR'ed GNUNET_PSYC_MasterTransmitFlags
    */
   uint32_t flags GNUNET_PACKED;
+
+  /**
+   * Number of message IDs since the last message that contained state
+   * operations. @see enum GNUNET_PSYC_StateDeltaValues
+   */
+  uint64_t state_delta GNUNET_PACKED;
 
   /* Followed by NUL-terminated method name. */
 };
@@ -479,22 +503,29 @@ typedef int
 enum GNUNET_PSYC_MasterTransmitFlags
 {
   GNUNET_PSYC_MASTER_TRANSMIT_NONE = 0,
+
   /**
    * Whether this message should reset the channel state,
    * i.e. remove all previously stored state variables.
    */
-  GNUNET_PSYC_MASTER_TRANSMIT_RESET_STATE = 1 << 0,
+
+  GNUNET_PSYC_MASTER_TRANSMIT_STATE_RESET = 1 << 0,
+
+  /**
+   * Whether this message contains any state modifiers.
+   */
+  GNUNET_PSYC_MASTER_TRANSMIT_STATE_MODIFY = 1 << 1,
+
+  /**
+   * Add PSYC header variable with the hash of the current channel state.
+   */
+  GNUNET_PSYC_MASTER_TRANSMIT_STATE_HASH = 1 << 2,
 
   /**
    * Whether we need to increment the group generation counter after
    * transmitting this message.
    */
-  GNUNET_PSYC_MASTER_TRANSMIT_INC_GROUP_GEN = 1 << 1,
-
-  /**
-   * Add PSYC header variable with the hash of the current channel state.
-   */
-  GNUNET_PSYC_MASTER_TRANSMIT_ADD_STATE_HASH = 1 << 2
+  GNUNET_PSYC_MASTER_TRANSMIT_INC_GROUP_GEN = 1 << 3
 };
 
 

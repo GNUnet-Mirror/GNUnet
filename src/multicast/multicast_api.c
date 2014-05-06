@@ -182,7 +182,7 @@ message_callback (void *cls, const struct GNUNET_HashCode *chan_key_hash,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Calling origin's message callback "
-                "for a message of type %u and size %u.\n",
+                "with a message of type %u and size %u.\n",
               ntohs (msg->type), ntohs (msg->size));
     struct GNUNET_MULTICAST_Origin *orig = (struct GNUNET_MULTICAST_Origin *) grp;
     orig->message_cb (orig->cls, msg);
@@ -190,8 +190,8 @@ message_callback (void *cls, const struct GNUNET_HashCode *chan_key_hash,
   else
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Calling slave's message callback "
-                "for a message of type %u and size %u.\n",
+                "Calling member's message callback "
+                "with a message of type %u and size %u.\n",
                 ntohs (msg->type), ntohs (msg->size));
     struct GNUNET_MULTICAST_Member *mem = (struct GNUNET_MULTICAST_Member *) grp;
     mem->message_cb (mem->cls, msg);
@@ -477,8 +477,8 @@ schedule_origin_to_all (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
   msg->group_generation = mh->group_generation;
 
   /* FIXME: add fragment ID and signature in the service instead of here */
-  msg->fragment_id = GNUNET_ntohll (orig->next_fragment_id++);
-  msg->fragment_offset = GNUNET_ntohll (mh->fragment_offset);
+  msg->fragment_id = GNUNET_htonll (orig->next_fragment_id++);
+  msg->fragment_offset = GNUNET_htonll (mh->fragment_offset);
   mh->fragment_offset += sizeof (*msg) + buf_size;
   msg->purpose.size = htonl (sizeof (*msg) + buf_size
                              - sizeof (msg->header)
