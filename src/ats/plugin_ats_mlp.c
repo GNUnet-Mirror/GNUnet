@@ -1681,7 +1681,7 @@ get_peer_pref_value (struct GAS_MLP_Handle *mlp, const struct GNUNET_PeerIdentit
   int c;
   preferences = mlp->get_preferences (mlp->get_preferences_cls, peer);
 
-  res = 0.0;
+  res = 1.0;
   for (c = 0; c < GNUNET_ATS_PreferenceCount; c++)
   {
     if (c != GNUNET_ATS_PREFERENCE_END)

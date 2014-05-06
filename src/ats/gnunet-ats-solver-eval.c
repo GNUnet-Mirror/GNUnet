@@ -2452,7 +2452,7 @@ GNUNET_ATS_solvers_experimentation_load (char *filename)
   if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string(cfg, "experiment",
       "name", &e->name))
   {
-    fprintf (stderr, "Invalid %s", "name");
+    fprintf (stderr, "Invalid %s \n", "name");
     free_experiment (e);
     return NULL;
   }
@@ -2462,7 +2462,7 @@ GNUNET_ATS_solvers_experimentation_load (char *filename)
   if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string(cfg, "experiment",
       "log_prefix", &e->log_prefix))
   {
-    fprintf (stderr, "Invalid %s", "name");
+    fprintf (stderr, "Invalid %s \n", "log_prefix");
     free_experiment (e);
     return NULL;
   }
@@ -2490,7 +2490,7 @@ GNUNET_ATS_solvers_experimentation_load (char *filename)
   if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_filename (cfg, "experiment",
       "cfg_file", &e->cfg_file))
   {
-    fprintf (stderr, "Invalid %s", "cfg_file");
+    fprintf (stderr, "Invalid %s \n", "cfg_file");
     free_experiment (e);
     return NULL;
   }
@@ -2500,7 +2500,7 @@ GNUNET_ATS_solvers_experimentation_load (char *filename)
     e->cfg = GNUNET_CONFIGURATION_create();
     if (GNUNET_SYSERR == GNUNET_CONFIGURATION_load (e->cfg, e->cfg_file))
     {
-      fprintf (stderr, "Invalid configuration %s", "cfg_file");
+      fprintf (stderr, "Invalid configuration %s \n", "cfg_file");
       free_experiment (e);
       return NULL;
     }
@@ -2510,7 +2510,7 @@ GNUNET_ATS_solvers_experimentation_load (char *filename)
   if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_time(cfg, "experiment",
       "log_freq", &e->log_freq))
   {
-    fprintf (stderr, "Invalid %s", "log_freq");
+    fprintf (stderr, "Invalid %s \n", "log_freq");
     free_experiment (e);
     return NULL;
   }

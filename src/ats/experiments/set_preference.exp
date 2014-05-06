@@ -1,23 +1,24 @@
 # Example setting up two peers 
 
 [experiment]
- name = test
- max_duration = 15 s
- log_freq = 1000 ms
- cfg_file = experiments/gnunet_ats_sim_default.conf
- 
- 
+name = test
+max_duration = 15 s
+log_freq = 1000 ms
+log_prefix = set_preference
+cfg_file = experiments/gnunet_ats_sim_default.conf
+  
 [episode-0]
 # Setup addresses
 
 # operations = address_add, address_del, start_set_property, stop_set_property, 
 # start_set_preference, stop_preference, start_request, stop_request
-duration = 5 s
+duration = 2 s
+
 op-0-operation = address_add
 op-0-address-id = 0
 op-0-peer-id = 0
 op-0-address-session = 0
-op-0-address-network = 0
+op-0-address-network = lan
 op-0-address = 0_0_test
 op-0-plugin = test
 
@@ -25,7 +26,7 @@ op-1-operation = address_add
 op-1-address-id = 1
 op-1-peer-id = 1
 op-1-address-session = 0
-op-1-address-network = 0
+op-1-address-network = lan
 op-1-address = 1_1_test
 op-1-plugin = test
 
@@ -37,18 +38,18 @@ op-3-peer-id = 1
 
 [episode-1]
 # Set delay
-duration = 1 s
+duration = 10 s
 
 op-0-operation = start_set_preference
 op-0-address-id = 0
 op-0-peer-id = 0
 op-0-client-id = 1
 # constant, linear, sinus, random
-op-0-gen-type = constant
-op-0-base-rate= 10000
+op-0-gen-type = linear
+op-0-base-rate= 1000
 op-0-max-rate = 10000
-op-0-period = 1000 ms
-op-0-frequency = 1000 ms
+op-0-period = 10 s
+op-0-frequency = 500 ms
 # BANDWIDTH, LATENCY
 op-0-pref = BANDWIDTH  
 
@@ -58,12 +59,13 @@ op-1-address-id = 1
 op-1-peer-id = 1
 op-1-client-id = 1
 # constant, linear, sinus, random
-op-1-gen-type = linear
-op-1-base-rate= 10000
-op-1-max-rate = 20000
-op-1-period = 1000 ms
-op-1-frequency = 100 ms
-op-1-prop = DELAY  
+op-1-gen-type = constant
+op-1-base-rate= 1000
+op-1-max-rate = 1000
+op-1-period = 10 s
+op-1-frequency = 500 ms
+# BANDWIDTH, LATENCY
+op-1-pref = BANDWIDTH  
 
 [episode-2]
 # Shutdown

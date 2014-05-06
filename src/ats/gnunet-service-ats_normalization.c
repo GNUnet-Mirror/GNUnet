@@ -53,9 +53,14 @@ struct PreferenceClient
   void *client;
 
   /**
-   * Total preference for this peer
+   * Array of sum of absolute preferences for this client
    */
   double f_abs_sum[GNUNET_ATS_PreferenceCount];
+
+  /**
+   * Array of sum of relative preferences for this client
+   */
+  double f_rel_sum[GNUNET_ATS_PreferenceCount];
 
   /**
    * List of peer preferences for this client
@@ -98,15 +103,18 @@ struct PreferencePeer
   struct GNUNET_PeerIdentity id;
 
   /**
-   * Absolute preference values
+   * Absolute preference values for all preference types
    */
   double f_abs[GNUNET_ATS_PreferenceCount];
 
   /**
-   * Relative preference values
+   * Relative preference values for all preference types
    */
   double f_rel[GNUNET_ATS_PreferenceCount];
 
+  /**
+   * Absolute point of time of next aging process
+   */
   struct GNUNET_TIME_Absolute next_aging[GNUNET_ATS_PreferenceCount];
 };
 
@@ -125,6 +133,20 @@ struct PeerRelative
    */
   struct GNUNET_PeerIdentity id;
 };
+
+/**
+ * Quality Normalization
+ */
+struct Property
+{
+  uint32_t prop_type;
+  uint32_t atsi_type;
+  uint32_t min;
+  uint32_t max;
+};
+
+struct Property properties[GNUNET_ATS_QualityPropertiesCount];
+
 
 /**
  * Callback to call on changing preference values
@@ -184,128 +206,110 @@ static GNUNET_SCHEDULER_TaskIdentifier aging_task;
  * @param kind the kind
  * @return the new relative preference
  */
-static double
-update_peers (struct GNUNET_PeerIdentity *id,
-    enum GNUNET_ATS_PreferenceKind kind)
+static void
+update_relative_values_for_peer (const struct GNUNET_PeerIdentity *id,
+    enum GNUNET_ATS_PreferenceKind kind, struct PeerRelative *rp)
 {
   struct PreferenceClient *c_cur;
   struct PreferencePeer *p_cur;
-  struct PeerRelative *rp;
   double f_rel_total;
+  double f_rel_sum;
   double backup;
-  unsigned int count;
+  unsigned int peer_count;
 
+  f_rel_sum = 0.0;
   f_rel_total = 0.0;
-  count = 0;
+  peer_count = 0;
 
   /* For all clients */
   for (c_cur = pc_head; NULL != c_cur; c_cur = c_cur->next)
   {
-    /* Find peer with id */
+    /* For peer entries with this id */
     for (p_cur = c_cur->p_head; NULL != p_cur; p_cur = p_cur->next)
     {
+      f_rel_sum += p_cur->f_rel[kind];
       if (0 == memcmp (id, &p_cur->id, sizeof(struct GNUNET_PeerIdentity)))
-        break;
-    }
-    if (NULL != p_cur)
-    {
-      /* Found peer with id */
-      f_rel_total += p_cur->f_rel[kind];
-      count++;
+      {
+        peer_count ++;
+        f_rel_total += p_cur->f_rel[kind];
+      }
+
     }
   }
 
-  /* Find a client */
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-      "%u clients have a total relative preference for peer `%s''s `%s' of %.3f\n",
-      count, GNUNET_i2s (id), GNUNET_ATS_print_preference_type (kind),
-      f_rel_total);
-  if (NULL != (rp = GNUNET_CONTAINER_multipeermap_get (preference_peers, id)))
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+      "%u clients have a total relative preference for peer `%s' `%s' of %.3f and for %s in total %.3f\n",
+      peer_count, GNUNET_i2s (id),
+      GNUNET_ATS_print_preference_type (kind),
+      f_rel_total,
+      GNUNET_ATS_print_preference_type (kind),
+      f_rel_sum);
+
+  /* Find entry for the peer containing relative values in the hashmap */
+  if (NULL != rp)
   {
     backup = rp->f_rel[kind];
-    if (0 < count)
-    {
-      rp->f_rel[kind] = f_rel_total / count;
-    }
+    if (f_rel_sum > 0)
+      rp->f_rel[kind] = f_rel_total / f_rel_sum;
     else
     {
+      /* No client had any preferences for this type and any peer */
       rp->f_rel[kind] = DEFAULT_REL_PREFERENCE;
     }
-  }
-  else
-  {
-    return DEFAULT_REL_PREFERENCE;
   }
 
   if ((backup != rp->f_rel[kind]) && (NULL != pref_changed_cb))
   {
     pref_changed_cb (pref_changed_cb_cls, &rp->id, kind, rp->f_rel[kind]);
   }
-
-  return rp->f_rel[kind];
 }
 
 /**
  * Recalculate preference for a specific ATS property
  *
  * @param c the preference client
- * @param p the peer
  * @param kind the preference kind
  * @return the result
  */
-static double
-recalculate_rel_preferences (struct PreferenceClient *c,
-    struct PreferencePeer *p, enum GNUNET_ATS_PreferenceKind kind)
+static void
+recalculate_relative_preferences (struct PreferenceClient *c, enum GNUNET_ATS_PreferenceKind kind)
 {
   struct PreferencePeer *p_cur;
-  struct PeerRelative *rp;
-  double backup;
-  double res;
-  double ret;
 
-  /* For this client: sum preferences to total preference */
-  c->f_abs_sum[kind] = 0;
+  /* For this client: sum of absolute preference values for this preference */
+  c->f_abs_sum[kind] = 0.0;
+  /* For this client: sum of relative preference values for this preference
+   *
+   * Note: this value should also be 1.0, but:
+   * if no preferences exist due to aging, this value can be 0.0
+   * and the client can be removed */
+  c->f_rel_sum[kind] = 0.0;
+
   for (p_cur = c->p_head; NULL != p_cur; p_cur = p_cur->next)
     c->f_abs_sum[kind] += p_cur->f_abs[kind];
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-      "Client %p has total preference for %s of %.3f\n", c->client,
-      GNUNET_ATS_print_preference_type (kind), c->f_abs_sum[kind]);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+      "Client %p has sum of total preferences for %s of %.3f\n",
+      c->client, GNUNET_ATS_print_preference_type (kind), c->f_abs_sum[kind]);
 
-  ret = DEFAULT_REL_PREFERENCE;
   /* For all peers: calculate relative preference */
   for (p_cur = c->p_head; NULL != p_cur; p_cur = p_cur->next)
   {
     /* Calculate relative preference for specific kind */
-    backup = p_cur->f_rel[kind];
-    if (DEFAULT_ABS_PREFERENCE == c->f_abs_sum[kind])
-      /* No peer has a preference for this property,
-       * so set default preference */
-      p_cur->f_rel[kind] = DEFAULT_REL_PREFERENCE;
-    else
-      p_cur->f_rel[kind] = (c->f_abs_sum[kind] + p_cur->f_abs[kind])
-          / c->f_abs_sum[kind];
 
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-        "Client %p: peer `%s' has relative preference for %s of %.3f\n",
-        c->client, GNUNET_i2s (&p_cur->id),
-        GNUNET_ATS_print_preference_type (kind), p_cur->f_rel[kind]);
+    /* Every application has a preference for each peer between
+     * [0 .. 1] in relative values
+     * and [0 .. inf] in absolute values */
+    p_cur->f_rel[kind] =  p_cur->f_abs[kind] / c->f_abs_sum[kind];
+    c->f_rel_sum[kind] += p_cur->f_rel[kind];
 
-    if (p_cur->f_rel[kind] != backup)
-    {
-      /* Value changed, recalculate */
-      res = update_peers (&p_cur->id, kind);
-      if (0 == memcmp (&p->id, &p_cur->id, sizeof(struct GNUNET_PeerIdentity)))
-        ret = res;
-    }
-    else
-    {
-      /* Value did not chang, return old value*/
-      GNUNET_assert(
-          NULL != (rp = GNUNET_CONTAINER_multipeermap_get (preference_peers, &p->id)));
-      ret = rp->f_rel[kind];
-    }
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+        "Client %p has relative preference for %s for peer `%s' of %.3f\n",
+        c->client,
+        GNUNET_ATS_print_preference_type (kind),
+        GNUNET_i2s (&p_cur->id),
+        p_cur->f_rel[kind]);
   }
-  return ret;
+
 }
 
 /**
@@ -316,8 +320,8 @@ recalculate_rel_preferences (struct PreferenceClient *c,
  * @param score_abs the absolute value
  * @return the new relative preference value
  */
-static double
-update_preference (struct PreferenceClient *c, struct PreferencePeer *p,
+static void
+update_abs_preference (struct PreferenceClient *c, struct PreferencePeer *p,
     enum GNUNET_ATS_PreferenceKind kind, float score_abs)
 {
   double score = score_abs;
@@ -327,7 +331,8 @@ update_preference (struct PreferenceClient *c, struct PreferencePeer *p,
   {
   case GNUNET_ATS_PREFERENCE_BANDWIDTH:
   case GNUNET_ATS_PREFERENCE_LATENCY:
-    p->f_abs[kind] = (p->f_abs[kind] + score) / 2;
+    p->f_abs[kind] = score;
+    /* p->f_abs[kind] = (p->f_abs[kind] + score) / 2;  */
     p->next_aging[kind] = GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get (),
         PREF_AGING_INTERVAL);
     break;
@@ -336,7 +341,32 @@ update_preference (struct PreferenceClient *c, struct PreferencePeer *p,
   default:
     break;
   }
-  return recalculate_rel_preferences (c, p, kind);
+}
+
+static int update_iterator (void *cls,
+                           const struct GNUNET_PeerIdentity *key,
+                           void *value)
+{
+  enum GNUNET_ATS_PreferenceKind *kind = cls;
+  update_relative_values_for_peer (key, (*kind), (struct PeerRelative *) value);
+  return GNUNET_OK;
+}
+
+static void
+run_preference_update (struct PreferenceClient *c_cur,
+    struct PreferencePeer *p_cur,enum GNUNET_ATS_PreferenceKind kind,
+    float score_abs)
+{
+  double old_value;
+
+  /* Update relative value */
+  old_value = p_cur->f_rel[kind];
+  recalculate_relative_preferences (c_cur, kind);
+  if (p_cur->f_rel[kind] == old_value)
+    return;
+
+  /* Relative preference value changed, recalculate for all peers */
+  GNUNET_CONTAINER_multipeermap_iterate (preference_peers, &update_iterator, &kind);
 }
 
 /**
@@ -373,15 +403,19 @@ preference_aging (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
           backup = p->f_abs[i];
           if (p->f_abs[i] > DEFAULT_ABS_PREFERENCE)
             p->f_abs[i] *= PREF_AGING_FACTOR;
+
           if (p->f_abs[i] <= DEFAULT_ABS_PREFERENCE + PREF_EPSILON)
             p->f_abs[i] = DEFAULT_ABS_PREFERENCE;
-          if ((p->f_abs[i] != DEFAULT_ABS_PREFERENCE)
-              && (backup != p->f_abs[i]))
+
+          if ( (p->f_abs[i] != DEFAULT_ABS_PREFERENCE) &&
+               (backup != p->f_abs[i]) )
           {
             GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
                 "Aged preference for peer `%s' from %.3f to %.3f\n",
                 GNUNET_i2s (&p->id), backup, p->f_abs[i]);
-            recalculate_rel_preferences (p->client, p, i);
+
+            run_preference_update(cur_client, p, i, p->f_abs[i]);
+
             p->next_aging[i] = GNUNET_TIME_absolute_add (
                 GNUNET_TIME_absolute_get (), PREF_AGING_INTERVAL);
             values_to_update++;
@@ -408,27 +442,31 @@ preference_aging (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /**
  * Normalize an updated preference value
  *
- * @param src the client with this preference
+ * @param client the client with this preference
  * @param peer the peer to change the preference for
  * @param kind the kind to change the preference
  * @param score_abs the normalized score
  */
 void
-GAS_normalization_normalize_preference (void *src,
+GAS_normalization_normalize_preference (void *client,
     const struct GNUNET_PeerIdentity *peer, enum GNUNET_ATS_PreferenceKind kind,
     float score_abs)
 {
   struct PreferenceClient *c_cur;
   struct PreferencePeer *p_cur;
   struct PeerRelative *r_cur;
+  double old_value;
   int i;
 
-  GNUNET_assert(NULL != src);
+  GNUNET_assert(NULL != client);
   GNUNET_assert(NULL != peer);
 
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-      "Client %p changes preference for peer `%s' for `%s' to %.2f\n", src,
-      GNUNET_i2s (peer), GNUNET_ATS_print_preference_type (kind), score_abs);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+      "Client %p changes preference for peer `%s' for `%s' to %.2f\n",
+      client,
+      GNUNET_i2s (peer),
+      GNUNET_ATS_print_preference_type (kind),
+      score_abs);
 
   if (kind >= GNUNET_ATS_PreferenceCount)
   {
@@ -439,16 +477,22 @@ GAS_normalization_normalize_preference (void *src,
   /* Find preference client */
   for (c_cur = pc_head; NULL != c_cur; c_cur = c_cur->next)
   {
-    if (src == c_cur->client)
+    if (client == c_cur->client)
       break;
   }
   /* Not found: create new preference client */
   if (NULL == c_cur)
   {
     c_cur = GNUNET_new (struct PreferenceClient);
-    c_cur->client = src;
+    c_cur->client = client;
+    for (i = 0; i < GNUNET_ATS_PreferenceCount; i++)
+    {
+      c_cur->f_abs_sum[i] = DEFAULT_ABS_PREFERENCE;
+      c_cur->f_rel_sum[i] = DEFAULT_REL_PREFERENCE;
+    }
+
     GNUNET_CONTAINER_DLL_insert(pc_head, pc_tail, c_cur);
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Adding new client %p \n", c_cur);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Adding new client %p \n", c_cur);
   }
 
   /* Find entry for peer */
@@ -464,32 +508,42 @@ GAS_normalization_normalize_preference (void *src,
     p_cur->id = (*peer);
     for (i = 0; i < GNUNET_ATS_PreferenceCount; i++)
     {
-      /* Default value per peer absolut preference for a quality:
-       * No value set, so absolute preference 0 */
+      /* Default value per peer absolute preference for a preference: 0 */
       p_cur->f_abs[i] = DEFAULT_ABS_PREFERENCE;
       /* Default value per peer relative preference for a quality: 1.0 */
       p_cur->f_rel[i] = DEFAULT_REL_PREFERENCE;
       p_cur->next_aging[i] = GNUNET_TIME_UNIT_FOREVER_ABS;
     }
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Adding new peer %p for client %p \n",
+        p_cur, c_cur);
     GNUNET_CONTAINER_DLL_insert(c_cur->p_head, c_cur->p_tail, p_cur);
   }
 
+  /* Create struct for peer */
   if (NULL == GNUNET_CONTAINER_multipeermap_get (preference_peers, peer))
   {
     r_cur = GNUNET_new (struct PeerRelative);
     r_cur->id = (*peer);
     for (i = 0; i < GNUNET_ATS_PreferenceCount; i++)
       r_cur->f_rel[i] = DEFAULT_REL_PREFERENCE;
-    GNUNET_assert (GNUNET_OK ==
-                   GNUNET_CONTAINER_multipeermap_put (preference_peers, &r_cur->id, r_cur,
-                                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+    GNUNET_assert(
+        GNUNET_OK == GNUNET_CONTAINER_multipeermap_put (preference_peers,
+            &r_cur->id, r_cur, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   }
 
+  /* Update absolute value */
+  old_value = p_cur->f_abs[kind];
+  update_abs_preference (c_cur, p_cur, kind, score_abs);
+  if (p_cur->f_abs[kind] == old_value)
+    return;
+
+  run_preference_update (c_cur, p_cur, kind, score_abs);
+
+  /* Start aging task */
   if (GNUNET_SCHEDULER_NO_TASK == aging_task)
     aging_task = GNUNET_SCHEDULER_add_delayed (PREF_AGING_INTERVAL,
         &preference_aging, NULL );
 
-  update_preference (c_cur, p_cur, kind, score_abs);
 }
 
 /**
@@ -575,20 +629,6 @@ GAS_normalization_get_properties (struct ATS_Address *address)
   }
   return norm_values;
 }
-
-
-/**
- * Quality Normalization
- */
-struct Property
-{
-  uint32_t prop_type;
-  uint32_t atsi_type;
-  uint32_t min;
-  uint32_t max;
-};
-
-struct Property properties[GNUNET_ATS_QualityPropertiesCount];
 
 /**
  * Normalize a specific ATS type with the values in queue

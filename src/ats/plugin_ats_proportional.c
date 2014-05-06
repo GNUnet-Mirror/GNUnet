@@ -203,12 +203,7 @@
  *
  */
 
-#define PREF_AGING_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
-#define PREF_AGING_FACTOR 0.95
-
-#define DEFAULT_REL_PREFERENCE 1.0
-#define DEFAULT_ABS_PREFERENCE 0.0
-#define MIN_UPDATE_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
+#define PROPORTIONALITY_FACTOR 2.0
 
 /**
  * A handle for the proportional solver
@@ -292,6 +287,10 @@ struct GAS_PROPORTIONAL_Handle
    */
   unsigned int network_count;
 
+  /**
+   * Proportionality factor
+   */
+  double prop_factor;
 };
 
 /**
@@ -400,6 +399,7 @@ libgnunet_plugin_ats_proportional_init (void *cls)
   struct GAS_PROPORTIONAL_Handle *s;
   struct Network * cur;
   char * net_str[GNUNET_ATS_NetworkTypeCount] = GNUNET_ATS_NetworkTypeString;
+  unsigned long long prop_factor;
   int c;
 
   GNUNET_assert (NULL != env);
@@ -439,6 +439,23 @@ libgnunet_plugin_ats_proportional_init (void *cls)
   s->bulk_lock = GNUNET_NO;
   s->addresses = env->addresses;
   s->requests = GNUNET_CONTAINER_multipeermap_create (10, GNUNET_NO);
+
+  if (GNUNET_SYSERR != GNUNET_CONFIGURATION_get_value_number(s->env->cfg, "ats",
+      "PROP_PROPORTIONALITY_FACTOR", &prop_factor))
+  {
+    if (prop_factor > 1)
+      s->prop_factor = (double) prop_factor;
+    else
+    {
+      GNUNET_break (0);
+      s->prop_factor = PROPORTIONALITY_FACTOR;
+    }
+  }
+  else
+    s->prop_factor = PROPORTIONALITY_FACTOR;
+  LOG (GNUNET_ERROR_TYPE_ERROR, "Using proportionality factor %.0f\n",
+      s->prop_factor);
+
 
   for (c = 0; c < env->network_count; c++)
   {
@@ -557,18 +574,21 @@ distribute_bandwidth (struct GAS_PROPORTIONAL_Handle *s,
     struct Network *net, struct ATS_Address *address_except)
 {
   struct AddressSolverInformation *asi;
-  struct AddressWrapper *cur;
+  struct AddressWrapper *cur_address;
 
   unsigned long long remaining_quota_in = 0;
   unsigned long long quota_out_used = 0;
   unsigned long long remaining_quota_out = 0;
   unsigned long long quota_in_used = 0;
+  int count_addresses;
   uint32_t min_bw = ntohl (GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT.value__);
-  double peer_prefs;
-  double total_prefs; /* Important: has to be double not float due to precision */
+  double relative_peer_prefence;
+  double sum_relative_peer_prefences; /* Important: has to be double not float due to precision */
   double cur_pref; /* Important: has to be double not float due to precision */
-  const double *t = NULL; /* Important: has to be double not float due to precision */
-  int c;
+  double peer_weight;
+  double total_weight;
+  const double *peer_relative_prefs = NULL; /* Important: has to be double not float due to precision */
+
   unsigned long long assigned_quota_in = 0;
   unsigned long long assigned_quota_out = 0;
 
@@ -603,49 +623,49 @@ distribute_bandwidth (struct GAS_PROPORTIONAL_Handle *s,
   remaining_quota_out = net->total_quota_out - (net->active_addresses * min_bw);
   LOG(GNUNET_ERROR_TYPE_DEBUG, "Remaining bandwidth : (in/out): %llu/%llu \n",
       remaining_quota_in, remaining_quota_out);
-  total_prefs = 0.0;
-  for (cur = net->head; NULL != cur; cur = cur->next)
-  {
-    if (GNUNET_YES == cur->addr->active)
-    {
-      GNUNET_assert(
-          NULL != (t = s->get_preferences (s->get_preferences_cls, &cur->addr->peer)));
+  sum_relative_peer_prefences = 0.0;
 
-      peer_prefs = 0.0;
-      for (c = 0; c < GNUNET_ATS_PreferenceCount; c++)
-      {
-        if (c != GNUNET_ATS_PREFERENCE_END)
-        {
-          //fprintf (stderr, "VALUE[%u] %s %.3f \n", c, GNUNET_i2s (&cur->addr->peer), t[c]);
-          peer_prefs += t[c];
-        }
-      }
-      total_prefs += (peer_prefs / (GNUNET_ATS_PreferenceCount - 1));
-    }
+  /* Calculate sum of relative preference for active addresses in this network */
+  count_addresses = 0;
+  for (cur_address = net->head; NULL != cur_address; cur_address = cur_address->next)
+  {
+    if (GNUNET_YES != cur_address->addr->active)
+      continue;
+
+    GNUNET_assert( NULL != (peer_relative_prefs = s->get_preferences (s->get_preferences_cls,
+        &cur_address->addr->peer)));
+    relative_peer_prefence = 0.0;
+    relative_peer_prefence += peer_relative_prefs[GNUNET_ATS_PREFERENCE_BANDWIDTH];
+    sum_relative_peer_prefences += relative_peer_prefence;
+    count_addresses ++;
   }
-  for (cur = net->head; NULL != cur; cur = cur->next)
-  {
-    if (GNUNET_YES == cur->addr->active)
-    {
-      cur_pref = 0.0;
-      GNUNET_assert(
-          NULL != (t = s->get_preferences (s->get_preferences_cls, &cur->addr->peer)));
 
-      for (c = 0; c < GNUNET_ATS_PreferenceCount; c++)
-      {
-        if (c != GNUNET_ATS_PREFERENCE_END)
-          cur_pref += t[c];
-      }
-      cur_pref /= 2;
+  GNUNET_assert (count_addresses == net->active_addresses);
+
+  LOG (GNUNET_ERROR_TYPE_INFO,
+      "Total relative preference %.3f for %u addresses in network %s\n",
+      sum_relative_peer_prefences, net->active_addresses, net->desc);
+
+  for (cur_address = net->head; NULL != cur_address; cur_address = cur_address->next)
+  {
+    if (GNUNET_YES == cur_address->addr->active)
+    {
+      GNUNET_assert( NULL != (peer_relative_prefs =
+          s->get_preferences (s->get_preferences_cls, &cur_address->addr->peer)));
+
+      cur_pref = peer_relative_prefs[GNUNET_ATS_PREFERENCE_BANDWIDTH];
+      total_weight = net->active_addresses +
+          s->prop_factor * sum_relative_peer_prefences;
+      peer_weight = (1.0 + (s->prop_factor * cur_pref));
 
       assigned_quota_in = min_bw
-          + ((cur_pref / total_prefs) * remaining_quota_in);
+          + ((peer_weight / total_weight) * remaining_quota_in);
       assigned_quota_out = min_bw
-          + ((cur_pref / total_prefs) * remaining_quota_out);
+          + ((peer_weight / total_weight) * remaining_quota_out);
 
       LOG (GNUNET_ERROR_TYPE_INFO,
-          "New quota for peer `%s' with preference (cur/total) %.3f/%.3f (in/out): %llu / %llu\n",
-          GNUNET_i2s (&cur->addr->peer), cur_pref, total_prefs,
+          "New quota for peer `%s' with weight (cur/total) %.3f/%.3f (in/out): %llu / %llu\n",
+          GNUNET_i2s (&cur_address->addr->peer), peer_weight, total_weight,
           assigned_quota_in, assigned_quota_out);
     }
     else
@@ -663,7 +683,7 @@ distribute_bandwidth (struct GAS_PROPORTIONAL_Handle *s,
       assigned_quota_out = UINT32_MAX;
 
     /* Compare to current bandwidth assigned */
-    asi = cur->addr->solver_information;
+    asi = cur_address->addr->solver_information;
     asi->calculated_quota_in_NBO = htonl (assigned_quota_in);
     asi->calculated_quota_out_NBO = htonl (assigned_quota_out);
   }
@@ -1140,13 +1160,11 @@ GAS_proportional_get_preferred_address (void *solver,
   GNUNET_assert(peer != NULL);
 
   /* Add to list of pending requests */
-  if (GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (s->requests,
-							   peer))
+  if (GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (s->requests, peer))
   {
-    GNUNET_assert (GNUNET_OK ==
-		   GNUNET_CONTAINER_multipeermap_put (s->requests,
-						      peer, NULL,
-						      GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+    GNUNET_assert(
+        GNUNET_OK == GNUNET_CONTAINER_multipeermap_put (s->requests, peer, NULL,
+            GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
   }
 
   /* Get address with: stick to current address, lower distance, lower latency */

@@ -1,10 +1,11 @@
 [experiment]
- name = test
- max_duration = 15 s
- log_freq = 1000 ms
- cfg_file = experiments/gnunet_ats_sim_default.conf
- 
- 
+name = test
+max_duration = 15 s
+log_freq = 1000 ms
+cfg_file = experiments/gnunet_ats_sim_default.conf
+log_output_dir = data/
+log_append_time_stamp = no
+  
 [episode-0]
 # Setup addresses
 

@@ -32,6 +32,11 @@ BLUETOOTH_QUOTA_IN = 128 KiB
 BLUETOOTH_QUOTA_OUT = 128 KiB
 # ATS options
 
+# Proportional specific settings
+# How proportional to preferences is bandwidth distribution in a network
+# 1: Fair with respect to addresses without preferences
+# > 1: The bigger, the more respect is payed to preferences 
+PROP_PROPORTIONALITY_FACTOR = 4
 
 # MLP specific settings
 # MLP defaults
