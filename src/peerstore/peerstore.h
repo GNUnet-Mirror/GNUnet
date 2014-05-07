@@ -28,5 +28,39 @@
 
 GNUNET_NETWORK_STRUCT_BEGIN
 
+/**
+ * Message carrying a peerstore entry
+ */
+struct AddEntryMessage
+{
+
+  /**
+   * Type will be GNUNET_MESSAGE_TYPE_PEERINFO_GET
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Peer Identity
+   */
+  struct GNUNET_PeerIdentity peer;
+
+  /**
+   * Size of the sub_system string
+   * Allocated at position 0 after this struct
+   */
+  size_t sub_system_size;
+
+  /**
+   * Size of value blob
+   * Allocated at position 1 after this struct
+   */
+  size_t value_size;
+
+  /**
+   * Lifetime of entry
+   */
+  struct GNUNET_TIME_Relative lifetime;
+
+};
 
 GNUNET_NETWORK_STRUCT_END

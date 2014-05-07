@@ -85,26 +85,26 @@ struct Plugin
  * One key can store multiple values.
  *
  * @param cls closure (internal context for the plugin)
- * @param sub_system name of the GNUnet sub system responsible
  * @param peer peer identity
+ * @param sub_system name of the GNUnet sub system responsible
  * @param value value to be stored
  * @param size size of value to be stored
  * @return #GNUNET_OK on success, else #GNUNET_SYSERR
  */
 static int
 peerstore_sqlite_store_record (void *cls,
-        const char *sub_system,
-        const struct GNUNET_PeerIdentity *peer,
-        const void *value,
-        size_t size)
+    const struct GNUNET_PeerIdentity *peer,
+    const char *sub_system,
+    const void *value,
+    size_t size)
 {
   struct Plugin *plugin = cls;
   sqlite3_stmt *stmt = plugin->insert_peerstoredata;
 
   //FIXME: check if value exists with the same key first
 
-  if(SQLITE_OK != sqlite3_bind_text(stmt, 1, sub_system, sizeof(sub_system), SQLITE_STATIC)
-      || SQLITE_OK != sqlite3_bind_blob(stmt, 2, peer, sizeof(struct GNUNET_PeerIdentity), SQLITE_STATIC)
+  if(SQLITE_OK != sqlite3_bind_blob(stmt, 2, peer, sizeof(struct GNUNET_PeerIdentity), SQLITE_STATIC)
+      || SQLITE_OK != sqlite3_bind_text(stmt, 1, sub_system, sizeof(sub_system), SQLITE_STATIC)
       || SQLITE_OK != sqlite3_bind_blob(stmt, 3, value, size, SQLITE_STATIC))
     LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                     "sqlite3_bind");
@@ -227,15 +227,15 @@ database_setup (struct Plugin *plugin)
 
   sql_exec (plugin->dbh,
             "CREATE TABLE IF NOT EXISTS peerstoredata (\n"
-            "  sub_system TEXT NOT NULL,\n"
             "  peer_id BLOB NOT NULL,\n"
+            "  sub_system TEXT NOT NULL,\n"
             "  value BLOB NULL"
             ");");
 
   /* Prepare statements */
 
   sql_prepare (plugin->dbh,
-               "INSERT INTO peerstoredata (sub_system, peer_id, value) VALUES (?,?,?);",
+               "INSERT INTO peerstoredata (peer_id, sub_system, value) VALUES (?,?,?);",
                &plugin->insert_peerstoredata);
 
   return GNUNET_OK;

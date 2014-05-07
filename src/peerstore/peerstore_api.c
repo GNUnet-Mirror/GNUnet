@@ -34,7 +34,7 @@
 /******************************************************************************/
 
 /**
- * Handle to the peerstore service.
+ * Handle to the PEERSTORE service.
  */
 struct GNUNET_PEERSTORE_Handle
 {
@@ -52,12 +52,12 @@ struct GNUNET_PEERSTORE_Handle
   /**
    * Head of transmission queue.
    */
-  struct GNUNET_PEERSTORE_AddContext *rc_head;
+  struct GNUNET_PEERSTORE_AddContext *ac_head;
 
   /**
    * Tail of transmission queue.
    */
-  struct GNUNET_PEERSTORE_AddContext *rc_tail;
+  struct GNUNET_PEERSTORE_AddContext *ac_tail;
 
   /**
    * Handle for the current transmission request, or NULL if none is pending.
@@ -140,6 +140,21 @@ trigger_transmit (struct GNUNET_PEERSTORE_Handle *h);
 /******************************************************************************/
 
 /**
+ * Task scheduled to re-try connecting to the peerstore service.
+ *
+ * @param cls the 'struct GNUNET_PEERSTORE_Handle'
+ * @param tc scheduler context
+ */
+static void
+reconnect_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_PEERSTORE_Handle *h = cls;
+
+  h->r_task = GNUNET_SCHEDULER_NO_TASK;
+  reconnect (h);
+}
+
+/**
  * Connect to the PEERSTORE service.
  *
  * @return NULL on error
@@ -173,21 +188,6 @@ GNUNET_PEERSTORE_disconnect(struct GNUNET_PEERSTORE_Handle *h)
     h->client = NULL;
   }
   GNUNET_free (h);
-}
-
-/**
- * Task scheduled to re-try connecting to the PEERSTORE service.
- *
- * @param cls the 'struct GNUNET_PEERSTORE_Handle'
- * @param tc scheduler context
- */
-static void
-reconnect_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct GNUNET_PEERSTORE_Handle *h = cls;
-
-  h->r_task = GNUNET_SCHEDULER_NO_TASK;
-  reconnect (h);
 }
 
 /**
@@ -238,25 +238,25 @@ static size_t
 do_transmit (void *cls, size_t size, void *buf)
 {
   struct GNUNET_PEERSTORE_Handle *h = cls;
-  struct GNUNET_PEERSTORE_AddContext *rc = h->rc_head;
+  struct GNUNET_PEERSTORE_AddContext *ac = h->ac_head;
   size_t ret;
 
   h->th = NULL;
-  if (NULL == rc)
+  if (NULL == ac)
     return 0; /* request was cancelled in the meantime */
   if (NULL == buf)
   {
-    /* PEERSTORE service died */
+    /* peerstore service died */
     LOG (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
          "Failed to transmit message to `%s' service.\n", "PEERSTORE");
-    GNUNET_CONTAINER_DLL_remove (h->rc_head, h->rc_tail, rc);
+    GNUNET_CONTAINER_DLL_remove (h->ac_head, h->ac_tail, ac);
     reconnect (h);
-    if (NULL != rc->cont)
-      rc->cont (rc->cont_cls, _("failed to transmit request (service down?)"));
-    GNUNET_free (rc);
+    if (NULL != ac->cont)
+      ac->cont (ac->cont_cls, _("failed to transmit request (service down?)"));
+    GNUNET_free (ac);
     return 0;
   }
-  ret = rc->size;
+  ret = ac->size;
   if (size < ret)
   {
     /* change in head of queue (i.e. cancel + add), try again */
@@ -265,12 +265,12 @@ do_transmit (void *cls, size_t size, void *buf)
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Transmitting request of size %u to `%s' service.\n", ret, "PEERSTORE");
-  memcpy (buf, &rc[1], ret);
-  GNUNET_CONTAINER_DLL_remove (h->rc_head, h->rc_tail, rc);
+  memcpy (buf, &ac[1], ret);
+  GNUNET_CONTAINER_DLL_remove (h->ac_head, h->ac_tail, ac);
   trigger_transmit (h);
-  if (NULL != rc->cont)
-    rc->cont (rc->cont_cls, NULL);
-  GNUNET_free (rc);
+  if (NULL != ac->cont)
+    ac->cont (ac->cont_cls, NULL);
+  GNUNET_free (ac);
   return ret;
 }
 
@@ -283,9 +283,9 @@ do_transmit (void *cls, size_t size, void *buf)
 static void
 trigger_transmit (struct GNUNET_PEERSTORE_Handle *h)
 {
-  struct GNUNET_PEERSTORE_AddContext *rc;
+  struct GNUNET_PEERSTORE_AddContext *ac;
 
-  if (NULL == (rc = h->rc_head))
+  if (NULL == (ac = h->ac_head))
     return; /* no requests queued */
   if (NULL != h->th)
     return; /* request already pending */
@@ -296,16 +296,57 @@ trigger_transmit (struct GNUNET_PEERSTORE_Handle *h)
     return;
   }
   h->th =
-    GNUNET_CLIENT_notify_transmit_ready (h->client, rc->size,
+    GNUNET_CLIENT_notify_transmit_ready (h->client, ac->size,
            GNUNET_TIME_UNIT_FOREVER_REL,
            GNUNET_YES,
            &do_transmit, h);
 }
 
 /******************************************************************************/
-/*******************           STORE FUNCTIONS            *********************/
+/*******************             ADD FUNCTIONS            *********************/
 /******************************************************************************/
 
+struct GNUNET_PEERSTORE_AddContext *
+GNUNET_PEERSTORE_add (struct GNUNET_PEERSTORE_Handle *h,
+    const struct GNUNET_PeerIdentity *peer,
+    const char *sub_system,
+    const void *value,
+    size_t size,
+    struct GNUNET_TIME_Relative lifetime,
+    GNUNET_PEERSTORE_Continuation cont,
+    void *cont_cls)
+{
+  struct GNUNET_PEERSTORE_AddContext *ac;
+  struct AddEntryMessage *entry;
+  char *ss;
+  void *val;
+  size_t sub_system_size;
+  size_t request_size;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+      "Storing value (size: %lu) for subsytem `%s' and peer `%s'",
+      size, sub_system, GNUNET_i2s (peer));
+  sub_system_size = strlen(sub_system);
+  request_size = sizeof(struct AddEntryMessage) + sub_system_size + size;
+  ac = GNUNET_malloc(sizeof(struct GNUNET_PEERSTORE_AddContext) + request_size);
+  ac->h = h;
+  ac->size = request_size;
+  entry = (struct AddEntryMessage *)&ac[1];
+  entry->header.size = htons(request_size);
+  entry->header.type = htons(GNUNET_MESSAGE_TYPE_PEERSTORE_ADD);
+  entry->peer = *peer;
+  entry->sub_system_size = sub_system_size;
+  entry->value_size = size;
+  entry->lifetime = lifetime;
+  ss = (char *)&entry[1];
+  memcpy(ss, sub_system, sub_system_size);
+  val = ss + sub_system_size;
+  memcpy(val, value, size);
+  GNUNET_CONTAINER_DLL_insert_tail(h->ac_head, h->ac_tail, ac);
+  trigger_transmit (h);
+  return ac;
+
+}
 
 
 /* end of peerstore_api.c */

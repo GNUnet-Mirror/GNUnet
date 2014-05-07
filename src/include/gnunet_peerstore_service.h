@@ -53,16 +53,7 @@ struct GNUNET_PEERSTORE_AddContext;
  * @param cls closure
  * @param emsg error message, NULL on success
  */
-typedef void (*GNUNET_PEERSTORE_Continuation)(void *cls,
-               const char *emsg);
-
-/**
- * Continuation called after an Add is completed
- *
- * @param cls closure
- * @param success #GNUNET_YES / #GNUNET_NO
- */
-typedef void (*GNUNET_PEERSTORE_AddContinuation)(void *cls, int success);
+typedef void (*GNUNET_PEERSTORE_Continuation)(void *cls, const char *emsg);
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

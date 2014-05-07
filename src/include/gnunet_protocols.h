@@ -2454,11 +2454,16 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_SENSOR_END 803
 
 
+/*******************************************************************************
+ * PEERSTORE message types
+ ******************************************************************************/
+
+#define GNUNET_MESSAGE_TYPE_PEERSTORE_ADD 820
+
+
 /**
- * Next available: 830
+ * Next available: 840
  */
-
-
 
 /*******************************************************************************
  * SOCIAL message types
