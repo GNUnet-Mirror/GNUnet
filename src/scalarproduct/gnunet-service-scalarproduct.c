@@ -56,9 +56,24 @@ enum PeerRole
  */
 struct SortedValue
 {
+  /**
+   * Sorted Values are kept in a DLL
+   */
   struct SortedValue * next;
+  
+  /**
+   * Sorted Values are kept in a DLL
+   */
   struct SortedValue * prev;
+  
+  /**
+   * The element's id+integer-value
+   */
   struct GNUNET_SCALARPRODUCT_Element * elem;
+  
+  /**
+   * the element's value converted to MPI
+   */
   gcry_mpi_t val;
 };
 
@@ -96,7 +111,7 @@ struct ServiceSession
    * Alice or Bob's peerID
    */
   struct GNUNET_PeerIdentity peer;
-
+  
   /**
    * the client this request is related to
    */
@@ -152,7 +167,7 @@ struct ServiceSession
   /**
    * Public key of the remote service, only used by bob
    */
-  struct GNUNET_CRYPTO_PaillierPublicKey remote_pubkey;
+  struct GNUNET_CRYPTO_PaillierPublicKey * remote_pubkey;
 
   /**
    * DLL for sorting elements after intersection
@@ -462,6 +477,10 @@ free_session_variables (struct ServiceSession * session)
   if (session->e_a) {
     GNUNET_free (session->e_a);
     session->e_a = NULL;
+  }
+  if (session->remote_pubkey){
+    GNUNET_free(session->remote_pubkey);
+    session->remote_pubkey=NULL;
   }
   if (session->sorted_elements) {
     GNUNET_free (session->sorted_elements);
@@ -914,13 +933,13 @@ compute_service_response (struct ServiceSession * session)
     // E(S - r_pi - b_pi)
     gcry_mpi_sub (tmp, my_offset, rand[p[i]]);
     gcry_mpi_sub (tmp, tmp, b[p[i]]);
-    GNUNET_CRYPTO_paillier_encrypt (&session->remote_pubkey,
+    GNUNET_CRYPTO_paillier_encrypt (session->remote_pubkey,
                                     tmp,
                                     2,
                                     &r[i]);
 
     // E(S - r_pi - b_pi) * E(S + a_pi) ==  E(2*S + a - r - b)
-    GNUNET_CRYPTO_paillier_hom_add (&session->remote_pubkey,
+    GNUNET_CRYPTO_paillier_hom_add (session->remote_pubkey,
                                     &r[i],
                                     &a[p[i]],
                                     &r[i]);
@@ -930,13 +949,13 @@ compute_service_response (struct ServiceSession * session)
   for (i = 0; i < count; i++) {
     // E(S - r_qi)
     gcry_mpi_sub (tmp, my_offset, rand[q[i]]);
-    GNUNET_assert (2 == GNUNET_CRYPTO_paillier_encrypt (&session->remote_pubkey,
+    GNUNET_assert (2 == GNUNET_CRYPTO_paillier_encrypt (session->remote_pubkey,
                                                         tmp,
                                                         2,
                                                         &r_prime[i]));
 
     // E(S - r_qi) * E(S + a_qi) == E(2*S + a_qi - r_qi)
-    GNUNET_assert (1 == GNUNET_CRYPTO_paillier_hom_add (&session->remote_pubkey,
+    GNUNET_assert (1 == GNUNET_CRYPTO_paillier_hom_add (session->remote_pubkey,
                                                         &r_prime[i],
                                                         &a[q[i]],
                                                         &r_prime[i]));
@@ -944,7 +963,7 @@ compute_service_response (struct ServiceSession * session)
 
   // Calculate S' =  E(SUM( r_i^2 ))
   tmp = compute_square_sum (rand, count);
-  GNUNET_CRYPTO_paillier_encrypt (&session->remote_pubkey,
+  GNUNET_CRYPTO_paillier_encrypt (session->remote_pubkey,
                                   tmp,
                                   1,
                                   s_prime);
@@ -953,7 +972,7 @@ compute_service_response (struct ServiceSession * session)
   for (i = 0; i < count; i++)
     gcry_mpi_add (rand[i], rand[i], b[i]);
   tmp = compute_square_sum (rand, count);
-  GNUNET_CRYPTO_paillier_encrypt (&session->remote_pubkey,
+  GNUNET_CRYPTO_paillier_encrypt (session->remote_pubkey,
                                   tmp,
                                   1,
                                   s);
@@ -2058,7 +2077,8 @@ handle_alices_computation_request (void *cls,
   memcpy (&session->session_id, &msg->session_id, sizeof (struct GNUNET_HashCode));
 
   // public key
-  memcpy (&session->remote_pubkey, &msg->public_key, sizeof (struct GNUNET_CRYPTO_PaillierPublicKey));
+  session->remote_pubkey = GNUNET_new (struct GNUNET_CRYPTO_PaillierPublicKey);
+  memcpy (session->remote_pubkey, &msg->public_key, sizeof (struct GNUNET_CRYPTO_PaillierPublicKey));
 
   //check if service queue contains a matching request
   client_session = find_matching_session (from_client_tail,
