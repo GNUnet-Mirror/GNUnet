@@ -59,13 +59,14 @@ struct MeshPeerQueue;
  * @param c Connection this message was on.
  * @param sent Was it really sent? (Could have been canceled)
  * @param type Type of message sent.
+ * @param pid Packet ID, or 0 if not applicable (create, destroy, etc).
  * @param fwd Was this a FWD going message?
  * @param size Size of the message.
  * @param wait Time spent waiting for core (only the time for THIS message)
  */
 typedef void (*GMP_sent) (void *cls,
                           struct MeshConnection *c, int sent,
-                          uint16_t type, int fwd, size_t size,
+                          uint16_t type, uint32_t pid, int fwd, size_t size,
                           struct GNUNET_TIME_Relative wait);
 
 /******************************************************************************/
@@ -127,9 +128,11 @@ GMP_connect (struct MeshPeer *peer);
  * @param queue Queue handler to cancel.
  * @param clear_cls Is it necessary to free associated cls?
  * @param sent Was it really sent? (Could have been canceled)
+ * @param pid PID, if relevant (was sent and was a payload message).
  */
 void
-GMP_queue_destroy (struct MeshPeerQueue *queue, int clear_cls, int sent);
+GMP_queue_destroy (struct MeshPeerQueue *queue, int clear_cls,
+                   int sent, uint32_t pid);
 
 /**
  * @brief Queue and pass message to core when possible.
