@@ -872,9 +872,9 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
       msg->ttl = htonl (default_ttl);
       break;
     default:
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "unkown type %s\n", GM_m2s (type));
       GNUNET_break (0);
   }
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "type %s\n", GM_m2s (type));
 
   fwd = GMC_is_origin (c, GNUNET_YES);
 
@@ -2797,25 +2797,25 @@ GMT_debug (const struct MeshTunnel3 *t)
   struct MeshTChannel *iterch;
   struct MeshTConnection *iterc;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "DEBUG TUNNEL TOWARDS %s\n", GMT_2s (t));
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  cstate %s, estate %s\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "TTT DEBUG TUNNEL TOWARDS %s\n", GMT_2s (t));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "TTT  cstate %s, estate %s\n",
        cstate2s (t->cstate), estate2s (t->estate));
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  kx_ctx %p, rekey_task %u\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "TTT  kx_ctx %p, rekey_task %u\n",
        t->kx_ctx, t->rekey_task);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  tq_head %p, tq_tail %p\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "TTT  tq_head %p, tq_tail %p\n",
        t->tq_head, t->tq_tail);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  destroy %u\n", t->destroy_task);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "TTT  destroy %u\n", t->destroy_task);
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  channels:\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "TTT  channels:\n");
   for (iterch = t->channel_head; NULL != iterch; iterch = iterch->next)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  - %s\n", GMCH_2s (iterch->ch));
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "TTT  - %s\n", GMCH_2s (iterch->ch));
   }
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  connections:\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "TTT  connections:\n");
   for (iterc = t->connection_head; NULL != iterc; iterc = iterc->next)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  - %s [%u] buf: %u/%u (qn %u/%u)\n",
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "TTT  - %s [%u] buf: %u/%u (qn %u/%u)\n",
          GMC_2s (iterc->c), GMC_get_state (iterc->c),
          GMC_get_buffer (iterc->c, GNUNET_YES),
          GMC_get_buffer (iterc->c, GNUNET_NO),
@@ -2823,7 +2823,7 @@ GMT_debug (const struct MeshTunnel3 *t)
          GMC_get_qn (iterc->c, GNUNET_NO));
   }
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "DEBUG TUNNEL END\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "TTT DEBUG TUNNEL END\n");
 }
 
 

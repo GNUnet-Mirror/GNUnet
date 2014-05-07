@@ -232,16 +232,16 @@ queue_debug (struct MeshPeer *peer)
 {
   struct MeshPeerQueue *q;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Messages queued towards %s\n", GMP_2s (peer));
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  core tmt rdy: %p\n", peer->core_transmit);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "QQQ Messages queued towards %s\n", GMP_2s (peer));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "QQQ  core tmt rdy: %p\n", peer->core_transmit);
 
   for (q = peer->queue_head; NULL != q; q = q->next)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  - %s %s on %s\n",
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "QQQ  - %s %s on %s\n",
          GM_m2s (q->type), GM_f2s (q->fwd), GMC_2s (q->c));
   }
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "End queued towards %s\n", GMP_2s (peer));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "QQQ End queued towards %s\n", GMP_2s (peer));
 }
 
 
@@ -926,7 +926,7 @@ queue_send (void *cls, size_t size, void *buf)
   c = queue->c;
 
   dst_id = GNUNET_PEER_resolve2 (peer->id);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "*   on connection %s\n", GMC_2s (c));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  on connection %s\n", GMC_2s (c));
   /* Check if buffer size is enough for the message */
   if (queue->size > size)
   {
@@ -1006,7 +1006,7 @@ queue_send (void *cls, size_t size, void *buf)
   queue = peer_get_first_message (peer);
   if (NULL != queue)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "*   more data!\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  more data!\n");
     if (NULL == peer->core_transmit)
     {
       peer->core_transmit =
@@ -1031,7 +1031,7 @@ queue_send (void *cls, size_t size, void *buf)
 //     GMC_stop_poll(); FIXME needed?
   }
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "*  Return %d\n", data_size);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  return %d\n", data_size);
   queue_debug (peer);
   return data_size;
 }
