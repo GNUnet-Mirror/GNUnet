@@ -29,9 +29,9 @@
 GNUNET_NETWORK_STRUCT_BEGIN
 
 /**
- * Message carrying a peerstore entry
+ * Message carrying a PEERSTORE store request
  */
-struct AddEntryMessage
+struct StoreRequestMessage
 {
 
   /**
@@ -61,6 +61,22 @@ struct AddEntryMessage
    */
   struct GNUNET_TIME_Relative lifetime;
 
+};
+
+/**
+ * Message carrying a PEERSTORE store response
+ */
+struct StoreResponseMessage
+{
+  /**
+   * Was the store operation successful (#GNUNET_YES / #GNUNET_NO)
+   */
+  int success;
+
+  /**
+   * Size of the error message (0 if no error)
+   */
+  size_t emsg_size;
 };
 
 GNUNET_NETWORK_STRUCT_END

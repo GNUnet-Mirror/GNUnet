@@ -55,6 +55,52 @@ struct GNUNET_PEERSTORE_AddContext;
  */
 typedef void (*GNUNET_PEERSTORE_Continuation)(void *cls, const char *emsg);
 
+/**
+ * Connect to the PEERSTORE service.
+ *
+ * @return NULL on error
+ */
+struct GNUNET_PEERSTORE_Handle *
+GNUNET_PEERSTORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg);
+
+/**
+ * Disconnect from the PEERSTORE service
+ *
+ * @param h handle to disconnect
+ */
+void
+GNUNET_PEERSTORE_disconnect(struct GNUNET_PEERSTORE_Handle *h);
+
+/**
+ * Store a new entry in the PEERSTORE
+ *
+ * @param h Handle to the PEERSTORE service
+ * @param peer Peer Identity
+ * @param sub_system name of the sub system
+ * @param value entry value BLOB
+ * @param size size of 'value'
+ * @param lifetime relative time after which the entry is (possibly) deleted
+ * @param cont Continuation function after the store request is processed
+ * @param cont_cls Closure for 'cont'
+ */
+struct GNUNET_PEERSTORE_StoreContext *
+GNUNET_PEERSTORE_store (struct GNUNET_PEERSTORE_Handle *h,
+    const struct GNUNET_PeerIdentity *peer,
+    const char *sub_system,
+    const void *value,
+    size_t size,
+    struct GNUNET_TIME_Relative lifetime,
+    GNUNET_PEERSTORE_Continuation cont,
+    void *cont_cls);
+
+/**
+ * Cancel a store request
+ *
+ * @param sc Store request context
+ */
+void
+GNUNET_PEERSTORE_store_cancel (struct GNUNET_PEERSTORE_StoreContext *sc);
+
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif

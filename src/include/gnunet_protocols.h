@@ -2458,7 +2458,15 @@ extern "C"
  * PEERSTORE message types
  ******************************************************************************/
 
-#define GNUNET_MESSAGE_TYPE_PEERSTORE_ADD 820
+/**
+ * Store request message
+ */
+#define GNUNET_MESSAGE_TYPE_PEERSTORE_STORE 820
+
+/**
+ * Store result message
+ */
+#define GNUNET_MESSAGE_TYPE_PEERSTORE_STORE_RESULT 821
 
 
 /**
