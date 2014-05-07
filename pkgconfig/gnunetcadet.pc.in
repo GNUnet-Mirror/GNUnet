@@ -3,10 +3,10 @@ exec_prefix=@exec_prefix@
 libdir=@libdir@
 includedir=@includedir@
 
-Name: GNUnet Mesh
+Name: GNUnet Cadet
 Description: API for multicast and multi-hop routing between GNUnet peers
 URL: http://gnunet.org
 Version: @VERSION@
 Requires:
-Libs: -L${libdir} -lgnunetmesh
+Libs: -L${libdir} -lgnunetcadet
 Cflags: -I${includedir}
