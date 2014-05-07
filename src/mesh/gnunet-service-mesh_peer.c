@@ -953,7 +953,9 @@ queue_send (void *cls, size_t size, void *buf)
     case GNUNET_MESSAGE_TYPE_MESH_ENCRYPTED:
       pid = GMC_get_pid (queue->c, queue->fwd);
       LOG (GNUNET_ERROR_TYPE_DEBUG, "  payload ID %u\n", pid);
-      /* fall-through */
+      data_size = send_core_data_raw (queue->cls, size, buf);
+      ((struct GNUNET_MESH_Encrypted *) buf)->pid = htonl (pid);
+      break;
     case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_DESTROY:
     case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_BROKEN:
     case GNUNET_MESSAGE_TYPE_MESH_KX:
