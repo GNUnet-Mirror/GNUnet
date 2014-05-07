@@ -51,7 +51,9 @@ enum PeerRole
   BOB
 };
 
-
+/**
+ * DLL for sorting elements
+ */
 struct SortedValue
 {
   struct SortedValue * next;
@@ -481,6 +483,10 @@ free_session_variables (struct ServiceSession * session)
   if (session->intersection_set) {
     GNUNET_SET_destroy (session->intersection_set);
     session->intersection_set = NULL;
+  }
+  if (session->channel){
+    GNUNET_CADET_channel_destroy(session->channel);
+    session->channel = NULL;
   }
   if (session->msg) {
     GNUNET_free (session->msg);
@@ -1010,7 +1016,6 @@ cb_insert_element_sorted (void *cls,
   while (NULL != o);
   // broken DLL
   GNUNET_assert (0);
-  return GNUNET_NO;
 }
 
 
@@ -1058,25 +1063,20 @@ cb_intersection_element_removed (void *cls,
     session->sorted_elements = GNUNET_malloc (session->used_elements_count * sizeof (gcry_mpi_t));
     for (i = 0; NULL != session->a_head; i++) {
       struct SortedValue* a = session->a_head;
-      if (i > session->used_elements_count) {
-        GNUNET_assert (0);
-        return;
-      }
+      GNUNET_assert (i < session->used_elements_count);
+      
       session->sorted_elements[i] = a->val;
       GNUNET_CONTAINER_DLL_remove (session->a_head, session->a_tail, a);
       GNUNET_free (a->elem);
     }
-    if (i != session->used_elements_count)
-      GNUNET_assert (0);
+    GNUNET_assert (i == session->used_elements_count);
 
     if (ALICE == session->role) {
       prepare_alices_cyrptodata_message (session);
       return;
     }
-    else {
-      if (session->used_elements_count == session->transferred_element_count)
-        compute_service_response (session);
-
+    else if (session->used_elements_count == session->transferred_element_count) {
+      compute_service_response (session);
       return;
     }
   default:
@@ -1084,19 +1084,21 @@ cb_intersection_element_removed (void *cls,
   }
 
   //failed if we go here
+  GNUNET_break (0);
+
+  // and notify our client-session that we could not complete the session
   if (ALICE == session->role) {
     session->client_notification_task =
             GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
                                       session);
   }
   else {
-    //TODO: Fail service session, exit tunnel
-
-
+    GNUNET_CONTAINER_DLL_remove (from_service_head, from_service_tail, session);
+    free_session_variables (session);
     session->response->client_notification_task =
             GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
                                       session->response);
-
+    GNUNET_free(session);
   }
 }
 
@@ -1837,7 +1839,7 @@ handle_alices_cyrptodata_message_multipart (void *cls,
   session = (struct ServiceSession *) * channel_ctx;
   //we are not bob
   if ((NULL == session->e_a) || //or we did not expect this message yet 
-      (session->used_elements_count == session->transferred_element_count)) { //we not expecting multipart messages
+      (session->used_elements_count == session->transferred_element_count)) { //we are not expecting multipart messages
     goto except;
   }
   // shorter than minimum?
@@ -1869,15 +1871,24 @@ handle_alices_cyrptodata_message_multipart (void *cls,
 
   return GNUNET_OK;
 except:
+  session->channel = NULL;
   // and notify our client-session that we could not complete the session
-  GNUNET_CONTAINER_DLL_remove (from_service_head, from_service_tail, session);
-  if (session->response)
-    // we just found the responder session in this queue
+  free_session_variables (session);
+  if (NULL != session->client){
+    //Alice
+    session->client_notification_task =
+          GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
+                                    session);
+  }
+  else {
+    //Bob
+    if (NULL != session->response)
     session->response->client_notification_task =
           GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
                                     session->response);
-  free_session_variables (session);
-  GNUNET_free (session);
+    GNUNET_CONTAINER_DLL_remove (from_service_head, from_service_tail, session);
+    GNUNET_free(session);
+  }
   return GNUNET_SYSERR;
 }
 
@@ -1948,15 +1959,24 @@ handle_alices_cyrptodata_message (void *cls,
   return GNUNET_OK;
 invalid_msg:
   GNUNET_break_op (0);
-  if ((NULL != session->next) || (NULL != session->prev) || (from_service_head == session))
-    GNUNET_CONTAINER_DLL_remove (from_service_head, from_service_tail, session);
+  session->channel = NULL;
   // and notify our client-session that we could not complete the session
-  if (session->response)
-    // we just found the responder session in this queue
+  free_session_variables (session);
+  if (NULL != session->client){
+    //Alice
+    session->client_notification_task =
+          GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
+                                    session);
+  }
+  else {
+    //Bob
+    if (NULL != session->response)
     session->response->client_notification_task =
           GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
                                     session->response);
-  free_session_variables (session);
+    GNUNET_CONTAINER_DLL_remove (from_service_head, from_service_tail, session);
+    GNUNET_free(session);
+  }
   return GNUNET_SYSERR;
 }
 
@@ -2062,15 +2082,24 @@ handle_alices_computation_request (void *cls,
   return GNUNET_OK;
 invalid_msg:
   GNUNET_break_op (0);
-  if ((NULL != session->next) || (NULL != session->prev) || (from_service_head == session))
-    GNUNET_CONTAINER_DLL_remove (from_service_head, from_service_tail, session);
+  session->channel = NULL;
   // and notify our client-session that we could not complete the session
-  if (session->response)
-    // we just found the responder session in this queue
+  free_session_variables (session);
+  if (NULL != session->client){
+    //Alice
+    session->client_notification_task =
+          GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
+                                    session);
+  }
+  else {
+    //Bob
+    if (NULL != session->response)
     session->response->client_notification_task =
           GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
                                     session->response);
-  free_session_variables (session);
+    GNUNET_CONTAINER_DLL_remove (from_service_head, from_service_tail, session);
+    GNUNET_free(session);
+  }
   return GNUNET_SYSERR;
 }
 
@@ -2131,14 +2160,24 @@ handle_bobs_cryptodata_multipart (void *cls,
   session->product = compute_scalar_product (session); //never NULL
 
 invalid_msg:
-  GNUNET_break_op (NULL != session->product); //NULL if we never tried to compute it...
-
+  GNUNET_break_op (NULL != session->product);
+  session->channel = NULL;
   // send message with product to client
-  if (ALICE == session->role) {
-    session->channel = NULL;
+  if (NULL != session->client){
+    //Alice
     session->client_notification_task =
-            GNUNET_SCHEDULER_add_now (&prepare_client_response,
-                                      session);
+          GNUNET_SCHEDULER_add_now (&prepare_client_response,
+                                    session);
+  }
+  else {
+    //Bob
+    if (NULL != session->response)
+    session->response->client_notification_task =
+          GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
+                                    session->response);
+    GNUNET_CONTAINER_DLL_remove (from_service_head, from_service_tail, session);
+    free_session_variables (session);
+    GNUNET_free(session);
   }
   // the channel has done its job, terminate our connection and the channel
   // the peer will be notified that the channel was destroyed via channel_destruction_handler
@@ -2215,12 +2254,23 @@ handle_bobs_cryptodata_message (void *cls,
 
 invalid_msg:
   GNUNET_break_op (NULL != session->product);
+  session->channel = NULL;
   // send message with product to client
-  if (ALICE == session->role) {
-    session->channel = NULL;
+  if (NULL != session->client){
+    //Alice
     session->client_notification_task =
-            GNUNET_SCHEDULER_add_now (&prepare_client_response,
-                                      session);
+          GNUNET_SCHEDULER_add_now (&prepare_client_response,
+                                    session);
+  }
+  else {
+    //Bob
+    if (NULL != session->response)
+    session->response->client_notification_task =
+          GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
+                                    session->response);
+    GNUNET_CONTAINER_DLL_remove (from_service_head, from_service_tail, session);
+    free_session_variables (session);
+    GNUNET_free(session);
   }
   // the channel has done its job, terminate our connection and the channel
   // the peer will be notified that the channel was destroyed via channel_destruction_handler
@@ -2328,7 +2378,7 @@ run (void *cls,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _ ("Mesh initialized\n"));
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _ ("CADET initialized\n"));
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                 &shutdown_task,
                                 NULL);
