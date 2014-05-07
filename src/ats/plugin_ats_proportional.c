@@ -453,7 +453,7 @@ libgnunet_plugin_ats_proportional_init (void *cls)
   }
   else
     s->prop_factor = PROPORTIONALITY_FACTOR;
-  LOG (GNUNET_ERROR_TYPE_ERROR, "Using proportionality factor %.0f\n",
+  LOG (GNUNET_ERROR_TYPE_INFO, "Using proportionality factor %.0f\n",
       s->prop_factor);
 
 
