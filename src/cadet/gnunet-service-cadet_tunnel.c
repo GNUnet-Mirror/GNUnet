@@ -979,11 +979,9 @@ send_kx (struct CadetTunnel3 *t,
     return;
   }
 
-  if (GNUNET_SCHEDULER_NO_TASK != t->destroy_task)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  being destroyed, why bother\n");
-    return;
-  }
+  /* Even if tunnel is troyed, send anyway.
+   * Could be a rekey initiated by remote peer to create a new channel!
+   */
 
   /* Must have a connection. */
   if (NULL == t->connection_head)
