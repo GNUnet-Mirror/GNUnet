@@ -1443,8 +1443,8 @@ src/identity/identity.conf
 src/include/Makefile
 src/integration-tests/Makefile
 src/hostlist/Makefile
-src/mesh/Makefile
-src/mesh/mesh.conf
+src/cadet/Makefile
+src/cadet/cadet.conf
 src/multicast/Makefile
 src/multicast/multicast.conf
 src/mysql/Makefile
@@ -1512,7 +1512,7 @@ pkgconfig/gnunetfs.pc
 pkgconfig/gnunetgns.pc
 pkgconfig/gnunethello.pc
 pkgconfig/gnunetidentity.pc
-pkgconfig/gnunetmesh.pc
+pkgconfig/gnunetcadet.pc
 pkgconfig/gnunetmicrophone.pc
 pkgconfig/gnunetmulticast.pc
 pkgconfig/gnunetmysql.pc
