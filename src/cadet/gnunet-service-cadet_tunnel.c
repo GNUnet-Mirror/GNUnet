@@ -1556,6 +1556,8 @@ handle_ping (struct CadetTunnel3 *t,
     LOG (GNUNET_ERROR_TYPE_WARNING, "  e towards %s\n", GNUNET_i2s (&msg->target));
     LOG (GNUNET_ERROR_TYPE_WARNING, "  got %u\n", res.nonce);
     LOG (GNUNET_ERROR_TYPE_WARNING, "  towards %s\n", GNUNET_i2s (&res.target));
+    send_ephemeral (t);
+    send_ping (t);
     return;
   }
 
