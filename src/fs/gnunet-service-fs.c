@@ -43,7 +43,7 @@
 #include "gnunet-service-fs_pr.h"
 #include "gnunet-service-fs_push.h"
 #include "gnunet-service-fs_put.h"
-#include "gnunet-service-fs_mesh.h"
+#include "gnunet-service-fs_cadet.h"
 #include "fs.h"
 
 /**
@@ -412,10 +412,10 @@ start_p2p_processing (void *cls, struct GSF_PendingRequest *pr,
     {
     case GNUNET_BLOCK_TYPE_FS_DBLOCK:
     case GNUNET_BLOCK_TYPE_FS_IBLOCK:
-      /* the above block types MAY be available via 'mesh' */
+      /* the above block types MAY be available via 'cadet' */
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		  "Considering mesh-based download for block\n");
-      GSF_mesh_lookup_ (pr);
+		  "Considering cadet-based download for block\n");
+      GSF_cadet_lookup_ (pr);
       break;
     case GNUNET_BLOCK_TYPE_FS_UBLOCK:
       /* the above block types are in the DHT */
@@ -475,8 +475,8 @@ handle_start_search (void *cls, struct GNUNET_SERVER_Client *client,
 static void
 shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GSF_mesh_stop_client ();
-  GSF_mesh_stop_server ();
+  GSF_cadet_stop_client ();
+  GSF_cadet_stop_server ();
   if (NULL != GSF_core)
   {
     GNUNET_CORE_disconnect (GSF_core);
@@ -646,8 +646,8 @@ main_init (struct GNUNET_SERVER_Handle *server,
       GNUNET_SCHEDULER_add_delayed (COVER_AGE_FREQUENCY, &age_cover_counters,
                                     NULL);
   datastore_get_load = GNUNET_LOAD_value_init (DATASTORE_LOAD_AUTODECLINE);
-  GSF_mesh_start_server ();
-  GSF_mesh_start_client ();
+  GSF_cadet_start_server ();
+  GSF_cadet_start_client ();
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
                                 NULL);
   return GNUNET_OK;

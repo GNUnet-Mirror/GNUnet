@@ -20,19 +20,19 @@
 
 /**
  * @author Bartlomiej Polot
- * @file mesh/mesh_protocol.h
+ * @file cadet/cadet_protocol.h
  */
 
-#ifndef MESH_PROTOCOL_H_
-#define MESH_PROTOCOL_H_
+#ifndef CADET_PROTOCOL_H_
+#define CADET_PROTOCOL_H_
 
 #include "platform.h"
 #include "gnunet_util_lib.h"
-#include "mesh.h"
+#include "cadet.h"
 
 #ifdef __cplusplus
 
-struct GNUNET_MESH_TunnelMessage;
+struct GNUNET_CADET_TunnelMessage;
 extern "C"
 {
 #if 0
@@ -42,20 +42,20 @@ extern "C"
 #endif
 
 /******************************************************************************/
-/********************      MESH NETWORK MESSAGES     **************************/
+/********************      CADET NETWORK MESSAGES     **************************/
 /******************************************************************************/
 
 GNUNET_NETWORK_STRUCT_BEGIN
 
 /**
- * Message for mesh connection creation.
+ * Message for cadet connection creation.
  */
-struct GNUNET_MESH_ConnectionCreate
+struct GNUNET_CADET_ConnectionCreate
 {
     /**
-     * Type: GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE
+     * Type: GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE
      *
-     * Size: sizeof (struct GNUNET_MESH_ConnectionCreate) +
+     * Size: sizeof (struct GNUNET_CADET_ConnectionCreate) +
      *       path_length * sizeof (struct GNUNET_PeerIdentity)
      */
   struct GNUNET_MessageHeader header;
@@ -63,7 +63,7 @@ struct GNUNET_MESH_ConnectionCreate
     /**
      * ID of the connection
      */
-  struct GNUNET_MESH_Hash cid;
+  struct GNUNET_CADET_Hash cid;
 
     /**
      * path_length structs defining the *whole* path from the origin [0] to the
@@ -75,17 +75,17 @@ struct GNUNET_MESH_ConnectionCreate
 /**
  * Message for ack'ing a connection
  */
-struct GNUNET_MESH_ConnectionACK
+struct GNUNET_CADET_ConnectionACK
 {
     /**
-     * Type: GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK
+     * Type: GNUNET_MESSAGE_TYPE_CADET_CONNECTION_ACK
      */
   struct GNUNET_MessageHeader header;
 
     /**
      * ID of the connection.
      */
-  struct GNUNET_MESH_Hash cid;
+  struct GNUNET_CADET_Hash cid;
 
 };
 
@@ -93,17 +93,17 @@ struct GNUNET_MESH_ConnectionACK
 /**
  * Message for encapsulation of a Key eXchange message in a connection.
  */
-struct GNUNET_MESH_KX
+struct GNUNET_CADET_KX
 {
     /**
-     * Type: GNUNET_MESSAGE_TYPE_MESH_KX.
+     * Type: GNUNET_MESSAGE_TYPE_CADET_KX.
      */
   struct GNUNET_MessageHeader header;
 
     /**
      * ID of the connection.
      */
-  struct GNUNET_MESH_Hash cid;
+  struct GNUNET_CADET_Hash cid;
 
   /* Specific KX message follows. */
 };
@@ -115,11 +115,11 @@ struct GNUNET_MESH_KX
  *
  * As far as possible, same as CORE's EphemeralKeyMessage.
  */
-struct GNUNET_MESH_KX_Ephemeral
+struct GNUNET_CADET_KX_Ephemeral
 {
 
   /**
-   * Message type is GNUNET_MESSAGE_TYPE_MESH_KX_EPHEMERAL.
+   * Message type is GNUNET_MESSAGE_TYPE_CADET_KX_EPHEMERAL.
    */
   struct GNUNET_MessageHeader header;
 
@@ -167,10 +167,10 @@ struct GNUNET_MESH_KX_Ephemeral
  * can decrypt.  The other peer should respond with a PONG with the
  * same content, except this time encrypted with the receiver's key.
  */
-struct GNUNET_MESH_KX_Ping
+struct GNUNET_CADET_KX_Ping
 {
   /**
-   * Message type is GNUNET_MESSAGE_TYPE_MESH_KX_PING.
+   * Message type is GNUNET_MESSAGE_TYPE_CADET_KX_PING.
    */
   struct GNUNET_MessageHeader header;
 
@@ -195,10 +195,10 @@ struct GNUNET_MESH_KX_Ping
 /**
  * Response to a PING.  Includes data from the original PING.
  */
-struct GNUNET_MESH_KX_Pong
+struct GNUNET_CADET_KX_Pong
 {
   /**
-   * Message type is GNUNET_MESSAGE_TYPE_MESH_KX_PONG.
+   * Message type is GNUNET_MESSAGE_TYPE_CADET_KX_PONG.
    */
   struct GNUNET_MessageHeader header;
 
@@ -217,17 +217,17 @@ struct GNUNET_MESH_KX_Pong
 /**
  * Tunnel(ed) message.
  */
-struct GNUNET_MESH_Encrypted
+struct GNUNET_CADET_Encrypted
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_MESH_ENCRYPTED
+   * Type: GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED
    */
   struct GNUNET_MessageHeader header;
 
   /**
    * ID of the connection.
    */
-  struct GNUNET_MESH_Hash cid;
+  struct GNUNET_CADET_Hash cid;
 
   /**
    * ID of the packet (hop by hop).
@@ -248,7 +248,7 @@ struct GNUNET_MESH_Encrypted
    * MAC of the encrypted message, used to verify message integrity.
    * Everything after this value  will be encrypted and authenticated.
    */
-  struct GNUNET_MESH_Hash hmac;
+  struct GNUNET_CADET_Hash hmac;
 
   /**
    * Encrypted content follows.
@@ -259,17 +259,17 @@ struct GNUNET_MESH_Encrypted
 /**
  * Message to create a Channel.
  */
-struct GNUNET_MESH_ChannelCreate
+struct GNUNET_CADET_ChannelCreate
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_MESH_CHANNEL_CREATE
+   * Type: GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE
    */
   struct GNUNET_MessageHeader header;
 
   /**
    * ID of the channel
    */
-  MESH_ChannelNumber chid GNUNET_PACKED;
+  CADET_ChannelNumber chid GNUNET_PACKED;
 
   /**
    * Destination port.
@@ -286,28 +286,28 @@ struct GNUNET_MESH_ChannelCreate
 /**
  * Message to manage a Channel (ACK, NACK, Destroy).
  */
-struct GNUNET_MESH_ChannelManage
+struct GNUNET_CADET_ChannelManage
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_MESH_CHANNEL_{ACK|NACK|DESTROY}
+   * Type: GNUNET_MESSAGE_TYPE_CADET_CHANNEL_{ACK|NACK|DESTROY}
    */
   struct GNUNET_MessageHeader header;
 
   /**
    * ID of the channel
    */
-  MESH_ChannelNumber chid GNUNET_PACKED;
+  CADET_ChannelNumber chid GNUNET_PACKED;
 };
 
 
 /**
- * Message for mesh data traffic.
+ * Message for cadet data traffic.
  */
-struct GNUNET_MESH_Data
+struct GNUNET_CADET_Data
 {
     /**
-     * Type: GNUNET_MESSAGE_TYPE_MESH_UNICAST,
-     *       GNUNET_MESSAGE_TYPE_MESH_TO_ORIGIN
+     * Type: GNUNET_MESSAGE_TYPE_CADET_UNICAST,
+     *       GNUNET_MESSAGE_TYPE_CADET_TO_ORIGIN
      */
   struct GNUNET_MessageHeader header;
 
@@ -319,7 +319,7 @@ struct GNUNET_MESH_Data
     /**
      * ID of the channel
      */
-  MESH_ChannelNumber chid GNUNET_PACKED;
+  CADET_ChannelNumber chid GNUNET_PACKED;
 
     /**
      * Payload follows
@@ -330,17 +330,17 @@ struct GNUNET_MESH_Data
 /**
  * Message to acknowledge end-to-end data.
  */
-struct GNUNET_MESH_DataACK
+struct GNUNET_CADET_DataACK
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_MESH_DATA_ACK
+   * Type: GNUNET_MESSAGE_TYPE_CADET_DATA_ACK
    */
   struct GNUNET_MessageHeader header;
 
   /**
    * ID of the channel
    */
-  MESH_ChannelNumber chid GNUNET_PACKED;
+  CADET_ChannelNumber chid GNUNET_PACKED;
 
   /**
    * Bitfield of already-received newer messages
@@ -357,12 +357,12 @@ struct GNUNET_MESH_DataACK
 
 
 /**
- * Message to acknowledge mesh encrypted traffic.
+ * Message to acknowledge cadet encrypted traffic.
  */
-struct GNUNET_MESH_ACK
+struct GNUNET_CADET_ACK
 {
     /**
-     * Type: GNUNET_MESSAGE_TYPE_MESH_ACK
+     * Type: GNUNET_MESSAGE_TYPE_CADET_ACK
      */
   struct GNUNET_MessageHeader header;
 
@@ -374,17 +374,17 @@ struct GNUNET_MESH_ACK
     /**
      * ID of the connection.
      */
-  struct GNUNET_MESH_Hash cid;
+  struct GNUNET_CADET_Hash cid;
 };
 
 
 /**
  * Message to query a peer about its Flow Control status regarding a tunnel.
  */
-struct GNUNET_MESH_Poll
+struct GNUNET_CADET_Poll
 {
     /**
-     * Type: GNUNET_MESSAGE_TYPE_MESH_POLL
+     * Type: GNUNET_MESSAGE_TYPE_CADET_POLL
      */
   struct GNUNET_MessageHeader header;
 
@@ -396,7 +396,7 @@ struct GNUNET_MESH_Poll
     /**
      * ID of the connection.
      */
-  struct GNUNET_MESH_Hash cid;
+  struct GNUNET_CADET_Hash cid;
 
 };
 
@@ -404,17 +404,17 @@ struct GNUNET_MESH_Poll
 /**
  * Message for notifying a disconnection in a path
  */
-struct GNUNET_MESH_ConnectionBroken
+struct GNUNET_CADET_ConnectionBroken
 {
     /**
-     * Type: GNUNET_MESSAGE_TYPE_MESH_CONNECTION_BROKEN
+     * Type: GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN
      */
   struct GNUNET_MessageHeader header;
 
     /**
      * ID of the connection.
      */
-  struct GNUNET_MESH_Hash cid;
+  struct GNUNET_CADET_Hash cid;
 
     /**
      * ID of the endpoint
@@ -431,17 +431,17 @@ struct GNUNET_MESH_ConnectionBroken
 /**
  * Message to destroy a connection.
  */
-struct GNUNET_MESH_ConnectionDestroy
+struct GNUNET_CADET_ConnectionDestroy
 {
     /**
-     * Type: GNUNET_MESSAGE_TYPE_MESH_CONNECTION_DESTROY
+     * Type: GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY
      */
   struct GNUNET_MessageHeader header;
 
     /**
      * ID of the connection.
      */
-  struct GNUNET_MESH_Hash cid;
+  struct GNUNET_CADET_Hash cid;
 };
 
 
@@ -454,6 +454,6 @@ GNUNET_NETWORK_STRUCT_END
 }
 #endif
 
-/* ifndef MESH_PROTOCOL_H */
+/* ifndef CADET_PROTOCOL_H */
 #endif
-/* end of mesh_protocol.h */
+/* end of cadet_protocol.h */

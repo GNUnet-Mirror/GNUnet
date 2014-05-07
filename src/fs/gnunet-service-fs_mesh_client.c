@@ -19,7 +19,7 @@
 */
 
 /**
- * @file fs/gnunet-service-fs_mesh_client.c
+ * @file fs/gnunet-service-fs_cadet_client.c
  * @brief non-anonymous file-transfer
  * @author Christian Grothoff
  *
@@ -30,12 +30,12 @@
 #include "platform.h"
 #include "gnunet_constants.h"
 #include "gnunet_util_lib.h"
-#include "gnunet_mesh_service.h"
+#include "gnunet_cadet_service.h"
 #include "gnunet_protocols.h"
 #include "gnunet_applications.h"
 #include "gnunet-service-fs.h"
 #include "gnunet-service-fs_indexing.h"
-#include "gnunet-service-fs_mesh.h"
+#include "gnunet-service-fs_cadet.h"
 
 
 /**
@@ -45,36 +45,36 @@
 
 
 /**
- * Handle for a mesh to another peer.
+ * Handle for a cadet to another peer.
  */
-struct MeshHandle;
+struct CadetHandle;
 
 
 /**
- * Handle for a request that is going out via mesh API.
+ * Handle for a request that is going out via cadet API.
  */
-struct GSF_MeshRequest
+struct GSF_CadetRequest
 {
 
   /**
    * DLL.
    */
-  struct GSF_MeshRequest *next;
+  struct GSF_CadetRequest *next;
 
   /**
    * DLL.
    */
-  struct GSF_MeshRequest *prev;
+  struct GSF_CadetRequest *prev;
 
   /**
-   * Which mesh is this request associated with?
+   * Which cadet is this request associated with?
    */
-  struct MeshHandle *mh;
+  struct CadetHandle *mh;
 
   /**
    * Function to call with the result.
    */
-  GSF_MeshReplyProcessor proc;
+  GSF_CadetReplyProcessor proc;
 
   /**
    * Closure for 'proc'
@@ -100,22 +100,22 @@ struct GSF_MeshRequest
 
 
 /**
- * Handle for a mesh to another peer.
+ * Handle for a cadet to another peer.
  */
-struct MeshHandle
+struct CadetHandle
 {
   /**
-   * Head of DLL of pending requests on this mesh.
+   * Head of DLL of pending requests on this cadet.
    */
-  struct GSF_MeshRequest *pending_head;
+  struct GSF_CadetRequest *pending_head;
 
   /**
-   * Tail of DLL of pending requests on this mesh.
+   * Tail of DLL of pending requests on this cadet.
    */
-  struct GSF_MeshRequest *pending_tail;
+  struct GSF_CadetRequest *pending_tail;
 
   /**
-   * Map from query to `struct GSF_MeshRequest`s waiting for
+   * Map from query to `struct GSF_CadetRequest`s waiting for
    * a reply.
    */
   struct GNUNET_CONTAINER_MultiHashMap *waiting_map;
@@ -123,29 +123,29 @@ struct MeshHandle
   /**
    * Channel to the other peer.
    */
-  struct GNUNET_MESH_Channel *channel;
+  struct GNUNET_CADET_Channel *channel;
 
   /**
    * Handle for active write operation, or NULL.
    */
-  struct GNUNET_MESH_TransmitHandle *wh;
+  struct GNUNET_CADET_TransmitHandle *wh;
 
   /**
-   * Which peer does this mesh go to?
+   * Which peer does this cadet go to?
    */
   struct GNUNET_PeerIdentity target;
 
   /**
-   * Task to kill inactive meshs (we keep them around for
+   * Task to kill inactive cadets (we keep them around for
    * a few seconds to give the application a chance to give
    * us another query).
    */
   GNUNET_SCHEDULER_TaskIdentifier timeout_task;
 
   /**
-   * Task to reset meshs that had errors (asynchronously,
+   * Task to reset cadets that had errors (asynchronously,
    * as we may not be able to do it immediately during a
-   * callback from the mesh API).
+   * callback from the cadet API).
    */
   GNUNET_SCHEDULER_TaskIdentifier reset_task;
 
@@ -153,36 +153,36 @@ struct MeshHandle
 
 
 /**
- * Mesh channel for creating outbound channels.
+ * Cadet channel for creating outbound channels.
  */
-static struct GNUNET_MESH_Handle *mesh_handle;
+static struct GNUNET_CADET_Handle *cadet_handle;
 
 /**
- * Map from peer identities to 'struct MeshHandles' with mesh
+ * Map from peer identities to 'struct CadetHandles' with cadet
  * channels to those peers.
  */
-static struct GNUNET_CONTAINER_MultiPeerMap *mesh_map;
+static struct GNUNET_CONTAINER_MultiPeerMap *cadet_map;
 
 
 /* ********************* client-side code ************************* */
 
 
 /**
- * Transmit pending requests via the mesh.
+ * Transmit pending requests via the cadet.
  *
- * @param mh mesh to process
+ * @param mh cadet to process
  */
 static void
-transmit_pending (struct MeshHandle *mh);
+transmit_pending (struct CadetHandle *mh);
 
 
 /**
  * Iterator called on each entry in a waiting map to
  * move it back to the pending list.
  *
- * @param cls the `struct MeshHandle`
+ * @param cls the `struct CadetHandle`
  * @param key the key of the entry in the map (the query)
- * @param value the `struct GSF_MeshRequest` to move to pending
+ * @param value the `struct GSF_CadetRequest` to move to pending
  * @return #GNUNET_YES (continue to iterate)
  */
 static int
@@ -190,8 +190,8 @@ move_to_pending (void *cls,
 		 const struct GNUNET_HashCode *key,
 		 void *value)
 {
-  struct MeshHandle *mh = cls;
-  struct GSF_MeshRequest *sr = value;
+  struct CadetHandle *mh = cls;
+  struct GSF_CadetRequest *sr = value;
 
   GNUNET_assert (GNUNET_YES ==
 		 GNUNET_CONTAINER_multihashmap_remove (mh->waiting_map,
@@ -206,94 +206,94 @@ move_to_pending (void *cls,
 
 
 /**
- * We had a serious error, tear down and re-create mesh from scratch.
+ * We had a serious error, tear down and re-create cadet from scratch.
  *
- * @param mh mesh to reset
+ * @param mh cadet to reset
  */
 static void
-reset_mesh (struct MeshHandle *mh)
+reset_cadet (struct CadetHandle *mh)
 {
-  struct GNUNET_MESH_Channel *channel = mh->channel;
+  struct GNUNET_CADET_Channel *channel = mh->channel;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Resetting mesh channel to %s\n",
+	      "Resetting cadet channel to %s\n",
 	      GNUNET_i2s (&mh->target));
   mh->channel = NULL;
   if (NULL != channel)
-    GNUNET_MESH_channel_destroy (channel);
+    GNUNET_CADET_channel_destroy (channel);
   GNUNET_CONTAINER_multihashmap_iterate (mh->waiting_map,
 					 &move_to_pending,
 					 mh);
-  mh->channel = GNUNET_MESH_channel_create (mesh_handle,
+  mh->channel = GNUNET_CADET_channel_create (cadet_handle,
 					  mh,
 					  &mh->target,
 					  GNUNET_APPLICATION_TYPE_FS_BLOCK_TRANSFER,
-					  GNUNET_MESH_OPTION_RELIABLE);
+					  GNUNET_CADET_OPTION_RELIABLE);
   transmit_pending (mh);
 }
 
 
 /**
- * Task called when it is time to destroy an inactive mesh channel.
+ * Task called when it is time to destroy an inactive cadet channel.
  *
- * @param cls the `struct MeshHandle` to tear down
+ * @param cls the `struct CadetHandle` to tear down
  * @param tc scheduler context, unused
  */
 static void
-mesh_timeout (void *cls,
+cadet_timeout (void *cls,
 	      const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct MeshHandle *mh = cls;
-  struct GNUNET_MESH_Channel *tun;
+  struct CadetHandle *mh = cls;
+  struct GNUNET_CADET_Channel *tun;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Timeout on mesh channel to %s\n",
+	      "Timeout on cadet channel to %s\n",
 	      GNUNET_i2s (&mh->target));
   mh->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   tun = mh->channel;
   mh->channel = NULL;
-  GNUNET_MESH_channel_destroy (tun);
+  GNUNET_CADET_channel_destroy (tun);
 }
 
 
 /**
- * Task called when it is time to reset an mesh.
+ * Task called when it is time to reset an cadet.
  *
- * @param cls the `struct MeshHandle` to tear down
+ * @param cls the `struct CadetHandle` to tear down
  * @param tc scheduler context, unused
  */
 static void
-reset_mesh_task (void *cls,
+reset_cadet_task (void *cls,
 		 const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct MeshHandle *mh = cls;
+  struct CadetHandle *mh = cls;
 
   mh->reset_task = GNUNET_SCHEDULER_NO_TASK;
-  reset_mesh (mh);
+  reset_cadet (mh);
 }
 
 
 /**
- * We had a serious error, tear down and re-create mesh from scratch,
+ * We had a serious error, tear down and re-create cadet from scratch,
  * but do so asynchronously.
  *
- * @param mh mesh to reset
+ * @param mh cadet to reset
  */
 static void
-reset_mesh_async (struct MeshHandle *mh)
+reset_cadet_async (struct CadetHandle *mh)
 {
   if (GNUNET_SCHEDULER_NO_TASK != mh->reset_task)
     GNUNET_SCHEDULER_cancel (mh->reset_task);
-  mh->reset_task = GNUNET_SCHEDULER_add_now (&reset_mesh_task,
+  mh->reset_task = GNUNET_SCHEDULER_add_now (&reset_cadet_task,
 					     mh);
 }
 
 
 /**
  * Functions of this signature are called whenever we are ready to transmit
- * query via a mesh.
+ * query via a cadet.
  *
- * @param cls the struct MeshHandle for which we did the write call
+ * @param cls the struct CadetHandle for which we did the write call
  * @param size the number of bytes that can be written to @a buf
  * @param buf where to write the message
  * @return number of bytes written to @a buf
@@ -303,23 +303,23 @@ transmit_sqm (void *cls,
 	      size_t size,
 	      void *buf)
 {
-  struct MeshHandle *mh = cls;
-  struct MeshQueryMessage sqm;
-  struct GSF_MeshRequest *sr;
+  struct CadetHandle *mh = cls;
+  struct CadetQueryMessage sqm;
+  struct GSF_CadetRequest *sr;
 
   mh->wh = NULL;
   if (NULL == buf)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Mesh channel to %s failed during transmission attempt, rebuilding\n",
+		"Cadet channel to %s failed during transmission attempt, rebuilding\n",
 		GNUNET_i2s (&mh->target));
-    reset_mesh_async (mh);
+    reset_cadet_async (mh);
     return 0;
   }
   sr = mh->pending_head;
   if (NULL == sr)
     return 0;
-  GNUNET_assert (size >= sizeof (struct MeshQueryMessage));
+  GNUNET_assert (size >= sizeof (struct CadetQueryMessage));
   GNUNET_CONTAINER_DLL_remove (mh->pending_head,
 			       mh->pending_tail,
 			       sr);
@@ -330,16 +330,16 @@ transmit_sqm (void *cls,
 						    GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
   sr->was_transmitted = GNUNET_YES;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Sending query for %s via mesh to %s\n",
+	      "Sending query for %s via cadet to %s\n",
 	      GNUNET_h2s (&sr->query),
 	      GNUNET_i2s (&mh->target));
   sqm.header.size = htons (sizeof (sqm));
-  sqm.header.type = htons (GNUNET_MESSAGE_TYPE_FS_MESH_QUERY);
+  sqm.header.type = htons (GNUNET_MESSAGE_TYPE_FS_CADET_QUERY);
   sqm.type = htonl (sr->type);
   sqm.query = sr->query;
   memcpy (buf, &sqm, sizeof (sqm));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Successfully transmitted %u bytes via mesh to %s\n",
+	      "Successfully transmitted %u bytes via cadet to %s\n",
 	      (unsigned int) size,
 	      GNUNET_i2s (&mh->target));
   transmit_pending (mh);
@@ -348,20 +348,20 @@ transmit_sqm (void *cls,
 
 
 /**
- * Transmit pending requests via the mesh.
+ * Transmit pending requests via the cadet.
  *
- * @param mh mesh to process
+ * @param mh cadet to process
  */
 static void
-transmit_pending (struct MeshHandle *mh)
+transmit_pending (struct CadetHandle *mh)
 {
   if (NULL == mh->channel)
     return;
   if (NULL != mh->wh)
     return;
-  mh->wh = GNUNET_MESH_notify_transmit_ready (mh->channel, GNUNET_YES /* allow cork */,
+  mh->wh = GNUNET_CADET_notify_transmit_ready (mh->channel, GNUNET_YES /* allow cork */,
 					      GNUNET_TIME_UNIT_FOREVER_REL,
-					      sizeof (struct MeshQueryMessage),
+					      sizeof (struct CadetQueryMessage),
 					      &transmit_sqm, mh);
 }
 
@@ -405,7 +405,7 @@ struct HandleReplyClosure
  *
  * @param cls the `struct HandleReplyClosure`
  * @param key the key of the entry in the map (the query)
- * @param value the `struct GSF_MeshRequest` to handle result for
+ * @param value the `struct GSF_CadetRequest` to handle result for
  * @return #GNUNET_YES (continue to iterate)
  */
 static int
@@ -414,7 +414,7 @@ handle_reply (void *cls,
 	      void *value)
 {
   struct HandleReplyClosure *hrc = cls;
-  struct GSF_MeshRequest *sr = value;
+  struct GSF_CadetRequest *sr = value;
 
   sr->proc (sr->proc_cls,
 	    hrc->type,
@@ -422,7 +422,7 @@ handle_reply (void *cls,
 	    hrc->data_size,
 	    hrc->data);
   sr->proc = NULL;
-  GSF_mesh_query_cancel (sr);
+  GSF_cadet_query_cancel (sr);
   hrc->found = GNUNET_YES;
   return GNUNET_YES;
 }
@@ -432,7 +432,7 @@ handle_reply (void *cls,
  * Functions with this signature are called whenever a complete reply
  * is received.
  *
- * @param cls closure with the `struct MeshHandle`
+ * @param cls closure with the `struct CadetHandle`
  * @param channel channel handle
  * @param channel_ctx channel context
  * @param message the actual message
@@ -440,26 +440,26 @@ handle_reply (void *cls,
  */
 static int
 reply_cb (void *cls,
-	  struct GNUNET_MESH_Channel *channel,
+	  struct GNUNET_CADET_Channel *channel,
 	  void **channel_ctx,
           const struct GNUNET_MessageHeader *message)
 {
-  struct MeshHandle *mh = *channel_ctx;
-  const struct MeshReplyMessage *srm;
+  struct CadetHandle *mh = *channel_ctx;
+  const struct CadetReplyMessage *srm;
   struct HandleReplyClosure hrc;
   uint16_t msize;
   enum GNUNET_BLOCK_Type type;
   struct GNUNET_HashCode query;
 
   msize = ntohs (message->size);
-  if (sizeof (struct MeshReplyMessage) > msize)
+  if (sizeof (struct CadetReplyMessage) > msize)
   {
     GNUNET_break_op (0);
-    reset_mesh_async (mh);
+    reset_cadet_async (mh);
     return GNUNET_SYSERR;
   }
-  srm = (const struct MeshReplyMessage *) message;
-  msize -= sizeof (struct MeshReplyMessage);
+  srm = (const struct CadetReplyMessage *) message;
+  msize -= sizeof (struct CadetReplyMessage);
   type = (enum GNUNET_BLOCK_Type) ntohl (srm->type);
   if (GNUNET_YES !=
       GNUNET_BLOCK_get_key (GSF_block_ctx,
@@ -468,20 +468,20 @@ reply_cb (void *cls,
   {
     GNUNET_break_op (0);
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "Received bogus reply of type %u with %u bytes via mesh from peer %s\n",
+                "Received bogus reply of type %u with %u bytes via cadet from peer %s\n",
                 type,
                 msize,
                 GNUNET_i2s (&mh->target));
-    reset_mesh_async (mh);
+    reset_cadet_async (mh);
     return GNUNET_SYSERR;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Received reply `%s' via mesh from peer %s\n",
+	      "Received reply `%s' via cadet from peer %s\n",
 	      GNUNET_h2s (&query),
 	      GNUNET_i2s (&mh->target));
-  GNUNET_MESH_receive_done (channel);
+  GNUNET_CADET_receive_done (channel);
   GNUNET_STATISTICS_update (GSF_stats,
-			    gettext_noop ("# replies received via mesh"), 1,
+			    gettext_noop ("# replies received via cadet"), 1,
 			    GNUNET_NO);
   hrc.data = &srm[1];
   hrc.data_size = msize;
@@ -495,7 +495,7 @@ reply_cb (void *cls,
   if (GNUNET_NO == hrc.found)
   {
     GNUNET_STATISTICS_update (GSF_stats,
-			      gettext_noop ("# replies received via mesh dropped"), 1,
+			      gettext_noop ("# replies received via cadet dropped"), 1,
 			      GNUNET_NO);
     return GNUNET_OK;
   }
@@ -504,16 +504,16 @@ reply_cb (void *cls,
 
 
 /**
- * Get (or create) a mesh to talk to the given peer.
+ * Get (or create) a cadet to talk to the given peer.
  *
  * @param target peer we want to communicate with
  */
-static struct MeshHandle *
-get_mesh (const struct GNUNET_PeerIdentity *target)
+static struct CadetHandle *
+get_cadet (const struct GNUNET_PeerIdentity *target)
 {
-  struct MeshHandle *mh;
+  struct CadetHandle *mh;
 
-  mh = GNUNET_CONTAINER_multipeermap_get (mesh_map,
+  mh = GNUNET_CONTAINER_multipeermap_get (cadet_map,
 					  target);
   if (NULL != mh)
   {
@@ -525,26 +525,26 @@ get_mesh (const struct GNUNET_PeerIdentity *target)
     return mh;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Creating mesh channel to %s\n",
+	      "Creating cadet channel to %s\n",
 	      GNUNET_i2s (target));
-  mh = GNUNET_new (struct MeshHandle);
+  mh = GNUNET_new (struct CadetHandle);
   mh->reset_task = GNUNET_SCHEDULER_add_delayed (CLIENT_RETRY_TIMEOUT,
-						 &reset_mesh_task,
+						 &reset_cadet_task,
 						 mh);
   mh->waiting_map = GNUNET_CONTAINER_multihashmap_create (16, GNUNET_YES);
   mh->target = *target;
   GNUNET_assert (GNUNET_OK ==
-		 GNUNET_CONTAINER_multipeermap_put (mesh_map,
+		 GNUNET_CONTAINER_multipeermap_put (cadet_map,
 						    &mh->target,
 						    mh,
 						    GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-  mh->channel = GNUNET_MESH_channel_create (mesh_handle,
+  mh->channel = GNUNET_CADET_channel_create (cadet_handle,
                                             mh,
                                             &mh->target,
                                             GNUNET_APPLICATION_TYPE_FS_BLOCK_TRANSFER,
-                                            GNUNET_MESH_OPTION_RELIABLE);
+                                            GNUNET_CADET_OPTION_RELIABLE);
   GNUNET_assert (mh ==
-                 GNUNET_CONTAINER_multipeermap_get (mesh_map,
+                 GNUNET_CONTAINER_multipeermap_get (cadet_map,
                                                     target));
   return mh;
 }
@@ -560,21 +560,21 @@ get_mesh (const struct GNUNET_PeerIdentity *target)
  * @param proc_cls closure for @a proc
  * @return handle to cancel the operation
  */
-struct GSF_MeshRequest *
-GSF_mesh_query (const struct GNUNET_PeerIdentity *target,
+struct GSF_CadetRequest *
+GSF_cadet_query (const struct GNUNET_PeerIdentity *target,
 		const struct GNUNET_HashCode *query,
 		enum GNUNET_BLOCK_Type type,
-		GSF_MeshReplyProcessor proc, void *proc_cls)
+		GSF_CadetReplyProcessor proc, void *proc_cls)
 {
-  struct MeshHandle *mh;
-  struct GSF_MeshRequest *sr;
+  struct CadetHandle *mh;
+  struct GSF_CadetRequest *sr;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Preparing to send query for %s via mesh to %s\n",
+	      "Preparing to send query for %s via cadet to %s\n",
 	      GNUNET_h2s (query),
 	      GNUNET_i2s (target));
-  mh = get_mesh (target);
-  sr = GNUNET_new (struct GSF_MeshRequest);
+  mh = get_cadet (target);
+  sr = GNUNET_new (struct GSF_CadetRequest);
   sr->mh = mh;
   sr->proc = proc;
   sr->proc_cls = proc_cls;
@@ -595,10 +595,10 @@ GSF_mesh_query (const struct GNUNET_PeerIdentity *target,
  * @param sr request to cancel
  */
 void
-GSF_mesh_query_cancel (struct GSF_MeshRequest *sr)
+GSF_cadet_query_cancel (struct GSF_CadetRequest *sr)
 {
-  struct MeshHandle *mh = sr->mh;
-  GSF_MeshReplyProcessor p;
+  struct CadetHandle *mh = sr->mh;
+  GSF_CadetReplyProcessor p;
 
   p = sr->proc;
   sr->proc = NULL;
@@ -610,7 +610,7 @@ GSF_mesh_query_cancel (struct GSF_MeshRequest *sr)
        0, NULL);
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Cancelled query for %s via mesh to %s\n",
+	      "Cancelled query for %s via cadet to %s\n",
 	      GNUNET_h2s (&sr->query),
 	      GNUNET_i2s (&sr->mh->target));
   if (GNUNET_YES == sr->was_transmitted)
@@ -626,7 +626,7 @@ GSF_mesh_query_cancel (struct GSF_MeshRequest *sr)
   if ( (0 == GNUNET_CONTAINER_multihashmap_size (mh->waiting_map)) &&
        (NULL == mh->pending_head) )
     mh->timeout_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-						     &mesh_timeout,
+						     &cadet_timeout,
 						     mh);
 }
 
@@ -636,9 +636,9 @@ GSF_mesh_query_cancel (struct GSF_MeshRequest *sr)
  * call the 'proc' continuation and release associated
  * resources.
  *
- * @param cls the `struct MeshHandle`
+ * @param cls the `struct CadetHandle`
  * @param key the key of the entry in the map (the query)
- * @param value the `struct GSF_MeshRequest` to clean up
+ * @param value the `struct GSF_CadetRequest` to clean up
  * @return #GNUNET_YES (continue to iterate)
  */
 static int
@@ -646,48 +646,48 @@ free_waiting_entry (void *cls,
 		    const struct GNUNET_HashCode *key,
 		    void *value)
 {
-  struct GSF_MeshRequest *sr = value;
+  struct GSF_CadetRequest *sr = value;
 
-  GSF_mesh_query_cancel (sr);
+  GSF_cadet_query_cancel (sr);
   return GNUNET_YES;
 }
 
 
 /**
- * Function called by mesh when a client disconnects.
- * Cleans up our `struct MeshClient` of that channel.
+ * Function called by cadet when a client disconnects.
+ * Cleans up our `struct CadetClient` of that channel.
  *
  * @param cls NULL
  * @param channel channel of the disconnecting client
- * @param channel_ctx our `struct MeshClient`
+ * @param channel_ctx our `struct CadetClient`
  */
 static void
 cleaner_cb (void *cls,
-	    const struct GNUNET_MESH_Channel *channel,
+	    const struct GNUNET_CADET_Channel *channel,
 	    void *channel_ctx)
 {
-  struct MeshHandle *mh = channel_ctx;
-  struct GSF_MeshRequest *sr;
+  struct CadetHandle *mh = channel_ctx;
+  struct GSF_CadetRequest *sr;
 
   if (NULL == mh->channel)
     return; /* being destroyed elsewhere */
   GNUNET_assert (channel == mh->channel);
   mh->channel = NULL;
   while (NULL != (sr = mh->pending_head))
-    GSF_mesh_query_cancel (sr);
-  /* first remove `mh` from the `mesh_map`, so that if the
+    GSF_cadet_query_cancel (sr);
+  /* first remove `mh` from the `cadet_map`, so that if the
      callback from `free_waiting_entry()` happens to re-issue
      the request, we don't immediately have it back in the
      `waiting_map`. */
   GNUNET_assert (GNUNET_OK ==
-		 GNUNET_CONTAINER_multipeermap_remove (mesh_map,
+		 GNUNET_CONTAINER_multipeermap_remove (cadet_map,
 						       &mh->target,
 						       mh));
   GNUNET_CONTAINER_multihashmap_iterate (mh->waiting_map,
 					 &free_waiting_entry,
 					 mh);
   if (NULL != mh->wh)
-    GNUNET_MESH_notify_transmit_ready_cancel (mh->wh);
+    GNUNET_CADET_notify_transmit_ready_cancel (mh->wh);
   if (GNUNET_SCHEDULER_NO_TASK != mh->timeout_task)
     GNUNET_SCHEDULER_cancel (mh->timeout_task);
   if (GNUNET_SCHEDULER_NO_TASK != mh->reset_task)
@@ -703,15 +703,15 @@ cleaner_cb (void *cls,
  * Initialize subsystem for non-anonymous file-sharing.
  */
 void
-GSF_mesh_start_client ()
+GSF_cadet_start_client ()
 {
-  static const struct GNUNET_MESH_MessageHandler handlers[] = {
-    { &reply_cb, GNUNET_MESSAGE_TYPE_FS_MESH_REPLY, 0 },
+  static const struct GNUNET_CADET_MessageHandler handlers[] = {
+    { &reply_cb, GNUNET_MESSAGE_TYPE_FS_CADET_REPLY, 0 },
     { NULL, 0, 0 }
   };
 
-  mesh_map = GNUNET_CONTAINER_multipeermap_create (16, GNUNET_YES);
-  mesh_handle = GNUNET_MESH_connect (GSF_cfg,
+  cadet_map = GNUNET_CONTAINER_multipeermap_create (16, GNUNET_YES);
+  cadet_handle = GNUNET_CADET_connect (GSF_cfg,
 				     NULL,
 				     NULL,
 				     &cleaner_cb,
@@ -721,25 +721,25 @@ GSF_mesh_start_client ()
 
 
 /**
- * Function called on each active meshs to shut them down.
+ * Function called on each active cadets to shut them down.
  *
  * @param cls NULL
  * @param key target peer, unused
- * @param value the `struct MeshHandle` to destroy
+ * @param value the `struct CadetHandle` to destroy
  * @return #GNUNET_YES (continue to iterate)
  */
 static int
-release_meshs (void *cls,
+release_cadets (void *cls,
 	       const struct GNUNET_PeerIdentity *key,
 	       void *value)
 {
-  struct MeshHandle *mh = value;
+  struct CadetHandle *mh = value;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Timeout on mesh channel to %s\n",
+	      "Timeout on cadet channel to %s\n",
 	      GNUNET_i2s (&mh->target));
   if (NULL != mh->channel)
-    GNUNET_MESH_channel_destroy (mh->channel);
+    GNUNET_CADET_channel_destroy (mh->channel);
   return GNUNET_YES;
 }
 
@@ -748,19 +748,19 @@ release_meshs (void *cls,
  * Shutdown subsystem for non-anonymous file-sharing.
  */
 void
-GSF_mesh_stop_client ()
+GSF_cadet_stop_client ()
 {
-  GNUNET_CONTAINER_multipeermap_iterate (mesh_map,
-					 &release_meshs,
+  GNUNET_CONTAINER_multipeermap_iterate (cadet_map,
+					 &release_cadets,
 					 NULL);
-  GNUNET_CONTAINER_multipeermap_destroy (mesh_map);
-  mesh_map = NULL;
-  if (NULL != mesh_handle)
+  GNUNET_CONTAINER_multipeermap_destroy (cadet_map);
+  cadet_map = NULL;
+  if (NULL != cadet_handle)
   {
-    GNUNET_MESH_disconnect (mesh_handle);
-    mesh_handle = NULL;
+    GNUNET_CADET_disconnect (cadet_handle);
+    cadet_handle = NULL;
   }
 }
 
 
-/* end of gnunet-service-fs_mesh_client.c */
+/* end of gnunet-service-fs_cadet_client.c */

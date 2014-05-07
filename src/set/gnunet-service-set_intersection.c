@@ -982,7 +982,7 @@ intersection_handle_p2p_message (struct Operation *op,
     handle_p2p_done (op, mh);
     break;
   default:
-    /* something wrong with mesh's message handlers? */
+    /* something wrong with cadet's message handlers? */
     GNUNET_assert (0);
   }
   return GNUNET_OK;

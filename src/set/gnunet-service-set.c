@@ -104,10 +104,10 @@ struct Listener
 static const struct GNUNET_CONFIGURATION_Handle *configuration;
 
 /**
- * Handle to the mesh service, used
+ * Handle to the cadet service, used
  * to listen for and connect to remote peers.
  */
-static struct GNUNET_MESH_Handle *mesh;
+static struct GNUNET_CADET_Handle *cadet;
 
 /**
  * Sets are held in a doubly linked list.
@@ -289,7 +289,7 @@ void
 _GSS_operation_destroy (struct Operation *op)
 {
   struct Set *set;
-  struct GNUNET_MESH_Channel *channel;
+  struct GNUNET_CADET_Channel *channel;
 
   if (NULL == op->vt)
     return;
@@ -325,7 +325,7 @@ _GSS_operation_destroy (struct Operation *op)
   if (NULL != (channel = op->channel))
   {
     op->channel = NULL;
-    GNUNET_MESH_channel_destroy (channel);
+    GNUNET_CADET_channel_destroy (channel);
   }
 
   collect_generation_garbage (set);
@@ -466,7 +466,7 @@ incoming_destroy (struct Operation *incoming)
   }
   if (NULL != incoming->channel)
   {
-    GNUNET_MESH_channel_destroy (incoming->channel);
+    GNUNET_CADET_channel_destroy (incoming->channel);
     incoming->channel = NULL;
   }
 }
@@ -847,7 +847,7 @@ handle_client_reject (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "peer request rejected by client\n");
 
-  GNUNET_MESH_channel_destroy (incoming->channel);
+  GNUNET_CADET_channel_destroy (incoming->channel);
   //channel destruction handler called immediately upon destruction
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
@@ -980,11 +980,11 @@ handle_client_evaluate (void *cls,
   op->vt = set->vt;
   GNUNET_CONTAINER_DLL_insert (set->ops_head, set->ops_tail, op);
 
-  op->channel = GNUNET_MESH_channel_create (mesh, op, &msg->target_peer,
+  op->channel = GNUNET_CADET_channel_create (cadet, op, &msg->target_peer,
                                             GNUNET_APPLICATION_TYPE_SET,
-                                            GNUNET_MESH_OPTION_RELIABLE);
+                                            GNUNET_CADET_OPTION_RELIABLE);
 
-  op->mq = GNUNET_MESH_mq_create (op->channel);
+  op->mq = GNUNET_CADET_mq_create (op->channel);
 
   set->vt->evaluate (op);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -1173,12 +1173,12 @@ shutdown_task (void *cls,
   while (NULL != sets_head)
     set_destroy (sets_head);
 
-  /* it's important to destroy mesh at the end, as all channels
-   * must be destroyed before the mesh handle! */
-  if (NULL != mesh)
+  /* it's important to destroy cadet at the end, as all channels
+   * must be destroyed before the cadet handle! */
+  if (NULL != cadet)
   {
-    GNUNET_MESH_disconnect (mesh);
-    mesh = NULL;
+    GNUNET_CADET_disconnect (cadet);
+    cadet = NULL;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "handled shutdown request\n");
@@ -1233,7 +1233,7 @@ handle_incoming_disconnect (struct Operation *op)
  * Method called whenever another peer has added us to a channel
  * the other peer initiated.
  * Only called (once) upon reception of data with a message type which was
- * subscribed to in GNUNET_MESH_connect().
+ * subscribed to in GNUNET_CADET_connect().
  *
  * The channel context represents the operation itself and gets added to a DLL,
  * from where it gets looked up when our local listener client responds
@@ -1249,9 +1249,9 @@ handle_incoming_disconnect (struct Operation *op)
  */
 static void *
 channel_new_cb (void *cls,
-               struct GNUNET_MESH_Channel *channel,
+               struct GNUNET_CADET_Channel *channel,
                const struct GNUNET_PeerIdentity *initiator,
-               uint32_t port, enum GNUNET_MESH_ChannelOption options)
+               uint32_t port, enum GNUNET_CADET_ChannelOption options)
 {
   struct Operation *incoming;
   static const struct SetVT incoming_vt = {
@@ -1265,7 +1265,7 @@ channel_new_cb (void *cls,
   if (GNUNET_APPLICATION_TYPE_SET != port)
   {
     GNUNET_break (0);
-    GNUNET_MESH_channel_destroy (channel);
+    GNUNET_CADET_channel_destroy (channel);
     return NULL;
   }
 
@@ -1274,7 +1274,7 @@ channel_new_cb (void *cls,
   incoming->state = GNUNET_new (struct OperationState);
   incoming->state->peer = *initiator;
   incoming->channel = channel;
-  incoming->mq = GNUNET_MESH_mq_create (incoming->channel);
+  incoming->mq = GNUNET_CADET_mq_create (incoming->channel);
   incoming->vt = &incoming_vt;
   incoming->state->timeout_task =
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
@@ -1288,7 +1288,7 @@ channel_new_cb (void *cls,
 /**
  * Function called whenever a channel is destroyed.  Should clean up
  * any associated state.  It must NOT call
- * GNUNET_MESH_channel_destroy() on the channel.
+ * GNUNET_CADET_channel_destroy() on the channel.
  *
  * The peer_disconnect function is part of a a virtual table set initially either
  * when a peer creates a new channel with us (channel_new_cb), or once we create
@@ -1297,14 +1297,14 @@ channel_new_cb (void *cls,
  * Once we know the exact type of operation (union/intersection), the vt is
  * replaced with an operation specific instance (_GSS_[op]_vt).
  *
- * @param cls closure (set from GNUNET_MESH_connect())
+ * @param cls closure (set from GNUNET_CADET_connect())
  * @param channel connection to the other end (henceforth invalid)
  * @param channel_ctx place where local state associated
  *                   with the channel is stored
  */
 static void
 channel_end_cb (void *cls,
-                const struct GNUNET_MESH_Channel *channel, void *channel_ctx)
+                const struct GNUNET_CADET_Channel *channel, void *channel_ctx)
 {
   struct Operation *op = channel_ctx;
 
@@ -1322,7 +1322,7 @@ channel_end_cb (void *cls,
   if (GNUNET_YES == op->keep)
     return;
 
-  /* mesh will never call us with the context again! */
+  /* cadet will never call us with the context again! */
   GNUNET_free (channel_ctx);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "channel end cb finished\n");
@@ -1331,7 +1331,7 @@ channel_end_cb (void *cls,
 
 /**
  * Functions with this signature are called whenever a message is
- * received via a mesh channel.
+ * received via a cadet channel.
  *
  * The msg_handler is a virtual table set in initially either when a peer
  * creates a new channel with us (channel_new_cb), or once we create a new channel
@@ -1340,7 +1340,7 @@ channel_end_cb (void *cls,
  * Once we know the exact type of operation (union/intersection), the vt is
  * replaced with an operation specific instance (_GSS_[op]_vt).
  *
- * @param cls Closure (set from GNUNET_MESH_connect()).
+ * @param cls Closure (set from GNUNET_CADET_connect()).
  * @param channel Connection to the other end.
  * @param channel_ctx Place to store local state associated with the channel.
  * @param message The actual message.
@@ -1349,7 +1349,7 @@ channel_end_cb (void *cls,
  */
 static int
 dispatch_p2p_message (void *cls,
-                      struct GNUNET_MESH_Channel *channel,
+                      struct GNUNET_CADET_Channel *channel,
                       void **channel_ctx,
                       const struct GNUNET_MessageHeader *message)
 {
@@ -1357,16 +1357,16 @@ dispatch_p2p_message (void *cls,
   int ret;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "dispatching mesh message (type: %u)\n",
+              "dispatching cadet message (type: %u)\n",
               ntohs (message->type));
   /* do this before the handler, as the handler might kill the channel */
-  GNUNET_MESH_receive_done (channel);
+  GNUNET_CADET_receive_done (channel);
   if (NULL != op->vt)
     ret = op->vt->msg_handler (op, message);
   else
     ret = GNUNET_SYSERR;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "handled mesh message (type: %u)\n",
+              "handled cadet message (type: %u)\n",
               ntohs (message->type));
   return ret;
 }
@@ -1403,7 +1403,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
         sizeof (struct GNUNET_SET_CancelMessage)},
     {NULL, NULL, 0, 0}
   };
-  static const struct GNUNET_MESH_MessageHandler mesh_handlers[] = {
+  static const struct GNUNET_CADET_MessageHandler cadet_handlers[] = {
     {dispatch_p2p_message, GNUNET_MESSAGE_TYPE_SET_P2P_OPERATION_REQUEST, 0},
     {dispatch_p2p_message, GNUNET_MESSAGE_TYPE_SET_UNION_P2P_IBF, 0},
     {dispatch_p2p_message, GNUNET_MESSAGE_TYPE_SET_P2P_ELEMENTS, 0},
@@ -1415,7 +1415,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     {dispatch_p2p_message, GNUNET_MESSAGE_TYPE_SET_INTERSECTION_P2P_BF_PART, 0},
     {NULL, 0, 0}
   };
-  static const uint32_t mesh_ports[] = {GNUNET_APPLICATION_TYPE_SET, 0};
+  static const uint32_t cadet_ports[] = {GNUNET_APPLICATION_TYPE_SET, 0};
 
   configuration = cfg;
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
@@ -1423,12 +1423,12 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   GNUNET_SERVER_disconnect_notify (server, &handle_client_disconnect, NULL);
   GNUNET_SERVER_add_handlers (server, server_handlers);
 
-  mesh = GNUNET_MESH_connect (cfg, NULL, channel_new_cb, channel_end_cb,
-                              mesh_handlers, mesh_ports);
-  if (NULL == mesh)
+  cadet = GNUNET_CADET_connect (cfg, NULL, channel_new_cb, channel_end_cb,
+                              cadet_handlers, cadet_ports);
+  if (NULL == cadet)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Could not connect to mesh service\n"));
+                _("Could not connect to cadet service\n"));
     return;
   }
 }

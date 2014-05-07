@@ -19,14 +19,14 @@
 */
 
 /**
- * @file mesh/mesh_path.c
+ * @file cadet/cadet_path.c
  * @brief Path handling functions
  * @author Bartlomiej Polot
  */
 
-#include "mesh.h"
-#include "mesh_path.h"
-#include "gnunet-service-mesh_peer.h"
+#include "cadet.h"
+#include "cadet_path.h"
+#include "gnunet-service-cadet_peer.h"
 
 /**
  * @brief Destroy a path after some time has past.
@@ -39,8 +39,8 @@
 static void
 path_destroy_delayed (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct MeshPeerPath *path = cls;
-  struct MeshPeer *peer;
+  struct CadetPeerPath *path = cls;
+  struct CadetPeer *peer;
 
   path->path_delete = GNUNET_SCHEDULER_NO_TASK;
   peer = GMP_get_short (path->peers[path->length - 1]);
@@ -55,12 +55,12 @@ path_destroy_delayed (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  *
  * @return A newly allocated path with a peer array of the specified length.
  */
-struct MeshPeerPath *
+struct CadetPeerPath *
 path_new (unsigned int length)
 {
-  struct MeshPeerPath *p;
+  struct CadetPeerPath *p;
 
-  p = GNUNET_new (struct MeshPeerPath);
+  p = GNUNET_new (struct CadetPeerPath);
   if (length > 0)
   {
     p->length = length;
@@ -76,7 +76,7 @@ path_new (unsigned int length)
  * @param path the path to invert
  */
 void
-path_invert (struct MeshPeerPath *path)
+path_invert (struct CadetPeerPath *path)
 {
   GNUNET_PEER_Id aux;
   unsigned int i;
@@ -95,10 +95,10 @@ path_invert (struct MeshPeerPath *path)
  *
  * @param path The path to duplicate.
  */
-struct MeshPeerPath *
-path_duplicate (const struct MeshPeerPath *path)
+struct CadetPeerPath *
+path_duplicate (const struct CadetPeerPath *path)
 {
-  struct MeshPeerPath *aux;
+  struct CadetPeerPath *aux;
   unsigned int i;
 
   aux = path_new (path->length);
@@ -118,7 +118,7 @@ path_duplicate (const struct MeshPeerPath *path)
  *         UINT_MAX in case the peer is not in the path.
  */
 unsigned int
-path_get_length (struct MeshPeerPath *path)
+path_get_length (struct CadetPeerPath *path)
 {
   if (NULL == path)
     return UINT_MAX;
@@ -136,7 +136,7 @@ path_get_length (struct MeshPeerPath *path)
  * @param p Path to invalidate.
  */
 void
-path_invalidate (struct MeshPeerPath *p)
+path_invalidate (struct CadetPeerPath *p)
 {
   if (GNUNET_SCHEDULER_NO_TASK != p->path_delete)
     return;
@@ -155,7 +155,7 @@ path_invalidate (struct MeshPeerPath *p)
  *         #GNUNET_NO If the path is known to be invalid.
  */
 int
-path_is_valid (const struct MeshPeerPath *path)
+path_is_valid (const struct CadetPeerPath *path)
 {
   return (GNUNET_SCHEDULER_NO_TASK == path->path_delete);
 }
@@ -169,7 +169,7 @@ path_is_valid (const struct MeshPeerPath *path)
  * @return GNUNET_OK on success
  */
 int
-path_destroy (struct MeshPeerPath *p)
+path_destroy (struct CadetPeerPath *p)
 {
   if (NULL == p)
     return GNUNET_OK;
@@ -183,7 +183,7 @@ path_destroy (struct MeshPeerPath *p)
 }
 
 char *
-path_2s (struct MeshPeerPath *p)
+path_2s (struct CadetPeerPath *p)
 {
   char *s;
   char *old;
@@ -201,7 +201,7 @@ path_2s (struct MeshPeerPath *p)
 }
 
 void
-path_debug (struct MeshPeerPath *p)
+path_debug (struct CadetPeerPath *p)
 {
   unsigned int i;
 

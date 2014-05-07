@@ -122,7 +122,7 @@ do_publish (void *cls,
 {
   unsigned int i;
 
-  if (NULL != strstr (progname, "mesh"))
+  if (NULL != strstr (progname, "cadet"))
     anonymity_level = 0;
   else
     anonymity_level = 1;
@@ -144,8 +144,8 @@ main (int argc, char *argv[])
   const char *config;
 
   progname = argv[0];
-  if (NULL != strstr (progname, "mesh"))
-    config = "test_gnunet_service_fs_p2p_mesh.conf";
+  if (NULL != strstr (progname, "cadet"))
+    config = "test_gnunet_service_fs_p2p_cadet.conf";
   else
     config = "fs_test_lib_data.conf";
   (void) GNUNET_TESTBED_test_run ("test-gnunet-service-fs-p2p",

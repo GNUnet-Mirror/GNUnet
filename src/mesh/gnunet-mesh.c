@@ -19,14 +19,14 @@
 */
 
 /**
- * @file mesh/gnunet-mesh.c
- * @brief Print information about mesh tunnels and peers.
+ * @file cadet/gnunet-cadet.c
+ * @brief Print information about cadet tunnels and peers.
  * @author Bartlomiej Polot
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
-#include "gnunet_mesh_service.h"
-#include "mesh.h"
+#include "gnunet_cadet_service.h"
+#include "cadet.h"
 
 
 /**
@@ -101,14 +101,14 @@ size_t data_size;
 
 
 /**
- * Mesh handle.
+ * Cadet handle.
  */
-static struct GNUNET_MESH_Handle *mh;
+static struct GNUNET_CADET_Handle *mh;
 
 /**
  * Channel handle.
  */
-static struct GNUNET_MESH_Channel *ch;
+static struct GNUNET_CADET_Channel *ch;
 
 /**
  * Shutdown task handle.
@@ -136,12 +136,12 @@ shutdown_task (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown\n");
   if (NULL != ch)
   {
-    GNUNET_MESH_channel_destroy (ch);
+    GNUNET_CADET_channel_destroy (ch);
     ch = NULL;
   }
   if (NULL != mh)
   {
-    GNUNET_MESH_disconnect (mh);
+    GNUNET_CADET_disconnect (mh);
         mh = NULL;
   }
 }
@@ -178,7 +178,7 @@ data_ready (void *cls, size_t size, void *buf)
 
   msg = buf;
   msg->size = htons (total_size);
-  msg->type = htons (GNUNET_MESSAGE_TYPE_MESH_CLI);
+  msg->type = htons (GNUNET_MESSAGE_TYPE_CADET_CLI);
   memcpy (&msg[1], cls, data_size);
   if (GNUNET_NO == echo)
   {
@@ -218,7 +218,7 @@ read_stdio (void *cls,
     GNUNET_SCHEDULER_shutdown();
     return;
   }
-  GNUNET_MESH_notify_transmit_ready (ch, GNUNET_NO,
+  GNUNET_CADET_notify_transmit_ready (ch, GNUNET_NO,
                                      GNUNET_TIME_UNIT_FOREVER_REL,
                                      data_size
                                      + sizeof (struct GNUNET_MessageHeader),
@@ -248,16 +248,16 @@ listen_stdio (void)
  * Function called whenever a channel is destroyed.  Should clean up
  * any associated state.
  *
- * It must NOT call #GNUNET_MESH_channel_destroy on the channel.
+ * It must NOT call #GNUNET_CADET_channel_destroy on the channel.
  *
- * @param cls closure (set from #GNUNET_MESH_connect)
+ * @param cls closure (set from #GNUNET_CADET_connect)
  * @param channel connection to the other end (henceforth invalid)
  * @param channel_ctx place where local state associated
  *                   with the channel is stored
  */
 static void
 channel_ended (void *cls,
-               const struct GNUNET_MESH_Channel *channel,
+               const struct GNUNET_CADET_Channel *channel,
                void *channel_ctx)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Channel ended!\n");
@@ -271,25 +271,25 @@ channel_ended (void *cls,
  * Method called whenever another peer has added us to a channel
  * the other peer initiated.
  * Only called (once) upon reception of data with a message type which was
- * subscribed to in #GNUNET_MESH_connect.
+ * subscribed to in #GNUNET_CADET_connect.
  *
- * A call to #GNUNET_MESH_channel_destroy causes te channel to be ignored. In
+ * A call to #GNUNET_CADET_channel_destroy causes te channel to be ignored. In
  * this case the handler MUST return NULL.
  *
  * @param cls closure
  * @param channel new handle to the channel
  * @param initiator peer that started the channel
  * @param port Port this channel is for.
- * @param options MeshOption flag field, with all active option bits set to 1.
+ * @param options CadetOption flag field, with all active option bits set to 1.
  *
  * @return initial channel context for the channel
  *         (can be NULL -- that's not an error)
  */
 static void *
 channel_incoming (void *cls,
-                  struct GNUNET_MESH_Channel * channel,
+                  struct GNUNET_CADET_Channel * channel,
                   const struct GNUNET_PeerIdentity * initiator,
-                  uint32_t port, enum GNUNET_MESH_ChannelOption options)
+                  uint32_t port, enum GNUNET_CADET_ChannelOption options)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Incoming channel %p on port %u\n",
@@ -326,7 +326,7 @@ send_echo (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN) || NULL == ch)
     return;
 
-  GNUNET_MESH_notify_transmit_ready (ch, GNUNET_NO,
+  GNUNET_CADET_notify_transmit_ready (ch, GNUNET_NO,
                                      GNUNET_TIME_UNIT_FOREVER_REL,
                                      sizeof (struct GNUNET_MessageHeader),
                                      &data_ready, NULL);
@@ -335,7 +335,7 @@ send_echo (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
- * Call MESH's monitor API, get info of one connection.
+ * Call CADET's monitor API, get info of one connection.
  *
  * @param cls Closure (unused).
  * @param tc TaskContext
@@ -344,7 +344,7 @@ static void
 create_channel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_PeerIdentity pid;
-  enum GNUNET_MESH_ChannelOption opt;
+  enum GNUNET_CADET_ChannelOption opt;
 
   GNUNET_assert (NULL == ch);
 
@@ -360,8 +360,8 @@ create_channel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connecting to `%s'\n", target_id);
-  opt = GNUNET_MESH_OPTION_DEFAULT | GNUNET_MESH_OPTION_RELIABLE;
-  ch = GNUNET_MESH_channel_create (mh, NULL, &pid, target_port, opt);
+  opt = GNUNET_CADET_OPTION_DEFAULT | GNUNET_CADET_OPTION_RELIABLE;
+  ch = GNUNET_CADET_channel_create (mh, NULL, &pid, target_port, opt);
   if (GNUNET_NO == echo)
     listen_stdio ();
   else
@@ -372,11 +372,11 @@ create_channel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /**
  * Function called whenever a message is received.
  *
- * Each time the function must call #GNUNET_MESH_receive_done on the channel
+ * Each time the function must call #GNUNET_CADET_receive_done on the channel
  * in order to receive the next message. This doesn't need to be immediate:
  * can be delayed if some processing is done on the message.
  *
- * @param cls Closure (set from #GNUNET_MESH_connect).
+ * @param cls Closure (set from #GNUNET_CADET_connect).
  * @param channel Connection to the other end.
  * @param channel_ctx Place to store local state associated with the channel.
  * @param message The actual message.
@@ -385,7 +385,7 @@ create_channel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  */
 static int
 data_callback (void *cls,
-               struct GNUNET_MESH_Channel *channel,
+               struct GNUNET_CADET_Channel *channel,
                void **channel_ctx,
                const struct GNUNET_MessageHeader *message)
 {
@@ -400,7 +400,7 @@ data_callback (void *cls,
     if (0 != listen_port)
     {
       /* Just listening to echo incoming messages*/
-      GNUNET_MESH_notify_transmit_ready (channel, GNUNET_NO,
+      GNUNET_CADET_notify_transmit_ready (channel, GNUNET_NO,
                                         GNUNET_TIME_UNIT_FOREVER_REL,
                                         sizeof (struct GNUNET_MessageHeader),
                                         &data_ready, NULL);
@@ -440,7 +440,7 @@ data_callback (void *cls,
 
 
 /**
- * Method called to retrieve information about all peers in MESH, called
+ * Method called to retrieve information about all peers in CADET, called
  * once per peer.
  *
  * After last peer has been reported, an additional call with NULL is done.
@@ -493,7 +493,7 @@ peer_callback (void *cls,
 
 
 /**
- * Method called to retrieve information about all tunnels in MESH.
+ * Method called to retrieve information about all tunnels in CADET.
  *
  * @param cls Closure.
  * @param peer Destination peer.
@@ -524,7 +524,7 @@ tunnels_callback (void *cls,
 
 
 /**
- * Method called to retrieve information about a specific tunnel the mesh peer
+ * Method called to retrieve information about a specific tunnel the cadet peer
  * has established, o`r is trying to establish.
  *
  * @param cls Closure.
@@ -542,7 +542,7 @@ tunnel_callback (void *cls,
                  unsigned int n_channels,
                  unsigned int n_connections,
                  uint32_t *channels,
-                 struct GNUNET_MESH_Hash *connections,
+                 struct GNUNET_CADET_Hash *connections,
                  unsigned int estate,
                  unsigned int cstate)
 {
@@ -570,7 +570,7 @@ tunnel_callback (void *cls,
 
 
 /**
- * Call MESH's meta API, get all peers known to a peer.
+ * Call CADET's meta API, get all peers known to a peer.
  *
  * @param cls Closure (unused).
  * @param tc TaskContext
@@ -583,12 +583,12 @@ get_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown\n");
     return;
   }
-  GNUNET_MESH_get_peers (mh, &peers_callback, NULL);
+  GNUNET_CADET_get_peers (mh, &peers_callback, NULL);
 }
 
 
 /**
- * Call MESH's monitor API, get info of one peer.
+ * Call CADET's monitor API, get info of one peer.
  *
  * @param cls Closure (unused).
  * @param tc TaskContext
@@ -609,11 +609,11 @@ show_peer (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_SCHEDULER_shutdown();
     return;
   }
-  GNUNET_MESH_get_peer (mh, &pid, peer_callback, NULL);
+  GNUNET_CADET_get_peer (mh, &pid, peer_callback, NULL);
 }
 
 /**
- * Call MESH's meta API, get all tunnels known to a peer.
+ * Call CADET's meta API, get all tunnels known to a peer.
  *
  * @param cls Closure (unused).
  * @param tc TaskContext
@@ -626,12 +626,12 @@ get_tunnels (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Shutdown\n");
     return;
   }
-  GNUNET_MESH_get_tunnels (mh, &tunnels_callback, NULL);
+  GNUNET_CADET_get_tunnels (mh, &tunnels_callback, NULL);
 }
 
 
 /**
- * Call MESH's monitor API, get info of one tunnel.
+ * Call CADET's monitor API, get info of one tunnel.
  *
  * @param cls Closure (unused).
  * @param tc TaskContext
@@ -652,12 +652,12 @@ show_tunnel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_SCHEDULER_shutdown();
     return;
   }
-  GNUNET_MESH_get_tunnel (mh, &pid, tunnel_callback, NULL);
+  GNUNET_CADET_get_tunnel (mh, &pid, tunnel_callback, NULL);
 }
 
 
 /**
- * Call MESH's monitor API, get info of one channel.
+ * Call CADET's monitor API, get info of one channel.
  *
  * @param cls Closure (unused).
  * @param tc TaskContext
@@ -670,7 +670,7 @@ show_channel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
- * Call MESH's monitor API, get info of one connection.
+ * Call CADET's monitor API, get info of one connection.
  *
  * @param cls Closure (unused).
  * @param tc TaskContext
@@ -694,10 +694,10 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  GNUNET_MESH_InboundChannelNotificationHandler *newch = NULL;
-  GNUNET_MESH_ChannelEndHandler *endch = NULL;
-  static const struct GNUNET_MESH_MessageHandler handlers[] = {
-    {&data_callback, GNUNET_MESSAGE_TYPE_MESH_CLI, 0},
+  GNUNET_CADET_InboundChannelNotificationHandler *newch = NULL;
+  GNUNET_CADET_ChannelEndHandler *endch = NULL;
+  static const struct GNUNET_CADET_MessageHandler handlers[] = {
+    {&data_callback, GNUNET_MESSAGE_TYPE_CADET_CLI, 0},
     {NULL, 0, 0} /* FIXME add option to monitor msg types */
   };
   static uint32_t *ports = NULL;
@@ -770,8 +770,8 @@ run (void *cls, char *const *args, const char *cfgfile,
     return;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connecting to mesh\n");
-  mh = GNUNET_MESH_connect (cfg,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connecting to cadet\n");
+  mh = GNUNET_CADET_connect (cfg,
                             NULL, /* cls */
                             newch, /* new channel */
                             endch, /* cleaner */
@@ -798,7 +798,7 @@ int
 main (int argc, char *const *argv)
 {
   int res;
-  const char helpstr[] = "Create channels and retreive info about meshs status.";
+  const char helpstr[] = "Create channels and retreive info about cadets status.";
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
 //     {'a', "channel", "TUNNEL_ID:CHANNEL_ID",
 //      gettext_noop ("provide information about a particular channel"),
@@ -836,7 +836,7 @@ main (int argc, char *const *argv)
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
 
-  res = GNUNET_PROGRAM_run (argc, argv, "gnunet-mesh (OPTIONS | TARGET PORT)",
+  res = GNUNET_PROGRAM_run (argc, argv, "gnunet-cadet (OPTIONS | TARGET PORT)",
                             gettext_noop (helpstr),
                             options, &run, NULL);
 
@@ -848,4 +848,4 @@ main (int argc, char *const *argv)
     return 1;
 }
 
-/* end of gnunet-mesh.c */
+/* end of gnunet-cadet.c */

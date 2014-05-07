@@ -24,17 +24,17 @@
 
 #include "gnunet_statistics_service.h"
 
-#include "mesh.h"
-#include "mesh_protocol.h" /* GNUNET_MESH_Data is shared */
+#include "cadet.h"
+#include "cadet_protocol.h" /* GNUNET_CADET_Data is shared */
 
-#include "gnunet-service-mesh_local.h"
-#include "gnunet-service-mesh_channel.h"
+#include "gnunet-service-cadet_local.h"
+#include "gnunet-service-cadet_channel.h"
 
 /* INFO DEBUG */
-#include "gnunet-service-mesh_tunnel.h"
-#include "gnunet-service-mesh_peer.h"
+#include "gnunet-service-cadet_tunnel.h"
+#include "gnunet-service-cadet_peer.h"
 
-#define LOG(level, ...) GNUNET_log_from(level,"mesh-loc",__VA_ARGS__)
+#define LOG(level, ...) GNUNET_log_from(level,"cadet-loc",__VA_ARGS__)
 
 /******************************************************************************/
 /********************************   STRUCTS  **********************************/
@@ -45,17 +45,17 @@
  *
  * TODO: add a list of 'waiting' ports
  */
-struct MeshClient
+struct CadetClient
 {
     /**
      * Linked list next
      */
-  struct MeshClient *next;
+  struct CadetClient *next;
 
     /**
      * Linked list prev
      */
-  struct MeshClient *prev;
+  struct CadetClient *prev;
 
     /**
      * Tunnels that belong to this client, indexed by local id
@@ -70,7 +70,7 @@ struct MeshClient
     /**
      * Channel ID for the next incoming channel.
      */
-  MESH_ChannelNumber next_chid;
+  CADET_ChannelNumber next_chid;
 
     /**
      * Handle to communicate with the client
@@ -112,12 +112,12 @@ static struct GNUNET_SERVER_Handle *server_handle;
 /**
  * DLL with all the clients, head.
  */
-static struct MeshClient *clients_head;
+static struct CadetClient *clients_head;
 
 /**
  * DLL with all the clients, tail.
  */
-static struct MeshClient *clients_tail;
+static struct CadetClient *clients_tail;
 
 /**
  * Next ID to assign to a client.
@@ -182,15 +182,15 @@ client_release_ports (void *cls,
 static void
 handle_client_connect (void *cls, struct GNUNET_SERVER_Client *client)
 {
-  struct MeshClient *c;
+  struct CadetClient *c;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "client connected: %p\n", client);
   if (NULL == client)
     return;
-  c = GNUNET_new (struct MeshClient);
+  c = GNUNET_new (struct CadetClient);
   c->handle = client;
   c->id = next_client_id++; /* overflow not important: just for debug */
-  c->next_chid = GNUNET_MESH_LOCAL_CHANNEL_ID_SERV;
+  c->next_chid = GNUNET_CADET_LOCAL_CHANNEL_ID_SERV;
   GNUNET_SERVER_client_keep (client);
   GNUNET_SERVER_client_set_user_context (client, c);
   GNUNET_CONTAINER_DLL_insert (clients_head, clients_tail, c);
@@ -211,14 +211,14 @@ channel_destroy_iterator (void *cls,
                           uint32_t key,
                           void *value)
 {
-  struct MeshChannel *ch = value;
-  struct MeshClient *c = cls;
+  struct CadetChannel *ch = value;
+  struct CadetClient *c = cls;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
               " Channel %s destroy, due to client %s shutdown.\n",
               GMCH_2s (ch), GML_2s (c));
 
-  GMCH_handle_local_destroy (ch, c, key < GNUNET_MESH_LOCAL_CHANNEL_ID_SERV);
+  GMCH_handle_local_destroy (ch, c, key < GNUNET_CADET_LOCAL_CHANNEL_ID_SERV);
   return GNUNET_OK;
 }
 
@@ -232,7 +232,7 @@ channel_destroy_iterator (void *cls,
 static void
 handle_client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
 {
-  struct MeshClient *c;
+  struct CadetClient *c;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "client disconnected: %p\n", client);
   if (client == NULL)
@@ -293,8 +293,8 @@ static void
 handle_new_client (void *cls, struct GNUNET_SERVER_Client *client,
                    const struct GNUNET_MessageHeader *message)
 {
-  struct GNUNET_MESH_ClientConnect *cc_msg;
-  struct MeshClient *c;
+  struct GNUNET_CADET_ClientConnect *cc_msg;
+  struct CadetClient *c;
   unsigned int size;
   uint32_t *p;
   unsigned int i;
@@ -303,8 +303,8 @@ handle_new_client (void *cls, struct GNUNET_SERVER_Client *client,
   LOG (GNUNET_ERROR_TYPE_DEBUG, "new client connected %p\n", client);
 
   /* Check data sanity */
-  size = ntohs (message->size) - sizeof (struct GNUNET_MESH_ClientConnect);
-  cc_msg = (struct GNUNET_MESH_ClientConnect *) message;
+  size = ntohs (message->size) - sizeof (struct GNUNET_CADET_ClientConnect);
+  cc_msg = (struct GNUNET_CADET_ClientConnect *) message;
   if (0 != (size % sizeof (uint32_t)))
   {
     GNUNET_break (0);
@@ -314,7 +314,7 @@ handle_new_client (void *cls, struct GNUNET_SERVER_Client *client,
   size /= sizeof (uint32_t);
 
   /* Initialize new client structure */
-  c = GNUNET_SERVER_client_get_user_context (client, struct MeshClient);
+  c = GNUNET_SERVER_client_get_user_context (client, struct CadetClient);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  client id %u\n", c->id);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  client has %u ports\n", size);
   if (size > 0)
@@ -360,7 +360,7 @@ static void
 handle_channel_create (void *cls, struct GNUNET_SERVER_Client *client,
                        const struct GNUNET_MessageHeader *message)
 {
-  struct MeshClient *c;
+  struct CadetClient *c;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "\n");
   LOG (GNUNET_ERROR_TYPE_DEBUG, "new channel requested\n");
@@ -375,7 +375,7 @@ handle_channel_create (void *cls, struct GNUNET_SERVER_Client *client,
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  by client %u\n", c->id);
 
   /* Message size sanity check */
-  if (sizeof (struct GNUNET_MESH_ChannelMessage) != ntohs (message->size))
+  if (sizeof (struct GNUNET_CADET_ChannelMessage) != ntohs (message->size))
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
@@ -384,7 +384,7 @@ handle_channel_create (void *cls, struct GNUNET_SERVER_Client *client,
 
   if (GNUNET_OK !=
       GMCH_handle_local_create (c,
-                                (struct GNUNET_MESH_ChannelMessage *) message))
+                                (struct GNUNET_CADET_ChannelMessage *) message))
   {
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
@@ -406,10 +406,10 @@ static void
 handle_channel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
                         const struct GNUNET_MessageHeader *message)
 {
-  struct GNUNET_MESH_ChannelMessage *msg;
-  struct MeshClient *c;
-  struct MeshChannel *ch;
-  MESH_ChannelNumber chid;
+  struct GNUNET_CADET_ChannelMessage *msg;
+  struct CadetClient *c;
+  struct CadetChannel *ch;
+  CADET_ChannelNumber chid;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Got a DESTROY CHANNEL from client!\n");
 
@@ -423,14 +423,14 @@ handle_channel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  by client %u\n", c->id);
 
   /* Message sanity check */
-  if (sizeof (struct GNUNET_MESH_ChannelMessage) != ntohs (message->size))
+  if (sizeof (struct GNUNET_CADET_ChannelMessage) != ntohs (message->size))
   {
     GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
 
-  msg = (struct GNUNET_MESH_ChannelMessage *) message;
+  msg = (struct GNUNET_CADET_ChannelMessage *) message;
 
   /* Retrieve tunnel */
   chid = ntohl (msg->channel_id);
@@ -446,7 +446,7 @@ handle_channel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
     return;
   }
 
-  GMCH_handle_local_destroy (ch, c, chid < GNUNET_MESH_LOCAL_CHANNEL_ID_SERV);
+  GMCH_handle_local_destroy (ch, c, chid < GNUNET_CADET_LOCAL_CHANNEL_ID_SERV);
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
   return;
@@ -464,10 +464,10 @@ static void
 handle_data (void *cls, struct GNUNET_SERVER_Client *client,
              const struct GNUNET_MessageHeader *message)
 {
-  struct GNUNET_MESH_LocalData *msg;
-  struct MeshClient *c;
-  struct MeshChannel *ch;
-  MESH_ChannelNumber chid;
+  struct GNUNET_CADET_LocalData *msg;
+  struct CadetClient *c;
+  struct CadetChannel *ch;
+  CADET_ChannelNumber chid;
   size_t size;
   int fwd;
 
@@ -482,10 +482,10 @@ handle_data (void *cls, struct GNUNET_SERVER_Client *client,
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  by client %u\n", c->id);
 
-  msg = (struct GNUNET_MESH_LocalData *) message;
+  msg = (struct GNUNET_CADET_LocalData *) message;
 
   /* Sanity check for message size */
-  size = ntohs (message->size) - sizeof (struct GNUNET_MESH_LocalData);
+  size = ntohs (message->size) - sizeof (struct GNUNET_CADET_LocalData);
   if (size < sizeof (struct GNUNET_MessageHeader))
   {
     GNUNET_break (0);
@@ -496,7 +496,7 @@ handle_data (void *cls, struct GNUNET_SERVER_Client *client,
   /* Channel exists? */
   chid = ntohl (msg->id);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  on channel %X\n", chid);
-  fwd = chid < GNUNET_MESH_LOCAL_CHANNEL_ID_SERV;
+  fwd = chid < GNUNET_CADET_LOCAL_CHANNEL_ID_SERV;
   ch = GML_channel_get (c, chid);
   if (NULL == ch)
   {
@@ -533,10 +533,10 @@ static void
 handle_ack (void *cls, struct GNUNET_SERVER_Client *client,
             const struct GNUNET_MessageHeader *message)
 {
-  struct GNUNET_MESH_LocalAck *msg;
-  struct MeshChannel *ch;
-  struct MeshClient *c;
-  MESH_ChannelNumber chid;
+  struct GNUNET_CADET_LocalAck *msg;
+  struct CadetChannel *ch;
+  struct CadetClient *c;
+  CADET_ChannelNumber chid;
   int fwd;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "\n");
@@ -551,7 +551,7 @@ handle_ack (void *cls, struct GNUNET_SERVER_Client *client,
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  by client %u\n", c->id);
 
-  msg = (struct GNUNET_MESH_LocalAck *) message;
+  msg = (struct GNUNET_CADET_LocalAck *) message;
 
   /* Channel exists? */
   chid = ntohl (msg->channel_id);
@@ -571,7 +571,7 @@ handle_ack (void *cls, struct GNUNET_SERVER_Client *client,
 
   /* If client is root, the ACK is going FWD, therefore this is "BCK ACK". */
   /* If client is dest, the ACK is going BCK, therefore this is "FWD ACK" */
-  fwd = chid >= GNUNET_MESH_LOCAL_CHANNEL_ID_SERV;
+  fwd = chid >= GNUNET_CADET_LOCAL_CHANNEL_ID_SERV;
 
   GMCH_handle_local_ack (ch, fwd);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
@@ -596,11 +596,11 @@ get_all_peers_iterator (void *cls,
                         void *value)
 {
   struct GNUNET_SERVER_Client *client = cls;
-  struct MeshPeer *p = value;
-  struct GNUNET_MESH_LocalInfoPeer msg;
+  struct CadetPeer *p = value;
+  struct GNUNET_CADET_LocalInfoPeer msg;
 
   msg.header.size = htons (sizeof (msg));
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_PEERS);
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEERS);
   msg.destination = *peer;
   msg.paths = htons (GMP_count_paths (p));
   msg.tunnel = htons (NULL != GMP_get_tunnel (p));
@@ -625,7 +625,7 @@ static void
 handle_get_peers (void *cls, struct GNUNET_SERVER_Client *client,
                     const struct GNUNET_MessageHeader *message)
 {
-  struct MeshClient *c;
+  struct CadetClient *c;
   struct GNUNET_MessageHeader reply;
 
   /* Sanity check for client registration */
@@ -642,7 +642,7 @@ handle_get_peers (void *cls, struct GNUNET_SERVER_Client *client,
 
   GMP_iterate_all (get_all_peers_iterator, client);
   reply.size = htons (sizeof (reply));
-  reply.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_PEERS);
+  reply.type = htons (GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEERS);
   GNUNET_SERVER_notification_context_unicast (nc, client, &reply, GNUNET_NO);
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -666,11 +666,11 @@ get_all_tunnels_iterator (void *cls,
                           void *value)
 {
   struct GNUNET_SERVER_Client *client = cls;
-  struct MeshTunnel3 *t = value;
-  struct GNUNET_MESH_LocalInfoTunnel msg;
+  struct CadetTunnel3 *t = value;
+  struct GNUNET_CADET_LocalInfoTunnel msg;
 
   msg.header.size = htons (sizeof (msg));
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNELS);
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNELS);
   msg.destination = *peer;
   msg.channels = htonl (GMT_count_channels (t));
   msg.connections = htonl (GMT_count_connections (t));
@@ -697,7 +697,7 @@ static void
 handle_get_tunnels (void *cls, struct GNUNET_SERVER_Client *client,
                     const struct GNUNET_MessageHeader *message)
 {
-  struct MeshClient *c;
+  struct CadetClient *c;
   struct GNUNET_MessageHeader reply;
 
   /* Sanity check for client registration */
@@ -714,7 +714,7 @@ handle_get_tunnels (void *cls, struct GNUNET_SERVER_Client *client,
 
   GMT_iterate_all (get_all_tunnels_iterator, client);
   reply.size = htons (sizeof (reply));
-  reply.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNELS);
+  reply.type = htons (GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNELS);
   GNUNET_SERVER_notification_context_unicast (nc, client, &reply, GNUNET_NO);
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -724,21 +724,21 @@ handle_get_tunnels (void *cls, struct GNUNET_SERVER_Client *client,
 
 
 static void
-iter_connection (void *cls, struct MeshConnection *c)
+iter_connection (void *cls, struct CadetConnection *c)
 {
-  struct GNUNET_MESH_LocalInfoTunnel *msg = cls;
-  struct GNUNET_MESH_Hash *h = (struct GNUNET_MESH_Hash *) &msg[1];
+  struct GNUNET_CADET_LocalInfoTunnel *msg = cls;
+  struct GNUNET_CADET_Hash *h = (struct GNUNET_CADET_Hash *) &msg[1];
 
   h[msg->connections] = *(GMC_get_id (c));
   msg->connections++;
 }
 
 static void
-iter_channel (void *cls, struct MeshChannel *ch)
+iter_channel (void *cls, struct CadetChannel *ch)
 {
-  struct GNUNET_MESH_LocalInfoTunnel *msg = cls;
+  struct GNUNET_CADET_LocalInfoTunnel *msg = cls;
   struct GNUNET_HashCode *h = (struct GNUNET_HashCode *) &msg[1];
-  MESH_ChannelNumber *chn = (MESH_ChannelNumber *) &h[msg->connections];
+  CADET_ChannelNumber *chn = (CADET_ChannelNumber *) &h[msg->connections];
 
   chn[msg->channels] = GMCH_get_id (ch);
   msg->channels++;
@@ -756,10 +756,10 @@ void
 handle_show_tunnel (void *cls, struct GNUNET_SERVER_Client *client,
                     const struct GNUNET_MessageHeader *message)
 {
-  const struct GNUNET_MESH_LocalInfo *msg;
-  struct GNUNET_MESH_LocalInfoTunnel *resp;
-  struct MeshClient *c;
-  struct MeshTunnel3 *t;
+  const struct GNUNET_CADET_LocalInfo *msg;
+  struct GNUNET_CADET_LocalInfoTunnel *resp;
+  struct CadetClient *c;
+  struct CadetTunnel3 *t;
   unsigned int ch_n;
   unsigned int c_n;
   size_t size;
@@ -772,7 +772,7 @@ handle_show_tunnel (void *cls, struct GNUNET_SERVER_Client *client,
     return;
   }
 
-  msg = (struct GNUNET_MESH_LocalInfo *) message;
+  msg = (struct GNUNET_CADET_LocalInfo *) message;
   LOG (GNUNET_ERROR_TYPE_INFO,
        "Received tunnel info request from client %u for tunnel %s\n",
        c->id, GNUNET_i2s_full(&msg->peer));
@@ -781,11 +781,11 @@ handle_show_tunnel (void *cls, struct GNUNET_SERVER_Client *client,
   if (NULL == t)
   {
     /* We don't know the tunnel */
-    struct GNUNET_MESH_LocalInfoTunnel warn;
+    struct GNUNET_CADET_LocalInfoTunnel warn;
 
     LOG (GNUNET_ERROR_TYPE_INFO, "Tunnel %s unknown %u\n",
          GNUNET_i2s_full(&msg->peer), sizeof (warn));
-    warn.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNEL);
+    warn.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNEL);
     warn.header.size = htons (sizeof (warn));
     warn.destination = msg->peer;
     warn.channels = htonl (0);
@@ -804,12 +804,12 @@ handle_show_tunnel (void *cls, struct GNUNET_SERVER_Client *client,
   ch_n = GMT_count_channels (t);
   c_n = GMT_count_connections (t);
 
-  size = sizeof (struct GNUNET_MESH_LocalInfoTunnel);
-  size += c_n * sizeof (struct GNUNET_MESH_Hash);
-  size += ch_n * sizeof (MESH_ChannelNumber);
+  size = sizeof (struct GNUNET_CADET_LocalInfoTunnel);
+  size += c_n * sizeof (struct GNUNET_CADET_Hash);
+  size += ch_n * sizeof (CADET_ChannelNumber);
 
   resp = GNUNET_malloc (size);
-  resp->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNEL);
+  resp->header.type = htons (GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNEL);
   resp->header.size = htons (size);
   GMT_iterate_connections (t, &iter_connection, resp);
   GMT_iterate_channels (t, &iter_channel, resp);
@@ -834,20 +834,20 @@ handle_show_tunnel (void *cls, struct GNUNET_SERVER_Client *client,
  * Functions to handle messages from clients
  */
 static struct GNUNET_SERVER_MessageHandler client_handlers[] = {
-  {&handle_new_client, NULL, GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT, 0},
-  {&handle_channel_create, NULL, GNUNET_MESSAGE_TYPE_MESH_CHANNEL_CREATE,
-   sizeof (struct GNUNET_MESH_ChannelMessage)},
-  {&handle_channel_destroy, NULL, GNUNET_MESSAGE_TYPE_MESH_CHANNEL_DESTROY,
-   sizeof (struct GNUNET_MESH_ChannelMessage)},
-  {&handle_data, NULL, GNUNET_MESSAGE_TYPE_MESH_LOCAL_DATA, 0},
-  {&handle_ack, NULL, GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK,
-   sizeof (struct GNUNET_MESH_LocalAck)},
-  {&handle_get_peers, NULL, GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_PEERS,
+  {&handle_new_client, NULL, GNUNET_MESSAGE_TYPE_CADET_LOCAL_CONNECT, 0},
+  {&handle_channel_create, NULL, GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE,
+   sizeof (struct GNUNET_CADET_ChannelMessage)},
+  {&handle_channel_destroy, NULL, GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY,
+   sizeof (struct GNUNET_CADET_ChannelMessage)},
+  {&handle_data, NULL, GNUNET_MESSAGE_TYPE_CADET_LOCAL_DATA, 0},
+  {&handle_ack, NULL, GNUNET_MESSAGE_TYPE_CADET_LOCAL_ACK,
+   sizeof (struct GNUNET_CADET_LocalAck)},
+  {&handle_get_peers, NULL, GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEERS,
    sizeof (struct GNUNET_MessageHeader)},
-  {&handle_get_tunnels, NULL, GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNELS,
+  {&handle_get_tunnels, NULL, GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNELS,
    sizeof (struct GNUNET_MessageHeader)},
-  {&handle_show_tunnel, NULL, GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNEL,
-   sizeof (struct GNUNET_MESH_LocalInfo)},
+  {&handle_show_tunnel, NULL, GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNEL,
+   sizeof (struct GNUNET_CADET_LocalInfo)},
   {NULL, NULL, 0, 0}
 };
 
@@ -913,21 +913,21 @@ GML_shutdown (void)
  *
  * @return non-NULL if channel exists in the clients lists
  */
-struct MeshChannel *
-GML_channel_get (struct MeshClient *c, MESH_ChannelNumber chid)
+struct CadetChannel *
+GML_channel_get (struct CadetClient *c, CADET_ChannelNumber chid)
 {
   struct GNUNET_CONTAINER_MultiHashMap32 *map;
 
-  if (0 == (chid & GNUNET_MESH_LOCAL_CHANNEL_ID_CLI))
+  if (0 == (chid & GNUNET_CADET_LOCAL_CHANNEL_ID_CLI))
   {
     GNUNET_break_op (0);
     LOG (GNUNET_ERROR_TYPE_DEBUG, "CHID %X not a local chid\n", chid);
     return NULL;
   }
 
-  if (chid >= GNUNET_MESH_LOCAL_CHANNEL_ID_SERV)
+  if (chid >= GNUNET_CADET_LOCAL_CHANNEL_ID_SERV)
     map = c->incoming_channels;
-  else if (chid >= GNUNET_MESH_LOCAL_CHANNEL_ID_CLI)
+  else if (chid >= GNUNET_CADET_LOCAL_CHANNEL_ID_CLI)
     map = c->own_channels;
   else
   {
@@ -954,14 +954,14 @@ GML_channel_get (struct MeshClient *c, MESH_ChannelNumber chid)
  * @param ch Channel.
  */
 void
-GML_channel_add (struct MeshClient *client,
+GML_channel_add (struct CadetClient *client,
                  uint32_t chid,
-                 struct MeshChannel *ch)
+                 struct CadetChannel *ch)
 {
-  if (chid >= GNUNET_MESH_LOCAL_CHANNEL_ID_SERV)
+  if (chid >= GNUNET_CADET_LOCAL_CHANNEL_ID_SERV)
     GNUNET_CONTAINER_multihashmap32_put (client->incoming_channels, chid, ch,
                                          GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
-  else if (chid >= GNUNET_MESH_LOCAL_CHANNEL_ID_CLI)
+  else if (chid >= GNUNET_CADET_LOCAL_CHANNEL_ID_CLI)
     GNUNET_CONTAINER_multihashmap32_put (client->own_channels, chid, ch,
                                          GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
   else
@@ -977,15 +977,15 @@ GML_channel_add (struct MeshClient *client,
  * @param ch Channel.
  */
 void
-GML_channel_remove (struct MeshClient *client,
+GML_channel_remove (struct CadetClient *client,
                     uint32_t chid,
-                    struct MeshChannel *ch)
+                    struct CadetChannel *ch)
 {
-  if (GNUNET_MESH_LOCAL_CHANNEL_ID_SERV <= chid)
+  if (GNUNET_CADET_LOCAL_CHANNEL_ID_SERV <= chid)
     GNUNET_break (GNUNET_YES ==
                   GNUNET_CONTAINER_multihashmap32_remove (client->incoming_channels,
                                                           chid, ch));
-  else if (GNUNET_MESH_LOCAL_CHANNEL_ID_CLI <= chid)
+  else if (GNUNET_CADET_LOCAL_CHANNEL_ID_CLI <= chid)
     GNUNET_break (GNUNET_YES ==
                   GNUNET_CONTAINER_multihashmap32_remove (client->own_channels,
                                                           chid, ch));
@@ -1001,18 +1001,18 @@ GML_channel_remove (struct MeshClient *client,
  *
  * @return LID of a channel free to use.
  */
-MESH_ChannelNumber
-GML_get_next_chid (struct MeshClient *c)
+CADET_ChannelNumber
+GML_get_next_chid (struct CadetClient *c)
 {
-  MESH_ChannelNumber chid;
+  CADET_ChannelNumber chid;
 
   while (NULL != GML_channel_get (c, c->next_chid))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Channel %u exists...\n", c->next_chid);
-    c->next_chid = (c->next_chid + 1) | GNUNET_MESH_LOCAL_CHANNEL_ID_SERV;
+    c->next_chid = (c->next_chid + 1) | GNUNET_CADET_LOCAL_CHANNEL_ID_SERV;
   }
   chid = c->next_chid;
-  c->next_chid = (c->next_chid + 1) | GNUNET_MESH_LOCAL_CHANNEL_ID_SERV;
+  c->next_chid = (c->next_chid + 1) | GNUNET_CADET_LOCAL_CHANNEL_ID_SERV;
 
   return chid;
 }
@@ -1025,10 +1025,10 @@ GML_get_next_chid (struct MeshClient *c)
  *
  * @return non-NULL if client exists in the global DLL
  */
-struct MeshClient *
+struct CadetClient *
 GML_client_get (struct GNUNET_SERVER_Client *client)
 {
-  return GNUNET_SERVER_client_get_user_context (client, struct MeshClient);
+  return GNUNET_SERVER_client_get_user_context (client, struct CadetClient);
 }
 
 /**
@@ -1038,7 +1038,7 @@ GML_client_get (struct GNUNET_SERVER_Client *client)
  *
  * @return non-NULL if a client has the port.
  */
-struct MeshClient *
+struct CadetClient *
 GML_client_get_by_port (uint32_t port)
 {
   return GNUNET_CONTAINER_multihashmap32_get (ports, port);
@@ -1053,20 +1053,20 @@ GML_client_get_by_port (uint32_t port)
  * @param id Channel ID.
  */
 void
-GML_client_delete_channel (struct MeshClient *c,
-                           struct MeshChannel *ch,
-                           MESH_ChannelNumber id)
+GML_client_delete_channel (struct CadetClient *c,
+                           struct CadetChannel *ch,
+                           CADET_ChannelNumber id)
 {
   int res;
 
-  if (GNUNET_MESH_LOCAL_CHANNEL_ID_SERV <= id)
+  if (GNUNET_CADET_LOCAL_CHANNEL_ID_SERV <= id)
   {
     res = GNUNET_CONTAINER_multihashmap32_remove (c->incoming_channels,
                                                   id, ch);
     if (GNUNET_YES != res)
       LOG (GNUNET_ERROR_TYPE_DEBUG, "client_delete_channel dest KO\n");
   }
-  else if (GNUNET_MESH_LOCAL_CHANNEL_ID_CLI <= id)
+  else if (GNUNET_CADET_LOCAL_CHANNEL_ID_CLI <= id)
   {
     res = GNUNET_CONTAINER_multihashmap32_remove (c->own_channels,
                                                   id, ch);
@@ -1088,16 +1088,16 @@ GML_client_delete_channel (struct MeshClient *c,
  * @param id Channel ID to use
  */
 void
-GML_send_ack (struct MeshClient *c, MESH_ChannelNumber id)
+GML_send_ack (struct CadetClient *c, CADET_ChannelNumber id)
 {
-  struct GNUNET_MESH_LocalAck msg;
+  struct GNUNET_CADET_LocalAck msg;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
               "send local %s ack on %X towards %p\n",
-              id < GNUNET_MESH_LOCAL_CHANNEL_ID_SERV ? "FWD" : "BCK", id, c);
+              id < GNUNET_CADET_LOCAL_CHANNEL_ID_SERV ? "FWD" : "BCK", id, c);
 
   msg.header.size = htons (sizeof (msg));
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK);
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_LOCAL_ACK);
   msg.channel_id = htonl (id);
   GNUNET_SERVER_notification_context_unicast (nc,
                                               c->handle,
@@ -1118,14 +1118,14 @@ GML_send_ack (struct MeshClient *c, MESH_ChannelNumber id)
  * @param peer Origin peer.
  */
 void
-GML_send_channel_create (struct MeshClient *c,
+GML_send_channel_create (struct CadetClient *c,
                          uint32_t id, uint32_t port, uint32_t opt,
                          const struct GNUNET_PeerIdentity *peer)
 {
-  struct GNUNET_MESH_ChannelMessage msg;
+  struct GNUNET_CADET_ChannelMessage msg;
 
   msg.header.size = htons (sizeof (msg));
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CHANNEL_CREATE);
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE);
   msg.channel_id = htonl (id);
   msg.port = htonl (port);
   msg.opt = htonl (opt);
@@ -1142,16 +1142,16 @@ GML_send_channel_create (struct MeshClient *c,
  * @param id Channel ID to use
  */
 void
-GML_send_channel_nack (struct MeshClient *c, MESH_ChannelNumber id)
+GML_send_channel_nack (struct CadetClient *c, CADET_ChannelNumber id)
 {
-  struct GNUNET_MESH_LocalAck msg;
+  struct GNUNET_CADET_LocalAck msg;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "send local nack on %X towards %p\n",
        id, c);
 
   msg.header.size = htons (sizeof (msg));
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CHANNEL_NACK);
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_NACK);
   msg.channel_id = htonl (id);
   GNUNET_SERVER_notification_context_unicast (nc,
                                               c->handle,
@@ -1167,9 +1167,9 @@ GML_send_channel_nack (struct MeshClient *c, MESH_ChannelNumber id)
  * @param id ID of the channel that is destroyed.
  */
 void
-GML_send_channel_destroy (struct MeshClient *c, uint32_t id)
+GML_send_channel_destroy (struct CadetClient *c, uint32_t id)
 {
-  struct GNUNET_MESH_ChannelMessage msg;
+  struct GNUNET_CADET_ChannelMessage msg;
 
   if (NULL == c)
   {
@@ -1179,7 +1179,7 @@ GML_send_channel_destroy (struct MeshClient *c, uint32_t id)
   if (GNUNET_YES == c->shutting_down)
     return;
   msg.header.size = htons (sizeof (msg));
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CHANNEL_DESTROY);
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY);
   msg.channel_id = htonl (id);
   msg.port = htonl (0);
   memset (&msg.peer, 0, sizeof (msg.peer));
@@ -1190,20 +1190,20 @@ GML_send_channel_destroy (struct MeshClient *c, uint32_t id)
 
 
 /**
- * Modify the mesh message ID from global to local and send to client.
+ * Modify the cadet message ID from global to local and send to client.
  *
  * @param c Client to send to.
  * @param msg Message to modify and send.
  * @param id Channel ID to use (c can be both owner and client).
  */
 void
-GML_send_data (struct MeshClient *c,
-               const struct GNUNET_MESH_Data *msg,
-               MESH_ChannelNumber id)
+GML_send_data (struct CadetClient *c,
+               const struct GNUNET_CADET_Data *msg,
+               CADET_ChannelNumber id)
 {
-  struct GNUNET_MESH_LocalData *copy;
-  uint16_t size = ntohs (msg->header.size) - sizeof (struct GNUNET_MESH_Data);
-  char cbuf[size + sizeof (struct GNUNET_MESH_LocalData)];
+  struct GNUNET_CADET_LocalData *copy;
+  uint16_t size = ntohs (msg->header.size) - sizeof (struct GNUNET_CADET_Data);
+  char cbuf[size + sizeof (struct GNUNET_CADET_LocalData)];
 
   if (size < sizeof (struct GNUNET_MessageHeader))
   {
@@ -1215,10 +1215,10 @@ GML_send_data (struct MeshClient *c,
     GNUNET_break (0);
     return;
   }
-  copy = (struct GNUNET_MESH_LocalData *) cbuf;
+  copy = (struct GNUNET_CADET_LocalData *) cbuf;
   memcpy (&copy[1], &msg[1], size);
-  copy->header.size = htons (sizeof (struct GNUNET_MESH_LocalData) + size);
-  copy->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_LOCAL_DATA);
+  copy->header.size = htons (sizeof (struct GNUNET_CADET_LocalData) + size);
+  copy->header.type = htons (GNUNET_MESSAGE_TYPE_CADET_LOCAL_DATA);
   copy->id = htonl (id);
   GNUNET_SERVER_notification_context_unicast (nc, c->handle,
                                               &copy->header, GNUNET_NO);
@@ -1233,7 +1233,7 @@ GML_send_data (struct MeshClient *c,
  * @return Static string for the client.
  */
 const char *
-GML_2s (const struct MeshClient *c)
+GML_2s (const struct CadetClient *c)
 {
   static char buf[32];
 

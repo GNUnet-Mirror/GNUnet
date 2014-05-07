@@ -19,15 +19,15 @@
 */
 
 /**
- * @file mesh/mesh_path.h
+ * @file cadet/cadet_path.h
  * @brief Path handling functions
  * @author Bartlomiej Polot
  */
 
-#include "gnunet-service-mesh_connection.h"
+#include "gnunet-service-cadet_connection.h"
 
-#ifndef MESH_PATH_H_
-#define MESH_PATH_H_
+#ifndef CADET_PATH_H_
+#define CADET_PATH_H_
 
 #ifdef __cplusplus
 extern "C"
@@ -44,14 +44,14 @@ extern "C"
 /**
  * Information regarding a possible path to reach a single peer
  */
-struct MeshPeerPath
+struct CadetPeerPath
 {
 
     /**
      * Linked list
      */
-  struct MeshPeerPath *next;
-  struct MeshPeerPath *prev;
+  struct CadetPeerPath *next;
+  struct CadetPeerPath *prev;
 
     /**
      * List of all the peers that form the path from origin to target.
@@ -66,7 +66,7 @@ struct MeshPeerPath
     /**
      * User defined data store.
      */
-  struct MeshConnection *c;
+  struct CadetConnection *c;
 
     /**
      * Path's score, how reliable is the path.
@@ -92,7 +92,7 @@ struct MeshPeerPath
  *
  * @return A newly allocated path with a peer array of the specified length.
  */
-struct MeshPeerPath *
+struct CadetPeerPath *
 path_new (unsigned int length);
 
 
@@ -102,7 +102,7 @@ path_new (unsigned int length);
  * @param path The path to invert.
  */
 void
-path_invert (struct MeshPeerPath *path);
+path_invert (struct CadetPeerPath *path);
 
 
 /**
@@ -110,8 +110,8 @@ path_invert (struct MeshPeerPath *path);
  *
  * @param path The path to duplicate.
  */
-struct MeshPeerPath *
-path_duplicate (const struct MeshPeerPath *path);
+struct CadetPeerPath *
+path_duplicate (const struct CadetPeerPath *path);
 
 
 /**
@@ -123,7 +123,7 @@ path_duplicate (const struct MeshPeerPath *path);
  *         UINT_MAX in case the peer is not in the path.
  */
 unsigned int
-path_get_length (struct MeshPeerPath *path);
+path_get_length (struct CadetPeerPath *path);
 
 /**
  * Mark path as invalid: keep it aroud for a while to avoid trying it in a loop.
@@ -134,7 +134,7 @@ path_get_length (struct MeshPeerPath *path);
  * @param p Path to invalidate.
  */
 void
-path_invalidate (struct MeshPeerPath *p);
+path_invalidate (struct CadetPeerPath *p);
 
 /**
  * Test if a path is valid (or at least not known to be invalid).
@@ -145,7 +145,7 @@ path_invalidate (struct MeshPeerPath *p);
  *         #GNUNET_NO If the path is known to be invalid.
  */
 int
-path_is_valid (const struct MeshPeerPath *path);
+path_is_valid (const struct CadetPeerPath *path);
 
 /**
  * Destroy the path and free any allocated resources linked to it
@@ -155,7 +155,7 @@ path_is_valid (const struct MeshPeerPath *path);
  * @return GNUNET_OK on success
  */
 int
-path_destroy (struct MeshPeerPath *p);
+path_destroy (struct CadetPeerPath *p);
 
 /**
  * Path -> allocated one line string. Caller must free.
@@ -163,7 +163,7 @@ path_destroy (struct MeshPeerPath *p);
  * @param p Path.
  */
 char *
-path_2s (struct MeshPeerPath *p);
+path_2s (struct CadetPeerPath *p);
 
 /**
  * Print info about the path for debug.
@@ -171,7 +171,7 @@ path_2s (struct MeshPeerPath *p);
  * @param p Path to debug.
  */
 void
-path_debug (struct MeshPeerPath *p);
+path_debug (struct CadetPeerPath *p);
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
@@ -181,5 +181,5 @@ path_debug (struct MeshPeerPath *p);
 #endif
 
 
-/* ifndef MESH_PATH_H */
+/* ifndef CADET_PATH_H */
 #endif

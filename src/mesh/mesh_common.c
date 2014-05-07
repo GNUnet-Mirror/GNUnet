@@ -19,12 +19,12 @@
 */
 
 /**
- * @file mesh/mesh_common.c
- * @brief MESH helper functions
+ * @file cadet/cadet_common.c
+ * @brief CADET helper functions
  * @author Bartlomiej Polot
  */
 
-#include "mesh.h"
+#include "cadet.h"
 
 /**
  * @brief Translate a fwd variable into a string representation, for logging.
@@ -78,7 +78,7 @@ GM_min_pid (uint32_t a, uint32_t b)
 
 
 const struct GNUNET_HashCode *
-GM_h2hc (const struct GNUNET_MESH_Hash *id)
+GM_h2hc (const struct GNUNET_CADET_Hash *id)
 {
   static struct GNUNET_HashCode hc;
   memcpy (&hc, id, sizeof (*id));
@@ -88,7 +88,7 @@ GM_h2hc (const struct GNUNET_MESH_Hash *id)
 
 
 const char *
-GM_h2s (const struct GNUNET_MESH_Hash *id)
+GM_h2s (const struct GNUNET_CADET_Hash *id)
 {
   static char s[53];
 
@@ -111,217 +111,217 @@ GM_m2s (uint16_t m)
       /**
        * Request the creation of a path
        */
-    case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE:
+    case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE:
       t = "CONNECTION_CREATE";
       break;
 
       /**
        * Request the modification of an existing path
        */
-    case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK:
+    case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_ACK:
       t = "CONNECTION_ACK";
       break;
 
       /**
        * Notify that a connection of a path is no longer valid
        */
-    case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_BROKEN:
+    case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN:
       t = "CONNECTION_BROKEN";
       break;
 
       /**
        * At some point, the route will spontaneously change
        */
-    case GNUNET_MESSAGE_TYPE_MESH_PATH_CHANGED:
+    case GNUNET_MESSAGE_TYPE_CADET_PATH_CHANGED:
       t = "PATH_CHANGED";
       break;
 
       /**
        * Transport payload data.
        */
-    case GNUNET_MESSAGE_TYPE_MESH_DATA:
+    case GNUNET_MESSAGE_TYPE_CADET_DATA:
       t = "DATA";
       break;
 
     /**
      * Confirm receipt of payload data.
      */
-    case GNUNET_MESSAGE_TYPE_MESH_DATA_ACK:
+    case GNUNET_MESSAGE_TYPE_CADET_DATA_ACK:
       t = "DATA_ACK";
       break;
 
       /**
        * Key exchange encapsulation.
        */
-    case GNUNET_MESSAGE_TYPE_MESH_KX:
+    case GNUNET_MESSAGE_TYPE_CADET_KX:
       t = "KX";
       break;
 
       /**
        * New ephemeral key.
        */
-    case GNUNET_MESSAGE_TYPE_MESH_KX_EPHEMERAL:
+    case GNUNET_MESSAGE_TYPE_CADET_KX_EPHEMERAL:
       t = "KX_EPHEMERAL";
       break;
 
       /**
        * Challenge to test peer's session key.
        */
-    case GNUNET_MESSAGE_TYPE_MESH_KX_PING:
+    case GNUNET_MESSAGE_TYPE_CADET_KX_PING:
       t = "KX_PING";
       break;
 
       /**
        * Answer to session key challenge.
        */
-    case GNUNET_MESSAGE_TYPE_MESH_KX_PONG:
+    case GNUNET_MESSAGE_TYPE_CADET_KX_PONG:
       t = "KX_PONG";
       break;
 
       /**
        * Request the destuction of a path
        */
-    case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_DESTROY:
+    case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY:
       t = "CONNECTION_DESTROY";
       break;
 
       /**
        * ACK for a data packet.
        */
-    case GNUNET_MESSAGE_TYPE_MESH_ACK:
+    case GNUNET_MESSAGE_TYPE_CADET_ACK:
       t = "ACK";
       break;
 
       /**
        * POLL for ACK.
        */
-    case GNUNET_MESSAGE_TYPE_MESH_POLL:
+    case GNUNET_MESSAGE_TYPE_CADET_POLL:
       t = "POLL";
       break;
 
       /**
        * Announce origin is still alive.
        */
-    case GNUNET_MESSAGE_TYPE_MESH_KEEPALIVE:
+    case GNUNET_MESSAGE_TYPE_CADET_KEEPALIVE:
       t = "KEEPALIVE";
       break;
 
     /**
-       * Connect to the mesh service, specifying subscriptions
+       * Connect to the cadet service, specifying subscriptions
        */
-    case GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT:
+    case GNUNET_MESSAGE_TYPE_CADET_LOCAL_CONNECT:
       t = "LOCAL_CONNECT";
       break;
 
       /**
-       * Ask the mesh service to create a new tunnel
+       * Ask the cadet service to create a new tunnel
        */
-    case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_CREATE:
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE:
       t = "CHANNEL_CREATE";
       break;
 
       /**
-       * Ask the mesh service to destroy a tunnel
+       * Ask the cadet service to destroy a tunnel
        */
-    case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_DESTROY:
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY:
       t = "CHANNEL_DESTROY";
       break;
 
       /**
        * Confirm the creation of a channel.
        */
-    case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_ACK:
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_ACK:
       t = "CHANNEL_ACK";
       break;
 
       /**
        * Confirm the creation of a channel.
        */
-    case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_NACK:
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_NACK:
       t = "CHANNEL_NACK";
       break;
 
       /**
        * Encrypted payload.
        */
-    case GNUNET_MESSAGE_TYPE_MESH_ENCRYPTED:
+    case GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED:
       t = "ENCRYPTED";
       break;
 
       /**
        * Local payload traffic
        */
-    case GNUNET_MESSAGE_TYPE_MESH_LOCAL_DATA:
+    case GNUNET_MESSAGE_TYPE_CADET_LOCAL_DATA:
       t = "LOCAL_DATA";
       break;
 
       /**
        * Local ACK for data.
        */
-    case GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK:
+    case GNUNET_MESSAGE_TYPE_CADET_LOCAL_ACK:
       t = "LOCAL_ACK";
       break;
 
       /**
        * Local monitoring of channels.
        */
-    case GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_CHANNELS:
+    case GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_CHANNELS:
       t = "LOCAL_INFO_CHANNELS";
       break;
 
       /**
        * Local monitoring of a channel.
        */
-    case GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_CHANNEL:
+    case GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_CHANNEL:
       t = "LOCAL_INFO_CHANNEL";
       break;
 
       /**
        * Local monitoring of service.
        */
-    case GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNELS:
+    case GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNELS:
       t = "LOCAL_INFO_TUNNELS";
       break;
 
       /**
        * Local monitoring of service.
        */
-    case GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNEL:
+    case GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNEL:
       t = "LOCAL_INFO_TUNNEL";
       break;
 
       /**
        * Local information about all connections of service.
        */
-    case GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_CONNECTIONS:
+    case GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_CONNECTIONS:
       t = "LOCAL_INFO_CONNECTIONS";
       break;
 
       /**
        * Local information of service about a specific connection.
        */
-    case GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_CONNECTION:
+    case GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_CONNECTION:
       t = "LOCAL_INFO_CONNECTION";
       break;
 
       /**
        * Local information about all peers known to the service.
        */
-    case GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_PEERS:
+    case GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEERS:
       t = "LOCAL_INFO_PEERS";
       break;
 
       /**
        * Local information of service about a specific peer.
        */
-    case GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_PEER:
+    case GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEER:
       t = "LOCAL_INFO_PEER";
       break;
 
       /**
        * Traffic (net-cat style) used by the Command Line Interface.
        */
-    case GNUNET_MESSAGE_TYPE_MESH_CLI:
+    case GNUNET_MESSAGE_TYPE_CADET_CLI:
       t = "CLI";
       break;
 

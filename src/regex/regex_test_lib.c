@@ -21,7 +21,7 @@
  * @file src/regex/regex_test_lib.c
  * @brief library to read regexes representing IP networks from a file.
  *        and simplyfinying the into one big regex, in order to run
- *        tests (regex performance, mesh profiler).
+ *        tests (regex performance, cadet profiler).
  * @author Bartlomiej Polot
  */
 

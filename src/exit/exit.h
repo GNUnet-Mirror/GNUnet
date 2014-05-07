@@ -20,7 +20,7 @@
 
 /**
  * @file exit/exit.h
- * @brief format for mesh messages exchanged between VPN service and exit daemon
+ * @brief format for cadet messages exchanged between VPN service and exit daemon
  * @author Christian Grothoff
  */
 #ifndef EXIT_H
@@ -31,7 +31,7 @@
 GNUNET_NETWORK_STRUCT_BEGIN
 
 /**
- * Message send via mesh to an exit daemon to initiate forwarding of
+ * Message send via cadet to an exit daemon to initiate forwarding of
  * TCP data to a local service.
  */
 struct GNUNET_EXIT_TcpServiceStartMessage
@@ -62,7 +62,7 @@ struct GNUNET_EXIT_TcpServiceStartMessage
 
 
 /**
- * Message send via mesh to an exit daemon to initiate forwarding of
+ * Message send via cadet to an exit daemon to initiate forwarding of
  * TCP data to the Internet.
  */
 struct GNUNET_EXIT_TcpInternetStartMessage
@@ -91,7 +91,7 @@ struct GNUNET_EXIT_TcpInternetStartMessage
 
 
 /**
- * Message send via mesh between VPN and entry and an exit daemon to
+ * Message send via cadet between VPN and entry and an exit daemon to
  * transmit TCP data between the VPN entry and an exit session.  This
  * format is used for both Internet-exits and service-exits and
  * in both directions (VPN to exit and exit to VPN).
@@ -119,7 +119,7 @@ struct GNUNET_EXIT_TcpDataMessage
 
 
 /**
- * Message send via mesh to an exit daemon to send
+ * Message send via cadet to an exit daemon to send
  * UDP data to a local service.
  */
 struct GNUNET_EXIT_UdpServiceMessage
@@ -149,7 +149,7 @@ struct GNUNET_EXIT_UdpServiceMessage
 
 
 /**
- * Message send via mesh to an exit daemon to forward
+ * Message send via cadet to an exit daemon to forward
  * UDP data to the Internet.
  */
 struct GNUNET_EXIT_UdpInternetMessage
@@ -209,7 +209,7 @@ struct GNUNET_EXIT_UdpReplyMessage
 
 
 /**
- * Message send via mesh to an exit daemon to send
+ * Message send via cadet to an exit daemon to send
  * ICMP data to a local service.
  */
 struct GNUNET_EXIT_IcmpServiceMessage
@@ -245,7 +245,7 @@ struct GNUNET_EXIT_IcmpServiceMessage
 
 
 /**
- * Message send via mesh to an exit daemon to forward
+ * Message send via cadet to an exit daemon to forward
  * ICMP data to the Internet.
  */
 struct GNUNET_EXIT_IcmpInternetMessage
@@ -280,7 +280,7 @@ struct GNUNET_EXIT_IcmpInternetMessage
 
 
 /**
- * Message send via mesh to the vpn service to send
+ * Message send via cadet to the vpn service to send
  * ICMP data to the VPN's TUN interface.
  */
 struct GNUNET_EXIT_IcmpToVPNMessage

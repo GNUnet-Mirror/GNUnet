@@ -20,11 +20,11 @@
 
 /**
  * @author Bartlomiej Polot
- * @file mesh/mesh.h
+ * @file cadet/cadet.h
  */
 
-#ifndef MESH_H_
-#define MESH_H_
+#ifndef CADET_H_
+#define CADET_H_
 
 #ifdef __cplusplus
 extern "C"
@@ -36,21 +36,21 @@ extern "C"
 
 #include <stdint.h>
 
-#define MESH_DEBUG              GNUNET_YES
+#define CADET_DEBUG              GNUNET_YES
 
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_peer_lib.h"
 #include "gnunet_core_service.h"
 #include "gnunet_protocols.h"
-#include <gnunet_mesh_service.h>
+#include <gnunet_cadet_service.h>
 
 /******************************************************************************/
 /**************************       CONSTANTS      ******************************/
 /******************************************************************************/
 
-#define GNUNET_MESH_LOCAL_CHANNEL_ID_CLI        0x80000000
-#define GNUNET_MESH_LOCAL_CHANNEL_ID_SERV       0xB0000000
+#define GNUNET_CADET_LOCAL_CHANNEL_ID_CLI        0x80000000
+#define GNUNET_CADET_LOCAL_CHANNEL_ID_SERV       0xB0000000
 
 #define HIGH_PID                                0xFFFF0000
 #define LOW_PID                                 0x0000FFFF
@@ -66,13 +66,13 @@ GNUNET_NETWORK_STRUCT_BEGIN
 /**
  * Message for a client to register to the service
  */
-struct GNUNET_MESH_ClientConnect
+struct GNUNET_CADET_ClientConnect
 {
     /**
-     * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT
+     * Type: GNUNET_MESSAGE_TYPE_CADET_LOCAL_CONNECT
      *
-     * Size: sizeof(struct GNUNET_MESH_ClientConnect) +
-     *       sizeof(MESH_ApplicationType) * applications +
+     * Size: sizeof(struct GNUNET_CADET_ClientConnect) +
+     *       sizeof(CADET_ApplicationType) * applications +
      *       sizeof(uint16_t) * types
      */
   struct GNUNET_MessageHeader header;
@@ -86,25 +86,25 @@ struct GNUNET_MESH_ClientConnect
  * - Local channel numbers given by the client (created) are >= 0x80000000
  * - Global channel numbers are < 0x80000000
  */
-typedef uint32_t MESH_ChannelNumber;
+typedef uint32_t CADET_ChannelNumber;
 
 
 /**
  * Message for a client to create and destroy channels.
  */
-struct GNUNET_MESH_ChannelMessage
+struct GNUNET_CADET_ChannelMessage
 {
     /**
-     * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_TUNNEL_[CREATE|DESTROY]
+     * Type: GNUNET_MESSAGE_TYPE_CADET_LOCAL_TUNNEL_[CREATE|DESTROY]
      *
-     * Size: sizeof(struct GNUNET_MESH_ChannelMessage)
+     * Size: sizeof(struct GNUNET_CADET_ChannelMessage)
      */
   struct GNUNET_MessageHeader header;
 
     /**
      * ID of a channel controlled by this client.
      */
-  MESH_ChannelNumber channel_id GNUNET_PACKED;
+  CADET_ChannelNumber channel_id GNUNET_PACKED;
 
     /**
      * Channel's peer
@@ -124,12 +124,12 @@ struct GNUNET_MESH_ChannelMessage
 
 
 /**
- * Message for mesh data traffic.
+ * Message for cadet data traffic.
  */
-struct GNUNET_MESH_LocalData
+struct GNUNET_CADET_LocalData
 {
     /**
-     * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_DATA
+     * Type: GNUNET_MESSAGE_TYPE_CADET_LOCAL_DATA
      */
   struct GNUNET_MessageHeader header;
 
@@ -148,17 +148,17 @@ struct GNUNET_MESH_LocalData
  * Message to allow the client send more data to the service
  * (always service -> client).
  */
-struct GNUNET_MESH_LocalAck
+struct GNUNET_CADET_LocalAck
 {
     /**
-     * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK
+     * Type: GNUNET_MESSAGE_TYPE_CADET_LOCAL_ACK
      */
   struct GNUNET_MessageHeader header;
 
     /**
      * ID of the channel allowed to send more data.
      */
-  MESH_ChannelNumber channel_id GNUNET_PACKED;
+  CADET_ChannelNumber channel_id GNUNET_PACKED;
 
 };
 
@@ -166,17 +166,17 @@ struct GNUNET_MESH_LocalAck
 /**
  * Message to inform the client about channels in the service.
  */
-struct GNUNET_MESH_LocalInfo
+struct GNUNET_CADET_LocalInfo
 {
   /**
-     * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO[_TUNNEL,_PEER]
+     * Type: GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO[_TUNNEL,_PEER]
    */
   struct GNUNET_MessageHeader header;
 
   /**
    * ID of the channel allowed to send more data.
    */
-  MESH_ChannelNumber channel_id GNUNET_PACKED;
+  CADET_ChannelNumber channel_id GNUNET_PACKED;
 
   /**
    * ID of the owner of the channel (can be local peer).
@@ -193,10 +193,10 @@ struct GNUNET_MESH_LocalInfo
 /**
  * Message to inform the client about one of the peers in the service.
  */
-struct GNUNET_MESH_LocalInfoPeer
+struct GNUNET_CADET_LocalInfoPeer
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_PEER[S]
+   * Type: GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEER[S]
    */
   struct GNUNET_MessageHeader header;
 
@@ -222,10 +222,10 @@ struct GNUNET_MESH_LocalInfoPeer
 /**
  * Message to inform the client about one of the tunnels in the service.
  */
-struct GNUNET_MESH_LocalInfoTunnel
+struct GNUNET_CADET_LocalInfoTunnel
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNEL[S]
+   * Type: GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNEL[S]
    */
   struct GNUNET_MessageHeader header;
 
@@ -311,7 +311,7 @@ GM_min_pid (uint32_t a, uint32_t b);
 
 
 /**
- * Convert a 256 bit MeshHash into a 512 HashCode to use in GNUNET_h2s,
+ * Convert a 256 bit CadetHash into a 512 HashCode to use in GNUNET_h2s,
  * multihashmap, and other HashCode-based functions.
  *
  * @param id A 256 bit hash to expand.
@@ -319,14 +319,14 @@ GM_min_pid (uint32_t a, uint32_t b);
  * @return A HashCode containing the original 256 bit hash right-padded with 0.
  */
 const struct GNUNET_HashCode *
-GM_h2hc (const struct GNUNET_MESH_Hash *id);
+GM_h2hc (const struct GNUNET_CADET_Hash *id);
 
 /**
- * Get a string from a Mesh Hash (256 bits).
+ * Get a string from a Cadet Hash (256 bits).
  * WARNING: Not reentrant (based on GNUNET_h2s).
  */
 const char *
-GM_h2s (const struct GNUNET_MESH_Hash *id);
+GM_h2s (const struct GNUNET_CADET_Hash *id);
 
 /**
  * Convert a message type into a string to help debug

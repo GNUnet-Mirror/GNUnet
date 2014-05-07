@@ -100,7 +100,7 @@ struct GNUNET_DNSSTUB_Context
 
   /**
    * IP address to use for the DNS server if we are a DNS exit service
-   * (for VPN via mesh); otherwise NULL.
+   * (for VPN via cadet); otherwise NULL.
    */
   char *dns_exit;
 };

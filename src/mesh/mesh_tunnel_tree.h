@@ -19,12 +19,12 @@
 */
 
 /**
- * @file mesh/mesh_tunnel_tree.h
+ * @file cadet/cadet_tunnel_tree.h
  * @brief Tunnel tree handling functions
  * @author Bartlomiej Polot
  */
 
-#include "mesh.h"
+#include "cadet.h"
 
 /******************************************************************************/
 /************************      DATA STRUCTURES     ****************************/
@@ -33,14 +33,14 @@
 /**
  * Information regarding a possible path to reach a single peer
  */
-struct MeshPeerPath
+struct CadetPeerPath
 {
 
     /**
      * Linked list
      */
-  struct MeshPeerPath *next;
-  struct MeshPeerPath *prev;
+  struct CadetPeerPath *next;
+  struct CadetPeerPath *prev;
 
     /**
      * List of all the peers that form the path from origin to target.
@@ -58,13 +58,13 @@ struct MeshPeerPath
 /**
  * Node of path tree for a tunnel
  */
-struct MeshTunnelTreeNode;
+struct CadetTunnelTreeNode;
 
 
 /**
  * Tree to reach all peers in the tunnel
  */
-struct MeshTunnelTree;
+struct CadetTunnelTree;
 
 
 /******************************************************************************/
@@ -78,7 +78,7 @@ struct MeshTunnelTree;
  *
  * @return A newly allocated path with a peer array of the specified length.
  */
-struct MeshPeerPath *
+struct CadetPeerPath *
 path_new (unsigned int length);
 
 
@@ -88,7 +88,7 @@ path_new (unsigned int length);
  * @param path The path to invert.
  */
 void
-path_invert (struct MeshPeerPath *path);
+path_invert (struct CadetPeerPath *path);
 
 
 /**
@@ -96,8 +96,8 @@ path_invert (struct MeshPeerPath *path);
  *
  * @param path The path to duplicate.
  */
-struct MeshPeerPath *
-path_duplicate (struct MeshPeerPath *path);
+struct CadetPeerPath *
+path_duplicate (struct CadetPeerPath *path);
 
 
 /**
@@ -109,7 +109,7 @@ path_duplicate (struct MeshPeerPath *path);
  *         UINT_MAX in case the peer is not in the path.
  */
 unsigned int
-path_get_length (struct MeshPeerPath *path);
+path_get_length (struct CadetPeerPath *path);
 
 
 /**
@@ -120,7 +120,7 @@ path_get_length (struct MeshPeerPath *path);
  * @return GNUNET_OK on success
  */
 int
-path_destroy (struct MeshPeerPath *p);
+path_destroy (struct CadetPeerPath *p);
 
 
 /******************************************************************************/
@@ -131,7 +131,7 @@ path_destroy (struct MeshPeerPath *p);
  * @param cls Closure.
  * @param peer_id Short ID of the peer.
  */
-typedef void (*MeshTreeCallback) (void *cls, GNUNET_PEER_Id peer_id);
+typedef void (*CadetTreeCallback) (void *cls, GNUNET_PEER_Id peer_id);
 
 
 /**
@@ -141,7 +141,7 @@ typedef void (*MeshTreeCallback) (void *cls, GNUNET_PEER_Id peer_id);
  * @param peer_id Short ID of the peer.
  * @param peer_id Short ID of the parent of the peer.
  */
-typedef void (*MeshWholeTreeCallback) (void *cls,
+typedef void (*CadetWholeTreeCallback) (void *cls,
                                        GNUNET_PEER_Id peer_id,
                                        GNUNET_PEER_Id parent_id);
 
@@ -152,7 +152,7 @@ typedef void (*MeshWholeTreeCallback) (void *cls,
  *
  * @return A newly allocated and initialized tunnel tree
  */
-struct MeshTunnelTree *
+struct CadetTunnelTree *
 tree_new (GNUNET_PEER_Id peer);
 
 
@@ -164,8 +164,8 @@ tree_new (GNUNET_PEER_Id peer);
  * @param status New status to set.
  */
 void
-tree_set_status (struct MeshTunnelTree *tree, GNUNET_PEER_Id peer,
-                 enum MeshPeerState status);
+tree_set_status (struct CadetTunnelTree *tree, GNUNET_PEER_Id peer,
+                 enum CadetPeerState status);
 
 
 /**
@@ -176,8 +176,8 @@ tree_set_status (struct MeshTunnelTree *tree, GNUNET_PEER_Id peer,
  *
  * @return Short peer id of local peer.
  */
-enum MeshPeerState
-tree_get_status (struct MeshTunnelTree *tree, GNUNET_PEER_Id peer);
+enum CadetPeerState
+tree_get_status (struct CadetTunnelTree *tree, GNUNET_PEER_Id peer);
 
 
 /**
@@ -188,7 +188,7 @@ tree_get_status (struct MeshTunnelTree *tree, GNUNET_PEER_Id peer);
  * @return Short peer id of local peer.
  */
 GNUNET_PEER_Id
-tree_get_predecessor (struct MeshTunnelTree *tree);
+tree_get_predecessor (struct CadetTunnelTree *tree);
 
 
 /**
@@ -201,7 +201,7 @@ tree_get_predecessor (struct MeshTunnelTree *tree);
  *         NULL on error
  */
 struct GNUNET_PeerIdentity *
-tree_get_first_hop (struct MeshTunnelTree *t, GNUNET_PEER_Id peer);
+tree_get_first_hop (struct CadetTunnelTree *t, GNUNET_PEER_Id peer);
 
 
 /**
@@ -212,8 +212,8 @@ tree_get_first_hop (struct MeshTunnelTree *t, GNUNET_PEER_Id peer);
  *
  * @return Pointer to the node of the peer. NULL if not found.
  */
-struct MeshTunnelTreeNode *
-tree_find_peer (struct MeshTunnelTree *tree, GNUNET_PEER_Id peer_id);
+struct CadetTunnelTreeNode *
+tree_find_peer (struct CadetTunnelTree *tree, GNUNET_PEER_Id peer_id);
 
 
 /**
@@ -224,8 +224,8 @@ tree_find_peer (struct MeshTunnelTree *tree, GNUNET_PEER_Id peer_id);
  * @param cb_cls Closure for @c cb.
  */
 void
-tree_iterate_children (struct MeshTunnelTree *tree,
-                       MeshTreeCallback cb,
+tree_iterate_children (struct CadetTunnelTree *tree,
+                       CadetTreeCallback cb,
                        void *cb_cls);
 
 
@@ -239,8 +239,8 @@ tree_iterate_children (struct MeshTunnelTree *tree,
  * TODO: recursive implementation? (s/heap/stack/g)
  */
 void
-tree_iterate_all (struct MeshTunnelTree *tree,
-                  MeshWholeTreeCallback cb,
+tree_iterate_all (struct CadetTunnelTree *tree,
+                  CadetWholeTreeCallback cb,
                   void *cb_cls);
 
 /**
@@ -249,7 +249,7 @@ tree_iterate_all (struct MeshTunnelTree *tree,
  * @param tree Tree to use. Must have "me" set.
  */
 unsigned int
-tree_count_children (struct MeshTunnelTree *tree);
+tree_count_children (struct CadetTunnelTree *tree);
 
 
 /**
@@ -261,7 +261,7 @@ tree_count_children (struct MeshTunnelTree *tree);
  *            If not known, NULL to find out and pass on children.
  */
 void
-tree_update_first_hops (struct MeshTunnelTree *tree, GNUNET_PEER_Id parent_id,
+tree_update_first_hops (struct CadetTunnelTree *tree, GNUNET_PEER_Id parent_id,
                         struct GNUNET_PeerIdentity *hop);
 
 /**
@@ -278,9 +278,9 @@ tree_update_first_hops (struct MeshTunnelTree *tree, GNUNET_PEER_Id parent_id,
  * @return pointer to the pathless node.
  *         NULL when not found
  */
-struct MeshTunnelTreeNode *
-tree_del_path (struct MeshTunnelTree *t, GNUNET_PEER_Id peer_id,
-               MeshTreeCallback cb, void *cbcls);
+struct CadetTunnelTreeNode *
+tree_del_path (struct CadetTunnelTree *t, GNUNET_PEER_Id peer_id,
+               CadetTreeCallback cb, void *cbcls);
 
 
 /**
@@ -293,8 +293,8 @@ tree_del_path (struct MeshTunnelTree *t, GNUNET_PEER_Id peer_id,
  * @return A newly allocated individual path to reach the destination peer.
  *         Path must be destroyed afterwards.
  */
-struct MeshPeerPath *
-tree_get_path_to_peer (struct MeshTunnelTree *t, GNUNET_PEER_Id peer);
+struct CadetPeerPath *
+tree_get_path_to_peer (struct CadetTunnelTree *t, GNUNET_PEER_Id peer);
 
 
 /**
@@ -309,8 +309,8 @@ tree_get_path_to_peer (struct MeshTunnelTree *t, GNUNET_PEER_Id peer);
  *         GNUNET_SYSERR in case of error.
  */
 int
-tree_add_path (struct MeshTunnelTree *t, const struct MeshPeerPath *p,
-               MeshTreeCallback cb, void *cbcls);
+tree_add_path (struct CadetTunnelTree *t, const struct CadetPeerPath *p,
+               CadetTreeCallback cb, void *cbcls);
 
 
 /**
@@ -326,8 +326,8 @@ tree_add_path (struct MeshTunnelTree *t, const struct MeshPeerPath *p,
  * @return Short ID of the first disconnected peer in the tree.
  */
 GNUNET_PEER_Id
-tree_notify_connection_broken (struct MeshTunnelTree *t, GNUNET_PEER_Id p1,
-                               GNUNET_PEER_Id p2, MeshTreeCallback cb,
+tree_notify_connection_broken (struct CadetTunnelTree *t, GNUNET_PEER_Id p1,
+                               GNUNET_PEER_Id p2, CadetTreeCallback cb,
                                void *cbcls);
 
 
@@ -347,8 +347,8 @@ tree_notify_connection_broken (struct MeshTunnelTree *t, GNUNET_PEER_Id p1,
  * @return GNUNET_YES if the tunnel still has nodes
  */
 int
-tree_del_peer (struct MeshTunnelTree *t, GNUNET_PEER_Id peer,
-               MeshTreeCallback cb, void *cbcls);
+tree_del_peer (struct CadetTunnelTree *t, GNUNET_PEER_Id peer,
+               CadetTreeCallback cb, void *cbcls);
 
 
 /**
@@ -361,7 +361,7 @@ tree_del_peer (struct MeshTunnelTree *t, GNUNET_PEER_Id peer,
  * in the path
  */
 unsigned int
-tree_get_path_cost (struct MeshTunnelTree *t, struct MeshPeerPath *path);
+tree_get_path_cost (struct CadetTunnelTree *t, struct CadetPeerPath *path);
 
 
 /**
@@ -370,7 +370,7 @@ tree_get_path_cost (struct MeshTunnelTree *t, struct MeshPeerPath *path);
  * @param t The tree
  */
 void
-tree_debug (struct MeshTunnelTree *t);
+tree_debug (struct CadetTunnelTree *t);
 
 
 /**
@@ -379,4 +379,4 @@ tree_debug (struct MeshTunnelTree *t);
  * @param t Tree to be destroyed
  */
 void
-tree_destroy (struct MeshTunnelTree *t);
+tree_destroy (struct CadetTunnelTree *t);

@@ -24,15 +24,15 @@
 #include "gnunet_signatures.h"
 #include "gnunet_statistics_service.h"
 
-#include "mesh_protocol.h"
-#include "mesh_path.h"
+#include "cadet_protocol.h"
+#include "cadet_path.h"
 
-#include "gnunet-service-mesh_tunnel.h"
-#include "gnunet-service-mesh_connection.h"
-#include "gnunet-service-mesh_channel.h"
-#include "gnunet-service-mesh_peer.h"
+#include "gnunet-service-cadet_tunnel.h"
+#include "gnunet-service-cadet_connection.h"
+#include "gnunet-service-cadet_channel.h"
+#include "gnunet-service-cadet_peer.h"
 
-#define LOG(level, ...) GNUNET_log_from(level,"mesh-tun",__VA_ARGS__)
+#define LOG(level, ...) GNUNET_log_from(level,"cadet-tun",__VA_ARGS__)
 
 #define REKEY_WAIT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 5)
 
@@ -42,33 +42,33 @@
 /********************************   STRUCTS  **********************************/
 /******************************************************************************/
 
-struct MeshTChannel
+struct CadetTChannel
 {
-  struct MeshTChannel *next;
-  struct MeshTChannel *prev;
-  struct MeshChannel *ch;
+  struct CadetTChannel *next;
+  struct CadetTChannel *prev;
+  struct CadetChannel *ch;
 };
 
 
 /**
  * Connection list and metadata.
  */
-struct MeshTConnection
+struct CadetTConnection
 {
   /**
    * Next in DLL.
    */
-  struct MeshTConnection *next;
+  struct CadetTConnection *next;
 
   /**
    * Prev in DLL.
    */
-  struct MeshTConnection *prev;
+  struct CadetTConnection *prev;
 
   /**
    * Connection handle.
    */
-  struct MeshConnection *c;
+  struct CadetConnection *c;
 
   /**
    * Creation time, to keep oldest connection alive.
@@ -84,7 +84,7 @@ struct MeshTConnection
 /**
  * Structure used during a Key eXchange.
  */
-struct MeshTunnelKXCtx
+struct CadetTunnelKXCtx
 {
   /**
    * Decryption ("their") old key, for decrypting traffic sent by the
@@ -101,27 +101,27 @@ struct MeshTunnelKXCtx
 /**
  * Struct containing all information regarding a tunnel to a peer.
  */
-struct MeshTunnel3
+struct CadetTunnel3
 {
     /**
      * Endpoint of the tunnel.
      */
-  struct MeshPeer *peer;
+  struct CadetPeer *peer;
 
     /**
      * State of the tunnel connectivity.
      */
-  enum MeshTunnel3CState cstate;
+  enum CadetTunnel3CState cstate;
 
   /**
    * State of the tunnel encryption.
    */
-  enum MeshTunnel3EState estate;
+  enum CadetTunnel3EState estate;
 
   /**
    * Key eXchange context.
    */
-  struct MeshTunnelKXCtx *kx_ctx;
+  struct CadetTunnelKXCtx *kx_ctx;
 
   /**
    * Encryption ("our") key.
@@ -141,8 +141,8 @@ struct MeshTunnel3
   /**
    * Paths that are actively used to reach the destination peer.
    */
-  struct MeshTConnection *connection_head;
-  struct MeshTConnection *connection_tail;
+  struct CadetTConnection *connection_head;
+  struct CadetTConnection *connection_tail;
 
   /**
    * Next connection number.
@@ -152,13 +152,13 @@ struct MeshTunnel3
   /**
    * Channels inside this tunnel.
    */
-  struct MeshTChannel *channel_head;
-  struct MeshTChannel *channel_tail;
+  struct CadetTChannel *channel_head;
+  struct CadetTChannel *channel_tail;
 
   /**
    * Channel ID for the next created channel.
    */
-  MESH_ChannelNumber next_chid;
+  CADET_ChannelNumber next_chid;
 
   /**
    * Destroy flag: if true, destroy on last message.
@@ -168,31 +168,31 @@ struct MeshTunnel3
   /**
    * Queued messages, to transmit once tunnel gets connected.
    */
-  struct MeshTunnelDelayed *tq_head;
-  struct MeshTunnelDelayed *tq_tail;
+  struct CadetTunnelDelayed *tq_head;
+  struct CadetTunnelDelayed *tq_tail;
 };
 
 
 /**
  * Struct used to save messages in a non-ready tunnel to send once connected.
  */
-struct MeshTunnelDelayed
+struct CadetTunnelDelayed
 {
   /**
    * DLL
    */
-  struct MeshTunnelDelayed *next;
-  struct MeshTunnelDelayed *prev;
+  struct CadetTunnelDelayed *next;
+  struct CadetTunnelDelayed *prev;
 
   /**
    * Tunnel.
    */
-  struct MeshTunnel3 *t;
+  struct CadetTunnel3 *t;
 
   /**
    * Tunnel queue given to the channel to cancel request. Update on send_queued.
    */
-  struct MeshTunnel3Queue *tq;
+  struct CadetTunnel3Queue *tq;
 
   /**
    * Message to send.
@@ -204,17 +204,17 @@ struct MeshTunnelDelayed
 /**
  * Handle for messages queued but not yet sent.
  */
-struct MeshTunnel3Queue
+struct CadetTunnel3Queue
 {
   /**
    * Connection queue handle, to cancel if necessary.
    */
-  struct MeshConnectionQueue *cq;
+  struct CadetConnectionQueue *cq;
 
   /**
    * Handle in case message hasn't been given to a connection yet.
    */
-  struct MeshTunnelDelayed *tqd;
+  struct CadetTunnelDelayed *tqd;
 
   /**
    * Continuation to call once sent.
@@ -278,7 +278,7 @@ static struct GNUNET_CRYPTO_EcdhePrivateKey *my_ephemeral_key;
 /**
  * Cached message used to perform a key exchange.
  */
-static struct GNUNET_MESH_KX_Ephemeral kx_msg;
+static struct GNUNET_CADET_KX_Ephemeral kx_msg;
 
 /**
  * Task to generate a new ephemeral key.
@@ -302,20 +302,20 @@ static struct GNUNET_TIME_Relative rekey_period;
  * @return String representation.
  */
 static const char *
-cstate2s (enum MeshTunnel3CState cs)
+cstate2s (enum CadetTunnel3CState cs)
 {
   static char buf[128];
 
   switch (cs)
   {
-    case MESH_TUNNEL3_NEW:
-      return "MESH_TUNNEL3_NEW";
-    case MESH_TUNNEL3_SEARCHING:
-      return "MESH_TUNNEL3_SEARCHING";
-    case MESH_TUNNEL3_WAITING:
-      return "MESH_TUNNEL3_WAITING";
-    case MESH_TUNNEL3_READY:
-      return "MESH_TUNNEL3_READY";
+    case CADET_TUNNEL3_NEW:
+      return "CADET_TUNNEL3_NEW";
+    case CADET_TUNNEL3_SEARCHING:
+      return "CADET_TUNNEL3_SEARCHING";
+    case CADET_TUNNEL3_WAITING:
+      return "CADET_TUNNEL3_WAITING";
+    case CADET_TUNNEL3_READY:
+      return "CADET_TUNNEL3_READY";
 
     default:
       sprintf (buf, "%u (UNKNOWN STATE)", cs);
@@ -333,20 +333,20 @@ cstate2s (enum MeshTunnel3CState cs)
  * @return String representation.
  */
 static const char *
-estate2s (enum MeshTunnel3EState es)
+estate2s (enum CadetTunnel3EState es)
 {
   static char buf[128];
 
   switch (es)
   {
-    case MESH_TUNNEL3_KEY_UNINITIALIZED:
-      return "MESH_TUNNEL3_KEY_UNINITIALIZED";
-    case MESH_TUNNEL3_KEY_SENT:
-      return "MESH_TUNNEL3_KEY_SENT";
-    case MESH_TUNNEL3_KEY_PING:
-      return "MESH_TUNNEL3_KEY_PING";
-    case MESH_TUNNEL3_KEY_OK:
-      return "MESH_TUNNEL3_KEY_OK";
+    case CADET_TUNNEL3_KEY_UNINITIALIZED:
+      return "CADET_TUNNEL3_KEY_UNINITIALIZED";
+    case CADET_TUNNEL3_KEY_SENT:
+      return "CADET_TUNNEL3_KEY_SENT";
+    case CADET_TUNNEL3_KEY_PING:
+      return "CADET_TUNNEL3_KEY_PING";
+    case CADET_TUNNEL3_KEY_OK:
+      return "CADET_TUNNEL3_KEY_OK";
 
     default:
       sprintf (buf, "%u (UNKNOWN STATE)", es);
@@ -366,12 +366,12 @@ estate2s (enum MeshTunnel3EState es)
  * @return #GNUNET_YES if ready, #GNUNET_NO otherwise
  */
 static int
-is_ready (struct MeshTunnel3 *t)
+is_ready (struct CadetTunnel3 *t)
 {
   int ready;
 
   GMT_debug (t);
-  ready = (MESH_TUNNEL3_READY == t->cstate && MESH_TUNNEL3_KEY_OK == t->estate);
+  ready = (CADET_TUNNEL3_READY == t->cstate && CADET_TUNNEL3_KEY_OK == t->estate);
   ready = ready || GMT_is_loopback (t);
   return ready;
 }
@@ -413,7 +413,7 @@ ping_encryption_size (void)
  * @return Amount of messages the channel can still buffer towards the client.
  */
 static unsigned int
-get_channel_buffer (const struct MeshTChannel *tch)
+get_channel_buffer (const struct CadetTChannel *tch)
 {
   int fwd;
 
@@ -432,7 +432,7 @@ get_channel_buffer (const struct MeshTChannel *tch)
  * @return #GNUNET_YES if we allowed the client to send data to us.
  */
 static int
-get_channel_allowed (const struct MeshTChannel *tch)
+get_channel_allowed (const struct CadetTChannel *tch)
 {
   int fwd;
 
@@ -451,7 +451,7 @@ get_channel_allowed (const struct MeshTChannel *tch)
  * @return Amount of messages the connection can still buffer.
  */
 static unsigned int
-get_connection_buffer (const struct MeshTConnection *tc)
+get_connection_buffer (const struct CadetTConnection *tc)
 {
   int fwd;
 
@@ -470,7 +470,7 @@ get_connection_buffer (const struct MeshTConnection *tc)
  * @return Amount of messages we have allowed the next peer to send us.
  */
 static unsigned int
-get_connection_allowed (const struct MeshTConnection *tc)
+get_connection_allowed (const struct CadetTConnection *tc)
 {
   int fwd;
 
@@ -490,11 +490,11 @@ get_connection_allowed (const struct MeshTConnection *tc)
  * @return GNUNET_OK if message is fine, GNUNET_SYSERR otherwise.
  */
 int
-check_ephemeral (struct MeshTunnel3 *t,
-                 const struct GNUNET_MESH_KX_Ephemeral *msg)
+check_ephemeral (struct CadetTunnel3 *t,
+                 const struct GNUNET_CADET_KX_Ephemeral *msg)
 {
   /* Check message size */
-  if (ntohs (msg->header.size) != sizeof (struct GNUNET_MESH_KX_Ephemeral))
+  if (ntohs (msg->header.size) != sizeof (struct GNUNET_CADET_KX_Ephemeral))
     return GNUNET_SYSERR;
 
   /* Check signature size */
@@ -509,7 +509,7 @@ check_ephemeral (struct MeshTunnel3 *t,
 
   /* Check signature */
   if (GNUNET_OK !=
-      GNUNET_CRYPTO_eddsa_verify (GNUNET_SIGNATURE_PURPOSE_MESH_KX,
+      GNUNET_CRYPTO_eddsa_verify (GNUNET_SIGNATURE_PURPOSE_CADET_KX,
                                   &msg->purpose,
                                   &msg->signature,
                                   &msg->origin_identity.public_key))
@@ -529,7 +529,7 @@ check_ephemeral (struct MeshTunnel3 *t,
  * @param iv Initialization Vector to use.
  */
 static int
-t_encrypt (struct MeshTunnel3 *t,
+t_encrypt (struct CadetTunnel3 *t,
            void *dst, const void *src,
            size_t size, uint32_t iv)
 {
@@ -556,7 +556,7 @@ t_encrypt (struct MeshTunnel3 *t,
  * @param iv Initialization Vector to use.
  */
 static int
-t_decrypt (struct MeshTunnel3 *t,
+t_decrypt (struct CadetTunnel3 *t,
            void *dst, const void *src,
            size_t size, uint32_t iv)
 {
@@ -565,7 +565,7 @@ t_decrypt (struct MeshTunnel3 *t,
   size_t out_size;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_decrypt start\n");
-  if (t->estate == MESH_TUNNEL3_KEY_OK || t->estate == MESH_TUNNEL3_KEY_PING)
+  if (t->estate == CADET_TUNNEL3_KEY_OK || t->estate == CADET_TUNNEL3_KEY_PING)
   {
     key = &t->d_key;
   }
@@ -627,7 +627,7 @@ derive_symmertic (struct GNUNET_CRYPTO_SymmetricSessionKey *key,
                   const struct GNUNET_PeerIdentity *receiver,
                   const struct GNUNET_HashCode *key_material)
 {
-  const char salt[] = "MESH kx salt";
+  const char salt[] = "CADET kx salt";
 
   GNUNET_CRYPTO_kdf (key, sizeof (struct GNUNET_CRYPTO_SymmetricSessionKey),
                      salt, sizeof (salt),
@@ -644,11 +644,11 @@ derive_symmertic (struct GNUNET_CRYPTO_SymmetricSessionKey *key,
  *
  * @return The connection on which to send the next message.
  */
-static struct MeshConnection *
-tunnel_get_connection (struct MeshTunnel3 *t)
+static struct CadetConnection *
+tunnel_get_connection (struct CadetTunnel3 *t)
 {
-  struct MeshTConnection *iter;
-  struct MeshConnection *best;
+  struct CadetTConnection *iter;
+  struct CadetConnection *best;
   unsigned int qn;
   unsigned int lowest_q;
 
@@ -659,7 +659,7 @@ tunnel_get_connection (struct MeshTunnel3 *t)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  connection %s: %u\n",
          GMC_2s (iter->c), GMC_get_state (iter->c));
-    if (MESH_CONNECTION_READY == GMC_get_state (iter->c))
+    if (CADET_CONNECTION_READY == GMC_get_state (iter->c))
     {
       qn = GMC_get_qn (iter->c, GMC_is_origin (iter->c, GNUNET_YES));
       LOG (GNUNET_ERROR_TYPE_DEBUG, "    q_n %u, \n", qn);
@@ -689,12 +689,12 @@ tunnel_get_connection (struct MeshTunnel3 *t)
  */
 static void
 tun_message_sent (void *cls,
-              struct MeshConnection *c,
-              struct MeshConnectionQueue *q,
+              struct CadetConnection *c,
+              struct CadetConnectionQueue *q,
               uint16_t type, int fwd, size_t size)
 {
-  struct MeshTunnel3Queue *qt = cls;
-  struct MeshTunnel3 *t;
+  struct CadetTunnel3Queue *qt = cls;
+  struct CadetTunnel3 *t;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "tun_message_sent\n");
 
@@ -712,7 +712,7 @@ tun_message_sent (void *cls,
  * @param tqd Delayed queue handle.
  */
 static void
-unqueue_data (struct MeshTunnelDelayed *tqd)
+unqueue_data (struct CadetTunnelDelayed *tqd)
 {
   GNUNET_CONTAINER_DLL_remove (tqd->t->tq_head, tqd->t->tq_tail, tqd);
   GNUNET_free (tqd);
@@ -725,10 +725,10 @@ unqueue_data (struct MeshTunnelDelayed *tqd)
  * @param t Tunnel to hold the message.
  * @param msg Message itself (copy will be made).
  */
-static struct MeshTunnelDelayed *
-queue_data (struct MeshTunnel3 *t, const struct GNUNET_MessageHeader *msg)
+static struct CadetTunnelDelayed *
+queue_data (struct CadetTunnel3 *t, const struct GNUNET_MessageHeader *msg)
 {
-  struct MeshTunnelDelayed *tqd;
+  struct CadetTunnelDelayed *tqd;
   uint16_t size = ntohs (msg->size);
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "queue data on Tunnel %s\n", GMT_2s (t));
@@ -739,7 +739,7 @@ queue_data (struct MeshTunnel3 *t, const struct GNUNET_MessageHeader *msg)
     return NULL;
   }
 
-  tqd = GNUNET_malloc (sizeof (struct MeshTunnelDelayed) + size);
+  tqd = GNUNET_malloc (sizeof (struct CadetTunnelDelayed) + size);
 
   tqd->t = t;
   memcpy (&tqd[1], msg, size);
@@ -759,11 +759,11 @@ queue_data (struct MeshTunnel3 *t, const struct GNUNET_MessageHeader *msg)
  * @param hmac Destination to store the HMAC.
  */
 static void
-t_hmac (struct MeshTunnel3 *t, const void *plaintext, size_t size, uint32_t iv,
-        int outgoing, struct GNUNET_MESH_Hash *hmac)
+t_hmac (struct CadetTunnel3 *t, const void *plaintext, size_t size, uint32_t iv,
+        int outgoing, struct GNUNET_CADET_Hash *hmac)
 {
   struct GNUNET_CRYPTO_AuthKey auth_key;
-  static const char ctx[] = "mesh authentication key";
+  static const char ctx[] = "cadet authentication key";
   struct GNUNET_CRYPTO_SymmetricSessionKey *key;
   struct GNUNET_HashCode hash;
 
@@ -794,16 +794,16 @@ t_hmac (struct MeshTunnel3 *t, const void *plaintext, size_t size, uint32_t iv,
  *
  * @return Handle to cancel message. NULL if @c cont is NULL.
  */
-static struct MeshTunnel3Queue *
+static struct CadetTunnel3Queue *
 send_prebuilt_message (const struct GNUNET_MessageHeader *message,
-                       struct MeshTunnel3 *t, struct MeshConnection *c,
+                       struct CadetTunnel3 *t, struct CadetConnection *c,
                        int force, GMT_sent cont, void *cont_cls,
-                       struct MeshTunnel3Queue *existing_q)
+                       struct CadetTunnel3Queue *existing_q)
 {
-  struct MeshTunnel3Queue *tq;
-  struct GNUNET_MESH_Encrypted *msg;
+  struct CadetTunnel3Queue *tq;
+  struct GNUNET_CADET_Encrypted *msg;
   size_t size = ntohs (message->size);
-  char cbuf[sizeof (struct GNUNET_MESH_Encrypted) + size];
+  char cbuf[sizeof (struct GNUNET_CADET_Encrypted) + size];
   uint32_t mid;
   uint32_t iv;
   uint16_t type;
@@ -813,7 +813,7 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
 
   if (GNUNET_NO == is_ready (t))
   {
-    struct MeshTunnelDelayed *tqd;
+    struct CadetTunnelDelayed *tqd;
     /* A non null existing_q indicates sending of queued data.
      * Should only happen after tunnel becomes ready.
      */
@@ -821,7 +821,7 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
     tqd = queue_data (t, message);
     if (NULL == cont)
       return NULL;
-    tq = GNUNET_new (struct MeshTunnel3Queue);
+    tq = GNUNET_new (struct CadetTunnel3Queue);
     tq->tqd = tqd;
     tqd->tq = tq;
     tq->cont = cont;
@@ -832,19 +832,19 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   GNUNET_assert (GNUNET_NO == GMT_is_loopback (t));
 
   iv = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
-  msg = (struct GNUNET_MESH_Encrypted *) cbuf;
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_ENCRYPTED);
+  msg = (struct GNUNET_CADET_Encrypted *) cbuf;
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED);
   msg->iv = iv;
   GNUNET_assert (t_encrypt (t, &msg[1], message, size, iv) == size);
   t_hmac (t, &msg[1], size, iv, GNUNET_YES, &msg->hmac);
-  msg->header.size = htons (sizeof (struct GNUNET_MESH_Encrypted) + size);
+  msg->header.size = htons (sizeof (struct GNUNET_CADET_Encrypted) + size);
 
   if (NULL == c)
     c = tunnel_get_connection (t);
   if (NULL == c)
   {
     if (GNUNET_SCHEDULER_NO_TASK != t->destroy_task
-        || MESH_TUNNEL3_SEARCHING != t->cstate)
+        || CADET_TUNNEL3_SEARCHING != t->cstate)
     {
       GNUNET_break (0);
       GMT_debug (t);
@@ -856,18 +856,18 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   type = ntohs (message->type);
   switch (type)
   {
-    case GNUNET_MESSAGE_TYPE_MESH_DATA:
-    case GNUNET_MESSAGE_TYPE_MESH_DATA_ACK:
-      if (GNUNET_MESSAGE_TYPE_MESH_DATA == type)
-        mid = ntohl (((struct GNUNET_MESH_Data *) message)->mid);
+    case GNUNET_MESSAGE_TYPE_CADET_DATA:
+    case GNUNET_MESSAGE_TYPE_CADET_DATA_ACK:
+      if (GNUNET_MESSAGE_TYPE_CADET_DATA == type)
+        mid = ntohl (((struct GNUNET_CADET_Data *) message)->mid);
       else
-        mid = ntohl (((struct GNUNET_MESH_DataACK *) message)->mid);
+        mid = ntohl (((struct GNUNET_CADET_DataACK *) message)->mid);
       /* Fall thru */
-    case GNUNET_MESSAGE_TYPE_MESH_KEEPALIVE:
-    case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_CREATE:
-    case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_DESTROY:
-    case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_ACK:
-    case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_NACK:
+    case GNUNET_MESSAGE_TYPE_CADET_KEEPALIVE:
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE:
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY:
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_ACK:
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_NACK:
       msg->cid = *GMC_get_id (c);
       msg->ttl = htonl (default_ttl);
       break;
@@ -887,7 +887,7 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   }
   if (NULL == existing_q)
   {
-    tq = GNUNET_new (struct MeshTunnel3Queue); /* FIXME valgrind: leak*/
+    tq = GNUNET_new (struct CadetTunnel3Queue); /* FIXME valgrind: leak*/
   }
   else
   {
@@ -909,10 +909,10 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
  * @param t Tunnel that holds the messages. Cannot be loopback.
  */
 static void
-send_queued_data (struct MeshTunnel3 *t)
+send_queued_data (struct CadetTunnel3 *t)
 {
-  struct MeshTunnelDelayed *tqd;
-  struct MeshTunnelDelayed *next;
+  struct CadetTunnelDelayed *tqd;
+  struct CadetTunnelDelayed *next;
   unsigned int room;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -959,13 +959,13 @@ send_queued_data (struct MeshTunnel3 *t)
  * @param message Message to send. Function modifies it.
  */
 static void
-send_kx (struct MeshTunnel3 *t,
+send_kx (struct CadetTunnel3 *t,
          const struct GNUNET_MessageHeader *message)
 {
-  struct MeshConnection *c;
-  struct GNUNET_MESH_KX *msg;
+  struct CadetConnection *c;
+  struct GNUNET_CADET_KX *msg;
   size_t size = ntohs (message->size);
-  char cbuf[sizeof (struct GNUNET_MESH_KX) + size];
+  char cbuf[sizeof (struct GNUNET_CADET_KX) + size];
   uint16_t type;
   int fwd;
 
@@ -988,28 +988,28 @@ send_kx (struct MeshTunnel3 *t,
   /* Must have a connection. */
   if (NULL == t->connection_head)
   {
-    GNUNET_break (MESH_TUNNEL3_SEARCHING == t->cstate);
+    GNUNET_break (CADET_TUNNEL3_SEARCHING == t->cstate);
     GMT_debug (t);
     return;
   }
 
-  msg = (struct GNUNET_MESH_KX *) cbuf;
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_KX);
-  msg->header.size = htons (sizeof (struct GNUNET_MESH_KX) + size);
+  msg = (struct GNUNET_CADET_KX *) cbuf;
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_CADET_KX);
+  msg->header.size = htons (sizeof (struct GNUNET_CADET_KX) + size);
   c = tunnel_get_connection (t);
   if (NULL == c)
   {
     GNUNET_break (GNUNET_SCHEDULER_NO_TASK != t->destroy_task
-                  || MESH_TUNNEL3_READY != t->cstate);
+                  || CADET_TUNNEL3_READY != t->cstate);
     GMT_debug (t);
     return;
   }
   type = ntohs (message->type);
   switch (type)
   {
-    case GNUNET_MESSAGE_TYPE_MESH_KX_EPHEMERAL:
-    case GNUNET_MESSAGE_TYPE_MESH_KX_PING:
-    case GNUNET_MESSAGE_TYPE_MESH_KX_PONG:
+    case GNUNET_MESSAGE_TYPE_CADET_KX_EPHEMERAL:
+    case GNUNET_MESSAGE_TYPE_CADET_KX_PING:
+    case GNUNET_MESSAGE_TYPE_CADET_KX_PONG:
       memcpy (&msg[1], message, size);
       break;
     default:
@@ -1020,7 +1020,7 @@ send_kx (struct MeshTunnel3 *t,
 
   fwd = GMC_is_origin (t->connection_head->c, GNUNET_YES);
   /* TODO save handle and cancel in case of a unneeded retransmission */
-  GMC_send_prebuilt_message (&msg->header, GNUNET_MESSAGE_TYPE_MESH_KX,
+  GMC_send_prebuilt_message (&msg->header, GNUNET_MESSAGE_TYPE_CADET_KX,
                              message->type, c, fwd, GNUNET_YES, NULL, NULL);
 }
 
@@ -1031,7 +1031,7 @@ send_kx (struct MeshTunnel3 *t,
  * @param t Tunnel on which to send the key.
  */
 static void
-send_ephemeral (struct MeshTunnel3 *t)
+send_ephemeral (struct CadetTunnel3 *t)
 {
   LOG (GNUNET_ERROR_TYPE_INFO, "=> EPHM for %s\n", GMT_2s (t));
 
@@ -1045,13 +1045,13 @@ send_ephemeral (struct MeshTunnel3 *t)
  * @param t Tunnel on which to send the ping.
  */
 static void
-send_ping (struct MeshTunnel3 *t)
+send_ping (struct CadetTunnel3 *t)
 {
-  struct GNUNET_MESH_KX_Ping msg;
+  struct GNUNET_CADET_KX_Ping msg;
 
   LOG (GNUNET_ERROR_TYPE_INFO, "=> PING for %s\n", GMT_2s (t));
   msg.header.size = htons (sizeof (msg));
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_KX_PING);
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_KX_PING);
   msg.iv = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
   msg.target = *GMP_get_id (t->peer);
   msg.nonce = t->kx_ctx->challenge;
@@ -1073,13 +1073,13 @@ send_ping (struct MeshTunnel3 *t)
  * @param challenge Value sent in the ping that we have to send back.
  */
 static void
-send_pong (struct MeshTunnel3 *t, uint32_t challenge)
+send_pong (struct CadetTunnel3 *t, uint32_t challenge)
 {
-  struct GNUNET_MESH_KX_Pong msg;
+  struct GNUNET_CADET_KX_Pong msg;
 
   LOG (GNUNET_ERROR_TYPE_INFO, "=> PONG for %s\n", GMT_2s (t));
   msg.header.size = htons (sizeof (msg));
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_KX_PONG);
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_KX_PONG);
   msg.iv = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
   msg.nonce = challenge;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  sending %u\n", msg.nonce);
@@ -1099,7 +1099,7 @@ send_pong (struct MeshTunnel3 *t, uint32_t challenge)
 static void
 rekey_tunnel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct MeshTunnel3 *t = cls;
+  struct CadetTunnel3 *t = cls;
 
   t->rekey_task = GNUNET_SCHEDULER_NO_TASK;
 
@@ -1110,7 +1110,7 @@ rekey_tunnel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (NULL == t->kx_ctx)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  new kx ctx\n");
-    t->kx_ctx = GNUNET_new (struct MeshTunnelKXCtx);
+    t->kx_ctx = GNUNET_new (struct CadetTunnelKXCtx);
     t->kx_ctx->challenge =
         GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
     t->kx_ctx->d_key_old = t->d_key;
@@ -1120,15 +1120,15 @@ rekey_tunnel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   send_ephemeral (t);
   switch (t->estate)
   {
-    case MESH_TUNNEL3_KEY_UNINITIALIZED:
-      t->estate = MESH_TUNNEL3_KEY_SENT;
+    case CADET_TUNNEL3_KEY_UNINITIALIZED:
+      t->estate = CADET_TUNNEL3_KEY_SENT;
       break;
-    case MESH_TUNNEL3_KEY_SENT:
+    case CADET_TUNNEL3_KEY_SENT:
       break;
-    case MESH_TUNNEL3_KEY_PING:
-    case MESH_TUNNEL3_KEY_OK:
+    case CADET_TUNNEL3_KEY_PING:
+    case CADET_TUNNEL3_KEY_OK:
       send_ping (t);
-      t->estate = MESH_TUNNEL3_KEY_PING;
+      t->estate = CADET_TUNNEL3_KEY_PING;
       break;
     default:
       LOG (GNUNET_ERROR_TYPE_DEBUG, "Unexpected state %u\n", t->estate);
@@ -1154,7 +1154,7 @@ rekey_iterator (void *cls,
                 const struct GNUNET_PeerIdentity *key,
                 void *value)
 {
-  struct MeshTunnel3 *t = value;
+  struct CadetTunnel3 *t = value;
   struct GNUNET_TIME_Relative delay;
   long n = (long) cls;
   uint32_t r;
@@ -1226,7 +1226,7 @@ destroy_iterator (void *cls,
                 const struct GNUNET_PeerIdentity *key,
                 void *value)
 {
-  struct MeshTunnel3 *t = value;
+  struct CadetTunnel3 *t = value;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "GMT_shutdown destroying tunnel at %p\n", t);
   GMT_destroy (t);
@@ -1242,11 +1242,11 @@ destroy_iterator (void *cls,
  * @param gid ID of the channel.
  */
 static void
-send_channel_destroy (struct MeshTunnel3 *t, unsigned int gid)
+send_channel_destroy (struct CadetTunnel3 *t, unsigned int gid)
 {
-  struct GNUNET_MESH_ChannelManage msg;
+  struct GNUNET_CADET_ChannelManage msg;
 
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CHANNEL_DESTROY);
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY);
   msg.header.size = htons (sizeof (msg));
   msg.chid = htonl (gid);
 
@@ -1268,17 +1268,17 @@ send_channel_destroy (struct MeshTunnel3 *t, unsigned int gid)
  *            #GNUNET_SYSERR if message on a one-ended channel (remote)
  */
 static void
-handle_data (struct MeshTunnel3 *t,
-             const struct GNUNET_MESH_Data *msg,
+handle_data (struct CadetTunnel3 *t,
+             const struct GNUNET_CADET_Data *msg,
              int fwd)
 {
-  struct MeshChannel *ch;
+  struct CadetChannel *ch;
   size_t size;
 
   /* Check size */
   size = ntohs (msg->header.size);
   if (size <
-      sizeof (struct GNUNET_MESH_Data) +
+      sizeof (struct GNUNET_CADET_Data) +
       sizeof (struct GNUNET_MessageHeader))
   {
     GNUNET_break (0);
@@ -1314,16 +1314,16 @@ handle_data (struct MeshTunnel3 *t,
  *            #GNUNET_SYSERR if message on a one-ended channel (remote)
  */
 static void
-handle_data_ack (struct MeshTunnel3 *t,
-                 const struct GNUNET_MESH_DataACK *msg,
+handle_data_ack (struct CadetTunnel3 *t,
+                 const struct GNUNET_CADET_DataACK *msg,
                  int fwd)
 {
-  struct MeshChannel *ch;
+  struct CadetChannel *ch;
   size_t size;
 
   /* Check size */
   size = ntohs (msg->header.size);
-  if (size != sizeof (struct GNUNET_MESH_DataACK))
+  if (size != sizeof (struct GNUNET_CADET_DataACK))
   {
     GNUNET_break (0);
     return;
@@ -1351,15 +1351,15 @@ handle_data_ack (struct MeshTunnel3 *t,
  * @param msg Data message.
  */
 static void
-handle_ch_create (struct MeshTunnel3 *t,
-                  const struct GNUNET_MESH_ChannelCreate *msg)
+handle_ch_create (struct CadetTunnel3 *t,
+                  const struct GNUNET_CADET_ChannelCreate *msg)
 {
-  struct MeshChannel *ch;
+  struct CadetChannel *ch;
   size_t size;
 
   /* Check size */
   size = ntohs (msg->header.size);
-  if (size != sizeof (struct GNUNET_MESH_ChannelCreate))
+  if (size != sizeof (struct GNUNET_CADET_ChannelCreate))
   {
     GNUNET_break (0);
     return;
@@ -1386,15 +1386,15 @@ handle_ch_create (struct MeshTunnel3 *t,
  * @param msg NACK message.
  */
 static void
-handle_ch_nack (struct MeshTunnel3 *t,
-                const struct GNUNET_MESH_ChannelManage *msg)
+handle_ch_nack (struct CadetTunnel3 *t,
+                const struct GNUNET_CADET_ChannelManage *msg)
 {
-  struct MeshChannel *ch;
+  struct CadetChannel *ch;
   size_t size;
 
   /* Check size */
   size = ntohs (msg->header.size);
-  if (size != sizeof (struct GNUNET_MESH_ChannelManage))
+  if (size != sizeof (struct GNUNET_CADET_ChannelManage))
   {
     GNUNET_break (0);
     return;
@@ -1426,16 +1426,16 @@ handle_ch_nack (struct MeshTunnel3 *t,
  *            #GNUNET_SYSERR if message on a one-ended channel (remote)
  */
 static void
-handle_ch_ack (struct MeshTunnel3 *t,
-               const struct GNUNET_MESH_ChannelManage *msg,
+handle_ch_ack (struct CadetTunnel3 *t,
+               const struct GNUNET_CADET_ChannelManage *msg,
                int fwd)
 {
-  struct MeshChannel *ch;
+  struct CadetChannel *ch;
   size_t size;
 
   /* Check size */
   size = ntohs (msg->header.size);
-  if (size != sizeof (struct GNUNET_MESH_ChannelManage))
+  if (size != sizeof (struct GNUNET_CADET_ChannelManage))
   {
     GNUNET_break (0);
     return;
@@ -1468,16 +1468,16 @@ handle_ch_ack (struct MeshTunnel3 *t,
  *            #GNUNET_SYSERR if message on a one-ended channel (remote)
  */
 static void
-handle_ch_destroy (struct MeshTunnel3 *t,
-                   const struct GNUNET_MESH_ChannelManage *msg,
+handle_ch_destroy (struct CadetTunnel3 *t,
+                   const struct GNUNET_CADET_ChannelManage *msg,
                    int fwd)
 {
-  struct MeshChannel *ch;
+  struct CadetChannel *ch;
   size_t size;
 
   /* Check size */
   size = ntohs (msg->header.size);
-  if (size != sizeof (struct GNUNET_MESH_ChannelManage))
+  if (size != sizeof (struct GNUNET_CADET_ChannelManage))
   {
     GNUNET_break (0);
     return;
@@ -1502,8 +1502,8 @@ handle_ch_destroy (struct MeshTunnel3 *t,
  * @param msg Key eXchange message.
  */
 static void
-handle_ephemeral (struct MeshTunnel3 *t,
-                  const struct GNUNET_MESH_KX_Ephemeral *msg)
+handle_ephemeral (struct CadetTunnel3 *t,
+                  const struct GNUNET_CADET_KX_Ephemeral *msg)
 {
   struct GNUNET_HashCode km;
   LOG (GNUNET_ERROR_TYPE_INFO, "<=== EPHM for %s\n", GMT_2s (t));
@@ -1517,11 +1517,11 @@ handle_ephemeral (struct MeshTunnel3 *t,
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  km is %s\n", GNUNET_h2s (&km));
   derive_symmertic (&t->e_key, &my_full_id, GMP_get_id (t->peer), &km);
   derive_symmertic (&t->d_key, GMP_get_id (t->peer), &my_full_id, &km);
-  if (MESH_TUNNEL3_KEY_SENT == t->estate)
+  if (CADET_TUNNEL3_KEY_SENT == t->estate)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  our key was sent, send ping\n");
     send_ping (t);
-    t->estate = MESH_TUNNEL3_KEY_PING;
+    t->estate = CADET_TUNNEL3_KEY_PING;
   }
 }
 
@@ -1534,10 +1534,10 @@ handle_ephemeral (struct MeshTunnel3 *t,
  * @param msg Key eXchange Ping message.
  */
 static void
-handle_ping (struct MeshTunnel3 *t,
-             const struct GNUNET_MESH_KX_Ping *msg)
+handle_ping (struct CadetTunnel3 *t,
+             const struct GNUNET_CADET_KX_Ping *msg)
 {
-  struct GNUNET_MESH_KX_Ping res;
+  struct GNUNET_CADET_KX_Ping res;
 
   if (ntohs (msg->header.size) != sizeof (res))
   {
@@ -1572,8 +1572,8 @@ handle_ping (struct MeshTunnel3 *t,
  * @param msg Key eXchange Pong message.
  */
 static void
-handle_pong (struct MeshTunnel3 *t,
-             const struct GNUNET_MESH_KX_Pong *msg)
+handle_pong (struct CadetTunnel3 *t,
+             const struct GNUNET_CADET_KX_Pong *msg)
 {
   uint32_t challenge;
 
@@ -1597,7 +1597,7 @@ handle_pong (struct MeshTunnel3 *t,
   t->rekey_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_free (t->kx_ctx);
   t->kx_ctx = NULL;
-  GMT_change_estate (t, MESH_TUNNEL3_KEY_OK);
+  GMT_change_estate (t, CADET_TUNNEL3_KEY_OK);
 }
 
 
@@ -1613,7 +1613,7 @@ handle_pong (struct MeshTunnel3 *t,
  *            #GNUNET_SYSERR if message on a one-ended channel (remote)
  */
 static void
-handle_decrypted (struct MeshTunnel3 *t,
+handle_decrypted (struct CadetTunnel3 *t,
                   const struct GNUNET_MessageHeader *msgh,
                   int fwd)
 {
@@ -1624,39 +1624,39 @@ handle_decrypted (struct MeshTunnel3 *t,
 
   switch (type)
   {
-    case GNUNET_MESSAGE_TYPE_MESH_KEEPALIVE:
+    case GNUNET_MESSAGE_TYPE_CADET_KEEPALIVE:
       /* Do nothing, connection aleady got updated. */
       GNUNET_STATISTICS_update (stats, "# keepalives received", 1, GNUNET_NO);
       break;
 
-    case GNUNET_MESSAGE_TYPE_MESH_DATA:
+    case GNUNET_MESSAGE_TYPE_CADET_DATA:
       /* Don't send hop ACK, wait for client to ACK */
-      handle_data (t, (struct GNUNET_MESH_Data *) msgh, fwd);
+      handle_data (t, (struct GNUNET_CADET_Data *) msgh, fwd);
       break;
 
-    case GNUNET_MESSAGE_TYPE_MESH_DATA_ACK:
-      handle_data_ack (t, (struct GNUNET_MESH_DataACK *) msgh, fwd);
+    case GNUNET_MESSAGE_TYPE_CADET_DATA_ACK:
+      handle_data_ack (t, (struct GNUNET_CADET_DataACK *) msgh, fwd);
       break;
 
-    case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_CREATE:
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE:
       handle_ch_create (t,
-                        (struct GNUNET_MESH_ChannelCreate *) msgh);
+                        (struct GNUNET_CADET_ChannelCreate *) msgh);
       break;
 
-    case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_NACK:
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_NACK:
       handle_ch_nack (t,
-                      (struct GNUNET_MESH_ChannelManage *) msgh);
+                      (struct GNUNET_CADET_ChannelManage *) msgh);
       break;
 
-    case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_ACK:
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_ACK:
       handle_ch_ack (t,
-                     (struct GNUNET_MESH_ChannelManage *) msgh,
+                     (struct GNUNET_CADET_ChannelManage *) msgh,
                      fwd);
       break;
 
-    case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_DESTROY:
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY:
       handle_ch_destroy (t,
-                         (struct GNUNET_MESH_ChannelManage *) msgh,
+                         (struct GNUNET_CADET_ChannelManage *) msgh,
                          fwd);
       break;
 
@@ -1681,16 +1681,16 @@ handle_decrypted (struct MeshTunnel3 *t,
  * @param msg Encrypted message.
  */
 void
-GMT_handle_encrypted (struct MeshTunnel3 *t,
-                      const struct GNUNET_MESH_Encrypted *msg)
+GMT_handle_encrypted (struct CadetTunnel3 *t,
+                      const struct GNUNET_CADET_Encrypted *msg)
 {
   size_t size = ntohs (msg->header.size);
-  size_t payload_size = size - sizeof (struct GNUNET_MESH_Encrypted);
+  size_t payload_size = size - sizeof (struct GNUNET_CADET_Encrypted);
   size_t decrypted_size;
   char cbuf [payload_size];
   struct GNUNET_MessageHeader *msgh;
   unsigned int off;
-  struct GNUNET_MESH_Hash hmac;
+  struct GNUNET_CADET_Hash hmac;
 
   decrypted_size = t_decrypt (t, cbuf, &msg[1], payload_size, msg->iv);
   t_hmac (t, &msg[1], payload_size, msg->iv, GNUNET_NO, &hmac);
@@ -1720,7 +1720,7 @@ GMT_handle_encrypted (struct MeshTunnel3 *t,
  * @param message Payload of KX message.
  */
 void
-GMT_handle_kx (struct MeshTunnel3 *t,
+GMT_handle_kx (struct CadetTunnel3 *t,
                const struct GNUNET_MessageHeader *message)
 {
   uint16_t type;
@@ -1729,16 +1729,16 @@ GMT_handle_kx (struct MeshTunnel3 *t,
   LOG (GNUNET_ERROR_TYPE_DEBUG, "kx message received\n", type);
   switch (type)
   {
-    case GNUNET_MESSAGE_TYPE_MESH_KX_EPHEMERAL:
-      handle_ephemeral (t, (struct GNUNET_MESH_KX_Ephemeral *) message);
+    case GNUNET_MESSAGE_TYPE_CADET_KX_EPHEMERAL:
+      handle_ephemeral (t, (struct GNUNET_CADET_KX_Ephemeral *) message);
       break;
 
-    case GNUNET_MESSAGE_TYPE_MESH_KX_PING:
-      handle_ping (t, (struct GNUNET_MESH_KX_Ping *) message);
+    case GNUNET_MESSAGE_TYPE_CADET_KX_PING:
+      handle_ping (t, (struct GNUNET_CADET_KX_Ping *) message);
       break;
 
-    case GNUNET_MESSAGE_TYPE_MESH_KX_PONG:
-      handle_pong (t, (struct GNUNET_MESH_KX_Pong *) message);
+    case GNUNET_MESSAGE_TYPE_CADET_KX_PONG:
+      handle_pong (t, (struct GNUNET_CADET_KX_Pong *) message);
       break;
 
     default:
@@ -1760,15 +1760,15 @@ GMT_init (const struct GNUNET_CONFIGURATION_Handle *c,
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG, "init\n");
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_number (c, "MESH", "DEFAULT_TTL",
+      GNUNET_CONFIGURATION_get_value_number (c, "CADET", "DEFAULT_TTL",
                                              &default_ttl))
   {
     GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_WARNING,
-                               "MESH", "DEFAULT_TTL", "USING DEFAULT");
+                               "CADET", "DEFAULT_TTL", "USING DEFAULT");
     default_ttl = 64;
   }
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_time (c, "MESH", "REKEY_PERIOD",
+      GNUNET_CONFIGURATION_get_value_time (c, "CADET", "REKEY_PERIOD",
                                            &rekey_period))
   {
     rekey_period = GNUNET_TIME_UNIT_DAYS;
@@ -1776,8 +1776,8 @@ GMT_init (const struct GNUNET_CONFIGURATION_Handle *c,
 
   my_private_key = key;
   kx_msg.header.size = htons (sizeof (kx_msg));
-  kx_msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_KX_EPHEMERAL);
-  kx_msg.purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_MESH_KX);
+  kx_msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_KX_EPHEMERAL);
+  kx_msg.purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_CADET_KX);
   kx_msg.purpose.size = htonl (ephemeral_purpose_size ());
   kx_msg.origin_identity = my_full_id;
   rekey_task = GNUNET_SCHEDULER_add_now (&rekey, NULL);
@@ -1807,12 +1807,12 @@ GMT_shutdown (void)
  *
  * @param destination Peer this tunnel is towards.
  */
-struct MeshTunnel3 *
-GMT_new (struct MeshPeer *destination)
+struct CadetTunnel3 *
+GMT_new (struct CadetPeer *destination)
 {
-  struct MeshTunnel3 *t;
+  struct CadetTunnel3 *t;
 
-  t = GNUNET_new (struct MeshTunnel3);
+  t = GNUNET_new (struct CadetTunnel3);
   t->next_chid = 0;
   t->peer = destination;
 
@@ -1835,23 +1835,23 @@ GMT_new (struct MeshPeer *destination)
  * @param cstate New connection state.
  */
 void
-GMT_change_cstate (struct MeshTunnel3* t, enum MeshTunnel3CState cstate)
+GMT_change_cstate (struct CadetTunnel3* t, enum CadetTunnel3CState cstate)
 {
   if (NULL == t)
     return;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Tunnel %s cstate %s => %s\n",
        GMP_2s (t->peer), cstate2s (t->cstate), cstate2s (cstate));
   if (myid != GMP_get_short_id (t->peer) &&
-      MESH_TUNNEL3_READY != t->cstate &&
-      MESH_TUNNEL3_READY == cstate)
+      CADET_TUNNEL3_READY != t->cstate &&
+      CADET_TUNNEL3_READY == cstate)
   {
     t->cstate = cstate;
-    if (MESH_TUNNEL3_KEY_OK == t->estate)
+    if (CADET_TUNNEL3_KEY_OK == t->estate)
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG, "  cstate triggered send queued data\n");
       send_queued_data (t);
     }
-    else if (MESH_TUNNEL3_KEY_UNINITIALIZED == t->estate)
+    else if (CADET_TUNNEL3_KEY_UNINITIALIZED == t->estate)
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG, "  cstate triggered rekey\n");
       rekey_tunnel (t, NULL);
@@ -1859,7 +1859,7 @@ GMT_change_cstate (struct MeshTunnel3* t, enum MeshTunnel3CState cstate)
   }
   t->cstate = cstate;
 
-  if (MESH_TUNNEL3_READY == cstate
+  if (CADET_TUNNEL3_READY == cstate
       && CONNECTIONS_PER_TUNNEL <= GMT_count_connections (t))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  cstate triggered stop dht\n");
@@ -1874,7 +1874,7 @@ GMT_change_cstate (struct MeshTunnel3* t, enum MeshTunnel3CState cstate)
  * @param state New encryption state.
  */
 void
-GMT_change_estate (struct MeshTunnel3* t, enum MeshTunnel3EState state)
+GMT_change_estate (struct CadetTunnel3* t, enum CadetTunnel3EState state)
 {
   if (NULL == t)
     return;
@@ -1885,7 +1885,7 @@ GMT_change_estate (struct MeshTunnel3* t, enum MeshTunnel3EState state)
        "Tunnel %s estate is now %s\n",
        GMP_2s (t->peer), estate2s (state));
   if (myid != GMP_get_short_id (t->peer) &&
-      MESH_TUNNEL3_KEY_OK != t->estate && MESH_TUNNEL3_KEY_OK == state)
+      CADET_TUNNEL3_KEY_OK != t->estate && CADET_TUNNEL3_KEY_OK == state)
   {
     t->estate = state;
     send_queued_data (t);
@@ -1908,15 +1908,15 @@ GMT_change_estate (struct MeshTunnel3* t, enum MeshTunnel3EState state)
 static void
 trim_connections (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct MeshTunnel3 *t = cls;
+  struct CadetTunnel3 *t = cls;
 
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 
   if (GMT_count_connections (t) > 2 * CONNECTIONS_PER_TUNNEL)
   {
-    struct MeshTConnection *iter;
-    struct MeshTConnection *c;
+    struct CadetTConnection *iter;
+    struct CadetTConnection *c;
 
     for (c = iter = t->connection_head; NULL != iter; iter = iter->next)
     {
@@ -1949,9 +1949,9 @@ trim_connections (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param c Connection.
  */
 void
-GMT_add_connection (struct MeshTunnel3 *t, struct MeshConnection *c)
+GMT_add_connection (struct CadetTunnel3 *t, struct CadetConnection *c)
 {
-  struct MeshTConnection *aux;
+  struct CadetTConnection *aux;
 
   GNUNET_assert (NULL != c);
 
@@ -1961,7 +1961,7 @@ GMT_add_connection (struct MeshTunnel3 *t, struct MeshConnection *c)
     if (aux->c == c)
       return;
 
-  aux = GNUNET_new (struct MeshTConnection);
+  aux = GNUNET_new (struct CadetTConnection);
   aux->c = c;
   aux->created = GNUNET_TIME_absolute_get ();
 
@@ -1978,7 +1978,7 @@ GMT_add_connection (struct MeshTunnel3 *t, struct MeshConnection *c)
  * @param path Invalid path to remove. Is destroyed after removal.
  */
 void
-GMT_remove_path (struct MeshTunnel3 *t, struct MeshPeerPath *path)
+GMT_remove_path (struct CadetTunnel3 *t, struct CadetPeerPath *path)
 {
   GMP_remove_path (t->peer, path);
 }
@@ -1991,11 +1991,11 @@ GMT_remove_path (struct MeshTunnel3 *t, struct MeshPeerPath *path)
  * @param c Connection.
  */
 void
-GMT_remove_connection (struct MeshTunnel3 *t,
-                       struct MeshConnection *c)
+GMT_remove_connection (struct CadetTunnel3 *t,
+                       struct CadetConnection *c)
 {
-  struct MeshTConnection *aux;
-  struct MeshTConnection *next;
+  struct CadetTConnection *aux;
+  struct CadetTConnection *next;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Removing connection %s from tunnel %s\n",
        GMC_2s (c), GMT_2s (t));
@@ -2012,25 +2012,25 @@ GMT_remove_connection (struct MeshTunnel3 *t,
   /* Start new connections if needed */
   if (CONNECTIONS_PER_TUNNEL < GMT_count_connections (t)
       && GNUNET_SCHEDULER_NO_TASK == t->destroy_task
-      && MESH_TUNNEL3_SHUTDOWN != t->cstate
+      && CADET_TUNNEL3_SHUTDOWN != t->cstate
       && GNUNET_NO == shutting_down)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  no more connections, getting new ones\n");
-    t->cstate = MESH_TUNNEL3_SEARCHING;
+    t->cstate = CADET_TUNNEL3_SEARCHING;
     GMP_connect (t->peer);
     return;
   }
 
   /* If not marked as ready, no change is needed */
-  if (MESH_TUNNEL3_READY != t->cstate)
+  if (CADET_TUNNEL3_READY != t->cstate)
     return;
 
   /* Check if any connection is ready to maintaing cstate */
   for (aux = t->connection_head; aux != NULL; aux = aux->next)
-    if (MESH_CONNECTION_READY == GMC_get_state (aux->c))
+    if (CADET_CONNECTION_READY == GMC_get_state (aux->c))
       return;
 
-  t->cstate = MESH_TUNNEL3_WAITING;
+  t->cstate = CADET_TUNNEL3_WAITING;
 }
 
 
@@ -2041,9 +2041,9 @@ GMT_remove_connection (struct MeshTunnel3 *t,
  * @param ch Channel.
  */
 void
-GMT_add_channel (struct MeshTunnel3 *t, struct MeshChannel *ch)
+GMT_add_channel (struct CadetTunnel3 *t, struct CadetChannel *ch)
 {
-  struct MeshTChannel *aux;
+  struct CadetTChannel *aux;
 
   GNUNET_assert (NULL != ch);
 
@@ -2056,7 +2056,7 @@ GMT_add_channel (struct MeshTunnel3 *t, struct MeshChannel *ch)
       return;
   }
 
-  aux = GNUNET_new (struct MeshTChannel);
+  aux = GNUNET_new (struct CadetTChannel);
   aux->ch = ch;
   LOG (GNUNET_ERROR_TYPE_DEBUG, " adding %p to %p\n", aux, t->channel_head);
   GNUNET_CONTAINER_DLL_insert_tail (t->channel_head, t->channel_tail, aux);
@@ -2077,9 +2077,9 @@ GMT_add_channel (struct MeshTunnel3 *t, struct MeshChannel *ch)
  * @param ch Channel.
  */
 void
-GMT_remove_channel (struct MeshTunnel3 *t, struct MeshChannel *ch)
+GMT_remove_channel (struct CadetTunnel3 *t, struct CadetChannel *ch)
 {
-  struct MeshTChannel *aux;
+  struct CadetTChannel *aux;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Removing channel %p from tunnel %p\n", ch, t);
   for (aux = t->channel_head; aux != NULL; aux = aux->next)
@@ -2103,10 +2103,10 @@ GMT_remove_channel (struct MeshTunnel3 *t, struct MeshChannel *ch)
  *
  * @return channel handler, NULL if doesn't exist
  */
-struct MeshChannel *
-GMT_get_channel (struct MeshTunnel3 *t, MESH_ChannelNumber chid)
+struct CadetChannel *
+GMT_get_channel (struct CadetTunnel3 *t, CADET_ChannelNumber chid)
 {
-  struct MeshTChannel *iter;
+  struct CadetTChannel *iter;
 
   if (NULL == t)
     return NULL;
@@ -2134,8 +2134,8 @@ GMT_get_channel (struct MeshTunnel3 *t, MESH_ChannelNumber chid)
 static void
 delayed_destroy (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct MeshTunnel3 *t = cls;
-  struct MeshTConnection *iter;
+  struct CadetTunnel3 *t = cls;
+  struct CadetTConnection *iter;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "delayed destroying tunnel %p\n", t);
   if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
@@ -2146,7 +2146,7 @@ delayed_destroy (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     return;
   }
   t->destroy_task = GNUNET_SCHEDULER_NO_TASK;
-  t->cstate = MESH_TUNNEL3_SHUTDOWN;
+  t->cstate = CADET_TUNNEL3_SHUTDOWN;
 
   for (iter = t->connection_head; NULL != iter; iter = iter->next)
   {
@@ -2164,7 +2164,7 @@ delayed_destroy (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param t Tunnel to destroy.
  */
 void
-GMT_destroy_empty (struct MeshTunnel3 *t)
+GMT_destroy_empty (struct CadetTunnel3 *t)
 {
   if (GNUNET_YES == shutting_down)
     return; /* Will be destroyed immediately anyway */
@@ -2198,7 +2198,7 @@ GMT_destroy_empty (struct MeshTunnel3 *t)
  * @param t Tunnel to destroy if empty.
  */
 void
-GMT_destroy_if_empty (struct MeshTunnel3 *t)
+GMT_destroy_if_empty (struct CadetTunnel3 *t)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Tunnel %s destroy if empty\n", GMT_2s (t));
   if (1 < GMT_count_channels (t))
@@ -2220,12 +2220,12 @@ GMT_destroy_if_empty (struct MeshTunnel3 *t)
  * @param t The tunnel to destroy.
  */
 void
-GMT_destroy (struct MeshTunnel3 *t)
+GMT_destroy (struct CadetTunnel3 *t)
 {
-  struct MeshTConnection *iter_c;
-  struct MeshTConnection *next_c;
-  struct MeshTChannel *iter_ch;
-  struct MeshTChannel *next_ch;
+  struct CadetTConnection *iter_c;
+  struct CadetTConnection *next_c;
+  struct CadetTChannel *iter_ch;
+  struct CadetTChannel *next_ch;
 
   if (NULL == t)
     return;
@@ -2282,11 +2282,11 @@ GMT_destroy (struct MeshTunnel3 *t)
  *
  * @return Connection created.
  */
-struct MeshConnection *
-GMT_use_path (struct MeshTunnel3 *t, struct MeshPeerPath *p)
+struct CadetConnection *
+GMT_use_path (struct CadetTunnel3 *t, struct CadetPeerPath *p)
 {
-  struct MeshConnection *c;
-  struct GNUNET_MESH_Hash cid;
+  struct CadetConnection *c;
+  struct GNUNET_CADET_Hash cid;
   unsigned int own_pos;
 
   if (NULL == t || NULL == p)
@@ -2295,7 +2295,7 @@ GMT_use_path (struct MeshTunnel3 *t, struct MeshPeerPath *p)
     return NULL;
   }
 
-  if (MESH_TUNNEL3_SHUTDOWN == t->cstate)
+  if (CADET_TUNNEL3_SHUTDOWN == t->cstate)
   {
     GNUNET_break (0);
     return NULL;
@@ -2332,16 +2332,16 @@ GMT_use_path (struct MeshTunnel3 *t, struct MeshPeerPath *p)
  * @return Number of connections.
  */
 unsigned int
-GMT_count_connections (struct MeshTunnel3 *t)
+GMT_count_connections (struct CadetTunnel3 *t)
 {
-  struct MeshTConnection *iter;
+  struct CadetTConnection *iter;
   unsigned int count;
 
   if (NULL == t)
     return 0;
 
   for (count = 0, iter = t->connection_head; NULL != iter; iter = iter->next)
-    if (MESH_CONNECTION_DESTROYED != GMC_get_state (iter->c))
+    if (CADET_CONNECTION_DESTROYED != GMC_get_state (iter->c))
       count++;
 
   return count;
@@ -2355,9 +2355,9 @@ GMT_count_connections (struct MeshTunnel3 *t)
  * @return Number of channels.
  */
 unsigned int
-GMT_count_channels (struct MeshTunnel3 *t)
+GMT_count_channels (struct CadetTunnel3 *t)
 {
-  struct MeshTChannel *iter;
+  struct CadetTChannel *iter;
   unsigned int count;
 
   for (count = 0, iter = t->channel_head;
@@ -2375,13 +2375,13 @@ GMT_count_channels (struct MeshTunnel3 *t)
  *
  * @return Tunnel's connectivity state.
  */
-enum MeshTunnel3CState
-GMT_get_cstate (struct MeshTunnel3 *t)
+enum CadetTunnel3CState
+GMT_get_cstate (struct CadetTunnel3 *t)
 {
   if (NULL == t)
   {
     GNUNET_assert (0);
-    return (enum MeshTunnel3CState) -1;
+    return (enum CadetTunnel3CState) -1;
   }
   return t->cstate;
 }
@@ -2394,13 +2394,13 @@ GMT_get_cstate (struct MeshTunnel3 *t)
  *
  * @return Tunnel's encryption state.
  */
-enum MeshTunnel3EState
-GMT_get_estate (struct MeshTunnel3 *t)
+enum CadetTunnel3EState
+GMT_get_estate (struct CadetTunnel3 *t)
 {
   if (NULL == t)
   {
     GNUNET_assert (0);
-    return (enum MeshTunnel3EState) -1;
+    return (enum CadetTunnel3EState) -1;
   }
   return t->estate;
 }
@@ -2413,9 +2413,9 @@ GMT_get_estate (struct MeshTunnel3 *t)
  * @return Biggest buffer space offered by any channel in the tunnel.
  */
 unsigned int
-GMT_get_channels_buffer (struct MeshTunnel3 *t)
+GMT_get_channels_buffer (struct CadetTunnel3 *t)
 {
-  struct MeshTChannel *iter;
+  struct CadetTChannel *iter;
   unsigned int buffer;
   unsigned int ch_buf;
 
@@ -2444,15 +2444,15 @@ GMT_get_channels_buffer (struct MeshTunnel3 *t)
  * @return Buffer space offered by all connections in the tunnel.
  */
 unsigned int
-GMT_get_connections_buffer (struct MeshTunnel3 *t)
+GMT_get_connections_buffer (struct CadetTunnel3 *t)
 {
-  struct MeshTConnection *iter;
+  struct CadetTConnection *iter;
   unsigned int buffer;
 
   buffer = 0;
   for (iter = t->connection_head; NULL != iter; iter = iter->next)
   {
-    if (GMC_get_state (iter->c) != MESH_CONNECTION_READY)
+    if (GMC_get_state (iter->c) != CADET_CONNECTION_READY)
     {
       continue;
     }
@@ -2471,7 +2471,7 @@ GMT_get_connections_buffer (struct MeshTunnel3 *t)
  * @return ID of the destination peer.
  */
 const struct GNUNET_PeerIdentity *
-GMT_get_destination (struct MeshTunnel3 *t)
+GMT_get_destination (struct CadetTunnel3 *t)
 {
   return GMP_get_id (t->peer);
 }
@@ -2484,11 +2484,11 @@ GMT_get_destination (struct MeshTunnel3 *t)
  *
  * @return GID of a channel free to use.
  */
-MESH_ChannelNumber
-GMT_get_next_chid (struct MeshTunnel3 *t)
+CADET_ChannelNumber
+GMT_get_next_chid (struct CadetTunnel3 *t)
 {
-  MESH_ChannelNumber chid;
-  MESH_ChannelNumber mask;
+  CADET_ChannelNumber chid;
+  CADET_ChannelNumber mask;
   int result;
 
   /* Set bit 30 depending on the ID relationship. Bit 31 is always 0 for GID.
@@ -2505,11 +2505,11 @@ GMT_get_next_chid (struct MeshTunnel3 *t)
   while (NULL != GMT_get_channel (t, t->next_chid))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Channel %u exists...\n", t->next_chid);
-    t->next_chid = (t->next_chid + 1) & ~GNUNET_MESH_LOCAL_CHANNEL_ID_CLI;
+    t->next_chid = (t->next_chid + 1) & ~GNUNET_CADET_LOCAL_CHANNEL_ID_CLI;
     t->next_chid |= mask;
   }
   chid = t->next_chid;
-  t->next_chid = (t->next_chid + 1) & ~GNUNET_MESH_LOCAL_CHANNEL_ID_CLI;
+  t->next_chid = (t->next_chid + 1) & ~GNUNET_CADET_LOCAL_CHANNEL_ID_CLI;
   t->next_chid |= mask;
 
   return chid;
@@ -2522,13 +2522,13 @@ GMT_get_next_chid (struct MeshTunnel3 *t)
  * @param t Channel which has some free buffer space.
  */
 void
-GMT_unchoke_channels (struct MeshTunnel3 *t)
+GMT_unchoke_channels (struct CadetTunnel3 *t)
 {
-  struct MeshTChannel *iter;
+  struct CadetTChannel *iter;
   unsigned int buffer;
   unsigned int channels = GMT_count_channels (t);
   unsigned int choked_n;
-  struct MeshChannel *choked[channels];
+  struct CadetChannel *choked[channels];
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "GMT_unchoke_channels on %s\n", GMT_2s (t));
   LOG (GNUNET_ERROR_TYPE_DEBUG, " head: %p\n", t->channel_head);
@@ -2573,9 +2573,9 @@ GMT_unchoke_channels (struct MeshTunnel3 *t)
  * @param t Tunnel.
  */
 void
-GMT_send_connection_acks (struct MeshTunnel3 *t)
+GMT_send_connection_acks (struct CadetTunnel3 *t)
 {
-  struct MeshTConnection *iter;
+  struct CadetTConnection *iter;
   uint32_t allowed;
   uint32_t to_allow;
   uint32_t allow_per_connection;
@@ -2640,7 +2640,7 @@ GMT_send_connection_acks (struct MeshTunnel3 *t)
  * @param q Handle to the queue.
  */
 void
-GMT_cancel (struct MeshTunnel3Queue *q)
+GMT_cancel (struct CadetTunnel3Queue *q)
 {
   if (NULL != q->cq)
   {
@@ -2675,9 +2675,9 @@ GMT_cancel (struct MeshTunnel3Queue *q)
  *
  * @return Handle to cancel message. NULL if @c cont is NULL.
  */
-struct MeshTunnel3Queue *
+struct CadetTunnel3Queue *
 GMT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
-                           struct MeshTunnel3 *t, struct MeshConnection *c,
+                           struct CadetTunnel3 *t, struct CadetConnection *c,
                            int force, GMT_sent cont, void *cont_cls)
 {
   return send_prebuilt_message (message, t, c, force, cont, cont_cls, NULL);
@@ -2692,7 +2692,7 @@ GMT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
  * @return #GNUNET_YES if it is loopback.
  */
 int
-GMT_is_loopback (const struct MeshTunnel3 *t)
+GMT_is_loopback (const struct CadetTunnel3 *t)
 {
   return (myid == GMP_get_short_id (t->peer));
 }
@@ -2707,9 +2707,9 @@ GMT_is_loopback (const struct MeshTunnel3 *t)
  * @return #GNUNET_YES a connection uses this path.
  */
 int
-GMT_is_path_used (const struct MeshTunnel3 *t, const struct MeshPeerPath *p)
+GMT_is_path_used (const struct CadetTunnel3 *t, const struct CadetPeerPath *p)
 {
-  struct MeshTConnection *iter;
+  struct CadetTConnection *iter;
 
   for (iter = t->connection_head; NULL != iter; iter = iter->next)
     if (GMC_get_path (iter->c) == p)
@@ -2728,11 +2728,11 @@ GMT_is_path_used (const struct MeshTunnel3 *t, const struct MeshPeerPath *p)
  * @return Cost of the path (path length + number of overlapping nodes)
  */
 unsigned int
-GMT_get_path_cost (const struct MeshTunnel3 *t,
-                   const struct MeshPeerPath *path)
+GMT_get_path_cost (const struct CadetTunnel3 *t,
+                   const struct CadetPeerPath *path)
 {
-  struct MeshTConnection *iter;
-  const struct MeshPeerPath *aux;
+  struct CadetTConnection *iter;
+  const struct CadetPeerPath *aux;
   unsigned int overlap;
   unsigned int i;
   unsigned int j;
@@ -2773,7 +2773,7 @@ GMT_get_path_cost (const struct MeshTunnel3 *t,
  * @return Static string the destination peer's ID.
  */
 const char *
-GMT_2s (const struct MeshTunnel3 *t)
+GMT_2s (const struct CadetTunnel3 *t)
 {
   if (NULL == t)
     return "(NULL)";
@@ -2793,10 +2793,10 @@ GMT_2s (const struct MeshTunnel3 *t)
  * @param t Tunnel to debug.
  */
 void
-GMT_debug (const struct MeshTunnel3 *t)
+GMT_debug (const struct CadetTunnel3 *t)
 {
-  struct MeshTChannel *iterch;
-  struct MeshTConnection *iterc;
+  struct CadetTChannel *iterch;
+  struct CadetTConnection *iterc;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "TTT DEBUG TUNNEL TOWARDS %s\n", GMT_2s (t));
   LOG (GNUNET_ERROR_TYPE_DEBUG, "TTT  cstate %s, estate %s\n",
@@ -2861,9 +2861,9 @@ GMT_count_all (void)
  * @param cls Closure for @c iter.
  */
 void
-GMT_iterate_connections (struct MeshTunnel3 *t, GMT_conn_iter iter, void *cls)
+GMT_iterate_connections (struct CadetTunnel3 *t, GMT_conn_iter iter, void *cls)
 {
-  struct MeshTConnection *ct;
+  struct CadetTConnection *ct;
 
   for (ct = t->connection_head; NULL != ct; ct = ct->next)
     iter (cls, ct->c);
@@ -2878,9 +2878,9 @@ GMT_iterate_connections (struct MeshTunnel3 *t, GMT_conn_iter iter, void *cls)
  * @param cls Closure for @c iter.
  */
 void
-GMT_iterate_channels (struct MeshTunnel3 *t, GMT_chan_iter iter, void *cls)
+GMT_iterate_channels (struct CadetTunnel3 *t, GMT_chan_iter iter, void *cls)
 {
-  struct MeshTChannel *cht;
+  struct CadetTChannel *cht;
 
   for (cht = t->channel_head; NULL != cht; cht = cht->next)
     iter (cls, cht->ch);

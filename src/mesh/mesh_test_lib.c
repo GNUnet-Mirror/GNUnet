@@ -18,19 +18,19 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file mesh/mesh_test_lib.c
+ * @file cadet/cadet_test_lib.c
  * @author Bartlomiej Polot
- * @brief library for writing MESH tests
+ * @brief library for writing CADET tests
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
-#include "mesh_test_lib.h"
-#include "gnunet_mesh_service.h"
+#include "cadet_test_lib.h"
+#include "gnunet_cadet_service.h"
 
 /**
- * Test context for a MESH Test.
+ * Test context for a CADET Test.
  */
-struct GNUNET_MESH_TEST_Context
+struct GNUNET_CADET_TEST_Context
 {
   /**
    * Array of running peers.
@@ -38,19 +38,19 @@ struct GNUNET_MESH_TEST_Context
   struct GNUNET_TESTBED_Peer **peers;
 
   /**
-   * Array of handles to the MESH for each peer.
+   * Array of handles to the CADET for each peer.
    */
-  struct GNUNET_MESH_Handle **meshes;
+  struct GNUNET_CADET_Handle **cadetes;
 
   /**
-   * Operation associated with the connection to the MESH.
+   * Operation associated with the connection to the CADET.
    */
   struct GNUNET_TESTBED_Operation **ops;
 
   /**
-   * Main function of the test to run once all MESHs are available.
+   * Main function of the test to run once all CADETs are available.
    */
-  GNUNET_MESH_TEST_AppMain app_main;
+  GNUNET_CADET_TEST_AppMain app_main;
 
   /**
    * Closure for 'app_main'.
@@ -65,17 +65,17 @@ struct GNUNET_MESH_TEST_Context
   /**
    * Handler for incoming tunnels.
    */
-  GNUNET_MESH_InboundChannelNotificationHandler *new_channel;
+  GNUNET_CADET_InboundChannelNotificationHandler *new_channel;
 
   /**
    * Cleaner for destroyed incoming tunnels.
    */
-  GNUNET_MESH_ChannelEndHandler *cleaner;
+  GNUNET_CADET_ChannelEndHandler *cleaner;
 
   /**
    * Message handlers.
    */
-  struct GNUNET_MESH_MessageHandler* handlers;
+  struct GNUNET_CADET_MessageHandler* handlers;
 
   /**
    * Application ports.
@@ -86,9 +86,9 @@ struct GNUNET_MESH_TEST_Context
 
 
 /**
- * Context for a mesh adapter callback.
+ * Context for a cadet adapter callback.
  */
-struct GNUNET_MESH_TEST_AdapterContext
+struct GNUNET_CADET_TEST_AdapterContext
 {
   /**
    * Peer number for the particular peer.
@@ -98,13 +98,13 @@ struct GNUNET_MESH_TEST_AdapterContext
   /**
    * General context.
    */
-  struct GNUNET_MESH_TEST_Context *ctx;
+  struct GNUNET_CADET_TEST_Context *ctx;
 };
 
 
 /**
  * Adapter function called to establish a connection to
- * the MESH service.
+ * the CADET service.
  *
  * @param cls closure
  * @param cfg configuration of the peer to connect to; will be available until
@@ -113,14 +113,14 @@ struct GNUNET_MESH_TEST_AdapterContext
  * @return service handle to return in 'op_result', NULL on error
  */
 static void *
-mesh_connect_adapter (void *cls,
+cadet_connect_adapter (void *cls,
                       const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  struct GNUNET_MESH_TEST_AdapterContext *actx = cls;
-  struct GNUNET_MESH_TEST_Context *ctx = actx->ctx;
-  struct GNUNET_MESH_Handle *h;
+  struct GNUNET_CADET_TEST_AdapterContext *actx = cls;
+  struct GNUNET_CADET_TEST_Context *ctx = actx->ctx;
+  struct GNUNET_CADET_Handle *h;
 
-  h = GNUNET_MESH_connect (cfg,
+  h = GNUNET_CADET_connect (cfg,
                            (void *) (long) actx->peer,
                            ctx->new_channel,
                            ctx->cleaner,
@@ -132,20 +132,20 @@ mesh_connect_adapter (void *cls,
 
 /**
  * Adapter function called to destroy a connection to
- * the MESH service.
+ * the CADET service.
  *
  * @param cls closure
  * @param op_result service handle returned from the connect adapter
  */
 static void
-mesh_disconnect_adapter (void *cls,
+cadet_disconnect_adapter (void *cls,
                          void *op_result)
 {
-  struct GNUNET_MESH_Handle *mesh = op_result;
-  struct GNUNET_MESH_TEST_AdapterContext *actx = cls;
+  struct GNUNET_CADET_Handle *cadet = op_result;
+  struct GNUNET_CADET_TEST_AdapterContext *actx = cls;
 
   GNUNET_free (actx);
-  GNUNET_MESH_disconnect (mesh);
+  GNUNET_CADET_disconnect (cadet);
 }
 
 
@@ -155,22 +155,22 @@ mesh_disconnect_adapter (void *cls,
  * @param cls The callback closure from functions generating an operation.
  * @param op The operation that has been finished.
  * @param ca_result The service handle returned from
- *                  GNUNET_TESTBED_ConnectAdapter() (mesh handle).
+ *                  GNUNET_TESTBED_ConnectAdapter() (cadet handle).
  * @param emsg Error message in case the operation has failed.
  *             NULL if operation has executed successfully.
  */
 static void
-mesh_connect_cb (void *cls,
+cadet_connect_cb (void *cls,
                  struct GNUNET_TESTBED_Operation *op,
                  void *ca_result,
                  const char *emsg)
 {
-  struct GNUNET_MESH_TEST_Context *ctx = cls;
+  struct GNUNET_CADET_TEST_Context *ctx = cls;
   unsigned int i;
 
   if (NULL != emsg)
   {
-    fprintf (stderr, "Failed to connect to MESH service: %s\n",
+    fprintf (stderr, "Failed to connect to CADET service: %s\n",
              emsg);
     GNUNET_SCHEDULER_shutdown ();
     return;
@@ -178,23 +178,23 @@ mesh_connect_cb (void *cls,
   for (i = 0; i < ctx->num_peers; i++)
     if (op == ctx->ops[i])
     {
-      ctx->meshes[i] = ca_result;
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "...mesh %u connected\n", i);
+      ctx->cadetes[i] = ca_result;
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "...cadet %u connected\n", i);
     }
   for (i = 0; i < ctx->num_peers; i++)
-    if (NULL == ctx->meshes[i])
-      return; /* still some MESH connections missing */
-  /* all MESH connections ready! */
+    if (NULL == ctx->cadetes[i])
+      return; /* still some CADET connections missing */
+  /* all CADET connections ready! */
   ctx->app_main (ctx->app_main_cls,
                  ctx,
                  ctx->num_peers,
                  ctx->peers,
-                 ctx->meshes);
+                 ctx->cadetes);
 }
 
 
 void
-GNUNET_MESH_TEST_cleanup (struct GNUNET_MESH_TEST_Context *ctx)
+GNUNET_CADET_TEST_cleanup (struct GNUNET_CADET_TEST_Context *ctx)
 {
   unsigned int i;
 
@@ -205,7 +205,7 @@ GNUNET_MESH_TEST_cleanup (struct GNUNET_MESH_TEST_Context *ctx)
     ctx->ops[i] = NULL;
   }
   GNUNET_free (ctx->ops);
-  GNUNET_free (ctx->meshes);
+  GNUNET_free (ctx->cadetes);
   GNUNET_free (ctx);
   GNUNET_SCHEDULER_shutdown ();
 }
@@ -225,14 +225,14 @@ GNUNET_MESH_TEST_cleanup (struct GNUNET_MESH_TEST_Context *ctx)
  *          failed
  */
 static void
-mesh_test_run (void *cls,
+cadet_test_run (void *cls,
                struct GNUNET_TESTBED_RunHandle *h,
                unsigned int num_peers,
                struct GNUNET_TESTBED_Peer **peers,
                unsigned int links_succeeded,
                unsigned int links_failed)
 {
-  struct GNUNET_MESH_TEST_Context *ctx = cls;
+  struct GNUNET_CADET_TEST_Context *ctx = cls;
   unsigned int i;
 
   if  (num_peers != ctx->num_peers)
@@ -244,18 +244,18 @@ mesh_test_run (void *cls,
   ctx->peers = peers;
   for (i = 0; i < num_peers; i++)
   {
-    struct GNUNET_MESH_TEST_AdapterContext *newctx;
-    newctx = GNUNET_new (struct GNUNET_MESH_TEST_AdapterContext);
+    struct GNUNET_CADET_TEST_AdapterContext *newctx;
+    newctx = GNUNET_new (struct GNUNET_CADET_TEST_AdapterContext);
     newctx->peer = i;
     newctx->ctx = ctx;
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Connecting to mesh %u\n", i);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Connecting to cadet %u\n", i);
     ctx->ops[i] = GNUNET_TESTBED_service_connect (ctx,
                                                   peers[i],
-                                                  "mesh",
-                                                  &mesh_connect_cb,
+                                                  "cadet",
+                                                  &cadet_connect_cb,
                                                   ctx,
-                                                  &mesh_connect_adapter,
-                                                  &mesh_disconnect_adapter,
+                                                  &cadet_connect_adapter,
+                                                  &cadet_disconnect_adapter,
                                                   newctx);
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "op handle %p\n", ctx->ops[i]);
   }
@@ -263,22 +263,22 @@ mesh_test_run (void *cls,
 
 
 void
-GNUNET_MESH_TEST_run (const char *testname,
+GNUNET_CADET_TEST_run (const char *testname,
                       const char *cfgname,
                       unsigned int num_peers,
-                      GNUNET_MESH_TEST_AppMain tmain,
+                      GNUNET_CADET_TEST_AppMain tmain,
                       void *tmain_cls,
-                      GNUNET_MESH_InboundChannelNotificationHandler new_channel,
-                      GNUNET_MESH_ChannelEndHandler cleaner,
-                      struct GNUNET_MESH_MessageHandler* handlers,
+                      GNUNET_CADET_InboundChannelNotificationHandler new_channel,
+                      GNUNET_CADET_ChannelEndHandler cleaner,
+                      struct GNUNET_CADET_MessageHandler* handlers,
                       const uint32_t *ports)
 {
-  struct GNUNET_MESH_TEST_Context *ctx;
+  struct GNUNET_CADET_TEST_Context *ctx;
 
-  ctx = GNUNET_new (struct GNUNET_MESH_TEST_Context);
+  ctx = GNUNET_new (struct GNUNET_CADET_TEST_Context);
   ctx->num_peers = num_peers;
   ctx->ops = GNUNET_malloc (num_peers * sizeof (struct GNUNET_TESTBED_Operation *));
-  ctx->meshes = GNUNET_malloc (num_peers * sizeof (struct GNUNET_MESH_Handle *));
+  ctx->cadetes = GNUNET_malloc (num_peers * sizeof (struct GNUNET_CADET_Handle *));
   ctx->app_main = tmain;
   ctx->app_main_cls = tmain_cls;
   ctx->new_channel = new_channel;
@@ -289,7 +289,7 @@ GNUNET_MESH_TEST_run (const char *testname,
                            cfgname,
                            num_peers,
                            0LL, NULL, NULL,
-                           &mesh_test_run, ctx);
+                           &cadet_test_run, ctx);
 }
 
-/* end of mesh_test_lib.c */
+/* end of cadet_test_lib.c */

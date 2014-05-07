@@ -19,8 +19,8 @@
 */
 
 /**
- * @file mesh/test_mesh_local.c
- * @brief test mesh local: test of mesh channels with just one peer
+ * @file cadet/test_cadet_local.c
+ * @brief test cadet local: test of cadet channels with just one peer
  * @author Bartlomiej Polot
  */
 
@@ -28,15 +28,15 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_dht_service.h"
 #include "gnunet_testing_lib.h"
-#include "gnunet_mesh_service.h"
+#include "gnunet_cadet_service.h"
 
 struct GNUNET_TESTING_Peer *me;
 
-static struct GNUNET_MESH_Handle *mesh_peer_1;
+static struct GNUNET_CADET_Handle *cadet_peer_1;
 
-static struct GNUNET_MESH_Handle *mesh_peer_2;
+static struct GNUNET_CADET_Handle *cadet_peer_2;
 
-static struct GNUNET_MESH_Channel *ch;
+static struct GNUNET_CADET_Channel *ch;
 
 static int result = GNUNET_OK;
 
@@ -46,7 +46,7 @@ static GNUNET_SCHEDULER_TaskIdentifier abort_task;
 
 static GNUNET_SCHEDULER_TaskIdentifier shutdown_task;
 
-static struct GNUNET_MESH_TransmitHandle *mth;
+static struct GNUNET_CADET_TransmitHandle *mth;
 
 
 /**
@@ -72,17 +72,17 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   if (NULL != ch)
   {
-    GNUNET_MESH_channel_destroy (ch);
+    GNUNET_CADET_channel_destroy (ch);
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnect client 1\n");
-  if (NULL != mesh_peer_1)
+  if (NULL != cadet_peer_1)
   {
-    GNUNET_MESH_disconnect (mesh_peer_1);
+    GNUNET_CADET_disconnect (cadet_peer_1);
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Disconnect client 2\n");
-  if (NULL != mesh_peer_2)
+  if (NULL != cadet_peer_2)
   {
-    GNUNET_MESH_disconnect (mesh_peer_2);
+    GNUNET_CADET_disconnect (cadet_peer_2);
   }
 }
 
@@ -108,7 +108,7 @@ do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /**
  * Function is called whenever a message is received.
  *
- * @param cls closure (set from GNUNET_MESH_connect)
+ * @param cls closure (set from GNUNET_CADET_connect)
  * @param channel connection to the other end
  * @param channel_ctx place to store local state associated with the channel
  * @param message the actual message
@@ -117,7 +117,7 @@ do_abort (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  *         GNUNET_SYSERR to close it (signal serious error)
  */
 static int
-data_callback (void *cls, struct GNUNET_MESH_Channel *channel,
+data_callback (void *cls, struct GNUNET_CADET_Channel *channel,
                void **channel_ctx,
                const struct GNUNET_MessageHeader *message)
 {
@@ -128,7 +128,7 @@ data_callback (void *cls, struct GNUNET_MESH_Channel *channel,
   shutdown_task =
     GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &do_shutdown,
                                   NULL);
-  GNUNET_MESH_receive_done (channel);
+  GNUNET_CADET_receive_done (channel);
   return GNUNET_OK;
 }
 
@@ -146,9 +146,9 @@ data_callback (void *cls, struct GNUNET_MESH_Channel *channel,
  *         (can be NULL -- that's not an error)
  */
 static void *
-inbound_channel (void *cls, struct GNUNET_MESH_Channel *channel,
+inbound_channel (void *cls, struct GNUNET_CADET_Channel *channel,
                 const struct GNUNET_PeerIdentity *initiator,
-                uint32_t port, enum GNUNET_MESH_ChannelOption options)
+                uint32_t port, enum GNUNET_CADET_ChannelOption options)
 {
   long id = (long) cls;
 
@@ -169,13 +169,13 @@ inbound_channel (void *cls, struct GNUNET_MESH_Channel *channel,
  * Function called whenever an channel is destroyed.  Should clean up
  * any associated state.
  *
- * @param cls closure (set from GNUNET_MESH_connect)
+ * @param cls closure (set from GNUNET_CADET_connect)
  * @param channel connection to the other end (henceforth invalid)
  * @param channel_ctx place where local state associated
  *                    with the channel is stored
  */
 static void
-channel_end (void *cls, const struct GNUNET_MESH_Channel *channel,
+channel_end (void *cls, const struct GNUNET_CADET_Channel *channel,
              void *channel_ctx)
 {
   long id = (long) cls;
@@ -185,7 +185,7 @@ channel_end (void *cls, const struct GNUNET_MESH_Channel *channel,
               id);
   if (NULL != mth)
   {
-    GNUNET_MESH_notify_transmit_ready_cancel (mth);
+    GNUNET_CADET_notify_transmit_ready_cancel (mth);
     mth = NULL;
   }
   if (GNUNET_NO == got_data)
@@ -201,7 +201,7 @@ channel_end (void *cls, const struct GNUNET_MESH_Channel *channel,
 /**
  * Handler array for traffic received on peer1
  */
-static struct GNUNET_MESH_MessageHandler handlers1[] = {
+static struct GNUNET_CADET_MessageHandler handlers1[] = {
   {&data_callback, 1, 0},
   {NULL, 0, 0}
 };
@@ -210,7 +210,7 @@ static struct GNUNET_MESH_MessageHandler handlers1[] = {
 /**
  * Handler array for traffic received on peer2 (none expected)
  */
-static struct GNUNET_MESH_MessageHandler handlers2[] = {
+static struct GNUNET_CADET_MessageHandler handlers2[] = {
   {&data_callback, 1, 0},
   {NULL, 0, 0}
 };
@@ -259,9 +259,9 @@ do_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   GNUNET_TESTING_peer_get_identity (me, &id);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "CONNECT BY PORT\n");
-  ch = GNUNET_MESH_channel_create (mesh_peer_1, NULL, &id, 1,
-                                   GNUNET_MESH_OPTION_DEFAULT);
-  mth = GNUNET_MESH_notify_transmit_ready (ch, GNUNET_NO,
+  ch = GNUNET_CADET_channel_create (cadet_peer_1, NULL, &id, 1,
+                                   GNUNET_CADET_OPTION_DEFAULT);
+  mth = GNUNET_CADET_notify_transmit_ready (ch, GNUNET_NO,
                                            GNUNET_TIME_UNIT_FOREVER_REL,
                                            sizeof (struct GNUNET_MessageHeader),
                                            &do_send, NULL);
@@ -287,28 +287,28 @@ run (void *cls,
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                     (GNUNET_TIME_UNIT_SECONDS, 15), &do_abort,
                                     NULL);
-  mesh_peer_1 = GNUNET_MESH_connect (cfg,       /* configuration */
+  cadet_peer_1 = GNUNET_CADET_connect (cfg,       /* configuration */
                                      (void *) 1L,       /* cls */
                                      NULL,              /* inbound new hndlr */
                                      &channel_end,      /* channel end hndlr */
                                      handlers1, /* traffic handlers */
                                      NULL);     /* ports offered */
 
-  mesh_peer_2 = GNUNET_MESH_connect (cfg,       /* configuration */
+  cadet_peer_2 = GNUNET_CADET_connect (cfg,       /* configuration */
                                      (void *) 2L,     /* cls */
                                      &inbound_channel,   /* inbound new hndlr */
                                      &channel_end,      /* channel end hndlr */
                                      handlers2, /* traffic handlers */
                                      ports);     /* ports offered */
-  if (NULL == mesh_peer_1 || NULL == mesh_peer_2)
+  if (NULL == cadet_peer_1 || NULL == cadet_peer_2)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Couldn't connect to mesh :(\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Couldn't connect to cadet :(\n");
     result = GNUNET_SYSERR;
     return;
   }
   else
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "YAY! CONNECTED TO MESH :D\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "YAY! CONNECTED TO CADET :D\n");
   }
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (
                                   GNUNET_TIME_UNIT_SECONDS,
@@ -323,8 +323,8 @@ run (void *cls,
 int
 main (int argc, char *argv[])
 {
-  if (0 != GNUNET_TESTING_peer_run ("test-mesh-local",
-                                    "test_mesh.conf",
+  if (0 != GNUNET_TESTING_peer_run ("test-cadet-local",
+                                    "test_cadet.conf",
                                 &run, NULL))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "run failed\n");
@@ -334,4 +334,4 @@ main (int argc, char *argv[])
   return (result == GNUNET_OK) ? 0 : 1;
 }
 
-/* end of test_mesh_local_1.c */
+/* end of test_cadet_local_1.c */

@@ -19,21 +19,21 @@
 */
 
 /**
- * @file fs/gnunet-service-fs_mesh.h
+ * @file fs/gnunet-service-fs_cadet.h
  * @brief non-anonymous file-transfer
  * @author Christian Grothoff
  */
-#ifndef GNUNET_SERVICE_FS_MESH_H
-#define GNUNET_SERVICE_FS_MESH_H
+#ifndef GNUNET_SERVICE_FS_CADET_H
+#define GNUNET_SERVICE_FS_CADET_H
 
 /**
- * Handle for a request that is going out via mesh API.
+ * Handle for a request that is going out via cadet API.
  */
-struct GSF_MeshRequest;
+struct GSF_CadetRequest;
 
 
 /**
- * Function called with a reply from the mesh.
+ * Function called with a reply from the cadet.
  *
  * @param cls closure
  * @param type type of the block, ANY on error
@@ -41,7 +41,7 @@ struct GSF_MeshRequest;
  * @param data_size number of bytes in 'data', 0 on error
  * @param data reply block data, NULL on error
  */
-typedef void (*GSF_MeshReplyProcessor)(void *cls,
+typedef void (*GSF_CadetReplyProcessor)(void *cls,
 					 enum GNUNET_BLOCK_Type type,
 					 struct GNUNET_TIME_Absolute expiration,
 					 size_t data_size,
@@ -58,11 +58,11 @@ typedef void (*GSF_MeshReplyProcessor)(void *cls,
  * @param proc_cls closure for 'proc'
  * @return handle to cancel the operation
  */
-struct GSF_MeshRequest *
-GSF_mesh_query (const struct GNUNET_PeerIdentity *target,
+struct GSF_CadetRequest *
+GSF_cadet_query (const struct GNUNET_PeerIdentity *target,
 		  const struct GNUNET_HashCode *query,
 		  enum GNUNET_BLOCK_Type type,
-		  GSF_MeshReplyProcessor proc, void *proc_cls);
+		  GSF_CadetReplyProcessor proc, void *proc_cls);
 
 
 /**
@@ -72,34 +72,34 @@ GSF_mesh_query (const struct GNUNET_PeerIdentity *target,
  * @param sr request to cancel
  */
 void
-GSF_mesh_query_cancel (struct GSF_MeshRequest *sr);
+GSF_cadet_query_cancel (struct GSF_CadetRequest *sr);
 
 
 /**
  * Initialize subsystem for non-anonymous file-sharing.
  */
 void
-GSF_mesh_start_server (void);
+GSF_cadet_start_server (void);
 
 
 /**
  * Shutdown subsystem for non-anonymous file-sharing.
  */
 void
-GSF_mesh_stop_server (void);
+GSF_cadet_stop_server (void);
 
 /**
  * Initialize subsystem for non-anonymous file-sharing.
  */
 void
-GSF_mesh_start_client (void);
+GSF_cadet_start_client (void);
 
 
 /**
  * Shutdown subsystem for non-anonymous file-sharing.
  */
 void
-GSF_mesh_stop_client (void);
+GSF_cadet_stop_client (void);
 
 
 GNUNET_NETWORK_STRUCT_BEGIN
@@ -107,11 +107,11 @@ GNUNET_NETWORK_STRUCT_BEGIN
 /**
  * Query from one peer, asking the other for CHK-data.
  */
-struct MeshQueryMessage
+struct CadetQueryMessage
 {
 
   /**
-   * Type is GNUNET_MESSAGE_TYPE_FS_MESH_QUERY.
+   * Type is GNUNET_MESSAGE_TYPE_FS_CADET_QUERY.
    */
   struct GNUNET_MessageHeader header;
 
@@ -129,13 +129,13 @@ struct MeshQueryMessage
 
 
 /**
- * Reply to a MeshQueryMessage.
+ * Reply to a CadetQueryMessage.
  */
-struct MeshReplyMessage
+struct CadetReplyMessage
 {
 
   /**
-   * Type is GNUNET_MESSAGE_TYPE_FS_MESH_REPLY.
+   * Type is GNUNET_MESSAGE_TYPE_FS_CADET_REPLY.
    */
   struct GNUNET_MessageHeader header;
 

@@ -32,7 +32,7 @@
 #include "gnunet_protocols.h"
 #include "gnunet_applications.h"
 #include "gnunet_core_service.h"
-#include "gnunet_mesh_service.h"
+#include "gnunet_cadet_service.h"
 #include "gnunet_set_service.h"
 #include "set.h"
 
@@ -301,7 +301,7 @@ struct Operation
   /**
    * Tunnel to the peer.
    */
-  struct GNUNET_MESH_Channel *channel;
+  struct GNUNET_CADET_Channel *channel;
 
   /**
    * Message queue for the tunnel.

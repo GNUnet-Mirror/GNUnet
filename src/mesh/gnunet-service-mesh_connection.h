@@ -19,15 +19,15 @@
 */
 
 /**
- * @file mesh/gnunet-service-mesh_connection.h
- * @brief mesh service; dealing with connections
+ * @file cadet/gnunet-service-cadet_connection.h
+ * @brief cadet service; dealing with connections
  * @author Bartlomiej Polot
  *
- * All functions in this file should use the prefix GMC (Gnunet Mesh Connection)
+ * All functions in this file should use the prefix GMC (Gnunet Cadet Connection)
  */
 
-#ifndef GNUNET_SERVICE_MESH_CONNECTION_H
-#define GNUNET_SERVICE_MESH_CONNECTION_H
+#ifndef GNUNET_SERVICE_CADET_CONNECTION_H
+#define GNUNET_SERVICE_CADET_CONNECTION_H
 
 #ifdef __cplusplus
 extern "C"
@@ -43,48 +43,48 @@ extern "C"
 /**
  * All the states a connection can be in.
  */
-enum MeshConnectionState
+enum CadetConnectionState
 {
   /**
    * Uninitialized status, should never appear in operation.
    */
-  MESH_CONNECTION_NEW,
+  CADET_CONNECTION_NEW,
 
   /**
    * Connection create message sent, waiting for ACK.
    */
-  MESH_CONNECTION_SENT,
+  CADET_CONNECTION_SENT,
 
   /**
    * Connection ACK sent, waiting for ACK.
    */
-  MESH_CONNECTION_ACK,
+  CADET_CONNECTION_ACK,
 
   /**
    * Connection confirmed, ready to carry traffic.
    */
-  MESH_CONNECTION_READY,
+  CADET_CONNECTION_READY,
 
   /**
    * Connection to be destroyed, just waiting to empty queues.
    */
-  MESH_CONNECTION_DESTROYED,
+  CADET_CONNECTION_DESTROYED,
 };
 
 
 /**
  * Struct containing all information regarding a connection to a peer.
  */
-struct MeshConnection;
+struct CadetConnection;
 
 /**
  * Handle for messages queued but not yet sent.
  */
-struct MeshConnectionQueue;
+struct CadetConnectionQueue;
 
-#include "mesh_path.h"
-#include "gnunet-service-mesh_channel.h"
-#include "gnunet-service-mesh_peer.h"
+#include "cadet_path.h"
+#include "gnunet-service-cadet_channel.h"
+#include "gnunet-service-cadet_peer.h"
 
 
 
@@ -98,8 +98,8 @@ struct MeshConnectionQueue;
  * @param size Size of the message.
  */
 typedef void (*GMC_sent) (void *cls,
-                          struct MeshConnection *c,
-                          struct MeshConnectionQueue *q,
+                          struct CadetConnection *c,
+                          struct CadetConnectionQueue *q,
                           uint16_t type, int fwd, size_t size);
 
 /**
@@ -160,7 +160,7 @@ GMC_handle_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
                     const struct GNUNET_MessageHeader *message);
 
 /**
- * Core handler for encrypted mesh network traffic (channel mgmt, data).
+ * Core handler for encrypted cadet network traffic (channel mgmt, data).
  *
  * @param cls Closure (unused).
  * @param message Message received.
@@ -188,7 +188,7 @@ GMC_handle_kx (void *cls, const struct GNUNET_PeerIdentity *peer,
                const struct GNUNET_MessageHeader *message);
 
 /**
- * Core handler for mesh network traffic point-to-point acks.
+ * Core handler for cadet network traffic point-to-point acks.
  *
  * @param cls closure
  * @param message message
@@ -202,7 +202,7 @@ GMC_handle_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
                 const struct GNUNET_MessageHeader *message);
 
 /**
- * Core handler for mesh network traffic point-to-point ack polls.
+ * Core handler for cadet network traffic point-to-point ack polls.
  *
  * @param cls closure
  * @param message message
@@ -216,7 +216,7 @@ GMC_handle_poll (void *cls, const struct GNUNET_PeerIdentity *peer,
                  const struct GNUNET_MessageHeader *message);
 
 /**
- * Core handler for mesh keepalives.
+ * Core handler for cadet keepalives.
  *
  * @param cls closure
  * @param message message
@@ -239,7 +239,7 @@ GMC_handle_keepalive (void *cls, const struct GNUNET_PeerIdentity *peer,
  * @param force Send the ACK even if suboptimal (e.g. requested by POLL).
  */
 void
-GMC_send_ack (struct MeshConnection *c, int fwd, int force);
+GMC_send_ack (struct CadetConnection *c, int fwd, int force);
 
 /**
  * Initialize the connections subsystem
@@ -265,10 +265,10 @@ GMC_shutdown (void);
  *
  * @return Newly created connection, NULL in case of error (own id not in path).
  */
-struct MeshConnection *
-GMC_new (const struct GNUNET_MESH_Hash *cid,
-         struct MeshTunnel3 *t,
-         struct MeshPeerPath *p,
+struct CadetConnection *
+GMC_new (const struct GNUNET_CADET_Hash *cid,
+         struct CadetTunnel3 *t,
+         struct CadetPeerPath *p,
          unsigned int own_pos);
 
 /**
@@ -280,7 +280,7 @@ GMC_new (const struct GNUNET_MESH_Hash *cid,
  * @param c Connection to destroy.
  */
 void
-GMC_destroy (struct MeshConnection *c);
+GMC_destroy (struct CadetConnection *c);
 
 /**
  * Get the connection ID.
@@ -289,8 +289,8 @@ GMC_destroy (struct MeshConnection *c);
  *
  * @return ID of the connection.
  */
-const struct GNUNET_MESH_Hash *
-GMC_get_id (const struct MeshConnection *c);
+const struct GNUNET_CADET_Hash *
+GMC_get_id (const struct CadetConnection *c);
 
 
 /**
@@ -301,7 +301,7 @@ GMC_get_id (const struct MeshConnection *c);
  * @return Hash expanded from the ID of the connection.
  */
 const struct GNUNET_HashCode *
-GMC_get_h (const struct MeshConnection *c);
+GMC_get_h (const struct CadetConnection *c);
 
 
 /**
@@ -311,8 +311,8 @@ GMC_get_h (const struct MeshConnection *c);
  *
  * @return path used by the connection.
  */
-const struct MeshPeerPath *
-GMC_get_path (const struct MeshConnection *c);
+const struct CadetPeerPath *
+GMC_get_path (const struct CadetConnection *c);
 
 /**
  * Get the connection state.
@@ -321,8 +321,8 @@ GMC_get_path (const struct MeshConnection *c);
  *
  * @return state of the connection.
  */
-enum MeshConnectionState
-GMC_get_state (const struct MeshConnection *c);
+enum CadetConnectionState
+GMC_get_state (const struct CadetConnection *c);
 
 /**
  * Get the connection tunnel.
@@ -331,8 +331,8 @@ GMC_get_state (const struct MeshConnection *c);
  *
  * @return tunnel of the connection.
  */
-struct MeshTunnel3 *
-GMC_get_tunnel (const struct MeshConnection *c);
+struct CadetTunnel3 *
+GMC_get_tunnel (const struct CadetConnection *c);
 
 /**
  * Get free buffer space in a connection.
@@ -343,7 +343,7 @@ GMC_get_tunnel (const struct MeshConnection *c);
  * @return Free buffer space [0 - max_msgs_queue/max_connections]
  */
 unsigned int
-GMC_get_buffer (struct MeshConnection *c, int fwd);
+GMC_get_buffer (struct CadetConnection *c, int fwd);
 
 /**
  * Get how many messages have we allowed to send to us from a direction.
@@ -354,7 +354,7 @@ GMC_get_buffer (struct MeshConnection *c, int fwd);
  * @return last_ack_sent - last_pid_recv
  */
 unsigned int
-GMC_get_allowed (struct MeshConnection *c, int fwd);
+GMC_get_allowed (struct CadetConnection *c, int fwd);
 
 /**
  * Get messages queued in a connection.
@@ -365,7 +365,7 @@ GMC_get_allowed (struct MeshConnection *c, int fwd);
  * @return Number of messages queued.
  */
 unsigned int
-GMC_get_qn (struct MeshConnection *c, int fwd);
+GMC_get_qn (struct CadetConnection *c, int fwd);
 
 /**
  * Get next PID to use.
@@ -376,7 +376,7 @@ GMC_get_qn (struct MeshConnection *c, int fwd);
  * @return Last PID used + 1.
  */
 unsigned int
-GMC_get_pid (struct MeshConnection *c, int fwd);
+GMC_get_pid (struct CadetConnection *c, int fwd);
 
 /**
  * Allow the connection to advertise a buffer of the given size.
@@ -389,7 +389,7 @@ GMC_get_pid (struct MeshConnection *c, int fwd);
  * @param fwd Is this about FWD traffic? (The ack will go dest->root).
  */
 void
-GMC_allow (struct MeshConnection *c, unsigned int buffer, int fwd);
+GMC_allow (struct CadetConnection *c, unsigned int buffer, int fwd);
 
 /**
  * Send FWD keepalive packets for a connection.
@@ -418,8 +418,8 @@ GMC_bck_keepalive (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
  * @param peer Peer that disconnected.
  */
 void
-GMC_notify_broken (struct MeshConnection *c,
-                   struct MeshPeer *peer);
+GMC_notify_broken (struct CadetConnection *c,
+                   struct CadetPeer *peer);
 
 /**
  * Is this peer the first one on the connection?
@@ -430,7 +430,7 @@ GMC_notify_broken (struct MeshConnection *c,
  * @return #GNUNET_YES if origin, #GNUNET_NO if relay/terminal.
  */
 int
-GMC_is_origin (struct MeshConnection *c, int fwd);
+GMC_is_origin (struct CadetConnection *c, int fwd);
 
 /**
  * Is this peer the last one on the connection?
@@ -442,7 +442,7 @@ GMC_is_origin (struct MeshConnection *c, int fwd);
  * @return #GNUNET_YES if terminal, #GNUNET_NO if relay/origin.
  */
 int
-GMC_is_terminal (struct MeshConnection *c, int fwd);
+GMC_is_terminal (struct CadetConnection *c, int fwd);
 
 /**
  * See if we are allowed to send by the next hop in the given direction.
@@ -453,7 +453,7 @@ GMC_is_terminal (struct MeshConnection *c, int fwd);
  * @return #GNUNET_YES in case it's OK to send.
  */
 int
-GMC_is_sendable (struct MeshConnection *c, int fwd);
+GMC_is_sendable (struct CadetConnection *c, int fwd);
 
 /**
  * Check if this connection is a direct one (never trim a direct connection).
@@ -463,7 +463,7 @@ GMC_is_sendable (struct MeshConnection *c, int fwd);
  * @return #GNUNET_YES in case it's a direct connection, #GNUNET_NO otherwise.
  */
 int
-GMC_is_direct (struct MeshConnection *c);
+GMC_is_direct (struct CadetConnection *c);
 
 /**
  * Cancel a previously sent message while it's in the queue.
@@ -475,7 +475,7 @@ GMC_is_direct (struct MeshConnection *c);
  * @param q Handle to the queue.
  */
 void
-GMC_cancel (struct MeshConnectionQueue *q);
+GMC_cancel (struct CadetConnectionQueue *q);
 
 /**
  * Sends an already built message on a connection, properly registering
@@ -494,10 +494,10 @@ GMC_cancel (struct MeshConnectionQueue *q);
  *         NULL on error or if @c cont is NULL.
  *         Invalid on @c cont call.
  */
-struct MeshConnectionQueue *
+struct CadetConnectionQueue *
 GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
                            uint16_t payload_type, uint32_t payload_id,
-                           struct MeshConnection *c, int fwd, int force,
+                           struct CadetConnection *c, int fwd, int force,
                            GMC_sent cont, void *cont_cls);
 
 /**
@@ -507,7 +507,7 @@ GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
  * @param connection Connection to create.
  */
 void
-GMC_send_create (struct MeshConnection *connection);
+GMC_send_create (struct CadetConnection *connection);
 
 /**
  * Send a message to all peers in this connection that the connection
@@ -519,7 +519,7 @@ GMC_send_create (struct MeshConnection *connection);
  * @param c The connection whose peers to notify.
  */
 void
-GMC_send_destroy (struct MeshConnection *c);
+GMC_send_destroy (struct CadetConnection *c);
 
 /**
  * @brief Start a polling timer for the connection.
@@ -532,7 +532,7 @@ GMC_send_destroy (struct MeshConnection *c);
  * @param fwd Should we poll in the FWD direction?
  */
 void
-GMC_start_poll (struct MeshConnection *c, int fwd);
+GMC_start_poll (struct CadetConnection *c, int fwd);
 
 
 /**
@@ -544,7 +544,7 @@ GMC_start_poll (struct MeshConnection *c, int fwd);
  * @param fwd Should we stop the poll in the FWD direction?
  */
 void
-GMC_stop_poll (struct MeshConnection *c, int fwd);
+GMC_stop_poll (struct CadetConnection *c, int fwd);
 
 /**
  * Get a (static) string for a connection.
@@ -552,7 +552,7 @@ GMC_stop_poll (struct MeshConnection *c, int fwd);
  * @param c Connection.
  */
 const char *
-GMC_2s (const struct MeshConnection *c);
+GMC_2s (const struct CadetConnection *c);
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
@@ -561,6 +561,6 @@ GMC_2s (const struct MeshConnection *c);
 }
 #endif
 
-/* ifndef GNUNET_SERVICE_MESH_CONNECTION_H */
+/* ifndef GNUNET_SERVICE_CADET_CONNECTION_H */
 #endif
-/* end of gnunet-service-mesh_connection.h */
+/* end of gnunet-service-cadet_connection.h */

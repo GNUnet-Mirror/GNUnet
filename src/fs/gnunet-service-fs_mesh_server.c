@@ -19,7 +19,7 @@
 */
 
 /**
- * @file fs/gnunet-service-fs_mesh_server.c
+ * @file fs/gnunet-service-fs_cadet_server.c
  * @brief non-anonymous file-transfer
  * @author Christian Grothoff
  *
@@ -30,12 +30,12 @@
 #include "platform.h"
 #include "gnunet_constants.h"
 #include "gnunet_util_lib.h"
-#include "gnunet_mesh_service.h"
+#include "gnunet_cadet_service.h"
 #include "gnunet_protocols.h"
 #include "gnunet_applications.h"
 #include "gnunet-service-fs.h"
 #include "gnunet-service-fs_indexing.h"
-#include "gnunet-service-fs_mesh.h"
+#include "gnunet-service-fs_cadet.h"
 
 /**
  * After how long do we termiante idle connections?
@@ -44,7 +44,7 @@
 
 
 /**
- * A message in the queue to be written to the mesh.
+ * A message in the queue to be written to the cadet.
  */
 struct WriteQueueItem
 {
@@ -66,29 +66,29 @@ struct WriteQueueItem
 
 
 /**
- * Information we keep around for each active meshing client.
+ * Information we keep around for each active cadeting client.
  */
-struct MeshClient
+struct CadetClient
 {
   /**
    * DLL
    */
-  struct MeshClient *next;
+  struct CadetClient *next;
 
   /**
    * DLL
    */
-  struct MeshClient *prev;
+  struct CadetClient *prev;
 
   /**
    * Channel for communication.
    */
-  struct GNUNET_MESH_Channel *channel;
+  struct GNUNET_CADET_Channel *channel;
 
   /**
    * Handle for active write operation, or NULL.
    */
-  struct GNUNET_MESH_TransmitHandle *wh;
+  struct GNUNET_CADET_TransmitHandle *wh;
 
   /**
    * Head of write queue.
@@ -126,65 +126,65 @@ struct MeshClient
 /**
  * Listen channel for incoming requests.
  */
-static struct GNUNET_MESH_Handle *listen_channel;
+static struct GNUNET_CADET_Handle *listen_channel;
 
 /**
- * Head of DLL of mesh clients.
+ * Head of DLL of cadet clients.
  */
-static struct MeshClient *sc_head;
+static struct CadetClient *sc_head;
 
 /**
- * Tail of DLL of mesh clients.
+ * Tail of DLL of cadet clients.
  */
-static struct MeshClient *sc_tail;
+static struct CadetClient *sc_tail;
 
 /**
- * Number of active mesh clients in the 'sc_*'-DLL.
+ * Number of active cadet clients in the 'sc_*'-DLL.
  */
 static unsigned int sc_count;
 
 /**
- * Maximum allowed number of mesh clients.
+ * Maximum allowed number of cadet clients.
  */
 static unsigned long long sc_count_max;
 
 
 
 /**
- * Task run to asynchronously terminate the mesh due to timeout.
+ * Task run to asynchronously terminate the cadet due to timeout.
  *
- * @param cls the 'struct MeshClient'
+ * @param cls the 'struct CadetClient'
  * @param tc scheduler context
  */
 static void
-timeout_mesh_task (void *cls,
+timeout_cadet_task (void *cls,
 		     const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct MeshClient *sc = cls;
-  struct GNUNET_MESH_Channel *tun;
+  struct CadetClient *sc = cls;
+  struct GNUNET_CADET_Channel *tun;
 
   sc->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   tun = sc->channel;
   sc->channel = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Timeout for inactive mesh client %p\n",
+	      "Timeout for inactive cadet client %p\n",
 	      sc);
-  GNUNET_MESH_channel_destroy (tun);
+  GNUNET_CADET_channel_destroy (tun);
 }
 
 
 /**
- * Reset the timeout for the mesh client (due to activity).
+ * Reset the timeout for the cadet client (due to activity).
  *
  * @param sc client handle to reset timeout for
  */
 static void
-refresh_timeout_task (struct MeshClient *sc)
+refresh_timeout_task (struct CadetClient *sc)
 {
   if (GNUNET_SCHEDULER_NO_TASK != sc->timeout_task)
     GNUNET_SCHEDULER_cancel (sc->timeout_task);
   sc->timeout_task = GNUNET_SCHEDULER_add_delayed (IDLE_TIMEOUT,
-						   &timeout_mesh_task,
+						   &timeout_cadet_task,
 						   sc);
 }
 
@@ -195,13 +195,13 @@ refresh_timeout_task (struct MeshClient *sc)
  * @param sc client to continue reading requests from
  */
 static void
-continue_reading (struct MeshClient *sc)
+continue_reading (struct CadetClient *sc)
 {
   refresh_timeout_task (sc);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Finished processing mesh request from client %p, ready to receive the next one\n",
+	      "Finished processing cadet request from client %p, ready to receive the next one\n",
 	      sc);
-  GNUNET_MESH_receive_done (sc->channel);
+  GNUNET_CADET_receive_done (sc->channel);
 }
 
 
@@ -211,13 +211,13 @@ continue_reading (struct MeshClient *sc)
  * @param sc where to process the write queue
  */
 static void
-continue_writing (struct MeshClient *sc);
+continue_writing (struct CadetClient *sc);
 
 
 /**
- * Send a reply now, mesh is ready.
+ * Send a reply now, cadet is ready.
  *
- * @param cls closure with the `struct MeshClient` which sent the query
+ * @param cls closure with the `struct CadetClient` which sent the query
  * @param size number of bytes available in @a buf
  * @param buf where to write the message
  * @return number of bytes written to @a buf
@@ -227,8 +227,8 @@ write_continuation (void *cls,
 		    size_t size,
 		    void *buf)
 {
-  struct MeshClient *sc = cls;
-  struct GNUNET_MESH_Channel *tun;
+  struct CadetClient *sc = cls;
+  struct GNUNET_CADET_Channel *tun;
   struct WriteQueueItem *wqi;
   size_t ret;
 
@@ -243,21 +243,21 @@ write_continuation (void *cls,
        (size < wqi->msize) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Transmission of reply failed, terminating mesh\n");
+		"Transmission of reply failed, terminating cadet\n");
     tun = sc->channel;
     sc->channel = NULL;
-    GNUNET_MESH_channel_destroy (tun);
+    GNUNET_CADET_channel_destroy (tun);
     return 0;
   }
   GNUNET_CONTAINER_DLL_remove (sc->wqi_head,
 			       sc->wqi_tail,
 			       wqi);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Transmitted %u byte reply via mesh to %p\n",
+	      "Transmitted %u byte reply via cadet to %p\n",
 	      (unsigned int) size,
 	      sc);
   GNUNET_STATISTICS_update (GSF_stats,
-			    gettext_noop ("# Blocks transferred via mesh"), 1,
+			    gettext_noop ("# Blocks transferred via cadet"), 1,
 			    GNUNET_NO);
   memcpy (buf, &wqi[1], ret = wqi->msize);
   GNUNET_free (wqi);
@@ -272,10 +272,10 @@ write_continuation (void *cls,
  * @param sc where to process the write queue
  */
 static void
-continue_writing (struct MeshClient *sc)
+continue_writing (struct CadetClient *sc)
 {
   struct WriteQueueItem *wqi;
-  struct GNUNET_MESH_Channel *tun;
+  struct GNUNET_CADET_Channel *tun;
 
   if (NULL != sc->wh)
   {
@@ -290,7 +290,7 @@ continue_writing (struct MeshClient *sc)
     continue_reading (sc);
     return;
   }
-  sc->wh = GNUNET_MESH_notify_transmit_ready (sc->channel, GNUNET_NO,
+  sc->wh = GNUNET_CADET_notify_transmit_ready (sc->channel, GNUNET_NO,
 					      GNUNET_TIME_UNIT_FOREVER_REL,
 					      wqi->msize,
 					      &write_continuation,
@@ -298,10 +298,10 @@ continue_writing (struct MeshClient *sc)
   if (NULL == sc->wh)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Write failed; terminating mesh\n");
+		"Write failed; terminating cadet\n");
     tun = sc->channel;
     sc->channel = NULL;
-    GNUNET_MESH_channel_destroy (tun);
+    GNUNET_CADET_channel_destroy (tun);
     return;
   }
 }
@@ -310,7 +310,7 @@ continue_writing (struct MeshClient *sc)
 /**
  * Process a datum that was stored in the datastore.
  *
- * @param cls closure with the `struct MeshClient` which sent the query
+ * @param cls closure with the `struct CadetClient` which sent the query
  * @param key key for the content
  * @param size number of bytes in @a data
  * @param data content stored
@@ -331,10 +331,10 @@ handle_datastore_reply (void *cls,
 			struct GNUNET_TIME_Absolute expiration,
                         uint64_t uid)
 {
-  struct MeshClient *sc = cls;
-  size_t msize = size + sizeof (struct MeshReplyMessage);
+  struct CadetClient *sc = cls;
+  size_t msize = size + sizeof (struct CadetReplyMessage);
   struct WriteQueueItem *wqi;
-  struct MeshReplyMessage *srm;
+  struct CadetReplyMessage *srm;
 
   sc->qe = NULL;
   if (NULL == data)
@@ -349,7 +349,7 @@ handle_datastore_reply (void *cls,
                 "Have no answer for query `%s'\n",
                 GNUNET_h2s (key));
     GNUNET_STATISTICS_update (GSF_stats,
-                              gettext_noop ("# queries received via mesh not answered"), 1,
+                              gettext_noop ("# queries received via cadet not answered"), 1,
                               GNUNET_NO);
     continue_writing (sc);
     return;
@@ -381,16 +381,16 @@ handle_datastore_reply (void *cls,
   }
   GNUNET_break (GNUNET_BLOCK_TYPE_ANY != type);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Starting transmission of %u byte reply of type %d for query `%s' via mesh to %p\n",
+	      "Starting transmission of %u byte reply of type %d for query `%s' via cadet to %p\n",
 	      (unsigned int) size,
               (unsigned int) type,
 	      GNUNET_h2s (key),
 	      sc);
   wqi = GNUNET_malloc (sizeof (struct WriteQueueItem) + msize);
   wqi->msize = msize;
-  srm = (struct MeshReplyMessage *) &wqi[1];
+  srm = (struct CadetReplyMessage *) &wqi[1];
   srm->header.size = htons ((uint16_t) msize);
-  srm->header.type = htons (GNUNET_MESSAGE_TYPE_FS_MESH_REPLY);
+  srm->header.type = htons (GNUNET_MESSAGE_TYPE_FS_CADET_REPLY);
   srm->type = htonl (type);
   srm->expiration = GNUNET_TIME_absolute_hton (expiration);
   memcpy (&srm[1], data, size);
@@ -408,7 +408,7 @@ handle_datastore_reply (void *cls,
  *
  * Do not call #GNUNET_SERVER_mst_destroy in callback
  *
- * @param cls closure with the 'struct MeshClient'
+ * @param cls closure with the 'struct CadetClient'
  * @param channel channel handle
  * @param channel_ctx channel context
  * @param message the actual message
@@ -416,20 +416,20 @@ handle_datastore_reply (void *cls,
  */
 static int
 request_cb (void *cls,
-	    struct GNUNET_MESH_Channel *channel,
+	    struct GNUNET_CADET_Channel *channel,
 	    void **channel_ctx,
 	    const struct GNUNET_MessageHeader *message)
 {
-  struct MeshClient *sc = *channel_ctx;
-  const struct MeshQueryMessage *sqm;
+  struct CadetClient *sc = *channel_ctx;
+  const struct CadetQueryMessage *sqm;
 
-  sqm = (const struct MeshQueryMessage *) message;
+  sqm = (const struct CadetQueryMessage *) message;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Received query for `%s' via mesh from client %p\n",
+	      "Received query for `%s' via cadet from client %p\n",
 	      GNUNET_h2s (&sqm->query),
 	      sc);
   GNUNET_STATISTICS_update (GSF_stats,
-			    gettext_noop ("# queries received via mesh"), 1,
+			    gettext_noop ("# queries received via cadet"), 1,
 			    GNUNET_NO);
   refresh_timeout_task (sc);
   sc->qe = GNUNET_DATASTORE_get_key (GSF_dsh,
@@ -451,37 +451,37 @@ request_cb (void *cls,
 
 
 /**
- * Functions of this type are called upon new mesh connection from other peers.
+ * Functions of this type are called upon new cadet connection from other peers.
  *
- * @param cls the closure from GNUNET_MESH_connect
- * @param channel the channel representing the mesh
- * @param initiator the identity of the peer who wants to establish a mesh
+ * @param cls the closure from GNUNET_CADET_connect
+ * @param channel the channel representing the cadet
+ * @param initiator the identity of the peer who wants to establish a cadet
  *            with us; NULL on binding error
- * @param port mesh port used for the incoming connection
+ * @param port cadet port used for the incoming connection
  * @param options channel option flags
- * @return initial channel context (our 'struct MeshClient')
+ * @return initial channel context (our 'struct CadetClient')
  */
 static void *
 accept_cb (void *cls,
-	   struct GNUNET_MESH_Channel *channel,
+	   struct GNUNET_CADET_Channel *channel,
 	   const struct GNUNET_PeerIdentity *initiator,
-	   uint32_t port, enum GNUNET_MESH_ChannelOption options)
+	   uint32_t port, enum GNUNET_CADET_ChannelOption options)
 {
-  struct MeshClient *sc;
+  struct CadetClient *sc;
 
   GNUNET_assert (NULL != channel);
   if (sc_count >= sc_count_max)
   {
     GNUNET_STATISTICS_update (GSF_stats,
-			      gettext_noop ("# mesh client connections rejected"), 1,
+			      gettext_noop ("# cadet client connections rejected"), 1,
 			      GNUNET_NO);
-    GNUNET_MESH_channel_destroy (channel);
+    GNUNET_CADET_channel_destroy (channel);
     return NULL;
   }
   GNUNET_STATISTICS_update (GSF_stats,
-			    gettext_noop ("# mesh connections active"), 1,
+			    gettext_noop ("# cadet connections active"), 1,
 			    GNUNET_NO);
-  sc = GNUNET_new (struct MeshClient);
+  sc = GNUNET_new (struct CadetClient);
   sc->channel = channel;
   GNUNET_CONTAINER_DLL_insert (sc_head,
 			       sc_tail,
@@ -489,7 +489,7 @@ accept_cb (void *cls,
   sc_count++;
   refresh_timeout_task (sc);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Accepting inbound mesh connection from `%s' as client %p\n",
+	      "Accepting inbound cadet connection from `%s' as client %p\n",
 	      GNUNET_i2s (initiator),
 	      sc);
   return sc;
@@ -497,36 +497,36 @@ accept_cb (void *cls,
 
 
 /**
- * Function called by mesh when a client disconnects.
- * Cleans up our 'struct MeshClient' of that channel.
+ * Function called by cadet when a client disconnects.
+ * Cleans up our 'struct CadetClient' of that channel.
  *
  * @param cls NULL
  * @param channel channel of the disconnecting client
- * @param channel_ctx our 'struct MeshClient'
+ * @param channel_ctx our 'struct CadetClient'
  */
 static void
 cleaner_cb (void *cls,
-	    const struct GNUNET_MESH_Channel *channel,
+	    const struct GNUNET_CADET_Channel *channel,
 	    void *channel_ctx)
 {
-  struct MeshClient *sc = channel_ctx;
+  struct CadetClient *sc = channel_ctx;
   struct WriteQueueItem *wqi;
 
   if (NULL == sc)
     return;
   sc->channel = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Terminating mesh connection with client %p\n",
+	      "Terminating cadet connection with client %p\n",
 	      sc);
   GNUNET_STATISTICS_update (GSF_stats,
-			    gettext_noop ("# mesh connections active"), -1,
+			    gettext_noop ("# cadet connections active"), -1,
 			    GNUNET_NO);
   if (GNUNET_SCHEDULER_NO_TASK != sc->terminate_task)
     GNUNET_SCHEDULER_cancel (sc->terminate_task);
   if (GNUNET_SCHEDULER_NO_TASK != sc->timeout_task)
     GNUNET_SCHEDULER_cancel (sc->timeout_task);
   if (NULL != sc->wh)
-    GNUNET_MESH_notify_transmit_ready_cancel (sc->wh);
+    GNUNET_CADET_notify_transmit_ready_cancel (sc->wh);
   if (NULL != sc->qe)
     GNUNET_DATASTORE_cancel (sc->qe);
   while (NULL != (wqi = sc->wqi_head))
@@ -548,10 +548,10 @@ cleaner_cb (void *cls,
  * Initialize subsystem for non-anonymous file-sharing.
  */
 void
-GSF_mesh_start_server ()
+GSF_cadet_start_server ()
 {
-  static const struct GNUNET_MESH_MessageHandler handlers[] = {
-    { &request_cb, GNUNET_MESSAGE_TYPE_FS_MESH_QUERY, sizeof (struct MeshQueryMessage)},
+  static const struct GNUNET_CADET_MessageHandler handlers[] = {
+    { &request_cb, GNUNET_MESSAGE_TYPE_FS_CADET_QUERY, sizeof (struct CadetQueryMessage)},
     { NULL, 0, 0 }
   };
   static const uint32_t ports[] = {
@@ -562,13 +562,13 @@ GSF_mesh_start_server ()
   if (GNUNET_YES !=
       GNUNET_CONFIGURATION_get_value_number (GSF_cfg,
 					     "fs",
-					     "MAX_MESH_CLIENTS",
+					     "MAX_CADET_CLIENTS",
 					     &sc_count_max))
     return;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Initializing mesh FS server with a limit of %llu connections\n",
+	      "Initializing cadet FS server with a limit of %llu connections\n",
 	      sc_count_max);
-  listen_channel = GNUNET_MESH_connect (GSF_cfg,
+  listen_channel = GNUNET_CADET_connect (GSF_cfg,
 				       NULL,
 				       &accept_cb,
 				       &cleaner_cb,
@@ -581,15 +581,15 @@ GSF_mesh_start_server ()
  * Shutdown subsystem for non-anonymous file-sharing.
  */
 void
-GSF_mesh_stop_server ()
+GSF_cadet_stop_server ()
 {
   if (NULL != listen_channel)
   {
-    GNUNET_MESH_disconnect (listen_channel);
+    GNUNET_CADET_disconnect (listen_channel);
     listen_channel = NULL;
   }
   GNUNET_assert (NULL == sc_head);
   GNUNET_assert (0 == sc_count);
 }
 
-/* end of gnunet-service-fs_mesh.c */
+/* end of gnunet-service-fs_cadet.c */

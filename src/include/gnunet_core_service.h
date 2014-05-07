@@ -58,7 +58,7 @@ enum GNUNET_CORE_Priority
   GNUNET_CORE_PRIO_BACKGROUND = 0,
 
   /**
-   * Normal traffic (i.e. mesh/dv relay, DHT)
+   * Normal traffic (i.e. cadet/dv relay, DHT)
    */
   GNUNET_CORE_PRIO_BEST_EFFORT = 1,
 
@@ -68,7 +68,7 @@ enum GNUNET_CORE_Priority
   GNUNET_CORE_PRIO_URGENT = 2,
 
   /**
-   * Highest priority, control traffic (i.e. NSE, Core/Mesh KX).
+   * Highest priority, control traffic (i.e. NSE, Core/Cadet KX).
    */
   GNUNET_CORE_PRIO_CRITICAL_CONTROL = 3
 

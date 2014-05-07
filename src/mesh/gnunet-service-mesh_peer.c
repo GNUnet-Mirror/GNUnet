@@ -26,15 +26,15 @@
 #include "gnunet_core_service.h"
 #include "gnunet_statistics_service.h"
 
-#include "mesh_protocol.h"
+#include "cadet_protocol.h"
 
-#include "gnunet-service-mesh_peer.h"
-#include "gnunet-service-mesh_dht.h"
-#include "gnunet-service-mesh_connection.h"
-#include "gnunet-service-mesh_tunnel.h"
-#include "mesh_path.h"
+#include "gnunet-service-cadet_peer.h"
+#include "gnunet-service-cadet_dht.h"
+#include "gnunet-service-cadet_connection.h"
+#include "gnunet-service-cadet_tunnel.h"
+#include "cadet_path.h"
 
-#define LOG(level, ...) GNUNET_log_from (level,"mesh-p2p",__VA_ARGS__)
+#define LOG(level, ...) GNUNET_log_from (level,"cadet-p2p",__VA_ARGS__)
 
 /******************************************************************************/
 /********************************   STRUCTS  **********************************/
@@ -43,27 +43,27 @@
 /**
  * Struct containing info about a queued transmission to this peer
  */
-struct MeshPeerQueue
+struct CadetPeerQueue
 {
     /**
       * DLL next
       */
-  struct MeshPeerQueue *next;
+  struct CadetPeerQueue *next;
 
     /**
       * DLL previous
       */
-  struct MeshPeerQueue *prev;
+  struct CadetPeerQueue *prev;
 
     /**
      * Peer this transmission is directed to.
      */
-  struct MeshPeer *peer;
+  struct CadetPeer *peer;
 
     /**
      * Connection this message belongs to.
      */
-  struct MeshConnection *c;
+  struct CadetConnection *c;
 
     /**
      * Is FWD in c?
@@ -114,7 +114,7 @@ struct MeshPeerQueue
 /**
  * Struct containing all information regarding a given peer
  */
-struct MeshPeer
+struct CadetPeer
 {
     /**
      * ID of the peer
@@ -129,12 +129,12 @@ struct MeshPeer
     /**
      * Paths to reach the peer, ordered by ascending hop count
      */
-  struct MeshPeerPath *path_head;
+  struct CadetPeerPath *path_head;
 
     /**
      * Paths to reach the peer, ordered by ascending hop count
      */
-  struct MeshPeerPath *path_tail;
+  struct CadetPeerPath *path_tail;
 
     /**
      * Handle to stop the DHT search for paths to this peer
@@ -144,7 +144,7 @@ struct MeshPeer
     /**
      * Tunnel to this peer, if any.
      */
-  struct MeshTunnel3 *tunnel;
+  struct CadetTunnel3 *tunnel;
 
     /**
      * Connections that go through this peer, indexed by tid;
@@ -159,12 +159,12 @@ struct MeshPeer
   /**
    * Transmission queue to core DLL head
    */
-  struct MeshPeerQueue *queue_head;
+  struct CadetPeerQueue *queue_head;
 
   /**
    * Transmission queue to core DLL tail
    */
-  struct MeshPeerQueue *queue_tail;
+  struct CadetPeerQueue *queue_tail;
 
   /**
    * How many messages are in the queue to this peer.
@@ -198,7 +198,7 @@ extern struct GNUNET_PeerIdentity my_full_id;
 extern GNUNET_PEER_Id myid;
 
 /**
- * Peers known, indexed by PeerIdentity (MeshPeer).
+ * Peers known, indexed by PeerIdentity (CadetPeer).
  */
 static struct GNUNET_CONTAINER_MultiPeerMap *peers;
 
@@ -228,9 +228,9 @@ static struct GNUNET_TRANSPORT_Handle *transport_handle;
 /******************************************************************************/
 
 static void
-queue_debug (struct MeshPeer *peer)
+queue_debug (struct CadetPeer *peer)
 {
-  struct MeshPeerQueue *q;
+  struct CadetPeerQueue *q;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "QQQ Messages queued towards %s\n", GMP_2s (peer));
   LOG (GNUNET_ERROR_TYPE_DEBUG, "QQQ  core tmt rdy: %p\n", peer->core_transmit);
@@ -265,8 +265,8 @@ notify_broken (void *cls,
                const struct GNUNET_HashCode *key,
                void *value)
 {
-  struct MeshPeer *peer = cls;
-  struct MeshConnection *c = value;
+  struct CadetPeer *peer = cls;
+  struct CadetConnection *c = value;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  notifying %s due to %s\n",
        GMC_2s (c), GMP_2s (peer));
@@ -282,10 +282,10 @@ notify_broken (void *cls,
  * @param peer Peer to remove the direct path from.
  *
  */
-static struct MeshPeerPath *
-pop_direct_path (struct MeshPeer *peer)
+static struct CadetPeerPath *
+pop_direct_path (struct CadetPeer *peer)
 {
-  struct MeshPeerPath *iter;
+  struct CadetPeerPath *iter;
 
   for (iter = peer->path_head; NULL != iter; iter = iter->next)
   {
@@ -312,8 +312,8 @@ pop_direct_path (struct MeshPeer *peer)
 static void
 core_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
-  struct MeshPeer *mp;
-  struct MeshPeerPath *path;
+  struct CadetPeer *mp;
+  struct CadetPeerPath *path;
   char own_id[16];
 
   strncpy (own_id, GNUNET_i2s (&my_full_id), 15);
@@ -357,8 +357,8 @@ core_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
 static void
 core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
-  struct MeshPeer *p;
-  struct MeshPeerPath *direct_path;
+  struct CadetPeer *p;
+  struct CadetPeerPath *direct_path;
   char own_id[16];
 
   strncpy (own_id, GNUNET_i2s (&my_full_id), 15);
@@ -393,19 +393,19 @@ core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
  * Functions to handle messages from core
  */
 static struct GNUNET_CORE_MessageHandler core_handlers[] = {
-  {&GMC_handle_create, GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE, 0},
-  {&GMC_handle_confirm, GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK,
-    sizeof (struct GNUNET_MESH_ConnectionACK)},
-  {&GMC_handle_broken, GNUNET_MESSAGE_TYPE_MESH_CONNECTION_BROKEN,
-    sizeof (struct GNUNET_MESH_ConnectionBroken)},
-  {&GMC_handle_destroy, GNUNET_MESSAGE_TYPE_MESH_CONNECTION_DESTROY,
-    sizeof (struct GNUNET_MESH_ConnectionDestroy)},
-  {&GMC_handle_ack, GNUNET_MESSAGE_TYPE_MESH_ACK,
-    sizeof (struct GNUNET_MESH_ACK)},
-  {&GMC_handle_poll, GNUNET_MESSAGE_TYPE_MESH_POLL,
-    sizeof (struct GNUNET_MESH_Poll)},
-  {&GMC_handle_encrypted, GNUNET_MESSAGE_TYPE_MESH_ENCRYPTED, 0},
-  {&GMC_handle_kx, GNUNET_MESSAGE_TYPE_MESH_KX, 0},
+  {&GMC_handle_create, GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE, 0},
+  {&GMC_handle_confirm, GNUNET_MESSAGE_TYPE_CADET_CONNECTION_ACK,
+    sizeof (struct GNUNET_CADET_ConnectionACK)},
+  {&GMC_handle_broken, GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN,
+    sizeof (struct GNUNET_CADET_ConnectionBroken)},
+  {&GMC_handle_destroy, GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY,
+    sizeof (struct GNUNET_CADET_ConnectionDestroy)},
+  {&GMC_handle_ack, GNUNET_MESSAGE_TYPE_CADET_ACK,
+    sizeof (struct GNUNET_CADET_ACK)},
+  {&GMC_handle_poll, GNUNET_MESSAGE_TYPE_CADET_POLL,
+    sizeof (struct GNUNET_CADET_Poll)},
+  {&GMC_handle_encrypted, GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED, 0},
+  {&GMC_handle_kx, GNUNET_MESSAGE_TYPE_CADET_KX, 0},
   {NULL, 0, 0}
 };
 
@@ -431,7 +431,7 @@ core_init (void *cls,
     LOG (GNUNET_ERROR_TYPE_ERROR, " my id %s\n", GNUNET_i2s (&my_full_id));
     GNUNET_CORE_disconnect (core_handle);
     core_handle = GNUNET_CORE_connect (c, /* Main configuration */
-                                       NULL,      /* Closure passed to MESH functions */
+                                       NULL,      /* Closure passed to CADET functions */
                                        &core_init,        /* Call core_init once connected */
                                        &core_connect,     /* Handle connects */
                                        &core_disconnect,  /* remove peers on disconnects */
@@ -451,7 +451,7 @@ core_init (void *cls,
 /**
   * Core callback to write a pre-constructed data packet to core buffer
   *
-  * @param cls Closure (MeshTransmissionDescriptor with data in "data" member).
+  * @param cls Closure (CadetTransmissionDescriptor with data in "data" member).
   * @param size Number of bytes available in buf.
   * @param buf Where the to write the message.
   *
@@ -486,11 +486,11 @@ send_core_data_raw (void *cls, size_t size, void *buf)
  * @return number of bytes written to buf
  */
 static size_t
-send_core_connection_create (struct MeshConnection *c, size_t size, void *buf)
+send_core_connection_create (struct CadetConnection *c, size_t size, void *buf)
 {
-  struct GNUNET_MESH_ConnectionCreate *msg;
+  struct GNUNET_CADET_ConnectionCreate *msg;
   struct GNUNET_PeerIdentity *peer_ptr;
-  const struct MeshPeerPath *p = GMC_get_path (c);
+  const struct CadetPeerPath *p = GMC_get_path (c);
   size_t size_needed;
   int i;
 
@@ -499,7 +499,7 @@ send_core_connection_create (struct MeshConnection *c, size_t size, void *buf)
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Sending CONNECTION CREATE...\n");
   size_needed =
-      sizeof (struct GNUNET_MESH_ConnectionCreate) +
+      sizeof (struct GNUNET_CADET_ConnectionCreate) +
       p->length * sizeof (struct GNUNET_PeerIdentity);
 
   if (size < size_needed || NULL == buf)
@@ -507,9 +507,9 @@ send_core_connection_create (struct MeshConnection *c, size_t size, void *buf)
     GNUNET_break (0);
     return 0;
   }
-  msg = (struct GNUNET_MESH_ConnectionCreate *) buf;
+  msg = (struct GNUNET_CADET_ConnectionCreate *) buf;
   msg->header.size = htons (size_needed);
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE);
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE);
   msg->cid = *GMC_get_id (c);
 
   peer_ptr = (struct GNUNET_PeerIdentity *) &msg[1];
@@ -535,22 +535,22 @@ send_core_connection_create (struct MeshConnection *c, size_t size, void *buf)
  * @return number of bytes written to buf
  */
 static size_t
-send_core_connection_ack (struct MeshConnection *c, size_t size, void *buf)
+send_core_connection_ack (struct CadetConnection *c, size_t size, void *buf)
 {
-  struct GNUNET_MESH_ConnectionACK *msg = buf;
+  struct GNUNET_CADET_ConnectionACK *msg = buf;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Sending CONNECTION ACK...\n");
-  if (sizeof (struct GNUNET_MESH_ConnectionACK) > size)
+  if (sizeof (struct GNUNET_CADET_ConnectionACK) > size)
   {
     GNUNET_break (0);
     return 0;
   }
-  msg->header.size = htons (sizeof (struct GNUNET_MESH_ConnectionACK));
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK);
+  msg->header.size = htons (sizeof (struct GNUNET_CADET_ConnectionACK));
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CONNECTION_ACK);
   msg->cid = *GMC_get_id (c);
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "CONNECTION ACK sent!\n");
-  return sizeof (struct GNUNET_MESH_ConnectionACK);
+  return sizeof (struct GNUNET_CADET_ConnectionACK);
 }
 
 
@@ -567,7 +567,7 @@ send_core_connection_ack (struct MeshConnection *c, size_t size, void *buf)
  * @return CORE priority to use.
  */
 static enum GNUNET_CORE_Priority
-get_priority (struct MeshPeerQueue *q)
+get_priority (struct CadetPeerQueue *q)
 {
   enum GNUNET_CORE_Priority low;
   enum GNUNET_CORE_Priority high;
@@ -591,7 +591,7 @@ get_priority (struct MeshPeerQueue *q)
   }
 
   /* Bulky payload has lower priority, control traffic has higher. */
-  if (GNUNET_MESSAGE_TYPE_MESH_ENCRYPTED == q->type)
+  if (GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED == q->type)
     return low;
   else
     return high;
@@ -612,8 +612,8 @@ shutdown_tunnel (void *cls,
                  const struct GNUNET_PeerIdentity *key,
                  void *value)
 {
-  struct MeshPeer *p = value;
-  struct MeshTunnel3 *t = p->tunnel;
+  struct CadetPeer *p = value;
+  struct CadetTunnel3 *t = p->tunnel;
 
   if (NULL != t)
     GMT_destroy (t);
@@ -629,11 +629,11 @@ shutdown_tunnel (void *cls,
  * @return GNUNET_OK on success
  */
 static int
-peer_destroy (struct MeshPeer *peer)
+peer_destroy (struct CadetPeer *peer)
 {
   struct GNUNET_PeerIdentity id;
-  struct MeshPeerPath *p;
-  struct MeshPeerPath *nextp;
+  struct CadetPeerPath *p;
+  struct CadetPeerPath *nextp;
 
   GNUNET_PEER_resolve (peer->id, &id);
   GNUNET_PEER_change_rc (peer->id, -1);
@@ -672,9 +672,9 @@ peer_destroy (struct MeshPeer *peer)
  * @return #GNUNET_YES if peer is in use.
  */
 static int
-peer_is_used (struct MeshPeer *peer)
+peer_is_used (struct CadetPeer *peer)
 {
-  struct MeshPeerPath *p;
+  struct CadetPeerPath *p;
 
   if (NULL != peer->tunnel)
     return GNUNET_YES;
@@ -700,7 +700,7 @@ peer_get_oldest (void *cls,
                  const struct GNUNET_PeerIdentity *key,
                  void *value)
 {
-  struct MeshPeer *p = value;
+  struct CadetPeer *p = value;
   struct GNUNET_TIME_Absolute *abs = cls;
 
   /* Don't count active peers */
@@ -726,7 +726,7 @@ peer_timeout (void *cls,
               const struct GNUNET_PeerIdentity *key,
               void *value)
 {
-  struct MeshPeer *p = value;
+  struct CadetPeer *p = value;
   struct GNUNET_TIME_Absolute *abs = cls;
 
   LOG (GNUNET_ERROR_TYPE_WARNING,
@@ -769,11 +769,11 @@ peer_delete_oldest (void)
  *
  * @return Best current known path towards the peer, if any.
  */
-static struct MeshPeerPath *
-peer_get_best_path (const struct MeshPeer *peer)
+static struct CadetPeerPath *
+peer_get_best_path (const struct CadetPeer *peer)
 {
-  struct MeshPeerPath *best_p;
-  struct MeshPeerPath *p;
+  struct CadetPeerPath *best_p;
+  struct CadetPeerPath *p;
   unsigned int best_cost;
   unsigned int cost;
 
@@ -807,21 +807,21 @@ peer_get_best_path (const struct MeshPeer *peer)
  * @return #GNUNET_YES if it is sendable, #GNUNET_NO otherwise.
  */
 static int
-queue_is_sendable (struct MeshPeerQueue *q)
+queue_is_sendable (struct CadetPeerQueue *q)
 {
   /* Is PID-independent? */
   switch (q->type)
   {
-    case GNUNET_MESSAGE_TYPE_MESH_ACK:
-    case GNUNET_MESSAGE_TYPE_MESH_POLL:
-    case GNUNET_MESSAGE_TYPE_MESH_KX:
-    case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE:
-    case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK:
-    case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_DESTROY:
-    case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_BROKEN:
+    case GNUNET_MESSAGE_TYPE_CADET_ACK:
+    case GNUNET_MESSAGE_TYPE_CADET_POLL:
+    case GNUNET_MESSAGE_TYPE_CADET_KX:
+    case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE:
+    case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_ACK:
+    case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY:
+    case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN:
       return GNUNET_YES;
 
-    case GNUNET_MESSAGE_TYPE_MESH_ENCRYPTED:
+    case GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED:
       break;
 
     default:
@@ -839,10 +839,10 @@ queue_is_sendable (struct MeshPeerQueue *q)
  *
  * @return First transmittable message, if any. Otherwise, NULL.
  */
-static struct MeshPeerQueue *
-peer_get_first_message (const struct MeshPeer *peer)
+static struct CadetPeerQueue *
+peer_get_first_message (const struct CadetPeer *peer)
 {
-  struct MeshPeerQueue *q;
+  struct CadetPeerQueue *q;
 
   for (q = peer->queue_head; NULL != q; q = q->next)
   {
@@ -864,9 +864,9 @@ peer_get_first_message (const struct MeshPeer *peer)
  * @param path
  */
 static void
-search_handler (void *cls, const struct MeshPeerPath *path)
+search_handler (void *cls, const struct CadetPeerPath *path)
 {
-  struct MeshPeer *peer = cls;
+  struct CadetPeer *peer = cls;
   unsigned int connection_count;
 
   GMP_add_path_to_all (path, GNUNET_NO);
@@ -878,7 +878,7 @@ search_handler (void *cls, const struct MeshPeerPath *path)
   if (3 <= connection_count)
     return;
 
-  if (MESH_TUNNEL3_SEARCHING == GMT_get_cstate (peer->tunnel))
+  if (CADET_TUNNEL3_SEARCHING == GMT_get_cstate (peer->tunnel))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, " ... connect!\n");
     GMP_connect (peer);
@@ -900,9 +900,9 @@ search_handler (void *cls, const struct MeshPeerPath *path)
 static size_t
 queue_send (void *cls, size_t size, void *buf)
 {
-  struct MeshPeer *peer = cls;
-  struct MeshConnection *c;
-  struct MeshPeerQueue *queue;
+  struct CadetPeer *peer = cls;
+  struct CadetConnection *c;
+  struct CadetPeerQueue *queue;
   const struct GNUNET_PeerIdentity *dst_id;
   size_t data_size;
   uint32_t pid;
@@ -950,28 +950,28 @@ queue_send (void *cls, size_t size, void *buf)
   /* Fill buf */
   switch (queue->type)
   {
-    case GNUNET_MESSAGE_TYPE_MESH_ENCRYPTED:
+    case GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED:
       pid = GMC_get_pid (queue->c, queue->fwd);
       LOG (GNUNET_ERROR_TYPE_DEBUG, "  payload ID %u\n", pid);
       data_size = send_core_data_raw (queue->cls, size, buf);
-      ((struct GNUNET_MESH_Encrypted *) buf)->pid = htonl (pid);
+      ((struct GNUNET_CADET_Encrypted *) buf)->pid = htonl (pid);
       break;
-    case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_DESTROY:
-    case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_BROKEN:
-    case GNUNET_MESSAGE_TYPE_MESH_KX:
-    case GNUNET_MESSAGE_TYPE_MESH_ACK:
-    case GNUNET_MESSAGE_TYPE_MESH_POLL:
+    case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY:
+    case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN:
+    case GNUNET_MESSAGE_TYPE_CADET_KX:
+    case GNUNET_MESSAGE_TYPE_CADET_ACK:
+    case GNUNET_MESSAGE_TYPE_CADET_POLL:
       LOG (GNUNET_ERROR_TYPE_DEBUG, "  raw %s\n", GM_m2s (queue->type));
       data_size = send_core_data_raw (queue->cls, size, buf);
       break;
-    case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE:
+    case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE:
       LOG (GNUNET_ERROR_TYPE_DEBUG, "  path create\n");
       if (GMC_is_origin (c, GNUNET_YES))
         data_size = send_core_connection_create (queue->c, size, buf);
       else
         data_size = send_core_data_raw (queue->cls, size, buf);
       break;
-    case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK:
+    case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_ACK:
       LOG (GNUNET_ERROR_TYPE_DEBUG, "  path ack\n");
       if (GMC_is_origin (c, GNUNET_NO) ||
           GMC_is_origin (c, GNUNET_YES))
@@ -979,9 +979,9 @@ queue_send (void *cls, size_t size, void *buf)
       else
         data_size = send_core_data_raw (queue->cls, size, buf);
       break;
-    case GNUNET_MESSAGE_TYPE_MESH_DATA:
-    case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_CREATE:
-    case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_DESTROY:
+    case GNUNET_MESSAGE_TYPE_CADET_DATA:
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE:
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY:
       /* This should be encapsulted */
       GNUNET_break (0);
       data_size = 0;
@@ -1060,10 +1060,10 @@ queue_send (void *cls, size_t size, void *buf)
  * @param pid PID, if relevant (was sent and was a payload message).
  */
 void
-GMP_queue_destroy (struct MeshPeerQueue *queue, int clear_cls,
+GMP_queue_destroy (struct CadetPeerQueue *queue, int clear_cls,
                    int sent, uint32_t pid)
 {
-  struct MeshPeer *peer;
+  struct CadetPeer *peer;
 
   peer = queue->peer;
 
@@ -1073,17 +1073,17 @@ GMP_queue_destroy (struct MeshPeerQueue *queue, int clear_cls,
          GM_m2s (queue->type));
     switch (queue->type)
     {
-      case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_DESTROY:
+      case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY:
         LOG (GNUNET_ERROR_TYPE_INFO, "destroying a DESTROY message\n");
         /* fall through */
-      case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK:
-      case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE:
-      case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_BROKEN:
-      case GNUNET_MESSAGE_TYPE_MESH_KEEPALIVE:
-      case GNUNET_MESSAGE_TYPE_MESH_KX:
-      case GNUNET_MESSAGE_TYPE_MESH_ENCRYPTED:
-      case GNUNET_MESSAGE_TYPE_MESH_ACK:
-      case GNUNET_MESSAGE_TYPE_MESH_POLL:
+      case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_ACK:
+      case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE:
+      case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN:
+      case GNUNET_MESSAGE_TYPE_CADET_KEEPALIVE:
+      case GNUNET_MESSAGE_TYPE_CADET_KX:
+      case GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED:
+      case GNUNET_MESSAGE_TYPE_CADET_ACK:
+      case GNUNET_MESSAGE_TYPE_CADET_POLL:
         GNUNET_free_non_null (queue->cls);
         break;
 
@@ -1095,8 +1095,8 @@ GMP_queue_destroy (struct MeshPeerQueue *queue, int clear_cls,
   }
   GNUNET_CONTAINER_DLL_remove (peer->queue_head, peer->queue_tail, queue);
 
-  if (queue->type != GNUNET_MESSAGE_TYPE_MESH_ACK &&
-      queue->type != GNUNET_MESSAGE_TYPE_MESH_POLL)
+  if (queue->type != GNUNET_MESSAGE_TYPE_CADET_ACK &&
+      queue->type != GNUNET_MESSAGE_TYPE_CADET_POLL)
   {
     peer->queue_n--;
   }
@@ -1136,13 +1136,13 @@ GMP_queue_destroy (struct MeshPeerQueue *queue, int clear_cls,
  * @return Handle to cancel the message before it is sent. Once cont is called
  *         message has been sent and therefore the handle is no longer valid.
  */
-struct MeshPeerQueue *
-GMP_queue_add (struct MeshPeer *peer, void *cls, uint16_t type,
+struct CadetPeerQueue *
+GMP_queue_add (struct CadetPeer *peer, void *cls, uint16_t type,
                uint16_t payload_type, uint32_t payload_id, size_t size,
-               struct MeshConnection *c, int fwd,
+               struct CadetConnection *c, int fwd,
                GMP_sent cont, void *cont_cls)
 {
-  struct MeshPeerQueue *queue;
+  struct CadetPeerQueue *queue;
   int priority;
   int call_core;
 
@@ -1162,8 +1162,8 @@ GMP_queue_add (struct MeshPeer *peer, void *cls, uint16_t type,
 
   priority = 0;
 
-  if (GNUNET_MESSAGE_TYPE_MESH_POLL == type ||
-      GNUNET_MESSAGE_TYPE_MESH_ACK == type)
+  if (GNUNET_MESSAGE_TYPE_CADET_POLL == type ||
+      GNUNET_MESSAGE_TYPE_CADET_ACK == type)
   {
     priority = 100;
   }
@@ -1171,7 +1171,7 @@ GMP_queue_add (struct MeshPeer *peer, void *cls, uint16_t type,
   LOG (GNUNET_ERROR_TYPE_DEBUG, "priority %d\n", priority);
 
   call_core = NULL == c ? GNUNET_YES : GMC_is_sendable (c, fwd);
-  queue = GNUNET_new (struct MeshPeerQueue);
+  queue = GNUNET_new (struct CadetPeerQueue);
   queue->cls = cls;
   queue->type = type;
   queue->payload_type = payload_type;
@@ -1233,11 +1233,11 @@ GMP_queue_add (struct MeshPeer *peer, void *cls, uint16_t type,
  *          the sent continuation call.
  */
 void
-GMP_queue_cancel (struct MeshPeer *peer, struct MeshConnection *c)
+GMP_queue_cancel (struct CadetPeer *peer, struct CadetConnection *c)
 {
-  struct MeshPeerQueue *q;
-  struct MeshPeerQueue *next;
-  struct MeshPeerQueue *prev;
+  struct CadetPeerQueue *q;
+  struct CadetPeerQueue *next;
+  struct CadetPeerQueue *prev;
 
   for (q = peer->queue_head; NULL != q; q = next)
   {
@@ -1245,7 +1245,7 @@ GMP_queue_cancel (struct MeshPeer *peer, struct MeshConnection *c)
     if (q->c == c)
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG, "GMP queue cancel %s\n", GM_m2s (q->type));
-      if (GNUNET_MESSAGE_TYPE_MESH_CONNECTION_DESTROY != q->type)
+      if (GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY != q->type)
       {
         q->c = NULL;
       }
@@ -1286,10 +1286,10 @@ GMP_queue_cancel (struct MeshPeer *peer, struct MeshConnection *c)
  *
  * @return First transmittable message.
  */
-static struct MeshPeerQueue *
-connection_get_first_message (struct MeshPeer *peer, struct MeshConnection *c)
+static struct CadetPeerQueue *
+connection_get_first_message (struct CadetPeer *peer, struct CadetConnection *c)
 {
-  struct MeshPeerQueue *q;
+  struct CadetPeerQueue *q;
 
   for (q = peer->queue_head; NULL != q; q = q->next)
   {
@@ -1316,10 +1316,10 @@ connection_get_first_message (struct MeshPeer *peer, struct MeshConnection *c)
  * @return First message for this connection.
  */
 struct GNUNET_MessageHeader *
-GMP_connection_pop (struct MeshPeer *peer, struct MeshConnection *c)
+GMP_connection_pop (struct CadetPeer *peer, struct CadetConnection *c)
 {
-  struct MeshPeerQueue *q;
-  struct MeshPeerQueue *next;
+  struct CadetPeerQueue *q;
+  struct CadetPeerQueue *next;
   struct GNUNET_MessageHeader *msg;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Connection pop on %s\n", GMC_2s (c));
@@ -1330,17 +1330,17 @@ GMP_connection_pop (struct MeshPeer *peer, struct MeshConnection *c)
       continue;
     switch (q->type)
     {
-      case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE:
-      case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK:
-      case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_DESTROY:
-      case GNUNET_MESSAGE_TYPE_MESH_CONNECTION_BROKEN:
-      case GNUNET_MESSAGE_TYPE_MESH_ACK:
-      case GNUNET_MESSAGE_TYPE_MESH_POLL:
+      case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE:
+      case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_ACK:
+      case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY:
+      case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN:
+      case GNUNET_MESSAGE_TYPE_CADET_ACK:
+      case GNUNET_MESSAGE_TYPE_CADET_POLL:
         GMP_queue_destroy (q, GNUNET_YES, GNUNET_NO, 0);
         continue;
 
-      case GNUNET_MESSAGE_TYPE_MESH_KX:
-      case GNUNET_MESSAGE_TYPE_MESH_ENCRYPTED:
+      case GNUNET_MESSAGE_TYPE_CADET_KX:
+      case GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED:
         msg = (struct GNUNET_MessageHeader *) q->cls;
         GMP_queue_destroy (q, GNUNET_NO, GNUNET_NO, 0);
         return msg;
@@ -1355,9 +1355,9 @@ GMP_connection_pop (struct MeshPeer *peer, struct MeshConnection *c)
 
 
 void
-GMP_queue_unlock (struct MeshPeer *peer, struct MeshConnection *c)
+GMP_queue_unlock (struct CadetPeer *peer, struct CadetConnection *c)
 {
-  struct MeshPeerQueue *q;
+  struct CadetPeerQueue *q;
   size_t size;
 
   if (NULL != peer->core_transmit)
@@ -1396,16 +1396,16 @@ GMP_init (const struct GNUNET_CONFIGURATION_Handle *c)
   LOG (GNUNET_ERROR_TYPE_DEBUG, "init\n");
   peers = GNUNET_CONTAINER_multipeermap_create (128, GNUNET_NO);
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_number (c, "MESH", "MAX_PEERS",
+      GNUNET_CONFIGURATION_get_value_number (c, "CADET", "MAX_PEERS",
                                              &max_peers))
   {
     GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_WARNING,
-                               "MESH", "MAX_PEERS", "USING DEFAULT");
+                               "CADET", "MAX_PEERS", "USING DEFAULT");
     max_peers = 1000;
   }
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_number (c, "MESH", "DROP_PERCENT",
+      GNUNET_CONFIGURATION_get_value_number (c, "CADET", "DROP_PERCENT",
                                              &drop_percent))
   {
     drop_percent = 0;
@@ -1413,14 +1413,14 @@ GMP_init (const struct GNUNET_CONFIGURATION_Handle *c)
   else
   {
     LOG (GNUNET_ERROR_TYPE_WARNING, "**************************************\n");
-    LOG (GNUNET_ERROR_TYPE_WARNING, "Mesh is running with DROP enabled.\n");
+    LOG (GNUNET_ERROR_TYPE_WARNING, "Cadet is running with DROP enabled.\n");
     LOG (GNUNET_ERROR_TYPE_WARNING, "This is NOT a good idea!\n");
     LOG (GNUNET_ERROR_TYPE_WARNING, "Remove DROP_PERCENT from config file.\n");
     LOG (GNUNET_ERROR_TYPE_WARNING, "**************************************\n");
   }
 
   core_handle = GNUNET_CORE_connect (c, /* Main configuration */
-                                     NULL,      /* Closure passed to MESH functions */
+                                     NULL,      /* Closure passed to CADET functions */
                                      &core_init,        /* Call core_init once connected */
                                      &core_connect,     /* Handle connects */
                                      &core_disconnect,  /* remove peers on disconnects */
@@ -1430,7 +1430,7 @@ GMP_init (const struct GNUNET_CONFIGURATION_Handle *c)
                                      GNUNET_NO, /* For header-only out notification */
                                      core_handlers);    /* Register these handlers */
   if (GNUNET_YES !=
-      GNUNET_CONFIGURATION_get_value_yesno (c, "MESH", "DISABLE_TRY_CONNECT"))
+      GNUNET_CONFIGURATION_get_value_yesno (c, "CADET", "DISABLE_TRY_CONNECT"))
   {
     transport_handle = GNUNET_TRANSPORT_connect (c, &my_full_id, NULL, /* cls */
                                                  /* Notify callbacks */
@@ -1478,22 +1478,22 @@ GMP_shutdown (void)
 }
 
 /**
- * Retrieve the MeshPeer stucture associated with the peer, create one
+ * Retrieve the CadetPeer stucture associated with the peer, create one
  * and insert it in the appropriate structures if the peer is not known yet.
  *
  * @param peer_id Full identity of the peer.
  *
  * @return Existing or newly created peer structure.
  */
-struct MeshPeer *
+struct CadetPeer *
 GMP_get (const struct GNUNET_PeerIdentity *peer_id)
 {
-  struct MeshPeer *peer;
+  struct CadetPeer *peer;
 
   peer = GNUNET_CONTAINER_multipeermap_get (peers, peer_id);
   if (NULL == peer)
   {
-    peer = GNUNET_new (struct MeshPeer);
+    peer = GNUNET_new (struct CadetPeer);
     if (GNUNET_CONTAINER_multipeermap_size (peers) > max_peers)
     {
       peer_delete_oldest ();
@@ -1509,14 +1509,14 @@ GMP_get (const struct GNUNET_PeerIdentity *peer_id)
 
 
 /**
- * Retrieve the MeshPeer stucture associated with the peer, create one
+ * Retrieve the CadetPeer stucture associated with the peer, create one
  * and insert it in the appropriate structures if the peer is not known yet.
  *
  * @param peer Short identity of the peer.
  *
  * @return Existing or newly created peer structure.
  */
-struct MeshPeer *
+struct CadetPeer *
 GMP_get_short (const GNUNET_PEER_Id peer)
 {
   return GMP_get (GNUNET_PEER_resolve2 (peer));
@@ -1532,7 +1532,7 @@ GMP_get_short (const GNUNET_PEER_Id peer)
 static void
 try_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct MeshPeer *peer = cls;
+  struct CadetPeer *peer = cls;
 
   if (0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
     return;
@@ -1550,11 +1550,11 @@ try_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param peer Peer to connect to.
  */
 void
-GMP_connect (struct MeshPeer *peer)
+GMP_connect (struct CadetPeer *peer)
 {
-  struct MeshTunnel3 *t;
-  struct MeshPeerPath *p;
-  struct MeshConnection *c;
+  struct CadetTunnel3 *t;
+  struct CadetPeerPath *p;
+  struct CadetConnection *c;
   int rerun_search;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "peer_connect towards %s\n", GMP_2s (peer));
@@ -1584,7 +1584,7 @@ GMP_connect (struct MeshPeer *peer)
         /* This case can happen when the path includes a first hop that is
          * not yet known to be connected.
          *
-         * This happens quite often during testing when running mesh
+         * This happens quite often during testing when running cadet
          * under valgrind: core connect notifications come very late and the
          * DHT result has already come and created a valid path.
          * In this case, the peer->connections hashmap will be NULL and
@@ -1627,8 +1627,8 @@ GMP_connect (struct MeshPeer *peer)
     LOG (GNUNET_ERROR_TYPE_DEBUG,
                 "  Starting DHT GET for peer %s\n", GMP_2s (peer));
     peer->search_h = GMD_search (id, &search_handler, peer);
-    if (MESH_TUNNEL3_NEW == GMT_get_cstate (t))
-      GMT_change_cstate (t, MESH_TUNNEL3_SEARCHING);
+    if (CADET_TUNNEL3_NEW == GMT_get_cstate (t))
+      GMT_change_cstate (t, CADET_TUNNEL3_SEARCHING);
   }
 }
 
@@ -1641,9 +1641,9 @@ GMP_connect (struct MeshPeer *peer)
  * @return #GNUNET_YES if there is a direct connection.
  */
 int
-GMP_is_neighbor (const struct MeshPeer *peer)
+GMP_is_neighbor (const struct CadetPeer *peer)
 {
-  struct MeshPeerPath *path;
+  struct CadetPeerPath *path;
 
   if (NULL == peer->connections)
     return GNUNET_NO;
@@ -1668,7 +1668,7 @@ GMP_is_neighbor (const struct MeshPeer *peer)
  * @param peer Peer towards which to create the tunnel.
  */
 void
-GMP_add_tunnel (struct MeshPeer *peer)
+GMP_add_tunnel (struct CadetPeer *peer)
 {
   if (NULL != peer->tunnel)
     return;
@@ -1689,8 +1689,8 @@ GMP_add_tunnel (struct MeshPeer *peer)
  * @return GNUNET_OK on success.
  */
 int
-GMP_add_connection (struct MeshPeer *peer,
-                    struct MeshConnection *c)
+GMP_add_connection (struct CadetPeer *peer,
+                    struct CadetConnection *c)
 {
   int result;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "adding connection %s\n", GMC_2s (c));
@@ -1732,11 +1732,11 @@ GMP_add_connection (struct MeshPeer *peer,
  * @return path if path was taken, pointer to existing duplicate if exists
  *         NULL on error.
  */
-struct MeshPeerPath *
-GMP_add_path (struct MeshPeer *peer, struct MeshPeerPath *path,
+struct CadetPeerPath *
+GMP_add_path (struct CadetPeer *peer, struct CadetPeerPath *path,
               int trusted)
 {
-  struct MeshPeerPath *aux;
+  struct CadetPeerPath *aux;
   unsigned int l;
   unsigned int l2;
 
@@ -1838,9 +1838,9 @@ GMP_add_path (struct MeshPeer *peer, struct MeshPeerPath *path,
  * @return path if path was taken, pointer to existing duplicate if exists
  *         NULL on error.
  */
-struct MeshPeerPath *
-GMP_add_path_to_origin (struct MeshPeer *peer,
-                        struct MeshPeerPath *path,
+struct CadetPeerPath *
+GMP_add_path_to_origin (struct CadetPeer *peer,
+                        struct CadetPeerPath *path,
                         int trusted)
 {
   if (NULL == path)
@@ -1857,7 +1857,7 @@ GMP_add_path_to_origin (struct MeshPeer *peer,
  * @param confirmed Whether we know if the path works or not.
  */
 void
-GMP_add_path_to_all (const struct MeshPeerPath *p, int confirmed)
+GMP_add_path_to_all (const struct CadetPeerPath *p, int confirmed)
 {
   unsigned int i;
 
@@ -1865,8 +1865,8 @@ GMP_add_path_to_all (const struct MeshPeerPath *p, int confirmed)
   for (i = 0; i < p->length && p->peers[i] != myid; i++) /* skip'em */ ;
   for (i++; i < p->length; i++)
   {
-    struct MeshPeer *aux;
-    struct MeshPeerPath *copy;
+    struct CadetPeer *aux;
+    struct CadetPeerPath *copy;
 
     aux = GMP_get_short (p->peers[i]);
     copy = path_duplicate (p);
@@ -1883,10 +1883,10 @@ GMP_add_path_to_all (const struct MeshPeerPath *p, int confirmed)
  * @param path Path to remove. Is always destroyed .
  */
 void
-GMP_remove_path (struct MeshPeer *peer, struct MeshPeerPath *path)
+GMP_remove_path (struct CadetPeer *peer, struct CadetPeerPath *path)
 {
-  struct MeshPeerPath *iter;
-  struct MeshPeerPath *next;
+  struct CadetPeerPath *iter;
+  struct CadetPeerPath *next;
 
   GNUNET_assert (myid == path->peers[0]);
   GNUNET_assert (peer->id == path->peers[path->length - 1]);
@@ -1915,8 +1915,8 @@ GMP_remove_path (struct MeshPeer *peer, struct MeshPeerPath *path)
  * @return GNUNET_OK on success.
  */
 int
-GMP_remove_connection (struct MeshPeer *peer,
-                       const struct MeshConnection *c)
+GMP_remove_connection (struct CadetPeer *peer,
+                       const struct CadetConnection *c)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG, "removing connection %s\n", GMC_2s (c));
   LOG (GNUNET_ERROR_TYPE_DEBUG, "from peer %s\n", GMP_2s (peer));
@@ -1944,7 +1944,7 @@ GMP_remove_connection (struct MeshPeer *peer,
  * @param peer Destination peer.
  */
 void
-GMP_start_search (struct MeshPeer *peer)
+GMP_start_search (struct CadetPeer *peer)
 {
   if (NULL != peer->search_h)
   {
@@ -1963,7 +1963,7 @@ GMP_start_search (struct MeshPeer *peer)
  * @param peer Destination peer.
  */
 void
-GMP_stop_search (struct MeshPeer *peer)
+GMP_stop_search (struct CadetPeer *peer)
 {
   if (NULL == peer->search_h)
   {
@@ -1983,7 +1983,7 @@ GMP_stop_search (struct MeshPeer *peer)
  * @return Full ID of peer.
  */
 const struct GNUNET_PeerIdentity *
-GMP_get_id (const struct MeshPeer *peer)
+GMP_get_id (const struct CadetPeer *peer)
 {
   return GNUNET_PEER_resolve2 (peer->id);
 }
@@ -1997,7 +1997,7 @@ GMP_get_id (const struct MeshPeer *peer)
  * @return Short ID of peer.
  */
 GNUNET_PEER_Id
-GMP_get_short_id (const struct MeshPeer *peer)
+GMP_get_short_id (const struct CadetPeer *peer)
 {
   return peer->id;
 }
@@ -2010,7 +2010,7 @@ GMP_get_short_id (const struct MeshPeer *peer)
  * @param t Tunnel.
  */
 void
-GMP_set_tunnel (struct MeshPeer *peer, struct MeshTunnel3 *t)
+GMP_set_tunnel (struct CadetPeer *peer, struct CadetTunnel3 *t)
 {
   peer->tunnel = t;
   if (NULL == t && NULL != peer->search_h)
@@ -2027,8 +2027,8 @@ GMP_set_tunnel (struct MeshPeer *peer, struct MeshTunnel3 *t)
  *
  * @return Tunnel towards peer.
  */
-struct MeshTunnel3 *
-GMP_get_tunnel (const struct MeshPeer *peer)
+struct CadetTunnel3 *
+GMP_get_tunnel (const struct CadetPeer *peer)
 {
   return peer->tunnel;
 }
@@ -2041,7 +2041,7 @@ GMP_get_tunnel (const struct MeshPeer *peer)
  * @param hello Hello message.
  */
 void
-GMP_set_hello (struct MeshPeer *peer, const struct GNUNET_HELLO_Message *hello)
+GMP_set_hello (struct CadetPeer *peer, const struct GNUNET_HELLO_Message *hello)
 {
   struct GNUNET_HELLO_Message *old;
   size_t size;
@@ -2076,7 +2076,7 @@ GMP_set_hello (struct MeshPeer *peer, const struct GNUNET_HELLO_Message *hello)
  * @return Hello message.
  */
 struct GNUNET_HELLO_Message *
-GMP_get_hello (struct MeshPeer *peer)
+GMP_get_hello (struct CadetPeer *peer)
 {
   struct GNUNET_TIME_Absolute expiration;
   struct GNUNET_TIME_Relative remaining;
@@ -2103,7 +2103,7 @@ GMP_get_hello (struct MeshPeer *peer)
  * @param peer Peer to whom to connect.
  */
 void
-GMP_try_connect (struct MeshPeer *peer)
+GMP_try_connect (struct CadetPeer *peer)
 {
   struct GNUNET_HELLO_Message *hello;
   struct GNUNET_MessageHeader *mh;
@@ -2129,12 +2129,12 @@ GMP_try_connect (struct MeshPeer *peer)
  * @param peer2 Peer whose link is broken.
  */
 void
-GMP_notify_broken_link (struct MeshPeer *peer,
+GMP_notify_broken_link (struct CadetPeer *peer,
                         struct GNUNET_PeerIdentity *peer1,
                         struct GNUNET_PeerIdentity *peer2)
 {
-  struct MeshPeerPath *iter;
-  struct MeshPeerPath *next;
+  struct CadetPeerPath *iter;
+  struct CadetPeerPath *next;
   unsigned int i;
   GNUNET_PEER_Id p1;
   GNUNET_PEER_Id p2;
@@ -2178,9 +2178,9 @@ GMP_notify_broken_link (struct MeshPeer *peer,
  * @return Number of known paths.
  */
 unsigned int
-GMP_count_paths (const struct MeshPeer *peer)
+GMP_count_paths (const struct CadetPeer *peer)
 {
-  struct MeshPeerPath *iter;
+  struct CadetPeerPath *iter;
   unsigned int i;
 
   for (iter = peer->path_head, i = 0; NULL != iter; iter = iter->next)
@@ -2211,7 +2211,7 @@ GMP_iterate_all (GNUNET_CONTAINER_PeerMapIterator iter, void *cls)
  * @return Static string for it's ID.
  */
 const char *
-GMP_2s (const struct MeshPeer *peer)
+GMP_2s (const struct CadetPeer *peer)
 {
   if (NULL == peer)
     return "(NULL)";

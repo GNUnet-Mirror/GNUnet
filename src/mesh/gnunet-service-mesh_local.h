@@ -19,15 +19,15 @@
 */
 
 /**
- * @file mesh/gnunet-service-mesh_local.h
- * @brief mesh service; dealing with local clients
+ * @file cadet/gnunet-service-cadet_local.h
+ * @brief cadet service; dealing with local clients
  * @author Bartlomiej Polot
  *
- * All functions in this file should use the prefix GML (Gnunet Mesh Local)
+ * All functions in this file should use the prefix GML (Gnunet Cadet Local)
  */
 
-#ifndef GNUNET_SERVICE_MESH_LOCAL_H
-#define GNUNET_SERVICE_MESH_LOCAL_H
+#ifndef GNUNET_SERVICE_CADET_LOCAL_H
+#define GNUNET_SERVICE_CADET_LOCAL_H
 
 #ifdef __cplusplus
 extern "C"
@@ -43,9 +43,9 @@ extern "C"
 /**
  * Struct containing information about a client of the service
  */
-struct MeshClient;
+struct CadetClient;
 
-#include "gnunet-service-mesh_channel.h"
+#include "gnunet-service-cadet_channel.h"
 
 /******************************************************************************/
 /********************************    API    ***********************************/
@@ -79,8 +79,8 @@ GML_shutdown (void);
  *
  * @return non-NULL if channel exists in the clients lists
  */
-struct MeshChannel *
-GML_channel_get (struct MeshClient *c, uint32_t chid);
+struct CadetChannel *
+GML_channel_get (struct CadetClient *c, uint32_t chid);
 
 /**
  * Add a channel to a client
@@ -90,9 +90,9 @@ GML_channel_get (struct MeshClient *c, uint32_t chid);
  * @param ch Channel.
  */
 void
-GML_channel_add (struct MeshClient *client,
+GML_channel_add (struct CadetClient *client,
                  uint32_t chid,
-                 struct MeshChannel *ch);
+                 struct CadetChannel *ch);
 
 /**
  * Remove a channel from a client
@@ -102,9 +102,9 @@ GML_channel_add (struct MeshClient *client,
  * @param ch Channel.
  */
 void
-GML_channel_remove (struct MeshClient *client,
+GML_channel_remove (struct CadetClient *client,
                     uint32_t chid,
-                    struct MeshChannel *ch);
+                    struct CadetChannel *ch);
 
 /**
  * Get the tunnel's next free local channel ID.
@@ -113,8 +113,8 @@ GML_channel_remove (struct MeshClient *client,
  *
  * @return LID of a channel free to use.
  */
-MESH_ChannelNumber
-GML_get_next_chid (struct MeshClient *c);
+CADET_ChannelNumber
+GML_get_next_chid (struct CadetClient *c);
 
 /**
  * Check if client has registered with the service and has not disconnected
@@ -123,7 +123,7 @@ GML_get_next_chid (struct MeshClient *c);
  *
  * @return non-NULL if client exists in the global DLL
  */
-struct MeshClient *
+struct CadetClient *
 GML_client_get (struct GNUNET_SERVER_Client *client);
 
 /**
@@ -133,7 +133,7 @@ GML_client_get (struct GNUNET_SERVER_Client *client);
  *
  * @return non-NULL if a client has the port.
  */
-struct MeshClient *
+struct CadetClient *
 GML_client_get_by_port (uint32_t port);
 
 /**
@@ -144,9 +144,9 @@ GML_client_get_by_port (uint32_t port);
  * @param id Channel ID.
  */
 void
-GML_client_delete_channel (struct MeshClient *c,
-                           struct MeshChannel *ch,
-                           MESH_ChannelNumber id);
+GML_client_delete_channel (struct CadetClient *c,
+                           struct CadetChannel *ch,
+                           CADET_ChannelNumber id);
 
 /**
  * Build a local ACK message and send it to a local client, if needed.
@@ -157,7 +157,7 @@ GML_client_delete_channel (struct MeshClient *c,
  * @param id Channel ID to use
  */
 void
-GML_send_ack (struct MeshClient *c, MESH_ChannelNumber id);
+GML_send_ack (struct CadetClient *c, CADET_ChannelNumber id);
 
 /**
  * Notify the appropriate client that a new incoming channel was created.
@@ -169,7 +169,7 @@ GML_send_ack (struct MeshClient *c, MESH_ChannelNumber id);
  * @param peer Origin peer.
  */
 void
-GML_send_channel_create (struct MeshClient *c,
+GML_send_channel_create (struct CadetClient *c,
                          uint32_t id, uint32_t port, uint32_t opt,
                          const struct GNUNET_PeerIdentity *peer);
 
@@ -180,7 +180,7 @@ GML_send_channel_create (struct MeshClient *c,
  * @param id Channel ID to use
  */
 void
-GML_send_channel_nack (struct MeshClient *c, MESH_ChannelNumber id);
+GML_send_channel_nack (struct CadetClient *c, CADET_ChannelNumber id);
 
 /**
  * Notify a client that a channel is no longer valid.
@@ -189,19 +189,19 @@ GML_send_channel_nack (struct MeshClient *c, MESH_ChannelNumber id);
  * @param id ID of the channel that is destroyed.
  */
 void
-GML_send_channel_destroy (struct MeshClient *c, uint32_t id);
+GML_send_channel_destroy (struct CadetClient *c, uint32_t id);
 
 /**
- * Modify the mesh message ID from global to local and send to client.
+ * Modify the cadet message ID from global to local and send to client.
  *
  * @param c Client to send to.
  * @param msg Message to modify and send.
  * @param id Channel ID to use (c can be both owner and client).
  */
 void
-GML_send_data (struct MeshClient *c,
-               const struct GNUNET_MESH_Data *msg,
-               MESH_ChannelNumber id);
+GML_send_data (struct CadetClient *c,
+               const struct GNUNET_CADET_Data *msg,
+               CADET_ChannelNumber id);
 
 /**
  * Get the static string to represent a client.
@@ -211,7 +211,7 @@ GML_send_data (struct MeshClient *c,
  * @return Static string for the client.
  */
 const char *
-GML_2s (const struct MeshClient *c);
+GML_2s (const struct CadetClient *c);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */
@@ -221,6 +221,6 @@ GML_2s (const struct MeshClient *c);
 }
 #endif
 
-/* ifndef GNUNET_MESH_SERVICE_LOCAL_H */
+/* ifndef GNUNET_CADET_SERVICE_LOCAL_H */
 #endif
-/* end of gnunet-mesh-service_LOCAL.h */
+/* end of gnunet-cadet-service_LOCAL.h */

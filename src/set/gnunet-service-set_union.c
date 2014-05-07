@@ -854,7 +854,7 @@ decode_and_send (struct Operation *op)
       struct GNUNET_MQ_Envelope *ev;
       struct GNUNET_MessageHeader *msg;
 
-      /* It may be nice to merge multiple requests, but with mesh's corking it is not worth
+      /* It may be nice to merge multiple requests, but with cadet's corking it is not worth
        * the effort additional complexity. */
       ev = GNUNET_MQ_msg_header_extra (msg, sizeof (struct IBF_Key),
                                         GNUNET_MESSAGE_TYPE_SET_P2P_ELEMENT_REQUESTS);
@@ -1327,7 +1327,7 @@ union_handle_p2p_message (struct Operation *op,
       handle_p2p_done (op, mh);
       break;
     default:
-      /* something wrong with mesh's message handlers? */
+      /* something wrong with cadet's message handlers? */
       GNUNET_assert (0);
   }
   return GNUNET_OK;

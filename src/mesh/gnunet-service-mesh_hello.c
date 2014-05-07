@@ -24,13 +24,13 @@
 #include "gnunet_statistics_service.h"
 #include "gnunet_peerinfo_service.h"
 
-#include "mesh_protocol.h"
-#include "mesh_path.h"
+#include "cadet_protocol.h"
+#include "cadet_path.h"
 
-#include "gnunet-service-mesh_hello.h"
-#include "gnunet-service-mesh_peer.h"
+#include "gnunet-service-cadet_hello.h"
+#include "gnunet-service-cadet_peer.h"
 
-#define LOG(level, ...) GNUNET_log_from(level,"mesh-hll",__VA_ARGS__)
+#define LOG(level, ...) GNUNET_log_from(level,"cadet-hll",__VA_ARGS__)
 
 
 /******************************************************************************/
@@ -98,7 +98,7 @@ got_hello (void *cls, const struct GNUNET_PeerIdentity *id,
            const struct GNUNET_HELLO_Message *hello,
            const char *err_msg)
 {
-  struct MeshPeer *peer;
+  struct CadetPeer *peer;
 
   if (NULL == id || NULL == hello)
   {

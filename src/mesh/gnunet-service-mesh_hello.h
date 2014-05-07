@@ -19,15 +19,15 @@
 */
 
 /**
- * @file mesh/gnunet-service-mesh_hello.h
- * @brief mesh service; dealing with hello messages
+ * @file cadet/gnunet-service-cadet_hello.h
+ * @brief cadet service; dealing with hello messages
  * @author Bartlomiej Polot
  *
- * All functions in this file should use the prefix GMH (Gnunet Mesh Hello)
+ * All functions in this file should use the prefix GMH (Gnunet Cadet Hello)
  */
 
-#ifndef GNUNET_SERVICE_MESH_HELLO_H
-#define GNUNET_SERVICE_MESH_HELLO_H
+#ifndef GNUNET_SERVICE_CADET_HELLO_H
+#define GNUNET_SERVICE_CADET_HELLO_H
 
 #ifdef __cplusplus
 extern "C"
@@ -71,6 +71,6 @@ GMH_get_mine (void);
 }
 #endif
 
-/* ifndef GNUNET_MESH_SERVICE_HELLO_H */
+/* ifndef GNUNET_CADET_SERVICE_HELLO_H */
 #endif
-/* end of gnunet-mesh-service_hello.h */
+/* end of gnunet-cadet-service_hello.h */

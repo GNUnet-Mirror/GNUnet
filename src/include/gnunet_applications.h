@@ -20,7 +20,7 @@
 
 /**
  * @file include/gnunet_applications.h
- * @brief constants for network applications operating on top of the MESH service
+ * @brief constants for network applications operating on top of the CADET service
  * @author Christian Grothoff
  */
 

@@ -19,8 +19,8 @@
 */
 
 /**
- * @file mesh/gnunet-service-mesh.c
- * @brief GNUnet MESH service with encryption
+ * @file cadet/gnunet-service-cadet.c
+ * @brief GNUnet CADET service with encryption
  * @author Bartlomiej Polot
  *
  *  FIXME in progress:
@@ -33,7 +33,7 @@
  * TODO END
  *
  * Dictionary:
- * - peer: other mesh instance. If there is direct connection it's a neighbor.
+ * - peer: other cadet instance. If there is direct connection it's a neighbor.
  * - tunnel: encrypted connection to a peer, neighbor or not.
  * - channel: connection between two clients, on the same or different peers.
  *            have properties like reliability.
@@ -43,16 +43,16 @@
 
 #include "platform.h"
 #include "gnunet_util_lib.h"
-#include "mesh.h"
+#include "cadet.h"
 #include "gnunet_statistics_service.h"
 
-#include "gnunet-service-mesh_local.h"
-#include "gnunet-service-mesh_channel.h"
-#include "gnunet-service-mesh_connection.h"
-#include "gnunet-service-mesh_tunnel.h"
-#include "gnunet-service-mesh_dht.h"
-#include "gnunet-service-mesh_peer.h"
-#include "gnunet-service-mesh_hello.h"
+#include "gnunet-service-cadet_local.h"
+#include "gnunet-service-cadet_channel.h"
+#include "gnunet-service-cadet_connection.h"
+#include "gnunet-service-cadet_tunnel.h"
+#include "gnunet-service-cadet_dht.h"
+#include "gnunet-service-cadet_peer.h"
+#include "gnunet-service-cadet_hello.h"
 
 
 /******************************************************************************/
@@ -121,7 +121,7 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
- * Process mesh requests.
+ * Process cadet requests.
  *
  * @param cls closure
  * @param server the initialized server
@@ -133,7 +133,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "starting to run\n");
 
-  stats = GNUNET_STATISTICS_create ("mesh", c);
+  stats = GNUNET_STATISTICS_create ("cadet", c);
 
   /* Scheduled the task to clean up when shutdown is called */
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
@@ -144,7 +144,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   GNUNET_CRYPTO_eddsa_key_get_public (my_private_key, &my_full_id.public_key);
   myid = GNUNET_PEER_intern (&my_full_id);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "STARTING SERVICE (MESH) for peer [%s]\n",
+              "STARTING SERVICE (CADET) for peer [%s]\n",
               GNUNET_i2s (&my_full_id));
 
   GML_init (server);    /* Local clients */
@@ -154,12 +154,12 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   GMD_init (c);         /* DHT */
   GMT_init (c, my_private_key); /* Tunnels */
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Mesh service running\n");
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Cadet service running\n");
 }
 
 
 /**
- * The main function for the mesh service.
+ * The main function for the cadet service.
  *
  * @param argc number of arguments from the command line
  * @param argv command line arguments
@@ -172,7 +172,7 @@ main (int argc, char *const *argv)
   int r;
 
   shutting_down = GNUNET_NO;
-  r = GNUNET_SERVICE_run (argc, argv, "mesh", GNUNET_SERVICE_OPTION_NONE, &run,
+  r = GNUNET_SERVICE_run (argc, argv, "cadet", GNUNET_SERVICE_OPTION_NONE, &run,
                           NULL);
   GNUNET_free (my_private_key);
   ret = (GNUNET_OK == r) ? 0 : 1;

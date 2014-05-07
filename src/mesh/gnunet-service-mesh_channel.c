@@ -24,52 +24,52 @@
 
 #include "gnunet_statistics_service.h"
 
-#include "mesh.h"
-#include "mesh_protocol.h"
+#include "cadet.h"
+#include "cadet_protocol.h"
 
-#include "gnunet-service-mesh_channel.h"
-#include "gnunet-service-mesh_local.h"
-#include "gnunet-service-mesh_tunnel.h"
-#include "gnunet-service-mesh_peer.h"
+#include "gnunet-service-cadet_channel.h"
+#include "gnunet-service-cadet_local.h"
+#include "gnunet-service-cadet_tunnel.h"
+#include "gnunet-service-cadet_peer.h"
 
-#define LOG(level, ...) GNUNET_log_from(level,"mesh-chn",__VA_ARGS__)
+#define LOG(level, ...) GNUNET_log_from(level,"cadet-chn",__VA_ARGS__)
 
-#define MESH_RETRANSMIT_TIME    GNUNET_TIME_relative_multiply(\
+#define CADET_RETRANSMIT_TIME    GNUNET_TIME_relative_multiply(\
                                     GNUNET_TIME_UNIT_MILLISECONDS, 250)
-#define MESH_RETRANSMIT_MARGIN  4
+#define CADET_RETRANSMIT_MARGIN  4
 
 
 /**
  * All the states a connection can be in.
  */
-enum MeshChannelState
+enum CadetChannelState
 {
   /**
    * Uninitialized status, should never appear in operation.
    */
-  MESH_CHANNEL_NEW,
+  CADET_CHANNEL_NEW,
 
   /**
    * Connection create message sent, waiting for ACK.
    */
-  MESH_CHANNEL_SENT,
+  CADET_CHANNEL_SENT,
 
   /**
    * Connection confirmed, ready to carry traffic.
    */
-  MESH_CHANNEL_READY,
+  CADET_CHANNEL_READY,
 };
 
 
 /**
  * Info holder for channel messages in queues.
  */
-struct MeshChannelQueue
+struct CadetChannelQueue
 {
   /**
    * Tunnel Queue.
    */
-  struct MeshTunnel3Queue *tq;
+  struct CadetTunnel3Queue *tq;
 
   /**
    * Message type (DATA/DATA_ACK)
@@ -79,25 +79,25 @@ struct MeshChannelQueue
   /**
    * Message copy (for DATAs, to start retransmission timer)
    */
-  struct MeshReliableMessage *copy;
+  struct CadetReliableMessage *copy;
 
   /**
    * Reliability (for DATA_ACKs, to access rel->ack_q)
    */
-  struct MeshChannelReliability *rel;
+  struct CadetChannelReliability *rel;
 };
 
 
 /**
  * Info needed to retry a message in case it gets lost.
  */
-struct MeshReliableMessage
+struct CadetReliableMessage
 {
     /**
      * Double linked list, FIFO style
      */
-  struct MeshReliableMessage    *next;
-  struct MeshReliableMessage    *prev;
+  struct CadetReliableMessage    *next;
+  struct CadetReliableMessage    *prev;
 
     /**
      * Type of message (payload, channel management).
@@ -107,7 +107,7 @@ struct MeshReliableMessage
     /**
      * Tunnel Reliability queue this message is in.
      */
-  struct MeshChannelReliability  *rel;
+  struct CadetChannelReliability  *rel;
 
     /**
      * ID of the message (ACK needed to free)
@@ -117,38 +117,38 @@ struct MeshReliableMessage
   /**
    * Tunnel Queue.
    */
-  struct MeshChannelQueue       *chq;
+  struct CadetChannelQueue       *chq;
 
     /**
      * When was this message issued (to calculate ACK delay)
      */
   struct GNUNET_TIME_Absolute   timestamp;
 
-  /* struct GNUNET_MESH_Data with payload */
+  /* struct GNUNET_CADET_Data with payload */
 };
 
 
 /**
  * Info about the traffic state for a client in a channel.
  */
-struct MeshChannelReliability
+struct CadetChannelReliability
 {
     /**
      * Channel this is about.
      */
-  struct MeshChannel *ch;
+  struct CadetChannel *ch;
 
     /**
      * DLL of messages sent and not yet ACK'd.
      */
-  struct MeshReliableMessage        *head_sent;
-  struct MeshReliableMessage        *tail_sent;
+  struct CadetReliableMessage        *head_sent;
+  struct CadetReliableMessage        *tail_sent;
 
     /**
      * DLL of messages received out of order.
      */
-  struct MeshReliableMessage        *head_recv;
-  struct MeshReliableMessage        *tail_recv;
+  struct CadetReliableMessage        *head_recv;
+  struct CadetReliableMessage        *tail_recv;
 
     /**
      * Messages received.
@@ -168,7 +168,7 @@ struct MeshChannelReliability
     /**
      * Handle for queued unique data CREATE, DATA_ACK.
      */
-  struct MeshChannelQueue           *uniq;
+  struct CadetChannelQueue           *uniq;
 
     /**
      * Can we send data to the client?
@@ -200,12 +200,12 @@ struct MeshChannelReliability
 /**
  * Struct containing all information regarding a channel to a remote client.
  */
-struct MeshChannel
+struct CadetChannel
 {
     /**
      * Tunnel this channel is in.
      */
-  struct MeshTunnel3 *t;
+  struct CadetTunnel3 *t;
 
     /**
      * Destination port of the channel.
@@ -213,26 +213,26 @@ struct MeshChannel
   uint32_t port;
 
     /**
-     * Global channel number ( < GNUNET_MESH_LOCAL_CHANNEL_ID_CLI)
+     * Global channel number ( < GNUNET_CADET_LOCAL_CHANNEL_ID_CLI)
      */
-  MESH_ChannelNumber gid;
+  CADET_ChannelNumber gid;
 
     /**
      * Local tunnel number for root (owner) client.
-     * ( >= GNUNET_MESH_LOCAL_CHANNEL_ID_CLI or 0 )
+     * ( >= GNUNET_CADET_LOCAL_CHANNEL_ID_CLI or 0 )
      */
-  MESH_ChannelNumber lid_root;
+  CADET_ChannelNumber lid_root;
 
     /**
      * Local tunnel number for local destination clients (incoming number)
-     * ( >= GNUNET_MESH_LOCAL_CHANNEL_ID_SERV or 0).
+     * ( >= GNUNET_CADET_LOCAL_CHANNEL_ID_SERV or 0).
      */
-  MESH_ChannelNumber lid_dest;
+  CADET_ChannelNumber lid_dest;
 
     /**
      * Channel state.
      */
-  enum MeshChannelState state;
+  enum CadetChannelState state;
 
     /**
      * Is the tunnel bufferless (minimum latency)?
@@ -252,12 +252,12 @@ struct MeshChannel
     /**
      * Client owner of the tunnel, if any
      */
-  struct MeshClient *root;
+  struct CadetClient *root;
 
     /**
      * Client destination of the tunnel, if any.
      */
-  struct MeshClient *dest;
+  struct CadetClient *dest;
 
     /**
      * Flag to signal the destruction of the channel.
@@ -275,13 +275,13 @@ struct MeshChannel
      * Reliability data.
      * Only present (non-NULL) at the owner of a tunnel.
      */
-  struct MeshChannelReliability *root_rel;
+  struct CadetChannelReliability *root_rel;
 
     /**
      * Reliability data.
      * Only present (non-NULL) at the destination of a tunnel.
      */
-  struct MeshChannelReliability *dest_rel;
+  struct CadetChannelReliability *dest_rel;
 
 };
 
@@ -317,7 +317,7 @@ extern GNUNET_PEER_Id myid;
  *                    retransmitted message.
  */
 static int
-rel_message_free (struct MeshReliableMessage *copy, int update_time);
+rel_message_free (struct CadetReliableMessage *copy, int update_time);
 
 /**
  * send a channel create message.
@@ -325,7 +325,7 @@ rel_message_free (struct MeshReliableMessage *copy, int update_time);
  * @param ch Channel for which to send.
  */
 static void
-send_create (struct MeshChannel *ch);
+send_create (struct CadetChannel *ch);
 
 /**
  * Confirm we got a channel create, FWD ack.
@@ -335,7 +335,7 @@ send_create (struct MeshChannel *ch);
  * @param reaction This ACK is a reaction to a duplicate CREATE, don't save.
  */
 static void
-send_ack (struct MeshChannel *ch, int fwd, int reaction);
+send_ack (struct CadetChannel *ch, int fwd, int reaction);
 
 
 
@@ -347,7 +347,7 @@ send_ack (struct MeshChannel *ch, int fwd, int reaction);
  * @return #GNUNET_YES if channel is loopback, #GNUNET_NO otherwise.
  */
 static int
-is_loopback (const struct MeshChannel *ch)
+is_loopback (const struct CadetChannel *ch)
 {
   if (NULL != ch->t)
     return GMT_is_loopback (ch->t);
@@ -363,18 +363,18 @@ is_loopback (const struct MeshChannel *ch)
  * @param mid Message ID.
  * @param rel Reliability data for retransmission.
  */
-static struct MeshReliableMessage *
-copy_message (const struct GNUNET_MESH_Data *msg, uint32_t mid,
-              struct MeshChannelReliability *rel)
+static struct CadetReliableMessage *
+copy_message (const struct GNUNET_CADET_Data *msg, uint32_t mid,
+              struct CadetChannelReliability *rel)
 {
-  struct MeshReliableMessage *copy;
+  struct CadetReliableMessage *copy;
   uint16_t size;
 
   size = ntohs (msg->header.size);
   copy = GNUNET_malloc (sizeof (*copy) + size);
   copy->mid = mid;
   copy->rel = rel;
-  copy->type = GNUNET_MESSAGE_TYPE_MESH_DATA;
+  copy->type = GNUNET_MESSAGE_TYPE_CADET_DATA;
   memcpy (&copy[1], msg, size);
 
   return copy;
@@ -385,15 +385,15 @@ copy_message (const struct GNUNET_MESH_Data *msg, uint32_t mid,
  * Buffer it until we receive an ACK from the client or the missing
  * message from the channel.
  *
- * @param msg Message to buffer (MUST be of type MESH_DATA).
+ * @param msg Message to buffer (MUST be of type CADET_DATA).
  * @param rel Reliability data to the corresponding direction.
  */
 static void
-add_buffered_data (const struct GNUNET_MESH_Data *msg,
-                   struct MeshChannelReliability *rel)
+add_buffered_data (const struct GNUNET_CADET_Data *msg,
+                   struct CadetChannelReliability *rel)
 {
-  struct MeshReliableMessage *copy;
-  struct MeshReliableMessage *prev;
+  struct CadetReliableMessage *copy;
+  struct CadetReliableMessage *prev;
   uint32_t mid;
 
   mid = ntohl (msg->mid);
@@ -436,7 +436,7 @@ add_buffered_data (const struct GNUNET_MESH_Data *msg,
  * @param c Client which to add to the channel.
  */
 static void
-add_destination (struct MeshChannel *ch, struct MeshClient *c)
+add_destination (struct CadetChannel *ch, struct CadetClient *c)
 {
   if (NULL != ch->dest)
   {
@@ -451,10 +451,10 @@ add_destination (struct MeshChannel *ch, struct MeshClient *c)
   GML_channel_add (c, ch->lid_dest, ch);
 
   GNUNET_break (NULL == ch->dest_rel);
-  ch->dest_rel = GNUNET_new (struct MeshChannelReliability);
+  ch->dest_rel = GNUNET_new (struct CadetChannelReliability);
   ch->dest_rel->ch = ch;
   ch->dest_rel->expected_delay.rel_value_us = 0;
-  ch->dest_rel->retry_timer = MESH_RETRANSMIT_TIME;
+  ch->dest_rel->retry_timer = CADET_RETRANSMIT_TIME;
 
   ch->dest = c;
 }
@@ -467,11 +467,11 @@ add_destination (struct MeshChannel *ch, struct MeshClient *c)
  * @param options Bit array in host byte order.
  */
 static void
-channel_set_options (struct MeshChannel *ch, uint32_t options)
+channel_set_options (struct CadetChannel *ch, uint32_t options)
 {
-  ch->nobuffer = (options & GNUNET_MESH_OPTION_NOBUFFER) != 0 ?
+  ch->nobuffer = (options & GNUNET_CADET_OPTION_NOBUFFER) != 0 ?
   GNUNET_YES : GNUNET_NO;
-  ch->reliable = (options & GNUNET_MESH_OPTION_RELIABLE) != 0 ?
+  ch->reliable = (options & GNUNET_CADET_OPTION_RELIABLE) != 0 ?
   GNUNET_YES : GNUNET_NO;
 }
 
@@ -484,15 +484,15 @@ channel_set_options (struct MeshChannel *ch, uint32_t options)
  * @return Bit array in host byte order.
  */
 static uint32_t
-channel_get_options (struct MeshChannel *ch)
+channel_get_options (struct CadetChannel *ch)
 {
   uint32_t options;
 
   options = 0;
   if (ch->nobuffer)
-    options |= GNUNET_MESH_OPTION_NOBUFFER;
+    options |= GNUNET_CADET_OPTION_NOBUFFER;
   if (ch->reliable)
-    options |= GNUNET_MESH_OPTION_RELIABLE;
+    options |= GNUNET_CADET_OPTION_RELIABLE;
 
   return options;
 }
@@ -505,11 +505,11 @@ channel_get_options (struct MeshChannel *ch)
  * @param local_only Should we avoid sending it to other peers?
  */
 static void
-send_destroy (struct MeshChannel *ch, int local_only)
+send_destroy (struct CadetChannel *ch, int local_only)
 {
-  struct GNUNET_MESH_ChannelManage msg;
+  struct GNUNET_CADET_ChannelManage msg;
 
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CHANNEL_DESTROY);
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY);
   msg.header.size = htons (sizeof (msg));
   msg.chid = htonl (ch->gid);
 
@@ -536,7 +536,7 @@ send_destroy (struct MeshChannel *ch, int local_only)
  * @param ch Channel that was created.
  */
 static void
-send_client_create (struct MeshChannel *ch)
+send_client_create (struct CadetChannel *ch)
 {
   uint32_t opt;
 
@@ -544,8 +544,8 @@ send_client_create (struct MeshChannel *ch)
     return;
 
   opt = 0;
-  opt |= GNUNET_YES == ch->reliable ? GNUNET_MESH_OPTION_RELIABLE : 0;
-  opt |= GNUNET_YES == ch->nobuffer ? GNUNET_MESH_OPTION_NOBUFFER : 0;
+  opt |= GNUNET_YES == ch->reliable ? GNUNET_CADET_OPTION_RELIABLE : 0;
+  opt |= GNUNET_YES == ch->nobuffer ? GNUNET_CADET_OPTION_NOBUFFER : 0;
   GML_send_channel_create (ch->dest, ch->lid_dest, ch->port, opt,
                            GMT_get_destination (ch->t));
 
@@ -563,8 +563,8 @@ send_client_create (struct MeshChannel *ch)
  * @param fwd Is this a fwd (root->dest) message?
  */
 static void
-send_client_data (struct MeshChannel *ch,
-                  const struct GNUNET_MESH_Data *msg,
+send_client_data (struct CadetChannel *ch,
+                  const struct GNUNET_CADET_Data *msg,
                   int fwd)
 {
   if (fwd)
@@ -593,12 +593,12 @@ send_client_data (struct MeshChannel *ch,
  * @param fwd Is this to send FWD data?.
  */
 static void
-send_client_buffered_data (struct MeshChannel *ch,
-                           struct MeshClient *c,
+send_client_buffered_data (struct CadetChannel *ch,
+                           struct CadetClient *c,
                            int fwd)
 {
-  struct MeshReliableMessage *copy;
-  struct MeshChannelReliability *rel;
+  struct CadetReliableMessage *copy;
+  struct CadetChannelReliability *rel;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "send_buffered_data\n");
   rel = fwd ? ch->dest_rel : ch->root_rel;
@@ -614,7 +614,7 @@ send_client_buffered_data (struct MeshChannel *ch,
   {
     if (copy->mid == rel->mid_recv || GNUNET_NO == ch->reliable)
     {
-      struct GNUNET_MESH_Data *msg = (struct GNUNET_MESH_Data *) &copy[1];
+      struct GNUNET_CADET_Data *msg = (struct GNUNET_CADET_Data *) &copy[1];
 
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            " have %u! now expecting %u\n",
@@ -657,10 +657,10 @@ send_client_buffered_data (struct MeshChannel *ch,
  * @param fwd Is this a FWD ACK? (FWD ACKs are sent to root)
  */
 static void
-send_client_ack (struct MeshChannel *ch, int fwd)
+send_client_ack (struct CadetChannel *ch, int fwd)
 {
-  struct MeshChannelReliability *rel = fwd ? ch->root_rel : ch->dest_rel;
-  struct MeshClient *c = fwd ? ch->root : ch->dest;
+  struct CadetChannelReliability *rel = fwd ? ch->root_rel : ch->dest_rel;
+  struct CadetClient *c = fwd ? ch->root : ch->dest;
 
   if (NULL == c)
   {
@@ -694,7 +694,7 @@ send_client_ack (struct MeshChannel *ch, int fwd)
  * @param ch Rejected channel.
  */
 static void
-send_client_nack (struct MeshChannel *ch)
+send_client_nack (struct CadetChannel *ch)
 {
   if (NULL == ch->root)
   {
@@ -708,17 +708,17 @@ send_client_nack (struct MeshChannel *ch)
 /**
  * We haven't received an ACK after a certain time: restransmit the message.
  *
- * @param cls Closure (MeshChannelReliability with the message to restransmit)
+ * @param cls Closure (CadetChannelReliability with the message to restransmit)
  * @param tc TaskContext.
  */
 static void
 channel_retransmit_message (void *cls,
                             const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct MeshChannelReliability *rel = cls;
-  struct MeshReliableMessage *copy;
-  struct MeshChannel *ch;
-  struct GNUNET_MESH_Data *payload;
+  struct CadetChannelReliability *rel = cls;
+  struct CadetReliableMessage *copy;
+  struct CadetChannel *ch;
+  struct GNUNET_CADET_Data *payload;
   int fwd;
 
   rel->retry_task = GNUNET_SCHEDULER_NO_TASK;
@@ -733,7 +733,7 @@ channel_retransmit_message (void *cls,
     return;
   }
 
-  payload = (struct GNUNET_MESH_Data *) &copy[1];
+  payload = (struct GNUNET_CADET_Data *) &copy[1];
   fwd = (rel == ch->root_rel);
 
   /* Message not found in the queue that we are going to use. */
@@ -747,13 +747,13 @@ channel_retransmit_message (void *cls,
 /**
  * We haven't received an Channel ACK after a certain time: resend the CREATE.
  *
- * @param cls Closure (MeshChannelReliability of the channel to recreate)
+ * @param cls Closure (CadetChannelReliability of the channel to recreate)
  * @param tc TaskContext.
  */
 static void
 channel_recreate (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct MeshChannelReliability *rel = cls;
+  struct CadetChannelReliability *rel = cls;
 
   rel->retry_task = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
@@ -789,20 +789,20 @@ channel_recreate (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  */
 static void
 ch_message_sent (void *cls,
-                 struct MeshTunnel3 *t,
-                 struct MeshTunnel3Queue *q,
+                 struct CadetTunnel3 *t,
+                 struct CadetTunnel3Queue *q,
                  uint16_t type, size_t size)
 {
-  struct MeshChannelQueue *chq = cls;
-  struct MeshReliableMessage *copy = chq->copy;
-  struct MeshChannelReliability *rel;
+  struct CadetChannelQueue *chq = cls;
+  struct CadetReliableMessage *copy = chq->copy;
+  struct CadetChannelReliability *rel;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "channel message sent callback %s\n",
        GM_m2s (chq->type));
 
   switch (chq->type)
   {
-    case GNUNET_MESSAGE_TYPE_MESH_DATA:
+    case GNUNET_MESSAGE_TYPE_CADET_DATA:
       LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! SENT DATA MID %u\n", copy->mid);
       GNUNET_assert (chq == copy->chq);
       copy->timestamp = GNUNET_TIME_absolute_get ();
@@ -817,12 +817,12 @@ ch_message_sent (void *cls,
           LOG (GNUNET_ERROR_TYPE_DEBUG, "!! delay != 0\n");
           rel->retry_timer =
           GNUNET_TIME_relative_multiply (rel->expected_delay,
-                                         MESH_RETRANSMIT_MARGIN);
+                                         CADET_RETRANSMIT_MARGIN);
         }
         else
         {
           LOG (GNUNET_ERROR_TYPE_DEBUG, "!! delay reset\n");
-          rel->retry_timer = MESH_RETRANSMIT_TIME;
+          rel->retry_timer = CADET_RETRANSMIT_TIME;
         }
         LOG (GNUNET_ERROR_TYPE_DEBUG, "!! using delay %s\n",
              GNUNET_STRINGS_relative_time_to_string (rel->retry_timer,
@@ -839,16 +839,16 @@ ch_message_sent (void *cls,
       break;
 
 
-    case GNUNET_MESSAGE_TYPE_MESH_DATA_ACK:
-    case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_CREATE:
-    case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_ACK:
+    case GNUNET_MESSAGE_TYPE_CADET_DATA_ACK:
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE:
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_ACK:
       LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! SENT %s\n", GM_m2s (chq->type));
       rel = chq->rel;
       GNUNET_assert (rel->uniq == chq);
       rel->uniq = NULL;
 
-      if (MESH_CHANNEL_READY != rel->ch->state
-          && GNUNET_MESSAGE_TYPE_MESH_DATA_ACK != type
+      if (CADET_CHANNEL_READY != rel->ch->state
+          && GNUNET_MESSAGE_TYPE_CADET_DATA_ACK != type
           && GNUNET_NO == rel->ch->destroy)
       {
         GNUNET_assert (GNUNET_SCHEDULER_NO_TASK == rel->retry_task);
@@ -875,12 +875,12 @@ ch_message_sent (void *cls,
  * @param ch Channel for which to send.
  */
 static void
-send_create (struct MeshChannel *ch)
+send_create (struct CadetChannel *ch)
 {
-  struct GNUNET_MESH_ChannelCreate msgcc;
+  struct GNUNET_CADET_ChannelCreate msgcc;
 
   msgcc.header.size = htons (sizeof (msgcc));
-  msgcc.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CHANNEL_CREATE);
+  msgcc.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE);
   msgcc.chid = htonl (ch->gid);
   msgcc.port = htonl (ch->port);
   msgcc.opt = htonl (channel_get_options (ch));
@@ -897,12 +897,12 @@ send_create (struct MeshChannel *ch)
  * @param reaction This ACK is a reaction to a duplicate CREATE, don't save.
  */
 static void
-send_ack (struct MeshChannel *ch, int fwd, int reaction)
+send_ack (struct CadetChannel *ch, int fwd, int reaction)
 {
-  struct GNUNET_MESH_ChannelManage msg;
+  struct GNUNET_CADET_ChannelManage msg;
 
   msg.header.size = htons (sizeof (msg));
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CHANNEL_ACK);
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_ACK);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  sending channel %s ack for channel %s\n",
        GM_f2s (fwd), GMCH_2s (ch));
 
@@ -921,7 +921,7 @@ send_ack (struct MeshChannel *ch, int fwd, int reaction)
  */
 static void
 fire_and_forget (const struct GNUNET_MessageHeader *msg,
-                 struct MeshChannel *ch,
+                 struct CadetChannel *ch,
                  int force)
 {
   GNUNET_break (NULL == GMT_send_prebuilt_message (msg, ch->t, NULL,
@@ -935,12 +935,12 @@ fire_and_forget (const struct GNUNET_MessageHeader *msg,
  * @param ch The channel to reject.
  */
 static void
-send_nack (struct MeshChannel *ch)
+send_nack (struct CadetChannel *ch)
 {
-  struct GNUNET_MESH_ChannelManage msg;
+  struct GNUNET_CADET_ChannelManage msg;
 
   msg.header.size = htons (sizeof (msg));
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_CHANNEL_NACK);
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CHANNEL_NACK);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "  sending channel NACK for channel %s\n",
        GMCH_2s (ch));
@@ -958,10 +958,10 @@ send_nack (struct MeshChannel *ch)
  * @param rel Reliability data for a channel.
  */
 static void
-channel_rel_free_all (struct MeshChannelReliability *rel)
+channel_rel_free_all (struct CadetChannelReliability *rel)
 {
-  struct MeshReliableMessage *copy;
-  struct MeshReliableMessage *next;
+  struct CadetReliableMessage *copy;
+  struct CadetReliableMessage *next;
 
   if (NULL == rel)
     return;
@@ -1015,11 +1015,11 @@ channel_rel_free_all (struct MeshChannelReliability *rel)
  * @param msg DataACK message with a bitfield of future ACK'd messages.
  */
 static void
-channel_rel_free_sent (struct MeshChannelReliability *rel,
-                       const struct GNUNET_MESH_DataACK *msg)
+channel_rel_free_sent (struct CadetChannelReliability *rel,
+                       const struct GNUNET_CADET_DataACK *msg)
 {
-  struct MeshReliableMessage *copy;
-  struct MeshReliableMessage *next;
+  struct CadetReliableMessage *copy;
+  struct CadetReliableMessage *next;
   uint64_t bitfield;
   uint64_t mask;
   uint32_t mid;
@@ -1094,9 +1094,9 @@ channel_rel_free_sent (struct MeshChannelReliability *rel,
  *         #GNUNET_NO otherwise.
  */
 static int
-rel_message_free (struct MeshReliableMessage *copy, int update_time)
+rel_message_free (struct CadetReliableMessage *copy, int update_time)
 {
-  struct MeshChannelReliability *rel;
+  struct CadetChannelReliability *rel;
   struct GNUNET_TIME_Relative time;
 
   rel = copy->rel;
@@ -1148,10 +1148,10 @@ rel_message_free (struct MeshReliableMessage *copy, int update_time)
  * @param fwd Was the ACK message a FWD ACK? (dest->root, SYNACK)
  */
 static void
-channel_confirm (struct MeshChannel *ch, int fwd)
+channel_confirm (struct CadetChannel *ch, int fwd)
 {
-  struct MeshChannelReliability *rel;
-  enum MeshChannelState oldstate;
+  struct CadetChannelReliability *rel;
+  enum CadetChannelState oldstate;
 
   rel = fwd ? ch->root_rel : ch->dest_rel;
   if (NULL == rel)
@@ -1162,9 +1162,9 @@ channel_confirm (struct MeshChannel *ch, int fwd)
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  channel confirm %s %s\n",
        GM_f2s (fwd), GMCH_2s (ch));
   oldstate = ch->state;
-  ch->state = MESH_CHANNEL_READY;
+  ch->state = CADET_CHANNEL_READY;
 
-  if (MESH_CHANNEL_READY != oldstate || GNUNET_YES == is_loopback (ch))
+  if (CADET_CHANNEL_READY != oldstate || GNUNET_YES == is_loopback (ch))
   {
     rel->client_ready = GNUNET_YES;
     rel->expected_delay = rel->retry_timer;
@@ -1208,13 +1208,13 @@ channel_confirm (struct MeshChannel *ch, int fwd)
  * @param msg Message to copy.
  * @param fwd Is this fwd traffic?
  */
-static struct MeshReliableMessage *
-channel_save_copy (struct MeshChannel *ch,
+static struct CadetReliableMessage *
+channel_save_copy (struct CadetChannel *ch,
                    const struct GNUNET_MessageHeader *msg,
                    int fwd)
 {
-  struct MeshChannelReliability *rel;
-  struct MeshReliableMessage *copy;
+  struct CadetChannelReliability *rel;
+  struct CadetReliableMessage *copy;
   uint32_t mid;
   uint16_t type;
   uint16_t size;
@@ -1225,7 +1225,7 @@ channel_save_copy (struct MeshChannel *ch,
   size = ntohs (msg->size);
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! SAVE %u %s\n", mid, GM_m2s (type));
-  copy = GNUNET_malloc (sizeof (struct MeshReliableMessage) + size);
+  copy = GNUNET_malloc (sizeof (struct CadetReliableMessage) + size);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  at %p\n", copy);
   copy->mid = mid;
   copy->rel = rel;
@@ -1247,14 +1247,14 @@ channel_save_copy (struct MeshChannel *ch,
  *
  * @return A new initialized channel. NULL on error.
  */
-static struct MeshChannel *
-channel_new (struct MeshTunnel3 *t,
-             struct MeshClient *owner,
-             MESH_ChannelNumber lid_root)
+static struct CadetChannel *
+channel_new (struct CadetTunnel3 *t,
+             struct CadetClient *owner,
+             CADET_ChannelNumber lid_root)
 {
-  struct MeshChannel *ch;
+  struct CadetChannel *ch;
 
-  ch = GNUNET_new (struct MeshChannel);
+  ch = GNUNET_new (struct CadetChannel);
   ch->root = owner;
   ch->lid_root = lid_root;
   ch->t = t;
@@ -1280,7 +1280,7 @@ channel_new (struct MeshTunnel3 *t,
  * @param fwd Is this FWD traffic?
  */
 void
-handle_loopback (struct MeshChannel *ch,
+handle_loopback (struct CadetChannel *ch,
                  const struct GNUNET_MessageHeader *msgh,
                  int fwd)
 {
@@ -1293,35 +1293,35 @@ handle_loopback (struct MeshChannel *ch,
 
   switch (type)
   {
-    case GNUNET_MESSAGE_TYPE_MESH_DATA:
+    case GNUNET_MESSAGE_TYPE_CADET_DATA:
       /* Don't send hop ACK, wait for client to ACK */
       LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! SEND loopback %u (%u)\n",
-           ntohl (((struct GNUNET_MESH_Data *) msgh)->mid), ntohs (msgh->size));
-      GMCH_handle_data (ch, (struct GNUNET_MESH_Data *) msgh, fwd);
+           ntohl (((struct GNUNET_CADET_Data *) msgh)->mid), ntohs (msgh->size));
+      GMCH_handle_data (ch, (struct GNUNET_CADET_Data *) msgh, fwd);
       break;
 
-    case GNUNET_MESSAGE_TYPE_MESH_DATA_ACK:
-      GMCH_handle_data_ack (ch, (struct GNUNET_MESH_DataACK *) msgh, fwd);
+    case GNUNET_MESSAGE_TYPE_CADET_DATA_ACK:
+      GMCH_handle_data_ack (ch, (struct GNUNET_CADET_DataACK *) msgh, fwd);
       break;
 
-    case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_CREATE:
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE:
       GMCH_handle_create (ch->t,
-                          (struct GNUNET_MESH_ChannelCreate *) msgh);
+                          (struct GNUNET_CADET_ChannelCreate *) msgh);
       break;
 
-    case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_ACK:
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_ACK:
       GMCH_handle_ack (ch,
-                       (struct GNUNET_MESH_ChannelManage *) msgh,
+                       (struct GNUNET_CADET_ChannelManage *) msgh,
                        fwd);
       break;
 
-    case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_NACK:
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_NACK:
       GMCH_handle_nack (ch);
       break;
 
-    case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_DESTROY:
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY:
       GMCH_handle_destroy (ch,
-                           (struct GNUNET_MESH_ChannelManage *) msgh,
+                           (struct GNUNET_CADET_ChannelManage *) msgh,
                            fwd);
       break;
 
@@ -1345,10 +1345,10 @@ handle_loopback (struct MeshChannel *ch,
  * @param ch Channel to destroy.
  */
 void
-GMCH_destroy (struct MeshChannel *ch)
+GMCH_destroy (struct CadetChannel *ch)
 {
-  struct MeshClient *c;
-  struct MeshTunnel3 *t;
+  struct CadetClient *c;
+  struct CadetTunnel3 *t;
 
   if (NULL == ch)
     return;
@@ -1391,8 +1391,8 @@ GMCH_destroy (struct MeshChannel *ch)
  *
  * @return ID used to identify the channel with the remote peer.
  */
-MESH_ChannelNumber
-GMCH_get_id (const struct MeshChannel *ch)
+CADET_ChannelNumber
+GMCH_get_id (const struct CadetChannel *ch)
 {
   return ch->gid;
 }
@@ -1405,8 +1405,8 @@ GMCH_get_id (const struct MeshChannel *ch)
  *
  * @return tunnel of the channel.
  */
-struct MeshTunnel3 *
-GMCH_get_tunnel (const struct MeshChannel *ch)
+struct CadetTunnel3 *
+GMCH_get_tunnel (const struct CadetChannel *ch)
 {
   return ch->t;
 }
@@ -1421,9 +1421,9 @@ GMCH_get_tunnel (const struct MeshChannel *ch)
  * @return Free buffer space [0 - 64]
  */
 unsigned int
-GMCH_get_buffer (struct MeshChannel *ch, int fwd)
+GMCH_get_buffer (struct CadetChannel *ch, int fwd)
 {
-  struct MeshChannelReliability *rel;
+  struct CadetChannelReliability *rel;
 
   rel = fwd ? ch->dest_rel : ch->root_rel;
 
@@ -1447,9 +1447,9 @@ GMCH_get_buffer (struct MeshChannel *ch, int fwd)
  * @return #GNUNET_YES if client is allowed to send us data.
  */
 int
-GMCH_get_allowed (struct MeshChannel *ch, int fwd)
+GMCH_get_allowed (struct CadetChannel *ch, int fwd)
 {
-  struct MeshChannelReliability *rel;
+  struct CadetChannelReliability *rel;
 
   rel = fwd ? ch->root_rel : ch->dest_rel;
 
@@ -1473,9 +1473,9 @@ GMCH_get_allowed (struct MeshChannel *ch, int fwd)
  * @return #GNUNET_YES in case it is.
  */
 int
-GMCH_is_origin (struct MeshChannel *ch, int fwd)
+GMCH_is_origin (struct CadetChannel *ch, int fwd)
 {
-  struct MeshClient *c;
+  struct CadetClient *c;
 
   c = fwd ? ch->root : ch->dest;
   return NULL != c;
@@ -1491,9 +1491,9 @@ GMCH_is_origin (struct MeshChannel *ch, int fwd)
  * @return #GNUNET_YES in case it is.
  */
 int
-GMCH_is_terminal (struct MeshChannel *ch, int fwd)
+GMCH_is_terminal (struct CadetChannel *ch, int fwd)
 {
-  struct MeshClient *c;
+  struct CadetClient *c;
 
   c = fwd ? ch->dest : ch->root;
   return NULL != c;
@@ -1509,11 +1509,11 @@ GMCH_is_terminal (struct MeshChannel *ch, int fwd)
  * @param fwd Is for FWD traffic? (ACK dest->owner)
  */
 void
-GMCH_send_data_ack (struct MeshChannel *ch, int fwd)
+GMCH_send_data_ack (struct CadetChannel *ch, int fwd)
 {
-  struct GNUNET_MESH_DataACK msg;
-  struct MeshChannelReliability *rel;
-  struct MeshReliableMessage *copy;
+  struct GNUNET_CADET_DataACK msg;
+  struct CadetChannelReliability *rel;
+  struct CadetReliableMessage *copy;
   unsigned int delta;
   uint64_t mask;
   uint32_t ack;
@@ -1526,13 +1526,13 @@ GMCH_send_data_ack (struct MeshChannel *ch, int fwd)
   ack = rel->mid_recv - 1;
   LOG (GNUNET_ERROR_TYPE_INFO, "===> DATA_ACK for %u\n", ack);
 
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_MESH_DATA_ACK);
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_DATA_ACK);
   msg.header.size = htons (sizeof (msg));
   msg.chid = htonl (ch->gid);
   msg.futures = 0;
   for (copy = rel->head_recv; NULL != copy; copy = copy->next)
   {
-    if (copy->type != GNUNET_MESSAGE_TYPE_MESH_DATA)
+    if (copy->type != GNUNET_MESSAGE_TYPE_CADET_DATA)
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            "!!  Type %s, expected DATA\n",
@@ -1570,14 +1570,14 @@ GMCH_send_data_ack (struct MeshChannel *ch, int fwd)
  * @param fwd Is this about FWD traffic? (Root client).
  */
 void
-GMCH_allow_client (struct MeshChannel *ch, int fwd)
+GMCH_allow_client (struct CadetChannel *ch, int fwd)
 {
-  struct MeshChannelReliability *rel;
+  struct CadetChannelReliability *rel;
   unsigned int buffer;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "GMCH allow\n");
 
-  if (MESH_CHANNEL_READY != ch->state)
+  if (CADET_CHANNEL_READY != ch->state)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, " channel not ready yet!\n");
     return;
@@ -1630,7 +1630,7 @@ GMCH_allow_client (struct MeshChannel *ch, int fwd)
  * @param ch Channel.
  */
 void
-GMCH_debug (struct MeshChannel *ch)
+GMCH_debug (struct CadetChannel *ch)
 {
   if (NULL == ch)
   {
@@ -1669,10 +1669,10 @@ GMCH_debug (struct MeshChannel *ch)
  * @param fwd Is this a "FWD ACK"? (FWD ACKs are sent by dest and go BCK)
  */
 void
-GMCH_handle_local_ack (struct MeshChannel *ch, int fwd)
+GMCH_handle_local_ack (struct CadetChannel *ch, int fwd)
 {
-  struct MeshChannelReliability *rel;
-  struct MeshClient *c;
+  struct CadetChannelReliability *rel;
+  struct CadetClient *c;
 
   rel = fwd ? ch->dest_rel : ch->root_rel;
   c   = fwd ? ch->dest     : ch->root;
@@ -1717,15 +1717,15 @@ GMCH_handle_local_ack (struct MeshChannel *ch, int fwd)
  * @return GNUNET_OK if everything goes well, GNUNET_SYSERR in case of en error.
  */
 int
-GMCH_handle_local_data (struct MeshChannel *ch,
-                        struct MeshClient *c,
+GMCH_handle_local_data (struct CadetChannel *ch,
+                        struct CadetClient *c,
                         struct GNUNET_MessageHeader *message,
                         int fwd)
 {
-  struct MeshChannelReliability *rel;
-  struct GNUNET_MESH_Data *payload;
+  struct CadetChannelReliability *rel;
+  struct GNUNET_CADET_Data *payload;
   size_t size = ntohs (message->size);
-  uint16_t p2p_size = sizeof(struct GNUNET_MESH_Data) + size;
+  uint16_t p2p_size = sizeof(struct GNUNET_CADET_Data) + size;
   unsigned char cbuf[p2p_size];
 
   /* Is the client in the channel? */
@@ -1750,12 +1750,12 @@ GMCH_handle_local_data (struct MeshChannel *ch,
   rel->client_allowed = GNUNET_NO;
 
   /* Ok, everything is correct, send the message. */
-  payload = (struct GNUNET_MESH_Data *) cbuf;
+  payload = (struct GNUNET_CADET_Data *) cbuf;
   payload->mid = htonl (rel->mid_send);
   rel->mid_send++;
   memcpy (&payload[1], message, size);
   payload->header.size = htons (p2p_size);
-  payload->header.type = htons (GNUNET_MESSAGE_TYPE_MESH_DATA);
+  payload->header.type = htons (GNUNET_MESSAGE_TYPE_CADET_DATA);
   payload->chid = htonl (ch->gid);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  sending on channel...\n");
   GMCH_send_prebuilt_message (&payload->header, ch, fwd, NULL);
@@ -1787,8 +1787,8 @@ GMCH_handle_local_data (struct MeshChannel *ch,
  * @param is_root Is the request coming from root?
  */
 void
-GMCH_handle_local_destroy (struct MeshChannel *ch,
-                           struct MeshClient *c,
+GMCH_handle_local_destroy (struct CadetChannel *ch,
+                           struct CadetClient *c,
                            int is_root)
 {
   ch->destroy = GNUNET_YES;
@@ -1823,13 +1823,13 @@ GMCH_handle_local_destroy (struct MeshChannel *ch,
  * @return GNUNET_OK if everything went fine, GNUNET_SYSERR otherwise.
  */
 int
-GMCH_handle_local_create (struct MeshClient *c,
-                          struct GNUNET_MESH_ChannelMessage *msg)
+GMCH_handle_local_create (struct CadetClient *c,
+                          struct GNUNET_CADET_ChannelMessage *msg)
 {
-  struct MeshChannel *ch;
-  struct MeshTunnel3 *t;
-  struct MeshPeer *peer;
-  MESH_ChannelNumber chid;
+  struct CadetChannel *ch;
+  struct CadetTunnel3 *t;
+  struct CadetPeer *peer;
+  CADET_ChannelNumber chid;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  towards %s:%u\n",
               GNUNET_i2s (&msg->peer), ntohl (msg->port));
@@ -1848,7 +1848,7 @@ GMCH_handle_local_create (struct MeshClient *c,
 
   if (GMP_get_short_id (peer) == myid)
   {
-    GMT_change_cstate (t, MESH_TUNNEL3_READY);
+    GMT_change_cstate (t, CADET_TUNNEL3_READY);
   }
   else
   {
@@ -1867,9 +1867,9 @@ GMCH_handle_local_create (struct MeshClient *c,
   channel_set_options (ch, ntohl (msg->opt));
 
   /* In unreliable channels, we'll use the DLL to buffer BCK data */
-  ch->root_rel = GNUNET_new (struct MeshChannelReliability);
+  ch->root_rel = GNUNET_new (struct CadetChannelReliability);
   ch->root_rel->ch = ch;
-  ch->root_rel->retry_timer = MESH_RETRANSMIT_TIME;
+  ch->root_rel->retry_timer = CADET_RETRANSMIT_TIME;
   ch->root_rel->expected_delay.rel_value_us = 0;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "CREATED CHANNEL %s\n", GMCH_2s (ch));
@@ -1881,7 +1881,7 @@ GMCH_handle_local_create (struct MeshClient *c,
 
 
 /**
- * Handler for mesh network payload traffic.
+ * Handler for cadet network payload traffic.
  *
  * @param ch Channel for the message.
  * @param msg Unencryted data message.
@@ -1891,12 +1891,12 @@ GMCH_handle_local_create (struct MeshClient *c,
  *            #GNUNET_SYSERR if message on a one-ended channel (remote)
  */
 void
-GMCH_handle_data (struct MeshChannel *ch,
-                  const struct GNUNET_MESH_Data *msg,
+GMCH_handle_data (struct CadetChannel *ch,
+                  const struct GNUNET_CADET_Data *msg,
                   int fwd)
 {
-  struct MeshChannelReliability *rel;
-  struct MeshClient *c;
+  struct CadetChannelReliability *rel;
+  struct CadetClient *c;
   uint32_t mid;
 
   /* If this is a remote (non-loopback) channel, find 'fwd'. */
@@ -1921,7 +1921,7 @@ GMCH_handle_data (struct MeshChannel *ch,
     return;
   }
 
-  if (MESH_CHANNEL_READY != ch->state)
+  if (CADET_CHANNEL_READY != ch->state)
   {
     if (GNUNET_NO == fwd)
     {
@@ -1986,7 +1986,7 @@ GMCH_handle_data (struct MeshChannel *ch,
 
 
 /**
- * Handler for mesh network traffic end-to-end ACKs.
+ * Handler for cadet network traffic end-to-end ACKs.
  *
  * @param ch Channel on which we got this message.
  * @param msg Data message.
@@ -1996,13 +1996,13 @@ GMCH_handle_data (struct MeshChannel *ch,
  *            #GNUNET_SYSERR if message on a one-ended channel (remote)
  */
 void
-GMCH_handle_data_ack (struct MeshChannel *ch,
-                      const struct GNUNET_MESH_DataACK *msg,
+GMCH_handle_data_ack (struct CadetChannel *ch,
+                      const struct GNUNET_CADET_DataACK *msg,
                       int fwd)
 {
-  struct MeshChannelReliability *rel;
-  struct MeshReliableMessage *copy;
-  struct MeshReliableMessage *next;
+  struct CadetChannelReliability *rel;
+  struct CadetReliableMessage *copy;
+  struct CadetReliableMessage *next;
   uint32_t ack;
   int work;
 
@@ -2068,7 +2068,7 @@ GMCH_handle_data_ack (struct MeshChannel *ch,
         struct GNUNET_TIME_Relative delay;
 
         delay = GNUNET_TIME_relative_multiply (rel->retry_timer,
-                                               MESH_RETRANSMIT_MARGIN);
+                                               CADET_RETRANSMIT_MARGIN);
         new_target = GNUNET_TIME_absolute_add (rel->head_sent->timestamp,
                                                delay);
         delay = GNUNET_TIME_absolute_get_remaining (new_target);
@@ -2095,13 +2095,13 @@ GMCH_handle_data_ack (struct MeshChannel *ch,
  * @param t Tunnel this channel will be in.
  * @param msg Channel crate message.
  */
-struct MeshChannel *
-GMCH_handle_create (struct MeshTunnel3 *t,
-                    const struct GNUNET_MESH_ChannelCreate *msg)
+struct CadetChannel *
+GMCH_handle_create (struct CadetTunnel3 *t,
+                    const struct GNUNET_CADET_ChannelCreate *msg)
 {
-  MESH_ChannelNumber chid;
-  struct MeshChannel *ch;
-  struct MeshClient *c;
+  CADET_ChannelNumber chid;
+  struct CadetChannel *ch;
+  struct CadetClient *c;
   int new_channel;
   int reaction;
 
@@ -2155,7 +2155,7 @@ GMCH_handle_create (struct MeshTunnel3 *t,
       LOG (GNUNET_ERROR_TYPE_DEBUG, "!!! Not Reliable\n");
 
     send_client_create (ch);
-    ch->state =  MESH_CHANNEL_SENT;
+    ch->state =  CADET_CHANNEL_SENT;
   }
   else
   {
@@ -2183,7 +2183,7 @@ GMCH_handle_create (struct MeshTunnel3 *t,
  * @param ch Channel.
  */
 void
-GMCH_handle_nack (struct MeshChannel *ch)
+GMCH_handle_nack (struct CadetChannel *ch)
 {
   send_client_nack (ch);
   GMCH_destroy (ch);
@@ -2201,8 +2201,8 @@ GMCH_handle_nack (struct MeshChannel *ch)
  *            #GNUNET_SYSERR if message on a one-ended channel (remote)
  */
 void
-GMCH_handle_ack (struct MeshChannel *ch,
-                 const struct GNUNET_MESH_ChannelManage *msg,
+GMCH_handle_ack (struct CadetChannel *ch,
+                 const struct GNUNET_CADET_ChannelManage *msg,
                  int fwd)
 {
   /* If this is a remote (non-loopback) channel, find 'fwd'. */
@@ -2232,11 +2232,11 @@ GMCH_handle_ack (struct MeshChannel *ch,
  *            #GNUNET_SYSERR if message on a one-ended channel (remote)
  */
 void
-GMCH_handle_destroy (struct MeshChannel *ch,
-                     const struct GNUNET_MESH_ChannelManage *msg,
+GMCH_handle_destroy (struct CadetChannel *ch,
+                     const struct GNUNET_CADET_ChannelManage *msg,
                      int fwd)
 {
-  struct MeshChannelReliability *rel;
+  struct CadetChannelReliability *rel;
 
   /* If this is a remote (non-loopback) channel, find 'fwd'. */
   if (GNUNET_SYSERR == fwd)
@@ -2288,10 +2288,10 @@ GMCH_handle_destroy (struct MeshChannel *ch,
  */
 void
 GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
-                            struct MeshChannel *ch, int fwd,
+                            struct CadetChannel *ch, int fwd,
                             void *existing_copy)
 {
-  struct MeshChannelQueue *chq;
+  struct CadetChannelQueue *chq;
   uint16_t type;
 
   type = ntohs (message->type);
@@ -2306,21 +2306,21 @@ GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
 
   switch (type)
   {
-    struct GNUNET_MESH_Data *payload;
-    case GNUNET_MESSAGE_TYPE_MESH_DATA:
+    struct GNUNET_CADET_Data *payload;
+    case GNUNET_MESSAGE_TYPE_CADET_DATA:
 
-      payload = (struct GNUNET_MESH_Data *) message;
+      payload = (struct GNUNET_CADET_Data *) message;
       LOG (GNUNET_ERROR_TYPE_INFO, "===> %s %u\n",
            GM_m2s (type), ntohl (payload->mid));
       if (GNUNET_YES == ch->reliable)
       {
-        chq = GNUNET_new (struct MeshChannelQueue);
+        chq = GNUNET_new (struct CadetChannelQueue);
         chq->type = type;
         if (NULL == existing_copy)
           chq->copy = channel_save_copy (ch, message, fwd);
         else
         {
-          chq->copy = (struct MeshReliableMessage *) existing_copy;
+          chq->copy = (struct CadetReliableMessage *) existing_copy;
           if (NULL != chq->copy->chq)
           {
             /* Last retransmission was queued but not yet sent!
@@ -2357,7 +2357,7 @@ GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
       break;
 
 
-    case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_ACK:
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_ACK:
       if (GNUNET_YES == fwd || NULL != existing_copy)
       {
         /* BCK ACK (going FWD) is just a response for a SYNACK, don't keep*/
@@ -2365,9 +2365,9 @@ GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
         return;
       }
       /* fall-trough */
-    case GNUNET_MESSAGE_TYPE_MESH_DATA_ACK:
-    case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_CREATE:
-      chq = GNUNET_new (struct MeshChannelQueue);
+    case GNUNET_MESSAGE_TYPE_CADET_DATA_ACK:
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE:
+      chq = GNUNET_new (struct CadetChannelQueue);
       chq->type = type;
       chq->rel = fwd ? ch->root_rel : ch->dest_rel;
       if (NULL != chq->rel->uniq)
@@ -2396,8 +2396,8 @@ GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
       break;
 
 
-    case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_DESTROY:
-    case GNUNET_MESSAGE_TYPE_MESH_CHANNEL_NACK:
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY:
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_NACK:
       fire_and_forget (message, ch, GNUNET_YES);
       break;
 
@@ -2418,7 +2418,7 @@ GMCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
  * @return Static string with the channel IDs.
  */
 const char *
-GMCH_2s (const struct MeshChannel *ch)
+GMCH_2s (const struct CadetChannel *ch)
 {
   static char buf[64];
 

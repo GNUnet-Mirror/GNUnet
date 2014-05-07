@@ -25,12 +25,12 @@
 #include "gnunet_dht_service.h"
 #include "gnunet_statistics_service.h"
 
-#include "mesh_path.h"
-#include "gnunet-service-mesh_dht.h"
-#include "gnunet-service-mesh_peer.h"
-#include "gnunet-service-mesh_hello.h"
+#include "cadet_path.h"
+#include "gnunet-service-cadet_dht.h"
+#include "gnunet-service-cadet_peer.h"
+#include "gnunet-service-cadet_hello.h"
 
-#define LOG(level, ...) GNUNET_log_from (level,"mesh-dht",__VA_ARGS__)
+#define LOG(level, ...) GNUNET_log_from (level,"cadet-dht",__VA_ARGS__)
 
 
 /******************************************************************************/
@@ -113,13 +113,13 @@ static struct GNUNET_CONTAINER_MultiHashMap32 *get_requests;
  *
  * FIXME refactor and use build_path_from_peer_ids
  */
-static struct MeshPeerPath *
+static struct CadetPeerPath *
 path_build_from_dht (const struct GNUNET_PeerIdentity *get_path,
                      unsigned int get_path_length,
                      const struct GNUNET_PeerIdentity *put_path,
                      unsigned int put_path_length)
 {
-  struct MeshPeerPath *p;
+  struct CadetPeerPath *p;
   GNUNET_PEER_Id id;
   int i;
 
@@ -172,7 +172,7 @@ path_build_from_dht (const struct GNUNET_PeerIdentity *get_path,
       p->peers[p->length - 1] = id;
     }
   }
-#if MESH_DEBUG
+#if CADET_DEBUG
   if (get_path_length > 0)
     LOG (GNUNET_ERROR_TYPE_DEBUG, "   (first of GET: %s)\n",
                 GNUNET_i2s (&get_path[0]));
@@ -221,8 +221,8 @@ dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
 {
   struct GMD_search_handle *h = cls;
   struct GNUNET_HELLO_Message *hello;
-  struct MeshPeerPath *p;
-  struct MeshPeer *peer;
+  struct CadetPeerPath *p;
+  struct CadetPeer *peer;
   char *s;
 
   p = path_build_from_dht (get_path, get_path_length,
@@ -334,20 +334,20 @@ GMD_init (const struct GNUNET_CONFIGURATION_Handle *c)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG, "init\n");
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_number (c, "MESH", "DHT_REPLICATION_LEVEL",
+      GNUNET_CONFIGURATION_get_value_number (c, "CADET", "DHT_REPLICATION_LEVEL",
                                              &dht_replication_level))
   {
     GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_WARNING,
-                               "MESH", "DHT_REPLICATION_LEVEL", "USING DEFAULT");
+                               "CADET", "DHT_REPLICATION_LEVEL", "USING DEFAULT");
     dht_replication_level = 3;
   }
 
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_time (c, "MESH", "ID_ANNOUNCE_TIME",
+      GNUNET_CONFIGURATION_get_value_time (c, "CADET", "ID_ANNOUNCE_TIME",
                                            &id_announce_time))
   {
     GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR,
-                               "MESH", "ID_ANNOUNCE_TIME", "MISSING");
+                               "CADET", "ID_ANNOUNCE_TIME", "MISSING");
     GNUNET_SCHEDULER_shutdown ();
     return;
   }

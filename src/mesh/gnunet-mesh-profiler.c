@@ -18,14 +18,14 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file mesh/gnunet-mesh-profiler.c
+ * @file cadet/gnunet-cadet-profiler.c
  *
- * @brief Profiler for mesh experiments.
+ * @brief Profiler for cadet experiments.
  */
 #include <stdio.h>
 #include "platform.h"
-#include "mesh_test_lib.h"
-#include "gnunet_mesh_service.h"
+#include "cadet_test_lib.h"
+#include "gnunet_cadet_service.h"
 #include "gnunet_statistics_service.h"
 
 
@@ -61,7 +61,7 @@ static float rounds[] = {0.8, 0.7, 0.6, 0.5, 0.4, 0.3, 0.2, 0.0};
 /**
  * Message type for pings.
  */
-struct MeshPingMessage
+struct CadetPingMessage
 {
   /**
    * Header. Type PING/PONG.
@@ -87,7 +87,7 @@ struct MeshPingMessage
 /**
  * Peer description.
  */
-struct MeshPeer
+struct CadetPeer
 {
   /**
    * Testbed Operation (to get peer id, etc).
@@ -100,24 +100,24 @@ struct MeshPeer
   struct GNUNET_PeerIdentity id;
 
   /**
-   * Mesh handle for the root peer
+   * Cadet handle for the root peer
    */
-  struct GNUNET_MESH_Handle *mesh;
+  struct GNUNET_CADET_Handle *cadet;
 
   /**
    * Channel handle for the root peer
    */
-  struct GNUNET_MESH_Channel *ch;
+  struct GNUNET_CADET_Channel *ch;
 
   /**
    * Channel handle for the dest peer
    */
-  struct GNUNET_MESH_Channel *incoming_ch;
+  struct GNUNET_CADET_Channel *incoming_ch;
 
   /**
    * Channel handle for a warmup channel.
    */
-  struct GNUNET_MESH_Channel *warmup_ch;
+  struct GNUNET_CADET_Channel *warmup_ch;
 
   /**
    * Number of payload packes sent
@@ -137,12 +137,12 @@ struct MeshPeer
   /**
    * Destinaton to ping.
    */
-  struct MeshPeer *dest;
+  struct CadetPeer *dest;
 
   /**
    * Incoming channel for pings.
    */
-  struct MeshPeer *incoming;
+  struct CadetPeer *incoming;
 
   /**
    * Task to do the next ping.
@@ -162,7 +162,7 @@ struct MeshPeer
 static struct GNUNET_TIME_Relative round_time;
 
 /**
- * GNUNET_PeerIdentity -> MeshPeer
+ * GNUNET_PeerIdentity -> CadetPeer
  */
 static struct GNUNET_CONTAINER_MultiPeerMap *ids;
 
@@ -179,7 +179,7 @@ static struct GNUNET_TESTBED_Operation *stats_op;
 /**
  * Operation to get peer ids.
  */
-struct MeshPeer *peers;
+struct CadetPeer *peers;
 
 /**
  * Peer ids counter.
@@ -204,7 +204,7 @@ static unsigned long long peers_pinging;
 /**
  * Test context (to shut down).
  */
-static struct GNUNET_MESH_TEST_Context *test_ctx;
+static struct GNUNET_CADET_TEST_Context *test_ctx;
 
 /**
  * Task called to shutdown test.
@@ -243,7 +243,7 @@ static int test_finished;
 
 
 /**
- * START THE TEST ITSELF, AS WE ARE CONNECTED TO THE MESH SERVICES.
+ * START THE TEST ITSELF, AS WE ARE CONNECTED TO THE CADET SERVICES.
  *
  * Testcase continues when the root receives confirmation of connected peers,
  * on callback funtion ch.
@@ -280,7 +280,7 @@ delay_ms_rnd (unsigned int max)
  * @return Index of peer in peers.
  */
 static unsigned int
-get_index (struct MeshPeer *peer)
+get_index (struct CadetPeer *peer)
 {
   return peer - peers;
 }
@@ -292,7 +292,7 @@ get_index (struct MeshPeer *peer)
 static void
 show_end_data (void)
 {
-  struct MeshPeer *peer;
+  struct CadetPeer *peer;
   unsigned int i;
   unsigned int j;
 
@@ -325,19 +325,19 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
- * Disconnect from mesh services af all peers, call shutdown.
+ * Disconnect from cadet services af all peers, call shutdown.
  *
  * @param cls Closure (unused).
  * @param tc Task Context.
  */
 static void
-disconnect_mesh_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+disconnect_cadet_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   long line = (long) cls;
   unsigned int i;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "disconnecting mesh service, called from line %ld\n", line);
+              "disconnecting cadet service, called from line %ld\n", line);
   disconnect_task = GNUNET_SCHEDULER_NO_TASK;
   for (i = 0; i < peers_total; i++)
   {
@@ -350,22 +350,22 @@ disconnect_mesh_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     if (NULL != peers[i].ch)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO, "%u: channel %p\n", i, peers[i].ch);
-      GNUNET_MESH_channel_destroy (peers[i].ch);
+      GNUNET_CADET_channel_destroy (peers[i].ch);
     }
     if (NULL != peers[i].warmup_ch)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO, "%u: warmup channel %p\n",
                   i, peers[i].warmup_ch);
-      GNUNET_MESH_channel_destroy (peers[i].warmup_ch);
+      GNUNET_CADET_channel_destroy (peers[i].warmup_ch);
     }
     if (NULL != peers[i].incoming_ch)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO, "%u: incoming channel %p\n",
                   i, peers[i].incoming_ch);
-      GNUNET_MESH_channel_destroy (peers[i].incoming_ch);
+      GNUNET_CADET_channel_destroy (peers[i].incoming_ch);
     }
   }
-  GNUNET_MESH_TEST_cleanup (test_ctx);
+  GNUNET_CADET_TEST_cleanup (test_ctx);
   if (GNUNET_SCHEDULER_NO_TASK != shutdown_handle)
   {
     GNUNET_SCHEDULER_cancel (shutdown_handle);
@@ -385,7 +385,7 @@ abort_test (long line)
   if (disconnect_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (disconnect_task);
-    disconnect_task = GNUNET_SCHEDULER_add_now (&disconnect_mesh_peers,
+    disconnect_task = GNUNET_SCHEDULER_add_now (&disconnect_cadet_peers,
                                                 (void *) line);
   }
 }
@@ -407,7 +407,7 @@ stats_cont (void *cls, struct GNUNET_TESTBED_Operation *op, const char *emsg)
 
   if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
     GNUNET_SCHEDULER_cancel (disconnect_task);
-  disconnect_task = GNUNET_SCHEDULER_add_now (&disconnect_mesh_peers,
+  disconnect_task = GNUNET_SCHEDULER_add_now (&disconnect_cadet_peers,
                                               (void *) __LINE__);
 
 }
@@ -520,17 +520,17 @@ adjust_running_peers (unsigned int target)
     peers[r].up = run;
 
     if (NULL != peers[r].ch)
-      GNUNET_MESH_channel_destroy (peers[r].ch);
+      GNUNET_CADET_channel_destroy (peers[r].ch);
     peers[r].ch = NULL;
     if (NULL != peers[r].dest)
     {
       if (NULL != peers[r].dest->incoming_ch)
-        GNUNET_MESH_channel_destroy (peers[r].dest->incoming_ch);
+        GNUNET_CADET_channel_destroy (peers[r].dest->incoming_ch);
       peers[r].dest->incoming_ch = NULL;
     }
 
     op = GNUNET_TESTBED_peer_manage_service (&peers[r], testbed_handles[r],
-                                             "mesh", NULL, NULL, run);
+                                             "cadet", NULL, NULL, run);
     GNUNET_break (NULL != op);
     peers_running += run ? 1 : -1;
     GNUNET_assert (peers_running > 0);
@@ -587,15 +587,15 @@ tmt_rdy_ping (void *cls, size_t size, void *buf);
 static size_t
 tmt_rdy_pong (void *cls, size_t size, void *buf)
 {
-  struct MeshPingMessage *ping = cls;
-  struct MeshPingMessage *pong;
+  struct CadetPingMessage *ping = cls;
+  struct CadetPingMessage *pong;
 
   if (0 == size || NULL == buf)
   {
     GNUNET_free (ping);
     return 0;
   }
-  pong = (struct MeshPingMessage *) buf;
+  pong = (struct CadetPingMessage *) buf;
   memcpy (pong, ping, sizeof (*ping));
   pong->header.type = htons (PONG);
 
@@ -613,7 +613,7 @@ tmt_rdy_pong (void *cls, size_t size, void *buf)
 static void
 ping (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct MeshPeer *peer = (struct MeshPeer *) cls;
+  struct CadetPeer *peer = (struct CadetPeer *) cls;
 
   peer->ping_task = GNUNET_SCHEDULER_NO_TASK;
 
@@ -624,9 +624,9 @@ ping (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "%u -> %u (%u)\n",
               get_index (peer), get_index (peer->dest), peer->data_sent);
 
-  GNUNET_MESH_notify_transmit_ready (peer->ch, GNUNET_NO,
+  GNUNET_CADET_notify_transmit_ready (peer->ch, GNUNET_NO,
                                      GNUNET_TIME_UNIT_FOREVER_REL,
-                                     sizeof (struct MeshPingMessage),
+                                     sizeof (struct CadetPingMessage),
                                      &tmt_rdy_ping, peer);
 }
 
@@ -637,15 +637,15 @@ ping (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param tc Task context.
  */
 static void
-pong (struct GNUNET_MESH_Channel *channel, const struct MeshPingMessage *ping)
+pong (struct GNUNET_CADET_Channel *channel, const struct CadetPingMessage *ping)
 {
-  struct MeshPingMessage *copy;
+  struct CadetPingMessage *copy;
 
-  copy = GNUNET_new (struct MeshPingMessage);
+  copy = GNUNET_new (struct CadetPingMessage);
   memcpy (copy, ping, sizeof (*ping));
-  GNUNET_MESH_notify_transmit_ready (channel, GNUNET_NO,
+  GNUNET_CADET_notify_transmit_ready (channel, GNUNET_NO,
                                      GNUNET_TIME_UNIT_FOREVER_REL,
-                                     sizeof (struct MeshPingMessage),
+                                     sizeof (struct CadetPingMessage),
                                      &tmt_rdy_pong, copy);
 }
 
@@ -660,11 +660,11 @@ pong (struct GNUNET_MESH_Channel *channel, const struct MeshPingMessage *ping)
 static size_t
 tmt_rdy_ping (void *cls, size_t size, void *buf)
 {
-  struct MeshPeer *peer = (struct MeshPeer *) cls;
-  struct MeshPingMessage *msg = buf;
+  struct CadetPeer *peer = (struct CadetPeer *) cls;
+  struct CadetPingMessage *msg = buf;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "tmt_rdy called, filling buffer\n");
-  if (size < sizeof (struct MeshPingMessage) || NULL == buf)
+  if (size < sizeof (struct CadetPingMessage) || NULL == buf)
   {
     GNUNET_break (GNUNET_YES == test_finished);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -683,14 +683,14 @@ tmt_rdy_ping (void *cls, size_t size, void *buf)
   peer->ping_task = GNUNET_SCHEDULER_add_delayed (delay_ms_rnd (PING_PERIOD),
                                                   &ping, peer);
 
-  return sizeof (struct MeshPingMessage);
+  return sizeof (struct CadetPingMessage);
 }
 
 
 /**
  * Function is called whenever a PING message is received.
  *
- * @param cls closure (peer #, set from GNUNET_MESH_connect)
+ * @param cls closure (peer #, set from GNUNET_CADET_connect)
  * @param channel connection to the other end
  * @param channel_ctx place to store local state associated with the channel
  * @param message the actual message
@@ -698,16 +698,16 @@ tmt_rdy_ping (void *cls, size_t size, void *buf)
  *         GNUNET_SYSERR to close it (signal serious error)
  */
 int
-ping_handler (void *cls, struct GNUNET_MESH_Channel *channel,
+ping_handler (void *cls, struct GNUNET_CADET_Channel *channel,
               void **channel_ctx,
               const struct GNUNET_MessageHeader *message)
 {
   long n = (long) cls;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%u got PING\n", n);
-  GNUNET_MESH_receive_done (channel);
+  GNUNET_CADET_receive_done (channel);
   if (GNUNET_NO == test_finished)
-    pong (channel, (struct MeshPingMessage *) message);
+    pong (channel, (struct CadetPingMessage *) message);
 
   return GNUNET_OK;
 }
@@ -716,7 +716,7 @@ ping_handler (void *cls, struct GNUNET_MESH_Channel *channel,
 /**
  * Function is called whenever a PONG message is received.
  *
- * @param cls closure (peer #, set from GNUNET_MESH_connect)
+ * @param cls closure (peer #, set from GNUNET_CADET_connect)
  * @param channel connection to the other end
  * @param channel_ctx place to store local state associated with the channel
  * @param message the actual message
@@ -724,22 +724,22 @@ ping_handler (void *cls, struct GNUNET_MESH_Channel *channel,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
 int
-pong_handler (void *cls, struct GNUNET_MESH_Channel *channel,
+pong_handler (void *cls, struct GNUNET_CADET_Channel *channel,
               void **channel_ctx,
               const struct GNUNET_MessageHeader *message)
 {
   long n = (long) cls;
-  struct MeshPeer *peer;
-  struct MeshPingMessage *msg;
+  struct CadetPeer *peer;
+  struct CadetPingMessage *msg;
   struct GNUNET_TIME_Absolute send_time;
   struct GNUNET_TIME_Relative latency;
   unsigned int r /* Ping round */;
   float delta;
 
-  GNUNET_MESH_receive_done (channel);
+  GNUNET_CADET_receive_done (channel);
   peer = &peers[n];
 
-  msg = (struct MeshPingMessage *) message;
+  msg = (struct CadetPingMessage *) message;
 
   send_time = GNUNET_TIME_absolute_ntoh (msg->timestamp);
   latency = GNUNET_TIME_absolute_get_duration (send_time);
@@ -761,9 +761,9 @@ pong_handler (void *cls, struct GNUNET_MESH_Channel *channel,
 /**
  * Handlers, for diverse services
  */
-static struct GNUNET_MESH_MessageHandler handlers[] = {
-  {&ping_handler, PING, sizeof (struct MeshPingMessage)},
-  {&pong_handler, PONG, sizeof (struct MeshPingMessage)},
+static struct GNUNET_CADET_MessageHandler handlers[] = {
+  {&ping_handler, PING, sizeof (struct CadetPingMessage)},
+  {&pong_handler, PONG, sizeof (struct CadetPingMessage)},
   {NULL, 0, 0}
 };
 
@@ -781,12 +781,12 @@ static struct GNUNET_MESH_MessageHandler handlers[] = {
  *         (can be NULL -- that's not an error).
  */
 static void *
-incoming_channel (void *cls, struct GNUNET_MESH_Channel *channel,
+incoming_channel (void *cls, struct GNUNET_CADET_Channel *channel,
                  const struct GNUNET_PeerIdentity *initiator,
-                 uint32_t port, enum GNUNET_MESH_ChannelOption options)
+                 uint32_t port, enum GNUNET_CADET_ChannelOption options)
 {
   long n = (long) cls;
-  struct MeshPeer *peer;
+  struct CadetPeer *peer;
 
   peer = GNUNET_CONTAINER_multipeermap_get (ids, initiator);
   GNUNET_assert (NULL != peer);
@@ -818,17 +818,17 @@ incoming_channel (void *cls, struct GNUNET_MESH_Channel *channel,
  * Function called whenever an inbound channel is destroyed.  Should clean up
  * any associated state.
  *
- * @param cls closure (set from GNUNET_MESH_connect)
+ * @param cls closure (set from GNUNET_CADET_connect)
  * @param channel connection to the other end (henceforth invalid)
  * @param channel_ctx place where local state associated
  *                   with the channel is stored
  */
 static void
-channel_cleaner (void *cls, const struct GNUNET_MESH_Channel *channel,
+channel_cleaner (void *cls, const struct GNUNET_CADET_Channel *channel,
                  void *channel_ctx)
 {
   long n = (long) cls;
-  struct MeshPeer *peer = &peers[n];
+  struct CadetPeer *peer = &peers[n];
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Channel %p disconnected at peer %ld\n", channel, n);
@@ -844,8 +844,8 @@ channel_cleaner (void *cls, const struct GNUNET_MESH_Channel *channel,
  *
  * @return Random peer not yet connected to.
  */
-static struct MeshPeer *
-select_random_peer (struct MeshPeer *peer)
+static struct CadetPeer *
+select_random_peer (struct CadetPeer *peer)
 {
   unsigned int r;
 
@@ -859,7 +859,7 @@ select_random_peer (struct MeshPeer *peer)
 }
 
 /**
- * START THE TEST ITSELF, AS WE ARE CONNECTED TO THE MESH SERVICES.
+ * START THE TEST ITSELF, AS WE ARE CONNECTED TO THE CADET SERVICES.
  *
  * Testcase continues when the root receives confirmation of connected peers,
  * on callback funtion ch.
@@ -870,7 +870,7 @@ select_random_peer (struct MeshPeer *peer)
 static void
 start_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  enum GNUNET_MESH_ChannelOption flags;
+  enum GNUNET_CADET_ChannelOption flags;
   unsigned long i;
 
   test_task = GNUNET_SCHEDULER_NO_TASK;
@@ -879,17 +879,17 @@ start_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Start profiler\n");
 
-  flags = GNUNET_MESH_OPTION_DEFAULT;
+  flags = GNUNET_CADET_OPTION_DEFAULT;
   for (i = 0; i < peers_pinging; i++)
   {
     peers[i].dest = select_random_peer (&peers[i]);
-    peers[i].ch = GNUNET_MESH_channel_create (peers[i].mesh, NULL,
+    peers[i].ch = GNUNET_CADET_channel_create (peers[i].cadet, NULL,
                                               &peers[i].dest->id,
                                               1, flags);
     if (NULL == peers[i].ch)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Channel %lu failed\n", i);
-      GNUNET_MESH_TEST_cleanup (test_ctx);
+      GNUNET_CADET_TEST_cleanup (test_ctx);
       return;
     }
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "%u => %u %p\n",
@@ -903,7 +903,7 @@ start_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   disconnect_task =
     GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(round_time,
                                                                 number_rounds + 1),
-                                  &disconnect_mesh_peers,
+                                  &disconnect_cadet_peers,
                                   (void *) __LINE__);
   GNUNET_SCHEDULER_add_delayed (round_time, &next_rnd, NULL);
 }
@@ -915,7 +915,7 @@ start_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 warmup (void)
 {
-  struct MeshPeer *peer;
+  struct CadetPeer *peer;
   unsigned int i;
 
   for (i = 0; i < peers_total; i++)
@@ -924,12 +924,12 @@ warmup (void)
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "WARMUP %u => %u\n",
                 i, get_index (peer));
     peers[i].warmup_ch =
-      GNUNET_MESH_channel_create (peers[i].mesh, NULL, &peer->id,
-                                  1, GNUNET_MESH_OPTION_DEFAULT);
+      GNUNET_CADET_channel_create (peers[i].cadet, NULL, &peer->id,
+                                  1, GNUNET_CADET_OPTION_DEFAULT);
     if (NULL == peers[i].warmup_ch)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Warmup %u failed\n", i);
-      GNUNET_MESH_TEST_cleanup (test_ctx);
+      GNUNET_CADET_TEST_cleanup (test_ctx);
       return;
     }
   }
@@ -991,17 +991,17 @@ peer_id_cb (void *cls,
  * test main: start test when all peers are connected
  *
  * @param cls Closure.
- * @param ctx Argument to give to GNUNET_MESH_TEST_cleanup on test end.
+ * @param ctx Argument to give to GNUNET_CADET_TEST_cleanup on test end.
  * @param num_peers Number of peers that are running.
  * @param testbed_peers Array of peers.
- * @param meshes Handle to each of the MESHs of the peers.
+ * @param cadetes Handle to each of the CADETs of the peers.
  */
 static void
 tmain (void *cls,
-       struct GNUNET_MESH_TEST_Context *ctx,
+       struct GNUNET_CADET_TEST_Context *ctx,
        unsigned int num_peers,
        struct GNUNET_TESTBED_Peer **testbed_peers,
-       struct GNUNET_MESH_Handle **meshes)
+       struct GNUNET_CADET_Handle **cadetes)
 {
   unsigned long i;
 
@@ -1011,7 +1011,7 @@ tmain (void *cls,
   peers_running = num_peers;
   testbed_handles = testbed_peers;
   disconnect_task = GNUNET_SCHEDULER_add_delayed (SHORT_TIME,
-                                                  &disconnect_mesh_peers,
+                                                  &disconnect_cadet_peers,
                                                   (void *) __LINE__);
   shutdown_handle = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                                   &shutdown_task, NULL);
@@ -1019,7 +1019,7 @@ tmain (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "requesting id %ld\n", i);
     peers[i].up = GNUNET_YES;
-    peers[i].mesh = meshes[i];
+    peers[i].cadet = cadetes[i];
     peers[i].op =
       GNUNET_TESTBED_peer_get_information (testbed_handles[i],
                                            GNUNET_TESTBED_PIT_IDENTITY,
@@ -1060,7 +1060,7 @@ main (int argc, char *argv[])
     fprintf (stderr, "%s peers is not valid (> 2)\n", argv[1]);
     return 1;
   }
-  peers = GNUNET_malloc (sizeof (struct MeshPeer) * peers_total);
+  peers = GNUNET_malloc (sizeof (struct CadetPeer) * peers_total);
 
   peers_pinging = atoll (argv[3]);
 
@@ -1079,7 +1079,7 @@ main (int argc, char *argv[])
   test_finished = GNUNET_NO;
   ports[0] = 1;
   ports[1] = 0;
-  GNUNET_MESH_TEST_run ("mesh-profiler", config_file, peers_total,
+  GNUNET_CADET_TEST_run ("cadet-profiler", config_file, peers_total,
                         &tmain, NULL, /* tmain cls */
                         &incoming_channel, &channel_cleaner,
                         handlers, ports);
@@ -1088,5 +1088,5 @@ main (int argc, char *argv[])
   return 0;
 }
 
-/* end of gnunet-mesh-profiler.c */
+/* end of gnunet-cadet-profiler.c */
 

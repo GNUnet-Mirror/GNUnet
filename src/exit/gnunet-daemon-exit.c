@@ -20,7 +20,7 @@
 
 /**
  * @file exit/gnunet-daemon-exit.c
- * @brief tool to allow IP traffic exit from the GNUnet mesh to the Internet
+ * @brief tool to allow IP traffic exit from the GNUnet cadet to the Internet
  * @author Philipp Toelke
  * @author Christian Grothoff
  *
@@ -39,7 +39,7 @@
 #include "gnunet_protocols.h"
 #include "gnunet_applications.h"
 #include "gnunet_dht_service.h"
-#include "gnunet_mesh_service.h"
+#include "gnunet_cadet_service.h"
 #include "gnunet_dnsparser_lib.h"
 #include "gnunet_dnsstub_lib.h"
 #include "gnunet_statistics_service.h"
@@ -52,13 +52,13 @@
 
 
 /**
- * Maximum path compression length for mesh regex announcing for IPv4 address
+ * Maximum path compression length for cadet regex announcing for IPv4 address
  * based regex.
  */
 #define REGEX_MAX_PATH_LEN_IPV4 4
 
 /**
- * Maximum path compression length for mesh regex announcing for IPv6 address
+ * Maximum path compression length for cadet regex announcing for IPv6 address
  * based regex.
  */
 #define REGEX_MAX_PATH_LEN_IPV6 8
@@ -219,9 +219,9 @@ struct ChannelMessageQueue
 struct ChannelState
 {
   /**
-   * Mesh channel that is used for this connection.
+   * Cadet channel that is used for this connection.
    */
-  struct GNUNET_MESH_Channel *channel;
+  struct GNUNET_CADET_Channel *channel;
 
   /**
    * Who is the other end of this channel.
@@ -232,7 +232,7 @@ struct ChannelState
   /**
    * Active channel transmission request (or NULL).
    */
-  struct GNUNET_MESH_TransmitHandle *th;
+  struct GNUNET_CADET_TransmitHandle *th;
 
   /**
    * #GNUNET_NO if this is a channel for TCP/UDP,
@@ -369,9 +369,9 @@ static struct in_addr exit_ipv4mask;
 static struct GNUNET_STATISTICS_Handle *stats;
 
 /**
- * The handle to mesh
+ * The handle to cadet
  */
-static struct GNUNET_MESH_Handle *mesh_handle;
+static struct GNUNET_CADET_Handle *cadet_handle;
 
 /**
  * This hashmaps contains the mapping from peer, service-descriptor,
@@ -462,7 +462,7 @@ static int ipv6_enabled;
 
 
 /**
- * We got a reply from DNS for a request of a MESH channel.  Send it
+ * We got a reply from DNS for a request of a CADET channel.  Send it
  * via the channel (after changing the request ID back).
  *
  * @param cls the 'struct ChannelState'
@@ -471,7 +471,7 @@ static int ipv6_enabled;
  * @return number of bytes written to buf
  */
 static size_t
-transmit_reply_to_mesh (void *cls,
+transmit_reply_to_cadet (void *cls,
 			size_t size,
 			void *buf)
 {
@@ -528,31 +528,31 @@ process_dns_result (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Processing DNS result from stub resolver\n");
   GNUNET_assert (NULL == cls);
-  /* Handle case that this is a reply to a request from a MESH DNS channel */
+  /* Handle case that this is a reply to a request from a CADET DNS channel */
   ts = channels[dns->id];
   if ( (NULL == ts) ||
        (ts->specifics.dns.rs != rs) )
     return;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Got a response from the stub resolver for DNS request received via MESH!\n");
+       "Got a response from the stub resolver for DNS request received via CADET!\n");
   channels[dns->id] = NULL;
   GNUNET_free_non_null (ts->specifics.dns.reply);
   ts->specifics.dns.reply = GNUNET_malloc (r);
   ts->specifics.dns.reply_length = r;
   memcpy (ts->specifics.dns.reply, dns, r);
   if (NULL != ts->th)
-    GNUNET_MESH_notify_transmit_ready_cancel (ts->th);
-  ts->th = GNUNET_MESH_notify_transmit_ready (ts->channel,
+    GNUNET_CADET_notify_transmit_ready_cancel (ts->th);
+  ts->th = GNUNET_CADET_notify_transmit_ready (ts->channel,
 					      GNUNET_NO,
 					      GNUNET_TIME_UNIT_FOREVER_REL,
 					      sizeof (struct GNUNET_MessageHeader) + r,
-					      &transmit_reply_to_mesh,
+					      &transmit_reply_to_cadet,
 					      ts);
 }
 
 
 /**
- * Process a request via mesh to perform a DNS query.
+ * Process a request via cadet to perform a DNS query.
  *
  * @param cls closure, NULL
  * @param channel connection to the other end
@@ -563,7 +563,7 @@ process_dns_result (void *cls,
  *         #GNUNET_SYSERR to close it (signal serious error)
  */
 static int
-receive_dns_request (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Channel *channel,
+receive_dns_request (void *cls GNUNET_UNUSED, struct GNUNET_CADET_Channel *channel,
                      void **channel_ctx,
                      const struct GNUNET_MessageHeader *message)
 {
@@ -807,7 +807,7 @@ store_service (struct GNUNET_CONTAINER_MultiHashMap *service_map,
 
 
 /**
- * MESH is ready to receive a message for the channel.  Transmit it.
+ * CADET is ready to receive a message for the channel.  Transmit it.
  *
  * @param cls the 'struct ChannelState'.
  * @param size number of bytes available in buf
@@ -818,7 +818,7 @@ static size_t
 send_to_peer_notify_callback (void *cls, size_t size, void *buf)
 {
   struct ChannelState *s = cls;
-  struct GNUNET_MESH_Channel *channel = s->channel;
+  struct GNUNET_CADET_Channel *channel = s->channel;
   struct ChannelMessageQueue *tnq;
 
   s->th = NULL;
@@ -827,7 +827,7 @@ send_to_peer_notify_callback (void *cls, size_t size, void *buf)
     return 0;
   if (0 == size)
   {
-    s->th = GNUNET_MESH_notify_transmit_ready (channel,
+    s->th = GNUNET_CADET_notify_transmit_ready (channel,
 					       GNUNET_NO /* corking */,
 					       GNUNET_TIME_UNIT_FOREVER_REL,
 					       tnq->len,
@@ -843,36 +843,36 @@ send_to_peer_notify_callback (void *cls, size_t size, void *buf)
 			       tnq);
   GNUNET_free (tnq);
   if (NULL != (tnq = s->specifics.tcp_udp.head))
-    s->th = GNUNET_MESH_notify_transmit_ready (channel,
+    s->th = GNUNET_CADET_notify_transmit_ready (channel,
 					       GNUNET_NO /* corking */,
 					       GNUNET_TIME_UNIT_FOREVER_REL,
 					       tnq->len,
 					       &send_to_peer_notify_callback,
 					       s);
   GNUNET_STATISTICS_update (stats,
-			    gettext_noop ("# Bytes transmitted via mesh channels"),
+			    gettext_noop ("# Bytes transmitted via cadet channels"),
 			    size, GNUNET_NO);
   return size;
 }
 
 
 /**
- * Send the given packet via the mesh channel.
+ * Send the given packet via the cadet channel.
  *
  * @param s channel destination
  * @param tnq message to queue
  */
 static void
-send_packet_to_mesh_channel (struct ChannelState *s,
+send_packet_to_cadet_channel (struct ChannelState *s,
 			    struct ChannelMessageQueue *tnq)
 {
-  struct GNUNET_MESH_Channel *mesh_channel;
+  struct GNUNET_CADET_Channel *cadet_channel;
 
-  mesh_channel = s->channel;
+  cadet_channel = s->channel;
   GNUNET_assert (NULL != s);
   GNUNET_CONTAINER_DLL_insert_tail (s->specifics.tcp_udp.head, s->specifics.tcp_udp.tail, tnq);
   if (NULL == s->th)
-    s->th = GNUNET_MESH_notify_transmit_ready (mesh_channel,
+    s->th = GNUNET_CADET_notify_transmit_ready (cadet_channel,
                                                GNUNET_NO /* cork */,
 					       GNUNET_TIME_UNIT_FOREVER_REL,
 					       tnq->len,
@@ -1065,7 +1065,7 @@ icmp_from_helper (const struct GNUNET_TUN_IcmpHeader *icmp,
   memcpy (&i2v->icmp_header,
 	  icmp,
 	  pktlen);
-  send_packet_to_mesh_channel (state, tnq);
+  send_packet_to_cadet_channel (state, tnq);
 }
 
 
@@ -1142,7 +1142,7 @@ udp_from_helper (const struct GNUNET_TUN_UdpHeader *udp,
   memcpy (&urm[1],
 	  &udp[1],
 	  pktlen - sizeof (struct GNUNET_TUN_UdpHeader));
-  send_packet_to_mesh_channel (state, tnq);
+  send_packet_to_cadet_channel (state, tnq);
 }
 
 
@@ -1230,7 +1230,7 @@ tcp_from_helper (const struct GNUNET_TUN_TcpHeader *tcp,
   memcpy (&tdm->tcp_header,
 	  buf,
 	  pktlen);
-  send_packet_to_mesh_channel (state, tnq);
+  send_packet_to_cadet_channel (state, tnq);
 }
 
 
@@ -1486,7 +1486,7 @@ setup_fresh_address (int af,
  * We are starting a fresh connection (TCP or UDP) and need
  * to pick a source port and IP address (within the correct
  * range and address family) to associate replies with the
- * connection / correct mesh channel.  This function generates
+ * connection / correct cadet channel.  This function generates
  * a "fresh" source IP and source port number for a connection
  * After picking a good source address, this function sets up
  * the state in the 'connections_map' and 'connections_heap'
@@ -1549,7 +1549,7 @@ setup_state_record (struct ChannelState *state)
     s = GNUNET_CONTAINER_heap_remove_root (connections_heap);
     GNUNET_assert (state != s);
     s->specifics.tcp_udp.heap_node = NULL;
-    GNUNET_MESH_channel_destroy (s->channel);
+    GNUNET_CADET_channel_destroy (s->channel);
     GNUNET_assert (GNUNET_OK ==
 		   GNUNET_CONTAINER_multihashmap_remove (connections_map,
 							 &s->specifics.tcp_udp.state_key,
@@ -1833,7 +1833,7 @@ send_tcp_packet_via_tun (const struct SocketAddress *destination_address,
 
 
 /**
- * Process a request via mesh to send a request to a TCP service
+ * Process a request via cadet to send a request to a TCP service
  * offered by this system.
  *
  * @param cls closure, NULL
@@ -1845,7 +1845,7 @@ send_tcp_packet_via_tun (const struct SocketAddress *destination_address,
  */
 static int
 receive_tcp_service (void *cls,
-                     struct GNUNET_MESH_Channel *channel,
+                     struct GNUNET_CADET_Channel *channel,
                      void **channel_ctx,
                      const struct GNUNET_MessageHeader *message)
 {
@@ -1869,10 +1869,10 @@ receive_tcp_service (void *cls,
     state->is_dns = GNUNET_NO;
   }
   GNUNET_STATISTICS_update (stats,
-			    gettext_noop ("# TCP service creation requests received via mesh"),
+			    gettext_noop ("# TCP service creation requests received via cadet"),
 			    1, GNUNET_NO);
   GNUNET_STATISTICS_update (stats,
-			    gettext_noop ("# Bytes received from MESH"),
+			    gettext_noop ("# Bytes received from CADET"),
 			    pkt_len, GNUNET_NO);
   /* check that we got at least a valid header */
   if (pkt_len < sizeof (struct GNUNET_EXIT_TcpServiceStartMessage))
@@ -1937,7 +1937,7 @@ receive_tcp_service (void *cls,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
 static int
-receive_tcp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Channel *channel,
+receive_tcp_remote (void *cls GNUNET_UNUSED, struct GNUNET_CADET_Channel *channel,
                     void **channel_ctx GNUNET_UNUSED,
                     const struct GNUNET_MessageHeader *message)
 {
@@ -1965,10 +1965,10 @@ receive_tcp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Channel *channel
     state->is_dns = GNUNET_NO;
   }
   GNUNET_STATISTICS_update (stats,
-			    gettext_noop ("# Bytes received from MESH"),
+			    gettext_noop ("# Bytes received from CADET"),
 			    pkt_len, GNUNET_NO);
   GNUNET_STATISTICS_update (stats,
-			    gettext_noop ("# TCP IP-exit creation requests received via mesh"),
+			    gettext_noop ("# TCP IP-exit creation requests received via cadet"),
 			    1, GNUNET_NO);
   if (pkt_len < sizeof (struct GNUNET_EXIT_TcpInternetStartMessage))
   {
@@ -2061,7 +2061,7 @@ receive_tcp_remote (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Channel *channel
  *         #GNUNET_SYSERR to close it (signal serious error)
  */
 static int
-receive_tcp_data (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Channel *channel,
+receive_tcp_data (void *cls GNUNET_UNUSED, struct GNUNET_CADET_Channel *channel,
 		  void **channel_ctx GNUNET_UNUSED,
 		  const struct GNUNET_MessageHeader *message)
 {
@@ -2070,10 +2070,10 @@ receive_tcp_data (void *cls GNUNET_UNUSED, struct GNUNET_MESH_Channel *channel,
   uint16_t pkt_len = ntohs (message->size);
 
   GNUNET_STATISTICS_update (stats,
-			    gettext_noop ("# Bytes received from MESH"),
+			    gettext_noop ("# Bytes received from CADET"),
 			    pkt_len, GNUNET_NO);
   GNUNET_STATISTICS_update (stats,
-			    gettext_noop ("# TCP data requests received via mesh"),
+			    gettext_noop ("# TCP data requests received via cadet"),
 			    1, GNUNET_NO);
   if (pkt_len < sizeof (struct GNUNET_EXIT_TcpDataMessage))
   {
@@ -2294,7 +2294,7 @@ make_up_icmpv6_payload (struct ChannelState *state,
  */
 static int
 receive_icmp_remote (void *cls,
-                     struct GNUNET_MESH_Channel *channel,
+                     struct GNUNET_CADET_Channel *channel,
 		     void **channel_ctx,
 		     const struct GNUNET_MessageHeader *message)
 {
@@ -2318,10 +2318,10 @@ receive_icmp_remote (void *cls,
     state->is_dns = GNUNET_NO;
   }
   GNUNET_STATISTICS_update (stats,
-			    gettext_noop ("# Bytes received from MESH"),
+			    gettext_noop ("# Bytes received from CADET"),
 			    pkt_len, GNUNET_NO);
   GNUNET_STATISTICS_update (stats,
-			    gettext_noop ("# ICMP IP-exit requests received via mesh"),
+			    gettext_noop ("# ICMP IP-exit requests received via cadet"),
 			    1, GNUNET_NO);
   if (pkt_len < sizeof (struct GNUNET_EXIT_IcmpInternetMessage))
   {
@@ -2533,7 +2533,7 @@ make_up_icmp_service_payload (struct ChannelState *state,
 
 
 /**
- * Process a request via mesh to send ICMP data to a service
+ * Process a request via cadet to send ICMP data to a service
  * offered by this system.
  *
  * @param cls closure, NULL
@@ -2545,7 +2545,7 @@ make_up_icmp_service_payload (struct ChannelState *state,
  */
 static int
 receive_icmp_service (void *cls,
-                      struct GNUNET_MESH_Channel *channel,
+                      struct GNUNET_CADET_Channel *channel,
 		      void **channel_ctx,
 		      const struct GNUNET_MessageHeader *message)
 {
@@ -2567,10 +2567,10 @@ receive_icmp_service (void *cls,
     state->is_dns = GNUNET_NO;
   }
   GNUNET_STATISTICS_update (stats,
-			    gettext_noop ("# Bytes received from MESH"),
+			    gettext_noop ("# Bytes received from CADET"),
 			    pkt_len, GNUNET_NO);
   GNUNET_STATISTICS_update (stats,
-			    gettext_noop ("# ICMP service requests received via mesh"),
+			    gettext_noop ("# ICMP service requests received via cadet"),
 			    1, GNUNET_NO);
   /* check that we got at least a valid header */
   if (pkt_len < sizeof (struct GNUNET_EXIT_IcmpServiceMessage))
@@ -2833,7 +2833,7 @@ send_udp_packet_via_tun (const struct SocketAddress *destination_address,
  */
 static int
 receive_udp_remote (void *cls,
-                    struct GNUNET_MESH_Channel *channel,
+                    struct GNUNET_CADET_Channel *channel,
                     void **channel_ctx,
                     const struct GNUNET_MessageHeader *message)
 {
@@ -2856,10 +2856,10 @@ receive_udp_remote (void *cls,
     state->is_dns = GNUNET_NO;
   }
   GNUNET_STATISTICS_update (stats,
-			    gettext_noop ("# Bytes received from MESH"),
+			    gettext_noop ("# Bytes received from CADET"),
 			    pkt_len, GNUNET_NO);
   GNUNET_STATISTICS_update (stats,
-			    gettext_noop ("# UDP IP-exit requests received via mesh"),
+			    gettext_noop ("# UDP IP-exit requests received via cadet"),
 			    1, GNUNET_NO);
   if (pkt_len < sizeof (struct GNUNET_EXIT_UdpInternetMessage))
   {
@@ -2932,7 +2932,7 @@ receive_udp_remote (void *cls,
 
 
 /**
- * Process a request via mesh to send a request to a UDP service
+ * Process a request via cadet to send a request to a UDP service
  * offered by this system.
  *
  * @param cls closure, NULL
@@ -2944,7 +2944,7 @@ receive_udp_remote (void *cls,
  */
 static int
 receive_udp_service (void *cls,
-                     struct GNUNET_MESH_Channel *channel,
+                     struct GNUNET_CADET_Channel *channel,
                      void **channel_ctx,
                      const struct GNUNET_MessageHeader *message)
 {
@@ -2963,10 +2963,10 @@ receive_udp_service (void *cls,
     state->is_dns = GNUNET_NO;
   }
   GNUNET_STATISTICS_update (stats,
-			    gettext_noop ("# Bytes received from MESH"),
+			    gettext_noop ("# Bytes received from CADET"),
 			    pkt_len, GNUNET_NO);
   GNUNET_STATISTICS_update (stats,
-			    gettext_noop ("# UDP service requests received via mesh"),
+			    gettext_noop ("# UDP service requests received via cadet"),
 			    1, GNUNET_NO);
   /* check that we got at least a valid header */
   if (pkt_len < sizeof (struct GNUNET_EXIT_UdpServiceMessage))
@@ -3008,7 +3008,7 @@ receive_udp_service (void *cls,
 
 
 /**
- * Callback from GNUNET_MESH for new channels.
+ * Callback from GNUNET_CADET for new channels.
  *
  * @param cls closure
  * @param channel new handle to the channel
@@ -3019,16 +3019,16 @@ receive_udp_service (void *cls,
  */
 static void *
 new_channel (void *cls,
-            struct GNUNET_MESH_Channel *channel,
+            struct GNUNET_CADET_Channel *channel,
             const struct GNUNET_PeerIdentity *initiator,
-            uint32_t port, enum GNUNET_MESH_ChannelOption options)
+            uint32_t port, enum GNUNET_CADET_ChannelOption options)
 {
   struct ChannelState *s = GNUNET_new (struct ChannelState);
 
   s->is_dns = GNUNET_SYSERR;
   s->peer = *initiator;
   GNUNET_STATISTICS_update (stats,
-			    gettext_noop ("# Inbound MESH channels created"),
+			    gettext_noop ("# Inbound CADET channels created"),
 			    1, GNUNET_NO);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Received inbound channel from `%s'\n",
@@ -3039,17 +3039,17 @@ new_channel (void *cls,
 
 
 /**
- * Function called by mesh whenever an inbound channel is destroyed.
+ * Function called by cadet whenever an inbound channel is destroyed.
  * Should clean up any associated state.
  *
- * @param cls closure (set from #GNUNET_MESH_connect)
+ * @param cls closure (set from #GNUNET_CADET_connect)
  * @param channel connection to the other end (henceforth invalid)
  * @param channel_ctx place where local state associated
  *                   with the channel is stored
  */
 static void
 clean_channel (void *cls,
-              const struct GNUNET_MESH_Channel *channel,
+              const struct GNUNET_CADET_Channel *channel,
               void *channel_ctx)
 {
   struct ChannelState *s = channel_ctx;
@@ -3089,7 +3089,7 @@ clean_channel (void *cls,
   }
   if (NULL != s->th)
   {
-    GNUNET_MESH_notify_transmit_ready_cancel (s->th);
+    GNUNET_CADET_notify_transmit_ready_cancel (s->th);
     s->th = NULL;
   }
   GNUNET_free (s);
@@ -3140,10 +3140,10 @@ cleanup (void *cls,
     GNUNET_REGEX_announce_cancel (regex6);
     regex6 = NULL;
   }
-  if (NULL != mesh_handle)
+  if (NULL != cadet_handle)
   {
-    GNUNET_MESH_disconnect (mesh_handle);
-    mesh_handle = NULL;
+    GNUNET_CADET_disconnect (cadet_handle);
+    cadet_handle = NULL;
   }
   if (NULL != connections_map)
   {
@@ -3465,7 +3465,7 @@ run (void *cls,
      const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg_)
 {
-  static struct GNUNET_MESH_MessageHandler handlers[] = {
+  static struct GNUNET_CADET_MessageHandler handlers[] = {
     {&receive_icmp_service, GNUNET_MESSAGE_TYPE_VPN_ICMP_TO_SERVICE, 0},
     {&receive_icmp_remote, GNUNET_MESSAGE_TYPE_VPN_ICMP_TO_INTERNET, 0},
     {&receive_udp_service, GNUNET_MESSAGE_TYPE_VPN_UDP_TO_SERVICE, 0},
@@ -3718,18 +3718,18 @@ run (void *cls,
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  mesh_handle
-    = GNUNET_MESH_connect (cfg, NULL,
+  cadet_handle
+    = GNUNET_CADET_connect (cfg, NULL,
 			   &new_channel,
 			   &clean_channel, handlers,
                            apptypes);
-  if (NULL == mesh_handle)
+  if (NULL == cadet_handle)
   {
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
 
-  /* Mesh handle acquired, now announce regular expressions matching our exit */
+  /* Cadet handle acquired, now announce regular expressions matching our exit */
   if ( (GNUNET_YES == ipv4_enabled) && (GNUNET_YES == ipv4_exit) )
   {
     policy = NULL;

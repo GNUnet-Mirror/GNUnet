@@ -235,12 +235,12 @@ struct ClientPhonePickedupMessage
 
 
 /**
- * Mesh message for phone is ringing.
+ * Cadet message for phone is ringing.
  */
-struct MeshPhoneRingMessage
+struct CadetPhoneRingMessage
 {
   /**
-   * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_PHONE_RING
+   * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_RING
    */
   struct GNUNET_MessageHeader header;
 
@@ -288,12 +288,12 @@ struct MeshPhoneRingMessage
 
 
 /**
- * Mesh message for hanging up.
+ * Cadet message for hanging up.
  */
-struct MeshPhoneHangupMessage
+struct CadetPhoneHangupMessage
 {
   /**
-   * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_PHONE_HANG_UP
+   * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_HANG_UP
    */
   struct GNUNET_MessageHeader header;
 
@@ -301,12 +301,12 @@ struct MeshPhoneHangupMessage
 
 
 /**
- * Mesh message for picking up.
+ * Cadet message for picking up.
  */
-struct MeshPhonePickupMessage
+struct CadetPhonePickupMessage
 {
   /**
-   * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_PHONE_PICK_UP
+   * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_PICK_UP
    */
   struct GNUNET_MessageHeader header;
 
@@ -314,12 +314,12 @@ struct MeshPhonePickupMessage
 
 
 /**
- * Mesh message for phone suspended.
+ * Cadet message for phone suspended.
  */
-struct MeshPhoneSuspendMessage
+struct CadetPhoneSuspendMessage
 {
   /**
-   * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_PHONE_SUSPEND
+   * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_SUSPEND
    */
   struct GNUNET_MessageHeader header;
 
@@ -327,12 +327,12 @@ struct MeshPhoneSuspendMessage
 
 
 /**
- * Mesh message for phone resumed.
+ * Cadet message for phone resumed.
  */
-struct MeshPhoneResumeMessage
+struct CadetPhoneResumeMessage
 {
   /**
-   * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_PHONE_RESUME
+   * Type is: #GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_RESUME
    */
   struct GNUNET_MessageHeader header;
 
@@ -340,12 +340,12 @@ struct MeshPhoneResumeMessage
 
 
 /**
- * Mesh message to transmit the audio.
+ * Cadet message to transmit the audio.
  */
-struct MeshAudioMessage
+struct CadetAudioMessage
 {
   /**
-   * Type is #GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_AUDIO
+   * Type is #GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_AUDIO
    */
   struct GNUNET_MessageHeader header;
 

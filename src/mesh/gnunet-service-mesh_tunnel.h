@@ -19,15 +19,15 @@
 */
 
 /**
- * @file mesh/gnunet-service-mesh_tunnel.h
- * @brief mesh service; dealing with tunnels and crypto
+ * @file cadet/gnunet-service-cadet_tunnel.h
+ * @brief cadet service; dealing with tunnels and crypto
  * @author Bartlomiej Polot
  *
- * All functions in this file should use the prefix GMT (Gnunet Mesh Tunnel)
+ * All functions in this file should use the prefix GMT (Gnunet Cadet Tunnel)
  */
 
-#ifndef GNUNET_SERVICE_MESH_TUNNEL_H
-#define GNUNET_SERVICE_MESH_TUNNEL_H
+#ifndef GNUNET_SERVICE_CADET_TUNNEL_H
+#define GNUNET_SERVICE_CADET_TUNNEL_H
 
 #ifdef __cplusplus
 extern "C"
@@ -43,77 +43,77 @@ extern "C"
 /**
  * All the connectivity states a tunnel can be in.
  */
-enum MeshTunnel3CState
+enum CadetTunnel3CState
 {
     /**
      * Uninitialized status, should never appear in operation.
      */
-  MESH_TUNNEL3_NEW,
+  CADET_TUNNEL3_NEW,
 
     /**
      * Path to the peer not known yet.
      */
-  MESH_TUNNEL3_SEARCHING,
+  CADET_TUNNEL3_SEARCHING,
 
     /**
      * Request sent, not yet answered.
      */
-  MESH_TUNNEL3_WAITING,
+  CADET_TUNNEL3_WAITING,
 
     /**
      * Peer connected and ready to accept data.
      */
-  MESH_TUNNEL3_READY,
+  CADET_TUNNEL3_READY,
 
   /**
    * Tunnel being shut down, don't try to keep it alive.
    */
-  MESH_TUNNEL3_SHUTDOWN
+  CADET_TUNNEL3_SHUTDOWN
 };
 
 
 /**
  * All the encryption states a tunnel can be in.
  */
-enum MeshTunnel3EState
+enum CadetTunnel3EState
 {
   /**
    * Uninitialized status, should never appear in operation.
    */
-  MESH_TUNNEL3_KEY_UNINITIALIZED,
+  CADET_TUNNEL3_KEY_UNINITIALIZED,
 
   /**
    * Ephemeral key sent, waiting for peer's key.
    */
-  MESH_TUNNEL3_KEY_SENT,
+  CADET_TUNNEL3_KEY_SENT,
 
   /**
    * New ephemeral key and ping sent, waiting for pong.
    * This means that we DO have the peer's ephemeral key, otherwise the
    * state would be KEY_SENT.
    */
-  MESH_TUNNEL3_KEY_PING,
+  CADET_TUNNEL3_KEY_PING,
 
   /**
    * Handshake completed: session key available.
    */
-  MESH_TUNNEL3_KEY_OK,
+  CADET_TUNNEL3_KEY_OK,
 };
 
 /**
  * Struct containing all information regarding a given peer
  */
-struct MeshTunnel3;
+struct CadetTunnel3;
 
 
-#include "gnunet-service-mesh_channel.h"
-#include "gnunet-service-mesh_connection.h"
-#include "gnunet-service-mesh_peer.h"
+#include "gnunet-service-cadet_channel.h"
+#include "gnunet-service-cadet_connection.h"
+#include "gnunet-service-cadet_peer.h"
 
 /**
  * Handle for messages queued but not yet sent.
  */
-struct MeshTunnel3Queue;
+struct CadetTunnel3Queue;
 
 /**
  * Callback called when a queued message is sent.
@@ -124,12 +124,12 @@ struct MeshTunnel3Queue;
  * @param size Size of the message.
  */
 typedef void (*GMT_sent) (void *cls,
-                          struct MeshTunnel3 *t,
-                          struct MeshTunnel3Queue *q,
+                          struct CadetTunnel3 *t,
+                          struct CadetTunnel3Queue *q,
                           uint16_t type, size_t size);
 
-typedef void (*GMT_conn_iter) (void *cls, struct MeshConnection *c);
-typedef void (*GMT_chan_iter) (void *cls, struct MeshChannel *ch);
+typedef void (*GMT_conn_iter) (void *cls, struct CadetConnection *c);
+typedef void (*GMT_chan_iter) (void *cls, struct CadetChannel *ch);
 
 
 /******************************************************************************/
@@ -157,8 +157,8 @@ GMT_shutdown (void);
  *
  * @param destination Peer this tunnel is towards.
  */
-struct MeshTunnel3 *
-GMT_new (struct MeshPeer *destination);
+struct CadetTunnel3 *
+GMT_new (struct CadetPeer *destination);
 
 /**
  * Tunnel is empty: destroy it.
@@ -168,7 +168,7 @@ GMT_new (struct MeshPeer *destination);
  * @param t Tunnel to destroy.
  */
 void
-GMT_destroy_empty (struct MeshTunnel3 *t);
+GMT_destroy_empty (struct CadetTunnel3 *t);
 
 /**
  * Destroy tunnel if empty (no more channels).
@@ -176,7 +176,7 @@ GMT_destroy_empty (struct MeshTunnel3 *t);
  * @param t Tunnel to destroy if empty.
  */
 void
-GMT_destroy_if_empty (struct MeshTunnel3 *t);
+GMT_destroy_if_empty (struct CadetTunnel3 *t);
 
 /**
  * Destroy the tunnel.
@@ -190,7 +190,7 @@ GMT_destroy_if_empty (struct MeshTunnel3 *t);
  * @param t The tunnel to destroy.
  */
 void
-GMT_destroy (struct MeshTunnel3 *t);
+GMT_destroy (struct CadetTunnel3 *t);
 
 
 /**
@@ -200,7 +200,7 @@ GMT_destroy (struct MeshTunnel3 *t);
  * @param cstate New connection state.
  */
 void
-GMT_change_cstate (struct MeshTunnel3* t, enum MeshTunnel3CState cstate);
+GMT_change_cstate (struct CadetTunnel3* t, enum CadetTunnel3CState cstate);
 
 
 /**
@@ -210,7 +210,7 @@ GMT_change_cstate (struct MeshTunnel3* t, enum MeshTunnel3CState cstate);
  * @param state New encryption state.
  */
 void
-GMT_change_estate (struct MeshTunnel3* t, enum MeshTunnel3EState state);
+GMT_change_estate (struct CadetTunnel3* t, enum CadetTunnel3EState state);
 
 /**
  * Add a connection to a tunnel.
@@ -219,7 +219,7 @@ GMT_change_estate (struct MeshTunnel3* t, enum MeshTunnel3EState state);
  * @param c Connection.
  */
 void
-GMT_add_connection (struct MeshTunnel3 *t, struct MeshConnection *c);
+GMT_add_connection (struct CadetTunnel3 *t, struct CadetConnection *c);
 
 /**
  * Mark a path as no longer valid for this tunnel: has been tried and failed.
@@ -228,7 +228,7 @@ GMT_add_connection (struct MeshTunnel3 *t, struct MeshConnection *c);
  * @param path Invalid path to remove. Is destroyed after removal.
  */
 void
-GMT_remove_path (struct MeshTunnel3 *t, struct MeshPeerPath *path);
+GMT_remove_path (struct CadetTunnel3 *t, struct CadetPeerPath *path);
 
 /**
  * Remove a connection from a tunnel.
@@ -237,7 +237,7 @@ GMT_remove_path (struct MeshTunnel3 *t, struct MeshPeerPath *path);
  * @param c Connection.
  */
 void
-GMT_remove_connection (struct MeshTunnel3 *t, struct MeshConnection *c);
+GMT_remove_connection (struct CadetTunnel3 *t, struct CadetConnection *c);
 
 /**
  * Add a channel to a tunnel.
@@ -246,7 +246,7 @@ GMT_remove_connection (struct MeshTunnel3 *t, struct MeshConnection *c);
  * @param ch Channel.
  */
 void
-GMT_add_channel (struct MeshTunnel3 *t, struct MeshChannel *ch);
+GMT_add_channel (struct CadetTunnel3 *t, struct CadetChannel *ch);
 
 /**
  * Remove a channel from a tunnel.
@@ -255,7 +255,7 @@ GMT_add_channel (struct MeshTunnel3 *t, struct MeshChannel *ch);
  * @param ch Channel.
  */
 void
-GMT_remove_channel (struct MeshTunnel3 *t, struct MeshChannel *ch);
+GMT_remove_channel (struct CadetTunnel3 *t, struct CadetChannel *ch);
 
 /**
  * Search for a channel by global ID.
@@ -265,8 +265,8 @@ GMT_remove_channel (struct MeshTunnel3 *t, struct MeshChannel *ch);
  *
  * @return channel handler, NULL if doesn't exist
  */
-struct MeshChannel *
-GMT_get_channel (struct MeshTunnel3 *t, MESH_ChannelNumber chid);
+struct CadetChannel *
+GMT_get_channel (struct CadetTunnel3 *t, CADET_ChannelNumber chid);
 
 /**
  * Decrypt and demultiplex by message type. Call appropriate handler
@@ -277,8 +277,8 @@ GMT_get_channel (struct MeshTunnel3 *t, MESH_ChannelNumber chid);
  * @param msg Message header.
  */
 void
-GMT_handle_encrypted (struct MeshTunnel3 *t,
-                      const struct GNUNET_MESH_Encrypted *msg);
+GMT_handle_encrypted (struct CadetTunnel3 *t,
+                      const struct GNUNET_CADET_Encrypted *msg);
 
 /**
  * Demultiplex an encapsulated KX message by message type.
@@ -287,7 +287,7 @@ GMT_handle_encrypted (struct MeshTunnel3 *t,
  * @param message KX message itself.
  */
 void
-GMT_handle_kx (struct MeshTunnel3 *t,
+GMT_handle_kx (struct CadetTunnel3 *t,
                const struct GNUNET_MessageHeader *message);
 
 /**
@@ -300,8 +300,8 @@ GMT_handle_kx (struct MeshTunnel3 *t,
  *
  * @return Connection created.
  */
-struct MeshConnection *
-GMT_use_path (struct MeshTunnel3 *t, struct MeshPeerPath *p);
+struct CadetConnection *
+GMT_use_path (struct CadetTunnel3 *t, struct CadetPeerPath *p);
 
 /**
  * Count established (ready) connections of a tunnel.
@@ -311,7 +311,7 @@ GMT_use_path (struct MeshTunnel3 *t, struct MeshPeerPath *p);
  * @return Number of connections.
  */
 unsigned int
-GMT_count_connections (struct MeshTunnel3 *t);
+GMT_count_connections (struct CadetTunnel3 *t);
 
 /**
  * Count channels of a tunnel.
@@ -321,7 +321,7 @@ GMT_count_connections (struct MeshTunnel3 *t);
  * @return Number of channels.
  */
 unsigned int
-GMT_count_channels (struct MeshTunnel3 *t);
+GMT_count_channels (struct CadetTunnel3 *t);
 
 /**
  * Get the connectivity state of a tunnel.
@@ -330,8 +330,8 @@ GMT_count_channels (struct MeshTunnel3 *t);
  *
  * @return Tunnel's connectivity state.
  */
-enum MeshTunnel3CState
-GMT_get_cstate (struct MeshTunnel3 *t);
+enum CadetTunnel3CState
+GMT_get_cstate (struct CadetTunnel3 *t);
 
 /**
  * Get the encryption state of a tunnel.
@@ -340,8 +340,8 @@ GMT_get_cstate (struct MeshTunnel3 *t);
  *
  * @return Tunnel's encryption state.
  */
-enum MeshTunnel3EState
-GMT_get_estate (struct MeshTunnel3 *t);
+enum CadetTunnel3EState
+GMT_get_estate (struct CadetTunnel3 *t);
 
 /**
  * Get the maximum buffer space for a tunnel towards a local client.
@@ -351,7 +351,7 @@ GMT_get_estate (struct MeshTunnel3 *t);
  * @return Biggest buffer space offered by any channel in the tunnel.
  */
 unsigned int
-GMT_get_channels_buffer (struct MeshTunnel3 *t);
+GMT_get_channels_buffer (struct CadetTunnel3 *t);
 
 /**
  * Get the total buffer space for a tunnel for P2P traffic.
@@ -361,7 +361,7 @@ GMT_get_channels_buffer (struct MeshTunnel3 *t);
  * @return Buffer space offered by all connections in the tunnel.
  */
 unsigned int
-GMT_get_connections_buffer (struct MeshTunnel3 *t);
+GMT_get_connections_buffer (struct CadetTunnel3 *t);
 
 /**
  * Get the tunnel's destination.
@@ -371,7 +371,7 @@ GMT_get_connections_buffer (struct MeshTunnel3 *t);
  * @return ID of the destination peer.
  */
 const struct GNUNET_PeerIdentity *
-GMT_get_destination (struct MeshTunnel3 *t);
+GMT_get_destination (struct CadetTunnel3 *t);
 
 /**
  * Get the tunnel's next free Channel ID.
@@ -380,8 +380,8 @@ GMT_get_destination (struct MeshTunnel3 *t);
  *
  * @return ID of a channel free to use.
  */
-MESH_ChannelNumber
-GMT_get_next_chid (struct MeshTunnel3 *t);
+CADET_ChannelNumber
+GMT_get_next_chid (struct CadetTunnel3 *t);
 
 /**
  * Send ACK on one or more channels due to buffer in connections.
@@ -389,7 +389,7 @@ GMT_get_next_chid (struct MeshTunnel3 *t);
  * @param t Channel which has some free buffer space.
  */
 void
-GMT_unchoke_channels (struct MeshTunnel3 *t);
+GMT_unchoke_channels (struct CadetTunnel3 *t);
 
 /**
  * Send ACK on one or more connections due to buffer space to the client.
@@ -399,7 +399,7 @@ GMT_unchoke_channels (struct MeshTunnel3 *t);
  * @param t Tunnel which has some free buffer space.
  */
 void
-GMT_send_connection_acks (struct MeshTunnel3 *t);
+GMT_send_connection_acks (struct CadetTunnel3 *t);
 
 /**
  * Cancel a previously sent message while it's in the queue.
@@ -411,7 +411,7 @@ GMT_send_connection_acks (struct MeshTunnel3 *t);
  * @param q Handle to the queue.
  */
 void
-GMT_cancel (struct MeshTunnel3Queue *q);
+GMT_cancel (struct CadetTunnel3Queue *q);
 
 /**
  * Sends an already built message on a tunnel, encrypting it and
@@ -426,9 +426,9 @@ GMT_cancel (struct MeshTunnel3Queue *q);
  *
  * @return Handle to cancel message. NULL if @c cont is NULL.
  */
-struct MeshTunnel3Queue *
+struct CadetTunnel3Queue *
 GMT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
-                           struct MeshTunnel3 *t, struct MeshConnection *c,
+                           struct CadetTunnel3 *t, struct CadetConnection *c,
                            int force, GMT_sent cont, void *cont_cls);
 
 /**
@@ -439,7 +439,7 @@ GMT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
  * @return #GNUNET_YES if it is loopback.
  */
 int
-GMT_is_loopback (const struct MeshTunnel3 *t);
+GMT_is_loopback (const struct CadetTunnel3 *t);
 
 /**
  * Is the tunnel using this path already?
@@ -450,7 +450,7 @@ GMT_is_loopback (const struct MeshTunnel3 *t);
  * @return #GNUNET_YES a connection uses this path.
  */
 int
-GMT_is_path_used (const struct MeshTunnel3 *t, const struct MeshPeerPath *p);
+GMT_is_path_used (const struct CadetTunnel3 *t, const struct CadetPeerPath *p);
 
 /**
  * Get a cost of a path for a tunnel considering existing connections.
@@ -461,8 +461,8 @@ GMT_is_path_used (const struct MeshTunnel3 *t, const struct MeshPeerPath *p);
  * @return Cost of the path (path length + number of overlapping nodes)
  */
 unsigned int
-GMT_get_path_cost (const struct MeshTunnel3 *t,
-                   const struct MeshPeerPath *path);
+GMT_get_path_cost (const struct CadetTunnel3 *t,
+                   const struct CadetPeerPath *path);
 
 /**
  * Get the static string for the peer this tunnel is directed.
@@ -472,7 +472,7 @@ GMT_get_path_cost (const struct MeshTunnel3 *t,
  * @return Static string the destination peer's ID.
  */
 const char *
-GMT_2s (const struct MeshTunnel3 *t);
+GMT_2s (const struct CadetTunnel3 *t);
 
 /**
  * Log all possible info about the tunnel state.
@@ -480,7 +480,7 @@ GMT_2s (const struct MeshTunnel3 *t);
  * @param t Tunnel to debug.
  */
 void
-GMT_debug (const struct MeshTunnel3 *t);
+GMT_debug (const struct CadetTunnel3 *t);
 
 /**
  * Iterate all tunnels.
@@ -507,7 +507,7 @@ GMT_count_all (void);
  * @param cls Closure for @c iter.
  */
 void
-GMT_iterate_connections (struct MeshTunnel3 *t, GMT_conn_iter iter, void *cls);
+GMT_iterate_connections (struct CadetTunnel3 *t, GMT_conn_iter iter, void *cls);
 
 /**
  * Iterate all channels of a tunnel.
@@ -517,7 +517,7 @@ GMT_iterate_connections (struct MeshTunnel3 *t, GMT_conn_iter iter, void *cls);
  * @param cls Closure for @c iter.
  */
 void
-GMT_iterate_channels (struct MeshTunnel3 *t, GMT_chan_iter iter, void *cls);
+GMT_iterate_channels (struct CadetTunnel3 *t, GMT_chan_iter iter, void *cls);
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
@@ -526,6 +526,6 @@ GMT_iterate_channels (struct MeshTunnel3 *t, GMT_chan_iter iter, void *cls);
 }
 #endif
 
-/* ifndef GNUNET_MESH_SERVICE_TUNNEL_H */
+/* ifndef GNUNET_CADET_SERVICE_TUNNEL_H */
 #endif
-/* end of gnunet-mesh-service_tunnel.h */
+/* end of gnunet-cadet-service_tunnel.h */

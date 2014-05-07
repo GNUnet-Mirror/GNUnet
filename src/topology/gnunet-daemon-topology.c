@@ -20,7 +20,7 @@
 
 /**
  * @file topology/gnunet-daemon-topology.c
- * @brief code for maintaining the mesh topology
+ * @brief code for maintaining the cadet topology
  * @author Christian Grothoff
  */
 #include "platform.h"
@@ -1293,7 +1293,7 @@ main (int argc, char *const *argv)
       (GNUNET_OK ==
        GNUNET_PROGRAM_run (argc, argv, "gnunet-daemon-topology",
                            _
-                           ("GNUnet topology control (maintaining P2P mesh and F2F constraints)"),
+                           ("GNUnet topology control (maintaining P2P cadet and F2F constraints)"),
                            options, &run, NULL)) ? 0 : 1;
   GNUNET_free ((void*) argv);
   return ret;

@@ -31,7 +31,7 @@
 #include "gnunet-service-fs_indexing.h"
 #include "gnunet-service-fs_pe.h"
 #include "gnunet-service-fs_pr.h"
-#include "gnunet-service-fs_mesh.h"
+#include "gnunet-service-fs_cadet.h"
 
 
 /**
@@ -65,10 +65,10 @@
 #define INSANE_STATISTICS GNUNET_NO
 
 /**
- * If obtaining a block via mesh fails, how often do we retry it before
+ * If obtaining a block via cadet fails, how often do we retry it before
  * giving up for good (and sticking to non-anonymous transfer)?
  */
-#define MESH_RETRY_MAX 3
+#define CADET_RETRY_MAX 3
 
 
 /**
@@ -117,9 +117,9 @@ struct GSF_PendingRequest
   struct GNUNET_DHT_GetHandle *gh;
 
   /**
-   * Mesh request handle for this request (or NULL for none).
+   * Cadet request handle for this request (or NULL for none).
    */
-  struct GSF_MeshRequest *mesh_request;
+  struct GSF_CadetRequest *cadet_request;
 
   /**
    * Function to call upon completion of the local get
@@ -174,10 +174,10 @@ struct GSF_PendingRequest
   uint64_t first_uid;
 
   /**
-   * How often have we retried this request via 'mesh'?
+   * How often have we retried this request via 'cadet'?
    * (used to bound overall retries).
    */
-  unsigned int mesh_retry_count;
+  unsigned int cadet_retry_count;
 
   /**
    * Number of valid entries in the 'replies_seen' array.
@@ -595,11 +595,11 @@ clean_request (void *cls, const struct GNUNET_HashCode *key, void *value)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Cleaning up pending request for `%s'.\n",
 	      GNUNET_h2s (key));
-  if (NULL != pr->mesh_request)
+  if (NULL != pr->cadet_request)
   {
-    pr->mesh_retry_count = MESH_RETRY_MAX;
-    GSF_mesh_query_cancel (pr->mesh_request);
-    pr->mesh_request = NULL;
+    pr->cadet_retry_count = CADET_RETRY_MAX;
+    GSF_cadet_query_cancel (pr->cadet_request);
+    pr->cadet_request = NULL;
   }
   if (NULL != (cont = pr->llc_cont))
   {
@@ -668,11 +668,11 @@ GSF_pending_request_cancel_ (struct GSF_PendingRequest *pr, int full_cleanup)
      * but do NOT remove from our data-structures, we still need it there
      * to prevent the request from looping */
     pr->rh = NULL;
-    if (NULL != pr->mesh_request)
+    if (NULL != pr->cadet_request)
     {
-      pr->mesh_retry_count = MESH_RETRY_MAX;
-      GSF_mesh_query_cancel (pr->mesh_request);
-      pr->mesh_request = NULL;
+      pr->cadet_retry_count = CADET_RETRY_MAX;
+      GSF_cadet_query_cancel (pr->cadet_request);
+      pr->cadet_request = NULL;
     }
     if (NULL != (cont = pr->llc_cont))
     {
@@ -1139,7 +1139,7 @@ GSF_dht_lookup_ (struct GSF_PendingRequest *pr)
 
 
 /**
- * Function called with a reply from the mesh.
+ * Function called with a reply from the cadet.
  *
  * @param cls the pending request struct
  * @param type type of the block, ANY on error
@@ -1148,7 +1148,7 @@ GSF_dht_lookup_ (struct GSF_PendingRequest *pr)
  * @param data reply block data, NULL on error
  */
 static void
-mesh_reply_proc (void *cls,
+cadet_reply_proc (void *cls,
                  enum GNUNET_BLOCK_Type type,
                  struct GNUNET_TIME_Absolute expiration,
                  size_t data_size,
@@ -1158,22 +1158,22 @@ mesh_reply_proc (void *cls,
   struct ProcessReplyClosure prq;
   struct GNUNET_HashCode query;
 
-  pr->mesh_request = NULL;
+  pr->cadet_request = NULL;
   if (GNUNET_BLOCK_TYPE_ANY == type)
   {
     GNUNET_break (NULL == data);
     GNUNET_break (0 == data_size);
-    pr->mesh_retry_count++;
-    if (pr->mesh_retry_count >= MESH_RETRY_MAX)
-      return; /* give up on mesh */
+    pr->cadet_retry_count++;
+    if (pr->cadet_retry_count >= CADET_RETRY_MAX)
+      return; /* give up on cadet */
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Error retrieiving block via mesh\n");
+		"Error retrieiving block via cadet\n");
     /* retry -- without delay, as this is non-anonymous
-       and mesh/mesh connect will take some time anyway */
-    pr->mesh_request = GSF_mesh_query (pr->public_data.target,
+       and cadet/cadet connect will take some time anyway */
+    pr->cadet_request = GSF_cadet_query (pr->public_data.target,
                                        &pr->public_data.query,
                                        pr->public_data.type,
-                                       &mesh_reply_proc,
+                                       &cadet_reply_proc,
                                        pr);
     return;
   }
@@ -1189,7 +1189,7 @@ mesh_reply_proc (void *cls,
     return;
   }
   GNUNET_STATISTICS_update (GSF_stats,
-                            gettext_noop ("# Replies received from MESH"), 1,
+                            gettext_noop ("# Replies received from CADET"), 1,
                             GNUNET_NO);
   memset (&prq, 0, sizeof (prq));
   prq.data = data;
@@ -1204,27 +1204,27 @@ mesh_reply_proc (void *cls,
 
 
 /**
- * Consider downloading via mesh (if possible)
+ * Consider downloading via cadet (if possible)
  *
  * @param pr the pending request to process
  */
 void
-GSF_mesh_lookup_ (struct GSF_PendingRequest *pr)
+GSF_cadet_lookup_ (struct GSF_PendingRequest *pr)
 {
   if (0 != pr->public_data.anonymity_level)
     return;
   if (0 == pr->public_data.target)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-		"Cannot do mesh-based download, target peer not known\n");
+		"Cannot do cadet-based download, target peer not known\n");
     return;
   }
-  if (NULL != pr->mesh_request)
+  if (NULL != pr->cadet_request)
     return;
-  pr->mesh_request = GSF_mesh_query (pr->public_data.target,
+  pr->cadet_request = GSF_cadet_query (pr->public_data.target,
 				     &pr->public_data.query,
 				     pr->public_data.type,
-				     &mesh_reply_proc,
+				     &cadet_reply_proc,
 				     pr);
 }
 
@@ -1553,7 +1553,7 @@ GSF_local_lookup_ (struct GSF_PendingRequest *pr,
                    GSF_LocalLookupContinuation cont, void *cont_cls)
 {
   GNUNET_assert (NULL == pr->gh);
-  GNUNET_assert (NULL == pr->mesh_request);
+  GNUNET_assert (NULL == pr->cadet_request);
   GNUNET_assert (NULL == pr->llc_cont);
   pr->llc_cont = cont;
   pr->llc_cont_cls = cont_cls;

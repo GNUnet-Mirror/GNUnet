@@ -1762,7 +1762,7 @@ write_download_request (struct GNUNET_BIO_WriteHandle *wh,
 /**
  * Read a download request tree.
  *
- * @param rh mesh to read from
+ * @param rh cadet to read from
  * @return value the download request read from disk, NULL on error
  */
 static struct DownloadRequest *

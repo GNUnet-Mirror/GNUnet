@@ -21,7 +21,7 @@
 /**
  * @file regex/gnunet-regex-simulation-profiler.c
  * @brief Regex profiler that dumps all DFAs into a database instead of
- *        using the DHT (with mesh).
+ *        using the DHT (with cadet).
  * @author Maximilian Szengel
  *
  */

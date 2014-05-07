@@ -18,14 +18,14 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file mesh/test_mesh.c
+ * @file cadet/test_cadet.c
  *
- * @brief Test for the mesh service: retransmission of traffic.
+ * @brief Test for the cadet service: retransmission of traffic.
  */
 #include <stdio.h>
 #include "platform.h"
-#include "mesh_test_lib.h"
-#include "gnunet_mesh_service.h"
+#include "cadet_test_lib.h"
+#include "gnunet_cadet_service.h"
 #include "gnunet_statistics_service.h"
 #include <gauger.h>
 
@@ -129,7 +129,7 @@ static unsigned long long peers_running;
 /**
  * Test context (to shut down).
  */
-struct GNUNET_MESH_TEST_Context *test_ctx;
+struct GNUNET_CADET_TEST_Context *test_ctx;
 
 /**
  * Task called to disconnect peers.
@@ -147,24 +147,24 @@ static GNUNET_SCHEDULER_TaskIdentifier test_task;
 static GNUNET_SCHEDULER_TaskIdentifier shutdown_handle;
 
 /**
- * Mesh handle for the root peer
+ * Cadet handle for the root peer
  */
-static struct GNUNET_MESH_Handle *h1;
+static struct GNUNET_CADET_Handle *h1;
 
 /**
- * Mesh handle for the first leaf peer
+ * Cadet handle for the first leaf peer
  */
-static struct GNUNET_MESH_Handle *h2;
+static struct GNUNET_CADET_Handle *h2;
 
 /**
  * Channel handle for the root peer
  */
-static struct GNUNET_MESH_Channel *ch;
+static struct GNUNET_CADET_Channel *ch;
 
 /**
  * Channel handle for the dest peer
  */
-static struct GNUNET_MESH_Channel *incoming_ch;
+static struct GNUNET_CADET_Channel *incoming_ch;
 
 /**
  * Time we started the data transmission (after channel has been established
@@ -212,7 +212,7 @@ show_end_data (void)
 	   4 * TOTAL_PACKETS * 1.0 / (total_time.rel_value_us / 1000)); // 4bytes * ms
   FPRINTF (stderr, "Test throughput: %f packets/s\n\n",
 	   TOTAL_PACKETS * 1000.0 / (total_time.rel_value_us / 1000)); // packets * ms
-  GAUGER ("MESH", test_name,
+  GAUGER ("CADET", test_name,
           TOTAL_PACKETS * 1000.0 / (total_time.rel_value_us / 1000),
           "packets/s");
 }
@@ -233,19 +233,19 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
- * Disconnect from mesh services af all peers, call shutdown.
+ * Disconnect from cadet services af all peers, call shutdown.
  *
  * @param cls Closure (unused).
  * @param tc Task Context.
  */
 static void
-disconnect_mesh_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+disconnect_cadet_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   long line = (long) cls;
   unsigned int i;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "disconnecting mesh service of peers, called from line %ld\n",
+              "disconnecting cadet service of peers, called from line %ld\n",
               line);
   disconnect_task = GNUNET_SCHEDULER_NO_TASK;
   for (i = 0; i < 2; i++)
@@ -254,15 +254,15 @@ disconnect_mesh_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   if (NULL != ch)
   {
-    GNUNET_MESH_channel_destroy (ch);
+    GNUNET_CADET_channel_destroy (ch);
     ch = NULL;
   }
   if (NULL != incoming_ch)
   {
-    GNUNET_MESH_channel_destroy (incoming_ch);
+    GNUNET_CADET_channel_destroy (incoming_ch);
     incoming_ch = NULL;
   }
-  GNUNET_MESH_TEST_cleanup (test_ctx);
+  GNUNET_CADET_TEST_cleanup (test_ctx);
   if (GNUNET_SCHEDULER_NO_TASK != shutdown_handle)
   {
     GNUNET_SCHEDULER_cancel (shutdown_handle);
@@ -282,7 +282,7 @@ abort_test (long line)
   if (disconnect_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (disconnect_task);
-    disconnect_task = GNUNET_SCHEDULER_add_now (&disconnect_mesh_peers,
+    disconnect_task = GNUNET_SCHEDULER_add_now (&disconnect_cadet_peers,
                                                 (void *) line);
   }
 }
@@ -309,8 +309,8 @@ tmt_rdy (void *cls, size_t size, void *buf);
 static void
 data_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct GNUNET_MESH_TransmitHandle *th;
-  struct GNUNET_MESH_Channel *channel;
+  struct GNUNET_CADET_TransmitHandle *th;
+  struct GNUNET_CADET_Channel *channel;
 
   if ((GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason) != 0)
     return;
@@ -324,7 +324,7 @@ data_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     channel = ch;
   }
-  th = GNUNET_MESH_notify_transmit_ready (channel, GNUNET_NO,
+  th = GNUNET_CADET_notify_transmit_ready (channel, GNUNET_NO,
                                           GNUNET_TIME_UNIT_FOREVER_REL,
                                           size_payload, &tmt_rdy, (void *) 1L);
   if (NULL == th)
@@ -405,7 +405,7 @@ tmt_rdy (void *cls, size_t size, void *buf)
 /**
  * Function is called whenever a message is received.
  *
- * @param cls closure (set from GNUNET_MESH_connect)
+ * @param cls closure (set from GNUNET_CADET_connect)
  * @param channel connection to the other end
  * @param channel_ctx place to store local state associated with the channel
  * @param message the actual message
@@ -413,7 +413,7 @@ tmt_rdy (void *cls, size_t size, void *buf)
  *         GNUNET_SYSERR to close it (signal serious error)
  */
 int
-data_callback (void *cls, struct GNUNET_MESH_Channel *channel,
+data_callback (void *cls, struct GNUNET_CADET_Channel *channel,
                void **channel_ctx,
                const struct GNUNET_MessageHeader *message)
 {
@@ -423,7 +423,7 @@ data_callback (void *cls, struct GNUNET_MESH_Channel *channel,
 
   ok++;
 
-  GNUNET_MESH_receive_done (channel);
+  GNUNET_CADET_receive_done (channel);
 
   if ((ok % 20) == 0)
   {
@@ -431,7 +431,7 @@ data_callback (void *cls, struct GNUNET_MESH_Channel *channel,
     {
       GNUNET_SCHEDULER_cancel (disconnect_task);
       disconnect_task = GNUNET_SCHEDULER_add_delayed (SHORT_TIME,
-                                                      &disconnect_mesh_peers,
+                                                      &disconnect_cadet_peers,
                                                       (void *) __LINE__);
     }
   }
@@ -480,7 +480,7 @@ data_callback (void *cls, struct GNUNET_MESH_Channel *channel,
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, " received data %u\n", data_received);
     if (SPEED != test || (ok_goal - 2) == ok)
     {
-      GNUNET_MESH_notify_transmit_ready (channel, GNUNET_NO,
+      GNUNET_CADET_notify_transmit_ready (channel, GNUNET_NO,
                                          GNUNET_TIME_UNIT_FOREVER_REL,
                                          size_payload, &tmt_rdy, (void *) 1L);
       return GNUNET_OK;
@@ -497,7 +497,7 @@ data_callback (void *cls, struct GNUNET_MESH_Channel *channel,
     {
       data_ack++;
       GNUNET_log (GNUNET_ERROR_TYPE_INFO, " received ack %u\n", data_ack);
-      GNUNET_MESH_notify_transmit_ready (channel, GNUNET_NO,
+      GNUNET_CADET_notify_transmit_ready (channel, GNUNET_NO,
                                          GNUNET_TIME_UNIT_FOREVER_REL,
                                          size_payload, &tmt_rdy, (void *) 1L);
       if (data_ack < TOTAL_PACKETS && SPEED != test)
@@ -508,12 +508,12 @@ data_callback (void *cls, struct GNUNET_MESH_Channel *channel,
     }
     if (test == P2P_SIGNAL)
     {
-      GNUNET_MESH_channel_destroy (incoming_ch);
+      GNUNET_CADET_channel_destroy (incoming_ch);
       incoming_ch = NULL;
     }
     else
     {
-      GNUNET_MESH_channel_destroy (ch);
+      GNUNET_CADET_channel_destroy (ch);
       ch = NULL;
     }
   }
@@ -522,7 +522,7 @@ data_callback (void *cls, struct GNUNET_MESH_Channel *channel,
   {
     GNUNET_SCHEDULER_cancel (disconnect_task);
     disconnect_task = GNUNET_SCHEDULER_add_delayed (SHORT_TIME,
-                                                    &disconnect_mesh_peers,
+                                                    &disconnect_cadet_peers,
                                                     (void *) __LINE__);
   }
 
@@ -551,7 +551,7 @@ stats_cont (void *cls, struct GNUNET_TESTBED_Operation *op, const char *emsg)
 
   if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
     GNUNET_SCHEDULER_cancel (disconnect_task);
-  disconnect_task = GNUNET_SCHEDULER_add_now (&disconnect_mesh_peers,
+  disconnect_task = GNUNET_SCHEDULER_add_now (&disconnect_cadet_peers,
                                               (void *) __LINE__);
 
 }
@@ -604,9 +604,9 @@ check_keepalives (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   disconnect_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "check keepalives\n");
-  GNUNET_MESH_channel_destroy (ch);
+  GNUNET_CADET_channel_destroy (ch);
   stats_op = GNUNET_TESTBED_get_statistics (5, testbed_peers,
-                                            "mesh", NULL,
+                                            "cadet", NULL,
                                             stats_iterator, stats_cont, NULL);
 }
 
@@ -614,7 +614,7 @@ check_keepalives (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /**
  * Handlers, for diverse services
  */
-static struct GNUNET_MESH_MessageHandler handlers[] = {
+static struct GNUNET_CADET_MessageHandler handlers[] = {
   {&data_callback, 1, sizeof (struct GNUNET_MessageHeader)},
   {NULL, 0, 0}
 };
@@ -633,9 +633,9 @@ static struct GNUNET_MESH_MessageHandler handlers[] = {
  *         (can be NULL -- that's not an error).
  */
 static void *
-incoming_channel (void *cls, struct GNUNET_MESH_Channel *channel,
+incoming_channel (void *cls, struct GNUNET_CADET_Channel *channel,
                  const struct GNUNET_PeerIdentity *initiator,
-                 uint32_t port, enum GNUNET_MESH_ChannelOption options)
+                 uint32_t port, enum GNUNET_CADET_ChannelOption options)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Incoming channel from %s to peer %d\n",
@@ -662,7 +662,7 @@ incoming_channel (void *cls, struct GNUNET_MESH_Channel *channel,
     }
     else
       disconnect_task = GNUNET_SCHEDULER_add_delayed (SHORT_TIME,
-                                                      &disconnect_mesh_peers,
+                                                      &disconnect_cadet_peers,
                                                       (void *) __LINE__);
   }
 
@@ -673,13 +673,13 @@ incoming_channel (void *cls, struct GNUNET_MESH_Channel *channel,
  * Function called whenever an inbound channel is destroyed.  Should clean up
  * any associated state.
  *
- * @param cls closure (set from GNUNET_MESH_connect)
+ * @param cls closure (set from GNUNET_CADET_connect)
  * @param channel connection to the other end (henceforth invalid)
  * @param channel_ctx place where local state associated
  *                   with the channel is stored
  */
 static void
-channel_cleaner (void *cls, const struct GNUNET_MESH_Channel *channel,
+channel_cleaner (void *cls, const struct GNUNET_CADET_Channel *channel,
                  void *channel_ctx)
 {
   long i = (long) cls;
@@ -709,7 +709,7 @@ channel_cleaner (void *cls, const struct GNUNET_MESH_Channel *channel,
   if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
   {
     GNUNET_SCHEDULER_cancel (disconnect_task);
-    disconnect_task = GNUNET_SCHEDULER_add_now (&disconnect_mesh_peers,
+    disconnect_task = GNUNET_SCHEDULER_add_now (&disconnect_cadet_peers,
                                                 (void *) __LINE__);
   }
 
@@ -718,7 +718,7 @@ channel_cleaner (void *cls, const struct GNUNET_MESH_Channel *channel,
 
 
 /**
- * START THE TESTCASE ITSELF, AS WE ARE CONNECTED TO THE MESH SERVICES.
+ * START THE TESTCASE ITSELF, AS WE ARE CONNECTED TO THE CADET SERVICES.
  *
  * Testcase continues when the root receives confirmation of connected peers,
  * on callback funtion ch.
@@ -729,7 +729,7 @@ channel_cleaner (void *cls, const struct GNUNET_MESH_Channel *channel,
 static void
 do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  enum GNUNET_MESH_ChannelOption flags;
+  enum GNUNET_CADET_ChannelOption flags;
 
   if ((GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason) != 0)
     return;
@@ -741,16 +741,16 @@ do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_SCHEDULER_cancel (disconnect_task);
   }
 
-  flags = GNUNET_MESH_OPTION_DEFAULT;
+  flags = GNUNET_CADET_OPTION_DEFAULT;
   if (SPEED_REL == test)
   {
     test = SPEED;
-    flags |= GNUNET_MESH_OPTION_RELIABLE;
+    flags |= GNUNET_CADET_OPTION_RELIABLE;
   }
-  ch = GNUNET_MESH_channel_create (h1, NULL, p_id[1], 1, flags);
+  ch = GNUNET_CADET_channel_create (h1, NULL, p_id[1], 1, flags);
 
   disconnect_task = GNUNET_SCHEDULER_add_delayed (SHORT_TIME,
-                                                  &disconnect_mesh_peers,
+                                                  &disconnect_cadet_peers,
                                                   (void *) __LINE__);
   if (KEEPALIVE == test)
     return; /* Don't send any data. */
@@ -760,7 +760,7 @@ do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   data_ack = 0;
   data_received = 0;
   data_sent = 0;
-  GNUNET_MESH_notify_transmit_ready (ch, GNUNET_NO,
+  GNUNET_CADET_notify_transmit_ready (ch, GNUNET_NO,
                                      GNUNET_TIME_UNIT_FOREVER_REL,
                                      size_payload, &tmt_rdy, (void *) 1L);
 }
@@ -804,27 +804,27 @@ pi_cb (void *cls,
  * test main: start test when all peers are connected
  *
  * @param cls Closure.
- * @param ctx Argument to give to GNUNET_MESH_TEST_cleanup on test end.
+ * @param ctx Argument to give to GNUNET_CADET_TEST_cleanup on test end.
  * @param num_peers Number of peers that are running.
  * @param peers Array of peers.
- * @param meshes Handle to each of the MESHs of the peers.
+ * @param cadetes Handle to each of the CADETs of the peers.
  */
 static void
 tmain (void *cls,
-       struct GNUNET_MESH_TEST_Context *ctx,
+       struct GNUNET_CADET_TEST_Context *ctx,
        unsigned int num_peers,
        struct GNUNET_TESTBED_Peer **peers,
-       struct GNUNET_MESH_Handle **meshes)
+       struct GNUNET_CADET_Handle **cadetes)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test main\n");
   ok = 0;
   test_ctx = ctx;
   peers_running = num_peers;
   testbed_peers = peers;
-  h1 = meshes[0];
-  h2 = meshes[num_peers - 1];
+  h1 = cadetes[0];
+  h2 = cadetes[num_peers - 1];
   disconnect_task = GNUNET_SCHEDULER_add_delayed (SHORT_TIME,
-                                                  &disconnect_mesh_peers,
+                                                  &disconnect_cadet_peers,
                                                   (void *) __LINE__);
   shutdown_handle = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                                   &shutdown_task, NULL);
@@ -849,24 +849,24 @@ main (int argc, char *argv[])
   const char *config_file;
 
   GNUNET_log_setup ("test", "DEBUG", NULL);
-  config_file = "test_mesh.conf";
+  config_file = "test_cadet.conf";
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Start\n");
-  if (strstr (argv[0], "_mesh_forward") != NULL)
+  if (strstr (argv[0], "_cadet_forward") != NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "FORWARD\n");
     test = FORWARD;
     test_name = "unicast";
     ok_goal = 4;
   }
-  else if (strstr (argv[0], "_mesh_signal") != NULL)
+  else if (strstr (argv[0], "_cadet_signal") != NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "SIGNAL\n");
     test = P2P_SIGNAL;
     test_name = "signal";
     ok_goal = 4;
   }
-  else if (strstr (argv[0], "_mesh_speed_ack") != NULL)
+  else if (strstr (argv[0], "_cadet_speed_ack") != NULL)
   {
     /* Test is supposed to generate the following callbacks:
      * 1 incoming channel (@dest)
@@ -879,7 +879,7 @@ main (int argc, char *argv[])
     test = SPEED_ACK;
     test_name = "speed ack";
   }
-  else if (strstr (argv[0], "_mesh_speed") != NULL)
+  else if (strstr (argv[0], "_cadet_speed") != NULL)
   {
     /* Test is supposed to generate the following callbacks:
      * 1 incoming channel (@dest)
@@ -894,7 +894,7 @@ main (int argc, char *argv[])
     {
       test = SPEED_REL;
       test_name = "speed reliable";
-      config_file = "test_mesh_drop.conf";
+      config_file = "test_cadet_drop.conf";
     }
     else
     {
@@ -929,7 +929,7 @@ main (int argc, char *argv[])
   p_ids = 0;
   ports[0] = 1;
   ports[1] = 0;
-  GNUNET_MESH_TEST_run ("test_mesh_small",
+  GNUNET_CADET_TEST_run ("test_cadet_small",
                         config_file,
                         5,
                         &tmain,
@@ -949,5 +949,5 @@ main (int argc, char *argv[])
   return 0;
 }
 
-/* end of test_mesh.c */
+/* end of test_cadet.c */
 

@@ -384,7 +384,7 @@ handle_call_audio_message (void *cls,
     break;
   case CS_SUSPENDED_CALLEE:
   case CS_SUSPENDED_BOTH:
-    /* can (rarely) also happen: other peer suspended, but mesh might
+    /* can (rarely) also happen: other peer suspended, but cadet might
        have had delayed data on the unreliable channel */
     break;
   case CS_ACTIVE:

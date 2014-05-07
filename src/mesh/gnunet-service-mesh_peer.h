@@ -19,15 +19,15 @@
 */
 
 /**
- * @file mesh/gnunet-service-mesh_peer.h
- * @brief mesh service; dealing with remote peers
+ * @file cadet/gnunet-service-cadet_peer.h
+ * @brief cadet service; dealing with remote peers
  * @author Bartlomiej Polot
  *
- * All functions in this file should use the prefix GMP (Gnunet Mesh Peer)
+ * All functions in this file should use the prefix GMP (Gnunet Cadet Peer)
  */
 
-#ifndef GNUNET_SERVICE_MESH_PEER_H
-#define GNUNET_SERVICE_MESH_PEER_H
+#ifndef GNUNET_SERVICE_CADET_PEER_H
+#define GNUNET_SERVICE_CADET_PEER_H
 
 #ifdef __cplusplus
 extern "C"
@@ -43,14 +43,14 @@ extern "C"
 /**
  * Struct containing all information regarding a given peer
  */
-struct MeshPeer;
+struct CadetPeer;
 
 /**
  * Struct containing info about a queued transmission to this peer
  */
-struct MeshPeerQueue;
+struct CadetPeerQueue;
 
-#include "gnunet-service-mesh_connection.h"
+#include "gnunet-service-cadet_connection.h"
 
 /**
  * Callback called when a queued message is sent.
@@ -65,7 +65,7 @@ struct MeshPeerQueue;
  * @param wait Time spent waiting for core (only the time for THIS message)
  */
 typedef void (*GMP_sent) (void *cls,
-                          struct MeshConnection *c, int sent,
+                          struct CadetConnection *c, int sent,
                           uint16_t type, uint32_t pid, int fwd, size_t size,
                           struct GNUNET_TIME_Relative wait);
 
@@ -89,26 +89,26 @@ GMP_shutdown (void);
 
 
 /**
- * Retrieve the MeshPeer stucture associated with the peer, create one
+ * Retrieve the CadetPeer stucture associated with the peer, create one
  * and insert it in the appropriate structures if the peer is not known yet.
  *
  * @param peer_id Full identity of the peer.
  *
  * @return Existing or newly created peer structure.
  */
-struct MeshPeer *
+struct CadetPeer *
 GMP_get (const struct GNUNET_PeerIdentity *peer_id);
 
 
 /**
- * Retrieve the MeshPeer stucture associated with the peer, create one
+ * Retrieve the CadetPeer stucture associated with the peer, create one
  * and insert it in the appropriate structures if the peer is not known yet.
  *
  * @param peer Short identity of the peer.
  *
  * @return Existing or newly created peer structure.
  */
-struct MeshPeer *
+struct CadetPeer *
 GMP_get_short (const GNUNET_PEER_Id peer);
 
 /**
@@ -119,7 +119,7 @@ GMP_get_short (const GNUNET_PEER_Id peer);
  * @param peer Peer to connect to.
  */
 void
-GMP_connect (struct MeshPeer *peer);
+GMP_connect (struct CadetPeer *peer);
 
 /**
  * Free a transmission that was already queued with all resources
@@ -131,7 +131,7 @@ GMP_connect (struct MeshPeer *peer);
  * @param pid PID, if relevant (was sent and was a payload message).
  */
 void
-GMP_queue_destroy (struct MeshPeerQueue *queue, int clear_cls,
+GMP_queue_destroy (struct CadetPeerQueue *queue, int clear_cls,
                    int sent, uint32_t pid);
 
 /**
@@ -150,10 +150,10 @@ GMP_queue_destroy (struct MeshPeerQueue *queue, int clear_cls,
  * @return Handle to cancel the message before it is sent. Once cont is called
  *         message has been sent and therefore the handle is no longer valid.
  */
-struct MeshPeerQueue *
-GMP_queue_add (struct MeshPeer *peer, void *cls, uint16_t type,
+struct CadetPeerQueue *
+GMP_queue_add (struct CadetPeer *peer, void *cls, uint16_t type,
                uint16_t payload_type, uint32_t payload_id,
-               size_t size, struct MeshConnection *c, int fwd,
+               size_t size, struct CadetConnection *c, int fwd,
                GMP_sent cont, void *cont_cls);
 
 /**
@@ -164,7 +164,7 @@ GMP_queue_add (struct MeshPeer *peer, void *cls, uint16_t type,
  *          the sent continuation call.
  */
 void
-GMP_queue_cancel (struct MeshPeer *peer, struct MeshConnection *c);
+GMP_queue_cancel (struct CadetPeer *peer, struct CadetConnection *c);
 
 /**
  * Get the first message for a connection and unqueue it.
@@ -175,10 +175,10 @@ GMP_queue_cancel (struct MeshPeer *peer, struct MeshConnection *c);
  * @return First message for this connection.
  */
 struct GNUNET_MessageHeader *
-GMP_connection_pop (struct MeshPeer *peer, struct MeshConnection *c);
+GMP_connection_pop (struct CadetPeer *peer, struct CadetConnection *c);
 
 void
-GMP_queue_unlock (struct MeshPeer *peer, struct MeshConnection *c);
+GMP_queue_unlock (struct CadetPeer *peer, struct CadetConnection *c);
 
 /**
  * Set tunnel.
@@ -187,7 +187,7 @@ GMP_queue_unlock (struct MeshPeer *peer, struct MeshConnection *c);
  * @param t Tunnel.
  */
 void
-GMP_set_tunnel (struct MeshPeer *peer, struct MeshTunnel3 *t);
+GMP_set_tunnel (struct CadetPeer *peer, struct CadetTunnel3 *t);
 
 /**
  * Check whether there is a direct (core level)  connection to peer.
@@ -197,7 +197,7 @@ GMP_set_tunnel (struct MeshPeer *peer, struct MeshTunnel3 *t);
  * @return #GNUNET_YES if there is a direct connection.
  */
 int
-GMP_is_neighbor (const struct MeshPeer *peer);
+GMP_is_neighbor (const struct CadetPeer *peer);
 
 /**
  * Create and initialize a new tunnel towards a peer, in case it has none.
@@ -207,7 +207,7 @@ GMP_is_neighbor (const struct MeshPeer *peer);
  * @param peer Peer towards which to create the tunnel.
  */
 void
-GMP_add_tunnel (struct MeshPeer *peer);
+GMP_add_tunnel (struct CadetPeer *peer);
 
 /**
  * Add a connection to a neighboring peer.
@@ -222,7 +222,7 @@ GMP_add_tunnel (struct MeshPeer *peer);
  * @return GNUNET_OK on success.
  */
 int
-GMP_add_connection (struct MeshPeer *peer, struct MeshConnection *c);
+GMP_add_connection (struct CadetPeer *peer, struct CadetConnection *c);
 
 /**
  * Add the path to the peer and update the path used to reach it in case this
@@ -236,8 +236,8 @@ GMP_add_connection (struct MeshPeer *peer, struct MeshConnection *c);
  * @return path if path was taken, pointer to existing duplicate if exists
  *         NULL on error.
  */
-struct MeshPeerPath *
-GMP_add_path (struct MeshPeer *peer, struct MeshPeerPath *p, int trusted);
+struct CadetPeerPath *
+GMP_add_path (struct CadetPeer *peer, struct CadetPeerPath *p, int trusted);
 
 /**
  * Add the path to the origin peer and update the path used to reach it in case
@@ -253,9 +253,9 @@ GMP_add_path (struct MeshPeer *peer, struct MeshPeerPath *p, int trusted);
  * @return path if path was taken, pointer to existing duplicate if exists
  *         NULL on error.
  */
-struct MeshPeerPath *
-GMP_add_path_to_origin (struct MeshPeer *peer,
-                        struct MeshPeerPath *path,
+struct CadetPeerPath *
+GMP_add_path_to_origin (struct CadetPeer *peer,
+                        struct CadetPeerPath *path,
                         int trusted);
 
 /**
@@ -265,7 +265,7 @@ GMP_add_path_to_origin (struct MeshPeer *peer,
  * @param confirmed Whether we know if the path works or not.
  */
 void
-GMP_add_path_to_all (const struct MeshPeerPath *p, int confirmed);
+GMP_add_path_to_all (const struct CadetPeerPath *p, int confirmed);
 
 /**
  * Remove any path to the peer that has the extact same peers as the one given.
@@ -274,7 +274,7 @@ GMP_add_path_to_all (const struct MeshPeerPath *p, int confirmed);
  * @param path Path to remove. Is always destroyed .
  */
 void
-GMP_remove_path (struct MeshPeer *peer, struct MeshPeerPath *path);
+GMP_remove_path (struct CadetPeer *peer, struct CadetPeerPath *path);
 
 /**
  * Remove a connection from a neighboring peer.
@@ -285,7 +285,7 @@ GMP_remove_path (struct MeshPeer *peer, struct MeshPeerPath *path);
  * @return GNUNET_OK on success.
  */
 int
-GMP_remove_connection (struct MeshPeer *peer, const struct MeshConnection *c);
+GMP_remove_connection (struct CadetPeer *peer, const struct CadetConnection *c);
 
 /**
  * Start the DHT search for new paths towards the peer: we don't have
@@ -294,7 +294,7 @@ GMP_remove_connection (struct MeshPeer *peer, const struct MeshConnection *c);
  * @param peer Destination peer.
  */
 void
-GMP_start_search (struct MeshPeer *peer);
+GMP_start_search (struct CadetPeer *peer);
 
 /**
  * Stop the DHT search for new paths towards the peer: we already have
@@ -303,7 +303,7 @@ GMP_start_search (struct MeshPeer *peer);
  * @param peer Destination peer.
  */
 void
-GMP_stop_search (struct MeshPeer *peer);
+GMP_stop_search (struct CadetPeer *peer);
 
 /**
  * Get the Full ID of a peer.
@@ -313,7 +313,7 @@ GMP_stop_search (struct MeshPeer *peer);
  * @return Full ID of peer.
  */
 const struct GNUNET_PeerIdentity *
-GMP_get_id (const struct MeshPeer *peer);
+GMP_get_id (const struct CadetPeer *peer);
 
 /**
  * Get the Short ID of a peer.
@@ -323,7 +323,7 @@ GMP_get_id (const struct MeshPeer *peer);
  * @return Short ID of peer.
  */
 GNUNET_PEER_Id
-GMP_get_short_id (const struct MeshPeer *peer);
+GMP_get_short_id (const struct CadetPeer *peer);
 
 /**
  * Get the tunnel towards a peer.
@@ -332,8 +332,8 @@ GMP_get_short_id (const struct MeshPeer *peer);
  *
  * @return Tunnel towards peer.
  */
-struct MeshTunnel3 *
-GMP_get_tunnel (const struct MeshPeer *peer);
+struct CadetTunnel3 *
+GMP_get_tunnel (const struct CadetPeer *peer);
 
 /**
  * Set the hello message.
@@ -342,7 +342,7 @@ GMP_get_tunnel (const struct MeshPeer *peer);
  * @param hello Hello message.
  */
 void
-GMP_set_hello (struct MeshPeer *peer, const struct GNUNET_HELLO_Message *hello);
+GMP_set_hello (struct CadetPeer *peer, const struct GNUNET_HELLO_Message *hello);
 
 /**
  * Get the hello message.
@@ -352,7 +352,7 @@ GMP_set_hello (struct MeshPeer *peer, const struct GNUNET_HELLO_Message *hello);
  * @return Hello message.
  */
 struct GNUNET_HELLO_Message *
-GMP_get_hello (struct MeshPeer *peer);
+GMP_get_hello (struct CadetPeer *peer);
 
 
 /**
@@ -361,7 +361,7 @@ GMP_get_hello (struct MeshPeer *peer);
  * @param peer Peer to whom to connect.
  */
 void
-GMP_try_connect (struct MeshPeer *peer);
+GMP_try_connect (struct CadetPeer *peer);
 
 /**
  * Notify a peer that a link between two other peers is broken. If any path
@@ -372,7 +372,7 @@ GMP_try_connect (struct MeshPeer *peer);
  * @param peer2 Peer whose link is broken.
  */
 void
-GMP_notify_broken_link (struct MeshPeer *peer,
+GMP_notify_broken_link (struct CadetPeer *peer,
                         struct GNUNET_PeerIdentity *peer1,
                         struct GNUNET_PeerIdentity *peer2);
 
@@ -384,7 +384,7 @@ GMP_notify_broken_link (struct MeshPeer *peer,
  * @return Number of known paths.
  */
 unsigned int
-GMP_count_paths (const struct MeshPeer *peer);
+GMP_count_paths (const struct CadetPeer *peer);
 
 /**
  * Iterate all known peers.
@@ -403,7 +403,7 @@ GMP_iterate_all (GNUNET_CONTAINER_PeerMapIterator iter, void *cls);
  * @return Static string for it's ID.
  */
 const char *
-GMP_2s (const struct MeshPeer *peer);
+GMP_2s (const struct CadetPeer *peer);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */
@@ -413,6 +413,6 @@ GMP_2s (const struct MeshPeer *peer);
 }
 #endif
 
-/* ifndef GNUNET_MESH_SERVICE_PEER_H */
+/* ifndef GNUNET_CADET_SERVICE_PEER_H */
 #endif
-/* end of gnunet-mesh-service_peer.h */
+/* end of gnunet-cadet-service_peer.h */

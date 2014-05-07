@@ -30,7 +30,7 @@
 #include "gnunet_applications.h"
 #include "gnunet_constants.h"
 #include "gnunet_signatures.h"
-#include "gnunet_mesh_service.h"
+#include "gnunet_cadet_service.h"
 #include "gnunet_conversation_service.h"
 #include "conversation.h"
 
@@ -44,8 +44,8 @@
 
 
 /**
- * A line connects a local client with a mesh channel (or, if it is an
- * open line, is waiting for a mesh channel).
+ * A line connects a local client with a cadet channel (or, if it is an
+ * open line, is waiting for a cadet channel).
  */
 struct Line;
 
@@ -88,7 +88,7 @@ enum ChannelStatus
 
 
 /**
- * A `struct Channel` represents a mesh channel, which is a P2P
+ * A `struct Channel` represents a cadet channel, which is a P2P
  * connection to another conversation service.  Multiple channels can
  * be attached the the same `struct Line`, which represents a local
  * client.  We keep them in a linked list.
@@ -114,17 +114,17 @@ struct Channel
   /**
    * Handle for the reliable channel (contol data)
    */
-  struct GNUNET_MESH_Channel *channel_reliable;
+  struct GNUNET_CADET_Channel *channel_reliable;
 
   /**
    * Handle for unreliable channel (audio data)
    */
-  struct GNUNET_MESH_Channel *channel_unreliable;
+  struct GNUNET_CADET_Channel *channel_unreliable;
 
   /**
    * Transmit handle for pending audio messages
    */
-  struct GNUNET_MESH_TransmitHandle *unreliable_mth;
+  struct GNUNET_CADET_TransmitHandle *unreliable_mth;
 
   /**
    * Message queue for control messages
@@ -175,7 +175,7 @@ struct Channel
 
 
 /**
- * A `struct Line` connects a local client with mesh channels.
+ * A `struct Line` connects a local client with cadet channels.
  */
 struct Line
 {
@@ -228,9 +228,9 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
 static struct GNUNET_SERVER_NotificationContext *nc;
 
 /**
- * Handle for mesh
+ * Handle for cadet
  */
-static struct GNUNET_MESH_Handle *mesh;
+static struct GNUNET_CADET_Handle *cadet;
 
 /**
  * Identity of this peer.
@@ -304,7 +304,7 @@ handle_client_pickup_message (void *cls,
 {
   const struct ClientPhonePickupMessage *msg;
   struct GNUNET_MQ_Envelope *e;
-  struct MeshPhonePickupMessage *mppm;
+  struct CadetPhonePickupMessage *mppm;
   struct Line *line;
   struct Channel *ch;
 
@@ -350,9 +350,9 @@ handle_client_pickup_message (void *cls,
   }
   GNUNET_break (CS_CALLEE_CONNECTED == ch->status);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Sending PICK_UP message to mesh\n");
+              "Sending PICK_UP message to cadet\n");
   e = GNUNET_MQ_msg (mppm,
-                     GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_PHONE_PICK_UP);
+                     GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_PICK_UP);
   GNUNET_MQ_send (ch->reliable_mq, e);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
@@ -364,13 +364,13 @@ handle_client_pickup_message (void *cls,
  * @param ch channel to destroy.
  */
 static void
-destroy_line_mesh_channels (struct Channel *ch)
+destroy_line_cadet_channels (struct Channel *ch)
 {
   struct Line *line = ch->line;
-  struct GNUNET_MESH_Channel *t;
+  struct GNUNET_CADET_Channel *t;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Destroying mesh channels\n");
+              "Destroying cadet channels\n");
   if (NULL != ch->reliable_mq)
   {
     GNUNET_MQ_destroy (ch->reliable_mq);
@@ -378,18 +378,18 @@ destroy_line_mesh_channels (struct Channel *ch)
   }
   if (NULL != ch->unreliable_mth)
   {
-    GNUNET_MESH_notify_transmit_ready_cancel (ch->unreliable_mth);
+    GNUNET_CADET_notify_transmit_ready_cancel (ch->unreliable_mth);
     ch->unreliable_mth = NULL;
   }
   if (NULL != (t = ch->channel_unreliable))
   {
     ch->channel_unreliable = NULL;
-    GNUNET_MESH_channel_destroy (t);
+    GNUNET_CADET_channel_destroy (t);
   }
   if (NULL != (t = ch->channel_reliable))
   {
     ch->channel_reliable = NULL;
-    GNUNET_MESH_channel_destroy (t);
+    GNUNET_CADET_channel_destroy (t);
   }
   GNUNET_CONTAINER_DLL_remove (line->channel_head,
                                line->channel_tail,
@@ -419,7 +419,7 @@ mq_done_finish_caller_shutdown (void *cls)
     GNUNET_break (0);
     break;
   case CS_CALLEE_SHUTDOWN:
-    destroy_line_mesh_channels (ch);
+    destroy_line_cadet_channels (ch);
     break;
   case CS_CALLER_CALLING:
     GNUNET_break (0);
@@ -428,7 +428,7 @@ mq_done_finish_caller_shutdown (void *cls)
     GNUNET_break (0);
     break;
   case CS_CALLER_SHUTDOWN:
-    destroy_line_mesh_channels (ch);
+    destroy_line_cadet_channels (ch);
     break;
   }
 }
@@ -448,7 +448,7 @@ handle_client_hangup_message (void *cls,
 {
   const struct ClientPhoneHangupMessage *msg;
   struct GNUNET_MQ_Envelope *e;
-  struct MeshPhoneHangupMessage *mhum;
+  struct CadetPhoneHangupMessage *mhum;
   struct Line *line;
   struct Channel *ch;
 
@@ -497,9 +497,9 @@ handle_client_hangup_message (void *cls,
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Sending HANG_UP message via mesh\n");
+              "Sending HANG_UP message via cadet\n");
   e = GNUNET_MQ_msg (mhum,
-                     GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_PHONE_HANG_UP);
+                     GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_HANG_UP);
   GNUNET_MQ_notify_sent (e,
                          &mq_done_finish_caller_shutdown,
                          ch);
@@ -522,7 +522,7 @@ handle_client_suspend_message (void *cls,
 {
   const struct ClientPhoneSuspendMessage *msg;
   struct GNUNET_MQ_Envelope *e;
-  struct MeshPhoneSuspendMessage *mhum;
+  struct CadetPhoneSuspendMessage *mhum;
   struct Line *line;
   struct Channel *ch;
 
@@ -578,9 +578,9 @@ handle_client_suspend_message (void *cls,
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Sending SUSPEND message via mesh\n");
+              "Sending SUSPEND message via cadet\n");
   e = GNUNET_MQ_msg (mhum,
-                     GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_PHONE_SUSPEND);
+                     GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_SUSPEND);
   GNUNET_MQ_send (ch->reliable_mq, e);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
@@ -600,7 +600,7 @@ handle_client_resume_message (void *cls,
 {
   const struct ClientPhoneResumeMessage *msg;
   struct GNUNET_MQ_Envelope *e;
-  struct MeshPhoneResumeMessage *mhum;
+  struct CadetPhoneResumeMessage *mhum;
   struct Line *line;
   struct Channel *ch;
 
@@ -656,9 +656,9 @@ handle_client_resume_message (void *cls,
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Sending RESUME message via mesh\n");
+              "Sending RESUME message via cadet\n");
   e = GNUNET_MQ_msg (mhum,
-                     GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_PHONE_RESUME);
+                     GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_RESUME);
   GNUNET_MQ_send (ch->reliable_mq, e);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
@@ -680,7 +680,7 @@ handle_client_call_message (void *cls,
   struct Line *line;
   struct Channel *ch;
   struct GNUNET_MQ_Envelope *e;
-  struct MeshPhoneRingMessage *ring;
+  struct CadetPhoneRingMessage *ring;
 
   msg = (const struct ClientCallMessage *) message;
   line = GNUNET_SERVER_client_get_user_context (client, struct Line);
@@ -706,13 +706,13 @@ handle_client_call_message (void *cls,
   ch->target = msg->target;
   ch->remote_line = ntohl (msg->line);
   ch->status = CS_CALLER_CALLING;
-  ch->channel_reliable = GNUNET_MESH_channel_create (mesh,
+  ch->channel_reliable = GNUNET_CADET_channel_create (cadet,
                                                      ch,
                                                      &msg->target,
                                                      GNUNET_APPLICATION_TYPE_CONVERSATION_CONTROL,
-                                                     GNUNET_MESH_OPTION_RELIABLE);
-  ch->reliable_mq = GNUNET_MESH_mq_create (ch->channel_reliable);
-  e = GNUNET_MQ_msg (ring, GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_PHONE_RING);
+                                                     GNUNET_CADET_OPTION_RELIABLE);
+  ch->reliable_mq = GNUNET_CADET_mq_create (ch->channel_reliable);
+  e = GNUNET_MQ_msg (ring, GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_RING);
   ring->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_CONVERSATION_RING);
   ring->purpose.size = htonl (sizeof (struct GNUNET_PeerIdentity) * 2 +
                               sizeof (struct GNUNET_TIME_AbsoluteNBO) +
@@ -729,14 +729,14 @@ handle_client_call_message (void *cls,
                             &ring->purpose,
                             &ring->signature);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Sending RING message via mesh\n");
+              "Sending RING message via cadet\n");
   GNUNET_MQ_send (ch->reliable_mq, e);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
 
 /**
- * Transmit audio data via unreliable mesh channel.
+ * Transmit audio data via unreliable cadet channel.
  *
  * @param cls the `struct Channel` we are transmitting for
  * @param size number of bytes available in @a buf
@@ -749,26 +749,26 @@ transmit_line_audio (void *cls,
                      void *buf)
 {
   struct Channel *ch = cls;
-  struct MeshAudioMessage *mam = buf;
+  struct CadetAudioMessage *mam = buf;
 
   ch->unreliable_mth = NULL;
   if ( (NULL == buf) ||
-       (size < sizeof (struct MeshAudioMessage) + ch->audio_size) )
+       (size < sizeof (struct CadetAudioMessage) + ch->audio_size) )
     {
     /* eh, other error handling? */
     return 0;
   }
-  mam->header.size = htons (sizeof (struct MeshAudioMessage) + ch->audio_size);
-  mam->header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_AUDIO);
+  mam->header.size = htons (sizeof (struct CadetAudioMessage) + ch->audio_size);
+  mam->header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_AUDIO);
   mam->remote_line = htonl (ch->remote_line);
   mam->source_line = htonl (ch->line->local_line);
   memcpy (&mam[1], ch->audio_data, ch->audio_size);
   GNUNET_free (ch->audio_data);
   ch->audio_data = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Sending %u bytes of audio data from line %u to remote line %u via mesh\n",
+              "Sending %u bytes of audio data from line %u to remote line %u via cadet\n",
               ch->audio_size, ch->line->local_line, ch->remote_line);
-  return sizeof (struct MeshAudioMessage) + ch->audio_size;
+  return sizeof (struct CadetAudioMessage) + ch->audio_size;
 }
 
 
@@ -825,7 +825,7 @@ handle_client_audio_message (void *cls,
   case CS_CALLEE_SHUTDOWN:
   case CS_CALLER_SHUTDOWN:
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
-                "Mesh audio channel in shutdown; audio data dropped\n");
+                "Cadet audio channel in shutdown; audio data dropped\n");
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
@@ -838,7 +838,7 @@ handle_client_audio_message (void *cls,
   if (NULL == ch->channel_unreliable)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO | GNUNET_ERROR_TYPE_BULK,
-                _("Mesh audio channel not ready; audio data dropped\n"));
+                _("Cadet audio channel not ready; audio data dropped\n"));
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
@@ -848,7 +848,7 @@ handle_client_audio_message (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Bandwidth insufficient; dropping previous audio data segment with %u bytes\n",
                 (unsigned int) ch->audio_size);
-    GNUNET_MESH_notify_transmit_ready_cancel (ch->unreliable_mth);
+    GNUNET_CADET_notify_transmit_ready_cancel (ch->unreliable_mth);
     ch->unreliable_mth = NULL;
     GNUNET_free (ch->audio_data);
     ch->audio_data = NULL;
@@ -858,10 +858,10 @@ handle_client_audio_message (void *cls,
   memcpy (ch->audio_data,
           &msg[1],
           size);
-  ch->unreliable_mth = GNUNET_MESH_notify_transmit_ready (ch->channel_unreliable,
+  ch->unreliable_mth = GNUNET_CADET_notify_transmit_ready (ch->channel_unreliable,
                                                           GNUNET_NO,
                                                           GNUNET_TIME_UNIT_FOREVER_REL,
-                                                          sizeof (struct MeshAudioMessage)
+                                                          sizeof (struct CadetAudioMessage)
                                                           + ch->audio_size,
                                                           &transmit_line_audio,
                                                           ch);
@@ -873,19 +873,19 @@ handle_client_audio_message (void *cls,
  * We are done signalling shutdown to the other peer.
  * Destroy the channel.
  *
- * @param cls the `struct GNUNET_MESH_channel` to destroy
+ * @param cls the `struct GNUNET_CADET_channel` to destroy
  */
 static void
 mq_done_destroy_channel (void *cls)
 {
-  struct GNUNET_MESH_Channel *channel = cls;
+  struct GNUNET_CADET_Channel *channel = cls;
 
-  GNUNET_MESH_channel_destroy (channel);
+  GNUNET_CADET_channel_destroy (channel);
 }
 
 
 /**
- * Function to handle a ring message incoming over mesh
+ * Function to handle a ring message incoming over cadet
  *
  * @param cls closure, NULL
  * @param channel the channel over which the message arrived
@@ -895,20 +895,20 @@ mq_done_destroy_channel (void *cls)
  * @return #GNUNET_OK
  */
 static int
-handle_mesh_ring_message (void *cls,
-                          struct GNUNET_MESH_Channel *channel,
+handle_cadet_ring_message (void *cls,
+                          struct GNUNET_CADET_Channel *channel,
                           void **channel_ctx,
                           const struct GNUNET_MessageHeader *message)
 {
-  const struct MeshPhoneRingMessage *msg;
+  const struct CadetPhoneRingMessage *msg;
   struct Line *line;
   struct Channel *ch;
   struct GNUNET_MQ_Envelope *e;
-  struct MeshPhoneHangupMessage *hang_up;
+  struct CadetPhoneHangupMessage *hang_up;
   struct ClientPhoneRingMessage cring;
   struct GNUNET_MQ_Handle *reliable_mq;
 
-  msg = (const struct MeshPhoneRingMessage *) message;
+  msg = (const struct CadetPhoneRingMessage *) message;
   if ( (msg->purpose.size != htonl (sizeof (struct GNUNET_PeerIdentity) * 2 +
                                     sizeof (struct GNUNET_TIME_AbsoluteNBO) +
                                     sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
@@ -922,7 +922,7 @@ handle_mesh_ring_message (void *cls,
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
-  GNUNET_MESH_receive_done (channel); /* needed? */
+  GNUNET_CADET_receive_done (channel); /* needed? */
   for (line = lines_head; NULL != line; line = line->next)
     if (line->local_line == ntohl (msg->remote_line))
       break;
@@ -932,11 +932,11 @@ handle_mesh_ring_message (void *cls,
                 _("No available phone for incoming call on line %u, sending HANG_UP signal\n"),
                 ntohl (msg->remote_line));
     e = GNUNET_MQ_msg (hang_up,
-                       GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_PHONE_HANG_UP);
+                       GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_HANG_UP);
     GNUNET_MQ_notify_sent (e,
                            &mq_done_destroy_channel,
                            channel);
-    reliable_mq = GNUNET_MESH_mq_create (channel);
+    reliable_mq = GNUNET_CADET_mq_create (channel);
     GNUNET_MQ_send (reliable_mq, e);
     /* FIXME: do we need to clean up reliable_mq somehow/somewhere? */
     return GNUNET_OK;
@@ -949,7 +949,7 @@ handle_mesh_ring_message (void *cls,
   ch->status = CS_CALLEE_RINGING;
   ch->remote_line = ntohl (msg->source_line);
   ch->channel_reliable = channel;
-  ch->reliable_mq = GNUNET_MESH_mq_create (ch->channel_reliable);
+  ch->reliable_mq = GNUNET_CADET_mq_create (ch->channel_reliable);
   ch->cid = line->cid_gen++;
   ch->target = msg->source;
   *channel_ctx = ch;
@@ -969,7 +969,7 @@ handle_mesh_ring_message (void *cls,
 
 
 /**
- * Function to handle a hangup message incoming over mesh
+ * Function to handle a hangup message incoming over cadet
  *
  * @param cls closure, NULL
  * @param channel the channel over which the message arrived
@@ -979,8 +979,8 @@ handle_mesh_ring_message (void *cls,
  * @return #GNUNET_OK
  */
 static int
-handle_mesh_hangup_message (void *cls,
-                            struct GNUNET_MESH_Channel *channel,
+handle_cadet_hangup_message (void *cls,
+                            struct GNUNET_CADET_Channel *channel,
                             void **channel_ctx,
                             const struct GNUNET_MessageHeader *message)
 {
@@ -1001,8 +1001,8 @@ handle_mesh_hangup_message (void *cls,
   hup.header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_HANG_UP);
   hup.cid = ch->cid;
   status = ch->status;
-  GNUNET_MESH_receive_done (channel);
-  destroy_line_mesh_channels (ch);
+  GNUNET_CADET_receive_done (channel);
+  destroy_line_cadet_channels (ch);
   switch (status)
   {
   case CS_CALLEE_RINGING:
@@ -1027,7 +1027,7 @@ handle_mesh_hangup_message (void *cls,
 
 
 /**
- * Function to handle a pickup message incoming over mesh
+ * Function to handle a pickup message incoming over cadet
  *
  * @param cls closure, NULL
  * @param channel the channel over which the message arrived
@@ -1037,8 +1037,8 @@ handle_mesh_hangup_message (void *cls,
  * @return #GNUNET_OK
  */
 static int
-handle_mesh_pickup_message (void *cls,
-                            struct GNUNET_MESH_Channel *channel,
+handle_cadet_pickup_message (void *cls,
+                            struct GNUNET_CADET_Channel *channel,
                             void **channel_ctx,
                             const struct GNUNET_MessageHeader *message)
 {
@@ -1053,17 +1053,17 @@ handle_mesh_pickup_message (void *cls,
     return GNUNET_SYSERR;
   }
   line = ch->line;
-  GNUNET_MESH_receive_done (channel);
+  GNUNET_CADET_receive_done (channel);
   switch (ch->status)
   {
   case CS_CALLEE_RINGING:
   case CS_CALLEE_CONNECTED:
     GNUNET_break_op (0);
-    destroy_line_mesh_channels (ch);
+    destroy_line_cadet_channels (ch);
     return GNUNET_SYSERR;
   case CS_CALLEE_SHUTDOWN:
     GNUNET_break_op (0);
-    destroy_line_mesh_channels (ch);
+    destroy_line_cadet_channels (ch);
     break;
   case CS_CALLER_CALLING:
     ch->status = CS_CALLER_CONNECTED;
@@ -1085,11 +1085,11 @@ handle_mesh_pickup_message (void *cls,
                                               line->client,
                                               &pick.header,
                                               GNUNET_NO);
-  ch->channel_unreliable = GNUNET_MESH_channel_create (mesh,
+  ch->channel_unreliable = GNUNET_CADET_channel_create (cadet,
                                                        ch,
                                                        &ch->target,
                                                        GNUNET_APPLICATION_TYPE_CONVERSATION_AUDIO,
-                                                       GNUNET_MESH_OPTION_DEFAULT);
+                                                       GNUNET_CADET_OPTION_DEFAULT);
   if (NULL == ch->channel_unreliable)
   {
     GNUNET_break (0);
@@ -1099,7 +1099,7 @@ handle_mesh_pickup_message (void *cls,
 
 
 /**
- * Function to handle a suspend message incoming over mesh
+ * Function to handle a suspend message incoming over cadet
  *
  * @param cls closure, NULL
  * @param channel the channel over which the message arrived
@@ -1109,8 +1109,8 @@ handle_mesh_pickup_message (void *cls,
  * @return #GNUNET_OK
  */
 static int
-handle_mesh_suspend_message (void *cls,
-                             struct GNUNET_MESH_Channel *channel,
+handle_cadet_suspend_message (void *cls,
+                             struct GNUNET_CADET_Channel *channel,
                              void **channel_ctx,
                              const struct GNUNET_MessageHeader *message)
 {
@@ -1128,7 +1128,7 @@ handle_mesh_suspend_message (void *cls,
   suspend.header.size = htons (sizeof (suspend));
   suspend.header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_SUSPEND);
   suspend.cid = ch->cid;
-  GNUNET_MESH_receive_done (channel);
+  GNUNET_CADET_receive_done (channel);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Suspending channel CID: %u(%u:%u)\n",
               ch->cid, ch->remote_line, line->local_line);
@@ -1160,7 +1160,7 @@ handle_mesh_suspend_message (void *cls,
 
 
 /**
- * Function to handle a resume message incoming over mesh
+ * Function to handle a resume message incoming over cadet
  *
  * @param cls closure, NULL
  * @param channel the channel over which the message arrived
@@ -1170,8 +1170,8 @@ handle_mesh_suspend_message (void *cls,
  * @return #GNUNET_OK
  */
 static int
-handle_mesh_resume_message (void *cls,
-                             struct GNUNET_MESH_Channel *channel,
+handle_cadet_resume_message (void *cls,
+                             struct GNUNET_CADET_Channel *channel,
                              void **channel_ctx,
                              const struct GNUNET_MessageHeader *message)
 {
@@ -1189,7 +1189,7 @@ handle_mesh_resume_message (void *cls,
   resume.header.size = htons (sizeof (resume));
   resume.header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_RESUME);
   resume.cid = ch->cid;
-  GNUNET_MESH_receive_done (channel);
+  GNUNET_CADET_receive_done (channel);
   if (GNUNET_YES != ch->suspended_remote)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1224,7 +1224,7 @@ handle_mesh_resume_message (void *cls,
 
 
 /**
- * Function to handle an audio message incoming over mesh
+ * Function to handle an audio message incoming over cadet
  *
  * @param cls closure, NULL
  * @param channel the channel over which the message arrived
@@ -1234,25 +1234,25 @@ handle_mesh_resume_message (void *cls,
  * @return #GNUNET_OK
  */
 static int
-handle_mesh_audio_message (void *cls,
-                           struct GNUNET_MESH_Channel *channel,
+handle_cadet_audio_message (void *cls,
+                           struct GNUNET_CADET_Channel *channel,
                            void **channel_ctx,
                            const struct GNUNET_MessageHeader *message)
 {
-  const struct MeshAudioMessage *msg;
+  const struct CadetAudioMessage *msg;
   struct Channel *ch = *channel_ctx;
   struct Line *line;
   struct GNUNET_PeerIdentity sender;
-  size_t msize = ntohs (message->size) - sizeof (struct MeshAudioMessage);
+  size_t msize = ntohs (message->size) - sizeof (struct CadetAudioMessage);
   char buf[msize + sizeof (struct ClientAudioMessage)];
   struct ClientAudioMessage *cam;
-  const union GNUNET_MESH_ChannelInfo *info;
+  const union GNUNET_CADET_ChannelInfo *info;
 
-  msg = (const struct MeshAudioMessage *) message;
+  msg = (const struct CadetAudioMessage *) message;
   if (NULL == ch)
   {
-    info = GNUNET_MESH_channel_get_info (channel,
-                                         GNUNET_MESH_OPTION_PEER);
+    info = GNUNET_CADET_channel_get_info (channel,
+                                         GNUNET_CADET_OPTION_PEER);
     if (NULL == info)
     {
       GNUNET_break (0);
@@ -1293,13 +1293,13 @@ handle_mesh_audio_message (void *cls,
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                   "Received %u bytes of AUDIO data on suspended channel CID %u:(%u:%u); dropping\n",
                   msize, ch->cid, ch->remote_line, line->local_line);
-      GNUNET_MESH_receive_done (channel);
+      GNUNET_CADET_receive_done (channel);
       return GNUNET_OK;
     }
     ch->channel_unreliable = channel;
     *channel_ctx = ch;
   }
-  GNUNET_MESH_receive_done (channel);
+  GNUNET_CADET_receive_done (channel);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Forwarding %u bytes of AUDIO data to client CID %u:(%u:%u)\n",
               msize, ch->cid, ch->remote_line, ch->line->local_line);
@@ -1330,9 +1330,9 @@ handle_mesh_audio_message (void *cls,
  */
 static void *
 inbound_channel (void *cls,
-                struct GNUNET_MESH_Channel *channel,
+                struct GNUNET_CADET_Channel *channel,
 		const struct GNUNET_PeerIdentity *initiator,
-                uint32_t port, enum GNUNET_MESH_ChannelOption options)
+                uint32_t port, enum GNUNET_CADET_ChannelOption options)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 	      _("Received incoming channel on port %u\n"),
@@ -1345,7 +1345,7 @@ inbound_channel (void *cls,
  * Function called whenever an inbound channel is destroyed.  Should clean up
  * any associated state.
  *
- * @param cls closure (set from #GNUNET_MESH_connect)
+ * @param cls closure (set from #GNUNET_CADET_connect)
  * @param channel connection to the other end (henceforth invalid)
  * @param channel_ctx place where local state associated
  *                   with the channel is stored;
@@ -1353,7 +1353,7 @@ inbound_channel (void *cls,
  */
 static void
 inbound_end (void *cls,
-             const struct GNUNET_MESH_Channel *channel,
+             const struct GNUNET_CADET_Channel *channel,
 	     void *channel_ctx)
 {
   struct Channel *ch = channel_ctx;
@@ -1363,7 +1363,7 @@ inbound_end (void *cls,
   if (NULL == ch)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Mesh channel destroyed, but channel is unknown to us\n");
+                "Cadet channel destroyed, but channel is unknown to us\n");
     return;
   }
   line = ch->line;
@@ -1371,7 +1371,7 @@ inbound_end (void *cls,
   {
     if (NULL != ch->unreliable_mth)
     {
-      GNUNET_MESH_notify_transmit_ready_cancel (ch->unreliable_mth);
+      GNUNET_CADET_notify_transmit_ready_cancel (ch->unreliable_mth);
       ch->unreliable_mth = NULL;
     }
     ch->channel_unreliable = NULL;
@@ -1387,7 +1387,7 @@ inbound_end (void *cls,
   ch->channel_reliable = NULL;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Mesh channel destroyed by mesh in state %d\n",
+	      "Cadet channel destroyed by cadet in state %d\n",
               ch->status);
   hup.header.size = htons (sizeof (hup));
   hup.header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_HANG_UP);
@@ -1413,7 +1413,7 @@ inbound_end (void *cls,
   case CS_CALLER_SHUTDOWN:
     break;
   }
-  destroy_line_mesh_channels (ch);
+  destroy_line_cadet_channels (ch);
 }
 
 
@@ -1441,7 +1441,7 @@ handle_client_disconnect (void *cls,
                                lines_tail,
                                line);
   while (NULL != line->channel_head)
-    destroy_line_mesh_channels (line->channel_head);
+    destroy_line_cadet_channels (line->channel_head);
   GNUNET_free (line);
 }
 
@@ -1462,17 +1462,17 @@ do_shutdown (void *cls,
   while (NULL != (line = lines_head))
   {
     while (NULL != (ch = line->channel_head))
-      destroy_line_mesh_channels (ch);
+      destroy_line_cadet_channels (ch);
     GNUNET_CONTAINER_DLL_remove (lines_head,
                                  lines_tail,
                                  line);
     GNUNET_SERVER_client_set_user_context (line->client, (void *) NULL);
     GNUNET_free (line);
   }
-  if (NULL != mesh)
+  if (NULL != cadet)
   {
-    GNUNET_MESH_disconnect (mesh);
-    mesh = NULL;
+    GNUNET_CADET_disconnect (cadet);
+    cadet = NULL;
   }
   if (NULL != nc)
   {
@@ -1518,23 +1518,23 @@ run (void *cls,
      0},
     {NULL, NULL, 0, 0}
   };
-  static struct GNUNET_MESH_MessageHandler mesh_handlers[] = {
-    {&handle_mesh_ring_message,
-     GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_PHONE_RING,
-     sizeof (struct MeshPhoneRingMessage)},
-    {&handle_mesh_hangup_message,
-     GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_PHONE_HANG_UP,
-     sizeof (struct MeshPhoneHangupMessage)},
-    {&handle_mesh_pickup_message,
-     GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_PHONE_PICK_UP,
-     sizeof (struct MeshPhonePickupMessage)},
-    {&handle_mesh_suspend_message,
-     GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_PHONE_SUSPEND,
-     sizeof (struct MeshPhoneSuspendMessage)},
-    {&handle_mesh_resume_message,
-     GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_PHONE_RESUME,
-     sizeof (struct MeshPhoneResumeMessage)},
-    {&handle_mesh_audio_message, GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_AUDIO,
+  static struct GNUNET_CADET_MessageHandler cadet_handlers[] = {
+    {&handle_cadet_ring_message,
+     GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_RING,
+     sizeof (struct CadetPhoneRingMessage)},
+    {&handle_cadet_hangup_message,
+     GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_HANG_UP,
+     sizeof (struct CadetPhoneHangupMessage)},
+    {&handle_cadet_pickup_message,
+     GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_PICK_UP,
+     sizeof (struct CadetPhonePickupMessage)},
+    {&handle_cadet_suspend_message,
+     GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_SUSPEND,
+     sizeof (struct CadetPhoneSuspendMessage)},
+    {&handle_cadet_resume_message,
+     GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_RESUME,
+     sizeof (struct CadetPhoneResumeMessage)},
+    {&handle_cadet_audio_message, GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_AUDIO,
      0},
     {NULL, 0, 0}
   };
@@ -1548,14 +1548,14 @@ run (void *cls,
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CRYPTO_get_peer_identity (cfg,
                                                   &my_identity));
-  mesh = GNUNET_MESH_connect (cfg,
+  cadet = GNUNET_CADET_connect (cfg,
 			      NULL,
 			      &inbound_channel,
 			      &inbound_end,
-                              mesh_handlers,
+                              cadet_handlers,
                               ports);
 
-  if (NULL == mesh)
+  if (NULL == cadet)
   {
     GNUNET_break (0);
     GNUNET_SCHEDULER_shutdown ();

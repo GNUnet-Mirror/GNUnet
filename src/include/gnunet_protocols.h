@@ -521,14 +521,14 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_FS_MIGRATION_STOP 139
 
 /**
- * P2P request for content (one FS to another via a mesh).
+ * P2P request for content (one FS to another via a cadet).
  */
-#define GNUNET_MESSAGE_TYPE_FS_MESH_QUERY 140
+#define GNUNET_MESSAGE_TYPE_FS_CADET_QUERY 140
 
 /**
- * P2P answer for content (one FS to another via a mesh).
+ * P2P answer for content (one FS to another via a cadet).
  */
-#define GNUNET_MESSAGE_TYPE_FS_MESH_REPLY 141
+#define GNUNET_MESSAGE_TYPE_FS_CADET_REPLY 141
 
 
 /*******************************************************************************
@@ -811,179 +811,179 @@ extern "C"
 
 
 /*******************************************************************************
- * MESH message types
+ * CADET message types
  ******************************************************************************/
 
 /**
- * Type of message used to transport messages throug a MESH-tunnel (LEGACY)
+ * Type of message used to transport messages throug a CADET-tunnel (LEGACY)
  */
-#define GNUNET_MESSAGE_TYPE_MESH 215
+#define GNUNET_MESSAGE_TYPE_CADET 215
 
 /**
  * Type of message used to send another peer which messages we want to receive
- * through a mesh-tunnel (LEGACY)
+ * through a cadet-tunnel (LEGACY)
  */
-#define GNUNET_MESSAGE_TYPE_MESH_HELLO 216
+#define GNUNET_MESSAGE_TYPE_CADET_HELLO 216
 
 /**
  * Request the creation of a connection
  */
-#define GNUNET_MESSAGE_TYPE_MESH_CONNECTION_CREATE      256
+#define GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE      256
 
 /**
  * Send origin an ACK that the connection is complete
  */
-#define GNUNET_MESSAGE_TYPE_MESH_CONNECTION_ACK         257
+#define GNUNET_MESSAGE_TYPE_CADET_CONNECTION_ACK         257
 
 /**
  * Notify that a connection is no longer valid
  */
-#define GNUNET_MESSAGE_TYPE_MESH_CONNECTION_BROKEN      258
+#define GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN      258
 
 /**
  * At some point, the route will spontaneously change TODO
  */
-#define GNUNET_MESSAGE_TYPE_MESH_PATH_CHANGED           259
+#define GNUNET_MESSAGE_TYPE_CADET_PATH_CHANGED           259
 
 /**
  * Payload data (usually inside a encrypted tunnel).
  */
-#define GNUNET_MESSAGE_TYPE_MESH_DATA                   260
+#define GNUNET_MESSAGE_TYPE_CADET_DATA                   260
 
 /**
  * Confirm payload data end-to-end.
  */
-#define GNUNET_MESSAGE_TYPE_MESH_DATA_ACK               261
+#define GNUNET_MESSAGE_TYPE_CADET_DATA_ACK               261
 
 /**
  * Key exchange encapsulation.
  */
-#define GNUNET_MESSAGE_TYPE_MESH_KX                     262
+#define GNUNET_MESSAGE_TYPE_CADET_KX                     262
 
 /**
  * New ephemeral key.
  */
-#define GNUNET_MESSAGE_TYPE_MESH_KX_EPHEMERAL           263
+#define GNUNET_MESSAGE_TYPE_CADET_KX_EPHEMERAL           263
 
 /**
  * Challenge to test peer's session key.
  */
-#define GNUNET_MESSAGE_TYPE_MESH_KX_PING                264
+#define GNUNET_MESSAGE_TYPE_CADET_KX_PING                264
 
 /**
  * Answer to session key challenge.
  */
-#define GNUNET_MESSAGE_TYPE_MESH_KX_PONG                265
+#define GNUNET_MESSAGE_TYPE_CADET_KX_PONG                265
 
 /**
  * Request the destuction of a connection
  */
-#define GNUNET_MESSAGE_TYPE_MESH_CONNECTION_DESTROY     266
+#define GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY     266
 
 /**
  * Hop-by-hop, connection dependent ACK.
  */
-#define GNUNET_MESSAGE_TYPE_MESH_ACK                    268
+#define GNUNET_MESSAGE_TYPE_CADET_ACK                    268
 
 /**
  * Poll for a hop-by-hop ACK.
  */
-#define GNUNET_MESSAGE_TYPE_MESH_POLL                   269
+#define GNUNET_MESSAGE_TYPE_CADET_POLL                   269
 
 /**
  * Announce connection is still alive (direction sensitive).
  */
-#define GNUNET_MESSAGE_TYPE_MESH_KEEPALIVE              270
+#define GNUNET_MESSAGE_TYPE_CADET_KEEPALIVE              270
 
 /**
- * Connect to the mesh service, specifying subscriptions
+ * Connect to the cadet service, specifying subscriptions
  */
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_CONNECT          272
+#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_CONNECT          272
 
 /**
- * Ask the mesh service to create a new channel.
+ * Ask the cadet service to create a new channel.
  */
-#define GNUNET_MESSAGE_TYPE_MESH_CHANNEL_CREATE         273
+#define GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE         273
 
 /**
- * Ask the mesh service to destroy a channel.
+ * Ask the cadet service to destroy a channel.
  */
-#define GNUNET_MESSAGE_TYPE_MESH_CHANNEL_DESTROY        274
+#define GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY        274
 
 /**
  * Confirm the creation of a channel
  */
-#define GNUNET_MESSAGE_TYPE_MESH_CHANNEL_ACK            275
+#define GNUNET_MESSAGE_TYPE_CADET_CHANNEL_ACK            275
 
 /**
  * Reject the creation of a channel
  */
-#define GNUNET_MESSAGE_TYPE_MESH_CHANNEL_NACK           276
+#define GNUNET_MESSAGE_TYPE_CADET_CHANNEL_NACK           276
 
 /**
  * Encrypted data. (Payload, channel management, keepalive)
  */
-#define GNUNET_MESSAGE_TYPE_MESH_ENCRYPTED              280
+#define GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED              280
 
 /**
  * Payload client <-> service
  */
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_DATA             285
+#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_DATA             285
 
 /**
  * Local ACK for data.
  */
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_ACK              286
+#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_ACK              286
 
 /**
  * Local information about all channels of service.
  */
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_CHANNELS    290
+#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_CHANNELS    290
 
 /**
  * Local information of service about a specific channel.
  */
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_CHANNEL     291
+#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_CHANNEL     291
 
 /**
  * Local information about all tunnels of service.
  */
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNELS     292
+#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNELS     292
 
 /**
  * Local information of service about a specific tunnel.
  */
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_TUNNEL      293
+#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNEL      293
 
 /**
  * Local information about all connections of service.
  */
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_CONNECTIONS 294
+#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_CONNECTIONS 294
 
 /**
  * Local information of service about a specific connection.
  */
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_CONNECTION  295
+#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_CONNECTION  295
 
 /**
  * Local information about all peers known to the service.
  */
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_PEERS       296
+#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEERS       296
 
 /**
  * Local information of service about a specific peer.
  */
-#define GNUNET_MESSAGE_TYPE_MESH_LOCAL_INFO_PEER        297
+#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEER        297
 
 /**
  * Traffic (net-cat style) used by the Command Line Interface.
  */
-#define GNUNET_MESSAGE_TYPE_MESH_CLI                    298
+#define GNUNET_MESSAGE_TYPE_CADET_CLI                    298
 
 /**
  * 640kb should be enough for everybody
  */
-#define GNUNET_MESSAGE_TYPE_MESH_RESERVE_END            299
+#define GNUNET_MESSAGE_TYPE_CADET_RESERVE_END            299
 
 
 
@@ -2292,34 +2292,34 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_CONVERSATION_CS_AUDIO 739
 
 /**
- * Mesh: call initiation
+ * Cadet: call initiation
  */
-#define GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_PHONE_RING 740
+#define GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_RING 740
 
 /**
- * Mesh: hang up / refuse call
+ * Cadet: hang up / refuse call
  */
-#define GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_PHONE_HANG_UP 741
+#define GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_HANG_UP 741
 
 /**
- * Mesh: pick up phone (establish audio channel)
+ * Cadet: pick up phone (establish audio channel)
  */
-#define GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_PHONE_PICK_UP 742
+#define GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_PICK_UP 742
 
 /**
- * Mesh: phone suspended.
+ * Cadet: phone suspended.
  */
-#define GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_PHONE_SUSPEND 743
+#define GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_SUSPEND 743
 
 /**
- * Mesh: phone resumed.
+ * Cadet: phone resumed.
  */
-#define GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_PHONE_RESUME 744
+#define GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_PHONE_RESUME 744
 
 /**
- * Mesh: audio data
+ * Cadet: audio data
  */
-#define GNUNET_MESSAGE_TYPE_CONVERSATION_MESH_AUDIO 745
+#define GNUNET_MESSAGE_TYPE_CONVERSATION_CADET_AUDIO 745
 
 
 /*******************************************************************************

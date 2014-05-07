@@ -19,15 +19,15 @@
 */
 
 /**
- * @file mesh/gnunet-service-mesh_dht.h
- * @brief mesh service; dealing with DHT requests and results
+ * @file cadet/gnunet-service-cadet_dht.h
+ * @brief cadet service; dealing with DHT requests and results
  * @author Bartlomiej Polot
  *
- * All functions in this file should use the prefix GMD (Gnunet Mesh Dht)
+ * All functions in this file should use the prefix GMD (Gnunet Cadet Dht)
  */
 
-#ifndef GNUNET_SERVICE_MESH_DHT_H
-#define GNUNET_SERVICE_MESH_DHT_H
+#ifndef GNUNET_SERVICE_CADET_DHT_H
+#define GNUNET_SERVICE_CADET_DHT_H
 
 #ifdef __cplusplus
 extern "C"
@@ -51,7 +51,7 @@ struct GMD_search_handle;
  *             After callback will no longer be valid!
  */
 typedef void (*GMD_search_callback) (void *cls,
-                                     const struct MeshPeerPath *path);
+                                     const struct CadetPeerPath *path);
 
 /******************************************************************************/
 /********************************    API    ***********************************/
@@ -87,6 +87,6 @@ GMD_search_stop (struct GMD_search_handle *h);
 }
 #endif
 
-/* ifndef GNUNET_MESH_SERVICE_LOCAL_H */
+/* ifndef GNUNET_CADET_SERVICE_LOCAL_H */
 #endif
-/* end of gnunet-mesh-service_LOCAL.h */
+/* end of gnunet-cadet-service_LOCAL.h */

@@ -487,7 +487,7 @@ dht_get_string_handler (void *cls, struct GNUNET_TIME_Absolute exp,
 
 
 /**
- * Iterator over found existing mesh regex blocks that match an ongoing search.
+ * Iterator over found existing cadet regex blocks that match an ongoing search.
  *
  * @param cls Closure (current context)-
  * @param key Current key code (key for cached block).
@@ -519,7 +519,7 @@ regex_result_iterator (void *cls,
        GNUNET_BLOCK_is_accepting (block, result->size));
   regex_next_edge (block, result->size, ctx);
 
-  GNUNET_STATISTICS_update (ctx->info->stats, "# regex mesh blocks iterated",
+  GNUNET_STATISTICS_update (ctx->info->stats, "# regex cadet blocks iterated",
                             1, GNUNET_NO);
 
   return GNUNET_YES;
@@ -763,12 +763,12 @@ regex_cancel_dht_get (void *cls,
 
 
 /**
- * Iterator over hash map entries to free MeshRegexBlocks stored during the
+ * Iterator over hash map entries to free CadetRegexBlocks stored during the
  * search for connect_by_string.
  *
  * @param cls Closure (unused).
  * @param key Current key code (unused).
- * @param value MeshRegexBlock in the hash map.
+ * @param value CadetRegexBlock in the hash map.
  * @return GNUNET_YES if we should continue to iterate,
  *         GNUNET_NO if not.
  */

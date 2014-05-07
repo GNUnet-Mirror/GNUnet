@@ -18,12 +18,12 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file mesh/mesh_test_lib.h
+ * @file cadet/cadet_test_lib.h
  * @author Bartlomiej Polot
- * @brief library for writing MESH tests
+ * @brief library for writing CADET tests
  */
-#ifndef MESH_TEST_LIB_H
-#define MESH_TEST_LIB_H
+#ifndef CADET_TEST_LIB_H
+#define CADET_TEST_LIB_H
 
 #ifdef __cplusplus
 extern "C"
@@ -34,34 +34,34 @@ extern "C"
 #endif
 
 #include "gnunet_testbed_service.h"
-#include "gnunet_mesh_service.h"
+#include "gnunet_cadet_service.h"
 
 /**
- * Test context for a MESH Test.
+ * Test context for a CADET Test.
  */
-struct GNUNET_MESH_TEST_Context;
+struct GNUNET_CADET_TEST_Context;
 
 
 /**
- * Main function of a MESH test.
+ * Main function of a CADET test.
  *
  * @param cls Closure.
- * @param ctx Argument to give to GNUNET_MESH_TEST_cleanup on test end.
+ * @param ctx Argument to give to GNUNET_CADET_TEST_cleanup on test end.
  * @param num_peers Number of peers that are running.
  * @param peers Array of peers.
- * @param meshes Handle to each of the MESHs of the peers.
+ * @param cadetes Handle to each of the CADETs of the peers.
  */
-typedef void (*GNUNET_MESH_TEST_AppMain) (void *cls,
-                                          struct GNUNET_MESH_TEST_Context *ctx,
+typedef void (*GNUNET_CADET_TEST_AppMain) (void *cls,
+                                          struct GNUNET_CADET_TEST_Context *ctx,
                                           unsigned int num_peers,
                                           struct GNUNET_TESTBED_Peer **peers,
-                                          struct GNUNET_MESH_Handle **meshes);
+                                          struct GNUNET_CADET_Handle **cadetes);
 
 
 /**
  * Run a test using the given name, configuration file and number of
  * peers.
- * All mesh callbacks will receive the peer number as the closure.
+ * All cadet callbacks will receive the peer number as the closure.
  *
  * @param testname Name of the test (for logging).
  * @param cfgname Name of the configuration file.
@@ -74,14 +74,14 @@ typedef void (*GNUNET_MESH_TEST_AppMain) (void *cls,
  * @param ports Ports the peers offer.
  */
 void
-GNUNET_MESH_TEST_run (const char *testname,
+GNUNET_CADET_TEST_run (const char *testname,
                       const char *cfgname,
                       unsigned int num_peers,
-                      GNUNET_MESH_TEST_AppMain tmain,
+                      GNUNET_CADET_TEST_AppMain tmain,
                       void *tmain_cls,
-                      GNUNET_MESH_InboundChannelNotificationHandler new_channel,
-                      GNUNET_MESH_ChannelEndHandler cleaner,
-                      struct GNUNET_MESH_MessageHandler* handlers,
+                      GNUNET_CADET_InboundChannelNotificationHandler new_channel,
+                      GNUNET_CADET_ChannelEndHandler cleaner,
+                      struct GNUNET_CADET_MessageHandler* handlers,
                       const uint32_t* ports);
 
 
@@ -91,7 +91,7 @@ GNUNET_MESH_TEST_run (const char *testname,
  * @param ctx handle for the testbed
  */
 void
-GNUNET_MESH_TEST_cleanup (struct GNUNET_MESH_TEST_Context *ctx);
+GNUNET_CADET_TEST_cleanup (struct GNUNET_CADET_TEST_Context *ctx);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */
@@ -102,5 +102,5 @@ GNUNET_MESH_TEST_cleanup (struct GNUNET_MESH_TEST_Context *ctx);
 #endif
 
 
-/* ifndef MESH_TEST_LIB_H */
+/* ifndef CADET_TEST_LIB_H */
 #endif

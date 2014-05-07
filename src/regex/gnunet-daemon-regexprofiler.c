@@ -20,9 +20,9 @@
 
 /**
  * @file regex/gnunet-daemon-regexprofiler.c
- * @brief daemon that uses mesh to announce a regular expression. Used in
+ * @brief daemon that uses cadet to announce a regular expression. Used in
  * conjunction with gnunet-regex-profiler to announce regexes on serveral peers
- * without the need to explicitly connect to the mesh service running on the
+ * without the need to explicitly connect to the cadet service running on the
  * peer from within the profiler.
  * @author Maximilian Szengel
  * @author Bartlomiej Polot
@@ -192,7 +192,7 @@ reannounce_regex (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Announce the given regular expression using regex and the path compression
  * length read from config.
  *
- * @param regex regular expression to announce on this peer's mesh.
+ * @param regex regular expression to announce on this peer's cadet.
  */
 static void
 announce_regex (const char * regex)
@@ -377,7 +377,7 @@ main (int argc, char *const *argv)
   return (GNUNET_OK ==
           GNUNET_PROGRAM_run (argc, argv, "regexprofiler",
                               gettext_noop
-                              ("Daemon to announce regular expressions for the peer using mesh."),
+                              ("Daemon to announce regular expressions for the peer using cadet."),
                               options, &run, NULL)) ? global_ret : 1;
 }
 
