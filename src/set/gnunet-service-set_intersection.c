@@ -766,7 +766,7 @@ handle_p2p_element_info (void *cls, const struct GNUNET_MessageHeader *mh)
 
 
 /**
- * Send our element to the peer, in case our element count is lower than his
+ * Send our element count to the peer, in case our element count is lower than his
  *
  * @param op intersection operation
  */

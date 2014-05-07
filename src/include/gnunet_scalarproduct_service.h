@@ -39,7 +39,7 @@ extern "C" {
 /**
  * Version of the scalarproduct API.
  */
-#define GNUNET_SCALARPRODUCT_VERSION 0x00000042
+#define GNUNET_SCALARPRODUCT_VERSION 0x00000043
 
 enum GNUNET_SCALARPRODUCT_ResponseStatus
 {
@@ -54,6 +54,14 @@ enum GNUNET_SCALARPRODUCT_ResponseStatus
  * Opaque declaration of the SP-Handle
  */
 struct GNUNET_SCALARPRODUCT_Handle;
+
+/**
+ * An element key-value pair for scalarproduct
+ */
+struct GNUNET_SCALARPRODUCT_Element {
+    int32_t value;
+    struct GNUNET_HashCode key;
+};
 
 
 /**
@@ -87,24 +95,21 @@ struct GNUNET_SCALARPRODUCT_ComputationHandle;
  * Request by Alice's client for computing a scalar product
  *
  * @param cfg the gnunet configuration handle
- * @param key Session key should be unique to the requesting client
+ * @param session_key Session key should be unique to the requesting client
  * @param peer PeerID of the other peer
  * @param elements Array of elements of the vector
  * @param element_count Number of elements in the vector
- * @param mask Array of the mask
- * @param mask_bytes number of bytes in the mask
  * @param cont Callback function
- * @param cont_cls Closure for @a cont
+ * @param cont_cls Closure for the callback function
+ *
  * @return a new handle for this computation
  */
 struct GNUNET_SCALARPRODUCT_ComputationHandle *
-GNUNET_SCALARPRODUCT_request (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                              const struct GNUNET_HashCode *key,
+GNUNET_SCALARPRODUCT_start_computation (const struct GNUNET_CONFIGURATION_Handle * cfg,
+                              const struct GNUNET_HashCode * session_key,
                               const struct GNUNET_PeerIdentity *peer,
-                              const int32_t *elements,
+                              const struct GNUNET_SCALARPRODUCT_Element * elements,
                               uint32_t element_count,
-                              const unsigned char *mask,
-                              uint32_t mask_bytes,
                               GNUNET_SCALARPRODUCT_DatumProcessor cont,
                               void * cont_cls);
 
@@ -112,20 +117,21 @@ GNUNET_SCALARPRODUCT_request (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * Used by Bob's client to cooperate with Alice,
  *
  * @param cfg the gnunet configuration handle
- * @param key Session key unique to the requesting client
+ * @param session_key Session key unique to the requesting client
  * @param elements Array of elements of the vector
  * @param element_count Number of elements in the vector
  * @param cont Callback function
- * @param cont_cls Closure for @a cont
+ * @param cont_cls Closure for the callback function
+ *
  * @return a new handle for this computation
  */
 struct GNUNET_SCALARPRODUCT_ComputationHandle *
-GNUNET_SCALARPRODUCT_response (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                               const struct GNUNET_HashCode *key,
-                               const int32_t *elements,
+GNUNET_SCALARPRODUCT_accept_computation (const struct GNUNET_CONFIGURATION_Handle * cfg,
+                               const struct GNUNET_HashCode * key,
+                               const struct GNUNET_SCALARPRODUCT_Element * elements,
                                uint32_t element_count,
                                GNUNET_SCALARPRODUCT_ContinuationWithStatus cont,
-                               void *cont_cls);
+                               void * cont_cls);
 
 
 /**
@@ -136,20 +142,6 @@ GNUNET_SCALARPRODUCT_response (const struct GNUNET_CONFIGURATION_Handle *cfg,
  */
 void
 GNUNET_SCALARPRODUCT_cancel (struct GNUNET_SCALARPRODUCT_ComputationHandle *h);
-
-
-/**
- * Cancel ALL ongoing computation or revoke our collaboration offer.
- * Closes ALL connections to the service
- *
- * FIXME: this should take an argument, and we should
- * have an explicit 'connect' API which returns an opaque
- * connection handle.  Avoid (globals) in the library!
- * @deprecated in this form
- */
-void
-GNUNET_SCALARPRODUCT_disconnect ();
-
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

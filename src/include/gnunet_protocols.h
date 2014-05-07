@@ -2056,39 +2056,51 @@ extern "C"
  ******************************************************************************/
 
 /**
- * Client -> Vector-Product Service request message
+ * Client -> Alice
  */
 #define GNUNET_MESSAGE_TYPE_SCALARPRODUCT_CLIENT_TO_ALICE 640
 
 /**
- * Client -> Vector-Product Service request message
+ * Client -> Bob
  */
 #define GNUNET_MESSAGE_TYPE_SCALARPRODUCT_CLIENT_TO_BOB 641
 
 /**
- * Vector-Product Service request -> remote VP Service
+ * Client -> Alice/Bob multipart
  */
-#define GNUNET_MESSAGE_TYPE_SCALARPRODUCT_ALICE_TO_BOB 642
+#define GNUNET_MESSAGE_TYPE_SCALARPRODUCT_CLIENT_MUTLIPART 642
 
 /**
- * Vector-Product Service request -> remote VP Service Multipart
+ * Alice -> Bob session initialization
  */
-#define GNUNET_MESSAGE_TYPE_SCALARPRODUCT_ALICE_TO_BOB_MULTIPART 643
+#define GNUNET_MESSAGE_TYPE_SCALARPRODUCT_SESSION_INITIALIZATION 643
 
 /**
- * remote Vector-Product Service response -> requesting VP Service
+ * Alice -> Bob SP crypto-data (after intersection)
  */
-#define GNUNET_MESSAGE_TYPE_SCALARPRODUCT_BOB_TO_ALICE 644
+#define GNUNET_MESSAGE_TYPE_SCALARPRODUCT_ALICE_CRYPTODATA 644
 
 /**
- * remote Vector-Product Service response -> requesting VP Service Multipart
+ * Alice -> Bob SP crypto-data multipart
  */
-#define GNUNET_MESSAGE_TYPE_SCALARPRODUCT_BOB_TO_ALICE_MULTIPART 645
+#define GNUNET_MESSAGE_TYPE_SCALARPRODUCT_ALICE_CRYPTODATA_MULTIPART 645
 
 /**
- * Vector-Product Service response -> Client
+ * Bob -> Alice SP crypto-data
  */
-#define GNUNET_MESSAGE_TYPE_SCALARPRODUCT_SERVICE_TO_CLIENT 646
+#define GNUNET_MESSAGE_TYPE_SCALARPRODUCT_BOB_CRYPTODATA 646
+
+/**
+ * Bob -> Alice SP crypto-data multipart
+ */
+#define GNUNET_MESSAGE_TYPE_SCALARPRODUCT_BOB_CRYPTODATA_MULTIPART 647
+
+/**
+ * Alice/Bob -> Client Result
+ */
+#define GNUNET_MESSAGE_TYPE_SCALARPRODUCT_RESULT 648
+
+
 
 
 /*******************************************************************************
