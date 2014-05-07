@@ -368,6 +368,17 @@ unsigned int
 GMC_get_qn (struct MeshConnection *c, int fwd);
 
 /**
+ * Get next PID to use.
+ *
+ * @param c Connection.
+ * @param fwd Is query about FWD traffic?
+ *
+ * @return Last PID used + 1.
+ */
+unsigned int
+GMC_get_pid (struct MeshConnection *c, int fwd);
+
+/**
  * Allow the connection to advertise a buffer of the given size.
  *
  * The connection will send an @c fwd ACK message (so: in direction !fwd)
