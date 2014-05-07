@@ -732,10 +732,16 @@ prepare_bobs_cryptodata_message_multipart (void *cls)
   //disconnect our client
   if (NULL == session->service_transmit_handle) {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _ ("Could not send service-response message via cadet!)\n"));
-
+    
+    GNUNET_free (msg);
+    session->msg = NULL;
+    GNUNET_CONTAINER_DLL_remove (from_service_head, from_service_tail, session);
+    
     session->response->client_notification_task =
             GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
                                       session->response);
+    free_session_variables(session);
+    GNUNET_free(session);
     return;
   }
   if (session->transferred_element_count != session->used_elements_count) {
@@ -821,9 +827,16 @@ prepare_bobs_cryptodata_message (void *cls,
   if (NULL == session->service_transmit_handle) {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _ ("Could not send service-response message via cadet!)\n"));
 
+    GNUNET_free (msg);
+    session->msg = NULL;
+    GNUNET_CONTAINER_DLL_remove (from_service_head, from_service_tail, session);
+    
     session->response->client_notification_task =
             GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
                                       session->response);
+    free_session_variables(session);
+    GNUNET_free(session);
+    return;
   }
   if (session->transferred_element_count != session->used_elements_count) {
     // multipart
