@@ -121,7 +121,7 @@
 /pkgconfig/gnunetpostgres.pc
 /pkgconfig/gnunetnamestore.pc
 /pkgconfig/gnunetmysql.pc
-/pkgconfig/gnunetmesh.pc
+/pkgconfig/gnunetcadet.pc
 /pkgconfig/gnunetlockmanager.pc
 /pkgconfig/gnunetdnsparser.pc
 /pkgconfig/gnunetdns.pc
@@ -517,8 +517,8 @@
 
 # /src/fs/
 /src/fs/libgnunetfstest.a
-/src/fs/test_gnunet_service_fs_p2p_mesh
-/src/fs/test_fs_download_mesh
+/src/fs/test_gnunet_service_fs_p2p_cadet
+/src/fs/test_fs_download_cadet
 /src/fs/test_pseudonym
 /src/fs/test_gnunet_service_fs_p2p_stream
 /src/fs/test_fs_download_stream
@@ -758,40 +758,40 @@
 /src/integration-tests/Makefile
 /src/integration-tests/gnunet_testing.py
 
-# /src/mesh/
-/src/mesh/libgnunetmeshtest.a
-/src/mesh/mesh.conf
-/src/mesh/test_mesh_path_api
-/src/mesh/mesh_topo_initial
-/src/mesh/gnunet-mesh-profiler
-/src/mesh/.profiler.conf
-/src/mesh/test_mesh_single
-/src/mesh/test_mesh_forward
-/src/mesh/test_mesh_signal
-/src/mesh/test_mesh_keepalive
-/src/mesh/test_mesh_speed
-/src/mesh/test_mesh_speed_min
-/src/mesh/test_mesh_speed_ack
-/src/mesh/test_mesh_speed_backwards
-/src/mesh/test_mesh_speed_min_backwards
-/src/mesh/test_mesh_speed_ack
-/src/mesh/test_mesh_speed_reliable
-/src/mesh/test_mesh_speed_reliable_backwards
-/src/mesh/test_mesh_api
-/src/mesh/test_mesh_tree_api
-/src/mesh/test_mesh_local
-/src/mesh/test_mesh_local_traffic_fwd
-/src/mesh/test_mesh_local_traffic_bck
-/src/mesh/test_mesh_local_traffic_both
-/src/mesh/test_mesh_small
-/src/mesh/test_mesh_2dtorus
-/src/mesh/Makefile.in
-/src/mesh/Makefile
-/src/mesh/.deps
-/src/mesh/gnunet-service-mesh
-/src/mesh/gnunet-mesh
-/src/mesh/*log
-/src/mesh/*.trs
+# /src/cadet/
+/src/cadet/libgnunetcadettest.a
+/src/cadet/cadet.conf
+/src/cadet/test_cadet_path_api
+/src/cadet/cadet_topo_initial
+/src/cadet/gnunet-cadet-profiler
+/src/cadet/.profiler.conf
+/src/cadet/test_cadet_single
+/src/cadet/test_cadet_forward
+/src/cadet/test_cadet_signal
+/src/cadet/test_cadet_keepalive
+/src/cadet/test_cadet_speed
+/src/cadet/test_cadet_speed_min
+/src/cadet/test_cadet_speed_ack
+/src/cadet/test_cadet_speed_backwards
+/src/cadet/test_cadet_speed_min_backwards
+/src/cadet/test_cadet_speed_ack
+/src/cadet/test_cadet_speed_reliable
+/src/cadet/test_cadet_speed_reliable_backwards
+/src/cadet/test_cadet_api
+/src/cadet/test_cadet_tree_api
+/src/cadet/test_cadet_local
+/src/cadet/test_cadet_local_traffic_fwd
+/src/cadet/test_cadet_local_traffic_bck
+/src/cadet/test_cadet_local_traffic_both
+/src/cadet/test_cadet_small
+/src/cadet/test_cadet_2dtorus
+/src/cadet/Makefile.in
+/src/cadet/Makefile
+/src/cadet/.deps
+/src/cadet/gnunet-service-cadet
+/src/cadet/gnunet-cadet
+/src/cadet/*log
+/src/cadet/*.trs
 
 
 # /src/multicast/
