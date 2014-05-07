@@ -14,52 +14,52 @@ pkgcfgdir= $(pkgdatadir)/config.d/
 libexecdir= $(pkglibdir)/libexec/
 
 pkgcfg_DATA = \
-  mesh.conf
+  cadet.conf
 
 plugindir = $(libdir)/gnunet
 
 AM_CLFAGS = -g
 
 libexec_PROGRAMS = \
- gnunet-service-mesh $(EXP_LIBEXEC)
+ gnunet-service-cadet $(EXP_LIBEXEC)
 
 bin_PROGRAMS = \
- gnunet-mesh
+ gnunet-cadet
 
 lib_LTLIBRARIES = \
-  libgnunetmesh.la $(EXP_LIB)
+  libgnunetcadet.la $(EXP_LIB)
 
-libgnunetmesh_la_SOURCES = \
-  mesh_api.c mesh_common.c
-libgnunetmesh_la_LIBADD = \
+libgnunetcadet_la_SOURCES = \
+  cadet_api.c cadet_common.c
+libgnunetcadet_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(XLIB) \
   $(LTLIBINTL)
-libgnunetmesh_la_LDFLAGS = \
+libgnunetcadet_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS) $(WINFLAGS) \
   -version-info 5:0:0
 
-gnunet_mesh_SOURCES = \
-  gnunet-mesh.c
-gnunet_mesh_LDADD = \
-  $(top_builddir)/src/mesh/libgnunetmesh.la \
+gnunet_cadet_SOURCES = \
+  gnunet-cadet.c
+gnunet_cadet_LDADD = \
+  $(top_builddir)/src/cadet/libgnunetcadet.la \
   $(top_builddir)/src/util/libgnunetutil.la
-gnunet_mesh_DEPENDENCIES = \
-  libgnunetmesh.la
+gnunet_cadet_DEPENDENCIES = \
+  libgnunetcadet.la
 
-gnunet_service_mesh_SOURCES = \
- gnunet-service-mesh_tunnel.c gnunet-service-mesh_tunnel.h \
- gnunet-service-mesh_connection.c gnunet-service-mesh_connection.h \
- gnunet-service-mesh_channel.c gnunet-service-mesh_channel.h \
- gnunet-service-mesh_local.c gnunet-service-mesh_local.h \
- gnunet-service-mesh_peer.c gnunet-service-mesh_peer.h \
- gnunet-service-mesh_dht.c gnunet-service-mesh_dht.h \
- gnunet-service-mesh_hello.c gnunet-service-mesh_hello.h \
- mesh_path.c mesh_path.h \
- mesh_common.c \
- gnunet-service-mesh.c
-gnunet_service_mesh_CFLAGS = $(AM_CFLAGS)
-gnunet_service_mesh_LDADD = \
+gnunet_service_cadet_SOURCES = \
+ gnunet-service-cadet_tunnel.c gnunet-service-cadet_tunnel.h \
+ gnunet-service-cadet_connection.c gnunet-service-cadet_connection.h \
+ gnunet-service-cadet_channel.c gnunet-service-cadet_channel.h \
+ gnunet-service-cadet_local.c gnunet-service-cadet_local.h \
+ gnunet-service-cadet_peer.c gnunet-service-cadet_peer.h \
+ gnunet-service-cadet_dht.c gnunet-service-cadet_dht.h \
+ gnunet-service-cadet_hello.c gnunet-service-cadet_hello.h \
+ cadet_path.c cadet_path.h \
+ cadet_common.c \
+ gnunet-service-cadet.c
+gnunet_service_cadet_CFLAGS = $(AM_CFLAGS)
+gnunet_service_cadet_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/transport/libgnunettransport.la \
   $(top_builddir)/src/core/libgnunetcore.la \
@@ -68,7 +68,7 @@ gnunet_service_mesh_LDADD = \
   $(top_builddir)/src/peerinfo/libgnunetpeerinfo.la \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/block/libgnunetblock.la
-gnunet_service_mesh_DEPENDENCIES = \
+gnunet_service_cadet_DEPENDENCIES = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/transport/libgnunettransport.la \
   $(top_builddir)/src/core/libgnunetcore.la \
@@ -78,107 +78,107 @@ gnunet_service_mesh_DEPENDENCIES = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/block/libgnunetblock.la
 if LINUX
-  gnunet_service_mesh_LDFLAGS = -lrt
+  gnunet_service_cadet_LDFLAGS = -lrt
 endif
 
 
 if HAVE_TESTING
- noinst_LIBRARIES = libgnunetmeshtest.a $(noinst_LIB_EXP)
- noinst_PROGRAMS = gnunet-mesh-profiler
+ noinst_LIBRARIES = libgnunetcadettest.a $(noinst_LIB_EXP)
+ noinst_PROGRAMS = gnunet-cadet-profiler
 endif
 
-libgnunetmeshtest_a_SOURCES = \
-  mesh_test_lib.c mesh_test_lib.h
-libgnunetmeshtest_a_LIBADD = \
+libgnunetcadettest_a_SOURCES = \
+  cadet_test_lib.c cadet_test_lib.h
+libgnunetcadettest_a_LIBADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/testbed/libgnunettestbed.la \
- $(top_builddir)/src/mesh/libgnunetmesh.la
-libgnunetmeshtest_a_DEPENDENCIES = \
-  libgnunetmesh.la
+ $(top_builddir)/src/cadet/libgnunetcadet.la
+libgnunetcadettest_a_DEPENDENCIES = \
+  libgnunetcadet.la
 
 if HAVE_TESTING
 check_PROGRAMS = \
-  test_mesh_single \
-  test_mesh_local \
-  test_mesh_forward \
-  test_mesh_signal \
-  test_mesh_keepalive \
-  test_mesh_speed \
-  test_mesh_speed_ack \
-  test_mesh_speed_backwards \
-  test_mesh_speed_reliable \
-  test_mesh_speed_reliable_backwards
+  test_cadet_single \
+  test_cadet_local \
+  test_cadet_forward \
+  test_cadet_signal \
+  test_cadet_keepalive \
+  test_cadet_speed \
+  test_cadet_speed_ack \
+  test_cadet_speed_backwards \
+  test_cadet_speed_reliable \
+  test_cadet_speed_reliable_backwards
 endif
 
-ld_mesh_test_lib = \
+ld_cadet_test_lib = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
-  $(top_builddir)/src/mesh/libgnunetmeshtest.a \
-  $(top_builddir)/src/mesh/libgnunetmesh.la \
+  $(top_builddir)/src/cadet/libgnunetcadettest.a \
+  $(top_builddir)/src/cadet/libgnunetcadet.la \
   $(top_builddir)/src/testbed/libgnunettestbed.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la
 
-dep_mesh_test_lib = \
-  libgnunetmesh.la \
-  libgnunetmeshtest.a \
+dep_cadet_test_lib = \
+  libgnunetcadet.la \
+  libgnunetcadettest.a \
   $(top_builddir)/src/statistics/libgnunetstatistics.la
 
 
-gnunet_mesh_profiler_SOURCES = \
-  gnunet-mesh-profiler.c
-gnunet_mesh_profiler_LDADD = $(ld_mesh_test_lib)
-gnunet_mesh_profiler_DEPENDENCIES = $(dep_mesh_test_lib)
+gnunet_cadet_profiler_SOURCES = \
+  gnunet-cadet-profiler.c
+gnunet_cadet_profiler_LDADD = $(ld_cadet_test_lib)
+gnunet_cadet_profiler_DEPENDENCIES = $(dep_cadet_test_lib)
 
 
-test_mesh_single_SOURCES = \
-  test_mesh_single.c
-test_mesh_single_LDADD = $(ld_mesh_test_lib)
-test_mesh_single_DEPENDENCIES = $(dep_mesh_test_lib)
+test_cadet_single_SOURCES = \
+  test_cadet_single.c
+test_cadet_single_LDADD = $(ld_cadet_test_lib)
+test_cadet_single_DEPENDENCIES = $(dep_cadet_test_lib)
 
-test_mesh_local_SOURCES = \
-  test_mesh_local.c
-test_mesh_local_LDADD = $(ld_mesh_test_lib)
-test_mesh_local_DEPENDENCIES = $(dep_mesh_test_lib)
+test_cadet_local_SOURCES = \
+  test_cadet_local.c
+test_cadet_local_LDADD = $(ld_cadet_test_lib)
+test_cadet_local_DEPENDENCIES = $(dep_cadet_test_lib)
 
-test_mesh_forward_SOURCES = \
-  test_mesh.c
-test_mesh_forward_LDADD = $(ld_mesh_test_lib)
-test_mesh_forward_DEPENDENCIES = $(dep_mesh_test_lib)
+test_cadet_forward_SOURCES = \
+  test_cadet.c
+test_cadet_forward_LDADD = $(ld_cadet_test_lib)
+test_cadet_forward_DEPENDENCIES = $(dep_cadet_test_lib)
 
-test_mesh_signal_SOURCES = \
-  test_mesh.c
-test_mesh_signal_LDADD = $(ld_mesh_test_lib)
-test_mesh_signal_DEPENDENCIES = $(dep_mesh_test_lib)
+test_cadet_signal_SOURCES = \
+  test_cadet.c
+test_cadet_signal_LDADD = $(ld_cadet_test_lib)
+test_cadet_signal_DEPENDENCIES = $(dep_cadet_test_lib)
 
-test_mesh_keepalive_SOURCES = \
-  test_mesh.c
-test_mesh_keepalive_LDADD = $(ld_mesh_test_lib)
-test_mesh_keepalive_DEPENDENCIES = $(dep_mesh_test_lib)
+test_cadet_keepalive_SOURCES = \
+  test_cadet.c
+test_cadet_keepalive_LDADD = $(ld_cadet_test_lib)
+test_cadet_keepalive_DEPENDENCIES = $(dep_cadet_test_lib)
 
-test_mesh_speed_SOURCES = \
-  test_mesh.c
-test_mesh_speed_LDADD = $(ld_mesh_test_lib)
-test_mesh_speed_DEPENDENCIES = $(dep_mesh_test_lib)
+test_cadet_speed_SOURCES = \
+  test_cadet.c
+test_cadet_speed_LDADD = $(ld_cadet_test_lib)
+test_cadet_speed_DEPENDENCIES = $(dep_cadet_test_lib)
 
-test_mesh_speed_ack_SOURCES = \
-  test_mesh.c
-test_mesh_speed_ack_LDADD = $(ld_mesh_test_lib)
-test_mesh_speed_ack_DEPENDENCIES = $(dep_mesh_test_lib)
+test_cadet_speed_ack_SOURCES = \
+  test_cadet.c
+test_cadet_speed_ack_LDADD = $(ld_cadet_test_lib)
+test_cadet_speed_ack_DEPENDENCIES = $(dep_cadet_test_lib)
 
-test_mesh_speed_backwards_SOURCES = \
-  test_mesh.c
-test_mesh_speed_backwards_LDADD = $(ld_mesh_test_lib)
-test_mesh_speed_backwards_DEPENDENCIES = $(dep_mesh_test_lib)
+test_cadet_speed_backwards_SOURCES = \
+  test_cadet.c
+test_cadet_speed_backwards_LDADD = $(ld_cadet_test_lib)
+test_cadet_speed_backwards_DEPENDENCIES = $(dep_cadet_test_lib)
 
-test_mesh_speed_reliable_SOURCES = \
-  test_mesh.c
-test_mesh_speed_reliable_LDADD = $(ld_mesh_test_lib)
-test_mesh_speed_reliable_DEPENDENCIES = $(dep_mesh_test_lib)
+test_cadet_speed_reliable_SOURCES = \
+  test_cadet.c
+test_cadet_speed_reliable_LDADD = $(ld_cadet_test_lib)
+test_cadet_speed_reliable_DEPENDENCIES = $(dep_cadet_test_lib)
 
-test_mesh_speed_reliable_backwards_SOURCES = \
-  test_mesh.c
-test_mesh_speed_reliable_backwards_LDADD = $(ld_mesh_test_lib)
-test_mesh_speed_reliable_backwards_DEPENDENCIES = $(dep_mesh_test_lib)
+test_cadet_speed_reliable_backwards_SOURCES = \
+  test_cadet.c
+test_cadet_speed_reliable_backwards_LDADD = $(ld_cadet_test_lib)
+test_cadet_speed_reliable_backwards_DEPENDENCIES = $(dep_cadet_test_lib)
 
 
 if ENABLE_TEST_RUN
@@ -188,7 +188,7 @@ TESTS = \
 endif
 
 EXTRA_DIST = \
-  mesh.h mesh_protocol.h \
-  test_mesh.conf \
-  test_mesh_drop.conf
+  cadet.h cadet_protocol.h \
+  test_cadet.conf \
+  test_cadet_drop.conf
 
