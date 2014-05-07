@@ -54,7 +54,7 @@ gnunetinclude_HEADERS = \
   gnunet_helper_lib.h \
   gnunet_identity_service.h \
   gnunet_load_lib.h \
-  gnunet_mesh_service.h \
+  gnunet_cadet_service.h \
   gnunet_microphone_lib.h \
   gnunet_multicast_service.h \
   gnunet_mq_lib.h \
