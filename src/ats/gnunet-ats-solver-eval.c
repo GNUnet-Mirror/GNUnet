@@ -328,7 +328,7 @@ GNUNET_ATS_solver_logging_write_to_disk (struct LoggingHandle *l, int add_time_s
   for (lts = l->head; NULL != lts; lts = lts->next)
   {
 
-    fprintf (stderr, "Writing log step %llu\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Writing log step %llu\n",
         (long long unsigned int) lts->timestamp.abs_value_us);
 
     for (log_p = lts->head; NULL != log_p; log_p = log_p->next)
@@ -383,7 +383,7 @@ GNUNET_ATS_solver_logging_write_to_disk (struct LoggingHandle *l, int add_time_s
           GNUNET_free (filename);
           GNUNET_CONTAINER_DLL_insert (lf_head, lf_tail, cur);
 
-          GNUNET_asprintf(&datastring,"#timestamp_abs; ; addr net; addr_active; bw in; bw out; " \
+          GNUNET_asprintf(&datastring,"#time delta; addr net; addr_active; bw in; bw out; " \
               "UTILIZATION_UP [abs/rel]; UTILIZATION_UP; UTILIZATION_DOWN; UTILIZATION_DOWN; " \
               "UTILIZATION_PAYLOAD_UP; UTILIZATION_PAYLOAD_UP; UTILIZATION_PAYLOAD_DOWN; UTILIZATION_PAYLOAD_DOWN;"\
               "DELAY; DELAY; " \
@@ -421,7 +421,7 @@ GNUNET_ATS_solver_logging_write_to_disk (struct LoggingHandle *l, int add_time_s
           fprintf(stderr, "\t %s = %.2f %.2f [abs/rel]\n",
               GNUNET_ATS_print_property_type(c),
               log_a->prop_abs[c], log_a->prop_norm[c]);*/
-          GNUNET_asprintf(&propstring_tmp,"%s;%.3f;%.3f",
+          GNUNET_asprintf(&propstring_tmp,"%s%.3f;%.3f;",
               propstring, log_a->prop_abs[c], log_a->prop_norm[c]);
           GNUNET_free (propstring);
           propstring = GNUNET_strdup(propstring_tmp);
@@ -2196,7 +2196,19 @@ enforce_stop_property (struct GNUNET_ATS_TEST_Operation *op)
   struct PropertyGenerator *pg = find_prop_gen(op->peer_id, op->address_id,
       op->prop_type);
   if (NULL != pg)
-      GNUNET_ATS_solver_generate_property_stop (pg);
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+        "Stopping preference generation for peer %u address %u\n", op->peer_id,
+        op->address_id);
+    GNUNET_ATS_solver_generate_property_stop (pg);
+  }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+        "Cannot find preference generator for peer %u address %u\n",
+        op->peer_id, op->address_id);
+    GNUNET_break (0);
+  }
 }
 
 static void
@@ -2234,7 +2246,19 @@ enforce_stop_preference (struct GNUNET_ATS_TEST_Operation *op)
   struct PreferenceGenerator *pg = find_pref_gen(op->peer_id,
       op->pref_type);
   if (NULL != pg)
-      GNUNET_ATS_solver_generate_preferences_stop (pg);
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+        "Stopping property generation for peer %u address %u\n", op->peer_id,
+        op->address_id);
+    GNUNET_ATS_solver_generate_preferences_stop (pg);
+  }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+        "Cannot find preference generator for peer %u address %u\n",
+        op->peer_id, op->address_id);
+    GNUNET_break (0);
+  }
 }
 
 
