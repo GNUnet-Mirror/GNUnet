@@ -22,7 +22,7 @@ AUTOSTART = NO
 HOSTNAME = localhost
 AUTOSTART = NO
 
-[mesh]
+[cadet]
 AUTOSTART = NO
 
 [dht]
