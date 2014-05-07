@@ -18,7 +18,7 @@ man_MANS = \
   gnunet-gns-import.1 \
   gnunet-gns-proxy.1 \
   gnunet-identity.1 \
-  gnunet-mesh.1 \
+  gnunet-cadet.1 \
   gnunet-namecache.1 \
   gnunet-namestore.1 \
   gnunet-namestore-fcfsd.1 \

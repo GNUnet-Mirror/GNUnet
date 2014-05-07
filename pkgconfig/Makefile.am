@@ -18,7 +18,7 @@ pcfiles = \
        gnunetgns.pc \
        gnunethello.pc \
        gnunetidentity.pc \
-       gnunetmesh.pc \
+       gnunetcadet.pc \
        gnunetmicrophone.pc \
        gnunetmulticast.pc \
        gnunetmysql.pc \
@@ -74,7 +74,7 @@ EXTRA_DIST = \
        gnunetgns.pc.in \
        gnunethello.pc.in \
        gnunetidentity.pc.in \
-       gnunetmesh.pc.in \
+       gnunetcadet.pc.in \
        gnunetmicrophone.pc.in \
        gnunetmulticast.pc.in \
        gnunetmysql.pc.in \

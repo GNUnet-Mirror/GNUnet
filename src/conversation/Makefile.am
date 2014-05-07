@@ -147,7 +147,7 @@ gnunet_service_conversation_LDADD = \
   libgnunetconversation.la \
   libgnunetspeaker.la \
   libgnunetmicrophone.la \
-  $(top_builddir)/src/mesh/libgnunetmesh.la \
+  $(top_builddir)/src/cadet/libgnunetcadet.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(INTLLIBS)
 gnunet_service_conversation_LDFLAGS = \
