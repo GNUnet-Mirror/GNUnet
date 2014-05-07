@@ -75,6 +75,45 @@ handle_client_disconnect (void *cls,
 }
 
 /**
+ * Handle a store request from client
+ *
+ * @param cls unused
+ * @param client identification of the client
+ * @param message the actual message
+ */
+void handle_store (void *cls,
+    struct GNUNET_SERVER_Client *client,
+    const struct GNUNET_MessageHeader *message)
+{
+  struct StoreRequestMessage *sreqm;
+  struct GNUNET_SERVER_TransmitContext *tc;
+  struct StoreResponseMessage *sresm;
+  uint16_t msg_size;
+  char *sub_system;
+
+  msg_size = ntohs(message->size);
+  GNUNET_break_op(msg_size > sizeof(struct GNUNET_MessageHeader) + sizeof(struct StoreRequestMessage));
+  sreqm = (struct StoreRequestMessage *)&message[1];
+  sub_system = (char *)&sreqm[1];
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Received a store request (size: %lu) for sub system `%s' and peer `%s'\n",
+      msg_size,
+      sub_system,
+      GNUNET_i2s (&sreqm->peer));
+  //TODO: do the actual storage
+  //create a fake response for testing
+  char *response = "This is a response";
+  tc = GNUNET_SERVER_transmit_context_create (client);
+  sresm = malloc(sizeof(struct StoreResponseMessage) + strlen(response));
+  sresm->header.type = htons(GNUNET_MESSAGE_TYPE_PEERSTORE_STORE_RESULT);
+  sresm->header.size = htons(sizeof(struct StoreResponseMessage) + strlen(response));
+  sresm->success = htons(GNUNET_NO);
+  sresm->emsg_size = htons(strlen(response));
+  memcpy(&sresm[1], response, strlen(response));
+  GNUNET_SERVER_transmit_context_append_message(tc, (struct GNUNET_MessageHeader *)sresm);
+  GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
+}
+
+/**
  * Peerstore service runner.
  *
  * @param cls closure
@@ -87,7 +126,8 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
-    {NULL, NULL, 0, 0}
+      {&handle_store, NULL, GNUNET_MESSAGE_TYPE_PEERSTORE_STORE, 0},
+      {NULL, NULL, 0, 0}
   };
   char *database;
 

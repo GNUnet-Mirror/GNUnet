@@ -35,7 +35,7 @@ struct StoreRequestMessage
 {
 
   /**
-   * Type will be GNUNET_MESSAGE_TYPE_PEERINFO_GET
+   * GNUnet message header
    */
   struct GNUNET_MessageHeader header;
 
@@ -69,9 +69,14 @@ struct StoreRequestMessage
 struct StoreResponseMessage
 {
   /**
+   * GNUnet message header
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
    * Was the store operation successful (#GNUNET_YES / #GNUNET_NO)
    */
-  int success;
+  uint16_t success;
 
   /**
    * Size of the error message (0 if no error)

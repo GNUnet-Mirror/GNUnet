@@ -375,6 +375,8 @@ peerstore_handler (void *cls, const struct GNUNET_MessageHeader *msg)
   uint16_t response_type;
   uint16_t response_size;
   char *emsg;
+  GNUNET_PEERSTORE_Continuation cont;
+  void *cont_cls;
 
   h->in_receive = GNUNET_NO;
   if(NULL == msg)
@@ -384,6 +386,7 @@ peerstore_handler (void *cls, const struct GNUNET_MessageHeader *msg)
   }
   response_type = ntohs(msg->type);
   response_size = ntohs(msg->size);
+  LOG(GNUNET_ERROR_TYPE_DEBUG, "Received a response of type %lu from server\n", response_type);
   switch(response_type)
   {
   case GNUNET_MESSAGE_TYPE_PEERSTORE_STORE_RESULT:
@@ -394,6 +397,8 @@ peerstore_handler (void *cls, const struct GNUNET_MessageHeader *msg)
       LOG(GNUNET_ERROR_TYPE_ERROR, "Received a response to a non-existent store request\n");
       return;
     }
+    cont = sc->cont;
+    cont_cls = sc->cont_cls;
     GNUNET_PEERSTORE_store_cancel(sc);
     trigger_transmit (h);
     if (NULL != h->sc_head)
@@ -404,16 +409,18 @@ peerstore_handler (void *cls, const struct GNUNET_MessageHeader *msg)
           h,
           GNUNET_TIME_UNIT_FOREVER_REL);
     }
-    if(NULL != sc->cont)
+    if(NULL != cont)
     {
       srm = (struct StoreResponseMessage *)&msg[1];
       emsg = NULL;
       if(GNUNET_NO == ntohs(srm->success))
       {
+        LOG(GNUNET_ERROR_TYPE_DEBUG, "Calling user callback with message: %s\n", emsg);
         emsg = GNUNET_malloc(ntohs(srm->emsg_size));
         memcpy(emsg, &srm[1], ntohs(srm->emsg_size));
       }
-      sc->cont(sc->cont_cls, emsg);
+      LOG(GNUNET_ERROR_TYPE_DEBUG, "Calling user callback without a message\n");
+      cont(cont_cls, emsg);
     }
     break;
   }
@@ -514,7 +521,7 @@ GNUNET_PEERSTORE_store (struct GNUNET_PEERSTORE_Handle *h,
   size_t request_size;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-      "Storing value (size: %lu) for subsytem `%s' and peer `%s'",
+      "Storing value (size: %lu) for subsytem `%s' and peer `%s'\n",
       size, sub_system, GNUNET_i2s (peer));
   sub_system_size = strlen(sub_system);
   request_size = sizeof(struct StoreRequestMessage) + sub_system_size + size;

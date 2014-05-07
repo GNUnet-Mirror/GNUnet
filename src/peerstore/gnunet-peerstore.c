@@ -30,6 +30,16 @@
 static int ret;
 
 /**
+ * option '-t'
+ */
+static int test;
+
+/*
+ * Handle to PEERSTORE service
+ */
+struct GNUNET_PEERSTORE_Handle *peerstore_handle;
+
+/**
  * Run on shutdown
  *
  * @param cls unused
@@ -39,6 +49,20 @@ static void
 shutdown_task (void *cls,
          const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  if(NULL != peerstore_handle)
+  {
+    GNUNET_PEERSTORE_disconnect(peerstore_handle);
+    peerstore_handle = NULL;
+  }
+}
+
+void test_cont(void *cls, const char *emsg)
+{
+  printf("Received a response\n");
+  if(NULL != emsg)
+  {
+    printf("Response: %s\n", emsg);
+  }
 }
 
 /**
@@ -56,9 +80,25 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
 
+  peerstore_handle = NULL;
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                   &shutdown_task,
                                   NULL);
+  peerstore_handle = GNUNET_PEERSTORE_connect(cfg);
+  GNUNET_assert(NULL != peerstore_handle);
+  if(GNUNET_YES == test)
+  {
+    struct GNUNET_PeerIdentity pid;
+    memset (&pid, 32, sizeof (pid));
+    GNUNET_PEERSTORE_store(peerstore_handle,
+        &pid,
+        "subsub",
+        "value",
+        5,
+        GNUNET_TIME_UNIT_FOREVER_REL,
+        &test_cont,
+        NULL);
+  }
 
   ret = 0;
 }
@@ -74,6 +114,9 @@ int
 main (int argc, char *const *argv)
 {
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
+    {'t', "test", NULL,
+        gettext_noop("TESTING"),
+    0, &GNUNET_GETOPT_set_one, &test},
     GNUNET_GETOPT_OPTION_END
   };
   return (GNUNET_OK ==
