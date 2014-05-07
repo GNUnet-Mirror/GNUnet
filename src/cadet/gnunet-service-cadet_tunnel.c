@@ -1587,10 +1587,11 @@ handle_pong (struct CadetTunnel3 *t,
 
   if (challenge != t->kx_ctx->challenge)
   {
-    LOG (GNUNET_ERROR_TYPE_WARNING, "Wrong PONG challenge\n");
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "PONG: %u (e: %u). Expected: %u.\n",
+    LOG (GNUNET_ERROR_TYPE_WARNING, "Wrong PONG challenge on %s\n", GMT_2s (t));
+    LOG (GNUNET_ERROR_TYPE_WARNING, "PONG: %u (e: %u). Expected: %u.\n",
          challenge, msg->nonce, t->kx_ctx->challenge);
-    GNUNET_break_op (0);
+    send_ephemeral (t);
+    send_ping (t);
     return;
   }
   GNUNET_SCHEDULER_cancel (t->rekey_task);
