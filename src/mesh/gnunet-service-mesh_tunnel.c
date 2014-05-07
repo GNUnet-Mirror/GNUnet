@@ -1549,12 +1549,13 @@ handle_ping (struct MeshTunnel3 *t,
   t_decrypt (t, &res.target, &msg->target, ping_encryption_size (), msg->iv);
   if (0 != memcmp (&my_full_id, &res.target, sizeof (my_full_id)))
   {
+    // FIXME: move to debug
     GNUNET_STATISTICS_update (stats, "# malformed PINGs", 1, GNUNET_NO);
-    LOG (GNUNET_ERROR_TYPE_WARNING, "  malformed PING\n");
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  e got %u\n", msg->nonce);
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  e towards %s\n", GNUNET_i2s (&msg->target));
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  got %u\n", res.nonce);
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  towards %s\n", GNUNET_i2s (&res.target));
+    LOG (GNUNET_ERROR_TYPE_WARNING, "  malformed PING on %s\n", GMT_2s (t));
+    LOG (GNUNET_ERROR_TYPE_WARNING, "  e got %u\n", msg->nonce);
+    LOG (GNUNET_ERROR_TYPE_WARNING, "  e towards %s\n", GNUNET_i2s (&msg->target));
+    LOG (GNUNET_ERROR_TYPE_WARNING, "  got %u\n", res.nonce);
+    LOG (GNUNET_ERROR_TYPE_WARNING, "  towards %s\n", GNUNET_i2s (&res.target));
     return;
   }
 
