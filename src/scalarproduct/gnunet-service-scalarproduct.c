@@ -28,7 +28,7 @@
 #include <gcrypt.h>
 #include "gnunet_util_lib.h"
 #include "gnunet_core_service.h"
-#include "gnunet_mesh_service.h"
+#include "gnunet_cadet_service.h"
 #include "gnunet_applications.h"
 #include "gnunet_protocols.h"
 #include "gnunet_scalarproduct_service.h"
@@ -205,7 +205,7 @@ struct ServiceSession
   /**
    * My transmit handle for the current message to a alice/bob
    */
-  struct GNUNET_MESH_TransmitHandle * service_transmit_handle;
+  struct GNUNET_CADET_TransmitHandle * service_transmit_handle;
 
   /**
    * My transmit handle for the current message to the client
@@ -213,9 +213,9 @@ struct ServiceSession
   struct GNUNET_SERVER_TransmitHandle * client_transmit_handle;
 
   /**
-   * channel-handle associated with our mesh handle
+   * channel-handle associated with our cadet handle
    */
-  struct GNUNET_MESH_Channel * channel;
+  struct GNUNET_CADET_Channel * channel;
 
   /**
    * Handle to a task that sends a msg to the our client
@@ -262,7 +262,7 @@ const struct GNUNET_CONFIGURATION_Handle * cfg;
 /**
  * Handle to the core service (NULL until we've connected to it).
  */
-static struct GNUNET_MESH_Handle *my_mesh;
+static struct GNUNET_CADET_Handle *my_cadet;
 
 /**
  * The identity of this host.
@@ -312,7 +312,7 @@ static struct ServiceSession * from_service_head;
 static struct ServiceSession * from_service_tail;
 
 /**
- * Certain events (callbacks for server & mesh operations) must not be queued after shutdown.
+ * Certain events (callbacks for server & cadet operations) must not be queued after shutdown.
  */
 static int do_shutdown;
 
@@ -542,9 +542,9 @@ handle_client_disconnect (void *cls,
   if (!(session->role == BOB && 0/*//TODO: if session concluded*/)) {
     //we MUST terminate any client message underway
     if (session->service_transmit_handle && session->channel)
-      GNUNET_MESH_notify_transmit_ready_cancel (session->service_transmit_handle);
+      GNUNET_CADET_notify_transmit_ready_cancel (session->service_transmit_handle);
     if (session->channel && 0/* //TODO: waiting for service response */)
-      GNUNET_MESH_channel_destroy (session->channel);
+      GNUNET_CADET_channel_destroy (session->channel);
   }
   if (GNUNET_SCHEDULER_NO_TASK != session->client_notification_task) {
     GNUNET_SCHEDULER_cancel (session->client_notification_task);
@@ -660,8 +660,8 @@ prepare_alices_cyrptodata_message (void *cls)
   session->msg = (struct GNUNET_MessageHeader *) msg;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, _ ("Transmitting service request.\n"));
 
-  //transmit via mesh messaging
-  session->service_transmit_handle = GNUNET_MESH_notify_transmit_ready (session->channel, GNUNET_YES,
+  //transmit via cadet messaging
+  session->service_transmit_handle = GNUNET_CADET_notify_transmit_ready (session->channel, GNUNET_YES,
                                                                         GNUNET_TIME_UNIT_FOREVER_REL,
                                                                         msg_length,
                                                                         &do_send_message,
@@ -717,7 +717,7 @@ prepare_bobs_cryptodata_message_multipart (void *cls)
   session->transferred_element_count += todo_count;
   session->msg = (struct GNUNET_MessageHeader *) msg;
   session->service_transmit_handle =
-          GNUNET_MESH_notify_transmit_ready (session->channel,
+          GNUNET_CADET_notify_transmit_ready (session->channel,
                                              GNUNET_YES,
                                              GNUNET_TIME_UNIT_FOREVER_REL,
                                              msg_length,
@@ -725,7 +725,7 @@ prepare_bobs_cryptodata_message_multipart (void *cls)
                                              session);
   //disconnect our client
   if (NULL == session->service_transmit_handle) {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _ ("Could not send service-response message via mesh!)\n"));
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _ ("Could not send service-response message via cadet!)\n"));
 
     session->response->client_notification_task =
             GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
@@ -805,7 +805,7 @@ prepare_bobs_cryptodata_message (void *cls,
 
   session->msg = (struct GNUNET_MessageHeader *) msg;
   session->service_transmit_handle =
-          GNUNET_MESH_notify_transmit_ready (session->channel,
+          GNUNET_CADET_notify_transmit_ready (session->channel,
                                              GNUNET_YES,
                                              GNUNET_TIME_UNIT_FOREVER_REL,
                                              msg_length,
@@ -813,7 +813,7 @@ prepare_bobs_cryptodata_message (void *cls,
                                              session);
   //disconnect our client
   if (NULL == session->service_transmit_handle) {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _ ("Could not send service-response message via mesh!)\n"));
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _ ("Could not send service-response message via cadet!)\n"));
 
     session->response->client_notification_task =
             GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
@@ -1265,8 +1265,8 @@ prepare_alices_computation_request (struct ServiceSession * session)
   session->msg = (struct GNUNET_MessageHeader *) msg;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, _ ("Transmitting service request.\n"));
 
-  //transmit via mesh messaging
-  session->service_transmit_handle = GNUNET_MESH_notify_transmit_ready (session->channel, GNUNET_YES,
+  //transmit via cadet messaging
+  session->service_transmit_handle = GNUNET_CADET_notify_transmit_ready (session->channel, GNUNET_YES,
                                                                         GNUNET_TIME_UNIT_FOREVER_REL,
                                                                         sizeof (struct GNUNET_SCALARPRODUCT_service_request),
                                                                         &do_send_message,
@@ -1330,8 +1330,8 @@ prepare_alices_cyrptodata_message_multipart (void *cls)
   session->msg = (struct GNUNET_MessageHeader *) msg;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, _ ("Transmitting service request.\n"));
 
-  //transmit via mesh messaging
-  session->service_transmit_handle = GNUNET_MESH_notify_transmit_ready (session->channel, GNUNET_YES,
+  //transmit via cadet messaging
+  session->service_transmit_handle = GNUNET_CADET_notify_transmit_ready (session->channel, GNUNET_YES,
                                                                         GNUNET_TIME_UNIT_FOREVER_REL,
                                                                         msg_length,
                                                                         &do_send_message,
@@ -1404,10 +1404,10 @@ client_request_complete_alice (struct ServiceSession * session)
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               _ ("Creating new channel for session with key %s.\n"),
               GNUNET_h2s (&session->session_id));
-  session->channel = GNUNET_MESH_channel_create (my_mesh, session,
+  session->channel = GNUNET_CADET_channel_create (my_cadet, session,
                                                  &session->peer,
                                                  GNUNET_APPLICATION_TYPE_SCALARPRODUCT,
-                                                 GNUNET_MESH_OPTION_RELIABLE);
+                                                 GNUNET_CADET_OPTION_RELIABLE);
   if (NULL == session->channel) {
     session->response->client_notification_task =
             GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
@@ -1628,9 +1628,9 @@ handle_client_message (void *cls,
  */
 static void *
 cb_channel_incoming (void *cls,
-                          struct GNUNET_MESH_Channel *channel,
+                          struct GNUNET_CADET_Channel *channel,
                           const struct GNUNET_PeerIdentity *initiator,
-                          uint32_t port, enum GNUNET_MESH_ChannelOption options)
+                          uint32_t port, enum GNUNET_CADET_ChannelOption options)
 {
   struct ServiceSession * c = GNUNET_new (struct ServiceSession);
 
@@ -1649,16 +1649,16 @@ cb_channel_incoming (void *cls,
  * Function called whenever a channel is destroyed.  Should clean up
  * any associated state.
  *
- * It must NOT call GNUNET_MESH_channel_destroy on the channel.
+ * It must NOT call GNUNET_CADET_channel_destroy on the channel.
  *
- * @param cls closure (set from GNUNET_MESH_connect)
+ * @param cls closure (set from GNUNET_CADET_connect)
  * @param channel connection to the other end (henceforth invalid)
  * @param channel_ctx place where local state associated
  *                   with the channel is stored
  */
 static void
 cb_channel_destruction (void *cls,
-                             const struct GNUNET_MESH_Channel *channel,
+                             const struct GNUNET_CADET_Channel *channel,
                              void *channel_ctx)
 {
   struct ServiceSession * session = channel_ctx;
@@ -1814,7 +1814,7 @@ compute_scalar_product (struct ServiceSession * session)
 /**
  * Handle a multipart-chunk of a request from another service to calculate a scalarproduct with us.
  *
- * @param cls closure (set from #GNUNET_MESH_connect)
+ * @param cls closure (set from #GNUNET_CADET_connect)
  * @param channel connection to the other end
  * @param channel_ctx place to store local state associated with the channel
  * @param message the actual message
@@ -1823,7 +1823,7 @@ compute_scalar_product (struct ServiceSession * session)
  */
 static int
 handle_alices_cyrptodata_message_multipart (void *cls,
-                                            struct GNUNET_MESH_Channel * channel,
+                                            struct GNUNET_CADET_Channel * channel,
                                             void **channel_ctx,
                                             const struct GNUNET_MessageHeader * message)
 {
@@ -1885,7 +1885,7 @@ except:
 /**
  * Handle a request from another service to calculate a scalarproduct with us.
  *
- * @param cls closure (set from #GNUNET_MESH_connect)
+ * @param cls closure (set from #GNUNET_CADET_connect)
  * @param channel connection to the other end
  * @param channel_ctx place to store local state associated with the channel
  * @param message the actual message
@@ -1894,7 +1894,7 @@ except:
  */
 static int
 handle_alices_cyrptodata_message (void *cls,
-                                  struct GNUNET_MESH_Channel * channel,
+                                  struct GNUNET_CADET_Channel * channel,
                                   void **channel_ctx,
                                   const struct GNUNET_MessageHeader * message)
 {
@@ -1964,7 +1964,7 @@ invalid_msg:
 /**
  * Handle a request from another service to calculate a scalarproduct with us.
  *
- * @param cls closure (set from #GNUNET_MESH_connect)
+ * @param cls closure (set from #GNUNET_CADET_connect)
  * @param channel connection to the other end
  * @param channel_ctx place to store local state associated with the channel
  * @param message the actual message
@@ -1973,7 +1973,7 @@ invalid_msg:
  */
 static int
 handle_alices_computation_request (void *cls,
-                        struct GNUNET_MESH_Channel * channel,
+                        struct GNUNET_CADET_Channel * channel,
                         void **channel_ctx,
                         const struct GNUNET_MessageHeader * message)
 {
@@ -2078,7 +2078,7 @@ invalid_msg:
 /**
  * Handle a multipart chunk of a response we got from another service we wanted to calculate a scalarproduct with.
  *
- * @param cls closure (set from #GNUNET_MESH_connect)
+ * @param cls closure (set from #GNUNET_CADET_connect)
  * @param channel connection to the other end
  * @param channel_ctx place to store local state associated with the channel
  * @param message the actual message
@@ -2087,7 +2087,7 @@ invalid_msg:
  */
 static int
 handle_bobs_cryptodata_multipart (void *cls,
-                                   struct GNUNET_MESH_Channel * channel,
+                                   struct GNUNET_CADET_Channel * channel,
                                    void **channel_ctx,
                                    const struct GNUNET_MessageHeader * message)
 {
@@ -2150,7 +2150,7 @@ invalid_msg:
 /**
  * Handle a response we got from another service we wanted to calculate a scalarproduct with.
  *
- * @param cls closure (set from #GNUNET_MESH_connect)
+ * @param cls closure (set from #GNUNET_CADET_connect)
  * @param channel connection to the other end
  * @param channel_ctx place to store local state associated with the channel
  * @param message the actual message
@@ -2159,7 +2159,7 @@ invalid_msg:
  */
 static int
 handle_bobs_cryptodata_message (void *cls,
-                         struct GNUNET_MESH_Channel * channel,
+                         struct GNUNET_CADET_Channel * channel,
                          void **channel_ctx,
                          const struct GNUNET_MessageHeader * message)
 {
@@ -2247,7 +2247,7 @@ shutdown_task (void *cls,
   // terminate all owned open channels.
   for (session = from_client_head; NULL != session; session = session->next) {
     if ((0/*//TODO: not finalized*/) && (NULL != session->channel)) {
-      GNUNET_MESH_channel_destroy (session->channel);
+      GNUNET_CADET_channel_destroy (session->channel);
       session->channel = NULL;
     }
     if (GNUNET_SCHEDULER_NO_TASK != session->client_notification_task) {
@@ -2261,13 +2261,13 @@ shutdown_task (void *cls,
   }
   for (session = from_service_head; NULL != session; session = session->next)
     if (NULL != session->channel) {
-      GNUNET_MESH_channel_destroy (session->channel);
+      GNUNET_CADET_channel_destroy (session->channel);
       session->channel = NULL;
     }
 
-  if (my_mesh) {
-    GNUNET_MESH_disconnect (my_mesh);
-    my_mesh = NULL;
+  if (my_cadet) {
+    GNUNET_CADET_disconnect (my_cadet);
+    my_cadet = NULL;
   }
 }
 
@@ -2290,7 +2290,7 @@ run (void *cls,
     {&handle_client_message_multipart, NULL, GNUNET_MESSAGE_TYPE_SCALARPRODUCT_CLIENT_MUTLIPART, 0},
     {NULL, NULL, 0, 0}
   };
-  static const struct GNUNET_MESH_MessageHandler mesh_handlers[] = {
+  static const struct GNUNET_CADET_MessageHandler cadet_handlers[] = {
     { &handle_alices_computation_request, GNUNET_MESSAGE_TYPE_SCALARPRODUCT_ALICE_CRYPTODATA, 0},
     { &handle_alices_cyrptodata_message, GNUNET_MESSAGE_TYPE_SCALARPRODUCT_ALICE_CRYPTODATA, 0},
     { &handle_alices_cyrptodata_message_multipart, GNUNET_MESSAGE_TYPE_SCALARPRODUCT_ALICE_CRYPTODATA_MULTIPART, 0},
@@ -2319,12 +2319,12 @@ run (void *cls,
   GNUNET_break (GNUNET_OK ==
                 GNUNET_CRYPTO_get_peer_identity (c,
                                                  &me));
-  my_mesh = GNUNET_MESH_connect (c, NULL,
+  my_cadet = GNUNET_CADET_connect (c, NULL,
                                  &cb_channel_incoming,
                                  &cb_channel_destruction,
-                                 mesh_handlers, ports);
-  if (!my_mesh) {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _ ("Connect to MESH failed\n"));
+                                 cadet_handlers, ports);
+  if (!my_cadet) {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _ ("Connect to CADET failed\n"));
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
