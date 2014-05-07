@@ -979,8 +979,9 @@ send_kx (struct CadetTunnel3 *t,
     return;
   }
 
-  /* Even if tunnel is troyed, send anyway.
-   * Could be a rekey initiated by remote peer to create a new channel!
+  /* Even if tunnel is being destroyed, send anyway.
+   * Could be a response to a rekey initiated by remote peer,
+   * who is trying to create a new channel!
    */
 
   /* Must have a connection. */
