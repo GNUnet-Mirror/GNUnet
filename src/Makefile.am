@@ -74,7 +74,7 @@ SUBDIRS = \
   hostlist \
   topology \
   regex \
-  mesh \
+  cadet \
   dns \
   identity \
   set \
