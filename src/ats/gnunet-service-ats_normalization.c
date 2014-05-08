@@ -733,6 +733,7 @@ normalize_address (void *cls, const struct GNUNET_PeerIdentity *h, void *k)
   backup = address->atsin[p->prop_type].norm;
   avg_value = address->atsin[p->prop_type].avg;
   delta = p->max - p->min;
+  /* max - 2 * min + avg_value / max - min */
   address->atsin[p->prop_type].norm = (delta + (avg_value - p->min)) / (delta);
 
   if (backup == address->atsin[p->prop_type].norm)

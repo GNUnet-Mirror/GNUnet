@@ -29,6 +29,8 @@
 #include "gnunet_ats_plugin.h"
 #include "gnunet-service-ats_addresses.h"
 
+#define PROP_STABILITY_FACTOR 1.25
+
 /**
  * ATS proportional solver
  *

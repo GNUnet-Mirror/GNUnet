@@ -291,6 +291,11 @@ struct GAS_PROPORTIONAL_Handle
    * Proportionality factor
    */
   double prop_factor;
+
+  /**
+   * Stability factor
+   */
+  double stability_factor;
 };
 
 /**
@@ -400,6 +405,7 @@ libgnunet_plugin_ats_proportional_init (void *cls)
   struct Network * cur;
   char * net_str[GNUNET_ATS_NetworkTypeCount] = GNUNET_ATS_NetworkTypeString;
   unsigned long long prop_factor;
+  unsigned long long stability_factor;
   int c;
 
   GNUNET_assert (NULL != env);
@@ -441,10 +447,31 @@ libgnunet_plugin_ats_proportional_init (void *cls)
   s->requests = GNUNET_CONTAINER_multipeermap_create (10, GNUNET_NO);
 
   if (GNUNET_SYSERR != GNUNET_CONFIGURATION_get_value_number(s->env->cfg, "ats",
+      "PROP_STABILITY_FACTOR", &stability_factor))
+  {
+    if ((stability_factor >= 100) && (stability_factor <= 200))
+    {
+      s->stability_factor = ((double) stability_factor) / 100;
+    }
+    else
+    {
+      GNUNET_break (0);
+      s->stability_factor = PROP_STABILITY_FACTOR;
+    }
+  }
+  else
+  {
+    GNUNET_break (0);
+    s->stability_factor = PROP_STABILITY_FACTOR;
+  }
+  LOG (GNUNET_ERROR_TYPE_INFO, "Using stability factor %.3f\n",
+      s->stability_factor);
+
+  if (GNUNET_SYSERR != GNUNET_CONFIGURATION_get_value_number(s->env->cfg, "ats",
       "PROP_PROPORTIONALITY_FACTOR", &prop_factor))
   {
-    if (prop_factor > 1)
-      s->prop_factor = (double) prop_factor;
+    if (prop_factor >= 100)
+      s->prop_factor = ((double) prop_factor) / 100;
     else
     {
       GNUNET_break (0);
@@ -453,7 +480,7 @@ libgnunet_plugin_ats_proportional_init (void *cls)
   }
   else
     s->prop_factor = PROPORTIONALITY_FACTOR;
-  LOG (GNUNET_ERROR_TYPE_INFO, "Using proportionality factor %.0f\n",
+  LOG (GNUNET_ERROR_TYPE_INFO, "Using proportionality factor %.3f\n",
       s->prop_factor);
 
 
@@ -743,6 +770,10 @@ find_best_address_it (void *cls,
   struct AddressSolverInformation *asi;
   const double *norm_prop_cur;
   const double *norm_prop_best;
+  double best_delay;
+  double best_distance;
+  double cur_delay;
+  double cur_distance;
   int index;
 
   current_best = NULL;
@@ -790,45 +821,75 @@ find_best_address_it (void *cls,
       goto end;
     }
   }
-  if (NULL == ctx->best)
+  else
   {
     /* We do not have a 'best' address so take this address */
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Setting initial address %p\n", current);
     current_best = current;
     goto end;
-  }
-
-  if ( (ntohl (ctx->best->assigned_bw_in.value__) == 0) &&
-       (ntohl (current->assigned_bw_in.value__) > 0) )
-  {
-    /* stick to existing connection */
-    current_best = current;
   }
 
   /* Now compare ATS information */
   norm_prop_cur = ctx->s->get_properties (ctx->s->get_properties_cls,
       (const struct ATS_Address *) current);
+  index = find_property_index (GNUNET_ATS_QUALITY_NET_DISTANCE);
+  cur_distance = norm_prop_cur[index];
+  index = find_property_index (GNUNET_ATS_QUALITY_NET_DELAY);
+  cur_delay = norm_prop_cur[index];
+
   norm_prop_best = ctx->s->get_properties (ctx->s->get_properties_cls,
       (const struct ATS_Address *) ctx->best);
-
   index = find_property_index (GNUNET_ATS_QUALITY_NET_DISTANCE);
-  if (GNUNET_SYSERR != index)
+  best_distance = norm_prop_best[index];
+  index = find_property_index (GNUNET_ATS_QUALITY_NET_DELAY);
+  best_delay = norm_prop_best[index];
+
+  /* user shorter distance */
+
+
+  if (cur_distance < best_distance)
   {
-    /* user shorter distance */
-    if (norm_prop_cur[index] < norm_prop_best[index])
+
+    if (GNUNET_NO == ctx->best->active)
+    {
+      current_best = current; /* Use current */
+    }
+    else if ((best_distance / cur_distance) > ctx->s->stability_factor)
+    {
+      /* Best and active address performs worse  */
       current_best = current;
-    else
-      current_best = ctx->best;
+    }
+  }
+  else
+  {
+    /* Use current best */
+    current_best = ctx->best;
   }
 
-  index = find_property_index (GNUNET_ATS_QUALITY_NET_DELAY);
-  if (GNUNET_SYSERR != index)
+  /* User connection with less delay */
+  if (cur_delay < best_delay)
   {
-    /* User connection with less delay */
-    if (norm_prop_cur[index] < norm_prop_best[index])
+
+    if (GNUNET_NO == ctx->best->active)
+    {
+      current_best = current; /* Use current */
+    }
+    else if ((best_delay / cur_delay) > ctx->s->stability_factor)
+    {
+      /* Best and active address performs worse  */
       current_best = current;
+    }
     else
-      current_best = ctx->best;
+    {
+      //GNUNET_break (0);
+    }
   }
+  else
+  {
+    /* Use current best */
+    current_best = ctx->best;
+  }
+
 end:
   ctx->best = current_best;
   return GNUNET_OK;
@@ -1523,7 +1584,7 @@ GAS_proportional_address_property_changed (void *solver,
     return;
   }
 
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
+  LOG(GNUNET_ERROR_TYPE_INFO,
       "Property `%s' for peer `%s' address %p changed to %.2f \n",
       GNUNET_ATS_print_property_type (type), GNUNET_i2s (&address->peer),
       address, rel_value);
