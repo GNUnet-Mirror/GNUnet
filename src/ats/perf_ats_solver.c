@@ -1428,7 +1428,13 @@ perf_run_iteration (void)
     {
       cur_addr = perf_create_address (cp, ca);
       /* Add address */
-      ph.env.sf.s_add (ph.solver, cur_addr, GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, GNUNET_ATS_NetworkTypeCount));
+      uint32_t net = 1 + GNUNET_CRYPTO_random_u32(GNUNET_CRYPTO_QUALITY_WEAK, GNUNET_ATS_NetworkTypeCount - 1);
+      cur_addr->atsi = GNUNET_new (struct GNUNET_ATS_Information);
+      cur_addr->atsi_count = 1;
+      cur_addr->atsi[0].type = htonl (GNUNET_ATS_NETWORK_TYPE);
+      cur_addr->atsi[0].value = htonl (net);
+      ph.env.sf.s_add (ph.solver, cur_addr, net);
+
       ph.current_a = ca + 1;
       perf_address_initial_update (ph.solver, ph.addresses, cur_addr);
       GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
@@ -1496,7 +1502,8 @@ perf_run_iteration (void)
       ph.env.sf.s_del (ph.solver, cur, GNUNET_NO);
       next = cur->next;
       GNUNET_CONTAINER_DLL_remove(ph.peers[cp].head, ph.peers[cp].tail, cur);
-      GNUNET_free(cur);
+      GNUNET_free_non_null (cur->atsi);
+      GNUNET_free (cur);
     }
   }
 

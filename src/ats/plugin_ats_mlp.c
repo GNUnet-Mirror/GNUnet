@@ -366,7 +366,7 @@ mlp_solve_to_string (int retcode)
  * @param type the type to extract in HBO
  * @return the value in HBO or GNUNET_ATS_VALUE_UNDEFINED in HBO if value does not exist
  */
-static int
+static uint32_t
 get_performance_info (struct ATS_Address *address, uint32_t type)
 {
   int c1;
