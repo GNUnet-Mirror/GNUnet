@@ -1366,7 +1366,6 @@ GAS_proportional_address_delete (void *solver, struct ATS_Address *address,
     GNUNET_break (0);
     return;
   }
-
   net = asi->network;
 
   if (GNUNET_NO == session_only)
@@ -1415,6 +1414,7 @@ GAS_proportional_address_delete (void *solver, struct ATS_Address *address,
     if (GNUNET_SYSERR == addresse_decrement (s, net, GNUNET_NO, GNUNET_YES))
       GNUNET_break(0);
     distribute_bandwidth_in_network (s, net, NULL);
+
     if (NULL == (new_address = GAS_proportional_get_preferred_address (s, &address->peer)))
     {
       /* No alternative address found, disconnect peer */
@@ -1422,6 +1422,7 @@ GAS_proportional_address_delete (void *solver, struct ATS_Address *address,
     }
     else
     {
+      /* We found an alternative, notify about it */
       s->bw_changed (s->bw_changed_cls, (struct ATS_Address *) new_address);
     }
   }
