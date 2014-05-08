@@ -726,12 +726,17 @@ normalize_address (void *cls, const struct GNUNET_PeerIdentity *h, void *k)
 {
   struct Property *p = cls;
   struct ATS_Address *address = k;
-
   double delta;
-  uint32_t avg_value = address->atsin[p->prop_type].avg;
+  double backup;
+  uint32_t avg_value;
 
+  backup = address->atsin[p->prop_type].norm;
+  avg_value = address->atsin[p->prop_type].avg;
   delta = p->max - p->min;
   address->atsin[p->prop_type].norm = (delta + (avg_value - p->min)) / (delta);
+
+  if (backup == address->atsin[p->prop_type].norm)
+    return GNUNET_OK;
 
   LOG(GNUNET_ERROR_TYPE_DEBUG,
       "Normalize `%s' address %p's '%s' with value %u to range [%u..%u] = %.3f\n",
