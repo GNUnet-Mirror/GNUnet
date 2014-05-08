@@ -228,11 +228,7 @@ receive_cb (void *cls, const struct GNUNET_MessageHeader *msg)
       LOG (GNUNET_ERROR_TYPE_WARNING, "Disconnected by Service.\n");
       status = GNUNET_SCALARPRODUCT_Status_ServiceDisconnected;
     }
-  else if (GNUNET_MESSAGE_TYPE_SCALARPRODUCT_RESULT != ntohs (msg->type))
-    {
-      LOG (GNUNET_ERROR_TYPE_WARNING, "Invalid message type received\n");
-    }
-  else if (0 < ntohl (message->product_length) || (0 == message->range))
+  else if ((GNUNET_SYSERR != message->status) && (0 < message->product_length ))
     {
       // response for the responder client, successful
       GNUNET_STATISTICS_update (h->stats,
@@ -241,7 +237,11 @@ receive_cb (void *cls, const struct GNUNET_MessageHeader *msg)
 
       status = GNUNET_SCALARPRODUCT_Status_Success;
     }
-
+  else if (message->status == GNUNET_SYSERR){
+      // service signaled an error
+      status = GNUNET_SCALARPRODUCT_Status_Failure;
+  }
+  
   if (h->cont_status != NULL)
     h->response_proc (h, msg, status);
 
