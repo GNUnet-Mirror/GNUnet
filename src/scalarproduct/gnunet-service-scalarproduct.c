@@ -771,6 +771,7 @@ prepare_bobs_cryptodata_message_multipart (void *cls)
   }
   if (s->transferred_element_count == s->used_element_count) {
     // final part
+    s->active = GNUNET_NO;
     GNUNET_free (s->r_prime);
     GNUNET_free (s->r);
     s->r_prime = NULL;
@@ -867,6 +868,7 @@ prepare_bobs_cryptodata_message (void *cls,
   }
   else {
     //singlepart
+    s->active = GNUNET_NO;
     GNUNET_free (s->r);
     s->r = NULL;
     GNUNET_free (s->r_prime);
@@ -1607,6 +1609,7 @@ handle_client_message (void *cls,
   }
 
   s = GNUNET_new (struct ServiceSession);
+  s->active = GNUNET_YES;
   s->client_notification_task = GNUNET_SCHEDULER_NO_TASK;
   s->client = client;
   s->total = total_count;
@@ -2220,6 +2223,10 @@ invalid_msg:
   // send message with product to client
   if (NULL != s->client){
     //Alice
+    if (NULL != s->product)
+      s->active = GNUNET_NO;
+    else
+      s->active = GNUNET_SYSERR;
     s->client_notification_task =
           GNUNET_SCHEDULER_add_now (&prepare_client_response,
                                     s);
@@ -2360,7 +2367,7 @@ shutdown_task (void *cls,
 
   // terminate all owned open channels.
   for (s = from_client_head; NULL != s; s = s->next) {
-    if ((0/*//TODO: not finalized*/) && (NULL != s->channel)) {
+    if ((GNUNET_NO != s->active) && (NULL != s->channel)) {
       GNUNET_CADET_channel_destroy (s->channel);
       s->channel = NULL;
     }
