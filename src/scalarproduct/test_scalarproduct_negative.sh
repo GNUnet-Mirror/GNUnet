@@ -1,8 +1,8 @@
 #!/bin/bash
 # compute a simple scalar product
 # payload for this test:
-INPUTALICE="-k CCC -e -3,-3,1"
-INPUTBOB="-k CCC -e 1000,100,24"
+INPUTALICE="-k CCC -e 'AB,10;RO,-3;FL,-3;LOL,1;'"
+INPUTBOB="-k CCC -e 'BC,-20000;RO,1000;FL,100;LOL,24;'"
 
 # necessary to make the testing prefix deterministic, so we can access the config files
 PREFIX=/tmp/test-scalarproduct`date +%H%M%S`
