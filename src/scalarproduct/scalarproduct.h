@@ -237,6 +237,11 @@ struct GNUNET_SCALARPRODUCT_client_response
   struct GNUNET_PeerIdentity peer;
 
   /**
+   * status information about the outcome of this session
+   */
+  int32_t status;
+  
+  /**
    * Workaround for libgcrypt: -1 if negative, 0 if zero, else 1
    */
   int8_t range;
