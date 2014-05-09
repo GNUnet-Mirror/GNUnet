@@ -588,6 +588,18 @@ is_bandwidth_available_in_network (struct Network *net)
   return GNUNET_NO;
 }
 
+static void
+bandwidth_changed (struct GAS_PROPORTIONAL_Handle *s)
+{
+  if (GNUNET_YES == s->bulk_lock)
+  {
+    s->bulk_requests++;
+    return;
+  }
+
+
+}
+
 /**
  * Update bandwidth assigned to peers in this network
  *
@@ -1450,7 +1462,6 @@ GAS_proportional_address_delete (void *solver, struct ATS_Address *address,
       return;
     }
     GNUNET_CONTAINER_DLL_remove(net->head, net->tail, aw);
-    GNUNET_free_non_null (aw->addr->solver_information);
     GNUNET_free(aw);
   }
   else
@@ -1487,6 +1498,12 @@ GAS_proportional_address_delete (void *solver, struct ATS_Address *address,
       s->bw_changed (s->bw_changed_cls, (struct ATS_Address *) new_address);
     }
   }
+  if (GNUNET_NO == session_only)
+  {
+    GNUNET_free_non_null (address->solver_information);
+    address->solver_information = NULL;
+  }
+
   LOG(GNUNET_ERROR_TYPE_INFO,
       "After deleting address now total %u and active %u addresses in network `%s'\n",
       net->total_addresses, net->active_addresses, net->desc);
@@ -1653,7 +1670,14 @@ GAS_proportional_address_session_changed (void *solver,
   /* This peer is requested, find active and best address */
   active_address = get_active_address(s, s->addresses, &address->peer);
   best_address = (struct ATS_Address *) GAS_proportional_get_preferred_address (s, &address->peer);
-  asi = best_address->solver_information;
+
+  asi = active_address->solver_information;
+  if (NULL == asi)
+  {
+    GNUNET_break (0);
+    return;
+  }
+
   net_cur = asi->network ;
 
   if (NULL == best_address)
