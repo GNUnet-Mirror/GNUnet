@@ -290,6 +290,11 @@ struct GSC_KeyExchangeInfo
   struct GNUNET_TIME_Absolute timeout;
 
   /**
+   * What was the last timeout we informed our monitors about?
+   */
+  struct GNUNET_TIME_Absolute last_notify_timeout;
+
+  /**
    * At what frequency are we currently re-trying SET_KEY messages?
    */
   struct GNUNET_TIME_Relative set_key_retry_frequency;
@@ -419,6 +424,7 @@ monitor_notify_all (struct GSC_KeyExchangeInfo *kx)
   GNUNET_SERVER_notification_context_broadcast (nc,
                                                 &msg.header,
                                                 GNUNET_NO);
+  kx->last_notify_timeout = kx->timeout;
 }
 
 
@@ -1086,10 +1092,19 @@ send_keep_alive (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 static void
 update_timeout (struct GSC_KeyExchangeInfo *kx)
 {
+  struct GNUNET_TIME_Relative delta;
+
   kx->timeout =
       GNUNET_TIME_relative_to_absolute
       (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT);
-  monitor_notify_all (kx);
+  delta = GNUNET_TIME_absolute_get_difference (kx->last_notify_timeout,
+                                               kx->timeout);
+  if (delta.rel_value_us > 5LL * 1000LL * 1000LL)
+  {
+    /* we only notify monitors about timeout changes if those
+       are bigger than the threshold (5s) */
+    monitor_notify_all (kx);
+  }
   if (kx->keep_alive_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (kx->keep_alive_task);
   kx->keep_alive_task =
