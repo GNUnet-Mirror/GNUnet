@@ -1459,6 +1459,7 @@ find_active_address (void *cls, const struct GNUNET_PeerIdentity *id, void *obj)
 void
 GAS_addresses_evaluate_assignment (struct GAS_Addresses_Handle *ah)
 {
+#if 0
   struct GAS_Addresses_Suggestion_Requests *cur;
   struct GAS_Addresses_Preference_Clients *pcur;
   int c;
@@ -1657,6 +1658,7 @@ GAS_addresses_evaluate_assignment (struct GAS_Addresses_Handle *ah)
       quality_bandwidth_utilization_total,
       quality_application_requirements,
       guq);
+#endif
 }
 
 /**

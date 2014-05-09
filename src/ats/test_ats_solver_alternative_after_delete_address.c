@@ -223,26 +223,20 @@ address_suggest_cb (void *cls,
         return;
       }
 
-      if (0 == memcmp (address->address, first_suggestion->address,
+      if (0 != memcmp (address->address, first_suggestion->address,
           (first_suggestion->address_length < address->address_length) ? first_suggestion->address_length : address->address_length))
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Deleted 1st address for peer `%s' was suggested after deletion: `%s' `%s'\n",
-          GNUNET_i2s (&address->peer), (char *) address->address, first_suggestion->address);
-        GNUNET_break (0);
-        end_badly_now ();
+        GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Received 2nd sugggestion for peer `%s' : `%s'\n",
+          GNUNET_i2s (&address->peer), (char *) address->address);
+        second_suggestion = GNUNET_HELLO_address_copy (address);
+        second_address_suggested = GNUNET_YES;
+
+        GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Deleting 2nd address for peer `%s' : `%s'\n",
+          GNUNET_i2s (&address->peer), (char *) address->address);
+        GNUNET_ATS_address_destroyed (sched_ats, address, session);
+        second_address_deleted = GNUNET_YES;
         return;
       }
-
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Received 2nd sugggestion for peer `%s' : `%s'\n",
-        GNUNET_i2s (&address->peer), (char *) address->address);
-      second_suggestion = GNUNET_HELLO_address_copy (address);
-      second_address_suggested = GNUNET_YES;
-
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Deleting 2nd address for peer `%s' : `%s'\n",
-        GNUNET_i2s (&address->peer), (char *) address->address);
-      GNUNET_ATS_address_destroyed (sched_ats, address, session);
-      second_address_deleted = GNUNET_YES;
-      return;
     }
 
   }
