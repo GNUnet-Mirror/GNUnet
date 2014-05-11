@@ -150,11 +150,11 @@ src/fs/gnunet-helper-fs-publish.c
 src/fs/gnunet-publish.c
 src/fs/gnunet-search.c
 src/fs/gnunet-service-fs.c
+src/fs/gnunet-service-fs_cadet_client.c
+src/fs/gnunet-service-fs_cadet_server.c
 src/fs/gnunet-service-fs_cp.c
 src/fs/gnunet-service-fs_indexing.c
 src/fs/gnunet-service-fs_lc.c
-src/fs/gnunet-service-fs_mesh_client.c
-src/fs/gnunet-service-fs_mesh_server.c
 src/fs/gnunet-service-fs_pe.c
 src/fs/gnunet-service-fs_pr.c
 src/fs/gnunet-service-fs_push.c
