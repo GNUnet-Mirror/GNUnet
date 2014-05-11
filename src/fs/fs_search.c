@@ -747,6 +747,10 @@ process_kblock (struct GNUNET_FS_SearchContext *sc,
   if (NULL == (uri = GNUNET_FS_uri_parse (&pt[1], &emsg)))
   {
     GNUNET_break_op (0);        /* ublock malformed */
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Failed to parse URI `%s': %s\n"),
+                &pt[1],
+                emsg);
     GNUNET_free_non_null (emsg);
     return;
   }
