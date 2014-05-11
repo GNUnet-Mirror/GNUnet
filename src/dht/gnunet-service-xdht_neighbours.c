@@ -2468,7 +2468,7 @@ GDS_NEIGHBOURS_send_get (const struct GNUNET_HashCode *key,
     struct GNUNET_PeerIdentity curr_src;
     memcpy (&curr_dest, &current_destination, sizeof (struct GNUNET_PeerIdentity));
     memcpy (&curr_src, &current_source, sizeof (struct GNUNET_PeerIdentity));
-    memcpy (&key_value, key, sizeof (struct GNUNET_PeerIdentity));
+    memcpy (&key_value, key, sizeof (uint64_t));
     next_hop = find_successor (key_value, &curr_dest, &curr_src, NULL);
     /* FIXME: Again I am copying back value of current_destination, current_source,
      Think of a better solution. */

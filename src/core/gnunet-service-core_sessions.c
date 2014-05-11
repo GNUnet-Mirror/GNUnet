@@ -678,6 +678,7 @@ try_transmission (struct Session *session)
   {
     /* never solicit more, we have critical messages to process */
     excess = GNUNET_NO;
+    maxpc = GNUNET_CORE_PRIO_BACKGROUND;
   }
   now = GNUNET_TIME_absolute_get ();
   if ( ( (GNUNET_YES == excess) ||

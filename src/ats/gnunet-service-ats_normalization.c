@@ -256,11 +256,10 @@ update_relative_values_for_peer (const struct GNUNET_PeerIdentity *id,
       /* No client had any preferences for this type and any peer */
       rp->f_rel[kind] = DEFAULT_REL_PREFERENCE;
     }
-  }
-
-  if ((backup != rp->f_rel[kind]) && (NULL != pref_changed_cb))
-  {
-    pref_changed_cb (pref_changed_cb_cls, &rp->id, kind, rp->f_rel[kind]);
+    if ((backup != rp->f_rel[kind]) && (NULL != pref_changed_cb))
+    {
+      pref_changed_cb (pref_changed_cb_cls, &rp->id, kind, rp->f_rel[kind]);
+    }
   }
 }
 
