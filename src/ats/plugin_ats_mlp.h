@@ -342,9 +342,14 @@ struct GAS_MLP_Handle
   int opt_dbg_feasibility_only;
 
   /**
-   * solve feasibility only
+   * solve autoscale the problem
    */
   int opt_dbg_autoscale_problem;
+
+  /**
+   * use the intopt presolver instead of simplex
+   */
+  int opt_dbg_intopt_presolver;
 
   /**
    * Print GLPK output

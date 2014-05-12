@@ -1177,48 +1177,61 @@ GAS_mlp_solve_problem (void *solver)
       return GNUNET_OK;
     }
   if (GNUNET_YES == mlp->stat_mlp_prob_changed)
+  {
+    LOG(GNUNET_ERROR_TYPE_DEBUG, "Problem size changed, rebuilding\n");
+    notify(mlp, GAS_OP_SOLVE_SETUP_START, GAS_STAT_SUCCESS, GAS_INFO_FULL);
+    mlp_delete_problem(mlp);
+    if (GNUNET_SYSERR == mlp_create_problem(mlp))
+      {
+        notify(mlp, GAS_OP_SOLVE_SETUP_STOP, GAS_STAT_FAIL, GAS_INFO_FULL);
+        return GNUNET_SYSERR;
+      }
+    notify(mlp, GAS_OP_SOLVE_SETUP_STOP, GAS_STAT_SUCCESS, GAS_INFO_FULL);
+    if (GNUNET_NO == mlp->opt_dbg_intopt_presolver)
     {
-      LOG(GNUNET_ERROR_TYPE_DEBUG, "Problem size changed, rebuilding\n");
-      notify(mlp, GAS_OP_SOLVE_SETUP_START, GAS_STAT_SUCCESS, GAS_INFO_FULL);
-      mlp_delete_problem(mlp);
-      if (GNUNET_SYSERR == mlp_create_problem(mlp))
-        {
-          notify(mlp, GAS_OP_SOLVE_SETUP_STOP, GAS_STAT_FAIL, GAS_INFO_FULL);
-          return GNUNET_SYSERR;
-        }
-      notify(mlp, GAS_OP_SOLVE_SETUP_STOP, GAS_STAT_SUCCESS, GAS_INFO_FULL);
-      mlp->control_param_lp.presolve = GLP_YES; /* LP presolver, we need lp solution */
-      mlp->control_param_mlp.presolve = GNUNET_NO; /* No presolver, we have LP solution */
+    mlp->control_param_lp.presolve = GLP_YES; /* LP presolver, we need lp solution */
+    mlp->control_param_mlp.presolve = GNUNET_NO; /* No presolver, we have LP solution */
     }
+    else
+    {
+      mlp->control_param_lp.presolve = GNUNET_NO; /* LP presolver, we need lp solution */
+      mlp->control_param_mlp.presolve = GLP_YES; /* No presolver, we have LP solution */
+      dur_lp = GNUNET_TIME_UNIT_ZERO;
+    }
+  }
   else
-    {
-      LOG(GNUNET_ERROR_TYPE_DEBUG, "Problem was updated, resolving\n");
-    }
+  {
+    LOG(GNUNET_ERROR_TYPE_DEBUG, "Problem was updated, resolving\n");
+  }
 
   dur_setup = GNUNET_TIME_absolute_get_duration (start_total);
 
   /* Run LP solver */
-  notify(mlp, GAS_OP_SOLVE_MLP_LP_START, GAS_STAT_SUCCESS,
-      (GNUNET_YES == mlp->stat_mlp_prob_changed) ? GAS_INFO_FULL : GAS_INFO_UPDATED);
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "Running LP solver %s\n",
-      (GLP_YES == mlp->control_param_lp.presolve)? "with presolver": "without presolver");
-  start_cur_op = GNUNET_TIME_absolute_get();
+  if (GNUNET_NO == mlp->opt_dbg_intopt_presolver)
+  {
+    notify(mlp, GAS_OP_SOLVE_MLP_LP_START, GAS_STAT_SUCCESS,
+        (GNUNET_YES == mlp->stat_mlp_prob_changed) ? GAS_INFO_FULL : GAS_INFO_UPDATED);
+    LOG(GNUNET_ERROR_TYPE_DEBUG,
+        "Running LP solver %s\n",
+        (GLP_YES == mlp->control_param_lp.presolve)? "with presolver": "without presolver");
+    start_cur_op = GNUNET_TIME_absolute_get();
 
-  /* Solve LP */
-  /* Only for debugging, always use LP presolver:
-   *  mlp->control_param_lp.presolve = GLP_YES; */
-  res_lp = mlp_solve_lp_problem(mlp);
+    /* Solve LP */
+    /* Only for debugging, always use LP presolver:
+     *  mlp->control_param_lp.presolve = GLP_YES; */
+    res_lp = mlp_solve_lp_problem(mlp);
 
-  dur_lp = GNUNET_TIME_absolute_get_duration (start_cur_op);
-  notify(mlp, GAS_OP_SOLVE_MLP_LP_STOP,
-      (GNUNET_OK == res_lp) ? GAS_STAT_SUCCESS : GAS_STAT_FAIL,
-      (GNUNET_YES == mlp->stat_mlp_prob_changed) ? GAS_INFO_FULL : GAS_INFO_UPDATED);
+    dur_lp = GNUNET_TIME_absolute_get_duration (start_cur_op);
+    notify(mlp, GAS_OP_SOLVE_MLP_LP_STOP,
+        (GNUNET_OK == res_lp) ? GAS_STAT_SUCCESS : GAS_STAT_FAIL,
+        (GNUNET_YES == mlp->stat_mlp_prob_changed) ? GAS_INFO_FULL : GAS_INFO_UPDATED);
+  }
 
-  res_lp = GNUNET_OK;
+  if (GNUNET_YES == mlp->opt_dbg_intopt_presolver)
+    res_lp = GNUNET_OK;
 
   /* Run MLP solver */
-  if (GNUNET_OK == res_lp)
+  if ((GNUNET_OK == res_lp) || (GNUNET_YES == mlp->opt_dbg_intopt_presolver))
   {
     LOG(GNUNET_ERROR_TYPE_DEBUG, "Running MLP solver \n");
     notify(mlp, GAS_OP_SOLVE_MLP_MLP_START, GAS_STAT_SUCCESS,
@@ -1226,8 +1239,9 @@ GAS_mlp_solve_problem (void *solver)
     start_cur_op = GNUNET_TIME_absolute_get();
 
     /* Solve MIP */
-    /* Only for debugging, always use MLP presolver:
-     * mlp->control_param_mlp.presolve = GNUNET_YES; */
+    /* Only for debugging, always use MLP presolver */
+    if (GNUNET_YES == mlp->opt_dbg_intopt_presolver)
+      mlp->control_param_mlp.presolve = GNUNET_YES;
     res_mip = mlp_solve_mlp_problem(mlp);
 
     dur_mlp = GNUNET_TIME_absolute_get_duration (start_cur_op);
@@ -2038,7 +2052,7 @@ libgnunet_plugin_ats_mlp_init (void *cls)
    mlp->opt_dump_solution_on_fail = GNUNET_NO;
 
   mlp->opt_dbg_glpk_verbose = GNUNET_CONFIGURATION_get_value_yesno (env->cfg,
-     "ats", "MLP_GLPK_VERBOSE");
+     "ats", "MLP_DBG_GLPK_VERBOSE");
   if (GNUNET_SYSERR == mlp->opt_dbg_glpk_verbose)
    mlp->opt_dbg_glpk_verbose = GNUNET_NO;
 
@@ -2057,6 +2071,14 @@ libgnunet_plugin_ats_mlp_init (void *cls)
   if (GNUNET_YES == mlp->opt_dbg_autoscale_problem)
     LOG (GNUNET_ERROR_TYPE_WARNING,
         "MLP solver is configured automatically scale the problem!\n");
+
+  mlp->opt_dbg_intopt_presolver = GNUNET_CONFIGURATION_get_value_yesno (env->cfg,
+     "ats", "MLP_DBG_INTOPT_PRESOLVE");
+  if (GNUNET_SYSERR == mlp->opt_dbg_intopt_presolver)
+   mlp->opt_dbg_intopt_presolver = GNUNET_NO;
+  if (GNUNET_YES == mlp->opt_dbg_intopt_presolver)
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+        "MLP solver is configured use the mlp presolver\n");
 
   mlp->pv.BIG_M = (double) BIG_M_VALUE;
 

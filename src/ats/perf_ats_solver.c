@@ -75,16 +75,6 @@ struct PerfHandle
   struct Iteration *iterations_results;
 
   /**
-   * Array to store averaged full solution result with length #peers
-   */
-  struct Result *averaged_full_result;
-
-  /**
-   * Array to store averaged updated solution result with length #peers
-   */
-  struct Result *averaged_update_result;
-
-  /**
    * The current result
    */
   struct Result *current_result;
@@ -171,15 +161,7 @@ struct PerfHandle
 struct Iteration
 {
   struct Result **results_array;
-  /**
-   * Head of the linked list
-   */
-  struct Result *result_head;
 
-  /**
-   * Tail of the linked list
-   */
-  struct Result *result_tail;
 };
 
 
@@ -337,8 +319,6 @@ end_now (int res)
 
   GNUNET_free_non_null (ph.peers);
   GNUNET_free_non_null (ph.iterations_results);
-  GNUNET_free_non_null (ph.averaged_full_result);
-  GNUNET_free_non_null (ph.averaged_update_result);
 
   GAS_normalization_stop ();
   ret = res;
@@ -380,7 +360,7 @@ perf_update_address (struct ATS_Address *cur)
     abs_val = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 100);
     rel_val = (100 + (double) abs_val) / 100;
 
-    GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
         "Updating peer `%s' address %p type %s abs val %u rel val %.3f\n",
         GNUNET_i2s (&cur->peer), cur,
         "GNUNET_ATS_QUALITY_NET_DELAY",
@@ -393,7 +373,7 @@ perf_update_address (struct ATS_Address *cur)
     abs_val = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 10);
     rel_val = (100 + (double) abs_val) / 100;
 
-    GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
         "Updating peer `%s' address %p type %s abs val %u rel val %.3f\n",
         GNUNET_i2s (&cur->peer), cur, "GNUNET_ATS_QUALITY_NET_DISTANCE",
         abs_val, rel_val);
@@ -603,9 +583,10 @@ solver_info_cb (void *cls,
         /* Create new result */
         tmp = GNUNET_new (struct Result);
         ph.current_result = tmp;
-        ph.iterations_results[ph.current_iteration-1].results_array[ph.current_p -1] = tmp;
+        ph.iterations_results[ph.current_iteration-1].results_array[ph.current_p] = tmp;
+        /*
         GNUNET_CONTAINER_DLL_insert_tail(ph.iterations_results[ph.current_iteration-1].result_head,
-            ph.iterations_results[ph.current_iteration-1].result_tail, tmp);
+            ph.iterations_results[ph.current_iteration-1].result_tail, tmp);*/
         ph.current_result->addresses = ph.current_a;
         ph.current_result->peers = ph.current_p;
         ph.current_result->s_total = GNUNET_TIME_absolute_get();
@@ -792,113 +773,17 @@ solver_info_cb (void *cls,
 static void
 evaluate (int iteration)
 {
-  struct GNUNET_DISK_FileHandle *f_full;
-  struct GNUNET_DISK_FileHandle *f_update;
-  char * data_fn_full;
-  char * data_fn_update;
-  char * data;
   struct Result *cur;
-  struct Result *next;
-  struct Result *cur_res;
-  char * str_d_total;
-  char * str_d_setup;
-  char * str_d_lp;
-  char * str_d_mlp;
-  char * iter_text;
+  int cp;
 
-  f_full = NULL;
-  f_update = NULL;
-
-  data_fn_full = NULL;
-
-  if (ph.create_datafile)
+  for (cp = ph.N_peers_start; cp <= ph.N_peers_end; cp ++)
   {
-    if (-1 == iteration)
-      GNUNET_asprintf (&iter_text, "%s", "avg");
-    else
-      GNUNET_asprintf (&iter_text, "%u", iteration);
-    GNUNET_asprintf (&data_fn_full,
-                     "perf_%s_full_%s_%u_%u_%u.data",
-                     ph.ats_string,
-                     iter_text,
-                     ph.N_peers_start,
-                     ph.N_peers_end,
-                     ph.N_address);
-    GNUNET_free (iter_text);
-    f_full = GNUNET_DISK_file_open (data_fn_full,
-        GNUNET_DISK_OPEN_WRITE | GNUNET_DISK_OPEN_CREATE,
-        GNUNET_DISK_PERM_USER_EXEC | GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE);
-    if (NULL == f_full)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Cannot open gnuplot file `%s'\n",
-                  data_fn_full);
-      GNUNET_free (data_fn_full);
-      return;
-    }
-    data = "#peers;addresses;time total in us;#time setup in us;#time lp in us;#time mlp in us;\n";
-    if (GNUNET_SYSERR == GNUNET_DISK_file_write(f_full, data, strlen(data)))
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Cannot write data to log file `%s'\n",
-                  data_fn_full);
-  }
+    cur  = ph.iterations_results[ph.current_iteration-1].results_array[cp];
+    if (0 == cp)
+      continue;
+    if (NULL == cur)
+      GNUNET_break (0);
 
-  data_fn_update = NULL;
-  if ((ph.create_datafile) && (GNUNET_YES == ph.measure_updates))
-  {
-    if (-1 == iteration)
-      GNUNET_asprintf (&iter_text, "%s", "avg");
-    else
-      GNUNET_asprintf (&iter_text, "%u", iteration);
-    GNUNET_asprintf (&data_fn_update, "perf_%s_update_i%u_%u_%u_%u.data",
-        ph.ats_string,
-        iter_text,
-        ph.N_peers_start,
-        ph.N_peers_end,
-        ph.N_address);
-    GNUNET_free (iter_text);
-    f_update = GNUNET_DISK_file_open (data_fn_update,
-        GNUNET_DISK_OPEN_WRITE | GNUNET_DISK_OPEN_CREATE,
-        GNUNET_DISK_PERM_USER_EXEC | GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE);
-    if (NULL == f_update)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Cannot open gnuplot file `%s'\n", data_fn_update);
-      GNUNET_free (data_fn_update);
-      if (NULL != f_full)
-        GNUNET_DISK_file_close (f_full);
-      GNUNET_free (data_fn_full);
-      return;
-    }
-    data = "#peers;addresses;time total in us;#time setup in us;#time lp in us;#time mlp in us;\n";
-    if (GNUNET_SYSERR == GNUNET_DISK_file_write (f_update, data, strlen(data)))
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Cannot write data to log file `%s'\n",
-                  data_fn_update);
-  }
-
-  next = ph.iterations_results[ph.current_iteration -1].result_head;
-  while (NULL != (cur = next))
-  {
-    next = cur->next;
-    str_d_total = NULL;
-    str_d_setup = NULL;
-    str_d_lp = NULL;
-    str_d_mlp = NULL;
-
-    /* Print log */
-    if (GNUNET_NO == cur->update)
-    {
-      cur_res = &ph.averaged_full_result[cur->peers - ph.N_peers_start];
-    }
-    else
-    {
-      cur_res = &ph.averaged_update_result[cur->peers - ph.N_peers_start];
-    }
-
-    cur_res->peers = cur->peers;
-    cur_res->addresses = cur->addresses;
-    cur_res->update = cur->update;
 
     if (GNUNET_NO == cur->valid)
     {
@@ -908,131 +793,54 @@ evaluate (int iteration)
                cur->peers, cur->addresses, "Failed to solve!");
       continue;
     }
-    else
-      cur_res->valid ++;
+
 
     if (GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us != cur->d_total.rel_value_us)
     {
-      if (GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us == cur_res->d_total.rel_value_us)
-        cur_res->d_total.rel_value_us = 0;
-      if (GNUNET_YES == cur->valid)
-        cur_res->d_total.rel_value_us += cur->d_total.rel_value_us;
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+      fprintf (stderr,
          "Total time to solve %s for %u peers %u addresses: %llu us\n",
          (GNUNET_YES == cur->update) ? "updated" : "full",
          cur->peers, cur->addresses,
          (unsigned long long) cur->d_total.rel_value_us);
-      GNUNET_asprintf(&str_d_total,
-         "%llu", (unsigned long long) cur->d_total.rel_value_us);
     }
-    else
-      GNUNET_asprintf(&str_d_total, "-1");
+
+
     if (GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us != cur->d_setup.rel_value_us)
     {
-      if (GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us == cur_res->d_setup.rel_value_us)
-        cur_res->d_setup.rel_value_us = 0;
-      if (GNUNET_YES == cur->valid)
-        cur_res->d_setup.rel_value_us += cur->d_setup.rel_value_us;
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
           "Total time to setup %s %u peers %u addresses: %llu us\n",
           (GNUNET_YES == cur->update) ? "updated" : "full",
           cur->peers, cur->addresses,
           (unsigned long long) cur->d_setup.rel_value_us);
-      GNUNET_asprintf(&str_d_setup, "%llu",
-          (unsigned long long )cur->d_setup.rel_value_us);
     }
-    else
-      GNUNET_asprintf(&str_d_setup, "-1");
 
     if (GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us != cur->d_lp.rel_value_us)
     {
-      if (GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us == cur_res->d_lp.rel_value_us)
-        cur_res->d_lp.rel_value_us = 0;
-      if (GNUNET_YES == cur->valid)
-        cur_res->d_lp.rel_value_us += cur->d_lp.rel_value_us;
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
          "Total time to solve %s LP for %u peers %u addresses: %llu us\n",
          (GNUNET_YES == cur->update) ? "updated" : "full",
          cur->peers,
          cur->addresses,
          (unsigned long long )cur->d_lp.rel_value_us);
-      GNUNET_asprintf (&str_d_lp,
-          "%llu", (unsigned long long )cur->d_lp.rel_value_us);
     }
-    else
-      GNUNET_asprintf (&str_d_lp, "-1");
 
     if (GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us != cur->d_mlp.rel_value_us)
     {
-      if (GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us == cur_res->d_mlp.rel_value_us)
-        cur_res->d_mlp.rel_value_us = 0;
-      if (GNUNET_YES == cur->valid)
-        cur_res->d_mlp.rel_value_us += cur->d_mlp.rel_value_us;
-
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
           "Total time to solve %s MLP for %u peers %u addresses: %llu us\n",
           (GNUNET_YES == cur->update) ? "updated" : "full",
           cur->peers, cur->addresses,
           (unsigned long long )cur->d_mlp.rel_value_us);
-      GNUNET_asprintf (&str_d_mlp,
-          "%llu", (unsigned long long )cur->d_mlp.rel_value_us);
     }
-    else
-      GNUNET_asprintf (&str_d_mlp, "-1");
-
-    data = NULL;
-    if (GNUNET_YES == ph.create_datafile)
-    {
-
-      GNUNET_asprintf (&data,
-                       "%u;%u;%s;%s;%s;%s\n",
-                       cur->peers, cur->addresses,
-                       str_d_total,
-                       str_d_setup,
-                       str_d_lp,
-                       str_d_mlp);
-      if (cur->update == GNUNET_NO)
-      {
-        if (GNUNET_SYSERR == GNUNET_DISK_file_write (f_full, data, strlen(data)))
-          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                      "Cannot write data to log file `%s'\n",
-                      data_fn_full);
-      }
-      if ((cur->update == GNUNET_YES) && (NULL != f_update))
-      {
-        if (GNUNET_SYSERR == GNUNET_DISK_file_write (f_update, data, strlen(data)))
-          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                      "Cannot write data to log file `%s'\n",
-                      data_fn_update);
-      }
-      GNUNET_free (data);
-    }
-    GNUNET_free_non_null (str_d_total);
-    GNUNET_free_non_null (str_d_setup);
-    GNUNET_free_non_null (str_d_lp);
-    GNUNET_free_non_null (str_d_mlp);
-
-    GNUNET_CONTAINER_DLL_remove (ph.iterations_results[ph.current_iteration-1].result_head,
-        ph.iterations_results[ph.current_iteration-1].result_tail, cur);
-    //GNUNET_free (cur);
   }
 
-  if ((NULL != f_full) && (GNUNET_SYSERR == GNUNET_DISK_file_close (f_full)))
-    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Cannot close log file `%s'\n",
-        data_fn_full);
-  GNUNET_free_non_null (data_fn_full);
-
-  if ((NULL != f_update) && (GNUNET_SYSERR == GNUNET_DISK_file_close (f_update)))
-    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Cannot close log file `%s'\n",
-        data_fn_update);
-  GNUNET_free_non_null (data_fn_update);
 }
 
 /**
  * Evaluate average results for all iterations
  */
 static void
-evaluate_average (void)
+write_all_iterations (void)
 {
   int c_iteration;
   int c_peer;
@@ -1133,10 +941,14 @@ evaluate_average (void)
       struct Result *cur_res;
 
       //fprintf (stderr, "P: %u I: %u  == %p \n", c_peer, c_iteration, cur_res);
-      cur_res = ph.iterations_results[c_iteration].results_array[c_peer -1];
+      cur_res = ph.iterations_results[c_iteration].results_array[c_peer];
+      if (c_peer == 0)
+        continue;
+      if (NULL == cur_res)
+        continue;
+
       //fprintf (stderr, "P: %u I: %u: P %i  A %i\n", c_peer, c_iteration, cur_res->peers, cur_res->addresses);
-      fprintf (stderr, "D total: %llu\n", (long long unsigned int) cur_res->d_total.rel_value_us);
-      fprintf (stderr, "D total: %llu\n", (long long unsigned int) cur_res->d_total.rel_value_us);
+      //fprintf (stderr, "D total: %llu\n", (long long unsigned int) cur_res->d_total.rel_value_us);
 
       data_tmp = GNUNET_strdup (data_str);
       GNUNET_free (data_str);
@@ -1149,7 +961,8 @@ evaluate_average (void)
     GNUNET_free (data_tmp);
 
     fprintf (stderr, "Result: %s\n", data_str);
-    GNUNET_DISK_file_write (f_full, data_str, strlen(data_str));
+    if (GNUNET_SYSERR == GNUNET_DISK_file_write (f_full, data_str, strlen(data_str)))
+      GNUNET_break (0);
     GNUNET_free (data_str);
   }
 
@@ -1180,7 +993,7 @@ perf_run_iteration (void)
   struct ATS_Address * cur_addr;
   uint32_t net;
 
-  ph.iterations_results[ph.current_iteration-1].results_array = GNUNET_malloc ((count_p) * sizeof (struct Result *));
+  ph.iterations_results[ph.current_iteration-1].results_array = GNUNET_malloc ((count_p + 1) * sizeof (struct Result *));
   ph.peers = GNUNET_malloc ((count_p) * sizeof (struct PerfPeer));
   for (cp = 0; cp < count_p; cp++)
     perf_create_peer (cp);
@@ -1364,6 +1177,7 @@ run (void *cls, char * const *args, const char *cfgfile,
   if (0 == ph.N_address)
     ph.N_address = DEFAULT_ADDRESSES;
 
+
   if (ph.N_peers_start != ph.N_peers_end)
     fprintf (stderr, "Benchmarking solver `%s' with %u to %u peers and %u addresses in %u iterations\n",
         ph.ats_string, ph.N_peers_start, ph.N_peers_end, ph.N_address, ph.total_iterations);
@@ -1392,22 +1206,6 @@ run (void *cls, char * const *args, const char *cfgfile,
 
   /* Create array of DLL to store results for iterations */
   ph.iterations_results = GNUNET_malloc (sizeof (struct Iteration) * ph.total_iterations);
-  ph.averaged_full_result = GNUNET_malloc (sizeof (struct Result) * ((ph.N_peers_end + 1) - ph.N_peers_start));
-  for (c = 0; c <= ph.N_peers_end - ph.N_peers_start; c++)
-  {
-    ph.averaged_full_result[c].d_setup = GNUNET_TIME_UNIT_FOREVER_REL;
-    ph.averaged_full_result[c].d_total = GNUNET_TIME_UNIT_FOREVER_REL;
-    ph.averaged_full_result[c].d_lp = GNUNET_TIME_UNIT_FOREVER_REL;
-    ph.averaged_full_result[c].d_mlp = GNUNET_TIME_UNIT_FOREVER_REL;
-  }
-  ph.averaged_update_result = GNUNET_malloc (sizeof (struct Result) * ((ph.N_peers_end + 1) - ph.N_peers_start));
-  for (c = 0; c <= ph.N_peers_end - ph.N_peers_start; c++)
-  {
-    ph.averaged_update_result[c].d_setup = GNUNET_TIME_UNIT_FOREVER_REL;
-    ph.averaged_update_result[c].d_total = GNUNET_TIME_UNIT_FOREVER_REL;
-    ph.averaged_update_result[c].d_lp = GNUNET_TIME_UNIT_FOREVER_REL;
-    ph.averaged_update_result[c].d_mlp = GNUNET_TIME_UNIT_FOREVER_REL;
-  }
 
   /* Load solver */
   ph.env.cfg = solver_cfg;
@@ -1452,7 +1250,8 @@ run (void *cls, char * const *args, const char *cfgfile,
     evaluate (ph.current_iteration);
     fprintf (stderr, "Iteration %u of %u done\n", ph.current_iteration, ph.total_iterations);
   }
-  evaluate_average ();
+  if (ph.create_datafile)
+    write_all_iterations ();
 
   /* Unload solver*/
   GNUNET_log(GNUNET_ERROR_TYPE_INFO, _("Unloading solver `%s'\n"), ph.ats_string);
@@ -1462,14 +1261,15 @@ run (void *cls, char * const *args, const char *cfgfile,
   {
     for (c2 = ph.N_peers_start; c2 < ph.N_peers_end; c2++ )
     {
+      if (0 == c2)
+        continue;
       GNUNET_free (ph.iterations_results[c].results_array[c2]);
     }
     GNUNET_free(ph.iterations_results[c].results_array);
 
   }
   GNUNET_free (ph.iterations_results);
-  GNUNET_free (ph.averaged_full_result);
-  GNUNET_free (ph.averaged_update_result);
+
   GNUNET_CONFIGURATION_destroy (solver_cfg);
   GNUNET_STATISTICS_destroy (ph.stat, GNUNET_NO);
   ph.solver = NULL;
