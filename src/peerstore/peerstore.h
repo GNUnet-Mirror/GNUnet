@@ -76,12 +76,12 @@ struct StoreResponseMessage
   /**
    * Was the store operation successful (#GNUNET_YES / #GNUNET_NO)
    */
-  uint16_t success;
+  uint16_t success GNUNET_PACKED;
 
   /**
    * Size of the error message (0 if no error)
    */
-  size_t emsg_size;
+  size_t emsg_size GNUNET_PACKED;
 };
 
 GNUNET_NETWORK_STRUCT_END

@@ -58,7 +58,9 @@ shutdown_task (void *cls,
 
 void test_cont(void *cls, const char *emsg)
 {
-  printf("Received a response\n");
+  char *req = cls;
+
+  printf("Received a response to request: %s\n", req);
   if(NULL != emsg)
   {
     printf("Response: %s\n", emsg);
@@ -97,7 +99,15 @@ run (void *cls,
         5,
         GNUNET_TIME_UNIT_FOREVER_REL,
         &test_cont,
-        NULL);
+        "Req1");
+    GNUNET_PEERSTORE_store(peerstore_handle,
+            &pid,
+            "subsub",
+            "value",
+            5,
+            GNUNET_TIME_UNIT_FOREVER_REL,
+            &test_cont,
+            "Req2");
   }
 
   ret = 0;

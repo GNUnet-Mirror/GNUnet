@@ -204,6 +204,7 @@ reconnect_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_PEERSTORE_Handle *h = cls;
 
+  LOG(GNUNET_ERROR_TYPE_DEBUG, "Reconnect task executed\n");
   h->r_task = GNUNET_SCHEDULER_NO_TASK;
   reconnect (h);
 }
@@ -225,6 +226,7 @@ GNUNET_PEERSTORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
   h = GNUNET_new (struct GNUNET_PEERSTORE_Handle);
   h->client = client;
   h->cfg = cfg;
+  LOG(GNUNET_ERROR_TYPE_DEBUG, "New connection created\n");
   return h;
 }
 
@@ -242,6 +244,7 @@ GNUNET_PEERSTORE_disconnect(struct GNUNET_PEERSTORE_Handle *h)
     h->client = NULL;
   }
   GNUNET_free (h);
+  LOG(GNUNET_ERROR_TYPE_DEBUG, "Disconnected, BYE!\n");
 }
 
 /**
@@ -252,6 +255,7 @@ GNUNET_PEERSTORE_disconnect(struct GNUNET_PEERSTORE_Handle *h)
 static void
 reconnect (struct GNUNET_PEERSTORE_Handle *h)
 {
+  LOG(GNUNET_ERROR_TYPE_DEBUG, "Reconnecting...\n");
   if (GNUNET_SCHEDULER_NO_TASK != h->r_task)
   {
     GNUNET_SCHEDULER_cancel (h->r_task);
@@ -403,6 +407,7 @@ peerstore_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     trigger_transmit (h);
     if (NULL != h->sc_head)
     {
+      LOG(GNUNET_ERROR_TYPE_DEBUG, "Another store request awaiting response, triggering receive for it\n");
       h->in_receive = GNUNET_YES;
       GNUNET_CLIENT_receive (h->client,
           &peerstore_handler,
@@ -411,15 +416,14 @@ peerstore_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     }
     if(NULL != cont)
     {
-      srm = (struct StoreResponseMessage *)&msg[1];
+      LOG(GNUNET_ERROR_TYPE_DEBUG, "Calling continuation of store request\n");
+      srm = (struct StoreResponseMessage *)msg;
       emsg = NULL;
       if(GNUNET_NO == ntohs(srm->success))
       {
-        LOG(GNUNET_ERROR_TYPE_DEBUG, "Calling user callback with message: %s\n", emsg);
         emsg = GNUNET_malloc(ntohs(srm->emsg_size));
         memcpy(emsg, &srm[1], ntohs(srm->emsg_size));
       }
-      LOG(GNUNET_ERROR_TYPE_DEBUG, "Calling user callback without a message\n");
       cont(cont_cls, emsg);
     }
     break;
