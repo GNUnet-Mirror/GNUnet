@@ -2423,6 +2423,8 @@ run (void *cls,
     GNUNET_APPLICATION_TYPE_SCALARPRODUCT,
     0
   };
+  cfg = c;
+  
   //generate private/public key set
   GNUNET_CRYPTO_paillier_create (&my_pubkey, &my_privkey);
 
@@ -2438,9 +2440,9 @@ run (void *cls,
                                    &cb_client_disconnect,
                                    NULL);
   GNUNET_break (GNUNET_OK ==
-                GNUNET_CRYPTO_get_peer_identity (c,
+                GNUNET_CRYPTO_get_peer_identity (cfg,
                                                  &me));
-  my_cadet = GNUNET_CADET_connect (c, NULL,
+  my_cadet = GNUNET_CADET_connect (cfg, NULL,
                                  &cb_channel_incoming,
                                  &cb_channel_destruction,
                                  cadet_handlers, ports);

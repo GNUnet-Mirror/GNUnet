@@ -273,7 +273,7 @@ send_multipart (void * cls, const struct GNUNET_SCHEDULER_TaskContext * tc)
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_SCALARPRODUCT_CLIENT_MUTLIPART);
   msg->element_count_contained = htonl (todo);
 
-  memcpy (&msg[1], &h->elements[h->element_count_transfered], todo);
+  memcpy (&msg[1], &h->elements[h->element_count_transfered], todo * sizeof (struct GNUNET_SCALARPRODUCT_Element));
   h->element_count_transfered += todo;
 
   h->th = GNUNET_CLIENT_notify_transmit_ready (h->client, size,
@@ -515,7 +515,7 @@ GNUNET_SCALARPRODUCT_start_computation (const struct GNUNET_CONFIGURATION_Handle
     size = sizeof (struct GNUNET_SCALARPRODUCT_computation_message) + possible*sizeof (struct GNUNET_SCALARPRODUCT_Element);
     h->elements = (struct GNUNET_SCALARPRODUCT_Element*) 
             GNUNET_malloc (sizeof(struct GNUNET_SCALARPRODUCT_Element) * element_count);
-    memcpy (h->elements, elements, sizeof (struct GNUNET_SCALARPRODUCT_Element)*element_count);
+    memcpy (h->elements, elements, sizeof (struct GNUNET_SCALARPRODUCT_Element) * element_count);
   }
   
   h->cont_datum = cont;
@@ -533,7 +533,7 @@ GNUNET_SCALARPRODUCT_start_computation (const struct GNUNET_CONFIGURATION_Handle
 
   memcpy (&msg->peer, peer, sizeof (struct GNUNET_PeerIdentity));
   memcpy (&msg->session_key, session_key, sizeof (struct GNUNET_HashCode));
-  memcpy (&msg[1], elements, possible);
+  memcpy (&msg[1], elements, sizeof (struct GNUNET_SCALARPRODUCT_Element) * possible);
 
   h->th = GNUNET_CLIENT_notify_transmit_ready (h->client, size,
                                                GNUNET_TIME_UNIT_FOREVER_REL,
