@@ -238,10 +238,36 @@ GNUNET_PEERSTORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
 void
 GNUNET_PEERSTORE_disconnect(struct GNUNET_PEERSTORE_Handle *h)
 {
+  struct GNUNET_PEERSTORE_StoreContext *sc;
+  struct GNUNET_PEERSTORE_RequestContext *rc;
+
+  while (NULL != (sc = h->sc_head))
+  {
+    GNUNET_break (GNUNET_YES == sc->request_transmitted);
+    sc->request_transmitted = GNUNET_NO;
+    GNUNET_PEERSTORE_store_cancel(sc);
+  }
+  while (NULL != (rc = h->rc_head))
+  {
+    GNUNET_CONTAINER_DLL_remove (h->rc_head, h->rc_tail, rc);
+    if (NULL != rc->cont)
+      rc->cont (rc->cont_cls, _("aborted due to explicit disconnect request"));
+    GNUNET_free (rc);
+  }
+  if (NULL != h->th)
+  {
+    GNUNET_CLIENT_notify_transmit_ready_cancel (h->th);
+    h->th = NULL;
+  }
   if (NULL != h->client)
   {
     GNUNET_CLIENT_disconnect (h->client);
     h->client = NULL;
+  }
+  if (GNUNET_SCHEDULER_NO_TASK != h->r_task)
+  {
+    GNUNET_SCHEDULER_cancel (h->r_task);
+    h->r_task = GNUNET_SCHEDULER_NO_TASK;
   }
   GNUNET_free (h);
   LOG(GNUNET_ERROR_TYPE_DEBUG, "Disconnected, BYE!\n");
@@ -271,6 +297,7 @@ reconnect (struct GNUNET_PEERSTORE_Handle *h)
     GNUNET_CLIENT_disconnect (h->client);
     h->client = NULL;
   }
+  h->in_receive = GNUNET_NO;
   h->client = GNUNET_CLIENT_connect ("peerstore", h->cfg);
   if (NULL == h->client)
   {
@@ -360,78 +387,6 @@ trigger_transmit (struct GNUNET_PEERSTORE_Handle *h)
 }
 
 /******************************************************************************/
-/*******************           GENERAL FUNCTIONS          *********************/
-/******************************************************************************/
-
-/**
- * Function called with server response message
- * after a store operation is request
- *
- * @param cls a 'struct GNUNET_PEERSTORE_StoreContext'
- * @param msg message received, NULL on timeout or fatal error
- */
-static void
-peerstore_handler (void *cls, const struct GNUNET_MessageHeader *msg)
-{
-  struct GNUNET_PEERSTORE_Handle *h = cls;
-  struct GNUNET_PEERSTORE_StoreContext *sc;
-  struct StoreResponseMessage *srm;
-  uint16_t response_type;
-  uint16_t response_size;
-  char *emsg;
-  GNUNET_PEERSTORE_Continuation cont;
-  void *cont_cls;
-
-  h->in_receive = GNUNET_NO;
-  if(NULL == msg)
-  {
-    reconnect(h);
-    return;
-  }
-  response_type = ntohs(msg->type);
-  response_size = ntohs(msg->size);
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "Received a response of type %lu from server\n", response_type);
-  switch(response_type)
-  {
-  case GNUNET_MESSAGE_TYPE_PEERSTORE_STORE_RESULT:
-    GNUNET_assert(response_size >= sizeof(struct GNUNET_MessageHeader) + sizeof(struct StoreResponseMessage));
-    sc = h->sc_head;
-    if(NULL == sc)
-    {
-      LOG(GNUNET_ERROR_TYPE_ERROR, "Received a response to a non-existent store request\n");
-      return;
-    }
-    cont = sc->cont;
-    cont_cls = sc->cont_cls;
-    GNUNET_PEERSTORE_store_cancel(sc);
-    trigger_transmit (h);
-    if (NULL != h->sc_head)
-    {
-      LOG(GNUNET_ERROR_TYPE_DEBUG, "Another store request awaiting response, triggering receive for it\n");
-      h->in_receive = GNUNET_YES;
-      GNUNET_CLIENT_receive (h->client,
-          &peerstore_handler,
-          h,
-          GNUNET_TIME_UNIT_FOREVER_REL);
-    }
-    if(NULL != cont)
-    {
-      LOG(GNUNET_ERROR_TYPE_DEBUG, "Calling continuation of store request\n");
-      srm = (struct StoreResponseMessage *)msg;
-      emsg = NULL;
-      if(GNUNET_NO == ntohs(srm->success))
-      {
-        emsg = GNUNET_malloc(ntohs(srm->emsg_size));
-        memcpy(emsg, &srm[1], ntohs(srm->emsg_size));
-      }
-      cont(cont_cls, emsg);
-    }
-    break;
-  }
-
-}
-
-/******************************************************************************/
 /*******************             ADD FUNCTIONS            *********************/
 /******************************************************************************/
 
@@ -461,20 +416,121 @@ GNUNET_PEERSTORE_store_cancel (struct GNUNET_PEERSTORE_StoreContext *sc)
 }
 
 /**
+ * Function called with server response message
+ * after a store operation is requested
+ *
+ * @param cls a 'struct GNUNET_PEERSTORE_Handle'
+ * @param msg message received, NULL on timeout or fatal error
+ */
+static void
+store_receive(void *cls, const struct GNUNET_MessageHeader *msg)
+{
+  struct GNUNET_PEERSTORE_Handle *h = cls;
+  struct GNUNET_PEERSTORE_StoreContext *sc = h->sc_head;
+  GNUNET_PEERSTORE_Continuation cont;
+  void *cont_cls;
+  uint16_t response_type;
+  uint16_t response_size;
+  struct StoreResponseMessage *srm;
+  int malformed = GNUNET_NO;
+  char *emsg;
+
+  h->in_receive = GNUNET_NO;
+  if (NULL == sc)
+  {
+    /* didn't expect a response, reconnect */
+    reconnect (h);
+    return;
+  }
+  cont = sc->cont;
+  cont_cls = sc->cont_cls;
+  sc->request_transmitted = GNUNET_NO;
+  //cancel the request since we only need one response
+  GNUNET_PEERSTORE_store_cancel(sc);
+  if(NULL == msg)
+  {
+    LOG(GNUNET_ERROR_TYPE_ERROR, "`PEERSTORE' service died\n");
+    reconnect (h);
+    if (NULL != cont)
+      cont (cont_cls,
+          _("Failed to receive response from `PEERSTORE' service."));
+    return;
+  }
+  response_type = ntohs(msg->type);
+  response_size = ntohs(msg->size);
+  if(GNUNET_MESSAGE_TYPE_PEERSTORE_STORE_RESULT != response_type)
+  {
+    LOG(GNUNET_ERROR_TYPE_ERROR, "Received an unexpected response type: %lu to store request\n", response_type);
+    reconnect(h);
+    if (NULL != cont)
+        cont (cont_cls,
+            _("Received an unexpected response from `PEERSTORE' service."));
+    return;
+  }
+  if(response_size < sizeof(struct StoreResponseMessage))
+  {
+    malformed = GNUNET_YES;
+  }
+  else
+  {
+    srm = (struct StoreResponseMessage *)msg;
+    if(sizeof(struct StoreResponseMessage) + ntohs(srm->emsg_size) != response_size)
+      malformed = GNUNET_YES;
+  }
+  if(GNUNET_YES == malformed)
+  {
+    LOG(GNUNET_ERROR_TYPE_ERROR, "Received a malformed response from `PEERSTORE' service.\n");
+    reconnect(h);
+    if (NULL != cont)
+        cont (cont_cls,
+            _("Received a malformed response from `PEERSTORE' service."));
+    return;
+  }
+  LOG(GNUNET_ERROR_TYPE_DEBUG, "Received a response of type %lu from server\n", response_type);
+  trigger_transmit(h);
+  if ( (GNUNET_NO == h->in_receive) && (NULL != h->sc_head) )
+  {
+    LOG(GNUNET_ERROR_TYPE_DEBUG,
+        "A store request was sent but response not received, receiving now.\n");
+    h->in_receive = GNUNET_YES;
+    GNUNET_CLIENT_receive (h->client,
+        &store_receive,
+        h,
+        GNUNET_TIME_UNIT_FOREVER_REL);
+  }
+  if(NULL != cont)
+  {
+    LOG(GNUNET_ERROR_TYPE_DEBUG, "Calling continuation of store request\n");
+    srm = (struct StoreResponseMessage *)msg;
+    emsg = NULL;
+    if(GNUNET_NO == ntohs(srm->success))
+    {
+      emsg = GNUNET_malloc(ntohs(srm->emsg_size));
+      memcpy(emsg, &srm[1], ntohs(srm->emsg_size));
+    }
+    cont(cont_cls, emsg);
+  }
+}
+
+/**
  * Called after store request is sent
  * Waits for response from service
  *
  * @param cls a 'struct GNUNET_PEERSTORE_StoreContext'
  * @parma emsg error message (or NULL)
  */
-void store_receive_result(void *cls, const char *emsg)
+void store_trigger_receive(void *cls, const char *emsg)
 {
   struct GNUNET_PEERSTORE_StoreContext *sc = cls;
   struct GNUNET_PEERSTORE_Handle *h = sc->h;
+  GNUNET_PEERSTORE_Continuation cont;
+  void *cont_cls;
 
   sc->rc = NULL;
   if(NULL != emsg)
   {
+    cont = sc->cont;
+    cont_cls = sc->cont_cls;
     GNUNET_PEERSTORE_store_cancel (sc);
     reconnect (h);
     if (NULL != sc->cont)
@@ -488,7 +544,7 @@ void store_receive_result(void *cls, const char *emsg)
   {
     h->in_receive = GNUNET_YES;
     GNUNET_CLIENT_receive (h->client,
-        &peerstore_handler,
+        &store_receive,
         h,
         GNUNET_TIME_UNIT_FOREVER_REL);
   }
@@ -548,7 +604,8 @@ GNUNET_PEERSTORE_store (struct GNUNET_PEERSTORE_Handle *h,
   sc->cont_cls = cont_cls;
   sc->h = h;
   sc->rc = rc;
-  rc->cont = &store_receive_result;
+  sc->request_transmitted = GNUNET_NO;
+  rc->cont = &store_trigger_receive;
   rc->cont_cls = sc;
   GNUNET_CONTAINER_DLL_insert_tail(h->rc_head, h->rc_tail, rc);
   GNUNET_CONTAINER_DLL_insert_tail(h->sc_head, h->sc_tail, sc);
