@@ -656,7 +656,7 @@ mlp_create_problem_add_address_information (void *cls,
       GNUNET_asprintf(&name, "c2_%s", GNUNET_i2s(&address->peer));
       peer->r_c2 = mlp_create_problem_create_constraint (p, name, GLP_FX, 1.0, 1.0);
       GNUNET_free (name);
-      if (GNUNET_NO == mlp->opt_feasibility_only)
+      if (GNUNET_NO == mlp->opt_dbg_feasibility_only)
       {
         /* Add c9) Relativity */
         GNUNET_asprintf(&name, "c9_%s", GNUNET_i2s(&address->peer));
@@ -677,7 +677,7 @@ mlp_create_problem_add_address_information (void *cls,
 
   /* Add bandwidth column */
   GNUNET_asprintf (&name, "b_%s_%s_%p", GNUNET_i2s (&address->peer), address->plugin, address);
-  if (GNUNET_NO == mlp->opt_feasibility_only)
+  if (GNUNET_NO == mlp->opt_dbg_feasibility_only)
   {
     mlpi->c_b = mlp_create_problem_create_column (p, name, GLP_CV, GLP_LO, 0.0, 0.0, 0.0);
   }
@@ -744,7 +744,7 @@ mlp_create_problem_add_address_information (void *cls,
   }
 
   /* Optimality */
-  if (GNUNET_NO == mlp->opt_feasibility_only)
+  if (GNUNET_NO == mlp->opt_dbg_feasibility_only)
   {
     /* c 6) maximize diversity */
     mlp_create_problem_set_value (p, p->r_c6, mlpi->c_n, 1, __LINE__);
@@ -794,7 +794,7 @@ mlp_create_problem_add_invariant_rows (struct GAS_MLP_Handle *mlp, struct MLP_Pr
   }
 
   /* Optimality */
-  if (GNUNET_NO == mlp->opt_feasibility_only)
+  if (GNUNET_NO == mlp->opt_dbg_feasibility_only)
   {
     char *name;
     /* Add row for c6) Maximize for diversity */
@@ -826,7 +826,7 @@ mlp_create_problem_add_invariant_rows (struct GAS_MLP_Handle *mlp, struct MLP_Pr
 static void
 mlp_create_problem_add_invariant_columns (struct GAS_MLP_Handle *mlp, struct MLP_Problem *p)
 {
-  if (GNUNET_NO == mlp->opt_feasibility_only)
+  if (GNUNET_NO == mlp->opt_dbg_feasibility_only)
   {
     char *name;
     int c;
@@ -920,7 +920,10 @@ mlp_create_problem (struct GAS_MLP_Handle *mlp)
   /* Load the matrix */
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Loading matrix\n");
   glp_load_matrix(p->prob, (p->ci)-1, p->ia, p->ja, p->ar);
-  glp_scale_prob (p->prob, GLP_SF_AUTO);
+  if (GNUNET_YES == mlp->opt_dbg_autoscale_problem)
+  {
+    glp_scale_prob (p->prob, GLP_SF_AUTO);
+  }
 
   return res;
 }
@@ -1411,7 +1414,7 @@ GAS_mlp_address_property_changed (void *solver,
       abs_value,
       rel_value);
 
-  if (GNUNET_YES == mlp->opt_feasibility_only)
+  if (GNUNET_YES == mlp->opt_dbg_feasibility_only)
     return;
 
   /* Find row index */
@@ -1879,7 +1882,7 @@ GAS_mlp_address_change_preference (void *solver,
     return;
   }
 
-  if (GNUNET_NO == mlp->opt_feasibility_only)
+  if (GNUNET_NO == mlp->opt_dbg_feasibility_only)
   {
     p->f = get_peer_pref_value (mlp, peer);
     mlp_create_problem_update_value (&mlp->p, p->r_c9, mlp->p.c_r, -p->f, __LINE__);
@@ -2034,18 +2037,26 @@ libgnunet_plugin_ats_mlp_init (void *cls)
   if (GNUNET_SYSERR == mlp->opt_dump_solution_on_fail)
    mlp->opt_dump_solution_on_fail = GNUNET_NO;
 
-  mlp->opt_glpk_verbose = GNUNET_CONFIGURATION_get_value_yesno (env->cfg,
+  mlp->opt_dbg_glpk_verbose = GNUNET_CONFIGURATION_get_value_yesno (env->cfg,
      "ats", "MLP_GLPK_VERBOSE");
-  if (GNUNET_SYSERR == mlp->opt_glpk_verbose)
-   mlp->opt_glpk_verbose = GNUNET_NO;
+  if (GNUNET_SYSERR == mlp->opt_dbg_glpk_verbose)
+   mlp->opt_dbg_glpk_verbose = GNUNET_NO;
 
-  mlp->opt_feasibility_only = GNUNET_CONFIGURATION_get_value_yesno (env->cfg,
-     "ats", "MLP_FEASIBILITY_ONLY");
-  if (GNUNET_SYSERR == mlp->opt_feasibility_only)
-   mlp->opt_feasibility_only = GNUNET_NO;
-  if (GNUNET_YES == mlp->opt_feasibility_only)
+  mlp->opt_dbg_feasibility_only = GNUNET_CONFIGURATION_get_value_yesno (env->cfg,
+     "ats", "MLP_DBG_FEASIBILITY_ONLY");
+  if (GNUNET_SYSERR == mlp->opt_dbg_feasibility_only)
+   mlp->opt_dbg_feasibility_only = GNUNET_NO;
+  if (GNUNET_YES == mlp->opt_dbg_feasibility_only)
     LOG (GNUNET_ERROR_TYPE_WARNING,
         "MLP solver is configured to check feasibility only!\n");
+
+  mlp->opt_dbg_autoscale_problem = GNUNET_CONFIGURATION_get_value_yesno (env->cfg,
+     "ats", "MLP_DBG_AUTOSCALE_PROBLEM");
+  if (GNUNET_SYSERR == mlp->opt_dbg_autoscale_problem)
+   mlp->opt_dbg_autoscale_problem = GNUNET_NO;
+  if (GNUNET_YES == mlp->opt_dbg_autoscale_problem)
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+        "MLP solver is configured automatically scale the problem!\n");
 
   mlp->pv.BIG_M = (double) BIG_M_VALUE;
 
@@ -2249,7 +2260,7 @@ libgnunet_plugin_ats_mlp_init (void *cls)
   /* Init LP solving parameters */
   glp_init_smcp(&mlp->control_param_lp);
   mlp->control_param_lp.msg_lev = GLP_MSG_OFF;
-  if (GNUNET_YES == mlp->opt_glpk_verbose)
+  if (GNUNET_YES == mlp->opt_dbg_glpk_verbose)
     mlp->control_param_lp.msg_lev = GLP_MSG_ALL;
 
   mlp->control_param_lp.it_lim = max_iterations;
@@ -2258,7 +2269,7 @@ libgnunet_plugin_ats_mlp_init (void *cls)
   /* Init MLP solving parameters */
   glp_init_iocp(&mlp->control_param_mlp);
   mlp->control_param_mlp.msg_lev = GLP_MSG_OFF;
-  if (GNUNET_YES == mlp->opt_glpk_verbose)
+  if (GNUNET_YES == mlp->opt_dbg_glpk_verbose)
     mlp->control_param_mlp.msg_lev = GLP_MSG_ALL;
   mlp->control_param_mlp.tm_lim = max_duration.rel_value_us / 1000LL;
 

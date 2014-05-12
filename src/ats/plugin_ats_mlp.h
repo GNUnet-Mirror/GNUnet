@@ -337,9 +337,19 @@ struct GAS_MLP_Handle
   int opt_dump_solution_on_fail;
 
   /**
+   * solve feasibility only
+   */
+  int opt_dbg_feasibility_only;
+
+  /**
+   * solve feasibility only
+   */
+  int opt_dbg_autoscale_problem;
+
+  /**
    * Print GLPK output
    */
-  int opt_glpk_verbose;
+  int opt_dbg_glpk_verbose;
 
 };
 
