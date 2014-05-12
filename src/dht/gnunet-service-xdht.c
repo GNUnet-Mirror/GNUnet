@@ -192,14 +192,6 @@ main (int argc, char *const *argv)
 {
   int ret;
 
-  /* FIXME:
-   Here add a new field threshold to set user defined threshold
-   on routing table size and trail length. Pass the thr1 and thr2 
-   to neighbours_init and in neighbours file, in function where we
-   are adding a new entry into our routing table and trail length, 
-   check the threshold values. After conducting experiments, try to 
-   find the correct threshold to have a balance between attack tolerance 
-   and performance.*/
   ret =
       (GNUNET_OK ==
        GNUNET_SERVICE_run (argc, argv, "dht", GNUNET_SERVICE_OPTION_NONE, &run,

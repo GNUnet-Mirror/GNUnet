@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2011 Christian Grothoff (and other contributing authors)
+     (C) 2011 - 2014 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -226,14 +226,15 @@ GDS_ROUTING_search(struct GNUNET_PeerIdentity *source_peer,
 
 
 /**
+ * FIXME:URGENT:Better name.
  * Check if the size of routing table has crossed threshold. 
- * @return 
+ * @return #GNUNET_YES, if threshold crossed else #GNUNET_NO.
  */
 int
 GDS_ROUTING_check_threshold ()
 {
   int ret;
-  ret = (GNUNET_CONTAINER_multipeermap_size(routing_table) > ROUTING_TABLE_THRESHOLD) ? 1:0;
+  ret = (GNUNET_CONTAINER_multipeermap_size(routing_table) > ROUTING_TABLE_THRESHOLD) ? GNUNET_YES:GNUNET_NO;
   return ret;    
 }
 
