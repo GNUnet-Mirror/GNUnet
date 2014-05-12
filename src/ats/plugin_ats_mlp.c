@@ -736,12 +736,12 @@ mlp_create_problem_add_address_information (void *cls,
   for (c = 0; c < GNUNET_ATS_NetworkTypeCount; c++)
   {
     addr_net = get_performance_info (address, GNUNET_ATS_NETWORK_TYPE);
+
     if (GNUNET_ATS_VALUE_UNDEFINED == addr_net)
     {
       GNUNET_break (0);
       addr_net = GNUNET_ATS_NET_UNSPECIFIED;
     }
-
     if (mlp->pv.quota_index[c] == addr_net)
     {
       mlp_create_problem_set_value (p, p->r_quota[c], mlpi->c_b, 1, __LINE__);
@@ -753,8 +753,16 @@ mlp_create_problem_add_address_information (void *cls,
   /* For all quality metrics, set quality of this address */
   props = mlp->get_properties (mlp->get_properties_cls, address);
   for (c = 0; c < mlp->pv.m_q; c++)
+  {
+    if ((props[c] < 1.0) && (props[c] > 2.0))
+    {
+      fprintf (stderr, "PROP == %.3f \t ", props[c]);
+      GNUNET_break (0);
+    }
     mlp_create_problem_set_value (p, p->r_q[c], mlpi->c_b, props[c], __LINE__);
+  }
 
+  //fprintf (stderr, "\n");
   return GNUNET_OK;
 }
 
@@ -1173,7 +1181,7 @@ GAS_mlp_solve_problem (void *solver)
           return GNUNET_SYSERR;
         }
       notify(mlp, GAS_OP_SOLVE_SETUP_STOP, GAS_STAT_SUCCESS, GAS_INFO_FULL);
-      mlp->control_param_lp.presolve = GLP_YES;
+      mlp->control_param_lp.presolve = GLP_YES; /* LP presolver, we need lp solution */
       mlp->control_param_mlp.presolve = GNUNET_NO; /* No presolver, we have LP solution */
     }
   else
@@ -1192,7 +1200,8 @@ GAS_mlp_solve_problem (void *solver)
   start_cur_op = GNUNET_TIME_absolute_get();
 
   /* Solve LP */
-  mlp->control_param_lp.presolve = GLP_YES;
+  /* Only for debugging, always use LP presolver:
+   *  mlp->control_param_lp.presolve = GLP_YES; */
   res_lp = mlp_solve_lp_problem(mlp);
 
   dur_lp = GNUNET_TIME_absolute_get_duration (start_cur_op);
@@ -1200,6 +1209,7 @@ GAS_mlp_solve_problem (void *solver)
       (GNUNET_OK == res_lp) ? GAS_STAT_SUCCESS : GAS_STAT_FAIL,
       (GNUNET_YES == mlp->stat_mlp_prob_changed) ? GAS_INFO_FULL : GAS_INFO_UPDATED);
 
+  res_lp = GNUNET_OK;
 
   /* Run MLP solver */
   if (GNUNET_OK == res_lp)
@@ -1210,7 +1220,8 @@ GAS_mlp_solve_problem (void *solver)
     start_cur_op = GNUNET_TIME_absolute_get();
 
     /* Solve MIP */
-    //mlp->control_param_mlp.presolve = GNUNET_YES;
+    /* Only for debugging, always use MLP presolver:
+     * mlp->control_param_mlp.presolve = GNUNET_YES; */
     res_mip = mlp_solve_mlp_problem(mlp);
 
     dur_mlp = GNUNET_TIME_absolute_get_duration (start_cur_op);
@@ -1225,6 +1236,7 @@ GAS_mlp_solve_problem (void *solver)
     /* Do not execute mip solver since lp solution is invalid */
     dur_mlp = GNUNET_TIME_UNIT_ZERO;
     dur_total = GNUNET_TIME_absolute_get_duration (start_total);
+    //GNUNET_break(0);
     notify(mlp, GAS_OP_SOLVE_MLP_MLP_STOP, GAS_STAT_FAIL,
         (GNUNET_YES == mlp->stat_mlp_prob_changed) ? GAS_INFO_FULL : GAS_INFO_UPDATED);
     res_mip = GNUNET_SYSERR;
@@ -1254,7 +1266,7 @@ GAS_mlp_solve_problem (void *solver)
   mlp->ps.p_elements = mlp->p.num_elements;
 
   /* Propagate result*/
-  notify(mlp, GAS_OP_SOLVE_UPDATE_NOTIFICATION_START,
+  notify (mlp, GAS_OP_SOLVE_UPDATE_NOTIFICATION_START,
       (GNUNET_OK == res_lp) && (GNUNET_OK == res_mip) ? GAS_STAT_SUCCESS : GAS_STAT_FAIL,
       GAS_INFO_NONE);
   if ((GNUNET_OK == res_lp) && (GNUNET_OK == res_mip))
@@ -1262,7 +1274,7 @@ GAS_mlp_solve_problem (void *solver)
       GNUNET_CONTAINER_multipeermap_iterate(mlp->addresses,
           &mlp_propagate_results, mlp);
     }
-  notify(mlp, GAS_OP_SOLVE_UPDATE_NOTIFICATION_STOP,
+  notify (mlp, GAS_OP_SOLVE_UPDATE_NOTIFICATION_STOP,
       (GNUNET_OK == res_lp) && (GNUNET_OK == res_mip) ? GAS_STAT_SUCCESS : GAS_STAT_FAIL,
       GAS_INFO_NONE);
 
@@ -1375,7 +1387,7 @@ GAS_mlp_address_property_changed (void *solver,
 
   if (NULL == mlpi)
   {
-      LOG (GNUNET_ERROR_TYPE_ERROR,
+      LOG (GNUNET_ERROR_TYPE_INFO,
           _("Updating address property `%s' for peer `%s' %p not added before\n"),
           GNUNET_ATS_print_property_type (type),
           GNUNET_i2s(&address->peer),
@@ -1390,9 +1402,11 @@ GAS_mlp_address_property_changed (void *solver,
     /* Peer is not requested, so no need to update problem */
     return;
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Updating property `%s' address for peer `%s'\n",
+  LOG (GNUNET_ERROR_TYPE_INFO, "Updating property `%s' address for peer `%s' to abs %llu rel %.3f\n",
       GNUNET_ATS_print_property_type (type),
-      GNUNET_i2s(&address->peer));
+      GNUNET_i2s(&address->peer),
+      abs_value,
+      rel_value);
 
   /* Find row index */
   type_index = -1;
@@ -1681,16 +1695,23 @@ get_peer_pref_value (struct GAS_MLP_Handle *mlp, const struct GNUNET_PeerIdentit
   int c;
   preferences = mlp->get_preferences (mlp->get_preferences_cls, peer);
 
-  res = 1.0;
+  res = 0.0;
   for (c = 0; c < GNUNET_ATS_PreferenceCount; c++)
   {
     if (c != GNUNET_ATS_PREFERENCE_END)
     {
-      //fprintf (stderr, "VALUE[%u] %s %.3f \n", c, GNUNET_i2s (&cur->addr->peer), t[c]);
+      /* fprintf (stderr, "VALUE[%u] %s %.3f \n",
+       *        c, GNUNET_i2s (&cur->addr->peer), t[c]); */
       res += preferences[c];
     }
   }
+
   res /= (GNUNET_ATS_PreferenceCount -1);
+  res += 1.0;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Peer preference for peer  `%s' == %.2f\n",
+      GNUNET_i2s(peer), res);
+
   return res;
 }
 
@@ -1847,13 +1868,10 @@ GAS_mlp_address_change_preference (void *solver,
   /* Update relativity constraint c9 */
   if (NULL == (p = GNUNET_CONTAINER_multipeermap_get (mlp->requested_peers, peer)))
   {
-    LOG (GNUNET_ERROR_TYPE_ERROR, "Updating preference for unknown peer `%s'\n", GNUNET_i2s(peer));
+    LOG (GNUNET_ERROR_TYPE_INFO, "Updating preference for unknown peer `%s'\n", GNUNET_i2s(peer));
     return;
   }
   p->f = get_peer_pref_value (mlp, peer);
-  /*
-  LOG (GNUNET_ERROR_TYPE_ERROR, "PEER PREF: %s %.2f\n",
-      GNUNET_i2s(peer), p->f);*/
   mlp_create_problem_update_value (&mlp->p, p->r_c9, mlp->p.c_r, -p->f, __LINE__);
 
   /* Problem size changed: new address for peer with pending request */
