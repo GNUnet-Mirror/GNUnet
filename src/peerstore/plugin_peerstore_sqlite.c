@@ -104,7 +104,7 @@ peerstore_sqlite_store_record (void *cls,
   //FIXME: check if value exists with the same key first
 
   if(SQLITE_OK != sqlite3_bind_blob(stmt, 2, peer, sizeof(struct GNUNET_PeerIdentity), SQLITE_STATIC)
-      || SQLITE_OK != sqlite3_bind_text(stmt, 1, sub_system, sizeof(sub_system), SQLITE_STATIC)
+      || SQLITE_OK != sqlite3_bind_text(stmt, 1, sub_system, strlen(sub_system) + 1, SQLITE_STATIC)
       || SQLITE_OK != sqlite3_bind_blob(stmt, 3, value, size, SQLITE_STATIC))
     LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                     "sqlite3_bind");

@@ -26,6 +26,10 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "peerstore.h"
+#include "gnunet_peerstore_plugin.h"
+
+//TODO: GNUNET_SERVER_receive_done() ?
+//TODO: implement value lifetime
 
 /**
  * Our configuration.
@@ -85,21 +89,68 @@ void handle_store (void *cls,
     struct GNUNET_SERVER_Client *client,
     const struct GNUNET_MessageHeader *message)
 {
-  struct StoreRequestMessage *sreqm;
-  struct GNUNET_SERVER_TransmitContext *tc;
-  struct StoreResponseMessage *sresm;
+  struct StoreRequestMessage *req;
   uint16_t msg_size;
+  uint16_t sub_system_size;
+  uint16_t value_size;
   char *sub_system;
+  void *value;
+  struct GNUNET_SERVER_TransmitContext *tc;
+  struct StoreResponseMessage *res;
+  char *emsg;
+  size_t emsg_size = 0;
+  char *emsg_dest;
 
   msg_size = ntohs(message->size);
-  GNUNET_break_op(msg_size > sizeof(struct GNUNET_MessageHeader) + sizeof(struct StoreRequestMessage));
-  sreqm = (struct StoreRequestMessage *)&message[1];
-  sub_system = (char *)&sreqm[1];
+  if(msg_size < sizeof(struct StoreRequestMessage))
+  {
+    GNUNET_break(0);
+    GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
+    return;
+  }
+  req = (struct StoreRequestMessage *)message;
+  sub_system_size = ntohs(req->sub_system_size);
+  value_size = ntohs(req->value_size);
+  if(sub_system_size + value_size + sizeof(struct StoreRequestMessage)
+      != msg_size)
+  {
+    GNUNET_break(0);
+    GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
+    return;
+  }
+  sub_system = (char *)&req[1];
+  value = sub_system + sub_system_size;
   GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Received a store request (size: %lu) for sub system `%s' and peer `%s'\n",
       msg_size,
       sub_system,
-      GNUNET_i2s (&sreqm->peer));
-  //TODO: do the actual storage
+      GNUNET_i2s (&req->peer));
+  if(GNUNET_OK != db->store_record(db->cls,
+      &req->peer,
+     sub_system,
+     value,
+     value_size))
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Failed to store requested value, sqlite database error.");
+    emsg = _("Failed to store requested value, sqlite database error.");
+    emsg_size = strlen(emsg) + 1;
+  }
+  res = GNUNET_malloc(sizeof(struct StoreResponseMessage) + emsg_size);
+  res->emsg_size = htons(emsg_size);
+  res->header.size = htons(sizeof(struct StoreResponseMessage) + emsg_size);
+  res->header.type = htons(GNUNET_MESSAGE_TYPE_PEERSTORE_STORE_RESULT);
+  if(emsg_size > 0)
+  {
+    res->success = htons(GNUNET_NO);
+    emsg_dest = (char *)&res[1];
+    memcpy(emsg_dest, emsg, emsg_size);
+  }
+  else
+    res->success = htons(GNUNET_YES);
+  tc = GNUNET_SERVER_transmit_context_create (client);
+  GNUNET_SERVER_transmit_context_append_message(tc, (struct GNUNET_MessageHeader *)res);
+  GNUNET_free(res);
+  GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
+
 }
 
 /**

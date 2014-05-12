@@ -28,6 +28,8 @@
 #include "gnunet_util_lib.h"
 #include "sensor.h"
 
+//TODO: GNUNET_SERVER_receive_done() ?
+
 /**
  * Minimum sensor execution interval (in seconds)
  */

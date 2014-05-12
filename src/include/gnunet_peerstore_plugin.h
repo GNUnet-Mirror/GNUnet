@@ -63,10 +63,10 @@ struct GNUNET_PEERSTORE_PluginFunctions
    */
   int
   (*store_record) (void *cls,
-          const char *sub_system,
-          const struct GNUNET_PeerIdentity *peer,
-          const void *value,
-          size_t size);
+      const struct GNUNET_PeerIdentity *peer,
+      const char *sub_system,
+      const void *value,
+      size_t size);
 
 };
 

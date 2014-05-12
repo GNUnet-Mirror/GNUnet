@@ -232,6 +232,7 @@ GNUNET_PEERSTORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
 
 /**
  * Disconnect from the PEERSTORE service
+ * Do not call in case of pending requests
  *
  * @param h handle to disconnect
  */
@@ -583,7 +584,7 @@ GNUNET_PEERSTORE_store (struct GNUNET_PEERSTORE_Handle *h,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
       "Storing value (size: %lu) for subsytem `%s' and peer `%s'\n",
       size, sub_system, GNUNET_i2s (peer));
-  sub_system_size = strlen(sub_system);
+  sub_system_size = strlen(sub_system) + 1;
   request_size = sizeof(struct StoreRequestMessage) + sub_system_size + size;
   rc = GNUNET_malloc(sizeof(struct GNUNET_PEERSTORE_RequestContext) + request_size);
   rc->h = h;

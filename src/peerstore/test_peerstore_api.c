@@ -30,6 +30,11 @@ static int ok = 1;
 
 struct GNUNET_PEERSTORE_Handle *h;
 
+void store_cont(void *cls, const char *emsg)
+{
+  GNUNET_PEERSTORE_disconnect(h);
+}
+
 static void
 run (void *cls,
     const struct GNUNET_CONFIGURATION_Handle *cfg,
@@ -49,9 +54,8 @@ run (void *cls,
       val,
       val_size,
       GNUNET_TIME_UNIT_FOREVER_REL,
-      NULL,
+      &store_cont,
       NULL);
-  GNUNET_PEERSTORE_disconnect(h);
 
 }
 
