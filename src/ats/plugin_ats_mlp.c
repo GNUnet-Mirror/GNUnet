@@ -139,15 +139,6 @@
 
 
 /**
- * Maximize bandwidth assigned
- *
- * This option can be used to test if problem can be solved at all without
- * optimizing for utility, diversity or relativity
- *
- */
-#define MAXIMIZE_FOR_BANDWIDTH_ASSIGNED GNUNET_NO
-
-/**
  * Intercept GLPK terminal output
  * @param info the mlp handle
  * @param s the string to print
@@ -554,7 +545,11 @@ mlp_create_problem_set_value (struct MLP_Problem *p,
     return;
   }
   if ((0 == row) || (0 == col))
+  {
     GNUNET_break (0);
+    LOG (GNUNET_ERROR_TYPE_ERROR, "[P]: Invalid call from line %u: row = %u, col = %u\n",
+        line, row, col);
+  }
   p->ia[p->ci] = row ;
   p->ja[p->ci] = col;
   p->ar[p->ci] = val;
@@ -657,16 +652,19 @@ mlp_create_problem_add_address_information (void *cls,
   if (peer->processed == GNUNET_NO)
   {
       /* Add peer dependent constraints */
-      /* Add constraint c2 */
+      /* Add c2) One address active per peer */
       GNUNET_asprintf(&name, "c2_%s", GNUNET_i2s(&address->peer));
       peer->r_c2 = mlp_create_problem_create_constraint (p, name, GLP_FX, 1.0, 1.0);
       GNUNET_free (name);
-      /* Add constraint c9 */
-      GNUNET_asprintf(&name, "c9_%s", GNUNET_i2s(&address->peer));
-      peer->r_c9 = mlp_create_problem_create_constraint (p, name, GLP_LO, 0.0, 0.0);
-      GNUNET_free (name);
-      /* c 9) set coefficient */
-      mlp_create_problem_set_value (p, peer->r_c9, p->c_r, -peer->f, __LINE__);
+      if (GNUNET_NO == mlp->opt_feasibility_only)
+      {
+        /* Add c9) Relativity */
+        GNUNET_asprintf(&name, "c9_%s", GNUNET_i2s(&address->peer));
+        peer->r_c9 = mlp_create_problem_create_constraint (p, name, GLP_LO, 0.0, 0.0);
+        GNUNET_free (name);
+        /* c9) set coefficient */
+        mlp_create_problem_set_value (p, peer->r_c9, p->c_r, -peer->f, __LINE__);
+      }
       peer->processed = GNUNET_YES;
   }
 
@@ -679,27 +677,27 @@ mlp_create_problem_add_address_information (void *cls,
 
   /* Add bandwidth column */
   GNUNET_asprintf (&name, "b_%s_%s_%p", GNUNET_i2s (&address->peer), address->plugin, address);
-#if TEST_MAX_BW_ASSIGNMENT
-  mlpi->c_b = mlp_create_problem_create_column (p, name, GLP_CV, GLP_LO, 0.0, 0.0, 1.0);
-#else
-  mlpi->c_b = mlp_create_problem_create_column (p, name, GLP_CV, GLP_LO, 0.0, 0.0, 0.0);
-#endif
-
+  if (GNUNET_NO == mlp->opt_feasibility_only)
+  {
+    mlpi->c_b = mlp_create_problem_create_column (p, name, GLP_CV, GLP_LO, 0.0, 0.0, 0.0);
+  }
+  else
+  {
+    /* Maximize for bandwidth assignment in feasibility testing */
+    mlpi->c_b = mlp_create_problem_create_column (p, name, GLP_CV, GLP_LO, 0.0, 0.0, 1.0);
+  }
   GNUNET_free (name);
 
-  /* Add usage column */
+  /* Add address active column */
   GNUNET_asprintf (&name, "n_%s_%s_%p", GNUNET_i2s (&address->peer), address->plugin, address);
   mlpi->c_n = mlp_create_problem_create_column (p, name, GLP_IV, GLP_DB, 0.0, 1.0, 0.0);
   GNUNET_free (name);
 
   /* Add address dependent constraints */
-  /* Add constraint c1) bandwidth capping
-   * b_t  + (-M) * n_t <= 0
-   * */
+  /* Add c1) bandwidth capping: b_t  + (-M) * n_t <= 0 */
   GNUNET_asprintf(&name, "c1_%s_%s_%p", GNUNET_i2s(&address->peer), address->plugin, address);
   mlpi->r_c1 = mlp_create_problem_create_constraint (p, name, GLP_UP, 0.0, 0.0);
   GNUNET_free (name);
-
   /*  c1) set b = 1 coefficient */
   mlp_create_problem_set_value (p, mlpi->r_c1, mlpi->c_b, 1, __LINE__);
   /*  c1) set n = -M coefficient */
@@ -719,17 +717,13 @@ mlp_create_problem_add_address_information (void *cls,
 
 
   /* Set coefficient entries in invariant rows */
+
+  /* Feasbility */
+
   /* c 4) minimum connections */
   mlp_create_problem_set_value (p, p->r_c4, mlpi->c_n, 1, __LINE__);
-  /* c 6) maximize diversity */
-  mlp_create_problem_set_value (p, p->r_c6, mlpi->c_n, 1, __LINE__);
   /* c 2) 1 address peer peer */
   mlp_create_problem_set_value (p, peer->r_c2, mlpi->c_n, 1, __LINE__);
-  /* c 9) relativity */
-  mlp_create_problem_set_value (p, peer->r_c9, mlpi->c_b, 1, __LINE__);
-  /* c 8) utility */
-  mlp_create_problem_set_value (p, p->r_c8, mlpi->c_b, 1, __LINE__);
-
   /* c 10) obey network specific quotas
    * (1)*b_1 + ... + (1)*b_m <= quota_n
    */
@@ -749,20 +743,29 @@ mlp_create_problem_add_address_information (void *cls,
     }
   }
 
-  /* c 7) Optimize quality */
-  /* For all quality metrics, set quality of this address */
-  props = mlp->get_properties (mlp->get_properties_cls, address);
-  for (c = 0; c < mlp->pv.m_q; c++)
+  /* Optimality */
+  if (GNUNET_NO == mlp->opt_feasibility_only)
   {
-    if ((props[c] < 1.0) && (props[c] > 2.0))
+    /* c 6) maximize diversity */
+    mlp_create_problem_set_value (p, p->r_c6, mlpi->c_n, 1, __LINE__);
+    /* c 9) relativity */
+    mlp_create_problem_set_value (p, peer->r_c9, mlpi->c_b, 1, __LINE__);
+    /* c 8) utility */
+    mlp_create_problem_set_value (p, p->r_c8, mlpi->c_b, 1, __LINE__);
+    /* c 7) Optimize quality */
+    /* For all quality metrics, set quality of this address */
+    props = mlp->get_properties (mlp->get_properties_cls, address);
+    for (c = 0; c < mlp->pv.m_q; c++)
     {
-      fprintf (stderr, "PROP == %.3f \t ", props[c]);
-      GNUNET_break (0);
+      if ((props[c] < 1.0) && (props[c] > 2.0))
+      {
+        fprintf (stderr, "PROP == %.3f \t ", props[c]);
+        GNUNET_break (0);
+      }
+      mlp_create_problem_set_value (p, p->r_q[c], mlpi->c_b, props[c], __LINE__);
     }
-    mlp_create_problem_set_value (p, p->r_q[c], mlpi->c_b, props[c], __LINE__);
   }
 
-  //fprintf (stderr, "\n");
   return GNUNET_OK;
 }
 
@@ -772,19 +775,15 @@ mlp_create_problem_add_address_information (void *cls,
 static void
 mlp_create_problem_add_invariant_rows (struct GAS_MLP_Handle *mlp, struct MLP_Problem *p)
 {
-  char *name;
   int c;
+
+  /* Feasibility */
 
   /* Row for c4) minimum connection */
   /* Number of minimum connections is min(|Peers|, n_min) */
   p->r_c4 = mlp_create_problem_create_constraint (p, "c4", GLP_LO, (mlp->pv.n_min > p->num_peers) ? p->num_peers : mlp->pv.n_min, 0.0);
 
-  /* Add row for c6) */
-  p->r_c6 = mlp_create_problem_create_constraint (p, "c6", GLP_FX, 0.0, 0.0);
-  /* c6 )Setting -D */
-  mlp_create_problem_set_value (p, p->r_c6, p->c_d, -1, __LINE__);
-
-  /* Add rows for c 10) */
+  /* Rows for c 10) Enforce network quotas */
   for (c = 0; c < GNUNET_ATS_NetworkTypeCount; c++)
   {
     char * text;
@@ -794,18 +793,29 @@ mlp_create_problem_add_invariant_rows (struct GAS_MLP_Handle *mlp, struct MLP_Pr
     GNUNET_free (text);
   }
 
-  /* Adding rows for c 8) */
-  p->r_c8 = mlp_create_problem_create_constraint (p, "c8", GLP_FX, 0.0, 0.0);
-  /* -u */
-  mlp_create_problem_set_value (p, p->r_c8, p->c_u, -1, __LINE__);
-
-  /* c 7) For all quality metrics */
-  for (c = 0; c < mlp->pv.m_q; c++)
+  /* Optimality */
+  if (GNUNET_NO == mlp->opt_feasibility_only)
   {
-    GNUNET_asprintf(&name, "c7_q%i_%s", c, mlp_ats_to_string(mlp->pv.q[c]));
-    p->r_q[c] = mlp_create_problem_create_constraint (p, name, GLP_FX, 0.0, 0.0);
-    GNUNET_free (name);
-    mlp_create_problem_set_value (p, p->r_q[c], p->c_q[c], -1, __LINE__);
+    char *name;
+    /* Add row for c6) Maximize for diversity */
+    p->r_c6 = mlp_create_problem_create_constraint (p, "c6", GLP_FX, 0.0, 0.0);
+    /* Set c6 ) Setting -D */
+    mlp_create_problem_set_value (p, p->r_c6, p->c_d, -1, __LINE__);
+
+    /* Adding rows for c 8) Maximize utility */
+    p->r_c8 = mlp_create_problem_create_constraint (p, "c8", GLP_FX, 0.0, 0.0);
+    /* -u */
+    mlp_create_problem_set_value (p, p->r_c8, p->c_u, -1, __LINE__);
+
+    /* For all quality metrics:
+     * c 7) Maximize utilization, austerity */
+    for (c = 0; c < mlp->pv.m_q; c++)
+    {
+      GNUNET_asprintf(&name, "c7_q%i_%s", c, mlp_ats_to_string(mlp->pv.q[c]));
+      p->r_q[c] = mlp_create_problem_create_constraint (p, name, GLP_FX, 0.0, 0.0);
+      GNUNET_free (name);
+      mlp_create_problem_set_value (p, p->r_q[c], p->c_q[c], -1, __LINE__);
+    }
   }
 }
 
@@ -816,35 +826,27 @@ mlp_create_problem_add_invariant_rows (struct GAS_MLP_Handle *mlp, struct MLP_Pr
 static void
 mlp_create_problem_add_invariant_columns (struct GAS_MLP_Handle *mlp, struct MLP_Problem *p)
 {
-  char *name;
-  int c;
-
-#if TEST_MAX_BW_ASSIGNMENT
-  mlp->pv.co_D = 0.0;
-  mlp->pv.co_U = 0.0;
-
-#endif
-  //mlp->pv.co_R = 0.0;
-
-  /* Diversity d column  */
-  p->c_d = mlp_create_problem_create_column (p, "d", GLP_CV, GLP_LO, 0.0, 0.0, mlp->pv.co_D);
-
-  /* Utilization u column  */
-  p->c_u = mlp_create_problem_create_column (p, "u", GLP_CV, GLP_LO, 0.0, 0.0, mlp->pv.co_U);
-
-  /* Relativity r column  */
-  p->c_r = mlp_create_problem_create_column (p, "r", GLP_CV, GLP_LO, 0.0, 0.0, mlp->pv.co_R);
-
-  /* Quality metric columns */
-  for (c = 0; c < mlp->pv.m_q; c++)
+  if (GNUNET_NO == mlp->opt_feasibility_only)
   {
-    GNUNET_asprintf (&name, "q_%u", mlp->pv.q[c]);
-#if TEST_MAX_BW_ASSIGNMENT
-    p->c_q[c] = mlp_create_problem_create_column (p, name, GLP_CV, GLP_LO, 0.0, 0.0, 0.0);
-#else
-    p->c_q[c] = mlp_create_problem_create_column (p, name, GLP_CV, GLP_LO, 0.0, 0.0, mlp->pv.co_Q[c]);
-#endif
-    GNUNET_free (name);
+    char *name;
+    int c;
+
+    /* Diversity d column  */
+    p->c_d = mlp_create_problem_create_column (p, "d", GLP_CV, GLP_LO, 0.0, 0.0, mlp->pv.co_D);
+
+    /* Utilization u column  */
+    p->c_u = mlp_create_problem_create_column (p, "u", GLP_CV, GLP_LO, 0.0, 0.0, mlp->pv.co_U);
+
+    /* Relativity r column  */
+    p->c_r = mlp_create_problem_create_column (p, "r", GLP_CV, GLP_LO, 0.0, 0.0, mlp->pv.co_R);
+
+    /* Quality metric columns */
+    for (c = 0; c < mlp->pv.m_q; c++)
+    {
+      GNUNET_asprintf (&name, "q_%u", mlp->pv.q[c]);
+      p->c_q[c] = mlp_create_problem_create_column (p, name, GLP_CV, GLP_LO, 0.0, 0.0, mlp->pv.co_Q[c]);
+      GNUNET_free (name);
+    }
   }
 }
 
@@ -918,6 +920,7 @@ mlp_create_problem (struct GAS_MLP_Handle *mlp)
   /* Load the matrix */
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Loading matrix\n");
   glp_load_matrix(p->prob, (p->ci)-1, p->ia, p->ja, p->ar);
+  glp_scale_prob (p->prob, GLP_SF_AUTO);
 
   return res;
 }
@@ -1408,6 +1411,9 @@ GAS_mlp_address_property_changed (void *solver,
       abs_value,
       rel_value);
 
+  if (GNUNET_YES == mlp->opt_feasibility_only)
+    return;
+
   /* Find row index */
   type_index = -1;
   for (c1 = 0; c1 < mlp->pv.m_q; c1++)
@@ -1432,6 +1438,7 @@ GAS_mlp_address_property_changed (void *solver,
     if (GNUNET_YES == mlp->opt_mlp_auto_solve)
       GAS_mlp_solve_problem (solver);
   }
+
 }
 
 
@@ -1863,7 +1870,7 @@ GAS_mlp_address_change_preference (void *solver,
   GNUNET_STATISTICS_update (mlp->stats,"# LP address preference changes", 1, GNUNET_NO);
   /* Update the constraints with changed preferences */
 
-  /* Update quality constraint c7 */
+
 
   /* Update relativity constraint c9 */
   if (NULL == (p = GNUNET_CONTAINER_multipeermap_get (mlp->requested_peers, peer)))
@@ -1871,14 +1878,17 @@ GAS_mlp_address_change_preference (void *solver,
     LOG (GNUNET_ERROR_TYPE_INFO, "Updating preference for unknown peer `%s'\n", GNUNET_i2s(peer));
     return;
   }
-  p->f = get_peer_pref_value (mlp, peer);
-  mlp_create_problem_update_value (&mlp->p, p->r_c9, mlp->p.c_r, -p->f, __LINE__);
 
-  /* Problem size changed: new address for peer with pending request */
-  mlp->stat_mlp_prob_updated = GNUNET_YES;
-  if (GNUNET_YES == mlp->opt_mlp_auto_solve)
-    GAS_mlp_solve_problem (solver);
-  return;
+  if (GNUNET_NO == mlp->opt_feasibility_only)
+  {
+    p->f = get_peer_pref_value (mlp, peer);
+    mlp_create_problem_update_value (&mlp->p, p->r_c9, mlp->p.c_r, -p->f, __LINE__);
+
+    /* Problem size changed: new address for peer with pending request */
+    mlp->stat_mlp_prob_updated = GNUNET_YES;
+    if (GNUNET_YES == mlp->opt_mlp_auto_solve)
+      GAS_mlp_solve_problem (solver);
+  }
 }
 
 
@@ -2028,6 +2038,14 @@ libgnunet_plugin_ats_mlp_init (void *cls)
      "ats", "MLP_GLPK_VERBOSE");
   if (GNUNET_SYSERR == mlp->opt_glpk_verbose)
    mlp->opt_glpk_verbose = GNUNET_NO;
+
+  mlp->opt_feasibility_only = GNUNET_CONFIGURATION_get_value_yesno (env->cfg,
+     "ats", "MLP_FEASIBILITY_ONLY");
+  if (GNUNET_SYSERR == mlp->opt_feasibility_only)
+   mlp->opt_feasibility_only = GNUNET_NO;
+  if (GNUNET_YES == mlp->opt_feasibility_only)
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+        "MLP solver is configured to check feasibility only!\n");
 
   mlp->pv.BIG_M = (double) BIG_M_VALUE;
 
