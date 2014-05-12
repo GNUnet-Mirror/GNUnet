@@ -162,6 +162,7 @@ struct Iteration
 {
   struct Result **results_array;
 
+  struct Result **update_results_array;
 };
 
 
@@ -208,24 +209,24 @@ struct Result
   /**
    * Duration of setting up the problem in the solver
    */
-  struct GNUNET_TIME_Relative d_setup;
+  struct GNUNET_TIME_Relative d_setup_full;
 
   /**
    * Duration of solving the LP problem in the solver
    * MLP solver only
    */
-  struct GNUNET_TIME_Relative d_lp;
+  struct GNUNET_TIME_Relative d_lp_full;
 
   /**
    * Duration of solving the MLP problem in the solver
    * MLP solver only
    */
-  struct GNUNET_TIME_Relative d_mlp;
+  struct GNUNET_TIME_Relative d_mlp_full;
 
   /**
    * Duration of solving whole problem in the solver
    */
-  struct GNUNET_TIME_Relative d_total;
+  struct GNUNET_TIME_Relative d_total_full;
 
   /**
    * Start time of setting up the problem in the solver
@@ -580,20 +581,28 @@ solver_info_cb (void *cls,
 
       if ((GAS_STAT_SUCCESS == stat) && (NULL == ph.current_result))
       {
-        /* Create new result */
         tmp = GNUNET_new (struct Result);
-        ph.current_result = tmp;
-        ph.iterations_results[ph.current_iteration-1].results_array[ph.current_p] = tmp;
-        /*
-        GNUNET_CONTAINER_DLL_insert_tail(ph.iterations_results[ph.current_iteration-1].result_head,
-            ph.iterations_results[ph.current_iteration-1].result_tail, tmp);*/
+        /* Create new result */
+        if ((add == GAS_INFO_UPDATED) || (GNUNET_YES == ph.performed_update))
+        {
+          ph.current_result = tmp;
+          //fprintf (stderr,"UPDATE %u %u\n",ph.current_iteration-1, ph.current_p);
+          ph.iterations_results[ph.current_iteration-1].update_results_array[ph.current_p] = tmp;
+        }
+        else
+        {
+          ph.current_result = tmp;
+          //fprintf (stderr,"FULL %u %u\n",ph.current_iteration-1, ph.current_p);
+          ph.iterations_results[ph.current_iteration-1].results_array[ph.current_p] = tmp;
+        }
+
         ph.current_result->addresses = ph.current_a;
         ph.current_result->peers = ph.current_p;
         ph.current_result->s_total = GNUNET_TIME_absolute_get();
-        ph.current_result->d_total = GNUNET_TIME_UNIT_FOREVER_REL;
-        ph.current_result->d_setup = GNUNET_TIME_UNIT_FOREVER_REL;
-        ph.current_result->d_lp = GNUNET_TIME_UNIT_FOREVER_REL;
-        ph.current_result->d_mlp = GNUNET_TIME_UNIT_FOREVER_REL;
+        ph.current_result->d_total_full = GNUNET_TIME_UNIT_FOREVER_REL;
+        ph.current_result->d_setup_full = GNUNET_TIME_UNIT_FOREVER_REL;
+        ph.current_result->d_lp_full = GNUNET_TIME_UNIT_FOREVER_REL;
+        ph.current_result->d_mlp_full = GNUNET_TIME_UNIT_FOREVER_REL;
         ph.current_result->info = add;
         if ((add == GAS_INFO_UPDATED) || (GNUNET_YES == ph.performed_update))
         {
@@ -608,7 +617,7 @@ solver_info_cb (void *cls,
       return;
     case GAS_OP_SOLVE_STOP:
       GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-          "Solver notifies `%s' with result `%s'\n", "GAS_OP_SOLVE_STOP",
+          "Solver notifies `%s' with result `%s', `%s'\n", "GAS_OP_SOLVE_STOP",
           (GAS_STAT_SUCCESS == stat) ? "SUCCESS" : "FAIL", add_info);
       if ((GNUNET_NO == ph.expecting_solution) || (NULL == ph.current_result))
       {
@@ -626,7 +635,7 @@ solver_info_cb (void *cls,
       {
         /* Finalize result */
         ph.current_result->e_total = GNUNET_TIME_absolute_get ();
-        ph.current_result->d_total = GNUNET_TIME_absolute_get_difference (
+        ph.current_result->d_total_full = GNUNET_TIME_absolute_get_difference (
             ph.current_result->s_total, ph.current_result->e_total);
       }
       ph.current_result = NULL;
@@ -666,7 +675,7 @@ solver_info_cb (void *cls,
         ph.current_result->valid = GNUNET_NO;
 
       ph.current_result->e_setup = GNUNET_TIME_absolute_get ();
-      ph.current_result->d_setup = GNUNET_TIME_absolute_get_difference (
+      ph.current_result->d_setup_full = GNUNET_TIME_absolute_get_difference (
           ph.current_result->s_setup, ph.current_result->e_setup);
       return;
 
@@ -703,7 +712,7 @@ solver_info_cb (void *cls,
         ph.current_result->valid = GNUNET_NO;
 
       ph.current_result->e_lp = GNUNET_TIME_absolute_get ();
-      ph.current_result->d_lp = GNUNET_TIME_absolute_get_difference (
+      ph.current_result->d_lp_full = GNUNET_TIME_absolute_get_difference (
           ph.current_result->s_lp, ph.current_result->e_lp);
       return;
 
@@ -740,7 +749,7 @@ solver_info_cb (void *cls,
         ph.current_result->valid = GNUNET_NO;
 
       ph.current_result->e_mlp = GNUNET_TIME_absolute_get ();
-      ph.current_result->d_mlp = GNUNET_TIME_absolute_get_difference (
+      ph.current_result->d_mlp_full = GNUNET_TIME_absolute_get_difference (
       ph.current_result->s_mlp, ph.current_result->e_mlp);
       return;
     case GAS_OP_SOLVE_UPDATE_NOTIFICATION_START:
@@ -795,42 +804,42 @@ evaluate (int iteration)
     }
 
 
-    if (GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us != cur->d_total.rel_value_us)
+    if (GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us != cur->d_total_full.rel_value_us)
     {
       fprintf (stderr,
          "Total time to solve %s for %u peers %u addresses: %llu us\n",
          (GNUNET_YES == cur->update) ? "updated" : "full",
          cur->peers, cur->addresses,
-         (unsigned long long) cur->d_total.rel_value_us);
+         (unsigned long long) cur->d_total_full.rel_value_us);
     }
 
 
-    if (GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us != cur->d_setup.rel_value_us)
+    if (GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us != cur->d_setup_full.rel_value_us)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
           "Total time to setup %s %u peers %u addresses: %llu us\n",
           (GNUNET_YES == cur->update) ? "updated" : "full",
           cur->peers, cur->addresses,
-          (unsigned long long) cur->d_setup.rel_value_us);
+          (unsigned long long) cur->d_setup_full.rel_value_us);
     }
 
-    if (GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us != cur->d_lp.rel_value_us)
+    if (GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us != cur->d_lp_full.rel_value_us)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
          "Total time to solve %s LP for %u peers %u addresses: %llu us\n",
          (GNUNET_YES == cur->update) ? "updated" : "full",
          cur->peers,
          cur->addresses,
-         (unsigned long long )cur->d_lp.rel_value_us);
+         (unsigned long long )cur->d_lp_full.rel_value_us);
     }
 
-    if (GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us != cur->d_mlp.rel_value_us)
+    if (GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us != cur->d_mlp_full.rel_value_us)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
           "Total time to solve %s MLP for %u peers %u addresses: %llu us\n",
           (GNUNET_YES == cur->update) ? "updated" : "full",
           cur->peers, cur->addresses,
-          (unsigned long long )cur->d_mlp.rel_value_us);
+          (unsigned long long )cur->d_mlp_full.rel_value_us);
     }
   }
 
@@ -850,57 +859,48 @@ write_all_iterations (void)
   char * data_fn_full;
   char * data_fn_update;
   char * data;
-/*
-  char * str_d_total;
-  char * str_d_setup;
-  char * str_d_lp;
-  char * str_d_mlp;
-*/
+
   f_full = NULL;
   f_update = NULL;
 
   data_fn_full = NULL;
 
-  if (ph.create_datafile)
+  if (GNUNET_NO == ph.create_datafile)
+    return;
+
+  GNUNET_asprintf (&data_fn_full,
+                   "perf_%s_full_%u-%u_%u_%u.data",
+                   ph.ats_string,
+                   ph.total_iterations,
+                   ph.N_peers_start,
+                   ph.N_peers_end,
+                   ph.N_address);
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+              "Using data file `%s'\n",
+              data_fn_full);
+
+  f_full = GNUNET_DISK_file_open (data_fn_full,
+      GNUNET_DISK_OPEN_WRITE | GNUNET_DISK_OPEN_CREATE,
+      GNUNET_DISK_PERM_USER_EXEC | GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE);
+  if (NULL == f_full)
   {
-    GNUNET_asprintf (&data_fn_full,
-                     "perf_%s_full_avg_%u-%u_%u_%u.data",
-                     ph.ats_string,
-                     ph.total_iterations,
-                     ph.N_peers_start,
-                     ph.N_peers_end,
-                     ph.N_address);
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Using data file `%s'\n",
+                "Cannot open data file `%s'\n",
                 data_fn_full);
-
-    f_full = GNUNET_DISK_file_open (data_fn_full,
-        GNUNET_DISK_OPEN_WRITE | GNUNET_DISK_OPEN_CREATE,
-        GNUNET_DISK_PERM_USER_EXEC | GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_USER_WRITE);
-    if (NULL == f_full)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Cannot open data file `%s'\n",
-                  data_fn_full);
-      GNUNET_free (data_fn_full);
-      return;
-    }
-
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Using update data file `%s'\n",
-                data_fn_full);
-
-    data = "#peers;addresses;time total in us;#time setup in us;#time lp in us;#time mlp in us;\n";
-    if (GNUNET_SYSERR == GNUNET_DISK_file_write(f_full, data, strlen(data)))
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Cannot write data to log file `%s'\n",
-                  data_fn_full);
+    GNUNET_free (data_fn_full);
+    return;
   }
 
+  data = "#peers;addresses;time total in us;#time setup in us;#time lp in us;#time mlp in us;\n";
+  if (GNUNET_SYSERR == GNUNET_DISK_file_write(f_full, data, strlen(data)))
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Cannot write data to log file `%s'\n",
+                data_fn_full);
+
   data_fn_update = NULL;
-  if ((ph.create_datafile) && (GNUNET_YES == ph.measure_updates))
+  if (GNUNET_YES == ph.measure_updates)
   {
-    GNUNET_asprintf (&data_fn_update, "perf_%s_update_avg_%u-%u_%u_%u.data",
+    GNUNET_asprintf (&data_fn_update, "perf_%s_update_%u-%u_%u_%u.data",
         ph.ats_string,
         ph.total_iterations,
         ph.N_peers_start,
@@ -935,24 +935,42 @@ write_all_iterations (void)
   {
     char * data_str;
     char * data_tmp;
+    char * data_upd_str;
+    char * data_upd_tmp;
     GNUNET_asprintf(&data_str, "%u;%u",c_peer, ph.N_address);
+    if (ph.measure_updates)
+      GNUNET_asprintf(&data_upd_str, "%u;%u",c_peer, ph.N_address);
     for (c_iteration = 0; c_iteration < ph.total_iterations; c_iteration ++)
     {
-      struct Result *cur_res;
+      struct Result *cur_full_res;
+      struct Result *cur_upd_res;
+
+
 
       //fprintf (stderr, "P: %u I: %u  == %p \n", c_peer, c_iteration, cur_res);
-      cur_res = ph.iterations_results[c_iteration].results_array[c_peer];
+      cur_full_res = ph.iterations_results[c_iteration].results_array[c_peer];
       if (c_peer == 0)
         continue;
-      if (NULL == cur_res)
+      if (NULL == cur_full_res)
         continue;
+
+      if (ph.measure_updates)
+      {
+        cur_upd_res = ph.iterations_results[c_iteration].update_results_array[c_peer];
+        data_upd_tmp = GNUNET_strdup (data_upd_str);
+        GNUNET_free (data_upd_str);
+        GNUNET_asprintf (&data_upd_str, "%s;%llu", data_upd_tmp,
+            (NULL == cur_upd_res) ? 0 : cur_upd_res->d_total_full.rel_value_us);
+        GNUNET_free (data_upd_tmp);
+
+      }
 
       //fprintf (stderr, "P: %u I: %u: P %i  A %i\n", c_peer, c_iteration, cur_res->peers, cur_res->addresses);
       //fprintf (stderr, "D total: %llu\n", (long long unsigned int) cur_res->d_total.rel_value_us);
 
       data_tmp = GNUNET_strdup (data_str);
       GNUNET_free (data_str);
-      GNUNET_asprintf (&data_str, "%s;%llu", data_tmp, cur_res->d_total.rel_value_us);
+      GNUNET_asprintf (&data_str, "%s;%llu", data_tmp, cur_full_res->d_total_full.rel_value_us);
       GNUNET_free (data_tmp);
     }
     data_tmp = GNUNET_strdup (data_str);
@@ -960,10 +978,23 @@ write_all_iterations (void)
     GNUNET_asprintf (&data_str, "%s\n", data_tmp);
     GNUNET_free (data_tmp);
 
-    fprintf (stderr, "Result: %s\n", data_str);
+    fprintf (stderr, "Result full solution: %s\n", data_str);
     if (GNUNET_SYSERR == GNUNET_DISK_file_write (f_full, data_str, strlen(data_str)))
       GNUNET_break (0);
     GNUNET_free (data_str);
+
+    if (ph.measure_updates)
+    {
+      data_upd_tmp = GNUNET_strdup (data_upd_str);
+      GNUNET_free (data_upd_str);
+      GNUNET_asprintf (&data_upd_str, "%s\n", data_upd_tmp);
+      GNUNET_free (data_upd_tmp);
+
+      fprintf (stderr, "Result updated solution: %s\n", data_upd_str);
+      if (GNUNET_SYSERR == GNUNET_DISK_file_write (f_update, data_upd_str, strlen(data_upd_str)))
+        GNUNET_break (0);
+      GNUNET_free (data_upd_str);
+    }
   }
 
   if ((NULL != f_full) && (GNUNET_SYSERR == GNUNET_DISK_file_close (f_full)))
@@ -994,6 +1025,8 @@ perf_run_iteration (void)
   uint32_t net;
 
   ph.iterations_results[ph.current_iteration-1].results_array = GNUNET_malloc ((count_p + 1) * sizeof (struct Result *));
+  if (ph.measure_updates)
+    ph.iterations_results[ph.current_iteration-1].update_results_array = GNUNET_malloc ((count_p + 1) * sizeof (struct Result *));
   ph.peers = GNUNET_malloc ((count_p) * sizeof (struct PerfPeer));
   for (cp = 0; cp < count_p; cp++)
     perf_create_peer (cp);
@@ -1263,10 +1296,13 @@ run (void *cls, char * const *args, const char *cfgfile,
     {
       if (0 == c2)
         continue;
+      if (ph.measure_updates)
+        GNUNET_free_non_null (ph.iterations_results[c].update_results_array[c2]);
       GNUNET_free (ph.iterations_results[c].results_array[c2]);
     }
+    if (ph.measure_updates)
+      GNUNET_free (ph.iterations_results[c].update_results_array);
     GNUNET_free(ph.iterations_results[c].results_array);
-
   }
   GNUNET_free (ph.iterations_results);
 
