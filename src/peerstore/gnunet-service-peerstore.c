@@ -100,21 +100,6 @@ void handle_store (void *cls,
       sub_system,
       GNUNET_i2s (&sreqm->peer));
   //TODO: do the actual storage
-  //create a fake response for testing
-  char *response = "This is a response";
-  uint16_t resp_size = strlen(response);
-  tc = GNUNET_SERVER_transmit_context_create (client);
-  msg_size = sizeof(struct StoreResponseMessage) + resp_size;
-  sresm = malloc(msg_size);
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Sending a response to client of size: %u, response size: %u\n", msg_size, resp_size);
-  sresm->header.type = htons(GNUNET_MESSAGE_TYPE_PEERSTORE_STORE_RESULT);
-  sresm->header.size = htons(msg_size);
-  sresm->success = htons(GNUNET_NO);
-  sresm->emsg_size = htons(resp_size);
-  char *msg_ptr = (char *)&sresm[1];
-  memcpy(msg_ptr, response, resp_size);
-  GNUNET_SERVER_transmit_context_append_message(tc, (struct GNUNET_MessageHeader *)sresm);
-  GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
 }
 
 /**

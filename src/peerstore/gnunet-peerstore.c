@@ -29,11 +29,6 @@
 
 static int ret;
 
-/**
- * option '-t'
- */
-static int test;
-
 /*
  * Handle to PEERSTORE service
  */
@@ -53,17 +48,6 @@ shutdown_task (void *cls,
   {
     GNUNET_PEERSTORE_disconnect(peerstore_handle);
     peerstore_handle = NULL;
-  }
-}
-
-void test_cont(void *cls, const char *emsg)
-{
-  char *req = cls;
-
-  printf("Received a response to request: %s\n", req);
-  if(NULL != emsg)
-  {
-    printf("Response: %s\n", emsg);
   }
 }
 
@@ -88,27 +72,6 @@ run (void *cls,
                                   NULL);
   peerstore_handle = GNUNET_PEERSTORE_connect(cfg);
   GNUNET_assert(NULL != peerstore_handle);
-  if(GNUNET_YES == test)
-  {
-    struct GNUNET_PeerIdentity pid;
-    memset (&pid, 32, sizeof (pid));
-    GNUNET_PEERSTORE_store(peerstore_handle,
-        &pid,
-        "subsub",
-        "value",
-        5,
-        GNUNET_TIME_UNIT_FOREVER_REL,
-        &test_cont,
-        "Req1");
-    GNUNET_PEERSTORE_store(peerstore_handle,
-            &pid,
-            "subsub",
-            "value",
-            5,
-            GNUNET_TIME_UNIT_FOREVER_REL,
-            &test_cont,
-            "Req2");
-  }
 
   ret = 0;
 }
@@ -124,9 +87,6 @@ int
 main (int argc, char *const *argv)
 {
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-    {'t', "test", NULL,
-        gettext_noop("TESTING"),
-    0, &GNUNET_GETOPT_set_one, &test},
     GNUNET_GETOPT_OPTION_END
   };
   return (GNUNET_OK ==

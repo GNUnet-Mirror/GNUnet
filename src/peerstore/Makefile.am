@@ -72,5 +72,7 @@ endif
 test_peerstore_api_SOURCES = \
  test_peerstore_api.c
 test_peerstore_api_LDADD = \
+  $(top_builddir)/src/peerstore/libgnunetpeerstore.la  \
+  $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/util/libgnunetutil.la  
 

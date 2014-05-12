@@ -23,62 +23,47 @@
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
+#include "gnunet_testing_lib.h"
 #include "gnunet_peerstore_service.h"
-
 
 static int ok = 1;
 
+struct GNUNET_PEERSTORE_Handle *h;
 
 static void
 run (void *cls,
-     char *const *args,
-     const char *cfgfile,
-     const struct GNUNET_CONFIGURATION_Handle *cfg)
+    const struct GNUNET_CONFIGURATION_Handle *cfg,
+    struct GNUNET_TESTING_Peer *peer)
 {
+  struct GNUNET_PeerIdentity pid;
+  char *val = "peerstore-test-value";
+  size_t val_size = strlen(val);
+
   ok = 0;
+  memset (&pid, 32, sizeof (pid));
+  h = GNUNET_PEERSTORE_connect(cfg);
+  GNUNET_assert(NULL != h);
+  GNUNET_PEERSTORE_store(h,
+      &pid,
+      "peerstore-test",
+      val,
+      val_size,
+      GNUNET_TIME_UNIT_FOREVER_REL,
+      NULL,
+      NULL);
+  GNUNET_PEERSTORE_disconnect(h);
+
 }
-
-
-static int
-check ()
-{
-  char *const argv[] = { "test-peerstore-api", NULL };
-  struct GNUNET_GETOPT_CommandLineOption options[] = {
-    GNUNET_GETOPT_OPTION_END
-  };
-  struct GNUNET_OS_Process *proc;
-  char *path = GNUNET_OS_get_libexec_binary_path ( "gnunet-service-peerstore");
-  if (NULL == path)
-  {
-  		fprintf (stderr, "Service executable not found `%s'\n", "gnunet-service-peerstore");
-  		return -1;
-  }
-
-  proc = GNUNET_OS_start_process (GNUNET_NO, GNUNET_OS_INHERIT_STD_ALL, NULL,
-      NULL, NULL, path, "gnunet-service-peerstore", NULL);
-
-  GNUNET_free (path);
-  GNUNET_assert (NULL != proc);
-  GNUNET_PROGRAM_run (1, argv, "test-peerstore-api", "nohelp",
-                      options, &run, &ok);
-  if (0 != GNUNET_OS_process_kill (proc, SIGTERM))
-    {
-      GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING, "kill");
-      ok = 1;
-    }
-  GNUNET_OS_process_wait (proc);
-  GNUNET_OS_process_destroy (proc);
-  return ok;
-}
-
 
 int
 main (int argc, char *argv[])
 {
-  GNUNET_log_setup ("test_statistics_api", 
-		    "WARNING",
-		    NULL);
-  return check ();
+  if (0 != GNUNET_TESTING_service_run ("test-gnunet-peerstore",
+                 "peerstore",
+                 "test_peerstore_api_data.conf",
+                 &run, NULL))
+    return 1;
+  return ok;
 }
 
 /* end of test_peerstore_api.c */
