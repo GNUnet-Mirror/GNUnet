@@ -582,7 +582,7 @@ uri_loc_parse (const char *s,
   npos += SIGNATURE_ASCII_LENGTH;
   if (s[npos++] != '.')
   {
-    *emsg = GNUNET_strdup (_("SKS URI malformed (wrong syntax for expiration time)"));
+    *emsg = GNUNET_strdup (_("LOC URI malformed (wrong syntax for expiration time)"));
     goto ERR;
   }
   if (1 != SSCANF (&s[npos], "%llu", &exptime))
