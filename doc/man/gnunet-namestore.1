@@ -20,7 +20,7 @@ Desired operation is adding a record
 Use the configuration file FILENAME.
 .B
 .IP "\-d, \-\-delete"
-Desired operation is deleting all of the records under the given name
+Desired operation is deleting records under the given name that match the specified type (\-t) and value (\-V).  If type or value are not specified, it means that all types (or values) should be assumed to match (and possibly multiple or all values under the given label will be deleted).  Specifying a label (\-n) is mandatory.  Note that matching by expiration time or flags is (currently) not supported.
 .B
 .IP "\-D, \-\-display"
 Desired operation is listing of matching records
@@ -41,7 +41,7 @@ Use LOGLEVEL for logging.  Valid values are DEBUG, INFO, WARNING and ERROR.
 Monitor changes to the zone on an ongoing basis (in contrast to \-D, which merely displays the current records)
 .B
 .IP "\-n NAME, \-\-name=NAME"
-Name of the record to add/delete/display
+Label or name of the record to add/delete/display
 .B
 .IP "\-p, \-\-public"
 Create a record that is public (shared with other users that know the label)

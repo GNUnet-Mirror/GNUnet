@@ -537,6 +537,88 @@ handle_reverse_lookup (void *cls,
 
 
 /**
+ * We were asked to delete something; this function is called with
+ * the existing records. Now we should determine what should be
+ * deleted and then issue the deletion operation.
+ *
+ * @param cls NULL
+ * @param zone private key of the zone we are deleting from
+ * @param label name of the records we are editing
+ * @param rd_count size of the @a rd array
+ * @param rd existing records
+ */
+static void
+del_monitor (void *cls,
+             const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
+             const char *label,
+             unsigned int rd_count,
+             const struct GNUNET_GNSRECORD_Data *rd)
+{
+  struct GNUNET_GNSRECORD_Data rdx[rd_count];
+  unsigned int rd_left;
+  unsigned int i;
+  uint32_t type;
+  char *vs;
+
+  del_qe = NULL;
+  if (0 == rd_count)
+  {
+    FPRINTF (stderr,
+             _("There are no records under label `%s' that could be deleted.\n"),
+             label);
+    test_finished ();
+    return;
+  }
+  if ( (NULL == value) &&
+       (NULL == typestring) )
+  {
+    /* delete everything */
+    del_qe = GNUNET_NAMESTORE_records_store (ns,
+                                             &zone_pkey,
+                                             name,
+                                             0, NULL,
+                                             &del_continuation,
+                                             NULL);
+    return;
+  }
+  rd_left = 0;
+  if (NULL != typestring)
+    type = GNUNET_GNSRECORD_typename_to_number (typestring);
+  else
+    type = GNUNET_GNSRECORD_TYPE_ANY;
+  for (i=0;i<rd_count;i++)
+  {
+    vs = NULL;
+    if (! ( ( (GNUNET_GNSRECORD_TYPE_ANY == type) ||
+              (rd[i].record_type == type) ) &&
+            ( (NULL == value) ||
+              (NULL == (vs = (GNUNET_GNSRECORD_value_to_string (rd[i].record_type,
+                                                                rd[i].data,
+                                                                rd[i].data_size)))) ||
+              (0 == strcmp (vs, value)) ) ) )
+      rdx[rd_left++] = rd[i];
+    GNUNET_free_non_null (vs);
+  }
+  if (rd_count == rd_left)
+  {
+    /* nothing got deleted */
+    FPRINTF (stderr,
+             _("There are no records under label `%s' that match the request for deletion.\n"),
+             label);
+    test_finished ();
+    return;
+  }
+  /* delete everything but what we copied to 'rdx' */
+  del_qe = GNUNET_NAMESTORE_records_store (ns,
+                                           &zone_pkey,
+                                           name,
+                                           rd_left, rdx,
+                                           &del_continuation,
+                                           NULL);
+}
+
+
+/**
  * Function called with the result from the check if the namestore
  * service is actually running.  If it is, we start the actual
  * operation.
@@ -675,12 +757,11 @@ testservice_task (void *cls,
       ret = 1;
       return;
     }
-    del_qe = GNUNET_NAMESTORE_records_store (ns,
-					     &zone_pkey,
-					     name,
-					     0, NULL,
-					     &del_continuation,
-					     NULL);
+    del_qe = GNUNET_NAMESTORE_records_lookup (ns,
+                                              &zone_pkey,
+                                              name,
+                                              &del_monitor,
+                                              NULL);
   }
   if (list)
   {
