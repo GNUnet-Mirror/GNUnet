@@ -43,17 +43,17 @@ extern "C"
 struct GNUNET_PEERSTORE_Handle;
 
 /**
- * Context for add requests
+ * Context for a store request
  */
-struct GNUNET_PEERSTORE_AddContext;
+struct GNUNET_PEERSTORE_StoreContext;
 
 /**
  * Continuation called with a status result.
  *
  * @param cls closure
- * @param emsg error message, NULL on success
+ * @param success #GNUNET_OK or #GNUNET_SYSERR
  */
-typedef void (*GNUNET_PEERSTORE_Continuation)(void *cls, const char *emsg);
+typedef void (*GNUNET_PEERSTORE_Continuation)(void *cls, int success);
 
 /**
  * Connect to the PEERSTORE service.
@@ -75,8 +75,9 @@ GNUNET_PEERSTORE_disconnect(struct GNUNET_PEERSTORE_Handle *h);
  * Store a new entry in the PEERSTORE
  *
  * @param h Handle to the PEERSTORE service
- * @param peer Peer Identity
  * @param sub_system name of the sub system
+ * @param peer Peer Identity
+ * @param key entry key
  * @param value entry value BLOB
  * @param size size of 'value'
  * @param lifetime relative time after which the entry is (possibly) deleted
@@ -85,8 +86,9 @@ GNUNET_PEERSTORE_disconnect(struct GNUNET_PEERSTORE_Handle *h);
  */
 struct GNUNET_PEERSTORE_StoreContext *
 GNUNET_PEERSTORE_store (struct GNUNET_PEERSTORE_Handle *h,
-    const struct GNUNET_PeerIdentity *peer,
     const char *sub_system,
+    const struct GNUNET_PeerIdentity *peer,
+    const char *key,
     const void *value,
     size_t size,
     struct GNUNET_TIME_Relative lifetime,

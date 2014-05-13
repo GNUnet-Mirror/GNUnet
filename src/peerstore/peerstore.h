@@ -40,19 +40,25 @@ struct StoreRequestMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Peer Identity
-   */
-  struct GNUNET_PeerIdentity peer;
-
-  /**
    * Size of the sub_system string
    * Allocated at position 0 after this struct
    */
   size_t sub_system_size;
 
   /**
-   * Size of value blob
+   * Peer Identity
+   */
+  struct GNUNET_PeerIdentity peer;
+
+  /**
+   * Size of the key string
    * Allocated at position 1 after this struct
+   */
+  size_t key_size;
+
+  /**
+   * Size of value blob
+   * Allocated at position 2 after this struct
    */
   size_t value_size;
 
@@ -61,27 +67,6 @@ struct StoreRequestMessage
    */
   struct GNUNET_TIME_Relative lifetime;
 
-};
-
-/**
- * Message carrying a PEERSTORE store response
- */
-struct StoreResponseMessage
-{
-  /**
-   * GNUnet message header
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Was the store operation successful (#GNUNET_YES / #GNUNET_NO)
-   */
-  uint16_t success GNUNET_PACKED;
-
-  /**
-   * Size of the following error message (0 if no error)
-   */
-  size_t emsg_size GNUNET_PACKED;
 };
 
 GNUNET_NETWORK_STRUCT_END

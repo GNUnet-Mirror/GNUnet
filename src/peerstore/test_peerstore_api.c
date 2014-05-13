@@ -30,8 +30,12 @@ static int ok = 1;
 
 struct GNUNET_PEERSTORE_Handle *h;
 
-void store_cont(void *cls, const char *emsg)
+void store_cont(void *cls, int success)
 {
+  if(GNUNET_OK == success)
+    ok = 0;
+  else
+    ok = 1;
   GNUNET_PEERSTORE_disconnect(h);
 }
 
@@ -49,8 +53,9 @@ run (void *cls,
   h = GNUNET_PEERSTORE_connect(cfg);
   GNUNET_assert(NULL != h);
   GNUNET_PEERSTORE_store(h,
-      &pid,
       "peerstore-test",
+      &pid,
+      "peerstore-test-key",
       val,
       val_size,
       GNUNET_TIME_UNIT_FOREVER_REL,

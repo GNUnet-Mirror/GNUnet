@@ -213,9 +213,10 @@ peerstore_sqlite_iterate_records (void *cls,
  * @return #GNUNET_OK on success, else #GNUNET_SYSERR
  */
 static int
-peerstore_sqlite_store_record (void *cls,
-    const struct GNUNET_PeerIdentity *peer,
+peerstore_sqlite_store_record(void *cls,
     const char *sub_system,
+    const struct GNUNET_PeerIdentity *peer,
+    const char *key,
     const void *value,
     size_t size)
 {
@@ -224,9 +225,10 @@ peerstore_sqlite_store_record (void *cls,
 
   //FIXME: check if value exists with the same key first
 
-  if(SQLITE_OK != sqlite3_bind_blob(stmt, 1, peer, sizeof(struct GNUNET_PeerIdentity), SQLITE_STATIC)
-      || SQLITE_OK != sqlite3_bind_text(stmt, 2, sub_system, strlen(sub_system) + 1, SQLITE_STATIC)
-      || SQLITE_OK != sqlite3_bind_blob(stmt, 3, value, size, SQLITE_STATIC))
+  if(SQLITE_OK != sqlite3_bind_text(stmt, 1, sub_system, strlen(sub_system) + 1, SQLITE_STATIC)
+      || SQLITE_OK != sqlite3_bind_blob(stmt, 2, peer, sizeof(struct GNUNET_PeerIdentity), SQLITE_STATIC)
+      || SQLITE_OK != sqlite3_bind_text(stmt, 3, key, strlen(key) + 1, SQLITE_STATIC)
+      || SQLITE_OK != sqlite3_bind_blob(stmt, 4, value, size, SQLITE_STATIC))
     LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                     "sqlite3_bind");
   else if (SQLITE_DONE != sqlite3_step (stmt))
@@ -347,16 +349,17 @@ database_setup (struct Plugin *plugin)
   /* Create tables */
 
   sql_exec (plugin->dbh,
-            "CREATE TABLE IF NOT EXISTS peerstoredata (\n"
-            "  peer_id BLOB NOT NULL,\n"
-            "  sub_system TEXT NOT NULL,\n"
-            "  value BLOB NULL"
-            ");");
+      "CREATE TABLE IF NOT EXISTS peerstoredata (\n"
+      "  sub_system TEXT NOT NULL,\n"
+      "  peer_id BLOB NOT NULL,\n"
+      "  key TEXT NOT NULL,\n"
+      "  value BLOB NULL"
+      ");");
 
   /* Prepare statements */
 
   sql_prepare (plugin->dbh,
-      "INSERT INTO peerstoredata (peer_id, sub_system, value) VALUES (?,?,?);",
+      "INSERT INTO peerstoredata (sub_system, peer_id, key, value) VALUES (?,?,?,?);",
       &plugin->insert_peerstoredata);
   sql_prepare(plugin->dbh,
       "SELECT peer_id, sub_system, value FROM peerstoredata",

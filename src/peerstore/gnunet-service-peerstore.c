@@ -90,65 +90,59 @@ void handle_store (void *cls,
     const struct GNUNET_MessageHeader *message)
 {
   struct StoreRequestMessage *req;
-  uint16_t msg_size;
-  uint16_t sub_system_size;
+  uint16_t req_size;
+  uint16_t ss_size;
+  uint16_t key_size;
   uint16_t value_size;
   char *sub_system;
+  char *key;
   void *value;
+  uint16_t response_type;
   struct GNUNET_SERVER_TransmitContext *tc;
-  struct StoreResponseMessage *res;
-  char *emsg;
-  size_t emsg_size = 0;
-  char *emsg_dest;
 
-  msg_size = ntohs(message->size);
-  if(msg_size < sizeof(struct StoreRequestMessage))
+  req_size = ntohs(message->size);
+  if(req_size < sizeof(struct StoreRequestMessage))
   {
     GNUNET_break(0);
     GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
     return;
   }
   req = (struct StoreRequestMessage *)message;
-  sub_system_size = ntohs(req->sub_system_size);
+  ss_size = ntohs(req->sub_system_size);
+  key_size = ntohs(req->key_size);
   value_size = ntohs(req->value_size);
-  if(sub_system_size + value_size + sizeof(struct StoreRequestMessage)
-      != msg_size)
+  if(ss_size + key_size + value_size + sizeof(struct StoreRequestMessage)
+      != req_size)
   {
     GNUNET_break(0);
     GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
     return;
   }
   sub_system = (char *)&req[1];
-  value = sub_system + sub_system_size;
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Received a store request (size: %lu) for sub system `%s' and peer `%s'\n",
-      msg_size,
+  key = sub_system + ss_size;
+  value = key + key_size;
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Received a store request (size: %lu) for sub system `%s', peer `%s', key `%s'\n",
+      value_size,
       sub_system,
-      GNUNET_i2s (&req->peer));
-  if(GNUNET_OK != db->store_record(db->cls,
+      GNUNET_i2s (&req->peer),
+      key);
+  if(GNUNET_OK == db->store_record(db->cls,
+      sub_system,
       &req->peer,
-     sub_system,
-     value,
-     value_size))
+      key,
+      value,
+      value_size))
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Failed to store requested value, sqlite database error.");
-    emsg = _("Failed to store requested value, sqlite database error.");
-    emsg_size = strlen(emsg) + 1;
-  }
-  res = GNUNET_malloc(sizeof(struct StoreResponseMessage) + emsg_size);
-  res->emsg_size = htons(emsg_size);
-  res->header.size = htons(sizeof(struct StoreResponseMessage) + emsg_size);
-  res->header.type = htons(GNUNET_MESSAGE_TYPE_PEERSTORE_STORE_RESULT);
-  if(emsg_size > 0)
-  {
-    res->success = htons(GNUNET_NO);
-    emsg_dest = (char *)&res[1];
-    memcpy(emsg_dest, emsg, emsg_size);
+    response_type = GNUNET_MESSAGE_TYPE_PEERSTORE_STORE_RESULT_OK;
   }
   else
-    res->success = htons(GNUNET_YES);
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Failed to store requested value, sqlite database error.");
+    response_type = GNUNET_MESSAGE_TYPE_PEERSTORE_STORE_RESULT_FAIL;
+  }
+
   tc = GNUNET_SERVER_transmit_context_create (client);
-  GNUNET_SERVER_transmit_context_append_message(tc, (struct GNUNET_MessageHeader *)res);
-  GNUNET_free(res);
+  GNUNET_SERVER_transmit_context_append_data(tc, NULL, 0, response_type);
   GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
 
 }
