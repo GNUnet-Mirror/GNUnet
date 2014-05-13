@@ -60,7 +60,7 @@ struct GNUNET_DNSSTUB_RequestSocket
   GNUNET_DNSSTUB_ResultCallback rc;
 
   /**
-   * Closure for 'rc'.
+   * Closure for @e rc.
    */
   void *rc_cls;
 
@@ -80,7 +80,7 @@ struct GNUNET_DNSSTUB_RequestSocket
   struct sockaddr_storage addr;
 
   /**
-   * Number of bytes in 'addr'.
+   * Number of bytes in @e addr.
    */
   socklen_t addrlen;
 
@@ -108,7 +108,7 @@ struct GNUNET_DNSSTUB_Context
 
 
 /**
- * We're done with a GNUNET_DNSSTUB_RequestSocket, close it for now.
+ * We're done with a `struct GNUNET_DNSSTUB_RequestSocket`, close it for now.
  *
  * @param rs request socket to clean up
  */
@@ -137,7 +137,7 @@ cleanup_rs (struct GNUNET_DNSSTUB_RequestSocket *rs)
  * Open source port for sending DNS requests
  *
  * @param af AF_INET or AF_INET6
- * @return GNUNET_OK on success
+ * @return #GNUNET_OK on success
  */
 static struct GNUNET_NETWORK_Handle *
 open_socket (int af)
@@ -395,7 +395,7 @@ GNUNET_DNSSTUB_resolve2 (struct GNUNET_DNSSTUB_Context *ctx,
  *
  * @param rs request socket with callback details
  * @param dnsout socket to read from
- * @return GNUNET_OK on success, GNUNET_NO on drop, GNUNET_SYSERR on IO-errors (closed socket)
+ * @return #GNUNET_OK on success, #GNUNET_NO on drop, #GNUNET_SYSERR on IO-errors (closed socket)
  */
 static int
 do_dns_read (struct GNUNET_DNSSTUB_RequestSocket *rs,
