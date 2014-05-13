@@ -534,8 +534,8 @@ void store_trigger_receive(void *cls, const char *emsg)
     cont_cls = sc->cont_cls;
     GNUNET_PEERSTORE_store_cancel (sc);
     reconnect (h);
-    if (NULL != sc->cont)
-      sc->cont (sc->cont_cls, emsg);
+    if (NULL != cont)
+      cont (cont_cls, emsg);
     return;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Waiting for response from `%s' service.\n",

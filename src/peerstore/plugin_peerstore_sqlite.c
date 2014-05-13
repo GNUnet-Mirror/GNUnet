@@ -117,16 +117,16 @@ get_record_and_call_iterator (struct Plugin *plugin,
 {
   int ret;
   int sret;
-  struct GNUNET_PeerIdentity *pid;
-  char *sub_system;
-  void *value;
+  const struct GNUNET_PeerIdentity *pid;
+  const char *sub_system;
+  const void *value;
   size_t value_size;
 
   ret = GNUNET_NO;
   if (SQLITE_ROW == (sret = sqlite3_step (stmt)))
   {
     pid = sqlite3_column_blob(stmt, 0);
-    sub_system = sqlite3_column_text(stmt, 1);
+    sub_system = (const char*) sqlite3_column_text(stmt, 1);
     value = sqlite3_column_blob(stmt, 2);
     value_size = sqlite3_column_bytes(stmt, 2);
     if (NULL != iter)
@@ -165,7 +165,7 @@ peerstore_sqlite_iterate_records (void *cls,
 {
   struct Plugin *plugin = cls;
   sqlite3_stmt *stmt;
-  int err;
+  int err = 0;
 
   if(NULL == sub_system && NULL == peer)
     stmt = plugin->select_peerstoredata;
