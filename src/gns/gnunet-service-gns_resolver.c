@@ -23,12 +23,6 @@
  * @brief GNU Name System resolver logic
  * @author Martin Schanzenbach
  * @author Christian Grothoff
- *
- * TODO:
- * - GNS: handle special SRV names --- no delegation, direct lookup;
- *        can likely be done in 'resolver_lookup_get_next_label'. (#3003)
- * - revocation checks (use REVOCATION service!), (#3004)
- * - DNAME support (#3005)
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -601,7 +595,17 @@ memrchr (const void *s,
 
 /**
  * Get the next, rightmost label from the name that we are trying to resolve,
- * and update the resolution position accordingly.
+ * and update the resolution position accordingly.  Labels usually consist
+ * of up to 63 characters without a period ("."); however, we use a special
+ * convention to support SRV and TLSA records where the domain name
+ * includes an encoding for a service and protocol in the name.  The
+ * syntax (see RFC 2782) here is "_Service._Proto.Name" and in this
+ * special case we include the "_Service._Proto" in the rightmost label.
+ * Thus, for "_443._tcp.foo.bar" we first return the label "bar" and then
+ * the label "_443._tcp.foo".  The special case is detected by the
+ * presence of labels beginning with an underscore.  Whenever a label
+ * begins with an underscore, it is combined with the label to its right
+ * (and the "." is preserved).
  *
  * @param rh handle to the resolution operation to get the next label from
  * @return NULL if there are no more labels
@@ -615,7 +619,9 @@ resolver_lookup_get_next_label (struct GNS_ResolverHandle *rh)
 
   if (0 == rh->name_resolution_pos)
     return NULL;
-  dot = memrchr (rh->name, (int) '.', rh->name_resolution_pos);
+  dot = memrchr (rh->name,
+                 (int) '.',
+                 rh->name_resolution_pos);
   if (NULL == dot)
   {
     /* done, this was the last one */
@@ -627,6 +633,16 @@ resolver_lookup_get_next_label (struct GNS_ResolverHandle *rh)
   {
     /* advance by one label */
     len = rh->name_resolution_pos - (dot - rh->name) - 1;
+    rp = dot + 1;
+    rh->name_resolution_pos = dot - rh->name;
+  }
+  /* merge labels starting with underscore with label on the right (SRV/DANE case) */
+  while ( (NULL != (dot = memrchr (rh->name,
+                                   (int) '.',
+                                   rh->name_resolution_pos))) &&
+          ('_' == dot[1]) )
+  {
+    len += rh->name_resolution_pos - (dot - rh->name) - 1;
     rp = dot + 1;
     rh->name_resolution_pos = dot - rh->name;
   }
@@ -1584,8 +1600,6 @@ handle_gns_resolution_result (void *cls,
 	  struct GNUNET_DNSPARSER_SrvRecord *srv;
 
 	  off = 0;
-	  /* FIXME: passing rh->name here is is not necessarily what we want
-	     (SRV support not finished) */
 	  srv = GNUNET_DNSPARSER_parse_srv (rh->name,
 					    rd[i].data,
 					    rd[i].data_size,
