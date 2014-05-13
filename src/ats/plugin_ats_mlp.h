@@ -29,6 +29,7 @@
 #include "gnunet_ats_plugin.h"
 #include "gnunet-service-ats_addresses.h"
 #include "gnunet_statistics_service.h"
+#include <float.h>
 #if HAVE_LIBGLPK
 #include "glpk.h"
 #endif
@@ -74,6 +75,7 @@ struct MLP_Solution
   double lp_objective_value;
   double mlp_objective_value;
   double mlp_gap;
+  double lp_mlp_gap;
 
   int p_elements;
   int p_cols;
@@ -162,6 +164,9 @@ struct MLP_Variables
 
   /* MIP Gap */
   double mip_gap;
+
+  /* LP MIP Gap */
+  double lp_mip_gap;
 
   /* ATS Quality metrics
    *
