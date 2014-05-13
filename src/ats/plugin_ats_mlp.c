@@ -938,27 +938,29 @@ static int
 mlp_solve_lp_problem (struct GAS_MLP_Handle *mlp)
 {
   int res = 0;
-
+  int res_status = 0;
   res = glp_simplex(mlp->p.prob, &mlp->control_param_lp);
   if (0 == res)
-          LOG (GNUNET_ERROR_TYPE_DEBUG, "Solving LP problem: 0x%02X %s\n", res, mlp_solve_to_string(res));
+    LOG(GNUNET_ERROR_TYPE_DEBUG, "Solving LP problem: 0x%02X %s\n", res,
+        mlp_solve_to_string (res));
   else
-          LOG (GNUNET_ERROR_TYPE_WARNING, "Solving LP problem failed: 0x%02X %s\n", res, mlp_solve_to_string(res));
+    LOG(GNUNET_ERROR_TYPE_DEBUG, "Solving LP problem failed: 0x%02X %s\n",
+        res, mlp_solve_to_string (res));
 
   /* Analyze problem status  */
-  res = glp_get_status (mlp->p.prob);
-  switch (res) {
-    /* solution is optimal */
-    case GLP_OPT:
-    /* solution is feasible */
-    case GLP_FEAS:
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "Solving LP problem: 0x%02X %s\n",
-          res, mlp_status_to_string(res));
+  res_status = glp_get_status (mlp->p.prob);
+  switch (res_status) {
+    case GLP_OPT: /* solution is optimal */
+      LOG (GNUNET_ERROR_TYPE_INFO,
+          "Solving LP problem: 0x%02X %s, 0x%02X %s\n",
+          res, mlp_solve_to_string(res),
+          res_status, mlp_status_to_string(res_status));
       return GNUNET_OK;
-    /* Problem was ill-defined, no way to handle that */
     default:
-      LOG (GNUNET_ERROR_TYPE_WARNING, "Solving LP problem failed, no solution: 0x%02X %s\n",
-          res, mlp_status_to_string(res));
+      LOG (GNUNET_ERROR_TYPE_WARNING,
+          "Solving LP problem failed: 0x%02X %s 0x%02X %s\n",
+          res, mlp_solve_to_string(res),
+          res_status, mlp_status_to_string(res_status));
       return GNUNET_SYSERR;
   }
 }
@@ -974,23 +976,28 @@ int
 mlp_solve_mlp_problem (struct GAS_MLP_Handle *mlp)
 {
   int res = 0;
+  int res_status = 0;
   res = glp_intopt(mlp->p.prob, &mlp->control_param_mlp);
   if (0 == res)
-          LOG (GNUNET_ERROR_TYPE_DEBUG, "Solving MLP problem: 0x%02X %s\n", res, mlp_solve_to_string(res));
+    LOG(GNUNET_ERROR_TYPE_DEBUG, "Solving MLP problem: 0x%02X %s\n", res,
+        mlp_solve_to_string (res));
   else
-          LOG (GNUNET_ERROR_TYPE_WARNING, "Solving MLP problem failed: 0x%02X %s\n", res, mlp_solve_to_string(res));
+    LOG(GNUNET_ERROR_TYPE_DEBUG, "Solving MLP problem failed: 0x%02X %s\n", res,
+        mlp_solve_to_string (res));
   /* Analyze problem status  */
-  res = glp_mip_status(mlp->p.prob);
-  switch (res) {
-    /* solution is optimal */
-    case GLP_OPT:
-    /* solution is feasible */
-    case GLP_FEAS:
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "Solving MLP problem: 0x%02X %s\n", res, mlp_status_to_string(res));
+  res_status = glp_mip_status(mlp->p.prob);
+  switch (res_status) {
+    case GLP_OPT: /* solution is optimal */
+      LOG (GNUNET_ERROR_TYPE_INFO,
+          "Solving MLP problem: 0x%02X %s, 0x%02X %s\n",
+          res, mlp_solve_to_string(res),
+          res_status, mlp_status_to_string(res_status));
       return GNUNET_OK;
-    /* Problem was ill-defined, no way to handle that */
     default:
-      LOG (GNUNET_ERROR_TYPE_WARNING,"Solving MLP problem failed, 0x%02X %s\n\n", res, mlp_status_to_string(res));
+      LOG (GNUNET_ERROR_TYPE_WARNING,
+          "Solving MLP problem failed: 0x%02X %s 0x%02X %s\n",
+          res, mlp_solve_to_string(res),
+          res_status, mlp_status_to_string(res_status));
       return GNUNET_SYSERR;
   }
 }
@@ -1244,6 +1251,8 @@ GAS_mlp_solve_problem (void *solver)
       mlp->control_param_mlp.presolve = GNUNET_YES;
     res_mip = mlp_solve_mlp_problem(mlp);
 
+    fprintf (stderr, "%u\n", res_mip);
+
     dur_mlp = GNUNET_TIME_absolute_get_duration (start_cur_op);
     dur_total = GNUNET_TIME_absolute_get_duration (start_total);
 
@@ -1256,12 +1265,11 @@ GAS_mlp_solve_problem (void *solver)
     /* Do not execute mip solver since lp solution is invalid */
     dur_mlp = GNUNET_TIME_UNIT_ZERO;
     dur_total = GNUNET_TIME_absolute_get_duration (start_total);
-    //GNUNET_break(0);
+
     notify(mlp, GAS_OP_SOLVE_MLP_MLP_STOP, GAS_STAT_FAIL,
         (GNUNET_YES == mlp->stat_mlp_prob_changed) ? GAS_INFO_FULL : GAS_INFO_UPDATED);
     res_mip = GNUNET_SYSERR;
   }
-
 
   /* Notify about end */
   notify(mlp, GAS_OP_SOLVE_STOP,
