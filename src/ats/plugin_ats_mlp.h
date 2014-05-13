@@ -364,6 +364,30 @@ struct GAS_MLP_Handle
    */
   int opt_dbg_glpk_verbose;
 
+  /**
+   * solve autoscale the problem
+   */
+  int opt_dbg_optimize_relativity;
+
+  /**
+   * solve autoscale the problem
+   */
+  int opt_dbg_optimize_diversity;
+
+  /**
+   * solve autoscale the problem
+   */
+  int opt_dbg_optimize_quality;
+
+  /**
+   * solve autoscale the problem
+   */
+  int opt_dbg_optimize_utility;
+
+
+  /**
+   * Output format
+   */
   enum MLP_Output_Format opt_log_format;
 };
 

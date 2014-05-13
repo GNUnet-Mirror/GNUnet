@@ -633,8 +633,10 @@ mlp_create_problem_add_address_information (void *cls,
   char *name;
   const double *props;
   double cur_bigm;
+
   uint32_t addr_net;
   uint32_t addr_net_index;
+  unsigned long long max_quota;
   int c;
 
   /* Check if we have to add this peer due to a pending request */
@@ -662,6 +664,20 @@ mlp_create_problem_add_address_information (void *cls,
     return GNUNET_OK;
   }
 
+  max_quota = 0;
+  for (c = 0; c < GNUNET_ATS_NetworkTypeCount; c++)
+  {
+    if (mlp->pv.quota_out[c] > max_quota)
+      max_quota = mlp->pv.quota_out[c];
+    if (mlp->pv.quota_in[c] > max_quota)
+      max_quota = mlp->pv.quota_in[c];
+  }
+  if (max_quota > mlp->pv.BIG_M)
+    cur_bigm = (double) mlp->pv.BIG_M;
+  else
+    cur_bigm = max_quota;
+
+
   /* Get peer */
   peer = GNUNET_CONTAINER_multipeermap_get (mlp->requested_peers, key);
   if (peer->processed == GNUNET_NO)
@@ -673,12 +689,15 @@ mlp_create_problem_add_address_information (void *cls,
       GNUNET_free (name);
       if (GNUNET_NO == mlp->opt_dbg_feasibility_only)
       {
-        /* Add c9) Relativity */
-        GNUNET_asprintf(&name, "c9_%s", GNUNET_i2s(&address->peer));
-        peer->r_c9 = mlp_create_problem_create_constraint (p, name, GLP_LO, 0.0, 0.0);
-        GNUNET_free (name);
-        /* c9) set coefficient */
-        mlp_create_problem_set_value (p, peer->r_c9, p->c_r, -peer->f, __LINE__);
+        if (GNUNET_YES == mlp->opt_dbg_optimize_relativity)
+        {
+          /* Add c9) Relativity */
+          GNUNET_asprintf(&name, "c9_%s", GNUNET_i2s(&address->peer));
+          peer->r_c9 = mlp_create_problem_create_constraint (p, name, GLP_LO, 0.0, 0.0);
+          GNUNET_free (name);
+          /* c9) set coefficient */
+          mlp_create_problem_set_value (p, peer->r_c9, p->c_r, -peer->f , __LINE__);
+        }
       }
       peer->processed = GNUNET_YES;
   }
@@ -715,7 +734,7 @@ mlp_create_problem_add_address_information (void *cls,
   GNUNET_free (name);
   /*  c1) set b = 1 coefficient */
   mlp_create_problem_set_value (p, mlpi->r_c1, mlpi->c_b, 1, __LINE__);
-  /*  c1) set n = -M coefficient */
+  /*  c1) set n = - min (M, quota) coefficient */
   cur_bigm = (double) mlp->pv.quota_out[addr_net_index];
   if (cur_bigm > mlp->pv.BIG_M)
     cur_bigm = (double) mlp->pv.BIG_M;
@@ -747,44 +766,31 @@ mlp_create_problem_add_address_information (void *cls,
    */
   mlp_create_problem_set_value (p, p->r_quota[addr_net_index], mlpi->c_b, 1, __LINE__);
 
-#if 0
-  for (c = 0; c < GNUNET_ATS_NetworkTypeCount; c++)
-  {
-    addr_net = get_performance_info (address, GNUNET_ATS_NETWORK_TYPE);
-
-    if (GNUNET_ATS_VALUE_UNDEFINED == addr_net)
-    {
-      GNUNET_break (0);
-      addr_net = GNUNET_ATS_NET_UNSPECIFIED;
-    }
-    if (mlp->pv.quota_index[c] == addr_net)
-    {
-      mlp_create_problem_set_value (p, p->r_quota[c], mlpi->c_b, 1, __LINE__);
-      break;
-    }
-  }
-#endif
-
   /* Optimality */
   if (GNUNET_NO == mlp->opt_dbg_feasibility_only)
   {
     /* c 6) maximize diversity */
     mlp_create_problem_set_value (p, p->r_c6, mlpi->c_n, 1, __LINE__);
     /* c 9) relativity */
-    mlp_create_problem_set_value (p, peer->r_c9, mlpi->c_b, 1, __LINE__);
+    if (GNUNET_YES == mlp->opt_dbg_optimize_relativity)
+      mlp_create_problem_set_value (p, peer->r_c9, mlpi->c_b, 1, __LINE__);
     /* c 8) utility */
-    mlp_create_problem_set_value (p, p->r_c8, mlpi->c_b, 1, __LINE__);
+    if (GNUNET_YES == mlp->opt_dbg_optimize_utility)
+      mlp_create_problem_set_value (p, p->r_c8, mlpi->c_b, 1, __LINE__);
     /* c 7) Optimize quality */
     /* For all quality metrics, set quality of this address */
-    props = mlp->get_properties (mlp->get_properties_cls, address);
-    for (c = 0; c < mlp->pv.m_q; c++)
+    if (GNUNET_YES == mlp->opt_dbg_optimize_quality)
     {
-      if ((props[c] < 1.0) && (props[c] > 2.0))
+      props = mlp->get_properties (mlp->get_properties_cls, address);
+      for (c = 0; c < mlp->pv.m_q; c++)
       {
-        fprintf (stderr, "PROP == %.3f \t ", props[c]);
-        GNUNET_break (0);
+        if ((props[c] < 1.0) && (props[c] > 2.0))
+        {
+          fprintf (stderr, "PROP == %.3f \t ", props[c]);
+          GNUNET_break (0);
+        }
+        mlp_create_problem_set_value (p, p->r_q[c], mlpi->c_b, props[c], __LINE__);
       }
-      mlp_create_problem_set_value (p, p->r_q[c], mlpi->c_b, props[c], __LINE__);
     }
   }
 
@@ -820,23 +826,32 @@ mlp_create_problem_add_invariant_rows (struct GAS_MLP_Handle *mlp, struct MLP_Pr
   {
     char *name;
     /* Add row for c6) Maximize for diversity */
-    p->r_c6 = mlp_create_problem_create_constraint (p, "c6", GLP_FX, 0.0, 0.0);
-    /* Set c6 ) Setting -D */
-    mlp_create_problem_set_value (p, p->r_c6, p->c_d, -1, __LINE__);
+    if (GNUNET_YES == mlp->opt_dbg_optimize_diversity)
+    {
+      p->r_c6 = mlp_create_problem_create_constraint (p, "c6", GLP_FX, 0.0, 0.0);
+      /* Set c6 ) Setting -D */
+      mlp_create_problem_set_value (p, p->r_c6, p->c_d, -1, __LINE__);
+    }
 
     /* Adding rows for c 8) Maximize utility */
-    p->r_c8 = mlp_create_problem_create_constraint (p, "c8", GLP_FX, 0.0, 0.0);
-    /* -u */
-    mlp_create_problem_set_value (p, p->r_c8, p->c_u, -1, __LINE__);
+    if (GNUNET_YES == mlp->opt_dbg_optimize_utility)
+    {
+      p->r_c8 = mlp_create_problem_create_constraint (p, "c8", GLP_FX, 0.0, 0.0);
+      /* -u */
+      mlp_create_problem_set_value (p, p->r_c8, p->c_u, -1, __LINE__);
+    }
 
     /* For all quality metrics:
-     * c 7) Maximize utilization, austerity */
-    for (c = 0; c < mlp->pv.m_q; c++)
+     * c 7) Maximize quality, austerity */
+    if (GNUNET_YES == mlp->opt_dbg_optimize_quality)
     {
-      GNUNET_asprintf(&name, "c7_q%i_%s", c, mlp_ats_to_string(mlp->pv.q[c]));
-      p->r_q[c] = mlp_create_problem_create_constraint (p, name, GLP_FX, 0.0, 0.0);
-      GNUNET_free (name);
-      mlp_create_problem_set_value (p, p->r_q[c], p->c_q[c], -1, __LINE__);
+      for (c = 0; c < mlp->pv.m_q; c++)
+      {
+        GNUNET_asprintf(&name, "c7_q%i_%s", c, mlp_ats_to_string(mlp->pv.q[c]));
+        p->r_q[c] = mlp_create_problem_create_constraint (p, name, GLP_FX, 0.0, 0.0);
+        GNUNET_free (name);
+        mlp_create_problem_set_value (p, p->r_q[c], p->c_q[c], -1, __LINE__);
+      }
     }
   }
 }
@@ -854,20 +869,26 @@ mlp_create_problem_add_invariant_columns (struct GAS_MLP_Handle *mlp, struct MLP
     int c;
 
     /* Diversity d column  */
-    p->c_d = mlp_create_problem_create_column (p, "d", GLP_CV, GLP_LO, 0.0, 0.0, mlp->pv.co_D);
+    if (GNUNET_YES == mlp->opt_dbg_optimize_diversity)
+      p->c_d = mlp_create_problem_create_column (p, "d", GLP_CV, GLP_LO, 0.0, 0.0, mlp->pv.co_D);
 
     /* Utilization u column  */
-    p->c_u = mlp_create_problem_create_column (p, "u", GLP_CV, GLP_LO, 0.0, 0.0, mlp->pv.co_U);
+    if (GNUNET_YES == mlp->opt_dbg_optimize_utility)
+      p->c_u = mlp_create_problem_create_column (p, "u", GLP_CV, GLP_LO, 0.0, 0.0, mlp->pv.co_U);
 
     /* Relativity r column  */
-    p->c_r = mlp_create_problem_create_column (p, "r", GLP_CV, GLP_LO, 0.0, 0.0, mlp->pv.co_R);
+    if (GNUNET_YES == mlp->opt_dbg_optimize_relativity)
+      p->c_r = mlp_create_problem_create_column (p, "r", GLP_CV, GLP_LO, 0.0, 0.0, mlp->pv.co_R);
 
     /* Quality metric columns */
-    for (c = 0; c < mlp->pv.m_q; c++)
+    if (GNUNET_YES == mlp->opt_dbg_optimize_quality)
     {
-      GNUNET_asprintf (&name, "q_%u", mlp->pv.q[c]);
-      p->c_q[c] = mlp_create_problem_create_column (p, name, GLP_CV, GLP_LO, 0.0, 0.0, mlp->pv.co_Q[c]);
-      GNUNET_free (name);
+      for (c = 0; c < mlp->pv.m_q; c++)
+      {
+        GNUNET_asprintf (&name, "q_%u", mlp->pv.q[c]);
+        p->c_q[c] = mlp_create_problem_create_column (p, name, GLP_CV, GLP_LO, 0.0, 0.0, mlp->pv.co_Q[c]);
+        GNUNET_free (name);
+      }
     }
   }
 }
@@ -1350,8 +1371,6 @@ GAS_mlp_solve_problem (void *solver)
         default:
           break;
       }
-
-
       LOG(GNUNET_ERROR_TYPE_ERROR, "Dumped problem to file: `%s' \n", filename);
       GNUNET_free(filename);
     }
@@ -2082,9 +2101,6 @@ libgnunet_plugin_ats_mlp_init (void *cls)
      "ats", "MLP_DUMP_PROBLEM_ALL");
   if (GNUNET_SYSERR == mlp->opt_dump_problem_all)
    mlp->opt_dump_problem_all = GNUNET_NO;
-  if (GNUNET_YES == mlp->opt_dump_problem_all)
-    GNUNET_break (0);
-
 
   mlp->opt_dump_solution_all = GNUNET_CONFIGURATION_get_value_yesno (env->cfg,
      "ats", "MLP_DUMP_SOLUTION_ALL");
@@ -2129,6 +2145,49 @@ libgnunet_plugin_ats_mlp_init (void *cls)
   if (GNUNET_YES == mlp->opt_dbg_intopt_presolver)
     LOG (GNUNET_ERROR_TYPE_WARNING,
         "MLP solver is configured use the mlp presolver\n");
+
+  mlp->opt_dbg_optimize_diversity = GNUNET_CONFIGURATION_get_value_yesno (env->cfg,
+     "ats", "MLP_DBG_OPTIMIZE_DIVERSITY");
+  if (GNUNET_SYSERR == mlp->opt_dbg_optimize_diversity)
+   mlp->opt_dbg_optimize_diversity = GNUNET_YES;
+  if (GNUNET_NO == mlp->opt_dbg_optimize_diversity)
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+        "MLP solver is not optimizing for diversity\n");
+
+  mlp->opt_dbg_optimize_relativity= GNUNET_CONFIGURATION_get_value_yesno (env->cfg,
+     "ats", "MLP_DBG_OPTIMIZE_RELATIVITY");
+  if (GNUNET_SYSERR == mlp->opt_dbg_optimize_relativity)
+   mlp->opt_dbg_optimize_relativity = GNUNET_YES;
+  if (GNUNET_NO == mlp->opt_dbg_optimize_relativity)
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+        "MLP solver is not optimizing for relativity\n");
+
+  mlp->opt_dbg_optimize_quality = GNUNET_CONFIGURATION_get_value_yesno (env->cfg,
+     "ats", "MLP_DBG_OPTIMIZE_QUALITY");
+  if (GNUNET_SYSERR == mlp->opt_dbg_optimize_quality)
+   mlp->opt_dbg_optimize_quality = GNUNET_YES;
+  if (GNUNET_NO == mlp->opt_dbg_optimize_quality)
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+        "MLP solver is not optimizing for quality\n");
+
+  mlp->opt_dbg_optimize_utility = GNUNET_CONFIGURATION_get_value_yesno (env->cfg,
+     "ats", "MLP_DBG_OPTIMIZE_UTILITY");
+  if (GNUNET_SYSERR == mlp->opt_dbg_optimize_utility)
+   mlp->opt_dbg_optimize_utility = GNUNET_YES;
+  if (GNUNET_NO == mlp->opt_dbg_optimize_utility)
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+        "MLP solver is not optimizing for utility\n");
+
+  if ( (GNUNET_NO == mlp->opt_dbg_optimize_utility) &&
+       (GNUNET_NO == mlp->opt_dbg_optimize_quality) &&
+       (GNUNET_NO == mlp->opt_dbg_optimize_relativity) &&
+       (GNUNET_NO == mlp->opt_dbg_optimize_utility) &&
+       (GNUNET_NO == mlp->opt_dbg_feasibility_only))
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+        _("MLP solver is not optimizing for anything, changing to feasibility check\n"));
+    mlp->opt_dbg_feasibility_only = GNUNET_YES;
+  }
 
   if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string (env->cfg,
      "ats", "MLP_LOG_FORMAT", &outputformat))
