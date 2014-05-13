@@ -27,6 +27,7 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "sensor.h"
+#include "gnunet_statistics_service.h"
 
 //TODO: GNUNET_SERVER_receive_done() ?
 
@@ -378,7 +379,7 @@ load_sensor_from_cfg(struct GNUNET_CONFIGURATION_Handle *cfg, const char *sectio
     sensor->lifetime = GNUNET_TIME_UNIT_FOREVER_REL;
   //capabilities TODO
   //source
-  if(GNUNET_OK != GNUNET_CONFIGURATION_get_value_choice(cfg, sectionname, "SOURCE", sources, &sensor->source))
+  if(GNUNET_OK != GNUNET_CONFIGURATION_get_value_choice(cfg, sectionname, "SOURCE", sources, (const char **)&sensor->source))
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR, _("Error reading sensor source\n"));
     GNUNET_free(sensor);
@@ -406,7 +407,7 @@ load_sensor_from_cfg(struct GNUNET_CONFIGURATION_Handle *cfg, const char *sectio
     GNUNET_CONFIGURATION_get_value_string(cfg, sectionname, "EXT_ARGS", &sensor->ext_args);
   }
   //expected datatype
-  if(GNUNET_OK != GNUNET_CONFIGURATION_get_value_choice(cfg, sectionname, "EXPECTED_DATATYPE", datatypes, &sensor->expected_datatype))
+  if(GNUNET_OK != GNUNET_CONFIGURATION_get_value_choice(cfg, sectionname, "EXPECTED_DATATYPE", datatypes, (const char **)&sensor->expected_datatype))
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR, _("Error reading sensor expected datatype\n"));
     GNUNET_free(sensor);
