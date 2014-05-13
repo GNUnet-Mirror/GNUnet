@@ -147,8 +147,9 @@
 static int
 mlp_term_hook (void *info, const char *s)
 {
-  /* Not needed atm struct MLP_information *mlp = info; */
-  LOG (GNUNET_ERROR_TYPE_ERROR, "%s", s);
+  struct GAS_MLP_Handle *mlp = info;
+  if (mlp->opt_dbg_glpk_verbose)
+    LOG (GNUNET_ERROR_TYPE_ERROR, "%s", s);
   return 1;
 }
 
@@ -1010,42 +1011,6 @@ mlp_solve_lp_problem (struct GAS_MLP_Handle *mlp)
 
 
 /**
- * Solves the MLP problem
- *
- * @param mlp the MLP Handle
- * @return GNUNET_OK if could be solved, GNUNET_SYSERR on failure
- */
-int
-mlp_solve_mlp_problem (struct GAS_MLP_Handle *mlp)
-{
-  int res = 0;
-  int res_status = 0;
-  res = glp_intopt(mlp->p.prob, &mlp->control_param_mlp);
-  if (0 == res)
-    LOG(GNUNET_ERROR_TYPE_DEBUG, "Solving MLP problem: 0x%02X %s\n", res,
-        mlp_solve_to_string (res));
-  else
-    LOG(GNUNET_ERROR_TYPE_DEBUG, "Solving MLP problem failed: 0x%02X %s\n", res,
-        mlp_solve_to_string (res));
-  /* Analyze problem status  */
-  res_status = glp_mip_status(mlp->p.prob);
-  switch (res_status) {
-    case GLP_OPT: /* solution is optimal */
-      LOG (GNUNET_ERROR_TYPE_INFO,
-          "Solving MLP problem: 0x%02X %s, 0x%02X %s\n",
-          res, mlp_solve_to_string(res),
-          res_status, mlp_status_to_string(res_status));
-      return GNUNET_OK;
-    default:
-      LOG (GNUNET_ERROR_TYPE_WARNING,
-          "Solving MLP problem failed: 0x%02X %s 0x%02X %s\n",
-          res, mlp_solve_to_string(res),
-          res_status, mlp_status_to_string(res_status));
-      return GNUNET_SYSERR;
-  }
-}
-
-/**
  * Propagates the results when MLP problem was solved
  *
  * @param cls the MLP handle
@@ -1176,6 +1141,45 @@ static void notify (struct GAS_MLP_Handle *mlp,
   if (NULL != mlp->env->info_cb)
     mlp->env->info_cb (mlp->env->info_cb_cls, op, stat, add);
 }
+
+static void mlp_branch_and_cut_cb (glp_tree *tree, void *info)
+{
+  struct GAS_MLP_Handle *mlp = info;
+
+  switch (glp_ios_reason (tree))
+  {
+    case GLP_ISELECT:
+        /* Do nothing here */
+      break;
+    case GLP_IPREPRO:
+        /* Do nothing here */
+      break;
+    case GLP_IROWGEN:
+        /* Do nothing here */
+      break;
+    case GLP_IHEUR:
+        /* Do nothing here */
+      break;
+    case GLP_ICUTGEN:
+        /* Do nothing here */
+      break;
+    case GLP_IBRANCH:
+        /* Do nothing here */
+      break;
+    case GLP_IBINGO:
+        /* A better solution was found  */
+      mlp->ps.mlp_gap = glp_ios_mip_gap (tree);
+      LOG (GNUNET_ERROR_TYPE_ERROR,
+          "Found better integer solution, current MIP GAP: %f\n", mlp->ps.mlp_gap);
+
+      break;
+    default:
+      break;
+  }
+  //GNUNET_break (0);
+}
+
+
 /**
  * Solves the MLP problem
  *
@@ -1188,7 +1192,8 @@ GAS_mlp_solve_problem (void *solver)
   struct GAS_MLP_Handle *mlp = solver;
   char *filename;
   int res_lp = 0;
-  int res_mip = 0;
+  int mip_res = 0;
+  int mip_status = 0;
 
   struct GNUNET_TIME_Absolute start_total;
   struct GNUNET_TIME_Absolute start_cur_op;
@@ -1254,6 +1259,12 @@ GAS_mlp_solve_problem (void *solver)
     LOG(GNUNET_ERROR_TYPE_DEBUG, "Problem was updated, resolving\n");
   }
 
+  /* Reset solution info */
+  mlp->ps.lp_objective_value = 0.0;
+  mlp->ps.mlp_gap = 1.0;
+  mlp->ps.mlp_objective_value = 0.0;
+
+
   dur_setup = GNUNET_TIME_absolute_get_duration (start_total);
 
   /* Run LP solver */
@@ -1289,16 +1300,76 @@ GAS_mlp_solve_problem (void *solver)
     start_cur_op = GNUNET_TIME_absolute_get();
 
     /* Solve MIP */
+
     /* Only for debugging, always use MLP presolver */
     if (GNUNET_YES == mlp->opt_dbg_intopt_presolver)
       mlp->control_param_mlp.presolve = GNUNET_YES;
-    res_mip = mlp_solve_mlp_problem(mlp);
+
+
+    mip_res = glp_intopt (mlp->p.prob, &mlp->control_param_mlp);
+    switch (mip_res)
+    {
+        case 0:
+          /* Successful */
+          LOG (GNUNET_ERROR_TYPE_WARNING,
+               "Solving MLP problem: 0x%02X %s\n",
+               mip_res, mlp_solve_to_string (mip_res));
+          break;
+        case GLP_ETMLIM: /* Time limit reached */
+        case GLP_EMIPGAP: /* MIP gap tolerance limit reached */
+        case GLP_ESTOP: /* Solver was instructed to stop*/
+          /* Semi-successful */
+          LOG (GNUNET_ERROR_TYPE_WARNING,
+               "Solving MLP problem solution was interupted: 0x%02X %s\n",
+               mip_res, mlp_solve_to_string (mip_res));
+          break;
+        case GLP_EBOUND:
+        case GLP_EROOT:
+        case GLP_ENOPFS:
+        case GLP_ENODFS:
+        case GLP_EFAIL:
+        default:
+         /* Fail */
+          LOG (GNUNET_ERROR_TYPE_ERROR,
+              "Solving MLP problem failed: 0x%02X %s\n",
+              mip_res, mlp_solve_to_string (mip_res));
+        break;
+    }
+
+    /* Analyze problem status  */
+    mip_status = glp_mip_status(mlp->p.prob);
+    switch (mip_status)
+    {
+      case GLP_OPT: /* solution is optimal */
+        LOG (GNUNET_ERROR_TYPE_WARNING,
+            "Solution of MLP problem is optimal: 0x%02X %s, 0x%02X %s\n",
+            mip_res, mlp_solve_to_string (mip_res),
+            mip_status, mlp_status_to_string (mip_status));
+        mip_res = GNUNET_OK;
+        break;
+      case GLP_FEAS: /* solution is feasible but not proven optimal */
+        LOG (GNUNET_ERROR_TYPE_WARNING,
+               "Solution of MLP problem is feasible: 0x%02X %s, 0x%02X %s\n",
+               mip_res, mlp_solve_to_string (mip_res),
+               mip_status, mlp_status_to_string (mip_status));
+        mip_res = GNUNET_OK;
+        break;
+      case GLP_UNDEF: /* Solution undefined */
+      case GLP_NOFEAS: /* No feasible solution */
+      default:
+        LOG (GNUNET_ERROR_TYPE_ERROR,
+            "Solving MLP problem failed: 0x%02X %s 0x%02X %s\n",
+            mip_res, mlp_solve_to_string (mip_res),
+            mip_status, mlp_status_to_string (mip_status));
+        mip_res = GNUNET_SYSERR;
+        break;
+    }
 
     dur_mlp = GNUNET_TIME_absolute_get_duration (start_cur_op);
     dur_total = GNUNET_TIME_absolute_get_duration (start_total);
 
     notify(mlp, GAS_OP_SOLVE_MLP_MLP_STOP,
-        (GNUNET_OK == res_mip) ? GAS_STAT_SUCCESS : GAS_STAT_FAIL,
+        (GNUNET_OK == mip_res) ? GAS_STAT_SUCCESS : GAS_STAT_FAIL,
         (GNUNET_YES == mlp->stat_mlp_prob_changed) ? GAS_INFO_FULL : GAS_INFO_UPDATED);
   }
   else
@@ -1309,12 +1380,12 @@ GAS_mlp_solve_problem (void *solver)
 
     notify(mlp, GAS_OP_SOLVE_MLP_MLP_STOP, GAS_STAT_FAIL,
         (GNUNET_YES == mlp->stat_mlp_prob_changed) ? GAS_INFO_FULL : GAS_INFO_UPDATED);
-    res_mip = GNUNET_SYSERR;
+    mip_res = GNUNET_SYSERR;
   }
 
   /* Notify about end */
   notify(mlp, GAS_OP_SOLVE_STOP,
-      ((GNUNET_OK == res_mip) && (GNUNET_OK == res_mip)) ? GAS_STAT_SUCCESS : GAS_STAT_FAIL,
+      ((GNUNET_OK == mip_res) && (GNUNET_OK == mip_res)) ? GAS_STAT_SUCCESS : GAS_STAT_FAIL,
       (GNUNET_YES == mlp->stat_mlp_prob_changed) ? GAS_INFO_FULL : GAS_INFO_UPDATED);
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -1327,7 +1398,7 @@ GAS_mlp_solve_problem (void *solver)
 
   /* Save stats */
   mlp->ps.lp_res = res_lp;
-  mlp->ps.mip_res = res_mip;
+  mlp->ps.mip_res = mip_res;
   mlp->ps.lp_presolv = mlp->control_param_lp.presolve;
   mlp->ps.mip_presolv = mlp->control_param_mlp.presolve;
   mlp->ps.p_cols = glp_get_num_cols(mlp->p.prob);
@@ -1336,20 +1407,20 @@ GAS_mlp_solve_problem (void *solver)
 
   /* Propagate result*/
   notify (mlp, GAS_OP_SOLVE_UPDATE_NOTIFICATION_START,
-      (GNUNET_OK == res_lp) && (GNUNET_OK == res_mip) ? GAS_STAT_SUCCESS : GAS_STAT_FAIL,
+      (GNUNET_OK == res_lp) && (GNUNET_OK == mip_res) ? GAS_STAT_SUCCESS : GAS_STAT_FAIL,
       GAS_INFO_NONE);
-  if ((GNUNET_OK == res_lp) && (GNUNET_OK == res_mip))
+  if ((GNUNET_OK == res_lp) && (GNUNET_OK == mip_res))
     {
       GNUNET_CONTAINER_multipeermap_iterate(mlp->addresses,
           &mlp_propagate_results, mlp);
     }
   notify (mlp, GAS_OP_SOLVE_UPDATE_NOTIFICATION_STOP,
-      (GNUNET_OK == res_lp) && (GNUNET_OK == res_mip) ? GAS_STAT_SUCCESS : GAS_STAT_FAIL,
+      (GNUNET_OK == res_lp) && (GNUNET_OK == mip_res) ? GAS_STAT_SUCCESS : GAS_STAT_FAIL,
       GAS_INFO_NONE);
 
   struct GNUNET_TIME_Absolute time = GNUNET_TIME_absolute_get();
   if ( (GNUNET_YES == mlp->opt_dump_problem_all) ||
-      (mlp->opt_dump_problem_on_fail && ((GNUNET_OK != res_lp) || (GNUNET_OK != res_mip))) )
+      (mlp->opt_dump_problem_on_fail && ((GNUNET_OK != res_lp) || (GNUNET_OK != mip_res))) )
     {
       /* Write problem to disk */
       switch (mlp->opt_log_format) {
@@ -1375,7 +1446,7 @@ GAS_mlp_solve_problem (void *solver)
       GNUNET_free(filename);
     }
   if ( (mlp->opt_dump_solution_all) ||
-      (mlp->opt_dump_solution_on_fail && ((GNUNET_OK != res_lp) || (GNUNET_OK != res_mip))) )
+      (mlp->opt_dump_solution_on_fail && ((GNUNET_OK != res_lp) || (GNUNET_OK != mip_res))) )
   {
     /* Write solution to disk */
     GNUNET_asprintf(&filename, "problem_p_%u_a%u_%llu.sol", mlp->p.num_peers,
@@ -1390,7 +1461,7 @@ GAS_mlp_solve_problem (void *solver)
   mlp->stat_mlp_prob_updated = GNUNET_NO;
   mlp->stat_mlp_prob_changed = GNUNET_NO;
 
-  if ((GNUNET_OK == res_lp) && (GNUNET_OK == res_mip))
+  if ((GNUNET_OK == res_lp) && (GNUNET_OK == mip_res))
     return GNUNET_OK;
   else
     return GNUNET_SYSERR;
@@ -2059,6 +2130,7 @@ libgnunet_plugin_ats_mlp_init (void *cls)
   int c;
   int c2;
   int found;
+  char *tmp_str;
   char *outputformat;
 
   struct GNUNET_TIME_Relative max_duration;
@@ -2218,6 +2290,22 @@ libgnunet_plugin_ats_mlp_init (void *cls)
   }
 
   mlp->pv.BIG_M = (double) BIG_M_VALUE;
+  mlp->pv.mip_gap = (double) 0.0;
+
+  if (GNUNET_SYSERR != GNUNET_CONFIGURATION_get_value_string (env->cfg, "ats",
+      "MLP_MAX_MIP_GAP", &tmp_str))
+  {
+    /* Dangerous due to localized separator , or . */
+    mlp->pv.mip_gap = strtod (tmp_str, NULL);
+    if ( (mlp->pv.mip_gap < 0.0) && (mlp->pv.mip_gap > 1.0) )
+    {
+        LOG (GNUNET_ERROR_TYPE_INFO, "Invalid MIP gap configuration %u \n",
+            tmp);
+    }
+    else
+        LOG (GNUNET_ERROR_TYPE_WARNING, "Using MIP gap of %.3f\n",
+            mlp->pv.mip_gap);
+  }
 
   /* Get timeout for iterations */
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_time(env->cfg, "ats",
@@ -2429,7 +2517,11 @@ libgnunet_plugin_ats_mlp_init (void *cls)
 
   /* Init MLP solving parameters */
   glp_init_iocp(&mlp->control_param_mlp);
+  /* Setting callback function */
+  mlp->control_param_mlp.cb_func = &mlp_branch_and_cut_cb;
+  mlp->control_param_mlp.cb_info = mlp;
   mlp->control_param_mlp.msg_lev = GLP_MSG_OFF;
+  mlp->control_param_mlp.mip_gap = mlp->pv.mip_gap;
   if (GNUNET_YES == mlp->opt_dbg_glpk_verbose)
     mlp->control_param_mlp.msg_lev = GLP_MSG_ALL;
   mlp->control_param_mlp.tm_lim = max_duration.rel_value_us / 1000LL;

@@ -44,8 +44,12 @@ PROP_STABILITY_FACTOR = 125
 # MLP specific settings
 # MLP defaults
 
-# Maximum duration for a solution process
+# Maximum duration for a solution process (both LP and MILP)
 # MLP_MAX_DURATION = 3 s
+# Maximum numbero of iterations for a solution process (only LP)
+# MLP_MAX_ITERATIONS = 
+# Tolerated MIP Gap in percent [0 .. 100]
+# MLP_MAX_MIP_GAP = 0.0
 
 # Maximum number of iterations for a solution process
 # MLP_MAX_ITERATIONS = 1024

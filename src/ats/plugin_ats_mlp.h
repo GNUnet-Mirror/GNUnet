@@ -71,6 +71,10 @@ struct MLP_Solution
   int mip_res;
   int mip_presolv;
 
+  double lp_objective_value;
+  double mlp_objective_value;
+  double mlp_gap;
+
   int p_elements;
   int p_cols;
   int p_rows;
@@ -155,6 +159,9 @@ struct MLP_Variables
 {
   /* Big M value for bandwidth capping */
   double BIG_M;
+
+  /* MIP Gap */
+  double mip_gap;
 
   /* ATS Quality metrics
    *
