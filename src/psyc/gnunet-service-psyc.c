@@ -58,10 +58,16 @@ static struct GNUNET_SERVER_NotificationContext *nc;
 static struct GNUNET_PSYCSTORE_Handle *store;
 
 /**
- * All connected masters and slaves.
+ * All connected masters.
  * Channel's pub_key_hash -> struct Channel
  */
-static struct GNUNET_CONTAINER_MultiHashMap *clients;
+static struct GNUNET_CONTAINER_MultiHashMap *masters;
+
+/**
+ * All connected slaves.
+ * Channel's pub_key_hash -> struct Channel
+ */
+static struct GNUNET_CONTAINER_MultiHashMap *slaves;
 
 
 /**
@@ -158,7 +164,7 @@ struct FragmentQueue
 
 
 /**
- * Common part of the client context for both a master and slave channel.
+ * Common part of the client context for both a channel master and slave.
  */
 struct Channel
 {
@@ -266,7 +272,7 @@ struct Master
   /**
    * Transmit handle for multicast.
    */
-  struct GNUNET_MULTICAST_OriginMessageHandle *tmit_handle;
+  struct GNUNET_MULTICAST_OriginTransmitHandle *tmit_handle;
 
   /**
    * Last message ID transmitted to this channel.
@@ -307,7 +313,7 @@ struct Slave
   /**
    * Private key of the slave.
    */
-  struct GNUNET_CRYPTO_EddsaPrivateKey slave_key;
+  struct GNUNET_CRYPTO_EddsaPrivateKey priv_key;
 
   /**
    * Handle for the multicast member.
@@ -317,7 +323,7 @@ struct Slave
   /**
    * Transmit handle for multicast.
    */
-  struct GNUNET_MULTICAST_MemberRequestHandle *tmit_handle;
+  struct GNUNET_MULTICAST_MemberTransmitHandle *tmit_handle;
 
   /**
    * Peer identity of the origin.
@@ -382,7 +388,7 @@ client_cleanup (struct Channel *ch)
     struct Master *mst = (struct Master *) ch;
     if (NULL != mst->origin)
       GNUNET_MULTICAST_origin_stop (mst->origin);
-    GNUNET_CONTAINER_multihashmap_remove (clients, &ch->pub_key_hash, mst);
+    GNUNET_CONTAINER_multihashmap_remove (masters, &ch->pub_key_hash, ch);
   }
   else
   {
@@ -393,6 +399,7 @@ client_cleanup (struct Channel *ch)
       GNUNET_free (slv->relays);
     if (NULL != slv->member)
       GNUNET_MULTICAST_member_part (slv->member);
+    GNUNET_CONTAINER_multihashmap_remove (slaves, &ch->pub_key_hash, ch);
   }
 
   GNUNET_free (ch);
@@ -975,7 +982,7 @@ request_cb (void *cls, const struct GNUNET_CRYPTO_EddsaPublicKey *slave_key,
                                                           NULL, NULL))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  "%p Dropping message with invalid parts "
+                  "%p Dropping request with invalid parts "
                   "received from multicast.\n", ch);
       GNUNET_break_op (0);
       break;
@@ -1017,6 +1024,7 @@ master_counters_cb (void *cls, int result, uint64_t max_fragment_id,
 {
   struct Master *mst = cls;
   struct Channel *ch = &mst->channel;
+
   struct CountersResult *res = GNUNET_malloc (sizeof (*res));
   res->header.type = htons (GNUNET_MESSAGE_TYPE_PSYC_MASTER_START_ACK);
   res->header.size = htons (sizeof (*res));
@@ -1031,12 +1039,20 @@ master_counters_cb (void *cls, int result, uint64_t max_fragment_id,
     mst->max_group_generation = max_group_generation;
     mst->origin
       = GNUNET_MULTICAST_origin_start (cfg, &mst->priv_key,
-                                       max_fragment_id + 1,
+                                       max_fragment_id,
                                        join_cb, membership_test_cb,
                                        replay_fragment_cb, replay_message_cb,
                                        request_cb, message_cb, ch);
     ch->ready = GNUNET_YES;
   }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "%p GNUNET_PSYCSTORE_counters_get() "
+                "returned %d for channel %s.\n",
+                ch, result, GNUNET_h2s (&ch->pub_key_hash));
+  }
+
   GNUNET_SERVER_notification_context_add (nc, ch->client);
   GNUNET_SERVER_notification_context_unicast (nc, ch->client, &res->header,
                                               GNUNET_NO);
@@ -1054,6 +1070,7 @@ slave_counters_cb (void *cls, int result, uint64_t max_fragment_id,
 {
   struct Slave *slv = cls;
   struct Channel *ch = &slv->channel;
+
   struct CountersResult *res = GNUNET_malloc (sizeof (*res));
   res->header.type = htons (GNUNET_MESSAGE_TYPE_PSYC_SLAVE_JOIN_ACK);
   res->header.size = htons (sizeof (*res));
@@ -1065,7 +1082,7 @@ slave_counters_cb (void *cls, int result, uint64_t max_fragment_id,
     ch->max_message_id = max_message_id;
     ch->max_state_message_id = max_state_message_id;
     slv->member
-      = GNUNET_MULTICAST_member_join (cfg, &ch->pub_key, &slv->slave_key,
+      = GNUNET_MULTICAST_member_join (cfg, &ch->pub_key, &slv->priv_key,
                                       &slv->origin,
                                       slv->relay_count, slv->relays,
                                       slv->join_req, join_cb,
@@ -1073,6 +1090,13 @@ slave_counters_cb (void *cls, int result, uint64_t max_fragment_id,
                                       replay_fragment_cb, replay_message_cb,
                                       message_cb, ch);
     ch->ready = GNUNET_YES;
+  }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "%p GNUNET_PSYCSTORE_counters_get() "
+                "returned %d for channel %s.\n",
+                ch, result, GNUNET_h2s (&ch->pub_key_hash));
   }
 
   GNUNET_SERVER_notification_context_add (nc, ch->client);
@@ -1118,9 +1142,9 @@ handle_master_start (void *cls, struct GNUNET_SERVER_Client *client,
 
   GNUNET_PSYCSTORE_counters_get (store, &ch->pub_key, master_counters_cb, mst);
 
-  GNUNET_SERVER_client_set_user_context (client, &mst->channel);
-  GNUNET_CONTAINER_multihashmap_put (clients, &ch->pub_key_hash, mst,
+  GNUNET_CONTAINER_multihashmap_put (masters, &ch->pub_key_hash, ch,
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+  GNUNET_SERVER_client_set_user_context (client, ch);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
@@ -1135,7 +1159,7 @@ handle_slave_join (void *cls, struct GNUNET_SERVER_Client *client,
   const struct SlaveJoinRequest *req
     = (const struct SlaveJoinRequest *) msg;
   struct Slave *slv = GNUNET_new (struct Slave);
-  slv->slave_key = req->slave_key;
+  slv->priv_key = req->slave_key;
   slv->origin = req->origin;
   slv->relay_count = ntohl (req->relay_count);
   if (0 < slv->relay_count)
@@ -1163,6 +1187,8 @@ handle_slave_join (void *cls, struct GNUNET_SERVER_Client *client,
 
   GNUNET_PSYCSTORE_counters_get (store, &ch->pub_key, slave_counters_cb, slv);
 
+  GNUNET_CONTAINER_multihashmap_put (slaves, &ch->pub_key_hash, ch,
+                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
   GNUNET_SERVER_client_set_user_context (client, &slv->channel);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
@@ -1183,8 +1209,7 @@ send_message_ack (struct Channel *ch)
   res.type = htons (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_ACK);
 
   GNUNET_SERVER_notification_context_add (nc, ch->client);
-  GNUNET_SERVER_notification_context_unicast (nc, ch->client, &res,
-                                              GNUNET_NO);
+  GNUNET_SERVER_notification_context_unicast (nc, ch->client, &res, GNUNET_NO);
 }
 
 
@@ -1554,7 +1579,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   cfg = c;
   store = GNUNET_PSYCSTORE_connect (cfg);
   stats = GNUNET_STATISTICS_create ("psyc", cfg);
-  clients = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_YES);
+  masters = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_YES);
+  slaves = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_YES);
   recv_cache = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_YES);
   nc = GNUNET_SERVER_notification_context_create (server, 1);
   GNUNET_SERVER_add_handlers (server, handlers);

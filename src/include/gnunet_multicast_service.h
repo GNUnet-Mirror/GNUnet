@@ -598,7 +598,7 @@ typedef int
  * Handle for a request to send a message to all multicast group members
  * (from the origin).
  */
-struct GNUNET_MULTICAST_OriginMessageHandle;
+struct GNUNET_MULTICAST_OriginTransmitHandle;
 
 
 /**
@@ -612,7 +612,7 @@ struct GNUNET_MULTICAST_OriginMessageHandle;
  * @param notify_cls Closure for @a notify.
  * @return NULL on error (i.e. request already pending).
  */
-struct GNUNET_MULTICAST_OriginMessageHandle *
+struct GNUNET_MULTICAST_OriginTransmitHandle *
 GNUNET_MULTICAST_origin_to_all (struct GNUNET_MULTICAST_Origin *origin,
                                 uint64_t message_id,
                                 uint64_t group_generation,
@@ -624,19 +624,19 @@ GNUNET_MULTICAST_origin_to_all (struct GNUNET_MULTICAST_Origin *origin,
 /**
  * Resume message transmission to multicast group.
  *
- * @param mh Request to cancel.
+ * @param th  Transmission to cancel.
  */
 void
-GNUNET_MULTICAST_origin_to_all_resume (struct GNUNET_MULTICAST_OriginMessageHandle *mh);
+GNUNET_MULTICAST_origin_to_all_resume (struct GNUNET_MULTICAST_OriginTransmitHandle *th);
 
 
 /**
  * Cancel request for message transmission to multicast group.
  *
- * @param mh Request to cancel.
+ * @param th  Transmission to cancel.
  */
 void
-GNUNET_MULTICAST_origin_to_all_cancel (struct GNUNET_MULTICAST_OriginMessageHandle *mh);
+GNUNET_MULTICAST_origin_to_all_cancel (struct GNUNET_MULTICAST_OriginTransmitHandle *th);
 
 
 /**
@@ -788,6 +788,7 @@ GNUNET_MULTICAST_member_part (struct GNUNET_MULTICAST_Member *member);
  *        @a data, should be set to the number of bytes written to data.
  * @param[out] data Where to write the body of the message to give to the
  *         method. The function must copy at most @a data_size bytes to @a data.
+ *
  * @return #GNUNET_SYSERR on error (fatal, aborts transmission)
  *         #GNUNET_NO on success, if more data is to be transmitted later.
  *         Should be used if @a data_size was not big enough to take all the
@@ -804,7 +805,7 @@ typedef int
 /**
  * Handle for a message to be delivered from a member to the origin.
  */
-struct GNUNET_MULTICAST_MemberRequestHandle;
+struct GNUNET_MULTICAST_MemberTransmitHandle;
 
 
 /**
@@ -814,9 +815,10 @@ struct GNUNET_MULTICAST_MemberRequestHandle;
  * @param request_id Application layer ID for the request.  Opaque to multicast.
  * @param notify Callback to call to get the message.
  * @param notify_cls Closure for @a notify.
+ *
  * @return Handle to cancel request, NULL on error (i.e. request already pending).
  */
-struct GNUNET_MULTICAST_MemberRequestHandle *
+struct GNUNET_MULTICAST_MemberTransmitHandle *
 GNUNET_MULTICAST_member_to_origin (struct GNUNET_MULTICAST_Member *member,
                                    uint64_t request_id,
                                    GNUNET_MULTICAST_MemberTransmitNotify notify,
@@ -826,19 +828,19 @@ GNUNET_MULTICAST_member_to_origin (struct GNUNET_MULTICAST_Member *member,
 /**
  * Resume message transmission to origin.
  *
- * @param rh Request to cancel.
+ * @param th  Transmission to cancel.
  */
 void
-GNUNET_MULTICAST_member_to_origin_resume (struct GNUNET_MULTICAST_MemberRequestHandle *rh);
+GNUNET_MULTICAST_member_to_origin_resume (struct GNUNET_MULTICAST_MemberTransmitHandle *th);
 
 
 /**
  * Cancel request for message transmission to origin.
  *
- * @param rh Request to cancel.
+ * @param th  Transmission to cancel.
  */
 void
-GNUNET_MULTICAST_member_to_origin_cancel (struct GNUNET_MULTICAST_MemberRequestHandle *rh);
+GNUNET_MULTICAST_member_to_origin_cancel (struct GNUNET_MULTICAST_MemberTransmitHandle *th);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

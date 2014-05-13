@@ -183,9 +183,8 @@ struct MulticastReplayEndMessage
  */
 struct MulticastOriginStartMessage
 {
-
   /**
-   *
+   * Type: GNUNET_MESSAGE_TYPE_MULTICAST_ORIGIN_START
    */
   struct GNUNET_MessageHeader header;
 
@@ -195,16 +194,36 @@ struct MulticastOriginStartMessage
   uint32_t reserved;
 
   /**
-   * Private, non-ephemeral key for the mutlicast group.
+   * Private, non-ephemeral key for the multicast group.
    */
   struct GNUNET_CRYPTO_EddsaPrivateKey group_key;
 
   /**
-   * Last fragment ID, used to continue counting fragments if we resume operating
-   * a group.
+   * Last fragment ID sent to the group, used to continue counting fragments if
+   * we resume operating * a group.
    */
-  uint64_t last_fragment_id;
+  uint64_t max_fragment_id;
 
+};
+
+
+struct MulticastMemberJoinMessage
+{
+  /**
+   * Type: GNUNET_MESSAGE_TYPE_MULTICAST_MEMBER_JOIN
+   */
+  struct GNUNET_MessageHeader header;
+
+  uint32_t relay_count GNUNET_PACKED;
+
+  struct GNUNET_CRYPTO_EddsaPublicKey group_key;
+
+  struct GNUNET_CRYPTO_EddsaPrivateKey member_key;
+
+  struct GNUNET_PeerIdentity origin;
+
+  /* Followed by struct GNUNET_PeerIdentity relays[relay_count] */
+  /* Followed by struct GNUNET_MessageHeader join_request */
 };
 
 

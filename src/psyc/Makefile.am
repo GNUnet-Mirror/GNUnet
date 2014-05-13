@@ -42,14 +42,14 @@ gnunet_service_psyc_SOURCES = \
  gnunet-service-psyc.c \
  psyc_common.c
 gnunet_service_psyc_LDADD = \
-  $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/multicast/libgnunetmulticast.la \
   $(top_builddir)/src/psycstore/libgnunetpsycstore.la \
   $(GN_LIBINTL)
 gnunet_service_psyc_DEPENDENCIES = \
-  $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/multicast/libgnunetmulticast.la \
   $(top_builddir)/src/psycstore/libgnunetpsycstore.la
 gnunet_service_psyc_CFLAGS = $(AM_CFLAGS)

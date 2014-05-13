@@ -2326,48 +2326,51 @@ extern "C"
  * MULTICAST message types
  ******************************************************************************/
 
-
-/* WIP: no numbers assigned yet */
+/**
+ * C: client
+ * S: service
+ * T: cadet
+ */
 
 /**
- * Start an origin.
+ * C->S: Start the origin.
  */
 #define GNUNET_MESSAGE_TYPE_MULTICAST_ORIGIN_START 750
 
 /**
- * Stop an origin.
+ * C->S: Stop the origin.
  */
 #define GNUNET_MESSAGE_TYPE_MULTICAST_ORIGIN_STOP 751
 
 /**
- * Join a group as a member.
+ * C->S: Join group as a member.
  */
 #define GNUNET_MESSAGE_TYPE_MULTICAST_MEMBER_JOIN 752
 
 /**
- * Leave a group.
+ * C->S: Part the group.
  */
 #define GNUNET_MESSAGE_TYPE_MULTICAST_MEMBER_PART 753
 
 /**
- * Multicast message from the origin to all members.
+ * C<->S<->T: Multicast message from the origin to all members.
  */
 #define GNUNET_MESSAGE_TYPE_MULTICAST_MESSAGE 754
 
 /**
- * A unicast message from a group member to the origin.
+ * C<->S<->T: Unicast request from a group member to the origin.
  */
 #define GNUNET_MESSAGE_TYPE_MULTICAST_REQUEST 755
 
 /**
- * A peer wants to join the group.
+ * C<--S<->T: A peer wants to join the group.
  *
  * Unicast message to the origin or another group member.
  */
 #define GNUNET_MESSAGE_TYPE_MULTICAST_JOIN_REQUEST
 
 /**
- * Response to a join request.
+ * C<->S<->T: Response to a join request.
  *
  * Unicast message from a group member to the peer wanting to join.
  */

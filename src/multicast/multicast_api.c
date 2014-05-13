@@ -26,7 +26,6 @@
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
-#include "gnunet_signatures.h"
 #include "gnunet_multicast_service.h"
 #include "multicast.h"
 
@@ -46,11 +45,18 @@ static struct GNUNET_CONTAINER_MultiHashMap *origins;
 static struct GNUNET_CONTAINER_MultiHashMap *members;
 
 
+struct MessageQueue
+{
+  struct MessageQueue *prev;
+  struct MessageQueue *next;
+};
+
+
 /**
  * Handle for a request to send a message to all multicast group members
  * (from the origin).
  */
-struct GNUNET_MULTICAST_OriginMessageHandle
+struct GNUNET_MULTICAST_OriginTransmitHandle
 {
   GNUNET_MULTICAST_OriginTransmitNotify notify;
   void *notify_cls;
@@ -62,40 +68,10 @@ struct GNUNET_MULTICAST_OriginMessageHandle
 };
 
 
-struct GNUNET_MULTICAST_Group
-{
-  uint8_t is_origin;
-};
-
-/**
- * Handle for the origin of a multicast group.
- */
-struct GNUNET_MULTICAST_Origin
-{
-  struct GNUNET_MULTICAST_Group grp;
-
-  struct GNUNET_MULTICAST_OriginMessageHandle msg_handle;
-  struct GNUNET_CRYPTO_EddsaPrivateKey priv_key;
-
-  GNUNET_MULTICAST_JoinCallback join_cb;
-  GNUNET_MULTICAST_MembershipTestCallback mem_test_cb;
-  GNUNET_MULTICAST_ReplayFragmentCallback replay_frag_cb;
-  GNUNET_MULTICAST_ReplayMessageCallback replay_msg_cb;
-  GNUNET_MULTICAST_RequestCallback request_cb;
-  GNUNET_MULTICAST_MessageCallback message_cb;
-  void *cls;
-
-  uint64_t next_fragment_id;
-
-  struct GNUNET_CRYPTO_EddsaPublicKey pub_key;
-  struct GNUNET_HashCode pub_key_hash;
-};
-
-
 /**
  * Handle for a message to be delivered from a member to the origin.
  */
-struct GNUNET_MULTICAST_MemberRequestHandle
+struct GNUNET_MULTICAST_MemberTransmitHandle
 {
   GNUNET_MULTICAST_MemberTransmitNotify notify;
   void *notify_cls;
@@ -106,30 +82,109 @@ struct GNUNET_MULTICAST_MemberRequestHandle
 };
 
 
+struct GNUNET_MULTICAST_Group
+{
+  /**
+   * Configuration to use.
+   */
+  const struct GNUNET_CONFIGURATION_Handle *cfg;
+
+  /**
+   * Socket (if available).
+   */
+  struct GNUNET_CLIENT_Connection *client;
+
+  /**
+   * Currently pending transmission request, or NULL for none.
+   */
+  struct GNUNET_CLIENT_TransmitHandle *th;
+
+  /**
+   * Head of operations to transmit.
+   */
+  struct MessageQueue *tmit_head;
+
+  /**
+   * Tail of operations to transmit.
+   */
+  struct MessageQueue *tmit_tail;
+
+  /**
+   * Message being transmitted to the Multicast service.
+   */
+  struct MessageQueue *tmit_msg;
+
+  /**
+   * Message to send on reconnect.
+   */
+  struct GNUNET_MessageHeader *reconnect_msg;
+
+  /**
+   * Task doing exponential back-off trying to reconnect.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier reconnect_task;
+
+  /**
+   * Time for next connect retry.
+   */
+  struct GNUNET_TIME_Relative reconnect_delay;
+
+  struct GNUNET_CRYPTO_EddsaPublicKey pub_key;
+  struct GNUNET_HashCode pub_key_hash;
+
+  GNUNET_MULTICAST_JoinCallback join_cb;
+  GNUNET_MULTICAST_MembershipTestCallback member_test_cb;
+  GNUNET_MULTICAST_ReplayFragmentCallback replay_frag_cb;
+  GNUNET_MULTICAST_ReplayMessageCallback replay_msg_cb;
+  GNUNET_MULTICAST_MessageCallback message_cb;
+  void *cb_cls;
+
+  /**
+   * Are we polling for incoming messages right now?
+   */
+  uint8_t in_receive;
+
+  /**
+   * Are we currently transmitting a message?
+   */
+  uint8_t in_transmit;
+
+  /**
+   * Is this the origin or a member?
+   */
+  uint8_t is_origin;
+};
+
+
+/**
+ * Handle for the origin of a multicast group.
+ */
+struct GNUNET_MULTICAST_Origin
+{
+  struct GNUNET_MULTICAST_Group grp;
+  struct GNUNET_MULTICAST_OriginTransmitHandle tmit;
+  struct GNUNET_CRYPTO_EddsaPrivateKey priv_key;
+
+  GNUNET_MULTICAST_RequestCallback request_cb;
+};
+
+
 /**
  * Handle for a multicast group member.
  */
 struct GNUNET_MULTICAST_Member
 {
   struct GNUNET_MULTICAST_Group grp;
+  struct GNUNET_MULTICAST_MemberTransmitHandle tmit;
 
-  struct GNUNET_MULTICAST_MemberRequestHandle req_handle;
-
-  struct GNUNET_CRYPTO_EddsaPublicKey group_key;
-  struct GNUNET_CRYPTO_EddsaPrivateKey member_key;
+  struct GNUNET_CRYPTO_EddsaPrivateKey priv_key;
   struct GNUNET_PeerIdentity origin;
   struct GNUNET_PeerIdentity relays;
   uint32_t relay_count;
+
   struct GNUNET_MessageHeader *join_request;
-  GNUNET_MULTICAST_JoinCallback join_cb;
-  GNUNET_MULTICAST_MembershipTestCallback member_test_cb;
-  GNUNET_MULTICAST_ReplayFragmentCallback replay_frag_cb;
-  GNUNET_MULTICAST_ReplayMessageCallback replay_msg_cb;
-  GNUNET_MULTICAST_MessageCallback message_cb;
-  void *cls;
 
   uint64_t next_fragment_id;
-  struct GNUNET_HashCode group_key_hash;
 };
 
 
@@ -168,34 +223,233 @@ struct GNUNET_MULTICAST_MemberReplayHandle
 };
 
 
+static void
+reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+
+static void
+reschedule_connect (struct GNUNET_MULTICAST_Group *grp);
+
+
+/**
+ * Schedule transmission of the next message from our queue.
+ *
+ * @param grp PSYC channel handle
+ */
+static void
+transmit_next (struct GNUNET_MULTICAST_Group *grp);
+
+
+static void
+message_handler (void *cls, const struct GNUNET_MessageHeader *msg);
+
+
+/**
+ * Reschedule a connect attempt to the service.
+ *
+ * @param c channel to reconnect
+ */
+static void
+reschedule_connect (struct GNUNET_MULTICAST_Group *grp)
+{
+  GNUNET_assert (grp->reconnect_task == GNUNET_SCHEDULER_NO_TASK);
+
+  if (NULL != grp->th)
+  {
+    GNUNET_CLIENT_notify_transmit_ready_cancel (grp->th);
+    grp->th = NULL;
+  }
+  if (NULL != grp->client)
+  {
+    GNUNET_CLIENT_disconnect (grp->client);
+    grp->client = NULL;
+  }
+  grp->in_receive = GNUNET_NO;
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Scheduling task to reconnect to Multicast service in %s.\n",
+       GNUNET_STRINGS_relative_time_to_string (grp->reconnect_delay, GNUNET_YES));
+  grp->reconnect_task =
+      GNUNET_SCHEDULER_add_delayed (grp->reconnect_delay, &reconnect, grp);
+  grp->reconnect_delay = GNUNET_TIME_STD_BACKOFF (grp->reconnect_delay);
+}
+
+
+/**
+ * Reset stored data related to the last received message.
+ */
+static void
+recv_reset (struct GNUNET_MULTICAST_Group *grp)
+{
+}
+
+
+static void
+recv_error (struct GNUNET_MULTICAST_Group *grp)
+{
+  if (NULL != grp->message_cb)
+    grp->message_cb (grp->cb_cls, NULL);
+
+  recv_reset (grp);
+}
+
+
+/**
+ * Transmit next message to service.
+ *
+ * @param cls	The struct GNUNET_MULTICAST_Group.
+ * @param size	Number of bytes available in @a buf.
+ * @param buf	Where to copy the message.
+ *
+ * @return Number of bytes copied to @a buf.
+ */
+static size_t
+send_next_message (void *cls, size_t size, void *buf)
+{
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "send_next_message()\n");
+  struct GNUNET_MULTICAST_Group *grp = cls;
+  struct MessageQueue *mq = grp->tmit_head;
+  if (NULL == mq)
+    return 0;
+  struct GNUNET_MessageHeader *qmsg = (struct GNUNET_MessageHeader *) &mq[1];
+  size_t ret = ntohs (qmsg->size);
+  grp->th = NULL;
+  if (ret > size)
+  {
+    reschedule_connect (grp);
+    return 0;
+  }
+  memcpy (buf, qmsg, ret);
+
+  GNUNET_CONTAINER_DLL_remove (grp->tmit_head, grp->tmit_tail, mq);
+  GNUNET_free (mq);
+
+  if (NULL != grp->tmit_head)
+    transmit_next (grp);
+
+  if (GNUNET_NO == grp->in_receive)
+  {
+    grp->in_receive = GNUNET_YES;
+    GNUNET_CLIENT_receive (grp->client, &message_handler, grp,
+                           GNUNET_TIME_UNIT_FOREVER_REL);
+  }
+  return ret;
+}
+
+
+/**
+ * Schedule transmission of the next message from our queue.
+ *
+ * @param grp  Multicast group handle.
+ */
+static void
+transmit_next (struct GNUNET_MULTICAST_Group *grp)
+{
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "transmit_next()\n");
+  if (NULL != grp->th || NULL == grp->client)
+    return;
+
+  struct MessageQueue *mq = grp->tmit_head;
+  if (NULL == mq)
+    return;
+  struct GNUNET_MessageHeader *qmsg = (struct GNUNET_MessageHeader *) &mq[1];
+
+  grp->th = GNUNET_CLIENT_notify_transmit_ready (grp->client,
+                                                 ntohs (qmsg->size),
+                                                 GNUNET_TIME_UNIT_FOREVER_REL,
+                                                 GNUNET_NO,
+                                                 &send_next_message,
+                                                 grp);
+}
+
+
+/**
+ * Try again to connect to the Multicast service.
+ *
+ * @param cls Channel handle.
+ * @param tc Scheduler context.
+ */
+static void
+reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_MULTICAST_Group *grp = cls;
+
+  recv_reset (grp);
+  grp->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Connecting to Multicast service.\n");
+  GNUNET_assert (NULL == grp->client);
+  grp->client = GNUNET_CLIENT_connect ("multicast", grp->cfg);
+  GNUNET_assert (NULL != grp->client);
+  uint16_t reconn_size = ntohs (grp->reconnect_msg->size);
+
+  if (NULL == grp->tmit_head ||
+      0 != memcmp (&grp->tmit_head[1], grp->reconnect_msg, reconn_size))
+  {
+    struct MessageQueue *mq = GNUNET_malloc (sizeof (*mq) + reconn_size);
+    memcpy (&mq[1], grp->reconnect_msg, reconn_size);
+    GNUNET_CONTAINER_DLL_insert (grp->tmit_head, grp->tmit_tail, mq);
+  }
+  transmit_next (grp);
+}
+
+
+/**
+ * Disconnect from the Multicast service.
+ *
+ * @param g  Group handle to disconnect.
+ */
+static void
+disconnect (void *g)
+{
+  struct GNUNET_MULTICAST_Group *grp = g;
+
+  GNUNET_assert (NULL != grp);
+  if (grp->tmit_head != grp->tmit_tail)
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         "Disconnecting while there are still outstanding messages!\n");
+    GNUNET_break (0);
+  }
+  if (grp->reconnect_task != GNUNET_SCHEDULER_NO_TASK)
+  {
+    GNUNET_SCHEDULER_cancel (grp->reconnect_task);
+    grp->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  if (NULL != grp->th)
+  {
+    GNUNET_CLIENT_notify_transmit_ready_cancel (grp->th);
+    grp->th = NULL;
+  }
+  if (NULL != grp->client)
+  {
+    GNUNET_CLIENT_disconnect (grp->client);
+    grp->client = NULL;
+  }
+  if (NULL != grp->reconnect_msg)
+  {
+    GNUNET_free (grp->reconnect_msg);
+    grp->reconnect_msg = NULL;
+  }
+}
+
+
 /**
  * Iterator callback for calling message callbacks for all groups.
  */
 static int
-message_callback (void *cls, const struct GNUNET_HashCode *chan_key_hash,
-                   void *group)
+message_callback (void *cls, const struct GNUNET_HashCode *pub_key_hash,
+                  void *group)
 {
   const struct GNUNET_MessageHeader *msg = cls;
   struct GNUNET_MULTICAST_Group *grp = group;
 
-  if (GNUNET_YES == grp->is_origin)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Calling origin's message callback "
-                "with a message of type %u and size %u.\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Calling message callback with a message "
+              "of type %u and size %u.\n",
               ntohs (msg->type), ntohs (msg->size));
-    struct GNUNET_MULTICAST_Origin *orig = (struct GNUNET_MULTICAST_Origin *) grp;
-    orig->message_cb (orig->cls, msg);
-  }
-  else
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Calling member's message callback "
-                "with a message of type %u and size %u.\n",
-                ntohs (msg->type), ntohs (msg->size));
-    struct GNUNET_MULTICAST_Member *mem = (struct GNUNET_MULTICAST_Member *) grp;
-    mem->message_cb (mem->cls, msg);
-  }
+
+  if (NULL != grp->message_cb)
+    grp->message_cb (grp->cb_cls, msg);
 
   return GNUNET_YES;
 }
@@ -213,25 +467,12 @@ static void
 handle_multicast_message (struct GNUNET_MULTICAST_Group *grp,
                           const struct GNUNET_MULTICAST_MessageHeader *msg)
 {
-  struct GNUNET_HashCode *hash;
-
-  if (GNUNET_YES == grp->is_origin)
-  {
-    struct GNUNET_MULTICAST_Origin *orig = (struct GNUNET_MULTICAST_Origin *) grp;
-    hash = &orig->pub_key_hash;
-  }
-  else
-  {
-    struct GNUNET_MULTICAST_Member *mem = (struct GNUNET_MULTICAST_Member *) grp;
-    hash = &mem->group_key_hash;
-  }
-
   if (origins != NULL)
-    GNUNET_CONTAINER_multihashmap_get_multiple (origins, hash, message_callback,
-                                                (void *) msg);
+    GNUNET_CONTAINER_multihashmap_get_multiple (origins, &grp->pub_key_hash,
+                                                message_callback, (void *) msg);
   if (members != NULL)
-    GNUNET_CONTAINER_multihashmap_get_multiple (members, hash, message_callback,
-                                                (void *) msg);
+    GNUNET_CONTAINER_multihashmap_get_multiple (members, &grp->pub_key_hash,
+                                                message_callback, (void *) msg);
 }
 
 
@@ -249,7 +490,7 @@ request_callback (void *cls, const struct GNUNET_HashCode *chan_key_hash,
               "Calling request callback for a request of type %u and size %u.\n",
               ntohs (req->header.type), ntohs (req->header.size));
 
-  orig->request_cb (orig->cls, &req->member_key,
+  orig->request_cb (orig->grp.cb_cls, &req->member_key,
                     (const struct GNUNET_MessageHeader *) req, 0);
   return GNUNET_YES;
 }
@@ -264,12 +505,90 @@ request_callback (void *cls, const struct GNUNET_HashCode *chan_key_hash,
  * @param msg The message.
  */
 static void
-handle_multicast_request (const struct GNUNET_HashCode *group_key_hash,
+handle_multicast_request (struct GNUNET_MULTICAST_Group *grp,
                           const struct GNUNET_MULTICAST_RequestHeader *req)
 {
   if (NULL != origins)
-    GNUNET_CONTAINER_multihashmap_get_multiple (origins, group_key_hash,
+    GNUNET_CONTAINER_multihashmap_get_multiple (origins, &grp->pub_key_hash,
                                                 request_callback, (void *) req);
+}
+
+
+/**
+ * Function called when we receive a message from the service.
+ *
+ * @param cls	struct GNUNET_MULTICAST_Group
+ * @param msg	Message received, NULL on timeout or fatal error.
+ */
+static void
+message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
+{
+  struct GNUNET_MULTICAST_Group *grp = cls;
+
+  if (NULL == msg)
+  {
+    // timeout / disconnected from service, reconnect
+    reschedule_connect (grp);
+    return;
+  }
+
+  uint16_t size_eq = 0;
+  uint16_t size_min = 0;
+  uint16_t size = ntohs (msg->size);
+  uint16_t type = ntohs (msg->type);
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Received message of type %d and size %u from Multicast service\n",
+       type, size);
+
+  switch (type)
+  {
+  case GNUNET_MESSAGE_TYPE_MULTICAST_MESSAGE:
+    size_min = sizeof (struct GNUNET_MULTICAST_MessageHeader);
+    break;
+
+  case GNUNET_MESSAGE_TYPE_MULTICAST_REQUEST:
+    size_min = sizeof (struct GNUNET_MULTICAST_RequestHeader);
+    break;
+
+  default:
+    GNUNET_break_op (0);
+    return;
+  }
+
+  if (! ((0 < size_eq && size == size_eq)
+         || (0 < size_min && size_min <= size)))
+  {
+    GNUNET_break_op (0);
+    return;
+  }
+
+  switch (type)
+  {
+  case GNUNET_MESSAGE_TYPE_MULTICAST_MESSAGE:
+    handle_multicast_message (grp, (struct GNUNET_MULTICAST_MessageHeader *) msg);
+    break;
+
+  case GNUNET_MESSAGE_TYPE_MULTICAST_REQUEST:
+    if (GNUNET_YES != grp->is_origin)
+    {
+      GNUNET_break (0);
+      break;
+    }
+
+    handle_multicast_request (grp, (struct GNUNET_MULTICAST_RequestHeader *) msg);
+    break;
+
+  default:
+    GNUNET_break_op (0);
+    return;
+  }
+
+  if (NULL != grp->client)
+  {
+    GNUNET_CLIENT_receive (grp->client, &message_handler, grp,
+                           GNUNET_TIME_UNIT_FOREVER_REL);
+  }
 }
 
 
@@ -375,28 +694,29 @@ GNUNET_MULTICAST_replay_response2 (struct GNUNET_MULTICAST_ReplayHandle *rh,
  * candidate will be given a response.  Members in the group can send messages
  * to the origin (one at a time).
  *
- * @param cfg Configuration to use.
- * @param priv_key ECC key that will be used to sign messages for this
+ * @param cfg  Configuration to use.
+ * @param priv_key  ECC key that will be used to sign messages for this
  *        multicast session; public key is used to identify the multicast group;
- * @param next_fragment_id Next fragment ID to continue counting fragments from
- *        when restarting the origin.  0 for a new group.
- * @param join_cb Function called to approve / disapprove joining of a peer.
- * @param mem_test_cb Function multicast can use to test group membership.
- * @param replay_frag_cb Function that can be called to replay a message fragment.
- * @param replay_msg_cb Function that can be called to replay a message.
- * @param request_cb Function called with message fragments from group members.
- * @param message_cb Function called with the message fragments sent to the
+ * @param max_fragment_id  Maximum fragment ID already sent to the group.
+ *        0 for a new group.
+ * @param join_cb  Function called to approve / disapprove joining of a peer.
+ * @param member_test_cb  Function multicast can use to test group membership.
+ * @param replay_frag_cb  Function that can be called to replay a message fragment.
+ * @param replay_msg_cb  Function that can be called to replay a message.
+ * @param request_cb  Function called with message fragments from group members.
+ * @param message_cb  Function called with the message fragments sent to the
  *        network by GNUNET_MULTICAST_origin_to_all().  These message fragments
  *        should be stored for answering replay requests later.
- * @param cls Closure for the various callbacks that follow.
+ * @param cls  Closure for the various callbacks that follow.
+ *
  * @return Handle for the origin, NULL on error.
  */
 struct GNUNET_MULTICAST_Origin *
 GNUNET_MULTICAST_origin_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                const struct GNUNET_CRYPTO_EddsaPrivateKey *priv_key,
-                               uint64_t next_fragment_id,
+                               uint64_t max_fragment_id,
                                GNUNET_MULTICAST_JoinCallback join_cb,
-                               GNUNET_MULTICAST_MembershipTestCallback mem_test_cb,
+                               GNUNET_MULTICAST_MembershipTestCallback member_test_cb,
                                GNUNET_MULTICAST_ReplayFragmentCallback replay_frag_cb,
                                GNUNET_MULTICAST_ReplayMessageCallback replay_msg_cb,
                                GNUNET_MULTICAST_RequestCallback request_cb,
@@ -404,28 +724,40 @@ GNUNET_MULTICAST_origin_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                void *cls)
 {
   struct GNUNET_MULTICAST_Origin *orig = GNUNET_malloc (sizeof (*orig));
-  orig->grp.is_origin = GNUNET_YES;
-  orig->priv_key = *priv_key;
-  orig->next_fragment_id = next_fragment_id;
-  orig->join_cb = join_cb;
-  orig->mem_test_cb = mem_test_cb;
-  orig->replay_frag_cb = replay_frag_cb;
-  orig->replay_msg_cb = replay_msg_cb;
-  orig->request_cb = request_cb;
-  orig->message_cb = message_cb;
-  orig->cls = cls;
+  struct GNUNET_MULTICAST_Group *grp = &orig->grp;
+  struct MulticastOriginStartMessage *start = GNUNET_malloc (sizeof (*start));
 
-  GNUNET_CRYPTO_eddsa_key_get_public (&orig->priv_key, &orig->pub_key);
-  GNUNET_CRYPTO_hash (&orig->pub_key, sizeof (orig->pub_key),
-                      &orig->pub_key_hash);
+  start->header.type = htons (GNUNET_MESSAGE_TYPE_MULTICAST_ORIGIN_START);
+  start->header.size = htons (sizeof (*start));
+  start->max_fragment_id = max_fragment_id;
+  memcpy (&start->group_key, priv_key, sizeof (*priv_key));
+
+  grp->reconnect_msg = (struct GNUNET_MessageHeader *) start;
+  grp->is_origin = GNUNET_YES;
+  grp->cfg = cfg;
+
+  grp->cb_cls = cls;
+  grp->join_cb = join_cb;
+  grp->member_test_cb = member_test_cb;
+  grp->replay_frag_cb = replay_frag_cb;
+  grp->replay_msg_cb = replay_msg_cb;
+  grp->message_cb = message_cb;
+
+  orig->request_cb = request_cb;
+  orig->priv_key = *priv_key;
+
+  GNUNET_CRYPTO_eddsa_key_get_public (&orig->priv_key, &grp->pub_key);
+  GNUNET_CRYPTO_hash (&grp->pub_key, sizeof (grp->pub_key),
+                      &grp->pub_key_hash);
 
   if (NULL == origins)
     origins = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_YES);
 
-  GNUNET_CONTAINER_multihashmap_put (origins, &orig->pub_key_hash, orig,
+  GNUNET_CONTAINER_multihashmap_put (origins, &grp->pub_key_hash, orig,
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
 
-  /* FIXME: send ORIGIN_START to service */
+  grp->reconnect_delay = GNUNET_TIME_UNIT_ZERO;
+  grp->reconnect_task = GNUNET_SCHEDULER_add_now (&reconnect, grp);
 
   return orig;
 }
@@ -439,25 +771,26 @@ GNUNET_MULTICAST_origin_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
 void
 GNUNET_MULTICAST_origin_stop (struct GNUNET_MULTICAST_Origin *orig)
 {
-  GNUNET_CONTAINER_multihashmap_remove (origins, &orig->pub_key_hash, orig);
+  disconnect (&orig->grp);
+  GNUNET_CONTAINER_multihashmap_remove (origins, &orig->grp.pub_key_hash, orig);
   GNUNET_free (orig);
 }
 
 
-/* FIXME: for now just call clients' callbacks
- *        without sending anything to multicast. */
 static void
-schedule_origin_to_all (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+origin_to_all (struct GNUNET_MULTICAST_Origin *orig)
 {
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "schedule_origin_to_all()\n");
-  struct GNUNET_MULTICAST_Origin *orig = cls;
-  struct GNUNET_MULTICAST_OriginMessageHandle *mh = &orig->msg_handle;
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "origin_to_all()\n");
+  struct GNUNET_MULTICAST_Group *grp = &orig->grp;
+  struct GNUNET_MULTICAST_OriginTransmitHandle *tmit = &orig->tmit;
 
   size_t buf_size = GNUNET_MULTICAST_FRAGMENT_MAX_SIZE;
-  char buf[GNUNET_MULTICAST_FRAGMENT_MAX_SIZE] = "";
-  struct GNUNET_MULTICAST_MessageHeader *msg
-    = (struct GNUNET_MULTICAST_MessageHeader *) buf;
-  int ret = mh->notify (mh->notify_cls, &buf_size, &msg[1]);
+  struct MessageQueue *mq = GNUNET_malloc (sizeof (*mq) + buf_size);
+  GNUNET_CONTAINER_DLL_insert_tail (grp->tmit_head, grp->tmit_tail, mq);
+
+  struct GNUNET_MULTICAST_MessageHeader *
+    msg = (struct GNUNET_MULTICAST_MessageHeader *) &mq[1];
+  int ret = tmit->notify (tmit->notify_cls, &buf_size, &msg[1]);
 
   if (! (GNUNET_YES == ret || GNUNET_NO == ret)
       || GNUNET_MULTICAST_FRAGMENT_MAX_PAYLOAD < buf_size)
@@ -465,98 +798,78 @@ schedule_origin_to_all (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
     LOG (GNUNET_ERROR_TYPE_ERROR,
          "OriginTransmitNotify() returned error or invalid message size.\n");
     /* FIXME: handle error */
+    GNUNET_free (mq);
     return;
   }
 
   if (GNUNET_NO == ret && 0 == buf_size)
+  {
+    GNUNET_free (mq);
     return; /* Transmission paused. */
+  }
 
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_MULTICAST_MESSAGE);
   msg->header.size = htons (sizeof (*msg) + buf_size);
-  msg->message_id = GNUNET_htonll (mh->message_id);
-  msg->group_generation = mh->group_generation;
+  msg->message_id = GNUNET_htonll (tmit->message_id);
+  msg->group_generation = tmit->group_generation;
+  msg->fragment_offset = GNUNET_htonll (tmit->fragment_offset);
+  tmit->fragment_offset += sizeof (*msg) + buf_size;
 
-  /* FIXME: add fragment ID and signature in the service instead of here */
-  msg->fragment_id = GNUNET_htonll (orig->next_fragment_id++);
-  msg->fragment_offset = GNUNET_htonll (mh->fragment_offset);
-  mh->fragment_offset += sizeof (*msg) + buf_size;
-  msg->purpose.size = htonl (sizeof (*msg) + buf_size
-                             - sizeof (msg->header)
-                             - sizeof (msg->hop_counter)
-                             - sizeof (msg->signature));
-  msg->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_MULTICAST_MESSAGE);
-
-  if (GNUNET_OK != GNUNET_CRYPTO_eddsa_sign (&orig->priv_key, &msg->purpose,
-                                           &msg->signature))
-  {
-    /* FIXME: handle error */
-    return;
-  }
-
-  /* FIXME: send msg to the service and only then call handle_multicast_message
-   *        with the returned signed message.
-   */
-  handle_multicast_message (&orig->grp, msg);
-
-  if (GNUNET_NO == ret)
-    GNUNET_SCHEDULER_add_delayed (
-      GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1),
-      schedule_origin_to_all, orig);
+  transmit_next (grp);
 }
 
 
 /**
  * Send a message to the multicast group.
  *
- * @param origin Handle to the multicast group.
- * @param message_id Application layer ID for the message.  Opaque to multicast.
- * @param group_generation Group generation of the message.  Documented in
- *             `struct GNUNET_MULTICAST_MessageHeader`.
- * @param notify Function to call to get the message.
- * @param notify_cls Closure for @a notify.
- * @return NULL on error (i.e. request already pending).
+ * @param orig  Handle to the multicast group.
+ * @param message_id  Application layer ID for the message.  Opaque to multicast.
+ * @param group_generation  Group generation of the message.
+ *                          Documented in struct GNUNET_MULTICAST_MessageHeader.
+ * @param notify  Function to call to get the message.
+ * @param notify_cls  Closure for @a notify.
+ *
+ * @return Message handle on success,
+ *         NULL on error (i.e. another request is already pending).
  */
-struct GNUNET_MULTICAST_OriginMessageHandle *
-GNUNET_MULTICAST_origin_to_all (struct GNUNET_MULTICAST_Origin *origin,
+struct GNUNET_MULTICAST_OriginTransmitHandle *
+GNUNET_MULTICAST_origin_to_all (struct GNUNET_MULTICAST_Origin *orig,
                                 uint64_t message_id,
                                 uint64_t group_generation,
                                 GNUNET_MULTICAST_OriginTransmitNotify notify,
                                 void *notify_cls)
 {
-  struct GNUNET_MULTICAST_OriginMessageHandle *mh = &origin->msg_handle;
-  mh->origin = origin;
-  mh->message_id = message_id;
-  mh->group_generation = group_generation;
-  mh->notify = notify;
-  mh->notify_cls = notify_cls;
+  struct GNUNET_MULTICAST_OriginTransmitHandle *tmit = &orig->tmit;
+  tmit->origin = orig;
+  tmit->message_id = message_id;
+  tmit->group_generation = group_generation;
+  tmit->notify = notify;
+  tmit->notify_cls = notify_cls;
 
-  /* add some delay for testing */
-  GNUNET_SCHEDULER_add_delayed (
-    GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1),
-    schedule_origin_to_all, origin);
-  return &origin->msg_handle;
+  origin_to_all (orig);
+  return tmit;
 }
 
 
 /**
  * Resume message transmission to multicast group.
  *
- * @param mh Request to cancel.
+ * @param th  Transmission to cancel.
  */
 void
-GNUNET_MULTICAST_origin_to_all_resume (struct GNUNET_MULTICAST_OriginMessageHandle *mh)
+GNUNET_MULTICAST_origin_to_all_resume (struct GNUNET_MULTICAST_OriginTransmitHandle *th)
 {
-  GNUNET_SCHEDULER_add_now (schedule_origin_to_all, mh->origin);
+  origin_to_all (th->origin);
 }
 
 
 /**
  * Cancel request for message transmission to multicast group.
  *
- * @param mh Request to cancel.
+ * @param th  Transmission to cancel.
  */
 void
-GNUNET_MULTICAST_origin_to_all_cancel (struct GNUNET_MULTICAST_OriginMessageHandle *mh)
+GNUNET_MULTICAST_origin_to_all_cancel (struct GNUNET_MULTICAST_OriginTransmitHandle *th)
 {
 }
 
@@ -584,12 +897,12 @@ GNUNET_MULTICAST_origin_to_all_cancel (struct GNUNET_MULTICAST_OriginMessageHand
  * @param relays Peer identities of members of the group, which serve as relays
  *        and can be used to join the group at. and send the @a join_request to.
  *        If empty, the @a join_request is sent directly to the @a origin.
- * @param join_request  Application-dependent join request to be passed to the peer
+ * @param join_req  Application-dependent join request to be passed to the peer
  *        @a relay (might, for example, contain a user, bind user
  *        identity/pseudonym to peer identity, application-level message to
  *        origin, etc.).
  * @param join_cb Function called to approve / disapprove joining of a peer.
- * @param mem_test_cb Function multicast can use to test group membership.
+ * @param member_test_cb Function multicast can use to test group membership.
  * @param replay_frag_cb Function that can be called to replay message fragments
  *        this peer already knows from this group. NULL if this
  *        client is unable to support replay.
@@ -609,7 +922,7 @@ GNUNET_MULTICAST_member_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
                               const struct GNUNET_PeerIdentity *origin,
                               uint32_t relay_count,
                               const struct GNUNET_PeerIdentity *relays,
-                              const struct GNUNET_MessageHeader *join_request,
+                              const struct GNUNET_MessageHeader *join_req,
                               GNUNET_MULTICAST_JoinCallback join_cb,
                               GNUNET_MULTICAST_MembershipTestCallback member_test_cb,
                               GNUNET_MULTICAST_ReplayFragmentCallback replay_frag_cb,
@@ -618,33 +931,47 @@ GNUNET_MULTICAST_member_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
                               void *cls)
 {
   struct GNUNET_MULTICAST_Member *mem = GNUNET_malloc (sizeof (*mem));
-  mem->group_key = *group_key;
-  mem->member_key = *member_key;
+  struct GNUNET_MULTICAST_Group *grp = &mem->grp;
+
+  uint16_t relay_size = relay_count * sizeof (*relays);
+  uint16_t join_req_size = (NULL != join_req) ? ntohs (join_req->size) : 0;
+  struct MulticastMemberJoinMessage *
+    join = GNUNET_malloc (sizeof (*join) + relay_size + join_req_size);
+  join->header.type = htons (GNUNET_MESSAGE_TYPE_MULTICAST_MEMBER_JOIN);
+  join->header.size = htons (sizeof (*join) + relay_size + join_req_size);
+  join->group_key = *group_key;
+  join->member_key = *member_key;
+  join->origin = *origin;
+  memcpy (&join[1], relays, relay_size);
+  memcpy (((char *) &join[1]) + relay_size, join_req, join_req_size);
+
+  grp->reconnect_msg = (struct GNUNET_MessageHeader *) join;
+  grp->is_origin = GNUNET_NO;
+  grp->cfg = cfg;
+  grp->pub_key = *group_key;
+
+  grp->join_cb = join_cb;
+  grp->member_test_cb = member_test_cb;
+  grp->replay_frag_cb = replay_frag_cb;
+  grp->message_cb = message_cb;
+  grp->cb_cls = cls;
+
   mem->origin = *origin;
   mem->relay_count = relay_count;
   mem->relays = *relays;
-  mem->join_cb = join_cb;
-  mem->member_test_cb = member_test_cb;
-  mem->replay_frag_cb = replay_frag_cb;
-  mem->message_cb = message_cb;
-  mem->cls = cls;
+  mem->priv_key = *member_key;
 
-  if (NULL != join_request)
-  {
-    uint16_t size = ntohs (join_request->size);
-    mem->join_request = GNUNET_malloc (size);
-    memcpy (mem->join_request, join_request, size);
-  }
-
-  GNUNET_CRYPTO_hash (&mem->group_key, sizeof (mem->group_key), &mem->group_key_hash);
+  GNUNET_CRYPTO_eddsa_key_get_public (&mem->priv_key, &grp->pub_key);
+  GNUNET_CRYPTO_hash (&grp->pub_key, sizeof (grp->pub_key), &grp->pub_key_hash);
 
   if (NULL == members)
     members = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_YES);
 
-  GNUNET_CONTAINER_multihashmap_put (members, &mem->group_key_hash, mem,
+  GNUNET_CONTAINER_multihashmap_put (members, &grp->pub_key_hash, mem,
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
 
-  /* FIXME: send MEMBER_JOIN to service */
+  grp->reconnect_delay = GNUNET_TIME_UNIT_ZERO;
+  grp->reconnect_task = GNUNET_SCHEDULER_add_now (&reconnect, grp);
 
   return mem;
 }
@@ -663,7 +990,8 @@ GNUNET_MULTICAST_member_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
 void
 GNUNET_MULTICAST_member_part (struct GNUNET_MULTICAST_Member *mem)
 {
-  GNUNET_CONTAINER_multihashmap_remove (members, &mem->group_key_hash, mem);
+  disconnect (&mem->grp);
+  GNUNET_CONTAINER_multihashmap_remove (members, &mem->grp.pub_key_hash, mem);
   GNUNET_free (mem);
 }
 
@@ -729,19 +1057,20 @@ GNUNET_MULTICAST_member_replay_cancel (struct GNUNET_MULTICAST_MemberReplayHandl
 }
 
 
-/* FIXME: for now just send back to the client what it sent. */
 static void
-schedule_member_to_origin (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+member_to_origin (struct GNUNET_MULTICAST_Member *mem)
 {
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "schedule_member_to_origin()\n");
-  struct GNUNET_MULTICAST_Member *mem = cls;
-  struct GNUNET_MULTICAST_MemberRequestHandle *rh = &mem->req_handle;
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "member_to_origin()\n");
+  struct GNUNET_MULTICAST_Group *grp = &mem->grp;
+  struct GNUNET_MULTICAST_MemberTransmitHandle *tmit = &mem->tmit;
 
   size_t buf_size = GNUNET_MULTICAST_FRAGMENT_MAX_PAYLOAD;
-  char buf[GNUNET_MULTICAST_FRAGMENT_MAX_PAYLOAD] = "";
-  struct GNUNET_MULTICAST_RequestHeader *req
-    = (struct GNUNET_MULTICAST_RequestHeader *) buf;
-  int ret = rh->notify (rh->notify_cls, &buf_size, &req[1]);
+  struct MessageQueue *mq = GNUNET_malloc (sizeof (*mq) + buf_size);
+  GNUNET_CONTAINER_DLL_insert_tail (grp->tmit_head, grp->tmit_tail, mq);
+
+  struct GNUNET_MULTICAST_RequestHeader *
+    req = (struct GNUNET_MULTICAST_RequestHeader *) &mq[1];
+  int ret = tmit->notify (tmit->notify_cls, &buf_size, &req[1]);
 
   if (! (GNUNET_YES == ret || GNUNET_NO == ret)
       || GNUNET_MULTICAST_FRAGMENT_MAX_PAYLOAD < buf_size)
@@ -757,73 +1086,47 @@ schedule_member_to_origin (void *cls, const struct GNUNET_SCHEDULER_TaskContext 
 
   req->header.type = htons (GNUNET_MESSAGE_TYPE_MULTICAST_REQUEST);
   req->header.size = htons (sizeof (*req) + buf_size);
-  req->request_id = GNUNET_htonll (rh->request_id);
+  req->request_id = GNUNET_htonll (tmit->request_id);
+  req->fragment_offset = GNUNET_ntohll (tmit->fragment_offset);
+  tmit->fragment_offset += sizeof (*req) + buf_size;
 
-  /* FIXME: add fragment ID and signature in the service instead of here */
-  req->fragment_id = GNUNET_ntohll (mem->next_fragment_id++);
-  req->fragment_offset = GNUNET_ntohll (rh->fragment_offset);
-  rh->fragment_offset += sizeof (*req) + buf_size;
-  req->purpose.size = htonl (sizeof (*req) + buf_size
-                             - sizeof (req->header)
-                             - sizeof (req->member_key)
-                             - sizeof (req->signature));
-  req->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_MULTICAST_MESSAGE);
-
-  if (GNUNET_OK != GNUNET_CRYPTO_eddsa_sign (&mem->member_key, &req->purpose,
-                                           &req->signature))
-  {
-    /* FIXME: handle error */
-    return;
-  }
-
-  /* FIXME: send req to the service and only then call handle_multicast_request
-   *        with the returned request.
-   */
-  handle_multicast_request (&mem->group_key_hash, req);
-
-  if (GNUNET_NO == ret)
-    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                  (GNUNET_TIME_UNIT_SECONDS, 1),
-                                  schedule_member_to_origin, mem);
+  transmit_next (grp);
 }
 
 
 /**
  * Send a message to the origin of the multicast group.
  *
- * @param member Membership handle.
+ * @param mem Membership handle.
  * @param request_id Application layer ID for the request.  Opaque to multicast.
  * @param notify Callback to call to get the message.
  * @param notify_cls Closure for @a notify.
  * @return Handle to cancel request, NULL on error (i.e. request already pending).
  */
-struct GNUNET_MULTICAST_MemberRequestHandle *
-GNUNET_MULTICAST_member_to_origin (struct GNUNET_MULTICAST_Member *member,
+struct GNUNET_MULTICAST_MemberTransmitHandle *
+GNUNET_MULTICAST_member_to_origin (struct GNUNET_MULTICAST_Member *mem,
                                    uint64_t request_id,
                                    GNUNET_MULTICAST_MemberTransmitNotify notify,
                                    void *notify_cls)
 {
-  struct GNUNET_MULTICAST_MemberRequestHandle *rh = &member->req_handle;
-  rh->member = member;
-  rh->request_id = request_id;
-  rh->notify = notify;
-  rh->notify_cls = notify_cls;
+  struct GNUNET_MULTICAST_MemberTransmitHandle *tmit = &mem->tmit;
+  tmit->member = mem;
+  tmit->request_id = request_id;
+  tmit->notify = notify;
+  tmit->notify_cls = notify_cls;
 
-  /* FIXME: remove delay, it's there only for testing */
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
-                                (GNUNET_TIME_UNIT_SECONDS, 1),
-                                schedule_member_to_origin, member);
-  return &member->req_handle;
+  member_to_origin (mem);
+  return tmit;
 }
 
 
 /**
  * Resume message transmission to origin.
  *
- * @param rh Request to cancel.
+ * @param th  Transmission to cancel.
  */
 void
-GNUNET_MULTICAST_member_to_origin_resume (struct GNUNET_MULTICAST_MemberRequestHandle *rh)
+GNUNET_MULTICAST_member_to_origin_resume (struct GNUNET_MULTICAST_MemberTransmitHandle *th)
 {
 
 }
@@ -832,10 +1135,10 @@ GNUNET_MULTICAST_member_to_origin_resume (struct GNUNET_MULTICAST_MemberRequestH
 /**
  * Cancel request for message transmission to origin.
  *
- * @param rh Request to cancel.
+ * @param th  Transmission to cancel.
  */
 void
-GNUNET_MULTICAST_member_to_origin_cancel (struct GNUNET_MULTICAST_MemberRequestHandle *rh)
+GNUNET_MULTICAST_member_to_origin_cancel (struct GNUNET_MULTICAST_MemberTransmitHandle *th)
 {
 }
 
