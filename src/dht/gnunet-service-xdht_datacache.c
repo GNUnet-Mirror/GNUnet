@@ -310,16 +310,19 @@ GDS_DATACACHE_handle_get (const struct GNUNET_HashCode * key,
  
   /* FIXME: add the get path into ctx and then call gds_neighbours_handle_get*/
   int i = 0;
-  while (i < get_path_length)
+  if(get_path != NULL)
   {
-    struct GetPath *element;
-    element = GNUNET_malloc (sizeof (struct GetPath));
-    element->next = NULL;
-    element->prev = NULL;
+    while (i < get_path_length)
+    {
+      struct GetPath *element;
+      element = GNUNET_malloc (sizeof (struct GetPath));
+      element->next = NULL;
+      element->prev = NULL;
     
-    memcpy (&(element->peer), &get_path[i], sizeof(struct GNUNET_PeerIdentity));
-    GNUNET_CONTAINER_DLL_insert_tail(ctx.head, ctx.tail, element);
-    i++;
+      memcpy (&(element->peer), &get_path[i], sizeof(struct GNUNET_PeerIdentity));
+      GNUNET_CONTAINER_DLL_insert_tail(ctx.head, ctx.tail, element);
+      i++;
+    }
   }
   
   r = GNUNET_DATACACHE_get (datacache, key, type, &datacache_get_iterator,

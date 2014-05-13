@@ -918,7 +918,7 @@ handle_dht_local_put (void *cls, struct GNUNET_SERVER_Client *client,
   struct PendingMessage *pm;
   struct GNUNET_DHT_ClientPutConfirmationMessage *conf;
   uint16_t size;
-  FPRINTF (stderr,_("\nSUPU %s, %s, %d"),__FILE__, __func__,__LINE__);
+
   size = ntohs (message->size);
   if (size < sizeof (struct GNUNET_DHT_ClientPutMessage))
   {
@@ -931,7 +931,7 @@ handle_dht_local_put (void *cls, struct GNUNET_SERVER_Client *client,
                             ("# PUT requests received from clients"), 1,
                             GNUNET_NO);
   put_msg = (const struct GNUNET_DHT_ClientPutMessage *) message;
-  LOG_TRAFFIC (GNUNET_ERROR_TYPE_DEBUG, "R5N CLIENT-PUT %s\n",
+  LOG_TRAFFIC (GNUNET_ERROR_TYPE_DEBUG, "X-VINE DHT CLIENT-PUT %s\n",
                GNUNET_h2s_full (&put_msg->key));
   /* give to local clients */
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -949,14 +949,8 @@ handle_dht_local_put (void *cls, struct GNUNET_SERVER_Client *client,
                             &put_msg->key, 0, NULL, ntohl (put_msg->type),
                             size - sizeof (struct GNUNET_DHT_ClientPutMessage),
                             &put_msg[1]);
-  
-  /* FIXME: Is it correct to pass your identity as default current_destination
-   * and current_source. also is it correct to copy your identity into a new
-   * address and then pass this address. address at which your identity is 
-   * stored should be const or else you may overwrite it and you lose your
-   * identity value.  */
-  struct GNUNET_PeerIdentity my_identity;
-  my_identity = GDS_NEIGHBOURS_get_my_id();
+ 
+  struct GNUNET_PeerIdentity my_identity =  GDS_NEIGHBOURS_get_my_id();
   GDS_NEIGHBOURS_send_put (&put_msg->key, &put_msg[1],
                            size - sizeof (struct GNUNET_DHT_ClientPutMessage),
                            ntohl (put_msg->type), ntohl (put_msg->options),
