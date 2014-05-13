@@ -632,7 +632,9 @@ mlp_create_problem_add_address_information (void *cls,
   struct MLP_information *mlpi;
   char *name;
   const double *props;
+  double cur_bigm;
   uint32_t addr_net;
+  uint32_t addr_net_index;
   int c;
 
   /* Check if we have to add this peer due to a pending request */
@@ -645,6 +647,19 @@ mlp_create_problem_add_address_information (void *cls,
       fprintf (stderr, "%s %p\n",GNUNET_i2s (&address->peer), address);
       GNUNET_break (0);
       return GNUNET_OK;
+  }
+
+  addr_net = get_performance_info (address, GNUNET_ATS_NETWORK_TYPE);
+  for (addr_net_index = 0; addr_net_index < GNUNET_ATS_NetworkTypeCount; addr_net_index++)
+  {
+    if (mlp->pv.quota_index[addr_net_index] == addr_net)
+      break;
+  }
+
+  if (addr_net_index >= GNUNET_ATS_NetworkTypeCount)
+  {
+    GNUNET_break (0);
+    return GNUNET_OK;
   }
 
   /* Get peer */
@@ -701,7 +716,10 @@ mlp_create_problem_add_address_information (void *cls,
   /*  c1) set b = 1 coefficient */
   mlp_create_problem_set_value (p, mlpi->r_c1, mlpi->c_b, 1, __LINE__);
   /*  c1) set n = -M coefficient */
-  mlp_create_problem_set_value (p, mlpi->r_c1, mlpi->c_n, -mlp->pv.BIG_M, __LINE__);
+  cur_bigm = (double) mlp->pv.quota_out[addr_net_index];
+  if (cur_bigm > mlp->pv.BIG_M)
+    cur_bigm = (double) mlp->pv.BIG_M;
+  mlp_create_problem_set_value (p, mlpi->r_c1, mlpi->c_n, -cur_bigm, __LINE__);
 
   /* Add constraint c 3) minimum bandwidth
    * b_t + (-n_t * b_min) >= 0
@@ -727,6 +745,9 @@ mlp_create_problem_add_address_information (void *cls,
   /* c 10) obey network specific quotas
    * (1)*b_1 + ... + (1)*b_m <= quota_n
    */
+  mlp_create_problem_set_value (p, p->r_quota[addr_net_index], mlpi->c_b, 1, __LINE__);
+
+#if 0
   for (c = 0; c < GNUNET_ATS_NetworkTypeCount; c++)
   {
     addr_net = get_performance_info (address, GNUNET_ATS_NETWORK_TYPE);
@@ -742,6 +763,7 @@ mlp_create_problem_add_address_information (void *cls,
       break;
     }
   }
+#endif
 
   /* Optimality */
   if (GNUNET_NO == mlp->opt_dbg_feasibility_only)
@@ -1251,8 +1273,6 @@ GAS_mlp_solve_problem (void *solver)
       mlp->control_param_mlp.presolve = GNUNET_YES;
     res_mip = mlp_solve_mlp_problem(mlp);
 
-    fprintf (stderr, "%u\n", res_mip);
-
     dur_mlp = GNUNET_TIME_absolute_get_duration (start_cur_op);
     dur_total = GNUNET_TIME_absolute_get_duration (start_total);
 
@@ -1307,8 +1327,8 @@ GAS_mlp_solve_problem (void *solver)
       GAS_INFO_NONE);
 
   struct GNUNET_TIME_Absolute time = GNUNET_TIME_absolute_get();
-  if ( (GNUNET_YES == mlp->opt_dump_solution_all) ||
-      (mlp->opt_dump_solution_on_fail && ((GNUNET_OK != res_lp) || (GNUNET_OK != res_mip))) )
+  if ( (GNUNET_YES == mlp->opt_dump_problem_all) ||
+      (mlp->opt_dump_problem_on_fail && ((GNUNET_OK != res_lp) || (GNUNET_OK != res_mip))) )
     {
       /* Write problem to disk */
       GNUNET_asprintf(&filename, "problem_p_%u_a%u_%llu.lp", mlp->p.num_peers,
@@ -2043,6 +2063,9 @@ libgnunet_plugin_ats_mlp_init (void *cls)
      "ats", "MLP_DUMP_PROBLEM_ALL");
   if (GNUNET_SYSERR == mlp->opt_dump_problem_all)
    mlp->opt_dump_problem_all = GNUNET_NO;
+  if (GNUNET_YES == mlp->opt_dump_problem_all)
+    GNUNET_break (0);
+
 
   mlp->opt_dump_solution_all = GNUNET_CONFIGURATION_get_value_yesno (env->cfg,
      "ats", "MLP_DUMP_SOLUTION_ALL");
@@ -2185,13 +2208,15 @@ libgnunet_plugin_ats_mlp_init (void *cls)
               mlp->pv.quota_index[c] = env->networks[c2];
               mlp->pv.quota_out[c] = env->out_quota[c2];
               mlp->pv.quota_in[c] = env->in_quota[c2];
+
               found = GNUNET_YES;
-              LOG (GNUNET_ERROR_TYPE_DEBUG,
+              LOG (GNUNET_ERROR_TYPE_ERROR,
                   "Quota for network `%s' (in/out) %llu/%llu\n",
                   GNUNET_ATS_print_network_type(mlp->pv.quota_index[c]),
                   mlp->pv.quota_out[c],
                   mlp->pv.quota_in[c]);
               break;
+
           }
       }
 
