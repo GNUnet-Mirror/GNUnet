@@ -791,7 +791,11 @@ evaluate (int iteration)
     if (0 == cp)
       continue;
     if (NULL == cur)
+    {
       GNUNET_break (0);
+      fprintf (stderr,
+               "Missing result for %u peers\n", cp);
+    }
 
 
     if (GNUNET_NO == cur->valid)

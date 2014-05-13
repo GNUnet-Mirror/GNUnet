@@ -1331,10 +1331,28 @@ GAS_mlp_solve_problem (void *solver)
       (mlp->opt_dump_problem_on_fail && ((GNUNET_OK != res_lp) || (GNUNET_OK != res_mip))) )
     {
       /* Write problem to disk */
-      GNUNET_asprintf(&filename, "problem_p_%u_a%u_%llu.lp", mlp->p.num_peers,
-          mlp->p.num_addresses, time.abs_value_us);
+      switch (mlp->opt_log_format) {
+        case MLP_CPLEX:
+          GNUNET_asprintf(&filename, "problem_p_%u_a%u_%llu.cplex", mlp->p.num_peers,
+              mlp->p.num_addresses, time.abs_value_us);
+          glp_write_lp (mlp->p.prob, NULL, filename);
+          break;
+        case MLP_GLPK:
+          GNUNET_asprintf(&filename, "problem_p_%u_a%u_%llu.glpk", mlp->p.num_peers,
+              mlp->p.num_addresses, time.abs_value_us);
+          glp_write_prob (mlp->p.prob, 0, filename);
+          break;
+        case MLP_MPS:
+          GNUNET_asprintf(&filename, "problem_p_%u_a%u_%llu.mps", mlp->p.num_peers,
+              mlp->p.num_addresses, time.abs_value_us);
+          glp_write_mps (mlp->p.prob, GLP_MPS_FILE, NULL, filename);
+          break;
+        default:
+          break;
+      }
+
+
       LOG(GNUNET_ERROR_TYPE_ERROR, "Dumped problem to file: `%s' \n", filename);
-      glp_write_lp (mlp->p.prob, NULL, filename);
       GNUNET_free(filename);
     }
   if ( (mlp->opt_dump_solution_all) ||
@@ -2022,6 +2040,7 @@ libgnunet_plugin_ats_mlp_init (void *cls)
   int c;
   int c2;
   int found;
+  char *outputformat;
 
   struct GNUNET_TIME_Relative max_duration;
   long long unsigned int max_iterations;
@@ -2110,6 +2129,34 @@ libgnunet_plugin_ats_mlp_init (void *cls)
   if (GNUNET_YES == mlp->opt_dbg_intopt_presolver)
     LOG (GNUNET_ERROR_TYPE_WARNING,
         "MLP solver is configured use the mlp presolver\n");
+
+  if (GNUNET_SYSERR == GNUNET_CONFIGURATION_get_value_string (env->cfg,
+     "ats", "MLP_LOG_FORMAT", &outputformat))
+   mlp->opt_log_format = MLP_CPLEX;
+  else
+  {
+    GNUNET_STRINGS_utf8_toupper(outputformat, outputformat);
+    if (0 == strcmp (outputformat, "MPS"))
+    {
+      mlp->opt_log_format = MLP_MPS;
+    }
+    else if (0 == strcmp (outputformat, "CPLEX"))
+    {
+      mlp->opt_log_format = MLP_CPLEX;
+    }
+    else if (0 == strcmp (outputformat, "GLPK"))
+    {
+      mlp->opt_log_format = MLP_GLPK;
+    }
+    else
+    {
+      LOG (GNUNET_ERROR_TYPE_WARNING,
+          "Invalid log format `%s' in configuration, using CPLEX!\n",
+          outputformat);
+      mlp->opt_log_format = MLP_CPLEX;
+    }
+    GNUNET_free (outputformat);
+  }
 
   mlp->pv.BIG_M = (double) BIG_M_VALUE;
 

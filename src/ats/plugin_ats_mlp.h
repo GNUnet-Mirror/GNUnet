@@ -56,6 +56,14 @@
 #define GLP_YES 1.0
 #define GLP_NO  0.0
 
+enum MLP_Output_Format
+{
+  MLP_MPS,
+  MLP_CPLEX,
+  MLP_GLPK
+};
+
+
 struct MLP_Solution
 {
   int lp_res;
@@ -356,6 +364,7 @@ struct GAS_MLP_Handle
    */
   int opt_dbg_glpk_verbose;
 
+  enum MLP_Output_Format opt_log_format;
 };
 
 /**
