@@ -58,6 +58,11 @@ struct GNUNET_PEERSTORE_StoreContext
 {
 
   /**
+   * Handle to the PEERSTORE service.
+   */
+  struct GNUNET_PEERSTORE_Handle *h;
+
+  /**
    * Continuation called with service response
    */
   GNUNET_PEERSTORE_Continuation cont;
@@ -72,6 +77,25 @@ struct GNUNET_PEERSTORE_StoreContext
 /******************************************************************************/
 /*******************         CONNECTION FUNCTIONS         *********************/
 /******************************************************************************/
+
+/**
+ * Close the existing connection to PEERSTORE and reconnect.
+ *
+ * @param h handle to the service
+ */
+static void
+reconnect (struct GNUNET_PEERSTORE_Handle *h)
+{
+
+  LOG(GNUNET_ERROR_TYPE_DEBUG, "Reconnecting...\n");
+  if (NULL != h->client)
+  {
+    GNUNET_CLIENT_disconnect (h->client);
+    h->client = NULL;
+  }
+  h->client = GNUNET_CLIENT_connect ("peerstore", h->cfg);
+
+}
 
 /**
  * Connect to the PEERSTORE service.
@@ -120,7 +144,7 @@ GNUNET_PEERSTORE_disconnect(struct GNUNET_PEERSTORE_Handle *h)
 /**
  * When a response for store request is received
  *
- * @param cls unused
+ * @param cls a 'struct GNUNET_PEERSTORE_StoreContext *'
  * @param msg message received, NULL on timeout or fatal error
  */
 void store_response_receiver (void *cls, const struct GNUNET_MessageHeader *msg)
@@ -133,6 +157,7 @@ void store_response_receiver (void *cls, const struct GNUNET_MessageHeader *msg)
   if(NULL == msg)
   {
     sc->cont(sc->cont_cls, GNUNET_SYSERR);
+    reconnect(sc->h);
     return;
   }
   msg_type = ntohs(msg->type);
@@ -196,6 +221,7 @@ GNUNET_PEERSTORE_store (struct GNUNET_PEERSTORE_Handle *h,
   sc = GNUNET_new(struct GNUNET_PEERSTORE_StoreContext);
   sc->cont = cont;
   sc->cont_cls = cont_cls;
+  sc->h = h;
   ss_size = strlen(sub_system) + 1;
   key_size = strlen(key) + 1;
   request_size = sizeof(struct StoreRequestMessage) +
