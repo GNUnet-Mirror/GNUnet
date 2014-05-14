@@ -78,6 +78,11 @@ GDS_ROUTING_remove_trail (struct GNUNET_PeerIdentity *source_peer,
                           struct GNUNET_PeerIdentity *destination_peer, 
                           const struct GNUNET_PeerIdentity *prev_hop);
 
+/**
+ * FOR TESTING. 
+ */
+void 
+GDS_ROUTING_print (void);
 
 /**
  * Check if size of routing table is greater than threshold or not. 
