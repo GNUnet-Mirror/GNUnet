@@ -187,7 +187,7 @@ GCP_queue_unlock (struct CadetPeer *peer, struct CadetConnection *c);
  * @param t Tunnel.
  */
 void
-GCP_set_tunnel (struct CadetPeer *peer, struct CadetTunnel3 *t);
+GCP_set_tunnel (struct CadetPeer *peer, struct CadetTunnel *t);
 
 /**
  * Check whether there is a direct (core level)  connection to peer.
@@ -332,7 +332,7 @@ GCP_get_short_id (const struct CadetPeer *peer);
  *
  * @return Tunnel towards peer.
  */
-struct CadetTunnel3 *
+struct CadetTunnel *
 GCP_get_tunnel (const struct CadetPeer *peer);
 
 /**

@@ -101,7 +101,7 @@ struct CadetTunnelKXCtx
 /**
  * Struct containing all information regarding a tunnel to a peer.
  */
-struct CadetTunnel3
+struct CadetTunnel
 {
     /**
      * Endpoint of the tunnel.
@@ -111,12 +111,12 @@ struct CadetTunnel3
     /**
      * State of the tunnel connectivity.
      */
-  enum CadetTunnel3CState cstate;
+  enum CadetTunnelCState cstate;
 
   /**
    * State of the tunnel encryption.
    */
-  enum CadetTunnel3EState estate;
+  enum CadetTunnelEState estate;
 
   /**
    * Key eXchange context.
@@ -187,12 +187,12 @@ struct CadetTunnelDelayed
   /**
    * Tunnel.
    */
-  struct CadetTunnel3 *t;
+  struct CadetTunnel *t;
 
   /**
    * Tunnel queue given to the channel to cancel request. Update on send_queued.
    */
-  struct CadetTunnel3Queue *tq;
+  struct CadetTunnelQueue *tq;
 
   /**
    * Message to send.
@@ -204,7 +204,7 @@ struct CadetTunnelDelayed
 /**
  * Handle for messages queued but not yet sent.
  */
-struct CadetTunnel3Queue
+struct CadetTunnelQueue
 {
   /**
    * Connection queue handle, to cancel if necessary.
@@ -302,7 +302,7 @@ static struct GNUNET_TIME_Relative rekey_period;
  * @return String representation.
  */
 static const char *
-cstate2s (enum CadetTunnel3CState cs)
+cstate2s (enum CadetTunnelCState cs)
 {
   static char buf[128];
 
@@ -333,7 +333,7 @@ cstate2s (enum CadetTunnel3CState cs)
  * @return String representation.
  */
 static const char *
-estate2s (enum CadetTunnel3EState es)
+estate2s (enum CadetTunnelEState es)
 {
   static char buf[128];
 
@@ -366,7 +366,7 @@ estate2s (enum CadetTunnel3EState es)
  * @return #GNUNET_YES if ready, #GNUNET_NO otherwise
  */
 static int
-is_ready (struct CadetTunnel3 *t)
+is_ready (struct CadetTunnel *t)
 {
   int ready;
 
@@ -490,7 +490,7 @@ get_connection_allowed (const struct CadetTConnection *tc)
  * @return GNUNET_OK if message is fine, GNUNET_SYSERR otherwise.
  */
 int
-check_ephemeral (struct CadetTunnel3 *t,
+check_ephemeral (struct CadetTunnel *t,
                  const struct GNUNET_CADET_KX_Ephemeral *msg)
 {
   /* Check message size */
@@ -529,7 +529,7 @@ check_ephemeral (struct CadetTunnel3 *t,
  * @param iv Initialization Vector to use.
  */
 static int
-t_encrypt (struct CadetTunnel3 *t,
+t_encrypt (struct CadetTunnel *t,
            void *dst, const void *src,
            size_t size, uint32_t iv)
 {
@@ -556,7 +556,7 @@ t_encrypt (struct CadetTunnel3 *t,
  * @param iv Initialization Vector to use.
  */
 static int
-t_decrypt (struct CadetTunnel3 *t,
+t_decrypt (struct CadetTunnel *t,
            void *dst, const void *src,
            size_t size, uint32_t iv)
 {
@@ -645,7 +645,7 @@ derive_symmertic (struct GNUNET_CRYPTO_SymmetricSessionKey *key,
  * @return The connection on which to send the next message.
  */
 static struct CadetConnection *
-tunnel_get_connection (struct CadetTunnel3 *t)
+tunnel_get_connection (struct CadetTunnel *t)
 {
   struct CadetTConnection *iter;
   struct CadetConnection *best;
@@ -693,8 +693,8 @@ tun_message_sent (void *cls,
               struct CadetConnectionQueue *q,
               uint16_t type, int fwd, size_t size)
 {
-  struct CadetTunnel3Queue *qt = cls;
-  struct CadetTunnel3 *t;
+  struct CadetTunnelQueue *qt = cls;
+  struct CadetTunnel *t;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "tun_message_sent\n");
 
@@ -726,7 +726,7 @@ unqueue_data (struct CadetTunnelDelayed *tqd)
  * @param msg Message itself (copy will be made).
  */
 static struct CadetTunnelDelayed *
-queue_data (struct CadetTunnel3 *t, const struct GNUNET_MessageHeader *msg)
+queue_data (struct CadetTunnel *t, const struct GNUNET_MessageHeader *msg)
 {
   struct CadetTunnelDelayed *tqd;
   uint16_t size = ntohs (msg->size);
@@ -759,7 +759,7 @@ queue_data (struct CadetTunnel3 *t, const struct GNUNET_MessageHeader *msg)
  * @param hmac Destination to store the HMAC.
  */
 static void
-t_hmac (struct CadetTunnel3 *t, const void *plaintext, size_t size, uint32_t iv,
+t_hmac (struct CadetTunnel *t, const void *plaintext, size_t size, uint32_t iv,
         int outgoing, struct GNUNET_CADET_Hash *hmac)
 {
   struct GNUNET_CRYPTO_AuthKey auth_key;
@@ -794,13 +794,13 @@ t_hmac (struct CadetTunnel3 *t, const void *plaintext, size_t size, uint32_t iv,
  *
  * @return Handle to cancel message. NULL if @c cont is NULL.
  */
-static struct CadetTunnel3Queue *
+static struct CadetTunnelQueue *
 send_prebuilt_message (const struct GNUNET_MessageHeader *message,
-                       struct CadetTunnel3 *t, struct CadetConnection *c,
+                       struct CadetTunnel *t, struct CadetConnection *c,
                        int force, GCT_sent cont, void *cont_cls,
-                       struct CadetTunnel3Queue *existing_q)
+                       struct CadetTunnelQueue *existing_q)
 {
-  struct CadetTunnel3Queue *tq;
+  struct CadetTunnelQueue *tq;
   struct GNUNET_CADET_Encrypted *msg;
   size_t size = ntohs (message->size);
   char cbuf[sizeof (struct GNUNET_CADET_Encrypted) + size];
@@ -821,7 +821,7 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
     tqd = queue_data (t, message);
     if (NULL == cont)
       return NULL;
-    tq = GNUNET_new (struct CadetTunnel3Queue);
+    tq = GNUNET_new (struct CadetTunnelQueue);
     tq->tqd = tqd;
     tqd->tq = tq;
     tq->cont = cont;
@@ -887,7 +887,7 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   }
   if (NULL == existing_q)
   {
-    tq = GNUNET_new (struct CadetTunnel3Queue); /* FIXME valgrind: leak*/
+    tq = GNUNET_new (struct CadetTunnelQueue); /* FIXME valgrind: leak*/
   }
   else
   {
@@ -909,7 +909,7 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
  * @param t Tunnel that holds the messages. Cannot be loopback.
  */
 static void
-send_queued_data (struct CadetTunnel3 *t)
+send_queued_data (struct CadetTunnel *t)
 {
   struct CadetTunnelDelayed *tqd;
   struct CadetTunnelDelayed *next;
@@ -959,7 +959,7 @@ send_queued_data (struct CadetTunnel3 *t)
  * @param message Message to send. Function modifies it.
  */
 static void
-send_kx (struct CadetTunnel3 *t,
+send_kx (struct CadetTunnel *t,
          const struct GNUNET_MessageHeader *message)
 {
   struct CadetConnection *c;
@@ -1030,7 +1030,7 @@ send_kx (struct CadetTunnel3 *t,
  * @param t Tunnel on which to send the key.
  */
 static void
-send_ephemeral (struct CadetTunnel3 *t)
+send_ephemeral (struct CadetTunnel *t)
 {
   LOG (GNUNET_ERROR_TYPE_INFO, "=> EPHM for %s\n", GCT_2s (t));
 
@@ -1044,7 +1044,7 @@ send_ephemeral (struct CadetTunnel3 *t)
  * @param t Tunnel on which to send the ping.
  */
 static void
-send_ping (struct CadetTunnel3 *t)
+send_ping (struct CadetTunnel *t)
 {
   struct GNUNET_CADET_KX_Ping msg;
 
@@ -1072,7 +1072,7 @@ send_ping (struct CadetTunnel3 *t)
  * @param challenge Value sent in the ping that we have to send back.
  */
 static void
-send_pong (struct CadetTunnel3 *t, uint32_t challenge)
+send_pong (struct CadetTunnel *t, uint32_t challenge)
 {
   struct GNUNET_CADET_KX_Pong msg;
 
@@ -1098,7 +1098,7 @@ send_pong (struct CadetTunnel3 *t, uint32_t challenge)
 static void
 rekey_tunnel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct CadetTunnel3 *t = cls;
+  struct CadetTunnel *t = cls;
 
   t->rekey_task = GNUNET_SCHEDULER_NO_TASK;
 
@@ -1153,7 +1153,7 @@ rekey_iterator (void *cls,
                 const struct GNUNET_PeerIdentity *key,
                 void *value)
 {
-  struct CadetTunnel3 *t = value;
+  struct CadetTunnel *t = value;
   struct GNUNET_TIME_Relative delay;
   long n = (long) cls;
   uint32_t r;
@@ -1225,7 +1225,7 @@ destroy_iterator (void *cls,
                 const struct GNUNET_PeerIdentity *key,
                 void *value)
 {
-  struct CadetTunnel3 *t = value;
+  struct CadetTunnel *t = value;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "GCT_shutdown destroying tunnel at %p\n", t);
   GCT_destroy (t);
@@ -1241,7 +1241,7 @@ destroy_iterator (void *cls,
  * @param gid ID of the channel.
  */
 static void
-send_channel_destroy (struct CadetTunnel3 *t, unsigned int gid)
+send_channel_destroy (struct CadetTunnel *t, unsigned int gid)
 {
   struct GNUNET_CADET_ChannelManage msg;
 
@@ -1267,7 +1267,7 @@ send_channel_destroy (struct CadetTunnel3 *t, unsigned int gid)
  *            #GNUNET_SYSERR if message on a one-ended channel (remote)
  */
 static void
-handle_data (struct CadetTunnel3 *t,
+handle_data (struct CadetTunnel *t,
              const struct GNUNET_CADET_Data *msg,
              int fwd)
 {
@@ -1313,7 +1313,7 @@ handle_data (struct CadetTunnel3 *t,
  *            #GNUNET_SYSERR if message on a one-ended channel (remote)
  */
 static void
-handle_data_ack (struct CadetTunnel3 *t,
+handle_data_ack (struct CadetTunnel *t,
                  const struct GNUNET_CADET_DataACK *msg,
                  int fwd)
 {
@@ -1350,7 +1350,7 @@ handle_data_ack (struct CadetTunnel3 *t,
  * @param msg Data message.
  */
 static void
-handle_ch_create (struct CadetTunnel3 *t,
+handle_ch_create (struct CadetTunnel *t,
                   const struct GNUNET_CADET_ChannelCreate *msg)
 {
   struct CadetChannel *ch;
@@ -1385,7 +1385,7 @@ handle_ch_create (struct CadetTunnel3 *t,
  * @param msg NACK message.
  */
 static void
-handle_ch_nack (struct CadetTunnel3 *t,
+handle_ch_nack (struct CadetTunnel *t,
                 const struct GNUNET_CADET_ChannelManage *msg)
 {
   struct CadetChannel *ch;
@@ -1425,7 +1425,7 @@ handle_ch_nack (struct CadetTunnel3 *t,
  *            #GNUNET_SYSERR if message on a one-ended channel (remote)
  */
 static void
-handle_ch_ack (struct CadetTunnel3 *t,
+handle_ch_ack (struct CadetTunnel *t,
                const struct GNUNET_CADET_ChannelManage *msg,
                int fwd)
 {
@@ -1467,7 +1467,7 @@ handle_ch_ack (struct CadetTunnel3 *t,
  *            #GNUNET_SYSERR if message on a one-ended channel (remote)
  */
 static void
-handle_ch_destroy (struct CadetTunnel3 *t,
+handle_ch_destroy (struct CadetTunnel *t,
                    const struct GNUNET_CADET_ChannelManage *msg,
                    int fwd)
 {
@@ -1501,7 +1501,7 @@ handle_ch_destroy (struct CadetTunnel3 *t,
  * @param msg Key eXchange message.
  */
 static void
-handle_ephemeral (struct CadetTunnel3 *t,
+handle_ephemeral (struct CadetTunnel *t,
                   const struct GNUNET_CADET_KX_Ephemeral *msg)
 {
   struct GNUNET_HashCode km;
@@ -1533,7 +1533,7 @@ handle_ephemeral (struct CadetTunnel3 *t,
  * @param msg Key eXchange Ping message.
  */
 static void
-handle_ping (struct CadetTunnel3 *t,
+handle_ping (struct CadetTunnel *t,
              const struct GNUNET_CADET_KX_Ping *msg)
 {
   struct GNUNET_CADET_KX_Ping res;
@@ -1572,7 +1572,7 @@ handle_ping (struct CadetTunnel3 *t,
  * @param msg Key eXchange Pong message.
  */
 static void
-handle_pong (struct CadetTunnel3 *t,
+handle_pong (struct CadetTunnel *t,
              const struct GNUNET_CADET_KX_Pong *msg)
 {
   uint32_t challenge;
@@ -1614,7 +1614,7 @@ handle_pong (struct CadetTunnel3 *t,
  *            #GNUNET_SYSERR if message on a one-ended channel (remote)
  */
 static void
-handle_decrypted (struct CadetTunnel3 *t,
+handle_decrypted (struct CadetTunnel *t,
                   const struct GNUNET_MessageHeader *msgh,
                   int fwd)
 {
@@ -1682,7 +1682,7 @@ handle_decrypted (struct CadetTunnel3 *t,
  * @param msg Encrypted message.
  */
 void
-GCT_handle_encrypted (struct CadetTunnel3 *t,
+GCT_handle_encrypted (struct CadetTunnel *t,
                       const struct GNUNET_CADET_Encrypted *msg)
 {
   size_t size = ntohs (msg->header.size);
@@ -1721,7 +1721,7 @@ GCT_handle_encrypted (struct CadetTunnel3 *t,
  * @param message Payload of KX message.
  */
 void
-GCT_handle_kx (struct CadetTunnel3 *t,
+GCT_handle_kx (struct CadetTunnel *t,
                const struct GNUNET_MessageHeader *message)
 {
   uint16_t type;
@@ -1808,12 +1808,12 @@ GCT_shutdown (void)
  *
  * @param destination Peer this tunnel is towards.
  */
-struct CadetTunnel3 *
+struct CadetTunnel *
 GCT_new (struct CadetPeer *destination)
 {
-  struct CadetTunnel3 *t;
+  struct CadetTunnel *t;
 
-  t = GNUNET_new (struct CadetTunnel3);
+  t = GNUNET_new (struct CadetTunnel);
   t->next_chid = 0;
   t->peer = destination;
 
@@ -1836,7 +1836,7 @@ GCT_new (struct CadetPeer *destination)
  * @param cstate New connection state.
  */
 void
-GCT_change_cstate (struct CadetTunnel3* t, enum CadetTunnel3CState cstate)
+GCT_change_cstate (struct CadetTunnel* t, enum CadetTunnelCState cstate)
 {
   if (NULL == t)
     return;
@@ -1875,7 +1875,7 @@ GCT_change_cstate (struct CadetTunnel3* t, enum CadetTunnel3CState cstate)
  * @param state New encryption state.
  */
 void
-GCT_change_estate (struct CadetTunnel3* t, enum CadetTunnel3EState state)
+GCT_change_estate (struct CadetTunnel* t, enum CadetTunnelEState state)
 {
   if (NULL == t)
     return;
@@ -1909,7 +1909,7 @@ GCT_change_estate (struct CadetTunnel3* t, enum CadetTunnel3EState state)
 static void
 trim_connections (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct CadetTunnel3 *t = cls;
+  struct CadetTunnel *t = cls;
 
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
@@ -1950,7 +1950,7 @@ trim_connections (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param c Connection.
  */
 void
-GCT_add_connection (struct CadetTunnel3 *t, struct CadetConnection *c)
+GCT_add_connection (struct CadetTunnel *t, struct CadetConnection *c)
 {
   struct CadetTConnection *aux;
 
@@ -1979,7 +1979,7 @@ GCT_add_connection (struct CadetTunnel3 *t, struct CadetConnection *c)
  * @param path Invalid path to remove. Is destroyed after removal.
  */
 void
-GCT_remove_path (struct CadetTunnel3 *t, struct CadetPeerPath *path)
+GCT_remove_path (struct CadetTunnel *t, struct CadetPeerPath *path)
 {
   GCP_remove_path (t->peer, path);
 }
@@ -1992,7 +1992,7 @@ GCT_remove_path (struct CadetTunnel3 *t, struct CadetPeerPath *path)
  * @param c Connection.
  */
 void
-GCT_remove_connection (struct CadetTunnel3 *t,
+GCT_remove_connection (struct CadetTunnel *t,
                        struct CadetConnection *c)
 {
   struct CadetTConnection *aux;
@@ -2042,7 +2042,7 @@ GCT_remove_connection (struct CadetTunnel3 *t,
  * @param ch Channel.
  */
 void
-GCT_add_channel (struct CadetTunnel3 *t, struct CadetChannel *ch)
+GCT_add_channel (struct CadetTunnel *t, struct CadetChannel *ch)
 {
   struct CadetTChannel *aux;
 
@@ -2078,7 +2078,7 @@ GCT_add_channel (struct CadetTunnel3 *t, struct CadetChannel *ch)
  * @param ch Channel.
  */
 void
-GCT_remove_channel (struct CadetTunnel3 *t, struct CadetChannel *ch)
+GCT_remove_channel (struct CadetTunnel *t, struct CadetChannel *ch)
 {
   struct CadetTChannel *aux;
 
@@ -2105,7 +2105,7 @@ GCT_remove_channel (struct CadetTunnel3 *t, struct CadetChannel *ch)
  * @return channel handler, NULL if doesn't exist
  */
 struct CadetChannel *
-GCT_get_channel (struct CadetTunnel3 *t, CADET_ChannelNumber chid)
+GCT_get_channel (struct CadetTunnel *t, CADET_ChannelNumber chid)
 {
   struct CadetTChannel *iter;
 
@@ -2135,7 +2135,7 @@ GCT_get_channel (struct CadetTunnel3 *t, CADET_ChannelNumber chid)
 static void
 delayed_destroy (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct CadetTunnel3 *t = cls;
+  struct CadetTunnel *t = cls;
   struct CadetTConnection *iter;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "delayed destroying tunnel %p\n", t);
@@ -2165,7 +2165,7 @@ delayed_destroy (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param t Tunnel to destroy.
  */
 void
-GCT_destroy_empty (struct CadetTunnel3 *t)
+GCT_destroy_empty (struct CadetTunnel *t)
 {
   if (GNUNET_YES == shutting_down)
     return; /* Will be destroyed immediately anyway */
@@ -2199,7 +2199,7 @@ GCT_destroy_empty (struct CadetTunnel3 *t)
  * @param t Tunnel to destroy if empty.
  */
 void
-GCT_destroy_if_empty (struct CadetTunnel3 *t)
+GCT_destroy_if_empty (struct CadetTunnel *t)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Tunnel %s destroy if empty\n", GCT_2s (t));
   if (1 < GCT_count_channels (t))
@@ -2221,7 +2221,7 @@ GCT_destroy_if_empty (struct CadetTunnel3 *t)
  * @param t The tunnel to destroy.
  */
 void
-GCT_destroy (struct CadetTunnel3 *t)
+GCT_destroy (struct CadetTunnel *t)
 {
   struct CadetTConnection *iter_c;
   struct CadetTConnection *next_c;
@@ -2284,7 +2284,7 @@ GCT_destroy (struct CadetTunnel3 *t)
  * @return Connection created.
  */
 struct CadetConnection *
-GCT_use_path (struct CadetTunnel3 *t, struct CadetPeerPath *p)
+GCT_use_path (struct CadetTunnel *t, struct CadetPeerPath *p)
 {
   struct CadetConnection *c;
   struct GNUNET_CADET_Hash cid;
@@ -2333,7 +2333,7 @@ GCT_use_path (struct CadetTunnel3 *t, struct CadetPeerPath *p)
  * @return Number of connections.
  */
 unsigned int
-GCT_count_connections (struct CadetTunnel3 *t)
+GCT_count_connections (struct CadetTunnel *t)
 {
   struct CadetTConnection *iter;
   unsigned int count;
@@ -2356,7 +2356,7 @@ GCT_count_connections (struct CadetTunnel3 *t)
  * @return Number of channels.
  */
 unsigned int
-GCT_count_channels (struct CadetTunnel3 *t)
+GCT_count_channels (struct CadetTunnel *t)
 {
   struct CadetTChannel *iter;
   unsigned int count;
@@ -2376,13 +2376,13 @@ GCT_count_channels (struct CadetTunnel3 *t)
  *
  * @return Tunnel's connectivity state.
  */
-enum CadetTunnel3CState
-GCT_get_cstate (struct CadetTunnel3 *t)
+enum CadetTunnelCState
+GCT_get_cstate (struct CadetTunnel *t)
 {
   if (NULL == t)
   {
     GNUNET_assert (0);
-    return (enum CadetTunnel3CState) -1;
+    return (enum CadetTunnelCState) -1;
   }
   return t->cstate;
 }
@@ -2395,13 +2395,13 @@ GCT_get_cstate (struct CadetTunnel3 *t)
  *
  * @return Tunnel's encryption state.
  */
-enum CadetTunnel3EState
-GCT_get_estate (struct CadetTunnel3 *t)
+enum CadetTunnelEState
+GCT_get_estate (struct CadetTunnel *t)
 {
   if (NULL == t)
   {
     GNUNET_assert (0);
-    return (enum CadetTunnel3EState) -1;
+    return (enum CadetTunnelEState) -1;
   }
   return t->estate;
 }
@@ -2414,7 +2414,7 @@ GCT_get_estate (struct CadetTunnel3 *t)
  * @return Biggest buffer space offered by any channel in the tunnel.
  */
 unsigned int
-GCT_get_channels_buffer (struct CadetTunnel3 *t)
+GCT_get_channels_buffer (struct CadetTunnel *t)
 {
   struct CadetTChannel *iter;
   unsigned int buffer;
@@ -2445,7 +2445,7 @@ GCT_get_channels_buffer (struct CadetTunnel3 *t)
  * @return Buffer space offered by all connections in the tunnel.
  */
 unsigned int
-GCT_get_connections_buffer (struct CadetTunnel3 *t)
+GCT_get_connections_buffer (struct CadetTunnel *t)
 {
   struct CadetTConnection *iter;
   unsigned int buffer;
@@ -2472,7 +2472,7 @@ GCT_get_connections_buffer (struct CadetTunnel3 *t)
  * @return ID of the destination peer.
  */
 const struct GNUNET_PeerIdentity *
-GCT_get_destination (struct CadetTunnel3 *t)
+GCT_get_destination (struct CadetTunnel *t)
 {
   return GCP_get_id (t->peer);
 }
@@ -2486,7 +2486,7 @@ GCT_get_destination (struct CadetTunnel3 *t)
  * @return GID of a channel free to use.
  */
 CADET_ChannelNumber
-GCT_get_next_chid (struct CadetTunnel3 *t)
+GCT_get_next_chid (struct CadetTunnel *t)
 {
   CADET_ChannelNumber chid;
   CADET_ChannelNumber mask;
@@ -2523,7 +2523,7 @@ GCT_get_next_chid (struct CadetTunnel3 *t)
  * @param t Channel which has some free buffer space.
  */
 void
-GCT_unchoke_channels (struct CadetTunnel3 *t)
+GCT_unchoke_channels (struct CadetTunnel *t)
 {
   struct CadetTChannel *iter;
   unsigned int buffer;
@@ -2574,7 +2574,7 @@ GCT_unchoke_channels (struct CadetTunnel3 *t)
  * @param t Tunnel.
  */
 void
-GCT_send_connection_acks (struct CadetTunnel3 *t)
+GCT_send_connection_acks (struct CadetTunnel *t)
 {
   struct CadetTConnection *iter;
   uint32_t allowed;
@@ -2641,7 +2641,7 @@ GCT_send_connection_acks (struct CadetTunnel3 *t)
  * @param q Handle to the queue.
  */
 void
-GCT_cancel (struct CadetTunnel3Queue *q)
+GCT_cancel (struct CadetTunnelQueue *q)
 {
   if (NULL != q->cq)
   {
@@ -2676,9 +2676,9 @@ GCT_cancel (struct CadetTunnel3Queue *q)
  *
  * @return Handle to cancel message. NULL if @c cont is NULL.
  */
-struct CadetTunnel3Queue *
+struct CadetTunnelQueue *
 GCT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
-                           struct CadetTunnel3 *t, struct CadetConnection *c,
+                           struct CadetTunnel *t, struct CadetConnection *c,
                            int force, GCT_sent cont, void *cont_cls)
 {
   return send_prebuilt_message (message, t, c, force, cont, cont_cls, NULL);
@@ -2693,7 +2693,7 @@ GCT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
  * @return #GNUNET_YES if it is loopback.
  */
 int
-GCT_is_loopback (const struct CadetTunnel3 *t)
+GCT_is_loopback (const struct CadetTunnel *t)
 {
   return (myid == GCP_get_short_id (t->peer));
 }
@@ -2708,7 +2708,7 @@ GCT_is_loopback (const struct CadetTunnel3 *t)
  * @return #GNUNET_YES a connection uses this path.
  */
 int
-GCT_is_path_used (const struct CadetTunnel3 *t, const struct CadetPeerPath *p)
+GCT_is_path_used (const struct CadetTunnel *t, const struct CadetPeerPath *p)
 {
   struct CadetTConnection *iter;
 
@@ -2729,7 +2729,7 @@ GCT_is_path_used (const struct CadetTunnel3 *t, const struct CadetPeerPath *p)
  * @return Cost of the path (path length + number of overlapping nodes)
  */
 unsigned int
-GCT_get_path_cost (const struct CadetTunnel3 *t,
+GCT_get_path_cost (const struct CadetTunnel *t,
                    const struct CadetPeerPath *path)
 {
   struct CadetTConnection *iter;
@@ -2774,7 +2774,7 @@ GCT_get_path_cost (const struct CadetTunnel3 *t,
  * @return Static string the destination peer's ID.
  */
 const char *
-GCT_2s (const struct CadetTunnel3 *t)
+GCT_2s (const struct CadetTunnel *t)
 {
   if (NULL == t)
     return "(NULL)";
@@ -2794,7 +2794,7 @@ GCT_2s (const struct CadetTunnel3 *t)
  * @param t Tunnel to debug.
  */
 void
-GCT_debug (const struct CadetTunnel3 *t)
+GCT_debug (const struct CadetTunnel *t)
 {
   struct CadetTChannel *iterch;
   struct CadetTConnection *iterc;
@@ -2862,7 +2862,7 @@ GCT_count_all (void)
  * @param cls Closure for @c iter.
  */
 void
-GCT_iterate_connections (struct CadetTunnel3 *t, GCT_conn_iter iter, void *cls)
+GCT_iterate_connections (struct CadetTunnel *t, GCT_conn_iter iter, void *cls)
 {
   struct CadetTConnection *ct;
 
@@ -2879,7 +2879,7 @@ GCT_iterate_connections (struct CadetTunnel3 *t, GCT_conn_iter iter, void *cls)
  * @param cls Closure for @c iter.
  */
 void
-GCT_iterate_channels (struct CadetTunnel3 *t, GCT_chan_iter iter, void *cls)
+GCT_iterate_channels (struct CadetTunnel *t, GCT_chan_iter iter, void *cls)
 {
   struct CadetTChannel *cht;
 

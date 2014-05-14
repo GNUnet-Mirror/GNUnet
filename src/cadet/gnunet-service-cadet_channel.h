@@ -79,7 +79,7 @@ GCCH_get_id (const struct CadetChannel *ch);
  *
  * @return tunnel of the channel.
  */
-struct CadetTunnel3 *
+struct CadetTunnel *
 GCCH_get_tunnel (const struct CadetChannel *ch);
 
 /**
@@ -262,7 +262,7 @@ GCCH_handle_data_ack (struct CadetChannel *ch,
  * @param msg Channel crate message.
  */
 struct CadetChannel *
-GCCH_handle_create (struct CadetTunnel3 *t,
+GCCH_handle_create (struct CadetTunnel *t,
                     const struct GNUNET_CADET_ChannelCreate *msg);
 
 /**

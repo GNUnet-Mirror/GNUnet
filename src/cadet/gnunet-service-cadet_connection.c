@@ -146,7 +146,7 @@ struct CadetConnection
   /**
    * Tunnel this connection is part of.
    */
-  struct CadetTunnel3 *t;
+  struct CadetTunnel *t;
 
   /**
    * Flow control information for traffic fwd.
@@ -799,7 +799,7 @@ is_fwd (const struct CadetConnection *c,
 static void
 send_connection_ack (struct CadetConnection *connection, int fwd)
 {
-  struct CadetTunnel3 *t;
+  struct CadetTunnel *t;
 
   t = connection->t;
   LOG (GNUNET_ERROR_TYPE_INFO, "===> {%14s ACK} on connection %s\n",
@@ -2451,7 +2451,7 @@ GCC_shutdown (void)
 
 struct CadetConnection *
 GCC_new (const struct GNUNET_CADET_Hash *cid,
-         struct CadetTunnel3 *t,
+         struct CadetTunnel *t,
          struct CadetPeerPath *p,
          unsigned int own_pos)
 {
@@ -2625,7 +2625,7 @@ GCC_get_state (const struct CadetConnection *c)
  *
  * @return tunnel of the connection.
  */
-struct CadetTunnel3 *
+struct CadetTunnel *
 GCC_get_tunnel (const struct CadetConnection *c)
 {
   return c->t;
@@ -3037,7 +3037,7 @@ GCC_cancel (struct CadetConnectionQueue *q)
 void
 GCC_send_create (struct CadetConnection *connection)
 {
-  enum CadetTunnel3CState state;
+  enum CadetTunnelCState state;
   size_t size;
 
   size = sizeof (struct GNUNET_CADET_ConnectionCreate);

@@ -267,7 +267,7 @@ GCC_shutdown (void);
  */
 struct CadetConnection *
 GCC_new (const struct GNUNET_CADET_Hash *cid,
-         struct CadetTunnel3 *t,
+         struct CadetTunnel *t,
          struct CadetPeerPath *p,
          unsigned int own_pos);
 
@@ -331,7 +331,7 @@ GCC_get_state (const struct CadetConnection *c);
  *
  * @return tunnel of the connection.
  */
-struct CadetTunnel3 *
+struct CadetTunnel *
 GCC_get_tunnel (const struct CadetConnection *c);
 
 /**

@@ -144,7 +144,7 @@ struct CadetPeer
     /**
      * Tunnel to this peer, if any.
      */
-  struct CadetTunnel3 *tunnel;
+  struct CadetTunnel *tunnel;
 
     /**
      * Connections that go through this peer, indexed by tid;
@@ -613,7 +613,7 @@ shutdown_tunnel (void *cls,
                  void *value)
 {
   struct CadetPeer *p = value;
-  struct CadetTunnel3 *t = p->tunnel;
+  struct CadetTunnel *t = p->tunnel;
 
   if (NULL != t)
     GCT_destroy (t);
@@ -1552,7 +1552,7 @@ try_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 void
 GCP_connect (struct CadetPeer *peer)
 {
-  struct CadetTunnel3 *t;
+  struct CadetTunnel *t;
   struct CadetPeerPath *p;
   struct CadetConnection *c;
   int rerun_search;
@@ -2010,7 +2010,7 @@ GCP_get_short_id (const struct CadetPeer *peer)
  * @param t Tunnel.
  */
 void
-GCP_set_tunnel (struct CadetPeer *peer, struct CadetTunnel3 *t)
+GCP_set_tunnel (struct CadetPeer *peer, struct CadetTunnel *t)
 {
   peer->tunnel = t;
   if (NULL == t && NULL != peer->search_h)
@@ -2027,7 +2027,7 @@ GCP_set_tunnel (struct CadetPeer *peer, struct CadetTunnel3 *t)
  *
  * @return Tunnel towards peer.
  */
-struct CadetTunnel3 *
+struct CadetTunnel *
 GCP_get_tunnel (const struct CadetPeer *peer)
 {
   return peer->tunnel;

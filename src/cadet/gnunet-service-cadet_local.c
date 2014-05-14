@@ -666,7 +666,7 @@ get_all_tunnels_iterator (void *cls,
                           void *value)
 {
   struct GNUNET_SERVER_Client *client = cls;
-  struct CadetTunnel3 *t = value;
+  struct CadetTunnel *t = value;
   struct GNUNET_CADET_LocalInfoTunnel msg;
 
   msg.header.size = htons (sizeof (msg));
@@ -759,7 +759,7 @@ handle_show_tunnel (void *cls, struct GNUNET_SERVER_Client *client,
   const struct GNUNET_CADET_LocalInfo *msg;
   struct GNUNET_CADET_LocalInfoTunnel *resp;
   struct CadetClient *c;
-  struct CadetTunnel3 *t;
+  struct CadetTunnel *t;
   unsigned int ch_n;
   unsigned int c_n;
   size_t size;

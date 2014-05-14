@@ -69,7 +69,7 @@ struct CadetChannelQueue
   /**
    * Tunnel Queue.
    */
-  struct CadetTunnel3Queue *tq;
+  struct CadetTunnelQueue *tq;
 
   /**
    * Message type (DATA/DATA_ACK)
@@ -205,7 +205,7 @@ struct CadetChannel
     /**
      * Tunnel this channel is in.
      */
-  struct CadetTunnel3 *t;
+  struct CadetTunnel *t;
 
     /**
      * Destination port of the channel.
@@ -789,8 +789,8 @@ channel_recreate (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  */
 static void
 ch_message_sent (void *cls,
-                 struct CadetTunnel3 *t,
-                 struct CadetTunnel3Queue *q,
+                 struct CadetTunnel *t,
+                 struct CadetTunnelQueue *q,
                  uint16_t type, size_t size)
 {
   struct CadetChannelQueue *chq = cls;
@@ -1248,7 +1248,7 @@ channel_save_copy (struct CadetChannel *ch,
  * @return A new initialized channel. NULL on error.
  */
 static struct CadetChannel *
-channel_new (struct CadetTunnel3 *t,
+channel_new (struct CadetTunnel *t,
              struct CadetClient *owner,
              CADET_ChannelNumber lid_root)
 {
@@ -1348,7 +1348,7 @@ void
 GCCH_destroy (struct CadetChannel *ch)
 {
   struct CadetClient *c;
-  struct CadetTunnel3 *t;
+  struct CadetTunnel *t;
 
   if (NULL == ch)
     return;
@@ -1405,7 +1405,7 @@ GCCH_get_id (const struct CadetChannel *ch)
  *
  * @return tunnel of the channel.
  */
-struct CadetTunnel3 *
+struct CadetTunnel *
 GCCH_get_tunnel (const struct CadetChannel *ch)
 {
   return ch->t;
@@ -1827,7 +1827,7 @@ GCCH_handle_local_create (struct CadetClient *c,
                           struct GNUNET_CADET_ChannelMessage *msg)
 {
   struct CadetChannel *ch;
-  struct CadetTunnel3 *t;
+  struct CadetTunnel *t;
   struct CadetPeer *peer;
   CADET_ChannelNumber chid;
 
@@ -2096,7 +2096,7 @@ GCCH_handle_data_ack (struct CadetChannel *ch,
  * @param msg Channel crate message.
  */
 struct CadetChannel *
-GCCH_handle_create (struct CadetTunnel3 *t,
+GCCH_handle_create (struct CadetTunnel *t,
                     const struct GNUNET_CADET_ChannelCreate *msg)
 {
   CADET_ChannelNumber chid;
