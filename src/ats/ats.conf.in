@@ -48,9 +48,11 @@ PROP_STABILITY_FACTOR = 1.25
 # MLP_MAX_DURATION = 3 s
 # Maximum numbero of iterations for a solution process (only LP)
 # MLP_MAX_ITERATIONS = 
-# Tolerated MIP Gap in percent [0 .. 100]
-# MLP_MAX_MIP_GAP = 0.0
-# MLP_MAX_LP_MIP_GAP = 0,0
+# Tolerated MIP Gap [0.0 .. 1.0], default 0.025
+MLP_MAX_MIP_GAP = 0.025
+# Tolerated LP/MIP Gap [0.0 .. 1.0], default 0.025
+MLP_MAX_LP_MIP_GAP = 0.025
+
 
 # Maximum number of iterations for a solution process
 # MLP_MAX_ITERATIONS = 1024
