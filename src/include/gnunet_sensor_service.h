@@ -46,7 +46,7 @@ struct GNUNET_SENSOR_Handle;
 /**
  * Structure containing brief info about sensor
  */
-struct SensorInfoShort
+struct SensorInfoShort //FIXME: rename
 {
 
   /*

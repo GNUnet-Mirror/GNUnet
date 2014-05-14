@@ -27,6 +27,7 @@
 #include "gnunet_util_lib.h"
 #include "peerstore.h"
 #include "gnunet_peerstore_plugin.h"
+#include "peerstore_common.h"
 
 //TODO: GNUNET_SERVER_receive_done() ?
 //TODO: implement value lifetime
@@ -79,6 +80,20 @@ handle_client_disconnect (void *cls,
 }
 
 /**
+ * Handle an iterate request from client
+ *
+ * @param cls unused
+ * @param client identification of the client
+ * @param message the actual message
+ */
+void handle_iterate (void *cls,
+    struct GNUNET_SERVER_Client *client,
+    const struct GNUNET_MessageHeader *message)
+{
+
+}
+
+/**
  * Handle a store request from client
  *
  * @param cls unused
@@ -89,49 +104,46 @@ void handle_store (void *cls,
     struct GNUNET_SERVER_Client *client,
     const struct GNUNET_MessageHeader *message)
 {
-  struct StoreRequestMessage *req;
-  uint16_t req_size;
-  uint16_t ss_size;
-  uint16_t key_size;
-  uint16_t value_size;
-  char *sub_system;
-  char *key;
-  void *value;
+  struct GNUNET_PEERSTORE_Record *record;
   uint16_t response_type;
   struct GNUNET_SERVER_TransmitContext *tc;
 
-  req_size = ntohs(message->size);
-  if(req_size < sizeof(struct StoreRequestMessage))
+  record = PEERSTORE_parse_record_message(message);
+  if(NULL == record)
   {
-    GNUNET_break(0);
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Malformed store request from client\n");
     GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
     return;
   }
-  req = (struct StoreRequestMessage *)message;
-  ss_size = ntohs(req->sub_system_size);
-  key_size = ntohs(req->key_size);
-  value_size = ntohs(req->value_size);
-  if(ss_size + key_size + value_size + sizeof(struct StoreRequestMessage)
-      != req_size)
+  if(NULL == record->sub_system)
   {
-    GNUNET_break(0);
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Sub system not supplied in client store request\n");
     GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
     return;
   }
-  sub_system = (char *)&req[1];
-  key = sub_system + ss_size;
-  value = key + key_size;
+  if(NULL == record->peer)
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Peer id not supplied in client store request\n");
+    GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
+    return;
+  }
+  if(NULL == record->key)
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Key not supplied in client store request\n");
+    GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
+    return;
+  }
   GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Received a store request (size: %lu) for sub system `%s', peer `%s', key `%s'\n",
-      value_size,
-      sub_system,
-      GNUNET_i2s (&req->peer),
-      key);
+      record->value_size,
+      record->sub_system,
+      GNUNET_i2s (record->peer),
+      record->key);
   if(GNUNET_OK == db->store_record(db->cls,
-      sub_system,
-      &req->peer,
-      key,
-      value,
-      value_size))
+      record->sub_system,
+      record->peer,
+      record->key,
+      record->value,
+      record->value_size))
   {
     response_type = GNUNET_MESSAGE_TYPE_PEERSTORE_STORE_RESULT_OK;
   }
@@ -161,6 +173,7 @@ run (void *cls,
 {
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
       {&handle_store, NULL, GNUNET_MESSAGE_TYPE_PEERSTORE_STORE, 0},
+      {&handle_iterate, NULL, GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE, 0},
       {NULL, NULL, 0, 0}
   };
   char *database;

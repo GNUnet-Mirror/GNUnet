@@ -26,6 +26,7 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "peerstore.h"
+#include "peerstore_common.h"
 
 #define LOG(kind,...) GNUNET_log_from (kind, "peerstore-api",__VA_ARGS__)
 
@@ -209,11 +210,7 @@ GNUNET_PEERSTORE_store (struct GNUNET_PEERSTORE_Handle *h,
     void *cont_cls)
 {
   struct GNUNET_PEERSTORE_StoreContext *sc;
-  struct StoreRequestMessage *srm;
-  size_t ss_size;
-  size_t key_size;
-  size_t request_size;
-  void *dummy;
+  struct StoreRecordMessage *srm;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
       "Storing value (size: %lu) for subsytem `%s', peer `%s', key `%s'\n",
@@ -222,26 +219,12 @@ GNUNET_PEERSTORE_store (struct GNUNET_PEERSTORE_Handle *h,
   sc->cont = cont;
   sc->cont_cls = cont_cls;
   sc->h = h;
-  ss_size = strlen(sub_system) + 1;
-  key_size = strlen(key) + 1;
-  request_size = sizeof(struct StoreRequestMessage) +
-      ss_size +
-      key_size +
-      size;
-  srm = GNUNET_malloc(request_size);
-  srm->header.size = htons(request_size);
-  srm->header.type = htons(GNUNET_MESSAGE_TYPE_PEERSTORE_STORE);
-  srm->key_size = htons(key_size);
-  srm->lifetime = lifetime;
-  srm->peer = *peer;
-  srm->sub_system_size = htons(ss_size);
-  srm->value_size = htons(size);
-  dummy = &srm[1];
-  memcpy(dummy, sub_system, ss_size);
-  dummy += ss_size;
-  memcpy(dummy, key, key_size);
-  dummy += key_size;
-  memcpy(dummy, value, size);
+  srm = PEERSTORE_create_record_message(sub_system,
+      peer,
+      key,
+      value,
+      size,
+      lifetime);
   GNUNET_CLIENT_transmit_and_get_response(h->client,
       (const struct GNUNET_MessageHeader *)srm,
       GNUNET_TIME_UNIT_FOREVER_REL,

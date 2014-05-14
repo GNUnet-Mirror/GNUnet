@@ -23,15 +23,18 @@
  * @author Omar Tarabai
  */
 
+#ifndef PEERSTORE_H_
+#define PEERSTORE_H_
+
 #include "gnunet_peerstore_service.h"
 
 
 GNUNET_NETWORK_STRUCT_BEGIN
 
 /**
- * Message carrying a PEERSTORE store request
+ * Message carrying a PEERSTORE record message
  */
-struct StoreRequestMessage
+struct StoreRecordMessage
 {
 
   /**
@@ -40,15 +43,20 @@ struct StoreRequestMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Size of the sub_system string
-   * Allocated at position 0 after this struct
+   * #GNUNET_YES if peer id value set, #GNUNET_NO otherwise
    */
-  size_t sub_system_size;
+  uint16_t peer_set;
 
   /**
    * Peer Identity
    */
   struct GNUNET_PeerIdentity peer;
+
+  /**
+   * Size of the sub_system string
+   * Allocated at position 0 after this struct
+   */
+  size_t sub_system_size;
 
   /**
    * Size of the key string
@@ -70,3 +78,5 @@ struct StoreRequestMessage
 };
 
 GNUNET_NETWORK_STRUCT_END
+
+#endif

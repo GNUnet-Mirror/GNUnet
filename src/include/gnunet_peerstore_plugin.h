@@ -48,8 +48,9 @@ extern "C"
  * @param size size of stored value
  */
 typedef void (*GNUNET_PEERSTORE_RecordIterator) (void *cls,
-    const struct GNUNET_PeerIdentity *peer,
     const char *sub_system,
+    const struct GNUNET_PeerIdentity *peer,
+    const char *key,
     const void *value,
     size_t size);
 
@@ -86,19 +87,21 @@ struct GNUNET_PEERSTORE_PluginFunctions
 
   /**
    * Iterate over the records given an optional peer id
-   * and/or sub system.
+   * and/or key.
    *
    * @param cls closure (internal context for the plugin)
+   * @param sub_system name of sub system
    * @param peer Peer identity (can be NULL)
-   * @param sub_system name of sub system (can be NULL)
+   * @param key entry key string (can be NULL)
    * @param iter function to call with the result
    * @param iter_cls closure for @a iter
-   * @return #GNUNET_OK on success, #GNUNET_NO if there were no results, #GNUNET_SYSERR on error
+   * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
    */
   int
   (*iterate_records) (void *cls,
-      const struct GNUNET_PeerIdentity *peer,
       const char *sub_system,
+      const struct GNUNET_PeerIdentity *peer,
+      const char *key,
       GNUNET_PEERSTORE_RecordIterator iter, void *iter_cls);
 
 };

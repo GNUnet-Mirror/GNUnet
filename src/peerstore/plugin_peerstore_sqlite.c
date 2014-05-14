@@ -90,101 +90,67 @@ struct Plugin
   /**
    * Precompiled SQL for selecting from peerstoredata
    */
-  sqlite3_stmt *select_peerstoredata_by_ss;
+  sqlite3_stmt *select_peerstoredata_by_key;
 
   /**
    * Precompiled SQL for selecting from peerstoredata
    */
-  sqlite3_stmt *select_peerstoredata_by_both;
+  sqlite3_stmt *select_peerstoredata_by_all;
 
 };
 
 /**
- * The given 'sqlite' statement has been prepared to be run.
- * It will return a record which should be given to the iterator.
- * Runs the statement and parses the returned record.
- *
- * @param plugin plugin context
- * @param stmt to run (and then clean up)
- * @param iter iterator to call with the result
- * @param iter_cls closure for @a iter
- * @return #GNUNET_OK on success, #GNUNET_NO if there were no results, #GNUNET_SYSERR on error
- */
-static int
-get_record_and_call_iterator (struct Plugin *plugin,
-            sqlite3_stmt *stmt,
-            GNUNET_PEERSTORE_RecordIterator iter, void *iter_cls)
-{
-  int ret;
-  int sret;
-  const struct GNUNET_PeerIdentity *pid;
-  const char *sub_system;
-  const void *value;
-  size_t value_size;
-
-  ret = GNUNET_NO;
-  if (SQLITE_ROW == (sret = sqlite3_step (stmt)))
-  {
-    pid = sqlite3_column_blob(stmt, 0);
-    sub_system = (const char*) sqlite3_column_text(stmt, 1);
-    value = sqlite3_column_blob(stmt, 2);
-    value_size = sqlite3_column_bytes(stmt, 2);
-    if (NULL != iter)
-      iter (iter_cls, pid, sub_system, value, value_size);
-    ret = GNUNET_YES;
-  }
-  else
-  {
-    if (SQLITE_DONE != sret)
-      LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR, "sqlite_step");
-  }
-  if (SQLITE_OK != sqlite3_reset (stmt))
-    LOG_SQLITE (plugin,
-    GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-    "sqlite3_reset");
-  return ret;
-
-}
-
-/**
  * Iterate over the records given an optional peer id
- * and/or sub system.
+ * and/or key.
  *
  * @param cls closure (internal context for the plugin)
+ * @param sub_system name of sub system
  * @param peer Peer identity (can be NULL)
- * @param sub_system name of sub system (can be NULL)
+ * @param key entry key string (can be NULL)
  * @param iter function to call with the result
  * @param iter_cls closure for @a iter
- * @return #GNUNET_OK on success, #GNUNET_NO if there were no results, #GNUNET_SYSERR on error
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 static int
 peerstore_sqlite_iterate_records (void *cls,
-    const struct GNUNET_PeerIdentity *peer,
     const char *sub_system,
+    const struct GNUNET_PeerIdentity *peer,
+    const char *key,
     GNUNET_PEERSTORE_RecordIterator iter, void *iter_cls)
 {
   struct Plugin *plugin = cls;
   sqlite3_stmt *stmt;
   int err = 0;
+  int sret;
+  const char *ret_sub_system;
+  const struct GNUNET_PeerIdentity *ret_peer;
+  const char *ret_key;
+  const void *ret_value;
+  size_t ret_value_size;
 
-  if(NULL == sub_system && NULL == peer)
+  if(NULL == peer && NULL == key)
+  {
     stmt = plugin->select_peerstoredata;
-  else if(NULL == sub_system)
+    err = (SQLITE_OK != sqlite3_bind_text(stmt, 1, sub_system, strlen(sub_system) + 1, SQLITE_STATIC));
+  }
+  else if(NULL == key)
   {
     stmt = plugin->select_peerstoredata_by_pid;
-    err = (SQLITE_OK != sqlite3_bind_blob(stmt, 1, peer, sizeof(struct GNUNET_PeerIdentity), SQLITE_STATIC));
+    err = (SQLITE_OK != sqlite3_bind_text(stmt, 1, sub_system, strlen(sub_system) + 1, SQLITE_STATIC))
+        || (SQLITE_OK != sqlite3_bind_blob(stmt, 2, peer, sizeof(struct GNUNET_PeerIdentity), SQLITE_STATIC));
   }
   else if(NULL == peer)
   {
-    stmt = plugin->select_peerstoredata_by_ss;
-    err = (SQLITE_OK != sqlite3_bind_text(stmt, 1, sub_system, strlen(sub_system) + 1, SQLITE_STATIC));
+    stmt = plugin->select_peerstoredata_by_key;
+    err = (SQLITE_OK != sqlite3_bind_text(stmt, 1, sub_system, strlen(sub_system) + 1, SQLITE_STATIC))
+        || (SQLITE_OK != sqlite3_bind_text(stmt, 3, key, strlen(key) + 1, SQLITE_STATIC));
   }
   else
   {
-    stmt = plugin->select_peerstoredata_by_both;
-    err =
-        (SQLITE_OK != sqlite3_bind_blob(stmt, 1, peer, sizeof(struct GNUNET_PeerIdentity), SQLITE_STATIC))
-        || (SQLITE_OK != sqlite3_bind_text(stmt, 2, sub_system, strlen(sub_system) + 1, SQLITE_STATIC));
+    stmt = plugin->select_peerstoredata_by_all;
+    err = (SQLITE_OK != sqlite3_bind_text(stmt, 1, sub_system, strlen(sub_system) + 1, SQLITE_STATIC))
+            || (SQLITE_OK != sqlite3_bind_blob(stmt, 2, peer, sizeof(struct GNUNET_PeerIdentity), SQLITE_STATIC))
+            || (SQLITE_OK != sqlite3_bind_text(stmt, 3, key, strlen(key) + 1, SQLITE_STATIC));
   }
 
   if (err)
@@ -197,7 +163,31 @@ peerstore_sqlite_iterate_records (void *cls,
       "sqlite3_reset");
     return GNUNET_SYSERR;
   }
-  return get_record_and_call_iterator (plugin, stmt, iter, iter_cls);
+  while (SQLITE_ROW == (sret = sqlite3_step (stmt)))
+  {
+    ret_sub_system = (const char *)sqlite3_column_text(stmt, 0);
+    ret_peer = sqlite3_column_blob(stmt, 1);
+    ret_key = (const char *)sqlite3_column_text(stmt, 2);
+    ret_value = sqlite3_column_blob(stmt, 3);
+    ret_value_size = sqlite3_column_bytes(stmt, 3);
+    if (NULL != iter)
+      iter (iter_cls, ret_sub_system, ret_peer, ret_key, ret_value, ret_value_size);
+  }
+  if (SQLITE_DONE != sret)
+  {
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR, "sqlite_step");
+    err = 1;
+  }
+  if (SQLITE_OK != sqlite3_reset (stmt))
+  {
+    LOG_SQLITE (plugin,
+    GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+    "sqlite3_reset");
+    err = 1;
+  }
+  if(err)
+    return GNUNET_SYSERR;
+  return GNUNET_OK;
 }
 
 /**
@@ -362,17 +352,25 @@ database_setup (struct Plugin *plugin)
       "INSERT INTO peerstoredata (sub_system, peer_id, key, value) VALUES (?,?,?,?);",
       &plugin->insert_peerstoredata);
   sql_prepare(plugin->dbh,
-      "SELECT peer_id, sub_system, value FROM peerstoredata",
+      "SELECT peer_id, sub_system, value FROM peerstoredata"
+      " WHERE sub_system = ?",
       &plugin->select_peerstoredata);
   sql_prepare(plugin->dbh,
-      "SELECT peer_id, sub_system, value FROM peerstoredata WHERE peer_id = ?",
+      "SELECT peer_id, sub_system, value FROM peerstoredata"
+      " WHERE sub_system = ?"
+      " AND peer_id = ?",
       &plugin->select_peerstoredata_by_pid);
   sql_prepare(plugin->dbh,
-      "SELECT peer_id, sub_system, value FROM peerstoredata WHERE sub_system = ?",
-      &plugin->select_peerstoredata_by_ss);
+      "SELECT peer_id, sub_system, value FROM peerstoredata"
+      " WHERE sub_system = ?"
+      " AND key = ?",
+      &plugin->select_peerstoredata_by_key);
   sql_prepare(plugin->dbh,
-      "SELECT peer_id, sub_system, value FROM peerstoredata WHERE peer_id = ? AND sub_system = ?",
-      &plugin->select_peerstoredata_by_both);
+      "SELECT peer_id, sub_system, value FROM peerstoredata"
+      " WHERE sub_system = ?"
+      " AND peer_id = ?"
+      " AND key = ?",
+      &plugin->select_peerstoredata_by_all);
 
   return GNUNET_OK;
 }

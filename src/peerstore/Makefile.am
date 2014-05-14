@@ -27,20 +27,23 @@ lib_LTLIBRARIES = \
  libgnunetpeerstore.la
 
 gnunet_peerstore_SOURCES = \
- gnunet-peerstore.c         
+ gnunet-peerstore.c
 gnunet_peerstore_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   libgnunetpeerstore.la \
   $(GN_LIBINTL)
 
 gnunet_service_peerstore_SOURCES = \
- gnunet-service-peerstore.c         
+ gnunet-service-peerstore.c \
+ peerstore_common.c
+gnunet_service_peerstore_CFLAGS = $(AM_CFLAGS)
 gnunet_service_peerstore_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
 
 libgnunetpeerstore_la_SOURCES = \
-  peerstore_api.c 
+  peerstore_api.c \
+  peerstore_common.c
 libgnunetpeerstore_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la
 libgnunetpeerstore_la_LDFLAGS = \
