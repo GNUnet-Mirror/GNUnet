@@ -107,6 +107,12 @@ struct CadetTunnelKXCtx
    * When the rekey started. One minute after this the new key will be used.
    */
   struct GNUNET_TIME_Absolute rekey_start_time;
+
+  /**
+   * Task for delayed destruction of the Key eXchange context, to allow delayed
+   * messages with the old key to be decrypted successfully.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier finish_task;
 };
 
 /**
@@ -585,7 +591,7 @@ t_encrypt (struct CadetTunnel *t,
   size_t out_size;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_encrypt start\n");
-  if (NULL != t->kx_ctx)
+  if (NULL != t->kx_ctx && GNUNET_SCHEDULER_NO_TASK == t->kx_ctx->finish_task)
   {
     struct GNUNET_TIME_Relative age;
 
@@ -661,7 +667,6 @@ static int
 t_decrypt (struct CadetTunnel *t, void *dst, const void *src,
            size_t size, uint32_t iv)
 {
-  struct GNUNET_CRYPTO_SymmetricInitializationVector siv;
   struct GNUNET_CRYPTO_SymmetricSessionKey *key;
   size_t out_size;
 
@@ -734,7 +739,7 @@ t_decrypt_and_validate (struct CadetTunnel *t,
     return decrypted_size;
 
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "Failed checksum validation on tunnel %s with KX\n" place,
+              "Failed checksum validation on tunnel %s with KX\n",
               GCT_2s (t));
   GNUNET_STATISTICS_update (stats, "# wrong HMAC", 1, GNUNET_NO);
   return -1;
@@ -1601,7 +1606,6 @@ handle_ch_ack (struct CadetTunnel *t,
 }
 
 
-
 /**
  * Handle a channel destruction message.
  *
@@ -1704,6 +1708,23 @@ handle_ping (struct CadetTunnel *t,
 
   send_pong (t, res.nonce);
 }
+/**
+ * @brief Finish the Key eXchange and destory the old keys.
+ *
+ * @param cls Closure (Tunnel for which to finish the KX).
+ * @param tc Task context.
+ */
+static void
+finish_kx (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct CadetTunnel *t = cls;
+
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+    return;
+
+  GNUNET_free (t->kx_ctx);
+  t->kx_ctx = NULL;
+}
 
 
 /**
@@ -1739,8 +1760,17 @@ handle_pong (struct CadetTunnel *t,
   }
   GNUNET_SCHEDULER_cancel (t->rekey_task);
   t->rekey_task = GNUNET_SCHEDULER_NO_TASK;
-  GNUNET_free (t->kx_ctx);
-  t->kx_ctx = NULL;
+
+  /* Don't free the old keys right away, but after a delay.
+   * Rationale: the KX could have happened over a very fast connection,
+   * with payload traffic still signed with the old key stuck in a slower
+   * connection.
+   */
+  if (GNUNET_SCHEDULER_NO_TASK == t->kx_ctx->finish_task)
+  {
+    t->kx_ctx->finish_task =
+      GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_MINUTES, finish_kx, t);
+  }
   GCT_change_estate (t, CADET_TUNNEL3_KEY_OK);
 }
 
@@ -2397,12 +2427,13 @@ GCT_destroy (struct CadetTunnel *t)
   {
     GNUNET_SCHEDULER_cancel (t->rekey_task);
     t->rekey_task = GNUNET_SCHEDULER_NO_TASK;
-    if (NULL != t->kx_ctx)
-      GNUNET_free (t->kx_ctx);
-    else
-      GNUNET_break (0);
   }
-
+  if (NULL != t->kx_ctx)
+  {
+    if (GNUNET_SCHEDULER_NO_TASK != t->kx_ctx->finish_task)
+      GNUNET_SCHEDULER_cancel (t->kx_ctx->finish_task);
+    GNUNET_free (t->kx_ctx);
+  }
   GNUNET_free (t);
 }
 
