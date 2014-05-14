@@ -208,7 +208,8 @@ peerstore_sqlite_store_record(void *cls,
     const struct GNUNET_PeerIdentity *peer,
     const char *key,
     const void *value,
-    size_t size)
+    size_t size,
+    struct GNUNET_TIME_Absolute expiry)
 {
   struct Plugin *plugin = cls;
   sqlite3_stmt *stmt = plugin->insert_peerstoredata;
@@ -218,7 +219,8 @@ peerstore_sqlite_store_record(void *cls,
   if(SQLITE_OK != sqlite3_bind_text(stmt, 1, sub_system, strlen(sub_system) + 1, SQLITE_STATIC)
       || SQLITE_OK != sqlite3_bind_blob(stmt, 2, peer, sizeof(struct GNUNET_PeerIdentity), SQLITE_STATIC)
       || SQLITE_OK != sqlite3_bind_text(stmt, 3, key, strlen(key) + 1, SQLITE_STATIC)
-      || SQLITE_OK != sqlite3_bind_blob(stmt, 4, value, size, SQLITE_STATIC))
+      || SQLITE_OK != sqlite3_bind_blob(stmt, 4, value, size, SQLITE_STATIC)
+      || SQLITE_OK != sqlite3_bind_int64(stmt, 5, (sqlite3_int64)expiry.abs_value_us))
     LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                     "sqlite3_bind");
   else if (SQLITE_DONE != sqlite3_step (stmt))
@@ -343,30 +345,31 @@ database_setup (struct Plugin *plugin)
       "  sub_system TEXT NOT NULL,\n"
       "  peer_id BLOB NOT NULL,\n"
       "  key TEXT NOT NULL,\n"
-      "  value BLOB NULL"
+      "  value BLOB NULL,\n"
+      "  expiry INTEGER NOT NULL"
       ");");
 
   /* Prepare statements */
 
   sql_prepare (plugin->dbh,
-      "INSERT INTO peerstoredata (sub_system, peer_id, key, value) VALUES (?,?,?,?);",
+      "INSERT INTO peerstoredata (sub_system, peer_id, key, value, expiry) VALUES (?,?,?,?,?);",
       &plugin->insert_peerstoredata);
   sql_prepare(plugin->dbh,
-      "SELECT peer_id, sub_system, value FROM peerstoredata"
+      "SELECT * FROM peerstoredata"
       " WHERE sub_system = ?",
       &plugin->select_peerstoredata);
   sql_prepare(plugin->dbh,
-      "SELECT peer_id, sub_system, value FROM peerstoredata"
+      "SELECT * FROM peerstoredata"
       " WHERE sub_system = ?"
       " AND peer_id = ?",
       &plugin->select_peerstoredata_by_pid);
   sql_prepare(plugin->dbh,
-      "SELECT peer_id, sub_system, value FROM peerstoredata"
+      "SELECT * FROM peerstoredata"
       " WHERE sub_system = ?"
       " AND key = ?",
       &plugin->select_peerstoredata_by_key);
   sql_prepare(plugin->dbh,
-      "SELECT peer_id, sub_system, value FROM peerstoredata"
+      "SELECT * FROM peerstoredata"
       " WHERE sub_system = ?"
       " AND peer_id = ?"
       " AND key = ?",

@@ -83,7 +83,8 @@ struct GNUNET_PEERSTORE_PluginFunctions
       const struct GNUNET_PeerIdentity *peer,
       const char *key,
       const void *value,
-      size_t size);
+      size_t size,
+      struct GNUNET_TIME_Absolute expiry);
 
   /**
    * Iterate over the records given an optional peer id

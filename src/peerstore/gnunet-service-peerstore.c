@@ -115,21 +115,11 @@ void handle_store (void *cls,
     GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
     return;
   }
-  if(NULL == record->sub_system)
+  if(NULL == record->sub_system
+      || NULL == record->peer
+      || NULL == record->key)
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Sub system not supplied in client store request\n");
-    GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
-    return;
-  }
-  if(NULL == record->peer)
-  {
-    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Peer id not supplied in client store request\n");
-    GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
-    return;
-  }
-  if(NULL == record->key)
-  {
-    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Key not supplied in client store request\n");
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Full key not supplied in client store request\n");
     GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
     return;
   }
@@ -143,7 +133,8 @@ void handle_store (void *cls,
       record->peer,
       record->key,
       record->value,
-      record->value_size))
+      record->value_size,
+      GNUNET_TIME_relative_to_absolute(record->lifetime)))
   {
     response_type = GNUNET_MESSAGE_TYPE_PEERSTORE_STORE_RESULT_OK;
   }
