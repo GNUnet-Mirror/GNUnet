@@ -537,6 +537,36 @@ check_ephemeral (struct CadetTunnel *t,
 
 
 /**
+ * Calculate HMAC.
+ *
+ * @param t Tunnel to get keys from.
+ * @param plaintext Content to HMAC.
+ * @param size Size of @c plaintext.
+ * @param iv Initialization vector for the message.
+ * @param outgoing Is this an outgoing message that we encrypted?
+ * @param hmac Destination to store the HMAC.
+ */
+static void
+t_hmac (struct CadetTunnel *t, const void *plaintext, size_t size, uint32_t iv,
+        int outgoing, struct GNUNET_CADET_Hash *hmac)
+{
+  struct GNUNET_CRYPTO_AuthKey auth_key;
+  static const char ctx[] = "cadet authentication key";
+  struct GNUNET_CRYPTO_SymmetricSessionKey *key;
+  struct GNUNET_HashCode hash;
+
+  key = outgoing ? &t->e_key : &t->d_key;
+  GNUNET_CRYPTO_hmac_derive_key (&auth_key, key,
+                                 &iv, sizeof (iv),
+                                 key, sizeof (*key),
+                                 ctx, sizeof (ctx),
+                                 NULL);
+  GNUNET_CRYPTO_hmac (&auth_key, plaintext, size, &hash);
+  memcpy (hmac, &hash, sizeof (*hmac));
+}
+
+
+/**
  * Encrypt data with the tunnel key.
  *
  * @param t Tunnel whose key to use.
@@ -588,22 +618,26 @@ t_encrypt (struct CadetTunnel *t,
 
 
 /**
- * Decrypt data with the tunnel key.
+ * Decrypt and verify data with the appropriate tunnel key.
  *
  * @param t Tunnel whose key to use.
  * @param dst Destination for the plaintext.
  * @param src Source of the encrypted data. Can overlap with @c dst.
  * @param size Size of the encrypted data.
  * @param iv Initialization Vector to use.
+ * @param msg_hmac HMAC of the message, or NULL if message does not carry
+ *                 integrity verification (PING, PONG)
+ *
+ * @return Size of the decrypted data, -1 if an error was encountered.
  */
 static int
-t_decrypt (struct CadetTunnel *t,
-           void *dst, const void *src,
-           size_t size, uint32_t iv)
+t_decrypt (struct CadetTunnel *t, void *dst, const void *src,
+           size_t size, uint32_t iv, const struct GNUNET_CADET_Hash *msg_hmac)
 {
   struct GNUNET_CRYPTO_SymmetricInitializationVector siv;
   struct GNUNET_CRYPTO_SymmetricSessionKey *key;
   size_t out_size;
+  struct GNUNET_CADET_Hash hmac;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_decrypt start\n");
   if (t->estate == CADET_TUNNEL3_KEY_OK || t->estate == CADET_TUNNEL3_KEY_PING)
@@ -621,7 +655,19 @@ t_decrypt (struct CadetTunnel *t,
          "WARNING got data on %s without a valid key\n",
          GCT_2s (t));
     GCT_debug (t);
-    return 0;
+    return -1;
+  }
+
+  t_hmac (t, src, size, iv, GNUNET_NO, &hmac);
+  if (NULL != msg_hmac && 0 != memcmp (msg_hmac, &hmac, sizeof (hmac)))
+  {
+    /* checksum failed */
+    // FIXME try other key
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Failed checksum validation for a message on tunnel `%s'\n",
+                GCT_2s (t));
+    GNUNET_STATISTICS_update (stats, "# wrong HMAC", 1, GNUNET_NO);
+    return -1;
   }
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_decrypt iv\n");
@@ -804,36 +850,6 @@ queue_data (struct CadetTunnel *t, const struct GNUNET_MessageHeader *msg)
   memcpy (&tqd[1], msg, size);
   GNUNET_CONTAINER_DLL_insert_tail (t->tq_head, t->tq_tail, tqd);
   return tqd;
-}
-
-
-/**
- * Calculate HMAC.
- *
- * @param t Tunnel to get keys from.
- * @param plaintext Content to HMAC.
- * @param size Size of @c plaintext.
- * @param iv Initialization vector for the message.
- * @param outgoing Is this an outgoing message that we encrypted?
- * @param hmac Destination to store the HMAC.
- */
-static void
-t_hmac (struct CadetTunnel *t, const void *plaintext, size_t size, uint32_t iv,
-        int outgoing, struct GNUNET_CADET_Hash *hmac)
-{
-  struct GNUNET_CRYPTO_AuthKey auth_key;
-  static const char ctx[] = "cadet authentication key";
-  struct GNUNET_CRYPTO_SymmetricSessionKey *key;
-  struct GNUNET_HashCode hash;
-
-  key = outgoing ? &t->e_key : &t->d_key;
-  GNUNET_CRYPTO_hmac_derive_key (&auth_key, key,
-                                 &iv, sizeof (iv),
-                                 key, sizeof (*key),
-                                 ctx, sizeof (ctx),
-                                 NULL);
-  GNUNET_CRYPTO_hmac (&auth_key, plaintext, size, &hash);
-  memcpy (hmac, &hash, sizeof (*hmac));
 }
 
 
@@ -1611,7 +1627,8 @@ handle_ping (struct CadetTunnel *t,
   }
 
   LOG (GNUNET_ERROR_TYPE_INFO, "<=== PING for %s\n", GCT_2s (t));
-  t_decrypt (t, &res.target, &msg->target, ping_encryption_size (), msg->iv);
+  t_decrypt (t, &res.target, &msg->target,
+             ping_encryption_size (), msg->iv, NULL);
   if (0 != memcmp (&my_full_id, &res.target, sizeof (my_full_id)))
   {
     GNUNET_STATISTICS_update (stats, "# malformed PINGs", 1, GNUNET_NO);
@@ -1649,7 +1666,7 @@ handle_pong (struct CadetTunnel *t,
     GNUNET_STATISTICS_update (stats, "# duplicate PONG messages", 1, GNUNET_NO);
     return;
   }
-  t_decrypt (t, &challenge, &msg->nonce, sizeof (uint32_t), msg->iv);
+  t_decrypt (t, &challenge, &msg->nonce, sizeof (uint32_t), msg->iv, NULL);
 
   if (challenge != t->kx_ctx->challenge)
   {
@@ -1757,19 +1774,10 @@ GCT_handle_encrypted (struct CadetTunnel *t,
   char cbuf [payload_size];
   struct GNUNET_MessageHeader *msgh;
   unsigned int off;
-  struct GNUNET_CADET_Hash hmac;
 
-  decrypted_size = t_decrypt (t, cbuf, &msg[1], payload_size, msg->iv);
-  t_hmac (t, &msg[1], payload_size, msg->iv, GNUNET_NO, &hmac);
-  if (0 != memcmp (&hmac, &msg->hmac, sizeof (hmac)))
-  {
-    /* checksum failed */
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Failed checksum validation for a message on tunnel `%s'\n",
-                GCT_2s (t));
-    GNUNET_STATISTICS_update (stats, "# wrong HMAC", 1, GNUNET_NO);
-    return;
-  }
+  decrypted_size = t_decrypt (t, cbuf, &msg[1], payload_size,
+                              msg->iv, &msg->hmac);
+
   off = 0;
   while (off < decrypted_size)
   {
