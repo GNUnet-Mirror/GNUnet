@@ -2160,6 +2160,7 @@ libgnunet_plugin_ats_ril_init (void *cls)
   struct RIL_Scope * cur;
   int c;
   char *string;
+  float f_tmp;
 
   LOG(GNUNET_ERROR_TYPE_DEBUG, "API_init() Initializing RIL solver\n");
 
@@ -2209,125 +2210,141 @@ libgnunet_plugin_ats_ril_init (void *cls)
     solver->parameters.select = RIL_DEFAULT_SELECT;
   }
 
-  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (env->cfg, "ats", "RIL_DISCOUNT_BETA", &string))
+
+  solver->parameters.beta = RIL_DEFAULT_DISCOUNT_BETA;
+  if (GNUNET_SYSERR != GNUNET_CONFIGURATION_get_value_float (env->cfg, "ats",
+      "RIL_DISCOUNT_BETA", &f_tmp))
   {
-    solver->parameters.beta = strtod (string, NULL);
-    GNUNET_free (string);
-    if (!(solver->parameters.beta > 0))
+    if (f_tmp < 0.0)
     {
-      LOG (GNUNET_ERROR_TYPE_WARNING, "RIL_DISCOUNT_BETA not configured as positive number. Set to default value of %f instead.\n", RIL_DEFAULT_DISCOUNT_BETA);
-      solver->parameters.beta = RIL_DEFAULT_DISCOUNT_BETA;
+      LOG (GNUNET_ERROR_TYPE_ERROR, _("Invalid %s configuration %f \n"),
+          "RIL_DISCOUNT_BETA", f_tmp);
     }
-  }
-  else
-  {
-    solver->parameters.beta = RIL_DEFAULT_DISCOUNT_BETA;
+    else
+    {
+      solver->parameters.beta = f_tmp;
+      LOG (GNUNET_ERROR_TYPE_INFO, "Using %s of %.3f\n",
+          "RIL_DISCOUNT_BETA", f_tmp);
+    }
   }
 
-  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (env->cfg, "ats", "RIL_DISCOUNT_GAMMA", &string))
+  solver->parameters.gamma = RIL_DEFAULT_DISCOUNT_GAMMA;
+  if (GNUNET_SYSERR != GNUNET_CONFIGURATION_get_value_float (env->cfg, "ats",
+      "RIL_DISCOUNT_GAMMA", &f_tmp))
   {
-    solver->parameters.gamma = strtod (string, NULL);
-    GNUNET_free (string);
-    if (!(solver->parameters.gamma < 1) || (solver->parameters.gamma < 0))
+    if ((f_tmp < 0.0) || (f_tmp > 1.0))
     {
-      LOG (GNUNET_ERROR_TYPE_WARNING, "RIL_DISCOUNT_GAMMA not configured in range [0,1[. Set to default value of %f instead.\n", RIL_DEFAULT_DISCOUNT_GAMMA);
-      solver->parameters.gamma = RIL_DEFAULT_DISCOUNT_GAMMA;
+      LOG (GNUNET_ERROR_TYPE_ERROR, _("Invalid %s configuration %f \n"),
+          "RIL_DISCOUNT_GAMMA", f_tmp);
     }
-  }
-  else
-  {
-    solver->parameters.gamma = RIL_DEFAULT_DISCOUNT_GAMMA;
+    else
+    {
+      solver->parameters.gamma = f_tmp;
+      LOG (GNUNET_ERROR_TYPE_INFO, "Using %s of %.3f\n",
+          "RIL_DISCOUNT_GAMMA", f_tmp);
+    }
   }
 
-  if (GNUNET_OK
-      == GNUNET_CONFIGURATION_get_value_string (env->cfg, "ats", "RIL_GRADIENT_STEP_SIZE", &string))
+  solver->parameters.alpha = RIL_DEFAULT_GRADIENT_STEP_SIZE;
+  if (GNUNET_SYSERR != GNUNET_CONFIGURATION_get_value_float (env->cfg, "ats",
+      "RIL_GRADIENT_STEP_SIZE", &f_tmp))
   {
-    solver->parameters.alpha = strtod (string, NULL);
-    GNUNET_free (string);
-    if (!(solver->parameters.alpha > 0) || solver->parameters.alpha > 1)
+    if ((f_tmp < 0.0) || (f_tmp > 0.0))
     {
-      LOG (GNUNET_ERROR_TYPE_WARNING, "RIL_GRADIENT_STEP_SIZE not configured in range ]0,1]. Set to default value of %f instead.\n", RIL_DEFAULT_GRADIENT_STEP_SIZE);
-      solver->parameters.alpha = RIL_DEFAULT_GRADIENT_STEP_SIZE;
+      LOG (GNUNET_ERROR_TYPE_ERROR, _("Invalid %s configuration %f \n"),
+          "RIL_GRADIENT_STEP_SIZE", f_tmp);
     }
-  }
-  else
-  {
-    solver->parameters.alpha = RIL_DEFAULT_GRADIENT_STEP_SIZE;
+    else
+    {
+      solver->parameters.alpha = f_tmp;
+      LOG (GNUNET_ERROR_TYPE_INFO, "Using %s of %.3f\n",
+          "RIL_GRADIENT_STEP_SIZE", f_tmp);
+    }
   }
 
-  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (env->cfg, "ats", "RIL_TRACE_DECAY", &string))
+  solver->parameters.lambda = RIL_DEFAULT_TRACE_DECAY;
+  if (GNUNET_SYSERR != GNUNET_CONFIGURATION_get_value_float (env->cfg, "ats",
+      "RIL_TRACE_DECAY", &f_tmp))
   {
-    solver->parameters.lambda = strtod (string, NULL);
-    GNUNET_free (string);
-    if (solver->parameters.lambda < 0 || solver->parameters.lambda > 1)
+    if ((f_tmp < 0.0) || (f_tmp > 0.0))
     {
-      LOG (GNUNET_ERROR_TYPE_WARNING, "RIL_TRACE_DECAY not configured in range [0,1]. Set to default value of %f instead.\n", RIL_DEFAULT_TRACE_DECAY);
-      solver->parameters.lambda = RIL_DEFAULT_TRACE_DECAY;
+      LOG (GNUNET_ERROR_TYPE_ERROR, _("Invalid %s configuration %f \n"),
+          "RIL_TRACE_DECAY", f_tmp);
     }
-  }
-  else
-  {
-    solver->parameters.lambda = RIL_DEFAULT_TRACE_DECAY;
+    else
+    {
+      solver->parameters.lambda = f_tmp;
+      LOG (GNUNET_ERROR_TYPE_INFO, "Using %s of %.3f\n",
+          "RIL_TRACE_DECAY", f_tmp);
+    }
   }
 
-  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (env->cfg, "ats", "RIL_EXPLORE_RATIO", &string))
+  solver->parameters.epsilon_init = RIL_DEFAULT_EXPLORE_RATIO;
+  if (GNUNET_SYSERR != GNUNET_CONFIGURATION_get_value_float (env->cfg, "ats",
+      "RIL_EXPLORE_RATIO", &f_tmp))
   {
-    solver->parameters.epsilon_init = strtod (string, NULL);
-    GNUNET_free (string);
-    if (solver->parameters.epsilon_init < 0 || solver->parameters.epsilon_init > 1)
+    if ((f_tmp < 0.0) || (f_tmp > 0.0))
     {
-      LOG (GNUNET_ERROR_TYPE_WARNING, "RIL_EXPLORE_RATIO not configured in range [0,1]. Set to default value of %f instead.\n", RIL_DEFAULT_EXPLORE_RATIO);
-      solver->parameters.epsilon_init = RIL_DEFAULT_EXPLORE_RATIO;
+      LOG (GNUNET_ERROR_TYPE_ERROR, _("Invalid %s configuration %f \n"),
+          "RIL_EXPLORE_RATIO", f_tmp);
     }
-  }
-  else
-  {
-    solver->parameters.epsilon_init = RIL_DEFAULT_EXPLORE_RATIO;
+    else
+    {
+      solver->parameters.epsilon_init = f_tmp;
+      LOG (GNUNET_ERROR_TYPE_INFO, "Using %s of %.3f\n",
+          "RIL_EXPLORE_RATIO", f_tmp);
+    }
   }
 
-  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (env->cfg, "ats", "RIL_EXPLORE_DECAY", &string))
+  solver->parameters.epsilon_decay = RIL_DEFAULT_EXPLORE_DECAY;
+  if (GNUNET_SYSERR != GNUNET_CONFIGURATION_get_value_float (env->cfg, "ats",
+      "RIL_EXPLORE_DECAY", &f_tmp))
   {
-    solver->parameters.epsilon_decay = strtod (string, NULL);
-    GNUNET_free (string);
-    if (solver->parameters.epsilon_decay < 0 || solver->parameters.epsilon_decay > 1)
+    if ((f_tmp < 0.0) || (f_tmp > 0.0))
     {
-      LOG (GNUNET_ERROR_TYPE_WARNING, "RIL_EXPLORE_RATIO not configured in range [0,1]. Set to default value of %f instead.\n", RIL_DEFAULT_EXPLORE_DECAY);
-      solver->parameters.epsilon_decay = RIL_DEFAULT_EXPLORE_DECAY;
+      LOG (GNUNET_ERROR_TYPE_ERROR, _("Invalid %s configuration %f \n"),
+          "RIL_EXPLORE_DECAY", f_tmp);
     }
-  }
-  else
-  {
-    solver->parameters.epsilon_decay = RIL_DEFAULT_EXPLORE_DECAY;
+    else
+    {
+      solver->parameters.epsilon_decay = f_tmp;
+      LOG (GNUNET_ERROR_TYPE_INFO, "Using %s of %.3f\n",
+          "RIL_EXPLORE_DECAY", f_tmp);
+    }
   }
 
-  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (env->cfg, "ats", "RIL_TEMPERATURE", &string))
+  solver->parameters.temperature_init = RIL_DEFAULT_TEMPERATURE;
+  if (GNUNET_SYSERR != GNUNET_CONFIGURATION_get_value_float (env->cfg, "ats",
+      "RIL_TEMPERATURE", &f_tmp))
   {
-    solver->parameters.temperature_init = strtod (string, NULL);
-    GNUNET_free (string);
-    if (solver->parameters.temperature_init <= 0)
+    if (f_tmp <= 0.0)
     {
-      LOG (GNUNET_ERROR_TYPE_WARNING, "RIL_TEMPERATURE not positive. Set to default value of %f instead.\n", RIL_DEFAULT_TEMPERATURE);
-      solver->parameters.temperature_init = RIL_DEFAULT_TEMPERATURE;
+      LOG (GNUNET_ERROR_TYPE_ERROR, _("Invalid %s configuration %f \n"),
+          "RIL_TEMPERATURE", f_tmp);
     }
-  }
-  else
-  {
-    solver->parameters.temperature_init = RIL_DEFAULT_TEMPERATURE;
+    else
+    {
+      solver->parameters.temperature_init = f_tmp;
+      LOG (GNUNET_ERROR_TYPE_INFO, "Using %s of %.3f\n",
+          "RIL_TEMPERATURE", f_tmp);
+    }
   }
 
-  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (env->cfg, "ats", "RIL_TEMPERATURE_DECAY", &string))
-  {
-    solver->parameters.temperature_decay = strtod (string, NULL);
-    GNUNET_free (string);
-    if (solver->parameters.temperature_decay <= 0 || solver->parameters.temperature_decay > 1)
-    {
-      LOG (GNUNET_ERROR_TYPE_WARNING, "RIL_TEMPERATURE_DECAY not in range [0,1]. Set to default value of %f instead.\n", RIL_DEFAULT_TEMPERATURE_DECAY);
-      solver->parameters.temperature_decay = RIL_DEFAULT_TEMPERATURE_DECAY;
-    }
-  }
-  else
-  {
   solver->parameters.temperature_decay = RIL_DEFAULT_TEMPERATURE_DECAY;
+  if (GNUNET_SYSERR != GNUNET_CONFIGURATION_get_value_float (env->cfg, "ats",
+      "RIL_TEMPERATURE_DECAY", &f_tmp))
+  {
+    if ((f_tmp <= 0.0) || solver->parameters.temperature_decay > 1)
+    {
+      LOG (GNUNET_ERROR_TYPE_ERROR, _("Invalid %s configuration %f \n"),
+          "RIL_TEMPERATURE_DECAY", f_tmp);
+    }
+    else
+    {
+      solver->parameters.temperature_decay = f_tmp;
+      LOG (GNUNET_ERROR_TYPE_INFO, "Using %s of %.3f\n",
+          "RIL_TEMPERATURE_DECAY", f_tmp);
+    }
   }
 
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_number (env->cfg, "ats", "RIL_SIMULATE", &solver->simulate))

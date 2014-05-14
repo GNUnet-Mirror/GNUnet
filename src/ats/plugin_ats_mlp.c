@@ -2343,7 +2343,7 @@ libgnunet_plugin_ats_mlp_init (void *cls)
     {
       mlp->pv.mip_gap = f_tmp;
       LOG (GNUNET_ERROR_TYPE_INFO, "Using %s of %.3f\n",
-          "MIP gap", mlp->pv.mip_gap);
+          "MIP gap", f_tmp);
     }
   }
 
@@ -2360,7 +2360,7 @@ libgnunet_plugin_ats_mlp_init (void *cls)
     {
       mlp->pv.lp_mip_gap = f_tmp;
       LOG (GNUNET_ERROR_TYPE_INFO, "Using %s gap of %.3f\n",
-          "LP/MIP", mlp->pv.lp_mip_gap);
+          "LP/MIP", f_tmp);
     }
   }
 
@@ -2392,7 +2392,7 @@ libgnunet_plugin_ats_mlp_init (void *cls)
     {
       mlp->pv.co_D = f_tmp;
       LOG (GNUNET_ERROR_TYPE_INFO, "Using %s gap of %.3f\n",
-          "MLP_COEFFICIENT_D", mlp->pv.lp_mip_gap);
+          "MLP_COEFFICIENT_D", f_tmp);
     }
   }
 
@@ -2410,7 +2410,7 @@ libgnunet_plugin_ats_mlp_init (void *cls)
     {
       mlp->pv.co_R = f_tmp;
       LOG (GNUNET_ERROR_TYPE_INFO, "Using %s gap of %.3f\n",
-          "MLP_COEFFICIENT_R", mlp->pv.lp_mip_gap);
+          "MLP_COEFFICIENT_R", f_tmp);
     }
   }
 
@@ -2429,7 +2429,7 @@ libgnunet_plugin_ats_mlp_init (void *cls)
     {
       mlp->pv.co_U = f_tmp;
       LOG (GNUNET_ERROR_TYPE_INFO, "Using %s gap of %.3f\n",
-          "MLP_COEFFICIENT_U", mlp->pv.lp_mip_gap);
+          "MLP_COEFFICIENT_U", f_tmp);
     }
   }
 

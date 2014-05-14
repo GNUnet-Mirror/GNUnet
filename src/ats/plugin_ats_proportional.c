@@ -408,8 +408,7 @@ libgnunet_plugin_ats_proportional_init (void *cls)
   struct GAS_PROPORTIONAL_Handle *s;
   struct Network * cur;
   char * net_str[GNUNET_ATS_NetworkTypeCount] = GNUNET_ATS_NetworkTypeString;
-  unsigned long long prop_factor;
-  unsigned long long stability_factor;
+  float f_tmp;
   int c;
 
   GNUNET_assert (NULL != env);
@@ -450,43 +449,39 @@ libgnunet_plugin_ats_proportional_init (void *cls)
   s->addresses = env->addresses;
   s->requests = GNUNET_CONTAINER_multipeermap_create (10, GNUNET_NO);
 
-  if (GNUNET_SYSERR != GNUNET_CONFIGURATION_get_value_number(s->env->cfg, "ats",
-      "PROP_STABILITY_FACTOR", &stability_factor))
+  s->stability_factor = PROP_STABILITY_FACTOR;
+  if (GNUNET_SYSERR != GNUNET_CONFIGURATION_get_value_float (env->cfg, "ats",
+      "PROP_STABILITY_FACTOR", &f_tmp))
   {
-    if ((stability_factor >= 100) && (stability_factor <= 200))
+    if ((f_tmp < 1.0) || (f_tmp > 2.0))
     {
-      s->stability_factor = ((double) stability_factor) / 100;
+      LOG (GNUNET_ERROR_TYPE_ERROR, _("Invalid %s configuration %f \n"),
+          "PROP_STABILITY_FACTOR", f_tmp);
     }
     else
     {
-      GNUNET_break (0);
-      s->stability_factor = PROP_STABILITY_FACTOR;
+      s->stability_factor = f_tmp;
+      LOG (GNUNET_ERROR_TYPE_INFO, "Using %s of %.3f\n",
+          "PROP_STABILITY_FACTOR", f_tmp);
     }
   }
-  else
-  {
-    GNUNET_break (0);
-    s->stability_factor = PROP_STABILITY_FACTOR;
-  }
-  LOG (GNUNET_ERROR_TYPE_INFO, "Using stability factor %.3f\n",
-      s->stability_factor);
 
-  if (GNUNET_SYSERR != GNUNET_CONFIGURATION_get_value_number(s->env->cfg, "ats",
-      "PROP_PROPORTIONALITY_FACTOR", &prop_factor))
+  s->prop_factor = PROPORTIONALITY_FACTOR;
+  if (GNUNET_SYSERR != GNUNET_CONFIGURATION_get_value_float (env->cfg, "ats",
+      "PROP_STABILITY_FACTOR", &f_tmp))
   {
-    if (prop_factor >= 100)
-      s->prop_factor = ((double) prop_factor) / 100;
+    if (f_tmp < 1.0)
+    {
+      LOG (GNUNET_ERROR_TYPE_ERROR, _("Invalid %s configuration %f \n"),
+          "PROP_PROPORTIONALITY_FACTOR", f_tmp);
+    }
     else
     {
-      GNUNET_break (0);
-      s->prop_factor = PROPORTIONALITY_FACTOR;
+      s->prop_factor = f_tmp;
+      LOG (GNUNET_ERROR_TYPE_INFO, "Using %s of %.3f\n",
+          "PROP_PROPORTIONALITY_FACTOR", f_tmp);
     }
   }
-  else
-    s->prop_factor = PROPORTIONALITY_FACTOR;
-  LOG (GNUNET_ERROR_TYPE_INFO, "Using proportionality factor %.3f\n",
-      s->prop_factor);
-
 
   for (c = 0; c < env->network_count; c++)
   {

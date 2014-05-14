@@ -34,12 +34,12 @@ BLUETOOTH_QUOTA_OUT = 128 KiB
 
 # Proportional specific settings
 # How proportional to preferences is bandwidth distribution in a network
-# 1: Fair with respect to addresses without preferences
-# > 100: The bigger, the more respect is payed to preferences 
-PROP_PROPORTIONALITY_FACTOR = 200
+# 1.0: Fair with respect to addresses without preferences
+# > 1.0: The bigger, the more respect is payed to preferences 
+PROP_PROPORTIONALITY_FACTOR = 2.00
 # Should we stick to existing connections are prefer to switch?
-# [100...200], lower value prefers to switch, bigger value is more tolerant
-PROP_STABILITY_FACTOR = 125
+# [1.0...2.0], lower value prefers to switch, bigger value is more tolerant
+PROP_STABILITY_FACTOR = 1.25
 
 # MLP specific settings
 # MLP defaults
