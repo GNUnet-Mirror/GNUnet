@@ -580,18 +580,23 @@ t_hmac (struct CadetTunnel *t, const void *plaintext, size_t size, uint32_t iv,
  * @param src Source of the plaintext. Can overlap with @c dst.
  * @param size Size of the plaintext.
  * @param iv Initialization Vector to use.
+ * @param force_newest_key Force the use of the newest key, otherwise
+ *                         CADET will use the old key when allowed.
+ *                         This can happen in the case when a KX is going on
+ *                         and the old one hasn't expired.
  */
 static int
-t_encrypt (struct CadetTunnel *t,
-           void *dst, const void *src,
-           size_t size, uint32_t iv)
+t_encrypt (struct CadetTunnel *t, void *dst, const void *src,
+           size_t size, uint32_t iv, int force_newest_key)
 {
   struct GNUNET_CRYPTO_SymmetricInitializationVector siv;
   struct GNUNET_CRYPTO_SymmetricSessionKey *e_key;
   size_t out_size;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_encrypt start\n");
-  if (NULL != t->kx_ctx && GNUNET_SCHEDULER_NO_TASK == t->kx_ctx->finish_task)
+  if (GNUNET_NO == force_newest_key
+      && NULL != t->kx_ctx
+      && GNUNET_SCHEDULER_NO_TASK == t->kx_ctx->finish_task)
   {
     struct GNUNET_TIME_Relative age;
 
@@ -805,7 +810,9 @@ create_keys (struct CadetTunnel *t)
   derive_key_material (&km, &t->peers_ephemeral_key);
   LOG (GNUNET_ERROR_TYPE_INFO, "km %s\n", GNUNET_h2s_full (&km));
   derive_symmertic (&t->e_key, &my_full_id, GCP_get_id (t->peer), &km);
+  LOG (GNUNET_ERROR_TYPE_INFO, "ek %s\n", GNUNET_h2s_full (&t->e_key));
   derive_symmertic (&t->d_key, GCP_get_id (t->peer), &my_full_id, &km);
+  LOG (GNUNET_ERROR_TYPE_INFO, "dk %s\n", GNUNET_h2s_full (&t->d_key));
 }
 
 
@@ -977,7 +984,7 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   msg = (struct GNUNET_CADET_Encrypted *) cbuf;
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED);
   msg->iv = iv;
-  GNUNET_assert (t_encrypt (t, &msg[1], message, size, iv) == size);
+  GNUNET_assert (t_encrypt (t, &msg[1], message, size, iv, GNUNET_NO) == size);
   t_hmac (t, &msg[1], size, iv, GNUNET_YES, &msg->hmac);
   msg->header.size = htons (sizeof (struct GNUNET_CADET_Encrypted) + size);
 
@@ -1199,7 +1206,8 @@ send_ping (struct CadetTunnel *t)
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  sending %u\n", msg.nonce);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  towards %s\n", GNUNET_i2s (&msg.target));
-  t_encrypt (t, &msg.target, &msg.target, ping_encryption_size(), msg.iv);
+  t_encrypt (t, &msg.target, &msg.target,
+             ping_encryption_size(), msg.iv, GNUNET_YES);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  e sending %u\n", msg.nonce);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  e towards %s\n", GNUNET_i2s (&msg.target));
 
@@ -1224,7 +1232,8 @@ send_pong (struct CadetTunnel *t, uint32_t challenge)
   msg.iv = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
   msg.nonce = challenge;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  sending %u\n", msg.nonce);
-  t_encrypt (t, &msg.nonce, &msg.nonce, sizeof (msg.nonce), msg.iv);
+  t_encrypt (t, &msg.nonce, &msg.nonce,
+             sizeof (msg.nonce), msg.iv, GNUNET_YES);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  e sending %u\n", msg.nonce);
 
   send_kx (t, &msg.header);
