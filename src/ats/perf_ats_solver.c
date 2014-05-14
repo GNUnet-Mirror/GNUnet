@@ -963,8 +963,15 @@ write_all_iterations (void)
         cur_upd_res = ph.iterations_results[c_iteration].update_results_array[c_peer];
         data_upd_tmp = GNUNET_strdup (data_upd_str);
         GNUNET_free (data_upd_str);
-        GNUNET_asprintf (&data_upd_str, "%s;%llu", data_upd_tmp,
+        if (GNUNET_YES == cur_full_res->valid)
+        {
+          GNUNET_asprintf (&data_upd_str, "%s;%llu", data_upd_tmp,
             (NULL == cur_upd_res) ? 0 : cur_upd_res->d_total_full.rel_value_us);
+        }
+        else
+        {
+            GNUNET_asprintf (&data_str, "%s;", data_tmp);
+        }
         GNUNET_free (data_upd_tmp);
 
       }
@@ -974,7 +981,16 @@ write_all_iterations (void)
 
       data_tmp = GNUNET_strdup (data_str);
       GNUNET_free (data_str);
-      GNUNET_asprintf (&data_str, "%s;%llu", data_tmp, cur_full_res->d_total_full.rel_value_us);
+      if (GNUNET_YES == cur_full_res->valid)
+      {
+          GNUNET_asprintf (&data_str, "%s;%llu", data_tmp,
+              cur_full_res->d_total_full.rel_value_us);
+      }
+      else
+      {
+          GNUNET_asprintf (&data_str, "%s;", data_tmp);
+      }
+
       GNUNET_free (data_tmp);
     }
     data_tmp = GNUNET_strdup (data_str);
