@@ -219,7 +219,7 @@ struct CadetTunnel3Queue
   /**
    * Continuation to call once sent.
    */
-  GMT_sent cont;
+  GCT_sent cont;
 
   /**
    * Closure for @c cont.
@@ -370,9 +370,9 @@ is_ready (struct CadetTunnel3 *t)
 {
   int ready;
 
-  GMT_debug (t);
+  GCT_debug (t);
   ready = (CADET_TUNNEL3_READY == t->cstate && CADET_TUNNEL3_KEY_OK == t->estate);
-  ready = ready || GMT_is_loopback (t);
+  ready = ready || GCT_is_loopback (t);
   return ready;
 }
 
@@ -418,9 +418,9 @@ get_channel_buffer (const struct CadetTChannel *tch)
   int fwd;
 
   /* If channel is outgoing, is origin in the FWD direction and fwd is YES */
-  fwd = GMCH_is_origin (tch->ch, GNUNET_YES);
+  fwd = GCCH_is_origin (tch->ch, GNUNET_YES);
 
-  return GMCH_get_buffer (tch->ch, fwd);
+  return GCCH_get_buffer (tch->ch, fwd);
 }
 
 
@@ -437,9 +437,9 @@ get_channel_allowed (const struct CadetTChannel *tch)
   int fwd;
 
   /* If channel is outgoing, is origin in the FWD direction and fwd is YES */
-  fwd = GMCH_is_origin (tch->ch, GNUNET_YES);
+  fwd = GCCH_is_origin (tch->ch, GNUNET_YES);
 
-  return GMCH_get_allowed (tch->ch, fwd);
+  return GCCH_get_allowed (tch->ch, fwd);
 }
 
 
@@ -456,9 +456,9 @@ get_connection_buffer (const struct CadetTConnection *tc)
   int fwd;
 
   /* If connection is outgoing, is origin in the FWD direction and fwd is YES */
-  fwd = GMC_is_origin (tc->c, GNUNET_YES);
+  fwd = GCC_is_origin (tc->c, GNUNET_YES);
 
-  return GMC_get_buffer (tc->c, fwd);
+  return GCC_get_buffer (tc->c, fwd);
 }
 
 
@@ -475,9 +475,9 @@ get_connection_allowed (const struct CadetTConnection *tc)
   int fwd;
 
   /* If connection is outgoing, is origin in the FWD direction and fwd is YES */
-  fwd = GMC_is_origin (tc->c, GNUNET_YES);
+  fwd = GCC_is_origin (tc->c, GNUNET_YES);
 
-  return GMC_get_allowed (tc->c, fwd);
+  return GCC_get_allowed (tc->c, fwd);
 }
 
 
@@ -503,7 +503,7 @@ check_ephemeral (struct CadetTunnel3 *t,
 
   /* Check origin */
   if (0 != memcmp (&msg->origin_identity,
-                   GMP_get_id (t->peer),
+                   GCP_get_id (t->peer),
                    sizeof (struct GNUNET_PeerIdentity)))
     return GNUNET_SYSERR;
 
@@ -578,8 +578,8 @@ t_decrypt (struct CadetTunnel3 *t,
     GNUNET_STATISTICS_update (stats, "# non decryptable data", 1, GNUNET_NO);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "WARNING got data on %s without a valid key\n",
-         GMT_2s (t));
-    GMT_debug (t);
+         GCT_2s (t));
+    GCT_debug (t);
     return 0;
   }
 
@@ -652,16 +652,16 @@ tunnel_get_connection (struct CadetTunnel3 *t)
   unsigned int qn;
   unsigned int lowest_q;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "tunnel_get_connection %s\n", GMT_2s (t));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "tunnel_get_connection %s\n", GCT_2s (t));
   best = NULL;
   lowest_q = UINT_MAX;
   for (iter = t->connection_head; NULL != iter; iter = iter->next)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  connection %s: %u\n",
-         GMC_2s (iter->c), GMC_get_state (iter->c));
-    if (CADET_CONNECTION_READY == GMC_get_state (iter->c))
+         GCC_2s (iter->c), GCC_get_state (iter->c));
+    if (CADET_CONNECTION_READY == GCC_get_state (iter->c))
     {
-      qn = GMC_get_qn (iter->c, GMC_is_origin (iter->c, GNUNET_YES));
+      qn = GCC_get_qn (iter->c, GCC_is_origin (iter->c, GNUNET_YES));
       LOG (GNUNET_ERROR_TYPE_DEBUG, "    q_n %u, \n", qn);
       if (qn < lowest_q)
       {
@@ -670,7 +670,7 @@ tunnel_get_connection (struct CadetTunnel3 *t)
       }
     }
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, " selected: connection %s\n", GMC_2s (best));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, " selected: connection %s\n", GCC_2s (best));
   return best;
 }
 
@@ -699,7 +699,7 @@ tun_message_sent (void *cls,
   LOG (GNUNET_ERROR_TYPE_DEBUG, "tun_message_sent\n");
 
   GNUNET_assert (NULL != qt->cont);
-  t = NULL == c ? NULL : GMC_get_tunnel (c);
+  t = NULL == c ? NULL : GCC_get_tunnel (c);
   qt->cont (qt->cont_cls, t, qt, type, size);
   GNUNET_free (qt);
 }
@@ -731,7 +731,7 @@ queue_data (struct CadetTunnel3 *t, const struct GNUNET_MessageHeader *msg)
   struct CadetTunnelDelayed *tqd;
   uint16_t size = ntohs (msg->size);
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "queue data on Tunnel %s\n", GMT_2s (t));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "queue data on Tunnel %s\n", GCT_2s (t));
 
   if (GNUNET_YES == is_ready (t))
   {
@@ -797,7 +797,7 @@ t_hmac (struct CadetTunnel3 *t, const void *plaintext, size_t size, uint32_t iv,
 static struct CadetTunnel3Queue *
 send_prebuilt_message (const struct GNUNET_MessageHeader *message,
                        struct CadetTunnel3 *t, struct CadetConnection *c,
-                       int force, GMT_sent cont, void *cont_cls,
+                       int force, GCT_sent cont, void *cont_cls,
                        struct CadetTunnel3Queue *existing_q)
 {
   struct CadetTunnel3Queue *tq;
@@ -809,7 +809,7 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   uint16_t type;
   int fwd;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "GMT Send on Tunnel %s\n", GMT_2s (t));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "GMT Send on Tunnel %s\n", GCT_2s (t));
 
   if (GNUNET_NO == is_ready (t))
   {
@@ -829,7 +829,7 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
     return tq;
   }
 
-  GNUNET_assert (GNUNET_NO == GMT_is_loopback (t));
+  GNUNET_assert (GNUNET_NO == GCT_is_loopback (t));
 
   iv = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
   msg = (struct GNUNET_CADET_Encrypted *) cbuf;
@@ -847,7 +847,7 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
         || CADET_TUNNEL3_SEARCHING != t->cstate)
     {
       GNUNET_break (0);
-      GMT_debug (t);
+      GCT_debug (t);
     }
     return NULL;
   }
@@ -868,20 +868,20 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
     case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_DESTROY:
     case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_ACK:
     case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_NACK:
-      msg->cid = *GMC_get_id (c);
+      msg->cid = *GCC_get_id (c);
       msg->ttl = htonl (default_ttl);
       break;
     default:
       GNUNET_break (0);
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "type %s\n", GM_m2s (type));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "type %s\n", GC_m2s (type));
 
-  fwd = GMC_is_origin (c, GNUNET_YES);
+  fwd = GCC_is_origin (c, GNUNET_YES);
 
   if (NULL == cont)
   {
     GNUNET_break (NULL ==
-                  GMC_send_prebuilt_message (&msg->header, type, mid,
+                  GCC_send_prebuilt_message (&msg->header, type, mid,
                                              c, fwd, force, NULL, NULL));
     return NULL;
   }
@@ -894,7 +894,7 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
     tq = existing_q;
     tq->tqd = NULL;
   }
-  tq->cq = GMC_send_prebuilt_message (&msg->header, type, mid, c, fwd, force,
+  tq->cq = GCC_send_prebuilt_message (&msg->header, type, mid, c, fwd, force,
                                       &tun_message_sent, tq);
   tq->cont = cont;
   tq->cont_cls = cont_cls;
@@ -916,10 +916,10 @@ send_queued_data (struct CadetTunnel3 *t)
   unsigned int room;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "GMT_send_queued_data on tunnel %s\n",
-       GMT_2s (t));
+       "GCT_send_queued_data on tunnel %s\n",
+       GCT_2s (t));
 
-  if (GMT_is_loopback (t))
+  if (GCT_is_loopback (t))
   {
     GNUNET_break (0);
     return;
@@ -932,7 +932,7 @@ send_queued_data (struct CadetTunnel3 *t)
     return;
   }
 
-  room = GMT_get_connections_buffer (t);
+  room = GCT_get_connections_buffer (t);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  buffer space: %u\n", room);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  tq head: %p\n", t->tq_head);
   for (tqd = t->tq_head; NULL != tqd && room > 0; tqd = next)
@@ -947,7 +947,7 @@ send_queued_data (struct CadetTunnel3 *t)
                            tqd->tq);
     unqueue_data (tqd);
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "GMT_send_queued_data end\n", GMP_2s (t->peer));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "GCT_send_queued_data end\n", GCP_2s (t->peer));
 }
 
 
@@ -969,10 +969,10 @@ send_kx (struct CadetTunnel3 *t,
   uint16_t type;
   int fwd;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "GMT KX on Tunnel %s\n", GMT_2s (t));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "GMT KX on Tunnel %s\n", GCT_2s (t));
 
   /* Avoid loopback. */
-  if (GMT_is_loopback (t))
+  if (GCT_is_loopback (t))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  loopback!\n");
     GNUNET_break (0);
@@ -988,7 +988,7 @@ send_kx (struct CadetTunnel3 *t,
   if (NULL == t->connection_head)
   {
     GNUNET_break (CADET_TUNNEL3_SEARCHING == t->cstate);
-    GMT_debug (t);
+    GCT_debug (t);
     return;
   }
 
@@ -1000,7 +1000,7 @@ send_kx (struct CadetTunnel3 *t,
   {
     GNUNET_break (GNUNET_SCHEDULER_NO_TASK != t->destroy_task
                   || CADET_TUNNEL3_READY != t->cstate);
-    GMT_debug (t);
+    GCT_debug (t);
     return;
   }
   type = ntohs (message->type);
@@ -1013,13 +1013,13 @@ send_kx (struct CadetTunnel3 *t,
       break;
     default:
       LOG (GNUNET_ERROR_TYPE_DEBUG, "unkown type %s\n",
-           GM_m2s (type));
+           GC_m2s (type));
       GNUNET_break (0);
   }
 
-  fwd = GMC_is_origin (t->connection_head->c, GNUNET_YES);
+  fwd = GCC_is_origin (t->connection_head->c, GNUNET_YES);
   /* TODO save handle and cancel in case of a unneeded retransmission */
-  GMC_send_prebuilt_message (&msg->header, GNUNET_MESSAGE_TYPE_CADET_KX,
+  GCC_send_prebuilt_message (&msg->header, GNUNET_MESSAGE_TYPE_CADET_KX,
                              message->type, c, fwd, GNUNET_YES, NULL, NULL);
 }
 
@@ -1032,7 +1032,7 @@ send_kx (struct CadetTunnel3 *t,
 static void
 send_ephemeral (struct CadetTunnel3 *t)
 {
-  LOG (GNUNET_ERROR_TYPE_INFO, "=> EPHM for %s\n", GMT_2s (t));
+  LOG (GNUNET_ERROR_TYPE_INFO, "=> EPHM for %s\n", GCT_2s (t));
 
   kx_msg.sender_status = htonl (t->estate);
   send_kx (t, &kx_msg.header);
@@ -1048,11 +1048,11 @@ send_ping (struct CadetTunnel3 *t)
 {
   struct GNUNET_CADET_KX_Ping msg;
 
-  LOG (GNUNET_ERROR_TYPE_INFO, "=> PING for %s\n", GMT_2s (t));
+  LOG (GNUNET_ERROR_TYPE_INFO, "=> PING for %s\n", GCT_2s (t));
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_KX_PING);
   msg.iv = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
-  msg.target = *GMP_get_id (t->peer);
+  msg.target = *GCP_get_id (t->peer);
   msg.nonce = t->kx_ctx->challenge;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  sending %u\n", msg.nonce);
@@ -1076,7 +1076,7 @@ send_pong (struct CadetTunnel3 *t, uint32_t challenge)
 {
   struct GNUNET_CADET_KX_Pong msg;
 
-  LOG (GNUNET_ERROR_TYPE_INFO, "=> PONG for %s\n", GMT_2s (t));
+  LOG (GNUNET_ERROR_TYPE_INFO, "=> PONG for %s\n", GCT_2s (t));
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_KX_PONG);
   msg.iv = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
@@ -1102,7 +1102,7 @@ rekey_tunnel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   t->rekey_task = GNUNET_SCHEDULER_NO_TASK;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Re-key Tunnel %s\n", GMT_2s (t));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Re-key Tunnel %s\n", GCT_2s (t));
   if (NULL != tc && 0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
     return;
 
@@ -1114,7 +1114,7 @@ rekey_tunnel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
     t->kx_ctx->d_key_old = t->d_key;
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  new challenge for %s: %u\n",
-         GMT_2s (t), t->kx_ctx->challenge);
+         GCT_2s (t), t->kx_ctx->challenge);
   }
   send_ephemeral (t);
   switch (t->estate)
@@ -1161,7 +1161,7 @@ rekey_iterator (void *cls,
   if (GNUNET_SCHEDULER_NO_TASK != t->rekey_task)
     return GNUNET_YES;
 
-  if (GNUNET_YES == GMT_is_loopback (t))
+  if (GNUNET_YES == GCT_is_loopback (t))
     return GNUNET_YES;
 
   r = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, (uint32_t) n * 100);
@@ -1227,8 +1227,8 @@ destroy_iterator (void *cls,
 {
   struct CadetTunnel3 *t = value;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "GMT_shutdown destroying tunnel at %p\n", t);
-  GMT_destroy (t);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "GCT_shutdown destroying tunnel at %p\n", t);
+  GCT_destroy (t);
   return GNUNET_YES;
 }
 
@@ -1251,7 +1251,7 @@ send_channel_destroy (struct CadetTunnel3 *t, unsigned int gid)
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "WARNING destroying unknown channel %u on tunnel %s\n",
-       gid, GMT_2s (t));
+       gid, GCT_2s (t));
   send_prebuilt_message (&msg.header, t, NULL, GNUNET_YES, NULL, NULL, NULL);
 }
 
@@ -1284,10 +1284,10 @@ handle_data (struct CadetTunnel3 *t,
     return;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, " payload of type %s\n",
-              GM_m2s (ntohs (msg[1].header.type)));
+              GC_m2s (ntohs (msg[1].header.type)));
 
   /* Check channel */
-  ch = GMT_get_channel (t, ntohl (msg->chid));
+  ch = GCT_get_channel (t, ntohl (msg->chid));
   if (NULL == ch)
   {
     GNUNET_STATISTICS_update (stats, "# data on unknown channel",
@@ -1298,7 +1298,7 @@ handle_data (struct CadetTunnel3 *t,
     return;
   }
 
-  GMCH_handle_data (ch, msg, fwd);
+  GCCH_handle_data (ch, msg, fwd);
 }
 
 
@@ -1329,7 +1329,7 @@ handle_data_ack (struct CadetTunnel3 *t,
   }
 
   /* Check channel */
-  ch = GMT_get_channel (t, ntohl (msg->chid));
+  ch = GCT_get_channel (t, ntohl (msg->chid));
   if (NULL == ch)
   {
     GNUNET_STATISTICS_update (stats, "# data ack on unknown channel",
@@ -1339,7 +1339,7 @@ handle_data_ack (struct CadetTunnel3 *t,
     return;
   }
 
-  GMCH_handle_data_ack (ch, msg, fwd);
+  GCCH_handle_data_ack (ch, msg, fwd);
 }
 
 
@@ -1365,15 +1365,15 @@ handle_ch_create (struct CadetTunnel3 *t,
   }
 
   /* Check channel */
-  ch = GMT_get_channel (t, ntohl (msg->chid));
-  if (NULL != ch && ! GMT_is_loopback (t))
+  ch = GCT_get_channel (t, ntohl (msg->chid));
+  if (NULL != ch && ! GCT_is_loopback (t))
   {
     /* Probably a retransmission, safe to ignore */
     LOG (GNUNET_ERROR_TYPE_DEBUG, "   already exists...\n");
   }
-  ch = GMCH_handle_create (t, msg);
+  ch = GCCH_handle_create (t, msg);
   if (NULL != ch)
-    GMT_add_channel (t, ch);
+    GCT_add_channel (t, ch);
 }
 
 
@@ -1400,7 +1400,7 @@ handle_ch_nack (struct CadetTunnel3 *t,
   }
 
   /* Check channel */
-  ch = GMT_get_channel (t, ntohl (msg->chid));
+  ch = GCT_get_channel (t, ntohl (msg->chid));
   if (NULL == ch)
   {
     GNUNET_STATISTICS_update (stats, "# channel NACK on unknown channel",
@@ -1410,7 +1410,7 @@ handle_ch_nack (struct CadetTunnel3 *t,
     return;
   }
 
-  GMCH_handle_nack (ch);
+  GCCH_handle_nack (ch);
 }
 
 
@@ -1441,7 +1441,7 @@ handle_ch_ack (struct CadetTunnel3 *t,
   }
 
   /* Check channel */
-  ch = GMT_get_channel (t, ntohl (msg->chid));
+  ch = GCT_get_channel (t, ntohl (msg->chid));
   if (NULL == ch)
   {
     GNUNET_STATISTICS_update (stats, "# channel ack on unknown channel",
@@ -1451,7 +1451,7 @@ handle_ch_ack (struct CadetTunnel3 *t,
     return;
   }
 
-  GMCH_handle_ack (ch, msg, fwd);
+  GCCH_handle_ack (ch, msg, fwd);
 }
 
 
@@ -1483,14 +1483,14 @@ handle_ch_destroy (struct CadetTunnel3 *t,
   }
 
   /* Check channel */
-  ch = GMT_get_channel (t, ntohl (msg->chid));
+  ch = GCT_get_channel (t, ntohl (msg->chid));
   if (NULL == ch)
   {
     /* Probably a retransmission, safe to ignore */
     return;
   }
 
-  GMCH_handle_destroy (ch, msg, fwd);
+  GCCH_handle_destroy (ch, msg, fwd);
 }
 
 
@@ -1505,7 +1505,7 @@ handle_ephemeral (struct CadetTunnel3 *t,
                   const struct GNUNET_CADET_KX_Ephemeral *msg)
 {
   struct GNUNET_HashCode km;
-  LOG (GNUNET_ERROR_TYPE_INFO, "<=== EPHM for %s\n", GMT_2s (t));
+  LOG (GNUNET_ERROR_TYPE_INFO, "<=== EPHM for %s\n", GCT_2s (t));
 
   if (GNUNET_OK != check_ephemeral (t, msg))
   {
@@ -1514,8 +1514,8 @@ handle_ephemeral (struct CadetTunnel3 *t,
   }
   derive_key_material (&km, &msg->ephemeral_key);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  km is %s\n", GNUNET_h2s (&km));
-  derive_symmertic (&t->e_key, &my_full_id, GMP_get_id (t->peer), &km);
-  derive_symmertic (&t->d_key, GMP_get_id (t->peer), &my_full_id, &km);
+  derive_symmertic (&t->e_key, &my_full_id, GCP_get_id (t->peer), &km);
+  derive_symmertic (&t->d_key, GCP_get_id (t->peer), &my_full_id, &km);
   if (CADET_TUNNEL3_KEY_SENT == t->estate)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  our key was sent, send ping\n");
@@ -1544,12 +1544,12 @@ handle_ping (struct CadetTunnel3 *t,
     return;
   }
 
-  LOG (GNUNET_ERROR_TYPE_INFO, "<=== PING for %s\n", GMT_2s (t));
+  LOG (GNUNET_ERROR_TYPE_INFO, "<=== PING for %s\n", GCT_2s (t));
   t_decrypt (t, &res.target, &msg->target, ping_encryption_size (), msg->iv);
   if (0 != memcmp (&my_full_id, &res.target, sizeof (my_full_id)))
   {
     GNUNET_STATISTICS_update (stats, "# malformed PINGs", 1, GNUNET_NO);
-    LOG (GNUNET_ERROR_TYPE_WARNING, "  malformed PING on %s\n", GMT_2s (t));
+    LOG (GNUNET_ERROR_TYPE_WARNING, "  malformed PING on %s\n", GCT_2s (t));
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  e got %u\n", msg->nonce);
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  e towards %s\n", GNUNET_i2s (&msg->target));
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  got %u\n", res.nonce);
@@ -1577,7 +1577,7 @@ handle_pong (struct CadetTunnel3 *t,
 {
   uint32_t challenge;
 
-  LOG (GNUNET_ERROR_TYPE_INFO, "<=== PONG for %s\n", GMT_2s (t));
+  LOG (GNUNET_ERROR_TYPE_INFO, "<=== PONG for %s\n", GCT_2s (t));
   if (GNUNET_SCHEDULER_NO_TASK == t->rekey_task)
   {
     GNUNET_STATISTICS_update (stats, "# duplicate PONG messages", 1, GNUNET_NO);
@@ -1587,7 +1587,7 @@ handle_pong (struct CadetTunnel3 *t,
 
   if (challenge != t->kx_ctx->challenge)
   {
-    LOG (GNUNET_ERROR_TYPE_WARNING, "Wrong PONG challenge on %s\n", GMT_2s (t));
+    LOG (GNUNET_ERROR_TYPE_WARNING, "Wrong PONG challenge on %s\n", GCT_2s (t));
     LOG (GNUNET_ERROR_TYPE_DEBUG, "PONG: %u (e: %u). Expected: %u.\n",
          challenge, msg->nonce, t->kx_ctx->challenge);
     send_ephemeral (t);
@@ -1598,7 +1598,7 @@ handle_pong (struct CadetTunnel3 *t,
   t->rekey_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_free (t->kx_ctx);
   t->kx_ctx = NULL;
-  GMT_change_estate (t, CADET_TUNNEL3_KEY_OK);
+  GCT_change_estate (t, CADET_TUNNEL3_KEY_OK);
 }
 
 
@@ -1621,7 +1621,7 @@ handle_decrypted (struct CadetTunnel3 *t,
   uint16_t type;
 
   type = ntohs (msgh->type);
-  LOG (GNUNET_ERROR_TYPE_INFO, "<=== %s on %s\n", GM_m2s (type), GMT_2s (t));
+  LOG (GNUNET_ERROR_TYPE_INFO, "<=== %s on %s\n", GC_m2s (type), GCT_2s (t));
 
   switch (type)
   {
@@ -1666,7 +1666,7 @@ handle_decrypted (struct CadetTunnel3 *t,
       LOG (GNUNET_ERROR_TYPE_WARNING,
            "end-to-end message not known (%u)\n",
            ntohs (msgh->type));
-      GMT_debug (t);
+      GCT_debug (t);
   }
 }
 
@@ -1682,7 +1682,7 @@ handle_decrypted (struct CadetTunnel3 *t,
  * @param msg Encrypted message.
  */
 void
-GMT_handle_encrypted (struct CadetTunnel3 *t,
+GCT_handle_encrypted (struct CadetTunnel3 *t,
                       const struct GNUNET_CADET_Encrypted *msg)
 {
   size_t size = ntohs (msg->header.size);
@@ -1700,7 +1700,7 @@ GMT_handle_encrypted (struct CadetTunnel3 *t,
     /* checksum failed */
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Failed checksum validation for a message on tunnel `%s'\n",
-                GMT_2s (t));
+                GCT_2s (t));
     GNUNET_STATISTICS_update (stats, "# wrong HMAC", 1, GNUNET_NO);
     return;
   }
@@ -1721,7 +1721,7 @@ GMT_handle_encrypted (struct CadetTunnel3 *t,
  * @param message Payload of KX message.
  */
 void
-GMT_handle_kx (struct CadetTunnel3 *t,
+GCT_handle_kx (struct CadetTunnel3 *t,
                const struct GNUNET_MessageHeader *message)
 {
   uint16_t type;
@@ -1756,7 +1756,7 @@ GMT_handle_kx (struct CadetTunnel3 *t,
  * @param key ECC private key, to derive all other keys and do crypto.
  */
 void
-GMT_init (const struct GNUNET_CONFIGURATION_Handle *c,
+GCT_init (const struct GNUNET_CONFIGURATION_Handle *c,
           const struct GNUNET_CRYPTO_EddsaPrivateKey *key)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG, "init\n");
@@ -1791,7 +1791,7 @@ GMT_init (const struct GNUNET_CONFIGURATION_Handle *c,
  * Shut down the tunnel subsystem.
  */
 void
-GMT_shutdown (void)
+GCT_shutdown (void)
 {
   if (GNUNET_SCHEDULER_NO_TASK != rekey_task)
   {
@@ -1809,7 +1809,7 @@ GMT_shutdown (void)
  * @param destination Peer this tunnel is towards.
  */
 struct CadetTunnel3 *
-GMT_new (struct CadetPeer *destination)
+GCT_new (struct CadetPeer *destination)
 {
   struct CadetTunnel3 *t;
 
@@ -1818,7 +1818,7 @@ GMT_new (struct CadetPeer *destination)
   t->peer = destination;
 
   if (GNUNET_OK !=
-      GNUNET_CONTAINER_multipeermap_put (tunnels, GMP_get_id (destination), t,
+      GNUNET_CONTAINER_multipeermap_put (tunnels, GCP_get_id (destination), t,
                                          GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST))
   {
     GNUNET_break (0);
@@ -1836,13 +1836,13 @@ GMT_new (struct CadetPeer *destination)
  * @param cstate New connection state.
  */
 void
-GMT_change_cstate (struct CadetTunnel3* t, enum CadetTunnel3CState cstate)
+GCT_change_cstate (struct CadetTunnel3* t, enum CadetTunnel3CState cstate)
 {
   if (NULL == t)
     return;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Tunnel %s cstate %s => %s\n",
-       GMP_2s (t->peer), cstate2s (t->cstate), cstate2s (cstate));
-  if (myid != GMP_get_short_id (t->peer) &&
+       GCP_2s (t->peer), cstate2s (t->cstate), cstate2s (cstate));
+  if (myid != GCP_get_short_id (t->peer) &&
       CADET_TUNNEL3_READY != t->cstate &&
       CADET_TUNNEL3_READY == cstate)
   {
@@ -1861,10 +1861,10 @@ GMT_change_cstate (struct CadetTunnel3* t, enum CadetTunnel3CState cstate)
   t->cstate = cstate;
 
   if (CADET_TUNNEL3_READY == cstate
-      && CONNECTIONS_PER_TUNNEL <= GMT_count_connections (t))
+      && CONNECTIONS_PER_TUNNEL <= GCT_count_connections (t))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  cstate triggered stop dht\n");
-    GMP_stop_search (t->peer);
+    GCP_stop_search (t->peer);
   }
 }
 
@@ -1875,17 +1875,17 @@ GMT_change_cstate (struct CadetTunnel3* t, enum CadetTunnel3CState cstate)
  * @param state New encryption state.
  */
 void
-GMT_change_estate (struct CadetTunnel3* t, enum CadetTunnel3EState state)
+GCT_change_estate (struct CadetTunnel3* t, enum CadetTunnel3EState state)
 {
   if (NULL == t)
     return;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Tunnel %s estate was %s\n",
-       GMP_2s (t->peer), estate2s (t->estate));
+       GCP_2s (t->peer), estate2s (t->estate));
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Tunnel %s estate is now %s\n",
-       GMP_2s (t->peer), estate2s (state));
-  if (myid != GMP_get_short_id (t->peer) &&
+       GCP_2s (t->peer), estate2s (state));
+  if (myid != GCP_get_short_id (t->peer) &&
       CADET_TUNNEL3_KEY_OK != t->estate && CADET_TUNNEL3_KEY_OK == state)
   {
     t->estate = state;
@@ -1914,7 +1914,7 @@ trim_connections (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 
-  if (GMT_count_connections (t) > 2 * CONNECTIONS_PER_TUNNEL)
+  if (GCT_count_connections (t) > 2 * CONNECTIONS_PER_TUNNEL)
   {
     struct CadetTConnection *iter;
     struct CadetTConnection *c;
@@ -1922,7 +1922,7 @@ trim_connections (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     for (c = iter = t->connection_head; NULL != iter; iter = iter->next)
     {
       if ((NULL == c || iter->created.abs_value_us > c->created.abs_value_us)
-          && GNUNET_NO == GMC_is_direct (iter->c))
+          && GNUNET_NO == GCC_is_direct (iter->c))
       {
         c = iter;
       }
@@ -1930,10 +1930,10 @@ trim_connections (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     if (NULL != c)
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG, "Too many connections on tunnel %s\n",
-           GMT_2s (t));
+           GCT_2s (t));
       LOG (GNUNET_ERROR_TYPE_DEBUG, "Destroying connection %s\n",
-           GMC_2s (c->c));
-      GMC_destroy (c->c);
+           GCC_2s (c->c));
+      GCC_destroy (c->c);
     }
     else
     {
@@ -1950,14 +1950,14 @@ trim_connections (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param c Connection.
  */
 void
-GMT_add_connection (struct CadetTunnel3 *t, struct CadetConnection *c)
+GCT_add_connection (struct CadetTunnel3 *t, struct CadetConnection *c)
 {
   struct CadetTConnection *aux;
 
   GNUNET_assert (NULL != c);
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "add connection %s\n", GMC_2s (c));
-  LOG (GNUNET_ERROR_TYPE_DEBUG, " to tunnel %s\n", GMT_2s (t));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "add connection %s\n", GCC_2s (c));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, " to tunnel %s\n", GCT_2s (t));
   for (aux = t->connection_head; aux != NULL; aux = aux->next)
     if (aux->c == c)
       return;
@@ -1979,9 +1979,9 @@ GMT_add_connection (struct CadetTunnel3 *t, struct CadetConnection *c)
  * @param path Invalid path to remove. Is destroyed after removal.
  */
 void
-GMT_remove_path (struct CadetTunnel3 *t, struct CadetPeerPath *path)
+GCT_remove_path (struct CadetTunnel3 *t, struct CadetPeerPath *path)
 {
-  GMP_remove_path (t->peer, path);
+  GCP_remove_path (t->peer, path);
 }
 
 
@@ -1992,14 +1992,14 @@ GMT_remove_path (struct CadetTunnel3 *t, struct CadetPeerPath *path)
  * @param c Connection.
  */
 void
-GMT_remove_connection (struct CadetTunnel3 *t,
+GCT_remove_connection (struct CadetTunnel3 *t,
                        struct CadetConnection *c)
 {
   struct CadetTConnection *aux;
   struct CadetTConnection *next;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Removing connection %s from tunnel %s\n",
-       GMC_2s (c), GMT_2s (t));
+       GCC_2s (c), GCT_2s (t));
   for (aux = t->connection_head; aux != NULL; aux = next)
   {
     next = aux->next;
@@ -2011,14 +2011,14 @@ GMT_remove_connection (struct CadetTunnel3 *t,
   }
 
   /* Start new connections if needed */
-  if (CONNECTIONS_PER_TUNNEL < GMT_count_connections (t)
+  if (CONNECTIONS_PER_TUNNEL < GCT_count_connections (t)
       && GNUNET_SCHEDULER_NO_TASK == t->destroy_task
       && CADET_TUNNEL3_SHUTDOWN != t->cstate
       && GNUNET_NO == shutting_down)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  no more connections, getting new ones\n");
     t->cstate = CADET_TUNNEL3_SEARCHING;
-    GMP_connect (t->peer);
+    GCP_connect (t->peer);
     return;
   }
 
@@ -2028,7 +2028,7 @@ GMT_remove_connection (struct CadetTunnel3 *t,
 
   /* Check if any connection is ready to maintaing cstate */
   for (aux = t->connection_head; aux != NULL; aux = aux->next)
-    if (CADET_CONNECTION_READY == GMC_get_state (aux->c))
+    if (CADET_CONNECTION_READY == GCC_get_state (aux->c))
       return;
 
   t->cstate = CADET_TUNNEL3_WAITING;
@@ -2042,7 +2042,7 @@ GMT_remove_connection (struct CadetTunnel3 *t,
  * @param ch Channel.
  */
 void
-GMT_add_channel (struct CadetTunnel3 *t, struct CadetChannel *ch)
+GCT_add_channel (struct CadetTunnel3 *t, struct CadetChannel *ch)
 {
   struct CadetTChannel *aux;
 
@@ -2078,7 +2078,7 @@ GMT_add_channel (struct CadetTunnel3 *t, struct CadetChannel *ch)
  * @param ch Channel.
  */
 void
-GMT_remove_channel (struct CadetTunnel3 *t, struct CadetChannel *ch)
+GCT_remove_channel (struct CadetTunnel3 *t, struct CadetChannel *ch)
 {
   struct CadetTChannel *aux;
 
@@ -2087,7 +2087,7 @@ GMT_remove_channel (struct CadetTunnel3 *t, struct CadetChannel *ch)
   {
     if (aux->ch == ch)
     {
-      LOG (GNUNET_ERROR_TYPE_DEBUG, " found! %s\n", GMCH_2s (ch));
+      LOG (GNUNET_ERROR_TYPE_DEBUG, " found! %s\n", GCCH_2s (ch));
       GNUNET_CONTAINER_DLL_remove (t->channel_head, t->channel_tail, aux);
       GNUNET_free (aux);
       return;
@@ -2105,7 +2105,7 @@ GMT_remove_channel (struct CadetTunnel3 *t, struct CadetChannel *ch)
  * @return channel handler, NULL if doesn't exist
  */
 struct CadetChannel *
-GMT_get_channel (struct CadetTunnel3 *t, CADET_ChannelNumber chid)
+GCT_get_channel (struct CadetTunnel3 *t, CADET_ChannelNumber chid)
 {
   struct CadetTChannel *iter;
 
@@ -2114,7 +2114,7 @@ GMT_get_channel (struct CadetTunnel3 *t, CADET_ChannelNumber chid)
 
   for (iter = t->channel_head; NULL != iter; iter = iter->next)
   {
-    if (GMCH_get_id (iter->ch) == chid)
+    if (GCCH_get_id (iter->ch) == chid)
       break;
   }
 
@@ -2143,7 +2143,7 @@ delayed_destroy (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
          "Not destroying tunnel, due to shutdown. "
-         "Tunnel at %p should have been freed by GMT_shutdown\n", t);
+         "Tunnel at %p should have been freed by GCT_shutdown\n", t);
     return;
   }
   t->destroy_task = GNUNET_SCHEDULER_NO_TASK;
@@ -2151,9 +2151,9 @@ delayed_destroy (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   for (iter = t->connection_head; NULL != iter; iter = iter->next)
   {
-    GMC_send_destroy (iter->c);
+    GCC_send_destroy (iter->c);
   }
-  GMT_destroy (t);
+  GCT_destroy (t);
 }
 
 
@@ -2165,7 +2165,7 @@ delayed_destroy (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param t Tunnel to destroy.
  */
 void
-GMT_destroy_empty (struct CadetTunnel3 *t)
+GCT_destroy_empty (struct CadetTunnel3 *t)
 {
   if (GNUNET_YES == shutting_down)
     return; /* Will be destroyed immediately anyway */
@@ -2174,7 +2174,7 @@ GMT_destroy_empty (struct CadetTunnel3 *t)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Tunnel %s is already scheduled for destruction\n",
-         GMT_2s (t));
+         GCT_2s (t));
     GNUNET_break (0);
     /* should never happen, tunnel can only become empty once, and the
      * task identifier should be NO_TASK (cleaned when the tunnel was created
@@ -2184,7 +2184,7 @@ GMT_destroy_empty (struct CadetTunnel3 *t)
   }
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Tunnel %s empty: destroying scheduled\n",
-       GMT_2s (t));
+       GCT_2s (t));
 
   t->destroy_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
                                                   &delayed_destroy, t);
@@ -2199,13 +2199,13 @@ GMT_destroy_empty (struct CadetTunnel3 *t)
  * @param t Tunnel to destroy if empty.
  */
 void
-GMT_destroy_if_empty (struct CadetTunnel3 *t)
+GCT_destroy_if_empty (struct CadetTunnel3 *t)
 {
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Tunnel %s destroy if empty\n", GMT_2s (t));
-  if (1 < GMT_count_channels (t))
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Tunnel %s destroy if empty\n", GCT_2s (t));
+  if (1 < GCT_count_channels (t))
     return;
 
-  GMT_destroy_empty (t);
+  GCT_destroy_empty (t);
 }
 
 
@@ -2221,7 +2221,7 @@ GMT_destroy_if_empty (struct CadetTunnel3 *t)
  * @param t The tunnel to destroy.
  */
 void
-GMT_destroy (struct CadetTunnel3 *t)
+GCT_destroy (struct CadetTunnel3 *t)
 {
   struct CadetTConnection *iter_c;
   struct CadetTConnection *next_c;
@@ -2231,21 +2231,21 @@ GMT_destroy (struct CadetTunnel3 *t)
   if (NULL == t)
     return;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "destroying tunnel %s\n", GMP_2s (t->peer));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "destroying tunnel %s\n", GCP_2s (t->peer));
 
   GNUNET_break (GNUNET_YES ==
                 GNUNET_CONTAINER_multipeermap_remove (tunnels,
-                                                      GMP_get_id (t->peer), t));
+                                                      GCP_get_id (t->peer), t));
 
   for (iter_c = t->connection_head; NULL != iter_c; iter_c = next_c)
   {
     next_c = iter_c->next;
-    GMC_destroy (iter_c->c);
+    GCC_destroy (iter_c->c);
   }
   for (iter_ch = t->channel_head; NULL != iter_ch; iter_ch = next_ch)
   {
     next_ch = iter_ch->next;
-    GMCH_destroy (iter_ch->ch);
+    GCCH_destroy (iter_ch->ch);
     /* Should only happen on shutdown, but it's ok. */
   }
 
@@ -2257,7 +2257,7 @@ GMT_destroy (struct CadetTunnel3 *t)
   }
 
   GNUNET_STATISTICS_update (stats, "# tunnels", -1, GNUNET_NO);
-  GMP_set_tunnel (t->peer, NULL);
+  GCP_set_tunnel (t->peer, NULL);
 
   if (GNUNET_SCHEDULER_NO_TASK != t->rekey_task)
   {
@@ -2284,7 +2284,7 @@ GMT_destroy (struct CadetTunnel3 *t)
  * @return Connection created.
  */
 struct CadetConnection *
-GMT_use_path (struct CadetTunnel3 *t, struct CadetPeerPath *p)
+GCT_use_path (struct CadetTunnel3 *t, struct CadetPeerPath *p)
 {
   struct CadetConnection *c;
   struct GNUNET_CADET_Hash cid;
@@ -2314,13 +2314,13 @@ GMT_use_path (struct CadetTunnel3 *t, struct CadetPeerPath *p)
   }
 
   GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_NONCE, &cid, sizeof (cid));
-  c = GMC_new (&cid, t, p, own_pos);
+  c = GCC_new (&cid, t, p, own_pos);
   if (NULL == c)
   {
     /* Path was flawed */
     return NULL;
   }
-  GMT_add_connection (t, c);
+  GCT_add_connection (t, c);
   return c;
 }
 
@@ -2333,7 +2333,7 @@ GMT_use_path (struct CadetTunnel3 *t, struct CadetPeerPath *p)
  * @return Number of connections.
  */
 unsigned int
-GMT_count_connections (struct CadetTunnel3 *t)
+GCT_count_connections (struct CadetTunnel3 *t)
 {
   struct CadetTConnection *iter;
   unsigned int count;
@@ -2342,7 +2342,7 @@ GMT_count_connections (struct CadetTunnel3 *t)
     return 0;
 
   for (count = 0, iter = t->connection_head; NULL != iter; iter = iter->next)
-    if (CADET_CONNECTION_DESTROYED != GMC_get_state (iter->c))
+    if (CADET_CONNECTION_DESTROYED != GCC_get_state (iter->c))
       count++;
 
   return count;
@@ -2356,7 +2356,7 @@ GMT_count_connections (struct CadetTunnel3 *t)
  * @return Number of channels.
  */
 unsigned int
-GMT_count_channels (struct CadetTunnel3 *t)
+GCT_count_channels (struct CadetTunnel3 *t)
 {
   struct CadetTChannel *iter;
   unsigned int count;
@@ -2377,7 +2377,7 @@ GMT_count_channels (struct CadetTunnel3 *t)
  * @return Tunnel's connectivity state.
  */
 enum CadetTunnel3CState
-GMT_get_cstate (struct CadetTunnel3 *t)
+GCT_get_cstate (struct CadetTunnel3 *t)
 {
   if (NULL == t)
   {
@@ -2396,7 +2396,7 @@ GMT_get_cstate (struct CadetTunnel3 *t)
  * @return Tunnel's encryption state.
  */
 enum CadetTunnel3EState
-GMT_get_estate (struct CadetTunnel3 *t)
+GCT_get_estate (struct CadetTunnel3 *t)
 {
   if (NULL == t)
   {
@@ -2414,7 +2414,7 @@ GMT_get_estate (struct CadetTunnel3 *t)
  * @return Biggest buffer space offered by any channel in the tunnel.
  */
 unsigned int
-GMT_get_channels_buffer (struct CadetTunnel3 *t)
+GCT_get_channels_buffer (struct CadetTunnel3 *t)
 {
   struct CadetTChannel *iter;
   unsigned int buffer;
@@ -2445,7 +2445,7 @@ GMT_get_channels_buffer (struct CadetTunnel3 *t)
  * @return Buffer space offered by all connections in the tunnel.
  */
 unsigned int
-GMT_get_connections_buffer (struct CadetTunnel3 *t)
+GCT_get_connections_buffer (struct CadetTunnel3 *t)
 {
   struct CadetTConnection *iter;
   unsigned int buffer;
@@ -2453,7 +2453,7 @@ GMT_get_connections_buffer (struct CadetTunnel3 *t)
   buffer = 0;
   for (iter = t->connection_head; NULL != iter; iter = iter->next)
   {
-    if (GMC_get_state (iter->c) != CADET_CONNECTION_READY)
+    if (GCC_get_state (iter->c) != CADET_CONNECTION_READY)
     {
       continue;
     }
@@ -2472,9 +2472,9 @@ GMT_get_connections_buffer (struct CadetTunnel3 *t)
  * @return ID of the destination peer.
  */
 const struct GNUNET_PeerIdentity *
-GMT_get_destination (struct CadetTunnel3 *t)
+GCT_get_destination (struct CadetTunnel3 *t)
 {
-  return GMP_get_id (t->peer);
+  return GCP_get_id (t->peer);
 }
 
 
@@ -2486,7 +2486,7 @@ GMT_get_destination (struct CadetTunnel3 *t)
  * @return GID of a channel free to use.
  */
 CADET_ChannelNumber
-GMT_get_next_chid (struct CadetTunnel3 *t)
+GCT_get_next_chid (struct CadetTunnel3 *t)
 {
   CADET_ChannelNumber chid;
   CADET_ChannelNumber mask;
@@ -2496,14 +2496,14 @@ GMT_get_next_chid (struct CadetTunnel3 *t)
    * If our ID is bigger or loopback tunnel, start at 0, bit 30 = 0
    * If peer's ID is bigger, start at 0x4... bit 30 = 1
    */
-  result = GNUNET_CRYPTO_cmp_peer_identity (&my_full_id, GMP_get_id (t->peer));
+  result = GNUNET_CRYPTO_cmp_peer_identity (&my_full_id, GCP_get_id (t->peer));
   if (0 > result)
     mask = 0x40000000;
   else
     mask = 0x0;
   t->next_chid |= mask;
 
-  while (NULL != GMT_get_channel (t, t->next_chid))
+  while (NULL != GCT_get_channel (t, t->next_chid))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Channel %u exists...\n", t->next_chid);
     t->next_chid = (t->next_chid + 1) & ~GNUNET_CADET_LOCAL_CHANNEL_ID_CLI;
@@ -2523,21 +2523,21 @@ GMT_get_next_chid (struct CadetTunnel3 *t)
  * @param t Channel which has some free buffer space.
  */
 void
-GMT_unchoke_channels (struct CadetTunnel3 *t)
+GCT_unchoke_channels (struct CadetTunnel3 *t)
 {
   struct CadetTChannel *iter;
   unsigned int buffer;
-  unsigned int channels = GMT_count_channels (t);
+  unsigned int channels = GCT_count_channels (t);
   unsigned int choked_n;
   struct CadetChannel *choked[channels];
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "GMT_unchoke_channels on %s\n", GMT_2s (t));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "GCT_unchoke_channels on %s\n", GCT_2s (t));
   LOG (GNUNET_ERROR_TYPE_DEBUG, " head: %p\n", t->channel_head);
   if (NULL != t->channel_head)
     LOG (GNUNET_ERROR_TYPE_DEBUG, " head ch: %p\n", t->channel_head->ch);
 
   /* Get buffer space */
-  buffer = GMT_get_connections_buffer (t);
+  buffer = GCT_get_connections_buffer (t);
   if (0 == buffer)
   {
     return;
@@ -2558,7 +2558,7 @@ GMT_unchoke_channels (struct CadetTunnel3 *t)
   {
     unsigned int r = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
                                                choked_n);
-    GMCH_allow_client (choked[r], GMCH_is_origin (choked[r], GNUNET_YES));
+    GCCH_allow_client (choked[r], GCCH_is_origin (choked[r], GNUNET_YES));
     choked_n--;
     buffer--;
     choked[r] = choked[choked_n];
@@ -2574,7 +2574,7 @@ GMT_unchoke_channels (struct CadetTunnel3 *t)
  * @param t Tunnel.
  */
 void
-GMT_send_connection_acks (struct CadetTunnel3 *t)
+GCT_send_connection_acks (struct CadetTunnel3 *t)
 {
   struct CadetTConnection *iter;
   uint32_t allowed;
@@ -2584,7 +2584,7 @@ GMT_send_connection_acks (struct CadetTunnel3 *t)
   unsigned int buffer;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Tunnel send connection ACKs on %s\n",
-       GMT_2s (t));
+       GCT_2s (t));
 
   if (NULL == t)
   {
@@ -2592,11 +2592,11 @@ GMT_send_connection_acks (struct CadetTunnel3 *t)
     return;
   }
 
-  buffer = GMT_get_channels_buffer (t);
+  buffer = GCT_get_channels_buffer (t);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  buffer %u\n", buffer);
 
   /* Count connections, how many messages are already allowed */
-  cs = GMT_count_connections (t);
+  cs = GCT_count_connections (t);
   for (allowed = 0, iter = t->connection_head; NULL != iter; iter = iter->next)
   {
     allowed += get_connection_allowed (iter);
@@ -2623,8 +2623,8 @@ GMT_send_connection_acks (struct CadetTunnel3 *t)
     {
       continue;
     }
-    GMC_allow (iter->c, allow_per_connection,
-               GMC_is_origin (iter->c, GNUNET_NO));
+    GCC_allow (iter->c, allow_per_connection,
+               GCC_is_origin (iter->c, GNUNET_NO));
   }
 
   GNUNET_break (to_allow == 0);
@@ -2641,11 +2641,11 @@ GMT_send_connection_acks (struct CadetTunnel3 *t)
  * @param q Handle to the queue.
  */
 void
-GMT_cancel (struct CadetTunnel3Queue *q)
+GCT_cancel (struct CadetTunnel3Queue *q)
 {
   if (NULL != q->cq)
   {
-    GMC_cancel (q->cq);
+    GCC_cancel (q->cq);
     /* tun_message_sent() will be called and free q */
   }
   else if (NULL != q->tqd)
@@ -2677,9 +2677,9 @@ GMT_cancel (struct CadetTunnel3Queue *q)
  * @return Handle to cancel message. NULL if @c cont is NULL.
  */
 struct CadetTunnel3Queue *
-GMT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
+GCT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
                            struct CadetTunnel3 *t, struct CadetConnection *c,
-                           int force, GMT_sent cont, void *cont_cls)
+                           int force, GCT_sent cont, void *cont_cls)
 {
   return send_prebuilt_message (message, t, c, force, cont, cont_cls, NULL);
 }
@@ -2693,9 +2693,9 @@ GMT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
  * @return #GNUNET_YES if it is loopback.
  */
 int
-GMT_is_loopback (const struct CadetTunnel3 *t)
+GCT_is_loopback (const struct CadetTunnel3 *t)
 {
-  return (myid == GMP_get_short_id (t->peer));
+  return (myid == GCP_get_short_id (t->peer));
 }
 
 
@@ -2708,12 +2708,12 @@ GMT_is_loopback (const struct CadetTunnel3 *t)
  * @return #GNUNET_YES a connection uses this path.
  */
 int
-GMT_is_path_used (const struct CadetTunnel3 *t, const struct CadetPeerPath *p)
+GCT_is_path_used (const struct CadetTunnel3 *t, const struct CadetPeerPath *p)
 {
   struct CadetTConnection *iter;
 
   for (iter = t->connection_head; NULL != iter; iter = iter->next)
-    if (GMC_get_path (iter->c) == p)
+    if (GCC_get_path (iter->c) == p)
       return GNUNET_YES;
 
   return GNUNET_NO;
@@ -2729,7 +2729,7 @@ GMT_is_path_used (const struct CadetTunnel3 *t, const struct CadetPeerPath *p)
  * @return Cost of the path (path length + number of overlapping nodes)
  */
 unsigned int
-GMT_get_path_cost (const struct CadetTunnel3 *t,
+GCT_get_path_cost (const struct CadetTunnel3 *t,
                    const struct CadetPeerPath *path)
 {
   struct CadetTConnection *iter;
@@ -2748,7 +2748,7 @@ GMT_get_path_cost (const struct CadetTunnel3 *t,
   {
     for (iter = t->connection_head; NULL != iter; iter = iter->next)
     {
-      aux = GMC_get_path (iter->c);
+      aux = GCC_get_path (iter->c);
       if (NULL == aux)
         continue;
 
@@ -2774,12 +2774,12 @@ GMT_get_path_cost (const struct CadetTunnel3 *t,
  * @return Static string the destination peer's ID.
  */
 const char *
-GMT_2s (const struct CadetTunnel3 *t)
+GCT_2s (const struct CadetTunnel3 *t)
 {
   if (NULL == t)
     return "(NULL)";
 
-  return GMP_2s (t->peer);
+  return GCP_2s (t->peer);
 }
 
 
@@ -2794,12 +2794,12 @@ GMT_2s (const struct CadetTunnel3 *t)
  * @param t Tunnel to debug.
  */
 void
-GMT_debug (const struct CadetTunnel3 *t)
+GCT_debug (const struct CadetTunnel3 *t)
 {
   struct CadetTChannel *iterch;
   struct CadetTConnection *iterc;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "TTT DEBUG TUNNEL TOWARDS %s\n", GMT_2s (t));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "TTT DEBUG TUNNEL TOWARDS %s\n", GCT_2s (t));
   LOG (GNUNET_ERROR_TYPE_DEBUG, "TTT  cstate %s, estate %s\n",
        cstate2s (t->cstate), estate2s (t->estate));
   LOG (GNUNET_ERROR_TYPE_DEBUG, "TTT  kx_ctx %p, rekey_task %u\n",
@@ -2811,18 +2811,18 @@ GMT_debug (const struct CadetTunnel3 *t)
   LOG (GNUNET_ERROR_TYPE_DEBUG, "TTT  channels:\n");
   for (iterch = t->channel_head; NULL != iterch; iterch = iterch->next)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "TTT  - %s\n", GMCH_2s (iterch->ch));
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "TTT  - %s\n", GCCH_2s (iterch->ch));
   }
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "TTT  connections:\n");
   for (iterc = t->connection_head; NULL != iterc; iterc = iterc->next)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "TTT  - %s [%u] buf: %u/%u (qn %u/%u)\n",
-         GMC_2s (iterc->c), GMC_get_state (iterc->c),
-         GMC_get_buffer (iterc->c, GNUNET_YES),
-         GMC_get_buffer (iterc->c, GNUNET_NO),
-         GMC_get_qn (iterc->c, GNUNET_YES),
-         GMC_get_qn (iterc->c, GNUNET_NO));
+         GCC_2s (iterc->c), GCC_get_state (iterc->c),
+         GCC_get_buffer (iterc->c, GNUNET_YES),
+         GCC_get_buffer (iterc->c, GNUNET_NO),
+         GCC_get_qn (iterc->c, GNUNET_YES),
+         GCC_get_qn (iterc->c, GNUNET_NO));
   }
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "TTT DEBUG TUNNEL END\n");
@@ -2836,7 +2836,7 @@ GMT_debug (const struct CadetTunnel3 *t)
  * @param cls Closure for @c iter.
  */
 void
-GMT_iterate_all (GNUNET_CONTAINER_PeerMapIterator iter, void *cls)
+GCT_iterate_all (GNUNET_CONTAINER_PeerMapIterator iter, void *cls)
 {
   GNUNET_CONTAINER_multipeermap_iterate (tunnels, iter, cls);
 }
@@ -2848,7 +2848,7 @@ GMT_iterate_all (GNUNET_CONTAINER_PeerMapIterator iter, void *cls)
  * @return Number of tunnels to remote peers kept by this peer.
  */
 unsigned int
-GMT_count_all (void)
+GCT_count_all (void)
 {
   return GNUNET_CONTAINER_multipeermap_size (tunnels);
 }
@@ -2862,7 +2862,7 @@ GMT_count_all (void)
  * @param cls Closure for @c iter.
  */
 void
-GMT_iterate_connections (struct CadetTunnel3 *t, GMT_conn_iter iter, void *cls)
+GCT_iterate_connections (struct CadetTunnel3 *t, GCT_conn_iter iter, void *cls)
 {
   struct CadetTConnection *ct;
 
@@ -2879,7 +2879,7 @@ GMT_iterate_connections (struct CadetTunnel3 *t, GMT_conn_iter iter, void *cls)
  * @param cls Closure for @c iter.
  */
 void
-GMT_iterate_channels (struct CadetTunnel3 *t, GMT_chan_iter iter, void *cls)
+GCT_iterate_channels (struct CadetTunnel3 *t, GCT_chan_iter iter, void *cls)
 {
   struct CadetTChannel *cht;
 

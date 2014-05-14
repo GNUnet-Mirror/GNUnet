@@ -108,12 +108,12 @@ got_hello (void *cls, const struct GNUNET_PeerIdentity *id,
   LOG (GNUNET_ERROR_TYPE_DEBUG, " hello for %s (%d bytes), expires on %s\n",
        GNUNET_i2s (id), GNUNET_HELLO_size (hello),
        GNUNET_STRINGS_absolute_time_to_string (GNUNET_HELLO_get_last_expiration(hello)));
-  peer = GMP_get (id);
-  GMP_set_hello (peer, hello);
+  peer = GCP_get (id);
+  GCP_set_hello (peer, hello);
 
-  if (GMP_get_short_id (peer) == myid)
+  if (GCP_get_short_id (peer) == myid)
   {
-    mine = GMP_get_hello (peer);
+    mine = GCP_get_hello (peer);
     LOG (GNUNET_ERROR_TYPE_DEBUG, " updated mine to %p\n", mine);
   }
 }
@@ -129,7 +129,7 @@ got_hello (void *cls, const struct GNUNET_PeerIdentity *id,
  * @param c Configuration.
  */
 void
-GMH_init (const struct GNUNET_CONFIGURATION_Handle *c)
+GCH_init (const struct GNUNET_CONFIGURATION_Handle *c)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG, "init\n");
   GNUNET_assert (NULL == nc);
@@ -142,7 +142,7 @@ GMH_init (const struct GNUNET_CONFIGURATION_Handle *c)
  * Shut down the hello subsystem.
  */
 void
-GMH_shutdown ()
+GCH_shutdown ()
 {
   if (NULL != nc)
   {
@@ -163,7 +163,7 @@ GMH_shutdown ()
  * @return Own hello message.
  */
 const struct GNUNET_HELLO_Message *
-GMH_get_mine (void)
+GCH_get_mine (void)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG, " mine is %p\n", mine);
   return mine;
@@ -178,9 +178,9 @@ GMH_get_mine (void)
  * @return Hello message, if any (NULL possible).
  */
 const struct GNUNET_HELLO_Message *
-GMH_get (const struct GNUNET_PeerIdentity *id)
+GCH_get (const struct GNUNET_PeerIdentity *id)
 {
-  return GMP_get_hello (GMP_get (id));
+  return GCP_get_hello (GCP_get (id));
 }
 
 
@@ -190,7 +190,7 @@ GMH_get (const struct GNUNET_PeerIdentity *id)
  * @param h Hello message.
  */
 char *
-GMH_2s (const struct GNUNET_HELLO_Message *h)
+GCH_2s (const struct GNUNET_HELLO_Message *h)
 {
   return "hello (TODO)";
 }

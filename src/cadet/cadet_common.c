@@ -34,7 +34,7 @@
  * @return String representing FWD or BCK.
  */
 char *
-GM_f2s (int fwd)
+GC_f2s (int fwd)
 {
   if (GNUNET_YES == fwd)
   {
@@ -52,7 +52,7 @@ GM_f2s (int fwd)
 }
 
 int
-GM_is_pid_bigger (uint32_t bigger, uint32_t smaller)
+GC_is_pid_bigger (uint32_t bigger, uint32_t smaller)
 {
     return (GNUNET_YES == PID_OVERFLOW (smaller, bigger) ||
             (bigger > smaller && GNUNET_NO == PID_OVERFLOW (bigger, smaller)));
@@ -60,25 +60,25 @@ GM_is_pid_bigger (uint32_t bigger, uint32_t smaller)
 
 
 uint32_t
-GM_max_pid (uint32_t a, uint32_t b)
+GC_max_pid (uint32_t a, uint32_t b)
 {
-  if (GM_is_pid_bigger(a, b))
+  if (GC_is_pid_bigger(a, b))
     return a;
   return b;
 }
 
 
 uint32_t
-GM_min_pid (uint32_t a, uint32_t b)
+GC_min_pid (uint32_t a, uint32_t b)
 {
-  if (GM_is_pid_bigger(a, b))
+  if (GC_is_pid_bigger(a, b))
     return b;
   return a;
 }
 
 
 const struct GNUNET_HashCode *
-GM_h2hc (const struct GNUNET_CADET_Hash *id)
+GC_h2hc (const struct GNUNET_CADET_Hash *id)
 {
   static struct GNUNET_HashCode hc;
   memcpy (&hc, id, sizeof (*id));
@@ -88,11 +88,11 @@ GM_h2hc (const struct GNUNET_CADET_Hash *id)
 
 
 const char *
-GM_h2s (const struct GNUNET_CADET_Hash *id)
+GC_h2s (const struct GNUNET_CADET_Hash *id)
 {
   static char s[53];
 
-  memcpy (s, GNUNET_h2s_full (GM_h2hc (id)), 52);
+  memcpy (s, GNUNET_h2s_full (GC_h2hc (id)), 52);
   s[52] = '\0';
 
   return s;
@@ -101,7 +101,7 @@ GM_h2s (const struct GNUNET_CADET_Hash *id)
 
 #if !defined(GNUNET_CULL_LOGGING)
 const char *
-GM_m2s (uint16_t m)
+GC_m2s (uint16_t m)
 {
   static char buf[32];
   const char *t;
@@ -341,7 +341,7 @@ GM_m2s (uint16_t m)
 }
 #else
 const char *
-GM_m2s (uint16_t m)
+GC_m2s (uint16_t m)
 {
   return "";
 }

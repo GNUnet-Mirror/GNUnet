@@ -64,7 +64,7 @@ struct CadetPeerQueue;
  * @param size Size of the message.
  * @param wait Time spent waiting for core (only the time for THIS message)
  */
-typedef void (*GMP_sent) (void *cls,
+typedef void (*GCP_sent) (void *cls,
                           struct CadetConnection *c, int sent,
                           uint16_t type, uint32_t pid, int fwd, size_t size,
                           struct GNUNET_TIME_Relative wait);
@@ -79,13 +79,13 @@ typedef void (*GMP_sent) (void *cls,
  * @param c Configuration.
  */
 void
-GMP_init (const struct GNUNET_CONFIGURATION_Handle *c);
+GCP_init (const struct GNUNET_CONFIGURATION_Handle *c);
 
 /**
  * Shut down the peer subsystem.
  */
 void
-GMP_shutdown (void);
+GCP_shutdown (void);
 
 
 /**
@@ -97,7 +97,7 @@ GMP_shutdown (void);
  * @return Existing or newly created peer structure.
  */
 struct CadetPeer *
-GMP_get (const struct GNUNET_PeerIdentity *peer_id);
+GCP_get (const struct GNUNET_PeerIdentity *peer_id);
 
 
 /**
@@ -109,7 +109,7 @@ GMP_get (const struct GNUNET_PeerIdentity *peer_id);
  * @return Existing or newly created peer structure.
  */
 struct CadetPeer *
-GMP_get_short (const GNUNET_PEER_Id peer);
+GCP_get_short (const GNUNET_PEER_Id peer);
 
 /**
  * Try to establish a new connection to this peer (in its tunnel).
@@ -119,7 +119,7 @@ GMP_get_short (const GNUNET_PEER_Id peer);
  * @param peer Peer to connect to.
  */
 void
-GMP_connect (struct CadetPeer *peer);
+GCP_connect (struct CadetPeer *peer);
 
 /**
  * Free a transmission that was already queued with all resources
@@ -131,7 +131,7 @@ GMP_connect (struct CadetPeer *peer);
  * @param pid PID, if relevant (was sent and was a payload message).
  */
 void
-GMP_queue_destroy (struct CadetPeerQueue *queue, int clear_cls,
+GCP_queue_destroy (struct CadetPeerQueue *queue, int clear_cls,
                    int sent, uint32_t pid);
 
 /**
@@ -151,10 +151,10 @@ GMP_queue_destroy (struct CadetPeerQueue *queue, int clear_cls,
  *         message has been sent and therefore the handle is no longer valid.
  */
 struct CadetPeerQueue *
-GMP_queue_add (struct CadetPeer *peer, void *cls, uint16_t type,
+GCP_queue_add (struct CadetPeer *peer, void *cls, uint16_t type,
                uint16_t payload_type, uint32_t payload_id,
                size_t size, struct CadetConnection *c, int fwd,
-               GMP_sent cont, void *cont_cls);
+               GCP_sent cont, void *cont_cls);
 
 /**
  * Cancel all queued messages to a peer that belong to a certain connection.
@@ -164,7 +164,7 @@ GMP_queue_add (struct CadetPeer *peer, void *cls, uint16_t type,
  *          the sent continuation call.
  */
 void
-GMP_queue_cancel (struct CadetPeer *peer, struct CadetConnection *c);
+GCP_queue_cancel (struct CadetPeer *peer, struct CadetConnection *c);
 
 /**
  * Get the first message for a connection and unqueue it.
@@ -175,10 +175,10 @@ GMP_queue_cancel (struct CadetPeer *peer, struct CadetConnection *c);
  * @return First message for this connection.
  */
 struct GNUNET_MessageHeader *
-GMP_connection_pop (struct CadetPeer *peer, struct CadetConnection *c);
+GCP_connection_pop (struct CadetPeer *peer, struct CadetConnection *c);
 
 void
-GMP_queue_unlock (struct CadetPeer *peer, struct CadetConnection *c);
+GCP_queue_unlock (struct CadetPeer *peer, struct CadetConnection *c);
 
 /**
  * Set tunnel.
@@ -187,7 +187,7 @@ GMP_queue_unlock (struct CadetPeer *peer, struct CadetConnection *c);
  * @param t Tunnel.
  */
 void
-GMP_set_tunnel (struct CadetPeer *peer, struct CadetTunnel3 *t);
+GCP_set_tunnel (struct CadetPeer *peer, struct CadetTunnel3 *t);
 
 /**
  * Check whether there is a direct (core level)  connection to peer.
@@ -197,7 +197,7 @@ GMP_set_tunnel (struct CadetPeer *peer, struct CadetTunnel3 *t);
  * @return #GNUNET_YES if there is a direct connection.
  */
 int
-GMP_is_neighbor (const struct CadetPeer *peer);
+GCP_is_neighbor (const struct CadetPeer *peer);
 
 /**
  * Create and initialize a new tunnel towards a peer, in case it has none.
@@ -207,7 +207,7 @@ GMP_is_neighbor (const struct CadetPeer *peer);
  * @param peer Peer towards which to create the tunnel.
  */
 void
-GMP_add_tunnel (struct CadetPeer *peer);
+GCP_add_tunnel (struct CadetPeer *peer);
 
 /**
  * Add a connection to a neighboring peer.
@@ -222,7 +222,7 @@ GMP_add_tunnel (struct CadetPeer *peer);
  * @return GNUNET_OK on success.
  */
 int
-GMP_add_connection (struct CadetPeer *peer, struct CadetConnection *c);
+GCP_add_connection (struct CadetPeer *peer, struct CadetConnection *c);
 
 /**
  * Add the path to the peer and update the path used to reach it in case this
@@ -237,7 +237,7 @@ GMP_add_connection (struct CadetPeer *peer, struct CadetConnection *c);
  *         NULL on error.
  */
 struct CadetPeerPath *
-GMP_add_path (struct CadetPeer *peer, struct CadetPeerPath *p, int trusted);
+GCP_add_path (struct CadetPeer *peer, struct CadetPeerPath *p, int trusted);
 
 /**
  * Add the path to the origin peer and update the path used to reach it in case
@@ -254,7 +254,7 @@ GMP_add_path (struct CadetPeer *peer, struct CadetPeerPath *p, int trusted);
  *         NULL on error.
  */
 struct CadetPeerPath *
-GMP_add_path_to_origin (struct CadetPeer *peer,
+GCP_add_path_to_origin (struct CadetPeer *peer,
                         struct CadetPeerPath *path,
                         int trusted);
 
@@ -265,7 +265,7 @@ GMP_add_path_to_origin (struct CadetPeer *peer,
  * @param confirmed Whether we know if the path works or not.
  */
 void
-GMP_add_path_to_all (const struct CadetPeerPath *p, int confirmed);
+GCP_add_path_to_all (const struct CadetPeerPath *p, int confirmed);
 
 /**
  * Remove any path to the peer that has the extact same peers as the one given.
@@ -274,7 +274,7 @@ GMP_add_path_to_all (const struct CadetPeerPath *p, int confirmed);
  * @param path Path to remove. Is always destroyed .
  */
 void
-GMP_remove_path (struct CadetPeer *peer, struct CadetPeerPath *path);
+GCP_remove_path (struct CadetPeer *peer, struct CadetPeerPath *path);
 
 /**
  * Remove a connection from a neighboring peer.
@@ -285,7 +285,7 @@ GMP_remove_path (struct CadetPeer *peer, struct CadetPeerPath *path);
  * @return GNUNET_OK on success.
  */
 int
-GMP_remove_connection (struct CadetPeer *peer, const struct CadetConnection *c);
+GCP_remove_connection (struct CadetPeer *peer, const struct CadetConnection *c);
 
 /**
  * Start the DHT search for new paths towards the peer: we don't have
@@ -294,7 +294,7 @@ GMP_remove_connection (struct CadetPeer *peer, const struct CadetConnection *c);
  * @param peer Destination peer.
  */
 void
-GMP_start_search (struct CadetPeer *peer);
+GCP_start_search (struct CadetPeer *peer);
 
 /**
  * Stop the DHT search for new paths towards the peer: we already have
@@ -303,7 +303,7 @@ GMP_start_search (struct CadetPeer *peer);
  * @param peer Destination peer.
  */
 void
-GMP_stop_search (struct CadetPeer *peer);
+GCP_stop_search (struct CadetPeer *peer);
 
 /**
  * Get the Full ID of a peer.
@@ -313,7 +313,7 @@ GMP_stop_search (struct CadetPeer *peer);
  * @return Full ID of peer.
  */
 const struct GNUNET_PeerIdentity *
-GMP_get_id (const struct CadetPeer *peer);
+GCP_get_id (const struct CadetPeer *peer);
 
 /**
  * Get the Short ID of a peer.
@@ -323,7 +323,7 @@ GMP_get_id (const struct CadetPeer *peer);
  * @return Short ID of peer.
  */
 GNUNET_PEER_Id
-GMP_get_short_id (const struct CadetPeer *peer);
+GCP_get_short_id (const struct CadetPeer *peer);
 
 /**
  * Get the tunnel towards a peer.
@@ -333,7 +333,7 @@ GMP_get_short_id (const struct CadetPeer *peer);
  * @return Tunnel towards peer.
  */
 struct CadetTunnel3 *
-GMP_get_tunnel (const struct CadetPeer *peer);
+GCP_get_tunnel (const struct CadetPeer *peer);
 
 /**
  * Set the hello message.
@@ -342,7 +342,7 @@ GMP_get_tunnel (const struct CadetPeer *peer);
  * @param hello Hello message.
  */
 void
-GMP_set_hello (struct CadetPeer *peer, const struct GNUNET_HELLO_Message *hello);
+GCP_set_hello (struct CadetPeer *peer, const struct GNUNET_HELLO_Message *hello);
 
 /**
  * Get the hello message.
@@ -352,7 +352,7 @@ GMP_set_hello (struct CadetPeer *peer, const struct GNUNET_HELLO_Message *hello)
  * @return Hello message.
  */
 struct GNUNET_HELLO_Message *
-GMP_get_hello (struct CadetPeer *peer);
+GCP_get_hello (struct CadetPeer *peer);
 
 
 /**
@@ -361,7 +361,7 @@ GMP_get_hello (struct CadetPeer *peer);
  * @param peer Peer to whom to connect.
  */
 void
-GMP_try_connect (struct CadetPeer *peer);
+GCP_try_connect (struct CadetPeer *peer);
 
 /**
  * Notify a peer that a link between two other peers is broken. If any path
@@ -372,7 +372,7 @@ GMP_try_connect (struct CadetPeer *peer);
  * @param peer2 Peer whose link is broken.
  */
 void
-GMP_notify_broken_link (struct CadetPeer *peer,
+GCP_notify_broken_link (struct CadetPeer *peer,
                         struct GNUNET_PeerIdentity *peer1,
                         struct GNUNET_PeerIdentity *peer2);
 
@@ -384,7 +384,7 @@ GMP_notify_broken_link (struct CadetPeer *peer,
  * @return Number of known paths.
  */
 unsigned int
-GMP_count_paths (const struct CadetPeer *peer);
+GCP_count_paths (const struct CadetPeer *peer);
 
 /**
  * Iterate all known peers.
@@ -393,7 +393,7 @@ GMP_count_paths (const struct CadetPeer *peer);
  * @param cls Closure for @c iter.
  */
 void
-GMP_iterate_all (GNUNET_CONTAINER_PeerMapIterator iter, void *cls);
+GCP_iterate_all (GNUNET_CONTAINER_PeerMapIterator iter, void *cls);
 
 /**
  * Get the static string for a peer ID.
@@ -403,7 +403,7 @@ GMP_iterate_all (GNUNET_CONTAINER_PeerMapIterator iter, void *cls);
  * @return Static string for it's ID.
  */
 const char *
-GMP_2s (const struct CadetPeer *peer);
+GCP_2s (const struct CadetPeer *peer);
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

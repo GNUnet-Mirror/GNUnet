@@ -103,7 +103,7 @@ struct CadetPeerQueue
     /**
      * Function to call on sending.
      */
-  GMP_sent callback;
+  GCP_sent callback;
 
     /**
      * Closure for callback.
@@ -139,7 +139,7 @@ struct CadetPeer
     /**
      * Handle to stop the DHT search for paths to this peer
      */
-  struct GMD_search_handle *search_h;
+  struct GCD_search_handle *search_h;
 
     /**
      * Tunnel to this peer, if any.
@@ -232,16 +232,16 @@ queue_debug (struct CadetPeer *peer)
 {
   struct CadetPeerQueue *q;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "QQQ Messages queued towards %s\n", GMP_2s (peer));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "QQQ Messages queued towards %s\n", GCP_2s (peer));
   LOG (GNUNET_ERROR_TYPE_DEBUG, "QQQ  core tmt rdy: %p\n", peer->core_transmit);
 
   for (q = peer->queue_head; NULL != q; q = q->next)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "QQQ  - %s %s on %s\n",
-         GM_m2s (q->type), GM_f2s (q->fwd), GMC_2s (q->c));
+         GC_m2s (q->type), GC_f2s (q->fwd), GCC_2s (q->c));
   }
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "QQQ End queued towards %s\n", GMP_2s (peer));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "QQQ End queued towards %s\n", GCP_2s (peer));
 }
 
 
@@ -269,8 +269,8 @@ notify_broken (void *cls,
   struct CadetConnection *c = value;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  notifying %s due to %s\n",
-       GMC_2s (c), GMP_2s (peer));
-  GMC_notify_broken (c, peer);
+       GCC_2s (c), GCP_2s (peer));
+  GCC_notify_broken (c, peer);
 
   return GNUNET_YES;
 }
@@ -317,7 +317,7 @@ core_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
   char own_id[16];
 
   strncpy (own_id, GNUNET_i2s (&my_full_id), 15);
-  mp = GMP_get (peer);
+  mp = GCP_get (peer);
   if (myid == mp->id)
   {
     LOG (GNUNET_ERROR_TYPE_INFO, "CONNECTED %s (self)\n", own_id);
@@ -334,14 +334,14 @@ core_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
   }
   path->peers[0] = myid;
   GNUNET_PEER_change_rc (myid, 1);
-  GMP_add_path (mp, path, GNUNET_YES);
+  GCP_add_path (mp, path, GNUNET_YES);
 
   mp->connections = GNUNET_CONTAINER_multihashmap_create (32, GNUNET_YES);
 
-  if (NULL != GMP_get_tunnel (mp) &&
+  if (NULL != GCP_get_tunnel (mp) &&
       0 > GNUNET_CRYPTO_cmp_peer_identity (&my_full_id, peer))
   {
-    GMP_connect (mp);
+    GCP_connect (mp);
   }
 
   return;
@@ -393,19 +393,19 @@ core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
  * Functions to handle messages from core
  */
 static struct GNUNET_CORE_MessageHandler core_handlers[] = {
-  {&GMC_handle_create, GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE, 0},
-  {&GMC_handle_confirm, GNUNET_MESSAGE_TYPE_CADET_CONNECTION_ACK,
+  {&GCC_handle_create, GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE, 0},
+  {&GCC_handle_confirm, GNUNET_MESSAGE_TYPE_CADET_CONNECTION_ACK,
     sizeof (struct GNUNET_CADET_ConnectionACK)},
-  {&GMC_handle_broken, GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN,
+  {&GCC_handle_broken, GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN,
     sizeof (struct GNUNET_CADET_ConnectionBroken)},
-  {&GMC_handle_destroy, GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY,
+  {&GCC_handle_destroy, GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY,
     sizeof (struct GNUNET_CADET_ConnectionDestroy)},
-  {&GMC_handle_ack, GNUNET_MESSAGE_TYPE_CADET_ACK,
+  {&GCC_handle_ack, GNUNET_MESSAGE_TYPE_CADET_ACK,
     sizeof (struct GNUNET_CADET_ACK)},
-  {&GMC_handle_poll, GNUNET_MESSAGE_TYPE_CADET_POLL,
+  {&GCC_handle_poll, GNUNET_MESSAGE_TYPE_CADET_POLL,
     sizeof (struct GNUNET_CADET_Poll)},
-  {&GMC_handle_encrypted, GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED, 0},
-  {&GMC_handle_kx, GNUNET_MESSAGE_TYPE_CADET_KX, 0},
+  {&GCC_handle_encrypted, GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED, 0},
+  {&GCC_handle_kx, GNUNET_MESSAGE_TYPE_CADET_KX, 0},
   {NULL, 0, 0}
 };
 
@@ -490,7 +490,7 @@ send_core_connection_create (struct CadetConnection *c, size_t size, void *buf)
 {
   struct GNUNET_CADET_ConnectionCreate *msg;
   struct GNUNET_PeerIdentity *peer_ptr;
-  const struct CadetPeerPath *p = GMC_get_path (c);
+  const struct CadetPeerPath *p = GCC_get_path (c);
   size_t size_needed;
   int i;
 
@@ -510,7 +510,7 @@ send_core_connection_create (struct CadetConnection *c, size_t size, void *buf)
   msg = (struct GNUNET_CADET_ConnectionCreate *) buf;
   msg->header.size = htons (size_needed);
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE);
-  msg->cid = *GMC_get_id (c);
+  msg->cid = *GCC_get_id (c);
 
   peer_ptr = (struct GNUNET_PeerIdentity *) &msg[1];
   for (i = 0; i < p->length; i++)
@@ -547,7 +547,7 @@ send_core_connection_ack (struct CadetConnection *c, size_t size, void *buf)
   }
   msg->header.size = htons (sizeof (struct GNUNET_CADET_ConnectionACK));
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CONNECTION_ACK);
-  msg->cid = *GMC_get_id (c);
+  msg->cid = *GCC_get_id (c);
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "CONNECTION ACK sent!\n");
   return sizeof (struct GNUNET_CADET_ConnectionACK);
@@ -579,7 +579,7 @@ get_priority (struct CadetPeerQueue *q)
   }
 
   /* Relayed traffic has lower priority, our own traffic has higher */
-  if (NULL == q->c || GNUNET_NO == GMC_is_origin (q->c, q->fwd))
+  if (NULL == q->c || GNUNET_NO == GCC_is_origin (q->c, q->fwd))
   {
     low = GNUNET_CORE_PRIO_BEST_EFFORT;
     high = GNUNET_CORE_PRIO_URGENT;
@@ -616,7 +616,7 @@ shutdown_tunnel (void *cls,
   struct CadetTunnel3 *t = p->tunnel;
 
   if (NULL != t)
-    GMT_destroy (t);
+    GCT_destroy (t);
   return GNUNET_YES;
 }
 
@@ -648,7 +648,7 @@ peer_destroy (struct CadetPeer *peer)
   }
   if (NULL != peer->search_h)
   {
-    GMD_search_stop (peer->search_h);
+    GCD_search_stop (peer->search_h);
   }
   p = peer->path_head;
   while (NULL != p)
@@ -658,7 +658,7 @@ peer_destroy (struct CadetPeer *peer)
     path_destroy (p);
     p = nextp;
   }
-  GMT_destroy_empty (peer->tunnel);
+  GCT_destroy_empty (peer->tunnel);
   GNUNET_free (peer);
   return GNUNET_OK;
 }
@@ -783,10 +783,10 @@ peer_get_best_path (const struct CadetPeer *peer)
   {
     if (GNUNET_NO == path_is_valid (p))
       continue; /* Don't use invalid paths. */
-    if (GNUNET_YES == GMT_is_path_used (peer->tunnel, p))
+    if (GNUNET_YES == GCT_is_path_used (peer->tunnel, p))
       continue; /* If path is already in use, skip it. */
 
-    if ((cost = GMT_get_path_cost (peer->tunnel, p)) < best_cost)
+    if ((cost = GCT_get_path_cost (peer->tunnel, p)) < best_cost)
     {
       best_cost = cost;
       best_p = p;
@@ -828,7 +828,7 @@ queue_is_sendable (struct CadetPeerQueue *q)
       GNUNET_break (0);
   }
 
-  return GMC_is_sendable (q->c, q->fwd);
+  return GCC_is_sendable (q->c, q->fwd);
 }
 
 
@@ -846,7 +846,7 @@ peer_get_first_message (const struct CadetPeer *peer)
 
   for (q = peer->queue_head; NULL != q; q = q->next)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Checking %p towards %s\n", q, GMC_2s (q->c));
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Checking %p towards %s\n", q, GCC_2s (q->c));
     if (queue_is_sendable (q))
       return q;
   }
@@ -869,19 +869,19 @@ search_handler (void *cls, const struct CadetPeerPath *path)
   struct CadetPeer *peer = cls;
   unsigned int connection_count;
 
-  GMP_add_path_to_all (path, GNUNET_NO);
+  GCP_add_path_to_all (path, GNUNET_NO);
 
   /* Count connections */
-  connection_count = GMT_count_connections (peer->tunnel);
+  connection_count = GCT_count_connections (peer->tunnel);
 
   /* If we already have 3 (or more (?!)) connections, it's enough */
   if (3 <= connection_count)
     return;
 
-  if (CADET_TUNNEL3_SEARCHING == GMT_get_cstate (peer->tunnel))
+  if (CADET_TUNNEL3_SEARCHING == GCT_get_cstate (peer->tunnel))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, " ... connect!\n");
-    GMP_connect (peer);
+    GCP_connect (peer);
   }
   return;
 }
@@ -910,7 +910,7 @@ queue_send (void *cls, size_t size, void *buf)
   pid = 0;
   peer->core_transmit = NULL;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Queue send towards %s (max %u)\n",
-       GMP_2s (peer), size);
+       GCP_2s (peer), size);
 
   if (NULL == buf || 0 == size)
   {
@@ -929,7 +929,7 @@ queue_send (void *cls, size_t size, void *buf)
 
   dst_id = GNUNET_PEER_resolve2 (peer->id);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  on connection %s %s\n",
-       GMC_2s (c), GM_f2s(queue->fwd));
+       GCC_2s (c), GC_f2s(queue->fwd));
   /* Check if buffer size is enough for the message */
   if (queue->size > size)
   {
@@ -951,7 +951,7 @@ queue_send (void *cls, size_t size, void *buf)
   switch (queue->type)
   {
     case GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED:
-      pid = GMC_get_pid (queue->c, queue->fwd);
+      pid = GCC_get_pid (queue->c, queue->fwd);
       LOG (GNUNET_ERROR_TYPE_DEBUG, "  payload ID %u\n", pid);
       data_size = send_core_data_raw (queue->cls, size, buf);
       ((struct GNUNET_CADET_Encrypted *) buf)->pid = htonl (pid);
@@ -961,20 +961,20 @@ queue_send (void *cls, size_t size, void *buf)
     case GNUNET_MESSAGE_TYPE_CADET_KX:
     case GNUNET_MESSAGE_TYPE_CADET_ACK:
     case GNUNET_MESSAGE_TYPE_CADET_POLL:
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "  raw %s\n", GM_m2s (queue->type));
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "  raw %s\n", GC_m2s (queue->type));
       data_size = send_core_data_raw (queue->cls, size, buf);
       break;
     case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE:
       LOG (GNUNET_ERROR_TYPE_DEBUG, "  path create\n");
-      if (GMC_is_origin (c, GNUNET_YES))
+      if (GCC_is_origin (c, GNUNET_YES))
         data_size = send_core_connection_create (queue->c, size, buf);
       else
         data_size = send_core_data_raw (queue->cls, size, buf);
       break;
     case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_ACK:
       LOG (GNUNET_ERROR_TYPE_DEBUG, "  path ack\n");
-      if (GMC_is_origin (c, GNUNET_NO) ||
-          GMC_is_origin (c, GNUNET_YES))
+      if (GCC_is_origin (c, GNUNET_NO) ||
+          GCC_is_origin (c, GNUNET_YES))
         data_size = send_core_connection_ack (queue->c, size, buf);
       else
         data_size = send_core_data_raw (queue->cls, size, buf);
@@ -996,19 +996,19 @@ queue_send (void *cls, size_t size, void *buf)
       GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, 101) < drop_percent)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING, "DD %s on connection %s\n",
-         GM_m2s (queue->type), GMC_2s (c));
+         GC_m2s (queue->type), GCC_2s (c));
     data_size = 0;
   }
   else
   {
     LOG (GNUNET_ERROR_TYPE_INFO,
          "snd %s (%s %u) on connection %s (%p) %s (size %u)\n",
-         GM_m2s (queue->type), GM_m2s (queue->payload_type),
-         queue->payload_type, GMC_2s (c), c, GM_f2s (queue->fwd), data_size);
+         GC_m2s (queue->type), GC_m2s (queue->payload_type),
+         queue->payload_type, GCC_2s (c), c, GC_f2s (queue->fwd), data_size);
   }
 
   /* Free queue, but cls was freed by send_core_* */
-  GMP_queue_destroy (queue, GNUNET_NO, GNUNET_YES, pid);
+  GCP_queue_destroy (queue, GNUNET_NO, GNUNET_YES, pid);
 
   /* If more data in queue, send next */
   queue = peer_get_first_message (peer);
@@ -1032,11 +1032,11 @@ queue_send (void *cls, size_t size, void *buf)
       LOG (GNUNET_ERROR_TYPE_DEBUG,
                   "*   tmt rdy called somewhere else\n");
     }
-//     GMC_start_poll (); FIXME needed?
+//     GCC_start_poll (); FIXME needed?
   }
   else
   {
-//     GMC_stop_poll(); FIXME needed?
+//     GCC_stop_poll(); FIXME needed?
   }
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  return %d\n", data_size);
@@ -1060,7 +1060,7 @@ queue_send (void *cls, size_t size, void *buf)
  * @param pid PID, if relevant (was sent and was a payload message).
  */
 void
-GMP_queue_destroy (struct CadetPeerQueue *queue, int clear_cls,
+GCP_queue_destroy (struct CadetPeerQueue *queue, int clear_cls,
                    int sent, uint32_t pid)
 {
   struct CadetPeer *peer;
@@ -1070,7 +1070,7 @@ GMP_queue_destroy (struct CadetPeerQueue *queue, int clear_cls,
   if (GNUNET_YES == clear_cls)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "queue destroy type %s\n",
-         GM_m2s (queue->type));
+         GC_m2s (queue->type));
     switch (queue->type)
     {
       case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY:
@@ -1090,7 +1090,7 @@ GMP_queue_destroy (struct CadetPeerQueue *queue, int clear_cls,
       default:
         GNUNET_break (0);
         LOG (GNUNET_ERROR_TYPE_ERROR, " type %s unknown!\n",
-             GM_m2s (queue->type));
+             GC_m2s (queue->type));
     }
   }
   GNUNET_CONTAINER_DLL_remove (peer->queue_head, peer->queue_tail, queue);
@@ -1137,10 +1137,10 @@ GMP_queue_destroy (struct CadetPeerQueue *queue, int clear_cls,
  *         message has been sent and therefore the handle is no longer valid.
  */
 struct CadetPeerQueue *
-GMP_queue_add (struct CadetPeer *peer, void *cls, uint16_t type,
+GCP_queue_add (struct CadetPeer *peer, void *cls, uint16_t type,
                uint16_t payload_type, uint32_t payload_id, size_t size,
                struct CadetConnection *c, int fwd,
-               GMP_sent cont, void *cont_cls)
+               GCP_sent cont, void *cont_cls)
 {
   struct CadetPeerQueue *queue;
   int priority;
@@ -1148,13 +1148,13 @@ GMP_queue_add (struct CadetPeer *peer, void *cls, uint16_t type,
 
   LOG (GNUNET_ERROR_TYPE_INFO,
        "que %s (%s %u) on connection %s (%p) %s towards %s (size %u)\n",
-       GM_m2s (type), GM_m2s (payload_type), payload_id,
-       GMC_2s (c), c, GM_f2s (fwd), GMP_2s (peer), size);
+       GC_m2s (type), GC_m2s (payload_type), payload_id,
+       GCC_2s (c), c, GC_f2s (fwd), GCP_2s (peer), size);
 
   if (NULL == peer->connections)
   {
     /* We are not connected to this peer, ignore request. */
-    LOG (GNUNET_ERROR_TYPE_WARNING, "%s not a neighbor\n", GMP_2s (peer));
+    LOG (GNUNET_ERROR_TYPE_WARNING, "%s not a neighbor\n", GCP_2s (peer));
     GNUNET_STATISTICS_update (stats, "# messages dropped due to wrong hop", 1,
                               GNUNET_NO);
     return NULL;
@@ -1170,7 +1170,7 @@ GMP_queue_add (struct CadetPeer *peer, void *cls, uint16_t type,
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "priority %d\n", priority);
 
-  call_core = NULL == c ? GNUNET_YES : GMC_is_sendable (c, fwd);
+  call_core = NULL == c ? GNUNET_YES : GCC_is_sendable (c, fwd);
   queue = GNUNET_new (struct CadetPeerQueue);
   queue->cls = cls;
   queue->type = type;
@@ -1197,7 +1197,7 @@ GMP_queue_add (struct CadetPeer *peer, void *cls, uint16_t type,
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "calling core tmt rdy towards %s for %u bytes\n",
-         GMP_2s (peer), size);
+         GCP_2s (peer), size);
     peer->core_transmit =
         GNUNET_CORE_notify_transmit_ready (core_handle,
                                            GNUNET_NO, get_priority (queue),
@@ -1211,13 +1211,13 @@ GMP_queue_add (struct CadetPeer *peer, void *cls, uint16_t type,
   else if (GNUNET_NO == call_core)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "core tmt rdy towards %s not needed\n",
-         GMP_2s (peer));
+         GCP_2s (peer));
 
   }
   else
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "core tmt rdy towards %s already called\n",
-         GMP_2s (peer));
+         GCP_2s (peer));
 
   }
   queue_debug (peer);
@@ -1233,7 +1233,7 @@ GMP_queue_add (struct CadetPeer *peer, void *cls, uint16_t type,
  *          the sent continuation call.
  */
 void
-GMP_queue_cancel (struct CadetPeer *peer, struct CadetConnection *c)
+GCP_queue_cancel (struct CadetPeer *peer, struct CadetConnection *c)
 {
   struct CadetPeerQueue *q;
   struct CadetPeerQueue *next;
@@ -1244,18 +1244,18 @@ GMP_queue_cancel (struct CadetPeer *peer, struct CadetConnection *c)
     prev = q->prev;
     if (q->c == c)
     {
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "GMP queue cancel %s\n", GM_m2s (q->type));
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "GMP queue cancel %s\n", GC_m2s (q->type));
       if (GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY != q->type)
       {
         q->c = NULL;
       }
       else
       {
-        GMP_queue_destroy (q, GNUNET_YES, GNUNET_NO, 0);
+        GCP_queue_destroy (q, GNUNET_YES, GNUNET_NO, 0);
       }
 
       /* Get next from prev, q->next might be already freed:
-       * queue destroy -> callback -> GMC_destroy -> cancel_queues -> here
+       * queue destroy -> callback -> GCC_destroy -> cancel_queues -> here
        */
       if (NULL == prev)
         next = peer->queue_head;
@@ -1316,13 +1316,13 @@ connection_get_first_message (struct CadetPeer *peer, struct CadetConnection *c)
  * @return First message for this connection.
  */
 struct GNUNET_MessageHeader *
-GMP_connection_pop (struct CadetPeer *peer, struct CadetConnection *c)
+GCP_connection_pop (struct CadetPeer *peer, struct CadetConnection *c)
 {
   struct CadetPeerQueue *q;
   struct CadetPeerQueue *next;
   struct GNUNET_MessageHeader *msg;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Connection pop on %s\n", GMC_2s (c));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Connection pop on %s\n", GCC_2s (c));
   for (q = peer->queue_head; NULL != q; q = next)
   {
     next = q->next;
@@ -1336,13 +1336,13 @@ GMP_connection_pop (struct CadetPeer *peer, struct CadetConnection *c)
       case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN:
       case GNUNET_MESSAGE_TYPE_CADET_ACK:
       case GNUNET_MESSAGE_TYPE_CADET_POLL:
-        GMP_queue_destroy (q, GNUNET_YES, GNUNET_NO, 0);
+        GCP_queue_destroy (q, GNUNET_YES, GNUNET_NO, 0);
         continue;
 
       case GNUNET_MESSAGE_TYPE_CADET_KX:
       case GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED:
         msg = (struct GNUNET_MessageHeader *) q->cls;
-        GMP_queue_destroy (q, GNUNET_NO, GNUNET_NO, 0);
+        GCP_queue_destroy (q, GNUNET_NO, GNUNET_NO, 0);
         return msg;
 
       default:
@@ -1355,7 +1355,7 @@ GMP_connection_pop (struct CadetPeer *peer, struct CadetConnection *c)
 
 
 void
-GMP_queue_unlock (struct CadetPeer *peer, struct CadetConnection *c)
+GCP_queue_unlock (struct CadetPeer *peer, struct CadetConnection *c)
 {
   struct CadetPeerQueue *q;
   size_t size;
@@ -1391,7 +1391,7 @@ GMP_queue_unlock (struct CadetPeer *peer, struct CadetConnection *c)
  * @param c Configuration.
  */
 void
-GMP_init (const struct GNUNET_CONFIGURATION_Handle *c)
+GCP_init (const struct GNUNET_CONFIGURATION_Handle *c)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG, "init\n");
   peers = GNUNET_CONTAINER_multipeermap_create (128, GNUNET_NO);
@@ -1460,7 +1460,7 @@ GMP_init (const struct GNUNET_CONFIGURATION_Handle *c)
  * Shut down the peer subsystem.
  */
 void
-GMP_shutdown (void)
+GCP_shutdown (void)
 {
   GNUNET_CONTAINER_multipeermap_iterate (peers, &shutdown_tunnel, NULL);
 
@@ -1486,7 +1486,7 @@ GMP_shutdown (void)
  * @return Existing or newly created peer structure.
  */
 struct CadetPeer *
-GMP_get (const struct GNUNET_PeerIdentity *peer_id)
+GCP_get (const struct GNUNET_PeerIdentity *peer_id)
 {
   struct CadetPeer *peer;
 
@@ -1517,9 +1517,9 @@ GMP_get (const struct GNUNET_PeerIdentity *peer_id)
  * @return Existing or newly created peer structure.
  */
 struct CadetPeer *
-GMP_get_short (const GNUNET_PEER_Id peer)
+GCP_get_short (const GNUNET_PEER_Id peer)
 {
-  return GMP_get (GNUNET_PEER_resolve2 (peer));
+  return GCP_get (GNUNET_PEER_resolve2 (peer));
 }
 
 
@@ -1550,17 +1550,17 @@ try_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param peer Peer to connect to.
  */
 void
-GMP_connect (struct CadetPeer *peer)
+GCP_connect (struct CadetPeer *peer)
 {
   struct CadetTunnel3 *t;
   struct CadetPeerPath *p;
   struct CadetConnection *c;
   int rerun_search;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "peer_connect towards %s\n", GMP_2s (peer));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "peer_connect towards %s\n", GCP_2s (peer));
 
   /* If we have a current hello, try to connect using it. */
-  GMP_try_connect (peer);
+  GCP_try_connect (peer);
 
   t = peer->tunnel;
   c = NULL;
@@ -1578,7 +1578,7 @@ GMP_connect (struct CadetPeer *peer)
       LOG (GNUNET_ERROR_TYPE_DEBUG, "  path to use: %s\n", s);
       GNUNET_free (s);
 
-      c = GMT_use_path (t, p);
+      c = GCT_use_path (t, p);
       if (NULL == c)
       {
         /* This case can happen when the path includes a first hop that is
@@ -1593,14 +1593,14 @@ GMP_connect (struct CadetPeer *peer)
          *
          * Re-running the DHT GET should give core time to callback.
          *
-         * GMT_use_path -> GMC_new -> register_neighbors takes care of
+         * GCT_use_path -> GCC_new -> register_neighbors takes care of
          * updating statistics about this issue.
          */
         rerun_search = GNUNET_YES;
       }
       else
       {
-        GMC_send_create (c);
+        GCC_send_create (c);
         return;
       }
     }
@@ -1612,11 +1612,11 @@ GMP_connect (struct CadetPeer *peer)
 
   if (NULL != peer->search_h && GNUNET_YES == rerun_search)
   {
-    GMD_search_stop (peer->search_h);
+    GCD_search_stop (peer->search_h);
     peer->search_h = NULL;
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "  Stopping DHT GET for peer %s\n",
-         GMP_2s (peer));
+         GCP_2s (peer));
   }
 
   if (NULL == peer->search_h)
@@ -1625,10 +1625,10 @@ GMP_connect (struct CadetPeer *peer)
 
     id = GNUNET_PEER_resolve2 (peer->id);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-                "  Starting DHT GET for peer %s\n", GMP_2s (peer));
-    peer->search_h = GMD_search (id, &search_handler, peer);
-    if (CADET_TUNNEL3_NEW == GMT_get_cstate (t))
-      GMT_change_cstate (t, CADET_TUNNEL3_SEARCHING);
+                "  Starting DHT GET for peer %s\n", GCP_2s (peer));
+    peer->search_h = GCD_search (id, &search_handler, peer);
+    if (CADET_TUNNEL3_NEW == GCT_get_cstate (t))
+      GCT_change_cstate (t, CADET_TUNNEL3_SEARCHING);
   }
 }
 
@@ -1641,7 +1641,7 @@ GMP_connect (struct CadetPeer *peer)
  * @return #GNUNET_YES if there is a direct connection.
  */
 int
-GMP_is_neighbor (const struct CadetPeer *peer)
+GCP_is_neighbor (const struct CadetPeer *peer)
 {
   struct CadetPeerPath *path;
 
@@ -1668,11 +1668,11 @@ GMP_is_neighbor (const struct CadetPeer *peer)
  * @param peer Peer towards which to create the tunnel.
  */
 void
-GMP_add_tunnel (struct CadetPeer *peer)
+GCP_add_tunnel (struct CadetPeer *peer)
 {
   if (NULL != peer->tunnel)
     return;
-  peer->tunnel = GMT_new (peer);
+  peer->tunnel = GCT_new (peer);
 }
 
 
@@ -1689,26 +1689,26 @@ GMP_add_tunnel (struct CadetPeer *peer)
  * @return GNUNET_OK on success.
  */
 int
-GMP_add_connection (struct CadetPeer *peer,
+GCP_add_connection (struct CadetPeer *peer,
                     struct CadetConnection *c)
 {
   int result;
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "adding connection %s\n", GMC_2s (c));
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "to peer %s\n", GMP_2s (peer));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "adding connection %s\n", GCC_2s (c));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "to peer %s\n", GCP_2s (peer));
 
   if (NULL == peer->connections)
   {
     GNUNET_break (0);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Peer %s is not a neighbor!\n",
-         GMP_2s (peer));
+         GCP_2s (peer));
     return GNUNET_SYSERR;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "peer %s ok, has %u connections.\n",
-       GMP_2s (peer), GNUNET_CONTAINER_multihashmap_size (peer->connections));
+       GCP_2s (peer), GNUNET_CONTAINER_multihashmap_size (peer->connections));
   result = GNUNET_CONTAINER_multihashmap_put (peer->connections,
-                                              GMC_get_h (c),
+                                              GCC_get_h (c),
                                               c,
                                               GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -1733,7 +1733,7 @@ GMP_add_connection (struct CadetPeer *peer,
  *         NULL on error.
  */
 struct CadetPeerPath *
-GMP_add_path (struct CadetPeer *peer, struct CadetPeerPath *path,
+GCP_add_path (struct CadetPeer *peer, struct CadetPeerPath *path,
               int trusted)
 {
   struct CadetPeerPath *aux;
@@ -1741,7 +1741,7 @@ GMP_add_path (struct CadetPeer *peer, struct CadetPeerPath *path,
   unsigned int l2;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "adding path [%u] to peer %s\n",
-       path->length, GMP_2s (peer));
+       path->length, GCP_2s (peer));
 
   if ((NULL == peer) || (NULL == path))
   {
@@ -1797,9 +1797,9 @@ GMP_add_path (struct CadetPeer *peer, struct CadetPeerPath *path,
       LOG (GNUNET_ERROR_TYPE_DEBUG, "  added\n");
       GNUNET_CONTAINER_DLL_insert_before (peer->path_head,
                                           peer->path_tail, aux, path);
-      if (NULL != peer->tunnel && 3 < GMT_count_connections (peer->tunnel))
+      if (NULL != peer->tunnel && 3 < GCT_count_connections (peer->tunnel))
       {
-        GMP_connect (peer);
+        GCP_connect (peer);
       }
       return path;
     }
@@ -1816,9 +1816,9 @@ GMP_add_path (struct CadetPeer *peer, struct CadetPeerPath *path,
   GNUNET_CONTAINER_DLL_insert_tail (peer->path_head, peer->path_tail,
                                     path);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  added last\n");
-  if (NULL != peer->tunnel && 3 < GMT_count_connections (peer->tunnel))
+  if (NULL != peer->tunnel && 3 < GCT_count_connections (peer->tunnel))
   {
-    GMP_connect (peer);
+    GCP_connect (peer);
   }
   return path;
 }
@@ -1839,14 +1839,14 @@ GMP_add_path (struct CadetPeer *peer, struct CadetPeerPath *path,
  *         NULL on error.
  */
 struct CadetPeerPath *
-GMP_add_path_to_origin (struct CadetPeer *peer,
+GCP_add_path_to_origin (struct CadetPeer *peer,
                         struct CadetPeerPath *path,
                         int trusted)
 {
   if (NULL == path)
     return NULL;
   path_invert (path);
-  return GMP_add_path (peer, path, trusted);
+  return GCP_add_path (peer, path, trusted);
 }
 
 
@@ -1857,7 +1857,7 @@ GMP_add_path_to_origin (struct CadetPeer *peer,
  * @param confirmed Whether we know if the path works or not.
  */
 void
-GMP_add_path_to_all (const struct CadetPeerPath *p, int confirmed)
+GCP_add_path_to_all (const struct CadetPeerPath *p, int confirmed)
 {
   unsigned int i;
 
@@ -1868,10 +1868,10 @@ GMP_add_path_to_all (const struct CadetPeerPath *p, int confirmed)
     struct CadetPeer *aux;
     struct CadetPeerPath *copy;
 
-    aux = GMP_get_short (p->peers[i]);
+    aux = GCP_get_short (p->peers[i]);
     copy = path_duplicate (p);
     copy->length = i + 1;
-    GMP_add_path (aux, copy, p->length < 3 ? GNUNET_NO : confirmed);
+    GCP_add_path (aux, copy, p->length < 3 ? GNUNET_NO : confirmed);
   }
 }
 
@@ -1883,7 +1883,7 @@ GMP_add_path_to_all (const struct CadetPeerPath *p, int confirmed)
  * @param path Path to remove. Is always destroyed .
  */
 void
-GMP_remove_path (struct CadetPeer *peer, struct CadetPeerPath *path)
+GCP_remove_path (struct CadetPeer *peer, struct CadetPeerPath *path)
 {
   struct CadetPeerPath *iter;
   struct CadetPeerPath *next;
@@ -1915,25 +1915,25 @@ GMP_remove_path (struct CadetPeer *peer, struct CadetPeerPath *path)
  * @return GNUNET_OK on success.
  */
 int
-GMP_remove_connection (struct CadetPeer *peer,
+GCP_remove_connection (struct CadetPeer *peer,
                        const struct CadetConnection *c)
 {
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "removing connection %s\n", GMC_2s (c));
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "from peer %s\n", GMP_2s (peer));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "removing connection %s\n", GCC_2s (c));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "from peer %s\n", GCP_2s (peer));
 
   if (NULL == peer || NULL == peer->connections)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Peer %s is not a neighbor!\n",
-         GMP_2s (peer));
+         GCP_2s (peer));
     return GNUNET_SYSERR;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "peer %s ok, has %u connections.\n",
-       GMP_2s (peer), GNUNET_CONTAINER_multihashmap_size (peer->connections));
+       GCP_2s (peer), GNUNET_CONTAINER_multihashmap_size (peer->connections));
 
   return GNUNET_CONTAINER_multihashmap_remove (peer->connections,
-                                               GMC_get_h (c),
+                                               GCC_get_h (c),
                                                c);
 }
 
@@ -1944,7 +1944,7 @@ GMP_remove_connection (struct CadetPeer *peer,
  * @param peer Destination peer.
  */
 void
-GMP_start_search (struct CadetPeer *peer)
+GCP_start_search (struct CadetPeer *peer)
 {
   if (NULL != peer->search_h)
   {
@@ -1952,7 +1952,7 @@ GMP_start_search (struct CadetPeer *peer)
     return;
   }
 
-  peer->search_h = GMD_search (GMP_get_id (peer), &search_handler, peer);
+  peer->search_h = GCD_search (GCP_get_id (peer), &search_handler, peer);
 }
 
 
@@ -1963,14 +1963,14 @@ GMP_start_search (struct CadetPeer *peer)
  * @param peer Destination peer.
  */
 void
-GMP_stop_search (struct CadetPeer *peer)
+GCP_stop_search (struct CadetPeer *peer)
 {
   if (NULL == peer->search_h)
   {
     return;
   }
 
-  GMD_search_stop (peer->search_h);
+  GCD_search_stop (peer->search_h);
   peer->search_h = NULL;
 }
 
@@ -1983,7 +1983,7 @@ GMP_stop_search (struct CadetPeer *peer)
  * @return Full ID of peer.
  */
 const struct GNUNET_PeerIdentity *
-GMP_get_id (const struct CadetPeer *peer)
+GCP_get_id (const struct CadetPeer *peer)
 {
   return GNUNET_PEER_resolve2 (peer->id);
 }
@@ -1997,7 +1997,7 @@ GMP_get_id (const struct CadetPeer *peer)
  * @return Short ID of peer.
  */
 GNUNET_PEER_Id
-GMP_get_short_id (const struct CadetPeer *peer)
+GCP_get_short_id (const struct CadetPeer *peer)
 {
   return peer->id;
 }
@@ -2010,12 +2010,12 @@ GMP_get_short_id (const struct CadetPeer *peer)
  * @param t Tunnel.
  */
 void
-GMP_set_tunnel (struct CadetPeer *peer, struct CadetTunnel3 *t)
+GCP_set_tunnel (struct CadetPeer *peer, struct CadetTunnel3 *t)
 {
   peer->tunnel = t;
   if (NULL == t && NULL != peer->search_h)
   {
-    GMP_stop_search (peer);
+    GCP_stop_search (peer);
   }
 }
 
@@ -2028,7 +2028,7 @@ GMP_set_tunnel (struct CadetPeer *peer, struct CadetTunnel3 *t)
  * @return Tunnel towards peer.
  */
 struct CadetTunnel3 *
-GMP_get_tunnel (const struct CadetPeer *peer)
+GCP_get_tunnel (const struct CadetPeer *peer)
 {
   return peer->tunnel;
 }
@@ -2041,16 +2041,16 @@ GMP_get_tunnel (const struct CadetPeer *peer)
  * @param hello Hello message.
  */
 void
-GMP_set_hello (struct CadetPeer *peer, const struct GNUNET_HELLO_Message *hello)
+GCP_set_hello (struct CadetPeer *peer, const struct GNUNET_HELLO_Message *hello)
 {
   struct GNUNET_HELLO_Message *old;
   size_t size;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "set hello for %s\n", GMP_2s (peer));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "set hello for %s\n", GCP_2s (peer));
   if (NULL == hello)
     return;
 
-  old = GMP_get_hello (peer);
+  old = GCP_get_hello (peer);
   if (NULL == old)
   {
     size = GNUNET_HELLO_size (hello);
@@ -2076,7 +2076,7 @@ GMP_set_hello (struct CadetPeer *peer, const struct GNUNET_HELLO_Message *hello)
  * @return Hello message.
  */
 struct GNUNET_HELLO_Message *
-GMP_get_hello (struct CadetPeer *peer)
+GCP_get_hello (struct CadetPeer *peer)
 {
   struct GNUNET_TIME_Absolute expiration;
   struct GNUNET_TIME_Relative remaining;
@@ -2103,7 +2103,7 @@ GMP_get_hello (struct CadetPeer *peer)
  * @param peer Peer to whom to connect.
  */
 void
-GMP_try_connect (struct CadetPeer *peer)
+GCP_try_connect (struct CadetPeer *peer)
 {
   struct GNUNET_HELLO_Message *hello;
   struct GNUNET_MessageHeader *mh;
@@ -2111,7 +2111,7 @@ GMP_try_connect (struct CadetPeer *peer)
   if (NULL == transport_handle)
     return;
 
-  hello = GMP_get_hello (peer);
+  hello = GCP_get_hello (peer);
   if (NULL == hello)
     return;
 
@@ -2129,7 +2129,7 @@ GMP_try_connect (struct CadetPeer *peer)
  * @param peer2 Peer whose link is broken.
  */
 void
-GMP_notify_broken_link (struct CadetPeer *peer,
+GCP_notify_broken_link (struct CadetPeer *peer,
                         struct GNUNET_PeerIdentity *peer1,
                         struct GNUNET_PeerIdentity *peer2)
 {
@@ -2178,7 +2178,7 @@ GMP_notify_broken_link (struct CadetPeer *peer,
  * @return Number of known paths.
  */
 unsigned int
-GMP_count_paths (const struct CadetPeer *peer)
+GCP_count_paths (const struct CadetPeer *peer)
 {
   struct CadetPeerPath *iter;
   unsigned int i;
@@ -2197,7 +2197,7 @@ GMP_count_paths (const struct CadetPeer *peer)
  * @param cls Closure for @c iter.
  */
 void
-GMP_iterate_all (GNUNET_CONTAINER_PeerMapIterator iter, void *cls)
+GCP_iterate_all (GNUNET_CONTAINER_PeerMapIterator iter, void *cls)
 {
   GNUNET_CONTAINER_multipeermap_iterate (peers, iter, cls);
 }
@@ -2211,7 +2211,7 @@ GMP_iterate_all (GNUNET_CONTAINER_PeerMapIterator iter, void *cls)
  * @return Static string for it's ID.
  */
 const char *
-GMP_2s (const struct CadetPeer *peer)
+GCP_2s (const struct CadetPeer *peer)
 {
   if (NULL == peer)
     return "(NULL)";

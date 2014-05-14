@@ -216,9 +216,9 @@ channel_destroy_iterator (void *cls,
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
               " Channel %s destroy, due to client %s shutdown.\n",
-              GMCH_2s (ch), GML_2s (c));
+              GCCH_2s (ch), GML_2s (c));
 
-  GMCH_handle_local_destroy (ch, c, key < GNUNET_CADET_LOCAL_CHANNEL_ID_SERV);
+  GCCH_handle_local_destroy (ch, c, key < GNUNET_CADET_LOCAL_CHANNEL_ID_SERV);
   return GNUNET_OK;
 }
 
@@ -383,7 +383,7 @@ handle_channel_create (void *cls, struct GNUNET_SERVER_Client *client,
   }
 
   if (GNUNET_OK !=
-      GMCH_handle_local_create (c,
+      GCCH_handle_local_create (c,
                                 (struct GNUNET_CADET_ChannelMessage *) message))
   {
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
@@ -446,7 +446,7 @@ handle_channel_destroy (void *cls, struct GNUNET_SERVER_Client *client,
     return;
   }
 
-  GMCH_handle_local_destroy (ch, c, chid < GNUNET_CADET_LOCAL_CHANNEL_ID_SERV);
+  GCCH_handle_local_destroy (ch, c, chid < GNUNET_CADET_LOCAL_CHANNEL_ID_SERV);
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
   return;
@@ -508,7 +508,7 @@ handle_data (void *cls, struct GNUNET_SERVER_Client *client,
   }
 
   if (GNUNET_OK !=
-      GMCH_handle_local_data (ch, c,
+      GCCH_handle_local_data (ch, c,
                               (struct GNUNET_MessageHeader *)&msg[1], fwd))
   {
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
@@ -573,7 +573,7 @@ handle_ack (void *cls, struct GNUNET_SERVER_Client *client,
   /* If client is dest, the ACK is going BCK, therefore this is "FWD ACK" */
   fwd = chid >= GNUNET_CADET_LOCAL_CHANNEL_ID_SERV;
 
-  GMCH_handle_local_ack (ch, fwd);
+  GCCH_handle_local_ack (ch, fwd);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 
   return;
@@ -602,8 +602,8 @@ get_all_peers_iterator (void *cls,
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEERS);
   msg.destination = *peer;
-  msg.paths = htons (GMP_count_paths (p));
-  msg.tunnel = htons (NULL != GMP_get_tunnel (p));
+  msg.paths = htons (GCP_count_paths (p));
+  msg.tunnel = htons (NULL != GCP_get_tunnel (p));
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "sending info about peer %s\n",
        GNUNET_i2s (peer));
@@ -640,7 +640,7 @@ handle_get_peers (void *cls, struct GNUNET_SERVER_Client *client,
        "Received get peers request from client %u (%p)\n",
        c->id, client);
 
-  GMP_iterate_all (get_all_peers_iterator, client);
+  GCP_iterate_all (get_all_peers_iterator, client);
   reply.size = htons (sizeof (reply));
   reply.type = htons (GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEERS);
   GNUNET_SERVER_notification_context_unicast (nc, client, &reply, GNUNET_NO);
@@ -672,10 +672,10 @@ get_all_tunnels_iterator (void *cls,
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNELS);
   msg.destination = *peer;
-  msg.channels = htonl (GMT_count_channels (t));
-  msg.connections = htonl (GMT_count_connections (t));
-  msg.cstate = htons ((uint16_t) GMT_get_cstate (t));
-  msg.estate = htons ((uint16_t) GMT_get_estate (t));
+  msg.channels = htonl (GCT_count_channels (t));
+  msg.connections = htonl (GCT_count_connections (t));
+  msg.cstate = htons ((uint16_t) GCT_get_cstate (t));
+  msg.estate = htons ((uint16_t) GCT_get_estate (t));
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "sending info about tunnel ->%s\n",
        GNUNET_i2s (peer));
@@ -712,7 +712,7 @@ handle_get_tunnels (void *cls, struct GNUNET_SERVER_Client *client,
        "Received get tunnels request from client %u (%p)\n",
        c->id, client);
 
-  GMT_iterate_all (get_all_tunnels_iterator, client);
+  GCT_iterate_all (get_all_tunnels_iterator, client);
   reply.size = htons (sizeof (reply));
   reply.type = htons (GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNELS);
   GNUNET_SERVER_notification_context_unicast (nc, client, &reply, GNUNET_NO);
@@ -729,7 +729,7 @@ iter_connection (void *cls, struct CadetConnection *c)
   struct GNUNET_CADET_LocalInfoTunnel *msg = cls;
   struct GNUNET_CADET_Hash *h = (struct GNUNET_CADET_Hash *) &msg[1];
 
-  h[msg->connections] = *(GMC_get_id (c));
+  h[msg->connections] = *(GCC_get_id (c));
   msg->connections++;
 }
 
@@ -740,7 +740,7 @@ iter_channel (void *cls, struct CadetChannel *ch)
   struct GNUNET_HashCode *h = (struct GNUNET_HashCode *) &msg[1];
   CADET_ChannelNumber *chn = (CADET_ChannelNumber *) &h[msg->connections];
 
-  chn[msg->channels] = GMCH_get_id (ch);
+  chn[msg->channels] = GCCH_get_id (ch);
   msg->channels++;
 }
 
@@ -777,7 +777,7 @@ handle_show_tunnel (void *cls, struct GNUNET_SERVER_Client *client,
        "Received tunnel info request from client %u for tunnel %s\n",
        c->id, GNUNET_i2s_full(&msg->peer));
 
-  t = GMP_get_tunnel (GMP_get (&msg->peer));
+  t = GCP_get_tunnel (GCP_get (&msg->peer));
   if (NULL == t)
   {
     /* We don't know the tunnel */
@@ -801,8 +801,8 @@ handle_show_tunnel (void *cls, struct GNUNET_SERVER_Client *client,
   }
 
   /* Initialize context */
-  ch_n = GMT_count_channels (t);
-  c_n = GMT_count_connections (t);
+  ch_n = GCT_count_channels (t);
+  c_n = GCT_count_connections (t);
 
   size = sizeof (struct GNUNET_CADET_LocalInfoTunnel);
   size += c_n * sizeof (struct GNUNET_CADET_Hash);
@@ -811,14 +811,14 @@ handle_show_tunnel (void *cls, struct GNUNET_SERVER_Client *client,
   resp = GNUNET_malloc (size);
   resp->header.type = htons (GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNEL);
   resp->header.size = htons (size);
-  GMT_iterate_connections (t, &iter_connection, resp);
-  GMT_iterate_channels (t, &iter_channel, resp);
+  GCT_iterate_connections (t, &iter_connection, resp);
+  GCT_iterate_channels (t, &iter_channel, resp);
   /* Do not interleave with iterators, iter_channel needs conn in HBO */
   resp->destination = msg->peer;
   resp->connections = htonl (resp->connections);
   resp->channels = htonl (resp->channels);
-  resp->cstate = htons (GMT_get_cstate (t));
-  resp->estate = htons (GMT_get_estate (t));
+  resp->cstate = htons (GCT_get_cstate (t));
+  resp->estate = htons (GCT_get_estate (t));
   GNUNET_SERVER_notification_context_unicast (nc, c->handle,
                                               &resp->header, GNUNET_NO);
   GNUNET_free (resp);

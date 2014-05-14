@@ -865,7 +865,7 @@ process_incoming_data (struct GNUNET_CADET_Handle *h,
 
   payload = (struct GNUNET_MessageHeader *) &dmsg[1];
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  %s data on channel %s [%X]\n",
-       GM_f2s (ch->chid >= GNUNET_CADET_LOCAL_CHANNEL_ID_SERV),
+       GC_f2s (ch->chid >= GNUNET_CADET_LOCAL_CHANNEL_ID_SERV),
        GNUNET_i2s (GNUNET_PEER_resolve2 (ch->peer)), ntohl (dmsg->id));
 
   size = ntohs (message->size);
@@ -879,7 +879,7 @@ process_incoming_data (struct GNUNET_CADET_Handle *h,
   }
   type = ntohs (payload->type);
   size = ntohs (payload->size);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  payload type %s\n", GM_m2s (type));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  payload type %s\n", GC_m2s (type));
   for (i = 0; i < h->n_handlers; i++)
   {
     handler = &h->message_handlers[i];
@@ -1253,7 +1253,7 @@ msg_received (void *cls, const struct GNUNET_MessageHeader *msg)
   type = ntohs (msg->type);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "\n");
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Received a message: %s\n",
-       GM_m2s (type));
+       GC_m2s (type));
   switch (type)
   {
     /* Notify of a new incoming channel */
@@ -1296,7 +1296,7 @@ msg_received (void *cls, const struct GNUNET_MessageHeader *msg)
     /* We shouldn't get any other packages, log and ignore */
     LOG (GNUNET_ERROR_TYPE_WARNING,
          "unsolicited message form service (type %s)\n",
-         GM_m2s (ntohs (msg->type)));
+         GC_m2s (ntohs (msg->type)));
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "message processed\n");
   if (GNUNET_YES == h->in_receive)
@@ -1380,7 +1380,7 @@ send_callback (void *cls, size_t size, void *buf)
         dmsg->id = htonl (ch->chid);
         dmsg->header.type = htons (GNUNET_MESSAGE_TYPE_CADET_LOCAL_DATA);
         LOG (GNUNET_ERROR_TYPE_DEBUG, "#  payload type %s\n",
-             GM_m2s (ntohs (mh->type)));
+             GC_m2s (ntohs (mh->type)));
                 ch->allow_send = GNUNET_NO;
       }
       else
@@ -1395,7 +1395,7 @@ send_callback (void *cls, size_t size, void *buf)
       struct GNUNET_MessageHeader *mh = (struct GNUNET_MessageHeader *) &th[1];
 
       LOG (GNUNET_ERROR_TYPE_DEBUG, "#  cadet internal traffic, type %s\n",
-           GM_m2s (ntohs (mh->type)));
+           GC_m2s (ntohs (mh->type)));
       memcpy (cbuf, &th[1], th->size);
       psize = th->size;
     }
@@ -1457,7 +1457,7 @@ send_packet (struct GNUNET_CADET_Handle *h,
   size_t msize;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, " Sending message to service: %s\n",
-       GM_m2s(ntohs(msg->type)));
+       GC_m2s(ntohs(msg->type)));
   msize = ntohs (msg->size);
   th = GNUNET_malloc (sizeof (struct GNUNET_CADET_TransmitHandle) + msize);
   th->timeout = GNUNET_TIME_UNIT_FOREVER_ABS;

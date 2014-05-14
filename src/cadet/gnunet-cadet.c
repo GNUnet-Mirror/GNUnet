@@ -556,7 +556,7 @@ tunnel_callback (void *cls,
       FPRINTF (stdout, "   %u\n", channels[i]);
     FPRINTF (stdout, "- %u connections\n", n_connections);
     for (i = 0; i < n_connections; i++)
-      FPRINTF (stdout, "   %s\n", GM_h2s (&connections[i]));
+      FPRINTF (stdout, "   %s\n", GC_h2s (&connections[i]));
     FPRINTF (stdout, "- enc state: %u\n", estate);
     FPRINTF (stdout, "- con state: %u\n", cstate);
   }

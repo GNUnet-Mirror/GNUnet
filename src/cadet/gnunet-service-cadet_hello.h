@@ -48,13 +48,13 @@ extern "C"
  * @param c Configuration.
  */
 void
-GMH_init (const struct GNUNET_CONFIGURATION_Handle *c);
+GCH_init (const struct GNUNET_CONFIGURATION_Handle *c);
 
 /**
  * Shut down the hello subsystem.
  */
 void
-GMH_shutdown ();
+GCH_shutdown ();
 
 /**
  * Get own hello message.
@@ -62,7 +62,7 @@ GMH_shutdown ();
  * @return Own hello message.
  */
 const struct GNUNET_HELLO_Message *
-GMH_get_mine (void);
+GCH_get_mine (void);
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

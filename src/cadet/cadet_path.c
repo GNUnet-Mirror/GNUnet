@@ -43,8 +43,8 @@ path_destroy_delayed (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct CadetPeer *peer;
 
   path->path_delete = GNUNET_SCHEDULER_NO_TASK;
-  peer = GMP_get_short (path->peers[path->length - 1]);
-  GMP_remove_path (peer, path);
+  peer = GCP_get_short (path->peers[path->length - 1]);
+  GCP_remove_path (peer, path);
 }
 
 

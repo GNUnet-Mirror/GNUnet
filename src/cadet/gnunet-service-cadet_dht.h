@@ -40,7 +40,7 @@ extern "C"
 #include "platform.h"
 #include "gnunet_util_lib.h"
 
-struct GMD_search_handle;
+struct GCD_search_handle;
 
 
 /**
@@ -50,7 +50,7 @@ struct GMD_search_handle;
  * @param path An unchecked, unoptimized path to the target node.
  *             After callback will no longer be valid!
  */
-typedef void (*GMD_search_callback) (void *cls,
+typedef void (*GCD_search_callback) (void *cls,
                                      const struct CadetPeerPath *path);
 
 /******************************************************************************/
@@ -63,22 +63,22 @@ typedef void (*GMD_search_callback) (void *cls,
  * @param c Configuration.
  */
 void
-GMD_init (const struct GNUNET_CONFIGURATION_Handle *c);
+GCD_init (const struct GNUNET_CONFIGURATION_Handle *c);
 
 /**
  * Shut down the DHT subsystem.
  */
 void
-GMD_shutdown (void);
+GCD_shutdown (void);
 
 
-struct GMD_search_handle *
-GMD_search (const struct GNUNET_PeerIdentity *peer_id,
-            GMD_search_callback callback, void *cls);
+struct GCD_search_handle *
+GCD_search (const struct GNUNET_PeerIdentity *peer_id,
+            GCD_search_callback callback, void *cls);
 
 
 void
-GMD_search_stop (struct GMD_search_handle *h);
+GCD_search_stop (struct GCD_search_handle *h);
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

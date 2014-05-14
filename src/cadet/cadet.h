@@ -271,7 +271,7 @@ GNUNET_NETWORK_STRUCT_END
  * @return String representing FWD or BCK.
  */
 char *
-GM_f2s (int fwd);
+GC_f2s (int fwd);
 
 
 /**
@@ -283,7 +283,7 @@ GM_f2s (int fwd);
  * @return True if bigger (arg1) has a higher value than smaller (arg 2).
  */
 int
-GM_is_pid_bigger (uint32_t bigger, uint32_t smaller);
+GC_is_pid_bigger (uint32_t bigger, uint32_t smaller);
 
 
 /**
@@ -295,7 +295,7 @@ GM_is_pid_bigger (uint32_t bigger, uint32_t smaller);
  * @return Highest ACK value from the two.
  */
 uint32_t
-GM_max_pid (uint32_t a, uint32_t b);
+GC_max_pid (uint32_t a, uint32_t b);
 
 
 /**
@@ -307,7 +307,7 @@ GM_max_pid (uint32_t a, uint32_t b);
  * @return Lowest ACK value from the two.
  */
 uint32_t
-GM_min_pid (uint32_t a, uint32_t b);
+GC_min_pid (uint32_t a, uint32_t b);
 
 
 /**
@@ -319,14 +319,14 @@ GM_min_pid (uint32_t a, uint32_t b);
  * @return A HashCode containing the original 256 bit hash right-padded with 0.
  */
 const struct GNUNET_HashCode *
-GM_h2hc (const struct GNUNET_CADET_Hash *id);
+GC_h2hc (const struct GNUNET_CADET_Hash *id);
 
 /**
  * Get a string from a Cadet Hash (256 bits).
  * WARNING: Not reentrant (based on GNUNET_h2s).
  */
 const char *
-GM_h2s (const struct GNUNET_CADET_Hash *id);
+GC_h2s (const struct GNUNET_CADET_Hash *id);
 
 /**
  * Convert a message type into a string to help debug
@@ -339,7 +339,7 @@ GM_h2s (const struct GNUNET_CADET_Hash *id);
  * @return Human readable string description.
  */
 const char *
-GM_m2s (uint16_t m);
+GC_m2s (uint16_t m);
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

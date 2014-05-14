@@ -40,13 +40,13 @@
 /**
  * Handle for DHT searches.
  */
-struct GMD_search_handle
+struct GCD_search_handle
 {
   /** DHT_GET handle. */
   struct GNUNET_DHT_GetHandle *dhtget;
 
   /** Provided callback to call when a path is found. */
-  GMD_search_callback callback;
+  GCD_search_callback callback;
 
   /** Provided closure. */
   void *cls;
@@ -219,7 +219,7 @@ dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
                     unsigned int put_path_length, enum GNUNET_BLOCK_Type type,
                     size_t size, const void *data)
 {
-  struct GMD_search_handle *h = cls;
+  struct GCD_search_handle *h = cls;
   struct GNUNET_HELLO_Message *hello;
   struct CadetPeerPath *p;
   struct CadetPeer *peer;
@@ -230,13 +230,13 @@ dht_get_id_handler (void *cls, struct GNUNET_TIME_Absolute exp,
   s = path_2s (p);
   LOG (GNUNET_ERROR_TYPE_INFO, "Got path from DHT: %s\n", s);
   GNUNET_free_non_null (s);
-  peer = GMP_get_short (p->peers[p->length - 1]);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Got HELLO for %s\n", GMP_2s (peer));
+  peer = GCP_get_short (p->peers[p->length - 1]);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Got HELLO for %s\n", GCP_2s (peer));
   h->callback (h->cls, p);
   path_destroy (p);
   hello = (struct GNUNET_HELLO_Message *) data;
-  GMP_set_hello (peer, hello);
-  GMP_try_connect (peer);
+  GCP_set_hello (peer, hello);
+  GCP_try_connect (peer);
   return;
 }
 
@@ -267,7 +267,7 @@ announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
    * - Set data expiration in function of X
    * - Adapt X to churn
    */
-  hello = GMH_get_mine ();
+  hello = GCH_get_mine ();
   if (NULL == hello || (size = GNUNET_HELLO_size (hello)) == 0)
   {
     /* Peerinfo gave us no hello yet, try again in a second. */
@@ -304,7 +304,7 @@ announce_id (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  *
  * @param cls Closure (unused)
  * @param key Current peer ID.
- * @param value Value in the hash map (GMD_search_handle).
+ * @param value Value in the hash map (GCD_search_handle).
  *
  * @return #GNUNET_YES, we should continue to iterate,
  */
@@ -313,9 +313,9 @@ stop_get (void *cls,
           uint32_t key,
           void *value)
 {
-  struct GMD_search_handle *h = value;
+  struct GCD_search_handle *h = value;
 
-  GMD_search_stop (h);
+  GCD_search_stop (h);
   return GNUNET_YES;
 }
 
@@ -330,7 +330,7 @@ stop_get (void *cls,
  * @param c Configuration.
  */
 void
-GMD_init (const struct GNUNET_CONFIGURATION_Handle *c)
+GCD_init (const struct GNUNET_CONFIGURATION_Handle *c)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG, "init\n");
   if (GNUNET_OK !=
@@ -367,7 +367,7 @@ GMD_init (const struct GNUNET_CONFIGURATION_Handle *c)
  * Shut down the DHT subsystem.
  */
 void
-GMD_shutdown (void)
+GCD_shutdown (void)
 {
   GNUNET_CONTAINER_multihashmap32_iterate (get_requests, &stop_get, NULL);
   GNUNET_CONTAINER_multihashmap32_destroy (get_requests);
@@ -383,18 +383,18 @@ GMD_shutdown (void)
   }
 }
 
-struct GMD_search_handle *
-GMD_search (const struct GNUNET_PeerIdentity *peer_id,
-            GMD_search_callback callback, void *cls)
+struct GCD_search_handle *
+GCD_search (const struct GNUNET_PeerIdentity *peer_id,
+            GCD_search_callback callback, void *cls)
 {
   struct GNUNET_HashCode phash;
-  struct GMD_search_handle *h;
+  struct GCD_search_handle *h;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "  Starting DHT GET for peer %s\n", GNUNET_i2s (peer_id));
   memset (&phash, 0, sizeof (phash));
   memcpy (&phash, peer_id, sizeof (*peer_id));
-  h = GNUNET_new (struct GMD_search_handle);
+  h = GNUNET_new (struct GCD_search_handle);
   h->peer_id = GNUNET_PEER_intern (peer_id);
   h->callback = callback;
   h->cls = cls;
@@ -413,7 +413,7 @@ GMD_search (const struct GNUNET_PeerIdentity *peer_id,
 }
 
 void
-GMD_search_stop (struct GMD_search_handle *h)
+GCD_search_stop (struct GCD_search_handle *h)
 {
   GNUNET_break (GNUNET_OK ==
                 GNUNET_CONTAINER_multihashmap32_remove (get_requests,

@@ -97,7 +97,7 @@ struct CadetConnectionQueue;
  * @param fwd Was this a FWD going message?
  * @param size Size of the message.
  */
-typedef void (*GMC_sent) (void *cls,
+typedef void (*GCC_sent) (void *cls,
                           struct CadetConnection *c,
                           struct CadetConnectionQueue *q,
                           uint16_t type, int fwd, size_t size);
@@ -113,7 +113,7 @@ typedef void (*GMC_sent) (void *cls,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
 int
-GMC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
+GCC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
                    const struct GNUNET_MessageHeader *message);
 
 /**
@@ -127,7 +127,7 @@ GMC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
 int
-GMC_handle_confirm (void *cls, const struct GNUNET_PeerIdentity *peer,
+GCC_handle_confirm (void *cls, const struct GNUNET_PeerIdentity *peer,
                     const struct GNUNET_MessageHeader *message);
 
 /**
@@ -141,7 +141,7 @@ GMC_handle_confirm (void *cls, const struct GNUNET_PeerIdentity *peer,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
 int
-GMC_handle_broken (void* cls,
+GCC_handle_broken (void* cls,
                    const struct GNUNET_PeerIdentity* id,
                    const struct GNUNET_MessageHeader* message);
 
@@ -156,7 +156,7 @@ GMC_handle_broken (void* cls,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
 int
-GMC_handle_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
+GCC_handle_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
                     const struct GNUNET_MessageHeader *message);
 
 /**
@@ -170,7 +170,7 @@ GMC_handle_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
 int
-GMC_handle_encrypted (void *cls, const struct GNUNET_PeerIdentity *peer,
+GCC_handle_encrypted (void *cls, const struct GNUNET_PeerIdentity *peer,
                       const struct GNUNET_MessageHeader *message);
 
 /**
@@ -184,7 +184,7 @@ GMC_handle_encrypted (void *cls, const struct GNUNET_PeerIdentity *peer,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
 int
-GMC_handle_kx (void *cls, const struct GNUNET_PeerIdentity *peer,
+GCC_handle_kx (void *cls, const struct GNUNET_PeerIdentity *peer,
                const struct GNUNET_MessageHeader *message);
 
 /**
@@ -198,7 +198,7 @@ GMC_handle_kx (void *cls, const struct GNUNET_PeerIdentity *peer,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
 int
-GMC_handle_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
+GCC_handle_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
                 const struct GNUNET_MessageHeader *message);
 
 /**
@@ -212,7 +212,7 @@ GMC_handle_ack (void *cls, const struct GNUNET_PeerIdentity *peer,
  *         GNUNET_SYSERR to close it (signal serious error)
  */
 int
-GMC_handle_poll (void *cls, const struct GNUNET_PeerIdentity *peer,
+GCC_handle_poll (void *cls, const struct GNUNET_PeerIdentity *peer,
                  const struct GNUNET_MessageHeader *message);
 
 /**
@@ -227,7 +227,7 @@ GMC_handle_poll (void *cls, const struct GNUNET_PeerIdentity *peer,
  * TODO: Check who we got this from, to validate route.
  */
 int
-GMC_handle_keepalive (void *cls, const struct GNUNET_PeerIdentity *peer,
+GCC_handle_keepalive (void *cls, const struct GNUNET_PeerIdentity *peer,
                       const struct GNUNET_MessageHeader *message);
 
 /**
@@ -239,7 +239,7 @@ GMC_handle_keepalive (void *cls, const struct GNUNET_PeerIdentity *peer,
  * @param force Send the ACK even if suboptimal (e.g. requested by POLL).
  */
 void
-GMC_send_ack (struct CadetConnection *c, int fwd, int force);
+GCC_send_ack (struct CadetConnection *c, int fwd, int force);
 
 /**
  * Initialize the connections subsystem
@@ -247,13 +247,13 @@ GMC_send_ack (struct CadetConnection *c, int fwd, int force);
  * @param c Configuration handle.
  */
 void
-GMC_init (const struct GNUNET_CONFIGURATION_Handle *c);
+GCC_init (const struct GNUNET_CONFIGURATION_Handle *c);
 
 /**
  * Shut down the connections subsystem.
  */
 void
-GMC_shutdown (void);
+GCC_shutdown (void);
 
 /**
  * Create a connection.
@@ -266,7 +266,7 @@ GMC_shutdown (void);
  * @return Newly created connection, NULL in case of error (own id not in path).
  */
 struct CadetConnection *
-GMC_new (const struct GNUNET_CADET_Hash *cid,
+GCC_new (const struct GNUNET_CADET_Hash *cid,
          struct CadetTunnel3 *t,
          struct CadetPeerPath *p,
          unsigned int own_pos);
@@ -280,7 +280,7 @@ GMC_new (const struct GNUNET_CADET_Hash *cid,
  * @param c Connection to destroy.
  */
 void
-GMC_destroy (struct CadetConnection *c);
+GCC_destroy (struct CadetConnection *c);
 
 /**
  * Get the connection ID.
@@ -290,7 +290,7 @@ GMC_destroy (struct CadetConnection *c);
  * @return ID of the connection.
  */
 const struct GNUNET_CADET_Hash *
-GMC_get_id (const struct CadetConnection *c);
+GCC_get_id (const struct CadetConnection *c);
 
 
 /**
@@ -301,7 +301,7 @@ GMC_get_id (const struct CadetConnection *c);
  * @return Hash expanded from the ID of the connection.
  */
 const struct GNUNET_HashCode *
-GMC_get_h (const struct CadetConnection *c);
+GCC_get_h (const struct CadetConnection *c);
 
 
 /**
@@ -312,7 +312,7 @@ GMC_get_h (const struct CadetConnection *c);
  * @return path used by the connection.
  */
 const struct CadetPeerPath *
-GMC_get_path (const struct CadetConnection *c);
+GCC_get_path (const struct CadetConnection *c);
 
 /**
  * Get the connection state.
@@ -322,7 +322,7 @@ GMC_get_path (const struct CadetConnection *c);
  * @return state of the connection.
  */
 enum CadetConnectionState
-GMC_get_state (const struct CadetConnection *c);
+GCC_get_state (const struct CadetConnection *c);
 
 /**
  * Get the connection tunnel.
@@ -332,7 +332,7 @@ GMC_get_state (const struct CadetConnection *c);
  * @return tunnel of the connection.
  */
 struct CadetTunnel3 *
-GMC_get_tunnel (const struct CadetConnection *c);
+GCC_get_tunnel (const struct CadetConnection *c);
 
 /**
  * Get free buffer space in a connection.
@@ -343,7 +343,7 @@ GMC_get_tunnel (const struct CadetConnection *c);
  * @return Free buffer space [0 - max_msgs_queue/max_connections]
  */
 unsigned int
-GMC_get_buffer (struct CadetConnection *c, int fwd);
+GCC_get_buffer (struct CadetConnection *c, int fwd);
 
 /**
  * Get how many messages have we allowed to send to us from a direction.
@@ -354,7 +354,7 @@ GMC_get_buffer (struct CadetConnection *c, int fwd);
  * @return last_ack_sent - last_pid_recv
  */
 unsigned int
-GMC_get_allowed (struct CadetConnection *c, int fwd);
+GCC_get_allowed (struct CadetConnection *c, int fwd);
 
 /**
  * Get messages queued in a connection.
@@ -365,7 +365,7 @@ GMC_get_allowed (struct CadetConnection *c, int fwd);
  * @return Number of messages queued.
  */
 unsigned int
-GMC_get_qn (struct CadetConnection *c, int fwd);
+GCC_get_qn (struct CadetConnection *c, int fwd);
 
 /**
  * Get next PID to use.
@@ -376,7 +376,7 @@ GMC_get_qn (struct CadetConnection *c, int fwd);
  * @return Last PID used + 1.
  */
 unsigned int
-GMC_get_pid (struct CadetConnection *c, int fwd);
+GCC_get_pid (struct CadetConnection *c, int fwd);
 
 /**
  * Allow the connection to advertise a buffer of the given size.
@@ -389,7 +389,7 @@ GMC_get_pid (struct CadetConnection *c, int fwd);
  * @param fwd Is this about FWD traffic? (The ack will go dest->root).
  */
 void
-GMC_allow (struct CadetConnection *c, unsigned int buffer, int fwd);
+GCC_allow (struct CadetConnection *c, unsigned int buffer, int fwd);
 
 /**
  * Send FWD keepalive packets for a connection.
@@ -398,7 +398,7 @@ GMC_allow (struct CadetConnection *c, unsigned int buffer, int fwd);
  * @param tc Notification context.
  */
 void
-GMC_fwd_keepalive (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+GCC_fwd_keepalive (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 /**
  * Send BCK keepalive packets for a connection.
@@ -407,7 +407,7 @@ GMC_fwd_keepalive (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
  * @param tc Notification context.
  */
 void
-GMC_bck_keepalive (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+GCC_bck_keepalive (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
@@ -418,7 +418,7 @@ GMC_bck_keepalive (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
  * @param peer Peer that disconnected.
  */
 void
-GMC_notify_broken (struct CadetConnection *c,
+GCC_notify_broken (struct CadetConnection *c,
                    struct CadetPeer *peer);
 
 /**
@@ -430,7 +430,7 @@ GMC_notify_broken (struct CadetConnection *c,
  * @return #GNUNET_YES if origin, #GNUNET_NO if relay/terminal.
  */
 int
-GMC_is_origin (struct CadetConnection *c, int fwd);
+GCC_is_origin (struct CadetConnection *c, int fwd);
 
 /**
  * Is this peer the last one on the connection?
@@ -442,7 +442,7 @@ GMC_is_origin (struct CadetConnection *c, int fwd);
  * @return #GNUNET_YES if terminal, #GNUNET_NO if relay/origin.
  */
 int
-GMC_is_terminal (struct CadetConnection *c, int fwd);
+GCC_is_terminal (struct CadetConnection *c, int fwd);
 
 /**
  * See if we are allowed to send by the next hop in the given direction.
@@ -453,7 +453,7 @@ GMC_is_terminal (struct CadetConnection *c, int fwd);
  * @return #GNUNET_YES in case it's OK to send.
  */
 int
-GMC_is_sendable (struct CadetConnection *c, int fwd);
+GCC_is_sendable (struct CadetConnection *c, int fwd);
 
 /**
  * Check if this connection is a direct one (never trim a direct connection).
@@ -463,7 +463,7 @@ GMC_is_sendable (struct CadetConnection *c, int fwd);
  * @return #GNUNET_YES in case it's a direct connection, #GNUNET_NO otherwise.
  */
 int
-GMC_is_direct (struct CadetConnection *c);
+GCC_is_direct (struct CadetConnection *c);
 
 /**
  * Cancel a previously sent message while it's in the queue.
@@ -475,7 +475,7 @@ GMC_is_direct (struct CadetConnection *c);
  * @param q Handle to the queue.
  */
 void
-GMC_cancel (struct CadetConnectionQueue *q);
+GCC_cancel (struct CadetConnectionQueue *q);
 
 /**
  * Sends an already built message on a connection, properly registering
@@ -495,10 +495,10 @@ GMC_cancel (struct CadetConnectionQueue *q);
  *         Invalid on @c cont call.
  */
 struct CadetConnectionQueue *
-GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
+GCC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
                            uint16_t payload_type, uint32_t payload_id,
                            struct CadetConnection *c, int fwd, int force,
-                           GMC_sent cont, void *cont_cls);
+                           GCC_sent cont, void *cont_cls);
 
 /**
  * Sends a CREATE CONNECTION message for a path to a peer.
@@ -507,7 +507,7 @@ GMC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
  * @param connection Connection to create.
  */
 void
-GMC_send_create (struct CadetConnection *connection);
+GCC_send_create (struct CadetConnection *connection);
 
 /**
  * Send a message to all peers in this connection that the connection
@@ -519,7 +519,7 @@ GMC_send_create (struct CadetConnection *connection);
  * @param c The connection whose peers to notify.
  */
 void
-GMC_send_destroy (struct CadetConnection *c);
+GCC_send_destroy (struct CadetConnection *c);
 
 /**
  * @brief Start a polling timer for the connection.
@@ -532,7 +532,7 @@ GMC_send_destroy (struct CadetConnection *c);
  * @param fwd Should we poll in the FWD direction?
  */
 void
-GMC_start_poll (struct CadetConnection *c, int fwd);
+GCC_start_poll (struct CadetConnection *c, int fwd);
 
 
 /**
@@ -544,7 +544,7 @@ GMC_start_poll (struct CadetConnection *c, int fwd);
  * @param fwd Should we stop the poll in the FWD direction?
  */
 void
-GMC_stop_poll (struct CadetConnection *c, int fwd);
+GCC_stop_poll (struct CadetConnection *c, int fwd);
 
 /**
  * Get a (static) string for a connection.
@@ -552,7 +552,7 @@ GMC_stop_poll (struct CadetConnection *c, int fwd);
  * @param c Connection.
  */
 const char *
-GMC_2s (const struct CadetConnection *c);
+GCC_2s (const struct CadetConnection *c);
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

@@ -108,11 +108,11 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   shutting_down = GNUNET_YES;
 
   GML_shutdown ();
-  GMH_shutdown ();
-  GMC_shutdown ();
-  GMT_shutdown ();
-  GMD_shutdown ();
-  GMP_shutdown ();
+  GCH_shutdown ();
+  GCC_shutdown ();
+  GCT_shutdown ();
+  GCD_shutdown ();
+  GCP_shutdown ();
 
   GNUNET_STATISTICS_destroy (stats, GNUNET_NO);
   stats = NULL;
@@ -148,11 +148,11 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
               GNUNET_i2s (&my_full_id));
 
   GML_init (server);    /* Local clients */
-  GMH_init (c);         /* Hellos */
-  GMC_init (c);         /* Connections */
-  GMP_init (c);         /* Peers */
-  GMD_init (c);         /* DHT */
-  GMT_init (c, my_private_key); /* Tunnels */
+  GCH_init (c);         /* Hellos */
+  GCC_init (c);         /* Connections */
+  GCP_init (c);         /* Peers */
+  GCD_init (c);         /* DHT */
+  GCT_init (c, my_private_key); /* Tunnels */
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Cadet service running\n");
 }
