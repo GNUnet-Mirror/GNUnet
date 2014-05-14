@@ -620,63 +620,124 @@ t_encrypt (struct CadetTunnel *t,
 /**
  * Decrypt and verify data with the appropriate tunnel key.
  *
+ * @param key Key to use.
+ * @param dst Destination for the plaintext.
+ * @param src Source of the encrypted data. Can overlap with @c dst.
+ * @param size Size of the encrypted data.
+ * @param iv Initialization Vector to use.
+ *
+ * @return Size of the decrypted data, -1 if an error was encountered.
+ */
+static int
+decrypt (const struct GNUNET_CRYPTO_SymmetricSessionKey *key,
+         void *dst, const void *src, size_t size, uint32_t iv)
+{
+  struct GNUNET_CRYPTO_SymmetricInitializationVector siv;
+  size_t out_size;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  decrypt start\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  decrypt iv\n");
+  GNUNET_CRYPTO_symmetric_derive_iv (&siv, key, &iv, sizeof (iv), NULL);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  decrypt iv done\n");
+  out_size = GNUNET_CRYPTO_symmetric_decrypt (src, size, key, &siv, dst);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  decrypt end\n");
+
+  return out_size;
+}
+
+
+/**
+ * Decrypt and verify data with the most recent tunnel key.
+ *
  * @param t Tunnel whose key to use.
  * @param dst Destination for the plaintext.
  * @param src Source of the encrypted data. Can overlap with @c dst.
  * @param size Size of the encrypted data.
  * @param iv Initialization Vector to use.
- * @param msg_hmac HMAC of the message, or NULL if message does not carry
- *                 integrity verification (PING, PONG)
  *
  * @return Size of the decrypted data, -1 if an error was encountered.
  */
 static int
 t_decrypt (struct CadetTunnel *t, void *dst, const void *src,
-           size_t size, uint32_t iv, const struct GNUNET_CADET_Hash *msg_hmac)
+           size_t size, uint32_t iv)
 {
   struct GNUNET_CRYPTO_SymmetricInitializationVector siv;
   struct GNUNET_CRYPTO_SymmetricSessionKey *key;
   size_t out_size;
-  struct GNUNET_CADET_Hash hmac;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_decrypt start\n");
   if (t->estate == CADET_TUNNEL3_KEY_OK || t->estate == CADET_TUNNEL3_KEY_PING)
   {
     key = &t->d_key;
   }
-  else if (NULL != t->kx_ctx)
-  {
-    key = &t->kx_ctx->d_key_old;
-  }
   else
   {
     GNUNET_STATISTICS_update (stats, "# non decryptable data", 1, GNUNET_NO);
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "WARNING got data on %s without a valid key\n",
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "got data on %s without a valid key\n",
          GCT_2s (t));
     GCT_debug (t);
     return -1;
   }
 
+  out_size = decrypt (key, dst, src, size, iv);
+
+  return out_size;
+}
+
+
+/**
+ * Decrypt and verify data with the appropriate tunnel key and verify that the
+ * data has not been altered since it was sent by the remote peer.
+ *
+ * @param t Tunnel whose key to use.
+ * @param dst Destination for the plaintext.
+ * @param src Source of the encrypted data. Can overlap with @c dst.
+ * @param size Size of the encrypted data.
+ * @param iv Initialization Vector to use.
+ * @param msg_hmac HMAC of the message, cannot be NULL.
+ *
+ * @return Size of the decrypted data, -1 if an error was encountered.
+ */
+static int
+t_decrypt_and_validate (struct CadetTunnel *t,
+                        void *dst, const void *src,
+                        size_t size, uint32_t iv,
+                        const struct GNUNET_CADET_Hash *msg_hmac)
+{
+  struct GNUNET_CRYPTO_SymmetricSessionKey *key;
+  struct GNUNET_CADET_Hash hmac;
+  int decrypted_size;
+
+  /* Try primary (newest) key */
+  key = &t->d_key;
+  decrypted_size = decrypt (key, dst, src, size, iv);
   t_hmac (t, src, size, iv, GNUNET_NO, &hmac);
-  if (NULL != msg_hmac && 0 != memcmp (msg_hmac, &hmac, sizeof (hmac)))
+  if (0 == memcmp (msg_hmac, &hmac, sizeof (hmac)))
+    return decrypted_size;
+
+  /* If no key exchange is going on, we just failed */
+  if (NULL == t->kx_ctx)
   {
-    /* checksum failed */
-    // FIXME try other key
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Failed checksum validation for a message on tunnel `%s'\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Failed checksum validation on tunnel %s with no KX\n",
                 GCT_2s (t));
     GNUNET_STATISTICS_update (stats, "# wrong HMAC", 1, GNUNET_NO);
     return -1;
   }
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_decrypt iv\n");
-  GNUNET_CRYPTO_symmetric_derive_iv (&siv, key, &iv, sizeof (iv), NULL);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_decrypt iv done\n");
-  out_size = GNUNET_CRYPTO_symmetric_decrypt (src, size, key, &siv, dst);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_decrypt end\n");
+  /* Try secondary (from previous KX period) key */
+  key = &t->kx_ctx->d_key_old;
+  decrypted_size = decrypt (key, dst, src, size, iv);
+  t_hmac (t, src, size, iv, GNUNET_NO, &hmac);
+  if (0 == memcmp (msg_hmac, &hmac, sizeof (hmac)))
+    return decrypted_size;
 
-  return out_size;
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "Failed checksum validation on tunnel %s with KX\n" place,
+              GCT_2s (t));
+  GNUNET_STATISTICS_update (stats, "# wrong HMAC", 1, GNUNET_NO);
+  return -1;
 }
 
 
@@ -1627,8 +1688,7 @@ handle_ping (struct CadetTunnel *t,
   }
 
   LOG (GNUNET_ERROR_TYPE_INFO, "<=== PING for %s\n", GCT_2s (t));
-  t_decrypt (t, &res.target, &msg->target,
-             ping_encryption_size (), msg->iv, NULL);
+  t_decrypt (t, &res.target, &msg->target, ping_encryption_size (), msg->iv);
   if (0 != memcmp (&my_full_id, &res.target, sizeof (my_full_id)))
   {
     GNUNET_STATISTICS_update (stats, "# malformed PINGs", 1, GNUNET_NO);
@@ -1666,7 +1726,7 @@ handle_pong (struct CadetTunnel *t,
     GNUNET_STATISTICS_update (stats, "# duplicate PONG messages", 1, GNUNET_NO);
     return;
   }
-  t_decrypt (t, &challenge, &msg->nonce, sizeof (uint32_t), msg->iv, NULL);
+  t_decrypt (t, &challenge, &msg->nonce, sizeof (uint32_t), msg->iv);
 
   if (challenge != t->kx_ctx->challenge)
   {
@@ -1775,8 +1835,8 @@ GCT_handle_encrypted (struct CadetTunnel *t,
   struct GNUNET_MessageHeader *msgh;
   unsigned int off;
 
-  decrypted_size = t_decrypt (t, cbuf, &msg[1], payload_size,
-                              msg->iv, &msg->hmac);
+  decrypted_size = t_decrypt_and_validate (t, cbuf, &msg[1], payload_size,
+                                           msg->iv, &msg->hmac);
 
   off = 0;
   while (off < decrypted_size)
