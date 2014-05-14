@@ -1151,7 +1151,11 @@ rekey_tunnel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
- * Out ephemeral key has changed, create new session key on all tunnels.
+ * Our ephemeral key has changed, create new session key on all tunnels.
+ *
+ * Each tunnel will start the Key Exchange with a random delay between
+ * 0 and number_of_tunnels*100 milliseconds, so there are 10 key exchanges
+ * per second, on average.
  *
  * @param cls Closure (size of the hashmap).
  * @param key Current public key.
