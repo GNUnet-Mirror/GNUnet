@@ -551,12 +551,36 @@ t_encrypt (struct CadetTunnel *t,
            size_t size, uint32_t iv)
 {
   struct GNUNET_CRYPTO_SymmetricInitializationVector siv;
+  struct GNUNET_CRYPTO_SymmetricSessionKey *e_key;
   size_t out_size;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_encrypt start\n");
-  GNUNET_CRYPTO_symmetric_derive_iv (&siv, &t->e_key, &iv, sizeof (iv), NULL);
+  if (NULL != t->kx_ctx)
+  {
+    struct GNUNET_TIME_Relative age;
+
+    age = GNUNET_TIME_absolute_get_duration (t->kx_ctx->rekey_start_time);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "  key exchange in progress, started %s ago\n",
+         GNUNET_STRINGS_relative_time_to_string (age, GNUNET_YES));
+    if (age.rel_value_us < GNUNET_TIME_UNIT_MINUTES.rel_value_us)
+    {
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "  using old key\n");
+      e_key = &t->kx_ctx->e_key_old;
+    }
+    else
+    {
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "  using new key\n");
+      e_key = &t->e_key;
+    }
+  }
+  else
+  {
+    e_key = &t->e_key;
+  }
+  GNUNET_CRYPTO_symmetric_derive_iv (&siv, e_key, &iv, sizeof (iv), NULL);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_encrypt IV derived\n");
-  out_size = GNUNET_CRYPTO_symmetric_encrypt (src, size, &t->e_key, &siv, dst);
+  out_size = GNUNET_CRYPTO_symmetric_encrypt (src, size, e_key, &siv, dst);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_encrypt end\n");
 
   return out_size;
