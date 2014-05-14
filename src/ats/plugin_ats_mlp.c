@@ -2163,16 +2163,13 @@ libgnunet_plugin_ats_mlp_init (void *cls)
   struct GNUNET_ATS_PluginEnvironment *env = cls;
   struct GAS_MLP_Handle * mlp = GNUNET_new (struct GAS_MLP_Handle);
 
-  double D;
-  double R;
-  double U;
+  float f_tmp;
   unsigned long long tmp;
   unsigned int b_min;
   unsigned int n_min;
   int c;
   int c2;
   int found;
-  char *tmp_str;
   char *outputformat;
 
   struct GNUNET_TIME_Relative max_duration;
@@ -2334,35 +2331,37 @@ libgnunet_plugin_ats_mlp_init (void *cls)
   mlp->pv.BIG_M = (double) BIG_M_VALUE;
 
   mlp->pv.mip_gap = (double) 0.0;
-  if (GNUNET_SYSERR != GNUNET_CONFIGURATION_get_value_string (env->cfg, "ats",
-      "MLP_MAX_MIP_GAP", &tmp_str))
+  if (GNUNET_SYSERR != GNUNET_CONFIGURATION_get_value_float (env->cfg, "ats",
+      "MLP_MAX_MIP_GAP", &f_tmp))
   {
-    /* Dangerous due to localized separator , or . */
-    mlp->pv.mip_gap = strtod (tmp_str, NULL);
-    if ( (mlp->pv.mip_gap < 0.0) && (mlp->pv.mip_gap > 1.0) )
+    if ((f_tmp < 0.0) || (f_tmp > 1.0))
     {
-        LOG (GNUNET_ERROR_TYPE_INFO, "Invalid MIP gap configuration %u \n",
-            tmp);
+      LOG (GNUNET_ERROR_TYPE_ERROR, _("Invalid %s configuration %f \n"),
+          "MIP gap", f_tmp);
     }
     else
-        LOG (GNUNET_ERROR_TYPE_WARNING, "Using MIP gap of %.3f\n",
-            mlp->pv.mip_gap);
+    {
+      mlp->pv.mip_gap = f_tmp;
+      LOG (GNUNET_ERROR_TYPE_INFO, "Using %s of %.3f\n",
+          "MIP gap", mlp->pv.mip_gap);
+    }
   }
 
   mlp->pv.lp_mip_gap = (double) 0.0;
-  if (GNUNET_SYSERR != GNUNET_CONFIGURATION_get_value_string (env->cfg, "ats",
-      "MLP_MAX_LP_MIP_GAP", &tmp_str))
+  if (GNUNET_SYSERR != GNUNET_CONFIGURATION_get_value_float (env->cfg, "ats",
+      "MLP_MAX_LP_MIP_GAP", &f_tmp))
   {
-    /* Dangerous due to localized separator , or . */
-    mlp->pv.lp_mip_gap = strtod (tmp_str, NULL);
-    if ( (mlp->pv.lp_mip_gap < 0.0) && (mlp->pv.lp_mip_gap > 1.0) )
+    if ((f_tmp < 0.0) || (f_tmp > 1.0))
     {
-        LOG (GNUNET_ERROR_TYPE_INFO, "Invalid LP/MIP gap configuration %u \n",
-            tmp);
+      LOG (GNUNET_ERROR_TYPE_ERROR, _("Invalid %s configuration %f \n"),
+          "LP/MIP", f_tmp);
     }
     else
-        LOG (GNUNET_ERROR_TYPE_WARNING, "Using LP/MIP gap of %.3f\n",
-            mlp->pv.lp_mip_gap);
+    {
+      mlp->pv.lp_mip_gap = f_tmp;
+      LOG (GNUNET_ERROR_TYPE_INFO, "Using %s gap of %.3f\n",
+          "LP/MIP", mlp->pv.lp_mip_gap);
+    }
   }
 
   /* Get timeout for iterations */
@@ -2380,25 +2379,59 @@ libgnunet_plugin_ats_mlp_init (void *cls)
   }
 
   /* Get diversity coefficient from configuration */
-  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size (env->cfg,
-      "ats", "MLP_COEFFICIENT_D", &tmp))
-    D = (double) tmp / 100;
-  else
-    D = DEFAULT_D;
+  mlp->pv.co_D = DEFAULT_D;
+  if (GNUNET_SYSERR != GNUNET_CONFIGURATION_get_value_float (env->cfg, "ats",
+      "MLP_COEFFICIENT_D", &f_tmp))
+  {
+    if ((f_tmp < 0.0))
+    {
+      LOG (GNUNET_ERROR_TYPE_ERROR, _("Invalid %s configuration %f \n"),
+          "MLP_COEFFICIENT_D", f_tmp);
+    }
+    else
+    {
+      mlp->pv.co_D = f_tmp;
+      LOG (GNUNET_ERROR_TYPE_INFO, "Using %s gap of %.3f\n",
+          "MLP_COEFFICIENT_D", mlp->pv.lp_mip_gap);
+    }
+  }
 
-  /* Get proportionality coefficient from configuration */
-  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size (env->cfg,
-      "ats", "MLP_COEFFICIENT_R", &tmp))
-    R = (double) tmp / 100;
-  else
-    R = DEFAULT_R;
+  /* Get relativity coefficient from configuration */
+  mlp->pv.co_R = DEFAULT_R;
+  if (GNUNET_SYSERR != GNUNET_CONFIGURATION_get_value_float (env->cfg, "ats",
+      "MLP_COEFFICIENT_R", &f_tmp))
+  {
+    if ((f_tmp < 0.0))
+    {
+      LOG (GNUNET_ERROR_TYPE_ERROR, _("Invalid %s configuration %f \n"),
+          "MLP_COEFFICIENT_R", f_tmp);
+    }
+    else
+    {
+      mlp->pv.co_R = f_tmp;
+      LOG (GNUNET_ERROR_TYPE_INFO, "Using %s gap of %.3f\n",
+          "MLP_COEFFICIENT_R", mlp->pv.lp_mip_gap);
+    }
+  }
+
 
   /* Get utilization coefficient from configuration */
-  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_size (env->cfg,
-      "ats", "MLP_COEFFICIENT_U", &tmp))
-    U = (double) tmp / 100;
-  else
-    U = DEFAULT_U;
+  mlp->pv.co_U = DEFAULT_U;
+  if (GNUNET_SYSERR != GNUNET_CONFIGURATION_get_value_float (env->cfg, "ats",
+      "MLP_COEFFICIENT_U", &f_tmp))
+  {
+    if ((f_tmp < 0.0))
+    {
+      LOG (GNUNET_ERROR_TYPE_ERROR, _("Invalid %s configuration %f \n"),
+          "MLP_COEFFICIENT_U", f_tmp);
+    }
+    else
+    {
+      mlp->pv.co_U = f_tmp;
+      LOG (GNUNET_ERROR_TYPE_INFO, "Using %s gap of %.3f\n",
+          "MLP_COEFFICIENT_U", mlp->pv.lp_mip_gap);
+    }
+  }
 
   /* Get quality metric coefficients from configuration */
   int i_delay = MLP_NaN;
@@ -2547,9 +2580,6 @@ libgnunet_plugin_ats_mlp_init (void *cls)
   mlp->get_properties_cls = env->get_property_cls;
   /* Setting MLP Input variables */
 
-  mlp->pv.co_D = D;
-  mlp->pv.co_R = R;
-  mlp->pv.co_U = U;
   mlp->pv.b_min = b_min;
   mlp->pv.n_min = n_min;
   mlp->pv.m_q = GNUNET_ATS_QualityPropertiesCount;
