@@ -1770,7 +1770,7 @@ GCT_handle_encrypted (struct CadetTunnel *t,
 {
   size_t size = ntohs (msg->header.size);
   size_t payload_size = size - sizeof (struct GNUNET_CADET_Encrypted);
-  size_t decrypted_size;
+  int decrypted_size;
   char cbuf [payload_size];
   struct GNUNET_MessageHeader *msgh;
   unsigned int off;
