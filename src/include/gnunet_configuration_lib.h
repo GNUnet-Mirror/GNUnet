@@ -268,6 +268,22 @@ GNUNET_CONFIGURATION_get_value_number (const struct GNUNET_CONFIGURATION_Handle 
 
 
 /**
+ * Get a configuration value that should be a floating point number.
+ *
+ * @param cfg configuration to inspect
+ * @param section section of interest
+ * @param option option of interest
+ * @param number where to store the floating value of the option
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
+ */
+int
+GNUNET_CONFIGURATION_get_value_float  (const struct GNUNET_CONFIGURATION_Handle
+                                       *cfg, const char *section,
+                                       const char *option,
+                                       float *number);
+
+
+/**
  * Get a configuration value that should be a relative time.
  *
  * @param cfg configuration to inspect
