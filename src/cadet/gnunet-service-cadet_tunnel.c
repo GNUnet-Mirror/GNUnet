@@ -808,11 +808,8 @@ create_keys (struct CadetTunnel *t)
   struct GNUNET_HashCode km;
 
   derive_key_material (&km, &t->peers_ephemeral_key);
-  LOG (GNUNET_ERROR_TYPE_INFO, "km %s\n", GNUNET_h2s_full (&km));
   derive_symmertic (&t->e_key, &my_full_id, GCP_get_id (t->peer), &km);
-  LOG (GNUNET_ERROR_TYPE_INFO, "ek %s\n", GNUNET_h2s_full (&t->e_key));
   derive_symmertic (&t->d_key, GCP_get_id (t->peer), &my_full_id, &km);
-  LOG (GNUNET_ERROR_TYPE_INFO, "dk %s\n", GNUNET_h2s_full (&t->d_key));
 }
 
 
