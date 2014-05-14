@@ -803,6 +803,7 @@ create_keys (struct CadetTunnel *t)
   struct GNUNET_HashCode km;
 
   derive_key_material (&km, &t->peers_ephemeral_key);
+  LOG (GNUNET_ERROR_TYPE_INFO, "km %s\n", GNUNET_h2s_full (&km));
   derive_symmertic (&t->e_key, &my_full_id, GCP_get_id (t->peer), &km);
   derive_symmertic (&t->d_key, GCP_get_id (t->peer), &my_full_id, &km);
 }
@@ -1173,7 +1174,7 @@ send_kx (struct CadetTunnel *t,
 static void
 send_ephemeral (struct CadetTunnel *t)
 {
-  LOG (GNUNET_ERROR_TYPE_INFO, "=> EPHM for %s\n", GCT_2s (t));
+  LOG (GNUNET_ERROR_TYPE_INFO, "===> EPHM for %s\n", GCT_2s (t));
 
   kx_msg.sender_status = htonl (t->estate);
   send_kx (t, &kx_msg.header);
@@ -1189,7 +1190,7 @@ send_ping (struct CadetTunnel *t)
 {
   struct GNUNET_CADET_KX_Ping msg;
 
-  LOG (GNUNET_ERROR_TYPE_INFO, "=> PING for %s\n", GCT_2s (t));
+  LOG (GNUNET_ERROR_TYPE_INFO, "===> PING for %s\n", GCT_2s (t));
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_KX_PING);
   msg.iv = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
@@ -1217,7 +1218,7 @@ send_pong (struct CadetTunnel *t, uint32_t challenge)
 {
   struct GNUNET_CADET_KX_Pong msg;
 
-  LOG (GNUNET_ERROR_TYPE_INFO, "=> PONG for %s\n", GCT_2s (t));
+  LOG (GNUNET_ERROR_TYPE_INFO, "===> PONG for %s\n", GCT_2s (t));
   msg.header.size = htons (sizeof (msg));
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_KX_PONG);
   msg.iv = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
