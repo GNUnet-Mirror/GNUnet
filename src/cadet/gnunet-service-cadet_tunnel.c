@@ -135,6 +135,12 @@ struct CadetTunnel
   struct CadetTunnelKXCtx *kx_ctx;
 
   /**
+   * Peer's ephemeral key, to recreate @c e_key and @c d_key when own ephemeral
+   * key changes.
+   */
+  struct GNUNET_CRYPTO_EcdhePublicKey peers_ephemeral_key;
+
+  /**
    * Encryption ("our") key.
    */
   struct GNUNET_CRYPTO_SymmetricSessionKey e_key;
@@ -623,6 +629,7 @@ derive_key_material (struct GNUNET_HashCode *key_material,
   }
 }
 
+
 /**
  * Create a symmetic key from the identities of both ends and the key material
  * from ECDH.
@@ -647,6 +654,23 @@ derive_symmertic (struct GNUNET_CRYPTO_SymmetricSessionKey *key,
                      receiver, sizeof (struct GNUNET_PeerIdentity),
                      NULL);
 }
+
+
+/**
+ * Derive the tunnel's keys using our own and the peer's ephemeral keys.
+ *
+ * @param t Tunnel for which to create the keys.
+ */
+static void
+create_keys (struct CadetTunnel *t)
+{
+  struct GNUNET_HashCode km;
+
+  derive_key_material (&km, &t->peers_ephemeral_key);
+  derive_symmertic (&t->e_key, &my_full_id, GCP_get_id (t->peer), &km);
+  derive_symmertic (&t->d_key, GCP_get_id (t->peer), &my_full_id, &km);
+}
+
 
 /**
  * Pick a connection on which send the next data message.
@@ -1078,7 +1102,7 @@ send_ping (struct CadetTunnel *t)
 
 /**
  * Send a pong message on a tunnel.
- *
+ *d_
  * @param t Tunnel on which to send the pong.
  * @param challenge Value sent in the ping that we have to send back.
  */
@@ -1124,10 +1148,15 @@ rekey_tunnel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     t->kx_ctx->challenge =
         GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
     t->kx_ctx->d_key_old = t->d_key;
+    t->kx_ctx->e_key_old = t->e_key;
+    create_keys (t);
+    t->kx_ctx->rekey_start_time = GNUNET_TIME_absolute_get ();
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  new challenge for %s: %u\n",
          GCT_2s (t), t->kx_ctx->challenge);
   }
+
   send_ephemeral (t);
+
   switch (t->estate)
   {
     case CADET_TUNNEL3_KEY_UNINITIALIZED:
@@ -1144,6 +1173,7 @@ rekey_tunnel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       LOG (GNUNET_ERROR_TYPE_DEBUG, "Unexpected state %u\n", t->estate);
   }
 
+  // FIXME exponential backoff
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  next call in %s\n",
        GNUNET_STRINGS_relative_time_to_string (REKEY_WAIT, GNUNET_YES));
   t->rekey_task = GNUNET_SCHEDULER_add_delayed (REKEY_WAIT, &rekey_tunnel, t);
@@ -1519,7 +1549,6 @@ static void
 handle_ephemeral (struct CadetTunnel *t,
                   const struct GNUNET_CADET_KX_Ephemeral *msg)
 {
-  struct GNUNET_HashCode km;
   LOG (GNUNET_ERROR_TYPE_INFO, "<=== EPHM for %s\n", GCT_2s (t));
 
   if (GNUNET_OK != check_ephemeral (t, msg))
@@ -1527,13 +1556,11 @@ handle_ephemeral (struct CadetTunnel *t,
     GNUNET_break_op (0);
     return;
   }
-  derive_key_material (&km, &msg->ephemeral_key);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  km is %s\n", GNUNET_h2s (&km));
-  derive_symmertic (&t->e_key, &my_full_id, GCP_get_id (t->peer), &km);
-  derive_symmertic (&t->d_key, GCP_get_id (t->peer), &my_full_id, &km);
+  t->peers_ephemeral_key = msg->ephemeral_key;
+  create_keys (t);
   if (CADET_TUNNEL3_KEY_SENT == t->estate)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  our key was sent, send ping\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  our key was sent, sending ping\n");
     send_ping (t);
     t->estate = CADET_TUNNEL3_KEY_PING;
   }
