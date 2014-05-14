@@ -87,6 +87,12 @@ struct CadetTConnection
 struct CadetTunnelKXCtx
 {
   /**
+   * Encryption ("our") old key, for encrypting traffic sent by us
+   * end before the key exchange is finished or times out.
+   */
+  struct GNUNET_CRYPTO_SymmetricSessionKey e_key_old;
+
+  /**
    * Decryption ("their") old key, for decrypting traffic sent by the
    * other end before the key exchange started.
    */
@@ -96,6 +102,11 @@ struct CadetTunnelKXCtx
    * Challenge to send in a ping and expect in the pong.
    */
   uint32_t challenge;
+
+  /**
+   * When the rekey started. One minute after this the new key will be used.
+   */
+  struct GNUNET_TIME_Absolute rekey_start_time;
 };
 
 /**
