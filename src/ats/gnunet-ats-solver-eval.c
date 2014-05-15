@@ -428,8 +428,9 @@ GNUNET_ATS_solver_logging_write_to_disk (struct LoggingHandle *l, int add_time_s
           GNUNET_free (propstring_tmp);
         }
 
-        GNUNET_asprintf(&datastring,"%llu;%u;%i;%u;%u;%s;%s\n",
+        GNUNET_asprintf(&datastring,"%llu;%llu;%u;%i;%u;%u;%s;%s\n",
             GNUNET_TIME_absolute_get_difference(l->head->timestamp, lts->timestamp).rel_value_us / 1000,
+            lts->delta,
             log_a->network,
             log_a->active,
             ntohl (log_a->assigned_bw_in.value__),
