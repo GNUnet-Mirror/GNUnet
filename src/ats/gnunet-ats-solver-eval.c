@@ -388,7 +388,7 @@ GNUNET_ATS_solver_logging_write_to_disk (struct LoggingHandle *l, int add_time_s
               "UTILIZATION_PAYLOAD_UP; UTILIZATION_PAYLOAD_UP; UTILIZATION_PAYLOAD_DOWN; UTILIZATION_PAYLOAD_DOWN;"\
               "DELAY; DELAY; " \
               "DISTANCE ;DISTANCE ; COST_WAN; COST_WAN; COST_LAN; COST_LAN; " \
-              "COST_WLAN; COST_WLAN; PREF BW abs; PREF BW rel; PREF LATENCY abs; PREF LATENCY rel;\n");
+              "COST_WLAN; COST_WLAN;COST_BT; COST_BT; PREF BW abs; PREF BW rel; PREF LATENCY abs; PREF LATENCY rel;\n");
           GNUNET_DISK_file_write (cur->f_hd, datastring, strlen(datastring));
           GNUNET_free (datastring);
 
