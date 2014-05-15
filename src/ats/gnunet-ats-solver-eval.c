@@ -428,8 +428,6 @@ GNUNET_ATS_solver_logging_write_to_disk (struct LoggingHandle *l, int add_time_s
           propstring = GNUNET_strdup(propstring_tmp);
           GNUNET_free (propstring_tmp);
         }
-        if (GNUNET_YES==log_p->is_requested)
-          GNUNET_break (0);
         GNUNET_asprintf(&datastring,"%llu;%llu;%u;%u;%i;%u;%u;%s;%s\n",
             GNUNET_TIME_absolute_get_difference(l->head->timestamp, lts->timestamp).rel_value_us / 1000,
             lts->delta,
