@@ -122,6 +122,7 @@ struct LoggingPeer
   struct GNUNET_PeerIdentity peer_id;
   double pref_abs[GNUNET_ATS_PreferenceCount];
   double pref_norm[GNUNET_ATS_PreferenceCount];
+  int is_requested;
 
   struct LoggingAddress *addr_head;
   struct LoggingAddress *addr_tail;
@@ -149,7 +150,9 @@ struct TestPeer
   struct TestPeer *prev;
   struct TestPeer *next;
 
+
   long long unsigned int id;
+  int is_requested;
   struct GNUNET_PeerIdentity peer_id;
 
   double pref_abs[GNUNET_ATS_PreferenceCount];

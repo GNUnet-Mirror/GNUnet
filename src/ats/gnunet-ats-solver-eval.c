@@ -199,6 +199,7 @@ GNUNET_ATS_solver_logging_now (struct LoggingHandle *l)
     log_p = GNUNET_new (struct LoggingPeer);
     log_p->id = cur->id;
     log_p->peer_id = cur->peer_id;
+    log_p->is_requested = cur->is_requested;
     for (c = 0; c < GNUNET_ATS_PreferenceCount; c++)
     {
       log_p->pref_abs[c] = cur->pref_abs[c];
@@ -383,7 +384,7 @@ GNUNET_ATS_solver_logging_write_to_disk (struct LoggingHandle *l, int add_time_s
           GNUNET_free (filename);
           GNUNET_CONTAINER_DLL_insert (lf_head, lf_tail, cur);
 
-          GNUNET_asprintf(&datastring,"#time delta;log duration; addr net; addr_active; bw in; bw out; " \
+          GNUNET_asprintf(&datastring,"#time delta;log duration;peer_requested;addr net; addr_active; bw in; bw out; " \
               "UTILIZATION_UP [abs/rel]; UTILIZATION_UP; UTILIZATION_DOWN; UTILIZATION_DOWN; " \
               "UTILIZATION_PAYLOAD_UP; UTILIZATION_PAYLOAD_UP; UTILIZATION_PAYLOAD_DOWN; UTILIZATION_PAYLOAD_DOWN;"\
               "DELAY; DELAY; " \
@@ -427,10 +428,12 @@ GNUNET_ATS_solver_logging_write_to_disk (struct LoggingHandle *l, int add_time_s
           propstring = GNUNET_strdup(propstring_tmp);
           GNUNET_free (propstring_tmp);
         }
-
-        GNUNET_asprintf(&datastring,"%llu;%llu;%u;%i;%u;%u;%s;%s\n",
+        if (GNUNET_YES==log_p->is_requested)
+          GNUNET_break (0);
+        GNUNET_asprintf(&datastring,"%llu;%llu;%u;%u;%i;%u;%u;%s;%s\n",
             GNUNET_TIME_absolute_get_difference(l->head->timestamp, lts->timestamp).rel_value_us / 1000,
             lts->delta,
+            log_p->is_requested,
             log_a->network,
             log_a->active,
             ntohl (log_a->assigned_bw_in.value__),
@@ -2279,6 +2282,7 @@ enforce_start_request (struct GNUNET_ATS_TEST_Operation *op)
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Requesting address for peer %u\n",
       op->peer_id);
+  p->is_requested = GNUNET_YES;
 
   res = sh->env.sf.s_get (sh->solver, &p->peer_id);
   if (NULL != res)
@@ -2307,7 +2311,7 @@ enforce_stop_request (struct GNUNET_ATS_TEST_Operation *op)
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Stop requesting address for peer %u\n",
       op->peer_id);
-
+  p->is_requested = GNUNET_NO;
   sh->env.sf.s_get_stop (sh->solver, &p->peer_id);
 
   if (NULL != l)
