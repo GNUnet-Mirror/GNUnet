@@ -383,7 +383,7 @@ GNUNET_ATS_solver_logging_write_to_disk (struct LoggingHandle *l, int add_time_s
           GNUNET_free (filename);
           GNUNET_CONTAINER_DLL_insert (lf_head, lf_tail, cur);
 
-          GNUNET_asprintf(&datastring,"#time delta; addr net; addr_active; bw in; bw out; " \
+          GNUNET_asprintf(&datastring,"#time delta;log duration; addr net; addr_active; bw in; bw out; " \
               "UTILIZATION_UP [abs/rel]; UTILIZATION_UP; UTILIZATION_DOWN; UTILIZATION_DOWN; " \
               "UTILIZATION_PAYLOAD_UP; UTILIZATION_PAYLOAD_UP; UTILIZATION_PAYLOAD_DOWN; UTILIZATION_PAYLOAD_DOWN;"\
               "DELAY; DELAY; " \
