@@ -39,22 +39,6 @@ extern "C"
 
 
 /**
- * Function called by for each matching record.
- *
- * @param cls closure
- * @param peer peer identity
- * @param sub_system name of the GNUnet sub system responsible
- * @param value stored value
- * @param size size of stored value
- */
-typedef void (*GNUNET_PEERSTORE_RecordIterator) (void *cls,
-    const char *sub_system,
-    const struct GNUNET_PeerIdentity *peer,
-    const char *key,
-    const void *value,
-    size_t size);
-
-/**
  * @brief struct returned by the initialization function of the plugin
  */
 struct GNUNET_PEERSTORE_PluginFunctions
@@ -103,7 +87,7 @@ struct GNUNET_PEERSTORE_PluginFunctions
       const char *sub_system,
       const struct GNUNET_PeerIdentity *peer,
       const char *key,
-      GNUNET_PEERSTORE_RecordIterator iter, void *iter_cls);
+      GNUNET_PEERSTORE_Processor iter, void *iter_cls);
 
 };
 

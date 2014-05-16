@@ -58,9 +58,9 @@ struct GNUNET_PEERSTORE_Record
   size_t value_size;
 
   /**
-   * Lifetime of record
+   * Expiry time of record
    */
-  struct GNUNET_TIME_Relative lifetime;
+  struct GNUNET_TIME_Absolute expiry;
 
 };
 
@@ -72,7 +72,8 @@ struct GNUNET_PEERSTORE_Record
  * @param key record key string (can be NULL)
  * @param value record value BLOB (can be NULL)
  * @param value_size record value size in bytes (set to 0 if value is NULL)
- * @param lifetime relative time after which the record expires
+ * @param expiry time after which the record expires
+ * @param msg_type message type to be set in header
  * @return pointer to record message struct
  */
 struct StoreRecordMessage *
@@ -81,7 +82,8 @@ PEERSTORE_create_record_message(const char *sub_system,
     const char *key,
     const void *value,
     size_t value_size,
-    struct GNUNET_TIME_Relative lifetime);
+    struct GNUNET_TIME_Absolute expiry,
+    uint16_t msg_type);
 
 /**
  * Parses a message carrying a record

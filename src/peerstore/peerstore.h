@@ -71,9 +71,9 @@ struct StoreRecordMessage
   size_t value_size;
 
   /**
-   * Lifetime of entry
+   * Expiry time of entry
    */
-  struct GNUNET_TIME_Relative lifetime;
+  struct GNUNET_TIME_Absolute expiry;
 
 };
 

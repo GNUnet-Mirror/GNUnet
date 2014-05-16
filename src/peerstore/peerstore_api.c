@@ -194,7 +194,7 @@ GNUNET_PEERSTORE_store_cancel (struct GNUNET_PEERSTORE_StoreContext *sc)
  * @param key entry key
  * @param value entry value BLOB
  * @param size size of 'value'
- * @param lifetime relative time after which the entry is (possibly) deleted
+ * @param expiry absolute time after which the entry is (possibly) deleted
  * @param cont Continuation function after the store request is processed
  * @param cont_cls Closure for 'cont'
  */
@@ -205,7 +205,7 @@ GNUNET_PEERSTORE_store (struct GNUNET_PEERSTORE_Handle *h,
     const char *key,
     const void *value,
     size_t size,
-    struct GNUNET_TIME_Relative lifetime,
+    struct GNUNET_TIME_Absolute expiry,
     GNUNET_PEERSTORE_Continuation cont,
     void *cont_cls)
 {
@@ -224,7 +224,8 @@ GNUNET_PEERSTORE_store (struct GNUNET_PEERSTORE_Handle *h,
       key,
       value,
       size,
-      lifetime);
+      expiry,
+      GNUNET_MESSAGE_TYPE_PEERSTORE_STORE);
   GNUNET_CLIENT_transmit_and_get_response(h->client,
       (const struct GNUNET_MessageHeader *)srm,
       GNUNET_TIME_UNIT_FOREVER_REL,
@@ -234,6 +235,5 @@ GNUNET_PEERSTORE_store (struct GNUNET_PEERSTORE_Handle *h,
   return sc;
 
 }
-
 
 /* end of peerstore_api.c */

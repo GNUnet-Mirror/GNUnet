@@ -116,7 +116,7 @@ peerstore_sqlite_iterate_records (void *cls,
     const char *sub_system,
     const struct GNUNET_PeerIdentity *peer,
     const char *key,
-    GNUNET_PEERSTORE_RecordIterator iter, void *iter_cls)
+    GNUNET_PEERSTORE_Processor iter, void *iter_cls)
 {
   struct Plugin *plugin = cls;
   sqlite3_stmt *stmt;
@@ -127,6 +127,7 @@ peerstore_sqlite_iterate_records (void *cls,
   const char *ret_key;
   const void *ret_value;
   size_t ret_value_size;
+  struct GNUNET_TIME_Absolute ret_expiry;
 
   if(NULL == peer && NULL == key)
   {
@@ -170,8 +171,15 @@ peerstore_sqlite_iterate_records (void *cls,
     ret_key = (const char *)sqlite3_column_text(stmt, 2);
     ret_value = sqlite3_column_blob(stmt, 3);
     ret_value_size = sqlite3_column_bytes(stmt, 3);
+    ret_expiry.abs_value_us = (uint64_t)sqlite3_column_int64(stmt, 4);
     if (NULL != iter)
-      iter (iter_cls, ret_sub_system, ret_peer, ret_key, ret_value, ret_value_size);
+      iter (iter_cls,
+          ret_sub_system,
+          ret_peer,
+          ret_key,
+          ret_value,
+          ret_value_size,
+          ret_expiry);
   }
   if (SQLITE_DONE != sret)
   {

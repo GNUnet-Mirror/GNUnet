@@ -80,6 +80,37 @@ handle_client_disconnect (void *cls,
 }
 
 /**
+ * Function called by for each matching record.
+ *
+ * @param cls closure
+ * @param peer peer identity
+ * @param sub_system name of the GNUnet sub system responsible
+ * @param value stored value
+ * @param size size of stored value
+ */
+int record_iterator(void *cls,
+    const char *sub_system,
+    const struct GNUNET_PeerIdentity *peer,
+    const char *key,
+    const void *value,
+    size_t size,
+    struct GNUNET_TIME_Absolute expiry)
+{
+  struct GNUNET_SERVER_TransmitContext *tc = cls;
+  struct StoreRecordMessage *srm;
+
+  srm = PEERSTORE_create_record_message(sub_system,
+      peer,
+      key,
+      value,
+      size,
+      expiry,
+      GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE);
+  GNUNET_SERVER_transmit_context_append_message(tc, (const struct GNUNET_MessageHeader *)srm);
+  return GNUNET_YES;
+}
+
+/**
  * Handle an iterate request from client
  *
  * @param cls unused
@@ -90,7 +121,32 @@ void handle_iterate (void *cls,
     struct GNUNET_SERVER_Client *client,
     const struct GNUNET_MessageHeader *message)
 {
+  struct GNUNET_PEERSTORE_Record *record;
+  struct GNUNET_SERVER_TransmitContext *tc;
 
+  record = PEERSTORE_parse_record_message(message);
+  if(NULL == record)
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Malformed iterate request from client\n");
+    GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
+    return;
+  }
+  if(NULL == record->sub_system)
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Sub system not supplied in client iterate request\n");
+    GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
+    return;
+  }
+  tc = GNUNET_SERVER_transmit_context_create (client);
+  if(GNUNET_OK == db->iterate_records(db->cls,
+      record->sub_system,
+      record->peer,
+      record->key,
+      &record_iterator,
+      tc))
+  {
+
+  }
 }
 
 /**
@@ -134,7 +190,7 @@ void handle_store (void *cls,
       record->key,
       record->value,
       record->value_size,
-      GNUNET_TIME_relative_to_absolute(record->lifetime)))
+      record->expiry))
   {
     response_type = GNUNET_MESSAGE_TYPE_PEERSTORE_STORE_RESULT_OK;
   }

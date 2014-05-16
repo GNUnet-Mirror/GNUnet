@@ -33,7 +33,8 @@
  * @param key record key string (can be NULL)
  * @param value record value BLOB (can be NULL)
  * @param value_size record value size in bytes (set to 0 if value is NULL)
- * @param lifetime relative time after which the record expires
+ * @param expiry absolute time after which the record expires
+ * @param msg_type message type to be set in header
  * @return pointer to record message struct
  */
 struct StoreRecordMessage *
@@ -42,7 +43,8 @@ PEERSTORE_create_record_message(const char *sub_system,
     const char *key,
     const void *value,
     size_t value_size,
-    struct GNUNET_TIME_Relative lifetime)
+    struct GNUNET_TIME_Absolute expiry,
+    uint16_t msg_type)
 {
   struct StoreRecordMessage *srm;
   size_t ss_size;
@@ -61,9 +63,9 @@ PEERSTORE_create_record_message(const char *sub_system,
       value_size;
   srm = GNUNET_malloc(request_size);
   srm->header.size = htons(request_size);
-  srm->header.type = htons(GNUNET_MESSAGE_TYPE_PEERSTORE_STORE);
+  srm->header.type = htons(msg_type);
   srm->key_size = htons(key_size);
-  srm->lifetime = lifetime;
+  srm->expiry = expiry;
   if(NULL == peer)
     srm->peer_set = htons(GNUNET_NO);
   else
@@ -116,7 +118,7 @@ PEERSTORE_parse_record_message(const struct GNUNET_MessageHeader *message)
     record->peer = GNUNET_new(struct GNUNET_PeerIdentity);
     memcpy(record->peer, &srm->peer, sizeof(struct GNUNET_PeerIdentity));
   }
-  record->lifetime = srm->lifetime;
+  record->expiry = srm->expiry;
   dummy = (char *)&srm[1];
   if(ss_size > 0)
   {
