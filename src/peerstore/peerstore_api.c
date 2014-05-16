@@ -122,9 +122,30 @@ struct GNUNET_PEERSTORE_StoreContext
  */
 void handle_store_result (void *cls, const struct GNUNET_MessageHeader *msg);
 
+static void
+reconnect (struct GNUNET_PEERSTORE_Handle *h);
+
+/**
+ * MQ message handlers
+ */
+static const struct GNUNET_MQ_MessageHandler mq_handlers[] = {
+    {&handle_store_result, GNUNET_MESSAGE_TYPE_PEERSTORE_STORE_RESULT_OK, sizeof(struct GNUNET_MessageHeader)},
+    {&handle_store_result, GNUNET_MESSAGE_TYPE_PEERSTORE_STORE_RESULT_FAIL, sizeof(struct GNUNET_MessageHeader)},
+    GNUNET_MQ_HANDLERS_END
+};
+
 /******************************************************************************/
 /*******************         CONNECTION FUNCTIONS         *********************/
 /******************************************************************************/
+
+static void
+handle_client_error (void *cls, enum GNUNET_MQ_Error error)
+{
+  struct GNUNET_PEERSTORE_Handle *h = cls;
+
+  GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Received an error notification from MQ of type: %d\n", error);
+  reconnect(h);
+}
 
 /**
  * Close the existing connection to PEERSTORE and reconnect.
@@ -132,23 +153,26 @@ void handle_store_result (void *cls, const struct GNUNET_MessageHeader *msg);
  * @param h handle to the service
  */
 static void
-reconnect (struct GNUNET_PEERSTORE_Handle *h) //FIXME: MQ friendly
+reconnect (struct GNUNET_PEERSTORE_Handle *h)
 {
 
   LOG(GNUNET_ERROR_TYPE_DEBUG, "Reconnecting...\n");
+  if (NULL != h->mq)
+  {
+    GNUNET_MQ_destroy(h->mq);
+    h->mq = NULL;
+  }
   if (NULL != h->client)
   {
     GNUNET_CLIENT_disconnect (h->client);
     h->client = NULL;
   }
   h->client = GNUNET_CLIENT_connect ("peerstore", h->cfg);
+  h->mq = GNUNET_MQ_queue_for_connection_client(h->client,
+      mq_handlers,
+      &handle_client_error,
+      h);
 
-}
-
-static void
-handle_client_error (void *cls, enum GNUNET_MQ_Error error) //FIXME: implement
-{
-  //struct GNUNET_PEERSTORE_Handle *h = cls;
 }
 
 /**
@@ -160,11 +184,6 @@ struct GNUNET_PEERSTORE_Handle *
 GNUNET_PEERSTORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct GNUNET_PEERSTORE_Handle *h;
-  static const struct GNUNET_MQ_MessageHandler mq_handlers[] = {
-      {&handle_store_result, GNUNET_MESSAGE_TYPE_PEERSTORE_STORE_RESULT_OK, sizeof(struct GNUNET_MessageHeader)},
-      {&handle_store_result, GNUNET_MESSAGE_TYPE_PEERSTORE_STORE_RESULT_FAIL, sizeof(struct GNUNET_MessageHeader)},
-      GNUNET_MQ_HANDLERS_END
-  };
 
   h = GNUNET_new (struct GNUNET_PEERSTORE_Handle);
   h->client = GNUNET_CLIENT_connect ("peerstore", cfg);
@@ -221,7 +240,7 @@ GNUNET_PEERSTORE_disconnect(struct GNUNET_PEERSTORE_Handle *h)
  * @param cls a 'struct GNUNET_PEERSTORE_StoreContext *'
  * @param msg message received, NULL on timeout or fatal error
  */
-void handle_store_result (void *cls, const struct GNUNET_MessageHeader *msg) //FIXME: MQ friendly
+void handle_store_result (void *cls, const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_PEERSTORE_Handle *h = cls;
   struct GNUNET_PEERSTORE_StoreContext *sc;
@@ -276,7 +295,7 @@ void store_request_sent (void *cls)
  * @param sc Store request context
  */
 void
-GNUNET_PEERSTORE_store_cancel (struct GNUNET_PEERSTORE_StoreContext *sc) //FIXME: MQ friendly
+GNUNET_PEERSTORE_store_cancel (struct GNUNET_PEERSTORE_StoreContext *sc)
 {
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
           "Canceling store request.\n");
