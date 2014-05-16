@@ -1018,7 +1018,7 @@ handle_dht_local_get (void *cls, struct GNUNET_SERVER_Client *client,
        "Received GET request for %s from local client %p, xq: %.*s\n",
        GNUNET_h2s (&get->key), client, xquery_size, xquery);
 
-  LOG_TRAFFIC (GNUNET_ERROR_TYPE_DEBUG, "R5N CLIENT-GET %s\n",
+  LOG_TRAFFIC (GNUNET_ERROR_TYPE_DEBUG, "X-VINE CLIENT-GET %s\n",
                GNUNET_h2s_full (&get->key));
 
 

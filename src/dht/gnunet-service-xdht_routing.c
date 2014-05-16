@@ -119,7 +119,7 @@ get_next_hop (struct RoutingTrail *trail,
 int
 GDS_ROUTING_trail_update (struct GNUNET_PeerIdentity *source_peer,
                           struct GNUNET_PeerIdentity *destination_peer,
-                          struct GNUNET_PeerIdentity *prev_hop)
+                          const struct GNUNET_PeerIdentity *prev_hop)
 {
   /* 1. find the trail corresponding to these values. 
    2. update the prev hop to source peer. */  

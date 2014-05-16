@@ -65,6 +65,28 @@ GDS_ROUTING_search(struct GNUNET_PeerIdentity *source_peer,
                    const struct GNUNET_PeerIdentity *prev_hop);
 
 /**
+ * FIXME: How to ensure that with only 3 fields also we have a unique trail.
+ * in case of redundant routes we can have different next hop.
+ * in that case we have to call this function on each entry of routing table
+ * and from multiple next hop we return one. Here also we are going to return one.
+ * URGENT. 
+ * Assumption - there can be only on one trail with all these fields. But if
+ * we consider only 3 fields then it is possible that next hop is differet. 
+ * Update prev_hop field to source_peer. Trail from source peer to destination
+ * peer is compressed such that I am the first friend in the trail. 
+ * @param source_peer Source of the trail.
+ * @param destination_peer Destination of the trail.
+ * @param prev_hop Peer before me in the trail.
+ * @return #GNUNET_YES trail is updated.
+ *         #GNUNET_NO, trail not found. 
+ */
+int
+GDS_ROUTING_trail_update (struct GNUNET_PeerIdentity *source_peer,
+                          struct GNUNET_PeerIdentity *destination_peer,
+                          const struct GNUNET_PeerIdentity *prev_hop);
+
+
+/**
  * Remove the trail as result of trail tear down message. 
  * @param source_peer Source of the trail.
  * @param destination_peer Destination of the trail.
