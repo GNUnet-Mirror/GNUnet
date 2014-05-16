@@ -113,6 +113,7 @@ PEERSTORE_create_record_mq_envelope(const char *sub_system,
   size_t msg_size;
   void *dummy;
 
+  GNUNET_assert(NULL != sub_system);
   ss_size = strlen(sub_system) + 1;
   if(NULL == key)
     key_size = 0;

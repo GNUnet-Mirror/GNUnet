@@ -148,6 +148,21 @@ handle_client_error (void *cls, enum GNUNET_MQ_Error error)
 }
 
 /**
+ * Should be called only after destroying MQ and connection
+ */
+static void
+cleanup_handle(struct GNUNET_PEERSTORE_Handle *h)
+{
+  struct GNUNET_PEERSTORE_StoreContext *sc;
+
+  while (NULL != (sc = h->store_head))
+  {
+    GNUNET_CONTAINER_DLL_remove(h->store_head, h->store_tail, sc);
+    GNUNET_free(sc);
+  }
+}
+
+/**
  * Close the existing connection to PEERSTORE and reconnect.
  *
  * @param h handle to the service
@@ -167,6 +182,7 @@ reconnect (struct GNUNET_PEERSTORE_Handle *h)
     GNUNET_CLIENT_disconnect (h->client);
     h->client = NULL;
   }
+  cleanup_handle(h);
   h->client = GNUNET_CLIENT_connect ("peerstore", h->cfg);
   h->mq = GNUNET_MQ_queue_for_connection_client(h->client,
       mq_handlers,
@@ -225,6 +241,7 @@ GNUNET_PEERSTORE_disconnect(struct GNUNET_PEERSTORE_Handle *h)
     GNUNET_CLIENT_disconnect (h->client);
     h->client = NULL;
   }
+  cleanup_handle(h);
   GNUNET_free(h);
   LOG(GNUNET_ERROR_TYPE_DEBUG, "Disconnected, BYE!\n");
 }

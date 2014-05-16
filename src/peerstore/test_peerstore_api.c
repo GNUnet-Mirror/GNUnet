@@ -36,6 +36,7 @@ void store_cont(void *cls, int success)
     ok = 0;
   else
     ok = 1;
+  printf("Success: %d\n", success);
   GNUNET_PEERSTORE_disconnect(h);
 }
 
