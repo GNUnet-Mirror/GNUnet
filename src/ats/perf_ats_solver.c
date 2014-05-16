@@ -970,7 +970,7 @@ write_all_iterations (void)
         }
         else
         {
-            GNUNET_asprintf (&data_str, "%s;", data_tmp);
+            GNUNET_asprintf (&data_upd_str, "%s;", data_upd_tmp);
         }
         GNUNET_free (data_upd_tmp);
 
@@ -1010,7 +1010,7 @@ write_all_iterations (void)
       GNUNET_asprintf (&data_upd_str, "%s\n", data_upd_tmp);
       GNUNET_free (data_upd_tmp);
 
-      fprintf (stderr, "Result updated solution: %s\n", data_upd_str);
+      fprintf (stderr, "Result updated solution: `%s'\n", data_upd_str);
       if (GNUNET_SYSERR == GNUNET_DISK_file_write (f_update, data_upd_str, strlen(data_upd_str)))
         GNUNET_break (0);
       GNUNET_free (data_upd_str);
