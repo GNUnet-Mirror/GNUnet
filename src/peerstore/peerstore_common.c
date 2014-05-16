@@ -36,7 +36,7 @@
  * @param expiry absolute time after which the record expires
  * @param msg_type message type to be set in header
  * @return pointer to record message struct
- */
+ *
 struct StoreRecordMessage *
 PEERSTORE_create_record_message(const char *sub_system,
     const struct GNUNET_PeerIdentity *peer,
@@ -83,6 +83,64 @@ PEERSTORE_create_record_message(const char *sub_system,
   memcpy(dummy, value, value_size);
   return srm;
 
+}*/
+
+/**
+ * Creates a MQ envelope for a single record
+ *
+ * @param sub_system sub system string
+ * @param peer Peer identity (can be NULL)
+ * @param key record key string (can be NULL)
+ * @param value record value BLOB (can be NULL)
+ * @param value_size record value size in bytes (set to 0 if value is NULL)
+ * @param expiry time after which the record expires
+ * @param msg_type message type to be set in header
+ * @return pointer to record message struct
+ */
+struct GNUNET_MQ_Envelope *
+PEERSTORE_create_record_mq_envelope(const char *sub_system,
+    const struct GNUNET_PeerIdentity *peer,
+    const char *key,
+    const void *value,
+    size_t value_size,
+    struct GNUNET_TIME_Absolute expiry,
+    uint16_t msg_type)
+{
+  struct StoreRecordMessage *srm;
+  struct GNUNET_MQ_Envelope *ev;
+  size_t ss_size;
+  size_t key_size;
+  size_t msg_size;
+  void *dummy;
+
+  ss_size = strlen(sub_system) + 1;
+  if(NULL == key)
+    key_size = 0;
+  else
+    key_size = strlen(key) + 1;
+  msg_size = ss_size +
+      key_size +
+      value_size;
+  ev = GNUNET_MQ_msg_extra(srm, msg_size, msg_type);
+  srm->key_size = htons(key_size);
+  srm->expiry = expiry;
+  if(NULL == peer)
+    srm->peer_set = htons(GNUNET_NO);
+  else
+  {
+    srm->peer_set = htons(GNUNET_YES);
+    srm->peer = *peer;
+  }
+  srm->sub_system_size = htons(ss_size);
+  srm->value_size = htons(value_size);
+  dummy = &srm[1];
+  memcpy(dummy, sub_system, ss_size);
+  dummy += ss_size;
+  memcpy(dummy, key, key_size);
+  dummy += key_size;
+  memcpy(dummy, value, value_size);
+
+  return ev;
 }
 
 /**
@@ -118,7 +176,8 @@ PEERSTORE_parse_record_message(const struct GNUNET_MessageHeader *message)
     record->peer = GNUNET_new(struct GNUNET_PeerIdentity);
     memcpy(record->peer, &srm->peer, sizeof(struct GNUNET_PeerIdentity));
   }
-  record->expiry = srm->expiry;
+  record->expiry = GNUNET_new(struct GNUNET_TIME_Absolute);
+  *(record->expiry) = srm->expiry;
   dummy = (char *)&srm[1];
   if(ss_size > 0)
   {

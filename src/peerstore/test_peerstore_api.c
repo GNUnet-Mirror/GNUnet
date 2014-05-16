@@ -58,7 +58,7 @@ run (void *cls,
       "peerstore-test-key",
       val,
       val_size,
-      GNUNET_TIME_UNIT_FOREVER_REL,
+      GNUNET_TIME_UNIT_FOREVER_ABS,
       &store_cont,
       NULL);
 

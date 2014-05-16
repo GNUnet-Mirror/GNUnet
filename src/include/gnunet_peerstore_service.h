@@ -48,6 +48,44 @@ struct GNUNET_PEERSTORE_Handle;
 struct GNUNET_PEERSTORE_StoreContext;
 
 /**
+ * Single PEERSTORE record
+ */
+struct GNUNET_PEERSTORE_Record
+{
+
+  /**
+   * Responsible sub system string
+   */
+  char *sub_system;
+
+  /**
+   * Peer Identity
+   */
+  struct GNUNET_PeerIdentity *peer;
+
+  /**
+   * Record key string
+   */
+  char *key;
+
+  /**
+   * Record value BLOB
+   */
+  void *value;
+
+  /**
+   * Size of 'value' BLOB
+   */
+  size_t value_size;
+
+  /**
+   * Expiry time of entry
+   */
+  struct GNUNET_TIME_Absolute *expiry;
+
+};
+
+/**
  * Continuation called with a status result.
  *
  * @param cls closure

@@ -50,6 +50,21 @@ struct GNUNET_PEERSTORE_Handle
    */
   struct GNUNET_CLIENT_Connection *client;
 
+  /**
+   * Message queue
+   */
+  struct GNUNET_MQ_Handle *mq;
+
+  /**
+   * Head of active STORE requests.
+   */
+  struct GNUNET_PEERSTORE_StoreContext *store_head;
+
+  /**
+   * Tail of active STORE requests.
+   */
+  struct GNUNET_PEERSTORE_StoreContext *store_tail;
+
 };
 
 /**
@@ -57,11 +72,25 @@ struct GNUNET_PEERSTORE_Handle
  */
 struct GNUNET_PEERSTORE_StoreContext
 {
+  /**
+   * Kept in a DLL.
+   */
+  struct GNUNET_PEERSTORE_StoreContext *next;
+
+  /**
+   * Kept in a DLL.
+   */
+  struct GNUNET_PEERSTORE_StoreContext *prev;
 
   /**
    * Handle to the PEERSTORE service.
    */
   struct GNUNET_PEERSTORE_Handle *h;
+
+  /**
+   * MQ Envelope with store request message
+   */
+  struct GNUNET_MQ_Envelope *ev;
 
   /**
    * Continuation called with service response
@@ -73,7 +102,25 @@ struct GNUNET_PEERSTORE_StoreContext
    */
   void *cont_cls;
 
+  /**
+   * #GNUNET_YES / #GNUNET_NO
+   * if sent, cannot be canceled
+   */
+  int request_sent;
+
 };
+
+/******************************************************************************/
+/*******************             DECLARATIONS             *********************/
+/******************************************************************************/
+
+/**
+ * When a response for store request is received
+ *
+ * @param cls a 'struct GNUNET_PEERSTORE_StoreContext *'
+ * @param msg message received, NULL on timeout or fatal error
+ */
+void handle_store_result (void *cls, const struct GNUNET_MessageHeader *msg);
 
 /******************************************************************************/
 /*******************         CONNECTION FUNCTIONS         *********************/
@@ -85,7 +132,7 @@ struct GNUNET_PEERSTORE_StoreContext
  * @param h handle to the service
  */
 static void
-reconnect (struct GNUNET_PEERSTORE_Handle *h)
+reconnect (struct GNUNET_PEERSTORE_Handle *h) //FIXME: MQ friendly
 {
 
   LOG(GNUNET_ERROR_TYPE_DEBUG, "Reconnecting...\n");
@@ -98,6 +145,12 @@ reconnect (struct GNUNET_PEERSTORE_Handle *h)
 
 }
 
+static void
+handle_client_error (void *cls, enum GNUNET_MQ_Error error) //FIXME: implement
+{
+  //struct GNUNET_PEERSTORE_Handle *h = cls;
+}
+
 /**
  * Connect to the PEERSTORE service.
  *
@@ -106,15 +159,30 @@ reconnect (struct GNUNET_PEERSTORE_Handle *h)
 struct GNUNET_PEERSTORE_Handle *
 GNUNET_PEERSTORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-  struct GNUNET_CLIENT_Connection *client;
   struct GNUNET_PEERSTORE_Handle *h;
+  static const struct GNUNET_MQ_MessageHandler mq_handlers[] = {
+      {&handle_store_result, GNUNET_MESSAGE_TYPE_PEERSTORE_STORE_RESULT_OK, sizeof(struct GNUNET_MessageHeader)},
+      {&handle_store_result, GNUNET_MESSAGE_TYPE_PEERSTORE_STORE_RESULT_FAIL, sizeof(struct GNUNET_MessageHeader)},
+      GNUNET_MQ_HANDLERS_END
+  };
 
-  client = GNUNET_CLIENT_connect ("peerstore", cfg);
-  if(NULL == client)
-    return NULL;
   h = GNUNET_new (struct GNUNET_PEERSTORE_Handle);
-  h->client = client;
+  h->client = GNUNET_CLIENT_connect ("peerstore", cfg);
+  if(NULL == h->client)
+  {
+    GNUNET_free(h);
+    return NULL;
+  }
   h->cfg = cfg;
+  h->mq = GNUNET_MQ_queue_for_connection_client(h->client,
+      mq_handlers,
+      &handle_client_error,
+      h);
+  if(NULL == h->mq)
+  {
+    GNUNET_free(h);
+    return NULL;
+  }
   LOG(GNUNET_ERROR_TYPE_DEBUG, "New connection created\n");
   return h;
 }
@@ -128,6 +196,11 @@ GNUNET_PEERSTORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
 void
 GNUNET_PEERSTORE_disconnect(struct GNUNET_PEERSTORE_Handle *h)
 {
+  if(NULL != h->mq)
+  {
+    GNUNET_MQ_destroy(h->mq);
+    h->mq = NULL;
+  }
   if (NULL != h->client)
   {
     GNUNET_CLIENT_disconnect (h->client);
@@ -139,7 +212,7 @@ GNUNET_PEERSTORE_disconnect(struct GNUNET_PEERSTORE_Handle *h)
 
 
 /******************************************************************************/
-/*******************             ADD FUNCTIONS            *********************/
+/*******************            STORE FUNCTIONS           *********************/
 /******************************************************************************/
 
 /**
@@ -148,30 +221,53 @@ GNUNET_PEERSTORE_disconnect(struct GNUNET_PEERSTORE_Handle *h)
  * @param cls a 'struct GNUNET_PEERSTORE_StoreContext *'
  * @param msg message received, NULL on timeout or fatal error
  */
-void store_response_receiver (void *cls, const struct GNUNET_MessageHeader *msg)
+void handle_store_result (void *cls, const struct GNUNET_MessageHeader *msg) //FIXME: MQ friendly
+{
+  struct GNUNET_PEERSTORE_Handle *h = cls;
+  struct GNUNET_PEERSTORE_StoreContext *sc;
+  uint16_t msg_type;
+  GNUNET_PEERSTORE_Continuation cont;
+  void *cont_cls;
+
+  sc = h->store_head;
+  if(NULL == sc)
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Unexpected store response, this should not happen.\n");
+    reconnect(h);
+    return;
+  }
+  cont = sc->cont;
+  cont_cls = sc->cont_cls;
+  GNUNET_CONTAINER_DLL_remove(h->store_head, h->store_tail, sc);
+  GNUNET_free(sc);
+  if(NULL == msg) /* Connection error */
+  {
+    if(NULL != cont)
+      cont(cont_cls, GNUNET_SYSERR);
+    reconnect(h);
+    return;
+  }
+  if(NULL != cont) /* Run continuation */
+  {
+    msg_type = ntohs(msg->type);
+    if(GNUNET_MESSAGE_TYPE_PEERSTORE_STORE_RESULT_OK == msg_type)
+      cont(cont_cls, GNUNET_OK);
+    else if(GNUNET_MESSAGE_TYPE_PEERSTORE_STORE_RESULT_FAIL == msg_type)
+      cont(cont_cls, GNUNET_SYSERR);
+  }
+
+}
+
+/**
+ * Callback after MQ envelope is sent
+ *
+ * @param cls a 'struct GNUNET_PEERSTORE_StoreContext *'
+ */
+void store_request_sent (void *cls)
 {
   struct GNUNET_PEERSTORE_StoreContext *sc = cls;
-  uint16_t msg_type;
 
-  if(NULL == sc->cont)
-    return;
-  if(NULL == msg)
-  {
-    sc->cont(sc->cont_cls, GNUNET_SYSERR);
-    reconnect(sc->h);
-    return;
-  }
-  msg_type = ntohs(msg->type);
-  if(GNUNET_MESSAGE_TYPE_PEERSTORE_STORE_RESULT_OK == msg_type)
-    sc->cont(sc->cont_cls, GNUNET_OK);
-  else if(GNUNET_MESSAGE_TYPE_PEERSTORE_STORE_RESULT_FAIL == msg_type)
-    sc->cont(sc->cont_cls, GNUNET_SYSERR);
-  else
-  {
-    LOG(GNUNET_ERROR_TYPE_ERROR, "Invalid response from `PEERSTORE' service.\n");
-    sc->cont(sc->cont_cls, GNUNET_SYSERR);
-  }
-
+  sc->request_sent = GNUNET_YES;
 }
 
 /**
@@ -180,9 +276,22 @@ void store_response_receiver (void *cls, const struct GNUNET_MessageHeader *msg)
  * @param sc Store request context
  */
 void
-GNUNET_PEERSTORE_store_cancel (struct GNUNET_PEERSTORE_StoreContext *sc)
+GNUNET_PEERSTORE_store_cancel (struct GNUNET_PEERSTORE_StoreContext *sc) //FIXME: MQ friendly
 {
-  sc->cont = NULL;
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+          "Canceling store request.\n");
+  if(GNUNET_NO == sc->request_sent)
+  {
+    if(NULL != sc->ev)
+      GNUNET_MQ_discard(sc->ev);
+    GNUNET_CONTAINER_DLL_remove(sc->h->store_head, sc->h->store_tail, sc);
+    GNUNET_free(sc);
+  }
+  else
+  { /* request already sent, will have to wait for response */
+    sc->cont = NULL;
+  }
+
 }
 
 /**
@@ -209,29 +318,28 @@ GNUNET_PEERSTORE_store (struct GNUNET_PEERSTORE_Handle *h,
     GNUNET_PEERSTORE_Continuation cont,
     void *cont_cls)
 {
+  struct GNUNET_MQ_Envelope *ev;
   struct GNUNET_PEERSTORE_StoreContext *sc;
-  struct StoreRecordMessage *srm;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
       "Storing value (size: %lu) for subsytem `%s', peer `%s', key `%s'\n",
       size, sub_system, GNUNET_i2s (peer), key);
-  sc = GNUNET_new(struct GNUNET_PEERSTORE_StoreContext);
-  sc->cont = cont;
-  sc->cont_cls = cont_cls;
-  sc->h = h;
-  srm = PEERSTORE_create_record_message(sub_system,
+  ev = PEERSTORE_create_record_mq_envelope(sub_system,
       peer,
       key,
       value,
       size,
       expiry,
       GNUNET_MESSAGE_TYPE_PEERSTORE_STORE);
-  GNUNET_CLIENT_transmit_and_get_response(h->client,
-      (const struct GNUNET_MessageHeader *)srm,
-      GNUNET_TIME_UNIT_FOREVER_REL,
-      GNUNET_YES,
-      &store_response_receiver,
-      sc);
+  GNUNET_MQ_send(h->mq, ev);
+  GNUNET_MQ_notify_sent(ev, &store_request_sent, ev);
+  sc = GNUNET_new(struct GNUNET_PEERSTORE_StoreContext);
+  sc->ev = ev;
+  sc->cont = cont;
+  sc->cont_cls = cont_cls;
+  sc->h = h;
+  sc->request_sent = GNUNET_NO;
+  GNUNET_CONTAINER_DLL_insert(h->store_head, h->store_tail, sc);
   return sc;
 
 }
