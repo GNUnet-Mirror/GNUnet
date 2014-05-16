@@ -78,6 +78,8 @@ static int res;
 static void
 end_now ();
 
+const double *
+get_property_cb (void *cls, const struct ATS_Address *address);
 
 static char *
 print_generator_type (enum GeneratorType g)
@@ -880,6 +882,76 @@ get_preference (struct PreferenceGenerator *pg)
   return pref_value;
 }
 
+static void
+set_feedback_task (void *cls,
+                    const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct PreferenceGenerator *pg = cls;
+  struct TestPeer *p;
+  double feedback;
+  uint32_t bw_acc_out;
+  uint32_t bw_acc_in;
+  uint32_t delay_acc_in;
+  struct GNUNET_TIME_Relative dur;
+  double p_new;
+
+  pg->feedback_task = GNUNET_SCHEDULER_NO_TASK;
+
+  if (NULL == (p = find_peer_by_id (pg->peer)))
+  {
+    GNUNET_break (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+        "Setting feedback for unknown peer %u\n", pg->peer);
+    return;
+  }
+
+  switch (pg->kind) {
+    case GNUNET_ATS_PREFERENCE_BANDWIDTH:
+      dur = GNUNET_TIME_absolute_get_duration(pg->feedback_last_bw_update);
+      bw_acc_in = dur.rel_value_us *pg->last_assigned_bw_in +  pg->feedback_bw_in_acc;
+      pg->feedback_bw_in_acc = 0;
+
+      bw_acc_out = dur.rel_value_us *pg->last_assigned_bw_out +  pg->feedback_bw_out_acc;
+      p_new = get_preference (pg);
+      feedback  = (p_new / pg->pref_bw_old) * (bw_acc_in + bw_acc_out) /
+          (2 *GNUNET_TIME_absolute_get_duration(pg->feedback_last).rel_value_us);
+
+      break;
+    case GNUNET_ATS_PREFERENCE_LATENCY:
+      dur = GNUNET_TIME_absolute_get_duration(pg->feedback_last_delay_update);
+      delay_acc_in =dur.rel_value_us *pg->last_delay_value +  pg->feedback_delay_acc;
+      pg->feedback_delay_acc = 0;
+
+      p_new = get_preference (pg);
+      feedback  = (p_new / pg->pref_latency_old) * (delay_acc_in) /
+          (GNUNET_TIME_absolute_get_duration(pg->feedback_last).rel_value_us);
+
+      break;
+    default:
+      break;
+  }
+  GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+      "Giving feedback for peer [%u] for client %p pref %s of %.3f\n",
+      pg->peer, NULL + (pg->client_id),
+      GNUNET_ATS_print_preference_type (pg->kind),
+      feedback);
+
+  sh->env.sf.s_feedback (sh->solver, NULL + (pg->client_id), &p->peer_id,
+      pg->feedback_frequency, pg->kind, feedback);
+  pg->feedback_last = GNUNET_TIME_absolute_get();
+
+
+  pg->feedback_bw_out_acc = 0;
+  pg->feedback_bw_in_acc = 0;
+  pg->feedback_last_bw_update = GNUNET_TIME_absolute_get();
+
+  pg->feedback_delay_acc = 0;
+  pg->feedback_last_delay_update = GNUNET_TIME_absolute_get();
+
+
+  pg->feedback_task = GNUNET_SCHEDULER_add_delayed (pg->feedback_frequency,
+      &set_feedback_task, pg);
+}
 
 static void
 set_pref_task (void *cls,
@@ -899,6 +971,17 @@ set_pref_task (void *cls,
   }
 
   pref_value = get_preference (pg);
+  switch (pg->kind) {
+    case GNUNET_ATS_PREFERENCE_BANDWIDTH:
+      pg->pref_bw_old = pref_value;
+      break;
+    case GNUNET_ATS_PREFERENCE_LATENCY:
+      pg->pref_latency_old = pref_value;
+      break;
+    default:
+      break;
+  }
+
   p->pref_abs[pg->kind] = pref_value;
 
   GNUNET_log(GNUNET_ERROR_TYPE_INFO,
@@ -917,17 +1000,6 @@ set_pref_task (void *cls,
     GAS_normalization_normalize_preference (NULL + (pg->client_id),
         &p->peer_id, pg->kind, pref_value);
   sh->env.sf.s_bulk_stop (sh->solver);
-
-  switch (pg->kind) {
-    case GNUNET_ATS_PREFERENCE_BANDWIDTH:
-      //p->pref_bandwidth = pref_value;
-      break;
-    case GNUNET_ATS_PREFERENCE_LATENCY:
-      //p->pref_delay = pref_value;
-      break;
-    default:
-      break;
-  }
 
   pg->set_task = GNUNET_SCHEDULER_add_delayed (pg->frequency,
       set_pref_task, pg);
@@ -952,6 +1024,12 @@ GNUNET_ATS_solver_generate_preferences_stop (struct PreferenceGenerator *pg)
 {
   GNUNET_CONTAINER_DLL_remove (pref_gen_head, pref_gen_tail, pg);
 
+  if (GNUNET_SCHEDULER_NO_TASK != pg->feedback_task)
+  {
+    GNUNET_SCHEDULER_cancel (pg->feedback_task);
+    pg->feedback_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+
   if (GNUNET_SCHEDULER_NO_TASK != pg->set_task)
   {
     GNUNET_SCHEDULER_cancel (pg->set_task);
@@ -964,6 +1042,15 @@ GNUNET_ATS_solver_generate_preferences_stop (struct PreferenceGenerator *pg)
   GNUNET_free (pg);
 }
 
+struct TestAddress*
+find_active_address (struct TestPeer *p)
+{
+  struct TestAddress *cur;
+  for (cur = p->addr_head; NULL != cur; cur = cur->next)
+    if (GNUNET_YES == cur->ats_addr->active)
+      return cur;
+  return NULL;
+}
 
 /**
  * Generate between the source master and the partner and set property with a
@@ -989,9 +1076,19 @@ GNUNET_ATS_solver_generate_preferences_start (unsigned int peer,
     long int value_rate,
     struct GNUNET_TIME_Relative period,
     struct GNUNET_TIME_Relative frequency,
-    enum GNUNET_ATS_PreferenceKind kind)
+    enum GNUNET_ATS_PreferenceKind kind,
+    struct GNUNET_TIME_Relative feedback_frequency)
 {
   struct PreferenceGenerator *pg;
+  struct TestPeer *p;
+
+  if (NULL == (p = find_peer_by_id (peer)))
+  {
+    GNUNET_break (0);
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+        "Starting preference for unknown peer %u\n", peer);
+    return NULL;
+  }
 
   pg = GNUNET_new (struct PreferenceGenerator);
   GNUNET_CONTAINER_DLL_insert (pref_gen_head, pref_gen_tail, pg);
@@ -1004,6 +1101,7 @@ GNUNET_ATS_solver_generate_preferences_start (unsigned int peer,
   pg->duration_period = period;
   pg->frequency = frequency;
   pg->time_start = GNUNET_TIME_absolute_get();
+  pg->feedback_frequency = feedback_frequency;
 
   switch (type) {
     case GNUNET_ATS_TEST_TG_CONSTANT:
@@ -1036,6 +1134,26 @@ GNUNET_ATS_solver_generate_preferences_start (unsigned int peer,
   }
 
   pg->set_task = GNUNET_SCHEDULER_add_now (&set_pref_task, pg);
+  if (GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us != feedback_frequency.rel_value_us)
+  {
+    struct TestAddress * addr = find_active_address(p);
+    const double *properties = get_property_cb (NULL, addr->ats_addr);
+
+    pg->last_assigned_bw_in = ntohl(p->assigned_bw_in.value__);
+    pg->last_assigned_bw_out = ntohl(p->assigned_bw_out.value__);
+    pg->feedback_bw_in_acc = 0;
+    pg->feedback_bw_out_acc = 0;
+
+    pg->last_delay_value = properties[GNUNET_ATS_QUALITY_NET_DELAY];
+    pg->feedback_delay_acc = 0;
+
+    pg->feedback_last_bw_update = GNUNET_TIME_absolute_get();
+    pg->feedback_last_delay_update = GNUNET_TIME_absolute_get();
+    pg->feedback_last = GNUNET_TIME_absolute_get();
+    pg->feedback_task = GNUNET_SCHEDULER_add_delayed (feedback_frequency,
+        &set_feedback_task, pg);
+  }
+
   return pg;
 }
 
@@ -1495,6 +1613,19 @@ load_op_start_set_preference (struct GNUNET_ATS_TEST_Operation *o,
       return GNUNET_SYSERR;
   }
   GNUNET_free (pref);
+  GNUNET_free (op_name);
+
+  /* Get feedback delay */
+  GNUNET_asprintf(&op_name, "op-%u-feedback_delay", op_counter);
+  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_time (cfg,
+      sec_name, op_name, &o->feedback_delay))
+  {
+      fprintf (stderr, "Using feedback delay %llu in operation %u `%s' in episode %u\n",
+          (long long unsigned int) o->feedback_delay.rel_value_us,
+          op_counter, op_name, e->id);
+  }
+  else
+    o->feedback_delay = GNUNET_TIME_UNIT_FOREVER_REL;
   GNUNET_free (op_name);
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -2066,6 +2197,8 @@ enforce_add_address (struct GNUNET_ATS_TEST_Operation *op)
   {
     p = GNUNET_new (struct TestPeer);
     p->id = op->peer_id;
+    p->assigned_bw_in = GNUNET_BANDWIDTH_value_init(0);
+    p->assigned_bw_out = GNUNET_BANDWIDTH_value_init(0);
     memset (&p->peer_id, op->peer_id, sizeof (p->peer_id));
     for (c = 0; c < GNUNET_ATS_PreferenceCount; c++)
     {
@@ -2239,7 +2372,8 @@ enforce_start_preference (struct GNUNET_ATS_TEST_Operation *op)
     op->max_rate,
     op->period,
     op->frequency,
-    op->pref_type);
+    op->pref_type,
+    op->frequency);
 }
 
 static void
@@ -2810,13 +2944,39 @@ solver_info_cb (void *cls,
 static void
 solver_bandwidth_changed_cb (void *cls, struct ATS_Address *address)
 {
+  struct GNUNET_TIME_Relative duration;
+  struct TestPeer *p;
+  static struct PreferenceGenerator *pg;
+  uint32_t delta;
   if ( (0 == ntohl (address->assigned_bw_out.value__)) &&
        (0 == ntohl (address->assigned_bw_in.value__)) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "Solver notified to disconnect peer `%s'\n",
                 GNUNET_i2s (&address->peer));
+  }
+  p = find_peer_by_pid(&address->peer);
+  if(NULL == p)
     return;
+  p->assigned_bw_out = address->assigned_bw_out;
+  p->assigned_bw_in = address->assigned_bw_in;
+
+  for (pg = pref_gen_head; NULL != pg; pg = pg->next)
+  {
+    if (pg->peer == p->id)
+    {
+      duration = GNUNET_TIME_absolute_get_duration(pg->feedback_last_bw_update);
+      delta = duration.rel_value_us * pg->last_assigned_bw_out;
+      //GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "------> DELTA %u %u\n",delta, duration.rel_value_us);
+      pg->feedback_bw_out_acc += delta;
+
+      delta = duration.rel_value_us * pg->last_assigned_bw_in;
+      pg->feedback_bw_in_acc += delta;
+
+      pg->last_assigned_bw_in = ntohl (address->assigned_bw_in.value__);
+      pg->last_assigned_bw_out = ntohl (address->assigned_bw_out.value__);
+      pg->feedback_last_bw_update = GNUNET_TIME_absolute_get();
+    }
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -2825,8 +2985,6 @@ solver_bandwidth_changed_cb (void *cls, struct ATS_Address *address)
               address,
               (unsigned int) ntohl  (address->assigned_bw_out.value__),
               (unsigned int) ntohl (address->assigned_bw_in.value__));
-  /*if (GNUNET_YES == ph.bulk_running)
-    GNUNET_break (0);*/
   if (NULL != l)
     GNUNET_ATS_solver_logging_now (l);
 
@@ -2890,10 +3048,33 @@ static void
 normalized_property_changed_cb (void *cls, struct ATS_Address *address,
     uint32_t type, double prop_rel)
 {
+  struct TestPeer *p;
+  struct PreferenceGenerator *pg;
+  struct GNUNET_TIME_Relative duration;
+  uint32_t delta;
+
   GNUNET_log(GNUNET_ERROR_TYPE_INFO,
       "Normalized property %s for peer `%s' changed to %.3f \n",
       GNUNET_ATS_print_property_type (type), GNUNET_i2s (&address->peer),
       prop_rel);
+
+  if (NULL != (p = find_peer_by_pid (&address->peer)))
+  {
+    for (pg = pref_gen_head; NULL != pg; pg = pg->next)
+    {
+      if (pg->peer == p->id)
+      {
+        duration = GNUNET_TIME_absolute_get_duration(pg->feedback_last_delay_update);
+        delta = duration.rel_value_us * pg->last_delay_value;
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "------> DELTA %u %u\n",delta, duration.rel_value_us);
+        pg->feedback_delay_acc += delta;
+
+        pg->last_delay_value = prop_rel;
+        pg->feedback_last_bw_update = GNUNET_TIME_absolute_get();
+      }
+    }
+
+  }
 
   set_updated_property (address, type, prop_rel);
 }
@@ -2958,6 +3139,7 @@ GNUNET_ATS_solvers_solver_start (enum GNUNET_ATS_Solvers type)
   GNUNET_asprintf (&sh->plugin, "libgnunet_plugin_ats_%s", solver_str);
 
   sh->addresses = GNUNET_CONTAINER_multipeermap_create (128, GNUNET_NO);
+
   /* setup environment */
   sh->env.cfg = e->cfg;
   sh->env.stats = GNUNET_STATISTICS_create ("ats", e->cfg);

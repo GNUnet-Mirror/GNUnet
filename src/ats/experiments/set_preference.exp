@@ -12,7 +12,7 @@ cfg_file = experiments/gnunet_ats_sim_default.conf
 
 # operations = address_add, address_del, start_set_property, stop_set_property, 
 # start_set_preference, stop_preference, start_request, stop_request
-duration = 2 s
+duration = 1 s
 
 op-0-operation = address_add
 op-0-address-id = 0
@@ -38,7 +38,7 @@ op-3-peer-id = 1
 
 [episode-1]
 # Set delay
-duration = 10 s
+duration = 20 s
 
 op-0-operation = start_set_preference
 op-0-address-id = 0
@@ -50,6 +50,7 @@ op-0-base-rate= 1000
 op-0-max-rate = 10000
 op-0-period = 10 s
 op-0-frequency = 500 ms
+op-0-feedback_delay = 500 ms
 # BANDWIDTH, LATENCY
 op-0-pref = BANDWIDTH  
 

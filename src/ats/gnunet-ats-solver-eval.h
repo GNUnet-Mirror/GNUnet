@@ -158,6 +158,9 @@ struct TestPeer
   double pref_abs[GNUNET_ATS_PreferenceCount];
   double pref_norm[GNUNET_ATS_PreferenceCount];
 
+  struct GNUNET_BANDWIDTH_Value32NBO assigned_bw_in;
+  struct GNUNET_BANDWIDTH_Value32NBO assigned_bw_out;
+
   struct TestAddress *addr_head;
   struct TestAddress *addr_tail;
 };
@@ -208,6 +211,7 @@ struct GNUNET_ATS_TEST_Operation
   long long unsigned int max_rate;
   struct GNUNET_TIME_Relative period;
   struct GNUNET_TIME_Relative frequency;
+  struct GNUNET_TIME_Relative feedback_delay;
 
   enum OperationType type;
   enum GeneratorType gen_type;
@@ -276,10 +280,30 @@ struct PreferenceGenerator
   long int max_value;
   struct GNUNET_TIME_Relative duration_period;
   struct GNUNET_TIME_Relative frequency;
+  struct GNUNET_TIME_Relative feedback_frequency;
 
   GNUNET_SCHEDULER_TaskIdentifier set_task;
+  GNUNET_SCHEDULER_TaskIdentifier feedback_task;
   struct GNUNET_TIME_Absolute next_ping_transmission;
   struct GNUNET_TIME_Absolute time_start;
+
+
+  /* Feedback */
+  uint32_t feedback_bw_out_acc;
+  uint32_t feedback_bw_in_acc;
+  uint32_t feedback_delay_acc;
+
+  double pref_bw_old;
+  double pref_latency_old;
+
+  struct GNUNET_TIME_Absolute feedback_last;
+
+  struct GNUNET_TIME_Absolute feedback_last_bw_update;
+  struct GNUNET_TIME_Absolute feedback_last_delay_update;
+  uint32_t last_assigned_bw_in;
+  uint32_t last_assigned_bw_out;
+  double last_delay_value;
+
 };
 
 
