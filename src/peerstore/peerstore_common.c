@@ -36,14 +36,14 @@
  * @param expiry absolute time after which the record expires
  * @param msg_type message type to be set in header
  * @return pointer to record message struct
- *
+ */
 struct StoreRecordMessage *
 PEERSTORE_create_record_message(const char *sub_system,
     const struct GNUNET_PeerIdentity *peer,
     const char *key,
     const void *value,
     size_t value_size,
-    struct GNUNET_TIME_Absolute expiry,
+    struct GNUNET_TIME_Absolute *expiry,
     uint16_t msg_type)
 {
   struct StoreRecordMessage *srm;
@@ -65,7 +65,8 @@ PEERSTORE_create_record_message(const char *sub_system,
   srm->header.size = htons(request_size);
   srm->header.type = htons(msg_type);
   srm->key_size = htons(key_size);
-  srm->expiry = expiry;
+  if(NULL != expiry)
+    srm->expiry = *expiry;
   if(NULL == peer)
     srm->peer_set = htons(GNUNET_NO);
   else
@@ -83,7 +84,7 @@ PEERSTORE_create_record_message(const char *sub_system,
   memcpy(dummy, value, value_size);
   return srm;
 
-}*/
+}
 
 /**
  * Creates a MQ envelope for a single record
@@ -103,7 +104,7 @@ PEERSTORE_create_record_mq_envelope(const char *sub_system,
     const char *key,
     const void *value,
     size_t value_size,
-    struct GNUNET_TIME_Absolute expiry,
+    struct GNUNET_TIME_Absolute *expiry,
     uint16_t msg_type)
 {
   struct StoreRecordMessage *srm;
@@ -124,7 +125,8 @@ PEERSTORE_create_record_mq_envelope(const char *sub_system,
       value_size;
   ev = GNUNET_MQ_msg_extra(srm, msg_size, msg_type);
   srm->key_size = htons(key_size);
-  srm->expiry = expiry;
+  if(NULL != expiry)
+    srm->expiry = *expiry;
   if(NULL == peer)
     srm->peer_set = htons(GNUNET_NO);
   else

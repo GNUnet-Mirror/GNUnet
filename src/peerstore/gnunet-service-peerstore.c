@@ -87,28 +87,24 @@ handle_client_disconnect (void *cls,
  * @param sub_system name of the GNUnet sub system responsible
  * @param value stored value
  * @param size size of stored value
- *
+ */
 int record_iterator(void *cls,
-    const char *sub_system,
-    const struct GNUNET_PeerIdentity *peer,
-    const char *key,
-    const void *value,
-    size_t size,
-    struct GNUNET_TIME_Absolute expiry)
+    struct GNUNET_PEERSTORE_Record *record,
+    char *emsg)
 {
   struct GNUNET_SERVER_TransmitContext *tc = cls;
   struct StoreRecordMessage *srm;
 
-  srm = PEERSTORE_create_record_message(sub_system,
-      peer,
-      key,
-      value,
-      size,
-      expiry,
-      GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE);
+  srm = PEERSTORE_create_record_message(record->sub_system,
+      record->peer,
+      record->key,
+      record->value,
+      record->value_size,
+      record->expiry,
+      GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE_RECORD);
   GNUNET_SERVER_transmit_context_append_message(tc, (const struct GNUNET_MessageHeader *)srm);
   return GNUNET_YES;
-}*/
+}
 
 /**
  * Handle an iterate request from client
@@ -116,7 +112,7 @@ int record_iterator(void *cls,
  * @param cls unused
  * @param client identification of the client
  * @param message the actual message
- *
+ */
 void handle_iterate (void *cls,
     struct GNUNET_SERVER_Client *client,
     const struct GNUNET_MessageHeader *message)
@@ -145,9 +141,16 @@ void handle_iterate (void *cls,
       &record_iterator,
       tc))
   {
-
+    GNUNET_SERVER_transmit_context_append_data(tc, NULL, 0, GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE_END);
+    GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
   }
-}*/
+  else
+  {
+    GNUNET_free(tc);
+    GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
+  }
+  GNUNET_free(record);
+}
 
 /**
  * Handle a store request from client
@@ -220,7 +223,7 @@ run (void *cls,
 {
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
       {&handle_store, NULL, GNUNET_MESSAGE_TYPE_PEERSTORE_STORE, 0},
-//      {&handle_iterate, NULL, GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE, 0},
+      {&handle_iterate, NULL, GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE, 0},
       {NULL, NULL, 0, 0}
   };
   char *database;

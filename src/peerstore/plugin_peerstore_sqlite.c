@@ -122,12 +122,7 @@ peerstore_sqlite_iterate_records (void *cls,
   sqlite3_stmt *stmt;
   int err = 0;
   int sret;
-  const char *ret_sub_system;
-  const struct GNUNET_PeerIdentity *ret_peer;
-  const char *ret_key;
-  const void *ret_value;
-  size_t ret_value_size;
-  struct GNUNET_TIME_Absolute ret_expiry;
+  struct GNUNET_PEERSTORE_Record *ret;
 
   if(NULL == peer && NULL == key)
   {
@@ -166,20 +161,18 @@ peerstore_sqlite_iterate_records (void *cls,
   }
   while (SQLITE_ROW == (sret = sqlite3_step (stmt)))
   {
-    ret_sub_system = (const char *)sqlite3_column_text(stmt, 0);
-    ret_peer = sqlite3_column_blob(stmt, 1);
-    ret_key = (const char *)sqlite3_column_text(stmt, 2);
-    ret_value = sqlite3_column_blob(stmt, 3);
-    ret_value_size = sqlite3_column_bytes(stmt, 3);
-    ret_expiry.abs_value_us = (uint64_t)sqlite3_column_int64(stmt, 4);
+    ret = GNUNET_new(struct GNUNET_PEERSTORE_Record);
+    ret->sub_system = (char *)sqlite3_column_text(stmt, 0);
+    ret->peer = (struct GNUNET_PeerIdentity *)sqlite3_column_blob(stmt, 1);
+    ret->key = (char *)sqlite3_column_text(stmt, 2);
+    ret->value = (void *)sqlite3_column_blob(stmt, 3);
+    ret->value_size = sqlite3_column_bytes(stmt, 3);
+    ret->expiry = GNUNET_new(struct GNUNET_TIME_Absolute);
+    ret->expiry->abs_value_us = (uint64_t)sqlite3_column_int64(stmt, 4);
     if (NULL != iter)
       iter (iter_cls,
-          ret_sub_system,
-          ret_peer,
-          ret_key,
-          ret_value,
-          ret_value_size,
-          ret_expiry);
+          ret,
+          NULL);
   }
   if (SQLITE_DONE != sret)
   {

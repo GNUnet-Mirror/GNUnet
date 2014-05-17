@@ -2467,6 +2467,12 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE 823
 
+/**
+ * Iteration response messages
+ */
+#define GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE_RECORD 824
+#define GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE_END 825
+
 
 /**
  * Next available: 840

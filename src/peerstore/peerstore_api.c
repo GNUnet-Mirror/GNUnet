@@ -65,6 +65,16 @@ struct GNUNET_PEERSTORE_Handle
    */
   struct GNUNET_PEERSTORE_StoreContext *store_tail;
 
+  /**
+   * Head of active ITERATE requests.
+   */
+  struct GNUNET_PEERSTORE_IterateContext *iterate_head;
+
+  /**
+   * Tail of active ITERATE requests.
+   */
+  struct GNUNET_PEERSTORE_IterateContext *iterate_tail;
+
 };
 
 /**
@@ -110,6 +120,49 @@ struct GNUNET_PEERSTORE_StoreContext
 
 };
 
+/**
+ * Context for a iterate request
+ */
+struct GNUNET_PEERSTORE_IterateContext
+{
+  /**
+   * Kept in a DLL.
+   */
+  struct GNUNET_PEERSTORE_IterateContext *next;
+
+  /**
+   * Kept in a DLL.
+   */
+  struct GNUNET_PEERSTORE_IterateContext *prev;
+
+  /**
+   * Handle to the PEERSTORE service.
+   */
+  struct GNUNET_PEERSTORE_Handle *h;
+
+  /**
+   * MQ Envelope with iterate request message
+   */
+  struct GNUNET_MQ_Envelope *ev;
+
+  /**
+   * Callback with each matching record
+   */
+  GNUNET_PEERSTORE_Processor callback;
+
+  /**
+   * Closure for 'callback'
+   */
+  void *callback_cls;
+
+  /**
+   * #GNUNET_YES / #GNUNET_NO
+   * if sent, cannot be canceled
+   */
+  int request_sent;
+
+};
+
 /******************************************************************************/
 /*******************             DECLARATIONS             *********************/
 /******************************************************************************/
@@ -122,6 +175,19 @@ struct GNUNET_PEERSTORE_StoreContext
  */
 void handle_store_result (void *cls, const struct GNUNET_MessageHeader *msg);
 
+/**
+ * When a response for iterate request is received
+ *
+ * @param cls a 'struct GNUNET_PEERSTORE_Handle *'
+ * @param msg message received, NULL on timeout or fatal error
+ */
+void handle_iterate_result (void *cls, const struct GNUNET_MessageHeader *msg);
+
+/**
+ * Close the existing connection to PEERSTORE and reconnect.
+ *
+ * @param h handle to the service
+ */
 static void
 reconnect (struct GNUNET_PEERSTORE_Handle *h);
 
@@ -131,6 +197,8 @@ reconnect (struct GNUNET_PEERSTORE_Handle *h);
 static const struct GNUNET_MQ_MessageHandler mq_handlers[] = {
     {&handle_store_result, GNUNET_MESSAGE_TYPE_PEERSTORE_STORE_RESULT_OK, sizeof(struct GNUNET_MessageHeader)},
     {&handle_store_result, GNUNET_MESSAGE_TYPE_PEERSTORE_STORE_RESULT_FAIL, sizeof(struct GNUNET_MessageHeader)},
+    {&handle_iterate_result, GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE_RECORD, 0},
+    {&handle_iterate_result, GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE_END, sizeof(struct GNUNET_MessageHeader)},
     GNUNET_MQ_HANDLERS_END
 };
 
@@ -154,11 +222,17 @@ static void
 cleanup_handle(struct GNUNET_PEERSTORE_Handle *h)
 {
   struct GNUNET_PEERSTORE_StoreContext *sc;
+  struct GNUNET_PEERSTORE_IterateContext *ic;
 
   while (NULL != (sc = h->store_head))
   {
     GNUNET_CONTAINER_DLL_remove(h->store_head, h->store_tail, sc);
     GNUNET_free(sc);
+  }
+  while (NULL != (ic = h->iterate_head))
+  {
+    GNUNET_CONTAINER_DLL_remove(h->iterate_head, h->iterate_tail, ic);
+    GNUNET_free(ic);
   }
 }
 
@@ -254,7 +328,7 @@ GNUNET_PEERSTORE_disconnect(struct GNUNET_PEERSTORE_Handle *h)
 /**
  * When a response for store request is received
  *
- * @param cls a 'struct GNUNET_PEERSTORE_StoreContext *'
+ * @param cls a 'struct GNUNET_PEERSTORE_Handle *'
  * @param msg message received, NULL on timeout or fatal error
  */
 void handle_store_result (void *cls, const struct GNUNET_MessageHeader *msg)
@@ -304,6 +378,7 @@ void store_request_sent (void *cls)
   struct GNUNET_PEERSTORE_StoreContext *sc = cls;
 
   sc->request_sent = GNUNET_YES;
+  sc->ev = NULL;
 }
 
 /**
@@ -319,7 +394,10 @@ GNUNET_PEERSTORE_store_cancel (struct GNUNET_PEERSTORE_StoreContext *sc)
   if(GNUNET_NO == sc->request_sent)
   {
     if(NULL != sc->ev)
-      GNUNET_MQ_discard(sc->ev);
+    {
+      //GNUNET_MQ_discard(sc->ev); //FIXME: this should be GNUNET_MQ_send_cancel
+      sc->ev = NULL;
+    }
     GNUNET_CONTAINER_DLL_remove(sc->h->store_head, sc->h->store_tail, sc);
     GNUNET_free(sc);
   }
@@ -365,10 +443,8 @@ GNUNET_PEERSTORE_store (struct GNUNET_PEERSTORE_Handle *h,
       key,
       value,
       size,
-      expiry,
+      &expiry,
       GNUNET_MESSAGE_TYPE_PEERSTORE_STORE);
-  GNUNET_MQ_send(h->mq, ev);
-  GNUNET_MQ_notify_sent(ev, &store_request_sent, ev);
   sc = GNUNET_new(struct GNUNET_PEERSTORE_StoreContext);
   sc->ev = ev;
   sc->cont = cont;
@@ -376,8 +452,144 @@ GNUNET_PEERSTORE_store (struct GNUNET_PEERSTORE_Handle *h,
   sc->h = h;
   sc->request_sent = GNUNET_NO;
   GNUNET_CONTAINER_DLL_insert(h->store_head, h->store_tail, sc);
+  GNUNET_MQ_notify_sent(ev, &store_request_sent, ev);
+  GNUNET_MQ_send(h->mq, ev);
   return sc;
 
+}
+
+/******************************************************************************/
+/*******************           ITERATE FUNCTIONS          *********************/
+/******************************************************************************/
+
+/**
+ * When a response for iterate request is received
+ *
+ * @param cls a 'struct GNUNET_PEERSTORE_Handle *'
+ * @param msg message received, NULL on timeout or fatal error
+ */
+void handle_iterate_result (void *cls, const struct GNUNET_MessageHeader *msg)
+{
+  struct GNUNET_PEERSTORE_Handle *h = cls;
+  struct GNUNET_PEERSTORE_IterateContext *ic;
+  GNUNET_PEERSTORE_Processor callback;
+  void *callback_cls;
+  uint16_t msg_type;
+  struct GNUNET_PEERSTORE_Record *record;
+
+  ic = h->iterate_head;
+  if(NULL == ic)
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Unexpected iteration response, this should not happen.\n");
+    reconnect(h);
+    return;
+  }
+  callback = ic->callback;
+  callback_cls = ic->callback_cls;
+  if(NULL == msg) /* Connection error */
+  {
+
+    if(NULL != callback)
+      callback(callback_cls, NULL,
+          _("Error communicating with `PEERSTORE' service."));
+    reconnect(h);
+    return;
+  }
+  msg_type = ntohs(msg->type);
+  if(GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE_END == msg_type)
+  {
+    if(NULL != callback)
+      callback(callback_cls, NULL, NULL);
+    GNUNET_CONTAINER_DLL_remove(ic->h->iterate_head, ic->h->iterate_tail, ic);
+    GNUNET_free(ic);
+    return;
+  }
+  if(NULL != callback)
+  {
+    record = PEERSTORE_parse_record_message(msg);
+    if(NULL == record)
+      callback(callback_cls, record, _("Received a malformed response from service."));
+    else
+      callback(callback_cls, record, NULL);
+  }
+
+}
+
+/**
+ * Callback after MQ envelope is sent
+ *
+ * @param cls a 'struct GNUNET_PEERSTORE_IterateContext *'
+ */
+void iterate_request_sent (void *cls)
+{
+  struct GNUNET_PEERSTORE_IterateContext *ic = cls;
+
+  ic->request_sent = GNUNET_YES;
+  ic->ev = NULL;
+}
+
+/**
+ * Cancel an iterate request
+ * Please do not call after the iterate request is done
+ *
+ * @param ic Iterate request context as returned by GNUNET_PEERSTORE_iterate()
+ */
+void
+GNUNET_PEERSTORE_iterate_cancel (struct GNUNET_PEERSTORE_IterateContext *ic)
+{
+  if(GNUNET_NO == ic->request_sent)
+  {
+    if(NULL != ic->ev)
+    {
+      //GNUNET_MQ_discard(ic->ev); //FIXME: this should be GNUNET_MQ_send_cancel
+      ic->ev = NULL;
+    }
+    GNUNET_CONTAINER_DLL_remove(ic->h->iterate_head, ic->h->iterate_tail, ic);
+    GNUNET_free(ic);
+  }
+  else
+    ic->callback = NULL;
+}
+
+/**
+ * Iterate over records matching supplied key information
+ *
+ * @param h handle to the PEERSTORE service
+ * @param sub_system name of sub system
+ * @param peer Peer identity (can be NULL)
+ * @param key entry key string (can be NULL)
+ * @param timeout time after which the iterate request is canceled
+ * @param callback function called with each matching record, all NULL's on end
+ * @param callback_cls closure for @a callback
+ */
+struct GNUNET_PEERSTORE_IterateContext *
+GNUNET_PEERSTORE_iterate (struct GNUNET_PEERSTORE_Handle *h,
+    char *sub_system,
+    const struct GNUNET_PeerIdentity *peer,
+    const char *key,
+    struct GNUNET_TIME_Relative timeout, //FIXME: handle timeout
+    GNUNET_PEERSTORE_Processor callback, void *callback_cls)
+{
+  struct GNUNET_MQ_Envelope *ev;
+  struct GNUNET_PEERSTORE_IterateContext *ic;
+
+  ev = PEERSTORE_create_record_mq_envelope(sub_system,
+      peer,
+      key,
+      NULL,
+      0,
+      NULL,
+      GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE);
+  ic = GNUNET_new(struct GNUNET_PEERSTORE_IterateContext);
+  ic->callback = callback;
+  ic->callback_cls = callback_cls;
+  ic->ev = ev;
+  ic->h = h;
+  ic->request_sent = GNUNET_NO;
+  GNUNET_CONTAINER_DLL_insert(h->iterate_head, h->iterate_tail, ic);
+  GNUNET_MQ_notify_sent(ev, &iterate_request_sent, ev);
+  GNUNET_MQ_send(h->mq, ev);
+  return ic;
 }
 
 /* end of peerstore_api.c */

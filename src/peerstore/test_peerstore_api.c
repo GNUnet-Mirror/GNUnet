@@ -25,10 +25,39 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_testing_lib.h"
 #include "gnunet_peerstore_service.h"
+#include <inttypes.h>
 
 static int ok = 1;
 
+static int counter = 0;
+
 struct GNUNET_PEERSTORE_Handle *h;
+
+int iterate_cb (void *cls,
+    struct GNUNET_PEERSTORE_Record *record,
+    char *emsg)
+{
+  if(NULL != emsg)
+  {
+    printf("Error received: %s.\n", emsg);
+    return GNUNET_YES;
+  }
+  printf("Record:\n");
+  if(NULL == record)
+  {
+    counter = 0;
+    printf("END\n");
+    GNUNET_PEERSTORE_disconnect(h);
+    return GNUNET_YES;
+  }
+  printf("Sub system: %s\n", record->sub_system);
+  printf("Peer: %s\n", GNUNET_i2s (record->peer));
+  printf("Key: %s\n", record->key);
+  printf("Value: %.*s\n", record->value);
+  printf("Expiry: %" PRIu64 "\n", record->expiry->abs_value_us);
+
+  return GNUNET_YES;
+}
 
 void store_cont(void *cls, int success)
 {
@@ -36,8 +65,13 @@ void store_cont(void *cls, int success)
     ok = 0;
   else
     ok = 1;
-  printf("Success: %d\n", success);
-  GNUNET_PEERSTORE_disconnect(h);
+  printf("Store success: %d\n", success);
+  GNUNET_PEERSTORE_iterate(h, "peerstore-test-value",
+      NULL,
+      NULL,
+      GNUNET_TIME_UNIT_FOREVER_REL,
+      &iterate_cb,
+      NULL);
 }
 
 static void
@@ -48,6 +82,7 @@ run (void *cls,
   struct GNUNET_PeerIdentity pid;
   char *val = "peerstore-test-value";
   size_t val_size = strlen(val);
+  struct GNUNET_PEERSTORE_StoreContext *sc;
 
   ok = 0;
   memset (&pid, 32, sizeof (pid));

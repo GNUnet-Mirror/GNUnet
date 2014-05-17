@@ -97,19 +97,13 @@ typedef void (*GNUNET_PEERSTORE_Continuation)(void *cls, int success);
  * Function called by for each matching record.
  *
  * @param cls closure
- * @param peer peer identity
- * @param sub_system name of the GNUnet sub system responsible
- * @param value stored value
- * @param size size of stored value
+ * @param record peerstore record information
+ * @param emsg error message, or NULL if no errors
  * @return #GNUNET_YES to continue iterating, #GNUNET_NO to stop
  */
 typedef int (*GNUNET_PEERSTORE_Processor) (void *cls,
-    const char *sub_system,
-    const struct GNUNET_PeerIdentity *peer,
-    const char *key,
-    const void *value,
-    size_t size,
-    struct GNUNET_TIME_Absolute expiry);
+    struct GNUNET_PEERSTORE_Record *record,
+    char *emsg);
 
 /**
  * Connect to the PEERSTORE service.

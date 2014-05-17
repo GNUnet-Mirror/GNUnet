@@ -27,6 +27,27 @@
 #include "peerstore.h"
 
 /**
+ * Creates a record message ready to be sent
+ *
+ * @param sub_system sub system string
+ * @param peer Peer identity (can be NULL)
+ * @param key record key string (can be NULL)
+ * @param value record value BLOB (can be NULL)
+ * @param value_size record value size in bytes (set to 0 if value is NULL)
+ * @param expiry absolute time after which the record expires
+ * @param msg_type message type to be set in header
+ * @return pointer to record message struct
+ */
+struct StoreRecordMessage *
+PEERSTORE_create_record_message(const char *sub_system,
+    const struct GNUNET_PeerIdentity *peer,
+    const char *key,
+    const void *value,
+    size_t value_size,
+    struct GNUNET_TIME_Absolute *expiry,
+    uint16_t msg_type);
+
+/**
  * Creates a MQ envelope for a single record
  *
  * @param sub_system sub system string
@@ -44,7 +65,7 @@ PEERSTORE_create_record_mq_envelope(const char *sub_system,
     const char *key,
     const void *value,
     size_t value_size,
-    struct GNUNET_TIME_Absolute expiry,
+    struct GNUNET_TIME_Absolute *expiry,
     uint16_t msg_type);
 
 /**
