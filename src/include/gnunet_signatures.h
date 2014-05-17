@@ -137,7 +137,7 @@ extern "C"
 #define GNUNET_SIGNATURE_PURPOSE_REGEX_ACCEPT 18
 
 /**
- * Signature of a multicast message.
+ * Signature of a multicast message sent by the origin.
  */
 #define GNUNET_SIGNATURE_PURPOSE_MULTICAST_MESSAGE 19
 
@@ -165,6 +165,11 @@ extern "C"
  * Signature for cooperatice decryption.
  */
 #define GNUNET_SIGNATURE_PURPOSE_SECRETSHARING_DECRYPTION 23
+
+/**
+ * Signature of a multicast request sent by a member.
+ */
+#define GNUNET_SIGNATURE_PURPOSE_MULTICAST_REQUEST 24
 
 
 #if 0                           /* keep Emacsens' auto-indent happy */

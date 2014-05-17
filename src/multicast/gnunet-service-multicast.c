@@ -46,22 +46,40 @@ static struct GNUNET_SERVER_NotificationContext *nc;
 
 /**
  * All connected origins.
- * Group's pub_key_hash -> struct Group
+ * Group's pub_key_hash -> struct Origin
  */
 static struct GNUNET_CONTAINER_MultiHashMap *origins;
 
 /**
  * All connected members.
- * Group's pub_key_hash -> struct Group
+ * Group's pub_key_hash -> struct Member
  */
 static struct GNUNET_CONTAINER_MultiHashMap *members;
+
+/**
+ * Connected members per group.
+ * Group's pub_key_hash -> Member's pub_key -> struct Member
+ */
+static struct GNUNET_CONTAINER_MultiHashMap *group_members;
+
+
+/**
+ * List of connected clients.
+ */
+struct ClientList
+{
+  struct ClientList *prev;
+  struct ClientList *next;
+  struct GNUNET_SERVER_Client *client;
+};
 
 /**
  * Common part of the client context for both an origin and member.
  */
 struct Group
 {
-  struct GNUNET_SERVER_Client *client;
+  struct ClientList *clients_head;
+  struct ClientList *clients_tail;
 
   /**
    * Public key of the group.
@@ -117,6 +135,29 @@ struct Member
   struct GNUNET_CRYPTO_EddsaPrivateKey priv_key;
 
   /**
+   * Public key of the member.
+   */
+  struct GNUNET_CRYPTO_EddsaPublicKey pub_key;
+
+  /**
+   * Hash of @a pub_key.
+   */
+  struct GNUNET_HashCode pub_key_hash;
+
+  /**
+   * Join request sent to the origin / members.
+   */
+  struct GNUNET_MULTICAST_JoinRequest *join_request;
+
+  /**
+   * Join decision sent in reply to our request.
+   *
+   * Only a positive decision is stored here, in case of a negative decision the
+   * client is disconnected.
+   */
+  struct MulticastJoinDecisionMessage *join_decision;
+
+  /**
    * Last request fragment ID sent to the origin.
    */
   uint64_t max_fragment_id;
@@ -135,23 +176,161 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   /* FIXME: do clean up here */
 }
 
+/**
+ * Clean up origin data structures after a client disconnected.
+ */
+static void
+cleanup_origin (struct Origin *orig)
+{
+  struct Group *grp = &orig->grp;
+  GNUNET_CONTAINER_multihashmap_remove (origins, &grp->pub_key_hash, orig);
+}
+
 
 /**
- * Iterator callback for sending a message to clients.
+ * Clean up member data structures after a client disconnected.
+ */
+static void
+cleanup_member (struct Member *mem)
+{
+  struct Group *grp = &mem->grp;
+  struct GNUNET_CONTAINER_MultiHashMap *
+    grp_mem = GNUNET_CONTAINER_multihashmap_get (group_members,
+                                                 &grp->pub_key_hash);
+  GNUNET_assert (NULL != grp_mem);
+  GNUNET_CONTAINER_multihashmap_remove (grp_mem, &mem->pub_key_hash, mem);
+
+  if (0 == GNUNET_CONTAINER_multihashmap_size (grp_mem))
+  {
+    GNUNET_CONTAINER_multihashmap_remove (group_members, &grp->pub_key_hash,
+                                          grp_mem);
+    GNUNET_CONTAINER_multihashmap_destroy (grp_mem);
+  }
+  GNUNET_CONTAINER_multihashmap_remove (members, &grp->pub_key_hash, mem);
+}
+
+
+/**
+ * Clean up group data structures after a client disconnected.
+ */
+static void
+cleanup_group (struct Group *grp)
+{
+  (GNUNET_YES == grp->is_origin)
+    ? cleanup_origin ((struct Origin *) grp)
+    : cleanup_member ((struct Member *) grp);
+
+  GNUNET_free (grp);
+}
+
+
+/**
+ * Called whenever a client is disconnected.
+ *
+ * Frees our resources associated with that client.
+ *
+ * @param cls  Closure.
+ * @param client  Client handle.
+ */
+static void
+client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
+{
+  if (NULL == client)
+    return;
+
+  struct Group *grp
+    = GNUNET_SERVER_client_get_user_context (client, struct Group);
+
+  if (NULL == grp)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "%p User context is NULL in client_disconnect()\n", grp);
+    GNUNET_assert (0);
+    return;
+  }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "%p Client (%s) disconnected from group %s\n",
+              grp, (GNUNET_YES == grp->is_origin) ? "origin" : "member",
+              GNUNET_h2s (&grp->pub_key_hash));
+
+  struct ClientList *cl = grp->clients_head;
+  while (NULL != cl)
+  {
+    if (cl->client == client)
+    {
+      GNUNET_CONTAINER_DLL_remove (grp->clients_head, grp->clients_tail, cl);
+      GNUNET_free (cl);
+      break;
+    }
+    cl = cl->next;
+  }
+
+  if (NULL == grp->clients_head)
+  { /* Last client disconnected. */
+#if FIXME
+    if (NULL != grp->tmit_head)
+    { /* Send pending messages via CADET before cleanup. */
+      transmit_message (grp);
+    }
+    else
+#endif
+    {
+      cleanup_group (grp);
+    }
+  }
+}
+
+
+/**
+ * Send message to all clients connected to the group.
+ */
+static void
+message_to_clients (const struct Group *grp,
+                    const struct GNUNET_MessageHeader *msg)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "%p Sending message to clients.\n", grp);
+
+  struct ClientList *cl = grp->clients_head;
+  while (NULL != cl)
+  {
+    GNUNET_SERVER_notification_context_add (nc, cl->client);
+    GNUNET_SERVER_notification_context_unicast (nc, cl->client, msg, GNUNET_NO);
+    cl = cl->next;
+  }
+}
+
+
+/**
+ * Iterator callback for sending a message to origin clients.
  */
 static int
-message_callback (void *cls, const struct GNUNET_HashCode *pub_key_hash,
-                  void *group)
+origin_message_cb (void *cls, const struct GNUNET_HashCode *pub_key_hash,
+                   void *origin)
 {
   const struct GNUNET_MessageHeader *msg = cls;
-  struct Group *grp = group;
+  struct Member *orig = origin;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "%p Sending message to client.\n", grp);
+  message_to_clients (&orig->grp, msg);
+  return GNUNET_YES;
+}
 
-  GNUNET_SERVER_notification_context_add (nc, grp->client);
-  GNUNET_SERVER_notification_context_unicast (nc, grp->client, msg, GNUNET_NO);
 
+/**
+ * Iterator callback for sending a message to member clients.
+ */
+static int
+member_message_cb (void *cls, const struct GNUNET_HashCode *pub_key_hash,
+                   void *member)
+{
+  const struct GNUNET_MessageHeader *msg = cls;
+  struct Member *mem = member;
+
+  if (NULL != mem->join_decision)
+  { /* Only send message to admitted members */
+    message_to_clients (&mem->grp, msg);
+  }
   return GNUNET_YES;
 }
 
@@ -167,10 +346,10 @@ message_to_group (struct Group *grp, const struct GNUNET_MessageHeader *msg)
 {
   if (origins != NULL)
     GNUNET_CONTAINER_multihashmap_get_multiple (origins, &grp->pub_key_hash,
-                                                message_callback, (void *) msg);
+                                                origin_message_cb, (void *) msg);
   if (members != NULL)
     GNUNET_CONTAINER_multihashmap_get_multiple (members, &grp->pub_key_hash,
-                                                message_callback, (void *) msg);
+                                                member_message_cb, (void *) msg);
 }
 
 
@@ -185,7 +364,7 @@ message_to_origin (struct Group *grp, const struct GNUNET_MessageHeader *msg)
 {
   if (origins != NULL)
     GNUNET_CONTAINER_multihashmap_get_multiple (origins, &grp->pub_key_hash,
-                                                message_callback, (void *) msg);
+                                                origin_message_cb, (void *) msg);
 }
 
 
@@ -199,34 +378,43 @@ handle_origin_start (void *cls, struct GNUNET_SERVER_Client *client,
   const struct MulticastOriginStartMessage *
     msg = (const struct MulticastOriginStartMessage *) m;
 
-  struct Origin *orig = GNUNET_new (struct Origin);
-  orig->priv_key = msg->group_key;
+  struct GNUNET_CRYPTO_EddsaPublicKey pub_key;
+  struct GNUNET_HashCode pub_key_hash;
 
-  struct Group *grp = &orig->grp;
-  grp->is_origin = GNUNET_YES;
-  grp->client = client;
+  GNUNET_CRYPTO_eddsa_key_get_public (&msg->group_key, &pub_key);
+  GNUNET_CRYPTO_hash (&pub_key, sizeof (pub_key), &pub_key_hash);
 
-  GNUNET_CRYPTO_eddsa_key_get_public (&orig->priv_key, &grp->pub_key);
-  GNUNET_CRYPTO_hash (&grp->pub_key, sizeof (grp->pub_key), &grp->pub_key_hash);
+  struct Origin *
+    orig = GNUNET_CONTAINER_multihashmap_get (origins, &pub_key_hash);
+  struct Group *grp;
+
+  if (NULL == orig)
+  {
+    orig = GNUNET_new (struct Origin);
+    orig->priv_key = msg->group_key;
+    grp = &orig->grp;
+    grp->is_origin = GNUNET_YES;
+    grp->pub_key = pub_key;
+    grp->pub_key_hash = pub_key_hash;
+
+    GNUNET_CONTAINER_multihashmap_put (origins, &grp->pub_key_hash, orig,
+                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
+  }
+  else
+  {
+    grp = &orig->grp;
+  }
+
+  struct ClientList *cl = GNUNET_new (struct ClientList);
+  cl->client = client;
+  GNUNET_CONTAINER_DLL_insert (grp->clients_head, grp->clients_tail, cl);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%p Client connected as origin to group %s.\n",
               orig, GNUNET_h2s (&grp->pub_key_hash));
 
   GNUNET_SERVER_client_set_user_context (client, grp);
-  GNUNET_CONTAINER_multihashmap_put (origins, &grp->pub_key_hash, orig,
-                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
-}
-
-
-/**
- * Handle a client stopping an origin.
- */
-static void
-handle_origin_stop (void *cls, struct GNUNET_SERVER_Client *client,
-                    const struct GNUNET_MessageHeader *msg)
-{
 }
 
 
@@ -240,34 +428,113 @@ handle_member_join (void *cls, struct GNUNET_SERVER_Client *client,
   struct MulticastMemberJoinMessage *
     msg = (struct MulticastMemberJoinMessage *) m;
 
-  struct Member *mem = GNUNET_new (struct Member);
-  mem->priv_key = msg->member_key;
+  struct GNUNET_CRYPTO_EddsaPublicKey mem_pub_key;
+  struct GNUNET_HashCode pub_key_hash, mem_pub_key_hash;
 
-  struct Group *grp = &mem->grp;
-  grp->is_origin = GNUNET_NO;
-  grp->client = client;
-  grp->pub_key = msg->group_key;
-  GNUNET_CRYPTO_hash (&grp->pub_key, sizeof (grp->pub_key), &grp->pub_key_hash);
+  GNUNET_CRYPTO_eddsa_key_get_public (&msg->member_key, &mem_pub_key);
+  GNUNET_CRYPTO_hash (&mem_pub_key, sizeof (mem_pub_key), &mem_pub_key_hash);
+  GNUNET_CRYPTO_hash (&msg->group_key, sizeof (msg->group_key), &pub_key_hash);
+
+  struct GNUNET_CONTAINER_MultiHashMap *
+    grp_mem = GNUNET_CONTAINER_multihashmap_get (group_members, &pub_key_hash);
+  struct Member *mem = NULL;
+  struct Group *grp;
+
+  if (NULL == grp_mem)
+  {
+    grp_mem = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_YES);
+    GNUNET_CONTAINER_multihashmap_put (group_members, &pub_key_hash, grp_mem,
+                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+  }
+  else
+  {
+    mem = GNUNET_CONTAINER_multihashmap_get (grp_mem, &mem_pub_key_hash);
+  }
+
+  if (NULL == mem)
+  {
+    mem = GNUNET_new (struct Member);
+    mem->priv_key = msg->member_key;
+    mem->pub_key = mem_pub_key;
+    mem->pub_key_hash = mem_pub_key_hash;
+
+    grp = &mem->grp;
+    grp->is_origin = GNUNET_NO;
+    grp->pub_key = msg->group_key;
+    grp->pub_key_hash = pub_key_hash;
+
+    GNUNET_CONTAINER_multihashmap_put (grp_mem, &mem_pub_key_hash, mem,
+                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
+    GNUNET_CONTAINER_multihashmap_put (members, &grp->pub_key_hash, mem,
+                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+  }
+  else
+  {
+    grp = &mem->grp;
+  }
+
+  struct ClientList *cl = GNUNET_new (struct ClientList);
+  cl->client = client;
+  GNUNET_CONTAINER_DLL_insert (grp->clients_head, grp->clients_tail, cl);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%p Client connected as member to group %s.\n",
               mem, GNUNET_h2s (&grp->pub_key_hash));
 
   GNUNET_SERVER_client_set_user_context (client, grp);
-  GNUNET_CONTAINER_multihashmap_put (members, &grp->pub_key_hash, mem,
-                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+
+  if (NULL != mem->join_decision)
+  { /* Already got a join decision, send it to client. */
+    GNUNET_SERVER_notification_context_add (nc, client);
+    GNUNET_SERVER_notification_context_unicast (nc, client,
+                                                (struct GNUNET_MessageHeader *)
+                                                mem->join_decision,
+                                                GNUNET_NO);
+  }
+  else if (grp->clients_head == grp->clients_tail)
+  { /* First client, send join request. */
+    struct GNUNET_PeerIdentity *relays = (struct GNUNET_PeerIdentity *) &msg[1];
+    uint32_t relay_count = ntohs (msg->relay_count);
+    struct GNUNET_MessageHeader *
+      join_req = ((struct GNUNET_MessageHeader *)
+                  ((char *) &msg[1]) + relay_count * sizeof (*relays));
+    uint16_t join_req_size = ntohs (join_req->size);
+
+    struct MulticastJoinRequestMessage *
+      req = GNUNET_malloc (sizeof (*req) + join_req_size);
+    req->header.size = htons (sizeof (*req) + join_req_size);
+    req->header.type = htons (GNUNET_MESSAGE_TYPE_MULTICAST_JOIN_REQUEST);
+    req->group_key = grp->pub_key;
+    GNUNET_CRYPTO_eddsa_key_get_public (&mem->priv_key, &req->member_key);
+    memcpy (&req[1], join_req, join_req_size);
+
+    req->purpose.size = htonl (sizeof (*req) + join_req_size
+                               - sizeof (req->header)
+                               - sizeof (req->signature));
+    req->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_MULTICAST_REQUEST);
+
+    if (GNUNET_OK != GNUNET_CRYPTO_eddsa_sign (&mem->priv_key, &req->purpose,
+                                               &req->signature))
+    {
+      /* FIXME: handle error */
+      GNUNET_assert (0);
+    }
+
+    if (NULL != mem->join_request)
+      GNUNET_free (mem->join_request);
+    mem->join_request = req;
+
+    if (GNUNET_YES
+        == GNUNET_CONTAINER_multihashmap_contains (origins, &grp->pub_key_hash))
+    { /* Local origin */
+      message_to_origin (grp, (struct GNUNET_MessageHeader *) mem->join_request);
+    }
+    else
+    {
+      /* FIXME: send join request to remote origin / members */
+    }
+  }
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
-}
-
-
-/**
- * Handle a client parting a group.
- */
-static void
-handle_member_part (void *cls, struct GNUNET_SERVER_Client *client,
-                    const struct GNUNET_MessageHeader *msg)
-{
-
 }
 
 
@@ -296,7 +563,7 @@ handle_multicast_message (void *cls, struct GNUNET_SERVER_Client *client,
                                              &msg->signature))
   {
     /* FIXME: handle error */
-    return;
+    GNUNET_assert (0);
   }
 
   /* FIXME: send to remote members */
@@ -327,18 +594,24 @@ handle_multicast_request (void *cls, struct GNUNET_SERVER_Client *client,
                              - sizeof (req->header)
                              - sizeof (req->member_key)
                              - sizeof (req->signature));
-  req->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_MULTICAST_MESSAGE);
+  req->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_MULTICAST_REQUEST);
 
   if (GNUNET_OK != GNUNET_CRYPTO_eddsa_sign (&mem->priv_key, &req->purpose,
                                              &req->signature))
   {
     /* FIXME: handle error */
-    return;
+    GNUNET_assert (0);
   }
 
-  /* FIXME: send to remote origin */
-
-  message_to_origin (grp, m);
+  if (GNUNET_YES
+      == GNUNET_CONTAINER_multihashmap_contains (origins, &grp->pub_key_hash))
+  { /* Local origin */
+    message_to_origin (grp, m);
+  }
+  else
+  {
+    /* FIXME: send to remote origin */
+  }
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
@@ -357,14 +630,8 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     { &handle_origin_start, NULL,
       GNUNET_MESSAGE_TYPE_MULTICAST_ORIGIN_START, 0 },
 
-    { &handle_origin_stop, NULL,
-      GNUNET_MESSAGE_TYPE_MULTICAST_ORIGIN_STOP, 0 },
-
     { &handle_member_join, NULL,
       GNUNET_MESSAGE_TYPE_MULTICAST_MEMBER_JOIN, 0 },
-
-    { &handle_member_part, NULL,
-      GNUNET_MESSAGE_TYPE_MULTICAST_MEMBER_PART, 0 },
 
     { &handle_multicast_message, NULL,
       GNUNET_MESSAGE_TYPE_MULTICAST_MESSAGE, 0 },
@@ -379,9 +646,11 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   stats = GNUNET_STATISTICS_create ("multicast", cfg);
   origins = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_YES);
   members = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_YES);
+  group_members = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_NO);
   nc = GNUNET_SERVER_notification_context_create (server, 1);
 
   GNUNET_SERVER_add_handlers (server, handlers);
+  GNUNET_SERVER_disconnect_notify (server, &client_disconnect, NULL);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleanup_task,
                                 NULL);
 }

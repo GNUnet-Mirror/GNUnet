@@ -620,9 +620,7 @@ typedef void
  * @param message_cb Function to invoke on message parts received from the
  *        channel, typically at least contains method handlers for @e join and
  *        @e part.
- * @param join_cb function invoked once we have joined with the current
- *        message ID of the channel
- * @param slave_joined_cb Function to invoke when a peer wants to join.
+ * @param slave_joined_cb Function invoked once we have joined the channel.
  * @param cls Closure for @a message_cb and @a slave_joined_cb.
  * @param method_name Method name for the join request.
  * @param env Environment containing transient variables for the request, or NULL.
@@ -638,7 +636,6 @@ GNUNET_PSYC_slave_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
                         uint32_t relay_count,
                         const struct GNUNET_PeerIdentity *relays,
                         GNUNET_PSYC_MessageCallback message_cb,
-                        GNUNET_PSYC_JoinCallback join_cb,
                         GNUNET_PSYC_SlaveJoinCallback slave_joined_cb,
                         void *cls,
                         const char *method_name,

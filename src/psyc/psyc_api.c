@@ -126,12 +126,7 @@ struct GNUNET_PSYC_Channel
   GNUNET_PSYC_MessageCallback hist_message_cb;
 
   /**
-   * Join handler callback.
-   */
-  GNUNET_PSYC_JoinCallback join_cb;
-
-  /**
-   * Closure for @a message_cb and @a join_cb.
+   * Closure for @a message_cb.
    */
   void *cb_cls;
 
@@ -200,6 +195,11 @@ struct GNUNET_PSYC_Master
   struct GNUNET_PSYC_Channel ch;
 
   GNUNET_PSYC_MasterStartCallback start_cb;
+
+  /**
+   * Join handler callback.
+   */
+  GNUNET_PSYC_JoinCallback join_cb;
 };
 
 
@@ -908,6 +908,18 @@ handle_psyc_message_ack (struct GNUNET_PSYC_Channel *ch)
 }
 
 
+static void
+handle_psyc_join_request (struct GNUNET_PSYC_Master *mst,
+                          const struct MasterJoinRequest *req)
+{
+  // FIXME: extract join message from req[1]
+  const char *method_name = "_fixme";
+  struct GNUNET_PSYC_JoinHandle *jh = GNUNET_malloc (sizeof (*jh));
+  mst->join_cb (mst->ch.cb_cls, &req->slave_key, method_name,
+                0, NULL, NULL, 0, jh);
+}
+
+
 /**
  * Type of a function to call when we receive a message
  * from the service.
@@ -951,6 +963,9 @@ message_handler (void *cls,
   case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_ACK:
     size_eq = sizeof (struct GNUNET_MessageHeader);
     break;
+  case GNUNET_MESSAGE_TYPE_PSYC_JOIN_REQUEST:
+    size_min = sizeof (struct MasterJoinRequest);
+    break;
   default:
     GNUNET_break_op (0);
     return;
@@ -987,6 +1002,11 @@ message_handler (void *cls,
 
   case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE:
     handle_psyc_message (ch, (const struct GNUNET_PSYC_MessageHeader *) msg);
+    break;
+
+  case GNUNET_MESSAGE_TYPE_PSYC_JOIN_REQUEST:
+    handle_psyc_join_request ((struct GNUNET_PSYC_Master *) ch,
+                              (const struct MasterJoinRequest *) msg);
     break;
   }
 
@@ -1186,8 +1206,8 @@ GNUNET_PSYC_master_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   req->policy = policy;
 
   mst->start_cb = master_started_cb;
+  mst->join_cb = join_cb;
   ch->message_cb = message_cb;
-  ch->join_cb = join_cb;
   ch->cb_cls = cls;
   ch->cfg = cfg;
   ch->is_master = GNUNET_YES;
@@ -1320,9 +1340,7 @@ GNUNET_PSYC_master_transmit_cancel (struct GNUNET_PSYC_MasterTransmitHandle *th)
  * @param message_cb Function to invoke on message parts received from the
  *        channel, typically at least contains method handlers for @e join and
  *        @e part.
- * @param join_cb function invoked once we have joined with the current
- *        message ID of the channel
- * @param slave_joined_cb Function to invoke when a peer wants to join.
+ * @param slave_joined_cb Function invoked once we have joined the channel.
  * @param cls Closure for @a message_cb and @a slave_joined_cb.
  * @param method_name Method name for the join request.
  * @param env Environment containing transient variables for the request, or NULL.
@@ -1339,7 +1357,6 @@ GNUNET_PSYC_slave_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
                         uint32_t relay_count,
                         const struct GNUNET_PeerIdentity *relays,
                         GNUNET_PSYC_MessageCallback message_cb,
-                        GNUNET_PSYC_JoinCallback join_cb,
                         GNUNET_PSYC_SlaveJoinCallback slave_joined_cb,
                         void *cls,
                         const char *method_name,
@@ -1362,7 +1379,6 @@ GNUNET_PSYC_slave_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
   slv->join_cb = slave_joined_cb;
   ch->message_cb = message_cb;
-  ch->join_cb = join_cb;
   ch->cb_cls = cls;
 
   ch->cfg = cfg;

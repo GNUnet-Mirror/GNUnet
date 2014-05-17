@@ -2338,70 +2338,60 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_MULTICAST_ORIGIN_START 750
 
 /**
- * C->S: Stop the origin.
- */
-#define GNUNET_MESSAGE_TYPE_MULTICAST_ORIGIN_STOP 751
-
-/**
  * C->S: Join group as a member.
  */
-#define GNUNET_MESSAGE_TYPE_MULTICAST_MEMBER_JOIN 752
-
-/**
- * C->S: Part the group.
- */
-#define GNUNET_MESSAGE_TYPE_MULTICAST_MEMBER_PART 753
-
-/**
- * C<->S<->T: Multicast message from the origin to all members.
- */
-#define GNUNET_MESSAGE_TYPE_MULTICAST_MESSAGE 754
-
-/**
- * C<->S<->T: Unicast request from a group member to the origin.
- */
-#define GNUNET_MESSAGE_TYPE_MULTICAST_REQUEST 755
+#define GNUNET_MESSAGE_TYPE_MULTICAST_MEMBER_JOIN 751
 
 /**
  * C<--S<->T: A peer wants to join the group.
  *
  * Unicast message to the origin or another group member.
  */
-#define GNUNET_MESSAGE_TYPE_MULTICAST_JOIN_REQUEST
+#define GNUNET_MESSAGE_TYPE_MULTICAST_JOIN_REQUEST 752
 
 /**
  * C<->S<->T: Response to a join request.
  *
  * Unicast message from a group member to the peer wanting to join.
  */
-#define GNUNET_MESSAGE_TYPE_MULTICAST_JOIN_DECISION
+#define GNUNET_MESSAGE_TYPE_MULTICAST_JOIN_DECISION 753
 
 /**
  * A peer wants to part the group.
  */
-#define GNUNET_MESSAGE_TYPE_MULTICAST_PART_REQUEST
+#define GNUNET_MESSAGE_TYPE_MULTICAST_PART_REQUEST 754
 
 /**
  * Acknowledgement sent in response to a part request.
  *
  * Unicast message from a group member to the peer wanting to part.
  */
-#define GNUNET_MESSAGE_TYPE_MULTICAST_PART_ACK
+#define GNUNET_MESSAGE_TYPE_MULTICAST_PART_ACK 755
 
 /**
  * Group terminated.
  */
-#define GNUNET_MESSAGE_TYPE_MULTICAST_GROUP_END
+#define GNUNET_MESSAGE_TYPE_MULTICAST_GROUP_END 756
 
 /**
- *
+ * C<->S<->T: Multicast message from the origin to all members.
  */
-#define GNUNET_MESSAGE_TYPE_MULTICAST_REPLAY_REQUEST
+#define GNUNET_MESSAGE_TYPE_MULTICAST_MESSAGE 757
 
 /**
- *
+ * C<->S<->T: Unicast request from a group member to the origin.
  */
-#define GNUNET_MESSAGE_TYPE_MULTICAST_REPLAY_REQUEST_CANCEL
+#define GNUNET_MESSAGE_TYPE_MULTICAST_REQUEST 758
+
+/**
+ * C<->S<->T: Replay request from a group member to another member.
+ */
+#define GNUNET_MESSAGE_TYPE_MULTICAST_REPLAY_REQUEST 759
+
+/**
+ * C<->S<->T: Cancellation of a replay request.
+ */
+#define GNUNET_MESSAGE_TYPE_MULTICAST_REPLAY_REQUEST_CANCEL 760
 
 
 

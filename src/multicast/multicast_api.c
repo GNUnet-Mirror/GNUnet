@@ -196,6 +196,17 @@ struct GNUNET_MULTICAST_Member
  */
 struct GNUNET_MULTICAST_JoinHandle
 {
+  struct GNUNET_MULTICAST_Group *group;
+
+  /**
+   * Public key of the joining member.
+   */
+  struct GNUNET_CRYPTO_EddsaPublicKey member_key;
+
+  /**
+   * Peer identity of the joining member.
+   */
+  struct GNUNET_PeerIdentity member_peer;
 };
 
 
@@ -437,8 +448,7 @@ disconnect (void *g)
  * Iterator callback for calling message callbacks for all groups.
  */
 static int
-message_callback (void *cls, const struct GNUNET_HashCode *pub_key_hash,
-                  void *group)
+message_cb (void *cls, const struct GNUNET_HashCode *pub_key_hash, void *group)
 {
   const struct GNUNET_MessageHeader *msg = cls;
   struct GNUNET_MULTICAST_Group *grp = group;
@@ -456,32 +466,10 @@ message_callback (void *cls, const struct GNUNET_HashCode *pub_key_hash,
 
 
 /**
- * Handle a multicast message from the service.
- *
- * Call message callbacks of all origins and members of the destination group.
- *
- * @param grp Destination group of the message.
- * @param msg The message.
- */
-static void
-handle_multicast_message (struct GNUNET_MULTICAST_Group *grp,
-                          const struct GNUNET_MULTICAST_MessageHeader *msg)
-{
-  if (origins != NULL)
-    GNUNET_CONTAINER_multihashmap_get_multiple (origins, &grp->pub_key_hash,
-                                                message_callback, (void *) msg);
-  if (members != NULL)
-    GNUNET_CONTAINER_multihashmap_get_multiple (members, &grp->pub_key_hash,
-                                                message_callback, (void *) msg);
-}
-
-
-/**
  * Iterator callback for calling request callbacks of origins.
  */
 static int
-request_callback (void *cls, const struct GNUNET_HashCode *chan_key_hash,
-                  void *origin)
+request_cb (void *cls, const struct GNUNET_HashCode *pub_key_hash, void *origin)
 {
   const struct GNUNET_MULTICAST_RequestHeader *req = cls;
   struct GNUNET_MULTICAST_Origin *orig = origin;
@@ -497,20 +485,26 @@ request_callback (void *cls, const struct GNUNET_HashCode *chan_key_hash,
 
 
 /**
- * Handle a multicast request from the service.
- *
- * Call request callbacks of all origins of the destination group.
- *
- * @param grp Destination group of the message.
- * @param msg The message.
+ * Iterator callback for calling join request callbacks of origins.
  */
-static void
-handle_multicast_request (struct GNUNET_MULTICAST_Group *grp,
-                          const struct GNUNET_MULTICAST_RequestHeader *req)
+static int
+join_request_cb (void *cls, const struct GNUNET_HashCode *pub_key_hash,
+                 void *group)
 {
-  if (NULL != origins)
-    GNUNET_CONTAINER_multihashmap_get_multiple (origins, &grp->pub_key_hash,
-                                                request_callback, (void *) req);
+  const struct MulticastJoinRequestMessage *req = cls;
+  struct GNUNET_MULTICAST_Group *grp = group;
+
+  struct GNUNET_MULTICAST_JoinHandle *jh = GNUNET_malloc (sizeof (*jh));
+  jh->group = grp;
+  jh->member_key = req->member_key;
+  jh->member_peer = req->member_peer;
+
+  const struct GNUNET_MessageHeader *msg = NULL;
+  if (sizeof (*req) + sizeof (*msg) <= ntohs (req->header.size))
+    msg =(const struct GNUNET_MessageHeader *) &req[1];
+
+  grp->join_cb (grp->cb_cls, &req->member_key, msg, jh);
+  return GNUNET_YES;
 }
 
 
@@ -551,22 +545,31 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     size_min = sizeof (struct GNUNET_MULTICAST_RequestHeader);
     break;
 
+  case GNUNET_MESSAGE_TYPE_MULTICAST_JOIN_REQUEST:
+    size_min = sizeof (struct MulticastJoinRequestMessage);
+    break;
+
   default:
     GNUNET_break_op (0);
-    return;
+    type = 0;
   }
 
   if (! ((0 < size_eq && size == size_eq)
          || (0 < size_min && size_min <= size)))
   {
     GNUNET_break_op (0);
-    return;
+    type = 0;
   }
 
   switch (type)
   {
   case GNUNET_MESSAGE_TYPE_MULTICAST_MESSAGE:
-    handle_multicast_message (grp, (struct GNUNET_MULTICAST_MessageHeader *) msg);
+    if (origins != NULL)
+      GNUNET_CONTAINER_multihashmap_get_multiple (origins, &grp->pub_key_hash,
+                                                  message_cb, (void *) msg);
+    if (members != NULL)
+      GNUNET_CONTAINER_multihashmap_get_multiple (members, &grp->pub_key_hash,
+                                                  message_cb, (void *) msg);
     break;
 
   case GNUNET_MESSAGE_TYPE_MULTICAST_REQUEST:
@@ -576,12 +579,19 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
       break;
     }
 
-    handle_multicast_request (grp, (struct GNUNET_MULTICAST_RequestHeader *) msg);
+    if (NULL != origins)
+      GNUNET_CONTAINER_multihashmap_get_multiple (origins, &grp->pub_key_hash,
+                                                  request_cb, (void *) msg);
     break;
 
-  default:
-    GNUNET_break_op (0);
-    return;
+  case GNUNET_MESSAGE_TYPE_MULTICAST_JOIN_REQUEST:
+    if (NULL != origins)
+      GNUNET_CONTAINER_multihashmap_get_multiple (origins, &grp->pub_key_hash,
+                                                  join_request_cb, (void *) msg);
+    if (NULL != members)
+      GNUNET_CONTAINER_multihashmap_get_multiple (members, &grp->pub_key_hash,
+                                                  join_request_cb, (void *) msg);
+    break;
   }
 
   if (NULL != grp->client)
@@ -621,6 +631,7 @@ GNUNET_MULTICAST_join_decision (struct GNUNET_MULTICAST_JoinHandle *jh,
                                 const struct GNUNET_PeerIdentity *relays,
                                 const struct GNUNET_MessageHeader *join_response)
 {
+  GNUNET_free (jh);
   return NULL;
 }
 

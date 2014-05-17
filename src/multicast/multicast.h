@@ -33,7 +33,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
 /**
  * Header of a join request sent to the origin or another member.
  */
-struct GNUNET_MULTICAST_JoinRequest
+struct MulticastJoinRequestMessage
 {
   /**
    * Header for the join request.
@@ -67,7 +67,7 @@ struct GNUNET_MULTICAST_JoinRequest
    */
   struct GNUNET_PeerIdentity member_peer;
 
-  /* Followed by request body. */
+  /* Followed by struct GNUNET_MessageHeader join_request */
 };
 
 
@@ -97,9 +97,9 @@ struct MulticastJoinDecisionMessage
    */
   uint32_t relay_count;
 
-  /* followed by 'relay_count' peer identities */
+  /* Followed by relay_count peer identities */
 
-  /* followed by the join response message */
+  /* Followed by the join response message */
 
 };
 

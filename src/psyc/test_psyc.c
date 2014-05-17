@@ -130,6 +130,7 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   res = 1;
   cleanup ();
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Test FAILED.\n");
 }
 
 
@@ -144,6 +145,7 @@ end_normally (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   res = 0;
   cleanup ();
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Test PASSED.\n");
 }
 
 
@@ -181,7 +183,7 @@ master_message (void *cls, uint64_t message_id, uint32_t flags,
 
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "Master got message part of type %u and size %u "
-              "belonging to message ID %llu with flags %u\n",
+              "belonging to message ID %llu with flags %bu\n",
               type, size, message_id, flags);
 
   switch (test)
@@ -225,7 +227,7 @@ slave_message (void *cls, uint64_t message_id, uint32_t flags,
 
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "Slave got message part of type %u and size %u "
-              "belonging to message ID %llu with flags %u\n",
+              "belonging to message ID %llu with flags %bu\n",
               type, size, message_id, flags);
 
   switch (test)
