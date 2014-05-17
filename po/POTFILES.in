@@ -232,6 +232,7 @@ src/peerinfo-tool/gnunet-peerinfo_plugins.c
 src/peerstore/gnunet-peerstore.c
 src/peerstore/gnunet-service-peerstore.c
 src/peerstore/peerstore_api.c
+src/peerstore/peerstore_common.c
 src/peerstore/plugin_peerstore_sqlite.c
 src/postgres/postgres.c
 src/psyc/gnunet-service-psyc.c

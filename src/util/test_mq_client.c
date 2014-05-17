@@ -102,6 +102,12 @@ send_cb (void *cls)
   notify = GNUNET_YES;
 }
 
+static void
+send_trap_cb (void *cls)
+{
+  GNUNET_abort ();
+}
+
 
 static void
 test_mq (struct GNUNET_CLIENT_Connection *client)
@@ -116,10 +122,14 @@ test_mq (struct GNUNET_CLIENT_Connection *client)
   GNUNET_MQ_send (mq, mqm);
 
   mqm = GNUNET_MQ_msg_header (MY_TYPE);
+  GNUNET_MQ_notify_sent (mqm, send_trap_cb, NULL);
+  GNUNET_MQ_send (mq, mqm);
+  GNUNET_MQ_send_cancel (mqm);
+
+  mqm = GNUNET_MQ_msg_header (MY_TYPE);
   GNUNET_MQ_notify_sent (mqm, send_cb, NULL);
   GNUNET_MQ_send (mq, mqm);
 
-  /* FIXME: add a message that will be canceled */
 }
 
 

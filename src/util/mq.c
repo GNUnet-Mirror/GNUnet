@@ -94,6 +94,11 @@ struct GNUNET_MQ_Handle
   GNUNET_MQ_DestroyImpl destroy_impl;
 
   /**
+   * Implementation-dependent send cancel function
+   */
+  GNUNET_MQ_CancelImpl cancel_impl;
+
+  /**
    * Implementation-specific state
    */
   void *impl_state;
@@ -242,6 +247,8 @@ GNUNET_MQ_send (struct GNUNET_MQ_Handle *mq, struct GNUNET_MQ_Envelope *ev)
   GNUNET_assert (NULL != mq);
   GNUNET_assert (NULL == ev->parent_queue);
 
+  ev->parent_queue = mq;
+
   /* is the implementation busy? queue it! */
   if (NULL != mq->current_envelope)
   {
@@ -276,6 +283,7 @@ impl_send_continue (void *cls,
    * a message */
   current_envelope = mq->current_envelope;
   GNUNET_assert (NULL != current_envelope);
+  current_envelope->parent_queue = NULL;
   if (NULL == mq->envelope_head)
   {
     mq->current_envelope = NULL;
@@ -337,6 +345,7 @@ GNUNET_MQ_queue_for_callbacks (GNUNET_MQ_SendImpl send,
   mq = GNUNET_new (struct GNUNET_MQ_Handle);
   mq->send_impl = send;
   mq->destroy_impl = destroy;
+  mq->cancel_impl = cancel;
   mq->handlers = handlers;
   mq->handlers_cls = cls;
   mq->impl_state = impl_state;
@@ -613,6 +622,17 @@ connection_client_send_impl (struct GNUNET_MQ_Handle *mq,
 }
 
 
+static void
+connection_client_cancel_impl (struct GNUNET_MQ_Handle *mq,
+                               void *impl_state)
+{
+  struct ClientConnectionState *state = impl_state;
+  GNUNET_assert (NULL != state->th);
+  GNUNET_CLIENT_notify_transmit_ready_cancel (state->th);
+  state->th = NULL;
+}
+
+
 struct GNUNET_MQ_Handle *
 GNUNET_MQ_queue_for_connection_client (struct GNUNET_CLIENT_Connection *connection,
                                        const struct GNUNET_MQ_MessageHandler *handlers,
@@ -633,6 +653,7 @@ GNUNET_MQ_queue_for_connection_client (struct GNUNET_CLIENT_Connection *connecti
   mq->impl_state = state;
   mq->send_impl = connection_client_send_impl;
   mq->destroy_impl = connection_client_destroy_impl;
+  mq->cancel_impl = connection_client_cancel_impl;
   if (NULL != handlers)
     state->receive_requested = GNUNET_YES;
 
@@ -776,4 +797,46 @@ GNUNET_MQ_extract_nested_mh_ (const struct GNUNET_MessageHeader *mh, uint16_t ba
   return nested_msg;
 }
 
+
+/**
+ * Cancel sending the message. Message must have been sent with
+ * #GNUNET_MQ_send before.  May not be called after the notify sent
+ * callback has been called
+ *
+ * @param ev queued envelope to cancel
+ */
+void
+GNUNET_MQ_send_cancel (struct GNUNET_MQ_Envelope *ev)
+{
+  struct GNUNET_MQ_Handle *mq = ev->parent_queue;
+
+  GNUNET_assert (NULL != mq);
+  GNUNET_assert (NULL != mq->cancel_impl);
+
+  if (mq->current_envelope == ev) {
+    // complex case, we already started with transmitting
+    // the message
+    mq->cancel_impl (mq, mq->impl_state);
+    // continue sending the next message, if any
+    if (NULL == mq->envelope_head)
+    {
+      mq->current_envelope = NULL;
+    }
+    else
+    {
+      mq->current_envelope = mq->envelope_head;
+      GNUNET_CONTAINER_DLL_remove (mq->envelope_head,
+                                   mq->envelope_tail,
+                                   mq->current_envelope);
+      mq->send_impl (mq, mq->current_envelope->mh, mq->impl_state);
+    }
+  } else {
+    // simple case, message is still waiting in the queue
+    GNUNET_CONTAINER_DLL_remove (mq->envelope_head, mq->envelope_tail, ev);
+  }
+
+  ev->parent_queue = NULL;
+  ev->mh = NULL;
+  GNUNET_free (ev);
+}
 
