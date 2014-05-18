@@ -82,7 +82,6 @@ run (void *cls,
   struct GNUNET_PeerIdentity pid;
   char *val = "peerstore-test-value";
   size_t val_size = strlen(val);
-  struct GNUNET_PEERSTORE_StoreContext *sc;
 
   ok = 0;
   memset (&pid, 32, sizeof (pid));

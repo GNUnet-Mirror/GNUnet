@@ -120,6 +120,7 @@ void handle_iterate (void *cls,
   struct GNUNET_PEERSTORE_Record *record;
   struct GNUNET_SERVER_TransmitContext *tc;
 
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Received an iterate request from client.\n");
   record = PEERSTORE_parse_record_message(message);
   if(NULL == record)
   {

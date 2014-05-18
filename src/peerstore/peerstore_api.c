@@ -211,7 +211,7 @@ handle_client_error (void *cls, enum GNUNET_MQ_Error error)
 {
   struct GNUNET_PEERSTORE_Handle *h = cls;
 
-  GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Received an error notification from MQ of type: %d\n", error);
+  LOG(GNUNET_ERROR_TYPE_ERROR, "Received an error notification from MQ of type: %d\n", error);
   reconnect(h);
 }
 
@@ -342,7 +342,7 @@ void handle_store_result (void *cls, const struct GNUNET_MessageHeader *msg)
   sc = h->store_head;
   if(NULL == sc)
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Unexpected store response, this should not happen.\n");
+    LOG(GNUNET_ERROR_TYPE_ERROR, "Unexpected store response, this should not happen.\n");
     reconnect(h);
     return;
   }
@@ -389,13 +389,13 @@ void store_request_sent (void *cls)
 void
 GNUNET_PEERSTORE_store_cancel (struct GNUNET_PEERSTORE_StoreContext *sc)
 {
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
           "Canceling store request.\n");
   if(GNUNET_NO == sc->request_sent)
   {
     if(NULL != sc->ev)
     {
-      //GNUNET_MQ_discard(sc->ev); //FIXME: this should be GNUNET_MQ_send_cancel
+      GNUNET_MQ_send_cancel(sc->ev);
       sc->ev = NULL;
     }
     GNUNET_CONTAINER_DLL_remove(sc->h->store_head, sc->h->store_tail, sc);
@@ -476,11 +476,12 @@ void handle_iterate_result (void *cls, const struct GNUNET_MessageHeader *msg)
   void *callback_cls;
   uint16_t msg_type;
   struct GNUNET_PEERSTORE_Record *record;
+  int continue_iter;
 
   ic = h->iterate_head;
   if(NULL == ic)
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Unexpected iteration response, this should not happen.\n");
+    LOG(GNUNET_ERROR_TYPE_ERROR, "Unexpected iteration response, this should not happen.\n");
     reconnect(h);
     return;
   }
@@ -498,19 +499,21 @@ void handle_iterate_result (void *cls, const struct GNUNET_MessageHeader *msg)
   msg_type = ntohs(msg->type);
   if(GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE_END == msg_type)
   {
-    if(NULL != callback)
-      callback(callback_cls, NULL, NULL);
     GNUNET_CONTAINER_DLL_remove(ic->h->iterate_head, ic->h->iterate_tail, ic);
     GNUNET_free(ic);
+    if(NULL != callback)
+      callback(callback_cls, NULL, NULL);
     return;
   }
   if(NULL != callback)
   {
     record = PEERSTORE_parse_record_message(msg);
     if(NULL == record)
-      callback(callback_cls, record, _("Received a malformed response from service."));
+      continue_iter = callback(callback_cls, record, _("Received a malformed response from service."));
     else
-      callback(callback_cls, record, NULL);
+      continue_iter = callback(callback_cls, record, NULL);
+    if(GNUNET_NO == continue_iter)
+      ic->callback = NULL;
   }
 
 }
@@ -524,6 +527,7 @@ void iterate_request_sent (void *cls)
 {
   struct GNUNET_PEERSTORE_IterateContext *ic = cls;
 
+  LOG(GNUNET_ERROR_TYPE_DEBUG, "Iterate request sent to service.\n");
   ic->request_sent = GNUNET_YES;
   ic->ev = NULL;
 }
@@ -537,11 +541,12 @@ void iterate_request_sent (void *cls)
 void
 GNUNET_PEERSTORE_iterate_cancel (struct GNUNET_PEERSTORE_IterateContext *ic)
 {
+  LOG(GNUNET_ERROR_TYPE_DEBUG, "User request cancel of iterate request.\n");
   if(GNUNET_NO == ic->request_sent)
   {
     if(NULL != ic->ev)
     {
-      //GNUNET_MQ_discard(ic->ev); //FIXME: this should be GNUNET_MQ_send_cancel
+      GNUNET_MQ_send_cancel(ic->ev);
       ic->ev = NULL;
     }
     GNUNET_CONTAINER_DLL_remove(ic->h->iterate_head, ic->h->iterate_tail, ic);
@@ -587,6 +592,8 @@ GNUNET_PEERSTORE_iterate (struct GNUNET_PEERSTORE_Handle *h,
   ic->h = h;
   ic->request_sent = GNUNET_NO;
   GNUNET_CONTAINER_DLL_insert(h->iterate_head, h->iterate_tail, ic);
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+        "Sending an iterate request for sub system `%s'\n", sub_system);
   GNUNET_MQ_notify_sent(ev, &iterate_request_sent, ev);
   GNUNET_MQ_send(h->mq, ev);
   return ic;

@@ -124,6 +124,7 @@ peerstore_sqlite_iterate_records (void *cls,
   int sret;
   struct GNUNET_PEERSTORE_Record *ret;
 
+  LOG(GNUNET_ERROR_TYPE_DEBUG, "Executing iterate request on sqlite db.\n");
   if(NULL == peer && NULL == key)
   {
     stmt = plugin->select_peerstoredata;
@@ -161,6 +162,7 @@ peerstore_sqlite_iterate_records (void *cls,
   }
   while (SQLITE_ROW == (sret = sqlite3_step (stmt)))
   {
+    LOG(GNUNET_ERROR_TYPE_DEBUG, "Returning a matched record.\n");
     ret = GNUNET_new(struct GNUNET_PEERSTORE_Record);
     ret->sub_system = (char *)sqlite3_column_text(stmt, 0);
     ret->peer = (struct GNUNET_PeerIdentity *)sqlite3_column_blob(stmt, 1);
