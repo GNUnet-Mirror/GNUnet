@@ -55,7 +55,7 @@ struct GNUNET_TRANSPORT_AddressToStringContext
 /**
  * Function called with responses from the service.
  *
- * @param cls our 'struct GNUNET_TRANSPORT_AddressLookupContext*'
+ * @param cls our 'struct GNUNET_TRANSPORT_AddressToStringContext*'
  * @param msg NULL on timeout or error, otherwise presumably a
  *        message with the human-readable address
  */
@@ -63,41 +63,82 @@ static void
 address_response_processor (void *cls, const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_TRANSPORT_AddressToStringContext *alucb = cls;
+  struct AddressToStringResultMessage *atsm;
   const char *address;
   uint16_t size;
+  uint32_t result;
+  uint32_t addr_len;
+  char *empty_str = "";
 
   if (msg == NULL)
   {
-    alucb->cb (alucb->cb_cls, NULL);
+    alucb->cb (alucb->cb_cls, NULL, GNUNET_OK);
     GNUNET_CLIENT_disconnect (alucb->client);
     GNUNET_free (alucb);
     return;
   }
   GNUNET_break (ntohs (msg->type) ==
                 GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_TO_STRING_REPLY);
+
   size = ntohs (msg->size);
-  if (size == sizeof (struct GNUNET_MessageHeader))
+  if (size < sizeof (struct AddressToStringResultMessage))
   {
-    /* done! */
-    alucb->cb (alucb->cb_cls, NULL);
+    alucb->cb (alucb->cb_cls, NULL, GNUNET_OK);
     GNUNET_CLIENT_disconnect (alucb->client);
     GNUNET_free (alucb);
     return;
   }
-  address = (const char *) &msg[1];
-  if (address[size - sizeof (struct GNUNET_MessageHeader) - 1] != '\0')
+  atsm = (struct AddressToStringResultMessage *) msg;
+
+  result = ntohl (atsm->res);
+  addr_len = ntohl (atsm->addr_len);
+
+  if (size == (sizeof (struct AddressToStringResultMessage)))
+  {
+    /* done, success depends on result */
+    alucb->cb (alucb->cb_cls, NULL, result);
+    GNUNET_CLIENT_disconnect (alucb->client);
+    GNUNET_free (alucb);
+    return;
+  }
+
+  if (GNUNET_NO == result)
+  {
+    alucb->cb (alucb->cb_cls, NULL, GNUNET_SYSERR);
+
+    /* expect more replies */
+    GNUNET_CLIENT_receive (alucb->client, &address_response_processor, alucb,
+                           GNUNET_TIME_absolute_get_remaining (alucb->timeout));
+    return;
+  }
+
+
+  address = (const char *) &atsm[1];
+  if ( (addr_len > (size - (sizeof (struct AddressToStringResultMessage)))) ||
+       (address[addr_len -1] != '\0') )
   {
     /* invalid reply */
     GNUNET_break (0);
-    alucb->cb (alucb->cb_cls, NULL);
+    alucb->cb (alucb->cb_cls, NULL, GNUNET_SYSERR);
     GNUNET_CLIENT_disconnect (alucb->client);
     GNUNET_free (alucb);
     return;
   }
+
+  result = GNUNET_NO;
+
   /* expect more replies */
   GNUNET_CLIENT_receive (alucb->client, &address_response_processor, alucb,
                          GNUNET_TIME_absolute_get_remaining (alucb->timeout));
-  alucb->cb (alucb->cb_cls, address);
+
+  if (GNUNET_NO == result)
+  {
+    alucb->cb (alucb->cb_cls, empty_str, GNUNET_SYSERR);
+  }
+  else
+  {
+    alucb->cb (alucb->cb_cls, address, GNUNET_OK);
+  }
 }
 
 

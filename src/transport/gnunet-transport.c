@@ -579,7 +579,7 @@ resolve_validation_address (const struct GNUNET_PeerIdentity *id,
 
 
 static void
-process_validation_string (void *cls, const char *address)
+process_validation_string (void *cls, const char *address, int res)
 {
   struct ValidationResolutionContext *vc = cls;
   char *s_valid;
@@ -588,6 +588,13 @@ process_validation_string (void *cls, const char *address)
 
   if (address != NULL )
   {
+    if (GNUNET_SYSERR == res)
+    {
+      FPRINTF (stderr, "Failed to convert address for peer `%s' plugin `%s' length %lu to string \n",
+          GNUNET_i2s (&vc->id),
+          vc->addrcp->transport_name,
+          vc->addrcp->address_length);
+    }
     if (GNUNET_TIME_UNIT_ZERO_ABS.abs_value_us == vc->valid_until.abs_value_us)
       s_valid = GNUNET_strdup("never");
     else
@@ -605,7 +612,8 @@ process_validation_string (void *cls, const char *address)
 
     FPRINTF (stdout,
         _("Peer `%s' %s %s\n\t%s%s\n\t%s%s\n\t%s%s\n"),
-        GNUNET_i2s (&vc->id), address,
+        GNUNET_i2s (&vc->id),
+        (GNUNET_OK == res) ? address : "<invalid address>",
         (monitor_validation) ? GNUNET_TRANSPORT_vs2s (vc->state) : "",
         "Valid until    : ", s_valid,
         "Last validation: ",s_last,
@@ -618,9 +626,10 @@ process_validation_string (void *cls, const char *address)
   else
   {
     /* done */
+
     GNUNET_assert(address_resolutions > 0);
     address_resolutions--;
-    if (GNUNET_NO == vc->printed)
+    if ((GNUNET_SYSERR == res) && (GNUNET_NO == vc->printed))
     {
       if (numeric == GNUNET_NO)
       {
@@ -1066,7 +1075,7 @@ print_info (const struct GNUNET_PeerIdentity *id,
 
 
 static void
-process_peer_string (void *cls, const char *address)
+process_peer_string (void *cls, const char *address, int res)
 {
   struct PeerResolutionContext *rc = cls;
 

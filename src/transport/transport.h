@@ -276,6 +276,32 @@ struct SendOkMessage
 
 };
 
+/**
+ * Message used to notify the transport API about an address to string
+ * conversion. Message is followed by the string with length strlen
+ */
+struct AddressToStringResultMessage
+{
+
+  /**
+   * Type will be GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_OK
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * GNUNET_OK if the conversion succeeded,
+   * GNUNET_SYSERR if it failed
+   */
+  uint32_t res GNUNET_PACKED;
+
+  /**
+   * Length of the following string
+   */
+  uint32_t addr_len GNUNET_PACKED;
+};
+
+
+
 
 /**
  * Message used to notify the transport service about a message

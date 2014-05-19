@@ -863,17 +863,39 @@ static void
 transmit_address_to_client (void *cls, const char *buf)
 {
   struct AddressToStringContext *actx = cls;
+  struct AddressToStringResultMessage *atsm;
+  size_t len;
+
+  if (NULL != buf)
+  {
+    len = sizeof (struct AddressToStringResultMessage) + strlen (buf) + 1;
+    atsm = GNUNET_malloc (len);
+    atsm->header.size = ntohs (len);
+    atsm->header.type = ntohs (GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_TO_STRING_REPLY);
+    atsm->res = htonl (GNUNET_YES);
+    atsm->addr_len = htonl (strlen (buf) + 1);
+    memcpy (&atsm[1], buf, strlen (buf) + 1);
+  }
+  else
+  {
+    len = sizeof (struct AddressToStringResultMessage);
+    atsm = GNUNET_malloc (len);
+    atsm->header.size = ntohs (len);
+    atsm->header.type = ntohs (GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_TO_STRING_REPLY);
+    atsm->res = htonl (GNUNET_NO);
+    atsm->addr_len = htonl (0);
+  }
+
   if (NULL == buf)
   {
-    GNUNET_SERVER_transmit_context_append_data (actx->tc, NULL, 0,
-                                                GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_TO_STRING_REPLY);
+    /* Address could not be converted */
+    GNUNET_SERVER_transmit_context_append_message (actx->tc, (const struct GNUNET_MessageHeader *)atsm);
     GNUNET_SERVER_transmit_context_run (actx->tc, GNUNET_TIME_UNIT_FOREVER_REL);
     GNUNET_CONTAINER_DLL_remove (a2s_head, a2s_tail, actx);
     GNUNET_free (actx);
     return;
   }
-  GNUNET_SERVER_transmit_context_append_data (actx->tc, buf, strlen (buf) + 1,
-                                              GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_TO_STRING_REPLY);
+  GNUNET_SERVER_transmit_context_append_message (actx->tc, (const struct GNUNET_MessageHeader *) atsm);
 }
 
 
@@ -897,6 +919,7 @@ clients_handle_address_to_string (void *cls,
   uint16_t size;
   struct GNUNET_SERVER_TransmitContext *tc;
   struct AddressToStringContext *actx;
+  struct AddressToStringResultMessage atsm;
   struct GNUNET_TIME_Relative rtimeout;
   int32_t numeric;
 
@@ -929,8 +952,12 @@ clients_handle_address_to_string (void *cls,
   papi = GST_plugins_printer_find (plugin_name);
   if (NULL == papi)
   {
-    GNUNET_SERVER_transmit_context_append_data (tc, NULL, 0,
-                                                GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_TO_STRING_REPLY);
+    atsm.header.size = ntohs (sizeof (struct AddressToStringResultMessage));
+    atsm.header.type = ntohs (GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_TO_STRING_REPLY);
+    atsm.res = htonl (GNUNET_NO);
+    atsm.addr_len = htonl (0);
+    GNUNET_SERVER_transmit_context_append_message (tc,
+        (const struct GNUNET_MessageHeader *) &atsm);
     GNUNET_SERVER_transmit_context_run (tc, rtimeout);
     return;
   }

@@ -1229,10 +1229,11 @@ transmit_send_continuation (void *cls,
 			      gettext_noop
 			      ("# transmission failures for messages to other peers"),
 			      1, GNUNET_NO);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Sending message to `%s' of type %u was a %s\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+	      "Sending message to `%s' of type %u with %u bytes was a %s\n",
 	      GNUNET_i2s (receiver),
               ntohs (((struct GNUNET_MessageHeader *) mq->message_buf)->type),
+              mq->message_buf_size,
               (success == GNUNET_OK) ? "success" : "FAILURE");
   if (NULL != mq->cont)
     mq->cont (mq->cont_cls, success, size_payload, physical);
@@ -1296,6 +1297,11 @@ try_transmission_to_peer (struct NeighbourMapEntry *n)
     return;                     /* no more messages */
   GNUNET_CONTAINER_DLL_remove (n->messages_head, n->messages_tail, mq);
   n->is_active = mq;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+      "Giving message with %u bytes to plugin session %p\n",
+      mq->message_buf_size, n->primary_address.session);
+
   (void) send_with_session (n,
 			    mq->message_buf, mq->message_buf_size,
 			    0 /* priority */, timeout, GNUNET_NO,
@@ -1635,10 +1641,11 @@ GST_neighbours_send (const struct GNUNET_PeerIdentity *target, const void *msg,
   mq->message_buf = (const char *) &mq[1];
   mq->message_buf_size = msg_size;
   mq->timeout = GNUNET_TIME_relative_to_absolute (timeout);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Enqueueing %u bytes to send to peer %s\n",
+      msg_size, GNUNET_i2s (target));
+
   GNUNET_CONTAINER_DLL_insert_tail (n->messages_head, n->messages_tail, mq);
-  if ( (NULL != n->is_active) ||
-       ( (NULL == n->primary_address.session) && (NULL == n->primary_address.address)) )
-    return;
   if (GNUNET_SCHEDULER_NO_TASK != n->task)
     GNUNET_SCHEDULER_cancel (n->task);
   n->task = GNUNET_SCHEDULER_add_now (&master_task, n);
@@ -2073,8 +2080,7 @@ notification_cb(void *cls, const struct GNUNET_PeerIdentity *key, void *value)
   return GNUNET_OK;
 }
 
-static
-int
+static int
 free_notification_cb(void *cls, const struct GNUNET_PeerIdentity *key,
     void *value)
 {
