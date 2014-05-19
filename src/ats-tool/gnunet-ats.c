@@ -173,7 +173,7 @@ end(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 static void
-transport_addr_to_str_cb(void *cls, const char *address)
+transport_addr_to_str_cb(void *cls, const char *address, int res)
 {
   struct PendingResolutions * pr = cls;
   char *ats_str;
@@ -185,58 +185,7 @@ transport_addr_to_str_cb(void *cls, const char *address)
   uint32_t ats_value;
   uint32_t network;
 
-  if (NULL != address)
-  {
-    ats_str = GNUNET_strdup("");
-    network = GNUNET_ATS_NET_UNSPECIFIED;
-    for (c = 0; c < pr->ats_count; c++)
-    {
-      ats_tmp = ats_str;
-
-      ats_type = ntohl (pr->ats[c].type);
-      ats_value = ntohl (pr->ats[c].value);
-
-      if (ats_type > GNUNET_ATS_PropertyCount)
-      {
-        fprintf (stderr, "Invalid ATS property type %u %u for address %s\n", ats_type, pr->ats[c].type,
-            address);
-        continue;
-      }
-
-      switch (ats_type)
-      {
-      case GNUNET_ATS_NETWORK_TYPE:
-        if (ats_value > GNUNET_ATS_NetworkTypeCount)
-        {
-          GNUNET_break(0);
-          continue;
-        }
-        network = ats_value;
-        GNUNET_asprintf (&ats_prop_value, "%s",
-            GNUNET_ATS_print_network_type (ats_value));
-        break;
-      default:
-        GNUNET_asprintf (&ats_prop_value, "%u", ats_value);
-        break;
-      }
-      if ((verbose) && (ats_type < GNUNET_ATS_PropertyCount))
-      {
-        GNUNET_asprintf (&ats_str, "%s%s=%s, ", ats_tmp, ats_prop_arr[ats_type],
-            ats_prop_value);
-        GNUNET_free(ats_tmp);
-      }
-      GNUNET_free(ats_prop_value);
-    }
-
-    fprintf (stderr,
-        _("Peer `%s' plugin `%s', address `%s', `%s' bw out: %u Bytes/s, bw in %u Bytes/s, %s\n"),
-        GNUNET_i2s (&pr->address->peer), pr->address->transport_name, address,
-        GNUNET_ATS_print_network_type (network),
-        ntohl (pr->bandwidth_out.value__), ntohl (pr->bandwidth_in.value__),
-        ats_str);
-    GNUNET_free(ats_str);
-  }
-  else
+  if (NULL == address)
   {
     /* We're done */
     GNUNET_CONTAINER_DLL_remove(head, tail, pr);
@@ -251,7 +200,67 @@ transport_addr_to_str_cb(void *cls, const char *address)
         GNUNET_SCHEDULER_cancel (end_task);
       end_task = GNUNET_SCHEDULER_add_now (end, NULL );
     }
+
+    return;
   }
+
+  if (res == GNUNET_SYSERR)
+  {
+    fprintf (stderr, "Failed to convert address for peer `%s' plugin `%s' length %lu to string \n",
+        GNUNET_i2s (&pr->address->peer),
+        pr->address->transport_name,
+        pr->address->address_length );
+    return;
+  }
+
+  ats_str = GNUNET_strdup("");
+  network = GNUNET_ATS_NET_UNSPECIFIED;
+  for (c = 0; c < pr->ats_count; c++)
+  {
+    ats_tmp = ats_str;
+
+    ats_type = ntohl (pr->ats[c].type);
+    ats_value = ntohl (pr->ats[c].value);
+
+    if (ats_type > GNUNET_ATS_PropertyCount)
+    {
+      fprintf (stderr, "Invalid ATS property type %u %u for address %s\n", ats_type, pr->ats[c].type,
+          address);
+      continue;
+    }
+
+    switch (ats_type)
+    {
+    case GNUNET_ATS_NETWORK_TYPE:
+      if (ats_value > GNUNET_ATS_NetworkTypeCount)
+      {
+        GNUNET_break(0);
+        continue;
+      }
+      network = ats_value;
+      GNUNET_asprintf (&ats_prop_value, "%s",
+          GNUNET_ATS_print_network_type (ats_value));
+      break;
+    default:
+      GNUNET_asprintf (&ats_prop_value, "%u", ats_value);
+      break;
+    }
+    if ((verbose) && (ats_type < GNUNET_ATS_PropertyCount))
+    {
+      GNUNET_asprintf (&ats_str, "%s%s=%s, ", ats_tmp, ats_prop_arr[ats_type],
+          ats_prop_value);
+      GNUNET_free(ats_tmp);
+    }
+    GNUNET_free(ats_prop_value);
+  }
+
+  fprintf (stderr,
+      _("Peer `%s' plugin `%s', address `%s', `%s' bw out: %u Bytes/s, bw in %u Bytes/s, %s\n"),
+      GNUNET_i2s (&pr->address->peer), pr->address->transport_name, address,
+      GNUNET_ATS_print_network_type (network),
+      ntohl (pr->bandwidth_out.value__), ntohl (pr->bandwidth_in.value__),
+      ats_str);
+  GNUNET_free(ats_str);
 }
 
 
