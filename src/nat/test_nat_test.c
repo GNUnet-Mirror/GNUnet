@@ -50,10 +50,9 @@ end_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 static void
 report_success (void *cls,
-                int success,
-                const char *emsg)
+                enum GNUNET_NAT_FailureCode aret)
 {
-  GNUNET_assert (GNUNET_OK == success);
+  GNUNET_assert (GNUNET_NAT_ERROR_SUCCESS == aret);
   ret = 0;
   GNUNET_SCHEDULER_cancel (end);
   end = GNUNET_SCHEDULER_add_now (&end_test, NULL);

@@ -45,15 +45,21 @@ static void
 addr_callback (void *cls, int add_remove,
                const struct sockaddr *addr,
                socklen_t addrlen,
-               const char *emsg)
+               enum GNUNET_NAT_FailureCode ret)
 {
-  fprintf (stderr,
+  if (GNUNET_NAT_ERROR_SUCCESS == ret)
+  {
+    fprintf (stderr,
            "Address changed: %s `%s' (%u bytes)\n",
            add_remove == GNUNET_YES
            ? "added" : "removed",
            GNUNET_a2s (addr,
                        addrlen),
            (unsigned int) addrlen);
+  }
+  else
+    ;
+    //TODO: proper error handling!
 }
 
 

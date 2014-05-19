@@ -77,7 +77,7 @@ enum GNUNET_NAT_FailureCode {
   /**
    * Just the default
    */
-  GNUNET_NAT_ERROR_SUCCESS = 0,
+  GNUNET_NAT_ERROR_SUCCESS = GNUNET_OK,
   
   /**
    * `upnpc` command not found
