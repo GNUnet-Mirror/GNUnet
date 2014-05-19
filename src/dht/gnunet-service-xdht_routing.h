@@ -43,7 +43,7 @@ int
 GDS_ROUTING_add (const struct GNUNET_PeerIdentity *source,
                  const struct GNUNET_PeerIdentity *dest,
                  const struct GNUNET_PeerIdentity *next_hop,
-                 struct GNUNET_PeerIdentity *prev_hop);
+                 const struct GNUNET_PeerIdentity *prev_hop);
 
 
 /**

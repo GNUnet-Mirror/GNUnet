@@ -148,11 +148,16 @@ GDS_ROUTING_trail_update (struct GNUNET_PeerIdentity *source_peer,
 
 
 /**
+ * It can happen that a particular peer removed the entry because one of the peers
+ * (source, destination, next , prev) was friend which got disconnected. So,
+ * no matching trail is found. In this case we return NULL. Its on calling function
+ * to handle the return value. 
  * Find the next hop to send packet to.
  * @param source_peer Source of the trail.
  * @param destination_peer Destination of the trail.
  * @param prev_hop Previous hop in the trail. 
  * @return Next hop in the trail from source to destination.
+ *         NULL in case no matching trail found in routing table. 
  */
 struct GNUNET_PeerIdentity *
 GDS_ROUTING_search (struct GNUNET_PeerIdentity *source_peer,
@@ -184,6 +189,8 @@ GDS_ROUTING_search (struct GNUNET_PeerIdentity *source_peer,
 
 
 /**
+ * FIXME: first search in routing table and if same entry found then don't add
+ * it. 
  * Add a new entry to our routing table.
  * @param source peer Source of the trail.
  * @param destintation Destination of the trail.
@@ -195,7 +202,7 @@ int
 GDS_ROUTING_add (const struct GNUNET_PeerIdentity *source,
                  const struct GNUNET_PeerIdentity *dest,
                  const struct GNUNET_PeerIdentity *next_hop,
-                 struct GNUNET_PeerIdentity *prev_hop)
+                 const struct GNUNET_PeerIdentity *prev_hop)
 {
   struct RoutingTrail *new_routing_entry;
     

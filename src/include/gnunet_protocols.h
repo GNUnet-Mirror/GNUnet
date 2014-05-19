@@ -649,6 +649,11 @@ extern "C"
  * Trail Tear down Message. 
  */
 #define GNUNET_MESSAGE_TYPE_DHT_P2P_TRAIL_TEARDOWN             164
+
+/**
+ * Routing table add message. 
+ */
+#define GNUNET_MESSAGE_TYPE_DHT_P2P_ADD_TRAIL          165
 /*******************************************************************************
  * HOSTLIST message types
  ******************************************************************************/

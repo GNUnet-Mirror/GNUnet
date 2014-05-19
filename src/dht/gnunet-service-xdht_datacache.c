@@ -321,7 +321,7 @@ GDS_DATACACHE_handle_get (const struct GNUNET_HashCode * key,
       element->prev = NULL;
     
       memcpy (&(element->peer), &get_path[i], sizeof(struct GNUNET_PeerIdentity));
-      GNUNET_CONTAINER_DLL_insert_tail (ctx.head, ctx.tail, element); /* FIXME: changed from insert_tail to insert. */
+      GNUNET_CONTAINER_DLL_insert (ctx.head, ctx.tail, element); 
       i++;
     }
   }
