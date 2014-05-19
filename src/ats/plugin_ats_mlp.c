@@ -1381,7 +1381,7 @@ GAS_mlp_solve_problem (void *solver)
         if ( (mlp->ps.mlp_gap <= mlp->pv.mip_gap) ||
              (mlp->ps.lp_mlp_gap <= mlp->pv.lp_mip_gap) )
         {
-          LOG (GNUNET_ERROR_TYPE_WARNING,
+          LOG (GNUNET_ERROR_TYPE_INFO,
                  "Solution of MLP problem is feasible and solution within gap constraints: %s, %s\n",
                  mlp_solve_to_string (mip_res),
                  mlp_status_to_string (mip_status));
