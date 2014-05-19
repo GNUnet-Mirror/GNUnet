@@ -150,9 +150,7 @@ read_external_ipv4 (void *cls,
           (GNUNET_OK == iret)
           ? &addr :
           NULL,
-          (GNUNET_OK == iret)
-          ? NULL
-          : _("no valid address was returned by `external-ip'"));
+          GNUNET_NAT_ERROR_EXTERNAL_IP_NO_VALID_ADDRESS_FOUND);
   GNUNET_NAT_mini_get_external_ipv4_cancel (eh);
 }
 
@@ -172,7 +170,7 @@ signal_external_ip_error (void *cls,
   eh->task = GNUNET_SCHEDULER_NO_TASK;
   eh->cb (eh->cb_cls,
           NULL,
-          _("`external-ip' command not found"));
+          GNUNET_NAT_ERROR_EXTERNAL_IP_UTILITY_NOT_FOUND);
   GNUNET_free (eh);
 }
 
@@ -363,7 +361,7 @@ run_upnpc_r (struct GNUNET_NAT_MiniHandle *mini)
     mini->ac (mini->ac_cls,
               GNUNET_SYSERR,
               NULL, 0,
-              _("Failed to run `upnpc` command"));
+              GNUNET_NAT_ERROR_UPNPC_FAILED);
     return;
   }
 }
@@ -398,7 +396,7 @@ process_refresh_output (void *cls, const char *line)
                   GNUNET_NO,
                   (const struct sockaddr *) &mini->current_addr,
                   sizeof (mini->current_addr),
-                  NULL);
+                  GNUNET_NAT_ERROR_SUCCESS);
         mini->did_map = GNUNET_NO;
       }
       run_upnpc_r (mini);
@@ -423,12 +421,12 @@ process_refresh_output (void *cls, const char *line)
     mini->ac (mini->ac_cls, GNUNET_NO,
               (const struct sockaddr *) &mini->current_addr,
               sizeof (mini->current_addr),
-              NULL);
+              GNUNET_NAT_ERROR_SUCCESS);
     mini->current_addr.sin_addr = exip;
     mini->ac (mini->ac_cls, GNUNET_YES,
               (const struct sockaddr *) &mini->current_addr,
               sizeof (mini->current_addr),
-              NULL);
+              GNUNET_NAT_ERROR_SUCCESS);
     return;
   }
   /*
@@ -460,12 +458,12 @@ process_refresh_output (void *cls, const char *line)
   mini->ac (mini->ac_cls, GNUNET_NO,
             (const struct sockaddr *) &mini->current_addr,
             sizeof (mini->current_addr),
-            NULL);
+            GNUNET_NAT_ERROR_SUCCESS);
   mini->current_addr.sin_port = htons ((uint16_t) nport);
   mini->ac (mini->ac_cls, GNUNET_YES,
             (const struct sockaddr *) &mini->current_addr,
             sizeof (mini->current_addr),
-            NULL);
+            GNUNET_NAT_ERROR_SUCCESS);
 }
 
 
@@ -509,7 +507,7 @@ do_refresh (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     mini->ac (mini->ac_cls,
               GNUNET_SYSERR,
               NULL, 0,
-              _("`upnpc' command took too long, process killed"));
+              GNUNET_NAT_ERROR_UPNPC_TIMEOUT);
 }
 
 
@@ -537,7 +535,7 @@ process_map_output (void *cls,
       mini->ac (mini->ac_cls,
                 GNUNET_SYSERR,
                 NULL, 0,
-                _("`upnpc' command failed to establish port mapping"));
+                GNUNET_NAT_ERROR_UPNPC_PORTMAP_FAILED);
     if (GNUNET_SCHEDULER_NO_TASK == mini->refresh_task)
       mini->refresh_task =
         GNUNET_SCHEDULER_add_delayed (MAP_REFRESH_FREQ, &do_refresh, mini);
@@ -572,7 +570,7 @@ process_map_output (void *cls,
   mini->ac (mini->ac_cls, GNUNET_YES,
             (const struct sockaddr *) &mini->current_addr,
             sizeof (mini->current_addr),
-            NULL);
+            GNUNET_NAT_ERROR_SUCCESS);
 }
 
 
@@ -605,7 +603,7 @@ GNUNET_NAT_mini_map_start (uint16_t port,
     ac (ac_cls,
         GNUNET_SYSERR,
         NULL, 0,
-        _("`upnpc` command not found"));
+        GNUNET_NAT_ERROR_UPNPC_NOT_FOUND);
     return NULL;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -682,7 +680,7 @@ GNUNET_NAT_mini_map_stop (struct GNUNET_NAT_MiniHandle *mini)
   mini->ac (mini->ac_cls, GNUNET_NO,
             (const struct sockaddr *) &mini->current_addr,
             sizeof (mini->current_addr),
-            NULL);
+            GNUNET_NAT_ERROR_SUCCESS);
   /* Note: oddly enough, deletion uses the external port whereas
    * addition uses the internal port; this rarely matters since they
    * often are the same, but it might... */

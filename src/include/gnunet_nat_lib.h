@@ -71,6 +71,56 @@ struct GNUNET_NAT_Handle;
 
 
 /**
+ * Error Types for the NAT subsystem (which can then later be converted/resolved to a string)
+ */
+enum GNUNET_NAT_FailureCode {
+  /**
+   * Just the default
+   */
+  GNUNET_NAT_ERROR_SUCCESS = 0,
+  
+  /**
+   * `upnpc` command not found
+   */
+  GNUNET_NAT_ERROR_UPNPC_NOT_FOUND,
+  
+  /**
+   * Failed to run `upnpc` command
+   */
+  GNUNET_NAT_ERROR_UPNPC_FAILED,
+  
+  /**
+   * `upnpc' command took too long, process killed
+   */
+  GNUNET_NAT_ERROR_UPNPC_TIMEOUT,
+  
+  /**
+   * `upnpc' command failed to establish port mapping
+   */
+  GNUNET_NAT_ERROR_UPNPC_PORTMAP_FAILED,
+  
+  /**
+   * `external-ip' command not found
+   */
+  GNUNET_NAT_ERROR_EXTERNAL_IP_UTILITY_NOT_FOUND,
+  
+  /**
+   * "no valid address was returned by `external-ip'"
+   */
+  GNUNET_NAT_ERROR_EXTERNAL_IP_NO_VALID_ADDRESS_FOUND,
+  
+  
+  
+  /**
+   * 
+   */
+  GNUNET_NAT_ERROR_,
+  
+  
+};
+
+
+/**
  * Attempt to enable port redirection and detect public IP address
  * contacting UPnP or NAT-PMP routers on the local network. Use addr
  * to specify to which of the local host's addresses should the
@@ -157,14 +207,10 @@ struct GNUNET_NAT_Test;
  * NAT configuration test.
  *
  * @param cls closure
- * @param success #GNUNET_OK on success, #GNUNET_NO on failure,
- *                #GNUNET_SYSERR if the test could not be
- *                properly started (internal failure)
- * @param emsg NULL on success, otherwise may include an error message
+ * @param result GNUNET_NAT_ERROR_SUCCESS on success, otherwise the specific error code
  */
 typedef void (*GNUNET_NAT_TestCallback) (void *cls,
-                                         int success,
-                                         const char *emsg);
+                                         enum GNUNET_NAT_FailureCode result);
 
 
 /**
@@ -202,11 +248,11 @@ GNUNET_NAT_test_stop (struct GNUNET_NAT_Test *tst);
  *
  * @param cls closure
  * @param addr the address, NULL on errors
- * @param emsg NULL on success, otherwise may include an error message
+ * @param result GNUNET_NAT_ERROR_SUCCESS on success, otherwise the specific error code
  */
 typedef void (*GNUNET_NAT_IPCallback) (void *cls,
                                        const struct in_addr *addr,
-                                       const char *emsg);
+                                       enum GNUNET_NAT_FailureCode result);
 
 
 
@@ -254,13 +300,14 @@ struct GNUNET_NAT_MiniHandle;
  *     the previous (now invalid) one
  * @param addr either the previous or the new public IP address
  * @param addrlen actual length of the @a addr
+ * @param result GNUNET_NAT_ERROR_SUCCESS on success, otherwise the specific error code
  */
 typedef void
 (*GNUNET_NAT_MiniAddressCallback) (void *cls,
                                    int add_remove,
                                    const struct sockaddr *addr,
                                    socklen_t addrlen,
-                                   const char *emsg);
+                                   enum GNUNET_NAT_FailureCode result);
 
 
 /**
@@ -307,12 +354,12 @@ struct GNUNET_NAT_AutoHandle;
  * @param cls closure
  * @param diff minimal suggested changes to the original configuration
  *             to make it work (as best as we can)
- * @param emsg NULL on success, otherwise may include an error message
+ * @param result GNUNET_NAT_ERROR_SUCCESS on success, otherwise the specific error code
  */
 typedef void
 (*GNUNET_NAT_AutoResultCallback)(void *cls,
                                  const struct GNUNET_CONFIGURATION_Handle *diff,
-                                 const char *emsg);
+                                 enum GNUNET_NAT_FailureCode result);
 
 
 /**

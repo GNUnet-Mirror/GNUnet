@@ -545,10 +545,10 @@ display_test_result (struct TestContext *tc, enum TestResult result)
  * @param emsg error message, NULL on success
  */
 static void
-result_callback (void *cls, int success, const char *emsg)
+result_callback (void *cls, enum GNUNET_NAT_FailureCode result)
 {
   struct TestContext *tc = cls;
-  display_test_result (tc, success);
+  display_test_result (tc, result);
 }
 
 /**

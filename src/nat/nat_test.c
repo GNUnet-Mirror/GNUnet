@@ -187,7 +187,7 @@ reversal_cb (void *cls,
     return;                     /* wrong port */
   }
   /* report success */
-  h->report (h->report_cls, GNUNET_OK, NULL);
+  h->report (h->report_cls, GNUNET_NAT_ERROR_SUCCESS);
 }
 
 
@@ -215,7 +215,7 @@ do_udp_read (void *cls,
        GNUNET_NETWORK_socket_recv (tst->lsock, &data, sizeof (data))))
   {
     if (data == tst->data)
-      tst->report (tst->report_cls, GNUNET_OK, NULL);
+      tst->report (tst->report_cls, GNUNET_NAT_ERROR_SUCCESS);
     else
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            "Received data mismatches expected value\n");
@@ -250,7 +250,7 @@ do_read (void *cls,
        GNUNET_NETWORK_socket_recv (na->sock, &data, sizeof (data))))
   {
     if (data == tst->data)
-      tst->report (tst->report_cls, GNUNET_OK, NULL);
+      tst->report (tst->report_cls, GNUNET_NAT_ERROR_SUCCESS);
     else
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            "Received data does not match expected value\n");

@@ -189,8 +189,7 @@ fail_timeout (void *cls,
  */
 static void
 result_callback (void *cls,
-                 int success,
-                 const char *emsg)
+                 enum GNUNET_NAT_FailureCode ret)
 {
   struct GNUNET_NAT_AutoHandle *ah = cls;
 
@@ -199,11 +198,11 @@ result_callback (void *cls,
   GNUNET_NAT_test_stop (ah->tst);
   ah->tst = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-	      success
+              ret
 	      ? _("NAT traversal with ICMP Server succeeded.\n")
 	      : _("NAT traversal with ICMP Server failed.\n"));
   GNUNET_CONFIGURATION_set_value_string (ah->cfg, "nat", "ENABLE_ICMP_SERVER",
-					 success ? "YES": "NO");
+					 ret ? "NO" : "YES");
   next_phase (ah);
 }
 
@@ -258,7 +257,7 @@ test_online (struct GNUNET_NAT_AutoHandle *ah)
 static void
 set_external_ipv4 (void *cls,
                    const struct in_addr *addr,
-                   const char *emsg)
+                   enum GNUNET_NAT_FailureCode ret)
 {
   struct GNUNET_NAT_AutoHandle *ah = cls;
   char buf[INET_ADDRSTRLEN];
@@ -525,7 +524,7 @@ next_phase (struct GNUNET_NAT_AutoHandle *ah)
 					  ah->cfg);
     ah->fin_cb (ah->fin_cb_cls,
 		diff,
-                NULL);
+                GNUNET_NAT_ERROR_SUCCESS);
     GNUNET_CONFIGURATION_destroy (diff);
     GNUNET_NAT_autoconfig_cancel (ah);
     return;

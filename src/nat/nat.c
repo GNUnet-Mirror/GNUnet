@@ -1011,20 +1011,31 @@ resolve_dns (void *cls,
  *     the previous (now invalid) one
  * @param addr either the previous or the new public IP address
  * @param addrlen actual lenght of @a addr
- * @param emsg NULL on success, otherwise an error message
+ * @param ret GNUNET_NAT_ERROR_SUCCESS on success, otherwise an error code
  */
 static void
 upnp_add (void *cls,
           int add_remove,
           const struct sockaddr *addr,
           socklen_t addrlen,
-          const char *emsg)
+          enum GNUNET_NAT_FailureCode ret)
 {
   struct GNUNET_NAT_Handle *h = cls;
   struct LocalAddressList *pos;
   struct LocalAddressList *next;
 
 
+  if (GNUNET_NAT_ERROR_SUCCESS != ret)
+  {
+    /* Error while running upnp client */
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+          _("Error while running upnp client:\n"));
+
+    //FIXME: convert error code to string
+    
+    return;
+  }
+  
   if (GNUNET_YES == add_remove)
   {
     add_to_address_list (h, LAL_UPNP, addr, addrlen);
@@ -1052,17 +1063,6 @@ upnp_add (void *cls,
          "Asked to remove unkown address `%s'\n",
          GNUNET_a2s(addr, addrlen));
     GNUNET_break (0);
-  }
-  else if (GNUNET_SYSERR == add_remove)
-  {
-    /* Error while running upnp client */
-    if (NULL != emsg)
-      LOG (GNUNET_ERROR_TYPE_ERROR,
-          _("Error while running upnp client: `%s'\n"), emsg);
-    else
-      LOG (GNUNET_ERROR_TYPE_ERROR,
-          _("Error while running upnp client \n"));
-    return;
   }
   else
   {
