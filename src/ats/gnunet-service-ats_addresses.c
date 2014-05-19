@@ -1686,7 +1686,7 @@ load_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg,
     }
     else
     {
-      GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
           _("No outbound quota configured for network `%s', assigning default bandwidth %llu\n"),
           network_str[c], GNUNET_ATS_DefaultBandwidth);
       out_dest[c] = GNUNET_ATS_DefaultBandwidth;
@@ -1730,10 +1730,10 @@ load_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg,
     }
     else
     {
-      GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
           _("No outbound quota configure for network `%s', assigning default bandwidth %llu\n"),
           network_str[c], GNUNET_ATS_DefaultBandwidth);
-      out_dest[c] = GNUNET_ATS_DefaultBandwidth;
+      in_dest[c] = GNUNET_ATS_DefaultBandwidth;
     }
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
         "Loaded quota for network `%s' (in/out): %llu %llu\n", network_str[c],
