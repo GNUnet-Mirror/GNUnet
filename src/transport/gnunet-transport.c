@@ -1081,7 +1081,16 @@ process_peer_string (void *cls, const char *address, int res)
 
   if (address != NULL )
   {
-    print_info (&rc->id, rc->transport, address, rc->state, rc->state_timeout);
+    if (GNUNET_SYSERR == res)
+    {
+      FPRINTF (stderr, "Failed to convert address for peer `%s' plugin `%s' length %lu to string \n",
+          GNUNET_i2s (&rc->id),
+          rc->addrcp->transport_name,
+          rc->addrcp->address_length);
+      print_info (&rc->id, rc->transport, NULL, rc->state, rc->state_timeout);
+    }
+    else
+      print_info (&rc->id, rc->transport, address, rc->state, rc->state_timeout);
     rc->printed = GNUNET_YES;
   }
   else
@@ -1099,7 +1108,7 @@ process_peer_string (void *cls, const char *address, int res)
       }
       else
       {
-        print_info (&rc->id, rc->transport, "<unable to resolve address>",
+        print_info (&rc->id, rc->transport, NULL,
             rc->state, rc->state_timeout);
       }
     }
