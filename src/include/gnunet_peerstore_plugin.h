@@ -89,6 +89,17 @@ struct GNUNET_PEERSTORE_PluginFunctions
       const char *key,
       GNUNET_PEERSTORE_Processor iter, void *iter_cls);
 
+  /**
+   * Delete expired records (expiry < now)
+   *
+   * @param cls closure (internal context for the plugin)
+   * @param now time to use as reference
+   * @return number of records deleted
+   */
+  int
+  (*expire_records) (void *cls,
+      struct GNUNET_TIME_Absolute now);
+
 };
 
 

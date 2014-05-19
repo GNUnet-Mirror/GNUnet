@@ -30,7 +30,11 @@
 #include "peerstore_common.h"
 
 //TODO: GNUNET_SERVER_receive_done() ?
-//TODO: implement value lifetime
+
+/**
+ * Interval for expired records cleanup (in seconds)
+ */
+#define CLEANUP_INTERVAL 300 /* 5mins */
 
 /**
  * Our configuration.
@@ -63,6 +67,23 @@ shutdown_task (void *cls,
     GNUNET_free (db_lib_name);
     db_lib_name = NULL;
   }
+}
+
+/**
+ * Deletes any expired records from storage
+ */
+static void
+cleanup_expired_records(void *cls,
+    const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  int deleted;
+
+  GNUNET_assert(NULL != db);
+  deleted = db->expire_records(db->cls, GNUNET_TIME_absolute_get());
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "%d records expired.\n", deleted);
+  GNUNET_SCHEDULER_add_delayed(
+      GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, CLEANUP_INTERVAL),
+      &cleanup_expired_records, NULL);
 }
 
 
@@ -245,6 +266,7 @@ run (void *cls,
 	  GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Could not load database backend `%s'\n", db_lib_name);
   else
   {
+    cleanup_expired_records(NULL, NULL);
     GNUNET_SERVER_add_handlers (server, handlers);
     GNUNET_SERVER_disconnect_notify (server,
              &handle_client_disconnect,

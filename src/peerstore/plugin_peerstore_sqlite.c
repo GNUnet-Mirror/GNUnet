@@ -97,7 +97,50 @@ struct Plugin
    */
   sqlite3_stmt *select_peerstoredata_by_all;
 
+  /**
+   * Precompiled SQL for selecting from peerstoredata
+   */
+  sqlite3_stmt *select_peerstoredata_by_all_and_value;
+
+  /**
+   * Precompiled SQL for deleting expired records from peerstoredata
+   */
+  sqlite3_stmt *expire_peerstoredata;
+
 };
+
+/**
+ * Delete expired records (expiry < now)
+ *
+ * @param cls closure (internal context for the plugin)
+ * @param now time to use as reference
+ * @return number of records deleted
+ */
+static int
+peerstore_sqlite_expire_records(void *cls,
+    struct GNUNET_TIME_Absolute now)
+{
+  struct Plugin *plugin = cls;
+  sqlite3_stmt *stmt = plugin->expire_peerstoredata;
+
+  if(SQLITE_OK != sqlite3_bind_int64(stmt, 1, (sqlite3_int64)now.abs_value_us))
+  {
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK, "sqlite3_bind");
+  }
+  else if (SQLITE_DONE != sqlite3_step (stmt))
+  {
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                "sqlite3_step");
+  }
+  if (SQLITE_OK != sqlite3_reset (stmt))
+  {
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                "sqlite3_reset");
+    return 0;
+  }
+  return sqlite3_changes(plugin->dbh);
+
+}
 
 /**
  * Iterate over the records given an optional peer id
@@ -194,6 +237,42 @@ peerstore_sqlite_iterate_records (void *cls,
 }
 
 /**
+ * Checks if a record with the given information
+ * already exists
+ *
+ * @return #GNUNET_YES / #GNUNET_NO
+ *
+static int
+check_existing(void *cls,
+    const char *sub_system,
+    const struct GNUNET_PeerIdentity *peer,
+    const char *key,
+    const void *value,
+    size_t size)
+{
+  struct Plugin *plugin = cls;
+  sqlite3_stmt *stmt = plugin->select_peerstoredata_by_all_and_value;
+  int sret;
+
+  if(SQLITE_OK != sqlite3_bind_text(stmt, 1, sub_system, strlen(sub_system) + 1, SQLITE_STATIC)
+      || SQLITE_OK != sqlite3_bind_blob(stmt, 2, peer, sizeof(struct GNUNET_PeerIdentity), SQLITE_STATIC)
+      || SQLITE_OK != sqlite3_bind_text(stmt, 3, key, strlen(key) + 1, SQLITE_STATIC)
+      || SQLITE_OK != sqlite3_bind_blob(stmt, 4, value, size, SQLITE_STATIC))
+  {
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+        "sqlite3_bind");
+    sqlite3_reset(stmt);
+    return GNUNET_NO;
+  }
+  sret = sqlite3_step (stmt);
+  sqlite3_reset(stmt);
+  if(SQLITE_ROW == sret)
+    return GNUNET_YES;
+  return GNUNET_NO;
+
+}*/
+
+/**
  * Store a record in the peerstore.
  * Key is the combination of sub system and peer identity.
  * One key can store multiple values.
@@ -218,6 +297,15 @@ peerstore_sqlite_store_record(void *cls,
   sqlite3_stmt *stmt = plugin->insert_peerstoredata;
 
   //FIXME: check if value exists with the same key first
+  /*if(GNUNET_YES == check_existing(cls,
+      sub_system,
+      peer,
+      key,
+      value,
+      size))
+  {
+
+  }*/
 
   if(SQLITE_OK != sqlite3_bind_text(stmt, 1, sub_system, strlen(sub_system) + 1, SQLITE_STATIC)
       || SQLITE_OK != sqlite3_bind_blob(stmt, 2, peer, sizeof(struct GNUNET_PeerIdentity), SQLITE_STATIC)
@@ -377,6 +465,17 @@ database_setup (struct Plugin *plugin)
       " AND peer_id = ?"
       " AND key = ?",
       &plugin->select_peerstoredata_by_all);
+  sql_prepare(plugin->dbh,
+      "SELECT * FROM peerstoredata"
+      " WHERE sub_system = ?"
+      " AND peer_id = ?"
+      " AND key = ?"
+      " AND value = ?",
+      &plugin->select_peerstoredata_by_all_and_value);
+  sql_prepare(plugin->dbh,
+      "DELETE FROM peerstoredata"
+      " WHERE expiry < ?",
+      &plugin->expire_peerstoredata);
 
   return GNUNET_OK;
 }
@@ -430,6 +529,7 @@ libgnunet_plugin_peerstore_sqlite_init (void *cls)
   api->cls = &plugin;
   api->store_record = &peerstore_sqlite_store_record;
   api->iterate_records = &peerstore_sqlite_iterate_records;
+  api->expire_records = &peerstore_sqlite_expire_records;
   LOG(GNUNET_ERROR_TYPE_DEBUG, "Sqlite plugin is running\n");
   return api;
 }

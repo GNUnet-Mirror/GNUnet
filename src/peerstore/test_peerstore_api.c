@@ -84,9 +84,11 @@ run (void *cls,
   struct GNUNET_PeerIdentity pid;
   char *val = "peerstore-test-value";
   size_t val_size = strlen(val);
+  struct GNUNET_TIME_Absolute expiry;
 
   ok = 0;
   memset (&pid, 32, sizeof (pid));
+  expiry = GNUNET_TIME_absolute_get();
   h = GNUNET_PEERSTORE_connect(cfg);
   GNUNET_assert(NULL != h);
   GNUNET_PEERSTORE_store(h,
@@ -95,7 +97,7 @@ run (void *cls,
       "peerstore-test-key",
       val,
       val_size,
-      GNUNET_TIME_UNIT_FOREVER_ABS,
+      expiry,
       &store_cont,
       NULL);
 
