@@ -45,6 +45,7 @@ int iterate_cb (void *cls,
   printf("Record:\n");
   if(NULL == record)
   {
+    GNUNET_assert(counter > 0);
     counter = 0;
     printf("END\n");
     GNUNET_PEERSTORE_disconnect(h);
@@ -53,8 +54,9 @@ int iterate_cb (void *cls,
   printf("Sub system: %s\n", record->sub_system);
   printf("Peer: %s\n", GNUNET_i2s (record->peer));
   printf("Key: %s\n", record->key);
-  printf("Value: %.*s\n", record->value);
+  printf("Value: %.*s\n", record->value_size, record->value);
   printf("Expiry: %" PRIu64 "\n", record->expiry->abs_value_us);
+  counter ++;
 
   return GNUNET_YES;
 }
@@ -66,7 +68,7 @@ void store_cont(void *cls, int success)
   else
     ok = 1;
   printf("Store success: %d\n", success);
-  GNUNET_PEERSTORE_iterate(h, "peerstore-test-value",
+  GNUNET_PEERSTORE_iterate(h, "peerstore-test",
       NULL,
       NULL,
       GNUNET_TIME_UNIT_FOREVER_REL,
