@@ -262,7 +262,7 @@ dump_pc (struct PrintContext *pc)
  * @param address NULL on error, otherwise 0-terminated printable UTF-8 string
  */
 static void
-process_resolved_address (void *cls, const char *address)
+process_resolved_address (void *cls, const char *address, int res)
 {
   struct AddressRecord * ar = cls;
   struct PrintContext *pc = ar->pc;
@@ -272,6 +272,13 @@ process_resolved_address (void *cls, const char *address)
     if (NULL == ar->result)
       ar->result = GNUNET_strdup (address);
     return;
+  }
+
+  if (GNUNET_SYSERR == res)
+  {
+    FPRINTF (stderr,
+             _("Failure: Cannot convert address to string for peer `%s'\n"),
+             GNUNET_i2s (&ar->pc->peer));
   }
   ar->atsc = NULL;
   pc->num_addresses++;
