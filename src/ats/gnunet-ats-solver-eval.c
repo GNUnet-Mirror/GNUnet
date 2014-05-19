@@ -930,7 +930,7 @@ set_feedback_task (void *cls,
     default:
       break;
   }
-  GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
       "Giving feedback for peer [%u] for client %p pref %s of %.3f\n",
       pg->peer, NULL + (pg->client_id),
       GNUNET_ATS_print_preference_type (pg->kind),
@@ -2441,9 +2441,13 @@ enforce_stop_request (struct GNUNET_ATS_TEST_Operation *op)
     return;
   }
 
+
+
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Stop requesting address for peer %u\n",
       op->peer_id);
   p->is_requested = GNUNET_NO;
+  p->assigned_bw_in.value__ = htonl(0);
+  p->assigned_bw_out.value__ = htonl(0);
   sh->env.sf.s_get_stop (sh->solver, &p->peer_id);
 
   if (NULL != l)
@@ -2967,7 +2971,6 @@ solver_bandwidth_changed_cb (void *cls, struct ATS_Address *address)
     {
       duration = GNUNET_TIME_absolute_get_duration(pg->feedback_last_bw_update);
       delta = duration.rel_value_us * pg->last_assigned_bw_out;
-      //GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "------> DELTA %u %u\n",delta, duration.rel_value_us);
       pg->feedback_bw_out_acc += delta;
 
       delta = duration.rel_value_us * pg->last_assigned_bw_in;
@@ -3066,7 +3069,6 @@ normalized_property_changed_cb (void *cls, struct ATS_Address *address,
       {
         duration = GNUNET_TIME_absolute_get_duration(pg->feedback_last_delay_update);
         delta = duration.rel_value_us * pg->last_delay_value;
-        GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "------> DELTA %u %u\n",delta, duration.rel_value_us);
         pg->feedback_delay_acc += delta;
 
         pg->last_delay_value = prop_rel;
