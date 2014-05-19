@@ -220,6 +220,7 @@ int unschedule_sensor(void *cls,
   {
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Unscheduling sensor `%s'\n", sensorinfo->name);
     GNUNET_SCHEDULER_cancel(sensorinfo->execution_task);
+    sensorinfo->execution_task = GNUNET_SCHEDULER_NO_TASK;
   }
   return GNUNET_YES;
 }
@@ -235,8 +236,10 @@ shutdown_task (void *cls,
 	       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_CONTAINER_multihashmap_iterate(sensors, &unschedule_sensor, NULL);
+  /* Free sensor information */
   if(NULL != statistics)
     GNUNET_STATISTICS_destroy(statistics, GNUNET_YES);
+  /* Destroy sensor hashmap */
   GNUNET_SCHEDULER_shutdown();
 }
 
@@ -604,6 +607,7 @@ create_sensor_info_msg(struct SensorInfo *sensor)
   if(NULL == sensor->description)
     desc_len = 0;
   else
+    /* FIXME strlen + 1 */
     desc_len = strlen(sensor->description);
   len = 0;
   len += sizeof(struct SensorInfoMessage);
