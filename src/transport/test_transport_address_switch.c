@@ -97,10 +97,12 @@ static GNUNET_TRANSPORT_TESTING_ConnectRequest cc;
 static unsigned int p1_switch_attempts;
 static unsigned int p1_switch_success;
 static unsigned int p1_switch_fail;
+static unsigned int p1_addresses_avail;
 
 static unsigned int p2_switch_attempts;
 static unsigned int p2_switch_success;
 static unsigned int p2_switch_fail;
+static unsigned int p2_addresses_avail;
 
 static unsigned long long bytes_sent_total;
 static unsigned long long bytes_recv_total;
@@ -169,6 +171,9 @@ static int
 stat_fail_attempt_cb (void *cls, const char *subsystem, const char *name,
     uint64_t value, int is_persistent)
 {
+  if (value == 0)
+    return GNUNET_OK;
+
   if (cls == p1)
   {
     p1_switch_fail++;
@@ -183,6 +188,21 @@ stat_fail_attempt_cb (void *cls, const char *subsystem, const char *name,
   return GNUNET_OK;
 }
 
+static int
+stat_addresses_available (void *cls, const char *subsystem, const char *name,
+    uint64_t value, int is_persistent)
+{
+  if (cls == p1)
+  {
+    p1_addresses_avail++;
+  }
+  if (cls == p2)
+  {
+    p2_addresses_avail++;
+  }
+
+  return GNUNET_OK;
+}
 
 static void
 clean_up ()
@@ -220,6 +240,9 @@ clean_up ()
     GNUNET_STATISTICS_watch_cancel (p1_stat, "transport",
         "# Failed attempts to switch addresses (no response)",
         stat_fail_attempt_cb, p1);
+    GNUNET_STATISTICS_watch (p1_stat, "transport",
+        "# transport addresses",
+        stat_addresses_available, p1);
     GNUNET_STATISTICS_destroy (p1_stat, GNUNET_NO);
     p1_stat = NULL;
   }
@@ -238,6 +261,9 @@ clean_up ()
     GNUNET_STATISTICS_watch_cancel (p2_stat, "transport",
         "# Failed attempts to switch addresses (no response)",
         stat_fail_attempt_cb, p2);
+    GNUNET_STATISTICS_watch (p1_stat, "transport",
+        "# transport addresses",
+        stat_addresses_available, p1);
     GNUNET_STATISTICS_destroy (p2_stat, GNUNET_NO);
     p2_stat = NULL;
   }
@@ -289,12 +315,22 @@ end ()
     if (p1_switch_success != p1_switch_attempts)
       result ++;
   }
+  else
+  {
+    FPRINTF (stderr, "Peer 1 had %u addresses available, but did not try to switch\n",
+        p1_addresses_avail);
+  }
   if (p2_switch_attempts > 0)
   {
     FPRINTF (stderr, "Peer 2 tried %u times to switch and succeeded %u times, failed %u times\n",
         p2_switch_attempts, p2_switch_success, p2_switch_fail);
     if (p2_switch_success != p2_switch_attempts)
       result ++;
+  }
+  else
+  {
+    FPRINTF (stderr, "Peer 2 had %u addresses available, but did not try to switch\n",
+        p2_addresses_avail);
   }
 
   if ( ((p1_switch_attempts > 0) || (p2_switch_attempts > 0)) &&
@@ -321,6 +357,11 @@ end_badly ()
 {
   die_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Fail! Stopping peers\n");
+
+  FPRINTF (stderr, "Peer 1 had %u addresses available, but did not try to switch\n",
+      p1_addresses_avail);
+  FPRINTF (stderr, "Peer 2 had %u addresses available, but did not try to switch\n",
+      p2_addresses_avail);
 
   if (test_connected == GNUNET_YES)
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Peers got connected\n");
@@ -566,6 +607,9 @@ run (void *cls, char * const *args, const char *cfgfile,
   GNUNET_STATISTICS_watch (p1_stat, "transport",
       "# Failed attempts to switch addresses (no response)",
       stat_fail_attempt_cb, p1);
+  GNUNET_STATISTICS_watch (p1_stat, "transport",
+      "# transport addresses",
+      stat_addresses_available, p1);
 
   p2 = GNUNET_TRANSPORT_TESTING_start_peer (tth, cfg_file_p2, 2,
       &notify_receive, &notify_connect, &notify_disconnect, &start_cb, NULL );
@@ -586,6 +630,9 @@ run (void *cls, char * const *args, const char *cfgfile,
   GNUNET_STATISTICS_watch (p2_stat, "transport",
       "# Failed attempts to switch addresses (no response)",
       stat_fail_attempt_cb, p2);
+  GNUNET_STATISTICS_watch (p2_stat, "transport",
+      "# transport addresses",
+      stat_addresses_available, p2);
 
   if ((p1 == NULL )|| (p2 == NULL))
   {

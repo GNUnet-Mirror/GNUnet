@@ -33,11 +33,13 @@ if HAVE_LIBGNURL
  HTTP_REL_TEST = test_transport_api_reliability_http
  HTTP_QUOTA_TEST = test_quota_compliance_http \
 		   test_quota_compliance_http_asymmetric
+ HTTP_SWITCH = test_transport_address_switch_http 
  HTTPS_API_TEST = test_transport_api_https
  HTTPS_API_TIMEOUT_TEST = test_transport_api_timeout_https
  HTTPS_REL_TEST = test_transport_api_reliability_https
  HTTPS_QUOTA_TEST = test_quota_compliance_https \
 		test_quota_compliance_https_asymmetric
+ HTTPS_SWITCH = test_transport_address_switch_https 
 endif
 endif
 
@@ -402,6 +404,7 @@ check_PROGRAMS = \
  test_transport_api_tcp_nat \
  test_transport_api_udp \
  test_transport_api_timeout_udp \
+ test_transport_address_switch_udp \
  $(UNIX_PLUGIN_TEST) \
  $(UNIX_PLUGIN_TIMEOUT_TEST) \
  $(UNIX_API_ABSTRACT_TEST) \
@@ -409,8 +412,10 @@ check_PROGRAMS = \
  $(HTTP_API_TEST) \
  $(HTTP_REVERSE_API_TEST) \
  $(HTTP_API_TIMEOUT_TEST) \
+ $(HTTP_SWITCH) \
  $(HTTPS_API_TEST) \
  $(HTTPS_API_TIMEOUT_TEST) \
+ $(HTTPS_SWITCH) \
  $(WLAN_API_TEST) \
  $(WLAN_TIMEOUT_TEST) \
  $(BT_API_TEST) \
@@ -470,14 +475,17 @@ TESTS = \
  test_transport_api_tcp_nat \
  test_transport_api_udp \
  test_transport_api_timeout_udp \
+ test_transport_address_switch_udp \
  $(UNIX_PLUGIN_TEST) \
  $(UNIX_PLUGIN_TIMEOUT_TEST) \
  $(UNIX_API_ABSTRACT_TEST) \
  test_transport_api_udp_nat \
  $(HTTP_API_TEST) \
  $(HTTP_API_TIMEOUT_TEST) \
+ $(HTTP_SWITCH) \
  $(HTTPS_API_TEST) \
  $(HTTPS_API_TIMEOUT_TEST) \
+ $(HTTPS_SWITCH) \
  $(WLAN_API_TEST) \
  $(WLAN_TIMEOUT_TEST) \
  $(BT_API_TEST) \
@@ -1023,6 +1031,34 @@ test_transport_address_switch_tcp_LDADD = \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/transport/libgnunettransporttesting.la
+ 
+ test_transport_address_switch_udp_SOURCES = \
+ test_transport_address_switch.c
+test_transport_address_switch_udp_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/statistics/libgnunetstatistics.la \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/transport/libgnunettransporttesting.la
+ 
+ 
+ test_transport_address_switch_http_SOURCES = \
+ test_transport_address_switch.c
+test_transport_address_switch_http_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/statistics/libgnunetstatistics.la \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/transport/libgnunettransporttesting.la
+ 
+ test_transport_address_switch_https_SOURCES = \
+ test_transport_address_switch.c
+test_transport_address_switch_https_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/statistics/libgnunetstatistics.la \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/transport/libgnunettransporttesting.la
 
 test_quota_compliance_tcp_SOURCES = \
  test_quota_compliance.c
@@ -1215,6 +1251,12 @@ test_transport_api_reliability_wlan_peer1.conf\
 test_transport_api_reliability_wlan_peer2.conf\
 test_transport_api_reliability_bluetooth_peer1.conf\
 test_transport_api_reliability_bluetooth_peer2.conf\
+test_transport_test_transport_address_switch_http_peer1.conf\
+test_transport_test_transport_address_switch_http_peer2.conf\
+test_transport_test_transport_address_switch_https_peer1.conf\
+test_transport_test_transport_address_switch_https_peer2.conf\
+test_transport_test_transport_address_switch_udp_peer1.conf\
+test_transport_test_transport_address_switch_udp_peer2.conf\
 test_transport_test_transport_address_switch_tcp_peer1.conf\
 test_transport_test_transport_address_switch_tcp_peer2.conf\
 test_transport_api_wlan_peer1.conf\
