@@ -591,6 +591,19 @@ run (void *cls, char * const *args, const char *cfgfile,
 
   p1 = GNUNET_TRANSPORT_TESTING_start_peer (tth, cfg_file_p1, 1,
       &notify_receive, &notify_connect, &notify_disconnect, &start_cb, NULL );
+
+  p2 = GNUNET_TRANSPORT_TESTING_start_peer (tth, cfg_file_p2, 2,
+      &notify_receive, &notify_connect, &notify_disconnect, &start_cb, NULL );
+
+  if ((p1 == NULL )|| (p2 == NULL))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Fail! Could not start peers!\n");
+    if (die_task != GNUNET_SCHEDULER_NO_TASK)
+    GNUNET_SCHEDULER_cancel (die_task);
+    die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
+    return;
+  }
+
   p1_stat = GNUNET_STATISTICS_create ("transport", p1->cfg);
   GNUNET_STATISTICS_watch (p1_stat, "transport",
       "# Attempts to switch addresses",
@@ -611,9 +624,6 @@ run (void *cls, char * const *args, const char *cfgfile,
       "# transport addresses",
       stat_addresses_available, p1);
 
-  p2 = GNUNET_TRANSPORT_TESTING_start_peer (tth, cfg_file_p2, 2,
-      &notify_receive, &notify_connect, &notify_disconnect, &start_cb, NULL );
-
   p2_stat = GNUNET_STATISTICS_create ("transport", p2->cfg);
   GNUNET_STATISTICS_watch (p2_stat, "transport",
       "# Attempts to switch addresses",
@@ -633,15 +643,6 @@ run (void *cls, char * const *args, const char *cfgfile,
   GNUNET_STATISTICS_watch (p2_stat, "transport",
       "# transport addresses",
       stat_addresses_available, p2);
-
-  if ((p1 == NULL )|| (p2 == NULL))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Fail! Could not start peers!\n");
-    if (die_task != GNUNET_SCHEDULER_NO_TASK)
-    GNUNET_SCHEDULER_cancel (die_task);
-    die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
-    return;
-  }
 
   if ((p1_stat == NULL )|| (p2_stat == NULL))
   {
