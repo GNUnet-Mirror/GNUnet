@@ -55,7 +55,6 @@ if LINUX
  WLAN_API_TEST = test_transport_api_wlan
  WLAN_TIMEOUT_TEST = test_transport_api_timeout_wlan
  WLAN_REL_TEST = test_transport_api_reliability_wlan
- WLAN_UREL_TEST = test_transport_api_unreliability_wlan
  WLAN_QUOTA_TEST = test_quota_compliance_wlan \
 		test_quota_compliance_wlan_asymmetric
 endif
@@ -75,7 +74,6 @@ if HAVE_LIBBLUETOOTH
  BT_API_TEST = test_transport_api_bluetooth
  BT_TIMEOUT_TEST = test_transport_api_timeout_bluetooth
  BT_REL_TEST = test_transport_api_reliability_bluetooth
- BT_UREL_TEST = test_transport_api_unreliability_bluetooth
  BT_QUOTA_TEST = test_quota_compliance_bluetooth \
     test_quota_compliance_bluetooth_asymmetric
 endif
@@ -100,7 +98,7 @@ UNIX_PLUGIN_LA = libgnunet_plugin_transport_unix.la
 UNIX_PLUGIN_TEST = test_transport_api_unix
 UNIX_TEST = test_plugin_unix
 UNIX_PLUGIN_TIMEOUT_TEST = test_transport_api_timeout_unix
-UNIX_REL_TEST = test_transport_api_unreliability_unix
+UNIX_REL_TEST = test_transport_api_reliability_unix
 UNIX_QUOTA_TEST = test_quota_compliance_unix \
      test_quota_compliance_unix_asymmetric
 if LINUX
@@ -430,8 +428,7 @@ check_PROGRAMS = \
  test_transport_api_manipulation_cfg \
  test_transport_api_reliability_tcp \
  test_transport_api_reliability_tcp_nat \
- test_transport_api_unreliability_udp \
- test_transport_api_unreliability_constant_udp \
+ test_transport_api_reliability_udp \
  $(UNIX_REL_TEST) \
  $(HTTP_REL_TEST) \
  $(HTTPS_REL_TEST) \
@@ -498,8 +495,7 @@ TESTS = \
  test_transport_api_manipulation_cfg \
  test_transport_api_reliability_tcp \
  test_transport_api_reliability_tcp_nat \
- test_transport_api_unreliability_udp \
- test_transport_api_unreliability_constant_udp \
+ test_transport_api_reliability_udp \
  $(UNIX_REL_TEST) \
  $(HTTP_REL_TEST) \
  $(HTTPS_REL_TEST) \
@@ -833,14 +829,6 @@ test_transport_api_reliability_tcp_nat_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/transport/libgnunettransporttesting.la
 
-test_transport_api_reliability_wlan_SOURCES = \
- test_transport_api_reliability.c
-test_transport_api_reliability_wlan_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
- $(top_builddir)/src/hello/libgnunethello.la \
- $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
-
 test_transport_api_reliability_bluetooth_SOURCES = \
  test_transport_api_reliability.c
 test_transport_api_reliability_bluetooth_LDADD = \
@@ -849,17 +837,9 @@ test_transport_api_reliability_bluetooth_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/transport/libgnunettransporttesting.la
 
-test_transport_api_unreliability_wlan_SOURCES = \
- test_transport_api_unreliability.c
-test_transport_api_unreliability_wlan_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
- $(top_builddir)/src/hello/libgnunethello.la \
- $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
-
-test_transport_api_unreliability_bluetooth_SOURCES = \
- test_transport_api_unreliability.c
-test_transport_api_unreliability_bluetooth_LDADD = \
+test_transport_api_reliability_wlan_SOURCES = \
+ test_transport_api_reliability.c
+test_transport_api_reliability_wlan_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
@@ -996,25 +976,17 @@ test_transport_api_reliability_https_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/transport/libgnunettransporttesting.la
 
-test_transport_api_unreliability_unix_SOURCES = \
- test_transport_api_unreliability.c
-test_transport_api_unreliability_unix_LDADD = \
+test_transport_api_reliability_unix_SOURCES = \
+ test_transport_api_reliability.c
+test_transport_api_reliability_unix_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/transport/libgnunettransporttesting.la
 
-test_transport_api_unreliability_udp_SOURCES = \
- test_transport_api_unreliability.c
-test_transport_api_unreliability_udp_LDADD = \
- $(top_builddir)/src/transport/libgnunettransport.la \
- $(top_builddir)/src/hello/libgnunethello.la \
- $(top_builddir)/src/util/libgnunetutil.la \
- $(top_builddir)/src/transport/libgnunettransporttesting.la
-
-test_transport_api_unreliability_constant_udp_SOURCES = \
- test_transport_api_unreliability_constant.c
-test_transport_api_unreliability_constant_udp_LDADD = \
+test_transport_api_reliability_udp_SOURCES = \
+ test_transport_api_reliability.c
+test_transport_api_reliability_udp_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
@@ -1249,8 +1221,6 @@ test_transport_api_timeout_http_peer1.conf\
 test_transport_api_timeout_http_peer2.conf\
 test_transport_api_timeout_https_peer1.conf\
 test_transport_api_timeout_https_peer2.conf\
-test_transport_api_unreliability_constant_udp_peer1.conf\
-test_transport_api_unreliability_constant_udp_peer2.conf\
 test_transport_blacklisting_cfg_peer1.conf \
 test_transport_blacklisting_cfg_peer2.conf \
 test_transport_blacklisting_cfg_blp_peer1_full.conf\
