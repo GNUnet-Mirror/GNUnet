@@ -1170,10 +1170,6 @@ cb_intersection_request_alice (void *cls,
 {
   struct ServiceSession * s = (struct ServiceSession *) cls;
 
-  // check the peer-id, the app-id=session-id is compared by SET
-  if (0 != memcmp (&s->peer, &other_peer, sizeof (struct GNUNET_PeerIdentity)))
-    return;
-
   s->intersection_op = GNUNET_SET_accept (request,
                                                 GNUNET_SET_RESULT_REMOVED,
                                                 cb_intersection_element_removed,
