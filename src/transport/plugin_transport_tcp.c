@@ -1024,8 +1024,9 @@ do_transmit (void *cls, size_t size, void *buf)
     GNUNET_CONTAINER_DLL_remove(session->pending_messages_head,
         session->pending_messages_tail, pos);
     GNUNET_assert(size >= pos->message_size);
-    LOG(GNUNET_ERROR_TYPE_DEBUG, "Transmitting message of type %u\n",
-        ntohs (((struct GNUNET_MessageHeader * ) pos->msg)->type));
+    LOG(GNUNET_ERROR_TYPE_DEBUG, "Transmitting message of type %u size %u\n",
+        ntohs (((struct GNUNET_MessageHeader * ) pos->msg)->type),
+        pos->message_size);
     /* FIXME: this memcpy can be up to 7% of our total runtime */
     memcpy (cbuf, pos->msg, pos->message_size);
     cbuf += pos->message_size;
@@ -1793,7 +1794,6 @@ tcp_plugin_address_pretty_printer (void *cls, const char *type,
       timeout, &append_port, ppc);
   if (NULL != ppc->resolver_handle)
   {
-    //GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Adding request %p\n", ppc);
     GNUNET_CONTAINER_DLL_insert(ppc_dll_head, ppc_dll_tail, ppc);
   }
   else
