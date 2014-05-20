@@ -35,6 +35,7 @@
 #define CALCULATE_BF_SIZE(A, B, s, k) \
                           do { \
                             k = ceil(1 + log2((double) (2*B / (double) A)));\
+                            if (k<1) k=1; /* k can be calculated as 0 */\
                             s = ceil((double) (A * k / log(2))); \
                           } while (0)
 
