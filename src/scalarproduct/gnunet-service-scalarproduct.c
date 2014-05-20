@@ -1086,9 +1086,7 @@ cb_intersection_element_removed (void *cls,
     return;
 
   case GNUNET_SET_STATUS_DONE:
-    //stop listening for further requests
-    GNUNET_SET_listen_cancel (s->intersection_listen);
-    s->intersection_listen = NULL;
+    s->intersection_op = NULL;
     
     if (2 > s->used_element_count) {
       // failed! do not leak information about our single remaining element!
