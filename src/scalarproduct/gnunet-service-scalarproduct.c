@@ -506,25 +506,22 @@ cb_transfer_message (void *cls, size_t size, void *buf)
  *
  * @param tail - the tail of the DLL
  * @param key - the key we want to search for
- * @param element_count - the total element count of the dataset (session->total)
  * @param peerid - a pointer to the peer ID of the associated peer, NULL to ignore
  * @return a pointer to a matching session, or NULL
  */
 static struct ServiceSession *
 find_matching_session (struct ServiceSession * tail,
                        const struct GNUNET_HashCode * key,
-                       uint32_t element_count,
                        const struct GNUNET_PeerIdentity * peerid)
 {
   struct ServiceSession * s;
 
   for (s = tail; NULL != s; s = s->prev) {
     // if the key matches, and the element_count is same
-    if ((!memcmp (&s->session_id, key, sizeof (struct GNUNET_HashCode)))
-        && (s->total == element_count)) {
+    if (0 == memcmp (&s->session_id, key, sizeof (struct GNUNET_HashCode))) {
       // if peerid is NULL OR same as the peer Id in the queued request
       if ((NULL == peerid)
-          || (!memcmp (&s->peer, peerid, sizeof (struct GNUNET_PeerIdentity))))
+          || (0 == memcmp (&s->peer, peerid, sizeof (struct GNUNET_PeerIdentity))))
         // matches and is not an already terminated session
         return s;
     }
@@ -1091,6 +1088,7 @@ cb_intersection_element_removed (void *cls,
   case GNUNET_SET_STATUS_DONE:
     //stop listening for further requests
     GNUNET_SET_listen_cancel (s->intersection_listen);
+    s->intersection_listen = NULL;
     
     if (2 > s->used_element_count) {
       // failed! do not leak information about our single remaining element!
@@ -1122,11 +1120,18 @@ cb_intersection_element_removed (void *cls,
       return;
     }
   default:
+    if (NULL != s->intersection_listen){
+      GNUNET_SET_listen_cancel (s->intersection_listen);
+      s->intersection_listen = NULL;
+    }
+    // the op failed and has already been invalidated by the set service
+    s->intersection_op = NULL;
     break;
   }
 
   //failed if we go here
-  GNUNET_break (0);
+  GNUNET_break_op (0);
+  
 
   // and notify our client-session that we could not complete the session
   if (ALICE == s->role) {
@@ -1301,7 +1306,6 @@ prepare_alices_computation_request (struct ServiceSession * s)
 
   msg = GNUNET_new (struct GNUNET_SCALARPRODUCT_service_request);
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_SCALARPRODUCT_ALICE_CRYPTODATA);
-  msg->total_element_count = htonl (s->used_element_count);
   memcpy (&msg->session_id, &s->session_id, sizeof (struct GNUNET_HashCode));
   msg->header.size = htons (sizeof (struct GNUNET_SCALARPRODUCT_service_request));
 
@@ -1406,7 +1410,7 @@ client_request_complete_bob (struct ServiceSession * client_session)
   //check if service queue contains a matching request
   s = find_matching_session (from_service_tail,
                                    &client_session->session_id,
-                                   client_session->total, NULL);
+                                   NULL);
   if (NULL != s) {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 _ ("Got client-responder-session with key %s and a matching service-request-session set, processing.\n"),
@@ -1596,7 +1600,7 @@ handle_client_message (void *cls,
   // do we have a duplicate session here already?
   if (NULL != find_matching_session (from_client_tail,
                                      &msg->session_key,
-                                     total_count, NULL)) {
+                                     NULL)) {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 _ ("Duplicate session information received, can not create new session with key `%s'\n"),
                 GNUNET_h2s (&msg->session_key));
@@ -2049,10 +2053,9 @@ handle_alices_computation_request (void *cls,
   struct ServiceSession * s;
   struct ServiceSession * client_session;
   const struct GNUNET_SCALARPRODUCT_service_request * msg = (const struct GNUNET_SCALARPRODUCT_service_request *) message;
-  uint32_t total_elements;
 
   s = (struct ServiceSession *) * channel_ctx;
-  if ((BOB != s->role) && (s->total != 0)) {
+  if ((BOB != s->role) || (s->total != 0)) {
     // must be a fresh session
     goto invalid_msg;
   }
@@ -2068,17 +2071,8 @@ handle_alices_computation_request (void *cls,
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
-  total_elements = ntohl (msg->total_element_count);
-
-  //sanity check: is the message as long as the message_count fields suggests?
-  if (1 > total_elements) {
-    GNUNET_free (s);
-    GNUNET_break_op (0);
-    return GNUNET_SYSERR;
-  }
   if (find_matching_session (from_service_tail,
                              &msg->session_id,
-                             total_elements,
                              NULL)) {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _ ("Got message with duplicate session key (`%s'), ignoring service request.\n"),
@@ -2087,7 +2081,6 @@ handle_alices_computation_request (void *cls,
     return GNUNET_SYSERR;
   }
 
-  s->total = total_elements;
   s->channel = channel;
 
   // session key
@@ -2100,7 +2093,7 @@ handle_alices_computation_request (void *cls,
   //check if service queue contains a matching request
   client_session = find_matching_session (from_client_tail,
                                           &s->session_id,
-                                          s->total, NULL);
+                                          NULL);
 
   GNUNET_CONTAINER_DLL_insert (from_service_head, from_service_tail, s);
 

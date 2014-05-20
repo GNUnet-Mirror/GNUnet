@@ -121,11 +121,6 @@ struct GNUNET_SCALARPRODUCT_service_request {
   struct GNUNET_MessageHeader header;
 
   /**
-   * how many elements the total message including all multipart msgs contains
-   */
-  uint32_t total_element_count GNUNET_PACKED;
-
-  /**
    * the transaction/session key used to identify a session
    */
   struct GNUNET_HashCode session_id;
