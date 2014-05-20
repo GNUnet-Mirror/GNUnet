@@ -397,6 +397,7 @@ check_PROGRAMS = \
  test_transport_api_restart_1peer \
  test_transport_api_restart_2peers \
  test_transport_api_timeout_tcp \
+ test_transport_address_switch_tcp \
  test_transport_api_limited_sockets_tcp \
  test_transport_api_tcp_nat \
  test_transport_api_udp \
@@ -1014,6 +1015,14 @@ test_transport_api_bluetooth_LDADD = \
 endif
 endif
 
+test_transport_address_switch_tcp_SOURCES = \
+ test_transport_address_switch.c
+test_transport_address_switch_tcp_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/transport/libgnunettransporttesting.la
+
 test_quota_compliance_tcp_SOURCES = \
  test_quota_compliance.c
 test_quota_compliance_tcp_LDADD = \
@@ -1197,14 +1206,14 @@ test_transport_api_timeout_wlan_peer1.conf \
 test_transport_api_timeout_wlan_peer2.conf \
 test_transport_api_timeout_bluetooth_peer1.conf\
 test_transport_api_timeout_bluetooth_peer2.conf\
-test_transport_api_unreliability_udp_peer1.conf\
-test_transport_api_unreliability_udp_peer2.conf\
-test_transport_api_unreliability_unix_peer1.conf\
-test_transport_api_unreliability_unix_peer2.conf\
-test_transport_api_unreliability_wlan_peer1.conf\
-test_transport_api_unreliability_wlan_peer2.conf\
-test_transport_api_unreliability_bluetooth_peer1.conf\
-test_transport_api_unreliability_bluetooth_peer2.conf\
+test_transport_api_reliability_udp_peer1.conf\
+test_transport_api_reliability_udp_peer2.conf\
+test_transport_api_reliability_unix_peer1.conf\
+test_transport_api_reliability_unix_peer2.conf\
+test_transport_api_reliability_wlan_peer1.conf\
+test_transport_api_reliability_wlan_peer2.conf\
+test_transport_api_reliability_bluetooth_peer1.conf\
+test_transport_api_reliability_bluetooth_peer2.conf\
 test_transport_api_wlan_peer1.conf\
 test_transport_api_wlan_peer2.conf\
 test_transport_api_bluetooth_peer1.conf\
