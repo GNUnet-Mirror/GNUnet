@@ -39,7 +39,7 @@
  */
 #define TIMEOUT_TRANSMIT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 20)
 
-#define DURATION GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
+#define DURATION GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
 
 static char *test_source;
 
@@ -100,8 +100,6 @@ GNUNET_NETWORK_STRUCT_END
 
 static int msg_scheduled;
 static int msg_sent;
-static int msg_recv_expected;
-static int msg_recv;
 
 static int test_failed;
 static int test_connected;
@@ -215,65 +213,20 @@ static void
 notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
                 const struct GNUNET_MessageHeader *message)
 {
-  static int n;
-  unsigned int s;
-  char cbuf[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1];
   const struct TestMessage *hdr;
 
   hdr = (const struct TestMessage *) message;
-  s = get_size (n);
   if (MTYPE != ntohs (message->type))
     return;
-  msg_recv_expected = n;
-  msg_recv = ntohl (hdr->num);
-  if (ntohs (message->size) != (s))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Expected message %u of size %u, got %u bytes of message %u\n",
-                n, s, ntohs (message->size), ntohl (hdr->num));
-    if (die_task != GNUNET_SCHEDULER_NO_TASK)
-      GNUNET_SCHEDULER_cancel (die_task);
-    test_failed = GNUNET_YES;
-    die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
-    return;
-  }
-  if (ntohl (hdr->num) != n)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Expected message %u of size %u, got %u bytes of message %u\n",
-                n, s, ntohs (message->size), ntohl (hdr->num));
-    if (die_task != GNUNET_SCHEDULER_NO_TASK)
-      GNUNET_SCHEDULER_cancel (die_task);
-    test_failed = GNUNET_YES;
-    die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
-    return;
-  }
-  memset (cbuf, n, s - sizeof (struct TestMessage));
-  if (0 != memcmp (cbuf, &hdr[1], s - sizeof (struct TestMessage)))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Expected message %u with bits %u, but body did not match\n", n,
-                (unsigned char) n);
-    if (die_task != GNUNET_SCHEDULER_NO_TASK)
-      GNUNET_SCHEDULER_cancel (die_task);
-    test_failed = GNUNET_YES;
-    die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
-    return;
-  }
-#if VERBOSE
-  if (ntohl (hdr->num) % 5000 == 0)
-  {
-    struct PeerContext *p = cls;
-    char *ps = GNUNET_strdup (GNUNET_i2s (&p->id));
 
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Peer %u (`%s') got message %u of size %u from peer (`%s')\n",
-                p->no, ps, ntohl (hdr->num), ntohs (message->size),
-                GNUNET_i2s (peer));
-    GNUNET_free (ps);
-  }
-#endif
-  n++;
+  struct PeerContext *p = cls;
+  char *ps = GNUNET_strdup (GNUNET_i2s (&p->id));
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Peer %u (`%s') got message %u of size %u from peer (`%s')\n",
+              p->no, ps, ntohl (hdr->num), ntohs (message->size),
+              GNUNET_i2s (peer));
+  GNUNET_free (ps);
 }
 
 
@@ -317,14 +270,15 @@ notify_ready (void *cls, size_t size, void *buf)
 #if VERBOSE
     if (n % 5000 == 0)
     {
-
+#endif
       char *receiver_s = GNUNET_strdup (GNUNET_i2s (&receiver->id));
 
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "Sending message of size %u from peer %u (`%4s') -> peer %u (`%s') !\n",
-                  n, sender->no, GNUNET_i2s (&sender->id), receiver->no,
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                  "Sending message %u of size %u from peer %u (`%4s') -> peer %u (`%s') !\n",
+                  n, s, sender->no, GNUNET_i2s (&sender->id), receiver->no,
                   receiver_s);
       GNUNET_free (receiver_s);
+#if 0
     }
 #endif
     n++;
