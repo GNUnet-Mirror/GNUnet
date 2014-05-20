@@ -473,6 +473,7 @@ TESTS = \
  test_transport_api_timeout_tcp \
  test_transport_api_limited_sockets_tcp \
  test_transport_api_tcp_nat \
+ test_transport_address_switch_tcp \
  test_transport_api_udp \
  test_transport_api_timeout_udp \
  test_transport_address_switch_udp \
