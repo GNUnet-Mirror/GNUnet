@@ -281,7 +281,7 @@ end ()
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Stopping peers\n");
 
   delayed_end_task = GNUNET_SCHEDULER_NO_TASK;
-
+  FPRINTF (stderr, "\n");
   if (p1_switch_attempts > 0)
   {
     FPRINTF (stderr, "Peer 1 tried %u times to switch and succeeded %u times, failed %u times\n",
