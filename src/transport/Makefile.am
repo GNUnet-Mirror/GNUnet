@@ -1020,6 +1020,7 @@ test_transport_address_switch_tcp_SOURCES = \
 test_transport_address_switch_tcp_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/transport/libgnunettransporttesting.la
 
@@ -1214,6 +1215,8 @@ test_transport_api_reliability_wlan_peer1.conf\
 test_transport_api_reliability_wlan_peer2.conf\
 test_transport_api_reliability_bluetooth_peer1.conf\
 test_transport_api_reliability_bluetooth_peer2.conf\
+test_transport_test_transport_address_switch_tcp_peer1.conf\
+test_transport_test_transport_address_switch_tcp_peer2.conf\
 test_transport_api_wlan_peer1.conf\
 test_transport_api_wlan_peer2.conf\
 test_transport_api_bluetooth_peer1.conf\

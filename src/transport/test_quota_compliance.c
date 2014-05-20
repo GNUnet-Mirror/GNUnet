@@ -90,7 +90,6 @@ static GNUNET_TRANSPORT_TESTING_ConnectRequest cc;
 #define MTYPE 12345
 
 GNUNET_NETWORK_STRUCT_BEGIN
-
 struct TestMessage
 {
   struct GNUNET_MessageHeader header;
