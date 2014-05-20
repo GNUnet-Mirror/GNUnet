@@ -56,6 +56,9 @@
  5. At some places you use memcpy and at some places =, use uniformly.
  6. I have removed compare_and_update_predecessor from handle_dht_p2p_Trail_setup
  * (refer to google docs for reason). 
+ 7. when to use GNUNET_ntohll and when to use ntohl. 
+ 8. everywhere check if you should use GNUNET_htonll for key value which is 64 bit
+ * right now you are doing memcpy which does not seem correct. 
 */
 
 /**
@@ -77,6 +80,12 @@
  * How long at most to wait for transmission of a request to another peer?
  */
 #define GET_TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MINUTES, 2)
+
+/**
+ * How long will I remain congested?
+ */
+#define CONGESTION_TIMEOUT GNUNET_TIME_relative_get_minute_()
+
 
 /**
  * Maximum number of trails stored per finger.
@@ -379,6 +388,11 @@ struct PeerTrailRejectionMessage
    */
   uint32_t trail_length;
   
+  /**
+   * Relative time for which congested_peer will remain congested. 
+   */
+  struct GNUNET_TIME_Relative congestion_time;
+  
   /* Trail_list from source_peer to peer which sent the message for trail setup
    * to congested peer.*/
 };
@@ -627,16 +641,7 @@ struct FriendInfo
   unsigned int pending_count;
   
   /**
-   * FIXME: Refer to time.c and gnunet_time_lib.h for correct functions.
-   * in handle_dht_p2p_trail_rejection, you should update these values
-   * and whenever you are selecting a friend in select_random_friend()
-   * and find_successor(), you should check congestion_duration = 0,
-   * then proceed else if congestion_duration < your current time then also
-   * proceed. 
-   *        struct GNUNET_TIME_Absolute start = GNUNET_TIME_absolute_get();
-   *        struct GNUNET_TIME_Relative congestion_timeout =  
-   * congestion_duration = GNUNET_TIME_absolute_add (start,congestion_timeout);
-   * in select_random_friend, GNUNET_TIME_absolute_get_remaning()
+   
    */
   struct GNUNET_TIME_Absolute congestion_duration;
   
@@ -2395,6 +2400,45 @@ int finger_table_add (const struct GNUNET_PeerIdentity *finger_identity,
 
 
 /**
+ * Check if the successor chosen is congested or has crossed trail threshold. 
+ * @param successor Successor to be checked.
+ * @return #GNUNET_YES in case its is either congested or has crossed trail threshold.
+ *         #GNUNET_NO if its good to go. 
+ */
+static int
+check_friend_threshold_and_congestion (struct Sorting_List *successor)
+{  
+  struct FriendInfo *friend;
+  
+  if (successor->type == FRIEND)
+  {
+    friend = successor->data;
+  }
+  else if (successor->type == FINGER)
+  {
+    struct FingerInfo *finger = successor->data;
+    if (finger->first_trail_length > 0)
+    {
+      friend = GNUNET_CONTAINER_multipeermap_get (friend_peermap, 
+                                                  &(finger->first_trail_head->peer));
+    }
+    else
+    {
+      friend = GNUNET_CONTAINER_multipeermap_get (friend_peermap, &(finger->finger_identity));
+    }
+  }
+  
+  if ((friend->trails_count == TRAIL_THROUGH_FRIEND_THRESHOLD)||
+      ((0 != GNUNET_TIME_absolute_get_remaining (friend->congestion_duration).rel_value_us)))
+  {
+    return GNUNET_YES;
+  }
+  else
+    return GNUNET_NO;
+}
+
+
+/**
  * 
  * @param all_known_peers
  * @param array_size
@@ -2404,51 +2448,200 @@ int finger_table_add (const struct GNUNET_PeerIdentity *finger_identity,
  */
 static struct Sorting_List *
 get_next_successor (struct Sorting_List *all_known_peers,
-                    unsigned int array_size,
-                    struct FriendInfo *friend,
-                    uint64_t key_value)
+                    unsigned int array_size, int start_index,
+                    int search_index, int count)
 {
-  /* 1. search friend in all_known_peers.
-     2. get the next peer. if peer == my_identity or peer == value, then go to
-         next element.
-     3. if friend then again check if threshold crossed or not . If not then return
-        or else again increment. remember starting index of friend in all_known_peers
-       and when you reach to it again then return NULL as it means all the friend
-        are congested or threshold reached. 
-  */
-  return NULL;
+  struct Sorting_List *next_peer;
+  
+  if (search_index == start_index)
+    return NULL;
+  next_peer = GNUNET_malloc (sizeof (struct Sorting_List));
+  memcpy (next_peer, &all_known_peers[search_index], sizeof (struct Sorting_List));
+  
+  if ((next_peer->type == VALUE) || 
+     (GNUNET_YES == check_friend_threshold_and_congestion (next_peer)))
+  {
+    search_index = (search_index + 1) % array_size;
+    count++;
+    return get_next_successor (all_known_peers, array_size, start_index, search_index, count);
+  }
+  else 
+    return next_peer;
 }
 
 
 /**
- * Check if the friend is congested or has crossed TRAIL_THRESHOLD. If yes
- * then choose the peer next to it in the array. In case number of times this 
- * function is called is equal to total number of entries in the array then it
- * means that none of the friends are busy. But remember in this array you also
- * have your own identity, value that you were searching, You should skip those
- * and also keep the count = size -2. But if we call in this order is our get/put
- * not getting wrong. 
+ * 
  * @param all_known_peers
  * @param array_size
- * @param friend Friend to be checked if 
- * @param key_value To be ignored 
- * @return #GNUNET_YES
- *         #GNUNET_NO
+ * @param search_value
+ * @return 
  */
 static int
-check_friend_threshold_and_congestion (struct Sorting_List *all_known_peers,
-                                       unsigned int array_size,
-                                       struct FriendInfo *friend,
-                                       uint64_t key_value)
-{  
-  if (friend->trails_count == TRAIL_THROUGH_FRIEND_THRESHOLD)
+get_friend_location (struct Sorting_List *all_known_peers, size_t array_size,
+                     uint64_t search_value)
+{
+  int k;
+  
+  while (0 != memcmp (&all_known_peers[k], &search_value, sizeof (uint64_t)))
   {
-    return GNUNET_YES;
+    k++;
   }
-  return GNUNET_NO;
+  if (k == array_size)
+    return GNUNET_SYSERR;
+  else 
+    return k;
 }
 
 
+/**
+ * Initialize all_known_peers with my_id, value, friends and fingers. 
+ * @param all_known_peers Empty all_known_peers
+ * @param size Total number of elements in all_known_peers
+ */
+static void
+init_all_known_peers (struct Sorting_List *all_known_peers, int size, uint64_t value)
+{
+  struct GNUNET_CONTAINER_MultiPeerMapIterator *friend_iter;
+  struct GNUNET_CONTAINER_MultiPeerMapIterator *finger_iter;
+  struct GNUNET_PeerIdentity key_ret;
+  struct FriendInfo *friend;
+  struct FingerInfo *finger;
+  unsigned int finger_index;
+  unsigned int friend_index;
+  int k;
+  int j; 
+  
+  for (k = 0; k < size; k++)
+    all_known_peers[k].peer_id = 0;
+  
+  /* Copy your identity at 0th index in all_known_peers. */
+  j = 0;
+  memcpy (&(all_known_peers[j].peer_id), &my_identity, sizeof (uint64_t));
+  all_known_peers[j].type = MY_ID;
+  all_known_peers[j].data = 0;
+  j++;
+  
+  /* Copy value */
+  all_known_peers[j].peer_id = value;
+  all_known_peers[j].type = VALUE;
+  all_known_peers[j].data = 0;
+  j++;
+  
+  /* Iterate over friend peer map and copy all the elements into array. */
+  friend_iter = GNUNET_CONTAINER_multipeermap_iterator_create (friend_peermap); 
+  for (friend_index = 0; friend_index < GNUNET_CONTAINER_multipeermap_size (friend_peermap); friend_index++)
+  {
+    if(GNUNET_YES == GNUNET_CONTAINER_multipeermap_iterator_next(friend_iter,&key_ret,(const void **)&friend)) 
+    {
+      memcpy (&(all_known_peers[j].peer_id), &(friend->id), sizeof (uint64_t));
+      all_known_peers[j].type = FRIEND;
+      all_known_peers[j].data = friend;
+      j++;
+    }
+  }
+  
+ 
+  /* Iterate over finger map and copy all the entries into all_known_peers array. */
+  finger_iter = GNUNET_CONTAINER_multipeermap_iterator_create (finger_peermap);  
+  for (finger_index = 0; finger_index < GNUNET_CONTAINER_multipeermap_size (finger_peermap); finger_index++)
+  {
+    if(GNUNET_YES == GNUNET_CONTAINER_multipeermap_iterator_next(finger_iter,&key_ret,(const void **)&finger)) 
+    {
+      memcpy (&(all_known_peers[j].peer_id), &(finger->finger_identity), sizeof (uint64_t));
+      all_known_peers[j].type = FINGER;
+      all_known_peers[j].data = finger;
+      j++;
+    }
+  }
+  
+  GNUNET_CONTAINER_multipeermap_iterator_destroy (finger_iter);
+  GNUNET_CONTAINER_multipeermap_iterator_destroy (friend_iter); 
+}
+
+/** Find closest successor for the value.
+ * @param value Value for which we are looking for successor
+ * @param[out] current_destination set to my_identity in case I am the final destination,
+ *                                 set to friend identity in case friend is final destination,
+ *                                 set to first friend to reach to finger, in case finger
+ *                                 is final destination. 
+ * @param[out] current_source set to my_identity.
+ * @param finger_map_index Index in finger peer map. 
+ * @return Peer identity of next hop to send trail setup message to,
+ *         NULL in case all the friends are either congested or have crossed
+ *              their trail threshold.
+ */
+static struct GNUNET_PeerIdentity *
+find_successor (uint64_t value, struct GNUNET_PeerIdentity *current_destination,
+               struct GNUNET_PeerIdentity *current_source, unsigned int finger_map_index)
+{
+  struct Sorting_List *successor;
+  unsigned int size;
+  
+  size = GNUNET_CONTAINER_multipeermap_size (friend_peermap)+
+         GNUNET_CONTAINER_multipeermap_size (finger_peermap)+
+         2;
+  
+  struct Sorting_List all_known_peers[size];
+  init_all_known_peers (all_known_peers, size, value);
+  qsort (&all_known_peers, size, sizeof (struct Sorting_List), &compare_peer_id);
+  
+  if (PREDECESSOR_FINGER_ID == finger_map_index)
+    successor = find_closest_predecessor (all_known_peers, value, size);
+  else
+    successor = find_closest_successor (all_known_peers, value, size);
+  
+  if ((successor->type != MY_ID) && (successor->type != VALUE))
+  {
+    if (GNUNET_YES == check_friend_threshold_and_congestion (successor))
+    {
+      int search_index = get_friend_location (all_known_peers, size, successor->peer_id);
+      successor = get_next_successor (all_known_peers, size, search_index, search_index + 1, 0);
+    }
+  }
+  
+  if (successor->type == MY_ID)
+  {
+    memcpy (current_destination, &my_identity, sizeof (struct GNUNET_PeerIdentity));
+    return &my_identity;
+  }
+  else if (successor->type == FRIEND)
+  {
+    struct FriendInfo *target_friend = successor->data;
+    memcpy (current_destination, &(target_friend->id), sizeof (struct GNUNET_PeerIdentity));
+    memcpy (current_source, &my_identity, sizeof (struct GNUNET_PeerIdentity));
+    return current_destination;
+  }
+  else if (successor->type == FINGER)
+  {
+    struct GNUNET_PeerIdentity *next_hop;
+    struct FingerInfo *finger;
+    finger = successor->data;
+    next_hop = GNUNET_malloc (sizeof (struct GNUNET_PeerIdentity));
+    
+    if (finger->first_trail_length > 0)
+    {
+      struct TrailPeerList *iterator;
+      iterator = GNUNET_malloc (sizeof (struct TrailPeerList));
+      iterator = finger->first_trail_head;
+      memcpy (next_hop, &(iterator->peer), sizeof (struct GNUNET_PeerIdentity));
+    }
+    else /* This means finger is our friend. */
+      memcpy (next_hop, &(finger->finger_identity), sizeof(struct GNUNET_PeerIdentity));
+    
+    memcpy (current_destination, &(finger->finger_identity), sizeof (struct GNUNET_PeerIdentity));
+    memcpy (current_source, &my_identity, sizeof (struct GNUNET_PeerIdentity));
+    return next_hop;
+  }
+  else 
+  {
+    /* It means all the peers known to me are either congested or has crossed
+        trial threshold. */
+    return NULL;
+  }
+}
+
+#if 0
 /**
  * FIXME: Complete the code for checking the threshold and getting the next
  * peer, add the case in finger. 
@@ -2536,7 +2729,6 @@ find_successor (uint64_t value, struct GNUNET_PeerIdentity *current_destination,
   
   GNUNET_CONTAINER_multipeermap_iterator_destroy (finger_iter);
   GNUNET_CONTAINER_multipeermap_iterator_destroy (friend_iter); 
-  
  
   qsort (&all_known_peers, size, sizeof (struct Sorting_List), &compare_peer_id);
   
@@ -2557,7 +2749,8 @@ find_successor (uint64_t value, struct GNUNET_PeerIdentity *current_destination,
     target_friend = (struct FriendInfo *)successor->data;
     if( GNUNET_YES == check_friend_threshold_and_congestion (all_known_peers, size, target_friend, value))
     {
-      get_next_successor (all_known_peers, size, friend, value);
+      int search_index = get_friend_location (all_known_peers);
+      get_next_successor (all_known_peers, size, search_index, search_index + 1, 0);
     }
     memcpy (current_destination, &(target_friend->id), sizeof (struct GNUNET_PeerIdentity));
     memcpy (current_source, &my_identity, sizeof (struct GNUNET_PeerIdentity));
@@ -2590,7 +2783,7 @@ find_successor (uint64_t value, struct GNUNET_PeerIdentity *current_destination,
     return NULL;
   }
 }
-
+#endif
 
 /**
  * Construct a Put message and send it to target_peer. 
@@ -2887,7 +3080,8 @@ GDS_NEIGHBOURS_send_trail_rejection (const struct GNUNET_PeerIdentity *source_pe
                                      const struct GNUNET_PeerIdentity *next_hop,
                                      unsigned int finger_map_index,
                                      struct GNUNET_PeerIdentity *trail_peer_list,
-                                     unsigned int trail_length)
+                                     unsigned int trail_length,
+                                     struct GNUNET_TIME_Relative congestion_timeout)
 {
   struct PeerTrailRejectionMessage *trail_rejection;
   struct GNUNET_PeerIdentity *trail_list;
@@ -2916,6 +3110,7 @@ GDS_NEIGHBOURS_send_trail_rejection (const struct GNUNET_PeerIdentity *source_pe
   memcpy (&(trail_rejection->finger_identity_value), &finger_identity, sizeof (uint64_t));
   trail_rejection->finger_map_index = htonl (finger_map_index);
   trail_rejection->trail_length = htonl (trail_length);
+  trail_rejection->congestion_time = congestion_timeout;
   
   if (trail_length != 0)
   {
@@ -3416,7 +3611,8 @@ handle_dht_p2p_trail_setup (void *cls, const struct GNUNET_PeerIdentity *peer,
   if (GNUNET_YES == GDS_ROUTING_check_threshold())
   {
     GDS_NEIGHBOURS_send_trail_rejection (&source, destination_finger_value, &my_identity,
-                                         peer, finger_map_index, trail_peer_list, trail_length);
+                                         peer, finger_map_index, trail_peer_list, trail_length,
+                                         CONGESTION_TIMEOUT);
     return GNUNET_OK;
   }
   
@@ -3968,6 +4164,7 @@ int handle_dht_p2p_trail_rejection(void *cls, const struct GNUNET_PeerIdentity *
   uint32_t trail_length;
   uint32_t finger_map_index;
   uint64_t destination_finger_value;
+  struct GNUNET_TIME_Relative congestion_timeout;
   size_t msize;
   
   msize = ntohs (message->size);
@@ -3994,10 +4191,12 @@ int handle_dht_p2p_trail_rejection(void *cls, const struct GNUNET_PeerIdentity *
   finger_map_index = ntohl (trail_rejection->finger_map_index);
   memcpy (&destination_finger_value, &(trail_rejection->finger_identity_value), sizeof (uint64_t));
   memcpy (&source, &(trail_rejection->source_peer), sizeof (struct GNUNET_PeerIdentity));
+  congestion_timeout = trail_rejection->congestion_time;
   
   /* First set the congestion time of the friend that sent you this message. */
   target_friend = GNUNET_CONTAINER_multipeermap_get (friend_peermap, peer);
-  //FIXME: target_friend->congestion_time ==? 
+  target_friend->congestion_duration = GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get(),
+                                                                 congestion_timeout);
   
   if(0 == (GNUNET_CRYPTO_cmp_peer_identity (&my_identity, &(trail_rejection->source_peer))))
   {
@@ -4026,7 +4225,7 @@ int handle_dht_p2p_trail_rejection(void *cls, const struct GNUNET_PeerIdentity *
     GDS_NEIGHBOURS_send_trail_rejection (&(trail_rejection->source_peer), 
                                          destination_finger_value,
                                          &my_identity, &next_hop,finger_map_index,
-                                         new_trail,new_trail_length);
+                                         new_trail,new_trail_length, CONGESTION_TIMEOUT);
     return GNUNET_YES;
   }
   
