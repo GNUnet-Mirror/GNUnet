@@ -844,12 +844,6 @@ transmit_request (struct ClientQueryRecord *cqr)
        cqr->replication,
        cqr->seen_replies_count);
 
-  /* FIXME: Is it correct to pass your identity as default current_destination
-   * and current_source. also is it correct to copy your identity into a new
-   * address and then pass this address. address at which your identity is 
-   * stored should be const or else you may overwrite it and you lose your
-   * identity value.  */ 
-  
   struct GNUNET_PeerIdentity my_identity;
   my_identity = GDS_NEIGHBOURS_get_my_id ();
   GDS_NEIGHBOURS_send_get (&cqr->key, cqr->type, cqr->msg_options, 
@@ -951,12 +945,13 @@ handle_dht_local_put (void *cls, struct GNUNET_SERVER_Client *client,
                             &put_msg[1]);
  
   struct GNUNET_PeerIdentity my_identity =  GDS_NEIGHBOURS_get_my_id();
-  GDS_NEIGHBOURS_send_put (&put_msg->key, &put_msg[1],
-                           size - sizeof (struct GNUNET_DHT_ClientPutMessage),
+  GDS_NEIGHBOURS_send_put (&put_msg->key, 
                            ntohl (put_msg->type), ntohl (put_msg->options),
-                           ntohl (put_msg->desired_replication_level),
+                           ntohl (put_msg->desired_replication_level),                          
+                           my_identity, my_identity, NULL, 0, 0, NULL,
                            GNUNET_TIME_absolute_ntoh (put_msg->expiration),
-                           my_identity, my_identity, NULL, 0, 0, NULL);
+                           &put_msg[1],
+                           size - sizeof (struct GNUNET_DHT_ClientPutMessage));
                            
 
   GDS_CLIENTS_process_put (ntohl (put_msg->options),
@@ -1052,12 +1047,6 @@ handle_dht_local_get (void *cls, struct GNUNET_SERVER_Client *client,
   if (GNUNET_SCHEDULER_NO_TASK != retry_task)
     GNUNET_SCHEDULER_cancel (retry_task);
   retry_task = GNUNET_SCHEDULER_add_now (&transmit_next_request_task, NULL);
-  /* perform local lookup 
-   * FIXME: Should we call it here or in neighbours file. And how to handle
-   * this case where we may get the data locally. You really need to rethink
-   * this design again. 
-  GDS_DATACACHE_handle_get (&get->key, cqr->type, cqr->xquery, xquery_size,
-                            NULL, 0); */
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 

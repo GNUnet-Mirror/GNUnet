@@ -332,32 +332,8 @@ GDS_ROUTING_init (void)
   routing_table = GNUNET_CONTAINER_multipeermap_create (ROUTING_TABLE_THRESHOLD * 4 / 3,
                                                         GNUNET_NO);
 }
+  
 
-/**
- * ONLY FOR TESTING.  
- */
-void 
-GDS_ROUTING_print (void)
-{
-  struct RoutingTrail *trail;
-  struct GNUNET_CONTAINER_MultiPeerMapIterator *iterator;
-  int i;
-  
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Routing table entries \n");
-  iterator = GNUNET_CONTAINER_multipeermap_iterator_create (routing_table);
-  for (i = 0; i< GNUNET_CONTAINER_multipeermap_size(routing_table); i++)
-  {
-    if(GNUNET_YES == GNUNET_CONTAINER_multipeermap_iterator_next (iterator, NULL,
-                                                                 (const void **)&trail)) 
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Routing trail source \n", GNUNET_i2s (&(trail->source)));
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Routing trail source \n", GNUNET_i2s (&(trail->destination)));
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Routing trail source \n", GNUNET_i2s (&(trail->next_hop)));
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Routing trail source \n", GNUNET_i2s (&(trail->prev_hop)));
-    }
-  }
-  
-}
 /**
  * FIXME: here you can have routing table with size 0, only when you delete
  * the entries correctly. Possible scenarios where we delete the entries are

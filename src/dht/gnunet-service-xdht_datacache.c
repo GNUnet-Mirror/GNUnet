@@ -223,10 +223,9 @@ datacache_get_iterator (void *cls,
       i++;
       iterator = iterator->next;
     }
-    GDS_NEIGHBOURS_send_get_result (exp, key, put_path_length, put_path,
-                                    type, size, data, get_path, ctx->get_path_length,
-                                    &(ctx->next_hop),
-                                    &(ctx->source_peer));
+    GDS_NEIGHBOURS_send_get_result (key,type, &(ctx->next_hop),&(ctx->source_peer),
+                                    put_path_length, put_path, ctx->get_path_length,
+                                    get_path, exp, data, size );
     
     break;
   case GNUNET_BLOCK_EVALUATION_OK_DUPLICATE:
@@ -308,7 +307,6 @@ GDS_DATACACHE_handle_get (const struct GNUNET_HashCode * key,
   if (next_hop != NULL)
     memcpy (&(ctx.next_hop), next_hop, sizeof (struct GNUNET_PeerIdentity));
  
-  /* FIXME: add the get path into ctx and then call gds_neighbours_handle_get*/
   int i = 0;
 
   if(get_path != NULL)
