@@ -556,6 +556,8 @@ ats_performance_info_cb (void *cls,
   int log;
   char *peer_id;
 
+
+
   p = find_partner (me, &address->peer);
   if (NULL == p)
   {

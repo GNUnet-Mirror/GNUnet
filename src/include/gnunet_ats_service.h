@@ -756,9 +756,9 @@ struct GNUNET_ATS_PerformanceHandle;
  * Signature of a function that is called with QoS information about an address.
  *
  * @param cls closure
- * @param address the address
+ * @param address the address, NULL if ATS service was disconnected
  * @param address_active is this address actively used to maintain a connection
- * 				to a peer
+          to a peer
  * @param bandwidth_out assigned outbound bandwidth for the connection
  * @param bandwidth_in assigned inbound bandwidth for the connection
  * @param ats performance data for the address (as far as known)
@@ -766,10 +766,12 @@ struct GNUNET_ATS_PerformanceHandle;
  */
 typedef void
 (*GNUNET_ATS_AddressInformationCallback) (void *cls,
-    const struct GNUNET_HELLO_Address *address, int address_active,
+    const struct GNUNET_HELLO_Address *address,
+    int address_active,
     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-    const struct GNUNET_ATS_Information *ats, uint32_t ats_count);
+    const struct GNUNET_ATS_Information *ats,
+    uint32_t ats_count);
 
 /**
  * Handle for an address listing operation

@@ -192,7 +192,7 @@ run (void *cls,
   p = GNUNET_new (struct PeerContext);
   addr = GNUNET_new (struct Address);
 
-  atp = GNUNET_ATS_performance_init (cfg, &performance_cb, NULL);
+  atp = GNUNET_ATS_performance_init (cfg, NULL, NULL);
   if (atp == NULL)
   {
     ret = GNUNET_SYSERR;

@@ -190,6 +190,12 @@ addr_info_cb (void *cls,
   int latency;
   unsigned int cnt;
 
+  if (NULL == address)
+  {
+    /* ATS service temporarily disconnected */
+    return;
+  }
+
   GNUNET_assert (NULL != db);
   if (GNUNET_NO == address_active)
     return;

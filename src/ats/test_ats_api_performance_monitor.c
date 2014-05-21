@@ -106,6 +106,10 @@ ats_perf_cb (void *cls,
   static int peer0 = GNUNET_NO;
   static int peer1 = GNUNET_NO;
   static int done = GNUNET_NO;
+
+  if (NULL == address)
+    return;
+
   if ((GNUNET_NO == peer0) && (0 == memcmp (address, &p[0].id, sizeof (p[0].id))))
   {
     peer0 = GNUNET_YES;

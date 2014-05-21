@@ -27,7 +27,7 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet-service-ats_addresses.h"
-
+#include "gnunet-service-ats_normalization.h"
 #include "gnunet_ats_service.h"
 #include "gnunet_ats_plugin.h"
 #include "test_ats_api_common.h"

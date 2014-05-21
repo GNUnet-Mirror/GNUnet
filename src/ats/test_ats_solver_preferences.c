@@ -145,6 +145,9 @@ perf_info_cb (void *cls,
     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
     const struct GNUNET_ATS_Information *ats, uint32_t ats_count)
 {
+  if (NULL == address)
+    return;
+
   GNUNET_log(GNUNET_ERROR_TYPE_INFO, "ATS performance info: `%s'\n",
       GNUNET_i2s (&address->peer));
 }

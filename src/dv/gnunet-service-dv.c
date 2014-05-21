@@ -1321,6 +1321,12 @@ handle_ats_update (void *cls,
   uint32_t distance;
   enum GNUNET_ATS_Network_Type network = GNUNET_ATS_NET_UNSPECIFIED;
 
+  if (NULL == address)
+  {
+    /* ATS service temporarily disconnected */
+    return;
+  }
+
   if (GNUNET_NO == active)
     return;
   distance = get_atsi_distance (ats, ats_count);

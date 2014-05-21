@@ -254,6 +254,12 @@ update_latencies (void *cls,
   unsigned int i;
   struct GNUNET_TIME_Relative latency;
 
+  if (NULL == address)
+  {
+    /* ATS service temporarily disconnected */
+    return;
+  }
+
   if (GNUNET_YES != active)
   	return;
   for (i = 0; i < ats_count; i++)

@@ -587,6 +587,7 @@ process_ats_message (void *cls, const struct GNUNET_MessageHeader *msg)
   GNUNET_CLIENT_receive (ph->client, &process_ats_message, ph,
       GNUNET_TIME_UNIT_FOREVER_REL);
   return;
+
  reconnect:
   if (NULL != ph->th)
   {
@@ -595,7 +596,14 @@ process_ats_message (void *cls, const struct GNUNET_MessageHeader *msg)
   }
   GNUNET_CLIENT_disconnect (ph->client);
   ph->client = NULL;
-  /* FIXME: need to signal monitor that we were disconnected! */
+  if (NULL != ph->addr_info_cb)
+  {
+    /* Indicate reconnect */
+    ph->addr_info_cb (ph->addr_info_cb_cls, NULL, GNUNET_NO,
+        GNUNET_BANDWIDTH_value_init (0),
+        GNUNET_BANDWIDTH_value_init(0),
+        NULL, 0);
+  }
   ph->task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
                                            &reconnect_task, ph);
 }

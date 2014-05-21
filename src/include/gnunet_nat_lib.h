@@ -297,7 +297,7 @@ struct GNUNET_NAT_MiniHandle;
  *
  * @param cls closure
  * @param add_remove #GNUNET_YES to mean the new public IP address, #GNUNET_NO to mean
- *     the previous (now invalid) one
+ *     the previous (now invalid) one, #GNUNET_SYSERR indicates an error
  * @param addr either the previous or the new public IP address
  * @param addrlen actual length of the @a addr
  * @param result GNUNET_NAT_ERROR_SUCCESS on success, otherwise the specific error code

@@ -288,14 +288,33 @@ find_address_it (void *cls,
 }
 
 static void
-ats_perf_cb(void *cls, const struct GNUNET_HELLO_Address *address, int active,
+ats_perf_mon_cb(void *cls, const struct GNUNET_HELLO_Address *address, int active,
     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
     const struct GNUNET_ATS_Information *ats, uint32_t ats_count)
 {
-  struct PendingResolutions * pr;
+  struct PendingResolutions *pr;
+  struct PendingResolutions *cur;
+  struct PendingResolutions *next;
 
-  if ((GNUNET_YES == op_monitor) && (GNUNET_NO == verbose))
+  if (NULL == address)
+  {
+    /* ATS service temporarily disconnected, remove current state */
+    next = head;
+    for (cur = next; NULL != cur; cur = next)
+    {
+      next = cur->next;
+      GNUNET_CONTAINER_DLL_remove (head, tail, cur);
+      GNUNET_TRANSPORT_address_to_string_cancel (cur->tats_ctx);
+      GNUNET_HELLO_address_free (cur->address);
+      GNUNET_free (cur);
+    }
+
+    GNUNET_CONTAINER_multipeermap_iterate(addresses, &free_addr_it, NULL);
+    return;
+  }
+
+  if (GNUNET_NO == verbose)
   {
     struct AddressFindCtx actx;
 
@@ -316,7 +335,6 @@ ats_perf_cb(void *cls, const struct GNUNET_HELLO_Address *address, int active,
         actx.res->bandwidth_out = bandwidth_out;
       }
     }
-
     struct ATSAddress *a = GNUNET_new (struct ATSAddress);
     a->address = GNUNET_HELLO_address_copy(address);
     a->bandwidth_in = bandwidth_in;
@@ -325,27 +343,35 @@ ats_perf_cb(void *cls, const struct GNUNET_HELLO_Address *address, int active,
         GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
   }
 
-  if (NULL != address)
-  {
-    pr = GNUNET_malloc (sizeof (struct PendingResolutions) +
-        ats_count * sizeof (struct GNUNET_ATS_Information));
+  pr = GNUNET_malloc (sizeof (struct PendingResolutions) +
+      ats_count * sizeof (struct GNUNET_ATS_Information));
 
-    pr->ats_count = ats_count;
-    pr->ats = (struct GNUNET_ATS_Information *) &pr[1];
-    if (ats_count > 0)
-      memcpy (pr->ats, ats, ats_count * sizeof(struct GNUNET_ATS_Information));
-    pr->address = GNUNET_HELLO_address_copy (address);
-    pr->bandwidth_in = bandwidth_in;
-    pr->bandwidth_out = bandwidth_out;
-    pr->tats_ctx = GNUNET_TRANSPORT_address_to_string (cfg, address,
-        resolve_addresses_numeric,
-        GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10),
-        transport_addr_to_str_cb, pr);
-    GNUNET_CONTAINER_DLL_insert(head, tail, pr);
-    results++;
-    pending++;
-  }
-  else
+  pr->ats_count = ats_count;
+  pr->ats = (struct GNUNET_ATS_Information *) &pr[1];
+  if (ats_count > 0)
+    memcpy (pr->ats, ats, ats_count * sizeof(struct GNUNET_ATS_Information));
+  pr->address = GNUNET_HELLO_address_copy (address);
+  pr->bandwidth_in = bandwidth_in;
+  pr->bandwidth_out = bandwidth_out;
+  pr->tats_ctx = GNUNET_TRANSPORT_address_to_string (cfg, address,
+      resolve_addresses_numeric,
+      GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10),
+      transport_addr_to_str_cb, pr);
+  GNUNET_CONTAINER_DLL_insert (head, tail, pr);
+  results++;
+  pending++;
+}
+
+
+static void
+ats_perf_cb(void *cls, const struct GNUNET_HELLO_Address *address, int active,
+    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
+    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
+    const struct GNUNET_ATS_Information *ats, uint32_t ats_count)
+{
+  struct PendingResolutions * pr;
+
+  if (NULL == address)
   {
     /* All messages received */
     receive_done = GNUNET_YES;
@@ -358,6 +384,24 @@ ats_perf_cb(void *cls, const struct GNUNET_HELLO_Address *address, int active,
       end_task = GNUNET_SCHEDULER_add_now (end, NULL );
     }
   }
+
+  pr = GNUNET_malloc (sizeof (struct PendingResolutions) +
+      ats_count * sizeof (struct GNUNET_ATS_Information));
+
+  pr->ats_count = ats_count;
+  pr->ats = (struct GNUNET_ATS_Information *) &pr[1];
+  if (ats_count > 0)
+    memcpy (pr->ats, ats, ats_count * sizeof(struct GNUNET_ATS_Information));
+  pr->address = GNUNET_HELLO_address_copy (address);
+  pr->bandwidth_in = bandwidth_in;
+  pr->bandwidth_out = bandwidth_out;
+  pr->tats_ctx = GNUNET_TRANSPORT_address_to_string (cfg, address,
+      resolve_addresses_numeric,
+      GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10),
+      transport_addr_to_str_cb, pr);
+  GNUNET_CONTAINER_DLL_insert(head, tail, pr);
+  results++;
+  pending++;
 }
 
 static unsigned int
@@ -510,7 +554,7 @@ testservice_ats(void *cls, int result)
   }
   else if (op_monitor)
   {
-    ph = GNUNET_ATS_performance_init (cfg, &ats_perf_cb, NULL );
+    ph = GNUNET_ATS_performance_init (cfg, &ats_perf_mon_cb, NULL );
     if (NULL == ph)
       fprintf (stderr, _("Cannot connect to ATS service, exiting...\n") );
     end_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &end,
