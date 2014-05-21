@@ -2338,7 +2338,7 @@ GST_neighbours_handle_connect (const struct GNUNET_MessageHeader *message,
   n->ack_state = ACK_SEND_CONNECT_ACK;
   n->connect_ack_timestamp = ts;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Received CONNECT for peer `%s' in state %s/%s\n",
               GNUNET_i2s (peer),
               GNUNET_TRANSPORT_ps2s (n->state),
@@ -3202,6 +3202,7 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
         n->alternative_address.session, n->alternative_address.bandwidth_in,
         n->alternative_address.bandwidth_out, GNUNET_YES);
 
+    GNUNET_break (0);
     GNUNET_STATISTICS_update (GST_stats, gettext_noop
         ("# Successful attempts to switch addresses"), 1, GNUNET_NO);
 
@@ -3389,7 +3390,7 @@ GST_neighbours_handle_session_ack (const struct GNUNET_MessageHeader *message,
 {
   struct NeighbourMapEntry *n;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Received SESSION_ACK message from peer `%s'\n",
               GNUNET_i2s (peer));
   if (ntohs (message->size) != sizeof (struct GNUNET_MessageHeader))
@@ -3406,6 +3407,14 @@ GST_neighbours_handle_session_ack (const struct GNUNET_MessageHeader *message,
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Received %s for peer `%s' in state %s/%s\n",
+              "SESSION_ACK",
+              GNUNET_i2s (peer),
+              GNUNET_TRANSPORT_ps2s (n->state),
+              print_ack_state (n->ack_state));
+
   /* Check if we are in a plausible state for having sent
      a CONNECT_ACK.  If not, return, otherwise break.
 
@@ -3446,8 +3455,16 @@ GST_neighbours_handle_session_ack (const struct GNUNET_MessageHeader *message,
                             GNUNET_NO);
   }
 
+  if (GNUNET_TRANSPORT_PS_CONNECTED_SWITCHING_CONNECT_SENT == n->state)
+  {
+    /* We tried to switch addresses while being connect. We explicitly wait
+     * for a CONNECT_ACK before going to GNUNET_TRANSPORT_PS_CONNECTED,
+     * so we do not want to set the address as in use! */
+    return GNUNET_OK;
+  }
+
   set_state_and_timeout (n, GNUNET_TRANSPORT_PS_CONNECTED,
-      GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT));
+    GNUNET_TIME_relative_to_absolute (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT));
 
   /* Add session to ATS since no session was given (NULL) and we may have
    * obtained a new session */
