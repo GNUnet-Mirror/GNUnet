@@ -182,8 +182,6 @@ struct GNUNET_MULTICAST_Member
   struct GNUNET_PeerIdentity relays;
   uint32_t relay_count;
 
-  struct GNUNET_MessageHeader *join_request;
-
   uint64_t next_fragment_id;
 };
 
@@ -501,12 +499,31 @@ join_request_cb (void *cls, const struct GNUNET_HashCode *pub_key_hash,
 
   const struct GNUNET_MessageHeader *msg = NULL;
   if (sizeof (*req) + sizeof (*msg) <= ntohs (req->header.size))
-    msg =(const struct GNUNET_MessageHeader *) &req[1];
+    msg = (const struct GNUNET_MessageHeader *) &req[1];
 
   grp->join_cb (grp->cb_cls, &req->member_key, msg, jh);
   return GNUNET_YES;
 }
 
+
+/**
+ * Iterator callback for calling join decision callbacks of members.
+ */
+static int
+join_decision_cb (void *cls, const struct GNUNET_HashCode *pub_key_hash,
+                  void *member)
+{
+  const struct MulticastJoinDecisionMessage *dcsn = cls;
+  struct GNUNET_MULTICAST_Member *mem = member;
+  struct GNUNET_MULTICAST_Group *grp = &mem->grp;
+
+  const struct GNUNET_MessageHeader *msg = NULL;
+  if (sizeof (*dcsn) + sizeof (*msg) <= ntohs (dcsn->header.size))
+    msg = (const struct GNUNET_MessageHeader *) &dcsn[1];
+
+  // FIXME: grp->join_decision_cb (grp->cb_cls, msg);
+  return GNUNET_YES;
+}
 
 /**
  * Function called when we receive a message from the service.
@@ -547,6 +564,10 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 
   case GNUNET_MESSAGE_TYPE_MULTICAST_JOIN_REQUEST:
     size_min = sizeof (struct MulticastJoinRequestMessage);
+    break;
+
+  case GNUNET_MESSAGE_TYPE_MULTICAST_JOIN_DECISION:
+    size_min = sizeof (struct MulticastJoinDecisionMessage);
     break;
 
   default:
@@ -592,6 +613,15 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
       GNUNET_CONTAINER_multihashmap_get_multiple (members, &grp->pub_key_hash,
                                                   join_request_cb, (void *) msg);
     break;
+
+  case GNUNET_MESSAGE_TYPE_MULTICAST_JOIN_DECISION:
+    if (NULL != origins)
+      GNUNET_CONTAINER_multihashmap_get_multiple (origins, &grp->pub_key_hash,
+                                                  join_decision_cb, (void *) msg);
+    if (NULL != members)
+      GNUNET_CONTAINER_multihashmap_get_multiple (members, &grp->pub_key_hash,
+                                                  join_decision_cb, (void *) msg);
+    break;
   }
 
   if (NULL != grp->client)
@@ -619,7 +649,7 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
  *        be the multicast origin) is a good candidate for building the
  *        multicast tree.  Note that it is unnecessary to specify our own
  *        peer identity in this array.
- * @param join_response Message to send in response to the joining peer;
+ * @param join_resp  Message to send in response to the joining peer;
  *        can also be used to redirect the peer to a different group at the
  *        application layer; this response is to be transmitted to the
  *        peer that issued the request even if admission is denied.
@@ -629,8 +659,29 @@ GNUNET_MULTICAST_join_decision (struct GNUNET_MULTICAST_JoinHandle *jh,
                                 int is_admitted,
                                 unsigned int relay_count,
                                 const struct GNUNET_PeerIdentity *relays,
-                                const struct GNUNET_MessageHeader *join_response)
+                                const struct GNUNET_MessageHeader *join_resp)
 {
+  struct GNUNET_MULTICAST_Group *grp = jh->group;
+  uint16_t join_resp_size = (NULL != join_resp) ? ntohs (join_resp->size) : 0;
+  uint16_t relay_size = relay_count * sizeof (*relays);
+  struct MulticastClientJoinDecisionMessage * dcsn;
+  struct MessageQueue *
+    mq = GNUNET_malloc (sizeof (*mq) + sizeof (*dcsn)
+                        + relay_size + join_resp_size);
+
+  dcsn = (struct MulticastClientJoinDecisionMessage *) &mq[1];
+  dcsn->header.type = htons (GNUNET_MESSAGE_TYPE_MULTICAST_JOIN_DECISION);
+  dcsn->header.size = htons (sizeof (*dcsn) + relay_size + join_resp_size);
+  dcsn->member_key = jh->member_key;
+  dcsn->member_peer = jh->member_peer;
+  dcsn->is_admitted = is_admitted;
+  dcsn->relay_count = relay_count;
+  memcpy (&dcsn[1], relays, relay_size);
+  memcpy (((char *) &dcsn[1]) + relay_size, join_resp, join_resp_size);
+
+  GNUNET_CONTAINER_DLL_insert_tail (grp->tmit_head, grp->tmit_tail, mq);
+  transmit_next (grp);
+
   GNUNET_free (jh);
   return NULL;
 }
@@ -908,10 +959,8 @@ GNUNET_MULTICAST_origin_to_all_cancel (struct GNUNET_MULTICAST_OriginTransmitHan
  * @param relays Peer identities of members of the group, which serve as relays
  *        and can be used to join the group at. and send the @a join_request to.
  *        If empty, the @a join_request is sent directly to the @a origin.
- * @param join_req  Application-dependent join request to be passed to the peer
- *        @a relay (might, for example, contain a user, bind user
- *        identity/pseudonym to peer identity, application-level message to
- *        origin, etc.).
+ * @param join_msg  Application-dependent join message to be passed to the peer
+ *        @a origin.
  * @param join_cb Function called to approve / disapprove joining of a peer.
  * @param member_test_cb Function multicast can use to test group membership.
  * @param replay_frag_cb Function that can be called to replay message fragments
@@ -933,7 +982,7 @@ GNUNET_MULTICAST_member_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
                               const struct GNUNET_PeerIdentity *origin,
                               uint32_t relay_count,
                               const struct GNUNET_PeerIdentity *relays,
-                              const struct GNUNET_MessageHeader *join_req,
+                              const struct GNUNET_MessageHeader *join_msg,
                               GNUNET_MULTICAST_JoinCallback join_cb,
                               GNUNET_MULTICAST_MembershipTestCallback member_test_cb,
                               GNUNET_MULTICAST_ReplayFragmentCallback replay_frag_cb,
@@ -945,16 +994,16 @@ GNUNET_MULTICAST_member_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
   struct GNUNET_MULTICAST_Group *grp = &mem->grp;
 
   uint16_t relay_size = relay_count * sizeof (*relays);
-  uint16_t join_req_size = (NULL != join_req) ? ntohs (join_req->size) : 0;
+  uint16_t join_msg_size = (NULL != join_msg) ? ntohs (join_msg->size) : 0;
   struct MulticastMemberJoinMessage *
-    join = GNUNET_malloc (sizeof (*join) + relay_size + join_req_size);
+    join = GNUNET_malloc (sizeof (*join) + relay_size + join_msg_size);
   join->header.type = htons (GNUNET_MESSAGE_TYPE_MULTICAST_MEMBER_JOIN);
-  join->header.size = htons (sizeof (*join) + relay_size + join_req_size);
+  join->header.size = htons (sizeof (*join) + relay_size + join_msg_size);
   join->group_key = *group_key;
   join->member_key = *member_key;
   join->origin = *origin;
   memcpy (&join[1], relays, relay_size);
-  memcpy (((char *) &join[1]) + relay_size, join_req, join_req_size);
+  memcpy (((char *) &join[1]) + relay_size, join_msg, join_msg_size);
 
   grp->reconnect_msg = (struct GNUNET_MessageHeader *) join;
   grp->is_origin = GNUNET_NO;

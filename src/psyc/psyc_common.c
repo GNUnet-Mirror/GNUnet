@@ -88,7 +88,7 @@ GNUNET_PSYC_log_message (enum GNUNET_ErrorType kind,
   {
     struct GNUNET_PSYC_MessageHeader *pmsg
       = (struct GNUNET_PSYC_MessageHeader *) msg;
-    GNUNET_log (kind, "\tID: %" PRIu64 "\tflags: %" PRIu32 "\n",
+    GNUNET_log (kind, "\tID: %" PRIu64 "\tflags: %x" PRIu32 "\n",
                 GNUNET_ntohll (pmsg->message_id), ntohl (pmsg->flags));
     break;
   }

@@ -327,23 +327,14 @@ typedef void
  *
  * @param cls Closure.
  * @param slave  requesting to join.
- * @param method_name Method name in the join request.
- * @param variable_count Number of elements in the @a variables array.
- * @param variables Transient variables for the join request.
- * @param data Data stream given to the method (might not be zero-terminated
- *             if data is binary).
- * @param data_size Number of bytes in @a data.
+ * @param join_msg  Join message sent along with the request.
  * @param jh Join handle to use with GNUNET_PSYC_join_decision()
  */
 typedef void
 (*GNUNET_PSYC_JoinCallback) (void *cls,
                              const struct GNUNET_CRYPTO_EddsaPublicKey
                              *slave_key,
-                             const char *method_name,
-                             size_t variable_count,
-                             const struct GNUNET_ENV_Modifier *variables,
-                             const void *data,
-                             size_t data_size,
+                             const struct GNUNET_PSYC_MessageHeader *join_msg,
                              struct GNUNET_PSYC_JoinHandle *jh);
 
 

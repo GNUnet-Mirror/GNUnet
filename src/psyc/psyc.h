@@ -230,8 +230,7 @@ struct OperationResult
 struct MasterJoinRequest
 {
   /**
-   * Types:
-   * - GNUNET_MESSAGE_TYPE_PSYC_MASTER_JOIN_REQUEST
+   * Type: GNUNET_MESSAGE_TYPE_PSYC_MASTER_JOIN_REQUEST
    */
   struct GNUNET_MessageHeader header;
   /**
@@ -241,6 +240,28 @@ struct MasterJoinRequest
 
   /* Followed by struct GNUNET_MessageHeader join_request */
 };
+
+
+struct MasterJoinDecision
+{
+  /**
+   * Type: GNUNET_MESSAGE_TYPE_PSYC_JOIN_DECISION
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Public key of the joining slave.
+   */
+  struct GNUNET_CRYPTO_EddsaPublicKey slave_key;
+
+  /**
+   * #GNUNET_YES if the slave was admitted.
+   */
+  uint8_t is_admitted;
+
+  /* Followed by struct GNUNET_MessageHeader join_response */
+};
+
 
 GNUNET_NETWORK_STRUCT_END
 

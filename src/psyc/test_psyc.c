@@ -54,7 +54,6 @@ static GNUNET_SCHEDULER_TaskIdentifier end_badly_task;
 
 static struct GNUNET_PSYC_Master *mst;
 static struct GNUNET_PSYC_Slave *slv;
-static struct GNUNET_PSYC_Channel *ch;
 
 static struct GNUNET_CRYPTO_EddsaPrivateKey *channel_key;
 static struct GNUNET_CRYPTO_EddsaPrivateKey *slave_key;
@@ -183,7 +182,7 @@ master_message (void *cls, uint64_t message_id, uint32_t flags,
 
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "Master got message part of type %u and size %u "
-              "belonging to message ID %llu with flags %bu\n",
+              "belonging to message ID %llu with flags %xu\n",
               type, size, message_id, flags);
 
   switch (test)
@@ -192,7 +191,7 @@ master_message (void *cls, uint64_t message_id, uint32_t flags,
     if (GNUNET_PSYC_MESSAGE_REQUEST != flags)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Unexpected request flags: %lu\n", flags);
+                  "Unexpected request flags: %x" PRIu32 "\n", flags);
       GNUNET_assert (0);
       return;
     }
@@ -227,7 +226,7 @@ slave_message (void *cls, uint64_t message_id, uint32_t flags,
 
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "Slave got message part of type %u and size %u "
-              "belonging to message ID %llu with flags %bu\n",
+              "belonging to message ID %llu with flags %xu\n",
               type, size, message_id, flags);
 
   switch (test)
@@ -245,15 +244,18 @@ slave_message (void *cls, uint64_t message_id, uint32_t flags,
 
 static void
 join_request (void *cls, const struct GNUNET_CRYPTO_EddsaPublicKey *slave_key,
-              const char *method_name,
-              size_t variable_count, const struct GNUNET_ENV_Modifier *variables,
-              const void *data, size_t data_size,
+              const struct GNUNET_PSYC_MessageHeader *msg,
               struct GNUNET_PSYC_JoinHandle *jh)
 {
+  struct GNUNET_HashCode slave_key_hash;
+  GNUNET_CRYPTO_hash (slave_key, sizeof (*slave_key), &slave_key_hash);
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "Got join request: %s (%zu vars)", method_name, variable_count);
+              "Got join request from %s.\n",
+              GNUNET_h2s (&slave_key_hash));
+
   GNUNET_PSYC_join_decision (jh, GNUNET_YES, 0, NULL, "_notice_join", NULL,
                              "you're in", 9);
+  // FIXME: also test refusing entry
 }
 
 
@@ -425,9 +427,8 @@ slave_join ()
   GNUNET_ENV_environment_add (env, GNUNET_ENV_OP_ASSIGN,
                               "_foo_bar", "foo bar baz", 11);
   slv = GNUNET_PSYC_slave_join (cfg, &channel_pub_key, slave_key, &origin,
-                                16, relays, &slave_message, &join_request,
-                                &slave_joined, NULL, "_request_join", env,
-                                "some data", 9);
+                                16, relays, &slave_message, &slave_joined, NULL,
+                                "_request_join", env, "some data", 9);
   GNUNET_ENV_environment_destroy (env);
 }
 

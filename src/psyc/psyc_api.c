@@ -45,6 +45,7 @@ struct MessageQueue
 {
   struct MessageQueue *prev;
   struct MessageQueue *next;
+  /* Followed by struct GNUNET_MessageHeader msg */
 };
 
 
@@ -222,7 +223,8 @@ struct GNUNET_PSYC_Slave
  */
 struct GNUNET_PSYC_JoinHandle
 {
-
+  struct GNUNET_PSYC_Master *mst;
+  struct GNUNET_CRYPTO_EddsaPublicKey slave_key;
 };
 
 
@@ -912,11 +914,15 @@ static void
 handle_psyc_join_request (struct GNUNET_PSYC_Master *mst,
                           const struct MasterJoinRequest *req)
 {
-  // FIXME: extract join message from req[1]
-  const char *method_name = "_fixme";
+  struct GNUNET_PSYC_MessageHeader *msg = NULL;
+  if (ntohs (req->header.size) <= sizeof (*req) + sizeof (*msg))
+    msg = (struct GNUNET_PSYC_MessageHeader *) &req[1];
+
   struct GNUNET_PSYC_JoinHandle *jh = GNUNET_malloc (sizeof (*jh));
-  mst->join_cb (mst->ch.cb_cls, &req->slave_key, method_name,
-                0, NULL, NULL, 0, jh);
+  jh->mst = mst;
+  jh->slave_key = req->slave_key;
+
+  mst->join_cb (mst->ch.cb_cls, &req->slave_key, msg, jh);
 }
 
 
@@ -931,7 +937,6 @@ static void
 message_handler (void *cls,
                  const struct GNUNET_MessageHeader *msg)
 {
-  // YUCK! => please have disjoint message handlers...
   struct GNUNET_PSYC_Channel *ch = cls;
   struct GNUNET_PSYC_Master *mst = cls;
   struct GNUNET_PSYC_Slave *slv = cls;
@@ -1264,7 +1269,33 @@ GNUNET_PSYC_join_decision (struct GNUNET_PSYC_JoinHandle *jh,
                            const void *data,
                            size_t data_size)
 {
+  struct GNUNET_PSYC_Channel *ch = &jh->mst->ch;
 
+  struct MasterJoinDecision *dcsn;
+  struct GNUNET_PSYC_MessageHeader *pmsg;
+  uint16_t pmsg_size = 0;
+/* FIXME:
+  sizeof (*pmsg)
+    + sizeof (struct GNUNET_PSYC_MessageMethod)
+    + vars_size
+    + sizeof (struct GNUNET_MessageHeader) + data_size
+    + sizeof (struct GNUNET_MessageHeader);
+*/
+  uint16_t relay_size = relay_count * sizeof (*relays);
+  struct MessageQueue *
+    mq = GNUNET_malloc (sizeof (*mq) + sizeof (*dcsn) + relay_size + pmsg_size);
+  dcsn = (struct MasterJoinDecision *) &mq[1];
+  dcsn->header.type = htons (GNUNET_MESSAGE_TYPE_PSYC_JOIN_DECISION);
+  dcsn->header.size = htons (sizeof (*mq) + sizeof (*dcsn)
+                             + relay_size + pmsg_size);
+  dcsn->is_admitted = (GNUNET_YES == is_admitted) ? GNUNET_YES : GNUNET_NO;
+  dcsn->slave_key = jh->slave_key;
+
+  /* FIXME: add message parts to pmsg */
+  memcpy (&dcsn[1], pmsg, pmsg_size);
+
+  GNUNET_CONTAINER_DLL_insert_tail (ch->tmit_head, ch->tmit_tail, mq);
+  transmit_next (ch);
 }
 
 

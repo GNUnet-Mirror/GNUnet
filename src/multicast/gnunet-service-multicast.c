@@ -147,7 +147,7 @@ struct Member
   /**
    * Join request sent to the origin / members.
    */
-  struct GNUNET_MULTICAST_JoinRequest *join_request;
+  struct MulticastJoinRequestMessage *join_request;
 
   /**
    * Join decision sent in reply to our request.
@@ -206,6 +206,8 @@ cleanup_member (struct Member *mem)
                                           grp_mem);
     GNUNET_CONTAINER_multihashmap_destroy (grp_mem);
   }
+  if (NULL != mem->join_decision)
+    GNUNET_free (mem->join_decision);
   GNUNET_CONTAINER_multihashmap_remove (members, &grp->pub_key_hash, mem);
 }
 
@@ -425,8 +427,8 @@ static void
 handle_member_join (void *cls, struct GNUNET_SERVER_Client *client,
                      const struct GNUNET_MessageHeader *m)
 {
-  struct MulticastMemberJoinMessage *
-    msg = (struct MulticastMemberJoinMessage *) m;
+  const struct MulticastMemberJoinMessage *
+    msg = (const struct MulticastMemberJoinMessage *) m;
 
   struct GNUNET_CRYPTO_EddsaPublicKey mem_pub_key;
   struct GNUNET_HashCode pub_key_hash, mem_pub_key_hash;
@@ -440,17 +442,10 @@ handle_member_join (void *cls, struct GNUNET_SERVER_Client *client,
   struct Member *mem = NULL;
   struct Group *grp;
 
-  if (NULL == grp_mem)
-  {
-    grp_mem = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_YES);
-    GNUNET_CONTAINER_multihashmap_put (group_members, &pub_key_hash, grp_mem,
-                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-  }
-  else
+  if (NULL != grp_mem)
   {
     mem = GNUNET_CONTAINER_multihashmap_get (grp_mem, &mem_pub_key_hash);
   }
-
   if (NULL == mem)
   {
     mem = GNUNET_new (struct Member);
@@ -463,7 +458,13 @@ handle_member_join (void *cls, struct GNUNET_SERVER_Client *client,
     grp->pub_key = msg->group_key;
     grp->pub_key_hash = pub_key_hash;
 
-    GNUNET_CONTAINER_multihashmap_put (grp_mem, &mem_pub_key_hash, mem,
+    if (NULL == grp_mem)
+    {
+      grp_mem = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_YES);
+      GNUNET_CONTAINER_multihashmap_put (group_members, &grp->pub_key_hash, grp_mem,
+                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+    }
+    GNUNET_CONTAINER_multihashmap_put (grp_mem, &mem->pub_key_hash, mem,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
     GNUNET_CONTAINER_multihashmap_put (members, &grp->pub_key_hash, mem,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
@@ -478,8 +479,11 @@ handle_member_join (void *cls, struct GNUNET_SERVER_Client *client,
   GNUNET_CONTAINER_DLL_insert (grp->clients_head, grp->clients_tail, cl);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "%p Client connected as member to group %s.\n",
+              "%p Client connected to group %s..\n",
               mem, GNUNET_h2s (&grp->pub_key_hash));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "%p ..as member %s.\n",
+              mem, GNUNET_h2s (&mem_pub_key_hash));
 
   GNUNET_SERVER_client_set_user_context (client, grp);
 
@@ -496,19 +500,19 @@ handle_member_join (void *cls, struct GNUNET_SERVER_Client *client,
     struct GNUNET_PeerIdentity *relays = (struct GNUNET_PeerIdentity *) &msg[1];
     uint32_t relay_count = ntohs (msg->relay_count);
     struct GNUNET_MessageHeader *
-      join_req = ((struct GNUNET_MessageHeader *)
+      join_msg = ((struct GNUNET_MessageHeader *)
                   ((char *) &msg[1]) + relay_count * sizeof (*relays));
-    uint16_t join_req_size = ntohs (join_req->size);
+    uint16_t join_msg_size = ntohs (join_msg->size);
 
     struct MulticastJoinRequestMessage *
-      req = GNUNET_malloc (sizeof (*req) + join_req_size);
-    req->header.size = htons (sizeof (*req) + join_req_size);
+      req = GNUNET_malloc (sizeof (*req) + join_msg_size);
+    req->header.size = htons (sizeof (*req) + join_msg_size);
     req->header.type = htons (GNUNET_MESSAGE_TYPE_MULTICAST_JOIN_REQUEST);
     req->group_key = grp->pub_key;
     GNUNET_CRYPTO_eddsa_key_get_public (&mem->priv_key, &req->member_key);
-    memcpy (&req[1], join_req, join_req_size);
+    memcpy (&req[1], join_msg, join_msg_size);
 
-    req->purpose.size = htonl (sizeof (*req) + join_req_size
+    req->purpose.size = htonl (sizeof (*req) + join_msg_size
                                - sizeof (req->header)
                                - sizeof (req->signature));
     req->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_MULTICAST_REQUEST);
@@ -531,12 +535,91 @@ handle_member_join (void *cls, struct GNUNET_SERVER_Client *client,
     }
     else
     {
-      /* FIXME: send join request to remote origin / members */
+      /* FIXME: send join request to remote peers */
     }
   }
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
+
+/**
+ * Join decision from client.
+ */
+static void
+handle_join_decision (void *cls, struct GNUNET_SERVER_Client *client,
+                      const struct GNUNET_MessageHeader *m)
+{
+  struct Group *
+    grp = GNUNET_SERVER_client_get_user_context (client, struct Group);
+  const struct MulticastClientJoinDecisionMessage *
+    cl_dcsn = (const struct MulticastClientJoinDecisionMessage *) m;
+
+  struct GNUNET_PeerIdentity *relays = (struct GNUNET_PeerIdentity *) &cl_dcsn[1];
+  uint32_t relay_count = ntohs (cl_dcsn->relay_count);
+
+  struct GNUNET_MessageHeader *join_msg = NULL;
+  uint16_t join_msg_size = 0;
+  if (sizeof (*cl_dcsn) + relay_count * sizeof (*relays) + sizeof (*m)
+      <= ntohs (m->size))
+  {
+    join_msg = ((struct GNUNET_MessageHeader *)
+                ((char *) &cl_dcsn[1]) + relay_count * sizeof (*relays));
+    join_msg_size = ntohs (join_msg->size);
+  }
+
+  struct MulticastJoinDecisionMessage *
+    dcsn = GNUNET_malloc (sizeof (*dcsn) + join_msg_size);
+  dcsn->header.size = htons (sizeof (*dcsn) + join_msg_size);
+  dcsn->header.type = htons (GNUNET_MESSAGE_TYPE_MULTICAST_JOIN_DECISION);
+  dcsn->is_admitted = cl_dcsn->is_admitted;
+  memcpy (&dcsn[1], join_msg, join_msg_size);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "%p Got join decision from client for group %s..\n",
+              grp, GNUNET_h2s (&grp->pub_key_hash));
+
+  if (GNUNET_YES
+      == GNUNET_CONTAINER_multihashmap_contains (origins, &grp->pub_key_hash))
+  { /* Local origin */
+    struct GNUNET_CONTAINER_MultiHashMap *
+      grp_mem = GNUNET_CONTAINER_multihashmap_get (group_members,
+                                                   &grp->pub_key_hash);
+    if (NULL != grp_mem)
+    {
+      struct GNUNET_HashCode member_key_hash;
+      GNUNET_CRYPTO_hash (&cl_dcsn->member_key, sizeof (cl_dcsn->member_key),
+                          &member_key_hash);
+      struct Member *
+        mem = GNUNET_CONTAINER_multihashmap_get (grp_mem, &member_key_hash);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "%p ..and member %s: %p\n",
+                  grp, GNUNET_h2s (&member_key_hash), mem);
+      if (NULL != mem)
+      {
+        message_to_clients (grp, (struct GNUNET_MessageHeader *) dcsn);
+        if (GNUNET_YES == dcsn->is_admitted)
+        { /* Member admitted, store join_decision. */
+          mem->join_decision = dcsn;
+        }
+        else
+        { /* Refused entry, disconnect clients. */
+          GNUNET_free (dcsn);
+          struct ClientList *cl = mem->grp.clients_head;
+          while (NULL != cl)
+          {
+            GNUNET_SERVER_client_disconnect (cl->client);
+            cl = cl->next;
+          }
+        }
+      }
+    }
+  }
+  else
+  {
+    /* FIXME: send join decision to remote peers */
+  }
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+}
 
 /**
  * Incoming message from a client.
@@ -632,6 +715,9 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 
     { &handle_member_join, NULL,
       GNUNET_MESSAGE_TYPE_MULTICAST_MEMBER_JOIN, 0 },
+
+    { &handle_join_decision, NULL,
+      GNUNET_MESSAGE_TYPE_MULTICAST_JOIN_DECISION, 0 },
 
     { &handle_multicast_message, NULL,
       GNUNET_MESSAGE_TYPE_MULTICAST_MESSAGE, 0 },

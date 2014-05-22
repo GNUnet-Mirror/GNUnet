@@ -253,7 +253,7 @@ struct GNUNET_MULTICAST_JoinHandle;
  *        be the multicast origin) is a good candidate for building the
  *        multicast tree.  Note that it is unnecessary to specify our own
  *        peer identity in this array.
- * @param join_response Message to send in response to the joining peer;
+ * @param join_resp  Message to send in response to the joining peer;
  *        can also be used to redirect the peer to a different group at the
  *        application layer; this response is to be transmitted to the
  *        peer that issued the request even if admission is denied.
@@ -263,7 +263,7 @@ GNUNET_MULTICAST_join_decision (struct GNUNET_MULTICAST_JoinHandle *jh,
                                 int is_admitted,
                                 unsigned int relay_count,
                                 const struct GNUNET_PeerIdentity *relays,
-                                const struct GNUNET_MessageHeader *join_response);
+                                const struct GNUNET_MessageHeader *join_resp);
 
 
 /**
@@ -272,18 +272,16 @@ GNUNET_MULTICAST_join_decision (struct GNUNET_MULTICAST_JoinHandle *jh,
  * Implementations of this function must call GNUNET_MULTICAST_join_decision()
  * with the decision.
  *
- * @param cls Closure.
- * @param peer Identity of the member that wants to join.
- * @param join_req Application-dependent join message from the new member
- *        (might, for example, contain a user,
- *        bind user identity/pseudonym to peer identity, application-level
- *        message to origin, etc.).
- * @param jh Join handle to pass to GNUNET_MULTICAST_join_decison().
+ * @param cls  Closure.
+ * @param peer  Identity of the member that wants to join.
+ * @param member_key  Requesting member's public key.
+ * @param join_msg  Application-dependent join message from the new member.
+ * @param jh  Join handle to pass to GNUNET_MULTICAST_join_decison().
  */
 typedef void
 (*GNUNET_MULTICAST_JoinCallback) (void *cls,
                                   const struct GNUNET_CRYPTO_EddsaPublicKey *member_key,
-                                  const struct GNUNET_MessageHeader *join_req,
+                                  const struct GNUNET_MessageHeader *join_msg,
                                   struct GNUNET_MULTICAST_JoinHandle *jh);
 
 
@@ -652,7 +650,7 @@ GNUNET_MULTICAST_origin_stop (struct GNUNET_MULTICAST_Origin *origin);
  * Join a multicast group.
  *
  * The entity joining is always the local peer.  Further information about the
- * candidate can be provided in the @a join_request message.  If the join fails, the
+ * candidate can be provided in @a join_msg.  If the join fails, the
  * @a message_cb is invoked with a (failure) response and then with NULL.  If
  * the join succeeds, outstanding (state) messages and ongoing multicast
  * messages will be given to the @a message_cb until the member decides to part
@@ -671,10 +669,8 @@ GNUNET_MULTICAST_origin_stop (struct GNUNET_MULTICAST_Origin *origin);
  * @param relays Peer identities of members of the group, which serve as relays
  *        and can be used to join the group at. and send the @a join_request to.
  *        If empty, the @a join_request is sent directly to the @a origin.
- * @param join_request  Application-dependent join request to be passed to the peer
- *        @a relay (might, for example, contain a user, bind user
- *        identity/pseudonym to peer identity, application-level message to
- *        origin, etc.).
+ * @param join_msg  Application-dependent join message to be passed to the
+ *        @a origin.
  * @param join_cb Function called to approve / disapprove joining of a peer.
  * @param mem_test_cb Function multicast can use to test group membership.
  * @param replay_frag_cb Function that can be called to replay message fragments

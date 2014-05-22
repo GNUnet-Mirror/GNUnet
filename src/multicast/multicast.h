@@ -36,9 +36,14 @@ GNUNET_NETWORK_STRUCT_BEGIN
 struct MulticastJoinRequestMessage
 {
   /**
-   * Header for the join request.
+   * Type: GNUNET_MESSAGE_TYPE_MULTICAST_JOIN_REQUEST
    */
   struct GNUNET_MessageHeader header;
+
+  /**
+   * Always zero.
+   */
+  uint32_t reserved;
 
   /**
    * ECC signature of the rest of the fields of the join request.
@@ -72,30 +77,54 @@ struct MulticastJoinRequestMessage
 
 
 /**
- * Message sent from the client to the service to notify the service
- * about a join decision.
+ * Header of a join decision sent to a remote peer.
  */
 struct MulticastJoinDecisionMessage
 {
   /**
-   *
+   * Type: GNUNET_MESSAGE_TYPE_MULTICAST_JOIN_DECISION
    */
   struct GNUNET_MessageHeader header;
 
   /**
-   * Unique ID that identifies the associated join test.
-   */
-  uint32_t uid;
-
-  /**
    * #GNUNET_YES if the peer was admitted.
    */
-  int32_t is_admitted;
+  uint8_t is_admitted;
+
+  /* Followed by the join response message */
+};
+
+
+/**
+ * Message sent from the client to the service to notify the service
+ * about a join decision.
+ */
+struct MulticastClientJoinDecisionMessage
+{
+  /**
+   * Type: GNUNET_MESSAGE_TYPE_MULTICAST_JOIN_DECISION
+   */
+  struct GNUNET_MessageHeader header;
 
   /**
    * Number of relays given.
    */
   uint32_t relay_count;
+
+  /**
+   * Public key of the joining member.
+   */
+  struct GNUNET_CRYPTO_EddsaPublicKey member_key;
+
+  /**
+   * Peer identity of the joining member.
+   */
+  struct GNUNET_PeerIdentity member_peer;
+
+  /**
+   * #GNUNET_YES if the peer was admitted.
+   */
+  uint8_t is_admitted;
 
   /* Followed by relay_count peer identities */
 
@@ -108,11 +137,11 @@ struct MulticastJoinDecisionMessage
  * Message sent from the client to the service to notify the service
  * about the result of a membership test.
  */
-struct MulticastMembershipTestResponseMessage
+struct MulticastMembershipTestResultMessage
 {
 
   /**
-   *
+   * Type: GNUNET_MESSAGE_TYPE_MULTICAST_MEMBERSHIP_TEST_RESULT
    */
   struct GNUNET_MessageHeader header;
 

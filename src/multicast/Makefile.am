@@ -54,15 +54,15 @@ gnunet_service_multicast_DEPENDENCIES = \
 
 
 check_PROGRAMS = \
- test_multicast_api
+ test_multicast
 
 if ENABLE_TEST_RUN
 AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PATH=$${GNUNET_PREFIX:-@prefix@}/bin:$$PATH;
 TESTS = $(check_PROGRAMS)
 endif
 
-test_multicast_api_SOURCES = \
- test_multicast_api.c
-test_multicast_api_LDADD = \
+test_multicast_SOURCES = \
+ test_multicast.c
+test_multicast_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la
 

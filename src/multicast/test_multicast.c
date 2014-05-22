@@ -18,8 +18,8 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file multicast/test_multicast_api.c
- * @brief testcase for multicast.c
+ * @file multicast/test_multicast.c
+ * @brief testcase for multicast_api.c
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -41,4 +41,4 @@ main (int argc, char *argv[])
   return ret;
 }
 
-/* end of test_multicast_api.c */
+/* end of test_multicast.c */
