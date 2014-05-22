@@ -102,6 +102,9 @@ while (<>)
       $1 . BRIGHT_CYAN (exists $msgtypes{$2} ? $msgtypes{$2} : 'UNKNOWN') .
       CYAN " ($2)"/gei;
 
+    # logread-ipc output
+    s/(\s+)([A-Z_]+)( \(\d+\))$/$1 . BRIGHT_CYAN $2 . CYAN $3/e;
+
     print;
 }
 
