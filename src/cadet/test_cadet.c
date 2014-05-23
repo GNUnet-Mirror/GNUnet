@@ -122,7 +122,12 @@ static int data_received;
 static int data_ack;
 
 /**
- * Total number of currently running peers.
+ * Total number of peers asked to run.
+ */
+static unsigned long long peers_requested;
+
+/**
+ * Number of currently running peers (should be same as @c peers_requested).
  */
 static unsigned long long peers_running;
 
@@ -354,7 +359,7 @@ data_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /**
  * Transmit ready callback
  *
- * @param cls Closure (message type).
+ * @param cls Closure (unused).
  * @param size Size of the buffer we have.
  * @param buf Buffer to copy data to.
  */
@@ -362,11 +367,13 @@ size_t
 tmt_rdy (void *cls, size_t size, void *buf)
 {
   struct GNUNET_MessageHeader *msg = buf;
+  size_t msg_size;
   uint32_t *data;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "tmt_rdy called, filling buffer\n");
-  if (size < size_payload || NULL == buf)
+  msg_size = size_payload + data_sent;
+  if (size < msg_size || NULL == buf)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "size %u, buf %p, data_sent %u, data_received %u\n",
@@ -382,23 +389,22 @@ tmt_rdy (void *cls, size_t size, void *buf)
   *data = htonl (data_sent);
   if (GNUNET_NO == initialized)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "sending initializer\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "sending initializer\n");
   }
   else if (SPEED == test)
   {
     data_sent++;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              " Sent packet %d\n", data_sent);
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " Sent message %d size %u\n",
+                data_sent, msg_size);
     if (data_sent < TOTAL_PACKETS)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              " Scheduling packet %d\n", data_sent + 1);
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " Scheduling message %d\n",
+                  data_sent + 1);
       GNUNET_SCHEDULER_add_now (&data_task, NULL);
     }
   }
 
-  return size_payload;
+  return msg_size;
 }
 
 
