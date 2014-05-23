@@ -591,7 +591,7 @@ stats_iterator (void *cls, const struct GNUNET_TESTBED_Peer *peer,
   if (0 == strncmp (s_sent, name, strlen (s_sent)) && 0 == i)
     ka_sent = value;
 
-  if (0 == strncmp(s_recv, name, strlen (s_recv)) && 4 == i)
+  if (0 == strncmp(s_recv, name, strlen (s_recv)) && peers_requested - 1 == i)
     ka_received = value;
 
   return GNUNET_OK;
