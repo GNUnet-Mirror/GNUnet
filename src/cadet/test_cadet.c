@@ -880,21 +880,21 @@ main (int argc, char *argv[])
   }
 
   /* Find out requested test */
-  if (strstr (argv[0], "_cadet_forward") != NULL)
+  if (strstr (argv[0], "_forward") != NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "FORWARD\n");
     test = FORWARD;
     test_name = "unicast";
     ok_goal = 4;
   }
-  else if (strstr (argv[0], "_cadet_signal") != NULL)
+  else if (strstr (argv[0], "_signal") != NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "SIGNAL\n");
     test = P2P_SIGNAL;
     test_name = "signal";
     ok_goal = 4;
   }
-  else if (strstr (argv[0], "_cadet_speed_ack") != NULL)
+  else if (strstr (argv[0], "_speed_ack") != NULL)
   {
     /* Test is supposed to generate the following callbacks:
      * 1 incoming channel (@dest)
@@ -907,7 +907,7 @@ main (int argc, char *argv[])
     test = SPEED_ACK;
     test_name = "speed ack";
   }
-  else if (strstr (argv[0], "_cadet_speed") != NULL)
+  else if (strstr (argv[0], "_speed") != NULL)
   {
     /* Test is supposed to generate the following callbacks:
      * 1 incoming channel (@dest)
