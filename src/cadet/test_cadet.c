@@ -330,8 +330,9 @@ data_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     channel = ch;
   }
   th = GNUNET_CADET_notify_transmit_ready (channel, GNUNET_NO,
-                                          GNUNET_TIME_UNIT_FOREVER_REL,
-                                          size_payload, &tmt_rdy, (void *) 1L);
+                                           GNUNET_TIME_UNIT_FOREVER_REL,
+                                           size_payload + data_sent,
+                                           &tmt_rdy, (void *) 1L);
   if (NULL == th)
   {
     unsigned long i = (unsigned long) cls;
@@ -489,8 +490,9 @@ data_callback (void *cls, struct GNUNET_CADET_Channel *channel,
     if (SPEED != test || (ok_goal - 2) == ok)
     {
       GNUNET_CADET_notify_transmit_ready (channel, GNUNET_NO,
-                                         GNUNET_TIME_UNIT_FOREVER_REL,
-                                         size_payload, &tmt_rdy, (void *) 1L);
+                                          GNUNET_TIME_UNIT_FOREVER_REL,
+                                          size_payload + data_sent,
+                                          &tmt_rdy, (void *) 1L);
       return GNUNET_OK;
     }
     else
@@ -506,8 +508,9 @@ data_callback (void *cls, struct GNUNET_CADET_Channel *channel,
       data_ack++;
       GNUNET_log (GNUNET_ERROR_TYPE_INFO, " received ack %u\n", data_ack);
       GNUNET_CADET_notify_transmit_ready (channel, GNUNET_NO,
-                                         GNUNET_TIME_UNIT_FOREVER_REL,
-                                         size_payload, &tmt_rdy, (void *) 1L);
+                                          GNUNET_TIME_UNIT_FOREVER_REL,
+                                          size_payload + data_sent,
+                                          &tmt_rdy, (void *) 1L);
       if (data_ack < TOTAL_PACKETS && SPEED != test)
         return GNUNET_OK;
       if (ok == 2 && SPEED == test)
