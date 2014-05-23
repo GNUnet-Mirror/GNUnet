@@ -628,7 +628,8 @@ join_cb (void *cls, const struct GNUNET_CRYPTO_EddsaPublicKey *slave_key,
   req->header.size = htons (sizeof (*req) + join_msg_size);
   req->header.type = htons (GNUNET_MESSAGE_TYPE_PSYC_JOIN_REQUEST);
   req->slave_key = *slave_key;
-  memcpy (&req[1], join_msg, join_msg_size);
+  if (0 < join_msg_size)
+    memcpy (&req[1], join_msg, join_msg_size);
 
   struct JoinMemTestClosure *jcls = GNUNET_malloc (sizeof (*jcls));
   jcls->slave_key = *slave_key;
@@ -1700,17 +1701,28 @@ slave_queue_message (struct Slave *slv, struct TransmitMessage *tmit_msg,
 }
 
 
+/**
+ * Queue PSYC message parts for sending to multicast.
+ *
+ * @param ch           Channel to send to.
+ * @param client       Client the message originates from.
+ * @param data_size    Size of @a data.
+ * @param data         Concatenated message parts.
+ * @param first_ptype  First message part type in @a data.
+ * @param last_ptype   Last message part type in @a data.
+ */
 static void
 queue_message (struct Channel *ch,
                struct GNUNET_SERVER_Client *client,
-               const struct GNUNET_MessageHeader *msg,
+               size_t data_size,
+               const void *data,
                uint16_t first_ptype, uint16_t last_ptype)
 {
-  uint16_t size = ntohs (msg->size) - sizeof (*msg);
-  struct TransmitMessage *tmit_msg = GNUNET_malloc (sizeof (*tmit_msg) + size);
-  memcpy (&tmit_msg[1], &msg[1], size);
+  struct TransmitMessage *
+    tmit_msg = GNUNET_malloc (sizeof (*tmit_msg) + data_size);
+  memcpy (&tmit_msg[1], data, data_size);
   tmit_msg->client = client;
-  tmit_msg->size = size;
+  tmit_msg->size = data_size;
   tmit_msg->state = ch->tmit_state;
 
   GNUNET_CONTAINER_DLL_insert_tail (ch->tmit_head, ch->tmit_tail, tmit_msg);
@@ -1723,16 +1735,22 @@ queue_message (struct Channel *ch,
 }
 
 
+/**
+ * Cancel transmission of current message.
+ *
+ * @param ch	  Channel to send to.
+ * @param client  Client the message originates from.
+ */
 static void
-transmit_error (struct Channel *ch, struct GNUNET_SERVER_Client *client)
+transmit_cancel (struct Channel *ch, struct GNUNET_SERVER_Client *client)
 {
   uint16_t type = GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_CANCEL;
 
   struct GNUNET_MessageHeader msg;
-  msg.size = ntohs (sizeof (msg));
-  msg.type = ntohs (type);
+  msg.size = htons (sizeof (msg));
+  msg.type = htons (type);
 
-  queue_message (ch, client, &msg, type, type);
+  queue_message (ch, client, sizeof (msg), &msg, type, type);
   transmit_message (ch);
 
   /* FIXME: cleanup */
@@ -1768,7 +1786,7 @@ handle_psyc_message (void *cls, struct GNUNET_SERVER_Client *client,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "%p Message payload too large\n", ch);
     GNUNET_break (0);
-    transmit_error (ch, client);
+    transmit_cancel (ch, client);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
@@ -1782,12 +1800,13 @@ handle_psyc_message (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "%p Received invalid message part from client.\n", ch);
     GNUNET_break (0);
-    transmit_error (ch, client);
+    transmit_cancel (ch, client);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
 
-  queue_message (ch, client, msg, first_ptype, last_ptype);
+  queue_message (ch, client, size - sizeof (*msg), &msg[1],
+                 first_ptype, last_ptype);
   transmit_message (ch);
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);

@@ -499,10 +499,16 @@ handle_member_join (void *cls, struct GNUNET_SERVER_Client *client,
   { /* First client, send join request. */
     struct GNUNET_PeerIdentity *relays = (struct GNUNET_PeerIdentity *) &msg[1];
     uint32_t relay_count = ntohs (msg->relay_count);
-    struct GNUNET_MessageHeader *
-      join_msg = ((struct GNUNET_MessageHeader *)
-                  ((char *) &msg[1]) + relay_count * sizeof (*relays));
-    uint16_t join_msg_size = ntohs (join_msg->size);
+    uint16_t relay_size = relay_count * sizeof (*relays);
+    struct GNUNET_MessageHeader *join_msg = NULL;
+    uint16_t join_msg_size = 0;
+    if (sizeof (*msg) + relay_size + sizeof (struct GNUNET_MessageHeader)
+        <= ntohs (msg->header.size))
+    {
+      join_msg = (struct GNUNET_MessageHeader *)
+        (((char *) &msg[1]) + relay_size);
+      join_msg_size = ntohs (join_msg->size);
+    }
 
     struct MulticastJoinRequestMessage *
       req = GNUNET_malloc (sizeof (*req) + join_msg_size);
@@ -510,7 +516,8 @@ handle_member_join (void *cls, struct GNUNET_SERVER_Client *client,
     req->header.type = htons (GNUNET_MESSAGE_TYPE_MULTICAST_JOIN_REQUEST);
     req->group_key = grp->pub_key;
     GNUNET_CRYPTO_eddsa_key_get_public (&mem->priv_key, &req->member_key);
-    memcpy (&req[1], join_msg, join_msg_size);
+    if (0 < join_msg_size)
+      memcpy (&req[1], join_msg, join_msg_size);
 
     req->purpose.size = htonl (sizeof (*req) + join_msg_size
                                - sizeof (req->header)
@@ -556,17 +563,18 @@ handle_join_decision (void *cls, struct GNUNET_SERVER_Client *client,
 
   struct GNUNET_PeerIdentity *relays = (struct GNUNET_PeerIdentity *) &cl_dcsn[1];
   uint32_t relay_count = ntohs (cl_dcsn->relay_count);
+  uint16_t relay_size = relay_count * sizeof (*relays);
 
   struct GNUNET_MessageHeader *join_msg = NULL;
   uint16_t join_msg_size = 0;
-  if (sizeof (*cl_dcsn) + relay_count * sizeof (*relays) + sizeof (*m)
-      <= ntohs (m->size))
+  if (sizeof (*cl_dcsn) + relay_size + sizeof (*m) <= ntohs (m->size))
   {
-    join_msg = ((struct GNUNET_MessageHeader *)
-                ((char *) &cl_dcsn[1]) + relay_count * sizeof (*relays));
+    join_msg = (struct GNUNET_MessageHeader *)
+      (((char *) &cl_dcsn[1]) + relay_size);
     join_msg_size = ntohs (join_msg->size);
   }
 
+  int keep_dcsn = GNUNET_NO;
   struct MulticastJoinDecisionMessage *
     dcsn = GNUNET_malloc (sizeof (*dcsn) + join_msg_size);
   dcsn->header.size = htons (sizeof (*dcsn) + join_msg_size);
@@ -600,10 +608,10 @@ handle_join_decision (void *cls, struct GNUNET_SERVER_Client *client,
         if (GNUNET_YES == dcsn->is_admitted)
         { /* Member admitted, store join_decision. */
           mem->join_decision = dcsn;
+          keep_dcsn = GNUNET_YES;
         }
         else
         { /* Refused entry, disconnect clients. */
-          GNUNET_free (dcsn);
           struct ClientList *cl = mem->grp.clients_head;
           while (NULL != cl)
           {
@@ -618,6 +626,8 @@ handle_join_decision (void *cls, struct GNUNET_SERVER_Client *client,
   {
     /* FIXME: send join decision to remote peers */
   }
+  if (GNUNET_NO == keep_dcsn)
+    GNUNET_free (dcsn);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 

@@ -1272,7 +1272,7 @@ GNUNET_PSYC_join_decision (struct GNUNET_PSYC_JoinHandle *jh,
   struct GNUNET_PSYC_Channel *ch = &jh->mst->ch;
 
   struct MasterJoinDecision *dcsn;
-  struct GNUNET_PSYC_MessageHeader *pmsg;
+  struct GNUNET_PSYC_MessageHeader *pmsg = NULL;
   uint16_t pmsg_size = 0;
 /* FIXME:
   sizeof (*pmsg)
@@ -1285,14 +1285,14 @@ GNUNET_PSYC_join_decision (struct GNUNET_PSYC_JoinHandle *jh,
   struct MessageQueue *
     mq = GNUNET_malloc (sizeof (*mq) + sizeof (*dcsn) + relay_size + pmsg_size);
   dcsn = (struct MasterJoinDecision *) &mq[1];
+  dcsn->header.size = htons (sizeof (*dcsn) + relay_size + pmsg_size);
   dcsn->header.type = htons (GNUNET_MESSAGE_TYPE_PSYC_JOIN_DECISION);
-  dcsn->header.size = htons (sizeof (*mq) + sizeof (*dcsn)
-                             + relay_size + pmsg_size);
   dcsn->is_admitted = (GNUNET_YES == is_admitted) ? GNUNET_YES : GNUNET_NO;
   dcsn->slave_key = jh->slave_key;
 
   /* FIXME: add message parts to pmsg */
-  memcpy (&dcsn[1], pmsg, pmsg_size);
+  if (0 < pmsg_size)
+    memcpy (&dcsn[1], pmsg, pmsg_size);
 
   GNUNET_CONTAINER_DLL_insert_tail (ch->tmit_head, ch->tmit_tail, mq);
   transmit_next (ch);

@@ -676,8 +676,10 @@ GNUNET_MULTICAST_join_decision (struct GNUNET_MULTICAST_JoinHandle *jh,
   dcsn->member_peer = jh->member_peer;
   dcsn->is_admitted = is_admitted;
   dcsn->relay_count = relay_count;
-  memcpy (&dcsn[1], relays, relay_size);
-  memcpy (((char *) &dcsn[1]) + relay_size, join_resp, join_resp_size);
+  if (0 < relay_size)
+    memcpy (&dcsn[1], relays, relay_size);
+  if (0 < join_resp_size)
+    memcpy (((char *) &dcsn[1]) + relay_size, join_resp, join_resp_size);
 
   GNUNET_CONTAINER_DLL_insert_tail (grp->tmit_head, grp->tmit_tail, mq);
   transmit_next (grp);
@@ -997,13 +999,15 @@ GNUNET_MULTICAST_member_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
   uint16_t join_msg_size = (NULL != join_msg) ? ntohs (join_msg->size) : 0;
   struct MulticastMemberJoinMessage *
     join = GNUNET_malloc (sizeof (*join) + relay_size + join_msg_size);
-  join->header.type = htons (GNUNET_MESSAGE_TYPE_MULTICAST_MEMBER_JOIN);
   join->header.size = htons (sizeof (*join) + relay_size + join_msg_size);
+  join->header.type = htons (GNUNET_MESSAGE_TYPE_MULTICAST_MEMBER_JOIN);
   join->group_key = *group_key;
   join->member_key = *member_key;
   join->origin = *origin;
-  memcpy (&join[1], relays, relay_size);
-  memcpy (((char *) &join[1]) + relay_size, join_msg, join_msg_size);
+  if (0 < relay_size)
+    memcpy (&join[1], relays, relay_size);
+  if (0 < join_msg_size)
+    memcpy (((char *) &join[1]) + relay_size, join_msg, join_msg_size);
 
   grp->reconnect_msg = (struct GNUNET_MessageHeader *) join;
   grp->is_origin = GNUNET_NO;
