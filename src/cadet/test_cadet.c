@@ -859,6 +859,8 @@ main (int argc, char *argv[])
   config_file = "test_cadet.conf";
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Start\n");
+
+  /* Find out requested size */
   if (strstr (argv[0], "test_direct") != NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "DIRECT CONNECTIONs\n");
@@ -871,10 +873,11 @@ main (int argc, char *argv[])
   }
   else
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "SIZE UNKNOWN\n");
-    return 1;
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "SIZE UNKNOWN, USING 5\n");
+    peers_requested = 5;
   }
 
+  /* Find out requested test */
   if (strstr (argv[0], "_cadet_forward") != NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "FORWARD\n");
