@@ -447,13 +447,15 @@ data_callback (void *cls, struct GNUNET_CADET_Channel *channel,
   case 0L:
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Root client got a message!\n");
     break;
+  case 2L:
   case 4L:
+    GNUNET_assert (client == peers_requested - 1);
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "Leaf client %li got a message.\n",
                 client);
     break;
   default:
-    GNUNET_assert (0);
+    GNUNET_abort ();
     break;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, " ok: (%d/%d)\n", ok, ok_goal);
@@ -873,8 +875,8 @@ main (int argc, char *argv[])
   }
   else
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "SIZE UNKNOWN, USING 5\n");
-    peers_requested = 5;
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "SIZE UNKNOWN, USING 2\n");
+    peers_requested = 2;
   }
 
   /* Find out requested test */
