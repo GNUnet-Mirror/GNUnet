@@ -1,4 +1,4 @@
-*~
+!*~
 */*~
 # /
 *log
@@ -766,17 +766,17 @@
 /src/cadet/gnunet-cadet-profiler
 /src/cadet/.profiler.conf
 /src/cadet/test_cadet_single
-/src/cadet/test_*cadet_forward
-/src/cadet/test_*cadet_signal
-/src/cadet/test_*cadet_keepalive
-/src/cadet/test_*cadet_speed
-/src/cadet/test_*cadet_speed_min
-/src/cadet/test_*cadet_speed_ack
-/src/cadet/test_*cadet_speed_backwards
-/src/cadet/test_*cadet_speed_min_backwards
-/src/cadet/test_*cadet_speed_ack
-/src/cadet/test_*cadet_speed_reliable
-/src/cadet/test_*cadet_speed_reliable_backwards
+/src/cadet/test_cadet*_forward
+/src/cadet/test_cadet*_signal
+/src/cadet/test_cadet*_keepalive
+/src/cadet/test_cadet*_speed
+/src/cadet/test_cadet*_speed_min
+/src/cadet/test_cadet*_speed_ack
+/src/cadet/test_cadet*_speed_backwards
+/src/cadet/test_cadet*_speed_min_backwards
+/src/cadet/test_cadet*_speed_ack
+/src/cadet/test_cadet*_speed_reliable
+/src/cadet/test_cadet*_speed_reliable_backwards
 /src/cadet/test_cadet_api
 /src/cadet/test_cadet_tree_api
 /src/cadet/test_cadet_local

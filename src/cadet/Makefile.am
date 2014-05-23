@@ -100,22 +100,22 @@ if HAVE_TESTING
 check_PROGRAMS = \
   test_cadet_single \
   test_cadet_local \
-  test_2_cadet_forward \
-  test_2_cadet_signal \
-  test_2_cadet_keepalive \
-  test_2_cadet_speed \
-  test_2_cadet_speed_ack \
-  test_2_cadet_speed_backwards \
-  test_2_cadet_speed_reliable \
-  test_2_cadet_speed_reliable_backwards \
-  test_5_cadet_forward \
-  test_5_cadet_signal \
-  test_5_cadet_keepalive \
-  test_5_cadet_speed \
-  test_5_cadet_speed_ack \
-  test_5_cadet_speed_backwards \
-  test_5_cadet_speed_reliable \
-  test_5_cadet_speed_reliable_backwards
+  test_cadet_2_forward \
+  test_cadet_2_signal \
+  test_cadet_2_keepalive \
+  test_cadet_2_speed \
+  test_cadet_2_speed_ack \
+  test_cadet_2_speed_backwards \
+  test_cadet_2_speed_reliable \
+  test_cadet_2_speed_reliable_backwards \
+  test_cadet_5_forward \
+  test_cadet_5_signal \
+  test_cadet_5_keepalive \
+  test_cadet_5_speed \
+  test_cadet_5_speed_ack \
+  test_cadet_5_speed_backwards \
+  test_cadet_5_speed_reliable \
+  test_cadet_5_speed_reliable_backwards
 endif
 
 ld_cadet_test_lib = \
@@ -150,87 +150,87 @@ test_cadet_local_DEPENDENCIES = $(dep_cadet_test_lib)
 
 
 
-test_2_cadet_forward_SOURCES = \
+test_cadet_2_forward_SOURCES = \
   test_cadet.c
-test_2_cadet_forward_LDADD = $(ld_cadet_test_lib)
-test_2_cadet_forward_DEPENDENCIES = $(dep_cadet_test_lib)
+test_cadet_2_forward_LDADD = $(ld_cadet_test_lib)
+test_cadet_2_forward_DEPENDENCIES = $(dep_cadet_test_lib)
 
-test_2_cadet_signal_SOURCES = \
+test_cadet_2_signal_SOURCES = \
   test_cadet.c
-test_2_cadet_signal_LDADD = $(ld_cadet_test_lib)
-test_2_cadet_signal_DEPENDENCIES = $(dep_cadet_test_lib)
+test_cadet_2_signal_LDADD = $(ld_cadet_test_lib)
+test_cadet_2_signal_DEPENDENCIES = $(dep_cadet_test_lib)
 
-test_2_cadet_keepalive_SOURCES = \
+test_cadet_2_keepalive_SOURCES = \
   test_cadet.c
-test_2_cadet_keepalive_LDADD = $(ld_cadet_test_lib)
-test_2_cadet_keepalive_DEPENDENCIES = $(dep_cadet_test_lib)
+test_cadet_2_keepalive_LDADD = $(ld_cadet_test_lib)
+test_cadet_2_keepalive_DEPENDENCIES = $(dep_cadet_test_lib)
 
-test_2_cadet_speed_SOURCES = \
+test_cadet_2_speed_SOURCES = \
   test_cadet.c
-test_2_cadet_speed_LDADD = $(ld_cadet_test_lib)
-test_2_cadet_speed_DEPENDENCIES = $(dep_cadet_test_lib)
+test_cadet_2_speed_LDADD = $(ld_cadet_test_lib)
+test_cadet_2_speed_DEPENDENCIES = $(dep_cadet_test_lib)
 
-test_2_cadet_speed_ack_SOURCES = \
+test_cadet_2_speed_ack_SOURCES = \
   test_cadet.c
-test_2_cadet_speed_ack_LDADD = $(ld_cadet_test_lib)
-test_2_cadet_speed_ack_DEPENDENCIES = $(dep_cadet_test_lib)
+test_cadet_2_speed_ack_LDADD = $(ld_cadet_test_lib)
+test_cadet_2_speed_ack_DEPENDENCIES = $(dep_cadet_test_lib)
 
-test_2_cadet_speed_backwards_SOURCES = \
+test_cadet_2_speed_backwards_SOURCES = \
   test_cadet.c
-test_2_cadet_speed_backwards_LDADD = $(ld_cadet_test_lib)
-test_2_cadet_speed_backwards_DEPENDENCIES = $(dep_cadet_test_lib)
+test_cadet_2_speed_backwards_LDADD = $(ld_cadet_test_lib)
+test_cadet_2_speed_backwards_DEPENDENCIES = $(dep_cadet_test_lib)
 
-test_2_cadet_speed_reliable_SOURCES = \
+test_cadet_2_speed_reliable_SOURCES = \
   test_cadet.c
-test_2_cadet_speed_reliable_LDADD = $(ld_cadet_test_lib)
-test_2_cadet_speed_reliable_DEPENDENCIES = $(dep_cadet_test_lib)
+test_cadet_2_speed_reliable_LDADD = $(ld_cadet_test_lib)
+test_cadet_2_speed_reliable_DEPENDENCIES = $(dep_cadet_test_lib)
 
-test_2_cadet_speed_reliable_backwards_SOURCES = \
+test_cadet_2_speed_reliable_backwards_SOURCES = \
   test_cadet.c
-test_2_cadet_speed_reliable_backwards_LDADD = $(ld_cadet_test_lib)
-test_2_cadet_speed_reliable_backwards_DEPENDENCIES = $(dep_cadet_test_lib)
+test_cadet_2_speed_reliable_backwards_LDADD = $(ld_cadet_test_lib)
+test_cadet_2_speed_reliable_backwards_DEPENDENCIES = $(dep_cadet_test_lib)
 
 
 
-test_5_cadet_forward_SOURCES = \
+test_cadet_5_forward_SOURCES = \
   test_cadet.c
-test_5_cadet_forward_LDADD = $(ld_cadet_test_lib)
-test_5_cadet_forward_DEPENDENCIES = $(dep_cadet_test_lib)
+test_cadet_5_forward_LDADD = $(ld_cadet_test_lib)
+test_cadet_5_forward_DEPENDENCIES = $(dep_cadet_test_lib)
 
-test_5_cadet_signal_SOURCES = \
+test_cadet_5_signal_SOURCES = \
   test_cadet.c
-test_5_cadet_signal_LDADD = $(ld_cadet_test_lib)
-test_5_cadet_signal_DEPENDENCIES = $(dep_cadet_test_lib)
+test_cadet_5_signal_LDADD = $(ld_cadet_test_lib)
+test_cadet_5_signal_DEPENDENCIES = $(dep_cadet_test_lib)
 
-test_5_cadet_keepalive_SOURCES = \
+test_cadet_5_keepalive_SOURCES = \
   test_cadet.c
-test_5_cadet_keepalive_LDADD = $(ld_cadet_test_lib)
-test_5_cadet_keepalive_DEPENDENCIES = $(dep_cadet_test_lib)
+test_cadet_5_keepalive_LDADD = $(ld_cadet_test_lib)
+test_cadet_5_keepalive_DEPENDENCIES = $(dep_cadet_test_lib)
 
-test_5_cadet_speed_SOURCES = \
+test_cadet_5_speed_SOURCES = \
   test_cadet.c
-test_5_cadet_speed_LDADD = $(ld_cadet_test_lib)
-test_5_cadet_speed_DEPENDENCIES = $(dep_cadet_test_lib)
+test_cadet_5_speed_LDADD = $(ld_cadet_test_lib)
+test_cadet_5_speed_DEPENDENCIES = $(dep_cadet_test_lib)
 
-test_5_cadet_speed_ack_SOURCES = \
+test_cadet_5_speed_ack_SOURCES = \
   test_cadet.c
-test_5_cadet_speed_ack_LDADD = $(ld_cadet_test_lib)
-test_5_cadet_speed_ack_DEPENDENCIES = $(dep_cadet_test_lib)
+test_cadet_5_speed_ack_LDADD = $(ld_cadet_test_lib)
+test_cadet_5_speed_ack_DEPENDENCIES = $(dep_cadet_test_lib)
 
-test_5_cadet_speed_backwards_SOURCES = \
+test_cadet_5_speed_backwards_SOURCES = \
   test_cadet.c
-test_5_cadet_speed_backwards_LDADD = $(ld_cadet_test_lib)
-test_5_cadet_speed_backwards_DEPENDENCIES = $(dep_cadet_test_lib)
+test_cadet_5_speed_backwards_LDADD = $(ld_cadet_test_lib)
+test_cadet_5_speed_backwards_DEPENDENCIES = $(dep_cadet_test_lib)
 
-test_5_cadet_speed_reliable_SOURCES = \
+test_cadet_5_speed_reliable_SOURCES = \
   test_cadet.c
-test_5_cadet_speed_reliable_LDADD = $(ld_cadet_test_lib)
-test_5_cadet_speed_reliable_DEPENDENCIES = $(dep_cadet_test_lib)
+test_cadet_5_speed_reliable_LDADD = $(ld_cadet_test_lib)
+test_cadet_5_speed_reliable_DEPENDENCIES = $(dep_cadet_test_lib)
 
-test_5_cadet_speed_reliable_backwards_SOURCES = \
+test_cadet_5_speed_reliable_backwards_SOURCES = \
   test_cadet.c
-test_5_cadet_speed_reliable_backwards_LDADD = $(ld_cadet_test_lib)
-test_5_cadet_speed_reliable_backwards_DEPENDENCIES = $(dep_cadet_test_lib)
+test_cadet_5_speed_reliable_backwards_LDADD = $(ld_cadet_test_lib)
+test_cadet_5_speed_reliable_backwards_DEPENDENCIES = $(dep_cadet_test_lib)
 
 
 if ENABLE_TEST_RUN
