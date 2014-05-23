@@ -613,7 +613,7 @@ check_keepalives (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   disconnect_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "check keepalives\n");
   GNUNET_CADET_channel_destroy (ch);
-  stats_op = GNUNET_TESTBED_get_statistics (5, testbed_peers,
+  stats_op = GNUNET_TESTBED_get_statistics (peers_running, testbed_peers,
                                             "cadet", NULL,
                                             stats_iterator, stats_cont, NULL);
 }
