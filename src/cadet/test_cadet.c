@@ -820,15 +820,16 @@ tmain (void *cls,
        struct GNUNET_CADET_TEST_Context *ctx,
        unsigned int num_peers,
        struct GNUNET_TESTBED_Peer **peers,
-       struct GNUNET_CADET_Handle **cadetes)
+       struct GNUNET_CADET_Handle **cadets)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "test main\n");
   ok = 0;
   test_ctx = ctx;
   peers_running = num_peers;
+  GNUNET_assert (peers_running == peers_requested);
   testbed_peers = peers;
-  h1 = cadetes[0];
-  h2 = cadetes[num_peers - 1];
+  h1 = cadets[0];
+  h2 = cadets[num_peers - 1];
   disconnect_task = GNUNET_SCHEDULER_add_delayed (SHORT_TIME,
                                                   &disconnect_cadet_peers,
                                                   (void *) __LINE__);
@@ -858,6 +859,22 @@ main (int argc, char *argv[])
   config_file = "test_cadet.conf";
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Start\n");
+  if (strstr (argv[0], "test_direct") != NULL)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "DIRECT CONNECTIONs\n");
+    peers_requested = 2;
+  }
+  else if (strstr (argv[0], "test_small") != NULL)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "5 PEER LINE\n");
+    peers_requested = 5;
+  }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "SIZE UNKNOWN\n");
+    return 1;
+  }
+
   if (strstr (argv[0], "_cadet_forward") != NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "FORWARD\n");
@@ -937,7 +954,7 @@ main (int argc, char *argv[])
   ports[1] = 0;
   GNUNET_CADET_TEST_run ("test_cadet_small",
                         config_file,
-                        5,
+                        peers_requested,
                         &tmain,
                         NULL, /* tmain cls */
                         &incoming_channel,
