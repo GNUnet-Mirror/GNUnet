@@ -447,7 +447,7 @@ data_callback (void *cls, struct GNUNET_CADET_Channel *channel,
   case 0L:
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Root client got a message!\n");
     break;
-  case 2L:
+  case 1L:
   case 4L:
     GNUNET_assert (client == peers_requested - 1);
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -455,6 +455,7 @@ data_callback (void *cls, struct GNUNET_CADET_Channel *channel,
                 client);
     break;
   default:
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Client %li not valid.\n", client);
     GNUNET_abort ();
     break;
   }
@@ -650,7 +651,7 @@ incoming_channel (void *cls, struct GNUNET_CADET_Channel *channel,
               GNUNET_i2s (initiator), (long) cls);
   ok++;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, " ok: %d\n", ok);
-  if ((long) cls == 4L)
+  if ((long) cls == peers_requested - 1)
     incoming_ch = channel;
   else
   {
@@ -694,7 +695,7 @@ channel_cleaner (void *cls, const struct GNUNET_CADET_Channel *channel,
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
               "Incoming channel disconnected at peer %ld\n", i);
-  if (4L == i)
+  if (peers_running - 1 == i)
   {
     ok++;
     GNUNET_break (channel == incoming_ch);
