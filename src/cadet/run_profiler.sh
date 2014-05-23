@@ -15,7 +15,7 @@ if [ $PEERS -eq 1 ]; then
     exit 1;
 fi
 
-LINKS=`echo "l($PEERS)/l(2) * $PEERS" | bc -l`
+LINKS=`echo "l($PEERS) * l($PEERS) * $PEERS / 2" | bc -l`
 LINKS=`printf "%.0f" $LINKS`
 NSE=`echo "l($PEERS)/l(2)" | bc -l`
 echo "using $PEERS peers, $LINKS links";
