@@ -863,12 +863,12 @@ main (int argc, char *argv[])
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Start\n");
 
   /* Find out requested size */
-  if (strstr (argv[0], "test_direct") != NULL)
+  if (strstr (argv[0], "_2_") != NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "DIRECT CONNECTIONs\n");
     peers_requested = 2;
   }
-  else if (strstr (argv[0], "test_small") != NULL)
+  else if (strstr (argv[0], "_5_") != NULL)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "5 PEER LINE\n");
     peers_requested = 5;
