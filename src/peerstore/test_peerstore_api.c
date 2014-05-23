@@ -54,7 +54,7 @@ int iterate_cb (void *cls,
   printf("Sub system: %s\n", record->sub_system);
   printf("Peer: %s\n", GNUNET_i2s (record->peer));
   printf("Key: %s\n", record->key);
-  printf("Value: %.*s\n", record->value_size, record->value);
+  printf("Value: %.*s\n", (int)record->value_size, (char *)record->value);
   printf("Expiry: %" PRIu64 "\n", record->expiry->abs_value_us);
   counter ++;
 
