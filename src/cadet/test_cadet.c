@@ -457,7 +457,6 @@ data_callback (void *cls, struct GNUNET_CADET_Channel *channel,
   default:
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Client %li not valid.\n", client);
     GNUNET_abort ();
-    break;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, " ok: (%d/%d)\n", ok, ok_goal);
   data = (uint32_t *) &message[1];
@@ -468,7 +467,7 @@ data_callback (void *cls, struct GNUNET_CADET_Channel *channel,
   }
   else
   {
-    expected_target_client = 4L;
+    expected_target_client = peers_requested - 1;
   }
 
   if (GNUNET_NO == initialized)
@@ -477,7 +476,7 @@ data_callback (void *cls, struct GNUNET_CADET_Channel *channel,
     start_time = GNUNET_TIME_absolute_get ();
     if (SPEED == test)
     {
-      GNUNET_assert (4L == client);
+      GNUNET_assert (peers_requested - 1 == client);
       GNUNET_SCHEDULER_add_now (&data_task, NULL);
       return GNUNET_OK;
     }
