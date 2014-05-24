@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2013 Christian Grothoff (and other contributing authors)
+     (C) 2013, 2014 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -22,6 +22,7 @@
  * @file scalarproduct/gnunet-service-scalarproduct.c
  * @brief scalarproduct service implementation
  * @author Christian M. Fuchs
+ * @author Christian Grothoff
  */
 #include "platform.h"
 #include <limits.h>
@@ -198,7 +199,7 @@ struct SortedValue
 struct ServiceSession
 {
   /**
-   * Is this session active(GNUNET_YES), Concluded(GNUNET_NO), (GNUNET_SYSERR)
+   * Is this session active (#GNUNET_YES), Concluded (#GNUNET_NO), or had an error (#GNUNET_SYSERR)
    */
   int32_t active;
 
@@ -230,12 +231,12 @@ struct ServiceSession
   /**
    * the client this request is related to
    */
-  struct GNUNET_SERVER_Client * client;
+  struct GNUNET_SERVER_Client *client;
 
   /**
    * The message to send
    */
-  struct GNUNET_MessageHeader * msg;
+  struct GNUNET_MessageHeader *msg;
 
   /**
    * how many elements we were supplied with from the client
@@ -245,7 +246,7 @@ struct ServiceSession
   /**
    * all non-0-value'd elements transmitted to us
    */
-  struct GNUNET_CONTAINER_MultiHashMap * intersected_elements;
+  struct GNUNET_CONTAINER_MultiHashMap *intersected_elements;
 
   /**
    * how many elements actually are used for the scalar product
@@ -253,7 +254,7 @@ struct ServiceSession
   uint32_t used_element_count;
 
   /**
-   * already transferred elements (sent/received) for multipart messages, less or equal than used_element_count for
+   * already transferred elements (sent/received) for multipart messages, less or equal than @e used_element_count for
    */
   uint32_t transferred_element_count;
 
@@ -261,68 +262,68 @@ struct ServiceSession
    * Set of elements for which will conduction an intersection.
    * the resulting elements are then used for computing the scalar product.
    */
-  struct GNUNET_SET_Handle * intersection_set;
+  struct GNUNET_SET_Handle *intersection_set;
 
   /**
    * Set of elements for which will conduction an intersection.
    * the resulting elements are then used for computing the scalar product.
    */
-  struct GNUNET_SET_OperationHandle * intersection_op;
+  struct GNUNET_SET_OperationHandle *intersection_op;
 
   /**
    * Handle to Alice's Intersection operation listening for Bob
    */
-  struct GNUNET_SET_ListenHandle * intersection_listen;
+  struct GNUNET_SET_ListenHandle *intersection_listen;
 
   /**
-   * Public key of the remote service, only used by bob
+   * Public key of the remote service, only used by Bob
    */
-  struct GNUNET_CRYPTO_PaillierPublicKey * remote_pubkey;
+  struct GNUNET_CRYPTO_PaillierPublicKey *remote_pubkey;
 
   /**
    * DLL for sorting elements after intersection
    */
-  struct SortedValue * a_head;
+  struct SortedValue *a_head;
 
   /**
    * a(Alice)
    */
-  struct SortedValue * a_tail;
+  struct SortedValue *a_tail;
 
   /**
    * a(Alice)
    */
-  gcry_mpi_t * sorted_elements;
+  gcry_mpi_t *sorted_elements;
 
   /**
    * E(ai)(Bob) after applying the mask
    */
-  struct GNUNET_CRYPTO_PaillierCiphertext * e_a;
+  struct GNUNET_CRYPTO_PaillierCiphertext *e_a;
 
   /**
    * Bob's permutation p of R
    */
-  struct GNUNET_CRYPTO_PaillierCiphertext * r;
+  struct GNUNET_CRYPTO_PaillierCiphertext *r;
 
   /**
    * Bob's permutation q of R
    */
-  struct GNUNET_CRYPTO_PaillierCiphertext * r_prime;
+  struct GNUNET_CRYPTO_PaillierCiphertext *r_prime;
 
   /**
    * Bob's s
    */
-  struct GNUNET_CRYPTO_PaillierCiphertext * s;
+  struct GNUNET_CRYPTO_PaillierCiphertext *s;
 
   /**
    * Bob's s'
    */
-  struct GNUNET_CRYPTO_PaillierCiphertext * s_prime;
+  struct GNUNET_CRYPTO_PaillierCiphertext *s_prime;
 
   /**
-   * Bobs matching response session from the client
+   * Bob's matching response session from the client
    */
-  struct ServiceSession * response;
+  struct ServiceSession *response;
 
   /**
    * The computed scalar
@@ -330,19 +331,19 @@ struct ServiceSession
   gcry_mpi_t product;
 
   /**
-   * My transmit handle for the current message to a alice/bob
+   * My transmit handle for the current message to a Alice/Bob
    */
-  struct GNUNET_CADET_TransmitHandle * service_transmit_handle;
+  struct GNUNET_CADET_TransmitHandle *service_transmit_handle;
 
   /**
    * My transmit handle for the current message to the client
    */
-  struct GNUNET_SERVER_TransmitHandle * client_transmit_handle;
+  struct GNUNET_SERVER_TransmitHandle *client_transmit_handle;
 
   /**
    * channel-handle associated with our cadet handle
    */
-  struct GNUNET_CADET_Channel * channel;
+  struct GNUNET_CADET_Channel *channel;
 
   /**
    * Handle to a task that sends a msg to the our client
@@ -350,9 +351,6 @@ struct ServiceSession
   GNUNET_SCHEDULER_TaskIdentifier client_notification_task;
 };
 
-///////////////////////////////////////////////////////////////////////////////
-//                      Forward Delcarations
-///////////////////////////////////////////////////////////////////////////////
 
 /**
  * Send a multi part chunk of a service request from alice to bob.
@@ -366,8 +364,9 @@ struct ServiceSession
 static void
 prepare_alices_cyrptodata_message_multipart (void *cls);
 
+
 /**
- * Send a multi part chunk of a service response from bob to alice.
+ * Send a multi part chunk of a service response from Bob to Alice.
  * This element only contains the two permutations of R, R'.
  *
  * @param cls the associated service session
@@ -376,15 +375,11 @@ static void
 prepare_bobs_cryptodata_message_multipart (void *cls);
 
 
-///////////////////////////////////////////////////////////////////////////////
-//                      Global Variables
-///////////////////////////////////////////////////////////////////////////////
-
 
 /**
- * Gnunet configuration handle
+ * GNUnet configuration handle
  */
-const struct GNUNET_CONFIGURATION_Handle * cfg;
+static const struct GNUNET_CONFIGURATION_Handle * cfg;
 
 /**
  * Handle to the core service (NULL until we've connected to it).
@@ -416,36 +411,33 @@ static gcry_mpi_t my_offset;
  * for all of these elements we calculate a scalar product with a remote peer
  * split between service->service and client->service for simplicity
  */
-static struct ServiceSession * from_client_head;
+static struct ServiceSession *from_client_head;
+
 /**
  * Tail of our double linked list for client-requests sent to us.
  * for all of these elements we calculate a scalar product with a remote peer
  * split between service->service and client->service for simplicity
  */
-static struct ServiceSession * from_client_tail;
+static struct ServiceSession *from_client_tail;
 
 /**
  * Head of our double linked list for service-requests sent to us.
  * for all of these elements we help the requesting service in calculating a scalar product
  * split between service->service and client->service for simplicity
  */
-static struct ServiceSession * from_service_head;
+static struct ServiceSession *from_service_head;
 
 /**
  * Tail of our double linked list for service-requests sent to us.
  * for all of these elements we help the requesting service in calculating a scalar product
  * split between service->service and client->service for simplicity
  */
-static struct ServiceSession * from_service_tail;
+static struct ServiceSession *from_service_tail;
 
 /**
  * Certain events (callbacks for server & cadet operations) must not be queued after shutdown.
  */
 static int do_shutdown;
-
-///////////////////////////////////////////////////////////////////////////////
-//                      Helper Functions
-///////////////////////////////////////////////////////////////////////////////
 
 
 /**
@@ -456,7 +448,8 @@ static int do_shutdown;
  * @return an MPI value containing the calculated sum, never NULL
  */
 static gcry_mpi_t
-compute_square_sum (gcry_mpi_t * vector, uint32_t length)
+compute_square_sum (gcry_mpi_t *vector,
+                    uint32_t length)
 {
   gcry_mpi_t elem;
   gcry_mpi_t sum;
@@ -482,69 +475,85 @@ compute_square_sum (gcry_mpi_t * vector, uint32_t length)
  * @param session - the session to free elements from
  */
 static void
-free_session_variables (struct ServiceSession * s)
+free_session_variables (struct ServiceSession *s)
 {
-  while (NULL != s->a_head) {
+  while (NULL != s->a_head)
+  {
     struct SortedValue * e = s->a_head;
+
     GNUNET_free (e->elem);
     gcry_mpi_release (e->val);
     GNUNET_CONTAINER_DLL_remove (s->a_head, s->a_tail, e);
     GNUNET_free (e);
   }
-  if (s->e_a) {
+  if (s->e_a)
+  {
     GNUNET_free (s->e_a);
     s->e_a = NULL;
   }
-  if (s->remote_pubkey){
+  if (s->remote_pubkey)
+  {
     GNUNET_free(s->remote_pubkey);
     s->remote_pubkey=NULL;
   }
-  if (s->sorted_elements) {
+  if (s->sorted_elements)
+  {
     GNUNET_free (s->sorted_elements);
     s->sorted_elements = NULL;
   }
-  if (s->intersected_elements) {
+  if (s->intersected_elements)
+  {
     GNUNET_CONTAINER_multihashmap_destroy (s->intersected_elements);
     //elements are freed independently in session->a_head/tail
     s->intersected_elements = NULL;
   }
-  if (s->intersection_listen) {
+  if (s->intersection_listen)
+  {
     GNUNET_SET_listen_cancel (s->intersection_listen);
     s->intersection_listen = NULL;
   }
-  if (s->intersection_op) {
+  if (s->intersection_op)
+  {
     GNUNET_SET_operation_cancel (s->intersection_op);
     s->intersection_op = NULL;
   }
-  if (s->intersection_set) {
+  if (s->intersection_set)
+  {
     GNUNET_SET_destroy (s->intersection_set);
     s->intersection_set = NULL;
   }
-  if (s->msg) {
+  if (s->msg)
+  {
     GNUNET_free (s->msg);
     s->msg = NULL;
   }
-  if (s->r) {
+  if (s->r)
+  {
     GNUNET_free (s->r);
     s->r = NULL;
   }
-  if (s->r_prime) {
+  if (s->r_prime)
+  {
     GNUNET_free (s->r_prime);
     s->r_prime = NULL;
   }
-  if (s->s) {
+  if (s->s)
+  {
     GNUNET_free (s->s);
     s->s = NULL;
   }
-  if (s->s_prime) {
+  if (s->s_prime)
+  {
     GNUNET_free (s->s_prime);
     s->s_prime = NULL;
   }
-  if (s->product) {
+  if (s->product)
+  {
     gcry_mpi_release (s->product);
     s->product = NULL;
   }
 }
+
 
 /**
  * Primitive callback for copying over a message, as they
@@ -557,14 +566,16 @@ free_session_variables (struct ServiceSession * s)
  * @return 0 if we couldn't copy, else the size copied over
  */
 static size_t
-cb_transfer_message (void *cls, size_t size, void *buf)
+cb_transfer_message (void *cls,
+                     size_t size,
+                     void *buf)
 {
   struct ServiceSession * s = cls;
   uint16_t type;
 
   GNUNET_assert (buf);
-
-  if (ntohs (s->msg->size) != size) {
+  if (ntohs (s->msg->size) != size)
+  {
     GNUNET_break (0);
     return 0;
   }
@@ -601,11 +612,9 @@ cb_transfer_message (void *cls, size_t size, void *buf)
     else
       s->channel = NULL;
     break;
-
   default:
     GNUNET_assert (0);
   }
-
   return size;
 }
 
@@ -626,9 +635,11 @@ find_matching_session (struct ServiceSession * tail,
 {
   struct ServiceSession * s;
 
-  for (s = tail; NULL != s; s = s->prev) {
+  for (s = tail; NULL != s; s = s->prev)
+  {
     // if the key matches, and the element_count is same
-    if (0 == memcmp (&s->session_id, key, sizeof (struct GNUNET_HashCode))) {
+    if (0 == memcmp (&s->session_id, key, sizeof (struct GNUNET_HashCode)))
+    {
       // if peerid is NULL OR same as the peer Id in the queued request
       if ((NULL == peerid)
           || (0 == memcmp (&s->peer, peerid, sizeof (struct GNUNET_PeerIdentity))))
@@ -639,11 +650,6 @@ find_matching_session (struct ServiceSession * tail,
 
   return NULL;
 }
-
-
-///////////////////////////////////////////////////////////////////////////////
-//                      Event and Message Handlers
-///////////////////////////////////////////////////////////////////////////////
 
 
 /**
@@ -658,35 +664,37 @@ find_matching_session (struct ServiceSession * tail,
  */
 static void
 cb_client_disconnect (void *cls,
-                          struct GNUNET_SERVER_Client *client)
+                      struct GNUNET_SERVER_Client *client)
 {
   struct ServiceSession *s;
 
-  if (NULL != client)
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                _ ("Client %p disconnected from us.\n"), client);
-  else
+  if (NULL == client)
     return;
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              _ ("Client %p disconnected from us.\n"), client);
   s = GNUNET_SERVER_client_get_user_context (client, struct ServiceSession);
   if (NULL == s)
     return;
-
-  GNUNET_CONTAINER_DLL_remove (from_client_head, from_client_tail, s);
-
-  if (NULL != s->service_transmit_handle){
+  GNUNET_CONTAINER_DLL_remove (from_client_head,
+                               from_client_tail,
+                               s);
+  if (NULL != s->service_transmit_handle)
+  {
     GNUNET_CADET_notify_transmit_ready_cancel (s->service_transmit_handle);
     s->service_transmit_handle = NULL;
   }
-  if (NULL != s->channel){
+  if (NULL != s->channel)
+  {
     GNUNET_CADET_channel_destroy (s->channel);
     s->channel = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != s->client_notification_task){
+  if (GNUNET_SCHEDULER_NO_TASK != s->client_notification_task)
+  {
     GNUNET_SCHEDULER_cancel (s->client_notification_task);
     s->client_notification_task = GNUNET_SCHEDULER_NO_TASK;
   }
-  if (NULL != s->client_transmit_handle) {
+  if (NULL != s->client_transmit_handle)
+  {
     GNUNET_SERVER_notify_transmit_ready_cancel (s->client_transmit_handle);
     s->client_transmit_handle = NULL;
   }
@@ -709,7 +717,7 @@ prepare_client_end_notification (void * cls,
                                  const struct GNUNET_SCHEDULER_TaskContext * tc)
 {
   struct ServiceSession * s = cls;
-  struct ClientResponseMessage * msg;
+  struct ClientResponseMessage *msg;
 
   s->client_notification_task = GNUNET_SCHEDULER_NO_TASK;
 
@@ -719,7 +727,6 @@ prepare_client_end_notification (void * cls,
   // signal error if not signalized, positive result-range field but zero length.
   msg->product_length = htonl (0);
   msg->status = htonl(s->active);
-
   s->msg = &msg->header;
 
   //transmit this message to our client
@@ -734,17 +741,20 @@ prepare_client_end_notification (void * cls,
   if (NULL == s->client_transmit_handle)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _("Could not send message to client (%p)!\n"), s->client);
-    GNUNET_SERVER_client_disconnect(s->client);
+                _("Could not send message to client (%p)!\n"),
+                s->client);
+    GNUNET_SERVER_client_disconnect (s->client);
     free_session_variables(s);
-    GNUNET_CONTAINER_DLL_remove (from_client_head, from_client_tail, s);
+    GNUNET_CONTAINER_DLL_remove (from_client_head,
+                                 from_client_tail,
+                                 s);
     GNUNET_free(s);
+    return;
   }
-  else
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                _("Sending session-end notification to client (%p) for session %s\n"),
-                s->client,
-                GNUNET_h2s (&s->session_id));
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              _("Sending session-end notification to client (%p) for session %s\n"),
+              s->client,
+              GNUNET_h2s (&s->session_id));
 }
 
 
@@ -773,7 +783,8 @@ prepare_alices_cyrptodata_message (void *cls)
   if (GNUNET_SERVER_MAX_MESSAGE_SIZE > msg_length) {
     s->transferred_element_count = s->used_element_count;
   }
-  else {
+  else
+  {
     //create a multipart msg, first we calculate a new msg size for the head msg
     s->transferred_element_count = (GNUNET_SERVER_MAX_MESSAGE_SIZE - 1 - sizeof (struct AliceCryptodataMessage))
             / sizeof (struct GNUNET_CRYPTO_PaillierCiphertext);
@@ -791,23 +802,28 @@ prepare_alices_cyrptodata_message (void *cls)
 
   // now copy over the sorted element vector
   a = gcry_mpi_new (0);
-  for (i = 0; i < s->transferred_element_count; i++) {
+  for (i = 0; i < s->transferred_element_count; i++)
+  {
     gcry_mpi_add (a, s->sorted_elements[i], my_offset);
     GNUNET_CRYPTO_paillier_encrypt (&my_pubkey, a, 3, &payload[i]);
   }
   gcry_mpi_release (a);
 
   s->msg = (struct GNUNET_MessageHeader *) msg;
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _ ("Transmitting service request.\n"));
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              _("Transmitting service request.\n"));
 
   //transmit via cadet messaging
-  s->service_transmit_handle = GNUNET_CADET_notify_transmit_ready (s->channel, GNUNET_YES,
-                                                                        GNUNET_TIME_UNIT_FOREVER_REL,
-                                                                        msg_length,
-                                                                        &cb_transfer_message,
-                                                                        s);
-  if (NULL == s->service_transmit_handle) {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _ ("Could not send message to channel!\n"));
+  s->service_transmit_handle = GNUNET_CADET_notify_transmit_ready (s->channel,
+                                                                   GNUNET_YES,
+                                                                   GNUNET_TIME_UNIT_FOREVER_REL,
+                                                                   msg_length,
+                                                                   &cb_transfer_message,
+                                                                   s);
+  if (NULL == s->service_transmit_handle)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Could not send message to channel!\n"));
     GNUNET_free (msg);
     s->msg = NULL;
     s->active = GNUNET_SYSERR;
@@ -850,7 +866,8 @@ prepare_bobs_cryptodata_message_multipart (void *cls)
   msg->contained_element_count = htonl (todo_count);
 
   payload = (struct GNUNET_CRYPTO_PaillierCiphertext *) &msg[1];
-  for (i = s->transferred_element_count, j = 0; i < s->transferred_element_count + todo_count; i++) {
+  for (i = s->transferred_element_count, j = 0; i < s->transferred_element_count + todo_count; i++)
+  {
     //r[i][p] and r[i][q]
     memcpy (&payload[j++], &s->r[i], sizeof (struct GNUNET_CRYPTO_PaillierCiphertext));
     memcpy (&payload[j++], &s->r_prime[i], sizeof (struct GNUNET_CRYPTO_PaillierCiphertext));
@@ -864,8 +881,10 @@ prepare_bobs_cryptodata_message_multipart (void *cls)
                                              msg_length,
                                              &cb_transfer_message,
                                              s);
-  if (NULL == s->service_transmit_handle) {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _ ("Could not send service-response message via cadet!)\n"));
+  if (NULL == s->service_transmit_handle)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Could not send service-response message via cadet!)\n"));
 
     GNUNET_free (msg);
     s->msg = NULL;
@@ -881,7 +900,8 @@ prepare_bobs_cryptodata_message_multipart (void *cls)
     GNUNET_free(s);
     return;
   }
-  if (s->transferred_element_count == s->used_element_count) {
+  if (s->transferred_element_count == s->used_element_count)
+  {
     // final part
     s->active = GNUNET_NO;
     GNUNET_free (s->r_prime);
@@ -918,7 +938,8 @@ prepare_bobs_cryptodata_message (void *cls,
           + 2 * sizeof (struct GNUNET_CRYPTO_PaillierCiphertext); // s, stick
 
   if (GNUNET_SERVER_MAX_MESSAGE_SIZE >
-      msg_length + 2 * s->used_element_count * sizeof (struct GNUNET_CRYPTO_PaillierCiphertext)) { //r, r'
+      msg_length + 2 * s->used_element_count * sizeof (struct GNUNET_CRYPTO_PaillierCiphertext))
+  { //r, r'
     msg_length += 2 * s->used_element_count * sizeof (struct GNUNET_CRYPTO_PaillierCiphertext);
     s->transferred_element_count = s->used_element_count;
   }
@@ -944,7 +965,8 @@ prepare_bobs_cryptodata_message (void *cls,
 
   payload = &payload[2];
   // convert k[][]
-  for (i = 0; i < s->transferred_element_count; i++) {
+  for (i = 0; i < s->transferred_element_count; i++)
+  {
     //k[i][p] and k[i][q]
     memcpy (&payload[i * 2], &s->r[i], sizeof (struct GNUNET_CRYPTO_PaillierCiphertext));
     memcpy (&payload[i * 2 + 1], &s->r_prime[i], sizeof (struct GNUNET_CRYPTO_PaillierCiphertext));
@@ -958,9 +980,11 @@ prepare_bobs_cryptodata_message (void *cls,
                                              msg_length,
                                              &cb_transfer_message,
                                              s);
-  if (NULL == s->service_transmit_handle) {
+  if (NULL == s->service_transmit_handle)
+  {
     //disconnect our client
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _ ("Could not send service-response message via cadet!)\n"));
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Could not send service-response message via cadet!)\n"));
 
     GNUNET_free (msg);
     s->msg = NULL;
@@ -975,10 +999,12 @@ prepare_bobs_cryptodata_message (void *cls,
     GNUNET_free(s);
     return;
   }
-  if (s->transferred_element_count != s->used_element_count) {
+  if (s->transferred_element_count != s->used_element_count)
+  {
     // multipart
   }
-  else {
+  else
+  {
     //singlepart
     s->active = GNUNET_NO;
     GNUNET_free (s->r);
@@ -1028,7 +1054,8 @@ compute_service_response (struct ServiceSession *session)
   s = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_PaillierCiphertext));
   s_prime = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_PaillierCiphertext));
 
-  for (i = 0; i < count; i++) {
+  for (i = 0; i < count; i++)
+  {
     int32_t svalue;
 
     svalue = (int32_t) GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK, UINT32_MAX);
@@ -1149,18 +1176,22 @@ cb_insert_element_sorted (void *cls,
 
   // insert as first element with the lowest key
   if (NULL == s->a_head
-      || (0 <= GNUNET_CRYPTO_hash_cmp (&s->a_head->elem->key, &e->elem->key))) {
+      || (0 <= GNUNET_CRYPTO_hash_cmp (&s->a_head->elem->key, &e->elem->key)))
+  {
     GNUNET_CONTAINER_DLL_insert (s->a_head, s->a_tail, e);
     return GNUNET_YES;
   }
   // insert as last element with the highest key
-  if (0 >= GNUNET_CRYPTO_hash_cmp (&s->a_tail->elem->key, &e->elem->key)) {
+  if (0 >= GNUNET_CRYPTO_hash_cmp (&s->a_tail->elem->key, &e->elem->key))
+  {
     GNUNET_CONTAINER_DLL_insert_tail (s->a_head, s->a_tail, e);
     return GNUNET_YES;
   }
   // insert before the first higher/equal element
-  do {
-    if (0 <= GNUNET_CRYPTO_hash_cmp (&o->elem->key, &e->elem->key)) {
+  do
+  {
+    if (0 <= GNUNET_CRYPTO_hash_cmp (&o->elem->key, &e->elem->key))
+    {
       GNUNET_CONTAINER_DLL_insert_before (s->a_head, s->a_tail, o, e);
       return GNUNET_YES;
     }
@@ -1185,7 +1216,7 @@ cb_intersection_element_removed (void *cls,
                                  const struct GNUNET_SET_Element *element,
                                  enum GNUNET_SET_Status status)
 {
-  struct ServiceSession * s = (struct ServiceSession*) cls;
+  struct ServiceSession * s = cls;
   struct GNUNET_SCALARPRODUCT_Element * se;
   int i;
 
@@ -1205,7 +1236,8 @@ cb_intersection_element_removed (void *cls,
   case GNUNET_SET_STATUS_DONE:
     s->intersection_op = NULL;
 
-    if (2 > s->used_element_count) {
+    if (2 > s->used_element_count)
+    {
       // failed! do not leak information about our single remaining element!
       // continue after the loop
       break;
@@ -1216,7 +1248,8 @@ cb_intersection_element_removed (void *cls,
                                            s);
 
     s->sorted_elements = GNUNET_malloc (s->used_element_count * sizeof (gcry_mpi_t));
-    for (i = 0; NULL != s->a_head; i++) {
+    for (i = 0; NULL != s->a_head; i++)
+    {
       struct SortedValue* a = s->a_head;
       GNUNET_assert (i < s->used_element_count);
 
@@ -1230,12 +1263,14 @@ cb_intersection_element_removed (void *cls,
       prepare_alices_cyrptodata_message (s);
       return;
     }
-    else if (s->used_element_count == s->transferred_element_count) {
+    else if (s->used_element_count == s->transferred_element_count)
+    {
       compute_service_response (s);
       return;
     }
   default:
-    if (NULL != s->intersection_listen){
+    if (NULL != s->intersection_listen)
+    {
       GNUNET_SET_listen_cancel (s->intersection_listen);
       s->intersection_listen = NULL;
     }
@@ -1255,8 +1290,11 @@ cb_intersection_element_removed (void *cls,
             GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
                                       s);
   }
-  else {
-    GNUNET_CONTAINER_DLL_remove (from_service_head, from_service_tail, s);
+  else
+  {
+    GNUNET_CONTAINER_DLL_remove (from_service_head,
+                                 from_service_tail,
+                                 s);
     free_session_variables (s);
     s->response->active = GNUNET_SYSERR;
     s->response->client_notification_task =
@@ -1288,20 +1326,22 @@ cb_intersection_request_alice (void *cls,
                                const struct GNUNET_MessageHeader *context_msg,
                                struct GNUNET_SET_Request *request)
 {
-  struct ServiceSession * s = (struct ServiceSession *) cls;
+  struct ServiceSession * s = cls;
 
   s->intersection_op = GNUNET_SET_accept (request,
-                                                GNUNET_SET_RESULT_REMOVED,
-                                                cb_intersection_element_removed,
-                                                s);
-  if (NULL == s->intersection_op) {
+                                          GNUNET_SET_RESULT_REMOVED,
+                                          cb_intersection_element_removed,
+                                          s);
+  if (NULL == s->intersection_op)
+  {
     s->active = GNUNET_SYSERR;
     s->client_notification_task =
             GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
                                       s);
     return;
   }
-  if (GNUNET_OK != GNUNET_SET_commit (s->intersection_op, s->intersection_set)) {
+  if (GNUNET_OK != GNUNET_SET_commit (s->intersection_op, s->intersection_set))
+  {
     s->active = GNUNET_SYSERR;
     s->client_notification_task =
             GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
@@ -1335,16 +1375,19 @@ prepare_client_response (void *cls,
 
   s->client_notification_task = GNUNET_SCHEDULER_NO_TASK;
 
-  if (s->product) {
+  if (s->product)
+  {
     gcry_mpi_t value = gcry_mpi_new (0);
 
     sign = gcry_mpi_cmp_ui (s->product, 0);
     // libgcrypt can not handle a print of a negative number
     // if (a->sign) return gcry_error (GPG_ERR_INTERNAL); /* Can't handle it yet. */
-    if (0 > sign) {
+    if (0 > sign)
+    {
       gcry_mpi_sub (value, value, s->product);
     }
-    else if (0 < sign) {
+    else if (0 < sign)
+    {
       range = 1;
       gcry_mpi_add (value, value, s->product);
     }
@@ -1359,7 +1402,8 @@ prepare_client_response (void *cls,
         && (0 != (rc = gcry_mpi_aprint (GCRYMPI_FMT_STD,
                                         &product_exported,
                                         &product_length,
-                                        value)))) {
+                                        value))))
+    {
       LOG_GCRY (GNUNET_ERROR_TYPE_ERROR, "gcry_mpi_scan", rc);
       product_length = 0;
       range = -1; // signal error with product-length = 0 and range = -1
@@ -1369,7 +1413,8 @@ prepare_client_response (void *cls,
 
   msg_length = sizeof (struct ClientResponseMessage) + product_length;
   msg = GNUNET_malloc (msg_length);
-  if (product_exported != NULL) {
+  if (product_exported != NULL)
+  {
     memcpy (&msg[1], product_exported, product_length);
     GNUNET_free (product_exported);
   }
@@ -1422,7 +1467,8 @@ prepare_alices_computation_request (struct ServiceSession * s)
                                           sizeof (struct ServiceRequestMessage),
                                           &cb_transfer_message,
                                           s);
-  if (!s->service_transmit_handle) {
+  if (!s->service_transmit_handle)
+  {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Could not send message to channel!\n"));
     GNUNET_free (msg);
@@ -1473,7 +1519,8 @@ prepare_alices_cyrptodata_message_multipart (void *cls)
 
   // now copy over the sorted element vector
   a = gcry_mpi_new (0);
-  for (i = s->transferred_element_count; i < todo_count; i++) {
+  for (i = s->transferred_element_count; i < todo_count; i++)
+  {
     gcry_mpi_add (a, s->sorted_elements[i], my_offset);
     GNUNET_CRYPTO_paillier_encrypt (&my_pubkey, a, 3, &payload[i - s->transferred_element_count]);
   }
@@ -1489,7 +1536,8 @@ prepare_alices_cyrptodata_message_multipart (void *cls)
                                                                         msg_length,
                                                                         &cb_transfer_message,
                                                                         s);
-  if (!s->service_transmit_handle) {
+  if (!s->service_transmit_handle)
+  {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Could not send service-request multipart message to channel!\n"));
     GNUNET_free (msg);
@@ -1517,7 +1565,8 @@ client_request_complete_bob (struct ServiceSession * client_session)
   s = find_matching_session (from_service_tail,
                                    &client_session->session_id,
                                    NULL);
-  if (NULL != s) {
+  if (NULL != s)
+  {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 _ ("Got client-responder-session with key %s and a matching service-request-session set, processing.\n"),
                 GNUNET_h2s (&client_session->session_id));
@@ -1538,7 +1587,8 @@ client_request_complete_bob (struct ServiceSession * client_session)
 
     GNUNET_SET_commit (s->intersection_op, s->intersection_set);
   }
-  else {
+  else
+  {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 _ ("Got client-responder-session with key %s but NO matching service-request-session set, queuing element for later use.\n"),
                 GNUNET_h2s (&client_session->session_id));
@@ -1563,7 +1613,8 @@ client_request_complete_alice (struct ServiceSession * s)
                                                  &s->peer,
                                                  GNUNET_APPLICATION_TYPE_SCALARPRODUCT,
                                                  GNUNET_CADET_OPTION_RELIABLE);
-  if (NULL == s->channel) {
+  if (NULL == s->channel)
+  {
     s->active = GNUNET_SYSERR;
     s->client_notification_task =
             GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
@@ -1571,11 +1622,12 @@ client_request_complete_alice (struct ServiceSession * s)
     return;
   }
   s->intersection_listen = GNUNET_SET_listen (cfg,
-                                                    GNUNET_SET_OPERATION_INTERSECTION,
-                                                    &s->session_id,
-                                                    cb_intersection_request_alice,
-                                                    s);
-  if (NULL == s->intersection_listen) {
+                                              GNUNET_SET_OPERATION_INTERSECTION,
+                                              &s->session_id,
+                                              cb_intersection_request_alice,
+                                              s);
+  if (NULL == s->intersection_listen)
+  {
     s->active = GNUNET_SYSERR;
     s->client_notification_task =
             GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
@@ -1592,9 +1644,9 @@ handle_client_message_multipart (void *cls,
                                  const struct GNUNET_MessageHeader *message)
 {
   const struct ComputationMultipartMessage * msg = (const struct ComputationMultipartMessage *) message;
-  struct ServiceSession * s;
+  struct ServiceSession *s;
   uint32_t contained_count;
-  struct GNUNET_SCALARPRODUCT_Element * elements;
+  struct GNUNET_SCALARPRODUCT_Element *elements;
   uint32_t i;
 
   // only one concurrent session per client connection allowed, simplifies logics a lot...
@@ -1617,7 +1669,8 @@ handle_client_message_multipart (void *cls,
   s->transferred_element_count += contained_count;
 
   elements = (struct GNUNET_SCALARPRODUCT_Element *) & msg[1];
-  for (i = 0; i < contained_count; i++) {
+  for (i = 0; i < contained_count; i++)
+  {
     struct GNUNET_SET_Element set_elem;
     struct GNUNET_SCALARPRODUCT_Element * elem;
 
@@ -1630,7 +1683,8 @@ handle_client_message_multipart (void *cls,
     if (GNUNET_SYSERR == GNUNET_CONTAINER_multihashmap_put (s->intersected_elements,
                                                             &elem->key,
                                                             elem,
-                                                            GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY)) {
+                                                            GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
+    {
       GNUNET_free (elem);
       continue;
     }
@@ -1679,7 +1733,8 @@ handle_client_message (void *cls,
 
   // only one concurrent session per client connection allowed, simplifies logics a lot...
   s = GNUNET_SERVER_client_get_user_context (client, struct ServiceSession);
-  if (NULL != s) {
+  if (NULL != s)
+  {
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
@@ -1784,21 +1839,20 @@ handle_client_message (void *cls,
  * @param initiator peer that started the channel
  * @param port unused
  * @param options unused
- *
  * @return session associated with the channel
  */
 static void *
 cb_channel_incoming (void *cls,
                           struct GNUNET_CADET_Channel *channel,
                           const struct GNUNET_PeerIdentity *initiator,
-                          uint32_t port, enum GNUNET_CADET_ChannelOption options)
+                          uint32_t port,
+                     enum GNUNET_CADET_ChannelOption options)
 {
-  struct ServiceSession * s = GNUNET_new (struct ServiceSession);
+  struct ServiceSession *s = GNUNET_new (struct ServiceSession);
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               _ ("New incoming channel from peer %s.\n"),
               GNUNET_i2s (initiator));
-
   s->peer = *initiator;
   s->channel = channel;
   s->role = BOB;
@@ -1820,8 +1874,8 @@ cb_channel_incoming (void *cls,
  */
 static void
 cb_channel_destruction (void *cls,
-                             const struct GNUNET_CADET_Channel *channel,
-                             void *channel_ctx)
+                        const struct GNUNET_CADET_Channel *channel,
+                        void *channel_ctx)
 {
   struct ServiceSession * s = channel_ctx;
   struct ServiceSession * client_session;
@@ -1834,14 +1888,16 @@ cb_channel_destruction (void *cls,
   // as we have only one peer connected in each session, just remove the session
   s->channel = NULL;
 
-  if ((ALICE == s->role) && (GNUNET_NO != s->active) && (!do_shutdown)) {
+  if ((ALICE == s->role) && (GNUNET_NO != s->active) && (!do_shutdown))
+  {
     // if this happened before we received the answer, we must terminate the session
     s->role = GNUNET_SYSERR;
     s->client_notification_task =
             GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
                                       s);
   }
-  else {
+  else
+  {
     if ((s == from_service_head) || ((NULL != from_service_head) && ((NULL != s->next) || (NULL != s->a_tail))))
       GNUNET_CONTAINER_DLL_remove (from_service_head, from_service_tail, s);
 
@@ -1855,7 +1911,8 @@ cb_channel_destruction (void *cls,
 
     // the client has to check if it was waiting for a result
     // or if it was a responder, no point in adding more statefulness
-    if ((NULL != s->response ) && (!do_shutdown)) {
+    if ((NULL != s->response ) && (!do_shutdown))
+    {
       client_session->client_notification_task =
               GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
                                         client_session);
@@ -1871,7 +1928,7 @@ cb_channel_destruction (void *cls,
  * @return product as MPI, never NULL
  */
 static gcry_mpi_t
-compute_scalar_product (struct ServiceSession * session)
+compute_scalar_product (struct ServiceSession *session)
 {
   uint32_t count;
   gcry_mpi_t t;
@@ -1890,7 +1947,8 @@ compute_scalar_product (struct ServiceSession * session)
   // due to the introduced static offset S, we now also have to remove this
   // from the E(a_pi)(+)E(-b_pi-r_pi) and E(a_qi)(+)E(-r_qi) twice each,
   // the result is E((S + a_pi) + (S -b_pi-r_pi)) and E(S + a_qi + S - r_qi)
-  for (i = 0; i < count; i++) {
+  for (i = 0; i < count; i++)
+  {
     GNUNET_CRYPTO_paillier_decrypt (&my_privkey, &my_pubkey,
                                     &session->r[i], r[i]);
     gcry_mpi_sub (r[i], r[i], my_offset);
@@ -1947,7 +2005,8 @@ compute_scalar_product (struct ServiceSession * session)
   gcry_mpi_div (p, NULL, p, tmp, 0);
 
   gcry_mpi_release (tmp);
-  for (i = 0; i < count; i++) {
+  for (i = 0; i < count; i++)
+  {
     gcry_mpi_release (session->sorted_elements[i]);
     gcry_mpi_release (r[i]);
     gcry_mpi_release (r_prime[i]);
@@ -1993,11 +2052,13 @@ handle_alices_cyrptodata_message_multipart (void *cls,
   s = (struct ServiceSession *) * channel_ctx;
   //we are not bob
   if ((NULL == s->e_a) || //or we did not expect this message yet
-      (s->used_element_count == s->transferred_element_count)) { //we are not expecting multipart messages
+      (s->used_element_count == s->transferred_element_count))
+  { //we are not expecting multipart messages
     goto except;
   }
   // shorter than minimum?
-  if (ntohs (msg->header.size) <= sizeof (struct MultipartMessage)) {
+  if (ntohs (msg->header.size) <= sizeof (struct MultipartMessage))
+  {
     goto except;
   }
   contained_elements = ntohl (msg->contained_element_count);
@@ -2006,7 +2067,8 @@ handle_alices_cyrptodata_message_multipart (void *cls,
   //sanity check
   if ((ntohs (msg->header.size) != msg_length)
       || (s->used_element_count < contained_elements + s->transferred_element_count)
-      || (0 == contained_elements)) {
+      || (0 == contained_elements))
+  {
     goto except;
   }
   payload = (struct GNUNET_CRYPTO_PaillierCiphertext *) &msg[1];
@@ -2016,7 +2078,8 @@ handle_alices_cyrptodata_message_multipart (void *cls,
 
   s->transferred_element_count += contained_elements;
 
-  if (contained_elements == s->used_element_count) {
+  if (contained_elements == s->used_element_count)
+  {
     // single part finished
     if (NULL == s->intersection_op)
       // intersection has already finished, so we can proceed
@@ -2028,14 +2091,16 @@ except:
   s->channel = NULL;
   // and notify our client-session that we could not complete the session
   free_session_variables (s);
-  if (NULL != s->client){
+  if (NULL != s->client)
+  {
     //Alice
     s->active = GNUNET_SYSERR;
     s->client_notification_task =
           GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
                                     s);
   }
-  else {
+  else
+  {
     //Bob
     if (NULL != s->response){
       s->response->active = GNUNET_SYSERR;
@@ -2083,7 +2148,8 @@ handle_alices_cyrptodata_message (void *cls,
       !((NULL != s->intersection_op)
         //intersection OP done
         || (s->response->sorted_elements)
-        )) {
+        ))
+  {
     goto invalid_msg;
   }
 
@@ -2100,7 +2166,8 @@ handle_alices_cyrptodata_message (void *cls,
   //sanity check: is the message as long as the message_count fields suggests?
   if ((ntohs (msg->header.size) != msg_length) ||
       (s->used_element_count < s->transferred_element_count + contained_elements) ||
-      (0 == contained_elements)) {
+      (0 == contained_elements))
+  {
     goto invalid_msg;
   }
 
@@ -2109,7 +2176,8 @@ handle_alices_cyrptodata_message (void *cls,
 
   s->e_a = GNUNET_malloc (sizeof (struct GNUNET_CRYPTO_PaillierCiphertext) * s->used_element_count);
   memcpy (&s->e_a[0], payload, contained_elements * sizeof (struct GNUNET_CRYPTO_PaillierCiphertext));
-  if (contained_elements == s->used_element_count) {
+  if (contained_elements == s->used_element_count)
+  {
     // single part finished
     if (NULL == s->intersection_op)
       // intersection has already finished, so we can proceed
@@ -2121,16 +2189,19 @@ invalid_msg:
   s->channel = NULL;
   // and notify our client-session that we could not complete the session
   free_session_variables (s);
-  if (NULL != s->client){
+  if (NULL != s->client)
+  {
     //Alice
     s->active = GNUNET_SYSERR;
     s->client_notification_task =
           GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
                                     s);
   }
-  else {
+  else
+  {
     //Bob
-    if (NULL != s->response) {
+    if (NULL != s->response)
+    {
       s->response->active = GNUNET_SYSERR;
       s->response->client_notification_task =
               GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
@@ -2165,18 +2236,21 @@ handle_alices_computation_request (void *cls,
   const struct ServiceRequestMessage * msg = (const struct ServiceRequestMessage *) message;
 
   s = (struct ServiceSession *) * channel_ctx;
-  if ((BOB != s->role) || (s->total != 0)) {
+  if ((BOB != s->role) || (s->total != 0))
+  {
     // must be a fresh session
     goto invalid_msg;
   }
   // Check if message was sent by me, which would be bad!
-  if (!memcmp (&s->peer, &me, sizeof (struct GNUNET_PeerIdentity))) {
+  if (!memcmp (&s->peer, &me, sizeof (struct GNUNET_PeerIdentity)))
+  {
     GNUNET_free (s);
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
   // shorter than expected?
-  if (ntohs (msg->header.size) != sizeof (struct ServiceRequestMessage)) {
+  if (ntohs (msg->header.size) != sizeof (struct ServiceRequestMessage))
+  {
     GNUNET_free (s);
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
@@ -2208,9 +2282,12 @@ handle_alices_computation_request (void *cls,
   GNUNET_CONTAINER_DLL_insert (from_service_head, from_service_tail, s);
 
   if ((NULL != client_session)
-      && (client_session->transferred_element_count == client_session->total)) {
+      && (client_session->transferred_element_count == client_session->total))
+  {
 
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, _ ("Got session with key %s and a matching element set, processing.\n"), GNUNET_h2s (&s->session_id));
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                _("Got session with key %s and a matching element set, processing.\n"),
+                GNUNET_h2s (&s->session_id));
 
     s->response = client_session;
     s->intersected_elements = client_session->intersected_elements;
@@ -2228,7 +2305,8 @@ handle_alices_computation_request (void *cls,
 
     GNUNET_SET_commit (s->intersection_op, s->intersection_set);
   }
-  else {
+  else
+  {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, _ ("Got session with key %s without a matching element set, queueing.\n"), GNUNET_h2s (&s->session_id));
   }
 
@@ -2238,14 +2316,16 @@ invalid_msg:
   s->channel = NULL;
   // and notify our client-session that we could not complete the session
   free_session_variables (s);
-  if (NULL != s->client){
+  if (NULL != s->client)
+  {
     //Alice
     s->active = GNUNET_SYSERR;
     s->client_notification_task =
           GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
                                     s);
   }
-  else {
+  else
+  {
     //Bob
     if (NULL != s->response) {
       s->response->active = GNUNET_SYSERR;
@@ -2288,21 +2368,24 @@ handle_bobs_cryptodata_multipart (void *cls,
   GNUNET_assert (NULL != message);
   // are we in the correct state?
   s = (struct ServiceSession *) * channel_ctx;
-  if ((ALICE != s->role) || (NULL == s->sorted_elements)) {
+  if ((ALICE != s->role) || (NULL == s->sorted_elements))
+  {
     goto invalid_msg;
   }
   msg_size = ntohs (msg->header.size);
   required_size = sizeof (struct MultipartMessage)
           + 2 * sizeof (struct GNUNET_CRYPTO_PaillierCiphertext);
   // shorter than minimum?
-  if (required_size > msg_size) {
+  if (required_size > msg_size)
+  {
     goto invalid_msg;
   }
   contained = ntohl (msg->contained_element_count);
   required_size = sizeof (struct MultipartMessage)
           + 2 * contained * sizeof (struct GNUNET_CRYPTO_PaillierCiphertext);
   //sanity check: is the message as long as the message_count fields suggests?
-  if ((required_size != msg_size) || (s->used_element_count < s->transferred_element_count + contained)) {
+  if ((required_size != msg_size) || (s->used_element_count < s->transferred_element_count + contained))
+  {
     goto invalid_msg;
   }
   payload = (struct GNUNET_CRYPTO_PaillierCiphertext *) &msg[1];
@@ -2320,7 +2403,8 @@ invalid_msg:
   GNUNET_break_op (NULL != s->product);
   s->channel = NULL;
   // send message with product to client
-  if (NULL != s->client){
+  if (NULL != s->client)
+  {
     //Alice
     if (NULL != s->product)
       s->active = GNUNET_NO;
@@ -2330,7 +2414,8 @@ invalid_msg:
           GNUNET_SCHEDULER_add_now (&prepare_client_response,
                                     s);
   }
-  else {
+  else
+  {
     //Bob
     if (NULL != s->response){
       s->response->active = GNUNET_SYSERR;
@@ -2379,14 +2464,16 @@ handle_bobs_cryptodata_message (void *cls,
   // are we in the correct state?
   if (NULL == s->sorted_elements
       || NULL != s->msg
-      || s->used_element_count != s->transferred_element_count) {
+      || s->used_element_count != s->transferred_element_count)
+  {
     goto invalid_msg;
   }
   //we need at least a full message without elements attached
   msg_size = ntohs (msg->header.size);
   required_size = sizeof (struct ServiceResponseMessage) + 2 * sizeof (struct GNUNET_CRYPTO_PaillierCiphertext);
 
-  if (required_size > msg_size) {
+  if (required_size > msg_size)
+  {
     goto invalid_msg;
   }
   contained = ntohl (msg->contained_element_count);
@@ -2394,7 +2481,8 @@ handle_bobs_cryptodata_message (void *cls,
           + 2 * contained * sizeof (struct GNUNET_CRYPTO_PaillierCiphertext)
           + 2 * sizeof (struct GNUNET_CRYPTO_PaillierCiphertext);
   //sanity check: is the message as long as the message_count fields suggests?
-  if ((msg_size != required_size) || (s->used_element_count < contained)) {
+  if ((msg_size != required_size) || (s->used_element_count < contained))
+  {
     goto invalid_msg;
   }
   s->transferred_element_count = contained;
@@ -2411,7 +2499,8 @@ handle_bobs_cryptodata_message (void *cls,
 
   payload = &payload[2];
   // Convert each k[][perm] to its MPI_value
-  for (i = 0; i < contained; i++) {
+  for (i = 0; i < contained; i++)
+  {
     memcpy (&s->r[i], &payload[2 * i], sizeof (struct GNUNET_CRYPTO_PaillierCiphertext));
     memcpy (&s->r_prime[i], &payload[2 * i + 1], sizeof (struct GNUNET_CRYPTO_PaillierCiphertext));
   }
@@ -2423,15 +2512,18 @@ invalid_msg:
   GNUNET_break_op (NULL != s->product);
   s->channel = NULL;
   // send message with product to client
-  if (NULL != s->client){
+  if (NULL != s->client)
+  {
     //Alice
     s->client_notification_task =
           GNUNET_SCHEDULER_add_now (&prepare_client_response,
                                     s);
   }
-  else {
+  else
+  {
     //Bob
-    if (NULL != s->response) {
+    if (NULL != s->response)
+    {
       s->response->active = GNUNET_SYSERR;
       s->response->client_notification_task =
               GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
@@ -2460,32 +2552,40 @@ shutdown_task (void *cls,
                const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct ServiceSession * s;
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _ ("Shutting down, initiating cleanup.\n"));
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              _("Shutting down, initiating cleanup.\n"));
 
   do_shutdown = GNUNET_YES;
 
   // terminate all owned open channels.
-  for (s = from_client_head; NULL != s; s = s->next) {
-    if ((GNUNET_NO != s->active) && (NULL != s->channel)) {
+  for (s = from_client_head; NULL != s; s = s->next)
+  {
+    if ((GNUNET_NO != s->active) && (NULL != s->channel))
+    {
       GNUNET_CADET_channel_destroy (s->channel);
       s->channel = NULL;
     }
-    if (GNUNET_SCHEDULER_NO_TASK != s->client_notification_task) {
+    if (GNUNET_SCHEDULER_NO_TASK != s->client_notification_task)
+    {
       GNUNET_SCHEDULER_cancel (s->client_notification_task);
       s->client_notification_task = GNUNET_SCHEDULER_NO_TASK;
     }
-    if (NULL != s->client) {
+    if (NULL != s->client)
+    {
       GNUNET_SERVER_client_disconnect (s->client);
       s->client = NULL;
     }
   }
   for (s = from_service_head; NULL != s; s = s->next)
-    if (NULL != s->channel) {
+    if (NULL != s->channel)
+    {
       GNUNET_CADET_channel_destroy (s->channel);
       s->channel = NULL;
     }
 
-  if (my_cadet) {
+  if (my_cadet)
+  {
     GNUNET_CADET_disconnect (my_cadet);
     my_cadet = NULL;
   }
@@ -2545,12 +2645,15 @@ run (void *cls,
                                  &cb_channel_incoming,
                                  &cb_channel_destruction,
                                  cadet_handlers, ports);
-  if (!my_cadet) {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _ ("Connect to CADET failed\n"));
+  if (!my_cadet)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Connect to CADET failed\n"));
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _ ("CADET initialized\n"));
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              _("CADET initialized\n"));
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                 &shutdown_task,
                                 NULL);
