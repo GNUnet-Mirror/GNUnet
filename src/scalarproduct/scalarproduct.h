@@ -33,14 +33,8 @@
 extern "C"
 {
 #endif
-///////////////////////////////////////////////////////////////////////////////
-//                      Defines
-///////////////////////////////////////////////////////////////////////////////
 
-/**
- * Maximum count of elements we can put into a multipart message
- */
-#define MULTIPART_ELEMENT_CAPACITY ((GNUNET_SERVER_MAX_MESSAGE_SIZE - 1 - sizeof (struct GNUNET_SCALARPRODUCT_multipart_message)) / sizeof (struct GNUNET_CRYPTO_PaillierCiphertext))
+GNUNET_NETWORK_STRUCT_BEGIN
 
 /**
  * Log an error message at log-level 'level' that indicates
@@ -49,15 +43,12 @@ extern "C"
  */
 #define LOG_GCRY(level, cmd, rc) do { LOG(level, _("`%s' failed at %s:%d with error: %s\n"), cmd, __FILE__, __LINE__, gcry_strerror(rc)); } while(0)
 
-///////////////////////////////////////////////////////////////////////////////
-//                     Scalar Product Message Types
-///////////////////////////////////////////////////////////////////////////////
 
 /**
  * Message type passed from client to service
  * to initiate a request or responder role
  */
-struct GNUNET_SCALARPRODUCT_computation_message
+struct ComputationMessage
 {
   /**
    * GNUNET message header
@@ -68,11 +59,16 @@ struct GNUNET_SCALARPRODUCT_computation_message
    * how many elements the vector in payload contains
    */
   uint32_t element_count_total GNUNET_PACKED;
-  
+
   /**
    * contained elements the vector in payload contains
    */
   uint32_t element_count_contained GNUNET_PACKED;
+
+  /**
+   * Always zero.
+   */
+  uint32_t reserved GNUNET_PACKED;
 
   /**
    * the transaction/session key used to identify a session
@@ -89,16 +85,17 @@ struct GNUNET_SCALARPRODUCT_computation_message
    */
 };
 
+
 /**
- * multipart messages following GNUNET_SCALARPRODUCT_client_request
+ * multipart messages following `struct ComputationMessage`
  */
-struct GNUNET_SCALARPRODUCT_computation_message_multipart
+struct ComputationMultipartMessage
 {
   /**
    * GNUNET message header
    */
   struct GNUNET_MessageHeader header;
-  
+
   /**
    * contained elements the vector in payload contains
    */
@@ -111,105 +108,10 @@ struct GNUNET_SCALARPRODUCT_computation_message_multipart
 
 
 /**
- * Message type passed from requesting service Alice to responding service Bob
- * to initiate a request and make bob participate in our protocol
- */
-struct GNUNET_SCALARPRODUCT_service_request {
-  /**
-   * GNUNET message header
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * the transaction/session key used to identify a session
-   */
-  struct GNUNET_HashCode session_id;
-
-  /**
-   * Alice's public key
-   */
-  struct GNUNET_CRYPTO_PaillierPublicKey public_key;
-
-};
-
-
-/**
- * Message type passed from requesting service Alice to responding service Bob
- * to initiate a request and make bob participate in our protocol
- */
-struct GNUNET_SCALARPRODUCT_alices_cryptodata_message {
-  /**
-   * GNUNET message header
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * how many elements we appended to this message
-   */
-  uint32_t contained_element_count GNUNET_PACKED;
-
-  /**
-   * struct GNUNET_CRYPTO_PaillierCiphertext[contained_element_count]
-   */
-};
-
-/**
- * Multipart Message type passed between to supply additional elements for the peer
- */
-struct GNUNET_SCALARPRODUCT_multipart_message {
-  /**
-   * GNUNET message header
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * how many elements we supply within this message
-   */
-  uint32_t contained_element_count GNUNET_PACKED;
-
-  // struct GNUNET_CRYPTO_PaillierCiphertext[multipart_element_count]
-};
-
-/**
- * Message type passed from responding service Bob to responding service Alice
- * to complete a request and allow Alice to compute the result
- */
-struct GNUNET_SCALARPRODUCT_service_response {
-  /**
-   * GNUNET message header
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * how many elements the session input had
-   */
-  uint32_t total_element_count GNUNET_PACKED;
-
-  /**
-   * how many elements were included after the mask was applied including all multipart msgs.
-   */
-  uint32_t used_element_count GNUNET_PACKED;
-
-  /**
-   * how many elements this individual message delivers
-   */
-  uint32_t contained_element_count GNUNET_PACKED;
-
-  /**
-   * the transaction/session key used to identify a session
-   */
-  struct GNUNET_HashCode key;
-
-  /**
-   * followed by s | s' | k[i][perm]
-   */
-};
-
-/**
  * Message type passed from service client
  * to finalize a session as requester or responder
  */
-struct GNUNET_SCALARPRODUCT_client_response
+struct ClientResponseMessage
 {
   /**
    * GNUNET message header
@@ -222,29 +124,21 @@ struct GNUNET_SCALARPRODUCT_client_response
   uint32_t product_length GNUNET_PACKED;
 
   /**
-   * the transaction/session key used to identify a session
-   */
-  struct GNUNET_HashCode key;
-
-  /**
-   * the identity of a remote peer we want to communicate with
-   */
-  struct GNUNET_PeerIdentity peer;
-
-  /**
    * status information about the outcome of this session
    */
-  int32_t status;
-  
+  int32_t status GNUNET_PACKED;
+
   /**
    * Workaround for libgcrypt: -1 if negative, 0 if zero, else 1
    */
-  int8_t range;
+  int32_t range GNUNET_PACKED;
 
   /**
    * followed by product of length product_length (or nothing)
    */
 };
+
+GNUNET_NETWORK_STRUCT_END
 
 #ifdef	__cplusplus
 }

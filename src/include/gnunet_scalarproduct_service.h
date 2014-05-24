@@ -1,6 +1,6 @@
 /*
       This file is part of GNUnet.
-      (C) 2013 Christian Grothoff (and other contributing authors)
+      (C) 2013, 2014 Christian Grothoff (and other contributing authors)
 
       GNUnet is free software; you can redistribute it and/or modify
       it under the terms of the GNU General Public License as published
@@ -39,13 +39,31 @@ extern "C" {
 /**
  * Version of the scalarproduct API.
  */
-#define GNUNET_SCALARPRODUCT_VERSION 0x00000043
+#define GNUNET_SCALARPRODUCT_VERSION 0x00000044
 
+/**
+ * Result status values for the computation.
+ */
 enum GNUNET_SCALARPRODUCT_ResponseStatus
 {
+  /**
+   * The computation was successful.
+   */
   GNUNET_SCALARPRODUCT_Status_Success = 0,
+
+  /**
+   * We encountered some error.
+   */
   GNUNET_SCALARPRODUCT_Status_Failure,
+
+  /**
+   * We got an invalid response.
+   */
   GNUNET_SCALARPRODUCT_Status_InvalidResponse,
+
+  /**
+   * We got disconnected from the SCALARPRODUCT service.
+   */
   GNUNET_SCALARPRODUCT_Status_ServiceDisconnected
 };
 
@@ -55,13 +73,26 @@ enum GNUNET_SCALARPRODUCT_ResponseStatus
  */
 struct GNUNET_SCALARPRODUCT_Handle;
 
+
+GNUNET_NETWORK_STRUCT_BEGIN
+
 /**
  * An element key-value pair for scalarproduct
  */
-struct GNUNET_SCALARPRODUCT_Element {
-    int32_t value;
-    struct GNUNET_HashCode key;
+struct GNUNET_SCALARPRODUCT_Element
+{
+  /**
+   * Key used to identify matching pairs of values to multiply.
+   */
+  struct GNUNET_HashCode key;
+
+  /**
+   * Value to multiply in scalar product.
+   */
+  int64_t value GNUNET_PACKED;
 };
+
+GNUNET_NETWORK_STRUCT_END
 
 
 /**
@@ -71,8 +102,9 @@ struct GNUNET_SCALARPRODUCT_Element {
  * @param cls closure
  * @param status Status of the request
  */
-typedef void (*GNUNET_SCALARPRODUCT_ContinuationWithStatus) (void *cls,
-                                                             enum GNUNET_SCALARPRODUCT_ResponseStatus status);
+typedef void
+(*GNUNET_SCALARPRODUCT_ContinuationWithStatus) (void *cls,
+                                                enum GNUNET_SCALARPRODUCT_ResponseStatus status);
 
 
 /**
@@ -82,14 +114,17 @@ typedef void (*GNUNET_SCALARPRODUCT_ContinuationWithStatus) (void *cls,
  * @param status Status of the request
  * @param result result of the computation
  */
-typedef void (*GNUNET_SCALARPRODUCT_DatumProcessor) (void *cls,
-                                                     enum GNUNET_SCALARPRODUCT_ResponseStatus status,
-                                                     gcry_mpi_t result);
+typedef void
+(*GNUNET_SCALARPRODUCT_DatumProcessor) (void *cls,
+                                        enum GNUNET_SCALARPRODUCT_ResponseStatus status,
+                                        gcry_mpi_t result);
+
 
 /**
  * Entry in the request queue per client
  */
 struct GNUNET_SCALARPRODUCT_ComputationHandle;
+
 
 /**
  * Request by Alice's client for computing a scalar product
@@ -98,20 +133,20 @@ struct GNUNET_SCALARPRODUCT_ComputationHandle;
  * @param session_key Session key should be unique to the requesting client
  * @param peer PeerID of the other peer
  * @param elements Array of elements of the vector
- * @param element_count Number of elements in the vector
+ * @param element_count Number of elements in the @a elements vector
  * @param cont Callback function
- * @param cont_cls Closure for the callback function
- *
+ * @param cont_cls Closure for the @a cont callback function
  * @return a new handle for this computation
  */
 struct GNUNET_SCALARPRODUCT_ComputationHandle *
-GNUNET_SCALARPRODUCT_start_computation (const struct GNUNET_CONFIGURATION_Handle * cfg,
-                              const struct GNUNET_HashCode * session_key,
+GNUNET_SCALARPRODUCT_start_computation (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                              const struct GNUNET_HashCode *session_key,
                               const struct GNUNET_PeerIdentity *peer,
-                              const struct GNUNET_SCALARPRODUCT_Element * elements,
+                              const struct GNUNET_SCALARPRODUCT_Element *elements,
                               uint32_t element_count,
                               GNUNET_SCALARPRODUCT_DatumProcessor cont,
-                              void * cont_cls);
+                              void *cont_cls);
+
 
 /**
  * Used by Bob's client to cooperate with Alice,
@@ -119,19 +154,18 @@ GNUNET_SCALARPRODUCT_start_computation (const struct GNUNET_CONFIGURATION_Handle
  * @param cfg the gnunet configuration handle
  * @param session_key Session key unique to the requesting client
  * @param elements Array of elements of the vector
- * @param element_count Number of elements in the vector
+ * @param element_count Number of elements in the @a elements vector
  * @param cont Callback function
- * @param cont_cls Closure for the callback function
- *
+ * @param cont_cls Closure for the @a cont callback function
  * @return a new handle for this computation
  */
 struct GNUNET_SCALARPRODUCT_ComputationHandle *
-GNUNET_SCALARPRODUCT_accept_computation (const struct GNUNET_CONFIGURATION_Handle * cfg,
-                               const struct GNUNET_HashCode * key,
-                               const struct GNUNET_SCALARPRODUCT_Element * elements,
-                               uint32_t element_count,
-                               GNUNET_SCALARPRODUCT_ContinuationWithStatus cont,
-                               void * cont_cls);
+GNUNET_SCALARPRODUCT_accept_computation (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                                         const struct GNUNET_HashCode *key,
+                                         const struct GNUNET_SCALARPRODUCT_Element *elements,
+                                         uint32_t element_count,
+                                         GNUNET_SCALARPRODUCT_ContinuationWithStatus cont,
+                                         void *cont_cls);
 
 
 /**

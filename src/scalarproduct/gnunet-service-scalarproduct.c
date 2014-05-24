@@ -37,9 +37,119 @@
 
 #define LOG(kind,...) GNUNET_log_from (kind, "scalarproduct", __VA_ARGS__)
 
-///////////////////////////////////////////////////////////////////////////////
-//                     Service Structure Definitions
-///////////////////////////////////////////////////////////////////////////////
+
+/**
+ * Maximum count of elements we can put into a multipart message
+ */
+#define MULTIPART_ELEMENT_CAPACITY ((GNUNET_SERVER_MAX_MESSAGE_SIZE - 1 - sizeof (struct MultipartMessage)) / sizeof (struct GNUNET_CRYPTO_PaillierCiphertext))
+
+
+GNUNET_NETWORK_STRUCT_BEGIN
+
+/**
+ * Message type passed from requesting service Alice to responding
+ * service Bob to initiate a request and make Bob participate in our
+ * protocol
+ */
+struct ServiceRequestMessage
+{
+  /**
+   * GNUNET message header
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * the transaction/session key used to identify a session
+   */
+  struct GNUNET_HashCode session_id;
+
+  /**
+   * Alice's public key
+   */
+  struct GNUNET_CRYPTO_PaillierPublicKey public_key;
+
+};
+
+
+/**
+ * FIXME.
+ */
+struct AliceCryptodataMessage
+{
+  /**
+   * GNUNET message header
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * how many elements we appended to this message
+   */
+  uint32_t contained_element_count GNUNET_PACKED;
+
+  /**
+   * struct GNUNET_CRYPTO_PaillierCiphertext[contained_element_count]
+   */
+};
+
+
+/**
+ * Multipart Message type passed between to supply additional elements
+ * for the peer
+ */
+struct MultipartMessage
+{
+  /**
+   * GNUNET message header
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * how many elements we supply within this message
+   */
+  uint32_t contained_element_count GNUNET_PACKED;
+
+  // struct GNUNET_CRYPTO_PaillierCiphertext[multipart_element_count]
+};
+
+
+/**
+ * Message type passed from responding service Bob to responding service Alice
+ * to complete a request and allow Alice to compute the result
+ */
+struct ServiceResponseMessage
+{
+  /**
+   * GNUNET message header
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * how many elements the session input had
+   */
+  uint32_t total_element_count GNUNET_PACKED;
+
+  /**
+   * how many elements were included after the mask was applied
+   * including all multipart msgs.
+   */
+  uint32_t used_element_count GNUNET_PACKED;
+
+  /**
+   * how many elements this individual message delivers
+   */
+  uint32_t contained_element_count GNUNET_PACKED;
+
+  /**
+   * the transaction/session key used to identify a session
+   */
+  struct GNUNET_HashCode key;
+
+  /**
+   * followed by s | s' | k[i][perm]
+   */
+};
+
+GNUNET_NETWORK_STRUCT_END
 
 
 /**
@@ -599,15 +709,13 @@ prepare_client_end_notification (void * cls,
                                  const struct GNUNET_SCHEDULER_TaskContext * tc)
 {
   struct ServiceSession * s = cls;
-  struct GNUNET_SCALARPRODUCT_client_response * msg;
+  struct ClientResponseMessage * msg;
 
   s->client_notification_task = GNUNET_SCHEDULER_NO_TASK;
 
-  msg = GNUNET_new (struct GNUNET_SCALARPRODUCT_client_response);
+  msg = GNUNET_new (struct ClientResponseMessage);
+  msg->header.size = htons (sizeof (struct ClientResponseMessage));
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_SCALARPRODUCT_RESULT);
-  memcpy (&msg->key, &s->session_id, sizeof (struct GNUNET_HashCode));
-  memcpy (&msg->peer, &s->peer, sizeof ( struct GNUNET_PeerIdentity));
-  msg->header.size = htons (sizeof (struct GNUNET_SCALARPRODUCT_client_response));
   // signal error if not signalized, positive result-range field but zero length.
   msg->product_length = htonl (0);
   msg->status = htonl(s->active);
@@ -615,23 +723,28 @@ prepare_client_end_notification (void * cls,
   s->msg = &msg->header;
 
   //transmit this message to our client
-  s->client_transmit_handle =
-          GNUNET_SERVER_notify_transmit_ready (s->client,
-                                               sizeof (struct GNUNET_SCALARPRODUCT_client_response),
-                                               GNUNET_TIME_UNIT_FOREVER_REL,
-                                               &cb_transfer_message,
-                                               s);
+  s->client_transmit_handle
+    = GNUNET_SERVER_notify_transmit_ready (s->client,
+                                           sizeof (struct ClientResponseMessage),
+                                           GNUNET_TIME_UNIT_FOREVER_REL,
+                                           &cb_transfer_message,
+                                           s);
 
   // if we could not even queue our request, something is wrong
-  if (NULL == s->client_transmit_handle) {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, _ ("Could not send message to client (%p)!\n"), s->client);
+  if (NULL == s->client_transmit_handle)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _("Could not send message to client (%p)!\n"), s->client);
     GNUNET_SERVER_client_disconnect(s->client);
     free_session_variables(s);
     GNUNET_CONTAINER_DLL_remove (from_client_head, from_client_tail, s);
     GNUNET_free(s);
   }
   else
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, _ ("Sending session-end notification to client (%p) for session %s\n"), &s->client, GNUNET_h2s (&s->session_id));
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                _("Sending session-end notification to client (%p) for session %s\n"),
+                s->client,
+                GNUNET_h2s (&s->session_id));
 }
 
 
@@ -644,15 +757,17 @@ static void
 prepare_alices_cyrptodata_message (void *cls)
 {
   struct ServiceSession * s = cls;
-  struct GNUNET_SCALARPRODUCT_alices_cryptodata_message * msg;
+  struct AliceCryptodataMessage * msg;
   struct GNUNET_CRYPTO_PaillierCiphertext * payload;
   unsigned int i;
   uint32_t msg_length;
   gcry_mpi_t a;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _ ("Successfully created new channel to peer (%s)!\n"), GNUNET_i2s (&s->peer));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              _ ("Successfully created new channel to peer (%s)!\n"),
+              GNUNET_i2s (&s->peer));
 
-  msg_length = sizeof (struct GNUNET_SCALARPRODUCT_alices_cryptodata_message)
+  msg_length = sizeof (struct AliceCryptodataMessage)
           +s->used_element_count * sizeof (struct GNUNET_CRYPTO_PaillierCiphertext);
 
   if (GNUNET_SERVER_MAX_MESSAGE_SIZE > msg_length) {
@@ -660,9 +775,9 @@ prepare_alices_cyrptodata_message (void *cls)
   }
   else {
     //create a multipart msg, first we calculate a new msg size for the head msg
-    s->transferred_element_count = (GNUNET_SERVER_MAX_MESSAGE_SIZE - 1 - sizeof (struct GNUNET_SCALARPRODUCT_alices_cryptodata_message))
+    s->transferred_element_count = (GNUNET_SERVER_MAX_MESSAGE_SIZE - 1 - sizeof (struct AliceCryptodataMessage))
             / sizeof (struct GNUNET_CRYPTO_PaillierCiphertext);
-    msg_length = sizeof (struct GNUNET_SCALARPRODUCT_alices_cryptodata_message)
+    msg_length = sizeof (struct AliceCryptodataMessage)
             +s->transferred_element_count * sizeof (struct GNUNET_CRYPTO_PaillierCiphertext);
   }
 
@@ -715,13 +830,13 @@ prepare_bobs_cryptodata_message_multipart (void *cls)
 {
   struct ServiceSession * s = cls;
   struct GNUNET_CRYPTO_PaillierCiphertext * payload;
-  struct GNUNET_SCALARPRODUCT_multipart_message * msg;
+  struct MultipartMessage * msg;
   unsigned int i;
   unsigned int j;
   uint32_t msg_length;
   uint32_t todo_count;
 
-  msg_length = sizeof (struct GNUNET_SCALARPRODUCT_multipart_message);
+  msg_length = sizeof (struct MultipartMessage);
   todo_count = s->used_element_count - s->transferred_element_count;
 
   if (todo_count > MULTIPART_ELEMENT_CAPACITY / 2)
@@ -793,13 +908,13 @@ prepare_bobs_cryptodata_message (void *cls,
                           const struct GNUNET_SCHEDULER_TaskContext
                           * tc)
 {
-  struct ServiceSession * s = (struct ServiceSession *) cls;
-  struct GNUNET_SCALARPRODUCT_service_response * msg;
+  struct ServiceSession * s = cls;
+  struct ServiceResponseMessage * msg;
   uint32_t msg_length = 0;
   struct GNUNET_CRYPTO_PaillierCiphertext * payload;
   int i;
 
-  msg_length = sizeof (struct GNUNET_SCALARPRODUCT_service_response)
+  msg_length = sizeof (struct ServiceResponseMessage)
           + 2 * sizeof (struct GNUNET_CRYPTO_PaillierCiphertext); // s, stick
 
   if (GNUNET_SERVER_MAX_MESSAGE_SIZE >
@@ -885,7 +1000,7 @@ prepare_bobs_cryptodata_message (void *cls,
  * @param request the requesting session + bob's requesting peer
  */
 static void
-compute_service_response (struct ServiceSession * session)
+compute_service_response (struct ServiceSession *session)
 {
   int i;
   unsigned int * p;
@@ -1022,13 +1137,15 @@ cb_insert_element_sorted (void *cls,
   struct ServiceSession * s = (struct ServiceSession*) cls;
   struct SortedValue * e = GNUNET_new (struct SortedValue);
   struct SortedValue * o = s->a_head;
+  int64_t val;
 
   e->elem = value;
   e->val = gcry_mpi_new (0);
-  if (0 > e->elem->value)
-    gcry_mpi_sub_ui (e->val, e->val, abs (e->elem->value));
+  val = (int64_t) GNUNET_ntohll (e->elem->value);
+  if (0 > val)
+    gcry_mpi_sub_ui (e->val, e->val, - val);
   else
-    gcry_mpi_add_ui (e->val, e->val, e->elem->value);
+    gcry_mpi_add_ui (e->val, e->val, val);
 
   // insert as first element with the lowest key
   if (NULL == s->a_head
@@ -1208,7 +1325,7 @@ prepare_client_response (void *cls,
                          const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct ServiceSession * s = cls;
-  struct GNUNET_SCALARPRODUCT_client_response * msg;
+  struct ClientResponseMessage *msg;
   unsigned char * product_exported = NULL;
   size_t product_length = 0;
   uint32_t msg_length = 0;
@@ -1250,10 +1367,8 @@ prepare_client_response (void *cls,
     gcry_mpi_release (value);
   }
 
-  msg_length = sizeof (struct GNUNET_SCALARPRODUCT_client_response) +product_length;
+  msg_length = sizeof (struct ClientResponseMessage) + product_length;
   msg = GNUNET_malloc (msg_length);
-  msg->key = s->session_id;
-  msg->peer = s->peer;
   if (product_exported != NULL) {
     memcpy (&msg[1], product_exported, product_length);
     GNUNET_free (product_exported);
@@ -1285,27 +1400,31 @@ prepare_client_response (void *cls,
 static void
 prepare_alices_computation_request (struct ServiceSession * s)
 {
-  struct GNUNET_SCALARPRODUCT_service_request * msg;
+  struct ServiceRequestMessage * msg;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _ ("Successfully created new channel to peer (%s)!\n"), GNUNET_i2s (&s->peer));
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              _("Successfully created new channel to peer (%s)!\n"),
+              GNUNET_i2s (&s->peer));
 
-  msg = GNUNET_new (struct GNUNET_SCALARPRODUCT_service_request);
+  msg = GNUNET_new (struct ServiceRequestMessage);
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_SCALARPRODUCT_ALICE_CRYPTODATA);
   memcpy (&msg->session_id, &s->session_id, sizeof (struct GNUNET_HashCode));
-  msg->header.size = htons (sizeof (struct GNUNET_SCALARPRODUCT_service_request));
+  msg->header.size = htons (sizeof (struct ServiceRequestMessage));
 
   s->msg = (struct GNUNET_MessageHeader *) msg;
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _ ("Transmitting service request.\n"));
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              _("Transmitting service request.\n"));
 
   //transmit via cadet messaging
-  s->service_transmit_handle = GNUNET_CADET_notify_transmit_ready (s->channel, GNUNET_YES,
-                                                                        GNUNET_TIME_UNIT_FOREVER_REL,
-                                                                        sizeof (struct GNUNET_SCALARPRODUCT_service_request),
-                                                                        &cb_transfer_message,
-                                                                        s);
+  s->service_transmit_handle
+    = GNUNET_CADET_notify_transmit_ready (s->channel, GNUNET_YES,
+                                          GNUNET_TIME_UNIT_FOREVER_REL,
+                                          sizeof (struct ServiceRequestMessage),
+                                          &cb_transfer_message,
+                                          s);
   if (!s->service_transmit_handle) {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _ ("Could not send message to channel!\n"));
+                _("Could not send message to channel!\n"));
     GNUNET_free (msg);
     s->msg = NULL;
     s->active = GNUNET_SYSERR;
@@ -1330,14 +1449,14 @@ static void
 prepare_alices_cyrptodata_message_multipart (void *cls)
 {
   struct ServiceSession * s = cls;
-  struct GNUNET_SCALARPRODUCT_multipart_message * msg;
+  struct MultipartMessage * msg;
   struct GNUNET_CRYPTO_PaillierCiphertext * payload;
   unsigned int i;
   uint32_t msg_length;
   uint32_t todo_count;
   gcry_mpi_t a;
 
-  msg_length = sizeof (struct GNUNET_SCALARPRODUCT_multipart_message);
+  msg_length = sizeof (struct MultipartMessage);
   todo_count = s->used_element_count - s->transferred_element_count;
 
   if (todo_count > MULTIPART_ELEMENT_CAPACITY)
@@ -1472,7 +1591,7 @@ handle_client_message_multipart (void *cls,
                                  struct GNUNET_SERVER_Client *client,
                                  const struct GNUNET_MessageHeader *message)
 {
-  const struct GNUNET_SCALARPRODUCT_computation_message_multipart * msg = (const struct GNUNET_SCALARPRODUCT_computation_message_multipart *) message;
+  const struct ComputationMultipartMessage * msg = (const struct ComputationMultipartMessage *) message;
   struct ServiceSession * s;
   uint32_t contained_count;
   struct GNUNET_SCALARPRODUCT_Element * elements;
@@ -1488,8 +1607,9 @@ handle_client_message_multipart (void *cls,
   contained_count = ntohl (msg->element_count_contained);
 
   //sanity check: is the message as long as the message_count fields suggests?
-  if ((ntohs (msg->header.size) != (sizeof (struct GNUNET_SCALARPRODUCT_computation_message_multipart) +contained_count * sizeof (struct GNUNET_SCALARPRODUCT_Element)))
-      || (0 == contained_count) || (s->total < s->transferred_element_count + contained_count)) {
+  if ((ntohs (msg->header.size) != (sizeof (struct ComputationMultipartMessage) +contained_count * sizeof (struct GNUNET_SCALARPRODUCT_Element)))
+      || (0 == contained_count) || (s->total < s->transferred_element_count + contained_count))
+  {
     GNUNET_break_op (0);
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
@@ -1501,7 +1621,7 @@ handle_client_message_multipart (void *cls,
     struct GNUNET_SET_Element set_elem;
     struct GNUNET_SCALARPRODUCT_Element * elem;
 
-    if (0 == ntohl (elements[i].value))
+    if (0 == GNUNET_ntohll (elements[i].value))
       continue;
 
     elem = GNUNET_new (struct GNUNET_SCALARPRODUCT_Element);
@@ -1549,7 +1669,7 @@ handle_client_message (void *cls,
                        struct GNUNET_SERVER_Client *client,
                        const struct GNUNET_MessageHeader *message)
 {
-  const struct GNUNET_SCALARPRODUCT_computation_message * msg = (const struct GNUNET_SCALARPRODUCT_computation_message *) message;
+  const struct ComputationMessage * msg = (const struct ComputationMessage *) message;
   struct ServiceSession * s;
   uint32_t contained_count;
   uint32_t total_count;
@@ -1577,8 +1697,10 @@ handle_client_message (void *cls,
   }
 
   //sanity check: is the message as long as the message_count fields suggests?
-  if ((ntohs (msg->header.size) != (sizeof (struct GNUNET_SCALARPRODUCT_computation_message) +contained_count * sizeof (struct GNUNET_SCALARPRODUCT_Element)))
-      || (0 == total_count)) {
+  if ((ntohs (msg->header.size) !=
+       (sizeof (struct ComputationMessage) + contained_count * sizeof (struct GNUNET_SCALARPRODUCT_Element)))
+      || (0 == total_count))
+  {
     GNUNET_break_op (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
@@ -1611,7 +1733,7 @@ handle_client_message (void *cls,
     struct GNUNET_SET_Element set_elem;
     struct GNUNET_SCALARPRODUCT_Element * elem;
 
-    if (0 == ntohl (elements[i].value))
+    if (0 == GNUNET_ntohll (elements[i].value))
       continue;
 
     elem = GNUNET_new (struct GNUNET_SCALARPRODUCT_Element);
@@ -1862,7 +1984,7 @@ handle_alices_cyrptodata_message_multipart (void *cls,
                                             const struct GNUNET_MessageHeader * message)
 {
   struct ServiceSession * s;
-  const struct GNUNET_SCALARPRODUCT_multipart_message * msg = (const struct GNUNET_SCALARPRODUCT_multipart_message *) message;
+  const struct MultipartMessage * msg = (const struct MultipartMessage *) message;
   struct GNUNET_CRYPTO_PaillierCiphertext *payload;
   uint32_t contained_elements;
   uint32_t msg_length;
@@ -1875,11 +1997,11 @@ handle_alices_cyrptodata_message_multipart (void *cls,
     goto except;
   }
   // shorter than minimum?
-  if (ntohs (msg->header.size) <= sizeof (struct GNUNET_SCALARPRODUCT_multipart_message)) {
+  if (ntohs (msg->header.size) <= sizeof (struct MultipartMessage)) {
     goto except;
   }
   contained_elements = ntohl (msg->contained_element_count);
-  msg_length = sizeof (struct GNUNET_SCALARPRODUCT_multipart_message)
+  msg_length = sizeof (struct MultipartMessage)
           +contained_elements * sizeof (struct GNUNET_CRYPTO_PaillierCiphertext);
   //sanity check
   if ((ntohs (msg->header.size) != msg_length)
@@ -1946,7 +2068,7 @@ handle_alices_cyrptodata_message (void *cls,
                                   const struct GNUNET_MessageHeader * message)
 {
   struct ServiceSession * s;
-  const struct GNUNET_SCALARPRODUCT_alices_cryptodata_message * msg = (const struct GNUNET_SCALARPRODUCT_alices_cryptodata_message *) message;
+  const struct AliceCryptodataMessage * msg = (const struct AliceCryptodataMessage *) message;
   struct GNUNET_CRYPTO_PaillierCiphertext *payload;
   uint32_t contained_elements = 0;
   uint32_t msg_length;
@@ -1966,12 +2088,13 @@ handle_alices_cyrptodata_message (void *cls,
   }
 
   // shorter than minimum?
-  if (ntohs (msg->header.size) <= sizeof (struct GNUNET_SCALARPRODUCT_multipart_message)) {
+  if (ntohs (msg->header.size) <= sizeof (struct MultipartMessage))
+  {
     goto invalid_msg;
   }
 
   contained_elements = ntohl (msg->contained_element_count);
-  msg_length = sizeof (struct GNUNET_SCALARPRODUCT_alices_cryptodata_message)
+  msg_length = sizeof (struct AliceCryptodataMessage)
           +contained_elements * sizeof (struct GNUNET_CRYPTO_PaillierCiphertext);
 
   //sanity check: is the message as long as the message_count fields suggests?
@@ -2039,7 +2162,7 @@ handle_alices_computation_request (void *cls,
 {
   struct ServiceSession * s;
   struct ServiceSession * client_session;
-  const struct GNUNET_SCALARPRODUCT_service_request * msg = (const struct GNUNET_SCALARPRODUCT_service_request *) message;
+  const struct ServiceRequestMessage * msg = (const struct ServiceRequestMessage *) message;
 
   s = (struct ServiceSession *) * channel_ctx;
   if ((BOB != s->role) || (s->total != 0)) {
@@ -2053,7 +2176,7 @@ handle_alices_computation_request (void *cls,
     return GNUNET_SYSERR;
   }
   // shorter than expected?
-  if (ntohs (msg->header.size) != sizeof (struct GNUNET_SCALARPRODUCT_service_request)) {
+  if (ntohs (msg->header.size) != sizeof (struct ServiceRequestMessage)) {
     GNUNET_free (s);
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
@@ -2155,7 +2278,7 @@ handle_bobs_cryptodata_multipart (void *cls,
                                    const struct GNUNET_MessageHeader * message)
 {
   struct ServiceSession * s;
-  const struct GNUNET_SCALARPRODUCT_multipart_message * msg = (const struct GNUNET_SCALARPRODUCT_multipart_message *) message;
+  const struct MultipartMessage * msg = (const struct MultipartMessage *) message;
   struct GNUNET_CRYPTO_PaillierCiphertext * payload;
   size_t i;
   uint32_t contained = 0;
@@ -2169,14 +2292,14 @@ handle_bobs_cryptodata_multipart (void *cls,
     goto invalid_msg;
   }
   msg_size = ntohs (msg->header.size);
-  required_size = sizeof (struct GNUNET_SCALARPRODUCT_multipart_message)
+  required_size = sizeof (struct MultipartMessage)
           + 2 * sizeof (struct GNUNET_CRYPTO_PaillierCiphertext);
   // shorter than minimum?
   if (required_size > msg_size) {
     goto invalid_msg;
   }
   contained = ntohl (msg->contained_element_count);
-  required_size = sizeof (struct GNUNET_SCALARPRODUCT_multipart_message)
+  required_size = sizeof (struct MultipartMessage)
           + 2 * contained * sizeof (struct GNUNET_CRYPTO_PaillierCiphertext);
   //sanity check: is the message as long as the message_count fields suggests?
   if ((required_size != msg_size) || (s->used_element_count < s->transferred_element_count + contained)) {
@@ -2239,12 +2362,12 @@ invalid_msg:
  */
 static int
 handle_bobs_cryptodata_message (void *cls,
-                         struct GNUNET_CADET_Channel * channel,
+                         struct GNUNET_CADET_Channel *channel,
                          void **channel_ctx,
-                         const struct GNUNET_MessageHeader * message)
+                         const struct GNUNET_MessageHeader *message)
 {
   struct ServiceSession * s;
-  const struct GNUNET_SCALARPRODUCT_service_response * msg = (const struct GNUNET_SCALARPRODUCT_service_response *) message;
+  const struct ServiceResponseMessage *msg = (const struct ServiceResponseMessage *) message;
   struct GNUNET_CRYPTO_PaillierCiphertext * payload;
   size_t i;
   uint32_t contained = 0;
@@ -2261,13 +2384,13 @@ handle_bobs_cryptodata_message (void *cls,
   }
   //we need at least a full message without elements attached
   msg_size = ntohs (msg->header.size);
-  required_size = sizeof (struct GNUNET_SCALARPRODUCT_service_response) + 2 * sizeof (struct GNUNET_CRYPTO_PaillierCiphertext);
+  required_size = sizeof (struct ServiceResponseMessage) + 2 * sizeof (struct GNUNET_CRYPTO_PaillierCiphertext);
 
   if (required_size > msg_size) {
     goto invalid_msg;
   }
   contained = ntohl (msg->contained_element_count);
-  required_size = sizeof (struct GNUNET_SCALARPRODUCT_service_response)
+  required_size = sizeof (struct ServiceResponseMessage)
           + 2 * contained * sizeof (struct GNUNET_CRYPTO_PaillierCiphertext)
           + 2 * sizeof (struct GNUNET_CRYPTO_PaillierCiphertext);
   //sanity check: is the message as long as the message_count fields suggests?

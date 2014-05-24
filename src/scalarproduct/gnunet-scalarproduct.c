@@ -261,22 +261,22 @@ run (void *cls,
          _ ("Need elements to compute the vectorproduct, got none.\n"));
     return;
   }
-  
-  elements = (struct GNUNET_SCALARPRODUCT_Element *) 
+
+  elements = (struct GNUNET_SCALARPRODUCT_Element *)
           GNUNET_malloc(sizeof(struct GNUNET_SCALARPRODUCT_Element)*element_count);
-  
+
   for (i = 0; i < element_count;i++)
   {
     struct GNUNET_SCALARPRODUCT_Element element;
     char* separator=NULL;
-    
+
     // get the length of the current key,value; tupel
     for (end = begin; *end != ';'; end++)
       if (*end == ',')
         separator = end;
-    
+
     // final element
-    if ((NULL == separator) 
+    if ((NULL == separator)
          || (begin == separator)
              || (separator == end - 1 )) {
       LOG (GNUNET_ERROR_TYPE_ERROR,
@@ -284,20 +284,20 @@ run (void *cls,
       GNUNET_free(elements);
       return;
     }
-    
+
     // read the element's key
     *separator = 0;
     GNUNET_CRYPTO_hash (begin, strlen (begin), &element.key);
-    
+
     // read the element's value
-    if (1 != sscanf (separator+1, "%" SCNd32 ";", &element.value))
+    if (1 != sscanf (separator+1, "%" SCNd64 ";", &element.value))
     {
       LOG (GNUNET_ERROR_TYPE_ERROR,
-           _ ("Could not convert `%s' to int32_t.\n"), begin);
+           _ ("Could not convert `%s' to int64_t.\n"), begin);
       GNUNET_free(elements);
       return;
     }
-    
+
     elements[i]=element;
     begin = end+1;
   }

@@ -374,7 +374,7 @@ struct GNUNET_CRYPTO_PaillierCiphertext
    * guaranteed minimum number of homomorphic operations with this ciphertext
    */
   int32_t remaining_ops GNUNET_PACKED;
-  
+
   /**
    * The bits of the ciphertext.
    */
@@ -1334,7 +1334,7 @@ GNUNET_CRYPTO_paillier_create (struct GNUNET_CRYPTO_PaillierPublicKey *public_ke
  * @param m Plaintext to encrypt.
  * @param desired_ops How many homomorphic ops the caller intends to use
  * @param[out] ciphertext Encrytion of @a plaintext with @a public_key.
- * @return guaranteed number of supported homomorphic operations >= 1, 
+ * @return guaranteed number of supported homomorphic operations >= 1,
  *         or desired_ops, in case that is lower,
  *         or -1 if less than one homomorphic operation is possible
  */
@@ -1381,7 +1381,7 @@ GNUNET_CRYPTO_paillier_hom_add (const struct GNUNET_CRYPTO_PaillierPublicKey *pu
 
 
 /**
- * Get the number of remaining supported homomorphic operations. 
+ * Get the number of remaining supported homomorphic operations.
  *
  * @param c Paillier cipher text.
  * @return the number of remaining homomorphic operations
