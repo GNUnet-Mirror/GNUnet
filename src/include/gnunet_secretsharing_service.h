@@ -187,7 +187,7 @@ typedef void (*GNUNET_SECRETSHARING_DecryptCallback) (void *cls,
  * with the other peers.
  *
  * @param cfg configuration to use
- * @param num_peers number of peers in 'peers'
+ * @param num_peers number of peers in @a peers
  * @param peers array of peers that we will share secrets with, can optionally contain the local peer
  * @param session_id unique session id
  * @param start When should all peers be available for sharing the secret?
@@ -196,7 +196,7 @@ typedef void (*GNUNET_SECRETSHARING_DecryptCallback) (void *cls,
  *                 by underlying consensus sessions
  * @param threshold minimum number of peers that must cooperate to decrypt a value
  * @param cb called when the secret has been established
- * @param cls closure for cb
+ * @param cls closure for @a cb
  */
 struct GNUNET_SECRETSHARING_Session *
 GNUNET_SECRETSHARING_create_session (const struct GNUNET_CONFIGURATION_Handle *cfg,
@@ -214,10 +214,10 @@ GNUNET_SECRETSHARING_create_session (const struct GNUNET_CONFIGURATION_Handle *c
  * Destroy a secret sharing session.
  * The secret ready callback will not be called.
  *
- * @param session session to destroy
+ * @param s session to destroy
  */
 void
-GNUNET_SECRETSHARING_session_destroy (struct GNUNET_SECRETSHARING_Session *session);
+GNUNET_SECRETSHARING_session_destroy (struct GNUNET_SECRETSHARING_Session *s);
 
 
 /**
@@ -271,10 +271,10 @@ GNUNET_SECRETSHARING_decrypt (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * The decrypt_cb is not called anymore, but the calling
  * peer may already have irrevocably contributed his share for the decryption of the value.
  *
- * @param decryption_handle decryption to cancel
+ * @param dh to cancel
  */
 void
-GNUNET_SECRETSHARING_decrypt_cancel (struct GNUNET_SECRETSHARING_DecryptionHandle *decryption_handle);
+GNUNET_SECRETSHARING_decrypt_cancel (struct GNUNET_SECRETSHARING_DecryptionHandle *dh);
 
 
 /**

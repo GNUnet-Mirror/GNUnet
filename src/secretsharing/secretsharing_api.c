@@ -44,7 +44,7 @@ struct GNUNET_SECRETSHARING_Session
   struct GNUNET_CLIENT_Connection *client;
 
   /**
-   * Message queue for 'client'.
+   * Message queue for @e client.
    */
   struct GNUNET_MQ_Handle *mq;
 
@@ -54,12 +54,15 @@ struct GNUNET_SECRETSHARING_Session
   GNUNET_SECRETSHARING_SecretReadyCallback secret_ready_cb;
 
   /**
-   * Closure for 'secret_ready_cb'.
+   * Closure for @e secret_ready_cb.
    */
   void *secret_ready_cls;
 };
 
 
+/**
+ * Handle to cancel a cooperative decryption operation.
+ */
 struct GNUNET_SECRETSHARING_DecryptionHandle
 {
   /**
@@ -68,7 +71,7 @@ struct GNUNET_SECRETSHARING_DecryptionHandle
   struct GNUNET_CLIENT_Connection *client;
 
   /**
-   * Message queue for 'client'.
+   * Message queue for @e client.
    */
   struct GNUNET_MQ_Handle *mq;
 
@@ -78,7 +81,7 @@ struct GNUNET_SECRETSHARING_DecryptionHandle
   GNUNET_SECRETSHARING_DecryptCallback decrypt_cb;
 
   /**
-   * Closure for 'decrypt_cb'.
+   * Closure for @e decrypt_cb.
    */
   void *decrypt_cls;
 };
@@ -103,6 +106,9 @@ static gcry_mpi_t elgamal_p;
 static gcry_mpi_t elgamal_g;
 
 
+/**
+ * Function to initialize #elgamal_q, #egamal_p and #elgamal_g.
+ */
 static void
 ensure_elgamal_initialized (void)
 {
@@ -118,60 +124,117 @@ ensure_elgamal_initialized (void)
 }
 
 
+/**
+ * Callback invoked when there is an error communicating with
+ * the service.  Notifies the application about the error.
+ *
+ * @param cls the `struct GNUNET_SECRETSHARING_Session`
+ * @param error error code
+ */
 static void
-handle_session_client_error (void *cls, enum GNUNET_MQ_Error error)
+handle_session_client_error (void *cls,
+                             enum GNUNET_MQ_Error error)
 {
   struct GNUNET_SECRETSHARING_Session *s = cls;
 
   s->secret_ready_cb (s->secret_ready_cls, NULL, NULL, 0, NULL);
+  GNUNET_SECRETSHARING_session_destroy (s);
 }
 
 
+/**
+ * Callback invoked when there is an error communicating with
+ * the service.  Notifies the application about the error.
+ *
+ * @param cls the `struct GNUNET_SECRETSHARING_DecryptionHandle`
+ * @param error error code
+ */
 static void
-handle_decrypt_client_error (void *cls, enum GNUNET_MQ_Error error)
+handle_decrypt_client_error (void *cls,
+                             enum GNUNET_MQ_Error error)
 {
   struct GNUNET_SECRETSHARING_DecryptionHandle *dh = cls;
-  
+
   dh->decrypt_cb (dh->decrypt_cls, NULL);
+  GNUNET_SECRETSHARING_decrypt_cancel (dh);
 }
 
 
+/**
+ * Handler invoked with the final result message from
+ * secret sharing.  Decodes the message and passes the
+ * result to the application.
+ *
+ * @param cls the `struct GNUNET_SECRETSHARING_Session`
+ * @param msg message with the result
+ */
 static void
-handle_secret_ready (void *cls, const struct GNUNET_MessageHeader *msg)
+handle_secret_ready (void *cls,
+                     const struct GNUNET_MessageHeader *msg)
 {
-  struct GNUNET_SECRETSHARING_Session *session = cls;
+  struct GNUNET_SECRETSHARING_Session *s = cls;
+  const struct GNUNET_SECRETSHARING_SecretReadyMessage *m;
   struct GNUNET_SECRETSHARING_Share *share;
-  const struct GNUNET_SECRETSHARING_SecretReadyMessage *m = (const void *) msg;
   size_t share_size;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "got secret ready message of size %u\n",
-       ntohs (m->header.size));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Got secret ready message of size %u\n",
+       ntohs (msg->size));
+  if (ntohs (msg->size) < sizeof (struct GNUNET_SECRETSHARING_SecretReadyMessage))
+  {
+    GNUNET_break (0);
+    s->secret_ready_cb (s->secret_ready_cls, NULL, NULL, 0, NULL);
+    GNUNET_SECRETSHARING_session_destroy (s);
+    return;
+  }
+  m = (const struct GNUNET_SECRETSHARING_SecretReadyMessage *) msg;
+  share_size = ntohs (m->header.size) - sizeof (struct GNUNET_SECRETSHARING_SecretReadyMessage);
 
-  share_size = ntohs (m->header.size) - sizeof *m;
-
-  share = GNUNET_SECRETSHARING_share_read (&m[1], share_size, NULL);
-
-  session->secret_ready_cb (session->secret_ready_cls,
+  share = GNUNET_SECRETSHARING_share_read (&m[1],
+                                           share_size,
+                                           NULL);
+  s->secret_ready_cb (s->secret_ready_cls,
                       share, /* FIXME */
                       &share->public_key,
                       share->num_peers,
                       (struct GNUNET_PeerIdentity *) &m[1]);
-
-  GNUNET_SECRETSHARING_session_destroy (session);
+  GNUNET_SECRETSHARING_session_destroy (s);
 }
 
 
+/**
+ * Destroy a secret sharing session.
+ * The secret ready callback will not be called.
+ *
+ * @param s session to destroy
+ */
 void
-GNUNET_SECRETSHARING_session_destroy (struct GNUNET_SECRETSHARING_Session *session)
+GNUNET_SECRETSHARING_session_destroy (struct GNUNET_SECRETSHARING_Session *s)
 {
-  GNUNET_MQ_destroy (session->mq);
-  session->mq = NULL;
-  GNUNET_CLIENT_disconnect (session->client);
-  session->client = NULL;
-  GNUNET_free (session);
+  GNUNET_MQ_destroy (s->mq);
+  s->mq = NULL;
+  GNUNET_CLIENT_disconnect (s->client);
+  s->client = NULL;
+  GNUNET_free (s);
 }
 
 
+/**
+ * Create a session that will eventually establish a shared secret
+ * with the other peers.
+ *
+ * @param cfg configuration to use
+ * @param num_peers number of peers in @a peers
+ * @param peers array of peers that we will share secrets with, can optionally contain the local peer
+ * @param session_id unique session id
+ * @param start When should all peers be available for sharing the secret?
+ *              Random number generation can take place before the start time.
+ * @param deadline point in time where the session must be established; taken as hint
+ *                 by underlying consensus sessions
+ * @param threshold minimum number of peers that must cooperate to decrypt a value
+ * @param cb called when the secret has been established
+ * @param cls closure for @a cb
+ */
 struct GNUNET_SECRETSHARING_Session *
 GNUNET_SECRETSHARING_create_session (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                      unsigned int num_peers,
@@ -187,19 +250,25 @@ GNUNET_SECRETSHARING_create_session (const struct GNUNET_CONFIGURATION_Handle *c
   struct GNUNET_MQ_Envelope *ev;
   struct GNUNET_SECRETSHARING_CreateMessage *msg;
   static const struct GNUNET_MQ_MessageHandler mq_handlers[] = {
-    {handle_secret_ready, GNUNET_MESSAGE_TYPE_SECRETSHARING_CLIENT_SECRET_READY, 0},
+    { &handle_secret_ready,
+      GNUNET_MESSAGE_TYPE_SECRETSHARING_CLIENT_SECRET_READY, 0},
     GNUNET_MQ_HANDLERS_END
   };
 
-
   s = GNUNET_new (struct GNUNET_SECRETSHARING_Session);
   s->client = GNUNET_CLIENT_connect ("secretsharing", cfg);
+  if (NULL == s->client)
+  {
+    /* secretsharing not configured correctly */
+    GNUNET_break (0);
+    GNUNET_free (s);
+    return NULL;
+  }
   s->secret_ready_cb = cb;
   s->secret_ready_cls = cls;
-  GNUNET_assert (NULL != s->client);
-
   s->mq = GNUNET_MQ_queue_for_connection_client (s->client, mq_handlers,
-                                                   handle_session_client_error, s);
+                                                 &handle_session_client_error,
+                                                 s);
   GNUNET_assert (NULL != s->mq);
 
   ev = GNUNET_MQ_msg_extra (msg,
@@ -215,19 +284,20 @@ GNUNET_SECRETSHARING_create_session (const struct GNUNET_CONFIGURATION_Handle *c
 
   GNUNET_MQ_send (s->mq, ev);
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "secretsharing session created with %u peers\n",
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Secretsharing session created with %u peers\n",
        num_peers);
   return s;
 }
 
 
 static void
-handle_decrypt_done (void *cls, const struct GNUNET_MessageHeader *msg)
+handle_decrypt_done (void *cls,
+                     const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_SECRETSHARING_DecryptionHandle *dh = cls;
   const struct GNUNET_SECRETSHARING_DecryptResponseMessage *m =
-      (const void *) msg;
-
+    (const void *) msg; // FIXME: size check!?
   const struct GNUNET_SECRETSHARING_Plaintext *plaintext;
 
   if (m->success == 0)
@@ -280,7 +350,8 @@ GNUNET_SECRETSHARING_decrypt (const struct GNUNET_CONFIGURATION_Handle *cfg,
   GNUNET_assert (NULL != s->client);
 
   s->mq = GNUNET_MQ_queue_for_connection_client (s->client, mq_handlers,
-                                                 handle_decrypt_client_error, s);
+                                                 &handle_decrypt_client_error,
+                                                 s);
   GNUNET_assert (NULL != s->mq);
 
   GNUNET_assert (GNUNET_OK == GNUNET_SECRETSHARING_share_write (share, NULL, 0, &share_size));
@@ -376,7 +447,7 @@ GNUNET_SECRETSHARING_encrypt (const struct GNUNET_SECRETSHARING_PublicKey *publi
 
   // Randomize y such that 0 < y < elgamal_q.
   // The '- 1' is necessary as bitlength(q) = bitlength(p) - 1.
-  do 
+  do
   {
     gcry_mpi_randomize (y, GNUNET_SECRETSHARING_ELGAMAL_BITS - 1, GCRY_WEAK_RANDOM);
   } while ((gcry_mpi_cmp_ui (y, 0) == 0) || (gcry_mpi_cmp (y, elgamal_q) >= 0));
@@ -386,10 +457,10 @@ GNUNET_SECRETSHARING_encrypt (const struct GNUNET_SECRETSHARING_PublicKey *publi
   // write tmp to c1
   GNUNET_CRYPTO_mpi_print_unsigned (&result_ciphertext->c1_bits,
                                     GNUNET_SECRETSHARING_ELGAMAL_BITS / 8, tmp);
-  
+
   // tmp <- h^y
   gcry_mpi_powm (tmp, h, y, elgamal_p);
-  // tmp <- tmp * m 
+  // tmp <- tmp * m
   gcry_mpi_mulm (tmp, tmp, m, elgamal_p);
   // write tmp to c2
   GNUNET_CRYPTO_mpi_print_unsigned (&result_ciphertext->c2_bits,
@@ -399,15 +470,22 @@ GNUNET_SECRETSHARING_encrypt (const struct GNUNET_SECRETSHARING_PublicKey *publi
 }
 
 
+/**
+ * Cancel a decryption.
+ *
+ * The decrypt_cb is not called anymore, but the calling
+ * peer may already have irrevocably contributed his share for the decryption of the value.
+ *
+ * @param dh to cancel
+ */
 void
-GNUNET_SECRETSHARING_decrypt_cancel (struct GNUNET_SECRETSHARING_DecryptionHandle *h)
+GNUNET_SECRETSHARING_decrypt_cancel (struct GNUNET_SECRETSHARING_DecryptionHandle *dh)
 {
-  GNUNET_MQ_destroy (h->mq);
-  h->mq = NULL;
-  GNUNET_CLIENT_disconnect (h->client);
-  h->client = NULL;
-  GNUNET_free (h);
+  GNUNET_MQ_destroy (dh->mq);
+  dh->mq = NULL;
+  GNUNET_CLIENT_disconnect (dh->client);
+  dh->client = NULL;
+  GNUNET_free (dh);
 }
 
-
-
+/* end of secretsharing_api.c */

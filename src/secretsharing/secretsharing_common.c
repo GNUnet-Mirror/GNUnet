@@ -30,7 +30,9 @@
  * @return The share, or NULL on error.
  */
 struct GNUNET_SECRETSHARING_Share *
-GNUNET_SECRETSHARING_share_read (const void *data, size_t len, size_t *readlen)
+GNUNET_SECRETSHARING_share_read (const void *data,
+                                 size_t len,
+                                 size_t *readlen)
 {
   struct GNUNET_SECRETSHARING_Share *share;
   const struct GNUNET_SECRETSHARING_ShareHeaderNBO *sh = data;
@@ -38,8 +40,8 @@ GNUNET_SECRETSHARING_share_read (const void *data, size_t len, size_t *readlen)
   size_t n;
   uint16_t payload_size;
 
-  payload_size = ntohs (sh->num_peers) * 
-      (sizeof (uint16_t) + sizeof (struct GNUNET_SECRETSHARING_FieldElement) + 
+  payload_size = ntohs (sh->num_peers) *
+      (sizeof (uint16_t) + sizeof (struct GNUNET_SECRETSHARING_FieldElement) +
        sizeof (struct GNUNET_PeerIdentity));
 
   if (NULL != readlen)
@@ -94,8 +96,8 @@ GNUNET_SECRETSHARING_share_write (const struct GNUNET_SECRETSHARING_Share *share
   char *p;
   int n;
 
-  payload_size = share->num_peers * 
-      (sizeof (uint16_t) + sizeof (struct GNUNET_SECRETSHARING_FieldElement) + 
+  payload_size = share->num_peers *
+      (sizeof (uint16_t) + sizeof (struct GNUNET_SECRETSHARING_FieldElement) +
        sizeof (struct GNUNET_PeerIdentity));
 
   if (NULL != writelen)
