@@ -1279,8 +1279,10 @@ cb_intersection_element_removed (void *cls,
       GNUNET_SET_listen_cancel (s->intersection_listen);
       s->intersection_listen = NULL;
     }
+    
     // the op failed and has already been invalidated by the set service
     s->intersection_op = NULL;
+    s->intersection_set = NULL;
     break;
   }
 
@@ -1893,7 +1895,7 @@ cb_channel_destruction (void *cls,
   // as we have only one peer connected in each session, just remove the session
   s->channel = NULL;
 
-  if ((ALICE == s->role) && (GNUNET_NO != s->active) && (!do_shutdown))
+  if ((ALICE == s->role) && (GNUNET_YES == s->active) && (!do_shutdown))
   {
     // if this happened before we received the answer, we must terminate the session
     s->role = GNUNET_SYSERR;
@@ -1901,7 +1903,7 @@ cb_channel_destruction (void *cls,
             GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
                                       s);
   }
-  else
+  else if ((BOB == s->role) && (GNUNET_SYSERR != s->active))
   {
     if ((s == from_service_head) || ((NULL != from_service_head) && ((NULL != s->next) || (NULL != s->a_tail))))
       GNUNET_CONTAINER_DLL_remove (from_service_head, from_service_tail, s);

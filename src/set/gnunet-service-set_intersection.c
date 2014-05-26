@@ -748,6 +748,11 @@ handle_p2p_element_info (void *cls, const struct GNUNET_MessageHeader *mh)
     GNUNET_break_op (0);
     fail_intersection_operation(op);
   }
+  
+  if (0 == op->state->my_element_count) {
+    send_peer_done (op);
+    return;
+  }
 
   op->state->phase = PHASE_BF_EXCHANGE;
   op->state->my_elements = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_YES);
@@ -758,7 +763,7 @@ handle_p2p_element_info (void *cls, const struct GNUNET_MessageHeader *mh)
 
   GNUNET_CONTAINER_bloomfilter_free (op->state->remote_bf);
   op->state->remote_bf = NULL;
-
+  
   if (op->state->my_element_count == ntohl (msg->sender_element_count))
     op->state->phase = PHASE_MAYBE_FINISHED;
 
