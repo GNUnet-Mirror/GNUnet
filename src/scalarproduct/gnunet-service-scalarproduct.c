@@ -594,6 +594,10 @@ cb_transfer_message (void *cls,
     s->client_transmit_handle = NULL;
     free_session_variables (s);
     break;
+    
+  case GNUNET_MESSAGE_TYPE_SCALARPRODUCT_SESSION_INITIALIZATION:
+    s->service_transmit_handle = NULL;
+    break;
 
   case GNUNET_MESSAGE_TYPE_SCALARPRODUCT_ALICE_CRYPTODATA:
   case GNUNET_MESSAGE_TYPE_SCALARPRODUCT_ALICE_CRYPTODATA_MULTIPART:
@@ -1268,6 +1272,7 @@ cb_intersection_element_removed (void *cls,
       compute_service_response (s);
       return;
     }
+    break;
   default:
     if (NULL != s->intersection_listen)
     {
@@ -1452,7 +1457,7 @@ prepare_alices_computation_request (struct ServiceSession * s)
               GNUNET_i2s (&s->peer));
 
   msg = GNUNET_new (struct ServiceRequestMessage);
-  msg->header.type = htons (GNUNET_MESSAGE_TYPE_SCALARPRODUCT_ALICE_CRYPTODATA);
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_SCALARPRODUCT_SESSION_INITIALIZATION);
   memcpy (&msg->session_id, &s->session_id, sizeof (struct GNUNET_HashCode));
   msg->header.size = htons (sizeof (struct ServiceRequestMessage));
 
@@ -2611,7 +2616,7 @@ run (void *cls,
     {NULL, NULL, 0, 0}
   };
   static const struct GNUNET_CADET_MessageHandler cadet_handlers[] = {
-    { &handle_alices_computation_request, GNUNET_MESSAGE_TYPE_SCALARPRODUCT_ALICE_CRYPTODATA, 0},
+    { &handle_alices_computation_request, GNUNET_MESSAGE_TYPE_SCALARPRODUCT_SESSION_INITIALIZATION, 0},
     { &handle_alices_cyrptodata_message, GNUNET_MESSAGE_TYPE_SCALARPRODUCT_ALICE_CRYPTODATA, 0},
     { &handle_alices_cyrptodata_message_multipart, GNUNET_MESSAGE_TYPE_SCALARPRODUCT_ALICE_CRYPTODATA_MULTIPART, 0},
     { &handle_bobs_cryptodata_message, GNUNET_MESSAGE_TYPE_SCALARPRODUCT_BOB_CRYPTODATA, 0},
