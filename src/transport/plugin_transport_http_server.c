@@ -22,6 +22,7 @@
  * @file transport/plugin_transport_http_server.c
  * @brief HTTP/S server transport plugin
  * @author Matthias Wachs
+ * @author David Barksdale
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -1371,6 +1372,23 @@ server_receive_mst_cb (void *cls, void *client,
   return GNUNET_OK;
 }
 
+/**
+ * Add headers to a request indicating that we allow Cross-Origin Resource
+ * Sharing.
+ */
+static void
+add_cors_headers(struct MHD_Response *response)
+{
+  MHD_add_response_header (response,
+                           "Access-Control-Allow-Origin",
+                           "*");
+  MHD_add_response_header (response,
+                           "Access-Control-Allow-Methods",
+                           "GET, PUT, OPTIONS");
+  MHD_add_response_header (response,
+                           "Access-Control-Max-Age",
+                           "86400");
+}
 
 /**
  * MHD callback for a new incoming connection
@@ -1407,6 +1425,16 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
   GNUNET_assert (cls != NULL);
   if (sc == NULL)
   {
+    /* CORS pre-flight request */
+    if (0 == strcmp (MHD_HTTP_METHOD_OPTIONS, method))
+    {
+      response = MHD_create_response_from_buffer (0, NULL,
+                                                  MHD_RESPMEM_PERSISTENT);
+      add_cors_headers(response);
+      res = MHD_queue_response (mhd_connection, MHD_HTTP_OK, response);
+      MHD_destroy_response (response);
+      return res;
+    }
     /* new connection */
     sc = server_lookup_connection (plugin, mhd_connection, url, method);
     if (sc != NULL)
@@ -1419,6 +1447,7 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
       MHD_add_response_header (response,
 			       MHD_HTTP_HEADER_CONTENT_TYPE,
 			       "text/html");
+      add_cors_headers(response);
       res = MHD_queue_response (mhd_connection, MHD_HTTP_NOT_FOUND, response);
       MHD_destroy_response (response);
       return res;
@@ -1445,6 +1474,7 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
     response = MHD_create_response_from_data (strlen ("Thank you!"),
                                        "Thank you!",
                                        MHD_NO, MHD_NO);
+    add_cors_headers(response);
     MHD_queue_response (mhd_connection, MHD_HTTP_OK, response);
     MHD_destroy_response (response);
     return MHD_YES;
@@ -1457,6 +1487,7 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
                                                   32 * 1024,
                                                   &server_send_callback, s,
                                                   NULL);
+    add_cors_headers(response);
     MHD_queue_response (mhd_connection, MHD_HTTP_OK, response);
     MHD_destroy_response (response);
     return MHD_YES;
@@ -1491,6 +1522,7 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
       response = MHD_create_response_from_data (strlen ("Thank you!"),
                                          "Thank you!",
                                          MHD_NO, MHD_NO);
+      add_cors_headers(response);
       MHD_queue_response (mhd_connection, MHD_HTTP_OK, response);
       MHD_destroy_response (response);
       return MHD_YES;
