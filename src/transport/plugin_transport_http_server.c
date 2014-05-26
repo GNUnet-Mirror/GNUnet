@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     (C) 2002-2013 Christian Grothoff (and other contributing authors)
+     (C) 2002-2014 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -101,7 +101,7 @@ struct Session
   struct GNUNET_SERVER_MessageStreamTokenizer *msg_tk;
 
   /**
-   * Client send handle
+   * Client recv handle
    */
   struct ServerConnection *server_recv;
 
