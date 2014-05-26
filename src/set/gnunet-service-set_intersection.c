@@ -343,9 +343,10 @@ fail_intersection_operation (struct Operation *op)
   struct GNUNET_MQ_Envelope *ev;
   struct GNUNET_SET_ResultMessage *msg;
 
-  if (op->state->my_elements)
+  if (op->state->my_elements){
     GNUNET_CONTAINER_multihashmap_destroy(op->state->my_elements);
-
+    op->state->my_elements = NULL;
+  }
   GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "intersection operation failed\n");
 
   ev = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_SET_RESULT);
@@ -744,13 +745,11 @@ handle_p2p_element_info (void *cls, const struct GNUNET_MessageHeader *mh)
 
   op->spec->remote_element_count = ntohl(msg->sender_element_count);
   if ((op->state->phase != PHASE_INITIAL)
-      || (op->state->my_element_count > op->spec->remote_element_count)){
+      || (op->state->my_element_count > op->spec->remote_element_count)
+          || (0 == op->state->my_element_count)
+              || (0 == op->spec->remote_element_count)){
     GNUNET_break_op (0);
     fail_intersection_operation(op);
-  }
-  
-  if (0 == op->state->my_element_count) {
-    send_peer_done (op);
     return;
   }
 
@@ -1045,12 +1044,12 @@ intersection_op_cancel (struct Operation *op)
     GNUNET_CONTAINER_bloomfilter_free (op->state->local_bf);
     op->state->local_bf = NULL;
   }
-  if (NULL != op->state->my_elements)
+/*  if (NULL != op->state->my_elements)
   {
     // no need to free the elements, they are still part of the set
     GNUNET_CONTAINER_multihashmap_destroy (op->state->my_elements);
     op->state->my_elements = NULL;
-  }
+  }*/
   GNUNET_free (op->state);
   op->state = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "destroying intersection op done\n");
