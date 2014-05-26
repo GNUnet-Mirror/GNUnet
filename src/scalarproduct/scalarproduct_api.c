@@ -386,7 +386,7 @@ GNUNET_SCALARPRODUCT_accept_computation (const struct GNUNET_CONFIGURATION_Handl
   msg->session_key = *session_key;
   memcpy (&msg[1],
           elements,
-          possible);
+          possible * sizeof (struct GNUNET_SCALARPRODUCT_Element));
   h->th = GNUNET_CLIENT_notify_transmit_ready (h->client, size,
                                                GNUNET_TIME_UNIT_FOREVER_REL,
                                                GNUNET_YES, /* retry is OK in the initial stage */
