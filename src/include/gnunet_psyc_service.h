@@ -325,17 +325,18 @@ typedef void
 /**
  * Method called from PSYC upon receiving a join request.
  *
- * @param cls Closure.
- * @param slave  requesting to join.
+ * @param cls  Closure.
+ * @param slave_key  Public key of the slave requesting join.
  * @param join_msg  Join message sent along with the request.
- * @param jh Join handle to use with GNUNET_PSYC_join_decision()
+ * @param jh  Join handle to use with GNUNET_PSYC_join_decision()
  */
 typedef void
-(*GNUNET_PSYC_JoinCallback) (void *cls,
-                             const struct GNUNET_CRYPTO_EddsaPublicKey
-                             *slave_key,
-                             const struct GNUNET_PSYC_MessageHeader *join_msg,
-                             struct GNUNET_PSYC_JoinHandle *jh);
+(*GNUNET_PSYC_JoinRequestCallback) (void *cls,
+                                    const struct
+                                    GNUNET_CRYPTO_EddsaPublicKey *slave_key,
+                                    const struct
+                                    GNUNET_PSYC_MessageHeader *join_msg,
+                                    struct GNUNET_PSYC_JoinHandle *jh);
 
 
 /**
@@ -344,32 +345,30 @@ typedef void
  * Must be called once and only once in response to an invocation of the
  * #GNUNET_PSYC_JoinCallback.
  *
- * @param jh Join request handle.
- * @param is_admitted #GNUNET_YES if joining is approved,
- *        #GNUNET_NO if it is disapproved.
- * @param relay_count Number of relays given.
- * @param relays Array of suggested peers that might be useful relays to use
+ * @param jh  Join request handle.
+ * @param is_admitted  #GNUNET_YES    if the join is approved,
+ *                     #GNUNET_NO     if it is disapproved,
+ *                     #GNUNET_SYSERR if we cannot answer the request.
+ * @param relay_count  Number of relays given.
+ * @param relays  Array of suggested peers that might be useful relays to use
  *        when joining the multicast group (essentially a list of peers that
  *        are already part of the multicast group and might thus be willing
  *        to help with routing).  If empty, only this local peer (which must
  *        be the multicast origin) is a good candidate for building the
  *        multicast tree.  Note that it is unnecessary to specify our own
  *        peer identity in this array.
- * @param method_name Method name for the message transmitted with the response.
- * @param env Environment containing transient variables for the message,
- *        or NULL.
- * @param data Data of the message.
- * @param data_size Size of @a data.
+ * @param join_resp  Application-dependent join response message to send along
+ *        with the decision.
+ *
+ * @return #GNUNET_OK on success,
+ *         #GNUNET_SYSERR if @a join_resp is too large.
  */
-void
+int
 GNUNET_PSYC_join_decision (struct GNUNET_PSYC_JoinHandle *jh,
                            int is_admitted,
                            uint32_t relay_count,
                            const struct GNUNET_PeerIdentity *relays,
-                           const char *method_name,
-                           const struct GNUNET_ENV_Environment *env,
-                           const void *data,
-                           size_t data_size);
+                           const struct GNUNET_PSYC_MessageHeader *join_resp);
 
 
 /**
@@ -400,29 +399,31 @@ typedef void
  * or part messages, the respective methods must call other PSYC functions to
  * inform PSYC about the meaning of the respective events.
  *
- * @param cfg Configuration to use (to connect to PSYC service).
- * @param channel_key ECC key that will be used to sign messages for this
+ * @param cfg  Configuration to use (to connect to PSYC service).
+ * @param channel_key  ECC key that will be used to sign messages for this
  *        PSYC session. The public key is used to identify the PSYC channel.
  *        Note that end-users will usually not use the private key directly, but
  *        rather look it up in GNS for places managed by other users, or select
  *        a file with the private key(s) when setting up their own channels
  *        FIXME: we'll likely want to use NOT the p521 curve here, but a cheaper
  *        one in the future.
- * @param policy Channel policy specifying join and history restrictions.
+ * @param policy  Channel policy specifying join and history restrictions.
  *        Used to automate join decisions.
- * @param message_cb Function to invoke on message parts received from slaves.
- * @param join_cb Function to invoke when a peer wants to join.
- * @param master_started_cb Function to invoke after the channel master started.
- * @param cls Closure for @a method and @a join_cb.
+ * @param master_start_cb  Function to invoke after the channel master started.
+ * @param join_request_cb  Function to invoke when a slave wants to join.
+ * @param message_cb  Function to invoke on message parts sent to the channel
+ *        and received from slaves
+ * @param cls  Closure for @a method and @a join_cb.
+ *
  * @return Handle for the channel master, NULL on error.
  */
 struct GNUNET_PSYC_Master *
 GNUNET_PSYC_master_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
                           const struct GNUNET_CRYPTO_EddsaPrivateKey *channel_key,
                           enum GNUNET_PSYC_Policy policy,
+                          GNUNET_PSYC_MasterStartCallback master_start_cb,
+                          GNUNET_PSYC_JoinRequestCallback join_request_cb,
                           GNUNET_PSYC_MessageCallback message_cb,
-                          GNUNET_PSYC_JoinCallback join_cb,
-                          GNUNET_PSYC_MasterStartCallback master_started_cb,
                           void *cls);
 
 
@@ -580,13 +581,30 @@ struct GNUNET_PSYC_Slave;
 
 
 /**
- * Function called after the slave joined.
+ * Function called after the slave connected to the PSYC service.
  *
  * @param cls Closure.
  * @param max_message_id Last message ID sent to the channel.
  */
 typedef void
-(*GNUNET_PSYC_SlaveJoinCallback) (void *cls, uint64_t max_message_id);
+(*GNUNET_PSYC_SlaveConnectCallback) (void *cls, uint64_t max_message_id);
+
+
+/**
+ * Method called to inform about the decision in response to a join request.
+ *
+ * If @a is_admitted is not #GNUNET_YES, then sending messages to the channel is
+ * not possible, but earlier history can be still queried.
+ *
+ * @param cls  Closure.
+ * @param is_admitted  #GNUNET_YES or #GNUNET_NO or #GNUNET_SYSERR
+ * @param join_msg  Application-dependent join message from the origin.
+ */
+typedef void
+(*GNUNET_PSYC_JoinDecisionCallback) (void *cls,
+                                     int is_admitted,
+                                     const struct
+                                     GNUNET_PSYC_MessageHeader *join_msg);
 
 
 /**
@@ -599,24 +617,28 @@ typedef void
  * notification on failure (as the channel may simply take days to approve,
  * and disapproval is simply being ignored).
  *
- * @param cfg Configuration to use.
- * @param channel_key ECC public key that identifies the channel we wish to join.
- * @param slave_key ECC private-public key pair that identifies the slave, and
+ * @param cfg  Configuration to use.
+ * @param channel_key  ECC public key that identifies the channel we wish to join.
+ * @param slave_key  ECC private-public key pair that identifies the slave, and
  *        used by multicast to sign the join request and subsequent unicast
  *        requests sent to the master.
- * @param origin Peer identity of the origin.
- * @param relay_count Number of peers in the @a relays array.
- * @param relays Peer identities of members of the multicast group, which serve
+ * @param origin  Peer identity of the origin.
+ * @param relay_count  Number of peers in the @a relays array.
+ * @param relays  Peer identities of members of the multicast group, which serve
  *        as relays and used to join the group at.
- * @param message_cb Function to invoke on message parts received from the
+ * @param message_cb  Function to invoke on message parts received from the
  *        channel, typically at least contains method handlers for @e join and
  *        @e part.
- * @param slave_joined_cb Function invoked once we have joined the channel.
- * @param cls Closure for @a message_cb and @a slave_joined_cb.
- * @param method_name Method name for the join request.
- * @param env Environment containing transient variables for the request, or NULL.
- * @param data Payload for the join message.
- * @param data_size Number of bytes in @a data.
+ * @param slave_connect_cb  Function invoked once we have connected to the
+ *        PSYC service.
+ * @param join_decision_cb  Function invoked once we have received a join
+ *	  decision.
+ * @param cls  Closure for @a message_cb and @a slave_joined_cb.
+ * @param method_name  Method name for the join request.
+ * @param env  Environment containing transient variables for the request, or NULL.
+ * @param data  Payload for the join message.
+ * @param data_size  Number of bytes in @a data.
+ *
  * @return Handle for the slave, NULL on error.
  */
 struct GNUNET_PSYC_Slave *
@@ -627,7 +649,8 @@ GNUNET_PSYC_slave_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
                         uint32_t relay_count,
                         const struct GNUNET_PeerIdentity *relays,
                         GNUNET_PSYC_MessageCallback message_cb,
-                        GNUNET_PSYC_SlaveJoinCallback slave_joined_cb,
+                        GNUNET_PSYC_SlaveConnectCallback slave_connect_cb,
+                        GNUNET_PSYC_JoinDecisionCallback join_decision_cb,
                         void *cls,
                         const char *method_name,
                         const struct GNUNET_ENV_Environment *env,

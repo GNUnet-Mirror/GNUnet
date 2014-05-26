@@ -77,7 +77,7 @@ struct MulticastJoinRequestMessage
 
 
 /**
- * Header of a join decision sent to a remote peer.
+ * Header of a join decision message sent to a peer requesting join.
  */
 struct MulticastJoinDecisionMessage
 {
@@ -87,19 +87,28 @@ struct MulticastJoinDecisionMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * #GNUNET_YES if the peer was admitted.
+   * #GNUNET_YES    if the peer was admitted
+   * #GNUNET_NO     if entry was refused,
+   * #GNUNET_SYSERR if the request could not be answered.
    */
-  uint8_t is_admitted;
+  int32_t is_admitted;
+
+  /**
+   * Number of relays given.
+   */
+  uint32_t relay_count;
+
+  /* Followed by relay_count peer identities */
 
   /* Followed by the join response message */
 };
 
 
 /**
- * Message sent from the client to the service to notify the service
- * about a join decision.
+ * Header added to a struct MulticastJoinDecisionMessage
+ * when sent between the client and service.
  */
-struct MulticastClientJoinDecisionMessage
+struct MulticastJoinDecisionMessageHeader
 {
   /**
    * Type: GNUNET_MESSAGE_TYPE_MULTICAST_JOIN_DECISION
@@ -107,29 +116,18 @@ struct MulticastClientJoinDecisionMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Number of relays given.
+   * C->S: Peer to send the join decision to.
+   * S->C: Peer we received the join decision from.
    */
-  uint32_t relay_count;
+  struct GNUNET_PeerIdentity peer;
 
   /**
-   * Public key of the joining member.
+   * C->S: Public key of the member requesting join.
+   * S->C: Unused.
    */
   struct GNUNET_CRYPTO_EddsaPublicKey member_key;
 
-  /**
-   * Peer identity of the joining member.
-   */
-  struct GNUNET_PeerIdentity member_peer;
-
-  /**
-   * #GNUNET_YES if the peer was admitted.
-   */
-  uint8_t is_admitted;
-
-  /* Followed by relay_count peer identities */
-
-  /* Followed by the join response message */
-
+  /* Followed by struct MulticastJoinDecisionMessage */
 };
 
 
@@ -139,7 +137,6 @@ struct MulticastClientJoinDecisionMessage
  */
 struct MulticastMembershipTestResultMessage
 {
-
   /**
    * Type: GNUNET_MESSAGE_TYPE_MULTICAST_MEMBERSHIP_TEST_RESULT
    */
@@ -151,11 +148,11 @@ struct MulticastMembershipTestResultMessage
   uint32_t uid;
 
   /**
-   * #GNUNET_YES if the peer is a member, #GNUNET_NO if peer was not a member,
-   * #GNUNET_SYSERR if we cannot answer the test.
+   * #GNUNET_YES    if the peer is a member
+   * #GNUNET_NO     if peer is not a member,
+   * #GNUNET_SYSERR if the test could not be answered.
    */
   int32_t is_admitted;
-
 };
 
 

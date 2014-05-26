@@ -198,9 +198,9 @@ struct GNUNET_PSYC_Master
   GNUNET_PSYC_MasterStartCallback start_cb;
 
   /**
-   * Join handler callback.
+   * Join request callback.
    */
-  GNUNET_PSYC_JoinCallback join_cb;
+  GNUNET_PSYC_JoinRequestCallback join_req_cb;
 };
 
 
@@ -211,14 +211,16 @@ struct GNUNET_PSYC_Slave
 {
   struct GNUNET_PSYC_Channel ch;
 
-  GNUNET_PSYC_SlaveJoinCallback join_cb;
+  GNUNET_PSYC_SlaveConnectCallback connect_cb;
+
+  GNUNET_PSYC_JoinDecisionCallback join_dcsn_cb;
 };
 
 
 /**
  * Handle that identifies a join request.
  *
- * Used to match calls to #GNUNET_PSYC_JoinCallback to the
+ * Used to match calls to #GNUNET_PSYC_JoinRequestCallback to the
  * corresponding calls to GNUNET_PSYC_join_decision().
  */
 struct GNUNET_PSYC_JoinHandle
@@ -922,7 +924,22 @@ handle_psyc_join_request (struct GNUNET_PSYC_Master *mst,
   jh->mst = mst;
   jh->slave_key = req->slave_key;
 
-  mst->join_cb (mst->ch.cb_cls, &req->slave_key, msg, jh);
+  if (NULL != mst->join_req_cb)
+    mst->join_req_cb (mst->ch.cb_cls, &req->slave_key, msg, jh);
+}
+
+
+static void
+handle_psyc_join_decision (struct GNUNET_PSYC_Slave *slv,
+                           const struct SlaveJoinDecision *dcsn)
+{
+  struct GNUNET_PSYC_MessageHeader *msg = NULL;
+  if (ntohs (dcsn->header.size) <= sizeof (*dcsn) + sizeof (*msg))
+    msg = (struct GNUNET_PSYC_MessageHeader *) &dcsn[1];
+
+  struct GNUNET_PSYC_JoinHandle *jh = GNUNET_malloc (sizeof (*jh));
+  if (NULL != slv->join_dcsn_cb)
+    slv->join_dcsn_cb (slv->ch.cb_cls, ntohl (dcsn->is_admitted), msg);
 }
 
 
@@ -971,6 +988,9 @@ message_handler (void *cls,
   case GNUNET_MESSAGE_TYPE_PSYC_JOIN_REQUEST:
     size_min = sizeof (struct MasterJoinRequest);
     break;
+  case GNUNET_MESSAGE_TYPE_PSYC_JOIN_DECISION:
+    size_min = sizeof (struct SlaveJoinDecision);
+    break;
   default:
     GNUNET_break_op (0);
     return;
@@ -995,8 +1015,8 @@ message_handler (void *cls,
   case GNUNET_MESSAGE_TYPE_PSYC_SLAVE_JOIN_ACK:
   {
     struct CountersResult *cres = (struct CountersResult *) msg;
-    if (NULL != slv->join_cb)
-      slv->join_cb (ch->cb_cls, GNUNET_ntohll (cres->max_message_id));
+    if (NULL != slv->connect_cb)
+      slv->connect_cb (ch->cb_cls, GNUNET_ntohll (cres->max_message_id));
     break;
   }
   case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_ACK:
@@ -1012,6 +1032,11 @@ message_handler (void *cls,
   case GNUNET_MESSAGE_TYPE_PSYC_JOIN_REQUEST:
     handle_psyc_join_request ((struct GNUNET_PSYC_Master *) ch,
                               (const struct MasterJoinRequest *) msg);
+    break;
+
+  case GNUNET_MESSAGE_TYPE_PSYC_JOIN_DECISION:
+    handle_psyc_join_decision ((struct GNUNET_PSYC_Slave *) ch,
+                               (const struct SlaveJoinDecision *) msg);
     break;
   }
 
@@ -1175,20 +1200,20 @@ disconnect (void *c)
  * or part messages, the respective methods must call other PSYC functions to
  * inform PSYC about the meaning of the respective events.
  *
- * @param cfg Configuration to use (to connect to PSYC service).
- * @param channel_key ECC key that will be used to sign messages for this
+ * @param cfg  Configuration to use (to connect to PSYC service).
+ * @param channel_key  ECC key that will be used to sign messages for this
  *        PSYC session. The public key is used to identify the PSYC channel.
  *        Note that end-users will usually not use the private key directly, but
  *        rather look it up in GNS for places managed by other users, or select
  *        a file with the private key(s) when setting up their own channels
  *        FIXME: we'll likely want to use NOT the p521 curve here, but a cheaper
  *        one in the future.
- * @param policy Channel policy specifying join and history restrictions.
+ * @param policy  Channel policy specifying join and history restrictions.
  *        Used to automate join decisions.
- * @param message_cb Function to invoke on message parts received from slaves.
- * @param join_cb Function to invoke when a peer wants to join.
- * @param master_started_cb Function to invoke after the channel master started.
- * @param cls Closure for @a master_started_cb and @a join_cb.
+ * @param message_cb  Function to invoke on message parts received from slaves.
+ * @param join_request_cb  Function to invoke when a slave wants to join.
+ * @param master_start_cb  Function to invoke after the channel master started.
+ * @param cls  Closure for @a method and @a join_cb.
  *
  * @return Handle for the channel master, NULL on error.
  */
@@ -1196,9 +1221,9 @@ struct GNUNET_PSYC_Master *
 GNUNET_PSYC_master_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
                           const struct GNUNET_CRYPTO_EddsaPrivateKey *channel_key,
                           enum GNUNET_PSYC_Policy policy,
+                          GNUNET_PSYC_MasterStartCallback start_cb,
+                          GNUNET_PSYC_JoinRequestCallback join_request_cb,
                           GNUNET_PSYC_MessageCallback message_cb,
-                          GNUNET_PSYC_JoinCallback join_cb,
-                          GNUNET_PSYC_MasterStartCallback master_started_cb,
                           void *cls)
 {
   struct GNUNET_PSYC_Master *mst = GNUNET_malloc (sizeof (*mst));
@@ -1210,8 +1235,8 @@ GNUNET_PSYC_master_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   req->channel_key = *channel_key;
   req->policy = policy;
 
-  mst->start_cb = master_started_cb;
-  mst->join_cb = join_cb;
+  mst->start_cb = start_cb;
+  mst->join_req_cb = join_request_cb;
   ch->message_cb = message_cb;
   ch->cb_cls = cls;
   ch->cfg = cfg;
@@ -1244,8 +1269,9 @@ GNUNET_PSYC_master_stop (struct GNUNET_PSYC_Master *master)
  * #GNUNET_PSYC_JoinCallback.
  *
  * @param jh Join request handle.
- * @param is_admitted #GNUNET_YES if joining is approved,
- *        #GNUNET_NO if it is disapproved.
+ * @param is_admitted  #GNUNET_YES    if the join is approved,
+ *                     #GNUNET_NO     if it is disapproved,
+ *                     #GNUNET_SYSERR if we cannot answer the request.
  * @param relay_count Number of relays given.
  * @param relays Array of suggested peers that might be useful relays to use
  *        when joining the multicast group (essentially a list of peers that
@@ -1254,48 +1280,42 @@ GNUNET_PSYC_master_stop (struct GNUNET_PSYC_Master *master)
  *        be the multicast origin) is a good candidate for building the
  *        multicast tree.  Note that it is unnecessary to specify our own
  *        peer identity in this array.
- * @param method_name Method name for the message transmitted with the response.
- * @param env Environment containing transient variables for the message, or NULL.
- * @param data Data of the message.
- * @param data_size Size of @a data.
+ * @param join_resp  Application-dependent join response message.
+ *
+ * @return #GNUNET_OK on success,
+ *         #GNUNET_SYSERR if the message is too large.
  */
-void
+int
 GNUNET_PSYC_join_decision (struct GNUNET_PSYC_JoinHandle *jh,
                            int is_admitted,
                            uint32_t relay_count,
                            const struct GNUNET_PeerIdentity *relays,
-                           const char *method_name,
-                           const struct GNUNET_ENV_Environment *env,
-                           const void *data,
-                           size_t data_size)
+                           const struct GNUNET_PSYC_MessageHeader *join_resp)
 {
   struct GNUNET_PSYC_Channel *ch = &jh->mst->ch;
-
   struct MasterJoinDecision *dcsn;
-  struct GNUNET_PSYC_MessageHeader *pmsg = NULL;
-  uint16_t pmsg_size = 0;
-/* FIXME:
-  sizeof (*pmsg)
-    + sizeof (struct GNUNET_PSYC_MessageMethod)
-    + vars_size
-    + sizeof (struct GNUNET_MessageHeader) + data_size
-    + sizeof (struct GNUNET_MessageHeader);
-*/
+  uint16_t join_resp_size
+    = (NULL != join_resp) ? ntohs (join_resp->header.size) : 0;
   uint16_t relay_size = relay_count * sizeof (*relays);
-  struct MessageQueue *
-    mq = GNUNET_malloc (sizeof (*mq) + sizeof (*dcsn) + relay_size + pmsg_size);
+
+  if (GNUNET_MULTICAST_FRAGMENT_MAX_PAYLOAD
+      < sizeof (*dcsn) + relay_size + join_resp_size)
+    return GNUNET_SYSERR;
+
+  struct MessageQueue *mq = GNUNET_malloc (sizeof (*mq) + sizeof (*dcsn)
+                                           + relay_size + join_resp_size);
   dcsn = (struct MasterJoinDecision *) &mq[1];
-  dcsn->header.size = htons (sizeof (*dcsn) + relay_size + pmsg_size);
+  dcsn->header.size = htons (sizeof (*dcsn) + relay_size + join_resp_size);
   dcsn->header.type = htons (GNUNET_MESSAGE_TYPE_PSYC_JOIN_DECISION);
-  dcsn->is_admitted = (GNUNET_YES == is_admitted) ? GNUNET_YES : GNUNET_NO;
+  dcsn->is_admitted = htonl (is_admitted);
   dcsn->slave_key = jh->slave_key;
 
-  /* FIXME: add message parts to pmsg */
-  if (0 < pmsg_size)
-    memcpy (&dcsn[1], pmsg, pmsg_size);
+  if (0 < join_resp_size)
+    memcpy (&dcsn[1], join_resp, join_resp_size);
 
   GNUNET_CONTAINER_DLL_insert_tail (ch->tmit_head, ch->tmit_tail, mq);
   transmit_next (ch);
+  return GNUNET_OK;
 }
 
 
@@ -1359,24 +1379,27 @@ GNUNET_PSYC_master_transmit_cancel (struct GNUNET_PSYC_MasterTransmitHandle *th)
  * notification on failure (as the channel may simply take days to approve,
  * and disapproval is simply being ignored).
  *
- * @param cfg Configuration to use.
- * @param channel_key ECC public key that identifies the channel we wish to join.
- * @param slave_key ECC private-public key pair that identifies the slave, and
+ * @param cfg  Configuration to use.
+ * @param channel_key  ECC public key that identifies the channel we wish to join.
+ * @param slave_key  ECC private-public key pair that identifies the slave, and
  *        used by multicast to sign the join request and subsequent unicast
  *        requests sent to the master.
- * @param origin Peer identity of the origin.
- * @param relay_count Number of peers in the @a relays array.
- * @param relays Peer identities of members of the multicast group, which serve
+ * @param origin  Peer identity of the origin.
+ * @param relay_count  Number of peers in the @a relays array.
+ * @param relays  Peer identities of members of the multicast group, which serve
  *        as relays and used to join the group at.
- * @param message_cb Function to invoke on message parts received from the
+ * @param message_cb  Function to invoke on message parts received from the
  *        channel, typically at least contains method handlers for @e join and
  *        @e part.
- * @param slave_joined_cb Function invoked once we have joined the channel.
- * @param cls Closure for @a message_cb and @a slave_joined_cb.
- * @param method_name Method name for the join request.
- * @param env Environment containing transient variables for the request, or NULL.
- * @param data Payload for the join message.
- * @param data_size Number of bytes in @a data.
+ * @param slave_connect_cb  Function invoked once we have connected to the
+ *        PSYC service.
+ * @param join_decision_cb  Function invoked once we have received a join
+ *	  decision.
+ * @param cls  Closure for @a message_cb and @a slave_joined_cb.
+ * @param method_name  Method name for the join request.
+ * @param env  Environment containing transient variables for the request, or NULL.
+ * @param data  Payload for the join message.
+ * @param data_size  Number of bytes in @a data.
  *
  * @return Handle for the slave, NULL on error.
  */
@@ -1388,7 +1411,8 @@ GNUNET_PSYC_slave_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
                         uint32_t relay_count,
                         const struct GNUNET_PeerIdentity *relays,
                         GNUNET_PSYC_MessageCallback message_cb,
-                        GNUNET_PSYC_SlaveJoinCallback slave_joined_cb,
+                        GNUNET_PSYC_SlaveConnectCallback connect_cb,
+                        GNUNET_PSYC_JoinDecisionCallback join_decision_cb,
                         void *cls,
                         const char *method_name,
                         const struct GNUNET_ENV_Environment *env,
@@ -1408,7 +1432,8 @@ GNUNET_PSYC_slave_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
   req->relay_count = htonl (relay_count);
   memcpy (&req[1], relays, relay_count * sizeof (*relays));
 
-  slv->join_cb = slave_joined_cb;
+  slv->connect_cb = connect_cb;
+  slv->join_dcsn_cb = join_decision_cb;
   ch->message_cb = message_cb;
   ch->cb_cls = cls;
 

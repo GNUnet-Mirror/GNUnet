@@ -35,9 +35,9 @@
 #include "gnunet_env_lib.h"
 #include "gnunet_psyc_service.h"
 
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
-#define DEBUG_SERVICE 0
+#define DEBUG_SERVICE 1
 
 
 /**
@@ -79,6 +79,7 @@ struct TransmitClosure
 
 struct TransmitClosure *tmit;
 
+static int join_req_count;
 
 enum
 {
@@ -167,8 +168,8 @@ end ()
 
 
 static void
-master_message (void *cls, uint64_t message_id, uint32_t flags,
-                const struct GNUNET_MessageHeader *msg)
+master_message_cb (void *cls, uint64_t message_id, uint32_t flags,
+                   const struct GNUNET_MessageHeader *msg)
 {
   if (NULL == msg)
   {
@@ -211,8 +212,8 @@ master_message (void *cls, uint64_t message_id, uint32_t flags,
 
 
 static void
-slave_message (void *cls, uint64_t message_id, uint32_t flags,
-               const struct GNUNET_MessageHeader *msg)
+slave_message_cb (void *cls, uint64_t message_id, uint32_t flags,
+                  const struct GNUNET_MessageHeader *msg)
 {
   if (NULL == msg)
   {
@@ -239,23 +240,6 @@ slave_message (void *cls, uint64_t message_id, uint32_t flags,
   default:
     GNUNET_assert (0);
   }
-}
-
-
-static void
-join_request (void *cls, const struct GNUNET_CRYPTO_EddsaPublicKey *slave_key,
-              const struct GNUNET_PSYC_MessageHeader *msg,
-              struct GNUNET_PSYC_JoinHandle *jh)
-{
-  struct GNUNET_HashCode slave_key_hash;
-  GNUNET_CRYPTO_hash (slave_key, sizeof (*slave_key), &slave_key_hash);
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "Got join request from %s.\n",
-              GNUNET_h2s (&slave_key_hash));
-
-  GNUNET_PSYC_join_decision (jh, GNUNET_YES, 0, NULL, "_notice_join", NULL,
-                             "you're in", 9);
-  // FIXME: also test refusing entry
 }
 
 
@@ -392,9 +376,23 @@ tmit_notify_data (void *cls, uint16_t *data_size, void *data)
 
 
 static void
-slave_joined (void *cls, uint64_t max_message_id)
+slave_join ();
+
+
+static void
+join_decision_cb (void *cls, int is_admitted,
+                  const struct GNUNET_PSYC_MessageHeader *join_msg)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Slave joined: %lu\n", max_message_id);
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "Slave got join decision: %d\n", is_admitted);
+
+  if (GNUNET_YES != is_admitted)
+  { /* First join request is refused, retry. */
+    //GNUNET_assert (1 == join_req_count);
+    slave_join ();
+    return;
+  }
+
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Slave sending request to master.\n");
 
   test = TEST_SLAVE_TRANSMIT;
@@ -414,20 +412,46 @@ slave_joined (void *cls, uint64_t max_message_id)
                                   GNUNET_PSYC_SLAVE_TRANSMIT_NONE);
 }
 
+
+static void
+join_request_cb (void *cls, const struct GNUNET_CRYPTO_EddsaPublicKey *slave_key,
+                 const struct GNUNET_PSYC_MessageHeader *msg,
+                 struct GNUNET_PSYC_JoinHandle *jh)
+{
+  struct GNUNET_HashCode slave_key_hash;
+  GNUNET_CRYPTO_hash (slave_key, sizeof (*slave_key), &slave_key_hash);
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "Got join request from %s.\n",
+              GNUNET_h2s (&slave_key_hash));
+
+  /* Reject first request */
+  int is_admitted = (0 < join_req_count++) ? GNUNET_YES : GNUNET_NO;
+  GNUNET_PSYC_join_decision (jh, is_admitted, 0, NULL, NULL);
+}
+
+
+static void
+slave_connect_cb (void *cls, uint64_t max_message_id)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "Slave connected: %lu\n", max_message_id);
+}
+
+
 static void
 slave_join ()
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Joining slave.\n");
 
-  struct GNUNET_PeerIdentity origin;
-  struct GNUNET_PeerIdentity relays[16];
+  struct GNUNET_PeerIdentity origin; // FIXME: this peer
   struct GNUNET_ENV_Environment *env = GNUNET_ENV_environment_create ();
   GNUNET_ENV_environment_add (env, GNUNET_ENV_OP_ASSIGN,
                               "_foo", "bar baz", 7);
   GNUNET_ENV_environment_add (env, GNUNET_ENV_OP_ASSIGN,
                               "_foo_bar", "foo bar baz", 11);
   slv = GNUNET_PSYC_slave_join (cfg, &channel_pub_key, slave_key, &origin,
-                                16, relays, &slave_message, &slave_joined, NULL,
+                                0, NULL, &slave_message_cb,
+                                &slave_connect_cb, &join_decision_cb, NULL,
                                 "_request_join", env, "some data", 9);
   GNUNET_ENV_environment_destroy (env);
 }
@@ -485,7 +509,7 @@ master_transmit ()
 
 
 static void
-master_started (void *cls, uint64_t max_message_id)
+master_start_cb (void *cls, uint64_t max_message_id)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Master started: %" PRIu64 "\n", max_message_id);
@@ -521,8 +545,8 @@ run (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Starting master.\n");
   mst = GNUNET_PSYC_master_start (cfg, channel_key, GNUNET_PSYC_CHANNEL_PRIVATE,
-                                  &master_message, &join_request,
-                                  &master_started, NULL);
+                                  &master_start_cb, &join_request_cb,
+                                  &master_message_cb, NULL);
 }
 
 

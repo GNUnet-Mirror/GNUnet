@@ -46,10 +46,12 @@ gnunet_service_multicast_SOURCES = \
  gnunet-service-multicast.c
 gnunet_service_multicast_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/core/libgnunetcore.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(GN_LIBINTL)
 gnunet_service_multicast_DEPENDENCIES = \
   $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/core/libgnunetcore.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la
 
 

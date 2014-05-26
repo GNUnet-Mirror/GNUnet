@@ -250,17 +250,34 @@ struct MasterJoinDecision
   struct GNUNET_MessageHeader header;
 
   /**
+   * #GNUNET_YES if the slave was admitted.
+   */
+  int32_t is_admitted;
+
+  /**
    * Public key of the joining slave.
    */
   struct GNUNET_CRYPTO_EddsaPublicKey slave_key;
 
+  /* Followed by struct GNUNET_MessageHeader join_response */
+};
+
+
+struct SlaveJoinDecision
+{
+  /**
+   * Type: GNUNET_MESSAGE_TYPE_PSYC_JOIN_DECISION
+   */
+  struct GNUNET_MessageHeader header;
+
   /**
    * #GNUNET_YES if the slave was admitted.
    */
-  uint8_t is_admitted;
+  int32_t is_admitted;
 
   /* Followed by struct GNUNET_MessageHeader join_response */
 };
+
 
 
 GNUNET_NETWORK_STRUCT_END

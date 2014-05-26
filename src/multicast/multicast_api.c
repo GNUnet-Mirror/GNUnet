@@ -132,7 +132,7 @@ struct GNUNET_MULTICAST_Group
   struct GNUNET_CRYPTO_EddsaPublicKey pub_key;
   struct GNUNET_HashCode pub_key_hash;
 
-  GNUNET_MULTICAST_JoinCallback join_cb;
+  GNUNET_MULTICAST_JoinRequestCallback join_req_cb;
   GNUNET_MULTICAST_MembershipTestCallback member_test_cb;
   GNUNET_MULTICAST_ReplayFragmentCallback replay_frag_cb;
   GNUNET_MULTICAST_ReplayMessageCallback replay_msg_cb;
@@ -177,10 +177,7 @@ struct GNUNET_MULTICAST_Member
   struct GNUNET_MULTICAST_Group grp;
   struct GNUNET_MULTICAST_MemberTransmitHandle tmit;
 
-  struct GNUNET_CRYPTO_EddsaPrivateKey priv_key;
-  struct GNUNET_PeerIdentity origin;
-  struct GNUNET_PeerIdentity relays;
-  uint32_t relay_count;
+  GNUNET_MULTICAST_JoinDecisionCallback join_dcsn_cb;
 
   uint64_t next_fragment_id;
 };
@@ -197,12 +194,12 @@ struct GNUNET_MULTICAST_JoinHandle
   struct GNUNET_MULTICAST_Group *group;
 
   /**
-   * Public key of the joining member.
+   * Public key of the member requesting join.
    */
   struct GNUNET_CRYPTO_EddsaPublicKey member_key;
 
   /**
-   * Peer identity of the joining member.
+   * Peer identity of the member requesting join.
    */
   struct GNUNET_PeerIdentity member_peer;
 };
@@ -476,8 +473,9 @@ request_cb (void *cls, const struct GNUNET_HashCode *pub_key_hash, void *origin)
               "Calling request callback for a request of type %u and size %u.\n",
               ntohs (req->header.type), ntohs (req->header.size));
 
-  orig->request_cb (orig->grp.cb_cls, &req->member_key,
-                    (const struct GNUNET_MessageHeader *) req, 0);
+  if (NULL != orig->request_cb)
+    orig->request_cb (orig->grp.cb_cls, &req->member_key,
+                      (const struct GNUNET_MessageHeader *) req, 0);
   return GNUNET_YES;
 }
 
@@ -501,7 +499,8 @@ join_request_cb (void *cls, const struct GNUNET_HashCode *pub_key_hash,
   if (sizeof (*req) + sizeof (*msg) <= ntohs (req->header.size))
     msg = (const struct GNUNET_MessageHeader *) &req[1];
 
-  grp->join_cb (grp->cb_cls, &req->member_key, msg, jh);
+  if (NULL != grp->join_req_cb)
+    grp->join_req_cb (grp->cb_cls, &req->member_key, msg, jh);
   return GNUNET_YES;
 }
 
@@ -513,15 +512,44 @@ static int
 join_decision_cb (void *cls, const struct GNUNET_HashCode *pub_key_hash,
                   void *member)
 {
-  const struct MulticastJoinDecisionMessage *dcsn = cls;
+  const struct MulticastJoinDecisionMessageHeader *hdcsn = cls;
+  const struct MulticastJoinDecisionMessage *
+    dcsn = (const struct MulticastJoinDecisionMessage *) &hdcsn[1];
   struct GNUNET_MULTICAST_Member *mem = member;
   struct GNUNET_MULTICAST_Group *grp = &mem->grp;
 
-  const struct GNUNET_MessageHeader *msg = NULL;
-  if (sizeof (*dcsn) + sizeof (*msg) <= ntohs (dcsn->header.size))
-    msg = (const struct GNUNET_MessageHeader *) &dcsn[1];
+  uint16_t dcsn_size = ntohs (dcsn->header.size);
+  int is_admitted = ntohl (dcsn->is_admitted);
 
-  // FIXME: grp->join_decision_cb (grp->cb_cls, msg);
+  const struct GNUNET_MessageHeader *join_resp = NULL;
+  uint16_t join_resp_size = 0;
+
+  uint16_t relay_count = ntohl (dcsn->relay_count);
+  const struct GNUNET_PeerIdentity *relays = NULL;
+  uint16_t relay_size = relay_count * sizeof (*relays);
+  if (0 < relay_count && dcsn_size < sizeof (*dcsn) + relay_size)
+    relays = (struct GNUNET_PeerIdentity *) &dcsn[1];
+
+  if (sizeof (*dcsn) + relay_size + sizeof (*join_resp) <= dcsn_size)
+  {
+    join_resp = (const struct GNUNET_MessageHeader *) &dcsn[1];
+    join_resp_size = ntohs (join_resp->size);
+  }
+  if (dcsn_size < sizeof (*dcsn) + relay_size + join_resp_size)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Received invalid join decision message from multicast.\n");
+    GNUNET_break_op (0);
+    is_admitted = GNUNET_SYSERR;
+  }
+
+  if (NULL != mem->join_dcsn_cb)
+    mem->join_dcsn_cb (grp->cb_cls, is_admitted, &hdcsn->peer,
+                       relay_count, relays, join_resp);
+
+  if (GNUNET_YES != is_admitted)
+    GNUNET_MULTICAST_member_part (mem);
+
   return GNUNET_YES;
 }
 
@@ -599,7 +627,6 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
       GNUNET_break (0);
       break;
     }
-
     if (NULL != origins)
       GNUNET_CONTAINER_multihashmap_get_multiple (origins, &grp->pub_key_hash,
                                                   request_cb, (void *) msg);
@@ -615,9 +642,11 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     break;
 
   case GNUNET_MESSAGE_TYPE_MULTICAST_JOIN_DECISION:
-    if (NULL != origins)
-      GNUNET_CONTAINER_multihashmap_get_multiple (origins, &grp->pub_key_hash,
-                                                  join_decision_cb, (void *) msg);
+    if (GNUNET_NO != grp->is_origin)
+    {
+      GNUNET_break (0);
+      break;
+    }
     if (NULL != members)
       GNUNET_CONTAINER_multihashmap_get_multiple (members, &grp->pub_key_hash,
                                                   join_decision_cb, (void *) msg);
@@ -636,11 +665,12 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
  * Function to call with the decision made for a join request.
  *
  * Must be called once and only once in response to an invocation of the
- * #GNUNET_MULTICAST_JoinCallback.
+ * #GNUNET_MULTICAST_JoinRequestCallback.
  *
  * @param jh Join request handle.
- * @param is_admitted #GNUNET_YES if joining is approved,
- *        #GNUNET_NO if it is disapproved
+ * @param is_admitted  #GNUNET_YES    if the join is approved,
+ *                     #GNUNET_NO     if it is disapproved,
+ *                     #GNUNET_SYSERR if we cannot answer the request.
  * @param relay_count Number of relays given.
  * @param relays Array of suggested peers that might be useful relays to use
  *        when joining the multicast group (essentially a list of peers that
@@ -657,25 +687,31 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 struct GNUNET_MULTICAST_ReplayHandle *
 GNUNET_MULTICAST_join_decision (struct GNUNET_MULTICAST_JoinHandle *jh,
                                 int is_admitted,
-                                unsigned int relay_count,
+                                uint16_t relay_count,
                                 const struct GNUNET_PeerIdentity *relays,
                                 const struct GNUNET_MessageHeader *join_resp)
 {
   struct GNUNET_MULTICAST_Group *grp = jh->group;
   uint16_t join_resp_size = (NULL != join_resp) ? ntohs (join_resp->size) : 0;
   uint16_t relay_size = relay_count * sizeof (*relays);
-  struct MulticastClientJoinDecisionMessage * dcsn;
+  struct MulticastJoinDecisionMessageHeader * hdcsn;
+  struct MulticastJoinDecisionMessage *dcsn;
   struct MessageQueue *
-    mq = GNUNET_malloc (sizeof (*mq) + sizeof (*dcsn)
+    mq = GNUNET_malloc (sizeof (*mq) + sizeof (*hdcsn) + sizeof (*dcsn)
                         + relay_size + join_resp_size);
 
-  dcsn = (struct MulticastClientJoinDecisionMessage *) &mq[1];
+  hdcsn = (struct MulticastJoinDecisionMessageHeader *) &mq[1];
+  hdcsn->header.type = htons (GNUNET_MESSAGE_TYPE_MULTICAST_JOIN_DECISION);
+  hdcsn->header.size = htons (sizeof (*hdcsn) + sizeof (*dcsn)
+                                + relay_size + join_resp_size);
+  hdcsn->member_key = jh->member_key;
+  hdcsn->peer = jh->member_peer;
+
+  dcsn = (struct MulticastJoinDecisionMessage *) &hdcsn[1];
   dcsn->header.type = htons (GNUNET_MESSAGE_TYPE_MULTICAST_JOIN_DECISION);
   dcsn->header.size = htons (sizeof (*dcsn) + relay_size + join_resp_size);
-  dcsn->member_key = jh->member_key;
-  dcsn->member_peer = jh->member_peer;
-  dcsn->is_admitted = is_admitted;
-  dcsn->relay_count = relay_count;
+  dcsn->is_admitted = htonl (is_admitted);
+  dcsn->relay_count = htonl (relay_count);
   if (0 < relay_size)
     memcpy (&dcsn[1], relays, relay_size);
   if (0 < join_resp_size)
@@ -763,7 +799,7 @@ GNUNET_MULTICAST_replay_response2 (struct GNUNET_MULTICAST_ReplayHandle *rh,
  *        multicast session; public key is used to identify the multicast group;
  * @param max_fragment_id  Maximum fragment ID already sent to the group.
  *        0 for a new group.
- * @param join_cb  Function called to approve / disapprove joining of a peer.
+ * @param join_request_cb Function called to approve / disapprove joining of a peer.
  * @param member_test_cb  Function multicast can use to test group membership.
  * @param replay_frag_cb  Function that can be called to replay a message fragment.
  * @param replay_msg_cb  Function that can be called to replay a message.
@@ -779,7 +815,7 @@ struct GNUNET_MULTICAST_Origin *
 GNUNET_MULTICAST_origin_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                const struct GNUNET_CRYPTO_EddsaPrivateKey *priv_key,
                                uint64_t max_fragment_id,
-                               GNUNET_MULTICAST_JoinCallback join_cb,
+                               GNUNET_MULTICAST_JoinRequestCallback join_request_cb,
                                GNUNET_MULTICAST_MembershipTestCallback member_test_cb,
                                GNUNET_MULTICAST_ReplayFragmentCallback replay_frag_cb,
                                GNUNET_MULTICAST_ReplayMessageCallback replay_msg_cb,
@@ -801,7 +837,7 @@ GNUNET_MULTICAST_origin_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   grp->cfg = cfg;
 
   grp->cb_cls = cls;
-  grp->join_cb = join_cb;
+  grp->join_req_cb = join_request_cb;
   grp->member_test_cb = member_test_cb;
   grp->replay_frag_cb = replay_frag_cb;
   grp->replay_msg_cb = replay_msg_cb;
@@ -963,7 +999,8 @@ GNUNET_MULTICAST_origin_to_all_cancel (struct GNUNET_MULTICAST_OriginTransmitHan
  *        If empty, the @a join_request is sent directly to the @a origin.
  * @param join_msg  Application-dependent join message to be passed to the peer
  *        @a origin.
- * @param join_cb Function called to approve / disapprove joining of a peer.
+ * @param join_request_cb Function called to approve / disapprove joining of a peer.
+ * @param join_decision_cb Function called to inform about the join decision.
  * @param member_test_cb Function multicast can use to test group membership.
  * @param replay_frag_cb Function that can be called to replay message fragments
  *        this peer already knows from this group. NULL if this
@@ -982,10 +1019,11 @@ GNUNET_MULTICAST_member_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
                               const struct GNUNET_CRYPTO_EddsaPublicKey *group_key,
                               const struct GNUNET_CRYPTO_EddsaPrivateKey *member_key,
                               const struct GNUNET_PeerIdentity *origin,
-                              uint32_t relay_count,
+                              uint16_t relay_count,
                               const struct GNUNET_PeerIdentity *relays,
                               const struct GNUNET_MessageHeader *join_msg,
-                              GNUNET_MULTICAST_JoinCallback join_cb,
+                              GNUNET_MULTICAST_JoinRequestCallback join_request_cb,
+                              GNUNET_MULTICAST_JoinDecisionCallback join_decision_cb,
                               GNUNET_MULTICAST_MembershipTestCallback member_test_cb,
                               GNUNET_MULTICAST_ReplayFragmentCallback replay_frag_cb,
                               GNUNET_MULTICAST_ReplayMessageCallback replay_msg_cb,
@@ -1014,18 +1052,14 @@ GNUNET_MULTICAST_member_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
   grp->cfg = cfg;
   grp->pub_key = *group_key;
 
-  grp->join_cb = join_cb;
+  mem->join_dcsn_cb = join_decision_cb;
+  grp->join_req_cb = join_request_cb;
   grp->member_test_cb = member_test_cb;
   grp->replay_frag_cb = replay_frag_cb;
   grp->message_cb = message_cb;
   grp->cb_cls = cls;
 
-  mem->origin = *origin;
-  mem->relay_count = relay_count;
-  mem->relays = *relays;
-  mem->priv_key = *member_key;
-
-  GNUNET_CRYPTO_eddsa_key_get_public (&mem->priv_key, &grp->pub_key);
+  GNUNET_CRYPTO_eddsa_key_get_public (member_key, &grp->pub_key);
   GNUNET_CRYPTO_hash (&grp->pub_key, sizeof (grp->pub_key), &grp->pub_key_hash);
 
   if (NULL == members)

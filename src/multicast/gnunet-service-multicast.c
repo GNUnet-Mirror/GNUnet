@@ -27,6 +27,7 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_signatures.h"
 #include "gnunet_statistics_service.h"
+#include "gnunet_core_service.h"
 #include "gnunet_multicast_service.h"
 #include "multicast.h"
 
@@ -34,6 +35,22 @@
  * Handle to our current configuration.
  */
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
+
+/**
+ * Server handle.
+ */
+static struct GNUNET_SERVER_Handle *server;
+
+/**
+ * Core handle.
+ * Only used during initialization.
+ */
+static struct GNUNET_CORE_Handle *core;
+
+/**
+ * Identity of this peer.
+ */
+static struct GNUNET_PeerIdentity this_peer;
 
 /**
  * Handle to the statistics service.
@@ -61,7 +78,6 @@ static struct GNUNET_CONTAINER_MultiHashMap *members;
  * Group's pub_key_hash -> Member's pub_key -> struct Member
  */
 static struct GNUNET_CONTAINER_MultiHashMap *group_members;
-
 
 /**
  * List of connected clients.
@@ -147,7 +163,7 @@ struct Member
   /**
    * Join request sent to the origin / members.
    */
-  struct MulticastJoinRequestMessage *join_request;
+  struct MulticastJoinRequestMessage *join_req;
 
   /**
    * Join decision sent in reply to our request.
@@ -155,7 +171,7 @@ struct Member
    * Only a positive decision is stored here, in case of a negative decision the
    * client is disconnected.
    */
-  struct MulticastJoinDecisionMessage *join_decision;
+  struct MulticastJoinDecisionMessageHeader *join_dcsn;
 
   /**
    * Last request fragment ID sent to the origin.
@@ -171,9 +187,19 @@ struct Member
  * @param tc unused
  */
 static void
-cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  /* FIXME: do clean up here */
+  if (NULL != core)
+  {
+    GNUNET_CORE_disconnect (core);
+    core = NULL;
+  }
+  if (NULL != stats)
+  {
+    GNUNET_STATISTICS_destroy (stats, GNUNET_YES);
+    stats = NULL;
+  }
+  /* FIXME: do more clean up here */
 }
 
 /**
@@ -206,8 +232,11 @@ cleanup_member (struct Member *mem)
                                           grp_mem);
     GNUNET_CONTAINER_multihashmap_destroy (grp_mem);
   }
-  if (NULL != mem->join_decision)
-    GNUNET_free (mem->join_decision);
+  if (NULL != mem->join_dcsn)
+  {
+    GNUNET_free (mem->join_dcsn);
+    mem->join_dcsn = NULL;
+  }
   GNUNET_CONTAINER_multihashmap_remove (members, &grp->pub_key_hash, mem);
 }
 
@@ -329,7 +358,7 @@ member_message_cb (void *cls, const struct GNUNET_HashCode *pub_key_hash,
   const struct GNUNET_MessageHeader *msg = cls;
   struct Member *mem = member;
 
-  if (NULL != mem->join_decision)
+  if (NULL != mem->join_dcsn)
   { /* Only send message to admitted members */
     message_to_clients (&mem->grp, msg);
   }
@@ -374,7 +403,7 @@ message_to_origin (struct Group *grp, const struct GNUNET_MessageHeader *msg)
  * Handle a connecting client starting an origin.
  */
 static void
-handle_origin_start (void *cls, struct GNUNET_SERVER_Client *client,
+client_origin_start (void *cls, struct GNUNET_SERVER_Client *client,
                      const struct GNUNET_MessageHeader *m)
 {
   const struct MulticastOriginStartMessage *
@@ -424,8 +453,8 @@ handle_origin_start (void *cls, struct GNUNET_SERVER_Client *client,
  * Handle a connecting client joining a group.
  */
 static void
-handle_member_join (void *cls, struct GNUNET_SERVER_Client *client,
-                     const struct GNUNET_MessageHeader *m)
+client_member_join (void *cls, struct GNUNET_SERVER_Client *client,
+                    const struct GNUNET_MessageHeader *m)
 {
   const struct MulticastMemberJoinMessage *
     msg = (const struct MulticastMemberJoinMessage *) m;
@@ -487,16 +516,16 @@ handle_member_join (void *cls, struct GNUNET_SERVER_Client *client,
 
   GNUNET_SERVER_client_set_user_context (client, grp);
 
-  if (NULL != mem->join_decision)
+  if (NULL != mem->join_dcsn)
   { /* Already got a join decision, send it to client. */
     GNUNET_SERVER_notification_context_add (nc, client);
     GNUNET_SERVER_notification_context_unicast (nc, client,
                                                 (struct GNUNET_MessageHeader *)
-                                                mem->join_decision,
+                                                mem->join_dcsn,
                                                 GNUNET_NO);
   }
   else if (grp->clients_head == grp->clients_tail)
-  { /* First client, send join request. */
+  { /* First client of the group, send join request. */
     struct GNUNET_PeerIdentity *relays = (struct GNUNET_PeerIdentity *) &msg[1];
     uint32_t relay_count = ntohs (msg->relay_count);
     uint16_t relay_size = relay_count * sizeof (*relays);
@@ -515,6 +544,7 @@ handle_member_join (void *cls, struct GNUNET_SERVER_Client *client,
     req->header.size = htons (sizeof (*req) + join_msg_size);
     req->header.type = htons (GNUNET_MESSAGE_TYPE_MULTICAST_JOIN_REQUEST);
     req->group_key = grp->pub_key;
+    req->member_peer = this_peer;
     GNUNET_CRYPTO_eddsa_key_get_public (&mem->priv_key, &req->member_key);
     if (0 < join_msg_size)
       memcpy (&req[1], join_msg, join_msg_size);
@@ -531,14 +561,14 @@ handle_member_join (void *cls, struct GNUNET_SERVER_Client *client,
       GNUNET_assert (0);
     }
 
-    if (NULL != mem->join_request)
-      GNUNET_free (mem->join_request);
-    mem->join_request = req;
+    if (NULL != mem->join_req)
+      GNUNET_free (mem->join_req);
+    mem->join_req = req;
 
     if (GNUNET_YES
         == GNUNET_CONTAINER_multihashmap_contains (origins, &grp->pub_key_hash))
     { /* Local origin */
-      message_to_origin (grp, (struct GNUNET_MessageHeader *) mem->join_request);
+      message_to_origin (grp, (struct GNUNET_MessageHeader *) mem->join_req);
     }
     else
     {
@@ -553,34 +583,15 @@ handle_member_join (void *cls, struct GNUNET_SERVER_Client *client,
  * Join decision from client.
  */
 static void
-handle_join_decision (void *cls, struct GNUNET_SERVER_Client *client,
+client_join_decision (void *cls, struct GNUNET_SERVER_Client *client,
                       const struct GNUNET_MessageHeader *m)
 {
   struct Group *
     grp = GNUNET_SERVER_client_get_user_context (client, struct Group);
-  const struct MulticastClientJoinDecisionMessage *
-    cl_dcsn = (const struct MulticastClientJoinDecisionMessage *) m;
-
-  struct GNUNET_PeerIdentity *relays = (struct GNUNET_PeerIdentity *) &cl_dcsn[1];
-  uint32_t relay_count = ntohs (cl_dcsn->relay_count);
-  uint16_t relay_size = relay_count * sizeof (*relays);
-
-  struct GNUNET_MessageHeader *join_msg = NULL;
-  uint16_t join_msg_size = 0;
-  if (sizeof (*cl_dcsn) + relay_size + sizeof (*m) <= ntohs (m->size))
-  {
-    join_msg = (struct GNUNET_MessageHeader *)
-      (((char *) &cl_dcsn[1]) + relay_size);
-    join_msg_size = ntohs (join_msg->size);
-  }
-
-  int keep_dcsn = GNUNET_NO;
-  struct MulticastJoinDecisionMessage *
-    dcsn = GNUNET_malloc (sizeof (*dcsn) + join_msg_size);
-  dcsn->header.size = htons (sizeof (*dcsn) + join_msg_size);
-  dcsn->header.type = htons (GNUNET_MESSAGE_TYPE_MULTICAST_JOIN_DECISION);
-  dcsn->is_admitted = cl_dcsn->is_admitted;
-  memcpy (&dcsn[1], join_msg, join_msg_size);
+  const struct MulticastJoinDecisionMessageHeader *
+    hdcsn = (const struct MulticastJoinDecisionMessageHeader *) m;
+  const struct MulticastJoinDecisionMessage *
+    dcsn = (const struct MulticastJoinDecisionMessage *) &hdcsn[1];
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%p Got join decision from client for group %s..\n",
@@ -595,7 +606,7 @@ handle_join_decision (void *cls, struct GNUNET_SERVER_Client *client,
     if (NULL != grp_mem)
     {
       struct GNUNET_HashCode member_key_hash;
-      GNUNET_CRYPTO_hash (&cl_dcsn->member_key, sizeof (cl_dcsn->member_key),
+      GNUNET_CRYPTO_hash (&hdcsn->member_key, sizeof (hdcsn->member_key),
                           &member_key_hash);
       struct Member *
         mem = GNUNET_CONTAINER_multihashmap_get (grp_mem, &member_key_hash);
@@ -604,19 +615,21 @@ handle_join_decision (void *cls, struct GNUNET_SERVER_Client *client,
                   grp, GNUNET_h2s (&member_key_hash), mem);
       if (NULL != mem)
       {
-        message_to_clients (grp, (struct GNUNET_MessageHeader *) dcsn);
-        if (GNUNET_YES == dcsn->is_admitted)
+        message_to_clients (&mem->grp, (struct GNUNET_MessageHeader *) hdcsn);
+        if (GNUNET_YES == ntohl (dcsn->is_admitted))
         { /* Member admitted, store join_decision. */
-          mem->join_decision = dcsn;
-          keep_dcsn = GNUNET_YES;
+          uint16_t dcsn_size = ntohs (dcsn->header.size);
+          mem->join_dcsn = GNUNET_malloc (dcsn_size);
+          memcpy (mem->join_dcsn, dcsn, dcsn_size);
         }
         else
         { /* Refused entry, disconnect clients. */
           struct ClientList *cl = mem->grp.clients_head;
           while (NULL != cl)
           {
-            GNUNET_SERVER_client_disconnect (cl->client);
+            struct GNUNET_SERVER_Client *client = cl->client;
             cl = cl->next;
+            GNUNET_SERVER_client_disconnect (client);
           }
         }
       }
@@ -624,10 +637,8 @@ handle_join_decision (void *cls, struct GNUNET_SERVER_Client *client,
   }
   else
   {
-    /* FIXME: send join decision to remote peers */
+    /* FIXME: send join decision to hdcsn->peer */
   }
-  if (GNUNET_NO == keep_dcsn)
-    GNUNET_free (dcsn);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
@@ -635,7 +646,7 @@ handle_join_decision (void *cls, struct GNUNET_SERVER_Client *client,
  * Incoming message from a client.
  */
 static void
-handle_multicast_message (void *cls, struct GNUNET_SERVER_Client *client,
+client_multicast_message (void *cls, struct GNUNET_SERVER_Client *client,
                           const struct GNUNET_MessageHeader *m)
 {
   struct Group *
@@ -670,7 +681,7 @@ handle_multicast_message (void *cls, struct GNUNET_SERVER_Client *client,
  * Incoming request from a client.
  */
 static void
-handle_multicast_request (void *cls, struct GNUNET_SERVER_Client *client,
+client_multicast_request (void *cls, struct GNUNET_SERVER_Client *client,
                           const struct GNUNET_MessageHeader *m)
 {
   struct Group *
@@ -708,37 +719,34 @@ handle_multicast_request (void *cls, struct GNUNET_SERVER_Client *client,
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
+
 /**
- * Process multicast requests.
- *
- * @param cls closure
- * @param server the initialized server
- * @param cfg configuration to use
+ * Core connected.
  */
 static void
-run (void *cls, struct GNUNET_SERVER_Handle *server,
-     const struct GNUNET_CONFIGURATION_Handle *c)
+core_connected_cb  (void *cls, const struct GNUNET_PeerIdentity *my_identity)
 {
+  this_peer = *my_identity;
+
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
-    { &handle_origin_start, NULL,
+    { &client_origin_start, NULL,
       GNUNET_MESSAGE_TYPE_MULTICAST_ORIGIN_START, 0 },
 
-    { &handle_member_join, NULL,
+    { &client_member_join, NULL,
       GNUNET_MESSAGE_TYPE_MULTICAST_MEMBER_JOIN, 0 },
 
-    { &handle_join_decision, NULL,
+    { &client_join_decision, NULL,
       GNUNET_MESSAGE_TYPE_MULTICAST_JOIN_DECISION, 0 },
 
-    { &handle_multicast_message, NULL,
+    { &client_multicast_message, NULL,
       GNUNET_MESSAGE_TYPE_MULTICAST_MESSAGE, 0 },
 
-    { &handle_multicast_request, NULL,
+    { &client_multicast_request, NULL,
       GNUNET_MESSAGE_TYPE_MULTICAST_REQUEST, 0 },
 
     {NULL, NULL, 0, 0}
   };
 
-  cfg = c;
   stats = GNUNET_STATISTICS_create ("multicast", cfg);
   origins = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_YES);
   members = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_YES);
@@ -747,8 +755,26 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 
   GNUNET_SERVER_add_handlers (server, handlers);
   GNUNET_SERVER_disconnect_notify (server, &client_disconnect, NULL);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleanup_task,
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
                                 NULL);
+}
+
+
+/**
+ * Service started.
+ *
+ * @param cls closure
+ * @param server the initialized server
+ * @param cfg configuration to use
+ */
+static void
+run (void *cls, struct GNUNET_SERVER_Handle *srv,
+     const struct GNUNET_CONFIGURATION_Handle *c)
+{
+  cfg = c;
+  server = srv;
+  core = GNUNET_CORE_connect (cfg, NULL, core_connected_cb, NULL, NULL,
+                              NULL, GNUNET_NO, NULL, GNUNET_NO, NULL);
 }
 
 
