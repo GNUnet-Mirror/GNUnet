@@ -1719,7 +1719,6 @@ send_session_connect_cont (void *cls,
         GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT));
     break;
   default:
-    GNUNET_break(0);
     disconnect_neighbour (n);
     break;
   }
@@ -1805,7 +1804,6 @@ send_session_connect (struct NeighbourAddress *na)
           GNUNET_TIME_relative_to_absolute (ATS_RESPONSE_TIMEOUT));
         break;
       default:
-        GNUNET_break (0);
         disconnect_neighbour (n);
         break;
     }
@@ -3201,8 +3199,6 @@ GST_neighbours_handle_connect_ack (const struct GNUNET_MessageHeader *message,
     set_primary_address (n, n->alternative_address.address,
         n->alternative_address.session, n->alternative_address.bandwidth_in,
         n->alternative_address.bandwidth_out, GNUNET_YES);
-
-    GNUNET_break (0);
     GNUNET_STATISTICS_update (GST_stats, gettext_noop
         ("# Successful attempts to switch addresses"), 1, GNUNET_NO);
 
