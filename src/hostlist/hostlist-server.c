@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2008, 2009, 2010 Christian Grothoff (and other contributing authors)
+     (C) 2008, 2009, 2010, 2014 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -20,7 +20,7 @@
 
 /**
  * @file hostlist/hostlist-server.c
- * @author Christian Grothoff, Matthias Wachs
+ * @author Christian Grothoff, Matthias Wachs, David Barksdale
  * @brief application to provide an integrated hostlist HTTP server
  */
 
@@ -250,6 +250,23 @@ accept_policy_callback (void *cls, const struct sockaddr *addr,
   return MHD_YES;               /* accept all */
 }
 
+/**
+ * Add headers to a request indicating that we allow Cross-Origin Resource
+ * Sharing.
+ */
+static void
+add_cors_headers(struct MHD_Response *response)
+{
+  MHD_add_response_header (response,
+                           "Access-Control-Allow-Origin",
+                           "*");
+  MHD_add_response_header (response,
+                           "Access-Control-Allow-Methods",
+                           "GET, OPTIONS");
+  MHD_add_response_header (response,
+                           "Access-Control-Max-Age",
+                           "86400");
+}
 
 /**
  * Main request handler.
@@ -262,6 +279,19 @@ access_handler_callback (void *cls, struct MHD_Connection *connection,
 {
   static int dummy;
 
+  /* CORS pre-flight request */
+  if (0 == strcmp (MHD_HTTP_METHOD_OPTIONS, method))
+  {
+    struct MHD_Response *options_response;
+    int rc;
+
+    options_response = MHD_create_response_from_buffer (0, NULL,
+                                                        MHD_RESPMEM_PERSISTENT);
+    add_cors_headers(options_response);
+    rc = MHD_queue_response (connection, MHD_HTTP_OK, options_response);
+    MHD_destroy_response (options_response);
+    return rc;
+  }
   if (0 != strcmp (method, MHD_HTTP_METHOD_GET))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -303,6 +333,7 @@ access_handler_callback (void *cls, struct MHD_Connection *connection,
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Received request for our hostlist\n"));
   GNUNET_STATISTICS_update (stats, gettext_noop ("hostlist requests processed"),
                             1, GNUNET_YES);
+  add_cors_headers(response);
   return MHD_queue_response (connection, MHD_HTTP_OK, response);
 }
 
