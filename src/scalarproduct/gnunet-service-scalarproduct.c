@@ -1239,6 +1239,7 @@ cb_intersection_element_removed (void *cls,
 
   case GNUNET_SET_STATUS_DONE:
     s->intersection_op = NULL;
+    s->intersection_set = NULL;
 
     if (2 > s->used_element_count)
     {
@@ -1808,8 +1809,8 @@ handle_client_message (void *cls,
       GNUNET_free (elem);
       continue;
     }
-    set_elem.data = &elements[i].key;
-    set_elem.size = htons (sizeof (elements[i].key));
+    set_elem.data = &elem->key;
+    set_elem.size = htons (sizeof (elem->key));
     set_elem.type = htons (0); /* do we REALLY need this? */
     GNUNET_SET_add_element (s->intersection_set, &set_elem, NULL, NULL);
     s->used_element_count++;
