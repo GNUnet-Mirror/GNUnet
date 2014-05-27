@@ -104,14 +104,13 @@ address_response_processor (void *cls, const struct GNUNET_MessageHeader *msg)
 
   if (GNUNET_NO == result)
   {
-    alucb->cb (alucb->cb_cls, NULL, GNUNET_SYSERR);
+    alucb->cb (alucb->cb_cls, empty_str, GNUNET_SYSERR);
 
     /* expect more replies */
     GNUNET_CLIENT_receive (alucb->client, &address_response_processor, alucb,
                            GNUNET_TIME_absolute_get_remaining (alucb->timeout));
     return;
   }
-
 
   address = (const char *) &atsm[1];
   if ( (addr_len > (size - (sizeof (struct AddressToStringResultMessage)))) ||

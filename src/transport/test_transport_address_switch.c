@@ -228,9 +228,11 @@ clean_up ()
   if (NULL != p1_stat)
   {
     GNUNET_STATISTICS_watch_cancel (p1_stat, "transport",
-        "# Attempts to switch addresses", stat_start_attempt_cb, p1);
+        "# Attempts to switch addresses",
+        stat_start_attempt_cb, p1);
     GNUNET_STATISTICS_watch_cancel (p1_stat, "transport",
-        "# Successful attempts to switch addresses", stat_success_attempt_cb, p1);
+        "# Successful attempts to switch addresses",
+        stat_success_attempt_cb, p1);
     GNUNET_STATISTICS_watch_cancel (p1_stat, "transport",
         "# Failed attempts to switch addresses (failed to send CONNECT CONT)",
         stat_fail_attempt_cb, p1);
@@ -261,9 +263,9 @@ clean_up ()
     GNUNET_STATISTICS_watch_cancel (p2_stat, "transport",
         "# Failed attempts to switch addresses (no response)",
         stat_fail_attempt_cb, p2);
-    GNUNET_STATISTICS_watch (p1_stat, "transport",
+    GNUNET_STATISTICS_watch (p2_stat, "transport",
         "# transport addresses",
-        stat_addresses_available, p1);
+        stat_addresses_available, p2);
     GNUNET_STATISTICS_destroy (p2_stat, GNUNET_NO);
     p2_stat = NULL;
   }
@@ -313,7 +315,10 @@ end ()
     FPRINTF (stderr, "Peer 1 tried %u times to switch and succeeded %u times, failed %u times\n",
         p1_switch_attempts, p1_switch_success, p1_switch_fail);
     if (p1_switch_success != p1_switch_attempts)
+    {
+      GNUNET_break (0);
       result ++;
+    }
   }
   else
   {
@@ -325,7 +330,10 @@ end ()
     FPRINTF (stderr, "Peer 2 tried %u times to switch and succeeded %u times, failed %u times\n",
         p2_switch_attempts, p2_switch_success, p2_switch_fail);
     if (p2_switch_success != p2_switch_attempts)
+    {
+      GNUNET_break (0);
       result ++;
+    }
   }
   else
   {
@@ -337,12 +345,14 @@ end ()
        (bytes_sent_after_switch == 0) )
   {
     FPRINTF (stderr, "No data sent after switching!\n");
+    GNUNET_break (0);
     res ++;
   }
   if ( ((p1_switch_attempts > 0) || (p2_switch_attempts > 0)) &&
        (bytes_recv_after_switch == 0) )
   {
     FPRINTF (stderr, "No data received after switching!\n");
+    GNUNET_break (0);
     res ++;
   }
 

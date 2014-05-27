@@ -879,6 +879,7 @@ transmit_address_to_client (void *cls, const char *buf)
   else
   {
     len = sizeof (struct AddressToStringResultMessage);
+
     atsm = GNUNET_malloc (len);
     atsm->header.size = ntohs (len);
     atsm->header.type = ntohs (GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_TO_STRING_REPLY);

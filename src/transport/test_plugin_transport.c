@@ -401,7 +401,8 @@ env_notify_address (void *cls, int add_remove,
     GNUNET_free(s2a);
 
     pretty_printers_running++;
-    api->address_pretty_printer (api->cls, address->transport_name, address->address, address->address_length, GNUNET_YES,
+    api->address_pretty_printer (api->cls, address->transport_name,
+        address->address, address->address_length, GNUNET_YES,
         GNUNET_TIME_UNIT_MINUTES, &address_pretty_printer_cb, w);
 
     if (GNUNET_OK != api->check_address (api->cls, w->address->address, w->address->address_length))
