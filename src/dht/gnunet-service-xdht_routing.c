@@ -28,31 +28,25 @@
 #include "gnunet-service-xdht_routing.h"
 #include "gnunet-service-xdht.h"
 
-/* TODO
- 1. to understand if we really need all the four fields.
- 2. if we can merge remove_peer and remove_trail 
- 3. do we need next_hop to uniquely identify a trail in remove_trail. */
-
 /**
  * Maximum number of entries in routing table. 
  */
 #define ROUTING_TABLE_THRESHOLD 64
 
+
 /**
+ * FIXME: do we need to store destination and source. 
+ * because in trail teardown we will reach destination but it will not find any
+ * entry in routing table. so we should store destination and source. 
  * Routing table entry .
  */
 struct RoutingTrail
 {
   /**
-   * Source peer .
+   * Global Unique identifier of the trail.
    */
-  struct GNUNET_PeerIdentity source;
-
-  /**
-   * Destination peer.
-   */
-  struct GNUNET_PeerIdentity destination;
-
+  struct GNUNET_HashCode trail_id;
+  
   /**
    * The peer to which this request should be passed to.
    */
@@ -62,253 +56,161 @@ struct RoutingTrail
    * Peer just before next hop in the trail. 
    */
   struct GNUNET_PeerIdentity prev_hop;
-  
 };
-
 
 /**
  * Routing table of the peer
  */
-static struct GNUNET_CONTAINER_MultiPeerMap *routing_table;
-
-
-/**
- * Get next hop from the trail with source peer, destination peer and next hop
- * same as the argument to this function. 
- * @param source_peer  Source peer of the trail. 
- * @param destination_peer Destination peer of the trail. 
- * @param prev_hop Previous hop of the trail. 
- * @return #GNUNET_YES if we found the matching trail. 
- *         #GNUNET_NO if we found no matching trail.
- */
-static int
-get_next_hop (struct RoutingTrail *trail,
-              struct GNUNET_PeerIdentity *source_peer,
-              struct GNUNET_PeerIdentity *destination_peer, 
-              const struct GNUNET_PeerIdentity *prev_hop)
-{
-  if (0 == GNUNET_CRYPTO_cmp_peer_identity (&(trail->source),source_peer))
-  {
-    if (0 == GNUNET_CRYPTO_cmp_peer_identity (&(trail->prev_hop),prev_hop))
-    {
-      return GNUNET_YES;
-    }
-    else 
-      return GNUNET_NO;
-  }
-  return GNUNET_NO;
-}
-
+static struct GNUNET_CONTAINER_MultiHashMap *routing_table;
 
 /**
- * FIXME: How to ensure that with only 3 fields also we have a unique trail.
- * in case of redundant routes we can have different next hop.
- * in that case we have to call this function on each entry of routing table
- * and from multiple next hop we return one. Here also we are going to return one.
- * URGENT. 
- * Assumption - there can be only on one trail with all these fields. But if
- * we consider only 3 fields then it is possible that next hop is differet. 
- * Update prev_hop field to source_peer. Trail from source peer to destination
- * peer is compressed such that I am the first friend in the trail. 
- * @param source_peer Source of the trail.
- * @param destination_peer Destination of the trail.
- * @param prev_hop Peer before me in the trail.
- * @return #GNUNET_YES trail is updated.
- *         #GNUNET_NO, trail not found. 
+ * Update the prev. hop of the trail. Call made by trail teardown where
+ * if you are the first friend now in the trail then you need to update
+ * your prev. hop.
+ * @param trail_id
+ * @return #GNUNET_OK success
+ *         #GNUNET_SYSERR in case no matching entry found in routing table. 
  */
 int
-GDS_ROUTING_trail_update (struct GNUNET_PeerIdentity *source_peer,
-                          struct GNUNET_PeerIdentity *destination_peer,
-                          const struct GNUNET_PeerIdentity *prev_hop)
+GDS_ROUTING_update_trail_prev_hop (const struct GNUNET_HashCode trail_id,
+                                   struct GNUNET_PeerIdentity prev_hop)
 {
-  /* 1. find the trail corresponding to these values. 
-   2. update the prev hop to source peer. */  
   struct RoutingTrail *trail;
-  struct GNUNET_CONTAINER_MultiPeerMapIterator *iterator;
-  int i;
   
-  iterator = GNUNET_CONTAINER_multipeermap_iterator_create (routing_table);
-  for (i = 0; i< GNUNET_CONTAINER_multipeermap_size(routing_table); i++)
-  {
-    if(GNUNET_YES == GNUNET_CONTAINER_multipeermap_iterator_next (iterator, NULL,
-                                                                 (const void **)&trail)) 
-    {
-      if (0 == GNUNET_CRYPTO_cmp_peer_identity (&(trail->destination), destination_peer))
-      {
-        if (GNUNET_YES == get_next_hop (trail, source_peer, destination_peer, prev_hop))
-        {
-          memcpy (&(trail->prev_hop), source_peer, sizeof (struct GNUNET_PeerIdentity));
-          return GNUNET_YES;
-        }
-      }
-    }
-  }
-  return GNUNET_NO;
+  trail = GNUNET_CONTAINER_multihashmap_get (routing_table, &trail_id);
+  
+  if (NULL == trail)
+    return GNUNET_SYSERR;
+  
+  trail->prev_hop = prev_hop;
+  return GNUNET_OK;
 }
 
 
 /**
- * It can happen that a particular peer removed the entry because one of the peers
- * (source, destination, next , prev) was friend which got disconnected. So,
- * no matching trail is found. In this case we return NULL. Its on calling function
- * to handle the return value. 
- * Find the next hop to send packet to.
- * @param source_peer Source of the trail.
- * @param destination_peer Destination of the trail.
- * @param prev_hop Previous hop in the trail. 
- * @return Next hop in the trail from source to destination.
- *         NULL in case no matching trail found in routing table. 
+ * Get the next hop for trail corresponding to trail_id
+ * @param trail_id Trail id to be searched. 
+ * @return Next_hop if found
+ *         NULL If next hop not found. 
  */
 struct GNUNET_PeerIdentity *
-GDS_ROUTING_search (struct GNUNET_PeerIdentity *source_peer,
-                    struct GNUNET_PeerIdentity *destination_peer,
-                    const struct GNUNET_PeerIdentity *prev_hop)
+GDS_ROUTING_get_next_hop (const struct GNUNET_HashCode trail_id,
+                          enum GDS_ROUTING_trail_direction trail_direction)
 {
   struct RoutingTrail *trail;
-  struct GNUNET_CONTAINER_MultiPeerMapIterator *iterator;
-  int i;
+ 
+  trail = GNUNET_CONTAINER_multihashmap_get (routing_table, &trail_id);
   
-  iterator = GNUNET_CONTAINER_multipeermap_iterator_create (routing_table);
-  for (i = 0; i< GNUNET_CONTAINER_multipeermap_size(routing_table); i++)
+  if (NULL == trail)
+    return NULL;
+  
+  switch (trail_direction)
   {
-    if(GNUNET_YES == GNUNET_CONTAINER_multipeermap_iterator_next (iterator, NULL,
-                                                                 (const void **)&trail)) 
-    {
-      if (0 == GNUNET_CRYPTO_cmp_peer_identity (&(trail->destination), destination_peer))
-      {
-        if (GNUNET_YES == get_next_hop (trail, source_peer, destination_peer, prev_hop))
-        {
-          return &(trail->next_hop);
-        }
-      }
-    }
+    case GDS_ROUTING_SRC_TO_DEST:
+      return &(trail->next_hop);
+    case GDS_ROUTING_DEST_TO_SRC:
+      return &(trail->prev_hop);
   }
-  GNUNET_CONTAINER_multipeermap_iterator_destroy (iterator);
   return NULL;
 }
 
 
 /**
- * FIXME: first search in routing table and if same entry found then don't add
- * it. 
- * Add a new entry to our routing table.
- * @param source peer Source of the trail.
- * @param destintation Destination of the trail.
- * @param next_hop Next peer to forward the message to reach the destination.
- * @return GNUNET_YES
- *         GNUNET_SYSERR If the number of routing entries crossed thershold.
+ * Remove trail with trail_id
+ * @param trail_id Trail id to be removed
+ * @return #GNUNET_YES success 
+ *         #GNUNET_NO if entry not found.
  */
 int
-GDS_ROUTING_add (const struct GNUNET_PeerIdentity *source,
-                 const struct GNUNET_PeerIdentity *dest,
-                 const struct GNUNET_PeerIdentity *next_hop,
-                 const struct GNUNET_PeerIdentity *prev_hop)
+GDS_ROUTING_remove_trail (const struct GNUNET_HashCode remove_trail_id)
 {
-  struct RoutingTrail *new_routing_entry;
-    
-  if (GNUNET_CONTAINER_multipeermap_size(routing_table) > ROUTING_TABLE_THRESHOLD)
-    return GNUNET_SYSERR;
- 
-  new_routing_entry = GNUNET_malloc (sizeof (struct RoutingTrail));
-  memcpy (&(new_routing_entry->source) , source, sizeof (struct GNUNET_PeerIdentity));
-  memcpy (&(new_routing_entry->next_hop), next_hop, sizeof (struct GNUNET_PeerIdentity));
-  memcpy (&(new_routing_entry->destination), dest, sizeof (struct GNUNET_PeerIdentity));
-  memcpy (&(new_routing_entry->prev_hop), prev_hop, sizeof (struct GNUNET_PeerIdentity));
+  struct RoutingTrail *remove_entry;
   
-  GNUNET_assert (GNUNET_OK ==
-    GNUNET_CONTAINER_multipeermap_put (routing_table,
-                                       dest, new_routing_entry,
-                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
-
-  return GNUNET_YES;
-}
-
-
-/**
- * Iterate over routing table and remove entries for which peer is a part. 
- * @param cls closure
- * @param key current public key
- * @param value value in the hash map
- * @return #GNUNET_YES if we should continue to
- *         iterate,
- *         #GNUNET_NO if not.
- */
-static int
-remove_routing_entry (void *cls,
-                      const struct GNUNET_PeerIdentity *key,
-                      void *value)
-{
-  struct RoutingTrail *remove_entry = value;
-  const struct GNUNET_PeerIdentity *disconnected_peer = cls;
+  remove_entry = GNUNET_CONTAINER_multihashmap_get (routing_table, &remove_trail_id);
   
-  if ((0 == GNUNET_CRYPTO_cmp_peer_identity (&(remove_entry->source), disconnected_peer)) ||
-      (0 == GNUNET_CRYPTO_cmp_peer_identity (&(remove_entry->destination), disconnected_peer)) ||    
-      (0 == GNUNET_CRYPTO_cmp_peer_identity (&(remove_entry->next_hop), disconnected_peer)) ||
-      (0 == GNUNET_CRYPTO_cmp_peer_identity (&(remove_entry->prev_hop), disconnected_peer)))
+  if (NULL == remove_entry)
+    return GNUNET_NO;
+  
+  if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_remove (routing_table,
+                                                          &remove_trail_id, 
+                                                          remove_entry))
   {
-    GNUNET_assert (GNUNET_YES ==
-                   GNUNET_CONTAINER_multipeermap_remove (routing_table,
-                                                         key, 
-                                                         remove_entry));
-  }
-  return GNUNET_YES;
-}
-
-
-/**
- * FIXME: add a return value. 
- * Iterate over routing table and remove all entries for which peer is a part. 
- * @param peer Peer to be searched for in the trail to remove that trail.
- */
-void
-GDS_ROUTING_remove_entry (const struct GNUNET_PeerIdentity *peer)
-{
-  GNUNET_CONTAINER_multipeermap_iterate (routing_table, &remove_routing_entry,
-                                        (void *)peer);
-}
-
-
-/**
- * In response to trail teardown message, remove the trail with source peer, 
- * destination peer and next hop same as the argument to this function. 
- * Assumption - there can be only one possible trail with these 4 values. 
- * @param source_peer Source of the trail.
- * @param destination_peer Destination of the trail.
- * @param next_hop Next hop
- * @param prev_hop Previous hop.
- * @return #GNUNET_YES Matching trail deleted from routing table. 
- *         #GNUNET_NO No matching trail found.
- *          
- */
-int
-GDS_ROUTING_remove_trail (struct GNUNET_PeerIdentity *source_peer,
-                          struct GNUNET_PeerIdentity *destination_peer, 
-                          const struct GNUNET_PeerIdentity *prev_hop)
-{
-  struct RoutingTrail *trail;
-  struct GNUNET_CONTAINER_MultiPeerMapIterator *iterator;
-  int i;
-  
-  iterator = GNUNET_CONTAINER_multipeermap_iterator_create (routing_table);
-  for (i = 0; i< GNUNET_CONTAINER_multipeermap_size(routing_table); i++)
-  {
-    if(GNUNET_YES == GNUNET_CONTAINER_multipeermap_iterator_next (iterator, NULL,
-                                                                 (const void **)&trail)) 
-    {
-      if (0 == GNUNET_CRYPTO_cmp_peer_identity (&(trail->destination), destination_peer))
-      {
-        GNUNET_assert (GNUNET_YES ==
-                       GNUNET_CONTAINER_multipeermap_remove (routing_table,
-                                                             &(trail->destination), 
-                                                             trail));
-        return GNUNET_YES; 
-      }
-    }
-  }
-  GNUNET_CONTAINER_multipeermap_iterator_destroy (iterator);
+    GNUNET_free (remove_entry);
+    return GNUNET_YES;
+  }  
   return GNUNET_NO;
 }
 
+
+/**
+ * Iterate over routing table and remove entries with value as part of any trail.
+ * @param cls closure
+ * @param key current public key
+ * @param value value in the hash map
+ * @return #GNUNET_YES if we should continue to iterate,
+ *         #GNUNET_NO if not.
+ */
+static int remove_matching_trails (void *cls,
+                                   const struct GNUNET_HashCode *key,
+                                   void *value)
+{
+  struct RoutingTrail *remove_trail = cls;
+  struct GNUNET_PeerIdentity *peer = value;
+  
+  if ((0 == GNUNET_CRYPTO_cmp_peer_identity (&remove_trail->next_hop, peer)) ||
+      (0 == GNUNET_CRYPTO_cmp_peer_identity (&remove_trail->prev_hop, peer)))
+  {
+    GNUNET_assert (GNUNET_YES ==
+                   GNUNET_CONTAINER_multihashmap_remove (routing_table,
+                                                         &remove_trail->trail_id,
+                                                         remove_trail));
+    GNUNET_free (remove_trail);
+  }  
+  return GNUNET_YES;  
+}
+
+
+/**
+ *  * FIXME: when a friend gets disconnected, then we remove the entry from routing
+ * table where this friend is either a next_hop or prev_hop. But we don't communicate
+ * that the trail is broken to any one who is part of trail. Should we communicate or
+ * not. And if not then the cases where trail setup fails because next_hop = NULL
+ * or something like that. VERY URGENT.
+ * Remove every trail where peer is either next_hop or prev_hop 
+ * @param peer Peer to be searched.
+ */
+void
+GDS_ROUTING_remove_trail_by_peer (const struct GNUNET_PeerIdentity *peer)
+{
+  GNUNET_CONTAINER_multihashmap_iterate (routing_table, &remove_matching_trails,
+                                           (void *)peer);
+}
+
+
+/**
+ * Add a new entry in routing table
+ * @param new_trail_id
+ * @param prev_hop
+ * @param next_hop
+ * @return #GNUNET_OK success
+ *         #GNUNET_SYSERR in case new_trail_id already exists in the network
+ *                         but with different prev_hop/next_hop
+ */
+int
+GDS_ROUTING_add (struct GNUNET_HashCode new_trail_id, 
+                 struct GNUNET_PeerIdentity *prev_hop,
+                 const struct GNUNET_PeerIdentity *next_hop)
+{
+  struct RoutingTrail *new_entry;
+  
+  new_entry = GNUNET_malloc (sizeof (struct RoutingTrail));
+  new_entry->trail_id = new_trail_id;
+  new_entry->next_hop = *next_hop;
+  new_entry->prev_hop = *prev_hop;
+  return GNUNET_CONTAINER_multihashmap_put (routing_table, 
+                                            &new_trail_id, new_entry,
+                                            GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+}
 
 
 /**
@@ -316,10 +218,10 @@ GDS_ROUTING_remove_trail (struct GNUNET_PeerIdentity *source_peer,
  * @return #GNUNET_YES, if threshold crossed else #GNUNET_NO.
  */
 int
-GDS_ROUTING_check_threshold ()
+GDS_ROUTING_threshold_reached (void)
 {
-  return (GNUNET_CONTAINER_multipeermap_size(routing_table) > ROUTING_TABLE_THRESHOLD) ?
-          GNUNET_YES:GNUNET_NO;    
+  return (GNUNET_CONTAINER_multihashmap_size(routing_table) > 
+          ROUTING_TABLE_THRESHOLD) ? GNUNET_YES:GNUNET_NO;    
 }
 
 
@@ -329,25 +231,19 @@ GDS_ROUTING_check_threshold ()
 void
 GDS_ROUTING_init (void)
 { 
-  routing_table = GNUNET_CONTAINER_multipeermap_create (ROUTING_TABLE_THRESHOLD * 4 / 3,
+  routing_table = GNUNET_CONTAINER_multihashmap_create (ROUTING_TABLE_THRESHOLD * 4 / 3,
                                                         GNUNET_NO);
 }
-  
+
 
 /**
- * FIXME: here you can have routing table with size 0, only when you delete
- * the entries correctly. Possible scenarios where we delete the entries are
- * 1. when one of my friend gets disconnected then I remove any trail (does not
- * matter if that friend is source, destination, next hop or previous hop).
- * 2. if I get a trail teardown message then I remove the entry.
- * Is there any other case that I may have missed? 
  * Shutdown routing subsystem.
  */
 void
 GDS_ROUTING_done (void)
 {
-  GNUNET_assert (0 == GNUNET_CONTAINER_multipeermap_size (routing_table));
-  GNUNET_CONTAINER_multipeermap_destroy (routing_table);
+  GNUNET_assert (0 == GNUNET_CONTAINER_multihashmap_size (routing_table));
+  GNUNET_CONTAINER_multihashmap_destroy (routing_table);
 }
 
 /* end of gnunet-service-xdht_routing.c */

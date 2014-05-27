@@ -653,7 +653,12 @@ extern "C"
 /**
  * Routing table add message. 
  */
-#define GNUNET_MESSAGE_TYPE_DHT_P2P_ADD_TRAIL          165
+#define GNUNET_MESSAGE_TYPE_DHT_P2P_ADD_TRAIL                   165
+
+/**
+ * Trail compessiong message. 
+ */
+#define GNUNET_MESSAGE_TYPE_DHT_P2P_TRAIL_COMPRESSION           166
 /*******************************************************************************
  * HOSTLIST message types
  ******************************************************************************/

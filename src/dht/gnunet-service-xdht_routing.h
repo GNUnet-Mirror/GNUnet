@@ -30,81 +30,77 @@
 #include "gnunet_block_lib.h"
 #include "gnunet_dht_service.h"
 
+/**
+ * To understand the direction in which trial should be read. 
+ */
+enum GDS_ROUTING_trail_direction 
+{
+  GDS_ROUTING_SRC_TO_DEST,
+  GDS_ROUTING_DEST_TO_SRC
+};
+
 
 /**
- * Add a new entry to our routing table.
- * @param source peer Source of the trail.
- * @param destintation Destination of the trail.
- * @param next_hop Next peer to forward the message to reach the destination.
- * @return GNUNET_YES
- *         GNUNET_SYSERR If the number of routing entries crossed thershold.
+ * Update the prev. hop of the trail. Call made by trail teardown where
+ * if you are the first friend now in the trail then you need to update
+ * your prev. hop.
+ * @param trail_id
+ * @return #GNUNET_OK success
+ *         #GNUNET_SYSERR in case no matching entry found in routing table. 
  */
 int
-GDS_ROUTING_add (const struct GNUNET_PeerIdentity *source,
-                 const struct GNUNET_PeerIdentity *dest,
-                 const struct GNUNET_PeerIdentity *next_hop,
-                 const struct GNUNET_PeerIdentity *prev_hop);
-
+GDS_ROUTING_update_trail_prev_hop (struct GNUNET_HashCode trail_id,
+                                   struct GNUNET_PeerIdentity prev_hop);
 
 /**
- * Iterate over routing table and remove entries for which peer is a part. 
- * @param peer
- * @return 
- */
-void
-GDS_ROUTING_remove_entry (const struct GNUNET_PeerIdentity *peer);
-
-
-/**
- * Search the next hop to send the packet to in routing table.
- * @return next hop peer id
+ * Get the next hop for trail corresponding to trail_id
+ * @param trail_id Trail id to be searched. 
+ * @return Next_hop if found
+ *         NULL If next hop not found. 
  */
 struct GNUNET_PeerIdentity *
-GDS_ROUTING_search(struct GNUNET_PeerIdentity *source_peer,
-                   struct GNUNET_PeerIdentity *destination_peer,
-                   const struct GNUNET_PeerIdentity *prev_hop);
-
-/**
- * FIXME: How to ensure that with only 3 fields also we have a unique trail.
- * in case of redundant routes we can have different next hop.
- * in that case we have to call this function on each entry of routing table
- * and from multiple next hop we return one. Here also we are going to return one.
- * URGENT. 
- * Assumption - there can be only on one trail with all these fields. But if
- * we consider only 3 fields then it is possible that next hop is differet. 
- * Update prev_hop field to source_peer. Trail from source peer to destination
- * peer is compressed such that I am the first friend in the trail. 
- * @param source_peer Source of the trail.
- * @param destination_peer Destination of the trail.
- * @param prev_hop Peer before me in the trail.
- * @return #GNUNET_YES trail is updated.
- *         #GNUNET_NO, trail not found. 
- */
-int
-GDS_ROUTING_trail_update (struct GNUNET_PeerIdentity *source_peer,
-                          struct GNUNET_PeerIdentity *destination_peer,
-                          const struct GNUNET_PeerIdentity *prev_hop);
+GDS_ROUTING_get_next_hop (struct GNUNET_HashCode trail_id,
+                          enum GDS_ROUTING_trail_direction trail_direction);
 
 
 /**
- * Remove the trail as result of trail tear down message. 
- * @param source_peer Source of the trail.
- * @param destination_peer Destination of the trail.
- * @param next_hop Next hop
- * @param prev_hop Previous hop. 
- * @return #GNUNET_YES if successful
- *         #GNUNET_NO if not successful. 
+  * Remove every trail where peer is either next_hop or prev_hop 
+ * @param peer Peer to be searched.
+ */
+void
+GDS_ROUTING_remove_trail_by_peer (const struct GNUNET_PeerIdentity *peer);
+/**
+ * Remove trail with trail_id
+ * @param trail_id Trail id to be removed
+ * @return #GNUNET_YES success 
+ *         #GNUNET_NO if entry not found.
  */
 int
-GDS_ROUTING_remove_trail (struct GNUNET_PeerIdentity *source_peer,
-                          struct GNUNET_PeerIdentity *destination_peer, 
-                          const struct GNUNET_PeerIdentity *prev_hop);
+GDS_ROUTING_remove_trail (struct GNUNET_HashCode remove_trail_id);
+
 
 /**
- * Check if size of routing table is greater than threshold or not. 
+ * Add a new entry in routing table
+ * @param new_trail_id
+ * @param prev_hop
+ * @param next_hop
+ * @return #GNUNET_OK success
+ *         #GNUNET_SYSERR in case new_trail_id already exists in the network
+ *                         but with different prev_hop/next_hop
  */
 int
-GDS_ROUTING_check_threshold (void);
+GDS_ROUTING_add (struct GNUNET_HashCode new_trail_id, 
+                 struct GNUNET_PeerIdentity *prev_hop,
+                 const struct GNUNET_PeerIdentity *next_hop);
+
+/**
+ * Check if the size of routing table has crossed threshold. 
+ * @return #GNUNET_YES, if threshold crossed 
+ *         #GNUNET_NO, if size is within threshold 
+ */
+int
+GDS_ROUTING_threshold_reached (void);
+
 
 /**
  * Initialize routing subsystem.
@@ -112,11 +108,9 @@ GDS_ROUTING_check_threshold (void);
 void
 GDS_ROUTING_init (void);
 
-
 /**
  * Shutdown routing subsystem.
  */
 void
 GDS_ROUTING_done (void);
-
 #endif
