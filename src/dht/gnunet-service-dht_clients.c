@@ -842,6 +842,7 @@ handle_dht_local_monitor (void *cls, struct GNUNET_SERVER_Client *client,
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
+
 /**
  * Handler for monitor stop messages
  *
