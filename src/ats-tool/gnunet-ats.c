@@ -383,6 +383,7 @@ ats_perf_cb(void *cls, const struct GNUNET_HELLO_Address *address, int active,
         GNUNET_SCHEDULER_cancel (end_task);
       end_task = GNUNET_SCHEDULER_add_now (end, NULL );
     }
+    return;
   }
 
   pr = GNUNET_malloc (sizeof (struct PendingResolutions) +
