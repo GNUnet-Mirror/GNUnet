@@ -20,9 +20,8 @@
 
 /**
  * @file social/test_social.c
- * @brief Test for the SOCIAL service.
+ * @brief Tests for the Social API.
  * @author Gabor X Toth
- * @author Christian Grothoff
  */
 
 #include <inttypes.h>
@@ -114,7 +113,7 @@ end ()
  * Main function of the test, run from scheduler.
  *
  * @param cls NULL
- * @param cfg configuration we use (also to connect to SOCIAL service)
+ * @param cfg configuration we use (also to connect to Social service)
  * @param peer handle to access more of the peer (not used)
  */
 static void

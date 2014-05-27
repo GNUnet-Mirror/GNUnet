@@ -66,5 +66,10 @@ endif
 test_multicast_SOURCES = \
  test_multicast.c
 test_multicast_LDADD = \
+  libgnunetmulticast.la \
+  $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/util/libgnunetutil.la
-
+test_multicast_DEPENDENCIES = \
+  libgnunetmulticast.la \
+  $(top_builddir)/src/testing/libgnunettesting.la \
+  $(top_builddir)/src/util/libgnunetutil.la

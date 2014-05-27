@@ -20,7 +20,7 @@
 
 /**
  * @file psyc/test_psyc.c
- * @brief Test for the PSYC service.
+ * @brief Tests for the PSYC API.
  * @author Gabor X Toth
  * @author Christian Grothoff
  */
