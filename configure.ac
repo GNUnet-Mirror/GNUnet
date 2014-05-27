@@ -251,7 +251,7 @@ AC_DEFINE_UNQUOTED([NEED_LIBGCRYPT_VERSION], "$NEED_LIBGCRYPT_VERSION", [require
 AC_ARG_ENABLE(gcc-hardening,
    AS_HELP_STRING(--enable-gcc-hardening, enable compiler security checks),
 [if test x$enableval = xyes; then
-    CFLAGS="$CFLAGS -D_FORTIFY_SOURCE=2 -fstack-protector-all"
+    CFLAGS="$CFLAGS -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=2 -fstack-protector-all"
     CFLAGS="$CFLAGS -fwrapv -fPIE -Wstack-protector"
     CFLAGS="$CFLAGS --param ssp-buffer-size=1"
     LDFLAGS="$LDFLAGS -pie"
