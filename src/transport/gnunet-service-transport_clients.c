@@ -571,7 +571,7 @@ clients_handle_start (void *cls, struct GNUNET_SERVER_Client *client,
 
   tc = lookup_client (client);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG | GNUNET_ERROR_TYPE_BULK,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO | GNUNET_ERROR_TYPE_BULK,
               "Client %p sent START\n", tc);
   if (tc != NULL)
   {
@@ -885,6 +885,9 @@ transmit_address_to_client (void *cls, const char *buf)
     atsm->header.type = ntohs (GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_TO_STRING_REPLY);
     atsm->res = htonl (GNUNET_NO);
     atsm->addr_len = htonl (0);
+
+    /* BUG HUNTING */
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Failed to convert address for client %p\n", actx->tc);
   }
 
   if (NULL == buf)

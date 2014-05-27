@@ -104,6 +104,9 @@ address_response_processor (void *cls, const struct GNUNET_MessageHeader *msg)
 
   if (GNUNET_NO == result)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Client %p failed to resolve address \n",
+        alucb->client);
+
     alucb->cb (alucb->cb_cls, empty_str, GNUNET_SYSERR);
 
     /* expect more replies */
@@ -127,15 +130,7 @@ address_response_processor (void *cls, const struct GNUNET_MessageHeader *msg)
   /* expect more replies */
   GNUNET_CLIENT_receive (alucb->client, &address_response_processor, alucb,
                          GNUNET_TIME_absolute_get_remaining (alucb->timeout));
-
-  if (GNUNET_NO == result)
-  {
-    alucb->cb (alucb->cb_cls, empty_str, GNUNET_SYSERR);
-  }
-  else
-  {
-    alucb->cb (alucb->cb_cls, address, GNUNET_OK);
-  }
+  alucb->cb (alucb->cb_cls, address, GNUNET_OK);
 }
 
 
@@ -180,6 +175,9 @@ GNUNET_TRANSPORT_address_to_string (const struct GNUNET_CONFIGURATION_Handle
   client = GNUNET_CLIENT_connect ("transport", cfg);
   if (NULL == client)
     return NULL;
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Client %p tries to resolve for peer `%s'address len %u \n",
+      client, GNUNET_i2s (&address->peer), address->address_length);
+
   msg = GNUNET_malloc (len);
   msg->header.size = htons (len);
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_TO_STRING);
