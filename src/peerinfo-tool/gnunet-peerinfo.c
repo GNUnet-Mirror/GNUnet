@@ -274,14 +274,17 @@ process_resolved_address (void *cls, const char *address, int res)
     return;
   }
 
+  ar->atsc = NULL;
   if (GNUNET_SYSERR == res)
   {
     FPRINTF (stderr,
              _("Failure: Cannot convert address to string for peer `%s'\n"),
              GNUNET_i2s (&ar->pc->peer));
   }
-  ar->atsc = NULL;
-  pc->num_addresses++;
+  else
+  {
+    pc->num_addresses++;
+  }
   if (pc->num_addresses == pc->address_list_size)
     dump_pc (pc);
 }
