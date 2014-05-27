@@ -1230,7 +1230,7 @@ cb_intersection_element_removed (void *cls,
     //this element has been removed from the set
     se = GNUNET_CONTAINER_multihashmap_get (s->intersected_elements,
                                             element->data);
-
+    
     GNUNET_CONTAINER_multihashmap_remove (s->intersected_elements,
                                           element->data,
                                           se);
@@ -1696,9 +1696,9 @@ handle_client_message_multipart (void *cls,
       GNUNET_free (elem);
       continue;
     }
-    set_elem.data = &elements[i].key;
-    set_elem.size = htons (sizeof (elements[i].key));
-    set_elem.type = htons (0); /* do we REALLY need this? */
+    set_elem.data = &elem->key;
+    set_elem.size = sizeof (elem->key);
+    set_elem.type = 0; /* do we REALLY need this? */
     GNUNET_SET_add_element (s->intersection_set, &set_elem, NULL, NULL);
     s->used_element_count++;
   }
@@ -1810,8 +1810,8 @@ handle_client_message (void *cls,
       continue;
     }
     set_elem.data = &elem->key;
-    set_elem.size = htons (sizeof (elem->key));
-    set_elem.type = htons (0); /* do we REALLY need this? */
+    set_elem.size = sizeof (elem->key);
+    set_elem.type = 0; /* do we REALLY need this? */
     GNUNET_SET_add_element (s->intersection_set, &set_elem, NULL, NULL);
     s->used_element_count++;
   }
