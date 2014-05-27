@@ -1058,7 +1058,7 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
     if (NULL == (papi = GST_plugins_find (plugin_name)))
     {
       /* we don't have the plugin for this address */
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                   _("Plugin `%s' not available, cannot confirm having this address\n"),
                   plugin_name);
       GNUNET_free (plugin_name);
@@ -1071,7 +1071,7 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
                                 gettext_noop
                                 ("# failed address checks during validation"), 1,
                                 GNUNET_NO);
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                   _("Address `%s' is not one of my addresses, not confirming PING\n"),
                   GST_plugins_a2s (&address));
       return GNUNET_SYSERR;
@@ -1082,7 +1082,7 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
                                 gettext_noop
                                 ("# successful address checks during validation"), 1,
                                 GNUNET_NO);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                   "Address `%s' is one of my addresses, confirming PING\n",
                   GST_plugins_a2s (&address));
     }
@@ -1091,7 +1091,7 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
     {
       if (GNUNET_NO == buggy)
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+        GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                     _("Not confirming PING from peer `%s' with address `%s' since I cannot confirm having this address.\n"),
                     GNUNET_i2s (sender),
                     GST_plugins_a2s (&address));
