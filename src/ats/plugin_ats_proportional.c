@@ -735,35 +735,38 @@ struct FindBestAddressCtx
   struct ATS_Address *best;
 };
 
+
 static int
 find_property_index (uint32_t type)
 {
   int existing_types[] = GNUNET_ATS_QualityProperties;
   int c;
+
   for (c = 0; c < GNUNET_ATS_QualityPropertiesCount; c++)
     if (existing_types[c] == type)
       return c;
   return GNUNET_SYSERR;
 }
 
+
 /**
  * Find a "good" address to use for a peer by iterating over the addresses for this peer.
  * If we already have an existing address, we stick to it.
  * Otherwise, we pick by lowest distance and then by lowest latency.
  *
- * @param cls the 'struct ATS_Address**' where we store the result
+ * @param cls the `struct FindBestAddressCtx *' where we store the result
  * @param key unused
- * @param value another 'struct ATS_Address*' to consider using
- * @return GNUNET_OK (continue to iterate)
+ * @param value another `struct ATS_Address*` to consider using
+ * @return #GNUNET_OK (continue to iterate)
  */
 static int
 find_best_address_it (void *cls,
 		      const struct GNUNET_PeerIdentity *key,
 		      void *value)
 {
-  struct FindBestAddressCtx *ctx = (struct FindBestAddressCtx *) cls;
-  struct ATS_Address *current = (struct ATS_Address *) value;
-  struct ATS_Address *current_best = (struct ATS_Address *) value;
+  struct FindBestAddressCtx *ctx = cls;
+  struct ATS_Address *current = value;
+  struct ATS_Address *current_best = current;
   struct GNUNET_TIME_Absolute now;
   struct AddressSolverInformation *asi;
   struct GNUNET_TIME_Relative active_time;
@@ -785,9 +788,11 @@ find_best_address_it (void *cls,
           == GNUNET_TIME_absolute_max (now, current->blocked_until).abs_value_us))
   {
     /* This address is blocked for suggestion */
-    LOG(GNUNET_ERROR_TYPE_DEBUG, "Address %p blocked for suggestion for %s \n",
-        current,
-        GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_difference (now, current->blocked_until), GNUNET_YES));
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Address %p blocked for suggestion for %s \n",
+         current,
+         GNUNET_STRINGS_relative_time_to_string (GNUNET_TIME_absolute_get_difference (now, current->blocked_until),
+                                                 GNUNET_YES));
     return GNUNET_OK;
   }
   if (NULL == asi)
@@ -809,7 +814,9 @@ find_best_address_it (void *cls,
   else
   {
     /* We do not have a 'best' address so take this address */
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Setting initial address %p\n", current);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Setting initial address %p\n",
+         current);
     current_best = current;
     goto end;
   }
