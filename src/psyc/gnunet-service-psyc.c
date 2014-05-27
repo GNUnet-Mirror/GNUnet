@@ -327,7 +327,7 @@ struct Master
   /**
    * @see enum GNUNET_PSYC_Policy
    */
-  uint32_t policy;
+  enum GNUNET_PSYC_Policy policy;
 };
 
 
@@ -2062,4 +2062,4 @@ main (int argc, char *const *argv)
                               &run, NULL)) ? 0 : 1;
 }
 
-/* end of gnunet-service-psycstore.c */
+/* end of gnunet-service-psyc.c */

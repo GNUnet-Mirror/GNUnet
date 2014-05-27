@@ -1411,6 +1411,8 @@ src/ats/ats.conf
 src/ats-tool/Makefile
 src/ats-tests/Makefile
 src/block/Makefile
+src/cadet/Makefile
+src/cadet/cadet.conf
 src/core/Makefile
 src/core/core.conf
 src/consensus/Makefile
@@ -1443,8 +1445,6 @@ src/identity/identity.conf
 src/include/Makefile
 src/integration-tests/Makefile
 src/hostlist/Makefile
-src/cadet/Makefile
-src/cadet/cadet.conf
 src/multicast/Makefile
 src/multicast/multicast.conf
 src/mysql/Makefile
@@ -1478,6 +1478,8 @@ src/scalarproduct/Makefile
 src/scalarproduct/scalarproduct.conf
 src/set/Makefile
 src/set/set.conf
+src/social/Makefile
+src/social/social.conf
 src/statistics/Makefile
 src/statistics/statistics.conf
 src/template/Makefile
@@ -1496,6 +1498,7 @@ pkgconfig/Makefile
 pkgconfig/gnunetarm.pc
 pkgconfig/gnunetats.pc
 pkgconfig/gnunetblock.pc
+pkgconfig/gnunetcadet.pc
 pkgconfig/gnunetconsensus.pc
 pkgconfig/gnunetconversation.pc
 pkgconfig/gnunetcore.pc
@@ -1512,7 +1515,6 @@ pkgconfig/gnunetfs.pc
 pkgconfig/gnunetgns.pc
 pkgconfig/gnunethello.pc
 pkgconfig/gnunetidentity.pc
-pkgconfig/gnunetcadet.pc
 pkgconfig/gnunetmicrophone.pc
 pkgconfig/gnunetmulticast.pc
 pkgconfig/gnunetmysql.pc
@@ -1527,6 +1529,7 @@ pkgconfig/gnunetregex.pc
 pkgconfig/gnunetrevocation.pc
 pkgconfig/gnunetscalarproduct.pc
 pkgconfig/gnunetset.pc
+pkgconfig/gnunetsocial.pc
 pkgconfig/gnunetspeaker.pc
 pkgconfig/gnunetstatistics.pc
 pkgconfig/gnunettestbed.pc

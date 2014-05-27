@@ -93,7 +93,8 @@ enum GNUNET_ENV_Type
 /**
  * PSYC state modifier.
  */
-struct GNUNET_ENV_Modifier {
+struct GNUNET_ENV_Modifier
+{
   /**
    * State operation.
    */

@@ -2171,13 +2171,13 @@ extern "C"
 /** S->C: result of an operation */
 #define GNUNET_MESSAGE_TYPE_PSYC_RESULT_CODE 680
 
-/** C->S: request to start a master */
+/** C->S: request to start a channel as a master */
 #define GNUNET_MESSAGE_TYPE_PSYC_MASTER_START 681
 
 /** S->C: master start acknowledgement */
 #define GNUNET_MESSAGE_TYPE_PSYC_MASTER_START_ACK 682
 
-/** C->S: request to start a master */
+/** C->S: request to join a channel as a slave */
 #define GNUNET_MESSAGE_TYPE_PSYC_SLAVE_JOIN 683
 
 /** S->C: slave join acknowledgement */
@@ -2489,13 +2489,41 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE_END 825
 
 
-/**
- * Next available: 840
- */
-
 /*******************************************************************************
  * SOCIAL message types
  ******************************************************************************/
+
+/**
+ * C: client
+ * S: service
+ * P: PSYC
+ */
+
+/** S->C: result of an operation */
+#define GNUNET_MESSAGE_TYPE_SOCIAL_RESULT_CODE 840
+
+/** C->S: request to enter a home as the host */
+#define GNUNET_MESSAGE_TYPE_SOCIAL_HOME_ENTER 841
+
+/** S->C: home enter acknowledgement */
+#define GNUNET_MESSAGE_TYPE_SOCIAL_HOME_ENTER_ACK 842
+
+/** C->S: request to enter a place as a guest */
+#define GNUNET_MESSAGE_TYPE_SOCIAL_PLACE_ENTER 843
+
+/** S->C: guest join acknowledgement */
+#define GNUNET_MESSAGE_TYPE_SOCIAL_PLACE_ENTER_ACK 844
+
+/** P->S->C: incoming join request from PSYC */
+#define GNUNET_MESSAGE_TYPE_SOCIAL_JOIN_REQUEST 847
+
+/** C->S->P: decision about a join request */
+#define GNUNET_MESSAGE_TYPE_SOCIAL_JOIN_DECISION 848
+
+
+/**
+ * Next available: 880
+ */
 
 
 /**

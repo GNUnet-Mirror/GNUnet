@@ -1,0 +1,12 @@
+prefix=/usr/local
+exec_prefix=${prefix}
+libdir=${exec_prefix}/lib
+includedir=${prefix}/include
+
+Name: GNUnet Social
+Description: library for social interactions
+URL: https://gnunet.org
+Version: 0.10.1
+Requires:
+Libs: -L${libdir} -lgnunetsocial
+Cflags: -I${includedir}

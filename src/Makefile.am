@@ -20,6 +20,7 @@ if HAVE_EXPERIMENTAL
   env \
   psycstore \
   psyc \
+  social \
   $(CONSENSUS) \
   $(SECRETSHARING) \
   $(SCALARPRODUCT) \

@@ -1,104 +1,112 @@
 /*
-     This file is part of GNUnet.
-     (C) 2013 Christian Grothoff (and other contributing authors)
-
-     GNUnet is free software; you can redistribute it and/or modify
-     it under the terms of the GNU General Public License as published
-     by the Free Software Foundation; either version 3, or (at your
-     option) any later version.
-
-     GNUnet is distributed in the hope that it will be useful, but
-     WITHOUT ANY WARRANTY; without even the implied warranty of
-     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
-     General Public License for more details.
-
-     You should have received a copy of the GNU General Public License
-     along with GNUnet; see the file COPYING.  If not, write to the
-     Free Software Foundation, Inc., 59 Temple Place - Suite 330,
-     Boston, MA 02111-1307, USA.
-*/
+ * This file is part of GNUnet
+ * (C) 2013 Christian Grothoff (and other contributing authors)
+ *
+ * GNUnet is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published
+ * by the Free Software Foundation; either version 3, or (at your
+ * option) any later version.
+ *
+ * GNUnet is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with GNUnet; see the file COPYING.  If not, write to the
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
+ */
 
 /**
- * @file include/gnunet_social_service.h
+ * @file social/social_api.c
  * @brief Social service; implements social functionality using the PSYC service.
  * @author Gabor X Toth
- * @author Christian Grothoff
  */
-#ifndef GNUNET_SOCIAL_SERVICE_H
-#define GNUNET_SOCIAL_SERVICE_H
 
-#ifdef __cplusplus
-extern "C"
-{
-#if 0                           /* keep Emacsens' auto-indent happy */
-}
-#endif
-#endif
+#include <inttypes.h>
 
+#include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_env_lib.h"
-#include "gnunet_identity_service.h"
 #include "gnunet_psyc_service.h"
-
-
-/**
- * Version number of GNUnet Social API.
- */
-#define GNUNET_SOCIAL_VERSION 0x00000000
+#include "gnunet_social_service.h"
+#include "social.h"
 
 
 /**
  * Handle for another user (who is likely pseudonymous) in the network.
  */
-struct GNUNET_SOCIAL_Nym;
+struct GNUNET_SOCIAL_Nym
+{
+
+};
+
 
 /**
  * Handle for a place where social interactions happen.
  */
-struct GNUNET_SOCIAL_Place;
+struct GNUNET_SOCIAL_Place
+{
+
+};
+
 
 /**
  * Handle for a place that one of our egos hosts.
  */
-struct GNUNET_SOCIAL_Home;
+struct GNUNET_SOCIAL_Home
+{
+
+};
+
 
 /**
  * Handle to an implementation of try-and-slice.
  */
-struct GNUNET_SOCIAL_Slicer;
+struct GNUNET_SOCIAL_Slicer
+{
+
+};
 
 
 /**
- * Method called from SOCIAL upon receiving a message indicating a call
- * to a @e method.
- *
- * @param cls Closure.
- * @param nym The sender of the message. NULL for the ego's own messages to the home.
- * @param full_method_name Original method name from PSYC (may be more
- *        specific than the registered method name due to try-and-slice matching).
-
- * @param message_id Unique message counter for this message
- *                   (unique only in combination with the given sender for
- *                    this channel).
- * @param modifier_count Number of elements in the @a modifiers array.
- * @param modifiers Modifiers present in the message. FIXME: use environment instead?
- * @param data_offset Byte offset of @a data in the overall data of the method.
- * @param data Data stream given to the method (might not be zero-terminated
- *             if data is binary).
- * @param data_size Number of bytes in @a data.
- * @param flags Message flags indicating fragmentation status.
+ * Handle for an announcement request.
  */
-typedef int
-(*GNUNET_SOCIAL_Method) (void *cls,
-                         struct GNUNET_SOCIAL_Nym *nym,
-                         const char *full_method_name,
-                         uint64_t message_id,
-                         size_t modifier_count,
-                         struct GNUNET_ENV_Modifier *modifiers,
-                         uint64_t data_offset,
-                         const void *data,
-                         size_t data_size,
-                         enum GNUNET_PSYC_MessageFlags flags);
+struct GNUNET_SOCIAL_Announcement
+{
+
+};
+
+
+struct GNUNET_SOCIAL_WatchHandle
+{
+
+};
+
+
+struct GNUNET_SOCIAL_LookHandle
+{
+
+};
+
+
+/**
+ * A talk request.
+ */
+struct GNUNET_SOCIAL_TalkRequest
+{
+
+};
+
+
+/**
+ * A history lesson.
+ */
+struct GNUNET_SOCIAL_HistoryLesson
+{
+
+};
 
 
 /**
@@ -107,7 +115,10 @@ typedef int
  * @return A new try-and-slice construct.
  */
 struct GNUNET_SOCIAL_Slicer *
-GNUNET_SOCIAL_slicer_create (void);
+GNUNET_SOCIAL_slicer_create (void)
+{
+  return NULL;
+}
 
 
 /**
@@ -126,7 +137,10 @@ void
 GNUNET_SOCIAL_slicer_add (struct GNUNET_SOCIAL_Slicer *slicer,
                           const char *method_name,
                           GNUNET_SOCIAL_Method method,
-                          void *method_cls);
+                          void *method_cls)
+{
+
+}
 
 
 /**
@@ -139,7 +153,11 @@ GNUNET_SOCIAL_slicer_add (struct GNUNET_SOCIAL_Slicer *slicer,
 void
 GNUNET_SOCIAL_slicer_remove (struct GNUNET_SOCIAL_Slicer *slicer,
                              const char *method_name,
-                             GNUNET_SOCIAL_Method method);
+                             GNUNET_SOCIAL_Method method)
+{
+
+}
+
 
 /**
  * Destroy a given try-and-slice instance.
@@ -147,53 +165,10 @@ GNUNET_SOCIAL_slicer_remove (struct GNUNET_SOCIAL_Slicer *slicer,
  * @param slicer slicer to destroy
  */
 void
-GNUNET_SOCIAL_slicer_destroy (struct GNUNET_SOCIAL_Slicer *slicer);
+GNUNET_SOCIAL_slicer_destroy (struct GNUNET_SOCIAL_Slicer *slicer)
+{
 
-
-/**
- * Function called asking for nym to be admitted to the place.
- *
- * Should call either GNUNET_SOCIAL_home_admit() or
- * GNUNET_SOCIAL_home_reject_entry() (possibly asynchronously).  If this owner
- * cannot decide, it is fine to call neither function, in which case hopefully
- * some other owner of the home exists that will make the decision. The @a nym
- * reference remains valid until the #GNUNET_SOCIAL_FarewellCallback is invoked
- * for it.
- *
- * @param cls Closure.
- * @param nym Handle for the user who wants to enter.
- * @param method_name Method name in the entry request.
- * @param variable_count Number of elements in the @a variables array.
- * @param variables Variables present in the message.
- * @param data Payload given on enter (e.g. a password).
- * @param data_size Number of bytes in @a data.
- */
-typedef void
-(*GNUNET_SOCIAL_AnswerDoorCallback) (void *cls,
-                                     struct GNUNET_SOCIAL_Nym *nym,
-                                     size_t variable_count,
-                                     const char *method_name,
-                                     struct GNUNET_ENV_Modifier *variables,
-                                     const void *data,
-                                     size_t data_size);
-
-
-/**
- * Function called when a @a nym leaves the place.
- *
- * This is also called if the @a nym was never given permission to enter
- * (i.e. the @a nym stopped asking to get in).
- *
- * @param cls Closure.
- * @param nym Handle for the user who left.
- * @param variable_count Number of elements in the @a variables array.
- * @param variables Variables present in the message.
- */
-typedef void
-(*GNUNET_SOCIAL_FarewellCallback) (void *cls,
-                                   struct GNUNET_SOCIAL_Nym *nym,
-                                   size_t variable_count,
-                                   struct GNUNET_ENV_Modifier *variables);
+}
 
 
 /**
@@ -222,7 +197,10 @@ GNUNET_SOCIAL_home_enter (const struct GNUNET_CONFIGURATION_Handle *cfg,
                           struct GNUNET_SOCIAL_Slicer *slicer,
                           GNUNET_SOCIAL_AnswerDoorCallback listener_cb,
                           GNUNET_SOCIAL_FarewellCallback farewell_cb,
-                          void *cls);
+                          void *cls)
+{
+  return NULL;
+}
 
 
 /**
@@ -236,7 +214,10 @@ GNUNET_SOCIAL_home_enter (const struct GNUNET_CONFIGURATION_Handle *cfg,
  */
 void
 GNUNET_SOCIAL_home_admit (struct GNUNET_SOCIAL_Home *home,
-                          struct GNUNET_SOCIAL_Nym *nym);
+                          struct GNUNET_SOCIAL_Nym *nym)
+{
+
+}
 
 
 /**
@@ -251,7 +232,10 @@ GNUNET_SOCIAL_home_admit (struct GNUNET_SOCIAL_Home *home,
  */
 void
 GNUNET_SOCIAL_home_eject (struct GNUNET_SOCIAL_Home *home,
-                          struct GNUNET_SOCIAL_Nym *nym);
+                          struct GNUNET_SOCIAL_Nym *nym)
+{
+
+}
 
 
 /**
@@ -270,7 +254,10 @@ GNUNET_SOCIAL_home_reject_entry (struct GNUNET_SOCIAL_Home *home,
                                  const char *method_name,
                                  const struct GNUNET_ENV_Environment *env,
                                  const void *data,
-                                 size_t data_size);
+                                 size_t data_size)
+{
+
+}
 
 
 /**
@@ -283,7 +270,10 @@ GNUNET_SOCIAL_home_reject_entry (struct GNUNET_SOCIAL_Home *home,
  */
 void
 GNUNET_SOCIAL_nym_get_key (struct GNUNET_SOCIAL_Nym *nym,
-                           struct GNUNET_CRYPTO_EddsaPublicKey *nym_key);
+                           struct GNUNET_CRYPTO_EddsaPublicKey *nym_key)
+{
+
+}
 
 
 /**
@@ -294,7 +284,10 @@ GNUNET_SOCIAL_nym_get_key (struct GNUNET_SOCIAL_Nym *nym,
  */
 void
 GNUNET_SOCIAL_home_get_key (struct GNUNET_SOCIAL_Home *home,
-                            struct GNUNET_CRYPTO_EddsaPrivateKey *home_key);
+                            struct GNUNET_CRYPTO_EddsaPrivateKey *home_key)
+{
+
+}
 
 
 /**
@@ -314,30 +307,10 @@ GNUNET_SOCIAL_home_advertise (struct GNUNET_SOCIAL_Home *home,
                               size_t peer_count,
                               const struct GNUNET_PeerIdentity *peers,
                               struct GNUNET_TIME_Relative expiration_time,
-                              const char *password);
-
-
-/**
- * Flags for announcements in a home.
- */
-enum GNUNET_SOCIAL_AnnounceFlags
+                              const char *password)
 {
-  GNUNET_SOCIAL_ANNOUNCE_NONE = 0,
 
-  /**
-   * Whether this announcement removes all objects from the home.
-   *
-   * New objects can be still added to the now empty home using the @e env
-   * parameter of the same announcement.
-   */
-  GNUNET_SOCIAL_ANNOUNCE_CLEAR_OBJECTS = 1 << 0
-};
-
-
-/**
- * Handle for an announcement request.
- */
-struct GNUNET_SOCIAL_Announcement;
+}
 
 
 /**
@@ -361,7 +334,10 @@ GNUNET_SOCIAL_home_announce (struct GNUNET_SOCIAL_Home *home,
                              const struct GNUNET_ENV_Environment *env,
                              GNUNET_CONNECTION_TransmitReadyNotify notify,
                              void *notify_cls,
-                             enum GNUNET_SOCIAL_AnnounceFlags flags);
+                             enum GNUNET_SOCIAL_AnnounceFlags flags)
+{
+  return NULL;
+}
 
 
 /**
@@ -370,7 +346,10 @@ GNUNET_SOCIAL_home_announce (struct GNUNET_SOCIAL_Home *home,
  * @param a The announcement to cancel.
  */
 void
-GNUNET_SOCIAL_home_announce_cancel (struct GNUNET_SOCIAL_Announcement *a);
+GNUNET_SOCIAL_home_announce_cancel (struct GNUNET_SOCIAL_Announcement *a)
+{
+
+}
 
 
 /**
@@ -381,7 +360,10 @@ GNUNET_SOCIAL_home_announce_cancel (struct GNUNET_SOCIAL_Announcement *a);
  *         do NOT try to GNUNET_SOCIAL_place_leave() this place, it's your home!
  */
 struct GNUNET_SOCIAL_Place *
-GNUNET_SOCIAL_home_get_place (struct GNUNET_SOCIAL_Home *home);
+GNUNET_SOCIAL_home_get_place (struct GNUNET_SOCIAL_Home *home)
+{
+  return NULL;
+}
 
 
 /**
@@ -394,7 +376,10 @@ GNUNET_SOCIAL_home_get_place (struct GNUNET_SOCIAL_Home *home);
  * @param keep_active Keep home active after last application disconnected.
  */
 void
-GNUNET_SOCIAL_home_leave (struct GNUNET_SOCIAL_Home *home, int keep_active);
+GNUNET_SOCIAL_home_leave (struct GNUNET_SOCIAL_Home *home, int keep_active)
+{
+
+}
 
 /**
  * Request entry to a place (home hosted by someone else).
@@ -421,7 +406,10 @@ GNUNET_SOCIAL_place_enter (const struct GNUNET_CONFIGURATION_Handle *cfg,
                            const struct GNUNET_ENV_Environment *env,
                            const void *data,
                            size_t data_size,
-                           struct GNUNET_SOCIAL_Slicer *slicer);
+                           struct GNUNET_SOCIAL_Slicer *slicer)
+{
+  return NULL;
+}
 
 /**
  * Request entry to a place (home hosted by someone else).
@@ -450,10 +438,11 @@ GNUNET_SOCIAL_place_enter2 (const struct GNUNET_CONFIGURATION_Handle *cfg,
                             const struct GNUNET_ENV_Environment *env,
                             const void *data,
                             size_t data_size,
-                            struct GNUNET_SOCIAL_Slicer *slicer);
+                            struct GNUNET_SOCIAL_Slicer *slicer)
+{
+  return NULL;
+}
 
-
-struct GNUNET_SOCIAL_WatchHandle;
 
 /**
  * Watch a place for changed objects.
@@ -469,7 +458,10 @@ struct GNUNET_SOCIAL_WatchHandle *
 GNUNET_SOCIAL_place_watch (struct GNUNET_SOCIAL_Place *place,
                            const char *object_filter,
                            GNUNET_PSYC_StateCallback state_cb,
-                           void *state_cb_cls);
+                           void *state_cb_cls)
+{
+  return NULL;
+}
 
 
 /**
@@ -478,10 +470,10 @@ GNUNET_SOCIAL_place_watch (struct GNUNET_SOCIAL_Place *place,
  * @param wh Watch handle to cancel.
  */
 void
-GNUNET_SOCIAL_place_watch_cancel (struct GNUNET_SOCIAL_WatchHandle *wh);
+GNUNET_SOCIAL_place_watch_cancel (struct GNUNET_SOCIAL_WatchHandle *wh)
+{
 
-
-struct GNUNET_SOCIAL_LookHandle;
+}
 
 
 /**
@@ -498,7 +490,10 @@ struct GNUNET_SOCIAL_LookHandle *
 GNUNET_SOCIAL_place_look (struct GNUNET_SOCIAL_Place *place,
                           const char *name_prefix,
                           GNUNET_PSYC_StateCallback state_cb,
-                          void *state_cb_cls);
+                          void *state_cb_cls)
+{
+  return NULL;
+}
 
 
 /**
@@ -507,7 +502,10 @@ GNUNET_SOCIAL_place_look (struct GNUNET_SOCIAL_Place *place,
  * @param lh Look handle to stop.
  */
 void
-GNUNET_SOCIAL_place_look_cancel (struct GNUNET_SOCIAL_LookHandle *lh);
+GNUNET_SOCIAL_place_look_cancel (struct GNUNET_SOCIAL_LookHandle *lh)
+{
+
+}
 
 
 
@@ -525,22 +523,11 @@ GNUNET_SOCIAL_place_look_cancel (struct GNUNET_SOCIAL_LookHandle *lh);
 const void *
 GNUNET_SOCIAL_place_look_at (struct GNUNET_SOCIAL_Place *place,
                              const char *full_name,
-                             size_t *value_size);
-
-
-/**
- * Flags for talking to the host of a place.
- */
-enum GNUNET_SOCIAL_TalkFlags
+                             size_t *value_size)
 {
-  GNUNET_SOCIAL_TALK_NONE = 0
-};
+  return NULL;
+}
 
-
-/**
- * A talk request.
- */
-struct GNUNET_SOCIAL_TalkRequest;
 
 /**
  * Talk to the host of the place.
@@ -560,7 +547,10 @@ GNUNET_SOCIAL_place_talk (struct GNUNET_SOCIAL_Place *place,
                           const struct GNUNET_ENV_Environment *env,
                           GNUNET_CONNECTION_TransmitReadyNotify notify,
                           void *notify_cls,
-                          enum GNUNET_SOCIAL_TalkFlags flags);
+                          enum GNUNET_SOCIAL_TalkFlags flags)
+{
+  return NULL;
+}
 
 
 /**
@@ -569,13 +559,11 @@ GNUNET_SOCIAL_place_talk (struct GNUNET_SOCIAL_Place *place,
  * @param tr Talk request to cancel.
  */
 void
-GNUNET_SOCIAL_place_talk_cancel (struct GNUNET_SOCIAL_TalkRequest *tr);
+GNUNET_SOCIAL_place_talk_cancel (struct GNUNET_SOCIAL_TalkRequest *tr)
+{
 
+}
 
-/**
- * A history lesson.
- */
-struct GNUNET_SOCIAL_HistoryLesson;
 
 /**
  * Learn about the history of a place.
@@ -604,7 +592,10 @@ GNUNET_SOCIAL_place_get_history (struct GNUNET_SOCIAL_Place *place,
                                  uint64_t end_message_id,
                                  const struct GNUNET_SOCIAL_Slicer *slicer,
                                  void (*finish_cb)(void *),
-                                 void *finish_cb_cls);
+                                 void *finish_cb_cls)
+{
+  return NULL;
+}
 
 
 /**
@@ -615,7 +606,10 @@ GNUNET_SOCIAL_place_get_history (struct GNUNET_SOCIAL_Place *place,
  * @param hist History lesson to cancel.
  */
 void
-GNUNET_SOCIAL_place_get_history_cancel (struct GNUNET_SOCIAL_HistoryLesson *hist);
+GNUNET_SOCIAL_place_get_history_cancel (struct GNUNET_SOCIAL_HistoryLesson *hist)
+{
+
+}
 
 
 /**
@@ -627,16 +621,7 @@ GNUNET_SOCIAL_place_get_history_cancel (struct GNUNET_SOCIAL_HistoryLesson *hist
  * @param keep_active Keep place active after last application disconnected.
  */
 void
-GNUNET_SOCIAL_place_leave (struct GNUNET_SOCIAL_Place *place, int keep_active);
-
-
-#if 0                           /* keep Emacsens' auto-indent happy */
+GNUNET_SOCIAL_place_leave (struct GNUNET_SOCIAL_Place *place, int keep_active)
 {
-#endif
-#ifdef __cplusplus
-}
-#endif
 
-/* ifndef GNUNET_SOCIAL_SERVICE_H */
-#endif
-/* end of gnunet_social_service.h */
+}
