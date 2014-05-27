@@ -20,7 +20,7 @@
 
 /**
  * @file multicast/multicast_api.c
- * @brief multicast service; establish tunnels to distant peers
+ * @brief Multicast service; implements multicast groups using CADET connections.
  * @author Christian Grothoff
  * @author Gabor X Toth
  */

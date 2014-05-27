@@ -20,7 +20,7 @@
 
 /**
  * @file social/social_api.c
- * @brief Social service; implements social functionality using the PSYC service.
+ * @brief Social service; implements social interactions using the PSYC service.
  * @author Gabor X Toth
  */
 
@@ -35,7 +35,7 @@
 
 
 /**
- * Handle for another user (who is likely pseudonymous) in the network.
+ * Handle for a pseudonym of another user in the network.
  */
 struct GNUNET_SOCIAL_Nym
 {
@@ -53,9 +53,18 @@ struct GNUNET_SOCIAL_Place
 
 
 /**
- * Handle for a place that one of our egos hosts.
+ * Host handle for a place that we entered.
  */
-struct GNUNET_SOCIAL_Home
+struct GNUNET_SOCIAL_Host
+{
+
+};
+
+
+/**
+ * Guest handle for place that we entered.
+ */
+struct GNUNET_SOCIAL_Guest
 {
 
 };
@@ -109,6 +118,8 @@ struct GNUNET_SOCIAL_HistoryLesson
 };
 
 
+
+
 /**
  * Create a try-and-slice instance.
  *
@@ -136,8 +147,8 @@ GNUNET_SOCIAL_slicer_create (void)
 void
 GNUNET_SOCIAL_slicer_add (struct GNUNET_SOCIAL_Slicer *slicer,
                           const char *method_name,
-                          GNUNET_SOCIAL_Method method,
-                          void *method_cls)
+                          GNUNET_SOCIAL_MethodCallback method_cb,
+                          void *cls)
 {
 
 }
@@ -153,11 +164,10 @@ GNUNET_SOCIAL_slicer_add (struct GNUNET_SOCIAL_Slicer *slicer,
 void
 GNUNET_SOCIAL_slicer_remove (struct GNUNET_SOCIAL_Slicer *slicer,
                              const char *method_name,
-                             GNUNET_SOCIAL_Method method)
+                             GNUNET_SOCIAL_MethodCallback method_cb)
 {
 
 }
-
 
 /**
  * Destroy a given try-and-slice instance.
@@ -172,26 +182,26 @@ GNUNET_SOCIAL_slicer_destroy (struct GNUNET_SOCIAL_Slicer *slicer)
 
 
 /**
- * Enter a home where guests (nyms) can be hosted.
+ * Enter a place as host.
  *
- * A home is created upon first entering, and exists until
- * GNUNET_SOCIAL_home_destroy() is called. It can also be left temporarily using
- * GNUNET_SOCIAL_home_leave().
+ * A place is created upon first entering, and it is active until permanently
+ * left using GNUNET_SOCIAL_host_leave().
  *
- * @param cfg Configuration to contact the social service.
- * @param home_keyfile File with the private-public key pair of the home,
- *        created if the file does not exist; pass NULL for ephemeral homes.
- * @param policy Policy specifying entry and history restrictions of the home.
- * @param ego Owner of the home (host).
- * @param slicer Slicer to handle guests talking.
- * @param listener_cb Function to handle new nyms that want to enter.
- * @param farewell_cb Function to handle departing nyms.
- * @param cls Closure for @a listener_cb and @a farewell_cb.
- * @return Handle for a new home.
+ * @param cfg  Configuration to contact the social service.
+ * @param place_keyfile  File with the private-public key pair of the place,
+ *        created if the file does not exist; pass NULL for ephemeral places.
+ * @param policy  Policy specifying entry and history restrictions of the place.
+ * @param ego  Identity of the host.
+ * @param slicer  Slicer to handle incoming messages.
+ * @param listener_cb  Function to handle new nyms that want to enter.
+ * @param farewell_cb  Function to handle departing nyms.
+ * @param cls  Closure for @a listener_cb and @a farewell_cb.
+ *
+ * @return Handle for the host.
  */
-struct GNUNET_SOCIAL_Home *
-GNUNET_SOCIAL_home_enter (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                          const char *home_keyfile,
+struct GNUNET_SOCIAL_Host *
+GNUNET_SOCIAL_host_enter (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                          const char *place_keyfile,
                           enum GNUNET_PSYC_Policy policy,
                           struct GNUNET_IDENTITY_Ego *ego,
                           struct GNUNET_SOCIAL_Slicer *slicer,
@@ -204,16 +214,16 @@ GNUNET_SOCIAL_home_enter (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 
 /**
- * Admit @a nym to the @a home.
+ * Admit @a nym to the place.
  *
- * The @a nym reference will remain valid until either the home is destroyed or
- * @a nym leaves.
+ * The @a nym reference will remain valid until either the @a host or @a nym
+ * leaves the place.
  *
- * @param home Home to allow @a nym to enter.
- * @param nym Handle for the entity that wants to enter.
+ * @param host  Host of the place.
+ * @param nym  Handle for the entity that wants to enter.
  */
 void
-GNUNET_SOCIAL_home_admit (struct GNUNET_SOCIAL_Home *home,
+GNUNET_SOCIAL_host_admit (struct GNUNET_SOCIAL_Host *host,
                           struct GNUNET_SOCIAL_Nym *nym)
 {
 
@@ -221,17 +231,17 @@ GNUNET_SOCIAL_home_admit (struct GNUNET_SOCIAL_Home *home,
 
 
 /**
- * Throw @a nym out of the @a home.
+ * Throw @a nym out of the place.
  *
  * The @a nym reference will remain valid until the
  * #GNUNET_SOCIAL_FarewellCallback is invoked,
  * which should be very soon after this call.
  *
- * @param home Home to eject @a nym from.
- * @param nym Handle for the entity to be ejected.
+ * @param host  Host of the place.
+ * @param nym  Handle for the entity to be ejected.
  */
 void
-GNUNET_SOCIAL_home_eject (struct GNUNET_SOCIAL_Home *home,
+GNUNET_SOCIAL_host_eject (struct GNUNET_SOCIAL_Host *host,
                           struct GNUNET_SOCIAL_Nym *nym)
 {
 
@@ -239,9 +249,9 @@ GNUNET_SOCIAL_home_eject (struct GNUNET_SOCIAL_Home *home,
 
 
 /**
- * Refuse @a nym entry into the @a home.
+ * Refuse @a nym entry into the place.
  *
- * @param home Home to disallow @a nym to enter.
+ * @param host  Host of the place.
  * @param nym Handle for the entity that wanted to enter.
  * @param method_name Method name for the rejection message.
  * @param env Environment containing variables for the message, or NULL.
@@ -249,7 +259,7 @@ GNUNET_SOCIAL_home_eject (struct GNUNET_SOCIAL_Home *home,
  * @param data_size Number of bytes in @a data for method.
  */
 void
-GNUNET_SOCIAL_home_reject_entry (struct GNUNET_SOCIAL_Home *home,
+GNUNET_SOCIAL_host_refuse_entry (struct GNUNET_SOCIAL_Host *host,
                                  struct GNUNET_SOCIAL_Nym *nym,
                                  const char *method_name,
                                  const struct GNUNET_ENV_Environment *env,
@@ -261,7 +271,7 @@ GNUNET_SOCIAL_home_reject_entry (struct GNUNET_SOCIAL_Home *home,
 
 
 /**
- * Get the public key of a nym.
+ * Get the public key of a @a nym.
  *
  * Suitable, for example, to be used with GNUNET_NAMESTORE_zone_to_name().
  *
@@ -277,23 +287,25 @@ GNUNET_SOCIAL_nym_get_key (struct GNUNET_SOCIAL_Nym *nym,
 
 
 /**
- * Obtain the private-public key pair of the home.
+ * Obtain the private-public key pair of the host.
  *
- * @param home Home to get the key of.
- * @param[out] home_key Set to the private-public key pair of the home.  The public part is suitable for storing in GNS within a "PLACE" record, along with peer IDs to join at.
+ * @param host  Host to get the key of.
+ * @param[out] host_key  Set to the private-public key pair of the host.  The
+ *                 public part is suitable for storing in GNS within a "PLACE"
+ *                 record, along with peer IDs to join at.
  */
 void
-GNUNET_SOCIAL_home_get_key (struct GNUNET_SOCIAL_Home *home,
-                            struct GNUNET_CRYPTO_EddsaPrivateKey *home_key)
+GNUNET_SOCIAL_host_get_key (struct GNUNET_SOCIAL_Host *host,
+                            struct GNUNET_CRYPTO_EddsaPrivateKey *host_key)
 {
 
 }
 
 
 /**
- * Advertise @a home under @a name in the GNS zone of the @e ego.
+ * Advertise the place in the GNS zone of the @e ego of the @a host.
  *
- * @param home The home to advertise.
+ * @param host  Host of the place.
  * @param name The name for the PLACE record to put in the zone.
  * @param peer_count Number of elements in the @a peers array.
  * @param peers List of peers in the PLACE record that can be used to send join
@@ -302,7 +314,7 @@ GNUNET_SOCIAL_home_get_key (struct GNUNET_SOCIAL_Home *home,
  * @param password Password used to encrypt the record.
  */
 void
-GNUNET_SOCIAL_home_advertise (struct GNUNET_SOCIAL_Home *home,
+GNUNET_SOCIAL_host_advertise (struct GNUNET_SOCIAL_Host *host,
                               const char *name,
                               size_t peer_count,
                               const struct GNUNET_PeerIdentity *peers,
@@ -314,22 +326,23 @@ GNUNET_SOCIAL_home_advertise (struct GNUNET_SOCIAL_Home *home,
 
 
 /**
- * Send a message to all nyms that are present in the home.
+ * Send a message to all nyms that are present in the place.
  *
- * This function is restricted to the home owner.  Nyms can only send requests
- * to the home owner who can decide to relay it to other guests.
+ * This function is restricted to the host.  Nyms can only send requests
+ * to the host who can decide to relay it to everyone in the place.
  *
- * @param home Home to address the announcement to.
+ * @param host  Host of the place.
  * @param method_name Method to use for the announcement.
- * @param env Environment containing variables for the message and operations on
- *        objects of the home, or NULL.
+ * @param env  Environment containing variables for the message and operations
+ *          on objects of the place.  Can be NULL.
  * @param notify Function to call to get the payload of the announcement.
  * @param notify_cls Closure for @a notify.
  * @param flags Flags for this announcement.
+ *
  * @return NULL on error (announcement already in progress?).
  */
 struct GNUNET_SOCIAL_Announcement *
-GNUNET_SOCIAL_home_announce (struct GNUNET_SOCIAL_Home *home,
+GNUNET_SOCIAL_host_announce (struct GNUNET_SOCIAL_Host *host,
                              const char *method_name,
                              const struct GNUNET_ENV_Environment *env,
                              GNUNET_CONNECTION_TransmitReadyNotify notify,
@@ -346,46 +359,48 @@ GNUNET_SOCIAL_home_announce (struct GNUNET_SOCIAL_Home *home,
  * @param a The announcement to cancel.
  */
 void
-GNUNET_SOCIAL_home_announce_cancel (struct GNUNET_SOCIAL_Announcement *a)
+GNUNET_SOCIAL_host_announce_cancel (struct GNUNET_SOCIAL_Announcement *a)
 {
 
 }
 
 
 /**
- * Convert our home to a place so we can access it via the place API.
+ * Obtain handle for a hosted place.
  *
- * @param home Handle for the home.
- * @return Place handle for the same home, valid as long as @a home is valid;
- *         do NOT try to GNUNET_SOCIAL_place_leave() this place, it's your home!
+ * The returned handle can be used to access the place API.
+ *
+ * @param host  Handle for the host.
+ *
+ * @return Handle for the hosted place, valid as long as @a host is valid.
  */
 struct GNUNET_SOCIAL_Place *
-GNUNET_SOCIAL_home_get_place (struct GNUNET_SOCIAL_Home *home)
+GNUNET_SOCIAL_host_get_place (struct GNUNET_SOCIAL_Host *host)
 {
   return NULL;
 }
 
 
 /**
- * Leave a home.
-
- * Invalidates home handle.
- * Guests will be disconnected until the home is restarted.
+ * Stop hosting a place.
  *
- * @param home Home to leave.
- * @param keep_active Keep home active after last application disconnected.
+ * Invalidates host handle.
+ *
+ * @param host  Host leaving the place.
+ * @param keep_active  Keep the place active after last host disconnected.
  */
 void
-GNUNET_SOCIAL_home_leave (struct GNUNET_SOCIAL_Home *home, int keep_active)
+GNUNET_SOCIAL_host_leave (struct GNUNET_SOCIAL_Host *host, int keep_active)
 {
 
 }
 
+
 /**
- * Request entry to a place (home hosted by someone else).
+ * Request entry to a place as a guest.
  *
- * @param cfg Configuration to contact the social service.
- * @param ego Owner of the home (host).
+ * @param cfg  Configuration to contact the social service.
+ * @param ego  Identity of the guest.
  * @param address GNS name of the place to enter.  Either in the form of
  *        'room.friend.gnu', or 'NYMPUBKEY.zkey'.  This latter case refers to
  *        the 'PLACE' record of the empty label ("+") in the GNS zone with the
@@ -396,10 +411,11 @@ GNUNET_SOCIAL_home_leave (struct GNUNET_SOCIAL_Home *home, int keep_active)
  * @param data Payload for the message to give to the enter callback.
  * @param data_size Number of bytes in @a data.
  * @param slicer Slicer to use for processing incoming requests from guests.
- * @return NULL on errors, otherwise handle to the place.
+ *
+ * @return NULL on errors, otherwise handle for the guest.
  */
-struct GNUNET_SOCIAL_Place *
-GNUNET_SOCIAL_place_enter (const struct GNUNET_CONFIGURATION_Handle *cfg,
+struct GNUNET_SOCIAL_Guest *
+GNUNET_SOCIAL_guest_enter (const struct GNUNET_CONFIGURATION_Handle *cfg,
                            struct GNUNET_IDENTITY_Ego *ego,
                            char *address,
                            const char *method_name,
@@ -412,10 +428,10 @@ GNUNET_SOCIAL_place_enter (const struct GNUNET_CONFIGURATION_Handle *cfg,
 }
 
 /**
- * Request entry to a place (home hosted by someone else).
+ * Request entry to a place as a guest.
  *
  * @param cfg Configuration to contact the social service.
- * @param ego Owner of the home (host).
+ * @param ego  Identity of the guest.
  * @param crypto_address Public key of the place to enter.
  * @param origin Peer identity of the origin of the underlying multicast group.
  * @param relay_count Number of elements in the @a relays array.
@@ -425,10 +441,11 @@ GNUNET_SOCIAL_place_enter (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param data Payload for the message to give to the enter callback.
  * @param data_size Number of bytes in @a data.
  * @param slicer Slicer to use for processing incoming requests from guests.
- * @return NULL on errors, otherwise handle to the place.
+ *
+ * @return NULL on errors, otherwise handle for the guest.
  */
-struct GNUNET_SOCIAL_Place *
-GNUNET_SOCIAL_place_enter2 (const struct GNUNET_CONFIGURATION_Handle *cfg,
+struct GNUNET_SOCIAL_Guest *
+GNUNET_SOCIAL_guest_enter2 (const struct GNUNET_CONFIGURATION_Handle *cfg,
                             struct GNUNET_IDENTITY_Ego *ego,
                             struct GNUNET_CRYPTO_EddsaPublicKey *crypto_address,
                             struct GNUNET_PeerIdentity *origin,
@@ -443,6 +460,128 @@ GNUNET_SOCIAL_place_enter2 (const struct GNUNET_CONFIGURATION_Handle *cfg,
   return NULL;
 }
 
+
+/**
+ * Talk to the host of the place.
+ *
+ * @param place Place where we want to talk to the host.
+ * @param method_name Method to invoke on the host.
+ * @param env Environment containing variables for the message, or NULL.
+ * @param notify Function to use to get the payload for the method.
+ * @param notify_cls Closure for @a notify.
+ * @param flags Flags for the message being sent.
+ *
+ * @return NULL if we are already trying to talk to the host,
+ *         otherwise handle to cancel the request.
+ */
+struct GNUNET_SOCIAL_TalkRequest *
+GNUNET_SOCIAL_guest_talk (struct GNUNET_SOCIAL_Place *place,
+                          const char *method_name,
+                          const struct GNUNET_ENV_Environment *env,
+                          GNUNET_CONNECTION_TransmitReadyNotify notify,
+                          void *notify_cls,
+                          enum GNUNET_SOCIAL_TalkFlags flags)
+{
+  return NULL;
+}
+
+
+/**
+ * Cancel talking to the host of the place.
+ *
+ * @param tr Talk request to cancel.
+ */
+void
+GNUNET_SOCIAL_guest_talk_cancel (struct GNUNET_SOCIAL_TalkRequest *tr)
+{
+
+}
+
+
+/**
+ * Leave a place permanently.
+ *
+ * Notifies the owner of the place about leaving, and destroys the place handle.
+ *
+ * @param place Place to leave permanently.
+ * @param keep_active Keep place active after last application disconnected.
+ */
+void
+GNUNET_SOCIAL_guest_leave (struct GNUNET_SOCIAL_Place *place, int keep_active)
+{
+
+}
+
+
+/**
+ * Obtain handle for a place entered as guest.
+ *
+ * The returned handle can be used to access the place API.
+ *
+ * @param guest  Handle for the guest.
+ *
+ * @return Handle for the place, valid as long as @a guest is valid.
+ */
+struct GNUNET_SOCIAL_Place *
+GNUNET_SOCIAL_guest_get_place (struct GNUNET_SOCIAL_Host *guest)
+{
+  return NULL;
+}
+
+
+/**
+ * A history lesson.
+ */
+struct GNUNET_SOCIAL_HistoryLesson;
+
+/**
+ * Learn about the history of a place.
+ *
+ * Sends messages through the slicer function of the place where
+ * start_message_id <= message_id <= end_message_id.
+ * The messages will have the #GNUNET_PSYC_MESSAGE_HISTORIC flag set.
+ *
+ * To get the latest message, use 0 for both the start and end message ID.
+ *
+ * @param place Place we want to learn more about.
+ * @param start_message_id First historic message we are interested in.
+ * @param end_message_id Last historic message we are interested in (inclusive).
+ * @param slicer Slicer to use to process history.  Can be the same as the
+ *               slicer of the place, as the HISTORIC flag allows distinguishing
+ *               old messages from fresh ones.
+ * @param finish_cb Function called after the last message in the history lesson
+ *              is passed through the @a slicer. NULL if not needed.
+ * @param finish_cb_cls Closure for @a finish_cb.
+ * @return Handle to abort history lesson, never NULL (multiple lessons
+ *         at the same time are allowed).
+ */
+struct GNUNET_SOCIAL_HistoryLesson *
+GNUNET_SOCIAL_place_get_history (struct GNUNET_SOCIAL_Place *place,
+                                 uint64_t start_message_id,
+                                 uint64_t end_message_id,
+                                 const struct GNUNET_SOCIAL_Slicer *slicer,
+                                 void (*finish_cb)(void *),
+                                 void *finish_cb_cls)
+{
+  return NULL;
+}
+
+
+/**
+ * Stop processing messages from the history lesson.
+ *
+ * Must not be called after the finish callback of the history lesson is called.
+ *
+ * @param hist History lesson to cancel.
+ */
+void
+GNUNET_SOCIAL_place_get_history_cancel (struct GNUNET_SOCIAL_HistoryLesson *hist)
+{
+
+}
+
+
+struct GNUNET_SOCIAL_WatchHandle;
 
 /**
  * Watch a place for changed objects.
@@ -474,6 +613,9 @@ GNUNET_SOCIAL_place_watch_cancel (struct GNUNET_SOCIAL_WatchHandle *wh)
 {
 
 }
+
+
+struct GNUNET_SOCIAL_LookHandle;
 
 
 /**
@@ -529,99 +671,6 @@ GNUNET_SOCIAL_place_look_at (struct GNUNET_SOCIAL_Place *place,
 }
 
 
-/**
- * Talk to the host of the place.
- *
- * @param place Place where we want to talk to the host.
- * @param method_name Method to invoke on the host.
- * @param env Environment containing variables for the message, or NULL.
- * @param notify Function to use to get the payload for the method.
- * @param notify_cls Closure for @a notify.
- * @param flags Flags for the message being sent.
- * @return NULL if we are already trying to talk to the host,
- *         otherwise handle to cancel the request.
- */
-struct GNUNET_SOCIAL_TalkRequest *
-GNUNET_SOCIAL_place_talk (struct GNUNET_SOCIAL_Place *place,
-                          const char *method_name,
-                          const struct GNUNET_ENV_Environment *env,
-                          GNUNET_CONNECTION_TransmitReadyNotify notify,
-                          void *notify_cls,
-                          enum GNUNET_SOCIAL_TalkFlags flags)
-{
-  return NULL;
-}
 
 
-/**
- * Cancel talking to the host of the place.
- *
- * @param tr Talk request to cancel.
- */
-void
-GNUNET_SOCIAL_place_talk_cancel (struct GNUNET_SOCIAL_TalkRequest *tr)
-{
-
-}
-
-
-/**
- * Learn about the history of a place.
- *
- * Sends messages through the slicer function of the place where
- * start_message_id <= message_id <= end_message_id.
- * The messages will have the #GNUNET_PSYC_MESSAGE_HISTORIC flag set.
- *
- * To get the latest message, use 0 for both the start and end message ID.
- *
- * @param place Place we want to learn more about.
- * @param start_message_id First historic message we are interested in.
- * @param end_message_id Last historic message we are interested in (inclusive).
- * @param slicer Slicer to use to process history.  Can be the same as the
- *               slicer of the place, as the HISTORIC flag allows distinguishing
- *               old messages from fresh ones.
- * @param finish_cb Function called after the last message in the history lesson
- *              is passed through the @a slicer. NULL if not needed.
- * @param finish_cb_cls Closure for @a finish_cb.
- * @return Handle to abort history lesson, never NULL (multiple lessons
- *         at the same time are allowed).
- */
-struct GNUNET_SOCIAL_HistoryLesson *
-GNUNET_SOCIAL_place_get_history (struct GNUNET_SOCIAL_Place *place,
-                                 uint64_t start_message_id,
-                                 uint64_t end_message_id,
-                                 const struct GNUNET_SOCIAL_Slicer *slicer,
-                                 void (*finish_cb)(void *),
-                                 void *finish_cb_cls)
-{
-  return NULL;
-}
-
-
-/**
- * Stop processing messages from the history lesson.
- *
- * Must not be called after the finish callback of the history lesson is called.
- *
- * @param hist History lesson to cancel.
- */
-void
-GNUNET_SOCIAL_place_get_history_cancel (struct GNUNET_SOCIAL_HistoryLesson *hist)
-{
-
-}
-
-
-/**
- * Leave a place permanently.
- *
- * Notifies the owner of the place about leaving, and destroys the place handle.
- *
- * @param place Place to leave permanently.
- * @param keep_active Keep place active after last application disconnected.
- */
-void
-GNUNET_SOCIAL_place_leave (struct GNUNET_SOCIAL_Place *place, int keep_active)
-{
-
-}
+/* end of social_api.c */

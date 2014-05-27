@@ -307,8 +307,10 @@ struct GNUNET_PSYC_JoinHandle;
 /**
  * Method called from PSYC upon receiving part of a message.
  *
- * @param cls Closure.
- * @param msg Message part, one of the following types:
+ * @param cls  Closure.
+ * @param message_id  Sequence number of the message.
+ * @param flags  OR'ed GNUNET_PSYC_MessageFlags
+ * @param msg  Message part, one of the following types:
  * - GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_HEADER
  * - GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_METHOD
  * - GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MODIFIER
