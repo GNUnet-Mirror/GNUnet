@@ -185,6 +185,15 @@ transport_addr_to_str_cb(void *cls, const char *address, int res)
   uint32_t ats_value;
   uint32_t network;
 
+  if (res == GNUNET_SYSERR)
+  {
+    fprintf (stderr, "Failed to convert address for peer `%s' plugin `%s' length %lu to string \n",
+        GNUNET_i2s (&pr->address->peer),
+        pr->address->transport_name,
+        pr->address->address_length );
+    return;
+  }
+
   if (NULL == address)
   {
     /* We're done */
@@ -201,15 +210,6 @@ transport_addr_to_str_cb(void *cls, const char *address, int res)
       end_task = GNUNET_SCHEDULER_add_now (end, NULL );
     }
 
-    return;
-  }
-
-  if (res == GNUNET_SYSERR)
-  {
-    fprintf (stderr, "Failed to convert address for peer `%s' plugin `%s' length %lu to string \n",
-        GNUNET_i2s (&pr->address->peer),
-        pr->address->transport_name,
-        pr->address->address_length );
     return;
   }
 
