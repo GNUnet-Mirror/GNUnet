@@ -67,6 +67,8 @@ shutdown_task (void *cls,
     GNUNET_free (db_lib_name);
     db_lib_name = NULL;
   }
+
+  GNUNET_SCHEDULER_shutdown();
 }
 
 /**
@@ -78,6 +80,8 @@ cleanup_expired_records(void *cls,
 {
   int deleted;
 
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+    return;
   GNUNET_assert(NULL != db);
   deleted = db->expire_records(db->cls, GNUNET_TIME_absolute_get());
   GNUNET_log(GNUNET_ERROR_TYPE_INFO, "%d records expired.\n", deleted);
@@ -266,7 +270,7 @@ run (void *cls,
 	  GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Could not load database backend `%s'\n", db_lib_name);
   else
   {
-    cleanup_expired_records(NULL, NULL);
+    GNUNET_SCHEDULER_add_now(&cleanup_expired_records, NULL);
     GNUNET_SERVER_add_handlers (server, handlers);
     GNUNET_SERVER_disconnect_notify (server,
              &handle_client_disconnect,
