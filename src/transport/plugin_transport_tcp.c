@@ -2341,8 +2341,6 @@ try_connection_reversal (void *cls, const struct sockaddr *addr,
     return;
   }
 
-  /* FIXME: do we need to track these probe context objects so that
-   * we can clean them up on plugin unload? */
   tcp_probe_ctx = GNUNET_new (struct TCPProbeContext);
   tcp_probe_ctx->message.header.size = htons (
       sizeof(struct TCP_NAT_ProbeMessage));
