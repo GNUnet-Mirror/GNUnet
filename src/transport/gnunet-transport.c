@@ -1079,21 +1079,25 @@ process_peer_string (void *cls, const char *address, int res)
 {
   struct PeerResolutionContext *rc = cls;
 
-  if (address != NULL )
+  if (GNUNET_SYSERR == res)
   {
-    if (GNUNET_SYSERR == res)
-    {
-      FPRINTF (stderr, "Failed to convert address for peer `%s' plugin `%s' length %lu to string \n",
-          GNUNET_i2s (&rc->id),
-          rc->addrcp->transport_name,
-          rc->addrcp->address_length);
-      print_info (&rc->id, rc->transport, NULL, rc->state, rc->state_timeout);
-    }
-    else
-      print_info (&rc->id, rc->transport, address, rc->state, rc->state_timeout);
+    FPRINTF (stderr, "Failed to convert address for peer `%s' plugin `%s' length %lu to string \n",
+        GNUNET_i2s (&rc->id),
+        rc->addrcp->transport_name,
+        rc->addrcp->address_length);
+    print_info (&rc->id, rc->transport, NULL, rc->state, rc->state_timeout);
     rc->printed = GNUNET_YES;
+    return;
   }
-  else
+
+  if ((GNUNET_OK == res) && (address != NULL))
+  {
+    print_info (&rc->id, rc->transport, address, rc->state, rc->state_timeout);
+    rc->printed = GNUNET_YES;
+    return; /* Wait for done call */
+  }
+
+  if (NULL == address)
   {
     /* done */
     GNUNET_assert(address_resolutions > 0);
