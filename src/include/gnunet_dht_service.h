@@ -95,7 +95,12 @@ enum GNUNET_DHT_RouteOption
   /**
    * Possible message option for query key randomization.
    */
-  GNUNET_DHT_RO_BART = 8
+  GNUNET_DHT_RO_BART = 8,
+
+  /**
+   * Flag given to monitors if this was the last hop for a GET/PUT.
+   */
+  GNUNET_DHT_RO_LAST_HOP = 16
 };
 
 

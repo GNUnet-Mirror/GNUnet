@@ -49,8 +49,9 @@
  * @param put_path peers this request has traversed so far (if tracked)
  * @param data payload to store
  * @param data_size number of bytes in data
+ * @return #GNUNET_OK if the request was forwarded, #GNUNET_NO if not
  */
-void
+int
 GDS_NEIGHBOURS_handle_put (enum GNUNET_BLOCK_Type type,
                            enum GNUNET_DHT_RouteOption options,
                            uint32_t desired_replication_level,
@@ -79,8 +80,9 @@ GDS_NEIGHBOURS_handle_put (enum GNUNET_BLOCK_Type type,
  * @param reply_bf bloomfilter to filter duplicates
  * @param reply_bf_mutator mutator for @a reply_bf
  * @param peer_bf filter for peers not to select (again, updated)
+ * @return #GNUNET_OK if the request was forwarded, #GNUNET_NO if not
  */
-void
+int
 GDS_NEIGHBOURS_handle_get (enum GNUNET_BLOCK_Type type,
                            enum GNUNET_DHT_RouteOption options,
                            uint32_t desired_replication_level,
