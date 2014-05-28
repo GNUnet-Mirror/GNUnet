@@ -207,6 +207,7 @@ int destroy_sensor(void *cls,
 {
   struct SensorInfo *sensorinfo = value;
 
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Destroying sensor `%s'\n", sensorinfo->name);
   if(NULL != sensorinfo->gnunet_stat_get_handle)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Canceling a statistics get request for sensor `%s'\n", sensorinfo->name);
@@ -218,6 +219,24 @@ int destroy_sensor(void *cls,
     GNUNET_SCHEDULER_cancel(sensorinfo->execution_task);
     sensorinfo->execution_task = GNUNET_SCHEDULER_NO_TASK;
   }
+  if(NULL != sensorinfo->name)
+    GNUNET_free(sensorinfo->name);
+  if(NULL != sensorinfo->def_file)
+    GNUNET_free(sensorinfo->def_file);
+  if(NULL != sensorinfo->description)
+    GNUNET_free(sensorinfo->description);
+  if(NULL != sensorinfo->category)
+    GNUNET_free(sensorinfo->category);
+  if(NULL != sensorinfo->capabilities)
+    GNUNET_free(sensorinfo->capabilities);
+  if(NULL != sensorinfo->gnunet_stat_service)
+    GNUNET_free(sensorinfo->gnunet_stat_service);
+  if(NULL != sensorinfo->gnunet_stat_name)
+    GNUNET_free(sensorinfo->gnunet_stat_name);
+  if(NULL != sensorinfo->ext_process)
+    GNUNET_free(sensorinfo->ext_process);
+  if(NULL != sensorinfo->ext_args)
+    GNUNET_free(sensorinfo->ext_args);
   GNUNET_free(sensorinfo);
   return GNUNET_YES;
 }
@@ -558,6 +577,7 @@ get_sensor_dir()
   datadir = GNUNET_OS_installation_get_path(GNUNET_OS_IPK_DATADIR);
   GNUNET_asprintf(&sensordir, "%ssensors%s",
       datadir, DIR_SEPARATOR_STR);
+  GNUNET_free(datadir);
 
   return sensordir;
 }
@@ -579,6 +599,7 @@ reload_sensors()
   GNUNET_DISK_directory_scan(sensordir, &reload_sensors_dir_cb, NULL);
   GNUNET_log(GNUNET_ERROR_TYPE_INFO, _("Loaded %d sensors from directory `%s'\n"),
       GNUNET_CONTAINER_multihashmap_size(sensors), sensordir);
+  GNUNET_free(sensordir);
 }
 
 /**
