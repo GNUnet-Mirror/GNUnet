@@ -86,7 +86,7 @@ run (void *cls,
   size_t val_size = strlen(val);
   struct GNUNET_TIME_Absolute expiry;
 
-  ok = 0;
+  ok = 1;
   memset (&pid, 32, sizeof (pid));
   expiry = GNUNET_TIME_absolute_get();
   h = GNUNET_PEERSTORE_connect(cfg);

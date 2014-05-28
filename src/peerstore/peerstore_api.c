@@ -75,6 +75,16 @@ struct GNUNET_PEERSTORE_Handle
    */
   struct GNUNET_PEERSTORE_IterateContext *iterate_tail;
 
+  /**
+   * Head of WATCH requests (active and inactive).
+   */
+  struct GNUNET_PEERSTORE_WatchContext *watch_head;
+
+  /**
+   * Tail of WATCH requests (active and inactive).
+   */
+  struct GNUNET_PEERSTORE_WatchContext *watch_tail;
+
 };
 
 /**
@@ -169,6 +179,49 @@ struct GNUNET_PEERSTORE_IterateContext
 
 };
 
+/**
+ * Context for a watch request
+ */
+struct GNUNET_PEERSTORE_WatchContext
+{
+  /**
+   * Kept in a DLL.
+   */
+  struct GNUNET_PEERSTORE_WatchContext *next;
+
+  /**
+   * Kept in a DLL.
+   */
+  struct GNUNET_PEERSTORE_WatchContext *prev;
+
+  /**
+   * Handle to the PEERSTORE service.
+   */
+  struct GNUNET_PEERSTORE_Handle *h;
+
+  /**
+   * MQ Envelope with watch request message
+   */
+  struct GNUNET_MQ_Envelope *ev;
+
+  /**
+   * Callback with each record received
+   */
+  GNUNET_PEERSTORE_Processor callback;
+
+  /**
+   * Closure for 'callback'
+   */
+  void *callback_cls;
+
+  /**
+   * #GNUNET_YES / #GNUNET_NO
+   * if sent, cannot be canceled
+   */
+  int request_sent;
+
+};
+
 /******************************************************************************/
 /*******************             DECLARATIONS             *********************/
 /******************************************************************************/
@@ -190,6 +243,14 @@ void handle_store_result (void *cls, const struct GNUNET_MessageHeader *msg);
 void handle_iterate_result (void *cls, const struct GNUNET_MessageHeader *msg);
 
 /**
+ * When a watch record is received
+ *
+ * @param cls a 'struct GNUNET_PEERSTORE_Handle *'
+ * @param msg message received, NULL on timeout or fatal error
+ */
+void handle_watch_result (void *cls, const struct GNUNET_MessageHeader *msg);
+
+/**
  * Close the existing connection to PEERSTORE and reconnect.
  *
  * @param h handle to the service
@@ -205,6 +266,7 @@ static const struct GNUNET_MQ_MessageHandler mq_handlers[] = {
     {&handle_store_result, GNUNET_MESSAGE_TYPE_PEERSTORE_STORE_RESULT_FAIL, sizeof(struct GNUNET_MessageHeader)},
     {&handle_iterate_result, GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE_RECORD, 0},
     {&handle_iterate_result, GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE_END, sizeof(struct GNUNET_MessageHeader)},
+    {&handle_watch_result, GNUNET_MESSAGE_TYPE_PEERSTORE_WATCH_RECORD, 0},
     GNUNET_MQ_HANDLERS_END
 };
 
@@ -622,6 +684,77 @@ GNUNET_PEERSTORE_iterate (struct GNUNET_PEERSTORE_Handle *h,
   GNUNET_MQ_send(h->mq, ev);
   ic->timeout_task = GNUNET_SCHEDULER_add_delayed(timeout, &iterate_timeout, ic);
   return ic;
+}
+
+/******************************************************************************/
+/*******************            WATCH FUNCTIONS           *********************/
+/******************************************************************************/
+
+/**
+ * When a watch record is received
+ *
+ * @param cls a 'struct GNUNET_PEERSTORE_Handle *'
+ * @param msg message received, NULL on timeout or fatal error
+ */
+void handle_watch_result (void *cls, const struct GNUNET_MessageHeader *msg)
+{
+
+}
+
+/**
+ * Callback after MQ envelope is sent
+ *
+ * @param cls a 'struct GNUNET_PEERSTORE_WatchContext *'
+ */
+void watch_request_sent (void *cls)
+{
+  struct GNUNET_PEERSTORE_WatchContext *wc = cls;
+
+  wc->request_sent = GNUNET_YES;
+  wc->ev = NULL;
+}
+
+/**
+ * Request watching a given key
+ * User will be notified with any new values added to key
+ *
+ * @param h handle to the PEERSTORE service
+ * @param sub_system name of sub system
+ * @param peer Peer identity
+ * @param key entry key string
+ * @param callback function called with each new value
+ * @param callback_cls closure for @a callback
+ * @return Handle to watch request
+ */
+struct GNUNET_PEERSTORE_WatchContext *
+GNUNET_PEERSTORE_watch (struct GNUNET_PEERSTORE_Handle *h,
+    char *sub_system,
+    const struct GNUNET_PeerIdentity *peer,
+    const char *key,
+    GNUNET_PEERSTORE_Processor callback, void *callback_cls)
+{
+  struct GNUNET_MQ_Envelope *ev;
+  struct GNUNET_PEERSTORE_WatchContext *wc;
+
+  ev = PEERSTORE_create_record_mq_envelope(sub_system,
+      peer,
+      key,
+      NULL,
+      0,
+      NULL,
+      GNUNET_MESSAGE_TYPE_PEERSTORE_WATCH);
+  wc = GNUNET_new(struct GNUNET_PEERSTORE_WatchContext);
+  wc->callback = callback;
+  wc->callback_cls = callback_cls;
+  wc->ev = ev;
+  wc->h = h;
+  wc->request_sent = GNUNET_NO;
+  GNUNET_CONTAINER_DLL_insert(h->watch_head, h->watch_tail, wc);
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "Sending a watch request for sub system `%s'.\n", sub_system);
+  GNUNET_MQ_notify_sent(ev, &watch_request_sent, wc);
+  GNUNET_MQ_send(h->mq, ev);
+  return wc;
 }
 
 /* end of peerstore_api.c */
