@@ -25,7 +25,7 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_sensor_service.h"
 
-
+//FIXME:
 static int ok = 1;
 
 

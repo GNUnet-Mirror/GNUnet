@@ -29,8 +29,6 @@
 #include "sensor.h"
 #include "gnunet_statistics_service.h"
 
-//TODO: GNUNET_SERVER_receive_done() ?
-
 /**
  * Minimum sensor execution interval (in seconds)
  */
@@ -194,8 +192,6 @@ static const char *datatypes[] = { "uint64", "double", "string", NULL };
  */
 struct GNUNET_STATISTICS_Handle *statistics;
 
-//TODO: logging macro that includes sensor info
-
 /**
  * Remove sensor execution from scheduler
  *
@@ -206,7 +202,7 @@ struct GNUNET_STATISTICS_Handle *statistics;
  *         iterate,
  *         #GNUNET_NO if not.
  */
-int unschedule_sensor(void *cls,
+int destroy_sensor(void *cls,
     const struct GNUNET_HashCode *key, void *value)
 {
   struct SensorInfo *sensorinfo = value;
@@ -222,6 +218,7 @@ int unschedule_sensor(void *cls,
     GNUNET_SCHEDULER_cancel(sensorinfo->execution_task);
     sensorinfo->execution_task = GNUNET_SCHEDULER_NO_TASK;
   }
+  GNUNET_free(sensorinfo);
   return GNUNET_YES;
 }
 
@@ -235,11 +232,10 @@ static void
 shutdown_task (void *cls,
 	       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  GNUNET_CONTAINER_multihashmap_iterate(sensors, &unschedule_sensor, NULL);
-  /* Free sensor information */
+  GNUNET_CONTAINER_multihashmap_iterate(sensors, &destroy_sensor, NULL);
+  GNUNET_CONTAINER_multihashmap_destroy(sensors);
   if(NULL != statistics)
     GNUNET_STATISTICS_destroy(statistics, GNUNET_YES);
-  /* Destroy sensor hashmap */
   GNUNET_SCHEDULER_shutdown();
 }
 
@@ -371,12 +367,10 @@ load_sensor_from_cfg(struct GNUNET_CONFIGURATION_Handle *cfg, const char *sectio
     return NULL;
   }
   sensor->interval = GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, time_sec);
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Interval loaded: %" PRIu64 "\n", sensor->interval.rel_value_us);
   //lifetime
   if(GNUNET_OK == GNUNET_CONFIGURATION_get_value_number(cfg, sectionname, "LIFETIME", &time_sec))
   {
     sensor->lifetime = GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, time_sec);
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Lifetime loaded: %" PRIu64 "\n", sensor->lifetime.rel_value_us);
   }
   else
     sensor->lifetime = GNUNET_TIME_UNIT_FOREVER_REL;
@@ -527,15 +521,15 @@ add_sensor_to_hashmap(struct SensorInfo *sensor, struct GNUNET_CONTAINER_MultiHa
  *
  * @param cls closure
  * @param filename complete filename (absolute path)
- * @return #GNUNET_OK to continue to iterate,
- *  #GNUNET_NO to stop iteration with no error,
- *  #GNUNET_SYSERR to abort iteration with error!
+ * @return #GNUNET_OK to continue to iterate
  */
 static int
 reload_sensors_dir_cb(void *cls, const char *filename)
 {
   struct SensorInfo *sensor;
 
+  if(GNUNET_YES != GNUNET_DISK_file_test(filename))
+    return GNUNET_OK;
   sensor = load_sensor_from_file(filename);
   if(NULL == sensor)
   {
@@ -576,16 +570,15 @@ static void
 reload_sensors()
 {
   char* sensordir;
-  int filesfound;
 
   sensordir = get_sensor_dir();
   GNUNET_log(GNUNET_ERROR_TYPE_INFO, _("Reloading sensor definitions from directory `%s'\n"), sensordir);
   GNUNET_assert(GNUNET_YES == GNUNET_DISK_directory_test(sensordir, GNUNET_YES));
 
   //read all files in sensors directory
-  filesfound = GNUNET_DISK_directory_scan(sensordir, &reload_sensors_dir_cb, NULL);
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO, _("Loaded %d/%d sensors from directory `%s'\n"),
-      GNUNET_CONTAINER_multihashmap_size(sensors), filesfound, sensordir);
+  GNUNET_DISK_directory_scan(sensordir, &reload_sensors_dir_cb, NULL);
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO, _("Loaded %d sensors from directory `%s'\n"),
+      GNUNET_CONTAINER_multihashmap_size(sensors), sensordir);
 }
 
 /**
@@ -607,8 +600,7 @@ create_sensor_info_msg(struct SensorInfo *sensor)
   if(NULL == sensor->description)
     desc_len = 0;
   else
-    /* FIXME strlen + 1 */
-    desc_len = strlen(sensor->description);
+    desc_len = strlen(sensor->description) + 1;
   len = 0;
   len += sizeof(struct SensorInfoMessage);
   len += name_len;
