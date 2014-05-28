@@ -40,6 +40,12 @@
 struct SensorInfo
 {
 
+  /**
+   * The configuration handle
+   * carrying sensor information
+   */
+  struct GNUNET_CONFIGURATION_Handle *cfg;
+
   /*
    * Sensor name
    */
@@ -131,6 +137,11 @@ struct SensorInfo
   char *ext_args;
 
   /*
+   * Handle to the external process
+   */
+  struct GNUNET_OS_CommandHandle *ext_cmd;
+
+  /*
    * The output datatype to be expected
    */
   char *expected_datatype;
@@ -202,23 +213,29 @@ struct GNUNET_STATISTICS_Handle *statistics;
  *         iterate,
  *         #GNUNET_NO if not.
  */
-int destroy_sensor(void *cls,
+static int destroy_sensor(void *cls,
     const struct GNUNET_HashCode *key, void *value)
 {
   struct SensorInfo *sensorinfo = value;
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Destroying sensor `%s'\n", sensorinfo->name);
-  if(NULL != sensorinfo->gnunet_stat_get_handle)
-  {
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Canceling a statistics get request for sensor `%s'\n", sensorinfo->name);
-    GNUNET_STATISTICS_get_cancel(sensorinfo->gnunet_stat_get_handle);
-  }
   if(GNUNET_SCHEDULER_NO_TASK != sensorinfo->execution_task)
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Unscheduling sensor `%s'\n", sensorinfo->name);
     GNUNET_SCHEDULER_cancel(sensorinfo->execution_task);
     sensorinfo->execution_task = GNUNET_SCHEDULER_NO_TASK;
   }
+  if(NULL != sensorinfo->gnunet_stat_get_handle)
+  {
+    GNUNET_STATISTICS_get_cancel(sensorinfo->gnunet_stat_get_handle);
+    sensorinfo->gnunet_stat_get_handle = NULL;
+  }
+  if(NULL != sensorinfo->ext_cmd)
+  {
+    GNUNET_OS_command_stop(sensorinfo->ext_cmd);
+    sensorinfo->ext_cmd = NULL;
+  }
+  if(NULL != sensorinfo->cfg)
+    GNUNET_CONFIGURATION_destroy(sensorinfo->cfg);
   if(NULL != sensorinfo->name)
     GNUNET_free(sensorinfo->name);
   if(NULL != sensorinfo->def_file)
@@ -239,6 +256,25 @@ int destroy_sensor(void *cls,
     GNUNET_free(sensorinfo->ext_args);
   GNUNET_free(sensorinfo);
   return GNUNET_YES;
+}
+
+/**
+ * Disable a sensor
+ * Sensor will not run again unless
+ * explicitly enabled or reloaded
+ *
+ * @param sensor sensor information
+ */
+static void set_sensor_enabled(struct SensorInfo *sensor, int state)
+{
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+      "Sensor `%s': Setting enabled to %d.\n",
+      sensor->name, state);
+  sensor->enabled = GNUNET_NO;
+  GNUNET_assert(NULL != sensor->cfg);
+  GNUNET_CONFIGURATION_set_value_string(sensor->cfg, sensor->name, "ENABLED",
+      (GNUNET_YES == state)?"YES":"NO");
+  GNUNET_CONFIGURATION_write(sensor->cfg, sensor->def_file);
 }
 
 /**
@@ -473,9 +509,13 @@ load_sensor_from_file(const char *filename)
   //configuration section should be the same as filename
   filebasename = GNUNET_STRINGS_get_short_name(filename);
   sensor = load_sensor_from_cfg(sensorcfg, filebasename);
+  if(NULL == sensor)
+  {
+    GNUNET_CONFIGURATION_destroy(sensorcfg);
+    return NULL;
+  }
   sensor->def_file = GNUNET_strdup(filename);
-
-  GNUNET_CONFIGURATION_destroy(sensorcfg);
+  sensor->cfg = sensorcfg;
 
   return sensor;
 }
@@ -735,7 +775,6 @@ handle_get_all_sensors (void *cls, struct GNUNET_SERVER_Client *client,
 static int
 should_run_sensor(struct SensorInfo *sensorinfo)
 {
-  //FIXME: some checks should disable the sensor (e.g. expired)
   struct GNUNET_TIME_Absolute now;
 
   if(GNUNET_NO == sensorinfo->enabled)
@@ -753,7 +792,8 @@ should_run_sensor(struct SensorInfo *sensorinfo)
   if(NULL != sensorinfo->end_time
       && now.abs_value_us >= sensorinfo->end_time->abs_value_us)
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_INFO, "End time for sensor `%s' passed, will not run\n", sensorinfo->name);
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Sensor `%s' expired, disabling.\n", sensorinfo->name);
+    set_sensor_enabled(sensorinfo, GNUNET_NO);
     return GNUNET_NO;
   }
   return GNUNET_YES;
@@ -806,12 +846,34 @@ void sensor_process_callback (void *cls, const char *line)
 {
   struct SensorInfo *sensorinfo = cls;
 
-  if(NULL == line)
+  if(NULL == line) //end of output
   {
+    GNUNET_OS_command_stop(sensorinfo->ext_cmd);
+    sensorinfo->ext_cmd = NULL;
     sensorinfo->running = GNUNET_NO;
     return;
   }
   GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Received a value for sensor `%s': %s\n", sensorinfo->name, line);
+}
+
+/**
+ * Checks if the given file is a path
+ *
+ * @return #GNUNET_YES / #GNUNET_NO
+ */
+static int
+is_path(char *filename)
+{
+  size_t filename_len;
+  int i;
+
+  filename_len = strlen(filename);
+  for(i = 0; i < filename_len; i++)
+  {
+    if(DIR_SEPARATOR == filename[i])
+      return GNUNET_YES;
+  }
+  return GNUNET_NO;
 }
 
 /**
@@ -855,11 +917,18 @@ sensor_run (void *cls,
   }
   else if(sources[1] == sensorinfo->source)
   {
-    //FIXME: break execution if process is a path
+    if(GNUNET_YES == is_path(sensorinfo->ext_process))
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+          "Sensor `%s': External process should not be a path, disabling sensor.\n",
+          sensorinfo->name);
+      set_sensor_enabled(sensorinfo, GNUNET_NO);
+      return;
+    }
     //check if the process exists in $PATH
     process_path = GNUNET_strdup(sensorinfo->ext_process);
     check_result =
-        GNUNET_OS_check_helper_binary(sensorinfo->ext_process, GNUNET_NO, NULL); //search in $PATH
+        GNUNET_OS_check_helper_binary(process_path, GNUNET_NO, NULL);
     if(GNUNET_SYSERR == check_result)
     {
       //search in sensor directory
@@ -879,12 +948,12 @@ sensor_run (void *cls,
       GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Sensor `%s' process `%s' problem: binary doesn't exist or not executable\n",
           sensorinfo->name,
           sensorinfo->ext_process);
-      //FIXME: disable sensor here?
+      set_sensor_enabled(sensorinfo, GNUNET_NO);
       sensorinfo->running = GNUNET_NO;
       GNUNET_free(process_path);
       return;
     }
-    GNUNET_OS_command_run(&sensor_process_callback,
+    sensorinfo->ext_cmd = GNUNET_OS_command_run(&sensor_process_callback,
         sensorinfo,
         GNUNET_TIME_UNIT_FOREVER_REL,
         process_path,
@@ -892,6 +961,7 @@ sensor_run (void *cls,
         sensorinfo->ext_args,
         NULL);
     GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Process started for sensor `%s'\n", sensorinfo->name);
+    GNUNET_free(process_path);
   }
   else
   {
