@@ -2950,6 +2950,7 @@ static int
 handle_dht_p2p_notify_new_successor(void *cls, const struct GNUNET_PeerIdentity *peer,
                                     const struct GNUNET_MessageHeader *message)
 {
+#if 0
   struct PeerNotifyNewSuccessorMessage *nsm;
   struct GNUNET_PeerIdentity *trail;
   struct GNUNET_PeerIdentity source;
@@ -2981,7 +2982,7 @@ handle_dht_p2p_notify_new_successor(void *cls, const struct GNUNET_PeerIdentity 
   source  = nsm->source_peer;
   destination = nsm->destination_peer;
   //trail_id = nsm->trail_id;
-#if 0
+
   if ( 0 == GNUNET_CRYPTO_cmp_peer_identity (&my_identity, &destination))
   {
     struct GNUNET_HashCode new_trail_id;
