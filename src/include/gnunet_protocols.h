@@ -656,7 +656,7 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_DHT_P2P_ADD_TRAIL                   165
 
 /**
- * Trail compessiong message. 
+ * Trail compression message. 
  */
 #define GNUNET_MESSAGE_TYPE_DHT_P2P_TRAIL_COMPRESSION           166
 /*******************************************************************************

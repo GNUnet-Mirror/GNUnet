@@ -100,7 +100,7 @@ GDS_ROUTING_get_next_hop (const struct GNUNET_HashCode trail_id,
   struct RoutingTrail *trail;
  
   trail = GNUNET_CONTAINER_multihashmap_get (routing_table, &trail_id);
-  
+
   if (NULL == trail)
     return NULL;
   
