@@ -78,44 +78,47 @@ GNUNET_ENV_environment_add (struct GNUNET_ENV_Environment *env,
 }
 
 
-/** 
- * Get the modifier at the beginning of an environment.
- *
- * @param env 
- * @param oper 
- * @param name 
- * @param value 
- * @param value_size 
- * 
- * @return 
+/**
+ * Get the first modifier of the environment.
  */
-int
-GNUNET_ENV_environment_head (struct GNUNET_ENV_Environment *env,
-                              enum GNUNET_ENV_Operator *oper, const char **name,
-                              const void **value, size_t *value_size)
+struct GNUNET_ENV_Modifier *
+GNUNET_ENV_environment_head (const struct GNUNET_ENV_Environment *env)
 {
-  if (NULL == env->mod_head)
-    return GNUNET_NO;
-
-  struct GNUNET_ENV_Modifier *mod = env->mod_head;
-  *oper = mod->oper;
-  *name = mod->name;
-  *value = mod->value;
-  *value_size = mod->value_size;
-  return GNUNET_YES;
+  return env->mod_head;
 }
 
 
-/** 
+/**
+ * Get the last modifier of the environment.
+ */
+struct GNUNET_ENV_Modifier *
+GNUNET_ENV_environment_tail (const struct GNUNET_ENV_Environment *env)
+{
+  return env->mod_tail;
+}
+
+
+/**
+ * Remove a modifier from the environment.
+ */
+void
+GNUNET_ENV_environment_remove (struct GNUNET_ENV_Environment *env,
+                               struct GNUNET_ENV_Modifier *mod)
+{
+  GNUNET_CONTAINER_DLL_remove (env->mod_head, env->mod_tail, mod);
+}
+
+
+/**
  * Get the modifier at the beginning of an environment and remove it.
  *
- * @param env 
- * @param oper 
- * @param name 
- * @param value 
- * @param value_size 
- * 
- * @return 
+ * @param env
+ * @param oper
+ * @param name
+ * @param value
+ * @param value_size
+ *
+ * @return
  */
 int
 GNUNET_ENV_environment_shift (struct GNUNET_ENV_Environment *env,

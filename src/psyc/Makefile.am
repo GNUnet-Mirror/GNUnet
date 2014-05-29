@@ -17,21 +17,35 @@ if USE_COVERAGE
   XLIB = -lgcov
 endif
 
-lib_LTLIBRARIES = libgnunetpsyc.la
+lib_LTLIBRARIES = libgnunetpsycutil.la libgnunetpsyc.la
+
+libgnunetpsycutil_la_SOURCES = \
+  psyc_util_lib.c
+libgnunetpsycutil_la_LIBADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/env/libgnunetenv.la \
+  $(GN_LIBINTL) $(XLIB)
+libgnunetpsycutil_la_LDFLAGS = \
+  $(GN_LIB_LDFLAGS)  $(WINFLAGS) \
+  -version-info 0:0:0
+libgnunetpsycutil_la_DEPENDENCIES = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/env/libgnunetenv.la
 
 libgnunetpsyc_la_SOURCES = \
-  psyc_api.c psyc.h \
-  psyc_common.c
+  psyc_api.c psyc.h
 libgnunetpsyc_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/env/libgnunetenv.la \
+  $(top_builddir)/src/psyc/libgnunetpsycutil.la \
   $(GN_LIBINTL) $(XLIB)
 libgnunetpsyc_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)  $(WINFLAGS) \
   -version-info 0:0:0
 libgnunetpsyc_la_DEPENDENCIES = \
   $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/env/libgnunetenv.la
+  $(top_builddir)/src/env/libgnunetenv.la \
+  $(top_builddir)/src/psyc/libgnunetpsycutil.la
 
 bin_PROGRAMS =
 
@@ -39,19 +53,20 @@ libexec_PROGRAMS = \
  gnunet-service-psyc
 
 gnunet_service_psyc_SOURCES = \
- gnunet-service-psyc.c \
- psyc_common.c
+  gnunet-service-psyc.c
 gnunet_service_psyc_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/multicast/libgnunetmulticast.la \
   $(top_builddir)/src/psycstore/libgnunetpsycstore.la \
+  $(top_builddir)/src/psyc/libgnunetpsycutil.la \
   $(GN_LIBINTL)
 gnunet_service_psyc_DEPENDENCIES = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/multicast/libgnunetmulticast.la \
-  $(top_builddir)/src/psycstore/libgnunetpsycstore.la
+  $(top_builddir)/src/psycstore/libgnunetpsycstore.la \
+  $(top_builddir)/src/psyc/libgnunetpsycutil.la
 gnunet_service_psyc_CFLAGS = $(AM_CFLAGS)
 
 

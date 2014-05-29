@@ -159,6 +159,28 @@ GNUNET_ENV_environment_add (struct GNUNET_ENV_Environment *env,
                             const void *value, size_t value_size);
 
 
+/**
+ * Get the first modifier of the environment.
+ */
+struct GNUNET_ENV_Modifier *
+GNUNET_ENV_environment_head (const struct GNUNET_ENV_Environment *env);
+
+
+
+/**
+ * Get the last modifier of the environment.
+ */
+struct GNUNET_ENV_Modifier *
+GNUNET_ENV_environment_tail (const struct GNUNET_ENV_Environment *env);
+
+
+/** 
+ * Remove a modifier from the environment.
+ */
+void
+GNUNET_ENV_environment_remove (struct GNUNET_ENV_Environment *env,
+                               struct GNUNET_ENV_Modifier *mod);
+
 
 /**
  * Remove a modifier at the beginning of the environment.
@@ -167,15 +189,6 @@ int
 GNUNET_ENV_environment_shift (struct GNUNET_ENV_Environment *env,
                               enum GNUNET_ENV_Operator *oper, const char **name,
                               const void **value, size_t *value_size);
-
-
-/**
- * Get the modifier at the beginning of the environment.
- */
-int
-GNUNET_ENV_environment_head (struct GNUNET_ENV_Environment *env,
-                             enum GNUNET_ENV_Operator *oper, const char **name,
-                             const void **value, size_t *value_size);
 
 
 /**
