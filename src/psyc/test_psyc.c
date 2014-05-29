@@ -68,6 +68,7 @@ struct TransmitClosure
   struct GNUNET_PSYC_MasterTransmitHandle *mst_tmit;
   struct GNUNET_PSYC_SlaveTransmitHandle *slv_tmit;
   struct GNUNET_ENV_Environment *env;
+  struct GNUNET_ENV_Modifier *mod;
   char *data[16];
   const char *mod_value;
   size_t mod_value_size;
@@ -79,7 +80,7 @@ struct TransmitClosure
 
 struct TransmitClosure *tmit;
 
-static int join_req_count;
+static uint8_t join_req_count;
 
 enum
 {
@@ -183,7 +184,7 @@ master_message_cb (void *cls, uint64_t message_id, uint32_t flags,
 
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "Master got message part of type %u and size %u "
-              "belonging to message ID %llu with flags %xu\n",
+              "belonging to message ID %llu with flags %x\n",
               type, size, message_id, flags);
 
   switch (test)
@@ -227,7 +228,7 @@ slave_message_cb (void *cls, uint64_t message_id, uint32_t flags,
 
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "Slave got message part of type %u and size %u "
-              "belonging to message ID %llu with flags %xu\n",
+              "belonging to message ID %llu with flags %x\n",
               type, size, message_id, flags);
 
   switch (test)
@@ -252,84 +253,6 @@ transmit_resume (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_PSYC_master_transmit_resume (tmit->mst_tmit);
   else
     GNUNET_PSYC_slave_transmit_resume (tmit->slv_tmit);
-}
-
-
-static int
-tmit_notify_mod (void *cls, uint16_t *data_size, void *data, uint8_t *oper,
-                 uint32_t *full_value_size)
-{
-  struct TransmitClosure *tmit = cls;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Transmit notify modifier: %lu bytes available, "
-              "%u modifiers left to process.\n",
-              *data_size, GNUNET_ENV_environment_get_count (tmit->env));
-
-  enum GNUNET_ENV_Operator op = 0;
-  const char *name = NULL;
-  const char *value = NULL;
-  uint16_t name_size = 0;
-  size_t value_size = 0;
-
-  if (NULL != oper)
-  { /* New modifier */
-    if (GNUNET_NO == GNUNET_ENV_environment_shift (tmit->env, &op, &name,
-                                                   (void *) &value, &value_size))
-    { /* No more modifiers, continue with data */
-      *data_size = 0;
-      return GNUNET_YES;
-    }
-
-    GNUNET_assert (value_size < UINT32_MAX);
-    *full_value_size = value_size;
-    *oper = op;
-    name_size = strlen (name);
-
-    if (name_size + 1 + value_size <= *data_size)
-    {
-      *data_size = name_size + 1 + value_size;
-    }
-    else
-    {
-      tmit->mod_value_size = value_size;
-      value_size = *data_size - name_size - 1;
-      tmit->mod_value_size -= value_size;
-      tmit->mod_value = value + value_size;
-    }
-
-    memcpy (data, name, name_size);
-    ((char *)data)[name_size] = '\0';
-    memcpy ((char *)data + name_size + 1, value, value_size);
-  }
-  else if (NULL != tmit->mod_value && 0 < tmit->mod_value_size)
-  { /* Modifier continuation */
-    value = tmit->mod_value;
-    if (tmit->mod_value_size <= *data_size)
-    {
-      value_size = tmit->mod_value_size;
-      tmit->mod_value = NULL;
-    }
-    else
-    {
-      value_size = *data_size;
-      tmit->mod_value += value_size;
-    }
-    tmit->mod_value_size -= value_size;
-
-    if (*data_size < value_size)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                  "value larger than buffer: %u < %zu\n",
-                  *data_size, value_size);
-      *data_size = 0;
-      return GNUNET_NO;
-    }
-
-    *data_size = value_size;
-    memcpy (data, value, value_size);
-  }
-
-  return 0 == tmit->mod_value_size ? GNUNET_YES : GNUNET_NO;
 }
 
 
@@ -375,6 +298,82 @@ tmit_notify_data (void *cls, uint16_t *data_size, void *data)
 }
 
 
+static int
+tmit_notify_mod (void *cls, uint16_t *data_size, void *data, uint8_t *oper,
+                 uint32_t *full_value_size)
+{
+  struct TransmitClosure *tmit = cls;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Transmit notify modifier: %lu bytes available, "
+              "%u modifiers left to process.\n",
+              *data_size, GNUNET_ENV_environment_get_count (tmit->env));
+
+  uint16_t name_size = 0;
+  size_t value_size = 0;
+  const char *value = NULL;
+
+  if (NULL != oper && NULL != tmit->mod)
+  { /* New modifier */
+    tmit->mod = tmit->mod->next;
+    if (NULL == tmit->mod)
+    { /* No more modifiers, continue with data */
+      *data_size = 0;
+      return GNUNET_YES;
+    }
+
+    GNUNET_assert (tmit->mod->value_size < UINT32_MAX);
+    *full_value_size = tmit->mod->value_size;
+    *oper = tmit->mod->oper;
+    name_size = strlen (tmit->mod->name);
+
+    if (name_size + 1 + tmit->mod->value_size <= *data_size)
+    {
+      *data_size = name_size + 1 + tmit->mod->value_size;
+    }
+    else
+    {
+      tmit->mod_value_size = tmit->mod->value_size;
+      value_size = *data_size - name_size - 1;
+      tmit->mod_value_size -= value_size;
+      tmit->mod_value = tmit->mod->value + value_size;
+    }
+
+    memcpy (data, tmit->mod->name, name_size);
+    ((char *)data)[name_size] = '\0';
+    memcpy ((char *)data + name_size + 1, tmit->mod->value, value_size);
+  }
+  else if (NULL != tmit->mod_value && 0 < tmit->mod_value_size)
+  { /* Modifier continuation */
+    value = tmit->mod_value;
+    if (tmit->mod_value_size <= *data_size)
+    {
+      value_size = tmit->mod_value_size;
+      tmit->mod_value = NULL;
+    }
+    else
+    {
+      value_size = *data_size;
+      tmit->mod_value += value_size;
+    }
+    tmit->mod_value_size -= value_size;
+
+    if (*data_size < value_size)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "value larger than buffer: %u < %zu\n",
+                  *data_size, value_size);
+      *data_size = 0;
+      return GNUNET_NO;
+    }
+
+    *data_size = value_size;
+    memcpy (data, value, value_size);
+  }
+
+  return 0 == tmit->mod_value_size ? GNUNET_YES : GNUNET_NO;
+}
+
+
 static void
 slave_join ();
 
@@ -388,7 +387,7 @@ join_decision_cb (void *cls, int is_admitted,
 
   if (GNUNET_YES != is_admitted)
   { /* First join request is refused, retry. */
-    //GNUNET_assert (1 == join_req_count);
+    GNUNET_assert (1 == join_req_count);
     slave_join ();
     return;
   }
@@ -403,6 +402,7 @@ join_decision_cb (void *cls, int is_admitted,
                               "_abc", "abc def", 7);
   GNUNET_ENV_environment_add (tmit->env, GNUNET_ENV_OP_ASSIGN,
                               "_abc_def", "abc def ghi", 11);
+  tmit->mod = GNUNET_ENV_environment_head (tmit->env);
   tmit->n = 0;
   tmit->data[0] = "slave test";
   tmit->data_count = 1;
@@ -421,8 +421,8 @@ join_request_cb (void *cls, const struct GNUNET_CRYPTO_EddsaPublicKey *slave_key
   struct GNUNET_HashCode slave_key_hash;
   GNUNET_CRYPTO_hash (slave_key, sizeof (*slave_key), &slave_key_hash);
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "Got join request from %s.\n",
-              GNUNET_h2s (&slave_key_hash));
+              "Got join request #%u from %s.\n",
+              join_req_count, GNUNET_h2s (&slave_key_hash));
 
   /* Reject first request */
   int is_admitted = (0 < join_req_count++) ? GNUNET_YES : GNUNET_NO;
@@ -493,6 +493,7 @@ master_transmit ()
                               name_cont, val_cont,
                               GNUNET_PSYC_MODIFIER_MAX_PAYLOAD - name_cont_size
                               + GNUNET_PSYC_MOD_CONT_MAX_PAYLOAD);
+  tmit->mod = GNUNET_ENV_environment_head (tmit->env);
   tmit->data[0] = "foo";
   tmit->data[1] =  GNUNET_malloc (GNUNET_PSYC_DATA_MAX_PAYLOAD + 1);
   for (i = 0; i < GNUNET_PSYC_DATA_MAX_PAYLOAD; i++)

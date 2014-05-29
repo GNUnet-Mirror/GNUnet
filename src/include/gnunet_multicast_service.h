@@ -368,9 +368,7 @@ typedef void
  */
 typedef void
 (*GNUNET_MULTICAST_RequestCallback) (void *cls,
-                                     const struct GNUNET_CRYPTO_EddsaPublicKey *member_key,
-                                     const struct GNUNET_MessageHeader *req,
-                                     enum GNUNET_MULTICAST_MessageFlags flags);
+                                     const struct GNUNET_MULTICAST_RequestHeader *req);
 
 
 /**
@@ -394,7 +392,7 @@ typedef void
  */
 typedef void
 (*GNUNET_MULTICAST_MessageCallback) (void *cls,
-                                     const struct GNUNET_MessageHeader *msg);
+                                     const struct GNUNET_MULTICAST_MessageHeader *msg);
 
 
 /**

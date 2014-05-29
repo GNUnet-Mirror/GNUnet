@@ -471,7 +471,7 @@ typedef int
  *         Only needed during the first call to this callback at the beginning
  *         of the modifier.  In case of subsequent calls asking for value
  *         continuations @a oper is set to #NULL.
- * @param[out] value_size  Where to write the full size of the value.
+ * @param[out] full_value_size  Where to write the full size of the value.
  *         Only needed during the first call to this callback at the beginning
  *         of the modifier.  In case of subsequent calls asking for value
  *         continuations @a value_size is set to #NULL.
@@ -489,7 +489,7 @@ typedef int
                                        uint16_t *data_size,
                                        void *data,
                                        uint8_t *oper,
-                                       uint32_t *value_size);
+                                       uint32_t *full_value_size);
 
 /**
  * Flags for transmitting messages to a channel by the master.
