@@ -29,15 +29,15 @@
 #include "gnunet-service-xdht.h"
 
 /**
- * Maximum number of entries in routing table. 
+ * Maximum number of entries in routing table.
  */
 #define ROUTING_TABLE_THRESHOLD 64
 
 
 /**
- * FIXME: do we need to store destination and source. 
+ * FIXME: do we need to store destination and source.
  * because in trail teardown we will reach destination but it will not find any
- * entry in routing table. so we should store destination and source. 
+ * entry in routing table. so we should store destination and source.
  * Routing table entry .
  */
 struct RoutingTrail
@@ -46,16 +46,16 @@ struct RoutingTrail
    * Global Unique identifier of the trail.
    */
   struct GNUNET_HashCode trail_id;
-  
+
   /**
    * The peer to which this request should be passed to.
    */
-  struct GNUNET_PeerIdentity next_hop;
-  
+  struct GNUNET_PeerIdentity next_hop; // change to struct FriendInfo *
+
   /**
-   * Peer just before next hop in the trail. 
+   * Peer just before next hop in the trail.
    */
-  struct GNUNET_PeerIdentity prev_hop;
+  struct GNUNET_PeerIdentity prev_hop;  // change to struct FriendInfo *
 };
 
 /**
@@ -69,19 +69,19 @@ static struct GNUNET_CONTAINER_MultiHashMap *routing_table;
  * your prev. hop.
  * @param trail_id
  * @return #GNUNET_OK success
- *         #GNUNET_SYSERR in case no matching entry found in routing table. 
+ *         #GNUNET_SYSERR in case no matching entry found in routing table.
  */
 int
 GDS_ROUTING_update_trail_prev_hop (const struct GNUNET_HashCode trail_id,
                                    struct GNUNET_PeerIdentity prev_hop)
 {
   struct RoutingTrail *trail;
-  
+
   trail = GNUNET_CONTAINER_multihashmap_get (routing_table, &trail_id);
-  
+
   if (NULL == trail)
     return GNUNET_SYSERR;
-  
+
   trail->prev_hop = prev_hop;
   return GNUNET_OK;
 }
@@ -89,21 +89,21 @@ GDS_ROUTING_update_trail_prev_hop (const struct GNUNET_HashCode trail_id,
 
 /**
  * Get the next hop for trail corresponding to trail_id
- * @param trail_id Trail id to be searched. 
+ * @param trail_id Trail id to be searched.
  * @return Next_hop if found
- *         NULL If next hop not found. 
+ *         NULL If next hop not found.
  */
 struct GNUNET_PeerIdentity *
 GDS_ROUTING_get_next_hop (const struct GNUNET_HashCode trail_id,
                           enum GDS_ROUTING_trail_direction trail_direction)
 {
   struct RoutingTrail *trail;
- 
+
   trail = GNUNET_CONTAINER_multihashmap_get (routing_table, &trail_id);
 
   if (NULL == trail)
     return NULL;
-  
+
   switch (trail_direction)
   {
     case GDS_ROUTING_SRC_TO_DEST:
@@ -118,26 +118,26 @@ GDS_ROUTING_get_next_hop (const struct GNUNET_HashCode trail_id,
 /**
  * Remove trail with trail_id
  * @param trail_id Trail id to be removed
- * @return #GNUNET_YES success 
+ * @return #GNUNET_YES success
  *         #GNUNET_NO if entry not found.
  */
 int
 GDS_ROUTING_remove_trail (const struct GNUNET_HashCode remove_trail_id)
 {
   struct RoutingTrail *remove_entry;
-  
+
   remove_entry = GNUNET_CONTAINER_multihashmap_get (routing_table, &remove_trail_id);
-  
+
   if (NULL == remove_entry)
     return GNUNET_NO;
-  
+
   if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_remove (routing_table,
-                                                          &remove_trail_id, 
+                                                          &remove_trail_id,
                                                           remove_entry))
   {
     GNUNET_free (remove_entry);
     return GNUNET_YES;
-  }  
+  }
   return GNUNET_NO;
 }
 
@@ -156,7 +156,7 @@ static int remove_matching_trails (void *cls,
 {
   struct RoutingTrail *remove_trail = cls;
   struct GNUNET_PeerIdentity *peer = value;
-  
+
   if ((0 == GNUNET_CRYPTO_cmp_peer_identity (&remove_trail->next_hop, peer)) ||
       (0 == GNUNET_CRYPTO_cmp_peer_identity (&remove_trail->prev_hop, peer)))
   {
@@ -165,8 +165,8 @@ static int remove_matching_trails (void *cls,
                                                          &remove_trail->trail_id,
                                                          remove_trail));
     GNUNET_free (remove_trail);
-  }  
-  return GNUNET_YES;  
+  }
+  return GNUNET_YES;
 }
 
 
@@ -176,7 +176,7 @@ static int remove_matching_trails (void *cls,
  * that the trail is broken to any one who is part of trail. Should we communicate or
  * not. And if not then the cases where trail setup fails because next_hop = NULL
  * or something like that. VERY URGENT.
- * Remove every trail where peer is either next_hop or prev_hop 
+ * Remove every trail where peer is either next_hop or prev_hop
  * @param peer Peer to be searched.
  */
 void
@@ -197,31 +197,31 @@ GDS_ROUTING_remove_trail_by_peer (const struct GNUNET_PeerIdentity *peer)
  *                         but with different prev_hop/next_hop
  */
 int
-GDS_ROUTING_add (struct GNUNET_HashCode new_trail_id, 
+GDS_ROUTING_add (struct GNUNET_HashCode new_trail_id,
                  const struct GNUNET_PeerIdentity prev_hop,
                  const struct GNUNET_PeerIdentity next_hop)
 {
   struct RoutingTrail *new_entry;
-  
+
   new_entry = GNUNET_malloc (sizeof (struct RoutingTrail));
   new_entry->trail_id = new_trail_id;
   new_entry->next_hop = next_hop;
   new_entry->prev_hop = prev_hop;
-  return GNUNET_CONTAINER_multihashmap_put (routing_table, 
+  return GNUNET_CONTAINER_multihashmap_put (routing_table,
                                             &new_trail_id, new_entry,
                                             GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
 }
 
 
 /**
- * Check if the size of routing table has crossed threshold. 
+ * Check if the size of routing table has crossed threshold.
  * @return #GNUNET_YES, if threshold crossed else #GNUNET_NO.
  */
 int
 GDS_ROUTING_threshold_reached (void)
 {
-  return (GNUNET_CONTAINER_multihashmap_size(routing_table) > 
-          ROUTING_TABLE_THRESHOLD) ? GNUNET_YES:GNUNET_NO;    
+  return (GNUNET_CONTAINER_multihashmap_size(routing_table) >
+          ROUTING_TABLE_THRESHOLD) ? GNUNET_YES:GNUNET_NO;
 }
 
 
@@ -230,7 +230,7 @@ GDS_ROUTING_threshold_reached (void)
  */
 void
 GDS_ROUTING_init (void)
-{ 
+{
   routing_table = GNUNET_CONTAINER_multihashmap_create (ROUTING_TABLE_THRESHOLD * 4 / 3,
                                                         GNUNET_NO);
 }
