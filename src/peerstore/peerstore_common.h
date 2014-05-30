@@ -27,6 +27,16 @@
 #include "peerstore.h"
 
 /**
+ * Creates a hash of the given key combination
+ *
+ */
+void
+PEERSTORE_hash_key(const char *sub_system,
+    const struct GNUNET_PeerIdentity *peer,
+    const char *key,
+    struct GNUNET_HashCode *ret);
+
+/**
  * Creates a record message ready to be sent
  *
  * @param sub_system sub system string

@@ -77,6 +77,24 @@ struct StoreRecordMessage
 
 };
 
+/**
+ * Message carrying record key hash
+ */
+struct StoreKeyHashMessage
+{
+
+  /**
+   * GNUnet message header
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Hash of a record key
+   */
+  struct GNUNET_HashCode keyhash;
+
+};
+
 GNUNET_NETWORK_STRUCT_END
 
 #endif

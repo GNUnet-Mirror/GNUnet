@@ -27,6 +27,8 @@
 #include "gnunet_peerstore_service.h"
 #include <inttypes.h>
 
+//TODO: test single cycle of watch, store, iterate
+
 static int ok = 1;
 
 static int counter = 0;
@@ -76,6 +78,25 @@ void store_cont(void *cls, int success)
       NULL);
 }
 
+int watch_cb (void *cls,
+    struct GNUNET_PEERSTORE_Record *record,
+    char *emsg)
+{
+  if(NULL != emsg)
+  {
+    printf("Error received: %s.\n", emsg);
+    return GNUNET_YES;
+  }
+
+  printf("Watch Record:\n");
+  printf("Sub system: %s\n", record->sub_system);
+  printf("Peer: %s\n", GNUNET_i2s (record->peer));
+  printf("Key: %s\n", record->key);
+  printf("Value: %.*s\n", (int)record->value_size, (char *)record->value);
+  printf("Expiry: %" PRIu64 "\n", record->expiry->abs_value_us);
+  return GNUNET_YES;
+}
+
 static void
 run (void *cls,
     const struct GNUNET_CONFIGURATION_Handle *cfg,
@@ -91,6 +112,12 @@ run (void *cls,
   expiry = GNUNET_TIME_absolute_get();
   h = GNUNET_PEERSTORE_connect(cfg);
   GNUNET_assert(NULL != h);
+  GNUNET_PEERSTORE_watch(h,
+      "peerstore-test",
+      &pid,
+      "peerstore-test-key",
+      &watch_cb,
+      NULL);
   GNUNET_PEERSTORE_store(h,
       "peerstore-test",
       &pid,
@@ -101,6 +128,17 @@ run (void *cls,
       &store_cont,
       NULL);
 
+}
+
+int iterator (void *cls, const struct GNUNET_HashCode *key, void *value)
+{
+  struct GNUNET_CONTAINER_MultiHashMap *map = cls;
+  uint32_t *x = value;
+
+  printf("Received value: %d\n", *x);
+  if(*x == 2)
+    GNUNET_CONTAINER_multihashmap_remove(map, key, value);
+  return GNUNET_YES;
 }
 
 int

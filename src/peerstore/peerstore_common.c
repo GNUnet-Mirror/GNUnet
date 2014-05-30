@@ -26,6 +26,38 @@
 #include "peerstore_common.h"
 
 /**
+ * Creates a hash of the given key combination
+ *
+ */
+void
+PEERSTORE_hash_key(const char *sub_system,
+    const struct GNUNET_PeerIdentity *peer,
+    const char *key,
+    struct GNUNET_HashCode *ret)
+{
+  size_t sssize;
+  size_t psize;
+  size_t ksize;
+  size_t totalsize;
+  void *block;
+  void *blockptr;
+
+  sssize = strlen(sub_system) + 1;
+  psize = sizeof(struct GNUNET_PeerIdentity);
+  ksize = strlen(sub_system) + 1;
+  totalsize = sssize + psize + ksize;
+  block = GNUNET_malloc(totalsize);
+  blockptr = block;
+  memcpy(blockptr, sub_system, sssize);
+  blockptr += sssize;
+  memcpy(blockptr, peer, psize);
+  blockptr += psize;
+  memcpy(blockptr, key, ksize);
+  GNUNET_CRYPTO_hash(block, totalsize, ret);
+  GNUNET_free(block);
+}
+
+/**
  * Creates a record message ready to be sent
  *
  * @param sub_system sub system string

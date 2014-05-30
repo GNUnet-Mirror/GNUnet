@@ -29,7 +29,23 @@
 #include "gnunet_peerstore_plugin.h"
 #include "peerstore_common.h"
 
-//TODO: GNUNET_SERVER_receive_done() ?
+/**
+ * Context of a PEERSTORE watch
+ */
+struct WatchContext
+{
+
+  /**
+   * Hash of key of watched record
+   */
+  struct GNUNET_HashCode keyhash;
+
+  /**
+   * Client requested the watch
+   */
+  struct GNUNET_SERVER_Client *client;
+
+};
 
 /**
  * Interval for expired records cleanup (in seconds)
@@ -52,6 +68,11 @@ char *db_lib_name;
 static struct GNUNET_PEERSTORE_PluginFunctions *db;
 
 /**
+ * Hashmap with all watch requests
+ */
+static struct GNUNET_CONTAINER_MultiHashMap *watchers;
+
+/**
  * Task run during shutdown.
  *
  * @param cls unused
@@ -67,7 +88,8 @@ shutdown_task (void *cls,
     GNUNET_free (db_lib_name);
     db_lib_name = NULL;
   }
-
+  if(NULL != watchers)
+    GNUNET_CONTAINER_multihashmap_destroy(watchers);
   GNUNET_SCHEDULER_shutdown();
 }
 
@@ -129,6 +151,55 @@ int record_iterator(void *cls,
       GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE_RECORD);
   GNUNET_SERVER_transmit_context_append_message(tc, (const struct GNUNET_MessageHeader *)srm);
   return GNUNET_YES;
+}
+
+/**
+ * Handle a watch cancel request from client
+ *
+ * @param cls unused
+ * @param client identification of the client
+ * @param message the actual message
+ */
+void handle_watch_cancel (void *cls,
+    struct GNUNET_SERVER_Client *client,
+    const struct GNUNET_MessageHeader *message)
+{
+  struct StoreKeyHashMessage *hm;
+
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Received a watch cancel request from client.\n");
+  if(NULL == watchers)
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_WARNING,
+        "Received a watch cancel request when we don't have any watchers.\n");
+    GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
+    return;
+  }
+  hm = (struct StoreKeyHashMessage *) message;
+  GNUNET_CONTAINER_multihashmap_remove(watchers, &hm->keyhash, client);
+  GNUNET_SERVER_receive_done(client, GNUNET_OK);
+}
+
+/**
+ * Handle a watch request from client
+ *
+ * @param cls unused
+ * @param client identification of the client
+ * @param message the actual message
+ */
+void handle_watch (void *cls,
+    struct GNUNET_SERVER_Client *client,
+    const struct GNUNET_MessageHeader *message)
+{
+  struct StoreKeyHashMessage *hm;
+
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Received a watch request from client.\n");
+  hm = (struct StoreKeyHashMessage *) message;
+  GNUNET_SERVER_client_mark_monitor(client);
+  if(NULL == watchers)
+    watchers = GNUNET_CONTAINER_multihashmap_create(10, GNUNET_NO);
+  GNUNET_CONTAINER_multihashmap_put(watchers, &hm->keyhash,
+     client, GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+  GNUNET_SERVER_receive_done(client, GNUNET_OK);
 }
 
 /**
@@ -232,7 +303,7 @@ void handle_store (void *cls,
   tc = GNUNET_SERVER_transmit_context_create (client);
   GNUNET_SERVER_transmit_context_append_data(tc, NULL, 0, response_type);
   GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
-
+  //TODO: notify watchers, if a client is disconnected, remove its watch entry
 }
 
 /**
@@ -250,6 +321,8 @@ run (void *cls,
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
       {&handle_store, NULL, GNUNET_MESSAGE_TYPE_PEERSTORE_STORE, 0},
       {&handle_iterate, NULL, GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE, 0},
+      {&handle_watch, NULL, GNUNET_MESSAGE_TYPE_PEERSTORE_WATCH, sizeof(struct StoreKeyHashMessage)},
+      {&handle_watch_cancel, NULL, GNUNET_MESSAGE_TYPE_PEERSTORE_WATCH_CANCEL, sizeof(struct StoreKeyHashMessage)},
       {NULL, NULL, 0, 0}
   };
   char *database;
