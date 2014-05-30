@@ -198,15 +198,15 @@ GDS_ROUTING_remove_trail_by_peer (const struct GNUNET_PeerIdentity *peer)
  */
 int
 GDS_ROUTING_add (struct GNUNET_HashCode new_trail_id, 
-                 struct GNUNET_PeerIdentity *prev_hop,
-                 const struct GNUNET_PeerIdentity *next_hop)
+                 const struct GNUNET_PeerIdentity prev_hop,
+                 const struct GNUNET_PeerIdentity next_hop)
 {
   struct RoutingTrail *new_entry;
   
   new_entry = GNUNET_malloc (sizeof (struct RoutingTrail));
   new_entry->trail_id = new_trail_id;
-  new_entry->next_hop = *next_hop;
-  new_entry->prev_hop = *prev_hop;
+  new_entry->next_hop = next_hop;
+  new_entry->prev_hop = prev_hop;
   return GNUNET_CONTAINER_multihashmap_put (routing_table, 
                                             &new_trail_id, new_entry,
                                             GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);

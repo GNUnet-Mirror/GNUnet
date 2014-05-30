@@ -90,8 +90,8 @@ GDS_ROUTING_remove_trail (struct GNUNET_HashCode remove_trail_id);
  */
 int
 GDS_ROUTING_add (struct GNUNET_HashCode new_trail_id, 
-                 struct GNUNET_PeerIdentity *prev_hop,
-                 const struct GNUNET_PeerIdentity *next_hop);
+                 struct GNUNET_PeerIdentity prev_hop,
+                 struct GNUNET_PeerIdentity next_hop);
 
 /**
  * Check if the size of routing table has crossed threshold. 
