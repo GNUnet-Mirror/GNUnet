@@ -263,7 +263,6 @@ reconnect (struct GNUNET_PEERSTORE_Handle *h);
  */
 static const struct GNUNET_MQ_MessageHandler mq_handlers[] = {
     {&handle_store_result, GNUNET_MESSAGE_TYPE_PEERSTORE_STORE_RESULT_OK, sizeof(struct GNUNET_MessageHeader)},
-    {&handle_store_result, GNUNET_MESSAGE_TYPE_PEERSTORE_STORE_RESULT_FAIL, sizeof(struct GNUNET_MessageHeader)},
     {&handle_iterate_result, GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE_RECORD, 0},
     {&handle_iterate_result, GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE_END, sizeof(struct GNUNET_MessageHeader)},
     {&handle_watch_result, GNUNET_MESSAGE_TYPE_PEERSTORE_WATCH_RECORD, 0},
@@ -386,7 +385,6 @@ void handle_store_result (void *cls, const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_PEERSTORE_Handle *h = cls;
   struct GNUNET_PEERSTORE_StoreContext *sc;
-  uint16_t msg_type;
   GNUNET_PEERSTORE_Continuation cont;
   void *cont_cls;
 
@@ -409,13 +407,7 @@ void handle_store_result (void *cls, const struct GNUNET_MessageHeader *msg)
     return;
   }
   if(NULL != cont) /* Run continuation */
-  {
-    msg_type = ntohs(msg->type);
-    if(GNUNET_MESSAGE_TYPE_PEERSTORE_STORE_RESULT_OK == msg_type)
-      cont(cont_cls, GNUNET_OK);
-    else if(GNUNET_MESSAGE_TYPE_PEERSTORE_STORE_RESULT_FAIL == msg_type)
-      cont(cont_cls, GNUNET_SYSERR);
-  }
+    cont(cont_cls, GNUNET_OK);
 
 }
 
@@ -681,54 +673,26 @@ GNUNET_PEERSTORE_iterate (struct GNUNET_PEERSTORE_Handle *h,
  */
 void handle_watch_result (void *cls, const struct GNUNET_MessageHeader *msg)
 {
-  /*struct GNUNET_PEERSTORE_Handle *h = cls;
-  struct GNUNET_PEERSTORE_WatchContext *wc;
-  GNUNET_PEERSTORE_Processor callback;
-  void *callback_cls;
-
-
-
-  struct GNUNET_PEERSTORE_IterateContext *ic;
-  uint16_t msg_type;
+  struct GNUNET_PEERSTORE_Handle *h = cls;
   struct GNUNET_PEERSTORE_Record *record;
-  int continue_iter;
+  struct GNUNET_HashCode keyhash;
+  struct GNUNET_PEERSTORE_WatchContext *wc;
 
-  ic = h->iterate_head;
-  if(NULL == ic)
+  if(NULL == msg)
   {
-    LOG(GNUNET_ERROR_TYPE_ERROR, "Unexpected iteration response, this should not happen.\n");
+    LOG(GNUNET_ERROR_TYPE_ERROR,
+        "Problem receiving a watch response, no way to determine which request.\n");
     reconnect(h);
     return;
   }
-  callback = ic->callback;
-  callback_cls = ic->callback_cls;
-  if(NULL == msg) * Connection error *
-  {
-
-    if(NULL != callback)
-      callback(callback_cls, NULL,
-          _("Error communicating with `PEERSTORE' service."));
-    reconnect(h);
-    return;
-  }
-  msg_type = ntohs(msg->type);
-  if(GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE_END == msg_type)
-  {
-    GNUNET_PEERSTORE_iterate_cancel(ic);
-    if(NULL != callback)
-      callback(callback_cls, NULL, NULL);
-    return;
-  }
-  if(NULL != callback)
-  {
-    record = PEERSTORE_parse_record_message(msg);
-    if(NULL == record)
-      continue_iter = callback(callback_cls, record, _("Received a malformed response from service."));
-    else
-      continue_iter = callback(callback_cls, record, NULL);
-    if(GNUNET_NO == continue_iter)
-      ic->callback = NULL;
-  }*/
+  LOG(GNUNET_ERROR_TYPE_DEBUG, "Received a watch record from service.\n");
+  record = PEERSTORE_parse_record_message(msg);
+  PEERSTORE_hash_key(record->sub_system,
+      record->peer, record->key, &keyhash);
+  wc = GNUNET_CONTAINER_multihashmap_get(h->watches, &keyhash);
+  if(NULL != wc->callback)
+    wc->callback(wc->callback_cls, record, NULL);
+  /* TODO: destroy record */
 }
 
 /**
@@ -809,7 +773,7 @@ GNUNET_PEERSTORE_watch (struct GNUNET_PEERSTORE_Handle *h,
   if(NULL == h->watches)
     h->watches = GNUNET_CONTAINER_multihashmap_create(5, GNUNET_NO);
   GNUNET_CONTAINER_multihashmap_put(h->watches, &wc->keyhash,
-      wc, GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+      wc, GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
   LOG(GNUNET_ERROR_TYPE_DEBUG,
       "Sending a watch request for sub system `%s'.\n", sub_system);
   GNUNET_MQ_notify_sent(ev, &watch_request_sent, wc);

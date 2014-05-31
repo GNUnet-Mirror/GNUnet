@@ -127,7 +127,6 @@ run (void *cls,
       expiry,
       &store_cont,
       NULL);
-
 }
 
 int iterator (void *cls, const struct GNUNET_HashCode *key, void *value)
