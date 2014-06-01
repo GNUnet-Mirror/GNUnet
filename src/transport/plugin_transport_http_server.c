@@ -31,6 +31,7 @@
 #include "gnunet_nat_lib.h"
 #include "plugin_transport_http_common.h"
 #include <microhttpd.h>
+#include <regex.h>
 
 
 
@@ -48,17 +49,6 @@
 #define _RECEIVE 0
 #define _SEND 1
 
-
-/**
- * Enable output for debbuging URL's of incoming requests
- */
-#define DEBUG_URL_PARSE GNUNET_NO
-
-
-/**
- * Encapsulation of all of the state of the plugin.
- */
-struct Plugin;
 
 /**
  * Session handle for connections.
@@ -137,11 +127,6 @@ struct Session
   int session_ended;
 
   /**
-   * Are incoming connection established at the moment
-   */
-  int connect_in_progress;
-
-  /**
    * Absolute time when to receive data again
    * Used for receive throttling
    */
@@ -151,6 +136,11 @@ struct Session
    * Session timeout task
    */
   GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+
+  /**
+   * Should this session get disconnected? GNUNET_YES/NO
+   */
+  int disconnect;
 };
 
 
@@ -162,12 +152,8 @@ struct ServerConnection
   int direction;
 
   /**
-   * Should this connection get disconnected? GNUNET_YES/NO
-   */
-  int disconnect;
-
-  /**
    * For PUT connections: Is this the first or last callback with size 0
+   * For GET connections: Have we sent a message
    */
   int connected;
 
@@ -185,6 +171,12 @@ struct ServerConnection
    * The MHD daemon
    */
   struct MHD_Daemon *mhd_daemon;
+
+  /**
+   * Options requested by peer
+   */
+  uint32_t options;
+#define OPTION_LONG_POLL 1 /* GET request wants long-poll semantics */
 };
 
 
@@ -344,6 +336,11 @@ struct HTTP_Server_Plugin
    * MHD IPv4 daemon
    */
   struct MHD_Daemon *server_v6;
+
+  /**
+   * Regex for parsing URLs
+   */
+  regex_t url_regex;
 
 #if BUILD_HTTPS
   /**
@@ -549,23 +546,8 @@ http_server_plugin_send (void *cls,
       GNUNET_break (0);
       return GNUNET_SYSERR;
   }
-  if (NULL == session->server_send)
-  {
-     if (GNUNET_NO == session->connect_in_progress)
-     {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, session->plugin->name,
-                       "Session %p/connection %p: Sending message with %u bytes to peer `%s' with FAILED\n",
-                       session, session->server_send,
-                       msgbuf_size, GNUNET_i2s (&session->target));
-      GNUNET_break (0);
-      return GNUNET_SYSERR;
-     }
-  }
-  else
-  {
-    if (GNUNET_YES == session->server_send->disconnect)
-      return GNUNET_SYSERR;
-  }
+  if (session->disconnect)
+    return GNUNET_SYSERR;
 
 
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, session->plugin->name,
@@ -844,15 +826,14 @@ http_server_plugin_disconnect_session (void *cls,
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-
+  s->disconnect = GNUNET_YES;
   send = (struct ServerConnection *) s->server_send;
-  if (s->server_send != NULL)
+  if (send != NULL)
   {
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, s->plugin->name,
                      "Server: %p / %p Terminating inbound PUT session to peer `%s'\n",
-                     s, s->server_send, GNUNET_i2s (&s->target));
+                     s, send, GNUNET_i2s (&s->target));
 
-    send->disconnect = GNUNET_YES;
     MHD_set_connection_option (send->mhd_conn,
                                MHD_CONNECTION_OPTION_TIMEOUT,
                                1);
@@ -864,9 +845,8 @@ http_server_plugin_disconnect_session (void *cls,
   {
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, s->plugin->name,
                      "Server: %p / %p Terminating inbound GET session to peer `%s'\n",
-                     s, s->server_recv, GNUNET_i2s (&s->target));
+                     s, recv, GNUNET_i2s (&s->target));
 
-    recv->disconnect = GNUNET_YES;
     MHD_set_connection_option (recv->mhd_conn,
                                MHD_CONNECTION_OPTION_TIMEOUT,
                                1);
@@ -881,7 +861,7 @@ http_server_plugin_disconnect_session (void *cls,
  * GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT is divided by this number to
  * calculate the interval between keepalive packets.
  *
- * @param cls closure with the `struct Plugin`
+ * @param cls closure with the `struct HTTP_Server_Plugin`
  * @return keepalive factor
  */
 static unsigned int
@@ -947,111 +927,124 @@ server_mhd_connection_timeout (struct HTTP_Server_Plugin *plugin,
  * @param url incoming url
  * @param target where to store the target
  * @param tag where to store the tag
+ * @param options where to store the options
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 static int
 server_parse_url (struct HTTP_Server_Plugin *plugin,
 		  const char *url,
 		  struct GNUNET_PeerIdentity *target,
-		  uint32_t *tag)
+		  uint32_t *tag,
+		  uint32_t *options)
 {
-  char * tag_start = NULL;
-  char * tag_end = NULL;
-  char * target_start = NULL;
-  char * separator = NULL;
-  unsigned int hash_length;
-  unsigned long int ctag;
+  regmatch_t matches[4];
+  const char *tag_start;
+  const char *target_start;
+  char *tag_end;
+  char *options_end;
+  size_t hash_length;
+  unsigned long int rc;
 
-  /* URL parsing
-   * URL is valid if it is in the form [prefix with (multiple) '/'][peerid[103];tag]*/
+  /* URL parsing */
+#define URL_REGEX \
+  ("^.*/([0-9A-V]+);([0-9]+)(,[0-9]+)?$")
 
   if (NULL == url)
   {
       GNUNET_break (0);
       return GNUNET_SYSERR;
   }
-  /* convert tag */
 
-  /* find separator */
-  separator = strrchr (url, ';');
-
-  if (NULL == separator)
+  if (regexec(&plugin->url_regex, url, 4, matches, 0))
   {
-      if (DEBUG_URL_PARSE) GNUNET_break (0);
-      return GNUNET_SYSERR;
-  }
-  tag_start = separator + 1;
-
-  if (strlen (tag_start) == 0)
-  {
-    /* No tag after separator */
-    if (DEBUG_URL_PARSE) GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  ctag = strtoul (tag_start, &tag_end, 10);
-  if (ctag == 0)
-  {
-    /* tag == 0 , invalid */
-    if (DEBUG_URL_PARSE) GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  if ((ctag == ULONG_MAX) && (ERANGE == errno))
-  {
-    /* out of range: > ULONG_MAX */
-    if (DEBUG_URL_PARSE) GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  if (ctag > UINT32_MAX)
-  {
-    /* out of range: > UINT32_MAX */
-    if (DEBUG_URL_PARSE) GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
-  (*tag) = (uint32_t) ctag;
-  if (NULL == tag_end)
-  {
-      /* no char after tag */
-      if (DEBUG_URL_PARSE) GNUNET_break (0);
-      return GNUNET_SYSERR;
-  }
-  if (url[strlen(url)] != tag_end[0])
-  {
-      /* there are more not converted chars after tag */
-      if (DEBUG_URL_PARSE) GNUNET_break (0);
-      return GNUNET_SYSERR;
-  }
-  if (DEBUG_URL_PARSE)
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-       "Found tag `%u' in url\n", (*tag));
+       "URL `%s' did not match regex\n", url);
+    return GNUNET_SYSERR;
+  }
+
+  target_start = &url[matches[1].rm_so];
+  tag_start = &url[matches[2].rm_so];
+
+  /* convert tag */
+  rc = strtoul (tag_start, &tag_end, 10);
+  if (&url[matches[2].rm_eo] != tag_end)
+  {
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                     "URL tag did not line up with submatch\n");
+    return GNUNET_SYSERR;
+  }
+  if (rc == 0)
+  {
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                     "URL tag is zero\n");
+    return GNUNET_SYSERR;
+  }
+  if ((rc == ULONG_MAX) && (ERANGE == errno))
+  {
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                     "URL tag > ULONG_MAX\n");
+    return GNUNET_SYSERR;
+  }
+  if (rc > UINT32_MAX)
+  {
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                     "URL tag > UINT32_MAX\n");
+    return GNUNET_SYSERR;
+  }
+  (*tag) = (uint32_t)rc;
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+     "Found tag `%u' in url\n", *tag);
 
   /* convert peer id */
-  target_start = strrchr (url, '/');
-  if (NULL == target_start)
-  {
-      /* no leading '/' */
-      target_start = (char *) url;
-  }
-  target_start++;
-  hash_length = separator - target_start;
+  hash_length = matches[1].rm_eo - matches[1].rm_so;
   if (hash_length != plugin->peer_id_length)
   {
-      /* no char after tag */
-      if (DEBUG_URL_PARSE) GNUNET_break (0);
-      return GNUNET_SYSERR;
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                     "URL target is %u bytes, expecting %u\n",
+                     hash_length, plugin->peer_id_length);
+    return GNUNET_SYSERR;
   }
   if (GNUNET_OK !=
       GNUNET_CRYPTO_eddsa_public_key_from_string (target_start,
 						     hash_length,
 						     &target->public_key))
-    {
-      /* hash conversion failed */
-      if (DEBUG_URL_PARSE) GNUNET_break (0);
-      return GNUNET_SYSERR;
+  {
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                     "URL target conversion failed\n");
+    return GNUNET_SYSERR;
   }
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
 		   plugin->name,
 		   "Found target `%s' in URL\n",
 		   GNUNET_i2s_full (target));
+
+  /* convert options */
+  if (-1 == matches[3].rm_so) {
+      *options = 0;
+  } else {
+    rc = strtoul (&url[matches[3].rm_so + 1], &options_end, 10);
+    if (&url[matches[3].rm_eo] != options_end)
+    {
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                       "URL options did not line up with submatch\n");
+      return GNUNET_SYSERR;
+    }
+    if ((rc == ULONG_MAX) && (ERANGE == errno))
+    {
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                       "URL options > ULONG_MAX\n");
+      return GNUNET_SYSERR;
+    }
+    if (rc > UINT32_MAX)
+    {
+      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+                       "URL options > UINT32_MAX\n");
+      return GNUNET_SYSERR;
+    }
+    (*options) = (uint32_t)rc;
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+       "Found options `%u' in url\n", *options);
+  }
   return GNUNET_OK;
 }
 
@@ -1079,6 +1072,7 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
   struct GNUNET_PeerIdentity target;
   size_t addr_len;
   uint32_t tag = 0;
+  uint32_t options;
   int direction = GNUNET_SYSERR;
   unsigned int to;
 
@@ -1090,7 +1084,7 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                    "New %s connection from %s\n", method, url);
 
-  if (GNUNET_SYSERR == server_parse_url (plugin, url, &target, &tag))
+  if (GNUNET_SYSERR == server_parse_url (plugin, url, &target, &tag, &options))
   {
       GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                        "Invalid url %s\n", url);
@@ -1177,7 +1171,6 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
     s->server_send = NULL;
     s->session_passed = GNUNET_NO;
     s->session_ended = GNUNET_NO;
-    s->connect_in_progress = GNUNET_YES;
     server_start_session_timeout(s);
     GNUNET_CONTAINER_DLL_insert (plugin->head, plugin->tail, s);
 
@@ -1198,6 +1191,7 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
   sc->direction = direction;
   sc->connected = GNUNET_NO;
   sc->session = s;
+  sc->options = options;
   if (direction == _SEND)
     s->server_send = sc;
   if (direction == _RECEIVE)
@@ -1205,7 +1199,6 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
 
   if ((NULL != s->server_send) && (NULL != s->server_recv))
   {
-    s->connect_in_progress = GNUNET_NO; /* PUT and GET are connected */
     plugin->env->session_start (NULL, s->address ,s, NULL, 0);
   }
 
@@ -1277,11 +1270,15 @@ static ssize_t
 server_send_callback (void *cls, uint64_t pos, char *buf, size_t max)
 {
   struct Session *s = cls;
+  struct ServerConnection *sc;
   ssize_t bytes_read = 0;
   struct HTTP_Message *msg;
   char *stat_txt;
 
   if (GNUNET_NO == server_exist_session (s->plugin, s))
+    return 0;
+  sc = s->server_send;
+  if (NULL == sc)
     return 0;
   msg = s->msg_head;
   if (NULL != msg)
@@ -1304,6 +1301,7 @@ server_send_callback (void *cls, uint64_t pos, char *buf, size_t max)
   }
   if (0 < bytes_read)
   {
+    sc->connected = GNUNET_YES;
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, s->plugin->name,
                    "Sent %u bytes to peer `%s' with session %p \n", bytes_read, GNUNET_i2s (&s->target), s);
     GNUNET_asprintf (&stat_txt, "# bytes currently in %s_server buffers",
@@ -1316,6 +1314,11 @@ server_send_callback (void *cls, uint64_t pos, char *buf, size_t max)
     GNUNET_STATISTICS_update (s->plugin->env->stats,
                               stat_txt, bytes_read, GNUNET_NO);
     GNUNET_free (stat_txt);
+  } else if ((sc->options & OPTION_LONG_POLL) && sc->connected) {
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, s->plugin->name,
+                     "Completing GET response to peer `%s' with session %p \n",
+                     GNUNET_i2s (&s->target), s);
+    return MHD_CONTENT_READER_END_OF_STREAM;
   }
   return bytes_read;
 }
@@ -1468,7 +1471,7 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
   s = sc->session;
   GNUNET_assert (NULL != s);
   /* connection is to be disconnected */
-  if (sc->disconnect == GNUNET_YES)
+  if (s->disconnect == GNUNET_YES)
   {
     /* Sent HTTP/1.1: 200 OK as response */
     response = MHD_create_response_from_data (strlen ("Thank you!"),
@@ -1615,9 +1618,9 @@ server_disconnect_cb (void *cls, struct MHD_Connection *connection,
                          plugin->protocol, s->address->address,
                          s->address->address_length));
     s->server_send = NULL;
-    if (NULL != (s->server_recv))
+    if (!(sc->options & OPTION_LONG_POLL) && NULL != (s->server_recv))
     {
-      s->server_recv->disconnect = GNUNET_YES;
+      s->disconnect = GNUNET_YES;
       GNUNET_assert (NULL != s->server_recv->mhd_conn);
 #if MHD_VERSION >= 0x00090E00
       MHD_set_connection_option (s->server_recv->mhd_conn, MHD_CONNECTION_OPTION_TIMEOUT,
@@ -1635,17 +1638,6 @@ server_disconnect_cb (void *cls, struct MHD_Connection *connection,
                          plugin->protocol, s->address->address,
                          s->address->address_length));
     s->server_recv = NULL;
-    /* Do not terminate session when PUT disconnects
-    if (NULL != (s->server_send))
-    {
-        s->server_send->disconnect = GNUNET_YES;
-      GNUNET_assert (NULL != s->server_send->mhd_conn);
-#if MHD_VERSION >= 0x00090E00
-      MHD_set_connection_option (s->server_send->mhd_conn, MHD_CONNECTION_OPTION_TIMEOUT,
-                                 1);
-#endif
-      server_reschedule (plugin, s->server_send->mhd_daemon, GNUNET_NO);
-    }*/
     if (s->msg_tk != NULL)
     {
       GNUNET_SERVER_mst_destroy (s->msg_tk);
@@ -1656,7 +1648,7 @@ server_disconnect_cb (void *cls, struct MHD_Connection *connection,
   GNUNET_free (sc);
   plugin->cur_connections--;
 
-  if ((s->server_send == NULL) && (s->server_recv == NULL))
+  if (s->disconnect && (s->server_send == NULL) && (s->server_recv == NULL))
   {
     GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                      "Peer `%s' on address `%s' disconnected\n",
@@ -3090,6 +3082,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
   GNUNET_free_non_null (plugin->ext_addr);
   GNUNET_free_non_null (plugin->server_addr_v4);
   GNUNET_free_non_null (plugin->server_addr_v6);
+  regfree(&plugin->url_regex);
 
   GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
                    _("Shutdown for plugin `%s' complete\n"),
@@ -3117,7 +3110,7 @@ http_plugin_address_to_string (void *cls,
 /**
  * Function obtain the network type for a session
  *
- * @param cls closure ('struct Plugin*')
+ * @param cls closure ('struct HTTP_Server_Plugin*')
  * @param session the session
  * @return the network type in HBO or GNUNET_SYSERR
  */
@@ -3177,6 +3170,14 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
   plugin->name = "transport-http_server";
   plugin->protocol = "http";
 #endif
+
+  /* Compile URL regex */
+  if (regcomp(&plugin->url_regex, URL_REGEX, REG_EXTENDED)) {
+    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+                     _("Unable to compile URL regex\n"));
+    LIBGNUNET_PLUGIN_TRANSPORT_DONE (api);
+    return NULL;
+  }
 
   /* Configure plugin */
   if (GNUNET_SYSERR == server_configure_plugin (plugin))
