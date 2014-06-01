@@ -93,6 +93,7 @@ GDS_ROUTING_add (struct GNUNET_HashCode new_trail_id,
                  struct GNUNET_PeerIdentity prev_hop,
                  struct GNUNET_PeerIdentity next_hop);
 
+
 /**
  * Check if the size of routing table has crossed threshold. 
  * @return #GNUNET_YES, if threshold crossed 
