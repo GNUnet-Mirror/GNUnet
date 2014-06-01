@@ -73,7 +73,8 @@ struct GNUNET_NAT_Handle;
 /**
  * Error Types for the NAT subsystem (which can then later be converted/resolved to a string)
  */
-enum GNUNET_NAT_FailureCode {
+enum GNUNET_NAT_FailureCode 
+{
   /**
    * Just the default
    */
@@ -108,14 +109,11 @@ enum GNUNET_NAT_FailureCode {
    * "no valid address was returned by `external-ip'"
    */
   GNUNET_NAT_ERROR_EXTERNAL_IP_NO_VALID_ADDRESS_FOUND,
-  
-  
-  
+    
   /**
    * 
    */
-  GNUNET_NAT_ERROR_,
-  
+  GNUNET_NAT_ERROR_  
   
 };
 
@@ -207,7 +205,7 @@ struct GNUNET_NAT_Test;
  * NAT configuration test.
  *
  * @param cls closure
- * @param result GNUNET_NAT_ERROR_SUCCESS on success, otherwise the specific error code
+ * @param result #GNUNET_NAT_ERROR_SUCCESS on success, otherwise the specific error code
  */
 typedef void (*GNUNET_NAT_TestCallback) (void *cls,
                                          enum GNUNET_NAT_FailureCode result);

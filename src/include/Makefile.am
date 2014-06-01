@@ -23,6 +23,7 @@ gnunetinclude_HEADERS = \
   gnunet_block_lib.h \
   gnunet_block_plugin.h \
   gnunet_client_lib.h \
+  gnunet_client_manager_lib.h \
   gnunet_common.h \
   gnunet_constants.h \
   gnunet_configuration_lib.h \
