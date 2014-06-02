@@ -2477,10 +2477,9 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_PEERSTORE_STORE 820
 
 /**
- * Store result messages
+ * Store result message
  */
 #define GNUNET_MESSAGE_TYPE_PEERSTORE_STORE_RESULT_OK 821
-#define GNUNET_MESSAGE_TYPE_PEERSTORE_STORE_RESULT_FAIL 822
 
 /**
  * Iteration request
@@ -2493,6 +2492,20 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE_RECORD 824
 #define GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE_END 825
 
+/**
+ * Watch request
+ */
+#define GNUNET_MESSAGE_TYPE_PEERSTORE_WATCH 826
+
+/**
+ * Watch response
+ */
+#define GNUNET_MESSAGE_TYPE_PEERSTORE_WATCH_RECORD 827
+
+/**
+ * Watch cancel request
+ */
+#define GNUNET_MESSAGE_TYPE_PEERSTORE_WATCH_CANCEL 828
 
 /*******************************************************************************
  * SOCIAL message types

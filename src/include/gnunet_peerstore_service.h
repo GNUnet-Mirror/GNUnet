@@ -166,7 +166,7 @@ GNUNET_PEERSTORE_store_cancel (struct GNUNET_PEERSTORE_StoreContext *sc);
  */
 struct GNUNET_PEERSTORE_IterateContext *
 GNUNET_PEERSTORE_iterate (struct GNUNET_PEERSTORE_Handle *h,
-    char *sub_system,
+    const char *sub_system,
     const struct GNUNET_PeerIdentity *peer,
     const char *key,
     struct GNUNET_TIME_Relative timeout,
@@ -180,6 +180,33 @@ GNUNET_PEERSTORE_iterate (struct GNUNET_PEERSTORE_Handle *h,
  */
 void
 GNUNET_PEERSTORE_iterate_cancel (struct GNUNET_PEERSTORE_IterateContext *ic);
+
+/**
+ * Request watching a given key
+ * User will be notified with any new values added to key
+ *
+ * @param h handle to the PEERSTORE service
+ * @param sub_system name of sub system
+ * @param peer Peer identity
+ * @param key entry key string
+ * @param callback function called with each new value
+ * @param callback_cls closure for @a callback
+ * @return Handle to watch request
+ */
+struct GNUNET_PEERSTORE_WatchContext *
+GNUNET_PEERSTORE_watch (struct GNUNET_PEERSTORE_Handle *h,
+    const char *sub_system,
+    const struct GNUNET_PeerIdentity *peer,
+    const char *key,
+    GNUNET_PEERSTORE_Processor callback, void *callback_cls);
+
+/**
+ * Cancel a watch request
+ *
+ * @wc handle to the watch request
+ */
+void
+GNUNET_PEERSTORE_watch_cancel(struct GNUNET_PEERSTORE_WatchContext *wc);
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
