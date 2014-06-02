@@ -667,9 +667,20 @@ GNUNET_CONVERSATION_phone_create (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                              "CONVERSATION",
                                              "LINE",
                                              &line))
+  {
+    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
+                               "CONVERSATION",
+                               "LINE");
     return NULL;
+  }
   if (line >= (1 << 31))
+  {
+    GNUNET_log_config_invalid (GNUNET_ERROR_TYPE_ERROR,
+                               "CONVERSATION",
+                               "LINE",
+                               _("number too large"));
     return NULL;
+  }
   phone = GNUNET_new (struct GNUNET_CONVERSATION_Phone);
   if (GNUNET_OK !=
       GNUNET_CRYPTO_get_peer_identity (cfg,
