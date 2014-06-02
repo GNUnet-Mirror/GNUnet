@@ -368,6 +368,7 @@ typedef void (*GNUNET_CONVERSATION_CallEventHandler)(void *cls,
  *        #GNUNET_CONVERSATION_EC_CALL_PICKED_UP event is generated)
  * @param event_handler how to notify the owner of the phone about events
  * @param event_handler_cls closure for @a event_handler
+ * @return handle for the call
  */
 struct GNUNET_CONVERSATION_Call *
 GNUNET_CONVERSATION_call_start (const struct GNUNET_CONFIGURATION_Handle *cfg,

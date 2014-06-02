@@ -146,13 +146,13 @@ struct GNUNET_GNSRECORD_Data
 
   /**
    * Expiration time for the DNS record.  Can be relative
-   * or absolute, depending on 'flags'.  Measured in the same
+   * or absolute, depending on @e flags.  Measured in the same
    * unit as GNUnet time (microseconds).
    */
   uint64_t expiration_time;
 
   /**
-   * Number of bytes in 'data'.
+   * Number of bytes in @e data.
    */
   size_t data_size;
 

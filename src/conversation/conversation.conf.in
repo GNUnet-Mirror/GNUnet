@@ -4,7 +4,23 @@ BINARY = gnunet-service-conversation
 UNIXPATH = $GNUNET_RUNTIME_DIR/gnunet-service-conversation.sock
 HOSTNAME = localhost
 @UNIXONLY@ PORT = 2106
+
+# Desired phone line.  Change if multiple users are using
+# the same peer and we thus need disjoint phone lines.
 LINE = 1
+
+# Should the phone record be private? (only set to YES if
+# you really know what you are doing, you will then likely
+# not be able to receive calls).
+RECORD_IS_PRIVATE = NO
+
+# How long should phone records remain published in GNS?
+# A long expiration time has the advantage that the phone
+# is more likely found and/or resolved faster, OTOH it
+# then takes longer to change the phone line if necessary.
+# The default should be fine for most users.
+RECORD_EXPIRATION = 1 day
+
 
 ACCEPT_FROM = 127.0.0.1;
 ACCEPT_FROM6 = ::1;

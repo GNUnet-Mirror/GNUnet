@@ -89,9 +89,10 @@ GNUNET_NAMESTORE_disconnect (struct GNUNET_NAMESTORE_Handle *h);
  *                #GNUNET_YES (or other positive value) on success
  * @param emsg NULL on success, otherwise an error message
  */
-typedef void (*GNUNET_NAMESTORE_ContinuationWithStatus) (void *cls,
-                                                         int32_t success,
-                                                         const char *emsg);
+typedef void
+(*GNUNET_NAMESTORE_ContinuationWithStatus) (void *cls,
+                                            int32_t success,
+                                            const char *emsg);
 
 
 /**
@@ -128,11 +129,13 @@ GNUNET_NAMESTORE_records_store (struct GNUNET_NAMESTORE_Handle *h,
  * @param rd_count number of entries in @a rd array, 0 if label was deleted
  * @param rd array of records with data to store
  */
-typedef void (*GNUNET_NAMESTORE_RecordMonitor) (void *cls,
-						const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
-						const char *label,
-						unsigned int rd_count,
-						const struct GNUNET_GNSRECORD_Data *rd);
+typedef void
+(*GNUNET_NAMESTORE_RecordMonitor) (void *cls,
+                                   const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
+                                   const char *label,
+                                   unsigned int rd_count,
+                                   const struct GNUNET_GNSRECORD_Data *rd);
+
 
 /**
  * Set the desired nick name for a zone
@@ -259,7 +262,8 @@ struct GNUNET_NAMESTORE_ZoneMonitor;
  *
  * @param cls closure
  */
-typedef void (*GNUNET_NAMESTORE_RecordsSynchronizedCallback)(void *cls);
+typedef void
+(*GNUNET_NAMESTORE_RecordsSynchronizedCallback)(void *cls);
 
 
 /**
