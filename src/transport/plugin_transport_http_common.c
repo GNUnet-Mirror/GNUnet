@@ -208,17 +208,14 @@ http_common_plugin_address_pretty_printer (void *cls,
 {
   const struct HttpAddress *address = addr;
 
-  if (NULL ==
-      http_common_plugin_address_to_string (NULL, type,
-                                            address, addrlen))
-  {
-    asc (asc_cls, NULL);
-    return;
-  }
-  asc (asc_cls, http_common_plugin_address_to_string (NULL,
-                                                      type,
-                                                      address, addrlen));
-  asc (asc_cls, NULL);
+  if (NULL
+      == http_common_plugin_address_to_string (NULL, type, address, addrlen))
+    asc (asc_cls, NULL, GNUNET_SYSERR);
+  else
+    asc (asc_cls,
+        http_common_plugin_address_to_string (NULL, type, address, addrlen),
+        GNUNET_OK);
+  asc (asc_cls, NULL, GNUNET_OK);
 }
 
 

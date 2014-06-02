@@ -749,7 +749,7 @@ append_port (void *cls, const char *hostname)
 
   if (hostname == NULL )
   {
-    ppc->asc (ppc->asc_cls, NULL );
+    ppc->asc (ppc->asc_cls, NULL, GNUNET_OK); /* Final call, done */
     GNUNET_CONTAINER_DLL_remove(ppc_dll_head, ppc_dll_tail, ppc);
     GNUNET_SCHEDULER_cancel (ppc->timeout_task);
     ppc->timeout_task = GNUNET_SCHEDULER_NO_TASK;
@@ -758,13 +758,12 @@ append_port (void *cls, const char *hostname)
     return;
   }
   for (cur = ppc_dll_head; (NULL != cur); cur = cur->next)
-  {
     if (cur == ppc)
       break;
-  }
   if (NULL == cur)
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Invalid callback for PPC %p \n", ppc);
+    ppc->asc (ppc->asc_cls, NULL, GNUNET_SYSERR);
+    GNUNET_break(0);
     return;
   }
 
@@ -774,7 +773,7 @@ append_port (void *cls, const char *hostname)
   else
     GNUNET_asprintf (&ret, "%s.%u.%s:%d", PLUGIN_NAME, ppc->options, hostname,
         ppc->port);
-  ppc->asc (ppc->asc_cls, ret);
+  ppc->asc (ppc->asc_cls, ret, GNUNET_OK);
   GNUNET_free(ret);
 }
 
@@ -847,7 +846,8 @@ udp_plugin_address_pretty_printer (void *cls,
   {
     /* invalid address */
     GNUNET_break_op(0);
-    asc (asc_cls, NULL );
+    asc (asc_cls, NULL , GNUNET_SYSERR);
+    asc (asc_cls, NULL, GNUNET_OK);
     return;
   }
   ppc = GNUNET_new (struct PrettyPrinterContext);

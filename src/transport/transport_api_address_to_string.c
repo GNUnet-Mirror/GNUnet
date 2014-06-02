@@ -106,7 +106,7 @@ address_response_processor (void *cls, const struct GNUNET_MessageHeader *msg)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Client %p failed to resolve address \n",
         alucb->client);
-
+    GNUNET_break (0);
     alucb->cb (alucb->cb_cls, empty_str, GNUNET_SYSERR);
 
     /* expect more replies */

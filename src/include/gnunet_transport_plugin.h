@@ -415,12 +415,14 @@ typedef void
  * each human-readable address obtained.
  *
  * @param cls closure
- * @param address one of the names for the host, NULL
- *        on the last call to the callback
+ * @param address one of the names for the host, NULL on last callback
+ * @param res GNUNET_OK if conversion was successful, GNUNET_SYSERR on failure,
+ *      GNUNET_OK on last callback
  */
 typedef void
 (*GNUNET_TRANSPORT_AddressStringCallback) (void *cls,
-                                           const char *address);
+                                           const char *address,
+                                           int res);
 
 
 /**
@@ -612,9 +614,7 @@ struct GNUNET_TRANSPORT_PluginFunctions
   GNUNET_TRANSPORT_QueryKeepaliveFactorFunction query_keepalive_factor;
 
   /**
-   * Function to pretty-print addresses.  NOTE: this function is not
-   * yet used by transport-service, but will be used in the future
-   * once the transport-API has been completed.
+   * Function to pretty-print addresses.
    */
   GNUNET_TRANSPORT_AddressPrettyPrinter address_pretty_printer;
 

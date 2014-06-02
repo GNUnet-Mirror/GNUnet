@@ -858,16 +858,51 @@ clients_handle_request_connect (void *cls, struct GNUNET_SERVER_Client *client,
  *
  * @param cls the transmission context used ('struct GNUNET_SERVER_TransmitContext*')
  * @param buf text to transmit
+ * @param res GNUNET_OK if conversion was successful, GNUNET_SYSERR on error
  */
 static void
-transmit_address_to_client (void *cls, const char *buf)
+transmit_address_to_client (void *cls, const char *buf, int res)
 {
   struct AddressToStringContext *actx = cls;
   struct AddressToStringResultMessage *atsm;
   size_t len;
 
-  if (NULL != buf)
+  if (NULL == buf)
   {
+    GNUNET_assert ((res == GNUNET_OK) ||  (res == GNUNET_SYSERR));
+
+    len = sizeof (struct AddressToStringResultMessage);
+    atsm = GNUNET_malloc (len);
+    atsm->header.size = ntohs (len);
+    atsm->header.type = ntohs (GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_TO_STRING_REPLY);
+
+    if (GNUNET_OK == res)
+    {
+      /* done, transmit */
+      atsm->res = htonl (GNUNET_YES);
+      atsm->addr_len = htonl (0);
+      GNUNET_SERVER_transmit_context_append_message (actx->tc,
+          (const struct GNUNET_MessageHeader *) atsm);
+
+      GNUNET_SERVER_transmit_context_run (actx->tc, GNUNET_TIME_UNIT_FOREVER_REL);
+      GNUNET_CONTAINER_DLL_remove (a2s_head, a2s_tail, actx);
+      GNUNET_free (actx);
+    }
+    if (GNUNET_SYSERR == res)
+    {
+      /* address conversion failed */
+
+      atsm->res = htonl (GNUNET_NO);
+      atsm->addr_len = htonl (0);
+      GNUNET_SERVER_transmit_context_append_message (actx->tc,
+          (const struct GNUNET_MessageHeader *) atsm);
+      GNUNET_free (atsm);
+    }
+  }
+  else
+  {
+    GNUNET_assert (res == GNUNET_OK);
+    /* succesful conversion, append*/
     len = sizeof (struct AddressToStringResultMessage) + strlen (buf) + 1;
     atsm = GNUNET_malloc (len);
     atsm->header.size = ntohs (len);
@@ -875,31 +910,10 @@ transmit_address_to_client (void *cls, const char *buf)
     atsm->res = htonl (GNUNET_YES);
     atsm->addr_len = htonl (strlen (buf) + 1);
     memcpy (&atsm[1], buf, strlen (buf) + 1);
+    GNUNET_SERVER_transmit_context_append_message (actx->tc,
+        (const struct GNUNET_MessageHeader *) atsm);
+    GNUNET_free (atsm);
   }
-  else
-  {
-    len = sizeof (struct AddressToStringResultMessage);
-
-    atsm = GNUNET_malloc (len);
-    atsm->header.size = ntohs (len);
-    atsm->header.type = ntohs (GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_TO_STRING_REPLY);
-    atsm->res = htonl (GNUNET_NO);
-    atsm->addr_len = htonl (0);
-
-    /* BUG HUNTING */
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Failed to convert address for client %p\n", actx->tc);
-  }
-
-  if (NULL == buf)
-  {
-    /* Address could not be converted */
-    GNUNET_SERVER_transmit_context_append_message (actx->tc, (const struct GNUNET_MessageHeader *)atsm);
-    GNUNET_SERVER_transmit_context_run (actx->tc, GNUNET_TIME_UNIT_FOREVER_REL);
-    GNUNET_CONTAINER_DLL_remove (a2s_head, a2s_tail, actx);
-    GNUNET_free (actx);
-    return;
-  }
-  GNUNET_SERVER_transmit_context_append_message (actx->tc, (const struct GNUNET_MessageHeader *) atsm);
 }
 
 

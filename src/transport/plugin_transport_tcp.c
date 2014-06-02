@@ -1690,8 +1690,8 @@ append_port (void *cls, const char *hostname)
 
   if (NULL == hostname)
   {
-    ppc->asc (ppc->asc_cls, NULL );
-    GNUNET_CONTAINER_DLL_remove(ppc_dll_head, ppc_dll_tail, ppc);
+    ppc->asc (ppc->asc_cls, NULL, GNUNET_OK); /* Final call, done */
+    GNUNET_CONTAINER_DLL_remove (ppc_dll_head, ppc_dll_tail, ppc);
     GNUNET_SCHEDULER_cancel (ppc->timeout_task);
     ppc->timeout_task = GNUNET_SCHEDULER_NO_TASK;
     ppc->resolver_handle = NULL;
@@ -1703,6 +1703,7 @@ append_port (void *cls, const char *hostname)
       break;
   if (NULL == cur)
   {
+    ppc->asc (ppc->asc_cls, NULL, GNUNET_SYSERR);
     GNUNET_break(0);
     return;
   }
@@ -1713,7 +1714,7 @@ append_port (void *cls, const char *hostname)
   else
     GNUNET_asprintf (&ret, "%s.%u.%s:%d", PLUGIN_NAME, ppc->options, hostname,
         ppc->port);
-  ppc->asc (ppc->asc_cls, ret);
+  ppc->asc (ppc->asc_cls, ret, GNUNET_OK);
   GNUNET_free(ret);
 }
 
@@ -1730,6 +1731,7 @@ append_port (void *cls, const char *hostname)
  * @param timeout after how long should we give up?
  * @param asc function to call on each string
  * @param asc_cls closure for asc
+ *
  */
 static void
 tcp_plugin_address_pretty_printer (void *cls, const char *type,
@@ -1774,7 +1776,8 @@ tcp_plugin_address_pretty_printer (void *cls, const char *type,
   else
   {
     /* invalid address */
-    asc (asc_cls, NULL );
+    asc (asc_cls, NULL, GNUNET_SYSERR);
+    asc (asc_cls, NULL, GNUNET_OK);
     return;
   }
   ppc = GNUNET_new (struct PrettyPrinterContext);

@@ -276,11 +276,8 @@ template_plugin_address_pretty_printer (void *cls, const char *type,
                                         GNUNET_TRANSPORT_AddressStringCallback
                                         asc, void *asc_cls)
 {
-  if (0 == addrlen)
-  {
-    asc (asc_cls, TRANSPORT_SESSION_INBOUND_STRING);
-  }
-  asc (asc_cls, NULL);
+  asc (asc_cls, "converted address", GNUNET_OK); /* return address */
+  asc (asc_cls, NULL, GNUNET_OK); /* done */
 }
 
 

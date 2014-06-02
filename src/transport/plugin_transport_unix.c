@@ -1421,18 +1421,11 @@ unix_plugin_address_pretty_printer (void *cls, const char *type,
 {
   if ((NULL != addr) && (addrlen > 0))
   {
-    asc (asc_cls, unix_address_to_string (NULL, addr, addrlen));
-  }
-  else if (0 == addrlen)
-  {
-    asc (asc_cls, TRANSPORT_SESSION_INBOUND_STRING);
+    asc (asc_cls, unix_address_to_string (NULL, addr, addrlen), GNUNET_OK);
   }
   else
-  {
-    GNUNET_break (0);
-    asc (asc_cls, "<invalid UNIX address>");
-  }
-  asc (asc_cls, NULL);
+    asc (asc_cls, NULL, GNUNET_SYSERR);
+  asc (asc_cls, NULL, GNUNET_OK);
 }
 
 

@@ -1719,15 +1719,15 @@ bluetooth_plugin_address_pretty_printer (void *cls, const char *type,
   if (sizeof (struct WlanAddress) != addrlen)
   {
     /* invalid address  */
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-	 _("Bluetooth address with invalid size encountered\n"));
-    asc (asc_cls, NULL);
-    return;
+    asc (asc_cls, NULL, GNUNET_SYSERR);
   }
-  ret = GNUNET_strdup (bluetooth_plugin_address_to_string(NULL, addr, addrlen));
-  asc (asc_cls, ret);
-  GNUNET_free (ret);
-  asc (asc_cls, NULL);
+  else
+  {
+    ret = GNUNET_strdup (bluetooth_plugin_address_to_string(NULL, addr, addrlen));
+    asc (asc_cls, ret, GNUNET_OK);
+    GNUNET_free (ret);
+  }
+  asc (asc_cls, NULL, GNUNET_OK);
 }
 
 
