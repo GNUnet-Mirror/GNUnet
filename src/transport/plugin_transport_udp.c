@@ -1316,7 +1316,7 @@ udp_disconnect_session (void *cls, struct Session *s)
 
   GNUNET_assert(
       GNUNET_YES == GNUNET_CONTAINER_multipeermap_remove (plugin->sessions, &s->target, s));
-  GNUNET_STATISTICS_set (plugin->env->stats, "# UDP, sessions active",
+  GNUNET_STATISTICS_set (plugin->env->stats, "# UDP sessions active",
       GNUNET_CONTAINER_multipeermap_size (plugin->sessions), GNUNET_NO);
   if (s->rc > 0)
     s->in_destroy = GNUNET_YES;
@@ -1603,7 +1603,7 @@ udp_plugin_create_session (void *cls,
       udp_address_to_string( NULL,address->address,address->address_length));
   GNUNET_assert(
       GNUNET_OK == GNUNET_CONTAINER_multipeermap_put (plugin->sessions, &s->target, s, GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE));
-  GNUNET_STATISTICS_set (plugin->env->stats, "# UDP, sessions active",
+  GNUNET_STATISTICS_set (plugin->env->stats, "# UDP sessions active",
       GNUNET_CONTAINER_multipeermap_size (plugin->sessions), GNUNET_NO);
   return s;
 }
