@@ -986,11 +986,10 @@ add_address_to_hello (void *cls, size_t max, void *buffer)
      * Skip this part, advance to the next one and recurse.
      * But only if this is not the end of string.
      */
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Plugin `%s' not found\n"),
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _("Plugin `%s' not found, skipping address\n"),
                 plugin_name);
     GNUNET_free (plugin_name);
-    GNUNET_break (0);
     return 0;
   }
   if (NULL == papi->string_to_address)
