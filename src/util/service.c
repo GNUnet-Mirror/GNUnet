@@ -686,16 +686,19 @@ GNUNET_SERVICE_get_server_addresses (const char *service_name,
   if (NULL != hostname)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Resolving `%s' since that is where `%s' will bind to.\n", hostname,
+         "Resolving `%s' since that is where `%s' will bind to.\n",
+         hostname,
          service_name);
     memset (&hints, 0, sizeof (struct addrinfo));
     if (disablev6)
       hints.ai_family = AF_INET;
     hints.ai_protocol = IPPROTO_TCP;
     if ((0 != (ret = getaddrinfo (hostname, NULL, &hints, &res))) ||
-        (res == NULL))
+        (NULL == res))
     {
-      LOG (GNUNET_ERROR_TYPE_ERROR, _("Failed to resolve `%s': %s\n"), hostname,
+      LOG (GNUNET_ERROR_TYPE_ERROR,
+           _("Failed to resolve `%s': %s\n"),
+           hostname,
            gai_strerror (ret));
       GNUNET_free (hostname);
       GNUNET_free_non_null (unixpath);
@@ -712,8 +715,10 @@ GNUNET_SERVICE_get_server_addresses (const char *service_name,
     }
     if (0 == i)
     {
-      LOG (GNUNET_ERROR_TYPE_ERROR, _("Failed to find %saddress for `%s'.\n"),
-           disablev6 ? "IPv4 " : "", hostname);
+      LOG (GNUNET_ERROR_TYPE_ERROR,
+           _("Failed to find %saddress for `%s'.\n"),
+           disablev6 ? "IPv4 " : "",
+           hostname);
       freeaddrinfo (res);
       GNUNET_free (hostname);
       GNUNET_free_non_null (unixpath);

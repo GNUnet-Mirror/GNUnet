@@ -131,11 +131,11 @@ GNUNET_PEERINFO_add_peer_cancel (struct GNUNET_PEERINFO_AddContext *ac);
  * @param hello hello message for the peer (can be NULL)
  * @param error message
  */
-typedef void (*GNUNET_PEERINFO_Processor) (void *cls,
-                                           const struct GNUNET_PeerIdentity *
-                                           peer,
-                                           const struct GNUNET_HELLO_Message *
-                                           hello, const char *err_msg);
+typedef void
+(*GNUNET_PEERINFO_Processor) (void *cls,
+                              const struct GNUNET_PeerIdentity *peer,
+                              const struct GNUNET_HELLO_Message *hello,
+                              const char *err_msg);
 
 
 /**
