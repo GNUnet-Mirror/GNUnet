@@ -3114,11 +3114,31 @@ free_iterate (void *cls,
 
 
 /**
+ * Function scheduled as very last function if the service
+ * disabled itself because the helper is not installed
+ * properly.  Does nothing, except for keeping the
+ * service process alive by virtue of being scheduled.
+ *
+ * @param cls NULL
+ * @param tc scheduler context
+ */
+static void
+dummy_task (void *cls,
+            const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  /* just terminate */
+}
+
+
+/**
  * Function scheduled as very last function, cleans up after us
+ *
+ * @param cls NULL
+ * @param tc scheduler context
  */
 static void
 cleanup (void *cls,
-         const struct GNUNET_SCHEDULER_TaskContext *tskctx)
+         const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   unsigned int i;
 
@@ -3511,8 +3531,11 @@ run (void *cls,
     {
       GNUNET_free (binary);
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-		  _("`%s' must be installed SUID, refusing to run\n"),
+		  _("`%s' must be installed SUID, EXIT will not work\n"),
 		  "gnunet-helper-exit");
+      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
+                                    &dummy_task,
+                                    NULL);
       global_ret = 1;
       return;
     }
@@ -3601,7 +3624,9 @@ run (void *cls,
     app_idx++;
   }
   GNUNET_free_non_null (dns_exit);
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &cleanup, cls);
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
+                                &cleanup,
+                                cls);
 
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_number (cfg, "exit", "MAX_CONNECTIONS",
