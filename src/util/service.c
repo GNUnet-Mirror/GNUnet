@@ -501,7 +501,7 @@ add_unixpath (struct sockaddr **saddrs, socklen_t * saddrlens,
  *              addresses the server should bind to and listen on; the
  *              array will be NULL-terminated (on success)
  * @param addr_lens set (call by reference) to an array of the lengths
- *              of the respective 'struct sockaddr' struct in the 'addrs'
+ *              of the respective `struct sockaddr` struct in the @a addrs
  *              array (on success)
  * @return number of addresses found on success,
  *              #GNUNET_SYSERR if the configuration
@@ -513,8 +513,8 @@ add_unixpath (struct sockaddr **saddrs, socklen_t * saddrlens,
  */
 int
 GNUNET_SERVICE_get_server_addresses (const char *service_name,
-                                     const struct GNUNET_CONFIGURATION_Handle
-                                     *cfg, struct sockaddr ***addrs,
+                                     const struct GNUNET_CONFIGURATION_Handle *cfg,
+                                     struct sockaddr ***addrs,
                                      socklen_t ** addr_lens)
 {
   int disablev6;
