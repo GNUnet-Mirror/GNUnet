@@ -488,6 +488,7 @@ void handle_iterate_result (void *cls, const struct GNUNET_MessageHeader *msg)
   msg_type = ntohs(msg->type);
   if(GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE_END == msg_type)
   {
+    ic->request_sent = GNUNET_NO;
     GNUNET_PEERSTORE_iterate_cancel(ic);
     if(NULL != callback)
       callback(callback_cls, NULL, NULL);
@@ -497,9 +498,12 @@ void handle_iterate_result (void *cls, const struct GNUNET_MessageHeader *msg)
   {
     record = PEERSTORE_parse_record_message(msg);
     if(NULL == record)
-      continue_iter = callback(callback_cls, record, _("Received a malformed response from service."));
+      continue_iter = callback(callback_cls, NULL, _("Received a malformed response from service."));
     else
+    {
       continue_iter = callback(callback_cls, record, NULL);
+      PEERSTORE_destroy_record(record);
+    }
     if(GNUNET_NO == continue_iter)
       ic->callback = NULL;
   }
@@ -638,7 +642,7 @@ void handle_watch_result (void *cls, const struct GNUNET_MessageHeader *msg)
   wc = GNUNET_CONTAINER_multihashmap_get(h->watches, &keyhash);
   if(NULL != wc->callback)
     wc->callback(wc->callback_cls, record, NULL);
-  /* TODO: destroy record */
+  PEERSTORE_destroy_record(record);
 }
 
 /**

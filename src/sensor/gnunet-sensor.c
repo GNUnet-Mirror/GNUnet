@@ -79,10 +79,7 @@ void print_sensor_info(void *cls,
     return;
   }
   if(NULL == sensor) /* no more sensors from service */
-  {
-    GNUNET_SCHEDULER_shutdown();
     return;
-  }
   printf("Name: %s\nVersion: %d.%d\n",
       sensor->name,
       sensor->version_major,
@@ -132,6 +129,7 @@ run (void *cls,
         NULL);
   }
 
+  GNUNET_SCHEDULER_shutdown();
   ret = 0;
 }
 

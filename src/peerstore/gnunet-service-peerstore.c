@@ -117,6 +117,22 @@ cleanup_expired_records(void *cls,
       &cleanup_expired_records, NULL);
 }
 
+/**
+ * Search for a disconnected client and remove it
+ *
+ * @param cls closuer, a 'struct GNUNET_PEERSTORE_Record *'
+ * @param key hash of record key
+ * @param value the watcher client, a 'struct GNUNET_SERVER_Client *'
+ * @return #GNUNET_YES to continue iterating
+ */
+int client_disconnect_it(void *cls,
+    const struct GNUNET_HashCode *key,
+    void *value)
+{
+  if(cls == value)
+    GNUNET_CONTAINER_multihashmap_remove(watchers, key, value);
+  return GNUNET_YES;
+}
 
 /**
  * A client disconnected.  Remove all of its data structure entries.
@@ -129,6 +145,9 @@ handle_client_disconnect (void *cls,
 			  struct GNUNET_SERVER_Client
 			  * client)
 {
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "A client was disconnected, cleaning up.\n");
+  GNUNET_CONTAINER_multihashmap_iterate(watchers,
+      &client_disconnect_it, client);
 }
 
 /**
@@ -177,9 +196,10 @@ int watch_notifier_it(void *cls,
   struct StoreRecordMessage *srm;
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Found a watcher to update.\n");
-  if(NULL == value)
+  if(NULL == client)
   {
-    GNUNET_CONTAINER_multihashmap_remove(watchers, key, value);
+    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Removing a dead client.\n");
+    GNUNET_CONTAINER_multihashmap_remove(watchers, key, client);
     return GNUNET_YES;
   }
   srm = PEERSTORE_create_record_message(record->sub_system,
