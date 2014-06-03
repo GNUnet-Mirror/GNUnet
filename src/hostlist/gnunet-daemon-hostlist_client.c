@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2001, 2002, 2003, 2004, 2005, 2006, 2009, 2010 Christian Grothoff (and other contributing authors)
+     (C) 2001-2010, 2014 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -17,23 +17,19 @@
      Free Software Foundation, Inc., 59 Temple Place - Suite 330,
      Boston, MA 02111-1307, USA.
 */
-
 /**
- * @file hostlist/hostlist-client.c
+ * @file hostlist/gnunet-daemon-hostlist_client.c
  * @brief hostlist support.  Downloads HELLOs via HTTP.
  * @author Christian Grothoff
  * @author Matthias Wachs
  */
-
 #include "platform.h"
-#include "hostlist-client.h"
-#include "gnunet_core_service.h"
+#include "gnunet-daemon-hostlist_client.h"
 #include "gnunet_hello_lib.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_transport_service.h"
 #include "gnunet-daemon-hostlist.h"
 #include <curl/curl.h>
-#include "gnunet_util_lib.h"
 
 
 /**
@@ -43,9 +39,50 @@
 #define MIN_CONNECTIONS 4
 
 /**
- * Interval between two advertised hostlist tests
+ * Maximum number of hostlist that are saved
  */
-#define TESTING_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5)
+#define MAX_NUMBER_HOSTLISTS 30
+
+/**
+ * Time interval hostlists are saved to disk
+ */
+#define SAVING_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 30)
+
+/**
+ * Time interval between two hostlist tests
+ */
+#define TESTING_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 3)
+
+/**
+ * Time interval for download dispatcher before a download is re-scheduled
+ */
+#define WAITING_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
+
+/**
+ * Defines concerning the hostlist quality metric
+ */
+
+/**
+ * Initial quality of a new created hostlist
+ */
+#define HOSTLIST_INITIAL 10000
+
+/**
+ * Value subtracted each time a hostlist download fails
+ */
+#define HOSTLIST_FAILED_DOWNLOAD 100
+
+/**
+ * Value added each time a hostlist download is successful
+ */
+#define HOSTLIST_SUCCESSFUL_DOWNLOAD 100
+
+/**
+ * Value added for each valid HELLO recived during a hostlist download
+ */
+#define HOSTLIST_SUCCESSFUL_HELLO 1
+
+
 
 /**
  * A single hostlist obtained by hostlist advertisements
@@ -281,7 +318,10 @@ static unsigned int stat_connection_count;
  * @return number of bytes that were processed (always size*nmemb)
  */
 static size_t
-callback_download (void *ptr, size_t size, size_t nmemb, void *ctx)
+callback_download (void *ptr,
+                   size_t size,
+                   size_t nmemb,
+                   void *ctx)
 {
   static char download_buffer[GNUNET_SERVER_MAX_MESSAGE_SIZE - 1];
   const char *cbuf = ptr;
@@ -486,6 +526,7 @@ download_get_url ()
 
 /**
  * Method to save hostlist to a file during hostlist client shutdown
+ *
  * @param shutdown set if called because of shutdown, entries in linked list will be destroyed
  */
 static void
@@ -493,14 +534,15 @@ save_hostlist_file (int shutdown);
 
 
 /**
- * add val2 to val1 with overflow check
+ * Add val2 to val1 with overflow check
  *
  * @param val1 value 1
  * @param val2 value 2
  * @return result
  */
 static uint64_t
-checked_add (uint64_t val1, uint64_t val2)
+checked_add (uint64_t val1,
+             uint64_t val2)
 {
   static uint64_t temp;
   static uint64_t maxv;
@@ -523,7 +565,8 @@ checked_add (uint64_t val1, uint64_t val2)
  * @return result
  */
 static uint64_t
-checked_sub (uint64_t val1, uint64_t val2)
+checked_sub (uint64_t val1,
+             uint64_t val2)
 {
   if (val1 <= val2)
     return 0;
@@ -726,7 +769,8 @@ clean_up ()
  * @param tc task context, unused
  */
 static void
-task_download (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+task_download (void *cls,
+               const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
@@ -795,7 +839,8 @@ download_prepare ()
  * @param tc task context, unused
  */
 static void
-task_download (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+task_download (void *cls,
+               const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   int running;
   struct CURLMsg *msg;
@@ -968,10 +1013,6 @@ download_hostlist ()
     CURL_EASY_SETOPT (curl, CURLOPT_USERAGENT, "GNUnet");
   CURL_EASY_SETOPT (curl, CURLOPT_CONNECTTIMEOUT, 60L);
   CURL_EASY_SETOPT (curl, CURLOPT_TIMEOUT, 60L);
-#if 0
-  /* this should no longer be needed; we're now single-threaded! */
-  CURL_EASY_SETOPT (curl, CURLOPT_NOSIGNAL, 1);
-#endif
   multi = curl_multi_init ();
   if (multi == NULL)
   {
@@ -1017,7 +1058,7 @@ task_download_dispatcher (void *cls,
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Download in progess, have to wait...\n");
     ti_download_dispatcher_task =
-        GNUNET_SCHEDULER_add_delayed (WAITING_INTERVALL,
+        GNUNET_SCHEDULER_add_delayed (WAITING_INTERVAL,
                                       &task_download_dispatcher, NULL);
   }
 }
@@ -1110,9 +1151,9 @@ task_hostlist_saving (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Hostlists will be saved to file again in %s\n",
-	      GNUNET_STRINGS_relative_time_to_string(SAVING_INTERVALL, GNUNET_YES));
+	      GNUNET_STRINGS_relative_time_to_string(SAVING_INTERVAL, GNUNET_YES));
   ti_saving_task =
-      GNUNET_SCHEDULER_add_delayed (SAVING_INTERVALL, &task_hostlist_saving,
+      GNUNET_SCHEDULER_add_delayed (SAVING_INTERVAL, &task_hostlist_saving,
                                     NULL);
 }
 
@@ -1257,11 +1298,14 @@ primary_task (void *cls, int success)
  * @param subsystem should be "hostlist", unused
  * @param name will be "milliseconds between hostlist downloads", unused
  * @param value previous delay value, in milliseconds (!)
- * @param is_persistent unused, will be GNUNET_YES
+ * @param is_persistent unused, will be #GNUNET_YES
  */
 static int
-process_stat (void *cls, const char *subsystem, const char *name,
-              uint64_t value, int is_persistent)
+process_stat (void *cls,
+              const char *subsystem,
+              const char *name,
+              uint64_t value,
+              int is_persistent)
 {
   hostlist_delay.rel_value_us = value * 1000LL;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1287,6 +1331,7 @@ load_hostlist_file ()
   uint64_t last_used;
   uint64_t created;
   uint32_t counter;
+  struct GNUNET_BIO_ReadHandle *rh;
 
   uri = NULL;
   if (GNUNET_OK !=
@@ -1309,13 +1354,11 @@ load_hostlist_file ()
     return;
   }
 
-  struct GNUNET_BIO_ReadHandle *rh = GNUNET_BIO_read_open (filename);
-
+  rh = GNUNET_BIO_read_open (filename);
   if (NULL == rh)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                _
-                ("Could not open file `%s' for reading to load hostlists: %s\n"),
+                _("Could not open file `%s' for reading to load hostlists: %s\n"),
                 filename, STRERROR (errno));
     GNUNET_free (filename);
     return;
@@ -1348,11 +1391,14 @@ load_hostlist_file ()
       break;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("%u hostlist URIs loaded from file\n"),
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              _("%u hostlist URIs loaded from file\n"),
               counter);
-  GNUNET_STATISTICS_set (stats, gettext_noop ("# hostlist URIs read from file"),
+  GNUNET_STATISTICS_set (stats,
+                         gettext_noop ("# hostlist URIs read from file"),
                          counter, GNUNET_YES);
-  GNUNET_STATISTICS_set (stats, gettext_noop ("# advertised hostlist URIs"),
+  GNUNET_STATISTICS_set (stats,
+                         gettext_noop ("# advertised hostlist URIs"),
                          linked_list_size, GNUNET_NO);
 
   GNUNET_free_non_null (uri);
@@ -1366,6 +1412,7 @@ load_hostlist_file ()
 
 /**
  * Method to save persistent hostlist file during hostlist client shutdown
+ *
  * @param shutdown set if called because of shutdown, entries in linked list will be destroyed
  */
 static void
@@ -1448,13 +1495,22 @@ save_hostlist_file (int shutdown)
 
 /**
  * Start downloading hostlists from hostlist servers as necessary.
+ *
+ * @param c configuration to use
+ * @param st statistics handle to use
+ * @param ch[OUT] set to handler for CORE connect events
+ * @param dh[OUT] set to handler for CORE disconnect events
+ * @param msgh[OUT] set to handler for CORE advertisement messages
+ * @param learn should we learn hostlist URLs from CORE
+ * @return #GNUNET_OK on success
  */
 int
 GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
                               struct GNUNET_STATISTICS_Handle *st,
                               GNUNET_CORE_ConnectEventHandler *ch,
                               GNUNET_CORE_DisconnectEventHandler *dh,
-                              GNUNET_CORE_MessageCallback *msgh, int learn)
+                              GNUNET_CORE_MessageCallback *msgh,
+                              int learn)
 {
   char *filename;
   char *proxytype_str;
@@ -1556,9 +1612,9 @@ GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
     load_hostlist_file ();
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Hostlists will be saved to file again in %s\n",
-		GNUNET_STRINGS_relative_time_to_string (SAVING_INTERVALL, GNUNET_YES));
+		GNUNET_STRINGS_relative_time_to_string (SAVING_INTERVAL, GNUNET_YES));
     ti_saving_task =
-        GNUNET_SCHEDULER_add_delayed (SAVING_INTERVALL, &task_hostlist_saving,
+        GNUNET_SCHEDULER_add_delayed (SAVING_INTERVAL, &task_hostlist_saving,
                                       NULL);
   }
   else
@@ -1636,7 +1692,7 @@ GNUNET_HOSTLIST_client_stop ()
     ti_check_download = GNUNET_SCHEDULER_NO_TASK;
     curl_global_cleanup ();
   }
-  if (transport != NULL)
+  if (NULL != transport)
   {
     GNUNET_TRANSPORT_disconnect (transport);
     transport = NULL;
@@ -1651,4 +1707,4 @@ GNUNET_HOSTLIST_client_stop ()
   cfg = NULL;
 }
 
-/* end of hostlist-client.c */
+/* end of gnunet-daemon-hostlist_client.c */

@@ -12,7 +12,8 @@ if USE_COVERAGE
 endif
 
 if HAVE_MHD
- HOSTLIST_SERVER_SOURCES =  hostlist-server.c hostlist-server.h
+ HOSTLIST_SERVER_SOURCES = \
+   gnunet-daemon-hostlist_server.c gnunet-daemon-hostlist_server.h
  GN_LIBMHD = -lmicrohttpd
 endif
 
@@ -23,7 +24,7 @@ endif
 
 gnunet_daemon_hostlist_SOURCES = \
  gnunet-daemon-hostlist.c gnunet-daemon-hostlist.h \
- hostlist-client.c hostlist-client.h \
+ gnunet-daemon-hostlist_client.c gnunet-daemon-hostlist_client.h \
  $(HOSTLIST_SERVER_SOURCES)
 
 gnunet_daemon_hostlist_LDADD = \

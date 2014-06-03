@@ -37,7 +37,7 @@
  */
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 180)
 
-#define CHECK_INTERVALL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
+#define CHECK_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
 
 
 struct PeerContext
@@ -304,7 +304,7 @@ check_statistics (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                &process_adv_sent, NULL);
   }
   check_task =
-      GNUNET_SCHEDULER_add_delayed (CHECK_INTERVALL, &check_statistics, NULL);
+      GNUNET_SCHEDULER_add_delayed (CHECK_INTERVAL, &check_statistics, NULL);
 }
 
 
@@ -452,7 +452,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   timeout_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &timeout_error, NULL);
 
   check_task =
-      GNUNET_SCHEDULER_add_delayed (CHECK_INTERVALL, &check_statistics, NULL);
+      GNUNET_SCHEDULER_add_delayed (CHECK_INTERVAL, &check_statistics, NULL);
 }
 
 

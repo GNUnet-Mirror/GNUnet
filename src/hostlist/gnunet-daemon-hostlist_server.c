@@ -19,18 +19,26 @@
 */
 
 /**
- * @file hostlist/hostlist-server.c
- * @author Christian Grothoff, Matthias Wachs, David Barksdale
+ * @file hostlist/gnunet-daemon-hostlist_server.c
+ * @author Christian Grothoff
+ * @author Matthias Wachs
+ * @author David Barksdale
  * @brief application to provide an integrated hostlist HTTP server
  */
-
 #include "platform.h"
 #include <microhttpd.h>
-#include "hostlist-server.h"
+#include "gnunet-daemon-hostlist_server.h"
 #include "gnunet_hello_lib.h"
 #include "gnunet_peerinfo_service.h"
 #include "gnunet-daemon-hostlist.h"
 #include "gnunet_resolver_service.h"
+
+
+/**
+ * How long until our hostlist advertisment transmission via CORE should
+ * time out?
+ */
+#define GNUNET_ADV_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5)
 
 
 /**
@@ -148,7 +156,8 @@ finish_response ()
  * @return  #GNUNET_SYSERR to stop iterating (unless expiration has occured)
  */
 static int
-check_has_addr (void *cls, const struct GNUNET_HELLO_Address *address,
+check_has_addr (void *cls,
+                const struct GNUNET_HELLO_Address *address,
                 struct GNUNET_TIME_Absolute expiration)
 {
   int *arg = cls;
@@ -168,6 +177,11 @@ check_has_addr (void *cls, const struct GNUNET_HELLO_Address *address,
 /**
  * Callback that processes each of the known HELLOs for the
  * hostlist response construction.
+ *
+ * @param cls closure, NULL
+ * @param peer id of the peer, NULL for last call
+ * @param hello hello message for the peer (can be NULL)
+ * @param error message
  */
 static void
 host_processor (void *cls,
@@ -199,7 +213,10 @@ host_processor (void *cls,
   if (NULL == hello)
     return;
   has_addr = GNUNET_NO;
-  GNUNET_HELLO_iterate_addresses (hello, GNUNET_NO, &check_has_addr, &has_addr);
+  GNUNET_HELLO_iterate_addresses (hello,
+                                  GNUNET_NO,
+                                  &check_has_addr,
+                                  &has_addr);
   if (GNUNET_NO == has_addr)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -215,7 +232,9 @@ host_processor (void *cls,
   s = GNUNET_HELLO_size (hello);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received %u bytes of `%s' from peer `%s' for hostlist.\n",
-              (unsigned int) s, "HELLO", GNUNET_i2s (peer));
+              (unsigned int) s,
+              "HELLO",
+              GNUNET_i2s (peer));
   if ((old + s >= GNUNET_MAX_MALLOC_CHECKED) ||
       (old + s >= MAX_BYTES_PER_HOSTLISTS))
   {
@@ -226,19 +245,26 @@ host_processor (void *cls,
     return;                     /* too large, skip! */
   }
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Adding peer `%s' to hostlist (%u bytes)\n", GNUNET_i2s (peer),
+              "Adding peer `%s' to hostlist (%u bytes)\n",
+              GNUNET_i2s (peer),
               (unsigned int) s);
   GNUNET_array_grow (builder->data, builder->size, old + s);
   memcpy (&builder->data[old], hello, s);
 }
 
 
-
 /**
  * Hostlist access policy (very permissive, allows everything).
+ * Returns #MHD_NO only if we are not yet ready to serve.
+ *
+ * @param cls closure
+ * @param addr address information from the client
+ * @param addrlen length of @a addr
+ * @return #MHD_YES if connection is allowed, #MHD_NO if not (we are not ready)
  */
 static int
-accept_policy_callback (void *cls, const struct sockaddr *addr,
+accept_policy_callback (void *cls,
+                        const struct sockaddr *addr,
                         socklen_t addrlen)
 {
   if (NULL == response)
@@ -254,9 +280,11 @@ accept_policy_callback (void *cls, const struct sockaddr *addr,
 /**
  * Add headers to a request indicating that we allow Cross-Origin Resource
  * Sharing.
+ *
+ * @param response response to add headers to
  */
 static void
-add_cors_headers(struct MHD_Response *response)
+add_cors_headers (struct MHD_Response *response)
 {
   MHD_add_response_header (response,
                            "Access-Control-Allow-Origin",
@@ -272,12 +300,47 @@ add_cors_headers(struct MHD_Response *response)
 
 /**
  * Main request handler.
+ *
+ * @param cls argument given together with the function
+ *        pointer when the handler was registered with MHD
+ * @param url the requested url
+ * @param method the HTTP method used (#MHD_HTTP_METHOD_GET,
+ *        #MHD_HTTP_METHOD_PUT, etc.)
+ * @param version the HTTP version string (i.e.
+ *        #MHD_HTTP_VERSION_1_1)
+ * @param upload_data the data being uploaded (excluding HEADERS,
+ *        for a POST that fits into memory and that is encoded
+ *        with a supported encoding, the POST data will NOT be
+ *        given in upload_data and is instead available as
+ *        part of #MHD_get_connection_values; very large POST
+ *        data *will* be made available incrementally in
+ *        @a upload_data)
+ * @param upload_data_size set initially to the size of the
+ *        @a upload_data provided; the method must update this
+ *        value to the number of bytes NOT processed;
+ * @param con_cls pointer that the callback can set to some
+ *        address and that will be preserved by MHD for future
+ *        calls for this request; since the access handler may
+ *        be called many times (i.e., for a PUT/POST operation
+ *        with plenty of upload data) this allows the application
+ *        to easily associate some request-specific state.
+ *        If necessary, this state can be cleaned up in the
+ *        global #MHD_RequestCompletedCallback (which
+ *        can be set with the #MHD_OPTION_NOTIFY_COMPLETED).
+ *        Initially, `*con_cls` will be NULL.
+ * @return #MHD_YES if the connection was handled successfully,
+ *         #MHD_NO if the socket must be closed due to a serios
+ *         error while handling the request
  */
 static int
-access_handler_callback (void *cls, struct MHD_Connection *connection,
-                         const char *url, const char *method,
-                         const char *version, const char *upload_data,
-                         size_t * upload_data_size, void **con_cls)
+access_handler_callback (void *cls,
+                         struct MHD_Connection *connection,
+                         const char *url,
+                         const char *method,
+                         const char *version,
+                         const char *upload_data,
+                         size_t *upload_data_size,
+                         void **con_cls)
 {
   static int dummy;
 
@@ -343,13 +406,17 @@ access_handler_callback (void *cls, struct MHD_Connection *connection,
 
 
 /**
- * Handler called by core when core is ready to transmit message
- * @param cls   closure
- * @param size  size of buffer to copy message to
- * @param buf   buffer to copy message to
+ * Handler called by CORE when CORE is ready to transmit message
+ *
+ * @param cls closure
+ * @param size size of buffer to copy message to
+ * @param buf buffer to copy message to
+ * @return number of bytes copied to @a buf
  */
 static size_t
-adv_transmit_ready (void *cls, size_t size, void *buf)
+adv_transmit_ready (void *cls,
+                    size_t size,
+                    void *buf)
 {
   static uint64_t hostlist_adv_count;
   size_t transmission_size;
@@ -391,7 +458,8 @@ adv_transmit_ready (void *cls, size_t size, void *buf)
  * @param peer peer identity this notification is about
  */
 static void
-connect_handler (void *cls, const struct GNUNET_PeerIdentity *peer)
+connect_handler (void *cls,
+                 const struct GNUNET_PeerIdentity *peer)
 {
   size_t size;
 
@@ -413,12 +481,15 @@ connect_handler (void *cls, const struct GNUNET_PeerIdentity *peer)
     return;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Asked core to transmit advertisement message with a size of %u bytes to peer `%s'\n",
-              size, GNUNET_i2s (peer));
+              "Asked CORE to transmit advertisement message with a size of %u bytes to peer `%s'\n",
+              size,
+              GNUNET_i2s (peer));
   if (NULL ==
       GNUNET_CORE_notify_transmit_ready (core, GNUNET_YES,
                                          GNUNET_CORE_PRIO_BEST_EFFORT,
-                                         GNUNET_ADV_TIMEOUT, peer, size,
+                                         GNUNET_ADV_TIMEOUT,
+                                         peer,
+                                         size,
                                          &adv_transmit_ready, NULL))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -434,7 +505,8 @@ connect_handler (void *cls, const struct GNUNET_PeerIdentity *peer)
  * @param peer peer identity this notification is about
  */
 static void
-disconnect_handler (void *cls, const struct GNUNET_PeerIdentity *peer)
+disconnect_handler (void *cls,
+                    const struct GNUNET_PeerIdentity *peer)
 {
   /* nothing to do */
 }
@@ -450,8 +522,10 @@ disconnect_handler (void *cls, const struct GNUNET_PeerIdentity *peer)
  * @param err_msg NULL if successful, otherwise contains error message
  */
 static void
-process_notify (void *cls, const struct GNUNET_PeerIdentity *peer,
-                const struct GNUNET_HELLO_Message *hello, const char *err_msg)
+process_notify (void *cls,
+                const struct GNUNET_PeerIdentity *peer,
+                const struct GNUNET_HELLO_Message *hello,
+                const char *err_msg)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Peerinfo is notifying us to rebuild our hostlist\n");
@@ -489,9 +563,13 @@ prepare_daemon (struct MHD_Daemon *daemon_handle);
 /**
  * Call MHD to process pending requests and then go back
  * and schedule the next run.
+ *
+ * @param cls the `struct MHD_Daemon` of the HTTP server to run
+ * @param tc scheduler context
  */
 static void
-run_daemon (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+run_daemon (void *cls,
+            const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct MHD_Daemon *daemon_handle = cls;
 
@@ -513,6 +591,8 @@ run_daemon (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /**
  * Function that queries MHD's select sets and
  * starts the task waiting for them.
+ *
+ * @param daemon_handle HTTP server to prepare to run
  */
 static GNUNET_SCHEDULER_TaskIdentifier
 prepare_daemon (struct MHD_Daemon *daemon_handle)
@@ -555,6 +635,12 @@ prepare_daemon (struct MHD_Daemon *daemon_handle)
 /**
  * Start server offering our hostlist.
  *
+ * @param c configuration to use
+ * @param st statistics handle to use
+ * @param co core handle to use
+ * @param server_ch[OUT] set to handler for CORE connect events
+ * @param server_dh[OUT] set to handler for CORE disconnect events
+ * @param advertise #GNUNET_YES if we should advertise our hostlist
  * @return #GNUNET_OK on success
  */
 int
@@ -799,4 +885,4 @@ GNUNET_HOSTLIST_server_stop ()
   core = NULL;
 }
 
-/* end of hostlist-server.c */
+/* end of gnunet-daemon-hostlist_server.c */

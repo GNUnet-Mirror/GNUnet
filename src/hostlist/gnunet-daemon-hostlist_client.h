@@ -17,65 +17,17 @@
      Free Software Foundation, Inc., 59 Temple Place - Suite 330,
      Boston, MA 02111-1307, USA.
 */
-
 /**
- * @file hostlist/hostlist-client.h
+ * @file hostlist/gnunet-daemon-hostlist_client.h
  * @brief hostlist support.  Downloads HELLOs via HTTP.
  * @author Christian Grothoff
  */
-
-#ifndef HOSTLIST_CLIENT_H
-#define HOSTLIST_CLIENT_H
+#ifndef GNUNET_DAEMON_HOSTLIST_CLIENT_H
+#define GNUNET_DAEMON_HOSTLIST_CLIENT_H
 
 #include "gnunet_core_service.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_util_lib.h"
-#include "gnunet_time_lib.h"
-
-/**
- * Maximum number of hostlist that are saved
- */
-#define MAX_NUMBER_HOSTLISTS 30
-
-/**
- * Time intervall hostlists are saved to disk
- */
-#define SAVING_INTERVALL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 30)
-
-/**
- * Time interval between two hostlist tests
- */
-#define TESTING_INTERVALL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 3)
-
-/**
- * Time interval for download dispatcher before a download is re-scheduled
- */
-#define WAITING_INTERVALL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
-
-/**
- * Defines concerning the hostlist quality metric
- */
-
-/**
- * Initial quality of a new created hostlist
- */
-#define HOSTLIST_INITIAL 10000
-
-/**
- * Value subtracted each time a hostlist download fails
- */
-#define HOSTLIST_FAILED_DOWNLOAD 100
-
-/**
- * Value added each time a hostlist download is successful
- */
-#define HOSTLIST_SUCCESSFUL_DOWNLOAD 100
-
-/**
- * Value added for each valid HELLO recived during a hostlist download
- */
-#define HOSTLIST_SUCCESSFUL_HELLO 1
-
 
 
 /**
@@ -83,18 +35,19 @@
  *
  * @param c the configuration to use
  * @param st hande for publishing statistics
- * @param ch set to handler for connect notifications
- * @param dh set to handler for disconnect notifications
- * @param msgh set to handler for message handler notifications
+ * @param ch[OUT] set to handler for connect notifications
+ * @param dh[OUT] set to handler for disconnect notifications
+ * @param msgh[OUT] set to handler for message handler notifications
  * @param learn set if client is learning new hostlists
- * @return GNUNET_OK on success
+ * @return #GNUNET_OK on success
  */
 int
 GNUNET_HOSTLIST_client_start (const struct GNUNET_CONFIGURATION_Handle *c,
                               struct GNUNET_STATISTICS_Handle *st,
                               GNUNET_CORE_ConnectEventHandler *ch,
                               GNUNET_CORE_DisconnectEventHandler *dh,
-                              GNUNET_CORE_MessageCallback *msgh, int learn);
+                              GNUNET_CORE_MessageCallback *msgh,
+                              int learn);
 
 
 /**
@@ -105,4 +58,4 @@ GNUNET_HOSTLIST_client_stop (void);
 
 
 #endif
-/* end of hostlist-client.h */
+/* end of gnunet-daemon-hostlist_client.h */

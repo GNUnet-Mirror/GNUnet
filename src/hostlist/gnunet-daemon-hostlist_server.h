@@ -19,24 +19,29 @@
 */
 
 /**
- * @file hostlist/hostlist-server.h
+ * @file hostlist/gnunet-daemon-hostlist_server.h
  * @brief hostlist support.  Downloads HELLOs via HTTP.
  * @author Christian Grothoff
  */
 
-#ifndef HOSTLIST_SERVER_H
-#define HOSTLIST_SERVER_H
+#ifndef GNUNET_DAEMON_HOSTLIST_SERVER_H
+#define GNUNET_DAEMON_HOSTLIST_SERVER_H
 
 #include "gnunet_core_service.h"
 #include "gnunet_statistics_service.h"
 #include "gnunet_util_lib.h"
 
-#define GNUNET_ADV_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5)
 
 /**
  * Start server offering our hostlist.
  *
- * @return GNUNET_OK on success
+ * @param c configuration to use
+ * @param st statistics handle to use
+ * @param co core handle to use
+ * @param server_ch[OUT] set to handler for CORE connect events
+ * @param server_dh[OUT] set to handler for CORE disconnect events
+ * @param advertise #GNUNET_YES if we should advertise our hostlist
+ * @return #GNUNET_OK on success
  */
 int
 GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
@@ -55,4 +60,4 @@ GNUNET_HOSTLIST_server_stop (void);
 
 
 #endif
-/* end of hostlist-server.h */
+/* end of gnunet-daemon-hostlist_server.h */

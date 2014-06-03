@@ -25,23 +25,19 @@
  */
 #include <stdlib.h>
 #include "platform.h"
-#include "hostlist-client.h"
-#include "hostlist-server.h"
 #include "gnunet_core_service.h"
-#include "gnunet_getopt_lib.h"
 #include "gnunet_protocols.h"
-#include "gnunet_program_lib.h"
 #include "gnunet_statistics_service.h"
-#include "gnunet_strings_lib.h"
-#include "gnunet_time_lib.h"
 #include "gnunet_util_lib.h"
 
 /**
- * General hostlist daemon debugging.
+ * How long can hostlist URLs be?
  */
-#define DEBUG_HOSTLIST GNUNET_EXTRA_LOGGING
-
 #define MAX_URL_LEN 1000
+
+/**
+ * How many bytes do we download at most from a hostlist server?
+ */
 #define MAX_BYTES_PER_HOSTLISTS 500000
 
 /* end of gnunet-daemon-hostlist.h */
