@@ -113,8 +113,6 @@ struct HostSet
 static struct HostSet *builder;
 
 
-
-
 /**
  * Function that assembles our response.
  */
@@ -142,12 +140,12 @@ finish_response ()
 
 
 /**
- * Set 'cls' to GNUNET_YES (we have an address!).
+ * Set @a cls to #GNUNET_YES (we have an address!).
  *
- * @param cls closure, an 'int*'
+ * @param cls closure, an `int *`
  * @param address the address (ignored)
  * @param expiration expiration time (call is ignored if this is in the past)
- * @return  GNUNET_SYSERR to stop iterating (unless expiration has occured)
+ * @return  #GNUNET_SYSERR to stop iterating (unless expiration has occured)
  */
 static int
 check_has_addr (void *cls, const struct GNUNET_HELLO_Address *address,
@@ -172,8 +170,10 @@ check_has_addr (void *cls, const struct GNUNET_HELLO_Address *address,
  * hostlist response construction.
  */
 static void
-host_processor (void *cls, const struct GNUNET_PeerIdentity *peer,
-                const struct GNUNET_HELLO_Message *hello, const char *err_msg)
+host_processor (void *cls,
+                const struct GNUNET_PeerIdentity *peer,
+                const struct GNUNET_HELLO_Message *hello,
+                const char *err_msg)
 {
   size_t old;
   size_t s;
@@ -250,6 +250,7 @@ accept_policy_callback (void *cls, const struct sockaddr *addr,
   return MHD_YES;               /* accept all */
 }
 
+
 /**
  * Add headers to a request indicating that we allow Cross-Origin Resource
  * Sharing.
@@ -267,6 +268,7 @@ add_cors_headers(struct MHD_Response *response)
                            "Access-Control-Max-Age",
                            "86400");
 }
+
 
 /**
  * Main request handler.
@@ -305,7 +307,8 @@ access_handler_callback (void *cls, struct MHD_Connection *connection,
   if (NULL == *con_cls)
   {
     (*con_cls) = &dummy;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending 100 CONTINUE reply\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Sending 100 CONTINUE reply\n");
     return MHD_YES;             /* send 100 continue */
   }
   if (0 != *upload_data_size)
@@ -322,18 +325,19 @@ access_handler_callback (void *cls, struct MHD_Connection *connection,
   if (NULL == response)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _
-                ("Could not handle hostlist request since I do not have a response yet\n"));
+                _("Could not handle hostlist request since I do not have a response yet\n"));
     GNUNET_STATISTICS_update (stats,
                               gettext_noop
                               ("hostlist requests refused (not ready)"), 1,
                               GNUNET_YES);
     return MHD_NO;              /* internal error, no response yet */
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Received request for our hostlist\n"));
-  GNUNET_STATISTICS_update (stats, gettext_noop ("hostlist requests processed"),
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              _("Received request for our hostlist\n"));
+  GNUNET_STATISTICS_update (stats,
+                            gettext_noop ("hostlist requests processed"),
                             1, GNUNET_YES);
-  add_cors_headers(response);
+  add_cors_headers (response);
   return MHD_queue_response (connection, MHD_HTTP_OK, response);
 }
 
@@ -505,7 +509,6 @@ run_daemon (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     hostlist_task_v6 = prepare_daemon (daemon_handle);
 }
 
-#define UNSIGNED_MHD_LONG_LONG unsigned MHD_LONG_LONG
 
 /**
  * Function that queries MHD's select sets and
@@ -521,7 +524,7 @@ prepare_daemon (struct MHD_Daemon *daemon_handle)
   struct GNUNET_NETWORK_FDSet *wrs;
   struct GNUNET_NETWORK_FDSet *wws;
   int max;
-  UNSIGNED_MHD_LONG_LONG timeout;
+  MHD_UNSIGNED_LONG_LONG timeout;
   int haveto;
   struct GNUNET_TIME_Relative tv;
 
@@ -552,7 +555,7 @@ prepare_daemon (struct MHD_Daemon *daemon_handle)
 /**
  * Start server offering our hostlist.
  *
- * @return GNUNET_OK on success
+ * @return #GNUNET_OK on success
  */
 int
 GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
@@ -564,16 +567,18 @@ GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
 {
   unsigned long long port;
   char *hostname;
-  char *ip;
+  char *ipv4;
+  char *ipv6;
   size_t size;
   struct in_addr i4;
   struct in6_addr i6;
   struct sockaddr_in v4;
   struct sockaddr_in6 v6;
-  const struct sockaddr *sa;
+  const struct sockaddr *sa4;
+  const struct sockaddr *sa6;
 
   advertising = advertise;
-  if (!advertising)
+  if (! advertising)
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Advertising not enabled on this hostlist server\n");
   else
@@ -589,22 +594,27 @@ GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
     return GNUNET_SYSERR;
   }
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_number (cfg, "HOSTLIST", "HTTPPORT",
+      GNUNET_CONFIGURATION_get_value_number (cfg,
+                                             "HOSTLIST",
+                                             "HTTPPORT",
                                              &port))
     return GNUNET_SYSERR;
   if ((0 == port) || (port > UINT16_MAX))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Invalid port number %llu.  Exiting.\n"), port);
+                _("Invalid port number %llu.  Exiting.\n"),
+                port);
     return GNUNET_SYSERR;
   }
 
   if (GNUNET_SYSERR ==
-      GNUNET_CONFIGURATION_get_value_string (cfg, "HOSTLIST",
-                                             "EXTERNAL_DNS_NAME", &hostname))
+      GNUNET_CONFIGURATION_get_value_string (cfg,
+                                             "HOSTLIST",
+                                             "EXTERNAL_DNS_NAME",
+                                             &hostname))
     hostname = GNUNET_RESOLVER_local_fqdn_get ();
-
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Hostlist service starts on %s:%llu\n"),
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              _("Hostlist service starts on %s:%llu\n"),
               hostname, port);
   if (NULL != hostname)
   {
@@ -615,25 +625,36 @@ GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
     }
     else
     {
-      GNUNET_asprintf (&hostlist_uri, "http://%s:%u/", hostname,
+      GNUNET_asprintf (&hostlist_uri,
+                       "http://%s:%u/", hostname,
                        (unsigned int) port);
       GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                  _("Address to obtain hostlist: `%s'\n"), hostlist_uri);
+                  _("Address to obtain hostlist: `%s'\n"),
+                  hostlist_uri);
     }
     GNUNET_free (hostname);
   }
 
-  if (GNUNET_CONFIGURATION_have_value (cfg, "HOSTLIST", "BINDTOIP"))
+  if (GNUNET_CONFIGURATION_have_value (cfg, "HOSTLIST", "BINDTOIPV4"))
   {
     GNUNET_break (GNUNET_OK ==
                   GNUNET_CONFIGURATION_get_value_string (cfg, "HOSTLIST",
-                                                         "BINDTOIP", &ip));
+                                                         "BINDTOIP", &ipv4));
   }
   else
-    ip = NULL;
-  if (NULL != ip)
+    ipv4 = NULL;
+  if (GNUNET_CONFIGURATION_have_value (cfg, "HOSTLIST", "BINDTOIPV6"))
   {
-    if (1 == inet_pton (AF_INET, ip, &i4))
+    GNUNET_break (GNUNET_OK ==
+                  GNUNET_CONFIGURATION_get_value_string (cfg, "HOSTLIST",
+                                                         "BINDTOIP", &ipv6));
+  }
+  else
+    ipv6 = NULL;
+  sa4 = NULL;
+  if (NULL != ipv4)
+  {
+    if (1 == inet_pton (AF_INET, ipv4, &i4))
     {
       memset (&v4, 0, sizeof (v4));
       v4.sin_family = AF_INET;
@@ -642,9 +663,18 @@ GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
 #if HAVE_SOCKADDR_IN_SIN_LEN
       v4.sin_len = sizeof (v4);
 #endif
-      sa = (const struct sockaddr *) &v4;
+      sa4 = (const struct sockaddr *) &v4;
     }
-    else if (1 == inet_pton (AF_INET6, ip, &i6))
+    else
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  _("`%s' is not a valid IPv4 address! Ignoring BINDTOIPV4.\n"),
+                  ipv4);
+    GNUNET_free (ipv4);
+  }
+  sa6 = NULL;
+  if (NULL != ipv6)
+  {
+    if (1 == inet_pton (AF_INET6, ipv6, &i6))
     {
       memset (&v6, 0, sizeof (v6));
       v6.sin6_family = AF_INET6;
@@ -653,19 +683,14 @@ GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
 #if HAVE_SOCKADDR_IN_SIN_LEN
       v6.sin6_len = sizeof (v6);
 #endif
-      sa = (const struct sockaddr *) &v6;
+      sa6 = (const struct sockaddr *) &v6;
     }
     else
-    {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                  _("`%s' is not a valid IP address! Ignoring BINDTOIP.\n"),
-                  ip);
-      sa = NULL;
-    }
-    GNUNET_free (ip);
+                  _("`%s' is not a valid IPv6 address! Ignoring BINDTOIPV6.\n"),
+                  ipv6);
+    GNUNET_free (ipv6);
   }
-  else
-    sa = NULL;
 
   daemon_handle_v6 = MHD_start_daemon (MHD_USE_IPv6 | MHD_USE_DEBUG,
                                        (uint16_t) port,
@@ -680,7 +705,7 @@ GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
                                        MHD_OPTION_CONNECTION_MEMORY_LIMIT,
                                        (size_t) (16 * 1024),
                                        MHD_OPTION_SOCK_ADDR,
-                                       sa,
+                                       sa6,
                                        MHD_OPTION_END);
   daemon_handle_v4 = MHD_start_daemon (MHD_NO_FLAG | MHD_USE_DEBUG,
 				       (uint16_t) port,
@@ -695,10 +720,11 @@ GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
                                        MHD_OPTION_CONNECTION_MEMORY_LIMIT,
                                        (size_t) (16 * 1024),
                                        MHD_OPTION_SOCK_ADDR,
-                                       sa,
+                                       sa4,
                                        MHD_OPTION_END);
 
-  if ((NULL == daemon_handle_v6) && (NULL == daemon_handle_v4))
+  if ( (NULL == daemon_handle_v6) &&
+       (NULL == daemon_handle_v4) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Could not start hostlist HTTP server on port %u\n"),
@@ -709,13 +735,12 @@ GNUNET_HOSTLIST_server_start (const struct GNUNET_CONFIGURATION_Handle *c,
   core = co;
   *server_ch = &connect_handler;
   *server_dh = &disconnect_handler;
-  if (daemon_handle_v4 != NULL)
+  if (NULL != daemon_handle_v4)
     hostlist_task_v4 = prepare_daemon (daemon_handle_v4);
-  if (daemon_handle_v6 != NULL)
+  if (NULL != daemon_handle_v6)
     hostlist_task_v6 = prepare_daemon (daemon_handle_v6);
-
-  notify = GNUNET_PEERINFO_notify (cfg, GNUNET_NO, &process_notify, NULL);
-
+  notify = GNUNET_PEERINFO_notify (cfg, GNUNET_NO,
+                                   &process_notify, NULL);
   return GNUNET_OK;
 }
 
