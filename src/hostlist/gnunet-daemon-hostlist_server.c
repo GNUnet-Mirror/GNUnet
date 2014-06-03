@@ -536,7 +536,11 @@ process_notify (void *cls,
   if (NULL != builder)
   {
     /* restart re-build already in progress ... */
-    GNUNET_PEERINFO_iterate_cancel (builder->pitr);
+    if (NULL != builder->pitr)
+    {
+      GNUNET_PEERINFO_iterate_cancel (builder->pitr);
+      builder->pitr = NULL;
+    }
     GNUNET_free_non_null (builder->data);
     builder->size = 0;
     builder->data = NULL;
@@ -870,8 +874,11 @@ GNUNET_HOSTLIST_server_stop ()
   }
   if (NULL != builder)
   {
-    GNUNET_PEERINFO_iterate_cancel (builder->pitr);
-    builder->pitr = NULL;
+    if (NULL != builder->pitr)
+    {
+      GNUNET_PEERINFO_iterate_cancel (builder->pitr);
+      builder->pitr = NULL;
+    }
     GNUNET_free_non_null (builder->data);
     GNUNET_free (builder);
   }
