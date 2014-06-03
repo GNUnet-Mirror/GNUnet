@@ -22,6 +22,7 @@
  * @file hello/hello.c
  * @brief helper library for handling HELLOs
  * @author Christian Grothoff
+ * @author Matthias Wachs
  */
 #include "platform.h"
 #include "gnunet_hello_lib.h"
@@ -96,6 +97,17 @@ struct GNUNET_HELLO_ParseUriContext
    * Set to #GNUNET_SYSERR to indicate parse errors.
    */
   int ret;
+
+  /**
+   * Counter
+   */
+  unsigned int counter_total;
+
+  /**
+   * Counter skipped addresses
+   */
+  unsigned int counter_added;
+
 
   /**
    * Function for finding transport plugins by name.
@@ -237,7 +249,7 @@ GNUNET_HELLO_create (const struct GNUNET_CRYPTO_EddsaPublicKey *publicKey,
   used = 0;
   if (addrgen != NULL)
   {
-    while (0 != (ret = addrgen (addrgen_cls, max, &buffer[used])))
+    while (GNUNET_SYSERR != (ret = addrgen (addrgen_cls, max, &buffer[used])))
     {
       max -= ret;
       used += ret;
@@ -395,13 +407,13 @@ copy_latest (void *cls, const struct GNUNET_HELLO_Address *address,
 }
 
 
-static size_t
+static ssize_t
 merge_addr (void *cls, size_t max, void *buf)
 {
   struct MergeContext *mc = cls;
 
   if (mc->h1 == NULL)
-    return 0;
+    return GNUNET_SYSERR; /* Stop iteration */
   mc->ret = 0;
   mc->max = max;
   mc->buf = buf;
@@ -433,11 +445,11 @@ GNUNET_HELLO_merge (const struct GNUNET_HELLO_Message *h1,
   int friend_only;
 
   if (h1->friend_only != h2->friend_only)
-  	friend_only = GNUNET_YES; /* One of the HELLOs is friend only */
+    friend_only = GNUNET_YES; /* One of the HELLOs is friend only */
   else
-  	friend_only = ntohl (h1->friend_only); /* Both HELLO's have the same type */
+    friend_only = ntohl (h1->friend_only); /* Both HELLO's have the same type */
 
-	return GNUNET_HELLO_create (&h1->publicKey, &merge_addr, &mc, friend_only);
+  return GNUNET_HELLO_create (&h1->publicKey, &merge_addr, &mc, friend_only);
 }
 
 
@@ -895,9 +907,9 @@ GNUNET_HELLO_compose_uri (const struct GNUNET_HELLO_Message *hello,
  * @param cls the 'struct GNUNET_HELLO_AddressParsingContext'
  * @param max number of bytes available for HELLO construction
  * @param buffer where to copy the next address (in binary format)
- * @return number of bytes added to buffer
+ * @return number of bytes added to buffer, GNUNET_SYSERR on error
  */
-static size_t
+static ssize_t
 add_address_to_hello (void *cls, size_t max, void *buffer)
 {
   struct GNUNET_HELLO_ParseUriContext *ctx = cls;
@@ -914,15 +926,16 @@ add_address_to_hello (void *cls, size_t max, void *buffer)
   void *addr;
   size_t addr_len;
   struct GNUNET_HELLO_Address haddr;
-  size_t ret;
+  ssize_t ret;
+
 
   if (NULL == ctx->pos)
-    return 0;
+    return GNUNET_SYSERR;
   if ('!' != ctx->pos[0])
   {
     ctx->ret = GNUNET_SYSERR;
     GNUNET_break (0);
-    return 0;
+    return GNUNET_SYSERR;
   }
   ctx->pos++;
 
@@ -943,7 +956,7 @@ add_address_to_hello (void *cls, size_t max, void *buffer)
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   _("Failed to parse HELLO message: missing expiration time\n"));
       GNUNET_break (0);
-      return 0;
+      return GNUNET_SYSERR;
     }
 
     expiration_seconds = mktime (&expiration_time);
@@ -953,7 +966,7 @@ add_address_to_hello (void *cls, size_t max, void *buffer)
                   _("Failed to parse HELLO message: invalid expiration time\n"));
       ctx->ret = GNUNET_SYSERR;
       GNUNET_break (0);
-      return 0;
+      return GNUNET_SYSERR;
     }
     expire.abs_value_us = expiration_seconds * 1000LL * 1000LL;
   }
@@ -963,7 +976,7 @@ add_address_to_hello (void *cls, size_t max, void *buffer)
                 _("Failed to parse HELLO message: malformed\n"));
     ctx->ret = GNUNET_SYSERR;
     GNUNET_break (0);
-    return 0;
+    return GNUNET_SYSERR;
   }
   tname++;
   address = strchr (tname, (int) '!');
@@ -973,11 +986,12 @@ add_address_to_hello (void *cls, size_t max, void *buffer)
                 _("Failed to parse HELLO message: missing transport plugin\n"));
     ctx->ret = GNUNET_SYSERR;
     GNUNET_break (0);
-    return 0;
+    return GNUNET_SYSERR;
   }
   address++;
   end = strchr (address, (int) '!');
   ctx->pos = end;
+  ctx->counter_total ++;
   plugin_name = GNUNET_strndup (tname, address - (tname+1));
   papi = ctx->plugins_find (plugin_name);
   if (NULL == papi)
@@ -986,7 +1000,7 @@ add_address_to_hello (void *cls, size_t max, void *buffer)
      * Skip this part, advance to the next one and recurse.
      * But only if this is not the end of string.
      */
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 _("Plugin `%s' not found, skipping address\n"),
                 plugin_name);
     GNUNET_free (plugin_name);
@@ -994,7 +1008,7 @@ add_address_to_hello (void *cls, size_t max, void *buffer)
   }
   if (NULL == papi->string_to_address)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		_("Plugin `%s' does not support URIs yet\n"),
 		plugin_name);
     GNUNET_free (plugin_name);
@@ -1027,6 +1041,7 @@ add_address_to_hello (void *cls, size_t max, void *buffer)
   haddr.address = addr;
   haddr.transport_name = plugin_name;
   ret = GNUNET_HELLO_add_address (&haddr, expire, buffer, max);
+  ctx->counter_added ++;
   GNUNET_free (addr);
   GNUNET_free (plugin_name);
   return ret;
@@ -1080,8 +1095,14 @@ GNUNET_HELLO_parse_uri (const char *uri,
 
   ctx.pos = exc;
   ctx.ret = GNUNET_OK;
+  ctx.counter_total = 0;
+  ctx.counter_added = 0;
   ctx.plugins_find = plugins_find;
   *hello = GNUNET_HELLO_create (pubkey, &add_address_to_hello, &ctx, friend_only);
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              _("HELLO URI contained %u addresses, added %u addresses\n"),
+              ctx.counter_total, ctx.counter_added);
 
   return ctx.ret;
 }

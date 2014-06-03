@@ -231,10 +231,10 @@ GNUNET_HELLO_add_address (const struct GNUNET_HELLO_Address *address,
  * @param cls closure
  * @param max maximum number of bytes that can be written to @a buf
  * @param buf where to write the address information
- * @return number of bytes written, 0 to signal the
+ * @return number of bytes written or 0, GNUNET_SYSERR to signal the
  *         end of the iteration.
  */
-typedef size_t
+typedef ssize_t
 (*GNUNET_HELLO_GenerateAddressListCallback) (void *cls,
                                              size_t max,
                                              void *buf);

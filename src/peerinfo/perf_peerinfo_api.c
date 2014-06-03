@@ -53,16 +53,16 @@ check_it (void *cls, const struct GNUNET_HELLO_Address *address,
 }
 
 
-static size_t
+static ssize_t
 address_generator (void *cls, size_t max, void *buf)
 {
   size_t *agc = cls;
-  size_t ret;
+  ssize_t ret;
   char *caddress;
   struct GNUNET_HELLO_Address address;
 
   if (*agc == 0)
-    return 0;
+    return GNUNET_SYSERR; /* Done */
 
   GNUNET_asprintf (&caddress, "Address%d", *agc);
   address.peer = pid;

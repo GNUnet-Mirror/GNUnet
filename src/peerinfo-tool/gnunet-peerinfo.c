@@ -22,6 +22,7 @@
  * @file peerinfo-tool/gnunet-peerinfo.c
  * @brief Print information about other known peers.
  * @author Christian Grothoff
+ * @author Matthias Wachs
  */
 #include "platform.h"
 #include "gnunet_crypto_lib.h"

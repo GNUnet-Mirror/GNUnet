@@ -25,7 +25,7 @@
 #include "platform.h"
 #include "gnunet_hello_lib.h"
 
-static size_t
+static ssize_t
 my_addr_gen (void *cls, size_t max, void *buf)
 {
   unsigned int *i = cls;
@@ -35,7 +35,7 @@ my_addr_gen (void *cls, size_t max, void *buf)
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "DEBUG: my_addr_gen called with i = %d\n", *i);
   if (0 == *i)
-    return 0;
+    return GNUNET_SYSERR;
   memset (&address.peer, 0, sizeof (struct GNUNET_PeerIdentity));
   address.address = "address_information";
   address.transport_name = "test";

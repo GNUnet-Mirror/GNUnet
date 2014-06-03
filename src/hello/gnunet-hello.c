@@ -85,14 +85,14 @@ add_to_buf (void *cls, const struct GNUNET_HELLO_Address *address,
  * @param buf where to add the addresses
  * @return number of bytes added, 0 to terminate
  */
-static size_t
+static ssize_t
 add_from_hello (void *cls, size_t max, void *buf)
 {
   struct GNUNET_HELLO_Message **orig = cls;
   struct AddContext ac;
 
   if (NULL == *orig)
-    return 0; /* already done */
+    return GNUNET_SYSERR; /* already done */
   ac.buf = buf;
   ac.max = max;
   ac.ret = 0;

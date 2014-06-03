@@ -60,15 +60,15 @@ check_it (void *cls, const struct GNUNET_HELLO_Address *address,
 }
 
 
-static size_t
+static ssize_t
 address_generator (void *cls, size_t max, void *buf)
 {
   size_t *agc = cls;
-  size_t ret;
+  ssize_t ret;
   struct GNUNET_HELLO_Address address;
 
   if (0 == *agc)
-    return 0;
+    return GNUNET_SYSERR; /* Done */
   memset (&address.peer, 0, sizeof (struct GNUNET_PeerIdentity));
   address.address = "Address";
   address.transport_name = "peerinfotest";

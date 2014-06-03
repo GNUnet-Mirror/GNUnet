@@ -133,17 +133,18 @@ struct GeneratorContext
  * @param cls the 'struct GeneratorContext'
  * @param max maximum number of bytes left
  * @param buf where to write the address
+ * @return bytes written or GNUNET_SYSERR to signal the
+ *         end of the iteration.
  */
-static size_t
+static ssize_t
 address_generator (void *cls, size_t max, void *buf)
 {
   struct GeneratorContext *gc = cls;
-  size_t ret;
+  ssize_t ret;
 
   if (NULL == gc->addr_pos)
-    return 0;
-  ret =
-      GNUNET_HELLO_add_address (gc->addr_pos->address, gc->expiration, buf,
+    return GNUNET_SYSERR; /* Done */
+  ret = GNUNET_HELLO_add_address (gc->addr_pos->address, gc->expiration, buf,
                                 max);
   gc->addr_pos = gc->addr_pos->next;
   return ret;

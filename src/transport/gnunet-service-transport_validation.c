@@ -1280,16 +1280,16 @@ validate_address_iterator (void *cls,
  * @param cls the 'struct ValidationEntry' with the validated address
  * @param max space in buf
  * @param buf where to add the address
- * @return number of bytes written, 0 to signal the
+ * @return number of bytes written, GNUNET_SYSERR to signal the
  *         end of the iteration.
  */
-static size_t
+static ssize_t
 add_valid_peer_address (void *cls, size_t max, void *buf)
 {
   struct ValidationEntry *ve = cls;
 
   if (GNUNET_YES == ve->copied)
-    return 0;                   /* terminate */
+    return GNUNET_SYSERR; /* Done */
   ve->copied = GNUNET_YES;
   return GNUNET_HELLO_add_address (ve->address, ve->valid_until, buf, max);
 }
