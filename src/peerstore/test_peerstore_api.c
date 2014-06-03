@@ -129,17 +129,6 @@ run (void *cls,
       NULL);
 }
 
-int iterator (void *cls, const struct GNUNET_HashCode *key, void *value)
-{
-  struct GNUNET_CONTAINER_MultiHashMap *map = cls;
-  uint32_t *x = value;
-
-  printf("Received value: %d\n", *x);
-  if(*x == 2)
-    GNUNET_CONTAINER_multihashmap_remove(map, key, value);
-  return GNUNET_YES;
-}
-
 int
 main (int argc, char *argv[])
 {

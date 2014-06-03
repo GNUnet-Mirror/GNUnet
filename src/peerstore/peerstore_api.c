@@ -117,12 +117,6 @@ struct GNUNET_PEERSTORE_StoreContext
    */
   void *cont_cls;
 
-  /**
-   * #GNUNET_YES / #GNUNET_NO
-   * if sent, cannot be canceled
-   */
-  int request_sent;
-
 };
 
 /**
@@ -227,14 +221,6 @@ struct GNUNET_PEERSTORE_WatchContext
 /******************************************************************************/
 
 /**
- * When a response for store request is received
- *
- * @param cls a 'struct GNUNET_PEERSTORE_StoreContext *'
- * @param msg message received, NULL on timeout or fatal error
- */
-void handle_store_result (void *cls, const struct GNUNET_MessageHeader *msg);
-
-/**
  * When a response for iterate request is received
  *
  * @param cls a 'struct GNUNET_PEERSTORE_Handle *'
@@ -262,7 +248,6 @@ reconnect (struct GNUNET_PEERSTORE_Handle *h);
  * MQ message handlers
  */
 static const struct GNUNET_MQ_MessageHandler mq_handlers[] = {
-    {&handle_store_result, GNUNET_MESSAGE_TYPE_PEERSTORE_STORE_RESULT_OK, sizeof(struct GNUNET_MessageHeader)},
     {&handle_iterate_result, GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE_RECORD, 0},
     {&handle_iterate_result, GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE_END, sizeof(struct GNUNET_MessageHeader)},
     {&handle_watch_result, GNUNET_MESSAGE_TYPE_PEERSTORE_WATCH_RECORD, 0},
@@ -376,42 +361,6 @@ GNUNET_PEERSTORE_disconnect(struct GNUNET_PEERSTORE_Handle *h)
 /******************************************************************************/
 
 /**
- * When a response for store request is received
- *
- * @param cls a 'struct GNUNET_PEERSTORE_Handle *'
- * @param msg message received, NULL on timeout or fatal error
- */
-void handle_store_result (void *cls, const struct GNUNET_MessageHeader *msg)
-{
-  struct GNUNET_PEERSTORE_Handle *h = cls;
-  struct GNUNET_PEERSTORE_StoreContext *sc;
-  GNUNET_PEERSTORE_Continuation cont;
-  void *cont_cls;
-
-  sc = h->store_head;
-  if(NULL == sc)
-  {
-    LOG(GNUNET_ERROR_TYPE_ERROR, "Unexpected store response, this should not happen.\n");
-    reconnect(h);
-    return;
-  }
-  cont = sc->cont;
-  cont_cls = sc->cont_cls;
-  GNUNET_CONTAINER_DLL_remove(h->store_head, h->store_tail, sc);
-  GNUNET_free(sc);
-  if(NULL == msg) /* Connection error */
-  {
-    if(NULL != cont)
-      cont(cont_cls, GNUNET_SYSERR);
-    reconnect(h);
-    return;
-  }
-  if(NULL != cont) /* Run continuation */
-    cont(cont_cls, GNUNET_OK);
-
-}
-
-/**
  * Callback after MQ envelope is sent
  *
  * @param cls a 'struct GNUNET_PEERSTORE_StoreContext *'
@@ -419,9 +368,15 @@ void handle_store_result (void *cls, const struct GNUNET_MessageHeader *msg)
 void store_request_sent (void *cls)
 {
   struct GNUNET_PEERSTORE_StoreContext *sc = cls;
+  GNUNET_PEERSTORE_Continuation cont;
+  void *cont_cls;
 
-  sc->request_sent = GNUNET_YES;
   sc->ev = NULL;
+  cont = sc->cont;
+  cont_cls = sc->cont_cls;
+  GNUNET_PEERSTORE_store_cancel(sc);
+  if(NULL != cont)
+    cont(cont_cls, GNUNET_OK);
 }
 
 /**
@@ -434,21 +389,13 @@ GNUNET_PEERSTORE_store_cancel (struct GNUNET_PEERSTORE_StoreContext *sc)
 {
   LOG(GNUNET_ERROR_TYPE_DEBUG,
           "Canceling store request.\n");
-  if(GNUNET_NO == sc->request_sent)
+  if(NULL != sc->ev)
   {
-    if(NULL != sc->ev)
-    {
-      GNUNET_MQ_send_cancel(sc->ev);
-      sc->ev = NULL;
-    }
-    GNUNET_CONTAINER_DLL_remove(sc->h->store_head, sc->h->store_tail, sc);
-    GNUNET_free(sc);
+    GNUNET_MQ_send_cancel(sc->ev);
+    sc->ev = NULL;
   }
-  else
-  { /* request already sent, will have to wait for response */
-    sc->cont = NULL;
-  }
-
+  GNUNET_CONTAINER_DLL_remove(sc->h->store_head, sc->h->store_tail, sc);
+  GNUNET_free(sc);
 }
 
 /**
@@ -493,7 +440,6 @@ GNUNET_PEERSTORE_store (struct GNUNET_PEERSTORE_Handle *h,
   sc->cont = cont;
   sc->cont_cls = cont_cls;
   sc->h = h;
-  sc->request_sent = GNUNET_NO;
   GNUNET_CONTAINER_DLL_insert(h->store_head, h->store_tail, sc);
   GNUNET_MQ_notify_sent(ev, &store_request_sent, sc);
   GNUNET_MQ_send(h->mq, ev);

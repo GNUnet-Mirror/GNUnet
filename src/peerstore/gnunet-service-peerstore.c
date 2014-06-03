@@ -144,7 +144,7 @@ int record_iterator(void *cls,
     struct GNUNET_PEERSTORE_Record *record,
     char *emsg)
 {
-  struct GNUNET_SERVER_TransmitContext *tc = cls;
+  struct GNUNET_SERVER_Client *client = cls;
   struct StoreRecordMessage *srm;
 
   srm = PEERSTORE_create_record_message(record->sub_system,
@@ -154,7 +154,7 @@ int record_iterator(void *cls,
       record->value_size,
       record->expiry,
       GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE_RECORD);
-  GNUNET_SERVER_transmit_context_append_message(tc, (const struct GNUNET_MessageHeader *)srm);
+  GNUNET_SERVER_notification_context_unicast(nc, client, (struct GNUNET_MessageHeader *)srm, GNUNET_NO);
   return GNUNET_YES;
 }
 
@@ -189,19 +189,17 @@ int watch_notifier_it(void *cls,
       record->expiry,
       GNUNET_MESSAGE_TYPE_PEERSTORE_WATCH_RECORD);
   GNUNET_SERVER_notification_context_unicast(nc, client,
-      (const struct GNUNET_MessageHeader *)srm, GNUNET_YES);
+      (const struct GNUNET_MessageHeader *)srm, GNUNET_NO);
   return GNUNET_YES;
 }
 
 /**
  * Given a new record, notifies watchers
  *
- * @cls closure, a 'struct GNUNET_PEERSTORE_Record *'
- * @tc unused
+ * @param record changed record to update watchers with
  */
-void watch_notifier (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+void watch_notifier (struct GNUNET_PEERSTORE_Record *record)
 {
-  struct GNUNET_PEERSTORE_Record *record = cls;
   struct GNUNET_HashCode keyhash;
 
   GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Sending update to any watchers.\n");
@@ -265,7 +263,7 @@ void handle_iterate (void *cls,
     const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_PEERSTORE_Record *record;
-  struct GNUNET_SERVER_TransmitContext *tc;
+  struct GNUNET_MessageHeader *endmsg;
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Received an iterate request from client.\n");
   record = PEERSTORE_parse_record_message(message);
@@ -281,20 +279,21 @@ void handle_iterate (void *cls,
     GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
     return;
   }
-  tc = GNUNET_SERVER_transmit_context_create (client);
+  GNUNET_SERVER_notification_context_add(nc, client);
   if(GNUNET_OK == db->iterate_records(db->cls,
       record->sub_system,
       record->peer,
       record->key,
       &record_iterator,
-      tc))
+      client))
   {
-    GNUNET_SERVER_transmit_context_append_data(tc, NULL, 0, GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE_END);
-    GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
+    endmsg = GNUNET_new(struct GNUNET_MessageHeader);
+    endmsg->size = htons(sizeof(struct GNUNET_MessageHeader));
+    endmsg->type = htons(GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE_END);
+    GNUNET_SERVER_notification_context_unicast(nc, client, endmsg, GNUNET_NO);
   }
   else
   {
-    GNUNET_free(tc);
     GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
   }
   GNUNET_free(record); /* FIXME: destroy record */
@@ -312,7 +311,6 @@ void handle_store (void *cls,
     const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_PEERSTORE_Record *record;
-  struct GNUNET_SERVER_TransmitContext *tc;
 
   record = PEERSTORE_parse_record_message(message);
   if(NULL == record)
@@ -348,10 +346,8 @@ void handle_store (void *cls,
     GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
     return;
   }
-  tc = GNUNET_SERVER_transmit_context_create (client);
-  GNUNET_SERVER_transmit_context_append_data(tc, NULL, 0, GNUNET_MESSAGE_TYPE_PEERSTORE_STORE_RESULT_OK);
-  GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
-  GNUNET_SCHEDULER_add_continuation(&watch_notifier, record, -1);
+  GNUNET_SERVER_receive_done(client, GNUNET_OK);
+  watch_notifier(record);
 }
 
 /**
