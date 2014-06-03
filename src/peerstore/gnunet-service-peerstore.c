@@ -155,6 +155,7 @@ int record_iterator(void *cls,
       record->expiry,
       GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE_RECORD);
   GNUNET_SERVER_notification_context_unicast(nc, client, (struct GNUNET_MessageHeader *)srm, GNUNET_NO);
+  GNUNET_free(srm);
   return GNUNET_YES;
 }
 
@@ -190,6 +191,7 @@ int watch_notifier_it(void *cls,
       GNUNET_MESSAGE_TYPE_PEERSTORE_WATCH_RECORD);
   GNUNET_SERVER_notification_context_unicast(nc, client,
       (const struct GNUNET_MessageHeader *)srm, GNUNET_NO);
+  GNUNET_free(srm);
   return GNUNET_YES;
 }
 
@@ -291,12 +293,14 @@ void handle_iterate (void *cls,
     endmsg->size = htons(sizeof(struct GNUNET_MessageHeader));
     endmsg->type = htons(GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE_END);
     GNUNET_SERVER_notification_context_unicast(nc, client, endmsg, GNUNET_NO);
+    GNUNET_free(endmsg);
+    GNUNET_SERVER_receive_done(client, GNUNET_OK);
   }
   else
   {
     GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
   }
-  GNUNET_free(record); /* FIXME: destroy record */
+  PEERSTORE_destroy_record(record);
 }
 
 /**
@@ -323,8 +327,8 @@ void handle_store (void *cls,
       || NULL == record->peer
       || NULL == record->key)
   {
-    /* FIXME: Destroy record */
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Full key not supplied in client store request\n");
+    PEERSTORE_destroy_record(record);
     GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
     return;
   }
@@ -341,13 +345,14 @@ void handle_store (void *cls,
       record->value_size,
       *record->expiry))
   {
-    /* FIXME: Destroy record */
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Failed to store requested value, sqlite database error.");
+    PEERSTORE_destroy_record(record);
     GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
     return;
   }
   GNUNET_SERVER_receive_done(client, GNUNET_OK);
   watch_notifier(record);
+  PEERSTORE_destroy_record(record);
 }
 
 /**

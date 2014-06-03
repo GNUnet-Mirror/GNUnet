@@ -86,3 +86,10 @@ PEERSTORE_create_record_mq_envelope(const char *sub_system,
  */
 struct GNUNET_PEERSTORE_Record *
 PEERSTORE_parse_record_message(const struct GNUNET_MessageHeader *message);
+
+/**
+ * Free any memory allocated for this record
+ *
+ * @param record
+ */
+void PEERSTORE_destroy_record(struct GNUNET_PEERSTORE_Record *record);

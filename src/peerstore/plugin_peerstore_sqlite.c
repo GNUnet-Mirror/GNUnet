@@ -215,6 +215,8 @@ peerstore_sqlite_iterate_records (void *cls,
       iter (iter_cls,
           ret,
           NULL);
+    GNUNET_free(ret->expiry);
+    GNUNET_free(ret);
   }
   if (SQLITE_DONE != sret)
   {

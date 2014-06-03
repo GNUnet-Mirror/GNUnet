@@ -233,3 +233,26 @@ PEERSTORE_parse_record_message(const struct GNUNET_MessageHeader *message)
 
   return record;
 }
+
+/**
+ * Free any memory allocated for this record
+ *
+ * @param record
+ */
+void PEERSTORE_destroy_record(struct GNUNET_PEERSTORE_Record *record)
+{
+  if(NULL != record->sub_system)
+    GNUNET_free(record->sub_system);
+  if(NULL != record->peer)
+    GNUNET_free(record->peer);
+  if(NULL != record->key)
+    GNUNET_free(record->key);
+  if(NULL != record->value)
+  {
+    GNUNET_free(record->value);
+    record->value = 0;
+  }
+  if(NULL != record->expiry)
+    GNUNET_free(record->expiry);
+  GNUNET_free(record);
+}
