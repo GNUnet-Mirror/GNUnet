@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2012 Christian Grothoff (and other contributing authors)
+     (C) 2012-2014 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -144,15 +144,28 @@ struct GNUNET_MQ_Handle
 };
 
 
-
-
+/**
+ * Implementation-specific state for connection to
+ * client (MQ for server).
+ */
 struct ServerClientSocketState
 {
+  /**
+   * Handle of the client that connected to the server.
+   */
   struct GNUNET_SERVER_Client *client;
+
+  /**
+   * Active transmission request to the client.
+   */
   struct GNUNET_SERVER_TransmitHandle* th;
 };
 
 
+/**
+ * Implementation-specific state for connection to
+ * service (MQ for clients).
+ */
 struct ClientConnectionState
 {
   /**
@@ -164,7 +177,15 @@ struct ClientConnectionState
    * Do we also want to receive?
    */
   int receive_requested;
+
+  /**
+   * Connection to the service.
+   */
   struct GNUNET_CLIENT_Connection *connection;
+
+  /**
+   * Active transmission request (or NULL).
+   */
   struct GNUNET_CLIENT_TransmitHandle *th;
 };
 
@@ -180,14 +201,20 @@ struct ClientConnectionState
  * @param mh message to dispatch
  */
 void
-GNUNET_MQ_inject_message (struct GNUNET_MQ_Handle *mq, const struct GNUNET_MessageHeader *mh)
+GNUNET_MQ_inject_message (struct GNUNET_MQ_Handle *mq,
+                          const struct GNUNET_MessageHeader *mh)
 {
   const struct GNUNET_MQ_MessageHandler *handler;
   int handled = GNUNET_NO;
 
   handler = mq->handlers;
   if (NULL == handler)
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "No handler for message of type %d\n",
+         ntohs (mh->type));
     return;
+  }
   for (; NULL != handler->cb; handler++)
   {
     if (handler->type == ntohs (mh->type))
@@ -198,7 +225,9 @@ GNUNET_MQ_inject_message (struct GNUNET_MQ_Handle *mq, const struct GNUNET_Messa
   }
 
   if (GNUNET_NO == handled)
-    LOG (GNUNET_ERROR_TYPE_WARNING, "no handler for message of type %d\n", ntohs (mh->type));
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "No handler for message of type %d\n",
+         ntohs (mh->type));
 }
 
 
@@ -218,8 +247,9 @@ GNUNET_MQ_inject_error (struct GNUNET_MQ_Handle *mq,
 {
   if (NULL == mq->error_handler)
   {
-    /* FIXME: log what kind of error occured */
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "mq: got error, but no handler installed\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "mq: got error %d, but no handler installed\n",
+                (int) error);
     return;
   }
   mq->error_handler (mq->handlers_cls, error);
@@ -242,17 +272,19 @@ GNUNET_MQ_discard (struct GNUNET_MQ_Envelope *mqm)
  * @param ev the envelope with the message to send.
  */
 void
-GNUNET_MQ_send (struct GNUNET_MQ_Handle *mq, struct GNUNET_MQ_Envelope *ev)
+GNUNET_MQ_send (struct GNUNET_MQ_Handle *mq,
+                struct GNUNET_MQ_Envelope *ev)
 {
   GNUNET_assert (NULL != mq);
   GNUNET_assert (NULL == ev->parent_queue);
 
   ev->parent_queue = mq;
-
   /* is the implementation busy? queue it! */
   if (NULL != mq->current_envelope)
   {
-    GNUNET_CONTAINER_DLL_insert_tail (mq->envelope_head, mq->envelope_tail, ev);
+    GNUNET_CONTAINER_DLL_insert_tail (mq->envelope_head,
+                                      mq->envelope_tail,
+                                      ev);
     return;
   }
   mq->current_envelope = ev;
@@ -396,7 +428,9 @@ GNUNET_MQ_impl_state (struct GNUNET_MQ_Handle *mq)
 
 
 struct GNUNET_MQ_Envelope *
-GNUNET_MQ_msg_ (struct GNUNET_MessageHeader **mhp, uint16_t size, uint16_t type)
+GNUNET_MQ_msg_ (struct GNUNET_MessageHeader **mhp,
+                uint16_t size,
+                uint16_t type)
 {
   struct GNUNET_MQ_Envelope *mqm;
 
@@ -420,7 +454,9 @@ GNUNET_MQ_msg_ (struct GNUNET_MessageHeader **mhp, uint16_t size, uint16_t type)
  * @param nested_mh the message to append to the message after base_size
  */
 struct GNUNET_MQ_Envelope *
-GNUNET_MQ_msg_nested_mh_ (struct GNUNET_MessageHeader **mhp, uint16_t base_size, uint16_t type,
+GNUNET_MQ_msg_nested_mh_ (struct GNUNET_MessageHeader **mhp,
+                          uint16_t base_size,
+                          uint16_t type,
                           const struct GNUNET_MessageHeader *nested_mh)
 {
   struct GNUNET_MQ_Envelope *mqm;
@@ -493,7 +529,8 @@ server_client_destroy_impl (struct GNUNET_MQ_Handle *mq,
 
 static void
 server_client_send_impl (struct GNUNET_MQ_Handle *mq,
-                         const struct GNUNET_MessageHeader *msg, void *impl_state)
+                         const struct GNUNET_MessageHeader *msg,
+                         void *impl_state)
 {
   struct ServerClientSocketState *state = impl_state;
 
@@ -587,7 +624,6 @@ connection_client_transmit_queued (void *cls,
                            GNUNET_TIME_UNIT_FOREVER_REL);
   }
 
-
   msg_size = ntohs (msg->size);
   GNUNET_assert (size >= msg_size);
   memcpy (buf, msg, msg_size);
@@ -600,7 +636,8 @@ connection_client_transmit_queued (void *cls,
 
 
 static void
-connection_client_destroy_impl (struct GNUNET_MQ_Handle *mq, void *impl_state)
+connection_client_destroy_impl (struct GNUNET_MQ_Handle *mq,
+                                void *impl_state)
 {
   GNUNET_free (impl_state);
 }
@@ -608,7 +645,8 @@ connection_client_destroy_impl (struct GNUNET_MQ_Handle *mq, void *impl_state)
 
 static void
 connection_client_send_impl (struct GNUNET_MQ_Handle *mq,
-                             const struct GNUNET_MessageHeader *msg, void *impl_state)
+                             const struct GNUNET_MessageHeader *msg,
+                             void *impl_state)
 {
   struct ClientConnectionState *state = impl_state;
 
@@ -698,7 +736,8 @@ GNUNET_MQ_assoc_add (struct GNUNET_MQ_Handle *mq,
 
 
 void *
-GNUNET_MQ_assoc_get (struct GNUNET_MQ_Handle *mq, uint32_t request_id)
+GNUNET_MQ_assoc_get (struct GNUNET_MQ_Handle *mq,
+                     uint32_t request_id)
 {
   if (NULL == mq->assoc_map)
     return NULL;
@@ -707,7 +746,8 @@ GNUNET_MQ_assoc_get (struct GNUNET_MQ_Handle *mq, uint32_t request_id)
 
 
 void *
-GNUNET_MQ_assoc_remove (struct GNUNET_MQ_Handle *mq, uint32_t request_id)
+GNUNET_MQ_assoc_remove (struct GNUNET_MQ_Handle *mq,
+                        uint32_t request_id)
 {
   void *val;
 
@@ -766,7 +806,8 @@ GNUNET_MQ_destroy (struct GNUNET_MQ_Handle *mq)
 
 
 struct GNUNET_MessageHeader *
-GNUNET_MQ_extract_nested_mh_ (const struct GNUNET_MessageHeader *mh, uint16_t base_size)
+GNUNET_MQ_extract_nested_mh_ (const struct GNUNET_MessageHeader *mh,
+                              uint16_t base_size)
 {
   uint16_t whole_size;
   uint16_t nested_size;
@@ -840,3 +881,4 @@ GNUNET_MQ_send_cancel (struct GNUNET_MQ_Envelope *ev)
   GNUNET_free (ev);
 }
 
+/* end of mq.c */
