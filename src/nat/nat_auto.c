@@ -506,26 +506,46 @@ err:
 static void
 test_icmp_client (struct GNUNET_NAT_AutoHandle *ah)
 {
-  int hnc;
+  int ext_ip;
+  int nated;
+  int binary;
   char *tmp;
-  char *binary;
+  char *helper;
+  
+  ext_ip = GNUNET_NO;
+  nated = GNUNET_NO;
+  binary = GNUNET_NO;
 
   tmp = NULL;
-  binary = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-nat-client");
-  hnc =
-      ((GNUNET_OK ==
+  helper = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-nat-client");
+  if ((GNUNET_OK ==
         GNUNET_CONFIGURATION_get_value_string (ah->cfg, "nat", "INTERNAL_ADDRESS",
-                                               &tmp)) && (0 < strlen (tmp)) &&
-       (GNUNET_YES !=
-        GNUNET_CONFIGURATION_get_value_yesno (ah->cfg, "nat", "BEHIND_NAT")) &&
-       (GNUNET_YES ==
-        GNUNET_OS_check_helper_binary (binary, GNUNET_YES, "-d 127.0.0.1 127.0.0.2 42"))); // none of these parameters are actually used in privilege testing mode
+                                               &tmp)) && (0 < strlen (tmp)))
+  {
+    ext_ip = GNUNET_OK;
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("test_icmp_client not possible, as we have no internal IPv4 address\n"));
+  }
+  else
+    goto err;
+  
+  if (GNUNET_YES !=
+      GNUNET_CONFIGURATION_get_value_yesno (ah->cfg, "nat", "BEHIND_NAT")){
+        nated = GNUNET_YES;
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("test_icmp_server not possible, as we are not behind NAT\n"));
+  }
+  else
+    goto err;
+  
+  if (GNUNET_YES ==
+      GNUNET_OS_check_helper_binary (helper, GNUNET_YES, "-d 127.0.0.1 127.0.0.2 42")){
+          // none of these parameters are actually used in privilege testing mode
+    binary = GNUNET_OK;
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("No working gnunet-helper-nat-server found\n"));
+  }
+err:
   GNUNET_free_non_null (tmp);
-  GNUNET_free (binary);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-	      (hnc)
-	      ? _("gnunet-helper-nat-client found, enabling it\n")
-	      : _("gnunet-helper-nat-client not found or behind NAT, disabling it\n"));
+  GNUNET_free (helper);
+
   next_phase (ah);
 }
 
@@ -570,7 +590,7 @@ next_phase (struct GNUNET_NAT_AutoHandle *ah)
 					  ah->cfg);
     ah->fin_cb (ah->fin_cb_cls,
 		diff,
-                GNUNET_NAT_ERROR_SUCCESS);
+                ah->ret);
     GNUNET_CONFIGURATION_destroy (diff);
     GNUNET_NAT_autoconfig_cancel (ah);
     return;

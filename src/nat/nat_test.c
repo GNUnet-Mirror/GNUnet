@@ -382,7 +382,7 @@ GNUNET_NAT_test_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
                        GNUNET_NAT_TestCallback report,
                        void *report_cls)
 {
-  struct GNUNET_NAT_Test *ret;
+  struct GNUNET_NAT_Test *nh;
   struct sockaddr_in sa;
   const struct sockaddr *addrs[] = { (const struct sockaddr *) &sa };
   const socklen_t addrlens[] = { sizeof (sa) };
@@ -394,72 +394,72 @@ GNUNET_NAT_test_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   sa.sin_len = sizeof (sa);
 #endif
 
-  ret = GNUNET_new (struct GNUNET_NAT_Test);
-  ret->cfg = cfg;
-  ret->is_tcp = is_tcp;
-  ret->data = bnd_port;
-  ret->adv_port = adv_port;
-  ret->report = report;
-  ret->report_cls = report_cls;
+  nh = GNUNET_new (struct GNUNET_NAT_Test);
+  nh->cfg = cfg;
+  nh->is_tcp = is_tcp;
+  nh->data = bnd_port;
+  nh->adv_port = adv_port;
+  nh->report = report;
+  nh->report_cls = report_cls;
   if (0 == bnd_port)
   {
-    ret->nat =
+    nh->nat =
         GNUNET_NAT_register (cfg, is_tcp, 0, 0, NULL, NULL, &addr_cb,
-                             &reversal_cb, ret);
+                             &reversal_cb, nh);
   }
   else
   {
-    ret->lsock =
+    nh->lsock =
         GNUNET_NETWORK_socket_create (AF_INET,
                                       (is_tcp ==
                                        GNUNET_YES) ? SOCK_STREAM : SOCK_DGRAM,
                                       0);
-    if ((ret->lsock == NULL) ||
+    if ((nh->lsock == NULL) ||
         (GNUNET_OK !=
-         GNUNET_NETWORK_socket_bind (ret->lsock, (const struct sockaddr *) &sa,
+         GNUNET_NETWORK_socket_bind (nh->lsock, (const struct sockaddr *) &sa,
                                      sizeof (sa))))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                   _("Failed to create listen socket bound to `%s' for NAT test: %s\n"),
                   GNUNET_a2s ((const struct sockaddr *) &sa, sizeof (sa)),
                   STRERROR (errno));
-      if (NULL != ret->lsock)
-        GNUNET_NETWORK_socket_close (ret->lsock);
-      GNUNET_free (ret);
+      if (NULL != nh->lsock)
+        GNUNET_NETWORK_socket_close (nh->lsock);
+      GNUNET_free (nh);
       return NULL;
     }
     if (GNUNET_YES == is_tcp)
     {
-      GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_listen (ret->lsock, 5));
-      ret->ltask =
+      GNUNET_break (GNUNET_OK == GNUNET_NETWORK_socket_listen (nh->lsock, 5));
+      nh->ltask =
           GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
-                                         ret->lsock, &do_accept, ret);
+                                         nh->lsock, &do_accept, nh);
     }
     else
     {
-      ret->ltask =
+      nh->ltask =
           GNUNET_SCHEDULER_add_read_net (GNUNET_TIME_UNIT_FOREVER_REL,
-                                         ret->lsock, &do_udp_read, ret);
+                                         nh->lsock, &do_udp_read, nh);
     }
     LOG (GNUNET_ERROR_TYPE_DEBUG,
 	 "NAT test listens on port %u (%s)\n",
 	 bnd_port,
 	 (GNUNET_YES == is_tcp) ? "tcp" : "udp");
-    ret->nat = GNUNET_NAT_register (cfg, is_tcp, adv_port, 1, addrs, addrlens,
-                             &addr_cb, NULL, ret);
-    if (NULL == ret->nat)
+    nh->nat = GNUNET_NAT_register (cfg, is_tcp, adv_port, 1, addrs, addrlens,
+                             &addr_cb, NULL, nh);
+    if (NULL == nh->nat)
     {
       LOG (GNUNET_ERROR_TYPE_ERROR,
           _("NAT test failed to start NAT library\n"));
-      if (GNUNET_SCHEDULER_NO_TASK != ret->ltask)
-        GNUNET_SCHEDULER_cancel (ret->ltask);
-      if (NULL != ret->lsock)
-        GNUNET_NETWORK_socket_close (ret->lsock);
-      GNUNET_free (ret);
+      if (GNUNET_SCHEDULER_NO_TASK != nh->ltask)
+        GNUNET_SCHEDULER_cancel (nh->ltask);
+      if (NULL != nh->lsock)
+        GNUNET_NETWORK_socket_close (nh->lsock);
+      GNUNET_free (nh);
       return NULL;
     }
   }
-  return ret;
+  return nh;
 }
 
 
