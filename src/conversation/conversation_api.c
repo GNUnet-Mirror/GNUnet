@@ -795,11 +795,12 @@ GNUNET_CONVERSATION_caller_hang_up (struct GNUNET_CONVERSATION_Caller *caller)
   GNUNET_CONTAINER_DLL_remove (phone->caller_head,
                                phone->caller_tail,
                                caller);
-  GNUNET_free_non_null (caller->caller_id_str);
-  GNUNET_free (caller);
   e = GNUNET_MQ_msg (hang,
                      GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_HANG_UP);
+  hang->cid = caller->cid;
   GNUNET_MQ_send (phone->mq, e);
+  GNUNET_free_non_null (caller->caller_id_str);
+  GNUNET_free (caller);
 }
 
 
