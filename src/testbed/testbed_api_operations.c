@@ -850,7 +850,6 @@ adaptive_queue_set_max_active (struct OperationQueue *queue, unsigned int n)
   n = GNUNET_MIN (n ,fctx->max_active_bound);
   fctx->tslots_freeptr = GNUNET_malloc (n * sizeof (struct TimeSlot));
   fctx->nfailed = 0;
-  FPRINTF (stderr, "Parallelism: %u\n", n);
   for (cnt = 0; cnt < n; cnt++)
   {
     tslot = &fctx->tslots_freeptr[cnt];
