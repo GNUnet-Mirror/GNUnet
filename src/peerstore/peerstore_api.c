@@ -423,7 +423,7 @@ GNUNET_PEERSTORE_store (struct GNUNET_PEERSTORE_Handle *h,
     GNUNET_PEERSTORE_Continuation cont,
     void *cont_cls)
 {
-  struct GNUNET_MQ_Envelope *ev; //FIXME: add 'replace' flag in store function (similar to multihashmap)
+  struct GNUNET_MQ_Envelope *ev;
   struct GNUNET_PEERSTORE_StoreContext *sc;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,

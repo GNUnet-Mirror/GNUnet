@@ -51,8 +51,6 @@
 
 #define LOG(kind,...) GNUNET_log_from (kind, "peerstore-sqlite", __VA_ARGS__)
 
-//FIXME: Indexes
-
 /**
  * Context for all functions in this plugin.
  */
@@ -458,6 +456,18 @@ database_setup (struct Plugin *plugin)
       ");");
 
   sqlite3_create_function(plugin->dbh, "UINT64_LT", 2, SQLITE_UTF8, NULL, &sqlite3_lessthan, NULL, NULL);
+
+  /* Create Indices */
+  if (SQLITE_OK !=
+      sqlite3_exec(plugin->dbh,
+        "CREATE INDEX IF NOT EXISTS peerstoredata_key_index ON peerstoredata (sub_system, peer_id, key)",
+        NULL, NULL, NULL))
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+     _("Unable to create indices: %s.\n"),
+     sqlite3_errmsg (plugin->dbh));
+      return GNUNET_SYSERR;
+  }
 
   /* Prepare statements */
 
