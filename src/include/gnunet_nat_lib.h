@@ -81,6 +81,16 @@ enum GNUNET_NAT_FailureCode
   GNUNET_NAT_ERROR_SUCCESS = GNUNET_OK,
   
   /**
+   * `external-ip' command not found
+   */
+  GNUNET_NAT_ERROR_IPC_FAILURE,
+  
+  /**
+   * `external-ip' command not found
+   */
+  GNUNET_NAT_ERROR_NOT_ONLINE,
+  
+  /**
    * `upnpc` command not found
    */
   GNUNET_NAT_ERROR_UPNPC_NOT_FOUND,
@@ -106,15 +116,50 @@ enum GNUNET_NAT_FailureCode
   GNUNET_NAT_ERROR_EXTERNAL_IP_UTILITY_NOT_FOUND,
   
   /**
+   * `external-ip' command not found
+   */
+  GNUNET_NAT_ERROR_EXTERNAL_IP_UTILITY_NOT_EXECUTEABLE,
+  
+  /**
+   * `external-ip' command not found
+   */
+  GNUNET_NAT_ERROR_EXTERNAL_IP_UTILITY_OUTPUT_INVALID,
+  
+  /**
    * "no valid address was returned by `external-ip'"
    */
-  GNUNET_NAT_ERROR_EXTERNAL_IP_NO_VALID_ADDRESS_FOUND,
-    
+  GNUNET_NAT_ERROR_EXTERNAL_IP_ADDRESS_INVALID,
+  
+  /**
+   * Could not determine interface with internal/local network address
+   */
+  GNUNET_NAT_ERROR_NO_VALID_IF_IP_COMBO,
+          
+  /**
+   * No working gnunet-helper-nat-server found
+   */
+  GNUNET_NAT_ERROR_HELPER_NAT_SERVER_NOT_FOUND,
+  
+  /**
+   * NAT test could not be initialized
+   */
+  GNUNET_NAT_ERROR_NAT_TEST_START_FAILED,
+  
+  /**
+   * NAT test timeout
+   */
+  GNUNET_NAT_ERROR_NAT_TEST_TIMEOUT,
+  
   /**
    * 
    */
-  GNUNET_NAT_ERROR_  
+  GNUNET_NAT_ERROR_HELPER_NAT_CLIENT_NOT_FOUND,
   
+  
+  /**
+   * 
+   */
+  GNUNET_NAT_ERROR_
 };
 
 
