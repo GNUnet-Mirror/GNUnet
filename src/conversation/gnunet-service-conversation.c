@@ -472,7 +472,10 @@ handle_client_hangup_message (void *cls,
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received HANGUP for channel %u which is in state %d\n",
+              msg->cid,
+              ch->status);
   switch (ch->status)
   {
   case CS_CALLEE_RINGING:
@@ -552,6 +555,10 @@ handle_client_suspend_message (void *cls,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received SUSPEND for channel %u which is in state %d\n",
+              msg->cid,
+              ch->status);
   switch (ch->status)
   {
   case CS_CALLEE_RINGING:
@@ -630,6 +637,10 @@ handle_client_resume_message (void *cls,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received RESUME for channel %u which is in state %d\n",
+              msg->cid,
+              ch->status);
   switch (ch->status)
   {
   case CS_CALLEE_RINGING:
