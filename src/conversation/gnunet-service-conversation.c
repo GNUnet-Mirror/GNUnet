@@ -1346,7 +1346,7 @@ inbound_channel (void *cls,
                 uint32_t port, enum GNUNET_CADET_ChannelOption options)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-	      _("Received incoming channel on port %u\n"),
+	      _("Received incoming Cadet channel on port %u\n"),
               (unsigned int) port);
   return NULL;
 }
@@ -1398,7 +1398,7 @@ inbound_end (void *cls,
   ch->channel_reliable = NULL;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	      "Cadet channel destroyed by cadet in state %d\n",
+	      "Cadet channel destroyed by Cadet in state %d\n",
               ch->status);
   hup.header.size = htons (sizeof (hup));
   hup.header.type = htons (GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_HANG_UP);
