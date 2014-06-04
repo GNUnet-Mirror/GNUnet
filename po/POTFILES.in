@@ -189,8 +189,8 @@ src/hello/address.c
 src/hello/gnunet-hello.c
 src/hello/hello.c
 src/hostlist/gnunet-daemon-hostlist.c
-src/hostlist/hostlist-client.c
-src/hostlist/hostlist-server.c
+src/hostlist/gnunet-daemon-hostlist_client.c
+src/hostlist/gnunet-daemon-hostlist_server.c
 src/identity/gnunet-identity.c
 src/identity/gnunet-service-identity.c
 src/identity/identity_api.c
@@ -237,7 +237,7 @@ src/peerstore/plugin_peerstore_sqlite.c
 src/postgres/postgres.c
 src/psyc/gnunet-service-psyc.c
 src/psyc/psyc_api.c
-src/psyc/psyc_common.c
+src/psyc/psyc_util_lib.c
 src/psycstore/gnunet-service-psycstore.c
 src/psycstore/plugin_psycstore_sqlite.c
 src/psycstore/psycstore_api.c
@@ -276,6 +276,8 @@ src/set/gnunet-set-profiler.c
 src/set/ibf.c
 src/set/set_api.c
 src/set/strata_estimator.c
+src/social/gnunet-service-social.c
+src/social/social_api.c
 src/statistics/gnunet-service-statistics.c
 src/statistics/gnunet-statistics.c
 src/statistics/statistics_api.c
@@ -354,6 +356,7 @@ src/tun/tun.c
 src/util/bandwidth.c
 src/util/bio.c
 src/util/client.c
+src/util/client_manager.c
 src/util/common_allocation.c
 src/util/common_endian.c
 src/util/common_logging.c
