@@ -791,6 +791,9 @@ GNUNET_MQ_destroy (struct GNUNET_MQ_Handle *mq)
 
   if (NULL != mq->current_envelope)
   {
+    /* we can only discard envelopes that
+     * are not queued! */
+    mq->current_envelope->parent_queue = NULL;
     GNUNET_MQ_discard (mq->current_envelope);
     mq->current_envelope = NULL;
   }
