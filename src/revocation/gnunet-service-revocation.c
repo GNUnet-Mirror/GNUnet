@@ -707,6 +707,9 @@ handle_revocation_union_request (void *cls,
     GNUNET_break (0);
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received set exchange request from peer `%s'\n",
+              GNUNET_i2s (other_peer));
   peer_entry = GNUNET_CONTAINER_multipeermap_get (peers,
                                                   other_peer);
   if (NULL == peer_entry)
@@ -722,6 +725,15 @@ handle_revocation_union_request (void *cls,
                                       GNUNET_SET_RESULT_ADDED,
                                       &add_revocation,
                                       peer_entry);
+  if (GNUNET_OK !=
+      GNUNET_SET_commit (peer_entry->so,
+                         revocation_set))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                _("SET service crashed, terminating revocation service\n"));
+    GNUNET_SCHEDULER_shutdown ();
+    return;
+  }
 }
 
 

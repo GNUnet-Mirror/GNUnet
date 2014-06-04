@@ -103,7 +103,8 @@ do_shutdown (void *cls,
 
 
 static void
-do_shutdown_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_shutdown_badly (void *cls,
+                   const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   if (GNUNET_SCHEDULER_NO_TASK != die_task)
     die_task = GNUNET_SCHEDULER_NO_TASK;
@@ -114,15 +115,17 @@ do_shutdown_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 static void *
 identity_connect_adapter (void *cls,
-    const struct GNUNET_CONFIGURATION_Handle *cfg)
+                          const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   struct TestPeer *me = cls;
   me->cfg = cfg;
   me->idh = GNUNET_IDENTITY_connect (cfg, NULL, NULL );
   if (NULL == me->idh)
-    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Failed to create IDENTITY handle \n");
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+               "Failed to create IDENTITY handle \n");
   return me->idh;
 }
+
 
 static void
 identity_disconnect_adapter (void *cls, void *op_result)
@@ -134,11 +137,13 @@ identity_disconnect_adapter (void *cls, void *op_result)
 
 
 static void
-check_revocation ();
+check_revocation (void *cls,
+                  const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 static void
-revocation_remote_cb (void *cls, int is_valid)
+revocation_remote_cb (void *cls,
+                      int is_valid)
 {
   static int repeat = 0;
   if (GNUNET_NO == is_valid)
@@ -169,7 +174,8 @@ revocation_remote_cb (void *cls, int is_valid)
 
 
 static void
-check_revocation ()
+check_revocation (void *cls,
+                  const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_REVOCATION_query (testpeers[0].cfg,
                            &testpeers[1].pubkey,
@@ -178,14 +184,15 @@ check_revocation ()
 
 
 static void
-revocation_cb (void *cls, int is_valid)
+revocation_cb (void *cls,
+               int is_valid)
 {
   testpeers[1].revok_handle = NULL;
   if (GNUNET_NO == is_valid)
   {
     GNUNET_log(GNUNET_ERROR_TYPE_INFO,
                "Revocation successful\n");
-    check_revocation ();
+    check_revocation (NULL, NULL);
   }
 }
 
