@@ -38,6 +38,8 @@ const static struct GNUNET_CONFIGURATION_Handle *config;
 
 static int iter_count;
 
+static int ret;
+
 
 static void
 result_cb_set1 (void *cls, const struct GNUNET_SET_Element *element,
@@ -50,10 +52,15 @@ result_cb_set1 (void *cls, const struct GNUNET_SET_Element *element,
       break;
     case GNUNET_SET_STATUS_FAILURE:
       printf ("set 1: failure\n");
+      ret = 1;
+      GNUNET_SCHEDULER_shutdown ();
       break;
     case GNUNET_SET_STATUS_DONE:
       printf ("set 1: done\n");
       GNUNET_SET_destroy (set1);
+      set1 = NULL;
+      if (NULL == set2)
+        GNUNET_SCHEDULER_shutdown ();
       break;
     default:
       GNUNET_assert (0);
@@ -72,10 +79,14 @@ result_cb_set2 (void *cls, const struct GNUNET_SET_Element *element,
       break;
     case GNUNET_SET_STATUS_FAILURE:
       printf ("set 2: failure\n");
+      ret = 1;
       break;
     case GNUNET_SET_STATUS_DONE:
       printf ("set 2: done\n");
       GNUNET_SET_destroy (set2);
+      set2 = NULL;
+      if (NULL == set1)
+        GNUNET_SCHEDULER_shutdown ();
       break;
     default:
       GNUNET_assert (0);
@@ -214,6 +225,23 @@ test_iter ()
 
 
 /**
+ * Signature of the main function of a task.
+ *
+ * @param cls closure
+ * @param tc context information (why was this task triggered now)
+ */
+static void
+timeout_fail (void *cls,
+              const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+    return;
+  GNUNET_SCHEDULER_shutdown ();
+  ret = 1;
+}
+
+
+/**
  * Signature of the 'main' function for a (single-peer) testcase that
  * is run using 'GNUNET_TESTING_peer_run'.
  *
@@ -228,6 +256,9 @@ run (void *cls,
 {
 
   struct GNUNET_SET_OperationHandle *my_oh;
+
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 5),
+                                &timeout_fail, NULL);
 
   config = cfg;
   GNUNET_CRYPTO_get_peer_identity (cfg, &local_id);
@@ -256,11 +287,12 @@ run (void *cls,
 int
 main (int argc, char **argv)
 {
-  int ret;
-
-  ret = GNUNET_TESTING_peer_run ("test_set_api",
-                                 "test_set.conf",
-                                 &run, NULL);
+  if (0 != GNUNET_TESTING_peer_run ("test_set_api",
+                                    "test_set.conf",
+                                    &run, NULL))
+  {
+    return 1;
+  }
   return ret;
 }
 
