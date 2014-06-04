@@ -141,6 +141,10 @@ struct GNUNET_NAT_AutoHandle
    */
   int have_v6;
 
+  /**
+   * Error code for better debugging and user feedback
+   */
+  enum GNUNET_NAT_FailureCode ret;
 };
 
 
@@ -166,6 +170,7 @@ fail_timeout (void *cls,
 {
   struct GNUNET_NAT_AutoHandle *ah = cls;
 
+  ah->ret = GNUNET_NAT_ERROR_NAT_TEST_TIMEOUT; 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 	      _("NAT traversal with ICMP Server timed out.\n"));
   GNUNET_assert (NULL != ah->tst);
@@ -227,6 +232,7 @@ reversal_test (void *cls,
 				   &result_callback, ah);
   if (NULL == ah->tst)
   {
+    ah->ret = GNUNET_NAT_ERROR_NAT_TEST_START_FAILED;
     next_phase (ah);
     return;
   }
@@ -243,6 +249,10 @@ static void
 test_online (struct GNUNET_NAT_AutoHandle *ah)
 {
   // FIXME: not implemented
+  /*
+   * if (failure)
+   *  ah->ret = GNUNET_NAT_ERROR_NOT_ONLINE;
+   */
   next_phase (ah);
 }
 
@@ -263,7 +273,8 @@ set_external_ipv4 (void *cls,
   char buf[INET_ADDRSTRLEN];
 
   ah->eh = NULL;
-  if (NULL == addr)
+  ah->ret = ret;
+  if (GNUNET_NAT_ERROR_SUCCESS != ret)
   {
     next_phase (ah);
     return;
@@ -281,6 +292,11 @@ set_external_ipv4 (void *cls,
   if (NULL == inet_ntop (AF_INET, addr, buf, sizeof (buf)))
   {
     GNUNET_break (0);
+    /* actually, this should never happen, as the caller already executed just
+     * this check, but for consistency (eg: future changes in the caller) 
+     * we still need to report this error...
+     */
+    ah->ret = GNUNET_NAT_ERROR_EXTERNAL_IP_ADDRESS_INVALID;
     next_phase (ah);
     return;
   }
@@ -298,6 +314,9 @@ set_external_ipv4 (void *cls,
 static void
 test_external_ip (struct GNUNET_NAT_AutoHandle *ah)
 {
+  if (GNUNET_NAT_ERROR_SUCCESS != ah->ret)
+    next_phase (ah);
+  
   // FIXME: CPS?
   /* try to detect external IP */
   ah->eh = GNUNET_NAT_mini_get_external_ipv4 (TIMEOUT,
@@ -319,7 +338,7 @@ test_external_ip (struct GNUNET_NAT_AutoHandle *ah)
  * @return GNUNET_OK to continue iteration, #GNUNET_SYSERR to abort
  */
 static int
-nipo (void *cls,
+process_if (void *cls,
       const char *name,
       int isDefault,
       const struct sockaddr *addr,
@@ -358,6 +377,7 @@ nipo (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 	      _("Detected internal network address `%s'.\n"),
 	      buf);
+  ah->ret = GNUNET_NAT_ERROR_SUCCESS;
   /* no need to continue iteration */
   return GNUNET_SYSERR;
 }
@@ -372,7 +392,9 @@ static void
 test_local_ip (struct GNUNET_NAT_AutoHandle *ah)
 {
   ah->have_v6 = GNUNET_NO;
-  GNUNET_OS_network_interfaces_list (&nipo, ah);
+  ah->ret = GNUNET_NAT_ERROR_NO_VALID_IF_IP_COMBO; // reset to success if any of the IFs in below iterator has a valid IP
+  GNUNET_OS_network_interfaces_list (&process_if, ah);
+  
   GNUNET_CONFIGURATION_set_value_string (ah->cfg, "nat", "DISABLEV6",
 					 (GNUNET_YES == ah->have_v6) ? "NO" : "YES");
   next_phase (ah);
@@ -387,7 +409,11 @@ test_local_ip (struct GNUNET_NAT_AutoHandle *ah)
 static void
 test_nat_punched (struct GNUNET_NAT_AutoHandle *ah)
 {
+  if (GNUNET_NAT_ERROR_SUCCESS != ah->ret)
+    next_phase (ah);
+  
   // FIXME: not implemented
+  
   next_phase (ah);
 }
 
@@ -402,6 +428,9 @@ test_upnpc (struct GNUNET_NAT_AutoHandle *ah)
 {
   int have_upnpc;
 
+  if (GNUNET_NAT_ERROR_SUCCESS != ah->ret)
+    next_phase (ah);
+  
   /* test if upnpc is available */
   have_upnpc = (GNUNET_SYSERR !=
 		GNUNET_OS_check_helper_binary ("upnpc", GNUNET_NO, NULL));
@@ -425,27 +454,44 @@ test_upnpc (struct GNUNET_NAT_AutoHandle *ah)
 static void
 test_icmp_server (struct GNUNET_NAT_AutoHandle *ah)
 {
-  int hns;
+  int ext_ip;
+  int nated;
+  int binary;
   char *tmp;
-  char *binary;
-
+  char *helper;
+  ext_ip = GNUNET_NO;
+  nated = GNUNET_NO;
+  binary = GNUNET_NO;
+  
   tmp = NULL;
-  binary = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-nat-server");
-  hns =
-      ((GNUNET_OK ==
+  helper = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-nat-server");
+  if ((GNUNET_OK ==
         GNUNET_CONFIGURATION_get_value_string (ah->cfg, "nat", "EXTERNAL_ADDRESS",
-                                               &tmp)) && (0 < strlen (tmp)) &&
-       (GNUNET_YES ==
-        GNUNET_CONFIGURATION_get_value_yesno (ah->cfg, "nat", "BEHIND_NAT")) &&
-       (GNUNET_YES ==
-        GNUNET_OS_check_helper_binary (binary, GNUNET_YES, "-d 127.0.0.1" ))); // use localhost as source for that one udp-port, ok for testing
+                                               &tmp)) && (0 < strlen (tmp))){
+    ext_ip = GNUNET_OK;
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("test_icmp_server not possible, as we have no public IPv4 address\n"));
+  }
+  else
+    goto err;
+    
+  if (GNUNET_YES ==
+        GNUNET_CONFIGURATION_get_value_yesno (ah->cfg, "nat", "BEHIND_NAT")){
+    nated = GNUNET_YES;
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("test_icmp_server not possible, as we are not behind NAT\n"));
+  }
+  else
+    goto err;
+  
+  if (GNUNET_YES ==
+        GNUNET_OS_check_helper_binary (helper, GNUNET_YES, "-d 127.0.0.1" )){
+    binary = GNUNET_OK; // use localhost as source for that one udp-port, ok for testing
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("No working gnunet-helper-nat-server found\n"));
+  }
+err:
   GNUNET_free_non_null (tmp);
-  GNUNET_free (binary);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-	      (hns)
-	      ? _("gnunet-helper-nat-server found, testing it\n")
-	      : _("No working gnunet-helper-nat-server found\n"));
-  if (hns)
+  GNUNET_free (helper);
+
+  if (GNUNET_OK == ext_ip && GNUNET_YES == nated && GNUNET_OK == binary)
     ah->task = GNUNET_SCHEDULER_add_now (&reversal_test, ah);
   else
     next_phase (ah);
@@ -551,6 +597,7 @@ GNUNET_NAT_autoconfig_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   ah = GNUNET_new (struct GNUNET_NAT_AutoHandle);
   ah->fin_cb = cb;
   ah->fin_cb_cls = cb_cls;
+  ah->ret = GNUNET_NAT_ERROR_SUCCESS;
   ah->cfg = GNUNET_CONFIGURATION_dup (cfg);
   ah->initial_cfg = GNUNET_CONFIGURATION_dup (cfg);
 

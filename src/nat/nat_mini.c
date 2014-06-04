@@ -98,6 +98,10 @@ struct GNUNET_NAT_ExternalHandle
    */
   char buf[17];
 
+  /**
+   * Error code for better debugging and user feedback
+   */
+  enum GNUNET_NAT_FailureCode ret;
 };
 
 
@@ -115,15 +119,16 @@ read_external_ipv4 (void *cls,
   struct GNUNET_NAT_ExternalHandle *eh = cls;
   ssize_t ret;
   struct in_addr addr;
-  int iret;
 
   eh->task = GNUNET_SCHEDULER_NO_TASK;
   if (GNUNET_YES == GNUNET_NETWORK_fdset_handle_isset (tc->read_ready, eh->r))
     ret =
         GNUNET_DISK_file_read (eh->r, &eh->buf[eh->off],
                                sizeof (eh->buf) - eh->off);
-  else
+  else {
+    eh->ret = GNUNET_NAT_ERROR_IPC_FAILURE;
     ret = -1;                   /* error reading, timeout, etc. */
+  }
   if (ret > 0)
   {
     /* try to read more */
@@ -134,23 +139,21 @@ read_external_ipv4 (void *cls,
                                         &read_external_ipv4, eh);
     return;
   }
-  iret = GNUNET_NO;
+  eh->ret = GNUNET_NAT_ERROR_EXTERNAL_IP_UTILITY_OUTPUT_INVALID;
   if ((eh->off > 7) && (eh->buf[eh->off - 1] == '\n'))
   {
     eh->buf[eh->off - 1] = '\0';
     if (1 == inet_pton (AF_INET, eh->buf, &addr))
     {
-      if (0 == addr.s_addr)
-        iret = GNUNET_NO;       /* got 0.0.0.0 */
+      if (0 != addr.s_addr)
+        eh->ret = GNUNET_NAT_ERROR_EXTERNAL_IP_ADDRESS_INVALID;       /* got 0.0.0.0 */
       else
-        iret = GNUNET_OK;
+        eh->ret = GNUNET_NAT_ERROR_SUCCESS;
     }
   }
   eh->cb (eh->cb_cls,
-          (GNUNET_OK == iret)
-          ? &addr :
-          NULL,
-          GNUNET_NAT_ERROR_EXTERNAL_IP_NO_VALID_ADDRESS_FOUND);
+          (GNUNET_NAT_ERROR_SUCCESS == eh->ret) ? &addr : NULL,
+          eh->ret);
   GNUNET_NAT_mini_get_external_ipv4_cancel (eh);
 }
 
@@ -170,7 +173,7 @@ signal_external_ip_error (void *cls,
   eh->task = GNUNET_SCHEDULER_NO_TASK;
   eh->cb (eh->cb_cls,
           NULL,
-          GNUNET_NAT_ERROR_EXTERNAL_IP_UTILITY_NOT_FOUND);
+          eh->ret);
   GNUNET_free (eh);
 }
 
@@ -181,7 +184,7 @@ signal_external_ip_error (void *cls,
  * @param timeout when to fail
  * @param cb function to call with result
  * @param cb_cls closure for @a cb
- * @return handle for cancellation (can only be used until @a cb is called), NULL on error
+ * @return handle for cancellation (can only be used until @a cb is called), never NULL
  */
 struct GNUNET_NAT_ExternalHandle *
 GNUNET_NAT_mini_get_external_ipv4 (struct GNUNET_TIME_Relative timeout,
@@ -192,11 +195,13 @@ GNUNET_NAT_mini_get_external_ipv4 (struct GNUNET_TIME_Relative timeout,
   eh = GNUNET_new (struct GNUNET_NAT_ExternalHandle);
   eh->cb = cb;
   eh->cb_cls = cb_cls;
+  eh->ret = GNUNET_NAT_ERROR_SUCCESS;
   if (GNUNET_SYSERR ==
       GNUNET_OS_check_helper_binary ("external-ip", GNUNET_NO, NULL))
   {
     LOG (GNUNET_ERROR_TYPE_INFO,
 	 _("`external-ip' command not found\n"));
+    eh->ret = GNUNET_NAT_ERROR_EXTERNAL_IP_UTILITY_NOT_FOUND;
     eh->task = GNUNET_SCHEDULER_add_now (&signal_external_ip_error,
                                          eh);
     return eh;
@@ -206,6 +211,7 @@ GNUNET_NAT_mini_get_external_ipv4 (struct GNUNET_TIME_Relative timeout,
   eh->opipe = GNUNET_DISK_pipe (GNUNET_YES, GNUNET_YES, GNUNET_NO, GNUNET_YES);
   if (NULL == eh->opipe)
   {
+    eh->ret = GNUNET_NAT_ERROR_IPC_FAILURE;
     eh->task = GNUNET_SCHEDULER_add_now (&signal_external_ip_error,
                                          eh);
     return eh;
@@ -217,6 +223,7 @@ GNUNET_NAT_mini_get_external_ipv4 (struct GNUNET_TIME_Relative timeout,
   if (NULL == eh->eip)
   {
     GNUNET_DISK_pipe_close (eh->opipe);
+    eh->ret = GNUNET_NAT_ERROR_EXTERNAL_IP_UTILITY_NOT_EXECUTEABLE;
     eh->task = GNUNET_SCHEDULER_add_now (&signal_external_ip_error,
                                          eh);
     return eh;
