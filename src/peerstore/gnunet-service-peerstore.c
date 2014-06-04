@@ -30,24 +30,6 @@
 #include "peerstore_common.h"
 
 /**
- * Context of a PEERSTORE watch
- */
-struct WatchContext
-{
-
-  /**
-   * Hash of key of watched record
-   */
-  struct GNUNET_HashCode keyhash;
-
-  /**
-   * Client requested the watch
-   */
-  struct GNUNET_SERVER_Client *client;
-
-};
-
-/**
  * Interval for expired records cleanup (in seconds)
  */
 #define CLEANUP_INTERVAL 300 /* 5mins */
@@ -95,6 +77,7 @@ shutdown_task (void *cls,
   }
   GNUNET_SERVER_notification_context_destroy(nc);
   GNUNET_CONTAINER_multihashmap_destroy(watchers);
+  watchers = NULL;
   GNUNET_SCHEDULER_shutdown();
 }
 
@@ -123,7 +106,7 @@ cleanup_expired_records(void *cls,
  * @param cls closuer, a 'struct GNUNET_PEERSTORE_Record *'
  * @param key hash of record key
  * @param value the watcher client, a 'struct GNUNET_SERVER_Client *'
- * @return #GNUNET_YES to continue iterating
+ * @return #GNUNET_OK to continue iterating
  */
 int client_disconnect_it(void *cls,
     const struct GNUNET_HashCode *key,
@@ -131,7 +114,7 @@ int client_disconnect_it(void *cls,
 {
   if(cls == value)
     GNUNET_CONTAINER_multihashmap_remove(watchers, key, value);
-  return GNUNET_YES;
+  return GNUNET_OK;
 }
 
 /**
@@ -146,8 +129,9 @@ handle_client_disconnect (void *cls,
 			  * client)
 {
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "A client was disconnected, cleaning up.\n");
-  GNUNET_CONTAINER_multihashmap_iterate(watchers,
-      &client_disconnect_it, client);
+  if(NULL != watchers)
+    GNUNET_CONTAINER_multihashmap_iterate(watchers,
+        &client_disconnect_it, client);
 }
 
 /**
@@ -196,12 +180,6 @@ int watch_notifier_it(void *cls,
   struct StoreRecordMessage *srm;
 
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Found a watcher to update.\n");
-  if(NULL == client)
-  {
-    GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Removing a dead client.\n");
-    GNUNET_CONTAINER_multihashmap_remove(watchers, key, client);
-    return GNUNET_YES;
-  }
   srm = PEERSTORE_create_record_message(record->sub_system,
       record->peer,
       record->key,
@@ -335,6 +313,7 @@ void handle_store (void *cls,
     const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_PEERSTORE_Record *record;
+  struct StoreRecordMessage *srm;
 
   record = PEERSTORE_parse_record_message(message);
   if(NULL == record)
@@ -343,6 +322,7 @@ void handle_store (void *cls,
     GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
     return;
   }
+  srm = (struct StoreRecordMessage *)message;
   if(NULL == record->sub_system
       || NULL == record->peer
       || NULL == record->key)
@@ -363,7 +343,8 @@ void handle_store (void *cls,
       record->key,
       record->value,
       record->value_size,
-      *record->expiry))
+      *record->expiry,
+      srm->options))
   {
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Failed to store requested value, sqlite database error.");
     PEERSTORE_destroy_record(record);

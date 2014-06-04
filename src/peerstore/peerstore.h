@@ -75,6 +75,12 @@ struct StoreRecordMessage
    */
   struct GNUNET_TIME_Absolute expiry;
 
+  /**
+   * Options, needed only in case of a
+   * store operation
+   */
+  enum GNUNET_PEERSTORE_StoreOption options;
+
 };
 
 /**

@@ -38,6 +38,25 @@ extern "C"
 #endif
 
 /**
+ * Options for storing values in PEERSTORE
+ */
+enum GNUNET_PEERSTORE_StoreOption
+{
+
+  /**
+   * Possibly store multiple values under given key.
+   */
+  GNUNET_PEERSTORE_STOREOPTION_MULTIPLE,
+
+  /**
+   * Delete any previous values for the given key before
+   * storing the given value.
+   */
+  GNUNET_PEERSTORE_STOREOPTION_REPLACE,
+
+};
+
+/**
  * Handle to the peerstore service.
  */
 struct GNUNET_PEERSTORE_Handle;
@@ -130,7 +149,8 @@ GNUNET_PEERSTORE_disconnect(struct GNUNET_PEERSTORE_Handle *h);
  * @param key entry key
  * @param value entry value BLOB
  * @param size size of 'value'
- * @param lifetime relative time after which the entry is (possibly) deleted
+ * @param expiry absolute time after which the entry is (possibly) deleted
+ * @param options store operation option
  * @param cont Continuation function after the store request is processed
  * @param cont_cls Closure for 'cont'
  */
@@ -142,6 +162,7 @@ GNUNET_PEERSTORE_store (struct GNUNET_PEERSTORE_Handle *h,
     const void *value,
     size_t size,
     struct GNUNET_TIME_Absolute expiry,
+    enum GNUNET_PEERSTORE_StoreOption options,
     GNUNET_PEERSTORE_Continuation cont,
     void *cont_cls);
 

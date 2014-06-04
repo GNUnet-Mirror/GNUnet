@@ -100,11 +100,56 @@ struct Plugin
   sqlite3_stmt *select_peerstoredata_by_all;
 
   /**
-   * Precompiled SQL for deleting expired records from peerstoredata
+   * Precompiled SQL for deleting expired
+   * records from peerstoredata
    */
   sqlite3_stmt *expire_peerstoredata;
 
+  /**
+   * Precompiled SQL for deleting records
+   * with given key
+   */
+  sqlite3_stmt *delete_peerstoredata;
+
 };
+
+/**
+ * Delete records with the given key
+ *
+ * @param cls closure (internal context for the plugin)
+ * @param sub_system name of sub system
+ * @param peer Peer identity (can be NULL)
+ * @param key entry key string (can be NULL)
+ * @return number of deleted records
+ */
+static int
+peerstore_sqlite_delete_records(void *cls,
+    const char *sub_system,
+    const struct GNUNET_PeerIdentity *peer,
+    const char *key)
+{
+  struct Plugin *plugin = cls;
+  sqlite3_stmt *stmt = plugin->delete_peerstoredata;
+
+  if((SQLITE_OK != sqlite3_bind_text(stmt, 1, sub_system, strlen(sub_system) + 1, SQLITE_STATIC))
+      || (SQLITE_OK != sqlite3_bind_blob(stmt, 2, peer, sizeof(struct GNUNET_PeerIdentity), SQLITE_STATIC))
+      || (SQLITE_OK != sqlite3_bind_text(stmt, 3, key, strlen(key) + 1, SQLITE_STATIC)))
+  {
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK, "sqlite3_bind");
+  }
+  else if (SQLITE_DONE != sqlite3_step (stmt))
+  {
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                "sqlite3_step");
+  }
+  if (SQLITE_OK != sqlite3_reset (stmt))
+  {
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                "sqlite3_reset");
+    return 0;
+  }
+  return sqlite3_changes(plugin->dbh);
+}
 
 /**
  * Delete expired records (expiry < now)
@@ -120,7 +165,7 @@ peerstore_sqlite_expire_records(void *cls,
   struct Plugin *plugin = cls;
   sqlite3_stmt *stmt = plugin->expire_peerstoredata;
 
-  if(SQLITE_OK != sqlite3_bind_int64(stmt, 1, (sqlite3_int64)now.abs_value_us))
+  if(SQLITE_OK != sqlite3_bind_int64(stmt, 1, (sqlite3_uint64)now.abs_value_us))
   {
     LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK, "sqlite3_bind");
   }
@@ -254,16 +299,21 @@ peerstore_sqlite_store_record(void *cls,
     const char *key,
     const void *value,
     size_t size,
-    struct GNUNET_TIME_Absolute expiry)
+    struct GNUNET_TIME_Absolute expiry,
+    enum GNUNET_PEERSTORE_StoreOption options)
 {
   struct Plugin *plugin = cls;
   sqlite3_stmt *stmt = plugin->insert_peerstoredata;
 
+  if(GNUNET_PEERSTORE_STOREOPTION_REPLACE == options)
+  {
+    peerstore_sqlite_delete_records(cls, sub_system, peer, key);
+  }
   if(SQLITE_OK != sqlite3_bind_text(stmt, 1, sub_system, strlen(sub_system) + 1, SQLITE_STATIC)
       || SQLITE_OK != sqlite3_bind_blob(stmt, 2, peer, sizeof(struct GNUNET_PeerIdentity), SQLITE_STATIC)
       || SQLITE_OK != sqlite3_bind_text(stmt, 3, key, strlen(key) + 1, SQLITE_STATIC)
       || SQLITE_OK != sqlite3_bind_blob(stmt, 4, value, size, SQLITE_STATIC)
-      || SQLITE_OK != sqlite3_bind_int64(stmt, 5, (sqlite3_int64)expiry.abs_value_us))
+      || SQLITE_OK != sqlite3_bind_int64(stmt, 5, (sqlite3_uint64)expiry.abs_value_us))
     LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                     "sqlite3_bind");
   else if (SQLITE_DONE != sqlite3_step (stmt))
@@ -330,6 +380,21 @@ sql_prepare (sqlite3 *dbh, const char *sql, sqlite3_stmt **stmt)
 }
 
 /**
+ * sqlite3 custom function for comparison of uint64_t values
+ * since it is not supported by default
+ */
+void sqlite3_lessthan(sqlite3_context* ctx, int dummy,
+    sqlite3_value** values)
+{
+  uint64_t v1;
+  uint64_t v2;
+
+  v1 = (uint64_t)sqlite3_value_int64(values[0]);
+  v2 = (uint64_t)sqlite3_value_int64(values[1]);
+  sqlite3_result_int(ctx, v1 < v2);
+}
+
+/**
  * Initialize the database connections and associated
  * data structures (create tables and indices
  * as needed as well).
@@ -389,8 +454,10 @@ database_setup (struct Plugin *plugin)
       "  peer_id BLOB NOT NULL,\n"
       "  key TEXT NOT NULL,\n"
       "  value BLOB NULL,\n"
-      "  expiry INTEGER NOT NULL"
+      "  expiry sqlite3_uint64 NOT NULL"
       ");");
+
+  sqlite3_create_function(plugin->dbh, "UINT64_LT", 2, SQLITE_UTF8, NULL, &sqlite3_lessthan, NULL, NULL);
 
   /* Prepare statements */
 
@@ -419,8 +486,14 @@ database_setup (struct Plugin *plugin)
       &plugin->select_peerstoredata_by_all);
   sql_prepare(plugin->dbh,
       "DELETE FROM peerstoredata"
-      " WHERE expiry < ?",
+      " WHERE UINT64_LT(expiry, ?)",
       &plugin->expire_peerstoredata);
+  sql_prepare(plugin->dbh,
+      "DELETE FROM peerstoredata"
+      " WHERE sub_system = ?"
+      " AND peer_id = ?"
+      " AND key = ?",
+      &plugin->delete_peerstoredata);
 
   return GNUNET_OK;
 }

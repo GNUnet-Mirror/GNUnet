@@ -419,6 +419,7 @@ GNUNET_PEERSTORE_store (struct GNUNET_PEERSTORE_Handle *h,
     const void *value,
     size_t size,
     struct GNUNET_TIME_Absolute expiry,
+    enum GNUNET_PEERSTORE_StoreOption options,
     GNUNET_PEERSTORE_Continuation cont,
     void *cont_cls)
 {
@@ -434,6 +435,7 @@ GNUNET_PEERSTORE_store (struct GNUNET_PEERSTORE_Handle *h,
       value,
       size,
       &expiry,
+      options,
       GNUNET_MESSAGE_TYPE_PEERSTORE_STORE);
   sc = GNUNET_new(struct GNUNET_PEERSTORE_StoreContext);
   sc->ev = ev;
@@ -595,6 +597,7 @@ GNUNET_PEERSTORE_iterate (struct GNUNET_PEERSTORE_Handle *h,
       NULL,
       0,
       NULL,
+      0,
       GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE);
   ic = GNUNET_new(struct GNUNET_PEERSTORE_IterateContext);
   ic->callback = callback;

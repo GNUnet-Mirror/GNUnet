@@ -125,6 +125,7 @@ run (void *cls,
       val,
       val_size,
       expiry,
+      GNUNET_PEERSTORE_STOREOPTION_MULTIPLE,
       &store_cont,
       NULL);
 }
