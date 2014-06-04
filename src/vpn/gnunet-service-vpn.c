@@ -2934,13 +2934,18 @@ run (void *cls,
   binary = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-vpn");
 
   if (GNUNET_YES !=
-      GNUNET_OS_check_helper_binary (binary, GNUNET_YES, "-d gnunet-vpn - - 169.1.3.3.7 255.255.255.0")) //ipv4 only please!
+      GNUNET_OS_check_helper_binary (binary,
+                                     GNUNET_YES,
+                                     "-d gnunet-vpn - - 169.1.3.3.7 255.255.255.0")) //ipv4 only please!
   {
-    fprintf (stderr,
-	     "`%s' is not SUID, refusing to run.\n",
-	     "gnunet-helper-vpn");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "`%s' is not SUID, refusing to run.\n",
+                "gnunet-helper-vpn");
     GNUNET_free (binary);
     global_ret = 1;
+    /* we won't "really" exit here, as the 'service' is still running;
+       however, as no handlers are registered, the service won't do
+       anything either */
     return;
   }
   GNUNET_free (binary);
