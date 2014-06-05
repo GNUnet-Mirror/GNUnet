@@ -204,7 +204,7 @@ Mar 12 16:57:56-642573 test_program-19449 ERROR Assertion failed at resolver_api
 /bin/bash: line 5: 19449 Aborted                 (core dumped) ${dir}$tst
 FAIL: test_program
 \end{lstlisting}
-double check your {\tt GNUNET\_PREFIX} environmental variable and double check the steps performed in ~\ref{sub:install}
+double check the steps performed in ~\ref{sub:install}
 
 \section{Background: GNUnet Architecture}
 GNUnet is organized in layers and services. Each service is composed of a
@@ -247,7 +247,7 @@ the programmer.
 \section{First Steps with GNUnet}
 
 \subsection{Configure your peer}
-First of all we need to configure your peer. Each peer is started with a configuration containing settings for GNUnet itself and it's services. This configuration is based on the default configuration shipped with GNUnet and can be modified. The default configuration is located in the {\tt \$GNUNET\_PREFIX/share/gnunet/config.d} directory. When starting a peer, you can specify a customized configuration using the the {\tt$-c$} command line switch when starting the ARM service and all other services. When using a modified configuration the default values are loaded and only values specified in the configuration file will replace the default values.
+First of all we need to configure your peer. Each peer is started with a configuration containing settings for GNUnet itself and it's services. This configuration is based on the default configuration shipped with GNUnet and can be modified. The default configuration is located in the {\tt \$PREFIX/share/gnunet/config.d} directory. When starting a peer, you can specify a customized configuration using the the {\tt$-c$} command line switch when starting the ARM service and all other services. When using a modified configuration the default values are loaded and only values specified in the configuration file will replace the default values.
 
 Since we want to start additional peers later, we need
 some modifications from the default configuration. We need to create a separate service home and a file containing our modifications for this peer:
@@ -321,10 +321,10 @@ configuration file to avoid conflicts with ports and directories.
 A peers configuration file is by default located in {\tt ~/.gnunet/gnunet.conf}.
 This file is typically very short or even empty as only the differences to the
 defaults need to be specified.  The defaults are located in
-many files in the {\tt \$GNUNET\_PREFIX/share/gnunet/config.d} directory.
+many files in the {\tt \$PREFIX/share/gnunet/config.d} directory.
 
 To configure the second peer, use the files {\tt
-  \$GNUNET\_PREFIX/share/gnunet/config.d} as a template for your main
+  \$PREFIX/share/gnunet/config.d} as a template for your main
 configuration file:
 %
 \lstset{language=bash}
