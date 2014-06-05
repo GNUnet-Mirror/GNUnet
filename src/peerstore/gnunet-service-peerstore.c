@@ -202,7 +202,7 @@ void watch_notifier (struct GNUNET_PEERSTORE_Record *record)
 {
   struct GNUNET_HashCode keyhash;
 
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Sending update to any watchers.\n");
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Sending update to any watchers.\n");
   PEERSTORE_hash_key(record->sub_system,
       record->peer,
       record->key,
@@ -279,6 +279,10 @@ void handle_iterate (void *cls,
     GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
     return;
   }
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Iterate request: ss `%s', peer `%s', key `%s'\n",
+      record->sub_system,
+      (NULL == record->peer) ? "NULL" : GNUNET_i2s(record->peer),
+      (NULL == record->key) ? "NULL" : record->key);
   GNUNET_SERVER_notification_context_add(nc, client);
   if(GNUNET_OK == db->iterate_records(db->cls,
       record->sub_system,

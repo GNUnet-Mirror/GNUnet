@@ -18,8 +18,8 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file peerstore/test_peerstore_api.c
- * @brief testcase for peerstore_api.c
+ * @file peerstore/test_peerstore_api_store.c
+ * @brief testcase for peerstore store operation
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -219,4 +219,4 @@ main (int argc, char *argv[])
   return ok;
 }
 
-/* end of test_peerstore_api.c */
+/* end of test_peerstore_api_store.c */
