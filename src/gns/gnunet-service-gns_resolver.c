@@ -844,6 +844,7 @@ dns_result_parser (void *cls,
     {
       GNUNET_free (rh->name);
       rh->name = GNUNET_strdup (p->answers[0].data.hostname);
+      rh->name_resolution_pos = strlen (rh->name);
       start_resolver_lookup (rh);
       GNUNET_DNSPARSER_free_packet (p);
       return;
@@ -1119,6 +1120,7 @@ handle_gns_cname_result (struct GNS_ResolverHandle *rh,
   /* name is absolute, start from the beginning */
   GNUNET_free (rh->name);
   rh->name = GNUNET_strdup (cname);
+  rh->name_resolution_pos = strlen (rh->name);
   start_resolver_lookup (rh);
 }
 
