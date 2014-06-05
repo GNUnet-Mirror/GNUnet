@@ -67,7 +67,8 @@ libgnunet_plugin_peerstore_sqlite_la_DEPENDENCIES = \
 check_PROGRAMS = \
  test_peerstore_api_store \
  test_peerstore_api_iterate \
- test_peerstore_api_watch
+ test_peerstore_api_watch \
+ test_peerstore_stress_store
 
 if ENABLE_TEST_RUN
 AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PATH=$${GNUNET_PREFIX:-@prefix@}/bin:$$PATH;
@@ -91,6 +92,13 @@ test_peerstore_api_iterate_LDADD = \
 test_peerstore_api_watch_SOURCES = \
  test_peerstore_api_watch.c
 test_peerstore_api_watch_LDADD = \
+  $(top_builddir)/src/peerstore/libgnunetpeerstore.la  \
+  $(top_builddir)/src/testing/libgnunettesting.la \
+  $(top_builddir)/src/util/libgnunetutil.la
+
+test_peerstore_stress_store_SOURCES = \
+ test_peerstore_stress_store.c
+test_peerstore_stress_store_LDADD = \
   $(top_builddir)/src/peerstore/libgnunetpeerstore.la  \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/util/libgnunetutil.la

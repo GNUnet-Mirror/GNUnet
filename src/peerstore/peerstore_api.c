@@ -387,8 +387,6 @@ void store_request_sent (void *cls)
 void
 GNUNET_PEERSTORE_store_cancel (struct GNUNET_PEERSTORE_StoreContext *sc)
 {
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-          "Canceling store request.\n");
   if(NULL != sc->ev)
   {
     GNUNET_MQ_send_cancel(sc->ev);
@@ -548,7 +546,6 @@ void iterate_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 void
 GNUNET_PEERSTORE_iterate_cancel (struct GNUNET_PEERSTORE_IterateContext *ic)
 {
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "Canceling iterate request.\n");
   if(GNUNET_SCHEDULER_NO_TASK != ic->timeout_task)
   {
     GNUNET_SCHEDULER_cancel(ic->timeout_task);
@@ -728,7 +725,8 @@ GNUNET_PEERSTORE_watch (struct GNUNET_PEERSTORE_Handle *h,
   GNUNET_CONTAINER_multihashmap_put(h->watches, &wc->keyhash,
       wc, GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
   LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "Sending a watch request for sub system `%s'.\n", sub_system);
+      "Sending a watch request for ss `%s', peer `%s', key `%s'.\n",
+      sub_system, GNUNET_i2s(peer), key);
   GNUNET_MQ_notify_sent(ev, &watch_request_sent, wc);
   GNUNET_MQ_send(h->mq, ev);
   return wc;

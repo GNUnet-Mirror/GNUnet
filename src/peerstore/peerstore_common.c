@@ -44,7 +44,7 @@ PEERSTORE_hash_key(const char *sub_system,
 
   sssize = strlen(sub_system) + 1;
   psize = sizeof(struct GNUNET_PeerIdentity);
-  ksize = strlen(sub_system) + 1;
+  ksize = strlen(key) + 1;
   totalsize = sssize + psize + ksize;
   block = GNUNET_malloc(totalsize);
   blockptr = block;

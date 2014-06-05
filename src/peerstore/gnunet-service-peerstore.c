@@ -202,7 +202,6 @@ void watch_notifier (struct GNUNET_PEERSTORE_Record *record)
 {
   struct GNUNET_HashCode keyhash;
 
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Sending update to any watchers.\n");
   PEERSTORE_hash_key(record->sub_system,
       record->peer,
       record->key,
