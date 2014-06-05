@@ -2495,7 +2495,7 @@ libgnunet_plugin_ats_mlp_init (void *cls)
               mlp->pv.quota_in[c] = env->in_quota[c2];
 
               found = GNUNET_YES;
-              LOG (GNUNET_ERROR_TYPE_ERROR,
+              LOG (GNUNET_ERROR_TYPE_INFO,
                   "Quota for network `%s' (in/out) %llu/%llu\n",
                   GNUNET_ATS_print_network_type(mlp->pv.quota_index[c]),
                   mlp->pv.quota_out[c],
