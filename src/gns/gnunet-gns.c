@@ -209,6 +209,12 @@ lookup_with_keys (const struct GNUNET_CRYPTO_EcdsaPublicKey *pkey,
     rtype = GNUNET_GNSRECORD_typename_to_number (lookup_type);
   else
     rtype = GNUNET_DNSPARSER_TYPE_A;
+  if (UINT32_MAX == rtype)
+  {
+    fprintf (stderr,
+             _("Invalid typename specified, assuming `ANY'\n"));
+    rtype = GNUNET_GNSRECORD_TYPE_ANY;
+  }
 
   if (NULL != lookup_name)
   {
