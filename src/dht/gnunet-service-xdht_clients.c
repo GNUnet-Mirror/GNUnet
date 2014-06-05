@@ -844,10 +844,8 @@ transmit_request (struct ClientQueryRecord *cqr)
        cqr->replication,
        cqr->seen_replies_count);
 
-  struct GNUNET_PeerIdentity my_identity;
-  my_identity = GDS_NEIGHBOURS_get_my_id ();
   GDS_NEIGHBOURS_send_get (&cqr->key, cqr->type, cqr->msg_options, 
-                           cqr->replication, my_identity, my_identity, NULL,
+                           cqr->replication, NULL, NULL , NULL,
                            0, 0, NULL);
   
   /* exponential back-off for retries.
@@ -947,12 +945,12 @@ handle_dht_local_put (void *cls, struct GNUNET_SERVER_Client *client,
   struct GNUNET_PeerIdentity my_identity =  GDS_NEIGHBOURS_get_my_id();
   GDS_NEIGHBOURS_send_put (&put_msg->key, 
                            ntohl (put_msg->type), ntohl (put_msg->options),
-                           ntohl (put_msg->desired_replication_level),                          
-                           my_identity, my_identity, NULL, 0, 0, NULL,
+                           ntohl (put_msg->desired_replication_level), NULL,
+                           NULL, NULL, 0, 0, NULL,
                            GNUNET_TIME_absolute_ntoh (put_msg->expiration),
                            &put_msg[1],
                            size - sizeof (struct GNUNET_DHT_ClientPutMessage));
-                           
+  
 
   GDS_CLIENTS_process_put (ntohl (put_msg->options),
                            ntohl (put_msg->type),

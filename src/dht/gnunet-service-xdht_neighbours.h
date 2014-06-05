@@ -32,18 +32,19 @@
 #include "gnunet_dht_service.h"
 
 
-/**  
- * Construct a Put message and send it to target_peer. 
- * @param key Key for the content  
+/**
+ * Construct a Put message and send it to target_peer.
+ * @param key Key for the content
  * @param block_type Type of the block
  * @param options Routing options
  * @param desired_replication_level Desired replication count
- * @param current_destination Next current destination which will get this message.
- * @param current_source Source for @a current_destination
+ * @param best_known_dest Peer to which this message should reach eventually,
+ *                        as it is best known destination to me. 
+ * @param intermediate_trail_id Trail id in case 
  * @param target_peer Peer to which this message will be forwarded.
  * @param hop_count Number of hops traversed so far.
  * @param put_path_length Total number of peers in @a put_path
- * @param put_path Number of peers traversed so far 
+ * @param put_path Number of peers traversed so far
  * @param expiration_time When does the content expire
  * @param data Content to store
  * @param data_size Size of content @a data in bytes
@@ -51,11 +52,11 @@
 void
 GDS_NEIGHBOURS_send_put (const struct GNUNET_HashCode *key,
                          enum GNUNET_BLOCK_Type block_type,
-                         enum GNUNET_DHT_RouteOption options,
-                         uint32_t desired_replication_level,
-                         struct GNUNET_PeerIdentity current_destination,
-                         struct GNUNET_PeerIdentity current_source,
-                         struct GNUNET_PeerIdentity *target_peer,
+			 enum GNUNET_DHT_RouteOption options,
+			 uint32_t desired_replication_level,
+			 struct GNUNET_PeerIdentity *best_known_dest,
+			 struct GNUNET_HashCode *intermediate_trail_id,
+			 struct GNUNET_PeerIdentity *target_peer,
                          uint32_t hop_count,
                          uint32_t put_path_length,
                          struct GNUNET_PeerIdentity *put_path,
@@ -63,14 +64,14 @@ GDS_NEIGHBOURS_send_put (const struct GNUNET_HashCode *key,
                          const void *data, size_t data_size);
 
 
-/** 
- * Construct a Get message and send it to target_peer. 
- * @param key Key for the content  
+/**
+ * Construct a Get message and send it to target_peer.
+ * @param key Key for the content
  * @param block_type Type of the block
  * @param options Routing options
  * @param desired_replication_level Desired replication count
- * @param current_destination Next current destination which will get this message.
- * @param current_source Source for @a current_destination
+ * @param best_known_dest 
+ * @param intermediate_trail_id 
  * @param target_peer Peer to which this message will be forwarded.
  * @param hop_count Number of hops traversed so far.
  * @param data Content to store
@@ -83,8 +84,8 @@ GDS_NEIGHBOURS_send_get (const struct GNUNET_HashCode *key,
                          enum GNUNET_BLOCK_Type block_type,
                          enum GNUNET_DHT_RouteOption options,
                          uint32_t desired_replication_level,
-                         struct GNUNET_PeerIdentity current_destination,
-                         struct GNUNET_PeerIdentity current_source,
+                         struct GNUNET_PeerIdentity *best_known_dest,
+                         struct GNUNET_HashCode *intermediate_trail_id,
                          struct GNUNET_PeerIdentity *target_peer,
                          uint32_t hop_count,
                          uint32_t get_path_length,
