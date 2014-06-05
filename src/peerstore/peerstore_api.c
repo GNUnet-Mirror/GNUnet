@@ -397,7 +397,9 @@ GNUNET_PEERSTORE_store_cancel (struct GNUNET_PEERSTORE_StoreContext *sc)
 }
 
 /**
- * Store a new entry in the PEERSTORE
+ * Store a new entry in the PEERSTORE.
+ * Note that stored entries can be lost in some cases
+ * such as power failure.
  *
  * @param h Handle to the PEERSTORE service
  * @param sub_system name of the sub system

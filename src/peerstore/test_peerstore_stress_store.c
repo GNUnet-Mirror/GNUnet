@@ -26,7 +26,7 @@
 #include "gnunet_testing_lib.h"
 #include "gnunet_peerstore_service.h"
 
-#define STORES 100
+#define STORES 10000
 
 static int ok = 1;
 

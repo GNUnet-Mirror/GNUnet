@@ -435,7 +435,7 @@ database_setup (struct Plugin *plugin)
   }
 
   sql_exec (plugin->dbh, "PRAGMA temp_store=MEMORY");
-  sql_exec (plugin->dbh, "PRAGMA synchronous=NORMAL");
+  sql_exec (plugin->dbh, "PRAGMA synchronous=OFF");
   sql_exec (plugin->dbh, "PRAGMA legacy_file_format=OFF");
   sql_exec (plugin->dbh, "PRAGMA auto_vacuum=INCREMENTAL");
   sql_exec (plugin->dbh, "PRAGMA encoding=\"UTF-8\"");
