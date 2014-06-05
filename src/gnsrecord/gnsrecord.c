@@ -211,6 +211,9 @@ GNUNET_GNSRECORD_typename_to_number (const char *dns_typename)
   struct Plugin *plugin;
   uint32_t ret;
 
+  if (0 == strcasecmp (dns_typename,
+                       "ANY"))
+    return GNUNET_GNSRECORD_TYPE_ANY;
   init ();
   for (i = 0; i < num_plugins; i++)
   {
@@ -236,6 +239,8 @@ GNUNET_GNSRECORD_number_to_typename (uint32_t type)
   struct Plugin *plugin;
   const char * ret;
 
+  if (GNUNET_GNSRECORD_TYPE_ANY == type)
+    return "ANY";
   init ();
   for (i = 0; i < num_plugins; i++)
   {
