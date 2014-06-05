@@ -134,10 +134,11 @@ GNUNET_IDENTITY_ego_get_public_key (const struct GNUNET_IDENTITY_Ego *ego,
  *                   NULL if the user just deleted the ego and it
  *                   must thus no longer be used
  */
-typedef void (*GNUNET_IDENTITY_Callback)(void *cls,
-					 struct GNUNET_IDENTITY_Ego *ego,
-					 void **ctx,
-					 const char *name);
+typedef void
+(*GNUNET_IDENTITY_Callback)(void *cls,
+                            struct GNUNET_IDENTITY_Ego *ego,
+                            void **ctx,
+                            const char *name);
 
 
 /**
@@ -178,8 +179,9 @@ GNUNET_IDENTITY_get (struct GNUNET_IDENTITY_Handle *id,
  * @param cls closure
  * @param emsg NULL on success, otherwise an error message
  */
-typedef void (*GNUNET_IDENTITY_Continuation)(void *cls,
-					     const char *emsg);
+typedef void
+(*GNUNET_IDENTITY_Continuation)(void *cls,
+                                const char *emsg);
 
 
 /**
@@ -279,8 +281,9 @@ GNUNET_IDENTITY_cancel (struct GNUNET_IDENTITY_Operation *op);
  * @param cls closure
  * @param ego NULL on error / ego not found
  */
-typedef void (*GNUNET_IDENTITY_EgoCallback)(void *cls,
-					    const struct GNUNET_IDENTITY_Ego *ego);
+typedef void
+(*GNUNET_IDENTITY_EgoCallback)(void *cls,
+                               const struct GNUNET_IDENTITY_Ego *ego);
 
 /**
  * Handle for ego lookup.
