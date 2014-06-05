@@ -133,10 +133,11 @@ enum GNUNET_CONVERSATION_PhoneEventCode
  * @param caller handle for the caller
  * @param caller_id name of the caller in GNS
  */
-typedef void (*GNUNET_CONVERSATION_PhoneEventHandler)(void *cls,
-                                                      enum GNUNET_CONVERSATION_PhoneEventCode code,
-                                                      struct GNUNET_CONVERSATION_Caller *caller,
-                                                      const char *caller_id);
+typedef void
+(*GNUNET_CONVERSATION_PhoneEventHandler)(void *cls,
+                                         enum GNUNET_CONVERSATION_PhoneEventCode code,
+                                         struct GNUNET_CONVERSATION_Caller *caller,
+                                         const char *caller_id);
 
 
 /**
@@ -172,8 +173,9 @@ enum GNUNET_CONVERSATION_CallerEventCode
  * @param cls closure
  * @param code type of the event for this caller
  */
-typedef void (*GNUNET_CONVERSATION_CallerEventHandler)(void *cls,
-                                                       enum GNUNET_CONVERSATION_CallerEventCode code);
+typedef void
+(*GNUNET_CONVERSATION_CallerEventHandler)(void *cls,
+                                          enum GNUNET_CONVERSATION_CallerEventCode code);
 
 
 /**
@@ -351,8 +353,9 @@ enum GNUNET_CONVERSATION_CallEventCode
  * @param cls closure
  * @param code type of the event on the call
  */
-typedef void (*GNUNET_CONVERSATION_CallEventHandler)(void *cls,
-                                                     enum GNUNET_CONVERSATION_CallEventCode code);
+typedef void
+(*GNUNET_CONVERSATION_CallEventHandler)(void *cls,
+                                        enum GNUNET_CONVERSATION_CallEventCode code);
 
 
 /**
