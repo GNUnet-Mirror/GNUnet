@@ -108,6 +108,10 @@ gns_value_to_string (void *cls,
                        (const char*) &vpn[1]);
       return vpn_str;
     }
+  case GNUNET_GNSRECORD_TYPE_BOX:
+    /* FIXME: to be implemented! */
+    GNUNET_break (0);
+    return NULL;
   default:
     return NULL;
   }
@@ -231,6 +235,10 @@ gns_string_to_value (void *cls,
     vpn->proto = htons ((uint16_t) proto);
     strcpy ((char*)&vpn[1], s_serv);
     return GNUNET_OK;
+  case GNUNET_GNSRECORD_TYPE_BOX:
+    /* FIXME: to be implemented! */
+    GNUNET_break (0);
+    return GNUNET_SYSERR;
   default:
     return GNUNET_SYSERR;
   }
@@ -250,6 +258,7 @@ static struct {
   { "LEHO",  GNUNET_GNSRECORD_TYPE_LEHO },
   { "VPN", GNUNET_GNSRECORD_TYPE_VPN },
   { "GNS2DNS", GNUNET_GNSRECORD_TYPE_GNS2DNS },
+  { "BOX", GNUNET_GNSRECORD_TYPE_BOX },
   { NULL, UINT32_MAX }
 };
 

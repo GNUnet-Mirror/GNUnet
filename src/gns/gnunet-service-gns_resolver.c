@@ -362,6 +362,18 @@ struct GNS_ResolverHandle
   enum GNUNET_GNS_LocalOptions options;
 
   /**
+   * For SRV and TLSA records, the number of the
+   * protocol specified in the name.  0 if no protocol was given.
+   */
+  int protocol;
+
+  /**
+   * For SRV and TLSA records, the number of the
+   * service specified in the name.  0 if no service was given.
+   */
+  int service;
+
+  /**
    * Desired type for the resolution.
    */
   int record_type;
@@ -460,37 +472,6 @@ static int use_cache;
  */
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
-#if 0
-/**
- * Check if name is in srv format (_x._y.xxx)
- *
- * @param name
- * @return #GNUNET_YES if true
- */
-static int
-is_srv (const char *name)
-{
-  char *ndup;
-  int ret;
-
-  if (*name != '_')
-    return GNUNET_NO;
-  if (NULL == strstr (name, "._"))
-    return GNUNET_NO;
-  ret = GNUNET_YES;
-  ndup = GNUNET_strdup (name);
-  strtok (ndup, ".");
-  if (NULL == strtok (NULL, "."))
-    ret = GNUNET_NO;
-  if (NULL == strtok (NULL, "."))
-    ret = GNUNET_NO;
-  if (NULL != strtok (NULL, "."))
-    ret = GNUNET_NO;
-  GNUNET_free (ndup);
-  return ret;
-}
-#endif
-
 
 /**
  * Determine if this name is canonical (is a legal name in a zone, without delegation);
@@ -577,7 +558,7 @@ fail_resolution (void *cls,
 #if (defined WINDOWS) || (defined DARWIN)
 /* Don't have this on W32, here's a naive implementation
  * Was somehow removed on OS X ...  */
-void *
+static void *
 memrchr (const void *s,
 	 int c,
 	 size_t n)
@@ -616,6 +597,11 @@ resolver_lookup_get_next_label (struct GNS_ResolverHandle *rh)
   const char *rp;
   const char *dot;
   size_t len;
+  char *ret;
+  char *srv_name;
+  char *proto_name;
+  struct protoent *pe;
+  struct servent *se;
 
   if (0 == rh->name_resolution_pos)
     return NULL;
@@ -636,17 +622,53 @@ resolver_lookup_get_next_label (struct GNS_ResolverHandle *rh)
     rp = dot + 1;
     rh->name_resolution_pos = dot - rh->name;
   }
-  /* merge labels starting with underscore with label on the right (SRV/DANE case) */
-  while ( (NULL != (dot = memrchr (rh->name,
-                                   (int) '.',
-                                   rh->name_resolution_pos))) &&
-          ('_' == dot[1]) )
+  rh->protocol = 0;
+  rh->service = 0;
+  ret = GNUNET_strndup (rp, len);
+  /* If we have labels starting with underscore with label on
+   * the right (SRV/DANE/BOX case), determine port/protocol;
+   * The format of `rh->name` must be "_PORT._PROTOCOL".
+   */
+  if ( ('_' == rh->name[0]) &&
+       (NULL != (dot = memrchr (rh->name,
+                                (int) '.',
+                                rh->name_resolution_pos))) &&
+       ('_' == dot[1]) &&
+       (NULL == memrchr (rh->name,
+                         (int) '.',
+                         dot - rh->name)) )
   {
-    len += rh->name_resolution_pos - (dot - rh->name) - 1;
-    rp = dot + 1;
-    rh->name_resolution_pos = dot - rh->name;
+    srv_name = GNUNET_strndup (&rh->name[1],
+                               (dot - rh->name) - 1);
+    proto_name = GNUNET_strndup (&dot[2],
+                                 rh->name_resolution_pos - (dot - rh->name) - 1);
+    rh->name_resolution_pos = 0;
+    pe = getprotobyname (proto_name);
+    if (NULL == pe)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  _("Protocol `%s' unknown, skipping labels.\n"),
+                  proto_name);
+      GNUNET_free (proto_name);
+      GNUNET_free (srv_name);
+      return ret;
+    }
+    se = getservbyname (srv_name,
+                        proto_name);
+    if (NULL == se)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                  _("Service `%s' unknown for protocol `%s', skipping labels.\n"),
+                  srv_name,
+                  proto_name);
+      GNUNET_free (proto_name);
+      GNUNET_free (srv_name);
+      return ret;
+    }
+    rh->protocol = pe->p_proto;
+    rh->service = se->s_port;
   }
-  return GNUNET_strndup (rp, len);
+  return ret;
 }
 
 
@@ -849,7 +871,6 @@ dns_result_parser (void *cls,
       GNUNET_DNSPARSER_free_packet (p);
       return;
     }
-  /* FIXME: add DNAME support */
 
   /* convert from (parsed) DNS to (binary) GNS format! */
   rd_count = p->num_answers + p->num_authority_records + p->num_additional_records;
@@ -1481,6 +1502,11 @@ handle_gns_resolution_result (void *cls,
     shorten_ac = rh->ac_tail;
     for (i=0;i<rd_count;i++)
     {
+      if ( (0 != rh->protocol) &&
+           (0 != rh->service) &&
+           (GNUNET_GNSRECORD_TYPE_BOX != rd[i].record_type) )
+        continue; /* we _only_ care about boxed records */
+
       rd_new[rd_off] = rd[i];
       /* Check if the embedded name(s) end in "+", and if so,
 	 replace the "+" with the zone at "ac_tail", changing the name
@@ -1639,6 +1665,7 @@ handle_gns_resolution_result (void *cls,
       case GNUNET_GNSRECORD_TYPE_NICK:
         {
           const char *nick;
+
           nick = rd[i].data;
           if ((rd[i].data_size > 0) &&
               (nick[rd[i].data_size -1] != '\0'))
@@ -1688,6 +1715,33 @@ handle_gns_resolution_result (void *cls,
           GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                       "Found GNS2DNS record, delegating to DNS!\n");
           goto do_recurse;
+        }
+      case GNUNET_GNSRECORD_TYPE_BOX:
+        {
+          /* unbox SRV/TLSA records if a specific one was requested */
+          if ( (0 != rh->protocol) &&
+               (0 != rh->service) &&
+               (rd[i].data_size >= sizeof (struct GNUNET_GNSRECORD_BoxRecord)) )
+          {
+            const struct GNUNET_GNSRECORD_BoxRecord *box;
+
+            box = rd[i].data;
+            if ( (ntohs (box->protocol) == rh->protocol) &&
+                 (ntohs (box->service) == rh->service) )
+            {
+              /* Box matches, unbox! */
+              rd_new[rd_off].record_type = ntohl (box->record_type);
+              rd_new[rd_off].data_size -= sizeof (struct GNUNET_GNSRECORD_BoxRecord);
+              rd_new[rd_off].data = &box[1];
+              rd_off++;
+            }
+          }
+          else
+          {
+            /* no specific protocol/service specified, preserve all BOX
+               records (for modern, GNS-enabled applications) */
+            rd_off++;
+          }
         }
       default:
 	rd_off++;

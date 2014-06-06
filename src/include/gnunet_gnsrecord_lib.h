@@ -71,14 +71,19 @@ extern "C"
 #define GNUNET_GNSRECORD_TYPE_GNS2DNS 65540
 
 /**
+ * Record type for a boxed record (see TLSA/SRV handling in GNS).
+ */
+#define GNUNET_GNSRECORD_TYPE_BOX 65541
+
+/**
  * Record type for a social place.
  */
-#define GNUNET_GNSRECORD_TYPE_PLACE 65541
+#define GNUNET_GNSRECORD_TYPE_PLACE 65542
 
 /**
  * Record type for a phone (of CONVERSATION).
  */
-#define GNUNET_GNSRECORD_TYPE_PHONE 65542
+#define GNUNET_GNSRECORD_TYPE_PHONE 65543
 
 
 /**
@@ -201,6 +206,41 @@ struct GNUNET_GNSRECORD_Block
 
   /* followed by encrypted data */
 };
+
+
+/**
+ * Record type used to box up SRV and TLSA records.  For example, a
+ * TLSA record for "_https._tcp.foo.gnu" will be stored under
+ * "foo.gnu" as a BOX record with service 443 (https) and protocol 6
+ * (tcp) and record_type "TLSA".  When a BOX record is received, GNS
+ * unboxes it if the name contained "_SERVICE._PROTO", otherwise GNS
+ * leaves it untouched.  This is done to ensure that TLSA (and SRV)
+ * records do not require a separate network request, thus making TLSA
+ * records inseparable from the "main" A/AAAA/VPN/etc. records.
+ */
+struct GNUNET_GNSRECORD_BoxRecord
+{
+
+  /**
+   * Protocol of the boxed record (6 = TCP, 17 = UDP, etc.).
+   * Yes, in IP protocols are usually limited to 8 bits. In NBO.
+   */
+  uint16_t protocol GNUNET_PACKED;
+
+  /**
+   * Service of the boxed record (aka port number), in NBO.
+   */
+  uint16_t service GNUNET_PACKED;
+
+  /**
+   * GNS record type of the boxed record. In NBO.
+   */
+  uint32_t record_type GNUNET_PACKED;
+
+  /* followed by the 'original' record */
+
+};
+
 
 GNUNET_NETWORK_STRUCT_END
 
