@@ -209,8 +209,7 @@ dns_value_to_string (void *cls,
       size_t off;
 
       off = 0;
-      srv = GNUNET_DNSPARSER_parse_srv ("+", /* FIXME: is this OK? */
-					data,
+      srv = GNUNET_DNSPARSER_parse_srv (data,
 					data_size,
 					&off);
       if ( (NULL == srv) ||
@@ -222,13 +221,11 @@ dns_value_to_string (void *cls,
 	return NULL;
       }
       GNUNET_asprintf (&result,
-		       "%d %d %d _%s._%s.%s",
+		       "%d %d %d %s",
 		       srv->priority,
 		       srv->weight,
 		       srv->port,
-		       srv->service,
-		       srv->proto,
-		       srv->domain_name);
+		       srv->target);
       GNUNET_DNSPARSER_free_srv (srv);
       return result;
     }
@@ -536,8 +533,10 @@ dns_string_to_value (void *cls,
       return GNUNET_OK;
     }
   case GNUNET_DNSPARSER_TYPE_SRV:
-    GNUNET_break (0); // FIXME: not implemented!
-    return GNUNET_SYSERR;
+    {
+      GNUNET_break (0); // FIXME: not implemented!
+      return GNUNET_SYSERR;
+    }
   case GNUNET_DNSPARSER_TYPE_TXT:
     *data = GNUNET_strdup (s);
     *data_size = strlen (s);

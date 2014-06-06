@@ -164,7 +164,7 @@ display_record (const struct GNUNET_DNSPARSER_Record *record)
 		       (unsigned int) record->data.soa->refresh,
 		       (unsigned int) record->data.soa->retry,
 		       (unsigned int) record->data.soa->expire,
-		       (unsigned int) record->data.soa->minimum_ttl);	
+		       (unsigned int) record->data.soa->minimum_ttl);
       format = tmp;
     }
     break;
@@ -186,10 +186,7 @@ display_record (const struct GNUNET_DNSPARSER_Record *record)
     else
     {
       GNUNET_asprintf (&tmp,
-		       "service: %s, protocol: %s, domain_name = %s, priority %u, weight = %s, port = %u, target = %s",
-		       record->data.srv->service,
-		       record->data.srv->proto,
-		       record->data.srv->domain_name,
+		       "priority %u, weight = %s, port = %u, target = %s",
 		       (unsigned int) record->data.srv->priority,
 		       (unsigned int) record->data.srv->weight,
 		       (unsigned int) record->data.srv->port,

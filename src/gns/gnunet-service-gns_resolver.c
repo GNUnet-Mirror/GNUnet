@@ -1628,8 +1628,7 @@ handle_gns_resolution_result (void *cls,
 	  struct GNUNET_DNSPARSER_SrvRecord *srv;
 
 	  off = 0;
-	  srv = GNUNET_DNSPARSER_parse_srv (rh->name,
-					    rd[i].data,
+	  srv = GNUNET_DNSPARSER_parse_srv (rd[i].data,
 					    rd[i].data_size,
 					    &off);
 	  if ( (NULL == srv) ||
@@ -1639,7 +1638,6 @@ handle_gns_resolution_result (void *cls,
 	  }
 	  else
 	  {
-	    srv->domain_name = translate_dot_plus (rh, srv->domain_name);
 	    srv->target = translate_dot_plus (rh, srv->target);
 	    scratch_start = scratch_off;
 	    if (GNUNET_OK !=

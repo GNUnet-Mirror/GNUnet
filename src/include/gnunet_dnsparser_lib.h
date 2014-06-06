@@ -109,43 +109,10 @@ struct GNUNET_DNSPARSER_MxRecord
 
 
 /**
- * Information from SRV records (RFC 2782).  The 'service', 'proto'
- * and 'domain_name' fields together give the DNS-name which for SRV
- * records is of the form "_$SERVICE._$PROTO.$DOMAIN_NAME".  The DNS
- * parser provides the full name in `struct DNSPARSER_Record` and the
- * individual components in the respective fields of this struct.
- * When serializing, you CAN set the 'name' field of 'struct
- * GNUNET_DNSPARSER_Record' to NULL, in which case the DNSPARSER code
- * will populate 'name' from the 'service', 'proto' and 'domain_name'
- * fields in this struct.
+ * Information from SRV records (RFC 2782).
  */
 struct GNUNET_DNSPARSER_SrvRecord
 {
-
-  /**
-   * Service name without the underscore (!).  Note that RFC 6335 clarifies the
-   * set of legal characters for service names.
-   * In UTF-8 format.  The library will convert from and to DNS-IDNA
-   * as necessary.  Use #GNUNET_DNSPARSER_check_label() to test if an
-   * individual label is well-formed.  If a given name is not well-formed,
-   * creating the DNS packet will fail.
-   */
-  char *service;
-
-  /**
-   * Transport protocol (typcially "tcp" or "udp", but others might be allowed).
-   * Without the underscore (!).
-   */
-  char *proto;
-
-  /**
-   * Domain name for which the record is valid
-   * In UTF-8 format.  The library will convert from and to DNS-IDNA
-   * as necessary.  Use #GNUNET_DNSPARSER_check_label() to test if an
-   * individual label is well-formed.  If a given name is not well-formed,
-   * creating the DNS packet will fail.
-   */
-  char *domain_name;
 
   /**
    * Hostname offering the service.
@@ -834,7 +801,6 @@ GNUNET_DNSPARSER_parse_mx (const char *udp_payload,
 /**
  * Parse a DNS SRV record.
  *
- * @param r_name name of the SRV record
  * @param udp_payload reference to UDP packet
  * @param udp_payload_length length of @a udp_payload
  * @param off pointer to the offset of the query to parse in the SRV record (to be
@@ -842,8 +808,7 @@ GNUNET_DNSPARSER_parse_mx (const char *udp_payload,
  * @return the parsed SRV record, NULL on error
  */
 struct GNUNET_DNSPARSER_SrvRecord *
-GNUNET_DNSPARSER_parse_srv (const char *r_name,
-			    const char *udp_payload,
+GNUNET_DNSPARSER_parse_srv (const char *udp_payload,
 			    size_t udp_payload_length,
 			    size_t *off);
 
