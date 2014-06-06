@@ -102,16 +102,38 @@ gns_value_to_string (void *cls,
 	   ('\0' != cdata[data_size - 1]) )
 	return NULL; /* malformed */
       vpn = data;
-      GNUNET_asprintf (&vpn_str, "%u %s %s",
+      GNUNET_asprintf (&vpn_str,
+                       "%u %s %s",
                        (unsigned int) ntohs (vpn->proto),
                        (const char*) GNUNET_i2s_full (&vpn->peer),
                        (const char*) &vpn[1]);
       return vpn_str;
     }
   case GNUNET_GNSRECORD_TYPE_BOX:
-    /* FIXME: to be implemented! */
-    GNUNET_break (0);
-    return NULL;
+    {
+      const struct GNUNET_GNSRECORD_BoxRecord *box;
+      uint32_t rt;
+      char *box_str;
+      char *ival;
+
+      if (data_size < sizeof (struct GNUNET_GNSRECORD_BoxRecord))
+	return NULL; /* malformed */
+      box = data;
+      rt = ntohl (box->record_type);
+      ival = GNUNET_GNSRECORD_value_to_string (rt,
+                                               &box[1],
+                                               data_size - sizeof (struct GNUNET_GNSRECORD_BoxRecord));
+      if (NULL == ival)
+        return NULL; /* malformed */
+      GNUNET_asprintf (&box_str,
+                       "%u %u %u %s",
+                       (unsigned int) ntohs (box->protocol),
+                       (unsigned int) ntohs (box->service),
+                       (unsigned int) rt,
+                       ival);
+      GNUNET_free (ival);
+      return box_str;
+    }
   default:
     return NULL;
   }
@@ -137,10 +159,6 @@ gns_string_to_value (void *cls,
                      size_t *data_size)
 {
   struct GNUNET_CRYPTO_EcdsaPublicKey pkey;
-  struct GNUNET_TUN_GnsVpnRecord *vpn;
-  char s_peer[103 + 1];
-  char s_serv[253 + 1];
-  unsigned int proto;
 
   if (NULL == s)
     return GNUNET_SYSERR;
@@ -214,31 +232,75 @@ gns_string_to_value (void *cls,
       return GNUNET_OK;
     }
   case GNUNET_GNSRECORD_TYPE_VPN:
-    if (3 != SSCANF (s,"%u %103s %253s",
-		     &proto, s_peer, s_serv))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-           _("Unable to parse VPN record string `%s'\n"),
-           s);
-      return GNUNET_SYSERR;
+      struct GNUNET_TUN_GnsVpnRecord *vpn;
+      char s_peer[103 + 1];
+      char s_serv[253 + 1];
+      unsigned int proto;
+
+      if (3 != SSCANF (s,
+                       "%u %103s %253s",
+                       &proto, s_peer, s_serv))
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    _("Unable to parse VPN record string `%s'\n"),
+                    s);
+        return GNUNET_SYSERR;
+      }
+      *data_size = sizeof (struct GNUNET_TUN_GnsVpnRecord) + strlen (s_serv) + 1;
+      *data = vpn = GNUNET_malloc (*data_size);
+      if (GNUNET_OK != GNUNET_CRYPTO_eddsa_public_key_from_string ((char*) s_peer,
+                                                                   strlen (s_peer),
+                                                                   &vpn->peer.public_key))
+      {
+        GNUNET_free (vpn);
+        *data_size = 0;
+        return GNUNET_SYSERR;
+      }
+      vpn->proto = htons ((uint16_t) proto);
+      strcpy ((char*)&vpn[1], s_serv);
+      return GNUNET_OK;
     }
-    *data_size = sizeof (struct GNUNET_TUN_GnsVpnRecord) + strlen (s_serv) + 1;
-    *data = vpn = GNUNET_malloc (*data_size);
-    if (GNUNET_OK != GNUNET_CRYPTO_eddsa_public_key_from_string ((char*) s_peer,
-								    strlen (s_peer),
-								    &vpn->peer.public_key))
-    {
-      GNUNET_free (vpn);
-      *data_size = 0;
-      return GNUNET_SYSERR;
-    }
-    vpn->proto = htons ((uint16_t) proto);
-    strcpy ((char*)&vpn[1], s_serv);
-    return GNUNET_OK;
   case GNUNET_GNSRECORD_TYPE_BOX:
-    /* FIXME: to be implemented! */
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
+    {
+      struct GNUNET_GNSRECORD_BoxRecord *box;
+      size_t slen = strlen (s) + 1;
+      char rest[slen];
+      unsigned int protocol;
+      unsigned int service;
+      unsigned int record_type;
+      void *bval;
+      size_t bval_size;
+
+      if (4 != SSCANF (s,
+                       "%u %u %u %s",
+                       &protocol,
+                       &service,
+                       &record_type,
+                       rest))
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    _("Unable to parse BOX record string `%s'\n"),
+                    s);
+        return GNUNET_SYSERR;
+      }
+      if (GNUNET_OK !=
+          GNUNET_GNSRECORD_string_to_value (record_type,
+                                            rest,
+                                            &bval,
+                                            &bval_size))
+        return GNUNET_SYSERR;
+      *data_size = sizeof (struct GNUNET_GNSRECORD_BoxRecord) + bval_size;
+      *data = box = GNUNET_malloc (*data_size);
+      box->protocol = htons (protocol);
+      box->service = htons (service);
+      box->record_type = htonl (record_type);
+      memcpy (&box[1],
+              bval,
+              bval_size);
+      GNUNET_free (bval);
+      return GNUNET_OK;
+    }
   default:
     return GNUNET_SYSERR;
   }
