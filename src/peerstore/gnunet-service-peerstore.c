@@ -32,7 +32,7 @@
 /**
  * Interval for expired records cleanup (in seconds)
  */
-#define CLEANUP_INTERVAL 300 /* 5mins */
+#define EXPIRED_RECORDS_CLEANUP_INTERVAL 300 /* 5mins */
 
 /**
  * Our configuration.
@@ -96,7 +96,7 @@ cleanup_expired_records(void *cls,
   deleted = db->expire_records(db->cls, GNUNET_TIME_absolute_get());
   GNUNET_log(GNUNET_ERROR_TYPE_INFO, "%d records expired.\n", deleted);
   GNUNET_SCHEDULER_add_delayed(
-      GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, CLEANUP_INTERVAL),
+      GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, EXPIRED_RECORDS_CLEANUP_INTERVAL),
       &cleanup_expired_records, NULL);
 }
 

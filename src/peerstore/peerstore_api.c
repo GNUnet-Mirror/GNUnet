@@ -245,6 +245,27 @@ static void
 reconnect (struct GNUNET_PEERSTORE_Handle *h);
 
 /**
+ * Callback after MQ envelope is sent
+ *
+ * @param cls a 'struct GNUNET_PEERSTORE_WatchContext *'
+ */
+void watch_request_sent (void *cls);
+
+/**
+ * Callback after MQ envelope is sent
+ *
+ * @param cls a 'struct GNUNET_PEERSTORE_IterateContext *'
+ */
+void iterate_request_sent (void *cls);
+
+/**
+ * Callback after MQ envelope is sent
+ *
+ * @param cls a 'struct GNUNET_PEERSTORE_StoreContext *'
+ */
+void store_request_sent (void *cls);
+
+/**
  * MQ message handlers
  */
 static const struct GNUNET_MQ_MessageHandler mq_handlers[] = {
@@ -268,6 +289,28 @@ handle_client_error (void *cls, enum GNUNET_MQ_Error error)
 }
 
 /**
+ * Iterator over previous watches to resend them
+ */
+int rewatch_it(void *cls,
+    const struct GNUNET_HashCode *key,
+    void *value)
+{
+  struct GNUNET_PEERSTORE_Handle *h = cls;
+  struct GNUNET_PEERSTORE_WatchContext *wc = value;
+  struct StoreKeyHashMessage *hm;
+
+  if(GNUNET_YES == wc->request_sent)
+  { /* Envelope gone, create new one. */
+    wc->ev = GNUNET_MQ_msg(hm, GNUNET_MESSAGE_TYPE_PEERSTORE_WATCH);
+    hm->keyhash = wc->keyhash;
+    wc->request_sent = GNUNET_NO;
+  }
+  GNUNET_MQ_notify_sent(wc->ev, &watch_request_sent, wc);
+  GNUNET_MQ_send(h->mq, wc->ev);
+  return GNUNET_YES;
+}
+
+/**
  * Close the existing connection to PEERSTORE and reconnect.
  *
  * @param h handle to the service
@@ -275,6 +318,11 @@ handle_client_error (void *cls, enum GNUNET_MQ_Error error)
 static void
 reconnect (struct GNUNET_PEERSTORE_Handle *h)
 {
+  struct GNUNET_PEERSTORE_IterateContext *ic;
+  GNUNET_PEERSTORE_Processor icb;
+  void *icb_cls;
+  struct GNUNET_PEERSTORE_StoreContext *sc;
+
   LOG(GNUNET_ERROR_TYPE_DEBUG, "Reconnecting...\n");
   if (NULL != h->mq)
   {
@@ -287,13 +335,43 @@ reconnect (struct GNUNET_PEERSTORE_Handle *h)
     h->client = NULL;
   }
   h->client = GNUNET_CLIENT_connect ("peerstore", h->cfg);
-  //FIXME: retry connecting if fails again (client == NULL)
+  GNUNET_assert(NULL != h->client);
   h->mq = GNUNET_MQ_queue_for_connection_client(h->client,
       mq_handlers,
       &handle_client_error,
       h);
-  //FIXME: resend pending requests after reconnecting
-
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "Resending pending requests after reconnect.\n");
+  if (NULL != h->watches)
+  {
+    GNUNET_CONTAINER_multihashmap_iterate(h->watches,
+        &rewatch_it, h);
+  }
+  ic = h->iterate_head;
+  while (NULL != ic)
+  {
+    if (GNUNET_YES == ic->request_sent)
+    {
+      icb = ic->callback;
+      icb_cls = ic->callback_cls;
+      GNUNET_PEERSTORE_iterate_cancel(ic);
+      if(NULL != icb)
+        icb(icb_cls, NULL,_("Iteration canceled due to reconnection."));
+    }
+    else
+    {
+      GNUNET_MQ_notify_sent(ic->ev, &iterate_request_sent, ic);
+      GNUNET_MQ_send(h->mq, ic->ev);
+    }
+    ic = ic->next;
+  }
+  sc = h->store_head;
+  while (NULL != sc)
+  {
+    GNUNET_MQ_notify_sent(sc->ev, &store_request_sent, sc);
+    GNUNET_MQ_send(h->mq, sc->ev);
+    sc = sc->next;
+  }
 }
 
 /**
@@ -336,6 +414,7 @@ GNUNET_PEERSTORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
 void
 GNUNET_PEERSTORE_disconnect(struct GNUNET_PEERSTORE_Handle *h)
 {
+  LOG(GNUNET_ERROR_TYPE_DEBUG, "Disconnecting.\n");
   if(NULL != h->watches)
   {
     GNUNET_CONTAINER_multihashmap_destroy(h->watches);
@@ -442,7 +521,7 @@ GNUNET_PEERSTORE_store (struct GNUNET_PEERSTORE_Handle *h,
   sc->cont = cont;
   sc->cont_cls = cont_cls;
   sc->h = h;
-  GNUNET_CONTAINER_DLL_insert(h->store_head, h->store_tail, sc);
+  GNUNET_CONTAINER_DLL_insert_tail(h->store_head, h->store_tail, sc);
   GNUNET_MQ_notify_sent(ev, &store_request_sent, sc);
   GNUNET_MQ_send(h->mq, ev);
   return sc;
@@ -604,7 +683,7 @@ GNUNET_PEERSTORE_iterate (struct GNUNET_PEERSTORE_Handle *h,
   ic->ev = ev;
   ic->h = h;
   ic->request_sent = GNUNET_NO;
-  GNUNET_CONTAINER_DLL_insert(h->iterate_head, h->iterate_tail, ic);
+  GNUNET_CONTAINER_DLL_insert_tail(h->iterate_head, h->iterate_tail, ic);
   LOG(GNUNET_ERROR_TYPE_DEBUG,
         "Sending an iterate request for sub system `%s'\n", sub_system);
   GNUNET_MQ_notify_sent(ev, &iterate_request_sent, ic);

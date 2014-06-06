@@ -28,6 +28,7 @@
 #include "gnunet_util_lib.h"
 #include "sensor.h"
 #include "gnunet_statistics_service.h"
+#include "gnunet_peerstore_service.h"
 
 /**
  * Minimum sensor execution interval (in seconds)
@@ -204,6 +205,21 @@ static const char *datatypes[] = { "uint64", "double", "string", NULL };
 struct GNUNET_STATISTICS_Handle *statistics;
 
 /**
+ * Handle to peerstore service
+ */
+struct GNUNET_PEERSTORE_Handle *peerstore;
+
+/**
+ * Service name
+ */
+char *subsystem = "sensor";
+
+/**
+ * My peer id
+ */
+struct GNUNET_PeerIdentity peerid;
+
+/**
  * Remove sensor execution from scheduler
  *
  * @param cls unused
@@ -290,7 +306,15 @@ shutdown_task (void *cls,
   GNUNET_CONTAINER_multihashmap_iterate(sensors, &destroy_sensor, NULL);
   GNUNET_CONTAINER_multihashmap_destroy(sensors);
   if(NULL != statistics)
+  {
     GNUNET_STATISTICS_destroy(statistics, GNUNET_YES);
+    statistics = NULL;
+  }
+  if(NULL != peerstore)
+  {
+    GNUNET_PEERSTORE_disconnect(peerstore);
+    peerstore = NULL;
+  }
   GNUNET_SCHEDULER_shutdown();
 }
 
@@ -816,8 +840,21 @@ int sensor_statistics_iterator (void *cls,
     int is_persistent)
 {
   struct SensorInfo *sensorinfo = cls;
+  struct GNUNET_TIME_Absolute expiry;
 
   GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Received a value for sensor `%s': %" PRIu64 "\n", sensorinfo->name, value);
+  //FIXME: store first line, last line or all ??
+  expiry = GNUNET_TIME_relative_to_absolute(sensorinfo->interval);
+  GNUNET_PEERSTORE_store(peerstore,
+      subsystem,
+      &peerid,
+      sensorinfo->name,
+      &value,
+      sizeof(value),
+      expiry,
+      GNUNET_PEERSTORE_STOREOPTION_MULTIPLE,
+      NULL,
+      NULL);
   return GNUNET_OK;
 }
 
@@ -845,6 +882,7 @@ void end_sensor_run_stat (void *cls, int success)
 void sensor_process_callback (void *cls, const char *line)
 {
   struct SensorInfo *sensorinfo = cls;
+  struct GNUNET_TIME_Absolute expiry;
 
   if(NULL == line) //end of output
   {
@@ -854,6 +892,18 @@ void sensor_process_callback (void *cls, const char *line)
     return;
   }
   GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Received a value for sensor `%s': %s\n", sensorinfo->name, line);
+  //FIXME: store first line, last line or all ??
+  expiry = GNUNET_TIME_relative_to_absolute(sensorinfo->interval);
+  GNUNET_PEERSTORE_store(peerstore,
+      subsystem,
+      &peerid,
+      sensorinfo->name,
+      line,
+      strlen(line) + 1,
+      expiry,
+      GNUNET_PEERSTORE_STOREOPTION_MULTIPLE,
+      NULL,
+      NULL);
 }
 
 /**
@@ -903,10 +953,6 @@ sensor_run (void *cls,
   GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Starting the execution of sensor `%s'\n", sensorinfo->name);
   if(sources[0] == sensorinfo->source) //gnunet-statistics
   {
-    if(NULL == statistics)
-    {
-      statistics = GNUNET_STATISTICS_create("sensor", cfg);
-    }
     sensorinfo->gnunet_stat_get_handle = GNUNET_STATISTICS_get(statistics,
         sensorinfo->gnunet_stat_service,
         sensorinfo->gnunet_stat_name,
@@ -1032,6 +1078,9 @@ run (void *cls,
   sensors = GNUNET_CONTAINER_multihashmap_create(10, GNUNET_NO);
   reload_sensors();
   schedule_all_sensors();
+  statistics = GNUNET_STATISTICS_create("sensor", cfg);
+  GNUNET_CRYPTO_get_peer_identity(cfg, &peerid);
+  peerstore = GNUNET_PEERSTORE_connect(cfg);
   GNUNET_SERVER_add_handlers (server, handlers);
   GNUNET_SERVER_disconnect_notify (server, 
 				   &handle_client_disconnect,
