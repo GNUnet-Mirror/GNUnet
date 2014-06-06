@@ -103,11 +103,12 @@ stop_job (struct GNUNET_FS_QueueEntry *qe)
  * Process the jobs in the job queue, possibly starting some
  * and stopping others.
  *
- * @param cls the 'struct GNUNET_FS_Handle'
+ * @param cls the `struct GNUNET_FS_Handle *`
  * @param tc scheduler context
  */
 static void
-process_job_queue (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+process_job_queue (void *cls,
+                   const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_FS_Handle *h = cls;
   struct GNUNET_FS_QueueEntry *qe;
@@ -307,8 +308,10 @@ process_job_queue (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @return queue handle
  */
 struct GNUNET_FS_QueueEntry *
-GNUNET_FS_queue_ (struct GNUNET_FS_Handle *h, GNUNET_FS_QueueStart start,
-                  GNUNET_FS_QueueStop stop, void *cls, unsigned int blocks,
+GNUNET_FS_queue_ (struct GNUNET_FS_Handle *h,
+                  GNUNET_FS_QueueStart start,
+                  GNUNET_FS_QueueStop stop, void *cls,
+                  unsigned int blocks,
 		  enum GNUNET_FS_QueuePriority priority)
 {
   struct GNUNET_FS_QueueEntry *qe;
@@ -362,11 +365,12 @@ GNUNET_FS_dequeue_ (struct GNUNET_FS_QueueEntry *qe)
  *
  * @param h global fs handle
  * @param ssf suspend signal function to use
- * @param ssf_cls closure for ssf
+ * @param ssf_cls closure for @a ssf
  * @return fresh top-level activity handle
  */
 struct TopLevelActivity *
-GNUNET_FS_make_top (struct GNUNET_FS_Handle *h, SuspendSignalFunction ssf,
+GNUNET_FS_make_top (struct GNUNET_FS_Handle *h,
+                    SuspendSignalFunction ssf,
                     void *ssf_cls)
 {
   struct TopLevelActivity *ret;
@@ -386,16 +390,16 @@ GNUNET_FS_make_top (struct GNUNET_FS_Handle *h, SuspendSignalFunction ssf,
  * @param top top level activity entry
  */
 void
-GNUNET_FS_end_top (struct GNUNET_FS_Handle *h, struct TopLevelActivity *top)
+GNUNET_FS_end_top (struct GNUNET_FS_Handle *h,
+                   struct TopLevelActivity *top)
 {
   GNUNET_CONTAINER_DLL_remove (h->top_head, h->top_tail, top);
   GNUNET_free (top);
 }
 
 
-
 /**
- * Closure for "data_reader_file".
+ * Closure for #data_reader_file().
  */
 struct FileInfo
 {
@@ -414,25 +418,28 @@ struct FileInfo
 /**
  * Function that provides data by reading from a file.
  *
- * @param cls closure (points to the file information)
+ * @param cls closure with the `struct FileInfo *`
  * @param offset offset to read from; it is possible
  *            that the caller might need to go backwards
- *            a bit at times; set to UINT64_MAX to tell
+ *            a bit at times; set to `UINT64_MAX` to tell
  *            the reader that we won't be reading for a while
  *            (used to close the file descriptor but NOT fully
  *             clean up the reader's state); in this case,
- *            a value of '0' for max should be ignored
+ *            a value of '0' for @a max should be ignored
  * @param max maximum number of bytes that should be
- *            copied to buf; readers are not allowed
+ *            copied to @a buf; readers are not allowed
  *            to provide less data unless there is an error;
  *            a value of "0" will be used at the end to allow
  *            the reader to clean up its internal state
  * @param buf where the reader should write the data
  * @param emsg location for the reader to store an error message
- * @return number of bytes written, usually "max", 0 on error
+ * @return number of bytes written, usually @a max, 0 on error
  */
 size_t
-GNUNET_FS_data_reader_file_ (void *cls, uint64_t offset, size_t max, void *buf,
+GNUNET_FS_data_reader_file_ (void *cls,
+                             uint64_t offset,
+                             size_t max,
+                             void *buf,
                              char **emsg)
 {
   struct FileInfo *fi = cls;
@@ -458,11 +465,14 @@ GNUNET_FS_data_reader_file_ (void *cls, uint64_t offset, size_t max, void *buf,
   if (NULL == fi->fd)
   {
     fi->fd =
-        GNUNET_DISK_file_open (fi->filename, GNUNET_DISK_OPEN_READ,
+        GNUNET_DISK_file_open (fi->filename,
+                               GNUNET_DISK_OPEN_READ,
                                GNUNET_DISK_PERM_NONE);
     if (NULL == fi->fd)
     {
-      GNUNET_asprintf (emsg, _("Could not open file `%s': %s"), fi->filename,
+      GNUNET_asprintf (emsg,
+                       _("Could not open file `%s': %s"),
+                       fi->filename,
                        STRERROR (errno));
       return 0;
     }
@@ -471,13 +481,16 @@ GNUNET_FS_data_reader_file_ (void *cls, uint64_t offset, size_t max, void *buf,
 	GNUNET_DISK_file_seek (fi->fd, offset, GNUNET_DISK_SEEK_SET)) ||
        (-1 == (ret = GNUNET_DISK_file_read (fi->fd, buf, max))) )
   {
-    GNUNET_asprintf (emsg, _("Could not read file `%s': %s"), fi->filename,
+    GNUNET_asprintf (emsg,
+                     _("Could not read file `%s': %s"),
+                     fi->filename,
                      STRERROR (errno));
     return 0;
   }
   if (ret != max)
   {
-    GNUNET_asprintf (emsg, _("Short read reading from file `%s'!"),
+    GNUNET_asprintf (emsg,
+                     _("Short read reading from file `%s'!"),
                      fi->filename);
     return 0;
   }
@@ -486,7 +499,7 @@ GNUNET_FS_data_reader_file_ (void *cls, uint64_t offset, size_t max, void *buf,
 
 
 /**
- * Create the closure for the 'GNUNET_FS_data_reader_file_' callback.
+ * Create the closure for the #GNUNET_FS_data_reader_file_() callback.
  *
  * @param filename file to read
  * @return closure to use, NULL on error
@@ -513,22 +526,25 @@ GNUNET_FS_make_file_reader_context_ (const char *filename)
  * @param cls closure (points to the buffer)
  * @param offset offset to read from; it is possible
  *            that the caller might need to go backwards
- *            a bit at times; set to UINT64_MAX to tell
+ *            a bit at times; set to `UINT64_MAX` to tell
  *            the reader that we won't be reading for a while
  *            (used to close the file descriptor but NOT fully
  *             clean up the reader's state); in this case,
- *            a value of '0' for max should be ignored
+ *            a value of '0' for @a max should be ignored
  * @param max maximum number of bytes that should be
- *            copied to buf; readers are not allowed
+ *            copied to @a buf; readers are not allowed
  *            to provide less data unless there is an error;
  *            a value of "0" will be used at the end to allow
  *            the reader to clean up its internal state
  * @param buf where the reader should write the data
  * @param emsg location for the reader to store an error message
- * @return number of bytes written, usually "max", 0 on error
+ * @return number of bytes written, usually @a max, 0 on error
  */
 size_t
-GNUNET_FS_data_reader_copy_ (void *cls, uint64_t offset, size_t max, void *buf,
+GNUNET_FS_data_reader_copy_ (void *cls,
+                             uint64_t offset,
+                             size_t max,
+                             void *buf,
                              char **emsg)
 {
   char *data = cls;
@@ -555,7 +571,8 @@ GNUNET_FS_data_reader_copy_ (void *cls, uint64_t offset, size_t max, void *buf,
  * @return NULL on error
  */
 static char *
-get_serialization_file_name (struct GNUNET_FS_Handle *h, const char *ext,
+get_serialization_file_name (struct GNUNET_FS_Handle *h,
+                             const char *ext,
                              const char *ent)
 {
   char *basename;
@@ -587,8 +604,10 @@ get_serialization_file_name (struct GNUNET_FS_Handle *h, const char *ext,
  * @return NULL on error
  */
 static char *
-get_serialization_file_name_in_dir (struct GNUNET_FS_Handle *h, const char *ext,
-                                    const char *uni, const char *ent)
+get_serialization_file_name_in_dir (struct GNUNET_FS_Handle *h,
+                                    const char *ext,
+                                    const char *uni,
+                                    const char *ent)
 {
   char *basename;
   char *ret;
@@ -616,7 +635,9 @@ get_serialization_file_name_in_dir (struct GNUNET_FS_Handle *h, const char *ext,
  * @return NULL on error
  */
 static struct GNUNET_BIO_ReadHandle *
-get_read_handle (struct GNUNET_FS_Handle *h, const char *ext, const char *ent)
+get_read_handle (struct GNUNET_FS_Handle *h,
+                 const char *ext,
+                 const char *ent)
 {
   char *fn;
   struct GNUNET_BIO_ReadHandle *ret;
@@ -639,7 +660,9 @@ get_read_handle (struct GNUNET_FS_Handle *h, const char *ext, const char *ent)
  * @return NULL on error
  */
 static struct GNUNET_BIO_WriteHandle *
-get_write_handle (struct GNUNET_FS_Handle *h, const char *ext, const char *ent)
+get_write_handle (struct GNUNET_FS_Handle *h,
+                  const char *ext,
+                  const char *ent)
 {
   char *fn;
   struct GNUNET_BIO_WriteHandle *ret;
@@ -718,7 +741,8 @@ GNUNET_FS_remove_sync_file_ (struct GNUNET_FS_Handle *h,
  * @param ent entity identifier
  */
 static void
-remove_sync_file_in_dir (struct GNUNET_FS_Handle *h, const char *ext,
+remove_sync_file_in_dir (struct GNUNET_FS_Handle *h,
+                         const char *ext,
                          const char *uni, const char *ent)
 {
   char *filename;
@@ -745,7 +769,8 @@ remove_sync_file_in_dir (struct GNUNET_FS_Handle *h, const char *ext,
  * @param uni unique name of parent
  */
 void
-GNUNET_FS_remove_sync_dir_ (struct GNUNET_FS_Handle *h, const char *ext,
+GNUNET_FS_remove_sync_dir_ (struct GNUNET_FS_Handle *h,
+                            const char *ext,
                             const char *uni)
 {
   char *dn;
@@ -763,7 +788,7 @@ GNUNET_FS_remove_sync_dir_ (struct GNUNET_FS_Handle *h, const char *ext,
 
 
 /**
- * Serialize a 'start_time'.  Since we use start-times to
+ * Serialize a start-time.  Since we use start-times to
  * calculate the duration of some operation, we actually
  * do not serialize the absolute time but the (relative)
  * duration since the start time.  When we then
@@ -774,7 +799,7 @@ GNUNET_FS_remove_sync_dir_ (struct GNUNET_FS_Handle *h, const char *ext,
  *
  * @param wh handle for writing
  * @param timestamp time to serialize
- * @return GNUNET_OK on success
+ * @return #GNUNET_OK on success
  */
 static int
 write_start_time (struct GNUNET_BIO_WriteHandle *wh,
@@ -788,10 +813,10 @@ write_start_time (struct GNUNET_BIO_WriteHandle *wh,
 
 
 /**
- * Serialize a 'start_time'.  Since we use start-times to
+ * Deserialize a start-time.  Since we use start-times to
  * calculate the duration of some operation, we actually
  * do not serialize the absolute time but the (relative)
- * duration since the start time.  When we then
+ * duration since the start time.  Thus, when we then
  * deserialize the start time, we take the current time and
  * subtract that duration so that we get again an absolute
  * time stamp that will result in correct performance
@@ -824,7 +849,8 @@ read_start_time (struct GNUNET_BIO_ReadHandle *rh,
  * @return NULL on error
  */
 static struct GNUNET_FS_FileInformation *
-deserialize_file_information (struct GNUNET_FS_Handle *h, const char *filename);
+deserialize_file_information (struct GNUNET_FS_Handle *h,
+                              const char *filename);
 
 
 /**
@@ -838,7 +864,8 @@ deserialize_file_information (struct GNUNET_FS_Handle *h, const char *filename);
  * @return NULL on error
  */
 static struct GNUNET_FS_FileInformation *
-deserialize_fi_node (struct GNUNET_FS_Handle *h, const char *fn,
+deserialize_fi_node (struct GNUNET_FS_Handle *h,
+                     const char *fn,
                      struct GNUNET_BIO_ReadHandle *rh)
 {
   struct GNUNET_FS_FileInformation *ret;
@@ -1124,7 +1151,8 @@ get_serialization_short_name (const char *fullname)
  * @return NULL on errror
  */
 static char *
-make_serialization_file_name (struct GNUNET_FS_Handle *h, const char *ext)
+make_serialization_file_name (struct GNUNET_FS_Handle *h,
+                              const char *ext)
 {
   char *fn;
   char *dn;
@@ -1161,7 +1189,8 @@ make_serialization_file_name (struct GNUNET_FS_Handle *h, const char *ext)
  */
 static char *
 make_serialization_file_name_in_dir (struct GNUNET_FS_Handle *h,
-                                     const char *ext, const char *uni)
+                                     const char *ext,
+                                     const char *uni)
 {
   char *fn;
   char *dn;
@@ -1226,7 +1255,7 @@ copy_from_reader (struct GNUNET_BIO_WriteHandle *wh,
 
 /**
  * Create a temporary file on disk to store the current
- * state of "fi" in.
+ * state of @a fi in.
  *
  * @param fi file information to sync with disk
  */
@@ -1437,10 +1466,13 @@ find_file_position (struct GNUNET_FS_FileInformation *pos,
  * @return #GNUNET_OK to continue (always)
  */
 static int
-fip_signal_resume (void *cls, struct GNUNET_FS_FileInformation *fi,
-                   uint64_t length, struct GNUNET_CONTAINER_MetaData *meta,
+fip_signal_resume (void *cls,
+                   struct GNUNET_FS_FileInformation *fi,
+                   uint64_t length,
+                   struct GNUNET_CONTAINER_MetaData *meta,
                    struct GNUNET_FS_Uri **uri,
-                   struct GNUNET_FS_BlockOptions *bo, int *do_index,
+                   struct GNUNET_FS_BlockOptions *bo,
+                   int *do_index,
                    void **client_info)
 {
   struct GNUNET_FS_PublishContext *pc = cls;
@@ -1474,7 +1506,8 @@ fip_signal_resume (void *cls, struct GNUNET_FS_FileInformation *fi,
  * @return #GNUNET_OK (continue to iterate)
  */
 static int
-deserialize_publish_file (void *cls, const char *filename)
+deserialize_publish_file (void *cls,
+                          const char *filename)
 {
   struct GNUNET_FS_Handle *h = cls;
   struct GNUNET_BIO_ReadHandle *rh;
@@ -1733,7 +1766,7 @@ cleanup:
 /**
  * Serialize a download request.
  *
- * @param wh the `struct GNUNET_BIO_WriteHandle*`
+ * @param wh handle for writing the download request to disk
  * @param dr the the request to write to disk
  * @return #GNUNET_YES on success, #GNUNET_NO on error
  */
@@ -1776,10 +1809,9 @@ read_download_request (struct GNUNET_BIO_ReadHandle *rh)
       (GNUNET_OK != GNUNET_BIO_read_int64 (rh, &dr->offset)) ||
       (GNUNET_OK != GNUNET_BIO_read_int32 (rh, &dr->num_children)) ||
       (dr->num_children > CHK_PER_INODE) ||
-      (GNUNET_OK != GNUNET_BIO_read_int32 (rh, &dr->depth)) || ((0 == dr->depth)
-                                                                &&
-                                                                (dr->num_children
-                                                                 > 0)) ||
+      (GNUNET_OK != GNUNET_BIO_read_int32 (rh, &dr->depth)) ||
+      ( (0 == dr->depth) &&
+        (dr->num_children > 0) ) ||
       ((dr->depth > 0) && (0 == dr->num_children)))
   {
     GNUNET_break (0);
@@ -1833,7 +1865,8 @@ cleanup:
  */
 static char *
 get_download_sync_filename (struct GNUNET_FS_DownloadContext *dc,
-                            const char *uni, const char *ext)
+                            const char *uni,
+                            const char *ext)
 {
   char *par;
   char *epar;
@@ -2114,12 +2147,13 @@ cleanup:
  * Function called with a filename of serialized unindexing operation
  * to deserialize.
  *
- * @param cls the 'struct GNUNET_FS_Handle*'
+ * @param cls the `struct GNUNET_FS_Handle *`
  * @param filename complete filename (absolute path)
- * @return GNUNET_OK (continue to iterate)
+ * @return #GNUNET_OK (continue to iterate)
  */
 static int
-deserialize_unindex_file (void *cls, const char *filename)
+deserialize_unindex_file (void *cls,
+                          const char *filename)
 {
   struct GNUNET_FS_Handle *h = cls;
   struct GNUNET_BIO_ReadHandle *rh;
@@ -2249,7 +2283,8 @@ cleanup:
   if ((NULL != rh) && (GNUNET_OK != GNUNET_BIO_read_close (rh, &emsg)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _("Failed to resume unindexing operation `%s': %s\n"), filename,
+                _("Failed to resume unindexing operation `%s': %s\n"),
+                filename,
                 emsg);
     GNUNET_free (emsg);
   }
@@ -2298,12 +2333,13 @@ deserialize_search (struct GNUNET_FS_Handle *h,
  * Function called with a filename of serialized search result
  * to deserialize.
  *
- * @param cls the 'struct GNUNET_FS_SearchContext*'
+ * @param cls the `struct GNUNET_FS_SearchContext *`
  * @param filename complete filename (absolute path)
  * @return #GNUNET_OK (continue to iterate)
  */
 static int
-deserialize_search_result (void *cls, const char *filename)
+deserialize_search_result (void *cls,
+                           const char *filename)
 {
   struct GNUNET_FS_SearchContext *sc = cls;
   char *ser;
@@ -2375,7 +2411,8 @@ deserialize_search_result (void *cls, const char *filename)
       if (GNUNET_OK != GNUNET_BIO_read_close (drh, &emsg))
       {
         GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                    _("Failed to resume sub-download `%s': %s\n"), download,
+                    _("Failed to resume sub-download `%s': %s\n"),
+                    download,
                     emsg);
         GNUNET_free (emsg);
       }
@@ -2392,7 +2429,8 @@ deserialize_search_result (void *cls, const char *filename)
       if (GNUNET_OK != GNUNET_BIO_read_close (drh, &emsg))
       {
         GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                    _("Failed to resume sub-search `%s': %s\n"), update_srch,
+                    _("Failed to resume sub-search `%s': %s\n"),
+                    update_srch,
                     emsg);
         GNUNET_free (emsg);
       }
@@ -2476,13 +2514,15 @@ signal_search_resume (struct GNUNET_FS_SearchContext *sc);
  * Iterator over search results signaling resume to the client for
  * each result.
  *
- * @param cls closure, the 'struct GNUNET_FS_SearchContext'
+ * @param cls closure, the `struct GNUNET_FS_SearchContext *`
  * @param key current key code
- * @param value value in the hash map, the 'struct GNUNET_FS_SearchResult'
- * @return GNUNET_YES (we should continue to iterate)
+ * @param value value in the hash map, the `struct GNUNET_FS_SearchResult *`
+ * @return #GNUNET_YES (we should continue to iterate)
  */
 static int
-signal_result_resume (void *cls, const struct GNUNET_HashCode * key, void *value)
+signal_result_resume (void *cls,
+                      const struct GNUNET_HashCode *key,
+                      void *value)
 {
   struct GNUNET_FS_SearchContext *sc = cls;
   struct GNUNET_FS_ProgressInfo pi;
@@ -2528,13 +2568,15 @@ free_search_context (struct GNUNET_FS_SearchContext *sc);
 /**
  * Iterator over search results freeing each.
  *
- * @param cls closure, the 'struct GNUNET_FS_SearchContext'
+ * @param cls closure, the `struct GNUNET_FS_SearchContext *`
  * @param key current key code
- * @param value value in the hash map, the 'struct GNUNET_FS_SearchResult'
- * @return GNUNET_YES (we should continue to iterate)
+ * @param value value in the hash map, the `struct GNUNET_FS_SearchResult *`
+ * @return #GNUNET_YES (we should continue to iterate)
  */
 static int
-free_result (void *cls, const struct GNUNET_HashCode * key, void *value)
+free_result (void *cls,
+             const struct GNUNET_HashCode *key,
+             void *value)
 {
   struct GNUNET_FS_SearchResult *sr = value;
 
@@ -2589,12 +2631,13 @@ free_search_context (struct GNUNET_FS_SearchContext *sc)
  * Function called with a filename of serialized sub-download
  * to deserialize.
  *
- * @param cls the 'struct GNUNET_FS_DownloadContext*' (parent)
+ * @param cls the `struct GNUNET_FS_DownloadContext *` (parent)
  * @param filename complete filename (absolute path)
  * @return #GNUNET_OK (continue to iterate)
  */
 static int
-deserialize_subdownload (void *cls, const char *filename)
+deserialize_subdownload (void *cls,
+                         const char *filename)
 {
   struct GNUNET_FS_DownloadContext *parent = cls;
   char *ser;
@@ -2606,9 +2649,9 @@ deserialize_subdownload (void *cls, const char *filename)
   if (NULL == rh)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _
-                ("Failed to resume sub-download `%s': could not open file `%s'\n"),
-                ser, filename);
+                _("Failed to resume sub-download `%s': could not open file `%s'\n"),
+                ser,
+                filename);
     GNUNET_free (ser);
     return GNUNET_OK;
   }
@@ -2616,7 +2659,9 @@ deserialize_subdownload (void *cls, const char *filename)
   if (GNUNET_OK != GNUNET_BIO_read_close (rh, &emsg))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _("Failed to resume sub-download `%s': %s\n"), ser, emsg);
+                _("Failed to resume sub-download `%s': %s\n"),
+                ser,
+                emsg);
     GNUNET_free (emsg);
   }
   GNUNET_free (ser);
@@ -2646,7 +2691,9 @@ free_download_context (struct GNUNET_FS_DownloadContext *dc)
   GNUNET_free_non_null (dc->serialization);
   while (NULL != (dcc = dc->child_head))
   {
-    GNUNET_CONTAINER_DLL_remove (dc->child_head, dc->child_tail, dcc);
+    GNUNET_CONTAINER_DLL_remove (dc->child_head,
+                                 dc->child_tail,
+                                 dcc);
     free_download_context (dcc);
   }
   GNUNET_FS_free_download_request_ (dc->top_request);
@@ -2851,8 +2898,7 @@ deserialize_search (struct GNUNET_FS_Handle *h,
       (GNUNET_OK != GNUNET_FS_search_start_searching_ (sc)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                _
-                ("Could not resume running search, will resume as paused search\n"));
+                _("Could not resume running search, will resume as paused search\n"));
   }
   signal_search_resume (sc);
   GNUNET_free (uris);
@@ -2869,12 +2915,13 @@ cleanup:
  * Function called with a filename of serialized search operation
  * to deserialize.
  *
- * @param cls the 'struct GNUNET_FS_Handle*'
+ * @param cls the `struct GNUNET_FS_Handle *`
  * @param filename complete filename (absolute path)
  * @return #GNUNET_OK (continue to iterate)
  */
 static int
-deserialize_search_file (void *cls, const char *filename)
+deserialize_search_file (void *cls,
+                         const char *filename)
 {
   struct GNUNET_FS_Handle *h = cls;
   char *ser;
@@ -2920,7 +2967,7 @@ deserialize_search_file (void *cls, const char *filename)
  * Function called with a filename of serialized download operation
  * to deserialize.
  *
- * @param cls the 'struct GNUNET_FS_Handle*'
+ * @param cls the `struct GNUNET_FS_Handle *`
  * @param filename complete filename (absolute path)
  * @return #GNUNET_OK (continue to iterate)
  */
@@ -2982,15 +3029,17 @@ deserialization_master (const char *master_path, GNUNET_FileNameCallback proc,
  * @param cfg configuration to use
  * @param client_name unique identifier for this client
  * @param upcb function to call to notify about FS actions
- * @param upcb_cls closure for upcb
+ * @param upcb_cls closure for @a upcb
  * @param flags specific attributes for fs-operations
- * @param ... list of optional options, terminated with GNUNET_FS_OPTIONS_END
+ * @param ... list of optional options, terminated with #GNUNET_FS_OPTIONS_END
  * @return NULL on error
  */
 struct GNUNET_FS_Handle *
 GNUNET_FS_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                 const char *client_name, GNUNET_FS_ProgressCallback upcb,
-                 void *upcb_cls, enum GNUNET_FS_Flags flags, ...)
+                 const char *client_name,
+                 GNUNET_FS_ProgressCallback upcb,
+                 void *upcb_cls,
+                 enum GNUNET_FS_Flags flags, ...)
 {
   struct GNUNET_FS_Handle *ret;
   enum GNUNET_FS_OPTIONS opt;
@@ -3047,7 +3096,7 @@ GNUNET_FS_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * The callback given to GNUNET_FS_start will no longer be
  * called after this function returns.
  *
- * @param h handle that was returned from GNUNET_FS_start
+ * @param h handle that was returned from #GNUNET_FS_start()
  */
 void
 GNUNET_FS_stop (struct GNUNET_FS_Handle *h)
@@ -3061,4 +3110,4 @@ GNUNET_FS_stop (struct GNUNET_FS_Handle *h)
 }
 
 
-/* end of fs.c */
+/* end of fs_api.c */
