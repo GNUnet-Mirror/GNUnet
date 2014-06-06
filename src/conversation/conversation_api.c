@@ -1,6 +1,6 @@
 /*
   This file is part of GNUnet
-  (C) 2013 Christian Grothoff (and other contributing authors)
+  (C) 2013, 2014 Christian Grothoff (and other contributing authors)
 
   GNUnet is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published
@@ -37,11 +37,6 @@
  */
 enum CallerState
 {
-  /**
-   * We still need to reverse lookup the caller ID.
-   */
-  CS_RESOLVE,
-
   /**
    * The phone is ringing (user knows about incoming call).
    */
@@ -112,19 +107,9 @@ struct GNUNET_CONVERSATION_Caller
   struct GNUNET_MICROPHONE_Handle *mic;
 
   /**
-   * Active NAMESTORE lookup (or NULL).
-   */
-  struct GNUNET_NAMESTORE_QueueEntry *qe;
-
-  /**
    * Identity of the person calling us.
    */
   struct GNUNET_CRYPTO_EcdsaPublicKey caller_id;
-
-  /**
-   * Caller ID of the person calling us as a string.
-   */
-  char *caller_id_str;
 
   /**
    * Internal handle to identify the caller with the service.
@@ -238,40 +223,6 @@ reconnect_phone (struct GNUNET_CONVERSATION_Phone *phone);
 
 
 /**
- * We have resolved the caller ID using our name service.
- *
- * @param cls the `struct GNUNET_CONVERSATION_Caller`
- * @param zone our zone used for resolution
- * @param label name of the caller
- * @param rd_count number of records we have in @a rd
- * @param rd records we have for the caller's label
- */
-static void
-handle_caller_name (void *cls,
-                    const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone,
-                    const char *label,
-                    unsigned int rd_count,
-                    const struct GNUNET_GNSRECORD_Data *rd)
-{
-  struct GNUNET_CONVERSATION_Caller *caller = cls;
-  struct GNUNET_CONVERSATION_Phone *phone = caller->phone;
-  char *name;
-
-  caller->qe = NULL;
-  if (NULL == label)
-    name = GNUNET_strdup (GNUNET_GNSRECORD_pkey_to_zkey (&caller->caller_id));
-  else
-    GNUNET_asprintf (&name, "%s.gnu", label);
-  caller->caller_id_str = name;
-  caller->state = CS_RINGING;
-  phone->event_handler (phone->event_handler_cls,
-                        GNUNET_CONVERSATION_EC_PHONE_RING,
-                        caller,
-                        name);
-}
-
-
-/**
  * Process recorded audio data.
  *
  * @param cls closure with the `struct GNUNET_CONVERSATION_Caller`
@@ -323,14 +274,13 @@ handle_phone_ring (void *cls,
     GNUNET_CONTAINER_DLL_insert (phone->caller_head,
                                  phone->caller_tail,
                                  caller);
-    caller->state = CS_RESOLVE;
     caller->caller_id = ring->caller_id;
     caller->cid = ring->cid;
-    caller->qe = GNUNET_NAMESTORE_zone_to_name (phone->ns,
-                                                &phone->my_zone,
-                                                &ring->caller_id,
-                                                &handle_caller_name,
-                                                caller);
+    caller->state = CS_RINGING;
+    phone->event_handler (phone->event_handler_cls,
+                          GNUNET_CONVERSATION_EC_PHONE_RING,
+                          caller,
+                          &caller->caller_id);
     break;
   }
 }
@@ -364,19 +314,14 @@ handle_phone_hangup (void *cls,
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Received HANG_UP message, terminating call with `%s'\n",
-              caller->caller_id_str);
+              GNUNET_GNSRECORD_pkey_to_zkey (&caller->caller_id));
   switch (caller->state)
   {
-  case CS_RESOLVE:
-    /* application doesn't even know about call yet */
-    GNUNET_NAMESTORE_cancel (caller->qe);
-    caller->qe = NULL;
-    break;
   case CS_RINGING:
     phone->event_handler (phone->event_handler_cls,
                           GNUNET_CONVERSATION_EC_PHONE_HUNG_UP,
                           caller,
-                          caller->caller_id_str);
+                          &caller->caller_id);
     break;
   case CS_ACTIVE:
     caller->speaker->disable_speaker (caller->speaker->cls);
@@ -384,7 +329,7 @@ handle_phone_hangup (void *cls,
     phone->event_handler (phone->event_handler_cls,
                           GNUNET_CONVERSATION_EC_PHONE_HUNG_UP,
                           caller,
-                          caller->caller_id_str);
+                          &caller->caller_id);
     break;
   case CS_CALLEE_SUSPENDED:
   case CS_CALLER_SUSPENDED:
@@ -392,7 +337,7 @@ handle_phone_hangup (void *cls,
     phone->event_handler (phone->event_handler_cls,
                           GNUNET_CONVERSATION_EC_PHONE_HUNG_UP,
                           caller,
-                          caller->caller_id_str);
+                          &caller->caller_id);
     break;
   }
   GNUNET_CONTAINER_DLL_remove (phone->caller_head,
@@ -424,9 +369,6 @@ handle_phone_suspend (void *cls,
     return;
   switch (caller->state)
   {
-  case CS_RESOLVE:
-    GNUNET_break_op (0);
-    break;
   case CS_RINGING:
     GNUNET_break_op (0);
     break;
@@ -472,9 +414,6 @@ handle_phone_resume (void *cls,
     return;
   switch (caller->state)
   {
-  case CS_RESOLVE:
-    GNUNET_break_op (0);
-    break;
   case CS_RINGING:
     GNUNET_break_op (0);
     break;
@@ -522,9 +461,6 @@ handle_phone_audio_message (void *cls,
     return;
   switch (caller->state)
   {
-  case CS_RESOLVE:
-    GNUNET_break_op (0);
-    break;
   case CS_RINGING:
     GNUNET_break_op (0);
     break;
@@ -581,7 +517,7 @@ clean_up_callers (struct GNUNET_CONVERSATION_Phone *phone)
     phone->event_handler (phone->event_handler_cls,
                           GNUNET_CONVERSATION_EC_PHONE_HUNG_UP,
                           caller,
-                          caller->caller_id_str);
+                          &caller->caller_id);
     GNUNET_CONVERSATION_caller_hang_up (caller);
   }
 }
@@ -781,10 +717,6 @@ GNUNET_CONVERSATION_caller_hang_up (struct GNUNET_CONVERSATION_Caller *caller)
 
   switch (caller->state)
   {
-  case CS_RESOLVE:
-    GNUNET_NAMESTORE_cancel (caller->qe);
-    caller->qe = NULL;
-    break;
   case CS_ACTIVE:
     caller->speaker->disable_speaker (caller->speaker->cls);
     caller->mic->disable_microphone (caller->mic->cls);
@@ -799,7 +731,6 @@ GNUNET_CONVERSATION_caller_hang_up (struct GNUNET_CONVERSATION_Caller *caller)
                      GNUNET_MESSAGE_TYPE_CONVERSATION_CS_PHONE_HANG_UP);
   hang->cid = caller->cid;
   GNUNET_MQ_send (phone->mq, e);
-  GNUNET_free_non_null (caller->caller_id_str);
   GNUNET_free (caller);
 }
 

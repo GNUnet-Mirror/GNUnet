@@ -1,6 +1,6 @@
 /*
   This file is part of GNUnet
-  (C) 2013 Christian Grothoff (and other contributing authors)
+  (C) 2013, 2014 Christian Grothoff (and other contributing authors)
 
   GNUnet is free software; you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published
@@ -131,13 +131,13 @@ enum GNUNET_CONVERSATION_PhoneEventCode
  * @param cls closure
  * @param code type of the event
  * @param caller handle for the caller
- * @param caller_id name of the caller in GNS
+ * @param caller_id public key of the caller (in GNS)
  */
 typedef void
 (*GNUNET_CONVERSATION_PhoneEventHandler)(void *cls,
                                          enum GNUNET_CONVERSATION_PhoneEventCode code,
                                          struct GNUNET_CONVERSATION_Caller *caller,
-                                         const char *caller_id);
+                                         const struct GNUNET_CRYPTO_EcdsaPublicKey *caller_id);
 
 
 /**

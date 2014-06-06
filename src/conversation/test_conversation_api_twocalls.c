@@ -406,12 +406,10 @@ static void
 phone_event_handler (void *cls,
                      enum GNUNET_CONVERSATION_PhoneEventCode code,
                      struct GNUNET_CONVERSATION_Caller *caller,
-                     const char *caller_id)
+                     const struct GNUNET_CRYPTO_EcdsaPublicKey *caller_id)
 {
   const char *cid;
 
-  GNUNET_break (0 == strcmp (caller_id,
-                             gns_caller_id));
   switch (code)
   {
   case GNUNET_CONVERSATION_EC_PHONE_RING:

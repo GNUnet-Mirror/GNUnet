@@ -154,6 +154,7 @@ GNUNET_NAMESTORE_set_nick (struct GNUNET_NAMESTORE_Handle *h,
                            GNUNET_NAMESTORE_ContinuationWithStatus cont,
                            void *cont_cls);
 
+
 /**
  * Lookup an item in the namestore.
  *

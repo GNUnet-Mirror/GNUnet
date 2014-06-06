@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2013 Christian Grothoff (and other contributing authors)
+     (C) 2013, 2014 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -330,13 +330,11 @@ static void
 phone_event_handler (void *cls,
                      enum GNUNET_CONVERSATION_PhoneEventCode code,
                      struct GNUNET_CONVERSATION_Caller *caller,
-                     const char *caller_id)
+                     const struct GNUNET_CRYPTO_EcdsaPublicKey *caller_id)
 {
   static enum GNUNET_CONVERSATION_PhoneEventCode expect
     = GNUNET_CONVERSATION_EC_PHONE_RING;
 
-  GNUNET_break (0 == strcmp (caller_id,
-                             gns_caller_id));
   GNUNET_break (code == expect);
   switch (code)
   {
