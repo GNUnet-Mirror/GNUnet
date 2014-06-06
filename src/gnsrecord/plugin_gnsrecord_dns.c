@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     (C) 2013 Christian Grothoff (and other contributing authors)
+     (C) 2013, 2014 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -23,7 +23,6 @@
  * @brief gnsrecord plugin to provide the API for basic DNS records
  * @author Christian Grothoff
  */
-
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_dnsparser_lib.h"
@@ -189,8 +188,8 @@ dns_value_to_string (void *cls,
 	return NULL;
       }
       GNUNET_asprintf (&result,
-		       "%hu,%s",
-		       mx->preference,
+		       "%u,%s",
+		       (unsigned int) mx->preference,
 		       mx->mxhost);
       GNUNET_DNSPARSER_free_mx (mx);
       return result;
