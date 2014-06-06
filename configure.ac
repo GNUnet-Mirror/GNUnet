@@ -1209,6 +1209,23 @@ AC_ARG_ENABLE([experimental],
 AC_MSG_RESULT($enable_experimental)
 AM_CONDITIONAL([HAVE_EXPERIMENTAL], [test "x$enable_experimental" = "xyes"])
 
+# should malicious code be compiled (should only be used for testing)?
+AC_MSG_CHECKING(whether to compile malicious code)
+AC_ARG_ENABLE([malicious],
+   [AS_HELP_STRING([--enable-malicious], [enable compiling malicious code])],
+   [if test "x$enableval" = "xno"
+     then
+       malicious=0
+     else
+       malicious=1
+     fi],
+   [malicious=0
+    enable_malicious=no])
+AC_MSG_RESULT($enable_malicious)
+AM_CONDITIONAL([ENABLE_MALICIOUS], [$malicious])
+AC_DEFINE_UNQUOTED([ENABLE_MALICIOUS], [$malicious],
+                   [enable compilation of malicious code])
+
 # should services be started by default when a peer starts?  Some services may
 # choose to never start by default and it is upto the service/module developer to
 # decide it by having "AUTOSTART = NO" instead of "AUTOSTART = @AUTOSTART" in

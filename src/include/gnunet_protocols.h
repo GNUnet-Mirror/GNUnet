@@ -611,54 +611,9 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_DHT_CLIENT_GET_RESULTS_KNOWN             156
 
 /**
- * Trail setup request is received by a peer.
+ * Further X-VINE DHT messages continued from 880
  */
-#define GNUNET_MESSAGE_TYPE_DHT_P2P_TRAIL_SETUP                157
 
-/**
- * Trail to a particular peer is returned to this peer.
- */
-#define GNUNET_MESSAGE_TYPE_DHT_P2P_TRAIL_SETUP_RESULT         158
-
-/**
- * Verify if your immediate successor is still your immediate successor.
- */
-#define GNUNET_MESSAGE_TYPE_DHT_P2P_VERIFY_SUCCESSOR           159
-
-/**
- * Notify your new immediate successor that you are its new predecessor.
- */
-#define GNUNET_MESSAGE_TYPE_DHT_P2P_NOTIFY_NEW_SUCCESSOR           160
-
-/**
- * Message which contains the immediate predecessor of requested successor
- */
-#define GNUNET_MESSAGE_TYPE_DHT_P2P_VERIFY_SUCCESSOR_RESULT    161
-
-/**
- * Message which contains the get result.
- */
-#define GNUNET_MESSAGE_TYPE_DHT_P2P_GET_RESULT                 162
-
-/**
- * Trail Rejection Message.
- */
-#define GNUNET_MESSAGE_TYPE_DHT_P2P_TRAIL_REJECTION            163
-
-/**
- * Trail Tear down Message. 
- */
-#define GNUNET_MESSAGE_TYPE_DHT_P2P_TRAIL_TEARDOWN             164
-
-/**
- * Routing table add message. 
- */
-#define GNUNET_MESSAGE_TYPE_DHT_P2P_ADD_TRAIL                   165
-
-/**
- * Trail compression message. 
- */
-#define GNUNET_MESSAGE_TYPE_DHT_P2P_TRAIL_COMPRESSION           166
 /*******************************************************************************
  * HOSTLIST message types
  ******************************************************************************/
@@ -2537,11 +2492,72 @@ extern "C"
 /** C->S->P: decision about a join request */
 #define GNUNET_MESSAGE_TYPE_SOCIAL_JOIN_DECISION 848
 
+/*******************************************************************************
+ * X-VINE DHT messages 
+ ******************************************************************************/
 
 /**
- * Next available: 880
+ * Trail setup request is received by a peer.
  */
+#define GNUNET_MESSAGE_TYPE_DHT_P2P_TRAIL_SETUP 880
 
+/**
+ * Trail to a particular peer is returned to this peer.
+ */
+#define GNUNET_MESSAGE_TYPE_DHT_P2P_TRAIL_SETUP_RESULT 881
+
+/**
+ * Verify if your immediate successor is still your immediate successor.
+ */
+#define GNUNET_MESSAGE_TYPE_DHT_P2P_VERIFY_SUCCESSOR 882
+
+/**
+ * Notify your new immediate successor that you are its new predecessor.
+ */
+#define GNUNET_MESSAGE_TYPE_DHT_P2P_NOTIFY_NEW_SUCCESSOR 883
+
+/**
+ * Message which contains the immediate predecessor of requested successor
+ */
+#define GNUNET_MESSAGE_TYPE_DHT_P2P_VERIFY_SUCCESSOR_RESULT 884
+
+/**
+ * Message which contains the get result.
+ */
+#define GNUNET_MESSAGE_TYPE_DHT_P2P_GET_RESULT 885
+
+/**
+ * Trail Rejection Message.
+ */
+#define GNUNET_MESSAGE_TYPE_DHT_P2P_TRAIL_REJECTION 886
+
+/**
+ * Trail Tear down Message. 
+ */
+#define GNUNET_MESSAGE_TYPE_DHT_P2P_TRAIL_TEARDOWN 887
+
+/**
+ * Routing table add message. 
+ */
+#define GNUNET_MESSAGE_TYPE_DHT_P2P_ADD_TRAIL 888
+
+/**
+ * Trail compression message. 
+ */
+#define GNUNET_MESSAGE_TYPE_DHT_P2P_TRAIL_COMPRESSION 889
+
+#if ENABLE_MALICIOUS
+/**
+ * Turn X-VINE DHT service malicious
+ */
+#define GNUNET_MESSAGE_TYPE_DHT_ACT_MALICIOUS 890
+#endif
+
+/*******************************************************************************/
+
+/**
+ * Next available: 900
+ */
 
 /**
  * Type used to match 'all' message types.

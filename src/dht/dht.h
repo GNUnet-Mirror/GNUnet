@@ -441,6 +441,24 @@ struct GNUNET_DHT_MonitorGetRespMessage
 
 };
 
+#if ENABLE_MALICIOUS
+/**
+ * Message to turn the service malicious
+ */
+struct GNUNET_DHT_ActMaliciousMessage
+{
+  /**
+   * Type: #GNUNET_MESSAGE_TYPE_ACT_MALICIOUS
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Type of malicious behaviour expected; 0 turning peer benign
+   */
+  uint32_t action;
+};
+#endif
+
 GNUNET_NETWORK_STRUCT_END
 
 #endif

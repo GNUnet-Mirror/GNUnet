@@ -391,6 +391,19 @@ void
 GNUNET_DHT_monitor_stop (struct GNUNET_DHT_MonitorHandle *handle);
 
 
+#if ENABLE_MALICIOUS
+/**
+ * Turn the DHT service to act malicious depending on @a flag
+ *
+ * @param handle the DHT handle
+ * @param action 1 to make the service malicious; 0 to make it benign
+          FIXME: perhaps make this an enum of known malicious behaviors?
+ */
+void
+GNUNET_DHT_malicious (struct GNUNET_DHT_Handle *handle, unsigned int action);
+#endif
+
+
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif

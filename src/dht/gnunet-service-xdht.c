@@ -77,6 +77,13 @@ static struct GNUNET_TRANSPORT_GetHelloHandle *ghh;
  */
 struct GNUNET_TIME_Relative hello_expiration;
 
+#if ENABLE_MALICIOUS
+/**
+ * Should this peer act malicious?
+ */
+unsigned int malicious;
+#endif
+
 
 /**
  * Receive the HELLO from transport service, free current and replace

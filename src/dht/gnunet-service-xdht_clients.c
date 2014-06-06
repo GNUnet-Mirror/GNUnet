@@ -43,6 +43,13 @@
 
 #define LOG(kind,...) GNUNET_log_from (kind, "dht-clients",__VA_ARGS__)
 
+#if ENABLE_MALICIOUS
+/**
+ * Should this peer act malicious?
+ */
+extern unsigned int malicious;
+#endif
+
 /**
  * Linked list of messages to send to clients.
  */
@@ -1303,6 +1310,25 @@ handle_dht_local_monitor_stop (void *cls, struct GNUNET_SERVER_Client *client,
 }
 
 
+#if ENABLE_MALICIOUS
+/**
+ * Handler for monitor stop messages
+ *
+ * @param cls closure for the service
+ * @param client the client we received this message from
+ * @param message the actual message received
+ *
+ */
+static void
+handle_dht_act_malicious (void *cls, struct GNUNET_SERVER_Client *client,
+                          const struct GNUNET_MessageHeader *message)
+{
+  /* FIXME: parse message and set malicious */
+  malicious = 1;
+}
+#endif
+
+
 /**
  * Functions with this signature are called whenever a client
  * is disconnected on the network level.
@@ -1378,6 +1404,11 @@ GDS_CLIENTS_init (struct GNUNET_SERVER_Handle *server)
      sizeof (struct GNUNET_DHT_MonitorStartStopMessage)},
     {&handle_dht_local_get_result_seen, NULL,
      GNUNET_MESSAGE_TYPE_DHT_CLIENT_GET_RESULTS_KNOWN, 0},
+    #if ENABLE_MALICIOUS
+    {&handle_dht_act_malicious, NULL,
+     GNUNET_MESSAGE_TYPE_DHT_ACT_MALICIOUS,
+     sizeof (struct GNUNET_DHT_ActMaliciousMessage)},
+    #endif
     {NULL, NULL, 0, 0}
   };
   forward_map = GNUNET_CONTAINER_multihashmap_create (1024, GNUNET_NO);
