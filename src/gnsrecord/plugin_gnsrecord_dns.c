@@ -356,7 +356,7 @@ dns_string_to_value (void *cls,
       typep = strtok (sdup, " ");
       /* TODO: add typep mnemonic conversion according to RFC 4398 */
       if ( (NULL == typep) ||
-           (1 != sscanf (typep,
+           (1 != SSCANF (typep,
                          "%u",
                          &type)) ||
            (type > UINT16_MAX) )
@@ -366,7 +366,7 @@ dns_string_to_value (void *cls,
       }
       keyp = strtok (NULL, " ");
       if ( (NULL == keyp) ||
-           (1 != sscanf (keyp,
+           (1 != SSCANF (keyp,
                          "%u",
                          &key)) ||
            (key > UINT16_MAX) )
@@ -441,8 +441,13 @@ dns_string_to_value (void *cls,
 
       if (7 != SSCANF (s,
 		       "rname=%253s mname=%253s %u,%u,%u,%u,%u",
-		       soa_rname, soa_mname,
-		       &soa_serial, &soa_refresh, &soa_retry, &soa_expire, &soa_min))
+		       soa_rname,
+                       soa_mname,
+		       &soa_serial,
+                       &soa_refresh,
+                       &soa_retry,
+                       &soa_expire,
+                       &soa_min))
       {
 	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
              _("Unable to parse SOA record `%s'\n"),
@@ -464,9 +469,9 @@ dns_string_to_value (void *cls,
 					    &soa))
       {
 	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-             _("Failed to serialize SOA record with mname `%s' and rname `%s'\n"),
-             soa_mname,
-             soa_rname);
+                    _("Failed to serialize SOA record with mname `%s' and rname `%s'\n"),
+                    soa_mname,
+                    soa_rname);
 	return GNUNET_SYSERR;
       }
       *data_size = off;
@@ -487,8 +492,8 @@ dns_string_to_value (void *cls,
 					     s))
       {
 	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-             _("Failed to serialize PTR record with value `%s'\n"),
-             s);
+                    _("Failed to serialize PTR record with value `%s'\n"),
+                    s);
 	return GNUNET_SYSERR;
       }
       *data_size = off;
@@ -651,7 +656,7 @@ dns_typename_to_number (void *cls,
   unsigned int i;
 
   i=0;
-  while ( (name_map[i].name != NULL) &&
+  while ( (NULL != name_map[i].name) &&
 	  (0 != strcasecmp (dns_typename, name_map[i].name)) )
     i++;
   return name_map[i].number;
@@ -672,7 +677,7 @@ dns_number_to_typename (void *cls,
   unsigned int i;
 
   i=0;
-  while ( (name_map[i].name != NULL) &&
+  while ( (NULL != name_map[i].name) &&
 	  (type != name_map[i].number) )
     i++;
   return name_map[i].name;
