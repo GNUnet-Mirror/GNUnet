@@ -458,6 +458,7 @@ identity_cb (void *cls,
                      GNUNET_GNSRECORD_pkey_to_zkey (&pub));
     call = GNUNET_CONVERSATION_call_start (cfg,
                                            ego,
+                                           ego,
                                            gns_name,
                                            &call_speaker,
                                            &call_mic,

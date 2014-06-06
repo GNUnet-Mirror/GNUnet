@@ -558,6 +558,7 @@ do_call (const char *arg)
   GNUNET_assert (NULL == call);
   call = GNUNET_CONVERSATION_call_start (cfg,
                                          my_caller_id,
+                                         my_caller_id,
                                          arg,
                                          speaker,
                                          mic,

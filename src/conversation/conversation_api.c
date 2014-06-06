@@ -289,7 +289,7 @@ handle_phone_ring (void *cls,
 /**
  * We received a `struct ClientPhoneHangupMessage`.
  *
- * @param cls the `struct GNUNET_CONVERSATION_Phone`
+ * @param cls the `struct GNUNET_CONVERSATION_Phone *`
  * @param msg the message
  */
 static void

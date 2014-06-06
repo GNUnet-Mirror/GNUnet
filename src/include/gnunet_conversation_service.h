@@ -363,6 +363,7 @@ typedef void
  *
  * @param cfg configuration to use, specifies our phone service
  * @param caller_id identity of the caller
+ * @param zone_id GNS zone to use to resolve @a callee
  * @param callee GNS name of the callee (used to locate the callee's record)
  * @param speaker speaker to use (will be used automatically immediately once the
  *        #GNUNET_CONVERSATION_EC_CALL_PICKED_UP event is generated); we will NOT generate
@@ -376,6 +377,7 @@ typedef void
 struct GNUNET_CONVERSATION_Call *
 GNUNET_CONVERSATION_call_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
 				struct GNUNET_IDENTITY_Ego *caller_id,
+				struct GNUNET_IDENTITY_Ego *zone_id,
 				const char *callee,
 				struct GNUNET_SPEAKER_Handle *speaker,
 				struct GNUNET_MICROPHONE_Handle *mic,

@@ -96,6 +96,11 @@ struct GNUNET_CONVERSATION_Call
   struct GNUNET_IDENTITY_Ego *caller_id;
 
   /**
+   * GNS zone to use to resolve @e callee.
+   */
+  struct GNUNET_IDENTITY_Ego *zone_id;
+
+  /**
    * Target callee as a GNS address/name.
    */
   char *callee;
@@ -530,7 +535,7 @@ reconnect_call (struct GNUNET_CONVERSATION_Call *call)
                                                     &call_error_handler,
                                                     call);
   call->state = CS_LOOKUP;
-  GNUNET_IDENTITY_ego_get_public_key (call->caller_id,
+  GNUNET_IDENTITY_ego_get_public_key (call->zone_id,
                                       &my_zone);
   call->gns_lookup = GNUNET_GNS_lookup (call->gns,
                                         call->callee,
@@ -548,6 +553,7 @@ reconnect_call (struct GNUNET_CONVERSATION_Call *call)
  *
  * @param cfg configuration to use, specifies our phone service
  * @param caller_id identity of the caller
+ * @param zone_id GNS zone to use to resolve @a callee
  * @param callee GNS name of the callee (used to locate the callee's record)
  * @param speaker speaker to use (will be used automatically immediately once the
  *        #GNUNET_CONVERSATION_EC_CALL_PICKED_UP event is generated); we will NOT generate
@@ -560,6 +566,7 @@ reconnect_call (struct GNUNET_CONVERSATION_Call *call)
 struct GNUNET_CONVERSATION_Call *
 GNUNET_CONVERSATION_call_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
 				struct GNUNET_IDENTITY_Ego *caller_id,
+				struct GNUNET_IDENTITY_Ego *zone_id,
 				const char *callee,
 				struct GNUNET_SPEAKER_Handle *speaker,
 				struct GNUNET_MICROPHONE_Handle *mic,
@@ -571,6 +578,7 @@ GNUNET_CONVERSATION_call_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   call = GNUNET_new (struct GNUNET_CONVERSATION_Call);
   call->cfg = cfg;
   call->caller_id = caller_id;
+  call->zone_id = zone_id;
   call->callee = GNUNET_strdup (callee);
   call->speaker = speaker;
   call->mic = mic;
