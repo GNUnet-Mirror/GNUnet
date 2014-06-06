@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2012-2013 Christian Grothoff (and other contributing authors)
+     (C) 2012-2014 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -1687,7 +1687,7 @@ create_response (void *cls,
  * @param cls NULL
  * @param connection connection handle
  * @param con_cls value as set by the last call to
- *        the MHD_AccessHandlerCallback, should be our `struct Socks5Request`
+ *        the MHD_AccessHandlerCallback, should be our `struct Socks5Request *`
  * @param toe reason for request termination (ignored)
  */
 static void
@@ -2325,7 +2325,7 @@ signal_socks_success (struct Socks5Request *s5r)
 /**
  * Process GNS results for target domain.
  *
- * @param cls the `struct Socks5Request`
+ * @param cls the `struct Socks5Request *`
  * @param rd_count number of records returned
  * @param rd record data
  */
@@ -2407,14 +2407,28 @@ handle_gns_result (void *cls,
       s5r->leho = GNUNET_strndup (r->data,
 				  r->data_size);
       break;
-    case GNUNET_DNSPARSER_TYPE_TLSA:
-      GNUNET_free_non_null (s5r->dane_data);
-      s5r->dane_data_len = r->data_size;
-      s5r->dane_data = GNUNET_malloc (r->data_size);
-      memcpy (s5r->dane_data,
-              r->data,
-              r->data_size);
-      break;
+    case GNUNET_GNSRECORD_TYPE_BOX:
+      {
+        const struct GNUNET_GNSRECORD_BoxRecord *box;
+
+        if (r->data_size < sizeof (struct GNUNET_GNSRECORD_BoxRecord))
+        {
+          GNUNET_break_op (0);
+          break;
+        }
+        box = r->data;
+        if ( (ntohl (box->record_type) != GNUNET_DNSPARSER_TYPE_TLSA) ||
+             (ntohs (box->protocol) != IPPROTO_TCP) ||
+             (ntohs (box->service) != s5r->port) )
+          break; /* BOX record does not apply */
+        GNUNET_free_non_null (s5r->dane_data);
+        s5r->dane_data_len = r->data_size - sizeof (struct GNUNET_GNSRECORD_BoxRecord);
+        s5r->dane_data = GNUNET_malloc (s5r->dane_data_len);
+        memcpy (s5r->dane_data,
+                &box[1],
+                s5r->dane_data_len);
+        break;
+      }
     default:
       /* don't care */
       break;

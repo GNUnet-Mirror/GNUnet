@@ -26,7 +26,6 @@
  *                  map the result to A/AAAA.
  * @author Christian Grothoff
  */
-
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_gnsrecord_lib.h"
@@ -390,7 +389,7 @@ libgnunet_plugin_gnsrecord_gns_init (void *cls)
 /**
  * Exit point from the plugin.
  *
- * @param cls the return value from #libgnunet_plugin_block_test_init
+ * @param cls the return value from #libgnunet_plugin_block_test_init()
  * @return NULL
  */
 void *
