@@ -502,17 +502,20 @@ dns_string_to_value (void *cls,
       struct GNUNET_DNSPARSER_MxRecord mx;
       char mxbuf[258];
       char mxhost[253 + 1];
-      uint16_t mx_pref;
+      unsigned int mx_pref;
       size_t off;
 
-      if (2 != SSCANF(s, "%hu,%253s", &mx_pref, mxhost))
+      if (2 != SSCANF(s,
+                      "%u,%253s",
+                      &mx_pref,
+                      mxhost))
       {
 	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
              _("Unable to parse MX record `%s'\n"),
              s);
       return GNUNET_SYSERR;
       }
-      mx.preference = mx_pref;
+      mx.preference = (uint16_t) mx_pref;
       mx.mxhost = mxhost;
       off = 0;
 
@@ -534,8 +537,46 @@ dns_string_to_value (void *cls,
     }
   case GNUNET_DNSPARSER_TYPE_SRV:
     {
-      GNUNET_break (0); // FIXME: not implemented!
-      return GNUNET_SYSERR;
+      struct GNUNET_DNSPARSER_SrvRecord srv;
+      char srvbuf[270];
+      char srvtarget[253 + 1];
+      unsigned int priority;
+      unsigned int weight;
+      unsigned int port;
+      size_t off;
+
+      if (2 != SSCANF(s,
+                      "%u %u %u %253s",
+                      &priority,
+                      &weight,
+                      &port,
+                      srvtarget))
+      {
+	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+             _("Unable to parse SRV record `%s'\n"),
+             s);
+        return GNUNET_SYSERR;
+      }
+      srv.priority = (uint16_t) priority;
+      srv.weight = (uint16_t) weight;
+      srv.port = (uint16_t) port;
+      srv.target = srvtarget;
+      off = 0;
+      if (GNUNET_OK !=
+	  GNUNET_DNSPARSER_builder_add_srv (srvbuf,
+                                            sizeof (srvbuf),
+                                            &off,
+                                            &srv))
+      {
+	GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    _("Failed to serialize SRV record with target `%s'\n"),
+                    srvtarget);
+	return GNUNET_SYSERR;
+      }
+      *data_size = off;
+      *data = GNUNET_malloc (off);
+      memcpy (*data, srvbuf, off);
+      return GNUNET_OK;
     }
   case GNUNET_DNSPARSER_TYPE_TXT:
     *data = GNUNET_strdup (s);
