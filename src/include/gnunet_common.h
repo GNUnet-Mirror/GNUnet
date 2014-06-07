@@ -259,7 +259,9 @@ GNUNET_NETWORK_STRUCT_END
  *  #GNUNET_NO to stop iteration with no error,
  *  #GNUNET_SYSERR to abort iteration with error!
  */
-typedef int (*GNUNET_FileNameCallback) (void *cls, const char *filename);
+typedef int
+(*GNUNET_FileNameCallback) (void *cls,
+                            const char *filename);
 
 
 /* ****************************** logging ***************************** */
@@ -291,8 +293,10 @@ enum GNUNET_ErrorType
  * @param date when was the message logged?
  * @param message what is the message
  */
-typedef void (*GNUNET_Logger) (void *cls, enum GNUNET_ErrorType kind,
-                               const char *component, const char *date,
+typedef void (*GNUNET_Logger) (void *cls,
+                               enum GNUNET_ErrorType kind,
+                               const char *component,
+                               const char *date,
                                const char *message);
 
 
@@ -310,7 +314,8 @@ int
 GNUNET_get_log_call_status (int caller_level,
                             const char *comp,
                             const char *file,
-                            const char *function, int line);
+                            const char *function,
+                            int line);
 #endif
 
 
@@ -437,10 +442,11 @@ GNUNET_abort (void) GNUNET_NORETURN;
  * Ignore the next @a n calls to the log function.
  *
  * @param n number of log calls to ignore (could be negative)
- * @param check_reset GNUNET_YES to assert that the log skip counter is currently zero
+ * @param check_reset #GNUNET_YES to assert that the log skip counter is currently zero
  */
 void
-GNUNET_log_skip (int n, int check_reset);
+GNUNET_log_skip (int n,
+                 int check_reset);
 
 
 /**
@@ -453,7 +459,9 @@ GNUNET_log_skip (int n, int check_reset);
  * @return #GNUNET_OK on success, #GNUNET_SYSERR if logfile could not be opened
  */
 int
-GNUNET_log_setup (const char *comp, const char *loglevel, const char *logfile);
+GNUNET_log_setup (const char *comp,
+                  const char *loglevel,
+                  const char *logfile);
 
 
 /**
@@ -464,7 +472,8 @@ GNUNET_log_setup (const char *comp, const char *loglevel, const char *logfile);
  * @param logger_cls closure for @a logger
  */
 void
-GNUNET_logger_add (GNUNET_Logger logger, void *logger_cls);
+GNUNET_logger_add (GNUNET_Logger logger,
+                   void *logger_cls);
 
 
 /**
@@ -472,10 +481,11 @@ GNUNET_logger_add (GNUNET_Logger logger, void *logger_cls);
  * Remove a custom logger.
  *
  * @param logger log function
- * @param logger_cls closure for logger
+ * @param logger_cls closure for @a logger
  */
 void
-GNUNET_logger_remove (GNUNET_Logger logger, void *logger_cls);
+GNUNET_logger_remove (GNUNET_Logger logger,
+                      void *logger_cls);
 
 
 /**
@@ -513,7 +523,7 @@ GNUNET_h2s_full (const struct GNUNET_HashCode * hc);
  *
  * @param pid the peer identity
  * @return string form of the pid; will be overwritten by next
- *         call to #GNUNET_i2s.
+ *         call to #GNUNET_i2s().
  */
 const char *
 GNUNET_i2s (const struct GNUNET_PeerIdentity *pid);
@@ -527,7 +537,7 @@ GNUNET_i2s (const struct GNUNET_PeerIdentity *pid);
  *
  * @param pid the peer identity
  * @return string form of the pid; will be overwritten by next
- *         call to #GNUNET_i2s.
+ *         call to #GNUNET_i2s_full().
  */
 const char *
 GNUNET_i2s_full (const struct GNUNET_PeerIdentity *pid);
@@ -540,12 +550,13 @@ GNUNET_i2s_full (const struct GNUNET_PeerIdentity *pid);
  * in the entire API that is NOT reentrant!
  *
  * @param addr the address
- * @param addrlen the length of the address
+ * @param addrlen the length of the @a addr
  * @return nicely formatted string for the address
- *  will be overwritten by next call to GNUNET_a2s.
+ *  will be overwritten by next call to #GNUNET_a2s().
  */
 const char *
-GNUNET_a2s (const struct sockaddr *addr, socklen_t addrlen);
+GNUNET_a2s (const struct sockaddr *addr,
+            socklen_t addrlen);
 
 
 /**
