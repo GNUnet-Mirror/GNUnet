@@ -19,7 +19,7 @@
  */
 
 /**
- * @file psyc/gnunet-service-social.c
+ * @file social/gnunet-service-social.c
  * @brief Social service
  * @author Gabor X Toth
  */

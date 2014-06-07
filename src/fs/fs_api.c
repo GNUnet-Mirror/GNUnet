@@ -399,7 +399,7 @@ GNUNET_FS_end_top (struct GNUNET_FS_Handle *h,
 
 
 /**
- * Closure for #data_reader_file().
+ * Closure for #GNUNET_FS_data_reader_file_().
  */
 struct FileInfo
 {

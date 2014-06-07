@@ -107,7 +107,7 @@ static gcry_mpi_t elgamal_g;
 
 
 /**
- * Function to initialize #elgamal_q, #egamal_p and #elgamal_g.
+ * Function to initialize #elgamal_q, #elgamal_p and #elgamal_g.
  */
 static void
 ensure_elgamal_initialized (void)

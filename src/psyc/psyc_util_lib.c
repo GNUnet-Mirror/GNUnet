@@ -19,7 +19,7 @@
  */
 
 /**
- * @file psyc/psyc_common.c
+ * @file psyc/psyc_util_lib.c
  * @brief PSYC utilities; receiving/transmitting/logging PSYC messages.
  * @author Gabor X Toth
  */
@@ -89,7 +89,7 @@ struct GNUNET_PSYC_TransmitHandle
   struct GNUNET_ENV_Modifier *mod;
 
   /**
-   * 
+   *
    */
   const char *mod_value;
   size_t mod_value_size;
