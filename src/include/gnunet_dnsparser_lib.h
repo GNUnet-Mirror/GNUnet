@@ -1,6 +1,6 @@
 /*
       This file is part of GNUnet
-      (C) 2010-2013 Christian Grothoff (and other contributing authors)
+      (C) 2010-2014 Christian Grothoff (and other contributing authors)
 
       GNUnet is free software; you can redistribute it and/or modify
       it under the terms of the GNU General Public License as published
@@ -857,6 +857,31 @@ GNUNET_DNSPARSER_free_soa (struct GNUNET_DNSPARSER_SoaRecord *soa);
  */
 void
 GNUNET_DNSPARSER_free_cert (struct GNUNET_DNSPARSER_CertRecord *cert);
+
+
+/**
+ * Convert a block of binary data to HEX.
+ *
+ * @param data binary data to convert
+ * @param data_size number of bytes in @a data
+ * @return HEX string (lower case)
+ */
+char *
+GNUNET_DNSPARSER_bin_to_hex (const void *data,
+                             size_t data_size);
+
+
+/**
+ * Convert a HEX string to block of binary data.
+ *
+ * @param hex HEX string to convert (may contain mixed case)
+ * @param data where to write result, must be
+ *             at least `strlen(hex)/2` bytes long
+ * @return number of bytes written to data
+ */
+size_t
+GNUNET_DNSPARSER_hex_to_bin (const char *hex,
+                             void *data);
 
 
 #endif

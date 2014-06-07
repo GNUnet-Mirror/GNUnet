@@ -44,7 +44,6 @@ dns_value_to_string (void *cls,
                      const void *data,
                      size_t data_size)
 {
-  const char *cdata;
   char* result;
   char tmp[INET6_ADDRSTRLEN];
 
@@ -231,23 +230,26 @@ dns_value_to_string (void *cls,
   case GNUNET_DNSPARSER_TYPE_TLSA:
     {
       const struct GNUNET_TUN_DnsTlsaRecord *tlsa;
-      char* tlsa_str;
+      char *tlsa_str;
+      char *hex;
 
-      cdata = data;
-      if ( (data_size <= sizeof (struct GNUNET_TUN_DnsTlsaRecord)) ||
-	   ('\0' != cdata[data_size - 1]) )
+      if (data_size < sizeof (struct GNUNET_TUN_DnsTlsaRecord))
 	return NULL; /* malformed */
       tlsa = data;
+      hex = GNUNET_DNSPARSER_bin_to_hex (&tlsa[1],
+                                         data_size - sizeof (struct GNUNET_TUN_DnsTlsaRecord));
       if (0 == GNUNET_asprintf (&tlsa_str,
 				"%u %u %u %s",
 				(unsigned int) tlsa->usage,
 				(unsigned int) tlsa->selector,
 				(unsigned int) tlsa->matching_type,
-				(const char *) &tlsa[1]))
+				hex))
       {
+        GNUNET_free (hex);
 	GNUNET_free (tlsa_str);
 	return NULL;
       }
+      GNUNET_free (hex);
       return tlsa_str;
     }
   default:
@@ -603,23 +605,40 @@ dns_string_to_value (void *cls,
       unsigned int usage;
       unsigned int selector;
       unsigned int matching_type;
+      size_t slen = strlen (s) + 1;
+      char hex[slen];
 
-      *data_size = sizeof (struct GNUNET_TUN_DnsTlsaRecord) + strlen (s) - 6;
-      *data = tlsa = GNUNET_malloc (*data_size);
       if (4 != SSCANF (s,
                        "%u %u %u %s",
-                       (char*)&tlsa[1]))
+                       &usage,
+                       &selector,
+                       &matching_type,
+                       hex))
       {
         GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                     _("Unable to parse TLSA record string `%s'\n"),
                     s);
         *data_size = 0;
-        GNUNET_free (tlsa);
         return GNUNET_SYSERR;
       }
+
+      *data_size = sizeof (struct GNUNET_TUN_DnsTlsaRecord) + strlen (hex) / 2;
+      *data = tlsa = GNUNET_malloc (*data_size);
       tlsa->usage = (uint8_t) usage;
       tlsa->selector = (uint8_t) selector;
       tlsa->matching_type = (uint8_t) matching_type;
+      if (strlen (hex) / 2 !=
+          GNUNET_DNSPARSER_hex_to_bin (hex,
+                                       &tlsa[1]))
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    _("Unable to parse TLSA record string `%s'\n"),
+                    s);
+        GNUNET_free (*data);
+        *data = NULL;
+        *data_size = 0;
+        return GNUNET_SYSERR;
+      }
       return GNUNET_OK;
     }
   default:
