@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2012-2013 Christian Grothoff (and other contributing authors)
+     (C) 2012-2014 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -248,6 +248,16 @@ run_httpd_now ()
 }
 
 
+/**
+ * Process a record that was stored in the namestore, adding
+ * the information to the HTML.
+ *
+ * @param cls closure with the `struct ZoneinfoRequest *`
+ * @param zone_key private key of the zone; NULL on disconnect
+ * @param name label of the records; NULL on disconnect
+ * @param rd_len number of entries in @a rd array, 0 if label was deleted
+ * @param rd array of records with data to store
+ */
 static void
 iterate_cb (void *cls,
 	    const struct GNUNET_CRYPTO_EcdsaPrivateKey *zone_key,
@@ -304,7 +314,12 @@ iterate_cb (void *cls,
   pkey = GNUNET_GNSRECORD_value_to_string (rd->record_type,
                                            rd->data,
                                            rd->data_size);
-
+  if (NULL == pkey)
+  {
+    GNUNET_break (0);
+    GNUNET_NAMESTORE_zone_iterator_next (zr->list_it);
+    return;
+  }
   if (bytes_free < (strlen (name) + strlen (pkey) + 40))
   {
     new_buf = GNUNET_malloc (zr->buf_len * 2);
@@ -321,7 +336,6 @@ iterate_cb (void *cls,
   GNUNET_NAMESTORE_zone_iterator_next (zr->list_it);
   GNUNET_free (pkey);
 }
-
 
 
 /**
