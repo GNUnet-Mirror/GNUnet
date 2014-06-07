@@ -263,29 +263,32 @@ gns_string_to_value (void *cls,
   case GNUNET_GNSRECORD_TYPE_BOX:
     {
       struct GNUNET_GNSRECORD_BoxRecord *box;
-      size_t slen = strlen (s) + 1;
-      char rest[slen];
+      size_t rest;
       unsigned int protocol;
       unsigned int service;
       unsigned int record_type;
       void *bval;
       size_t bval_size;
 
-      if (4 != SSCANF (s,
-                       "%u %u %u %s",
+      if (3 != SSCANF (s,
+                       "%u %u %u ",
                        &protocol,
                        &service,
-                       &record_type,
-                       rest))
+                       &record_type))
       {
         GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                     _("Unable to parse BOX record string `%s'\n"),
                     s);
         return GNUNET_SYSERR;
       }
+      rest = snprintf (NULL, 0,
+                       "%u %u %u ",
+                       protocol,
+                       service,
+                       record_type);
       if (GNUNET_OK !=
           GNUNET_GNSRECORD_string_to_value (record_type,
-                                            rest,
+                                            &s[rest],
                                             &bval,
                                             &bval_size))
         return GNUNET_SYSERR;
