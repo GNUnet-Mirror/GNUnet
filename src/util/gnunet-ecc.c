@@ -328,6 +328,7 @@ run (void *cls, char *const *args, const char *cfgfile,
       FPRINTF (stdout, "%s\n", str);
       GNUNET_free (str);
     }
+    GNUNET_DISK_file_close (keyfile);
   }
 
 }
