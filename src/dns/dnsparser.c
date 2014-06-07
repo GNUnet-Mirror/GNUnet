@@ -1249,7 +1249,7 @@ GNUNET_DNSPARSER_bin_to_hex (const void *data,
   ret = GNUNET_malloc (data_size * 2 + 1);
   for (off = 0; off < data_size; off++)
     sprintf (&ret[off * 2],
-             "%x",
+             "%02x",
              idata[off]);
   return ret;
 }

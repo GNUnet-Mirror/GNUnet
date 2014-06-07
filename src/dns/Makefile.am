@@ -37,12 +37,15 @@ noinst_PROGRAMS = \
   gnunet-dns-monitor gnunet-dns-redirector
 
 plugin_LTLIBRARIES = \
-  libgnunet_plugin_block_dns.la 
+  libgnunet_plugin_block_dns.la
 
 if LINUX
 check_SCRIPTS = \
  test_gnunet_dns.sh
 endif
+
+check_PROGRAMS = \
+ test_hexcoder
 
 gnunet_helper_dns_SOURCES = \
  gnunet-helper-dns.c
@@ -71,7 +74,7 @@ gnunet_dns_redirector_DEPENDENCIES = \
   libgnunetdns.la
 
 gnunet_service_dns_SOURCES = \
- gnunet-service-dns.c 
+ gnunet-service-dns.c
 gnunet_service_dns_LDADD = \
   $(top_builddir)/src/dns/libgnunetdnsstub.la \
   $(top_builddir)/src/tun/libgnunettun.la \
@@ -82,7 +85,7 @@ gnunet_service_dns_DEPENDENCIES = \
   libgnunetdnsstub.la
 
 libgnunetdnsparser_la_SOURCES = \
- dnsparser.c 
+ dnsparser.c
 libgnunetdnsparser_la_LIBADD = \
  $(top_builddir)/src/util/libgnunetutil.la $(XLIB) \
   -lidn
@@ -91,7 +94,7 @@ libgnunetdnsparser_la_LDFLAGS = \
   -version-info 1:0:1
 
 libgnunetdnsstub_la_SOURCES = \
- dnsstub.c 
+ dnsstub.c
 libgnunetdnsstub_la_LIBADD = \
  $(top_builddir)/src/util/libgnunetutil.la $(XLIB)
 libgnunetdnsstub_la_LDFLAGS = \
@@ -120,4 +123,15 @@ TESTS = $(check_PROGRAMS)  $(check_SCRIPTS)
 endif
 
 EXTRA_DIST = \
-  $(check_SCRIPTS) 
+  $(check_SCRIPTS)
+
+
+test_hexcoder_SOURCES = \
+ test_hexcoder.c
+test_hexcoder_LDADD = \
+ libgnunetdnsparser.la \
+ $(top_builddir)/src/util/libgnunetutil.la
+test_hexcoder_DEPENDENCIES = \
+ libgnunetdnsparser.la \
+ $(top_builddir)/src/util/libgnunetutil.la
+
