@@ -1241,8 +1241,17 @@ char *
 GNUNET_DNSPARSER_bin_to_hex (const void *data,
                              size_t data_size)
 {
-  GNUNET_break (0); // FIXME: not implemented
-  return NULL;
+  char *ret;
+  size_t off;
+  const uint8_t *idata;
+
+  idata = data;
+  ret = GNUNET_malloc (data_size * 2 + 1);
+  for (off = 0; off < data_size; off++)
+    sprintf (&ret[off * 2],
+             "%x",
+             idata[off]);
+  return ret;
 }
 
 
@@ -1258,10 +1267,25 @@ size_t
 GNUNET_DNSPARSER_hex_to_bin (const char *hex,
                              void *data)
 {
-  GNUNET_break (0);  // FIXME: not implemented
-  return 0;
-}
+  size_t data_size;
+  size_t off;
+  uint8_t *idata;
+  unsigned int h;
+  char in[3];
 
+  data_size = strlen (hex) / 2;
+  idata = data;
+  in[2] = '\0';
+  for (off = 0; off < data_size; off++)
+  {
+    in[0] = tolower ((int) hex[off * 2]);
+    in[1] = tolower ((int) hex[off * 2 + 1]);
+    if (1 != sscanf (in, "%x", &h))
+      return off;
+    idata[off] = (uint8_t) h;
+  }
+  return off;
+}
 
 
 /* end of dnsparser.c */
