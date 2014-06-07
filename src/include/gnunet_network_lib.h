@@ -135,7 +135,7 @@ GNUNET_NETWORK_socket_set_blocking (struct GNUNET_NETWORK_Handle *fd,
  *
  * @param desc socket to bind
  * @param address address to be bound
- * @param address_len length of address
+ * @param address_len length of @a address
  * @return #GNUNET_OK on success, #GNUNET_SYSERR otherwise
  */
 int
@@ -372,8 +372,8 @@ GNUNET_NETWORK_fdset_set (struct GNUNET_NETWORK_FDSet *fds,
  * @param h the file handle to add
  */
 void
-GNUNET_NETWORK_fdset_handle_set_native_w32_handle (struct GNUNET_NETWORK_FDSet
-                                                   *fds, HANDLE h);
+GNUNET_NETWORK_fdset_handle_set_native_w32_handle (struct GNUNET_NETWORK_FDSet *fds
+                                                   HANDLE h);
 #endif
 
 

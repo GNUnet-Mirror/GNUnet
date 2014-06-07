@@ -49,9 +49,10 @@ extern "C"
  * @param addr one of the addresses of the host, NULL for the last address
  * @param addrlen length of @a addr
  */
-typedef void (*GNUNET_RESOLVER_AddressCallback) (void *cls,
-                                                 const struct sockaddr *addr,
-                                                 socklen_t addrlen);
+typedef void
+(*GNUNET_RESOLVER_AddressCallback) (void *cls,
+                                    const struct sockaddr *addr,
+                                    socklen_t addrlen);
 
 
 /**
@@ -87,7 +88,8 @@ GNUNET_RESOLVER_disconnect (void);
  * @return handle that can be used to cancel the request, NULL on error
  */
 struct GNUNET_RESOLVER_RequestHandle *
-GNUNET_RESOLVER_ip_get (const char *hostname, int af,
+GNUNET_RESOLVER_ip_get (const char *hostname,
+                        int af,
                         struct GNUNET_TIME_Relative timeout,
                         GNUNET_RESOLVER_AddressCallback callback,
                         void *callback_cls);
@@ -116,8 +118,9 @@ GNUNET_RESOLVER_hostname_resolve (int af,
  * @param hostname one of the names for the host, NULL
  *        on the last call to the callback
  */
-typedef void (*GNUNET_RESOLVER_HostnameCallback) (void *cls,
-                                                  const char *hostname);
+typedef void
+(*GNUNET_RESOLVER_HostnameCallback) (void *cls,
+                                     const char *hostname);
 
 /**
  * Get local fully qualified domain name
@@ -140,7 +143,8 @@ GNUNET_RESOLVER_local_fqdn_get (void);
  * @return handle that can be used to cancel the request, NULL on error
  */
 struct GNUNET_RESOLVER_RequestHandle *
-GNUNET_RESOLVER_hostname_get (const struct sockaddr *sa, socklen_t salen,
+GNUNET_RESOLVER_hostname_get (const struct sockaddr *sa,
+                              socklen_t salen,
                               int do_resolve,
                               struct GNUNET_TIME_Relative timeout,
                               GNUNET_RESOLVER_HostnameCallback callback,
