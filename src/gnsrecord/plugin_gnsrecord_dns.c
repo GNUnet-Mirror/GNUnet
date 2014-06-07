@@ -551,7 +551,7 @@ dns_string_to_value (void *cls,
       unsigned int port;
       size_t off;
 
-      if (2 != SSCANF(s,
+      if (4 != SSCANF(s,
                       "%u %u %u %253s",
                       &priority,
                       &weight,
