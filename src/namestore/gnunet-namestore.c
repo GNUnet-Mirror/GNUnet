@@ -501,18 +501,46 @@ get_existing_record (void *cls,
       ret = 1;
       test_finished ();
       return;
-    case GNUNET_DNSPARSER_TYPE_NS:
-      if ( (GNUNET_DNSPARSER_TYPE_A == type) ||
-	   (GNUNET_DNSPARSER_TYPE_AAAA == type) )
-	break;
+    }
+  }
+  switch (type)
+  {
+  case GNUNET_DNSPARSER_TYPE_CNAME:
+    if (0 != rd_count)
+    {
       fprintf (stderr,
-               _("A %s record exists already under `%s', only A/AAAA records can be added.\n"),
-               "NS",
-               rec_name);
+               _("Records already exist under `%s', cannot add `%s' record.\n"),
+               rec_name,
+               "CNAME");
       ret = 1;
       test_finished ();
       return;
     }
+    break;
+  case GNUNET_GNSRECORD_TYPE_PKEY:
+    if (0 != rd_count)
+    {
+      fprintf (stderr,
+               _("Records already exist under `%s', cannot add `%s' record.\n"),
+               rec_name,
+               "PKEY");
+      ret = 1;
+      test_finished ();
+      return;
+    }
+    break;
+  case GNUNET_GNSRECORD_TYPE_GNS2DNS:
+    if (0 != rd_count)
+    {
+      fprintf (stderr,
+               _("Records already exist under `%s', cannot add `%s' record.\n"),
+               rec_name,
+               "GNS2DNS");
+      ret = 1;
+      test_finished ();
+      return;
+    }
+    break;
   }
   memset (rdn, 0, sizeof (struct GNUNET_GNSRECORD_Data));
   memcpy (&rdn[1], rd, rd_count * sizeof (struct GNUNET_GNSRECORD_Data));
