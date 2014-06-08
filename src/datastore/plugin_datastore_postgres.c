@@ -65,7 +65,7 @@ struct Plugin
  * @brief Get a database handle
  *
  * @param plugin global context
- * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 static int
 init_connection (struct Plugin *plugin)
@@ -75,6 +75,7 @@ init_connection (struct Plugin *plugin)
   plugin->dbh = GNUNET_POSTGRES_connect (plugin->env->cfg, "datastore-postgres");
   if (NULL == plugin->dbh)
     return GNUNET_SYSERR;
+
   ret =
       PQexec (plugin->dbh,
               "CREATE TABLE gn090 (" "  repl INTEGER NOT NULL DEFAULT 0,"
@@ -86,16 +87,23 @@ init_connection (struct Plugin *plugin)
               "  hash BYTEA NOT NULL DEFAULT '',"
               "  vhash BYTEA NOT NULL DEFAULT '',"
               "  value BYTEA NOT NULL DEFAULT '')" "WITH OIDS");
-  if ((ret == NULL) || ((PQresultStatus (ret) != PGRES_COMMAND_OK) && (0 != strcmp ("42P07",    /* duplicate table */
-                                                                                    PQresultErrorField
-                                                                                    (ret,
-                                                                                     PG_DIAG_SQLSTATE)))))
+  if ( (NULL == ret) ||
+       ((PQresultStatus (ret) != PGRES_COMMAND_OK) &&
+        (0 != strcmp ("42P07",    /* duplicate table */
+                      PQresultErrorField
+                      (ret,
+                       PG_DIAG_SQLSTATE)))))
   {
-    (void) GNUNET_POSTGRES_check_result (plugin->dbh, ret, PGRES_COMMAND_OK, "CREATE TABLE", "gn090");
+    (void) GNUNET_POSTGRES_check_result (plugin->dbh,
+                                         ret,
+                                         PGRES_COMMAND_OK,
+                                         "CREATE TABLE",
+                                         "gn090");
     PQfinish (plugin->dbh);
     plugin->dbh = NULL;
     return GNUNET_SYSERR;
   }
+
   if (PQresultStatus (ret) == PGRES_COMMAND_OK)
   {
     if ((GNUNET_OK !=
@@ -124,6 +132,7 @@ init_connection (struct Plugin *plugin)
     }
   }
   PQclear (ret);
+
   ret =
       PQexec (plugin->dbh,
               "ALTER TABLE gn090 ALTER value SET STORAGE EXTERNAL");
@@ -217,7 +226,7 @@ init_connection (struct Plugin *plugin)
  * Get an estimate of how much space the database is
  * currently using.
  *
- * @param cls our "struct Plugin*"
+ * @param cls our `struct Plugin *`
  * @return number of bytes used on disk
  */
 static unsigned long long
@@ -257,7 +266,7 @@ postgres_plugin_estimate_size (void *cls)
 /**
  * Store an item in the datastore.
  *
- * @param cls closure with the 'struct Plugin'
+ * @param cls closure with the `struct Plugin`
  * @param key key for the item
  * @param size number of bytes in data
  * @param data content stored
@@ -267,7 +276,7 @@ postgres_plugin_estimate_size (void *cls)
  * @param replication replication-level for the content
  * @param expiration expiration time for the content
  * @param msg set to error message
- * @return GNUNET_OK on success
+ * @return #GNUNET_OK on success
  */
 static int
 postgres_plugin_put (void *cls, const struct GNUNET_HashCode * key, uint32_t size,
