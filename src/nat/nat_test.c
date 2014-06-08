@@ -142,6 +142,11 @@ struct GNUNET_NAT_Test
    * Identity of task for the listen socket (if any)
    */
   GNUNET_SCHEDULER_TaskIdentifier ltask;
+  
+  /**
+   * Task identifier for the timeout (if any)
+   */
+  GNUNET_SCHEDULER_TaskIdentifier ttask;
 
   /**
    * GNUNET_YES if we're testing TCP
@@ -363,13 +368,36 @@ addr_cb (void *cls,
 
 
 /**
+ * Timeout task for a nat test. 
+ * Calls the report-callback with a timeout return value
+ * 
+ * @param cls handle to the timed out NAT test
+ * @param tc not used
+ */
+static void
+do_timeout (void *cls,
+                 const struct GNUNET_SCHEDULER_TaskContext * tc)
+{
+  struct GNUNET_NAT_Test *nh = (struct GNUNET_NAT_Test *) cls;
+  
+  nh->ttask = GNUNET_SCHEDULER_NO_TASK;
+  nh->report (nh->report_cls, GNUNET_NAT_ERROR_TIMEOUT);
+  
+  GNUNET_NAT_test_stop(nh);
+}
+
+
+/**
  * Start testing if NAT traversal works using the
  * given configuration (IPv4-only).
+ * 
+ * ALL failures are reported directly to the report callback
  *
  * @param cfg configuration for the NAT traversal
  * @param is_tcp #GNUNET_YES to test TCP, #GNUNET_NO to test UDP
  * @param bnd_port port to bind to, 0 for connection reversal
  * @param adv_port externally advertised port to use
+ * @param timeout delay after which the test should be aborted
  * @param report function to call with the result of the test
  * @param report_cls closure for @a report
  * @return handle to cancel NAT test
@@ -379,6 +407,7 @@ GNUNET_NAT_test_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
                        int is_tcp,
                        uint16_t bnd_port,
                        uint16_t adv_port,
+                       struct GNUNET_TIME_Relative timeout,
                        GNUNET_NAT_TestCallback report,
                        void *report_cls)
 {
@@ -401,6 +430,7 @@ GNUNET_NAT_test_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   nh->adv_port = adv_port;
   nh->report = report;
   nh->report_cls = report_cls;
+  nh->ttask = GNUNET_SCHEDULER_NO_TASK;
   if (0 == bnd_port)
   {
     nh->nat =
@@ -459,6 +489,7 @@ GNUNET_NAT_test_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
       return NULL;
     }
   }
+  nh->ttask = GNUNET_SCHEDULER_add_delayed (timeout, &do_timeout, nh);
   return nh;
 }
 
@@ -489,6 +520,8 @@ GNUNET_NAT_test_stop (struct GNUNET_NAT_Test *tst)
     GNUNET_NETWORK_socket_close (pos->sock);
     GNUNET_free (pos);
   }
+  if (GNUNET_SCHEDULER_NO_TASK != tst->ttask)
+    GNUNET_SCHEDULER_cancel (tst->ttask);
   if (GNUNET_SCHEDULER_NO_TASK != tst->ltask)
     GNUNET_SCHEDULER_cancel (tst->ltask);
   if (NULL != tst->lsock)

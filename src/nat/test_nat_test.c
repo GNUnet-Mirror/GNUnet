@@ -39,23 +39,12 @@ static int ret = 1;
 
 static struct GNUNET_NAT_Test *tst;
 
-static GNUNET_SCHEDULER_TaskIdentifier end;
-
-static void
-end_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  GNUNET_NAT_test_stop (tst);
-}
-
-
 static void
 report_success (void *cls,
                 enum GNUNET_NAT_FailureCode aret)
 {
   GNUNET_assert (GNUNET_NAT_ERROR_SUCCESS == aret);
   ret = 0;
-  GNUNET_SCHEDULER_cancel (end);
-  end = GNUNET_SCHEDULER_add_now (&end_test, NULL);
 }
 
 
@@ -67,12 +56,9 @@ run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   tst =
-      GNUNET_NAT_test_start (cfg, GNUNET_YES, 1285, 1285,
+      GNUNET_NAT_test_start (cfg, GNUNET_YES, 1285, 1285, TIMEOUT
                              &report_success,
                              NULL);
-  if (NULL == tst)
-    return;
-  end = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_test, NULL);
 }
 
 

@@ -158,35 +158,8 @@ next_phase (struct GNUNET_NAT_AutoHandle *ah);
 
 
 /**
- * Function called if NAT failed to confirm success.
- * Clean up and update GUI (with failure).
- *
- * @param cls closure with setup context
- * @param tc scheduler callback
- */
-static void
-fail_timeout (void *cls,
-              const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct GNUNET_NAT_AutoHandle *ah = cls;
-
-  ah->ret = GNUNET_NAT_ERROR_NAT_TEST_TIMEOUT; 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-	      _("NAT traversal with ICMP Server timed out.\n"));
-  GNUNET_assert (NULL != ah->tst);
-  ah->task = GNUNET_SCHEDULER_NO_TASK;
-  GNUNET_NAT_test_stop (ah->tst);
-  ah->tst = NULL;
-  GNUNET_CONFIGURATION_set_value_string (ah->cfg, "nat",
-					 "ENABLE_ICMP_SERVER",
-					 "NO");
-  next_phase (ah);
-}
-
-
-/**
- * Function called by NAT on success.
- * Clean up and update GUI (with success).
+ * Function called by NAT to report the outcome of the nat-test.
+ * Clean up and update GUI.
  *
  * @param cls the auto handle
  * @param success currently always #GNUNET_OK
@@ -197,17 +170,15 @@ result_callback (void *cls,
                  enum GNUNET_NAT_FailureCode ret)
 {
   struct GNUNET_NAT_AutoHandle *ah = cls;
-
-  GNUNET_SCHEDULER_cancel (ah->task);
-  ah->task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_NAT_test_stop (ah->tst);
   ah->tst = NULL;
+  ah->ret = ret;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              ret
+              GNUNET_NAT_ERROR_SUCCESS == ret
 	      ? _("NAT traversal with ICMP Server succeeded.\n")
 	      : _("NAT traversal with ICMP Server failed.\n"));
   GNUNET_CONFIGURATION_set_value_string (ah->cfg, "nat", "ENABLE_ICMP_SERVER",
-					 ret ? "NO" : "YES");
+					 GNUNET_NAT_ERROR_SUCCESS == ret ? "NO" : "YES");
   next_phase (ah);
 }
 
@@ -228,15 +199,8 @@ reversal_test (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 	      _("Testing connection reversal with ICMP server.\n"));
   GNUNET_RESOLVER_connect (ah->cfg);
-  ah->tst = GNUNET_NAT_test_start (ah->cfg, GNUNET_YES, 0, 0,
+  ah->tst = GNUNET_NAT_test_start (ah->cfg, GNUNET_YES, 0, 0, TIMEOUT,
 				   &result_callback, ah);
-  if (NULL == ah->tst)
-  {
-    ah->ret = GNUNET_NAT_ERROR_NAT_TEST_START_FAILED;
-    next_phase (ah);
-    return;
-  }
-  ah->task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &fail_timeout, ah);
 }
 
 
@@ -506,15 +470,8 @@ err:
 static void
 test_icmp_client (struct GNUNET_NAT_AutoHandle *ah)
 {
-  int ext_ip;
-  int nated;
-  int binary;
   char *tmp;
   char *helper;
-  
-  ext_ip = GNUNET_NO;
-  nated = GNUNET_NO;
-  binary = GNUNET_NO;
 
   tmp = NULL;
   helper = GNUNET_OS_get_libexec_binary_path ("gnunet-helper-nat-client");
@@ -522,7 +479,6 @@ test_icmp_client (struct GNUNET_NAT_AutoHandle *ah)
         GNUNET_CONFIGURATION_get_value_string (ah->cfg, "nat", "INTERNAL_ADDRESS",
                                                &tmp)) && (0 < strlen (tmp)))
   {
-    ext_ip = GNUNET_OK;
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("test_icmp_client not possible, as we have no internal IPv4 address\n"));
   }
   else
@@ -530,7 +486,6 @@ test_icmp_client (struct GNUNET_NAT_AutoHandle *ah)
   
   if (GNUNET_YES !=
       GNUNET_CONFIGURATION_get_value_yesno (ah->cfg, "nat", "BEHIND_NAT")){
-        nated = GNUNET_YES;
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("test_icmp_server not possible, as we are not behind NAT\n"));
   }
   else
@@ -539,7 +494,6 @@ test_icmp_client (struct GNUNET_NAT_AutoHandle *ah)
   if (GNUNET_YES ==
       GNUNET_OS_check_helper_binary (helper, GNUNET_YES, "-d 127.0.0.1 127.0.0.2 42")){
           // none of these parameters are actually used in privilege testing mode
-    binary = GNUNET_OK;
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("No working gnunet-helper-nat-server found\n"));
   }
 err:

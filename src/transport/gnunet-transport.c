@@ -537,8 +537,8 @@ display_test_result (struct TestContext *tc, enum TestResult result)
 }
 
 /**
- * Function called by NAT on success.
- * Clean up and update GUI (with success).
+ * Function called by NAT to report the outcome of the nat-test.
+ * Clean up and update GUI.
  *
  * @param cls test context
  * @param success currently always #GNUNET_OK
@@ -550,23 +550,6 @@ result_callback (void *cls, enum GNUNET_NAT_FailureCode result)
   struct TestContext *tc = cls;
   display_test_result (tc, result);
 }
-
-/**
- * Function called if NAT failed to confirm success.
- * Clean up and update GUI (with failure).
- *
- * @param cls test context
- * @param tc scheduler callback
- */
-static void
-fail_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct TestContext *tstc = cls;
-
-  tstc->tsk = GNUNET_SCHEDULER_NO_TASK;
-  display_test_result (tstc, NAT_TEST_TIMEOUT);
-}
-
 
 static void
 resolve_validation_address (const struct GNUNET_PeerIdentity *id,
@@ -751,13 +734,8 @@ run_nat_test ()
       (0 == strcasecmp (head->name, "udp")) ? GNUNET_NO : GNUNET_YES,
       (uint16_t) head->bnd_port,
       (uint16_t) head->adv_port,
+      TIMEOUT,
       &result_callback, head);
-  if (NULL == head->tst)
-  {
-    display_test_result (head, NAT_TEST_FAILED_TO_START);
-    return;
-  }
-  head->tsk = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &fail_timeout, head);
 }
 
 

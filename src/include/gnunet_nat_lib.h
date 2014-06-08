@@ -88,6 +88,11 @@ enum GNUNET_NAT_FailureCode
   /**
    * `external-ip' command not found
    */
+  GNUNET_NAT_ERROR_TIMEOUT,
+  
+  /**
+   * `external-ip' command not found
+   */
   GNUNET_NAT_ERROR_NOT_ONLINE,
   
   /**
@@ -264,6 +269,7 @@ typedef void (*GNUNET_NAT_TestCallback) (void *cls,
  * @param is_tcp #GNUNET_YES to test TCP, #GNUNET_NO to test UDP
  * @param bnd_port port to bind to, 0 for connection reversal
  * @param adv_port externally advertised port to use
+ * @param timeout delay after which the test should be aborted
  * @param report function to call with the result of the test
  * @param report_cls closure for @a report
  * @return handle to cancel NAT test
@@ -273,6 +279,7 @@ GNUNET_NAT_test_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
                        int is_tcp,
                        uint16_t bnd_port,
                        uint16_t adv_port,
+                       struct GNUNET_TIME_Relative timeout,
                        GNUNET_NAT_TestCallback report,
                        void *report_cls);
 
