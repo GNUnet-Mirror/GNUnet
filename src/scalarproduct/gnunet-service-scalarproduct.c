@@ -1174,7 +1174,7 @@ cb_insert_element_sorted (void *cls,
   e->val = gcry_mpi_new (0);
   val = (int64_t) GNUNET_ntohll (e->elem->value);
   if (0 > val)
-    gcry_mpi_sub_ui (e->val, e->val, - val);
+    gcry_mpi_sub_ui (e->val, e->val, -val);
   else
     gcry_mpi_add_ui (e->val, e->val, val);
 
@@ -1185,9 +1185,9 @@ cb_insert_element_sorted (void *cls,
     GNUNET_CONTAINER_DLL_insert (s->a_head, s->a_tail, e);
     return GNUNET_YES;
   }
-  // insert as last element with the highest key
-  if (0 >= GNUNET_CRYPTO_hash_cmp (&s->a_tail->elem->key, &e->elem->key))
+  else if (0 > GNUNET_CRYPTO_hash_cmp (&s->a_tail->elem->key, &e->elem->key))
   {
+    // insert as last element with the highest key
     GNUNET_CONTAINER_DLL_insert_tail (s->a_head, s->a_tail, e);
     return GNUNET_YES;
   }
@@ -1234,24 +1234,24 @@ cb_intersection_element_removed (void *cls,
     GNUNET_CONTAINER_multihashmap_remove (s->intersected_elements,
                                           element->data,
                                           se);
-    s->used_element_count--;
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "%s: removed element with key %s value %d\n", s->role == ALICE ? "ALICE" : "BOB", GNUNET_h2s(&se->key), se->value);
     return;
 
   case GNUNET_SET_STATUS_DONE:
     s->intersection_op = NULL;
     s->intersection_set = NULL;
 
+    s->used_element_count = GNUNET_CONTAINER_multihashmap_iterate (s->intersected_elements,
+                                           &cb_insert_element_sorted,
+                                           s);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "%s: Finished intersection, %d items remain\n", s->role == ALICE ? "ALICE" : "BOB", s->used_element_count);
     if (2 > s->used_element_count)
     {
       // failed! do not leak information about our single remaining element!
       // continue after the loop
       break;
     }
-
-    GNUNET_CONTAINER_multihashmap_iterate (s->intersected_elements,
-                                           &cb_insert_element_sorted,
-                                           s);
-
+    
     s->sorted_elements = GNUNET_malloc (s->used_element_count * sizeof (gcry_mpi_t));
     for (i = 0; NULL != s->a_head; i++)
     {
@@ -1275,6 +1275,7 @@ cb_intersection_element_removed (void *cls,
     }
     break;
   default:
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "%s: OOOPS %d", s->role == ALICE ? "ALICE" : "BOB", status);
     if (NULL != s->intersection_listen)
     {
       GNUNET_SET_listen_cancel (s->intersection_listen);
@@ -1282,14 +1283,14 @@ cb_intersection_element_removed (void *cls,
     }
     
     // the op failed and has already been invalidated by the set service
-    s->intersection_op = NULL;
-    s->intersection_set = NULL;
     break;
   }
 
+  s->intersection_op = NULL;
+  s->intersection_set = NULL;
+  
   //failed if we go here
   GNUNET_break_op (0);
-
 
   // and notify our client-session that we could not complete the session
   if (ALICE == s->role) {
