@@ -459,23 +459,63 @@ get_existing_record (void *cls,
 {
   struct GNUNET_GNSRECORD_Data rdn[rd_count + 1];
   struct GNUNET_GNSRECORD_Data *rde;
+  unsigned int i;
 
   add_qe = NULL;
   if ( (NULL != zone_key) &&
        (0 != strcmp (rec_name, name)) )
   {
     GNUNET_break (0);
+    ret = 1;
+    test_finished ();
     return;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received %u records for name `%s'\n",
-      rd_count, rec_name);
-
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received %u records for name `%s'\n",
+              rd_count, rec_name);
+  for (i=0;i<rd_count;i++)
+  {
+    switch (rd[i].record_type)
+    {
+    case GNUNET_DNSPARSER_TYPE_CNAME:
+      fprintf (stderr,
+               _("A %s record exists already under `%s', no other records can be added.\n"),
+               "CNAME",
+               rec_name);
+      ret = 1;
+      test_finished ();
+      return;
+    case GNUNET_GNSRECORD_TYPE_PKEY:
+      fprintf (stderr,
+               _("A %s record exists already under `%s', no other records can be added.\n"),
+               "PKEY",
+               rec_name);
+      ret = 1;
+      test_finished ();
+    case GNUNET_GNSRECORD_TYPE_GNS2DNS:
+      fprintf (stderr,
+               _("A %s record exists already under `%s', no other records can be added.\n"),
+               "GNS2DNS",
+               rec_name);
+      ret = 1;
+      test_finished ();
+      return;
+    case GNUNET_DNSPARSER_TYPE_NS:
+      if ( (GNUNET_DNSPARSER_TYPE_A == type) ||
+	   (GNUNET_DNSPARSER_TYPE_AAAA == type) )
+	break;
+      fprintf (stderr,
+               _("A %s record exists already under `%s', only A/AAAA records can be added.\n"),
+               "NS",
+               rec_name);
+      ret = 1;
+      test_finished ();
+      return;
+    }
+  }
   memset (rdn, 0, sizeof (struct GNUNET_GNSRECORD_Data));
   memcpy (&rdn[1], rd, rd_count * sizeof (struct GNUNET_GNSRECORD_Data));
-  /* FIXME: should add some logic to overwrite records if there
-     can only be one record of a particular type, and to check
-     if the combination of records is valid to begin with... */
   rde = &rdn[0];
   rde->data = data;
   rde->data_size = data_size;
