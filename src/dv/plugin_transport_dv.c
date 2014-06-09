@@ -649,11 +649,16 @@ dv_plugin_address_pretty_printer (void *cls, const char *type,
 {
   if ( (0 == addrlen) &&
        (0 == strcmp (type, "dv")) )
-    asc (asc_cls, "dv", GNUNET_OK);
+    asc (asc_cls,
+         "dv",
+         GNUNET_OK);
   else
-    asc (asc_cls, NULL, GNUNET_SYSERR);
-
-  asc (asc_cls, NULL, GNUNET_OK);
+    asc (asc_cls,
+         NULL,
+         GNUNET_SYSERR);
+  asc (asc_cls,
+       NULL,
+       GNUNET_OK);
 }
 
 
