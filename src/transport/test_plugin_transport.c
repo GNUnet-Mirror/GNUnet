@@ -256,6 +256,7 @@ wait_end (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   end ();
 }
 
+
 static void
 end_badly_now ()
 {
@@ -272,11 +273,12 @@ end_badly_now ()
   timeout_endbadly = GNUNET_SCHEDULER_add_now (&end_badly, NULL );
 }
 
+
 static struct GNUNET_TIME_Relative
 env_receive (void *cls,
-    const struct GNUNET_HELLO_Address *address,
-    struct Session *session,
-    const struct GNUNET_MessageHeader *message)
+             const struct GNUNET_HELLO_Address *address,
+             struct Session *session,
+             const struct GNUNET_MessageHeader *message)
 {
   /* do nothing */
   return GNUNET_TIME_relative_get_zero_ ();
@@ -284,36 +286,46 @@ env_receive (void *cls,
 
 static int got_reply;
 
+
 /**
  * Take the given address and append it to the set of results sent back to
  * the client.
  *
  * @param cls the transmission context used ('struct GNUNET_SERVER_TransmitContext*')
- * @param buf text to transmit
+ * @param buf one of the names for the host, NULL on last callback
+ * @param res #GNUNET_OK if conversion was successful, #GNUNET_SYSERR on failure,
+ *      #GNUNET_OK on last callback
  */
 static void
-address_pretty_printer_cb (void *cls, const char *buf)
+address_pretty_printer_cb (void *cls,
+                           const char *buf,
+                           int res)
 {
   if (NULL != buf)
   {
     got_reply = GNUNET_YES;
-    GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Pretty address : `%s'\n", buf);
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+                "Pretty address : `%s'\n",
+                buf);
     pretty_printers_running--;
   }
   else
   {
-    if (GNUNET_NO == got_reply)
+    if ( (GNUNET_OK == res) &&
+         (GNUNET_NO == got_reply) )
     {
       pretty_printers_running--;
-      GNUNET_break(0);
+      GNUNET_break (0);
       end_badly_now ();
     }
   }
 }
 
+
 static void
-env_notify_address (void *cls, int add_remove,
-    const struct GNUNET_HELLO_Address *address)
+env_notify_address (void *cls,
+                    int add_remove,
+                    const struct GNUNET_HELLO_Address *address)
 {
   struct AddressWrapper *w;
   struct AddressWrapper *wtmp;
@@ -460,6 +472,7 @@ env_notify_address (void *cls, int add_remove,
   }
 }
 
+
 static struct GNUNET_ATS_Information
 env_get_address_type (void *cls, const struct sockaddr *addr, size_t addrlen)
 {
@@ -469,11 +482,13 @@ env_get_address_type (void *cls, const struct sockaddr *addr, size_t addrlen)
   return ats;
 }
 
+
 static const struct GNUNET_MessageHeader *
 env_get_our_hello ()
 {
   return (const struct GNUNET_MessageHeader *) hello;
 }
+
 
 static void
 env_session_end (void *cls,
@@ -483,14 +498,16 @@ env_session_end (void *cls,
 
 }
 
+
 static void
 env_update_metrics (void *cls,
-    const struct GNUNET_HELLO_Address *address,
-    struct Session *session,
-    const struct GNUNET_ATS_Information *ats,
-    uint32_t ats_count)
+                    const struct GNUNET_HELLO_Address *address,
+                    struct Session *session,
+                    const struct GNUNET_ATS_Information *ats,
+                    uint32_t ats_count)
 {
 }
+
 
 static void
 setup_plugin_environment ()
@@ -508,12 +525,14 @@ setup_plugin_environment ()
   env.session_end = &env_session_end;
 }
 
+
 static int
 handle_helper_message (void *cls, void *client,
-    const struct GNUNET_MessageHeader *hdr)
+                       const struct GNUNET_MessageHeader *hdr)
 {
   return GNUNET_OK;
 }
+
 
 /**
  * Runs the test.
