@@ -37,7 +37,9 @@
 
 
 static void
-check_hostname (void *cls, const struct sockaddr *sa, socklen_t salen)
+check_hostname (void *cls,
+                const struct sockaddr *sa,
+                socklen_t salen)
 {
   int *ok = cls;
 
@@ -46,13 +48,15 @@ check_hostname (void *cls, const struct sockaddr *sa, socklen_t salen)
     (*ok) &= ~8;
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, _("Got IP address `%s' for our host.\n"),
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Got IP address `%s' for our host.\n",
               GNUNET_a2s (sa, salen));
 }
 
 
 static void
-check_localhost_num (void *cls, const char *hostname)
+check_localhost_num (void *cls,
+                     const char *hostname)
 {
   int *ok = cls;
 
@@ -60,13 +64,15 @@ check_localhost_num (void *cls, const char *hostname)
     return;
   if (0 == strcmp (hostname, "127.0.0.1"))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received correct hostname `%s'.\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Received correct hostname `%s'.\n",
                 hostname);
     (*ok) &= ~4;
   }
   else
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Received invalid hostname `%s'.\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Received invalid hostname `%s'.\n",
                 hostname);
     GNUNET_break (0);
   }
@@ -74,7 +80,8 @@ check_localhost_num (void *cls, const char *hostname)
 
 
 static void
-check_localhost (void *cls, const char *hostname)
+check_localhost (void *cls,
+                 const char *hostname)
 {
   int *ok = cls;
 
@@ -82,7 +89,8 @@ check_localhost (void *cls, const char *hostname)
     return;
   if (0 == strcmp (hostname, "localhost"))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received correct hostname `%s'.\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Received correct hostname `%s'.\n",
                 hostname);
     (*ok) &= ~2;
   }
@@ -106,15 +114,20 @@ check_127 (void *cls, const struct sockaddr *sa, socklen_t salen)
   GNUNET_assert (sizeof (struct sockaddr_in) == salen);
   if (sai->sin_addr.s_addr == htonl (INADDR_LOOPBACK))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received correct address.\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Received correct address.\n");
     (*ok) &= ~1;
   }
   else
   {
     char buf[INET_ADDRSTRLEN];
 
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Received incorrect address`%s'.\n",
-		inet_ntop (AF_INET, &sai->sin_addr, buf, sizeof (buf)));
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Received incorrect address `%s'.\n",
+		inet_ntop (AF_INET,
+                           &sai->sin_addr,
+                           buf,
+                           sizeof (buf)));
     GNUNET_break (0);
   }
 }
@@ -134,13 +147,15 @@ check_local_fqdn (void *cls, const char *gnunet_fqdn)
                          "gethostname");
     return;
   }
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, _("Resolving our FQDN `%s'\n"),
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Resolving our FQDN `%s'\n",
               hostname);
   host = gethostbyname (hostname);
   if (NULL == host)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Could not resolve our FQDN: %s %u\n"), hstrerror (h_errno),
+                "Could not resolve our FQDN: %s %u\n",
+                hstrerror (h_errno),
                 h_errno);
     return;
   }
@@ -193,7 +208,8 @@ check_rootserver_name (void *cls, const char *hostname)
   if (0 == strcmp (hostname, ROOTSERVER_NAME))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "Received correct rootserver hostname `%s'.\n", hostname);
+                "Received correct rootserver hostname `%s'.\n",
+                hostname);
     (*ok) &= ~2;
   }
   else
@@ -217,6 +233,9 @@ run (void *cls, char *const *args, const char *cfgfile,
       GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30);
   int count_ips = 0;
   char *own_fqdn;
+  const char *rootserver_name = ROOTSERVER_NAME;
+  struct hostent *rootserver;
+  struct in_addr rootserver_addr;
 
   memset (&sa, 0, sizeof (sa));
   sa.sin_family = AF_INET;
@@ -236,18 +255,17 @@ run (void *cls, char *const *args, const char *cfgfile,
    * Testing non-local DNS resolution
    * DNS rootserver to test: a.root-servers.net - 198.41.0.4
    */
-  const char *rootserver_name = ROOTSERVER_NAME;
-  struct hostent *rootserver;
 
   rootserver = gethostbyname (rootserver_name);
-  if (rootserver == NULL)
+  if (NULL == rootserver)
   {
     /* Error: resolving ip addresses does not work */
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("gethostbyname() could not lookup IP address: %s\n"),
                 hstrerror (h_errno));
     FPRINTF (stderr,
-             "%s", "System seems to be off-line, will not run all DNS tests\n");
+             "%s",
+             "System seems to be off-line, will not run all DNS tests\n");
     *ok = 0;                    /* mark test as passing anyway */
     return;
   }
@@ -263,9 +281,9 @@ run (void *cls, char *const *args, const char *cfgfile,
   }
 
   /* Comparing to resolved address to the address the root name server should have */
-  if (strcmp
-      (inet_ntoa (*(struct in_addr *) rootserver->h_addr_list[0]),
-       ROOTSERVER_IP) != 0)
+  if (0 !=
+      strcmp (inet_ntoa (*(struct in_addr *) rootserver->h_addr_list[0]),
+              ROOTSERVER_IP))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "IP received and IP for root name server differ\n");
@@ -281,11 +299,9 @@ run (void *cls, char *const *args, const char *cfgfile,
    * Success: forward lookups work as expected
    * Next step: reverse lookups
    */
-
-  struct in_addr rootserver_addr;
-
-  rootserver->h_name = "";
-  if (1 != inet_pton (AF_INET, ROOTSERVER_IP, &rootserver_addr))
+  if (1 != inet_pton (AF_INET,
+                      ROOTSERVER_IP,
+                      &rootserver_addr))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Could not transform root name server IP address\n");
@@ -293,7 +309,9 @@ run (void *cls, char *const *args, const char *cfgfile,
   }
 
   rootserver =
-      gethostbyaddr (&rootserver_addr, sizeof (rootserver_addr), AF_INET);
+      gethostbyaddr (&rootserver_addr,
+                     sizeof (rootserver_addr),
+                     AF_INET);
   if (NULL == rootserver)
   {
     /* Error: resolving IP addresses does not work */
