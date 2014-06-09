@@ -55,12 +55,13 @@ struct GNUNET_TRANSPORT_AddressToStringContext
 /**
  * Function called with responses from the service.
  *
- * @param cls our 'struct GNUNET_TRANSPORT_AddressToStringContext*'
+ * @param cls our `struct GNUNET_TRANSPORT_AddressToStringContext *`
  * @param msg NULL on timeout or error, otherwise presumably a
  *        message with the human-readable address
  */
 static void
-address_response_processor (void *cls, const struct GNUNET_MessageHeader *msg)
+address_response_processor (void *cls,
+                            const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_TRANSPORT_AddressToStringContext *alucb = cls;
   struct AddressToStringResultMessage *atsm;
@@ -70,9 +71,11 @@ address_response_processor (void *cls, const struct GNUNET_MessageHeader *msg)
   uint32_t addr_len;
   char *empty_str = "";
 
-  if (msg == NULL)
+  if (NULL == msg)
   {
-    alucb->cb (alucb->cb_cls, NULL, GNUNET_OK);
+    alucb->cb (alucb->cb_cls,
+               NULL,
+               GNUNET_OK);
     GNUNET_CLIENT_disconnect (alucb->client);
     GNUNET_free (alucb);
     return;

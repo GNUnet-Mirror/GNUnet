@@ -285,9 +285,10 @@ typedef void
  * @param cls closure
  * @param address NULL on error or end of iteration,
  *        otherwise 0-terminated printable UTF-8 string
- * @param res result of the address to string conversion: GNUNET_OK or GNUNET_SYSERR
- *        if GNUNET_OK: address contains address as string
- *        if GNUNET_SYSERR: address is invalid
+ * @param res result of the address to string conversion:
+ *        if #GNUNET_OK: address was valid (conversion to
+ *                       string might still have failed)
+ *        if #GNUNET_SYSERR: address is invalid
  */
 typedef void
 (*GNUNET_TRANSPORT_AddressToStringCallback) (void *cls,

@@ -261,13 +261,17 @@ dump_pc (struct PrintContext *pc)
  *
  * @param cls closure
  * @param address NULL on error, otherwise 0-terminated printable UTF-8 string
+ * @param res result of the address to string conversion:
+ *        if #GNUNET_OK: address was valid (conversion to
+ *                       string might still have failed)
+ *        if #GNUNET_SYSERR: address is invalid
  */
 static void
 process_resolved_address (void *cls,
                           const char *address,
                           int res)
 {
-  struct AddressRecord * ar = cls;
+  struct AddressRecord *ar = cls;
   struct PrintContext *pc = ar->pc;
 
   if (NULL != address)
@@ -276,7 +280,6 @@ process_resolved_address (void *cls,
       ar->result = GNUNET_strdup (address);
     return;
   }
-
   ar->atsc = NULL;
   if (GNUNET_SYSERR == res)
   {
@@ -328,6 +331,7 @@ print_address (void *cls,
 {
   struct PrintContext *pc = cls;
   struct AddressRecord *ar;
+
   GNUNET_assert (0 < pc->off);
   ar = &pc->address_list[--pc->off];
   ar->pc = pc;
@@ -376,7 +380,8 @@ print_peer_info (void *cls,
   friend_only = GNUNET_NO;
   if (NULL != hello)
   	friend_only = GNUNET_HELLO_is_friend_only (hello);
-  if ((GNUNET_YES == be_quiet) || (NULL == hello))
+  if ( (GNUNET_YES == be_quiet) ||
+       (NULL == hello) )
   {
     printf ("%s%s\n",
 	    (GNUNET_YES == friend_only) ? "F2F: " : "",
@@ -400,8 +405,10 @@ print_peer_info (void *cls,
   }
   pc->address_list_size = pc->off;
   pc->address_list = GNUNET_malloc (sizeof (struct AddressRecord) * pc->off);
-  GNUNET_HELLO_iterate_addresses (hello, GNUNET_NO,
-				  &print_address, pc);
+  GNUNET_HELLO_iterate_addresses (hello,
+                                  GNUNET_NO,
+				  &print_address,
+                                  pc);
 }
 
 /* ************************* DUMP Hello  ************************** */
@@ -427,7 +434,7 @@ count_addr (void *cls,
 
 
 /**
- * Write Hello of my peer to a file.
+ * Write HELLO of my peer to a file.
  *
  * @param cls the `struct GetUriContext *`
  * @param peer identity of the peer (unused)
