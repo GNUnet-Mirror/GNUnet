@@ -152,7 +152,7 @@ gethostbyaddr_resolve (struct IPCache *cache)
   ent = gethostbyaddr (cache->ip,
 		       cache->ip_len,
 		       cache->af);
-  if (ent != NULL)
+  if (NULL != ent)
     cache->addr = GNUNET_strdup (ent->h_name);
 }
 #endif
@@ -167,11 +167,11 @@ static void
 cache_resolve (struct IPCache *cache)
 {
 #if HAVE_GETNAMEINFO
-  if (cache->addr == NULL)
+  if (NULL == cache->addr)
     getnameinfo_resolve (cache);
 #endif
 #if HAVE_GETHOSTBYADDR
-  if (cache->addr == NULL)
+  if (NULL == cache->addr)
     gethostbyaddr_resolve (cache);
 #endif
 }

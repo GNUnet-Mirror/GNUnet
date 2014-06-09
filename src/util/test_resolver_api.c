@@ -27,6 +27,9 @@
 #include "resolver.h"
 
 
+static int disable_rootserver_check;
+
+
 /**
  * Using DNS root servers to check gnunet's resolver service
  * a.root-servers.net <-> 198.41.0.4 is a fix 1:1 mapping that should not change over years
@@ -198,7 +201,8 @@ check_rootserver_ip (void *cls, const struct sockaddr *sa, socklen_t salen)
 
 
 static void
-check_rootserver_name (void *cls, const char *hostname)
+check_rootserver_name (void *cls,
+                       const char *hostname)
 {
   int *ok = cls;
 
@@ -214,11 +218,11 @@ check_rootserver_name (void *cls, const char *hostname)
   }
   else
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "Received invalid rootserver hostname `%s', expected `%s'\n",
                 hostname,
                 ROOTSERVER_NAME);
-    GNUNET_break (0);
+    GNUNET_break (disable_rootserver_check);
   }
 }
 
@@ -271,7 +275,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   }
 
   /* Counting returned IP addresses */
-  while (rootserver->h_addr_list[count_ips] != NULL)
+  while (NULL != rootserver->h_addr_list[count_ips])
     count_ips++;
   if (count_ips > 1)
   {
@@ -315,18 +319,19 @@ run (void *cls, char *const *args, const char *cfgfile,
   if (NULL == rootserver)
   {
     /* Error: resolving IP addresses does not work */
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "gethostbyaddr() could not lookup hostname: %s\n",
                 hstrerror (h_errno));
-    GNUNET_break (0);
+    disable_rootserver_check = GNUNET_YES;
   }
   else
   {
-    if (0 != strcmp (rootserver->h_name, ROOTSERVER_NAME))
+    if (0 != strcmp (rootserver->h_name,
+                     ROOTSERVER_NAME))
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                   "Received hostname and hostname for root name server differ\n");
-      GNUNET_break (0);
+      disable_rootserver_check = GNUNET_YES;
     }
   }
 
