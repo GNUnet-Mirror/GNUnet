@@ -278,10 +278,7 @@ GNUNET_STRINGS_get_short_name (const char *filename);
 
 
 /**
- * Convert binary data to ASCII encoding.  The ASCII encoding is rather
- * GNUnet specific.  It was chosen such that it only uses characters
- * in [0-9A-V], can be produced without complex arithmetics and uses a
- * small number of characters.  The GNUnet encoding uses 103 characters.
+ * Convert binary data to ASCII encoding using Base32Hex (RFC 4648).
  * Does not append 0-terminator, but returns a pointer to the place where
  * it should be placed, if needed.
  *
@@ -300,8 +297,8 @@ GNUNET_STRINGS_data_to_string (const void *data,
 
 
 /**
- * Convert ASCII encoding back to data
- * out_size must match exactly the size of the data before it was encoded.
+ * Convert Base32hex encoding back to data.
+ * @a out_size must match exactly the size of the data before it was encoded.
  *
  * @param enc the encoding
  * @param enclen number of characters in 'enc' (without 0-terminator, which can be missing)
