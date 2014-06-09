@@ -207,18 +207,24 @@ http_common_plugin_address_pretty_printer (void *cls,
                                            void *asc_cls)
 {
   const struct HttpAddress *address = addr;
+  const char *ret;
 
-  if (NULL
-      == http_common_plugin_address_to_string (NULL, type, address, addrlen))
-    asc (asc_cls, NULL, GNUNET_SYSERR);
-  else
-    asc (asc_cls,
-        http_common_plugin_address_to_string (NULL, type, address, addrlen),
-        GNUNET_OK);
-  asc (asc_cls, NULL, GNUNET_OK);
+  ret = http_common_plugin_address_to_string (NULL,
+                                              type,
+                                              address,
+                                              addrlen);
+  asc (asc_cls,
+       NULL,
+       (NULL == ret) ? GNUNET_SYSERR : GNUNET_OK);
+  asc (asc_cls,
+       NULL,
+       GNUNET_OK);
 }
 
 
+/**
+ * FIXME.
+ */
 const char *
 http_common_plugin_address_to_url (void *cls,
                                    const void *addr,

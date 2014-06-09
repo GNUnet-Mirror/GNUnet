@@ -1073,7 +1073,9 @@ create_macendpoint (struct Plugin *plugin, struct WlanAddress *mac)
     if (0 == memcmp (mac, &pos->wlan_addr, sizeof (pos->wlan_addr)))
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG, "Found existing MAC endpoint `%s'\n",
-        wlan_plugin_address_to_string(NULL, &pos->wlan_addr.mac, sizeof (pos->wlan_addr)));
+        wlan_plugin_address_to_string (NULL,
+                                       &pos->wlan_addr.mac,
+                                       sizeof (pos->wlan_addr)));
       return pos;
     }
   }
@@ -1097,8 +1099,11 @@ create_macendpoint (struct Plugin *plugin, struct WlanAddress *mac)
   plugin->mac_count++;
   GNUNET_STATISTICS_update (plugin->env->stats, _("# WLAN MAC endpoints allocated"),
 			    1, GNUNET_NO);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "New MAC endpoint `%s'\n",
-       wlan_plugin_address_to_string(NULL, &pos->wlan_addr, sizeof (struct WlanAddress)));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "New MAC endpoint `%s'\n",
+       wlan_plugin_address_to_string (NULL,
+                                      &pos->wlan_addr,
+                                      sizeof (struct WlanAddress)));
   return pos;
 }
 
@@ -1144,7 +1149,9 @@ wlan_plugin_get_session (void *cls,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Service asked to create session for peer `%s' with MAC `%s'\n",
        GNUNET_i2s (&address->peer),
-       wlan_plugin_address_to_string(NULL, address->address, address->address_length));
+       wlan_plugin_address_to_string (NULL,
+                                      address->address,
+                                      address->address_length));
   endpoint = create_macendpoint (plugin, (struct WlanAddress *) address->address);
   return get_session (endpoint, &address->peer);
 }
@@ -1295,8 +1302,9 @@ process_data (void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
 	 "Processing %u bytes of HELLO from peer `%s' at MAC %s\n",
 	 (unsigned int) msize,
 	 GNUNET_i2s (&tmpsource),
-	 wlan_plugin_address_to_string (NULL, &mas->endpoint->wlan_addr,
-	     sizeof (mas->endpoint->wlan_addr)));
+	 wlan_plugin_address_to_string (NULL,
+                                        &mas->endpoint->wlan_addr,
+                                        sizeof (mas->endpoint->wlan_addr)));
 
     GNUNET_STATISTICS_update (plugin->env->stats,
 			      _("# HELLO messages received via WLAN"), 1,
@@ -1320,8 +1328,9 @@ process_data (void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
     LOG (GNUNET_ERROR_TYPE_DEBUG,
 	 "Processing %u bytes of FRAGMENT from MAC %s\n",
 	 (unsigned int) msize,
-	 wlan_plugin_address_to_string (NULL, &mas->endpoint->wlan_addr,
-	     sizeof (mas->endpoint->wlan_addr)));
+	 wlan_plugin_address_to_string (NULL,
+                                        &mas->endpoint->wlan_addr,
+                                        sizeof (mas->endpoint->wlan_addr)));
     GNUNET_STATISTICS_update (plugin->env->stats,
                               _("# fragments received via WLAN"), 1, GNUNET_NO);
     (void) GNUNET_DEFRAGMENT_process_fragment (mas->endpoint->defrag,
@@ -1342,8 +1351,9 @@ process_data (void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
       {
         LOG (GNUNET_ERROR_TYPE_DEBUG,
 	     "Got last ACK, finished message transmission to `%s' (%p)\n",
-             wlan_plugin_address_to_string (NULL, &mas->endpoint->wlan_addr,
-                 sizeof (mas->endpoint->wlan_addr)),
+             wlan_plugin_address_to_string (NULL,
+                                            &mas->endpoint->wlan_addr,
+                                            sizeof (mas->endpoint->wlan_addr)),
 	     fm);
 	mas->endpoint->timeout = GNUNET_TIME_relative_to_absolute (MACENDPOINT_TIMEOUT);
 	if (NULL != fm->cont)
@@ -1358,15 +1368,17 @@ process_data (void *cls, void *client, const struct GNUNET_MessageHeader *hdr)
       {
         LOG (GNUNET_ERROR_TYPE_DEBUG,
 	     "Got an ACK, message transmission to `%s' not yet finished\n",
-             wlan_plugin_address_to_string (NULL, &mas->endpoint->wlan_addr,
-                 sizeof (mas->endpoint->wlan_addr)));
+             wlan_plugin_address_to_string (NULL,
+                                            &mas->endpoint->wlan_addr,
+                                            sizeof (mas->endpoint->wlan_addr)));
         break;
       }
     }
     LOG (GNUNET_ERROR_TYPE_DEBUG,
 	 "ACK not matched against any active fragmentation with MAC `%s'\n",
-         wlan_plugin_address_to_string (NULL, &mas->endpoint->wlan_addr,
-             sizeof (mas->endpoint->wlan_addr)));
+         wlan_plugin_address_to_string (NULL,
+                                        &mas->endpoint->wlan_addr,
+                                        sizeof (mas->endpoint->wlan_addr)));
     break;
   case GNUNET_MESSAGE_TYPE_WLAN_DATA:
     if (NULL == mas->endpoint)
@@ -1681,7 +1693,9 @@ wlan_plugin_address_suggested (void *cls, const void *addr, size_t addrlen)
  * @return string representing the same address
  */
 static const char *
-wlan_plugin_address_to_string (void *cls, const void *addr, size_t addrlen)
+wlan_plugin_address_to_string (void *cls,
+                               const void *addr,
+                               size_t addrlen)
 {
   const struct GNUNET_TRANSPORT_WLAN_MacAddress *mac;
   static char macstr[36];
@@ -1692,9 +1706,12 @@ wlan_plugin_address_to_string (void *cls, const void *addr, size_t addrlen)
     return NULL;
   }
   mac = &((struct WlanAddress *) addr)->mac;
-  GNUNET_snprintf (macstr, sizeof (macstr), "%s.%u.%s",
-  		PLUGIN_NAME, ntohl (((struct WlanAddress *) addr)->options),
-  		mac_to_string (mac));
+  GNUNET_snprintf (macstr,
+                   sizeof (macstr),
+                   "%s.%u.%s",
+                   PLUGIN_NAME,
+                   ntohl (((struct WlanAddress *) addr)->options),
+                   mac_to_string (mac));
   return macstr;
 }
 
@@ -1710,29 +1727,29 @@ wlan_plugin_address_to_string (void *cls, const void *addr, size_t addrlen)
  * @param numeric should (IP) addresses be displayed in numeric form?
  * @param timeout after how long should we give up?
  * @param asc function to call on each string
- * @param asc_cls closure for asc
+ * @param asc_cls closure for @a asc
  */
 static void
-wlan_plugin_address_pretty_printer (void *cls, const char *type,
-                                    const void *addr, size_t addrlen,
+wlan_plugin_address_pretty_printer (void *cls,
+                                    const char *type,
+                                    const void *addr,
+                                    size_t addrlen,
                                     int numeric,
                                     struct GNUNET_TIME_Relative timeout,
                                     GNUNET_TRANSPORT_AddressStringCallback asc,
                                     void *asc_cls)
 {
-  char *ret;
+  const char *ret;
 
-  if (sizeof (struct WlanAddress) != addrlen)
-  {
-    /* invalid address  */
-    asc (asc_cls, NULL, GNUNET_SYSERR);
-  }
+  if (sizeof (struct WlanAddress) == addrlen)
+    ret = wlan_plugin_address_to_string (NULL,
+                                         addr,
+                                         addrlen);
   else
-  {
-    ret = GNUNET_strdup (wlan_plugin_address_to_string(NULL, addr, addrlen));
-    asc (asc_cls, ret, GNUNET_OK);
-    GNUNET_free (ret);
-  }
+    ret = NULL;
+  asc (asc_cls,
+       ret,
+       (NULL == ret) ? GNUNET_SYSERR : GNUNET_OK);
   asc (asc_cls, NULL, GNUNET_OK);
 }
 
@@ -1815,13 +1832,13 @@ libgnunet_plugin_transport_wlan_done (void *cls)
  * Function called to convert a string address to
  * a binary address.
  *
- * @param cls closure ('struct Plugin*')
+ * @param cls closure (`struct Plugin *`)
  * @param addr string address
  * @param addrlen length of the address
  * @param buf location to store the buffer
  * @param added location to store the number of bytes in the buffer.
- *        If the function returns GNUNET_SYSERR, its contents are undefined.
- * @return GNUNET_OK on success, GNUNET_SYSERR on failure
+ *        If the function returns #GNUNET_SYSERR, its contents are undefined.
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
  */
 static int
 wlan_string_to_address (void *cls, const char *addr, uint16_t addrlen,

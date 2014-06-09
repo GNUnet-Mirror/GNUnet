@@ -64,9 +64,9 @@ GNUNET_NETWORK_STRUCT_BEGIN
 
 struct UnixAddress
 {
-	uint32_t options GNUNET_PACKED;
+  uint32_t options GNUNET_PACKED;
 
-	uint32_t addrlen GNUNET_PACKED;
+  uint32_t addrlen GNUNET_PACKED;
 };
 
 
@@ -340,6 +340,7 @@ reschedule_session_timeout (struct Session *s);
 static void
 unix_plugin_select (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
 
+
 static struct sockaddr_un *
 unix_address_to_sockaddr (const char *unixpath,
                           socklen_t *sock_len)
@@ -372,11 +373,13 @@ unix_address_to_sockaddr (const char *unixpath,
  *
  * @param cls closure
  * @param addr binary address
- * @param addrlen length of the address
+ * @param addrlen length of the @a addr
  * @return string representing the same address
  */
 static const char *
-unix_address_to_string (void *cls, const void *addr, size_t addrlen)
+unix_address_to_string (void *cls,
+                        const void *addr,
+                        size_t addrlen)
 {
   static char rbuf[1024];
   struct UnixAddress *ua = (struct UnixAddress *) addr;
@@ -387,7 +390,7 @@ unix_address_to_string (void *cls, const void *addr, size_t addrlen)
   if ((NULL == addr) || (sizeof (struct UnixAddress) > addrlen))
   {
     GNUNET_break(0);
-    return NULL ;
+    return NULL;
   }
   addrstr = (char *) &ua[1];
   addr_str_len = ntohl (ua->addrlen);
@@ -395,37 +398,34 @@ unix_address_to_string (void *cls, const void *addr, size_t addrlen)
   if (addr_str_len != addrlen - sizeof(struct UnixAddress))
   {
     GNUNET_break(0);
-    return NULL ;
+    return NULL;
   }
 
   if ('\0' != addrstr[addr_str_len - 1])
   {
     GNUNET_break(0);
-    return NULL ;
+    return NULL;
   }
   if (strlen (addrstr) + 1 != addr_str_len)
   {
     GNUNET_break(0);
-    return NULL ;
+    return NULL;
   }
 
   off = 0;
   if ('\0' == addrstr[0])
     off++;
   memset (rbuf, 0, sizeof (rbuf));
-  GNUNET_snprintf (rbuf, sizeof (rbuf) - 1, "%s.%u.%s%.*s",
-      PLUGIN_NAME,
-      ntohl (ua->options),
-      (off == 1) ? "@" : "",
-            (int) (addr_str_len - off),
-            &addrstr[off]);
-/*
-  GNUNET_snprintf (rbuf, sizeof(rbuf), "%s.%u.%s", PLUGIN_NAME,
-      ntohl (ua->options), addrstr);*/
+  GNUNET_snprintf (rbuf,
+                   sizeof (rbuf) - 1,
+                   "%s.%u.%s%.*s",
+                   PLUGIN_NAME,
+                   ntohl (ua->options),
+                   (off == 1) ? "@" : "",
+                   (int) (addr_str_len - off),
+                   &addrstr[off]);
   return rbuf;
 }
-
-
 
 
 /**
@@ -547,7 +547,9 @@ unix_session_disconnect (void *cls,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Disconnecting session for peer `%s' `%s'\n",
        GNUNET_i2s (&s->target),
-       unix_address_to_string (NULL, s->address->address, s->address->address_length) );
+       unix_address_to_string (NULL,
+                               s->address->address,
+                               s->address->address_length));
   plugin->env->session_end (plugin->env->cls, s->address, s);
   removed = GNUNET_NO;
   next = plugin->msg_head;
@@ -870,7 +872,8 @@ unix_plugin_get_session (void *cls,
 					      &get_session_it, &gsi);
   if (NULL != gsi.res)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Found existing session %p for address `%s'\n",
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Found existing session %p for address `%s'\n",
 	 gsi.res,
 	 unix_address_to_string (NULL, address->address, address->address_length));
     return gsi.res;
@@ -887,7 +890,10 @@ unix_plugin_get_session (void *cls,
 						  s);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Creating a new session %p for address `%s'\n",
-       s,  unix_address_to_string (NULL, address->address, address->address_length));
+       s,
+       unix_address_to_string (NULL,
+                               address->address,
+                               address->address_length));
   (void) GNUNET_CONTAINER_multipeermap_put (plugin->session_map,
 					    &address->peer, s,
 					    GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
@@ -961,8 +967,9 @@ unix_plugin_send (void *cls,
     LOG (GNUNET_ERROR_TYPE_ERROR,
 	 "Invalid session for peer `%s' `%s'\n",
 	 GNUNET_i2s (&session->target),
-	 unix_address_to_string(NULL, session->address->address,
-	     session->address->address_length));
+	 unix_address_to_string(NULL,
+                                session->address->address,
+                                session->address->address_length));
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
@@ -970,8 +977,9 @@ unix_plugin_send (void *cls,
        "Sending %u bytes with session for peer `%s' `%s'\n",
        msgbuf_size,
        GNUNET_i2s (&session->target),
-       unix_address_to_string(NULL, session->address->address,
-                  session->address->address_length));
+       unix_address_to_string (NULL,
+                               session->address->address,
+                               session->address->address_length));
   ssize = sizeof (struct UNIXMessage) + msgbuf_size;
   message = GNUNET_malloc (sizeof (struct UNIXMessage) + msgbuf_size);
   message->header.size = htons (ssize);
@@ -1024,7 +1032,7 @@ unix_demultiplexer (struct Plugin *plugin, struct GNUNET_PeerIdentity *sender,
   GNUNET_assert (ua_len >= sizeof (struct UnixAddress));
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Received message from %s\n",
-       unix_address_to_string(NULL, ua, ua_len));
+       unix_address_to_string (NULL, ua, ua_len));
   GNUNET_STATISTICS_update (plugin->env->stats,
 			    "# bytes received via UNIX",
 			    ntohs (currhdr->size),
@@ -1419,12 +1427,17 @@ unix_plugin_address_pretty_printer (void *cls, const char *type,
                                     GNUNET_TRANSPORT_AddressStringCallback asc,
                                     void *asc_cls)
 {
-  if ((NULL != addr) && (addrlen > 0))
-  {
-    asc (asc_cls, unix_address_to_string (NULL, addr, addrlen), GNUNET_OK);
-  }
+  const char *ret;
+
+  if ( (NULL != addr) && (addrlen > 0))
+    ret = unix_address_to_string (NULL,
+                                  addr,
+                                  addrlen);
   else
-    asc (asc_cls, NULL, GNUNET_SYSERR);
+    ret = NULL;
+  asc (asc_cls,
+       ret,
+       (NULL == ret) ? GNUNET_SYSERR : GNUNET_OK);
   asc (asc_cls, NULL, GNUNET_OK);
 }
 
@@ -1433,7 +1446,7 @@ unix_plugin_address_pretty_printer (void *cls, const char *type,
  * Function called to convert a string address to
  * a binary address.
  *
- * @param cls closure ('struct Plugin*')
+ * @param cls closure (`struct Plugin *`)
  * @param addr string address
  * @param addrlen length of the @a addr (strlen(addr) + '\0')
  * @param buf location to store the buffer
@@ -1573,7 +1586,7 @@ reschedule_session_timeout (struct Session *s)
  *
  * @param cls the plugin
  * @param key peer identity (unused)
- * @param value the 'struct Session' to disconnect
+ * @param value the `struct Session *` to disconnect
  * @return #GNUNET_YES (always, continue to iterate)
  */
 static int

@@ -1190,20 +1190,25 @@ client_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         {
             if  ((0 != msg->data.result) || (http_statuscode != 200))
             {
-                GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                  "Session %p/connection %p: PUT connection to `%s' ended with status %i reason %i: `%s'\n",
-                  s, msg->easy_handle, GNUNET_i2s (&s->target),
-                  http_statuscode,
-                  msg->data.result,
-                  curl_easy_strerror (msg->data.result));
+                GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+                                 plugin->name,
+                                 "Session %p/connection %p: PUT connection to `%s' ended with status %i reason %i: `%s'\n",
+                                 s, msg->easy_handle,
+                                 GNUNET_i2s (&s->target),
+                                 http_statuscode,
+                                 msg->data.result,
+                                 curl_easy_strerror (msg->data.result));
             }
             else
-              GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                "Session %p/connection %p: PUT connection to `%s' ended normal\n",
-                s, msg->easy_handle, GNUNET_i2s (&s->target));
-            if (s->client_get == NULL)
+              GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+                               plugin->name,
+                               "Session %p/connection %p: PUT connection to `%s' ended normal\n",
+                               s, msg->easy_handle,
+                               GNUNET_i2s (&s->target));
+            if (NULL == s->client_get)
             {
               /* Disconnect other transmission direction and tell transport */
+              /* FIXME? */
             }
             curl_multi_remove_handle (plugin->curl_multi_handle, easy_h);
             curl_easy_cleanup (easy_h);

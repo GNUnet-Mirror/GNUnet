@@ -854,64 +854,76 @@ clients_handle_request_connect (void *cls, struct GNUNET_SERVER_Client *client,
 
 /**
  * Take the given address and append it to the set of results sent back to
- * the client.
+ * the client.  This function may be called serveral times for a single
+ * conversion.   The last invocation will be with a @a address of
+ * NULL and a @a res of #GNUNET_OK.  Thus, to indicate conversion
+ * errors, the callback might be called first with @a address NULL and
+ * @a res being #GNUNET_SYSERR.  In that case, there will still be a
+ * subsequent call later with @a address NULL and @a res #GNUNET_OK.
  *
- * @param cls the transmission context used ('struct GNUNET_SERVER_TransmitContext*')
- * @param buf text to transmit
- * @param res GNUNET_OK if conversion was successful, GNUNET_SYSERR on error
+ * @param cls the transmission context used (`struct GNUNET_SERVER_TransmitContext *`)
+ * @param buf text to transmit (contains the human-readable address, or NULL)
+ * @param res #GNUNET_OK if conversion was successful, #GNUNET_SYSERR on error,
+ *            never #GNUNET_NO
  */
 static void
-transmit_address_to_client (void *cls, const char *buf, int res)
+transmit_address_to_client (void *cls,
+                            const char *buf,
+                            int res)
 {
   struct AddressToStringContext *actx = cls;
   struct AddressToStringResultMessage *atsm;
   size_t len;
+  size_t slen;
 
+  GNUNET_assert ( (GNUNET_OK == res) ||
+                  (GNUNET_SYSERR == res) );
   if (NULL == buf)
   {
-    GNUNET_assert ((res == GNUNET_OK) ||  (res == GNUNET_SYSERR));
-
     len = sizeof (struct AddressToStringResultMessage);
     atsm = GNUNET_malloc (len);
     atsm->header.size = ntohs (len);
     atsm->header.type = ntohs (GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_TO_STRING_REPLY);
-
     if (GNUNET_OK == res)
     {
-      /* done, transmit */
-      atsm->res = htonl (GNUNET_YES);
+      /* this was the last call, transmit */
+      atsm->res = htonl (GNUNET_OK);
       atsm->addr_len = htonl (0);
       GNUNET_SERVER_transmit_context_append_message (actx->tc,
-          (const struct GNUNET_MessageHeader *) atsm);
-
-      GNUNET_SERVER_transmit_context_run (actx->tc, GNUNET_TIME_UNIT_FOREVER_REL);
-      GNUNET_CONTAINER_DLL_remove (a2s_head, a2s_tail, actx);
+                                                     (const struct GNUNET_MessageHeader *) atsm);
+      GNUNET_SERVER_transmit_context_run (actx->tc,
+                                          GNUNET_TIME_UNIT_FOREVER_REL);
+      GNUNET_CONTAINER_DLL_remove (a2s_head,
+                                   a2s_tail,
+                                   actx);
       GNUNET_free (actx);
     }
     if (GNUNET_SYSERR == res)
     {
-      /* address conversion failed */
-
-      atsm->res = htonl (GNUNET_NO);
+      /* address conversion failed, but there will be more callbacks */
+      atsm->res = htonl (GNUNET_SYSERR);
       atsm->addr_len = htonl (0);
       GNUNET_SERVER_transmit_context_append_message (actx->tc,
-          (const struct GNUNET_MessageHeader *) atsm);
+                                                     (const struct GNUNET_MessageHeader *) atsm);
       GNUNET_free (atsm);
     }
   }
   else
   {
-    GNUNET_assert (res == GNUNET_OK);
+    GNUNET_assert (GNUNET_OK == res);
     /* succesful conversion, append*/
-    len = sizeof (struct AddressToStringResultMessage) + strlen (buf) + 1;
+    slen = strlen (buf) + 1;
+    len = sizeof (struct AddressToStringResultMessage) + slen;
     atsm = GNUNET_malloc (len);
     atsm->header.size = ntohs (len);
     atsm->header.type = ntohs (GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_TO_STRING_REPLY);
     atsm->res = htonl (GNUNET_YES);
-    atsm->addr_len = htonl (strlen (buf) + 1);
-    memcpy (&atsm[1], buf, strlen (buf) + 1);
+    atsm->addr_len = htonl (slen);
+    memcpy (&atsm[1],
+            buf,
+            slen);
     GNUNET_SERVER_transmit_context_append_message (actx->tc,
-        (const struct GNUNET_MessageHeader *) atsm);
+                                                   (const struct GNUNET_MessageHeader *) atsm);
     GNUNET_free (atsm);
   }
 }
@@ -983,8 +995,12 @@ clients_handle_address_to_string (void *cls,
   actx->tc = tc;
   GNUNET_CONTAINER_DLL_insert (a2s_head, a2s_tail, actx);
   GNUNET_SERVER_disable_receive_done_warning (client);
-  papi->address_pretty_printer (papi->cls, plugin_name, address, address_len,
-                                numeric, rtimeout, &transmit_address_to_client,
+  papi->address_pretty_printer (papi->cls,
+                                plugin_name,
+                                address, address_len,
+                                numeric,
+                                rtimeout,
+                                &transmit_address_to_client,
                                 actx);
 }
 

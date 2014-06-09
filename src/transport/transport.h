@@ -278,29 +278,30 @@ struct SendOkMessage
 
 /**
  * Message used to notify the transport API about an address to string
- * conversion. Message is followed by the string with length strlen
+ * conversion. Message is followed by the string with the humand-readable
+ * address.  For each lookup, multiple results may be returned.  The
+ * last message must have a @e res of #GNUNET_OK and an @e addr_len
+ * of zero.
  */
 struct AddressToStringResultMessage
 {
 
   /**
-   * Type will be GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_OK
+   * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_TO_STRING_REPLY
    */
   struct GNUNET_MessageHeader header;
 
   /**
-   * GNUNET_OK if the conversion succeeded,
-   * GNUNET_SYSERR if it failed
+   * #GNUNET_OK if the conversion succeeded,
+   * #GNUNET_SYSERR if it failed
    */
   uint32_t res GNUNET_PACKED;
 
   /**
-   * Length of the following string
+   * Length of the following string, zero if @e is #GNUNET_SYSERR
    */
   uint32_t addr_len GNUNET_PACKED;
 };
-
-
 
 
 /**
@@ -342,7 +343,7 @@ struct AddressLookupMessage
 {
 
   /**
-   * Type will be GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_TO_STRING
+   * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_TO_STRING
    */
   struct GNUNET_MessageHeader header;
 
@@ -358,11 +359,11 @@ struct AddressLookupMessage
   uint16_t addrlen GNUNET_PACKED;
 
   /**
-   * timeout to give up.
+   * timeout to give up (for DNS resolution timeout mostly)
    */
   struct GNUNET_TIME_RelativeNBO timeout;
 
-  /* followed by 'addrlen' bytes of the actual address, then
+  /* followed by @e addrlen bytes of the actual address, then
    * followed by the 0-terminated name of the transport */
 };
 
@@ -414,10 +415,19 @@ struct ValidationIterateResponseMessage
    */
   uint32_t state GNUNET_PACKED;
 
+  /**
+   * FIXME
+   */
   struct GNUNET_TIME_AbsoluteNBO last_validation;
 
+  /**
+   * FIXME
+   */
   struct GNUNET_TIME_AbsoluteNBO valid_until;
 
+  /**
+   * FIXME
+   */
   struct GNUNET_TIME_AbsoluteNBO next_validation;
 };
 
@@ -476,7 +486,7 @@ struct PeerMonitorMessage
 struct TrafficMetricMessage
 {
   /**
-   * Type will be GNUNET_MESSAGE_TYPE_TRANSPORT_TRAFFIC_METRIC
+   * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_TRAFFIC_METRIC
    */
   struct GNUNET_MessageHeader header;
 
@@ -535,7 +545,7 @@ struct PeerIterateResponseMessage
   uint32_t local_address_info GNUNET_PACKED;
 
   /**
-   * State this peer is in as #GNUNET_TRANSPORT_PeerState enumeration element
+   * State this peer is in as an `enum GNUNET_TRANSPORT_PeerState`
    */
   uint32_t state GNUNET_PACKED;
 
@@ -560,13 +570,13 @@ struct BlacklistMessage
 {
 
   /**
-   * Type will be GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_QUERY or
-   * GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_REPLY.
+   * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_QUERY or
+   * #GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_REPLY.
    */
   struct GNUNET_MessageHeader header;
 
   /**
-   * 0 for the query, GNUNET_OK (allowed) or GNUNET_SYSERR (disallowed)
+   * 0 for the query, #GNUNET_OK (allowed) or #GNUNET_SYSERR (disallowed)
    * for the response.
    */
   uint32_t is_allowed GNUNET_PACKED;

@@ -277,18 +277,20 @@ typedef void
 
 
 /**
- * Function to call with a textual representation of an address.
- * This function will be called several times with different possible
- * textual representations, and a last time with NULL to signal the end
- * of the iteration.
+ * Function to call with a textual representation of an address.  This
+ * function will be called several times with different possible
+ * textual representations, and a last time with @address being NULL
+ * to signal the end of the iteration.  Note that @address NULL
+ * always is the last call, regardless of the value in @a res.
  *
  * @param cls closure
- * @param address NULL on error or end of iteration,
- *        otherwise 0-terminated printable UTF-8 string
+ * @param address NULL on end of iteration,
+ *        otherwise 0-terminated printable UTF-8 string,
+ *        in particular an empty string if @a res is #GNUNET_NO
  * @param res result of the address to string conversion:
- *        if #GNUNET_OK: address was valid (conversion to
- *                       string might still have failed)
- *        if #GNUNET_SYSERR: address is invalid
+ *        if #GNUNET_OK: conversion successful
+ *        if #GNUNET_NO: address was invalid (or not supported)
+ *        if #GNUNET_SYSERR: communication error (IPC error)
  */
 typedef void
 (*GNUNET_TRANSPORT_AddressToStringCallback) (void *cls,

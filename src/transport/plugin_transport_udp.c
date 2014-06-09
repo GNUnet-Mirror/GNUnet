@@ -75,7 +75,7 @@ static struct PrettyPrinterContext *ppc_dll_tail;
 
 
 /**
- * Closure for 'append_port'.
+ * Closure for #append_port().
  */
 struct PrettyPrinterContext
 {
@@ -717,23 +717,6 @@ udp_string_to_address (void *cls,
 }
 
 
-static void
-ppc_cancel_task (void *cls,
-                 const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct PrettyPrinterContext *ppc = cls;
-
-  ppc->timeout_task = GNUNET_SCHEDULER_NO_TASK;
-  if (NULL != ppc->resolver_handle)
-  {
-    GNUNET_RESOLVER_request_cancel (ppc->resolver_handle);
-    ppc->resolver_handle = NULL;
-  }
-  GNUNET_CONTAINER_DLL_remove(ppc_dll_head, ppc_dll_tail, ppc);
-  GNUNET_free(ppc);
-}
-
-
 /**
  * Append our port and forward the result.
  *
@@ -744,37 +727,39 @@ static void
 append_port (void *cls, const char *hostname)
 {
   struct PrettyPrinterContext *ppc = cls;
-  struct PrettyPrinterContext *cur;
   char *ret;
 
-  if (hostname == NULL )
+  if (NULL == hostname)
   {
-    ppc->asc (ppc->asc_cls, NULL, GNUNET_OK); /* Final call, done */
-    GNUNET_CONTAINER_DLL_remove(ppc_dll_head, ppc_dll_tail, ppc);
-    GNUNET_SCHEDULER_cancel (ppc->timeout_task);
-    ppc->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    /* Final call, done */
+    ppc->asc (ppc->asc_cls,
+              NULL,
+              GNUNET_OK);
+    GNUNET_CONTAINER_DLL_remove (ppc_dll_head,
+                                 ppc_dll_tail,
+                                 ppc);
     ppc->resolver_handle = NULL;
-    GNUNET_free(ppc);
+    GNUNET_free (ppc);
     return;
   }
-  for (cur = ppc_dll_head; (NULL != cur); cur = cur->next)
-    if (cur == ppc)
-      break;
-  if (NULL == cur)
-  {
-    ppc->asc (ppc->asc_cls, NULL, GNUNET_SYSERR);
-    GNUNET_break(0);
-    return;
-  }
-
   if (GNUNET_YES == ppc->ipv6)
-    GNUNET_asprintf (&ret, "%s.%u.[%s]:%d", PLUGIN_NAME, ppc->options, hostname,
-        ppc->port);
+    GNUNET_asprintf (&ret,
+                     "%s.%u.[%s]:%d",
+                     PLUGIN_NAME,
+                     ppc->options,
+                     hostname,
+                     ppc->port);
   else
-    GNUNET_asprintf (&ret, "%s.%u.%s:%d", PLUGIN_NAME, ppc->options, hostname,
-        ppc->port);
-  ppc->asc (ppc->asc_cls, ret, GNUNET_OK);
-  GNUNET_free(ret);
+    GNUNET_asprintf (&ret,
+                     "%s.%u.%s:%d",
+                     PLUGIN_NAME,
+                     ppc->options,
+                     hostname,
+                     ppc->port);
+  ppc->asc (ppc->asc_cls,
+            ret,
+            GNUNET_OK);
+  GNUNET_free (ret);
 }
 
 
@@ -845,7 +830,7 @@ udp_plugin_address_pretty_printer (void *cls,
   else
   {
     /* invalid address */
-    GNUNET_break_op(0);
+    GNUNET_break_op (0);
     asc (asc_cls, NULL , GNUNET_SYSERR);
     asc (asc_cls, NULL, GNUNET_OK);
     return;
@@ -859,11 +844,15 @@ udp_plugin_address_pretty_printer (void *cls,
     ppc->ipv6 = GNUNET_YES;
   else
     ppc->ipv6 = GNUNET_NO;
-  ppc->timeout_task = GNUNET_SCHEDULER_add_delayed (
-      GNUNET_TIME_relative_multiply (timeout, 2), &ppc_cancel_task, ppc);
-  GNUNET_CONTAINER_DLL_insert(ppc_dll_head, ppc_dll_tail, ppc);
-  ppc->resolver_handle = GNUNET_RESOLVER_hostname_get (sb, sbs, !numeric,
-      timeout, &append_port, ppc);
+  GNUNET_CONTAINER_DLL_insert (ppc_dll_head,
+                               ppc_dll_tail,
+                               ppc);
+  ppc->resolver_handle
+    = GNUNET_RESOLVER_hostname_get (sb,
+                                    sbs,
+                                    ! numeric,
+                                    timeout,
+                                    &append_port, ppc);
 }
 
 
@@ -3313,8 +3302,8 @@ libgnunet_plugin_transport_udp_done (void *cls)
   }
 
   /* Clean up sessions */
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "Cleaning up sessions\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Cleaning up sessions\n");
   GNUNET_CONTAINER_multipeermap_iterate (plugin->sessions,
                                          &disconnect_and_free_it, plugin);
   GNUNET_CONTAINER_multipeermap_destroy (plugin->sessions);
@@ -3322,12 +3311,13 @@ libgnunet_plugin_transport_udp_done (void *cls)
   next = ppc_dll_head;
   for (cur = next; NULL != cur; cur = next)
   {
-    next = cur->next;
-    GNUNET_CONTAINER_DLL_remove(ppc_dll_head, ppc_dll_tail, cur);
-    GNUNET_RESOLVER_request_cancel (cur->resolver_handle);
-    GNUNET_SCHEDULER_cancel (cur->timeout_task);
-    GNUNET_free(cur);
     GNUNET_break(0);
+    next = cur->next;
+    GNUNET_CONTAINER_DLL_remove (ppc_dll_head,
+                                 ppc_dll_tail,
+                                 cur);
+    GNUNET_RESOLVER_request_cancel (cur->resolver_handle);
+    GNUNET_free (cur);
   }
   GNUNET_free (plugin);
   GNUNET_free (api);

@@ -561,92 +561,119 @@ resolve_validation_address (const struct GNUNET_PeerIdentity *id,
                             enum GNUNET_TRANSPORT_ValidationState state);
 
 
+
+/**
+ * Function to call with a textual representation of an address.  This
+ * function will be called several times with different possible
+ * textual representations, and a last time with @address being NULL
+ * to signal the end of the iteration.  Note that @address NULL
+ * always is the last call, regardless of the value in @a res.
+ *
+ * @param cls closure
+ * @param address NULL on end of iteration,
+ *        otherwise 0-terminated printable UTF-8 string,
+ *        in particular an empty string if @a res is #GNUNET_NO
+ * @param res result of the address to string conversion:
+ *        if #GNUNET_OK: conversion successful
+ *        if #GNUNET_NO: address was invalid (or not supported)
+ *        if #GNUNET_SYSERR: communication error (IPC error)
+ */
 static void
-process_validation_string (void *cls, const char *address, int res)
+process_validation_string (void *cls,
+                           const char *address,
+                           int res)
 {
   struct ValidationResolutionContext *vc = cls;
   char *s_valid;
   char *s_last;
   char *s_next;
 
-  if (address != NULL )
+  if (NULL != address)
   {
     if (GNUNET_SYSERR == res)
     {
-      FPRINTF (stderr, "Failed to convert address for peer `%s' plugin `%s' length %lu to string \n",
-          GNUNET_i2s (&vc->id),
-          vc->addrcp->transport_name,
-          vc->addrcp->address_length);
+      FPRINTF (stderr,
+               "Failed to convert address for peer `%s' plugin `%s' length %lu to string \n",
+               GNUNET_i2s (&vc->id),
+               vc->addrcp->transport_name,
+               vc->addrcp->address_length);
     }
     if (GNUNET_TIME_UNIT_ZERO_ABS.abs_value_us == vc->valid_until.abs_value_us)
-      s_valid = GNUNET_strdup("never");
+      s_valid = GNUNET_strdup ("never");
     else
-      s_valid = GNUNET_strdup(GNUNET_STRINGS_absolute_time_to_string (vc->valid_until));
+      s_valid = GNUNET_strdup (GNUNET_STRINGS_absolute_time_to_string (vc->valid_until));
 
     if (GNUNET_TIME_UNIT_ZERO_ABS.abs_value_us == vc->last_validation.abs_value_us)
-      s_last = GNUNET_strdup("never");
+      s_last = GNUNET_strdup ("never");
     else
-      s_last = GNUNET_strdup(GNUNET_STRINGS_absolute_time_to_string (vc->last_validation));
+      s_last = GNUNET_strdup (GNUNET_STRINGS_absolute_time_to_string (vc->last_validation));
 
     if (GNUNET_TIME_UNIT_ZERO_ABS.abs_value_us == vc->next_validation.abs_value_us)
-      s_next = GNUNET_strdup("never");
+      s_next = GNUNET_strdup ("never");
     else
-      s_next = GNUNET_strdup(GNUNET_STRINGS_absolute_time_to_string (vc->next_validation));
+      s_next = GNUNET_strdup (GNUNET_STRINGS_absolute_time_to_string (vc->next_validation));
 
     FPRINTF (stdout,
-        _("Peer `%s' %s %s\n\t%s%s\n\t%s%s\n\t%s%s\n"),
-        GNUNET_i2s (&vc->id),
-        (GNUNET_OK == res) ? address : "<invalid address>",
-        (monitor_validation) ? GNUNET_TRANSPORT_vs2s (vc->state) : "",
-        "Valid until    : ", s_valid,
-        "Last validation: ",s_last,
-        "Next validation: ", s_next);
+             _("Peer `%s' %s %s\n\t%s%s\n\t%s%s\n\t%s%s\n"),
+             GNUNET_i2s (&vc->id),
+             (GNUNET_OK == res) ? address : "<invalid address>",
+             (monitor_validation) ? GNUNET_TRANSPORT_vs2s (vc->state) : "",
+             "Valid until    : ", s_valid,
+             "Last validation: ",s_last,
+             "Next validation: ", s_next);
     GNUNET_free (s_valid);
     GNUNET_free (s_last);
     GNUNET_free (s_next);
     vc->printed = GNUNET_YES;
+    return;
   }
-  else
+  /* last call, we are done */
+  GNUNET_assert (address_resolutions > 0);
+  address_resolutions--;
+  if ( (GNUNET_SYSERR == res) &&
+       (GNUNET_NO == vc->printed) )
   {
-    /* done */
-
-    GNUNET_assert(address_resolutions > 0);
-    address_resolutions--;
-    if ((GNUNET_SYSERR == res) && (GNUNET_NO == vc->printed))
+    if (numeric == GNUNET_NO)
     {
-      if (numeric == GNUNET_NO)
-      {
-        /* Failed to resolve address, try numeric lookup */
-        resolve_validation_address (&vc->id, vc->addrcp, GNUNET_NO,
-           vc->last_validation, vc->valid_until, vc->next_validation,
-           vc->state);
-      }
-      else
-      {
-        FPRINTF (stdout, _("Peer `%s' %s `%s' \n"),
-            GNUNET_i2s (&vc->id), "<unable to resolve address>",
-            GNUNET_TRANSPORT_vs2s (vc->state));
-      }
+      /* Failed to resolve address, try numeric lookup
+         (note: this should be unnecessary, as
+         transport should fallback to numeric lookup
+         internally if DNS takes too long anyway) */
+      resolve_validation_address (&vc->id,
+                                  vc->addrcp,
+                                  GNUNET_NO,
+                                  vc->last_validation,
+                                  vc->valid_until,
+                                  vc->next_validation,
+                                  vc->state);
     }
-    GNUNET_free (vc->transport);
-    GNUNET_free (vc->addrcp);
-    GNUNET_CONTAINER_DLL_remove(vc_head, vc_tail, vc);
-    GNUNET_free(vc);
-    if ((0 == address_resolutions) && (iterate_validation))
+    else
     {
-      if (GNUNET_SCHEDULER_NO_TASK != end)
-      {
-        GNUNET_SCHEDULER_cancel (end);
-        end = GNUNET_SCHEDULER_NO_TASK;
-      }
-      if (GNUNET_SCHEDULER_NO_TASK != op_timeout)
-      {
-        GNUNET_SCHEDULER_cancel (op_timeout);
-        op_timeout = GNUNET_SCHEDULER_NO_TASK;
-      }
-      ret = 0;
-      end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL );
+      FPRINTF (stdout,
+               _("Peer `%s' %s `%s' \n"),
+               GNUNET_i2s (&vc->id),
+               "<unable to resolve address>",
+               GNUNET_TRANSPORT_vs2s (vc->state));
     }
+  }
+  GNUNET_free (vc->transport);
+  GNUNET_free (vc->addrcp);
+  GNUNET_CONTAINER_DLL_remove (vc_head, vc_tail, vc);
+  GNUNET_free (vc);
+  if ((0 == address_resolutions) && (iterate_validation))
+  {
+    if (GNUNET_SCHEDULER_NO_TASK != end)
+    {
+      GNUNET_SCHEDULER_cancel (end);
+      end = GNUNET_SCHEDULER_NO_TASK;
+    }
+    if (GNUNET_SCHEDULER_NO_TASK != op_timeout)
+    {
+      GNUNET_SCHEDULER_cancel (op_timeout);
+      op_timeout = GNUNET_SCHEDULER_NO_TASK;
+    }
+    ret = 0;
+    end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
   }
 }
 
@@ -654,11 +681,12 @@ process_validation_string (void *cls, const char *address, int res)
 
 static void
 resolve_validation_address (const struct GNUNET_PeerIdentity *id,
-    const struct GNUNET_HELLO_Address *address, int numeric,
-    struct GNUNET_TIME_Absolute last_validation,
-    struct GNUNET_TIME_Absolute valid_until,
-    struct GNUNET_TIME_Absolute next_validation,
-    enum GNUNET_TRANSPORT_ValidationState state)
+                            const struct GNUNET_HELLO_Address *address,
+                            int numeric,
+                            struct GNUNET_TIME_Absolute last_validation,
+                            struct GNUNET_TIME_Absolute valid_until,
+                            struct GNUNET_TIME_Absolute next_validation,
+                            enum GNUNET_TRANSPORT_ValidationState state)
 {
   struct ValidationResolutionContext *vc;
 
@@ -677,8 +705,11 @@ resolve_validation_address (const struct GNUNET_PeerIdentity *id,
   vc->next_validation = next_validation;
 
   /* Resolve address to string */
-  vc->asc = GNUNET_TRANSPORT_address_to_string (cfg, address, numeric,
-      RESOLUTION_TIMEOUT, &process_validation_string, vc);
+  vc->asc = GNUNET_TRANSPORT_address_to_string (cfg,
+                                                address,
+                                                numeric,
+                                                RESOLUTION_TIMEOUT,
+                                                &process_validation_string, vc);
 }
 
 
@@ -910,7 +941,8 @@ notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
  * @param peer the peer that disconnected
  */
 static void
-notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
+notify_disconnect (void *cls,
+                   const struct GNUNET_PeerIdentity *peer)
 {
   if (0 != memcmp (&pid, peer, sizeof(struct GNUNET_PeerIdentity)))
     return;
@@ -957,14 +989,19 @@ notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
  * @param peer the peer that connected
  */
 static void
-monitor_notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
+monitor_notify_connect (void *cls,
+                        const struct GNUNET_PeerIdentity *peer)
 {
   monitor_connect_counter++;
   struct GNUNET_TIME_Absolute now = GNUNET_TIME_absolute_get ();
   const char *now_str = GNUNET_STRINGS_absolute_time_to_string (now);
 
-  FPRINTF (stdout, _("%24s: %-17s %4s   (%u connections in total)\n"), now_str,
-      _("Connected to"), GNUNET_i2s (peer), monitor_connect_counter);
+  FPRINTF (stdout,
+           _("%24s: %-17s %4s   (%u connections in total)\n"),
+           now_str,
+           _("Connected to"),
+           GNUNET_i2s (peer),
+           monitor_connect_counter);
 }
 
 
@@ -976,7 +1013,8 @@ monitor_notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
  * @param peer the peer that disconnected
  */
 static void
-monitor_notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
+monitor_notify_disconnect (void *cls,
+                           const struct GNUNET_PeerIdentity *peer)
 {
   struct GNUNET_TIME_Absolute now = GNUNET_TIME_absolute_get ();
   const char *now_str = GNUNET_STRINGS_absolute_time_to_string (now);
@@ -984,8 +1022,12 @@ monitor_notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
   GNUNET_assert(monitor_connect_counter > 0);
   monitor_connect_counter--;
 
-  FPRINTF (stdout, _("%24s: %-17s %4s   (%u connections in total)\n"), now_str,
-      _("Disconnected from"), GNUNET_i2s (peer), monitor_connect_counter);
+  FPRINTF (stdout,
+           _("%24s: %-17s %4s   (%u connections in total)\n"),
+           now_str,
+           _("Disconnected from"),
+           GNUNET_i2s (peer),
+           monitor_connect_counter);
 }
 
 
@@ -1006,8 +1048,10 @@ notify_receive (void *cls,
     if (GNUNET_MESSAGE_TYPE_DUMMY != ntohs (message->type))
       return;
     if (verbosity > 0)
-      FPRINTF (stdout, _("Received %u bytes from %s\n"),
-          (unsigned int) ntohs (message->size), GNUNET_i2s (peer));
+      FPRINTF (stdout,
+               _("Received %u bytes from %s\n"),
+               (unsigned int) ntohs (message->size),
+               GNUNET_i2s (peer));
 
     if (traffic_received == 0)
       start_time = GNUNET_TIME_absolute_get ();
@@ -1036,83 +1080,125 @@ print_info (const struct GNUNET_PeerIdentity *id,
   if ( ((GNUNET_YES == iterate_connections) && (GNUNET_YES == iterate_all)) ||
        (GNUNET_YES == monitor_connections) )
   {
-    FPRINTF (stdout, _("Peer `%s': %s %s in state `%s' until %s\n"),
-        GNUNET_i2s (id),
-        (NULL == transport) ? "<none>" : transport,
-        (NULL == transport) ? "<none>" : addr,
-        GNUNET_TRANSPORT_ps2s (state),
-        GNUNET_STRINGS_absolute_time_to_string (state_timeout));
+    FPRINTF (stdout,
+             _("Peer `%s': %s %s in state `%s' until %s\n"),
+             GNUNET_i2s (id),
+             (NULL == transport) ? "<none>" : transport,
+             (NULL == transport) ? "<none>" : addr,
+             GNUNET_TRANSPORT_ps2s (state),
+             GNUNET_STRINGS_absolute_time_to_string (state_timeout));
   }
   else if ( (GNUNET_YES == iterate_connections) &&
              (GNUNET_TRANSPORT_is_connected(state)) )
   {
     /* Only connected peers, skip state */
-    FPRINTF (stdout, _("Peer `%s': %s %s\n"), GNUNET_i2s (id), transport, addr);
+    FPRINTF (stdout,
+             _("Peer `%s': %s %s\n"),
+             GNUNET_i2s (id),
+             transport,
+             addr);
   }
 }
 
 
+/**
+ * Function called with a textual representation of an address.  This
+ * function will be called several times with different possible
+ * textual representations, and a last time with @address being NULL
+ * to signal the end of the iteration.  Note that @address NULL
+ * always is the last call, regardless of the value in @a res.
+ *
+ * @param cls closure
+ * @param address NULL on end of iteration,
+ *        otherwise 0-terminated printable UTF-8 string,
+ *        in particular an empty string if @a res is #GNUNET_NO
+ * @param res result of the address to string conversion:
+ *        if #GNUNET_OK: conversion successful
+ *        if #GNUNET_NO: address was invalid (or not supported)
+ *        if #GNUNET_SYSERR: communication error (IPC error)
+ */
 static void
-process_peer_string (void *cls, const char *address, int res)
+process_peer_string (void *cls,
+                     const char *address,
+                     int res)
 {
   struct PeerResolutionContext *rc = cls;
 
-  if (GNUNET_SYSERR == res)
+  if (NULL != address)
   {
-    FPRINTF (stderr, "Failed to convert address for peer `%s' plugin `%s' length %lu to string \n",
-        GNUNET_i2s (&rc->id),
-        rc->addrcp->transport_name,
-        rc->addrcp->address_length);
-    print_info (&rc->id, rc->transport, NULL, rc->state, rc->state_timeout);
-    rc->printed = GNUNET_YES;
+    if (GNUNET_SYSERR == res)
+    {
+      FPRINTF (stderr,
+               "Failed to convert address for peer `%s' plugin `%s' length %lu to string \n",
+               GNUNET_i2s (&rc->id),
+               rc->addrcp->transport_name,
+               rc->addrcp->address_length);
+      print_info (&rc->id,
+                  rc->transport,
+                  NULL,
+                  rc->state,
+                  rc->state_timeout);
+      rc->printed = GNUNET_YES;
+      return;
+    }
+    if (GNUNET_OK == res)
+    {
+      print_info (&rc->id,
+                  rc->transport,
+                  address,
+                  rc->state,
+                  rc->state_timeout);
+      rc->printed = GNUNET_YES;
+      return; /* Wait for done call */
+    }
+    /* GNUNET_NO == res: ignore, was simply not supported */
     return;
   }
+  /* NULL == address, last call, we are done */
 
-  if ((GNUNET_OK == res) && (address != NULL))
+  GNUNET_assert (address_resolutions > 0);
+  address_resolutions--;
+  if (GNUNET_NO == rc->printed)
   {
-    print_info (&rc->id, rc->transport, address, rc->state, rc->state_timeout);
-    rc->printed = GNUNET_YES;
-    return; /* Wait for done call */
+    if (numeric == GNUNET_NO)
+    {
+      /* Failed to resolve address, try numeric lookup
+         (note: this should not be needed, as transport
+         should fallback to numeric conversion if DNS takes
+         too long) */
+      resolve_peer_address (&rc->id,
+                            rc->addrcp,
+                            GNUNET_YES,
+                            rc->state,
+                            rc->state_timeout);
+    }
+    else
+    {
+      print_info (&rc->id,
+                  rc->transport,
+                  NULL,
+                  rc->state,
+                  rc->state_timeout);
+    }
   }
-
-  if (NULL == address)
+  GNUNET_free (rc->transport);
+  GNUNET_free (rc->addrcp);
+  GNUNET_CONTAINER_DLL_remove (rc_head, rc_tail, rc);
+  GNUNET_free (rc);
+  if ((0 == address_resolutions) && (iterate_connections))
   {
-    /* done */
-    GNUNET_assert(address_resolutions > 0);
-    address_resolutions--;
-    if (GNUNET_NO == rc->printed)
+    if (GNUNET_SCHEDULER_NO_TASK != end)
     {
-      if (numeric == GNUNET_NO)
-      {
-        /* Failed to resolve address, try numeric lookup */
-        resolve_peer_address (&rc->id, rc->addrcp, GNUNET_YES,
-            rc->state, rc->state_timeout);
-      }
-      else
-      {
-        print_info (&rc->id, rc->transport, NULL,
-            rc->state, rc->state_timeout);
-      }
+      GNUNET_SCHEDULER_cancel (end);
+      end = GNUNET_SCHEDULER_NO_TASK;
     }
-    GNUNET_free (rc->transport);
-    GNUNET_free (rc->addrcp);
-    GNUNET_CONTAINER_DLL_remove(rc_head, rc_tail, rc);
-    GNUNET_free(rc);
-    if ((0 == address_resolutions) && (iterate_connections))
+    if (GNUNET_SCHEDULER_NO_TASK != op_timeout)
     {
-      if (GNUNET_SCHEDULER_NO_TASK != end)
-      {
-        GNUNET_SCHEDULER_cancel (end);
-        end = GNUNET_SCHEDULER_NO_TASK;
-      }
-      if (GNUNET_SCHEDULER_NO_TASK != op_timeout)
-      {
-        GNUNET_SCHEDULER_cancel (op_timeout);
-        op_timeout = GNUNET_SCHEDULER_NO_TASK;
-      }
-      ret = 0;
-      end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL );
+      GNUNET_SCHEDULER_cancel (op_timeout);
+      op_timeout = GNUNET_SCHEDULER_NO_TASK;
     }
+    ret = 0;
+    end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL );
   }
 }
 
@@ -1138,8 +1224,11 @@ resolve_peer_address (const struct GNUNET_PeerIdentity *id,
   rc->state = state;
   rc->state_timeout = state_timeout;
   /* Resolve address to string */
-  rc->asc = GNUNET_TRANSPORT_address_to_string (cfg, address, numeric,
-      RESOLUTION_TIMEOUT, &process_peer_string, rc);
+  rc->asc = GNUNET_TRANSPORT_address_to_string (cfg,
+                                                address,
+                                                numeric,
+                                                RESOLUTION_TIMEOUT,
+                                                &process_peer_string, rc);
 }
 
 
@@ -1177,12 +1266,14 @@ process_peer_iteration_cb (void *cls,
 
   if (GNUNET_SCHEDULER_NO_TASK != op_timeout)
     GNUNET_SCHEDULER_cancel (op_timeout);
-  op_timeout = GNUNET_SCHEDULER_add_delayed (OP_TIMEOUT, &operation_timeout,
+  op_timeout = GNUNET_SCHEDULER_add_delayed (OP_TIMEOUT,
+                                             &operation_timeout,
                                              NULL);
 
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
-             "Received address for peer `%s': %s\n",
-             GNUNET_i2s (peer), address->transport_name);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received address for peer `%s': %s\n",
+              GNUNET_i2s (peer),
+              address->transport_name);
 
   if (NULL != address)
     resolve_peer_address (peer, address, numeric, state, state_timeout);
@@ -1221,7 +1312,8 @@ process_peer_monitoring_cb (void *cls,
 
   if (GNUNET_SCHEDULER_NO_TASK != op_timeout)
     GNUNET_SCHEDULER_cancel (op_timeout);
-  op_timeout = GNUNET_SCHEDULER_add_delayed (OP_TIMEOUT, &operation_timeout,
+  op_timeout = GNUNET_SCHEDULER_add_delayed (OP_TIMEOUT,
+                                             &operation_timeout,
                                              NULL);
 
   if (NULL == (m = GNUNET_CONTAINER_multipeermap_get (monitored_peers, peer)))
@@ -1254,15 +1346,26 @@ process_peer_monitoring_cb (void *cls,
   m->state_timeout = state_timeout;
 
   if (NULL != address)
-    resolve_peer_address (peer, m->address, numeric, m->state, m->state_timeout);
+    resolve_peer_address (peer,
+                          m->address,
+                          numeric,
+                          m->state,
+                          m->state_timeout);
   else
-    print_info (peer, NULL, NULL, m->state, m->state_timeout);
+    print_info (peer,
+                NULL,
+                NULL,
+                m->state,
+                m->state_timeout);
 }
 
+
 static void
-try_connect_cb (void *cls, const int result)
+try_connect_cb (void *cls,
+                const int result)
 {
   static int retries = 0;
+
   if (GNUNET_OK == result)
   {
     tc_handle = NULL;
@@ -1274,8 +1377,9 @@ try_connect_cb (void *cls, const int result)
         NULL );
   else
   {
-    FPRINTF (stderr, "%s",
-        _("Failed to send connect request to transport service\n") );
+    FPRINTF (stderr,
+             "%s",
+             _("Failed to send connect request to transport service\n") );
     if (GNUNET_SCHEDULER_NO_TASK != end)
       GNUNET_SCHEDULER_cancel (end);
     ret = 1;
@@ -1284,8 +1388,10 @@ try_connect_cb (void *cls, const int result)
   }
 }
 
+
 static void
-try_disconnect_cb (void *cls, const int result)
+try_disconnect_cb (void *cls,
+                   const int result)
 {
   static int retries = 0;
   if (GNUNET_OK == result)
@@ -1308,6 +1414,7 @@ try_disconnect_cb (void *cls, const int result)
     return;
   }
 }
+
 
 /**
  * Function called with the result of the check if the 'transport'

@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     (C) 2009, 2010 Christian Grothoff (and other contributing authors)
+     (C) 2009-2014 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -194,18 +194,28 @@ typedef struct GNUNET_TIME_Relative
                                    const struct GNUNET_PeerIdentity *peer,
                                    size_t amount_recved);
 
+/**
+ * FIXME: document!
+ */
 typedef void
 (*GNUNET_TRANSPORT_RegisterQuotaNotification) (void *cls,
                                            const struct GNUNET_PeerIdentity *peer,
                                            const char *plugin,
                                            struct Session *session);
 
+/**
+ * FIXME: document!
+ */
 typedef void
 (*GNUNET_TRANSPORT_UnregisterQuotaNotification) (void *cls,
-    const struct GNUNET_PeerIdentity *peer, const char *plugin, struct Session *session);
+                                                 const struct GNUNET_PeerIdentity *peer,
+                                                 const char *plugin,
+                                                 struct Session *session);
 
 /**
  * Function that returns a HELLO message.
+ *
+ * @return HELLO message (FIXME with what?)
  */
 typedef const struct GNUNET_MessageHeader *
 (*GNUNET_TRANSPORT_GetHelloCallback) (void);
@@ -284,8 +294,14 @@ struct GNUNET_TRANSPORT_PluginEnvironment
    */
   GNUNET_TRANSPORT_UpdateAddressMetrics update_address_metrics;
 
+  /**
+   * FIXME: document!
+   */
   GNUNET_TRANSPORT_RegisterQuotaNotification register_quota_notification;
 
+  /**
+   * FIXME: document!
+   */
   GNUNET_TRANSPORT_UnregisterQuotaNotification unregister_quota_notification;
 
   /**
@@ -412,12 +428,17 @@ typedef void
 
 /**
  * Function called by the pretty printer for the resolved address for
- * each human-readable address obtained.
+ * each human-readable address obtained.  The callback can be called
+ * several times. The last invocation must be with a @a address of
+ * NULL and a @a res of #GNUNET_OK.  Thus, to indicate conversion
+ * errors, the callback might be called first with @a address NULL and
+ * @a res being #GNUNET_SYSERR.  In that case, there must still be a
+ * subsequent call later with @a address NULL and @a res #GNUNET_OK.
  *
  * @param cls closure
  * @param address one of the names for the host, NULL on last callback
- * @param res GNUNET_OK if conversion was successful, GNUNET_SYSERR on failure,
- *      GNUNET_OK on last callback
+ * @param res #GNUNET_OK if conversion was successful, #GNUNET_SYSERR on failure,
+ *      #GNUNET_OK on last callback
  */
 typedef void
 (*GNUNET_TRANSPORT_AddressStringCallback) (void *cls,

@@ -1,21 +1,21 @@
 /*
- This file is part of GNUnet
- (C) 2002--2013 Christian Grothoff (and other contributing authors)
+  This file is part of GNUnet
+  (C) 2002--2014 Christian Grothoff (and other contributing authors)
 
- GNUnet is free software; you can redistribute it and/or modify
- it under the terms of the GNU General Public License as published
- by the Free Software Foundation; either version 3, or (at your
- option) any later version.
+  GNUnet is free software; you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published
+  by the Free Software Foundation; either version 3, or (at your
+  option) any later version.
 
- GNUnet is distributed in the hope that it will be useful, but
- WITHOUT ANY WARRANTY; without even the implied warranty of
- MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
- General Public License for more details.
+  GNUnet is distributed in the hope that it will be useful, but
+  WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+  General Public License for more details.
 
- You should have received a copy of the GNU General Public License
- along with GNUnet; see the file COPYING.  If not, write to the
- Free Software Foundation, Inc., 59 Temple Place - Suite 330,
- Boston, MA 02111-1307, USA.
+  You should have received a copy of the GNU General Public License
+  along with GNUnet; see the file COPYING.  If not, write to the
+  Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+  Boston, MA 02111-1307, USA.
  */
 /**
  * @file transport/plugin_transport_tcp.c
@@ -562,13 +562,15 @@ tcp_address_to_string (void *cls,
     sb = &a4;
     break;
   default:
-    LOG(GNUNET_ERROR_TYPE_WARNING, _("Unexpected address length: %u bytes\n"),
-        (unsigned int ) addrlen);
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         _("Unexpected address length: %u bytes\n"),
+         (unsigned int ) addrlen);
     return NULL ;
   }
   if (NULL == inet_ntop (af, sb, buf, INET6_ADDRSTRLEN))
   {
-    GNUNET_log_strerror(GNUNET_ERROR_TYPE_WARNING, "inet_ntop");
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
+                         "inet_ntop");
     return NULL ;
   }
   GNUNET_snprintf (rbuf, sizeof(rbuf),
@@ -816,9 +818,11 @@ tcp_disconnect_session (void *cls,
 
   while (NULL != (pm = session->pending_messages_head))
   {
-    LOG(GNUNET_ERROR_TYPE_DEBUG,
-        pm->transmit_cont != NULL ? "Could not deliver message to `%4s'.\n" : "Could not deliver message to `%4s', notifying.\n",
-        GNUNET_i2s (&session->target));
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         (NULL != pm->transmit_cont)
+         ? "Could not deliver message to `%4s'.\n"
+         : "Could not deliver message to `%4s', notifying.\n",
+         GNUNET_i2s (&session->target));
     GNUNET_STATISTICS_update (session->plugin->env->stats,
         gettext_noop ("# bytes currently in TCP buffers"),
         -(int64_t) pm->message_size, GNUNET_NO);
@@ -1651,7 +1655,8 @@ static struct PrettyPrinterContext *ppc_dll_head;
 static struct PrettyPrinterContext *ppc_dll_tail;
 
 /**
- * Context for address to string conversion.
+ * Context for address to string conversion, closure
+ * for #append_port().
  */
 struct PrettyPrinterContext
 {
@@ -1681,7 +1686,7 @@ struct PrettyPrinterContext
   GNUNET_TRANSPORT_AddressStringCallback asc;
 
   /**
-   * Clsoure for 'asc'.
+   * Clsoure for @e asc.
    */
   void *asc_cls;
 
@@ -1701,63 +1706,53 @@ struct PrettyPrinterContext
   uint32_t options;
 };
 
-static void
-ppc_cancel_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct PrettyPrinterContext *ppc = cls;
-
-  ppc->timeout_task = GNUNET_SCHEDULER_NO_TASK;
-  if (NULL != ppc->resolver_handle)
-  {
-    GNUNET_RESOLVER_request_cancel (ppc->resolver_handle);
-    ppc->resolver_handle = NULL;
-  }
-  GNUNET_CONTAINER_DLL_remove(ppc_dll_head, ppc_dll_tail, ppc);
-  GNUNET_free(ppc);
-}
 
 /**
  * Append our port and forward the result.
  *
- * @param cls the 'struct PrettyPrinterContext*'
+ * @param cls the `struct PrettyPrinterContext *`
  * @param hostname hostname part of the address
  */
 static void
-append_port (void *cls, const char *hostname)
+append_port (void *cls,
+             const char *hostname)
 {
   struct PrettyPrinterContext *ppc = cls;
-  struct PrettyPrinterContext *cur;
   char *ret;
 
   if (NULL == hostname)
   {
-    ppc->asc (ppc->asc_cls, NULL, GNUNET_OK); /* Final call, done */
-    GNUNET_CONTAINER_DLL_remove (ppc_dll_head, ppc_dll_tail, ppc);
-    GNUNET_SCHEDULER_cancel (ppc->timeout_task);
-    ppc->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    /* Final call, done */
     ppc->resolver_handle = NULL;
-    GNUNET_free(ppc);
+    GNUNET_CONTAINER_DLL_remove (ppc_dll_head,
+                                 ppc_dll_tail,
+                                 ppc);
+    ppc->asc (ppc->asc_cls,
+              NULL,
+              GNUNET_OK);
+    GNUNET_free (ppc);
     return;
   }
-  for (cur = ppc_dll_head; (NULL != cur); cur = cur->next)
-    if (cur == ppc)
-      break;
-  if (NULL == cur)
-  {
-    ppc->asc (ppc->asc_cls, NULL, GNUNET_SYSERR);
-    GNUNET_break(0);
-    return;
-  }
-
   if (GNUNET_YES == ppc->ipv6)
-    GNUNET_asprintf (&ret, "%s.%u.[%s]:%d", PLUGIN_NAME, ppc->options, hostname,
-        ppc->port);
+    GNUNET_asprintf (&ret,
+                     "%s.%u.[%s]:%d",
+                     PLUGIN_NAME,
+                     ppc->options,
+                     hostname,
+                     ppc->port);
   else
-    GNUNET_asprintf (&ret, "%s.%u.%s:%d", PLUGIN_NAME, ppc->options, hostname,
-        ppc->port);
-  ppc->asc (ppc->asc_cls, ret, GNUNET_OK);
-  GNUNET_free(ret);
+    GNUNET_asprintf (&ret,
+                     "%s.%u.%s:%d",
+                     PLUGIN_NAME,
+                     ppc->options,
+                     hostname,
+                     ppc->port);
+  ppc->asc (ppc->asc_cls,
+            ret,
+            GNUNET_OK);
+  GNUNET_free (ret);
 }
+
 
 /**
  * Convert the transports address to a nice, human-readable
@@ -1767,18 +1762,21 @@ append_port (void *cls, const char *hostname)
  * @param type name of the transport that generated the address
  * @param addr one of the addresses of the host, NULL for the last address
  *        the specific address format depends on the transport
- * @param addrlen length of the address
+ * @param addrlen length of the @a addr
  * @param numeric should (IP) addresses be displayed in numeric form?
  * @param timeout after how long should we give up?
  * @param asc function to call on each string
- * @param asc_cls closure for asc
- *
+ * @param asc_cls closure for @a asc
  */
 static void
-tcp_plugin_address_pretty_printer (void *cls, const char *type,
-    const void *addr, size_t addrlen, int numeric,
-    struct GNUNET_TIME_Relative timeout,
-    GNUNET_TRANSPORT_AddressStringCallback asc, void *asc_cls)
+tcp_plugin_address_pretty_printer (void *cls,
+                                   const char *type,
+                                   const void *addr,
+                                   size_t addrlen,
+                                   int numeric,
+                                   struct GNUNET_TIME_Relative timeout,
+                                   GNUNET_TRANSPORT_AddressStringCallback asc,
+                                   void *asc_cls)
 {
   struct PrettyPrinterContext *ppc;
   const void *sb;
@@ -1790,7 +1788,7 @@ tcp_plugin_address_pretty_printer (void *cls, const char *type,
   uint16_t port;
   uint32_t options;
 
-  if (addrlen == sizeof(struct IPv6TcpAddress))
+  if (sizeof(struct IPv6TcpAddress) == addrlen)
   {
     t6 = addr;
     memset (&a6, 0, sizeof(a6));
@@ -1802,7 +1800,7 @@ tcp_plugin_address_pretty_printer (void *cls, const char *type,
     sb = &a6;
     sbs = sizeof(a6);
   }
-  else if (addrlen == sizeof(struct IPv4TcpAddress))
+  else if (sizeof(struct IPv4TcpAddress) == addrlen)
   {
     t4 = addr;
     memset (&a4, 0, sizeof(a4));
@@ -1830,20 +1828,22 @@ tcp_plugin_address_pretty_printer (void *cls, const char *type,
   ppc->asc_cls = asc_cls;
   ppc->port = port;
   ppc->options = options;
-  ppc->timeout_task = GNUNET_SCHEDULER_add_delayed (
-      GNUNET_TIME_relative_multiply (timeout, 2), &ppc_cancel_task, ppc);
-  ppc->resolver_handle = GNUNET_RESOLVER_hostname_get (sb, sbs, !numeric,
-      timeout, &append_port, ppc);
-  if (NULL != ppc->resolver_handle)
+  ppc->resolver_handle = GNUNET_RESOLVER_hostname_get (sb,
+                                                       sbs,
+                                                       ! numeric,
+                                                       timeout,
+                                                       &append_port, ppc);
+  if (NULL == ppc->resolver_handle)
   {
-    GNUNET_CONTAINER_DLL_insert(ppc_dll_head, ppc_dll_tail, ppc);
+    GNUNET_break (0);
+    GNUNET_free (ppc);
+    return;
   }
-  else
-  {
-    GNUNET_break(0);
-    GNUNET_free(ppc);
-  }
+  GNUNET_CONTAINER_DLL_insert (ppc_dll_head,
+                               ppc_dll_tail,
+                               ppc);
 }
+
 
 /**
  * Check if the given port is plausible (must be either our listen
@@ -2496,12 +2496,14 @@ libgnunet_plugin_transport_tcp_init (void *cls)
     aport = 0;
   if (bport != 0)
   {
-    service = GNUNET_SERVICE_start ("transport-tcp", env->cfg,
-        GNUNET_SERVICE_OPTION_NONE);
-    if (service == NULL )
+    service = GNUNET_SERVICE_start ("transport-tcp",
+                                    env->cfg,
+                                    GNUNET_SERVICE_OPTION_NONE);
+    if (service == NULL)
     {
-      LOG(GNUNET_ERROR_TYPE_WARNING, _("Failed to start service.\n"));
-      return NULL ;
+      LOG (GNUNET_ERROR_TYPE_WARNING,
+           _("Failed to start service.\n"));
+      return NULL;
     }
   }
   else
@@ -2555,7 +2557,6 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   api->cls = plugin;
   api->send = &tcp_plugin_send;
   api->get_session = &tcp_plugin_get_session;
-
   api->disconnect_session = &tcp_disconnect_session;
   api->query_keepalive_factor = &tcp_query_keepalive_factor;
   api->disconnect_peer = &tcp_plugin_disconnect;
@@ -2588,9 +2589,10 @@ libgnunet_plugin_transport_tcp_init (void *cls)
       GNUNET_free(api);
       return NULL;
     }
-    plugin->server = GNUNET_SERVER_create_with_sockets (&plugin_tcp_access_check,
-                                                        plugin, NULL,
-                                                        idle_timeout, GNUNET_YES);
+    plugin->server
+      = GNUNET_SERVER_create_with_sockets (&plugin_tcp_access_check,
+                                           plugin, NULL,
+                                           idle_timeout, GNUNET_YES);
   }
   plugin->handlers = GNUNET_malloc (sizeof (my_handlers));
   memcpy (plugin->handlers, my_handlers, sizeof(my_handlers));
@@ -2656,13 +2658,13 @@ libgnunet_plugin_transport_tcp_done (void *cls)
   next = ppc_dll_head;
   for (cur = next; NULL != cur; cur = next)
   {
+    GNUNET_break (0);
     next = cur->next;
-    GNUNET_CONTAINER_DLL_remove(ppc_dll_head, ppc_dll_tail, cur);
-    if (NULL != cur->resolver_handle)
-      GNUNET_RESOLVER_request_cancel (cur->resolver_handle);
-    GNUNET_SCHEDULER_cancel (cur->timeout_task);
-    GNUNET_free(cur);
-    GNUNET_break(0);
+    GNUNET_CONTAINER_DLL_remove (ppc_dll_head,
+                                 ppc_dll_tail,
+                                 cur);
+    GNUNET_RESOLVER_request_cancel (cur->resolver_handle);
+    GNUNET_free (cur);
   }
 
   if (NULL != plugin->service)
