@@ -291,31 +291,25 @@ static int got_reply;
  * Take the given address and append it to the set of results sent back to
  * the client.
  *
- * @param cls the transmission context used ('struct GNUNET_SERVER_TransmitContext*')
- * @param buf one of the names for the host, NULL on last callback
- * @param res #GNUNET_OK if conversion was successful, #GNUNET_SYSERR on failure,
- *      #GNUNET_OK on last callback
+ * @param cls closure
+ * @param address the address to print
+ * @param res result code
  */
 static void
-address_pretty_printer_cb (void *cls,
-                           const char *buf,
-                           int res)
+address_pretty_printer_cb (void *cls, const char *address, int res)
 {
-  if (NULL != buf)
+  if (NULL != address)
   {
     got_reply = GNUNET_YES;
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "Pretty address : `%s'\n",
-                buf);
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Pretty address : `%s'\n", address);
     pretty_printers_running--;
   }
   else
   {
-    if ( (GNUNET_OK == res) &&
-         (GNUNET_NO == got_reply) )
+    if (GNUNET_NO == got_reply)
     {
       pretty_printers_running--;
-      GNUNET_break (0);
+      GNUNET_break(0);
       end_badly_now ();
     }
   }
