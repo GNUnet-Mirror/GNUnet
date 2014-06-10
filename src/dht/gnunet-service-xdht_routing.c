@@ -28,16 +28,26 @@
 #include "gnunet-service-xdht_routing.h"
 #include "gnunet-service-xdht.h"
 
+
+/**
+ * FIXME: Check if its better to store pointer to friend rather than storing
+ * peer identity next_hop or prev_hop. 
+ * keep entries in destnation and source peer also. so when we send the trail
+ * teardown message then we don't know the source but if source gets the message
+ * then it shold remove that trail id from its finger table. But how does
+ * source know what is the desination finger ? It will whenevr contact a trail
+ * will do a lookup in routing table and if no trail id present the remove
+ * that trail of the finger and if only one trail then remove the finger.
+ * because of this use case of trail teardown I think trail compression
+ * and trail teardown should not be merged. 
+ * 2. store a pointer to friendInfo in place o peer identity. 
+ */
 /**
  * Maximum number of entries in routing table.
  */
 #define ROUTING_TABLE_THRESHOLD 64
 
-
 /**
- * FIXME: do we need to store destination and source.
- * because in trail teardown we will reach destination but it will not find any
- * entry in routing table. so we should store destination and source.
  * Routing table entry .
  */
 struct RoutingTrail
@@ -50,12 +60,12 @@ struct RoutingTrail
   /**
    * The peer to which this request should be passed to.
    */
-  struct GNUNET_PeerIdentity next_hop; // change to struct FriendInfo *
+  struct GNUNET_PeerIdentity next_hop; 
 
   /**
    * Peer just before next hop in the trail.
    */
-  struct GNUNET_PeerIdentity prev_hop;  // change to struct FriendInfo *
+  struct GNUNET_PeerIdentity prev_hop;  
 };
 
 /**
@@ -85,6 +95,7 @@ GDS_ROUTING_update_trail_prev_hop (const struct GNUNET_HashCode trail_id,
   trail->prev_hop = prev_hop;
   return GNUNET_OK;
 }
+
 
 
 /**
@@ -144,6 +155,7 @@ GDS_ROUTING_remove_trail (const struct GNUNET_HashCode remove_trail_id)
 
 /**
  * Iterate over routing table and remove entries with value as part of any trail.
+ * 
  * @param cls closure
  * @param key current public key
  * @param value value in the hash map
@@ -155,35 +167,47 @@ static int remove_matching_trails (void *cls,
                                    void *value)
 {
   struct RoutingTrail *remove_trail = cls;
-  struct GNUNET_PeerIdentity *peer = value;
-
-  if ((0 == GNUNET_CRYPTO_cmp_peer_identity (&remove_trail->next_hop, peer)) ||
-      (0 == GNUNET_CRYPTO_cmp_peer_identity (&remove_trail->prev_hop, peer)))
+  struct GNUNET_PeerIdentity *disconnected_peer = value;
+  
+  /* If disconnected_peer is next_hop, then send a trail teardown message through
+   * prev_hop in direction from destination to source. */
+  if (0 == GNUNET_CRYPTO_cmp_peer_identity (&remove_trail->next_hop, 
+                                            disconnected_peer)) 
   {
-    GNUNET_assert (GNUNET_YES ==
+    GDS_NEIGHBOURS_send_trail_teardown (remove_trail->trail_id, 
+                                        GDS_ROUTING_DEST_TO_SRC,
+                                        &remove_trail->prev_hop);
+  }
+  
+  /* If disconnected_peer is prev_hop, then send a trail teardown through
+   * next_hop in direction from Source to Destination. */
+  if (0 == GNUNET_CRYPTO_cmp_peer_identity (&remove_trail->prev_hop, 
+                                            disconnected_peer))
+  {
+    GDS_NEIGHBOURS_send_trail_teardown (remove_trail->trail_id, 
+                                        GDS_ROUTING_SRC_TO_DEST,
+                                        &remove_trail->next_hop);
+  }
+  
+  GNUNET_assert (GNUNET_YES ==
                    GNUNET_CONTAINER_multihashmap_remove (routing_table,
                                                          &remove_trail->trail_id,
                                                          remove_trail));
-    GNUNET_free (remove_trail);
-  }
+  GNUNET_free (remove_trail);
   return GNUNET_YES;
 }
 
 
 /**
- *  * FIXME: when a friend gets disconnected, then we remove the entry from routing
- * table where this friend is either a next_hop or prev_hop. But we don't communicate
- * that the trail is broken to any one who is part of trail. Should we communicate or
- * not. And if not then the cases where trail setup fails because next_hop = NULL
- * or something like that. VERY URGENT.
- * Remove every trail where peer is either next_hop or prev_hop
- * @param peer Peer to be searched.
+ * Remove every trail where peer is either next_hop or prev_hop. Also send a 
+ * trail teardown message in direction of hop which is not disconnected.
+ * @param peer Peer identity. Trail containing this peer should be removed.
  */
 void
 GDS_ROUTING_remove_trail_by_peer (const struct GNUNET_PeerIdentity *peer)
 {
   GNUNET_CONTAINER_multihashmap_iterate (routing_table, &remove_matching_trails,
-                                           (void *)peer);
+                                         (void *)peer);
 }
 
 
@@ -198,8 +222,8 @@ GDS_ROUTING_remove_trail_by_peer (const struct GNUNET_PeerIdentity *peer)
  */
 int
 GDS_ROUTING_add (struct GNUNET_HashCode new_trail_id,
-                 const struct GNUNET_PeerIdentity prev_hop,
-                 const struct GNUNET_PeerIdentity next_hop)
+                 struct GNUNET_PeerIdentity prev_hop,
+                 struct GNUNET_PeerIdentity next_hop)
 {
   struct RoutingTrail *new_entry;
 
