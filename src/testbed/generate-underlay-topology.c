@@ -240,6 +240,7 @@ run (void *cls, char *const *args, const char *cfgfile,
     LOG_ERROR (_("Invalid topology: %s\n"), topology_string);
     return;
   }
+  arg_str1 = NULL;
   /* parse for first TOPOOPT.  This can either be arg_uint1 or arg_str1 */
   switch (topology)
   {
