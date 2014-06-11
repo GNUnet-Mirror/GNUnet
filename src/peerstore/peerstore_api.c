@@ -712,7 +712,7 @@ void handle_watch_result (void *cls, const struct GNUNET_MessageHeader *msg)
   if(NULL == msg)
   {
     LOG(GNUNET_ERROR_TYPE_ERROR,
-        "Problem receiving a watch response, no way to determine which request.\n");
+        _("Problem receiving a watch response, no way to determine which request.\n"));
     reconnect(h);
     return;
   }

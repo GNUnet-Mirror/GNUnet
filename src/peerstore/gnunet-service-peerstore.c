@@ -75,9 +75,16 @@ shutdown_task (void *cls,
     GNUNET_free (db_lib_name);
     db_lib_name = NULL;
   }
-  GNUNET_SERVER_notification_context_destroy(nc);
-  GNUNET_CONTAINER_multihashmap_destroy(watchers);
-  watchers = NULL;
+  if(NULL != nc)
+  {
+    GNUNET_SERVER_notification_context_destroy(nc);
+    nc = NULL;
+  }
+  if(NULL != watchers)
+  {
+    GNUNET_CONTAINER_multihashmap_destroy(watchers);
+    watchers = NULL;
+  }
   GNUNET_SCHEDULER_shutdown();
 }
 
@@ -395,10 +402,8 @@ run (void *cls,
   if(NULL == db)
   {
 	  GNUNET_log(GNUNET_ERROR_TYPE_ERROR, _("Could not load database backend `%s'\n"), db_lib_name);
-	  /* FIXME:
-	   * error handling required, otherwise you try to access db
-	   * in message handlers like handle_store ...
-	   *   if(GNUNET_OK != db->store_record(db->cls, ... */
+	  GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
+	  return;
   }
   else
   {
