@@ -1,6 +1,6 @@
 /*
  This file is part of GNUnet.
- (C) 2011 Christian Grothoff (and other contributing authors)
+ (C) 2011-2014 Christian Grothoff (and other contributing authors)
 
  GNUnet is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published
@@ -24,7 +24,13 @@
  * @author Matthias Wachs
  * @author Christian Grothoff
  */
-#include "plugin_ats_proportional.h"
+#include "platform.h"
+#include "gnunet_statistics_service.h"
+#include "gnunet_ats_plugin.h"
+#include "gnunet-service-ats_addresses.h"
+
+#define PROP_STABILITY_FACTOR 1.25
+
 
 #define LOG(kind,...) GNUNET_log_from (kind, "ats-proportional",__VA_ARGS__)
 
@@ -102,12 +108,12 @@
  *    return of payload data transport switches to the real network
  *    the address is located in.  When an address changes networks it
  *    is first of all removed from the old network using the solver
- *    API function GAS_proportional_address_delete and the network in
+ *    API function #GAS_proportional_address_delete() and the network in
  *    the address struct is updated. A lookup for the respective new
  *    proportional network is done and stored in the addresse's
  *    solver_information field. Next the address is re-added to the
  *    solver using the solver API function
- *    GAS_proportional_address_add. If the address was marked as in
+ *    #GAS_proportional_address_add(). If the address was marked as in
  *    active, the solver checks if bandwidth is available in the
  *    network and if yes sets the address to active and updates the
  *    bandwidth distribution in this network. If no bandwidth is
@@ -345,7 +351,14 @@ struct Network
    */
   char *stat_active;
 
+  /**
+   * FIXME.
+   */
   struct AddressWrapper *head;
+
+  /**
+   * FIXME.
+   */
   struct AddressWrapper *tail;
 };
 
@@ -396,112 +409,12 @@ struct AddressWrapper
   struct ATS_Address *addr;
 };
 
+
 /**
- *  Important solver functions
- *  ---------------------------
+ * Function used to unload the plugin.
+ *
+ * @param cls return value from #libgnunet_plugin_ats_proportional_init()
  */
-
-void *
-libgnunet_plugin_ats_proportional_init (void *cls)
-{
-  struct GNUNET_ATS_PluginEnvironment *env = cls;
-  struct GAS_PROPORTIONAL_Handle *s;
-  struct Network * cur;
-  char * net_str[GNUNET_ATS_NetworkTypeCount] = GNUNET_ATS_NetworkTypeString;
-  float f_tmp;
-  int c;
-
-  GNUNET_assert (NULL != env);
-  GNUNET_assert(NULL != env->cfg);
-  GNUNET_assert(NULL != env->bandwidth_changed_cb);
-  GNUNET_assert(NULL != env->get_preferences);
-  GNUNET_assert(NULL != env->get_property);
-
-  s = GNUNET_new (struct GAS_PROPORTIONAL_Handle);
-  s->env = env;
-  env->sf.s_add = &GAS_proportional_address_add;
-  env->sf.s_address_update_property = &GAS_proportional_address_property_changed;
-  env->sf.s_address_update_session = &GAS_proportional_address_session_changed;
-  env->sf.s_address_update_inuse = &GAS_proportional_address_inuse_changed;
-  env->sf.s_address_update_network = &GAS_proportional_address_change_network;
-  env->sf.s_get = &GAS_proportional_get_preferred_address;
-  env->sf.s_get_stop = &GAS_proportional_stop_get_preferred_address;
-  env->sf.s_pref = &GAS_proportional_address_change_preference;
-  env->sf.s_feedback = &GAS_proportional_address_preference_feedback;
-  env->sf.s_del = &GAS_proportional_address_delete;
-  env->sf.s_bulk_start = &GAS_proportional_bulk_start;
-  env->sf.s_bulk_stop = &GAS_proportional_bulk_stop;
-
-  s->stats = (struct GNUNET_STATISTICS_Handle *) env->stats;
-  s->bw_changed = env->bandwidth_changed_cb;
-  s->bw_changed_cls = env->bw_changed_cb_cls;
-  s->get_preferences = env->get_preferences;
-  s->get_preferences_cls = env->get_preference_cls;
-  s->get_properties = env->get_property;
-  s->get_properties_cls = env->get_property_cls;
-  s->network_count = env->network_count;
-  s->network_entries = GNUNET_malloc (env->network_count * sizeof (struct Network));
-
-  /* Init */
-  s->active_addresses = 0;
-  s->total_addresses = 0;
-  s->bulk_lock = GNUNET_NO;
-  s->addresses = env->addresses;
-  s->requests = GNUNET_CONTAINER_multipeermap_create (10, GNUNET_NO);
-
-  s->stability_factor = PROP_STABILITY_FACTOR;
-  if (GNUNET_SYSERR != GNUNET_CONFIGURATION_get_value_float (env->cfg, "ats",
-      "PROP_STABILITY_FACTOR", &f_tmp))
-  {
-    if ((f_tmp < 1.0) || (f_tmp > 2.0))
-    {
-      LOG (GNUNET_ERROR_TYPE_ERROR, _("Invalid %s configuration %f \n"),
-          "PROP_STABILITY_FACTOR", f_tmp);
-    }
-    else
-    {
-      s->stability_factor = f_tmp;
-      LOG (GNUNET_ERROR_TYPE_INFO, "Using %s of %.3f\n",
-          "PROP_STABILITY_FACTOR", f_tmp);
-    }
-  }
-
-  s->prop_factor = PROPORTIONALITY_FACTOR;
-  if (GNUNET_SYSERR != GNUNET_CONFIGURATION_get_value_float (env->cfg, "ats",
-      "PROP_STABILITY_FACTOR", &f_tmp))
-  {
-    if (f_tmp < 1.0)
-    {
-      LOG (GNUNET_ERROR_TYPE_ERROR, _("Invalid %s configuration %f \n"),
-          "PROP_PROPORTIONALITY_FACTOR", f_tmp);
-    }
-    else
-    {
-      s->prop_factor = f_tmp;
-      LOG (GNUNET_ERROR_TYPE_INFO, "Using %s of %.3f\n",
-          "PROP_PROPORTIONALITY_FACTOR", f_tmp);
-    }
-  }
-
-  for (c = 0; c < env->network_count; c++)
-  {
-    cur = &s->network_entries[c];
-    cur->total_addresses = 0;
-    cur->active_addresses = 0;
-    cur->type = env->networks[c];
-    cur->total_quota_in = env->in_quota[c];
-    cur->total_quota_out = env->out_quota[c];
-    cur->desc = net_str[c];
-    GNUNET_asprintf (&cur->stat_total,
-        "# ATS addresses %s total", cur->desc);
-    GNUNET_asprintf (&cur->stat_active,
-        "# ATS active addresses %s total", cur->desc);
-    LOG (GNUNET_ERROR_TYPE_INFO, "Added network %u `%s' (%llu/%llu)\n",
-        c, cur->desc, cur->total_quota_in, cur->total_quota_out);
-  }
-  return s;
-}
-
 void *
 libgnunet_plugin_ats_proportional_done (void *cls)
 {
@@ -509,6 +422,7 @@ libgnunet_plugin_ats_proportional_done (void *cls)
   struct AddressWrapper *cur;
   struct AddressWrapper *next;
   int c;
+
   GNUNET_assert(s != NULL);
   for (c = 0; c < s->network_count; c++)
   {
@@ -564,7 +478,7 @@ libgnunet_plugin_ats_proportional_done (void *cls)
  * Test if bandwidth is available in this network to add an additional address
  *
  * @param net the network type to update
- * @return GNUNET_YES or GNUNET_NO
+ * @return #GNUNET_YES or #GNUNET_NO
  */
 static int
 is_bandwidth_available_in_network (struct Network *net)
@@ -586,6 +500,7 @@ is_bandwidth_available_in_network (struct Network *net)
       na, net->desc);
   return GNUNET_NO;
 }
+
 
 /**
  * Update bandwidth assigned to peers in this network
@@ -749,6 +664,10 @@ distribute_bandwidth (struct GAS_PROPORTIONAL_Handle *s,
   }
 }
 
+
+/**
+ * FIXME.
+ */
 struct FindBestAddressCtx
 {
   struct GAS_PROPORTIONAL_Handle *s;
@@ -756,6 +675,9 @@ struct FindBestAddressCtx
 };
 
 
+/**
+ * FIXME.
+ */
 static int
 find_property_index (uint32_t type)
 {
@@ -915,20 +837,25 @@ end:
   return GNUNET_OK;
 }
 
+
+/**
+ * FIXME.
+ */
 struct ATS_Address *
 get_best_address (struct GAS_PROPORTIONAL_Handle *s,
-    struct GNUNET_CONTAINER_MultiPeerMap *addresses,
-    const struct GNUNET_PeerIdentity *id)
+                  struct GNUNET_CONTAINER_MultiPeerMap *addresses,
+                  const struct GNUNET_PeerIdentity *id)
 {
   struct FindBestAddressCtx fba_ctx;
+
   fba_ctx.best = NULL;
   fba_ctx.s = s;
-
   GNUNET_CONTAINER_multipeermap_get_multiple (addresses, id,
-      &find_best_address_it, &fba_ctx);
+                                              &find_best_address_it, &fba_ctx);
 
   return fba_ctx.best;
 }
+
 
 /**
  * Hashmap Iterator to find current active address for peer
@@ -952,8 +879,9 @@ get_active_address_it (void *cls,
     if (NULL != (*dest))
     {
       /* should never happen */
-      LOG(GNUNET_ERROR_TYPE_ERROR, "Multiple active addresses for peer `%s'\n",
-          GNUNET_i2s (&aa->peer));
+      LOG (GNUNET_ERROR_TYPE_ERROR,
+           "Multiple active addresses for peer `%s'\n",
+           GNUNET_i2s (&aa->peer));
       GNUNET_break(0);
       return GNUNET_NO;
     }
@@ -961,6 +889,7 @@ get_active_address_it (void *cls,
   }
   return GNUNET_OK;
 }
+
 
 /**
  * Find current active address for peer
@@ -1003,9 +932,14 @@ get_network (struct GAS_PROPORTIONAL_Handle *s, uint32_t type)
 }
 
 
+/**
+ * FIXME.  Degermanize.
+ */
 static void
-addresse_increment (struct GAS_PROPORTIONAL_Handle *s, struct Network *net,
-    int total, int active)
+addresse_increment (struct GAS_PROPORTIONAL_Handle *s,
+                    struct Network *net,
+                    int total,
+                    int active)
 {
   if (GNUNET_YES == total)
   {
@@ -1026,11 +960,17 @@ addresse_increment (struct GAS_PROPORTIONAL_Handle *s, struct Network *net,
 }
 
 
+/**
+ * FIXME.  Degermanize.
+ */
 static int
-addresse_decrement (struct GAS_PROPORTIONAL_Handle *s, struct Network *net,
-    int total, int active)
+addresse_decrement (struct GAS_PROPORTIONAL_Handle *s,
+                    struct Network *net,
+                    int total,
+                    int active)
 {
   int res = GNUNET_OK;
+
   if (GNUNET_YES == total)
   {
     if (s->total_addresses < 1)
@@ -1083,6 +1023,10 @@ addresse_decrement (struct GAS_PROPORTIONAL_Handle *s, struct Network *net,
   return res;
 }
 
+
+/**
+ * FIXME.
+ */
 static int
 address_eq (struct ATS_Address *a, struct ATS_Address *b)
 {
@@ -1099,13 +1043,13 @@ address_eq (struct ATS_Address *a, struct ATS_Address *b)
   return GNUNET_YES;
 }
 
+
 /**
- *  Helper functions
- *  ---------------------------
+ * FIXME.
  */
 static void
 propagate_bandwidth (struct GAS_PROPORTIONAL_Handle *s,
-    struct Network *net)
+                     struct Network *net)
 {
   struct AddressWrapper *cur;
   struct AddressSolverInformation *asi;
@@ -1139,6 +1083,7 @@ propagate_bandwidth (struct GAS_PROPORTIONAL_Handle *s,
   }
 }
 
+
 /**
  * Distribibute bandwidth
  *
@@ -1148,7 +1093,7 @@ propagate_bandwidth (struct GAS_PROPORTIONAL_Handle *s,
  */
 static void
 distribute_bandwidth_in_network (struct GAS_PROPORTIONAL_Handle *s,
-    struct Network *n)
+                                 struct Network *n)
 {
   if (GNUNET_YES == s->bulk_lock)
   {
@@ -1213,17 +1158,22 @@ distribute_bandwidth_in_network (struct GAS_PROPORTIONAL_Handle *s,
   }
 }
 
+
+/**
+ * FIXME
+ */
 static const struct ATS_Address *
 update_active_address (struct GAS_PROPORTIONAL_Handle *s,
-    const struct GNUNET_PeerIdentity *peer)
+                       const struct GNUNET_PeerIdentity *peer)
 {
   struct ATS_Address *best_address;
   struct ATS_Address *current_address;
   struct AddressSolverInformation *asi;
   struct Network *net;
 
-  LOG (GNUNET_ERROR_TYPE_INFO, "Updating active address for peer `%s'\n",
-      GNUNET_i2s (peer));
+  LOG (GNUNET_ERROR_TYPE_INFO,
+       "Updating active address for peer `%s'\n",
+       GNUNET_i2s (peer));
 
   /* Find active address */
   current_address = get_active_address (s, s->addresses, peer);
@@ -1304,10 +1254,6 @@ update_active_address (struct GAS_PROPORTIONAL_Handle *s,
   return best_address;
 }
 
-/**
- *  Solver API functions
- *  ---------------------------
- */
 
 /**
  * Changes the preferences for a peer in the problem
@@ -1317,7 +1263,7 @@ update_active_address (struct GAS_PROPORTIONAL_Handle *s,
  * @param kind the kind to change the preference
  * @param pref_rel the normalized preference value for this kind over all clients
  */
-void
+static void
 GAS_proportional_address_change_preference (void *solver,
 					    const struct GNUNET_PeerIdentity *peer,
 					    enum GNUNET_ATS_PreferenceKind kind,
@@ -1328,7 +1274,7 @@ GAS_proportional_address_change_preference (void *solver,
   struct ATS_Address *active_address;
   struct AddressSolverInformation *asi;
 
-  GNUNET_assert(NULL != solver);
+  GNUNET_assert(NULL != s);
   GNUNET_assert(NULL != peer);
 
   if (GNUNET_NO == GNUNET_CONTAINER_multipeermap_contains (s->requests, peer))
@@ -1360,16 +1306,17 @@ GAS_proportional_address_change_preference (void *solver,
  * @param kind the kind to change the preference
  * @param score the score
  */
-void
-GAS_proportional_address_preference_feedback (void *solver, void *application,
-    const struct GNUNET_PeerIdentity *peer,
-    const struct GNUNET_TIME_Relative scope,
-    enum GNUNET_ATS_PreferenceKind kind, double score)
+static void
+GAS_proportional_address_preference_feedback (void *solver,
+                                              void *application,
+                                              const struct GNUNET_PeerIdentity *peer,
+                                              const struct GNUNET_TIME_Relative scope,
+                                              enum GNUNET_ATS_PreferenceKind kind,
+                                              double score)
 {
   struct GAS_PROPORTIONAL_Handle *s = solver;
-  GNUNET_assert(NULL != solver);
-  GNUNET_assert(NULL != peer);
 
+  GNUNET_assert(NULL != peer);
   GNUNET_assert(NULL != s);
 }
 
@@ -1377,14 +1324,13 @@ GAS_proportional_address_preference_feedback (void *solver, void *application,
 /**
  * Get the preferred address for a specific peer
  *
- *
- *
  * @param solver the solver handle
  * @param peer the identity of the peer
+ * @return FIXME
  */
-const struct ATS_Address *
+static const struct ATS_Address *
 GAS_proportional_get_preferred_address (void *solver,
-    const struct GNUNET_PeerIdentity *peer)
+                                        const struct GNUNET_PeerIdentity *peer)
 {
   struct GAS_PROPORTIONAL_Handle *s = solver;
   const struct ATS_Address *best_address;
@@ -1410,15 +1356,16 @@ GAS_proportional_get_preferred_address (void *solver,
   return best_address;
 }
 
+
 /**
  * Stop notifying about address and bandwidth changes for this peer
  *
  * @param solver the solver handle
  * @param peer the peer
  */
-void
+static void
 GAS_proportional_stop_get_preferred_address (void *solver,
-    const struct GNUNET_PeerIdentity *peer)
+                                             const struct GNUNET_PeerIdentity *peer)
 {
   struct GAS_PROPORTIONAL_Handle *s = solver;
   struct ATS_Address *cur;
@@ -1453,6 +1400,7 @@ GAS_proportional_stop_get_preferred_address (void *solver,
   return;
 }
 
+
 /**
  * Remove an address from the solver
  *
@@ -1460,9 +1408,10 @@ GAS_proportional_stop_get_preferred_address (void *solver,
  * @param address the address to remove
  * @param session_only delete only session not whole address
  */
-void
-GAS_proportional_address_delete (void *solver, struct ATS_Address *address,
-    int session_only)
+static void
+GAS_proportional_address_delete (void *solver,
+                                 struct ATS_Address *address,
+                                 int session_only)
 {
   struct GAS_PROPORTIONAL_Handle *s = solver;
   struct Network *net;
@@ -1554,17 +1503,19 @@ GAS_proportional_address_delete (void *solver, struct ATS_Address *address,
 
 }
 
+
 /**
  * Start a bulk operation
  *
  * @param solver the solver
  */
-void
+static void
 GAS_proportional_bulk_start (void *solver)
 {
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "Locking solver for bulk operation ...\n");
-  struct GAS_PROPORTIONAL_Handle *s = (struct GAS_PROPORTIONAL_Handle *) solver;
+  struct GAS_PROPORTIONAL_Handle *s = solver;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Locking solver for bulk operation ...\n");
   GNUNET_assert(NULL != solver);
   s->bulk_lock++;
 }
@@ -1573,12 +1524,13 @@ GAS_proportional_bulk_start (void *solver)
 /**
  * Bulk operation done
  */
-void
+static void
 GAS_proportional_bulk_stop (void *solver)
 {
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "Unlocking solver from bulk operation ...\n");
+  struct GAS_PROPORTIONAL_Handle *s = solver;
 
-  struct GAS_PROPORTIONAL_Handle *s = (struct GAS_PROPORTIONAL_Handle *) solver;
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Unlocking solver from bulk operation ...\n");
   GNUNET_assert(NULL != solver);
 
   if (s->bulk_lock < 1)
@@ -1603,9 +1555,11 @@ GAS_proportional_bulk_stop (void *solver)
  * @param address the address to add
  * @param network network type of this address
  */
-void
-GAS_proportional_address_add (void *solver, struct ATS_Address *address,
-    uint32_t network);
+static void
+GAS_proportional_address_add (void *solver,
+                              struct ATS_Address *address,
+                              uint32_t network);
+
 
 /**
  * Transport properties for this address have changed
@@ -1616,21 +1570,21 @@ GAS_proportional_address_add (void *solver, struct ATS_Address *address,
  * @param abs_value the absolute value of the property
  * @param rel_value the normalized value
  */
-void
+static void
 GAS_proportional_address_property_changed (void *solver,
-    struct ATS_Address *address, uint32_t type, uint32_t abs_value,
-    double rel_value)
+                                           struct ATS_Address *address,
+                                           uint32_t type,
+                                           uint32_t abs_value,
+                                           double rel_value)
 {
-  struct GAS_PROPORTIONAL_Handle *s;
+  struct GAS_PROPORTIONAL_Handle *s = solver;
   struct Network *n;
   struct AddressSolverInformation *asi;
   struct ATS_Address *best_address;
   struct ATS_Address *active_address;
 
-  GNUNET_assert(NULL != solver);
+  GNUNET_assert(NULL != s);
   GNUNET_assert(NULL != address);
-
-  s = (struct GAS_PROPORTIONAL_Handle *) solver;
   asi = address->solver_information;
   if (NULL == asi)
   {
@@ -1678,20 +1632,23 @@ GAS_proportional_address_property_changed (void *solver,
  * @param cur_session the current session
  * @param new_session the new session
  */
-void
+static void
 GAS_proportional_address_session_changed (void *solver,
-    struct ATS_Address *address, uint32_t cur_session, uint32_t new_session)
+                                          struct ATS_Address *address,
+                                          uint32_t cur_session,
+                                          uint32_t new_session)
 {
   struct GAS_PROPORTIONAL_Handle *s = solver;
   struct ATS_Address *best_address;
   struct ATS_Address *active_address;
   struct AddressSolverInformation *asi;
 
-  s = (struct GAS_PROPORTIONAL_Handle *) solver;
   if (cur_session != new_session)
   {
-    LOG(GNUNET_ERROR_TYPE_DEBUG, "Session changed from %u to %u\n", cur_session,
-        new_session);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Session changed from %u to %u\n",
+         cur_session,
+         new_session);
   }
 
   if (NULL == address->solver_information)
@@ -1718,6 +1675,7 @@ GAS_proportional_address_session_changed (void *solver,
   }
 }
 
+
 /**
  * Usage for this address has changed
  *
@@ -1727,20 +1685,19 @@ GAS_proportional_address_session_changed (void *solver,
  * @param address the address
  * @param in_use usage state
  */
-void
+static void
 GAS_proportional_address_inuse_changed (void *solver,
-    struct ATS_Address *address, int in_use)
+                                        struct ATS_Address *address,
+                                        int in_use)
 {
-  struct GAS_PROPORTIONAL_Handle *s;
+  struct GAS_PROPORTIONAL_Handle *s = solver;
   struct Network *n;
   struct AddressSolverInformation *asi;
   struct ATS_Address *best_address;
   struct ATS_Address *active_address;
 
-  GNUNET_assert(NULL != solver);
+  GNUNET_assert(NULL != s);
   GNUNET_assert(NULL != address);
-
-  s = (struct GAS_PROPORTIONAL_Handle *) solver;
   asi = address->solver_information;
   if (NULL == asi)
   {
@@ -1788,11 +1745,13 @@ GAS_proportional_address_inuse_changed (void *solver,
  * @param current_network the current network
  * @param new_network the new network
  */
-void
+static void
 GAS_proportional_address_change_network (void *solver,
-    struct ATS_Address *address, uint32_t current_network, uint32_t new_network)
+                                         struct ATS_Address *address,
+                                         uint32_t current_network,
+                                         uint32_t new_network)
 {
-  struct GAS_PROPORTIONAL_Handle *s = (struct GAS_PROPORTIONAL_Handle *) solver;
+  struct GAS_PROPORTIONAL_Handle *s = solver;
   struct AddressSolverInformation *asi;
   int save_active = GNUNET_NO;
 
@@ -1866,9 +1825,10 @@ GAS_proportional_address_change_network (void *solver,
  * @param address the address to add
  * @param network network type of this address
  */
-void
-GAS_proportional_address_add (void *solver, struct ATS_Address *address,
-    uint32_t network)
+static void
+GAS_proportional_address_add (void *solver,
+                              struct ATS_Address *address,
+                              uint32_t network)
 {
   struct GAS_PROPORTIONAL_Handle *s = solver;
   struct Network *net = NULL;
@@ -1909,6 +1869,124 @@ GAS_proportional_address_add (void *solver, struct ATS_Address *address,
 
   /* This peer is requested, find best address */
   update_active_address (s, &address->peer);
+}
+
+
+
+/**
+ * Function invoked when the plugin is loaded.
+ *
+ * @param cls[in,out] the `struct GNUNET_ATS_PluginEnvironment *` to use;
+ *            modified to return the API functions (ugh).
+ * @return the `struct GAS_PROPORTIONAL_Handle` to pass as a closure
+ */
+void *
+libgnunet_plugin_ats_proportional_init (void *cls)
+{
+  struct GNUNET_ATS_PluginEnvironment *env = cls;
+  struct GAS_PROPORTIONAL_Handle *s;
+  struct Network * cur;
+  char * net_str[GNUNET_ATS_NetworkTypeCount] = GNUNET_ATS_NetworkTypeString;
+  float f_tmp;
+  int c;
+
+  GNUNET_assert (NULL != env);
+  GNUNET_assert (NULL != env->cfg);
+  GNUNET_assert (NULL != env->bandwidth_changed_cb);
+  GNUNET_assert (NULL != env->get_preferences);
+  GNUNET_assert (NULL != env->get_property);
+
+  s = GNUNET_new (struct GAS_PROPORTIONAL_Handle);
+  s->env = env;
+  env->sf.s_add = &GAS_proportional_address_add;
+  env->sf.s_address_update_property = &GAS_proportional_address_property_changed;
+  env->sf.s_address_update_session = &GAS_proportional_address_session_changed;
+  env->sf.s_address_update_inuse = &GAS_proportional_address_inuse_changed;
+  env->sf.s_address_update_network = &GAS_proportional_address_change_network;
+  env->sf.s_get = &GAS_proportional_get_preferred_address;
+  env->sf.s_get_stop = &GAS_proportional_stop_get_preferred_address;
+  env->sf.s_pref = &GAS_proportional_address_change_preference;
+  env->sf.s_feedback = &GAS_proportional_address_preference_feedback;
+  env->sf.s_del = &GAS_proportional_address_delete;
+  env->sf.s_bulk_start = &GAS_proportional_bulk_start;
+  env->sf.s_bulk_stop = &GAS_proportional_bulk_stop;
+
+  s->stats = (struct GNUNET_STATISTICS_Handle *) env->stats;
+  s->bw_changed = env->bandwidth_changed_cb;
+  s->bw_changed_cls = env->bw_changed_cb_cls;
+  s->get_preferences = env->get_preferences;
+  s->get_preferences_cls = env->get_preference_cls;
+  s->get_properties = env->get_property;
+  s->get_properties_cls = env->get_property_cls;
+  s->network_count = env->network_count;
+  s->network_entries = GNUNET_malloc (env->network_count * sizeof (struct Network));
+
+  /* Init */
+  s->active_addresses = 0;
+  s->total_addresses = 0;
+  s->bulk_lock = GNUNET_NO;
+  s->addresses = env->addresses;
+  s->requests = GNUNET_CONTAINER_multipeermap_create (10, GNUNET_NO);
+
+  s->stability_factor = PROP_STABILITY_FACTOR;
+  if (GNUNET_SYSERR !=
+      GNUNET_CONFIGURATION_get_value_float (env->cfg, "ats",
+                                            "PROP_STABILITY_FACTOR", &f_tmp))
+  {
+    if ((f_tmp < 1.0) || (f_tmp > 2.0))
+    {
+      LOG (GNUNET_ERROR_TYPE_ERROR,
+           _("Invalid %s configuration %f \n"),
+           "PROP_STABILITY_FACTOR",
+           f_tmp);
+    }
+    else
+    {
+      s->stability_factor = f_tmp;
+      LOG (GNUNET_ERROR_TYPE_INFO,
+           "Using %s of %.3f\n",
+           "PROP_STABILITY_FACTOR", f_tmp);
+    }
+  }
+
+  s->prop_factor = PROPORTIONALITY_FACTOR;
+  if (GNUNET_SYSERR !=
+      GNUNET_CONFIGURATION_get_value_float (env->cfg, "ats",
+                                            "PROP_STABILITY_FACTOR", &f_tmp))
+  {
+    if (f_tmp < 1.0)
+    {
+      LOG (GNUNET_ERROR_TYPE_ERROR,
+           _("Invalid %s configuration %f \n"),
+           "PROP_PROPORTIONALITY_FACTOR", f_tmp);
+    }
+    else
+    {
+      s->prop_factor = f_tmp;
+      LOG (GNUNET_ERROR_TYPE_INFO,
+           "Using %s of %.3f\n",
+           "PROP_PROPORTIONALITY_FACTOR", f_tmp);
+    }
+  }
+
+  for (c = 0; c < env->network_count; c++)
+  {
+    cur = &s->network_entries[c];
+    cur->total_addresses = 0;
+    cur->active_addresses = 0;
+    cur->type = env->networks[c];
+    cur->total_quota_in = env->in_quota[c];
+    cur->total_quota_out = env->out_quota[c];
+    cur->desc = net_str[c];
+    GNUNET_asprintf (&cur->stat_total,
+        "# ATS addresses %s total", cur->desc);
+    GNUNET_asprintf (&cur->stat_active,
+        "# ATS active addresses %s total", cur->desc);
+    LOG (GNUNET_ERROR_TYPE_INFO,
+         "Added network %u `%s' (%llu/%llu)\n",
+        c, cur->desc, cur->total_quota_in, cur->total_quota_out);
+  }
+  return s;
 }
 
 
