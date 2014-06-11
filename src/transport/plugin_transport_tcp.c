@@ -1721,9 +1721,6 @@ append_port (void *cls,
   struct PrettyPrinterContext *ppc = cls;
   char *ret;
 
-  fprintf (stderr,
-           "Got HN: %s\n",
-           hostname);
   if (NULL == hostname)
   {
     /* Final call, done */
