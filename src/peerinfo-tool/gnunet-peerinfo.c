@@ -334,8 +334,7 @@ print_address (void *cls,
   ar->atsc = GNUNET_TRANSPORT_address_to_string (cfg,
                                                  address,
                                                  no_resolve,
-						 GNUNET_TIME_relative_multiply
-						 (GNUNET_TIME_UNIT_SECONDS, 10),
+						 TIMEOUT,
 						 &process_resolved_address, ar);
   return GNUNET_OK;
 }
@@ -588,10 +587,10 @@ parse_hello_uri (const char *put_uri)
 {
   struct GNUNET_HELLO_Message *hello = NULL;
 
-  int ret = GNUNET_HELLO_parse_uri(put_uri,
-                                   &my_peer_identity.public_key,
-				   &hello,
-                                   &GPI_plugins_find);
+  int ret = GNUNET_HELLO_parse_uri (put_uri,
+                                    &my_peer_identity.public_key,
+                                    &hello,
+                                    &GPI_plugins_find);
 
   if (NULL != hello)
   {
@@ -604,10 +603,6 @@ parse_hello_uri (const char *put_uri)
       tt = GNUNET_SCHEDULER_add_now (&state_machine, NULL);
     GNUNET_free (hello);
   }
-
-  /* wait 1s to give peerinfo operation a chance to succeed */
-  /* FIXME: current peerinfo API sucks to require this; not to mention
-     that we get no feedback to determine if the operation actually succeeded */
   return ret;
 }
 
