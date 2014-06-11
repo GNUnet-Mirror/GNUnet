@@ -18,8 +18,8 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file peerstore/test_peerstore_stress_store.c
- * @brief stress test for peerstore store operation
+ * @file peerstore/perf_peerstore_store.c
+ * @brief performance test for peerstore store operation
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
@@ -100,21 +100,19 @@ int
 main (int argc, char *argv[])
 {
   struct GNUNET_TIME_Absolute start;
-  struct GNUNET_TIME_Absolute end;
   struct GNUNET_TIME_Relative diff;
 
   start = GNUNET_TIME_absolute_get();
-  if (0 != GNUNET_TESTING_service_run ("test-gnunet-peerstore",
+  if (0 != GNUNET_TESTING_service_run ("perf-peerstore-store",
                  "peerstore",
                  "test_peerstore_api_data.conf",
                  &run, NULL))
     return 1;
-  end = GNUNET_TIME_absolute_get();
-  diff = GNUNET_TIME_absolute_get_difference(start, end);
-  printf("Stored and retrieved %d records in %s (%s).\n",
+  diff = GNUNET_TIME_absolute_get_duration(start);
+  fprintf(stderr, "Stored and retrieved %d records in %s (%s).\n",
       STORES, GNUNET_STRINGS_relative_time_to_string(diff, GNUNET_YES),
       GNUNET_STRINGS_relative_time_to_string(diff, GNUNET_NO));
   return ok;
 }
 
-/* end of test_peerstore_stress.c */
+/* end of perf_peerstore_store.c */

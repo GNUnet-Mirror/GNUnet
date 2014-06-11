@@ -68,8 +68,8 @@ check_PROGRAMS = \
  test_peerstore_api_store \
  test_peerstore_api_iterate \
  test_peerstore_api_watch \
- test_peerstore_stress_store
-
+ perf_peerstore_store
+ 
 if ENABLE_TEST_RUN
 AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PATH=$${GNUNET_PREFIX:-@prefix@}/bin:$$PATH;
 TESTS = $(check_PROGRAMS)
@@ -96,9 +96,9 @@ test_peerstore_api_watch_LDADD = \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/util/libgnunetutil.la
 
-test_peerstore_stress_store_SOURCES = \
- test_peerstore_stress_store.c
-test_peerstore_stress_store_LDADD = \
+perf_peerstore_store_SOURCES = \
+ perf_peerstore_store.c
+perf_peerstore_store_LDADD = \
   $(top_builddir)/src/peerstore/libgnunetpeerstore.la  \
   $(top_builddir)/src/testing/libgnunettesting.la \
   $(top_builddir)/src/util/libgnunetutil.la
