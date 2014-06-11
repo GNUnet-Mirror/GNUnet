@@ -231,7 +231,7 @@ GNUNET_HELLO_add_address (const struct GNUNET_HELLO_Address *address,
  * @param cls closure
  * @param max maximum number of bytes that can be written to @a buf
  * @param buf where to write the address information
- * @return number of bytes written or 0, GNUNET_SYSERR to signal the
+ * @return number of bytes written or 0, #GNUNET_SYSERR to signal the
  *         end of the iteration.
  */
 typedef ssize_t
@@ -263,6 +263,7 @@ GNUNET_HELLO_create (const struct GNUNET_CRYPTO_EddsaPublicKey *publicKey,
 
 /**
  * Return the size of the given HELLO message.
+ *
  * @param hello to inspect
  * @return the size, 0 if HELLO is invalid
  */
