@@ -1791,8 +1791,6 @@ GAS_proportional_address_change_network (void *solver,
   struct AddressSolverInformation *asi;
   int save_active = GNUNET_NO;
 
-  struct Network *new_net = NULL;
-
   if (current_network == new_network)
   {
     GNUNET_break(0);
@@ -1828,7 +1826,7 @@ GAS_proportional_address_change_network (void *solver,
   GAS_proportional_address_delete (solver, address, GNUNET_NO);
 
   /* Set new network type */
-  if (NULL == (new_net = get_network (solver, new_network)))
+  if (NULL == get_network (solver, new_network))
   {
     /* Address changed to invalid network... */
     LOG(GNUNET_ERROR_TYPE_ERROR,
