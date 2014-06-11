@@ -237,15 +237,18 @@ get_ip_as_string (struct GNUNET_SERVER_Client *client,
   }
   if (NULL != pos)
   {
-    if (1 == inet_pton (af,
-                        pos->ip,
-                        &ix))
+    if ( (1 == inet_pton (af,
+                          pos->ip,
+                          &ix)) &&
+         (GNUNET_TIME_absolute_get_duration (pos->last_request).rel_value_us >
+          120 * 1000 * 1000LL) )
     {
+      /* try again if still numeric AND 2 minutes have expired */
       GNUNET_free_non_null (pos->addr);
       pos->addr = NULL;
       cache_resolve (pos);
+      pos->last_request = now;
     }
-    pos->last_request = now;
   }
   else
   {
