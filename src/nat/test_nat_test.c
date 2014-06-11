@@ -40,11 +40,17 @@ static int ret = 1;
 static struct GNUNET_NAT_Test *tst;
 
 static void
-report_success (void *cls,
+report_result (void *cls,
                 enum GNUNET_NAT_FailureCode aret)
 {
-  GNUNET_assert (GNUNET_NAT_ERROR_SUCCESS == aret);
-  ret = 0;
+  if (GNUNET_NAT_ERROR_TIMEOUT == aret)
+    fprintf (stderr,
+             "NAT test timed out\n");
+  else if (GNUNET_NAT_ERROR_SUCCESS != aret)
+    fprintf (stderr,
+             "NAT test reported error %d\n", aret);
+  else
+    ret = 0;
 }
 
 
@@ -56,8 +62,8 @@ run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   tst =
-      GNUNET_NAT_test_start (cfg, GNUNET_YES, 1285, 1285, TIMEOUT
-                             &report_success,
+      GNUNET_NAT_test_start (cfg, GNUNET_YES, 1285, 1285, TIMEOUT,
+                             &report_result,
                              NULL);
 }
 
