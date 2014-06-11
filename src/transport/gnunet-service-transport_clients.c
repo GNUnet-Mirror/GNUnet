@@ -987,8 +987,14 @@ clients_handle_address_to_string (void *cls,
     atsm.res = htonl (GNUNET_SYSERR);
     atsm.addr_len = htonl (0);
     GNUNET_SERVER_transmit_context_append_message (tc,
-        (const struct GNUNET_MessageHeader *) &atsm);
-    GNUNET_SERVER_transmit_context_run (tc, rtimeout);
+                                                   &atsm.header);
+    atsm.header.size = ntohs (sizeof (struct AddressToStringResultMessage));
+    atsm.header.type = ntohs (GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_TO_STRING_REPLY);
+    atsm.res = htonl (GNUNET_OK);
+    atsm.addr_len = htonl (0);
+    GNUNET_SERVER_transmit_context_append_message (tc,
+                                                   &atsm.header);
+    GNUNET_SERVER_transmit_context_run (tc, GNUNET_TIME_UNIT_FOREVER_REL);
     return;
   }
   actx = GNUNET_new (struct AddressToStringContext);

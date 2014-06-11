@@ -76,8 +76,7 @@ address_response_processor (void *cls,
     alucb->cb (alucb->cb_cls,
                NULL,
                GNUNET_SYSERR);
-    GNUNET_CLIENT_disconnect (alucb->client);
-    GNUNET_free (alucb);
+    GNUNET_TRANSPORT_address_to_string_cancel (alucb);
     return;
   }
   GNUNET_break (ntohs (msg->type) ==
@@ -90,8 +89,7 @@ address_response_processor (void *cls,
     alucb->cb (alucb->cb_cls,
                NULL,
                GNUNET_SYSERR);
-    GNUNET_CLIENT_disconnect (alucb->client);
-    GNUNET_free (alucb);
+    GNUNET_TRANSPORT_address_to_string_cancel (alucb);
     return;
   }
   atsm = (const struct AddressToStringResultMessage *) msg;
@@ -126,8 +124,7 @@ address_response_processor (void *cls,
     alucb->cb (alucb->cb_cls,
                NULL,
                GNUNET_OK);
-    GNUNET_CLIENT_disconnect (alucb->client);
-    GNUNET_free (alucb);
+    GNUNET_TRANSPORT_address_to_string_cancel (alucb);
     return;
   }
   address = (const char *) &atsm[1];
@@ -139,8 +136,7 @@ address_response_processor (void *cls,
     alucb->cb (alucb->cb_cls,
                NULL,
                GNUNET_SYSERR);
-    GNUNET_CLIENT_disconnect (alucb->client);
-    GNUNET_free (alucb);
+    GNUNET_TRANSPORT_address_to_string_cancel (alucb);
     return;
   }
   /* expect more replies */

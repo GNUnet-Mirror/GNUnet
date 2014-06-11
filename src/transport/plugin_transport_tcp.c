@@ -1636,7 +1636,8 @@ tcp_plugin_disconnect (void *cls, const struct GNUNET_PeerIdentity *target)
 {
   struct Plugin *plugin = cls;
 
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "Disconnecting peer `%4s'\n",
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "Disconnecting peer `%4s'\n",
       GNUNET_i2s (target));
   GNUNET_CONTAINER_multipeermap_get_multiple (plugin->sessionmap, target,
       &session_disconnect_it, plugin);
@@ -2275,7 +2276,8 @@ handle_tcp_data (void *cls, struct GNUNET_SERVER_Client *client,
   }
   else
   {
-    LOG(GNUNET_ERROR_TYPE_DEBUG, "Throttling receiving from `%s' for %s\n",
+    LOG(GNUNET_ERROR_TYPE_DEBUG,
+        "Throttling receiving from `%s' for %s\n",
         GNUNET_i2s (&session->target),
         GNUNET_STRINGS_relative_time_to_string (delay, GNUNET_YES));
     GNUNET_SERVER_disable_receive_done_warning (client);
