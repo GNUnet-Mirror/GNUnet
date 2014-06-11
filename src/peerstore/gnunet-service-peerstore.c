@@ -384,7 +384,7 @@ run (void *cls,
   if (GNUNET_OK !=
         GNUNET_CONFIGURATION_get_value_string (cfg, "peerstore", "DATABASE",
                                                &database))
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "No database backend configured\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("No database backend configured\n"));
 
   else
   {
@@ -393,7 +393,13 @@ run (void *cls,
     GNUNET_free(database);
   }
   if(NULL == db)
-	  GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Could not load database backend `%s'\n", db_lib_name);
+  {
+	  GNUNET_log(GNUNET_ERROR_TYPE_ERROR, _("Could not load database backend `%s'\n"), db_lib_name);
+	  /* FIXME:
+	   * error handling required, otherwise you try to access db
+	   * in message handlers like handle_store ...
+	   *   if(GNUNET_OK != db->store_record(db->cls, ... */
+  }
   else
   {
     nc = GNUNET_SERVER_notification_context_create (server, 16);

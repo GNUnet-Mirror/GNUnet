@@ -284,7 +284,7 @@ handle_client_error (void *cls, enum GNUNET_MQ_Error error)
 {
   struct GNUNET_PEERSTORE_Handle *h = cls;
 
-  LOG(GNUNET_ERROR_TYPE_ERROR, "Received an error notification from MQ of type: %d\n", error);
+  LOG(GNUNET_ERROR_TYPE_ERROR, _("Received an error notification from MQ of type: %d\n"), error);
   reconnect(h);
 }
 
@@ -551,7 +551,7 @@ void handle_iterate_result (void *cls, const struct GNUNET_MessageHeader *msg)
   ic = h->iterate_head;
   if(NULL == ic)
   {
-    LOG(GNUNET_ERROR_TYPE_ERROR, "Unexpected iteration response, this should not happen.\n");
+    LOG(GNUNET_ERROR_TYPE_ERROR, _("Unexpected iteration response, this should not happen.\n"));
     reconnect(h);
     return;
   }
