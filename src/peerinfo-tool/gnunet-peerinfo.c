@@ -282,15 +282,10 @@ process_resolved_address (void *cls,
   }
   ar->atsc = NULL;
   if (GNUNET_SYSERR == res)
-  {
-    FPRINTF (stderr,
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
              _("Failure: Cannot convert address to string for peer `%s'\n"),
              GNUNET_i2s (&ar->pc->peer));
-  }
-  else
-  {
-    pc->num_addresses++;
-  }
+  pc->num_addresses++;
   if (pc->num_addresses == pc->address_list_size)
     dump_pc (pc);
 }
