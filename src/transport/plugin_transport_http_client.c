@@ -1185,7 +1185,8 @@ client_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_assert (s != NULL);
       if (msg->msg == CURLMSG_DONE)
       {
-        curl_easy_getinfo (easy_h, CURLINFO_RESPONSE_CODE, &http_statuscode);
+        GNUNET_break (CURLE_OK == curl_easy_getinfo (easy_h,
+            CURLINFO_RESPONSE_CODE, &http_statuscode));
         if (easy_h == s->client_put)
         {
             if  ((0 != msg->data.result) || (http_statuscode != 200))
@@ -1887,7 +1888,7 @@ client_configure_plugin (struct HTTP_Client_Plugin *plugin)
     }
 
     /* proxy http tunneling */
-    if (GNUNET_SYSERR == (plugin->proxy_use_httpproxytunnel == GNUNET_CONFIGURATION_get_value_yesno (plugin->env->cfg,
+    if (GNUNET_SYSERR == (plugin->proxy_use_httpproxytunnel = GNUNET_CONFIGURATION_get_value_yesno (plugin->env->cfg,
         plugin->name, "PROXY_HTTP_TUNNELING")))
       plugin->proxy_use_httpproxytunnel = GNUNET_NO;
 
