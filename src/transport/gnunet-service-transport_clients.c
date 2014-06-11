@@ -984,7 +984,7 @@ clients_handle_address_to_string (void *cls,
   {
     atsm.header.size = ntohs (sizeof (struct AddressToStringResultMessage));
     atsm.header.type = ntohs (GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_TO_STRING_REPLY);
-    atsm.res = htonl (GNUNET_NO);
+    atsm.res = htonl (GNUNET_SYSERR);
     atsm.addr_len = htonl (0);
     GNUNET_SERVER_transmit_context_append_message (tc,
         (const struct GNUNET_MessageHeader *) &atsm);
