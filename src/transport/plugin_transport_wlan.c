@@ -1646,8 +1646,8 @@ send_hello_beacon (void *cls,
  *
  * @param cls closure
  * @param addr pointer to the address
- * @param addrlen length of addr
- * @return GNUNET_OK if this is a plausible address for this peer
+ * @param addrlen length of @a addr
+ * @return #GNUNET_OK if this is a plausible address for this peer
  *         and transport
  */
 static int

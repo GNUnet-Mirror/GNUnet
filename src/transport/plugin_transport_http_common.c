@@ -214,7 +214,7 @@ http_common_plugin_address_pretty_printer (void *cls,
                                               address,
                                               addrlen);
   asc (asc_cls,
-       NULL,
+       ret,
        (NULL == ret) ? GNUNET_SYSERR : GNUNET_OK);
   asc (asc_cls,
        NULL,

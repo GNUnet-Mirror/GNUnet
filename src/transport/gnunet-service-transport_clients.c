@@ -882,6 +882,11 @@ transmit_address_to_client (void *cls,
   size_t len;
   size_t slen;
 
+  fprintf (stderr,
+           "TATC: %p: %p/%d\n",
+           actx,
+           buf,
+           res);
   GNUNET_assert ( (GNUNET_OK == res) ||
                   (GNUNET_SYSERR == res) );
   if (NULL == buf)
@@ -987,6 +992,9 @@ clients_handle_address_to_string (void *cls,
   papi = GST_plugins_printer_find (plugin_name);
   if (NULL == papi)
   {
+    fprintf (stderr,
+             "DEAD: %s\n",
+             plugin_name);
     atsm.header.size = ntohs (sizeof (struct AddressToStringResultMessage));
     atsm.header.type = ntohs (GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_TO_STRING_REPLY);
     atsm.res = htonl (GNUNET_SYSERR);
@@ -1003,6 +1011,11 @@ clients_handle_address_to_string (void *cls,
     return;
   }
   actx = GNUNET_new (struct AddressToStringContext);
+  fprintf (stderr,
+           "AAAA: %p - %s\n",
+           actx,
+           plugin_name);
+
   actx->tc = tc;
   GNUNET_CONTAINER_DLL_insert (a2s_head, a2s_tail, actx);
   GNUNET_SERVER_disable_receive_done_warning (client);
