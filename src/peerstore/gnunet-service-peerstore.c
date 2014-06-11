@@ -42,7 +42,7 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
 /**
  * Database plugin library name
  */
-char *db_lib_name;
+static char *db_lib_name;
 
 /**
  * Database handle
@@ -268,13 +268,13 @@ void handle_iterate (void *cls,
   record = PEERSTORE_parse_record_message(message);
   if(NULL == record)
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Malformed iterate request from client\n");
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, _("Malformed iterate request from client\n"));
     GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
     return;
   }
   if(NULL == record->sub_system)
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Sub system not supplied in client iterate request\n");
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, _("Sub system not supplied in client iterate request\n"));
     GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
     return;
   }
@@ -321,7 +321,7 @@ void handle_store (void *cls,
   record = PEERSTORE_parse_record_message(message);
   if(NULL == record)
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Malformed store request from client\n");
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, _("Malformed store request from client\n"));
     GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
     return;
   }
@@ -330,7 +330,7 @@ void handle_store (void *cls,
       || NULL == record->peer
       || NULL == record->key)
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Full key not supplied in client store request\n");
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, _("Full key not supplied in client store request\n"));
     PEERSTORE_destroy_record(record);
     GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
     return;
@@ -349,7 +349,7 @@ void handle_store (void *cls,
       *record->expiry,
       srm->options))
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Failed to store requested value, sqlite database error.");
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, _("Failed to store requested value, sqlite database error."));
     PEERSTORE_destroy_record(record);
     GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
     return;
