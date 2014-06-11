@@ -30,7 +30,7 @@
 #include "resolver.h"
 
 /**
- * A cached DNS lookup result.
+ * A cached DNS lookup result (for reverse lookup).
  */
 struct IPCache
 {
@@ -131,9 +131,13 @@ getnameinfo_resolve (struct IPCache *cache)
   }
 
   if (0 ==
-      getnameinfo (sa, salen, hostname, sizeof (hostname), NULL,
+      getnameinfo (sa, salen,
+                   hostname, sizeof (hostname),
+                   NULL,
                    0, 0))
+  {
     cache->addr = GNUNET_strdup (hostname);
+  }
 }
 #endif
 
@@ -153,7 +157,9 @@ gethostbyaddr_resolve (struct IPCache *cache)
 		       cache->ip_len,
 		       cache->af);
   if (NULL != ent)
+  {
     cache->addr = GNUNET_strdup (ent->h_name);
+  }
 }
 #endif
 
@@ -185,7 +191,7 @@ cache_resolve (struct IPCache *cache)
  *
  * @param client handle to the client making the request (for sending the reply)
  * @param af AF_INET or AF_INET6
- * @param ip 'struct in_addr' or 'struct in6_addr'
+ * @param ip `struct in_addr` or `struct in6_addr`
  */
 static void
 get_ip_as_string (struct GNUNET_SERVER_Client *client,
@@ -197,6 +203,7 @@ get_ip_as_string (struct GNUNET_SERVER_Client *client,
   struct GNUNET_TIME_Absolute now;
   struct GNUNET_SERVER_TransmitContext *tc;
   size_t ip_len;
+  struct in6_addr ix;
 
   switch (af)
   {
@@ -228,16 +235,17 @@ get_ip_as_string (struct GNUNET_SERVER_Client *client,
       continue;
     }
   }
-  if (pos != NULL)
+  if (NULL != pos)
   {
-    pos->last_request = now;
-    if (GNUNET_TIME_absolute_get_duration (pos->last_request).rel_value_us <
-        60 * 60 * 1000 * 1000LL)
+    if (1 == inet_pton (af,
+                        pos->ip,
+                        &ix))
     {
       GNUNET_free_non_null (pos->addr);
       pos->addr = NULL;
       cache_resolve (pos);
     }
+    pos->last_request = now;
   }
   else
   {
@@ -254,7 +262,7 @@ get_ip_as_string (struct GNUNET_SERVER_Client *client,
     cache_resolve (pos);
   }
   tc = GNUNET_SERVER_transmit_context_create (client);
-  if (pos->addr != NULL)
+  if (NULL != pos->addr)
     GNUNET_SERVER_transmit_context_append_data (tc, pos->addr,
                                                 strlen (pos->addr) + 1,
                                                 GNUNET_MESSAGE_TYPE_RESOLVER_RESPONSE);
@@ -311,7 +319,7 @@ getaddrinfo_resolve (struct GNUNET_SERVER_TransmitContext *tc,
       return GNUNET_NO;         /* other function may still succeed */
     return GNUNET_SYSERR;
   }
-  if (result == NULL)
+  if (NULL == result)
     return GNUNET_SYSERR;
   for (pos = result; pos != NULL; pos = pos->ai_next)
   {
@@ -436,7 +444,8 @@ gethostbyname_resolve (struct GNUNET_SERVER_TransmitContext *tc,
  * @param af AF_INET or AF_INET6; use AF_UNSPEC for "any"
  */
 static void
-get_ip_from_hostname (struct GNUNET_SERVER_Client *client, const char *hostname,
+get_ip_from_hostname (struct GNUNET_SERVER_Client *client,
+                      const char *hostname,
                       int af)
 {
   int ret;
@@ -470,7 +479,8 @@ get_ip_from_hostname (struct GNUNET_SERVER_Client *client, const char *hostname,
  * @param message the actual message
  */
 static void
-handle_get (void *cls, struct GNUNET_SERVER_Client *client,
+handle_get (void *cls,
+            struct GNUNET_SERVER_Client *client,
             const struct GNUNET_MessageHeader *message)
 {
   uint16_t msize;
@@ -596,7 +606,8 @@ main (int argc, char *const *argv)
 /**
  * MINIMIZE heap size (way below 128k) since this process doesn't need much.
  */
-void __attribute__ ((constructor)) GNUNET_ARM_memory_init ()
+void __attribute__ ((constructor))
+GNUNET_ARM_memory_init ()
 {
   mallopt (M_TRIM_THRESHOLD, 4 * 1024);
   mallopt (M_TOP_PAD, 1 * 1024);

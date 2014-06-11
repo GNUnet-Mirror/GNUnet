@@ -192,9 +192,9 @@ GNUNET_SERVER_transmit_context_append_message (struct
 
 /**
  * Execute a transmission context.  If there is
- * an error in the transmission, the receive_done
- * method will be called with an error code (GNUNET_SYSERR),
- * otherwise with GNUNET_OK.
+ * an error in the transmission, the #GNUNET_SERVER_receive_done()
+ * method will be called with an error code (#GNUNET_SYSERR),
+ * otherwise with #GNUNET_OK.
  *
  * @param tc transmission context to use
  * @param timeout when to time out and abort the transmission
