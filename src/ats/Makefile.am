@@ -518,8 +518,6 @@ test_ats_solver_preferences_ril_LDADD = \
 
 EXTRA_DIST = \
   ats.h \
-  plugin_ats_mlp.h \
-  plugin_ats_ril.h \
   test_ats_api.conf \
   test_ats_mlp.conf \
   test_ats_solver_default.conf \

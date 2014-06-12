@@ -1,6 +1,6 @@
 /*
  This file is part of GNUnet.
- (C) 2011 Christian Grothoff (and other contributing authors)
+ (C) 2011-2014 Christian Grothoff (and other contributing authors)
 
  GNUnet is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published
@@ -24,7 +24,13 @@
  * @author Fabian Oehlmann
  * @author Matthias Wachs
  */
-#include "plugin_ats_ril.h"
+#include "platform.h"
+#include <float.h>
+#include <math.h>
+#include "gnunet_ats_plugin.h"
+#include "gnunet-service-ats_addresses.h"
+
+
 
 #define LOG(kind,...) GNUNET_log_from (kind, "ats-ril",__VA_ARGS__)
 
@@ -2130,11 +2136,11 @@ ril_cut_from_vector (void **old,
  * @param kind the kind to change the preference
  * @param pref_rel the normalized preference value for this kind over all clients
  */
-void
+static void
 GAS_ril_address_change_preference (void *solver,
-    const struct GNUNET_PeerIdentity *peer,
-    enum GNUNET_ATS_PreferenceKind kind,
-    double pref_rel)
+				   const struct GNUNET_PeerIdentity *peer,
+				   enum GNUNET_ATS_PreferenceKind kind,
+				   double pref_rel)
 {
   LOG(GNUNET_ERROR_TYPE_DEBUG,
       "API_address_change_preference() Preference '%s' for peer '%s' changed to %.2f \n",
@@ -2146,6 +2152,487 @@ GAS_ril_address_change_preference (void *solver,
   s->parameters.epsilon = s->parameters.epsilon_init;
   ril_step (s);
 }
+
+
+/**
+ * Add a new address for a peer to the solver
+ *
+ * The address is already contained in the addresses hashmap!
+ *
+ * @param solver the solver Handle
+ * @param address the address to add
+ * @param network network type of this address
+ */
+static void
+GAS_ril_address_add (void *solver, 
+		     struct ATS_Address *address,
+		     uint32_t network)
+{
+  struct GAS_RIL_Handle *s = solver;
+  struct RIL_Peer_Agent *agent;
+  struct RIL_Address_Wrapped *address_wrapped;
+  struct RIL_Scope *net;
+  unsigned int m_new;
+  unsigned int m_old;
+  unsigned int n_new;
+  unsigned int n_old;
+  int i;
+  unsigned int zero;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, 
+       "API_address_add()\n");
+
+  net = ril_get_network (s, network);
+  address->solver_information = net;
+
+  if (!ril_network_is_active (s, network))
+  {
+    LOG(GNUNET_ERROR_TYPE_DEBUG,
+        "API_address_add() Did not add %s address %s for peer '%s', network does not have enough bandwidth\n",
+        address->plugin, address->addr, GNUNET_i2s (&address->peer));
+    return;
+  }
+
+  s->parameters.temperature = s->parameters.temperature_init;
+  s->parameters.epsilon = s->parameters.epsilon_init;
+
+  agent = ril_get_agent (s, &address->peer, GNUNET_YES);
+
+  //add address
+  address_wrapped = GNUNET_new (struct RIL_Address_Wrapped);
+  address_wrapped->address_naked = address;
+  GNUNET_CONTAINER_DLL_insert_tail(agent->addresses_head, agent->addresses_tail, address_wrapped);
+
+  //increase size of W
+  m_new = agent->m + ((s->parameters.rbf_divisor+1) * (s->parameters.rbf_divisor+1));
+  m_old = agent->m;
+  n_new = agent->n + 1;
+  n_old = agent->n;
+
+  GNUNET_array_grow(agent->W, agent->n, n_new);
+  agent->n = n_old;
+  GNUNET_array_grow(agent->E, agent->n, n_new);
+  for (i = 0; i < n_new; i++)
+  {
+    if (i < n_old)
+    {
+      agent->m = m_old;
+      GNUNET_array_grow(agent->W[i], agent->m, m_new);
+      agent->m = m_old;
+      GNUNET_array_grow(agent->E[i], agent->m, m_new);
+    }
+    else
+    {
+      zero = 0;
+      GNUNET_array_grow(agent->W[i], zero, m_new);
+      zero = 0;
+      GNUNET_array_grow(agent->E[i], zero, m_new);
+    }
+  }
+
+  //increase size of old state vector
+  agent->m = m_old;
+  GNUNET_array_grow(agent->s_old, agent->m, m_new);
+
+  ril_try_unblock_agent(s, agent, GNUNET_NO);
+
+  ril_step (s);
+
+  LOG(GNUNET_ERROR_TYPE_DEBUG, "API_address_add() Added %s %s address %s for peer '%s'\n",
+      address->active ? "active" : "inactive", address->plugin, address->addr,
+      GNUNET_i2s (&address->peer));
+}
+
+/**
+ * Delete an address in the solver
+ *
+ * The address is not contained in the address hashmap anymore!
+ *
+ * @param solver the solver handle
+ * @param address the address to remove
+ * @param session_only delete only session not whole address
+ */
+static void
+GAS_ril_address_delete (void *solver,
+			struct ATS_Address *address, 
+			int session_only)
+{
+  struct GAS_RIL_Handle *s = solver;
+  struct RIL_Peer_Agent *agent;
+  struct RIL_Address_Wrapped *address_wrapped;
+  int address_was_used = address->active;
+  int address_index;
+  unsigned int m_new;
+  unsigned int n_new;
+  int i;
+  struct RIL_Scope *net;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "API_address_delete() Delete %s%s %s address %s for peer '%s'\n",
+       session_only ? "session for " : "", address->active ? "active" : "inactive", address->plugin,
+       address->addr, 
+       GNUNET_i2s (&address->peer));
+
+  agent = ril_get_agent (s, &address->peer, GNUNET_NO);
+  if (NULL == agent)
+  {
+    net = address->solver_information;
+    GNUNET_assert(!ril_network_is_active (s, net->type));
+    LOG(GNUNET_ERROR_TYPE_DEBUG,
+        "No agent allocated for peer yet, since address was in inactive network\n");
+    return;
+  }
+
+  s->parameters.temperature = s->parameters.temperature_init;
+  s->parameters.epsilon = s->parameters.epsilon_init;
+
+  address_index = agent_address_get_index (agent, address);
+  address_wrapped = agent_address_get_wrapped (agent, address);
+
+  if (NULL == address_wrapped)
+  {
+    net = address->solver_information;
+    LOG(GNUNET_ERROR_TYPE_DEBUG,
+        "Address not considered by agent, address was in inactive network\n");
+    return;
+  }
+
+  GNUNET_CONTAINER_DLL_remove(agent->addresses_head, agent->addresses_tail, address_wrapped);
+  GNUNET_free(address_wrapped);
+
+  //decrease W
+  m_new = agent->m - ((s->parameters.rbf_divisor+1) * (s->parameters.rbf_divisor+1));
+  n_new = agent->n - 1;
+
+  for (i = 0; i < agent->n; i++)
+  {
+    ril_cut_from_vector ((void **) &agent->W[i], sizeof(double),
+        address_index * ((s->parameters.rbf_divisor+1) * (s->parameters.rbf_divisor+1)),
+        ((s->parameters.rbf_divisor+1) * (s->parameters.rbf_divisor+1)), agent->m);
+    ril_cut_from_vector ((void **) &agent->E[i], sizeof(double),
+        address_index * ((s->parameters.rbf_divisor+1) * (s->parameters.rbf_divisor+1)),
+        ((s->parameters.rbf_divisor+1) * (s->parameters.rbf_divisor+1)), agent->m);
+  }
+  GNUNET_free_non_null(agent->W[RIL_ACTION_TYPE_NUM + address_index]);
+  GNUNET_free_non_null(agent->E[RIL_ACTION_TYPE_NUM + address_index]);
+  ril_cut_from_vector ((void **) &agent->W, sizeof(double *), RIL_ACTION_TYPE_NUM + address_index,
+      1, agent->n);
+  ril_cut_from_vector ((void **) &agent->E, sizeof(double *), RIL_ACTION_TYPE_NUM + address_index,
+      1, agent->n);
+  //correct last action
+  if (agent->a_old > (RIL_ACTION_TYPE_NUM + address_index))
+  {
+    agent->a_old -= 1;
+  }
+  else if (agent->a_old == (RIL_ACTION_TYPE_NUM + address_index))
+  {
+    agent->a_old = RIL_ACTION_INVALID;
+  }
+  //decrease old state vector
+  ril_cut_from_vector ((void **) &agent->s_old, sizeof(double),
+      address_index * ((s->parameters.rbf_divisor+1) * (s->parameters.rbf_divisor+1)),
+      ((s->parameters.rbf_divisor+1) * (s->parameters.rbf_divisor+1)), agent->m);
+  agent->m = m_new;
+  agent->n = n_new;
+
+  if (address_was_used)
+  {
+    if (NULL != agent->addresses_head) //if peer has an address left, use it
+    {
+      envi_set_active_suggestion (s, agent, agent->addresses_head->address_naked, agent->bw_in, agent->bw_out,
+          GNUNET_YES);
+    }
+    else
+    {
+      envi_set_active_suggestion (s, agent, NULL, 0, 0, GNUNET_NO);
+    }
+  }
+
+  ril_step (solver);
+}
+
+/**
+ * Update the properties of an address in the solver
+ *
+ * @param solver solver handle
+ * @param address the address
+ * @param type the ATSI type in HBO
+ * @param abs_value the absolute value of the property
+ * @param rel_value the normalized value
+ */
+static void
+GAS_ril_address_property_changed (void *solver,
+				  struct ATS_Address *address,
+				  uint32_t type,
+				  uint32_t abs_value,
+				  double rel_value)
+{
+  struct GAS_RIL_Handle *s = solver;
+
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "API_address_property_changed() Property '%s' for peer '%s' address %s changed "
+          "to %.2f \n", 
+      GNUNET_ATS_print_property_type (type),
+      GNUNET_i2s (&address->peer),
+      address->addr, rel_value);
+
+
+  s->parameters.temperature = s->parameters.temperature_init;
+  s->parameters.epsilon = s->parameters.epsilon_init;
+  ril_step (s);
+}
+
+
+/**
+ * Update the session of an address in the solver
+ *
+ * NOTE: values in addresses are already updated
+ *
+ * @param solver solver handle
+ * @param address the address
+ * @param cur_session the current session
+ * @param new_session the new session
+ */
+static void
+GAS_ril_address_session_changed (void *solver,
+				 struct ATS_Address *address,
+				 uint32_t cur_session,
+				 uint32_t new_session)
+{
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "API_address_session_changed()\n");
+}
+
+
+/**
+ * Notify the solver that an address is (not) actively used by transport
+ * to communicate with a remote peer
+ *
+ * NOTE: values in addresses are already updated
+ *
+ * @param solver solver handle
+ * @param address the address
+ * @param in_use usage state
+ */
+static void
+GAS_ril_address_inuse_changed (void *solver,
+			       struct ATS_Address *address,
+			       int in_use)
+{
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "API_address_inuse_changed() Usage for %s address of peer '%s' changed to %s\n",
+      address->plugin, GNUNET_i2s (&address->peer), (GNUNET_YES == in_use) ? "USED" : "UNUSED");
+}
+
+
+/**
+ * Notify solver that the network an address is located in has changed
+ *
+ * NOTE: values in addresses are already updated
+ *
+ * @param solver solver handle
+ * @param address the address
+ * @param current_network the current network
+ * @param new_network the new network
+ */
+static void
+GAS_ril_address_change_network (void *solver,
+				struct ATS_Address *address,
+				uint32_t current_network,
+				uint32_t new_network)
+{
+  struct GAS_RIL_Handle *s = solver;
+  struct RIL_Peer_Agent *agent;
+
+  LOG(GNUNET_ERROR_TYPE_DEBUG, 
+      "API_address_change_network() Network type changed, moving "
+      "%s address of peer %s from '%s' to '%s'\n",
+      (GNUNET_YES == address->active) ? "active" : "inactive", GNUNET_i2s (&address->peer),
+      GNUNET_ATS_print_network_type (current_network), GNUNET_ATS_print_network_type (new_network));
+
+  s->parameters.temperature = s->parameters.temperature_init;
+  s->parameters.epsilon = s->parameters.epsilon_init;
+
+  if (address->active && !ril_network_is_active (solver, new_network))
+  {
+    GAS_ril_address_delete (solver, address, GNUNET_NO);
+    return;
+  }
+
+  agent = ril_get_agent (s, &address->peer, GNUNET_NO);
+  if (NULL == agent)
+  {
+    GNUNET_assert(!ril_network_is_active (solver, current_network));
+
+    GAS_ril_address_add (s, address, new_network);
+    return;
+  }
+
+  address->solver_information = ril_get_network(solver, new_network);
+}
+
+
+/**
+ * Give feedback about the current assignment
+ *
+ * @param solver the solver handle
+ * @param application the application
+ * @param peer the peer to change the preference for
+ * @param scope the time interval for this feedback: [now - scope .. now]
+ * @param kind the kind to change the preference
+ * @param score the score
+ */
+static void
+GAS_ril_address_preference_feedback (void *solver,
+    void *application,
+    const struct GNUNET_PeerIdentity *peer,
+    const struct GNUNET_TIME_Relative scope,
+    enum GNUNET_ATS_PreferenceKind kind,
+    double score)
+{
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "API_address_preference_feedback() Peer '%s' got a feedback of %+.3f from application %s for "
+          "preference %s for %d seconds\n", GNUNET_i2s (peer), "UNKNOWN",
+      GNUNET_ATS_print_preference_type (kind), scope.rel_value_us / 1000000);
+}
+
+
+/**
+ * Start a bulk operation
+ *
+ * @param solver the solver
+ */
+static void
+GAS_ril_bulk_start (void *solver)
+{
+  struct GAS_RIL_Handle *s = solver;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "API_bulk_start() lock: %d\n", s->bulk_lock+1);
+
+  s->bulk_lock++;
+}
+
+
+/**
+ * Bulk operation done
+ *
+ * @param solver the solver handle
+ */
+static void
+GAS_ril_bulk_stop (void *solver)
+{
+  struct GAS_RIL_Handle *s = solver;
+
+  LOG(GNUNET_ERROR_TYPE_DEBUG, 
+      "API_bulk_stop() lock: %d\n", 
+      s->bulk_lock - 1);
+
+  if (s->bulk_lock < 1)
+  {
+    GNUNET_break(0);
+    return;
+  }
+  s->bulk_lock--;
+
+  if (0 < s->bulk_changes)
+  {
+    ril_step (solver);
+    s->bulk_changes = 0;
+  }
+}
+
+
+/**
+ * Tell solver to notify ATS if the address to use changes for a specific
+ * peer using the bandwidth changed callback
+ *
+ * The solver must only notify about changes for peers with pending address
+ * requests!
+ *
+ * @param solver the solver handle
+ * @param peer the identity of the peer
+ */
+static const struct ATS_Address *
+GAS_ril_get_preferred_address (void *solver,
+			       const struct GNUNET_PeerIdentity *peer)
+{
+  struct GAS_RIL_Handle *s = solver;
+  struct RIL_Peer_Agent *agent;
+
+  LOG(GNUNET_ERROR_TYPE_DEBUG, "API_get_preferred_address()\n");
+
+  agent = ril_get_agent (s, peer, GNUNET_YES);
+
+  agent->is_active = GNUNET_YES;
+  envi_set_active_suggestion (solver, agent, agent->address_inuse, agent->bw_in, agent->bw_out, GNUNET_YES);
+
+  ril_try_unblock_agent(solver, agent, GNUNET_YES);
+
+  if (agent->address_inuse)
+  {
+    LOG(GNUNET_ERROR_TYPE_DEBUG,
+        "API_get_preferred_address() Activated agent for peer '%s' with %s address %s\n",
+        GNUNET_i2s (peer), agent->address_inuse->plugin, agent->address_inuse->addr);
+  }
+  else
+  {
+    LOG(GNUNET_ERROR_TYPE_DEBUG,
+        "API_get_preferred_address() Activated agent for peer '%s', but no address available\n",
+        GNUNET_i2s (peer));
+    s->parameters.temperature = s->parameters.temperature_init;
+    s->parameters.epsilon = s->parameters.epsilon_init;
+  }
+  return agent->address_inuse;
+}
+
+/**
+ * Tell solver stop notifying ATS about changes for this peers
+ *
+ * The solver must only notify about changes for peers with pending address
+ * requests!
+ *
+ * @param solver the solver handle
+ * @param peer the peer
+ */
+static void
+GAS_ril_stop_get_preferred_address (void *solver,
+				    const struct GNUNET_PeerIdentity *peer)
+{
+  struct GAS_RIL_Handle *s = solver;
+  struct RIL_Peer_Agent *agent;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, 
+       "API_stop_get_preferred_address()");
+
+  agent = ril_get_agent (s, peer, GNUNET_NO);
+
+  if (NULL == agent)
+  {
+    GNUNET_break(0);
+    return;
+  }
+  if (GNUNET_NO == agent->is_active)
+  {
+    GNUNET_break(0);
+    return;
+  }
+
+  s->parameters.temperature = s->parameters.temperature_init;
+  s->parameters.epsilon = s->parameters.epsilon_init;
+
+  agent->is_active = GNUNET_NO;
+
+  envi_set_active_suggestion (s, agent, agent->address_inuse, agent->bw_in, agent->bw_out,
+      GNUNET_YES);
+
+  ril_step (s);
+
+  LOG(GNUNET_ERROR_TYPE_DEBUG,
+      "API_stop_get_preferred_address() Paused agent for peer '%s' with %s address\n",
+      GNUNET_i2s (peer), agent->address_inuse->plugin);
+}
+
 
 /**
  * Entry point for the plugin
@@ -2415,6 +2902,7 @@ libgnunet_plugin_ats_ril_init (void *cls)
   return solver;
 }
 
+
 /**
  * Exit point for the plugin
  *
@@ -2450,456 +2938,5 @@ libgnunet_plugin_ats_ril_done (void *cls)
   return NULL;
 }
 
-/**
- * Add a new address for a peer to the solver
- *
- * The address is already contained in the addresses hashmap!
- *
- * @param solver the solver Handle
- * @param address the address to add
- * @param network network type of this address
- */
-void
-GAS_ril_address_add (void *solver, struct ATS_Address *address, uint32_t network)
-{
-  struct GAS_RIL_Handle *s = solver;
-  struct RIL_Peer_Agent *agent;
-  struct RIL_Address_Wrapped *address_wrapped;
-  struct RIL_Scope *net;
-  unsigned int m_new;
-  unsigned int m_old;
-  unsigned int n_new;
-  unsigned int n_old;
-  int i;
-  unsigned int zero;
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "API_address_add()\n");
-
-  net = ril_get_network (s, network);
-  address->solver_information = net;
-
-  if (!ril_network_is_active (s, network))
-  {
-    LOG(GNUNET_ERROR_TYPE_DEBUG,
-        "API_address_add() Did not add %s address %s for peer '%s', network does not have enough bandwidth\n",
-        address->plugin, address->addr, GNUNET_i2s (&address->peer));
-    return;
-  }
-
-  s->parameters.temperature = s->parameters.temperature_init;
-  s->parameters.epsilon = s->parameters.epsilon_init;
-
-  agent = ril_get_agent (s, &address->peer, GNUNET_YES);
-
-  //add address
-  address_wrapped = GNUNET_new (struct RIL_Address_Wrapped);
-  address_wrapped->address_naked = address;
-  GNUNET_CONTAINER_DLL_insert_tail(agent->addresses_head, agent->addresses_tail, address_wrapped);
-
-  //increase size of W
-  m_new = agent->m + ((s->parameters.rbf_divisor+1) * (s->parameters.rbf_divisor+1));
-  m_old = agent->m;
-  n_new = agent->n + 1;
-  n_old = agent->n;
-
-  GNUNET_array_grow(agent->W, agent->n, n_new);
-  agent->n = n_old;
-  GNUNET_array_grow(agent->E, agent->n, n_new);
-  for (i = 0; i < n_new; i++)
-  {
-    if (i < n_old)
-    {
-      agent->m = m_old;
-      GNUNET_array_grow(agent->W[i], agent->m, m_new);
-      agent->m = m_old;
-      GNUNET_array_grow(agent->E[i], agent->m, m_new);
-    }
-    else
-    {
-      zero = 0;
-      GNUNET_array_grow(agent->W[i], zero, m_new);
-      zero = 0;
-      GNUNET_array_grow(agent->E[i], zero, m_new);
-    }
-  }
-
-  //increase size of old state vector
-  agent->m = m_old;
-  GNUNET_array_grow(agent->s_old, agent->m, m_new);
-
-  ril_try_unblock_agent(s, agent, GNUNET_NO);
-
-  ril_step (s);
-
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "API_address_add() Added %s %s address %s for peer '%s'\n",
-      address->active ? "active" : "inactive", address->plugin, address->addr,
-      GNUNET_i2s (&address->peer));
-}
-
-/**
- * Delete an address in the solver
- *
- * The address is not contained in the address hashmap anymore!
- *
- * @param solver the solver handle
- * @param address the address to remove
- * @param session_only delete only session not whole address
- */
-void
-GAS_ril_address_delete (void *solver, struct ATS_Address *address, int session_only)
-{
-  struct GAS_RIL_Handle *s = solver;
-  struct RIL_Peer_Agent *agent;
-  struct RIL_Address_Wrapped *address_wrapped;
-  int address_was_used = address->active;
-  int address_index;
-  unsigned int m_new;
-  unsigned int n_new;
-  int i;
-  struct RIL_Scope *net;
-
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "API_address_delete() Delete %s%s %s address %s for peer '%s'\n",
-      session_only ? "session for " : "", address->active ? "active" : "inactive", address->plugin,
-      address->addr, GNUNET_i2s (&address->peer));
-
-  agent = ril_get_agent (s, &address->peer, GNUNET_NO);
-  if (NULL == agent)
-  {
-    net = address->solver_information;
-    GNUNET_assert(!ril_network_is_active (s, net->type));
-    LOG(GNUNET_ERROR_TYPE_DEBUG,
-        "No agent allocated for peer yet, since address was in inactive network\n");
-    return;
-  }
-
-  s->parameters.temperature = s->parameters.temperature_init;
-  s->parameters.epsilon = s->parameters.epsilon_init;
-
-  address_index = agent_address_get_index (agent, address);
-  address_wrapped = agent_address_get_wrapped (agent, address);
-
-  if (NULL == address_wrapped)
-  {
-    net = address->solver_information;
-    LOG(GNUNET_ERROR_TYPE_DEBUG,
-        "Address not considered by agent, address was in inactive network\n");
-    return;
-  }
-
-  GNUNET_CONTAINER_DLL_remove(agent->addresses_head, agent->addresses_tail, address_wrapped);
-  GNUNET_free(address_wrapped);
-
-  //decrease W
-  m_new = agent->m - ((s->parameters.rbf_divisor+1) * (s->parameters.rbf_divisor+1));
-  n_new = agent->n - 1;
-
-  for (i = 0; i < agent->n; i++)
-  {
-    ril_cut_from_vector ((void **) &agent->W[i], sizeof(double),
-        address_index * ((s->parameters.rbf_divisor+1) * (s->parameters.rbf_divisor+1)),
-        ((s->parameters.rbf_divisor+1) * (s->parameters.rbf_divisor+1)), agent->m);
-    ril_cut_from_vector ((void **) &agent->E[i], sizeof(double),
-        address_index * ((s->parameters.rbf_divisor+1) * (s->parameters.rbf_divisor+1)),
-        ((s->parameters.rbf_divisor+1) * (s->parameters.rbf_divisor+1)), agent->m);
-  }
-  GNUNET_free_non_null(agent->W[RIL_ACTION_TYPE_NUM + address_index]);
-  GNUNET_free_non_null(agent->E[RIL_ACTION_TYPE_NUM + address_index]);
-  ril_cut_from_vector ((void **) &agent->W, sizeof(double *), RIL_ACTION_TYPE_NUM + address_index,
-      1, agent->n);
-  ril_cut_from_vector ((void **) &agent->E, sizeof(double *), RIL_ACTION_TYPE_NUM + address_index,
-      1, agent->n);
-  //correct last action
-  if (agent->a_old > (RIL_ACTION_TYPE_NUM + address_index))
-  {
-    agent->a_old -= 1;
-  }
-  else if (agent->a_old == (RIL_ACTION_TYPE_NUM + address_index))
-  {
-    agent->a_old = RIL_ACTION_INVALID;
-  }
-  //decrease old state vector
-  ril_cut_from_vector ((void **) &agent->s_old, sizeof(double),
-      address_index * ((s->parameters.rbf_divisor+1) * (s->parameters.rbf_divisor+1)),
-      ((s->parameters.rbf_divisor+1) * (s->parameters.rbf_divisor+1)), agent->m);
-  agent->m = m_new;
-  agent->n = n_new;
-
-  if (address_was_used)
-  {
-    if (NULL != agent->addresses_head) //if peer has an address left, use it
-    {
-      envi_set_active_suggestion (s, agent, agent->addresses_head->address_naked, agent->bw_in, agent->bw_out,
-          GNUNET_YES);
-    }
-    else
-    {
-      envi_set_active_suggestion (s, agent, NULL, 0, 0, GNUNET_NO);
-    }
-  }
-
-  ril_step (solver);
-}
-
-/**
- * Update the properties of an address in the solver
- *
- * @param solver solver handle
- * @param address the address
- * @param type the ATSI type in HBO
- * @param abs_value the absolute value of the property
- * @param rel_value the normalized value
- */
-void
-GAS_ril_address_property_changed (void *solver,
-    struct ATS_Address *address,
-    uint32_t type,
-    uint32_t abs_value,
-    double rel_value)
-{
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "API_address_property_changed() Property '%s' for peer '%s' address %s changed "
-          "to %.2f \n", GNUNET_ATS_print_property_type (type), GNUNET_i2s (&address->peer),
-      address->addr, rel_value);
-
-  struct GAS_RIL_Handle *s = solver;
-
-  s->parameters.temperature = s->parameters.temperature_init;
-  s->parameters.epsilon = s->parameters.epsilon_init;
-  ril_step (s);
-}
-
-/**
- * Update the session of an address in the solver
- *
- * NOTE: values in addresses are already updated
- *
- * @param solver solver handle
- * @param address the address
- * @param cur_session the current session
- * @param new_session the new session
- */
-void
-GAS_ril_address_session_changed (void *solver,
-    struct ATS_Address *address,
-    uint32_t cur_session,
-    uint32_t new_session)
-{
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "API_address_session_changed()\n");
-}
-
-/**
- * Notify the solver that an address is (not) actively used by transport
- * to communicate with a remote peer
- *
- * NOTE: values in addresses are already updated
- *
- * @param solver solver handle
- * @param address the address
- * @param in_use usage state
- */
-void
-GAS_ril_address_inuse_changed (void *solver, struct ATS_Address *address, int in_use)
-{
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "API_address_inuse_changed() Usage for %s address of peer '%s' changed to %s\n",
-      address->plugin, GNUNET_i2s (&address->peer), (GNUNET_YES == in_use) ? "USED" : "UNUSED");
-}
-
-/**
- * Notify solver that the network an address is located in has changed
- *
- * NOTE: values in addresses are already updated
- *
- * @param solver solver handle
- * @param address the address
- * @param current_network the current network
- * @param new_network the new network
- */
-void
-GAS_ril_address_change_network (void *solver,
-    struct ATS_Address *address,
-    uint32_t current_network,
-    uint32_t new_network)
-{
-  struct GAS_RIL_Handle *s = solver;
-  struct RIL_Peer_Agent *agent;
-
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "API_address_change_network() Network type changed, moving "
-      "%s address of peer %s from '%s' to '%s'\n",
-      (GNUNET_YES == address->active) ? "active" : "inactive", GNUNET_i2s (&address->peer),
-      GNUNET_ATS_print_network_type (current_network), GNUNET_ATS_print_network_type (new_network));
-
-  s->parameters.temperature = s->parameters.temperature_init;
-  s->parameters.epsilon = s->parameters.epsilon_init;
-
-  if (address->active && !ril_network_is_active (solver, new_network))
-  {
-    GAS_ril_address_delete (solver, address, GNUNET_NO);
-    return;
-  }
-
-  agent = ril_get_agent (s, &address->peer, GNUNET_NO);
-  if (NULL == agent)
-  {
-    GNUNET_assert(!ril_network_is_active (solver, current_network));
-
-    GAS_ril_address_add (s, address, new_network);
-    return;
-  }
-
-  address->solver_information = ril_get_network(solver, new_network);
-}
-
-/**
- * Give feedback about the current assignment
- *
- * @param solver the solver handle
- * @param application the application
- * @param peer the peer to change the preference for
- * @param scope the time interval for this feedback: [now - scope .. now]
- * @param kind the kind to change the preference
- * @param score the score
- */
-void
-GAS_ril_address_preference_feedback (void *solver,
-    void *application,
-    const struct GNUNET_PeerIdentity *peer,
-    const struct GNUNET_TIME_Relative scope,
-    enum GNUNET_ATS_PreferenceKind kind,
-    double score)
-{
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "API_address_preference_feedback() Peer '%s' got a feedback of %+.3f from application %s for "
-          "preference %s for %d seconds\n", GNUNET_i2s (peer), "UNKNOWN",
-      GNUNET_ATS_print_preference_type (kind), scope.rel_value_us / 1000000);
-}
-
-/**
- * Start a bulk operation
- *
- * @param solver the solver
- */
-void
-GAS_ril_bulk_start (void *solver)
-{
-  struct GAS_RIL_Handle *s = solver;
-
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "API_bulk_start() lock: %d\n", s->bulk_lock+1);
-
-  s->bulk_lock++;
-}
-
-/**
- * Bulk operation done
- *
- * @param solver the solver handle
- */
-void
-GAS_ril_bulk_stop (void *solver)
-{
-  struct GAS_RIL_Handle *s = solver;
-
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "API_bulk_stop() lock: %d\n", s->bulk_lock-1);
-
-  if (s->bulk_lock < 1)
-  {
-    GNUNET_break(0);
-    return;
-  }
-  s->bulk_lock--;
-
-  if (0 < s->bulk_changes)
-  {
-    ril_step (solver);
-    s->bulk_changes = 0;
-  }
-}
-
-/**
- * Tell solver to notify ATS if the address to use changes for a specific
- * peer using the bandwidth changed callback
- *
- * The solver must only notify about changes for peers with pending address
- * requests!
- *
- * @param solver the solver handle
- * @param peer the identity of the peer
- */
-const struct ATS_Address *
-GAS_ril_get_preferred_address (void *solver, const struct GNUNET_PeerIdentity *peer)
-{
-  struct GAS_RIL_Handle *s = solver;
-  struct RIL_Peer_Agent *agent;
-
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "API_get_preferred_address()\n");
-
-  agent = ril_get_agent (s, peer, GNUNET_YES);
-
-  agent->is_active = GNUNET_YES;
-  envi_set_active_suggestion (solver, agent, agent->address_inuse, agent->bw_in, agent->bw_out, GNUNET_YES);
-
-  ril_try_unblock_agent(solver, agent, GNUNET_YES);
-
-  if (agent->address_inuse)
-  {
-    LOG(GNUNET_ERROR_TYPE_DEBUG,
-        "API_get_preferred_address() Activated agent for peer '%s' with %s address %s\n",
-        GNUNET_i2s (peer), agent->address_inuse->plugin, agent->address_inuse->addr);
-  }
-  else
-  {
-    LOG(GNUNET_ERROR_TYPE_DEBUG,
-        "API_get_preferred_address() Activated agent for peer '%s', but no address available\n",
-        GNUNET_i2s (peer));
-    s->parameters.temperature = s->parameters.temperature_init;
-    s->parameters.epsilon = s->parameters.epsilon_init;
-  }
-  return agent->address_inuse;
-}
-
-/**
- * Tell solver stop notifying ATS about changes for this peers
- *
- * The solver must only notify about changes for peers with pending address
- * requests!
- *
- * @param solver the solver handle
- * @param peer the peer
- */
-void
-GAS_ril_stop_get_preferred_address (void *solver, const struct GNUNET_PeerIdentity *peer)
-{
-  struct GAS_RIL_Handle *s = solver;
-  struct RIL_Peer_Agent *agent;
-
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "API_stop_get_preferred_address()");
-
-  agent = ril_get_agent (s, peer, GNUNET_NO);
-
-  if (NULL == agent)
-  {
-    GNUNET_break(0);
-    return;
-  }
-  if (GNUNET_NO == agent->is_active)
-  {
-    GNUNET_break(0);
-    return;
-  }
-
-  s->parameters.temperature = s->parameters.temperature_init;
-  s->parameters.epsilon = s->parameters.epsilon_init;
-
-  agent->is_active = GNUNET_NO;
-
-  envi_set_active_suggestion (s, agent, agent->address_inuse, agent->bw_in, agent->bw_out,
-      GNUNET_YES);
-
-  ril_step (s);
-
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "API_stop_get_preferred_address() Paused agent for peer '%s' with %s address\n",
-      GNUNET_i2s (peer), agent->address_inuse->plugin);
-}
 
 /* end of plugin_ats_ril.c */

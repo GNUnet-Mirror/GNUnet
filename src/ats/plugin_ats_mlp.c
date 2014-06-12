@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2011 Christian Grothoff (and other contributing authors)
+     (C) 2011-2014 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -26,6 +26,398 @@
  */
 
 #include "plugin_ats_mlp.h"
+#include "platform.h"
+#include "gnunet_util_lib.h"
+#include "gnunet_ats_service.h"
+#include "gnunet_ats_plugin.h"
+#include "gnunet-service-ats_addresses.h"
+#include "gnunet_statistics_service.h"
+#include <float.h>
+#include <glpk.h>
+
+
+#define BIG_M_VALUE (UINT32_MAX) /10
+#define BIG_M_STRING "unlimited"
+
+#define MLP_AVERAGING_QUEUE_LENGTH 3
+
+#define MLP_MAX_EXEC_DURATION   GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 10)
+#define MLP_MAX_ITERATIONS      4096
+
+#define DEFAULT_D 1.0
+#define DEFAULT_R 1.0
+#define DEFAULT_U 1.0
+#define DEFAULT_QUALITY 1.0
+#define DEFAULT_MIN_CONNECTIONS 4
+#define DEFAULT_PEER_PREFERENCE 1.0
+
+#define MLP_NaN -1
+#define MLP_UNDEFINED 0
+#define GLP_YES 1.0
+#define GLP_NO  0.0
+
+enum MLP_Output_Format
+{
+  MLP_MPS,
+  MLP_CPLEX,
+  MLP_GLPK
+};
+
+
+struct MLP_Solution
+{
+  int lp_res;
+  int lp_presolv;
+  int mip_res;
+  int mip_presolv;
+
+  double lp_objective_value;
+  double mlp_objective_value;
+  double mlp_gap;
+  double lp_mlp_gap;
+
+  int p_elements;
+  int p_cols;
+  int p_rows;
+
+  int n_peers;
+  int n_addresses;
+
+};
+
+struct ATS_Peer
+{
+  struct GNUNET_PeerIdentity id;
+
+  /* Was this peer already added to the current problem? */
+  int processed;
+
+  /* constraint 2: 1 address per peer*/
+  unsigned int r_c2;
+
+  /* constraint 9: relativity */
+  unsigned int r_c9;
+
+  /* Legacy preference value */
+  double f;
+};
+
+struct MLP_Problem
+{
+  /**
+   * GLPK (MLP) problem object
+   */
+  glp_prob *prob;
+
+  /* Number of addresses in problem */
+  unsigned int num_addresses;
+  /* Number of peers in problem */
+  unsigned int num_peers;
+  /* Number of elements in problem matrix */
+  unsigned int num_elements;
+
+  /* Row index constraint 2: */
+  unsigned int r_c2;
+  /* Row index constraint 4: minimum connections */
+  unsigned int r_c4;
+  /* Row index constraint 6: maximize diversity */
+  unsigned int r_c6;
+  /* Row index constraint 8: utilization*/
+  unsigned int r_c8;
+  /* Row index constraint 9: relativity*/
+  unsigned int r_c9;
+  /* Row indices quality metrics  */
+  int r_q[GNUNET_ATS_QualityPropertiesCount];
+  /* Row indices ATS network quotas */
+  int r_quota[GNUNET_ATS_NetworkTypeCount];
+
+  /* Column index Diversity (D) column */
+  int c_d;
+  /* Column index Utilization (U) column */
+  int c_u;
+  /* Column index Proportionality (R) column */
+  int c_r;
+  /* Column index quality metrics  */
+  int c_q[GNUNET_ATS_QualityPropertiesCount];
+
+  /* Problem matrix */
+  /* Current index */
+  unsigned int ci;
+  /* Row index array */
+  int *ia;
+  /* Column index array */
+  int *ja;
+  /* Column index value */
+  double *ar;
+
+};
+
+struct MLP_Variables
+{
+  /* Big M value for bandwidth capping */
+  double BIG_M;
+
+  /* MIP Gap */
+  double mip_gap;
+
+  /* LP MIP Gap */
+  double lp_mip_gap;
+
+  /* ATS Quality metrics
+   *
+   * Array with GNUNET_ATS_QualityPropertiesCount elements
+   * contains mapping to GNUNET_ATS_Property*/
+  int q[GNUNET_ATS_QualityPropertiesCount];
+
+  /* Number of quality metrics */
+  int m_q;
+
+  /* Number of quality metrics */
+  int m_rc;
+
+  /* Quality metric coefficients*/
+  double co_Q[GNUNET_ATS_QualityPropertiesCount];
+
+  /* Ressource costs coefficients*/
+  double co_RC[GNUNET_ATS_QualityPropertiesCount];
+
+  /* Diversity coefficient */
+  double co_D;
+
+  /* Utility coefficient */
+  double co_U;
+
+  /* Relativity coefficient */
+  double co_R;
+
+  /* Minimum bandwidth assigned to an address */
+  unsigned int b_min;
+
+  /* Minimum number of addresses with bandwidth assigned */
+  unsigned int n_min;
+
+  /* Quotas */
+  /* Array mapping array index to ATS network */
+  int quota_index[GNUNET_ATS_NetworkTypeCount];
+  /* Outbound quotas */
+  unsigned long long quota_out[GNUNET_ATS_NetworkTypeCount];
+  /* Inbound quotas */
+
+  unsigned long long quota_in[GNUNET_ATS_NetworkTypeCount];
+
+  /* ATS ressource costs
+   * array with GNUNET_ATS_QualityPropertiesCount elements
+   * contains mapping to GNUNET_ATS_Property
+   * */
+  int rc[GNUNET_ATS_QualityPropertiesCount];
+
+};
+
+/**
+ * MLP Handle
+ */
+struct GAS_MLP_Handle
+{
+  struct GNUNET_ATS_PluginEnvironment *env;
+
+  /**
+   * Statistics handle
+   */
+  struct GNUNET_STATISTICS_Handle *stats;
+
+  /**
+   * Address hashmap for lookups
+   */
+  const struct GNUNET_CONTAINER_MultiPeerMap *addresses;
+
+  /**
+   * Addresses' bandwidth changed callback
+   */
+  GAS_bandwidth_changed_cb bw_changed_cb;
+
+  /**
+   * Addresses' bandwidth changed callback closure
+   */
+  void *bw_changed_cb_cls;
+
+  /**
+   * ATS function to get preferences
+   */
+  GAS_get_preferences get_preferences;
+
+  /**
+   * Closure for ATS function to get preferences
+   */
+  void *get_preferences_cls;
+
+  /**
+   * ATS function to get properties
+   */
+  GAS_get_properties get_properties;
+
+  /**
+   * Closure for ATS function to get properties
+   */
+  void *get_properties_cls;
+
+  /**
+   * Exclude peer from next result propagation
+   */
+  const struct GNUNET_PeerIdentity *exclude_peer;
+
+  /**
+   * Encapsulation for the MLP problem
+   */
+  struct MLP_Problem p;
+
+  /**
+   * Encapsulation for the MLP problem variables
+   */
+  struct MLP_Variables pv;
+
+  /**
+   * Encapsulation for the MLP solution
+   */
+  struct MLP_Solution ps;
+
+  /**
+   * Bulk lock
+   */
+
+  int stat_bulk_lock;
+
+  /**
+   * Number of changes while solver was locked
+   */
+  int stat_bulk_requests;
+
+  /**
+   * GLPK LP control parameter
+   */
+  glp_smcp control_param_lp;
+
+  /**
+   * GLPK LP control parameter
+   */
+  glp_iocp control_param_mlp;
+
+  /**
+   * Peers with pending address requests
+   */
+  struct GNUNET_CONTAINER_MultiPeerMap *requested_peers;
+
+  /**
+   * Was the problem updated since last solution
+   */
+  int stat_mlp_prob_updated;
+
+  /**
+   * Has the problem size changed since last solution
+   */
+  int stat_mlp_prob_changed;
+
+  /**
+   * Solve the problem automatically when updates occur?
+   * Default: GNUNET_YES
+   * Can be disabled for test and measurements
+   */
+  int opt_mlp_auto_solve;
+
+  /**
+   * Write all MILP problems to a MPS file
+   */
+  int opt_dump_problem_all;
+
+  /**
+   * Write all MILP problem solutions to a file
+   */
+  int opt_dump_solution_all;
+
+  /**
+   * Write MILP problems to a MPS file when solver fails
+   */
+  int opt_dump_problem_on_fail;
+
+  /**
+   * Write MILP problem solutions to a file when solver fails
+   */
+  int opt_dump_solution_on_fail;
+
+  /**
+   * solve feasibility only
+   */
+  int opt_dbg_feasibility_only;
+
+  /**
+   * solve autoscale the problem
+   */
+  int opt_dbg_autoscale_problem;
+
+  /**
+   * use the intopt presolver instead of simplex
+   */
+  int opt_dbg_intopt_presolver;
+
+  /**
+   * Print GLPK output
+   */
+  int opt_dbg_glpk_verbose;
+
+  /**
+   * solve autoscale the problem
+   */
+  int opt_dbg_optimize_relativity;
+
+  /**
+   * solve autoscale the problem
+   */
+  int opt_dbg_optimize_diversity;
+
+  /**
+   * solve autoscale the problem
+   */
+  int opt_dbg_optimize_quality;
+
+  /**
+   * solve autoscale the problem
+   */
+  int opt_dbg_optimize_utility;
+
+
+  /**
+   * Output format
+   */
+  enum MLP_Output_Format opt_log_format;
+};
+
+/**
+ * Address specific MLP information
+ */
+struct MLP_information
+{
+
+  /* Bandwidth assigned */
+  struct GNUNET_BANDWIDTH_Value32NBO b_out;
+  struct GNUNET_BANDWIDTH_Value32NBO b_in;
+
+  /* Address selected */
+  int n;
+
+  /* bandwidth column index */
+  signed int c_b;
+
+  /* address usage column */
+  signed int c_n;
+
+  /* row indexes */
+
+  /* constraint 1: bandwidth capping */
+  unsigned int r_c1;
+
+  /* constraint 3: minimum bandwidth */
+  unsigned int r_c3;
+};
+
 
 
 /**
@@ -148,6 +540,7 @@ static int
 mlp_term_hook (void *info, const char *s)
 {
   struct GAS_MLP_Handle *mlp = info;
+
   if (mlp->opt_dbg_glpk_verbose)
     LOG (GNUNET_ERROR_TYPE_ERROR, "%s", s);
   return 1;
@@ -237,7 +630,7 @@ mlp_delete_problem (struct GAS_MLP_Handle *mlp)
  * @param ats_index the ATS index
  * @return string with result
  */
-const char *
+static const char *
 mlp_ats_to_string (int ats_index)
 {
   switch (ats_index) {
@@ -274,7 +667,7 @@ mlp_ats_to_string (int ats_index)
  * @param retcode return code
  * @return string with result
  */
-const char *
+static const char *
 mlp_status_to_string (int retcode)
 {
   switch (retcode) {
@@ -296,12 +689,13 @@ mlp_status_to_string (int retcode)
   }
 }
 
+
 /**
  * Translate glpk solver error codes to text
  * @param retcode return code
  * @return string with result
  */
-const char *
+static const char *
 mlp_solve_to_string (int retcode)
 {
   switch (retcode) {
@@ -798,6 +1192,7 @@ mlp_create_problem_add_address_information (void *cls,
   return GNUNET_OK;
 }
 
+
 /**
  * Create the invariant columns c4, c6, c10, c8, c7
  */
@@ -899,7 +1294,7 @@ mlp_create_problem_add_invariant_columns (struct GAS_MLP_Handle *mlp, struct MLP
  * Create the MLP problem
  *
  * @param mlp the MLP handle
- * @return GNUNET_OK or GNUNET_SYSERR
+ * @return #GNUNET_OK or #GNUNET_SYSERR
  */
 static int
 mlp_create_problem (struct GAS_MLP_Handle *mlp)
@@ -972,11 +1367,12 @@ mlp_create_problem (struct GAS_MLP_Handle *mlp)
   return res;
 }
 
+
 /**
  * Solves the LP problem
  *
  * @param mlp the MLP Handle
- * @return GNUNET_OK if could be solved, GNUNET_SYSERR on failure
+ * @return #GNUNET_OK if could be solved, #GNUNET_SYSERR on failure
  */
 static int
 mlp_solve_lp_problem (struct GAS_MLP_Handle *mlp)
@@ -1018,7 +1414,7 @@ mlp_solve_lp_problem (struct GAS_MLP_Handle *mlp)
  * @param value the address
  * @return #GNUNET_OK to continue
  */
-int
+static int
 mlp_propagate_results (void *cls,
 		       const struct GNUNET_PeerIdentity *key,
 		       void *value)
@@ -1133,16 +1529,20 @@ mlp_propagate_results (void *cls,
   return GNUNET_OK;
 }
 
-static void notify (struct GAS_MLP_Handle *mlp,
-    enum GAS_Solver_Operation op,
-    enum GAS_Solver_Status stat,
-    enum GAS_Solver_Additional_Information add)
+
+static void 
+notify (struct GAS_MLP_Handle *mlp,
+	enum GAS_Solver_Operation op,
+	enum GAS_Solver_Status stat,
+	enum GAS_Solver_Additional_Information add)
 {
   if (NULL != mlp->env->info_cb)
     mlp->env->info_cb (mlp->env->info_cb_cls, op, stat, add);
 }
 
-static void mlp_branch_and_cut_cb (glp_tree *tree, void *info)
+
+static void 
+mlp_branch_and_cut_cb (glp_tree *tree, void *info)
 {
   struct GAS_MLP_Handle *mlp = info;
   double mlp_obj = 0;
@@ -1206,9 +1606,9 @@ static void mlp_branch_and_cut_cb (glp_tree *tree, void *info)
  * Solves the MLP problem
  *
  * @param solver the MLP Handle
- * @return GNUNET_OK if could be solved, GNUNET_SYSERR on failure
+ * @return #GNUNET_OK if could be solved, #GNUNET_SYSERR on failure
  */
-int
+static int
 GAS_mlp_solve_problem (void *solver)
 {
   struct GAS_MLP_Handle *mlp = solver;
@@ -1516,7 +1916,7 @@ GAS_mlp_solve_problem (void *solver)
  * @param address the address to add
  * @param network network type of this address
  */
-void
+static void
 GAS_mlp_address_add (void *solver,
                     struct ATS_Address *address,
                     uint32_t network)
@@ -1567,7 +1967,7 @@ GAS_mlp_address_add (void *solver,
  * @param abs_value the absolute value of the property
  * @param rel_value the normalized value
  */
-void
+static void
 GAS_mlp_address_property_changed (void *solver,
                                   struct ATS_Address *address,
                                   uint32_t type,
@@ -1647,7 +2047,7 @@ GAS_mlp_address_property_changed (void *solver,
  * @param cur_session the current session
  * @param new_session the new session
  */
-void
+static void
 GAS_mlp_address_session_changed (void *solver,
                                   struct ATS_Address *address,
                                   uint32_t cur_session,
@@ -1667,7 +2067,7 @@ GAS_mlp_address_session_changed (void *solver,
  * @param address the address
  * @param in_use usage state
  */
-void
+static void
 GAS_mlp_address_inuse_changed (void *solver,
                                struct ATS_Address *address,
                                int in_use)
@@ -1687,7 +2087,7 @@ GAS_mlp_address_inuse_changed (void *solver,
  * @param current_network the current network
  * @param new_network the new network
  */
-void
+static void
 GAS_mlp_address_change_network (void *solver,
                                struct ATS_Address *address,
                                uint32_t current_network,
@@ -1790,10 +2190,10 @@ GAS_mlp_address_change_network (void *solver,
  * @param address the address to delete
  * @param session_only delete only session not whole address
  */
-void
+static void
 GAS_mlp_address_delete (void *solver,
-    struct ATS_Address *address,
-    int session_only)
+			struct ATS_Address *address,
+			int session_only)
 {
   struct ATS_Peer *p;
   struct GAS_MLP_Handle *mlp = solver;
@@ -1925,7 +2325,7 @@ get_peer_pref_value (struct GAS_MLP_Handle *mlp, const struct GNUNET_PeerIdentit
  * @param peer the peer
  * @return suggested address
  */
-const struct ATS_Address *
+static const struct ATS_Address *
 GAS_mlp_get_preferred_address (void *solver,
                                const struct GNUNET_PeerIdentity *peer)
 {
@@ -1978,7 +2378,7 @@ GAS_mlp_get_preferred_address (void *solver,
  *
  * @param solver the solver
  */
-void
+static void
 GAS_mlp_bulk_start (void *solver)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Locking solver for bulk operation ...\n");
@@ -1989,7 +2389,8 @@ GAS_mlp_bulk_start (void *solver)
   s->stat_bulk_lock ++;
 }
 
-void
+
+static void
 GAS_mlp_bulk_stop (void *solver)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Unlocking solver from bulk operation ...\n");
@@ -2019,7 +2420,7 @@ GAS_mlp_bulk_stop (void *solver)
  * @param solver the MLP handle
  * @param peer the peer
  */
-void
+static void
 GAS_mlp_stop_get_preferred_address (void *solver,
                                      const struct GNUNET_PeerIdentity *peer)
 {
@@ -2050,7 +2451,7 @@ GAS_mlp_stop_get_preferred_address (void *solver,
  * @param kind the kind to change the preference
  * @param pref_rel the relative score
  */
-void
+static void
 GAS_mlp_address_change_preference (void *solver,
                    const struct GNUNET_PeerIdentity *peer,
                    enum GNUNET_ATS_PreferenceKind kind,
@@ -2097,7 +2498,7 @@ GAS_mlp_address_change_preference (void *solver,
  * @param kind the kind to change the preference
  * @param score the score
  */
-void
+static void
 GAS_mlp_address_preference_feedback (void *solver,
                                     void *application,
                                     const struct GNUNET_PeerIdentity *peer,
@@ -2139,7 +2540,8 @@ libgnunet_plugin_ats_mlp_done (void *cls)
   struct GAS_MLP_Handle *mlp = cls;
   GNUNET_assert (mlp != NULL);
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Shutting down mlp solver\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, 
+       "Shutting down mlp solver\n");
   mlp_delete_problem (mlp);
 
   GNUNET_CONTAINER_multipeermap_iterate (mlp->requested_peers,
@@ -2152,7 +2554,8 @@ libgnunet_plugin_ats_mlp_done (void *cls)
   glp_free_env();
   GNUNET_free (mlp);
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Shutdown down of mlp solver complete\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Shutdown down of mlp solver complete\n");
   return NULL;
 }
 
