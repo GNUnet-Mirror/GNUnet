@@ -561,9 +561,8 @@ distribute_bandwidth (struct GAS_PROPORTIONAL_Handle *s,
 
   remaining_quota_in = net->total_quota_in - (net->active_addresses * min_bw);
   remaining_quota_out = net->total_quota_out - (net->active_addresses * min_bw);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Remaining bandwidth : (in/out): %llu/%llu \n",
-       remaining_quota_in, remaining_quota_out);
+  LOG(GNUNET_ERROR_TYPE_DEBUG, "Remaining bandwidth : (in/out): %llu/%llu \n",
+      remaining_quota_in, remaining_quota_out);
   sum_relative_peer_prefences = 0.0;
 
   /* Calculate sum of relative preference for active addresses in this network */
@@ -583,22 +582,18 @@ distribute_bandwidth (struct GAS_PROPORTIONAL_Handle *s,
 
   if (count_addresses != net->active_addresses)
   {
-    LOG ( (count_addresses > net->active_addresses)
-          ? GNUNET_ERROR_TYPE_WARNING
-          : GNUNET_ERROR_TYPE_INFO,
-          "%s: Counted %u active addresses, but network says to have %u active addresses \n",
-          net->desc,
-          count_addresses,
-          net->active_addresses);
+    GNUNET_break (0);
+    LOG(GNUNET_ERROR_TYPE_WARNING,
+        "%s: Counted %u active addresses, but network says to have %u active addresses \n",
+        net->desc, count_addresses, net->active_addresses);
     for (cur_address = net->head; NULL != cur_address; cur_address = cur_address->next)
     {
       if (GNUNET_YES != cur_address->addr->active)
         continue;
-      LOG (GNUNET_ERROR_TYPE_WARNING,
-           "Active: `%s' `%s' length %u\n",
-           GNUNET_i2s (&cur_address->addr->peer),
-           cur_address->addr->plugin,
-           cur_address->addr->addr_len);
+
+      LOG (GNUNET_ERROR_TYPE_WARNING, "Active: `%s' `%s' length %u\n",
+          GNUNET_i2s (&cur_address->addr->peer), cur_address->addr->plugin,
+          cur_address->addr->addr_len);
     }
   }
 

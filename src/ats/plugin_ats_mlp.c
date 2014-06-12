@@ -24,8 +24,6 @@
  * @author Matthias Wachs
  * @author Christian Grothoff
  */
-
-#include "plugin_ats_mlp.h"
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_ats_service.h"
