@@ -987,9 +987,6 @@ clients_handle_address_to_string (void *cls,
   papi = GST_plugins_printer_find (plugin_name);
   if (NULL == papi)
   {
-    fprintf (stderr,
-             "DEAD: %s\n",
-             plugin_name);
     atsm.header.size = ntohs (sizeof (struct AddressToStringResultMessage));
     atsm.header.type = ntohs (GNUNET_MESSAGE_TYPE_TRANSPORT_ADDRESS_TO_STRING_REPLY);
     atsm.res = htonl (GNUNET_SYSERR);
