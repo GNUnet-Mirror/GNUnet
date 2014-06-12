@@ -1528,7 +1528,7 @@ mlp_propagate_results (void *cls,
 }
 
 
-static void 
+static void
 notify (struct GAS_MLP_Handle *mlp,
 	enum GAS_Solver_Operation op,
 	enum GAS_Solver_Status stat,
@@ -1539,7 +1539,7 @@ notify (struct GAS_MLP_Handle *mlp,
 }
 
 
-static void 
+static void
 mlp_branch_and_cut_cb (glp_tree *tree, void *info)
 {
   struct GAS_MLP_Handle *mlp = info;
@@ -2180,6 +2180,134 @@ GAS_mlp_address_change_network (void *solver,
 
 
 /**
+ * Find the active address in the set of addresses of a peer
+ * @param cls destination
+ * @param key peer id
+ * @param value address
+ * @return #GNUNET_OK
+ */
+static int
+mlp_get_preferred_address_it (void *cls,
+			      const struct GNUNET_PeerIdentity *key,
+			      void *value)
+{
+  static int counter = 0;
+  struct ATS_Address **aa = cls;
+  struct ATS_Address *addr = value;
+  struct MLP_information *mlpi = addr->solver_information;
+
+  if (mlpi == NULL)
+    return GNUNET_YES;
+
+  /*
+   * Debug output
+   * GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+   *           "MLP [%u] Peer `%s' %s length %u session %u active %s mlp active %s\n",
+   *           counter, GNUNET_i2s (&addr->peer), addr->plugin, addr->addr_len, addr->session_id,
+   *           (GNUNET_YES == addr->active) ? "active" : "inactive",
+   *           (GNUNET_YES == mlpi->n) ? "active" : "inactive");
+   */
+
+  if (GNUNET_YES == mlpi->n)
+  {
+
+    (*aa) = addr;
+    (*aa)->assigned_bw_in = mlpi->b_in;
+    (*aa)->assigned_bw_out = mlpi->b_out;
+    return GNUNET_NO;
+  }
+  counter++;
+  return GNUNET_YES;
+}
+
+
+static double
+get_peer_pref_value (struct GAS_MLP_Handle *mlp,
+                     const struct GNUNET_PeerIdentity *peer)
+{
+  double res;
+  const double *preferences = NULL;
+  int c;
+  preferences = mlp->get_preferences (mlp->get_preferences_cls, peer);
+
+  res = 0.0;
+  for (c = 0; c < GNUNET_ATS_PreferenceCount; c++)
+  {
+    if (c != GNUNET_ATS_PREFERENCE_END)
+    {
+      /* fprintf (stderr, "VALUE[%u] %s %.3f \n",
+       *        c, GNUNET_i2s (&cur->addr->peer), t[c]); */
+      res += preferences[c];
+    }
+  }
+
+  res /= (GNUNET_ATS_PreferenceCount -1);
+  res += 1.0;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Peer preference for peer  `%s' == %.2f\n",
+       GNUNET_i2s(peer), res);
+
+  return res;
+}
+
+
+/**
+ * Get the preferred address for a specific peer
+ *
+ * @param solver the MLP Handle
+ * @param peer the peer
+ * @return suggested address
+ */
+static const struct ATS_Address *
+GAS_mlp_get_preferred_address (void *solver,
+                               const struct GNUNET_PeerIdentity *peer)
+{
+  struct GAS_MLP_Handle *mlp = solver;
+  struct ATS_Peer *p;
+  struct ATS_Address *res;
+
+  GNUNET_assert (NULL != solver);
+  GNUNET_assert (NULL != peer);
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Getting preferred address for `%s'\n",
+      GNUNET_i2s (peer));
+
+  /* Is this peer included in the problem? */
+  if (NULL == (p = GNUNET_CONTAINER_multipeermap_get (mlp->requested_peers,
+						      peer)))
+    {
+      LOG (GNUNET_ERROR_TYPE_INFO, "Adding peer `%s' to list of requested_peers with requests\n",
+          GNUNET_i2s (peer));
+
+      p = GNUNET_new (struct ATS_Peer);
+      p->id = (*peer);
+      p->f = get_peer_pref_value (mlp, peer);
+      GNUNET_CONTAINER_multipeermap_put (mlp->requested_peers,
+					 peer, p,
+					 GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
+
+      /* Added new peer, we have to rebuild problem before solving */
+      mlp->stat_mlp_prob_changed = GNUNET_YES;
+
+      if ((GNUNET_YES == mlp->opt_mlp_auto_solve)&&
+          (GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains(mlp->addresses,
+								peer)))
+      {
+        mlp->exclude_peer = peer;
+        GAS_mlp_solve_problem (mlp);
+        mlp->exclude_peer = NULL;
+      }
+  }
+  /* Get prefered address */
+  res = NULL;
+  GNUNET_CONTAINER_multipeermap_get_multiple (mlp->addresses, peer,
+                                              &mlp_get_preferred_address_it, &res);
+  return res;
+}
+
+
+/**
  * Deletes a single address in the MLP problem
  *
  * The MLP problem has to be recreated and the problem has to be resolved
@@ -2246,132 +2374,6 @@ GAS_mlp_address_delete (void *solver,
 
 
 /**
- * Find the active address in the set of addresses of a peer
- * @param cls destination
- * @param key peer id
- * @param value address
- * @return GNUNET_OK
- */
-static int
-mlp_get_preferred_address_it (void *cls,
-			      const struct GNUNET_PeerIdentity *key,
-			      void *value)
-{
-  static int counter = 0;
-  struct ATS_Address **aa = cls;
-  struct ATS_Address *addr = value;
-  struct MLP_information *mlpi = addr->solver_information;
-
-  if (mlpi == NULL)
-    return GNUNET_YES;
-
-  /*
-   * Debug output
-   * GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-   *           "MLP [%u] Peer `%s' %s length %u session %u active %s mlp active %s\n",
-   *           counter, GNUNET_i2s (&addr->peer), addr->plugin, addr->addr_len, addr->session_id,
-   *           (GNUNET_YES == addr->active) ? "active" : "inactive",
-   *           (GNUNET_YES == mlpi->n) ? "active" : "inactive");
-   */
-
-  if (GNUNET_YES == mlpi->n)
-  {
-
-    (*aa) = addr;
-    (*aa)->assigned_bw_in = mlpi->b_in;
-    (*aa)->assigned_bw_out = mlpi->b_out;
-    return GNUNET_NO;
-  }
-  counter ++;
-  return GNUNET_YES;
-}
-
-
-static double
-get_peer_pref_value (struct GAS_MLP_Handle *mlp, const struct GNUNET_PeerIdentity *peer)
-{
-  double res;
-  const double *preferences = NULL;
-  int c;
-  preferences = mlp->get_preferences (mlp->get_preferences_cls, peer);
-
-  res = 0.0;
-  for (c = 0; c < GNUNET_ATS_PreferenceCount; c++)
-  {
-    if (c != GNUNET_ATS_PREFERENCE_END)
-    {
-      /* fprintf (stderr, "VALUE[%u] %s %.3f \n",
-       *        c, GNUNET_i2s (&cur->addr->peer), t[c]); */
-      res += preferences[c];
-    }
-  }
-
-  res /= (GNUNET_ATS_PreferenceCount -1);
-  res += 1.0;
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Peer preference for peer  `%s' == %.2f\n",
-      GNUNET_i2s(peer), res);
-
-  return res;
-}
-
-
-/**
- * Get the preferred address for a specific peer
- *
- * @param solver the MLP Handle
- * @param peer the peer
- * @return suggested address
- */
-static const struct ATS_Address *
-GAS_mlp_get_preferred_address (void *solver,
-                               const struct GNUNET_PeerIdentity *peer)
-{
-  struct GAS_MLP_Handle *mlp = solver;
-  struct ATS_Peer *p;
-  struct ATS_Address *res;
-
-  GNUNET_assert (NULL != solver);
-  GNUNET_assert (NULL != peer);
-
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Getting preferred address for `%s'\n",
-      GNUNET_i2s (peer));
-
-  /* Is this peer included in the problem? */
-  if (NULL == (p = GNUNET_CONTAINER_multipeermap_get (mlp->requested_peers,
-						      peer)))
-    {
-      LOG (GNUNET_ERROR_TYPE_INFO, "Adding peer `%s' to list of requested_peers with requests\n",
-          GNUNET_i2s (peer));
-
-      p = GNUNET_new (struct ATS_Peer);
-      p->id = (*peer);
-      p->f = get_peer_pref_value (mlp, peer);
-      GNUNET_CONTAINER_multipeermap_put (mlp->requested_peers,
-					 peer, p,
-					 GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
-
-      /* Added new peer, we have to rebuild problem before solving */
-      mlp->stat_mlp_prob_changed = GNUNET_YES;
-
-      if ((GNUNET_YES == mlp->opt_mlp_auto_solve)&&
-          (GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains(mlp->addresses,
-								peer)))
-      {
-        mlp->exclude_peer = peer;
-        GAS_mlp_solve_problem (mlp);
-        mlp->exclude_peer = NULL;
-      }
-  }
-  /* Get prefered address */
-  res = NULL;
-  GNUNET_CONTAINER_multipeermap_get_multiple (mlp->addresses, peer,
-                                              mlp_get_preferred_address_it, &res);
-  return res;
-}
-
-
-/**
  * Start a bulk operation
  *
  * @param solver the solver
@@ -2379,11 +2381,11 @@ GAS_mlp_get_preferred_address (void *solver,
 static void
 GAS_mlp_bulk_start (void *solver)
 {
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Locking solver for bulk operation ...\n");
-  struct GAS_MLP_Handle *s = (struct GAS_MLP_Handle *) solver;
+  struct GAS_MLP_Handle *s = solver;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Locking solver for bulk operation ...\n");
   GNUNET_assert (NULL != solver);
-
   s->stat_bulk_lock ++;
 }
 
@@ -2391,9 +2393,10 @@ GAS_mlp_bulk_start (void *solver)
 static void
 GAS_mlp_bulk_stop (void *solver)
 {
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Unlocking solver from bulk operation ...\n");
+  struct GAS_MLP_Handle *s = solver;
 
-  struct GAS_MLP_Handle *s = (struct GAS_MLP_Handle *) solver;
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Unlocking solver from bulk operation ...\n");
   GNUNET_assert (NULL != solver);
 
   if (s->stat_bulk_lock < 1)
@@ -2538,7 +2541,7 @@ libgnunet_plugin_ats_mlp_done (void *cls)
   struct GAS_MLP_Handle *mlp = cls;
   GNUNET_assert (mlp != NULL);
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Shutting down mlp solver\n");
   mlp_delete_problem (mlp);
 
