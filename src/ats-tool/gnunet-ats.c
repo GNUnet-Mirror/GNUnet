@@ -341,13 +341,13 @@ find_address_it (void *cls,
  * @param ats_count number of performance records in @a ats
  */
 static void
-ats_perf_mon_cb(void *cls,
-                const struct GNUNET_HELLO_Address *address,
-                int active,
-                struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
-                struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-                const struct GNUNET_ATS_Information *ats,
-                uint32_t ats_count)
+ats_perf_mon_cb (void *cls,
+                 const struct GNUNET_HELLO_Address *address,
+                 int active,
+                 struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
+                 struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
+                 const struct GNUNET_ATS_Information *ats,
+                 uint32_t ats_count)
 {
   struct PendingResolutions *pr;
   struct PendingResolutions *cur;
@@ -366,7 +366,9 @@ ats_perf_mon_cb(void *cls,
       GNUNET_free (cur);
     }
 
-    GNUNET_CONTAINER_multipeermap_iterate(addresses, &free_addr_it, NULL);
+    GNUNET_CONTAINER_multipeermap_iterate (addresses,
+                                           &free_addr_it,
+                                           NULL);
     return;
   }
 
@@ -378,9 +380,10 @@ ats_perf_mon_cb(void *cls,
     actx.src = address;
     actx.res = NULL;
 
-    GNUNET_CONTAINER_multipeermap_iterate (addresses,
-                                           &find_address_it,
-                                           &actx);
+    GNUNET_CONTAINER_multipeermap_get_multiple (addresses,
+                                                &address->peer,
+                                                &find_address_it,
+                                                &actx);
     if ((NULL != actx.res))
     {
       if ((bandwidth_in.value__ == actx.res->bandwidth_in.value__) &&
@@ -630,7 +633,9 @@ testservice_ats(void *cls, int result)
   }
   else if (op_monitor)
   {
-    ph = GNUNET_ATS_performance_init (cfg, &ats_perf_mon_cb, NULL);
+    ph = GNUNET_ATS_performance_init (cfg,
+                                      &ats_perf_mon_cb,
+                                      NULL);
     if (NULL == ph)
       fprintf (stderr,
                _("Cannot connect to ATS service, exiting...\n"));
