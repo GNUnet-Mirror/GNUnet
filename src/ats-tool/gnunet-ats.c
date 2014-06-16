@@ -284,13 +284,31 @@ transport_addr_to_str_cb (void *cls,
 }
 
 
+/**
+ * Closure for #find_address_it().
+ */
 struct AddressFindCtx
 {
+  /**
+   * Address we are looking for.
+   */
   const struct GNUNET_HELLO_Address *src;
+
+  /**
+   * Where to write the `struct ATSAddress` if we found one that matches.
+   */
   struct ATSAddress *res;
 };
 
 
+/**
+ * Find address corresponding to a given peer.
+ *
+ * @param cls the `struct AddressFindCtx`
+ * @param key peer identity
+ * @param value the `struct ATSAddress *` for an existing address
+ * @return #GNUNET_NO if we found a match, #GNUNET_YES if not
+ */
 static int
 find_address_it (void *cls,
                  const struct GNUNET_PeerIdentity *key,
