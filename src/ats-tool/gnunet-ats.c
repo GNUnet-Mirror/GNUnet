@@ -209,6 +209,12 @@ struct ATSAddress
    * Current inbound bandwidth.
    */
   struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in;
+
+  /**
+   * Is this an active address?
+   */
+  int active;
+
 };
 
 
@@ -375,7 +381,7 @@ transport_addr_to_str_cb (void *cls,
     return;
   }
 
-  ats_str = GNUNET_strdup ("");
+  ats_str = GNUNET_strdup (pr->active ? _("active ") : _("inactive "));
   network = GNUNET_ATS_NET_UNSPECIFIED;
   for (c = 0; c < pr->ats_count; c++)
   {
@@ -538,7 +544,8 @@ ats_perf_mon_cb (void *cls,
     if ((NULL != actx.res))
     {
       if ((bandwidth_in.value__ == actx.res->bandwidth_in.value__) &&
-          (bandwidth_out.value__ == actx.res->bandwidth_out.value__))
+          (bandwidth_out.value__ == actx.res->bandwidth_out.value__) &&
+          (active == actx.res->active))
       {
         return; /* Nothing to do here */
       }
@@ -551,9 +558,11 @@ ats_perf_mon_cb (void *cls,
     else
     {
       a = GNUNET_new (struct ATSAddress);
+
       a->address = GNUNET_HELLO_address_copy(address);
       a->bandwidth_in = bandwidth_in;
       a->bandwidth_out = bandwidth_out;
+      a->active = active;
       GNUNET_CONTAINER_multipeermap_put (addresses,
                                          &address->peer,
                                          a,
@@ -571,6 +580,7 @@ ats_perf_mon_cb (void *cls,
   pr->address = GNUNET_HELLO_address_copy (address);
   pr->bandwidth_in = bandwidth_in;
   pr->bandwidth_out = bandwidth_out;
+  pr->active = active;
   pr->tats_ctx = GNUNET_TRANSPORT_address_to_string (cfg, address,
                                                      resolve_addresses_numeric,
                                                      GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10),
@@ -802,7 +812,9 @@ testservice_ats (void *cls,
     }
 
     alh = GNUNET_ATS_performance_list_addresses (ph,
-        (NULL == pid_str) ? NULL : &pid, GNUNET_YES, ats_perf_cb, NULL);
+                                                 (NULL == pid_str) ? NULL : &pid,
+                                                 GNUNET_YES,
+                                                 &ats_perf_cb, NULL);
     if (NULL == alh)
     {
       FPRINTF (stderr,
