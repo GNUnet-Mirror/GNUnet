@@ -430,7 +430,8 @@ GNUNET_STRINGS_conv (const char *input,
   free (encoded_string);
   return ret;
  fail:
-  LOG (GNUNET_ERROR_TYPE_WARNING, _("Character sets requested were `%s'->`%s'\n"),
+  LOG (GNUNET_ERROR_TYPE_WARNING,
+       _("Character sets requested were `%s'->`%s'\n"),
        "UTF-8", output_charset);
   ret = GNUNET_malloc (len + 1);
   memcpy (ret, input, len);

@@ -570,12 +570,13 @@ typedef void
  *
  * @param cfg configuration to use
  * @param suggest_cb notification to call whenever the suggestation changed
- * @param suggest_cb_cls closure for 'suggest_cb'
+ * @param suggest_cb_cls closure for @a suggest_cb
  * @return ats context
  */
 struct GNUNET_ATS_SchedulingHandle *
 GNUNET_ATS_scheduling_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
     GNUNET_ATS_AddressSuggestionCallback suggest_cb, void *suggest_cb_cls);
+
 
 /**
  * Client is done with ATS scheduling, release resources.
@@ -584,6 +585,7 @@ GNUNET_ATS_scheduling_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
  */
 void
 GNUNET_ATS_scheduling_done (struct GNUNET_ATS_SchedulingHandle *sh);
+
 
 /**
  * We would like to reset the address suggestion block time for this
@@ -604,7 +606,7 @@ GNUNET_ATS_reset_backoff (struct GNUNET_ATS_SchedulingHandle *sh,
  * @param sh handle
  * @param peer identity of the peer we need an address for
  * @param cont the continuation to indicate success to call with the address
- * @param cont_cls the cls for the continuation
+ * @param cont_cls the closure for the @a cont
  * @return suggestion handle
  */
 struct GNUNET_ATS_SuggestHandle *
@@ -647,10 +649,10 @@ GNUNET_ATS_print_network_type (uint32_t net);
 
 /**
  * Returns where the address is located: LAN or WAN or ...
- * @param sh the GNUNET_ATS_SchedulingHandle handle
+ * @param sh the `struct GNUNET_ATS_SchedulingHandle` handle
  * @param addr address
  * @param addrlen address length
- * @return location as GNUNET_ATS_Information
+ * @return location as `struct GNUNET_ATS_Information`
  */
 struct GNUNET_ATS_Information
 GNUNET_ATS_address_get_type (struct GNUNET_ATS_SchedulingHandle *sh,
@@ -762,7 +764,7 @@ struct GNUNET_ATS_PerformanceHandle;
  * @param bandwidth_out assigned outbound bandwidth for the connection
  * @param bandwidth_in assigned inbound bandwidth for the connection
  * @param ats performance data for the address (as far as known)
- * @param ats_count number of performance records in 'ats'
+ * @param ats_count number of performance records in @a ats
  */
 typedef void
 (*GNUNET_ATS_AddressInformationCallback) (void *cls,
@@ -778,18 +780,21 @@ typedef void
  */
 struct GNUNET_ATS_AddressListHandle;
 
+
 /**
  * Get handle to access performance API of the ATS subsystem.
  *
  * @param cfg configuration to use
  * @param addr_info_cb callback called when performance characteristics for
  * 	an address change
- * @param addr_info_cb_cls closure for infocb
+ * @param addr_info_cb_cls closure for @a addr_info_cb
  * @return ats performance context
  */
 struct GNUNET_ATS_PerformanceHandle *
 GNUNET_ATS_performance_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
-    GNUNET_ATS_AddressInformationCallback addr_info_cb, void *addr_info_cb_cls);
+    GNUNET_ATS_AddressInformationCallback addr_info_cb,
+                             void *addr_info_cb_cls);
+
 
 /**
  * Get information about addresses known to the ATS subsystem.
@@ -809,14 +814,15 @@ GNUNET_ATS_performance_list_addresses (
     const struct GNUNET_PeerIdentity *peer, int all,
     GNUNET_ATS_AddressInformationCallback infocb, void *infocb_cls);
 
+
 /**
  * Cancel a pending address listing operation
  *
- * @param handle the GNUNET_ATS_AddressListHandle handle to cancel
+ * @param handle the `struct GNUNET_ATS_AddressListHandle` handle to cancel
  */
 void
-GNUNET_ATS_performance_list_addresses_cancel (
-    struct GNUNET_ATS_AddressListHandle *handle);
+GNUNET_ATS_performance_list_addresses_cancel (struct GNUNET_ATS_AddressListHandle *handle);
+
 
 /**
  * Client is done using the ATS performance subsystem, release resources.
@@ -825,6 +831,7 @@ GNUNET_ATS_performance_list_addresses_cancel (
  */
 void
 GNUNET_ATS_performance_done (struct GNUNET_ATS_PerformanceHandle *ph);
+
 
 /**
  * Function called with reservation result.
@@ -841,10 +848,12 @@ typedef void
     const struct GNUNET_PeerIdentity * peer, int32_t amount,
     struct GNUNET_TIME_Relative res_delay);
 
+
 /**
  * Context that can be used to cancel a peer information request.
  */
 struct GNUNET_ATS_ReservationContext;
+
 
 /**
  * Reserve inbound bandwidth from the given peer.  ATS will look at
@@ -864,6 +873,7 @@ struct GNUNET_ATS_ReservationContext *
 GNUNET_ATS_reserve_bandwidth (struct GNUNET_ATS_PerformanceHandle *ph,
     const struct GNUNET_PeerIdentity *peer, int32_t amount,
     GNUNET_ATS_ReservationCallback rcb, void *rcb_cls);
+
 
 /**
  * Cancel request for reserving bandwidth.
@@ -926,6 +936,7 @@ enum GNUNET_ATS_PreferenceKind
 const char *
 GNUNET_ATS_print_preference_type (uint32_t type);
 
+
 /**
  * Change preferences for the given peer. Preference changes are forgotten if peers
  * disconnect.
@@ -935,9 +946,9 @@ GNUNET_ATS_print_preference_type (uint32_t type);
  * @param ... 0-terminated specification of the desired changes
  */
 void
-GNUNET_ATS_performance_change_preference (
-    struct GNUNET_ATS_PerformanceHandle *ph,
-    const struct GNUNET_PeerIdentity *peer, ...);
+GNUNET_ATS_performance_change_preference (struct GNUNET_ATS_PerformanceHandle *ph,
+                                          const struct GNUNET_PeerIdentity *peer, ...);
+
 
 /**
  * Application feedback on how good preference requirements are fulfilled

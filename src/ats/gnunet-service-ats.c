@@ -44,7 +44,7 @@ static struct GNUNET_SERVER_Handle *GSA_server;
 struct GAS_Addresses_Handle *GSA_addresses;
 
 /**
- * We have received a 'ClientStartMessage' from a client.  Find out which
+ * We have received a `struct ClientStartMessage` from a client.  Find out which
  * type of client it is and notify the respective subsystem.
  *
  * @param cls closure, unused

@@ -200,7 +200,7 @@ transport_addr_to_str_cb (void *cls,
              "Failed to convert address for peer `%s' plugin `%s' length %lu to string \n",
              GNUNET_i2s (&pr->address->peer),
              pr->address->transport_name,
-             pr->address->address_length );
+             pr->address->address_length);
     return;
   }
 
@@ -215,9 +215,9 @@ transport_addr_to_str_cb (void *cls,
     if ((GNUNET_YES == receive_done) && (0 == pending))
     {
       /* All messages received and no resolutions pending*/
-      if (end_task != GNUNET_SCHEDULER_NO_TASK )
+      if (end_task != GNUNET_SCHEDULER_NO_TASK)
         GNUNET_SCHEDULER_cancel (end_task);
-      end_task = GNUNET_SCHEDULER_add_now (end, NULL );
+      end_task = GNUNET_SCHEDULER_add_now (end, NULL);
     }
 
     return;
@@ -309,6 +309,19 @@ find_address_it (void *cls,
 }
 
 
+
+/**
+ * Signature of a function that is called with QoS information about an address.
+ *
+ * @param cls closure (NULL)
+ * @param address the address, NULL if ATS service was disconnected
+ * @param address_active is this address actively used to maintain a connection
+          to a peer
+ * @param bandwidth_out assigned outbound bandwidth for the connection
+ * @param bandwidth_in assigned inbound bandwidth for the connection
+ * @param ats performance data for the address (as far as known)
+ * @param ats_count number of performance records in @a ats
+ */
 static void
 ats_perf_mon_cb(void *cls,
                 const struct GNUNET_HELLO_Address *address,
@@ -342,15 +355,18 @@ ats_perf_mon_cb(void *cls,
   if (GNUNET_NO == verbose)
   {
     struct AddressFindCtx actx;
+    struct ATSAddress *a;
 
     actx.src = address;
     actx.res = NULL;
 
-    GNUNET_CONTAINER_multipeermap_iterate (addresses, find_address_it, &actx);
-    if ((actx.res != NULL))
+    GNUNET_CONTAINER_multipeermap_iterate (addresses,
+                                           &find_address_it,
+                                           &actx);
+    if ((NULL != actx.res))
     {
       if ((bandwidth_in.value__ == actx.res->bandwidth_in.value__) &&
-          (bandwidth_out.value__ == actx.res->bandwidth_out.value__) )
+          (bandwidth_out.value__ == actx.res->bandwidth_out.value__))
       {
         return; /* Nothing to do here */
       }
@@ -360,12 +376,14 @@ ats_perf_mon_cb(void *cls,
         actx.res->bandwidth_out = bandwidth_out;
       }
     }
-    struct ATSAddress *a = GNUNET_new (struct ATSAddress);
+    a = GNUNET_new (struct ATSAddress);
     a->address = GNUNET_HELLO_address_copy(address);
     a->bandwidth_in = bandwidth_in;
     a->bandwidth_out = bandwidth_out;
-    GNUNET_CONTAINER_multipeermap_put (addresses, &address->peer, a,
-        GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+    GNUNET_CONTAINER_multipeermap_put (addresses,
+                                       &address->peer,
+                                       a,
+                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
   }
 
   pr = GNUNET_malloc (sizeof (struct PendingResolutions) +
@@ -379,9 +397,10 @@ ats_perf_mon_cb(void *cls,
   pr->bandwidth_in = bandwidth_in;
   pr->bandwidth_out = bandwidth_out;
   pr->tats_ctx = GNUNET_TRANSPORT_address_to_string (cfg, address,
-      resolve_addresses_numeric,
-      GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10),
-      transport_addr_to_str_cb, pr);
+                                                     resolve_addresses_numeric,
+                                                     GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10),
+                                                     &transport_addr_to_str_cb,
+                                                     pr);
   GNUNET_CONTAINER_DLL_insert (head, tail, pr);
   results++;
   pending++;
@@ -407,9 +426,9 @@ ats_perf_cb(void *cls,
     if (0 == pending)
     {
       /* All messages received and no resolutions pending*/
-      if (end_task != GNUNET_SCHEDULER_NO_TASK )
+      if (end_task != GNUNET_SCHEDULER_NO_TASK)
         GNUNET_SCHEDULER_cancel (end_task);
-      end_task = GNUNET_SCHEDULER_add_now (end, NULL );
+      end_task = GNUNET_SCHEDULER_add_now (end, NULL);
     }
     return;
   }
@@ -550,21 +569,21 @@ testservice_ats(void *cls, int result)
   }
   if (op_list_all)
   {
-    ph = GNUNET_ATS_performance_init (cfg, NULL, NULL );
+    ph = GNUNET_ATS_performance_init (cfg, NULL, NULL);
     if (NULL == ph)
     {
       fprintf (stderr,
-               _("Cannot connect to ATS service, exiting...\n") );
+               _("Cannot connect to ATS service, exiting...\n"));
       return;
     }
 
     alh = GNUNET_ATS_performance_list_addresses (ph,
-        (NULL == pid_str) ? NULL : &pid, GNUNET_YES, ats_perf_cb, NULL );
+        (NULL == pid_str) ? NULL : &pid, GNUNET_YES, ats_perf_cb, NULL);
     if (NULL == alh)
     {
       fprintf (stderr,
-               _("Cannot issue request to ATS service, exiting...\n") );
-      end_task = GNUNET_SCHEDULER_add_now (&end, NULL );
+               _("Cannot issue request to ATS service, exiting...\n"));
+      end_task = GNUNET_SCHEDULER_add_now (&end, NULL);
       return;
     }
     end_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
@@ -573,18 +592,18 @@ testservice_ats(void *cls, int result)
   }
   else if (op_list_used)
   {
-    ph = GNUNET_ATS_performance_init (cfg, NULL, NULL );
+    ph = GNUNET_ATS_performance_init (cfg, NULL, NULL);
     if (NULL == ph)
       fprintf (stderr,
-               _("Cannot connect to ATS service, exiting...\n") );
+               _("Cannot connect to ATS service, exiting...\n"));
 
     alh = GNUNET_ATS_performance_list_addresses (ph,
-        (NULL == pid_str) ? NULL : &pid, GNUNET_NO, ats_perf_cb, NULL );
+        (NULL == pid_str) ? NULL : &pid, GNUNET_NO, ats_perf_cb, NULL);
     if (NULL == alh)
     {
       fprintf (stderr,
-               _("Cannot issue request to ATS service, exiting...\n") );
-      end_task = GNUNET_SCHEDULER_add_now (&end, NULL );
+               _("Cannot issue request to ATS service, exiting...\n"));
+      end_task = GNUNET_SCHEDULER_add_now (&end, NULL);
       return;
     }
     end_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
@@ -593,10 +612,10 @@ testservice_ats(void *cls, int result)
   }
   else if (op_monitor)
   {
-    ph = GNUNET_ATS_performance_init (cfg, &ats_perf_mon_cb, NULL );
+    ph = GNUNET_ATS_performance_init (cfg, &ats_perf_mon_cb, NULL);
     if (NULL == ph)
       fprintf (stderr,
-               _("Cannot connect to ATS service, exiting...\n") );
+               _("Cannot connect to ATS service, exiting...\n"));
     end_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                              &end,
                                              NULL);
@@ -607,13 +626,13 @@ testservice_ats(void *cls, int result)
     if (NULL == type_str)
     {
       fprintf (stderr,
-               _("No preference type given!\n") );
+               _("No preference type given!\n"));
       return;
     }
     if (NULL == pid_str)
     {
       fprintf (stderr,
-               _("No peer given!\n") );
+               _("No peer given!\n"));
       return;
     }
 
@@ -629,15 +648,15 @@ testservice_ats(void *cls, int result)
       type = GNUNET_ATS_PREFERENCE_BANDWIDTH;
     else
     {
-      FPRINTF (stderr, "%s", _("Valid type required\n") );
+      FPRINTF (stderr, "%s", _("Valid type required\n"));
       return;
     }
 
     /* set */
-    ph = GNUNET_ATS_performance_init (cfg, NULL, NULL );
+    ph = GNUNET_ATS_performance_init (cfg, NULL, NULL);
     if (NULL == ph)
       fprintf (stderr,
-               _("Cannot connect to ATS service, exiting...\n") );
+               _("Cannot connect to ATS service, exiting...\n"));
 
     GNUNET_ATS_performance_change_preference (ph, &pid, type, (double) value,
                                               GNUNET_ATS_PREFERENCE_END);
@@ -728,7 +747,7 @@ main(int argc, char * const *argv)
                             &run, NULL);
   GNUNET_free_non_null(pid_str);
   GNUNET_free_non_null(type_str);
-  GNUNET_free((void * ) argv);
+  GNUNET_free((void *) argv);
 
   if (GNUNET_OK == res)
     return ret;
