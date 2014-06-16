@@ -34,7 +34,7 @@
  * Register a new scheduling client.
  *
  * @param client handle of the new client
- * @return GNUNET_OK on success, GNUNET_SYSERR on error
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
 int
 GAS_scheduling_add_client (struct GNUNET_SERVER_Client *client);
@@ -79,17 +79,16 @@ GAS_handle_reset_backoff (void *cls,
  * @param bandwidth_in assigned inbound bandwidth
  */
 void
-GAS_scheduling_transmit_address_suggestion (const struct GNUNET_PeerIdentity
-                                *peer,
-                                const char *plugin_name,
-                                const void *plugin_addr,
-                                size_t plugin_addr_len,
-                                uint32_t local_address_info,
-                                uint32_t session_id,
-                                const struct GNUNET_ATS_Information *atsi,
-                                uint32_t atsi_count,
-                                struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
-                                struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in);
+GAS_scheduling_transmit_address_suggestion (const struct GNUNET_PeerIdentity *peer,
+                                            const char *plugin_name,
+                                            const void *plugin_addr,
+                                            size_t plugin_addr_len,
+                                            uint32_t local_address_info,
+                                            uint32_t session_id,
+                                            const struct GNUNET_ATS_Information *atsi,
+                                            uint32_t atsi_count,
+                                            struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
+                                            struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in);
 
 
 /**
@@ -100,7 +99,8 @@ GAS_scheduling_transmit_address_suggestion (const struct GNUNET_PeerIdentity
  * @param message the request message
  */
 void
-GAS_handle_request_address (void *cls, struct GNUNET_SERVER_Client *client,
+GAS_handle_request_address (void *cls,
+                            struct GNUNET_SERVER_Client *client,
                             const struct GNUNET_MessageHeader *message);
 
 
@@ -125,8 +125,10 @@ GAS_handle_request_address_cancel (void *cls,
  * @param message the request message
  */
 void
-GAS_handle_address_add (void *cls, struct GNUNET_SERVER_Client *client,
+GAS_handle_address_add (void *cls,
+                        struct GNUNET_SERVER_Client *client,
                         const struct GNUNET_MessageHeader *message);
+
 
 /**
  * Handle 'address update' messages from clients.
@@ -136,7 +138,8 @@ GAS_handle_address_add (void *cls, struct GNUNET_SERVER_Client *client,
  * @param message the request message
  */
 void
-GAS_handle_address_update (void *cls, struct GNUNET_SERVER_Client *client,
+GAS_handle_address_update (void *cls,
+                           struct GNUNET_SERVER_Client *client,
                            const struct GNUNET_MessageHeader *message);
 
 
@@ -148,7 +151,8 @@ GAS_handle_address_update (void *cls, struct GNUNET_SERVER_Client *client,
  * @param message the request message
  */
 void
-GAS_handle_address_in_use (void *cls, struct GNUNET_SERVER_Client *client,
+GAS_handle_address_in_use (void *cls,
+                           struct GNUNET_SERVER_Client *client,
                            const struct GNUNET_MessageHeader *message);
 
 
@@ -172,7 +176,8 @@ GAS_handle_address_destroyed (void *cls,
  * @param ah the address handle to use
  */
 void
-GAS_scheduling_init (struct GNUNET_SERVER_Handle *server, struct GAS_Addresses_Handle *ah);
+GAS_scheduling_init (struct GNUNET_SERVER_Handle *server,
+                     struct GAS_Addresses_Handle *ah);
 
 
 /**
