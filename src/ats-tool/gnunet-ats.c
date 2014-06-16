@@ -397,14 +397,17 @@ ats_perf_mon_cb (void *cls,
         actx.res->bandwidth_out = bandwidth_out;
       }
     }
-    a = GNUNET_new (struct ATSAddress);
-    a->address = GNUNET_HELLO_address_copy(address);
-    a->bandwidth_in = bandwidth_in;
-    a->bandwidth_out = bandwidth_out;
-    GNUNET_CONTAINER_multipeermap_put (addresses,
-                                       &address->peer,
-                                       a,
-                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+    else
+    {
+      a = GNUNET_new (struct ATSAddress);
+      a->address = GNUNET_HELLO_address_copy(address);
+      a->bandwidth_in = bandwidth_in;
+      a->bandwidth_out = bandwidth_out;
+      GNUNET_CONTAINER_multipeermap_put (addresses,
+                                         &address->peer,
+                                         a,
+                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+    }
   }
 
   pr = GNUNET_malloc (sizeof (struct PendingResolutions) +
