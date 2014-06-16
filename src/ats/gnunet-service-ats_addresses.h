@@ -1,6 +1,6 @@
 /*
  This file is part of GNUnet.
- (C) 2011 Christian Grothoff (and other contributing authors)
+ (C) 2011-2014 Christian Grothoff (and other contributing authors)
 
  GNUnet is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published
@@ -312,6 +312,9 @@ struct ATS_Address
    */
   uint32_t session_id;
 
+  /**
+   * FIXME
+   */
   uint32_t local_address_info;
 
   /**
@@ -409,7 +412,8 @@ struct GAS_Addresses_Handle;
  */
 struct GAS_Addresses_Handle *
 GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
-    const struct GNUNET_STATISTICS_Handle *stats);
+                    const struct GNUNET_STATISTICS_Handle *stats);
+
 
 /**
  * Shutdown address subsystem.
@@ -418,6 +422,7 @@ GAS_addresses_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
  */
 void
 GAS_addresses_done (struct GAS_Addresses_Handle *handle);
+
 
 /**
  * Add a new address for a peer.
@@ -430,46 +435,50 @@ GAS_addresses_done (struct GAS_Addresses_Handle *handle);
  * @param local_address_info the local address for the address
  * @param session_id session id, can be 0
  * @param atsi performance information for this address
- * @param atsi_count number of performance information contained
+ * @param atsi_count number of performance information contained in @a atsi
  */
 void
 GAS_addresses_add (struct GAS_Addresses_Handle *handle,
-    const struct GNUNET_PeerIdentity *peer,
-    const char *plugin_name,
-    const void *plugin_addr,
-    size_t plugin_addr_len,
-    uint32_t local_address_info,
-    uint32_t session_id,
-    const struct GNUNET_ATS_Information *atsi,
-    uint32_t atsi_count);
+                   const struct GNUNET_PeerIdentity *peer,
+                   const char *plugin_name,
+                   const void *plugin_addr,
+                   size_t plugin_addr_len,
+                   uint32_t local_address_info,
+                   uint32_t session_id,
+                   const struct GNUNET_ATS_Information *atsi,
+                   uint32_t atsi_count);
+
 
 /**
  * Notification about active use of an address.
- * in_use == GNUNET_YES:
+ * in_use == #GNUNET_YES:
  * 	This address is used to maintain an active connection with a peer.
- * in_use == GNUNET_NO:
+ * in_use == #GNUNET_NO:
  * 	This address is no longer used to maintain an active connection with a peer.
  *
- * Note: can only be called with in_use == GNUNET_NO if called with GNUNET_YES
+ * Note: can only be called with in_use == #GNUNET_NO if called with #GNUNET_YES
  * before
  *
  * @param handle the address handle to use
  * @param peer peer
  * @param plugin_name transport plugin name
  * @param plugin_addr plugin address
- * @param plugin_addr_len length of the plugin address
+ * @param plugin_addr_len length of the plugin address in @a plugin_addr
  * @param local_address_info the local address for the address
  * @param session_id session id, can be 0
- * @param in_use GNUNET_YES if GNUNET_NO
- * @return GNUNET_SYSERR on failure (address unknown ...)
+ * @param in_use #GNUNET_YES if #GNUNET_NO FIXME
+ * @return #GNUNET_SYSERR on failure (address unknown ...)
  */
 int
 GAS_addresses_in_use (struct GAS_Addresses_Handle *handle,
-    const struct GNUNET_PeerIdentity *peer, const char *plugin_name,
-    const void *plugin_addr, size_t plugin_addr_len,
-    uint32_t local_address_info,
-    uint32_t session_id,
-    int in_use);
+                      const struct GNUNET_PeerIdentity *peer,
+                      const char *plugin_name,
+                      const void *plugin_addr,
+                      size_t plugin_addr_len,
+                      uint32_t local_address_info,
+                      uint32_t session_id,
+                      int in_use);
+
 
 /**
  * Update an address with a session or performance information for a peer.
@@ -485,14 +494,19 @@ GAS_addresses_in_use (struct GAS_Addresses_Handle *handle,
  * @param local_address_info the local address for the address
  * @param session_id session id, can be 0
  * @param atsi performance information for this address
- * @param atsi_count number of performance information contained
+ * @param atsi_count number of performance information contained in @a atsi
  */
 void
 GAS_addresses_update (struct GAS_Addresses_Handle *handle,
-    const struct GNUNET_PeerIdentity *peer, const char *plugin_name,
-    const void *plugin_addr, size_t plugin_addr_len,
-    uint32_t local_address_info, uint32_t session_id,
-    const struct GNUNET_ATS_Information *atsi, uint32_t atsi_count);
+                      const struct GNUNET_PeerIdentity *peer,
+                      const char *plugin_name,
+                      const void *plugin_addr,
+                      size_t plugin_addr_len,
+                      uint32_t local_address_info,
+                      uint32_t session_id,
+                      const struct GNUNET_ATS_Information *atsi,
+                      uint32_t atsi_count);
+
 
 /**
  * Remove an address or just a session for a peer.
@@ -501,15 +515,19 @@ GAS_addresses_update (struct GAS_Addresses_Handle *handle,
  * @param peer peer
  * @param plugin_name transport plugin name
  * @param plugin_addr plugin address
- * @param plugin_addr_len length of the plugin address
+ * @param plugin_addr_len length of the plugin address in @a plugin_addr
  * @param session_id session id, can be 0
  * @param local_address_info the local address for the address
  */
 void
 GAS_addresses_destroy (struct GAS_Addresses_Handle *handle,
-    const struct GNUNET_PeerIdentity *peer, const char *plugin_name,
-    const void *plugin_addr, size_t plugin_addr_len,
-    uint32_t local_address_info, uint32_t session_id);
+                       const struct GNUNET_PeerIdentity *peer,
+                       const char *plugin_name,
+                       const void *plugin_addr,
+                       size_t plugin_addr_len,
+                       uint32_t local_address_info,
+                       uint32_t session_id);
+
 
 /**
  * Remove all addresses
@@ -519,6 +537,7 @@ GAS_addresses_destroy (struct GAS_Addresses_Handle *handle,
 void
 GAS_addresses_destroy_all (struct GAS_Addresses_Handle *handle);
 
+
 /**
  * Request address suggestions for a peer
  *
@@ -527,7 +546,8 @@ GAS_addresses_destroy_all (struct GAS_Addresses_Handle *handle);
  */
 void
 GAS_addresses_request_address (struct GAS_Addresses_Handle *handle,
-    const struct GNUNET_PeerIdentity *peer);
+                               const struct GNUNET_PeerIdentity *peer);
+
 
 /**
  * Cancel address suggestions for a peer
@@ -537,7 +557,8 @@ GAS_addresses_request_address (struct GAS_Addresses_Handle *handle,
  */
 void
 GAS_addresses_request_address_cancel (struct GAS_Addresses_Handle *handle,
-    const struct GNUNET_PeerIdentity *peer);
+                                      const struct GNUNET_PeerIdentity *peer);
+
 
 /**
  * Reset suggestion backoff for a peer
@@ -550,7 +571,7 @@ GAS_addresses_request_address_cancel (struct GAS_Addresses_Handle *handle,
  */
 void
 GAS_addresses_handle_backoff_reset (struct GAS_Addresses_Handle *handle,
-    const struct GNUNET_PeerIdentity *peer);
+                                    const struct GNUNET_PeerIdentity *peer);
 
 
 /**
@@ -559,10 +580,10 @@ GAS_addresses_handle_backoff_reset (struct GAS_Addresses_Handle *handle,
  * @param handle address handle
  * @param client the client
  */
-
 void
 GAS_addresses_preference_client_disconnect (struct GAS_Addresses_Handle *handle,
-    void *client);
+                                            void *client);
+
 
 /**
  * Change the preference for a peer
@@ -575,8 +596,11 @@ GAS_addresses_preference_client_disconnect (struct GAS_Addresses_Handle *handle,
  */
 void
 GAS_addresses_preference_change (struct GAS_Addresses_Handle *handle,
-    void *client, const struct GNUNET_PeerIdentity *peer,
-    enum GNUNET_ATS_PreferenceKind kind, float score_abs);
+                                 void *client,
+                                 const struct GNUNET_PeerIdentity *peer,
+                                 enum GNUNET_ATS_PreferenceKind kind,
+                                 float score_abs);
+
 
 /**
  * Application feedback on how good preference requirements are fulfilled
@@ -598,52 +622,63 @@ GAS_addresses_preference_change (struct GAS_Addresses_Handle *handle,
  */
 void
 GAS_addresses_preference_feedback (struct GAS_Addresses_Handle *handle,
-    void *application, const struct GNUNET_PeerIdentity *peer,
-    const struct GNUNET_TIME_Relative scope,
-    enum GNUNET_ATS_PreferenceKind kind, float score_abs);
+                                   void *application,
+                                   const struct GNUNET_PeerIdentity *peer,
+                                   const struct GNUNET_TIME_Relative scope,
+                                   enum GNUNET_ATS_PreferenceKind kind,
+                                   float score_abs);
+
 
 /**
- * Iterator for GAS_addresses_iterate_peers
+ * Iterator for #GAS_addresses_iterate_peers()
  *
  * @param p_it_cls closure
  * @param id the peer id
  */
 typedef void
 (*GNUNET_ATS_Peer_Iterator) (void *p_it_cls,
-    const struct GNUNET_PeerIdentity *id);
+                             const struct GNUNET_PeerIdentity *id);
+
 
 /**
  * Return all peers currently known to ATS
  *
  * @param handle the address handle to use
  * @param p_it the iterator to call for every peer
- * @param p_it_cls the closure for the iterator
+ * @param p_it_cls the closure for @a p_it
  */
 void
 GAS_addresses_iterate_peers (struct GAS_Addresses_Handle *handle,
-    GNUNET_ATS_Peer_Iterator p_it, void *p_it_cls);
+                             GNUNET_ATS_Peer_Iterator p_it,
+                             void *p_it_cls);
+
 
 /**
- * Iterator for GAS_addresses_get_peer_info
+ * Iterator for #GAS_addresses_get_peer_info()
  *
  * @param p_it_cls closure closure
  * @param id the peer id
  * @param plugin_name plugin name
  * @param plugin_addr address
- * @param plugin_addr_len address length
+ * @param plugin_addr_len length of @a plugin_addr
  * @param address_active is address actively used
  * @param atsi ats performance information
- * @param atsi_count number of ats performance elements
+ * @param atsi_count number of ats performance elements in @a atsi
  * @param bandwidth_out current outbound bandwidth assigned to address
  * @param bandwidth_in current inbound bandwidth assigned to address
  */
 typedef void
 (*GNUNET_ATS_PeerInfo_Iterator) (void *p_it_cls,
-    const struct GNUNET_PeerIdentity *id, const char *plugin_name,
-    const void *plugin_addr, size_t plugin_addr_len, const int address_active,
-    const struct GNUNET_ATS_Information *atsi, uint32_t atsi_count,
-    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
-    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in);
+                                 const struct GNUNET_PeerIdentity *id,
+                                 const char *plugin_name,
+                                 const void *plugin_addr,
+                                 size_t plugin_addr_len,
+                                 const int address_active,
+                                 const struct GNUNET_ATS_Information *atsi,
+                                 uint32_t atsi_count,
+                                 struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
+                                 struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in);
+
 
 /**
  * Return information all peers currently known to ATS
@@ -651,12 +686,13 @@ typedef void
  * @param handle the address handle to use
  * @param peer the respective peer
  * @param pi_it the iterator to call for every peer
- * @param pi_it_cls the closure for the iterator
+ * @param pi_it_cls the closure for @a pi_it
  */
 void
 GAS_addresses_get_peer_info (struct GAS_Addresses_Handle *handle,
-    const struct GNUNET_PeerIdentity *peer, GNUNET_ATS_PeerInfo_Iterator pi_it,
-    void *pi_it_cls);
+                             const struct GNUNET_PeerIdentity *peer,
+                             GNUNET_ATS_PeerInfo_Iterator pi_it,
+                             void *pi_it_cls);
 
 #endif
 
