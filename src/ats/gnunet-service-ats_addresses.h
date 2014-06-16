@@ -287,6 +287,7 @@ struct GAS_NormalizationInfo
   double norm;
 };
 
+
 /**
  * Address with additional information
  */
@@ -308,7 +309,7 @@ struct ATS_Address
   struct GNUNET_PeerIdentity peer;
 
   /**
-   * Session ID, 0 if no session is given
+   * Session ID, can be 0
    */
   uint32_t session_id;
 
@@ -433,7 +434,7 @@ GAS_addresses_done (struct GAS_Addresses_Handle *handle);
  * @param plugin_addr plugin address
  * @param plugin_addr_len length of the plugin address
  * @param local_address_info the local address for the address
- * @param session_id session id, can be 0
+ * @param session_id session id, can be 0.
  * @param atsi performance information for this address
  * @param atsi_count number of performance information contained in @a atsi
  */

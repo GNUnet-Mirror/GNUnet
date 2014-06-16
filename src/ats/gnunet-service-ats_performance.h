@@ -52,18 +52,19 @@ void
 GAS_performance_remove_client (struct GNUNET_SERVER_Client *client);
 
 
+/**
+ * FIXME.
+ */
 void
 GAS_handle_performance_update (struct GNUNET_PeerIdentity *peer,
-															 const char *plugin_name,
-															 const void *plugin_addr,
-															 size_t plugin_addr_len,
-															 const int active,
-															 struct GNUNET_ATS_Information *ats,
-															 uint32_t ats_count,
-															 struct GNUNET_BANDWIDTH_Value32NBO
-															 bandwidth_out,
-															 struct GNUNET_BANDWIDTH_Value32NBO
-															 bandwidth_in);
+                               const char *plugin_name,
+                               const void *plugin_addr,
+                               size_t plugin_addr_len,
+                               const int active,
+                               struct GNUNET_ATS_Information *ats,
+                               uint32_t ats_count,
+                               struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
+                               struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in);
 
 
 
@@ -77,21 +78,20 @@ GAS_handle_performance_update (struct GNUNET_PeerIdentity *peer,
  * @param plugin_addr_len number of bytes in plugin_addr
  * @param active is this address active
  * @param atsi performance data for the address
- * @param atsi_count number of performance records in 'ats'
+ * @param atsi_count number of performance records in @a atsi
  * @param bandwidth_out assigned outbound bandwidth
  * @param bandwidth_in assigned inbound bandwidth
  */
 void
 GAS_performance_notify_all_clients (const struct GNUNET_PeerIdentity *peer,
-                                const char *plugin_name,
-                                const void *plugin_addr, size_t plugin_addr_len,
-                                const int active,
-                                const struct GNUNET_ATS_Information *atsi,
-                                uint32_t atsi_count,
-                                struct GNUNET_BANDWIDTH_Value32NBO
-                                bandwidth_out,
-                                struct GNUNET_BANDWIDTH_Value32NBO
-                                bandwidth_in);
+                                    const char *plugin_name,
+                                    const void *plugin_addr,
+                                    size_t plugin_addr_len,
+                                    const int active,
+                                    const struct GNUNET_ATS_Information *atsi,
+                                    uint32_t atsi_count,
+                                    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
+                                    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in);
 
 
 /**

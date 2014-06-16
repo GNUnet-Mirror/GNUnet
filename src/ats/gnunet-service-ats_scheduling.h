@@ -70,11 +70,11 @@ GAS_handle_reset_backoff (void *cls,
  * @param peer peer for which this is an address suggestion
  * @param plugin_name 0-termintated string specifying the transport plugin
  * @param plugin_addr binary address for the plugin to use
- * @param plugin_addr_len number of bytes in plugin_addr
+ * @param plugin_addr_len number of bytes in @a plugin_addr
  * @param session_id session ID to use
  * @param local_address_info the local address for the address
  * @param atsi performance data for the address
- * @param atsi_count number of performance records in 'ats'
+ * @param atsi_count number of performance records in @a atsi
  * @param bandwidth_out assigned outbound bandwidth
  * @param bandwidth_in assigned inbound bandwidth
  */
