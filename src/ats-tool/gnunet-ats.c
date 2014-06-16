@@ -28,16 +28,34 @@
 #include "gnunet_ats_service.h"
 #include "gnunet_transport_service.h"
 
+/**
+ * FIXME
+ */
 #define TIMEOUT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 5)
 
+/**
+ * FIXME
+ */
 #define BIG_M_STRING "unlimited"
 
 /**
  * Final status code.
  */
 static int ret;
+
+/**
+ * FIXME
+ */
 static int results;
+
+/**
+ * FIXME
+ */
 static int resolve_addresses_numeric;
+
+/**
+ * FIXME
+ */
 static int receive_done;
 
 /**
@@ -45,8 +63,19 @@ static int receive_done;
  */
 static char *pid_str;
 
+/**
+ * FIXME
+ */
 static char *type_str;
+
+/**
+ * FIXME
+ */
 static unsigned int value;
+
+/**
+ * FIXME
+ */
 static int pending;
 
 /**
@@ -79,46 +108,129 @@ static int op_print_quotas;
  */
 static int op_monitor;
 
+/**
+ * FIXME
+ */
 static struct GNUNET_ATS_PerformanceHandle *ph;
 
+/**
+ * FIXME
+ */
 static struct GNUNET_ATS_AddressListHandle *alh;
 
+/**
+ * FIXME
+ */
 static struct GNUNET_CONFIGURATION_Handle *cfg;
 
+/**
+ * FIXME
+ */
 static GNUNET_SCHEDULER_TaskIdentifier end_task;
 
+/**
+ * FIXME
+ */
 static struct GNUNET_CONTAINER_MultiPeerMap *addresses;
 
 
+/**
+ * Structure used to remember all pending address resolutions.
+ * We keep address information in here while we talk to transport
+ * to map the address to a string.
+ */
 struct PendingResolutions
 {
+  /**
+   * Kept in a DLL.
+   */
   struct PendingResolutions *next;
+
+  /**
+   * Kept in a DLL.
+   */
   struct PendingResolutions *prev;
 
+  /**
+   * Copy of the address we are resolving.
+   */
   struct GNUNET_HELLO_Address *address;
-  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out;
-  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in;
 
+  /**
+   * Handle to the transport request to convert the address
+   * to a string.
+   */
+  struct GNUNET_TRANSPORT_AddressToStringContext *tats_ctx;
+
+  /**
+   * Array of performance data.
+   */
   struct GNUNET_ATS_Information *ats;
+
+  /**
+   * Length of the @e ats array.
+   */
   uint32_t ats_count;
 
-  struct GNUNET_TRANSPORT_AddressToStringContext * tats_ctx;
+  /**
+   * Amount of outbound bandwidth assigned by ATS.
+   */
+  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out;
+
+  /**
+   * Amount of inbound bandwidth assigned by ATS.
+   */
+  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in;
+
+  /**
+   * Is this an active address?
+   */
+  int active;
 };
 
+
+/**
+ * Information we keep for an address.  Used to avoid
+ * printing the same data multiple times.
+ */
 struct ATSAddress
 {
+  /**
+   * Address information.
+   */
   struct GNUNET_HELLO_Address *address;
+
+  /**
+   * Current outbound bandwidth.
+   */
   struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out;
+
+  /**
+   * Current inbound bandwidth.
+   */
   struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in;
 };
 
 
-
+/**
+ * Head of list of pending resolution requests.
+ */
 static struct PendingResolutions *head;
 
+/**
+ * Tail of list of pending resolution requests.
+ */
 static struct PendingResolutions *tail;
 
 
+/**
+ * Free address corresponding to a given peer.
+ *
+ * @param cls NULL
+ * @param key peer identity
+ * @param value the `struct ATSAddress *` to be freed
+ * @return #GNUNET_YES (always)
+ */
 static int
 free_addr_it (void *cls,
               const struct GNUNET_PeerIdentity *key,
@@ -136,6 +248,12 @@ free_addr_it (void *cls,
 }
 
 
+/**
+ * Task run on shutdown.
+ *
+ * @param cls NULL
+ * @param tc scheduler context
+ */
 static void
 end (void *cls,
      const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -167,24 +285,46 @@ end (void *cls,
     GNUNET_free(pr);
     pending++;
   }
-
-  GNUNET_CONTAINER_multipeermap_iterate(addresses, &free_addr_it, NULL);
-  GNUNET_CONTAINER_multipeermap_destroy(addresses);
+  GNUNET_CONTAINER_multipeermap_iterate (addresses,
+                                         &free_addr_it,
+                                         NULL);
+  GNUNET_CONTAINER_multipeermap_destroy (addresses);
+  addresses = NULL;
 
   if (0 < pending)
-    fprintf (stderr, _("%u address resolutions had a timeout\n"), pending);
+    FPRINTF (stderr,
+             _("%u address resolutions had a timeout\n"),
+             pending);
   if (op_list_used || op_list_all)
-    fprintf (stderr, _("ATS returned results for %u addresses\n"), results);
+    FPRINTF (stderr,
+             _("ATS returned results for %u addresses\n"),
+             results);
   ret = 0;
 }
 
 
+/**
+ * Function to call with a textual representation of an address.  This
+ * function will be called several times with different possible
+ * textual representations, and a last time with @address being NULL
+ * to signal the end of the iteration.  Note that @address NULL
+ * always is the last call, regardless of the value in @a res.
+ *
+ * @param cls closure, a `struct PendingResolutions *`
+ * @param address NULL on end of iteration,
+ *        otherwise 0-terminated printable UTF-8 string,
+ *        in particular an empty string if @a res is #GNUNET_NO
+ * @param res result of the address to string conversion:
+ *        if #GNUNET_OK: conversion successful
+ *        if #GNUNET_NO: address was invalid (or not supported)
+ *        if #GNUNET_SYSERR: communication error (IPC error)
+ */
 static void
 transport_addr_to_str_cb (void *cls,
                           const char *address,
                           int res)
 {
-  struct PendingResolutions * pr = cls;
+  struct PendingResolutions *pr = cls;
   char *ats_str;
   char *ats_tmp;
   char *ats_prop_arr[GNUNET_ATS_PropertyCount] = GNUNET_ATS_PropertyStrings;
@@ -193,16 +333,6 @@ transport_addr_to_str_cb (void *cls,
   uint32_t ats_type;
   uint32_t ats_value;
   uint32_t network;
-
-  if (res == GNUNET_SYSERR)
-  {
-    fprintf (stderr,
-             "Failed to convert address for peer `%s' plugin `%s' length %lu to string \n",
-             GNUNET_i2s (&pr->address->peer),
-             pr->address->transport_name,
-             pr->address->address_length);
-    return;
-  }
 
   if (NULL == address)
   {
@@ -219,11 +349,33 @@ transport_addr_to_str_cb (void *cls,
         GNUNET_SCHEDULER_cancel (end_task);
       end_task = GNUNET_SCHEDULER_add_now (end, NULL);
     }
-
+    return;
+  }
+  switch (res)
+  {
+  case GNUNET_SYSERR:
+    FPRINTF (stderr,
+             "Failed to convert address for peer `%s' plugin `%s' length %lu to string (communication error)\n",
+             GNUNET_i2s (&pr->address->peer),
+             pr->address->transport_name,
+             pr->address->address_length);
+    return;
+  case GNUNET_NO:
+    FPRINTF (stderr,
+             "Failed to convert address for peer `%s' plugin `%s' length %lu to string (address invalid or not supported)\n",
+             GNUNET_i2s (&pr->address->peer),
+             pr->address->transport_name,
+             pr->address->address_length);
+    return;
+  case GNUNET_OK:
+    /* continues below */
+    break;
+  default:
+    GNUNET_break (0);
     return;
   }
 
-  ats_str = GNUNET_strdup("");
+  ats_str = GNUNET_strdup ("");
   network = GNUNET_ATS_NET_UNSPECIFIED;
   for (c = 0; c < pr->ats_count; c++)
   {
@@ -234,7 +386,7 @@ transport_addr_to_str_cb (void *cls,
 
     if (ats_type > GNUNET_ATS_PropertyCount)
     {
-      fprintf (stderr,
+      FPRINTF (stderr,
                "Invalid ATS property type %u %u for address %s\n",
                ats_type,
                pr->ats[c].type,
@@ -271,7 +423,7 @@ transport_addr_to_str_cb (void *cls,
     GNUNET_free(ats_prop_value);
   }
 
-  fprintf (stderr,
+  FPRINTF (stderr,
            _("Peer `%s' plugin `%s', address `%s', `%s' bw out: %u Bytes/s, bw in %u Bytes/s, %s\n"),
            GNUNET_i2s (&pr->address->peer),
            pr->address->transport_name,
@@ -304,7 +456,7 @@ struct AddressFindCtx
 /**
  * Find address corresponding to a given peer.
  *
- * @param cls the `struct AddressFindCtx`
+ * @param cls the `struct AddressFindCtx *`
  * @param key peer identity
  * @param value the `struct ATSAddress *` for an existing address
  * @return #GNUNET_NO if we found a match, #GNUNET_YES if not
@@ -322,7 +474,6 @@ find_address_it (void *cls,
     actx->res = exist;
     return GNUNET_NO;
   }
-
   return GNUNET_YES;
 }
 
@@ -431,16 +582,28 @@ ats_perf_mon_cb (void *cls,
 }
 
 
+/**
+ * Signature of a function that is called with QoS information about an address.
+ *
+ * @param cls closure (NULL)
+ * @param address the address, NULL if ATS service was disconnected
+ * @param active is this address actively used to maintain a connection
+          to a peer
+ * @param bandwidth_out assigned outbound bandwidth for the connection
+ * @param bandwidth_in assigned inbound bandwidth for the connection
+ * @param ats performance data for the address (as far as known)
+ * @param ats_count number of performance records in @a ats
+ */
 static void
-ats_perf_cb(void *cls,
-            const struct GNUNET_HELLO_Address *address,
-            int active,
-            struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
-            struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-            const struct GNUNET_ATS_Information *ats,
-            uint32_t ats_count)
+ats_perf_cb (void *cls,
+             const struct GNUNET_HELLO_Address *address,
+             int active,
+             struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
+             struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
+             const struct GNUNET_ATS_Information *ats,
+             uint32_t ats_count)
 {
-  struct PendingResolutions * pr;
+  struct PendingResolutions *pr;
 
   if (NULL == address)
   {
@@ -467,18 +630,26 @@ ats_perf_cb(void *cls,
   pr->address = GNUNET_HELLO_address_copy (address);
   pr->bandwidth_in = bandwidth_in;
   pr->bandwidth_out = bandwidth_out;
+  pr->active = active;
   pr->tats_ctx = GNUNET_TRANSPORT_address_to_string (cfg, address,
-      resolve_addresses_numeric,
-      GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10),
-      transport_addr_to_str_cb, pr);
-  GNUNET_CONTAINER_DLL_insert(head, tail, pr);
+                                                     resolve_addresses_numeric,
+                                                     GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10),
+                                                     &transport_addr_to_str_cb, pr);
+  GNUNET_CONTAINER_DLL_insert (head, tail, pr);
   results++;
   pending++;
 }
 
 
+/**
+ * Print information about the quotas configured for the various
+ * network scopes.
+ *
+ * @param cfg configuration to obtain quota information from
+ * @return total number of ATS network types known
+ */
 static unsigned int
-print_quotas(const struct GNUNET_CONFIGURATION_Handle *cfg)
+print_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   char *network_str[GNUNET_ATS_NetworkTypeCount] = GNUNET_ATS_NetworkTypeString;
   char * entry_in = NULL;
@@ -492,17 +663,24 @@ print_quotas(const struct GNUNET_CONFIGURATION_Handle *cfg)
   for (c = 0; (c < GNUNET_ATS_NetworkTypeCount); c++)
   {
 
-    GNUNET_asprintf (&entry_out, "%s_QUOTA_OUT", network_str[c]);
-    GNUNET_asprintf (&entry_in, "%s_QUOTA_IN", network_str[c]);
+    GNUNET_asprintf (&entry_out,
+                     "%s_QUOTA_OUT",
+                     network_str[c]);
+    GNUNET_asprintf (&entry_in,
+                     "%s_QUOTA_IN",
+                     network_str[c]);
 
     /* quota out */
-    if (GNUNET_OK
-        == GNUNET_CONFIGURATION_get_value_string (cfg, "ats", entry_out,
-            &quota_out_str))
+    if (GNUNET_OK ==
+        GNUNET_CONFIGURATION_get_value_string (cfg,
+                                               "ats",
+                                               entry_out,
+                                               &quota_out_str))
     {
       if (0 == strcmp (quota_out_str, BIG_M_STRING)
-          || (GNUNET_SYSERR
-              == GNUNET_STRINGS_fancy_size_to_bytes (quota_out_str, &quota_out)))
+          || (GNUNET_SYSERR ==
+              GNUNET_STRINGS_fancy_size_to_bytes (quota_out_str,
+                                                  &quota_out)))
         quota_out = UINT32_MAX;
 
       GNUNET_free(quota_out_str);
@@ -510,34 +688,41 @@ print_quotas(const struct GNUNET_CONFIGURATION_Handle *cfg)
     }
     else
     {
-      fprintf (stderr, "Outbound quota for network `%11s' not configured!\n",
-          network_str[c]);
+      FPRINTF (stderr,
+               "Outbound quota for network `%11s' not configured!\n",
+               network_str[c]);
       GNUNET_asprintf (&quota_out_str, "-");
     }
     GNUNET_free(entry_out);
 
     /* quota in */
-    if (GNUNET_OK
-        == GNUNET_CONFIGURATION_get_value_string (cfg, "ats", entry_in,
-            &quota_in_str))
+    if (GNUNET_OK ==
+        GNUNET_CONFIGURATION_get_value_string (cfg,
+                                               "ats",
+                                               entry_in,
+                                               &quota_in_str))
     {
       if (0 == strcmp (quota_in_str, BIG_M_STRING)
-          || (GNUNET_SYSERR
-              == GNUNET_STRINGS_fancy_size_to_bytes (quota_in_str, &quota_in)))
+          || (GNUNET_SYSERR ==
+              GNUNET_STRINGS_fancy_size_to_bytes (quota_in_str, &quota_in)))
         quota_in = UINT32_MAX;
       GNUNET_free(quota_in_str);
       GNUNET_asprintf (&quota_in_str, "%llu", quota_in);
     }
     else
     {
-      fprintf (stderr, "Inbound quota for network `%11s' not configured!\n",
-          network_str[c]);
+      FPRINTF (stderr,
+               "Inbound quota for network `%11s' not configured!\n",
+               network_str[c]);
       GNUNET_asprintf (&quota_in_str, "-");
     }
     GNUNET_free(entry_in);
 
-    fprintf (stderr, _("Quota for network `%11s' (in/out): %10s / %10s\n"),
-        network_str[c], quota_in_str, quota_out_str);
+    FPRINTF (stderr,
+             _("Quota for network `%11s' (in/out): %10s / %10s\n"),
+             network_str[c],
+             quota_in_str,
+             quota_out_str);
     GNUNET_free(quota_out_str);
     GNUNET_free(quota_in_str);
   }
@@ -545,8 +730,16 @@ print_quotas(const struct GNUNET_CONFIGURATION_Handle *cfg)
 }
 
 
+/**
+ * Function called with the result from the test if ATS is
+ * running.  Runs the actual main logic.
+ *
+ * @param cls the `struct GNUNET_CONFIGURATION_Handle *`
+ * @param result result of the test, #GNUNET_YES if ATS is running
+ */
 static void
-testservice_ats(void *cls, int result)
+testservice_ats (void *cls,
+                 int result)
 {
   struct GNUNET_CONFIGURATION_Handle *cfg = cls;
   struct GNUNET_PeerIdentity pid;
@@ -557,7 +750,9 @@ testservice_ats(void *cls, int result)
 
   if (GNUNET_YES != result)
   {
-    FPRINTF (stderr, _("Service `%s' is not running\n"), "ats");
+    FPRINTF (stderr,
+             _("Service `%s' is not running\n"),
+             "ats");
     return;
   }
 
@@ -580,8 +775,12 @@ testservice_ats(void *cls, int result)
   if ((1 < c))
   {
     FPRINTF (stderr,
-        _("Please select one operation : %s or %s or %s or %s or %s\n"),
-        "--used", "--all", "--monitor", "--preference", "--quotas");
+             _("Please select one operation : %s or %s or %s or %s or %s\n"),
+             "--used",
+             "--all",
+             "--monitor",
+             "--preference",
+             "--quotas");
     return;
   }
   if ((0 == c))
@@ -596,7 +795,8 @@ testservice_ats(void *cls, int result)
     ph = GNUNET_ATS_performance_init (cfg, NULL, NULL);
     if (NULL == ph)
     {
-      fprintf (stderr,
+      FPRINTF (stderr,
+               "%s",
                _("Cannot connect to ATS service, exiting...\n"));
       return;
     }
@@ -605,7 +805,8 @@ testservice_ats(void *cls, int result)
         (NULL == pid_str) ? NULL : &pid, GNUNET_YES, ats_perf_cb, NULL);
     if (NULL == alh)
     {
-      fprintf (stderr,
+      FPRINTF (stderr,
+               "%s",
                _("Cannot issue request to ATS service, exiting...\n"));
       end_task = GNUNET_SCHEDULER_add_now (&end, NULL);
       return;
@@ -618,14 +819,16 @@ testservice_ats(void *cls, int result)
   {
     ph = GNUNET_ATS_performance_init (cfg, NULL, NULL);
     if (NULL == ph)
-      fprintf (stderr,
+      FPRINTF (stderr,
+               "%s",
                _("Cannot connect to ATS service, exiting...\n"));
 
     alh = GNUNET_ATS_performance_list_addresses (ph,
         (NULL == pid_str) ? NULL : &pid, GNUNET_NO, ats_perf_cb, NULL);
     if (NULL == alh)
     {
-      fprintf (stderr,
+      FPRINTF (stderr,
+               "%s",
                _("Cannot issue request to ATS service, exiting...\n"));
       end_task = GNUNET_SCHEDULER_add_now (&end, NULL);
       return;
@@ -640,7 +843,8 @@ testservice_ats(void *cls, int result)
                                       &ats_perf_mon_cb,
                                       NULL);
     if (NULL == ph)
-      fprintf (stderr,
+      FPRINTF (stderr,
+               "%s",
                _("Cannot connect to ATS service, exiting...\n"));
     end_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                              &end,
@@ -651,13 +855,15 @@ testservice_ats(void *cls, int result)
   {
     if (NULL == type_str)
     {
-      fprintf (stderr,
+      FPRINTF (stderr,
+               "%s",
                _("No preference type given!\n"));
       return;
     }
     if (NULL == pid_str)
     {
-      fprintf (stderr,
+      FPRINTF (stderr,
+               "%s",
                _("No peer given!\n"));
       return;
     }
@@ -674,14 +880,17 @@ testservice_ats(void *cls, int result)
       type = GNUNET_ATS_PREFERENCE_BANDWIDTH;
     else
     {
-      FPRINTF (stderr, "%s", _("Valid type required\n"));
+      FPRINTF (stderr,
+               "%s",
+               _("Valid type required\n"));
       return;
     }
 
     /* set */
     ph = GNUNET_ATS_performance_init (cfg, NULL, NULL);
     if (NULL == ph)
-      fprintf (stderr,
+      FPRINTF (stderr,
+               "%s",
                _("Cannot connect to ATS service, exiting...\n"));
 
     GNUNET_ATS_performance_change_preference (ph, &pid, type, (double) value,
@@ -724,7 +933,8 @@ run (void *cls,
  * @return 0 ok, 1 on error
  */
 int
-main(int argc, char * const *argv)
+main (int argc,
+      char * const *argv)
 {
   int res;
 
