@@ -39,9 +39,16 @@
  */
 struct GNUNET_STATISTICS_Handle *GSA_stats;
 
+/**
+ * Handle to the ATS server.
+ */
 static struct GNUNET_SERVER_Handle *GSA_server;
 
-struct GAS_Addresses_Handle *GSA_addresses;
+/**
+ * Handle to the address state.
+ */
+static struct GAS_Addresses_Handle *GSA_addresses;
+
 
 /**
  * We have received a `struct ClientStartMessage` from a client.  Find out which
@@ -58,7 +65,10 @@ handle_ats_start (void *cls, struct GNUNET_SERVER_Client *client,
   const struct ClientStartMessage *msg =
       (const struct ClientStartMessage *) message;
   enum StartFlag flag;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Received `%s' message\n", "ATS_START");
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received `%s' message\n",
+              "ATS_START");
   flag = ntohl (msg->start_flag);
   switch (flag)
   {
@@ -92,7 +102,8 @@ handle_ats_start (void *cls, struct GNUNET_SERVER_Client *client,
  * @param client handle of the client
  */
 static void
-client_disconnect_handler (void *cls, struct GNUNET_SERVER_Client *client)
+client_disconnect_handler (void *cls,
+                           struct GNUNET_SERVER_Client *client)
 {
   if (NULL == client)
     return;
@@ -108,13 +119,16 @@ client_disconnect_handler (void *cls, struct GNUNET_SERVER_Client *client)
  * @param tc unused
  */
 static void
-cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+cleanup_task (void *cls,
+              const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GAS_addresses_done (GSA_addresses);
   GAS_scheduling_done ();
   GAS_performance_done ();
   GAS_reservations_done ();
-  GNUNET_SERVER_disconnect_notify_cancel (GSA_server, &client_disconnect_handler, NULL);
+  GNUNET_SERVER_disconnect_notify_cancel (GSA_server,
+                                          &client_disconnect_handler,
+                                          NULL);
   if (NULL != GSA_stats)
   {
     GNUNET_STATISTICS_destroy (GSA_stats, GNUNET_NO);
@@ -191,7 +205,8 @@ int
 main (int argc, char *const *argv)
 {
   return (GNUNET_OK ==
-          GNUNET_SERVICE_run (argc, argv, "ats", GNUNET_SERVICE_OPTION_NONE,
+          GNUNET_SERVICE_run (argc, argv, "ats",
+                              GNUNET_SERVICE_OPTION_NONE,
                               &run, NULL)) ? 0 : 1;
 }
 
