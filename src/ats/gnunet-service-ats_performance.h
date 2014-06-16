@@ -60,7 +60,7 @@ GAS_handle_performance_update (struct GNUNET_PeerIdentity *peer,
                                const char *plugin_name,
                                const void *plugin_addr,
                                size_t plugin_addr_len,
-                               const int active,
+                               int active,
                                struct GNUNET_ATS_Information *ats,
                                uint32_t ats_count,
                                struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
@@ -75,8 +75,11 @@ GAS_handle_performance_update (struct GNUNET_PeerIdentity *peer,
  * @param peer peer for which this is an address suggestion
  * @param plugin_name 0-termintated string specifying the transport plugin
  * @param plugin_addr binary address for the plugin to use
- * @param plugin_addr_len number of bytes in plugin_addr
- * @param active is this address active
+ * @param plugin_addr_len number of bytes in @a plugin_addr
+ * @param active #GNUNET_YES if this address is actively used
+ *        to maintain a connection to a peer;
+ *        #GNUNET_NO if the address is not actively used;
+ *        #GNUNET_SYSERR if this address is no longer available for ATS
  * @param atsi performance data for the address
  * @param atsi_count number of performance records in @a atsi
  * @param bandwidth_out assigned outbound bandwidth
@@ -87,7 +90,7 @@ GAS_performance_notify_all_clients (const struct GNUNET_PeerIdentity *peer,
                                     const char *plugin_name,
                                     const void *plugin_addr,
                                     size_t plugin_addr_len,
-                                    const int active,
+                                    int active,
                                     const struct GNUNET_ATS_Information *atsi,
                                     uint32_t atsi_count,
                                     struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
@@ -141,14 +144,14 @@ GAS_handle_preference_change (void *cls,
  */
 void
 GAS_handle_preference_feedback (void *cls,
-                              struct GNUNET_SERVER_Client *client,
-                              const struct GNUNET_MessageHeader *message);
+                                struct GNUNET_SERVER_Client *client,
+                                const struct GNUNET_MessageHeader *message);
 
 
 void
 GAS_handle_monitor (void *cls,
-													struct GNUNET_SERVER_Client *client,
-                          const struct GNUNET_MessageHeader *message);
+                    struct GNUNET_SERVER_Client *client,
+                    const struct GNUNET_MessageHeader *message);
 
 /**
  * Initialize performance subsystem.

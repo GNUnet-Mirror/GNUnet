@@ -21,7 +21,7 @@
 /**
  * @file testbed/gnunet-daemon-latency-logger.c
  * @brief log latency values from neighbour connections into an SQLite database
- * @author Sree Harsha Totakura <sreeharsha@totakura.in> 
+ * @author Sree Harsha Totakura <sreeharsha@totakura.in>
  */
 
 #include "platform.h"
@@ -71,7 +71,7 @@ struct Entry
    * The last known value for latency
    */
   unsigned int latency;
-  
+
 };
 
 
@@ -119,7 +119,7 @@ free_iterator (void *cls,
 {
   struct Entry *e = cls;
 
-  GNUNET_assert (GNUNET_YES == 
+  GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multipeermap_remove (map, key, e));
   GNUNET_free (e);
   return GNUNET_YES;
@@ -131,7 +131,7 @@ free_iterator (void *cls,
  *
  * @param cls NULL
  * @param tc task context from scheduler
- * @return 
+ * @return
  */
 static void
 do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -148,7 +148,7 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   db = NULL;
   if (NULL != map)
   {
-    GNUNET_assert (GNUNET_SYSERR != 
+    GNUNET_assert (GNUNET_SYSERR !=
                    GNUNET_CONTAINER_multipeermap_iterate (map, free_iterator, NULL));
     GNUNET_CONTAINER_multipeermap_destroy (map);
     map = NULL;
@@ -160,8 +160,10 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  *
  * @param cls closure
  * @param address the address
- * @param address_active is this address actively used to maintain a connection
- * 				to a peer
+ * @param address_active #GNUNET_YES if this address is actively used
+ *        to maintain a connection to a peer;
+ *        #GNUNET_NO if the address is not actively used;
+ *        #GNUNET_SYSERR if this address is no longer available for ATS
  * @param bandwidth_out assigned outbound bandwidth for the connection
  * @param bandwidth_in assigned inbound bandwidth for the connection
  * @param ats performance data for the address (as far as known)
@@ -197,7 +199,7 @@ addr_info_cb (void *cls,
   }
 
   GNUNET_assert (NULL != db);
-  if (GNUNET_NO == address_active)
+  if (GNUNET_YES != address_active)
     return;
   for (cnt = 0; cnt < ats_count; cnt++)
   {
@@ -248,13 +250,13 @@ addr_info_cb (void *cls,
   {
     entry = GNUNET_new (struct Entry);
     entry->id = address->peer;
-    GNUNET_CONTAINER_multipeermap_put (map, 
+    GNUNET_CONTAINER_multipeermap_put (map,
                                        &entry->id, entry,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
   }
   entry->latency = latency;
   return;
-  
+
  err_shutdown:
       GNUNET_SCHEDULER_shutdown ();
 }
@@ -272,7 +274,7 @@ static void
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
-  const char *query_create = 
+  const char *query_create =
       "CREATE TABLE ats_info ("
       "id TEXT,"
       "val INTEGER,"
@@ -303,9 +305,9 @@ run (void *cls, char *const *args, const char *cfgfile,
     DEBUG ("SQLite Error: %d.  Perhaps the database `%s' already exits.\n",
            sqlite3_errcode (db), dbfile);
   DEBUG ("Opened database %s\n", dbfile);
-  GNUNET_free (dbfile);  
+  GNUNET_free (dbfile);
   dbfile = NULL;
-  ats = GNUNET_ATS_performance_init (c, addr_info_cb, NULL);
+  ats = GNUNET_ATS_performance_init (c, &addr_info_cb, NULL);
   map = GNUNET_CONTAINER_multipeermap_create (30, GNUNET_YES);
   shutdown_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                                 &do_shutdown, NULL);

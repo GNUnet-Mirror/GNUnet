@@ -261,7 +261,7 @@ update_latencies (void *cls,
   }
 
   if (GNUNET_YES != active)
-  	return;
+    return;
   for (i = 0; i < ats_count; i++)
   {
     if (GNUNET_ATS_QUALITY_NET_DELAY != ntohl (ats[i].type))

@@ -759,8 +759,10 @@ struct GNUNET_ATS_PerformanceHandle;
  *
  * @param cls closure
  * @param address the address, NULL if ATS service was disconnected
- * @param address_active is this address actively used to maintain a connection
-          to a peer
+ * @param address_active #GNUNET_YES if this address is actively used
+ *        to maintain a connection to a peer;
+ *        #GNUNET_NO if the address is not actively used;
+ *        #GNUNET_SYSERR if this address is no longer available for ATS
  * @param bandwidth_out assigned outbound bandwidth for the connection
  * @param bandwidth_in assigned inbound bandwidth for the connection
  * @param ats performance data for the address (as far as known)
@@ -768,12 +770,13 @@ struct GNUNET_ATS_PerformanceHandle;
  */
 typedef void
 (*GNUNET_ATS_AddressInformationCallback) (void *cls,
-    const struct GNUNET_HELLO_Address *address,
-    int address_active,
-    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
-    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-    const struct GNUNET_ATS_Information *ats,
-    uint32_t ats_count);
+                                          const struct GNUNET_HELLO_Address *address,
+                                          int address_active,
+                                          struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
+                                          struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
+                                          const struct GNUNET_ATS_Information *ats,
+                                          uint32_t ats_count);
+
 
 /**
  * Handle for an address listing operation
@@ -792,8 +795,9 @@ struct GNUNET_ATS_AddressListHandle;
  */
 struct GNUNET_ATS_PerformanceHandle *
 GNUNET_ATS_performance_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
-    GNUNET_ATS_AddressInformationCallback addr_info_cb,
+                             GNUNET_ATS_AddressInformationCallback addr_info_cb,
                              void *addr_info_cb_cls);
+
 
 
 /**
@@ -805,14 +809,15 @@ GNUNET_ATS_performance_init (const struct GNUNET_CONFIGURATION_Handle *cfg,
  *        get only address currently used
  * @param infocb callback to call with the addresses,
  *        will callback with address == NULL when done
- * @param infocb_cls closure for infocb
+ * @param infocb_cls closure for @a infocb
  * @return ats performance context
  */
 struct GNUNET_ATS_AddressListHandle *
-GNUNET_ATS_performance_list_addresses (
-    struct GNUNET_ATS_PerformanceHandle *handle,
-    const struct GNUNET_PeerIdentity *peer, int all,
-    GNUNET_ATS_AddressInformationCallback infocb, void *infocb_cls);
+GNUNET_ATS_performance_list_addresses (struct GNUNET_ATS_PerformanceHandle *handle,
+                                       const struct GNUNET_PeerIdentity *peer,
+                                       int all,
+                                       GNUNET_ATS_AddressInformationCallback infocb,
+                                       void *infocb_cls);
 
 
 /**
@@ -845,8 +850,9 @@ GNUNET_ATS_performance_done (struct GNUNET_ATS_PerformanceHandle *ph);
  */
 typedef void
 (*GNUNET_ATS_ReservationCallback) (void *cls,
-    const struct GNUNET_PeerIdentity * peer, int32_t amount,
-    struct GNUNET_TIME_Relative res_delay);
+                                   const struct GNUNET_PeerIdentity * peer,
+                                   int32_t amount,
+                                   struct GNUNET_TIME_Relative res_delay);
 
 
 /**

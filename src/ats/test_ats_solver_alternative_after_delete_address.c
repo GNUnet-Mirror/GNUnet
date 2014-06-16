@@ -1,10 +1,4 @@
 /*
-  if (NULL == (perf_ats = GNUNET_ATS_performance_init (cfg, &ats_perf_cb, NULL)))
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-        "Failed to connect to performance API\n");
-    GNUNET_SCHEDULER_add_now (end_badly, NULL);
-  }
  This file is part of GNUnet.
  (C) 2010-2013 Christian Grothoff (and other contributing authors)
 

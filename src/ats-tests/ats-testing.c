@@ -541,22 +541,21 @@ do_comm_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
 }
 
+
 static void
 ats_performance_info_cb (void *cls,
-    const struct GNUNET_HELLO_Address *address,
-    int address_active,
-    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
-    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-    const struct GNUNET_ATS_Information *ats,
-    uint32_t ats_count)
+                         const struct GNUNET_HELLO_Address *address,
+                         int address_active,
+                         struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out,
+                         struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
+                         const struct GNUNET_ATS_Information *ats,
+                         uint32_t ats_count)
 {
   struct BenchmarkPeer *me = cls;
   struct BenchmarkPartner *p;
   int c_a;
   int log;
   char *peer_id;
-
-
 
   p = find_partner (me, &address->peer);
   if (NULL == p)
@@ -634,8 +633,11 @@ ats_performance_info_cb (void *cls,
      }
    }
   if (GNUNET_YES == log)
-    top->ats_perf_cb (cls, address, address_active, bandwidth_out, bandwidth_in,
-      ats, ats_count);
+    top->ats_perf_cb (cls, address,
+                      address_active,
+                      bandwidth_out,
+                      bandwidth_in,
+                      ats, ats_count);
   GNUNET_free(peer_id);
 }
 
@@ -646,7 +648,9 @@ ats_perf_connect_adapter (void *cls,
 {
   struct BenchmarkPeer *me = cls;
 
-  me->ats_perf_handle = GNUNET_ATS_performance_init (cfg, ats_performance_info_cb, me);
+  me->ats_perf_handle = GNUNET_ATS_performance_init (cfg,
+                                                     &ats_performance_info_cb,
+                                                     me);
   if (NULL == me->ats_perf_handle)
     GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
         "Failed to create ATS performance handle \n");
@@ -857,6 +861,7 @@ GNUNET_ATS_TEST_get_partner (int src, int dest)
   return &top->mps[src].partners[dest];
 }
 
+
 /**
  * Create a topology for ats testing
  *
@@ -872,15 +877,14 @@ GNUNET_ATS_TEST_get_partner (int src, int dest)
  */
 void
 GNUNET_ATS_TEST_create_topology (char *name, char *cfg_file,
-    unsigned int num_slaves,
-    unsigned int num_masters,
-    int test_core,
-    GNUNET_ATS_TEST_TopologySetupDoneCallback done_cb,
-    void *done_cb_cls,
-    GNUNET_TRANSPORT_ReceiveCallback transport_recv_cb,
-    GNUNET_ATS_AddressInformationCallback log_request_cb)
+                                 unsigned int num_slaves,
+                                 unsigned int num_masters,
+                                 int test_core,
+                                 GNUNET_ATS_TEST_TopologySetupDoneCallback done_cb,
+                                 void *done_cb_cls,
+                                 GNUNET_TRANSPORT_ReceiveCallback transport_recv_cb,
+                                 GNUNET_ATS_AddressInformationCallback log_request_cb)
 {
-
   static struct GNUNET_CORE_MessageHandler handlers[] = {
       {&comm_handle_ping, TEST_MESSAGE_TYPE_PING, 0 },
       {&comm_handle_pong, TEST_MESSAGE_TYPE_PONG, 0 },
@@ -894,7 +898,7 @@ GNUNET_ATS_TEST_create_topology (char *name, char *cfg_file,
   top->done_cb_cls = done_cb_cls;
   top->test_core = test_core;
   top->transport_recv_cb = transport_recv_cb;
-  top->ats_perf_cb = log_request_cb;
+  top->ats_perf_cb = &log_request_cb;
 
   top->mps = GNUNET_malloc (num_masters * sizeof (struct BenchmarkPeer));
   top->sps = GNUNET_malloc (num_slaves * sizeof (struct BenchmarkPeer));
@@ -905,9 +909,12 @@ GNUNET_ATS_TEST_create_topology (char *name, char *cfg_file,
   event_mask |= (1LL << GNUNET_TESTBED_ET_CONNECT);
   event_mask |= (1LL << GNUNET_TESTBED_ET_OPERATION_FINISHED);
   (void) GNUNET_TESTBED_test_run (name, cfg_file,
-      num_slaves + num_masters, event_mask, &controller_event_cb, NULL,
-      &main_run, NULL);
+                                  num_slaves + num_masters,
+                                  event_mask,
+                                  &controller_event_cb, NULL,
+                                  &main_run, NULL);
 }
+
 
 /**
  * Shutdown topology
@@ -917,7 +924,6 @@ GNUNET_ATS_TEST_shutdown_topology (void)
 {
   if (NULL == top)
     return;
-
   GNUNET_SCHEDULER_shutdown();
 }
 

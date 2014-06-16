@@ -367,7 +367,7 @@ process_pi_message (struct GNUNET_ATS_PerformanceHandle *ph,
   ats_count = ntohl (pi->ats_count);
   plugin_address_length = ntohs (pi->address_length);
   plugin_name_length = ntohs (pi->plugin_name_length);
-  addr_active = ntohl (pi->address_active);
+  addr_active = (int) ntohl (pi->address_active);
   atsi = (const struct GNUNET_ATS_Information *) &pi[1];
   plugin_address = (const char *) &atsi[ats_count];
   plugin_name = &plugin_address[plugin_address_length];
@@ -389,7 +389,6 @@ process_pi_message (struct GNUNET_ATS_PerformanceHandle *ph,
     address.address = plugin_address;
     address.address_length = plugin_address_length;
     address.transport_name = plugin_name;
-
     ph->addr_info_cb (ph->addr_info_cb_cls,
                       &address,
                       addr_active,
@@ -482,8 +481,9 @@ process_ar_message (struct GNUNET_ATS_PerformanceHandle *ph,
     GNUNET_break(0);
     return GNUNET_SYSERR;
   }
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, _("Received %s message\n"),
-      "ATS_ADDRESSLIST_RESPONSE");
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             _("Received %s message\n"),
+             "ATS_ADDRESSLIST_RESPONSE");
 
   pi = (const struct PeerInformationMessage *) msg;
   id = ntohl (pi->id);
@@ -560,7 +560,8 @@ process_ar_message (struct GNUNET_ATS_PerformanceHandle *ph,
  * @param msg message received, NULL on timeout or fatal error
  */
 static void
-process_ats_message (void *cls, const struct GNUNET_MessageHeader *msg)
+process_ats_message (void *cls,
+                     const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_ATS_PerformanceHandle *ph = cls;
 
@@ -649,7 +650,7 @@ reconnect (struct GNUNET_ATS_PerformanceHandle *ph)
  * @param cfg configuration to use
  * @param addr_info_cb callback called when performance characteristics for
  * 	an address change
- * @param addr_info_cb_cls closure for infocb
+ * @param addr_info_cb_cls closure for @a addr_info_cb
  * @return ats performance context
  */
 struct GNUNET_ATS_PerformanceHandle *
@@ -778,7 +779,7 @@ GNUNET_ATS_reserve_bandwidth_cancel (struct GNUNET_ATS_ReservationContext *rc)
  *
  * @param handle the performance handle to use
  * @param peer peer idm can be NULL for all peers
- * @param all GNUNET_YES to get information about all addresses or GNUNET_NO to
+ * @param all #GNUNET_YES to get information about all addresses or #GNUNET_NO to
  *        get only address currently used
  * @param infocb callback to call with the addresses,
  *        will callback with address == NULL when done
@@ -832,8 +833,9 @@ GNUNET_ATS_performance_list_addresses (struct GNUNET_ATS_PerformanceHandle *hand
   {
     memset (&m->peer, '\0', sizeof(struct GNUNET_PeerIdentity));
   }
-  GNUNET_CONTAINER_DLL_insert_tail(handle->pending_head, handle->pending_tail,
-      p);
+  GNUNET_CONTAINER_DLL_insert_tail(handle->pending_head,
+                                   handle->pending_tail,
+                                   p);
 
   do_transmit (handle);
 
@@ -849,11 +851,11 @@ GNUNET_ATS_performance_list_addresses (struct GNUNET_ATS_PerformanceHandle *hand
 void
 GNUNET_ATS_performance_list_addresses_cancel (struct GNUNET_ATS_AddressListHandle *handle)
 {
-  GNUNET_assert(NULL != handle);
-
-  GNUNET_CONTAINER_DLL_remove(handle->ph->addresslist_head,
-      handle->ph->addresslist_tail, handle);
-  GNUNET_free(handle);
+  GNUNET_assert (NULL != handle);
+  GNUNET_CONTAINER_DLL_remove (handle->ph->addresslist_head,
+                               handle->ph->addresslist_tail,
+                               handle);
+  GNUNET_free (handle);
 }
 
 

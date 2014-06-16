@@ -438,7 +438,7 @@ transport_addr_to_str_cb (void *cls,
            ntohl (pr->bandwidth_out.value__),
            ntohl (pr->bandwidth_in.value__),
            ats_str);
-  GNUNET_free(ats_str);
+  GNUNET_free (ats_str);
 }
 
 
@@ -490,8 +490,10 @@ find_address_it (void *cls,
  *
  * @param cls closure (NULL)
  * @param address the address, NULL if ATS service was disconnected
- * @param address_active is this address actively used to maintain a connection
-          to a peer
+ * @param active #GNUNET_YES if this address is actively used
+ *        to maintain a connection to a peer;
+ *        #GNUNET_NO if the address is not actively used;
+ *        #GNUNET_SYSERR if this address is no longer available for ATS
  * @param bandwidth_out assigned outbound bandwidth for the connection
  * @param bandwidth_in assigned inbound bandwidth for the connection
  * @param ats performance data for the address (as far as known)
@@ -528,6 +530,34 @@ ats_perf_mon_cb (void *cls,
                                            NULL);
     return;
   }
+  if (GNUNET_SYSERR == active)
+  {
+    /* remove address */
+    struct AddressFindCtx actx;
+
+    actx.src = address;
+    actx.res = NULL;
+    GNUNET_CONTAINER_multipeermap_get_multiple (addresses,
+                                                &address->peer,
+                                                &find_address_it,
+                                                &actx);
+    if (NULL == actx.res)
+    {
+      GNUNET_break (0);
+      return;
+    }
+    GNUNET_break (GNUNET_OK ==
+                  GNUNET_CONTAINER_multipeermap_remove (addresses,
+                                                        &address->peer,
+                                                        actx.res));
+    FPRINTF (stderr,
+             _("Removed address of peer `%s' with plugin `%s'\n"),
+             GNUNET_i2s (&address->peer),
+             actx.res->address->transport_name);
+    GNUNET_HELLO_address_free (actx.res);
+    GNUNET_free (actx.res);
+    return;
+  }
 
   if (GNUNET_NO == verbose)
   {
@@ -536,7 +566,6 @@ ats_perf_mon_cb (void *cls,
 
     actx.src = address;
     actx.res = NULL;
-
     GNUNET_CONTAINER_multipeermap_get_multiple (addresses,
                                                 &address->peer,
                                                 &find_address_it,
@@ -836,7 +865,11 @@ testservice_ats (void *cls,
                _("Cannot connect to ATS service, exiting...\n"));
 
     alh = GNUNET_ATS_performance_list_addresses (ph,
-        (NULL == pid_str) ? NULL : &pid, GNUNET_NO, ats_perf_cb, NULL);
+                                                 (NULL == pid_str)
+                                                 ? NULL
+                                                 : &pid,
+                                                 GNUNET_NO,
+                                                 &ats_perf_cb, NULL);
     if (NULL == alh)
     {
       FPRINTF (stderr,

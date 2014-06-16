@@ -33,7 +33,6 @@
 /**
  * Experiments
  */
-
 const char *
 print_op (enum OperationType op)
 {

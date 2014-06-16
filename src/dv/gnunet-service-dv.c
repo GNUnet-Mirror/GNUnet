@@ -1302,7 +1302,10 @@ handle_direct_disconnect (struct DirectNeighbor *neighbor)
  *
  * @param cls closure
  * @param address the address
- * @param active is this address in active use
+ * @param active #GNUNET_YES if this address is actively used
+ *        to maintain a connection to a peer;
+ *        #GNUNET_NO if the address is not actively used;
+ *        #GNUNET_SYSERR if this address is no longer available for ATS
  * @param bandwidth_out assigned outbound bandwidth for the connection
  * @param bandwidth_in assigned inbound bandwidth for the connection
  * @param ats performance data for the address (as far as known)
@@ -1327,8 +1330,11 @@ handle_ats_update (void *cls,
     return;
   }
 
-  if (GNUNET_NO == active)
+  if (GNUNET_YES != active)
+  {
+    // FIXME: handle disconnect/inactive case too!
     return;
+  }
   distance = get_atsi_distance (ats, ats_count);
   network = get_atsi_network (ats, ats_count);
   GNUNET_break (GNUNET_ATS_NET_UNSPECIFIED != network);

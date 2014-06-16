@@ -103,6 +103,7 @@ ats_perf_cb (void *cls,
             uint32_t ats_count)
 {
   static int counter = 0;
+
   if (NULL == address)
   {
     phal = 0;
@@ -140,7 +141,7 @@ stat_cb(void *cls, const char *subsystem,
           "Failed to connect to performance API\n");
       GNUNET_SCHEDULER_add_now (end_badly, NULL);
     }
-    phal = GNUNET_ATS_performance_list_addresses (perf_ats, NULL, GNUNET_YES, ats_perf_cb, NULL);
+    phal = GNUNET_ATS_performance_list_addresses (perf_ats, NULL, GNUNET_YES, &ats_perf_cb, NULL);
   }
   return GNUNET_OK;
 }
