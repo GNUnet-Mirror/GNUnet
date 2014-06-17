@@ -1668,6 +1668,15 @@ handle_ephemeral (struct CadetTunnel *t,
     GNUNET_break_op (0);
     return;
   }
+  if (NULL == t->kx_ctx)
+  {
+    t->kx_ctx = GNUNET_new (struct CadetTunnelKXCtx);
+    t->kx_ctx->rekey_start_time = GNUNET_TIME_absolute_get ();
+    t->kx_ctx->e_key_old = t->e_key;
+    t->kx_ctx->d_key_old = t->d_key;
+    t->kx_ctx->challenge =
+        GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
+  }
   t->peers_ephemeral_key = msg->ephemeral_key;
   create_keys (t);
   if (CADET_TUNNEL3_KEY_SENT == t->estate)
