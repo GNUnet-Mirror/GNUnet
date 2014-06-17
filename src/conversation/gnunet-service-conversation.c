@@ -736,9 +736,10 @@ handle_client_call_message (void *cls,
   ring->target = msg->target;
   ring->source = my_identity;
   ring->expiration_time = GNUNET_TIME_absolute_hton (GNUNET_TIME_relative_to_absolute (RING_TIMEOUT));
-  GNUNET_CRYPTO_ecdsa_sign (&msg->caller_id,
-                            &ring->purpose,
-                            &ring->signature);
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_CRYPTO_ecdsa_sign (&msg->caller_id,
+                                           &ring->purpose,
+                                           &ring->signature));
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Sending RING message via cadet\n");
   GNUNET_MQ_send (ch->reliable_mq, e);
