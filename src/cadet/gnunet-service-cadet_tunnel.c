@@ -400,7 +400,7 @@ is_ready (struct CadetTunnel *t)
   int ready;
 
   GCT_debug (t, GNUNET_ERROR_TYPE_DEBUG);
-  ready = (CADET_TUNNEL3_READY == t->cstate && CADET_TUNNEL3_KEY_OK == t->estate);
+  ready = CADET_TUNNEL3_READY == t->cstate && CADET_TUNNEL3_KEY_OK == t->estate;
   ready = ready || GCT_is_loopback (t);
   return ready;
 }
@@ -1704,8 +1704,12 @@ handle_ephemeral (struct CadetTunnel *t,
     t->kx_ctx->challenge =
         GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
   }
-  t->peers_ephemeral_key = msg->ephemeral_key;
-  create_keys (t);
+  if (0 != memcmp (&t->peers_ephemeral_key, &msg->ephemeral_key,
+                   sizeof (msg->ephemeral_key)))
+  {
+    t->peers_ephemeral_key = msg->ephemeral_key;
+    create_keys (t);
+  }
   if (CADET_TUNNEL3_KEY_SENT == t->estate)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  our key was sent, sending ping\n");
