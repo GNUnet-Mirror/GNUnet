@@ -562,7 +562,7 @@ stdin_receiver (void *cls,
  * Callback when data is there for playback
  */
 static void
-stream_write_callback (pa_stream * s,
+stream_write_callback (pa_stream *s,
 		       size_t length,
 		       void *userdata)
 {
@@ -571,7 +571,7 @@ stream_write_callback (pa_stream * s,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 		"Unblocking main loop!\n");
-    write (ready_pipe[1], "r", 1);
+    (void) write (ready_pipe[1], "r", 1);
   }
 }
 
@@ -580,7 +580,9 @@ stream_write_callback (pa_stream * s,
  * Exit callback for SIGTERM and SIGINT
  */
 static void
-exit_signal_callback (pa_mainloop_api * m, pa_signal_event * e, int sig,
+exit_signal_callback (pa_mainloop_api *m,
+                      pa_signal_event *e,
+                      int sig,
 		      void *userdata)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -593,7 +595,7 @@ exit_signal_callback (pa_mainloop_api * m, pa_signal_event * e, int sig,
  * Pulseaudio stream state callback
  */
 static void
-context_state_callback (pa_context * c,
+context_state_callback (pa_context *c,
 			void *userdata)
 {
   int p;
@@ -607,11 +609,11 @@ context_state_callback (pa_context * c,
     break;
   case PA_CONTEXT_READY:
   {
-    GNUNET_assert (!stream_out);
+    GNUNET_assert (! stream_out);
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
 		_("Connection established.\n"));
-    if (!(stream_out =
-	  pa_stream_new (c, "GNUNET VoIP playback", &sample_spec, NULL)))
+    if (! (stream_out =
+           pa_stream_new (c, "GNUNET VoIP playback", &sample_spec, NULL)))
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
 		  _("pa_stream_new() failed: %s\n"),
