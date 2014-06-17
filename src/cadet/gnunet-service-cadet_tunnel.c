@@ -1812,6 +1812,8 @@ handle_ping (struct CadetTunnel *t,
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  e towards %s\n", GNUNET_i2s (&msg->target));
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  got %u\n", res.nonce);
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  towards %s\n", GNUNET_i2s (&res.target));
+    if (NULL == t->kx_ctx)
+      create_kx_ctx (t);
     send_ephemeral (t);
     send_ping (t);
     return;
