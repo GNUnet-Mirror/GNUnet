@@ -967,7 +967,7 @@ queue_send (void *cls, size_t size, void *buf)
     case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE:
       LOG (GNUNET_ERROR_TYPE_DEBUG, "  path create\n");
       if (GCC_is_origin (c, GNUNET_YES))
-        data_size = send_core_connection_create (queue->c, size, buf);
+        data_size = send_core_connection_create (c, size, buf);
       else
         data_size = send_core_data_raw (queue->cls, size, buf);
       break;
@@ -975,7 +975,7 @@ queue_send (void *cls, size_t size, void *buf)
       LOG (GNUNET_ERROR_TYPE_DEBUG, "  path ack\n");
       if (GCC_is_origin (c, GNUNET_NO) ||
           GCC_is_origin (c, GNUNET_YES))
-        data_size = send_core_connection_ack (queue->c, size, buf);
+        data_size = send_core_connection_ack (c, size, buf);
       else
         data_size = send_core_data_raw (queue->cls, size, buf);
       break;
@@ -1143,14 +1143,21 @@ GCP_queue_add (struct CadetPeer *peer, void *cls, uint16_t type,
                GCP_sent cont, void *cont_cls)
 {
   struct CadetPeerQueue *queue;
+  int error_level;
   int priority;
   int call_core;
 
-  LOG (GNUNET_ERROR_TYPE_INFO,
+  if (NULL == c && GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN != type)
+    error_level = GNUNET_ERROR_TYPE_ERROR;
+  else
+    error_level = GNUNET_ERROR_TYPE_INFO;
+  LOG (error_level,
        "que %s (%s %u) on connection %s (%p) %s towards %s (size %u)\n",
        GC_m2s (type), GC_m2s (payload_type), payload_id,
        GCC_2s (c), c, GC_f2s (fwd), GCP_2s (peer), size);
 
+  if (error_level == GNUNET_ERROR_TYPE_ERROR)
+    GNUNET_abort ();
   if (NULL == peer->connections)
   {
     /* We are not connected to this peer, ignore request. */
