@@ -896,6 +896,18 @@ tun_message_sent (void *cls,
 }
 
 
+static unsigned int
+count_queued_data (const struct CadetTunnel *t)
+{
+  struct CadetTunnelDelayed *iter;
+  unsigned int count;
+
+  for (count = 0, iter = t->tq_head; iter != NULL; iter = iter->next)
+    count++;
+
+  return count;
+}
+
 /**
  * Delete a queued message: either was sent or the channel was destroyed
  * before the tunnel's key exchange had a chance to finish.
@@ -2650,6 +2662,14 @@ GCT_get_connections_buffer (struct CadetTunnel *t)
 {
   struct CadetTConnection *iter;
   unsigned int buffer;
+
+  if (GNUNET_NO == is_ready (t))
+  {
+    if (count_queued_data (t) > 3)
+      return 0;
+    else
+      return 1;
+  }
 
   buffer = 0;
   for (iter = t->connection_head; NULL != iter; iter = iter->next)
