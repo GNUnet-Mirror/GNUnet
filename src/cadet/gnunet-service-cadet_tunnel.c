@@ -589,6 +589,7 @@ select_key (const struct CadetTunnel *t)
   }
   else
   {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  no KX: using current key\n");
     key = &t->e_key;
   }
   return key;
@@ -614,7 +615,7 @@ t_hmac (const void *plaintext, size_t size,
   struct GNUNET_HashCode hash;
 
 #if DUMP_KEYS_TO_STDERR
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  HMAC with key %s\n",
+  LOG (GNUNET_ERROR_TYPE_INFO, "  HMAC with key %s\n",
        GNUNET_h2s ((struct GNUNET_HashCode *) key));
 #endif
   GNUNET_CRYPTO_hmac_derive_key (&auth_key, key,
@@ -652,6 +653,10 @@ t_encrypt (struct CadetTunnel *t, void *dst, const void *src,
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_encrypt start\n");
 
   key = GNUNET_YES == force_newest_key ? &t->e_key : select_key (t);
+  #if DUMP_KEYS_TO_STDERR
+  LOG (GNUNET_ERROR_TYPE_INFO, "  ENC with key %s\n",
+       GNUNET_h2s ((struct GNUNET_HashCode *) key));
+  #endif
   GNUNET_CRYPTO_symmetric_derive_iv (&siv, key, &iv, sizeof (iv), NULL);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_encrypt IV derived\n");
   out_size = GNUNET_CRYPTO_symmetric_encrypt (src, size, key, &siv, dst);
@@ -825,6 +830,28 @@ derive_symmertic (struct GNUNET_CRYPTO_SymmetricSessionKey *key,
                      sender, sizeof (struct GNUNET_PeerIdentity),
                      receiver, sizeof (struct GNUNET_PeerIdentity),
                      NULL);
+}
+
+
+/**
+ * Create a new Key eXchange context for the tunnel.
+ *
+ * Initializes the key copies, KX start timestamp and creates a new nonce.
+ *
+ * @param t Tunnel for which to create the KX ctx.
+ */
+static void
+create_kx_ctx (struct CadetTunnel *t)
+{
+  GNUNET_assert (NULL == t->kx_ctx);
+
+  LOG (GNUNET_ERROR_TYPE_INFO, "  new kx ctx for %s\n", GCT_2s (t));
+  t->kx_ctx = GNUNET_new (struct CadetTunnelKXCtx);
+  t->kx_ctx->challenge = GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE,
+                                                   UINT32_MAX);
+  t->kx_ctx->d_key_old = t->d_key;
+  t->kx_ctx->e_key_old = t->e_key;
+  t->kx_ctx->rekey_start_time = GNUNET_TIME_absolute_get ();
 }
 
 
@@ -1310,16 +1337,8 @@ rekey_tunnel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if (NULL == t->kx_ctx)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  new kx ctx\n");
-    t->kx_ctx = GNUNET_new (struct CadetTunnelKXCtx);
-    t->kx_ctx->challenge =
-        GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
-    t->kx_ctx->d_key_old = t->d_key;
-    t->kx_ctx->e_key_old = t->e_key;
+    create_kx_ctx (t);
     create_keys (t);
-    t->kx_ctx->rekey_start_time = GNUNET_TIME_absolute_get ();
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  new challenge for %s: %u\n",
-         GCT_2s (t), t->kx_ctx->challenge);
   }
   else
   {
@@ -1740,14 +1759,7 @@ handle_ephemeral (struct CadetTunnel *t,
     return;
   }
   if (NULL == t->kx_ctx)
-  {
-    t->kx_ctx = GNUNET_new (struct CadetTunnelKXCtx);
-    t->kx_ctx->rekey_start_time = GNUNET_TIME_absolute_get ();
-    t->kx_ctx->e_key_old = t->e_key;
-    t->kx_ctx->d_key_old = t->d_key;
-    t->kx_ctx->challenge =
-        GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_NONCE, UINT32_MAX);
-  }
+    create_kx_ctx (t);
   if (0 != memcmp (&t->peers_ephemeral_key, &msg->ephemeral_key,
                    sizeof (msg->ephemeral_key)))
   {
