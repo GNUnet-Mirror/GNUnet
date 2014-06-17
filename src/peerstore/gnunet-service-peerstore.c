@@ -101,7 +101,8 @@ cleanup_expired_records(void *cls,
     return;
   GNUNET_assert(NULL != db);
   deleted = db->expire_records(db->cls, GNUNET_TIME_absolute_get());
-  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "%d records expired.\n", deleted);
+  if (deleted > 0)
+    GNUNET_log(GNUNET_ERROR_TYPE_INFO, "%d records expired.\n", deleted);
   GNUNET_SCHEDULER_add_delayed(
       GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, EXPIRED_RECORDS_CLEANUP_INTERVAL),
       &cleanup_expired_records, NULL);
