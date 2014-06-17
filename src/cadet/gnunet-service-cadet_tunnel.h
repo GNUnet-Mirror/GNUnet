@@ -90,7 +90,8 @@ enum CadetTunnelEState
   /**
    * New ephemeral key and ping sent, waiting for pong.
    * This means that we DO have the peer's ephemeral key, otherwise the
-   * state would be KEY_SENT.
+   * state would be KEY_SENT. We DO NOT have a valid session key (either no
+   * previous key or previous key expired).
    */
   CADET_TUNNEL3_KEY_PING,
 
@@ -98,6 +99,13 @@ enum CadetTunnelEState
    * Handshake completed: session key available.
    */
   CADET_TUNNEL3_KEY_OK,
+
+  /**
+   * New ephemeral key and ping sent, waiting for pong. Opposite to KEY_PING,
+   * we still have a valid session key and therefore we *can* still send
+   * traffic on the tunnel.
+   */
+  CADET_TUNNEL3_KEY_REKEY,
 };
 
 /**

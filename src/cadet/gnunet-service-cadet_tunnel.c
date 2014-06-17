@@ -400,7 +400,9 @@ is_ready (struct CadetTunnel *t)
   int ready;
 
   GCT_debug (t, GNUNET_ERROR_TYPE_DEBUG);
-  ready = CADET_TUNNEL3_READY == t->cstate && CADET_TUNNEL3_KEY_OK == t->estate;
+  ready = CADET_TUNNEL3_READY == t->cstate
+          && (CADET_TUNNEL3_KEY_OK == t->estate
+              || CADET_TUNNEL3_KEY_REKEY == t->estate);
   ready = ready || GCT_is_loopback (t);
   return ready;
 }
@@ -1294,6 +1296,22 @@ rekey_tunnel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  new challenge for %s: %u\n",
          GCT_2s (t), t->kx_ctx->challenge);
   }
+  else
+  {
+    struct GNUNET_TIME_Relative duration;
+
+    duration = GNUNET_TIME_absolute_get_duration (t->kx_ctx->rekey_start_time);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " kx started %s ago\n",
+         GNUNET_STRINGS_relative_time_to_string (duration, GNUNET_YES));
+
+    // FIXME make duration of old keys configurable
+    if (duration.rel_value_us > GNUNET_TIME_UNIT_MINUTES.rel_value_us)
+    {
+      memset (&t->kx_ctx->d_key_old, 0, sizeof (t->kx_ctx->d_key_old));
+      memset (&t->kx_ctx->e_key_old, 0, sizeof (t->kx_ctx->e_key_old));
+      t->estate = CADET_TUNNEL3_KEY_PING;
+    }
+  }
 
   send_ephemeral (t);
 
@@ -1304,10 +1322,12 @@ rekey_tunnel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       break;
     case CADET_TUNNEL3_KEY_SENT:
       break;
-    case CADET_TUNNEL3_KEY_PING:
     case CADET_TUNNEL3_KEY_OK:
+      t->estate = CADET_TUNNEL3_KEY_REKEY;
+      /* fall-thru */
+    case CADET_TUNNEL3_KEY_PING:
+    case CADET_TUNNEL3_KEY_REKEY:
       send_ping (t);
-      t->estate = CADET_TUNNEL3_KEY_PING;
       break;
     default:
       LOG (GNUNET_ERROR_TYPE_DEBUG, "Unexpected state %u\n", t->estate);
@@ -1709,6 +1729,10 @@ handle_ephemeral (struct CadetTunnel *t,
   {
     t->peers_ephemeral_key = msg->ephemeral_key;
     create_keys (t);
+    if (CADET_TUNNEL3_KEY_OK == t->estate)
+    {
+      t->estate = CADET_TUNNEL3_KEY_REKEY;
+    }
   }
   if (CADET_TUNNEL3_KEY_SENT == t->estate)
   {
