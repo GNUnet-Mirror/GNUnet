@@ -1275,7 +1275,9 @@ main (int argc, char *const *argv)
   int flags;
   flags = fcntl (0, F_GETFL, 0);
   flags |= O_NONBLOCK;
-  fcntl (0, F_SETFL, flags);
+  if (0 != fcntl (0, F_SETFL, flags))
+    GNUNET_log_strerror (GNUNET_ERROR_TYPE_WARNING,
+                         "fcntl");
   stdin_fh = GNUNET_DISK_get_handle_from_int_fd (0);
 #else
   if (FILE_TYPE_CHAR == GetFileType ((HANDLE) _get_osfhandle (0)))
