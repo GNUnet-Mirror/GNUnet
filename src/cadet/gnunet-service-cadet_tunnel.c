@@ -333,7 +333,7 @@ static struct GNUNET_TIME_Relative rekey_period;
 static const char *
 cstate2s (enum CadetTunnelCState cs)
 {
-  static char buf[128];
+  static char buf[32];
 
   switch (cs)
   {
@@ -364,7 +364,7 @@ cstate2s (enum CadetTunnelCState cs)
 static const char *
 estate2s (enum CadetTunnelEState es)
 {
-  static char buf[128];
+  static char buf[32];
 
   switch (es)
   {
@@ -376,7 +376,8 @@ estate2s (enum CadetTunnelEState es)
       return "CADET_TUNNEL3_KEY_PING";
     case CADET_TUNNEL3_KEY_OK:
       return "CADET_TUNNEL3_KEY_OK";
-
+    case CADET_TUNNEL3_KEY_REKEY:
+      return "CADET_TUNNEL3_KEY_REKEY";
     default:
       sprintf (buf, "%u (UNKNOWN STATE)", es);
       return buf;
