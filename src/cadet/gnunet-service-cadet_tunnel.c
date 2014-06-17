@@ -39,9 +39,9 @@
 #define CONNECTIONS_PER_TUNNEL 3
 
 #if !defined(GNUNET_CULL_LOGGING)
-#define DUMP_KEYS_TO_STDIN GNUNET_YES
+#define DUMP_KEYS_TO_STDERR GNUNET_YES
 #else
-#define DUMP_KEYS_TO_STDIN GNUNET_NO
+#define DUMP_KEYS_TO_STDERR GNUNET_NO
 #endif
 
 /******************************************************************************/
@@ -613,6 +613,10 @@ t_hmac (const void *plaintext, size_t size,
   struct GNUNET_CRYPTO_AuthKey auth_key;
   struct GNUNET_HashCode hash;
 
+#if DUMP_KEYS_TO_STDERR
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  HMAC with key %s\n",
+       GNUNET_h2s ((struct GNUNET_HashCode *) key));
+#endif
   GNUNET_CRYPTO_hmac_derive_key (&auth_key, key,
                                  &iv, sizeof (iv),
                                  key, sizeof (*key),
@@ -703,11 +707,11 @@ t_decrypt (struct CadetTunnel *t, void *dst, const void *src,
 {
   size_t out_size;
 
-#if DUMP_KEYS_TO_STDIN
+#if DUMP_KEYS_TO_STDERR
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_decrypt with %s\n",
        GNUNET_h2s ((struct GNUNET_HashCode *) &t->d_key));
 #endif
-  if (t->estate != CADET_TUNNEL3_KEY_OK && t->estate != CADET_TUNNEL3_KEY_PING)
+  if (t->estate == CADET_TUNNEL3_KEY_UNINITIALIZED)
   {
     GNUNET_STATISTICS_update (stats, "# non decryptable data", 1, GNUNET_NO);
     LOG (GNUNET_ERROR_TYPE_WARNING,
@@ -837,7 +841,7 @@ create_keys (struct CadetTunnel *t)
   derive_key_material (&km, &t->peers_ephemeral_key);
   derive_symmertic (&t->e_key, &my_full_id, GCP_get_id (t->peer), &km);
   derive_symmertic (&t->d_key, GCP_get_id (t->peer), &my_full_id, &km);
-#if DUMP_KEYS_TO_STDIN
+#if DUMP_KEYS_TO_STDERR
   LOG (GNUNET_ERROR_TYPE_INFO, "ME: %s\n",
        GNUNET_h2s ((struct GNUNET_HashCode *) &kx_msg.ephemeral_key));
   LOG (GNUNET_ERROR_TYPE_INFO, "PE: %s\n",
