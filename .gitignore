@@ -1,6 +1,7 @@
 !*~
 */*~
 # /
+*.trs
 *log
 /ChangeLog
 /INSTALL
