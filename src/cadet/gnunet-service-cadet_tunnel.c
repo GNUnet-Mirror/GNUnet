@@ -1331,7 +1331,7 @@ rekey_tunnel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   t->rekey_task = GNUNET_SCHEDULER_NO_TASK;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Re-key Tunnel %s\n", GCT_2s (t));
+  LOG (GNUNET_ERROR_TYPE_INFO, "Re-key Tunnel %s\n", GCT_2s (t));
   if (NULL != tc && 0 != (GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason))
     return;
 
@@ -1377,9 +1377,13 @@ rekey_tunnel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
 
   // FIXME exponential backoff
+  struct GNUNET_TIME_Relative delay;
+
+  delay = GNUNET_TIME_relative_divide (rekey_period, 16);
+  delay = GNUNET_TIME_relative_min (delay, REKEY_WAIT);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  next call in %s\n",
-       GNUNET_STRINGS_relative_time_to_string (REKEY_WAIT, GNUNET_YES));
-  t->rekey_task = GNUNET_SCHEDULER_add_delayed (REKEY_WAIT, &rekey_tunnel, t);
+       GNUNET_STRINGS_relative_time_to_string (delay, GNUNET_YES));
+  t->rekey_task = GNUNET_SCHEDULER_add_delayed (delay, &rekey_tunnel, t);
 }
 
 
@@ -1815,8 +1819,10 @@ handle_ping (struct CadetTunnel *t,
 
   send_pong (t, res.nonce);
 }
+
+
 /**
- * @brief Finish the Key eXchange and destory the old keys.
+ * @brief Finish the Key eXchange and destroy the old keys.
  *
  * @param cls Closure (Tunnel for which to finish the KX).
  * @param tc Task context.
@@ -1828,6 +1834,8 @@ finish_kx (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
+
+  LOG (GNUNET_ERROR_TYPE_INFO, "finish KX for %s\n", GCT_2s (t));
 
   GNUNET_free (t->kx_ctx);
   t->kx_ctx = NULL;
