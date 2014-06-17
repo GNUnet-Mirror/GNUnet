@@ -223,7 +223,7 @@ peerstore_sqlite_iterate_records (void *cls,
   {
     stmt = plugin->select_peerstoredata_by_key;
     err = (SQLITE_OK != sqlite3_bind_text(stmt, 1, sub_system, strlen(sub_system) + 1, SQLITE_STATIC))
-        || (SQLITE_OK != sqlite3_bind_text(stmt, 3, key, strlen(key) + 1, SQLITE_STATIC));
+        || (SQLITE_OK != sqlite3_bind_text(stmt, 2, key, strlen(key) + 1, SQLITE_STATIC));
   }
   else
   {
