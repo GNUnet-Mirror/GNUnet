@@ -815,6 +815,10 @@ create_keys (struct CadetTunnel *t)
   derive_symmertic (&t->e_key, &my_full_id, GCP_get_id (t->peer), &km);
   derive_symmertic (&t->d_key, GCP_get_id (t->peer), &my_full_id, &km);
 #if DUMP_KEYS_TO_STDIN
+  LOG (GNUNET_ERROR_TYPE_INFO, "ME: %s\n",
+       GNUNET_h2s ((struct GNUNET_HashCode *) &kx_msg.ephemeral_key));
+  LOG (GNUNET_ERROR_TYPE_INFO, "PE: %s\n",
+       GNUNET_h2s ((struct GNUNET_HashCode *) &t->peers_ephemeral_key));
   LOG (GNUNET_ERROR_TYPE_INFO, "KM: %s\n", GNUNET_h2s (&km));
   LOG (GNUNET_ERROR_TYPE_INFO, "EK: %s\n",
        GNUNET_h2s ((struct GNUNET_HashCode *) &t->e_key));
@@ -1801,7 +1805,7 @@ handle_pong (struct CadetTunnel *t,
 
     delay = GNUNET_TIME_relative_divide (rekey_period, 4);
     delay = GNUNET_TIME_relative_min (delay, GNUNET_TIME_UNIT_MINUTES);
-    t->kx_ctx->finish_task = GNUNET_SCHEDULER_add_delayed(delay, finish_kx, t);
+    t->kx_ctx->finish_task = GNUNET_SCHEDULER_add_delayed (delay, finish_kx, t);
   }
   GCT_change_estate (t, CADET_TUNNEL3_KEY_OK);
 }
