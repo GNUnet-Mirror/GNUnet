@@ -73,7 +73,7 @@ struct GNUNET_NAT_Handle;
 /**
  * Error Types for the NAT subsystem (which can then later be converted/resolved to a string)
  */
-enum GNUNET_NAT_FailureCode 
+enum GNUNET_NAT_StatusCode 
 {
   /**
    * Just the default
@@ -81,17 +81,22 @@ enum GNUNET_NAT_FailureCode
   GNUNET_NAT_ERROR_SUCCESS = GNUNET_OK,
   
   /**
-   * `external-ip' command not found
+   * IPC Failure
    */
   GNUNET_NAT_ERROR_IPC_FAILURE,
   
   /**
-   * `external-ip' command not found
+   * Failure in network subsystem, check permissions
+   */
+  GNUNET_NAT_ERROR_INTERNAL_NETWORK_ERROR,
+  
+  /**
+   * test timed out
    */
   GNUNET_NAT_ERROR_TIMEOUT,
   
   /**
-   * `external-ip' command not found
+   * detected that we are offline
    */
   GNUNET_NAT_ERROR_NOT_ONLINE,
   
@@ -121,12 +126,12 @@ enum GNUNET_NAT_FailureCode
   GNUNET_NAT_ERROR_EXTERNAL_IP_UTILITY_NOT_FOUND,
   
   /**
-   * `external-ip' command not found
+   * Failed to run `external-ip` command
    */
-  GNUNET_NAT_ERROR_EXTERNAL_IP_UTILITY_NOT_EXECUTEABLE,
+  GNUNET_NAT_ERROR_EXTERNAL_IP_UTILITY_FAILED,
   
   /**
-   * `external-ip' command not found
+   * `external-ip' command output invalid
    */
   GNUNET_NAT_ERROR_EXTERNAL_IP_UTILITY_OUTPUT_INVALID,
   
@@ -156,6 +161,11 @@ enum GNUNET_NAT_FailureCode
   GNUNET_NAT_ERROR_NAT_TEST_TIMEOUT,
   
   /**
+   * NAT test failed to initiate
+   */
+  GNUNET_NAT_ERROR_NAT_REGISTER_FAILED,
+  
+  /**
    * 
    */
   GNUNET_NAT_ERROR_HELPER_NAT_CLIENT_NOT_FOUND,
@@ -167,6 +177,15 @@ enum GNUNET_NAT_FailureCode
   GNUNET_NAT_ERROR_
 };
 
+
+/**
+ * Converts enum GNUNET_NAT_StatusCode to string
+ * 
+ * @param err error code to resolve to a string
+ * @return point to a static string containing the error code
+ */
+const char *
+GNUNET_NAT_status2string (enum GNUNET_NAT_StatusCode err);
 
 /**
  * Attempt to enable port redirection and detect public IP address
@@ -258,7 +277,7 @@ struct GNUNET_NAT_Test;
  * @param result #GNUNET_NAT_ERROR_SUCCESS on success, otherwise the specific error code
  */
 typedef void (*GNUNET_NAT_TestCallback) (void *cls,
-                                         enum GNUNET_NAT_FailureCode result);
+                                         enum GNUNET_NAT_StatusCode result);
 
 
 /**
@@ -302,7 +321,7 @@ GNUNET_NAT_test_stop (struct GNUNET_NAT_Test *tst);
  */
 typedef void (*GNUNET_NAT_IPCallback) (void *cls,
                                        const struct in_addr *addr,
-                                       enum GNUNET_NAT_FailureCode result);
+                                       enum GNUNET_NAT_StatusCode result);
 
 
 
@@ -357,7 +376,7 @@ typedef void
                                    int add_remove,
                                    const struct sockaddr *addr,
                                    socklen_t addrlen,
-                                   enum GNUNET_NAT_FailureCode result);
+                                   enum GNUNET_NAT_StatusCode result);
 
 
 /**
@@ -409,7 +428,7 @@ struct GNUNET_NAT_AutoHandle;
 typedef void
 (*GNUNET_NAT_AutoResultCallback)(void *cls,
                                  const struct GNUNET_CONFIGURATION_Handle *diff,
-                                 enum GNUNET_NAT_FailureCode result);
+                                 enum GNUNET_NAT_StatusCode result);
 
 
 /**
