@@ -594,7 +594,7 @@ cb_transfer_message (void *cls,
     s->client_transmit_handle = NULL;
     free_session_variables (s);
     break;
-    
+
   case GNUNET_MESSAGE_TYPE_SCALARPRODUCT_SESSION_INITIALIZATION:
     s->service_transmit_handle = NULL;
     break;
@@ -1230,7 +1230,7 @@ cb_intersection_element_removed (void *cls,
     //this element has been removed from the set
     se = GNUNET_CONTAINER_multihashmap_get (s->intersected_elements,
                                             element->data);
-    
+
     GNUNET_CONTAINER_multihashmap_remove (s->intersected_elements,
                                           element->data,
                                           se);
@@ -1251,7 +1251,7 @@ cb_intersection_element_removed (void *cls,
       // continue after the loop
       break;
     }
-    
+
     s->sorted_elements = GNUNET_malloc (s->used_element_count * sizeof (gcry_mpi_t));
     for (i = 0; NULL != s->a_head; i++)
     {
@@ -1281,14 +1281,14 @@ cb_intersection_element_removed (void *cls,
       GNUNET_SET_listen_cancel (s->intersection_listen);
       s->intersection_listen = NULL;
     }
-    
+
     // the op failed and has already been invalidated by the set service
     break;
   }
 
   s->intersection_op = NULL;
   s->intersection_set = NULL;
-  
+
   //failed if we go here
   GNUNET_break_op (0);
 
@@ -1916,7 +1916,6 @@ cb_channel_destruction (void *cls,
     if ((NULL != s->response ) && (GNUNET_NO == s->active) && (GNUNET_YES == client_session->active))
       client_session->active = GNUNET_NO;
     free_session_variables (s);
-    GNUNET_free (s);
 
     // the client has to check if it was waiting for a result
     // or if it was a responder, no point in adding more statefulness
@@ -1926,6 +1925,7 @@ cb_channel_destruction (void *cls,
               GNUNET_SCHEDULER_add_now (&prepare_client_end_notification,
                                         client_session);
     }
+    GNUNET_free (s);
   }
 }
 
