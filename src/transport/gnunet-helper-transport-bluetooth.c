@@ -1538,22 +1538,33 @@ stdin_send_hw (void *cls, const struct GNUNET_MessageHeader *hdr)
         addr_rc.rc_channel = get_channel (dev, addr_rc.rc_bdaddr);
 
         *sendsocket = socket (AF_BLUETOOTH, SOCK_STREAM, BTPROTO_RFCOMM);
-        if (connect (*sendsocket, (struct sockaddr *)&addr_rc, sizeof (addr_rc)) == 0)
+        if ( (-1 < *sendsocket) &&
+             (0 == connect (*sendsocket,
+                            (struct sockaddr *) &addr_rc,
+                            sizeof (addr_rc))) )
         {
           neighbours.fds[neighbours.pos++] = *sendsocket;
           connection_successful = 1;
           char addr[19] = { 0 };
           ba2str (&(neighbours.devices[neighbours.pos - 1]), addr);
           fprintf (stderr, "LOG : Connected to %s\n", addr);
-
           break;
         }
         else
         {
           char addr[19] = { 0 };
           errno_copy = errno;  //Save a copy for later
+
+          if (-1 != *sendsocket)
+          {
+            (void) close (*sendsocket);
+            *sendsocket = -1;
+          }
           ba2str (&(neighbours.devices[neighbours.pos]), addr);
-          fprintf (stderr, "LOG : Couldn't connect on device %s, error : %s\n", addr, strerror(errno));
+          fprintf (stderr,
+                   "LOG : Couldn't connect on device %s, error : %s\n",
+                   addr,
+                   strerror (errno));
           if (errno != ECONNREFUSED) //FIXME be sure that this works
           {
             fprintf (stderr, "LOG : Removes %d device from the list\n", neighbours.pos);
