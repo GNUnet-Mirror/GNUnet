@@ -469,6 +469,8 @@ perform_dht_put (const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
 					 label,
 					 rd_public,
 					 rd_public_count);
+  if (NULL == block)
+    return NULL; /* whoops */
   block_size = ntohl (block->purpose.size)
     + sizeof (struct GNUNET_CRYPTO_EcdsaSignature)
     + sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey);
