@@ -1944,6 +1944,12 @@ GCT_handle_encrypted (struct CadetTunnel *t,
   decrypted_size = t_decrypt_and_validate (t, cbuf, &msg[1], payload_size,
                                            msg->iv, &msg->hmac);
 
+  if (-1 == decrypted_size)
+  {
+    GNUNET_break_op (0);
+    return;
+  }
+
   off = 0;
   while (off < decrypted_size)
   {
