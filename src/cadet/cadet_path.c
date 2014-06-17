@@ -182,6 +182,7 @@ path_destroy (struct CadetPeerPath *p)
   return GNUNET_OK;
 }
 
+
 char *
 path_2s (struct CadetPeerPath *p)
 {
@@ -197,8 +198,9 @@ path_2s (struct CadetPeerPath *p)
     GNUNET_free_non_null (old);
     old = s;
   }
-  return s;
+  return old;
 }
+
 
 void
 path_debug (struct CadetPeerPath *p)
