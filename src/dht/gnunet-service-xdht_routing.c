@@ -197,7 +197,40 @@ static int remove_matching_trails (void *cls,
   return GNUNET_YES;
 }
 
-
+#if 0
+/**
+ * TEST FUNCTION
+ * Remove after using. 
+ */
+void 
+GDS_ROUTING_test_print (void)
+{
+  struct GNUNET_CONTAINER_MultiHashMapIterator *iter;
+  struct RoutingTrail *trail;
+  struct GNUNET_PeerIdentity print_peer;
+  struct GNUNET_HashCode key_ret;
+  int i;
+  
+   FPRINTF (stderr,_("\nSUPU ***PRINTING ROUTING TABLE *****"));
+  iter =GNUNET_CONTAINER_multihashmap_iterator_create (routing_table);
+  for (i = 0; i < GNUNET_CONTAINER_multihashmap_size(routing_table); i++)
+  {
+    if(GNUNET_YES == GNUNET_CONTAINER_multihashmap_iterator_next (iter,
+                                                                  &key_ret,
+                                                                  (const void **)&trail))
+    {
+      FPRINTF (stderr,_("\nSUPU %s, %s, %d, trail->trail_id = %s"),
+              __FILE__, __func__,__LINE__, GNUNET_h2s(&trail->trail_id));
+      memcpy (&print_peer, &trail->next_hop, sizeof (struct GNUNET_PeerIdentity));
+      FPRINTF (stderr,_("\nSUPU %s, %s, %d, trail->next_hop = %s"),
+              __FILE__, __func__,__LINE__, GNUNET_i2s(&print_peer));
+      memcpy (&print_peer, &trail->prev_hop, sizeof (struct GNUNET_PeerIdentity));
+      FPRINTF (stderr,_("\nSUPU %s, %s, %d, trail->prev_hop = %s"),
+              __FILE__, __func__,__LINE__, GNUNET_i2s(&print_peer));
+    }
+  }
+}
+#endif
 /**
  * Remove every trail where peer is either next_hop or prev_hop. Also send a 
  * trail teardown message in direction of hop which is not disconnected.
@@ -238,7 +271,9 @@ GDS_ROUTING_add (struct GNUNET_HashCode new_trail_id,
 
 
 /**
- * Check if the size of routing table has crossed threshold.
+ * Check if the size of routing table has crossed ROUTING_TABLE_THRESHOLD.
+ * It means that I don't have any more space in my routing table and I can not
+ * be part of any more trails till there is free space in my routing table.
  * @return #GNUNET_YES, if threshold crossed else #GNUNET_NO.
  */
 int

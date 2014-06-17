@@ -102,7 +102,13 @@ GDS_ROUTING_add (struct GNUNET_HashCode new_trail_id,
 int
 GDS_ROUTING_threshold_reached (void);
 
-
+#if 0
+/**
+ * Test function. Remove afterwards. 
+ */
+void 
+GDS_ROUTING_test_print (void);
+#endif
 /**
  * Initialize routing subsystem.
  */

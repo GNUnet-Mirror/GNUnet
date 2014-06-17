@@ -2529,7 +2529,7 @@ extern "C"
 /**
  * Trail Rejection Message.
  */
-#define GNUNET_MESSAGE_TYPE_DHT_P2P_TRAIL_REJECTION 886
+#define GNUNET_MESSAGE_TYPE_DHT_P2P_TRAIL_SETUP_REJECTION 886
 
 /**
  * Trail Tear down Message. 
