@@ -101,7 +101,7 @@ struct GNUNET_NAT_ExternalHandle
   /**
    * Error code for better debugging and user feedback
    */
-  enum GNUNET_NAT_FailureCode ret;
+  enum GNUNET_NAT_StatusCode ret;
 };
 
 
@@ -223,7 +223,7 @@ GNUNET_NAT_mini_get_external_ipv4 (struct GNUNET_TIME_Relative timeout,
   if (NULL == eh->eip)
   {
     GNUNET_DISK_pipe_close (eh->opipe);
-    eh->ret = GNUNET_NAT_ERROR_EXTERNAL_IP_UTILITY_NOT_EXECUTEABLE;
+    eh->ret = GNUNET_NAT_ERROR_EXTERNAL_IP_UTILITY_FAILED;
     eh->task = GNUNET_SCHEDULER_add_now (&signal_external_ip_error,
                                          eh);
     return eh;

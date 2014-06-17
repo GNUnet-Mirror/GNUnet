@@ -45,7 +45,7 @@ static void
 addr_callback (void *cls, int add_remove,
                const struct sockaddr *addr,
                socklen_t addrlen,
-               enum GNUNET_NAT_FailureCode ret)
+               enum GNUNET_NAT_StatusCode ret)
 {
   if (GNUNET_NAT_ERROR_SUCCESS == ret)
   {

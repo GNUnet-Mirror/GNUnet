@@ -1018,7 +1018,7 @@ upnp_add (void *cls,
           int add_remove,
           const struct sockaddr *addr,
           socklen_t addrlen,
-          enum GNUNET_NAT_FailureCode ret)
+          enum GNUNET_NAT_StatusCode ret)
 {
   struct GNUNET_NAT_Handle *h = cls;
   struct LocalAddressList *pos;
@@ -1560,5 +1560,22 @@ GNUNET_NAT_test_address (struct GNUNET_NAT_Handle *h,
   return GNUNET_NO;
 }
 
+
+/**
+ * Converts enum GNUNET_NAT_StatusCode to a string
+ * 
+ * @param err error code to resolve to a string
+ * @return point to a static string containing the error code
+ */
+const char *
+GNUNET_NAT_status2string (enum GNUNET_NAT_StatusCode err){
+  switch (err){
+  case GNUNET_NAT_ERROR_SUCCESS:
+    return _("Operation Successful");
+
+  default:
+    return "unknown status code";
+  } 
+}
 
 /* end of nat.c */

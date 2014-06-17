@@ -144,7 +144,7 @@ struct GNUNET_NAT_AutoHandle
   /**
    * Error code for better debugging and user feedback
    */
-  enum GNUNET_NAT_FailureCode ret;
+  enum GNUNET_NAT_StatusCode ret;
 };
 
 
@@ -167,10 +167,11 @@ next_phase (struct GNUNET_NAT_AutoHandle *ah);
  */
 static void
 result_callback (void *cls,
-                 enum GNUNET_NAT_FailureCode ret)
+                 enum GNUNET_NAT_StatusCode ret)
 {
   struct GNUNET_NAT_AutoHandle *ah = cls;
-  GNUNET_NAT_test_stop (ah->tst);
+  if (GNUNET_NAT_ERROR_SUCCESS == ret)
+    GNUNET_NAT_test_stop (ah->tst);
   ah->tst = NULL;
   ah->ret = ret;
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -231,7 +232,7 @@ test_online (struct GNUNET_NAT_AutoHandle *ah)
 static void
 set_external_ipv4 (void *cls,
                    const struct in_addr *addr,
-                   enum GNUNET_NAT_FailureCode ret)
+                   enum GNUNET_NAT_StatusCode ret)
 {
   struct GNUNET_NAT_AutoHandle *ah = cls;
   char buf[INET_ADDRSTRLEN];

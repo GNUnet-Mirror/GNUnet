@@ -41,7 +41,7 @@ static struct GNUNET_NAT_Test *tst;
 
 static void
 report_result (void *cls,
-                enum GNUNET_NAT_FailureCode aret)
+                enum GNUNET_NAT_StatusCode aret)
 {
   if (GNUNET_NAT_ERROR_TIMEOUT == aret)
     fprintf (stderr,

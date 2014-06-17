@@ -545,7 +545,7 @@ display_test_result (struct TestContext *tc, enum TestResult result)
  * @param emsg error message, NULL on success
  */
 static void
-result_callback (void *cls, enum GNUNET_NAT_FailureCode result)
+result_callback (void *cls, enum GNUNET_NAT_StatusCode result)
 {
   struct TestContext *tc = cls;
   display_test_result (tc, result);

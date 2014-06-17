@@ -163,6 +163,10 @@ struct GNUNET_NAT_Test
    */
   uint16_t adv_port;
 
+  /**
+   * Status code to be reported to the timeout/status call
+   */
+  enum GNUNET_NAT_StatusCode status;
 };
 
 
@@ -371,6 +375,8 @@ addr_cb (void *cls,
  * Timeout task for a nat test. 
  * Calls the report-callback with a timeout return value
  * 
+ * Destroys the nat handle after the callback has been processed.
+ * 
  * @param cls handle to the timed out NAT test
  * @param tc not used
  */
@@ -381,7 +387,7 @@ do_timeout (void *cls,
   struct GNUNET_NAT_Test *nh = (struct GNUNET_NAT_Test *) cls;
   
   nh->ttask = GNUNET_SCHEDULER_NO_TASK;
-  nh->report (nh->report_cls, GNUNET_NAT_ERROR_TIMEOUT);
+  nh->report (nh->report_cls, (GNUNET_NAT_ERROR_SUCCESS == nh->status)? GNUNET_NAT_ERROR_TIMEOUT: nh->status );
   
   GNUNET_NAT_test_stop(nh);
 }
@@ -400,7 +406,7 @@ do_timeout (void *cls,
  * @param timeout delay after which the test should be aborted
  * @param report function to call with the result of the test
  * @param report_cls closure for @a report
- * @return handle to cancel NAT test
+ * @return handle to cancel NAT test or NULL. The error is indicated through the report callback
  */
 struct GNUNET_NAT_Test *
 GNUNET_NAT_test_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
@@ -431,6 +437,7 @@ GNUNET_NAT_test_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   nh->report = report;
   nh->report_cls = report_cls;
   nh->ttask = GNUNET_SCHEDULER_NO_TASK;
+  nh->status = GNUNET_NAT_ERROR_SUCCESS;
   if (0 == bnd_port)
   {
     nh->nat =
@@ -455,7 +462,8 @@ GNUNET_NAT_test_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
                   STRERROR (errno));
       if (NULL != nh->lsock)
         GNUNET_NETWORK_socket_close (nh->lsock);
-      GNUNET_free (nh);
+      nh->status = GNUNET_NAT_ERROR_INTERNAL_NETWORK_ERROR;
+      nh->ttask = GNUNET_SCHEDULER_add_now (&do_timeout, nh);
       return NULL;
     }
     if (GNUNET_YES == is_tcp)
@@ -485,7 +493,8 @@ GNUNET_NAT_test_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
         GNUNET_SCHEDULER_cancel (nh->ltask);
       if (NULL != nh->lsock)
         GNUNET_NETWORK_socket_close (nh->lsock);
-      GNUNET_free (nh);
+      nh->status = GNUNET_NAT_ERROR_NAT_REGISTER_FAILED;
+      nh->ttask = GNUNET_SCHEDULER_add_now (&do_timeout, nh);
       return NULL;
     }
   }
