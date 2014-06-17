@@ -38,6 +38,12 @@
 
 #define CONNECTIONS_PER_TUNNEL 3
 
+#if !defined(GNUNET_CULL_LOGGING)
+#define DUMP_KEYS_TO_STDIN GNUNET_YES
+#else
+#define DUMP_KEYS_TO_STDIN GNUNET_NO
+#endif
+
 /******************************************************************************/
 /********************************   STRUCTS  **********************************/
 /******************************************************************************/
@@ -672,15 +678,13 @@ static int
 t_decrypt (struct CadetTunnel *t, void *dst, const void *src,
            size_t size, uint32_t iv)
 {
-  struct GNUNET_CRYPTO_SymmetricSessionKey *key;
   size_t out_size;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_decrypt start\n");
-  if (t->estate == CADET_TUNNEL3_KEY_OK || t->estate == CADET_TUNNEL3_KEY_PING)
-  {
-    key = &t->d_key;
-  }
-  else
+#if DUMP_KEYS_TO_STDIN
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_decrypt with %s\n",
+       GNUNET_h2s ((struct GNUNET_HashCode *) &t->d_key));
+#endif
+  if (t->estate != CADET_TUNNEL3_KEY_OK && t->estate != CADET_TUNNEL3_KEY_PING)
   {
     GNUNET_STATISTICS_update (stats, "# non decryptable data", 1, GNUNET_NO);
     LOG (GNUNET_ERROR_TYPE_WARNING,
@@ -690,7 +694,7 @@ t_decrypt (struct CadetTunnel *t, void *dst, const void *src,
     return -1;
   }
 
-  out_size = decrypt (key, dst, src, size, iv);
+  out_size = decrypt (&t->d_key, dst, src, size, iv);
 
   return out_size;
 }
@@ -810,6 +814,13 @@ create_keys (struct CadetTunnel *t)
   derive_key_material (&km, &t->peers_ephemeral_key);
   derive_symmertic (&t->e_key, &my_full_id, GCP_get_id (t->peer), &km);
   derive_symmertic (&t->d_key, GCP_get_id (t->peer), &my_full_id, &km);
+#if DUMP_KEYS_TO_STDIN
+  LOG (GNUNET_ERROR_TYPE_INFO, "KM: %s\n", GNUNET_h2s (&km));
+  LOG (GNUNET_ERROR_TYPE_INFO, "EK: %s\n",
+       GNUNET_h2s ((struct GNUNET_HashCode *) &t->e_key));
+  LOG (GNUNET_ERROR_TYPE_INFO, "DK: %s\n",
+       GNUNET_h2s ((struct GNUNET_HashCode *) &t->d_key));
+#endif
 }
 
 
