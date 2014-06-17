@@ -1792,11 +1792,16 @@ handle_pong (struct CadetTunnel *t,
    * Rationale: the KX could have happened over a very fast connection,
    * with payload traffic still signed with the old key stuck in a slower
    * connection.
+   * Don't keep the keys longer than 1/4 the rekey period, and no longer than
+   * one minute.
    */
   if (GNUNET_SCHEDULER_NO_TASK == t->kx_ctx->finish_task)
   {
-    t->kx_ctx->finish_task =
-      GNUNET_SCHEDULER_add_delayed(GNUNET_TIME_UNIT_MINUTES, finish_kx, t);
+    struct GNUNET_TIME_Relative delay;
+
+    delay = GNUNET_TIME_relative_divide (rekey_period, 4);
+    delay = GNUNET_TIME_relative_min (delay, GNUNET_TIME_UNIT_MINUTES);
+    t->kx_ctx->finish_task = GNUNET_SCHEDULER_add_delayed(delay, finish_kx, t);
   }
   GCT_change_estate (t, CADET_TUNNEL3_KEY_OK);
 }
