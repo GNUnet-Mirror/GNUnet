@@ -478,9 +478,10 @@ GCT_2s (const struct CadetTunnel *t);
  * Log all possible info about the tunnel state.
  *
  * @param t Tunnel to debug.
+ * @param level Debug level to use.
  */
 void
-GCT_debug (const struct CadetTunnel *t);
+GCT_debug (const struct CadetTunnel *t, enum GNUNET_ErrorType level);
 
 /**
  * Iterate all tunnels.

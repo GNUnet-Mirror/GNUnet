@@ -1405,7 +1405,7 @@ unregister_neighbors (struct CadetConnection *c)
     GNUNET_assert (CADET_CONNECTION_NEW == c->state
                   || CADET_CONNECTION_DESTROYED == c->state);
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  cstate: %u\n", c->state);
-    if (NULL != c->t) GCT_debug (c->t);
+    if (NULL != c->t) GCT_debug (c->t, GNUNET_ERROR_TYPE_DEBUG);
   }
 
   peer = get_prev_hop (c);
@@ -1414,7 +1414,7 @@ unregister_neighbors (struct CadetConnection *c)
     GNUNET_assert (CADET_CONNECTION_NEW == c->state
                   || CADET_CONNECTION_DESTROYED == c->state);
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  cstate: %u\n", c->state);
-    if (NULL != c->t) GCT_debug (c->t);
+    if (NULL != c->t) GCT_debug (c->t, GNUNET_ERROR_TYPE_DEBUG);
   }
 }
 

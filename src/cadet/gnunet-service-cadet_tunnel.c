@@ -399,7 +399,7 @@ is_ready (struct CadetTunnel *t)
 {
   int ready;
 
-  GCT_debug (t);
+  GCT_debug (t, GNUNET_ERROR_TYPE_DEBUG);
   ready = (CADET_TUNNEL3_READY == t->cstate && CADET_TUNNEL3_KEY_OK == t->estate);
   ready = ready || GCT_is_loopback (t);
   return ready;
@@ -690,7 +690,7 @@ t_decrypt (struct CadetTunnel *t, void *dst, const void *src,
     LOG (GNUNET_ERROR_TYPE_WARNING,
          "got data on %s without a valid key\n",
          GCT_2s (t));
-    GCT_debug (t);
+    GCT_debug (t, GNUNET_ERROR_TYPE_WARNING);
     return -1;
   }
 
@@ -1008,7 +1008,7 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
         || CADET_TUNNEL3_SEARCHING != t->cstate)
     {
       GNUNET_break (0);
-      GCT_debug (t);
+      GCT_debug (t, GNUNET_ERROR_TYPE_WARNING);
     }
     return NULL;
   }
@@ -1149,7 +1149,7 @@ send_kx (struct CadetTunnel *t,
   if (NULL == t->connection_head)
   {
     GNUNET_break (CADET_TUNNEL3_SEARCHING == t->cstate);
-    GCT_debug (t);
+    GCT_debug (t, GNUNET_ERROR_TYPE_WARNING);
     return;
   }
 
@@ -1161,7 +1161,7 @@ send_kx (struct CadetTunnel *t,
   {
     GNUNET_break (GNUNET_SCHEDULER_NO_TASK != t->destroy_task
                   || CADET_TUNNEL3_READY != t->cstate);
-    GCT_debug (t);
+    GCT_debug (t, GNUNET_ERROR_TYPE_WARNING);
     return;
   }
   type = ntohs (message->type);
@@ -1875,7 +1875,7 @@ handle_decrypted (struct CadetTunnel *t,
       LOG (GNUNET_ERROR_TYPE_WARNING,
            "end-to-end message not known (%u)\n",
            ntohs (msgh->type));
-      GCT_debug (t);
+      GCT_debug (t, GNUNET_ERROR_TYPE_WARNING);
   }
 }
 
@@ -2988,37 +2988,35 @@ GCT_2s (const struct CadetTunnel *t)
 /*****************************    INFO/DEBUG    *******************************/
 /******************************************************************************/
 
-
 /**
- * Log all possible info about the tunnel state to stderr.
+ * Log all possible info about the tunnel state.
  *
  * @param t Tunnel to debug.
+ * @param level Debug level to use.
  */
 void
-GCT_debug (const struct CadetTunnel *t)
+GCT_debug (const struct CadetTunnel *t, enum GNUNET_ErrorType level)
 {
   struct CadetTChannel *iterch;
   struct CadetTConnection *iterc;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "TTT DEBUG TUNNEL TOWARDS %s\n", GCT_2s (t));
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "TTT  cstate %s, estate %s\n",
+  LOG (level, "TTT DEBUG TUNNEL TOWARDS %s\n", GCT_2s (t));
+  LOG (level, "TTT  cstate %s, estate %s\n",
        cstate2s (t->cstate), estate2s (t->estate));
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "TTT  kx_ctx %p, rekey_task %u\n",
-       t->kx_ctx, t->rekey_task);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "TTT  tq_head %p, tq_tail %p\n",
-       t->tq_head, t->tq_tail);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "TTT  destroy %u\n", t->destroy_task);
+  LOG (level, "TTT  kx_ctx %p, rekey_task %u\n", t->kx_ctx, t->rekey_task);
+  LOG (level, "TTT  tq_head %p, tq_tail %p\n", t->tq_head, t->tq_tail);
+  LOG (level, "TTT  destroy %u\n", t->destroy_task);
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "TTT  channels:\n");
+  LOG (level, "TTT  channels:\n");
   for (iterch = t->channel_head; NULL != iterch; iterch = iterch->next)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "TTT  - %s\n", GCCH_2s (iterch->ch));
+    LOG (level, "TTT  - %s\n", GCCH_2s (iterch->ch));
   }
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "TTT  connections:\n");
+  LOG (level, "TTT  connections:\n");
   for (iterc = t->connection_head; NULL != iterc; iterc = iterc->next)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "TTT  - %s [%u] buf: %u/%u (qn %u/%u)\n",
+    LOG (level, "TTT  - %s [%u] buf: %u/%u (qn %u/%u)\n",
          GCC_2s (iterc->c), GCC_get_state (iterc->c),
          GCC_get_buffer (iterc->c, GNUNET_YES),
          GCC_get_buffer (iterc->c, GNUNET_NO),
@@ -3026,7 +3024,7 @@ GCT_debug (const struct CadetTunnel *t)
          GCC_get_qn (iterc->c, GNUNET_NO));
   }
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "TTT DEBUG TUNNEL END\n");
+  LOG (level, "TTT DEBUG TUNNEL END\n");
 }
 
 
