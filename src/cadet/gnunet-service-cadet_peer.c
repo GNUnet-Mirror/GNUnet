@@ -878,7 +878,7 @@ search_handler (void *cls, const struct CadetPeerPath *path)
   if (3 <= connection_count)
     return;
 
-  if (CADET_TUNNEL3_SEARCHING == GCT_get_cstate (peer->tunnel))
+  if (CADET_TUNNEL_SEARCHING == GCT_get_cstate (peer->tunnel))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, " ... connect!\n");
     GCP_connect (peer);
@@ -1634,8 +1634,8 @@ GCP_connect (struct CadetPeer *peer)
     LOG (GNUNET_ERROR_TYPE_DEBUG,
                 "  Starting DHT GET for peer %s\n", GCP_2s (peer));
     peer->search_h = GCD_search (id, &search_handler, peer);
-    if (CADET_TUNNEL3_NEW == GCT_get_cstate (t))
-      GCT_change_cstate (t, CADET_TUNNEL3_SEARCHING);
+    if (CADET_TUNNEL_NEW == GCT_get_cstate (t))
+      GCT_change_cstate (t, CADET_TUNNEL_SEARCHING);
   }
 }
 

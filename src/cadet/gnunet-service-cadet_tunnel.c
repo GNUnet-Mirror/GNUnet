@@ -337,14 +337,14 @@ cstate2s (enum CadetTunnelCState cs)
 
   switch (cs)
   {
-    case CADET_TUNNEL3_NEW:
-      return "CADET_TUNNEL3_NEW";
-    case CADET_TUNNEL3_SEARCHING:
-      return "CADET_TUNNEL3_SEARCHING";
-    case CADET_TUNNEL3_WAITING:
-      return "CADET_TUNNEL3_WAITING";
-    case CADET_TUNNEL3_READY:
-      return "CADET_TUNNEL3_READY";
+    case CADET_TUNNEL_NEW:
+      return "CADET_TUNNEL_NEW";
+    case CADET_TUNNEL_SEARCHING:
+      return "CADET_TUNNEL_SEARCHING";
+    case CADET_TUNNEL_WAITING:
+      return "CADET_TUNNEL_WAITING";
+    case CADET_TUNNEL_READY:
+      return "CADET_TUNNEL_READY";
 
     default:
       sprintf (buf, "%u (UNKNOWN STATE)", cs);
@@ -368,16 +368,16 @@ estate2s (enum CadetTunnelEState es)
 
   switch (es)
   {
-    case CADET_TUNNEL3_KEY_UNINITIALIZED:
-      return "CADET_TUNNEL3_KEY_UNINITIALIZED";
-    case CADET_TUNNEL3_KEY_SENT:
-      return "CADET_TUNNEL3_KEY_SENT";
-    case CADET_TUNNEL3_KEY_PING:
-      return "CADET_TUNNEL3_KEY_PING";
-    case CADET_TUNNEL3_KEY_OK:
-      return "CADET_TUNNEL3_KEY_OK";
-    case CADET_TUNNEL3_KEY_REKEY:
-      return "CADET_TUNNEL3_KEY_REKEY";
+    case CADET_TUNNEL_KEY_UNINITIALIZED:
+      return "CADET_TUNNEL_KEY_UNINITIALIZED";
+    case CADET_TUNNEL_KEY_SENT:
+      return "CADET_TUNNEL_KEY_SENT";
+    case CADET_TUNNEL_KEY_PING:
+      return "CADET_TUNNEL_KEY_PING";
+    case CADET_TUNNEL_KEY_OK:
+      return "CADET_TUNNEL_KEY_OK";
+    case CADET_TUNNEL_KEY_REKEY:
+      return "CADET_TUNNEL_KEY_REKEY";
     default:
       sprintf (buf, "%u (UNKNOWN STATE)", es);
       return buf;
@@ -401,9 +401,9 @@ is_ready (struct CadetTunnel *t)
   int ready;
 
   GCT_debug (t, GNUNET_ERROR_TYPE_DEBUG);
-  ready = CADET_TUNNEL3_READY == t->cstate
-          && (CADET_TUNNEL3_KEY_OK == t->estate
-              || CADET_TUNNEL3_KEY_REKEY == t->estate);
+  ready = CADET_TUNNEL_READY == t->cstate
+          && (CADET_TUNNEL_KEY_OK == t->estate
+              || CADET_TUNNEL_KEY_REKEY == t->estate);
   ready = ready || GCT_is_loopback (t);
   return ready;
 }
@@ -716,7 +716,7 @@ t_decrypt (struct CadetTunnel *t, void *dst, const void *src,
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_decrypt with %s\n",
        GNUNET_h2s ((struct GNUNET_HashCode *) &t->d_key));
 #endif
-  if (t->estate == CADET_TUNNEL3_KEY_UNINITIALIZED)
+  if (t->estate == CADET_TUNNEL_KEY_UNINITIALIZED)
   {
     GNUNET_STATISTICS_update (stats, "# non decryptable data", 1, GNUNET_NO);
     LOG (GNUNET_ERROR_TYPE_WARNING,
@@ -1071,7 +1071,7 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   if (NULL == c)
   {
     if (GNUNET_SCHEDULER_NO_TASK != t->destroy_task
-        || CADET_TUNNEL3_SEARCHING != t->cstate)
+        || CADET_TUNNEL_SEARCHING != t->cstate)
     {
       GNUNET_break (0);
       GCT_debug (t, GNUNET_ERROR_TYPE_WARNING);
@@ -1214,7 +1214,7 @@ send_kx (struct CadetTunnel *t,
   /* Must have a connection. */
   if (NULL == t->connection_head)
   {
-    GNUNET_break (CADET_TUNNEL3_SEARCHING == t->cstate);
+    GNUNET_break (CADET_TUNNEL_SEARCHING == t->cstate);
     GCT_debug (t, GNUNET_ERROR_TYPE_WARNING);
     return;
   }
@@ -1226,7 +1226,7 @@ send_kx (struct CadetTunnel *t,
   if (NULL == c)
   {
     GNUNET_break (GNUNET_SCHEDULER_NO_TASK != t->destroy_task
-                  || CADET_TUNNEL3_READY != t->cstate);
+                  || CADET_TUNNEL_READY != t->cstate);
     GCT_debug (t, GNUNET_ERROR_TYPE_WARNING);
     return;
   }
@@ -1360,16 +1360,16 @@ rekey_tunnel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   switch (t->estate)
   {
-    case CADET_TUNNEL3_KEY_UNINITIALIZED:
-      t->estate = CADET_TUNNEL3_KEY_SENT;
+    case CADET_TUNNEL_KEY_UNINITIALIZED:
+      t->estate = CADET_TUNNEL_KEY_SENT;
       break;
-    case CADET_TUNNEL3_KEY_SENT:
+    case CADET_TUNNEL_KEY_SENT:
       break;
-    case CADET_TUNNEL3_KEY_OK:
-      t->estate = CADET_TUNNEL3_KEY_REKEY;
+    case CADET_TUNNEL_KEY_OK:
+      t->estate = CADET_TUNNEL_KEY_REKEY;
       /* fall-thru */
-    case CADET_TUNNEL3_KEY_PING:
-    case CADET_TUNNEL3_KEY_REKEY:
+    case CADET_TUNNEL_KEY_PING:
+    case CADET_TUNNEL_KEY_REKEY:
       send_ping (t);
       break;
     default:
@@ -1769,16 +1769,16 @@ handle_ephemeral (struct CadetTunnel *t,
   {
     t->peers_ephemeral_key = msg->ephemeral_key;
     create_keys (t);
-    if (CADET_TUNNEL3_KEY_OK == t->estate)
+    if (CADET_TUNNEL_KEY_OK == t->estate)
     {
-      t->estate = CADET_TUNNEL3_KEY_REKEY;
+      t->estate = CADET_TUNNEL_KEY_REKEY;
     }
   }
-  if (CADET_TUNNEL3_KEY_SENT == t->estate)
+  if (CADET_TUNNEL_KEY_SENT == t->estate)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  our key was sent, sending ping\n");
     send_ping (t);
-    t->estate = CADET_TUNNEL3_KEY_PING;
+    t->estate = CADET_TUNNEL_KEY_PING;
   }
 }
 
@@ -1891,7 +1891,7 @@ handle_pong (struct CadetTunnel *t,
     delay = GNUNET_TIME_relative_min (delay, GNUNET_TIME_UNIT_MINUTES);
     t->kx_ctx->finish_task = GNUNET_SCHEDULER_add_delayed (delay, finish_kx, t);
   }
-  GCT_change_estate (t, CADET_TUNNEL3_KEY_OK);
+  GCT_change_estate (t, CADET_TUNNEL_KEY_OK);
 }
 
 
@@ -2141,16 +2141,16 @@ GCT_change_cstate (struct CadetTunnel* t, enum CadetTunnelCState cstate)
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Tunnel %s cstate %s => %s\n",
        GCP_2s (t->peer), cstate2s (t->cstate), cstate2s (cstate));
   if (myid != GCP_get_short_id (t->peer) &&
-      CADET_TUNNEL3_READY != t->cstate &&
-      CADET_TUNNEL3_READY == cstate)
+      CADET_TUNNEL_READY != t->cstate &&
+      CADET_TUNNEL_READY == cstate)
   {
     t->cstate = cstate;
-    if (CADET_TUNNEL3_KEY_OK == t->estate)
+    if (CADET_TUNNEL_KEY_OK == t->estate)
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG, "  cstate triggered send queued data\n");
       send_queued_data (t);
     }
-    else if (CADET_TUNNEL3_KEY_UNINITIALIZED == t->estate)
+    else if (CADET_TUNNEL_KEY_UNINITIALIZED == t->estate)
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG, "  cstate triggered rekey\n");
       rekey_tunnel (t, NULL);
@@ -2158,7 +2158,7 @@ GCT_change_cstate (struct CadetTunnel* t, enum CadetTunnelCState cstate)
   }
   t->cstate = cstate;
 
-  if (CADET_TUNNEL3_READY == cstate
+  if (CADET_TUNNEL_READY == cstate
       && CONNECTIONS_PER_TUNNEL <= GCT_count_connections (t))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  cstate triggered stop dht\n");
@@ -2184,7 +2184,7 @@ GCT_change_estate (struct CadetTunnel* t, enum CadetTunnelEState state)
        "Tunnel %s estate is now %s\n",
        GCP_2s (t->peer), estate2s (state));
   if (myid != GCP_get_short_id (t->peer) &&
-      CADET_TUNNEL3_KEY_OK != t->estate && CADET_TUNNEL3_KEY_OK == state)
+      CADET_TUNNEL_KEY_OK != t->estate && CADET_TUNNEL_KEY_OK == state)
   {
     t->estate = state;
     send_queued_data (t);
@@ -2311,17 +2311,17 @@ GCT_remove_connection (struct CadetTunnel *t,
   /* Start new connections if needed */
   if (CONNECTIONS_PER_TUNNEL < GCT_count_connections (t)
       && GNUNET_SCHEDULER_NO_TASK == t->destroy_task
-      && CADET_TUNNEL3_SHUTDOWN != t->cstate
+      && CADET_TUNNEL_SHUTDOWN != t->cstate
       && GNUNET_NO == shutting_down)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  no more connections, getting new ones\n");
-    t->cstate = CADET_TUNNEL3_SEARCHING;
+    t->cstate = CADET_TUNNEL_SEARCHING;
     GCP_connect (t->peer);
     return;
   }
 
   /* If not marked as ready, no change is needed */
-  if (CADET_TUNNEL3_READY != t->cstate)
+  if (CADET_TUNNEL_READY != t->cstate)
     return;
 
   /* Check if any connection is ready to maintaing cstate */
@@ -2329,7 +2329,7 @@ GCT_remove_connection (struct CadetTunnel *t,
     if (CADET_CONNECTION_READY == GCC_get_state (aux->c))
       return;
 
-  t->cstate = CADET_TUNNEL3_WAITING;
+  t->cstate = CADET_TUNNEL_WAITING;
 }
 
 
@@ -2445,7 +2445,7 @@ delayed_destroy (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     return;
   }
   t->destroy_task = GNUNET_SCHEDULER_NO_TASK;
-  t->cstate = CADET_TUNNEL3_SHUTDOWN;
+  t->cstate = CADET_TUNNEL_SHUTDOWN;
 
   for (iter = t->connection_head; NULL != iter; iter = iter->next)
   {
@@ -2595,7 +2595,7 @@ GCT_use_path (struct CadetTunnel *t, struct CadetPeerPath *p)
     return NULL;
   }
 
-  if (CADET_TUNNEL3_SHUTDOWN == t->cstate)
+  if (CADET_TUNNEL_SHUTDOWN == t->cstate)
   {
     GNUNET_break (0);
     return NULL;

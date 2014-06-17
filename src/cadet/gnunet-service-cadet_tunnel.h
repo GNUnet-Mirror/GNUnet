@@ -48,27 +48,27 @@ enum CadetTunnelCState
     /**
      * Uninitialized status, should never appear in operation.
      */
-  CADET_TUNNEL3_NEW,
+  CADET_TUNNEL_NEW,
 
     /**
      * Path to the peer not known yet.
      */
-  CADET_TUNNEL3_SEARCHING,
+  CADET_TUNNEL_SEARCHING,
 
     /**
      * Request sent, not yet answered.
      */
-  CADET_TUNNEL3_WAITING,
+  CADET_TUNNEL_WAITING,
 
     /**
      * Peer connected and ready to accept data.
      */
-  CADET_TUNNEL3_READY,
+  CADET_TUNNEL_READY,
 
   /**
    * Tunnel being shut down, don't try to keep it alive.
    */
-  CADET_TUNNEL3_SHUTDOWN
+  CADET_TUNNEL_SHUTDOWN
 };
 
 
@@ -80,12 +80,12 @@ enum CadetTunnelEState
   /**
    * Uninitialized status, should never appear in operation.
    */
-  CADET_TUNNEL3_KEY_UNINITIALIZED,
+  CADET_TUNNEL_KEY_UNINITIALIZED,
 
   /**
    * Ephemeral key sent, waiting for peer's key.
    */
-  CADET_TUNNEL3_KEY_SENT,
+  CADET_TUNNEL_KEY_SENT,
 
   /**
    * New ephemeral key and ping sent, waiting for pong.
@@ -93,19 +93,19 @@ enum CadetTunnelEState
    * state would be KEY_SENT. We DO NOT have a valid session key (either no
    * previous key or previous key expired).
    */
-  CADET_TUNNEL3_KEY_PING,
+  CADET_TUNNEL_KEY_PING,
 
   /**
    * Handshake completed: session key available.
    */
-  CADET_TUNNEL3_KEY_OK,
+  CADET_TUNNEL_KEY_OK,
 
   /**
    * New ephemeral key and ping sent, waiting for pong. Opposite to KEY_PING,
    * we still have a valid session key and therefore we *can* still send
    * traffic on the tunnel.
    */
-  CADET_TUNNEL3_KEY_REKEY,
+  CADET_TUNNEL_KEY_REKEY,
 };
 
 /**

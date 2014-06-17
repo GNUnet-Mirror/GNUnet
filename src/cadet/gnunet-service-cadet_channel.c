@@ -1848,7 +1848,7 @@ GCCH_handle_local_create (struct CadetClient *c,
 
   if (GCP_get_short_id (peer) == myid)
   {
-    GCT_change_cstate (t, CADET_TUNNEL3_READY);
+    GCT_change_cstate (t, CADET_TUNNEL_READY);
   }
   else
   {

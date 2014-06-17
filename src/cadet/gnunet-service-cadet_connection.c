@@ -810,8 +810,8 @@ send_connection_ack (struct CadetConnection *connection, int fwd)
                  sizeof (struct GNUNET_CADET_ConnectionACK),
                  connection, fwd, &conn_message_sent, NULL);
   connection->pending_messages++;
-  if (CADET_TUNNEL3_NEW == GCT_get_cstate (t))
-    GCT_change_cstate (t, CADET_TUNNEL3_WAITING);
+  if (CADET_TUNNEL_NEW == GCT_get_cstate (t))
+    GCT_change_cstate (t, CADET_TUNNEL_WAITING);
   if (CADET_CONNECTION_READY != connection->state)
     connection_change_state (connection, CADET_CONNECTION_SENT);
 }
@@ -949,7 +949,7 @@ connection_maintain (struct CadetConnection *c, int fwd)
   if (GNUNET_NO != c->destroy)
     return;
 
-  if (CADET_TUNNEL3_SEARCHING == GCT_get_cstate (c->t))
+  if (CADET_TUNNEL_SEARCHING == GCT_get_cstate (c->t))
   {
     /* TODO DHT GET with RO_BART */
     return;
@@ -1625,8 +1625,8 @@ GCC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
     GCP_add_path_to_origin (orig_peer, path_duplicate (path), GNUNET_YES);
 
     add_to_peer (c, orig_peer);
-    if (CADET_TUNNEL3_NEW == GCT_get_cstate (c->t))
-      GCT_change_cstate (c->t,  CADET_TUNNEL3_WAITING);
+    if (CADET_TUNNEL_NEW == GCT_get_cstate (c->t))
+      GCT_change_cstate (c->t,  CADET_TUNNEL_WAITING);
 
     send_connection_ack (c, GNUNET_NO);
     if (CADET_CONNECTION_SENT == c->state)
@@ -1741,8 +1741,8 @@ GCC_handle_confirm (void *cls, const struct GNUNET_PeerIdentity *peer,
     send_connection_ack (c, GNUNET_YES);
 
     /* Change tunnel state, trigger KX */
-    if (CADET_TUNNEL3_WAITING == GCT_get_cstate (c->t))
-      GCT_change_cstate (c->t, CADET_TUNNEL3_READY);
+    if (CADET_TUNNEL_WAITING == GCT_get_cstate (c->t))
+      GCT_change_cstate (c->t, CADET_TUNNEL_READY);
 
     return GNUNET_OK;
   }
@@ -1762,8 +1762,8 @@ GCC_handle_confirm (void *cls, const struct GNUNET_PeerIdentity *peer,
       connection_reset_timeout (c, GNUNET_NO);
 
     /* Change tunnel state */
-    if (CADET_TUNNEL3_WAITING == GCT_get_cstate (c->t))
-      GCT_change_cstate (c->t, CADET_TUNNEL3_READY);
+    if (CADET_TUNNEL_WAITING == GCT_get_cstate (c->t))
+      GCT_change_cstate (c->t, CADET_TUNNEL_READY);
 
     return GNUNET_OK;
   }
@@ -2106,8 +2106,8 @@ handle_cadet_kx (const struct GNUNET_PeerIdentity *peer,
     connection_change_state (c, CADET_CONNECTION_READY);
     if (NULL != c->t)
     {
-      if (CADET_TUNNEL3_WAITING == GCT_get_cstate (c->t))
-        GCT_change_cstate (c->t, CADET_TUNNEL3_READY);
+      if (CADET_TUNNEL_WAITING == GCT_get_cstate (c->t))
+        GCT_change_cstate (c->t, CADET_TUNNEL_READY);
     }
   }
   connection_reset_timeout (c, fwd);
@@ -3057,8 +3057,8 @@ GCC_send_create (struct CadetConnection *connection)
                    size, connection, GNUNET_YES, &conn_message_sent, NULL);
 
   state = GCT_get_cstate (connection->t);
-  if (CADET_TUNNEL3_SEARCHING == state || CADET_TUNNEL3_NEW == state)
-    GCT_change_cstate (connection->t, CADET_TUNNEL3_WAITING);
+  if (CADET_TUNNEL_SEARCHING == state || CADET_TUNNEL_NEW == state)
+    GCT_change_cstate (connection->t, CADET_TUNNEL_WAITING);
   if (CADET_CONNECTION_NEW == connection->state)
     connection_change_state (connection, CADET_CONNECTION_SENT);
 }
