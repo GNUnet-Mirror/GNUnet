@@ -22,4 +22,4 @@ echo "using $PEERS peers, $LINKS links";
     
 sed -e "s/%LINKS%/$LINKS/;s/%NSE%/$NSE/" profiler.conf > .profiler.conf
 
-./gnunet-mesh-profiler $ROUNDTIME $PEERS $PINGS $4 |& tee log | grep -v DEBUG
+./gnunet-cadet-profiler $ROUNDTIME $PEERS $PINGS $4 |& tee log | grep -v DEBUG
