@@ -195,11 +195,15 @@ run (void *cls,
   rd.flags = 0;
   memset ((char *) rd.data, 'a', TEST_RECORD_DATALEN);
   block = GNUNET_GNSRECORD_block_create (privkey,
-      GNUNET_TIME_UNIT_FOREVER_ABS, name, &rd, 1 );
+                                         GNUNET_TIME_UNIT_FOREVER_ABS,
+                                         name, &rd, 1);
   if (NULL == block)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-              _("Namecache cannot cache no block\n"));
+                "Namecache cannot cache no block!\n");
+    GNUNET_SCHEDULER_shutdown ();
+    GNUNET_free (block);
+    return;
   }
 
   nsh = GNUNET_NAMECACHE_connect (cfg);
@@ -207,16 +211,21 @@ run (void *cls,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
               _("Namecache cannot connect to namecache\n"));
+    GNUNET_SCHEDULER_shutdown ();
+    GNUNET_free (block);
+    return;
   }
   GNUNET_break (NULL != nsh);
 
-  nsqe = GNUNET_NAMECACHE_block_cache (nsh, block , &cache_cont, (void *) name);
+  nsqe = GNUNET_NAMECACHE_block_cache (nsh,
+                                       block,
+                                       &cache_cont, (void *) name);
   if (NULL == nsqe)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
   	      _("Namecache cannot cache no block\n"));
   }
-
+  GNUNET_free (block);
   GNUNET_free ((void *)rd.data);
 }
 
