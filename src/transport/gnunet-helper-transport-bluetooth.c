@@ -965,7 +965,7 @@ check_crc_buf_osdep (const unsigned char *buf, size_t len)
     sdp_list_t *search_list = 0, *attrid_list = 0, *response_list = 0, *it = 0;
     uuid_t svc_uuid;
     uint32_t range = 0x0000ffff;
-    uint8_t channel = -1;
+    int channel = -1;
 
     /* Connect to the local SDP server */
     session = sdp_connect (BDADDR_ANY, &dest, 0);
@@ -1002,9 +1002,12 @@ check_crc_buf_osdep (const unsigned char *buf, size_t len)
 
     sdp_close (session);
 
-    if (channel == -1)
-      fprintf (stderr, "Failed to find the listening channel for interface `%.*s': %s\n",
-              IFNAMSIZ, dev->iface, strerror (errno));
+    if (-1 == channel)
+      fprintf (stderr,
+               "Failed to find the listening channel for interface `%.*s': %s\n",
+               IFNAMSIZ,
+               dev->iface,
+               strerror (errno));
 
     return channel;
   }
