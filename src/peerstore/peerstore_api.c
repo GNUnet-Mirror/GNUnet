@@ -721,6 +721,13 @@ void handle_watch_result (void *cls, const struct GNUNET_MessageHeader *msg)
   PEERSTORE_hash_key(record->sub_system,
       record->peer, record->key, &keyhash);
   wc = GNUNET_CONTAINER_multihashmap_get(h->watches, &keyhash);
+  if(NULL == wc)
+  {
+    LOG(GNUNET_ERROR_TYPE_ERROR,
+        _("Received a watch result for a non existing watch.\n"));
+    reconnect(h);
+    return;
+  }
   if(NULL != wc->callback)
     wc->callback(wc->callback_cls, record, NULL);
   PEERSTORE_destroy_record(record);
