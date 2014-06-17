@@ -1080,7 +1080,7 @@ read_from_the_socket (void *sock,
  * Open the bluetooth interface for reading/writing
  *
  * @param dev pointer to the device struct
- * @return 0 on success
+ * @return 0 on success, non-zero on error
  */
 static int
 open_device (struct HardwareInfos *dev)
@@ -1140,7 +1140,9 @@ open_device (struct HardwareInfos *dev)
 
     if (fd_hci < 0)
     {
-      fprintf (stderr, "Failed to create HCI socket: %s\n", strerror (errno));
+      fprintf (stderr,
+               "Failed to create HCI socket: %s\n",
+               strerror (errno));
       return -1;
     }
 
@@ -1149,8 +1151,12 @@ open_device (struct HardwareInfos *dev)
 
     if (ioctl (fd_hci, HCIGETDEVLIST, (void *) &request) < 0)
     {
-      fprintf (stderr, "ioctl(HCIGETDEVLIST) on interface `%.*s' failed: %s\n",
-              IFNAMSIZ, dev->iface, strerror (errno));
+      fprintf (stderr,
+               "ioctl(HCIGETDEVLIST) on interface `%.*s' failed: %s\n",
+               IFNAMSIZ,
+               dev->iface,
+               strerror (errno));
+      (void) close (fd_hci);
       return 1;
     }
 
@@ -1165,8 +1171,12 @@ open_device (struct HardwareInfos *dev)
 
       if (ioctl (fd_hci, HCIGETDEVINFO, (void *) &dev_info))
       {
-        fprintf (stderr, "ioctl(HCIGETDEVINFO) on interface `%.*s' failed: %s\n",
-               IFNAMSIZ, dev->iface, strerror (errno));
+        fprintf (stderr,
+                 "ioctl(HCIGETDEVINFO) on interface `%.*s' failed: %s\n",
+                 IFNAMSIZ,
+                 dev->iface,
+                 strerror (errno));
+        (void) close (fd_hci);
         return 1;
       }
 
@@ -1185,8 +1195,12 @@ open_device (struct HardwareInfos *dev)
           /* Bring the interface up */
           if (ioctl (fd_hci, HCIDEVUP, dev_info.dev_id))
           {
-            fprintf (stderr, "ioctl(HCIDEVUP) on interface `%.*s' failed: %s\n",
-               IFNAMSIZ, dev->iface, strerror (errno));
+            fprintf (stderr,
+                     "ioctl(HCIDEVUP) on interface `%.*s' failed: %s\n",
+                     IFNAMSIZ,
+                     dev->iface,
+                     strerror (errno));
+            (void) close (fd_hci);
             return 1;
           }
         }
@@ -1204,8 +1218,12 @@ open_device (struct HardwareInfos *dev)
 
           if (ioctl (fd_hci, HCISETSCAN, (unsigned long) &dev_req))
           {
-            fprintf (stderr, "ioctl(HCISETSCAN) on interface `%.*s' failed: %s\n",
-               IFNAMSIZ, dev->iface, strerror (errno));
+            fprintf (stderr,
+                     "ioctl(HCISETSCAN) on interface `%.*s' failed: %s\n",
+                     IFNAMSIZ,
+                     dev->iface,
+                     strerror (errno));
+            (void) close (fd_hci);
             return 1;
           }
 
@@ -1216,9 +1234,12 @@ open_device (struct HardwareInfos *dev)
     }
 
     /* Check if the interface was not found */
-    if (dev_id == -1)
+    if (-1 == dev_id)
     {
-      fprintf (stderr, "The interface %s was not found\n", dev->iface);
+      fprintf (stderr,
+               "The interface %s was not found\n",
+               dev->iface);
+      (void) close (fd_hci);
       return 1;
     }
 
@@ -1234,15 +1255,20 @@ open_device (struct HardwareInfos *dev)
 
     if (bind_socket (dev->fd_rfcomm, &rc_addr) != 0)
     {
-      fprintf (stderr, "Failed to bind interface `%.*s': %s\n", IFNAMSIZ,
-               dev->iface, strerror (errno));
+      fprintf (stderr,
+               "Failed to bind interface `%.*s': %s\n",
+               IFNAMSIZ,
+               dev->iface,
+               strerror (errno));
       return 1;
     }
 
     /* Register a SDP service */
     if (register_service (dev, rc_addr.rc_channel) != 0)
     {
-      fprintf (stderr, "Failed to register a service on interface `%.*s': %s\n", IFNAMSIZ,
+      fprintf (stderr,
+               "Failed to register a service on interface `%.*s': %s\n",
+               IFNAMSIZ,
                dev->iface, strerror (errno));
       return 1;
     }
