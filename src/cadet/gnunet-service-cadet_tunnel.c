@@ -1953,9 +1953,17 @@ GCT_handle_encrypted (struct CadetTunnel *t,
   off = 0;
   while (off < decrypted_size)
   {
+    uint16_t msize;
+
     msgh = (struct GNUNET_MessageHeader *) &cbuf[off];
+    msize = ntohs (msgh->size);
+    if (msize < sizeof (struct GNUNET_MessageHeader))
+    {
+      GNUNET_break_op (0);
+      return;
+    }
     handle_decrypted (t, msgh, GNUNET_SYSERR);
-    off += ntohs (msgh->size);
+    off += msize;
   }
 }
 
