@@ -148,6 +148,7 @@
 /pkgconfig/gnunetcore.pc
 /pkgconfig/gnunetblock.pc
 /pkgconfig/gnunetarm.pc
+/pkgconfig/gnunetsocial.pc
 
 # /po/
 /po/vi.gmo
@@ -922,6 +923,14 @@
 /src/peerinfo-tool/gnunet-peerinfo
 /src/peerinfo-tool/.deps
 
+# /src/peerstore
+/src/peerstore/.deps/
+/src/peerstore/Makefile
+/src/peerstore/Makefile.in
+/src/peerstore/gnunet-peerstore
+/src/peerstore/gnunet-service-peerstore
+/src/peerstore/peerstore.conf
+
 # /src/postgres/
 /src/postgres/Makefile.in
 /src/postgres/Makefile
@@ -1003,6 +1012,14 @@
 /src/secretsharing/Makefile
 /src/secretsharing/.deps
 
+# /src/sensor
+/src/sensor/.deps/
+/src/sensor/Makefile
+/src/sensor/Makefile.in
+/src/sensor/gnunet-sensor
+/src/sensor/gnunet-service-sensor
+/src/sensor/sensor.conf
+
 # /src/set/
 /src/set/test_set_union_result_full
 /src/set/test_set_api
@@ -1015,6 +1032,14 @@
 /src/set/Makefile
 /src/set/gnunet-set-bug
 /src/set/.deps
+
+# /src/social
+/src/social/.deps/
+/src/social/Makefile
+/src/social/Makefile.in
+/src/social/gnunet-social
+/src/social/gnunet-service-social
+/src/social/social.conf
 
 # /src/statistics/
 /src/statistics/test_gnunet_statistics.py
