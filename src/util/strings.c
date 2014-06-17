@@ -783,7 +783,8 @@ GNUNET_STRINGS_get_short_name (const char *filename)
 
 
 /**
- * Get the numeric value corresponding to a character.
+ * Get the decoded value corresponding to a character according to Crockford
+ * Base32 encoding.
  *
  * @param a a character
  * @return corresponding numeric value
@@ -791,18 +792,52 @@ GNUNET_STRINGS_get_short_name (const char *filename)
 static unsigned int
 getValue__ (unsigned char a)
 {
+  unsigned int dec;
+
+  switch (a)
+  {
+  case 'O':
+  case 'o':
+    a = '0';
+    break;
+  case 'i':
+  case 'I':
+  case 'l':
+  case 'L':
+    a = '1';
+    break;
+    /* also consider U to be V */
+  case 'u':
+  case 'U':
+    a = 'V';
+    break;
+  default:
+    break;
+  }
   if ((a >= '0') && (a <= '9'))
     return a - '0';
-  if ((a >= 'A') && (a <= 'V'))
-    return (a - 'A' + 10);
-  if ((a >= 'a') && (a <= 'v'))
-    return (a - 'a' + 10);
+  if ((a >= 'a') && (a <= 'z'))
+    a = toupper (a);
+    /* return (a - 'a' + 10); */
+  dec = 0;
+  if ((a >= 'A') && (a <= 'Z'))
+  {
+    if ('I' < a)
+      dec++;
+    if ('L' < a)
+      dec++;
+    if ('O' < a)
+      dec++;
+    if ('U' < a)
+      dec++;
+    return (a - 'A' + 10 - dec);
+  }
   return -1;
 }
 
 
 /**
- * Convert binary data to ASCII encoding using Base32Hex (RFC 4648).
+ * Convert binary data to ASCII encoding using Crockford Base32 encoding.
  * Does not append 0-terminator, but returns a pointer to the place where
  * it should be placed, if needed.
  *
@@ -819,7 +854,7 @@ GNUNET_STRINGS_data_to_string (const void *data, size_t size, char *out, size_t 
   /**
    * 32 characters for encoding
    */
-  static char *encTable__ = "0123456789ABCDEFGHIJKLMNOPQRSTUV";
+  static char *encTable__ = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
   unsigned int wpos;
   unsigned int rpos;
   unsigned int bits;
@@ -867,7 +902,7 @@ GNUNET_STRINGS_data_to_string (const void *data, size_t size, char *out, size_t 
 
 
 /**
- * Convert Base32hex encoding back to data.
+ * Convert Crockford Base32hex encoding back to data.
  * @a out_size must match exactly the size of the data before it was encoded.
  *
  * @param enc the encoding
@@ -902,7 +937,7 @@ GNUNET_STRINGS_string_to_data (const char *enc, size_t enclen,
   {
     vbit = encoded_len % 5; /* padding! */
     shift = 5 - vbit;
-    bits = (ret = getValue__ (enc[--rpos])) >> (5 - (encoded_len % 5));
+    bits = (ret = getValue__ (enc[--rpos])) >> shift;
   }
   else
   {
