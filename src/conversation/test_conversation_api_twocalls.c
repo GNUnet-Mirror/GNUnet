@@ -472,6 +472,7 @@ call_event_handler (void *cls,
     break;
   case GNUNET_CONVERSATION_EC_CALL_GNS_FAIL:
     LOG_DEBUG ("Call %s GNS lookup failed \n", cid);
+    break;
   case GNUNET_CONVERSATION_EC_CALL_HUNG_UP:
     LOG_DEBUG ("Call %s hungup\n", cid);
     if (0 == strcmp (cid, "call1"))
