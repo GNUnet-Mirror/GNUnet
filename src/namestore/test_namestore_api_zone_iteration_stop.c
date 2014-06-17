@@ -178,92 +178,90 @@ zone_proc (void *cls,
     GNUNET_SCHEDULER_add_now (&end, NULL);
     return;
   }
-  else
+  GNUNET_assert (NULL != zone);
+  if (0 == memcmp (zone, privkey, sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey)))
   {
-  	if (0 == memcmp (zone, privkey, sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey)))
-  	{
-      if (0 == strcmp (label, s_name_1))
+    if (0 == strcmp (label, s_name_1))
+    {
+      if (rd_count == 1)
       {
-        if (rd_count == 1)
+        if (GNUNET_YES != GNUNET_GNSRECORD_records_cmp(rd, s_rd_1))
         {
-          if (GNUNET_YES != GNUNET_GNSRECORD_records_cmp(rd, s_rd_1))
-          {
-            failed = GNUNET_YES;
-            GNUNET_break (0);
-          }
-        }
-        else
-        {
-          failed = GNUNET_YES;
-          GNUNET_break (0);
-        }
-      }
-      else if (0 == strcmp (label, s_name_2))
-      {
-        if (rd_count == 1)
-        {
-          if (GNUNET_YES != GNUNET_GNSRECORD_records_cmp(rd, s_rd_2))
-          {
-            failed = GNUNET_YES;
-            GNUNET_break (0);
-          }
-        }
-        else
-        {
-          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-          		"Received invalid record count\n");
           failed = GNUNET_YES;
           GNUNET_break (0);
         }
       }
       else
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-        		"Comparing result failed: got name `%s' for first zone\n", label);
         failed = GNUNET_YES;
         GNUNET_break (0);
       }
-  	}
-  	else if (0 == memcmp (zone, privkey2, sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey)))
-  	{
-      if (0 == strcmp (label, s_name_3))
+    }
+    else if (0 == strcmp (label, s_name_2))
+    {
+      if (rd_count == 1)
       {
-        if (rd_count == 1)
+        if (GNUNET_YES != GNUNET_GNSRECORD_records_cmp(rd, s_rd_2))
         {
-          if (GNUNET_YES != GNUNET_GNSRECORD_records_cmp(rd, s_rd_3))
-          {
-            failed = GNUNET_YES;
-            GNUNET_break (0);
-          }
-        }
-        else
-        {
-          GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-          		"Received invalid record count\n");
           failed = GNUNET_YES;
           GNUNET_break (0);
         }
       }
       else
       {
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-        		"Comparing result failed: got name `%s' for first zone\n", label);
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    "Received invalid record count\n");
         failed = GNUNET_YES;
         GNUNET_break (0);
       }
-  	}
-  	else
-  	{
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Received invalid zone\n");
+    }
+    else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Comparing result failed: got name `%s' for first zone\n", label);
       failed = GNUNET_YES;
       GNUNET_break (0);
-  	}
+    }
   }
-
+  else if (0 == memcmp (zone, privkey2, sizeof (struct GNUNET_CRYPTO_EcdsaPrivateKey)))
+  {
+    if (0 == strcmp (label, s_name_3))
+    {
+      if (rd_count == 1)
+      {
+        if (GNUNET_YES != GNUNET_GNSRECORD_records_cmp(rd, s_rd_3))
+        {
+          failed = GNUNET_YES;
+          GNUNET_break (0);
+        }
+      }
+      else
+      {
+        GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                    "Received invalid record count\n");
+        failed = GNUNET_YES;
+        GNUNET_break (0);
+      }
+    }
+    else
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                  "Comparing result failed: got name `%s' for first zone\n", label);
+      failed = GNUNET_YES;
+      GNUNET_break (0);
+    }
+  }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Received invalid zone\n");
+    failed = GNUNET_YES;
+    GNUNET_break (0);
+  }
   if (failed == GNUNET_NO)
   {
-  	if (1 == returned_records)
-  	{
+    if (1 == returned_records)
+    {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
       		"Telling namestore to stop zone iteration\n");
   		GNUNET_NAMESTORE_zone_iteration_stop (zi);
@@ -275,8 +273,8 @@ zone_proc (void *cls,
       }
       res = 0;
       GNUNET_SCHEDULER_add_delayed (WAIT, &end, NULL);
-  		return;
-  	}
+      return;
+    }
     returned_records ++;
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
     		"Telling namestore to send the next result\n");
