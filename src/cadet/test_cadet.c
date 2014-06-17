@@ -554,7 +554,7 @@ static void
 stats_cont (void *cls, struct GNUNET_TESTBED_Operation *op, const char *emsg)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "stats_cont for peer %u\n", cls);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, " sent: %u, received: %u\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, " KA sent: %u, KA received: %u\n",
               ka_sent, ka_received);
   if (ka_sent < 2 || ka_sent > ka_received + 1)
     ok--;
