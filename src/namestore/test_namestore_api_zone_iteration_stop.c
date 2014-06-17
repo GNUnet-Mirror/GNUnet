@@ -431,11 +431,14 @@ run (void *cls,
      const struct GNUNET_CONFIGURATION_Handle *cfg,
      struct GNUNET_TESTING_Peer *peer)
 {
-  directory = NULL;
-  GNUNET_CONFIGURATION_get_value_string(cfg, "PATHS", "GNUNET_TEST_HOME", &directory);
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_CONFIGURATION_get_value_string (cfg,
+                                                        "PATHS",
+                                                        "GNUNET_TEST_HOME",
+                                                        &directory));
   GNUNET_DISK_directory_remove (directory);
 
-  endbadly_task = GNUNET_SCHEDULER_add_delayed(TIMEOUT, &endbadly, NULL);
+  endbadly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &endbadly, NULL);
   nsh = GNUNET_NAMESTORE_connect (cfg);
   GNUNET_break (NULL != nsh);
   /* first, iterate over empty namestore */
@@ -443,7 +446,8 @@ run (void *cls,
 					     NULL, &empty_zone_proc, nsh);
   if (NULL == zi)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Failed to create zone iterator\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Failed to create zone iterator\n");
     GNUNET_break (0);
     GNUNET_SCHEDULER_cancel (endbadly_task);
     endbadly_task = GNUNET_SCHEDULER_add_now (&endbadly, NULL);
