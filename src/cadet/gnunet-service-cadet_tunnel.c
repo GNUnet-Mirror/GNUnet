@@ -612,6 +612,7 @@ t_encrypt (struct CadetTunnel *t, void *dst, const void *src,
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "  key exchange in progress, started %s ago\n",
          GNUNET_STRINGS_relative_time_to_string (age, GNUNET_YES));
+    // FIXME make duration of old keys configurable
     if (age.rel_value_us < GNUNET_TIME_UNIT_MINUTES.rel_value_us)
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG, "  using old key\n");
@@ -1305,11 +1306,10 @@ rekey_tunnel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
          GNUNET_STRINGS_relative_time_to_string (duration, GNUNET_YES));
 
     // FIXME make duration of old keys configurable
-    if (duration.rel_value_us > GNUNET_TIME_UNIT_MINUTES.rel_value_us)
+    if (duration.rel_value_us >= GNUNET_TIME_UNIT_MINUTES.rel_value_us)
     {
       memset (&t->kx_ctx->d_key_old, 0, sizeof (t->kx_ctx->d_key_old));
       memset (&t->kx_ctx->e_key_old, 0, sizeof (t->kx_ctx->e_key_old));
-      t->estate = CADET_TUNNEL3_KEY_PING;
     }
   }
 
