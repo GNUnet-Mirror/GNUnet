@@ -552,37 +552,80 @@ check_ephemeral (struct CadetTunnel *t,
 
 
 /**
+ * Select the best key to use for encryption (send), based on KX status.
+ *
+ * Normally, return the current key. If there is a KX in progress and the old
+ * key is fresh enough, return the old key.
+ *
+ * @param t Tunnel to choose the key from.
+ *
+ * @return The optimal key to encrypt/hmac outgoing traffic.
+ */
+static const struct GNUNET_CRYPTO_SymmetricSessionKey *
+select_key (const struct CadetTunnel *t)
+{
+  const struct GNUNET_CRYPTO_SymmetricSessionKey *key;
+
+  if (NULL != t->kx_ctx
+      && GNUNET_SCHEDULER_NO_TASK == t->kx_ctx->finish_task)
+  {
+    struct GNUNET_TIME_Relative age;
+
+    age = GNUNET_TIME_absolute_get_duration (t->kx_ctx->rekey_start_time);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "  key exchange in progress, started %s ago\n",
+         GNUNET_STRINGS_relative_time_to_string (age, GNUNET_YES));
+    // FIXME make duration of old keys configurable
+    if (age.rel_value_us < GNUNET_TIME_UNIT_MINUTES.rel_value_us)
+    {
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "  using old key\n");
+      key = &t->kx_ctx->e_key_old;
+    }
+    else
+    {
+      LOG (GNUNET_ERROR_TYPE_DEBUG, "  using new key\n");
+      key = &t->e_key;
+    }
+  }
+  else
+  {
+    key = &t->e_key;
+  }
+  return key;
+}
+
+
+/**
  * Calculate HMAC.
  *
- * @param t Tunnel to get keys from.
  * @param plaintext Content to HMAC.
  * @param size Size of @c plaintext.
  * @param iv Initialization vector for the message.
- * @param outgoing Is this an outgoing message that we encrypted?
- * @param hmac Destination to store the HMAC.
+ * @param key Key to use.
+ * @param hmac[out] Destination to store the HMAC.
  */
 static void
-t_hmac (struct CadetTunnel *t, const void *plaintext, size_t size, uint32_t iv,
-        int outgoing, struct GNUNET_CADET_Hash *hmac)
+t_hmac (const void *plaintext, size_t size,
+        uint32_t iv, const struct GNUNET_CRYPTO_SymmetricSessionKey *key,
+        struct GNUNET_CADET_Hash *hmac)
 {
-  struct GNUNET_CRYPTO_AuthKey auth_key;
   static const char ctx[] = "cadet authentication key";
-  struct GNUNET_CRYPTO_SymmetricSessionKey *key;
+  struct GNUNET_CRYPTO_AuthKey auth_key;
   struct GNUNET_HashCode hash;
 
-  key = outgoing ? &t->e_key : &t->d_key;
   GNUNET_CRYPTO_hmac_derive_key (&auth_key, key,
                                  &iv, sizeof (iv),
                                  key, sizeof (*key),
                                  ctx, sizeof (ctx),
                                  NULL);
+  /* Two step: CADET_Hash is only 256 bits, HashCode is 512. */
   GNUNET_CRYPTO_hmac (&auth_key, plaintext, size, &hash);
   memcpy (hmac, &hash, sizeof (*hmac));
 }
 
 
 /**
- * Encrypt data with the tunnel key.
+ * Encrypt daforce_newest_keyta with the tunnel key.
  *
  * @param t Tunnel whose key to use.
  * @param dst Destination for the encrypted data.
@@ -599,39 +642,15 @@ t_encrypt (struct CadetTunnel *t, void *dst, const void *src,
            size_t size, uint32_t iv, int force_newest_key)
 {
   struct GNUNET_CRYPTO_SymmetricInitializationVector siv;
-  struct GNUNET_CRYPTO_SymmetricSessionKey *e_key;
+  const struct GNUNET_CRYPTO_SymmetricSessionKey *key;
   size_t out_size;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_encrypt start\n");
-  if (GNUNET_NO == force_newest_key
-      && NULL != t->kx_ctx
-      && GNUNET_SCHEDULER_NO_TASK == t->kx_ctx->finish_task)
-  {
-    struct GNUNET_TIME_Relative age;
 
-    age = GNUNET_TIME_absolute_get_duration (t->kx_ctx->rekey_start_time);
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "  key exchange in progress, started %s ago\n",
-         GNUNET_STRINGS_relative_time_to_string (age, GNUNET_YES));
-    // FIXME make duration of old keys configurable
-    if (age.rel_value_us < GNUNET_TIME_UNIT_MINUTES.rel_value_us)
-    {
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "  using old key\n");
-      e_key = &t->kx_ctx->e_key_old;
-    }
-    else
-    {
-      LOG (GNUNET_ERROR_TYPE_DEBUG, "  using new key\n");
-      e_key = &t->e_key;
-    }
-  }
-  else
-  {
-    e_key = &t->e_key;
-  }
-  GNUNET_CRYPTO_symmetric_derive_iv (&siv, e_key, &iv, sizeof (iv), NULL);
+  key = GNUNET_YES == force_newest_key ? &t->e_key : select_key (t);
+  GNUNET_CRYPTO_symmetric_derive_iv (&siv, key, &iv, sizeof (iv), NULL);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_encrypt IV derived\n");
-  out_size = GNUNET_CRYPTO_symmetric_encrypt (src, size, e_key, &siv, dst);
+  out_size = GNUNET_CRYPTO_symmetric_encrypt (src, size, key, &siv, dst);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  t_encrypt end\n");
 
   return out_size;
@@ -730,7 +749,7 @@ t_decrypt_and_validate (struct CadetTunnel *t,
   /* Try primary (newest) key */
   key = &t->d_key;
   decrypted_size = decrypt (key, dst, src, size, iv);
-  t_hmac (t, src, size, iv, GNUNET_NO, &hmac);
+  t_hmac (src, size, iv, key, &hmac);
   if (0 == memcmp (msg_hmac, &hmac, sizeof (hmac)))
     return decrypted_size;
 
@@ -747,7 +766,7 @@ t_decrypt_and_validate (struct CadetTunnel *t,
   /* Try secondary (from previous KX period) key */
   key = &t->kx_ctx->d_key_old;
   decrypted_size = decrypt (key, dst, src, size, iv);
-  t_hmac (t, src, size, iv, GNUNET_NO, &hmac);
+  t_hmac (src, size, iv, key, &hmac);
   if (0 == memcmp (msg_hmac, &hmac, sizeof (hmac)))
     return decrypted_size;
 
@@ -1013,7 +1032,7 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED);
   msg->iv = iv;
   GNUNET_assert (t_encrypt (t, &msg[1], message, size, iv, GNUNET_NO) == size);
-  t_hmac (t, &msg[1], size, iv, GNUNET_YES, &msg->hmac);
+  t_hmac (&msg[1], size, iv, select_key (t), &msg->hmac);
   msg->header.size = htons (sizeof (struct GNUNET_CADET_Encrypted) + size);
 
   if (NULL == c)
