@@ -86,7 +86,7 @@ GDS_DATACACHE_handle_put (struct GNUNET_TIME_Absolute expiration,
 }
 
 /**
- * List of peers in the get path. 
+ * List of peers in the get path.
  */
 struct GetPath
 {
@@ -94,16 +94,16 @@ struct GetPath
    * Pointer to next item in the list
    */
   struct GetPath *next;
-  
+
   /**
    * Pointer to previous item in the list
    */
   struct GetPath *prev;
-  
+
   /**
-   *  An element in the get path. 
+   *  An element in the get path.
    */
-  struct GNUNET_PeerIdentity peer;  
+  struct GNUNET_PeerIdentity peer;
 };
 
 
@@ -136,32 +136,32 @@ struct GetRequestContext
    * Mutator value for the reply_bf, see gnunet_block_lib.h
    */
   uint32_t reply_bf_mutator;
-  
+
   /**
-   * Total number of peers in get path. 
+   * Total number of peers in get path.
    */
   unsigned int get_path_length;
-  
+
   /**
    * Return value to give back.
    */
   enum GNUNET_BLOCK_EvaluationResult eval;
-  
+
   /**
    * Peeer which has the data for the key.
    */
   struct GNUNET_PeerIdentity source_peer;
-  
+
   /**
    * Next hop to forward the get result to.
    */
   struct GNUNET_PeerIdentity next_hop;
-  
+
   /**
    * Head of get path.
    */
   struct GetPath *head;
-  
+
   /**
    * Tail of get path.
    */
@@ -211,7 +211,7 @@ datacache_get_iterator (void *cls,
     GNUNET_STATISTICS_update (GDS_stats,
                               gettext_noop
                               ("# Good RESULTS found in datacache"), 1,
-                              GNUNET_NO); 
+                              GNUNET_NO);
     struct GNUNET_PeerIdentity *get_path;
     get_path = GNUNET_malloc (sizeof (struct GNUNET_PeerIdentity));
     struct GetPath *iterator;
@@ -226,7 +226,7 @@ datacache_get_iterator (void *cls,
     GDS_NEIGHBOURS_send_get_result (key,type, &(ctx->next_hop),&(ctx->source_peer),
                                     put_path_length, put_path, ctx->get_path_length,
                                     get_path, exp, data, size );
-    
+
     break;
   case GNUNET_BLOCK_EVALUATION_OK_DUPLICATE:
     GNUNET_STATISTICS_update (GDS_stats,
@@ -304,12 +304,14 @@ GDS_DATACACHE_handle_get (const struct GNUNET_HashCode * key,
   ctx.reply_bf = reply_bf;
   ctx.reply_bf_mutator = reply_bf_mutator;
   ctx.get_path_length = get_path_length;
+  ctx.head = NULL;
+  ctx.tail = NULL;
   if (next_hop != NULL)
     memcpy (&(ctx.next_hop), next_hop, sizeof (struct GNUNET_PeerIdentity));
- 
+
   int i = 0;
 
-  if(get_path != NULL)
+  if (get_path != NULL)
   {
     while (i < get_path_length)
     {
@@ -317,13 +319,13 @@ GDS_DATACACHE_handle_get (const struct GNUNET_HashCode * key,
       element = GNUNET_malloc (sizeof (struct GetPath));
       element->next = NULL;
       element->prev = NULL;
-    
+
       memcpy (&(element->peer), &get_path[i], sizeof(struct GNUNET_PeerIdentity));
-      GNUNET_CONTAINER_DLL_insert (ctx.head, ctx.tail, element); 
+      GNUNET_CONTAINER_DLL_insert (ctx.head, ctx.tail, element);
       i++;
     }
   }
-  
+
   r = GNUNET_DATACACHE_get (datacache, key, type, &datacache_get_iterator,
                             &ctx);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
