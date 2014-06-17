@@ -103,9 +103,11 @@ GC_h2s (const struct GNUNET_CADET_Hash *id)
 const char *
 GC_m2s (uint16_t m)
 {
-  static char buf[32];
+  static char buf[2][32];
+  static int idx;
   const char *t;
 
+  idx = (idx + 1) % 2;
   switch (m)
   {
       /**
@@ -333,11 +335,11 @@ GC_m2s (uint16_t m)
       break;
 
     default:
-      sprintf(buf, "%u (UNKNOWN TYPE)", m);
-      return buf;
+      sprintf(buf[idx], "%u (UNKNOWN TYPE)", m);
+      return buf[idx];
   }
-  sprintf(buf, "{%18s}", t);
-  return buf;
+  sprintf(buf[idx], "{%18s}", t);
+  return buf[idx];
 }
 #else
 const char *
