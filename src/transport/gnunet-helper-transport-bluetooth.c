@@ -1948,13 +1948,13 @@ main (int argc, char *argv[])
           fprintf (stderr, "LOG : %s sends a message to STDOUT\n", dev.iface); //FIXME: debugging message
 
         }
-        if (sendsocket != -1)
+        if (-1 != sendsocket)
         {
           if (FD_ISSET (sendsocket , &wfds))
           {
-            ssize_t ret =
-        write (sendsocket, write_pout.buf + write_std.pos,
-               write_pout.size - write_pout.pos);
+            ssize_t ret = write (sendsocket,
+                                 write_pout.buf + write_std.pos,
+                                 write_pout.size - write_pout.pos);
             if (0 > ret) //FIXME should I first check the error type?
             {
               fprintf (stderr, "Failed to write to bluetooth device: %s. Closing the socket!\n",
@@ -2101,7 +2101,8 @@ main (int argc, char *argv[])
     stdin_mst = NULL;
     sdp_close (dev.session);
     (void) close (dev.fd_rfcomm);
-    (void) close (sendsocket);
+    if (-1 != sendsocket)
+      (void) close (sendsocket);
 
     for (i = 0; i < crt_rfds; i++)
       (void) close (rfds_list[i]);
