@@ -33,7 +33,7 @@
 /**
  * How namy messages to send
  */
-#define TOTAL_PACKETS 100
+#define TOTAL_PACKETS 1000
 
 /**
  * How long until we give up on connecting the peers?
