@@ -1252,7 +1252,7 @@ GCP_queue_cancel (struct CadetPeer *peer, struct CadetConnection *c)
     if (q->c == c)
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG, "GMP queue cancel %s\n", GC_m2s (q->type));
-      if (GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY != q->type)
+      if (GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY == q->type)
       {
         q->c = NULL;
       }
