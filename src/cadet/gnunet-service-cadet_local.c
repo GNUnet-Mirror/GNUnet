@@ -580,7 +580,6 @@ handle_ack (void *cls, struct GNUNET_SERVER_Client *client,
 }
 
 
-
 /**
  * Iterator over all peers to send a monitoring client info about each peer.
  *
@@ -610,6 +609,36 @@ get_all_peers_iterator (void *cls,
 
   GNUNET_SERVER_notification_context_unicast (nc, client,
                                               &msg.header, GNUNET_NO);
+  return GNUNET_YES;
+}
+
+
+/**
+ * Iterator over all peers to dump info for each peer.
+ *
+ * @param cls Closure (unused).
+ * @param peer Peer ID (tunnel remote peer).
+ * @param value Peer info.
+ *
+ * @return #GNUNET_YES, to keep iterating.
+ */
+static int
+show_peer_iterator (void *cls,
+                        const struct GNUNET_PeerIdentity * peer,
+                        void *value)
+{
+  struct CadetPeer *p = value;
+  struct CadetTunnel *t;
+
+  LOG (GNUNET_ERROR_TYPE_ERROR, "Peer %s\n", GCP_2s (p));
+  LOG (GNUNET_ERROR_TYPE_ERROR, " %u paths\n", GCP_count_paths (p));
+
+  t = GCP_get_tunnel (p);
+  if (NULL != t)
+    GCT_debug (t, GNUNET_ERROR_TYPE_ERROR);
+
+  LOG (GNUNET_ERROR_TYPE_ERROR, "\n");
+
   return GNUNET_YES;
 }
 
@@ -831,6 +860,42 @@ handle_show_tunnel (void *cls, struct GNUNET_SERVER_Client *client,
 
 
 /**
+ * Handler for client's INFO_DUMP request.
+ *
+ * @param cls Closure (unused).
+ * @param client Identification of the client.
+ * @param message The actual message.
+ */
+void
+handle_info_dump (void *cls, struct GNUNET_SERVER_Client *client,
+                  const struct GNUNET_MessageHeader *message)
+{
+  struct CadetClient *c;
+
+  /* Sanity check for client registration */
+  if (NULL == (c = GML_client_get (client)))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+
+  LOG (GNUNET_ERROR_TYPE_INFO, "Received dump info request from client %u\n",
+       c->id);
+
+  LOG (GNUNET_ERROR_TYPE_ERROR,
+       "*************************** DUMP START ***************************\n");
+
+  GCP_iterate_all (&show_peer_iterator, NULL);
+
+  LOG (GNUNET_ERROR_TYPE_ERROR,
+       "**************************** DUMP END ****************************\n");
+
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+}
+
+
+/**
  * Functions to handle messages from clients
  */
 static struct GNUNET_SERVER_MessageHandler client_handlers[] = {
@@ -848,6 +913,8 @@ static struct GNUNET_SERVER_MessageHandler client_handlers[] = {
    sizeof (struct GNUNET_MessageHeader)},
   {&handle_show_tunnel, NULL, GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNEL,
    sizeof (struct GNUNET_CADET_LocalInfo)},
+  {&handle_info_dump, NULL, GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_DUMP,
+   sizeof (struct GNUNET_MessageHeader)},
   {NULL, NULL, 0, 0}
 };
 

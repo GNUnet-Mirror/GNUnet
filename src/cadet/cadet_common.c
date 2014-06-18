@@ -328,10 +328,10 @@ GC_m2s (uint16_t m)
       break;
 
       /**
-       * 640kb should be enough for everybody
+       * Debug request.
        */
-    case 299:
-      t = "RESERVE_END";
+    case GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_DUMP:
+      t = "INFO_DUMP";
       break;
 
     default:

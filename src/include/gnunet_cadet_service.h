@@ -493,6 +493,15 @@ GNUNET_CADET_get_channel (struct GNUNET_CADET_Handle *h,
                          GNUNET_CADET_ChannelCB callback,
                          void *callback_cls);
 
+/**
+ * Request a debug dump on the service's STDERR.
+ *
+ * WARNING: unstable API, likely to change in the future!
+ *
+ * @param h cadet handle
+ */
+void
+GNUNET_CADET_request_dump (struct GNUNET_CADET_Handle *h);
 
 /**
  * Request information about peers known to the running cadet service.

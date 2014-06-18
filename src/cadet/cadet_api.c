@@ -1810,6 +1810,21 @@ send_info_request (struct GNUNET_CADET_Handle *h, uint16_t type)
 
 
 /**
+ * Request a debug dump on the service's STDERR.
+ *
+ * WARNING: unstable API, likely to change in the future!
+ *
+ * @param h cadet handle
+ */
+void
+GNUNET_CADET_request_dump (struct GNUNET_CADET_Handle *h)
+{
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "requesting dump\n");
+  send_info_request (h, GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_DUMP);
+}
+
+
+/**
  * Request information about peers known to the running cadet service.
  * The callback will be called for every peer known to the service.
  * Only one info request (of any kind) can be active at once.

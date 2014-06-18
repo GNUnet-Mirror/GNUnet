@@ -32,7 +32,7 @@
 /**
  * Option -m.
  */
-static int monitor_connections;
+static int monitor_mode;
 
 /**
  * Option -P.
@@ -73,6 +73,11 @@ static uint32_t listen_port;
  * Request echo service
  */
 int echo;
+
+/**
+ * Request a debug dump
+ */
+int dump;
 
 /**
  * Time of last echo request.
@@ -333,6 +338,20 @@ send_echo (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
+/**
+ * Call CADET's monitor API, request debug dump on the service.
+ *
+ * @param cls Closure (unused).
+ * @param tc TaskContext
+ */
+static void
+request_dump (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  GNUNET_CADET_request_dump (mh);
+  GNUNET_SCHEDULER_cancel (sd);
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS, &shutdown_task, NULL);
+}
+
 
 /**
  * Call CADET's monitor API, get info of one connection.
@@ -458,7 +477,7 @@ peers_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
 {
   if (NULL == peer)
   {
-    if (GNUNET_YES != monitor_connections)
+    if (GNUNET_YES != monitor_mode)
     {
       GNUNET_SCHEDULER_shutdown();
     }
@@ -512,7 +531,7 @@ tunnels_callback (void *cls,
 {
   if (NULL == peer)
   {
-    if (GNUNET_YES != monitor_connections)
+    if (GNUNET_YES != monitor_mode)
     {
       GNUNET_SCHEDULER_shutdown();
     }
@@ -560,7 +579,7 @@ tunnel_callback (void *cls,
     FPRINTF (stdout, "- enc state: %u\n", estate);
     FPRINTF (stdout, "- con state: %u\n", cstate);
   }
-  if (GNUNET_YES != monitor_connections)
+  if (GNUNET_YES != monitor_mode)
   {
     GNUNET_SCHEDULER_shutdown();
   }
@@ -706,7 +725,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   target_id = args[0];
   target_port = args[0] && args[1] ? atoi(args[1]) : 0;
   if ( (0 != (request_peers | request_tunnels)
-        || 0 != monitor_connections
+        || 0 != monitor_mode
         || NULL != tunnel_id
         || NULL != conn_id
         || NULL != channel_id)
@@ -718,7 +737,13 @@ run (void *cls, char *const *args, const char *cfgfile,
     return;
   }
 
-  if (NULL != target_id)
+  if (GNUNET_YES == dump)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "requesting debug dump\n");
+    GNUNET_SCHEDULER_add_now (&request_dump, NULL);
+  }
+  else if (NULL != target_id)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Creating channel to %s\n",
@@ -809,6 +834,9 @@ main (int argc, char *const *argv)
     {'e', "echo", NULL,
      gettext_noop ("activate echo mode"),
      GNUNET_NO, &GNUNET_GETOPT_set_one, &echo},
+    {'d', "dump", NULL,
+     gettext_noop ("dump debug information to STDERR"),
+     GNUNET_NO, &GNUNET_GETOPT_set_one, &dump},
 //     {'m', "monitor", NULL,
 //      gettext_noop ("provide information about all events (continuously)"),
 //      GNUNET_NO, &GNUNET_GETOPT_set_one, &monitor_mode},
@@ -831,7 +859,7 @@ main (int argc, char *const *argv)
     GNUNET_GETOPT_OPTION_END
   };
 
-  monitor_connections = GNUNET_NO;
+  monitor_mode = GNUNET_NO;
 
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;

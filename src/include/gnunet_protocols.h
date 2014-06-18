@@ -946,9 +946,9 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_CADET_CLI                    298
 
 /**
- * 640kb should be enough for everybody
+ * Debug request.
  */
-#define GNUNET_MESSAGE_TYPE_CADET_RESERVE_END            299
+#define GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_DUMP        299
 
 
 
@@ -2493,7 +2493,7 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_SOCIAL_JOIN_DECISION 848
 
 /*******************************************************************************
- * X-VINE DHT messages 
+ * X-VINE DHT messages
  ******************************************************************************/
 
 /**
@@ -2532,17 +2532,17 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_DHT_P2P_TRAIL_SETUP_REJECTION 886
 
 /**
- * Trail Tear down Message. 
+ * Trail Tear down Message.
  */
 #define GNUNET_MESSAGE_TYPE_DHT_P2P_TRAIL_TEARDOWN 887
 
 /**
- * Routing table add message. 
+ * Routing table add message.
  */
 #define GNUNET_MESSAGE_TYPE_DHT_P2P_ADD_TRAIL 888
 
 /**
- * Trail compression message. 
+ * Trail compression message.
  */
 #define GNUNET_MESSAGE_TYPE_DHT_P2P_TRAIL_COMPRESSION 889
 
