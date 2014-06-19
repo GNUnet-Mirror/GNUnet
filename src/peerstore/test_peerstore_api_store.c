@@ -28,14 +28,14 @@
 
 static int ok = 1;
 
-struct GNUNET_PEERSTORE_Handle *h;
+static struct GNUNET_PEERSTORE_Handle *h;
 
-char *subsystem = "test_peerstore_api_store";
-struct GNUNET_PeerIdentity pid;
-char *key = "test_peerstore_api_store_key";
-char *val1 = "test_peerstore_api_store_val1";
-char *val2 = "test_peerstore_api_store_val2-";
-char *val3 = "test_peerstore_api_store_val3--";
+static char *subsystem = "test_peerstore_api_store";
+static struct GNUNET_PeerIdentity pid;
+static char *key = "test_peerstore_api_store_key";
+static char *val1 = "test_peerstore_api_store_val1";
+static char *val2 = "test_peerstore_api_store_val2-";
+static char *val3 = "test_peerstore_api_store_val3--";
 
 int count = 0;
 

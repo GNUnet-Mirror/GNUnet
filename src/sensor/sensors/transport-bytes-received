@@ -1,32 +1,32 @@
-[averagepingrtt]
+[transport-bytes-received]
 
 VERSION = 1.0
-DESCRIPTION = Calculate average ping latency to gnunet.org
-CATEGORY = Internet-Connectivity
+DESCRIPTION = Number of bytes received by GNUnet transport service
+CATEGORY = GNUnet
 ENABLED = YES
 
 # Start and end time format: %Y-%m-%d %H:%M:%S
 #START_TIME = 
 #END_TIME = 
 #Interval in seconds
-INTERVAL = 30
+INTERVAL = 60
 #LIFETIME = 
 
 #CAPABILITIES = 
 
-SOURCE = process
+SOURCE = gnunet-statistics
 
-#GNUNET_STAT_SERVICE = 
-#GNUNET_STAT_NAME = 
+GNUNET_STAT_SERVICE = transport
+GNUNET_STAT_NAME = # bytes total received
 
-EXT_PROCESS = avgping.sh
+#EXT_PROCESS = 
 #EXT_ARGS = 
 
-EXPECTED_DATATYPE = double
+EXPECTED_DATATYPE = uint64
 
 # Reporting mechanism
 COLLECTION_POINT = JLAPIAOB2DJA4B4I676TCOCVU0DUIRMKKUSM71BLLGCV3OHMUQ80
-COLLECTION_INTERVAL = 7200
+COLLECTION_INTERVAL = 120
 
 P2P_REPORT = NO
 #P2P_INTERVAL = 

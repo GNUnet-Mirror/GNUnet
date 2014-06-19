@@ -30,12 +30,12 @@
 
 static int ok = 1;
 
-struct GNUNET_PEERSTORE_Handle *h;
+static struct GNUNET_PEERSTORE_Handle *h;
 
-char *ss = "test_peerstore_stress";
-struct GNUNET_PeerIdentity p;
-char *k = "test_peerstore_stress_key";
-char *v = "test_peerstore_stress_val";
+static char *ss = "test_peerstore_stress";
+static struct GNUNET_PeerIdentity p;
+static char *k = "test_peerstore_stress_key";
+static char *v = "test_peerstore_stress_val";
 
 int count = 0;
 

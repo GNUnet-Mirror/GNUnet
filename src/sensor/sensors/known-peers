@@ -1,0 +1,32 @@
+[known-peers]
+
+VERSION = 1.0
+DESCRIPTION = Gets the number of known peers
+CATEGORY = GNUnet
+ENABLED = YES
+
+# Start and end time format: %Y-%m-%d %H:%M:%S
+#START_TIME = 
+#END_TIME = 
+#Interval in seconds
+INTERVAL = 60
+#LIFETIME = 
+
+#CAPABILITIES = 
+
+SOURCE = gnunet-statistics
+
+GNUNET_STAT_SERVICE = peerinfo
+GNUNET_STAT_NAME = # peers known
+
+#EXT_PROCESS = 
+#EXT_ARGS = 
+
+EXPECTED_DATATYPE = uint64
+
+# Reporting mechanism
+COLLECTION_POINT = JLAPIAOB2DJA4B4I676TCOCVU0DUIRMKKUSM71BLLGCV3OHMUQ80
+COLLECTION_INTERVAL = 120
+
+P2P_REPORT = NO
+#P2P_INTERVAL = 

@@ -28,12 +28,12 @@
 
 static int ok = 1;
 
-struct GNUNET_PEERSTORE_Handle *h;
+static struct GNUNET_PEERSTORE_Handle *h;
 
-char *ss = "test_peerstore_api_watch";
-struct GNUNET_PeerIdentity p;
-char *k = "test_peerstore_api_watch_key";
-char *val = "test_peerstore_api_watch_val";
+static char *ss = "test_peerstore_api_watch";
+static struct GNUNET_PeerIdentity p;
+static char *k = "test_peerstore_api_watch_key";
+static char *val = "test_peerstore_api_watch_val";
 
 static int
 watch_cb(void *cls,

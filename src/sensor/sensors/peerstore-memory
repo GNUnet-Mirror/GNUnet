@@ -1,16 +1,16 @@
-[gnunetversion]
+[peerstore-memory]
 
 VERSION = 1.0
-DESCRIPTION = Gets gnunet version number
-CATEGORY = P2P-Software
+DESCRIPTION = Memory consumption of GNUnet peerstore service
+CATEGORY = GNUnet
 ENABLED = YES
 
 # Start and end time format: %Y-%m-%d %H:%M:%S
 #START_TIME = 
 #END_TIME = 
 #Interval in seconds
-INTERVAL = 30
-LIFETIME = 30
+INTERVAL = 60
+#LIFETIME = 
 
 #CAPABILITIES = 
 
@@ -19,14 +19,14 @@ SOURCE = process
 #GNUNET_STAT_SERVICE = 
 #GNUNET_STAT_NAME = 
 
-EXT_PROCESS = gnunet-arm
-EXT_ARGS = -v
+EXT_PROCESS = peerstore-memory.sh
+#EXT_ARGS = 
 
-EXPECTED_DATATYPE = string
+EXPECTED_DATATYPE = uint64
 
 # Reporting mechanism
 COLLECTION_POINT = JLAPIAOB2DJA4B4I676TCOCVU0DUIRMKKUSM71BLLGCV3OHMUQ80
-COLLECTION_INTERVAL = 86400
+COLLECTION_INTERVAL = 7200
 
 P2P_REPORT = NO
 #P2P_INTERVAL = 

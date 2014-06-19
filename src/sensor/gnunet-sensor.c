@@ -42,7 +42,7 @@ static char *get_sensor;
 /*
  * Handle to sensor service
  */
-struct GNUNET_SENSOR_Handle *sensor_handle;
+static struct GNUNET_SENSOR_Handle *sensor_handle;
 
 /**
  * Run on shutdown

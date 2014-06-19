@@ -28,16 +28,16 @@
 
 static int ok = 1;
 
-struct GNUNET_PEERSTORE_Handle *h;
+static struct GNUNET_PEERSTORE_Handle *h;
 
-char *ss = "test_peerstore_api_iterate";
-struct GNUNET_PeerIdentity p1;
-struct GNUNET_PeerIdentity p2;
-char *k1 = "test_peerstore_api_iterate_key1";
-char *k2 = "test_peerstore_api_iterate_key2";
-char *k3 = "test_peerstore_api_iterate_key3";
-char *val = "test_peerstore_api_iterate_val";
-int count = 0;
+static char *ss = "test_peerstore_api_iterate";
+static struct GNUNET_PeerIdentity p1;
+static struct GNUNET_PeerIdentity p2;
+static char *k1 = "test_peerstore_api_iterate_key1";
+static char *k2 = "test_peerstore_api_iterate_key2";
+static char *k3 = "test_peerstore_api_iterate_key3";
+static char *val = "test_peerstore_api_iterate_val";
+static int count = 0;
 
 static int
 iter3_cb(void *cls,

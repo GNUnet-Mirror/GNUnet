@@ -143,6 +143,13 @@ struct SensorInfo
   struct GNUNET_OS_CommandHandle *ext_cmd;
 
   /*
+   * Did we already receive a value
+   * from the currently running external
+   * proccess ? #GNUNET_YES / #GNUNET_NO
+   */
+  int ext_cmd_value_received;
+
+  /*
    * The output datatype to be expected
    */
   char *expected_datatype;
@@ -587,7 +594,7 @@ add_sensor_to_hashmap(struct SensorInfo *sensor, struct GNUNET_CONTAINER_MultiHa
     {
       GNUNET_CONTAINER_multihashmap_remove(map, &key, existing); //remove the old version
       GNUNET_free(existing);
-      GNUNET_log(GNUNET_ERROR_TYPE_INFO, _("Upgrading sensor `%s' to a newer version\n"), sensor->name);
+      GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Upgrading sensor `%s' to a newer version\n", sensor->name);
     }
   }
   if(GNUNET_SYSERR == GNUNET_CONTAINER_multihashmap_put(map, &key, sensor, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY))
@@ -843,7 +850,6 @@ int sensor_statistics_iterator (void *cls,
   struct GNUNET_TIME_Absolute expiry;
 
   GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Received a value for sensor `%s': %" PRIu64 "\n", sensorinfo->name, value);
-  //FIXME: store first line, last line or all ??
   expiry = GNUNET_TIME_relative_to_absolute(sensorinfo->interval);
   GNUNET_PEERSTORE_store(peerstore,
       subsystem,
@@ -855,7 +861,7 @@ int sensor_statistics_iterator (void *cls,
       GNUNET_PEERSTORE_STOREOPTION_MULTIPLE,
       NULL,
       NULL);
-  return GNUNET_OK;
+  return GNUNET_SYSERR; /* We only want one value */
 }
 
 /**
@@ -874,6 +880,55 @@ void end_sensor_run_stat (void *cls, int success)
 }
 
 /**
+ * Tries to parse a received sensor value to its
+ * expected datatype
+ *
+ * @param value the string value received, should be null terminated
+ * @param sensor sensor information struct
+ * @param ret pointer to parsed value
+ * @return size of new parsed value, 0 for error
+ */
+static size_t
+parse_sensor_value (const char *value, struct SensorInfo* sensor, void **ret)
+{
+  uint64_t *ullval;
+  double *dval;
+  char *endptr;
+
+  *ret = NULL;
+  if ('\0' == *value)
+    return 0;
+  //"uint64", "double", "string"
+  if (0 == strcmp("uint64", sensor->expected_datatype))
+  {
+    ullval = GNUNET_new(uint64_t);
+    *ullval = strtoull(value, &endptr, 10);
+    if ('\0' != *endptr &&
+        '\n' != *endptr) /* Invalid string */
+      return 0;
+    *ret = ullval;
+    return sizeof(uint64_t);
+  }
+  if(0 == strcmp("double", sensor->expected_datatype))
+  {
+    dval = GNUNET_new(double);
+    *dval = strtod(value, &endptr);
+    if(value == endptr)
+      return 0;
+   *ret = dval;
+   return sizeof(double);
+  }
+  if(0 == strcmp("string", sensor->expected_datatype))
+  {
+    *ret = GNUNET_strdup(value);
+    return strlen(value) + 1;
+  }
+  GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+      _("Unknown value type expected by sensor, this should not happen.\n"));
+  return 0;
+}
+
+/**
  * Callback for output of executed sensor process
  *
  * @param cls 'struct SensorInfo *'
@@ -882,29 +937,43 @@ void end_sensor_run_stat (void *cls, int success)
 void sensor_process_callback (void *cls, const char *line)
 {
   struct SensorInfo *sensorinfo = cls;
+  void *value;
+  size_t valsize;
   struct GNUNET_TIME_Absolute expiry;
 
-  if(NULL == line) //end of output
+  if(NULL == line)
   {
     GNUNET_OS_command_stop(sensorinfo->ext_cmd);
     sensorinfo->ext_cmd = NULL;
     sensorinfo->running = GNUNET_NO;
+    sensorinfo->ext_cmd_value_received = GNUNET_NO;
     return;
   }
+  if(GNUNET_YES == sensorinfo->ext_cmd_value_received)
+    return; /* We only want one *valid* value */
   GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Received a value for sensor `%s': %s\n", sensorinfo->name, line);
-  //FIXME: store first line, last line or all ??
-  //FIXME: check and parse datatype
-  expiry = GNUNET_TIME_relative_to_absolute(sensorinfo->interval);
-  GNUNET_PEERSTORE_store(peerstore,
-      subsystem,
-      &peerid,
-      sensorinfo->name,
-      line,
-      strlen(line) + 1,
-      expiry,
-      GNUNET_PEERSTORE_STOREOPTION_MULTIPLE,
-      NULL,
-      NULL);
+  valsize = parse_sensor_value(line, sensorinfo, &value);
+  if (valsize == 0) /* invalid value, FIXME: should we disable the sensor now? */
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+        _("Received an invalid value for sensor `%s': %s\n"),
+        sensorinfo->name, line);
+  }
+  else
+  {
+    sensorinfo->ext_cmd_value_received = GNUNET_YES;
+    expiry = GNUNET_TIME_relative_to_absolute(sensorinfo->interval);
+    GNUNET_PEERSTORE_store(peerstore,
+        subsystem,
+        &peerid,
+        sensorinfo->name,
+        value,
+        valsize,
+        expiry,
+        GNUNET_PEERSTORE_STOREOPTION_MULTIPLE,
+        NULL,
+        NULL);
+  }
 }
 
 /**
@@ -967,7 +1036,7 @@ sensor_run (void *cls,
     if(GNUNET_YES == is_path(sensorinfo->ext_process))
     {
       GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-          "Sensor `%s': External process should not be a path, disabling sensor.\n",
+          _("Sensor `%s': External process should not be a path, disabling sensor.\n"),
           sensorinfo->name);
       set_sensor_enabled(sensorinfo, GNUNET_NO);
       return;
@@ -992,7 +1061,8 @@ sensor_run (void *cls,
     }
     if(GNUNET_SYSERR == check_result)
     {
-      GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Sensor `%s' process `%s' problem: binary doesn't exist or not executable\n",
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+          _("Sensor `%s' process `%s' problem: binary doesn't exist or not executable\n"),
           sensorinfo->name,
           sensorinfo->ext_process);
       set_sensor_enabled(sensorinfo, GNUNET_NO);
@@ -1000,6 +1070,7 @@ sensor_run (void *cls,
       GNUNET_free(process_path);
       return;
     }
+    sensorinfo->ext_cmd_value_received = GNUNET_NO;
     sensorinfo->ext_cmd = GNUNET_OS_command_run(&sensor_process_callback,
         sensorinfo,
         GNUNET_TIME_UNIT_FOREVER_REL,
@@ -1038,7 +1109,8 @@ int schedule_sensor(void *cls,
       sensorinfo->name, sensorinfo->interval.rel_value_us);
   if(GNUNET_SCHEDULER_NO_TASK != sensorinfo->execution_task)
   {
-    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Sensor `%s' execution task already set, this should not happen\n", sensorinfo->name);
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+        _("Sensor `%s' execution task already set, this should not happen\n"), sensorinfo->name);
     return GNUNET_NO;
   }
   sensorinfo->execution_task = GNUNET_SCHEDULER_add_delayed(sensorinfo->interval, &sensor_run, sensorinfo);

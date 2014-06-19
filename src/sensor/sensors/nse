@@ -1,8 +1,8 @@
-[connectedpeers]
+[nse]
 
 VERSION = 1.0
-DESCRIPTION = Gets the number of connected peers from core
-CATEGORY = P2P-Connectivity
+DESCRIPTION = GNUnet network size estimate
+CATEGORY = GNUnet
 ENABLED = YES
 
 # Start and end time format: %Y-%m-%d %H:%M:%S
@@ -16,8 +16,8 @@ INTERVAL = 60
 
 SOURCE = gnunet-statistics
 
-GNUNET_STAT_SERVICE = core
-GNUNET_STAT_NAME = # peers connected
+GNUNET_STAT_SERVICE = nse
+GNUNET_STAT_NAME = # nodes in the network (estimate)
 
 #EXT_PROCESS = 
 #EXT_ARGS = 
