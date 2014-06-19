@@ -834,7 +834,7 @@ should_run_sensor(struct SensorInfo *sensorinfo)
  * @return #GNUNET_OK to continue, #GNUNET_SYSERR to abort iteration
  */
 int sensor_statistics_iterator (void *cls,
-    const char *subsystem,
+    const char *ss,
     const char *name,
     uint64_t value,
     int is_persistent)
@@ -893,6 +893,7 @@ void sensor_process_callback (void *cls, const char *line)
   }
   GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Received a value for sensor `%s': %s\n", sensorinfo->name, line);
   //FIXME: store first line, last line or all ??
+  //FIXME: check and parse datatype
   expiry = GNUNET_TIME_relative_to_absolute(sensorinfo->interval);
   GNUNET_PEERSTORE_store(peerstore,
       subsystem,
