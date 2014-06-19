@@ -166,6 +166,7 @@ struct GetRequestContext
    * Tail of get path.
    */
   struct GetPath *tail;
+
   /* get_path */
 };
 
@@ -213,16 +214,18 @@ datacache_get_iterator (void *cls,
                               ("# Good RESULTS found in datacache"), 1,
                               GNUNET_NO);
     struct GNUNET_PeerIdentity *get_path;
-    get_path = GNUNET_malloc (sizeof (struct GNUNET_PeerIdentity));
+    get_path = GNUNET_malloc (sizeof (struct GNUNET_PeerIdentity) * 
+                              ctx->get_path_length);
     struct GetPath *iterator;
     iterator = ctx->head;
     int i = 0;
     while (i < ctx->get_path_length)
     {
-      memcpy (&get_path[i], &(iterator->peer), sizeof (struct GNUNET_PeerIdentity));
+      get_path[i] = iterator->peer;
       i++;
       iterator = iterator->next;
     }
+
     GDS_NEIGHBOURS_send_get_result (key,type, &(ctx->next_hop),&(ctx->source_peer),
                                     put_path_length, put_path, ctx->get_path_length,
                                     get_path, exp, data, size );
@@ -304,23 +307,22 @@ GDS_DATACACHE_handle_get (const struct GNUNET_HashCode * key,
   ctx.reply_bf = reply_bf;
   ctx.reply_bf_mutator = reply_bf_mutator;
   ctx.get_path_length = get_path_length;
-  ctx.head = NULL;
-  ctx.tail = NULL;
+  
   if (next_hop != NULL)
     memcpy (&(ctx.next_hop), next_hop, sizeof (struct GNUNET_PeerIdentity));
 
-  int i = 0;
-
+  unsigned int i = 0;
+  ctx.head = NULL;
+  ctx.tail = NULL;
   if (get_path != NULL)
   {
     while (i < get_path_length)
     {
       struct GetPath *element;
-      element = GNUNET_malloc (sizeof (struct GetPath));
+      element = GNUNET_new (struct GetPath);
       element->next = NULL;
       element->prev = NULL;
-
-      memcpy (&(element->peer), &get_path[i], sizeof(struct GNUNET_PeerIdentity));
+      element->peer = get_path[i];
       GNUNET_CONTAINER_DLL_insert (ctx.head, ctx.tail, element);
       i++;
     }

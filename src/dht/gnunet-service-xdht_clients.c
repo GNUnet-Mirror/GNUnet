@@ -850,7 +850,6 @@ transmit_request (struct ClientQueryRecord *cqr)
        GNUNET_h2s (&cqr->key),
        cqr->replication,
        cqr->seen_replies_count);
-
   GDS_NEIGHBOURS_send_get (&cqr->key, cqr->type, cqr->msg_options, 
                            cqr->replication, NULL, NULL , NULL,
                            0, 0, NULL);
