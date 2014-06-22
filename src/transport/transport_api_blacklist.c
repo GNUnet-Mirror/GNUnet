@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2010 Christian Grothoff (and other contributing authors)
+     (C) 2010-2014 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -59,7 +59,7 @@ struct GNUNET_TRANSPORT_Blacklist
   GNUNET_TRANSPORT_BlacklistCallback cb;
 
   /**
-   * Closure for 'cb'.
+   * Closure for @e cb.
    */
   void *cb_cls;
 
@@ -96,12 +96,13 @@ reply (struct GNUNET_TRANSPORT_Blacklist *br);
  * @param msg query
  */
 static void
-query_handler (void *cls, const struct GNUNET_MessageHeader *msg)
+query_handler (void *cls,
+               const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_TRANSPORT_Blacklist *br = cls;
   const struct BlacklistMessage *bm;
 
-  GNUNET_assert (br != NULL);
+  GNUNET_assert (NULL != br);
   if ((NULL == msg) ||
       (ntohs (msg->size) != sizeof (struct BlacklistMessage)) ||
       (ntohs (msg->type) != GNUNET_MESSAGE_TYPE_TRANSPORT_BLACKLIST_QUERY))
@@ -132,19 +133,21 @@ receive (struct GNUNET_TRANSPORT_Blacklist *br)
 /**
  * Transmit the blacklist initialization request to the service.
  *
- * @param cls closure (struct GNUNET_TRANSPORT_Blacklist*)
- * @param size number of bytes available in buf
+ * @param cls closure with `struct GNUNET_TRANSPORT_Blacklist *`
+ * @param size number of bytes available in @a buf
  * @param buf where the callee should write the message
- * @return number of bytes written to buf
+ * @return number of bytes written to @a buf
  */
 static size_t
-transmit_blacklist_init (void *cls, size_t size, void *buf)
+transmit_blacklist_init (void *cls,
+                         size_t size,
+                         void *buf)
 {
   struct GNUNET_TRANSPORT_Blacklist *br = cls;
   struct GNUNET_MessageHeader req;
 
   br->th = NULL;
-  if (buf == NULL)
+  if (NULL == buf)
   {
     reconnect (br);
     return 0;
@@ -165,10 +168,10 @@ transmit_blacklist_init (void *cls, size_t size, void *buf)
 static void
 reconnect (struct GNUNET_TRANSPORT_Blacklist *br)
 {
-  if (br->client != NULL)
+  if (NULL != br->client)
     GNUNET_CLIENT_disconnect (br->client);
   br->client = GNUNET_CLIENT_connect ("transport", br->cfg);
-  GNUNET_assert (br->client != NULL);
+  GNUNET_assert (NULL != br->client);
   br->th =
       GNUNET_CLIENT_notify_transmit_ready (br->client,
                                            sizeof (struct GNUNET_MessageHeader),
@@ -181,19 +184,21 @@ reconnect (struct GNUNET_TRANSPORT_Blacklist *br)
 /**
  * Transmit the blacklist response to the service.
  *
- * @param cls closure (struct GNUNET_TRANSPORT_Blacklist*)
- * @param size number of bytes available in buf
+ * @param cls closure with `struct GNUNET_TRANSPORT_Blacklist *`
+ * @param size number of bytes available in @a buf
  * @param buf where the callee should write the message
- * @return number of bytes written to buf
+ * @return number of bytes written to @a buf
  */
 static size_t
-transmit_blacklist_reply (void *cls, size_t size, void *buf)
+transmit_blacklist_reply (void *cls,
+                          size_t size,
+                          void *buf)
 {
   struct GNUNET_TRANSPORT_Blacklist *br = cls;
   struct BlacklistMessage req;
 
   br->th = NULL;
-  if (buf == NULL)
+  if (NULL == buf)
   {
     reconnect (br);
     return 0;
@@ -217,14 +222,14 @@ transmit_blacklist_reply (void *cls, size_t size, void *buf)
 static void
 reply (struct GNUNET_TRANSPORT_Blacklist *br)
 {
-  GNUNET_assert (br->th == NULL);
+  GNUNET_assert (NULL == br->th);
   br->th =
       GNUNET_CLIENT_notify_transmit_ready (br->client,
                                            sizeof (struct BlacklistMessage),
                                            GNUNET_TIME_UNIT_FOREVER_REL,
                                            GNUNET_NO, &transmit_blacklist_reply,
                                            br);
-  if (br->th == NULL)
+  if (NULL == br->th)
   {
     reconnect (br);
     return;
@@ -243,12 +248,13 @@ reply (struct GNUNET_TRANSPORT_Blacklist *br)
  *
  * @param cfg configuration to use
  * @param cb callback to invoke to check if connections are allowed
- * @param cb_cls closure for cb
+ * @param cb_cls closure for @a cb
  * @return NULL on error, otherwise handle for cancellation
  */
 struct GNUNET_TRANSPORT_Blacklist *
 GNUNET_TRANSPORT_blacklist (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                            GNUNET_TRANSPORT_BlacklistCallback cb, void *cb_cls)
+                            GNUNET_TRANSPORT_BlacklistCallback cb,
+                            void *cb_cls)
 {
   struct GNUNET_CLIENT_Connection *client;
   struct GNUNET_TRANSPORT_Blacklist *ret;
@@ -261,7 +267,6 @@ GNUNET_TRANSPORT_blacklist (const struct GNUNET_CONFIGURATION_Handle *cfg,
   ret->cfg = cfg;
   ret->cb = cb;
   ret->cb_cls = cb_cls;
-  GNUNET_assert (ret->th == NULL);
   ret->th =
       GNUNET_CLIENT_notify_transmit_ready (client,
                                            sizeof (struct GNUNET_MessageHeader),
@@ -281,7 +286,7 @@ GNUNET_TRANSPORT_blacklist (const struct GNUNET_CONFIGURATION_Handle *cfg,
 void
 GNUNET_TRANSPORT_blacklist_cancel (struct GNUNET_TRANSPORT_Blacklist *br)
 {
-  if (br->th != NULL)
+  if (NULL != br->th)
   {
     GNUNET_CLIENT_notify_transmit_ready_cancel (br->th);
     br->th = NULL;
