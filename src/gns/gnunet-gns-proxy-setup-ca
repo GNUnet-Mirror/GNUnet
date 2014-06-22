@@ -32,30 +32,39 @@ GNSCANO=`mktemp /tmp/gnscakeynoencXXXXXX.pem`
 GNS_CA_CERT_PEM=`gnunet-config -s gns-proxy -o PROXY_CACERT -f $options`
 mkdir -p `dirname $GNS_CA_CERT_PEM`
 
-openssl req -new -x509 -days 3650 -extensions v3_ca -keyout $GNSCAKY -out $GNSCERT -subj "/C=ZZ/L=World/O=GNU/OU=GNUnet/CN=GNS CA/emailAddress=bounce@gnunet.org" -passout pass:"GNU Name System"
+openssl req -new -x509 -days 3650 -extensions v3_ca -keyout $GNSCAKY -out $GNSCERT -subj "/C=ZZ/L=World/O=GNU/OU=GNUnet/CN=GNS Proxy CA/emailAddress=bounce@gnunet.org" -passout pass:"GNU Name System"
 
 echo "Removing passphrase from key"
 openssl rsa -passin pass:"GNU Name System" -in $GNSCAKY -out $GNSCANO
 
+echo "Making private key available to gnunet-gns-proxy"
 cat $GNSCERT $GNSCANO > $GNS_CA_CERT_PEM
 
 echo "Importing CA into browsers"
-for f in ~/.mozilla/firefox/*.default
+for f in ~/.mozilla/firefox/*.default/
 do
   if [ -d $f ]; then
-    echo "Importing CA info Firefox $f"
-    certutil -D -n "GNS Proxy CA" -d ~/.mozilla/firefox/*.default >/dev/null 2&>1
-    certutil -A -n "GNS Proxy CA" -t CT,, -d ~/.mozilla/firefox/*.default < $GNSCERT
+    echo "Importing CA info Firefox at $f/"
+# delete old certificate (if any)
+    certutil -D -n "GNS Proxy CA" -d "$f" >/dev/null 2>/dev/null
+# add new certificate
+    certutil -A -n "GNS Proxy CA" -t CT,, -d "$f" < $GNSCERT
   fi
 done
 
-if [ -d ~/.pki/nssdb ]; then
-  echo "Importing CA into Chrome"
-  certutil -D -n "GNS Proxy CA" -d ~/.pki/nssdb >/dev/null 2&>1
-  certutil -A -n "GNS Proxy CA" -t CT,, -d ~/.pki/nssdb < $GNSCERT
+if [ -d ~/.pki/nssdb/ ]; then
+  echo "Importing CA into Chrome at ~/.pki/nssdb/"
+# delete old certificate (if any)
+  certutil -D -n "GNS Proxy CA" -d ~/.pki/nssdb/ >/dev/null 2>/dev/null
+# add new certificate
+  certutil -A -n "GNS Proxy CA" -t CT,, -d ~/.pki/nssdb/ < $GNSCERT
 fi
 
+echo "Cleaning up."
+rm -f $GNSCAKY $GNSCANO $GNSCERT
 
-rm $GNSCAKY $GNSCANO $GNSCERT
-
-echo "You can now start gnunet-gns-proxy and configure your browser to use a SOCKS proxy on port 7777"
+echo "==================================="
+echo "You can now start gnunet-gns-proxy."
+echo "Afterwards, configure your browser "
+echo " to use a SOCKS proxy on port 7777."
+echo "==================================="
