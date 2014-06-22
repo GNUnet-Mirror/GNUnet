@@ -947,7 +947,7 @@ server_parse_url (struct HTTP_Server_Plugin *plugin,
 
   /* URL parsing */
 #define URL_REGEX \
-  ("^.*/([0-9A-V]+);([0-9]+)(,[0-9]+)?$")
+  ("^.*/([0-9A-Z]+);([0-9]+)(,[0-9]+)?$")
 
   if (NULL == url)
   {
@@ -957,8 +957,9 @@ server_parse_url (struct HTTP_Server_Plugin *plugin,
 
   if (regexec(&plugin->url_regex, url, 4, matches, 0))
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-       "URL `%s' did not match regex\n", url);
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+                     plugin->name,
+                     "URL `%s' did not match regex\n", url);
     return GNUNET_SYSERR;
   }
 
@@ -975,31 +976,37 @@ server_parse_url (struct HTTP_Server_Plugin *plugin,
   }
   if (rc == 0)
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+                     plugin->name,
                      "URL tag is zero\n");
     return GNUNET_SYSERR;
   }
   if ((rc == ULONG_MAX) && (ERANGE == errno))
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+                     plugin->name,
                      "URL tag > ULONG_MAX\n");
     return GNUNET_SYSERR;
   }
   if (rc > UINT32_MAX)
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+                     plugin->name,
                      "URL tag > UINT32_MAX\n");
     return GNUNET_SYSERR;
   }
   (*tag) = (uint32_t)rc;
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-     "Found tag `%u' in url\n", *tag);
+  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+                   plugin->name,
+                   "Found tag `%u' in url\n",
+                   *tag);
 
   /* convert peer id */
   hash_length = matches[1].rm_eo - matches[1].rm_so;
   if (hash_length != plugin->peer_id_length)
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
+    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
+                     plugin->name,
                      "URL target is %u bytes, expecting %u\n",
                      hash_length, plugin->peer_id_length);
     return GNUNET_SYSERR;
