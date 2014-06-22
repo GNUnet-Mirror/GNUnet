@@ -55,7 +55,7 @@
 struct Session;
 
 /**
- * Every 'struct Session' must begin with this header.
+ * Every `struct Session` must begin with this header.
  */
 struct SessionHeader
 {
@@ -121,9 +121,9 @@ typedef void
  */
 typedef struct GNUNET_TIME_Relative
 (*GNUNET_TRANSPORT_PluginReceiveCallback) (void *cls,
-    const struct GNUNET_HELLO_Address *address,
-    struct Session *session,
-    const struct GNUNET_MessageHeader *message);
+                                           const struct GNUNET_HELLO_Address *address,
+                                           struct Session *session,
+                                           const struct GNUNET_MessageHeader *message);
 
 
 /**
@@ -169,8 +169,9 @@ typedef void
  * @param address the address to add or remove
  */
 typedef void
-(*GNUNET_TRANSPORT_AddressNotification) (void *cls, int add_remove,
-    const struct GNUNET_HELLO_Address *address);
+(*GNUNET_TRANSPORT_AddressNotification) (void *cls,
+                                         int add_remove,
+                                         const struct GNUNET_HELLO_Address *address);
 
 
 /**
@@ -194,14 +195,16 @@ typedef struct GNUNET_TIME_Relative
                                    const struct GNUNET_PeerIdentity *peer,
                                    size_t amount_recved);
 
+
 /**
  * FIXME: document!
  */
 typedef void
 (*GNUNET_TRANSPORT_RegisterQuotaNotification) (void *cls,
-                                           const struct GNUNET_PeerIdentity *peer,
-                                           const char *plugin,
-                                           struct Session *session);
+                                               const struct GNUNET_PeerIdentity *peer,
+                                               const char *plugin,
+                                               struct Session *session);
+
 
 /**
  * FIXME: document!
@@ -253,8 +256,8 @@ struct GNUNET_TRANSPORT_PluginEnvironment
    * whenever a message is received.  If this field is "NULL",
    * the plugin should load in 'stub' mode and NOT fully
    * initialize and instead only return an API with the
-   * 'address_pretty_printer', 'address_to_string' and
-   * 'string_to_address' functions.
+   * @e address_pretty_printer, @e address_to_string and
+   * @e string_to_address functions.
    */
   GNUNET_TRANSPORT_PluginReceiveCallback receive;
 
@@ -397,9 +400,10 @@ typedef int
 (*GNUNET_TRANSPORT_DisconnectSessionFunction) (void *cls,
                                                struct Session *session);
 
+
 /**
  * Function that is called to get the keepalive factor.
- * GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT is divided by this number to
+ * #GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT is divided by this number to
  * calculate the interval between keepalive packets.
  *
  * @param cls closure with the `struct Plugin`
@@ -521,11 +525,21 @@ typedef void
 
 
 
+/**
+ * Function that will be called whenever the transport service wants to
+ * notify the plugin that the inbound quota changed and that the plugin
+ * should update it's delay for the next receive value
+ *
+ * @param cls closure
+ * @param peer which peer was the session for
+ * @param session which session is being updated
+ * @param delay new delay to use for receiving
+ */
 typedef void
 (*GNUNET_TRANSPORT_UpdateInboundDelay) (void *cls,
-                                          const struct GNUNET_PeerIdentity *peer,
-                                          struct Session *session,
-                                          struct GNUNET_TIME_Relative delay);
+                                        const struct GNUNET_PeerIdentity *peer,
+                                        struct Session *session,
+                                        struct GNUNET_TIME_Relative delay);
 
 /**
  * Function called for a quick conversion of the binary address to
@@ -577,6 +591,115 @@ typedef enum GNUNET_ATS_Network_Type
 
 
 /**
+ * Possible states of a session in a plugin.
+ */
+enum GNUNET_TRANSPORT_SessionState
+{
+  /**
+   * Session is being torn down and about to disappear.
+   */
+  GNUNET_TRANSPORT_SS_DOWN,
+
+  /**
+   * Initial session handshake is in progress.
+   */
+  GNUNET_TRANSPORT_SS_HANDSHAKE,
+
+  /**
+   * Session is fully UP.
+   */
+  GNUNET_TRANSPORT_SS_UP
+
+};
+
+
+/**
+ * Information about a plugin's session.
+ */
+struct GNUNET_TRANSPORT_SessionInfo
+{
+
+  /**
+   * New state of the session.
+   */
+  enum GNUNET_TRANSPORT_SessionState state;
+
+  /**
+   * #GNUNET_YES if this is an inbound connection,
+   * #GNUNET_NO if this is an outbound connection,
+   * #GNUNET_SYSERR if connections of this plugin
+   *             are so fundamentally bidirectional
+   *             that they have no 'initiator'
+   */
+  int is_inbound;
+
+  /**
+   * Number of messages pending transmission for this session.
+   */
+  unsigned int num_msg_pending;
+
+  /**
+   * Number of bytes pending transmission for this session.
+   */
+  unsigned int num_bytes_pending;
+
+  /**
+   * Until when does this plugin refuse to receive to manage
+   * staying within the inbound quota?  ZERO if receive is
+   * active.
+   */
+  struct GNUNET_TIME_Absolute receive_delay;
+
+  /**
+   * At what time will this session timeout (unless activity
+   * happens)?
+   */
+  struct GNUNET_TIME_Absolute session_timeout;
+
+  /**
+   * Address used by the session.  Can be NULL if none is available.
+   */
+  const struct GNUNET_HELLO_Address *address;
+};
+
+
+/**
+ * Function called by the plugin with information about the
+ * current sessions managed by the plugin (for monitoring).
+ *
+ * @param cls closure
+ * @param session session handle this information is about,
+ *        NULL to indicate that we are "in sync" (initial
+ *        iteration complete)
+ * @param info information about the state of the session,
+ *        NULL if @a session is also NULL and we are
+ *        merely signalling that the initial iteration is over
+ */
+typedef void
+(*GNUNET_TRANSPORT_SessionInfoCallback) (void *cls,
+                                         struct Session *session,
+                                         const struct GNUNET_TRANSPORT_SessionInfo *info);
+
+
+/**
+ * Begin monitoring sessions of a plugin.  There can only
+ * be one active monitor per plugin (i.e. if there are
+ * multiple monitors, the transport service needs to
+ * multiplex the generated events over all of them).
+ *
+ * @param cls closure of the plugin
+ * @param sic callback to invoke, NULL to disable monitor;
+ *            plugin will being by iterating over all active
+ *            sessions immediately and then enter monitor mode
+ * @param sic_cls closure for @a sic
+ */
+typedef void
+(*GNUNET_TRANSPORT_SessionMonitorSetup) (void *cls,
+                                         GNUNET_TRANSPORT_SessionInfoCallback sic,
+                                         void *sic_cls);
+
+
+/**
  * Each plugin is required to return a pointer to a struct of this
  * type as the return value from its entry point.
  */
@@ -618,18 +741,16 @@ struct GNUNET_TRANSPORT_PluginFunctions
    */
   GNUNET_TRANSPORT_UpdateSessionTimeout update_session_timeout;
 
-  GNUNET_TRANSPORT_UpdateInboundDelay update_inbound_delay;
-
   /**
    * Function that will be called whenever the transport service wants to
    * notify the plugin that the inbound quota changed and that the plugin
    * should update it's delay for the next receive value
    */
-  //GNUNET_TRANSPORT_UpdateNextReceiveTimeout update_next_receive_timeout;
+  GNUNET_TRANSPORT_UpdateInboundDelay update_inbound_delay;
 
   /**
    * Function that is used to query keepalive factor.
-   * GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT is divided by this number to
+   * #GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT is divided by this number to
    * calculate the interval between keepalive packets.
    */
   GNUNET_TRANSPORT_QueryKeepaliveFactorFunction query_keepalive_factor;
@@ -672,6 +793,11 @@ struct GNUNET_TRANSPORT_PluginFunctions
    * Function to obtain the network type for a session
    */
   GNUNET_TRANSPORT_GetNetworkType get_network;
+
+  /**
+   * Function to monitor the sessions managed by the plugin.
+   */
+  GNUNET_TRANSPORT_SessionMonitorSetup setup_monitor;
 };
 
 
