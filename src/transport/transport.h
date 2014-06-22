@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 2009 Christian Grothoff (and other contributing authors)
+     (C) 2009-2014 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -72,11 +72,12 @@
  * @param bandwidth_out outbound bandwidth in NBO
  *
  */
+typedef void
+(*NotifyConnect) (void *cls,
+                  const struct GNUNET_PeerIdentity *peer,
+                  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
+                  struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out);
 
-typedef void (*NotifyConnect) (void *cls,
-                              const struct GNUNET_PeerIdentity *peer,
-                              struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-                              struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out);
 
 GNUNET_NETWORK_STRUCT_BEGIN
 
@@ -89,7 +90,7 @@ struct StartMessage
 {
 
   /**
-   * Type will be GNUNET_MESSAGE_TYPE_TRANSPORT_START
+   * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_START
    */
   struct GNUNET_MessageHeader header;
 
@@ -117,7 +118,7 @@ struct ConnectInfoMessage
 {
 
   /**
-   * Type will be GNUNET_MESSAGE_TYPE_TRANSPORT_CONNECT
+   * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_CONNECT
    */
   struct GNUNET_MessageHeader header;
 
@@ -146,7 +147,7 @@ struct DisconnectInfoMessage
 {
 
   /**
-   * Type will be GNUNET_MESSAGE_TYPE_TRANSPORT_DISCONNECT
+   * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_DISCONNECT
    */
   struct GNUNET_MessageHeader header;
 
@@ -176,7 +177,7 @@ struct TransportRequestConnectMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Connect (GNUNET_YES) or connect (GNUNET_NO).
+   * Connect (#GNUNET_YES) or connect (#GNUNET_NO).
    */
   uint32_t connect;
 
@@ -195,7 +196,7 @@ struct QuotaSetMessage
 {
 
   /**
-   * Type will be GNUNET_MESSAGE_TYPE_TRANSPORT_SET_QUOTA
+   * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_SET_QUOTA
    */
   struct GNUNET_MessageHeader header;
 
@@ -220,7 +221,7 @@ struct InboundMessage
 {
 
   /**
-   * Type will be GNUNET_MESSAGE_TYPE_TRANSPORT_RECV
+   * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_RECV
    */
   struct GNUNET_MessageHeader header;
 
@@ -240,18 +241,17 @@ struct SendOkMessage
 {
 
   /**
-   * Type will be GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_OK
+   * Type will be #GNUNET_MESSAGE_TYPE_TRANSPORT_SEND_OK
    */
   struct GNUNET_MessageHeader header;
 
   /**
-   * GNUNET_OK if the transmission succeeded,
-   * GNUNET_SYSERR if it failed (i.e. network disconnect);
+   * #GNUNET_OK if the transmission succeeded,
+   * #GNUNET_SYSERR if it failed (i.e. network disconnect);
    * in either case, it is now OK for this client to
    * send us another message for the given peer.
    */
   uint32_t success GNUNET_PACKED;
-
 
   /**
    * Size of message sent
