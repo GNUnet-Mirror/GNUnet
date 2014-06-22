@@ -185,6 +185,18 @@ struct GNUNET_TUN_IPv6Header
 
 
 /**
+ * TCP flags.
+ */
+#define GNUNET_TUN_TCP_FLAGS_FIN 1
+#define GNUNET_TUN_TCP_FLAGS_SYN 2
+#define GNUNET_TUN_TCP_FLAGS_RST 4
+#define GNUNET_TUN_TCP_FLAGS_PSH 8
+#define GNUNET_TUN_TCP_FLAGS_ACK 16
+#define GNUNET_TUN_TCP_FLAGS_URG 32
+#define GNUNET_TUN_TCP_FLAGS_ECE 64
+#define GNUNET_TUN_TCP_FLAGS_CWR 128
+
+/**
  * TCP packet header.
  */
 struct GNUNET_TUN_TcpHeader

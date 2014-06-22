@@ -1383,7 +1383,7 @@ search_result_resume_probes (void *cls,
  */
 static int
 search_result_suspend (void *cls,
-                       const struct GNUNET_HashCode * key,
+                       const struct GNUNET_HashCode *key,
                        void *value)
 {
   struct GNUNET_FS_SearchContext *sc = cls;
