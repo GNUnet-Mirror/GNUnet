@@ -382,9 +382,9 @@ notify_session_monitor (struct Plugin *plugin,
  * @return string representing the same address
  */
 static const char *
-unix_address_to_string (void *cls,
-                        const void *addr,
-                        size_t addrlen)
+unix_plugin_address_to_string (void *cls,
+                               const void *addr,
+                               size_t addrlen)
 {
   static char rbuf[1024];
   struct UnixAddress *ua = (struct UnixAddress *) addr;
@@ -442,8 +442,8 @@ unix_address_to_string (void *cls,
  * @return #GNUNET_OK on success
  */
 static int
-unix_session_disconnect (void *cls,
-                         struct Session *session)
+unix_plugin_session_disconnect (void *cls,
+                                struct Session *session)
 {
   struct Plugin *plugin = cls;
   struct UNIXMessageWrapper *msgw;
@@ -452,9 +452,9 @@ unix_session_disconnect (void *cls,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Disconnecting session for peer `%s' `%s'\n",
        GNUNET_i2s (&session->target),
-       unix_address_to_string (NULL,
-                               session->address->address,
-                               session->address->address_length));
+       unix_plugin_address_to_string (NULL,
+                                      session->address->address,
+                                      session->address->address_length));
   plugin->env->session_end (plugin->env->cls,
                             session->address,
                             session);
@@ -538,7 +538,7 @@ session_timeout (void *cls,
        session,
        GNUNET_STRINGS_relative_time_to_string (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
 					       GNUNET_YES));
-  unix_session_disconnect (session->plugin, session);
+  unix_plugin_session_disconnect (session->plugin, session);
 }
 
 
@@ -662,7 +662,7 @@ lookup_session (struct Plugin *plugin,
  * @return keepalive factor
  */
 static unsigned int
-unix_query_keepalive_factor (void *cls)
+unix_plugin_query_keepalive_factor (void *cls)
 {
   return 3;
 }
@@ -808,8 +808,8 @@ resend:
  * @return the network type in HBO or #GNUNET_SYSERR
  */
 static enum GNUNET_ATS_Network_Type
-unix_get_network (void *cls,
-		  struct Session *session)
+unix_plugin_get_network (void *cls,
+                         struct Session *session)
 {
   GNUNET_assert (NULL != session);
   return GNUNET_ATS_NET_LOOPBACK;
@@ -875,9 +875,9 @@ unix_plugin_get_session (void *cls,
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Found existing session %p for address `%s'\n",
 	 session,
-	 unix_address_to_string (NULL,
-                                 address->address,
-                                 address->address_length));
+	 unix_plugin_address_to_string (NULL,
+                                        address->address,
+                                        address->address_length));
     return session;
   }
 
@@ -892,9 +892,9 @@ unix_plugin_get_session (void *cls,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Creating a new session %p for address `%s'\n",
        session,
-       unix_address_to_string (NULL,
-                               address->address,
-                               address->address_length));
+       unix_plugin_address_to_string (NULL,
+                                      address->address,
+                                      address->address_length));
   (void) GNUNET_CONTAINER_multipeermap_put (plugin->session_map,
 					    &address->peer, session,
 					    GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
@@ -959,7 +959,7 @@ unix_demultiplexer (struct Plugin *plugin,
   GNUNET_assert (ua_len >= sizeof (struct UnixAddress));
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Received message from %s\n",
-       unix_address_to_string (NULL, ua, ua_len));
+       unix_plugin_address_to_string (NULL, ua, ua_len));
   GNUNET_STATISTICS_update (plugin->env->stats,
 			    "# bytes received via UNIX",
 			    ntohs (currhdr->size),
@@ -1321,9 +1321,9 @@ unix_plugin_send (void *cls,
     LOG (GNUNET_ERROR_TYPE_ERROR,
 	 "Invalid session for peer `%s' `%s'\n",
 	 GNUNET_i2s (&session->target),
-	 unix_address_to_string(NULL,
-                                session->address->address,
-                                session->address->address_length));
+	 unix_plugin_address_to_string (NULL,
+                                        session->address->address,
+                                        session->address->address_length));
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
@@ -1331,9 +1331,9 @@ unix_plugin_send (void *cls,
        "Sending %u bytes with session for peer `%s' `%s'\n",
        msgbuf_size,
        GNUNET_i2s (&session->target),
-       unix_address_to_string (NULL,
-                               session->address->address,
-                               session->address->address_length));
+       unix_plugin_address_to_string (NULL,
+                                      session->address->address,
+                                      session->address->address_length));
   ssize = sizeof (struct UNIXMessage) + msgbuf_size;
   message = GNUNET_malloc (sizeof (struct UNIXMessage) + msgbuf_size);
   message->header.size = htons (ssize);
@@ -1452,9 +1452,9 @@ unix_transport_server_start (void *cls)
  *
  */
 static int
-unix_check_address (void *cls,
-                    const void *addr,
-                    size_t addrlen)
+unix_plugin_check_address (void *cls,
+                           const void *addr,
+                           size_t addrlen)
 {
   struct Plugin* plugin = cls;
   const struct UnixAddress *ua = addr;
@@ -1513,9 +1513,9 @@ unix_plugin_address_pretty_printer (void *cls, const char *type,
   const char *ret;
 
   if ( (NULL != addr) && (addrlen > 0))
-    ret = unix_address_to_string (NULL,
-                                  addr,
-                                  addrlen);
+    ret = unix_plugin_address_to_string (NULL,
+                                         addr,
+                                         addrlen);
   else
     ret = NULL;
   asc (asc_cls,
@@ -1538,10 +1538,10 @@ unix_plugin_address_pretty_printer (void *cls, const char *type,
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
  */
 static int
-unix_string_to_address (void *cls,
-                        const char *addr,
-                        uint16_t addrlen,
-                        void **buf, size_t *added)
+unix_plugin_string_to_address (void *cls,
+                               const char *addr,
+                               uint16_t addrlen,
+                               void **buf, size_t *added)
 {
   struct UnixAddress *ua;
   char *address;
@@ -1661,9 +1661,9 @@ get_session_delete_it (void *cls,
 		       void *value)
 {
   struct Plugin *plugin = cls;
-  struct Session *s = value;
+  struct Session *session = value;
 
-  unix_session_disconnect (plugin, s);
+  unix_plugin_session_disconnect (plugin, session);
   return GNUNET_YES;
 }
 
@@ -1676,12 +1676,11 @@ get_session_delete_it (void *cls,
  * @return #GNUNET_OK on success, #GNUNET_SYSERR if the operation failed
  */
 static void
-unix_peer_disconnect (void *cls,
-                      const struct GNUNET_PeerIdentity *target)
+unix_plugin_peer_disconnect (void *cls,
+                             const struct GNUNET_PeerIdentity *target)
 {
   struct Plugin *plugin = cls;
 
-  GNUNET_assert (NULL != plugin);
   GNUNET_CONTAINER_multipeermap_get_multiple (plugin->session_map,
 					      target,
 					      &get_session_delete_it, plugin);
@@ -1725,18 +1724,22 @@ send_session_info_iter (void *cls,
  * @param sic_cls closure for @a sic
  */
 static void
-unix_setup_monitor (void *cls,
-                    GNUNET_TRANSPORT_SessionInfoCallback sic,
-                    void *sic_cls)
+unix_plugin_setup_monitor (void *cls,
+                           GNUNET_TRANSPORT_SessionInfoCallback sic,
+                           void *sic_cls)
 {
   struct Plugin *plugin = cls;
 
   plugin->sic = sic;
   plugin->sic_cls = sic_cls;
   if (NULL != sic)
+  {
     GNUNET_CONTAINER_multipeermap_iterate (plugin->session_map,
                                            &send_session_info_iter,
                                            plugin);
+    /* signal end of first iteration */
+    sic (sic_cls, NULL, NULL);
+  }
 }
 
 
@@ -1762,8 +1765,8 @@ libgnunet_plugin_transport_unix_init (void *cls)
     api = GNUNET_new (struct GNUNET_TRANSPORT_PluginFunctions);
     api->cls = NULL;
     api->address_pretty_printer = &unix_plugin_address_pretty_printer;
-    api->address_to_string = &unix_address_to_string;
-    api->string_to_address = &unix_string_to_address;
+    api->address_to_string = &unix_plugin_address_to_string;
+    api->string_to_address = &unix_plugin_string_to_address;
     return api;
   }
 
@@ -1797,16 +1800,16 @@ libgnunet_plugin_transport_unix_init (void *cls)
   api->cls = plugin;
   api->get_session = &unix_plugin_get_session;
   api->send = &unix_plugin_send;
-  api->disconnect_peer = &unix_peer_disconnect;
-  api->disconnect_session = &unix_session_disconnect;
-  api->query_keepalive_factor = &unix_query_keepalive_factor;
+  api->disconnect_peer = &unix_plugin_peer_disconnect;
+  api->disconnect_session = &unix_plugin_session_disconnect;
+  api->query_keepalive_factor = &unix_plugin_query_keepalive_factor;
   api->address_pretty_printer = &unix_plugin_address_pretty_printer;
-  api->address_to_string = &unix_address_to_string;
-  api->check_address = &unix_check_address;
-  api->string_to_address = &unix_string_to_address;
-  api->get_network = &unix_get_network;
+  api->address_to_string = &unix_plugin_address_to_string;
+  api->check_address = &unix_plugin_check_address;
+  api->string_to_address = &unix_plugin_string_to_address;
+  api->get_network = &unix_plugin_get_network;
   api->update_session_timeout = &unix_plugin_update_session_timeout;
-  api->setup_monitor = &unix_setup_monitor;
+  api->setup_monitor = &unix_plugin_setup_monitor;
   sockets_created = unix_transport_server_start (plugin);
   if ((0 == sockets_created) || (GNUNET_SYSERR == sockets_created))
   {

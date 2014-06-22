@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     (C) 2002, 2003, 2004, 2005, 2006, 2007, 2008, 2009 Christian Grothoff (and other contributing authors)
+     (C) 2002-2014 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -60,7 +60,7 @@ struct Session
   struct GNUNET_PeerIdentity sender;
 
   /**
-   * Stored in a linked list.
+   * Stored in a linked list (or a peer map, or ...)
    */
   struct Session *next;
 
@@ -82,17 +82,17 @@ struct Session
   GNUNET_TRANSPORT_TransmitContinuation transmit_cont;
 
   /**
-   * Closure for transmit_cont.
+   * Closure for @e transmit_cont.
    */
   void *transmit_cont_cls;
 
   /**
-   * At what time did we reset last_received last?
+   * At what time did we reset @e last_received last?
    */
   struct GNUNET_TIME_Absolute last_quota_update;
 
   /**
-   * How many bytes have we received since the "last_quota_update"
+   * How many bytes have we received since the @e last_quota_update
    * timestamp?
    */
   uint64_t last_received;
@@ -109,12 +109,12 @@ GNUNET_NETWORK_STRUCT_BEGIN
 
 struct TemplateAddress
 {
-	/**
-	 * Address options in NBO
-	 */
-	uint32_t options GNUNET_PACKED;
+  /**
+   * Address options in NBO
+   */
+  uint32_t options GNUNET_PACKED;
 
-	/* Add address here */
+  /* Add address here */
 };
 
 GNUNET_NETWORK_STRUCT_END
@@ -130,15 +130,58 @@ struct Plugin
   struct GNUNET_TRANSPORT_PluginEnvironment *env;
 
   /**
-   * List of open sessions.
+   * List of open sessions (or peer map, or...)
    */
   struct Session *sessions;
+
+  /**
+   * Function to call about session status changes.
+   */
+  GNUNET_TRANSPORT_SessionInfoCallback sic;
+
+  /**
+   * Closure for @e sic.
+   */
+  void *sic_cls;
 
   /**
    * Options in HBO to be used with addresses
    */
 
 };
+
+
+#if 0
+/**
+ * If a session monitor is attached, notify it about the new
+ * session state.
+ *
+ * @param plugin our plugin
+ * @param session session that changed state
+ * @param state new state of the session
+ */
+static void
+notify_session_monitor (struct Plugin *plugin,
+                        struct Session *session,
+                        enum GNUNET_TRANSPORT_SessionState state)
+{
+  struct GNUNET_TRANSPORT_SessionInfo info;
+
+  if (NULL == plugin->sic)
+    return;
+  memset (&info, 0, sizeof (info));
+  info.state = state;
+  info.is_inbound = GNUNET_SYSERR; /* FIXME */
+  // info.num_msg_pending =
+  // info.num_bytes_pending =
+  // info.receive_delay =
+  // info.session_timeout = session->timeout;
+  // info.address = session->address;
+  plugin->sic (plugin->sic_cls,
+               session,
+               &info);
+}
+#endif
 
 
 /**
@@ -170,19 +213,17 @@ struct Plugin
  */
 static ssize_t
 template_plugin_send (void *cls,
-                  struct Session *session,
-                  const char *msgbuf, size_t msgbuf_size,
-                  unsigned int priority,
-                  struct GNUNET_TIME_Relative to,
-                  GNUNET_TRANSPORT_TransmitContinuation cont, void *cont_cls)
+                      struct Session *session,
+                      const char *msgbuf,
+                      size_t msgbuf_size,
+                      unsigned int priority,
+                      struct GNUNET_TIME_Relative to,
+                      GNUNET_TRANSPORT_TransmitContinuation cont,
+                      void *cont_cls)
 {
-  struct Plugin *plugin = cls;
-  int bytes_sent = 0;
-
-  GNUNET_assert (plugin != NULL);
-  GNUNET_assert (session != NULL);
-
   /*  struct Plugin *plugin = cls; */
+  ssize_t bytes_sent = 0;
+
   return bytes_sent;
 }
 
@@ -243,7 +284,7 @@ template_plugin_query_keepalive_factor (void *cls)
  *
  * @param cls closure ('struct Plugin*')
  * @param session the session
- * @return the network type in HBO or GNUNET_SYSERR
+ * @return the network type in HBO or #GNUNET_SYSERR
  */
 static enum GNUNET_ATS_Network_Type
 template_plugin_get_network (void *cls,
@@ -266,7 +307,7 @@ template_plugin_get_network (void *cls,
  * @param numeric should (IP) addresses be displayed in numeric form?
  * @param timeout after how long should we give up?
  * @param asc function to call on each string
- * @param asc_cls closure for asc
+ * @param asc_cls closure for @a asc
  */
 static void
 template_plugin_address_pretty_printer (void *cls, const char *type,
@@ -375,13 +416,75 @@ template_plugin_get_session (void *cls,
   return NULL;
 }
 
+
 static void
 template_plugin_update_session_timeout (void *cls,
-                                  const struct GNUNET_PeerIdentity *peer,
-                                  struct Session *session)
+                                        const struct GNUNET_PeerIdentity *peer,
+                                        struct Session *session)
 {
 
 }
+
+
+#if 0
+/**
+ * Return information about the given session to the
+ * monitor callback.
+ *
+ * @param cls the `struct Plugin` with the monitor callback (`sic`)
+ * @param peer peer we send information about
+ * @param value our `struct Session` to send information about
+ * @return #GNUNET_OK (continue to iterate)
+ */
+static int
+send_session_info_iter (void *cls,
+                        const struct GNUNET_PeerIdentity *peer,
+                        void *value)
+{
+  struct Plugin *plugin = cls;
+  struct Session *session = value;
+
+  notify_session_monitor (plugin,
+                          session,
+                          GNUNET_TRANSPORT_SS_UP);
+  return GNUNET_OK;
+}
+#endif
+
+
+/**
+ * Begin monitoring sessions of a plugin.  There can only
+ * be one active monitor per plugin (i.e. if there are
+ * multiple monitors, the transport service needs to
+ * multiplex the generated events over all of them).
+ *
+ * @param cls closure of the plugin
+ * @param sic callback to invoke, NULL to disable monitor;
+ *            plugin will being by iterating over all active
+ *            sessions immediately and then enter monitor mode
+ * @param sic_cls closure for @a sic
+ */
+static void
+template_plugin_setup_monitor (void *cls,
+                               GNUNET_TRANSPORT_SessionInfoCallback sic,
+                               void *sic_cls)
+{
+  struct Plugin *plugin = cls;
+
+  plugin->sic = sic;
+  plugin->sic_cls = sic_cls;
+  if (NULL != sic)
+  {
+#if 0
+    GNUNET_CONTAINER_multipeermap_iterate (NULL /* FIXME */,
+                                           &send_session_info_iter,
+                                           plugin);
+#endif
+    /* signal end of first iteration */
+    sic (sic_cls, NULL, NULL);
+  }
+}
+
 
 /**
  * Entry point for the plugin.
@@ -420,6 +523,7 @@ libgnunet_plugin_transport_template_init (void *cls)
   api->get_session = &template_plugin_get_session;
   api->get_network = &template_plugin_get_network;
   api->update_session_timeout = &template_plugin_update_session_timeout;
+  api->setup_monitor = &template_plugin_setup_monitor;
   LOG (GNUNET_ERROR_TYPE_INFO, "Template plugin successfully loaded\n");
   return api;
 }
