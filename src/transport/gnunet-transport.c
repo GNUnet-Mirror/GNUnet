@@ -1,6 +1,6 @@
 /*
  This file is part of GNUnet.
- (C) 2011 Christian Grothoff (and other contributing authors)
+ (C) 2011-2014 Christian Grothoff (and other contributing authors)
 
  GNUnet is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published
@@ -27,7 +27,6 @@
  * This utility can be used to test if a transport mechanism for
  * GNUnet is properly configured.
  */
-
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_resolver_service.h"
@@ -42,6 +41,132 @@
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 20)
 #define RESOLUTION_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 #define OP_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
+
+
+struct ValidationResolutionContext
+{
+  struct ValidationResolutionContext *next;
+
+  struct ValidationResolutionContext *prev;
+
+  struct GNUNET_PeerIdentity id;
+
+  struct GNUNET_HELLO_Address *addrcp;
+
+  struct GNUNET_TIME_Absolute last_validation;
+
+  struct GNUNET_TIME_Absolute valid_until;
+
+  struct GNUNET_TIME_Absolute next_validation;
+
+  enum GNUNET_TRANSPORT_ValidationState state;
+
+  struct GNUNET_TRANSPORT_AddressToStringContext *asc;
+
+  char *transport;
+
+  int printed;
+};
+
+
+struct MonitoredPeer
+{
+  enum GNUNET_TRANSPORT_PeerState state;
+
+  struct GNUNET_TIME_Absolute state_timeout;
+
+  struct GNUNET_HELLO_Address *address;
+};
+
+
+struct PeerResolutionContext
+{
+  struct PeerResolutionContext *next;
+  struct PeerResolutionContext *prev;
+  struct GNUNET_PeerIdentity id;
+  struct GNUNET_HELLO_Address *addrcp;
+  struct GNUNET_TRANSPORT_AddressToStringContext *asc;
+  enum GNUNET_TRANSPORT_PeerState state;
+  struct GNUNET_TIME_Absolute state_timeout;
+  char *transport;
+  int printed;
+};
+
+
+/**
+ * Context for a plugin test.
+ */
+struct TestContext
+{
+  /**
+   * Previous in DLL
+   */
+  struct TestContext *prev;
+
+  /**
+   * Next in DLL
+   */
+  struct TestContext *next;
+
+  /**
+   * Handle to the active NAT test.
+   */
+  struct GNUNET_NAT_Test *tst;
+
+  /**
+   * Task identifier for the timeout.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier tsk;
+
+  /**
+   * Name of plugin under test.
+   */
+  char *name;
+
+  /**
+   * Bound port
+   */
+  unsigned long long bnd_port;
+
+  /**
+   * Advertised ports
+   */
+  unsigned long long adv_port;
+
+};
+
+
+/**
+ *
+ */
+enum TestResult
+{
+  /**
+   * NAT returned success
+   */
+  NAT_TEST_SUCCESS = GNUNET_OK,
+
+  /**
+   * NAT returned failure
+   */
+  NAT_TEST_FAIL = GNUNET_NO,
+
+  /**
+   * NAT returned failure while running test
+   */
+  NAT_TEST_INTERNAL_FAIL = GNUNET_SYSERR,
+
+  /**
+   * We could not start the test
+   */
+  NAT_TEST_FAILED_TO_START = 2,
+
+  /**
+   * We had a timeout while running the test
+   */
+  NAT_TEST_TIMEOUT = 3
+};
+
 
 /**
  * Benchmarking block size in KB
@@ -66,7 +191,7 @@ static struct GNUNET_CONFIGURATION_Handle *cfg;
 /**
  * Try_connect handle
  */
-struct GNUNET_TRANSPORT_TryConnectHandle * tc_handle;
+struct GNUNET_TRANSPORT_TryConnectHandle *tc_handle;
 
 /**
  * Option -s.
@@ -173,6 +298,9 @@ static struct GNUNET_CONTAINER_MultiPeerMap *monitored_peers;
  */
 static struct GNUNET_TRANSPORT_PeerMonitoringContext *pic;
 
+/**
+ *
+ */
 static struct GNUNET_TRANSPORT_ValidationMonitoringContext *vic;
 
 /**
@@ -221,93 +349,13 @@ struct TestContext *head;
  */
 struct TestContext *tail;
 
-/**
- * Context for a plugin test.
- */
-struct TestContext
-{
-  /**
-   * Previous in DLL
-   */
-  struct TestContext *prev;
-
-  /**
-   * Next in DLL
-   */
-  struct TestContext *next;
-
-  /**
-   * Handle to the active NAT test.
-   */
-  struct GNUNET_NAT_Test *tst;
-
-  /**
-   * Task identifier for the timeout.
-   */
-  GNUNET_SCHEDULER_TaskIdentifier tsk;
-
-  /**
-   * Name of plugin under test.
-   */
-  char *name;
-
-  /**
-   * Bound port
-   */
-  unsigned long long bnd_port;
-
-  /**
-   * Advertised ports
-   */
-  unsigned long long adv_port;
-
-};
-
-enum TestResult
-{
-  /* NAT returned success */
-  NAT_TEST_SUCCESS = GNUNET_OK,
-
-  /* NAT returned failure  */
-  NAT_TEST_FAIL = GNUNET_NO,
-
-  /* NAT returned failure while running test */
-  NAT_TEST_INTERNAL_FAIL = GNUNET_SYSERR,
-
-  /* We could not start the test */
-  NAT_TEST_FAILED_TO_START = 2,
-
-  /* We had a timeout while running the test */
-  NAT_TEST_TIMEOUT = 3,
-};
-
 static struct ValidationResolutionContext *vc_head;
+
 static struct ValidationResolutionContext *vc_tail;
 
-struct ValidationResolutionContext
-{
-  struct ValidationResolutionContext *next;
-  struct ValidationResolutionContext *prev;
+static struct PeerResolutionContext *rc_head;
 
-  struct GNUNET_PeerIdentity id;
-  struct GNUNET_HELLO_Address *addrcp;
-  struct GNUNET_TIME_Absolute last_validation;
-  struct GNUNET_TIME_Absolute valid_until;
-  struct GNUNET_TIME_Absolute next_validation;
-  enum GNUNET_TRANSPORT_ValidationState state;
-
-  struct GNUNET_TRANSPORT_AddressToStringContext *asc;
-
-  char *transport;
-  int printed;
-};
-
-struct MonitoredPeer
-{
-  enum GNUNET_TRANSPORT_PeerState state;
-  struct GNUNET_TIME_Absolute state_timeout;
-  struct GNUNET_HELLO_Address *address;
-};
+static struct PeerResolutionContext *rc_tail;
 
 
 static int
@@ -317,8 +365,10 @@ destroy_it (void *cls,
 {
   struct MonitoredPeer *m = value;
 
-  GNUNET_assert (GNUNET_OK == GNUNET_CONTAINER_multipeermap_remove (monitored_peers,
-                                                                    key, value));
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_CONTAINER_multipeermap_remove (monitored_peers,
+                                                       key,
+                                                       value));
   GNUNET_free_non_null (m->address);
   GNUNET_free (value);
   return GNUNET_OK;
@@ -329,15 +379,17 @@ destroy_it (void *cls,
  * Task run in monitor mode when the user presses CTRL-C to abort.
  * Stops monitoring activity.
  *
- * @param cls the 'struct GNUNET_TRANSPORT_PeerIterateContext *'
+ * @param cls NULL
  * @param tc scheduler context
  */
 static void
-shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls,
+               const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_TIME_Relative duration;
   struct ValidationResolutionContext *cur;
   struct ValidationResolutionContext *next;
+
   end = GNUNET_SCHEDULER_NO_TASK;
   if (GNUNET_SCHEDULER_NO_TASK != op_timeout)
   {
@@ -385,18 +437,20 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (benchmark_send)
   {
     duration = GNUNET_TIME_absolute_get_duration (start_time);
-    FPRINTF (stdout, _("Transmitted %llu bytes/s (%llu bytes in %s)\n"),
-        1000LL * 1000LL * traffic_sent / (1 + duration.rel_value_us),
-        traffic_sent,
-        GNUNET_STRINGS_relative_time_to_string (duration, GNUNET_YES));
+    FPRINTF (stdout,
+             _("Transmitted %llu bytes/s (%llu bytes in %s)\n"),
+             1000LL * 1000LL * traffic_sent / (1 + duration.rel_value_us),
+             traffic_sent,
+             GNUNET_STRINGS_relative_time_to_string (duration, GNUNET_YES));
   }
   if (benchmark_receive)
   {
     duration = GNUNET_TIME_absolute_get_duration (start_time);
-    FPRINTF (stdout, _("Received %llu bytes/s (%llu bytes in %s)\n"),
-        1000LL * 1000LL * traffic_received / (1 + duration.rel_value_us),
-        traffic_received,
-        GNUNET_STRINGS_relative_time_to_string (duration, GNUNET_YES));
+    FPRINTF (stdout,
+             _("Received %llu bytes/s (%llu bytes in %s)\n"),
+             1000LL * 1000LL * traffic_received / (1 + duration.rel_value_us),
+             traffic_received,
+             GNUNET_STRINGS_relative_time_to_string (duration, GNUNET_YES));
   }
 
   if (NULL != monitored_peers)
@@ -407,36 +461,22 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
 }
 
-static struct PeerResolutionContext *rc_head;
-static struct PeerResolutionContext *rc_tail;
-
-struct PeerResolutionContext
-{
-  struct PeerResolutionContext *next;
-  struct PeerResolutionContext *prev;
-  struct GNUNET_PeerIdentity id;
-  struct GNUNET_HELLO_Address *addrcp;
-  struct GNUNET_TRANSPORT_AddressToStringContext *asc;
-  enum GNUNET_TRANSPORT_PeerState state;
-  struct GNUNET_TIME_Absolute state_timeout;
-  char *transport;
-  int printed;
-};
-
-
 
 static void
-operation_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+operation_timeout (void *cls,
+                   const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct PeerResolutionContext *cur;
   struct PeerResolutionContext *next;
   op_timeout = GNUNET_SCHEDULER_NO_TASK;
   if ((try_connect) || (benchmark_send) || (benchmark_receive))
   {
-    FPRINTF (stdout, _("Failed to connect to `%s'\n"), GNUNET_i2s_full (&pid));
+    FPRINTF (stdout,
+             _("Failed to connect to `%s'\n"),
+             GNUNET_i2s_full (&pid));
     if (GNUNET_SCHEDULER_NO_TASK != end)
       GNUNET_SCHEDULER_cancel (end);
-    end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL );
+    end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
     ret = 1;
     return;
   }
@@ -446,8 +486,9 @@ operation_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     while (NULL != (cur = next))
     {
       next = cur->next;
-      FPRINTF (stdout, _("Failed to resolve address for peer `%s'\n"),
-          GNUNET_i2s (&cur->addrcp->peer));
+      FPRINTF (stdout,
+               _("Failed to resolve address for peer `%s'\n"),
+               GNUNET_i2s (&cur->addrcp->peer));
 
       GNUNET_CONTAINER_DLL_remove(rc_head, rc_tail, cur);
       GNUNET_TRANSPORT_address_to_string_cancel (cur->asc);
@@ -456,18 +497,21 @@ operation_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_free(cur);
 
     }
-    FPRINTF (stdout, "%s", _("Failed to list connections, timeout occured\n") );
+    FPRINTF (stdout,
+             "%s",
+             _("Failed to list connections, timeout occured\n"));
     if (GNUNET_SCHEDULER_NO_TASK != end)
       GNUNET_SCHEDULER_cancel (end);
-    end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL );
+    end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
     ret = 1;
     return;
   }
-
 }
+
 
 static void
 run_nat_test ();
+
 
 /**
  * Display the result of the test.
@@ -476,28 +520,34 @@ run_nat_test ();
  * @param result #GNUNET_YES on success
  */
 static void
-display_test_result (struct TestContext *tc, enum TestResult result)
+display_test_result (struct TestContext *tc,
+                     enum TestResult result)
 {
   switch (result) {
     case NAT_TEST_FAIL:
-      FPRINTF (stderr, _("Configuration for plugin `%s' did not work!\n"),
-          tc->name);
+      FPRINTF (stderr,
+               _("Configuration for plugin `%s' did not work!\n"),
+               tc->name);
       break;
     case NAT_TEST_SUCCESS:
-      FPRINTF (stderr, _("Configuration for plugin `%s' did work!\n"),
-          tc->name);
+      FPRINTF (stderr,
+               _("Configuration for plugin `%s' did work!\n"),
+               tc->name);
       break;
     case NAT_TEST_INTERNAL_FAIL:
-      FPRINTF (stderr, _("Internal NAT error while running test for plugin `%s'\n"),
-          tc->name);
+      FPRINTF (stderr,
+               _("Internal NAT error while running test for plugin `%s'\n"),
+               tc->name);
       break;
     case NAT_TEST_FAILED_TO_START:
-      FPRINTF (stderr, _("Failed to start NAT test for plugin `%s'\n"),
-          tc->name);
+      FPRINTF (stderr,
+               _("Failed to start NAT test for plugin `%s'\n"),
+               tc->name);
       break;
     case NAT_TEST_TIMEOUT:
-      FPRINTF (stderr, _("Timeout while waiting for result of NAT test for plugin `%s'\n"),
-          tc->name);
+      FPRINTF (stderr,
+               _("Timeout while waiting for result of NAT test for plugin `%s'\n"),
+               tc->name);
       break;
     default:
       break;
@@ -505,11 +555,15 @@ display_test_result (struct TestContext *tc, enum TestResult result)
 
   if (GNUNET_YES != result)
   {
-    FPRINTF (stderr, "Configuration for plugin `%s' did not work!\n", tc->name);
+    FPRINTF (stderr,
+             _("Configuration for plugin `%s' did not work!\n"),
+             tc->name);
   }
   else
   {
-    FPRINTF (stderr, "Configuration for plugin `%s' is working!\n", tc->name);
+    FPRINTF (stderr,
+             _("Configuration for plugin `%s' is working!\n"),
+             tc->name);
   }
   if (GNUNET_SCHEDULER_NO_TASK != tc->tsk)
   {
@@ -528,7 +582,8 @@ display_test_result (struct TestContext *tc, enum TestResult result)
 
   if ((NULL == head) && (NULL != resolver))
   {
-    GNUNET_break(0 == GNUNET_OS_process_kill (resolver, GNUNET_TERM_SIG));
+    GNUNET_break (0 == GNUNET_OS_process_kill (resolver,
+                                               GNUNET_TERM_SIG));
     GNUNET_OS_process_destroy (resolver);
     resolver = NULL;
   }
@@ -545,12 +600,26 @@ display_test_result (struct TestContext *tc, enum TestResult result)
  * @param emsg error message, NULL on success
  */
 static void
-result_callback (void *cls, enum GNUNET_NAT_StatusCode result)
+result_callback (void *cls,
+                 enum GNUNET_NAT_StatusCode result)
 {
   struct TestContext *tc = cls;
+
   display_test_result (tc, result);
 }
 
+
+/**
+ * Resolve address we got a validation state for to a string.
+ *
+ * @param id peer identity the address is for
+ * @param address the address itself
+ * @param numeric #GNUNET_YES to disable DNS, #GNUNET_NO to try reverse lookup
+ * @param last_validation when was the address validated last
+ * @param valid_until until when is the address valid
+ * @param next_validation when will we try to revalidate the address next
+ * @param state where are we in the validation state machine
+ */
 static void
 resolve_validation_address (const struct GNUNET_PeerIdentity *id,
                             const struct GNUNET_HELLO_Address *address,
@@ -559,7 +628,6 @@ resolve_validation_address (const struct GNUNET_PeerIdentity *id,
                             struct GNUNET_TIME_Absolute valid_until,
                             struct GNUNET_TIME_Absolute next_validation,
                             enum GNUNET_TRANSPORT_ValidationState state);
-
 
 
 /**
@@ -631,7 +699,7 @@ process_validation_string (void *cls,
   GNUNET_assert (address_resolutions > 0);
   address_resolutions--;
   if ( (GNUNET_SYSERR == res) &&
-       (GNUNET_NO == vc->printed) )
+       (GNUNET_NO == vc->printed))
   {
     if (numeric == GNUNET_NO)
     {
@@ -678,7 +746,17 @@ process_validation_string (void *cls,
 }
 
 
-
+/**
+ * Resolve address we got a validation state for to a string.
+ *
+ * @param id peer identity the address is for
+ * @param address the address itself
+ * @param numeric #GNUNET_YES to disable DNS, #GNUNET_NO to try reverse lookup
+ * @param last_validation when was the address validated last
+ * @param valid_until until when is the address valid
+ * @param next_validation when will we try to revalidate the address next
+ * @param state where are we in the validation state machine
+ */
 static void
 resolve_validation_address (const struct GNUNET_PeerIdentity *id,
                             const struct GNUNET_HELLO_Address *address,
@@ -713,6 +791,17 @@ resolve_validation_address (const struct GNUNET_PeerIdentity *id,
 }
 
 
+/**
+ * Resolve address we got a validation state for to a string.
+ *
+ * @param cls NULL
+ * @param peer peer identity the address is for
+ * @param address the address itself
+ * @param last_validation when was the address validated last
+ * @param valid_until until when is the address valid
+ * @param next_validation when will we try to revalidate the address next
+ * @param state where are we in the validation state machine
+ */
 static void
 process_validation_cb (void *cls,
                        const struct GNUNET_PeerIdentity *peer,
@@ -736,7 +825,7 @@ process_validation_cb (void *cls,
     vic = NULL;
     if (GNUNET_SCHEDULER_NO_TASK != end)
       GNUNET_SCHEDULER_cancel (end);
-    end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL );
+    end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
     return;
   }
   if ((NULL == peer) || (NULL == address))
@@ -745,12 +834,16 @@ process_validation_cb (void *cls,
     vic = NULL;
     if (GNUNET_SCHEDULER_NO_TASK != end)
       GNUNET_SCHEDULER_cancel (end);
-    end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL );
+    end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
     return;
   }
-  resolve_validation_address (peer, address,
-     numeric, last_validation,
-     valid_until, next_validation, state);
+  resolve_validation_address (peer,
+                              address,
+                              numeric,
+                              last_validation,
+                              valid_until,
+                              next_validation,
+                              state);
 }
 
 
@@ -758,8 +851,10 @@ static void
 run_nat_test ()
 {
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-      "Running test for plugin `%s' using bind port %u and advertised port %u \n",
-      head->name, (uint16_t) head->bnd_port, (uint16_t) head->adv_port);
+              "Running test for plugin `%s' using bind port %u and advertised port %u \n",
+              head->name,
+              (uint16_t) head->bnd_port,
+              (uint16_t) head->adv_port);
 
   head->tst = GNUNET_NAT_test_start (cfg,
       (0 == strcasecmp (head->name, "udp")) ? GNUNET_NO : GNUNET_YES,
@@ -790,7 +885,7 @@ do_test_configuration (const struct GNUNET_CONFIGURATION_Handle *cfg)
           &plugins))
   {
     FPRINTF (stderr, "%s", _
-    ("No transport plugins configured, peer will never communicate\n") );
+    ("No transport plugins configured, peer will never communicate\n"));
     ret = 4;
     return;
   }
@@ -826,7 +921,7 @@ do_test_configuration (const struct GNUNET_CONFIGURATION_Handle *cfg)
                                         GNUNET_OS_INHERIT_STD_OUT_AND_ERR,
                                         NULL, NULL, NULL,
                                         binary,
-                                        "gnunet-service-resolver", NULL );
+                                        "gnunet-service-resolver", NULL);
     if (NULL == resolver)
     {
       FPRINTF (stderr, _("Failed to start resolver!\n"));
@@ -838,6 +933,7 @@ do_test_configuration (const struct GNUNET_CONFIGURATION_Handle *cfg)
     run_nat_test ();
   }
 }
+
 
 /**
  * Function called to notify a client about the socket
@@ -851,7 +947,9 @@ do_test_configuration (const struct GNUNET_CONFIGURATION_Handle *cfg)
  * @return number of bytes written to @a buf
  */
 static size_t
-transmit_data (void *cls, size_t size, void *buf)
+transmit_data (void *cls,
+               size_t size,
+               void *buf)
 {
   struct GNUNET_MessageHeader *m = buf;
 
@@ -870,7 +968,7 @@ transmit_data (void *cls, size_t size, void *buf)
   th = GNUNET_TRANSPORT_notify_transmit_ready (handle, &pid,
                                                BLOCKSIZE * 1024,
                                                GNUNET_TIME_UNIT_FOREVER_REL,
-                                               &transmit_data, NULL );
+                                               &transmit_data, NULL);
   if (verbosity > 0)
     FPRINTF (stdout, _("Transmitting %u bytes to %s\n"), (unsigned int) size,
         GNUNET_i2s (&pid));
@@ -886,7 +984,8 @@ transmit_data (void *cls, size_t size, void *buf)
  * @param peer the peer that connected
  */
 static void
-notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
+notify_connect (void *cls,
+                const struct GNUNET_PeerIdentity *peer)
 {
   if (0 != memcmp (&pid, peer, sizeof(struct GNUNET_PeerIdentity)))
     return;
@@ -906,7 +1005,7 @@ notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
 
     if (GNUNET_SCHEDULER_NO_TASK != end)
       GNUNET_SCHEDULER_cancel (end);
-    end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL );
+    end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
     return;
   }
   if (benchmark_send)
@@ -932,6 +1031,7 @@ notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
     return;
   }
 }
+
 
 /**
  * Function called to notify transport users that another
@@ -962,7 +1062,7 @@ notify_disconnect (void *cls,
 
     if (GNUNET_SCHEDULER_NO_TASK != end)
       GNUNET_SCHEDULER_cancel (end);
-    end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL );
+    end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
     return;
   }
 
@@ -980,6 +1080,7 @@ notify_disconnect (void *cls,
     return;
   }
 }
+
 
 /**
  * Function called to notify transport users that another
@@ -1078,7 +1179,7 @@ print_info (const struct GNUNET_PeerIdentity *id,
 {
 
   if ( ((GNUNET_YES == iterate_connections) && (GNUNET_YES == iterate_all)) ||
-       (GNUNET_YES == monitor_connections) )
+       (GNUNET_YES == monitor_connections))
   {
     FPRINTF (stdout,
              _("Peer `%s': %s %s in state `%s' until %s\n"),
@@ -1089,7 +1190,7 @@ print_info (const struct GNUNET_PeerIdentity *id,
              GNUNET_STRINGS_absolute_time_to_string (state_timeout));
   }
   else if ( (GNUNET_YES == iterate_connections) &&
-             (GNUNET_TRANSPORT_is_connected(state)) )
+             (GNUNET_TRANSPORT_is_connected(state)))
   {
     /* Only connected peers, skip state */
     FPRINTF (stdout,
@@ -1198,7 +1299,7 @@ process_peer_string (void *cls,
       op_timeout = GNUNET_SCHEDULER_NO_TASK;
     }
     ret = 0;
-    end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL );
+    end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
   }
 }
 
@@ -1256,12 +1357,12 @@ process_peer_iteration_cb (void *cls,
     pic = NULL;
     if (GNUNET_SCHEDULER_NO_TASK != end)
       GNUNET_SCHEDULER_cancel (end);
-    end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL );
+    end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
     return;
   }
 
   if ( (GNUNET_NO == iterate_all) &&
-       (GNUNET_NO == GNUNET_TRANSPORT_is_connected(state)) )
+       (GNUNET_NO == GNUNET_TRANSPORT_is_connected(state)))
       return; /* Display only connected peers */
 
   if (GNUNET_SCHEDULER_NO_TASK != op_timeout)
@@ -1326,12 +1427,12 @@ process_peer_monitoring_cb (void *cls,
   {
     if ( (m->state == state) &&
       (m->state_timeout.abs_value_us == state_timeout.abs_value_us) &&
-      ((NULL == address) && (NULL == m->address)) )
+      ((NULL == address) && (NULL == m->address)))
     {
       return; /* No real change */
     }
     if ( (m->state == state) && ((NULL != address) && (NULL != m->address)) &&
-        (0 == GNUNET_HELLO_address_cmp(m->address, address)) )
+        (0 == GNUNET_HELLO_address_cmp(m->address, address)))
       return; /* No real change */
   }
 
@@ -1374,16 +1475,16 @@ try_connect_cb (void *cls,
   retries++;
   if (retries < 10)
     tc_handle = GNUNET_TRANSPORT_try_connect (handle, &pid, try_connect_cb,
-        NULL );
+        NULL);
   else
   {
     FPRINTF (stderr,
              "%s",
-             _("Failed to send connect request to transport service\n") );
+             _("Failed to send connect request to transport service\n"));
     if (GNUNET_SCHEDULER_NO_TASK != end)
       GNUNET_SCHEDULER_cancel (end);
     ret = 1;
-    end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL );
+    end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
     return;
   }
 }
@@ -1402,15 +1503,15 @@ try_disconnect_cb (void *cls,
   retries++;
   if (retries < 10)
     tc_handle = GNUNET_TRANSPORT_try_disconnect (handle, &pid, try_disconnect_cb,
-        NULL );
+        NULL);
   else
   {
     FPRINTF (stderr, "%s",
-        _("Failed to send connect request to transport service\n") );
+        _("Failed to send connect request to transport service\n"));
     if (GNUNET_SCHEDULER_NO_TASK != end)
       GNUNET_SCHEDULER_cancel (end);
     ret = 1;
-    end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL );
+    end = GNUNET_SCHEDULER_add_now (&shutdown_task, NULL);
     return;
   }
 }
@@ -1478,21 +1579,21 @@ testservice_task (void *cls, int result)
         &notify_connect, &notify_disconnect);
     if (NULL == handle)
     {
-      FPRINTF (stderr, "%s", _("Failed to connect to transport service\n") );
+      FPRINTF (stderr, "%s", _("Failed to connect to transport service\n"));
       ret = 1;
       return;
     }
     tc_handle = GNUNET_TRANSPORT_try_connect (handle, &pid, try_connect_cb,
-        NULL );
+        NULL);
     if (NULL == tc_handle)
     {
       FPRINTF (stderr, "%s",
-          _("Failed to send request to transport service\n") );
+          _("Failed to send request to transport service\n"));
       ret = 1;
       return;
     }
     op_timeout = GNUNET_SCHEDULER_add_delayed (OP_TIMEOUT, &operation_timeout,
-        NULL );
+        NULL);
 
   }
   else if (try_disconnect) /* -D: Disconnect from peer */
@@ -1508,21 +1609,21 @@ testservice_task (void *cls, int result)
         &notify_connect, &notify_disconnect);
     if (NULL == handle)
     {
-      FPRINTF (stderr, "%s", _("Failed to connect to transport service\n") );
+      FPRINTF (stderr, "%s", _("Failed to connect to transport service\n"));
       ret = 1;
       return;
     }
     tc_handle = GNUNET_TRANSPORT_try_disconnect (handle, &pid, try_disconnect_cb,
-        NULL );
+        NULL);
     if (NULL == tc_handle)
     {
       FPRINTF (stderr, "%s",
-          _("Failed to send request to transport service\n") );
+          _("Failed to send request to transport service\n"));
       ret = 1;
       return;
     }
     op_timeout = GNUNET_SCHEDULER_add_delayed (OP_TIMEOUT, &operation_timeout,
-        NULL );
+        NULL);
 
   }
   else if (benchmark_send) /* -s: Benchmark sending */
@@ -1538,35 +1639,35 @@ testservice_task (void *cls, int result)
         &notify_connect, &notify_disconnect);
     if (NULL == handle)
     {
-      FPRINTF (stderr, "%s", _("Failed to connect to transport service\n") );
+      FPRINTF (stderr, "%s", _("Failed to connect to transport service\n"));
       ret = 1;
       return;
     }
     tc_handle = GNUNET_TRANSPORT_try_connect (handle, &pid, try_connect_cb,
-        NULL );
+        NULL);
     if (NULL == tc_handle)
     {
       FPRINTF (stderr, "%s",
-          _("Failed to send request to transport service\n") );
+          _("Failed to send request to transport service\n"));
       ret = 1;
       return;
     }
     start_time = GNUNET_TIME_absolute_get ();
     op_timeout = GNUNET_SCHEDULER_add_delayed (OP_TIMEOUT, &operation_timeout,
-        NULL );
+        NULL);
   }
   else if (benchmark_receive) /* -b: Benchmark receiving */
   {
     handle = GNUNET_TRANSPORT_connect (cfg, NULL, NULL, &notify_receive, NULL,
-        NULL );
+        NULL);
     if (NULL == handle)
     {
-      FPRINTF (stderr, "%s", _("Failed to connect to transport service\n") );
+      FPRINTF (stderr, "%s", _("Failed to connect to transport service\n"));
       ret = 1;
       return;
     }
     if (verbosity > 0)
-      FPRINTF (stdout, "%s", _("Starting to receive benchmark data\n") );
+      FPRINTF (stdout, "%s", _("Starting to receive benchmark data\n"));
     start_time = GNUNET_TIME_absolute_get ();
 
   }
@@ -1576,7 +1677,7 @@ testservice_task (void *cls, int result)
     pic = GNUNET_TRANSPORT_monitor_peers (cfg, (NULL == cpid) ? NULL : &pid,
         GNUNET_YES, TIMEOUT, &process_peer_iteration_cb, (void *) cfg);
     op_timeout = GNUNET_SCHEDULER_add_delayed (OP_TIMEOUT, &operation_timeout,
-        NULL );
+        NULL);
   }
   else if (monitor_connections) /* -m: List information about peers continuously */
   {
@@ -1605,7 +1706,7 @@ testservice_task (void *cls, int result)
                                        &monitor_notify_disconnect);
     if (NULL == handle)
     {
-      FPRINTF (stderr, "%s", _("Failed to connect to transport service\n") );
+      FPRINTF (stderr, "%s", _("Failed to connect to transport service\n"));
       ret = 1;
       return;
     }
@@ -1618,9 +1719,11 @@ testservice_task (void *cls, int result)
   }
 
   end = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-      &shutdown_task, NULL );
+                                      &shutdown_task,
+                                      NULL);
 
 }
+
 
 /**
  * Main function that will be run by the scheduler.
@@ -1631,8 +1734,10 @@ testservice_task (void *cls, int result)
  * @param mycfg configuration
  */
 static void
-run (void *cls, char * const *args, const char *cfgfile,
-    const struct GNUNET_CONFIGURATION_Handle *mycfg)
+run (void *cls,
+     char * const *args,
+     const char *cfgfile,
+     const struct GNUNET_CONFIGURATION_Handle *mycfg)
 {
   cfg = (struct GNUNET_CONFIGURATION_Handle *) mycfg;
   if (test_configuration)
@@ -1648,53 +1753,59 @@ int
 main (int argc, char * const *argv)
 {
   int res;
-  static const struct GNUNET_GETOPT_CommandLineOption options[] =
-      {
-          { 'a', "all", NULL,
-              gettext_noop ("print information for all peers (instead of only connected peers )"),
-              0, &GNUNET_GETOPT_set_one, &iterate_all },
-          { 'b', "benchmark", NULL,
-              gettext_noop ("measure how fast we are receiving data from all peers (until CTRL-C)"),
-              0, &GNUNET_GETOPT_set_one, &benchmark_receive },
-          { 'C', "connect",
-              NULL, gettext_noop ("connect to a peer"), 0,
-              &GNUNET_GETOPT_set_one, &try_connect },
-          { 'D', "disconnect",
-              NULL, gettext_noop ("disconnect to a peer"), 0,
-              &GNUNET_GETOPT_set_one, &try_disconnect },
-          { 'd', "validation", NULL,
-              gettext_noop ("print information for all pending validations "),
-              0, &GNUNET_GETOPT_set_one, &iterate_validation },
-          { 'f', "monitorvalidation", NULL,
-              gettext_noop ("print information for all pending validations continously"),
-              0, &GNUNET_GETOPT_set_one, &monitor_validation },
-          { 'i', "information", NULL,
-              gettext_noop ("provide information about all current connections (once)"),
-              0, &GNUNET_GETOPT_set_one, &iterate_connections },
-          { 'm', "monitor", NULL,
-              gettext_noop ("provide information about all current connections (continuously)"),
-              0, &GNUNET_GETOPT_set_one, &monitor_connections },
-          { 'e', "events", NULL,
-              gettext_noop ("provide information about all connects and disconnect events (continuously)"),
-              0, &GNUNET_GETOPT_set_one, &monitor_connects }, { 'n', "numeric",
-              NULL, gettext_noop ("do not resolve hostnames"), 0,
-              &GNUNET_GETOPT_set_one, &numeric }, { 'p', "peer", "PEER",
-              gettext_noop ("peer identity"), 1, &GNUNET_GETOPT_set_string,
-              &cpid }, { 's', "send", NULL, gettext_noop
-          ("send data for benchmarking to the other peer (until CTRL-C)"), 0,
-              &GNUNET_GETOPT_set_one, &benchmark_send },
-          { 't', "test", NULL,
-              gettext_noop ("test transport configuration (involves external server)"),
-              0, &GNUNET_GETOPT_set_one, &test_configuration },
-              GNUNET_GETOPT_OPTION_VERBOSE (&verbosity),
-              GNUNET_GETOPT_OPTION_END };
+  static const struct GNUNET_GETOPT_CommandLineOption options[] = {
+    { 'a', "all", NULL,
+      gettext_noop ("print information for all peers (instead of only connected peers)"),
+      0, &GNUNET_GETOPT_set_one, &iterate_all },
+    { 'b', "benchmark", NULL,
+      gettext_noop ("measure how fast we are receiving data from all peers (until CTRL-C)"),
+      0, &GNUNET_GETOPT_set_one, &benchmark_receive },
+    { 'C', "connect",
+      NULL, gettext_noop ("connect to a peer"), 0,
+      &GNUNET_GETOPT_set_one, &try_connect },
+    { 'D', "disconnect",
+      NULL, gettext_noop ("disconnect to a peer"), 0,
+      &GNUNET_GETOPT_set_one, &try_disconnect },
+    { 'd', "validation", NULL,
+      gettext_noop ("print information for all pending validations "),
+      0, &GNUNET_GETOPT_set_one, &iterate_validation },
+    { 'f', "monitorvalidation", NULL,
+      gettext_noop ("print information for all pending validations continously"),
+      0, &GNUNET_GETOPT_set_one, &monitor_validation },
+    { 'i', "information", NULL,
+      gettext_noop ("provide information about all current connections (once)"),
+      0, &GNUNET_GETOPT_set_one, &iterate_connections },
+    { 'm', "monitor", NULL,
+      gettext_noop ("provide information about all current connections (continuously)"),
+      0, &GNUNET_GETOPT_set_one, &monitor_connections },
+    { 'e', "events", NULL,
+      gettext_noop ("provide information about all connects and disconnect events (continuously)"),
+      0, &GNUNET_GETOPT_set_one, &monitor_connects },
+    { 'n', "numeric",
+      NULL, gettext_noop ("do not resolve hostnames"), 0,
+      &GNUNET_GETOPT_set_one, &numeric },
+    { 'p', "peer", "PEER",
+      gettext_noop ("peer identity"), 1, &GNUNET_GETOPT_set_string,
+      &cpid },
+    { 's', "send", NULL, gettext_noop
+      ("send data for benchmarking to the other peer (until CTRL-C)"), 0,
+      &GNUNET_GETOPT_set_one, &benchmark_send },
+    { 't', "test", NULL,
+      gettext_noop ("test transport configuration (involves external server)"),
+      0, &GNUNET_GETOPT_set_one, &test_configuration },
+    GNUNET_GETOPT_OPTION_VERBOSE (&verbosity),
+    GNUNET_GETOPT_OPTION_END
+  };
 
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
 
-  res = GNUNET_PROGRAM_run (argc, argv, "gnunet-transport", gettext_noop
-  ("Direct access to transport service."), options, &run, NULL );
-  GNUNET_free((void * ) argv);
+  res = GNUNET_PROGRAM_run (argc, argv,
+                            "gnunet-transport",
+                            gettext_noop ("Direct access to transport service."),
+                            options,
+                            &run, NULL);
+  GNUNET_free((void *) argv);
   if (GNUNET_OK == res)
     return ret;
   return 1;
