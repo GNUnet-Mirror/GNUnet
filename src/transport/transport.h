@@ -416,17 +416,20 @@ struct ValidationIterateResponseMessage
   uint32_t state GNUNET_PACKED;
 
   /**
-   * FIXME
+   * At what time did we successfully validate the address last.
+   * Will be NEVER if the address failed validation.
    */
   struct GNUNET_TIME_AbsoluteNBO last_validation;
 
   /**
-   * FIXME
+   * Until when is the address believed to be valid.
+   * Will be ZERO if the address is not belived to be valid.
    */
   struct GNUNET_TIME_AbsoluteNBO valid_until;
 
   /**
-   * FIXME
+   * When will we next try to validate the address (typically
+   * done before @e valid_until happens).
    */
   struct GNUNET_TIME_AbsoluteNBO next_validation;
 };

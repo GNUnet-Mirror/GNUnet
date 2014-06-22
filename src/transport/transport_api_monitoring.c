@@ -516,9 +516,12 @@ val_response_processor (void *cls,
       GNUNET_break (0);
       if (val_ctx->one_shot)
       {
-        val_ctx->cb (val_ctx->cb_cls, NULL, NULL,
-            GNUNET_TIME_UNIT_ZERO_ABS, GNUNET_TIME_UNIT_ZERO_ABS,
-            GNUNET_TIME_UNIT_ZERO_ABS, GNUNET_TRANSPORT_VS_NONE);
+        val_ctx->cb (val_ctx->cb_cls,
+                     NULL, NULL,
+                     GNUNET_TIME_UNIT_ZERO_ABS,
+                     GNUNET_TIME_UNIT_ZERO_ABS,
+                     GNUNET_TIME_UNIT_ZERO_ABS,
+                     GNUNET_TRANSPORT_VS_NONE);
         GNUNET_TRANSPORT_monitor_validation_entries_cancel (val_ctx);
       }
       else
@@ -530,12 +533,16 @@ val_response_processor (void *cls,
 
     /* notify client */
     address = GNUNET_HELLO_address_allocate (&vr_msg->peer,
-        transport_name, addr, alen, ntohl(vr_msg->local_address_info));
-    val_ctx->cb (val_ctx->cb_cls, &vr_msg->peer, address,
-        GNUNET_TIME_absolute_ntoh(vr_msg->last_validation),
-        GNUNET_TIME_absolute_ntoh(vr_msg->valid_until),
-        GNUNET_TIME_absolute_ntoh(vr_msg->next_validation),
-        ntohl(vr_msg->state));
+                                             transport_name,
+                                             addr, alen,
+                                             ntohl (vr_msg->local_address_info));
+    val_ctx->cb (val_ctx->cb_cls,
+                 &vr_msg->peer,
+                 address,
+                 GNUNET_TIME_absolute_ntoh (vr_msg->last_validation),
+                 GNUNET_TIME_absolute_ntoh (vr_msg->valid_until),
+                 GNUNET_TIME_absolute_ntoh (vr_msg->next_validation),
+                 ntohl(vr_msg->state));
     GNUNET_HELLO_address_free (address);
   }
   /* expect more replies */
@@ -777,20 +784,19 @@ GNUNET_TRANSPORT_monitor_peers_cancel (struct GNUNET_TRANSPORT_PeerMonitoringCon
  * @param cfg configuration to use
  * @param peer a specific peer identity to obtain validation entries for,
  *      NULL for all peers
- * @param one_shot GNUNET_YES to return all entries and then end (with NULL+NULL),
- *                 GNUNET_NO to monitor validation entries continuously
+ * @param one_shot #GNUNET_YES to return all entries and then end (with NULL+NULL),
+ *                 #GNUNET_NO to monitor validation entries continuously
  * @param timeout how long is the lookup allowed to take at most
  * @param validation_callback function to call with the results
  * @param validation_callback_cls closure for peer_address_callback
  */
 struct GNUNET_TRANSPORT_ValidationMonitoringContext *
-GNUNET_TRANSPORT_monitor_validation_entries (const struct
-                                GNUNET_CONFIGURATION_Handle *cfg,
-                                const struct GNUNET_PeerIdentity *peer,
-                                int one_shot,
-                                struct GNUNET_TIME_Relative timeout,
-                                GNUNET_TRANSPORT_ValidationIterateCallback validation_callback,
-                                void *validation_callback_cls)
+GNUNET_TRANSPORT_monitor_validation_entries (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                                             const struct GNUNET_PeerIdentity *peer,
+                                             int one_shot,
+                                             struct GNUNET_TIME_Relative timeout,
+                                             GNUNET_TRANSPORT_ValidationIterateCallback validation_callback,
+                                             void *validation_callback_cls)
 {
   struct GNUNET_TRANSPORT_ValidationMonitoringContext *val_ctx;
   struct GNUNET_CLIENT_Connection *client;

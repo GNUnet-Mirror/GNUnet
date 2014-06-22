@@ -1115,10 +1115,11 @@ struct IterationContext
   int all;
 };
 
+
 /**
  * Output information of validation entries to the given client.
  *
- * @param cls the 'struct IterationContext'
+ * @param cls the `struct IterationContext *`
  * @param peer identity of the neighbour
  * @param address the address
  * @param last_validation point in time when last validation was performed
@@ -1128,12 +1129,12 @@ struct IterationContext
  */
 static void
 send_validation_information (void *cls,
-    const struct GNUNET_PeerIdentity *peer,
-    const struct GNUNET_HELLO_Address *address,
-    struct GNUNET_TIME_Absolute last_validation,
-    struct GNUNET_TIME_Absolute valid_until,
-    struct GNUNET_TIME_Absolute next_validation,
-    enum GNUNET_TRANSPORT_ValidationState state)
+                             const struct GNUNET_PeerIdentity *peer,
+                             const struct GNUNET_HELLO_Address *address,
+                             struct GNUNET_TIME_Absolute last_validation,
+                             struct GNUNET_TIME_Absolute valid_until,
+                             struct GNUNET_TIME_Absolute next_validation,
+                             enum GNUNET_TRANSPORT_ValidationState state)
 {
   struct IterationContext *pc = cls;
   struct ValidationIterateResponseMessage *msg;
@@ -1158,7 +1159,7 @@ send_validation_information (void *cls,
 /**
  * Output information of neighbours to the given client.
  *
- * @param cls the 'struct PeerIterationContext'
+ * @param cls the `struct PeerIterationContext *`
  * @param peer identity of the neighbour
  * @param address the address
  * @param state current state this peer is in
@@ -1168,12 +1169,12 @@ send_validation_information (void *cls,
  */
 static void
 send_peer_information (void *cls,
-    const struct GNUNET_PeerIdentity *peer,
-    const struct GNUNET_HELLO_Address *address,
-    enum GNUNET_TRANSPORT_PeerState state,
-    struct GNUNET_TIME_Absolute state_timeout,
-    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
-    struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out)
+                       const struct GNUNET_PeerIdentity *peer,
+                       const struct GNUNET_HELLO_Address *address,
+                       enum GNUNET_TRANSPORT_PeerState state,
+                       struct GNUNET_TIME_Absolute state_timeout,
+                       struct GNUNET_BANDWIDTH_Value32NBO bandwidth_in,
+                       struct GNUNET_BANDWIDTH_Value32NBO bandwidth_out)
 {
   struct IterationContext *pc = cls;
   struct PeerIterateResponseMessage *msg;
@@ -1498,21 +1499,20 @@ GST_clients_broadcast_peer_notification (const struct GNUNET_PeerIdentity *peer,
  * @param state state of validation notification
  */
 void
-GST_clients_broadcast_validation_notification (
-    const struct GNUNET_PeerIdentity *peer,
-    const struct GNUNET_HELLO_Address *address,
-    struct GNUNET_TIME_Absolute last_validation,
-    struct GNUNET_TIME_Absolute valid_until,
-    struct GNUNET_TIME_Absolute next_validation,
-    enum GNUNET_TRANSPORT_ValidationState state)
+GST_clients_broadcast_validation_notification (const struct GNUNET_PeerIdentity *peer,
+                                               const struct GNUNET_HELLO_Address *address,
+                                               struct GNUNET_TIME_Absolute last_validation,
+                                               struct GNUNET_TIME_Absolute valid_until,
+                                               struct GNUNET_TIME_Absolute next_validation,
+                                               enum GNUNET_TRANSPORT_ValidationState state)
 {
   struct ValidationIterateResponseMessage *msg;
   struct MonitoringClient *mc;
   static struct GNUNET_PeerIdentity all_zeros;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-      "Sending information about for validation entry for peer `%s' using address `%s'\n",
-      GNUNET_i2s(peer), (address != NULL) ? GST_plugins_a2s (address) : "<none>");
+              "Sending information about for validation entry for peer `%s' using address `%s'\n",
+              GNUNET_i2s(peer), (address != NULL) ? GST_plugins_a2s (address) : "<none>");
 
   msg = compose_validation_iterate_response_message (peer, address);
   msg->last_validation = GNUNET_TIME_absolute_hton(last_validation);

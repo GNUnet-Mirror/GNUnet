@@ -1684,19 +1684,22 @@ testservice_task (void *cls, int result)
     monitored_peers = GNUNET_CONTAINER_multipeermap_create (10, GNUNET_NO);
     address_resolution_in_progress = GNUNET_YES;
     pic = GNUNET_TRANSPORT_monitor_peers (cfg, (NULL == cpid) ? NULL : &pid,
-        GNUNET_NO, TIMEOUT, &process_peer_monitoring_cb, (void *) cfg);
+                                          GNUNET_NO, TIMEOUT,
+                                          &process_peer_monitoring_cb, (void *) cfg);
   }
   else if (iterate_validation) /* -d: Print information about validations */
   {
     vic = GNUNET_TRANSPORT_monitor_validation_entries (cfg,
-        (NULL == cpid) ? NULL : &pid,
-        GNUNET_YES, TIMEOUT, &process_validation_cb, (void *) cfg);
+                                                       (NULL == cpid) ? NULL : &pid,
+                                                       GNUNET_YES, TIMEOUT,
+                                                       &process_validation_cb, (void *) cfg);
   }
   else if (monitor_validation) /* -f: Print information about validations continuously */
   {
     vic = GNUNET_TRANSPORT_monitor_validation_entries (cfg,
-        (NULL == cpid) ? NULL : &pid,
-        GNUNET_NO, TIMEOUT, &process_validation_cb, (void *) cfg);
+                                                       (NULL == cpid) ? NULL : &pid,
+                                                       GNUNET_NO, TIMEOUT,
+                                                       &process_validation_cb, (void *) cfg);
   }
   else if (monitor_connects) /* -e : Monitor (dis)connect events continuously */
   {
@@ -1706,7 +1709,9 @@ testservice_task (void *cls, int result)
                                        &monitor_notify_disconnect);
     if (NULL == handle)
     {
-      FPRINTF (stderr, "%s", _("Failed to connect to transport service\n"));
+      FPRINTF (stderr,
+               "%s",
+               _("Failed to connect to transport service\n"));
       ret = 1;
       return;
     }
@@ -1721,7 +1726,6 @@ testservice_task (void *cls, int result)
   end = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                       &shutdown_task,
                                       NULL);
-
 }
 
 
