@@ -56,10 +56,11 @@ static int address_count;
  * @param cls closure
  * @param address address to add
  * @param expiration old expiration
- * @return GNUNET_OK keep iterating
+ * @return #GNUNET_OK keep iterating
  */
 static int
-add_to_buf (void *cls, const struct GNUNET_HELLO_Address *address,
+add_to_buf (void *cls,
+            const struct GNUNET_HELLO_Address *address,
             struct GNUNET_TIME_Absolute expiration)
 {
   struct AddContext *ac = cls;
@@ -86,7 +87,9 @@ add_to_buf (void *cls, const struct GNUNET_HELLO_Address *address,
  * @return number of bytes added, 0 to terminate
  */
 static ssize_t
-add_from_hello (void *cls, size_t max, void *buf)
+add_from_hello (void *cls,
+                size_t max,
+                void *buf)
 {
   struct GNUNET_HELLO_Message **orig = cls;
   struct AddContext ac;
@@ -171,8 +174,18 @@ main (int argc, char *argv[])
 	       argv[1]);
       return 1;
     }
-    result = GNUNET_HELLO_create (&pk, &add_from_hello, &orig,
-    		GNUNET_HELLO_is_friend_only (orig));
+    {
+      char *pid;
+
+      pid = GNUNET_CRYPTO_eddsa_public_key_to_string (&pk);
+      fprintf (stdout,
+               "Processing HELLO for peer `%s'\n",
+               pid);
+      GNUNET_free (pid);
+    }
+    result = GNUNET_HELLO_create (&pk, &add_from_hello,
+                                  &orig,
+                                  GNUNET_HELLO_is_friend_only (orig));
     GNUNET_assert (NULL != result);
      fh = GNUNET_DISK_file_open (argv[1],
 				 GNUNET_DISK_OPEN_WRITE,
