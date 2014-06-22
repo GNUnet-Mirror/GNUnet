@@ -50,6 +50,9 @@
 #define _SEND 1
 
 
+#define LOG(kind,...) GNUNET_log_from (kind, "transport-" PLUGIN_NAME,__VA_ARGS__)
+
+
 /**
  * Session handle for connections.
  */
@@ -550,10 +553,12 @@ http_server_plugin_send (void *cls,
     return GNUNET_SYSERR;
 
 
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, session->plugin->name,
-                   "Session %p/connection %p: Sending message with %u to peer `%s' with \n",
-                   session, session->server_send,
-                   msgbuf_size, GNUNET_i2s (&session->target));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Session %p/connection %p: Sending message with %u to peer `%s'\n",
+       session,
+       session->server_send,
+       msgbuf_size,
+       GNUNET_i2s (&session->target));
 
   /* create new message and schedule */
   bytes_sent = sizeof (struct HTTP_Message) + msgbuf_size;
@@ -599,18 +604,18 @@ http_server_plugin_disconnect_peer (void *cls,
   struct Session *next;
   struct Session *pos;
 
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                   "Transport tells me to disconnect `%s'\n",
-                   GNUNET_i2s (target));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Transport tells me to disconnect `%s'\n",
+       GNUNET_i2s (target));
   next = plugin->head;
   while (NULL != (pos = next))
   {
     next = pos->next;
     if (0 == memcmp (target, &pos->target, sizeof (struct GNUNET_PeerIdentity)))
     {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                       "Disconnecting session %p to `%s'\n",
-                       pos, GNUNET_i2s (target));
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Disconnecting session %p to `%s'\n",
+           pos, GNUNET_i2s (target));
       http_server_plugin_disconnect_session (plugin, pos);
     }
   }
@@ -719,9 +724,9 @@ server_delete_session (void *cls,
   GNUNET_HELLO_address_free (s->address);
   GNUNET_free_non_null (s->server_recv);
   GNUNET_free_non_null (s->server_send);
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-                   plugin->name,
-                   "Session %p destroyed\n", s);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Session %p destroyed\n",
+       s);
   GNUNET_free (s);
   return GNUNET_OK;
 }
@@ -830,9 +835,9 @@ http_server_plugin_disconnect_session (void *cls,
   send = (struct ServerConnection *) s->server_send;
   if (send != NULL)
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, s->plugin->name,
-                     "Server: %p / %p Terminating inbound PUT session to peer `%s'\n",
-                     s, send, GNUNET_i2s (&s->target));
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Server: %p / %p Terminating inbound PUT session to peer `%s'\n",
+         s, send, GNUNET_i2s (&s->target));
 
     MHD_set_connection_option (send->mhd_conn,
                                MHD_CONNECTION_OPTION_TIMEOUT,
@@ -843,10 +848,9 @@ http_server_plugin_disconnect_session (void *cls,
   recv = (struct ServerConnection *) s->server_recv;
   if (recv != NULL)
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, s->plugin->name,
-                     "Server: %p / %p Terminating inbound GET session to peer `%s'\n",
-                     s, recv, GNUNET_i2s (&s->target));
-
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Server: %p / %p Terminating inbound GET session to peer `%s'\n",
+         s, recv, GNUNET_i2s (&s->target));
     MHD_set_connection_option (recv->mhd_conn,
                                MHD_CONNECTION_OPTION_TIMEOUT,
                                1);
@@ -899,9 +903,9 @@ server_mhd_connection_timeout (struct HTTP_Server_Plugin *plugin,
     /* Setting timeouts for other connections */
   if (NULL != s->server_recv)
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-		     "Setting timeout for %p to %u sec.\n",
-		     s->server_recv, to);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Setting timeout for %p to %u sec.\n",
+         s->server_recv, to);
     MHD_set_connection_option (s->server_recv->mhd_conn,
 			       MHD_CONNECTION_OPTION_TIMEOUT,
 			       to);
@@ -909,9 +913,9 @@ server_mhd_connection_timeout (struct HTTP_Server_Plugin *plugin,
   }
   if (NULL != s->server_send)
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-		     "Setting timeout for %p to %u sec.\n",
-		     s->server_send, to);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Setting timeout for %p to %u sec.\n",
+         s->server_send, to);
     MHD_set_connection_option (s->server_send->mhd_conn,
 			       MHD_CONNECTION_OPTION_TIMEOUT,
 			       to);
@@ -957,9 +961,8 @@ server_parse_url (struct HTTP_Server_Plugin *plugin,
 
   if (regexec(&plugin->url_regex, url, 4, matches, 0))
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-                     plugin->name,
-                     "URL `%s' did not match regex\n", url);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "URL `%s' did not match regex\n", url);
     return GNUNET_SYSERR;
   }
 
@@ -970,45 +973,40 @@ server_parse_url (struct HTTP_Server_Plugin *plugin,
   rc = strtoul (tag_start, &tag_end, 10);
   if (&url[matches[2].rm_eo] != tag_end)
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                     "URL tag did not line up with submatch\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "URL tag did not line up with submatch\n");
     return GNUNET_SYSERR;
   }
   if (rc == 0)
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-                     plugin->name,
-                     "URL tag is zero\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "URL tag is zero\n");
     return GNUNET_SYSERR;
   }
   if ((rc == ULONG_MAX) && (ERANGE == errno))
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-                     plugin->name,
-                     "URL tag > ULONG_MAX\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "URL tag > ULONG_MAX\n");
     return GNUNET_SYSERR;
   }
   if (rc > UINT32_MAX)
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-                     plugin->name,
-                     "URL tag > UINT32_MAX\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "URL tag > UINT32_MAX\n");
     return GNUNET_SYSERR;
   }
   (*tag) = (uint32_t)rc;
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-                   plugin->name,
-                   "Found tag `%u' in url\n",
-                   *tag);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Found tag `%u' in url\n",
+       *tag);
 
   /* convert peer id */
   hash_length = matches[1].rm_eo - matches[1].rm_so;
   if (hash_length != plugin->peer_id_length)
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-                     plugin->name,
-                     "URL target is %u bytes, expecting %u\n",
-                     hash_length, plugin->peer_id_length);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "URL target is %u bytes, expecting %u\n",
+         hash_length, plugin->peer_id_length);
     return GNUNET_SYSERR;
   }
   if (GNUNET_OK !=
@@ -1016,14 +1014,13 @@ server_parse_url (struct HTTP_Server_Plugin *plugin,
 						     hash_length,
 						     &target->public_key))
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                     "URL target conversion failed\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "URL target conversion failed\n");
     return GNUNET_SYSERR;
   }
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-		   plugin->name,
-		   "Found target `%s' in URL\n",
-		   GNUNET_i2s_full (target));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Found target `%s' in URL\n",
+       GNUNET_i2s_full (target));
 
   /* convert options */
   if (-1 == matches[3].rm_so) {
@@ -1032,25 +1029,25 @@ server_parse_url (struct HTTP_Server_Plugin *plugin,
     rc = strtoul (&url[matches[3].rm_so + 1], &options_end, 10);
     if (&url[matches[3].rm_eo] != options_end)
     {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                       "URL options did not line up with submatch\n");
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "URL options did not line up with submatch\n");
       return GNUNET_SYSERR;
     }
     if ((rc == ULONG_MAX) && (ERANGE == errno))
     {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                       "URL options > ULONG_MAX\n");
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "URL options > ULONG_MAX\n");
       return GNUNET_SYSERR;
     }
     if (rc > UINT32_MAX)
     {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                       "URL options > UINT32_MAX\n");
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "URL options > UINT32_MAX\n");
       return GNUNET_SYSERR;
     }
     (*options) = (uint32_t)rc;
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-       "Found options `%u' in url\n", *options);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Found options `%u' in url\n", *options);
   }
   return GNUNET_OK;
 }
@@ -1088,14 +1085,16 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
   if ((conn_info->client_addr->sa_family != AF_INET) &&
       (conn_info->client_addr->sa_family != AF_INET6))
     return NULL;
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                   "New %s connection from %s\n", method, url);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "New %s connection from %s\n",
+       method,
+       url);
 
   if (GNUNET_SYSERR == server_parse_url (plugin, url, &target, &tag, &options))
   {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                       "Invalid url %s\n", url);
-      return NULL;
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Invalid url %s\n", url);
+    return NULL;
   }
   if (0 == strcmp (MHD_HTTP_METHOD_PUT, method))
     direction = _RECEIVE;
@@ -1103,17 +1102,18 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
     direction = _SEND;
   else
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                     "Invalid method %s connection from %s\n", method, url);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Invalid method %s connection from %s\n",
+         method, url);
     return NULL;
   }
 
   plugin->cur_connections++;
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                   "New %s connection from %s with tag %u (%u of %u)\n",
-                   method,
-                   GNUNET_i2s (&target), tag,
-                   plugin->cur_connections, plugin->max_connections);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "New %s connection from %s with tag %u (%u of %u)\n",
+       method,
+       GNUNET_i2s (&target), tag,
+       plugin->cur_connections, plugin->max_connections);
   /* find duplicate session */
   s = plugin->head;
   while (s != NULL)
@@ -1127,20 +1127,19 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
   {
     if ((_RECEIVE == direction) && (NULL != s->server_recv))
     {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                       "Duplicate PUT connection from `%s' tag %u, dismissing new connection\n",
-                       GNUNET_i2s (&target),
-                       tag);
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Duplicate PUT connection from `%s' tag %u, dismissing new connection\n",
+           GNUNET_i2s (&target),
+           tag);
       return NULL;
-
     }
     if ((_SEND == direction) && (NULL != s->server_send))
     {
-        GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                         "Duplicate GET connection from `%s' tag %u, dismissing new connection\n",
-                         GNUNET_i2s (&target),
-                         tag);
-        return NULL;
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Duplicate GET connection from `%s' tag %u, dismissing new connection\n",
+           GNUNET_i2s (&target),
+           tag);
+      return NULL;
     }
   }
   else
@@ -1181,12 +1180,12 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
     server_start_session_timeout(s);
     GNUNET_CONTAINER_DLL_insert (plugin->head, plugin->tail, s);
 
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                     "Creating new session %p for peer `%s' connecting from `%s'\n",
-                     s, GNUNET_i2s (&target),
-                     http_common_plugin_address_to_string (NULL,
-                                                           plugin->protocol,
-                                                           addr, addr_len));
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Creating new session %p for peer `%s' connecting from `%s'\n",
+         s, GNUNET_i2s (&target),
+         http_common_plugin_address_to_string (NULL,
+                                               plugin->protocol,
+                                               addr, addr_len));
     GNUNET_free_non_null (addr);
   }
   sc = GNUNET_new (struct ServerConnection);
@@ -1218,15 +1217,15 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
   }
   else
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                     "Session %p for peer `%s' fully connected\n",
-                     s, GNUNET_i2s (&target));
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Session %p for peer `%s' fully connected\n",
+         s, GNUNET_i2s (&target));
     to = (HTTP_SERVER_SESSION_TIMEOUT.rel_value_us / 1000LL / 1000LL);
     server_mhd_connection_timeout (plugin, s, to);
   }
 
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                   "Setting timeout for %p to %u sec.\n", sc, to);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Setting timeout for %p to %u sec.\n", sc, to);
   return sc;
 }
 
@@ -1309,8 +1308,9 @@ server_send_callback (void *cls, uint64_t pos, char *buf, size_t max)
   if (0 < bytes_read)
   {
     sc->connected = GNUNET_YES;
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, s->plugin->name,
-                   "Sent %u bytes to peer `%s' with session %p \n", bytes_read, GNUNET_i2s (&s->target), s);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Sent %u bytes to peer `%s' with session %p \n",
+         bytes_read, GNUNET_i2s (&s->target), s);
     GNUNET_asprintf (&stat_txt, "# bytes currently in %s_server buffers",
                      s->plugin->protocol);
     GNUNET_STATISTICS_update (s->plugin->env->stats,
@@ -1321,10 +1321,12 @@ server_send_callback (void *cls, uint64_t pos, char *buf, size_t max)
     GNUNET_STATISTICS_update (s->plugin->env->stats,
                               stat_txt, bytes_read, GNUNET_NO);
     GNUNET_free (stat_txt);
-  } else if ((sc->options & OPTION_LONG_POLL) && sc->connected) {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, s->plugin->name,
-                     "Completing GET response to peer `%s' with session %p \n",
-                     GNUNET_i2s (&s->target), s);
+  }
+  else if ((sc->options & OPTION_LONG_POLL) && sc->connected)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Completing GET response to peer `%s' with session %p \n",
+         GNUNET_i2s (&s->target), s);
     return MHD_CONTENT_READER_END_OF_STREAM;
   }
   return bytes_read;
@@ -1369,14 +1371,14 @@ server_receive_mst_cb (void *cls, void *client,
   s->next_receive = GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get (), delay);
   if (delay.rel_value_us > 0)
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                     "Peer `%s' address `%s' next read delayed for %s\n",
-                     GNUNET_i2s (&s->target),
-                     http_common_plugin_address_to_string (NULL,
-                         plugin->protocol, s->address->address,
-                         s->address->address_length),
-                     GNUNET_STRINGS_relative_time_to_string (delay,
-							     GNUNET_YES));
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Peer `%s' address `%s' next read delayed for %s\n",
+         GNUNET_i2s (&s->target),
+         http_common_plugin_address_to_string (NULL,
+                                               plugin->protocol, s->address->address,
+                                               s->address->address_length),
+         GNUNET_STRINGS_relative_time_to_string (delay,
+                                                 GNUNET_YES));
   }
   server_reschedule_session_timeout (s);
   return GNUNET_OK;
@@ -1426,11 +1428,11 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
   struct Session *s;
   struct MHD_Response *response;
 
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                   _("Access from connection %p (%u of %u) for `%s' `%s' url `%s' with upload data size %u\n"),
-                   sc,
-                   plugin->cur_connections, plugin->max_connections,
-                   method, version, url, (*upload_data_size));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       _("Access from connection %p (%u of %u) for `%s' `%s' url `%s' with upload data size %u\n"),
+       sc,
+       plugin->cur_connections, plugin->max_connections,
+       method, version, url, (*upload_data_size));
 
   GNUNET_assert (cls != NULL);
   if (sc == NULL)
@@ -1507,26 +1509,26 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
     if ((*upload_data_size == 0) && (sc->connected == GNUNET_NO))
     {
       /* (*upload_data_size == 0) first callback when header are passed */
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                       "Session %p / Connection %p: Peer `%s' PUT on address `%s' connected\n",
-                       s, sc,
-                       GNUNET_i2s (&s->target),
-                       http_common_plugin_address_to_string (NULL,
-                           plugin->protocol, s->address->address,
-                           s->address->address_length));
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Session %p / Connection %p: Peer `%s' PUT on address `%s' connected\n",
+           s, sc,
+           GNUNET_i2s (&s->target),
+           http_common_plugin_address_to_string (NULL,
+                                                 plugin->protocol, s->address->address,
+                                                 s->address->address_length));
       sc->connected = GNUNET_YES;
       return MHD_YES;
     }
     else if ((*upload_data_size == 0) && (sc->connected == GNUNET_YES))
     {
       /* (*upload_data_size == 0) when upload is complete */
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                       "Session %p / Connection %p: Peer `%s' PUT on address `%s' finished upload\n",
-                       s, sc,
-                       GNUNET_i2s (&s->target),
-                       http_common_plugin_address_to_string (NULL,
-                           plugin->protocol, s->address->address,
-                           s->address->address_length));
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Session %p / Connection %p: Peer `%s' PUT on address `%s' finished upload\n",
+           s, sc,
+           GNUNET_i2s (&s->target),
+           http_common_plugin_address_to_string (NULL,
+                                                 plugin->protocol, s->address->address,
+                                                 s->address->address_length));
       sc->connected = GNUNET_NO;
       /* Sent HTTP/1.1: 200 OK as PUT Response\ */
       response = MHD_create_response_from_data (strlen ("Thank you!"),
@@ -1540,21 +1542,21 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
     else if ((*upload_data_size > 0) && (sc->connected == GNUNET_YES))
     {
       /* (*upload_data_size > 0) for every segment received */
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                       "Session %p / Connection %p: Peer `%s' PUT on address `%s' received %u bytes\n",
-                       s, sc,
-                       GNUNET_i2s (&s->target),
-                       http_common_plugin_address_to_string (NULL,
-                           plugin->protocol, s->address->address,
-                           s->address->address_length),
-                       *upload_data_size);
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Session %p / Connection %p: Peer `%s' PUT on address `%s' received %u bytes\n",
+           s, sc,
+           GNUNET_i2s (&s->target),
+           http_common_plugin_address_to_string (NULL,
+                                                 plugin->protocol, s->address->address,
+                                                 s->address->address_length),
+           *upload_data_size);
       struct GNUNET_TIME_Absolute now = GNUNET_TIME_absolute_get ();
 
       if ((s->next_receive.abs_value_us <= now.abs_value_us))
       {
-        GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                         "PUT with %u bytes forwarded to MST\n",
-                         *upload_data_size);
+        LOG (GNUNET_ERROR_TYPE_DEBUG,
+             "PUT with %u bytes forwarded to MST\n",
+             *upload_data_size);
         if (s->msg_tk == NULL)
         {
           s->msg_tk = GNUNET_SERVER_mst_create (&server_receive_mst_cb, s);
@@ -1598,13 +1600,12 @@ server_disconnect_cb (void *cls, struct MHD_Connection *connection,
 {
   struct HTTP_Server_Plugin *plugin = cls;
   struct ServerConnection *sc = *httpSessionCache;
-  struct Session *s = NULL;
-  struct Session *t = NULL;
+  struct Session *s;
+  struct Session *t;
 
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG,
-                   plugin->name,
-                   "Disconnect for connection %p \n", sc);
-
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Disconnect for connection %p\n",
+       sc);
   if (sc == NULL)
     return;
 
@@ -1618,12 +1619,12 @@ server_disconnect_cb (void *cls, struct MHD_Connection *connection,
 
   if (sc->direction == _SEND)
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                     "Peer `%s' connection  %p, GET on address `%s' disconnected\n",
-                     GNUNET_i2s (&s->target), s->server_send,
-                     http_common_plugin_address_to_string (NULL,
-                         plugin->protocol, s->address->address,
-                         s->address->address_length));
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Peer `%s' connection  %p, GET on address `%s' disconnected\n",
+         GNUNET_i2s (&s->target), s->server_send,
+         http_common_plugin_address_to_string (NULL,
+                                               plugin->protocol, s->address->address,
+                                               s->address->address_length));
     s->server_send = NULL;
     if (!(sc->options & OPTION_LONG_POLL) && NULL != (s->server_recv))
     {
@@ -1638,12 +1639,12 @@ server_disconnect_cb (void *cls, struct MHD_Connection *connection,
   }
   if (sc->direction == _RECEIVE)
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                     "Peer `%s' connection %p PUT on address `%s' disconnected\n",
-                     GNUNET_i2s (&s->target), s->server_recv,
-                     http_common_plugin_address_to_string (NULL,
-                         plugin->protocol, s->address->address,
-                         s->address->address_length));
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Peer `%s' connection %p PUT on address `%s' disconnected\n",
+         GNUNET_i2s (&s->target), s->server_recv,
+         http_common_plugin_address_to_string (NULL,
+                                               plugin->protocol, s->address->address,
+                                               s->address->address_length));
     s->server_recv = NULL;
     if (s->msg_tk != NULL)
     {
@@ -1657,12 +1658,12 @@ server_disconnect_cb (void *cls, struct MHD_Connection *connection,
 
   if (s->disconnect && (s->server_send == NULL) && (s->server_recv == NULL))
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                     "Peer `%s' on address `%s' disconnected\n",
-                     GNUNET_i2s (&s->target),
-                     http_common_plugin_address_to_string (NULL,
-                         plugin->protocol, s->address->address,
-                         s->address->address_length));
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Peer `%s' on address `%s' disconnected\n",
+         GNUNET_i2s (&s->target),
+         http_common_plugin_address_to_string (NULL,
+                                               plugin->protocol, s->address->address,
+                                               s->address->address_length));
 
     if ((GNUNET_YES == s->session_passed) && (GNUNET_NO == s->session_ended))
     {
@@ -1690,17 +1691,17 @@ server_accept_cb (void *cls, const struct sockaddr *addr, socklen_t addr_len)
 
   if (plugin->cur_connections <= plugin->max_connections)
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                     _("Accepting connection (%u of %u) from `%s'\n"),
-                     plugin->cur_connections, plugin->max_connections,
-                     GNUNET_a2s (addr, addr_len));
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         _("Accepting connection (%u of %u) from `%s'\n"),
+         plugin->cur_connections, plugin->max_connections,
+         GNUNET_a2s (addr, addr_len));
     return MHD_YES;
   }
   else
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, plugin->name,
-                     _("Server reached maximum number connections (%u), rejecting new connection\n"),
-                     plugin->max_connections);
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         _("Server reached maximum number connections (%u), rejecting new connection\n"),
+         plugin->max_connections);
     return MHD_NO;
   }
 }
@@ -1734,8 +1735,8 @@ server_v4_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 #if 0
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                   "Running IPv4 server\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Running IPv4 server\n");
 #endif
   plugin->server_v4_immediately = GNUNET_NO;
   GNUNET_assert (MHD_YES == MHD_run (plugin->server_v4));
@@ -1759,8 +1760,8 @@ server_v6_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 #if 0
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                   "Running IPv6 server\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Running IPv6 server\n");
 #endif
   plugin->server_v6_immediately = GNUNET_NO;
   GNUNET_assert (MHD_YES == MHD_run (plugin->server_v6));
@@ -1812,10 +1813,9 @@ server_schedule (struct HTTP_Server_Plugin *plugin,
   {
     if (timeout != last_timeout)
     {
-
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                       "SELECT Timeout changed from %llu to %llu (ms)\n",
-                       last_timeout, timeout);
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "SELECT Timeout changed from %llu to %llu (ms)\n",
+           last_timeout, timeout);
       last_timeout = timeout;
     }
     if (timeout <= GNUNET_TIME_UNIT_SECONDS.rel_value_us / 1000LL)
@@ -1840,8 +1840,9 @@ server_schedule (struct HTTP_Server_Plugin *plugin,
       plugin->server_v4_task = GNUNET_SCHEDULER_NO_TASK;
     }
 #if 0
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                     "Scheduling IPv4 server task in %llu ms\n", tv);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Scheduling IPv4 server task in %llu ms\n",
+         tv);
 #endif
     ret =
         GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
@@ -1856,8 +1857,8 @@ server_schedule (struct HTTP_Server_Plugin *plugin,
       plugin->server_v6_task = GNUNET_SCHEDULER_NO_TASK;
     }
 #if 0
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                     "Scheduling IPv6 server task in %llu ms\n", tv);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Scheduling IPv6 server task in %llu ms\n", tv);
 #endif
     ret =
         GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
@@ -1949,12 +1950,12 @@ server_load_certificate (struct HTTP_Server_Plugin *plugin)
                                              plugin->name,
                                              "CRYPTO_INIT",
                                              &plugin->crypto_init))
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                     "Using crypto init string `%s'\n",
-                     plugin->crypto_init);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Using crypto init string `%s'\n",
+         plugin->crypto_init);
   else
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                     "Using default crypto init string \n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Using default crypto init string \n");
 
   /* read key & certificates from file */
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -1984,9 +1985,8 @@ server_load_certificate (struct HTTP_Server_Plugin *plugin)
                                  key_file, cert_file, NULL);
     if (cert_creation == NULL)
     {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
-                       _
-                       ("Could not create a new TLS certificate, program `gnunet-transport-certificate-creation' could not be started!\n"));
+      LOG (GNUNET_ERROR_TYPE_ERROR,
+           _("Could not create a new TLS certificate, program `gnunet-transport-certificate-creation' could not be started!\n"));
       GNUNET_free (key_file);
       GNUNET_free (cert_file);
 
@@ -2008,10 +2008,9 @@ server_load_certificate (struct HTTP_Server_Plugin *plugin)
 
   if ((plugin->key == NULL) || (plugin->cert == NULL))
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR,
-                     plugin->name,
-                     _("No usable TLS certificate found and creating one at `%s/%s' failed!\n"),
-                     key_file, cert_file);
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         _("No usable TLS certificate found and creating one at `%s/%s' failed!\n"),
+         key_file, cert_file);
     GNUNET_free (key_file);
     GNUNET_free (cert_file);
 
@@ -2048,8 +2047,8 @@ server_start (struct HTTP_Server_Plugin *plugin)
 #if BUILD_HTTPS
   if (GNUNET_SYSERR == server_load_certificate (plugin))
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
-                     "Could not load or create server certificate! Loading plugin failed!\n");
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         "Could not load or create server certificate! Loading plugin failed!\n");
     return GNUNET_SYSERR;
   }
 #endif
@@ -2057,14 +2056,14 @@ server_start (struct HTTP_Server_Plugin *plugin)
 
 #if MHD_VERSION >= 0x00090E00
   timeout = HTTP_SERVER_NOT_VALIDATED_TIMEOUT.rel_value_us / 1000LL / 1000LL;
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                   "MHD can set timeout per connection! Default time out %u sec.\n",
-                   timeout);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "MHD can set timeout per connection! Default time out %u sec.\n",
+       timeout);
 #else
   timeout = HTTP_SERVER_SESSION_TIMEOUT.rel_value_us / 1000LL / 1000LL;
-  GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, plugin->name,
-                   "MHD cannot set timeout per connection! Default time out %u sec.\n",
-                   timeout);
+  LOG (GNUNET_ERROR_TYPE_WARNING,
+       "MHD cannot set timeout per connection! Default time out %u sec.\n",
+       timeout);
 #endif
 
   plugin->server_v4 = NULL;
@@ -2105,9 +2104,9 @@ server_start (struct HTTP_Server_Plugin *plugin)
                                            server_log, NULL, MHD_OPTION_END);
     if (plugin->server_v4 == NULL)
     {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
-                       "Failed to start %s IPv4 server component on port %u\n",
-                       plugin->name, plugin->port);
+      LOG (GNUNET_ERROR_TYPE_ERROR,
+           "Failed to start %s IPv4 server component on port %u\n",
+           plugin->name, plugin->port);
     }
     else
     	server_reschedule (plugin, plugin->server_v4, GNUNET_NO);
@@ -2152,9 +2151,9 @@ server_start (struct HTTP_Server_Plugin *plugin)
                                            server_log, NULL, MHD_OPTION_END);
     if (plugin->server_v6 == NULL)
     {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
-                       "Failed to start %s IPv6 server component on port %u\n",
-                       plugin->name, plugin->port);
+      LOG (GNUNET_ERROR_TYPE_ERROR,
+           "Failed to start %s IPv6 server component on port %u\n",
+           plugin->name, plugin->port);
     }
     else
     	server_reschedule (plugin, plugin->server_v6, GNUNET_NO);
@@ -2163,9 +2162,9 @@ server_start (struct HTTP_Server_Plugin *plugin)
 	msg = "No";
   if ((plugin->server_v6 == NULL) && (plugin->server_v4 == NULL))
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
-                     "%s %s server component started on port %u\n",
-                     msg, plugin->name, plugin->port);
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         "%s %s server component started on port %u\n",
+         msg, plugin->name, plugin->port);
     sleep (10);
     return GNUNET_SYSERR;
   }
@@ -2175,9 +2174,9 @@ server_start (struct HTTP_Server_Plugin *plugin)
   	msg = "IPv6";
   else if (plugin->server_v4 != NULL)
   	msg = "IPv4";
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                   "%s %s server component started on port %u\n",
-                   msg, plugin->name, plugin->port);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "%s %s server component started on port %u\n",
+       msg, plugin->name, plugin->port);
   return GNUNET_OK;
 }
 
@@ -2214,8 +2213,9 @@ server_stop (struct HTTP_Server_Plugin *plugin)
   GNUNET_free_non_null (plugin->key);
 #endif
 
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                   "%s server component stopped\n", plugin->name);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "%s server component stopped\n",
+       plugin->name);
 }
 
 
@@ -2245,11 +2245,11 @@ server_add_address (void *cls, int add_remove, const struct sockaddr *addr,
   w->addrlen = http_common_address_get_size (w->address);
 
   GNUNET_CONTAINER_DLL_insert(plugin->addr_head, plugin->addr_tail, w);
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                   "Notifying transport to add address `%s'\n",
-                   http_common_plugin_address_to_string (NULL,
-                                                         plugin->protocol,
-                                                         w->address, w->addrlen));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Notifying transport to add address `%s'\n",
+       http_common_plugin_address_to_string (NULL,
+                                             plugin->protocol,
+                                             w->address, w->addrlen));
   /* modify our published address list */
 #if BUILD_HTTPS
   address = GNUNET_HELLO_address_allocate (plugin->env->my_identity,
@@ -2296,11 +2296,11 @@ server_remove_address (void *cls, int add_remove, const struct sockaddr *addr,
   if (NULL == w)
     return;
 
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                   "Notifying transport to remove address `%s'\n",
-                   http_common_plugin_address_to_string (NULL,
-                                                         plugin->protocol,
-                                                         w->address, w->addrlen));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Notifying transport to remove address `%s'\n",
+       http_common_plugin_address_to_string (NULL,
+                                             plugin->protocol,
+                                             w->address, w->addrlen));
 
 
   GNUNET_CONTAINER_DLL_remove (plugin->addr_head, plugin->addr_tail, w);
@@ -2337,10 +2337,10 @@ server_nat_port_map_callback (void *cls, int add_remove, const struct sockaddr *
   GNUNET_assert (cls != NULL);
   struct HTTP_Server_Plugin *plugin = cls;
 
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                   "NAT called to %s address `%s'\n",
-                   (add_remove == GNUNET_NO) ? "remove" : "add",
-                   GNUNET_a2s (addr, addrlen));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "NAT called to %s address `%s'\n",
+       (add_remove == GNUNET_NO) ? "remove" : "add",
+       GNUNET_a2s (addr, addrlen));
 
   if (AF_INET == addr->sa_family)
   {
@@ -2353,9 +2353,9 @@ server_nat_port_map_callback (void *cls, int add_remove, const struct sockaddr *
         (0 != memcmp (&plugin->server_addr_v4->sin_addr,
                       &s4->sin_addr, sizeof (struct in_addr))))
     {
-        GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                         "Skipping address `%s' (not bindto address)\n",
-                         GNUNET_a2s (addr, addrlen));
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Skipping address `%s' (not bindto address)\n",
+           GNUNET_a2s (addr, addrlen));
       return;
     }
   }
@@ -2370,10 +2370,10 @@ server_nat_port_map_callback (void *cls, int add_remove, const struct sockaddr *
         (0 != memcmp (&plugin->server_addr_v6->sin6_addr,
                       &s6->sin6_addr, sizeof (struct in6_addr))))
     {
-        GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                         "Skipping address `%s' (not bindto address)\n",
-                         GNUNET_a2s (addr, addrlen));
-        return;
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Skipping address `%s' (not bindto address)\n",
+           GNUNET_a2s (addr, addrlen));
+      return;
     }
   }
 
@@ -2439,8 +2439,8 @@ server_get_addresses (struct HTTP_Server_Plugin *plugin,
   }
   if (0 == port)
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, plugin->name,
-                     "Starting in listen only mode\n");
+    LOG (GNUNET_ERROR_TYPE_INFO,
+         "Starting in listen only mode\n");
     return -1; /* listen only */
   }
 
@@ -2456,9 +2456,9 @@ server_get_addresses (struct HTTP_Server_Plugin *plugin,
 
   if (hostname != NULL)
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                     "Resolving `%s' since that is where `%s' will bind to.\n",
-                     hostname, service_name);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Resolving `%s' since that is where `%s' will bind to.\n",
+         hostname, service_name);
     memset (&hints, 0, sizeof (struct addrinfo));
     if (disablev6)
       hints.ai_family = AF_INET;
@@ -2502,9 +2502,10 @@ server_get_addresses (struct HTTP_Server_Plugin *plugin,
         continue;               /* not TCP */
       if ((pos->ai_socktype != SOCK_STREAM) && (pos->ai_socktype != 0))
         continue;               /* huh? */
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                       "Service will bind to `%s'\n", GNUNET_a2s (pos->ai_addr,
-                                                                  pos->ai_addrlen));
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Service will bind to `%s'\n",
+           GNUNET_a2s (pos->ai_addr,
+                       pos->ai_addrlen));
       if (pos->ai_family == AF_INET)
       {
         GNUNET_assert (pos->ai_addrlen == sizeof (struct sockaddr_in));
@@ -2592,8 +2593,9 @@ server_start_report_addresses (struct HTTP_Server_Plugin *plugin)
   res = server_get_addresses (plugin,
                               plugin->name, plugin->env->cfg,
                               &addrs, &addrlens);
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                   _("Found %u addresses to report to NAT service\n"), res);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       _("Found %u addresses to report to NAT service\n"),
+       res);
 
   if (GNUNET_SYSERR == res)
   {
@@ -2663,9 +2665,8 @@ server_check_ipv6_support (struct HTTP_Server_Plugin *plugin)
     {
       GNUNET_log_strerror (GNUNET_ERROR_TYPE_ERROR, "socket");
     }
-    GNUNET_log_from (GNUNET_ERROR_TYPE_WARNING, plugin->name,
-                     _
-                     ("Disabling IPv6 since it is not supported on this system!\n"));
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         _("Disabling IPv6 since it is not supported on this system!\n"));
     res = GNUNET_NO;
   }
   else
@@ -2674,9 +2675,9 @@ server_check_ipv6_support (struct HTTP_Server_Plugin *plugin)
     desc = NULL;
     res = GNUNET_YES;
   }
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                   "Testing IPv6 on this system: %s\n",
-                   (res == GNUNET_YES) ? "successful" : "failed");
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Testing IPv6 on this system: %s\n",
+       (res == GNUNET_YES) ? "successful" : "failed");
   return res;
 }
 
@@ -2710,14 +2711,15 @@ server_notify_external_hostname (void *cls, const struct GNUNET_SCHEDULER_TaskCo
   memcpy (&ext_addr[1], url, urlen);
   GNUNET_free (url);
 
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                   "Notifying transport about external hostname address `%s'\n", plugin->external_hostname);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Notifying transport about external hostname address `%s'\n",
+       plugin->external_hostname);
 
 #if BUILD_HTTPS
   if (GNUNET_YES == plugin->verify_external_hostname)
-  GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, plugin->name,
-      "Enabling SSL verification for external hostname address `%s'\n",
-      plugin->external_hostname);
+    LOG (GNUNET_ERROR_TYPE_INFO,
+         "Enabling SSL verification for external hostname address `%s'\n",
+         plugin->external_hostname);
   plugin->ext_addr = GNUNET_HELLO_address_allocate (plugin->env->my_identity,
       "https_client", ext_addr, ext_addr_len, GNUNET_HELLO_ADDRESS_INFO_NONE );
   plugin->env->notify_address (plugin->env->cls, GNUNET_YES, plugin->ext_addr);
@@ -2757,9 +2759,9 @@ server_configure_plugin (struct HTTP_Server_Plugin *plugin)
   }
   else
     plugin->use_ipv4 = GNUNET_YES;
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                   _("IPv4 support is %s\n"),
-                   (plugin->use_ipv4 == GNUNET_YES) ? "enabled" : "disabled");
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       _("IPv4 support is %s\n"),
+       (plugin->use_ipv4 == GNUNET_YES) ? "enabled" : "disabled");
 
   /* Use IPv6? */
   if (GNUNET_CONFIGURATION_have_value
@@ -2771,16 +2773,14 @@ server_configure_plugin (struct HTTP_Server_Plugin *plugin)
   }
   else
     plugin->use_ipv6 = GNUNET_YES;
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                   _("IPv6 support is %s\n"),
-                   (plugin->use_ipv6 == GNUNET_YES) ? "enabled" : "disabled");
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       _("IPv6 support is %s\n"),
+       (plugin->use_ipv6 == GNUNET_YES) ? "enabled" : "disabled");
 
   if ((plugin->use_ipv4 == GNUNET_NO) && (plugin->use_ipv6 == GNUNET_NO))
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
-                     _
-                     ("Neither IPv4 nor IPv6 are enabled! Fix in configuration\n"),
-                     plugin->name);
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         _("Neither IPv4 nor IPv6 are enabled! Fix in configuration\n"));
     return GNUNET_SYSERR;
   }
 
@@ -2789,31 +2789,29 @@ server_configure_plugin (struct HTTP_Server_Plugin *plugin)
        GNUNET_CONFIGURATION_get_value_number (plugin->env->cfg, plugin->name,
                                               "PORT", &port)) || (port > 65535))
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
-                     _("Port is required! Fix in configuration\n"),
-                     plugin->name);
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         _("Port is required! Fix in configuration\n"));
     return GNUNET_SYSERR;
   }
   plugin->port = port;
 
-  GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, plugin->name,
-                   _("Using port %u\n"), plugin->port);
+  LOG (GNUNET_ERROR_TYPE_INFO,
+       _("Using port %u\n"), plugin->port);
 
   if ((plugin->use_ipv4 == GNUNET_YES) &&
       (GNUNET_YES == GNUNET_CONFIGURATION_get_value_string (plugin->env->cfg,
                           plugin->name, "BINDTO", &bind4_address)))
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                     "Binding %s plugin to specific IPv4 address: `%s'\n",
-                     plugin->protocol, bind4_address);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Binding %s plugin to specific IPv4 address: `%s'\n",
+         plugin->protocol, bind4_address);
     plugin->server_addr_v4 = GNUNET_new (struct sockaddr_in);
     if (1 != inet_pton (AF_INET, bind4_address,
                         &plugin->server_addr_v4->sin_addr))
     {
-        GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
-                         _
-                         ("Specific IPv4 address `%s' in configuration file is invalid!\n"),
-                         bind4_address);
+      LOG (GNUNET_ERROR_TYPE_ERROR,
+           _("Specific IPv4 address `%s' in configuration file is invalid!\n"),
+           bind4_address);
       GNUNET_free (bind4_address);
       GNUNET_free (plugin->server_addr_v4);
       plugin->server_addr_v4 = NULL;
@@ -2821,8 +2819,9 @@ server_configure_plugin (struct HTTP_Server_Plugin *plugin)
     }
     else
     {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                         _("Binding to IPv4 address %s\n"), bind4_address);
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           _("Binding to IPv4 address %s\n"),
+           bind4_address);
       plugin->server_addr_v4->sin_family = AF_INET;
       plugin->server_addr_v4->sin_port = htons (plugin->port);
     }
@@ -2834,17 +2833,16 @@ server_configure_plugin (struct HTTP_Server_Plugin *plugin)
        GNUNET_CONFIGURATION_get_value_string (plugin->env->cfg, plugin->name,
                                               "BINDTO6", &bind6_address)))
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                     "Binding %s plugin to specific IPv6 address: `%s'\n",
-                     plugin->protocol, bind6_address);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Binding %s plugin to specific IPv6 address: `%s'\n",
+         plugin->protocol, bind6_address);
     plugin->server_addr_v6 = GNUNET_new (struct sockaddr_in6);
     if (1 !=
         inet_pton (AF_INET6, bind6_address, &plugin->server_addr_v6->sin6_addr))
     {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
-                       _
-                       ("Specific IPv6 address `%s' in configuration file is invalid!\n"),
-                       bind6_address);
+      LOG (GNUNET_ERROR_TYPE_ERROR,
+           _("Specific IPv6 address `%s' in configuration file is invalid!\n"),
+           bind6_address);
       GNUNET_free (bind6_address);
       GNUNET_free (plugin->server_addr_v6);
       plugin->server_addr_v6 = NULL;
@@ -2852,8 +2850,9 @@ server_configure_plugin (struct HTTP_Server_Plugin *plugin)
     }
     else
     {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                         _("Binding to IPv6 address %s\n"), bind6_address);
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           _("Binding to IPv6 address %s\n"),
+           bind6_address);
       plugin->server_addr_v6->sin6_family = AF_INET6;
       plugin->server_addr_v6->sin6_port = htons (plugin->port);
     }
@@ -2863,14 +2862,14 @@ server_configure_plugin (struct HTTP_Server_Plugin *plugin)
   plugin->verify_external_hostname = GNUNET_NO;
 #if BUILD_HTTPS
   plugin->verify_external_hostname = GNUNET_CONFIGURATION_get_value_yesno (plugin->env->cfg, plugin->name,
-																				"VERIFY_EXTERNAL_HOSTNAME");
+                                                                           "VERIFY_EXTERNAL_HOSTNAME");
   if (GNUNET_SYSERR == plugin->verify_external_hostname)
   	plugin->verify_external_hostname = GNUNET_NO;
   if (GNUNET_YES == plugin->verify_external_hostname)
   	plugin->options |= HTTP_OPTIONS_VERIFY_CERTIFICATE;
 #endif
   external_hostname_use_port = GNUNET_CONFIGURATION_get_value_yesno (plugin->env->cfg, plugin->name,
-																				"EXTERNAL_HOSTNAME_USE_PORT");
+                                                                     "EXTERNAL_HOSTNAME_USE_PORT");
   if (GNUNET_SYSERR == external_hostname_use_port)
   	external_hostname_use_port = GNUNET_NO;
 
@@ -2904,8 +2903,9 @@ server_configure_plugin (struct HTTP_Server_Plugin *plugin)
       	plugin->external_hostname = GNUNET_strdup (tmp);
       GNUNET_free (eh_tmp);
 
-      GNUNET_log_from (GNUNET_ERROR_TYPE_INFO, plugin->name,
-                       _("Using external hostname `%s'\n"), plugin->external_hostname);
+      LOG (GNUNET_ERROR_TYPE_INFO,
+           _("Using external hostname `%s'\n"),
+           plugin->external_hostname);
       plugin->notify_ext_task = GNUNET_SCHEDULER_add_now (&server_notify_external_hostname, plugin);
 
       /* Use only configured external hostname */
@@ -2920,12 +2920,13 @@ server_configure_plugin (struct HTTP_Server_Plugin *plugin)
         plugin->external_only = GNUNET_NO;
 
       if (GNUNET_YES == plugin->external_only)
-        GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                         _("Notifying transport only about hostname `%s'\n"), plugin->external_hostname);
+        LOG (GNUNET_ERROR_TYPE_DEBUG,
+             _("Notifying transport only about hostname `%s'\n"),
+             plugin->external_hostname);
   }
   else
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                     "No external hostname configured\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "No external hostname configured\n");
 
   /* Optional parameters */
   if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_number (plugin->env->cfg,
@@ -2934,9 +2935,9 @@ server_configure_plugin (struct HTTP_Server_Plugin *plugin)
     max_connections = 128;
   plugin->max_connections = max_connections;
 
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                   _("Maximum number of connections is %u\n"),
-                   plugin->max_connections);
+ LOG (GNUNET_ERROR_TYPE_DEBUG,
+      _("Maximum number of connections is %u\n"),
+      plugin->max_connections);
 
 
   plugin->peer_id_length = strlen (GNUNET_i2s_full (plugin->env->my_identity));
@@ -3034,9 +3035,9 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
     return NULL;
   }
   plugin->in_shutdown = GNUNET_YES;
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                   _("Shutting down plugin `%s'\n"),
-                   plugin->name);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       _("Shutting down plugin `%s'\n"),
+       plugin->name);
 
   if (GNUNET_SCHEDULER_NO_TASK != plugin->notify_ext_task)
   {
@@ -3046,12 +3047,12 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
 
   if (NULL != plugin->ext_addr)
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                     "Notifying transport to remove address `%s'\n",
-                     http_common_plugin_address_to_string (NULL,
-                                                           plugin->protocol,
-                                                           plugin->ext_addr->address,
-                                                           plugin->ext_addr->address_length));
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Notifying transport to remove address `%s'\n",
+         http_common_plugin_address_to_string (NULL,
+                                               plugin->protocol,
+                                               plugin->ext_addr->address,
+                                               plugin->ext_addr->address_length));
 #if BUILD_HTTPS
     plugin->env->notify_address (plugin->env->cls,
                                  GNUNET_NO,
@@ -3072,8 +3073,9 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
   while (NULL != (pos = next))
   {
     next = pos->next;
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                     "Removing left over session %p\n", pos);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Removing left over session %p\n",
+         pos);
 
     if ((GNUNET_YES == pos->session_passed) && (GNUNET_NO == pos->session_ended))
     {
@@ -3091,9 +3093,9 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
   GNUNET_free_non_null (plugin->server_addr_v6);
   regfree(&plugin->url_regex);
 
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, plugin->name,
-                   _("Shutdown for plugin `%s' complete\n"),
-                   plugin->name);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       _("Shutdown for plugin `%s' complete\n"),
+       plugin->name);
 
   GNUNET_free (plugin);
   GNUNET_free (api);
@@ -3179,8 +3181,9 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
 #endif
 
   /* Compile URL regex */
-  if (regcomp(&plugin->url_regex, URL_REGEX, REG_EXTENDED)) {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, plugin->name,
+  if (regcomp(&plugin->url_regex, URL_REGEX, REG_EXTENDED))
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR,
                      _("Unable to compile URL regex\n"));
     LIBGNUNET_PLUGIN_TRANSPORT_DONE (api);
     return NULL;
