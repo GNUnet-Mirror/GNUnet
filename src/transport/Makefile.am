@@ -33,13 +33,13 @@ if HAVE_LIBGNURL
  HTTP_REL_TEST = test_transport_api_reliability_http
  HTTP_QUOTA_TEST = test_quota_compliance_http \
 		   test_quota_compliance_http_asymmetric
- HTTP_SWITCH = test_transport_address_switch_http 
+ HTTP_SWITCH = test_transport_address_switch_http
  HTTPS_API_TEST = test_transport_api_https
  HTTPS_API_TIMEOUT_TEST = test_transport_api_timeout_https
  HTTPS_REL_TEST = test_transport_api_reliability_https
  HTTPS_QUOTA_TEST = test_quota_compliance_https \
 		test_quota_compliance_https_asymmetric
- HTTPS_SWITCH = test_transport_address_switch_https 
+ HTTPS_SWITCH = test_transport_address_switch_https
 endif
 endif
 
@@ -137,7 +137,8 @@ libgnunettransport_la_SOURCES = \
   transport_api.c transport.h \
   transport_api_blacklist.c \
   transport_api_address_to_string.c \
-  transport_api_monitoring.c
+  transport_api_monitor_peers.c \
+  transport_api_monitor_validation.c
 libgnunettransport_la_LIBADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/util/libgnunetutil.la \
@@ -1032,7 +1033,7 @@ test_transport_address_switch_tcp_LDADD = \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/transport/libgnunettransporttesting.la
- 
+
  test_transport_address_switch_udp_SOURCES = \
  test_transport_address_switch.c
 test_transport_address_switch_udp_LDADD = \
@@ -1041,8 +1042,8 @@ test_transport_address_switch_udp_LDADD = \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/transport/libgnunettransporttesting.la
- 
- 
+
+
  test_transport_address_switch_http_SOURCES = \
  test_transport_address_switch.c
 test_transport_address_switch_http_LDADD = \
@@ -1051,7 +1052,7 @@ test_transport_address_switch_http_LDADD = \
  $(top_builddir)/src/statistics/libgnunetstatistics.la \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/transport/libgnunettransporttesting.la
- 
+
  test_transport_address_switch_https_SOURCES = \
  test_transport_address_switch.c
 test_transport_address_switch_https_LDADD = \
