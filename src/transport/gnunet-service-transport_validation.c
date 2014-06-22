@@ -597,9 +597,10 @@ transmit_ping_if_allowed (void *cls,
         network = papi->get_network (papi->cls, session);
         if (GNUNET_ATS_NET_UNSPECIFIED == network)
         {
-          GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
-              "Could not obtain a valid network for `%s' `%s'\n",
-              GNUNET_i2s (pid), GST_plugins_a2s (ve->address));
+          GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                      "Could not obtain a valid network for `%s' `%s'\n",
+                      GNUNET_i2s (pid),
+                      GST_plugins_a2s (ve->address));
           GNUNET_break(0);
         }
         GST_neighbours_notify_data_sent (pid, ve->address, session, tsize);
@@ -607,8 +608,10 @@ transmit_ping_if_allowed (void *cls,
       else
       {
         /* Could not get a valid session */
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Could not get a valid session for `%s' `%s'\n",
-                    GNUNET_i2s (pid), GST_plugins_a2s (ve->address));
+        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                    "Could not get a valid session for `%s' `%s'\n",
+                    GNUNET_i2s (pid),
+                    GST_plugins_a2s (ve->address));
         ret = -1;
       }
     }
@@ -623,10 +626,10 @@ transmit_ping_if_allowed (void *cls,
 
     ve->network = network;
     ve->expecting_pong = GNUNET_YES;
-    validations_running ++;
-	  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-	              "Validation started, %u validation processes running\n",
-	              validations_running);
+    validations_running++;
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "Validation started, %u validation processes running\n",
+                validations_running);
     /*  Notify about PING sent */
     validation_entry_changed (ve, GNUNET_TRANSPORT_VS_UPDATE);
   }
@@ -943,27 +946,30 @@ multicast_pong (void *cls,
 {
   struct TransportPongMessage *pong = cls;
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
+  struct Session *session;
 
   papi = GST_plugins_find (address->transport_name);
-  if (papi == NULL)
+  if (NULL == papi)
     return;
 
-  GNUNET_assert (papi->send != NULL);
-  GNUNET_assert (papi->get_session != NULL);
-
-  struct Session * session = papi->get_session(papi->cls, address);
-  if (session == NULL)
+  GNUNET_assert (NULL != papi->send);
+  GNUNET_assert (NULL != papi->get_session);
+  session = papi->get_session(papi->cls, address);
+  if (NULL == session)
   {
      GNUNET_break (0);
      return;
   }
-
   papi->send (papi->cls, session,
-              (const char *) pong, ntohs (pong->header.size),
-              PONG_PRIORITY, ACCEPTABLE_PING_DELAY,
+              (const char *) pong,
+              ntohs (pong->header.size),
+              PONG_PRIORITY,
+              ACCEPTABLE_PING_DELAY,
               NULL, NULL);
   GST_neighbours_notify_data_sent (&address->peer,
-      address, session, pong->header.size);
+                                   address,
+                                   session,
+                                   pong->header.size);
 
 }
 
@@ -1197,7 +1203,7 @@ GST_validation_handle_ping (const struct GNUNET_PeerIdentity *sender,
                                          pong->header.size);
     }
   }
-  if (ret != -1)
+  if (-1 != ret)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "Transmitted PONG to `%s' via reliable mechanism\n",

@@ -48,7 +48,7 @@ struct GNUNET_TRANSPORT_PeerMonitoringContext
   GNUNET_TRANSPORT_PeerIterateCallback cb;
 
   /**
-   * Closure for cb.
+   * Closure for @e cb.
    */
   void *cb_cls;
 
@@ -100,7 +100,7 @@ struct GNUNET_TRANSPORT_ValidationMonitoringContext
   GNUNET_TRANSPORT_ValidationIterateCallback cb;
 
   /**
-   * Closure for cb.
+   * Closure for @e cb.
    */
   void *cb_cls;
 
@@ -140,11 +140,12 @@ struct GNUNET_TRANSPORT_ValidationMonitoringContext
   int one_shot;
 };
 
+
 /**
  * Check if a state is defined as connected
  *
  * @param state the state value
- * @return GNUNET_YES or GNUNET_NO
+ * @return #GNUNET_YES or #GNUNET_NO
  */
 int
 GNUNET_TRANSPORT_is_connected (enum GNUNET_TRANSPORT_PeerState state)
@@ -174,6 +175,7 @@ GNUNET_TRANSPORT_is_connected (enum GNUNET_TRANSPORT_PeerState state)
   }
   return GNUNET_SYSERR;
 }
+
 
 /**
  * Convert peer state to human-readable string.
@@ -214,6 +216,7 @@ GNUNET_TRANSPORT_ps2s (enum GNUNET_TRANSPORT_PeerState state)
   }
 }
 
+
 /**
  * Convert validation state to human-readable string.
  *
@@ -250,7 +253,8 @@ GNUNET_TRANSPORT_vs2s (enum GNUNET_TRANSPORT_ValidationState state)
  *        message with the human-readable address
  */
 static void
-peer_response_processor (void *cls, const struct GNUNET_MessageHeader *msg);
+peer_response_processor (void *cls,
+                         const struct GNUNET_MessageHeader *msg);
 
 
 /**
@@ -261,7 +265,9 @@ peer_response_processor (void *cls, const struct GNUNET_MessageHeader *msg);
  *        message with the human-readable address
  */
 static void
-val_response_processor (void *cls, const struct GNUNET_MessageHeader *msg);
+val_response_processor (void *cls,
+                        const struct GNUNET_MessageHeader *msg);
+
 
 /**
  * Send our subscription request to the service.
@@ -279,12 +285,13 @@ send_peer_mon_request (struct GNUNET_TRANSPORT_PeerMonitoringContext *pal_ctx)
   msg.peer = pal_ctx->peer;
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CLIENT_transmit_and_get_response (pal_ctx->client,
-                    &msg.header,
-                    GNUNET_TIME_absolute_get_remaining (pal_ctx->timeout),
-                    GNUNET_YES,
-                    &peer_response_processor,
-                    pal_ctx));
+                                                          &msg.header,
+                                                          GNUNET_TIME_absolute_get_remaining (pal_ctx->timeout),
+                                                          GNUNET_YES,
+                                                          &peer_response_processor,
+                                                          pal_ctx));
 }
+
 
 /**
  * Send our subscription request to the service.
@@ -312,12 +319,12 @@ send_val_mon_request (struct GNUNET_TRANSPORT_ValidationMonitoringContext *val_c
 /**
  * Task run to re-establish the connection.
  *
- * @param cls our 'struct GNUNET_TRANSPORT_PeerAddressLookupContext*'
+ * @param cls our `struct GNUNET_TRANSPORT_PeerAddressLookupContext *`
  * @param tc scheduler context, unused
  */
 static void
 do_peer_connect (void *cls,
-           const struct GNUNET_SCHEDULER_TaskContext *tc)
+                 const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_TRANSPORT_PeerMonitoringContext *pal_ctx = cls;
 
@@ -366,6 +373,7 @@ do_val_connect (void *cls,
   GNUNET_assert (NULL != val_ctx->client);
   send_val_mon_request (val_ctx);
 }
+
 
 /**
  * Cut the existing connection and reconnect.
