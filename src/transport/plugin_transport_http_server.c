@@ -1183,9 +1183,9 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Creating new session %p for peer `%s' connecting from `%s'\n",
          s, GNUNET_i2s (&target),
-         http_common_plugin_address_to_string (NULL,
-                                               plugin->protocol,
-                                               addr, addr_len));
+         http_common_plugin_address_to_string (plugin->protocol,
+                                               addr,
+                                               addr_len));
     GNUNET_free_non_null (addr);
   }
   sc = GNUNET_new (struct ServerConnection);
@@ -1374,8 +1374,8 @@ server_receive_mst_cb (void *cls, void *client,
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Peer `%s' address `%s' next read delayed for %s\n",
          GNUNET_i2s (&s->target),
-         http_common_plugin_address_to_string (NULL,
-                                               plugin->protocol, s->address->address,
+         http_common_plugin_address_to_string (plugin->protocol,
+                                               s->address->address,
                                                s->address->address_length),
          GNUNET_STRINGS_relative_time_to_string (delay,
                                                  GNUNET_YES));
@@ -1513,8 +1513,8 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
            "Session %p / Connection %p: Peer `%s' PUT on address `%s' connected\n",
            s, sc,
            GNUNET_i2s (&s->target),
-           http_common_plugin_address_to_string (NULL,
-                                                 plugin->protocol, s->address->address,
+           http_common_plugin_address_to_string (plugin->protocol,
+                                                 s->address->address,
                                                  s->address->address_length));
       sc->connected = GNUNET_YES;
       return MHD_YES;
@@ -1526,8 +1526,8 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
            "Session %p / Connection %p: Peer `%s' PUT on address `%s' finished upload\n",
            s, sc,
            GNUNET_i2s (&s->target),
-           http_common_plugin_address_to_string (NULL,
-                                                 plugin->protocol, s->address->address,
+           http_common_plugin_address_to_string (plugin->protocol,
+                                                 s->address->address,
                                                  s->address->address_length));
       sc->connected = GNUNET_NO;
       /* Sent HTTP/1.1: 200 OK as PUT Response\ */
@@ -1546,8 +1546,8 @@ server_access_cb (void *cls, struct MHD_Connection *mhd_connection,
            "Session %p / Connection %p: Peer `%s' PUT on address `%s' received %u bytes\n",
            s, sc,
            GNUNET_i2s (&s->target),
-           http_common_plugin_address_to_string (NULL,
-                                                 plugin->protocol, s->address->address,
+           http_common_plugin_address_to_string (plugin->protocol,
+                                                 s->address->address,
                                                  s->address->address_length),
            *upload_data_size);
       struct GNUNET_TIME_Absolute now = GNUNET_TIME_absolute_get ();
@@ -1622,8 +1622,8 @@ server_disconnect_cb (void *cls, struct MHD_Connection *connection,
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Peer `%s' connection  %p, GET on address `%s' disconnected\n",
          GNUNET_i2s (&s->target), s->server_send,
-         http_common_plugin_address_to_string (NULL,
-                                               plugin->protocol, s->address->address,
+         http_common_plugin_address_to_string (plugin->protocol,
+                                               s->address->address,
                                                s->address->address_length));
     s->server_send = NULL;
     if (!(sc->options & OPTION_LONG_POLL) && NULL != (s->server_recv))
@@ -1642,8 +1642,8 @@ server_disconnect_cb (void *cls, struct MHD_Connection *connection,
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Peer `%s' connection %p PUT on address `%s' disconnected\n",
          GNUNET_i2s (&s->target), s->server_recv,
-         http_common_plugin_address_to_string (NULL,
-                                               plugin->protocol, s->address->address,
+         http_common_plugin_address_to_string (plugin->protocol,
+                                               s->address->address,
                                                s->address->address_length));
     s->server_recv = NULL;
     if (s->msg_tk != NULL)
@@ -1661,8 +1661,8 @@ server_disconnect_cb (void *cls, struct MHD_Connection *connection,
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Peer `%s' on address `%s' disconnected\n",
          GNUNET_i2s (&s->target),
-         http_common_plugin_address_to_string (NULL,
-                                               plugin->protocol, s->address->address,
+         http_common_plugin_address_to_string (plugin->protocol,
+                                               s->address->address,
                                                s->address->address_length));
 
     if ((GNUNET_YES == s->session_passed) && (GNUNET_NO == s->session_ended))
@@ -2247,9 +2247,9 @@ server_add_address (void *cls, int add_remove, const struct sockaddr *addr,
   GNUNET_CONTAINER_DLL_insert(plugin->addr_head, plugin->addr_tail, w);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Notifying transport to add address `%s'\n",
-       http_common_plugin_address_to_string (NULL,
-                                             plugin->protocol,
-                                             w->address, w->addrlen));
+       http_common_plugin_address_to_string (plugin->protocol,
+                                             w->address,
+                                             w->addrlen));
   /* modify our published address list */
 #if BUILD_HTTPS
   address = GNUNET_HELLO_address_allocate (plugin->env->my_identity,
@@ -2298,9 +2298,9 @@ server_remove_address (void *cls, int add_remove, const struct sockaddr *addr,
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Notifying transport to remove address `%s'\n",
-       http_common_plugin_address_to_string (NULL,
-                                             plugin->protocol,
-                                             w->address, w->addrlen));
+       http_common_plugin_address_to_string (plugin->protocol,
+                                             w->address,
+                                             w->addrlen));
 
 
   GNUNET_CONTAINER_DLL_remove (plugin->addr_head, plugin->addr_tail, w);
@@ -3049,8 +3049,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Notifying transport to remove address `%s'\n",
-         http_common_plugin_address_to_string (NULL,
-                                               plugin->protocol,
+         http_common_plugin_address_to_string (plugin->protocol,
                                                plugin->ext_addr->address,
                                                plugin->ext_addr->address_length));
 #if BUILD_HTTPS
@@ -3103,16 +3102,26 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
 }
 
 
+/**
+ * Function called by the pretty printer for the resolved address for
+ * each human-readable address obtained.  The callback can be called
+ * several times. The last invocation must be with a @a address of
+ * NULL and a @a res of #GNUNET_OK.  Thus, to indicate conversion
+ * errors, the callback might be called first with @a address NULL and
+ * @a res being #GNUNET_SYSERR.  In that case, there must still be a
+ * subsequent call later with @a address NULL and @a res #GNUNET_OK.
+ *
+ * @param cls closure
+ * @param address one of the names for the host, NULL on last callback
+ * @param res #GNUNET_OK if conversion was successful, #GNUNET_SYSERR on failure,
+ *      #GNUNET_OK on last callback
+ */
 static const char *
-http_plugin_address_to_string (void *cls,
-                               const void *addr,
-                               size_t addrlen)
+http_server_plugin_address_to_string (void *cls,
+                                      const void *addr,
+                                      size_t addrlen)
 {
-#if BUILD_HTTPS
-  return http_common_plugin_address_to_string (cls, PLUGIN_NAME, addr, addrlen);
-#else
-  return http_common_plugin_address_to_string (cls, PLUGIN_NAME, addr, addrlen);
-#endif
+  return http_common_plugin_address_to_string (PLUGIN_NAME, addr, addrlen);
 }
 
 
@@ -3151,7 +3160,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
        initialze the plugin or the API */
     api = GNUNET_new (struct GNUNET_TRANSPORT_PluginFunctions);
     api->cls = NULL;
-    api->address_to_string = &http_plugin_address_to_string;
+    api->address_to_string = &http_server_plugin_address_to_string;
     api->string_to_address = &http_common_plugin_string_to_address;
     api->address_pretty_printer = &http_common_plugin_address_pretty_printer;
     return api;
@@ -3167,7 +3176,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
   api->check_address = &http_server_plugin_address_suggested;
   api->get_session = &http_server_plugin_get_session;
 
-  api->address_to_string = &http_plugin_address_to_string;
+  api->address_to_string = &http_server_plugin_address_to_string;
   api->string_to_address = &http_common_plugin_string_to_address;
   api->address_pretty_printer = &http_common_plugin_address_pretty_printer;
   api->get_network = &http_server_get_network;

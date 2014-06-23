@@ -209,8 +209,7 @@ http_common_plugin_address_pretty_printer (void *cls,
   const struct HttpAddress *address = addr;
   const char *ret;
 
-  ret = http_common_plugin_address_to_string (NULL,
-                                              type,
+  ret = http_common_plugin_address_to_string (type,
                                               address,
                                               addrlen);
   asc (asc_cls,
@@ -265,15 +264,13 @@ http_common_plugin_address_to_url (void *cls,
  * address and that the next call to this function is allowed
  * to override the address again.
  *
- * @param cls closure
- * @param plugin the plugin
+ * @param plugin the name of the plugin
  * @param addr binary address
  * @param addrlen length of the address
  * @return string representing the same address
  */
 const char *
-http_common_plugin_address_to_string (void *cls,
-                                      const char *plugin,
+http_common_plugin_address_to_string (const char *plugin,
                                       const void *addr,
                                       size_t addrlen)
 {
@@ -283,18 +280,20 @@ http_common_plugin_address_to_string (void *cls,
   char *res;
 
   GNUNET_assert (NULL != plugin);
-
   if (NULL == addr)
-      return NULL;
+    return NULL;
   if (0 == addrlen)
     return TRANSPORT_SESSION_INBOUND_STRING;
   if (addrlen != http_common_address_get_size (address))
-  	return NULL;
+    return NULL;
   addr_str = (char *) &address[1];
-
   if (addr_str[ntohl(address->urlen) -1] != '\0')
     return NULL;
-  GNUNET_asprintf (&res, "%s.%u.%s", plugin, ntohl(address->options), &address[1]);
+  GNUNET_asprintf (&res,
+                   "%s.%u.%s",
+                   plugin,
+                   ntohl (address->options),
+                   &address[1]);
   if (strlen(res) + 1 < 500)
   {
     memcpy (rbuf, res, strlen(res) + 1);

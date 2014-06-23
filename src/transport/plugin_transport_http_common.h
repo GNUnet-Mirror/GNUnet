@@ -89,7 +89,8 @@ GNUNET_NETWORK_STRUCT_END
 struct SplittedHTTPAddress;
 
 struct SplittedHTTPAddress *
-http_split_address (const char * addr);
+http_split_address (const char *addr);
+
 
 /**
  * Convert the transports address to a nice, human-readable
@@ -106,12 +107,14 @@ http_split_address (const char * addr);
  * @param asc_cls closure for @a asc
  */
 void
-http_common_plugin_address_pretty_printer (void *cls, const char *type,
-                                           const void *addr, size_t addrlen,
+http_common_plugin_address_pretty_printer (void *cls,
+                                           const char *type,
+                                           const void *addr,
+                                           size_t addrlen,
                                            int numeric,
                                            struct GNUNET_TIME_Relative timeout,
-                                           GNUNET_TRANSPORT_AddressStringCallback
-                                           asc, void *asc_cls);
+                                           GNUNET_TRANSPORT_AddressStringCallback asc,
+                                           void *asc_cls);
 
 
 /**
@@ -120,15 +123,13 @@ http_common_plugin_address_pretty_printer (void *cls, const char *type,
  * address and that the next call to this function is allowed
  * to override the address again.
  *
- * @param cls closure
- * @param plugin the plugin
+ * @param plugin name of the plugin
  * @param addr binary address
  * @param addrlen length of the address
  * @return string representing the same address
  */
 const char *
-http_common_plugin_address_to_string (void *cls,
-                                      const char *plugin,
+http_common_plugin_address_to_string (const char *plugin,
                                       const void *addr,
                                       size_t addrlen);
 
