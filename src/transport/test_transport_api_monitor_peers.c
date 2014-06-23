@@ -18,11 +18,8 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file transport/test_transport_api_monitoring_validation.c
- * @brief base test case for transport validation monitorung
- *
- * This test case connects two peers and monitors validation monitoring
- * callbacks
+ * @file transport/test_transport_api_monitor_peers.c
+ * @brief base test case for transport peer monitor API
  */
 #include "platform.h"
 #include "gnunet_transport_service.h"
@@ -74,9 +71,9 @@ static char *cfg_file_p1;
 
 static char *cfg_file_p2;
 
-static struct GNUNET_TRANSPORT_ValidationMonitoringContext *vmc_p1;
+static struct GNUNET_TRANSPORT_PeerMonitoringContext *pmc_p1;
 
-static struct GNUNET_TRANSPORT_ValidationMonitoringContext *vmc_p2;
+static struct GNUNET_TRANSPORT_PeerMonitoringContext *pmc_p2;
 
 static int p1_c = GNUNET_NO;
 
@@ -86,43 +83,53 @@ static int p1_c_notify = GNUNET_NO;
 
 static int p2_c_notify = GNUNET_NO;
 
+
 static void
 end ()
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Stopping peers\n");
-
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Stopping peers\n");
 
   if (send_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (send_task);
 
   if (die_task != GNUNET_SCHEDULER_NO_TASK)
+  {
     GNUNET_SCHEDULER_cancel (die_task);
+    die_task = GNUNET_SCHEDULER_NO_TASK;
+  }
 
   if (th != NULL)
     GNUNET_TRANSPORT_notify_transmit_ready_cancel (th);
   th = NULL;
 
-  GNUNET_TRANSPORT_TESTING_stop_peer (tth, p1);
+  if (NULL != p1)
+    GNUNET_TRANSPORT_TESTING_stop_peer (tth, p1);
   p1 = NULL;
-  GNUNET_TRANSPORT_TESTING_stop_peer (tth, p2);
+  if (NULL != p2)
+    GNUNET_TRANSPORT_TESTING_stop_peer (tth, p2);
   p2 = NULL;
 
-  if (NULL != vmc_p1)
+  if (NULL != pmc_p1)
   {
-    GNUNET_TRANSPORT_monitor_validation_entries_cancel (vmc_p1);
-    vmc_p1 = NULL;
+    GNUNET_TRANSPORT_monitor_peers_cancel (pmc_p1);
+    pmc_p1 = NULL;
   }
-  if (NULL != vmc_p2)
+  if (NULL != pmc_p2)
   {
-    GNUNET_TRANSPORT_monitor_validation_entries_cancel (vmc_p2);
-    vmc_p2 = NULL;
+    GNUNET_TRANSPORT_monitor_peers_cancel (pmc_p2);
+    pmc_p2 = NULL;
   }
+
+
 
   ok = 0;
 }
 
+
 static void
-end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+end_badly (void *cls,
+           const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   die_task = GNUNET_SCHEDULER_NO_TASK;
 
@@ -161,15 +168,15 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   th = NULL;
 
-  if (NULL != vmc_p1)
+  if (NULL != pmc_p1)
   {
-    GNUNET_TRANSPORT_monitor_validation_entries_cancel (vmc_p1);
-    vmc_p1 = NULL;
+    GNUNET_TRANSPORT_monitor_peers_cancel (pmc_p1);
+    pmc_p1 = NULL;
   }
-  if (NULL != vmc_p2)
+  if (NULL != pmc_p2)
   {
-    GNUNET_TRANSPORT_monitor_validation_entries_cancel (vmc_p2);
-    vmc_p2 = NULL;
+    GNUNET_TRANSPORT_monitor_peers_cancel (pmc_p2);
+    pmc_p2 = NULL;
   }
 
   if (p1 != NULL)
@@ -205,26 +212,6 @@ notify_receive (void *cls, const struct GNUNET_PeerIdentity *peer,
               p->no, ps, ntohs (message->type), ntohs (message->size), t->no,
               GNUNET_i2s (&t->id));
   GNUNET_free (ps);
-
-  if (0 >= p1_c)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-        "Peer 1 did not receive validation callbacks for peer 2\n");
-  }
-  if (0 >= p2_c)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-        "Peer 2 did not receive validation callbacks for peer 1\n");
-  }
-
-  if ((0 >= p1_c) || (0 >= p2_c))
-  {
-    if (GNUNET_SCHEDULER_NO_TASK != die_task)
-      GNUNET_SCHEDULER_cancel (die_task);
-    die_task = GNUNET_SCHEDULER_add_now (&end_badly, NULL);
-  }
-  else
-    end ();
 }
 
 
@@ -350,12 +337,15 @@ notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 
 
 static void
-testing_connect_cb (struct PeerContext *p1, struct PeerContext *p2, void *cls)
+testing_connect_cb (struct PeerContext *p1,
+                    struct PeerContext *p2,
+                    void *cls)
 {
   cc = NULL;
   char *p1_c = GNUNET_strdup (GNUNET_i2s (&p1->id));
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Peers connected: %u (%s) <-> %u (%s)\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Peers connected: %u (%s) <-> %u (%s)\n",
               p1->no, p1_c, p2->no, GNUNET_i2s (&p2->id));
   GNUNET_free (p1_c);
 
@@ -371,7 +361,8 @@ start_cb (struct PeerContext *p, void *cls)
 
   started++;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Peer %u (`%s') started\n", p->no,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Peer %u (`%s') started\n", p->no,
               GNUNET_i2s (&p->id));
 
   if (started != 2)
@@ -390,41 +381,55 @@ start_cb (struct PeerContext *p, void *cls)
 
 }
 
+
 static void
 monitor1_cb (void *cls,
-    const struct GNUNET_PeerIdentity *peer,
-    const struct GNUNET_HELLO_Address *address,
-    struct GNUNET_TIME_Absolute last_validation,
-    struct GNUNET_TIME_Absolute valid_until,
-    struct GNUNET_TIME_Absolute next_validation,
-    enum GNUNET_TRANSPORT_ValidationState state)
+             const struct GNUNET_PeerIdentity *peer,
+             const struct GNUNET_HELLO_Address *address,
+             enum GNUNET_TRANSPORT_PeerState state,
+             struct GNUNET_TIME_Absolute state_timeout)
 {
   if ((NULL == peer) || (NULL == p1))
     return;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Monitor 1: %s %s %s\n",
-      GNUNET_i2s (peer), GNUNET_TRANSPORT_vs2s(state), GNUNET_STRINGS_absolute_time_to_string(valid_until));
-  if (0 == memcmp (peer, &p2->id, sizeof (p2->id)))
-    p1_c++;
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Monitor 1: %s %s %s\n",
+              GNUNET_i2s (peer),
+              GNUNET_TRANSPORT_ps2s (state),
+              GNUNET_STRINGS_absolute_time_to_string(state_timeout));
+  if ((0 == memcmp (peer, &p2->id, sizeof (p2->id)) &&
+      (GNUNET_YES == GNUNET_TRANSPORT_is_connected(state)) &&
+      GNUNET_NO == p1_c) )
+  {
+    p1_c = GNUNET_YES;
+    GNUNET_SCHEDULER_add_now (&done, NULL);
+  }
+
 }
 
 
 static void
 monitor2_cb (void *cls,
-    const struct GNUNET_PeerIdentity *peer,
-    const struct GNUNET_HELLO_Address *address,
-    struct GNUNET_TIME_Absolute last_validation,
-    struct GNUNET_TIME_Absolute valid_until,
-    struct GNUNET_TIME_Absolute next_validation,
-    enum GNUNET_TRANSPORT_ValidationState state)
+             const struct GNUNET_PeerIdentity *peer,
+             const struct GNUNET_HELLO_Address *address,
+             enum GNUNET_TRANSPORT_PeerState state,
+             struct GNUNET_TIME_Absolute state_timeout)
 {
   if ((NULL == peer) || (NULL == p2))
     return;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Monitor 2: %s %s %s\n",
-      GNUNET_i2s (peer), GNUNET_TRANSPORT_vs2s(state), GNUNET_STRINGS_absolute_time_to_string(valid_until));
-  if (0 == memcmp (peer, &p1->id, sizeof (p1->id)))
-    p2_c++;
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Monitor 2: %s %s %s\n",
+              GNUNET_i2s (peer),
+              GNUNET_TRANSPORT_ps2s (state),
+              GNUNET_STRINGS_absolute_time_to_string(state_timeout));
+  if ((0 == memcmp (peer, &p1->id, sizeof (p1->id)) &&
+      (GNUNET_YES == GNUNET_TRANSPORT_is_connected(state)) &&
+      GNUNET_NO == p2_c) )
+  {
+    p2_c = GNUNET_YES;
+    GNUNET_SCHEDULER_add_now (&done, NULL);
+  }
 }
 
 
@@ -443,14 +448,15 @@ run (void *cls, char *const *args, const char *cfgfile,
                                             &notify_receive, &notify_connect,
                                             &notify_disconnect, &start_cb,
                                             NULL);
-  vmc_p1 = GNUNET_TRANSPORT_monitor_validation_entries (p1->cfg, NULL, GNUNET_NO, GNUNET_TIME_UNIT_FOREVER_REL, &monitor1_cb, NULL);
+  pmc_p1 = GNUNET_TRANSPORT_monitor_peers (p1->cfg, NULL, GNUNET_NO, GNUNET_TIME_UNIT_FOREVER_REL, &monitor1_cb, NULL);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer 1 started\n");
 
   p2 = GNUNET_TRANSPORT_TESTING_start_peer (tth, cfg_file_p2, 2,
                                             &notify_receive, &notify_connect,
                                             &notify_disconnect, &start_cb,
                                             NULL);
-  vmc_p2 = GNUNET_TRANSPORT_monitor_validation_entries (p2->cfg, NULL, GNUNET_NO, GNUNET_TIME_UNIT_FOREVER_REL, &monitor2_cb, NULL);
-
+  pmc_p2 = GNUNET_TRANSPORT_monitor_peers (p2->cfg, NULL, GNUNET_NO, GNUNET_TIME_UNIT_FOREVER_REL, &monitor2_cb, NULL);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer 1 started\n");
   if ((p1 == NULL) || (p2 == NULL))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "Fail! Could not start peers!\n");
@@ -482,6 +488,7 @@ check ()
 
   return ok;
 }
+
 
 int
 main (int argc, char *argv[])
@@ -520,4 +527,4 @@ main (int argc, char *argv[])
     return ok;
 }
 
-/* end of test_transport_api_monitoring_validation.c */
+/* end of test_transport_api_monitor_peers.c */
