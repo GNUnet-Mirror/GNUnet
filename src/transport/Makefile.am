@@ -1265,10 +1265,10 @@ test_transport_api_wlan_peer1.conf\
 test_transport_api_wlan_peer2.conf\
 test_transport_api_bluetooth_peer1.conf\
 test_transport_api_bluetooth_peer2.conf\
-test_transport_api_monitoring_peer1.conf\
-test_transport_api_monitoring_peer2.conf\
-test_transport_api_monitoring_validation_peer1.conf\
-test_transport_api_monitoring_validation_peer2.conf\
+test_transport_api_monitor_peers_peer1.conf\
+test_transport_api_monitor_peers_peer2.conf\
+test_transport_api_monitor_validation_peer1.conf\
+test_transport_api_monitor_validation_peer2.conf\
 test_transport_defaults.conf\
 test_transport_startonly.conf\
 test_transport_api_disconnect_tcp_peer1.conf\
