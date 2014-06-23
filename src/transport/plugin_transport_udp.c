@@ -1566,6 +1566,7 @@ create_session (struct Plugin *plugin,
   struct Session *s;
 
   s = GNUNET_new (struct Session);
+  s->plugin = plugin;
   s->address = GNUNET_HELLO_address_copy (address);
   s->target = address->peer;
   s->last_expected_ack_delay = GNUNET_TIME_relative_multiply (
@@ -2061,9 +2062,10 @@ udp_plugin_send (void *cls,
     GNUNET_break(0);
     return GNUNET_SYSERR;
   }
-  if (GNUNET_YES
-      != GNUNET_CONTAINER_multipeermap_contains_value (plugin->sessions,
-          &s->target, s))
+  if (GNUNET_YES !=
+      GNUNET_CONTAINER_multipeermap_contains_value (plugin->sessions,
+                                                    &s->target,
+                                                    s))
   {
     GNUNET_break(0);
     return GNUNET_SYSERR;
