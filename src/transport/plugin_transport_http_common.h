@@ -17,13 +17,11 @@
      Free Software Foundation, Inc., 59 Temple Place - Suite 330,
      Boston, MA 02111-1307, USA.
 */
-
 /**
  * @file transport/plugin_transport_http_common.c
  * @brief functionality shared by http client and server transport service plugin
  * @author Matthias Wachs
  */
-
 #include "platform.h"
 #include "gnunet_common.h"
 #include "gnunet_transport_plugin.h"
@@ -86,8 +84,22 @@ struct HttpAddress
 
 GNUNET_NETWORK_STRUCT_END
 
-struct SplittedHTTPAddress;
+/**
+ * Representation of HTTP URL split into its components.
+ */
+struct SplittedHTTPAddress
+{
+  char *protocol;
+  char *host;
+  char *path;
+  int port;
+};
 
+
+/**
+ * Split an HTTP address into protocol, hostname, port
+ * and path components.
+ */
 struct SplittedHTTPAddress *
 http_split_address (const char *addr);
 
@@ -125,7 +137,7 @@ http_common_plugin_address_pretty_printer (void *cls,
  *
  * @param plugin name of the plugin
  * @param addr binary address
- * @param addrlen length of the address
+ * @param addrlen length of @a addr
  * @return string representing the same address
  */
 const char *
@@ -205,9 +217,9 @@ http_common_address_get_size (const struct HttpAddress * addr);
  * Compare addr1 to addr2
  *
  * @param addr1 address1
- * @param addrlen1 address 1 length
+ * @param addrlen1 length of @a address1
  * @param addr2 address2
- * @param addrlen2 address 2 length
+ * @param addrlen2 length of @a address2
  * @return #GNUNET_YES if equal, #GNUNET_NO else
  */
 size_t

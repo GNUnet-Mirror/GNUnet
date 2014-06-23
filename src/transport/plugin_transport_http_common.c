@@ -29,15 +29,6 @@
 #include "plugin_transport_http_common.h"
 
 
-struct SplittedHTTPAddress
-{
-  char *protocol;
-  char *host;
-  char *path;
-  int port;
-};
-
-
 static void
 http_clean_splitted (struct SplittedHTTPAddress *spa)
 {
@@ -474,8 +465,8 @@ http_common_socket_from_address (const void *addr,
   spa = http_split_address ((const char *) &ha[1]);
   if (NULL == spa)
   {
-      (*res) = GNUNET_SYSERR;
-      return NULL;
+    (*res) = GNUNET_SYSERR;
+    return NULL;
   }
 
   s = GNUNET_new (struct sockaddr_storage);
