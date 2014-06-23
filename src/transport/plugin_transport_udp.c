@@ -212,23 +212,6 @@ struct Session
 
 
 /**
- * Closure for #session_cmp_it().
- */
-struct SessionCompareContext
-{
-  /**
-   * Set to session matching the address.
-   */
-  struct Session *res;
-
-  /**
-   * Address we are looking for.
-   */
-  const struct GNUNET_HELLO_Address *address;
-};
-
-
-/**
  * Closure for #process_inbound_tokenized_messages().
  */
 struct SourceInformation
@@ -1581,7 +1564,6 @@ create_session (struct Plugin *plugin,
 }
 
 
-
 /**
  * Function obtain the network type for a session
  *
@@ -1595,6 +1577,23 @@ udp_get_network (void *cls,
 {
   return ntohl (session->ats.value);
 }
+
+
+/**
+ * Closure for #session_cmp_it().
+ */
+struct SessionCompareContext
+{
+  /**
+   * Set to session matching the address.
+   */
+  struct Session *res;
+
+  /**
+   * Address we are looking for.
+   */
+  const struct GNUNET_HELLO_Address *address;
+};
 
 
 /**
