@@ -99,6 +99,7 @@ struct SensorInfo
 
   /*
    * Lifetime of an information sample after which it is deleted from storage
+   * If not supplied, will default to the interval value
    */
   struct GNUNET_TIME_Relative lifetime;
 
@@ -459,7 +460,7 @@ load_sensor_from_cfg(struct GNUNET_CONFIGURATION_Handle *cfg, const char *sectio
     sensor->lifetime = GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, time_sec);
   }
   else
-    sensor->lifetime = GNUNET_TIME_UNIT_FOREVER_REL;
+    sensor->lifetime = sensor->interval;
   //capabilities TODO
   //source
   if(GNUNET_OK != GNUNET_CONFIGURATION_get_value_choice(cfg, sectionname, "SOURCE", sources, (const char **)&sensor->source))
@@ -850,7 +851,7 @@ int sensor_statistics_iterator (void *cls,
   struct GNUNET_TIME_Absolute expiry;
 
   GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Received a value for sensor `%s': %" PRIu64 "\n", sensorinfo->name, value);
-  expiry = GNUNET_TIME_relative_to_absolute(sensorinfo->interval);
+  expiry = GNUNET_TIME_relative_to_absolute(sensorinfo->lifetime);
   GNUNET_PEERSTORE_store(peerstore,
       subsystem,
       &peerid,
@@ -962,7 +963,7 @@ void sensor_process_callback (void *cls, const char *line)
   else
   {
     sensorinfo->ext_cmd_value_received = GNUNET_YES;
-    expiry = GNUNET_TIME_relative_to_absolute(sensorinfo->interval);
+    expiry = GNUNET_TIME_relative_to_absolute(sensorinfo->lifetime);
     GNUNET_PEERSTORE_store(peerstore,
         subsystem,
         &peerid,
