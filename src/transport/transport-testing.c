@@ -27,6 +27,9 @@
 #include "transport-testing.h"
 
 
+#define LOG(kind,...) GNUNET_log_from(kind, "transport-testing", __VA_ARGS__)
+
+
 static struct PeerContext *
 find_peer_context (struct GNUNET_TRANSPORT_TESTING_handle *tth,
                    const struct GNUNET_PeerIdentity *peer)
@@ -82,9 +85,11 @@ notify_connect (void *cls, const struct GNUNET_PeerIdentity *peer)
     GNUNET_asprintf (&p2_s, "%u (`%s')", p2->no, GNUNET_i2s (&p2->id));
   else
     GNUNET_asprintf (&p2_s, "`%s'", GNUNET_i2s (peer));
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "transport-testing",
-                   "Peers %s connected to peer %u (`%s')\n", p2_s, p->no,
-                   GNUNET_i2s (&p->id));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Peers %s connected to peer %u (`%s')\n",
+       p2_s,
+       p->no,
+       GNUNET_i2s (&p->id));
   GNUNET_free (p2_s);
 
   /* Find ConnectingContext */
@@ -129,9 +134,11 @@ notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
     GNUNET_asprintf (&p2_s, "%u (`%s')", p2->no, GNUNET_i2s (&p2->id));
   else
     GNUNET_asprintf (&p2_s, "`%s'", GNUNET_i2s (peer));
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "transport-testing",
-                   "Peers %s disconnected from peer %u (`%s')\n", p2_s, no,
-                   GNUNET_i2s (&p->id));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Peers %s disconnected from peer %u (`%s')\n",
+       p2_s,
+       no,
+       GNUNET_i2s (&p->id));
   GNUNET_free (p2_s);
 
   if (p == NULL)
@@ -170,9 +177,9 @@ get_hello (void *cb_cls, const struct GNUNET_MessageHeader *message)
 
   if (NULL != p->start_cb)
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "transport-testing",
-                     "Peer %u (`%s') successfully started\n", p->no,
-                     GNUNET_i2s (&p->id));
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Peer %u (`%s') successfully started\n", p->no,
+         GNUNET_i2s (&p->id));
     p->start_cb (p, p->cb_cls);
     p->start_cb = NULL;
   }
@@ -196,10 +203,10 @@ try_connect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
   char *p2_s = GNUNET_strdup (GNUNET_i2s (&p2->id));
 
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "transport-testing",
-                   "Asking peer %u (`%s') to connect peer %u (`%s'), providing HELLO with %u bytes\n",
-                   p1->no, GNUNET_i2s (&p1->id), p2->no, p2_s,
-                   GNUNET_HELLO_size (cc->p2->hello));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Asking peer %u (`%s') to connect peer %u (`%s'), providing HELLO with %u bytes\n",
+       p1->no, GNUNET_i2s (&p1->id), p2->no, p2_s,
+       GNUNET_HELLO_size (cc->p2->hello));
   GNUNET_free (p2_s);
 
   GNUNET_TRANSPORT_offer_hello (cc->th_p1,
@@ -241,8 +248,9 @@ GNUNET_TRANSPORT_TESTING_start_peer (struct GNUNET_TRANSPORT_TESTING_handle *tth
 
   if (GNUNET_DISK_file_test (cfgname) == GNUNET_NO)
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "transport-testing",
-                     "File not found: `%s' \n", cfgname);
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         "File not found: `%s'\n",
+         cfgname);
     return NULL;
   }
 
@@ -255,9 +263,9 @@ GNUNET_TRANSPORT_TESTING_start_peer (struct GNUNET_TRANSPORT_TESTING_handle *tth
 
   if (GNUNET_SYSERR == GNUNET_TESTING_configuration_create (tth->tl_system, p->cfg))
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "transport-testing",
-                     "Testing library failed to create unique configuration based on `%s'\n",
-                     cfgname);
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         "Testing library failed to create unique configuration based on `%s'\n",
+         cfgname);
     GNUNET_free (p);
     return NULL;
   }
@@ -267,9 +275,10 @@ GNUNET_TRANSPORT_TESTING_start_peer (struct GNUNET_TRANSPORT_TESTING_handle *tth
   p->peer = GNUNET_TESTING_peer_configure (tth->tl_system, p->cfg, p->no, NULL, &emsg);
   if (NULL == p->peer)
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "transport-testing",
-                     "Testing library failed to create unique configuration based on `%s': `%s'\n",
-                     cfgname, emsg);
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         "Testing library failed to create unique configuration based on `%s': `%s'\n",
+         cfgname,
+         emsg);
     GNUNET_TRANSPORT_TESTING_stop_peer (tth, p);
     GNUNET_free_non_null (emsg);
     return NULL;
@@ -277,9 +286,9 @@ GNUNET_TRANSPORT_TESTING_start_peer (struct GNUNET_TRANSPORT_TESTING_handle *tth
   GNUNET_free_non_null (emsg);
   if (GNUNET_OK != GNUNET_TESTING_peer_start (p->peer))
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "transport-testing",
-                     "Testing library failed to create unique configuration based on `%s'\n",
-                     cfgname);
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         "Testing library failed to create unique configuration based on `%s'\n",
+         cfgname);
     GNUNET_TRANSPORT_TESTING_stop_peer (tth, p);
     return NULL;
   }
@@ -288,18 +297,18 @@ GNUNET_TRANSPORT_TESTING_start_peer (struct GNUNET_TRANSPORT_TESTING_handle *tth
   GNUNET_TESTING_peer_get_identity (p->peer, &p->id);
   if (0 == memcmp (&dummy, &p->id, sizeof (struct GNUNET_PeerIdentity)))
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "transport-testing",
-                     "Testing library failed to obtain peer identity for peer %u\n",
-                     p->no);
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         "Testing library failed to obtain peer identity for peer %u\n",
+         p->no);
     GNUNET_TRANSPORT_TESTING_stop_peer (tth, p);
     return NULL;
   }
   else
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "transport-testing",
-                     "Peer %u configured with identity `%s'\n",
-                     p->no,
-                     GNUNET_i2s_full (&p->id));
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Peer %u configured with identity `%s'\n",
+         p->no,
+         GNUNET_i2s_full (&p->id));
   }
 
   p->tth = tth;
@@ -317,9 +326,10 @@ GNUNET_TRANSPORT_TESTING_start_peer (struct GNUNET_TRANSPORT_TESTING_handle *tth
                                     &notify_connect, &notify_disconnect);
   if (NULL == p->th)
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "transport-testing",
-                     "Failed to connect to transport service for peer  `%s': `%s'\n",
-                     cfgname, emsg);
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         "Failed to connect to transport service for peer  `%s': `%s'\n",
+         cfgname,
+         emsg);
     GNUNET_TRANSPORT_TESTING_stop_peer (tth, p);
     return NULL;
   }
@@ -350,12 +360,16 @@ GNUNET_TRANSPORT_TESTING_restart_peer (struct GNUNET_TRANSPORT_TESTING_handle
   GNUNET_assert (p != NULL);
   GNUNET_assert (NULL != p->peer);
 
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "transport-testing",
-                   "Restarting peer %u (`%s')\n", p->no, GNUNET_i2s (&p->id));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Restarting peer %u (`%s')\n",
+       p->no,
+       GNUNET_i2s (&p->id));
 
   /* shutdown */
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "transport-testing",
-                   "Stopping peer %u (`%s')\n", p->no, GNUNET_i2s (&p->id));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Stopping peer %u (`%s')\n",
+       p->no,
+       GNUNET_i2s (&p->id));
   if (NULL != p->ghh)
     GNUNET_TRANSPORT_get_hello_cancel (p->ghh);
   p->ghh = NULL;
@@ -365,19 +379,21 @@ GNUNET_TRANSPORT_TESTING_restart_peer (struct GNUNET_TRANSPORT_TESTING_handle
 
   if (GNUNET_SYSERR == GNUNET_TESTING_peer_stop(p->peer))
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "transport-testing",
-                     "Failed to stop peer %u (`%s')\n", p->no, GNUNET_i2s (&p->id));
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         "Failed to stop peer %u (`%s')\n",
+         p->no,
+         GNUNET_i2s (&p->id));
     return GNUNET_SYSERR;
   }
 
-  sleep (5);
+  sleep (5); // YUCK!
 
   /* restart */
   if (GNUNET_SYSERR == GNUNET_TESTING_peer_start(p->peer))
   {
-    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "transport-testing",
-                     "Failed to restart peer %u (`%s')\n",
-                     p->no, GNUNET_i2s (&p->id));
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         "Failed to restart peer %u (`%s')\n",
+         p->no, GNUNET_i2s (&p->id));
     return GNUNET_SYSERR;
   }
 
@@ -423,9 +439,9 @@ GNUNET_TRANSPORT_TESTING_stop_peer (struct GNUNET_TRANSPORT_TESTING_handle *tth,
   {
     if (GNUNET_OK != GNUNET_TESTING_peer_stop (p->peer))
     {
-      GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "transport-testing",
-                       "Testing lib failed to stop peer %u (`%s') \n", p->no,
-                       GNUNET_i2s (&p->id));
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Testing lib failed to stop peer %u (`%s') \n", p->no,
+           GNUNET_i2s (&p->id));
     }
     GNUNET_TESTING_peer_destroy (p->peer);
     p->peer = NULL;
@@ -442,9 +458,9 @@ GNUNET_TRANSPORT_TESTING_stop_peer (struct GNUNET_TRANSPORT_TESTING_handle *tth,
     p->cfg = NULL;
   }
   GNUNET_CONTAINER_DLL_remove (tth->p_head, tth->p_tail, p);
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "transport-testing",
-                   "Peer %u (`%s') stopped \n", p->no,
-                   GNUNET_i2s (&p->id));
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Peer %u (`%s') stopped \n", p->no,
+       GNUNET_i2s (&p->id));
   GNUNET_free (p);
 }
 
@@ -488,8 +504,9 @@ GNUNET_TRANSPORT_TESTING_connect_peers (struct GNUNET_TRANSPORT_TESTING_handle *
   GNUNET_assert (cc->th_p2 != NULL);
   GNUNET_CONTAINER_DLL_insert (tth->cc_head, tth->cc_tail, cc);
   cc->tct = GNUNET_SCHEDULER_add_now (&try_connect, cc);
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "transport-testing",
-                   "New connect request %p\n", cc);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "New connect request %p\n",
+       cc);
 
   return cc;
 }
@@ -513,8 +530,9 @@ GNUNET_TRANSPORT_TESTING_connect_peers_cancel (struct
 
   GNUNET_assert (tth != NULL);
 
-  GNUNET_log_from (GNUNET_ERROR_TYPE_DEBUG, "transport-testing",
-                   "Canceling connect request %p!\n", cc);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Canceling connect request %p!\n",
+       cc);
 
   if (cc->tct != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (cc->tct);
@@ -542,8 +560,9 @@ GNUNET_TRANSPORT_TESTING_done (struct GNUNET_TRANSPORT_TESTING_handle *tth)
   while (cc != tth->cc_tail)
   {
     ct = cc->next;
-    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "transport-testing",
-                     "Developer forgot to cancel connect request %p!\n", cc);
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         "Developer forgot to cancel connect request %p!\n",
+         cc);
     GNUNET_TRANSPORT_TESTING_connect_peers_cancel (tth, cc);
     cc = ct;
   }
@@ -551,8 +570,8 @@ GNUNET_TRANSPORT_TESTING_done (struct GNUNET_TRANSPORT_TESTING_handle *tth)
   while (p != NULL)
   {
     t = p->next;
-    GNUNET_log_from (GNUNET_ERROR_TYPE_ERROR, "transport-testing",
-                     "Developer forgot to stop peer!\n");
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         "Developer forgot to stop peer!\n");
     GNUNET_TRANSPORT_TESTING_stop_peer (tth, p);
     p = t;
   }
