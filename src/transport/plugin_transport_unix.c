@@ -522,17 +522,17 @@ session_timeout (void *cls,
   session->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   left = GNUNET_TIME_absolute_get_remaining (session->timeout);
   if (0 != left.rel_value_us)
-    {
-      /* not actually our turn yet, but let's at least update
-         the monitor, it may think we're about to die ... */
-      notify_session_monitor (session->plugin,
-                              session,
-                              GNUNET_TRANSPORT_SS_UP);
-      session->timeout_task = GNUNET_SCHEDULER_add_delayed (left,
-                                                            &session_timeout,
-                                                            session);
-      return;
-    }
+  {
+    /* not actually our turn yet, but let's at least update
+       the monitor, it may think we're about to die ... */
+    notify_session_monitor (session->plugin,
+                            session,
+                            GNUNET_TRANSPORT_SS_UP);
+    session->timeout_task = GNUNET_SCHEDULER_add_delayed (left,
+                                                          &session_timeout,
+                                                          session);
+    return;
+  }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Session %p was idle for %s, disconnecting\n",
        session,

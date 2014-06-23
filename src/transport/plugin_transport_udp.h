@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet
-     (C) 2010, 2011 Christian Grothoff (and other contributing authors)
+     (C) 2010-2014 Christian Grothoff (and other contributing authors)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -47,6 +47,7 @@
 #define PLUGIN_NAME "udp"
 
 #define DEBUG_UDP GNUNET_NO
+
 #define DEBUG_UDP_BROADCASTING GNUNET_NO
 
 /**
@@ -126,6 +127,8 @@ struct UDPMessage
 
 struct UDP_MessageWrapper;
 
+struct PrettyPrinterContext;
+
 
 /**
  * Encapsulation of all of the state of the plugin.
@@ -140,7 +143,7 @@ struct Plugin
 
   /**
    * Session of peers with whom we are currently connected,
-   * map of peer identity to 'struct PeerSession'.
+   * map of peer identity to `struct Session *`.
    */
   struct GNUNET_CONTAINER_MultiPeerMap *sessions;
 
@@ -150,9 +153,13 @@ struct Plugin
   struct GNUNET_CONTAINER_Heap *defrag_ctxs;
 
   /**
-   * ID of select task
+   * ID of select task for IPv4
    */
   GNUNET_SCHEDULER_TaskIdentifier select_task;
+
+  /**
+   * ID of select task for IPv6
+   */
   GNUNET_SCHEDULER_TaskIdentifier select_task_v6;
 
   /**
@@ -175,12 +182,6 @@ struct Plugin
    */
   char *bind6_address;
 
-
-  /**
-   * Bytes currently in buffer
-   */
-  int64_t bytes_in_buffer;
-
   /**
    * Handle to NAT traversal support.
    */
@@ -196,12 +197,10 @@ struct Plugin
    */
   struct GNUNET_NETWORK_FDSet *ws_v4;
 
-
   /**
    * The read socket for IPv4
    */
   struct GNUNET_NETWORK_Handle *sockv4;
-
 
   /**
    * FD Read set
@@ -219,20 +218,64 @@ struct Plugin
   struct GNUNET_NETWORK_Handle *sockv6;
 
   /**
-   * Beacon broadcasting
-   * -------------------
-   */
-
-  /**
-   * Broadcast interval
-   */
-  struct GNUNET_TIME_Relative broadcast_interval;
-
-  /**
-   * Tokenizer for inbound messages.
+   * Tokenizer for inbound IPv6 messages.
    */
   struct GNUNET_SERVER_MessageStreamTokenizer *broadcast_ipv6_mst;
+
+  /**
+   * Tokenizer for inbound IPv4 messages.
+   */
   struct GNUNET_SERVER_MessageStreamTokenizer *broadcast_ipv4_mst;
+
+  /**
+   * Head of DLL of broadcast addresses
+   */
+  struct BroadcastAddress *broadcast_tail;
+
+  /**
+   * Tail of DLL of broadcast addresses
+   */
+  struct BroadcastAddress *broadcast_head;
+
+  /**
+   * Head of messages in IPv4 queue.
+   */
+  struct UDP_MessageWrapper *ipv4_queue_head;
+
+  /**
+   * Tail of messages in IPv4 queue.
+   */
+  struct UDP_MessageWrapper *ipv4_queue_tail;
+
+  /**
+   * Head of messages in IPv6 queue.
+   */
+  struct UDP_MessageWrapper *ipv6_queue_head;
+
+  /**
+   * Tail of messages in IPv6 queue.
+   */
+  struct UDP_MessageWrapper *ipv6_queue_tail;
+
+  /**
+   * Running pretty printers: head
+   */
+  struct PrettyPrinterContext *ppc_dll_head;
+
+  /**
+   * Running pretty printers: tail
+   */
+  struct PrettyPrinterContext *ppc_dll_tail;
+
+  /**
+   * Function to call about session status changes.
+   */
+  GNUNET_TRANSPORT_SessionInfoCallback sic;
+
+  /**
+   * Closure for @e sic.
+   */
+  void *sic_cls;
 
   /**
    * IPv6 multicast address
@@ -240,28 +283,37 @@ struct Plugin
   struct sockaddr_in6 ipv6_multicast_address;
 
   /**
-   * DLL of broadcast addresses
+   * Broadcast interval
    */
-  struct BroadcastAddress *broadcast_tail;
-  struct BroadcastAddress *broadcast_head;
+  struct GNUNET_TIME_Relative broadcast_interval;
 
   /**
-   * Is IPv6 enabled: GNUNET_YES or GNUNET_NO
+   * Bytes currently in buffer
+   */
+  int64_t bytes_in_buffer;
+
+  /**
+   * Address options
+   */
+  uint32_t myoptions;
+
+  /**
+   * Is IPv6 enabled: #GNUNET_YES or #GNUNET_NO
    */
   int enable_ipv6;
 
   /**
-   * Is IPv4 enabled: GNUNET_YES or GNUNET_NO
+   * Is IPv4 enabled: #GNUNET_YES or #GNUNET_NO
    */
   int enable_ipv4;
 
   /**
-   * Is broadcasting enabled: GNUNET_YES or GNUNET_NO
+   * Is broadcasting enabled: #GNUNET_YES or #GNUNET_NO
    */
   int enable_broadcasting;
 
   /**
-   * Is receiving broadcasts enabled: GNUNET_YES or GNUNET_NO
+   * Is receiving broadcasts enabled: #GNUNET_YES or #GNUNET_NO
    */
   int enable_broadcasting_receiving;
 
@@ -280,11 +332,6 @@ struct Plugin
    */
   uint16_t aport;
 
-  struct UDP_MessageWrapper *ipv4_queue_head;
-  struct UDP_MessageWrapper *ipv4_queue_tail;
-
-  struct UDP_MessageWrapper *ipv6_queue_head;
-  struct UDP_MessageWrapper *ipv6_queue_tail;
 };
 
 
