@@ -49,10 +49,6 @@
 
 GNUNET_NETWORK_STRUCT_BEGIN
 
-/**
- * Address options
- */
-static uint32_t myoptions;
 
 /**
  * Initial handshake message for a session.
@@ -397,6 +393,11 @@ struct Plugin
   GNUNET_SCHEDULER_TaskIdentifier address_update_task;
 
   /**
+   * Address options
+   */
+  uint32_t myoptions;
+
+  /**
    * Port that we are actually listening on.
    */
   uint16_t open_port;
@@ -486,7 +487,7 @@ tcp_nat_port_map_callback (void *cls,
   case AF_INET:
     GNUNET_assert(addrlen == sizeof(struct sockaddr_in));
     memset (&t4, 0, sizeof(t4));
-    t4.options = htonl (myoptions);
+    t4.options = htonl (plugin->myoptions);
     t4.ipv4_addr = ((struct sockaddr_in *) addr)->sin_addr.s_addr;
     t4.t4_port = ((struct sockaddr_in *) addr)->sin_port;
     arg = &t4;
@@ -497,7 +498,7 @@ tcp_nat_port_map_callback (void *cls,
     memset (&t6, 0, sizeof(t6));
     memcpy (&t6.ipv6_addr, &((struct sockaddr_in6 *) addr)->sin6_addr,
         sizeof(struct in6_addr));
-    t6.options = htonl (myoptions);
+    t6.options = htonl (plugin->myoptions);
     t6.t6_port = ((struct sockaddr_in6 *) addr)->sin6_port;
     arg = &t6;
     args = sizeof (t6);
@@ -1896,7 +1897,9 @@ tcp_plugin_check_address (void *cls, const void *addr, size_t addrlen)
   if (addrlen == sizeof(struct IPv4TcpAddress))
   {
     v4 = (struct IPv4TcpAddress *) addr;
-    if (0 != memcmp (&v4->options, &myoptions, sizeof(myoptions)))
+    if (0 != memcmp (&v4->options,
+                     &plugin->myoptions,
+                     sizeof(uint32_t)))
     {
       GNUNET_break(0);
       return GNUNET_SYSERR;
@@ -1916,7 +1919,9 @@ tcp_plugin_check_address (void *cls, const void *addr, size_t addrlen)
       GNUNET_break_op(0);
       return GNUNET_SYSERR;
     }
-    if (0 != memcmp (&v6->options, &myoptions, sizeof(myoptions)))
+    if (0 != memcmp (&v6->options,
+                     &plugin->myoptions,
+                     sizeof (uint32_t)))
     {
       GNUNET_break(0);
       return GNUNET_SYSERR;
@@ -2511,18 +2516,13 @@ libgnunet_plugin_transport_tcp_init (void *cls)
   else
     service = NULL;
 
-  /* Initialize my flags */
-  myoptions = 0;
-
   plugin = GNUNET_new (struct Plugin);
   plugin->sessionmap = GNUNET_CONTAINER_multipeermap_create (max_connections,
       GNUNET_YES);
   plugin->max_connections = max_connections;
-  plugin->cur_connections = 0;
   plugin->open_port = bport;
   plugin->adv_port = aport;
   plugin->env = env;
-  plugin->lsock = NULL;
   if ( (service != NULL) &&
        (GNUNET_SYSERR !=
         (ret_s =
