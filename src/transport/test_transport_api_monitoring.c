@@ -88,11 +88,12 @@ static int p1_c_notify = GNUNET_NO;
 
 static int p2_c_notify = GNUNET_NO;
 
+
 static void
 end ()
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Stopping peers\n");
-
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Stopping peers\n");
 
   if (send_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (send_task);
@@ -130,8 +131,10 @@ end ()
   ok = 0;
 }
 
+
 static void
-end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+end_badly (void *cls,
+           const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   die_task = GNUNET_SCHEDULER_NO_TASK;
 
@@ -339,12 +342,15 @@ notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
 
 
 static void
-testing_connect_cb (struct PeerContext *p1, struct PeerContext *p2, void *cls)
+testing_connect_cb (struct PeerContext *p1,
+                    struct PeerContext *p2,
+                    void *cls)
 {
   cc = NULL;
   char *p1_c = GNUNET_strdup (GNUNET_i2s (&p1->id));
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Peers connected: %u (%s) <-> %u (%s)\n",
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Peers connected: %u (%s) <-> %u (%s)\n",
               p1->no, p1_c, p2->no, GNUNET_i2s (&p2->id));
   GNUNET_free (p1_c);
 
@@ -360,7 +366,8 @@ start_cb (struct PeerContext *p, void *cls)
 
   started++;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Peer %u (`%s') started\n", p->no,
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Peer %u (`%s') started\n", p->no,
               GNUNET_i2s (&p->id));
 
   if (started != 2)
@@ -380,17 +387,21 @@ start_cb (struct PeerContext *p, void *cls)
 }
 
 
-static void monitor1_cb (void *cls,
-                        const struct GNUNET_PeerIdentity *peer,
-                        const struct GNUNET_HELLO_Address *address,
-                        enum GNUNET_TRANSPORT_PeerState state,
-                        struct GNUNET_TIME_Absolute state_timeout)
+static void
+monitor1_cb (void *cls,
+             const struct GNUNET_PeerIdentity *peer,
+             const struct GNUNET_HELLO_Address *address,
+             enum GNUNET_TRANSPORT_PeerState state,
+             struct GNUNET_TIME_Absolute state_timeout)
 {
   if ((NULL == peer) || (NULL == p1))
     return;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Monitor 1: %s %s %s\n",
-      GNUNET_i2s (peer), GNUNET_TRANSPORT_ps2s(state), GNUNET_STRINGS_absolute_time_to_string(state_timeout));
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Monitor 1: %s %s %s\n",
+              GNUNET_i2s (peer),
+              GNUNET_TRANSPORT_ps2s (state),
+              GNUNET_STRINGS_absolute_time_to_string(state_timeout));
   if ((0 == memcmp (peer, &p2->id, sizeof (p2->id)) &&
       (GNUNET_YES == GNUNET_TRANSPORT_is_connected(state)) &&
       GNUNET_NO == p1_c) )
@@ -402,17 +413,21 @@ static void monitor1_cb (void *cls,
 }
 
 
-static void monitor2_cb (void *cls,
-                        const struct GNUNET_PeerIdentity *peer,
-                        const struct GNUNET_HELLO_Address *address,
-                        enum GNUNET_TRANSPORT_PeerState state,
-                        struct GNUNET_TIME_Absolute state_timeout)
+static void
+monitor2_cb (void *cls,
+             const struct GNUNET_PeerIdentity *peer,
+             const struct GNUNET_HELLO_Address *address,
+             enum GNUNET_TRANSPORT_PeerState state,
+             struct GNUNET_TIME_Absolute state_timeout)
 {
   if ((NULL == peer) || (NULL == p2))
     return;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Monitor 2: %s %s %s\n",
-      GNUNET_i2s (peer), GNUNET_TRANSPORT_ps2s (state), GNUNET_STRINGS_absolute_time_to_string(state_timeout));
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+              "Monitor 2: %s %s %s\n",
+              GNUNET_i2s (peer),
+              GNUNET_TRANSPORT_ps2s (state),
+              GNUNET_STRINGS_absolute_time_to_string(state_timeout));
   if ((0 == memcmp (peer, &p1->id, sizeof (p1->id)) &&
       (GNUNET_YES == GNUNET_TRANSPORT_is_connected(state)) &&
       GNUNET_NO == p2_c) )
@@ -478,6 +493,7 @@ check ()
 
   return ok;
 }
+
 
 int
 main (int argc, char *argv[])
