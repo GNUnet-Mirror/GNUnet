@@ -20,11 +20,30 @@
 
 /**
  * @file transport/transport_api_blacklisting.c
- * @brief test for the blacklisting API
- * 		stage 0: init
- * 		stage 1: connect peers and stop
- * 		stage 2: blacklist whole peer and connect
- * 		stage 3: blacklist tcp and try connect
+ * @brief test for the blacklisting with blacklistings defined in cfg
+ *
+ * this file contains multiple tests:
+ *
+ * test_transport_blacklisting_no_bl:
+ *      no blacklisting entries
+ *      peers are expected to connect
+ * test_transport_blacklisting_outbound_bl_full:
+ *      both peers contain bl entries for full peer
+ *      test is expected to not connect
+ * test_transport_blacklisting_outbound_bl_plugin:
+ *      both peers contain bl entries for plugin
+ *      test is expected to not connect
+ * test_transport_blacklisting_inbound_bl_plugin:
+ *      peer 1 contains no bl entries
+ *      peer 2 contain bl entries for full peer
+ *      test is expected to not connect
+ * test_transport_blacklisting_inbound_bl_full:
+ *      peer 1 contains no bl entries
+ *      peer 2 contain bl entries for plugin
+ *      test is expected to not connect
+ * test_transport_blacklisting_multiple_plugins:
+ *      both peers contain bl entries for plugin
+ *      test is expected to  connect with not bl'ed plugin
  *
  * @author Matthias Wachs
  *
