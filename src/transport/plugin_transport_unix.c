@@ -1106,6 +1106,7 @@ unix_plugin_do_write (struct Plugin *plugin)
   struct Session *session;
   int did_delete;
 
+  session = NULL;
   did_delete = GNUNET_NO;
   while (NULL != (msgw = plugin->msg_head))
   {
