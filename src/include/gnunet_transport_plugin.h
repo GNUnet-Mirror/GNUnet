@@ -54,14 +54,6 @@
  */
 struct Session;
 
-/**
- * Every `struct Session` must begin with this header.
- */
-struct SessionHeader
-{
-  /* empty, for now */
-};
-
 
 /**
  * Function that will be called whenever the plugin internally
@@ -80,6 +72,7 @@ typedef void
 (*GNUNET_TRANSPORT_SessionEnd) (void *cls,
                                 const struct GNUNET_HELLO_Address *address,
                                 struct Session *session);
+
 
 /**
  * Plugin tells transport service about a new inbound session
