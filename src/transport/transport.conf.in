@@ -68,11 +68,11 @@ TESTING_IGNORE_KEYS = ACCEPT_FROM;
 # PROXY =
 
 # User name for proxy server
-# PROXY_USERNAME = 
+# PROXY_USERNAME =
 # User password for proxy server
-# PROXY_PASSWORD = 
+# PROXY_PASSWORD =
 
-# Type of proxy server, 
+# Type of proxy server,
 # Valid values: HTTP, SOCKS4, SOCKS5, SOCKS4A, SOCKS5_HOSTNAME
 # Default: HTTP
 # PROXY_TYPE = HTTP
@@ -95,11 +95,11 @@ TESTING_IGNORE_KEYS = ACCEPT_FROM;
 # PROXY =
 
 # User name for proxy server
-# PROXY_USERNAME = 
+# PROXY_USERNAME =
 # User password for proxy server
-# PROXY_PASSWORD = 
+# PROXY_PASSWORD =
 
-# Type of proxy server, 
+# Type of proxy server,
 # Valid values: HTTP, SOCKS4, SOCKS5, SOCKS4A, SOCKS5_HOSTNAME
 # Default: HTTP
 # PROXY_TYPE = HTTP

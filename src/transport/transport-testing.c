@@ -259,8 +259,8 @@ GNUNET_TRANSPORT_TESTING_start_peer (struct GNUNET_TRANSPORT_TESTING_handle *tth
 
   /* Create configuration and call testing lib to modify it */
   p->cfg = GNUNET_CONFIGURATION_create ();
-  GNUNET_assert (GNUNET_OK == GNUNET_CONFIGURATION_load (p->cfg, cfgname));
-
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_CONFIGURATION_load (p->cfg, cfgname));
   if (GNUNET_SYSERR == GNUNET_TESTING_configuration_create (tth->tl_system, p->cfg))
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
