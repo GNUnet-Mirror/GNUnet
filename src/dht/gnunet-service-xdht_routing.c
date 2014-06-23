@@ -276,7 +276,7 @@ GDS_ROUTING_add (struct GNUNET_HashCode new_trail_id,
 {
   struct RoutingTrail *new_entry;
 
-  new_entry = GNUNET_malloc (sizeof (struct RoutingTrail));
+  new_entry = GNUNET_new (struct RoutingTrail);
   new_entry->trail_id = new_trail_id;
   new_entry->next_hop = next_hop;
   new_entry->prev_hop = prev_hop;

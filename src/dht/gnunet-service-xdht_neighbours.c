@@ -809,35 +809,36 @@ struct FingerInfo
 struct Closest_Peer
 {
   /**
-   * Destination finger vaule. 
+   * Destination finger value. 
    */
   uint64_t destination_finger_value;
   
   /**
-   * Is finger value predecessor or any other finge 
+   * Is finger_value a predecessor or any other finger. 
    */
   unsigned int is_predecessor;
   
   /**
    * Trail id to reach to peer.
+   * In case peer is my identity or friend, it is set to 0.
    */
   struct GNUNET_HashCode trail_id;
-
-  /**
-   * FIXME: see the usage of this field and write comment. 
-   */
-  struct GNUNET_PeerIdentity next_hop;
 
   /**
    * Next destination. In case of friend and my_identity , it is same as next_hop
    * In case of finger it is finger identity.
    */
   struct GNUNET_PeerIdentity best_known_destination;
+  
+  /**
+   * In case best_known_destination is a finger, then first friend in the trail
+   * to reach to it. In other case, same as best_known_destination.
+   */
+  struct GNUNET_PeerIdentity next_hop;
 };
 
+
 /**
- * FIXME: now I have removed the first_friend_trail_count,
- * Need to update the code to find the count.
  * Data structure to store the trail chosen to reach to finger.
  */
 struct Selected_Finger_Trail
@@ -1095,9 +1096,9 @@ GDS_NEIGHBOURS_send_trail_setup (struct GNUNET_PeerIdentity source_peer,
  * @param Finger Peer to which the trail has been setup to.
  * @param target_friend Friend to which this message should be forwarded.
  * @param trail_length Numbers of peers in the trail.
- * @param trail_peer_list Peers which are part of the trail from q
+ * @param trail_peer_list Peers which are part of the trail from 
  *                        querying_peer to Finger, NOT including them. 
- * @param is_predecessor Is @a Finger predecessor to @a querying_peer
+ * @param is_predecessor Is @a Finger predecessor to @a querying_peer ?
  * @param ultimate_destination_finger_value Value to which @a finger is the closest
  *                                          peer. 
  * @param trail_id Unique identifier of the trail.
@@ -1165,9 +1166,10 @@ GDS_NEIGHBOURS_send_trail_setup_result (struct GNUNET_PeerIdentity querying_peer
  * @param congested_peer Peer which sent this message as it is congested.
  * @param is_predecessor Is source_peer looking for trail to a predecessor or not.
  * @param trail_peer_list Trails seen so far in trail setup before getting rejected
- *                        by congested_peer. This does not include @a source_peer
- * @param trail_length Total number of peers in trail_peer_list, not including
- *                     @a source_peer
+ *                        by congested_peer. This does NOT include @a source_peer
+ *                        and congested_peer.
+ * @param trail_length Total number of peers in trail_peer_list, NOT including
+ *                     @a source_peer and @a congested_peer
  * @param trail_id Unique identifier of this trail.
  * @param congestion_timeout Duration given by congested peer as an estimate of
  *                           how long it may remain congested.
@@ -1215,7 +1217,8 @@ GDS_NEIGHBOURS_send_trail_rejection (struct GNUNET_PeerIdentity source_peer,
   trm->congestion_time = congestion_timeout;
   trm->is_predecessor = htonl (is_predecessor);
   trm->trail_id = trail_id;
-  trm->ultimate_destination_finger_value = GNUNET_htonll (ultimate_destination_finger_value);
+  trm->ultimate_destination_finger_value = 
+          GNUNET_htonll (ultimate_destination_finger_value);
 
   peer_list = (struct GNUNET_PeerIdentity *) &trm[1];
   if (trail_length > 0)
@@ -1635,76 +1638,6 @@ is_friend_congested (struct FriendInfo *friend)
 
 
 /**
- * Iterate over the list of all the trails of a finger. In case the first
- * friend to reach the finger has reached trail threshold or is congested,
- * then don't select it. In case there multiple available good trails to reach
- * to Finger, choose the one with shortest trail length.
- * Note: We use length as parameter. But we can use any other suitable parameter
- * also. 
- * @param finger Finger
- * @return struct Selected_Finger_Trail which contains the first friend , trail id
- * and trail length. NULL in case none of the trails are free.
- */
-static struct Selected_Finger_Trail *
-select_finger_trail (struct FingerInfo *finger)
-{
-  struct FriendInfo *friend;
-  struct Trail *iterator;
-  struct Selected_Finger_Trail *finger_trail;
-  unsigned int i;
-  unsigned int flag = 0;
-  unsigned int j = 0;
-  
-  finger_trail = GNUNET_new (struct Selected_Finger_Trail);
-
-  /* It can never happen that we have a finger (which is not a friend or my identity),
-     and we don't have a trail to reach to it. */
-  GNUNET_assert (finger->trails_count > 0);
-  
-  for (i = 0; i < finger->trails_count; i++)
-  {
-    iterator = &finger->trail_list[i];
-    
-    /* No trail stored at this index. */
-    if (GNUNET_NO == iterator->is_present)
-      continue;
- 
-    friend = GNUNET_CONTAINER_multipeermap_get (friend_peermap,
-                                                &iterator->trail_head->peer);
-    
-    /* First friend to reach trail is not free. */
-    if (GNUNET_YES == is_friend_congested (friend))
-    {
-      j++;
-      continue;
-    }
-    /* This is the first time we enter the loop. Set finger trail length to
-     * trail length of this trail. */
-    if (!flag)
-    {
-      flag = 1;
-      finger_trail->trail_length = iterator->trail_length;
-    }
-    else if (finger_trail->trail_length > iterator->trail_length)
-    {
-      /* Check if the trail length of this trail is least seen so far. If yes then
-         set finger_trail to this trail.*/
-      finger_trail->friend = *friend;
-      finger_trail->trail_id = iterator->trail_id;
-      finger_trail->trail_length = iterator->trail_length;
-    }
-  }
-
-  /* All the first friend in all the trails to reach to finger are either 
-   congested or have crossed trail threshold. */
-  if (j == finger->trails_count)
-    return NULL;
-  
-  return finger_trail;
-}
-
-
-/**
  * FIXME; not handling the wrap around logic correctly. 
  * Select closest finger to value.
  * @param peer1 First peer
@@ -1820,20 +1753,18 @@ select_closest_predecessor (struct GNUNET_PeerIdentity *peer1,
  * @param peer1 First peer
  * @param peer2 Second peer
  * @param value Value relative to which we find the closest
- * @param finger_table_index Index in finger map. If equal to PREDECESSOR_FINGER_ID,
- *                         then we use different logic than other
- *                         finger_table_index
+ * @param is_predecessor Is value a predecessor or any other finger. 
  * @return Closest peer among two peers.
  */
 static struct GNUNET_PeerIdentity *
 select_closest_peer (struct GNUNET_PeerIdentity *peer1,
                      struct GNUNET_PeerIdentity *peer2,
                      uint64_t value,
-                     unsigned int finger_table_index)
+                     unsigned int is_predecessor)
 {
   struct GNUNET_PeerIdentity *closest_peer;
   
-  if (PREDECESSOR_FINGER_ID == finger_table_index)
+  if (1 == is_predecessor)
     closest_peer = select_closest_predecessor (peer1, peer2, value);
   else
     closest_peer = select_closest_finger (peer1, peer2, value);
@@ -1843,7 +1774,76 @@ select_closest_peer (struct GNUNET_PeerIdentity *peer1,
 
 
 /**
- * FIXME: better names and more refactoring. 
+ * Iterate over the list of all the trails of a finger. In case the first
+ * friend to reach the finger has reached trail threshold or is congested,
+ * then don't select it. In case there multiple available good trails to reach
+ * to Finger, choose the one with shortest trail length.
+ * Note: We use length as parameter. But we can use any other suitable parameter
+ * also. 
+ * @param finger Finger
+ * @return struct Selected_Finger_Trail which contains the first friend , trail id
+ * and trail length. NULL in case none of the trails are free.
+ */
+static struct Selected_Finger_Trail *
+select_finger_trail (struct FingerInfo *finger)
+{
+  struct FriendInfo *friend;
+  struct Trail *iterator;
+  struct Selected_Finger_Trail *finger_trail;
+  unsigned int i;
+  unsigned int flag = 0;
+  unsigned int j = 0;
+  
+  finger_trail = GNUNET_new (struct Selected_Finger_Trail);
+
+  /* It can never happen that we have a finger (which is not a friend or my identity),
+     and we don't have a trail to reach to it. */
+  GNUNET_assert (finger->trails_count > 0);
+  
+  for (i = 0; i < finger->trails_count; i++)
+  {
+    iterator = &finger->trail_list[i];
+    
+    /* No trail stored at this index. */
+    if (GNUNET_NO == iterator->is_present)
+      continue;
+ 
+    friend = GNUNET_CONTAINER_multipeermap_get (friend_peermap,
+                                                &iterator->trail_head->peer);
+    
+    /* First friend to reach trail is not free. */
+    if (GNUNET_YES == is_friend_congested (friend))
+    {
+      j++;
+      continue;
+    }
+    /* This is the first time we enter the loop. Set finger trail length to
+     * trail length of this trail. */
+    if (!flag)
+    {
+      flag = 1;
+      finger_trail->trail_length = iterator->trail_length;
+    }
+    else if (finger_trail->trail_length > iterator->trail_length)
+    {
+      /* Check if the trail length of this trail is least seen so far. If yes then
+         set finger_trail to this trail.*/
+      finger_trail->friend = *friend;
+      finger_trail->trail_id = iterator->trail_id;
+      finger_trail->trail_length = iterator->trail_length;
+    }
+  }
+
+  /* All the first friend in all the trails to reach to finger are either 
+   congested or have crossed trail threshold. */
+  if (j == finger->trails_count)
+    return NULL;
+  
+  return finger_trail;
+}
+
+
+/**
  * Compare FINGER entry with current successor. If finger's first friend of all
  * its trail is not congested and  has not crossed trail threshold, then check 
  * if finger peer identity is closer to final_destination_finger_value than
@@ -1984,10 +1984,11 @@ init_current_successor (struct GNUNET_PeerIdentity my_identity,
 
 
 /**
- * FIXME: can we just send gnunet_peeridentit and not gnunet_peeridentity *?
  * Find the successor for destination_finger_value among my_identity, all my
  * friend and all my fingers. Don't consider friends or fingers which are either
  * congested or have crossed the threshold.
+ * NOTE: In case a friend is also a finger, then it is always chosen as friend
+ * not a finger. 
  * @param destination_finger_value Peer closest to this value will be the next successor.
  * @param local_best_known_destination[out] Updated to my_identity if I am the 
  *                                     final destination. Updated to friend 
@@ -3231,7 +3232,7 @@ test_finger_table_print()
  * -- Update current_search_finger_index.
  * @param finger_identity Peer Identity of new finger
  * @param finger_trail Trail to reach the new finger
- * @param finger_length Total number of peers in @a new_finger_trail.
+ * @param finger_trail_length Total number of peers in @a new_finger_trail.
  * @param is_predecessor Is this entry for predecessor in finger_table?
  * @param finger_value 64 bit value of finger identity that we got from network.
  * @param finger_trail_id Unique identifier of @finger_trail.
@@ -3250,6 +3251,7 @@ finger_table_add (struct GNUNET_PeerIdentity finger_identity,
   struct FingerInfo *successor;
   int updated_finger_trail_length; 
   unsigned int finger_table_index;
+
   
 #if 0
   test_friend_peermap_print();
@@ -3265,13 +3267,13 @@ finger_table_add (struct GNUNET_PeerIdentity finger_identity,
     GNUNET_break_op (0);
     return;
   }
- 
-   
-  /* If the new entry is same as successor then don't add it in finger table,
-   reset the current search finger index and exit. */
+  
+  /* If the new entry for any finger table index other than successor or predecessor
+   * is same as successor then don't add it in finger table,
+   * reset the current search finger index and exit. */
   if ((0 != finger_table_index) && 
       (PREDECESSOR_FINGER_ID != finger_table_index) &&
-      (finger_table_index == current_search_finger_index))
+      (finger_table_index == current_search_finger_index)) //FIXME; why do I check this cond?
   {
     successor = &finger_table[0];
     GNUNET_assert (GNUNET_YES == successor->is_present);
@@ -3284,21 +3286,25 @@ finger_table_add (struct GNUNET_PeerIdentity finger_identity,
   }
   
   existing_finger = &finger_table[finger_table_index];
-  
+    
+  /* Shorten the trail if possible. */
   updated_finger_trail_length = finger_trail_length;
   updated_trail =
        scan_and_compress_trail (finger_identity, finger_trail,
                                 finger_trail_length, finger_trail_id, 
                                 &updated_finger_trail_length);
+  
   /* No entry present in finger_table for given finger map index. */
   if (GNUNET_NO == existing_finger->is_present)
   {
-    add_new_finger (finger_identity, updated_trail, updated_finger_trail_length,
+    add_new_finger (finger_identity, updated_trail, 
+                    updated_finger_trail_length,
                     finger_trail_id, finger_table_index);
     update_current_search_finger_index (finger_identity, finger_table_index);
     GNUNET_free_non_null (updated_trail);
     return;
   }
+  
   
   /* If existing entry and finger identity are not same. */
   if (0 != GNUNET_CRYPTO_cmp_peer_identity (&(existing_finger->finger_identity),
@@ -3306,7 +3312,8 @@ finger_table_add (struct GNUNET_PeerIdentity finger_identity,
   {
     closest_peer = select_closest_peer (&existing_finger->finger_identity,
                                         &finger_identity,
-                                        finger_value, finger_table_index);
+                                        finger_value, 
+                                        is_predecessor);
     
     /* If the new finger is the closest peer. */
     if (0 == GNUNET_CRYPTO_cmp_peer_identity (&finger_identity, closest_peer))
@@ -4052,6 +4059,8 @@ handle_dht_p2p_trail_setup_result(void *cls, const struct GNUNET_PeerIdentity *p
     return GNUNET_SYSERR;
   }
   
+  /* FIXME: CHECK IF YOU ARE PRESENT MORE THAN ONCE IN THE TRAIL, IF YES
+   THEN REMOVE ALL THE ENTRIES AND CHOOSE THE PEER THERE.*/
   if (my_index == 0)
     next_hop = trail_result->querying_peer;
   else
@@ -4268,6 +4277,7 @@ compare_and_update_predecessor (struct GNUNET_PeerIdentity finger,
   struct FingerInfo *current_predecessor;
   struct GNUNET_PeerIdentity *closest_peer;
   uint64_t predecessor_value;
+  unsigned int is_predecessor = 1;
   
   current_predecessor = &finger_table[PREDECESSOR_FINGER_ID];
 
@@ -4283,7 +4293,7 @@ compare_and_update_predecessor (struct GNUNET_PeerIdentity finger,
   predecessor_value = compute_finger_identity_value (PREDECESSOR_FINGER_ID);
   closest_peer = select_closest_peer (&finger, 
                                       &current_predecessor->finger_identity,
-                                      predecessor_value, PREDECESSOR_FINGER_ID);
+                                      predecessor_value, is_predecessor);
   
   /* Finger is the closest predecessor. Remove the existing one and add the new
      one. */
@@ -4513,6 +4523,7 @@ compare_and_update_successor (struct GNUNET_PeerIdentity probable_successor,
   uint64_t successor_value;
   struct FingerInfo *current_successor;
   struct FriendInfo *target_friend;
+  unsigned int is_predecessor = 0;
   
   current_successor = &finger_table[0];
   GNUNET_assert (GNUNET_YES == current_successor->is_present);
@@ -4522,7 +4533,7 @@ compare_and_update_successor (struct GNUNET_PeerIdentity probable_successor,
   successor_value = compute_finger_identity_value (0);
   closest_peer = select_closest_peer (&current_successor->finger_identity,
                                       &probable_successor,
-                                      successor_value, 0);
+                                      successor_value, is_predecessor);
   
   /* If the current_successor is the closest one, then exit. */
   if (0 == GNUNET_CRYPTO_cmp_peer_identity (closest_peer,
