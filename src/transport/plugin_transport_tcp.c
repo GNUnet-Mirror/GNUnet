@@ -235,11 +235,6 @@ struct Session
   struct GNUNET_PeerIdentity target;
 
   /**
-   * API requirement.
-   */
-  struct SessionHeader header;
-
-  /**
    * Pointer to the global plugin struct.
    */
   struct Plugin *plugin;
@@ -497,9 +492,10 @@ plugin_tcp_access_check (void *cls,
                          socklen_t addrlen)
 {
   struct Plugin *plugin = cls;
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "Accepting new incoming TCP connection from `%s'\n",
-      GNUNET_a2s (addr, addrlen));
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Accepting new incoming TCP connection from `%s'\n",
+       GNUNET_a2s (addr, addrlen));
   if (plugin->cur_connections >= plugin->max_connections)
     return GNUNET_NO;
   plugin->cur_connections++;
@@ -743,40 +739,6 @@ tcp_string_to_address (void *cls,
 
 
 /**
- * Closure for #session_lookup_by_client_it().
- */
-struct SessionClientCtx
-{
-  /**
-   * Client we are looking for.
-   */
-  const struct GNUNET_SERVER_Client *client;
-
-  /**
-   * Session that was found.
-   */
-  struct Session *ret;
-};
-
-
-static int
-session_lookup_by_client_it (void *cls,
-                             const struct GNUNET_PeerIdentity *key,
-                             void *value)
-{
-  struct SessionClientCtx *sc_ctx = cls;
-  struct Session *s = value;
-
-  if (s->client == sc_ctx->client)
-  {
-    sc_ctx->ret = s;
-    return GNUNET_NO;
-  }
-  return GNUNET_YES;
-}
-
-
-/**
  * Find the session handle for the given client.
  * Currently uses both the hashmap and the client
  * context, as the client context is new and the
@@ -790,17 +752,7 @@ static struct Session *
 lookup_session_by_client (struct Plugin *plugin,
                           struct GNUNET_SERVER_Client *client)
 {
-  struct Session *ret;
-  struct SessionClientCtx sc_ctx;
-
-  ret = GNUNET_SERVER_client_get_user_context (client, struct Session);
-  sc_ctx.client = client;
-  sc_ctx.ret = NULL;
-  GNUNET_CONTAINER_multipeermap_iterate (plugin->sessionmap,
-      &session_lookup_by_client_it, &sc_ctx);
-  /* check both methods yield the same result */
-  GNUNET_break(ret == sc_ctx.ret);
-  return sc_ctx.ret;
+  return GNUNET_SERVER_client_get_user_context (client, struct Session);
 }
 
 
