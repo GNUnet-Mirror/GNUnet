@@ -436,7 +436,10 @@ GNUNET_FS_file_information_destroy (struct GNUNET_FS_FileInformation *fi,
   }
   GNUNET_free_non_null (fi->filename);
   GNUNET_free_non_null (fi->emsg);
-  GNUNET_free_non_null (fi->chk_uri);
+  if (NULL != fi->sks_uri)
+      GNUNET_FS_uri_destroy (fi->sks_uri);
+  if (NULL != fi->chk_uri)
+      GNUNET_FS_uri_destroy (fi->chk_uri);
   /* clean up serialization */
   if ((NULL != fi->serialization) && (0 != UNLINK (fi->serialization)))
     GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING, "unlink",

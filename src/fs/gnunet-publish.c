@@ -154,11 +154,17 @@ static struct GNUNET_IDENTITY_Handle *identity;
  * @param tc scheduler context
  */
 static void
-do_stop_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+do_stop_task (void *cls,
+              const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_FS_PublishContext *p;
 
   kill_task = GNUNET_SCHEDULER_NO_TASK;
+  if (NULL != identity)
+  {
+    GNUNET_IDENTITY_disconnect (identity);
+    identity = NULL;
+  }
   if (NULL != pc)
   {
     p = pc;
@@ -213,7 +219,8 @@ stop_scanner_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  *         field in the GNUNET_FS_ProgressInfo struct.
  */
 static void *
-progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
+progress_cb (void *cls,
+             const struct GNUNET_FS_ProgressInfo *info)
 {
   const char *s;
   char *suri;
@@ -257,19 +264,28 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
     kill_task = GNUNET_SCHEDULER_add_now (&do_stop_task, NULL);
     break;
   case GNUNET_FS_STATUS_PUBLISH_COMPLETED:
-    FPRINTF (stdout, _("Publishing `%s' done.\n"),
+    FPRINTF (stdout,
+             _("Publishing `%s' done.\n"),
              info->value.publish.filename);
     suri = GNUNET_FS_uri_to_string (info->value.publish.specifics.
-                                 completed.chk_uri);
-    FPRINTF (stdout, _("URI is `%s'.\n"), suri);
+                                    completed.chk_uri);
+    FPRINTF (stdout,
+             _("URI is `%s'.\n"),
+             suri);
     GNUNET_free (suri);
+    if (NULL != info->value.publish.specifics.completed.sks_uri)
+    {
+      suri = GNUNET_FS_uri_to_string (info->value.publish.specifics.
+                                      completed.sks_uri);
+      FPRINTF (stdout,
+               _("Namespace URI is `%s'.\n"),
+               suri);
+      GNUNET_free (suri);
+    }
     if (NULL == info->value.publish.pctx)
     {
       if (GNUNET_SCHEDULER_NO_TASK != kill_task)
-      {
         GNUNET_SCHEDULER_cancel (kill_task);
-        kill_task = GNUNET_SCHEDULER_NO_TASK;
-      }
       kill_task = GNUNET_SCHEDULER_add_now (&do_stop_task, NULL);
     }
     ret = 0;
@@ -280,7 +296,9 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
   case GNUNET_FS_STATUS_UNINDEX_PROGRESS:
     return NULL;
   case GNUNET_FS_STATUS_UNINDEX_COMPLETED:
-    FPRINTF (stderr, "%s",  _("Cleanup after abort complete.\n"));
+    FPRINTF (stderr,
+             "%s",
+             _("Cleanup after abort complete.\n"));
     return NULL;
   default:
     FPRINTF (stderr, _("Unexpected status: %d\n"), info->status);
@@ -300,12 +318,15 @@ progress_cb (void *cls, const struct GNUNET_FS_ProgressInfo *info)
  * @param format format of data
  * @param data_mime_type mime type of data
  * @param data value of the meta data
- * @param data_size number of bytes in data
+ * @param data_size number of bytes in @a data
  * @return always 0
  */
 static int
-meta_printer (void *cls, const char *plugin_name, enum EXTRACTOR_MetaType type,
-              enum EXTRACTOR_MetaFormat format, const char *data_mime_type,
+meta_printer (void *cls,
+              const char *plugin_name,
+              enum EXTRACTOR_MetaType type,
+              enum EXTRACTOR_MetaFormat format,
+              const char *data_mime_type,
               const char *data, size_t data_size)
 {
   if ((EXTRACTOR_METAFORMAT_UTF8 != format) &&
@@ -324,10 +345,12 @@ meta_printer (void *cls, const char *plugin_name, enum EXTRACTOR_MetaType type,
  * @param cls closure
  * @param keyword the keyword
  * @param is_mandatory is the keyword mandatory (in a search)
- * @return GNUNET_OK to continue to iterate, GNUNET_SYSERR to abort
+ * @return #GNUNET_OK to continue to iterate, #GNUNET_SYSERR to abort
  */
 static int
-keyword_printer (void *cls, const char *keyword, int is_mandatory)
+keyword_printer (void *cls,
+                 const char *keyword,
+                 int is_mandatory)
 {
   FPRINTF (stdout, "\t%s\n", keyword);
   return GNUNET_OK;
@@ -347,15 +370,18 @@ keyword_printer (void *cls, const char *keyword, int is_mandatory)
  * @param bo block options
  * @param do_index should we index?
  * @param client_info pointer to client context set upon creation (can be modified)
- * @return GNUNET_OK to continue, GNUNET_NO to remove
- *         this entry from the directory, GNUNET_SYSERR
+ * @return #GNUNET_OK to continue, #GNUNET_NO to remove
+ *         this entry from the directory, #GNUNET_SYSERR
  *         to abort the iteration
  */
 static int
-publish_inspector (void *cls, struct GNUNET_FS_FileInformation *fi,
-                   uint64_t length, struct GNUNET_CONTAINER_MetaData *m,
+publish_inspector (void *cls,
+                   struct GNUNET_FS_FileInformation *fi,
+                   uint64_t length,
+                   struct GNUNET_CONTAINER_MetaData *m,
                    struct GNUNET_FS_Uri **uri,
-                   struct GNUNET_FS_BlockOptions *bo, int *do_index,
+                   struct GNUNET_FS_BlockOptions *bo,
+                   int *do_index,
                    void **client_info)
 {
   char *fn;
@@ -423,7 +449,8 @@ publish_inspector (void *cls, struct GNUNET_FS_FileInformation *fi,
  * @param emsg error message, NULL on success
  */
 static void
-uri_sks_continuation (void *cls, const struct GNUNET_FS_Uri *sks_uri,
+uri_sks_continuation (void *cls,
+                      const struct GNUNET_FS_Uri *sks_uri,
                       const char *emsg)
 {
   if (NULL != emsg)
@@ -540,7 +567,9 @@ directory_trim_complete (struct GNUNET_FS_ShareTreeItem *directory_scan_result)
   GNUNET_FS_share_tree_free (directory_scan_result);
   if (NULL == fi)
   {
-    FPRINTF (stderr, "%s", _("Could not publish\n"));
+    FPRINTF (stderr,
+             "%s",
+             _("Could not publish\n"));
     GNUNET_SCHEDULER_shutdown ();
     ret = 1;
     return;
@@ -563,7 +592,9 @@ directory_trim_complete (struct GNUNET_FS_ShareTreeItem *directory_scan_result)
                                 GNUNET_FS_PUBLISH_OPTION_NONE);
   if (NULL == pc)
   {
-    FPRINTF (stderr, "%s",  _("Could not start publishing.\n"));
+    FPRINTF (stderr,
+             "%s",
+             _("Could not start publishing.\n"));
     GNUNET_SCHEDULER_shutdown ();
     ret = 1;
     return;
@@ -577,9 +608,9 @@ directory_trim_complete (struct GNUNET_FS_ShareTreeItem *directory_scan_result)
  *
  * @param cls closure
  * @param filename which file we are making progress on
- * @param is_directory GNUNET_YES if this is a directory,
- *                     GNUNET_NO if this is a file
- *                     GNUNET_SYSERR if it is neither (or unknown)
+ * @param is_directory #GNUNET_YES if this is a directory,
+ *                     #GNUNET_NO if this is a file
+ *                     #GNUNET_SYSERR if it is neither (or unknown)
  * @param reason kind of progress we are making
  */
 static void
@@ -596,9 +627,13 @@ directory_scan_cb (void *cls,
     if (verbose > 1)
     {
       if (is_directory == GNUNET_YES)
-	FPRINTF (stdout, _("Scanning directory `%s'.\n"), filename);
+	FPRINTF (stdout,
+                 _("Scanning directory `%s'.\n"),
+                 filename);
       else
-	FPRINTF (stdout, _("Scanning file `%s'.\n"), filename);
+	FPRINTF (stdout,
+                 _("Scanning file `%s'.\n"),
+                 filename);
     }
     break;
   case GNUNET_FS_DIRSCANNER_FILE_IGNORED:
@@ -608,22 +643,30 @@ directory_scan_cb (void *cls,
     break;
   case GNUNET_FS_DIRSCANNER_ALL_COUNTED:
     if (verbose)
-      FPRINTF (stdout, "%s", _("Preprocessing complete.\n"));
+      FPRINTF (stdout,
+               "%s",
+               _("Preprocessing complete.\n"));
     break;
   case GNUNET_FS_DIRSCANNER_EXTRACT_FINISHED:
     if (verbose > 2)
-      FPRINTF (stdout, _("Extracting meta data from file `%s' complete.\n"), filename);
+      FPRINTF (stdout,
+               _("Extracting meta data from file `%s' complete.\n"),
+               filename);
     break;
   case GNUNET_FS_DIRSCANNER_FINISHED:
     if (verbose > 1)
-      FPRINTF (stdout, "%s", _("Meta data extraction has finished.\n"));
+      FPRINTF (stdout,
+               "%s",
+               _("Meta data extraction has finished.\n"));
     directory_scan_result = GNUNET_FS_directory_scan_get_result (ds);
     ds = NULL;
     GNUNET_FS_share_tree_trim (directory_scan_result);
     directory_trim_complete (directory_scan_result);
     break;
   case GNUNET_FS_DIRSCANNER_INTERNAL_ERROR:
-    FPRINTF (stdout, "%s", _("Internal error scanning directory.\n"));
+    FPRINTF (stdout,
+             "%s",
+             _("Internal error scanning directory.\n"));
     if (kill_task != GNUNET_SCHEDULER_NO_TASK)
     {
       GNUNET_SCHEDULER_cancel (kill_task);
@@ -654,7 +697,9 @@ identity_continuation (const char *args0)
   if ( (NULL != pseudonym) &&
        (NULL == namespace) )
   {
-    FPRINTF (stderr, _("Selected pseudonym `%s' unknown\n"), pseudonym);
+    FPRINTF (stderr,
+             _("Selected pseudonym `%s' unknown\n"),
+             pseudonym);
     GNUNET_SCHEDULER_shutdown ();
     return;
   }
@@ -663,14 +708,19 @@ identity_continuation (const char *args0)
     emsg = NULL;
     if (NULL == (uri = GNUNET_FS_uri_parse (uri_string, &emsg)))
     {
-      FPRINTF (stderr, _("Failed to parse URI: %s\n"), emsg);
+      FPRINTF (stderr,
+               _("Failed to parse URI: %s\n"),
+               emsg);
       GNUNET_free (emsg);
       GNUNET_SCHEDULER_shutdown ();
       ret = 1;
       return;
     }
-    GNUNET_FS_publish_ksk (ctx, topKeywords, meta, uri, &bo,
-                           GNUNET_FS_PUBLISH_OPTION_NONE, &uri_ksk_continuation,
+    GNUNET_FS_publish_ksk (ctx, topKeywords,
+                           meta, uri,
+                           &bo,
+                           GNUNET_FS_PUBLISH_OPTION_NONE,
+                           &uri_ksk_continuation,
                            NULL);
     return;
   }
@@ -693,7 +743,8 @@ identity_continuation (const char *args0)
   if (NULL == ds)
   {
     FPRINTF (stderr,
-	     "%s", _("Failed to start meta directory scanner.  Is gnunet-helper-publish-fs installed?\n"));
+	     "%s",
+             _("Failed to start meta directory scanner.  Is gnunet-helper-publish-fs installed?\n"));
     GNUNET_free_non_null (ex);
     return;
   }
@@ -725,6 +776,8 @@ identity_cb (void *cls,
     identity_continuation (args0);
     return;
   }
+  if (NULL == name)
+    return;
   if (0 == strcmp (name, pseudonym))
     namespace = ego;
 }
@@ -739,7 +792,9 @@ identity_cb (void *cls,
  * @param c configuration
  */
 static void
-run (void *cls, char *const *args, const char *cfgfile,
+run (void *cls,
+     char *const *args,
+     const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   /* check arguments */
@@ -776,14 +831,16 @@ run (void *cls, char *const *args, const char *cfgfile,
   {                             /* ordinary insertion checks */
     if (NULL != next_id)
     {
-      FPRINTF (stderr, _("Option `%s' makes no sense without option `%s'.\n"),
+      FPRINTF (stderr,
+               _("Option `%s' makes no sense without option `%s'.\n"),
                "-N", "-P");
       ret = -1;
       return;
     }
     if (NULL != this_id)
     {
-      FPRINTF (stderr, _("Option `%s' makes no sense without option `%s'.\n"),
+      FPRINTF (stderr,
+               _("Option `%s' makes no sense without option `%s'.\n"),
                "-t", "-P");
       ret = -1;
       return;
@@ -795,16 +852,20 @@ run (void *cls, char *const *args, const char *cfgfile,
                        GNUNET_FS_FLAGS_NONE, GNUNET_FS_OPTIONS_END);
   if (NULL == ctx)
   {
-    FPRINTF (stderr, _("Could not initialize `%s' subsystem.\n"), "FS");
+    FPRINTF (stderr,
+             _("Could not initialize `%s' subsystem.\n"),
+             "FS");
     ret = 1;
     return;
   }
   kill_task =
-      GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &do_stop_task,
-                                    NULL);
+    GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
+                                  &do_stop_task,
+                                  NULL);
   if (NULL != pseudonym)
     identity = GNUNET_IDENTITY_connect (cfg,
-					&identity_cb, args[0]);
+					&identity_cb,
+                                        args[0]);
   else
     identity_continuation (args[0]);
 }

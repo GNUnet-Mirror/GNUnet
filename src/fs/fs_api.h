@@ -269,6 +269,12 @@ struct GNUNET_FS_FileInformation
   struct GNUNET_FS_Uri *chk_uri;
 
   /**
+   * SKS URI for this file or directory. NULL if
+   * we have not yet computed it.
+   */
+  struct GNUNET_FS_Uri *sks_uri;
+
+  /**
    * Block options for the file.
    */
   struct GNUNET_FS_BlockOptions bo;
@@ -735,7 +741,7 @@ GNUNET_FS_search_probe_progress_ (void *cls,
 /**
  * Main function that performs the upload.
  *
- * @param cls "struct GNUNET_FS_PublishContext" identifies the upload
+ * @param cls `struct GNUNET_FS_PublishContext` identifies the upload
  * @param tc task context
  */
 void

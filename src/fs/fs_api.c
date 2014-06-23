@@ -873,6 +873,7 @@ deserialize_fi_node (struct GNUNET_FS_Handle *h,
   char b;
   char *ksks;
   char *chks;
+  char *skss;
   char *filename;
   uint32_t dsize;
 
@@ -885,6 +886,7 @@ deserialize_fi_node (struct GNUNET_FS_Handle *h,
   ret->h = h;
   ksks = NULL;
   chks = NULL;
+  skss = NULL;
   filename = NULL;
   if ((GNUNET_OK != GNUNET_BIO_read_meta_data (rh, "metadata", &ret->meta)) ||
       (GNUNET_OK != GNUNET_BIO_read_string (rh, "ksk-uri", &ksks, 32 * 1024)) ||
@@ -895,6 +897,10 @@ deserialize_fi_node (struct GNUNET_FS_Handle *h,
       ( (NULL != chks) &&
 	( (NULL == (ret->chk_uri = GNUNET_FS_uri_parse (chks, NULL))) ||
 	  (GNUNET_YES != GNUNET_FS_uri_test_chk (ret->chk_uri))) ) ||
+      (GNUNET_OK != GNUNET_BIO_read_string (rh, "sks-uri", &skss, 1024)) ||
+      ( (NULL != skss) &&
+	( (NULL == (ret->sks_uri = GNUNET_FS_uri_parse (skss, NULL))) ||
+	  (GNUNET_YES != GNUNET_FS_uri_test_sks (ret->sks_uri))) ) ||
       (GNUNET_OK != read_start_time (rh, &ret->start_time)) ||
       (GNUNET_OK != GNUNET_BIO_read_string (rh, "emsg", &ret->emsg, 16 * 1024))
       || (GNUNET_OK !=
@@ -1054,11 +1060,13 @@ deserialize_fi_node (struct GNUNET_FS_Handle *h,
     filename = NULL;
   }
   GNUNET_free_non_null (ksks);
+  GNUNET_free_non_null (skss);
   GNUNET_free_non_null (chks);
   return ret;
 cleanup:
   GNUNET_free_non_null (ksks);
   GNUNET_free_non_null (chks);
+  GNUNET_free_non_null (skss);
   GNUNET_free_non_null (filename);
   GNUNET_FS_file_information_destroy (ret, NULL, NULL);
   return NULL;
@@ -1267,6 +1275,7 @@ GNUNET_FS_file_information_sync_ (struct GNUNET_FS_FileInformation *fi)
   char b;
   char *ksks;
   char *chks;
+  char *skss;
 
   if (NULL == fi->serialization)
     fi->serialization =
@@ -1299,10 +1308,15 @@ GNUNET_FS_file_information_sync_ (struct GNUNET_FS_FileInformation *fi)
     chks = GNUNET_FS_uri_to_string (fi->chk_uri);
   else
     chks = NULL;
+  if (NULL != fi->sks_uri)
+    skss = GNUNET_FS_uri_to_string (fi->sks_uri);
+  else
+    skss = NULL;
   if ((GNUNET_OK != GNUNET_BIO_write (wh, &b, sizeof (b))) ||
       (GNUNET_OK != GNUNET_BIO_write_meta_data (wh, fi->meta)) ||
       (GNUNET_OK != GNUNET_BIO_write_string (wh, ksks)) ||
       (GNUNET_OK != GNUNET_BIO_write_string (wh, chks)) ||
+      (GNUNET_OK != GNUNET_BIO_write_string (wh, skss)) ||
       (GNUNET_OK != write_start_time (wh, fi->start_time)) ||
       (GNUNET_OK != GNUNET_BIO_write_string (wh, fi->emsg)) ||
       (GNUNET_OK != GNUNET_BIO_write_string (wh, fi->filename)) ||
@@ -1319,6 +1333,8 @@ GNUNET_FS_file_information_sync_ (struct GNUNET_FS_FileInformation *fi)
   chks = NULL;
   GNUNET_free_non_null (ksks);
   ksks = NULL;
+  GNUNET_free_non_null (skss);
+  skss = NULL;
 
   switch (b)
   {
@@ -1410,6 +1426,7 @@ cleanup:
     (void) GNUNET_BIO_write_close (wh);
   GNUNET_free_non_null (chks);
   GNUNET_free_non_null (ksks);
+  GNUNET_free_non_null (skss);
   fn = get_serialization_file_name (fi->h, GNUNET_FS_SYNC_PATH_FILE_INFO,
                                     fi->serialization);
   if (NULL != fn)
