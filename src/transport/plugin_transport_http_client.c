@@ -182,6 +182,7 @@ struct Session
    * Client receive handle
    */
   void *client_get;
+
   /**
    * next pointer for double linked list
    */
@@ -219,10 +220,20 @@ struct Session
   struct GNUNET_TIME_Absolute next_receive;
 
   /**
+   * Number of bytes waiting for transmission to this peer.
+   */
+  unsigned long long bytes_in_queue;
+
+  /**
    * Outbound overhead due to HTTP connection
    * Add to next message of this session when calling callback
    */
   size_t overhead;
+
+  /**
+   * Number of messages waiting for transmission to this peer.
+   */
+  unsigned int msgs_in_queue;
 
   /**
    * ATS network type in NBO
@@ -390,26 +401,6 @@ client_connect_put (struct Session *s);
 
 
 /**
- * Does a session s exists?
- *
- * @param plugin the plugin
- * @param s desired session
- * @return #GNUNET_YES or #GNUNET_NO
- */
-static int
-client_exist_session (struct HTTP_Client_Plugin *plugin,
-                      struct Session *s)
-{
-  struct Session * head;
-
-  for (head = plugin->head; head != NULL; head = head->next)
-    if (head == s)
-      return GNUNET_YES;
-  return GNUNET_NO;
-}
-
-
-/**
  * Loggging function
  *
  * @param curl the curl easy handle
@@ -511,13 +502,6 @@ http_client_plugin_send (void *cls,
   struct HTTP_Client_Plugin *plugin = cls;
   struct HTTP_Message *msg;
   char *stat_txt;
-
-  /* lookup if session is really existing */
-  if (GNUNET_YES != client_exist_session (plugin, s))
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Session %p/connection %p: Sending message with %u to peer `%s' \n",
@@ -648,12 +632,6 @@ http_client_session_disconnect (void *cls,
   struct HTTP_Message *t;
   int res = GNUNET_OK;
   CURLMcode mret;
-
-  if (GNUNET_YES != client_exist_session (plugin, s))
-  {
-    GNUNET_break (0);
-    return GNUNET_SYSERR;
-  }
 
   if (NULL != s->client_put)
   {
@@ -852,17 +830,13 @@ client_send_cb (void *stream,
   size_t len;
   char *stat_txt;
 
-  if (GNUNET_YES != client_exist_session (plugin, s))
-  {
-    GNUNET_break (0);
-    return 0;
-  }
   if (GNUNET_YES == s->put_tmp_disconnecting)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Session %p/connection %p: disconnect due to inactivity\n",
-         s, s->client_put);
-      return 0;
+         s,
+         s->client_put);
+    return 0;
   }
 
   if (NULL == msg)
@@ -921,11 +895,6 @@ client_wake_up (void *cls,
   struct Session *s = cls;
   struct HTTP_Client_Plugin *p = s->plugin;
 
-  if (GNUNET_YES != client_exist_session (p, s))
-  {
-    GNUNET_break (0);
-    return;
-  }
   s->recv_wakeup_task = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
@@ -959,12 +928,6 @@ client_receive_mst_cb (void *cls, void *client,
   char *stat_txt;
 
   plugin = s->plugin;
-  if (GNUNET_YES != client_exist_session (plugin, s))
-  {
-    GNUNET_break (0);
-    return GNUNET_OK;
-  }
-
   atsi.type = htonl (GNUNET_ATS_NETWORK_TYPE);
   atsi.value = s->ats_address_network_type;
   GNUNET_break (s->ats_address_network_type != ntohl (GNUNET_ATS_NET_UNSPECIFIED));
@@ -1194,13 +1157,6 @@ client_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_assert (CURLE_OK ==
                      curl_easy_getinfo (easy_h, CURLINFO_PRIVATE, &d));
       s = (struct Session *) d;
-
-      if (GNUNET_YES != client_exist_session(plugin, s))
-      {
-        GNUNET_break (0);
-        return;
-      }
-
       GNUNET_assert (s != NULL);
       if (msg->msg == CURLMSG_DONE)
       {
@@ -1939,11 +1895,6 @@ http_client_plugin_update_session_timeout (void *cls,
   struct HTTP_Client_Plugin *plugin = cls;
 
   /* lookup if session is really existing */
-  if (GNUNET_YES != client_exist_session (plugin, session))
-  {
-    GNUNET_break (0);
-    return;
-  }
   client_reschedule_session_timeout (session);
 }
 
