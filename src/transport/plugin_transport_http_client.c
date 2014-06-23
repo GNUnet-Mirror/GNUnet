@@ -392,7 +392,7 @@ notify_session_monitor (struct HTTP_Client_Plugin *plugin,
     return;
   memset (&info, 0, sizeof (info));
   info.state = state;
-  info.is_inbound = GNUNET_SYSERR; /* hard to say */
+  info.is_inbound = GNUNET_NO;
   info.num_msg_pending = session->msgs_in_queue;
   info.num_bytes_pending = session->bytes_in_queue;
   info.receive_delay = session->next_receive;
@@ -401,6 +401,70 @@ notify_session_monitor (struct HTTP_Client_Plugin *plugin,
   plugin->sic (plugin->sic_cls,
                session,
                &info);
+}
+
+
+/**
+ * Delete session @a s.
+ *
+ * @param s the session to delete
+ */
+static void
+client_delete_session (struct Session *s)
+{
+  struct HTTP_Client_Plugin *plugin = s->plugin;
+  struct HTTP_Message *pos;
+  struct HTTP_Message *next;
+
+  if (GNUNET_SCHEDULER_NO_TASK != s->timeout_task)
+  {
+    GNUNET_SCHEDULER_cancel (s->timeout_task);
+    s->timeout_task = GNUNET_SCHEDULER_NO_TASK;
+    s->timeout = GNUNET_TIME_UNIT_ZERO_ABS;
+  }
+  if (GNUNET_SCHEDULER_NO_TASK != s->put_disconnect_task)
+  {
+    GNUNET_SCHEDULER_cancel (s->put_disconnect_task);
+    s->put_disconnect_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_CONTAINER_multipeermap_remove (plugin->sessions,
+                                                       &s->target,
+                                                       s));
+
+  next = s->msg_head;
+  while (NULL != (pos = next))
+  {
+    next = pos->next;
+    GNUNET_CONTAINER_DLL_remove (s->msg_head,
+                                 s->msg_tail,
+                                 pos);
+    GNUNET_assert (0 < s->msgs_in_queue);
+    s->msgs_in_queue--;
+    GNUNET_assert (pos->size <= s->bytes_in_queue);
+    s->bytes_in_queue -= pos->size;
+    if (NULL != pos->transmit_cont)
+      pos->transmit_cont (pos->transmit_cont_cls,
+                          &s->target,
+                          GNUNET_SYSERR,
+                          pos->size,
+                          pos->pos + s->overhead);
+    s->overhead = 0;
+    GNUNET_free (pos);
+  }
+  GNUNET_assert (0 == s->msgs_in_queue);
+  GNUNET_assert (0 == s->bytes_in_queue);
+  notify_session_monitor (plugin,
+                          s,
+                          GNUNET_TRANSPORT_SS_DOWN);
+  if (NULL != s->msg_tk)
+  {
+    GNUNET_SERVER_mst_destroy (s->msg_tk);
+    s->msg_tk = NULL;
+  }
+  GNUNET_HELLO_address_free (s->address);
+  GNUNET_free (s->url);
+  GNUNET_free (s);
 }
 
 
@@ -418,25 +482,85 @@ client_reschedule_session_timeout (struct Session *s)
 
 
 /**
+ * Task performing curl operations
+ *
+ * @param cls plugin as closure
+ * @param tc gnunet scheduler task context
+ */
+static void
+client_run (void *cls,
+            const struct GNUNET_SCHEDULER_TaskContext *tc);
+
+
+/**
  * Function setting up file descriptors and scheduling task to run
  *
- * @param  plugin plugin as closure
+ * @param plugin the plugin as closure
  * @param now schedule task in 1ms, regardless of what curl may say
  * @return #GNUNET_SYSERR for hard failure, #GNUNET_OK for ok
  */
 static int
 client_schedule (struct HTTP_Client_Plugin *plugin,
-                 int now);
+                 int now)
+{
+  fd_set rs;
+  fd_set ws;
+  fd_set es;
+  int max;
+  struct GNUNET_NETWORK_FDSet *grs;
+  struct GNUNET_NETWORK_FDSet *gws;
+  long to;
+  CURLMcode mret;
+  struct GNUNET_TIME_Relative timeout;
 
+  /* Cancel previous scheduled task */
+  if (plugin->client_perform_task != GNUNET_SCHEDULER_NO_TASK)
+  {
+    GNUNET_SCHEDULER_cancel (plugin->client_perform_task);
+    plugin->client_perform_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  max = -1;
+  FD_ZERO (&rs);
+  FD_ZERO (&ws);
+  FD_ZERO (&es);
+  mret = curl_multi_fdset (plugin->curl_multi_handle, &rs, &ws, &es, &max);
+  if (mret != CURLM_OK)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("%s failed at %s:%d: `%s'\n"),
+                "curl_multi_fdset", __FILE__, __LINE__,
+                curl_multi_strerror (mret));
+    return GNUNET_SYSERR;
+  }
+  mret = curl_multi_timeout (plugin->curl_multi_handle, &to);
+  if (to == -1)
+    timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1);
+  else
+    timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, to);
+  if (now == GNUNET_YES)
+    timeout = GNUNET_TIME_UNIT_MILLISECONDS;
 
-/**
- * Connect a HTTP put connection
- *
- * @param s the session to connect
- * @return #GNUNET_SYSERR for hard failure, #GNUNET_OK for success
- */
-static int
-client_connect_put (struct Session *s);
+  if (mret != CURLM_OK)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("%s failed at %s:%d: `%s'\n"),
+                "curl_multi_timeout", __FILE__, __LINE__,
+                curl_multi_strerror (mret));
+    return GNUNET_SYSERR;
+  }
+
+  grs = GNUNET_NETWORK_fdset_create ();
+  gws = GNUNET_NETWORK_fdset_create ();
+  GNUNET_NETWORK_fdset_copy_native (grs, &rs, max + 1);
+  GNUNET_NETWORK_fdset_copy_native (gws, &ws, max + 1);
+
+  plugin->client_perform_task =
+      GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
+                                   timeout, grs, gws,
+                                   &client_run, plugin);
+  GNUNET_NETWORK_fdset_destroy (gws);
+  GNUNET_NETWORK_fdset_destroy (grs);
+  return GNUNET_OK;
+}
 
 
 /**
@@ -499,6 +623,16 @@ client_log (CURL *curl,
        text);
   return 0;
 }
+
+
+/**
+ * Connect a HTTP put connection
+ *
+ * @param s the session to connect
+ * @return #GNUNET_SYSERR for hard failure, #GNUNET_OK for success
+ */
+static int
+client_connect_put (struct Session *s);
 
 
 /**
@@ -601,77 +735,13 @@ http_client_plugin_send (void *cls,
          "Session %p: Reconnecting PUT connection\n",
          s);
     s->put_tmp_disconnected = GNUNET_NO;
-    GNUNET_break (s->client_put == NULL);
+    GNUNET_break (NULL == s->client_put);
     if (GNUNET_SYSERR == client_connect_put (s))
       return GNUNET_SYSERR;
   }
   client_schedule (s->plugin,
                    GNUNET_YES);
   return msgbuf_size;
-}
-
-
-/**
- * Delete session @a s.
- *
- * @param s the session to delete
- */
-static void
-client_delete_session (struct Session *s)
-{
-  struct HTTP_Client_Plugin *plugin = s->plugin;
-  struct HTTP_Message *pos;
-  struct HTTP_Message *next;
-
-  if (GNUNET_SCHEDULER_NO_TASK != s->timeout_task)
-  {
-    GNUNET_SCHEDULER_cancel (s->timeout_task);
-    s->timeout_task = GNUNET_SCHEDULER_NO_TASK;
-    s->timeout = GNUNET_TIME_UNIT_ZERO_ABS;
-  }
-  if (GNUNET_SCHEDULER_NO_TASK != s->put_disconnect_task)
-  {
-    GNUNET_SCHEDULER_cancel (s->put_disconnect_task);
-    s->put_disconnect_task = GNUNET_SCHEDULER_NO_TASK;
-  }
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONTAINER_multipeermap_remove (plugin->sessions,
-                                                       &s->target,
-                                                       s));
-
-  next = s->msg_head;
-  while (NULL != (pos = next))
-  {
-    next = pos->next;
-    GNUNET_CONTAINER_DLL_remove (s->msg_head,
-                                 s->msg_tail,
-                                 pos);
-    GNUNET_assert (0 < s->msgs_in_queue);
-    s->msgs_in_queue--;
-    GNUNET_assert (pos->size <= s->bytes_in_queue);
-    s->bytes_in_queue -= pos->size;
-    if (NULL != pos->transmit_cont)
-      pos->transmit_cont (pos->transmit_cont_cls,
-                          &s->target,
-                          GNUNET_SYSERR,
-                          pos->size,
-                          pos->pos + s->overhead);
-    s->overhead = 0;
-    GNUNET_free (pos);
-  }
-  GNUNET_assert (0 == s->msgs_in_queue);
-  GNUNET_assert (0 == s->bytes_in_queue);
-  notify_session_monitor (plugin,
-                          s,
-                          GNUNET_TRANSPORT_SS_DOWN);
-  if (NULL != s->msg_tk)
-  {
-    GNUNET_SERVER_mst_destroy (s->msg_tk);
-    s->msg_tk = NULL;
-  }
-  GNUNET_HELLO_address_free (s->address);
-  GNUNET_free (s->url);
-  GNUNET_free (s);
 }
 
 
@@ -701,7 +771,8 @@ http_client_plugin_session_disconnect (void *cls,
          GNUNET_i2s (&s->target));
 
     /* remove curl handle from multi handle */
-    mret = curl_multi_remove_handle (plugin->curl_multi_handle, s->client_put);
+    mret = curl_multi_remove_handle (plugin->curl_multi_handle,
+                                     s->client_put);
     if (mret != CURLM_OK)
     {
       /* clean up easy handle, handle is now invalid and free'd */
@@ -1203,88 +1274,6 @@ client_receive (void *stream,
  * Task performing curl operations
  *
  * @param cls plugin as closure
- * @param tc gnunet scheduler task context
- */
-static void
-client_run (void *cls,
-            const struct GNUNET_SCHEDULER_TaskContext *tc);
-
-
-/**
- * Function setting up file descriptors and scheduling task to run
- *
- * @param plugin the plugin as closure
- * @param now schedule task in 1ms, regardless of what curl may say
- * @return #GNUNET_SYSERR for hard failure, #GNUNET_OK for ok
- */
-static int
-client_schedule (struct HTTP_Client_Plugin *plugin,
-                 int now)
-{
-  fd_set rs;
-  fd_set ws;
-  fd_set es;
-  int max;
-  struct GNUNET_NETWORK_FDSet *grs;
-  struct GNUNET_NETWORK_FDSet *gws;
-  long to;
-  CURLMcode mret;
-  struct GNUNET_TIME_Relative timeout;
-
-  /* Cancel previous scheduled task */
-  if (plugin->client_perform_task != GNUNET_SCHEDULER_NO_TASK)
-  {
-    GNUNET_SCHEDULER_cancel (plugin->client_perform_task);
-    plugin->client_perform_task = GNUNET_SCHEDULER_NO_TASK;
-  }
-  max = -1;
-  FD_ZERO (&rs);
-  FD_ZERO (&ws);
-  FD_ZERO (&es);
-  mret = curl_multi_fdset (plugin->curl_multi_handle, &rs, &ws, &es, &max);
-  if (mret != CURLM_OK)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("%s failed at %s:%d: `%s'\n"),
-                "curl_multi_fdset", __FILE__, __LINE__,
-                curl_multi_strerror (mret));
-    return GNUNET_SYSERR;
-  }
-  mret = curl_multi_timeout (plugin->curl_multi_handle, &to);
-  if (to == -1)
-    timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1);
-  else
-    timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, to);
-  if (now == GNUNET_YES)
-    timeout = GNUNET_TIME_UNIT_MILLISECONDS;
-
-  if (mret != CURLM_OK)
-  {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("%s failed at %s:%d: `%s'\n"),
-                "curl_multi_timeout", __FILE__, __LINE__,
-                curl_multi_strerror (mret));
-    return GNUNET_SYSERR;
-  }
-
-  grs = GNUNET_NETWORK_fdset_create ();
-  gws = GNUNET_NETWORK_fdset_create ();
-  GNUNET_NETWORK_fdset_copy_native (grs, &rs, max + 1);
-  GNUNET_NETWORK_fdset_copy_native (gws, &ws, max + 1);
-
-  plugin->client_perform_task =
-      GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
-                                   timeout, grs, gws,
-                                   &client_run, plugin);
-  GNUNET_NETWORK_fdset_destroy (gws);
-  GNUNET_NETWORK_fdset_destroy (grs);
-  return GNUNET_OK;
-}
-
-
-/**
- * Task performing curl operations
- *
- * @param cls plugin as closure
  * @param tc scheduler task context
  */
 static void
@@ -1369,12 +1358,12 @@ client_run (void *cls,
              */
             if (GNUNET_YES == s->put_reconnect_required)
             {
-                s->put_reconnect_required = GNUNET_NO;
-                if (GNUNET_SYSERR == client_connect_put(s))
-                {
-                    GNUNET_break (s->client_put == NULL);
-                    GNUNET_break (s->put_tmp_disconnected == GNUNET_NO);
-                }
+              s->put_reconnect_required = GNUNET_NO;
+              if (GNUNET_SYSERR == client_connect_put (s))
+              {
+                GNUNET_break (s->client_put == NULL);
+                GNUNET_break (s->put_tmp_disconnected == GNUNET_NO);
+              }
             }
         }
         if (easy_h == s->client_get)
@@ -2169,7 +2158,6 @@ http_client_plugin_setup_monitor (void *cls,
     sic (sic_cls, NULL, NULL);
   }
 }
-
 
 
 /**
