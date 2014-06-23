@@ -168,8 +168,8 @@ start_cb(struct PeerContext *p, void *cls)
 {
 
   started++;
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Peer %u (`%s') started\n", p->no,
-      GNUNET_i2s (&p->id));
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Peer %u (`%s') started\n", p->no,
+      GNUNET_i2s_full (&p->id));
 
   if (started != 2)
     return;
@@ -184,6 +184,11 @@ start_cb(struct PeerContext *p, void *cls)
   cc = GNUNET_TRANSPORT_TESTING_connect_peers (tth, p1, p2, &testing_connect_cb,
       NULL );
 
+}
+
+static int check_bl_config (char *src, char *dest)
+{
+  return GNUNET_OK;
 }
 
 static void
