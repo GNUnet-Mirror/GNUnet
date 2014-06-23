@@ -311,7 +311,6 @@ GDS_DATACACHE_handle_get (const struct GNUNET_HashCode * key,
   if (next_hop != NULL)
   {
     memcpy (&(ctx.next_hop), next_hop, sizeof (struct GNUNET_PeerIdentity));
-    GNUNET_free (next_hop);
   }
   unsigned int i = 0;
   ctx.head = NULL;

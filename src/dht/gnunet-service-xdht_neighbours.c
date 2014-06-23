@@ -75,6 +75,13 @@
  *    where a peer changes the value as we handle that case everywhere. s
  */
 /**
+ 1. friend trails count in case it is finger, routing table trail 
+ 2. select_closest_peer in compare and update predecessor and successor,
+ update_predecessor.
+ */
+
+
+/**
  * Maximum possible fingers (including predecessor) of a peer 
  */
 #define MAX_FINGERS 65
@@ -139,7 +146,7 @@ GNUNET_NETWORK_STRUCT_BEGIN
 struct PeerPutMessage
 {
   /**
-   * Type: #GNUNET_MESSAGE_TYPE_DHT_P2P_PUT
+   * Type: #GNUNET_MESSAGE_TYPE_XDHT_P2P_PUT
    */
   struct GNUNET_MessageHeader header;
 
@@ -203,7 +210,7 @@ struct PeerPutMessage
 struct PeerGetMessage
 {
   /**
-   * Type: #GNUNET_MESSAGE_TYPE_DHT_P2P_GET
+   * Type: #GNUNET_MESSAGE_TYPE_XDHT_P2P_GET
    */
   struct GNUNET_MessageHeader header;
   
@@ -260,7 +267,7 @@ struct PeerGetMessage
 struct PeerGetResultMessage
 {
   /**
-   * Type: #GNUNET_MESSAGE_TYPE_DHT_P2P_GET_RESULT
+   * Type: #GNUNET_MESSAGE_TYPE_XDHT_P2P_GET_RESULT
    */
   struct GNUNET_MessageHeader header;
 
@@ -309,7 +316,7 @@ struct PeerGetResultMessage
 struct PeerTrailSetupMessage
 {
   /**
-   * Type: #GNUNET_MESSAGE_TYPE_DHT_P2P_TRAIL_SETUP
+   * Type: #GNUNET_MESSAGE_TYPE_XDHT_P2P_TRAIL_SETUP
    */
   struct GNUNET_MessageHeader header;
   
@@ -359,7 +366,7 @@ struct PeerTrailSetupResultMessage
 {
 
   /**
-   * Type: #GNUNET_MESSAGE_TYPE_DHT_P2P_TRAIL_SETUP_RESULT
+   * Type: #GNUNET_MESSAGE_TYPE_XDHT_P2P_TRAIL_SETUP_RESULT
    */
   struct GNUNET_MessageHeader header;
 
@@ -401,7 +408,7 @@ struct PeerTrailSetupResultMessage
 struct PeerVerifySuccessorMessage
 {
   /**
-   * Type: #GNUNET_MESSAGE_TYPE_DHT_P2P_VERIFY_SUCCESSOR
+   * Type: #GNUNET_MESSAGE_TYPE_XDHT_P2P_VERIFY_SUCCESSOR
    */
   struct GNUNET_MessageHeader header;
 
@@ -432,7 +439,7 @@ struct PeerVerifySuccessorMessage
 struct PeerVerifySuccessorResultMessage
 {
   /**
-   * Type: #GNUNET_MESSAGE_TYPE_DHT_P2P_VERIFY_SUCCESSOR_RESULT
+   * Type: #GNUNET_MESSAGE_TYPE_XDHT_P2P_VERIFY_SUCCESSOR_RESULT
    */
   struct GNUNET_MessageHeader header;
 
@@ -475,7 +482,7 @@ struct PeerVerifySuccessorResultMessage
 struct PeerNotifyNewSuccessorMessage
 {
   /**
-   * Type: #GNUNET_MESSAGE_TYPE_DHT_P2P_NOTIFY_NEW_SUCCESSOR
+   * Type: #GNUNET_MESSAGE_TYPE_XDHT_P2P_NOTIFY_NEW_SUCCESSOR
    */
   struct GNUNET_MessageHeader header;
 
@@ -507,7 +514,7 @@ struct PeerNotifyNewSuccessorMessage
 struct PeerTrailCompressionMessage
 {
   /**
-   * Type: #GNUNET_MESSAGE_TYPE_DHT_P2P_TRAIL_COMPRESSION
+   * Type: #GNUNET_MESSAGE_TYPE_XDHT_P2P_TRAIL_COMPRESSION
    */
   struct GNUNET_MessageHeader header;
 
@@ -536,7 +543,7 @@ struct PeerTrailCompressionMessage
 struct PeerTrailTearDownMessage
 {
   /**
-   * Type: #GNUNET_MESSAGE_TYPE_DHT_P2P_TRAIL_TEARDOWN
+   * Type: #GNUNET_MESSAGE_TYPE_XDHT_P2P_TRAIL_TEARDOWN
    */
   struct GNUNET_MessageHeader header;
 
@@ -558,7 +565,7 @@ struct PeerTrailTearDownMessage
 struct PeerTrailRejectionMessage
 {
   /**
-   * Type: #GNUNET_MESSAGE_TYPE_DHT_P2P_TRAIL_SETUP_REJECTION
+   * Type: #GNUNET_MESSAGE_TYPE_XDHT_P2P_TRAIL_SETUP_REJECTION
    */
   struct GNUNET_MessageHeader header;
 
@@ -604,7 +611,7 @@ struct PeerTrailRejectionMessage
 struct PeerAddTrailMessage
 {
   /**
-   * Type: #GNUNET_MESSAGE_TYPE_DHT_P2P_ADD_TRAIL
+   * Type: #GNUNET_MESSAGE_TYPE_XDHT_P2P_ADD_TRAIL
    */
   struct GNUNET_MessageHeader header;
 
@@ -1056,7 +1063,7 @@ GDS_NEIGHBOURS_send_trail_setup (struct GNUNET_PeerIdentity source_peer,
   tsm = (struct PeerTrailSetupMessage *) &pending[1];
   pending->msg = &tsm->header;
   tsm->header.size = htons (msize);
-  tsm->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_P2P_TRAIL_SETUP);
+  tsm->header.type = htons (GNUNET_MESSAGE_TYPE_XDHT_P2P_TRAIL_SETUP);
   tsm->final_destination_finger_value = GNUNET_htonll (ultimate_destination_finger_value);
   tsm->source_peer = source_peer;
   tsm->best_known_destination = best_known_destination;
@@ -1130,7 +1137,7 @@ GDS_NEIGHBOURS_send_trail_setup_result (struct GNUNET_PeerIdentity querying_peer
   tsrm = (struct PeerTrailSetupResultMessage *) &pending[1];
   pending->msg = &tsrm->header;
   tsrm->header.size = htons (msize);
-  tsrm->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_P2P_TRAIL_SETUP_RESULT);
+  tsrm->header.type = htons (GNUNET_MESSAGE_TYPE_XDHT_P2P_TRAIL_SETUP_RESULT);
   tsrm->querying_peer = querying_peer;
   tsrm->finger_identity = finger;
   tsrm->is_predecessor = htonl (is_predecessor);
@@ -1201,7 +1208,7 @@ GDS_NEIGHBOURS_send_trail_rejection (struct GNUNET_PeerIdentity source_peer,
   trm = (struct PeerTrailRejectionMessage *)&pending[1];
   pending->msg = &trm->header;
   trm->header.size = htons (msize);
-  trm->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_P2P_TRAIL_SETUP_REJECTION);
+  trm->header.type = htons (GNUNET_MESSAGE_TYPE_XDHT_P2P_TRAIL_SETUP_REJECTION);
   trm->source_peer = source_peer;
   trm->congested_peer = congested_peer;
   trm->congestion_time = congestion_timeout;
@@ -1265,7 +1272,7 @@ GDS_NEIGHBOURS_send_verify_successor_message (struct GNUNET_PeerIdentity source_
   vsm = (struct PeerVerifySuccessorMessage *) &pending[1];
   pending->msg = &vsm->header;
   vsm->header.size = htons (msize);
-  vsm->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_P2P_VERIFY_SUCCESSOR);
+  vsm->header.type = htons (GNUNET_MESSAGE_TYPE_XDHT_P2P_VERIFY_SUCCESSOR);
   vsm->source_peer = source_peer;
   vsm->successor = successor;
   vsm->trail_id = trail_id;
@@ -1326,7 +1333,7 @@ GDS_NEIGHBOURS_send_trail_teardown (struct GNUNET_HashCode trail_id,
   ttdm = (struct PeerTrailTearDownMessage *) &pending[1];
   pending->msg = &ttdm->header;
   ttdm->header.size = htons (msize);
-  ttdm->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_P2P_TRAIL_TEARDOWN);
+  ttdm->header.type = htons (GNUNET_MESSAGE_TYPE_XDHT_P2P_TRAIL_TEARDOWN);
   ttdm->trail_id = trail_id;
   ttdm->trail_direction = htonl (trail_direction);
 
@@ -1389,7 +1396,7 @@ GDS_NEIGHBOURS_send_verify_successor_result (struct GNUNET_PeerIdentity querying
   vsmr = (struct PeerVerifySuccessorResultMessage *) &pending[1];
   pending->msg = &vsmr->header;
   vsmr->header.size = htons (msize);
-  vsmr->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_P2P_VERIFY_SUCCESSOR_RESULT);
+  vsmr->header.type = htons (GNUNET_MESSAGE_TYPE_XDHT_P2P_VERIFY_SUCCESSOR_RESULT);
   vsmr->querying_peer = querying_peer;
   vsmr->current_successor = current_successor;
   vsmr->probable_successor = probable_successor;
@@ -1455,7 +1462,7 @@ GDS_NEIGHBOURS_send_notify_new_successor (struct GNUNET_PeerIdentity source_peer
   nsm = (struct PeerNotifyNewSuccessorMessage *) &pending[1];
   pending->msg = &nsm->header;
   nsm->header.size = htons (msize);
-  nsm->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_P2P_NOTIFY_NEW_SUCCESSOR);
+  nsm->header.type = htons (GNUNET_MESSAGE_TYPE_XDHT_P2P_NOTIFY_NEW_SUCCESSOR);
   nsm->new_successor = successor;
   nsm->source_peer = source_peer;
   nsm->trail_id = succesor_trail_id;
@@ -1519,7 +1526,7 @@ GDS_NEIGHBOURS_send_add_trail (struct GNUNET_PeerIdentity source_peer,
   adm = (struct PeerAddTrailMessage *) &pending[1];
   pending->msg = &adm->header;
   adm->header.size = htons (msize);
-  adm->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_P2P_ADD_TRAIL);
+  adm->header.type = htons (GNUNET_MESSAGE_TYPE_XDHT_P2P_ADD_TRAIL);
   adm->source_peer = source_peer;
   adm->destination_peer = destination_peer;
   adm->trail_id = trail_id;
@@ -1573,7 +1580,7 @@ GDS_NEIGHBOURS_send_trail_compression (struct GNUNET_PeerIdentity source_peer,
   tcm = (struct PeerTrailCompressionMessage *) &pending[1];
   pending->msg = &tcm->header;
   tcm->header.size = htons (msize);
-  tcm->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_P2P_TRAIL_COMPRESSION);
+  tcm->header.type = htons (GNUNET_MESSAGE_TYPE_XDHT_P2P_TRAIL_COMPRESSION);
   tcm->source_peer = source_peer;
   tcm->new_first_friend = first_friend;
   tcm->trail_id = trail_id;
@@ -2134,7 +2141,7 @@ GDS_NEIGHBOURS_send_put (const struct GNUNET_HashCode *key,
   ppm = (struct PeerPutMessage *) &pending[1];
   pending->msg = &ppm->header;
   ppm->header.size = htons (msize);
-  ppm->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_P2P_PUT);
+  ppm->header.type = htons (GNUNET_MESSAGE_TYPE_XDHT_P2P_PUT);
   ppm->options = htonl (options);
   ppm->block_type = htonl (block_type);
   ppm->hop_count = htonl (hop_count + 1);
@@ -2252,7 +2259,7 @@ GDS_NEIGHBOURS_send_get (const struct GNUNET_HashCode *key,
   pgm = (struct PeerGetMessage *) &pending[1];
   pending->msg = &pgm->header;
   pgm->header.size = htons (msize);
-  pgm->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_P2P_GET);
+  pgm->header.type = htons (GNUNET_MESSAGE_TYPE_XDHT_P2P_GET);
   pgm->get_path_length = htonl (get_path_length);
   pgm->best_known_destination = local_best_known_dest;
   
@@ -2339,7 +2346,7 @@ GDS_NEIGHBOURS_send_get_result (const struct GNUNET_HashCode *key,
   get_result = (struct PeerGetResultMessage *)&pending[1];
   pending->msg = &get_result->header;
   get_result->header.size = htons (msize);
-  get_result->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_P2P_GET_RESULT);
+  get_result->header.type = htons (GNUNET_MESSAGE_TYPE_XDHT_P2P_GET_RESULT);
   get_result->key = *key;
   /* FIXME: check if you are passing the correct querying_peer as described in
    the get_result documentation. */
@@ -2693,12 +2700,12 @@ send_trail_teardown (struct FingerInfo *finger,
    then remove finger. */
   /* We should decerement the friend trail count here. */
   struct FriendInfo *friend;
-  
+ 
   GNUNET_assert (NULL != (friend = 
-          GNUNET_CONTAINER_multipeermap_get (friend_peermap,
-                                             &trail->trail_head->peer)));
+                 GNUNET_CONTAINER_multipeermap_get (friend_peermap,
+                                                    &trail->trail_head->peer)));
   
-  friend->trails_count--;
+  //friend->trails_count--;
   GDS_NEIGHBOURS_send_trail_teardown (trail->trail_id,
                                       GDS_ROUTING_SRC_TO_DEST,
                                       &trail->trail_head->peer);
@@ -3304,7 +3311,7 @@ finger_table_add (struct GNUNET_PeerIdentity finger_identity,
     add_new_finger (finger_identity, updated_trail, updated_finger_trail_length,
                     finger_trail_id, finger_table_index);
     update_current_search_finger_index (finger_identity, finger_table_index);
-    GNUNET_free (updated_trail);
+    GNUNET_free_non_null (updated_trail);
     return;
   }
   
@@ -3330,7 +3337,7 @@ finger_table_add (struct GNUNET_PeerIdentity finger_identity,
     if (0 == GNUNET_CRYPTO_cmp_peer_identity (&(existing_finger->finger_identity),
                                               &my_identity))
     {
-      GNUNET_free (updated_trail);
+      GNUNET_free_non_null (updated_trail);
       return;
     }
     /* If the existing finger is not a friend. */
@@ -3348,7 +3355,7 @@ finger_table_add (struct GNUNET_PeerIdentity finger_identity,
     }
   }
   update_current_search_finger_index (finger_identity, finger_table_index);
-  GNUNET_free (updated_trail);
+  GNUNET_free_non_null (updated_trail);
   return;
 }
 
@@ -3502,6 +3509,7 @@ handle_dht_p2p_put (void *cls, const struct GNUNET_PeerIdentity *peer,
     GDS_DATACACHE_handle_put (GNUNET_TIME_absolute_ntoh (put->expiration_time),
                               &(put->key),putlen, pp, ntohl (put->block_type), 
                               payload_size, payload);
+    GNUNET_free_non_null (next_hop);
     return GNUNET_YES;
   }
   else
@@ -3855,8 +3863,7 @@ handle_dht_p2p_trail_setup (void *cls, const struct GNUNET_PeerIdentity *peer,
                                              &my_identity)))
   {
     /* If I was not the source of this message for which now I am destination */
-    if ((0 != GNUNET_CRYPTO_cmp_peer_identity (&source, &my_identity)) ||
-        (trail_length > 0))
+    if (0 != GNUNET_CRYPTO_cmp_peer_identity (&source, &my_identity))
     {
       GDS_ROUTING_add (trail_id, *peer, my_identity);
     }
@@ -4991,6 +4998,7 @@ handle_dht_p2p_trail_teardown (void *cls, const struct GNUNET_PeerIdentity *peer
   struct GNUNET_PeerIdentity *next_hop;
   size_t msize;
   msize = ntohs (message->size);
+  
   /* Here we pass only the trail id. */
   if (msize != sizeof (struct PeerTrailTearDownMessage))
   {
@@ -5136,7 +5144,7 @@ remove_matching_trails (const struct GNUNET_PeerIdentity *disconnected_friend,
   /* Number of trails with disconnected_friend as the first hop in the trail
    * to reach from me to remove_finger, NOT including endpoints. */
   matching_trails_count = 0;
-
+  
   /* Iterate over all the trails of finger. */
   for (i = 0; i < remove_finger->trails_count; i++)
   {
@@ -5329,6 +5337,7 @@ core_init (void *cls,
    FPRINTF (stderr,_("\nSUPU %s, %s, %d, my_identity = %s"),
    __FILE__, __func__,__LINE__, GNUNET_i2s (&my_identity));
 #endif
+
 }
 
 
@@ -5360,20 +5369,20 @@ int
 GDS_NEIGHBOURS_init (void)
 {
   static struct GNUNET_CORE_MessageHandler core_handlers[] = {
-    {&handle_dht_p2p_put, GNUNET_MESSAGE_TYPE_DHT_P2P_PUT, 0},
-    {&handle_dht_p2p_get, GNUNET_MESSAGE_TYPE_DHT_P2P_GET, 0},
-    {&handle_dht_p2p_get_result, GNUNET_MESSAGE_TYPE_DHT_P2P_GET_RESULT, 0},
-    {&handle_dht_p2p_trail_setup, GNUNET_MESSAGE_TYPE_DHT_P2P_TRAIL_SETUP, 0},
-    {&handle_dht_p2p_trail_setup_result, GNUNET_MESSAGE_TYPE_DHT_P2P_TRAIL_SETUP_RESULT, 0},
-    {&handle_dht_p2p_verify_successor, GNUNET_MESSAGE_TYPE_DHT_P2P_VERIFY_SUCCESSOR, 0},
-    {&handle_dht_p2p_verify_successor_result, GNUNET_MESSAGE_TYPE_DHT_P2P_VERIFY_SUCCESSOR_RESULT, 0},
-    {&handle_dht_p2p_notify_new_successor, GNUNET_MESSAGE_TYPE_DHT_P2P_NOTIFY_NEW_SUCCESSOR, 0},
-    {&handle_dht_p2p_trail_setup_rejection, GNUNET_MESSAGE_TYPE_DHT_P2P_TRAIL_SETUP_REJECTION, 0},
-    {&handle_dht_p2p_trail_compression, GNUNET_MESSAGE_TYPE_DHT_P2P_TRAIL_COMPRESSION, 
+    {&handle_dht_p2p_put, GNUNET_MESSAGE_TYPE_XDHT_P2P_PUT, 0},
+    {&handle_dht_p2p_get, GNUNET_MESSAGE_TYPE_XDHT_P2P_GET, 0},
+    {&handle_dht_p2p_get_result, GNUNET_MESSAGE_TYPE_XDHT_P2P_GET_RESULT, 0},
+    {&handle_dht_p2p_trail_setup, GNUNET_MESSAGE_TYPE_XDHT_P2P_TRAIL_SETUP, 0},
+    {&handle_dht_p2p_trail_setup_result, GNUNET_MESSAGE_TYPE_XDHT_P2P_TRAIL_SETUP_RESULT, 0},
+    {&handle_dht_p2p_verify_successor, GNUNET_MESSAGE_TYPE_XDHT_P2P_VERIFY_SUCCESSOR, 0},
+    {&handle_dht_p2p_verify_successor_result, GNUNET_MESSAGE_TYPE_XDHT_P2P_VERIFY_SUCCESSOR_RESULT, 0},
+    {&handle_dht_p2p_notify_new_successor, GNUNET_MESSAGE_TYPE_XDHT_P2P_NOTIFY_NEW_SUCCESSOR, 0},
+    {&handle_dht_p2p_trail_setup_rejection, GNUNET_MESSAGE_TYPE_XDHT_P2P_TRAIL_SETUP_REJECTION, 0},
+    {&handle_dht_p2p_trail_compression, GNUNET_MESSAGE_TYPE_XDHT_P2P_TRAIL_COMPRESSION, 
                                         sizeof (struct PeerTrailCompressionMessage)},
-    {&handle_dht_p2p_trail_teardown, GNUNET_MESSAGE_TYPE_DHT_P2P_TRAIL_TEARDOWN, 
+    {&handle_dht_p2p_trail_teardown, GNUNET_MESSAGE_TYPE_XDHT_P2P_TRAIL_TEARDOWN, 
                                      sizeof (struct PeerTrailTearDownMessage)},
-    {&handle_dht_p2p_add_trail, GNUNET_MESSAGE_TYPE_DHT_P2P_ADD_TRAIL, 0},
+    {&handle_dht_p2p_add_trail, GNUNET_MESSAGE_TYPE_XDHT_P2P_ADD_TRAIL, 0},
     {NULL, 0, 0}
   };
 

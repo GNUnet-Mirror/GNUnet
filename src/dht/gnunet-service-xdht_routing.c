@@ -166,17 +166,24 @@ static int remove_matching_trails (void *cls,
                                    const struct GNUNET_HashCode *key,
                                    void *value)
 {
-  struct RoutingTrail *remove_trail = cls;
-  struct GNUNET_PeerIdentity *disconnected_peer = value;
+  struct RoutingTrail *remove_trail = value;
+  struct GNUNET_PeerIdentity *disconnected_peer = cls;
+  struct GNUNET_HashCode trail_id = *key;
+  struct GNUNET_PeerIdentity my_identity;
   
   /* If disconnected_peer is next_hop, then send a trail teardown message through
    * prev_hop in direction from destination to source. */
   if (0 == GNUNET_CRYPTO_cmp_peer_identity (&remove_trail->next_hop, 
                                             disconnected_peer)) 
   {
-    GDS_NEIGHBOURS_send_trail_teardown (remove_trail->trail_id, 
-                                        GDS_ROUTING_DEST_TO_SRC,
-                                        &remove_trail->prev_hop);
+    my_identity = GDS_NEIGHBOURS_get_my_id ();
+    if (0 != GNUNET_CRYPTO_cmp_peer_identity (&my_identity, 
+                                              &remove_trail->prev_hop))
+    {
+      GDS_NEIGHBOURS_send_trail_teardown (trail_id, 
+                                          GDS_ROUTING_DEST_TO_SRC,
+                                          &remove_trail->prev_hop);
+    }
   }
   
   /* If disconnected_peer is prev_hop, then send a trail teardown through
@@ -184,14 +191,19 @@ static int remove_matching_trails (void *cls,
   if (0 == GNUNET_CRYPTO_cmp_peer_identity (&remove_trail->prev_hop, 
                                             disconnected_peer))
   {
-    GDS_NEIGHBOURS_send_trail_teardown (remove_trail->trail_id, 
-                                        GDS_ROUTING_SRC_TO_DEST,
-                                        &remove_trail->next_hop);
+    my_identity = GDS_NEIGHBOURS_get_my_id ();
+    if (0 != GNUNET_CRYPTO_cmp_peer_identity (&my_identity, 
+                                              &remove_trail->next_hop))
+    {
+      GDS_NEIGHBOURS_send_trail_teardown (trail_id, 
+                                          GDS_ROUTING_SRC_TO_DEST,
+                                          &remove_trail->next_hop);
+    }
   }
   
   GNUNET_assert (GNUNET_YES ==
                    GNUNET_CONTAINER_multihashmap_remove (routing_table,
-                                                         &remove_trail->trail_id,
+                                                         &trail_id,
                                                          remove_trail));
   GNUNET_free (remove_trail);
   return GNUNET_YES;
@@ -239,6 +251,7 @@ GDS_ROUTING_test_print (void)
 void
 GDS_ROUTING_remove_trail_by_peer (const struct GNUNET_PeerIdentity *peer)
 {
+  GNUNET_assert (GNUNET_CONTAINER_multihashmap_size(routing_table) > 0);
   GNUNET_CONTAINER_multihashmap_iterate (routing_table, &remove_matching_trails,
                                          (void *)peer);
 }
@@ -264,6 +277,7 @@ GDS_ROUTING_add (struct GNUNET_HashCode new_trail_id,
   new_entry->trail_id = new_trail_id;
   new_entry->next_hop = next_hop;
   new_entry->prev_hop = prev_hop;
+ 
   return GNUNET_CONTAINER_multihashmap_put (routing_table,
                                             &new_trail_id, new_entry,
                                             GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);

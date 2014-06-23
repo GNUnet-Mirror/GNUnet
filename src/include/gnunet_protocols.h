@@ -2499,64 +2499,74 @@ extern "C"
 /**
  * Trail setup request is received by a peer.
  */
-#define GNUNET_MESSAGE_TYPE_DHT_P2P_TRAIL_SETUP 880
+#define GNUNET_MESSAGE_TYPE_XDHT_P2P_TRAIL_SETUP 880
 
 /**
  * Trail to a particular peer is returned to this peer.
  */
-#define GNUNET_MESSAGE_TYPE_DHT_P2P_TRAIL_SETUP_RESULT 881
+#define GNUNET_MESSAGE_TYPE_XDHT_P2P_TRAIL_SETUP_RESULT 881
 
 /**
  * Verify if your immediate successor is still your immediate successor.
  */
-#define GNUNET_MESSAGE_TYPE_DHT_P2P_VERIFY_SUCCESSOR 882
+#define GNUNET_MESSAGE_TYPE_XDHT_P2P_VERIFY_SUCCESSOR 882
 
 /**
  * Notify your new immediate successor that you are its new predecessor.
  */
-#define GNUNET_MESSAGE_TYPE_DHT_P2P_NOTIFY_NEW_SUCCESSOR 883
+#define GNUNET_MESSAGE_TYPE_XDHT_P2P_NOTIFY_NEW_SUCCESSOR 883
 
 /**
  * Message which contains the immediate predecessor of requested successor
  */
-#define GNUNET_MESSAGE_TYPE_DHT_P2P_VERIFY_SUCCESSOR_RESULT 884
+#define GNUNET_MESSAGE_TYPE_XDHT_P2P_VERIFY_SUCCESSOR_RESULT 884
 
 /**
  * Message which contains the get result.
  */
-#define GNUNET_MESSAGE_TYPE_DHT_P2P_GET_RESULT 885
+#define GNUNET_MESSAGE_TYPE_XDHT_P2P_GET_RESULT 885
 
 /**
  * Trail Rejection Message.
  */
-#define GNUNET_MESSAGE_TYPE_DHT_P2P_TRAIL_SETUP_REJECTION 886
+#define GNUNET_MESSAGE_TYPE_XDHT_P2P_TRAIL_SETUP_REJECTION 886
 
 /**
  * Trail Tear down Message.
  */
-#define GNUNET_MESSAGE_TYPE_DHT_P2P_TRAIL_TEARDOWN 887
+#define GNUNET_MESSAGE_TYPE_XDHT_P2P_TRAIL_TEARDOWN 887
 
 /**
  * Routing table add message.
  */
-#define GNUNET_MESSAGE_TYPE_DHT_P2P_ADD_TRAIL 888
+#define GNUNET_MESSAGE_TYPE_XDHT_P2P_ADD_TRAIL 888
 
 /**
  * Trail compression message.
  */
-#define GNUNET_MESSAGE_TYPE_DHT_P2P_TRAIL_COMPRESSION 889
+#define GNUNET_MESSAGE_TYPE_XDHT_P2P_TRAIL_COMPRESSION 889
+
+/**
+ * Client wants to store item in DHT.
+ */
+#define GNUNET_MESSAGE_TYPE_XDHT_P2P_PUT 890
+
+/**
+ * Peer tries to find data in DHT.
+ */
+#define GNUNET_MESSAGE_TYPE_XDHT_P2P_GET 891
 
 #if ENABLE_MALICIOUS
 /**
  * Turn X-VINE DHT service malicious
  */
-#define GNUNET_MESSAGE_TYPE_DHT_ACT_MALICIOUS 890
+#define GNUNET_MESSAGE_TYPE_DHT_ACT_MALICIOUS 892
 #endif
 
 /*******************************************************************************/
 
 /**
- * Next available: 900
+ * Next available: 902
  */
 
 /**
