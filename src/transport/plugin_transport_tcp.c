@@ -1525,9 +1525,11 @@ tcp_plugin_get_session (void *cls,
           session);
       return session;
     }
-    LOG(GNUNET_ERROR_TYPE_DEBUG,
-        "Existing sessions did not match address `%s' or peer `%s'\n",
-        tcp_plugin_address_to_string(NULL, address->address, address->address_length),
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Existing sessions did not match address `%s' or peer `%s'\n",
+         tcp_plugin_address_to_string (NULL,
+                                       address->address,
+                                       address->address_length),
         GNUNET_i2s (&address->peer));
   }
 
@@ -2063,11 +2065,13 @@ handle_tcp_nat_probe (void *cls,
       &tcp_nat_probe->clientIdentity);
   if (session == NULL)
   {
-    LOG(GNUNET_ERROR_TYPE_DEBUG, "Did NOT find session for NAT probe!\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Did NOT find session for NAT probe!\n");
     GNUNET_SERVER_receive_done (client, GNUNET_OK);
     return;
   }
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "Found session for NAT probe!\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Found session for NAT probe!\n");
 
   if (session->nat_connection_timeout != GNUNET_SCHEDULER_NO_TASK)
   {
