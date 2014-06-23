@@ -251,7 +251,10 @@ GDS_ROUTING_test_print (void)
 void
 GDS_ROUTING_remove_trail_by_peer (const struct GNUNET_PeerIdentity *peer)
 {
-  GNUNET_assert (GNUNET_CONTAINER_multihashmap_size(routing_table) > 0);
+  /* No entries in my routing table. */
+  if (0 == GNUNET_CONTAINER_multihashmap_size(routing_table))
+    return;
+  
   GNUNET_CONTAINER_multihashmap_iterate (routing_table, &remove_matching_trails,
                                          (void *)peer);
 }
