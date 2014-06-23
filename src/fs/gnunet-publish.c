@@ -448,7 +448,8 @@ uri_sks_continuation (void *cls, const struct GNUNET_FS_Uri *sks_uri,
  * @param emsg error message, NULL on success
  */
 static void
-uri_ksk_continuation (void *cls, const struct GNUNET_FS_Uri *ksk_uri,
+uri_ksk_continuation (void *cls,
+                      const struct GNUNET_FS_Uri *ksk_uri,
                       const char *emsg)
 {
   const struct GNUNET_CRYPTO_EcdsaPrivateKey *priv;
