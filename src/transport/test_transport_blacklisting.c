@@ -186,8 +186,41 @@ start_cb(struct PeerContext *p, void *cls)
 
 }
 
-static int check_bl_config (char *src, char *dest)
+static int check_blacklist_config (char *cfg_file,
+    struct GNUNET_PeerIdentity *peer, struct GNUNET_PeerIdentity *bl_peer)
 {
+  struct GNUNET_CONFIGURATION_Handle *cfg;
+  char *section;
+  char *peer_str;
+  cfg = GNUNET_CONFIGURATION_create ();
+  if (GNUNET_OK != GNUNET_CONFIGURATION_load (cfg, cfg_file))
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR, "Could not load configuration `%s'\n", cfg_file);
+    GNUNET_CONFIGURATION_destroy (cfg);
+    return GNUNET_SYSERR;
+  }
+
+  peer_str = GNUNET_strdup (GNUNET_i2s_full(peer));
+  GNUNET_asprintf (&section, "transport-blacklist-%s", peer_str);
+
+  if (GNUNET_NO == GNUNET_CONFIGURATION_have_value (cfg, section, GNUNET_i2s_full(bl_peer)))
+  {
+    GNUNET_log(GNUNET_ERROR_TYPE_ERROR,
+        "Configuration `%s' does not have blacklisting section for peer `%s' blacklisting `%s'\n",
+        cfg_file, peer_str, GNUNET_i2s_full(bl_peer));
+    GNUNET_CONFIGURATION_destroy (cfg);
+    GNUNET_free (section);
+    GNUNET_free (peer_str);
+    return GNUNET_SYSERR;
+  }
+
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+      "Configuration `%s' does have blacklisting section for peer `%s' blacklisting `%s'\n",
+      cfg_file, peer_str, GNUNET_i2s_full(bl_peer));
+
+  GNUNET_CONFIGURATION_destroy (cfg);
+  GNUNET_free (section);
+  GNUNET_free (peer_str);
   return GNUNET_OK;
 }
 
@@ -218,57 +251,130 @@ run_stage(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     else if (0
         == strcmp (test_name, "test_transport_blacklisting_outbound_bl_full"))
     {
+      char * cfg_p1 = "test_transport_blacklisting_cfg_blp_peer1_full.conf";
+      char * cfg_p2 = "test_transport_blacklisting_cfg_blp_peer2_full.conf";
       p1 = GNUNET_TRANSPORT_TESTING_start_peer (tth,
-          "test_transport_blacklisting_cfg_blp_peer1_full.conf", 1, NULL, NULL,
-          NULL, &start_cb, NULL );
+          cfg_p1 , 1, NULL, NULL, NULL, &start_cb, NULL );
 
       p2 = GNUNET_TRANSPORT_TESTING_start_peer (tth,
-          "test_transport_blacklisting_cfg_peer2.conf", 2, NULL, NULL, NULL,
+          cfg_p2, 2, NULL, NULL, NULL,
           &start_cb, NULL );
+
+      /* check if configuration contain correct blacklist entries */
+      if ((GNUNET_SYSERR == check_blacklist_config (cfg_p1, &p1->id, &p2->id)) ||
+          (GNUNET_SYSERR == check_blacklist_config (cfg_p2, &p2->id, &p1->id)) )
+      {
+        GNUNET_TRANSPORT_TESTING_stop_peer(tth, p1);
+        p1 = NULL;
+        GNUNET_TRANSPORT_TESTING_stop_peer(tth, p2);
+        p2 = NULL;
+        ok = 1;
+        GNUNET_SCHEDULER_add_now (&end, NULL );
+      }
+
     }
     else if (0
         == strcmp (test_name, "test_transport_blacklisting_outbound_bl_plugin"))
     {
+      char * cfg_p1 = "test_transport_blacklisting_cfg_blp_peer1_plugin.conf";
+      char * cfg_p2 = "test_transport_blacklisting_cfg_blp_peer2_plugin.conf";
+
       p1 = GNUNET_TRANSPORT_TESTING_start_peer (tth,
-          "test_transport_blacklisting_cfg_blp_peer1_plugin.conf", 1, NULL,
+          cfg_p1, 1, NULL,
           NULL, NULL, &start_cb, NULL );
 
       p2 = GNUNET_TRANSPORT_TESTING_start_peer (tth,
-          "test_transport_blacklisting_cfg_peer2.conf", 2, NULL, NULL, NULL,
+          cfg_p2, 2, NULL, NULL, NULL,
           &start_cb, NULL );
+
+      /* check if configuration contain correct blacklist entries */
+      if ((GNUNET_SYSERR == check_blacklist_config (cfg_p1, &p1->id, &p2->id)) ||
+          (GNUNET_SYSERR == check_blacklist_config (cfg_p2, &p2->id, &p1->id)) )
+      {
+        GNUNET_TRANSPORT_TESTING_stop_peer(tth, p1);
+        p1 = NULL;
+        GNUNET_TRANSPORT_TESTING_stop_peer(tth, p2);
+        p2 = NULL;
+        ok = 1;
+        GNUNET_SCHEDULER_add_now (&end, NULL );
+      }
     }
     else if (0
         == strcmp (test_name, "test_transport_blacklisting_inbound_bl_full"))
     {
+      char * cfg_p1 = "test_transport_blacklisting_cfg_peer1.conf";
+      char * cfg_p2 = "test_transport_blacklisting_cfg_blp_peer2_full.conf";
+
       p1 = GNUNET_TRANSPORT_TESTING_start_peer (tth,
-          "test_transport_blacklisting_cfg_peer1.conf", 1, NULL, NULL, NULL,
+          cfg_p1, 1, NULL, NULL, NULL,
           &start_cb, NULL );
 
       p2 = GNUNET_TRANSPORT_TESTING_start_peer (tth,
-          "test_transport_blacklisting_cfg_blp_peer2_full.conf", 2, NULL, NULL,
+          cfg_p2, 2, NULL, NULL,
           NULL, &start_cb, NULL );
+
+      /* check if configuration contain correct blacklist entries */
+      if ((GNUNET_SYSERR == check_blacklist_config (cfg_p2, &p2->id, &p1->id)) )
+      {
+        GNUNET_TRANSPORT_TESTING_stop_peer(tth, p1);
+        p1 = NULL;
+        GNUNET_TRANSPORT_TESTING_stop_peer(tth, p2);
+        p2 = NULL;
+        ok = 1;
+        GNUNET_SCHEDULER_add_now (&end, NULL );
+      }
     }
     else if (0
         == strcmp (test_name, "test_transport_blacklisting_inbound_bl_plugin"))
     {
+      char * cfg_p1 = "test_transport_blacklisting_cfg_peer1.conf";
+      char * cfg_p2 = "test_transport_blacklisting_cfg_blp_peer2_plugin.conf";
+
       p1 = GNUNET_TRANSPORT_TESTING_start_peer (tth,
-          "test_transport_blacklisting_cfg_peer1.conf", 1, NULL, NULL, NULL,
+          cfg_p1, 1, NULL, NULL, NULL,
           &start_cb, NULL );
 
       p2 = GNUNET_TRANSPORT_TESTING_start_peer (tth,
-          "test_transport_blacklisting_cfg_blp_peer2_plugin.conf", 2, NULL,
-          NULL, NULL, &start_cb, NULL );
+          cfg_p2, 2, NULL, NULL,
+          NULL, &start_cb, NULL );
+
+      /* check if configuration contain correct blacklist entries */
+      if ((GNUNET_SYSERR == check_blacklist_config (cfg_p2, &p2->id, &p1->id)) )
+      {
+        GNUNET_TRANSPORT_TESTING_stop_peer(tth, p1);
+        p1 = NULL;
+        GNUNET_TRANSPORT_TESTING_stop_peer(tth, p2);
+        p2 = NULL;
+        ok = 1;
+        GNUNET_SCHEDULER_add_now (&end, NULL );
+      }
+
     }
     else if (0
         == strcmp (test_name, "test_transport_blacklisting_multiple_plugins"))
     {
+      char * cfg_p1 = "test_transport_blacklisting_cfg_blp_peer1_multiple_plugins.conf";
+      char * cfg_p2 = "test_transport_blacklisting_cfg_blp_peer2_multiple_plugins.conf";
+
       p1 = GNUNET_TRANSPORT_TESTING_start_peer (tth,
-          "test_transport_blacklisting_cfg_blp_peer1_multiple_plugins.conf", 1,
+          cfg_p1, 1,
           NULL, NULL, NULL, &start_cb, NULL );
 
       p2 = GNUNET_TRANSPORT_TESTING_start_peer (tth,
-          "test_transport_blacklisting_cfg_blp_peer2_multiple_plugins.conf", 2,
+          cfg_p2, 2,
           NULL, NULL, NULL, &start_cb, NULL );
+
+      /* check if configuration contain correct blacklist entries */
+      if ((GNUNET_SYSERR == check_blacklist_config (cfg_p1, &p1->id, &p2->id)) ||
+          (GNUNET_SYSERR == check_blacklist_config (cfg_p2, &p2->id, &p1->id)))
+      {
+        GNUNET_TRANSPORT_TESTING_stop_peer(tth, p1);
+        p1 = NULL;
+        GNUNET_TRANSPORT_TESTING_stop_peer(tth, p2);
+        p2 = NULL;
+        ok = 1;
+        GNUNET_SCHEDULER_add_now (&end, NULL );
+      }
     }
     else
     {
@@ -311,8 +417,7 @@ run_stage(void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       (GNUNET_YES == connected) ? "CONNECTED" : "NOT CONNECTED");
 
   if ((0 == strcmp (test_name, "test_transport_blacklisting_no_bl"))
-      || (0
-          == strcmp (test_name, "test_transport_blacklisting_multiple_plugins")))
+      || (0 == strcmp (test_name, "test_transport_blacklisting_multiple_plugins")))
   {
     if ((GNUNET_NO != started) && (GNUNET_YES == connected))
       ok = 0;
