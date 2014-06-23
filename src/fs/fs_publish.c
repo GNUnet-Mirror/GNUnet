@@ -1377,10 +1377,7 @@ GNUNET_FS_publish_stop (struct GNUNET_FS_PublishContext *pc)
     GNUNET_free (pc->fi->serialization);
     pc->fi->serialization = NULL;
   }
-  if (NULL == pc->fi->chk_uri)
-    off = 0; /* won't be completed anymore */
-  else
-    off = pc->fi->is_directory ? pc->fi->data.dir.contents_completed : pc->fi->data.file.file_size; /* we were done */
+  off = (NULL == pc->fi->chk_uri) ? 0 : GNUNET_ntohll (pc->fi->chk_uri->data.chk.file_length);
 
   if (NULL != pc->serialization)
   {
