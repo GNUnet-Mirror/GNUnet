@@ -1573,6 +1573,7 @@ create_session (struct Plugin *plugin,
   s->last_expected_msg_delay = GNUNET_TIME_UNIT_MILLISECONDS;
   s->flow_delay_from_other_peer = GNUNET_TIME_UNIT_ZERO_ABS;
   s->flow_delay_for_other_peer = GNUNET_TIME_UNIT_ZERO;
+  s->timeout = GNUNET_TIME_relative_to_absolute (UDP_SESSION_TIME_OUT);
   s->timeout_task = GNUNET_SCHEDULER_add_delayed (UDP_SESSION_TIME_OUT,
                                                   &session_timeout, s);
   return s;
