@@ -88,7 +88,7 @@ struct WlanHeader
 {
 
   /**
-   * Message type is GNUNET_MESSAGE_TYPE_WLAN_DATA.
+   * Message type is #GNUNET_MESSAGE_TYPE_WLAN_DATA.
    */
   struct GNUNET_MessageHeader header;
 
@@ -177,13 +177,8 @@ struct Session
   struct GNUNET_PeerIdentity target;
 
   /**
-   * API requirement (must be first).
-   */
-  struct SessionHeader header;
-
-  /**
    * We keep all sessions in a DLL at their respective
-   * 'struct MACEndpoint'.
+   * `struct MACEndpoint *`.
    */
   struct Session *next;
 
@@ -279,7 +274,7 @@ struct FragmentMessage
   GNUNET_TRANSPORT_TransmitContinuation cont;
 
   /**
-   * Closure for 'cont'
+   * Closure for @e cont.
    */
   void *cont_cls;
 
@@ -353,11 +348,6 @@ struct MacEndpoint
   GNUNET_SCHEDULER_TaskIdentifier timeout_task;
 
   /**
-   * count of messages in the fragment out queue for this mac endpoint
-   */
-  unsigned int fragment_messages_out_count;
-
-  /**
    * peer mac address
    */
   struct WlanAddress addr;
@@ -371,6 +361,11 @@ struct MacEndpoint
    * ACK delay for fragmentation context
    */
   struct GNUNET_TIME_Relative ack_delay;
+
+  /**
+   * count of messages in the fragment out queue for this mac endpoint
+   */
+  unsigned int fragment_messages_out_count;
 
   /**
    * Desired transmission power for this MAC
@@ -409,7 +404,7 @@ struct Plugin
    * ARGV-vector for the helper (all helpers take only the binary
    * name, one actual argument, plus the NULL terminator for 'argv').
    */
-  char * helper_argv[3];
+  char *helper_argv[3];
 
   /**
    * The interface of the wlan card given to us by the user.
@@ -500,7 +495,7 @@ struct MacAndSession
  *
  * @param cls closure
  * @param addr binary address
- * @param addrlen length of the address
+ * @param addrlen length of the @a addr
  * @return string representing the same address
  */
 static const char *
@@ -512,16 +507,21 @@ bluetooth_plugin_address_to_string (void *cls,
  * Print MAC addresses nicely.
  *
  * @param mac the mac address
- * @return string to a static buffer with the human-readable mac, will be overwritten during the next call to this function
+ * @return string to a static buffer with
+ *   the human-readable mac, will be overwritten during the next call to
+ *   this function
  */
 static const char *
 mac_to_string (const struct GNUNET_TRANSPORT_WLAN_MacAddress * mac)
 {
   static char macstr[20];
 
-  GNUNET_snprintf (macstr, sizeof (macstr), "%.2X:%.2X:%.2X:%.2X:%.2X:%.2X",
-  								 mac->mac[0], mac->mac[1],
-                   mac->mac[2], mac->mac[3], mac->mac[4], mac->mac[5]);
+  GNUNET_snprintf (macstr,
+                   sizeof (macstr),
+                   "%.2X:%.2X:%.2X:%.2X:%.2X:%.2X",
+                   mac->mac[0], mac->mac[1],
+                   mac->mac[2], mac->mac[3],
+                   mac->mac[4], mac->mac[5]);
   return macstr;
 }
 
@@ -620,7 +620,8 @@ send_ack (void *cls, uint32_t msg_id,
 			  &radio_header->header,
 			  GNUNET_NO /* dropping ACKs is bad */,
 			  NULL, NULL))
-    GNUNET_STATISTICS_update (endpoint->plugin->env->stats, _("# Bluetooth ACKs sent"),
+    GNUNET_STATISTICS_update (endpoint->plugin->env->stats,
+                              _("# Bluetooth ACKs sent"),
 			      1, GNUNET_NO);
 }
 
@@ -632,7 +633,8 @@ send_ack (void *cls, uint32_t msg_id,
  * @param hdr pointer to the data
  */
 static void
-bluetooth_data_message_handler (void *cls, const struct GNUNET_MessageHeader *hdr)
+bluetooth_data_message_handler (void *cls,
+                                const struct GNUNET_MessageHeader *hdr)
 {
   struct MacEndpoint *endpoint = cls;
   struct Plugin *plugin = endpoint->plugin;
@@ -696,10 +698,11 @@ free_session (struct Session *session)
  * A session is timing out.  Clean up.
  *
  * @param cls pointer to the Session
- * @param tc pointer to the GNUNET_SCHEDULER_TaskContext
+ * @param tc unused
  */
 static void
-session_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+session_timeout (void *cls,
+                 const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct Session * session = cls;
   struct GNUNET_TIME_Relative timeout;
@@ -795,7 +798,6 @@ fragment_transmission_done (void *cls,
 {
   struct FragmentMessage *fm = cls;
 
-
   fm->sh = NULL;
   GNUNET_FRAGMENT_context_transmission_done (fm->fragcontext);
 }
@@ -804,7 +806,7 @@ fragment_transmission_done (void *cls,
 /**
  * Transmit a fragment of a message.
  *
- * @param cls 'struct FragmentMessage' this fragment message belongs to
+ * @param cls `struct FragmentMessage *` this fragment message belongs to
  * @param hdr pointer to the start of the fragment message
  */
 static void
@@ -836,7 +838,8 @@ transmit_fragment (void *cls,
 				 &fragment_transmission_done, fm);
     fm->size_on_wire += size;
     if (NULL != fm->sh)
-      GNUNET_STATISTICS_update (endpoint->plugin->env->stats, _("# Bluetooth message fragments sent"),
+      GNUNET_STATISTICS_update (endpoint->plugin->env->stats,
+                                _("# Bluetooth message fragments sent"),
 				1, GNUNET_NO);
     else
       GNUNET_FRAGMENT_context_transmission_done (fm->fragcontext);
@@ -860,7 +863,8 @@ free_fragment_message (struct FragmentMessage *fm)
 {
   struct MacEndpoint *endpoint = fm->macendpoint;
 
-  GNUNET_STATISTICS_update (endpoint->plugin->env->stats, _("# Bluetooth messages pending (with fragmentation)"),
+  GNUNET_STATISTICS_update (endpoint->plugin->env->stats,
+                            _("# Bluetooth messages pending (with fragmentation)"),
 			    -1, GNUNET_NO);
   GNUNET_CONTAINER_DLL_remove (endpoint->sending_messages_head,
                                endpoint->sending_messages_tail, fm);
@@ -870,8 +874,8 @@ free_fragment_message (struct FragmentMessage *fm)
     fm->sh = NULL;
   }
   GNUNET_FRAGMENT_context_destroy (fm->fragcontext,
-		  	  	  	  	  	  	   &endpoint->msg_delay,
-		  	  	  	  	  	  	   &endpoint->ack_delay);
+                                   &endpoint->msg_delay,
+                                   &endpoint->ack_delay);
   if (fm->timeout_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (fm->timeout_task);
@@ -896,7 +900,11 @@ fragmentmessage_timeout (void *cls,
   fm->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   if (NULL != fm->cont)
   {
-    fm->cont (fm->cont_cls, &fm->target, GNUNET_SYSERR, fm->size_payload, fm->size_on_wire);
+    fm->cont (fm->cont_cls,
+              &fm->target,
+              GNUNET_SYSERR,
+              fm->size_payload,
+              fm->size_on_wire);
     fm->cont = NULL;
   }
   free_fragment_message (fm);
@@ -915,7 +923,7 @@ fragmentmessage_timeout (void *cls,
  *        been transmitted (or if the transport is ready
  *        for the next transmission call; or if the
  *        peer disconnected...); can be NULL
- * @param cont_cls closure for cont
+ * @param cont_cls closure for @a cont
  */
 static void
 send_with_fragmentation (struct MacEndpoint *endpoint,
@@ -923,7 +931,8 @@ send_with_fragmentation (struct MacEndpoint *endpoint,
 			 const struct GNUNET_PeerIdentity *target,
 			 const struct GNUNET_MessageHeader *msg,
 			 size_t payload_size,
-			 GNUNET_TRANSPORT_TransmitContinuation cont, void *cont_cls)
+			 GNUNET_TRANSPORT_TransmitContinuation cont,
+                         void *cont_cls)
 
 {
   struct FragmentMessage *fm;
@@ -1046,14 +1055,15 @@ create_macendpoint (struct Plugin *plugin,
 
   pos->msg_delay = GNUNET_TIME_UNIT_MILLISECONDS;
   pos->ack_delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS,
-		   	   	   	   	   	   	   	   	   	   	  100);
+                                                  100);
   pos->timeout = GNUNET_TIME_relative_to_absolute (MACENDPOINT_TIMEOUT);
   pos->timeout_task =
       GNUNET_SCHEDULER_add_delayed (MACENDPOINT_TIMEOUT, &macendpoint_timeout,
                                     pos);
   GNUNET_CONTAINER_DLL_insert (plugin->mac_head, plugin->mac_tail, pos);
   plugin->mac_count++;
-  GNUNET_STATISTICS_update (plugin->env->stats, _("# Bluetooth MAC endpoints allocated"),
+  GNUNET_STATISTICS_update (plugin->env->stats,
+                            _("# Bluetooth MAC endpoints allocated"),
 			    1, GNUNET_NO);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "New MAC endpoint `%s'\n",
@@ -1108,7 +1118,7 @@ get_session (struct MacEndpoint *endpoint,
  */
 static struct Session *
 bluetooth_plugin_get_session (void *cls,
-			 const struct GNUNET_HELLO_Address *address)
+                              const struct GNUNET_HELLO_Address *address)
 {
   struct Plugin *plugin = cls;
   struct MacEndpoint *endpoint;
@@ -1177,7 +1187,7 @@ bluetooth_plugin_disconnect_session (void *cls,
 
 /**
  * Function that is called to get the keepalive factor.
- * GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT is divided by this number to
+ * #GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT is divided by this number to
  * calculate the interval between keepalive packets.
  *
  * @param cls closure with the `struct Plugin`
@@ -1219,11 +1229,13 @@ bluetooth_query_keepalive_factor (void *cls)
  */
 static ssize_t
 bluetooth_plugin_send (void *cls,
-                  struct Session *session,
-                  const char *msgbuf, size_t msgbuf_size,
-                  unsigned int priority,
-                  struct GNUNET_TIME_Relative to,
-                  GNUNET_TRANSPORT_TransmitContinuation cont, void *cont_cls)
+                       struct Session *session,
+                       const char *msgbuf,
+                       size_t msgbuf_size,
+                       unsigned int priority,
+                       struct GNUNET_TIME_Relative to,
+                       GNUNET_TRANSPORT_TransmitContinuation cont,
+                       void *cont_cls)
 {
   struct Plugin *plugin = cls;
   struct WlanHeader *wlanheader;
@@ -1621,7 +1633,8 @@ send_hello_beacon (void *cls,
 			    &radioHeader->header,
 			    GNUNET_YES /* can drop */,
 			    NULL, NULL))
-      GNUNET_STATISTICS_update (plugin->env->stats, _("# HELLO beacons sent via Bluetooth"),
+      GNUNET_STATISTICS_update (plugin->env->stats,
+                                _("# HELLO beacons sent via Bluetooth"),
 				1, GNUNET_NO);
   }
   plugin->beacon_task =
@@ -1642,12 +1655,14 @@ send_hello_beacon (void *cls,
  *
  * @param cls closure
  * @param addr pointer to the address
- * @param addrlen length of addr
- * @return GNUNET_OK if this is a plausible address for this peer
+ * @param addrlen length of @a addr
+ * @return #GNUNET_OK if this is a plausible address for this peer
  *         and transport
  */
 static int
-bluetooth_plugin_address_suggested (void *cls, const void *addr, size_t addrlen)
+bluetooth_plugin_address_suggested (void *cls,
+                                    const void *addr,
+                                    size_t addrlen)
 {
   struct Plugin *plugin = cls;
   struct WlanAddress *wa = (struct WlanAddress *) addr;
@@ -1685,7 +1700,7 @@ bluetooth_plugin_address_suggested (void *cls, const void *addr, size_t addrlen)
  *
  * @param cls closure
  * @param addr binary address
- * @param addrlen length of the address
+ * @param addrlen length of the @a addr
  * @return string representing the same address
  */
 static const char *
@@ -1719,19 +1734,21 @@ bluetooth_plugin_address_to_string (void *cls,
  * @param type name of the transport that generated the address
  * @param addr one of the addresses of the host, NULL for the last address
  *        the specific address format depends on the transport
- * @param addrlen length of the address
+ * @param addrlen length of the @a addr
  * @param numeric should (IP) addresses be displayed in numeric form?
  * @param timeout after how long should we give up?
  * @param asc function to call on each string
  * @param asc_cls closure for @a asc
  */
 static void
-bluetooth_plugin_address_pretty_printer (void *cls, const char *type,
-                                    const void *addr, size_t addrlen,
-                                    int numeric,
-                                    struct GNUNET_TIME_Relative timeout,
-                                    GNUNET_TRANSPORT_AddressStringCallback asc,
-                                    void *asc_cls)
+bluetooth_plugin_address_pretty_printer (void *cls,
+                                         const char *type,
+                                         const void *addr,
+                                         size_t addrlen,
+                                         int numeric,
+                                         struct GNUNET_TIME_Relative timeout,
+                                         GNUNET_TRANSPORT_AddressStringCallback asc,
+                                         void *asc_cls)
 {
   const char *ret;
 
@@ -1824,17 +1841,20 @@ libgnunet_plugin_transport_bluetooth_done (void *cls)
  * Function called to convert a string address to
  * a binary address.
  *
- * @param cls closure ('struct Plugin*')
+ * @param cls closure (`struct Plugin *`)
  * @param addr string address
- * @param addrlen length of the address
+ * @param addrlen length of the @a addr
  * @param buf location to store the buffer
  * @param added location to store the number of bytes in the buffer.
- *        If the function returns GNUNET_SYSERR, its contents are undefined.
- * @return GNUNET_OK on success, GNUNET_SYSERR on failure
+ *        If the function returns #GNUNET_SYSERR, its contents are undefined.
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
  */
 static int
-bluetooth_string_to_address (void *cls, const char *addr, uint16_t addrlen,
-			void **buf, size_t *added)
+bluetooth_string_to_address (void *cls,
+                             const char *addr,
+                             uint16_t addrlen,
+                             void **buf,
+                             size_t *added)
 {
   struct WlanAddress *wa;
   unsigned int a[6];
@@ -1875,24 +1895,26 @@ bluetooth_string_to_address (void *cls, const char *addr, uint16_t addrlen,
   return GNUNET_OK;
 }
 
+
 static void
 bluetooth_plugin_update_session_timeout (void *cls,
-                                  const struct GNUNET_PeerIdentity *peer,
-                                  struct Session *session)
+                                         const struct GNUNET_PeerIdentity *peer,
+                                         struct Session *session)
 {
   if (GNUNET_SCHEDULER_NO_TASK != session->timeout_task)
     GNUNET_SCHEDULER_cancel (session->timeout_task);
-  session->timeout_task = GNUNET_SCHEDULER_add_delayed (
-      GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT, &session_timeout, session);
+  session->timeout_task
+    = GNUNET_SCHEDULER_add_delayed (GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT,
+                                    &session_timeout,
+                                    session);
 }
-
 
 
 /**
  * Entry point for the plugin.
  *
- * @param cls closure, the 'struct GNUNET_TRANSPORT_PluginEnvironment*'
- * @return the 'struct GNUNET_TRANSPORT_PluginFunctions*' or NULL on error
+ * @param cls closure, the `struct GNUNET_TRANSPORT_PluginEnvironment *`
+ * @return the `struct GNUNET_TRANSPORT_PluginFunctions *` or NULL on error
  */
 void *
 libgnunet_plugin_transport_bluetooth_init (void *cls)

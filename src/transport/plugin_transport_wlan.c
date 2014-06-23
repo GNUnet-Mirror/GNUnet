@@ -82,7 +82,7 @@ struct WlanHeader
 {
 
   /**
-   * Message type is GNUNET_MESSAGE_TYPE_WLAN_DATA.
+   * Message type is #GNUNET_MESSAGE_TYPE_WLAN_DATA.
    */
   struct GNUNET_MessageHeader header;
 
@@ -171,13 +171,8 @@ struct Session
   struct GNUNET_PeerIdentity target;
 
   /**
-   * API requirement (must be first).
-   */
-  struct SessionHeader header;
-
-  /**
    * We keep all sessions in a DLL at their respective
-   * 'struct MACEndpoint'.
+   * `struct MACEndpoint *`.
    */
   struct Session *next;
 
@@ -272,7 +267,7 @@ struct FragmentMessage
   GNUNET_TRANSPORT_TransmitContinuation cont;
 
   /**
-   * Closure for 'cont'
+   * Closure for @e cont
    */
   void *cont_cls;
 
