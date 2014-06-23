@@ -80,16 +80,6 @@ struct HTTP_Message
   char *buf;
 
   /**
-   * amount of data already sent
-   */
-  size_t pos;
-
-  /**
-   * buffer length
-   */
-  size_t size;
-
-  /**
    * Continuation function to call once the transmission buffer
    * has again space available.  NULL if there is no
    * continuation to call.
@@ -100,6 +90,17 @@ struct HTTP_Message
    * Closure for @e transmit_cont.
    */
   void *transmit_cont_cls;
+
+  /**
+   * amount of data already sent
+   */
+  size_t pos;
+
+  /**
+   * buffer length
+   */
+  size_t size;
+
 };
 
 
@@ -137,16 +138,6 @@ struct Session
    * if we are still waiting for the welcome message)
    */
   struct GNUNET_PeerIdentity target;
-
-  /**
-   * Stored in a linked list.
-   */
-  struct Session *next;
-
-  /**
-   * Stored in a linked list.
-   */
-  struct Session *prev;
 
   /**
    * The URL to connect to
@@ -273,14 +264,9 @@ struct HTTP_Client_Plugin
   struct GNUNET_TRANSPORT_PluginEnvironment *env;
 
   /**
-   * Linked list head of open sessions.
+   * Open sessions.
    */
-  struct Session *head;
-
-  /**
-   * Linked list tail of open sessions.
-   */
-  struct Session *tail;
+  struct GNUNET_CONTAINER_MultiPeerMap *sessions;
 
   /**
    * Plugin name
@@ -587,25 +573,32 @@ client_delete_session (struct Session *s)
   }
   if (GNUNET_SCHEDULER_NO_TASK != s->put_disconnect_task)
   {
-      GNUNET_SCHEDULER_cancel (s->put_disconnect_task);
-      s->put_disconnect_task = GNUNET_SCHEDULER_NO_TASK;
+    GNUNET_SCHEDULER_cancel (s->put_disconnect_task);
+    s->put_disconnect_task = GNUNET_SCHEDULER_NO_TASK;
   }
-
-  GNUNET_CONTAINER_DLL_remove (plugin->head, plugin->tail, s);
+  GNUNET_assert (GNUNET_OK ==
+                 GNUNET_CONTAINER_multipeermap_remove (plugin->sessions,
+                                                       &s->target,
+                                                       s));
 
   next = s->msg_head;
   while (NULL != (pos = next))
   {
     next = pos->next;
-    GNUNET_CONTAINER_DLL_remove (s->msg_head, s->msg_tail, pos);
-    if (pos->transmit_cont != NULL)
-      pos->transmit_cont (pos->transmit_cont_cls, &s->target, GNUNET_SYSERR,
-                          pos->size, pos->pos + s->overhead);
+    GNUNET_CONTAINER_DLL_remove (s->msg_head,
+                                 s->msg_tail,
+                                 pos);
+    if (NULL != pos->transmit_cont)
+      pos->transmit_cont (pos->transmit_cont_cls,
+                          &s->target,
+                          GNUNET_SYSERR,
+                          pos->size,
+                          pos->pos + s->overhead);
     s->overhead = 0;
     GNUNET_free (pos);
   }
 
-  if (s->msg_tk != NULL)
+  if (NULL != s->msg_tk)
   {
     GNUNET_SERVER_mst_destroy (s->msg_tk);
     s->msg_tk = NULL;
@@ -729,6 +722,27 @@ http_client_query_keepalive_factor (void *cls)
 
 
 /**
+ * Callback to destroys all sessions on exit.
+ *
+ * @param cls the `struct HTTP_Client_Plugin *`
+ * @param peer identity of the peer
+ * @param value the `struct Session *`
+ * @return #GNUNET_OK (continue iterating)
+ */
+static int
+destroy_session_cb (void *cls,
+                    const struct GNUNET_PeerIdentity *peer,
+                    void *value)
+{
+  struct HTTP_Client_Plugin *plugin = cls;
+  struct Session *session = value;
+
+  http_client_session_disconnect (plugin, session);
+  return GNUNET_OK;
+}
+
+
+/**
  * Function that can be used to force the plugin to disconnect
  * from the given peer and cancel all previous transmissions
  * (and their continuationc).
@@ -741,26 +755,57 @@ http_client_peer_disconnect (void *cls,
                              const struct GNUNET_PeerIdentity *target)
 {
   struct HTTP_Client_Plugin *plugin = cls;
-  struct Session *next = NULL;
-  struct Session *pos = NULL;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Transport tells me to disconnect `%s'\n",
        GNUNET_i2s (target));
+  GNUNET_CONTAINER_multipeermap_get_multiple (plugin->sessions,
+                                              target,
+                                              &destroy_session_cb,
+                                              plugin);
+}
 
-  next = plugin->head;
-  while (NULL != (pos = next))
+
+/**
+ * Closure for #session_lookup_client_by_address().
+ */
+struct SessionClientCtx
+{
+  /**
+   * Address we are looking for.
+   */
+  const struct GNUNET_HELLO_Address *address;
+
+  /**
+   * Session that was found.
+   */
+  struct Session *ret;
+};
+
+
+/**
+ * Locate the seession object for a given address.
+ *
+ * @param cls the `struct SessionClientCtx *`
+ * @param key peer identity
+ * @param value the `struct Session` to check
+ * @return #GNUNET_NO if found, #GNUNET_OK if not
+ */
+static int
+session_lookup_client_by_address (void *cls,
+                                  const struct GNUNET_PeerIdentity *key,
+                                  void *value)
+{
+  struct SessionClientCtx *sc_ctx = cls;
+  struct Session *s = value;
+
+  if (0 == GNUNET_HELLO_address_cmp (sc_ctx->address,
+                                     s->address))
   {
-    next = pos->next;
-    if (0 == memcmp (target, &pos->target, sizeof (struct GNUNET_PeerIdentity)))
-    {
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-           "Disconnecting session %p to `%pos'\n",
-           pos, GNUNET_i2s (target));
-      GNUNET_assert (GNUNET_OK == http_client_session_disconnect (plugin,
-                                                                  pos));
-    }
+    sc_ctx->ret = s;
+    return GNUNET_NO;
   }
+  return GNUNET_YES;
 }
 
 
@@ -775,15 +820,14 @@ static struct Session *
 client_lookup_session (struct HTTP_Client_Plugin *plugin,
                        const struct GNUNET_HELLO_Address *address)
 {
-  struct Session *pos;
+  struct SessionClientCtx sc_ctx;
 
-  for (pos = plugin->head; NULL != pos; pos = pos->next)
-  {
-    if ((0 == memcmp (&address->peer, &pos->target, sizeof (struct GNUNET_PeerIdentity))) &&
-        (0 == GNUNET_HELLO_address_cmp(address, pos->address)))
-      return pos;
-  }
-  return NULL;
+  sc_ctx.address = address;
+  sc_ctx.ret = NULL;
+  GNUNET_CONTAINER_multipeermap_iterate (plugin->sessions,
+                                         &session_lookup_client_by_address,
+                                         &sc_ctx);
+  return sc_ctx.ret;
 }
 
 
@@ -893,7 +937,6 @@ client_wake_up (void *cls,
                 const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct Session *s = cls;
-  struct HTTP_Client_Plugin *p = s->plugin;
 
   s->recv_wakeup_task = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
@@ -918,7 +961,8 @@ client_wake_up (void *cls,
  * @return always #GNUNET_OK
  */
 static int
-client_receive_mst_cb (void *cls, void *client,
+client_receive_mst_cb (void *cls,
+                       void *client,
                        const struct GNUNET_MessageHeader *message)
 {
   struct Session *s = cls;
@@ -1554,17 +1598,17 @@ http_client_plugin_get_session (void *cls,
                                 const struct GNUNET_HELLO_Address *address)
 {
   struct HTTP_Client_Plugin *plugin = cls;
-  struct Session * s = NULL;
+  struct Session *s;
   struct sockaddr *sa;
   struct GNUNET_ATS_Information ats;
   size_t salen = 0;
   int res;
 
-  GNUNET_assert (address->address != NULL);
+  GNUNET_assert (NULL != address->address);
 
   /* find existing session */
   s = client_lookup_session (plugin, address);
-  if (s != NULL)
+  if (NULL != s)
     return s;
 
   if (plugin->max_connections <= plugin->cur_connections)
@@ -1582,10 +1626,8 @@ http_client_plugin_get_session (void *cls,
   ats.value = htonl (GNUNET_ATS_NET_UNSPECIFIED);
   sa = http_common_socket_from_address (address->address, address->address_length, &res);
   if (GNUNET_SYSERR == res)
-  {
     return NULL;
-  }
-  else if (GNUNET_YES == res)
+  if (GNUNET_YES == res)
   {
     GNUNET_assert (NULL != sa);
     if (AF_INET == sa->sa_family)
@@ -1630,8 +1672,10 @@ http_client_plugin_get_session (void *cls,
        GNUNET_i2s (&s->target));
 
   /* add new session */
-  GNUNET_CONTAINER_DLL_insert (plugin->head, plugin->tail, s);
-
+  (void) GNUNET_CONTAINER_multipeermap_put (plugin->sessions,
+                                            &s->target,
+                                            s,
+                                            GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
   /* initiate new connection */
   if (GNUNET_SYSERR == client_connect (s))
   {
@@ -1727,8 +1771,6 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
 {
   struct GNUNET_TRANSPORT_PluginFunctions *api = cls;
   struct HTTP_Client_Plugin *plugin = api->cls;
-  struct Session *pos;
-  struct Session *next;
 
   if (NULL == api->cls)
   {
@@ -1736,39 +1778,30 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
     GNUNET_free (api);
     return NULL;
   }
-
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        _("Shutting down plugin `%s'\n"),
        plugin->name);
-
-  next = plugin->head;
-  while (NULL != (pos = next))
-  {
-    next = pos->next;
-    http_client_session_disconnect (plugin, pos);
-  }
+  GNUNET_CONTAINER_multipeermap_iterate (plugin->sessions,
+                                         &destroy_session_cb,
+                                         plugin);
   if (GNUNET_SCHEDULER_NO_TASK != plugin->client_perform_task)
   {
     GNUNET_SCHEDULER_cancel (plugin->client_perform_task);
     plugin->client_perform_task = GNUNET_SCHEDULER_NO_TASK;
   }
-
-
   if (NULL != plugin->curl_multi_handle)
   {
     curl_multi_cleanup (plugin->curl_multi_handle);
     plugin->curl_multi_handle = NULL;
   }
   curl_global_cleanup ();
-
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        _("Shutdown for plugin `%s' complete\n"),
        plugin->name);
-
+  GNUNET_CONTAINER_multipeermap_destroy (plugin->sessions);
   GNUNET_free_non_null (plugin->proxy_hostname);
   GNUNET_free_non_null (plugin->proxy_username);
   GNUNET_free_non_null (plugin->proxy_password);
-
   GNUNET_free (plugin);
   GNUNET_free (api);
   return NULL;
@@ -1819,8 +1852,11 @@ client_configure_plugin (struct HTTP_Client_Plugin *plugin)
     }
 
     /* proxy password */
-    if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (plugin->env->cfg,
-        plugin->name, "PROXY_PASSWORD", &plugin->proxy_password))
+    if (GNUNET_OK ==
+        GNUNET_CONFIGURATION_get_value_string (plugin->env->cfg,
+                                               plugin->name,
+                                               "PROXY_PASSWORD",
+                                               &plugin->proxy_password))
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG,
            "Found proxy password name: `%s'\n",
@@ -1828,8 +1864,11 @@ client_configure_plugin (struct HTTP_Client_Plugin *plugin)
     }
 
     /* proxy type */
-    if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (plugin->env->cfg,
-        plugin->name, "PROXY_TYPE", &proxy_type))
+    if (GNUNET_OK ==
+        GNUNET_CONFIGURATION_get_value_string (plugin->env->cfg,
+                                               plugin->name,
+                                               "PROXY_TYPE",
+                                               &proxy_type))
     {
       GNUNET_STRINGS_utf8_toupper (proxy_type, proxy_type);
 
@@ -1883,20 +1922,24 @@ http_plugin_address_to_string (void *cls,
                                const void *addr,
                                size_t addrlen)
 {
-  return http_common_plugin_address_to_string (cls, PLUGIN_NAME, addr, addrlen);
+  return http_common_plugin_address_to_string (cls,
+                                               PLUGIN_NAME,
+                                               addr,
+                                               addrlen);
 }
 
 
 static void
 http_client_plugin_update_session_timeout (void *cls,
-                                  const struct GNUNET_PeerIdentity *peer,
-                                  struct Session *session)
+                                           const struct GNUNET_PeerIdentity *peer,
+                                           struct Session *session)
 {
-  struct HTTP_Client_Plugin *plugin = cls;
+  // struct HTTP_Client_Plugin *plugin = cls;
 
   /* lookup if session is really existing */
   client_reschedule_session_timeout (session);
 }
+
 
 /**
  * Entry point for the plugin.
@@ -1922,6 +1965,8 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
 
   plugin = GNUNET_new (struct HTTP_Client_Plugin);
   plugin->env = env;
+  plugin->sessions = GNUNET_CONTAINER_multipeermap_create (128,
+                                                           GNUNET_YES);
   api = GNUNET_new (struct GNUNET_TRANSPORT_PluginFunctions);
   api->cls = plugin;
   api->send = &http_client_plugin_send;
