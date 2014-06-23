@@ -97,7 +97,7 @@ struct HTTP_Message
   GNUNET_TRANSPORT_TransmitContinuation transmit_cont;
 
   /**
-   * Closure for transmit_cont.
+   * Closure for @e transmit_cont.
    */
   void *transmit_cont_cls;
 };
@@ -159,11 +159,6 @@ struct Session
   struct GNUNET_HELLO_Address *address;
 
   /**
-   * ATS network type in NBO
-   */
-  uint32_t ats_address_network_type;
-
-  /**
    * Pointer to the global plugin struct.
    */
   struct HTTP_Client_Plugin *plugin;
@@ -173,40 +168,20 @@ struct Session
    */
   void *client_put;
 
+  /**
+   * Handle for the HTTP PUT request.
+   */
   struct ConnectionHandle put;
+
+  /**
+   * Handle for the HTTP GET request.
+   */
   struct ConnectionHandle get;
-
-  /**
-   * Is the client PUT handle currently paused
-   */
-  int put_paused;
-
-  /**
-   * Is the client PUT handle disconnect in progress?
-   */
-  int put_tmp_disconnecting;
-
-  /**
-   * Is the client PUT handle temporarily disconnected?
-   */
-  int put_tmp_disconnected;
-
-  /**
-   * We received data to send while disconnecting, reconnect immediately
-   */
-  int put_reconnect_required;
 
   /**
    * Client receive handle
    */
   void *client_get;
-
-  /**
-   * Outbound overhead due to HTTP connection
-   * Add to next message of this session when calling callback
-   */
-  size_t overhead;
-
   /**
    * next pointer for double linked list
    */
@@ -242,6 +217,37 @@ struct Session
   * Used for receive throttling
   */
   struct GNUNET_TIME_Absolute next_receive;
+
+  /**
+   * Outbound overhead due to HTTP connection
+   * Add to next message of this session when calling callback
+   */
+  size_t overhead;
+
+  /**
+   * ATS network type in NBO
+   */
+  uint32_t ats_address_network_type;
+
+  /**
+   * Is the client PUT handle currently paused
+   */
+  int put_paused;
+
+  /**
+   * Is the client PUT handle disconnect in progress?
+   */
+  int put_tmp_disconnecting;
+
+  /**
+   * Is the client PUT handle temporarily disconnected?
+   */
+  int put_tmp_disconnected;
+
+  /**
+   * We received data to send while disconnecting, reconnect immediately
+   */
+  int put_reconnect_required;
 };
 
 
@@ -289,6 +295,16 @@ struct HTTP_Client_Plugin
    * Password for the proxy server
    */
   char *proxy_password;
+
+  /**
+   * cURL Multihandle
+   */
+  CURLM *curl_multi_handle;
+
+  /**
+   * curl perform task
+   */
+  GNUNET_SCHEDULER_TaskIdentifier client_perform_task;
 
   /**
    * Type of proxy server:
@@ -340,15 +356,6 @@ struct HTTP_Client_Plugin
    */
   uint16_t use_ipv4;
 
-  /**
-   * cURL Multihandle
-   */
-  CURLM *curl_multi_handle;
-
-  /**
-   * curl perform task
-   */
-  GNUNET_SCHEDULER_TaskIdentifier client_perform_task;
 };
 
 
@@ -365,10 +372,11 @@ client_reschedule_session_timeout (struct Session *s);
  *
  * @param  plugin plugin as closure
  * @param now schedule task in 1ms, regardless of what curl may say
- * @return GNUNET_SYSERR for hard failure, GNUNET_OK for ok
+ * @return #GNUNET_SYSERR for hard failure, #GNUNET_OK for ok
  */
 static int
-client_schedule (struct HTTP_Client_Plugin *plugin, int now);
+client_schedule (struct HTTP_Client_Plugin *plugin,
+                 int now);
 
 
 /**
@@ -412,51 +420,53 @@ client_exist_session (struct HTTP_Client_Plugin *plugin,
  * @return always 0
  */
 static int
-client_log (CURL *curl, curl_infotype type,
-	    const char *data, size_t size, void *cls)
+client_log (CURL *curl,
+            curl_infotype type,
+	    const char *data,
+            size_t size,
+            void *cls)
 {
   struct ConnectionHandle *ch = cls;
   const char *ttype = "UNSPECIFIED";
+  char text[size + 2];
 
-  if ((type == CURLINFO_TEXT) || (type == CURLINFO_HEADER_IN) || (type == CURLINFO_HEADER_OUT))
+  if (! ((type == CURLINFO_TEXT) || (type == CURLINFO_HEADER_IN) || (type == CURLINFO_HEADER_OUT)))
+    return 0;
+  switch (type)
   {
-    char text[size + 2];
-
-    switch (type) {
-      case CURLINFO_TEXT:
-        ttype = "TEXT";
-        break;
-      case CURLINFO_HEADER_IN:
-        ttype = "HEADER_IN";
-        break;
-      case CURLINFO_HEADER_OUT:
-        ttype = "HEADER_OUT";
-        /* Overhead*/
-
-        GNUNET_assert (NULL != ch);
-        GNUNET_assert (NULL != ch->easyhandle);
-        GNUNET_assert (NULL != ch->s);
-        ch->s->overhead += size;
-        break;
-      default:
-        ttype = "UNSPECIFIED";
-        break;
-    }
-
-    memcpy (text, data, size);
-    if (text[size - 1] == '\n')
-      text[size] = '\0';
-    else
-    {
-      text[size] = '\n';
-      text[size + 1] = '\0';
-    }
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Connection %p %s: %s",
-         ch->easyhandle,
-         ttype,
-         text);
+  case CURLINFO_TEXT:
+    ttype = "TEXT";
+    break;
+  case CURLINFO_HEADER_IN:
+    ttype = "HEADER_IN";
+    break;
+  case CURLINFO_HEADER_OUT:
+    ttype = "HEADER_OUT";
+    /* Overhead*/
+    GNUNET_assert (NULL != ch);
+    GNUNET_assert (NULL != ch->easyhandle);
+    GNUNET_assert (NULL != ch->s);
+    ch->s->overhead += size;
+    break;
+  default:
+    ttype = "UNSPECIFIED";
+    break;
   }
+  memcpy (text, data, size);
+  if (text[size - 1] == '\n')
+  {
+    text[size] = '\0';
+  }
+  else
+  {
+    text[size] = '\n';
+    text[size + 1] = '\0';
+  }
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Connection %p %s: %s",
+       ch->easyhandle,
+       ttype,
+       text);
   return 0;
 }
 
@@ -472,7 +482,7 @@ client_log (CURL *curl, curl_infotype type,
  * @param cls closure
  * @param s which session must be used
  * @param msgbuf the message to transmit
- * @param msgbuf_size number of bytes in 'msgbuf'
+ * @param msgbuf_size number of bytes in @a msgbuf
  * @param priority how important is the message (most plugins will
  *                 ignore message priority and just FIFO)
  * @param to how long to wait at most for the transmission (does not
@@ -491,7 +501,8 @@ client_log (CURL *curl, curl_infotype type,
 static ssize_t
 http_client_plugin_send (void *cls,
                          struct Session *s,
-                         const char *msgbuf, size_t msgbuf_size,
+                         const char *msgbuf,
+                         size_t msgbuf_size,
                          unsigned int priority,
                          struct GNUNET_TIME_Relative to,
                          GNUNET_TRANSPORT_TransmitContinuation cont,
@@ -624,7 +635,7 @@ client_delete_session (struct Session *s)
 /**
  * Disconnect a session
  *
- * @param cls the `struct HTTP_Client_Plugin`
+ * @param cls the `struct HTTP_Client_Plugin *`
  * @param s session
  * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
  */
@@ -726,7 +737,7 @@ http_client_session_disconnect (void *cls,
 
 /**
  * Function that is called to get the keepalive factor.
- * GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT is divided by this number to
+ * #GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT is divided by this number to
  * calculate the interval between keepalive packets.
  *
  * @param cls closure with the `struct Plugin`
@@ -798,6 +809,9 @@ client_lookup_session (struct HTTP_Client_Plugin *plugin,
 }
 
 
+/**
+ * FIXME.
+ */
 static void
 client_put_disconnect (void *cls,
                        const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -827,7 +841,10 @@ client_put_disconnect (void *cls,
  * @return bytes written to stream, returning 0 will terminate connection!
  */
 static size_t
-client_send_cb (void *stream, size_t size, size_t nmemb, void *cls)
+client_send_cb (void *stream,
+                size_t size,
+                size_t nmemb,
+                void *cls)
 {
   struct Session *s = cls;
   struct HTTP_Client_Plugin *plugin = s->plugin;
@@ -985,7 +1002,7 @@ client_receive_mst_cb (void *cls, void *client,
 
 /**
  * Callback method used with libcurl when data for a PUT connection are
- * received. We do not expect data here, so we just dismiss it
+ * received.  We do not expect data here, so we just discard it.
  *
  * @param stream pointer where to write data
  * @param size size of an individual element
@@ -994,7 +1011,10 @@ client_receive_mst_cb (void *cls, void *client,
  * @return bytes read from stream
  */
 static size_t
-client_receive_put (void *stream, size_t size, size_t nmemb, void *cls)
+client_receive_put (void *stream,
+                    size_t size,
+                    size_t nmemb,
+                    void *cls)
 {
   return size * nmemb;
 }
