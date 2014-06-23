@@ -41,10 +41,10 @@ clean (struct SplittedHTTPAddress *addr)
 
 static int
 check (struct SplittedHTTPAddress *addr,
-       char * protocol,
-       char * host,
+       const char *protocol,
+       const char *host,
        int port,
-       char * path)
+       const char *path)
 {
   if (NULL == addr)
     return GNUNET_NO;
