@@ -892,6 +892,11 @@ struct GNUNET_FS_ProgressInfo
 	   */
           const struct GNUNET_FS_Uri *chk_uri;
 
+          /**
+	   * SKS URI of the file (if the download had been completed)
+	   */
+          const struct GNUNET_FS_Uri *sks_uri;
+
         } resume;
 
         /**
@@ -902,9 +907,14 @@ struct GNUNET_FS_ProgressInfo
         {
 
           /**
-	   * URI of the file.
+	   * CHK URI of the file.
 	   */
           const struct GNUNET_FS_Uri *chk_uri;
+
+          /**
+	   * SKS URI of the file (if the download had been completed)
+	   */
+          const struct GNUNET_FS_Uri *sks_uri;
 
         } completed;
 
@@ -1911,7 +1921,7 @@ GNUNET_FS_file_information_is_directory (const struct GNUNET_FS_FileInformation
 /**
  * Add an entry to a directory in a publish-structure.  Clients
  * should never modify publish structures that were passed to
- * #GNUNET_FS_publish_start already.
+ * #GNUNET_FS_publish_start() already.
  *
  * @param dir the directory
  * @param ent the entry to add; the entry must not have been
