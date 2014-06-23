@@ -831,9 +831,8 @@ GNUNET_CONTAINER_multihashmap_iterator_destroy (struct GNUNET_CONTAINER_MultiHas
  *         #GNUNET_SYSERR if it aborted iteration
  */
 int
-GNUNET_CONTAINER_multihashmap_get_multiple (const struct
-                                            GNUNET_CONTAINER_MultiHashMap *map,
-                                            const struct GNUNET_HashCode * key,
+GNUNET_CONTAINER_multihashmap_get_multiple (const struct GNUNET_CONTAINER_MultiHashMap *map,
+                                            const struct GNUNET_HashCode *key,
                                             GNUNET_CONTAINER_HashMapIterator it,
                                             void *it_cls);
 
