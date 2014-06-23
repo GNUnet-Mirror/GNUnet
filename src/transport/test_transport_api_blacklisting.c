@@ -28,15 +28,15 @@
 #include "gnunet_transport_service.h"
 #include "transport-testing.h"
 
-struct PeerContext *p1;
+static struct PeerContext *p1;
 
-struct PeerContext *p2;
+static struct PeerContext *p2;
 
 static GNUNET_TRANSPORT_TESTING_ConnectRequest cc;
 
-struct GNUNET_TRANSPORT_TransmitHandle *th;
+static struct GNUNET_TRANSPORT_TransmitHandle *th;
 
-struct GNUNET_TRANSPORT_TESTING_handle *tth;
+static struct GNUNET_TRANSPORT_TESTING_handle *tth;
 
 /**
  * How long until we give up on transmitting the message?
@@ -58,9 +58,9 @@ static int connected;
 static int blacklist_request_p1;
 static int blacklist_request_p2;
 
-struct GNUNET_TRANSPORT_Blacklist * blacklist_p1;
+static struct GNUNET_TRANSPORT_Blacklist * blacklist_p1;
 
-struct GNUNET_TRANSPORT_Blacklist * blacklist_p2;
+static struct GNUNET_TRANSPORT_Blacklist * blacklist_p2;
 
 static GNUNET_SCHEDULER_TaskIdentifier die_task;
 
@@ -317,6 +317,7 @@ notify_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
   th = NULL;
 }
 
+
 static void
 testing_connect_cb (struct PeerContext *p1, struct PeerContext *p2, void *cls)
 {
@@ -334,13 +335,18 @@ testing_connect_cb (struct PeerContext *p1, struct PeerContext *p2, void *cls)
 }
 
 
-int blacklist_cb (void *cls,
-                 const struct
-                 GNUNET_PeerIdentity * pid)
+static int
+blacklist_cb (void *cls,
+              const struct
+              GNUNET_PeerIdentity * pid)
 {
   struct PeerContext * p = cls;
   int res = GNUNET_SYSERR;
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Peer  %u : Blacklist request for peer `%s'\n", p->no, GNUNET_i2s (pid));
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Peer  %u : Blacklist request for peer `%s'\n",
+              p->no,
+              GNUNET_i2s (pid));
 
   if (p == p1)
   {
