@@ -190,7 +190,14 @@ typedef struct GNUNET_TIME_Relative
 
 
 /**
- * FIXME: document!
+ * Function to be called by the plugin to be notified about changes to the quota
+ * for a specific peer, plugin and session
+ *
+ * @param cls closure
+ * @param peer the peer to be notified about
+ * @param plugin the plugin to be notified about
+ * @param session the session for include in the notification
+ *
  */
 typedef void
 (*GNUNET_TRANSPORT_RegisterQuotaNotification) (void *cls,
@@ -200,7 +207,13 @@ typedef void
 
 
 /**
- * FIXME: document!
+ * Function to be called by the plugin to stop notification about changes to the quota
+ * for a specific peer, plugin and session
+ *
+ * @param cls closure
+ * @param peer the peer to be notified about
+ * @param plugin the plugin to be notified about
+ * @param session the session for include in the notification
  */
 typedef void
 (*GNUNET_TRANSPORT_UnregisterQuotaNotification) (void *cls,
