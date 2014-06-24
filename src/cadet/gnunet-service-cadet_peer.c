@@ -2224,3 +2224,46 @@ GCP_2s (const struct CadetPeer *peer)
     return "(NULL)";
   return GNUNET_i2s (GNUNET_PEER_resolve2 (peer->id));
 }
+
+
+/**
+ * Log all kinds of info about a peer.
+ *
+ * @param peer Peer.
+ */
+void
+GCP_debug (const struct CadetPeer *p, enum GNUNET_ErrorType level)
+{
+  struct CadetPeerPath *path;
+  struct CadetPeerQueue *q;
+  unsigned int conns;
+
+  if (NULL == p)
+  {
+    LOG (level, "PPP DEBUG PEER NULL\n");
+    return;
+  }
+
+  LOG (level, "PPP DEBUG PEER %s\n", GCP_2s (p));
+  for (path = p->path_head; NULL != path; path = path->next)
+  {
+    char *s;
+
+    s = path_2s (path);
+    LOG (level, "PPP path: %s\n", s);
+    GNUNET_free (s);
+  }
+
+  LOG (level, "PPP core transmit handle %p\n", p->core_transmit);
+  conns = GNUNET_CONTAINER_multihashmap_size (p->connections);
+  LOG (level, "PPP # connections over link to peer: %u\n", conns);
+  LOG (level, "PPP queue length: %u\n", p->queue_n);
+  for (q = p->queue_head; NULL != q; q = q->next)
+  {
+    LOG (level, "PPP - %s [payload %s, %u] on connection %s, %u bytes\n",
+         GC_m2s (q->type), GC_m2s (q->payload_type), q->payload_id,
+         GCC_2s (q->c), q->size);
+  }
+  LOG (level, "PPP DEBUG END\n");
+
+}

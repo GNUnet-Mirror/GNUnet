@@ -630,8 +630,7 @@ show_peer_iterator (void *cls,
   struct CadetPeer *p = value;
   struct CadetTunnel *t;
 
-  LOG (GNUNET_ERROR_TYPE_ERROR, "Peer %s\n", GCP_2s (p));
-  LOG (GNUNET_ERROR_TYPE_ERROR, " %u paths\n", GCP_count_paths (p));
+  GCP_debug (p, GNUNET_ERROR_TYPE_ERROR);
 
   t = GCP_get_tunnel (p);
   if (NULL != t)

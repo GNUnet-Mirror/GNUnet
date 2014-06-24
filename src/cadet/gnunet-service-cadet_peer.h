@@ -405,6 +405,14 @@ GCP_iterate_all (GNUNET_CONTAINER_PeerMapIterator iter, void *cls);
 const char *
 GCP_2s (const struct CadetPeer *peer);
 
+/**
+ * Log all kinds of info about a peer.
+ *
+ * @param peer Peer.
+ */
+void
+GCP_debug (const struct CadetPeer *p, enum GNUNET_ErrorType level);
+
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
