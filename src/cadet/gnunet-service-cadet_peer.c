@@ -227,6 +227,9 @@ static struct GNUNET_TRANSPORT_Handle *transport_handle;
 /*****************************     DEBUG      *********************************/
 /******************************************************************************/
 
+/**
+ * FIXME
+ */
 static void
 queue_debug (struct CadetPeer *peer)
 {
@@ -2259,8 +2262,11 @@ GCP_debug (const struct CadetPeer *p, enum GNUNET_ErrorType level)
   }
 
   LOG (level, "PPP core transmit handle %p\n", p->core_transmit);
-  LOG (level, "PPP DHT GET handle\n", p->search_h);
-  conns = GNUNET_CONTAINER_multihashmap_size (p->connections);
+  LOG (level, "PPP DHT GET handle %p\n", p->search_h);
+  if (NULL != p->connections)
+    conns = GNUNET_CONTAINER_multihashmap_size (p->connections);
+  else
+    conns = 0;
   LOG (level, "PPP # connections over link to peer: %u\n", conns);
   LOG (level, "PPP queue length: %u\n", p->queue_n);
   for (q = p->queue_head; NULL != q; q = q->next)
