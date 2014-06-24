@@ -807,8 +807,7 @@ send_connection_ack (struct CadetConnection *connection, int fwd)
   LOG (GNUNET_ERROR_TYPE_INFO, "===> {%14s ACK} on connection %s\n",
        GC_f2s (!fwd), GCC_2s (connection));
   GCP_queue_add (get_hop (connection, fwd), NULL,
-                 GNUNET_MESSAGE_TYPE_CADET_CONNECTION_ACK,
-                 GNUNET_MESSAGE_TYPE_CADET_CONNECTION_ACK, 0,
+                 GNUNET_MESSAGE_TYPE_CADET_CONNECTION_ACK, 0, 0,
                  sizeof (struct GNUNET_CADET_ConnectionACK),
                  connection, fwd, &conn_message_sent, NULL);
   connection->pending_messages++;
@@ -876,10 +875,8 @@ send_broken_unknown (const struct GNUNET_CADET_Hash *connection_id,
   else
     memset (&msg->peer2, 0, sizeof (msg->peer2));
   neighbor = GCP_get (peer_id);
-  GCP_queue_add (neighbor, msg,
-                 GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN,
-                 GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN, 2,
-                 sizeof (struct GNUNET_CADET_ConnectionBroken),
+  GCP_queue_add (neighbor, msg, GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN,
+                 0, 2, sizeof (struct GNUNET_CADET_ConnectionBroken),
                  NULL, GNUNET_SYSERR, /* connection, fwd */
                  NULL, NULL); /* continuation */
 }
@@ -3046,8 +3043,7 @@ GCC_send_create (struct CadetConnection *connection)
 
   connection->maintenance_q =
     GCP_queue_add (get_next_hop (connection), NULL,
-                   GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE,
-                   GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE, 0,
+                   GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE, 0, 0,
                    size, connection, GNUNET_YES, &conn_message_sent, NULL);
 
   state = GCT_get_cstate (connection->t);
