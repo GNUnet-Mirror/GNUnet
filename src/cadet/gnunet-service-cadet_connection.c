@@ -538,10 +538,10 @@ send_ack (struct CadetConnection *c, unsigned int buffer, int fwd, int force)
   msg.ack = htonl (ack);
   msg.cid = c->id;
 
-  prev_fc->ack_msg = GCC_send_prebuilt_message (&msg.header,
-                                                GNUNET_MESSAGE_TYPE_CADET_ACK,
-                                                ack, c, !fwd, GNUNET_YES,
+  prev_fc->ack_msg = GCC_send_prebuilt_message (&msg.header, 0, ack, c,
+                                                !fwd, GNUNET_YES,
                                                 &ack_sent, prev_fc);
+  GNUNET_assert (NULL != prev_fc->ack_msg);
 }
 
 
@@ -840,9 +840,8 @@ send_broken (struct CadetConnection *c,
   msg.cid = c->id;
   msg.peer1 = *id1;
   msg.peer2 = *id2;
-  GCC_send_prebuilt_message (&msg.header,
-                             GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN, 0,
-                             c, fwd, GNUNET_YES, NULL, NULL);
+  GNUNET_assert (NULL == GCC_send_prebuilt_message (&msg.header, 0, 0, c, fwd,
+                                                    GNUNET_YES, NULL, NULL));
 }
 
 
@@ -1234,11 +1233,9 @@ connection_poll (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   msg.pid = htonl (fc->last_pid_sent);
   LOG (GNUNET_ERROR_TYPE_DEBUG, " *** last pid sent: %u!\n", fc->last_pid_sent);
   fc->poll_msg =
-      GCC_send_prebuilt_message (&msg.header,
-                                 GNUNET_MESSAGE_TYPE_CADET_POLL,
-                                 fc->last_pid_sent,
-                                 c, fc == &c->fwd_fc, GNUNET_YES,
-                                 &poll_sent, fc);
+      GCC_send_prebuilt_message (&msg.header, 0, fc->last_pid_sent, c,
+                                 fc == &c->fwd_fc, GNUNET_YES, &poll_sent, fc);
+  GNUNET_assert (NULL != fc->poll_msg);
 }
 
 
@@ -1640,10 +1637,9 @@ GCC_handle_create (void *cls, const struct GNUNET_PeerIdentity *peer,
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  Retransmitting.\n");
     GCP_add_path (dest_peer, path_duplicate (path), GNUNET_NO);
     GCP_add_path_to_origin (orig_peer, path_duplicate (path), GNUNET_NO);
-    GCC_send_prebuilt_message (message,
-                               GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE, 0,
-                               c, GNUNET_YES, GNUNET_YES,
-                               NULL, NULL);
+    GNUNET_assert (NULL == GCC_send_prebuilt_message (message, 0, 0, c,
+                                                      GNUNET_YES, GNUNET_YES,
+                                                      NULL, NULL));
   }
   path_destroy (path);
   return GNUNET_OK;
@@ -1771,9 +1767,8 @@ GCC_handle_confirm (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  not for us, retransmitting...\n");
-  GCC_send_prebuilt_message (message,
-                             GNUNET_MESSAGE_TYPE_CADET_CONNECTION_ACK, 0,
-                             c, fwd, GNUNET_YES, NULL, NULL);
+  GNUNET_assert (NULL == GCC_send_prebuilt_message (message, 0, 0, c, fwd,
+                                                    GNUNET_YES, NULL, NULL));
   return GNUNET_OK;
 }
 
@@ -1833,9 +1828,8 @@ GCC_handle_broken (void* cls,
   }
   else
   {
-    GCC_send_prebuilt_message (message,
-                               GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN, 0,
-                               c, fwd, GNUNET_YES, NULL, NULL);
+    GNUNET_assert (NULL == GCC_send_prebuilt_message (message, 0, 0, c, fwd,
+                                                      GNUNET_YES, NULL, NULL));
     c->destroy = GNUNET_YES;
     connection_cancel_queues (c, !fwd);
   }
@@ -1884,9 +1878,8 @@ GCC_handle_destroy (void *cls, const struct GNUNET_PeerIdentity *peer,
     return GNUNET_OK;
   }
   if (GNUNET_NO == GCC_is_terminal (c, fwd))
-    GCC_send_prebuilt_message (message,
-                               GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY, 0,
-                               c, fwd, GNUNET_YES, NULL, NULL);
+    GNUNET_assert (NULL == GCC_send_prebuilt_message (message, 0, 0, c, fwd,
+                                                      GNUNET_YES, NULL, NULL));
   else if (0 == c->pending_messages)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  directly destroying connection!\n");
@@ -2030,9 +2023,8 @@ handle_cadet_encrypted (const struct GNUNET_PeerIdentity *peer,
   }
 
   GNUNET_STATISTICS_update (stats, "# messages forwarded", 1, GNUNET_NO);
-  GCC_send_prebuilt_message (&msg->header,
-                             GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED, 0,
-                             c, fwd, GNUNET_NO, NULL, NULL);
+  GNUNET_assert (NULL == GCC_send_prebuilt_message (&msg->header, 0, 0, c, fwd,
+                                                    GNUNET_NO, NULL, NULL));
 
   return GNUNET_OK;
 }
@@ -2131,8 +2123,8 @@ handle_cadet_kx (const struct GNUNET_PeerIdentity *peer,
   /* Message not for us: forward to next hop */
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  not for us, retransmitting...\n");
   GNUNET_STATISTICS_update (stats, "# messages forwarded", 1, GNUNET_NO);
-  GCC_send_prebuilt_message (&msg->header, GNUNET_MESSAGE_TYPE_CADET_KX, 0,
-                             c, fwd, GNUNET_NO, NULL, NULL);
+  GNUNET_assert (NULL == GCC_send_prebuilt_message (&msg->header, 0, 0, c, fwd,
+                                                    GNUNET_NO, NULL, NULL));
 
   return GNUNET_OK;
 }
@@ -3084,20 +3076,20 @@ GCC_send_destroy (struct CadetConnection *c)
     return;
 
   msg.header.size = htons (sizeof (msg));
-  msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY);;
+  msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY);
   msg.cid = c->id;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
               "  sending connection destroy for connection %s\n",
               GCC_2s (c));
 
   if (GNUNET_NO == GCC_is_terminal (c, GNUNET_YES))
-    GCC_send_prebuilt_message (&msg.header,
-                               GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY, 0,
-                               c, GNUNET_YES, GNUNET_YES, NULL, NULL);
+    GNUNET_assert (NULL == GCC_send_prebuilt_message (&msg.header, 0, 0, c,
+                                                      GNUNET_YES, GNUNET_YES,
+                                                      NULL, NULL));
   if (GNUNET_NO == GCC_is_terminal (c, GNUNET_NO))
-    GCC_send_prebuilt_message (&msg.header,
-                               GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY, 0,
-                               c, GNUNET_NO, GNUNET_YES, NULL, NULL);
+    GNUNET_assert (NULL == GCC_send_prebuilt_message (&msg.header, 0, 0, c,
+                                                      GNUNET_NO, GNUNET_YES,
+                                                      NULL, NULL));
   c->destroy = GNUNET_YES;
   c->state = CADET_CONNECTION_DESTROYED;
 }

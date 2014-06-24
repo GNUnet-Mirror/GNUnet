@@ -1107,9 +1107,8 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
 
   if (NULL == cont)
   {
-    GNUNET_break (NULL ==
-                  GCC_send_prebuilt_message (&msg->header, type, mid,
-                                             c, fwd, force, NULL, NULL));
+    GNUNET_break (NULL == GCC_send_prebuilt_message (&msg->header, type, mid, c,
+                                                     fwd, force, NULL, NULL));
     return NULL;
   }
   if (NULL == existing_q)
@@ -1123,6 +1122,7 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   }
   tq->cq = GCC_send_prebuilt_message (&msg->header, type, mid, c, fwd, force,
                                       &tun_message_sent, tq);
+  GNUNET_assert (NULL != tq->cq);
   tq->cont = cont;
   tq->cont_cls = cont_cls;
 
@@ -1248,8 +1248,9 @@ send_kx (struct CadetTunnel *t,
 
   fwd = GCC_is_origin (t->connection_head->c, GNUNET_YES);
   /* TODO save handle and cancel in case of a unneeded retransmission */
-  GCC_send_prebuilt_message (&msg->header, GNUNET_MESSAGE_TYPE_CADET_KX,
-                             message->type, c, fwd, GNUNET_YES, NULL, NULL);
+  GNUNET_assert (NULL == GCC_send_prebuilt_message (&msg->header, type, 0, c,
+                                                    fwd, GNUNET_YES,
+                                                    NULL, NULL));
 }
 
 
