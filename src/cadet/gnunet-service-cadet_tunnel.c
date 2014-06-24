@@ -2318,7 +2318,7 @@ GCT_remove_connection (struct CadetTunnel *t,
       && GNUNET_NO == shutting_down)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  no more connections, getting new ones\n");
-    t->cstate = CADET_TUNNEL_SEARCHING;
+    GCT_change_cstate (t, CADET_TUNNEL_SEARCHING);
     GCP_connect (t->peer);
     return;
   }
