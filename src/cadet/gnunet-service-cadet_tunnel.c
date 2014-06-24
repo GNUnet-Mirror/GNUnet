@@ -2313,7 +2313,7 @@ GCT_remove_connection (struct CadetTunnel *t,
   }
 
   /* Start new connections if needed */
-  if (CONNECTIONS_PER_TUNNEL < GCT_count_connections (t)
+  if (CONNECTIONS_PER_TUNNEL > GCT_count_connections (t)
       && GNUNET_SCHEDULER_NO_TASK == t->destroy_task
       && CADET_TUNNEL_SHUTDOWN != t->cstate
       && GNUNET_NO == shutting_down)
