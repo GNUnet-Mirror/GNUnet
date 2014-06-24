@@ -1216,6 +1216,7 @@ send_kx (struct CadetTunnel *t,
   {
     GNUNET_break (CADET_TUNNEL_SEARCHING == t->cstate);
     GCT_debug (t, GNUNET_ERROR_TYPE_WARNING);
+    GCP_debug (t->peer);
     return;
   }
 
