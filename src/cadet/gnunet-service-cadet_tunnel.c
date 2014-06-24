@@ -1205,6 +1205,7 @@ send_kx (struct CadetTunnel *t,
     GNUNET_break (0);
     return;
   }
+  type = ntohs (message->type);
 
   /* Even if tunnel is being destroyed, send anyway.
    * Could be a response to a rekey initiated by remote peer,
@@ -1215,6 +1216,7 @@ send_kx (struct CadetTunnel *t,
   if (NULL == t->connection_head)
   {
     GNUNET_break (CADET_TUNNEL_SEARCHING == t->cstate);
+    LOG (GNUNET_ERROR_TYPE_WARNING, "sending %s\n", GC_m2s (type));
     GCT_debug (t, GNUNET_ERROR_TYPE_WARNING);
     GCP_debug (t->peer, GNUNET_ERROR_TYPE_WARNING);
     return;
@@ -1231,7 +1233,6 @@ send_kx (struct CadetTunnel *t,
     GCT_debug (t, GNUNET_ERROR_TYPE_WARNING);
     return;
   }
-  type = ntohs (message->type);
   switch (type)
   {
     case GNUNET_MESSAGE_TYPE_CADET_KX_EPHEMERAL:
