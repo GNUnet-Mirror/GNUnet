@@ -2328,12 +2328,12 @@ GCT_remove_connection (struct CadetTunnel *t,
   if (CADET_TUNNEL_READY != t->cstate)
     return;
 
-  /* Check if any connection is ready to maintaing cstate */
+  /* Check if any connection is ready to maintain cstate */
   for (aux = t->connection_head; aux != NULL; aux = aux->next)
     if (CADET_CONNECTION_READY == GCC_get_state (aux->c))
       return;
 
-  t->cstate = CADET_TUNNEL_WAITING;
+  GCT_change_cstate (t, CADET_TUNNEL_WAITING);
 }
 
 
