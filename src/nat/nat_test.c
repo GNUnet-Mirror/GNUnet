@@ -406,7 +406,7 @@ do_timeout (void *cls,
  * @param timeout delay after which the test should be aborted
  * @param report function to call with the result of the test
  * @param report_cls closure for @a report
- * @return handle to cancel NAT test or NULL. The error is indicated through the report callback
+ * @return handle to cancel NAT test or NULL. The error is always indicated via the report callback
  */
 struct GNUNET_NAT_Test *
 GNUNET_NAT_test_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
@@ -489,10 +489,14 @@ GNUNET_NAT_test_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
     {
       LOG (GNUNET_ERROR_TYPE_ERROR,
           _("NAT test failed to start NAT library\n"));
-      if (GNUNET_SCHEDULER_NO_TASK != nh->ltask)
+      if (GNUNET_SCHEDULER_NO_TASK != nh->ltask){
         GNUNET_SCHEDULER_cancel (nh->ltask);
-      if (NULL != nh->lsock)
+        nh->ltask = GNUNET_SCHEDULER_NO_TASK;
+      }
+      if (NULL != nh->lsock){
         GNUNET_NETWORK_socket_close (nh->lsock);
+        nh->lsock = NULL;
+      }
       nh->status = GNUNET_NAT_ERROR_NAT_REGISTER_FAILED;
       nh->ttask = GNUNET_SCHEDULER_add_now (&do_timeout, nh);
       return NULL;

@@ -1560,22 +1560,60 @@ GNUNET_NAT_test_address (struct GNUNET_NAT_Handle *h,
   return GNUNET_NO;
 }
 
-
 /**
  * Converts enum GNUNET_NAT_StatusCode to a string
  * 
  * @param err error code to resolve to a string
- * @return point to a static string containing the error code
+ * @return pointer to a static string containing the error code
  */
 const char *
-GNUNET_NAT_status2string (enum GNUNET_NAT_StatusCode err){
-  switch (err){
+GNUNET_NAT_status2string (enum GNUNET_NAT_StatusCode err)
+{
+  switch (err)
+  {
   case GNUNET_NAT_ERROR_SUCCESS:
-    return _("Operation Successful");
-
+    return _ ("Operation Successful");
+  case GNUNET_NAT_ERROR_IPC_FAILURE:
+    return _ ("Internal Failure (IPC, ...)");
+  case GNUNET_NAT_ERROR_INTERNAL_NETWORK_ERROR:
+    return _ ("Failure in network subsystem, check permissions.");
+  case GNUNET_NAT_ERROR_TIMEOUT:
+    return _ ("Encountered timeout while performing operation");
+  case GNUNET_NAT_ERROR_NOT_ONLINE:
+    return _ ("detected that we are offline");
+  case GNUNET_NAT_ERROR_UPNPC_NOT_FOUND:
+    return _ ("`upnpc` command not found");
+  case GNUNET_NAT_ERROR_UPNPC_FAILED:
+    return _ ("Failed to run `upnpc` command");
+  case GNUNET_NAT_ERROR_UPNPC_TIMEOUT:
+    return _ ("`upnpc' command took too long, process killed");
+  case GNUNET_NAT_ERROR_UPNPC_PORTMAP_FAILED:
+    return _ ("`upnpc' command failed to establish port mapping");
+  case GNUNET_NAT_ERROR_EXTERNAL_IP_UTILITY_NOT_FOUND:
+    return _ ("`external-ip' command not found");
+  case GNUNET_NAT_ERROR_EXTERNAL_IP_UTILITY_FAILED:
+    return _ ("Failed to run `external-ip` command");
+  case GNUNET_NAT_ERROR_EXTERNAL_IP_UTILITY_OUTPUT_INVALID:
+    return _ ("`external-ip' command output invalid");
+  case GNUNET_NAT_ERROR_EXTERNAL_IP_ADDRESS_INVALID:
+    return _ ("no valid address was returned by `external-ip'");
+  case GNUNET_NAT_ERROR_NO_VALID_IF_IP_COMBO:
+    return _ ("Could not determine interface with internal/local network address");
+  case GNUNET_NAT_ERROR_HELPER_NAT_SERVER_NOT_FOUND:
+    return _ ("No functioning gnunet-helper-nat-server installation found");
+  case GNUNET_NAT_ERROR_NAT_TEST_START_FAILED:
+    return _ ("NAT test could not be initialized");
+  case GNUNET_NAT_ERROR_NAT_TEST_TIMEOUT:
+    return _ ("NAT test timeout reached");
+  case GNUNET_NAT_ERROR_NAT_REGISTER_FAILED:
+    return _ ("could not register NAT");
+  case GNUNET_NAT_ERROR_HELPER_NAT_CLIENT_NOT_FOUND:
+    return _ ("No working gnunet-helper-nat-client installation found");
+/*  case:
+    return _ ("");*/
   default:
     return "unknown status code";
-  } 
+  }
 }
 
 /* end of nat.c */
