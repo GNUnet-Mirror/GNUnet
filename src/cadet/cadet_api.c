@@ -1078,13 +1078,9 @@ process_get_peer (struct GNUNET_CADET_Handle *h,
   struct GNUNET_CADET_LocalInfoTunnel *msg;
   size_t esize;
   size_t msize;
-  unsigned int ch_n;
-  unsigned int c_n;
-  struct GNUNET_CADET_Hash *conns;
-  CADET_ChannelNumber *chns;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Get Tunnel messasge received\n");
-  if (NULL == h->info_cb.tunnel_cb)
+  if (NULL == h->info_cb.peer_cb)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  ignored\n");
     return;
@@ -1093,38 +1089,28 @@ process_get_peer (struct GNUNET_CADET_Handle *h,
   /* Verify message sanity */
   msg = (struct GNUNET_CADET_LocalInfoTunnel *) message;
   msize = ntohs (message->size);
-  esize = sizeof (struct GNUNET_CADET_LocalInfoTunnel);
+  esize = sizeof (struct GNUNET_CADET_LocalInfoPeer);
   if (esize > msize)
   {
     GNUNET_break_op (0);
-    h->info_cb.tunnel_cb (h->info_cls, NULL, 0, 0, NULL, NULL, 0, 0);
+    h->info_cb.peer_cb (h->info_cls, NULL, 0, 0, 0, NULL);
     goto clean_cls;
   }
-  ch_n = ntohl (msg->channels);
-  c_n = ntohl (msg->connections);
-  esize += ch_n * sizeof (CADET_ChannelNumber);
-  esize += c_n * sizeof (struct GNUNET_CADET_Hash);
+//   esize += ch_n * sizeof (CADET_ChannelNumber);
+//   esize += c_n * sizeof (struct GNUNET_CADET_Hash);
   if (msize != esize)
   {
     GNUNET_break_op (0);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "m:%u, e: %u (%u ch, %u conn)\n",
-                msize, esize, ch_n, c_n);
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%u (%u ch, %u conn)\n",
-                sizeof (struct GNUNET_CADET_LocalInfoTunnel),
-                sizeof (CADET_ChannelNumber), sizeof (struct GNUNET_HashCode));
-    h->info_cb.tunnel_cb (h->info_cls, NULL, 0, 0, NULL, NULL, 0, 0);
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "m:%u, e: %u\n", msize, esize);
+    h->info_cb.peer_cb (h->info_cls, NULL, 0, 0, 0, NULL);
     goto clean_cls;
   }
 
   /* Call Callback with tunnel info. */
-  conns = (struct GNUNET_CADET_Hash *) &msg[1];
-  chns = (CADET_ChannelNumber *) &conns[c_n];
-  h->info_cb.tunnel_cb (h->info_cls, &msg->destination,
-                        ch_n, c_n, chns, conns,
-                        ntohs (msg->estate), ntohs (msg->cstate));
+  h->info_cb.peer_cb (h->info_cls, &msg->destination, 0, 0, 0, NULL);
 
   clean_cls:
-  h->info_cb.tunnel_cb = NULL;
+  h->info_cb.peer_cb = NULL;
   h->info_cls = NULL;
 }
 

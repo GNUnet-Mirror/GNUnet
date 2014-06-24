@@ -680,6 +680,76 @@ handle_get_peers (void *cls, struct GNUNET_SERVER_Client *client,
 
 
 /**
+ * Handler for client's SHOW_PEER request.
+ *
+ * @param cls Closure (unused).
+ * @param client Identification of the client.
+ * @param message The actual message.
+ */
+void
+handle_show_peer (void *cls, struct GNUNET_SERVER_Client *client,
+                  const struct GNUNET_MessageHeader *message)
+{
+  const struct GNUNET_CADET_LocalInfo *msg;
+  struct GNUNET_CADET_LocalInfoPeer *resp;
+  struct CadetPeer *p;
+  struct CadetClient *c;
+  size_t size;
+
+  /* Sanity check for client registration */
+  if (NULL == (c = GML_client_get (client)))
+  {
+    GNUNET_break (0);
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+
+  msg = (struct GNUNET_CADET_LocalInfo *) message;
+  LOG (GNUNET_ERROR_TYPE_INFO,
+       "Received peer info request from client %u for peer %s\n",
+       c->id, GNUNET_i2s_full (&msg->peer));
+
+  p = GCP_get (&msg->peer);
+  if (NULL == p)
+  {
+    /* We don't know the peer */
+    struct GNUNET_CADET_LocalInfoPeer warn;
+
+    LOG (GNUNET_ERROR_TYPE_INFO, "Peer %s unknown %u\n",
+         GNUNET_i2s_full (&msg->peer), sizeof (warn));
+    warn.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEER);
+    warn.header.size = htons (sizeof (warn));
+    warn.destination = msg->peer;
+    warn.paths = htons (0);
+    warn.tunnel = htons (NULL != GCP_get_tunnel (p));
+
+    GNUNET_SERVER_notification_context_unicast (nc, client,
+                                                &warn.header,
+                                                GNUNET_NO);
+    GNUNET_SERVER_receive_done (client, GNUNET_OK);
+    return;
+  }
+
+  size = sizeof (struct GNUNET_CADET_LocalInfoPeer);
+//   size += c_n * sizeof (struct GNUNET_CADET_Hash);
+
+  resp = GNUNET_malloc (size);
+  resp->header.type = htons (GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEER);
+  resp->header.size = htons (size);
+  resp->destination = msg->peer;
+  resp->paths = htons (0);
+  resp->tunnel = htons (0);
+
+  GNUNET_SERVER_notification_context_unicast (nc, c->handle,
+                                              &resp->header, GNUNET_NO);
+  GNUNET_free (resp);
+
+  LOG (GNUNET_ERROR_TYPE_INFO, "Show peer request from client %u completed.\n");
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+}
+
+
+/**
  * Iterator over all tunnels to send a monitoring client info about each tunnel.
  *
  * @param cls Closure ().
@@ -908,6 +978,8 @@ static struct GNUNET_SERVER_MessageHandler client_handlers[] = {
    sizeof (struct GNUNET_CADET_LocalAck)},
   {&handle_get_peers, NULL, GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEERS,
    sizeof (struct GNUNET_MessageHeader)},
+  {&handle_show_peer, NULL, GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_PEER,
+   sizeof (struct GNUNET_CADET_LocalInfo)},
   {&handle_get_tunnels, NULL, GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNELS,
    sizeof (struct GNUNET_MessageHeader)},
   {&handle_show_tunnel, NULL, GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNEL,
