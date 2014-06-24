@@ -96,12 +96,6 @@ struct PendingRequest
  */
 struct Session
 {
-
-  /**
-   * Mandatory session header.
-   */
-  struct SessionHeader header;
-
   /**
    * Pointer to the global plugin struct.
    */
