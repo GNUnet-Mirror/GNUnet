@@ -337,17 +337,17 @@ data_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     unsigned long i = (unsigned long) cls;
 
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Retransmission\n");
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Retransmission\n");
     if (0 == i)
     {
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "  in 1 ms\n");
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "  in 1 ms\n");
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MILLISECONDS,
                                     &data_task, (void *)1UL);
     }
     else
     {
       i++;
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "in %u ms\n", i);
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "in %u ms\n", i);
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(
                                       GNUNET_TIME_UNIT_MILLISECONDS,
                                       i),
@@ -395,7 +395,7 @@ tmt_rdy (void *cls, size_t size, void *buf)
   else if (SPEED == test)
   {
     data_sent++;
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " Sent message %d size %u\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, " Sent message %d size %u\n",
                 data_sent, msg_size);
     if (data_sent < TOTAL_PACKETS)
     {
@@ -451,8 +451,7 @@ data_callback (void *cls, struct GNUNET_CADET_Channel *channel,
   case 1L:
   case 4L:
     GNUNET_assert (client == peers_requested - 1);
-    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-                "Leaf client %li got a message.\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Leaf client %li got a message.\n",
                 client);
     break;
   default:
