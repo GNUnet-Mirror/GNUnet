@@ -595,12 +595,14 @@ conn_message_sent (void *cls,
   {
     forced = GNUNET_NO;
   }
-  if (NULL == c
-      && type != GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN
-      && type != GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY)
+  if (NULL == c)
   {
-    LOG (GNUNET_ERROR_TYPE_ERROR, "Message %s sent on NULL connection!\n",
-         GC_m2s (type));
+    if (type != GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN
+        && type != GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY)
+    {
+      LOG (GNUNET_ERROR_TYPE_ERROR, "Message %s sent on NULL connection!\n",
+           GC_m2s (type));
+    }
     return;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, " C_P- %p %u\n", c, c->pending_messages);
