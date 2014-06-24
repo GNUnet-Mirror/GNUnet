@@ -435,6 +435,7 @@
 /src/datastore/.deps
 
 # /src/dht/
+/src/dht/gnunet-dht-profiler
 /src/dht/gnunet-service-dht-xvine
 /src/dht/libgnunetdhttest.a
 /src/dht/test_dht_tools.py
