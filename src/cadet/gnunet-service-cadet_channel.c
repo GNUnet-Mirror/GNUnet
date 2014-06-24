@@ -1977,8 +1977,8 @@ GCCH_handle_data (struct CadetChannel *ch,
   {
     GNUNET_break_op (GC_is_pid_bigger (rel->mid_recv, mid));
     LOG (GNUNET_ERROR_TYPE_WARNING,
-         "MID %u not expected (%u - %u), dropping!\n",
-         mid, rel->mid_recv, rel->mid_recv + 63);
+         "MID %u on channel %s not expected (window: %u - %u). Dropping!\n",
+         mid, GCCH_2s (ch), rel->mid_recv, rel->mid_recv + 63);
   }
 
   GCCH_send_data_ack (ch, fwd);
