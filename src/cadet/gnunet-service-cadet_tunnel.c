@@ -2629,11 +2629,11 @@ GCT_use_path (struct CadetTunnel *t, struct CadetPeerPath *p)
 
 
 /**
- * Count established (ready) connections of a tunnel.
+ * Count created connections of a tunnel. Not necessarily ready connections!
  *
  * @param t Tunnel on which to count.
  *
- * @return Number of connections.
+ * @return Number of connections created, either being established or ready.
  */
 unsigned int
 GCT_count_connections (struct CadetTunnel *t)
