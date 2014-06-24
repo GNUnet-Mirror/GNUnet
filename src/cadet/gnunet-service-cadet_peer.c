@@ -228,23 +228,68 @@ static struct GNUNET_TRANSPORT_Handle *transport_handle;
 /******************************************************************************/
 
 /**
- * FIXME
+ * Log all kinds of info about the queueing status of a peer.
  */
 static void
-queue_debug (struct CadetPeer *peer)
+queue_debug (const struct CadetPeer *p, enum GNUNET_ErrorType level)
 {
   struct CadetPeerQueue *q;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "QQQ Messages queued towards %s\n", GCP_2s (peer));
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "QQQ  core tmt rdy: %p\n", peer->core_transmit);
+  LOG (level, "QQQ Message queue towards %s\n", GCP_2s (p));
+  LOG (level, "QQQ  queue length: %u\n", p->queue_n);
+  LOG (level, "QQQ  core tmt rdy: %p\n", p->core_transmit);
 
-  for (q = peer->queue_head; NULL != q; q = q->next)
+  for (q = p->queue_head; NULL != q; q = q->next)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "QQQ  - %s %s on %s\n",
+    LOG (level, "QQQ  - %s %s on %s\n",
          GC_m2s (q->type), GC_f2s (q->fwd), GCC_2s (q->c));
+    LOG (level, "QQQ    payload %s, %u\n",
+         GC_m2s (q->payload_type), q->payload_id);
+    LOG (level, "QQQ    size: %u bytes\n", q->size);
   }
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "QQQ End queued towards %s\n", GCP_2s (peer));
+  LOG (level, "QQQ End queue towards %s\n", GCP_2s (p));
+}
+
+
+/**
+ * Log all kinds of info about a peer.
+ *
+ * @param peer Peer.
+ */
+void
+GCP_debug (const struct CadetPeer *p, enum GNUNET_ErrorType level)
+{
+  struct CadetPeerPath *path;
+  unsigned int conns;
+
+  if (NULL == p)
+  {
+    LOG (level, "PPP DEBUG PEER NULL\n");
+    return;
+  }
+
+  LOG (level, "PPP DEBUG PEER %s\n", GCP_2s (p));
+  LOG (level, "PPP last contact %s\n",
+       GNUNET_STRINGS_absolute_time_to_string (p->last_contact));
+  for (path = p->path_head; NULL != path; path = path->next)
+  {
+    char *s;
+
+    s = path_2s (path);
+    LOG (level, "PPP path: %s\n", s);
+    GNUNET_free (s);
+  }
+
+  LOG (level, "PPP core transmit handle %p\n", p->core_transmit);
+  LOG (level, "PPP DHT GET handle %p\n", p->search_h);
+  if (NULL != p->connections)
+    conns = GNUNET_CONTAINER_multihashmap_size (p->connections);
+  else
+    conns = 0;
+  LOG (level, "PPP # connections over link to peer: %u\n", conns);
+  queue_debug (p, level);
+  LOG (level, "PPP DEBUG END\n");
 }
 
 
@@ -1043,7 +1088,7 @@ queue_send (void *cls, size_t size, void *buf)
   }
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  return %d\n", data_size);
-  queue_debug (peer);
+  queue_debug (peer, GNUNET_ERROR_TYPE_DEBUG);
   return data_size;
 }
 
@@ -1230,7 +1275,7 @@ GCP_queue_add (struct CadetPeer *peer, void *cls, uint16_t type,
          GCP_2s (peer));
 
   }
-  queue_debug (peer);
+  queue_debug (peer, GNUNET_ERROR_TYPE_DEBUG);
   return queue;
 }
 
@@ -2228,53 +2273,4 @@ GCP_2s (const struct CadetPeer *peer)
   if (NULL == peer)
     return "(NULL)";
   return GNUNET_i2s (GNUNET_PEER_resolve2 (peer->id));
-}
-
-
-/**
- * Log all kinds of info about a peer.
- *
- * @param peer Peer.
- */
-void
-GCP_debug (const struct CadetPeer *p, enum GNUNET_ErrorType level)
-{
-  struct CadetPeerPath *path;
-  struct CadetPeerQueue *q;
-  unsigned int conns;
-
-  if (NULL == p)
-  {
-    LOG (level, "PPP DEBUG PEER NULL\n");
-    return;
-  }
-
-  LOG (level, "PPP DEBUG PEER %s\n", GCP_2s (p));
-  LOG (level, "PPP last contact %s\n",
-       GNUNET_STRINGS_absolute_time_to_string (p->last_contact));
-  for (path = p->path_head; NULL != path; path = path->next)
-  {
-    char *s;
-
-    s = path_2s (path);
-    LOG (level, "PPP path: %s\n", s);
-    GNUNET_free (s);
-  }
-
-  LOG (level, "PPP core transmit handle %p\n", p->core_transmit);
-  LOG (level, "PPP DHT GET handle %p\n", p->search_h);
-  if (NULL != p->connections)
-    conns = GNUNET_CONTAINER_multihashmap_size (p->connections);
-  else
-    conns = 0;
-  LOG (level, "PPP # connections over link to peer: %u\n", conns);
-  LOG (level, "PPP queue length: %u\n", p->queue_n);
-  for (q = p->queue_head; NULL != q; q = q->next)
-  {
-    LOG (level, "PPP - %s [payload %s, %u] on connection %s, %u bytes\n",
-         GC_m2s (q->type), GC_m2s (q->payload_type), q->payload_id,
-         GCC_2s (q->c), q->size);
-  }
-  LOG (level, "PPP DEBUG END\n");
-
 }
