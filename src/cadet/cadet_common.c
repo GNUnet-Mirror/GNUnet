@@ -110,6 +110,12 @@ GC_m2s (uint16_t m)
   idx = (idx + 1) % 2;
   switch (m)
   {
+    /**
+     * Used to mark the "payload" of a non-payload message.
+     */
+    case 0:
+      return "";
+
       /**
        * Request the creation of a path
        */
