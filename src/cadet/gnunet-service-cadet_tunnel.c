@@ -1216,9 +1216,10 @@ send_kx (struct CadetTunnel *t,
   if (NULL == t->connection_head)
   {
     GNUNET_break (CADET_TUNNEL_SEARCHING == t->cstate);
-    LOG (GNUNET_ERROR_TYPE_WARNING, "sending %s\n", GC_m2s (type));
-    GCT_debug (t, GNUNET_ERROR_TYPE_WARNING);
-    GCP_debug (t->peer, GNUNET_ERROR_TYPE_WARNING);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "\n\n\nsending %s\n", GC_m2s (type));
+    GCT_debug (t, GNUNET_ERROR_TYPE_DEBUG);
+    GCP_debug (t->peer, GNUNET_ERROR_TYPE_DEBUG);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "\n\n\n");
     return;
   }
 
