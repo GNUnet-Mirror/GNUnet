@@ -2476,9 +2476,10 @@ GCT_destroy_empty (struct CadetTunnel *t)
 
   if (GNUNET_SCHEDULER_NO_TASK != t->destroy_task)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Tunnel %s is already scheduled for destruction\n",
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "Tunnel %s is already scheduled for destruction. Tunnel debug dump:\n",
          GCT_2s (t));
+    GCT_debug (t, GNUNET_ERROR_TYPE_WARNING);
     GNUNET_break (0);
     /* should never happen, tunnel can only become empty once, and the
      * task identifier should be NO_TASK (cleaned when the tunnel was created
@@ -2490,6 +2491,7 @@ GCT_destroy_empty (struct CadetTunnel *t)
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Tunnel %s empty: destroying scheduled\n",
        GCT_2s (t));
 
+  // FIXME make delay a config option
   t->destroy_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MINUTES,
                                                   &delayed_destroy, t);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Scheduled destroy of %p as %llX\n",
