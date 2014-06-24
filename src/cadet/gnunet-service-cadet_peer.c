@@ -1463,6 +1463,7 @@ GCP_init (const struct GNUNET_CONFIGURATION_Handle *c)
 
 }
 
+
 /**
  * Shut down the peer subsystem.
  */
@@ -1483,6 +1484,7 @@ GCP_shutdown (void)
   }
   GNUNET_PEER_change_rc (myid, -1);
 }
+
 
 /**
  * Retrieve the CadetPeer stucture associated with the peer, create one
@@ -1509,7 +1511,7 @@ GCP_get (const struct GNUNET_PeerIdentity *peer_id)
                                            GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
         peer->id = GNUNET_PEER_intern (peer_id);
   }
-  peer->last_contact = GNUNET_TIME_absolute_get();
+  peer->last_contact = GNUNET_TIME_absolute_get ();
 
   return peer;
 }
@@ -2245,6 +2247,8 @@ GCP_debug (const struct CadetPeer *p, enum GNUNET_ErrorType level)
   }
 
   LOG (level, "PPP DEBUG PEER %s\n", GCP_2s (p));
+  LOG (level, "PPP last contact %s\n",
+       GNUNET_STRINGS_absolute_time_to_string (p->last_contact));
   for (path = p->path_head; NULL != path; path = path->next)
   {
     char *s;
@@ -2255,6 +2259,7 @@ GCP_debug (const struct CadetPeer *p, enum GNUNET_ErrorType level)
   }
 
   LOG (level, "PPP core transmit handle %p\n", p->core_transmit);
+  LOG (level, "PPP DHT GET handle\n", p->search_h);
   conns = GNUNET_CONTAINER_multihashmap_size (p->connections);
   LOG (level, "PPP # connections over link to peer: %u\n", conns);
   LOG (level, "PPP queue length: %u\n", p->queue_n);
