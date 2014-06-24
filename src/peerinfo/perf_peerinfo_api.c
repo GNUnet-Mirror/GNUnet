@@ -20,7 +20,9 @@
 
 /**
  * @file peerinfo/perf_peerinfo_api.c
- * @brief testcase for peerinfo_api.c, hopefully hammer the peerinfo service
+ * @brief testcase for peerinfo_api.c, hopefully hammer the peerinfo service,
+ * this performance test adds up to 5000 peers with one address each and checks
+ * over how many peers it can iterate before receiving a timeout after 30 seconds
  * @author Nathan Evans
  */
 
