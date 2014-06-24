@@ -419,7 +419,7 @@ core_disconnect (void *cls, const struct GNUNET_PeerIdentity *peer)
   if (myid == p->id)
     LOG (GNUNET_ERROR_TYPE_INFO, "DISCONNECTED %s (self)\n", own_id);
   else
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "DISCONNECTED %s <= %s\n",
+    LOG (GNUNET_ERROR_TYPE_INFO, "DISCONNECTED %s <= %s\n",
          own_id, GNUNET_i2s (peer));
   direct_path = pop_direct_path (p);
   GNUNET_CONTAINER_multihashmap_iterate (p->connections, &notify_broken, p);
