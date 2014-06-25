@@ -276,9 +276,11 @@ libgnunet_plugin_transport_wlan_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la
 libgnunet_plugin_transport_wlan_la_LDFLAGS = \
   $(GN_PLUGIN_LDFLAGS)
+libgnunet_plugin_transport_wlan_la_CFLAGS = \
+ $(CFLAGS) -DBUILD_WLAN
 
 libgnunet_plugin_transport_bluetooth_la_SOURCES = \
-  plugin_transport_bluetooth.c plugin_transport_wlan.h
+  plugin_transport_wlan.c plugin_transport_wlan.h
 libgnunet_plugin_transport_bluetooth_la_LIBADD = \
   $(top_builddir)/src/hello/libgnunethello.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
@@ -287,6 +289,8 @@ libgnunet_plugin_transport_bluetooth_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la
 libgnunet_plugin_transport_bluetooth_la_LDFLAGS = \
   $(GN_PLUGIN_LDFLAGS)
+libgnunet_plugin_transport_bluetooth_la_CFLAGS = \
+ $(CFLAGS) -DBUILD_BLUETOOTH
 
 libgnunet_plugin_transport_udp_la_SOURCES = \
   plugin_transport_udp.c plugin_transport_udp.h \
