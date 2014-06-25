@@ -3228,8 +3228,8 @@ http_server_plugin_address_to_string (void *cls,
  * @return the network type in HBO or #GNUNET_SYSERR
  */
 static enum GNUNET_ATS_Network_Type
-http_server_get_network (void *cls,
-			 struct Session *session)
+http_server_plugin_get_network (void *cls,
+                                struct Session *session)
 {
   return ntohl (session->ats_address_network_type);
 }
@@ -3363,7 +3363,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
   api->address_to_string = &http_server_plugin_address_to_string;
   api->string_to_address = &http_common_plugin_string_to_address;
   api->address_pretty_printer = &http_common_plugin_address_pretty_printer;
-  api->get_network = &http_server_get_network;
+  api->get_network = &http_server_plugin_get_network;
   api->update_session_timeout = &http_server_plugin_update_session_timeout;
   api->update_inbound_delay = &http_server_plugin_update_inbound_delay;
   api->setup_monitor = &http_server_plugin_setup_monitor;
