@@ -32,7 +32,8 @@ gnunet_sensor_LDADD = \
   $(GN_LIBINTL)
 
 gnunet_service_sensor_SOURCES = \
- gnunet-service-sensor.c         
+ gnunet-service-sensor.c \
+ gnunet-service-sensor-analysis.c
 gnunet_service_sensor_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
