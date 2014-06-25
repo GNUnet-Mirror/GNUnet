@@ -834,7 +834,13 @@ end:
 
 
 /**
- * FIXME.
+ * Find the currently best address for a peer from the set of addresses available
+ * or return NULL of no address is available
+ *
+ * @param s the proportional handle
+ * @param addresses the address hashmap
+ * @param id the peer id
+ * @return the address or NULL
  */
 struct ATS_Address *
 get_best_address (struct GAS_PROPORTIONAL_Handle *s,
