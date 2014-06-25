@@ -491,10 +491,11 @@ forward_reply (void *cls, const struct GNUNET_HashCode * key, void *value)
   int do_free;
   struct GNUNET_HashCode ch;
   unsigned int i;
-
+ 
   LOG_TRAFFIC (GNUNET_ERROR_TYPE_DEBUG,
-	       "R5N CLIENT-RESULT %s\n",
+	       "XVINE CLIENT-RESULT %s\n",
                GNUNET_h2s_full (key));
+#if 0
   if ((record->type != GNUNET_BLOCK_TYPE_ANY) && (record->type != frc->type))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -506,6 +507,7 @@ forward_reply (void *cls, const struct GNUNET_HashCode * key, void *value)
                               1, GNUNET_NO);
     return GNUNET_YES;          /* type mismatch */
   }
+#endif
   GNUNET_CRYPTO_hash (frc->data, frc->data_size, &ch);
   for (i = 0; i < record->seen_replies_count; i++)
     if (0 == memcmp (&record->seen_replies[i], &ch, sizeof (struct GNUNET_HashCode)))
@@ -666,7 +668,6 @@ GDS_CLIENTS_handle_reply (struct GNUNET_TIME_Absolute expiration,
   frc.type = type;
   GNUNET_CONTAINER_multihashmap_get_multiple (forward_map, key, &forward_reply,
                                               &frc);
-
   if (GNUNET_NO == frc.do_copy)
   {
     /* did not match any of the requests, free! */
@@ -850,6 +851,7 @@ transmit_request (struct ClientQueryRecord *cqr)
        GNUNET_h2s (&cqr->key),
        cqr->replication,
        cqr->seen_replies_count);
+ 
   GDS_NEIGHBOURS_send_get (&cqr->key, cqr->type, cqr->msg_options, 
                            cqr->replication, NULL, NULL , NULL,
                            0, 0, NULL);
@@ -1034,6 +1036,7 @@ handle_dht_local_get (void *cls, struct GNUNET_SERVER_Client *client,
   cqr->replication = ntohl (get->desired_replication_level);
   cqr->msg_options = ntohl (get->options);
   cqr->type = ntohl (get->type);
+  
   // FIXME use cqr->key, set multihashmap create to GNUNET_YES
   GNUNET_CONTAINER_multihashmap_put (forward_map, &get->key, cqr,
                                      GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);

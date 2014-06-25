@@ -2547,7 +2547,7 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_XDHT_P2P_TRAIL_COMPRESSION 889
 
 /**
- * Client wants to store item in DHT.
+ * Peer is storing the data in DHT.
  */
 #define GNUNET_MESSAGE_TYPE_XDHT_P2P_PUT 890
 

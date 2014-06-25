@@ -109,12 +109,12 @@ GDS_NEIGHBOURS_send_get (const struct GNUNET_HashCode *key,
 void 
 GDS_NEIGHBOURS_send_get_result (const struct GNUNET_HashCode *key,
                                 enum GNUNET_BLOCK_Type type, 
-                                struct GNUNET_PeerIdentity *target_peer,
-                                struct GNUNET_PeerIdentity *source_peer,
+                                const struct GNUNET_PeerIdentity *target_peer,
+                                const struct GNUNET_PeerIdentity *source_peer,
                                 unsigned int put_path_length,
                                 const struct GNUNET_PeerIdentity *put_path,
                                 unsigned int get_path_length,
-                                struct GNUNET_PeerIdentity *get_path,
+                                const struct GNUNET_PeerIdentity *get_path,
                                 struct GNUNET_TIME_Absolute expiration,
                                 const void *data, size_t data_size);
 

@@ -204,6 +204,7 @@ datacache_get_iterator (void *cls,
        "Found reply for query %s in datacache, evaluation result is %d\n",
        GNUNET_h2s (key), (int) eval);
   ctx->eval = eval;
+
   switch (eval)
   {
   case GNUNET_BLOCK_EVALUATION_OK_MORE:
@@ -225,6 +226,7 @@ datacache_get_iterator (void *cls,
       i++;
       iterator = iterator->next;
     }
+
     GDS_NEIGHBOURS_send_get_result (key,type, &(ctx->next_hop),&(ctx->source_peer),
                                     put_path_length, put_path, ctx->get_path_length,
                                     get_path, exp, data, size );
@@ -313,6 +315,7 @@ GDS_DATACACHE_handle_get (const struct GNUNET_HashCode * key,
     memcpy (&(ctx.next_hop), next_hop, sizeof (struct GNUNET_PeerIdentity));
   }
   unsigned int i = 0;
+  
   ctx.head = NULL;
   ctx.tail = NULL;
   if (get_path != NULL)
@@ -324,11 +327,11 @@ GDS_DATACACHE_handle_get (const struct GNUNET_HashCode * key,
       element->next = NULL;
       element->prev = NULL;
       element->peer = get_path[i];
-      GNUNET_CONTAINER_DLL_insert (ctx.head, ctx.tail, element);
+      GNUNET_CONTAINER_DLL_insert_tail (ctx.head, ctx.tail, element);
       i++;
     }
   }
-
+  
   r = GNUNET_DATACACHE_get (datacache, key, type, &datacache_get_iterator,
                             &ctx);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
