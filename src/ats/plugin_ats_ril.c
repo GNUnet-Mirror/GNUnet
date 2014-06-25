@@ -1047,7 +1047,8 @@ envi_get_penalty (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
     over_in = net->bw_in_utilized - net->bw_in_available;
     if (RIL_ACTION_BW_IN_INC == agent->a_old)
     {
-      over_in *= 2;
+      /* increase quadratically */
+      over_in *= over_in;
     }
   }
   if (net->bw_out_utilized > net->bw_out_available)
@@ -1055,10 +1056,11 @@ envi_get_penalty (struct GAS_RIL_Handle *solver, struct RIL_Peer_Agent *agent)
     over_out = net->bw_out_utilized - net->bw_out_available;
     if (RIL_ACTION_BW_OUT_INC == agent->a_old)
     {
-      over_out *= 2;
+      /* increase quadratically */
+      over_out *= over_out;
     }
   }
-  over_max = (over_in + over_out) / RIL_MIN_BW;
+  over_max = (over_in + over_out) / (RIL_MIN_BW * RIL_MIN_BW);
 
   return -1.0 * (double) over_max;
 }
