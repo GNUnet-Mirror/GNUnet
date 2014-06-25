@@ -1698,8 +1698,9 @@ GAS_mlp_solve_problem (void *solver)
     start_cur_op = GNUNET_TIME_absolute_get();
 
     /* Solve LP */
-    /* Only for debugging, always use LP presolver:
-     *  mlp->control_param_lp.presolve = GLP_YES; */
+    /* Only for debugging:
+     * Always use LP presolver:
+     * mlp->control_param_lp.presolve = GLP_YES; */
     res_lp = mlp_solve_lp_problem(mlp);
     if (GNUNET_OK == res_lp)
     {
@@ -1728,10 +1729,9 @@ GAS_mlp_solve_problem (void *solver)
 
     /* Solve MIP */
 
-    /* Only for debugging, always use MLP presolver */
+    /* Only for debugging, always use LP presolver */
     if (GNUNET_YES == mlp->opt_dbg_intopt_presolver)
       mlp->control_param_mlp.presolve = GNUNET_YES;
-
 
     mip_res = glp_intopt (mlp->p.prob, &mlp->control_param_mlp);
     switch (mip_res)
