@@ -33,7 +33,7 @@
 /**
  * How namy messages to send
  */
-#define TOTAL_PACKETS 1000
+#define TOTAL_PACKETS 2000
 
 /**
  * How long until we give up on connecting the peers?
@@ -249,9 +249,14 @@ disconnect_cadet_peers (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc
   long line = (long) cls;
   unsigned int i;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "disconnecting cadet service of peers, called from line %ld\n",
-              line);
+  if ((GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason) != 0)
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "disconnecting cadet peers due to SHUTDOWN! called from %ld\n",
+                line);
+  else
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "disconnecting cadet service of peers, called from line %ld\n",
+                line);
   disconnect_task = GNUNET_SCHEDULER_NO_TASK;
   for (i = 0; i < 2; i++)
   {
@@ -436,6 +441,7 @@ data_callback (void *cls, struct GNUNET_CADET_Channel *channel,
   {
     if (GNUNET_SCHEDULER_NO_TASK != disconnect_task)
     {
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, " reschedule timeout\n");
       GNUNET_SCHEDULER_cancel (disconnect_task);
       disconnect_task = GNUNET_SCHEDULER_add_delayed (SHORT_TIME,
                                                       &disconnect_cadet_peers,

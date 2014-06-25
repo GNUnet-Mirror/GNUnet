@@ -1766,6 +1766,7 @@ handle_ephemeral (struct CadetTunnel *t,
     GNUNET_break_op (0);
     return;
   }
+
   if (NULL == t->kx_ctx)
     create_kx_ctx (t);
   if (0 != memcmp (&t->peers_ephemeral_key, &msg->ephemeral_key,
