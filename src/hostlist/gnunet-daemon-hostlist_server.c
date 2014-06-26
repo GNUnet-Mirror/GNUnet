@@ -122,6 +122,27 @@ static struct HostSet *builder;
 
 
 /**
+ * Add headers to a request indicating that we allow Cross-Origin Resource
+ * Sharing.
+ *
+ * @param response response to add headers to
+ */
+static void
+add_cors_headers (struct MHD_Response *response)
+{
+  MHD_add_response_header (response,
+                           "Access-Control-Allow-Origin",
+                           "*");
+  MHD_add_response_header (response,
+                           "Access-Control-Allow-Methods",
+                           "GET, OPTIONS");
+  MHD_add_response_header (response,
+                           "Access-Control-Max-Age",
+                           "86400");
+}
+
+
+/**
  * Function that assembles our response.
  */
 static void
@@ -135,6 +156,7 @@ finish_response ()
   response =
       MHD_create_response_from_data (builder->size, builder->data, MHD_YES,
                                      MHD_NO);
+  add_cors_headers (response);
   if ((NULL == daemon_handle_v4) && (NULL == daemon_handle_v6))
   {
     MHD_destroy_response (response);
@@ -274,27 +296,6 @@ accept_policy_callback (void *cls,
     return MHD_NO;
   }
   return MHD_YES;               /* accept all */
-}
-
-
-/**
- * Add headers to a request indicating that we allow Cross-Origin Resource
- * Sharing.
- *
- * @param response response to add headers to
- */
-static void
-add_cors_headers (struct MHD_Response *response)
-{
-  MHD_add_response_header (response,
-                           "Access-Control-Allow-Origin",
-                           "*");
-  MHD_add_response_header (response,
-                           "Access-Control-Allow-Methods",
-                           "GET, OPTIONS");
-  MHD_add_response_header (response,
-                           "Access-Control-Max-Age",
-                           "86400");
 }
 
 
