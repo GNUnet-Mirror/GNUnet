@@ -905,8 +905,9 @@ get_active_address (void *solver,
                     const struct GNUNET_CONTAINER_MultiPeerMap * addresses,
                     const struct GNUNET_PeerIdentity *peer)
 {
-  struct ATS_Address * dest = NULL;
+  static struct ATS_Address * dest = NULL;
 
+  dest = NULL;
   GNUNET_CONTAINER_multipeermap_get_multiple (addresses, peer,
                                               &get_active_address_it, &dest);
   return dest;
