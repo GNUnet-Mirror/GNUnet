@@ -934,10 +934,15 @@ get_network (struct GAS_PROPORTIONAL_Handle *s, uint32_t type)
 
 
 /**
- * FIXME.  Degermanize.
+ * Increase address count in network
+ *
+ * @param s the solver handle
+ * @param net the network type
+ * @param total increase total addresses
+ * @param active increase active addresses
  */
 static void
-addresse_increment (struct GAS_PROPORTIONAL_Handle *s,
+address_increment (struct GAS_PROPORTIONAL_Handle *s,
                     struct Network *net,
                     int total,
                     int active)
@@ -962,7 +967,12 @@ addresse_increment (struct GAS_PROPORTIONAL_Handle *s,
 
 
 /**
- * FIXME.  Degermanize.
+ * Decrease address count in network
+ *
+ * @param s the solver handle
+ * @param net the network type
+ * @param total decrease total addresses
+ * @param active decrease active addresses
  */
 static int
 addresse_decrement (struct GAS_PROPORTIONAL_Handle *s,
@@ -1248,7 +1258,7 @@ update_active_address (struct GAS_PROPORTIONAL_Handle *s,
   /* Mark address as active */
   asi->activated = GNUNET_TIME_absolute_get();
   best_address->active = GNUNET_YES;
-  addresse_increment (s, net, GNUNET_NO, GNUNET_YES);
+  address_increment (s, net, GNUNET_NO, GNUNET_YES);
 
   /* Distribute bandwidth */
   distribute_bandwidth_in_network (s, net);
@@ -1853,7 +1863,7 @@ GAS_proportional_address_add (void *solver,
   aw = GNUNET_new (struct AddressWrapper);
   aw->addr = address;
   GNUNET_CONTAINER_DLL_insert(net->head, net->tail, aw);
-  addresse_increment (s, net, GNUNET_YES, GNUNET_NO);
+  address_increment (s, net, GNUNET_YES, GNUNET_NO);
 
   asi = GNUNET_new (struct AddressSolverInformation);
   asi->network = net;
