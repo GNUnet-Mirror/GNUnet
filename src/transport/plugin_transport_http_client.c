@@ -135,12 +135,6 @@ struct ConnectionHandle
 struct Session
 {
   /**
-   * To whom are we talking to (set to our identity
-   * if we are still waiting for the welcome message)
-   */
-  struct GNUNET_PeerIdentity target;
-
-  /**
    * The URL to connect to
    */
   char *url;
@@ -437,7 +431,7 @@ client_delete_session (struct Session *s)
   }
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONTAINER_multipeermap_remove (plugin->sessions,
-                                                       &s->target,
+                                                       &s->address->peer,
                                                        s));
   if (NULL != s->client_put)
   {
@@ -445,7 +439,7 @@ client_delete_session (struct Session *s)
          "Session %p/connection %p: disconnecting PUT connection to peer `%s'\n",
          s,
          s->client_put,
-         GNUNET_i2s (&s->target));
+         GNUNET_i2s (&s->address->peer));
 
     /* remove curl handle from multi handle */
     mret = curl_multi_remove_handle (plugin->curl_multi_handle,
@@ -459,7 +453,7 @@ client_delete_session (struct Session *s)
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Session %p/connection %p: disconnecting GET connection to peer `%s'\n",
          s, s->client_get,
-         GNUNET_i2s (&s->target));
+         GNUNET_i2s (&s->address->peer));
     /* remove curl handle from multi handle */
     mret = curl_multi_remove_handle (plugin->curl_multi_handle,
                                      s->client_get);
@@ -486,7 +480,7 @@ client_delete_session (struct Session *s)
     s->bytes_in_queue -= pos->size;
     if (NULL != pos->transmit_cont)
       pos->transmit_cont (pos->transmit_cont_cls,
-                          &s->target,
+                          &s->address->peer,
                           GNUNET_SYSERR,
                           pos->size,
                           pos->pos + s->overhead);
@@ -720,7 +714,7 @@ http_client_plugin_send (void *cls,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Session %p/connection %p: Sending message with %u to peer `%s' \n",
        s, s->client_put,
-       msgbuf_size, GNUNET_i2s (&s->target));
+       msgbuf_size, GNUNET_i2s (&s->address->peer));
 
   /* create new message and schedule */
   msg = GNUNET_malloc (sizeof (struct HTTP_Message) + msgbuf_size);
@@ -1035,7 +1029,7 @@ client_send_cb (void *stream,
     s->bytes_in_queue -= msg->size;
     if (NULL != msg->transmit_cont)
       msg->transmit_cont (msg->transmit_cont_cls,
-                          &s->target,
+                          &s->address->peer,
                           GNUNET_OK,
                           msg->size,
                           msg->size + s->overhead);
@@ -1146,7 +1140,7 @@ client_receive_mst_cb (void *cls,
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Client: peer `%s' address `%s' next read delayed for %s\n",
-         GNUNET_i2s (&s->target),
+         GNUNET_i2s (&s->address->peer),
          http_common_plugin_address_to_string (s->plugin->protocol,
                                                s->address->address,
                                                s->address->address_length),
@@ -1201,7 +1195,7 @@ client_receive (void *stream,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Session %p / connection %p: Received %u bytes from peer `%s'\n",
        s, s->client_get,
-       len, GNUNET_i2s (&s->target));
+       len, GNUNET_i2s (&s->address->peer));
   now = GNUNET_TIME_absolute_get ();
   if (now.abs_value_us < s->next_receive.abs_value_us)
   {
@@ -1298,7 +1292,7 @@ curl_easy_getinfo (easy_h,
             LOG (GNUNET_ERROR_TYPE_DEBUG,
                  "Session %p/connection %p: PUT connection to `%s' ended with status %i reason %i: `%s'\n",
                  s, msg->easy_handle,
-                 GNUNET_i2s (&s->target),
+                 GNUNET_i2s (&s->address->peer),
                  http_statuscode,
                  msg->data.result,
                  curl_easy_strerror (msg->data.result));
@@ -1307,7 +1301,7 @@ curl_easy_getinfo (easy_h,
             LOG (GNUNET_ERROR_TYPE_DEBUG,
                  "Session %p/connection %p: PUT connection to `%s' ended normal\n",
                  s, msg->easy_handle,
-                 GNUNET_i2s (&s->target));
+                 GNUNET_i2s (&s->address->peer));
           if (NULL == s->client_get)
           {
             /* Disconnect other transmission direction and tell transport */
@@ -1347,7 +1341,7 @@ curl_easy_getinfo (easy_h,
                  "Session %p/connection %p: GET connection to `%s' ended with status %i reason %i: `%s'\n",
                  s,
                  msg->easy_handle,
-                 GNUNET_i2s (&s->target),
+                 GNUNET_i2s (&s->address->peer),
                  http_statuscode,
                  msg->data.result,
                  curl_easy_strerror (msg->data.result));
@@ -1358,7 +1352,7 @@ curl_easy_getinfo (easy_h,
                  "Session %p/connection %p: GET connection to `%s' ended normal\n",
                  s,
                  msg->easy_handle,
-                 GNUNET_i2s (&s->target));
+                 GNUNET_i2s (&s->address->peer));
           /* Disconnect other transmission direction and tell transport */
           s->get.easyhandle = NULL;
           s->get.s = NULL;
@@ -1595,7 +1589,7 @@ client_connect (struct Session *s)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Invalid address peer `%s'\n",
-         GNUNET_i2s (&s->target));
+         GNUNET_i2s (&s->address->peer));
     return GNUNET_SYSERR;
   }
 
@@ -1609,7 +1603,7 @@ client_connect (struct Session *s)
   plugin->last_tag++;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Initiating outbound session peer `%s' using address `%s'\n",
-       GNUNET_i2s (&s->target), s->url);
+       GNUNET_i2s (&s->address->peer), s->url);
 
   if ((GNUNET_SYSERR == client_connect_get (s)) ||
       (GNUNET_SYSERR == client_connect_put (s)))
@@ -1757,7 +1751,6 @@ http_client_plugin_get_session (void *cls,
   }
 
   s = GNUNET_new (struct Session);
-  s->target = address->peer;
   s->plugin = plugin;
   s->address = GNUNET_HELLO_address_copy (address);
   s->ats_address_network_type = ats.value;
@@ -1774,11 +1767,11 @@ http_client_plugin_get_session (void *cls,
        http_common_plugin_address_to_string (plugin->protocol,
                                              s->address->address,
                                              s->address->address_length),
-       GNUNET_i2s (&s->target));
+       GNUNET_i2s (&s->address->peer));
 
   /* add new session */
   (void) GNUNET_CONTAINER_multipeermap_put (plugin->sessions,
-                                            &s->target,
+                                            &s->address->peer,
                                             s,
                                             GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
   /* initiate new connection */
@@ -1789,7 +1782,7 @@ http_client_plugin_get_session (void *cls,
          http_common_plugin_address_to_string (plugin->protocol,
                                                s->address->address,
                                                s->address->address_length),
-         GNUNET_i2s (&s->target));
+         GNUNET_i2s (&s->address->peer));
     client_delete_session (s);
     return NULL;
   }
