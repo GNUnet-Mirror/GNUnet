@@ -1246,7 +1246,6 @@ update_active_address (struct GAS_PROPORTIONAL_Handle *s,
       net = asi->network;
       asi->activated = GNUNET_TIME_UNIT_ZERO_ABS;
       current_address->active = GNUNET_NO; /* No active any longer */
-GNUNET_break (0);
       current_address->assigned_bw_in = BANDWIDTH_ZERO; /* no bandwidth assigned */
       current_address->assigned_bw_out = BANDWIDTH_ZERO; /* no bandwidth assigned */
 
