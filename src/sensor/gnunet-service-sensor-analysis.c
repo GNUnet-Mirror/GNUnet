@@ -38,6 +38,16 @@ struct SensorModel
 {
 
   /*
+   * DLL
+   */
+  struct SensorModel *prev;
+
+  /*
+   * DLL
+   */
+  struct SensorModel *next;
+
+  /*
    * Pointer to sensor info structure
    */
   struct SensorInfo *sensor;
@@ -62,12 +72,7 @@ static char *model_lib_name;
 /*
  * Model handle
  */
-static struct GNUNET_SENSOR_ModelFunctions *model;
-
-/**
- * Hashmap of loaded sensor definitions
- */
-static struct GNUNET_CONTAINER_MultiHashMap *sensors;
+static struct GNUNET_SENSOR_ModelFunctions *model_api;
 
 /*
  * Handle to peerstore service
@@ -80,9 +85,14 @@ static struct GNUNET_PEERSTORE_Handle *peerstore;
 static const char *analysis_datatypes[] = { "uint64", "double", NULL };
 
 /*
- * MultiHashmap of all sensor models
+ * Head of DLL of created models
  */
-static struct GNUNET_CONTAINER_MultiHashMap *sensor_models;
+static struct SensorModel *models_head;
+
+/*
+ * Tail of DLL of created models
+ */
+static struct SensorModel *models_tail;
 
 /**
  * My peer id
@@ -90,17 +100,12 @@ static struct GNUNET_CONTAINER_MultiHashMap *sensor_models;
 struct GNUNET_PeerIdentity peerid;
 
 /*
- * TODO: document
+ * Destroy a created model
  */
-static int
-destroy_sensor_model (void *cls,
-    const struct GNUNET_HashCode *key,
-    void *value)
+static void
+destroy_sensor_model (struct SensorModel *sensor_model)
 {
-  struct SensorModel *sensor_model = value;
-
-  if (NULL == sensor_model)
-    return GNUNET_YES;
+  GNUNET_assert (NULL != sensor_model);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
         "Destroying sensor model for `%s'.\n",
         sensor_model->sensor->name);
@@ -109,7 +114,7 @@ destroy_sensor_model (void *cls,
     GNUNET_PEERSTORE_watch_cancel(sensor_model->wc);
     sensor_model->wc = NULL;
   }
-  return GNUNET_YES;
+  sensor_model = NULL;
 }
 
 /*
@@ -117,19 +122,20 @@ destroy_sensor_model (void *cls,
  */
 void SENSOR_analysis_stop()
 {
+  struct SensorModel *sm;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Stopping sensor analysis module.\n");
-  if (NULL != model)
+  if (NULL != model_api)
   {
-    GNUNET_break (NULL == GNUNET_PLUGIN_unload (model_lib_name, model));
+    GNUNET_break (NULL == GNUNET_PLUGIN_unload (model_lib_name, model_api));
     GNUNET_free (model_lib_name);
     model_lib_name = NULL;
   }
-  if (NULL != sensor_models)
+  while (NULL != models_head)
   {
-    GNUNET_CONTAINER_multihashmap_iterate(sensor_models, &destroy_sensor_model, NULL);
-    GNUNET_CONTAINER_multihashmap_destroy(sensor_models);
-    sensor_models = NULL;
+    sm = models_head;
+    destroy_sensor_model(sm);
+    GNUNET_CONTAINER_DLL_remove(models_head, models_tail, sm);
   }
   if (NULL != peerstore)
   {
@@ -139,7 +145,7 @@ void SENSOR_analysis_stop()
 }
 
 /*
- * TODO: document
+ * Sensor value watch callback
  */
 static int
 sensor_watcher (void *cls,
@@ -152,7 +158,13 @@ sensor_watcher (void *cls,
 }
 
 /*
- * TODO: document
+ * Iterator for defined sensors
+ * Creates sensor model for numeric sensors
+ *
+ * @param cls unused
+ * @param key unused
+ * @param value a 'struct SensorInfo *' with sensor information
+ * @return #GNUNET_YES to continue iterations
  */
 static int
 init_sensor_model (void *cls,
@@ -180,8 +192,7 @@ init_sensor_model (void *cls,
   sensor_model->wc = GNUNET_PEERSTORE_watch(peerstore,
           "sensor", &peerid, sensor->name,
           &sensor_watcher, sensor_model);
-  GNUNET_CONTAINER_multihashmap_put(sensor_models, key,
-      sensor_model, GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+  GNUNET_CONTAINER_DLL_insert(models_head, models_tail, sensor_model);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
       "Created sensor model for `%s'.\n", sensor->name);
   return GNUNET_YES;
@@ -191,15 +202,16 @@ init_sensor_model (void *cls,
  * Start the sensor analysis module
  *
  * @param c our service configuration
- * @param sensors_mhm multihashmap of loaded sensors
+ * @param sensors multihashmap of loaded sensors
  * @return #GNUNET_OK if started successfully, #GNUNET_SYSERR otherwise
  */
 int
 SENSOR_analysis_start(const struct GNUNET_CONFIGURATION_Handle *c,
-    struct GNUNET_CONTAINER_MultiHashMap *sensors_mhm)
+    struct GNUNET_CONTAINER_MultiHashMap *sensors)
 {
   char *model_name;
 
+  GNUNET_assert(NULL != sensors);
   cfg = c;
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (cfg, "sensor-analysis", "MODEL",
@@ -209,18 +221,11 @@ SENSOR_analysis_start(const struct GNUNET_CONFIGURATION_Handle *c,
     return GNUNET_SYSERR;
   }
   GNUNET_asprintf (&model_lib_name, "libgnunet_plugin_sensor_model_%s", model_name);
-  model = GNUNET_PLUGIN_load(model_lib_name, (void *) cfg);
+  model_api = GNUNET_PLUGIN_load(model_lib_name, (void *) cfg);
   GNUNET_free(model_name);
-  if(NULL == model)
+  if(NULL == model_api)
   {
     LOG (GNUNET_ERROR_TYPE_ERROR, _("Could not load analysis model `%s'.\n"), model_lib_name);
-    return GNUNET_SYSERR;
-  }
-  sensors = sensors_mhm;
-  if (NULL == sensors)
-  {
-    LOG (GNUNET_ERROR_TYPE_ERROR, _("Tried to start analysis before loading sensors.\n"));
-    SENSOR_analysis_stop();
     return GNUNET_SYSERR;
   }
   peerstore = GNUNET_PEERSTORE_connect(cfg);
@@ -231,7 +236,6 @@ SENSOR_analysis_start(const struct GNUNET_CONFIGURATION_Handle *c,
     return GNUNET_SYSERR;
   }
   GNUNET_CRYPTO_get_peer_identity(cfg, &peerid);
-  sensor_models = GNUNET_CONTAINER_multihashmap_create(10, GNUNET_NO);
   GNUNET_CONTAINER_multihashmap_iterate(sensors, &init_sensor_model, NULL);
 
   return GNUNET_OK;
