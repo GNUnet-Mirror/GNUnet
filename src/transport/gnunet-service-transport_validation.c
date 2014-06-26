@@ -702,20 +702,10 @@ revalidate_address (void *cls,
       GNUNET_CRYPTO_random_u32 (GNUNET_CRYPTO_QUALITY_WEAK,
                                 canonical_delay.rel_value_us);
 
-  /* Debug code for mantis 0002726 */
-  if (GNUNET_TIME_UNIT_FOREVER_REL.rel_value_us ==
-      GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MICROSECONDS, rdelay).rel_value_us)
-  {
-    GNUNET_break (0);
-    delay = canonical_delay;
-  }
-  else
-  {
-    delay = GNUNET_TIME_relative_add (canonical_delay,
-				      GNUNET_TIME_relative_multiply
-				      (GNUNET_TIME_UNIT_MICROSECONDS, rdelay));
-  }
-  /* End debug code for mantis 0002726*/
+  delay = GNUNET_TIME_relative_add (canonical_delay,
+                                    GNUNET_TIME_relative_multiply
+                                    (GNUNET_TIME_UNIT_MICROSECONDS, rdelay));
+
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Validating now, next scheduled for %s, now validating address `%s'\n",
               GNUNET_STRINGS_relative_time_to_string (blocked_for,
