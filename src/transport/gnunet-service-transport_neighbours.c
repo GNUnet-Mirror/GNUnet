@@ -763,6 +763,12 @@ set_alternative_address (struct NeighbourMapEntry *n,
   n->alternative_address.keep_alive_nonce = 0;
 }
 
+static void
+set_quotas ()
+{
+
+}
+
 
 /**
  * Initialize the primary address of a neighbour
@@ -2506,6 +2512,16 @@ switch_address_bl_check_cont (void *cls,
     return;
   }
 
+  if ( (NULL != n->primary_address.address) &&
+       (0 == GNUNET_HELLO_address_cmp(blc_ctx->address, n->primary_address.address)) )
+  {
+    if (blc_ctx->session == n->primary_address.session)
+    {
+      /* Same address, update only quotas */
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Update with same address!\n");
+    }
+  }
+
   switch (n->state)
   {
   case GNUNET_TRANSPORT_PS_NOT_CONNECTED:
@@ -2721,12 +2737,11 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
     "ATS suggests %s address '%s' session %p for "
-    "peer `%s' in state %s/%s (quota in/out %u %u )\n",
+    "peer `%s' in state %s/%s \n",
     GNUNET_HELLO_address_check_option (address,
         GNUNET_HELLO_ADDRESS_INFO_INBOUND) ? "inbound" : "outbound",
     GST_plugins_a2s (address), session, GNUNET_i2s (peer),
-    GNUNET_TRANSPORT_ps2s (n->state), print_ack_state (n->ack_state),
-    ntohl (bandwidth_in.value__), ntohl (bandwidth_out.value__));
+    GNUNET_TRANSPORT_ps2s (n->state), print_ack_state (n->ack_state));
 
   /* Perform blacklist check */
   blc_ctx = GNUNET_new (struct BlacklistCheckSwitchContext);
