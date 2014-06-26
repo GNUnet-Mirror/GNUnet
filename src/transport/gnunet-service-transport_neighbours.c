@@ -2476,12 +2476,6 @@ switch_address_bl_check_cont (void *cls,
     return;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-      "Blacklist accepted address `%s' session %p for peer `%s'\n",
-      GST_plugins_a2s (blc_ctx->address),
-      blc_ctx->session,
-      GNUNET_i2s (&blc_ctx->address->peer));
-
   if (NULL == blc_ctx->session)
   {
     blc_ctx->session = papi->get_session (papi->cls, blc_ctx->address);
@@ -2512,7 +2506,11 @@ switch_address_bl_check_cont (void *cls,
     if (blc_ctx->session == n->primary_address.session)
     {
       /* This address is already primary, update only quotas */
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Update with same address!\n");
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+          "Updating quota for peer `%s' address `%s' session %p\n",
+          GNUNET_i2s (&blc_ctx->address->peer),
+          GST_plugins_a2s (blc_ctx->address),
+          blc_ctx->session);
 
       set_primary_address (n, blc_ctx->address, blc_ctx->session,
           blc_ctx->bandwidth_in, blc_ctx->bandwidth_out, GNUNET_NO);
@@ -2525,6 +2523,12 @@ switch_address_bl_check_cont (void *cls,
       return;
     }
   }
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+      "Peer `%s' switches to address `%s' session %p\n",
+      GNUNET_i2s (&blc_ctx->address->peer),
+      GST_plugins_a2s (blc_ctx->address),
+      blc_ctx->session);
 
   switch (n->state)
   {
@@ -2739,7 +2743,7 @@ GST_neighbours_switch_to_address (const struct GNUNET_PeerIdentity *peer,
     return;
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
     "ATS suggests %s address '%s' session %p for "
     "peer `%s' in state %s/%s \n",
     GNUNET_HELLO_address_check_option (address,
