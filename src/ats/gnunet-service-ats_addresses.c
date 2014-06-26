@@ -1163,7 +1163,6 @@ destroy_by_session_id (void *cls,
       /* Notify solver to delete session */
       handle->env.sf.s_del (handle->solver, aa, GNUNET_YES);
       aa->session_id = 0;
-      aa->active = GNUNET_NO;
       GAS_performance_notify_all_clients (&aa->peer,
                                           aa->plugin,
                                           aa->addr,
