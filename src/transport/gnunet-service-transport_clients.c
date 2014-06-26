@@ -902,6 +902,7 @@ transmit_address_to_client (void *cls,
       GNUNET_CONTAINER_DLL_remove (a2s_head,
                                    a2s_tail,
                                    actx);
+      GNUNET_free (atsm);
       GNUNET_free (actx);
       return;
     }
