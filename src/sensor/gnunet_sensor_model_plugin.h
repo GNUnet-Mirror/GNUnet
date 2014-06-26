@@ -57,6 +57,24 @@ struct GNUNET_SENSOR_ModelFunctions
   void *
   (*create_model) (void *cls);
 
+  /*
+   * Destroy a model instance
+   *
+   * @param cls closure (model state)
+   */
+  void
+  (*destroy_model) (void *cls);
+
+  /*
+   * Feed a new value to a model
+   *
+   * @param cls closure (model state)
+   * @param val value to be fed to the model
+   * @return #GNUNET_YES in case of a detected outlier, #GNUNET_NO otherwise
+   */
+  int
+  (*feed_model) (void *cls, double val);
+
 };
 
 

@@ -7,3 +7,7 @@ HOME = $SERVICEHOME
 
 [sensor-analysis]
 model = gaussian
+
+[sensor-model-gaussian]
+TRAINING_WINDOW = 1000
+CONFIDENCE_INTERVAL = 3

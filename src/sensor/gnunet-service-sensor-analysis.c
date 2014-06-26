@@ -27,6 +27,7 @@
 #include "gnunet_util_lib.h"
 #include "sensor.h"
 #include "gnunet_peerstore_service.h"
+#include "gnunet_sensor_model_plugin.h"
 
 #define LOG(kind,...) GNUNET_log_from (kind, "sensor-analysis",__VA_ARGS__)
 
@@ -56,6 +57,11 @@ struct SensorModel
    * Watcher of sensor values
    */
   struct GNUNET_PEERSTORE_WatchContext *wc;
+
+  /*
+   * Closure for model plugin
+   */
+  void *cls;
 
 };
 
@@ -109,6 +115,12 @@ destroy_sensor_model (struct SensorModel *sensor_model)
     GNUNET_PEERSTORE_watch_cancel(sensor_model->wc);
     sensor_model->wc = NULL;
   }
+  if (NULL != sensor_model->cls)
+  {
+    model_api->destroy_model (sensor_model->cls);
+    sensor_model->cls = NULL;
+  }
+  GNUNET_free(sensor_model);
   sensor_model = NULL;
 }
 
@@ -120,22 +132,22 @@ void SENSOR_analysis_stop()
   struct SensorModel *sm;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Stopping sensor analysis module.\n");
-  if (NULL != model_api)
-  {
-    GNUNET_break (NULL == GNUNET_PLUGIN_unload (model_lib_name, model_api));
-    GNUNET_free (model_lib_name);
-    model_lib_name = NULL;
-  }
   while (NULL != models_head)
   {
     sm = models_head;
-    destroy_sensor_model(sm);
     GNUNET_CONTAINER_DLL_remove(models_head, models_tail, sm);
+    destroy_sensor_model(sm);
   }
   if (NULL != peerstore)
   {
     GNUNET_PEERSTORE_disconnect(peerstore);
     peerstore = NULL;
+  }
+  if (NULL != model_api)
+  {
+    GNUNET_break (NULL == GNUNET_PLUGIN_unload (model_lib_name, model_api));
+    GNUNET_free (model_lib_name);
+    model_lib_name = NULL;
   }
 }
 
@@ -147,8 +159,28 @@ sensor_watcher (void *cls,
     struct GNUNET_PEERSTORE_Record *record,
     char *emsg)
 {
+  struct SensorModel *sensor_model = cls;
+  double *val;
+  int anomalous;
+
   LOG (GNUNET_ERROR_TYPE_DEBUG,
       "Received a sensor value, will feed to sensor model.\n");
+  if (sizeof(double) != record->value_size)
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+        _("Received an invalid sensor value."));
+    return GNUNET_YES;
+  }
+  val = (double *)(record->value);
+  anomalous = model_api->feed_model (sensor_model->cls, *val);
+  if (GNUNET_YES == anomalous)
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+        "Anomaly detected, value: %f.\n",
+        *val);
+  }
+  else
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Value non-anomalous.\n");
   return GNUNET_YES;
 }
 
@@ -176,6 +208,7 @@ init_sensor_model (void *cls,
   sensor_model->wc = GNUNET_PEERSTORE_watch(peerstore,
           "sensor", &peerid, sensor->name,
           &sensor_watcher, sensor_model);
+  sensor_model->cls = model_api->create_model(model_api->cls);
   GNUNET_CONTAINER_DLL_insert(models_head, models_tail, sensor_model);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
       "Created sensor model for `%s'.\n", sensor->name);
