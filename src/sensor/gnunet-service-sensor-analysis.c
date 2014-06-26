@@ -80,11 +80,6 @@ static struct GNUNET_SENSOR_ModelFunctions *model_api;
 static struct GNUNET_PEERSTORE_Handle *peerstore;
 
 /*
- * Datatypes supported by the analysis component
- */
-static const char *analysis_datatypes[] = { "uint64", "double", NULL };
-
-/*
  * Head of DLL of created models
  */
 static struct SensorModel *models_head;
@@ -173,19 +168,8 @@ init_sensor_model (void *cls,
 {
   struct SensorInfo *sensor = value;
   struct SensorModel *sensor_model;
-  int is_numeric;
-  int i;
 
-  is_numeric = GNUNET_NO;
-  for (i = 0; NULL != analysis_datatypes[i]; i++)
-  {
-    if (0 == strcmp (analysis_datatypes[i], sensor->expected_datatype))
-    {
-      is_numeric = GNUNET_YES;
-      break;
-    }
-  }
-  if (GNUNET_NO == is_numeric)
+  if (0 != strcmp("numeric", sensor->expected_datatype))
     return GNUNET_YES;
   sensor_model = GNUNET_new(struct SensorModel);
   sensor_model->sensor = sensor;

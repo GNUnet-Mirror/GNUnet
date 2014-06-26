@@ -45,6 +45,30 @@ struct Plugin
 };
 
 /*
+ * State of single model instance
+ */
+struct Model
+{
+
+  /*
+   * Pointer to the plugin state
+   */
+  struct Plugin *plugin;
+
+};
+
+static void *
+sensor_gaussian_model_create_model (void *cls)
+{
+  struct Plugin *plugin = cls;
+  struct Model *model;
+
+  model = GNUNET_new(struct Model);
+  model->plugin = plugin;
+  return model;
+}
+
+/*
  * Entry point for the plugin.
  *
  * @param cls The struct GNUNET_CONFIGURATION_Handle.

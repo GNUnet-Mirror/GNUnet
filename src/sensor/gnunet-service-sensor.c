@@ -53,7 +53,7 @@ static const char *sources[] = { "gnunet-statistics", "process", NULL };
 /**
  * Supported datatypes of sensor information
  */
-static const char *datatypes[] = { "uint64", "double", "string", NULL };
+static const char *datatypes[] = { "numeric", "string", NULL };
 
 /**
  * Handle to statistics service
@@ -697,6 +697,7 @@ int sensor_statistics_iterator (void *cls,
     int is_persistent)
 {
   struct SensorInfo *sensorinfo = cls;
+  double dvalue = (double)value;
   struct GNUNET_TIME_Absolute expiry;
 
   GNUNET_log(GNUNET_ERROR_TYPE_INFO, "Received a value for sensor `%s': %" PRIu64 "\n", sensorinfo->name, value);
@@ -705,8 +706,8 @@ int sensor_statistics_iterator (void *cls,
       subsystem,
       &peerid,
       sensorinfo->name,
-      &value,
-      sizeof(value),
+      &dvalue,
+      sizeof(dvalue),
       expiry,
       GNUNET_PEERSTORE_STOREOPTION_MULTIPLE,
       NULL,
@@ -741,25 +742,13 @@ void end_sensor_run_stat (void *cls, int success)
 static size_t
 parse_sensor_value (const char *value, struct SensorInfo* sensor, void **ret)
 {
-  uint64_t *ullval;
   double *dval;
   char *endptr;
 
   *ret = NULL;
   if ('\0' == *value)
     return 0;
-  //"uint64", "double", "string"
-  if (0 == strcmp("uint64", sensor->expected_datatype))
-  {
-    ullval = GNUNET_new(uint64_t);
-    *ullval = strtoull(value, &endptr, 10);
-    if ('\0' != *endptr &&
-        '\n' != *endptr) /* Invalid string */
-      return 0;
-    *ret = ullval;
-    return sizeof(uint64_t);
-  }
-  if(0 == strcmp("double", sensor->expected_datatype))
+  if(0 == strcmp("numeric", sensor->expected_datatype))
   {
     dval = GNUNET_new(double);
     *dval = strtod(value, &endptr);

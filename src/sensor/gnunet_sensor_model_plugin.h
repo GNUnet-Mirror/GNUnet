@@ -48,6 +48,15 @@ struct GNUNET_SENSOR_ModelFunctions
    */
   void *cls;
 
+  /*
+   * Create a model instance
+   *
+   * @param cls closure (plugin state)
+   * @return model state to be used for later calls
+   */
+  void *
+  (*create_model) (void *cls);
+
 };
 
 
