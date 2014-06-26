@@ -52,6 +52,19 @@ int
 GDS_ROUTING_update_trail_prev_hop (struct GNUNET_HashCode trail_id,
                                    struct GNUNET_PeerIdentity prev_hop);
 
+
+/**
+ * Update the next hop of the trail. Call made by trail compression where
+ * if you are source of the trail and now you have a new first friend, then
+ * you should update the trail. 
+ * @param trail_id
+ * @return #GNUNET_OK success
+ *         #GNUNET_SYSERR in case no matching entry found in routing table.
+ */
+int
+GDS_ROUTING_update_trail_next_hop (const struct GNUNET_HashCode trail_id,
+                                   struct GNUNET_PeerIdentity next_hop);
+
 /**
  * Get the next hop for trail corresponding to trail_id
  * @param trail_id Trail id to be searched. 
@@ -109,6 +122,7 @@ GDS_ROUTING_threshold_reached (void);
 void 
 GDS_ROUTING_test_print (void);
 #endif
+
 /**
  * Initialize routing subsystem.
  */

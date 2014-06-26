@@ -127,7 +127,7 @@ GDS_NEIGHBOURS_send_get_result (const struct GNUNET_HashCode *key,
 void
 GDS_NEIGHBOURS_send_trail_teardown (struct GNUNET_HashCode trail_id,
                                     unsigned int trail_direction,
-                                    struct GNUNET_PeerIdentity *peer);
+                                    struct GNUNET_PeerIdentity peer);
 
 /**
  * Return friend corresponding to peer.

@@ -74,7 +74,7 @@ struct RoutingTrail
 static struct GNUNET_CONTAINER_MultiHashMap *routing_table;
 
 /**
- * Update the prev. hop of the trail. Call made by trail teardown where
+ * Update the prev. hop of the trail. Call made by trail compression where
  * if you are the first friend now in the trail then you need to update
  * your prev. hop.
  * @param trail_id
@@ -96,7 +96,28 @@ GDS_ROUTING_update_trail_prev_hop (const struct GNUNET_HashCode trail_id,
   return GNUNET_OK;
 }
 
+/**
+ * Update the next hop of the trail. Call made by trail compression where
+ * if you are source of the trail and now you have a new first friend, then
+ * you should update the trail. 
+ * @param trail_id
+ * @return #GNUNET_OK success
+ *         #GNUNET_SYSERR in case no matching entry found in routing table.
+ */
+int
+GDS_ROUTING_update_trail_next_hop (const struct GNUNET_HashCode trail_id,
+                                   struct GNUNET_PeerIdentity next_hop)
+{
+  struct RoutingTrail *trail;
 
+  trail = GNUNET_CONTAINER_multihashmap_get (routing_table, &trail_id);
+
+  if (NULL == trail)
+    return GNUNET_SYSERR;
+
+  trail->next_hop = next_hop;
+  return GNUNET_OK;
+}
 
 /**
  * Get the next hop for trail corresponding to trail_id
@@ -182,7 +203,7 @@ static int remove_matching_trails (void *cls,
     {
       GDS_NEIGHBOURS_send_trail_teardown (trail_id, 
                                           GDS_ROUTING_DEST_TO_SRC,
-                                          &remove_trail->prev_hop);
+                                          remove_trail->prev_hop);
     }
   }
   
@@ -197,7 +218,7 @@ static int remove_matching_trails (void *cls,
     {
       GDS_NEIGHBOURS_send_trail_teardown (trail_id, 
                                           GDS_ROUTING_SRC_TO_DEST,
-                                          &remove_trail->next_hop);
+                                          remove_trail->next_hop);
     }
   }
   
