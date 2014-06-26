@@ -656,11 +656,13 @@ revalidate_address (void *cls,
   ve->revalidation_task = GNUNET_SCHEDULER_NO_TASK;
   delay = GNUNET_TIME_absolute_get_remaining (ve->revalidation_block);
   /* How long until we can possibly permit the next PING? */
-  canonical_delay =
-      (ve->in_use ==
-       GNUNET_YES) ? CONNECTED_PING_FREQUENCY
-      : ((GNUNET_TIME_absolute_get_remaining (ve->valid_until).rel_value_us >
-          0) ? VALIDATED_PING_FREQUENCY : UNVALIDATED_PING_KEEPALIVE);
+  if (GNUNET_YES == ve->in_use)
+    canonical_delay = CONNECTED_PING_FREQUENCY;
+  else if (GNUNET_TIME_absolute_get_remaining (ve->valid_until).rel_value_us > 0)
+    canonical_delay = VALIDATED_PING_FREQUENCY;
+  else
+    canonical_delay = UNVALIDATED_PING_KEEPALIVE;
+
   if (delay.rel_value_us > canonical_delay.rel_value_us * 2)
   {
     /* situation changed, recalculate delay */
@@ -1252,7 +1254,9 @@ validate_address_iterator (void *cls,
                            struct GNUNET_TIME_Absolute expiration)
 {
   const struct ValidateAddressContext *vac = cls;
+  struct GNUNET_TRANSPORT_PluginFunctions * papi;
   struct ValidationEntry *ve;
+  struct GNUNET_TIME_Relative canonical_delay;
 
   if (0 == GNUNET_TIME_absolute_get_remaining (expiration).rel_value_us)
   {
@@ -1261,6 +1265,29 @@ validate_address_iterator (void *cls,
     return GNUNET_OK;           /* expired */
   }
   ve = find_validation_entry (&vac->public_key, address);
+
+  papi = GST_plugins_find (ve->address->transport_name);
+  if (papi == NULL)
+  {
+    /* This plugin is currently unvailable ... retry later */
+    if (GNUNET_SCHEDULER_NO_TASK == ve->revalidation_task)
+    {
+      if (ve->in_use == GNUNET_YES)
+      {
+        if (GNUNET_YES == ve->in_use)
+          canonical_delay = CONNECTED_PING_FREQUENCY;
+        else if (GNUNET_TIME_absolute_get_remaining (ve->valid_until).rel_value_us > 0)
+          canonical_delay = VALIDATED_PING_FREQUENCY;
+        else
+          canonical_delay = UNVALIDATED_PING_KEEPALIVE;
+      }
+      ve->revalidation_task = GNUNET_SCHEDULER_add_delayed (canonical_delay,
+          &revalidate_address, ve);
+    }
+    return GNUNET_OK;
+  }
+
+
   if (GNUNET_SCHEDULER_NO_TASK == ve->revalidation_task)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
