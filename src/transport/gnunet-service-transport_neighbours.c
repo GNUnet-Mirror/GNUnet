@@ -763,12 +763,6 @@ set_alternative_address (struct NeighbourMapEntry *n,
   n->alternative_address.keep_alive_nonce = 0;
 }
 
-static void
-set_quotas ()
-{
-
-}
-
 
 /**
  * Initialize the primary address of a neighbour
@@ -2517,8 +2511,18 @@ switch_address_bl_check_cont (void *cls,
   {
     if (blc_ctx->session == n->primary_address.session)
     {
-      /* Same address, update only quotas */
+      /* This address is already primary, update only quotas */
       GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Update with same address!\n");
+
+      set_primary_address (n, blc_ctx->address, blc_ctx->session,
+          blc_ctx->bandwidth_in, blc_ctx->bandwidth_out, GNUNET_NO);
+
+      GNUNET_CONTAINER_DLL_remove (pending_bc_head, pending_bc_tail, blc_ctx);
+      GNUNET_HELLO_address_free(blc_ctx->address);
+      GNUNET_free_non_null (blc_ctx->ats);
+      GNUNET_free (blc_ctx);
+
+      return;
     }
   }
 
