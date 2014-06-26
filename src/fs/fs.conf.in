@@ -55,7 +55,7 @@ DISABLE_ANON_TRANSFER = NO
 # some reasonable level.  And if we have a very, very large
 # number, we probably won't have enough bandwidth to suppor them
 # well anyway, so better have a moderate cap.
-MAX_MESH_CLIENTS = 128
+MAX_CADET_CLIENTS = 128
 
 
 [gnunet-auto-share]
