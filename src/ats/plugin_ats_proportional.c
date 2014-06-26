@@ -352,12 +352,12 @@ struct Network
   char *stat_active;
 
   /**
-   * FIXME.
+   * Linked list of addresses in this network: head
    */
   struct AddressWrapper *head;
 
   /**
-   * FIXME.
+   * Linked list of addresses in this network: tail
    */
   struct AddressWrapper *tail;
 };
@@ -661,17 +661,24 @@ distribute_bandwidth (struct GAS_PROPORTIONAL_Handle *s,
 
 
 /**
- * FIXME.
+ * Context for finding the best address* Linked list of addresses in this network: head
  */
 struct FindBestAddressCtx
 {
+  /**
+   * The solver handle
+   */
   struct GAS_PROPORTIONAL_Handle *s;
+
+  /**
+   * The currently best address
+   */
   struct ATS_Address *best;
 };
 
 
 /**
- * FIXME.
+ * Find index of a ATS property type in the array.
  */
 static int
 find_property_index (uint32_t type)
@@ -1037,7 +1044,11 @@ addresse_decrement (struct GAS_PROPORTIONAL_Handle *s,
 
 
 /**
- * FIXME.
+ * Compares addresses
+ *
+ * @param a address a
+ * @param b address b
+ * @return GNUNET_YES if equal, GNUNET_NO else
  */
 static int
 address_eq (struct ATS_Address *a, struct ATS_Address *b)
@@ -1057,7 +1068,10 @@ address_eq (struct ATS_Address *a, struct ATS_Address *b)
 
 
 /**
- * FIXME.
+ * Notify bandwidth changes to addresses
+ *
+ * @param s solver handle
+ * @param net the network to propagate changes in
  */
 static void
 propagate_bandwidth (struct GAS_PROPORTIONAL_Handle *s,
@@ -1172,8 +1186,14 @@ distribute_bandwidth_in_network (struct GAS_PROPORTIONAL_Handle *s,
 
 
 /**
- * FIXME
- */
+ * Update active address for a peer:
+ * Check if active address exists and what the best address is, if addresses
+ * are different switch
+ *
+ * @param s solver handle
+ * @param peer the peer to check
+ * return the new address or NULL if no update was performed
+  */
 static const struct ATS_Address *
 update_active_address (struct GAS_PROPORTIONAL_Handle *s,
                        const struct GNUNET_PeerIdentity *peer)
@@ -1189,8 +1209,19 @@ update_active_address (struct GAS_PROPORTIONAL_Handle *s,
 
   /* Find active address */
   current_address = get_active_address (s, s->addresses, peer);
+
+  LOG (GNUNET_ERROR_TYPE_INFO,
+       "Peer `%s' has active address %p\n",
+       GNUNET_i2s (peer),
+       current_address);
+
+
   /* Find best address */
   best_address = get_best_address (s,s->addresses, peer);
+
+  LOG (GNUNET_ERROR_TYPE_INFO,
+       "Peer `%s' has best address %p\n",
+       GNUNET_i2s (peer), best_address);
 
   if (NULL != current_address)
   {
@@ -1338,7 +1369,7 @@ GAS_proportional_address_preference_feedback (void *solver,
  *
  * @param solver the solver handle
  * @param peer the identity of the peer
- * @return FIXME
+ * @return best address
  */
 static const struct ATS_Address *
 GAS_proportional_get_preferred_address (void *solver,
