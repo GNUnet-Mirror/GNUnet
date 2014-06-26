@@ -881,9 +881,13 @@ get_active_address_it (void *cls,
   struct ATS_Address **dest = cls;
   struct ATS_Address *aa = (struct ATS_Address *) value;
 
+  LOG (GNUNET_ERROR_TYPE_INFO,
+         "Checking address %p\n", aa);
+
   if (GNUNET_YES == aa->active)
   {
-
+  LOG (GNUNET_ERROR_TYPE_INFO,
+         "Address %p is active\n", aa);
     if (NULL != (*dest))
     {
       /* should never happen */
@@ -894,6 +898,7 @@ get_active_address_it (void *cls,
       return GNUNET_NO;
     }
     (*dest) = aa;
+
   }
   return GNUNET_OK;
 }
@@ -1241,6 +1246,7 @@ update_active_address (struct GAS_PROPORTIONAL_Handle *s,
       net = asi->network;
       asi->activated = GNUNET_TIME_UNIT_ZERO_ABS;
       current_address->active = GNUNET_NO; /* No active any longer */
+GNUNET_break (0);
       current_address->assigned_bw_in = BANDWIDTH_ZERO; /* no bandwidth assigned */
       current_address->assigned_bw_out = BANDWIDTH_ZERO; /* no bandwidth assigned */
 
@@ -1291,7 +1297,8 @@ update_active_address (struct GAS_PROPORTIONAL_Handle *s,
   asi->activated = GNUNET_TIME_absolute_get();
   best_address->active = GNUNET_YES;
   address_increment (s, net, GNUNET_NO, GNUNET_YES);
-
+  LOG (GNUNET_ERROR_TYPE_INFO, "Address %p for peer `%s' is now active\n",
+      best_address, GNUNET_i2s (peer));	
   /* Distribute bandwidth */
   distribute_bandwidth_in_network (s, net);
   return best_address;
@@ -1416,8 +1423,12 @@ GAS_proportional_stop_get_preferred_address (void *solver,
   struct Network *cur_net;
 
   if (GNUNET_YES == GNUNET_CONTAINER_multipeermap_contains (s->requests, peer))
+	{
     GNUNET_assert (GNUNET_OK == GNUNET_CONTAINER_multipeermap_remove (s->requests,
         peer, NULL));
+    LOG (GNUNET_ERROR_TYPE_INFO, "Stop suggesting addresses for peer `%s'\n",
+          GNUNET_i2s (peer));
+	}
 
   cur = get_active_address (s, s->addresses, peer);
   if (NULL != cur)
@@ -1514,6 +1525,7 @@ GAS_proportional_address_delete (void *solver,
   {
     /* Address was active, remove from network and update quotas*/
     address->active = GNUNET_NO;
+
     address->assigned_bw_in = BANDWIDTH_ZERO;
     address->assigned_bw_out = BANDWIDTH_ZERO;
     asi->calculated_quota_in_NBO = htonl (0);
