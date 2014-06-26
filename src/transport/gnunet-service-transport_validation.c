@@ -1272,15 +1272,12 @@ validate_address_iterator (void *cls,
     /* This plugin is currently unvailable ... retry later */
     if (GNUNET_SCHEDULER_NO_TASK == ve->revalidation_task)
     {
-      if (ve->in_use == GNUNET_YES)
-      {
-        if (GNUNET_YES == ve->in_use)
-          canonical_delay = CONNECTED_PING_FREQUENCY;
-        else if (GNUNET_TIME_absolute_get_remaining (ve->valid_until).rel_value_us > 0)
-          canonical_delay = VALIDATED_PING_FREQUENCY;
-        else
-          canonical_delay = UNVALIDATED_PING_KEEPALIVE;
-      }
+      if (GNUNET_YES == ve->in_use)
+        canonical_delay = CONNECTED_PING_FREQUENCY;
+      else if (GNUNET_TIME_absolute_get_remaining (ve->valid_until).rel_value_us > 0)
+        canonical_delay = VALIDATED_PING_FREQUENCY;
+      else
+        canonical_delay = UNVALIDATED_PING_KEEPALIVE;
       ve->revalidation_task = GNUNET_SCHEDULER_add_delayed (canonical_delay,
           &revalidate_address, ve);
     }
