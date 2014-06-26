@@ -1278,6 +1278,13 @@ validate_address_iterator (void *cls,
         canonical_delay = VALIDATED_PING_FREQUENCY;
       else
         canonical_delay = UNVALIDATED_PING_KEEPALIVE;
+
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+        "Plugin `%s' unavailable, validation process for peer `%s' delayed for %llu ms\n",
+        ve->address->transport_name,
+        GNUNET_i2s (&ve->address->peer),
+        (long long unsigned) canonical_delay.rel_value_us / 1000);
+
       ve->revalidation_task = GNUNET_SCHEDULER_add_delayed (canonical_delay,
           &revalidate_address, ve);
     }
