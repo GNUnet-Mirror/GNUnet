@@ -4,6 +4,8 @@ pkgcfgdir= $(pkgdatadir)/config.d/
 
 libexecdir= $(pkglibdir)/libexec/
 
+plugindir = $(libdir)/gnunet
+
 dist_pkgcfg_DATA = \
   sensor.conf
 
@@ -46,6 +48,21 @@ libgnunetsensor_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la
 libgnunetsensor_la_LDFLAGS = \
   $(GNUNET_LDFLAGS)
+
+plugin_LTLIBRARIES = \
+  libgnunet_plugin_sensor_model_gaussian.la
+  
+libgnunet_plugin_sensor_model_gaussian_la_SOURCES = \
+  plugin_sensor_model_gaussian.c
+libgnunet_plugin_sensor_model_gaussian_la_LIBADD = \
+  $(top_builddir)/src/sensor/libgnunetsensor.la  \
+  $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) \
+  $(LTLIBINTL)
+libgnunet_plugin_sensor_model_gaussian_la_LDFLAGS = \
+ $(GN_PLUGIN_LDFLAGS)
+libgnunet_plugin_sensor_model_gaussian_la_DEPENDENCIES = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  libgnunetsensor.la
 
 check_PROGRAMS = \
  test_sensor_api

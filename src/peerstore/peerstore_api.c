@@ -799,6 +799,9 @@ GNUNET_PEERSTORE_watch (struct GNUNET_PEERSTORE_Handle *h,
   struct StoreKeyHashMessage *hm;
   struct GNUNET_PEERSTORE_WatchContext *wc;
 
+  GNUNET_assert(NULL != sub_system);
+  GNUNET_assert(NULL != peer);
+  GNUNET_assert(NULL != key);
   ev = GNUNET_MQ_msg(hm, GNUNET_MESSAGE_TYPE_PEERSTORE_WATCH);
   PEERSTORE_hash_key(sub_system, peer, key, &hm->keyhash);
   wc = GNUNET_new(struct GNUNET_PEERSTORE_WatchContext);

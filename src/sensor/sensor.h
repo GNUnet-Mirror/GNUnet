@@ -19,7 +19,7 @@
  */
 /**
  * @file sensor/sensor.h
- * @brief IPC messages
+ * @brief IPC messages and private service declarations
  * @author Omar Tarabai
  */
 
@@ -61,3 +61,19 @@ struct SensorInfoMessage
 };
 
 GNUNET_NETWORK_STRUCT_END
+
+/*
+ * Stop the sensor analysis module
+ */
+void SENSOR_analysis_stop();
+
+/*
+ * Start the sensor analysis module
+ *
+ * @param c our service configuration
+ * @param sensors_mhm multihashmap of loaded sensors
+ * @return #GNUNET_OK if started successfully, #GNUNET_SYSERR otherwise
+ */
+int
+SENSOR_analysis_start(const struct GNUNET_CONFIGURATION_Handle *c,
+    struct GNUNET_CONTAINER_MultiHashMap *sensors_mhm);

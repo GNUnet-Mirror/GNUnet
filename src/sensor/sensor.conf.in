@@ -5,3 +5,5 @@ HOME = $SERVICEHOME
 # PORT = 2106
 @UNIXONLY@ PORT = 2087
 
+[sensor-analysis]
+model = gaussian

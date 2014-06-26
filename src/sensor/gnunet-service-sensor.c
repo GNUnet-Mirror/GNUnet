@@ -159,6 +159,7 @@ static void
 shutdown_task (void *cls,
 	       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  SENSOR_analysis_stop();
   GNUNET_CONTAINER_multihashmap_iterate(sensors, &destroy_sensor, NULL);
   GNUNET_CONTAINER_multihashmap_destroy(sensors);
   if(NULL != statistics)
@@ -1000,6 +1001,7 @@ run (void *cls,
   sensors = GNUNET_CONTAINER_multihashmap_create(10, GNUNET_NO);
   reload_sensors();
   schedule_all_sensors();
+  SENSOR_analysis_start(c, sensors);
   statistics = GNUNET_STATISTICS_create("sensor", cfg);
   GNUNET_CRYPTO_get_peer_identity(cfg, &peerid);
   peerstore = GNUNET_PEERSTORE_connect(cfg);
