@@ -777,7 +777,7 @@ try_connect_if_allowed (void *cls,
     return;                     /* not allowed */
   }
 
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               _("Blacklist allows connection attempt to peer `%s'\n"),
               GNUNET_i2s (peer));
 
