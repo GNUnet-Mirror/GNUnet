@@ -48,6 +48,7 @@
 #define ROUTING_TABLE_THRESHOLD 64
 
 /**
+ * FIXME: Store friend pointer instead of peer identifier. 
  * Routing table entry .
  */
 struct RoutingTrail
@@ -264,20 +265,24 @@ GDS_ROUTING_test_print (void)
   }
 }
 #endif
+
 /**
  * Remove every trail where peer is either next_hop or prev_hop. Also send a 
  * trail teardown message in direction of hop which is not disconnected.
  * @param peer Peer identity. Trail containing this peer should be removed.
  */
-void
+int
 GDS_ROUTING_remove_trail_by_peer (const struct GNUNET_PeerIdentity *peer)
 {
+  int ret;
   /* No entries in my routing table. */
   if (0 == GNUNET_CONTAINER_multihashmap_size(routing_table))
-    return;
+    return GNUNET_YES;
   
-  GNUNET_CONTAINER_multihashmap_iterate (routing_table, &remove_matching_trails,
-                                         (void *)peer);
+  ret = GNUNET_CONTAINER_multihashmap_iterate (routing_table,
+                                               &remove_matching_trails,
+                                               (void *)peer);
+  return ret;
 }
 
 

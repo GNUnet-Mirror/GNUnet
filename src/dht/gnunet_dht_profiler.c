@@ -307,6 +307,8 @@ get_iter (void *cls,
   struct ActiveContext *ac = cls;
   struct ActiveContext *get_ac = ac->get_ac;
 
+  /* FIXME: Compare the keys of put and the result. */
+  
   if (get_ac->put_data_size != size)
   {
     DEBUG ("Found a GET with incorrect data length (this may happen, but very unlikely)\n");

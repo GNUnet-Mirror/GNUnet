@@ -80,7 +80,7 @@ GDS_ROUTING_get_next_hop (struct GNUNET_HashCode trail_id,
   * Remove every trail where peer is either next_hop or prev_hop 
  * @param peer Peer to be searched.
  */
-void
+int
 GDS_ROUTING_remove_trail_by_peer (const struct GNUNET_PeerIdentity *peer);
 /**
  * Remove trail with trail_id
@@ -134,4 +134,5 @@ GDS_ROUTING_init (void);
  */
 void
 GDS_ROUTING_done (void);
+
 #endif

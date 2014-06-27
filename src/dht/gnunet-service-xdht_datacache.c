@@ -195,7 +195,7 @@ datacache_get_iterator (void *cls,
 {
   struct GetRequestContext *ctx = cls;
   enum GNUNET_BLOCK_EvaluationResult eval;
-  FPRINTF (stderr,_("\nSUPU %s, %s, %d"),__FILE__, __func__,__LINE__);
+
   eval =
       GNUNET_BLOCK_evaluate (GDS_block_context, type, key, ctx->reply_bf,
                              ctx->reply_bf_mutator, ctx->xquery,
