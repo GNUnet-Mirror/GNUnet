@@ -1565,22 +1565,18 @@ client_connect (struct Session *s)
   int res = GNUNET_OK;
 
   /* create url */
-  if (NULL == http_common_plugin_address_to_string (plugin->protocol,
-                                                    s->address->address,
-                                                    s->address->address_length))
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Invalid address peer `%s'\n",
-         GNUNET_i2s (&s->address->peer));
-    return GNUNET_SYSERR;
-  }
+  if (NULL == http_common_plugin_address_to_string(plugin->protocol,
+          s->address->address, s->address->address_length))
+    {
+      LOG(GNUNET_ERROR_TYPE_DEBUG, "Invalid address peer `%s'\n",
+          GNUNET_i2s(&s->address->peer));
+      return GNUNET_SYSERR;
+    }
 
-  GNUNET_asprintf (&s->url, "%s/%s;%u",
-		   http_common_plugin_address_to_url (NULL,
-                                                      s->address->address,
-                                                      s->address->address_length),
-		   GNUNET_i2s_full (plugin->env->my_identity),
-		   plugin->last_tag);
+  GNUNET_asprintf(&s->url, "%s/%s;%u",
+      http_common_plugin_address_to_url(NULL, s->address->address,
+          s->address->address_length),
+      GNUNET_i2s_full(plugin->env->my_identity), plugin->last_tag);
 
   plugin->last_tag++;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
