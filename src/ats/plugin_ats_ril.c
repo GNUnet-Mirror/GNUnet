@@ -2681,7 +2681,16 @@ libgnunet_plugin_ats_ril_init (void *cls)
 
   if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (env->cfg, "ats", "RIL_ALGORITHM", &string))
   {
-    solver->parameters.algorithm = !strcmp (string, "SARSA") ? RIL_ALGO_SARSA : RIL_ALGO_Q;
+    GNUNET_STRINGS_utf8_toupper (string, string);
+    if (0 == strcmp (string, "SARSA"))
+    {
+        solver->parameters.algorithm = RIL_ALGO_SARSA;
+    }
+    if (0 == strcmp (string, "Q-LEARNING"))
+    {
+        solver->parameters.algorithm = RIL_ALGO_Q;
+    }
+
     GNUNET_free (string);
   }
   else
