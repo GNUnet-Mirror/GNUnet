@@ -1479,8 +1479,9 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
   if (direction == _RECEIVE)
     s->server_recv = sc;
 
-  if ( (NULL != s->server_send) &&
-       (NULL != s->server_recv) )
+  if ((GNUNET_NO == s->known_to_service) &&
+      (NULL != s->server_send) &&
+      (NULL != s->server_recv) )
   {
     s->known_to_service = GNUNET_YES;
     plugin->env->session_start (NULL, s->address ,s, NULL, 0);
