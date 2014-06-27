@@ -2798,7 +2798,7 @@ libgnunet_plugin_ats_ril_init (void *cls)
   if (GNUNET_SYSERR != GNUNET_CONFIGURATION_get_value_float (env->cfg, "ats",
       "RIL_EXPLORE_DECAY", &f_tmp))
   {
-    if ((f_tmp < 0.0) || (f_tmp > 0.0))
+    if ((f_tmp < 0.0) || (f_tmp > 1.0))
     {
       LOG (GNUNET_ERROR_TYPE_ERROR, _("Invalid %s configuration %f \n"),
           "RIL_EXPLORE_DECAY", f_tmp);
