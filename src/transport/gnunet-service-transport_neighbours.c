@@ -3285,12 +3285,12 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
     return GNUNET_NO; /* can't affect us */
   if (session != n->primary_address.session)
   {
+    /* Free alternative address */
     if (session == n->alternative_address.session)
     {
       if ( (GNUNET_TRANSPORT_PS_CONNECTED_SWITCHING_CONNECT_SENT == n->state) )
         set_state (n, GNUNET_TRANSPORT_PS_CONNECTED);
-      else
-        free_address (&n->alternative_address);
+      free_address (&n->alternative_address);
     }
     return GNUNET_NO; /* doesn't affect us further */
   }
@@ -3357,15 +3357,26 @@ GST_neighbours_session_terminated (const struct GNUNET_PeerIdentity *peer,
     /* primary went down while we were waiting for CONNECT_ACK on secondary;
        secondary as primary */
 
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+        "Connection `%s' %p to peer `%s' was terminated while switching, "
+        "switching to alternative address `%s' %p\n",
+        GST_plugins_a2s (n->primary_address.address),
+        n->primary_address.session,
+        GNUNET_i2s (peer),
+        GST_plugins_a2s (n->alternative_address.address),
+        n->alternative_address.session);
+
     /* Destroy the inbound address since it cannot be used */
     if (GNUNET_YES
         == GNUNET_HELLO_address_check_option (n->primary_address.address,
             GNUNET_HELLO_ADDRESS_INFO_INBOUND))
       GNUNET_ATS_address_destroyed (GST_ats, n->primary_address.address, NULL);
     free_address (&n->primary_address);
+
+
     n->primary_address = n->alternative_address;
     memset (&n->alternative_address, 0, sizeof (struct NeighbourAddress));
-    set_state_and_timeout (n, GNUNET_TRANSPORT_PS_RECONNECT_ATS,
+    set_state_and_timeout (n, GNUNET_TRANSPORT_PS_RECONNECT_SENT,
         GNUNET_TIME_relative_to_absolute (FAST_RECONNECT_TIMEOUT));
     break;
   case GNUNET_TRANSPORT_PS_DISCONNECT:
