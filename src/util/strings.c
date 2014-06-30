@@ -854,7 +854,7 @@ GNUNET_STRINGS_data_to_string (const void *data, size_t size, char *out, size_t 
   /**
    * 32 characters for encoding
    */
-  static char *encTable__ = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
+  static char *encTable__ = "OL23456789ABCDEFGHJKMNPQRSTUWXYZ";
   unsigned int wpos;
   unsigned int rpos;
   unsigned int bits;
