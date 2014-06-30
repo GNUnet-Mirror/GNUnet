@@ -171,7 +171,7 @@ struct SensorInfo
   /*
    * Time interval to send sensor information to collection point (e.g. every 30 mins)
    */
-  struct GNUNET_TIME_Relative *collection_interval;
+  struct GNUNET_TIME_Relative collection_interval;
 
   /*
    * Flag specifying if value is to be communicated to the p2p network
@@ -181,7 +181,7 @@ struct SensorInfo
   /*
    * Time interval to communicate value to the p2p network
    */
-  struct GNUNET_TIME_Relative *p2p_interval;
+  struct GNUNET_TIME_Relative p2p_interval;
 
   /*
    * Execution task (OR GNUNET_SCHEDULER_NO_TASK)

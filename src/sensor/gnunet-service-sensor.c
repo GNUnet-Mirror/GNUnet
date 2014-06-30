@@ -159,6 +159,7 @@ static void
 shutdown_task (void *cls,
 	       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  SENSOR_reporting_stop();
   SENSOR_analysis_stop();
   GNUNET_CONTAINER_multihashmap_iterate(sensors, &destroy_sensor, NULL);
   GNUNET_CONTAINER_multihashmap_destroy(sensors);
@@ -238,6 +239,8 @@ load_sensor_from_cfg(struct GNUNET_CONFIGURATION_Handle *cfg, const char *sectio
   char *starttime_str;
   char *endtime_str;
   unsigned long long time_sec;
+  char *dummy;
+  struct GNUNET_CRYPTO_EddsaPublicKey public_key;
 
   sensor = GNUNET_new(struct SensorInfo);
   //name
@@ -307,6 +310,10 @@ load_sensor_from_cfg(struct GNUNET_CONFIGURATION_Handle *cfg, const char *sectio
   if(GNUNET_OK == GNUNET_CONFIGURATION_get_value_number(cfg, sectionname, "LIFETIME", &time_sec))
   {
     sensor->lifetime = GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, time_sec);
+    if (sensor->lifetime.rel_value_us < sensor->interval.rel_value_us)
+      GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+          "Lifetime of sensor data is preferred to be higher than interval for sensor `%s'.\n",
+          sensor->name);
   }
   else
     sensor->lifetime = sensor->interval;
@@ -352,7 +359,36 @@ load_sensor_from_cfg(struct GNUNET_CONFIGURATION_Handle *cfg, const char *sectio
     GNUNET_free(sensor);
     return NULL;
   }
-  //TODO: reporting mechanism
+  //reporting mechanism
+  if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string(cfg, sectionname, "COLLECTION_POINT", &dummy))
+  {
+    if(GNUNET_OK != GNUNET_CONFIGURATION_get_value_number(cfg, sectionname, "COLLECTION_INTERVAL", &time_sec))
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR, _("Error reading sensor collection interval\n"));
+    }
+    else
+    {
+      sensor->collection_interval = GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, time_sec);
+      if (GNUNET_OK == GNUNET_CRYPTO_eddsa_public_key_from_string(dummy, strlen(dummy), &public_key))
+      {
+        sensor->collection_point = GNUNET_new(struct GNUNET_PeerIdentity);
+        sensor->collection_point->public_key = public_key;
+      }
+    }
+  }
+  sensor->p2p_report = GNUNET_NO;
+  if (GNUNET_YES == GNUNET_CONFIGURATION_get_value_yesno(cfg, sectionname, "P2P_REPORT"))
+  {
+    if(GNUNET_OK != GNUNET_CONFIGURATION_get_value_number(cfg, sectionname, "P2P_INTERVAL", &time_sec))
+    {
+      GNUNET_log(GNUNET_ERROR_TYPE_ERROR, _("Error reading sensor p2p reporting interval\n"));
+    }
+    else
+    {
+      sensor->p2p_interval = GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, time_sec);
+      sensor->p2p_report = GNUNET_YES;
+    }
+  }
   //execution task
   sensor->execution_task = GNUNET_SCHEDULER_NO_TASK;
   //running
@@ -991,6 +1027,7 @@ run (void *cls,
   reload_sensors();
   schedule_all_sensors();
   SENSOR_analysis_start(c, sensors);
+  SENSOR_reporting_start(c, sensors);
   statistics = GNUNET_STATISTICS_create("sensor", cfg);
   GNUNET_CRYPTO_get_peer_identity(cfg, &peerid);
   peerstore = GNUNET_PEERSTORE_connect(cfg);
