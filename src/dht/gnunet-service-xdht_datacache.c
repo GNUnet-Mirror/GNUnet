@@ -78,6 +78,7 @@ GDS_DATACACHE_handle_put (struct GNUNET_TIME_Absolute expiration,
   GNUNET_STATISTICS_update (GDS_stats,
                             gettext_noop ("# ITEMS stored in datacache"), 1,
                             GNUNET_NO);
+
   r = GNUNET_DATACACHE_put (datacache, key, data_size, data, type, expiration,
                             put_path_length, put_path);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -226,7 +227,7 @@ datacache_get_iterator (void *cls,
       i++;
       iterator = iterator->next;
     }
-
+    
     GDS_NEIGHBOURS_send_get_result (key,type, &(ctx->next_hop),&(ctx->source_peer),
                                     put_path_length, put_path, ctx->get_path_length,
                                     get_path, exp, data, size );
@@ -331,7 +332,7 @@ GDS_DATACACHE_handle_get (const struct GNUNET_HashCode * key,
       i++;
     }
   }
-  
+
   r = GNUNET_DATACACHE_get (datacache, key, type, &datacache_get_iterator,
                             &ctx);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
