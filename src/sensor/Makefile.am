@@ -41,6 +41,7 @@ gnunet_service_sensor_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/peerstore/libgnunetpeerstore.la \
+  $(top_builddir)/src/cadet/libgnunetcadet.la \
   $(GN_LIBINTL)
 
 libgnunetsensor_la_SOURCES = \

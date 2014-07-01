@@ -101,6 +101,11 @@ extern "C"
  */
 #define GNUNET_APPLICATION_TYPE_MQTT 23
 
+/**
+ * Application receiving sensor measurements from peers
+ */
+#define GNUNET_APPLICATION_TYPE_SENSORDASHBOARD 24
+
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

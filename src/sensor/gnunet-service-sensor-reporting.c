@@ -27,6 +27,7 @@
 #include "gnunet_util_lib.h"
 #include "sensor.h"
 #include "gnunet_peerstore_service.h"
+#include "gnunet_cadet_service.h"
 
 #define LOG(kind,...) GNUNET_log_from (kind, "sensor-reporting",__VA_ARGS__)
 
@@ -62,18 +63,23 @@ static struct GNUNET_PEERSTORE_Handle *peerstore;
 /**
  * My peer id
  */
-struct GNUNET_PeerIdentity peerid;
+static struct GNUNET_PeerIdentity peerid;
+
+/**
+ * Handle to CADET service
+ */
+static struct GNUNET_CADET_Handle *cadet;
 
 
 /**
  * Stop sensor reporting module
  */
-void SENSOR_reporting_stop()
+void SENSOR_reporting_stop ()
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Stopping sensor reporting module.\n");
   if (NULL != peerstore)
   {
-    GNUNET_PEERSTORE_disconnect(peerstore);
+    GNUNET_PEERSTORE_disconnect (peerstore);
     peerstore = NULL;
   }
 }
@@ -118,7 +124,7 @@ init_sensor_reporting (void *cls,
     crc = GNUNET_new (struct CollectionReportingContext);
     crc->sensor = sensor;
     crc->task =
-        GNUNET_SCHEDULER_add_delayed(sensor->collection_interval,
+        GNUNET_SCHEDULER_add_delayed (sensor->collection_interval,
             &report_collection_point,
             crc);
   }
@@ -133,6 +139,24 @@ init_sensor_reporting (void *cls,
 }
 
 /**
+ * Function called whenever a channel is destroyed.  Should clean up
+ * any associated state.
+ *
+ * It must NOT call #GNUNET_CADET_channel_destroy on the channel.
+ *
+ * @param cls closure (set from #GNUNET_CADET_connect)
+ * @param channel connection to the other end (henceforth invalid)
+ * @param channel_ctx place where local state associated
+ *                   with the channel is stored
+ */
+static void cadet_channel_destroyed (void *cls,
+    const struct GNUNET_CADET_Channel *channel,
+    void *channel_ctx)
+{
+
+}
+
+/**
  * Start the sensor reporting module
  *
  * @param c our service configuration
@@ -140,9 +164,12 @@ init_sensor_reporting (void *cls,
  * @return #GNUNET_OK if started successfully, #GNUNET_SYSERR otherwise
  */
 int
-SENSOR_reporting_start(const struct GNUNET_CONFIGURATION_Handle *c,
+SENSOR_reporting_start (const struct GNUNET_CONFIGURATION_Handle *c,
     struct GNUNET_CONTAINER_MultiHashMap *sensors)
 {
+  static struct GNUNET_CADET_MessageHandler cadet_handlers[] = {
+      {NULL, 0, 0}
+  };
 
   GNUNET_assert(NULL != sensors);
   cfg = c;
@@ -151,10 +178,25 @@ SENSOR_reporting_start(const struct GNUNET_CONFIGURATION_Handle *c,
   peerstore = GNUNET_PEERSTORE_connect(cfg);
   if (NULL == peerstore)
   {
-    LOG (GNUNET_ERROR_TYPE_ERROR, _("Could not connect to peerstore service.\n"));
-    SENSOR_reporting_stop();
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+        _("Failed to connect to peerstore service.\n"));
+    SENSOR_reporting_stop ();
     return GNUNET_SYSERR;
   }
+  cadet = GNUNET_CADET_connect(cfg,
+      NULL,
+      NULL,
+      &cadet_channel_destroyed,
+      cadet_handlers,
+      NULL);
+  if (NULL == cadet)
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+        _("Failed to connect to CADET service.\n"));
+    SENSOR_reporting_stop ();
+    return GNUNET_SYSERR;
+  }
+
   return GNUNET_OK;
 }
 

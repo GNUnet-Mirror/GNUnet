@@ -1491,6 +1491,8 @@ src/secretsharing/Makefile
 src/secretsharing/secretsharing.conf
 src/sensor/Makefile
 src/sensor/sensor.conf
+src/sensordashboard/Makefile
+src/sensordashboard/sensordashboard.conf
 src/scalarproduct/Makefile
 src/scalarproduct/scalarproduct.conf
 src/set/Makefile

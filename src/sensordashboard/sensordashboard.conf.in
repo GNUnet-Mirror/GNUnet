@@ -1,0 +1,4 @@
+[sensordashboard]
+BINARY = gnunet-service-sensordashboard
+UNIXPATH = /tmp/gnunet-service-sensordashboard.sock
+HOME = $SERVICEHOME

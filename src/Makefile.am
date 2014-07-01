@@ -11,6 +11,7 @@ if HAVE_TESTING
  SCALARPRODUCT = scalarproduct
  SENSOR = sensor
  PEERSTORE = peerstore
+ SENSORDASHBOARD = sensordashboard
 endif
 
 if HAVE_EXPERIMENTAL
@@ -26,7 +27,8 @@ if HAVE_EXPERIMENTAL
   $(SCALARPRODUCT) \
   $(EXPERIMENTATION) \
   $(PEERSTORE) \
-  $(SENSOR)
+  $(SENSOR) \
+  $(SENSORDASHBOARD)
 endif
 
 
