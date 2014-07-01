@@ -353,6 +353,10 @@ struct HTTP_Client_Plugin
    */
   uint16_t use_ipv4;
 
+  /**
+   * Should we emulate an XHR client for testing?
+   */
+  int emulate_xhr;
 };
 
 
@@ -646,6 +650,16 @@ client_log (CURL *curl,
        text);
   return 0;
 }
+
+
+/**
+ * Connect GET connection for a session
+ *
+ * @param s the session to connect
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR otherwise
+ */
+static int
+client_connect_get (struct Session *s);
 
 
 /**
@@ -983,6 +997,15 @@ client_send_cb (void *stream,
 
   if (NULL == msg)
   {
+    if (GNUNET_YES == plugin->emulate_xhr)
+    {
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Session %p/connection %p: PUT request finished\n",
+           s, s->put.easyhandle);
+      s->put_tmp_disconnecting = GNUNET_YES;
+      return 0;
+    }
+
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Session %p/connection %p: nothing to send, suspending\n",
          s, s->put.easyhandle);
@@ -1343,7 +1366,15 @@ curl_easy_getinfo (easy_h,
           /* FIXME: who calls curl_multi_remove on 'easy_h' now!? */
           GNUNET_assert (plugin->cur_connections > 0);
           plugin->cur_connections--;
-          http_client_plugin_session_disconnect (plugin, s);
+	  /* If we are emulating an XHR client we need to make another GET
+	   * request.
+	   */
+	  if (GNUNET_YES == plugin->emulate_xhr)
+	  {
+            if (GNUNET_SYSERR == client_connect_get (s))
+              http_client_plugin_session_disconnect (plugin, s);
+	  } else
+            http_client_plugin_session_disconnect (plugin, s);
         }
       }
     }
@@ -1413,7 +1444,15 @@ client_connect_get (struct Session *s)
           s->plugin->proxy_use_httpproxytunnel);
   }
 
-  curl_easy_setopt (s->get.easyhandle, CURLOPT_URL, s->url);
+  if (GNUNET_YES == s->plugin->emulate_xhr)
+  {
+    char *url;
+
+    GNUNET_asprintf(&url, "%s,1", s->url);
+    curl_easy_setopt (s->get.easyhandle, CURLOPT_URL, url);
+    GNUNET_free(url);
+  } else
+    curl_easy_setopt (s->get.easyhandle, CURLOPT_URL, s->url);
   //curl_easy_setopt (s->get.easyhandle, CURLOPT_HEADERFUNCTION, &curl_get_header_cb);
   //curl_easy_setopt (s->get.easyhandle, CURLOPT_WRITEHEADER, ps);
   curl_easy_setopt (s->get.easyhandle, CURLOPT_READFUNCTION, client_send_cb);
@@ -1583,8 +1622,14 @@ client_connect (struct Session *s)
        "Initiating outbound session peer `%s' using address `%s'\n",
        GNUNET_i2s (&s->address->peer), s->url);
 
-  if ((GNUNET_SYSERR == client_connect_get (s)) ||
-      (GNUNET_SYSERR == client_connect_put (s)))
+  if (GNUNET_SYSERR == client_connect_get (s))
+    return GNUNET_SYSERR;
+  /* If we are emulating an XHR client then delay sending a PUT request until
+   * there is something to send.
+   */
+  if (GNUNET_YES == plugin->emulate_xhr)
+    s->put_tmp_disconnected = GNUNET_YES;
+  else if (GNUNET_SYSERR == client_connect_put (s))
     return GNUNET_SYSERR;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -1970,6 +2015,12 @@ client_configure_plugin (struct HTTP_Client_Plugin *plugin)
 
     GNUNET_free_non_null (proxy_type);
   }
+
+  /* Should we emulate an XHR client for testing? */
+  plugin->emulate_xhr
+    = GNUNET_CONFIGURATION_get_value_yesno (plugin->env->cfg,
+                                            plugin->name,
+                                            "EMULATE_XHR");
   return GNUNET_OK;
 }
 

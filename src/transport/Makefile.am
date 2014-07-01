@@ -30,13 +30,15 @@ if HAVE_LIBGNURL
  HTTP_API_TEST = test_transport_api_http
  HTTP_REVERSE_API_TEST = test_transport_api_http_reverse
  HTTP_API_TIMEOUT_TEST = test_transport_api_timeout_http
- HTTP_REL_TEST = test_transport_api_reliability_http
+ HTTP_REL_TEST = test_transport_api_reliability_http \
+		 test_transport_api_reliability_http_xhr
  HTTP_QUOTA_TEST = test_quota_compliance_http \
 		   test_quota_compliance_http_asymmetric
  HTTP_SWITCH = test_transport_address_switch_http
  HTTPS_API_TEST = test_transport_api_https
  HTTPS_API_TIMEOUT_TEST = test_transport_api_timeout_https
- HTTPS_REL_TEST = test_transport_api_reliability_https
+ HTTPS_REL_TEST = test_transport_api_reliability_https \
+		  test_transport_api_reliability_https_xhr
  HTTPS_QUOTA_TEST = test_quota_compliance_https \
 		test_quota_compliance_https_asymmetric
  HTTPS_SWITCH = test_transport_address_switch_https
@@ -933,6 +935,14 @@ test_transport_api_reliability_http_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la \
  $(top_builddir)/src/transport/libgnunettransporttesting.la
 
+test_transport_api_reliability_http_xhr_SOURCES = \
+ test_transport_api_reliability.c
+test_transport_api_reliability_http_xhr_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/transport/libgnunettransporttesting.la
+
 test_quota_compliance_http_SOURCES = \
  test_quota_compliance.c
 test_quota_compliance_http_LDADD = \
@@ -986,6 +996,14 @@ test_transport_api_timeout_https_LDADD = \
 test_transport_api_reliability_https_SOURCES = \
  test_transport_api_reliability.c
 test_transport_api_reliability_https_LDADD = \
+ $(top_builddir)/src/transport/libgnunettransport.la \
+ $(top_builddir)/src/hello/libgnunethello.la \
+ $(top_builddir)/src/util/libgnunetutil.la \
+ $(top_builddir)/src/transport/libgnunettransporttesting.la
+
+test_transport_api_reliability_https_xhr_SOURCES = \
+ test_transport_api_reliability.c
+test_transport_api_reliability_https_xhr_LDADD = \
  $(top_builddir)/src/transport/libgnunettransport.la \
  $(top_builddir)/src/hello/libgnunethello.la \
  $(top_builddir)/src/util/libgnunetutil.la \
