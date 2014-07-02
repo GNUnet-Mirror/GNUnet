@@ -26,6 +26,7 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_applications.h"
+#include "sensordashboard.h"
 #include "gnunet_cadet_service.h"
 
 static struct GNUNET_CADET_Handle *cadet;
