@@ -1905,16 +1905,8 @@ server_disconnect_cb (void *cls,
                                                s->address->address,
                                                s->address->address_length));
     s->server_send = NULL;
-    if (! ( (0 != (sc->options & OPTION_LONG_POLL)) &&
-            (NULL != s->server_recv) ) )
-    {
-      server_delete_session (s);
-      GNUNET_free (sc);
-      plugin->cur_connections--;
-      return;
-    }
   }
-  if (sc->direction == _RECEIVE)
+  else if (sc->direction == _RECEIVE)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Peer `%s' connection %p PUT on address `%s' disconnected\n",
@@ -1932,19 +1924,6 @@ server_disconnect_cb (void *cls,
   }
   GNUNET_free (sc);
   plugin->cur_connections--;
-
-  if ( (NULL == s->server_send) &&
-       (NULL == s->server_recv) )
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Peer `%s' on address `%s' disconnected\n",
-         GNUNET_i2s (&s->target),
-         http_common_plugin_address_to_string (plugin->protocol,
-                                               s->address->address,
-                                               s->address->address_length));
-
-    server_delete_session (s);
-  }
 }
 
 
