@@ -93,14 +93,14 @@ struct CadetTConnection
 struct CadetTunnelKXCtx
 {
   /**
-   * Encryption ("our") old key, for encrypting traffic sent by us
+   * Encryption ("our") old "confirmed" key, for encrypting traffic sent by us
    * end before the key exchange is finished or times out.
    */
   struct GNUNET_CRYPTO_SymmetricSessionKey e_key_old;
 
   /**
-   * Decryption ("their") old key, for decrypting traffic sent by the
-   * other end before the key exchange started.
+   * Decryption ("their") old "confirmed" key, for decrypting traffic sent by
+   * the other end before the key exchange started.
    */
   struct GNUNET_CRYPTO_SymmetricSessionKey d_key_old;
 
@@ -153,12 +153,12 @@ struct CadetTunnel
   struct GNUNET_CRYPTO_EcdhePublicKey peers_ephemeral_key;
 
   /**
-   * Encryption ("our") key.
+   * Encryption ("our") key. It is only "confirmed" if kx_ctx is NULL.
    */
   struct GNUNET_CRYPTO_SymmetricSessionKey e_key;
 
   /**
-   * Decryption ("their") key.
+   * Decryption ("their") key. It is only "confirmed" if kx_ctx is NULL.
    */
   struct GNUNET_CRYPTO_SymmetricSessionKey d_key;
 
@@ -860,6 +860,49 @@ create_kx_ctx (struct CadetTunnel *t)
   t->kx_ctx->d_key_old = t->d_key;
   t->kx_ctx->e_key_old = t->e_key;
   t->kx_ctx->rekey_start_time = GNUNET_TIME_absolute_get ();
+}
+
+
+/**
+ * @brief Finish the Key eXchange and destroy the old keys.
+ *
+ * @param cls Closure (Tunnel for which to finish the KX).
+ * @param tc Task context.
+ */
+static void
+finish_kx (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct CadetTunnel *t = cls;
+
+  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
+    return;
+
+  LOG (GNUNET_ERROR_TYPE_INFO, "finish KX for %s\n", GCT_2s (t));
+
+  GNUNET_free (t->kx_ctx);
+  t->kx_ctx = NULL;
+}
+
+
+/**
+ * Destroy a Key eXchane context for the tunnel. This function only schedules
+ * the destruction, the freeing of the memory (and clearing of old key material)
+ * happens after a delay!
+ *
+ * @param t Tunnel whose KX ctx to destroy.
+ */
+static void
+destroy_kx_ctx (struct CadetTunnel *t)
+{
+  struct GNUNET_TIME_Relative delay;
+
+  if (NULL == t->kx_ctx || GNUNET_SCHEDULER_NO_TASK != t->kx_ctx->finish_task)
+    return;
+
+  delay = GNUNET_TIME_relative_divide (rekey_period, 4);
+  delay = GNUNET_TIME_relative_min (delay, GNUNET_TIME_UNIT_MINUTES);
+
+  t->kx_ctx->finish_task = GNUNET_SCHEDULER_add_delayed (delay, finish_kx, t);
 }
 
 
@@ -1794,6 +1837,10 @@ handle_ephemeral (struct CadetTunnel *t,
       t->estate = CADET_TUNNEL_KEY_REKEY;
     }
   }
+  else
+  {
+    destroy_kx_ctx (t);
+  }
   if (CADET_TUNNEL_KEY_SENT == t->estate)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  our key was sent, sending ping\n");
@@ -1843,27 +1890,6 @@ handle_ping (struct CadetTunnel *t,
 
 
 /**
- * @brief Finish the Key eXchange and destroy the old keys.
- *
- * @param cls Closure (Tunnel for which to finish the KX).
- * @param tc Task context.
- */
-static void
-finish_kx (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct CadetTunnel *t = cls;
-
-  if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
-    return;
-
-  LOG (GNUNET_ERROR_TYPE_INFO, "finish KX for %s\n", GCT_2s (t));
-
-  GNUNET_free (t->kx_ctx);
-  t->kx_ctx = NULL;
-}
-
-
-/**
  * Peer has answer to our challenge.
  * If answer is successful, consider the key exchange finished and clean
  * up all related state.
@@ -1904,14 +1930,7 @@ handle_pong (struct CadetTunnel *t,
    * Don't keep the keys longer than 1/4 the rekey period, and no longer than
    * one minute.
    */
-  if (GNUNET_SCHEDULER_NO_TASK == t->kx_ctx->finish_task)
-  {
-    struct GNUNET_TIME_Relative delay;
-
-    delay = GNUNET_TIME_relative_divide (rekey_period, 4);
-    delay = GNUNET_TIME_relative_min (delay, GNUNET_TIME_UNIT_MINUTES);
-    t->kx_ctx->finish_task = GNUNET_SCHEDULER_add_delayed (delay, finish_kx, t);
-  }
+  destroy_kx_ctx (t);
   GCT_change_estate (t, CADET_TUNNEL_KEY_OK);
 }
 
