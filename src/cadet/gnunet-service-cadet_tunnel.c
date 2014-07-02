@@ -1837,7 +1837,7 @@ handle_ephemeral (struct CadetTunnel *t,
       t->estate = CADET_TUNNEL_KEY_REKEY;
     }
   }
-  else
+  else if (CADET_TUNNEL_KEY_OK == t->estate)
   {
     destroy_kx_ctx (t);
   }
