@@ -1019,7 +1019,8 @@ queue_data (struct CadetTunnel *t, const struct GNUNET_MessageHeader *msg)
  *                   this should be TunnelQueue given to the client.
  *                   Otherwise, NULL.
  *
- * @return Handle to cancel message. NULL if @c cont is NULL.
+ * @return Handle to cancel message.
+ *         NULL if @c cont is NULL or an error happens and message is dropped.
  */
 static struct CadetTunnelQueue *
 send_prebuilt_message (const struct GNUNET_MessageHeader *message,
@@ -1070,14 +1071,13 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
     c = tunnel_get_connection (t);
   if (NULL == c)
   {
-    if (GNUNET_SCHEDULER_NO_TASK != t->destroy_task
-        || (CADET_TUNNEL_SEARCHING != t->cstate
-            && CADET_TUNNEL_WAITING != t->cstate))
+    /* Why is tunnel 'ready'? Should have been queued! */
+    if (GNUNET_SCHEDULER_NO_TASK != t->destroy_task)
     {
       GNUNET_break (0);
       GCT_debug (t, GNUNET_ERROR_TYPE_WARNING);
     }
-    return NULL;
+    return NULL; /* Drop... */
   }
 
   mid = 0;
