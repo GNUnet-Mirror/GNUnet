@@ -1071,7 +1071,8 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   if (NULL == c)
   {
     if (GNUNET_SCHEDULER_NO_TASK != t->destroy_task
-        || CADET_TUNNEL_SEARCHING != t->cstate)
+        || (CADET_TUNNEL_SEARCHING != t->cstate
+            && CADET_TUNNEL_WAITING != t->cstate))
     {
       GNUNET_break (0);
       GCT_debug (t, GNUNET_ERROR_TYPE_WARNING);
