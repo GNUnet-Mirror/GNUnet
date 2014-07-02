@@ -1836,6 +1836,8 @@ handle_ephemeral (struct CadetTunnel *t,
     {
       t->estate = CADET_TUNNEL_KEY_REKEY;
     }
+    if (GNUNET_SCHEDULER_NO_TASK == t->rekey_task)
+      t->rekey_task = GNUNET_SCHEDULER_add_now (rekey_tunnel, t);
   }
   else if (CADET_TUNNEL_KEY_OK == t->estate)
   {
