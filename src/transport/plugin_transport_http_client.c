@@ -553,7 +553,7 @@ client_schedule (struct HTTP_Client_Plugin *plugin,
   mret = curl_multi_fdset (plugin->curl_multi_handle, &rs, &ws, &es, &max);
   if (mret != CURLM_OK)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, _("%s failed at %s:%d: `%s'\n"),
+    LOG (GNUNET_ERROR_TYPE_ERROR, _("%s failed at %s:%d: `%s'\n"),
                 "curl_multi_fdset", __FILE__, __LINE__,
                 curl_multi_strerror (mret));
     return GNUNET_SYSERR;
@@ -568,7 +568,7 @@ client_schedule (struct HTTP_Client_Plugin *plugin,
 
   if (mret != CURLM_OK)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+    LOG (GNUNET_ERROR_TYPE_ERROR,
                 _("%s failed at %s:%d: `%s'\n"),
                 "curl_multi_timeout", __FILE__, __LINE__,
                 curl_multi_strerror (mret));
@@ -1319,6 +1319,9 @@ curl_easy_getinfo (easy_h,
           curl_easy_cleanup (easy_h);
           GNUNET_assert (plugin->cur_connections > 0);
           plugin->cur_connections--;
+          LOG  (GNUNET_ERROR_TYPE_INFO,
+              "PUT request done, number of connections decreased to %u\n",
+              plugin->cur_connections);
           s->put_tmp_disconnecting = GNUNET_NO;
           s->put_tmp_disconnected = GNUNET_YES;
           s->put.easyhandle = NULL;
@@ -1366,6 +1369,9 @@ curl_easy_getinfo (easy_h,
           /* FIXME: who calls curl_multi_remove on 'easy_h' now!? */
           GNUNET_assert (plugin->cur_connections > 0);
           plugin->cur_connections--;
+          LOG  (GNUNET_ERROR_TYPE_INFO,
+              "GET request done, number of connections decreased to %u\n",
+              plugin->cur_connections);
 	  /* If we are emulating an XHR client we need to make another GET
 	   * request.
 	   */
@@ -1487,6 +1493,9 @@ client_connect_get (struct Session *s)
     return GNUNET_SYSERR;
   }
   s->plugin->cur_connections++;
+  LOG  (GNUNET_ERROR_TYPE_INFO,
+      "GET request `%s' established, number of connections increased to %u\n",
+      s->url, s->plugin->cur_connections);
   return GNUNET_OK;
 }
 
@@ -1586,7 +1595,9 @@ client_connect_put (struct Session *s)
   }
   s->put_tmp_disconnected = GNUNET_NO;
   s->plugin->cur_connections++;
-
+  LOG  (GNUNET_ERROR_TYPE_INFO,
+      "PUT request `%s' established, number of connections increased to %u\n",
+      s->url, s->plugin->cur_connections);
   return GNUNET_OK;
 }
 
@@ -1730,6 +1741,7 @@ http_client_plugin_get_session (void *cls,
   if (NULL != s)
     return s;
 
+  /* create a new session */
   if (plugin->max_connections <= plugin->cur_connections)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
