@@ -843,7 +843,15 @@ derive_symmertic (struct GNUNET_CRYPTO_SymmetricSessionKey *key,
 static void
 create_kx_ctx (struct CadetTunnel *t)
 {
-  GNUNET_assert (NULL == t->kx_ctx);
+  if (NULL != t->kx_ctx)
+  {
+    if (GNUNET_SCHEDULER_NO_TASK != t->kx_ctx->finish_task)
+    {
+      GNUNET_SCHEDULER_cancel (t->kx_ctx->finish_task);
+      t->kx_ctx->finish_task = GNUNET_SCHEDULER_NO_TASK;
+    }
+    return;
+  }
 
   LOG (GNUNET_ERROR_TYPE_INFO, "  new kx ctx for %s\n", GCT_2s (t));
   t->kx_ctx = GNUNET_new (struct CadetTunnelKXCtx);
@@ -1775,15 +1783,7 @@ handle_ephemeral (struct CadetTunnel *t,
     return;
   }
 
-  if (NULL == t->kx_ctx)
-  {
-    create_kx_ctx (t);
-  }
-  else if (GNUNET_SCHEDULER_NO_TASK != t->kx_ctx->finish_task)
-  {
-    GNUNET_SCHEDULER_cancel (t->kx_ctx->finish_task);
-    t->kx_ctx->finish_task = GNUNET_SCHEDULER_NO_TASK;
-  }
+  create_kx_ctx (t);
   if (0 != memcmp (&t->peers_ephemeral_key, &msg->ephemeral_key,
                    sizeof (msg->ephemeral_key)))
   {
@@ -1832,15 +1832,7 @@ handle_ping (struct CadetTunnel *t,
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  e towards %s\n", GNUNET_i2s (&msg->target));
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  got %u\n", res.nonce);
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  towards %s\n", GNUNET_i2s (&res.target));
-    if (NULL == t->kx_ctx)
-    {
-      create_kx_ctx (t);
-    }
-    else if (GNUNET_SCHEDULER_NO_TASK != t->kx_ctx->finish_task)
-    {
-      GNUNET_SCHEDULER_cancel (t->kx_ctx->finish_task);
-      t->kx_ctx->finish_task = GNUNET_SCHEDULER_NO_TASK;
-    }
+    create_kx_ctx (t);
     send_ephemeral (t);
     send_ping (t);
     return;
