@@ -616,22 +616,20 @@ send_client_buffered_data (struct CadetChannel *ch,
     {
       struct GNUNET_CADET_Data *msg = (struct GNUNET_CADET_Data *) &copy[1];
 
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-           " have %u! now expecting %u\n",
+      LOG (GNUNET_ERROR_TYPE_DEBUG, " have %u! now expecting %u\n",
            copy->mid, rel->mid_recv + 1);
       send_client_data (ch, msg, fwd);
       rel->n_recv--;
       rel->mid_recv++;
+      GCCH_send_data_ack (ch, fwd);
       GNUNET_CONTAINER_DLL_remove (rel->head_recv, rel->tail_recv, copy);
       LOG (GNUNET_ERROR_TYPE_DEBUG, " COPYFREE RECV %p\n", copy);
       GNUNET_free (copy);
     }
     else
     {
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-           " reliable && don't have %u, next is %u\n",
-           rel->mid_recv,
-           copy->mid);
+      LOG (GNUNET_ERROR_TYPE_DEBUG, " reliable && don't have %u, next is %u\n",
+           rel->mid_recv, copy->mid);
       if (GNUNET_YES == ch->destroy)
       {
         /* We don't have the next data piece and the remote peer has closed the
@@ -1028,19 +1026,13 @@ channel_rel_free_sent (struct CadetChannelReliability *rel,
 
   bitfield = msg->futures;
   mid = ntohl (msg->mid);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-              "!!! free_sent_reliable %u %llX\n",
-              mid, bitfield);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-              " rel %p, head %p\n",
-              rel, rel->head_sent);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "free_sent_reliable %u %llX\n", mid, bitfield);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, " rel %p, head %p\n", rel, rel->head_sent);
   for (i = 0, copy = rel->head_sent;
        i < 64 && NULL != copy && 0 != bitfield;
        i++)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-                " trying bit %u (mid %u)\n",
-                i, mid + i + 1);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " trying bit %u (mid %u)\n", i, mid + i + 1);
     mask = 0x1LL << i;
     if (0 == (bitfield & mask))
      continue;
@@ -1519,9 +1511,8 @@ GCCH_send_data_ack (struct CadetChannel *ch, int fwd)
   uint32_t ack;
 
   if (GNUNET_NO == ch->reliable)
-  {
     return;
-  }
+
   rel = fwd ? ch->dest_rel : ch->root_rel;
   ack = rel->mid_recv - 1;
   LOG (GNUNET_ERROR_TYPE_INFO, "===> DATA_ACK for %u\n", ack);
@@ -1529,19 +1520,15 @@ GCCH_send_data_ack (struct CadetChannel *ch, int fwd)
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_DATA_ACK);
   msg.header.size = htons (sizeof (msg));
   msg.chid = htonl (ch->gid);
+  msg.mid = htonl (ack);
+
   msg.futures = 0;
   for (copy = rel->head_recv; NULL != copy; copy = copy->next)
   {
     if (copy->type != GNUNET_MESSAGE_TYPE_CADET_DATA)
     {
-      LOG (GNUNET_ERROR_TYPE_DEBUG,
-           "!!  Type %s, expected DATA\n",
+      LOG (GNUNET_ERROR_TYPE_DEBUG, " Type %s, expected DATA\n",
            GC_m2s (copy->type));
-      continue;
-    }
-    if (copy->mid == ack + 1)
-    {
-      ack++;
       continue;
     }
     delta = copy->mid - (ack + 1);
@@ -1550,13 +1537,10 @@ GCCH_send_data_ack (struct CadetChannel *ch, int fwd)
     mask = 0x1LL << delta;
     msg.futures |= mask;
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         " !! setting bit for %u (delta %u) (%llX) -> %llX\n",
+         " setting bit for %u (delta %u) (%llX) -> %llX\n",
          copy->mid, delta, mask, msg.futures);
   }
-  msg.mid = htonl (ack);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "!!! ACK for %u, futures %llX\n",
-       ack, msg.futures);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, " final futures: %llX\n", ack, msg.futures);
 
   GCCH_send_prebuilt_message (&msg.header, ch, !fwd, NULL);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "send_data_ack END\n");
@@ -1955,7 +1939,7 @@ GCCH_handle_data (struct CadetChannel *ch,
       /* Is this the exact next expected messasge? */
       if (mid == rel->mid_recv)
       {
-        LOG (GNUNET_ERROR_TYPE_DEBUG, "as expected\n");
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "as expected, sending to client\n");
         rel->mid_recv++;
         send_client_data (ch, msg, fwd);
       }
