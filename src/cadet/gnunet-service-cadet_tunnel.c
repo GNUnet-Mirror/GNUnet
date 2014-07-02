@@ -1350,6 +1350,12 @@ rekey_tunnel (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     struct GNUNET_TIME_Relative duration;
 
+    if (GNUNET_SCHEDULER_NO_TASK != t->kx_ctx->finish_task)
+    {
+      GNUNET_SCHEDULER_cancel (t->kx_ctx->finish_task);
+      t->kx_ctx->finish_task = GNUNET_SCHEDULER_NO_TASK;
+    }
+
     duration = GNUNET_TIME_absolute_get_duration (t->kx_ctx->rekey_start_time);
     LOG (GNUNET_ERROR_TYPE_DEBUG, " kx started %s ago\n",
          GNUNET_STRINGS_relative_time_to_string (duration, GNUNET_YES));
@@ -1770,7 +1776,14 @@ handle_ephemeral (struct CadetTunnel *t,
   }
 
   if (NULL == t->kx_ctx)
+  {
     create_kx_ctx (t);
+  }
+  else if (GNUNET_SCHEDULER_NO_TASK != t->kx_ctx->finish_task)
+  {
+    GNUNET_SCHEDULER_cancel (t->kx_ctx->finish_task);
+    t->kx_ctx->finish_task = GNUNET_SCHEDULER_NO_TASK;
+  }
   if (0 != memcmp (&t->peers_ephemeral_key, &msg->ephemeral_key,
                    sizeof (msg->ephemeral_key)))
   {
@@ -1820,7 +1833,14 @@ handle_ping (struct CadetTunnel *t,
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  got %u\n", res.nonce);
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  towards %s\n", GNUNET_i2s (&res.target));
     if (NULL == t->kx_ctx)
+    {
       create_kx_ctx (t);
+    }
+    else if (GNUNET_SCHEDULER_NO_TASK != t->kx_ctx->finish_task)
+    {
+      GNUNET_SCHEDULER_cancel (t->kx_ctx->finish_task);
+      t->kx_ctx->finish_task = GNUNET_SCHEDULER_NO_TASK;
+    }
     send_ephemeral (t);
     send_ping (t);
     return;
