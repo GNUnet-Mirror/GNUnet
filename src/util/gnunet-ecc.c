@@ -28,6 +28,7 @@
 #include "gnunet_testing_lib.h"
 #include <gcrypt.h>
 
+#define KEY_STR_LEN sizeof(struct GNUNET_CRYPTO_EddsaPublicKey)*8/5+1
 
 /**
  * Flag for listing public key.
@@ -62,12 +63,22 @@ static unsigned int make_keys;
 
 /**
  * Create a flat file with a large number of key pairs for testing.
+ *
+ * @param fn File name to store the keys.
+ * @param prefix Desired prefix for the public keys, NULL if any key is OK.
  */
 static void
-create_keys (const char *fn)
+create_keys (const char *fn, const char *prefix)
 {
   FILE *f;
   struct GNUNET_CRYPTO_EddsaPrivateKey *pk;
+  struct GNUNET_CRYPTO_EddsaPublicKey target_pub;
+  static char vanity[KEY_STR_LEN + 1];
+  int len;
+  int n;
+  int rest;
+  unsigned char mask;
+  unsigned target_byte;
 
   if (NULL == (f = fopen (fn, "w+")))
   {
@@ -77,17 +88,70 @@ create_keys (const char *fn)
 	     STRERROR (errno));
     return;
   }
-  fprintf (stderr,
-	   _("Generating %u keys, please wait"),
-	   make_keys);
+  if (NULL != prefix)
+  {
+    strncpy (vanity, prefix, KEY_STR_LEN);
+    len = strlen (vanity);
+    n = len * 5 / 8;
+    rest = len * 5 % 8;
+
+    memset (&vanity[len], '0', KEY_STR_LEN - len);
+    GNUNET_assert (GNUNET_OK ==
+                   GNUNET_CRYPTO_eddsa_public_key_from_string (vanity,
+                                                               KEY_STR_LEN,
+                                                               &target_pub));
+    if (0 != rest)
+    {
+      /**
+       * Documentation by example:
+       * vanity = "A"
+       * len = 1
+       * n = 5/8 = 0 (bytes)
+       * rest = 5%8 = 5 (bits)
+       * mask = ~(2**(8 - 5) - 1) = ~(2**3 - 1) = ~(8 - 1) = ~b111 = b11111000
+       */
+      mask = ~ ((int)pow (2, 8 - rest) - 1);
+      target_byte = ((unsigned char *) &target_pub)[n] & mask;
+    }
+    fprintf (stderr,
+             _("Generating %u keys like %s, please wait"),
+             make_keys, GNUNET_CRYPTO_eddsa_public_key_to_string (&target_pub));
+    fprintf (stderr, "\nattempt %s [%d, %X]\n", vanity, n, mask);
+  }
+  else
+  {
+    fprintf (stderr, _("Generating %u keys, please wait"), make_keys);
+  }
+
   while (0 < make_keys--)
   {
-    fprintf (stderr,
-	     ".");
+    fprintf (stderr, ".");
     if (NULL == (pk = GNUNET_CRYPTO_eddsa_key_create ()))
     {
        GNUNET_break (0);
        break;
+    }
+    if (NULL != prefix)
+    {
+      struct GNUNET_CRYPTO_EddsaPublicKey newkey;
+
+      GNUNET_CRYPTO_eddsa_key_get_public (pk, &newkey);
+      if (0 != memcmp (&target_pub, &newkey, n))
+      {
+        make_keys++;
+        continue;
+      }
+      if (0 != rest)
+      {
+        unsigned char new_byte;
+
+        new_byte = ((unsigned char *) &newkey)[n] & mask;
+        if (target_byte != new_byte)
+        {
+          make_keys++;
+          continue;
+        }
+      }
     }
     if (GNUNET_TESTING_HOSTKEYFILESIZE !=
 	fwrite (pk, 1,
@@ -290,7 +354,7 @@ run (void *cls, char *const *args, const char *cfgfile,
   }
   if (make_keys > 0)
   {
-    create_keys (args[0]);
+    create_keys (args[0], args[1]);
     return;
   }
   if (print_public_key)
@@ -372,7 +436,7 @@ main (int argc, char *const *argv)
     return 2;
 
   ret = (GNUNET_OK ==
-	 GNUNET_PROGRAM_run (argc, argv, "gnunet-ecc [OPTIONS] keyfile",
+	 GNUNET_PROGRAM_run (argc, argv, "gnunet-ecc [OPTIONS] keyfile [VANITY_PREFIX]",
 			     gettext_noop ("Manipulate GNUnet private ECC key files"),
 			     options, &run, NULL)) ? 0 : 1;
   GNUNET_free ((void*) argv);
