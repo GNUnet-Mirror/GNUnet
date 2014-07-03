@@ -532,8 +532,6 @@ server_delete_session (struct Session *s)
 {
   struct HTTP_Server_Plugin *plugin = s->plugin;
   struct HTTP_Message *msg;
-  struct ServerConnection *send;
-  struct ServerConnection *recv;
 
   if (GNUNET_SCHEDULER_NO_TASK != s->timeout_task)
   {
@@ -569,36 +567,33 @@ server_delete_session (struct Session *s)
     s->bytes_in_queue -= msg->size;
     GNUNET_free (msg);
   }
+
   GNUNET_assert (0 == s->msgs_in_queue);
   GNUNET_assert (0 == s->bytes_in_queue);
-  send = s->server_send;
-  if (NULL != send)
+
+  if (NULL != s->server_send)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Server: %p / %p Terminating inbound PUT session to peer `%s'\n",
-         s, send,
+         s, s->server_send,
          GNUNET_i2s (&s->target));
-    send->session = NULL;
-    MHD_set_connection_option (send->mhd_conn,
+    s->server_send->session = NULL;
+    MHD_set_connection_option (s->server_send->mhd_conn,
                                MHD_CONNECTION_OPTION_TIMEOUT,
                                1 /* 0 = no timeout, so this is MIN */);
-    server_reschedule (plugin,
-                       send->mhd_daemon,
-                       GNUNET_YES);
+    server_reschedule (plugin, s->server_send->mhd_daemon, GNUNET_YES);
   }
-  recv = s->server_recv;
-  if (NULL != recv)
+
+  if (NULL != s->server_recv)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Server: %p / %p Terminating inbound GET session to peer `%s'\n",
-         s, recv, GNUNET_i2s (&s->target));
-    recv->session = NULL;
-    MHD_set_connection_option (recv->mhd_conn,
+         s, s->server_recv, GNUNET_i2s (&s->target));
+    s->server_recv->session = NULL;
+    MHD_set_connection_option (s->server_recv->mhd_conn,
                                MHD_CONNECTION_OPTION_TIMEOUT,
                                1 /* 0 = no timeout, so this is MIN */);
-    server_reschedule (plugin,
-                       recv->mhd_daemon,
-                       GNUNET_YES);
+    server_reschedule (plugin, s->server_recv->mhd_daemon, GNUNET_YES);
   }
   notify_session_monitor (plugin,
                           s,
@@ -616,6 +611,7 @@ server_delete_session (struct Session *s)
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Session %p destroyed\n",
        s);
+
   GNUNET_free (s);
 }
 
@@ -771,6 +767,33 @@ http_server_plugin_send (void *cls,
 
 
 /**
+ * Terminate session during shutdown.
+ *
+ * @param cls the `struct HTTP_Server_Plugin *`
+ * @param peer for which this is a session
+ * @param value the `struct Session` to clean up
+ * @return #GNUNET_OK (continue to iterate)
+ */
+static int
+destroy_session_shutdown_cb (void *cls,
+                    const struct GNUNET_PeerIdentity *peer,
+                    void *value)
+{
+  struct Session *s = value;
+  struct ServerConnection *sc_send;
+  struct ServerConnection *sc_recv;
+GNUNET_break (0);
+  sc_send = s->server_send;
+  sc_recv = s->server_recv;
+  server_delete_session (s);
+
+  GNUNET_free (sc_send);
+  GNUNET_free (sc_recv);
+
+  return GNUNET_OK;
+}
+
+/**
  * Terminate session.
  *
  * @param cls the `struct HTTP_Server_Plugin *`
@@ -788,7 +811,6 @@ destroy_session_cb (void *cls,
   server_delete_session (s);
   return GNUNET_OK;
 }
-
 
 /**
  * Function that can be used to force the plugin to disconnect
@@ -1475,9 +1497,13 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
   sc->session = s;
   sc->options = options;
   if (direction == _SEND)
+  {
     s->server_send = sc;
+  }
   if (direction == _RECEIVE)
+  {
     s->server_recv = sc;
+  }
 
   if ((GNUNET_NO == s->known_to_service) &&
       (NULL != s->server_send) &&
@@ -1886,40 +1912,45 @@ server_disconnect_cb (void *cls,
 {
   struct HTTP_Server_Plugin *plugin = cls;
   struct ServerConnection *sc = *httpSessionCache;
-  struct Session *s;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Disconnect for connection %p\n",
        sc);
   if (NULL == sc)
+  {
+    GNUNET_break (0);
     return; /* never really got setup */
-  if (NULL == (s = sc->session))
-    return; /* session already dead */
-  if (sc->direction == _SEND)
-  {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Peer `%s' connection  %p, GET on address `%s' disconnected\n",
-         GNUNET_i2s (&s->target),
-         s->server_send,
-         http_common_plugin_address_to_string (plugin->protocol,
-                                               s->address->address,
-                                               s->address->address_length));
-    s->server_send = NULL;
   }
-  else if (sc->direction == _RECEIVE)
+
+  if (NULL != sc->session)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Peer `%s' connection %p PUT on address `%s' disconnected\n",
-         GNUNET_i2s (&s->target),
-         s->server_recv,
-         http_common_plugin_address_to_string (plugin->protocol,
-                                               s->address->address,
-                                               s->address->address_length));
-    s->server_recv = NULL;
-    if (NULL != s->msg_tk)
+    if (sc->direction == _SEND)
     {
-      GNUNET_SERVER_mst_destroy (s->msg_tk);
-      s->msg_tk = NULL;
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Peer `%s' connection  %p, GET on address `%s' disconnected\n",
+           GNUNET_i2s (&sc->session->target),
+           sc->session->server_send,
+           http_common_plugin_address_to_string (plugin->protocol,
+               sc->session->address->address,
+               sc->session->address->address_length));
+
+      sc->session->server_send = NULL;
+    }
+    else if (sc->direction == _RECEIVE)
+    {
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Peer `%s' connection %p PUT on address `%s' disconnected\n",
+           GNUNET_i2s (&sc->session->target),
+           sc->session->server_recv,
+           http_common_plugin_address_to_string (plugin->protocol,
+               sc->session->address->address,
+               sc->session->address->address_length));
+      sc->session->server_recv = NULL;
+      if (NULL != sc->session->msg_tk)
+      {
+        GNUNET_SERVER_mst_destroy (sc->session->msg_tk);
+        sc->session->msg_tk = NULL;
+      }
     }
   }
   GNUNET_free (sc);
@@ -3095,7 +3126,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
     return NULL;
   }
   plugin->in_shutdown = GNUNET_YES;
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
+  LOG (GNUNET_ERROR_TYPE_INFO,
        _("Shutting down plugin `%s'\n"),
        plugin->name);
 
@@ -3154,7 +3185,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
   GNUNET_free_non_null (plugin->key);
 #endif
   GNUNET_CONTAINER_multipeermap_iterate (plugin->sessions,
-                                         &destroy_session_cb,
+                                         &destroy_session_shutdown_cb,
                                          plugin);
   GNUNET_CONTAINER_multipeermap_destroy (plugin->sessions);
   plugin->sessions = NULL;
