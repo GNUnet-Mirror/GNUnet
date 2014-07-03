@@ -2981,7 +2981,7 @@ GCC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   }
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "  C_P+ %p %u\n", c, c->pending_messages);
-//   c->pending_messages++;
+  c->pending_messages++;
 
   q = GNUNET_new (struct CadetConnectionQueue);
   q->forced = !droppable;
