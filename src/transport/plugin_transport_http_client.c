@@ -37,7 +37,7 @@
 #define LIBGNUNET_PLUGIN_TRANSPORT_DONE libgnunet_plugin_transport_http_client_done
 #endif
 
-#define VERBOSE_CURL GNUNET_YES
+#define VERBOSE_CURL GNUNET_NO
 
 #define PUT_DISCONNECT_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
 
@@ -59,6 +59,46 @@
  */
 struct HTTP_Client_Plugin;
 
+/**
+ * State of a HTTP PUT request
+ */
+enum HTTP_PUT_REQUEST_STATE
+{
+  /**
+   *  Just created, not yet connected
+   */
+  H_NOT_CONNECTED,
+
+  /**
+   *  Connected
+   */
+  H_CONNECTED,
+
+  /**
+   *  Paused, nothing to send
+   */
+  H_PAUSED,
+
+  /**
+   * Temporary disconnect in progress due to inactivity
+   */
+  H_TMP_DISCONNECTING,
+
+  /**
+   * Send request while temporary disconnect, reconnect
+   */
+  H_TMP_RECONNECT_REQUIRED,
+
+  /**
+   * Temporarily disconnected
+   */
+  H_TMP_DISCONNECTED,
+
+  /**
+   * Disconnected
+   */
+  H_DISCONNECTED
+};
 
 /**
  *  Message to send using http
@@ -106,17 +146,22 @@ struct HTTP_Message
 
 
 /**
- * Session handle for connections.
+ * Session handle for HTTP(S) connections.
  */
 struct Session;
 
 
 /**
- * A connection handle
+ * A request handle
  *
  */
-struct ConnectionHandle
+struct RequestHandle
 {
+  /**
+   * Current state of this request
+   */
+  enum HTTP_PUT_REQUEST_STATE state;
+
   /**
    * The curl easy handle
    */
@@ -152,12 +197,12 @@ struct Session
   /**
    * Handle for the HTTP PUT request.
    */
-  struct ConnectionHandle put;
+  struct RequestHandle put;
 
   /**
    * Handle for the HTTP GET request.
    */
-  struct ConnectionHandle get;
+  struct RequestHandle get;
 
   /**
    * next pointer for double linked list
@@ -220,26 +265,6 @@ struct Session
    * ATS network type in NBO
    */
   uint32_t ats_address_network_type;
-
-  /**
-   * Is the client PUT handle currently paused?
-   */
-  int put_paused;
-
-  /**
-   * Is the client PUT handle disconnect in progress?
-   */
-  int put_tmp_disconnecting;
-
-  /**
-   * Is the client PUT handle temporarily disconnected?
-   */
-  int put_tmp_disconnected;
-
-  /**
-   * We received data to send while disconnecting, reconnect immediately
-   */
-  int put_reconnect_required;
 };
 
 
@@ -328,15 +353,15 @@ struct HTTP_Client_Plugin
 
   /**
    * Maximum number of sockets the plugin can use
-   * Each http inbound /outbound connections are two connections
+   * Each http connections are two requests
    */
-  unsigned int max_connections;
+  unsigned int max_requests;
 
   /**
    * Current number of sockets the plugin can use
-   * Each http inbound /outbound connections are two connections
+   * Each http connections are two requests
    */
-  unsigned int cur_connections;
+  unsigned int cur_requests;
 
   /**
    * Last used unique HTTP connection tag
@@ -359,7 +384,15 @@ struct HTTP_Client_Plugin
   int emulate_xhr;
 };
 
-
+/**
+ * Disconnect a session
+ *
+ * @param cls the `struct HTTP_Client_Plugin *`
+ * @param s session
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
+ */
+static int
+http_client_plugin_session_disconnect (void *cls, struct Session *s);
 
 /**
  * If a session monitor is attached, notify it about the new
@@ -428,7 +461,7 @@ client_delete_session (struct Session *s)
   if (NULL != s->put.easyhandle)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Session %p/connection %p: disconnecting PUT connection to peer `%s'\n",
+         "Session %p/request %p: disconnecting PUT request to peer `%s'\n",
          s,
          s->put.easyhandle,
          GNUNET_i2s (&s->address->peer));
@@ -443,7 +476,7 @@ client_delete_session (struct Session *s)
   if (NULL != s->get.easyhandle)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Session %p/connection %p: disconnecting GET connection to peer `%s'\n",
+         "Session %p/request %p: disconnecting GET request to peer `%s'\n",
          s, s->get.easyhandle,
          GNUNET_i2s (&s->address->peer));
     /* remove curl handle from multi handle */
@@ -451,13 +484,13 @@ client_delete_session (struct Session *s)
                                      s->get.easyhandle);
     GNUNET_break (CURLM_OK == mret);
     curl_easy_cleanup (s->get.easyhandle);
-    GNUNET_assert (plugin->cur_connections > 0);
-    plugin->cur_connections--;
+    GNUNET_assert (plugin->cur_requests > 0);
+    plugin->cur_requests--;
     s->get.easyhandle = NULL;
   }
   GNUNET_STATISTICS_set (plugin->env->stats,
                          HTTP_STAT_STR_CONNECTIONS,
-                         plugin->cur_connections,
+                         plugin->cur_requests,
                          GNUNET_NO);
   next = s->msg_head;
   while (NULL != (pos = next))
@@ -580,6 +613,7 @@ client_schedule (struct HTTP_Client_Plugin *plugin,
   GNUNET_NETWORK_fdset_copy_native (grs, &rs, max + 1);
   GNUNET_NETWORK_fdset_copy_native (gws, &ws, max + 1);
 
+  /* Schedule task to run when select is ready to read or write */
   plugin->client_perform_task =
       GNUNET_SCHEDULER_add_select (GNUNET_SCHEDULER_PRIORITY_DEFAULT,
                                    timeout, grs, gws,
@@ -589,7 +623,7 @@ client_schedule (struct HTTP_Client_Plugin *plugin,
   return GNUNET_OK;
 }
 
-
+#if VERBOSE_CURL
 /**
  * Loggging function
  *
@@ -607,7 +641,7 @@ client_log (CURL *curl,
             size_t size,
             void *cls)
 {
-  struct ConnectionHandle *ch = cls;
+  struct RequestHandle *ch = cls;
   const char *ttype = "UNSPECIFIED";
   char text[size + 2];
 
@@ -644,16 +678,16 @@ client_log (CURL *curl,
     text[size + 1] = '\0';
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Connection %p %s: %s",
+       "Request %p %s: %s",
        ch->easyhandle,
        ttype,
        text);
   return 0;
 }
-
+#endif
 
 /**
- * Connect GET connection for a session
+ * Connect GET request
  *
  * @param s the session to connect
  * @return #GNUNET_OK on success, #GNUNET_SYSERR otherwise
@@ -663,7 +697,7 @@ client_connect_get (struct Session *s);
 
 
 /**
- * Connect a HTTP put connection
+ * Connect a HTTP put request
  *
  * @param s the session to connect
  * @return #GNUNET_SYSERR for hard failure, #GNUNET_OK for success
@@ -714,7 +748,7 @@ http_client_plugin_send (void *cls,
   char *stat_txt;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Session %p/connection %p: Sending message with %u to peer `%s' \n",
+       "Session %p/request %p: Sending message with %u to peer `%s' \n",
        s, s->put.easyhandle,
        msgbuf_size, GNUNET_i2s (&s->address->peer));
 
@@ -742,42 +776,42 @@ http_client_plugin_send (void *cls,
   notify_session_monitor (plugin,
                           s,
                           GNUNET_TRANSPORT_SS_UP);
-  if (GNUNET_YES == s->put_tmp_disconnecting)
+  if (H_TMP_DISCONNECTING == s->put.state)
   {
-    /* PUT connection is currently getting disconnected */
-    s->put_reconnect_required = GNUNET_YES;
+    /* PUT request is currently getting disconnected */
+    s->put.state = H_TMP_RECONNECT_REQUIRED;
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Session %p/connection %jp: currently disconnecting, reconnecting immediately\n",
+         "Session %p/request %p: currently disconnecting, reconnecting immediately\n",
          s,
          s->put.easyhandle);
     return msgbuf_size;
   }
-  if (GNUNET_YES == s->put_paused)
+  if (H_PAUSED == s->put.state)
   {
-    /* PUT connection was paused, unpause */
+    /* PUT request was paused, unpause */
     GNUNET_assert (s->put_disconnect_task != GNUNET_SCHEDULER_NO_TASK);
     GNUNET_SCHEDULER_cancel (s->put_disconnect_task);
     s->put_disconnect_task = GNUNET_SCHEDULER_NO_TASK;
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Session %p/connection %p: unpausing connection\n",
+         "Session %p/request %p: unpausing request\n",
          s, s->put.easyhandle);
-    s->put_paused = GNUNET_NO;
+    s->put.state = H_CONNECTED;
     if (NULL != s->put.easyhandle)
       curl_easy_pause (s->put.easyhandle, CURLPAUSE_CONT);
   }
-  else if (GNUNET_YES == s->put_tmp_disconnected)
+  else if (H_TMP_DISCONNECTED == s->put.state)
   {
-    /* PUT connection was disconnected, reconnect */
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Session %p: Reconnecting PUT connection\n",
-         s);
-    s->put_tmp_disconnected = GNUNET_NO;
+    /* PUT request was disconnected, reconnect */
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "Session %p: Reconnecting PUT request\n", s);
     GNUNET_break (NULL == s->put.easyhandle);
     if (GNUNET_SYSERR == client_connect_put (s))
+    {
+      /* Could not reconnect */
+      http_client_plugin_session_disconnect (plugin, s);
       return GNUNET_SYSERR;
+    }
   }
-  client_schedule (s->plugin,
-                   GNUNET_YES);
+  client_schedule (s->plugin, GNUNET_YES);
   return msgbuf_size;
 }
 
@@ -797,9 +831,7 @@ http_client_plugin_session_disconnect (void *cls,
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Session %p: notifying transport about ending session\n",s);
-  plugin->env->session_end (plugin->env->cls,
-                            s->address,
-                            s);
+  plugin->env->session_end (plugin->env->cls, s->address, s);
   client_delete_session (s);
 
   /* Re-schedule since handles have changed */
@@ -867,10 +899,8 @@ http_client_plugin_peer_disconnect (void *cls,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Transport tells me to disconnect `%s'\n",
        GNUNET_i2s (target));
-  GNUNET_CONTAINER_multipeermap_get_multiple (plugin->sessions,
-                                              target,
-                                              &destroy_session_cb,
-                                              plugin);
+  GNUNET_CONTAINER_multipeermap_get_multiple (plugin->sessions, target,
+      &destroy_session_cb, plugin);
 }
 
 
@@ -942,7 +972,7 @@ client_lookup_session (struct HTTP_Client_Plugin *plugin,
 /**
  * When we have nothing to transmit, we pause the HTTP PUT
  * after a while (so that gnurl stops asking).  This task
- * is the delayed task that actually pauses the PUT.
+ * is the delayed task that actually disconnects the PUT.
  *
  * @param cls the `struct Session *` with the put
  * @param tc scheduler context
@@ -955,10 +985,9 @@ client_put_disconnect (void *cls,
 
   s->put_disconnect_task = GNUNET_SCHEDULER_NO_TASK;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Session %p/connection %p: will be disconnected due to no activity\n",
+       "Session %p/request %p: will be disconnected due to no activity\n",
        s, s->put.easyhandle);
-  s->put_paused = GNUNET_NO;
-  s->put_tmp_disconnecting = GNUNET_YES;
+  s->put.state = H_TMP_DISCONNECTING;
   if (NULL != s->put.easyhandle)
     curl_easy_pause (s->put.easyhandle, CURLPAUSE_CONT);
   client_schedule (s->plugin, GNUNET_YES);
@@ -973,7 +1002,7 @@ client_put_disconnect (void *cls,
  * @param size size of an individual element
  * @param nmemb count of elements that can be written to the buffer
  * @param cls our `struct Session`
- * @return bytes written to stream, returning 0 will terminate connection!
+ * @return bytes written to stream, returning 0 will terminate request!
  */
 static size_t
 client_send_cb (void *stream,
@@ -987,10 +1016,10 @@ client_send_cb (void *stream,
   size_t len;
   char *stat_txt;
 
-  if (GNUNET_YES == s->put_tmp_disconnecting)
+  if (H_TMP_DISCONNECTING == s->put.state)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Session %p/connection %p: disconnect due to inactivity\n",
+         "Session %p/request %p: disconnect due to inactivity\n",
          s, s->put.easyhandle);
     return 0;
   }
@@ -1000,19 +1029,19 @@ client_send_cb (void *stream,
     if (GNUNET_YES == plugin->emulate_xhr)
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG,
-           "Session %p/connection %p: PUT request finished\n",
+           "Session %p/request %p: PUT request finished\n",
            s, s->put.easyhandle);
-      s->put_tmp_disconnecting = GNUNET_YES;
+      s->put.state = H_TMP_DISCONNECTING;
       return 0;
     }
 
+    /* We have nothing to send, so pause PUT request */
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Session %p/connection %p: nothing to send, suspending\n",
+         "Session %p/request %p: nothing to send, suspending\n",
          s, s->put.easyhandle);
     s->put_disconnect_task = GNUNET_SCHEDULER_add_delayed (PUT_DISCONNECT_TIMEOUT,
-                                                           &client_put_disconnect,
-                                                           s);
-    s->put_paused = GNUNET_YES;
+        &client_put_disconnect, s);
+    s->put.state = H_PAUSED;
     return CURL_READFUNC_PAUSE;
   }
   /* data to send */
@@ -1025,7 +1054,7 @@ client_send_cb (void *stream,
   if (msg->pos == msg->size)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Session %p/connection %p: sent message with %u bytes sent, removing message from queue\n",
+         "Session %p/request %p: sent message with %u bytes sent, removing message from queue\n",
          s, s->put.easyhandle, msg->size, msg->pos);
     /* Calling transmit continuation  */
     GNUNET_CONTAINER_DLL_remove (s->msg_head,
@@ -1083,21 +1112,20 @@ client_wake_up (void *cls,
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Session %p/connection %p: Waking up GET handle\n",
+       "Session %p/request %p: Waking up GET handle\n",
        s, s->get.easyhandle);
-  if (GNUNET_YES == s->put_paused)
+  if (H_PAUSED == s->put.state)
   {
-    /* PUT connection was paused, unpause */
+    /* PUT request was paused, unpause */
     GNUNET_assert (s->put_disconnect_task != GNUNET_SCHEDULER_NO_TASK);
     GNUNET_SCHEDULER_cancel (s->put_disconnect_task);
     s->put_disconnect_task = GNUNET_SCHEDULER_NO_TASK;
-    s->put_paused = GNUNET_NO;
+    s->put.state = H_CONNECTED;
     if (NULL != s->put.easyhandle)
       curl_easy_pause (s->put.easyhandle, CURLPAUSE_CONT);
   }
   if (NULL != s->get.easyhandle)
-    curl_easy_pause (s->get.easyhandle,
-                     CURLPAUSE_CONT);
+    curl_easy_pause (s->get.easyhandle, CURLPAUSE_CONT);
 }
 
 
@@ -1160,7 +1188,7 @@ client_receive_mst_cb (void *cls,
 
 
 /**
- * Callback method used with libcurl when data for a PUT connection are
+ * Callback method used with libcurl when data for a PUT request are
  * received.  We do not expect data here, so we just discard it.
  *
  * @param stream pointer where to write data
@@ -1180,7 +1208,7 @@ client_receive_put (void *stream,
 
 
 /**
- * Callback method used with libcurl when data for a GET connection are
+ * Callback method used with libcurl when data for a GET request are
  * received. Forward to MST
  *
  * @param stream pointer where to write data
@@ -1200,7 +1228,7 @@ client_receive (void *stream,
   size_t len = size * nmemb;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Session %p / connection %p: Received %u bytes from peer `%s'\n",
+       "Session %p / request %p: Received %u bytes from peer `%s'\n",
        s, s->get.easyhandle,
        len, GNUNET_i2s (&s->address->peer));
   now = GNUNET_TIME_absolute_get ();
@@ -1211,7 +1239,7 @@ client_receive (void *stream,
       = GNUNET_TIME_absolute_get_difference (now, s->next_receive);
 
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Session %p / connection %p: No inbound bandwidth available! Next read was delayed for %s\n",
+         "Session %p / request %p: No inbound bandwidth available! Next read was delayed for %s\n",
          s,
          s->get.easyhandle,
          GNUNET_STRINGS_relative_time_to_string (delta,
@@ -1255,134 +1283,136 @@ client_run (void *cls,
   long http_statuscode;
   CURLMcode mret;
   CURLMsg *msg;
+  int put_request; /* GNUNET_YES if easy handle is put, GNUNET_NO for get */
   int msgs_left;
 
   plugin->client_perform_task = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
+
+  /* While data are available or timeouts occured */
   do
   {
     running = 0;
+    /* Perform operations for all handles */
     mret = curl_multi_perform (plugin->curl_multi_handle, &running);
 
-
-    while ((msg = curl_multi_info_read (plugin->curl_multi_handle, &msgs_left)))
+    /* Get additional information for all handles */
+    while (NULL != (msg = curl_multi_info_read (plugin->curl_multi_handle, &msgs_left)))
     {
       CURL *easy_h = msg->easy_handle;
       struct Session *s = NULL;
       char *d = NULL; /* curl requires 'd' to be a 'char *' */
 
-      if (NULL == easy_h)
-      {
-        GNUNET_break (0);
-        LOG (GNUNET_ERROR_TYPE_DEBUG,
-             "Client: connection to ended with reason %i: `%s', %i handles running\n",
-             msg->data.result,
-             curl_easy_strerror (msg->data.result), running);
-        continue;
-      }
+      GNUNET_assert (NULL != easy_h);
 
-      GNUNET_assert (CURLE_OK ==
-                     curl_easy_getinfo (easy_h, CURLINFO_PRIVATE, &d));
+      /* Obtain session from easy handle */
+      GNUNET_assert (CURLE_OK == curl_easy_getinfo (easy_h, CURLINFO_PRIVATE, &d));
       s = (struct Session *) d;
       GNUNET_assert (NULL != s);
-      if (msg->msg == CURLMSG_DONE)
-      {
-        GNUNET_break (CURLE_OK ==
-curl_easy_getinfo (easy_h,
-                   CURLINFO_RESPONSE_CODE,
-                   &http_statuscode));
-        if (easy_h == s->put.easyhandle)
-        {
-          if  ((0 != msg->data.result) || (http_statuscode != 200))
-          {
-            LOG (GNUNET_ERROR_TYPE_DEBUG,
-                 "Session %p/connection %p: PUT connection to `%s' ended with status %i reason %i: `%s'\n",
-                 s, msg->easy_handle,
-                 GNUNET_i2s (&s->address->peer),
-                 http_statuscode,
-                 msg->data.result,
-                 curl_easy_strerror (msg->data.result));
-          }
-          else
-            LOG (GNUNET_ERROR_TYPE_DEBUG,
-                 "Session %p/connection %p: PUT connection to `%s' ended normal\n",
-                 s, msg->easy_handle,
-                 GNUNET_i2s (&s->address->peer));
-          if (NULL == s->get.easyhandle)
-          {
-            /* Disconnect other transmission direction and tell transport */
-            /* FIXME? */
-          }
-          curl_multi_remove_handle (plugin->curl_multi_handle,
-                                    easy_h);
-          curl_easy_cleanup (easy_h);
-          GNUNET_assert (plugin->cur_connections > 0);
-          plugin->cur_connections--;
-          LOG  (GNUNET_ERROR_TYPE_INFO,
-              "PUT request done, number of connections decreased to %u\n",
-              plugin->cur_connections);
-          s->put_tmp_disconnecting = GNUNET_NO;
-          s->put_tmp_disconnected = GNUNET_YES;
-          s->put.easyhandle = NULL;
-          s->put.easyhandle = NULL;
-          s->put.s = NULL;
 
-          /*
-           * Handling a rare case:
-           * plugin_send was called during temporary put disconnect,
-           * reconnect required after connection was disconnected
-           */
-          if (GNUNET_YES == s->put_reconnect_required)
-          {
-            s->put_reconnect_required = GNUNET_NO;
+      if (msg->msg != CURLMSG_DONE)
+        continue; /* This should not happen */
+
+      /* Get HTTP response code */
+      GNUNET_break (CURLE_OK == curl_easy_getinfo (easy_h,
+          CURLINFO_RESPONSE_CODE, &http_statuscode));
+
+
+      if (easy_h == s->put.easyhandle)
+        put_request = GNUNET_YES;
+      else
+        put_request = GNUNET_NO;
+
+      /* Log status of terminated request */
+      if  ((0 != msg->data.result) || (http_statuscode != 200))
+        LOG (GNUNET_ERROR_TYPE_DEBUG,
+             "Session %p/request %p: %s request to `%s' ended with status %i reason %i: `%s'\n",
+             s, msg->easy_handle,
+             (GNUNET_YES == put_request) ? "PUT" : "GET",
+             GNUNET_i2s (&s->address->peer),
+             http_statuscode,
+             msg->data.result,
+             curl_easy_strerror (msg->data.result));
+      else
+        LOG (GNUNET_ERROR_TYPE_DEBUG,
+             "Session %p/request %p: %s request to `%s' ended normal\n",
+             s, msg->easy_handle,
+             (GNUNET_YES == put_request) ? "PUT" : "GET",
+             GNUNET_i2s (&s->address->peer));
+
+      /* Remove easy handle from multi handle */
+      curl_multi_remove_handle (plugin->curl_multi_handle, easy_h);
+
+      /* Clean up easy handle */
+      curl_easy_cleanup (easy_h);
+
+      /* Remove information */
+      GNUNET_assert (plugin->cur_requests > 0);
+      plugin->cur_requests--;
+      LOG  (GNUNET_ERROR_TYPE_INFO,
+          "%s request done, number of requests decreased to %u\n",
+          (GNUNET_YES == put_request) ? "PUT" : "GET",
+          plugin->cur_requests);
+
+      if (GNUNET_YES == put_request)
+      {
+        /* Clean up a PUT request */
+        s->put.easyhandle = NULL;
+        s->put.s = NULL;
+
+        switch (s->put.state) {
+          case H_NOT_CONNECTED:
+          case H_DISCONNECTED:
+          case H_TMP_DISCONNECTED:
+            /* This must not happen */
+            GNUNET_break (0);
+            break;
+          case H_TMP_RECONNECT_REQUIRED:
+            /* Transport called send while disconnect in progess, reconnect */
             if (GNUNET_SYSERR == client_connect_put (s))
             {
-              GNUNET_break (s->put.easyhandle == NULL);
-              GNUNET_break (s->put_tmp_disconnected == GNUNET_NO);
-            }
-          }
-        }
-        if (easy_h == s->get.easyhandle)
-        {
-          if  ((0 != msg->data.result) || (http_statuscode != 200))
-          {
-            LOG (GNUNET_ERROR_TYPE_DEBUG,
-                 "Session %p/connection %p: GET connection to `%s' ended with status %i reason %i: `%s'\n",
-                 s,
-                 msg->easy_handle,
-                 GNUNET_i2s (&s->address->peer),
-                 http_statuscode,
-                 msg->data.result,
-                 curl_easy_strerror (msg->data.result));
-
-          }
-          else
-            LOG (GNUNET_ERROR_TYPE_DEBUG,
-                 "Session %p/connection %p: GET connection to `%s' ended normal\n",
-                 s,
-                 msg->easy_handle,
-                 GNUNET_i2s (&s->address->peer));
-          /* Disconnect other transmission direction and tell transport */
-          s->get.easyhandle = NULL;
-          s->get.s = NULL;
-          /* FIXME: who calls curl_multi_remove on 'easy_h' now!? */
-          GNUNET_assert (plugin->cur_connections > 0);
-          plugin->cur_connections--;
-          LOG  (GNUNET_ERROR_TYPE_INFO,
-              "GET request done, number of connections decreased to %u\n",
-              plugin->cur_connections);
-	  /* If we are emulating an XHR client we need to make another GET
-	   * request.
-	   */
-	  if (GNUNET_YES == plugin->emulate_xhr)
-	  {
-            if (GNUNET_SYSERR == client_connect_get (s))
+              /* Reconnect failed, disconnect session */
               http_client_plugin_session_disconnect (plugin, s);
-	  } else
+            }
+            break;
+          case H_TMP_DISCONNECTING:
+            /* PUT gets temporarily disconnected */
+            s->put.state = H_TMP_DISCONNECTED;
+            break;
+          case H_PAUSED:
+          case H_CONNECTED:
+            /* PUT gets permanently disconnected */
+            s->put.state = H_DISCONNECTED;
             http_client_plugin_session_disconnect (plugin, s);
+            break;
+          default:
+            GNUNET_break (0);
+            break;
         }
       }
+      else if (GNUNET_NO == put_request)
+      {
+        /* Clean up a GET request */
+        s->get.easyhandle = NULL;
+        s->get.s = NULL;
+
+        /* If we are emulating an XHR client we need to make another GET
+         * request.
+         */
+        if (GNUNET_YES == plugin->emulate_xhr)
+        {
+          if (GNUNET_SYSERR == client_connect_get (s))
+            http_client_plugin_session_disconnect (plugin, s);
+        }
+        else
+        {
+          /* GET request was terminated, so disconnect session */
+          http_client_plugin_session_disconnect (plugin, s);
+        }
+      }
+      else
+        GNUNET_break (0); /* Must not happen */
     }
   }
   while (mret == CURLM_CALL_MULTI_PERFORM);
@@ -1391,7 +1421,7 @@ curl_easy_getinfo (easy_h,
 
 
 /**
- * Connect GET connection for a session
+ * Connect GET request for a session
  *
  * @param s the session to connect
  * @return #GNUNET_OK on success, #GNUNET_SYSERR otherwise
@@ -1401,7 +1431,7 @@ client_connect_get (struct Session *s)
 {
   CURLMcode mret;
 
-  /* create get connection */
+  /* create get request */
   s->get.easyhandle = curl_easy_init ();
   s->get.s = s;
 #if VERBOSE_CURL
@@ -1492,16 +1522,16 @@ client_connect_get (struct Session *s)
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
-  s->plugin->cur_connections++;
+  s->plugin->cur_requests++;
   LOG  (GNUNET_ERROR_TYPE_INFO,
-      "GET request `%s' established, number of connections increased to %u\n",
-      s->url, s->plugin->cur_connections);
+      "GET request `%s' established, number of requests increased to %u\n",
+      s->url, s->plugin->cur_requests);
   return GNUNET_OK;
 }
 
 
 /**
- * Connect a HTTP put connection
+ * Connect a HTTP put request
  *
  * @param s the session to connect
  * @return #GNUNET_SYSERR for hard failure, #GNUNET_OK for ok
@@ -1511,7 +1541,7 @@ client_connect_put (struct Session *s)
 {
   CURLMcode mret;
 
-  /* create put connection */
+  /* create put request */
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Session %p: Init PUT handle\n", s);
   s->put.easyhandle = curl_easy_init ();
@@ -1584,26 +1614,27 @@ client_connect_put (struct Session *s)
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
          "Session %p : Failed to add PUT handle to multihandle: `%s'\n",
-         s,
-         curl_multi_strerror (mret));
+         s, curl_multi_strerror (mret));
     curl_easy_cleanup (s->put.easyhandle);
     s->put.easyhandle = NULL;
     s->put.easyhandle = NULL;
     s->put.s = NULL;
-    s->put_tmp_disconnected = GNUNET_YES;
+    s->put.state = H_DISCONNECTED;
     return GNUNET_SYSERR;
   }
-  s->put_tmp_disconnected = GNUNET_NO;
-  s->plugin->cur_connections++;
+  s->put.state = H_CONNECTED;
+  s->plugin->cur_requests++;
+
   LOG  (GNUNET_ERROR_TYPE_INFO,
-      "PUT request `%s' established, number of connections increased to %u\n",
-      s->url, s->plugin->cur_connections);
+      "PUT request `%s' established, number of requests increased to %u\n",
+      s->url, s->plugin->cur_requests);
+
   return GNUNET_OK;
 }
 
 
 /**
- * Connect both PUT and GET connection for a session
+ * Connect both PUT and GET request for a session
  *
  * @param s the session to connect
  * @return #GNUNET_OK on success, #GNUNET_SYSERR otherwise
@@ -1639,17 +1670,19 @@ client_connect (struct Session *s)
    * there is something to send.
    */
   if (GNUNET_YES == plugin->emulate_xhr)
-    s->put_tmp_disconnected = GNUNET_YES;
+  {
+    s->put.state = H_TMP_DISCONNECTED;
+  }
   else if (GNUNET_SYSERR == client_connect_put (s))
     return GNUNET_SYSERR;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Session %p: connected with connections GET %p and PUT %p\n",
+       "Session %p: connected with GET %p and PUT %p\n",
        s, s->get.easyhandle, s->put.easyhandle);
   /* Perform connect */
   GNUNET_STATISTICS_set (plugin->env->stats,
                          HTTP_STAT_STR_CONNECTIONS,
-                         plugin->cur_connections,
+                         plugin->cur_requests,
                          GNUNET_NO);
   /* Re-schedule since handles have changed */
   if (plugin->client_perform_task != GNUNET_SCHEDULER_NO_TASK)
@@ -1657,6 +1690,8 @@ client_connect (struct Session *s)
     GNUNET_SCHEDULER_cancel (plugin->client_perform_task);
     plugin->client_perform_task = GNUNET_SCHEDULER_NO_TASK;
   }
+
+  /* Schedule task to run immediately */
   plugin->client_perform_task = GNUNET_SCHEDULER_add_now (client_run, plugin);
   return res;
 }
@@ -1742,12 +1777,12 @@ http_client_plugin_get_session (void *cls,
     return s;
 
   /* create a new session */
-  if (plugin->max_connections <= plugin->cur_connections)
+  if (plugin->max_requests <= plugin->cur_requests)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
-         "Maximum number of connections (%u) reached: "
+         "Maximum number of requests (%u) reached: "
          "cannot connect to peer `%s'\n",
-         plugin->max_connections,
+         plugin->max_requests,
          GNUNET_i2s (&address->peer));
     return NULL;
   }
@@ -1787,9 +1822,8 @@ http_client_plugin_get_session (void *cls,
   s->plugin = plugin;
   s->address = GNUNET_HELLO_address_copy (address);
   s->ats_address_network_type = ats.value;
-  s->put_paused = GNUNET_NO;
-  s->put_tmp_disconnecting = GNUNET_NO;
-  s->put_tmp_disconnected = GNUNET_NO;
+
+  s->put.state = H_NOT_CONNECTED;
   s->timeout = GNUNET_TIME_relative_to_absolute (HTTP_CLIENT_SESSION_TIMEOUT);
   s->timeout_task =  GNUNET_SCHEDULER_add_delayed (HTTP_CLIENT_SESSION_TIMEOUT,
                                                    &client_session_timeout,
@@ -1813,15 +1847,12 @@ http_client_plugin_get_session (void *cls,
     LOG (GNUNET_ERROR_TYPE_ERROR,
          "Cannot connect to peer `%s' address `%s''\n",
          http_common_plugin_address_to_string (plugin->protocol,
-                                               s->address->address,
-                                               s->address->address_length),
-         GNUNET_i2s (&s->address->peer));
+             s->address->address, s->address->address_length),
+             GNUNET_i2s (&s->address->peer));
     client_delete_session (s);
     return NULL;
   }
-  notify_session_monitor (plugin,
-                          s,
-                          GNUNET_TRANSPORT_SS_UP); /* or handshake? */
+  notify_session_monitor (plugin, s, GNUNET_TRANSPORT_SS_UP); /* or handshake? */
   return s;
 }
 
@@ -1928,7 +1959,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
 static int
 client_configure_plugin (struct HTTP_Client_Plugin *plugin)
 {
-  unsigned long long max_connections;
+  unsigned long long max_requests;
   char *proxy_type;
 
 
@@ -1937,13 +1968,13 @@ client_configure_plugin (struct HTTP_Client_Plugin *plugin)
       GNUNET_CONFIGURATION_get_value_number (plugin->env->cfg,
                                              plugin->name,
                                              "MAX_CONNECTIONS",
-                                             &max_connections))
-    max_connections = 128;
-  plugin->max_connections = max_connections;
+                                             &max_requests))
+    max_requests = 128;
+  plugin->max_requests = max_requests;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       _("Maximum number of connections is %u\n"),
-       plugin->max_connections);
+       _("Maximum number of requests is %u\n"),
+       plugin->max_requests);
 
   /* Read proxy configuration */
   if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string (plugin->env->cfg,
@@ -2104,10 +2135,8 @@ http_client_plugin_update_inbound_delay (void *cls,
   if (s->recv_wakeup_task != GNUNET_SCHEDULER_NO_TASK)
   {
     GNUNET_SCHEDULER_cancel (s->recv_wakeup_task);
-    s->recv_wakeup_task
-      = GNUNET_SCHEDULER_add_delayed (delay,
-                                      &client_wake_up,
-                                      s);
+    s->recv_wakeup_task = GNUNET_SCHEDULER_add_delayed (delay,
+        &client_wake_up, s);
   }
 }
 
