@@ -114,6 +114,7 @@ GDS_ROUTING_update_trail_next_hop (const struct GNUNET_HashCode trail_id,
   trail = GNUNET_CONTAINER_multihashmap_get (routing_table, &trail_id);
 
   if (NULL == trail)
+  
     return GNUNET_SYSERR;
 
   trail->next_hop = next_hop;
@@ -135,8 +136,13 @@ GDS_ROUTING_get_next_hop (const struct GNUNET_HashCode trail_id,
   trail = GNUNET_CONTAINER_multihashmap_get (routing_table, &trail_id);
 
   if (NULL == trail)
+  {
+    /* If a friend got disconnected and we removed all the entry from the
+     routing table, then trail will be deleted and my identity will not know
+     and when it tries to reach to that finger it fails. thats why
+     assertion always fails in*/
     return NULL;
-
+  }
   switch (trail_direction)
   {
     case GDS_ROUTING_SRC_TO_DEST:
@@ -163,7 +169,7 @@ GDS_ROUTING_remove_trail (const struct GNUNET_HashCode remove_trail_id)
 
   if (NULL == remove_entry)
     return GNUNET_NO;
-
+  
   if (GNUNET_YES == GNUNET_CONTAINER_multihashmap_remove (routing_table,
                                                           &remove_trail_id,
                                                           remove_entry))
@@ -222,7 +228,7 @@ static int remove_matching_trails (void *cls,
                                           remove_trail->next_hop);
     }
   }
-  
+
   GNUNET_assert (GNUNET_YES ==
                    GNUNET_CONTAINER_multihashmap_remove (routing_table,
                                                          &trail_id,
@@ -275,6 +281,8 @@ int
 GDS_ROUTING_remove_trail_by_peer (const struct GNUNET_PeerIdentity *peer)
 {
   int ret;
+  
+  
   /* No entries in my routing table. */
   if (0 == GNUNET_CONTAINER_multihashmap_size(routing_table))
     return GNUNET_YES;

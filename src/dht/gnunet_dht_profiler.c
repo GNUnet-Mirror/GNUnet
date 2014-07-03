@@ -307,18 +307,21 @@ get_iter (void *cls,
   struct ActiveContext *ac = cls;
   struct ActiveContext *get_ac = ac->get_ac;
 
-  /* FIXME: check the keys of put and get match or not. */
-  if (get_ac->put_data_size != size)
+  /* Check the keys of put and get match or not. */
+  if (0 == memcmp (key, &get_ac->hash, sizeof (struct GNUNET_HashCode)))
   {
-    DEBUG ("Found a GET with incorrect data length (this may happen, but very unlikely)\n");
-    return;
+    if (get_ac->put_data_size != size)
+    {
+      DEBUG ("Found a GET with incorrect data length (this may happen, but very unlikely)\n");
+      return;
+    }
+    if (0 != memcmp (data, get_ac->put_data, size))
+    {
+      DEBUG ("Found a GET with incorrect data (this may happen, but very unlikely)\n");
+      return;
+    }
   }
-  if (0 != memcmp (data, get_ac->put_data, size))
-  {
-    DEBUG ("Found a GET with incorrect data (this may happen, but very unlikely)\n");
-    return;
-  }
-
+  
   /* we found the data we are looking for */
   DEBUG ("We found a GET request; %u remaining\n", n_gets - (n_gets_fail + n_gets_ok));
   n_gets_ok++;
@@ -553,7 +556,7 @@ test_run (void *cls,
 {
   unsigned int cnt;
   unsigned int ac_cnt;
-
+    
   if (NULL == peers)
   {
     /* exit */
