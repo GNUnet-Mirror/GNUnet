@@ -1919,8 +1919,8 @@ server_disconnect_cb (void *cls,
        sc);
   if (NULL == sc)
   {
-    GNUNET_break (0);
-    return; /* never really got setup */
+    /* CORS pre-flight request finished */
+    return;
   }
 
   if (NULL != sc->session)
