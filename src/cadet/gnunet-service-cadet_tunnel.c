@@ -1152,6 +1152,7 @@ send_prebuilt_message (const struct GNUNET_MessageHeader *message,
       break;
     default:
       GNUNET_break (0);
+      LOG (GNUNET_ERROR_TYPE_ERROR, "type %s not valid\n", GC_m2s (type));
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "type %s\n", GC_m2s (type));
 
