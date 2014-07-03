@@ -28,8 +28,14 @@
 #include "gnunet_applications.h"
 #include "sensordashboard.h"
 #include "gnunet_cadet_service.h"
+#include "gnunet_sensor_util_lib.h"
 
+/**
+ * Handle to CADET service
+ */
 static struct GNUNET_CADET_Handle *cadet;
+
+static struct GNUNET_CONTAINER_MultiHashMap *sensors;
 
 /**
  * Task run during shutdown.
@@ -96,6 +102,26 @@ static void *cadet_channel_created (void *cls,
 }
 
 /**
+ * Called with any sensor reading messages received from CADET.
+ *
+ * Each time the function must call #GNUNET_CADET_receive_done on the channel
+ * in order to receive the next message. This doesn't need to be immediate:
+ * can be delayed if some processing is done on the message.
+ *
+ * @param cls Closure (set from #GNUNET_CADET_connect).
+ * @param channel Connection to the other end.
+ * @param channel_ctx Place to store local state associated with the channel.
+ * @param message The actual message.
+ * @return #GNUNET_OK to keep the channel open,
+ *         #GNUNET_SYSERR to close it (signal serious error).
+ */
+int sensor_reading_receiver (void *cls, struct GNUNET_CADET_Channel *channel,
+    void **channel_ctx, const struct GNUNET_MessageHeader *message)
+{
+
+}
+
+/**
  * Process sensordashboard requests.
  *
  * @param cls closure
@@ -110,12 +136,15 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     {NULL, NULL, 0, 0}
   };
   static struct GNUNET_CADET_MessageHandler cadet_handlers[] = {
+      {&sensor_reading_receiver, GNUNET_MESSAGE_TYPE_SENSOR_READING, 0},
       {NULL, 0, 0}
   };
   static uint32_t cadet_ports[] = {
       GNUNET_APPLICATION_TYPE_SENSORDASHBOARD,
       GNUNET_APPLICATION_TYPE_END
   };
+  sensors = GNUNET_SENSOR_load_all_sensors ();
+  GNUNET_assert (NULL != sensors);
   cadet = GNUNET_CADET_connect(cfg,
       NULL,
       &cadet_channel_created,

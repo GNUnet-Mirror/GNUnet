@@ -22,7 +22,7 @@ libexec_PROGRAMS = \
  gnunet-service-sensordashboard
 
 gnunet_sensordashboard_SOURCES = \
- gnunet-sensordashboard.c         
+ gnunet-sensordashboard.c
 gnunet_sensordashboard_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(GN_LIBINTL)
@@ -32,6 +32,7 @@ gnunet_service_sensordashboard_SOURCES = \
 gnunet_service_sensordashboard_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/cadet/libgnunetcadet.la \
+  $(top_builddir)/src/sensor/libgnunetsensorutil.la \
   $(GN_LIBINTL)
 
 

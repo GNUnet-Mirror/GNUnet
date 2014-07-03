@@ -24,6 +24,7 @@
  */
 
 #include "gnunet_sensor_service.h"
+#include "gnunet_sensor_util_lib.h"
 
 
 GNUNET_NETWORK_STRUCT_BEGIN

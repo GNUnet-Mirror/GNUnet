@@ -24,7 +24,8 @@ libexec_PROGRAMS = \
  gnunet-service-sensor
 
 lib_LTLIBRARIES = \
- libgnunetsensor.la
+ libgnunetsensor.la \
+ libgnunetsensorutil.la
 
 gnunet_sensor_SOURCES = \
  gnunet-sensor.c         
@@ -38,6 +39,7 @@ gnunet_service_sensor_SOURCES = \
  gnunet-service-sensor-analysis.c \
  gnunet-service-sensor-reporting.c
 gnunet_service_sensor_LDADD = \
+  libgnunetsensorutil.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/peerstore/libgnunetpeerstore.la \
@@ -50,6 +52,15 @@ libgnunetsensor_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la
 libgnunetsensor_la_LDFLAGS = \
   $(GNUNET_LDFLAGS)
+
+libgnunetsensorutil_la_SOURCES = \
+  sensor_util_lib.c
+libgnunetsensorutil_la_LIBADD = \
+  $(top_builddir)/src/util/libgnunetutil.la
+libgnunetsensorutil_la_LDFLAGS = \
+  $(GN_LIB_LDFLAGS)
+libgnunetsensorutil_la_DEPENDENCIES = \
+  $(top_builddir)/src/util/libgnunetutil.la
 
 plugin_LTLIBRARIES = \
   libgnunet_plugin_sensor_model_gaussian.la

@@ -2421,6 +2421,11 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_SENSOR_END 803
 
+/**
+ * Message carrying a single sensor reading
+ */
+#define GNUNET_MESSAGE_TYPE_SENSOR_READING 804
+
 
 /*******************************************************************************
  * PEERSTORE message types

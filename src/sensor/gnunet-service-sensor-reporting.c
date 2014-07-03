@@ -305,11 +305,13 @@ construct_reading_message (struct ReportingContext *rc,
       sensorname_size +
       rc->last_value_size;
   ret = GNUNET_malloc (total_size);
-  ret->sensorname_size = sensorname_size;
-  ret->sensorversion_major = rc->sensor->version_major;
-  ret->sensorversion_minor = rc->sensor->version_minor;
-  ret->timestamp = rc->timestamp;
-  ret->value_size = rc->last_value_size;
+  ret->header->size = htons (total_size);
+  ret->header->type = htons (GNUNET_MESSAGE_TYPE_SENSOR_READING);
+  ret->sensorname_size = GNUNET_htobe64 (sensorname_size);
+  ret->sensorversion_major = htons (rc->sensor->version_major);
+  ret->sensorversion_minor = htons (rc->sensor->version_minor);
+  ret->timestamp = GNUNET_htobe64 (rc->timestamp);
+  ret->value_size = GNUNET_htobe64 (rc->last_value_size);
   dummy = &ret[1];
   memcpy (dummy, rc->sensor->name, sensorname_size);
   dummy += sensorname_size;
