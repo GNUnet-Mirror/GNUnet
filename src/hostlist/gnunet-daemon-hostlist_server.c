@@ -401,7 +401,6 @@ access_handler_callback (void *cls,
   GNUNET_STATISTICS_update (stats,
                             gettext_noop ("hostlist requests processed"),
                             1, GNUNET_YES);
-  add_cors_headers (response);
   return MHD_queue_response (connection, MHD_HTTP_OK, response);
 }
 
