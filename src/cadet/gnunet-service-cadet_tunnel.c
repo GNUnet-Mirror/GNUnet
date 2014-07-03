@@ -885,7 +885,7 @@ finish_kx (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
- * Destroy a Key eXchane context for the tunnel. This function only schedules
+ * Destroy a Key eXchange context for the tunnel. This function only schedules
  * the destruction, the freeing of the memory (and clearing of old key material)
  * happens after a delay!
  *

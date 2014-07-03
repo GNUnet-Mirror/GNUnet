@@ -51,11 +51,6 @@ static int print_public_key;
 static int print_examples_flag;
 
 /**
- * Flag for printing hash of public key.
- */
-static int print_peer_identity;
-
-/**
  * Option set to create a bunch of keys at once.
  */
 static unsigned int make_keys;
@@ -359,23 +354,6 @@ run (void *cls, char *const *args, const char *cfgfile,
   }
   if (print_public_key)
   {
-    struct GNUNET_CRYPTO_EddsaPrivateKey *pk;
-    struct GNUNET_CRYPTO_EddsaPublicKey pub;
-    char *s;
-
-    pk = GNUNET_CRYPTO_eddsa_key_create_from_file (args[0]);
-    if (NULL == pk)
-      return;
-    GNUNET_CRYPTO_eddsa_key_get_public (pk, &pub);
-    s = GNUNET_CRYPTO_eddsa_public_key_to_string (&pub);
-    FPRINTF (stdout,
-             "%s\n",
-             s);
-    GNUNET_free (s);
-    GNUNET_free (pk);
-  }
-  if (print_peer_identity)
-  {
     char *str;
     struct GNUNET_DISK_FileHandle *keyfile;
     struct GNUNET_CRYPTO_EddsaPrivateKey pk;
@@ -422,9 +400,6 @@ main (int argc, char *const *argv)
     { 'p', "print-public-key", NULL,
       gettext_noop ("print the public key in ASCII format"),
       0, &GNUNET_GETOPT_set_one, &print_public_key },
-    { 'P', "print-peer-identity", NULL,
-      gettext_noop ("print the hash of the public key in ASCII format"),
-      0, &GNUNET_GETOPT_set_one, &print_peer_identity },
     { 'E', "examples", NULL,
       gettext_noop ("print examples of ECC operations (used for compatibility testing)"),
       0, &GNUNET_GETOPT_set_one, &print_examples_flag },
