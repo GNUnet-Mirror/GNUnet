@@ -829,11 +829,11 @@ AC_ARG_WITH(microhttpd,
         AC_CHECK_HEADERS([microhttpd.h],
 	  AC_CHECK_DECL(MHD_OPTION_PER_IP_CONNECTION_LIMIT,
             AC_CHECK_LIB([microhttpd], [MHD_start_daemon],
-              [AC_MSG_CHECKING([for libmicrohttpd >= 0.9.31])
+              [AC_MSG_CHECKING([for libmicrohttpd >= 0.9.32])
               AC_RUN_IFELSE([AC_LANG_SOURCE([
                 #include "$native_srcdir/src/include/platform.h"
                 #include <microhttpd.h>
-                int main () { return MHD_VERSION >= 0x0093002 ? 0 : 1; }
+                int main () { return MHD_VERSION >= 0x0093200 ? 0 : 1; }
                ])], [
                AC_MSG_RESULT(ok)
                lmhd=1],[AC_MSG_RESULT(failed)],lmhd=1)]),
@@ -848,11 +848,11 @@ AC_ARG_WITH(microhttpd,
 	  AC_CHECK_DECL(MHD_OPTION_PER_IP_CONNECTION_LIMIT,
             AC_CHECK_LIB([microhttpd], [MHD_start_daemon],
               EXT_LIB_PATH="-L$with_microhttpd/lib $EXT_LIB_PATH"
-              [AC_MSG_CHECKING([for libmicrohttpd >= 0.9.31])
+              [AC_MSG_CHECKING([for libmicrohttpd >= 0.9.32])
                AC_RUN_IFELSE([AC_LANG_SOURCE([
                 #include "$native_srcdir/src/include/platform.h"
                 #include <microhttpd.h>
-                int main () { return MHD_VERSION >= 0x0093002 ? 0 : 1; }
+                int main () { return MHD_VERSION >= 0x0093200 ? 0 : 1; }
                ])], [
                AC_MSG_RESULT(ok)
                lmhd=1],[AC_MSG_RESULT(failed)],lmhd=1)]),
@@ -866,11 +866,11 @@ AC_ARG_WITH(microhttpd,
     AC_CHECK_HEADERS([microhttpd.h],
       AC_CHECK_DECL(MHD_OPTION_PER_IP_CONNECTION_LIMIT,
         AC_CHECK_LIB([microhttpd], [MHD_start_daemon],
-          [AC_MSG_CHECKING([for libmicrohttpd >= 0.9.31])
+          [AC_MSG_CHECKING([for libmicrohttpd >= 0.9.32])
               AC_RUN_IFELSE([AC_LANG_SOURCE([
                 #include "$native_srcdir/src/include/platform.h"
 		#include <microhttpd.h>
-                int main () { return MHD_VERSION >= 0x0093002 ? 0 : 1; }
+                int main () { return MHD_VERSION >= 0x0093200 ? 0 : 1; }
                ])], [
                AC_MSG_RESULT(ok)
                lmhd=1],[AC_MSG_RESULT(failed)],lmhd=1)]),
