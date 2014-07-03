@@ -57,10 +57,11 @@
 /**
  * Information we keep with MHD for an HTTP request.
  */
-struct ServerConnection
+struct ServerRequest
 {
   /**
-   * The session this server connection belongs to
+   * The session this server request belongs to
+   * Can be NULL, when session was disconnected and freed
    */
   struct Session *session;
 
@@ -86,8 +87,8 @@ struct ServerConnection
   int direction;
 
   /**
-   * For PUT connections: Is this the first or last callback with size 0
-   * For GET connections: Have we sent a message
+   * For PUT requests: Is this the first or last callback with size 0
+   * For GET requests: Have we sent a message
    */
   int connected;
 
@@ -205,12 +206,12 @@ struct Session
   /**
    * Client recv handle
    */
-  struct ServerConnection *server_recv;
+  struct ServerRequest *server_recv;
 
   /**
    * Client send handle
    */
-  struct ServerConnection *server_send;
+  struct ServerRequest *server_send;
 
   /**
    * Address
@@ -407,15 +408,15 @@ struct HTTP_Server_Plugin
 
   /**
    * Maximum number of sockets the plugin can use
-   * Each http inbound /outbound connections are two connections
+   * Each http request /request connections are two connections
    */
-  unsigned int max_connections;
+  unsigned int max_request;
 
   /**
    * Current number of sockets the plugin can use
-   * Each http inbound /outbound connections are two connections
+   * Each http connection are two requests
    */
-  unsigned int cur_connections;
+  unsigned int cur_request;
 
   /**
    * Did we immediately end the session in disconnect_cb
@@ -725,7 +726,7 @@ http_server_plugin_send (void *cls,
   char *stat_txt;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Session %p/connection %p: Sending message with %u to peer `%s'\n",
+       "Session %p/request %p: Sending message with %u to peer `%s'\n",
        session,
        session->server_send,
        msgbuf_size,
@@ -780,9 +781,9 @@ destroy_session_shutdown_cb (void *cls,
                     void *value)
 {
   struct Session *s = value;
-  struct ServerConnection *sc_send;
-  struct ServerConnection *sc_recv;
-GNUNET_break (0);
+  struct ServerRequest *sc_send;
+  struct ServerRequest *sc_recv;
+
   sc_send = s->server_send;
   sc_recv = s->server_recv;
   server_delete_session (s);
@@ -1348,14 +1349,14 @@ session_tag_it (void *cls,
  * @param method PUT or GET
  * @return the server connecetion
  */
-static struct ServerConnection *
+static struct ServerRequest *
 server_lookup_connection (struct HTTP_Server_Plugin *plugin,
                           struct MHD_Connection *mhd_connection,
                           const char *url,
                           const char *method)
 {
   struct Session *s = NULL;
-  struct ServerConnection *sc = NULL;
+  struct ServerRequest *sc = NULL;
   const union MHD_ConnectionInfo *conn_info;
   struct HttpAddress *addr;
   struct GNUNET_ATS_Information ats;
@@ -1372,7 +1373,7 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
       (conn_info->client_addr->sa_family != AF_INET6))
     return NULL;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "New %s connection from %s\n",
+       "New %s request from %s\n",
        method,
        url);
   stc.tag = 0;
@@ -1390,18 +1391,18 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
   else
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Invalid method %s connection from %s\n",
+         "Invalid method %s for request from %s\n",
          method, url);
     return NULL;
   }
 
-  plugin->cur_connections++;
+  plugin->cur_request++;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "New %s connection from %s with tag %u (%u of %u)\n",
+       "New %s request from %s with tag %u (%u of %u)\n",
        method,
        GNUNET_i2s (&target),
        stc.tag,
-       plugin->cur_connections, plugin->max_connections);
+       plugin->cur_request, plugin->max_request);
   /* find existing session */
   stc.res = NULL;
   GNUNET_CONTAINER_multipeermap_get_multiple (plugin->sessions,
@@ -1473,7 +1474,7 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
        (NULL != s->server_recv) )
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Duplicate PUT connection from `%s' tag %u, dismissing new connection\n",
+         "Duplicate PUT request from `%s' tag %u, dismissing new request\n",
          GNUNET_i2s (&target),
          stc.tag);
     return NULL;
@@ -1481,12 +1482,12 @@ server_lookup_connection (struct HTTP_Server_Plugin *plugin,
   if ((_SEND == direction) && (NULL != s->server_send))
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Duplicate GET connection from `%s' tag %u, dismissing new connection\n",
+         "Duplicate GET request from `%s' tag %u, dismissing new request\n",
          GNUNET_i2s (&target),
          stc.tag);
     return NULL;
   }
-  sc = GNUNET_new (struct ServerConnection);
+  sc = GNUNET_new (struct ServerRequest);
   if (conn_info->client_addr->sa_family == AF_INET)
     sc->mhd_daemon = plugin->server_v4;
   if (conn_info->client_addr->sa_family == AF_INET6)
@@ -1550,11 +1551,17 @@ server_send_callback (void *cls,
                       char *buf,
                       size_t max)
 {
-  struct Session *s = cls;
-  struct ServerConnection *sc;
+  struct ServerRequest *sc = cls;
+  struct Session *s = sc->session;
   ssize_t bytes_read = 0;
   struct HTTP_Message *msg;
   char *stat_txt;
+
+  if (NULL == s)
+  {
+    /* session is disconnecting */
+    return 0;
+  }
 
   sc = s->server_send;
   if (NULL == sc)
@@ -1733,7 +1740,7 @@ server_access_cb (void *cls,
                   void **httpSessionCache)
 {
   struct HTTP_Server_Plugin *plugin = cls;
-  struct ServerConnection *sc = *httpSessionCache;
+  struct ServerRequest *sc = *httpSessionCache;
   struct Session *s;
   struct MHD_Response *response;
   int res = MHD_YES;
@@ -1741,8 +1748,8 @@ server_access_cb (void *cls,
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        _("Access from connection %p (%u of %u) for `%s' `%s' url `%s' with upload data size %u\n"),
        sc,
-       plugin->cur_connections,
-       plugin->max_connections,
+       plugin->cur_request,
+       plugin->max_request,
        method,
        version,
        url,
@@ -1753,7 +1760,7 @@ server_access_cb (void *cls,
     if (0 == strcmp (MHD_HTTP_METHOD_OPTIONS, method))
     {
       response = MHD_create_response_from_buffer (0, NULL,
-                                                  MHD_RESPMEM_PERSISTENT);
+          MHD_RESPMEM_PERSISTENT);
       add_cors_headers(response);
       res = MHD_queue_response (mhd_connection, MHD_HTTP_OK, response);
       MHD_destroy_response (response);
@@ -1788,8 +1795,7 @@ server_access_cb (void *cls,
     /* Session was already disconnected;
        sent HTTP/1.1: 200 OK as response */
     response = MHD_create_response_from_data (strlen ("Thank you!"),
-                                              "Thank you!",
-                                              MHD_NO, MHD_NO);
+        "Thank you!", MHD_NO, MHD_NO);
     add_cors_headers(response);
     MHD_queue_response (mhd_connection, MHD_HTTP_OK, response);
     MHD_destroy_response (response);
@@ -1798,10 +1804,8 @@ server_access_cb (void *cls,
 
   if (sc->direction == _SEND)
   {
-    response = MHD_create_response_from_callback (MHD_SIZE_UNKNOWN,
-                                                  32 * 1024,
-                                                  &server_send_callback, s,
-                                                  NULL);
+    response = MHD_create_response_from_callback (MHD_SIZE_UNKNOWN, 32 * 1024,
+        &server_send_callback, sc, NULL);
     add_cors_headers(response);
     MHD_queue_response (mhd_connection, MHD_HTTP_OK, response);
     MHD_destroy_response (response);
@@ -1835,8 +1839,7 @@ server_access_cb (void *cls,
       sc->connected = GNUNET_NO;
       /* Sent HTTP/1.1: 200 OK as PUT Response\ */
       response = MHD_create_response_from_data (strlen ("Thank you!"),
-                                         "Thank you!",
-                                         MHD_NO, MHD_NO);
+          "Thank you!", MHD_NO, MHD_NO);
       add_cors_headers(response);
       MHD_queue_response (mhd_connection, MHD_HTTP_OK, response);
       MHD_destroy_response (response);
@@ -1865,26 +1868,24 @@ server_access_cb (void *cls,
         {
           s->msg_tk = GNUNET_SERVER_mst_create (&server_receive_mst_cb, s);
         }
-        GNUNET_SERVER_mst_receive (s->msg_tk, s, upload_data,
-                                   *upload_data_size, GNUNET_NO, GNUNET_NO);
+        GNUNET_SERVER_mst_receive (s->msg_tk, s, upload_data, *upload_data_size,
+            GNUNET_NO, GNUNET_NO);
         server_mhd_connection_timeout (plugin, s,
-				       GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value_us / 1000LL / 1000LL);
+            GNUNET_CONSTANTS_IDLE_CONNECTION_TIMEOUT.rel_value_us / 1000LL
+                / 1000LL);
         (*upload_data_size) = 0;
       }
       else
       {
         /* delay processing */
-        GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                    "Session %p / Connection %p: no inbound bandwidth available! Next read was delayed by %s\n",
-                    s, sc,
-		    GNUNET_STRINGS_relative_time_to_string (delay,
-							    GNUNET_YES));
-        GNUNET_assert (s->server_recv->mhd_conn == mhd_connection);
+        GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+            "Session %p / Connection %p: no inbound bandwidth available! Next read was delayed by %s\n",
+            s, sc, GNUNET_STRINGS_relative_time_to_string (delay, GNUNET_YES));
+        GNUNET_assert(s->server_recv->mhd_conn == mhd_connection);
         MHD_suspend_connection (s->server_recv->mhd_conn);
         if (GNUNET_SCHEDULER_NO_TASK == s->recv_wakeup_task)
           s->recv_wakeup_task = GNUNET_SCHEDULER_add_delayed (delay,
-                                                              &server_wake_up,
-                                                              s);
+              &server_wake_up, s);
       }
       return MHD_YES;
     }
@@ -1911,7 +1912,7 @@ server_disconnect_cb (void *cls,
                       void **httpSessionCache)
 {
   struct HTTP_Server_Plugin *plugin = cls;
-  struct ServerConnection *sc = *httpSessionCache;
+  struct ServerRequest *sc = *httpSessionCache;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Disconnect for connection %p\n",
@@ -1954,7 +1955,7 @@ server_disconnect_cb (void *cls,
     }
   }
   GNUNET_free (sc);
-  plugin->cur_connections--;
+  plugin->cur_request--;
 }
 
 
@@ -1973,11 +1974,11 @@ server_accept_cb (void *cls,
 {
   struct HTTP_Server_Plugin *plugin = cls;
 
-  if (plugin->cur_connections <= plugin->max_connections)
+  if (plugin->cur_request <= plugin->max_request)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          _("Accepting connection (%u of %u) from `%s'\n"),
-         plugin->cur_connections, plugin->max_connections,
+         plugin->cur_request, plugin->max_request,
          GNUNET_a2s (addr, addr_len));
     return MHD_YES;
   }
@@ -1985,7 +1986,7 @@ server_accept_cb (void *cls,
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
          _("Server reached maximum number connections (%u), rejecting new connection\n"),
-         plugin->max_connections);
+         plugin->max_request);
     return MHD_NO;
   }
 }
@@ -2230,7 +2231,7 @@ server_start (struct HTTP_Server_Plugin *plugin)
                                            plugin->server_addr_v4,
                                            MHD_OPTION_CONNECTION_LIMIT,
                                            (unsigned int)
-                                           plugin->max_connections,
+                                           plugin->max_request,
 #if BUILD_HTTPS
                                            MHD_OPTION_HTTPS_PRIORITIES,
                                            plugin->crypto_init,
@@ -2279,7 +2280,7 @@ server_start (struct HTTP_Server_Plugin *plugin)
                                            plugin->server_addr_v6,
                                            MHD_OPTION_CONNECTION_LIMIT,
                                            (unsigned int)
-                                           plugin->max_connections,
+                                           plugin->max_request,
 #if BUILD_HTTPS
                                            MHD_OPTION_HTTPS_PRIORITIES,
                                            plugin->crypto_init,
@@ -3095,11 +3096,11 @@ server_configure_plugin (struct HTTP_Server_Plugin *plugin)
                                              "MAX_CONNECTIONS",
                                              &max_connections))
     max_connections = 128;
-  plugin->max_connections = max_connections;
+  plugin->max_request = max_connections;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        _("Maximum number of connections is %u\n"),
-       plugin->max_connections);
+       plugin->max_request);
 
   plugin->peer_id_length = strlen (GNUNET_i2s_full (plugin->env->my_identity));
 
