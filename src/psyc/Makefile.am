@@ -45,7 +45,7 @@ libgnunetpsyc_la_LDFLAGS = \
 libgnunetpsyc_la_DEPENDENCIES = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/env/libgnunetenv.la \
-  $(top_builddir)/src/psyc/libgnunetpsycutil.la
+  libgnunetpsycutil.la
 
 bin_PROGRAMS =
 
@@ -66,7 +66,7 @@ gnunet_service_psyc_DEPENDENCIES = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/multicast/libgnunetmulticast.la \
   $(top_builddir)/src/psycstore/libgnunetpsycstore.la \
-  $(top_builddir)/src/psyc/libgnunetpsycutil.la
+  libgnunetpsycutil.la
 gnunet_service_psyc_CFLAGS = $(AM_CFLAGS)
 
 
