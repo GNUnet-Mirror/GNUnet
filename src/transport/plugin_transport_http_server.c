@@ -2223,6 +2223,9 @@ server_start (struct HTTP_Server_Plugin *plugin)
 #if BUILD_HTTPS
                                            MHD_USE_SSL |
 #endif
+#ifdef MHD_USE_SUSPEND_RESUME
+                                           MHD_USE_SUSPEND_RESUME |
+#endif
                                            MHD_NO_FLAG, plugin->port,
                                            &server_accept_cb, plugin,
                                            &server_access_cb, plugin,
