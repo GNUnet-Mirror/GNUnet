@@ -1351,8 +1351,9 @@ client_run (void *cls,
       GNUNET_assert (plugin->cur_requests > 0);
       plugin->cur_requests--;
       LOG  (GNUNET_ERROR_TYPE_INFO,
-          "%s request done, number of requests decreased to %u\n",
+          "%s request to %u done, number of requests decreased to %u\n",
           (GNUNET_YES == put_request) ? "PUT" : "GET",
+          s->url,
           plugin->cur_requests);
 
       if (GNUNET_YES == put_request)
