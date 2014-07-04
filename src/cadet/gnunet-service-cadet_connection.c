@@ -1787,6 +1787,7 @@ GCC_handle_broken (void* cls,
 {
   struct GNUNET_CADET_ConnectionBroken *msg;
   struct CadetConnection *c;
+  struct CadetTunnel *t;
   int fwd;
 
   msg = (struct GNUNET_CADET_ConnectionBroken *) message;
@@ -1814,10 +1815,11 @@ GCC_handle_broken (void* cls,
     path_invalidate (c->path);
     GCP_notify_broken_link (endpoint, &msg->peer1, &msg->peer2);
     c->state = CADET_CONNECTION_DESTROYED;
+    t = c->t;
     while (NULL != (out_msg = GCP_connection_pop (neighbor, c)))
     {
       GNUNET_assert (NULL ==
-                     GCT_send_prebuilt_message (out_msg, c->t, NULL, GNUNET_YES,
+                     GCT_send_prebuilt_message (out_msg, t, NULL, GNUNET_YES,
                                                 NULL, NULL));
     }
 
