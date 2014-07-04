@@ -172,7 +172,7 @@ load_sensor_from_cfg(struct GNUNET_CONFIGURATION_Handle *cfg, const char *sectio
           sensor->name);
   }
   else
-    sensor->lifetime = sensor->interval;
+    sensor->lifetime = GNUNET_TIME_UNIT_FOREVER_REL;
   //capabilities TODO
   //source
   if(GNUNET_OK != GNUNET_CONFIGURATION_get_value_choice(cfg, sectionname, "SOURCE", sources, (const char **)&sensor->source))
