@@ -1,7 +1,7 @@
-[transport-tcp-bytes-transmitted]
+[transport-http-connections]
 
 VERSION = 1.0
-DESCRIPTION = Number of GNUnet transport service active TCP sessions
+DESCRIPTION = Gets the number of transport HTTP connections
 CATEGORY = GNUnet
 ENABLED = YES
 
@@ -17,7 +17,7 @@ INTERVAL = 60
 SOURCE = gnunet-statistics
 
 GNUNET_STAT_SERVICE = transport
-GNUNET_STAT_NAME = # bytes transmitted via TCP
+GNUNET_STAT_NAME = # HTTP client connections
 
 #EXT_PROCESS = 
 #EXT_ARGS = 
