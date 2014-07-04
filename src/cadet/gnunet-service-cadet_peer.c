@@ -1402,6 +1402,7 @@ GCP_connection_pop (struct CadetPeer *peer, struct CadetConnection *c)
 
       default:
         GNUNET_break (0);
+        LOG (GNUNET_ERROR_TYPE_DEBUG, "Unknown message %s\n", GC_m2s (q->type));
     }
   }
 
