@@ -236,6 +236,11 @@ struct OperationQueue
    * #OPERATION_QUEUE_TYPE_ADAPTIVE
    */
   unsigned int overload;
+
+  /**
+   * Is this queue marked for expiry?
+   */
+  unsigned int expired;
 };
 
 
@@ -375,12 +380,22 @@ struct GNUNET_TESTBED_Operation
 /**
  * DLL head for the ready queue
  */
-struct ReadyQueueEntry *rq_head;
+static struct ReadyQueueEntry *rq_head;
 
 /**
  * DLL tail for the ready queue
  */
-struct ReadyQueueEntry *rq_tail;
+static struct ReadyQueueEntry *rq_tail;
+
+/**
+ * Array of operation queues which are to be destroyed
+ */
+static struct OperationQueue **expired_opqs;
+
+/**
+ * Number of expired operation queues in the above array
+ */
+static unsigned int n_expired_opqs;
 
 /**
  * The id of the task to process the ready queue
@@ -1052,17 +1067,15 @@ GNUNET_TESTBED_operation_queue_create_ (enum OperationQueueType type,
 
 
 /**
- * Destroy an operation queue.  The queue MUST be empty
- * at this time.
+ * Cleanup the given operation queue.
  *
- * @param queue queue to destroy
+ * @param queue the operation queue to destroy
  */
-void
-GNUNET_TESTBED_operation_queue_destroy_ (struct OperationQueue *queue)
+static void
+queue_destroy (struct OperationQueue *queue)
 {
   struct FeedbackCtx *fctx;
 
-  GNUNET_break (GNUNET_YES == is_queue_empty (queue));
   if (OPERATION_QUEUE_TYPE_ADAPTIVE == queue->type)
   {
     cleanup_tslots (queue);
@@ -1071,6 +1084,27 @@ GNUNET_TESTBED_operation_queue_destroy_ (struct OperationQueue *queue)
     GNUNET_free (fctx);
   }
   GNUNET_free (queue);
+}
+
+
+/**
+ * Destroys an operation queue.  If the queue is still in use by operations it
+ * is marked as expired and its resources are released in the destructor
+ * GNUNET_TESTBED_operations_fini().
+ *
+ * @param queue queue to destroy
+ */
+void
+GNUNET_TESTBED_operation_queue_destroy_ (struct OperationQueue *queue)
+{
+  if (GNUNET_YES != is_queue_empty (queue))
+  {
+    GNUNET_assert (0 == queue->expired); /* Are you calling twice on same queue? */
+    queue->expired = 1;
+    GNUNET_array_append (expired_opqs, n_expired_opqs, queue);
+    return;
+  }
+  queue_destroy (queue);
 }
 
 
@@ -1317,4 +1351,29 @@ GNUNET_TESTBED_operation_mark_failed (struct GNUNET_TESTBED_Operation *op)
 }
 
 
+/**
+ * Cleanup expired operation queues.  While doing so, also check for any
+ * operations which are not completed and warn about them.
+ */
+void __attribute__ ((destructor))
+GNUNET_TESTBED_operations_fini ()
+{
+  struct OperationQueue *queue;
+  unsigned int i;
+  int warn = 0;
+
+  for (i=0; i < n_expired_opqs; i++)
+  {
+    queue = expired_opqs[i];
+    if (GNUNET_NO == is_queue_empty (queue))
+      warn = 1;
+    queue_destroy (queue);
+  }
+  GNUNET_free_non_null (expired_opqs);
+  n_expired_opqs = 0;
+  if (warn)
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Be disciplined.  Some operations were not marked as done.\n");
+
+}
 /* end of testbed_api_operations.c */
