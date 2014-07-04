@@ -471,6 +471,8 @@ client_delete_session (struct Session *s)
                                      s->put.easyhandle);
     GNUNET_break (CURLM_OK == mret);
     curl_easy_cleanup (s->put.easyhandle);
+    GNUNET_assert (plugin->cur_requests > 0);
+    plugin->cur_requests--;
     s->put.easyhandle = NULL;
   }
   if (NULL != s->get.easyhandle)
@@ -488,6 +490,7 @@ client_delete_session (struct Session *s)
     plugin->cur_requests--;
     s->get.easyhandle = NULL;
   }
+
   GNUNET_STATISTICS_set (plugin->env->stats,
                          HTTP_STAT_STR_CONNECTIONS,
                          plugin->cur_requests,
@@ -1318,7 +1321,6 @@ client_run (void *cls,
       GNUNET_break (CURLE_OK == curl_easy_getinfo (easy_h,
           CURLINFO_RESPONSE_CODE, &http_statuscode));
 
-
       if (easy_h == s->put.easyhandle)
         put_request = GNUNET_YES;
       else
@@ -1414,6 +1416,11 @@ client_run (void *cls,
       }
       else
         GNUNET_break (0); /* Must not happen */
+
+      GNUNET_STATISTICS_set (plugin->env->stats,
+                             HTTP_STAT_STR_CONNECTIONS,
+                             plugin->cur_requests,
+                             GNUNET_NO);
     }
   }
   while (mret == CURLM_CALL_MULTI_PERFORM);
