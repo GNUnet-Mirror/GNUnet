@@ -61,61 +61,6 @@ char *subsystem = "sensor";
 struct GNUNET_PeerIdentity peerid;
 
 /**
- * Remove sensor execution from scheduler
- *
- * @param cls unused
- * @param key hash of sensor name, key to hashmap
- * @param value a 'struct SensorInfo *'
- * @return #GNUNET_YES if we should continue to
- *         iterate,
- *         #GNUNET_NO if not.
- */
-static int destroy_sensor(void *cls,
-    const struct GNUNET_HashCode *key, void *value)
-{
-  struct SensorInfo *sensorinfo = value;
-
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Destroying sensor `%s'\n", sensorinfo->name);
-  if(GNUNET_SCHEDULER_NO_TASK != sensorinfo->execution_task)
-  {
-    GNUNET_SCHEDULER_cancel(sensorinfo->execution_task);
-    sensorinfo->execution_task = GNUNET_SCHEDULER_NO_TASK;
-  }
-  if(NULL != sensorinfo->gnunet_stat_get_handle)
-  {
-    GNUNET_STATISTICS_get_cancel(sensorinfo->gnunet_stat_get_handle);
-    sensorinfo->gnunet_stat_get_handle = NULL;
-  }
-  if(NULL != sensorinfo->ext_cmd)
-  {
-    GNUNET_OS_command_stop(sensorinfo->ext_cmd);
-    sensorinfo->ext_cmd = NULL;
-  }
-  if(NULL != sensorinfo->cfg)
-    GNUNET_CONFIGURATION_destroy(sensorinfo->cfg);
-  if(NULL != sensorinfo->name)
-    GNUNET_free(sensorinfo->name);
-  if(NULL != sensorinfo->def_file)
-    GNUNET_free(sensorinfo->def_file);
-  if(NULL != sensorinfo->description)
-    GNUNET_free(sensorinfo->description);
-  if(NULL != sensorinfo->category)
-    GNUNET_free(sensorinfo->category);
-  if(NULL != sensorinfo->capabilities)
-    GNUNET_free(sensorinfo->capabilities);
-  if(NULL != sensorinfo->gnunet_stat_service)
-    GNUNET_free(sensorinfo->gnunet_stat_service);
-  if(NULL != sensorinfo->gnunet_stat_name)
-    GNUNET_free(sensorinfo->gnunet_stat_name);
-  if(NULL != sensorinfo->ext_process)
-    GNUNET_free(sensorinfo->ext_process);
-  if(NULL != sensorinfo->ext_args)
-    GNUNET_free(sensorinfo->ext_args);
-  GNUNET_free(sensorinfo);
-  return GNUNET_YES;
-}
-
-/**
  * Disable a sensor
  * Sensor will not run again unless
  * explicitly enabled or reloaded
@@ -146,8 +91,7 @@ shutdown_task (void *cls,
 {
   SENSOR_reporting_stop();
   SENSOR_analysis_stop();
-  GNUNET_CONTAINER_multihashmap_iterate(sensors, &destroy_sensor, NULL);
-  GNUNET_CONTAINER_multihashmap_destroy(sensors);
+  GNUNET_SENSOR_destroy_sensors (sensors);
   if(NULL != statistics)
   {
     GNUNET_STATISTICS_destroy(statistics, GNUNET_YES);
@@ -464,6 +408,7 @@ void sensor_process_callback (void *cls, const char *line)
         GNUNET_PEERSTORE_STOREOPTION_MULTIPLE,
         NULL,
         NULL);
+    GNUNET_free (value);
   }
 }
 

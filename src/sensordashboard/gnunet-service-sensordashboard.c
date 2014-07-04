@@ -23,6 +23,7 @@
  * @brief Service collecting sensor readings from peers
  * @author Omar Tarabai
  */
+#include <inttypes.h>
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_applications.h"
@@ -51,6 +52,7 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_CADET_disconnect(cadet);
     cadet = NULL;
   }
+  GNUNET_SENSOR_destroy_sensors (sensors);
   GNUNET_SCHEDULER_shutdown();
 }
 
@@ -69,7 +71,9 @@ static void cadet_channel_destroyed (void *cls,
     const struct GNUNET_CADET_Channel *channel,
     void *channel_ctx)
 {
+  struct GNUNET_PeerIdentity *peer = channel_ctx;
 
+  GNUNET_free (peer);
 }
 
 /**
@@ -95,10 +99,11 @@ static void *cadet_channel_created (void *cls,
     const struct GNUNET_PeerIdentity *initiator,
     uint32_t port, enum GNUNET_CADET_ChannelOption options)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-      "CADET channel opened by remote peer `%s'.\n",
-      GNUNET_i2s(initiator));
-  return NULL; /* FIXME */
+  struct GNUNET_PeerIdentity *peer;
+
+  peer = GNUNET_new (struct GNUNET_PeerIdentity);
+  memcpy (peer, initiator, sizeof (struct GNUNET_PeerIdentity));
+  return peer;
 }
 
 /**
@@ -118,7 +123,29 @@ static void *cadet_channel_created (void *cls,
 int sensor_reading_receiver (void *cls, struct GNUNET_CADET_Channel *channel,
     void **channel_ctx, const struct GNUNET_MessageHeader *message)
 {
+  struct GNUNET_PeerIdentity *peer = *channel_ctx;
+  struct GNUNET_SENSOR_Reading *reading;
 
+  reading = GNUNET_SENSOR_parse_reading_message (message, sensors);
+  if (NULL == reading)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+        "Received an invalid sensor reading from peer `%s'\n",
+        GNUNET_i2s (peer));
+    return GNUNET_SYSERR;
+  }
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO,
+      "Received a sensor reading from peer `%s':\n"
+      "# Sensor name: `%s'\n"
+      "# Timestamp: %" PRIu64 "\n"
+      "# Value size: %" PRIu64 ".\n",
+      GNUNET_i2s (peer),
+      reading->sensor->name,
+      reading->timestamp,
+      reading->value_size);
+  GNUNET_free (reading->value);
+  GNUNET_free (reading);
+  return GNUNET_OK;
 }
 
 /**

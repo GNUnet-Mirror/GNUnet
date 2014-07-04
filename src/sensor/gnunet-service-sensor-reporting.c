@@ -23,6 +23,7 @@
  * @brief sensor service reporting functionality
  * @author Omar Tarabai
  */
+#include <inttypes.h>
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "sensor.h"
@@ -31,6 +32,11 @@
 #include "gnunet_applications.h"
 
 #define LOG(kind,...) GNUNET_log_from (kind, "sensor-reporting",__VA_ARGS__)
+
+/**
+ * Retry interval (seconds) in case channel to collection point is busy
+ */
+#define COLLECTION_RETRY 1
 
 /**
  * Context of reporting operations
@@ -129,6 +135,11 @@ struct CadetChannelContext
    */
   struct GNUNET_CADET_TransmitHandle *th;
 
+  /**
+   * Are we currently destroying the channel and its context?
+   */
+  int destroying;
+
 };
 
 /**
@@ -202,6 +213,7 @@ destroy_reporting_context (struct ReportingContext *rc)
 static void
 destroy_cadet_channel_context (struct CadetChannelContext *cc)
 {
+  cc->destroying = GNUNET_YES;
   if (NULL != cc->th)
   {
     GNUNET_CADET_notify_transmit_ready_cancel (cc->th);
@@ -280,6 +292,7 @@ get_cadet_channel (struct GNUNET_PeerIdentity pid)
       GNUNET_CADET_OPTION_DEFAULT);
   cc->pid = pid;
   cc->sending = GNUNET_NO;
+  cc->destroying = GNUNET_NO;
   GNUNET_CONTAINER_DLL_insert (cc_head, cc_tail, cc);
   return cc;
 }
@@ -293,25 +306,25 @@ get_cadet_channel (struct GNUNET_PeerIdentity pid)
  */
 static size_t
 construct_reading_message (struct ReportingContext *rc,
-    struct GNUNET_SENSOR_Reading **msg)
+    struct GNUNET_SENSOR_ReadingMessage **msg)
 {
-  struct GNUNET_SENSOR_Reading *ret;
-  size_t sensorname_size;
-  size_t total_size;
+  struct GNUNET_SENSOR_ReadingMessage *ret;
+  uint16_t sensorname_size;
+  uint16_t total_size;
   void *dummy;
 
   sensorname_size = strlen (rc->sensor->name) + 1;
-  total_size = sizeof(struct GNUNET_SENSOR_Reading) +
+  total_size = sizeof(struct GNUNET_SENSOR_ReadingMessage) +
       sensorname_size +
       rc->last_value_size;
   ret = GNUNET_malloc (total_size);
-  ret->header->size = htons (total_size);
-  ret->header->type = htons (GNUNET_MESSAGE_TYPE_SENSOR_READING);
-  ret->sensorname_size = GNUNET_htobe64 (sensorname_size);
+  ret->header.size = htons (total_size);
+  ret->header.type = htons (GNUNET_MESSAGE_TYPE_SENSOR_READING);
+  ret->sensorname_size = htons (sensorname_size);
   ret->sensorversion_major = htons (rc->sensor->version_major);
   ret->sensorversion_minor = htons (rc->sensor->version_minor);
   ret->timestamp = GNUNET_htobe64 (rc->timestamp);
-  ret->value_size = GNUNET_htobe64 (rc->last_value_size);
+  ret->value_size = htons (rc->last_value_size);
   dummy = &ret[1];
   memcpy (dummy, rc->sensor->name, sensorname_size);
   dummy += sensorname_size;
@@ -336,12 +349,19 @@ do_report_collection_point (void *cls, size_t size, void *buf)
   struct CadetChannelContext *cc = cls;
   size_t written = 0;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Copying to CADET transmit buffer.\n");
+  cc->th = NULL;
   cc->sending = GNUNET_NO;
-  if (NULL == buf || size != cc->pending_msg_size)
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Copying to CADET transmit buffer.\n");
+  if (NULL == buf)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
-        "CADET failed to transmit message to collection point, discarding.");
+        "CADET failed to transmit message (NULL buf), discarding.\n");
+  }
+  else if (size < cc->pending_msg_size)
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+        "CADET failed to transmit message (small size, expected: %u, got: %u)"
+        ", discarding.\n", cc->pending_msg_size, size);
   }
   else
   {
@@ -349,6 +369,7 @@ do_report_collection_point (void *cls, size_t size, void *buf)
     written = cc->pending_msg_size;
   }
   GNUNET_free (cc->pending_msg);
+  cc->pending_msg = NULL;
   cc->pending_msg_size = 0;
   return written;
 }
@@ -365,7 +386,7 @@ static void report_collection_point
   struct ReportingContext *rc = cls;
   struct SensorInfo *sensor = rc->sensor;
   struct CadetChannelContext *cc;
-  struct GNUNET_SENSOR_Reading *msg;
+  struct GNUNET_SENSOR_ReadingMessage *msg;
   size_t msg_size;
 
   rc->cp_task = GNUNET_SCHEDULER_NO_TASK;
@@ -385,9 +406,11 @@ static void report_collection_point
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
         "Cadet channel to collection point busy, "
-        "trying again for sensor `%s' on next interval.\n", rc->sensor->name);
-    rc->cp_task = GNUNET_SCHEDULER_add_delayed (sensor->collection_interval,
-            &report_collection_point, rc);
+        "trying again for sensor `%s' after %d seconds.\n", rc->sensor->name,
+        COLLECTION_RETRY);
+    rc->cp_task = GNUNET_SCHEDULER_add_delayed (
+      GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, COLLECTION_RETRY),
+      &report_collection_point, rc);
     return;
   }
   msg_size = construct_reading_message (rc, &msg);
@@ -414,8 +437,6 @@ sensor_watch_cb (void *cls,
 {
   struct ReportingContext *rc = cls;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Received a sensor `%s' watch value, "
-      "updating notification last_value.\n", rc->sensor->name);
   if (NULL != emsg)
     return GNUNET_YES;
   if (NULL != rc->last_value)
@@ -427,6 +448,9 @@ sensor_watch_cb (void *cls,
   memcpy (rc->last_value, record->value, record->value_size);
   rc->last_value_size = record->value_size;
   rc->timestamp = GNUNET_TIME_absolute_get().abs_value_us;
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Received a sensor `%s' watch value at "
+      "timestamp %" PRIu64 ", updating notification last_value.\n",
+      rc->sensor->name, rc->timestamp);
   return GNUNET_YES;
 }
 
@@ -502,6 +526,8 @@ static void cadet_channel_destroyed (void *cls,
 {
   struct CadetChannelContext *cc = channel_ctx;
 
+  if (GNUNET_YES == cc->destroying)
+    return;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
       "Received a `channel destroyed' notification from CADET, "
       "cleaning up.\n");

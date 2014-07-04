@@ -71,50 +71,6 @@ struct SensorInfoShort
 
 };
 
-GNUNET_NETWORK_STRUCT_BEGIN
-
-/**
- * Used to communicate sensor readings to
- * collection points (SENSORDASHBAORD service)
- */
-struct GNUNET_SENSOR_Reading
-{
-
-  /**
-   * GNUNET general message header
-   */
-  struct GNUNET_MessageHeader *header;
-
-  /**
-   * Size of the sensor name value, allocated
-   * at position 0 after this struct
-   */
-  size_t sensorname_size;
-
-  /**
-   * First part of sensor version number
-   */
-  uint16_t sensorversion_major;
-
-  /**
-   * Second part of sensor version number
-   */
-  uint16_t sensorversion_minor;
-
-  /**
-   * Timestamp of recorded reading
-   */
-  uint64_t timestamp;
-
-  /**
-   * Size of reading value, allocation
-   * at poistion 1 after this struct
-   */
-  size_t value_size;
-
-};
-GNUNET_NETWORK_STRUCT_END
-
 /**
  * Type of an iterator over sensor definitions.
  *

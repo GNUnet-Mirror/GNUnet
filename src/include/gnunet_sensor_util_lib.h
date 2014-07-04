@@ -188,6 +188,78 @@ struct SensorInfo
 };
 
 /**
+ * Carries a single reading from a sensor
+ */
+struct GNUNET_SENSOR_Reading
+{
+
+  /**
+   * Sensor this reading is related to
+   */
+  struct SensorInfo *sensor;
+
+  /**
+   * Timestamp of taking the reading
+   */
+  uint64_t timestamp;
+
+  /**
+   * Reading value
+   */
+  void *value;
+
+  /**
+   * Size of @value
+   */
+  uint16_t value_size;
+
+};
+
+GNUNET_NETWORK_STRUCT_BEGIN
+
+/**
+ * Used to communicate sensor readings to
+ * collection points (SENSORDASHBAORD service)
+ */
+struct GNUNET_SENSOR_ReadingMessage
+{
+
+  /**
+   * GNUNET general message header
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Size of the sensor name value, allocated
+   * at position 0 after this struct
+   */
+  uint16_t sensorname_size;
+
+  /**
+   * First part of sensor version number
+   */
+  uint16_t sensorversion_major;
+
+  /**
+   * Second part of sensor version number
+   */
+  uint16_t sensorversion_minor;
+
+  /**
+   * Timestamp of recorded reading
+   */
+  uint64_t timestamp;
+
+  /**
+   * Size of reading value, allocation
+   * at poistion 1 after this struct
+   */
+  uint16_t value_size;
+
+};
+GNUNET_NETWORK_STRUCT_END
+
+/**
  * Reads sensor definitions from local data files
  *
  * @return a multihashmap of loaded sensors
@@ -202,6 +274,25 @@ GNUNET_SENSOR_load_all_sensors ();
  */
 char *
 GNUNET_SENSOR_get_sensor_dir ();
+
+/**
+ * Parses a sensor reading message struct
+ *
+ * @param msg message header received
+ * @param sensors multihashmap of loaded sensors
+ * @return sensor reading struct or NULL if error
+ */
+struct GNUNET_SENSOR_Reading *
+GNUNET_SENSOR_parse_reading_message (const struct GNUNET_MessageHeader *msg,
+    struct GNUNET_CONTAINER_MultiHashMap *sensors);
+
+/**
+ * Destroys a group of sensors in a hashmap and the hashmap itself
+ *
+ * @param sensors hashmap containing the sensors
+ */
+void
+GNUNET_SENSOR_destroy_sensors (struct GNUNET_CONTAINER_MultiHashMap *sensors);
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

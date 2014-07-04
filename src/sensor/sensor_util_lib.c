@@ -27,6 +27,7 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_sensor_util_lib.h"
+#include "gnunet_statistics_service.h"
 
 #define LOG(kind,...) GNUNET_log_from (kind, "sensor-util",__VA_ARGS__)
 
@@ -215,6 +216,7 @@ load_sensor_from_cfg(struct GNUNET_CONFIGURATION_Handle *cfg, const char *sectio
     return NULL;
   }
   //reporting mechanism
+  sensor->collection_point = NULL;
   if (GNUNET_OK == GNUNET_CONFIGURATION_get_value_string(cfg, sectionname, "COLLECTION_POINT", &dummy))
   {
     if(GNUNET_OK != GNUNET_CONFIGURATION_get_value_number(cfg, sectionname, "COLLECTION_INTERVAL", &time_sec))
@@ -230,6 +232,7 @@ load_sensor_from_cfg(struct GNUNET_CONFIGURATION_Handle *cfg, const char *sectio
         sensor->collection_point->public_key = public_key;
       }
     }
+    GNUNET_free (dummy);
   }
   sensor->p2p_report = GNUNET_NO;
   if (GNUNET_YES == GNUNET_CONFIGURATION_get_value_yesno(cfg, sectionname, "P2P_REPORT"))
@@ -322,7 +325,7 @@ add_sensor_to_hashmap(struct SensorInfo *sensor, struct GNUNET_CONTAINER_MultiHa
   struct GNUNET_HashCode key;
   struct SensorInfo *existing;
 
-  GNUNET_CRYPTO_hash(sensor->name, strlen(sensor->name), &key);
+  GNUNET_CRYPTO_hash(sensor->name, strlen(sensor->name) + 1, &key);
   existing = GNUNET_CONTAINER_multihashmap_get(map, &key);
   if(NULL != existing) //sensor with same name already exists
   {
@@ -369,10 +372,7 @@ reload_sensors_dir_cb(void *cls, const char *filename)
         _("Error loading sensor from file: %s\n"), filename);
     return GNUNET_OK;
   }
-  if(GNUNET_YES == add_sensor_to_hashmap(sensor, sensors))
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-        "Sensor `%s' added to global hashmap\n", sensor->name);
-  else
+  if(GNUNET_YES != add_sensor_to_hashmap(sensor, sensors))
     LOG (GNUNET_ERROR_TYPE_WARNING,
         "Could not add sensor `%s' to global hashmap\n", sensor->name);
 
@@ -422,3 +422,145 @@ GNUNET_SENSOR_load_all_sensors ()
   GNUNET_free(sensordir);
   return sensors;
 }
+
+/**
+ * Parses a sensor reading message struct
+ *
+ * @param msg message header received
+ * @param sensors multihashmap of loaded sensors
+ * @return sensor reading struct or NULL if error
+ */
+struct GNUNET_SENSOR_Reading *
+GNUNET_SENSOR_parse_reading_message (const struct GNUNET_MessageHeader *msg,
+    struct GNUNET_CONTAINER_MultiHashMap *sensors)
+{
+  uint16_t msg_size;
+  struct GNUNET_SENSOR_ReadingMessage *rm;
+  uint16_t sensorname_size;
+  uint16_t value_size;
+  void *dummy;
+  char *sensorname;
+  struct GNUNET_HashCode key;
+  struct SensorInfo *sensor;
+  struct GNUNET_SENSOR_Reading *reading;
+
+  msg_size = ntohs (msg->size);
+  if (msg_size < sizeof (struct GNUNET_SENSOR_ReadingMessage))
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING, "Invalid reading message size.\n");
+    return NULL;
+  }
+  rm = (struct GNUNET_SENSOR_ReadingMessage *)msg;
+  sensorname_size = ntohs (rm->sensorname_size);
+  value_size = ntohs (rm->value_size);
+  if ((sizeof (struct GNUNET_SENSOR_ReadingMessage)
+      + sensorname_size + value_size) != msg_size)
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING, "Invalid reading message size.\n");
+    return NULL;
+  }
+  dummy = &rm[1];
+  sensorname = GNUNET_malloc (sensorname_size);
+  memcpy (sensorname, dummy, sensorname_size);
+  GNUNET_CRYPTO_hash(sensorname, sensorname_size, &key);
+  GNUNET_free (sensorname);
+  sensor = GNUNET_CONTAINER_multihashmap_get (sensors, &key);
+  if (NULL == sensor)
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+        "Unknown sensor name in reading message.\n");
+    return NULL;
+  }
+  if ((sensor->version_minor != ntohs (rm->sensorversion_minor)) ||
+      (sensor->version_major != ntohs (rm->sensorversion_major)))
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+        "Sensor version mismatch in reading message.\n");
+    return NULL;
+  }
+  if (0 == strcmp (sensor->expected_datatype, "numeric") &&
+      sizeof (double) != value_size)
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+        "Invalid value size for a numerical sensor.\n");
+    return NULL;
+  }
+  reading = GNUNET_new (struct GNUNET_SENSOR_Reading);
+  reading->sensor = sensor;
+  reading->timestamp = GNUNET_be64toh (rm->timestamp);
+  reading->value_size = value_size;
+  reading->value = GNUNET_malloc (value_size);
+  dummy += sensorname_size;
+  memcpy (reading->value, dummy, value_size);
+  return reading;
+}
+
+/**
+ * Remove sensor execution from scheduler
+ *
+ * @param cls unused
+ * @param key hash of sensor name, key to hashmap
+ * @param value a 'struct SensorInfo *'
+ * @return #GNUNET_YES if we should continue to
+ *         iterate,
+ *         #GNUNET_NO if not.
+ */
+static int destroy_sensor(void *cls,
+    const struct GNUNET_HashCode *key, void *value)
+{
+  struct SensorInfo *sensorinfo = value;
+
+  if(GNUNET_SCHEDULER_NO_TASK != sensorinfo->execution_task)
+  {
+    GNUNET_SCHEDULER_cancel(sensorinfo->execution_task);
+    sensorinfo->execution_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  if(NULL != sensorinfo->gnunet_stat_get_handle)
+  {
+    GNUNET_STATISTICS_get_cancel(sensorinfo->gnunet_stat_get_handle);
+    sensorinfo->gnunet_stat_get_handle = NULL;
+  }
+  if(NULL != sensorinfo->ext_cmd)
+  {
+    GNUNET_OS_command_stop(sensorinfo->ext_cmd);
+    sensorinfo->ext_cmd = NULL;
+  }
+  if(NULL != sensorinfo->cfg)
+    GNUNET_CONFIGURATION_destroy(sensorinfo->cfg);
+  if(NULL != sensorinfo->name)
+    GNUNET_free(sensorinfo->name);
+  if(NULL != sensorinfo->def_file)
+    GNUNET_free(sensorinfo->def_file);
+  if(NULL != sensorinfo->description)
+    GNUNET_free(sensorinfo->description);
+  if(NULL != sensorinfo->category)
+    GNUNET_free(sensorinfo->category);
+  if(NULL != sensorinfo->capabilities)
+    GNUNET_free(sensorinfo->capabilities);
+  if(NULL != sensorinfo->gnunet_stat_service)
+    GNUNET_free(sensorinfo->gnunet_stat_service);
+  if(NULL != sensorinfo->gnunet_stat_name)
+    GNUNET_free(sensorinfo->gnunet_stat_name);
+  if(NULL != sensorinfo->ext_process)
+    GNUNET_free(sensorinfo->ext_process);
+  if(NULL != sensorinfo->ext_args)
+    GNUNET_free(sensorinfo->ext_args);
+  if (NULL != sensorinfo->collection_point)
+    GNUNET_free (sensorinfo->collection_point);
+  GNUNET_free(sensorinfo);
+  return GNUNET_YES;
+}
+
+/**
+ * Destroys a group of sensors in a hashmap and the hashmap itself
+ *
+ * @param sensors hashmap containing the sensors
+ */
+void
+GNUNET_SENSOR_destroy_sensors (struct GNUNET_CONTAINER_MultiHashMap *sensors)
+{
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Destroying sensor list.\n");
+  GNUNET_CONTAINER_multihashmap_iterate(sensors, &destroy_sensor, NULL);
+  GNUNET_CONTAINER_multihashmap_destroy(sensors);
+}
+

@@ -56,11 +56,13 @@ libgnunetsensor_la_LDFLAGS = \
 libgnunetsensorutil_la_SOURCES = \
   sensor_util_lib.c
 libgnunetsensorutil_la_LIBADD = \
-  $(top_builddir)/src/util/libgnunetutil.la
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la
 libgnunetsensorutil_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)
 libgnunetsensorutil_la_DEPENDENCIES = \
-  $(top_builddir)/src/util/libgnunetutil.la
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/statistics/libgnunetstatistics.la
 
 plugin_LTLIBRARIES = \
   libgnunet_plugin_sensor_model_gaussian.la
