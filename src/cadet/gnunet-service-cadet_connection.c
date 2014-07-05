@@ -1803,6 +1803,7 @@ GCC_handle_broken (void* cls,
     return GNUNET_OK;
   }
 
+  t = c->t;
   fwd = is_fwd (c, id);
   if (GCC_is_terminal (c, fwd))
   {
@@ -1811,13 +1812,21 @@ GCC_handle_broken (void* cls,
     struct CadetPeer *endpoint;
     int pending_msgs;
 
+    if (NULL == t)
+    {
+      /* A terminal connection should not have 't' set to NULL. */
+      GNUNET_break (0);
+      return GNUNET_OK;
+    }
     neighbor = get_hop (c, !fwd);
     endpoint = GCP_get_short (c->path->peers[c->path->length - 1]);
     path_invalidate (c->path);
     GCP_notify_broken_link (endpoint, &msg->peer1, &msg->peer2);
     c->state = CADET_CONNECTION_DESTROYED;
-    t = c->t;
     pending_msgs = c->pending_messages;
+
+    /* GCP_connection_pop will destroy the connection when the last message
+     * is popped! Do not use 'c' after the call. */
     while (NULL != (out_msg = GCP_connection_pop (neighbor, c)))
     {
       GNUNET_assert (NULL ==
