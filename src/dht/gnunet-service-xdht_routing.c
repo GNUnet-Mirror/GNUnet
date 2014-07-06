@@ -237,7 +237,7 @@ static int remove_matching_trails (void *cls,
   return GNUNET_YES;
 }
 
-#if 0
+
 /**
  * TEST FUNCTION
  * Remove after using. 
@@ -270,7 +270,7 @@ GDS_ROUTING_test_print (void)
     }
   }
 }
-#endif
+
 
 /**
  * Remove every trail where peer is either next_hop or prev_hop. Also send a 

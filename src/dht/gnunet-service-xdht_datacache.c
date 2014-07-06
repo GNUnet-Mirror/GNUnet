@@ -267,6 +267,7 @@ datacache_get_iterator (void *cls,
                 _("Unsupported block type (%u) in local response!\n"), type);
     break;
   }
+  
   return (eval == GNUNET_BLOCK_EVALUATION_OK_LAST) ? GNUNET_NO : GNUNET_OK;
 }
 

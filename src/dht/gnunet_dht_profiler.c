@@ -321,7 +321,6 @@ get_iter (void *cls,
       return;
     }
   }
-  
   /* we found the data we are looking for */
   DEBUG ("We found a GET request; %u remaining\n", n_gets - (n_gets_fail + n_gets_ok));
   n_gets_ok++;
