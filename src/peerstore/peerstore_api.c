@@ -487,7 +487,7 @@ GNUNET_PEERSTORE_store_cancel (struct GNUNET_PEERSTORE_StoreContext *sc)
  * @param value entry value BLOB
  * @param size size of 'value'
  * @param expiry absolute time after which the entry is (possibly) deleted
- * @param cont Continuation function after the store request is processed
+ * @param cont Continuation function after the store request is sent
  * @param cont_cls Closure for 'cont'
  */
 struct GNUNET_PEERSTORE_StoreContext *
