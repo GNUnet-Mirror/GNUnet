@@ -33,6 +33,7 @@ gnunet_service_sensordashboard_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/cadet/libgnunetcadet.la \
   $(top_builddir)/src/sensor/libgnunetsensorutil.la \
+  $(top_builddir)/src/peerstore/libgnunetpeerstore.la \
   $(GN_LIBINTL)
 
 

@@ -30,13 +30,27 @@
 #include "sensordashboard.h"
 #include "gnunet_cadet_service.h"
 #include "gnunet_sensor_util_lib.h"
+#include "gnunet_peerstore_service.h"
 
 /**
  * Handle to CADET service
  */
 static struct GNUNET_CADET_Handle *cadet;
 
+/**
+ * Global hashmap of defined sensors
+ */
 static struct GNUNET_CONTAINER_MultiHashMap *sensors;
+
+/**
+ * Handle to the peerstore service connection
+ */
+static struct GNUNET_PEERSTORE_Handle *peerstore;
+
+/**
+ * Name of this subsystem to be used for peerstore operations
+ */
+static char *subsystem = "sensordashboard";
 
 /**
  * Task run during shutdown.
@@ -51,6 +65,11 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     GNUNET_CADET_disconnect(cadet);
     cadet = NULL;
+  }
+  if (NULL != peerstore)
+  {
+    GNUNET_PEERSTORE_disconnect (peerstore);
+    peerstore = NULL;
   }
   GNUNET_SENSOR_destroy_sensors (sensors);
   GNUNET_SCHEDULER_shutdown();
@@ -143,6 +162,9 @@ int sensor_reading_receiver (void *cls, struct GNUNET_CADET_Channel *channel,
       reading->sensor->name,
       reading->timestamp,
       reading->value_size);
+  GNUNET_PEERSTORE_store (peerstore, subsystem, peer, reading->sensor->name,
+      reading->value, reading->value_size, GNUNET_TIME_UNIT_FOREVER_ABS,
+      GNUNET_PEERSTORE_STOREOPTION_MULTIPLE, NULL, NULL);
   GNUNET_free (reading->value);
   GNUNET_free (reading);
   return GNUNET_OK;
@@ -181,7 +203,15 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   if(NULL == cadet)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-        _("Failed to connect to CADET service.\n"));
+        _("Failed to connect to `%s' service.\n"), "CADET");
+    GNUNET_SCHEDULER_add_now (&cleanup_task, NULL);
+    return;
+  }
+  peerstore = GNUNET_PEERSTORE_connect (cfg);
+  if (NULL == peerstore)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+        _("Failed to connect to `%s' service.\n"), "PEERSTORE");
     GNUNET_SCHEDULER_add_now (&cleanup_task, NULL);
     return;
   }
