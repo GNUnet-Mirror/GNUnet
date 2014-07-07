@@ -176,8 +176,8 @@ sensor_watcher (void *cls,
   if (GNUNET_YES == anomalous)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
-        "Anomaly detected, value: %f.\n",
-        *val);
+        "Anomaly detected in sensor `%s', value: %f.\n",
+        sensor_model->sensor->name, *val);
   }
   else
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Value non-anomalous.\n");
