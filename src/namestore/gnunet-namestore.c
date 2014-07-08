@@ -864,7 +864,11 @@ testservice_task (void *cls,
     char sname[64];
     struct GNUNET_CRYPTO_EcdsaPublicKey pkey;
 
-    if ( (2 != (sscanf (uri, "gnunet://gns/%52s/%63s", sh, sname)) ) ||
+    GNUNET_STRINGS_utf8_tolower (uri, uri);
+    if ( (2 != (sscanf (uri,
+                        "gnunet://gns/%52s/%63s",
+                        sh,
+                        sname)) ) ||
          (GNUNET_OK != GNUNET_CRYPTO_ecdsa_public_key_from_string (sh, strlen (sh), &pkey)) )
     {
       fprintf (stderr,
