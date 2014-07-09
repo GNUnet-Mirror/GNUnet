@@ -3207,6 +3207,12 @@ GCC_debug (const struct CadetConnection *c, enum GNUNET_ErrorType level)
   if (0 == do_log)
     return;
 
+  if (NULL == c)
+  {
+    LOG2 (level, "CCC DEBUG NULL CONNECTION\n");
+    return;
+  }
+
   LOG2 (level, "CCC DEBUG CONNECTION %s\n", GCC_2s (c));
   s = path_2s (c->path);
   LOG2 (level, "CCC  path %s, own pos: %u\n", s, c->own_pos);
@@ -3214,7 +3220,8 @@ GCC_debug (const struct CadetConnection *c, enum GNUNET_ErrorType level)
   LOG2 (level, "CCC  state: %s, destroy: %u\n",
         GCC_state2s (c->state), c->destroy);
   LOG2 (level, "CCC  pending messages: %u\n", c->pending_messages);
-  LOG2 (level, "CCC  us/byte: %f\n", c->perf->avg);
+  if (NULL != c->perf)
+    LOG2 (level, "CCC  us/byte: %f\n", c->perf->avg);
 
   LOG2 (level, "CCC  FWD flow control:\n");
   LOG2 (level, "CCC   queue: %u/%u\n", c->fwd_fc.queue_n, c->fwd_fc.queue_max);
