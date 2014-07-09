@@ -788,8 +788,8 @@ destroy_session_shutdown_cb (void *cls,
   sc_recv = s->server_recv;
   server_delete_session (s);
 
-  GNUNET_free (sc_send);
-  GNUNET_free (sc_recv);
+  GNUNET_free_non_null (sc_send);
+  GNUNET_free_non_null (sc_recv);
 
   return GNUNET_OK;
 }
@@ -2249,7 +2249,7 @@ server_start (struct HTTP_Server_Plugin *plugin)
                                            MHD_OPTION_NOTIFY_COMPLETED,
                                            &server_disconnect_cb, plugin,
                                            MHD_OPTION_EXTERNAL_LOGGER,
-                                           server_log, NULL, MHD_OPTION_END);
+                                           &server_log, NULL, MHD_OPTION_END);
     if (plugin->server_v4 == NULL)
     {
       LOG (GNUNET_ERROR_TYPE_ERROR,
@@ -2273,7 +2273,8 @@ server_start (struct HTTP_Server_Plugin *plugin)
 #if BUILD_HTTPS
                                            MHD_USE_SSL |
 #endif
-                                           MHD_USE_IPv6, plugin->port,
+                                           MHD_USE_SUSPEND_RESUME | MHD_USE_IPv6,
+                                           plugin->port,
                                            &server_accept_cb, plugin,
                                            &server_access_cb, plugin,
                                            MHD_OPTION_SOCK_ADDR,
@@ -2298,7 +2299,7 @@ server_start (struct HTTP_Server_Plugin *plugin)
                                            MHD_OPTION_NOTIFY_COMPLETED,
                                            &server_disconnect_cb, plugin,
                                            MHD_OPTION_EXTERNAL_LOGGER,
-                                           server_log, NULL, MHD_OPTION_END);
+                                           &server_log, NULL, MHD_OPTION_END);
     if (plugin->server_v6 == NULL)
     {
       LOG (GNUNET_ERROR_TYPE_ERROR,
