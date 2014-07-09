@@ -24,8 +24,6 @@
  * @author Bartlomiej Polot
  */
 
-#include "gnunet-service-cadet_connection.h"
-
 #ifndef CADET_PATH_H_
 #define CADET_PATH_H_
 
@@ -36,6 +34,9 @@ extern "C"
 }
 #endif
 #endif
+
+#include "gnunet-service-cadet_connection.h"
+
 
 /******************************************************************************/
 /************************      DATA STRUCTURES     ****************************/
