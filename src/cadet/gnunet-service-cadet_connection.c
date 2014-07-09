@@ -38,6 +38,8 @@
 
 
 #define LOG(level, ...) GNUNET_log_from (level,"cadet-con",__VA_ARGS__)
+#define LOG2(level, ...) GNUNET_log_from_nocheck(level,"cadet-con",__VA_ARGS__)
+
 
 #define CADET_MAX_POLL_TIME      GNUNET_TIME_relative_multiply (\
                                   GNUNET_TIME_UNIT_MINUTES,\
@@ -1854,7 +1856,6 @@ GCC_handle_broken (void* cls,
   }
 
   return GNUNET_OK;
-
 }
 
 
@@ -3186,3 +3187,53 @@ GCC_2s (const struct CadetConnection *c)
   }
   return GNUNET_h2s (GC_h2hc (&c->id));
 }
+
+
+/**
+ * Log all possible info about the connection state.
+ *
+ * @param c Connection to debug.
+ * @param level Debug level to use.
+ */
+void
+GCC_debug (const struct CadetConnection *c, enum GNUNET_ErrorType level)
+{
+  int do_log;
+  char *s;
+
+  do_log = GNUNET_get_log_call_status (level & (~GNUNET_ERROR_TYPE_BULK),
+                                       "cadet-con",
+                                       __FILE__, __FUNCTION__, __LINE__);
+  if (0 == do_log)
+    return;
+
+  LOG2 (level, "CCC DEBUG CONNECTION %s\n", GCC_2s (c));
+  s = path_2s (c->path);
+  LOG2 (level, "CCC  path %s, own pos: %u\n", s, c->own_pos);
+  GNUNET_free (s);
+  LOG2 (level, "CCC  state: %s, destroy: %u\n",
+        GCC_state2s (c->state), c->destroy);
+  LOG2 (level, "CCC  pending messages: %u\n", c->pending_messages);
+  LOG2 (level, "CCC  us/byte: %f\n", c->perf->avg);
+
+  LOG2 (level, "CCC  FWD flow control:\n");
+  LOG2 (level, "CCC   queue: %u/%u\n", c->fwd_fc.queue_n, c->fwd_fc.queue_max);
+  LOG2 (level, "CCC   last PID sent: %5u, recv: %5u\n",
+        c->fwd_fc.last_pid_sent, c->fwd_fc.last_pid_recv);
+  LOG2 (level, "CCC   last ACK sent: %5u, recv: %5u\n",
+        c->fwd_fc.last_ack_sent, c->fwd_fc.last_ack_recv);
+  LOG2 (level, "CCC   POLL: task %d, msg  %p, msg_ack %p)\n",
+        c->fwd_fc.poll_task, c->fwd_fc.poll_msg, c->fwd_fc.ack_msg);
+
+  LOG2 (level, "CCC  BCK flow control:\n");
+  LOG2 (level, "CCC   queue: %u/%u\n", c->bck_fc.queue_n, c->bck_fc.queue_max);
+  LOG2 (level, "CCC   last PID sent: %5u, recv: %5u\n",
+        c->bck_fc.last_pid_sent, c->bck_fc.last_pid_recv);
+  LOG2 (level, "CCC   last ACK sent: %5u, recv: %5u\n",
+        c->bck_fc.last_ack_sent, c->bck_fc.last_ack_recv);
+  LOG2 (level, "CCC   POLL: task %d, msg  %p, msg_ack %p)\n",
+        c->bck_fc.poll_task, c->bck_fc.poll_msg, c->bck_fc.ack_msg);
+
+  LOG2 (level, "CCC DEBUG CONNECTION END\n");
+}
+

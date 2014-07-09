@@ -554,6 +554,15 @@ GCC_stop_poll (struct CadetConnection *c, int fwd);
 const char *
 GCC_2s (const struct CadetConnection *c);
 
+/**
+ * Log all possible info about the connection state.
+ *
+ * @param c Connection to debug.
+ * @param level Debug level to use.
+ */
+void
+GCC_debug (const struct CadetConnection *c, enum GNUNET_ErrorType level);
+
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif

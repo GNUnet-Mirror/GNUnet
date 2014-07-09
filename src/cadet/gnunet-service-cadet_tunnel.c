@@ -33,6 +33,7 @@
 #include "gnunet-service-cadet_peer.h"
 
 #define LOG(level, ...) GNUNET_log_from(level,"cadet-tun",__VA_ARGS__)
+#define LOG2(level, ...) GNUNET_log_from_nocheck(level,"cadet-tun",__VA_ARGS__)
 
 #define REKEY_WAIT GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 5)
 
@@ -3150,32 +3151,34 @@ GCT_debug (const struct CadetTunnel *t, enum GNUNET_ErrorType level)
 {
   struct CadetTChannel *iterch;
   struct CadetTConnection *iterc;
+  int do_log;
 
-  LOG (level, "TTT DEBUG TUNNEL TOWARDS %s\n", GCT_2s (t));
-  LOG (level, "TTT  cstate %s, estate %s\n",
+  do_log = GNUNET_get_log_call_status (level & (~GNUNET_ERROR_TYPE_BULK),
+                                       "cadet-tun",
+                                       __FILE__, __FUNCTION__, __LINE__);
+  if (0 == do_log)
+    return;
+
+  LOG2 (level, "TTT DEBUG TUNNEL TOWARDS %s\n", GCT_2s (t));
+  LOG2 (level, "TTT  cstate %s, estate %s\n",
        cstate2s (t->cstate), estate2s (t->estate));
-  LOG (level, "TTT  kx_ctx %p, rekey_task %u\n", t->kx_ctx, t->rekey_task);
-  LOG (level, "TTT  tq_head %p, tq_tail %p\n", t->tq_head, t->tq_tail);
-  LOG (level, "TTT  destroy %u\n", t->destroy_task);
+  LOG2 (level, "TTT  kx_ctx %p, rekey_task %u\n", t->kx_ctx, t->rekey_task);
+  LOG2 (level, "TTT  tq_head %p, tq_tail %p\n", t->tq_head, t->tq_tail);
+  LOG2 (level, "TTT  destroy %u\n", t->destroy_task);
 
-  LOG (level, "TTT  channels:\n");
+  LOG2 (level, "TTT  channels:\n");
   for (iterch = t->channel_head; NULL != iterch; iterch = iterch->next)
   {
-    LOG (level, "TTT  - %s\n", GCCH_2s (iterch->ch));
+    LOG2 (level, "TTT  - %s\n", GCCH_2s (iterch->ch));
   }
 
-  LOG (level, "TTT  connections:\n");
+  LOG2 (level, "TTT  connections:\n");
   for (iterc = t->connection_head; NULL != iterc; iterc = iterc->next)
   {
-    LOG (level, "TTT  - %s [%u] buf: %u/%u (qn %u/%u)\n",
-         GCC_2s (iterc->c), GCC_get_state (iterc->c),
-         GCC_get_buffer (iterc->c, GNUNET_YES),
-         GCC_get_buffer (iterc->c, GNUNET_NO),
-         GCC_get_qn (iterc->c, GNUNET_YES),
-         GCC_get_qn (iterc->c, GNUNET_NO));
+    GCC_debug (iterc->c, level);
   }
 
-  LOG (level, "TTT DEBUG TUNNEL END\n");
+  LOG2 (level, "TTT DEBUG TUNNEL END\n");
 }
 
 

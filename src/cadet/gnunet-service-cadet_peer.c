@@ -35,6 +35,8 @@
 #include "cadet_path.h"
 
 #define LOG(level, ...) GNUNET_log_from (level,"cadet-p2p",__VA_ARGS__)
+#define LOG2(level, ...) GNUNET_log_from_nocheck(level,"cadet-p2p",__VA_ARGS__)
+
 
 /******************************************************************************/
 /********************************   STRUCTS  **********************************/
@@ -229,26 +231,36 @@ static struct GNUNET_TRANSPORT_Handle *transport_handle;
 
 /**
  * Log all kinds of info about the queueing status of a peer.
+ *
+ * @param p Peer whose queue to show.
+ * @param level Error level to use for logging.
  */
 static void
 queue_debug (const struct CadetPeer *p, enum GNUNET_ErrorType level)
 {
   struct CadetPeerQueue *q;
+  int do_log;
 
-  LOG (level, "QQQ Message queue towards %s\n", GCP_2s (p));
-  LOG (level, "QQQ  queue length: %u\n", p->queue_n);
-  LOG (level, "QQQ  core tmt rdy: %p\n", p->core_transmit);
+  do_log = GNUNET_get_log_call_status (level & (~GNUNET_ERROR_TYPE_BULK),
+                                       "cadet-p2p",
+                                       __FILE__, __FUNCTION__, __LINE__);
+  if (0 == do_log)
+    return;
+
+  LOG2 (level, "QQQ Message queue towards %s\n", GCP_2s (p));
+  LOG2 (level, "QQQ  queue length: %u\n", p->queue_n);
+  LOG2 (level, "QQQ  core tmt rdy: %p\n", p->core_transmit);
 
   for (q = p->queue_head; NULL != q; q = q->next)
   {
-    LOG (level, "QQQ  - %s %s on %s\n",
+    LOG2 (level, "QQQ  - %s %s on %s\n",
          GC_m2s (q->type), GC_f2s (q->fwd), GCC_2s (q->c));
-    LOG (level, "QQQ    payload %s, %u\n",
+    LOG2 (level, "QQQ    payload %s, %u\n",
          GC_m2s (q->payload_type), q->payload_id);
-    LOG (level, "QQQ    size: %u bytes\n", q->size);
+    LOG2 (level, "QQQ    size: %u bytes\n", q->size);
   }
 
-  LOG (level, "QQQ End queue towards %s\n", GCP_2s (p));
+  LOG2 (level, "QQQ End queue towards %s\n", GCP_2s (p));
 }
 
 
@@ -262,34 +274,41 @@ GCP_debug (const struct CadetPeer *p, enum GNUNET_ErrorType level)
 {
   struct CadetPeerPath *path;
   unsigned int conns;
+  int do_log;
+
+  do_log = GNUNET_get_log_call_status (level & (~GNUNET_ERROR_TYPE_BULK),
+                                       "cadet-p2p",
+                                       __FILE__, __FUNCTION__, __LINE__);
+  if (0 == do_log)
+    return;
 
   if (NULL == p)
   {
-    LOG (level, "PPP DEBUG PEER NULL\n");
+    LOG2 (level, "PPP DEBUG PEER NULL\n");
     return;
   }
 
-  LOG (level, "PPP DEBUG PEER %s\n", GCP_2s (p));
-  LOG (level, "PPP last contact %s\n",
+  LOG2 (level, "PPP DEBUG PEER %s\n", GCP_2s (p));
+  LOG2 (level, "PPP last contact %s\n",
        GNUNET_STRINGS_absolute_time_to_string (p->last_contact));
   for (path = p->path_head; NULL != path; path = path->next)
   {
     char *s;
 
     s = path_2s (path);
-    LOG (level, "PPP path: %s\n", s);
+    LOG2 (level, "PPP path: %s\n", s);
     GNUNET_free (s);
   }
 
-  LOG (level, "PPP core transmit handle %p\n", p->core_transmit);
-  LOG (level, "PPP DHT GET handle %p\n", p->search_h);
+  LOG2 (level, "PPP core transmit handle %p\n", p->core_transmit);
+  LOG2 (level, "PPP DHT GET handle %p\n", p->search_h);
   if (NULL != p->connections)
     conns = GNUNET_CONTAINER_multihashmap_size (p->connections);
   else
     conns = 0;
-  LOG (level, "PPP # connections over link to peer: %u\n", conns);
+  LOG2 (level, "PPP # connections over link to peer: %u\n", conns);
   queue_debug (p, level);
-  LOG (level, "PPP DEBUG END\n");
+  LOG2 (level, "PPP DEBUG END\n");
 }
 
 
