@@ -255,7 +255,7 @@ void SENSOR_reporting_stop ()
   }
   if (NULL != peerstore)
   {
-    GNUNET_PEERSTORE_disconnect (peerstore);
+    GNUNET_PEERSTORE_disconnect (peerstore, GNUNET_YES);
     peerstore = NULL;
   }
   if (NULL != cadet)

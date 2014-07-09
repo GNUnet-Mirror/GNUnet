@@ -18,60 +18,64 @@
      Boston, MA 02111-1307, USA.
 */
 /**
- * @file peerstore/test_peerstore_api_watch.c
- * @brief testcase for peerstore watch functionality
+ * @file peerstore/test_peerstore_api_sync.c
+ * @brief testcase for peerstore sync before disconnect feature
  */
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_testing_lib.h"
 #include "gnunet_peerstore_service.h"
 
-static int ok = 1;
+int ok = 1;
+
+const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 static struct GNUNET_PEERSTORE_Handle *h;
 
-static char *ss = "test_peerstore_api_watch";
-static struct GNUNET_PeerIdentity p;
-static char *k = "test_peerstore_api_watch_key";
-static char *val = "test_peerstore_api_watch_val";
+static char *subsystem = "test_peerstore_api_sync";
+static struct GNUNET_PeerIdentity pid;
+static char *key = "test_peerstore_api_store_key";
+static char *val = "test_peerstore_api_store_val";
 
-static int
-watch_cb(void *cls,
-    struct GNUNET_PEERSTORE_Record *record,
-    char *emsg)
+int iterate_cb (void *cls, struct GNUNET_PEERSTORE_Record *record, char *emsg)
 {
-  GNUNET_assert(NULL == emsg);
-  GNUNET_assert(0 == strcmp(val, (char *)record->value));
+  const char *rec_val;
+
+  GNUNET_break (NULL == emsg);
+  if (NULL == record)
+  {
+    GNUNET_PEERSTORE_disconnect (h, GNUNET_NO);
+    GNUNET_SCHEDULER_shutdown();
+    return GNUNET_YES;
+  }
+  rec_val = record->value;
+  GNUNET_break (0 == strcmp(rec_val, val));
   ok = 0;
-  GNUNET_PEERSTORE_disconnect(h, GNUNET_NO);
-  GNUNET_SCHEDULER_shutdown();
   return GNUNET_YES;
 }
 
 static void
+test1()
+{
+  GNUNET_PEERSTORE_store (h, subsystem, &pid, key, val, strlen(val) + 1,
+      GNUNET_TIME_UNIT_FOREVER_ABS, GNUNET_PEERSTORE_STOREOPTION_REPLACE,
+      NULL, NULL);
+  GNUNET_PEERSTORE_disconnect (h, GNUNET_YES);
+  h = GNUNET_PEERSTORE_connect (cfg);
+  GNUNET_PEERSTORE_iterate (h, subsystem, &pid, key,
+      GNUNET_TIME_UNIT_FOREVER_REL, &iterate_cb, NULL);
+}
+
+static void
 run (void *cls,
-    const struct GNUNET_CONFIGURATION_Handle *cfg,
+    const struct GNUNET_CONFIGURATION_Handle *c,
     struct GNUNET_TESTING_Peer *peer)
 {
+  cfg = c;
   h = GNUNET_PEERSTORE_connect(cfg);
   GNUNET_assert(NULL != h);
-  memset (&p, 4, sizeof (p));
-  GNUNET_PEERSTORE_watch(h,
-      ss,
-      &p,
-      k,
-      &watch_cb,
-      NULL);
-  GNUNET_PEERSTORE_store(h,
-      ss,
-      &p,
-      k,
-      val,
-      strlen(val) + 1,
-      GNUNET_TIME_UNIT_FOREVER_ABS,
-      GNUNET_PEERSTORE_STOREOPTION_REPLACE,
-      NULL,
-      NULL);
+  memset (&pid, 1, sizeof (pid));
+  test1();
 }
 
 int
@@ -85,4 +89,4 @@ main (int argc, char *argv[])
   return ok;
 }
 
-/* end of test_peerstore_api_watch.c */
+/* end of test_peerstore_api_store.c */

@@ -54,7 +54,7 @@ int test3_cont2(void *cls,
   }
   GNUNET_assert(count == 1);
   ok = 0;
-  GNUNET_PEERSTORE_disconnect(h);
+  GNUNET_PEERSTORE_disconnect(h, GNUNET_YES);
   GNUNET_SCHEDULER_shutdown();
   return GNUNET_YES;
 }

@@ -53,7 +53,7 @@ iter3_cb(void *cls,
   }
   GNUNET_assert(count == 3);
   ok = 0;
-  GNUNET_PEERSTORE_disconnect(h);
+  GNUNET_PEERSTORE_disconnect(h, GNUNET_NO);
   GNUNET_SCHEDULER_shutdown();
   return GNUNET_YES;
 }

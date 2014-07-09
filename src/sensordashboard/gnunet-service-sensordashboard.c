@@ -68,7 +68,7 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   if (NULL != peerstore)
   {
-    GNUNET_PEERSTORE_disconnect (peerstore);
+    GNUNET_PEERSTORE_disconnect (peerstore, GNUNET_YES);
     peerstore = NULL;
   }
   GNUNET_SENSOR_destroy_sensors (sensors);

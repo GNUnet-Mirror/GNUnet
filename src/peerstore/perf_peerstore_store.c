@@ -43,7 +43,7 @@ void
 disconnect()
 {
   if(NULL != h)
-    GNUNET_PEERSTORE_disconnect(h);
+    GNUNET_PEERSTORE_disconnect(h, GNUNET_YES);
   GNUNET_SCHEDULER_shutdown();
 }
 

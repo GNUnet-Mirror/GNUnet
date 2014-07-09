@@ -140,7 +140,7 @@ void SENSOR_analysis_stop()
   }
   if (NULL != peerstore)
   {
-    GNUNET_PEERSTORE_disconnect(peerstore);
+    GNUNET_PEERSTORE_disconnect(peerstore, GNUNET_YES);
     peerstore = NULL;
   }
   if (NULL != model_api)

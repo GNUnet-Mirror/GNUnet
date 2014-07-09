@@ -99,7 +99,7 @@ shutdown_task (void *cls,
   }
   if(NULL != peerstore)
   {
-    GNUNET_PEERSTORE_disconnect(peerstore);
+    GNUNET_PEERSTORE_disconnect(peerstore, GNUNET_YES); /*FIXME: merge into a global peerstore connection */
     peerstore = NULL;
   }
   GNUNET_SCHEDULER_shutdown();
