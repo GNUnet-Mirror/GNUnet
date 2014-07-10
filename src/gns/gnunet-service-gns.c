@@ -536,12 +536,14 @@ put_gns_record (void *cls,
     }
     else
     {
-      zone_publish_time_window
-        = GNUNET_TIME_relative_min (GNUNET_TIME_relative_divide (min_relative_record_time,
-                                                                 4),
-                                    zone_publish_time_window_default);
+      /* If records are present, next publication is based on the minimum
+       * relative expiration time of the records published divided by 4
+       */
+      zone_publish_time_window = GNUNET_TIME_relative_min (
+          GNUNET_TIME_relative_divide (min_relative_record_time, 4),
+          zone_publish_time_window_default);
       put_interval = GNUNET_TIME_relative_divide (zone_publish_time_window,
-						  num_public_records);
+          num_public_records);
     }
     /* reset for next iteration */
     min_relative_record_time = GNUNET_TIME_UNIT_FOREVER_REL;
@@ -599,7 +601,7 @@ put_gns_record (void *cls,
 
 
 /**
- * Periodically iterate over our zone and store everything in dht
+ * Periodically iterate over all zones and store everything in DHT
  *
  * @param cls NULL
  * @param tc task context
@@ -615,9 +617,8 @@ publish_zone_dht_start (void *cls,
   /* start counting again */
   num_public_records = 0;
   namestore_iter = GNUNET_NAMESTORE_zone_iteration_start (namestore_handle,
-							  NULL, /* All zones */
-							  &put_gns_record,
-							  NULL);
+      NULL, /* All zones */
+      &put_gns_record, NULL );
 }
 
 
