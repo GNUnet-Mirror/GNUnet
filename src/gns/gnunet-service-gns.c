@@ -503,21 +503,21 @@ perform_dht_put (const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
  *
  * @param cls the closure (NULL)
  * @param key the private key of the authority (ours)
- * @param name the name of the records, NULL once the iteration is done
+ * @param label the name of the records, NULL once the iteration is done
  * @param rd_count the number of records in @a rd
  * @param rd the record data
  */
 static void
 put_gns_record (void *cls,
                 const struct GNUNET_CRYPTO_EcdsaPrivateKey *key,
-                const char *name,
+                const char *label,
                 unsigned int rd_count,
                 const struct GNUNET_GNSRECORD_Data *rd)
 {
   struct GNUNET_GNSRECORD_Data rd_public[rd_count];
   unsigned int rd_public_count;
 
-  if (NULL == name)
+  if (NULL == label)
   {
     /* we're done with one iteration, calculate when to do the next one */
     namestore_iter = NULL;
@@ -588,7 +588,7 @@ put_gns_record (void *cls,
   }
 
   active_put = perform_dht_put (key,
-                                name,
+                                label,
                                 rd_public,
                                 rd_public_count,
                                 NULL);
