@@ -173,8 +173,30 @@ struct GNUNET_GNSRECORD_Data
 };
 
 
-
 GNUNET_NETWORK_STRUCT_BEGIN
+
+/**
+ * Data stored in a PLACE record.
+ */
+struct GNUNET_GNSRECORD_PlaceData
+{
+  /**
+   * Public key of the place.
+   */
+  struct GNUNET_CRYPTO_EddsaPublicKey place_key;
+
+  /**
+   * Peer identity of the origin.
+   */
+  struct GNUNET_PeerIdentity origin;
+
+  /**
+   * Number of relays that follow.
+   */
+  uint32_t relay_count GNUNET_PACKED;
+
+  /* Followed by struct GNUNET_PeerIdentity relays[relay_count] */
+};
 
 
 /**

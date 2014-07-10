@@ -60,7 +60,7 @@ struct GNUNET_PSYCSTORE_PluginFunctions
   int
   (*membership_store) (void *cls,
                        const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
-                       const struct GNUNET_CRYPTO_EddsaPublicKey *slave_key,
+                       const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
                        int did_join,
                        uint64_t announced_at,
                        uint64_t effective_since,
@@ -77,7 +77,7 @@ struct GNUNET_PSYCSTORE_PluginFunctions
   int
   (*membership_test) (void *cls,
                       const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
-                      const struct GNUNET_CRYPTO_EddsaPublicKey *slave_key,
+                      const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
                       uint64_t message_id);
 
   /**

@@ -40,6 +40,28 @@ extern "C"
 #include "gnunet_psyc_service.h"
 
 
+/**
+ * Create a PSYC message.
+ *
+ * @param method_name
+ *        PSYC method for the message.
+ * @param env
+ *        Environment for the message.
+ * @param data
+ *        Data payload for the message.
+ * @param data_size
+ *        Size of @a data.
+ *
+ * @return Message header with size information,
+ *         followed by the message parts.
+ */
+struct GNUNET_MessageHeader *
+GNUNET_PSYC_message_create (const char *method_name,
+                            const struct GNUNET_ENV_Environment *env,
+                            const void *data,
+                            size_t data_size);
+
+
 void
 GNUNET_PSYC_log_message (enum GNUNET_ErrorType kind,
                          const struct GNUNET_MessageHeader *msg);

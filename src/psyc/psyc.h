@@ -78,9 +78,9 @@ struct MasterStartRequest
    */
   struct GNUNET_MessageHeader header;
 
-  struct GNUNET_CRYPTO_EddsaPrivateKey channel_key;
-
   uint32_t policy GNUNET_PACKED;
+
+  struct GNUNET_CRYPTO_EddsaPrivateKey channel_key;
 };
 
 
@@ -95,15 +95,17 @@ struct SlaveJoinRequest
 
   struct GNUNET_CRYPTO_EddsaPublicKey channel_key;
 
-  struct GNUNET_CRYPTO_EddsaPrivateKey slave_key;
+  struct GNUNET_CRYPTO_EcdsaPrivateKey slave_key;
 
   struct GNUNET_PeerIdentity origin;
 
   /* Followed by struct GNUNET_PeerIdentity relays[relay_count] */
+
+  /* Followed by struct GNUNET_MessageHeader join_msg */
 };
 
 
-struct ChannelSlaveAdd
+struct ChannelSlaveAddRequest
 {
   /**
    * Type: GNUNET_MESSAGE_TYPE_PSYC_CHANNEL_SLAVE_ADD
@@ -112,7 +114,7 @@ struct ChannelSlaveAdd
 
   uint32_t reserved;
 
-  struct GNUNET_CRYPTO_EddsaPublicKey *slave_key;
+  struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key;
 
   uint64_t announced_at;
 
@@ -120,7 +122,7 @@ struct ChannelSlaveAdd
 };
 
 
-struct ChannelSlaveRemove
+struct ChannelSlaveRemoveRequest
 {
   /**
    * Type: GNUNET_MESSAGE_TYPE_PSYC_CHANNEL_SLAVE_RM
@@ -129,7 +131,7 @@ struct ChannelSlaveRemove
 
   uint32_t reserved;
 
-  struct GNUNET_CRYPTO_EddsaPublicKey *slave_key;
+  struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key;
 
   uint64_t announced_at;
 };
@@ -189,6 +191,7 @@ struct CountersResult
   uint64_t max_message_id;
 };
 
+
 /**
  * Answer from service to client about last operation.
  */
@@ -236,48 +239,10 @@ struct MasterJoinRequest
   /**
    * Public key of the joining slave.
    */
-  struct GNUNET_CRYPTO_EddsaPublicKey slave_key;
+  struct GNUNET_CRYPTO_EcdsaPublicKey slave_key;
 
   /* Followed by struct GNUNET_MessageHeader join_request */
 };
-
-
-struct MasterJoinDecision
-{
-  /**
-   * Type: GNUNET_MESSAGE_TYPE_PSYC_JOIN_DECISION
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * #GNUNET_YES if the slave was admitted.
-   */
-  int32_t is_admitted;
-
-  /**
-   * Public key of the joining slave.
-   */
-  struct GNUNET_CRYPTO_EddsaPublicKey slave_key;
-
-  /* Followed by struct GNUNET_MessageHeader join_response */
-};
-
-
-struct SlaveJoinDecision
-{
-  /**
-   * Type: GNUNET_MESSAGE_TYPE_PSYC_JOIN_DECISION
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * #GNUNET_YES if the slave was admitted.
-   */
-  int32_t is_admitted;
-
-  /* Followed by struct GNUNET_MessageHeader join_response */
-};
-
 
 
 GNUNET_NETWORK_STRUCT_END

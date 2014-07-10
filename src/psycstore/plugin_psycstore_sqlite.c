@@ -750,7 +750,7 @@ channel_key_store (struct Plugin *plugin,
 
 static int
 slave_key_store (struct Plugin *plugin,
-                 const struct GNUNET_CRYPTO_EddsaPublicKey *slave_key)
+                 const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key)
 {
   sqlite3_stmt *stmt = plugin->insert_slave_key;
 
@@ -789,7 +789,7 @@ slave_key_store (struct Plugin *plugin,
 static int
 membership_store (void *cls,
                   const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
-                  const struct GNUNET_CRYPTO_EddsaPublicKey *slave_key,
+                  const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
                   int did_join,
                   uint64_t announced_at,
                   uint64_t effective_since,
@@ -851,7 +851,7 @@ membership_store (void *cls,
 static int
 membership_test (void *cls,
                  const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
-                 const struct GNUNET_CRYPTO_EddsaPublicKey *slave_key,
+                 const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
                  uint64_t message_id)
 {
   struct Plugin *plugin = cls;

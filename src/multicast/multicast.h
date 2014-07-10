@@ -50,7 +50,7 @@ struct MulticastJoinRequestMessage
    *
    * Signature must match the public key of the joining member.
    */
-  struct GNUNET_CRYPTO_EddsaSignature signature;
+  struct GNUNET_CRYPTO_EcdsaSignature signature;
 
   /**
    * Purpose for the signature and size of the signed data.
@@ -65,7 +65,7 @@ struct MulticastJoinRequestMessage
   /**
    * Public key of the joining member.
    */
-  struct GNUNET_CRYPTO_EddsaPublicKey member_key;
+  struct GNUNET_CRYPTO_EcdsaPublicKey member_key;
 
   /**
    * Peer identity of the joining member.
@@ -125,7 +125,7 @@ struct MulticastJoinDecisionMessageHeader
    * C->S: Public key of the member requesting join.
    * S->C: Unused.
    */
-  struct GNUNET_CRYPTO_EddsaPublicKey member_key;
+  struct GNUNET_CRYPTO_EcdsaPublicKey member_key;
 
   /* Followed by struct MulticastJoinDecisionMessage */
 };
@@ -244,12 +244,13 @@ struct MulticastMemberJoinMessage
 
   struct GNUNET_CRYPTO_EddsaPublicKey group_key;
 
-  struct GNUNET_CRYPTO_EddsaPrivateKey member_key;
+  struct GNUNET_CRYPTO_EcdsaPrivateKey member_key;
 
   struct GNUNET_PeerIdentity origin;
 
   /* Followed by struct GNUNET_PeerIdentity relays[relay_count] */
-  /* Followed by struct GNUNET_MessageHeader join_request */
+
+  /* Followed by struct GNUNET_MessageHeader join_msg */
 };
 
 
@@ -313,7 +314,7 @@ struct MulticastJoinMessage
   /**
    * Our private key for the group.
    */
-  struct GNUNET_CRYPTO_EddsaPrivateKey member_key;
+  struct GNUNET_CRYPTO_EcdsaPrivateKey member_key;
 
   /* followed by 'relay_count' `struct GNUNET_PeerIdentity`s */
 

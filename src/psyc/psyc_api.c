@@ -133,7 +133,7 @@ struct GNUNET_PSYC_Slave
 struct GNUNET_PSYC_JoinHandle
 {
   struct GNUNET_PSYC_Master *mst;
-  struct GNUNET_CRYPTO_EddsaPublicKey slave_key;
+  struct GNUNET_CRYPTO_EcdsaPublicKey slave_key;
 };
 
 
@@ -270,8 +270,8 @@ slave_recv_join_decision (void *cls,
   struct GNUNET_PSYC_Slave *
     slv = GNUNET_CLIENT_MANAGER_get_user_context_ (client,
                                                    sizeof (struct GNUNET_PSYC_Channel));
-  const struct SlaveJoinDecision *
-    dcsn = (const struct SlaveJoinDecision *) msg;
+  const struct GNUNET_PSYC_JoinDecisionMessage *
+    dcsn = (const struct GNUNET_PSYC_JoinDecisionMessage *) msg;
 
   struct GNUNET_PSYC_MessageHeader *pmsg = NULL;
   if (ntohs (dcsn->header.size) <= sizeof (*dcsn) + sizeof (*pmsg))
@@ -285,8 +285,6 @@ slave_recv_join_decision (void *cls,
 
 static struct GNUNET_CLIENT_MANAGER_MessageHandler master_handlers[] =
 {
-  { &channel_recv_disconnect, NULL, 0, 0, GNUNET_NO },
-
   { &channel_recv_message, NULL,
     GNUNET_MESSAGE_TYPE_PSYC_MESSAGE,
     sizeof (struct GNUNET_PSYC_MessageHeader), GNUNET_YES },
@@ -303,14 +301,14 @@ static struct GNUNET_CLIENT_MANAGER_MessageHandler master_handlers[] =
     GNUNET_MESSAGE_TYPE_PSYC_JOIN_REQUEST,
     sizeof (struct MasterJoinRequest), GNUNET_YES },
 
+  { &channel_recv_disconnect, NULL, 0, 0, GNUNET_NO },
+
   { NULL, NULL, 0, 0, GNUNET_NO }
 };
 
 
 static struct GNUNET_CLIENT_MANAGER_MessageHandler slave_handlers[] =
 {
-  { &channel_recv_disconnect, NULL, 0, 0, GNUNET_NO },
-
   { &channel_recv_message, NULL,
     GNUNET_MESSAGE_TYPE_PSYC_MESSAGE,
     sizeof (struct GNUNET_PSYC_MessageHeader), GNUNET_YES },
@@ -325,7 +323,9 @@ static struct GNUNET_CLIENT_MANAGER_MessageHandler slave_handlers[] =
 
   { &slave_recv_join_decision, NULL,
     GNUNET_MESSAGE_TYPE_PSYC_JOIN_DECISION,
-    sizeof (struct SlaveJoinDecision), GNUNET_YES },
+    sizeof (struct GNUNET_PSYC_JoinDecisionMessage), GNUNET_YES },
+
+  { &channel_recv_disconnect, NULL, 0, 0, GNUNET_NO },
 
   { NULL, NULL, 0, 0, GNUNET_NO }
 };
@@ -442,7 +442,7 @@ GNUNET_PSYC_join_decision (struct GNUNET_PSYC_JoinHandle *jh,
                            const struct GNUNET_PSYC_MessageHeader *join_resp)
 {
   struct GNUNET_PSYC_Channel *chn = &jh->mst->chn;
-  struct MasterJoinDecision *dcsn;
+  struct GNUNET_PSYC_JoinDecisionMessage *dcsn;
   uint16_t join_resp_size
     = (NULL != join_resp) ? ntohs (join_resp->header.size) : 0;
   uint16_t relay_size = relay_count * sizeof (*relays);
@@ -571,7 +571,7 @@ GNUNET_PSYC_master_get_channel (struct GNUNET_PSYC_Master *master)
 struct GNUNET_PSYC_Slave *
 GNUNET_PSYC_slave_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
                         const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
-                        const struct GNUNET_CRYPTO_EddsaPrivateKey *slave_key,
+                        const struct GNUNET_CRYPTO_EcdsaPrivateKey *slave_key,
                         const struct GNUNET_PeerIdentity *origin,
                         uint32_t relay_count,
                         const struct GNUNET_PeerIdentity *relays,
@@ -579,10 +579,7 @@ GNUNET_PSYC_slave_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
                         GNUNET_PSYC_SlaveConnectCallback connect_cb,
                         GNUNET_PSYC_JoinDecisionCallback join_decision_cb,
                         void *cls,
-                        const char *method_name,
-                        const struct GNUNET_ENV_Environment *env,
-                        const void *data,
-                        uint16_t data_size)
+                        const struct GNUNET_MessageHeader *join_msg)
 {
   struct GNUNET_PSYC_Slave *slv = GNUNET_malloc (sizeof (*slv));
   struct GNUNET_PSYC_Channel *chn = &slv->chn;
@@ -725,11 +722,11 @@ GNUNET_PSYC_slave_get_channel (struct GNUNET_PSYC_Slave *slv)
  */
 void
 GNUNET_PSYC_channel_slave_add (struct GNUNET_PSYC_Channel *chn,
-                               const struct GNUNET_CRYPTO_EddsaPublicKey *slave_key,
+                               const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
                                uint64_t announced_at,
                                uint64_t effective_since)
 {
-  struct ChannelSlaveAdd *add = GNUNET_malloc (sizeof (*add));
+  struct ChannelSlaveAddRequest *add = GNUNET_malloc (sizeof (*add));
   add->header.type = htons (GNUNET_MESSAGE_TYPE_PSYC_CHANNEL_SLAVE_ADD);
   add->header.size = htons (sizeof (*add));
   add->announced_at = GNUNET_htonll (announced_at);
@@ -761,10 +758,10 @@ GNUNET_PSYC_channel_slave_add (struct GNUNET_PSYC_Channel *chn,
  */
 void
 GNUNET_PSYC_channel_slave_remove (struct GNUNET_PSYC_Channel *chn,
-                                  const struct GNUNET_CRYPTO_EddsaPublicKey *slave_key,
+                                  const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
                                   uint64_t announced_at)
 {
-  struct ChannelSlaveRemove *rm = GNUNET_malloc (sizeof (*rm));
+  struct ChannelSlaveRemoveRequest *rm = GNUNET_malloc (sizeof (*rm));
   rm->header.type = htons (GNUNET_MESSAGE_TYPE_PSYC_CHANNEL_SLAVE_RM);
   rm->header.size = htons (sizeof (*rm));
   rm->announced_at = GNUNET_htonll (announced_at);

@@ -218,7 +218,7 @@ struct GNUNET_PSYC_MessageHeader
    * Sending slave's public key.
    * Not set if the message is from the master.
    */
-  struct GNUNET_CRYPTO_EddsaPublicKey slave_key;
+  struct GNUNET_CRYPTO_EcdsaPublicKey slave_key;
 
   /* Followed by concatenated PSYC message parts:
    * messages with GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_* types
@@ -279,6 +279,63 @@ struct GNUNET_PSYC_MessageModifier
   /* Followed by NUL-terminated name, then the value. */
 };
 
+
+struct GNUNET_PSYC_CountersResultMessage
+{
+  /**
+   * Type: GNUNET_MESSAGE_TYPE_PSYC_RESULT_COUNTERS
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Status code for the operation.
+   */
+  int32_t result_code GNUNET_PACKED;
+
+  /**
+   * Last message ID sent to the channel.
+   */
+  uint64_t max_message_id;
+};
+
+
+struct GNUNET_PSYC_JoinRequestMessage
+{
+  /**
+   * Type: GNUNET_MESSAGE_TYPE_PSYC_MASTER_JOIN_REQUEST
+   */
+  struct GNUNET_MessageHeader header;
+  /**
+   * Public key of the joining slave.
+   */
+  struct GNUNET_CRYPTO_EcdsaPublicKey slave_key;
+
+  /* Followed by struct GNUNET_MessageHeader join_request */
+};
+
+
+struct GNUNET_PSYC_JoinDecisionMessage
+{
+  /**
+   * Type: GNUNET_MESSAGE_TYPE_PSYC_JOIN_DECISION
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * #GNUNET_YES if the slave was admitted.
+   */
+  int32_t is_admitted;
+
+  /**
+   * Public key of the joining slave.
+   * Only set when the master is sending the decision,
+   * not set when a slave is receiving it.
+   */
+  struct GNUNET_CRYPTO_EcdsaPublicKey slave_key;
+
+  /* Followed by struct GNUNET_MessageHeader join_response */
+};
+
 GNUNET_NETWORK_STRUCT_END
 
 
@@ -293,6 +350,23 @@ GNUNET_NETWORK_STRUCT_END
 #define GNUNET_PSYC_DATA_MAX_PAYLOAD            \
   GNUNET_MULTICAST_FRAGMENT_MAX_PAYLOAD         \
   - sizeof (struct GNUNET_MessageHeader)
+
+
+/**
+ * PSYC message part processing states.
+ */
+enum GNUNET_PSYC_MessageState
+{
+  GNUNET_PSYC_MESSAGE_STATE_START    = 0,
+  GNUNET_PSYC_MESSAGE_STATE_HEADER   = 1,
+  GNUNET_PSYC_MESSAGE_STATE_METHOD   = 2,
+  GNUNET_PSYC_MESSAGE_STATE_MODIFIER = 3,
+  GNUNET_PSYC_MESSAGE_STATE_MOD_CONT = 4,
+  GNUNET_PSYC_MESSAGE_STATE_DATA     = 5,
+  GNUNET_PSYC_MESSAGE_STATE_END      = 6,
+  GNUNET_PSYC_MESSAGE_STATE_CANCEL   = 7,
+  GNUNET_PSYC_MESSAGE_STATE_ERROR    = 8,
+};
 
 
 /**
@@ -335,7 +409,7 @@ typedef void
 typedef void
 (*GNUNET_PSYC_JoinRequestCallback) (void *cls,
                                     const struct
-                                    GNUNET_CRYPTO_EddsaPublicKey *slave_key,
+                                    GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
                                     const struct
                                     GNUNET_PSYC_MessageHeader *join_msg,
                                     struct GNUNET_PSYC_JoinHandle *jh);
@@ -348,9 +422,10 @@ typedef void
  * #GNUNET_PSYC_JoinCallback.
  *
  * @param jh  Join request handle.
- * @param is_admitted  #GNUNET_YES    if the join is approved,
- *                     #GNUNET_NO     if it is disapproved,
- *                     #GNUNET_SYSERR if we cannot answer the request.
+ * @param is_admitted
+ *   #GNUNET_YES    if the join is approved,
+ *   #GNUNET_NO     if it is disapproved,
+ *   #GNUNET_SYSERR if we cannot answer the request.
  * @param relay_count  Number of relays given.
  * @param relays  Array of suggested peers that might be useful relays to use
  *        when joining the multicast group (essentially a list of peers that
@@ -646,7 +721,7 @@ typedef void
 struct GNUNET_PSYC_Slave *
 GNUNET_PSYC_slave_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
                         const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
-                        const struct GNUNET_CRYPTO_EddsaPrivateKey *slave_key,
+                        const struct GNUNET_CRYPTO_EcdsaPrivateKey *slave_key,
                         const struct GNUNET_PeerIdentity *origin,
                         uint32_t relay_count,
                         const struct GNUNET_PeerIdentity *relays,
@@ -654,10 +729,7 @@ GNUNET_PSYC_slave_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
                         GNUNET_PSYC_SlaveConnectCallback slave_connect_cb,
                         GNUNET_PSYC_JoinDecisionCallback join_decision_cb,
                         void *cls,
-                        const char *method_name,
-                        const struct GNUNET_ENV_Environment *env,
-                        const void *data,
-                        uint16_t data_size);
+                        const struct GNUNET_MessageHeader *join_msg);
 
 
 /**
@@ -775,7 +847,7 @@ GNUNET_PSYC_slave_get_channel (struct GNUNET_PSYC_Slave *slave);
  */
 void
 GNUNET_PSYC_channel_slave_add (struct GNUNET_PSYC_Channel *channel,
-                               const struct GNUNET_CRYPTO_EddsaPublicKey *slave_key,
+                               const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
                                uint64_t announced_at,
                                uint64_t effective_since);
 
@@ -803,7 +875,7 @@ GNUNET_PSYC_channel_slave_add (struct GNUNET_PSYC_Channel *channel,
  */
 void
 GNUNET_PSYC_channel_slave_remove (struct GNUNET_PSYC_Channel *channel,
-                                  const struct GNUNET_CRYPTO_EddsaPublicKey
+                                  const struct GNUNET_CRYPTO_EcdsaPublicKey
                                   *slave_key,
                                   uint64_t announced_at);
 

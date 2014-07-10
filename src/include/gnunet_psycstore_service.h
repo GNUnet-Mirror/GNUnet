@@ -134,7 +134,7 @@ typedef void
 struct GNUNET_PSYCSTORE_OperationHandle *
 GNUNET_PSYCSTORE_membership_store (struct GNUNET_PSYCSTORE_Handle *h,
                                    const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
-                                   const struct GNUNET_CRYPTO_EddsaPublicKey *slave_key,
+                                   const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
                                    int did_join,
                                    uint64_t announced_at,
                                    uint64_t effective_since,
@@ -158,6 +158,7 @@ GNUNET_PSYCSTORE_membership_store (struct GNUNET_PSYCSTORE_Handle *h,
  * @param group_generation Group generation of the fragment of the message to
  *        test.  It has relevance if the message consists of multiple fragments
  *        with different group generations.
+ *        FIXME: not needed if there are no overlapping messages.
  * @param rcb Callback to call with the test result.
  * @param rcb_cls Closure for the callback.
  *
@@ -166,7 +167,7 @@ GNUNET_PSYCSTORE_membership_store (struct GNUNET_PSYCSTORE_Handle *h,
 struct GNUNET_PSYCSTORE_OperationHandle *
 GNUNET_PSYCSTORE_membership_test (struct GNUNET_PSYCSTORE_Handle *h,
                                   const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
-                                  const struct GNUNET_CRYPTO_EddsaPublicKey *slave_key,
+                                  const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
                                   uint64_t message_id,
                                   uint64_t group_generation,
                                   GNUNET_PSYCSTORE_ResultCallback rcb,
@@ -178,7 +179,7 @@ GNUNET_PSYCSTORE_membership_test (struct GNUNET_PSYCSTORE_Handle *h,
  *
  * @param h Handle for the PSYCstore.
  * @param channel_key The channel the message belongs to.
- * @param message Message to store.
+ * @param msg Message to store.
  * @param psycstore_flags Flags indicating whether the PSYC message contains
  *        state modifiers.
  * @param rcb Callback to call with the result of the operation.
@@ -189,8 +190,8 @@ GNUNET_PSYCSTORE_membership_test (struct GNUNET_PSYCSTORE_Handle *h,
 struct GNUNET_PSYCSTORE_OperationHandle *
 GNUNET_PSYCSTORE_fragment_store (struct GNUNET_PSYCSTORE_Handle *h,
                                  const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
-                                 const struct GNUNET_MULTICAST_MessageHeader *message,
-                                 uint32_t psycstore_flags,
+                                 const struct GNUNET_MULTICAST_MessageHeader *msg,
+                                 enum GNUNET_PSYCSTORE_MessageFlags psycstore_flags,
                                  GNUNET_PSYCSTORE_ResultCallback rcb,
                                  void *rcb_cls);
 

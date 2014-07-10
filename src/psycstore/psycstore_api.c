@@ -656,7 +656,7 @@ GNUNET_PSYCSTORE_operation_cancel (struct GNUNET_PSYCSTORE_OperationHandle *op)
 struct GNUNET_PSYCSTORE_OperationHandle *
 GNUNET_PSYCSTORE_membership_store (struct GNUNET_PSYCSTORE_Handle *h,
                                    const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
-                                   const struct GNUNET_CRYPTO_EddsaPublicKey *slave_key,
+                                   const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
                                    int did_join,
                                    uint64_t announced_at,
                                    uint64_t effective_since,
@@ -722,7 +722,7 @@ GNUNET_PSYCSTORE_membership_store (struct GNUNET_PSYCSTORE_Handle *h,
 struct GNUNET_PSYCSTORE_OperationHandle *
 GNUNET_PSYCSTORE_membership_test (struct GNUNET_PSYCSTORE_Handle *h,
                                   const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
-                                  const struct GNUNET_CRYPTO_EddsaPublicKey *slave_key,
+                                  const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
                                   uint64_t message_id,
                                   uint64_t group_generation,
                                   GNUNET_PSYCSTORE_ResultCallback rcb,
@@ -770,12 +770,12 @@ GNUNET_PSYCSTORE_membership_test (struct GNUNET_PSYCSTORE_Handle *h,
 struct GNUNET_PSYCSTORE_OperationHandle *
 GNUNET_PSYCSTORE_fragment_store (struct GNUNET_PSYCSTORE_Handle *h,
                                  const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
-                                 const struct GNUNET_MULTICAST_MessageHeader *message,
-                                 uint32_t psycstore_flags,
+                                 const struct GNUNET_MULTICAST_MessageHeader *msg,
+                                 enum GNUNET_PSYCSTORE_MessageFlags psycstore_flags,
                                  GNUNET_PSYCSTORE_ResultCallback rcb,
                                  void *rcb_cls)
 {
-  uint16_t size = ntohs (message->header.size);
+  uint16_t size = ntohs (msg->header.size);
   struct FragmentStoreRequest *req;
   struct GNUNET_PSYCSTORE_OperationHandle *op
     = GNUNET_malloc (sizeof (*op) + sizeof (*req) + size);
@@ -789,7 +789,7 @@ GNUNET_PSYCSTORE_fragment_store (struct GNUNET_PSYCSTORE_Handle *h,
   req->header.size = htons (sizeof (*req) + size);
   req->channel_key = *channel_key;
   req->psycstore_flags = htonl (psycstore_flags);
-  memcpy (&req[1], message, size);
+  memcpy (&req[1], msg, size);
 
   op->op_id = get_next_op_id (h);
   req->op_id = htonl (op->op_id);

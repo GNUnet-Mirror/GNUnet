@@ -2180,7 +2180,7 @@ extern "C"
 /** Message part: message cancelled */
 #define GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_CANCEL 697
 
-/** S->C: message acknowledgment */
+/** S->C: message acknowledgement */
 #define GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_ACK 698
 
 /* 699-700 */
@@ -2479,23 +2479,23 @@ extern "C"
 /** S->C: result of an operation */
 #define GNUNET_MESSAGE_TYPE_SOCIAL_RESULT_CODE 840
 
-/** C->S: request to enter a home as the host */
-#define GNUNET_MESSAGE_TYPE_SOCIAL_HOME_ENTER 841
+/** C->S: request to enter a place as the host */
+#define GNUNET_MESSAGE_TYPE_SOCIAL_HOST_ENTER 841
 
-/** S->C: home enter acknowledgement */
-#define GNUNET_MESSAGE_TYPE_SOCIAL_HOME_ENTER_ACK 842
+/** S->C: host enter acknowledgement */
+#define GNUNET_MESSAGE_TYPE_SOCIAL_HOST_ENTER_ACK 842
 
 /** C->S: request to enter a place as a guest */
-#define GNUNET_MESSAGE_TYPE_SOCIAL_PLACE_ENTER 843
+#define GNUNET_MESSAGE_TYPE_SOCIAL_GUEST_ENTER 843
 
-/** S->C: guest join acknowledgement */
-#define GNUNET_MESSAGE_TYPE_SOCIAL_PLACE_ENTER_ACK 844
+/** S->C: guest enter acknowledgement */
+#define GNUNET_MESSAGE_TYPE_SOCIAL_GUEST_ENTER_ACK 844
 
-/** P->S->C: incoming join request from PSYC */
-#define GNUNET_MESSAGE_TYPE_SOCIAL_JOIN_REQUEST 847
+/** P->S->C: incoming entry request from PSYC */
+#define GNUNET_MESSAGE_TYPE_SOCIAL_ENTRY_REQUEST 845
 
-/** C->S->P: decision about a join request */
-#define GNUNET_MESSAGE_TYPE_SOCIAL_JOIN_DECISION 848
+/** C->S->P: decision about an entry request */
+#define GNUNET_MESSAGE_TYPE_SOCIAL_ENTRY_DECISION 846
 
 /*******************************************************************************
  * X-VINE DHT messages

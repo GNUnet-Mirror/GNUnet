@@ -148,12 +148,12 @@ struct Member
   /**
    * Private key of the member.
    */
-  struct GNUNET_CRYPTO_EddsaPrivateKey priv_key;
+  struct GNUNET_CRYPTO_EcdsaPrivateKey priv_key;
 
   /**
    * Public key of the member.
    */
-  struct GNUNET_CRYPTO_EddsaPublicKey pub_key;
+  struct GNUNET_CRYPTO_EcdsaPublicKey pub_key;
 
   /**
    * Hash of @a pub_key.
@@ -458,11 +458,12 @@ client_member_join (void *cls, struct GNUNET_SERVER_Client *client,
 {
   const struct MulticastMemberJoinMessage *
     msg = (const struct MulticastMemberJoinMessage *) m;
+  uint16_t msg_size = ntohs (msg->header.size);
 
-  struct GNUNET_CRYPTO_EddsaPublicKey mem_pub_key;
+  struct GNUNET_CRYPTO_EcdsaPublicKey mem_pub_key;
   struct GNUNET_HashCode pub_key_hash, mem_pub_key_hash;
 
-  GNUNET_CRYPTO_eddsa_key_get_public (&msg->member_key, &mem_pub_key);
+  GNUNET_CRYPTO_ecdsa_key_get_public (&msg->member_key, &mem_pub_key);
   GNUNET_CRYPTO_hash (&mem_pub_key, sizeof (mem_pub_key), &mem_pub_key_hash);
   GNUNET_CRYPTO_hash (&msg->group_key, sizeof (msg->group_key), &pub_key_hash);
 
@@ -532,11 +533,17 @@ client_member_join (void *cls, struct GNUNET_SERVER_Client *client,
     struct GNUNET_MessageHeader *join_msg = NULL;
     uint16_t join_msg_size = 0;
     if (sizeof (*msg) + relay_size + sizeof (struct GNUNET_MessageHeader)
-        <= ntohs (msg->header.size))
+        <= msg_size)
     {
       join_msg = (struct GNUNET_MessageHeader *)
         (((char *) &msg[1]) + relay_size);
       join_msg_size = ntohs (join_msg->size);
+    }
+    if (sizeof (*msg) + relay_size + join_msg_size != msg_size)
+    {
+      GNUNET_break (0);
+      GNUNET_SERVER_client_disconnect (client);
+      return;
     }
 
     struct MulticastJoinRequestMessage *
@@ -545,7 +552,7 @@ client_member_join (void *cls, struct GNUNET_SERVER_Client *client,
     req->header.type = htons (GNUNET_MESSAGE_TYPE_MULTICAST_JOIN_REQUEST);
     req->group_key = grp->pub_key;
     req->member_peer = this_peer;
-    GNUNET_CRYPTO_eddsa_key_get_public (&mem->priv_key, &req->member_key);
+    GNUNET_CRYPTO_ecdsa_key_get_public (&mem->priv_key, &req->member_key);
     if (0 < join_msg_size)
       memcpy (&req[1], join_msg, join_msg_size);
 
@@ -554,7 +561,7 @@ client_member_join (void *cls, struct GNUNET_SERVER_Client *client,
                                - sizeof (req->signature));
     req->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_MULTICAST_REQUEST);
 
-    if (GNUNET_OK != GNUNET_CRYPTO_eddsa_sign (&mem->priv_key, &req->purpose,
+    if (GNUNET_OK != GNUNET_CRYPTO_ecdsa_sign (&mem->priv_key, &req->purpose,
                                                &req->signature))
     {
       /* FIXME: handle error */
@@ -700,7 +707,7 @@ client_multicast_request (void *cls, struct GNUNET_SERVER_Client *client,
                              - sizeof (req->signature));
   req->purpose.purpose = htonl (GNUNET_SIGNATURE_PURPOSE_MULTICAST_REQUEST);
 
-  if (GNUNET_OK != GNUNET_CRYPTO_eddsa_sign (&mem->priv_key, &req->purpose,
+  if (GNUNET_OK != GNUNET_CRYPTO_ecdsa_sign (&mem->priv_key, &req->purpose,
                                              &req->signature))
   {
     /* FIXME: handle error */
@@ -721,7 +728,7 @@ client_multicast_request (void *cls, struct GNUNET_SERVER_Client *client,
 
 
 /**
- * Core connected.
+ * Connected to core service.
  */
 static void
 core_connected_cb  (void *cls, const struct GNUNET_PeerIdentity *my_identity)

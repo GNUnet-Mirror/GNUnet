@@ -175,7 +175,7 @@ struct MembershipStoreRequest
   /**
    * Slave's public key.
    */
-  struct GNUNET_CRYPTO_EddsaPublicKey slave_key;
+  struct GNUNET_CRYPTO_EcdsaPublicKey slave_key;
 
   uint64_t announced_at GNUNET_PACKED;
   uint64_t effective_since GNUNET_PACKED;
@@ -207,7 +207,7 @@ struct MembershipTestRequest
   /**
    * Slave's public key.
    */
-  struct GNUNET_CRYPTO_EddsaPublicKey slave_key;
+  struct GNUNET_CRYPTO_EcdsaPublicKey slave_key;
 
   uint64_t message_id GNUNET_PACKED;
 
@@ -235,7 +235,12 @@ struct FragmentStoreRequest
    */
   struct GNUNET_CRYPTO_EddsaPublicKey channel_key;
 
+  /**
+   * enum GNUNET_PSYCSTORE_MessageFlags
+   */
   uint32_t psycstore_flags GNUNET_PACKED;
+
+  /* Followed by fragment */
 };
 
 
@@ -336,11 +341,13 @@ struct StateHashUpdateRequest
   struct GNUNET_HashCode hash;
 };
 
+
 enum StateOpFlags
 {
   STATE_OP_FIRST = 1 << 0,
   STATE_OP_LAST = 1 << 1
 };
+
 
 /**
  * @see GNUNET_PSYCSTORE_state_modify()

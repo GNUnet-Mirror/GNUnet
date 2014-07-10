@@ -33,11 +33,12 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_testing_lib.h"
 #include "gnunet_env_lib.h"
+#include "gnunet_psyc_util_lib.h"
 #include "gnunet_psyc_service.h"
 
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
-#define DEBUG_SERVICE 1
+#define DEBUG_SERVICE 0
 
 
 /**
@@ -56,10 +57,10 @@ static struct GNUNET_PSYC_Master *mst;
 static struct GNUNET_PSYC_Slave *slv;
 
 static struct GNUNET_CRYPTO_EddsaPrivateKey *channel_key;
-static struct GNUNET_CRYPTO_EddsaPrivateKey *slave_key;
+static struct GNUNET_CRYPTO_EcdsaPrivateKey *slave_key;
 
 static struct GNUNET_CRYPTO_EddsaPublicKey channel_pub_key;
-static struct GNUNET_CRYPTO_EddsaPublicKey slave_pub_key;
+static struct GNUNET_CRYPTO_EcdsaPublicKey slave_pub_key;
 
 struct GNUNET_PSYC_MasterTransmitHandle *mth;
 
@@ -414,7 +415,7 @@ join_decision_cb (void *cls, int is_admitted,
 
 
 static void
-join_request_cb (void *cls, const struct GNUNET_CRYPTO_EddsaPublicKey *slave_key,
+join_request_cb (void *cls, const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
                  const struct GNUNET_PSYC_MessageHeader *msg,
                  struct GNUNET_PSYC_JoinHandle *jh)
 {
@@ -449,10 +450,13 @@ slave_join ()
                               "_foo", "bar baz", 7);
   GNUNET_ENV_environment_add (env, GNUNET_ENV_OP_ASSIGN,
                               "_foo_bar", "foo bar baz", 11);
+  struct GNUNET_MessageHeader *
+    join_msg = GNUNET_PSYC_message_create ("_request_join", env, "some data", 9);
+
   slv = GNUNET_PSYC_slave_join (cfg, &channel_pub_key, slave_key, &origin,
                                 0, NULL, &slave_message_cb,
                                 &slave_connect_cb, &join_decision_cb, NULL,
-                                "_request_join", env, "some data", 9);
+                                join_msg);
   GNUNET_ENV_environment_destroy (env);
 }
 
@@ -539,10 +543,10 @@ run (void *cls,
   end_badly_task = GNUNET_SCHEDULER_add_delayed (TIMEOUT, &end_badly, NULL);
 
   channel_key = GNUNET_CRYPTO_eddsa_key_create ();
-  slave_key = GNUNET_CRYPTO_eddsa_key_create ();
+  slave_key = GNUNET_CRYPTO_ecdsa_key_create ();
 
   GNUNET_CRYPTO_eddsa_key_get_public (channel_key, &channel_pub_key);
-  GNUNET_CRYPTO_eddsa_key_get_public (slave_key, &slave_pub_key);
+  GNUNET_CRYPTO_ecdsa_key_get_public (slave_key, &slave_pub_key);
 
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Starting master.\n");
   mst = GNUNET_PSYC_master_start (cfg, channel_key, GNUNET_PSYC_CHANNEL_PRIVATE,

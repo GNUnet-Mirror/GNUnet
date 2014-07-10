@@ -93,7 +93,7 @@ struct TransmitMessage
   uint64_t id;
 
   /**
-   * Size of @a buf
+   * Size of message.
    */
   uint16_t size;
 
@@ -211,11 +211,6 @@ struct Channel
   struct GNUNET_CONTAINER_Heap *recv_msgs;
 
   /**
-   * FIXME: needed?
-   */
-  GNUNET_SCHEDULER_TaskIdentifier tmit_task;
-
-  /**
    * Public key of the channel.
    */
   struct GNUNET_CRYPTO_EddsaPublicKey pub_key;
@@ -264,14 +259,16 @@ struct Channel
   uint8_t is_master;
 
   /**
-   * Ready to receive messages from client? #GNUNET_YES or #GNUNET_NO
+   * Is this channel ready to receive messages from client?
+   * #GNUNET_YES or #GNUNET_NO
    */
-  uint8_t ready;
+  uint8_t is_ready;
 
   /**
-   * Is the client disconnected? #GNUNET_YES or #GNUNET_NO
+   * Is the client disconnected?
+   * #GNUNET_YES or #GNUNET_NO
    */
-  uint8_t disconnected;
+  uint8_t is_disconnected;
 };
 
 
@@ -345,12 +342,12 @@ struct Slave
   /**
    * Private key of the slave.
    */
-  struct GNUNET_CRYPTO_EddsaPrivateKey priv_key;
+  struct GNUNET_CRYPTO_EcdsaPrivateKey priv_key;
 
   /**
    * Public key of the slave.
    */
-  struct GNUNET_CRYPTO_EddsaPublicKey pub_key;
+  struct GNUNET_CRYPTO_EcdsaPublicKey pub_key;
 
   /**
    * Hash of @a pub_key.
@@ -390,7 +387,7 @@ struct Slave
   /**
    * Join decision received from multicast.
    */
-  struct SlaveJoinDecision *join_dcsn;
+  struct GNUNET_PSYC_JoinDecisionMessage *join_dcsn;
 
   /**
    * Maximum request ID for this channel.
@@ -514,6 +511,7 @@ client_disconnect (void *cls, struct GNUNET_SERVER_Client *client)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "%p User context is NULL in client_disconnect()\n", chn);
+    GNUNET_break (0);
     return;
   }
 
@@ -573,7 +571,7 @@ client_send_msg (const struct Channel *chn,
  */
 struct JoinMemTestClosure
 {
-  struct GNUNET_CRYPTO_EddsaPublicKey slave_key;
+  struct GNUNET_CRYPTO_EcdsaPublicKey slave_key;
   struct Channel *chn;
   struct GNUNET_MULTICAST_JoinHandle *jh;
   struct MasterJoinRequest *master_join_req;
@@ -613,7 +611,7 @@ join_mem_test_cb (void *cls, int64_t result, const char *err_msg)
  */
 static void
 mcast_recv_join_request (void *cls,
-                         const struct GNUNET_CRYPTO_EddsaPublicKey *slave_key,
+                         const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
                          const struct GNUNET_MessageHeader *join_msg,
                          struct GNUNET_MULTICAST_JoinHandle *jh)
 {
@@ -670,7 +668,7 @@ mcast_recv_join_decision (void *cls, int is_admitted,
               "%p Got join decision: %d\n", slv, is_admitted);
 
   uint16_t join_resp_size = (NULL != join_resp) ? ntohs (join_resp->size) : 0;
-  struct SlaveJoinDecision *
+  struct GNUNET_PSYC_JoinDecisionMessage *
     dcsn = slv->join_dcsn = GNUNET_malloc (sizeof (*dcsn) + join_resp_size);
   dcsn->header.size = htons (sizeof (*dcsn) + join_resp_size);
   dcsn->header.type = htons (GNUNET_MESSAGE_TYPE_PSYC_JOIN_DECISION);
@@ -682,7 +680,7 @@ mcast_recv_join_decision (void *cls, int is_admitted,
 
   if (GNUNET_YES == is_admitted)
   {
-    chn->ready = GNUNET_YES;
+    chn->is_ready = GNUNET_YES;
   }
   else
   {
@@ -693,7 +691,7 @@ mcast_recv_join_decision (void *cls, int is_admitted,
 
 static void
 mcast_recv_membership_test (void *cls,
-                            const struct GNUNET_CRYPTO_EddsaPublicKey *slave_key,
+                            const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
                             uint64_t message_id, uint64_t group_generation,
                             struct GNUNET_MULTICAST_MembershipTestHandle *mth)
 {
@@ -703,7 +701,7 @@ mcast_recv_membership_test (void *cls,
 
 static void
 mcast_recv_replay_fragment (void *cls,
-                            const struct GNUNET_CRYPTO_EddsaPublicKey *slave_key,
+                            const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
                             uint64_t fragment_id, uint64_t flags,
                             struct GNUNET_MULTICAST_ReplayHandle *rh)
 
@@ -714,7 +712,7 @@ mcast_recv_replay_fragment (void *cls,
 
 static void
 mcast_recv_replay_message (void *cls,
-                           const struct GNUNET_CRYPTO_EddsaPublicKey *slave_key,
+                           const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
                            uint64_t message_id,
                            uint64_t fragment_offset,
                            uint64_t flags,
@@ -737,7 +735,7 @@ hash_key_from_nll (struct GNUNET_HashCode *key, uint64_t n)
   n = ((n <<  8) & 0xFF00FF00FF00FF00ULL) | ((n >>  8) & 0x00FF00FF00FF00FFULL);
   n = ((n << 16) & 0xFFFF0000FFFF0000ULL) | ((n >> 16) & 0x0000FFFF0000FFFFULL);
 
-  *key = (struct GNUNET_HashCode) {{ 0 }};
+  *key = (struct GNUNET_HashCode) {};
   *((uint64_t *) key)
     = (n << 32) | (n >> 32);
 }
@@ -753,7 +751,7 @@ hash_key_from_hll (struct GNUNET_HashCode *key, uint64_t n)
 #if __BYTE_ORDER == __BIG_ENDIAN
   hash_key_from_nll (key, n);
 #elif __BYTE_ORDER == __LITTLE_ENDIAN
-  *key = (struct GNUNET_HashCode) {{ 0 }};
+  *key = (struct GNUNET_HashCode) {};
   *((uint64_t *) key) = n;
 #else
   #error byteorder undefined
@@ -1225,10 +1223,8 @@ mcast_recv_message (void *cls, const struct GNUNET_MULTICAST_MessageHeader *mmsg
 /**
  * Incoming request fragment from multicast for a master.
  *
- * @param cls		Master.
- * @param slave_key	Sending slave's public key.
- * @param msg		The message.
- * @param flags		Request flags.
+ * @param cls	Master.
+ * @param req	The request.
  */
 static void
 mcast_recv_request (void *cls,
@@ -1295,7 +1291,7 @@ store_recv_master_counters (void *cls, int result, uint64_t max_fragment_id,
                                        &mcast_recv_replay_message,
                                        &mcast_recv_request,
                                        &mcast_recv_message, chn);
-    chn->ready = GNUNET_YES;
+    chn->is_ready = GNUNET_YES;
   }
   else
   {
@@ -1400,7 +1396,7 @@ client_recv_master_start (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_CONTAINER_multihashmap_put (masters, &chn->pub_key_hash, chn,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
     chn->store_op = GNUNET_PSYCSTORE_counters_get (store, &chn->pub_key,
-                                                  store_recv_master_counters, mst);
+                                                   store_recv_master_counters, mst);
   }
   else
   {
@@ -1440,10 +1436,10 @@ client_recv_slave_join (void *cls, struct GNUNET_SERVER_Client *client,
   const struct SlaveJoinRequest *req
     = (const struct SlaveJoinRequest *) msg;
 
-  struct GNUNET_CRYPTO_EddsaPublicKey slv_pub_key;
+  struct GNUNET_CRYPTO_EcdsaPublicKey slv_pub_key;
   struct GNUNET_HashCode pub_key_hash, slv_pub_key_hash;
 
-  GNUNET_CRYPTO_eddsa_key_get_public (&req->slave_key, &slv_pub_key);
+  GNUNET_CRYPTO_ecdsa_key_get_public (&req->slave_key, &slv_pub_key);
   GNUNET_CRYPTO_hash (&slv_pub_key, sizeof (slv_pub_key), &slv_pub_key_hash);
   GNUNET_CRYPTO_hash (&req->channel_key, sizeof (req->channel_key), &pub_key_hash);
 
@@ -1540,7 +1536,7 @@ client_recv_slave_join (void *cls, struct GNUNET_SERVER_Client *client,
   cli->client = client;
   GNUNET_CONTAINER_DLL_insert (chn->clients_head, chn->clients_tail, cli);
 
-  GNUNET_SERVER_client_set_user_context (client, &slv->chn);
+  GNUNET_SERVER_client_set_user_context (client, chn);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
@@ -1578,7 +1574,8 @@ client_recv_join_decision (void *cls, struct GNUNET_SERVER_Client *client,
   GNUNET_assert (GNUNET_YES == chn->is_master);
   struct Master *mst = (struct Master *) chn;
 
-  struct MasterJoinDecision *dcsn = (struct MasterJoinDecision *) msg;
+  struct GNUNET_PSYC_JoinDecisionMessage *
+    dcsn = (struct GNUNET_PSYC_JoinDecisionMessage *) msg;
   struct JoinDecisionClosure jcls;
   jcls.is_admitted = ntohl (dcsn->is_admitted);
   jcls.msg
@@ -1655,19 +1652,15 @@ transmit_notify (void *cls, size_t *data_size, void *data)
   GNUNET_CONTAINER_DLL_remove (chn->tmit_head, chn->tmit_tail, tmit_msg);
   GNUNET_free (tmit_msg);
 
-  if (0 == chn->tmit_task)
+  if (NULL != chn->tmit_head)
   {
-    if (NULL != chn->tmit_head)
-    {
-      transmit_message (chn);
-    }
-    else if (chn->disconnected)
-    {
-      /* FIXME: handle partial message (when still in_transmit) */
-      cleanup_channel (chn);
-    }
+    transmit_message (chn);
   }
-
+  else if (GNUNET_YES == chn->is_disconnected)
+  {
+    /* FIXME: handle partial message (when still in_transmit) */
+    cleanup_channel (chn);
+  }
   return ret;
 }
 
@@ -1712,8 +1705,6 @@ slave_transmit_notify (void *cls, size_t *data_size, void *data)
 static void
 master_transmit_message (struct Master *mst)
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "%p master_transmit_message()\n", mst);
-  mst->chn.tmit_task = 0;
   if (NULL == mst->tmit_handle)
   {
     mst->tmit_handle
@@ -1734,7 +1725,6 @@ master_transmit_message (struct Master *mst)
 static void
 slave_transmit_message (struct Slave *slv)
 {
-  slv->chn.tmit_task = 0;
   if (NULL == slv->tmit_handle)
   {
     slv->tmit_handle
@@ -1830,6 +1820,8 @@ queue_message (struct Channel *chn,
   tmit_msg->size = data_size;
   tmit_msg->state = chn->tmit_state;
 
+  /* FIXME: separate queue per message ID */
+
   GNUNET_CONTAINER_DLL_insert_tail (chn->tmit_head, chn->tmit_tail, tmit_msg);
 
   chn->is_master
@@ -1877,10 +1869,11 @@ client_recv_psyc_message (void *cls, struct GNUNET_SERVER_Client *client,
               "%p Received message from client.\n", chn);
   GNUNET_PSYC_log_message (GNUNET_ERROR_TYPE_DEBUG, msg);
 
-  if (GNUNET_YES != chn->ready)
+  if (GNUNET_YES != chn->is_ready)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "%p Channel is not ready, dropping message from client.\n", chn);
+                "%p Channel is not ready yet, disconnecting client.\n", chn);
+    GNUNET_break (0);
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }

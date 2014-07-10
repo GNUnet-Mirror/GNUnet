@@ -138,7 +138,7 @@ struct GNUNET_MULTICAST_JoinHandle
   /**
    * Public key of the member requesting join.
    */
-  struct GNUNET_CRYPTO_EddsaPublicKey member_key;
+  struct GNUNET_CRYPTO_EcdsaPublicKey member_key;
 
   /**
    * Peer identity of the member requesting join.
@@ -714,7 +714,7 @@ GNUNET_MULTICAST_origin_to_all_cancel (struct GNUNET_MULTICAST_OriginTransmitHan
 struct GNUNET_MULTICAST_Member *
 GNUNET_MULTICAST_member_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
                               const struct GNUNET_CRYPTO_EddsaPublicKey *group_key,
-                              const struct GNUNET_CRYPTO_EddsaPrivateKey *member_key,
+                              const struct GNUNET_CRYPTO_EcdsaPrivateKey *member_key,
                               const struct GNUNET_PeerIdentity *origin,
                               uint16_t relay_count,
                               const struct GNUNET_PeerIdentity *relays,

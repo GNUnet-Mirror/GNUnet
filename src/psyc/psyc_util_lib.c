@@ -34,22 +34,6 @@
 
 #define LOG(kind,...) GNUNET_log_from (kind, "psyc-util",__VA_ARGS__)
 
-/**
- * Message receive states.
- */
-enum GNUNET_PSYC_MessageState
-{
-  GNUNET_PSYC_MESSAGE_STATE_START    = 0,
-  GNUNET_PSYC_MESSAGE_STATE_HEADER   = 1,
-  GNUNET_PSYC_MESSAGE_STATE_METHOD   = 2,
-  GNUNET_PSYC_MESSAGE_STATE_MODIFIER = 3,
-  GNUNET_PSYC_MESSAGE_STATE_MOD_CONT = 4,
-  GNUNET_PSYC_MESSAGE_STATE_DATA     = 5,
-  GNUNET_PSYC_MESSAGE_STATE_END      = 6,
-  GNUNET_PSYC_MESSAGE_STATE_CANCEL   = 7,
-  GNUNET_PSYC_MESSAGE_STATE_ERROR    = 8,
-};
-
 
 struct GNUNET_PSYC_TransmitHandle
 {
@@ -142,7 +126,7 @@ struct GNUNET_PSYC_ReceiveHandle
   /**
    * Public key of the slave from which a message is being received.
    */
-  struct GNUNET_CRYPTO_EddsaPublicKey slave_key;
+  struct GNUNET_CRYPTO_EcdsaPublicKey slave_key;
 
   /**
    * State of the currently being received message from the PSYC service.
@@ -164,6 +148,101 @@ struct GNUNET_PSYC_ReceiveHandle
    */
   uint32_t mod_value_size;
 };
+
+/**** Messages ****/
+
+
+/**
+ * Create a PSYC message.
+ *
+ * @param method_name
+ *        PSYC method for the message.
+ * @param env
+ *        Environment for the message.
+ * @param data
+ *        Data payload for the message.
+ * @param data_size
+ *        Size of @a data.
+ *
+ * @return Message header with size information,
+ *         followed by the message parts.
+ */
+struct GNUNET_MessageHeader *
+GNUNET_PSYC_message_create (const char *method_name,
+                            const struct GNUNET_ENV_Environment *env,
+                            const void *data,
+                            size_t data_size)
+{
+  struct GNUNET_ENV_Modifier *mod = NULL;
+  struct GNUNET_PSYC_MessageMethod *pmeth = NULL;
+  struct GNUNET_PSYC_MessageModifier *pmod = NULL;
+  struct GNUNET_MessageHeader *pmsg = NULL;
+  uint16_t env_size = 0;
+  if (NULL != env)
+  {
+    mod = GNUNET_ENV_environment_head (env);
+    while (NULL != mod)
+    {
+      env_size += sizeof (*pmod) + strlen (mod->name) + 1 + mod->value_size;
+      mod = mod->next;
+    }
+  }
+
+  struct GNUNET_MessageHeader *msg;
+  uint16_t method_name_size = strlen (method_name) + 1;
+  if (method_name_size == 1)
+    return NULL;
+
+  uint16_t msg_size = sizeof (*msg)			/* header */
+    + sizeof (*pmeth) + method_name_size	        /* method */
+    + env_size						/* modifiers */
+    + ((0 < data_size) ? sizeof (*pmsg) + data_size : 0)/* data */
+    + sizeof (*pmsg);					/* end of message */
+  msg = GNUNET_malloc (msg_size);
+  msg->size = htons (msg_size);
+  msg->type = htons (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE);
+
+  pmeth = (struct GNUNET_PSYC_MessageMethod *) &msg[1];
+  pmeth->header.size = htons (sizeof (*pmeth) + method_name_size);
+  memcpy (pmeth, method_name, method_name_size);
+
+  uint16_t p = sizeof (*msg) + sizeof (*pmeth) + method_name_size;
+  if (NULL != env)
+  {
+    mod = GNUNET_ENV_environment_head (env);
+    while (NULL != mod)
+    {
+      uint16_t mod_name_size = strlen (mod->name) + 1;
+      pmod = (struct GNUNET_PSYC_MessageModifier *) ((char *) msg + p);
+      pmod->header.type = htons (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MODIFIER);
+      pmod->header.size = sizeof (*pmod) + mod_name_size + 1 + mod->value_size;
+      p += pmod->header.size;
+      pmod->header.size = htons (pmod->header.size);
+
+      memcpy (&pmod[1], mod->name, mod_name_size);
+      if (0 < mod->value_size)
+        memcpy ((char *) &pmod[1] + mod_name_size, mod->value, mod->value_size);
+
+      mod = mod->next;
+    }
+  }
+
+  if (0 < data_size)
+  {
+    pmsg = (struct GNUNET_MessageHeader *) ((char *) msg + p);
+    pmsg->size = sizeof (*pmsg) + data_size;
+    p += pmsg->size;
+    pmsg->size = htons (pmsg->size);
+    pmsg->type = htons (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_DATA);
+    memcpy (&pmsg[1], data, data_size);
+  }
+
+  pmsg = (struct GNUNET_MessageHeader *) ((char *) msg + p);
+  pmsg->size = htons (sizeof (*pmsg));
+  pmsg->type = htons (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_END);
+
+  return msg;
+}
 
 
 void

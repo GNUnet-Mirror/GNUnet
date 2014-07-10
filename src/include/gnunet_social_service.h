@@ -79,30 +79,38 @@ struct GNUNET_SOCIAL_Slicer;
  * This function is called one or more times for each message until all data
  * fragments arrive from the network.
  *
- * @param cls  Closure.
- * @param message_id  Message counter, monotonically increasing from 1.
- * @param nym  The sender of the message.  Can be NULL if the message is not
- *          connected to a pseudonym.
- * @param flags  OR'ed GNUNET_PSYC_MessageFlags
- * @param method_name  Original method name from PSYC (may be more specific
- *          than the registered method name due to try-and-slice matching).
- * @param env  Environment containing variables for the message and operations
- *          on objects of the place, or NULL.
- *          Only set for the first call of this function for each @a message_id,
- *          NULL when notifying about further data fragments.
- * @param data_offset  Byte offset of @a data in the overall data of the method.
- * @param data_size  Number of bytes in @a data.
- * @param data  Data stream given to the method (might not be zero-terminated
- *          if data is binary).
- * @param end  End of message?
- *          #GNUNET_NO  if there are further fragments,
- *          #GNUNET_YES if this is the last fragment,
- *          #GNUNET_SYSERR indicates the message was cancelled by the sender.
- *
- * @return #GNUNET_YES the application keeps @a env for further use,
- *         #GNUNET_NO  @a env is free()'d after the function returns.
+ * @param cls
+ *        Closure.
+ * @param message_id
+ *        Message counter, monotonically increasing from 1.
+ * @param nym
+ *        The sender of the message.
+ *        Can be NULL if the message is not connected to a pseudonym.
+ * @param flags
+ *        OR'ed GNUNET_PSYC_MessageFlags
+ * @param method_name
+ *        Original method name from PSYC.
+ *        May be more specific than the registered method name due to
+ *        try-and-slice matching.
+ * @param env
+ *        Environment with operations and variables for the message.
+ *        Only set for the first call of this function for each @a message_id,
+ *        NULL when notifying about further data fragments.
+ *        It has to be freed using GNUNET_ENV_environment_destroy()
+ *        when it is not needed anymore.
+ * @param data_offset
+ *        Byte offset of @a data in the overall data of the method.
+ * @param data_size
+ *        Number of bytes in @a data.
+ * @param data
+ *        Data stream given to the method.
+ * @param end
+ *        End of message?
+ *   #GNUNET_NO     if there are further fragments,
+ *   #GNUNET_YES    if this is the last fragment,
+ *   #GNUNET_SYSERR indicates the message was cancelled by the sender.
  */
-typedef int
+typedef void
 (*GNUNET_SOCIAL_MethodCallback) (void *cls,
                                  uint64_t message_id,
                                  uint32_t flags,
@@ -179,17 +187,16 @@ GNUNET_SOCIAL_slicer_destroy (struct GNUNET_SOCIAL_Slicer *slicer);
  * @param method_name Method name in the entry request.
  * @param variable_count Number of elements in the @a variables array.
  * @param variables Variables present in the message.
- * @param data Payload given on enter (e.g. a password).
  * @param data_size Number of bytes in @a data.
+ * @param data Payload given on enter (e.g. a password).
  */
 typedef void
 (*GNUNET_SOCIAL_AnswerDoorCallback) (void *cls,
                                      struct GNUNET_SOCIAL_Nym *nym,
-                                     size_t variable_count,
                                      const char *method_name,
-                                     struct GNUNET_ENV_Modifier *variables,
-                                     const void *data,
-                                     size_t data_size);
+                                     struct GNUNET_ENV_Environment *env,
+                                     size_t data_size,
+                                     const void *data);
 
 
 /**
@@ -198,7 +205,7 @@ typedef void
  * This is also called if the @a nym was never given permission to enter
  * (i.e. the @a nym stopped asking to get in).
  *
- * @param cls Closure.
+ * @param cls   Closure.
  * @param nym Handle for the user who left.
  * @param variable_count Number of elements in the @a variables array.
  * @param variables Variables present in the message.
@@ -206,8 +213,20 @@ typedef void
 typedef void
 (*GNUNET_SOCIAL_FarewellCallback) (void *cls,
                                    struct GNUNET_SOCIAL_Nym *nym,
+                                   struct GNUNET_ENV_Environment *env,
                                    size_t variable_count,
                                    struct GNUNET_ENV_Modifier *variables);
+
+
+/**
+ * Function called after the host entered the place.
+ *
+ * @param cls             Closure.
+ * @param max_message_id  Last message ID sent to the channel.
+ *   Or 0 if no messages have been sent to the place yet.
+ */
+typedef void
+(*GNUNET_SOCIAL_HostEnterCallback) (void *cls, uint64_t max_message_id);
 
 
 /**
@@ -216,25 +235,34 @@ typedef void
  * A place is created upon first entering, and it is active until permanently
  * left using GNUNET_SOCIAL_host_leave().
  *
- * @param cfg  Configuration to contact the social service.
- * @param place_keyfile  File with the private-public key pair of the place,
- *        created if the file does not exist; pass NULL for ephemeral places.
- * @param policy  Policy specifying entry and history restrictions of the place.
- * @param ego  Identity of the host.
- * @param slicer  Slicer to handle incoming messages.
- * @param listener_cb  Function to handle new nyms that want to enter.
- * @param farewell_cb  Function to handle departing nyms.
- * @param cls  Closure for @a listener_cb and @a farewell_cb.
+ * @param cfg
+ *        Configuration to contact the social service.
+ * @param ego
+ *        Identity of the host.
+ * @param place_key
+ *        Private-public key pair of the place.
+ *        NULL for ephemeral places.
+ * @param policy
+ *        Policy specifying entry and history restrictions for the place.
+ * @param slicer
+ *        Slicer to handle incoming messages.
+ * @param answer_door_cb
+ *        Function to handle new nyms that want to enter.
+ * @param farewell_cb
+ *        Function to handle departing nyms.
+ * @param cls
+ *        Closure for the callbacks.
  *
  * @return Handle for the host.
  */
 struct GNUNET_SOCIAL_Host *
 GNUNET_SOCIAL_host_enter (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                          const char *place_keyfile,
-                          enum GNUNET_PSYC_Policy policy,
                           struct GNUNET_IDENTITY_Ego *ego,
+                          const struct GNUNET_CRYPTO_EddsaPrivateKey *place_key,
+                          enum GNUNET_PSYC_Policy policy,
                           struct GNUNET_SOCIAL_Slicer *slicer,
-                          GNUNET_SOCIAL_AnswerDoorCallback listener_cb,
+                          GNUNET_SOCIAL_HostEnterCallback enter_cb,
+                          GNUNET_SOCIAL_AnswerDoorCallback answer_door_cb,
                           GNUNET_SOCIAL_FarewellCallback farewell_cb,
                           void *cls);
 
@@ -362,22 +390,30 @@ struct GNUNET_SOCIAL_Announcement;
  * This function is restricted to the host.  Nyms can only send requests
  * to the host who can decide to relay it to everyone in the place.
  *
- * @param host  Host of the place.
- * @param method_name Method to use for the announcement.
- * @param env  Environment containing variables for the message and operations
- *          on objects of the place.  Can be NULL.
- * @param notify Function to call to get the payload of the announcement.
- * @param notify_cls Closure for @a notify.
- * @param flags Flags for this announcement.
+ * @param host
+ *        Host of the place.
+ * @param method_name
+ *        Method to use for the announcement.
+ * @param env
+ *        Environment containing variables for the message and operations
+ *        on objects of the place.
+ *        Has to remain available until the first call to @a notify_data.
+ *        Can be NULL.
+ * @param notify_data
+ *        Function to call to get the payload of the announcement.
+ * @param notify_data_cls
+ *        Closure for @a notify.
+ * @param flags
+ *        Flags for this announcement.
  *
- * @return NULL on error (announcement already in progress?).
+ * @return NULL on error (another announcement already in progress?).
  */
 struct GNUNET_SOCIAL_Announcement *
 GNUNET_SOCIAL_host_announce (struct GNUNET_SOCIAL_Host *host,
                              const char *method_name,
                              const struct GNUNET_ENV_Environment *env,
-                             GNUNET_CONNECTION_TransmitReadyNotify notify,
-                             void *notify_cls,
+                             GNUNET_PSYC_TransmitNotifyData notify_data,
+                             void *notify_data_cls,
                              enum GNUNET_SOCIAL_AnnounceFlags flags);
 
 
@@ -416,32 +452,55 @@ GNUNET_SOCIAL_host_leave (struct GNUNET_SOCIAL_Host *host, int keep_active);
 
 
 /**
- * Request entry to a place as a guest.
+ * Function called after the guest entered the local copy of the place.
  *
- * @param cfg  Configuration to contact the social service.
- * @param ego  Identity of the guest.
- * @param address GNS name of the place to enter.  Either in the form of
- *        'room.friend.gnu', or 'NYMPUBKEY.zkey'.  This latter case refers to
- *        the 'PLACE' record of the empty label ("+") in the GNS zone with the
- *        nym's public key 'NYMPUBKEY', and can be used to request entry to a
- *        pseudonym's place directly.
- * @param method_name Method name for the message.
- * @param env Environment containing variables for the message, or NULL.
- * @param data Payload for the message to give to the enter callback.
- * @param data_size Number of bytes in @a data.
- * @param slicer Slicer to use for processing incoming requests from guests.
+ * History and object query functions can be used after this call,
+ * but new messages can't be sent or received.
  *
- * @return NULL on errors, otherwise handle for the guest.
+ * @param cls
+ *        Closure.
+ * @param result
+ *        #GNUNET_OK on success, or
+ *        #GNUNET_SYSERR on error, e.g. could not connect to the service, or
+ *        could not resolve GNS name.
+ * @param max_message_id
+ *        Last message ID sent to the place.
+ *        Or 0 if no messages have been sent to the place yet.
  */
-struct GNUNET_SOCIAL_Guest *
-GNUNET_SOCIAL_guest_enter (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                           struct GNUNET_IDENTITY_Ego *ego,
-                           char *address,
-                           const char *method_name,
-                           const struct GNUNET_ENV_Environment *env,
-                           const void *data,
-                           size_t data_size,
-                           struct GNUNET_SOCIAL_Slicer *slicer);
+typedef void
+(*GNUNET_SOCIAL_GuestEnterCallback) (void *cls, int result,
+                                     uint64_t max_message_id);
+
+
+/**
+ * Function called upon a guest receives a decision about entry to the place.
+ *
+ * @param is_admitted
+ *   Is the guest admitted to the place?
+ *   #GNUNET_YES    if admitted,
+ *   #GNUNET_NO     if refused entry
+ *   #GNUNET_SYSERR if the request could not be answered.
+ * @param method_name
+ *   Method for the message sent along with the decision.
+ *   NULL if no message was sent.
+ * @param env
+ *   Environment with variables for the message.
+ *   NULL if there are no variables.
+ *   It has to be freed using GNUNET_ENV_environment_destroy()
+ *   when it is not needed anymore.
+ * @param data_size
+ *   Size of @data.
+ * @param data
+ *   Payload of the message.
+ */
+typedef int
+(*GNUNET_SOCIAL_EntryDecisionCallback) (void *cls,
+                                        int is_admitted,
+                                        const char *method_name,
+                                        struct GNUNET_ENV_Environment *env,
+                                        size_t data_size,
+                                        const void *data);
+
 
 /**
  * Request entry to a place as a guest.
@@ -461,17 +520,52 @@ GNUNET_SOCIAL_guest_enter (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @return NULL on errors, otherwise handle for the guest.
  */
 struct GNUNET_SOCIAL_Guest *
-GNUNET_SOCIAL_guest_enter2 (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                            struct GNUNET_IDENTITY_Ego *ego,
-                            struct GNUNET_CRYPTO_EddsaPublicKey *crypto_address,
-                            struct GNUNET_PeerIdentity *origin,
-                            size_t relay_count,
-                            struct GNUNET_PeerIdentity *relays,
-                            const char *method_name,
-                            const struct GNUNET_ENV_Environment *env,
-                            const void *data,
-                            size_t data_size,
-                            struct GNUNET_SOCIAL_Slicer *slicer);
+GNUNET_SOCIAL_guest_enter (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                           struct GNUNET_IDENTITY_Ego *ego,
+                           struct GNUNET_CRYPTO_EddsaPublicKey *place_key,
+                           struct GNUNET_PeerIdentity *origin,
+                           uint32_t relay_count,
+                           struct GNUNET_PeerIdentity *relays,
+                           const char *method_name,
+                           const struct GNUNET_ENV_Environment *env,
+                           const void *data,
+                           size_t data_size,
+                           struct GNUNET_SOCIAL_Slicer *slicer,
+                           GNUNET_SOCIAL_GuestEnterCallback local_enter_cb,
+                           GNUNET_SOCIAL_EntryDecisionCallback entry_decision_cb,
+                           void *cls);
+
+
+/**
+ * Request entry to a place as a guest using a GNS name.
+ *
+ * @param cfg  Configuration to contact the social service.
+ * @param ego  Identity of the guest.
+ * @param address GNS name of the place to enter.  Either in the form of
+ *        'room.friend.gnu', or 'NYMPUBKEY.zkey'.  This latter case refers to
+ *        the 'PLACE' record of the empty label ("+") in the GNS zone with the
+ *        nym's public key 'NYMPUBKEY', and can be used to request entry to a
+ *        pseudonym's place directly.
+ * @param method_name Method name for the message.
+ * @param env Environment containing variables for the message, or NULL.
+ * @param data Payload for the message to give to the enter callback.
+ * @param data_size Number of bytes in @a data.
+ * @param slicer Slicer to use for processing incoming requests from guests.
+ *
+ * @return NULL on errors, otherwise handle for the guest.
+ */
+struct GNUNET_SOCIAL_Guest *
+GNUNET_SOCIAL_guest_enter_by_name (const struct GNUNET_CONFIGURATION_Handle *cfg,
+                                   struct GNUNET_IDENTITY_Ego *ego,
+                                   char *gns_name,
+                                   const char *method_name,
+                                   const struct GNUNET_ENV_Environment *env,
+                                   const void *data,
+                                   size_t data_size,
+                                   struct GNUNET_SOCIAL_Slicer *slicer,
+                                   GNUNET_SOCIAL_GuestEnterCallback local_enter_cb,
+                                   GNUNET_SOCIAL_EntryDecisionCallback entry_decision_cb,
+                                   void *cls);
 
 
 /**
@@ -492,22 +586,28 @@ struct GNUNET_SOCIAL_TalkRequest;
 /**
  * Talk to the host of the place.
  *
- * @param place Place where we want to talk to the host.
- * @param method_name Method to invoke on the host.
- * @param env Environment containing variables for the message, or NULL.
- * @param notify Function to use to get the payload for the method.
- * @param notify_cls Closure for @a notify.
- * @param flags Flags for the message being sent.
+ * @param place
+ *        Place where we want to talk to the host.
+ * @param method_name
+ *        Method to invoke on the host.
+ * @param env
+ *        Environment containing variables for the message, or NULL.
+ * @param notify_data
+ *        Function to use to get the payload for the method.
+ * @param notify_data_cls
+ *        Closure for @a notify_data.
+ * @param flags
+ *        Flags for the message being sent.
  *
  * @return NULL if we are already trying to talk to the host,
  *         otherwise handle to cancel the request.
  */
 struct GNUNET_SOCIAL_TalkRequest *
-GNUNET_SOCIAL_guest_talk (struct GNUNET_SOCIAL_Place *place,
+GNUNET_SOCIAL_guest_talk (struct GNUNET_SOCIAL_Guest *guest,
                           const char *method_name,
                           const struct GNUNET_ENV_Environment *env,
-                          GNUNET_CONNECTION_TransmitReadyNotify notify,
-                          void *notify_cls,
+                          GNUNET_PSYC_TransmitNotifyData notify_data,
+                          void *notify_data_cls,
                           enum GNUNET_SOCIAL_TalkFlags flags);
 
 
@@ -529,7 +629,7 @@ GNUNET_SOCIAL_guest_talk_cancel (struct GNUNET_SOCIAL_TalkRequest *tr);
  * @param keep_active Keep place active after last application disconnected.
  */
 void
-GNUNET_SOCIAL_guest_leave (struct GNUNET_SOCIAL_Place *place, int keep_active);
+GNUNET_SOCIAL_guest_leave (struct GNUNET_SOCIAL_Guest *guest, int keep_active);
 
 
 /**
@@ -542,7 +642,7 @@ GNUNET_SOCIAL_guest_leave (struct GNUNET_SOCIAL_Place *place, int keep_active);
  * @return Handle for the place, valid as long as @a guest is valid.
  */
 struct GNUNET_SOCIAL_Place *
-GNUNET_SOCIAL_guest_get_place (struct GNUNET_SOCIAL_Host *guest);
+GNUNET_SOCIAL_guest_get_place (struct GNUNET_SOCIAL_Guest *guest);
 
 
 /**
