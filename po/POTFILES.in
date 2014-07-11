@@ -267,7 +267,9 @@ src/secretsharing/gnunet-service-secretsharing.c
 src/secretsharing/secretsharing_api.c
 src/secretsharing/secretsharing_common.c
 src/sensor/gnunet-sensor.c
+src/sensor/gnunet-service-sensor-analysis.c
 src/sensor/gnunet-service-sensor.c
+src/sensor/plugin_sensor_model_gaussian.c
 src/sensor/sensor_api.c
 src/set/gnunet-service-set.c
 src/set/gnunet-service-set_intersection.c

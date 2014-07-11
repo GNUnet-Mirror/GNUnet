@@ -209,7 +209,7 @@ struct GNUNET_SENSOR_Reading
   void *value;
 
   /**
-   * Size of @value
+   * Size of @e value
    */
   uint16_t value_size;
 
