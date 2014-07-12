@@ -542,14 +542,16 @@ process_ksk_result (struct GNUNET_FS_SearchContext *sc,
   GNUNET_assert (NULL != sc);
   GNUNET_FS_uri_to_key (uri, &key);
   if (GNUNET_SYSERR ==
-      GNUNET_CONTAINER_multihashmap_get_multiple (ent->results, &key,
+      GNUNET_CONTAINER_multihashmap_get_multiple (ent->results,
+                                                  &key,
                                                   &test_result_present,
                                                   (void *) uri))
     return;                     /* duplicate result */
   /* try to find search result in master map */
   grc.sr = NULL;
   grc.uri = uri;
-  GNUNET_CONTAINER_multihashmap_get_multiple (sc->master_result_map, &key,
+  GNUNET_CONTAINER_multihashmap_get_multiple (sc->master_result_map,
+                                              &key,
                                               &get_result_present, &grc);
   sr = grc.sr;
   is_new = (NULL == sr) || (sr->mandatory_missing > 0);
@@ -571,16 +573,34 @@ process_ksk_result (struct GNUNET_FS_SearchContext *sc,
   {
     GNUNET_CONTAINER_meta_data_merge (sr->meta, meta);
   }
+  GNUNET_break (GNUNET_OK ==
+                GNUNET_CONTAINER_multihashmap_put (ent->results,
+                                                   &sr->key,
+                                                   sr,
+                                                   GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+
   koff = ent - sc->requests;
-  GNUNET_assert ( (ent >= sc->requests) && (koff < sc->uri->data.ksk.keywordCount));
+  GNUNET_assert ( (ent >= sc->requests) &&
+                  (koff < sc->uri->data.ksk.keywordCount));
   sr->keyword_bitmap[koff / 8] |= (1 << (koff % 8));
   /* check if mandatory satisfied */
-  if (ent->mandatory)
-    sr->mandatory_missing--;
-  else
-    sr->optional_support++;
+  if (1 == GNUNET_CONTAINER_multihashmap_size (ent->results))
+  {
+    if (ent->mandatory)
+    {
+      GNUNET_break (sr->mandatory_missing > 0);
+      sr->mandatory_missing--;
+    }
+    else
+    {
+      sr->optional_support++;
+    }
+  }
   if (0 != sr->mandatory_missing)
+  {
+    GNUNET_break (NULL == sr->client_info);
     return;
+  }
   if (is_new)
     notify_client_chk_result (sc, sr);
   else
@@ -649,7 +669,10 @@ process_sks_result (struct GNUNET_FS_SearchContext *sc,
   GNUNET_FS_search_result_sync_ (sr);
   GNUNET_FS_search_start_probe_ (sr);
   /* notify client */
-  notify_client_chk_result (sc, sr);
+  if (0 == sr->mandatory_missing)
+    notify_client_chk_result (sc, sr);
+  else
+    GNUNET_break (NULL == sr->client_info);
   /* search for updates */
   if (0 == strlen (id_update))
     return;                     /* no updates */
@@ -746,11 +769,16 @@ process_kblock (struct GNUNET_FS_SearchContext *sc,
   }
   if (NULL == (uri = GNUNET_FS_uri_parse (&pt[1], &emsg)))
   {
-    GNUNET_break_op (0);        /* ublock malformed */
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                _("Failed to parse URI `%s': %s\n"),
-                &pt[1],
-                emsg);
+    if (GNUNET_FS_VERSION > 0x00090400)
+    {
+      /* we broke this in 0x00090300, so don't bitch
+         too loudly just one version up... */
+      GNUNET_break_op (0);        /* ublock malformed */
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  _("Failed to parse URI `%s': %s\n"),
+                  &pt[1],
+                  emsg);
+    }
     GNUNET_free_non_null (emsg);
     return;
   }
@@ -765,7 +793,10 @@ process_kblock (struct GNUNET_FS_SearchContext *sc,
     GNUNET_FS_uri_destroy (uri);
     return;
   }
-  process_ksk_result (sc, &sc->requests[i], uri, meta);
+  process_ksk_result (sc,
+                      &sc->requests[i],
+                      uri,
+                      meta);
 
   /* clean up */
   GNUNET_CONTAINER_meta_data_destroy (meta);
@@ -1265,6 +1296,36 @@ search_start (struct GNUNET_FS_Handle *h,
 
 
 /**
+ * Update the 'results' map for the individual keywords with the
+ * results from the 'global' result set.
+ *
+ * @param cls closure, the `struct GNUNET_FS_SearchContext *`
+ * @param key current key code
+ * @param value value in the hash map, the `struct GNUNET_FS_SearchResult *`
+ * @return #GNUNET_YES (we should continue to iterate)
+ */
+static int
+update_sre_result_maps (void *cls,
+                        const struct GNUNET_HashCode *key,
+                        void *value)
+{
+  struct GNUNET_FS_SearchContext *sc = cls;
+  struct GNUNET_FS_SearchResult *sr = value;
+  unsigned int i;
+
+  for (i = 0; i < sc->uri->data.ksk.keywordCount; i++)
+    if (0 != (sr->keyword_bitmap[i / 8] & (1 << (i % 8))))
+      GNUNET_break (GNUNET_OK ==
+                    GNUNET_CONTAINER_multihashmap_put (sc->requests[i].results,
+                                                       &sr->key,
+                                                       sr,
+                                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+
+  return GNUNET_YES;
+}
+
+
+/**
  * Build the request and actually initiate the search using the
  * GNUnet FS service.
  *
@@ -1295,9 +1356,9 @@ GNUNET_FS_search_start_searching_ (struct GNUNET_FS_SearchContext *sc)
       sre = &sc->requests[i];
       sre->keyword = GNUNET_strdup (keyword);
       GNUNET_CRYPTO_ecdsa_public_key_derive (&anon_pub,
-					   keyword,
-					   "fs-ublock",
-					   &sre->dpub);
+                                             keyword,
+                                             "fs-ublock",
+                                             &sre->dpub);
       GNUNET_CRYPTO_hash (&sre->dpub,
 			  sizeof (struct GNUNET_CRYPTO_EcdsaPublicKey),
 			  &sre->uquery);
@@ -1306,6 +1367,9 @@ GNUNET_FS_search_start_searching_ (struct GNUNET_FS_SearchContext *sc)
         sc->mandatory_count++;
       sre->results = GNUNET_CONTAINER_multihashmap_create (4, GNUNET_NO);
     }
+    GNUNET_CONTAINER_multihashmap_iterate (sc->master_result_map,
+                                           &update_sre_result_maps,
+                                           sc);
   }
   sc->client = GNUNET_CLIENT_connect ("fs", sc->h->cfg);
   if (NULL == sc->client)
@@ -1401,11 +1465,15 @@ search_result_suspend (void *cls,
     sr->update_search = NULL;
   }
   GNUNET_FS_search_stop_probe_ (sr);
-  pi.status = GNUNET_FS_STATUS_SEARCH_RESULT_SUSPEND;
-  pi.value.search.specifics.result_suspend.cctx = sr->client_info;
-  pi.value.search.specifics.result_suspend.meta = sr->meta;
-  pi.value.search.specifics.result_suspend.uri = sr->uri;
-  sr->client_info = GNUNET_FS_search_make_status_ (&pi, sc->h, sc);
+  if (0 == sr->mandatory_missing)
+  {
+    /* client is aware of search result, notify about suspension event */
+    pi.status = GNUNET_FS_STATUS_SEARCH_RESULT_SUSPEND;
+    pi.value.search.specifics.result_suspend.cctx = sr->client_info;
+    pi.value.search.specifics.result_suspend.meta = sr->meta;
+    pi.value.search.specifics.result_suspend.uri = sr->uri;
+    sr->client_info = GNUNET_FS_search_make_status_ (&pi, sc->h, sc);
+  }
   GNUNET_break (NULL == sr->client_info);
   GNUNET_free_non_null (sr->serialization);
   GNUNET_FS_uri_destroy (sr->uri);
@@ -1559,10 +1627,12 @@ search_result_stop (void *cls,
     sr->download->search = NULL;
     sr->download->top =
         GNUNET_FS_make_top (sr->download->h,
-                            &GNUNET_FS_download_signal_suspend_, sr->download);
+                            &GNUNET_FS_download_signal_suspend_,
+                            sr->download);
     if (NULL != sr->download->serialization)
     {
-      GNUNET_FS_remove_sync_file_ (sc->h, GNUNET_FS_SYNC_PATH_CHILD_DOWNLOAD,
+      GNUNET_FS_remove_sync_file_ (sc->h,
+                                   GNUNET_FS_SYNC_PATH_CHILD_DOWNLOAD,
                                    sr->download->serialization);
       GNUNET_free (sr->download->serialization);
       sr->download->serialization = NULL;
@@ -1571,6 +1641,13 @@ search_result_stop (void *cls,
     GNUNET_FS_download_make_status_ (&pi, sr->download);
     GNUNET_FS_download_sync_ (sr->download);
     sr->download = NULL;
+  }
+  if (0 != sr->mandatory_missing)
+  {
+    /* client is unaware of search result as
+       it does not match required keywords */
+    GNUNET_break (NULL == sr->client_info);
+    return GNUNET_OK;
   }
   pi.status = GNUNET_FS_STATUS_SEARCH_RESULT_STOPPED;
   pi.value.search.specifics.result_stopped.cctx = sr->client_info;

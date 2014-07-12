@@ -580,7 +580,7 @@ struct GNUNET_FS_SearchResult
   uint8_t *keyword_bitmap;
 
   /**
-   * Key for the search result
+   * Key for the search result based on the URI.
    */
   struct GNUNET_HashCode key;
 
@@ -1476,8 +1476,7 @@ struct GNUNET_FS_UnindexContext
 
 
 /**
- * Information we keep for each keyword in
- * a keyword search.
+ * Information we keep for each keyword in a keyword search.
  */
 struct SearchRequestEntry
 {

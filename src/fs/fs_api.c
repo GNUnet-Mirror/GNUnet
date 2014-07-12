@@ -2882,8 +2882,9 @@ deserialize_search (struct GNUNET_FS_Handle *h,
   }
   sc->h = h;
   sc->serialization = GNUNET_strdup (serialization);
-  if ((GNUNET_OK != GNUNET_BIO_read_string (rh, "search-uri", &uris, 10 * 1024))
-      || (NULL == (sc->uri = GNUNET_FS_uri_parse (uris, &emsg))) ||
+  if ((GNUNET_OK !=
+       GNUNET_BIO_read_string (rh, "search-uri", &uris, 10 * 1024)) ||
+      (NULL == (sc->uri = GNUNET_FS_uri_parse (uris, &emsg))) ||
       ((GNUNET_YES != GNUNET_FS_uri_test_ksk (sc->uri)) &&
        (GNUNET_YES != GNUNET_FS_uri_test_sks (sc->uri))) ||
       (GNUNET_OK != read_start_time (rh, &sc->start_time)) ||
@@ -2900,8 +2901,7 @@ deserialize_search (struct GNUNET_FS_Handle *h,
   sc->options = (enum GNUNET_FS_SearchOptions) options;
   sc->master_result_map = GNUNET_CONTAINER_multihashmap_create (16, GNUNET_NO);
   dn = get_serialization_file_name_in_dir (h,
-                                           (sc->psearch_result ==
-                                            NULL) ?
+                                           (NULL == sc->psearch_result) ?
                                            GNUNET_FS_SYNC_PATH_MASTER_SEARCH :
                                            GNUNET_FS_SYNC_PATH_CHILD_SEARCH,
                                            sc->serialization, "");
