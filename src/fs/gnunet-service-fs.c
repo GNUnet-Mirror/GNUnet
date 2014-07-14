@@ -552,6 +552,21 @@ consider_peer_for_forwarding (void *cls, const struct GNUNET_HashCode * key,
 
 
 /**
+ * Function called after the creation of a connected peer record is complete.
+ *
+ * @param cls closure (unused)
+ * @param cp handle to the newly created connected peer record
+ */
+static void
+connected_peer_cb (void *cls, struct GSF_ConnectedPeer *cp)
+{
+  if (NULL == cp)
+    return;
+  GSF_iterate_pending_requests_ (&consider_peer_for_forwarding, cp);
+}
+
+
+/**
  * Method called whenever a given peer connects.
  *
  * @param cls closure, not used
@@ -560,14 +575,9 @@ consider_peer_for_forwarding (void *cls, const struct GNUNET_HashCode * key,
 static void
 peer_connect_handler (void *cls, const struct GNUNET_PeerIdentity *peer)
 {
-  struct GSF_ConnectedPeer *cp;
-
   if (0 == memcmp (&my_id, peer, sizeof (struct GNUNET_PeerIdentity)))
     return;
-  cp = GSF_peer_connect_handler_ (peer);
-  if (NULL == cp)
-    return;
-  GSF_iterate_pending_requests_ (&consider_peer_for_forwarding, cp);
+  GSF_peer_connect_handler_ (peer, &connected_peer_cb, NULL);
 }
 
 

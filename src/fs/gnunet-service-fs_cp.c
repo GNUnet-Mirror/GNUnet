@@ -31,6 +31,7 @@
 #include "gnunet-service-fs_pe.h"
 #include "gnunet-service-fs_pr.h"
 #include "gnunet-service-fs_push.h"
+#include "gnunet_peerstore_service.h"
 
 
 /**
@@ -302,6 +303,16 @@ struct GSF_ConnectedPeer
    */
   int did_reserve;
 
+  /**
+   * Function called when the creation of this record is complete.
+   */
+  GSF_ConnectedPeerCreationCallback creation_cb;
+
+  /**
+   * Closure for @e creation_cb
+   */
+  void *creation_cb_cls;
+
 };
 
 
@@ -311,30 +322,9 @@ struct GSF_ConnectedPeer
 static struct GNUNET_CONTAINER_MultiPeerMap *cp_map;
 
 /**
- * Where do we store respect information?
+ * Handle to peerstore service.
  */
-static char *respectDirectory;
-
-
-/**
- * Get the filename under which we would store respect
- * for the given peer.
- *
- * @param id peer to get the filename for
- * @return filename of the form DIRECTORY/PEERID
- */
-static char *
-get_respect_filename (const struct GNUNET_PeerIdentity *id)
-{
-  char *fn;
-
-  GNUNET_asprintf (&fn,
-		   "%s%s%s",
-		   respectDirectory,
-		   DIR_SEPARATOR_STR,
-		   GNUNET_i2s_full (id));
-  return fn;
-}
+static struct GNUNET_PEERSTORE_Handle *peerstore;
 
 
 /**
@@ -569,20 +559,50 @@ ats_reserve_callback (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
 }
 
+/**
+ * Function called by PEERSTORE with peer respect record
+ *
+ * @param cls handle to connected peer entry
+ * @param record peerstore record information
+ * @param emsg error message, or NULL if no errors
+ * @return #GNUNET_NO to stop iterating since we only expect 0 or 1 records
+ */
+static int
+peer_respect_cb (void *cls, struct GNUNET_PEERSTORE_Record *record, char *emsg)
+{
+  struct GSF_ConnectedPeer *cp = cls;
+
+  if ((NULL != record) && (sizeof (cp->disk_respect) == record->value_size))
+    cp->disk_respect = cp->ppd.respect = *((uint32_t *)record->value);
+  cp->request_map = GNUNET_CONTAINER_multihashmap_create (128, GNUNET_NO);
+  GNUNET_break (GNUNET_OK ==
+                GNUNET_CONTAINER_multipeermap_put (cp_map,
+               GSF_connected_peer_get_identity2_ (cp),
+                                                   cp,
+                                                   GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+  GNUNET_STATISTICS_set (GSF_stats, gettext_noop ("# peers connected"),
+                         GNUNET_CONTAINER_multipeermap_size (cp_map),
+                         GNUNET_NO);
+  GSF_push_start_ (cp);
+  if (NULL != cp->creation_cb)
+    cp->creation_cb (cp->creation_cb_cls, cp);
+  return GNUNET_NO;
+}
 
 /**
  * A peer connected to us.  Setup the connected peer
  * records.
  *
  * @param peer identity of peer that connected
- * @return handle to connected peer entry
+ * @param creation_cb callback function when the record is created.
+ * @param creation_cb_cls closure for @creation_cb
  */
-struct GSF_ConnectedPeer *
-GSF_peer_connect_handler_ (const struct GNUNET_PeerIdentity *peer)
+void
+GSF_peer_connect_handler_ (const struct GNUNET_PeerIdentity *peer,
+                           GSF_ConnectedPeerCreationCallback creation_cb,
+                           void *creation_cb_cls)
 {
   struct GSF_ConnectedPeer *cp;
-  char *fn;
-  uint32_t respect;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Connected to peer %s\n",
               GNUNET_i2s (peer));
@@ -592,22 +612,10 @@ GSF_peer_connect_handler_ (const struct GNUNET_PeerIdentity *peer)
   cp->rc =
       GNUNET_ATS_reserve_bandwidth (GSF_ats, peer, DBLOCK_SIZE,
                                     &ats_reserve_callback, cp);
-  fn = get_respect_filename (peer);
-  if ((GNUNET_YES == GNUNET_DISK_file_test (fn)) &&
-      (sizeof (respect) == GNUNET_DISK_fn_read (fn, &respect, sizeof (respect))))
-    cp->disk_respect = cp->ppd.respect = ntohl (respect);
-  GNUNET_free (fn);
-  cp->request_map = GNUNET_CONTAINER_multihashmap_create (128, GNUNET_NO);
-  GNUNET_break (GNUNET_OK ==
-                GNUNET_CONTAINER_multipeermap_put (cp_map,
-						   GSF_connected_peer_get_identity2_ (cp),
-                                                   cp,
-                                                   GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-  GNUNET_STATISTICS_set (GSF_stats, gettext_noop ("# peers connected"),
-                         GNUNET_CONTAINER_multipeermap_size (cp_map),
-                         GNUNET_NO);
-  GSF_push_start_ (cp);
-  return cp;
+  cp->creation_cb = creation_cb;
+  cp->creation_cb_cls = creation_cb_cls;
+  GNUNET_PEERSTORE_iterate (peerstore, "fs", peer, "respect",
+                            GNUNET_TIME_UNIT_FOREVER_REL, &peer_respect_cb, cp);
 }
 
 
@@ -1718,33 +1726,16 @@ static int
 flush_respect (void *cls, const struct GNUNET_PeerIdentity * key, void *value)
 {
   struct GSF_ConnectedPeer *cp = value;
-  char *fn;
-  uint32_t respect;
   struct GNUNET_PeerIdentity pid;
 
   if (cp->ppd.respect == cp->disk_respect)
     return GNUNET_OK;           /* unchanged */
   GNUNET_assert (0 != cp->ppd.pid);
   GNUNET_PEER_resolve (cp->ppd.pid, &pid);
-  fn = get_respect_filename (&pid);
-  if (cp->ppd.respect == 0)
-  {
-    if ((0 != UNLINK (fn)) && (errno != ENOENT))
-      GNUNET_log_strerror_file (GNUNET_ERROR_TYPE_WARNING |
-                                GNUNET_ERROR_TYPE_BULK, "unlink", fn);
-  }
-  else
-  {
-    respect = htonl (cp->ppd.respect);
-    if (sizeof (uint32_t) ==
-        GNUNET_DISK_fn_write (fn, &respect, sizeof (uint32_t),
-                              GNUNET_DISK_PERM_USER_READ |
-                              GNUNET_DISK_PERM_USER_WRITE |
-                              GNUNET_DISK_PERM_GROUP_READ |
-                              GNUNET_DISK_PERM_OTHER_READ))
-      cp->disk_respect = cp->ppd.respect;
-  }
-  GNUNET_free (fn);
+  GNUNET_PEERSTORE_store (peerstore, "fs", &pid, "respect", &cp->ppd.respect,
+                          sizeof (cp->ppd.respect),
+                          GNUNET_TIME_UNIT_FOREVER_ABS,
+                          GNUNET_PEERSTORE_STOREOPTION_REPLACE, NULL, NULL);
   return GNUNET_OK;
 }
 
@@ -1796,11 +1787,7 @@ void
 GSF_connected_peer_init_ ()
 {
   cp_map = GNUNET_CONTAINER_multipeermap_create (128, GNUNET_YES);
-  GNUNET_assert (GNUNET_OK ==
-                 GNUNET_CONFIGURATION_get_value_filename (GSF_cfg, "fs",
-                                                          "RESPECT",
-                                                          &respectDirectory));
-  GNUNET_break (GNUNET_OK == GNUNET_DISK_directory_create (respectDirectory));
+  peerstore = GNUNET_PEERSTORE_connect (GSF_cfg);
   GNUNET_SCHEDULER_add_with_priority (GNUNET_SCHEDULER_PRIORITY_HIGH,
                                       &cron_flush_respect, NULL);
 }
@@ -1834,8 +1821,7 @@ GSF_connected_peer_done_ ()
   GNUNET_CONTAINER_multipeermap_iterate (cp_map, &clean_peer, NULL);
   GNUNET_CONTAINER_multipeermap_destroy (cp_map);
   cp_map = NULL;
-  GNUNET_free (respectDirectory);
-  respectDirectory = NULL;
+  GNUNET_PEERSTORE_disconnect (peerstore, GNUNET_YES);
 }
 
 

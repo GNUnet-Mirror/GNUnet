@@ -190,6 +190,16 @@ typedef void (*GSF_PeerReserveCallback) (void *cls,
 
 
 /**
+ * Function called after the creation of a connected peer record is complete.
+ *
+ * @param cls closure
+ * @param cp handle to the newly created connected peer record
+ */
+typedef void (*GSF_ConnectedPeerCreationCallback) (void *cls,
+                                                   struct GSF_ConnectedPeer *cp);
+
+
+/**
  * Handle to cancel a transmission request.
  */
 struct GSF_PeerTransmitHandle;
@@ -200,10 +210,13 @@ struct GSF_PeerTransmitHandle;
  * records.
  *
  * @param peer identity of peer that connected
- * @return handle to connected peer entry
+ * @param creation_cb callback function when the record is created.
+ * @param creation_cb_cls closure for @creation_cb
  */
-struct GSF_ConnectedPeer *
-GSF_peer_connect_handler_ (const struct GNUNET_PeerIdentity *peer);
+void
+GSF_peer_connect_handler_ (const struct GNUNET_PeerIdentity *peer,
+                           GSF_ConnectedPeerCreationCallback creation_cb,
+                           void *creation_cb_cls);
 
 
 /**
