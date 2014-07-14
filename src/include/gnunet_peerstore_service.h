@@ -113,7 +113,7 @@ struct GNUNET_PEERSTORE_Record
 typedef void (*GNUNET_PEERSTORE_Continuation)(void *cls, int success);
 
 /**
- * Function called by for each matching record.
+ * Function called by PEERSTORE for each matching record.
  *
  * @param cls closure
  * @param record peerstore record information

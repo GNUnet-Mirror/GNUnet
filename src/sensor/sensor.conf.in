@@ -1,9 +1,9 @@
 [sensor]
+AUTOSTART = @AUTOSTART@
 BINARY = gnunet-service-sensor
-UNIXPATH = /tmp/gnunet-service-sensor.sock
-HOME = $SERVICEHOME
-# PORT = 2106
-@UNIXONLY@ PORT = 2087
+UNIXPATH = $GNUNET_RUNTIME_DIR/gnunet-service-sensor.sock
+UNIX_MATCH_UID = NO
+UNIX_MATCH_GID = YES
 
 [sensor-analysis]
 model = gaussian

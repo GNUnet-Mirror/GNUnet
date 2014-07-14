@@ -1,9 +1,9 @@
 [peerstore]
+AUTOSTART = @AUTOSTART@
 BINARY = gnunet-service-peerstore
-UNIXPATH = /tmp/gnunet-service-peerstore.sock
-HOME = $SERVICEHOME
-# PORT = 2106
-@UNIXONLY@ PORT = 2088
+UNIXPATH = $GNUNET_RUNTIME_DIR/gnunet-service-peerstore.sock
+UNIX_MATCH_UID = NO
+UNIX_MATCH_GID = YES
 DATABASE = sqlite
 
 [peerstore-sqlite]
