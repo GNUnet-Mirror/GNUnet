@@ -263,15 +263,18 @@ static void
 cancel_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct ActiveContext *ac = cls;
+  struct Context *ctx = ac->ctx;
 
   ac->delay_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_assert (NULL != ac->dht_get);
   GNUNET_DHT_get_stop (ac->dht_get);
   ac->dht_get = NULL;
+  GNUNET_TESTBED_operation_done (ctx->op);
+  ctx->op = NULL;
   n_gets_fail++;
 
   /* If profiling is complete, summarize */
-  if (n_gets == n_gets_fail + n_gets_ok)
+  if (n_active == n_gets_fail + n_gets_ok)
     summarize ();
 }
 
@@ -306,6 +309,7 @@ get_iter (void *cls,
 {
   struct ActiveContext *ac = cls;
   struct ActiveContext *get_ac = ac->get_ac;
+  struct Context *ctx = ac->ctx;
 
   /* Check the keys of put and get match or not. */
   GNUNET_assert (0 == memcmp (key, &get_ac->hash, sizeof (struct GNUNET_HashCode)));
@@ -317,7 +321,9 @@ get_iter (void *cls,
   ac->dht_get = NULL;
   GNUNET_SCHEDULER_cancel (ac->delay_task);
   ac->delay_task = GNUNET_SCHEDULER_NO_TASK;
-
+  GNUNET_TESTBED_operation_done (ctx->op);
+  ctx->op = NULL;
+  
   /* Summarize if profiling is complete */
   if (n_active == n_gets_fail + n_gets_ok)
     summarize ();
