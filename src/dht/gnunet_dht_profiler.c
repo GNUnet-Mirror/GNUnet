@@ -200,6 +200,11 @@ static unsigned int n_gets_ok;
  */
 static unsigned int n_gets_fail;
 
+/**
+ * Replication degree
+ */
+static unsigned int replication;
+
 
 /**
  * Shutdown task.  Cleanup all resources and operations.
@@ -354,6 +359,7 @@ delayed_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   get_ac->nrefs++;
   ac->get_ac = get_ac;
+  DEBUG ("Doing a DHT GET for data of size %u\n", get_ac->put_data_size);
   ac->dht_get = GNUNET_DHT_get_start (ac->dht,
                                       GNUNET_BLOCK_TYPE_TEST,
                                       &get_ac->hash,
@@ -415,7 +421,7 @@ delayed_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_CRYPTO_hash (ac->put_data, ac->put_data_size, &ac->hash);
   DEBUG ("Doing a DHT PUT with data of size %u\n", ac->put_data_size);
   ac->dht_put = GNUNET_DHT_put (ac->dht, &ac->hash,
-                                1,            /* replication level */
+                                replication,
                                 GNUNET_DHT_RO_NONE,
                                 GNUNET_BLOCK_TYPE_TEST,
                                 ac->put_data_size,
@@ -644,6 +650,9 @@ main (int argc, char *const *argv)
     {'d', "delay", "DELAY",
      gettext_noop ("delay for starting DHT PUT and GET"),
      1, &GNUNET_GETOPT_set_relative_time, &delay},
+    {'r', "replication", "DEGREE",
+     gettext_noop ("replication degree for DHT PUTs"),
+     1, &GNUNET_GETOPT_set_uint, &replication},
     {'t', "timeout", "TIMEOUT",
      gettext_noop ("timeout for DHT PUT and GET requests"),
      1, &GNUNET_GETOPT_set_relative_time, &timeout},
@@ -654,6 +663,7 @@ main (int argc, char *const *argv)
     return 2;
   delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 3); /* default delay */
   timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 3); /* default timeout */
+  replication = 1;      /* default replication */
   rc = 0;
   if (GNUNET_OK !=
       GNUNET_PROGRAM_run (argc, argv, "dht-profiler",
