@@ -308,19 +308,7 @@ get_iter (void *cls,
   struct ActiveContext *get_ac = ac->get_ac;
 
   /* Check the keys of put and get match or not. */
-  if (0 == memcmp (key, &get_ac->hash, sizeof (struct GNUNET_HashCode)))
-  {
-    if (get_ac->put_data_size != size)
-    {
-      DEBUG ("Found a GET with incorrect data length (this may happen, but very unlikely)\n");
-      return;
-    }
-    if (0 != memcmp (data, get_ac->put_data, size))
-    {
-      DEBUG ("Found a GET with incorrect data (this may happen, but very unlikely)\n");
-      return;
-    }
-  }
+  GNUNET_assert (0 == memcmp (key, &get_ac->hash, sizeof (struct GNUNET_HashCode)));
   /* we found the data we are looking for */
   DEBUG ("We found a GET request; %u remaining\n", n_gets - (n_gets_fail + n_gets_ok));
   n_gets_ok++;
@@ -331,7 +319,7 @@ get_iter (void *cls,
   ac->delay_task = GNUNET_SCHEDULER_NO_TASK;
 
   /* Summarize if profiling is complete */
-  if (n_gets == n_gets_fail + n_gets_ok)
+  if (n_active == n_gets_fail + n_gets_ok)
     summarize ();
 }
 
@@ -362,7 +350,7 @@ delayed_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   ac->get_ac = get_ac;
   ac->dht_get = GNUNET_DHT_get_start (ac->dht,
                                       GNUNET_BLOCK_TYPE_TEST,
-                                      &ac->hash,
+                                      &get_ac->hash,
                                       1, /* replication level */
                                       GNUNET_DHT_RO_NONE,
                                       NULL, 0, /* extended query and size */
