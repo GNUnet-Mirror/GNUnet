@@ -10,7 +10,6 @@ if HAVE_TESTING
  EXPERIMENTATION = experimentation
  SCALARPRODUCT = scalarproduct
  SENSOR = sensor
- PEERSTORE = peerstore
  SENSORDASHBOARD = sensordashboard
 endif
 
@@ -26,7 +25,6 @@ if HAVE_EXPERIMENTAL
   $(SECRETSHARING) \
   $(SCALARPRODUCT) \
   $(EXPERIMENTATION) \
-  $(PEERSTORE) \
   $(SENSOR) \
   $(SENSORDASHBOARD)
 endif
@@ -88,6 +86,7 @@ SUBDIRS = \
   vpn \
   gns \
   $(CONVERSATION_DIR) \
+  peerstore \
   fs \
   exit \
   pt \
