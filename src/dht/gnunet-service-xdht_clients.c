@@ -851,11 +851,21 @@ transmit_request (struct ClientQueryRecord *cqr)
        GNUNET_h2s (&cqr->key),
        cqr->replication,
        cqr->seen_replies_count);
- 
+  struct GNUNET_PeerIdentity best_known_dest;
+  struct GNUNET_HashCode intermediate_trail_id;
+  
+  memset (&best_known_dest, 0, sizeof (struct GNUNET_PeerIdentity));
+  memset (&intermediate_trail_id, 0, sizeof (struct GNUNET_HashCode));
+
+  GDS_NEIGHBOURS_send_get (&cqr->key, cqr->type, cqr->msg_options, 
+                           cqr->replication, best_known_dest, 
+                           intermediate_trail_id , NULL,
+                           0, 0, NULL);
+#if 0
   GDS_NEIGHBOURS_send_get (&cqr->key, cqr->type, cqr->msg_options, 
                            cqr->replication, NULL, NULL , NULL,
                            0, 0, NULL);
-  
+#endif
   /* exponential back-off for retries.
    * max GNUNET_TIME_STD_EXPONENTIAL_BACKOFF_THRESHOLD (15 min) */
   cqr->retry_frequency = GNUNET_TIME_STD_BACKOFF (cqr->retry_frequency);
@@ -951,6 +961,20 @@ handle_dht_local_put (void *cls, struct GNUNET_SERVER_Client *client,
                             &put_msg[1]);
  
   struct GNUNET_PeerIdentity my_identity =  GDS_NEIGHBOURS_get_my_id();
+  struct GNUNET_PeerIdentity best_known_destination;
+  struct GNUNET_HashCode intermediate_trail_id;
+  
+  memset(&best_known_destination, 0 , sizeof (struct GNUNET_PeerIdentity));
+  memset(&intermediate_trail_id, 0, sizeof (struct GNUNET_HashCode));
+  GDS_NEIGHBOURS_send_put (&put_msg->key, 
+                           ntohl (put_msg->type), ntohl (put_msg->options),
+                           ntohl (put_msg->desired_replication_level), 
+                           best_known_destination,
+                           intermediate_trail_id, NULL, 0, 0, NULL,
+                           GNUNET_TIME_absolute_ntoh (put_msg->expiration),
+                           &put_msg[1],
+                           size - sizeof (struct GNUNET_DHT_ClientPutMessage));
+#if 0
   GDS_NEIGHBOURS_send_put (&put_msg->key, 
                            ntohl (put_msg->type), ntohl (put_msg->options),
                            ntohl (put_msg->desired_replication_level), NULL,
@@ -959,7 +983,7 @@ handle_dht_local_put (void *cls, struct GNUNET_SERVER_Client *client,
                            &put_msg[1],
                            size - sizeof (struct GNUNET_DHT_ClientPutMessage));
   
-
+#endif
   GDS_CLIENTS_process_put (ntohl (put_msg->options),
                            ntohl (put_msg->type),
                            0,
