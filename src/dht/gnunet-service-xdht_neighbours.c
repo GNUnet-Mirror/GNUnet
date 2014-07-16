@@ -4395,7 +4395,7 @@ handle_dht_p2p_verify_successor(void *cls,
   struct GNUNET_PeerIdentity *trail_to_predecessor; //used unintialized somewhere.
   struct FingerInfo *current_predecessor;
   struct FriendInfo *target_friend;
-  unsigned int trail_to_predecessor_length;
+  unsigned int trail_to_predecessor_length = 0;
   size_t msize;
   unsigned int trail_length;
   
@@ -4468,12 +4468,13 @@ handle_dht_p2p_verify_successor(void *cls,
     {
       trail_to_predecessor = 
               trail_me_to_my_predecessor (trail, 
-                                              trail_length, 
-                                              &trail_to_predecessor_length);
+                                          trail_length, 
+                                          &trail_to_predecessor_length);
     }
   }
   else
   {
+    trail_to_predecessor = GNUNET_new(struct GNUNET_PeerIdentity);
      trail_to_predecessor = NULL;
      trail_to_predecessor_length = 0;
   }
@@ -4511,9 +4512,9 @@ get_trail_to_new_successor (struct FingerInfo *current_successor,
                             unsigned int *trail_to_new_successor_length)
 {
   struct GNUNET_PeerIdentity *trail_to_new_successor;
-  unsigned int shortest_trail_length;
+  unsigned int shortest_trail_length = 0;
   unsigned int flag = 0;
-  unsigned int shortest_trail_index;
+  unsigned int shortest_trail_index = 0;
   struct Trail *trail;
   struct Trail_Element *trail_element;
   int i;
