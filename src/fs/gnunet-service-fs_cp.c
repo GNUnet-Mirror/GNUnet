@@ -313,6 +313,11 @@ struct GSF_ConnectedPeer
    */
   void *creation_cb_cls;
 
+  /**
+   * Handle to the PEERSTORE iterate request for peer respect value
+   */
+  struct GNUNET_PEERSTORE_IterateContext *respect_iterate_req;
+
 };
 
 
@@ -572,17 +577,9 @@ peer_respect_cb (void *cls, struct GNUNET_PEERSTORE_Record *record, char *emsg)
 {
   struct GSF_ConnectedPeer *cp = cls;
 
+  cp->respect_iterate_req = NULL;
   if ((NULL != record) && (sizeof (cp->disk_respect) == record->value_size))
     cp->disk_respect = cp->ppd.respect = *((uint32_t *)record->value);
-  cp->request_map = GNUNET_CONTAINER_multihashmap_create (128, GNUNET_NO);
-  GNUNET_break (GNUNET_OK ==
-                GNUNET_CONTAINER_multipeermap_put (cp_map,
-               GSF_connected_peer_get_identity2_ (cp),
-                                                   cp,
-                                                   GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
-  GNUNET_STATISTICS_set (GSF_stats, gettext_noop ("# peers connected"),
-                         GNUNET_CONTAINER_multipeermap_size (cp_map),
-                         GNUNET_NO);
   GSF_push_start_ (cp);
   if (NULL != cp->creation_cb)
     cp->creation_cb (cp->creation_cb_cls, cp);
@@ -612,10 +609,21 @@ GSF_peer_connect_handler_ (const struct GNUNET_PeerIdentity *peer,
   cp->rc =
       GNUNET_ATS_reserve_bandwidth (GSF_ats, peer, DBLOCK_SIZE,
                                     &ats_reserve_callback, cp);
+  cp->request_map = GNUNET_CONTAINER_multihashmap_create (128, GNUNET_NO);
+  GNUNET_break (GNUNET_OK ==
+                GNUNET_CONTAINER_multipeermap_put (cp_map,
+               GSF_connected_peer_get_identity2_ (cp),
+                                                   cp,
+                                                   GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
+  GNUNET_STATISTICS_set (GSF_stats, gettext_noop ("# peers connected"),
+                         GNUNET_CONTAINER_multipeermap_size (cp_map),
+                         GNUNET_NO);
   cp->creation_cb = creation_cb;
   cp->creation_cb_cls = creation_cb_cls;
-  GNUNET_PEERSTORE_iterate (peerstore, "fs", peer, "respect",
-                            GNUNET_TIME_UNIT_FOREVER_REL, &peer_respect_cb, cp);
+  cp->respect_iterate_req =
+      GNUNET_PEERSTORE_iterate (peerstore, "fs", peer, "respect",
+                                GNUNET_TIME_UNIT_FOREVER_REL, &peer_respect_cb,
+                                cp);
 }
 
 
@@ -1509,6 +1517,11 @@ GSF_peer_disconnect_handler_ (void *cls, const struct GNUNET_PeerIdentity *peer)
   GNUNET_STATISTICS_set (GSF_stats, gettext_noop ("# peers connected"),
                          GNUNET_CONTAINER_multipeermap_size (cp_map),
                          GNUNET_NO);
+  if (NULL != cp->respect_iterate_req)
+  {
+    GNUNET_PEERSTORE_iterate_cancel (cp->respect_iterate_req);
+    cp->respect_iterate_req = NULL;
+  }
   if (NULL != cp->migration_pth)
   {
     GSF_peer_transmit_cancel_ (cp->migration_pth);
