@@ -933,9 +933,6 @@ GNUNET_RESOLVER_hostname_get (const struct sockaddr *sa,
     rh->task = GNUNET_SCHEDULER_add_now (&numeric_reverse, rh);
     return rh;
   }
-  rh->task = GNUNET_SCHEDULER_add_delayed (timeout,
-                                           &numeric_reverse,
-                                           rh);
   GNUNET_CONTAINER_DLL_insert_tail (req_head,
                                     req_tail,
                                     rh);
