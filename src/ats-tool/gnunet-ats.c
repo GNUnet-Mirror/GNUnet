@@ -242,10 +242,9 @@ free_addr_it (void *cls,
 {
   struct ATSAddress *a = value;
 
-  GNUNET_break (GNUNET_OK ==
-                GNUNET_CONTAINER_multipeermap_remove (addresses,
-                                                      key,
-                                                      a));
+  fprintf (stderr, "FREEING %s %p\n", GNUNET_i2s(key), value);
+
+  GNUNET_assert (GNUNET_OK == GNUNET_CONTAINER_multipeermap_remove (addresses, key, value));
   GNUNET_HELLO_address_free (a->address);
   GNUNET_free (a);
   return GNUNET_OK;
@@ -535,19 +534,15 @@ ats_perf_mon_cb (void *cls,
 
     actx.src = address;
     actx.res = NULL;
-    GNUNET_CONTAINER_multipeermap_get_multiple (addresses,
-                                                &address->peer,
-                                                &find_address_it,
-                                                &actx);
+    GNUNET_CONTAINER_multipeermap_get_multiple (addresses, &address->peer,
+        &find_address_it, &actx);
     if (NULL == actx.res)
     {
       GNUNET_break (0);
       return;
     }
-    GNUNET_break (GNUNET_OK ==
-                  GNUNET_CONTAINER_multipeermap_remove (addresses,
-                                                        &address->peer,
-                                                        actx.res));
+    GNUNET_break(
+        GNUNET_OK == GNUNET_CONTAINER_multipeermap_remove (addresses, &address->peer, actx.res));
     FPRINTF (stderr,
              _("Removed address of peer `%s' with plugin `%s'\n"),
              GNUNET_i2s (&address->peer),
@@ -564,10 +559,8 @@ ats_perf_mon_cb (void *cls,
 
     actx.src = address;
     actx.res = NULL;
-    GNUNET_CONTAINER_multipeermap_get_multiple (addresses,
-                                                &address->peer,
-                                                &find_address_it,
-                                                &actx);
+    GNUNET_CONTAINER_multipeermap_get_multiple (addresses, &address->peer,
+        &find_address_it, &actx);
     if ((NULL != actx.res))
     {
       if ((bandwidth_in.value__ == actx.res->bandwidth_in.value__) &&
@@ -590,10 +583,8 @@ ats_perf_mon_cb (void *cls,
       a->bandwidth_in = bandwidth_in;
       a->bandwidth_out = bandwidth_out;
       a->active = active;
-      GNUNET_CONTAINER_multipeermap_put (addresses,
-                                         &address->peer,
-                                         a,
-                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+      GNUNET_CONTAINER_multipeermap_put (addresses, &address->peer, a,
+          GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
     }
   }
 
@@ -783,7 +774,7 @@ testservice_ats (void *cls,
   unsigned int c;
   unsigned int type;
 
-  addresses = GNUNET_CONTAINER_multipeermap_create (10, GNUNET_YES);
+  addresses = GNUNET_CONTAINER_multipeermap_create (10, GNUNET_NO);
 
   if (GNUNET_YES != result)
   {
