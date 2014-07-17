@@ -127,6 +127,11 @@ struct Peer
   struct GNUNET_TIME_Absolute filter_expiration;
 
   /**
+   * When should try next connection attempt?
+   */
+  struct GNUNET_TIME_Absolute  next_connect_attempt;
+
+  /**
    * ID of task we use to wait for the time to send the next HELLO
    * to this peer.
    */
@@ -246,7 +251,7 @@ static unsigned int friend_count;
  * is rather simple.
  *
  * @param cls closure
- * @param pid peer to approve or disapproave
+ * @param pid peer to approve or disapprove
  * @return GNUNET_OK if the connection is allowed
  */
 static int
@@ -384,6 +389,12 @@ attempt_connect (struct Peer *pos)
   rem = GNUNET_TIME_relative_max (rem, GREYLIST_AFTER_ATTEMPT_MIN);
   rem = GNUNET_TIME_relative_min (rem, GREYLIST_AFTER_ATTEMPT_MAX);
   pos->greylisted_until = GNUNET_TIME_relative_to_absolute (rem);
+
+  pos->next_connect_attempt = GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get(),
+      GNUNET_TIME_relative_multiply (MAX_CONNECT_FREQUENCY_DELAY, pos->connect_attempts));
+  pos->next_connect_attempt = GNUNET_TIME_absolute_min (pos->next_connect_attempt,
+      GNUNET_TIME_absolute_add (GNUNET_TIME_absolute_get(), MIN_CONNECT_FREQUENCY_DELAY));
+
   if (pos->greylist_clean_task != GNUNET_SCHEDULER_NO_TASK)
     GNUNET_SCHEDULER_cancel (pos->greylist_clean_task);
   pos->greylist_clean_task =
@@ -415,7 +426,14 @@ do_attempt_connect (void *cls,
   if (GNUNET_YES == pos->is_connected)
     return;
 
-  delay = GNUNET_TIME_absolute_get_remaining (next_connect_attempt);
+  /* Try next connection attempt, when:
+   * - topology allows the next transport connection attempt
+   * and
+   * - the next connection event for this peer is allowed
+   */
+  delay = GNUNET_TIME_relative_max (GNUNET_TIME_absolute_get_remaining (next_connect_attempt),
+      GNUNET_TIME_absolute_get_remaining (pos->next_connect_attempt));
+
   if (delay.rel_value_us > 0)
   {
     pos->attempt_connect_task = GNUNET_SCHEDULER_add_delayed (delay,
@@ -494,6 +512,7 @@ make_peer (const struct GNUNET_PeerIdentity *peer,
   ret = GNUNET_new (struct Peer);
   ret->pid = *peer;
   ret->is_friend = is_friend;
+  ret->next_connect_attempt = GNUNET_TIME_absolute_get();
   if (hello != NULL)
   {
     ret->hello = GNUNET_malloc (GNUNET_HELLO_size (hello));
@@ -727,6 +746,7 @@ connect_notify (void *cls, const struct GNUNET_PeerIdentity *peer)
   }
   pos->is_connected = GNUNET_YES;
   pos->connect_attempts = 0;    /* re-set back-off factor */
+  pos->next_connect_attempt = GNUNET_TIME_absolute_get(); /* re-set back-off factor */
   if (pos->is_friend)
   {
     if ((friend_count == minimum_friend_count - 1) &&
