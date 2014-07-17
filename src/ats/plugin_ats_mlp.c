@@ -394,9 +394,11 @@ struct GAS_MLP_Handle
 struct MLP_information
 {
 
-  /* Bandwidth assigned */
-  struct GNUNET_BANDWIDTH_Value32NBO b_out;
-  struct GNUNET_BANDWIDTH_Value32NBO b_in;
+  /* Bandwidth assigned outbound */
+  uint32_t b_out;
+
+  /* Bandwidth assigned inbound */
+  uint32_t b_in;
 
   /* Address selected */
   int n;
@@ -1465,10 +1467,10 @@ mlp_propagate_results (void *cls,
       LOG (GNUNET_ERROR_TYPE_DEBUG, "%s %.2f : enabling address\n",
           (1 == mlp_use) ? "[x]": "[ ]", mlp_bw_out);
       address->active = GNUNET_YES;
-      address->assigned_bw_in.value__ = htonl (mlp_bw_in);
-      mlpi->b_in.value__ = htonl(mlp_bw_in);
-      address->assigned_bw_out.value__ = htonl (mlp_bw_out);
-      mlpi->b_out.value__ = htonl(mlp_bw_out);
+      address->assigned_bw_in = mlp_bw_in;
+      mlpi->b_in = mlp_bw_in;
+      address->assigned_bw_out = mlp_bw_out;
+      mlpi->b_out = mlp_bw_out;
       if ((NULL == mlp->exclude_peer) || (0 != memcmp (&address->peer, mlp->exclude_peer, sizeof (address->peer))))
         mlp->bw_changed_cb (mlp->bw_changed_cb_cls, address);
       return GNUNET_OK;
@@ -1476,15 +1478,15 @@ mlp_propagate_results (void *cls,
     else if (GNUNET_YES == address->active)
     {
       /* Address was used before, check for bandwidth change */
-      if ((mlp_bw_out != ntohl(address->assigned_bw_out.value__)) ||
-              (mlp_bw_in != ntohl(address->assigned_bw_in.value__)))
+      if ((mlp_bw_out != address->assigned_bw_out) ||
+              (mlp_bw_in != address->assigned_bw_in))
       {
           LOG (GNUNET_ERROR_TYPE_DEBUG, "%s %.2f : bandwidth changed\n",
               (1 == mlp_use) ? "[x]": "[ ]", mlp_bw_out);
-          address->assigned_bw_in.value__ = htonl (mlp_bw_in);
-          mlpi->b_in.value__ = htonl(mlp_bw_in);
-          address->assigned_bw_out.value__ = htonl (mlp_bw_out);
-          mlpi->b_out.value__ = htonl(mlp_bw_out);
+          address->assigned_bw_in = mlp_bw_in;
+          mlpi->b_in = mlp_bw_in;
+          address->assigned_bw_out = mlp_bw_out;
+          mlpi->b_out = mlp_bw_out;
           if ((NULL == mlp->exclude_peer) || (0 != memcmp (&address->peer, mlp->exclude_peer, sizeof (address->peer))))
             mlp->bw_changed_cb (mlp->bw_changed_cb_cls, address);
           return GNUNET_OK;
@@ -1511,11 +1513,10 @@ mlp_propagate_results (void *cls,
         (1 == mlp_use) ? "[x]": "[ ]", mlp_bw_out);
       address->active = GNUNET_NO;
       /* Set bandwidth to 0 */
-      address->assigned_bw_in = BANDWIDTH_ZERO;
-      mlpi->b_in.value__ = htonl(mlp_bw_in);
-      address->assigned_bw_out = BANDWIDTH_ZERO;
-      mlpi->b_out.value__ = htonl(mlp_bw_out);
-      //mlp->bw_changed_cb (mlp->bw_changed_cb_cls, address);
+      address->assigned_bw_in = 0;
+      mlpi->b_in = 0;
+      address->assigned_bw_out = 0;
+      mlpi->b_out = 0;
       return GNUNET_OK;
     }
     else
@@ -2338,8 +2339,8 @@ GAS_mlp_address_delete (void *solver,
   }
   was_active = address->active;
   address->active = GNUNET_NO;
-  address->assigned_bw_in = BANDWIDTH_ZERO;
-  address->assigned_bw_out = BANDWIDTH_ZERO;
+  address->assigned_bw_in = 0;
+  address->assigned_bw_out = 0;
 
   /* Is this peer included in the problem? */
   if (NULL == (p = GNUNET_CONTAINER_multipeermap_get (mlp->requested_peers,
@@ -2950,8 +2951,8 @@ libgnunet_plugin_ats_mlp_init (void *cls)
 
       if (GNUNET_NO == found)
       {
-        mlp->pv.quota_in[c] = ntohl(GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT.value__);
-        mlp->pv.quota_out[c] = ntohl(GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT.value__);
+        mlp->pv.quota_in[c] = ntohl (GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT.value__);
+        mlp->pv.quota_out[c] = ntohl (GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT.value__);
         LOG (GNUNET_ERROR_TYPE_INFO, _("Using default quota configuration for network `%s' (in/out) %llu/%llu\n"),
             GNUNET_ATS_print_network_type(mlp->pv.quota_index[c]),
             mlp->pv.quota_in[c],

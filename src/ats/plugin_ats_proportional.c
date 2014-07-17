@@ -367,19 +367,22 @@ struct Network
  */
 struct AddressSolverInformation
 {
+  /**
+   * Network scope this address is in
+   */
   struct Network *network;
 
   /**
    * Inbound quota
    *
    */
-  unsigned long long calculated_quota_in_NBO;
+  uint32_t calculated_quota_in;
 
   /**
    * Outbound quota
    *
    */
-  unsigned long long calculated_quota_out_NBO;
+  uint32_t calculated_quota_out;
 
   /**
    * When was this address activated
@@ -529,8 +532,8 @@ distribute_bandwidth (struct GAS_PROPORTIONAL_Handle *s,
   double total_weight;
   const double *peer_relative_prefs = NULL; /* Important: has to be double not float due to precision */
 
-  unsigned long long assigned_quota_in = 0;
-  unsigned long long assigned_quota_out = 0;
+  uint32_t assigned_quota_in = 0;
+  uint32_t assigned_quota_out = 0;
 
 
   LOG(GNUNET_ERROR_TYPE_INFO,
@@ -639,8 +642,8 @@ distribute_bandwidth (struct GAS_PROPORTIONAL_Handle *s,
 
     /* Compare to current bandwidth assigned */
     asi = cur_address->addr->solver_information;
-    asi->calculated_quota_in_NBO = htonl (assigned_quota_in);
-    asi->calculated_quota_out_NBO = htonl (assigned_quota_out);
+    asi->calculated_quota_in = assigned_quota_in;
+    asi->calculated_quota_out = assigned_quota_out;
   }
   LOG(GNUNET_ERROR_TYPE_DEBUG,
       "Total bandwidth assigned is (in/out): %llu /%llu\n", quota_in_used,
@@ -1087,23 +1090,22 @@ propagate_bandwidth (struct GAS_PROPORTIONAL_Handle *s,
   for (cur = net->head; NULL != cur; cur = cur->next)
   {
       asi = cur->addr->solver_information;
-      if ( (cur->addr->assigned_bw_in.value__ != asi->calculated_quota_in_NBO) ||
-           (cur->addr->assigned_bw_out.value__ != asi->calculated_quota_out_NBO) )
+      if ( (cur->addr->assigned_bw_in != asi->calculated_quota_in) ||
+           (cur->addr->assigned_bw_out != asi->calculated_quota_out) )
       {
-        cur->addr->assigned_bw_in.value__ = asi->calculated_quota_in_NBO;
-        cur->addr->assigned_bw_out.value__ = asi->calculated_quota_out_NBO;
+        cur->addr->assigned_bw_in = asi->calculated_quota_in;
+        cur->addr->assigned_bw_out = asi->calculated_quota_out;
 
         /* Reset for next iteration */
-        asi->calculated_quota_in_NBO = htonl (0);
-        asi->calculated_quota_out_NBO = htonl (0);
-
+        asi->calculated_quota_in = 0;
+        asi->calculated_quota_out = 0;
         LOG (GNUNET_ERROR_TYPE_DEBUG,
             "Bandwidth for %s address %p for peer `%s' changed to %u/%u\n",
             (GNUNET_NO == cur->addr->active) ? "inactive" : "active",
             cur->addr,
             GNUNET_i2s (&cur->addr->peer),
-            ntohl (cur->addr->assigned_bw_in.value__),
-            ntohl (cur->addr->assigned_bw_out.value__ ));
+            cur->addr->assigned_bw_in,
+            cur->addr->assigned_bw_out);
 
         /* Notify on change */
         if ((GNUNET_YES == cur->addr->active))
@@ -1215,17 +1217,12 @@ update_active_address (struct GAS_PROPORTIONAL_Handle *s,
   /* Find active address */
   current_address = get_active_address (s, s->addresses, peer);
 
-  LOG (GNUNET_ERROR_TYPE_INFO,
-       "Peer `%s' has active address %p\n",
-       GNUNET_i2s (peer),
-       current_address);
-
+  LOG (GNUNET_ERROR_TYPE_INFO, "Peer `%s' has active address %p\n",
+       GNUNET_i2s (peer), current_address);
 
   /* Find best address */
   best_address = get_best_address (s,s->addresses, peer);
-
-  LOG (GNUNET_ERROR_TYPE_INFO,
-       "Peer `%s' has best address %p\n",
+  LOG (GNUNET_ERROR_TYPE_INFO, "Peer `%s' has best address %p\n",
        GNUNET_i2s (peer), best_address);
 
   if (NULL != current_address)
@@ -1246,8 +1243,8 @@ update_active_address (struct GAS_PROPORTIONAL_Handle *s,
       net = asi->network;
       asi->activated = GNUNET_TIME_UNIT_ZERO_ABS;
       current_address->active = GNUNET_NO; /* No active any longer */
-      current_address->assigned_bw_in = BANDWIDTH_ZERO; /* no bandwidth assigned */
-      current_address->assigned_bw_out = BANDWIDTH_ZERO; /* no bandwidth assigned */
+      current_address->assigned_bw_in = 0; /* no bandwidth assigned */
+      current_address->assigned_bw_out = 0; /* no bandwidth assigned */
 
       if (GNUNET_SYSERR == addresse_decrement (s, net, GNUNET_NO, GNUNET_YES))
         GNUNET_break(0);
@@ -1442,8 +1439,8 @@ GAS_proportional_stop_get_preferred_address (void *solver,
     cur_net = asi->network ;
     asi->activated = GNUNET_TIME_UNIT_ZERO_ABS;
     cur->active = GNUNET_NO; /* No active any longer */
-    cur->assigned_bw_in = BANDWIDTH_ZERO; /* no bandwidth assigned */
-    cur->assigned_bw_out = BANDWIDTH_ZERO; /* no bandwidth assigned */
+    cur->assigned_bw_in = 0; /* no bandwidth assigned */
+    cur->assigned_bw_out = 0; /* no bandwidth assigned */
 
     if (GNUNET_SYSERR == addresse_decrement (s, cur_net, GNUNET_NO, GNUNET_YES))
       GNUNET_break(0);
@@ -1525,10 +1522,10 @@ GAS_proportional_address_delete (void *solver,
     /* Address was active, remove from network and update quotas*/
     address->active = GNUNET_NO;
 
-    address->assigned_bw_in = BANDWIDTH_ZERO;
-    address->assigned_bw_out = BANDWIDTH_ZERO;
-    asi->calculated_quota_in_NBO = htonl (0);
-    asi->calculated_quota_out_NBO = htonl (0);
+    address->assigned_bw_in = 0;
+    address->assigned_bw_out = 0;
+    asi->calculated_quota_in = 0;
+    asi->calculated_quota_out = 0;
 
     if (GNUNET_SYSERR == addresse_decrement (s, net, GNUNET_NO, GNUNET_YES))
       GNUNET_break(0);
@@ -1837,8 +1834,8 @@ GAS_proportional_address_change_network (void *solver,
 
   /* Disable and assign no bandwidth */
   address->active = GNUNET_NO;
-  address->assigned_bw_in = BANDWIDTH_ZERO; /* no bandwidth assigned */
-  address->assigned_bw_out = BANDWIDTH_ZERO; /* no bandwidth assigned */
+  address->assigned_bw_in = 0; /* no bandwidth assigned */
+  address->assigned_bw_out = 0; /* no bandwidth assigned */
 
   /* Remove from old network */
   GAS_proportional_address_delete (solver, address, GNUNET_NO);
@@ -1910,8 +1907,8 @@ GAS_proportional_address_add (void *solver,
 
   asi = GNUNET_new (struct AddressSolverInformation);
   asi->network = net;
-  asi->calculated_quota_in_NBO = htonl (0);
-  asi->calculated_quota_out_NBO = htonl (0);
+  asi->calculated_quota_in = 0;
+  asi->calculated_quota_out = 0;
   aw->addr->solver_information = asi;
 
   LOG(GNUNET_ERROR_TYPE_INFO,

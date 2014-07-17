@@ -393,16 +393,15 @@ static void
 bandwidth_changed_cb (void *cls,
                       struct ATS_Address *address)
 {
-  if ( (0 == ntohl (address->assigned_bw_out.value__)) &&
-       (0 == ntohl (address->assigned_bw_in.value__)) )
+  if ( (0 == address->assigned_bw_out) && (0 == address->assigned_bw_in) )
     return;
 
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Bandwidth changed addresses %s %p to %u Bps out / %u Bps in\n",
               GNUNET_i2s (&address->peer),
               address,
-              (unsigned int) ntohl (address->assigned_bw_out.value__),
-              (unsigned int) ntohl (address->assigned_bw_in.value__));
+              address->assigned_bw_out,
+              address->assigned_bw_in);
   if (GNUNET_YES == ph.bulk_running)
     GNUNET_break (0);
   return;

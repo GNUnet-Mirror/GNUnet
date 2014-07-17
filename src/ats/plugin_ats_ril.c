@@ -308,12 +308,12 @@ struct RIL_Peer_Agent
   /**
    * Inbound bandwidth assigned by the agent
    */
-  unsigned long long bw_in;
+  uint32_t bw_in;
 
   /**
    * Outbound bandwidth assigned by the agent
    */
-  unsigned long long bw_out;
+  uint32_t bw_out;
 
   /**
    * Flag whether a suggestion has to be issued
@@ -346,22 +346,22 @@ struct RIL_Scope
   /**
    * Total available inbound bandwidth
    */
-  unsigned long long bw_in_available;
+  uint32_t bw_in_available;
 
   /**
    * Bandwidth inbound assigned in network after last step
    */
-  unsigned long long bw_in_assigned;
+  uint32_t bw_in_assigned;
 
   /**
    * Bandwidth inbound actually utilized in the network
    */
-  unsigned long long bw_in_utilized;
+  uint32_t bw_in_utilized;
 
   /**
    * Total available outbound bandwidth
    */
-  unsigned long long bw_out_available;
+  uint32_t bw_out_available;
 
   /**
    * Bandwidth outbound assigned in network after last step
@@ -830,15 +830,15 @@ envi_set_active_suggestion (struct GAS_RIL_Handle *solver,
     if (NULL != agent->address_inuse)
     {
       agent->address_inuse->active = GNUNET_NO;
-      agent->address_inuse->assigned_bw_in.value__ = htonl (0);
-      agent->address_inuse->assigned_bw_out.value__ = htonl (0);
+      agent->address_inuse->assigned_bw_in = 0;
+      agent->address_inuse->assigned_bw_out = 0;
     }
     if (NULL != new_address)
     {
       LOG(GNUNET_ERROR_TYPE_DEBUG, "    set address active: %s\n", agent->is_active ? "yes" : "no");
       new_address->active = agent->is_active;
-      new_address->assigned_bw_in.value__ = htonl (agent->bw_in);
-      new_address->assigned_bw_out.value__ = htonl (agent->bw_out);
+      new_address->assigned_bw_in = agent->bw_in;
+      new_address->assigned_bw_out = agent->bw_out;
     }
     notify |= GNUNET_YES;
   }
@@ -856,13 +856,13 @@ envi_set_active_suggestion (struct GAS_RIL_Handle *solver,
     if (agent->bw_in != new_bw_in)
     {
       agent->bw_in = new_bw_in;
-      new_address->assigned_bw_in.value__ = htonl (new_bw_in);
+      new_address->assigned_bw_in = new_bw_in;
       notify |= GNUNET_YES;
     }
     if (agent->bw_out != new_bw_out)
     {
       agent->bw_out = new_bw_out;
-      new_address->assigned_bw_out.value__ = htonl (new_bw_out);
+      new_address->assigned_bw_out = new_bw_out;
       notify |= GNUNET_YES;
     }
   }
@@ -877,9 +877,9 @@ envi_set_active_suggestion (struct GAS_RIL_Handle *solver,
     }
     else if (agent->address_inuse)
     {
-      //disconnect case, no new address
-      GNUNET_assert(0 == ntohl (agent->address_inuse->assigned_bw_in.value__));
-      GNUNET_assert(0 == ntohl (agent->address_inuse->assigned_bw_out.value__));
+      /* disconnect case, no new address */
+      GNUNET_assert(0 ==  agent->address_inuse->assigned_bw_in);
+      GNUNET_assert(0 == agent->address_inuse->assigned_bw_out);
       agent->bw_in = 0;
       agent->bw_out = 0;
 

@@ -309,16 +309,6 @@ struct ATS_Address
   struct GNUNET_PeerIdentity peer;
 
   /**
-   * Session ID, can be 0
-   */
-  uint32_t session_id;
-
-  /**
-   * FIXME
-   */
-  uint32_t local_address_info;
-
-  /**
    * Address
    */
   const void *addr;
@@ -327,6 +317,16 @@ struct ATS_Address
    * Address length
    */
   size_t addr_len;
+
+  /**
+   * Session ID, can be 0
+   */
+  uint32_t session_id;
+
+  /**
+   * Field to store local flags
+   */
+  uint32_t local_address_info;
 
   /**
    * Plugin name
@@ -349,14 +349,25 @@ struct ATS_Address
   uint32_t atsi_count;
 
   /**
+   * Inbound bandwidth assigned by solver
+   */
+  uint32_t assigned_bw_in;
+
+  /**
+   * Outbound bandwidth assigned by solver
+   */
+  uint32_t assigned_bw_out;
+
+  /**
    * Inbound bandwidth assigned by solver in NBO
    */
-  struct GNUNET_BANDWIDTH_Value32NBO assigned_bw_in;
+  uint32_t last_notified_bw_in;
 
   /**
    * Outbound bandwidth assigned by solver in NBO
    */
-  struct GNUNET_BANDWIDTH_Value32NBO assigned_bw_out;
+  uint32_t last_notified_bw_out;
+
 
   /**
    * Blocking interval

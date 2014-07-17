@@ -232,8 +232,8 @@ GNUNET_ATS_solver_logging_now (struct LoggingHandle *l)
             log_a->prop_abs[c], log_a->prop_norm[c]);
       }
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "\t Active = %i\n", log_a->active);
-      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "\t BW in = %llu\n", ntohl(log_a->assigned_bw_in.value__));
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "\t BW out = %llu\n", ntohl(log_a->assigned_bw_out.value__));
+      GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "\t BW in = %llu\n", log_a->assigned_bw_in);
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, "\t BW out = %llu\n", log_a->assigned_bw_out);
 
       GNUNET_CONTAINER_DLL_insert_tail (log_p->addr_head, log_p->addr_tail, log_a);
     }
@@ -430,15 +430,12 @@ GNUNET_ATS_solver_logging_write_to_disk (struct LoggingHandle *l, int add_time_s
           propstring = GNUNET_strdup(propstring_tmp);
           GNUNET_free (propstring_tmp);
         }
-        GNUNET_asprintf(&datastring,"%llu;%llu;%u;%u;%i;%u;%u;%s;%s\n",
-            GNUNET_TIME_absolute_get_difference(l->head->timestamp, lts->timestamp).rel_value_us / 1000,
-            lts->delta,
-            log_p->is_requested,
-            log_a->network,
-            log_a->active,
-            ntohl (log_a->assigned_bw_in.value__),
-            ntohl (log_a->assigned_bw_out.value__),
-            propstring, prefstring);
+        GNUNET_asprintf (&datastring, "%llu;%llu;%u;%u;%i;%u;%u;%s;%s\n",
+            GNUNET_TIME_absolute_get_difference (l->head->timestamp,
+                lts->timestamp).rel_value_us / 1000, lts->delta,
+            log_p->is_requested, log_a->network, log_a->active,
+            log_a->assigned_bw_in, log_a->assigned_bw_out, propstring,
+            prefstring);
 
         GNUNET_DISK_file_write (cur->f_hd, datastring, strlen(datastring));
         GNUNET_free (datastring);
@@ -489,8 +486,8 @@ GNUNET_ATS_solver_logging_eval (struct LoggingHandle *l)
       {
         fprintf (stderr, "\tPeer pid %llu address %llu: %u %u %u\n",
             log_p->id, log_a->aid, log_a->active,
-            ntohl(log_a->assigned_bw_in.value__),
-            ntohl(log_a->assigned_bw_out.value__));
+            log_a->assigned_bw_in,
+            log_a->assigned_bw_out);
 
         for (c = 1; c < GNUNET_ATS_PropertyCount; c++)
         {
@@ -1139,8 +1136,8 @@ GNUNET_ATS_solver_generate_preferences_start (unsigned int peer,
     struct TestAddress * addr = find_active_address(p);
     const double *properties = get_property_cb (NULL, addr->ats_addr);
 
-    pg->last_assigned_bw_in = ntohl(p->assigned_bw_in.value__);
-    pg->last_assigned_bw_out = ntohl(p->assigned_bw_out.value__);
+    pg->last_assigned_bw_in = p->assigned_bw_in;
+    pg->last_assigned_bw_out = p->assigned_bw_out;
     pg->feedback_bw_in_acc = 0;
     pg->feedback_bw_out_acc = 0;
 
@@ -2178,8 +2175,8 @@ create_ats_address (const struct GNUNET_PeerIdentity *peer,
   aa->active = GNUNET_NO;
   aa->used = GNUNET_NO;
   aa->solver_information = NULL;
-  aa->assigned_bw_in = GNUNET_BANDWIDTH_value_init(0);
-  aa->assigned_bw_out = GNUNET_BANDWIDTH_value_init(0);
+  aa->assigned_bw_in = 0;
+  aa->assigned_bw_out = 0;
 
   return aa;
 }
@@ -2197,8 +2194,8 @@ enforce_add_address (struct GNUNET_ATS_TEST_Operation *op)
   {
     p = GNUNET_new (struct TestPeer);
     p->id = op->peer_id;
-    p->assigned_bw_in = GNUNET_BANDWIDTH_value_init(0);
-    p->assigned_bw_out = GNUNET_BANDWIDTH_value_init(0);
+    p->assigned_bw_in = 0;
+    p->assigned_bw_out = 0;
     memset (&p->peer_id, op->peer_id, sizeof (p->peer_id));
     for (c = 0; c < GNUNET_ATS_PreferenceCount; c++)
     {
@@ -2421,8 +2418,8 @@ enforce_start_request (struct GNUNET_ATS_TEST_Operation *op)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Suggested address for peer %u: %llu %llu\n",
         op->peer_id,
-        ntohl(res->assigned_bw_in.value__),
-        ntohl(res->assigned_bw_out.value__));
+        res->assigned_bw_in,
+        res->assigned_bw_out);
     if (NULL != l)
       GNUNET_ATS_solver_logging_now (l);
   }
@@ -2446,8 +2443,8 @@ enforce_stop_request (struct GNUNET_ATS_TEST_Operation *op)
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Stop requesting address for peer %u\n",
       op->peer_id);
   p->is_requested = GNUNET_NO;
-  p->assigned_bw_in.value__ = htonl(0);
-  p->assigned_bw_out.value__ = htonl(0);
+  p->assigned_bw_in = 0;
+  p->assigned_bw_out = 0;
   sh->env.sf.s_get_stop (sh->solver, &p->peer_id);
 
   if (NULL != l)
@@ -2952,8 +2949,7 @@ solver_bandwidth_changed_cb (void *cls, struct ATS_Address *address)
   struct TestPeer *p;
   static struct PreferenceGenerator *pg;
   uint32_t delta;
-  if ( (0 == ntohl (address->assigned_bw_out.value__)) &&
-       (0 == ntohl (address->assigned_bw_in.value__)) )
+  if ( (0 == address->assigned_bw_out) && (0 == address->assigned_bw_in) )
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                 "Solver notified to disconnect peer `%s'\n",
@@ -2976,18 +2972,19 @@ solver_bandwidth_changed_cb (void *cls, struct ATS_Address *address)
       delta = duration.rel_value_us * pg->last_assigned_bw_in;
       pg->feedback_bw_in_acc += delta;
 
-      pg->last_assigned_bw_in = ntohl (address->assigned_bw_in.value__);
-      pg->last_assigned_bw_out = ntohl (address->assigned_bw_out.value__);
+      pg->last_assigned_bw_in = address->assigned_bw_in;
+      pg->last_assigned_bw_out = address->assigned_bw_out;
       pg->feedback_last_bw_update = GNUNET_TIME_absolute_get();
     }
   }
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
-              "Bandwidth changed addresses %s %p to %u Bps out / %u Bps in\n",
-              GNUNET_i2s (&address->peer),
-              address,
-              (unsigned int) ntohl  (address->assigned_bw_out.value__),
-              (unsigned int) ntohl (address->assigned_bw_in.value__));
+      "Bandwidth changed addresses %s %p to %u Bps out / %u Bps in\n",
+      GNUNET_i2s (&address->peer),
+      address,
+      address->assigned_bw_out,
+          address->assigned_bw_in);
+
   if (NULL != l)
     GNUNET_ATS_solver_logging_now (l);
 

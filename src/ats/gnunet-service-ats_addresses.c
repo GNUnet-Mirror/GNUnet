@@ -505,6 +505,10 @@ create_address (const struct GNUNET_PeerIdentity *peer,
   aa->plugin = GNUNET_strdup (plugin_name);
   aa->session_id = session_id;
   aa->local_address_info = local_address_info;
+  aa->assigned_bw_out = 0;
+  aa->assigned_bw_in = 0;
+  aa->last_notified_bw_out = 0;
+  aa->last_notified_bw_in = 0;
 
   for (c1 = 0; c1 < GNUNET_ATS_QualityPropertiesCount; c1++)
   {
@@ -830,15 +834,11 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
     handle->env.sf.s_bulk_stop (handle->solver);
 
     /* Notify performance clients about new address */
-    GAS_performance_notify_all_clients (&new_address->peer,
-                                        new_address->plugin,
-                                        new_address->addr,
-                                        new_address->addr_len,
-                                        new_address->active,
-                                        new_address->atsi,
-                                        new_address->atsi_count,
-                                        new_address->assigned_bw_out,
-                                        new_address->assigned_bw_in);
+    GAS_performance_notify_all_clients (&new_address->peer, new_address->plugin,
+        new_address->addr, new_address->addr_len, new_address->active,
+        new_address->atsi, new_address->atsi_count,
+        GNUNET_BANDWIDTH_value_init (new_address->assigned_bw_out),
+        GNUNET_BANDWIDTH_value_init (new_address->assigned_bw_in));
     return;
   }
 
@@ -874,14 +874,11 @@ GAS_addresses_add (struct GAS_Addresses_Handle *handle,
   {
     /* Notify performance clients about properties */
     GAS_performance_notify_all_clients (&existing_address->peer,
-                                        existing_address->plugin,
-                                        existing_address->addr,
-                                        existing_address->addr_len,
-                                        existing_address->active,
-                                        existing_address->atsi,
-                                        existing_address->atsi_count,
-                                        existing_address->assigned_bw_out,
-                                        existing_address->assigned_bw_in);
+        existing_address->plugin, existing_address->addr,
+        existing_address->addr_len, existing_address->active,
+        existing_address->atsi, existing_address->atsi_count,
+        GNUNET_BANDWIDTH_value_init (existing_address->assigned_bw_out),
+        GNUNET_BANDWIDTH_value_init (existing_address->assigned_bw_in));
 
     for (c1 = 0; c1 < atsi_delta_count; c1++)
     {
@@ -1010,15 +1007,11 @@ GAS_addresses_update (struct GAS_Addresses_Handle *handle,
     }
 
     /* Notify performance clients about updated address */
-    GAS_performance_notify_all_clients (&aa->peer,
-                                        aa->plugin,
-                                        aa->addr,
-                                        aa->addr_len,
-                                        aa->active,
-                                        aa->atsi,
-                                        aa->atsi_count,
-                                        aa->assigned_bw_out,
-                                        aa->assigned_bw_in);
+    GAS_performance_notify_all_clients (&aa->peer, aa->plugin, aa->addr,
+        aa->addr_len, aa->active, aa->atsi, aa->atsi_count,
+        GNUNET_BANDWIDTH_value_init (aa->assigned_bw_out),
+        GNUNET_BANDWIDTH_value_init (aa->assigned_bw_in));
+
     handle->env.sf.s_bulk_start (handle->solver);
     GAS_normalization_normalize_property (handle->addresses,
                                           aa,
@@ -1405,9 +1398,9 @@ GAS_addresses_request_address (struct GAS_Addresses_Handle *handle,
       aa, GNUNET_i2s (peer));
 
   GAS_scheduling_transmit_address_suggestion (peer, aa->plugin, aa->addr,
-      aa->addr_len, aa->local_address_info, aa->session_id,
-      aa->atsi, aa->atsi_count,
-      aa->assigned_bw_out, aa->assigned_bw_in);
+      aa->addr_len, aa->local_address_info, aa->session_id, aa->atsi,
+      aa->atsi_count, GNUNET_BANDWIDTH_value_init (aa->assigned_bw_out),
+      GNUNET_BANDWIDTH_value_init (aa->assigned_bw_in));
 
   aa->block_interval = GNUNET_TIME_relative_add (aa->block_interval,
       ATS_BLOCKING_DELTA);
@@ -1865,8 +1858,7 @@ load_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param address the address with changes
  */
 static void
-bandwidth_changed_cb (void *cls,
-                      struct ATS_Address *address)
+bandwidth_changed_cb (void *cls, struct ATS_Address *address)
 {
   struct GAS_Addresses_Handle *handle = cls;
   struct GAS_Addresses_Suggestion_Requests *cur;
@@ -1878,15 +1870,12 @@ bandwidth_changed_cb (void *cls,
               GNUNET_i2s (&address->peer));
 
   /* Notify performance clients about changes to address */
-  GAS_performance_notify_all_clients (&address->peer,
-                                      address->plugin,
-                                      address->addr,
-                                      address->addr_len,
-                                      address->active,
-                                      address->atsi,
-                                      address->atsi_count,
-                                      address->assigned_bw_out,
-                                      address->assigned_bw_in);
+  GAS_performance_notify_all_clients (&address->peer, address->plugin,
+      address->addr, address->addr_len, address->active, address->atsi,
+      address->atsi_count,
+      GNUNET_BANDWIDTH_value_init (address->assigned_bw_out),
+      GNUNET_BANDWIDTH_value_init (address->assigned_bw_in));
+
   cur = handle->pending_requests_head;
   while (NULL != cur)
   {
@@ -1902,27 +1891,42 @@ bandwidth_changed_cb (void *cls,
     return;
   }
 
-  if ((0 == ntohl (address->assigned_bw_in.value__))
-      && (0 == ntohl (address->assigned_bw_out.value__)))
+  if ((0 == address->assigned_bw_in) && (0 == address->assigned_bw_out))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_INFO,
                "Telling transport to disconnect peer `%s'\n",
                 GNUNET_i2s (&address->peer));
+
+    /* *Notify scheduling clients about suggestion */
+    GAS_scheduling_transmit_address_suggestion (&address->peer, address->plugin,
+        address->addr, address->addr_len, address->local_address_info,
+        address->session_id, address->atsi, address->atsi_count,
+        GNUNET_BANDWIDTH_value_init (0),
+        GNUNET_BANDWIDTH_value_init (0));
+
+    return;
+
   }
-  else
-  {
-    GNUNET_log(GNUNET_ERROR_TYPE_INFO,
-               "Sending bandwidth update for peer `%s': %u %u\n",
-               GNUNET_i2s (&address->peer),
-               (unsigned int) ntohl (address->assigned_bw_out.value__),
-               (unsigned int) ntohl (address->assigned_bw_out.value__));
-  }
+
+  /* Do bandwidth stability check */
+  int diff = abs (address->assigned_bw_out - address->last_notified_bw_out);
+
+
+
+  GNUNET_log(GNUNET_ERROR_TYPE_INFO,
+      "Sending bandwidth update for peer `%s': %u %u\n",
+      GNUNET_i2s (&address->peer), address->assigned_bw_out,
+      address->assigned_bw_out);
 
   /* *Notify scheduling clients about suggestion */
   GAS_scheduling_transmit_address_suggestion (&address->peer, address->plugin,
       address->addr, address->addr_len, address->local_address_info,
-      address->session_id, address->atsi,
-      address->atsi_count, address->assigned_bw_out, address->assigned_bw_in);
+      address->session_id, address->atsi, address->atsi_count,
+      GNUNET_BANDWIDTH_value_init (address->assigned_bw_out),
+      GNUNET_BANDWIDTH_value_init (address->assigned_bw_in));
+
+  address->last_notified_bw_out = address->assigned_bw_out;
+  address->last_notified_bw_in = address->assigned_bw_in;
 }
 
 
@@ -2260,7 +2264,8 @@ peerinfo_it (void *cls,
   {
     pi_ctx->it (pi_ctx->it_cls, &addr->peer, addr->plugin, addr->addr,
         addr->addr_len, addr->active, addr->atsi, addr->atsi_count,
-        addr->assigned_bw_out, addr->assigned_bw_in);
+        GNUNET_BANDWIDTH_value_init (addr->assigned_bw_out),
+        GNUNET_BANDWIDTH_value_init (addr->assigned_bw_in));
   }
   return GNUNET_YES;
 }

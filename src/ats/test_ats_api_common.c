@@ -266,8 +266,8 @@ create_address (const struct GNUNET_PeerIdentity *peer,
   aa->active = GNUNET_NO;
   aa->used = GNUNET_NO;
   aa->solver_information = NULL;
-  aa->assigned_bw_in = GNUNET_BANDWIDTH_value_init(0);
-  aa->assigned_bw_out = GNUNET_BANDWIDTH_value_init(0);
+  aa->assigned_bw_in = 0;
+  aa->assigned_bw_out = 0;
   return aa;
 }
 

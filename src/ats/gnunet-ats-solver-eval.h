@@ -137,8 +137,8 @@ struct LoggingAddress
   int active;
   int used;
   uint32_t network;
-  struct GNUNET_BANDWIDTH_Value32NBO assigned_bw_in;
-  struct GNUNET_BANDWIDTH_Value32NBO assigned_bw_out;
+  uint32_t assigned_bw_in;
+  uint32_t assigned_bw_out;
 
   double prop_abs[GNUNET_ATS_PropertyCount];
   double prop_norm[GNUNET_ATS_PropertyCount];
@@ -158,8 +158,8 @@ struct TestPeer
   double pref_abs[GNUNET_ATS_PreferenceCount];
   double pref_norm[GNUNET_ATS_PreferenceCount];
 
-  struct GNUNET_BANDWIDTH_Value32NBO assigned_bw_in;
-  struct GNUNET_BANDWIDTH_Value32NBO assigned_bw_out;
+  uint32_t assigned_bw_in;
+  uint32_t assigned_bw_out;
 
   struct TestAddress *addr_head;
   struct TestAddress *addr_tail;
