@@ -40,6 +40,11 @@
 #define MAX_CONNECT_FREQUENCY_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 250)
 
 /**
+ * Maximum delay allowed delay between calls to GNUNET_TRANSPORT_try_connect.
+ */
+#define MIN_CONNECT_FREQUENCY_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 2500)
+
+/**
  * For how long do we blacklist a peer after a failed connection
  * attempt?  This is the baseline factor which is then multiplied by
  * two to the power of the number of failed attempts.
@@ -373,7 +378,9 @@ attempt_connect (struct Peer *pos)
   rem = GNUNET_TIME_relative_divide (rem, target_connection_count);
   if (pos->connect_attempts > 30)
     pos->connect_attempts = 30;
-  rem = GNUNET_TIME_relative_multiply (rem, 1 << (++pos->connect_attempts));
+  else
+    pos->connect_attempts ++;
+  rem = GNUNET_TIME_relative_multiply (rem, 1 << pos->connect_attempts);
   rem = GNUNET_TIME_relative_max (rem, GREYLIST_AFTER_ATTEMPT_MIN);
   rem = GNUNET_TIME_relative_min (rem, GREYLIST_AFTER_ATTEMPT_MAX);
   pos->greylisted_until = GNUNET_TIME_relative_to_absolute (rem);
@@ -387,7 +394,7 @@ attempt_connect (struct Peer *pos)
                             gettext_noop
                             ("# connect requests issued to transport"), 1,
                             GNUNET_NO);
-  GNUNET_TRANSPORT_try_connect (transport, &pos->pid, NULL, NULL); /*FIXME TRY_CONNECT change */
+  GNUNET_TRANSPORT_try_connect (transport, &pos->pid, NULL, NULL);
 }
 
 
@@ -407,6 +414,7 @@ do_attempt_connect (void *cls,
   pos->attempt_connect_task = GNUNET_SCHEDULER_NO_TASK;
   if (GNUNET_YES == pos->is_connected)
     return;
+
   delay = GNUNET_TIME_absolute_get_remaining (next_connect_attempt);
   if (delay.rel_value_us > 0)
   {
@@ -751,8 +759,7 @@ try_add_peers (void *cls, const struct GNUNET_PeerIdentity * pid, void *value)
 
 
 /**
- * Last task run during shutdown.  Disconnects us from
- * the transport and core.
+ * Add peers and schedule connection attempt
  *
  * @param cls unused, NULL
  * @param tc scheduler context
