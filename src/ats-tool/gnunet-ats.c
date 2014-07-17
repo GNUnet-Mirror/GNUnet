@@ -241,9 +241,6 @@ free_addr_it (void *cls,
               void *value)
 {
   struct ATSAddress *a = value;
-
-  fprintf (stderr, "FREEING %s %p\n", GNUNET_i2s(key), value);
-
   GNUNET_assert (GNUNET_OK == GNUNET_CONTAINER_multipeermap_remove (addresses, key, value));
   GNUNET_HELLO_address_free (a->address);
   GNUNET_free (a);
