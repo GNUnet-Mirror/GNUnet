@@ -349,7 +349,7 @@ struct IPv6HttpAddress
 GNUNET_NETWORK_STRUCT_END
 
 
-struct ServerConnection
+struct ServerRequest
 {
   /* _RECV or _SEND */
   int direction;
@@ -477,12 +477,12 @@ struct Session
   /**
    * Client send handle
    */
-  struct ServerConnection *server_recv;
+  struct ServerRequest *server_recv;
 
   /**
    * Client send handle
    */
-  struct ServerConnection *server_send;
+  struct ServerRequest *server_send;
 };
 
 /**

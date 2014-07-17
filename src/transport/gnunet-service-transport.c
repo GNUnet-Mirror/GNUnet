@@ -1097,7 +1097,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   GNUNET_assert(NULL != GST_my_private_key);
 
   GNUNET_log(GNUNET_ERROR_TYPE_INFO, "My identity is `%4s'\n",
-      GNUNET_i2s (&GST_my_identity));
+      GNUNET_i2s_full (&GST_my_identity));
 
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
       NULL );
