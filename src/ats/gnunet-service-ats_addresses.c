@@ -1850,7 +1850,6 @@ load_quotas (const struct GNUNET_CONFIGURATION_Handle *cfg,
   return GNUNET_ATS_NetworkTypeCount;
 }
 
-
 /**
  * Callback for solver to notify about assignment changes
  *
@@ -1862,6 +1861,8 @@ bandwidth_changed_cb (void *cls, struct ATS_Address *address)
 {
   struct GAS_Addresses_Handle *handle = cls;
   struct GAS_Addresses_Suggestion_Requests *cur;
+  uint32_t diff_out;
+  uint32_t diff_in;
 
   GNUNET_assert(handle != NULL);
   GNUNET_assert(address != NULL);
@@ -1905,13 +1906,15 @@ bandwidth_changed_cb (void *cls, struct ATS_Address *address)
         GNUNET_BANDWIDTH_value_init (0));
 
     return;
-
   }
 
   /* Do bandwidth stability check */
-  int diff = abs (address->assigned_bw_out - address->last_notified_bw_out);
+  diff_out = abs (address->assigned_bw_out - address->last_notified_bw_out);
+  diff_in = abs (address->assigned_bw_in - address->last_notified_bw_in);
 
-
+  if ( (diff_out < htonl(GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT.value__)) &&
+       (diff_in < htonl(GNUNET_CONSTANTS_DEFAULT_BW_IN_OUT.value__)) )
+    return;
 
   GNUNET_log(GNUNET_ERROR_TYPE_INFO,
       "Sending bandwidth update for peer `%s': %u %u\n",
