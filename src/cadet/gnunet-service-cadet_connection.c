@@ -1818,7 +1818,6 @@ GCC_handle_broken (void* cls,
     struct GNUNET_MessageHeader *out_msg;
     struct CadetPeer *neighbor;
     struct CadetPeer *endpoint;
-    int pending_msgs;
 
     if (NULL == t)
     {
@@ -1833,25 +1832,15 @@ GCC_handle_broken (void* cls,
     c->state = CADET_CONNECTION_DESTROYED;
     GCT_remove_connection (t, c);
     c->t = NULL;
-    pending_msgs = c->pending_messages;
 
     /* GCP_connection_pop will destroy the connection when the last message
      * is popped! Do not use 'c' after the call. */
     while (NULL != (out_msg = GCP_connection_pop (neighbor, c)))
     {
       GCT_resend_message (out_msg, t);
-      pending_msgs--;
     }
-
-    /* All pending messages should have been popped and the connection
-     * destroyed. If not, destroy the connection anyway! */
-    if (0 < pending_msgs)
-    {
-      GNUNET_break (0);
-      GCC_destroy (c);
-    }
-    else
-      GNUNET_break (0 == pending_msgs); /* Counter error! */
+    /* All pending messages should have been popped,
+     * and the connection destroyed by the continuation. */
   }
   else
   {
