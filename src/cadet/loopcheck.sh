@@ -15,5 +15,7 @@ else
 	    date;
 	    break;
 	fi
+	grep -B 10 Assert log && break
+	ls core* &> /dev/null && break
     done
 fi
