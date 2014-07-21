@@ -1133,11 +1133,10 @@ GCP_queue_destroy (struct CadetPeerQueue *queue, int clear_cls,
   struct CadetPeer *peer;
 
   peer = queue->peer;
-
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "queue destroy %s\n", GC_m2s (queue->type));
   if (GNUNET_YES == clear_cls)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "queue destroy type %s\n",
-         GC_m2s (queue->type));
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " free cls\n");
     switch (queue->type)
     {
       case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY:
@@ -1384,18 +1383,26 @@ connection_get_first_message (struct CadetPeer *peer, struct CadetConnection *c)
 /**
  * Get the first message for a connection and unqueue it.
  *
+ * Only tunnel (or higher) level messages are unqueued. Connection specific
+ * messages are destroyed and the count given to the caller.
+ *
  * @param peer Neighboring peer.
  * @param c Connection.
+ * @param del[out] How many messages have been deleted without returning.
+ *                 Can be NULL.
  *
  * @return First message for this connection.
  */
 struct GNUNET_MessageHeader *
-GCP_connection_pop (struct CadetPeer *peer, struct CadetConnection *c)
+GCP_connection_pop (struct CadetPeer *peer,
+                    struct CadetConnection *c,
+                    unsigned int *del)
 {
   struct CadetPeerQueue *q;
   struct CadetPeerQueue *next;
   struct GNUNET_MessageHeader *msg;
 
+  if (NULL != del) *del = 0;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Connection pop on connection %p\n", c);
   for (q = peer->queue_head; NULL != q; q = next)
   {
@@ -1411,6 +1418,7 @@ GCP_connection_pop (struct CadetPeer *peer, struct CadetConnection *c)
       case GNUNET_MESSAGE_TYPE_CADET_ACK:
       case GNUNET_MESSAGE_TYPE_CADET_POLL:
         GCP_queue_destroy (q, GNUNET_YES, GNUNET_NO, 0);
+        if (NULL != del) *del = *del + 1;
         continue;
 
       case GNUNET_MESSAGE_TYPE_CADET_KX:

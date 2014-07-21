@@ -379,6 +379,8 @@ GCC_state2s (enum CadetConnectionState s)
     case CADET_CONNECTION_DESTROYED:
       return "CADET_CONNECTION_DESTROYED";
     default:
+      GNUNET_break (0);
+      LOG (GNUNET_ERROR_TYPE_ERROR, " conn state %u unknown!\n", s);
       return "CADET_CONNECTION_STATE_ERROR";
   }
 }
@@ -1406,7 +1408,7 @@ unregister_neighbors (struct CadetConnection *c)
   if (GNUNET_OK != GCP_remove_connection (peer, c))
   {
     GNUNET_assert (CADET_CONNECTION_NEW == c->state
-                  || CADET_CONNECTION_DESTROYED == c->state);
+                   || CADET_CONNECTION_DESTROYED == c->state);
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  cstate: %u\n", c->state);
     if (NULL != c->t) GCT_debug (c->t, GNUNET_ERROR_TYPE_DEBUG);
   }
@@ -1415,7 +1417,7 @@ unregister_neighbors (struct CadetConnection *c)
   if (GNUNET_OK != GCP_remove_connection (peer, c))
   {
     GNUNET_assert (CADET_CONNECTION_NEW == c->state
-                  || CADET_CONNECTION_DESTROYED == c->state);
+                   || CADET_CONNECTION_DESTROYED == c->state);
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  cstate: %u\n", c->state);
     if (NULL != c->t) GCT_debug (c->t, GNUNET_ERROR_TYPE_DEBUG);
   }
@@ -1795,6 +1797,8 @@ GCC_handle_broken (void* cls,
   struct GNUNET_CADET_ConnectionBroken *msg;
   struct CadetConnection *c;
   struct CadetTunnel *t;
+  unsigned int del;
+  int pending;
   int fwd;
 
   msg = (struct GNUNET_CADET_ConnectionBroken *) message;
@@ -1831,15 +1835,26 @@ GCC_handle_broken (void* cls,
     c->state = CADET_CONNECTION_DESTROYED;
     GCT_remove_connection (t, c);
     c->t = NULL;
+    pending = c->pending_messages;
 
     /* GCP_connection_pop will destroy the connection when the last message
      * is popped! Do not use 'c' after the call. */
-    while (NULL != (out_msg = GCP_connection_pop (neighbor, c)))
+    while (NULL != (out_msg = GCP_connection_pop (neighbor, c, &del)))
     {
+      pending -= del + 1;
       GCT_resend_message (out_msg, t);
     }
     /* All pending messages should have been popped,
      * and the connection destroyed by the continuation. */
+    if (0 < pending)
+    {
+      GNUNET_break (0);
+      GCC_destroy (c);
+    }
+    else
+    {
+      GNUNET_break (0 == pending_msgs); /* If negative: counter error! */
+    }
   }
   else
   {
