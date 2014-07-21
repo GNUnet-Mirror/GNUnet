@@ -1859,7 +1859,7 @@ GCC_handle_broken (void* cls,
     }
     else
     {
-      GNUNET_break (0 == pending_msgs); /* If negative: counter error! */
+      GNUNET_break (0 == pending); /* If negative: counter error! */
     }
   }
   else
