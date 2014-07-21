@@ -1825,6 +1825,8 @@ GCC_handle_broken (void* cls,
     path_invalidate (c->path);
     GCP_notify_broken_link (endpoint, &msg->peer1, &msg->peer2);
     c->state = CADET_CONNECTION_DESTROYED;
+    GCT_remove_connection (t, c);
+    c->t = NULL;
     pending_msgs = c->pending_messages;
 
     /* GCP_connection_pop will destroy the connection when the last message
