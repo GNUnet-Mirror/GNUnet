@@ -1839,9 +1839,7 @@ GCC_handle_broken (void* cls,
      * is popped! Do not use 'c' after the call. */
     while (NULL != (out_msg = GCP_connection_pop (neighbor, c)))
     {
-      GNUNET_assert (NULL ==
-                     GCT_send_prebuilt_message (out_msg, t, NULL, GNUNET_YES,
-                                                NULL, NULL));
+      GCT_resend_message (out_msg, t);
       pending_msgs--;
     }
 
@@ -3000,9 +2998,8 @@ GCC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
     GNUNET_STATISTICS_update (stats, "# messages dropped (buffer full)",
                               1, GNUNET_NO);
     GNUNET_break (0);
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-                "queue full: %u/%u\n",
-                fc->queue_n, fc->queue_max);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "queue full: %u/%u\n",
+         fc->queue_n, fc->queue_max);
     if (GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED == type)
     {
       fc->queue_n--;
@@ -3011,7 +3008,8 @@ GCC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
     return NULL; /* Drop this message */
   }
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "  C_P+ %p %u\n", c, c->pending_messages);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "  C_P+ %s %u\n",
+       GCC_2s (c), c->pending_messages);
   c->pending_messages++;
 
   q = GNUNET_new (struct CadetConnectionQueue);
@@ -3020,7 +3018,7 @@ GCC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
                         size, c, fwd, &conn_message_sent, q);
   if (NULL == q->q)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "WARNING dropping msg on %s\n", GCC_2s (c));
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "dropping msg on %s, NULL q\n", GCC_2s (c));
     GNUNET_free (data);
     GNUNET_free (q);
     return NULL;

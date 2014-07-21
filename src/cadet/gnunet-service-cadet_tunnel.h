@@ -440,6 +440,17 @@ GCT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
                            int force, GCT_sent cont, void *cont_cls);
 
 /**
+ * Sends an already built and encrypted message on a tunnel, choosing the best
+ * connection. Useful for re-queueing messages queued on a destroyed connection.
+ *
+ * @param message Message to send. Function modifies it.
+ * @param t Tunnel on which this message is transmitted.
+ */
+void
+GCT_resend_message (const struct GNUNET_MessageHeader *message,
+                    struct CadetTunnel *t);
+
+/**
  * Is the tunnel directed towards the local peer?
  *
  * @param t Tunnel.

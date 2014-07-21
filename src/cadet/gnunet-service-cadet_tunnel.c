@@ -3039,6 +3039,32 @@ GCT_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
   return send_prebuilt_message (message, t, c, force, cont, cont_cls, NULL);
 }
 
+/**
+ * Sends an already built and encrypted message on a tunnel, choosing the best
+ * connection. Useful for re-queueing messages queued on a destroyed connection.
+ *
+ * @param message Message to send. Function modifies it.
+ * @param t Tunnel on which this message is transmitted.
+ */
+void
+GCT_resend_message (const struct GNUNET_MessageHeader *message,
+                    struct CadetTunnel *t)
+{
+  struct CadetConnection *c;
+  int fwd;
+
+  c = tunnel_get_connection (t);
+  if (NULL == c)
+  {
+    /* TODO queue in tunnel, marked as encrypted */
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "No connection available, dropping.\n");
+    return;
+  }
+  fwd = GCC_is_origin (c, GNUNET_YES);
+  GNUNET_break (NULL == GCC_send_prebuilt_message (message, 0, 0, c, fwd,
+                                                   GNUNET_YES, NULL, NULL));
+}
+
 
 /**
  * Is the tunnel directed towards the local peer?
