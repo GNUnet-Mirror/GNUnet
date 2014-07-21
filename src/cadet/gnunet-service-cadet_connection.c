@@ -1114,13 +1114,12 @@ connection_unlock_queue (struct CadetConnection *c, int fwd)
 {
   struct CadetPeer *peer;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-              "connection_unlock_queue %s on %s\n",
-              GC_f2s (fwd), GCC_2s (c));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "connection_unlock_queue %s on %s\n",
+       GC_f2s (fwd), GCC_2s (c));
 
   if (GCC_is_terminal (c, fwd))
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, " is terminal!\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " is terminal, can unlock!\n");
     return;
   }
 

@@ -1428,7 +1428,16 @@ GCP_connection_pop (struct CadetPeer *peer, struct CadetConnection *c)
   return NULL;
 }
 
-
+/**
+ * Unlock a possibly locked queue for a connection.
+ *
+ * If there is a message that can be sent on this connection, call core for it.
+ * Otherwise (if core transmit is already called or there is no sendable
+ * message) do nothing.
+ *
+ * @param peer Peer who keeps the queue.
+ * @param c Connection whose messages to unlock.
+ */
 void
 GCP_queue_unlock (struct CadetPeer *peer, struct CadetConnection *c)
 {
