@@ -898,8 +898,7 @@ send_connection_keepalive (struct CadetConnection *c, int fwd)
   struct GNUNET_MessageHeader msg;
   struct CadetFlowControl *fc;
 
-  LOG (GNUNET_ERROR_TYPE_INFO,
-       "keepalive %s for connection %s\n",
+  LOG (GNUNET_ERROR_TYPE_INFO, "keepalive %s for connection %s\n",
        GC_f2s (fwd), GCC_2s (c));
 
   fc = fwd ? &c->fwd_fc : &c->bck_fc;
@@ -964,6 +963,7 @@ connection_maintain (struct CadetConnection *c, int fwd)
   {
     /* TODO DHT GET with RO_BART */
     LOG (GNUNET_ERROR_TYPE_INFO, "not sending keepalive, tunnel SEARCHING\n");
+    schedule_next_keepalive (c, fwd);
     return;
   }
   switch (c->state)
@@ -1008,7 +1008,7 @@ connection_keepalive (struct CadetConnection *c, int fwd, int shutdown)
 
   connection_maintain (c, fwd);
 
-  /* Next execution will be scheduled by message_sent */
+  /* Next execution will be scheduled by message_sent or _maintain*/
 }
 
 
