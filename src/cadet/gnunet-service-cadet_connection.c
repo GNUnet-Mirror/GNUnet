@@ -949,7 +949,10 @@ static void
 connection_maintain (struct CadetConnection *c, int fwd)
 {
   if (GNUNET_NO != c->destroy)
+  {
+    LOG (GNUNET_ERROR_TYPE_INFO, "not sending keepalive, being destroyed\n");
     return;
+  }
 
   if (NULL == c->t)
   {
@@ -960,6 +963,7 @@ connection_maintain (struct CadetConnection *c, int fwd)
   if (CADET_TUNNEL_SEARCHING == GCT_get_cstate (c->t))
   {
     /* TODO DHT GET with RO_BART */
+    LOG (GNUNET_ERROR_TYPE_INFO, "not sending keepalive, tunnel SEARCHING\n");
     return;
   }
   switch (c->state)
