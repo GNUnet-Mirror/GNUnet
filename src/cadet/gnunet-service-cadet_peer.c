@@ -1208,7 +1208,7 @@ GCP_queue_add (struct CadetPeer *peer, void *cls, uint16_t type,
                struct CadetConnection *c, int fwd,
                GCP_sent cont, void *cont_cls)
 {
-  struct CadetPeerQueue *queue;
+  struct CadetPeerQueue *q;
   int error_level;
   int priority;
   int call_core;
@@ -1243,26 +1243,27 @@ GCP_queue_add (struct CadetPeer *peer, void *cls, uint16_t type,
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "priority %d\n", priority);
 
-  call_core = NULL == c ? GNUNET_YES : GCC_is_sendable (c, fwd);
-  queue = GNUNET_new (struct CadetPeerQueue);
-  queue->cls = cls;
-  queue->type = type;
-  queue->payload_type = payload_type;
-  queue->payload_id = payload_id;
-  queue->size = size;
-  queue->peer = peer;
-  queue->c = c;
-  queue->fwd = fwd;
-  queue->callback = cont;
-  queue->callback_cls = cont_cls;
+  call_core = (NULL == c || type == GNUNET_MESSAGE_TYPE_CADET_KX) ?
+               GNUNET_YES : GCC_is_sendable (c, fwd);
+  q = GNUNET_new (struct CadetPeerQueue);
+  q->cls = cls;
+  q->type = type;
+  q->payload_type = payload_type;
+  q->payload_id = payload_id;
+  q->size = size;
+  q->peer = peer;
+  q->c = c;
+  q->fwd = fwd;
+  q->callback = cont;
+  q->callback_cls = cont_cls;
   if (100 > priority)
   {
-    GNUNET_CONTAINER_DLL_insert_tail (peer->queue_head, peer->queue_tail, queue);
+    GNUNET_CONTAINER_DLL_insert_tail (peer->queue_head, peer->queue_tail, q);
     peer->queue_n++;
   }
   else
   {
-    GNUNET_CONTAINER_DLL_insert (peer->queue_head, peer->queue_tail, queue);
+    GNUNET_CONTAINER_DLL_insert (peer->queue_head, peer->queue_tail, q);
     call_core = GNUNET_YES;
   }
 
@@ -1273,13 +1274,11 @@ GCP_queue_add (struct CadetPeer *peer, void *cls, uint16_t type,
          GCP_2s (peer), size);
     peer->core_transmit =
         GNUNET_CORE_notify_transmit_ready (core_handle,
-                                           GNUNET_NO, get_priority (queue),
+                                           GNUNET_NO, get_priority (q),
                                            GNUNET_TIME_UNIT_FOREVER_REL,
                                            GNUNET_PEER_resolve2 (peer->id),
-                                           size,
-                                           &queue_send,
-                                           peer);
-    queue->start_waiting = GNUNET_TIME_absolute_get ();
+                                           size, &queue_send, peer);
+    q->start_waiting = GNUNET_TIME_absolute_get ();
   }
   else if (GNUNET_NO == call_core)
   {
@@ -1294,7 +1293,7 @@ GCP_queue_add (struct CadetPeer *peer, void *cls, uint16_t type,
 
   }
   queue_debug (peer, GNUNET_ERROR_TYPE_DEBUG);
-  return queue;
+  return q;
 }
 
 
