@@ -949,6 +949,12 @@ connection_maintain (struct CadetConnection *c, int fwd)
   if (GNUNET_NO != c->destroy)
     return;
 
+  if (NULL == c->t)
+  {
+    GNUNET_break (0);
+    return;
+  }
+
   if (CADET_TUNNEL_SEARCHING == GCT_get_cstate (c->t))
   {
     /* TODO DHT GET with RO_BART */
