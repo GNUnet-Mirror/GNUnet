@@ -961,7 +961,9 @@ connection_maintain (struct CadetConnection *c, int fwd)
 
   if (CADET_TUNNEL_SEARCHING == GCT_get_cstate (c->t))
   {
-    /* TODO DHT GET with RO_BART */
+    /* If status is SEARCHING, why is there a connection? Should be WAITING */
+    GNUNET_break (0);
+    GCT_debug (c->t, GNUNET_ERROR_TYPE_ERROR);
     LOG (GNUNET_ERROR_TYPE_INFO, "not sending keepalive, tunnel SEARCHING\n");
     schedule_next_keepalive (c, fwd);
     return;
