@@ -1583,8 +1583,15 @@ GCCH_allow_client (struct CadetChannel *ch, int fwd)
         return;
       }
       else
+      {
         LOG (GNUNET_ERROR_TYPE_DEBUG, " gap ok: %u - %u\n",
              rel->head_sent->mid, rel->mid_send);
+        struct CadetReliableMessage *aux;
+        for (aux = rel->head_sent; NULL != aux; aux = aux->next)
+        {
+          LOG (GNUNET_ERROR_TYPE_DEBUG, "   - sent MID %u\n", aux->mid);
+        }
+      }
     }
     else
     {
