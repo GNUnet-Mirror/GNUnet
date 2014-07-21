@@ -432,6 +432,7 @@ data_callback (void *cls, struct GNUNET_CADET_Channel *channel,
   long client = (long) cls;
   long expected_target_client;
   uint32_t *data;
+  uint32_t payload;
 
   ok++;
 
@@ -466,7 +467,9 @@ data_callback (void *cls, struct GNUNET_CADET_Channel *channel,
   }
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, " ok: (%d/%d)\n", ok, ok_goal);
   data = (uint32_t *) &message[1];
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, " payload: (%u)\n", ntohl (*data));
+  payload = ntohl (*data);
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, " payload: (%u)\n", payload);
+  GNUNET_break (payload == data_received);
   if (SPEED == test && GNUNET_YES == test_backwards)
   {
     expected_target_client = 0L;
