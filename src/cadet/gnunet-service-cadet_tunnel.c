@@ -2197,6 +2197,8 @@ GCT_change_cstate (struct CadetTunnel* t, enum CadetTunnelCState cstate)
     else if (CADET_TUNNEL_KEY_UNINITIALIZED == t->estate)
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG, "  cstate triggered rekey\n");
+      if (GNUNET_SCHEDULER_NO_TASK != t->rekey_task)
+        GNUNET_SCHEDULER_cancel (t->rekey_task);
       rekey_tunnel (t, NULL);
     }
   }
