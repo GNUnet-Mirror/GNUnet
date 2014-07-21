@@ -305,6 +305,7 @@ extern GNUNET_PEER_Id myid;
 /********************************   STATIC  ***********************************/
 /******************************************************************************/
 
+
 /**
  * Destroy a reliable message after it has been acknowledged, either by
  * direct mid ACK or bitfield. Updates the appropriate data structures and
@@ -315,6 +316,9 @@ extern GNUNET_PEER_Id myid;
  *                    If this message is ACK in a batch the timing information
  *                    is skewed by the retransmission, count only for the
  *                    retransmitted message.
+ *
+ * @return #GNUNET_YES if channel was destroyed as a result of the call,
+ *         #GNUNET_NO otherwise.
  */
 static int
 rel_message_free (struct CadetReliableMessage *copy, int update_time);
@@ -2011,7 +2015,8 @@ GCCH_handle_data_ack (struct CadetChannel *ch,
   }
 
   ack = ntohl (msg->mid);
-  LOG (GNUNET_ERROR_TYPE_INFO, "<=== %s ACK %u\n", GC_f2s (fwd), ack);
+  LOG (GNUNET_ERROR_TYPE_INFO, "<=== %s ACK %u + %X\n",
+       GC_f2s (fwd), ack, msg->futures);
 
   if (GNUNET_YES == fwd)
   {
