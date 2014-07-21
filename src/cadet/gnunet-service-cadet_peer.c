@@ -1396,7 +1396,7 @@ GCP_connection_pop (struct CadetPeer *peer, struct CadetConnection *c)
   struct CadetPeerQueue *next;
   struct GNUNET_MessageHeader *msg;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Connection pop on %s\n", GCC_2s (c));
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Connection pop on connection %p\n", c);
   for (q = peer->queue_head; NULL != q; q = next)
   {
     next = q->next;
