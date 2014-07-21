@@ -2361,8 +2361,7 @@ GCT_remove_connection (struct CadetTunnel *t,
       && CADET_TUNNEL_SHUTDOWN != t->cstate
       && GNUNET_NO == shutting_down)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  no more connections, getting new ones\n");
-    GCT_change_cstate (t, CADET_TUNNEL_SEARCHING);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  too few connections, getting new ones\n");
     GCP_connect (t->peer);
     return;
   }
@@ -2674,11 +2673,34 @@ GCT_use_path (struct CadetTunnel *t, struct CadetPeerPath *p)
 
 
 /**
- * Count created connections of a tunnel. Not necessarily ready connections!
+ * Count all created connections of a tunnel. Not necessarily ready connections!
  *
  * @param t Tunnel on which to count.
  *
  * @return Number of connections created, either being established or ready.
+ */
+unsigned int
+GCT_count_any_connections (struct CadetTunnel *t)
+{
+  struct CadetTConnection *iter;
+  unsigned int count;
+
+  if (NULL == t)
+    return 0;
+
+  for (count = 0, iter = t->connection_head; NULL != iter; iter = iter->next)
+    count++;
+
+  return count;
+}
+
+
+/**
+ * Count established (ready) connections of a tunnel.
+ *
+ * @param t Tunnel on which to count.
+ *
+ * @return Number of connections.
  */
 unsigned int
 GCT_count_connections (struct CadetTunnel *t)
@@ -2695,6 +2717,7 @@ GCT_count_connections (struct CadetTunnel *t)
 
   return count;
 }
+
 
 /**
  * Count channels of a tunnel.

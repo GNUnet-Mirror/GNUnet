@@ -51,7 +51,7 @@ enum CadetTunnelCState
   CADET_TUNNEL_NEW,
 
     /**
-     * Path to the peer not known yet.
+     * No path to the peer known yet.
      */
   CADET_TUNNEL_SEARCHING,
 
@@ -310,6 +310,16 @@ GCT_handle_kx (struct CadetTunnel *t,
  */
 struct CadetConnection *
 GCT_use_path (struct CadetTunnel *t, struct CadetPeerPath *p);
+
+/**
+ * Count all created connections of a tunnel. Not necessarily ready connections!
+ *
+ * @param t Tunnel on which to count.
+ *
+ * @return Number of connections created, either being established or ready.
+ */
+unsigned int
+GCT_count_any_connections (struct CadetTunnel *t);
 
 /**
  * Count established (ready) connections of a tunnel.

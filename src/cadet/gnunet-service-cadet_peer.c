@@ -1708,8 +1708,7 @@ GCP_connect (struct CadetPeer *peer)
   {
     GCD_search_stop (peer->search_h);
     peer->search_h = NULL;
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "  Stopping DHT GET for peer %s\n",
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  Stopping DHT GET for peer %s\n",
          GCP_2s (peer));
   }
 
@@ -1721,7 +1720,8 @@ GCP_connect (struct CadetPeer *peer)
     LOG (GNUNET_ERROR_TYPE_DEBUG,
                 "  Starting DHT GET for peer %s\n", GCP_2s (peer));
     peer->search_h = GCD_search (id, &search_handler, peer);
-    if (CADET_TUNNEL_NEW == GCT_get_cstate (t))
+    if (CADET_TUNNEL_NEW == GCT_get_cstate (t)
+        || 0 == GCT_count_any_connections (t))
       GCT_change_cstate (t, CADET_TUNNEL_SEARCHING);
   }
 }

@@ -771,7 +771,7 @@ get_all_tunnels_iterator (void *cls,
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_LOCAL_INFO_TUNNELS);
   msg.destination = *peer;
   msg.channels = htonl (GCT_count_channels (t));
-  msg.connections = htonl (GCT_count_connections (t));
+  msg.connections = htonl (GCT_count_any_connections (t));
   msg.cstate = htons ((uint16_t) GCT_get_cstate (t));
   msg.estate = htons ((uint16_t) GCT_get_estate (t));
 
@@ -900,7 +900,7 @@ handle_show_tunnel (void *cls, struct GNUNET_SERVER_Client *client,
 
   /* Initialize context */
   ch_n = GCT_count_channels (t);
-  c_n = GCT_count_connections (t);
+  c_n = GCT_count_any_connections (t);
 
   size = sizeof (struct GNUNET_CADET_LocalInfoTunnel);
   size += c_n * sizeof (struct GNUNET_CADET_Hash);

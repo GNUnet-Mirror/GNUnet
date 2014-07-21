@@ -1709,7 +1709,7 @@ GCC_handle_confirm (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
   else if (get_prev_hop (c) == pi)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "  ACK\n");
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "  FINAL ACK\n");
     fwd = GNUNET_YES;
     connection_change_state (c, CADET_CONNECTION_READY);
   }
@@ -2693,7 +2693,7 @@ GCC_get_allowed (struct CadetConnection *c, int fwd)
   struct CadetFlowControl *fc;
 
   fc = fwd ? &c->fwd_fc : &c->bck_fc;
-  if (GC_is_pid_bigger(fc->last_pid_recv, fc->last_ack_sent))
+  if (GC_is_pid_bigger (fc->last_pid_recv, fc->last_ack_sent))
   {
     return 0;
   }
