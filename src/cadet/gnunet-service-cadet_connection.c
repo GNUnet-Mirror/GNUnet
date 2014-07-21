@@ -1841,7 +1841,7 @@ GCC_handle_broken (void* cls,
      * is popped! Do not use 'c' after the call. */
     while (NULL != (out_msg = GCP_connection_pop (neighbor, c, &del)))
     {
-      pending -= del + 1;
+      pending -= del + 1; /* Substract the deleted messages + the popped one */
       GCT_resend_message (out_msg, t);
     }
     /* All pending messages should have been popped,
