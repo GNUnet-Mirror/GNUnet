@@ -2384,6 +2384,7 @@ GCCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
       if (NULL == chq->tq)
       {
         GNUNET_break (0);
+        GCT_debug (ch->t, GNUNET_ERROR_TYPE_ERROR);
         GNUNET_free (chq);
         chq = NULL;
         return;

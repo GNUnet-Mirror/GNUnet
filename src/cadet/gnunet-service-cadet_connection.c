@@ -956,6 +956,7 @@ connection_maintain (struct CadetConnection *c, int fwd)
   if (NULL == c->t)
   {
     GNUNET_break (0);
+    GCC_debug (c, GNUNET_ERROR_TYPE_ERROR);
     return;
   }
 
@@ -1832,6 +1833,7 @@ GCC_handle_broken (void* cls,
     {
       /* A terminal connection should not have 't' set to NULL. */
       GNUNET_break (0);
+      GCC_debug (c, GNUNET_ERROR_TYPE_ERROR);
       return GNUNET_OK;
     }
     neighbor = get_hop (c, !fwd);

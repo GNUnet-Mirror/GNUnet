@@ -1269,12 +1269,12 @@ send_kx (struct CadetTunnel *t,
   /* Must have a connection. */
   if (NULL == t->connection_head && CADET_TUNNEL_SEARCHING != t->cstate)
   {
-    LOG (GNUNET_ERROR_TYPE_WARNING, "\n\n\n");
+    LOG (GNUNET_ERROR_TYPE_ERROR, "\n\n\n");
     GNUNET_break (0);
-    LOG (GNUNET_ERROR_TYPE_WARNING, "sending %s\n", GC_m2s (type));
-    GCT_debug (t, GNUNET_ERROR_TYPE_WARNING);
-    GCP_debug (t->peer, GNUNET_ERROR_TYPE_WARNING);
-    LOG (GNUNET_ERROR_TYPE_WARNING, "\n\n\n");
+    LOG (GNUNET_ERROR_TYPE_ERROR, "no connection, sending %s\n", GC_m2s (type));
+    GCT_debug (t, GNUNET_ERROR_TYPE_ERROR);
+    GCP_debug (t->peer, GNUNET_ERROR_TYPE_ERROR);
+    LOG (GNUNET_ERROR_TYPE_ERROR, "\n\n\n");
     return;
   }
 
@@ -1286,7 +1286,7 @@ send_kx (struct CadetTunnel *t,
   {
     GNUNET_break (GNUNET_SCHEDULER_NO_TASK != t->destroy_task
                   || CADET_TUNNEL_READY != t->cstate);
-    GCT_debug (t, GNUNET_ERROR_TYPE_WARNING);
+    GCT_debug (t, GNUNET_ERROR_TYPE_ERROR);
     return;
   }
   switch (type)
@@ -1878,8 +1878,9 @@ handle_ping (struct CadetTunnel *t,
   t_decrypt (t, &res.target, &msg->target, ping_encryption_size (), msg->iv);
   if (0 != memcmp (&my_full_id, &res.target, sizeof (my_full_id)))
   {
+    /* probably peer hasn't got our new EPHM yet and derived the wrong keys */
     GNUNET_STATISTICS_update (stats, "# malformed PINGs", 1, GNUNET_NO);
-    LOG (GNUNET_ERROR_TYPE_WARNING, "  malformed PING on %s\n", GCT_2s (t));
+    LOG (GNUNET_ERROR_TYPE_INFO, "  malformed PING on %s\n", GCT_2s (t));
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  e got %u\n", msg->nonce);
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  e towards %s\n", GNUNET_i2s (&msg->target));
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  got %u\n", res.nonce);
