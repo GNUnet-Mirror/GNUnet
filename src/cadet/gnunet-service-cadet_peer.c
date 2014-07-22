@@ -1074,8 +1074,8 @@ queue_send (void *cls, size_t size, void *buf)
          queue->payload_id, GCC_2s (c), c, GC_f2s (queue->fwd), data_size);
   }
 
-  /* Free queue, but cls was freed by send_core_* */
-  GCP_queue_destroy (queue, GNUNET_NO, GNUNET_YES, pid);
+  /* Free queue, but cls was freed by send_core_*. */
+  (void) GCP_queue_destroy (queue, GNUNET_NO, GNUNET_YES, pid);
 
   /* If more data in queue, send next */
   queue = peer_get_first_message (peer);
@@ -1121,16 +1121,23 @@ queue_send (void *cls, size_t size, void *buf)
  * Free a transmission that was already queued with all resources
  * associated to the request.
  *
+ * If connection was marked to be destroyed, and this was the last queued
+ * message on it, the connection will be free'd as a result.
+ *
  * @param queue Queue handler to cancel.
  * @param clear_cls Is it necessary to free associated cls?
  * @param sent Was it really sent? (Could have been canceled)
  * @param pid PID, if relevant (was sent and was a payload message).
+ *
+ * @return #GNUNET_YES if connection was destroyed as a result,
+ *         #GNUNET_NO otherwise.
  */
-void
+int
 GCP_queue_destroy (struct CadetPeerQueue *queue, int clear_cls,
                    int sent, uint32_t pid)
 {
   struct CadetPeer *peer;
+  int connection_destroyed;
 
   peer = queue->peer;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "queue destroy %s\n", GC_m2s (queue->type));
@@ -1168,11 +1175,18 @@ GCP_queue_destroy (struct CadetPeerQueue *queue, int clear_cls,
 
   if (NULL != queue->callback)
   {
+    struct GNUNET_TIME_Relative core_wait_time;
+
     LOG (GNUNET_ERROR_TYPE_DEBUG, " calling callback\n");
-    queue->callback (queue->callback_cls,
-                     queue->c, sent, queue->type, pid,
-                     queue->fwd, queue->size,
-                     GNUNET_TIME_absolute_get_duration (queue->start_waiting));
+    core_wait_time = GNUNET_TIME_absolute_get_duration (queue->start_waiting);
+    connection_destroyed = queue->callback (queue->callback_cls,
+                                            queue->c, sent, queue->type, pid,
+                                            queue->fwd, queue->size,
+                                            core_wait_time);
+  }
+  else
+  {
+    connection_destroyed = GNUNET_NO;
   }
 
   if (NULL == peer_get_first_message (peer) && NULL != peer->core_transmit)
@@ -1182,6 +1196,7 @@ GCP_queue_destroy (struct CadetPeerQueue *queue, int clear_cls,
   }
 
   GNUNET_free (queue);
+  return connection_destroyed;
 }
 
 
@@ -1309,20 +1324,23 @@ GCP_queue_cancel (struct CadetPeer *peer, struct CadetConnection *c)
   struct CadetPeerQueue *q;
   struct CadetPeerQueue *next;
   struct CadetPeerQueue *prev;
+  int connection_destroyed;
 
+  connection_destroyed = GNUNET_NO;
   for (q = peer->queue_head; NULL != q; q = next)
   {
     prev = q->prev;
     if (q->c == c)
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG, "GMP queue cancel %s\n", GC_m2s (q->type));
+      GNUNET_break (GNUNET_NO == connection_destroyed);
       if (GNUNET_MESSAGE_TYPE_CADET_CONNECTION_DESTROY == q->type)
       {
         q->c = NULL;
       }
       else
       {
-        GCP_queue_destroy (q, GNUNET_YES, GNUNET_NO, 0);
+        connection_destroyed = GCP_queue_destroy (q, GNUNET_YES, GNUNET_NO, 0);
       }
 
       /* Get next from prev, q->next might be already freed:
@@ -1338,13 +1356,11 @@ GCP_queue_cancel (struct CadetPeer *peer, struct CadetConnection *c)
       next = q->next;
     }
   }
-  if (NULL == peer->queue_head)
+
+  if (NULL == peer->queue_head && NULL != peer->core_transmit)
   {
-    if (NULL != peer->core_transmit)
-    {
-      GNUNET_CORE_notify_transmit_ready_cancel (peer->core_transmit);
-      peer->core_transmit = NULL;
-    }
+    GNUNET_CORE_notify_transmit_ready_cancel (peer->core_transmit);
+    peer->core_transmit = NULL;
   }
 }
 
@@ -1382,28 +1398,28 @@ connection_get_first_message (struct CadetPeer *peer, struct CadetConnection *c)
  * Get the first message for a connection and unqueue it.
  *
  * Only tunnel (or higher) level messages are unqueued. Connection specific
- * messages are destroyed and the count given to the caller.
+ * messages are silently destroyed upon encounter.
  *
  * @param peer Neighboring peer.
  * @param c Connection.
- * @param del[out] How many messages have been deleted without returning.
- *                 Can be NULL.
+ * @param destroyed[in/out] Was the connection destroyed (prev/as a result)?.
  *
  * @return First message for this connection.
  */
 struct GNUNET_MessageHeader *
 GCP_connection_pop (struct CadetPeer *peer,
                     struct CadetConnection *c,
-                    unsigned int *del)
+                    int *destroyed)
 {
   struct CadetPeerQueue *q;
   struct CadetPeerQueue *next;
   struct GNUNET_MessageHeader *msg;
+  int dest;
 
-  if (NULL != del) *del = 0;
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Connection pop on connection %p\n", c);
   for (q = peer->queue_head; NULL != q; q = next)
   {
+    GNUNET_break (NULL == destroyed || GNUNET_NO == *destroyed);
     next = q->next;
     if (q->c != c)
       continue;
@@ -1415,14 +1431,17 @@ GCP_connection_pop (struct CadetPeer *peer,
       case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_BROKEN:
       case GNUNET_MESSAGE_TYPE_CADET_ACK:
       case GNUNET_MESSAGE_TYPE_CADET_POLL:
-        GCP_queue_destroy (q, GNUNET_YES, GNUNET_NO, 0);
-        if (NULL != del) *del = *del + 1;
+        dest = GCP_queue_destroy (q, GNUNET_YES, GNUNET_NO, 0);
+        if (NULL != destroyed && GNUNET_YES == dest)
+          *destroyed = GNUNET_YES;
         continue;
 
       case GNUNET_MESSAGE_TYPE_CADET_KX:
       case GNUNET_MESSAGE_TYPE_CADET_ENCRYPTED:
         msg = (struct GNUNET_MessageHeader *) q->cls;
-        GCP_queue_destroy (q, GNUNET_NO, GNUNET_NO, 0);
+        dest = GCP_queue_destroy (q, GNUNET_NO, GNUNET_NO, 0);
+        if (NULL != destroyed && GNUNET_YES == dest)
+          *destroyed = GNUNET_YES;
         return msg;
 
       default:

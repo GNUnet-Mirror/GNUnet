@@ -564,8 +564,10 @@ send_ack (struct CadetConnection *c, unsigned int buffer, int fwd, int force)
  * @param fwd Was this a FWD going message?
  * @param size Size of the message.
  * @param wait Time spent waiting for core (only the time for THIS message)
+ *
+ * @return #GNUNET_YES if connection was destroyed, #GNUNET_NO otherwise.
  */
-static void
+static int
 conn_message_sent (void *cls,
                    struct CadetConnection *c, int sent,
                    uint16_t type, uint32_t pid, int fwd, size_t size,
@@ -609,7 +611,7 @@ conn_message_sent (void *cls,
       LOG (GNUNET_ERROR_TYPE_ERROR, "Message %s sent on NULL connection!\n",
            GC_m2s (type));
     }
-    return;
+    return GNUNET_NO;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, " C_P- %p %u\n", c, c->pending_messages);
   c->pending_messages--;
@@ -617,7 +619,7 @@ conn_message_sent (void *cls,
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "!  destroying connection!\n");
     GCC_destroy (c);
-    return;
+    return GNUNET_YES;
   }
   /* Send ACK if needed, after accounting for sent ID in fc->queue_n */
   switch (type)
@@ -674,7 +676,7 @@ conn_message_sent (void *cls,
   LOG (GNUNET_ERROR_TYPE_DEBUG, "!  message sent!\n");
 
   if (NULL == c->perf)
-    return; /* Only endpoints are interested in timing. */
+    return GNUNET_NO; /* Only endpoints are interested in timing. */
 
   p = c->perf;
   usecsperbyte = ((double) wait.rel_value_us) / size;
@@ -695,6 +697,7 @@ conn_message_sent (void *cls,
     p->avg /= p->size;
   }
   p->idx = (p->idx + 1) % AVG_MSGS;
+  return GNUNET_NO;
 }
 
 
@@ -1209,8 +1212,7 @@ poll_sent (void *cls,
     LOG (GNUNET_ERROR_TYPE_DEBUG, " *** POLL canceled on shutdown\n");
     return;
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       " *** POLL sent for , scheduling new one!\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, " *** POLL sent for , scheduling new one!\n");
   fc->poll_msg = NULL;
   fc->poll_time = GNUNET_TIME_STD_BACKOFF (fc->poll_time);
   fc->poll_task = GNUNET_SCHEDULER_add_delayed (fc->poll_time,
@@ -1806,8 +1808,7 @@ GCC_handle_broken (void* cls,
   struct GNUNET_CADET_ConnectionBroken *msg;
   struct CadetConnection *c;
   struct CadetTunnel *t;
-  unsigned int del;
-  int pending;
+  int destroyed;
   int fwd;
 
   msg = (struct GNUNET_CADET_ConnectionBroken *) message;
@@ -1845,27 +1846,20 @@ GCC_handle_broken (void* cls,
     c->state = CADET_CONNECTION_BROKEN;
     GCT_remove_connection (t, c);
     c->t = NULL;
-    pending = c->pending_messages;
+    destroyed = GNUNET_NO;
 
-    /* GCP_connection_pop will destroy the connection when the last message
-     * is popped! Do not use 'c' after the call. */
-    while (NULL != (out_msg = GCP_connection_pop (neighbor, c, &del)))
+    /* GCP_connection_pop could destroy the connection! */
+    while (NULL != (out_msg = GCP_connection_pop (neighbor, c, &destroyed)))
     {
-      pending -= del + 1; /* Substract the deleted messages + the popped one */
       GCT_resend_message (out_msg, t);
     }
     /* All pending messages should have been popped,
      * and the connection destroyed by the continuation.
-     * If last message was just deleted, then continuation wasn't called.
      */
-    if (0 < pending || 0 < del)
+    if (GNUNET_YES != destroyed)
     {
-      GNUNET_break (0 == pending);
+      GNUNET_break (0);
       GCC_destroy (c);
-    }
-    else
-    {
-      GNUNET_break (0 == pending); /* If negative: counter error! */
     }
   }
   else

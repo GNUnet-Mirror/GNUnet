@@ -63,8 +63,10 @@ struct CadetPeerQueue;
  * @param fwd Was this a FWD going message?
  * @param size Size of the message.
  * @param wait Time spent waiting for core (only the time for THIS message)
+ *
+ * @return #GNUNET_YES if connection was destroyed, #GNUNET_NO otherwise.
  */
-typedef void (*GCP_sent) (void *cls,
+typedef int (*GCP_sent) (void *cls,
                           struct CadetConnection *c, int sent,
                           uint16_t type, uint32_t pid, int fwd, size_t size,
                           struct GNUNET_TIME_Relative wait);
@@ -125,12 +127,18 @@ GCP_connect (struct CadetPeer *peer);
  * Free a transmission that was already queued with all resources
  * associated to the request.
  *
+ * If connection was marked to be destroyed, and this was the last queued
+ * message on it, the connection will be free'd as a result.
+ *
  * @param queue Queue handler to cancel.
  * @param clear_cls Is it necessary to free associated cls?
  * @param sent Was it really sent? (Could have been canceled)
  * @param pid PID, if relevant (was sent and was a payload message).
+ *
+ * @return #GNUNET_YES if connection was destroyed as a result,
+ *         #GNUNET_NO otherwise.
  */
-void
+int
 GCP_queue_destroy (struct CadetPeerQueue *queue, int clear_cls,
                    int sent, uint32_t pid);
 
@@ -170,19 +178,18 @@ GCP_queue_cancel (struct CadetPeer *peer, struct CadetConnection *c);
  * Get the first message for a connection and unqueue it.
  *
  * Only tunnel (or higher) level messages are unqueued. Connection specific
- * messages are destroyed and the count given to the caller.
+ * messages are silently destroyed upon encounter.
  *
  * @param peer Neighboring peer.
  * @param c Connection.
- * @param del[out] How many messages have been deleted without returning.
- *                 Can be NULL.
+ * @param destroyed[out] Was the connection destroyed as a result?.
  *
  * @return First message for this connection.
  */
 struct GNUNET_MessageHeader *
 GCP_connection_pop (struct CadetPeer *peer,
                     struct CadetConnection *c,
-                    unsigned int *del);
+                    int *destroyed);
 
 /**
  * Unlock a possibly locked queue for a connection.
