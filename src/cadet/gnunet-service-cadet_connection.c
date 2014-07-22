@@ -1860,7 +1860,7 @@ GCC_handle_broken (void* cls,
      */
     if (0 < pending || 0 < del)
     {
-      GNUNET_break (0);
+      GNUNET_break (0 == pending);
       GCC_destroy (c);
     }
     else
