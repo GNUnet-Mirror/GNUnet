@@ -69,6 +69,11 @@ enum CadetConnectionState
    * Connection to be destroyed, just waiting to empty queues.
    */
   CADET_CONNECTION_DESTROYED,
+
+  /**
+   * Connection to be destroyed because of a distant peer, same as DESTROYED.
+   */
+  CADET_CONNECTION_BROKEN,
 };
 
 
