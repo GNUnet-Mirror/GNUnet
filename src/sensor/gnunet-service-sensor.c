@@ -89,6 +89,7 @@ static void
 shutdown_task (void *cls,
 	       const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  SENSOR_update_stop ();
   SENSOR_reporting_stop();
   SENSOR_analysis_stop();
   GNUNET_SENSOR_destroy_sensors (sensors);
@@ -99,7 +100,7 @@ shutdown_task (void *cls,
   }
   if(NULL != peerstore)
   {
-    GNUNET_PEERSTORE_disconnect(peerstore, GNUNET_YES); /*FIXME: merge into a global peerstore connection */
+    GNUNET_PEERSTORE_disconnect(peerstore, GNUNET_YES);
     peerstore = NULL;
   }
   GNUNET_SCHEDULER_shutdown();
@@ -588,6 +589,7 @@ run (void *cls,
   schedule_all_sensors();
   SENSOR_analysis_start(c, sensors);
   SENSOR_reporting_start(c, sensors);
+  SENSOR_update_start (c, sensors);
   statistics = GNUNET_STATISTICS_create("sensor", cfg);
   GNUNET_CRYPTO_get_peer_identity(cfg, &peerid);
   peerstore = GNUNET_PEERSTORE_connect(cfg);

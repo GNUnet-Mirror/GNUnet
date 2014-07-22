@@ -37,7 +37,8 @@ gnunet_sensor_LDADD = \
 gnunet_service_sensor_SOURCES = \
  gnunet-service-sensor.c \
  gnunet-service-sensor-analysis.c \
- gnunet-service-sensor-reporting.c
+ gnunet-service-sensor-reporting.c \
+ gnunet-service-sensor-update.c
 gnunet_service_sensor_LDADD = \
   libgnunetsensorutil.la \
   $(top_builddir)/src/util/libgnunetutil.la \

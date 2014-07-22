@@ -106,6 +106,11 @@ extern "C"
  */
 #define GNUNET_APPLICATION_TYPE_SENSORDASHBOARD 24
 
+/**
+ * Application offering sensor updates
+ */
+#define GNUNET_APPLICATION_TYPE_SENSORUPDATE 25
+
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

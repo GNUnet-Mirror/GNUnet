@@ -94,3 +94,21 @@ void SENSOR_reporting_stop();
 int
 SENSOR_reporting_start(const struct GNUNET_CONFIGURATION_Handle *c,
     struct GNUNET_CONTAINER_MultiHashMap *sensors);
+
+/**
+ * Stop the sensor update module
+ */
+void
+SENSOR_update_stop ();
+
+/**
+ * Start the sensor update module
+ *
+ * @param c our service configuration
+ * @param sensors multihashmap of loaded sensors
+ * @return #GNUNET_OK if started successfully, #GNUNET_SYSERR otherwise
+ */
+int
+SENSOR_update_start (const struct GNUNET_CONFIGURATION_Handle *c,
+                     struct GNUNET_CONTAINER_MultiHashMap *sensors);
+
