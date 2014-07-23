@@ -35,7 +35,12 @@ libgnunetsocial_la_LDFLAGS = \
   -version-info 0:0:0
 libgnunetsocial_la_DEPENDENCIES = \
   $(top_builddir)/src/util/libgnunetutil.la \
-  $(top_builddir)/src/env/libgnunetenv.la
+  $(top_builddir)/src/env/libgnunetenv.la \
+  $(top_builddir)/src/psyc/libgnunetpsycutil.la \
+  $(top_builddir)/src/core/libgnunetcore.la \
+  $(top_builddir)/src/identity/libgnunetidentity.la \
+  $(top_builddir)/src/gns/libgnunetgns.la \
+  $(top_builddir)/src/namestore/libgnunetnamestore.la
 
 bin_PROGRAMS =
 
@@ -48,11 +53,13 @@ gnunet_service_social_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/psyc/libgnunetpsyc.la \
+  $(top_builddir)/src/psyc/libgnunetpsycutil.la \
   $(GN_LIBINTL)
 gnunet_service_social_DEPENDENCIES = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
-  $(top_builddir)/src/psyc/libgnunetpsyc.la
+  $(top_builddir)/src/psyc/libgnunetpsyc.la \
+  $(top_builddir)/src/psyc/libgnunetpsycutil.la
 gnunet_service_social_CFLAGS = $(AM_CFLAGS)
 
 
