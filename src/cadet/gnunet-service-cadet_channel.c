@@ -574,14 +574,20 @@ send_client_data (struct CadetChannel *ch,
   if (fwd)
   {
     if (ch->dest_rel->client_ready)
+    {
       GML_send_data (ch->dest, msg, ch->lid_dest);
+      ch->dest_rel->client_ready = GNUNET_NO;
+    }
     else
       add_buffered_data (msg, ch->dest_rel);
   }
   else
   {
     if (ch->root_rel->client_ready)
+    {
       GML_send_data (ch->root, msg, ch->lid_root);
+      ch->root_rel->client_ready = GNUNET_NO;
+    }
     else
       add_buffered_data (msg, ch->root_rel);
   }
