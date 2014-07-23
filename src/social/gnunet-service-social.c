@@ -233,8 +233,7 @@ struct Guest
 };
 
 
-// FIXME uncomment when used, otherwise gcc is unhappy
-/*static*/ inline void
+static inline void
 transmit_message (struct Place *pl);
 
 
@@ -417,15 +416,14 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
-// FIXME please commit gnunet_protocols.h and uncoment!
-//     { &client_home_enter, NULL,
-//       GNUNET_MESSAGE_TYPE_SOCIAL_HOME_ENTER, 0 },
-//
-//     { &client_place_enter, NULL,
-//       GNUNET_MESSAGE_TYPE_SOCIAL_PLACE_ENTER, 0 },
-//
-//     { &client_join_decision, NULL,
-//       GNUNET_MESSAGE_TYPE_SOCIAL_JOIN_DECISION, 0 },
+    { &client_home_enter, NULL,
+      GNUNET_MESSAGE_TYPE_SOCIAL_HOME_ENTER, 0 },
+
+    { &client_place_enter, NULL,
+      GNUNET_MESSAGE_TYPE_SOCIAL_PLACE_ENTER, 0 },
+
+    { &client_join_decision, NULL,
+      GNUNET_MESSAGE_TYPE_SOCIAL_JOIN_DECISION, 0 },
 
     { &client_psyc_message, NULL,
       GNUNET_MESSAGE_TYPE_PSYC_MESSAGE, 0 }
