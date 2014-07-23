@@ -190,6 +190,24 @@ enum GNUNET_PSYC_StateDeltaValues
 GNUNET_NETWORK_STRUCT_BEGIN
 
 /**
+ * A PSYC message.
+ *
+ * Used for single-fragment messages e.g. in a join request or response.
+ */
+struct GNUNET_PSYC_Message
+{
+  /**
+   * Message header with size and type information.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /* Followed by concatenated PSYC message parts:
+   * messages with GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_* types
+   */
+};
+
+
+/**
  * Header of a PSYC message.
  *
  * Only present when receiving a message.
@@ -213,6 +231,12 @@ struct GNUNET_PSYC_MessageHeader
    * Monotonically increasing from 1.
    */
   uint64_t message_id GNUNET_PACKED;
+
+  /**
+   * Byte offset of this @e fragment of the @e message.
+   * FIXME: use data_offset instead
+   */
+  uint64_t fragment_offset GNUNET_PACKED;
 
   /**
    * Sending slave's public key.
@@ -299,6 +323,9 @@ struct GNUNET_PSYC_CountersResultMessage
 };
 
 
+/**
+ * Join request sent to a PSYC master.
+ */
 struct GNUNET_PSYC_JoinRequestMessage
 {
   /**
@@ -314,6 +341,9 @@ struct GNUNET_PSYC_JoinRequestMessage
 };
 
 
+/**
+ * Join decision sent in reply to a join request.
+ */
 struct GNUNET_PSYC_JoinDecisionMessage
 {
   /**
@@ -379,23 +409,42 @@ struct GNUNET_PSYC_JoinHandle;
 
 
 /**
- * Method called from PSYC upon receiving part of a message.
+ * Method called from PSYC upon receiving a message.
  *
  * @param cls  Closure.
  * @param message_id  Sequence number of the message.
  * @param flags  OR'ed GNUNET_PSYC_MessageFlags
  * @param msg  Message part, one of the following types:
- * - GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_HEADER
- * - GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_METHOD
- * - GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MODIFIER
- * - GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MOD_CONT
- * - GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_DATA
  */
 typedef void
 (*GNUNET_PSYC_MessageCallback) (void *cls,
                                 uint64_t message_id,
                                 uint32_t flags,
-                                const struct GNUNET_MessageHeader *msg);
+                                const struct GNUNET_PSYC_MessageHeader *msg);
+
+
+/**
+ * Method called from PSYC upon receiving part of a message.
+ *
+ * @param cls  Closure.
+ * @param message_id  Sequence number of the message.
+ * @param data_offset  Byte offset of data, only set if @a msg has a type
+ *                     #GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_DATA
+ * @param flags  OR'ed GNUNET_PSYC_MessageFlags
+ * @param msg  Message part, one of the following types:
+ * - #GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_HEADER
+ * - #GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_METHOD
+ * - #GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MODIFIER
+ * - #GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MOD_CONT
+ * - #GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_DATA
+ * or NULL if an error occurred while receiving a message.
+ */
+typedef void
+(*GNUNET_PSYC_MessagePartCallback) (void *cls,
+                                    uint64_t message_id,
+                                    uint64_t data_offset,
+                                    uint32_t flags,
+                                    const struct GNUNET_MessageHeader *msg);
 
 
 /**
@@ -408,10 +457,9 @@ typedef void
  */
 typedef void
 (*GNUNET_PSYC_JoinRequestCallback) (void *cls,
-                                    const struct
-                                    GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
-                                    const struct
-                                    GNUNET_PSYC_MessageHeader *join_msg,
+                                    const struct GNUNET_PSYC_JoinRequestMessage *req,
+                                    const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
+                                    const struct GNUNET_PSYC_Message *join_msg,
                                     struct GNUNET_PSYC_JoinHandle *jh);
 
 
@@ -445,7 +493,7 @@ GNUNET_PSYC_join_decision (struct GNUNET_PSYC_JoinHandle *jh,
                            int is_admitted,
                            uint32_t relay_count,
                            const struct GNUNET_PeerIdentity *relays,
-                           const struct GNUNET_PSYC_MessageHeader *join_resp);
+                           const struct GNUNET_PSYC_Message *join_resp);
 
 
 /**
@@ -501,6 +549,7 @@ GNUNET_PSYC_master_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
                           GNUNET_PSYC_MasterStartCallback master_start_cb,
                           GNUNET_PSYC_JoinRequestCallback join_request_cb,
                           GNUNET_PSYC_MessageCallback message_cb,
+                          GNUNET_PSYC_MessagePartCallback message_part_cb,
                           void *cls);
 
 
@@ -645,10 +694,21 @@ GNUNET_PSYC_master_transmit_cancel (struct GNUNET_PSYC_MasterTransmitHandle *th)
 /**
  * Stop a PSYC master channel.
  *
- * @param master PSYC channel master to stop.
+ * @param master
+ *        PSYC channel master to stop.
+ * @param keep_active
+ *        Keep place active after last application disconnected.
+ * @param stop_cb
+ *        Function called after the master stopped
+ *        and disconnected from the psyc service.
+ * @param stop_cls
+ *        Closure for @a part_cb.
  */
 void
-GNUNET_PSYC_master_stop (struct GNUNET_PSYC_Master *master);
+GNUNET_PSYC_master_stop (struct GNUNET_PSYC_Master *master,
+                         int keep_active,
+                         GNUNET_ContinuationCallback stop_cb,
+                         void *stop_cls);
 
 
 /**
@@ -679,9 +739,9 @@ typedef void
  */
 typedef void
 (*GNUNET_PSYC_JoinDecisionCallback) (void *cls,
+                                     const struct GNUNET_PSYC_JoinDecisionMessage *dcsn,
                                      int is_admitted,
-                                     const struct
-                                     GNUNET_PSYC_MessageHeader *join_msg);
+                                     const struct GNUNET_PSYC_Message *join_msg);
 
 
 /**
@@ -726,10 +786,11 @@ GNUNET_PSYC_slave_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
                         uint32_t relay_count,
                         const struct GNUNET_PeerIdentity *relays,
                         GNUNET_PSYC_MessageCallback message_cb,
+                        GNUNET_PSYC_MessagePartCallback message_part_cb,
                         GNUNET_PSYC_SlaveConnectCallback slave_connect_cb,
                         GNUNET_PSYC_JoinDecisionCallback join_decision_cb,
                         void *cls,
-                        const struct GNUNET_MessageHeader *join_msg);
+                        const struct GNUNET_PSYC_Message *join_msg);
 
 
 /**
@@ -738,10 +799,21 @@ GNUNET_PSYC_slave_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * Will terminate the connection to the PSYC service.  Polite clients should
  * first explicitly send a part request (via GNUNET_PSYC_slave_transmit()).
  *
- * @param slave Slave handle.
+ * @param slave
+ *        Slave handle.
+ * @param keep_active
+ *        Keep place active after last application disconnected.
+ * @param part_cb
+ *        Function called after the slave parted the channel
+ *        and disconnected from the psyc service.
+ * @param part_cls
+ *        Closure for @a part_cb.
  */
 void
-GNUNET_PSYC_slave_part (struct GNUNET_PSYC_Slave *slave);
+GNUNET_PSYC_slave_part (struct GNUNET_PSYC_Slave *slave,
+                        int keep_active,
+                        GNUNET_ContinuationCallback part_cb,
+                        void *part_cls);
 
 
 /**
@@ -937,6 +1009,7 @@ GNUNET_PSYC_channel_story_tell (struct GNUNET_PSYC_Channel *channel,
                                 uint64_t start_message_id,
                                 uint64_t end_message_id,
                                 GNUNET_PSYC_MessageCallback message_cb,
+                                GNUNET_PSYC_MessagePartCallback message_part_cb,
                                 GNUNET_PSYC_FinishCallback finish_cb,
                                 void *cls);
 

@@ -264,6 +264,15 @@ typedef int
                             const char *filename);
 
 
+/**
+ * Generic continuation callback.
+ *
+ * @param cls  Closure.
+ */
+typedef void
+(*GNUNET_ContinuationCallback) (void *cls);
+
+
 /* ****************************** logging ***************************** */
 
 /**

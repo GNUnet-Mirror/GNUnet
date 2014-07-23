@@ -88,6 +88,16 @@ struct GNUNET_MULTICAST_Group
   void *cb_cls;
 
   /**
+   * Function called after disconnected from the service.
+   */
+  GNUNET_ContinuationCallback disconnect_cb;
+
+  /**
+   * Closure for @a disconnect_cb.
+   */
+  void *disconnect_cls;
+
+  /**
    * Are we currently transmitting a message?
    */
   uint8_t in_transmit;
@@ -96,6 +106,12 @@ struct GNUNET_MULTICAST_Group
    * Is this the origin or a member?
    */
   uint8_t is_origin;
+
+  /**
+   * Is this channel in the process of disconnecting from the service?
+   * #GNUNET_YES or #GNUNET_NO
+   */
+  uint8_t is_disconnecting;
 };
 
 
@@ -320,8 +336,9 @@ member_recv_join_decision (void *cls,
     mem->join_dcsn_cb (grp->cb_cls, is_admitted, &hdcsn->peer,
                        relay_count, relays, join_resp);
 
-  if (GNUNET_YES != is_admitted)
-    GNUNET_MULTICAST_member_part (mem);
+  // FIXME:
+  //if (GNUNET_YES != is_admitted)
+  //  GNUNET_MULTICAST_member_part (mem);
 }
 
 
@@ -369,6 +386,33 @@ static struct GNUNET_CLIENT_MANAGER_MessageHandler member_handlers[] =
 
   { NULL, NULL, 0, 0, GNUNET_NO }
 };
+
+
+static void
+group_cleanup (struct GNUNET_MULTICAST_Group *grp)
+{
+  GNUNET_free (grp->connect_msg);
+  if (NULL != grp->disconnect_cb)
+    grp->disconnect_cb (grp->disconnect_cls);
+}
+
+
+static void
+origin_cleanup (void *cls)
+{
+  struct GNUNET_MULTICAST_Origin *orig = cls;
+  group_cleanup (&orig->grp);
+  GNUNET_free (orig);
+}
+
+
+static void
+member_cleanup (void *cls)
+{
+  struct GNUNET_MULTICAST_Member *mem = cls;
+  group_cleanup (&mem->grp);
+  GNUNET_free (mem);
+}
 
 
 /**
@@ -565,10 +609,18 @@ GNUNET_MULTICAST_origin_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param origin Multicast group to stop.
  */
 void
-GNUNET_MULTICAST_origin_stop (struct GNUNET_MULTICAST_Origin *orig)
+GNUNET_MULTICAST_origin_stop (struct GNUNET_MULTICAST_Origin *orig,
+                              GNUNET_ContinuationCallback stop_cb,
+                              void *stop_cls)
 {
-  GNUNET_CLIENT_MANAGER_disconnect (orig->grp.client, GNUNET_YES);
-  GNUNET_free (orig);
+  struct GNUNET_MULTICAST_Group *grp = &orig->grp;
+
+  grp->is_disconnecting = GNUNET_YES;
+  grp->disconnect_cb = stop_cb;
+  grp->disconnect_cls = stop_cls;
+
+  GNUNET_CLIENT_MANAGER_disconnect (orig->grp.client, GNUNET_YES,
+                                    &origin_cleanup, orig);
 }
 
 
@@ -774,10 +826,18 @@ GNUNET_MULTICAST_member_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param member Membership handle.
  */
 void
-GNUNET_MULTICAST_member_part (struct GNUNET_MULTICAST_Member *mem)
+GNUNET_MULTICAST_member_part (struct GNUNET_MULTICAST_Member *mem,
+                              GNUNET_ContinuationCallback part_cb,
+                              void *part_cls)
 {
-  GNUNET_CLIENT_MANAGER_disconnect (mem->grp.client, GNUNET_YES);
-  GNUNET_free (mem);
+  struct GNUNET_MULTICAST_Group *grp = &mem->grp;
+
+  grp->is_disconnecting = GNUNET_YES;
+  grp->disconnect_cb = part_cb;
+  grp->disconnect_cls = part_cls;
+
+  GNUNET_CLIENT_MANAGER_disconnect (mem->grp.client, GNUNET_YES,
+                                    &member_cleanup, mem);
 }
 
 

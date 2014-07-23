@@ -62,8 +62,6 @@ static struct GNUNET_CRYPTO_EcdsaPrivateKey *slave_key;
 static struct GNUNET_CRYPTO_EddsaPublicKey channel_pub_key;
 static struct GNUNET_CRYPTO_EcdsaPublicKey slave_pub_key;
 
-struct GNUNET_PSYC_MasterTransmitHandle *mth;
-
 struct TransmitClosure
 {
   struct GNUNET_PSYC_MasterTransmitHandle *mst_tmit;
@@ -95,6 +93,28 @@ static void
 master_transmit ();
 
 
+void master_stopped (void *cls)
+{
+  if (NULL != tmit)
+  {
+    GNUNET_ENV_environment_destroy (tmit->env);
+    GNUNET_free (tmit);
+    tmit = NULL;
+  }
+  GNUNET_SCHEDULER_shutdown ();
+}
+
+void slave_parted (void *cls)
+{
+  if (NULL != mst)
+  {
+    GNUNET_PSYC_master_stop (mst, GNUNET_NO, &master_stopped, NULL);
+    mst = NULL;
+  }
+  else
+    master_stopped (NULL);
+}
+
 /**
  * Clean up all resources used.
  */
@@ -103,21 +123,11 @@ cleanup ()
 {
   if (NULL != slv)
   {
-    GNUNET_PSYC_slave_part (slv);
+    GNUNET_PSYC_slave_part (slv, GNUNET_NO, &slave_parted, NULL);
     slv = NULL;
   }
-  if (NULL != mst)
-  {
-    GNUNET_PSYC_master_stop (mst);
-    mst = NULL;
-  }
-  if (NULL != tmit)
-  {
-    GNUNET_ENV_environment_destroy (tmit->env);
-    GNUNET_free (tmit);
-    tmit = NULL;
-  }
-  GNUNET_SCHEDULER_shutdown ();
+  else
+    slave_parted (NULL);
 }
 
 
@@ -171,7 +181,20 @@ end ()
 
 static void
 master_message_cb (void *cls, uint64_t message_id, uint32_t flags,
-                   const struct GNUNET_MessageHeader *msg)
+                   const struct GNUNET_PSYC_MessageHeader *msg)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "Master got PSYC message fragment of size %u "
+              "belonging to message ID %llu with flags %x\n",
+              ntohs (msg->header.size), message_id, flags);
+  // FIXME
+}
+
+
+static void
+master_message_part_cb (void *cls, uint64_t message_id,
+                        uint64_t data_offset, uint32_t flags,
+                        const struct GNUNET_MessageHeader *msg)
 {
   if (NULL == msg)
   {
@@ -215,7 +238,20 @@ master_message_cb (void *cls, uint64_t message_id, uint32_t flags,
 
 static void
 slave_message_cb (void *cls, uint64_t message_id, uint32_t flags,
-                  const struct GNUNET_MessageHeader *msg)
+                  const struct GNUNET_PSYC_MessageHeader *msg)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "Slave got PSYC message fragment of size %u "
+              "belonging to message ID %llu with flags %x\n",
+              ntohs (msg->header.size), message_id, flags);
+  // FIXME
+}
+
+
+static void
+slave_message_part_cb (void *cls, uint64_t message_id,
+                       uint64_t data_offset, uint32_t flags,
+                       const struct GNUNET_MessageHeader *msg)
 {
   if (NULL == msg)
   {
@@ -371,7 +407,7 @@ tmit_notify_mod (void *cls, uint16_t *data_size, void *data, uint8_t *oper,
     memcpy (data, value, value_size);
   }
 
-  return 0 == tmit->mod_value_size ? GNUNET_YES : GNUNET_NO;
+  return GNUNET_NO;
 }
 
 
@@ -380,8 +416,10 @@ slave_join ();
 
 
 static void
-join_decision_cb (void *cls, int is_admitted,
-                  const struct GNUNET_PSYC_MessageHeader *join_msg)
+join_decision_cb (void *cls,
+                  const struct GNUNET_PSYC_JoinDecisionMessage *dcsn,
+                  int is_admitted,
+                  const struct GNUNET_PSYC_Message *join_msg)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
               "Slave got join decision: %d\n", is_admitted);
@@ -415,8 +453,10 @@ join_decision_cb (void *cls, int is_admitted,
 
 
 static void
-join_request_cb (void *cls, const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
-                 const struct GNUNET_PSYC_MessageHeader *msg,
+join_request_cb (void *cls,
+                 const struct GNUNET_PSYC_JoinRequestMessage *req,
+                 const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
+                 const struct GNUNET_PSYC_Message *join_msg,
                  struct GNUNET_PSYC_JoinHandle *jh)
 {
   struct GNUNET_HashCode slave_key_hash;
@@ -450,11 +490,11 @@ slave_join ()
                               "_foo", "bar baz", 7);
   GNUNET_ENV_environment_add (env, GNUNET_ENV_OP_ASSIGN,
                               "_foo_bar", "foo bar baz", 11);
-  struct GNUNET_MessageHeader *
+  struct GNUNET_PSYC_Message *
     join_msg = GNUNET_PSYC_message_create ("_request_join", env, "some data", 9);
 
-  slv = GNUNET_PSYC_slave_join (cfg, &channel_pub_key, slave_key, &origin,
-                                0, NULL, &slave_message_cb,
+  slv = GNUNET_PSYC_slave_join (cfg, &channel_pub_key, slave_key, &origin, 0, NULL,
+                                &slave_message_cb, &slave_message_part_cb,
                                 &slave_connect_cb, &join_decision_cb, NULL,
                                 join_msg);
   GNUNET_ENV_environment_destroy (env);
@@ -551,7 +591,8 @@ run (void *cls,
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Starting master.\n");
   mst = GNUNET_PSYC_master_start (cfg, channel_key, GNUNET_PSYC_CHANNEL_PRIVATE,
                                   &master_start_cb, &join_request_cb,
-                                  &master_message_cb, NULL);
+                                  &master_message_cb, &master_message_part_cb,
+                                  NULL);
 }
 
 

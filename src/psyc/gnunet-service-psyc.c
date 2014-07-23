@@ -168,7 +168,7 @@ struct FragmentQueue
    * Is the message queued for delivery to the client?
    * i.e. added to the recv_msgs queue
    */
-  uint8_t queued;
+  uint8_t is_queued;
 };
 
 
@@ -382,7 +382,7 @@ struct Slave
   /**
    * Join request to be transmitted to the master on join.
    */
-  struct GNUNET_MessageHeader *join_req;
+  struct GNUNET_PSYC_Message *join_msg;
 
   /**
    * Join decision received from multicast.
@@ -435,7 +435,7 @@ cleanup_master (struct Master *mst)
   struct Channel *chn = &mst->chn;
 
   if (NULL != mst->origin)
-    GNUNET_MULTICAST_origin_stop (mst->origin);
+    GNUNET_MULTICAST_origin_stop (mst->origin, NULL, NULL); // FIXME
   GNUNET_CONTAINER_multihashmap_destroy (mst->join_reqs);
   GNUNET_CONTAINER_multihashmap_remove (masters, &chn->pub_key_hash, chn);
 }
@@ -462,12 +462,21 @@ cleanup_slave (struct Slave *slv)
   }
   GNUNET_CONTAINER_multihashmap_remove (slaves, &chn->pub_key_hash, slv);
 
-  if (NULL != slv->join_req)
-    GNUNET_free (slv->join_req);
+  if (NULL != slv->join_msg)
+  {
+    GNUNET_free (slv->join_msg);
+    slv->join_msg = NULL;
+  }
   if (NULL != slv->relays)
+  {
     GNUNET_free (slv->relays);
+    slv->relays = NULL;
+  }
   if (NULL != slv->member)
-    GNUNET_MULTICAST_member_part (slv->member);
+  {
+    GNUNET_MULTICAST_member_part (slv->member, NULL, NULL); // FIXME
+    slv->member = NULL;
+  }
   GNUNET_CONTAINER_multihashmap_remove (slaves, &chn->pub_key_hash, chn);
 }
 
@@ -482,7 +491,10 @@ cleanup_channel (struct Channel *chn)
   GNUNET_CONTAINER_multihashmap_remove_all (recv_cache, &chn->pub_key_hash);
 
   if (NULL != chn->store_op)
+  {
     GNUNET_PSYCSTORE_operation_cancel (chn->store_op);
+    chn->store_op = NULL;
+  }
 
   (GNUNET_YES == chn->is_master)
     ? cleanup_master ((struct Master *) chn)
@@ -574,7 +586,7 @@ struct JoinMemTestClosure
   struct GNUNET_CRYPTO_EcdsaPublicKey slave_key;
   struct Channel *chn;
   struct GNUNET_MULTICAST_JoinHandle *jh;
-  struct MasterJoinRequest *master_join_req;
+  struct GNUNET_PSYC_JoinRequestMessage *join_msg;
 };
 
 
@@ -594,14 +606,14 @@ join_mem_test_cb (void *cls, int64_t result, const char *err_msg)
                         &slave_key_hash);
     GNUNET_CONTAINER_multihashmap_put (mst->join_reqs, &slave_key_hash, jcls->jh,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
-    client_send_msg (jcls->chn, &jcls->master_join_req->header);
+    client_send_msg (jcls->chn, &jcls->join_msg->header);
   }
   else
   {
     // FIXME: add relays
     GNUNET_MULTICAST_join_decision (jcls->jh, result, 0, NULL, NULL);
   }
-  GNUNET_free (jcls->master_join_req);
+  GNUNET_free (jcls->join_msg);
   GNUNET_free (jcls);
 }
 
@@ -633,7 +645,8 @@ mcast_recv_join_request (void *cls,
     }
   }
 
-  struct MasterJoinRequest *req = GNUNET_malloc (sizeof (*req) + join_msg_size);
+  struct GNUNET_PSYC_JoinRequestMessage *
+    req = GNUNET_malloc (sizeof (*req) + join_msg_size);
   req->header.size = htons (sizeof (*req) + join_msg_size);
   req->header.type = htons (GNUNET_MESSAGE_TYPE_PSYC_JOIN_REQUEST);
   req->slave_key = *slave_key;
@@ -644,7 +657,7 @@ mcast_recv_join_request (void *cls,
   jcls->slave_key = *slave_key;
   jcls->chn = chn;
   jcls->jh = jh;
-  jcls->master_join_req = req;
+  jcls->join_msg = req;
 
   GNUNET_PSYCSTORE_membership_test (store, &chn->pub_key, slave_key,
                                     chn->max_message_id, 0,
@@ -780,6 +793,7 @@ client_send_mcast_msg (struct Channel *chn,
   pmsg->header.size = htons (psize);
   pmsg->header.type = htons (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE);
   pmsg->message_id = mmsg->message_id;
+  pmsg->fragment_offset = mmsg->fragment_offset;
 
   memcpy (&pmsg[1], &mmsg[1], size - sizeof (*mmsg));
   client_send_msg (chn, &pmsg->header);
@@ -810,6 +824,7 @@ client_send_mcast_req (struct Master *mst,
   pmsg->header.size = htons (psize);
   pmsg->header.type = htons (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE);
   pmsg->message_id = req->request_id;
+  pmsg->fragment_offset = req->fragment_offset;
   pmsg->flags = htonl (GNUNET_PSYC_MESSAGE_REQUEST);
 
   memcpy (&pmsg[1], &req[1], size - sizeof (*req));
@@ -870,11 +885,12 @@ fragment_queue_insert (struct Channel *chn,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
                 "%p Adding message fragment to cache. "
-                "message_id: %" PRIu64 ", fragment_id: %" PRIu64 ", "
-                "header_size: %" PRIu64 " + %u).\n",
+                "message_id: %" PRIu64 ", fragment_id: %" PRIu64 "\n",
                 chn, GNUNET_ntohll (mmsg->message_id),
-                GNUNET_ntohll (mmsg->fragment_id),
-                fragq->header_size, size);
+                GNUNET_ntohll (mmsg->fragment_id));
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+                "%p header_size: %" PRIu64 " + %u\n",
+                chn, fragq->header_size, size);
     cache_entry = GNUNET_new (struct RecvCacheEntry);
     cache_entry->ref_count = 1;
     cache_entry->mmsg = GNUNET_malloc (size);
@@ -955,11 +971,11 @@ fragment_queue_insert (struct Channel *chn,
   case MSG_FRAG_STATE_DATA:
   case MSG_FRAG_STATE_END:
   case MSG_FRAG_STATE_CANCEL:
-    if (GNUNET_NO == fragq->queued)
+    if (GNUNET_NO == fragq->is_queued)
     {
       GNUNET_CONTAINER_heap_insert (chn->recv_msgs, NULL,
                                     GNUNET_ntohll (mmsg->message_id));
-      fragq->queued = GNUNET_YES;
+      fragq->is_queued = GNUNET_YES;
     }
   }
 
@@ -1034,7 +1050,7 @@ fragment_queue_run (struct Channel *chn, uint64_t msg_id,
   if (MSG_FRAG_STATE_END <= fragq->state)
   {
     struct GNUNET_HashCode msg_id_hash;
-    hash_key_from_nll (&msg_id_hash, msg_id);
+    hash_key_from_hll (&msg_id_hash, msg_id);
 
     GNUNET_CONTAINER_multihashmap_remove (chn->recv_frags, &msg_id_hash, fragq);
     GNUNET_CONTAINER_heap_destroy (fragq->fragments);
@@ -1042,7 +1058,7 @@ fragment_queue_run (struct Channel *chn, uint64_t msg_id,
   }
   else
   {
-    fragq->queued = GNUNET_NO;
+    fragq->is_queued = GNUNET_NO;
   }
 }
 
@@ -1331,13 +1347,18 @@ store_recv_slave_counters (void *cls, int result, uint64_t max_fragment_id,
       = GNUNET_MULTICAST_member_join (cfg, &chn->pub_key, &slv->priv_key,
                                       &slv->origin,
                                       slv->relay_count, slv->relays,
-                                      slv->join_req,
+                                      &slv->join_msg->header,
                                       &mcast_recv_join_request,
                                       &mcast_recv_join_decision,
                                       &mcast_recv_membership_test,
                                       &mcast_recv_replay_fragment,
                                       &mcast_recv_replay_message,
                                       &mcast_recv_message, chn);
+    if (NULL != slv->join_msg)
+    {
+      GNUNET_free (slv->join_msg);
+      slv->join_msg = NULL;
+    }
   }
   else
   {
@@ -1435,6 +1456,7 @@ client_recv_slave_join (void *cls, struct GNUNET_SERVER_Client *client,
 {
   const struct SlaveJoinRequest *req
     = (const struct SlaveJoinRequest *) msg;
+  uint16_t req_size = ntohs (req->header.size);
 
   struct GNUNET_CRYPTO_EcdsaPublicKey slv_pub_key;
   struct GNUNET_HashCode pub_key_hash, slv_pub_key_hash;
@@ -1460,15 +1482,32 @@ client_recv_slave_join (void *cls, struct GNUNET_SERVER_Client *client,
     slv->pub_key_hash = slv_pub_key_hash;
     slv->origin = req->origin;
     slv->relay_count = ntohl (req->relay_count);
+
+    const struct GNUNET_PeerIdentity *
+      relays = (const struct GNUNET_PeerIdentity *) &req[1];
+    uint16_t relay_size = slv->relay_count * sizeof (*relays);
+    uint16_t join_msg_size = 0;
+
+    if (sizeof (*req) + relay_size + sizeof (struct GNUNET_MessageHeader)
+        <= req_size)
+    {
+      join_msg_size = ntohs (slv->join_msg->header.size);
+      slv->join_msg = GNUNET_malloc (join_msg_size);
+      memcpy (slv->join_msg, ((char *) &req[1]) + relay_size, join_msg_size);
+    }
+    if (sizeof (*req) + relay_size + join_msg_size != req_size)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "%u + %u + %u != %u\n",
+                  sizeof (*req), relay_size, join_msg_size, req_size);
+      GNUNET_break (0);
+      GNUNET_SERVER_client_disconnect (client);
+      return;
+    }
     if (0 < slv->relay_count)
     {
-      const struct GNUNET_PeerIdentity *relays
-        = (const struct GNUNET_PeerIdentity *) &req[1];
-      slv->relays
-        = GNUNET_malloc (slv->relay_count * sizeof (struct GNUNET_PeerIdentity));
-      uint32_t i;
-      for (i = 0; i < slv->relay_count; i++)
-        memcpy (&slv->relays[i], &relays[i], sizeof (*relays));
+      slv->relays = GNUNET_malloc (relay_size);
+      memcpy (slv->relays, &req[1], relay_size);
     }
 
     chn = &slv->chn;
@@ -1510,14 +1549,18 @@ client_recv_slave_join (void *cls, struct GNUNET_SERVER_Client *client,
         = GNUNET_MULTICAST_member_join (cfg, &chn->pub_key, &slv->priv_key,
                                         &slv->origin,
                                         slv->relay_count, slv->relays,
-                                        slv->join_req,
+                                        &slv->join_msg->header,
                                         &mcast_recv_join_request,
                                         &mcast_recv_join_decision,
                                         &mcast_recv_membership_test,
                                         &mcast_recv_replay_fragment,
                                         &mcast_recv_replay_message,
                                         &mcast_recv_message, chn);
-
+      if (NULL != slv->join_msg)
+      {
+        GNUNET_free (slv->join_msg);
+        slv->join_msg = NULL;
+      }
     }
     else if (NULL != slv->join_dcsn)
     {
@@ -1549,13 +1592,14 @@ struct JoinDecisionClosure
 
 
 /**
- * Iterator callback for responding to join requests of a slave.
+ * Iterator callback for sending join decisions to multicast.
  */
 static int
 mcast_send_join_decision (void *cls, const struct GNUNET_HashCode *pub_key_hash,
-                          void *jh)
+                          void *value)
 {
   struct JoinDecisionClosure *jcls = cls;
+  struct GNUNET_MULTICAST_JoinHandle *jh = value;
   // FIXME: add relays
   GNUNET_MULTICAST_join_decision (jh, jcls->is_admitted, 0, NULL, jcls->msg);
   return GNUNET_YES;
@@ -1579,8 +1623,7 @@ client_recv_join_decision (void *cls, struct GNUNET_SERVER_Client *client,
   struct JoinDecisionClosure jcls;
   jcls.is_admitted = ntohl (dcsn->is_admitted);
   jcls.msg
-    = (sizeof (*dcsn) + sizeof (struct GNUNET_PSYC_MessageHeader)
-       <= ntohs (msg->size))
+    = (sizeof (*dcsn) + sizeof (*jcls.msg) <= ntohs (msg->size))
     ? (struct GNUNET_MessageHeader *) &dcsn[1]
     : NULL;
 
@@ -1901,6 +1944,9 @@ client_recv_psyc_message (void *cls, struct GNUNET_SERVER_Client *client,
     GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "%p Received message with first part type %u and last part type %u.\n",
+              chn, first_ptype, last_ptype);
 
   queue_message (chn, client, size - sizeof (*msg), &msg[1],
                  first_ptype, last_ptype);

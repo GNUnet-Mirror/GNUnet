@@ -119,10 +119,14 @@ GNUNET_CLIENT_MANAGER_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
  *
  * @param mgr             Client manager connection.
  * @param transmit_queue  Transmit pending messages in queue before disconnecting.
+ * @param disconnect_cb   Function called after disconnected from the service.
+ * @param disconnect_cls  Closure for @a disconnect_cb.
  */
 void
 GNUNET_CLIENT_MANAGER_disconnect (struct GNUNET_CLIENT_MANAGER_Connection *mgr,
-                                  int transmit_queue);
+                                  int transmit_queue,
+                                  GNUNET_ContinuationCallback disconnect_cb,
+                                  void *disconnect_cls);
 
 
 /**

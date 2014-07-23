@@ -423,6 +423,7 @@ client_origin_start (void *cls, struct GNUNET_SERVER_Client *client,
   {
     orig = GNUNET_new (struct Origin);
     orig->priv_key = msg->group_key;
+    orig->max_fragment_id = GNUNET_ntohll (msg->max_fragment_id);
     grp = &orig->grp;
     grp->is_origin = GNUNET_YES;
     grp->pub_key = pub_key;
@@ -482,6 +483,7 @@ client_member_join (void *cls, struct GNUNET_SERVER_Client *client,
     mem->priv_key = msg->member_key;
     mem->pub_key = mem_pub_key;
     mem->pub_key_hash = mem_pub_key_hash;
+    mem->max_fragment_id = 0; // FIXME
 
     grp = &mem->grp;
     grp->is_origin = GNUNET_NO;
@@ -663,7 +665,7 @@ client_multicast_message (void *cls, struct GNUNET_SERVER_Client *client,
   struct GNUNET_MULTICAST_MessageHeader *
     msg = (struct GNUNET_MULTICAST_MessageHeader *) m;
 
-  msg->fragment_id = GNUNET_htonll (orig->max_fragment_id++);
+  msg->fragment_id = GNUNET_htonll (++orig->max_fragment_id);
   msg->purpose.size = htonl (sizeof (*msg) + ntohs (m->size)
                              - sizeof (msg->header)
                              - sizeof (msg->hop_counter)
@@ -699,8 +701,7 @@ client_multicast_request (void *cls, struct GNUNET_SERVER_Client *client,
   struct GNUNET_MULTICAST_RequestHeader *
     req = (struct GNUNET_MULTICAST_RequestHeader *) m;
 
-  req->fragment_id = GNUNET_ntohll (mem->max_fragment_id++);
-
+  req->fragment_id = GNUNET_ntohll (++mem->max_fragment_id);
   req->purpose.size = htonl (sizeof (*req) + ntohs (m->size)
                              - sizeof (req->header)
                              - sizeof (req->member_key)

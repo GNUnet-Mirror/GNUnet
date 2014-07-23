@@ -76,7 +76,11 @@ struct GNUNET_PSYC_TransmitHandle
    *
    */
   const char *mod_value;
-  size_t mod_value_size;
+
+  /**
+   * Number of bytes remaining to be transmitted from the current modifier value.
+   */
+  uint32_t mod_value_remaining;
 
   /**
    * State of the current message being received from client.
@@ -104,14 +108,14 @@ struct GNUNET_PSYC_TransmitHandle
 struct GNUNET_PSYC_ReceiveHandle
 {
   /**
-   * Message part callback.
+   * Message callback.
    */
   GNUNET_PSYC_MessageCallback message_cb;
 
   /**
-   * Message part callback for historic message.
+   * Message part callback.
    */
-  GNUNET_PSYC_MessageCallback hist_message_cb;
+  GNUNET_PSYC_MessagePartCallback message_part_cb;
 
   /**
    * Closure for the callbacks.
@@ -149,6 +153,7 @@ struct GNUNET_PSYC_ReceiveHandle
   uint32_t mod_value_size;
 };
 
+
 /**** Messages ****/
 
 
@@ -167,7 +172,7 @@ struct GNUNET_PSYC_ReceiveHandle
  * @return Message header with size information,
  *         followed by the message parts.
  */
-struct GNUNET_MessageHeader *
+struct GNUNET_PSYC_Message *
 GNUNET_PSYC_message_create (const char *method_name,
                             const struct GNUNET_ENV_Environment *env,
                             const void *data,
@@ -188,7 +193,7 @@ GNUNET_PSYC_message_create (const char *method_name,
     }
   }
 
-  struct GNUNET_MessageHeader *msg;
+  struct GNUNET_PSYC_Message *msg;
   uint16_t method_name_size = strlen (method_name) + 1;
   if (method_name_size == 1)
     return NULL;
@@ -199,12 +204,13 @@ GNUNET_PSYC_message_create (const char *method_name,
     + ((0 < data_size) ? sizeof (*pmsg) + data_size : 0)/* data */
     + sizeof (*pmsg);					/* end of message */
   msg = GNUNET_malloc (msg_size);
-  msg->size = htons (msg_size);
-  msg->type = htons (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE);
+  msg->header.size = htons (msg_size);
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE); /* FIXME */
 
   pmeth = (struct GNUNET_PSYC_MessageMethod *) &msg[1];
+  pmeth->header.type = htons (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_METHOD);
   pmeth->header.size = htons (sizeof (*pmeth) + method_name_size);
-  memcpy (pmeth, method_name, method_name_size);
+  memcpy (&pmeth[1], method_name, method_name_size);
 
   uint16_t p = sizeof (*msg) + sizeof (*pmeth) + method_name_size;
   if (NULL != env)
@@ -215,7 +221,7 @@ GNUNET_PSYC_message_create (const char *method_name,
       uint16_t mod_name_size = strlen (mod->name) + 1;
       pmod = (struct GNUNET_PSYC_MessageModifier *) ((char *) msg + p);
       pmod->header.type = htons (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MODIFIER);
-      pmod->header.size = sizeof (*pmod) + mod_name_size + 1 + mod->value_size;
+      pmod->header.size = sizeof (*pmod) + mod_name_size + mod->value_size;
       p += pmod->header.size;
       pmod->header.size = htons (pmod->header.size);
 
@@ -241,6 +247,7 @@ GNUNET_PSYC_message_create (const char *method_name,
   pmsg->size = htons (sizeof (*pmsg));
   pmsg->type = htons (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_END);
 
+  GNUNET_assert (p + sizeof (*pmsg) == msg_size);
   return msg;
 }
 
@@ -276,8 +283,8 @@ GNUNET_PSYC_log_message (enum GNUNET_ErrorType kind,
     uint16_t name_size = ntohs (mod->name_size);
     char oper = ' ' < mod->oper ? mod->oper : ' ';
     GNUNET_log (kind, "\t%c%.*s\t%.*s\n", oper, name_size, &mod[1],
-                size - sizeof (*mod) - name_size - 1,
-                ((char *) &mod[1]) + name_size + 1);
+                size - sizeof (*mod) - name_size,
+                ((char *) &mod[1]) + name_size);
     break;
   }
   case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MOD_CONT:
@@ -331,7 +338,7 @@ transmit_queue_insert (struct GNUNET_PSYC_TransmitHandle *tmit,
   uint16_t size = (NULL != msg) ? ntohs (msg->size) : 0;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Queueing message of type %u and size %u (end: %u)).\n",
+       "Queueing message part of type %u and size %u (end: %u)).\n",
        ntohs (msg->type), size, end);
 
   if (NULL != tmit->msg)
@@ -396,6 +403,9 @@ transmit_data (struct GNUNET_PSYC_TransmitHandle *tmit)
   msg->type = htons (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_DATA);
 
   int notify_ret = tmit->notify_data (tmit->notify_data_cls, &data_size, &msg[1]);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "transmit_data (ret: %d, size: %u): %.*s\n",
+       notify_ret, data_size, data_size, &msg[1]);
   switch (notify_ret)
   {
   case GNUNET_NO:
@@ -463,9 +473,15 @@ transmit_mod (struct GNUNET_PSYC_TransmitHandle *tmit)
     msg->size = sizeof (struct GNUNET_PSYC_MessageModifier);
     notify_ret = tmit->notify_mod (tmit->notify_mod_cls, &data_size, &mod[1],
                                    &mod->oper, &mod->value_size);
-    mod->name_size = strnlen ((char *) &mod[1], data_size);
+
+    mod->name_size = strnlen ((char *) &mod[1], data_size) + 1;
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "transmit_mod (ret: %d, size: %u + %u): %.*s\n",
+         notify_ret, mod->name_size, mod->value_size, data_size, &mod[1]);
     if (mod->name_size < data_size)
     {
+      tmit->mod_value_remaining
+        = mod->value_size - (data_size - mod->name_size);
       mod->value_size = htonl (mod->value_size);
       mod->name_size = htons (mod->name_size);
     }
@@ -483,6 +499,10 @@ transmit_mod (struct GNUNET_PSYC_TransmitHandle *tmit)
     msg->size = sizeof (struct GNUNET_MessageHeader);
     notify_ret = tmit->notify_mod (tmit->notify_mod_cls,
                                    &data_size, &msg[1], NULL, NULL);
+    tmit->mod_value_remaining -= data_size;
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "transmit_mod (ret: %d, size: %u): %.*s\n",
+         notify_ret, data_size, data_size, &msg[1]);
     break;
   }
   default:
@@ -497,26 +517,19 @@ transmit_mod (struct GNUNET_PSYC_TransmitHandle *tmit)
       tmit->paused = GNUNET_YES;
       return;
     }
-    tmit->state = GNUNET_PSYC_MESSAGE_STATE_MOD_CONT;
+    tmit->state
+      = (0 == tmit->mod_value_remaining)
+      ? GNUNET_PSYC_MESSAGE_STATE_MODIFIER
+      : GNUNET_PSYC_MESSAGE_STATE_MOD_CONT;
     break;
 
-  case GNUNET_YES:
-    if (0 == data_size)
-    {
-      /* End of modifiers. */
-      tmit->state = GNUNET_PSYC_MESSAGE_STATE_DATA;
-      if (0 == tmit->acks_pending)
-        transmit_data (tmit);
-
-      return;
-    }
-    tmit->state = GNUNET_PSYC_MESSAGE_STATE_MODIFIER;
+  case GNUNET_YES: /* End of modifiers. */
+    GNUNET_assert (0 == tmit->mod_value_remaining);
     break;
 
   default:
     LOG (GNUNET_ERROR_TYPE_ERROR,
-         "TransmitNotifyModifier callback returned error "
-         "when requesting a modifier.\n");
+         "TransmitNotifyModifier callback returned with error.\n");
 
     tmit->state = GNUNET_PSYC_MESSAGE_STATE_CANCEL;
     msg->type = htons (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_CANCEL);
@@ -533,7 +546,16 @@ transmit_mod (struct GNUNET_PSYC_TransmitHandle *tmit)
     transmit_queue_insert (tmit, msg, GNUNET_NO);
   }
 
-  transmit_mod (tmit);
+  if (GNUNET_YES == notify_ret)
+  {
+    tmit->state = GNUNET_PSYC_MESSAGE_STATE_DATA;
+    if (0 == tmit->acks_pending)
+      transmit_data (tmit);
+  }
+  else
+  {
+    transmit_mod (tmit);
+  }
 }
 
 
@@ -547,9 +569,10 @@ transmit_notify_env (void *cls, uint16_t *data_size, void *data, uint8_t *oper,
   size_t value_size = 0;
   const char *value = NULL;
 
-  if (NULL != oper && NULL != tmit->mod)
+  if (NULL != oper)
   { /* New modifier */
-    tmit->mod = tmit->mod->next;
+    if (NULL != tmit->mod)
+      tmit->mod = tmit->mod->next;
     if (NULL == tmit->mod)
     { /* No more modifiers, continue with data */
       *data_size = 0;
@@ -559,30 +582,29 @@ transmit_notify_env (void *cls, uint16_t *data_size, void *data, uint8_t *oper,
     GNUNET_assert (tmit->mod->value_size < UINT32_MAX);
     *full_value_size = tmit->mod->value_size;
     *oper = tmit->mod->oper;
-    name_size = strlen (tmit->mod->name);
+    name_size = strlen (tmit->mod->name) + 1;
 
-    if (name_size + 1 + tmit->mod->value_size <= *data_size)
+    if (name_size + tmit->mod->value_size <= *data_size)
     {
-      *data_size = name_size + 1 + tmit->mod->value_size;
+      *data_size = name_size + tmit->mod->value_size;
     }
     else
     {
-      tmit->mod_value_size = tmit->mod->value_size;
-      value_size = *data_size - name_size - 1;
-      tmit->mod_value_size -= value_size;
+      value_size = *data_size - name_size;
       tmit->mod_value = tmit->mod->value + value_size;
     }
 
     memcpy (data, tmit->mod->name, name_size);
-    ((char *)data)[name_size] = '\0';
-    memcpy ((char *)data + name_size + 1, tmit->mod->value, value_size);
+    memcpy ((char *)data + name_size, tmit->mod->value, value_size);
+    return GNUNET_NO;
   }
-  else if (NULL != tmit->mod_value && 0 < tmit->mod_value_size)
+  else
   { /* Modifier continuation */
+    GNUNET_assert (NULL != tmit->mod_value && 0 < tmit->mod_value_remaining);
     value = tmit->mod_value;
-    if (tmit->mod_value_size <= *data_size)
+    if (tmit->mod_value_remaining <= *data_size)
     {
-      value_size = tmit->mod_value_size;
+      value_size = tmit->mod_value_remaining;
       tmit->mod_value = NULL;
     }
     else
@@ -590,7 +612,6 @@ transmit_notify_env (void *cls, uint16_t *data_size, void *data, uint8_t *oper,
       value_size = *data_size;
       tmit->mod_value += value_size;
     }
-    tmit->mod_value_size -= value_size;
 
     if (*data_size < value_size)
     {
@@ -603,9 +624,8 @@ transmit_notify_env (void *cls, uint16_t *data_size, void *data, uint8_t *oper,
 
     *data_size = value_size;
     memcpy (data, value, value_size);
+    return (tmit->mod_value = NULL) ? GNUNET_YES : GNUNET_NO;
   }
-
-  return 0 == tmit->mod_value_size ? GNUNET_YES : GNUNET_NO;
 }
 
 
@@ -663,10 +683,16 @@ GNUNET_PSYC_transmit_message (struct GNUNET_PSYC_TransmitHandle *tmit,
   {
     tmit->notify_mod = &transmit_notify_env;
     tmit->notify_mod_cls = tmit;
-    tmit->mod
-      = (NULL != env)
-      ? GNUNET_ENV_environment_head (env)
-      : NULL;
+    if (NULL != env)
+    {
+      struct GNUNET_ENV_Modifier mod = {};
+      mod.next = GNUNET_ENV_environment_head (env);
+      tmit->mod = &mod;
+    }
+    else
+    {
+      tmit->mod = NULL;
+    }
   }
 
   transmit_mod (tmit);
@@ -762,12 +788,12 @@ GNUNET_PSYC_transmit_got_ack (struct GNUNET_PSYC_TransmitHandle *tmit)
  */
 struct GNUNET_PSYC_ReceiveHandle *
 GNUNET_PSYC_receive_create (GNUNET_PSYC_MessageCallback message_cb,
-                            GNUNET_PSYC_MessageCallback hist_message_cb,
+                            GNUNET_PSYC_MessagePartCallback message_part_cb,
                             void *cb_cls)
 {
   struct GNUNET_PSYC_ReceiveHandle *recv = GNUNET_malloc (sizeof (*recv));
   recv->message_cb = message_cb;
-  recv->hist_message_cb = hist_message_cb;
+  recv->message_part_cb = message_part_cb;
   recv->cb_cls = cb_cls;
   return recv;
 }
@@ -800,13 +826,11 @@ GNUNET_PSYC_receive_reset (struct GNUNET_PSYC_ReceiveHandle *recv)
 static void
 recv_error (struct GNUNET_PSYC_ReceiveHandle *recv)
 {
-  GNUNET_PSYC_MessageCallback message_cb
-    = recv->flags & GNUNET_PSYC_MESSAGE_HISTORIC
-    ? recv->hist_message_cb
-    : recv->message_cb;
+  if (NULL != recv->message_part_cb)
+    recv->message_part_cb (recv->cb_cls, recv->message_id, 0, recv->flags, NULL);
 
-  if (NULL != message_cb)
-    message_cb (recv->cb_cls, recv->message_id, recv->flags, NULL);
+  if (NULL != recv->message_cb)
+    recv->message_cb (recv->cb_cls, recv->message_id, recv->flags, NULL);
 
   GNUNET_PSYC_receive_reset (recv);
 }
@@ -827,6 +851,7 @@ GNUNET_PSYC_receive_message (struct GNUNET_PSYC_ReceiveHandle *recv,
 {
   uint16_t size = ntohs (msg->header.size);
   uint32_t flags = ntohl (msg->flags);
+  uint64_t message_id;
 
   GNUNET_PSYC_log_message (GNUNET_ERROR_TYPE_DEBUG,
                            (struct GNUNET_MessageHeader *) msg);
@@ -858,6 +883,7 @@ GNUNET_PSYC_receive_message (struct GNUNET_PSYC_ReceiveHandle *recv,
     recv_error (recv);
     return GNUNET_SYSERR;
   }
+  message_id = recv->message_id;
 
   uint16_t pos = 0, psize = 0, ptype, size_eq, size_min;
 
@@ -964,10 +990,10 @@ GNUNET_PSYC_receive_message (struct GNUNET_PSYC_ReceiveHandle *recv,
 
       uint16_t name_size = ntohs (mod->name_size);
       recv->mod_value_size_expected = ntohl (mod->value_size);
-      recv->mod_value_size = psize - sizeof (*mod) - name_size - 1;
+      recv->mod_value_size = psize - sizeof (*mod) - name_size;
 
-      if (psize < sizeof (*mod) + name_size + 1
-          || '\0' != *((char *) &mod[1] + name_size)
+      if (psize < sizeof (*mod) + name_size
+          || '\0' != *((char *) &mod[1] + name_size - 1)
           || recv->mod_value_size_expected < recv->mod_value_size)
       {
         LOG (GNUNET_ERROR_TYPE_WARNING, "Dropping malformed modifier.\n");
@@ -1018,13 +1044,9 @@ GNUNET_PSYC_receive_message (struct GNUNET_PSYC_ReceiveHandle *recv,
     }
     }
 
-    GNUNET_PSYC_MessageCallback message_cb
-      = recv->flags & GNUNET_PSYC_MESSAGE_HISTORIC
-      ? recv->hist_message_cb
-      : recv->message_cb;
-
-    if (NULL != message_cb)
-      message_cb (recv->cb_cls, recv->message_id, recv->flags, pmsg);
+    if (NULL != recv->message_part_cb)
+      recv->message_part_cb (recv->cb_cls, recv->message_id, 0, // FIXME: data_offset
+                             recv->flags, pmsg);
 
     switch (ptype)
     {
@@ -1034,6 +1056,9 @@ GNUNET_PSYC_receive_message (struct GNUNET_PSYC_ReceiveHandle *recv,
       break;
     }
   }
+
+  if (NULL != recv->message_cb)
+    recv->message_cb (recv->cb_cls, message_id, flags, msg);
   return GNUNET_OK;
 }
 
@@ -1063,6 +1088,7 @@ GNUNET_PSYC_receive_check_parts (uint16_t data_size, const char *data,
   for (pos = 0; pos < data_size; pos += psize, parts++)
   {
     pmsg = (const struct GNUNET_MessageHeader *) (data + pos);
+    GNUNET_PSYC_log_message (GNUNET_ERROR_TYPE_DEBUG, pmsg);
     psize = ntohs (pmsg->size);
     ptype = ntohs (pmsg->type);
     if (0 == parts && NULL != first_ptype)
@@ -1083,4 +1109,112 @@ GNUNET_PSYC_receive_check_parts (uint16_t data_size, const char *data,
     /* FIXME: check message part order */
   }
   return parts;
+}
+
+
+struct ParseMessageClosure
+{
+  struct GNUNET_ENV_Environment *env;
+  const char **method_name;
+  const void **data;
+  uint16_t *data_size;
+  enum GNUNET_PSYC_MessageState msg_state;
+};
+
+
+static void
+parse_message_part_cb (void *cls, uint64_t message_id, uint64_t data_offset,
+                       uint32_t flags, const struct GNUNET_MessageHeader *msg)
+{
+  struct ParseMessageClosure *pmc = cls;
+  if (NULL == msg)
+  {
+    pmc->msg_state = GNUNET_PSYC_MESSAGE_STATE_ERROR;
+    return;
+  }
+
+  switch (ntohs (msg->type))
+  {
+  case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_METHOD:
+  {
+    struct GNUNET_PSYC_MessageMethod *
+      pmeth = (struct GNUNET_PSYC_MessageMethod *) msg;
+    *pmc->method_name = (const char *) &pmeth[1];
+    pmc->msg_state = GNUNET_PSYC_MESSAGE_STATE_METHOD;
+    break;
+  }
+
+  case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MODIFIER:
+  {
+    struct GNUNET_PSYC_MessageModifier *
+      pmod = (struct GNUNET_PSYC_MessageModifier *) msg;
+
+    const char *name = (const char *) &pmod[1];
+    const void *value = name + pmod->name_size;
+    GNUNET_ENV_environment_add (pmc->env, pmod->oper, name, value,
+                                pmod->value_size);
+    pmc->msg_state = GNUNET_PSYC_MESSAGE_STATE_MODIFIER;
+    break;
+  }
+
+  case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_DATA:
+    *pmc->data = &msg[1];
+    *pmc->data_size = ntohs (msg->size) - sizeof (*msg);
+    pmc->msg_state = GNUNET_PSYC_MESSAGE_STATE_DATA;
+    break;
+
+  case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_END:
+    pmc->msg_state = GNUNET_PSYC_MESSAGE_STATE_END;
+    break;
+
+  default:
+    pmc->msg_state = GNUNET_PSYC_MESSAGE_STATE_ERROR;
+  }
+}
+
+
+/**
+ * Parse PSYC message.
+ *
+ * @param msg
+ *        The PSYC message to parse.
+ * @param[out] method_name
+ *        Pointer to the method name inside @a pmsg.
+ * @param env
+ *        The environment for the message with a list of modifiers.
+ * @param[out] data
+ *        Pointer to data inside @a pmsg.
+ * @param[out] data_size
+ *        Size of @data is written here.
+ *
+ * @return #GNUNET_OK on success,
+ *         #GNUNET_SYSERR on parse error.
+ */
+int
+GNUNET_PSYC_message_parse (const struct GNUNET_PSYC_Message *msg,
+                           const char **method_name,
+                           struct GNUNET_ENV_Environment *env,
+                           const void **data,
+                           uint16_t *data_size)
+{
+  struct ParseMessageClosure cls;
+  cls.env = env;
+  cls.method_name = method_name;
+  cls.data = data;
+  cls.data_size = data_size;
+
+  uint16_t msg_size = ntohs (msg->header.size);
+  struct GNUNET_PSYC_MessageHeader *
+    pmsg = GNUNET_malloc (sizeof (*pmsg) + msg_size - sizeof (*msg));
+  memcpy (&pmsg[1], &msg[1], msg_size - sizeof (*msg));
+
+  struct GNUNET_PSYC_ReceiveHandle *
+    recv = GNUNET_PSYC_receive_create (NULL, &parse_message_part_cb, &cls);
+  GNUNET_PSYC_receive_message (recv, pmsg);
+  GNUNET_PSYC_receive_destroy (recv);
+  GNUNET_free (pmsg);
+
+  return (GNUNET_PSYC_MESSAGE_STATE_END == cls.msg_state)
+    ? GNUNET_OK
+    : GNUNET_SYSERR;
 }

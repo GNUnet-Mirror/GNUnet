@@ -55,11 +55,35 @@ extern "C"
  * @return Message header with size information,
  *         followed by the message parts.
  */
-struct GNUNET_MessageHeader *
+struct GNUNET_PSYC_Message *
 GNUNET_PSYC_message_create (const char *method_name,
                             const struct GNUNET_ENV_Environment *env,
                             const void *data,
                             size_t data_size);
+
+/**
+ * Parse PSYC message.
+ *
+ * @param msg
+ *        The PSYC message to parse.
+ * @param env
+ *        The environment for the message with a list of modifiers.
+ * @param[out] method_name
+ *        Pointer to the method name inside @a pmsg.
+ * @param[out] data
+ *        Pointer to data inside @a pmsg.
+ * @param[out] data_size
+ *        Size of @data is written here.
+ *
+ * @return #GNUNET_OK on success,
+ *         #GNUNET_SYSERR on parse error.
+ */
+int
+GNUNET_PSYC_message_parse (const struct GNUNET_PSYC_Message *msg,
+                           const char **method_name,
+                           struct GNUNET_ENV_Environment *env,
+                           const void **data,
+                           uint16_t *data_size);
 
 
 void
@@ -150,7 +174,7 @@ struct GNUNET_PSYC_ReceiveHandle;
  */
 struct GNUNET_PSYC_ReceiveHandle *
 GNUNET_PSYC_receive_create (GNUNET_PSYC_MessageCallback message_cb,
-                            GNUNET_PSYC_MessageCallback hist_message_cb,
+                            GNUNET_PSYC_MessagePartCallback message_part_cb,
                             void *cb_cls);
 
 

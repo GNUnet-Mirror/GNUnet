@@ -229,22 +229,6 @@ struct OperationResult
    */
 };
 
-
-struct MasterJoinRequest
-{
-  /**
-   * Type: GNUNET_MESSAGE_TYPE_PSYC_MASTER_JOIN_REQUEST
-   */
-  struct GNUNET_MessageHeader header;
-  /**
-   * Public key of the joining slave.
-   */
-  struct GNUNET_CRYPTO_EcdsaPublicKey slave_key;
-
-  /* Followed by struct GNUNET_MessageHeader join_request */
-};
-
-
 GNUNET_NETWORK_STRUCT_END
 
 #endif

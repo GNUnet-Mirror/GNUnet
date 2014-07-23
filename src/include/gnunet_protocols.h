@@ -2158,32 +2158,34 @@ extern "C"
 /** C->S: request to add channel slave to the membership database */
 #define GNUNET_MESSAGE_TYPE_PSYC_CHANNEL_SLAVE_RM 690
 
-
-/** M<->S<->C: PSYC message which contains one or more message parts. */
+/** S<--C: PSYC message which contains one or more message parts. */
 #define GNUNET_MESSAGE_TYPE_PSYC_MESSAGE 691
 
+/** M<->S<->C: PSYC message which contains a header and one or more message parts. */
+#define GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_HEADER 692 // FIXME: start using this where appropriate
+
 /** Message part: method */
-#define GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_METHOD 692
+#define GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_METHOD 693
 
 /** Message part: modifier */
-#define GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MODIFIER 693
+#define GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MODIFIER 694
 
 /** Message part: modifier continuation */
-#define GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MOD_CONT 694
+#define GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MOD_CONT 695
 
 /** Message part: data */
-#define GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_DATA 695
+#define GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_DATA 696
 
 /** Message part: end of message */
-#define GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_END 696
+#define GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_END 697
 
 /** Message part: message cancelled */
-#define GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_CANCEL 697
+#define GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_CANCEL 698
 
 /** S->C: message acknowledgement */
-#define GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_ACK 698
+#define GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_ACK 699
 
-/* 699-700 */
+/* 700 */
 
 /** C->S: client requests channel history from PSYCstore. */
 #define GNUNET_MESSAGE_TYPE_PSYC_STORY_REQUEST 701

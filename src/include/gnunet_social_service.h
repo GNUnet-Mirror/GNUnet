@@ -81,6 +81,8 @@ struct GNUNET_SOCIAL_Slicer;
  *
  * @param cls
  *        Closure.
+ * @param msg
+ *        Message part, as it arrived from the network.
  * @param message_id
  *        Message counter, monotonically increasing from 1.
  * @param nym
@@ -92,12 +94,53 @@ struct GNUNET_SOCIAL_Slicer;
  *        Original method name from PSYC.
  *        May be more specific than the registered method name due to
  *        try-and-slice matching.
- * @param env
- *        Environment with operations and variables for the message.
- *        Only set for the first call of this function for each @a message_id,
- *        NULL when notifying about further data fragments.
- *        It has to be freed using GNUNET_ENV_environment_destroy()
- *        when it is not needed anymore.
+ */
+typedef void
+(*GNUNET_SOCIAL_MethodCallback) (void *cls,
+                                 const struct GNUNET_PSYC_MessageMethod *msg,
+                                 uint64_t message_id,
+                                 uint32_t flags,
+                                 const struct GNUNET_SOCIAL_Nym *nym,
+                                 const char *method_name);
+
+
+/**
+ * Function called upon receiving a data fragment of a message.
+ *
+ * @param cls
+ *        Closure.
+ * @param message_id
+ *        Message ID this data fragment belongs to.
+ * @param msg
+ *        Message part, as it arrived from the network.
+ * @param oper
+ *        Operation to perform.
+ * @param name
+ *        Name of the modifier.
+ * @param value
+ *        Value of the modifier.
+ * @param value_size
+ *        Size of @value.
+ */
+typedef void
+(*GNUNET_SOCIAL_ModifierCallback) (void *cls,
+                                   const struct GNUNET_PSYC_MessageModifier *msg,
+                                   uint64_t message_id,
+                                   enum GNUNET_ENV_Operator oper,
+                                   const char *name,
+                                   const void *value,
+                                   uint16_t value_size);
+
+
+/**
+ * Function called upon receiving a data fragment of a message.
+ *
+ * @param cls
+ *        Closure.
+ * @param message_id
+ *        Message ID this data fragment belongs to.
+ * @param msg
+ *        Message part, as it arrived from the network.
  * @param data_offset
  *        Byte offset of @a data in the overall data of the method.
  * @param data_size
@@ -106,21 +149,37 @@ struct GNUNET_SOCIAL_Slicer;
  *        Data stream given to the method.
  * @param end
  *        End of message?
- *   #GNUNET_NO     if there are further fragments,
- *   #GNUNET_YES    if this is the last fragment,
- *   #GNUNET_SYSERR indicates the message was cancelled by the sender.
+ *        #GNUNET_NO     if there are further fragments,
+ *        #GNUNET_YES    if this is the last fragment,
+ *        #GNUNET_SYSERR indicates the message was cancelled by the sender.
  */
 typedef void
-(*GNUNET_SOCIAL_MethodCallback) (void *cls,
-                                 uint64_t message_id,
-                                 uint32_t flags,
-                                 const struct GNUNET_SOCIAL_Nym *nym,
-                                 const char *method_name,
-                                 struct GNUNET_ENV_Environment *env,
-                                 uint64_t data_offset,
-                                 size_t data_size,
-                                 const void *data,
-                                 int end);
+(*GNUNET_SOCIAL_DataCallback) (void *cls,
+                               const struct GNUNET_MessageHeader *msg,
+                               uint64_t message_id,
+                               uint64_t data_offset,
+                               const void *data,
+                               uint16_t data_size);
+
+
+/**
+ * End of message.
+ *
+ * @param cls
+ *        Closure.
+ * @param msg
+ *        Message part, as it arrived from the network.
+ * @param message_id
+ *        Message ID this data fragment belongs to.
+ * @param cancelled.
+ *        #GNUNET_YES if the message was cancelled,
+ *        #GNUNET_NO  if the message is complete.
+ */
+typedef void
+(*GNUNET_SOCIAL_EndOfMessageCallback) (void *cls,
+                                       const struct GNUNET_MessageHeader *msg,
+                                       uint64_t message_id,
+                                       uint8_t cancelled);
 
 
 /**
@@ -148,20 +207,27 @@ void
 GNUNET_SOCIAL_slicer_add (struct GNUNET_SOCIAL_Slicer *slicer,
                           const char *method_name,
                           GNUNET_SOCIAL_MethodCallback method_cb,
+                          GNUNET_SOCIAL_ModifierCallback modifier_cb,
+                          GNUNET_SOCIAL_DataCallback data_cb,
+                          GNUNET_SOCIAL_EndOfMessageCallback eom_cb,
                           void *cls);
 
 
 /**
- * Remove a registered method from the try-and-slice instance.
+ * Remove a registered method handler from the try-and-slice instance.
  *
  * @param slicer The try-and-slice instance.
  * @param method_name Name of the method to remove.
  * @param method Method handler.
  */
-void
+int
 GNUNET_SOCIAL_slicer_remove (struct GNUNET_SOCIAL_Slicer *slicer,
                              const char *method_name,
-                             GNUNET_SOCIAL_MethodCallback method_cb);
+                             GNUNET_SOCIAL_MethodCallback method_cb,
+                             GNUNET_SOCIAL_ModifierCallback modifier_cb,
+                             GNUNET_SOCIAL_DataCallback data_cb,
+                             GNUNET_SOCIAL_EndOfMessageCallback eom_cb);
+
 
 /**
  * Destroy a given try-and-slice instance.
@@ -257,7 +323,7 @@ typedef void
  */
 struct GNUNET_SOCIAL_Host *
 GNUNET_SOCIAL_host_enter (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                          struct GNUNET_IDENTITY_Ego *ego,
+                          const struct GNUNET_IDENTITY_Ego *ego,
                           const struct GNUNET_CRYPTO_EddsaPrivateKey *place_key,
                           enum GNUNET_PSYC_Policy policy,
                           struct GNUNET_SOCIAL_Slicer *slicer,
@@ -268,17 +334,32 @@ GNUNET_SOCIAL_host_enter (const struct GNUNET_CONFIGURATION_Handle *cfg,
 
 
 /**
- * Admit @a nym to the place.
+ * Decision whether to admit @a nym into the place or refuse entry.
  *
- * The @a nym reference will remain valid until either the @a host or @a nym
- * leaves the place.
- *
- * @param host  Host of the place.
- * @param nym  Handle for the entity that wants to enter.
+ * @param hst
+ *        Host of the place.
+ * @param nym
+ *        Handle for the entity that wanted to enter.
+ * @param is_admitted
+ *        #GNUNET_YES    if @a nym is admitted,
+ *        #GNUNET_NO     if @a nym is refused entry,
+ *        #GNUNET_SYSERR if we cannot answer the request.
+ * @param method_name
+ *        Method name for the rejection message.
+ * @param env
+ *        Environment containing variables for the message, or NULL.
+ * @param data
+ *        Data for the rejection message to send back.
+ * @param data_size
+ *        Number of bytes in @a data for method.
+ * @return #GNUNET_OK on success,
+ *         #GNUNET_SYSERR if the message is too large.
  */
-void
-GNUNET_SOCIAL_host_admit (struct GNUNET_SOCIAL_Host *host,
-                          struct GNUNET_SOCIAL_Nym *nym);
+int
+GNUNET_SOCIAL_host_entry_decision (struct GNUNET_SOCIAL_Host *hst,
+                                   struct GNUNET_SOCIAL_Nym *nym,
+                                   int is_admitted,
+                                   const struct GNUNET_PSYC_Message *entry_resp);
 
 
 /**
@@ -297,35 +378,17 @@ GNUNET_SOCIAL_host_eject (struct GNUNET_SOCIAL_Host *host,
 
 
 /**
- * Refuse @a nym entry into the place.
- *
- * @param host  Host of the place.
- * @param nym Handle for the entity that wanted to enter.
- * @param method_name Method name for the rejection message.
- * @param env Environment containing variables for the message, or NULL.
- * @param data Data for the rejection message to send back.
- * @param data_size Number of bytes in @a data for method.
- */
-void
-GNUNET_SOCIAL_host_refuse_entry (struct GNUNET_SOCIAL_Host *host,
-                                 struct GNUNET_SOCIAL_Nym *nym,
-                                 const char *method_name,
-                                 const struct GNUNET_ENV_Environment *env,
-                                 const void *data,
-                                 size_t data_size);
-
-
-/**
  * Get the public key of a @a nym.
  *
  * Suitable, for example, to be used with GNUNET_NAMESTORE_zone_to_name().
  *
- * @param nym Pseudonym to map to a cryptographic identifier.
- * @param[out] nym_key Set to the public key of the nym.
+ * @param nym
+ *        Pseudonym to map to a cryptographic identifier.
+ *
+ * @return Public key of nym;
  */
-void
-GNUNET_SOCIAL_nym_get_key (struct GNUNET_SOCIAL_Nym *nym,
-                           struct GNUNET_CRYPTO_EddsaPublicKey *nym_key);
+struct GNUNET_CRYPTO_EcdsaPublicKey *
+GNUNET_SOCIAL_nym_get_key (struct GNUNET_SOCIAL_Nym *nym);
 
 
 /**
@@ -418,9 +481,20 @@ GNUNET_SOCIAL_host_announce (struct GNUNET_SOCIAL_Host *host,
 
 
 /**
+ * Resume transmitting announcement.
+ *
+ * @param a
+ *        The announcement to resume.
+ */
+void
+GNUNET_SOCIAL_host_announce_resume (struct GNUNET_SOCIAL_Announcement *a);
+
+
+/**
  * Cancel announcement.
  *
- * @param a The announcement to cancel.
+ * @param a
+ *        The announcement to cancel.
  */
 void
 GNUNET_SOCIAL_host_announce_cancel (struct GNUNET_SOCIAL_Announcement *a);
@@ -431,7 +505,8 @@ GNUNET_SOCIAL_host_announce_cancel (struct GNUNET_SOCIAL_Announcement *a);
  *
  * The returned handle can be used to access the place API.
  *
- * @param host  Handle for the host.
+ * @param host
+ *        Handle for the host.
  *
  * @return Handle for the hosted place, valid as long as @a host is valid.
  */
@@ -444,11 +519,21 @@ GNUNET_SOCIAL_host_get_place (struct GNUNET_SOCIAL_Host *host);
  *
  * Invalidates host handle.
  *
- * @param host  Host leaving the place.
- * @param keep_active  Keep the place active after last host disconnected.
+ * @param host
+ *        Host leaving the place.
+ * @param keep_active
+ *        Keep the place active after last host disconnected.
+ * @param leave_cb
+ *        Function called after the host left the place
+ *        and disconnected from the social service.
+ * @param leave_cls
+ *        Closure for @a leave_cb.
  */
 void
-GNUNET_SOCIAL_host_leave (struct GNUNET_SOCIAL_Host *host, int keep_active);
+GNUNET_SOCIAL_host_leave (struct GNUNET_SOCIAL_Host *host,
+                          int keep_active,
+                          GNUNET_ContinuationCallback leave_cb,
+                          void *leave_cls);
 
 
 /**
@@ -493,13 +578,10 @@ typedef void
  * @param data
  *   Payload of the message.
  */
-typedef int
+typedef void
 (*GNUNET_SOCIAL_EntryDecisionCallback) (void *cls,
                                         int is_admitted,
-                                        const char *method_name,
-                                        struct GNUNET_ENV_Environment *env,
-                                        size_t data_size,
-                                        const void *data);
+                                        const struct GNUNET_PSYC_Message *entry_resp);
 
 
 /**
@@ -521,15 +603,12 @@ typedef int
  */
 struct GNUNET_SOCIAL_Guest *
 GNUNET_SOCIAL_guest_enter (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                           struct GNUNET_IDENTITY_Ego *ego,
-                           struct GNUNET_CRYPTO_EddsaPublicKey *place_key,
-                           struct GNUNET_PeerIdentity *origin,
+                           const struct GNUNET_IDENTITY_Ego *ego,
+                           const struct GNUNET_CRYPTO_EddsaPublicKey *place_key,
+                           const struct GNUNET_PeerIdentity *origin,
                            uint32_t relay_count,
-                           struct GNUNET_PeerIdentity *relays,
-                           const char *method_name,
-                           const struct GNUNET_ENV_Environment *env,
-                           const void *data,
-                           size_t data_size,
+                           const struct GNUNET_PeerIdentity *relays,
+                           const struct GNUNET_PSYC_Message *entry_msg,
                            struct GNUNET_SOCIAL_Slicer *slicer,
                            GNUNET_SOCIAL_GuestEnterCallback local_enter_cb,
                            GNUNET_SOCIAL_EntryDecisionCallback entry_decision_cb,
@@ -558,10 +637,7 @@ struct GNUNET_SOCIAL_Guest *
 GNUNET_SOCIAL_guest_enter_by_name (const struct GNUNET_CONFIGURATION_Handle *cfg,
                                    struct GNUNET_IDENTITY_Ego *ego,
                                    char *gns_name,
-                                   const char *method_name,
-                                   const struct GNUNET_ENV_Environment *env,
-                                   const void *data,
-                                   size_t data_size,
+                                   const struct GNUNET_PSYC_Message *join_msg,
                                    struct GNUNET_SOCIAL_Slicer *slicer,
                                    GNUNET_SOCIAL_GuestEnterCallback local_enter_cb,
                                    GNUNET_SOCIAL_EntryDecisionCallback entry_decision_cb,
@@ -612,9 +688,20 @@ GNUNET_SOCIAL_guest_talk (struct GNUNET_SOCIAL_Guest *guest,
 
 
 /**
+ * Resume talking to the host of the place.
+ *
+ * @param tr
+ *        Talk request to resume.
+ */
+void
+GNUNET_SOCIAL_guest_talk_resume (struct GNUNET_SOCIAL_TalkRequest *tr);
+
+
+/**
  * Cancel talking to the host of the place.
  *
- * @param tr Talk request to cancel.
+ * @param tr
+ *        Talk request to cancel.
  */
 void
 GNUNET_SOCIAL_guest_talk_cancel (struct GNUNET_SOCIAL_TalkRequest *tr);
@@ -625,11 +712,21 @@ GNUNET_SOCIAL_guest_talk_cancel (struct GNUNET_SOCIAL_TalkRequest *tr);
  *
  * Notifies the owner of the place about leaving, and destroys the place handle.
  *
- * @param place Place to leave permanently.
- * @param keep_active Keep place active after last application disconnected.
+ * @param place
+ *        Place to leave permanently.
+ * @param keep_active
+ *        Keep place active after last application disconnected.
+ * @param leave_cb
+ *        Function called after the guest left the place
+ *        and disconnected from the social service.
+ * @param leave_cls
+ *        Closure for @a leave_cb.
  */
 void
-GNUNET_SOCIAL_guest_leave (struct GNUNET_SOCIAL_Guest *guest, int keep_active);
+GNUNET_SOCIAL_guest_leave (struct GNUNET_SOCIAL_Guest *guest,
+                           int keep_active,
+                           GNUNET_ContinuationCallback leave_cb,
+                           void *leave_cls);
 
 
 /**

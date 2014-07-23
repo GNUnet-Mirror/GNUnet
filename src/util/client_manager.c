@@ -30,7 +30,7 @@
 #include "platform.h"
 #include "gnunet_util_lib.h"
 
-#define LOG(kind,...) GNUNET_log_from (kind, "util",__VA_ARGS__)
+#define LOG(kind,...) GNUNET_log_from (kind, "util-client-mgr", __VA_ARGS__)
 
 
 /**
@@ -94,6 +94,16 @@ struct GNUNET_CLIENT_MANAGER_Connection
   const struct GNUNET_CLIENT_MANAGER_MessageHandler *handlers;
 
   /**
+   * Disconnect callback.
+   */
+  void (*disconnect_cb)(void *);
+
+  /**
+   * Disconnect closure.
+   */
+  void *disconnect_cls;
+
+  /**
    * User context value.
    * @see GNUNET_CLIENT_MANAGER_set_user_context()
    * @see GNUNET_CLIENT_MANAGER_get_user_context()
@@ -125,7 +135,7 @@ struct GNUNET_CLIENT_MANAGER_Connection
    * #GNUNET_YES if GNUNET_CLIENT_MANAGER_disconnect() was called
    * and we're transmitting the last messages from the queue.
    */
-  uint8_t disconnecting;
+  uint8_t is_disconnecting;
 };
 
 
@@ -185,6 +195,15 @@ static void
 transmit_next (struct GNUNET_CLIENT_MANAGER_Connection *mgr);
 
 
+static void
+schedule_disconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct GNUNET_CLIENT_MANAGER_Connection *mgr = cls;
+  GNUNET_CLIENT_MANAGER_disconnect (mgr, GNUNET_NO,
+                                    mgr->disconnect_cb, mgr->disconnect_cls);
+}
+
+
 /**
  * Transmit next message to service.
  *
@@ -221,7 +240,14 @@ send_next_message (void *cls, size_t buf_size, void *buf)
   GNUNET_free (mqi);
 
   if (NULL != mgr->tmit_head)
+  {
     transmit_next (mgr);
+  }
+  else if (GNUNET_YES == mgr->is_disconnecting)
+  {
+    GNUNET_SCHEDULER_add_now (&schedule_disconnect, mgr);
+    return size;
+  }
 
   if (GNUNET_NO == mgr->in_receive)
   {
@@ -247,8 +273,9 @@ transmit_next (struct GNUNET_CLIENT_MANAGER_Connection *mgr)
 
   if (NULL == mgr->tmit_head)
   {
-    if (GNUNET_YES == mgr->disconnecting)
-      GNUNET_CLIENT_MANAGER_disconnect (mgr, GNUNET_NO);
+    if (GNUNET_YES == mgr->is_disconnecting)
+      GNUNET_CLIENT_MANAGER_disconnect (mgr, GNUNET_NO,
+                                        mgr->disconnect_cb, mgr->disconnect_cls);
     return;
   }
 
@@ -269,7 +296,7 @@ transmit_next (struct GNUNET_CLIENT_MANAGER_Connection *mgr)
  * @param tc Scheduler context.
  */
 static void
-reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+schedule_reconnect (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_CLIENT_MANAGER_Connection *mgr = cls;
   mgr->reconnect_task = GNUNET_SCHEDULER_NO_TASK;
@@ -305,7 +332,7 @@ GNUNET_CLIENT_MANAGER_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
   mgr->service_name = service_name;
   mgr->handlers = handlers;
   mgr->reconnect_delay = GNUNET_TIME_UNIT_ZERO;
-  mgr->reconnect_task = GNUNET_SCHEDULER_add_now (&reconnect, mgr);
+  mgr->reconnect_task = GNUNET_SCHEDULER_add_now (&schedule_reconnect, mgr);
   return mgr;
 }
 
@@ -315,17 +342,25 @@ GNUNET_CLIENT_MANAGER_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
  *
  * @param mgr             Client manager connection.
  * @param transmit_queue  Transmit pending messages in queue before disconnecting.
+ * @param disconnect_cb   Function called after disconnected from the service.
+ * @param disconnect_cls  Closure for @a disconnect_cb.
  */
 void
 GNUNET_CLIENT_MANAGER_disconnect (struct GNUNET_CLIENT_MANAGER_Connection *mgr,
-                                  int transmit_queue)
+                                  int transmit_queue,
+                                  GNUNET_ContinuationCallback disconnect_cb,
+                                  void *disconnect_cls)
 {
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting (%d)\n", transmit_queue);
+  mgr->disconnect_cb = disconnect_cb;
+  mgr->disconnect_cls = disconnect_cls;
   if (NULL != mgr->tmit_head)
   {
     if (GNUNET_YES == transmit_queue)
     {
-      mgr->disconnecting = GNUNET_YES;
+      mgr->is_disconnecting = GNUNET_YES;
       transmit_next (mgr);
+      return;
     }
     else
     {
@@ -350,7 +385,10 @@ GNUNET_CLIENT_MANAGER_disconnect (struct GNUNET_CLIENT_MANAGER_Connection *mgr,
     GNUNET_CLIENT_disconnect (mgr->client);
     mgr->client = NULL;
   }
+  if (NULL != mgr->disconnect_cb)
+    mgr->disconnect_cb (mgr->disconnect_cls);
   GNUNET_free (mgr);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Disconnected.\n");
 }
 
 
@@ -380,7 +418,7 @@ GNUNET_CLIENT_MANAGER_reconnect (struct GNUNET_CLIENT_MANAGER_Connection *mgr)
        "Scheduling task to reconnect to service in %s.\n",
        GNUNET_STRINGS_relative_time_to_string (mgr->reconnect_delay, GNUNET_YES));
   mgr->reconnect_task =
-      GNUNET_SCHEDULER_add_delayed (mgr->reconnect_delay, &reconnect, mgr);
+    GNUNET_SCHEDULER_add_delayed (mgr->reconnect_delay, &schedule_reconnect, mgr);
   mgr->reconnect_delay = GNUNET_TIME_STD_BACKOFF (mgr->reconnect_delay);
 }
 

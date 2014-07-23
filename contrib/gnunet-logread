@@ -47,7 +47,7 @@ if (exists $opts{n})
     $ipc = $opts{i} || '/tmp/gnunet-logread-ipc.sock';
     $msg_level = exists $levels{$opts{L}} ? $levels{$opts{L}} : 0;
     $msg_regex = $opts{m};
-    print STDERR "RE: /$msg_regex/\n";
+    print STDERR "RE: /$msg_regex/\n" if defined $msg_regex;
     open IPC, '>', $ipc or die "$ipc: $!\n";
 }
 

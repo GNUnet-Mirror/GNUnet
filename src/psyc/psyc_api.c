@@ -74,6 +74,16 @@ struct GNUNET_PSYC_Channel
   struct GNUNET_MessageHeader *connect_msg;
 
   /**
+   * Function called after disconnected from the service.
+   */
+  GNUNET_ContinuationCallback disconnect_cb;
+
+  /**
+   * Closure for @a disconnect_cb.
+   */
+  void *disconnect_cls;
+
+  /**
    * Are we polling for incoming messages right now?
    */
   uint8_t in_receive;
@@ -82,6 +92,12 @@ struct GNUNET_PSYC_Channel
    * Is this a master or slave channel?
    */
   uint8_t is_master;
+
+  /**
+   * Is this channel in the process of disconnecting from the service?
+   * #GNUNET_YES or #GNUNET_NO
+   */
+  uint8_t is_disconnecting;
 };
 
 
@@ -232,19 +248,26 @@ master_recv_join_request (void *cls,
   struct GNUNET_PSYC_Master *
     mst = GNUNET_CLIENT_MANAGER_get_user_context_ (client,
                                                    sizeof (struct GNUNET_PSYC_Channel));
+  if (NULL == mst->join_req_cb)
+    return;
 
-  const struct MasterJoinRequest *req = (const struct MasterJoinRequest *) msg;
-
-  struct GNUNET_PSYC_MessageHeader *pmsg = NULL;
-  if (ntohs (req->header.size) <= sizeof (*req) + sizeof (*pmsg))
-    pmsg = (struct GNUNET_PSYC_MessageHeader *) &req[1];
+  const struct GNUNET_PSYC_JoinRequestMessage *
+    req = (const struct GNUNET_PSYC_JoinRequestMessage *) msg;
+  const struct GNUNET_PSYC_Message *join_msg = NULL;
+  if (sizeof (*req) + sizeof (*join_msg) <= ntohs (req->header.size))
+  {
+    join_msg = (struct GNUNET_PSYC_Message *) &req[1];
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         "Received join_msg of type %u and size %u.\n",
+         ntohs (join_msg->header.type), ntohs (join_msg->header.size));
+  }
 
   struct GNUNET_PSYC_JoinHandle *jh = GNUNET_malloc (sizeof (*jh));
   jh->mst = mst;
   jh->slave_key = req->slave_key;
 
   if (NULL != mst->join_req_cb)
-    mst->join_req_cb (mst->cb_cls, &req->slave_key, pmsg, jh);
+    mst->join_req_cb (mst->cb_cls, req, &req->slave_key, join_msg, jh);
 }
 
 
@@ -273,13 +296,12 @@ slave_recv_join_decision (void *cls,
   const struct GNUNET_PSYC_JoinDecisionMessage *
     dcsn = (const struct GNUNET_PSYC_JoinDecisionMessage *) msg;
 
-  struct GNUNET_PSYC_MessageHeader *pmsg = NULL;
+  struct GNUNET_PSYC_Message *pmsg = NULL;
   if (ntohs (dcsn->header.size) <= sizeof (*dcsn) + sizeof (*pmsg))
-    pmsg = (struct GNUNET_PSYC_MessageHeader *) &dcsn[1];
+    pmsg = (struct GNUNET_PSYC_Message *) &dcsn[1];
 
-  struct GNUNET_PSYC_JoinHandle *jh = GNUNET_malloc (sizeof (*jh));
   if (NULL != slv->join_dcsn_cb)
-    slv->join_dcsn_cb (slv->cb_cls, ntohl (dcsn->is_admitted), pmsg);
+    slv->join_dcsn_cb (slv->cb_cls, dcsn, ntohl (dcsn->is_admitted), pmsg);
 }
 
 
@@ -299,7 +321,7 @@ static struct GNUNET_CLIENT_MANAGER_MessageHandler master_handlers[] =
 
   { &master_recv_join_request, NULL,
     GNUNET_MESSAGE_TYPE_PSYC_JOIN_REQUEST,
-    sizeof (struct MasterJoinRequest), GNUNET_YES },
+    sizeof (struct GNUNET_PSYC_JoinRequestMessage), GNUNET_YES },
 
   { &channel_recv_disconnect, NULL, 0, 0, GNUNET_NO },
 
@@ -329,6 +351,35 @@ static struct GNUNET_CLIENT_MANAGER_MessageHandler slave_handlers[] =
 
   { NULL, NULL, 0, 0, GNUNET_NO }
 };
+
+
+static void
+channel_cleanup (struct GNUNET_PSYC_Channel *chn)
+{
+  GNUNET_PSYC_transmit_destroy (chn->tmit);
+  GNUNET_PSYC_receive_destroy (chn->recv);
+  GNUNET_free (chn->connect_msg);
+  if (NULL != chn->disconnect_cb)
+    chn->disconnect_cb (chn->disconnect_cls);
+}
+
+
+static void
+master_cleanup (void *cls)
+{
+  struct GNUNET_PSYC_Master *mst = cls;
+  channel_cleanup (&mst->chn);
+  GNUNET_free (mst);
+}
+
+
+static void
+slave_cleanup (void *cls)
+{
+  struct GNUNET_PSYC_Slave *slv = cls;
+  channel_cleanup (&slv->chn);
+  GNUNET_free (slv);
+}
 
 
 /**
@@ -367,6 +418,7 @@ GNUNET_PSYC_master_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
                           GNUNET_PSYC_MasterStartCallback start_cb,
                           GNUNET_PSYC_JoinRequestCallback join_request_cb,
                           GNUNET_PSYC_MessageCallback message_cb,
+                          GNUNET_PSYC_MessagePartCallback message_part_cb,
                           void *cls)
 {
   struct GNUNET_PSYC_Master *mst = GNUNET_malloc (sizeof (*mst));
@@ -390,7 +442,7 @@ GNUNET_PSYC_master_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
   GNUNET_CLIENT_MANAGER_set_user_context_ (chn->client, mst, sizeof (*chn));
 
   chn->tmit = GNUNET_PSYC_transmit_create (chn->client);
-  chn->recv = GNUNET_PSYC_receive_create (message_cb, message_cb, cls);
+  chn->recv = GNUNET_PSYC_receive_create (message_cb, message_part_cb, cls);
 
   channel_send_connect_msg (chn);
   return mst;
@@ -404,10 +456,21 @@ GNUNET_PSYC_master_start (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param keep_active  FIXME
  */
 void
-GNUNET_PSYC_master_stop (struct GNUNET_PSYC_Master *mst)
+GNUNET_PSYC_master_stop (struct GNUNET_PSYC_Master *mst,
+                         int keep_active,
+                         GNUNET_ContinuationCallback stop_cb,
+                         void *stop_cls)
 {
-  GNUNET_CLIENT_MANAGER_disconnect (mst->chn.client, GNUNET_YES);
-  GNUNET_free (mst);
+  struct GNUNET_PSYC_Channel *chn = &mst->chn;
+
+  /* FIXME: send msg to service */
+
+  chn->is_disconnecting = GNUNET_YES;
+  chn->disconnect_cb = stop_cb;
+  chn->disconnect_cls = stop_cls;
+
+  GNUNET_CLIENT_MANAGER_disconnect (mst->chn.client, GNUNET_YES,
+                                    &master_cleanup, mst);
 }
 
 
@@ -439,7 +502,7 @@ GNUNET_PSYC_join_decision (struct GNUNET_PSYC_JoinHandle *jh,
                            int is_admitted,
                            uint32_t relay_count,
                            const struct GNUNET_PeerIdentity *relays,
-                           const struct GNUNET_PSYC_MessageHeader *join_resp)
+                           const struct GNUNET_PSYC_Message *join_resp)
 {
   struct GNUNET_PSYC_Channel *chn = &jh->mst->chn;
   struct GNUNET_PSYC_JoinDecisionMessage *dcsn;
@@ -461,6 +524,7 @@ GNUNET_PSYC_join_decision (struct GNUNET_PSYC_JoinHandle *jh,
     memcpy (&dcsn[1], join_resp, join_resp_size);
 
   GNUNET_CLIENT_MANAGER_transmit (chn->client, &dcsn->header);
+  GNUNET_free (jh);
   return GNUNET_OK;
 }
 
@@ -576,15 +640,19 @@ GNUNET_PSYC_slave_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
                         uint32_t relay_count,
                         const struct GNUNET_PeerIdentity *relays,
                         GNUNET_PSYC_MessageCallback message_cb,
+                        GNUNET_PSYC_MessagePartCallback message_part_cb,
                         GNUNET_PSYC_SlaveConnectCallback connect_cb,
                         GNUNET_PSYC_JoinDecisionCallback join_decision_cb,
                         void *cls,
-                        const struct GNUNET_MessageHeader *join_msg)
+                        const struct GNUNET_PSYC_Message *join_msg)
 {
   struct GNUNET_PSYC_Slave *slv = GNUNET_malloc (sizeof (*slv));
   struct GNUNET_PSYC_Channel *chn = &slv->chn;
+
+  uint16_t relay_size = relay_count * sizeof (*relays);
+  uint16_t join_msg_size = ntohs (join_msg->header.size);
   struct SlaveJoinRequest *req
-    = GNUNET_malloc (sizeof (*req) + relay_count * sizeof (*relays));
+    = GNUNET_malloc (sizeof (*req) + relay_size + join_msg_size);
   req->header.size = htons (sizeof (*req)
                             + relay_count * sizeof (*relays));
   req->header.type = htons (GNUNET_MESSAGE_TYPE_PSYC_SLAVE_JOIN);
@@ -592,7 +660,12 @@ GNUNET_PSYC_slave_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
   req->slave_key = *slave_key;
   req->origin = *origin;
   req->relay_count = htonl (relay_count);
-  memcpy (&req[1], relays, relay_count * sizeof (*relays));
+
+  if (0 < relay_size)
+    memcpy (&req[1], relays, relay_size);
+
+  if (0 < join_msg_size)
+    memcpy ((char *) &req[1] + relay_size, join_msg, join_msg_size);
 
   chn->connect_msg = (struct GNUNET_MessageHeader *) req;
   chn->cfg = cfg;
@@ -605,7 +678,7 @@ GNUNET_PSYC_slave_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
   chn->client = GNUNET_CLIENT_MANAGER_connect (cfg, "psyc", slave_handlers);
   GNUNET_CLIENT_MANAGER_set_user_context_ (chn->client, slv, sizeof (*chn));
 
-  chn->recv = GNUNET_PSYC_receive_create (message_cb, message_cb, cls);
+  chn->recv = GNUNET_PSYC_receive_create (message_cb, message_part_cb, cls);
   chn->tmit = GNUNET_PSYC_transmit_create (chn->client);
 
   channel_send_connect_msg (chn);
@@ -622,10 +695,21 @@ GNUNET_PSYC_slave_join (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @param slave Slave handle.
  */
 void
-GNUNET_PSYC_slave_part (struct GNUNET_PSYC_Slave *slv)
+GNUNET_PSYC_slave_part (struct GNUNET_PSYC_Slave *slv,
+                        int keep_active,
+                        GNUNET_ContinuationCallback part_cb,
+                        void *part_cls)
 {
-  GNUNET_CLIENT_MANAGER_disconnect (slv->chn.client, GNUNET_YES);
-  GNUNET_free (slv);
+  struct GNUNET_PSYC_Channel *chn = &slv->chn;
+
+  /* FIXME: send msg to service */
+
+  chn->is_disconnecting = GNUNET_YES;
+  chn->disconnect_cb = part_cb;
+  chn->disconnect_cls = part_cls;
+
+  GNUNET_CLIENT_MANAGER_disconnect (slv->chn.client, GNUNET_YES,
+                                    &slave_cleanup, slv);
 }
 
 
@@ -796,6 +880,7 @@ GNUNET_PSYC_channel_story_tell (struct GNUNET_PSYC_Channel *channel,
                                 uint64_t start_message_id,
                                 uint64_t end_message_id,
                                 GNUNET_PSYC_MessageCallback message_cb,
+                                GNUNET_PSYC_MessagePartCallback message_part_cb,
                                 GNUNET_PSYC_FinishCallback finish_cb,
                                 void *cls)
 {

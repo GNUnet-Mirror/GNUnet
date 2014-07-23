@@ -666,7 +666,9 @@ GNUNET_MULTICAST_origin_to_all_cancel (struct GNUNET_MULTICAST_OriginTransmitHan
  * @param origin Multicast group to stop.
  */
 void
-GNUNET_MULTICAST_origin_stop (struct GNUNET_MULTICAST_Origin *origin);
+GNUNET_MULTICAST_origin_stop (struct GNUNET_MULTICAST_Origin *origin,
+                              GNUNET_ContinuationCallback stop_cb,
+                              void *stop_cls);
 
 
 /**
@@ -795,7 +797,9 @@ GNUNET_MULTICAST_member_replay_cancel (struct GNUNET_MULTICAST_MemberReplayHandl
  * @param member Membership handle.
  */
 void
-GNUNET_MULTICAST_member_part (struct GNUNET_MULTICAST_Member *member);
+GNUNET_MULTICAST_member_part (struct GNUNET_MULTICAST_Member *member,
+                              GNUNET_ContinuationCallback part_cb,
+                              void *part_cls);
 
 
 /**
