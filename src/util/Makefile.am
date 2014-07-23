@@ -227,7 +227,7 @@ endif
 
 check_PROGRAMS = \
  test_bio \
- test_client \
+ test_client.nc \
  test_common_allocation \
  test_common_endian \
  test_common_logging \
@@ -250,25 +250,25 @@ check_PROGRAMS = \
  test_crypto_random \
  test_disk \
  test_getopt \
- test_connection \
- test_connection_addressing \
- test_connection_receive_cancel \
- test_connection_timeout \
- test_connection_timeout_no_connect \
- test_connection_transmit_cancel \
+ test_connection.nc \
+ test_connection_addressing.nc \
+ test_connection_receive_cancel.nc \
+ test_connection_timeout.nc \
+ test_connection_timeout_no_connect.nc \
+ test_connection_transmit_cancel.nc \
  test_mq \
- test_mq_client \
+ test_mq_client.nc \
  test_os_network \
  test_peer \
  test_plugin \
  test_program \
- test_resolver_api \
+ test_resolver_api.nc \
  test_scheduler \
  test_scheduler_delay \
- test_server_mst_interrupt \
- test_server \
- test_server_disconnect \
- test_server_with_client \
+ test_server.nc \
+ test_server_disconnect.nc \
+ test_server_with_client.nc \
+ test_server_mst_interrupt.nc \
  $(SERVER_CLIENT_UNIX) \
  test_service \
  test_strings \
@@ -284,6 +284,22 @@ AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PAT
 TESTS = $(check_PROGRAMS)
 endif
 
+# Declare .nc (NO-CONCURRENCY) as a test extension so that we can impart
+# sequential execution order for them
+TEST_EXTENSIONS = .nc
+test_connection.log: test_client.log
+test_connection_addressing.log: test_connection.log
+test_connection_timeout_no_connect.log: test_connection_addressing.log
+test_connection_transmit_cancel.log: test_connection_timeout_no_connect.log
+test_connection_receive_cancel.log: test_connection_transmit_cancel.log
+test_connection_timeout.log: test_connection_receive_cancel.log
+test_mq_client.log: test_connection_timeout.log
+test_resolver_api.log: test_mq_client.log
+test_server.log: test_resolver_api.log
+test_server_disconnect.log: test_server.log
+test_server_with_client.log: test_server_disconnect.log
+test_server_mst_interrupt.log: test_server_with_client.log
+
 test_bio_SOURCES = \
  test_bio.c
 test_bio_LDADD = \
@@ -297,9 +313,9 @@ test_os_start_process_LDADD = \
 test_os_start_process_DEPENDENCIES = \
  $(WINCAT)
 
-test_client_SOURCES = \
+test_client_nc_SOURCES = \
  test_client.c
-test_client_LDADD = \
+test_client_nc_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la
 
 test_common_allocation_SOURCES = \
@@ -421,34 +437,34 @@ test_getopt_SOURCES = \
 test_getopt_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la
 
-test_connection_SOURCES = \
+test_connection_nc_SOURCES = \
  test_connection.c
-test_connection_LDADD = \
+test_connection_nc_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la
 
-test_connection_addressing_SOURCES = \
+test_connection_addressing_nc_SOURCES = \
  test_connection_addressing.c
-test_connection_addressing_LDADD = \
+test_connection_addressing_nc_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la
 
-test_connection_receive_cancel_SOURCES = \
+test_connection_receive_cancel_nc_SOURCES = \
  test_connection_receive_cancel.c
-test_connection_receive_cancel_LDADD = \
+test_connection_receive_cancel_nc_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la
 
-test_connection_timeout_SOURCES = \
+test_connection_timeout_nc_SOURCES = \
  test_connection_timeout.c
-test_connection_timeout_LDADD = \
+test_connection_timeout_nc_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la
 
-test_connection_timeout_no_connect_SOURCES = \
+test_connection_timeout_no_connect_nc_SOURCES = \
  test_connection_timeout_no_connect.c
-test_connection_timeout_no_connect_LDADD = \
+test_connection_timeout_no_connect_nc_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la
 
-test_connection_transmit_cancel_SOURCES = \
+test_connection_transmit_cancel_nc_SOURCES = \
  test_connection_transmit_cancel.c
-test_connection_transmit_cancel_LDADD = \
+test_connection_transmit_cancel_nc_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la
 
 test_mq_SOURCES = \
@@ -456,9 +472,9 @@ test_mq_SOURCES = \
 test_mq_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la
 
-test_mq_client_SOURCES = \
+test_mq_client_nc_SOURCES = \
  test_mq_client.c
-test_mq_client_LDADD = \
+test_mq_client_nc_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la
 
 test_os_network_SOURCES = \
@@ -481,9 +497,9 @@ test_program_SOURCES = \
 test_program_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la
 
-test_resolver_api_SOURCES = \
+test_resolver_api_nc_SOURCES = \
  test_resolver_api.c
-test_resolver_api_LDADD = \
+test_resolver_api_nc_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la
 
 test_scheduler_SOURCES = \
@@ -496,24 +512,24 @@ test_scheduler_delay_SOURCES = \
 test_scheduler_delay_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la
 
-test_server_mst_interrupt_SOURCES = \
+test_server_mst_interrupt_nc_SOURCES = \
  test_server_mst_interrupt.c
-test_server_mst_interrupt_LDADD = \
+test_server_mst_interrupt_nc_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la
 
-test_server_SOURCES = \
+test_server_nc_SOURCES = \
  test_server.c
-test_server_LDADD = \
+test_server_nc_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la
 
-test_server_disconnect_SOURCES = \
+test_server_disconnect_nc_SOURCES = \
  test_server_disconnect.c
-test_server_disconnect_LDADD = \
+test_server_disconnect_nc_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la
 
-test_server_with_client_SOURCES = \
+test_server_with_client_nc_SOURCES = \
  test_server_with_client.c
-test_server_with_client_LDADD = \
+test_server_with_client_nc_LDADD = \
  $(top_builddir)/src/util/libgnunetutil.la
 
 test_server_with_client_unix_SOURCES = \
