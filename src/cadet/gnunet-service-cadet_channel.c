@@ -1519,14 +1519,13 @@ GCCH_send_data_ack (struct CadetChannel *ch, int fwd)
 
   rel = fwd ? ch->dest_rel : ch->root_rel;
   ack = rel->mid_recv - 1;
-  LOG (GNUNET_ERROR_TYPE_INFO, "===> DATA_ACK for %u\n", ack);
 
   msg.header.type = htons (GNUNET_MESSAGE_TYPE_CADET_DATA_ACK);
   msg.header.size = htons (sizeof (msg));
   msg.chid = htonl (ch->gid);
   msg.mid = htonl (ack);
 
-  msg.futures = 0;
+  msg.futures = 0LL;
   for (copy = rel->head_recv; NULL != copy; copy = copy->next)
   {
     if (copy->type != GNUNET_MESSAGE_TYPE_CADET_DATA)
@@ -1544,7 +1543,8 @@ GCCH_send_data_ack (struct CadetChannel *ch, int fwd)
          " setting bit for %u (delta %u) (%llX) -> %llX\n",
          copy->mid, delta, mask, msg.futures);
   }
-  LOG (GNUNET_ERROR_TYPE_DEBUG, " final futures: %llX\n", ack, msg.futures);
+  LOG (GNUNET_ERROR_TYPE_INFO, "===> DATA_ACK for %u + %llX\n",
+       ack, msg.futures);
 
   GCCH_send_prebuilt_message (&msg.header, ch, !fwd, NULL);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "send_data_ack END\n");
@@ -2015,7 +2015,7 @@ GCCH_handle_data_ack (struct CadetChannel *ch,
   }
 
   ack = ntohl (msg->mid);
-  LOG (GNUNET_ERROR_TYPE_INFO, "<=== %s ACK %u + %X\n",
+  LOG (GNUNET_ERROR_TYPE_INFO, "<=== %s ACK %u + %llX\n",
        GC_f2s (fwd), ack, msg->futures);
 
   if (GNUNET_YES == fwd)
