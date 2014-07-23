@@ -577,6 +577,7 @@ send_client_data (struct CadetChannel *ch,
     {
       GML_send_data (ch->dest, msg, ch->lid_dest);
       ch->dest_rel->client_ready = GNUNET_NO;
+      ch->dest_rel->mid_recv++;
     }
     else
       add_buffered_data (msg, ch->dest_rel);
@@ -587,6 +588,7 @@ send_client_data (struct CadetChannel *ch,
     {
       GML_send_data (ch->root, msg, ch->lid_root);
       ch->root_rel->client_ready = GNUNET_NO;
+      ch->root_rel->mid_recv++;
     }
     else
       add_buffered_data (msg, ch->root_rel);
@@ -622,7 +624,7 @@ send_client_buffered_data (struct CadetChannel *ch,
   /* We never buffer channel management messages */
   if (NULL != copy)
   {
-    if (copy->mid <= rel->mid_recv || GNUNET_NO == ch->reliable)
+    if (copy->mid == rel->mid_recv || GNUNET_NO == ch->reliable)
     {
       struct GNUNET_CADET_Data *msg = (struct GNUNET_CADET_Data *) &copy[1];
 
@@ -630,7 +632,6 @@ send_client_buffered_data (struct CadetChannel *ch,
            copy->mid, rel->mid_recv + 1);
       send_client_data (ch, msg, fwd);
       rel->n_recv--;
-      rel->mid_recv++;
       GCCH_send_data_ack (ch, fwd);
       GNUNET_CONTAINER_DLL_remove (rel->head_recv, rel->tail_recv, copy);
       LOG (GNUNET_ERROR_TYPE_DEBUG, " COPYFREE RECV %p\n", copy);
@@ -1958,7 +1959,6 @@ GCCH_handle_data (struct CadetChannel *ch,
       if (mid == rel->mid_recv)
       {
         LOG (GNUNET_ERROR_TYPE_DEBUG, "as expected, sending to client\n");
-        rel->mid_recv++;
         send_client_data (ch, msg, fwd);
       }
       else
