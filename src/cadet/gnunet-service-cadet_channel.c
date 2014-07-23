@@ -632,10 +632,10 @@ send_client_buffered_data (struct CadetChannel *ch,
            copy->mid, rel->mid_recv + 1);
       send_client_data (ch, msg, fwd);
       rel->n_recv--;
-      GCCH_send_data_ack (ch, fwd);
       GNUNET_CONTAINER_DLL_remove (rel->head_recv, rel->tail_recv, copy);
       LOG (GNUNET_ERROR_TYPE_DEBUG, " COPYFREE RECV %p\n", copy);
       GNUNET_free (copy);
+      GCCH_send_data_ack (ch, fwd);
     }
     else
     {
