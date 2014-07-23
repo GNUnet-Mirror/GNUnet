@@ -201,23 +201,13 @@ GNUNET_SOCIAL_slicer_destroy (struct GNUNET_SOCIAL_Slicer *slicer)
  */
 struct GNUNET_SOCIAL_Host *
 GNUNET_SOCIAL_host_enter (const struct GNUNET_CONFIGURATION_Handle *cfg,
-                          struct GNUNET_IDENTITY_Ego *ego,
-                          const struct GNUNET_CRYPTO_EddsaPrivateKey *place_key,
+                          const char *place_keyfile,
                           enum GNUNET_PSYC_Policy policy,
+                          struct GNUNET_IDENTITY_Ego *ego,
                           struct GNUNET_SOCIAL_Slicer *slicer,
-                          GNUNET_SOCIAL_HostEnterCallback enter_cb,
-                          GNUNET_SOCIAL_AnswerDoorCallback answer_door_cb,
+                          GNUNET_SOCIAL_AnswerDoorCallback listener_cb,
                           GNUNET_SOCIAL_FarewellCallback farewell_cb,
                           void *cls)
-// struct GNUNET_SOCIAL_Host *
-// GNUNET_SOCIAL_host_enter (const struct GNUNET_CONFIGURATION_Handle *cfg,
-//                           const char *place_keyfile,
-//                           enum GNUNET_PSYC_Policy policy,
-//                           struct GNUNET_IDENTITY_Ego *ego,
-//                           struct GNUNET_SOCIAL_Slicer *slicer,
-//                           GNUNET_SOCIAL_AnswerDoorCallback listener_cb,
-//                           GNUNET_SOCIAL_FarewellCallback farewell_cb,
-//                           void *cls)
 {
   return NULL;
 }
@@ -351,19 +341,12 @@ GNUNET_SOCIAL_host_advertise (struct GNUNET_SOCIAL_Host *host,
  *
  * @return NULL on error (announcement already in progress?).
  */
-// struct GNUNET_SOCIAL_Announcement *
-// GNUNET_SOCIAL_host_announce (struct GNUNET_SOCIAL_Host *host,
-//                              const char *method_name,
-//                              const struct GNUNET_ENV_Environment *env,
-//                              GNUNET_CONNECTION_TransmitReadyNotify notify,
-//                              void *notify_cls,
-//                              enum GNUNET_SOCIAL_AnnounceFlags flags)
 struct GNUNET_SOCIAL_Announcement *
 GNUNET_SOCIAL_host_announce (struct GNUNET_SOCIAL_Host *host,
                              const char *method_name,
                              const struct GNUNET_ENV_Environment *env,
-                             GNUNET_PSYC_TransmitNotifyData notify_data,
-                             void *notify_data_cls,
+                             GNUNET_CONNECTION_TransmitReadyNotify notify,
+                             void *notify_cls,
                              enum GNUNET_SOCIAL_AnnounceFlags flags)
 {
   return NULL;
@@ -431,30 +414,15 @@ GNUNET_SOCIAL_host_leave (struct GNUNET_SOCIAL_Host *host, int keep_active)
  *
  * @return NULL on errors, otherwise handle for the guest.
  */
-// struct GNUNET_SOCIAL_Guest *
-// GNUNET_SOCIAL_guest_enter (const struct GNUNET_CONFIGURATION_Handle *cfg,
-//                            struct GNUNET_IDENTITY_Ego *ego,
-//                            char *address,
-//                            const char *method_name,
-//                            const struct GNUNET_ENV_Environment *env,
-//                            const void *data,
-//                            size_t data_size,
-//                            struct GNUNET_SOCIAL_Slicer *slicer)
 struct GNUNET_SOCIAL_Guest *
 GNUNET_SOCIAL_guest_enter (const struct GNUNET_CONFIGURATION_Handle *cfg,
                            struct GNUNET_IDENTITY_Ego *ego,
-                           struct GNUNET_CRYPTO_EddsaPublicKey *place_key,
-                           struct GNUNET_PeerIdentity *origin,
-                           uint32_t relay_count,
-                           struct GNUNET_PeerIdentity *relays,
+                           char *address,
                            const char *method_name,
                            const struct GNUNET_ENV_Environment *env,
                            const void *data,
                            size_t data_size,
-                           struct GNUNET_SOCIAL_Slicer *slicer,
-                           GNUNET_SOCIAL_GuestEnterCallback local_enter_cb,
-                           GNUNET_SOCIAL_EntryDecisionCallback entry_decision_cb,
-                           void *cls)
+                           struct GNUNET_SOCIAL_Slicer *slicer)
 {
   return NULL;
 }
@@ -506,19 +474,12 @@ GNUNET_SOCIAL_guest_enter2 (const struct GNUNET_CONFIGURATION_Handle *cfg,
  * @return NULL if we are already trying to talk to the host,
  *         otherwise handle to cancel the request.
  */
-// struct GNUNET_SOCIAL_TalkRequest *
-// GNUNET_SOCIAL_guest_talk (struct GNUNET_SOCIAL_Place *place,
-//                           const char *method_name,
-//                           const struct GNUNET_ENV_Environment *env,
-//                           GNUNET_CONNECTION_TransmitReadyNotify notify,
-//                           void *notify_cls,
-//                           enum GNUNET_SOCIAL_TalkFlags flags)
 struct GNUNET_SOCIAL_TalkRequest *
-GNUNET_SOCIAL_guest_talk (struct GNUNET_SOCIAL_Guest *guest,
+GNUNET_SOCIAL_guest_talk (struct GNUNET_SOCIAL_Place *place,
                           const char *method_name,
                           const struct GNUNET_ENV_Environment *env,
-                          GNUNET_PSYC_TransmitNotifyData notify_data,
-                          void *notify_data_cls,
+                          GNUNET_CONNECTION_TransmitReadyNotify notify,
+                          void *notify_cls,
                           enum GNUNET_SOCIAL_TalkFlags flags)
 {
   return NULL;
@@ -546,8 +507,7 @@ GNUNET_SOCIAL_guest_talk_cancel (struct GNUNET_SOCIAL_TalkRequest *tr)
  * @param keep_active Keep place active after last application disconnected.
  */
 void
-// GNUNET_SOCIAL_guest_leave (struct GNUNET_SOCIAL_Place *place, int keep_active)
-GNUNET_SOCIAL_guest_leave (struct GNUNET_SOCIAL_Guest *guest, int keep_active)
+GNUNET_SOCIAL_guest_leave (struct GNUNET_SOCIAL_Place *place, int keep_active)
 {
 
 }
@@ -563,8 +523,7 @@ GNUNET_SOCIAL_guest_leave (struct GNUNET_SOCIAL_Guest *guest, int keep_active)
  * @return Handle for the place, valid as long as @a guest is valid.
  */
 struct GNUNET_SOCIAL_Place *
-// GNUNET_SOCIAL_guest_get_place (struct GNUNET_SOCIAL_Host *guest)
-GNUNET_SOCIAL_guest_get_place (struct GNUNET_SOCIAL_Guest *guest)
+GNUNET_SOCIAL_guest_get_place (struct GNUNET_SOCIAL_Host *guest)
 {
   return NULL;
 }
