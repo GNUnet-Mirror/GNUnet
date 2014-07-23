@@ -622,7 +622,7 @@ send_client_buffered_data (struct CadetChannel *ch,
   /* We never buffer channel management messages */
   if (NULL != copy)
   {
-    if (copy->mid == rel->mid_recv || GNUNET_NO == ch->reliable)
+    if (copy->mid <= rel->mid_recv || GNUNET_NO == ch->reliable)
     {
       struct GNUNET_CADET_Data *msg = (struct GNUNET_CADET_Data *) &copy[1];
 
