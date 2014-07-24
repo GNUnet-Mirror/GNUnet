@@ -422,6 +422,8 @@ tmt_rdy (void *cls, size_t size, void *buf)
   if (GNUNET_NO == initialized)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "sending initializer\n");
+    if (SPEED_ACK == test)
+      data_sent++;
   }
   else if (SPEED == test || SPEED_ACK == test)
   {
