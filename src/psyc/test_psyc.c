@@ -41,23 +41,23 @@
 /**
  * Return value from 'main'.
  */
-static int res;
+int res;
 
-static const struct GNUNET_CONFIGURATION_Handle *cfg;
+const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 /**
  * Handle for task for timeout termination.
  */
-static GNUNET_SCHEDULER_TaskIdentifier end_badly_task;
+GNUNET_SCHEDULER_TaskIdentifier end_badly_task;
 
-static struct GNUNET_PSYC_Master *mst;
-static struct GNUNET_PSYC_Slave *slv;
+struct GNUNET_PSYC_Master *mst;
+struct GNUNET_PSYC_Slave *slv;
 
-static struct GNUNET_CRYPTO_EddsaPrivateKey *channel_key;
-static struct GNUNET_CRYPTO_EcdsaPrivateKey *slave_key;
+struct GNUNET_CRYPTO_EddsaPrivateKey *channel_key;
+struct GNUNET_CRYPTO_EcdsaPrivateKey *slave_key;
 
-static struct GNUNET_CRYPTO_EddsaPublicKey channel_pub_key;
-static struct GNUNET_CRYPTO_EcdsaPublicKey slave_pub_key;
+struct GNUNET_CRYPTO_EddsaPublicKey channel_pub_key;
+struct GNUNET_CRYPTO_EcdsaPublicKey slave_pub_key;
 
 struct TransmitClosure
 {
@@ -76,7 +76,7 @@ struct TransmitClosure
 
 struct TransmitClosure *tmit;
 
-static uint8_t join_req_count;
+uint8_t join_req_count;
 
 enum
 {
@@ -86,7 +86,7 @@ enum
 } test;
 
 
-static void
+void
 master_transmit ();
 
 
@@ -115,7 +115,7 @@ void slave_parted (void *cls)
 /**
  * Clean up all resources used.
  */
-static void
+void
 cleanup ()
 {
   if (NULL != slv)
@@ -134,7 +134,7 @@ cleanup ()
  * @param cls NULL
  * @param tc scheduler context
  */
-static void
+void
 end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   res = 1;
@@ -149,7 +149,7 @@ end_badly (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * @param cls NULL
  * @param tc scheduler context
  */
-static void
+void
 end_normally (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   res = 0;
@@ -161,7 +161,7 @@ end_normally (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /**
  * Finish the test case (successfully).
  */
-static void
+void
 end ()
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Ending tests.\n");
@@ -176,7 +176,7 @@ end ()
 }
 
 
-static void
+void
 master_message_cb (void *cls, uint64_t message_id, uint32_t flags,
                    const struct GNUNET_PSYC_MessageHeader *msg)
 {
@@ -188,7 +188,7 @@ master_message_cb (void *cls, uint64_t message_id, uint32_t flags,
 }
 
 
-static void
+void
 master_message_part_cb (void *cls, uint64_t message_id,
                         uint64_t data_offset, uint32_t flags,
                         const struct GNUNET_MessageHeader *msg)
@@ -233,7 +233,7 @@ master_message_part_cb (void *cls, uint64_t message_id,
 }
 
 
-static void
+void
 slave_message_cb (void *cls, uint64_t message_id, uint32_t flags,
                   const struct GNUNET_PSYC_MessageHeader *msg)
 {
@@ -245,7 +245,7 @@ slave_message_cb (void *cls, uint64_t message_id, uint32_t flags,
 }
 
 
-static void
+void
 slave_message_part_cb (void *cls, uint64_t message_id,
                        uint64_t data_offset, uint32_t flags,
                        const struct GNUNET_MessageHeader *msg)
@@ -278,7 +278,7 @@ slave_message_part_cb (void *cls, uint64_t message_id,
 }
 
 
-static void
+void
 transmit_resume (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Transmission resumed.\n");
@@ -290,7 +290,7 @@ transmit_resume (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
-static int
+int
 tmit_notify_data (void *cls, uint16_t *data_size, void *data)
 {
   struct TransmitClosure *tmit = cls;
@@ -332,7 +332,7 @@ tmit_notify_data (void *cls, uint16_t *data_size, void *data)
 }
 
 
-static int
+int
 tmit_notify_mod (void *cls, uint16_t *data_size, void *data, uint8_t *oper,
                  uint32_t *full_value_size)
 {
@@ -408,11 +408,11 @@ tmit_notify_mod (void *cls, uint16_t *data_size, void *data, uint8_t *oper,
 }
 
 
-static void
+void
 slave_join ();
 
 
-static void
+void
 join_decision_cb (void *cls,
                   const struct GNUNET_PSYC_JoinDecisionMessage *dcsn,
                   int is_admitted,
@@ -449,7 +449,7 @@ join_decision_cb (void *cls,
 }
 
 
-static void
+void
 join_request_cb (void *cls,
                  const struct GNUNET_PSYC_JoinRequestMessage *req,
                  const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
@@ -468,7 +468,7 @@ join_request_cb (void *cls,
 }
 
 
-static void
+void
 slave_connect_cb (void *cls, uint64_t max_message_id)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -476,12 +476,12 @@ slave_connect_cb (void *cls, uint64_t max_message_id)
 }
 
 
-static void
+void
 slave_join ()
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Joining slave.\n");
 
-  struct GNUNET_PeerIdentity origin; // FIXME: this peer
+  struct GNUNET_PeerIdentity origin = {}; // FIXME: this peer
   struct GNUNET_ENV_Environment *env = GNUNET_ENV_environment_create ();
   GNUNET_ENV_environment_add (env, GNUNET_ENV_OP_ASSIGN,
                               "_foo", "bar baz", 7);
@@ -498,7 +498,7 @@ slave_join ()
 }
 
 
-static void
+void
 master_transmit ()
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Master sending message to all.\n");
@@ -550,12 +550,29 @@ master_transmit ()
 }
 
 
-static void
+void
 master_start_cb (void *cls, uint64_t max_message_id)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "Master started: %" PRIu64 "\n", max_message_id);
   slave_join ();
+}
+
+
+void
+master_start ()
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Starting master.\n");
+  mst = GNUNET_PSYC_master_start (cfg, channel_key, GNUNET_PSYC_CHANNEL_PRIVATE,
+                                  &master_start_cb, &join_request_cb,
+                                  &master_message_cb, &master_message_part_cb,
+                                  NULL);
+}
+
+void
+schedule_master_start (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  master_start ();
 }
 
 
@@ -566,7 +583,7 @@ master_start_cb (void *cls, uint64_t max_message_id)
  * @param cfg configuration we use (also to connect to PSYC service)
  * @param peer handle to access more of the peer (not used)
  */
-static void
+void
 #if DEBUG_TEST_PSYC
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
@@ -585,11 +602,14 @@ run (void *cls,
   GNUNET_CRYPTO_eddsa_key_get_public (channel_key, &channel_pub_key);
   GNUNET_CRYPTO_ecdsa_key_get_public (slave_key, &slave_pub_key);
 
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Starting master.\n");
-  mst = GNUNET_PSYC_master_start (cfg, channel_key, GNUNET_PSYC_CHANNEL_PRIVATE,
-                                  &master_start_cb, &join_request_cb,
-                                  &master_message_cb, &master_message_part_cb,
-                                  NULL);
+#if DEBUG_TEST_PSYC
+  master_start ();
+#else
+  /* Allow some time for the services to initialize. */
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+                                &schedule_master_start, NULL);
+#endif
+  return;
 }
 
 
