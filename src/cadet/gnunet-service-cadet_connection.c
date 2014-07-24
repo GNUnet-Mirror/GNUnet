@@ -910,6 +910,7 @@ send_connection_keepalive (struct CadetConnection *c, int fwd)
   if (0 < fc->queue_n)
   {
     LOG (GNUNET_ERROR_TYPE_INFO, "not sending keepalive, traffic in queue\n");
+    return;
   }
 
   GNUNET_STATISTICS_update (stats, "# keepalives sent", 1, GNUNET_NO);
