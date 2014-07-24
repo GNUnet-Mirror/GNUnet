@@ -260,7 +260,7 @@ GAS_performance_notify_all_clients (const struct GNUNET_PeerIdentity *peer,
 /**
  * Iterator for called from #GAS_addresses_get_peer_info()
  *
- * @param p_it_cls closure with the `struct PerformanceClient *`
+ * @param cls closure with the `struct PerformanceClient *`
  * @param id the peer id
  * @param plugin_name plugin name
  * @param plugin_addr address
@@ -422,12 +422,12 @@ transmit_req_addr (struct AddressIteration *ai,
 /**
  * Iterator for #GAS_addresses_get_peer_info()
  *
- * @param p_it_cls closure with our `struct AddressIteration *`
+ * @param cls closure with our `struct AddressIteration *`
  * @param id the peer id
  * @param plugin_name plugin name
  * @param plugin_addr address
  * @param plugin_addr_len length of @a plugin_addr
- * @param address_active is address actively used
+ * @param active is address actively used
  * @param atsi ats performance information
  * @param atsi_count number of ats performance elements in @a atsi
  * @param bandwidth_out current outbound bandwidth assigned to address

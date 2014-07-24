@@ -1122,7 +1122,6 @@ propagate_bandwidth (struct GAS_PROPORTIONAL_Handle *s,
  *
  * @param s the solver handle
  * @param n the network, can be NULL for all network
- * @param address_except do not notify for this address
  */
 static void
 distribute_bandwidth_in_network (struct GAS_PROPORTIONAL_Handle *s,
@@ -1927,7 +1926,7 @@ GAS_proportional_address_add (void *solver,
 /**
  * Function invoked when the plugin is loaded.
  *
- * @param cls[in,out] the `struct GNUNET_ATS_PluginEnvironment *` to use;
+ * @param[in,out] cls the `struct GNUNET_ATS_PluginEnvironment *` to use;
  *            modified to return the API functions (ugh).
  * @return the `struct GAS_PROPORTIONAL_Handle` to pass as a closure
  */

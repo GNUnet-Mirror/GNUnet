@@ -202,8 +202,10 @@ static GNUNET_SCHEDULER_TaskIdentifier aging_task;
 
 /**
  * Update a peer
+ *
  * @param id peer id
  * @param kind the kind
+ * @param rp the relative peer struct
  * @return the new relative preference
  */
 static void
@@ -448,7 +450,8 @@ preference_aging (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  */
 void
 GAS_normalization_normalize_preference (void *client,
-    const struct GNUNET_PeerIdentity *peer, enum GNUNET_ATS_PreferenceKind kind,
+    const struct GNUNET_PeerIdentity *peer,
+    enum GNUNET_ATS_PreferenceKind kind,
     float score_abs)
 {
   struct PreferenceClient *c_cur;

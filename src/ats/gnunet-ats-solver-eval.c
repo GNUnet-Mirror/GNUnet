@@ -1062,6 +1062,7 @@ find_active_address (struct TestPeer *p)
  * @param period duration of a period of generation (~ 1/frequency)
  * @param frequency how long to generate property
  * @param kind ATS preference to generate
+ * @param feedback_frequency how often to give feedback
  * @return the preference generator
  */
 struct PreferenceGenerator *

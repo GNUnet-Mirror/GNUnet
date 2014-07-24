@@ -87,16 +87,16 @@ GAS_normalization_get_preferences_by_client (const void *client,
 /**
  * Normalize an updated preference value
  *
- * @param src the client with this preference
+ * @param client the client with this preference
  * @param peer the peer to change the preference for
  * @param kind the kind to change the preference
  * @param score_abs the normalized score
  */
 void
-GAS_normalization_normalize_preference (void *src,
-					const struct GNUNET_PeerIdentity *peer,
-					enum GNUNET_ATS_PreferenceKind kind,
-					float score_abs);
+GAS_normalization_normalize_preference (void *client,
+                                        const struct GNUNET_PeerIdentity *peer,
+                                        enum GNUNET_ATS_PreferenceKind kind,
+                                        float score_abs);
 
 /**
  * Update and normalize a atsi performance information
