@@ -687,7 +687,7 @@ void id_guest_created (void *cls, const char *emsg)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Could not create guest identity: %s\n", emsg);
-#if 0 == DEBUG_SERVICE
+#if ! DEBUG_TEST_SOCIAL
     GNUNET_assert (0);
 #endif
   }
@@ -728,7 +728,7 @@ void id_host_created (void *cls, const char *emsg)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 "Could not create host identity: %s\n", emsg);
-#if 0 == DEBUG_SERVICE
+#if ! DEBUG_TEST_SOCIAL
     GNUNET_assert (0);
 #endif
   }
