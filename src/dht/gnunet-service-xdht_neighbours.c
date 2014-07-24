@@ -3172,6 +3172,28 @@ update_current_search_finger_index (struct GNUNET_PeerIdentity finger_identity,
 
 
 /**
+ * Get the first set bit in val. 
+ * @param val Value
+ * @return Position of first bit set.
+ */
+static unsigned int
+find_set_bit(uint64_t val)
+{
+  uint64_t i;
+  unsigned int pos;
+  
+  i = 1;
+  pos = 0;
+  
+  while(!(i && val))
+  {
+    i = i << val;
+    pos++;
+  }
+  return pos;
+}
+
+/**
  * Calculate finger_table_index from initial 64 bit finger identity value that 
  * we send in trail setup message. 
  * @param ultimate_destination_finger_value Value that we calculated from our
@@ -3186,7 +3208,7 @@ get_finger_table_index (uint64_t ultimate_destination_finger_value,
                         unsigned int is_predecessor)
 {
   uint64_t my_id64;
-  int diff;
+  uint64_t diff;
   unsigned int finger_table_index;
 
   memcpy (&my_id64, &my_identity, sizeof (uint64_t));
@@ -3205,7 +3227,7 @@ get_finger_table_index (uint64_t ultimate_destination_finger_value,
   else 
   {
     diff = ultimate_destination_finger_value - my_id64;
-    finger_table_index = (log10 (diff))/(log10 (2));
+    finger_table_index = find_set_bit(diff);
   }
   
   return finger_table_index;
