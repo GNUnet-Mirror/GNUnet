@@ -561,7 +561,7 @@ reschedule_session_timeout (struct Session *session)
  * Convert unix path to a `struct sockaddr_un *`
  *
  * @param unixpath path to convert
- * @param sock_len[out] set to the length of the address
+ * @param[out] sock_len set to the length of the address
  * @return converted unix path
  */
 static struct sockaddr_un *
@@ -1096,7 +1096,7 @@ unix_plugin_do_read (struct Plugin *plugin)
 /**
  * Write to UNIX domain socket (it is ready).
  *
- * @param session session to write data for
+ * @param plugin handle to the plugin
  */
 static void
 unix_plugin_do_write (struct Plugin *plugin)

@@ -39,56 +39,148 @@
  * Should match NAT_SERVER_TIMEOUT in 'nat_test.c'.
  */
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 20)
+
+/**
+ * Timeout for a name resolution
+ */
 #define RESOLUTION_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
+
+/**
+ * Timeout for an operations
+ */
 #define OP_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
 
+/**
+ * Context to store name resolutions for valiation
+ */
 struct ValidationResolutionContext
 {
+  /**
+   * Next in DLL
+   */
   struct ValidationResolutionContext *next;
 
+  /**
+   * Previous in DLL
+   */
   struct ValidationResolutionContext *prev;
 
+  /**
+   * Peer identity
+   */
   struct GNUNET_PeerIdentity id;
 
+  /**
+   * Address to resolve
+   */
   struct GNUNET_HELLO_Address *addrcp;
 
+  /**
+   * Time of last validation
+   */
   struct GNUNET_TIME_Absolute last_validation;
 
+  /**
+   * Address is valid until
+   */
   struct GNUNET_TIME_Absolute valid_until;
 
+  /**
+   * Time of next validation
+   */
   struct GNUNET_TIME_Absolute next_validation;
 
+  /**
+   * state of validation process
+   */
   enum GNUNET_TRANSPORT_ValidationState state;
 
+  /**
+   * Tranport conversion handle
+   */
   struct GNUNET_TRANSPORT_AddressToStringContext *asc;
 
+  /**
+   * plugin name
+   */
   char *transport;
 
+  /**
+   * was the entry printed
+   */
   int printed;
 };
 
-
+/**
+ * Struct to store information about peers in monitor mode
+ */
 struct MonitoredPeer
 {
+  /**
+   * State of the peer
+   */
   enum GNUNET_TRANSPORT_PeerState state;
 
+  /**
+   * Timeout
+   */
   struct GNUNET_TIME_Absolute state_timeout;
 
+  /**
+   * The address to convert
+   */
   struct GNUNET_HELLO_Address *address;
 };
 
-
+/**
+ * Context to store name resolutions for valiation
+ */
 struct PeerResolutionContext
 {
+  /**
+   * Next in DLL
+   */
   struct PeerResolutionContext *next;
+
+  /**
+   * Prev in DLL
+   */
   struct PeerResolutionContext *prev;
+
+  /**
+   * The peer id
+   */
   struct GNUNET_PeerIdentity id;
+
+  /**
+   * address to resolve
+   */
   struct GNUNET_HELLO_Address *addrcp;
+
+  /**
+   * transport conversiion context
+   */
   struct GNUNET_TRANSPORT_AddressToStringContext *asc;
+
+  /**
+   * peer state
+   */
   enum GNUNET_TRANSPORT_PeerState state;
+
+  /**
+   * state timeout
+   */
   struct GNUNET_TIME_Absolute state_timeout;
+
+  /**
+   * transport plugin
+   */
   char *transport;
+
+  /**
+   * was the entry printed
+   */
   int printed;
 };
 
@@ -349,12 +441,24 @@ struct TestContext *head;
  */
 struct TestContext *tail;
 
+/**
+ * DLL: head of validation resolution entries
+ */
 static struct ValidationResolutionContext *vc_head;
 
+/**
+ * DLL: tail of validation resolution entries
+ */
 static struct ValidationResolutionContext *vc_tail;
 
+/**
+ * DLL: head of resolution entries
+ */
 static struct PeerResolutionContext *rc_head;
 
+/**
+ * DLL: head of resolution entries
+ */
 static struct PeerResolutionContext *rc_tail;
 
 
@@ -596,8 +700,7 @@ display_test_result (struct TestContext *tc,
  * Clean up and update GUI.
  *
  * @param cls test context
- * @param success currently always #GNUNET_OK
- * @param emsg error message, NULL on success
+ * @param result status code
  */
 static void
 result_callback (void *cls,
@@ -633,8 +736,8 @@ resolve_validation_address (const struct GNUNET_PeerIdentity *id,
 /**
  * Function to call with a textual representation of an address.  This
  * function will be called several times with different possible
- * textual representations, and a last time with @address being NULL
- * to signal the end of the iteration.  Note that @address NULL
+ * textual representations, and a last time with @a address being NULL
+ * to signal the end of the iteration.  Note that @a address NULL
  * always is the last call, regardless of the value in @a res.
  *
  * @param cls closure
@@ -1205,8 +1308,8 @@ print_info (const struct GNUNET_PeerIdentity *id,
 /**
  * Function called with a textual representation of an address.  This
  * function will be called several times with different possible
- * textual representations, and a last time with @address being NULL
- * to signal the end of the iteration.  Note that @address NULL
+ * textual representations, and a last time with @a address being NULL
+ * to signal the end of the iteration.  Note that @a address NULL
  * always is the last call, regardless of the value in @a res.
  *
  * @param cls closure

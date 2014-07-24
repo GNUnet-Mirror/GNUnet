@@ -2077,18 +2077,12 @@ client_configure_plugin (struct HTTP_Client_Plugin *plugin)
 
 
 /**
- * Function called by the pretty printer for the resolved address for
- * each human-readable address obtained.  The callback can be called
- * several times. The last invocation must be with a @a address of
- * NULL and a @a res of #GNUNET_OK.  Thus, to indicate conversion
- * errors, the callback might be called first with @a address NULL and
- * @a res being #GNUNET_SYSERR.  In that case, there must still be a
- * subsequent call later with @a address NULL and @a res #GNUNET_OK.
+ * Function to convert an address to a human-readable string.
  *
  * @param cls closure
- * @param address one of the names for the host, NULL on last callback
- * @param res #GNUNET_OK if conversion was successful, #GNUNET_SYSERR on failure,
- *      #GNUNET_OK on last callback
+ * @param addr address to convert
+ * @param addrlen address length
+ * @return res string if conversion was successful, NULL otherwise
  */
 static const char *
 http_client_plugin_address_to_string (void *cls,
@@ -2126,7 +2120,7 @@ http_client_plugin_update_session_timeout (void *cls,
  *
  * @param cls closure
  * @param peer which peer was the session for
- * @param session which session is being updated
+ * @param s which session is being updated
  * @param delay new delay to use for receiving
  */
 static void

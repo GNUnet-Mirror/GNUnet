@@ -952,6 +952,7 @@ server_v6_run (void *cls,
  *
  * @param plugin plugin
  * @param daemon_handle the MHD daemon handle
+ * @param now schedule now
  * @return gnunet task identifier
  */
 static GNUNET_SCHEDULER_TaskIdentifier
@@ -3210,18 +3211,15 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
 
 
 /**
- * Function called by the pretty printer for the resolved address for
- * each human-readable address obtained.  The callback can be called
- * several times. The last invocation must be with a @a address of
- * NULL and a @a res of #GNUNET_OK.  Thus, to indicate conversion
- * errors, the callback might be called first with @a address NULL and
- * @a res being #GNUNET_SYSERR.  In that case, there must still be a
- * subsequent call later with @a address NULL and @a res #GNUNET_OK.
+ * Function called for a quick conversion of the binary address to
+ * a numeric address.  Note that the caller must not free the
+ * address and that the next call to this function is allowed
+ * to override the address again.
  *
- * @param cls closure
- * @param address one of the names for the host, NULL on last callback
- * @param res #GNUNET_OK if conversion was successful, #GNUNET_SYSERR on failure,
- *      #GNUNET_OK on last callback
+ * @param cls unused
+ * @param addr binary address
+ * @param addrlen length of the address
+ * @return string representing the same address
  */
 static const char *
 http_server_plugin_address_to_string (void *cls,
@@ -3262,7 +3260,7 @@ http_server_plugin_get_network (void *cls,
 static void
 http_server_plugin_update_inbound_delay (void *cls,
                                          const struct GNUNET_PeerIdentity *peer,
-                                         struct Session *s,
+                                         struct Session *session,
                                          struct GNUNET_TIME_Relative delay)
 {
   s->next_receive = GNUNET_TIME_relative_to_absolute (delay);

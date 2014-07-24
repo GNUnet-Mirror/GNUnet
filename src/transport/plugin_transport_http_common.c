@@ -244,13 +244,15 @@ static struct PrettyPrinterContext *dll_ppc_tail;
  * to override the address again.
  *
  * @param plugin the name of the plugin
- * @param addr binary address
- * @param addrlen length of the address
- * @return string representing the same address
+ * @param saddr the splitted http address
+ * @param options address options
+ * @param dnsresult dns name to include in address
+ * @return string representing the same address or NULL on error
  */
 static const char *
 http_common_plugin_dnsresult_to_address (const char *plugin,
-    const struct SplittedHTTPAddress *saddr, uint32_t options,
+    const struct SplittedHTTPAddress *saddr,
+    uint32_t options,
     const char *dnsresult)
 {
   static char rbuf[1024];
