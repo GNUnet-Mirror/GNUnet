@@ -31,9 +31,7 @@
 #include "gnunet_testing_lib.h"
 #include "gnunet_psycstore_service.h"
 
-#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 10)
-
-#define DEBUG_SERVICE 0
+#define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
 
 /**
@@ -483,7 +481,7 @@ membership_store_result (void *cls, int64_t result, const char *err_msg)
  * @param peer handle to access more of the peer (not used)
  */
 static void
-#if DEBUG_SERVICE
+#if DEBUG_TEST_PSYCSTORE
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 #else
@@ -513,7 +511,7 @@ int
 main (int argc, char *argv[])
 {
   res = 1;
-#if DEBUG_SERVICE
+#if DEBUG_TEST_PSYCSTORE
   const struct GNUNET_GETOPT_CommandLineOption opts[] = {
     GNUNET_GETOPT_OPTION_END
   };
