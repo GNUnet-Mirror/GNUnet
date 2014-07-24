@@ -3263,18 +3263,18 @@ http_server_plugin_update_inbound_delay (void *cls,
                                          struct Session *session,
                                          struct GNUNET_TIME_Relative delay)
 {
-  s->next_receive = GNUNET_TIME_relative_to_absolute (delay);
+  session->next_receive = GNUNET_TIME_relative_to_absolute (delay);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "New inbound delay %s\n",
        GNUNET_STRINGS_relative_time_to_string (delay,
                                                GNUNET_NO));
-  if (GNUNET_SCHEDULER_NO_TASK != s->recv_wakeup_task)
+  if (GNUNET_SCHEDULER_NO_TASK != session->recv_wakeup_task)
   {
-    GNUNET_SCHEDULER_cancel (s->recv_wakeup_task);
-    s->recv_wakeup_task
+    GNUNET_SCHEDULER_cancel (session->recv_wakeup_task);
+    session->recv_wakeup_task
       = GNUNET_SCHEDULER_add_delayed (delay,
                                       &server_wake_up,
-                                      s);
+                                      session);
   }
 }
 
