@@ -33,12 +33,12 @@
 /**
  * Start downloading hostlists from hostlist servers as necessary.
  *
- * @param c the configuration to use
- * @param st hande for publishing statistics
- * @param ch[OUT] set to handler for connect notifications
- * @param dh[OUT] set to handler for disconnect notifications
- * @param msgh[OUT] set to handler for message handler notifications
- * @param learn set if client is learning new hostlists
+ * @param c configuration to use
+ * @param st statistics handle to use
+ * @param[out] ch set to handler for CORE connect events
+ * @param[out] dh set to handler for CORE disconnect events
+ * @param[out] msgh set to handler for CORE advertisement messages
+ * @param learn should we learn hostlist URLs from CORE
  * @return #GNUNET_OK on success
  */
 int

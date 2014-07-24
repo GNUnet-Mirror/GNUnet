@@ -1498,9 +1498,9 @@ save_hostlist_file (int shutdown)
  *
  * @param c configuration to use
  * @param st statistics handle to use
- * @param ch[OUT] set to handler for CORE connect events
- * @param dh[OUT] set to handler for CORE disconnect events
- * @param msgh[OUT] set to handler for CORE advertisement messages
+ * @param[out] ch set to handler for CORE connect events
+ * @param[out] dh set to handler for CORE disconnect events
+ * @param[out] msgh set to handler for CORE advertisement messages
  * @param learn should we learn hostlist URLs from CORE
  * @return #GNUNET_OK on success
  */

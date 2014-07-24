@@ -203,7 +203,7 @@ check_has_addr (void *cls,
  * @param cls closure, NULL
  * @param peer id of the peer, NULL for last call
  * @param hello hello message for the peer (can be NULL)
- * @param error message
+ * @param err_msg message
  */
 static void
 host_processor (void *cls,
@@ -304,6 +304,7 @@ accept_policy_callback (void *cls,
  *
  * @param cls argument given together with the function
  *        pointer when the handler was registered with MHD
+ * @param connection
  * @param url the requested url
  * @param method the HTTP method used (#MHD_HTTP_METHOD_GET,
  *        #MHD_HTTP_METHOD_PUT, etc.)
@@ -642,8 +643,8 @@ prepare_daemon (struct MHD_Daemon *daemon_handle)
  * @param c configuration to use
  * @param st statistics handle to use
  * @param co core handle to use
- * @param server_ch[OUT] set to handler for CORE connect events
- * @param server_dh[OUT] set to handler for CORE disconnect events
+ * @param[out] server_ch set to handler for CORE connect events
+ * @param[out] server_dh set to handler for CORE disconnect events
  * @param advertise #GNUNET_YES if we should advertise our hostlist
  * @return #GNUNET_OK on success
  */
