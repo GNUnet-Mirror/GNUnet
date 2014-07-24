@@ -38,7 +38,7 @@ extern "C"
 /**
  * Structure containing sensor definition
  */
-struct SensorInfo
+struct GNUNET_SENSOR_SensorInfo
 {
 
   /**
@@ -196,7 +196,7 @@ struct GNUNET_SENSOR_Reading
   /**
    * Sensor this reading is related to
    */
-  struct SensorInfo *sensor;
+  struct GNUNET_SENSOR_SensorInfo *sensor;
 
   /**
    * Timestamp of taking the reading
@@ -257,7 +257,9 @@ struct GNUNET_SENSOR_ReadingMessage
   uint16_t value_size;
 
 };
+
 GNUNET_NETWORK_STRUCT_END
+
 
 /**
  * Reads sensor definitions from local data files
@@ -267,6 +269,7 @@ GNUNET_NETWORK_STRUCT_END
 struct GNUNET_CONTAINER_MultiHashMap *
 GNUNET_SENSOR_load_all_sensors ();
 
+
 /*
  * Get path to the directory containing the sensor definition files
  *
@@ -275,16 +278,6 @@ GNUNET_SENSOR_load_all_sensors ();
 char *
 GNUNET_SENSOR_get_sensor_dir ();
 
-/**
- * Parses a sensor reading message struct
- *
- * @param msg message header received
- * @param sensors multihashmap of loaded sensors
- * @return sensor reading struct or NULL if error
- */
-struct GNUNET_SENSOR_Reading *
-GNUNET_SENSOR_parse_reading_message (const struct GNUNET_MessageHeader *msg,
-    struct GNUNET_CONTAINER_MultiHashMap *sensors);
 
 /**
  * Destroys a group of sensors in a hashmap and the hashmap itself

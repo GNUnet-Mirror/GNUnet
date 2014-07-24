@@ -51,7 +51,7 @@ struct SensorModel
   /*
    * Pointer to sensor info structure
    */
-  struct SensorInfo *sensor;
+  struct GNUNET_SENSOR_SensorInfo *sensor;
 
   /*
    * Watcher of sensor values
@@ -190,7 +190,7 @@ sensor_watcher (void *cls,
  *
  * @param cls unused
  * @param key unused
- * @param value a 'struct SensorInfo *' with sensor information
+ * @param value a 'struct GNUNET_SENSOR_SensorInfo *' with sensor information
  * @return #GNUNET_YES to continue iterations
  */
 static int
@@ -198,7 +198,7 @@ init_sensor_model (void *cls,
     const struct GNUNET_HashCode *key,
     void *value)
 {
-  struct SensorInfo *sensor = value;
+  struct GNUNET_SENSOR_SensorInfo *sensor = value;
   struct SensorModel *sensor_model;
 
   if (0 != strcmp("numeric", sensor->expected_datatype))

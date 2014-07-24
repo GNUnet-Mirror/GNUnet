@@ -59,6 +59,11 @@ struct ClientPeerContext
    */
   struct GNUNET_CADET_Channel *ch;
 
+  /**
+   * Are we in the process of destroying this context?
+   */
+  int destroying;
+
 };
 
 
@@ -101,6 +106,7 @@ static struct ClientPeerContext *cp_tail;
 static void
 destroy_clientpeer (struct ClientPeerContext *cp)
 {
+  cp->destroying = GNUNET_YES;
   if (NULL != cp->ch)
   {
     GNUNET_CADET_channel_destroy (cp->ch);
@@ -108,6 +114,7 @@ destroy_clientpeer (struct ClientPeerContext *cp)
   }
   GNUNET_free (cp);
 }
+
 
 /**
  * Task run during shutdown.
@@ -138,8 +145,9 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     peerstore = NULL;
   }
   GNUNET_SENSOR_destroy_sensors (sensors);
-  GNUNET_SCHEDULER_shutdown();
+  GNUNET_SCHEDULER_shutdown ();
 }
+
 
 /**
  * Function called whenever a channel is destroyed.  Should clean up
@@ -159,10 +167,13 @@ cadet_channel_destroyed (void *cls,
 {
   struct ClientPeerContext *cp = channel_ctx;
 
+  if (GNUNET_YES == cp->destroying)
+    return;
   cp->ch = NULL;
   GNUNET_CONTAINER_DLL_remove (cp_head, cp_tail, cp);
   destroy_clientpeer (cp);
 }
+
 
 /**
  * Method called whenever another peer has added us to a channel
@@ -193,9 +204,84 @@ cadet_channel_created (void *cls,
   cp = GNUNET_new (struct ClientPeerContext);
   cp->peerid = *initiator;
   cp->ch = channel;
+  cp->destroying = GNUNET_NO;
   GNUNET_CONTAINER_DLL_insert (cp_head, cp_tail, cp);
   return cp;
 }
+
+
+/**
+ * Parses a sensor reading message struct
+ *
+ * @param msg message header received
+ * @param sensors multihashmap of loaded sensors
+ * @return sensor reading struct or NULL if error
+ */
+static struct GNUNET_SENSOR_Reading *
+parse_reading_message (const struct GNUNET_MessageHeader *msg,
+                       struct GNUNET_CONTAINER_MultiHashMap *sensors)
+{
+  uint16_t msg_size;
+  struct GNUNET_SENSOR_ReadingMessage *rm;
+  uint16_t sensorname_size;
+  uint16_t value_size;
+  void *dummy;
+  char *sensorname;
+  struct GNUNET_HashCode key;
+  struct GNUNET_SENSOR_SensorInfo *sensor;
+  struct GNUNET_SENSOR_Reading *reading;
+
+  msg_size = ntohs (msg->size);
+  if (msg_size < sizeof (struct GNUNET_SENSOR_ReadingMessage))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Invalid reading message size.\n");
+    return NULL;
+  }
+  rm = (struct GNUNET_SENSOR_ReadingMessage *)msg;
+  sensorname_size = ntohs (rm->sensorname_size);
+  value_size = ntohs (rm->value_size);
+  if ((sizeof (struct GNUNET_SENSOR_ReadingMessage)
+      + sensorname_size + value_size) != msg_size)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Invalid reading message size.\n");
+    return NULL;
+  }
+  dummy = &rm[1];
+  sensorname = GNUNET_malloc (sensorname_size);
+  memcpy (sensorname, dummy, sensorname_size);
+  GNUNET_CRYPTO_hash(sensorname, sensorname_size, &key);
+  GNUNET_free (sensorname);
+  sensor = GNUNET_CONTAINER_multihashmap_get (sensors, &key);
+  if (NULL == sensor)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+        "Unknown sensor name in reading message.\n");
+    return NULL;
+  }
+  if ((sensor->version_minor != ntohs (rm->sensorversion_minor)) ||
+      (sensor->version_major != ntohs (rm->sensorversion_major)))
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Sensor version mismatch in reading message.\n");
+    return NULL;
+  }
+  if (0 == strcmp (sensor->expected_datatype, "numeric") &&
+      sizeof (double) != value_size)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Invalid value size for a numerical sensor.\n");
+    return NULL;
+  }
+  reading = GNUNET_new (struct GNUNET_SENSOR_Reading);
+  reading->sensor = sensor;
+  reading->timestamp = GNUNET_be64toh (rm->timestamp);
+  reading->value_size = value_size;
+  reading->value = GNUNET_malloc (value_size);
+  dummy += sensorname_size;
+  memcpy (reading->value, dummy, value_size);
+  return reading;
+}
+
 
 /**
  * Called with any sensor reading messages received from CADET.
@@ -217,15 +303,15 @@ handle_sensor_reading (void *cls,
                        void **channel_ctx,
                        const struct GNUNET_MessageHeader *message)
 {
-  struct GNUNET_PeerIdentity *peer = *channel_ctx;
+  struct ClientPeerContext *cp = *channel_ctx;
   struct GNUNET_SENSOR_Reading *reading;
 
-  reading = GNUNET_SENSOR_parse_reading_message (message, sensors);
+  reading = parse_reading_message (message, sensors);
   if (NULL == reading)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "Received an invalid sensor reading from peer `%s'\n",
-                GNUNET_i2s (peer));
+                GNUNET_i2s (&cp->peerid));
     return GNUNET_SYSERR;
   }
   GNUNET_log (GNUNET_ERROR_TYPE_INFO,
@@ -233,13 +319,13 @@ handle_sensor_reading (void *cls,
               "# Sensor name: `%s'\n"
               "# Timestamp: %" PRIu64 "\n"
               "# Value size: %" PRIu64 ".\n",
-              GNUNET_i2s (peer),
+              GNUNET_i2s (&cp->peerid),
               reading->sensor->name,
               reading->timestamp,
               reading->value_size);
-  GNUNET_PEERSTORE_store (peerstore, subsystem, peer, reading->sensor->name,
-                          reading->value, reading->value_size,
-                          GNUNET_TIME_UNIT_FOREVER_ABS,
+  GNUNET_PEERSTORE_store (peerstore, subsystem, &cp->peerid,
+                          reading->sensor->name, reading->value,
+                          reading->value_size, GNUNET_TIME_UNIT_FOREVER_ABS,
                           GNUNET_PEERSTORE_STOREOPTION_MULTIPLE, NULL, NULL);
   GNUNET_free (reading->value);
   GNUNET_free (reading);
@@ -286,7 +372,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
   static const struct GNUNET_SERVER_MessageHandler handlers[] = {
-    {NULL, NULL, 0, 0}
+      {NULL, NULL, 0, 0}
   };
   static struct GNUNET_CADET_MessageHandler cadet_handlers[] = {
       {&handle_sensor_reading,
@@ -309,7 +395,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
                                &cadet_channel_destroyed,
                                cadet_handlers,
                                cadet_ports);
-  if(NULL == cadet)
+  if (NULL == cadet)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Failed to connect to `%s' service.\n"), "CADET");

@@ -57,7 +57,7 @@ struct ReportingContext
   /**
    * Sensor information
    */
-  struct SensorInfo *sensor;
+  struct GNUNET_SENSOR_SensorInfo *sensor;
 
   /**
    * Collection point reporting task
@@ -393,7 +393,7 @@ report_collection_point (void *cls,
                          const struct GNUNET_SCHEDULER_TaskContext* tc)
 {
   struct ReportingContext *rc = cls;
-  struct SensorInfo *sensor = rc->sensor;
+  struct GNUNET_SENSOR_SensorInfo *sensor = rc->sensor;
   struct CadetChannelContext *cc;
   struct GNUNET_SENSOR_ReadingMessage *msg;
   size_t msg_size;
@@ -446,8 +446,8 @@ report_collection_point (void *cls,
  */
 static int
 sensor_watch_cb (void *cls,
-    struct GNUNET_PEERSTORE_Record *record,
-    char *emsg)
+                 struct GNUNET_PEERSTORE_Record *record,
+                 char *emsg)
 {
   struct ReportingContext *rc = cls;
 
@@ -477,15 +477,15 @@ sensor_watch_cb (void *cls,
  *
  * @param cls unused
  * @param key unused
- * @param value a 'struct SensorInfo *' with sensor information
+ * @param value a `struct GNUNET_SENSOR_SensorInfo *` with sensor information
  * @return #GNUNET_YES to continue iterations
  */
 static int
 init_sensor_reporting (void *cls,
-    const struct GNUNET_HashCode *key,
-    void *value)
+                       const struct GNUNET_HashCode *key,
+                       void *value)
 {
-  struct SensorInfo *sensor = value;
+  struct GNUNET_SENSOR_SensorInfo *sensor = value;
   struct ReportingContext *rc;
 
   if (NULL == sensor->collection_point &&
@@ -548,8 +548,8 @@ cadet_channel_destroyed (void *cls,
   if (GNUNET_YES == cc->destroying)
     return;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-      "Received a `channel destroyed' notification from CADET, "
-      "cleaning up.\n");
+       "Received a `channel destroyed' notification from CADET, "
+       "cleaning up.\n");
   GNUNET_CONTAINER_DLL_remove (cc_head, cc_tail, cc);
   cc->c = NULL;
   destroy_cadet_channel_context (cc);
