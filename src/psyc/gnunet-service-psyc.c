@@ -102,6 +102,12 @@ struct TransmitMessage
    */
   uint8_t state;
 
+  /**
+   * Whether a message ACK has already been sent to the client.
+   * #GNUNET_YES or #GNUNET_NO
+   */
+  uint8_t ack_sent;
+
   /* Followed by message */
 };
 
@@ -396,7 +402,7 @@ struct Slave
 };
 
 
-static inline void
+static void
 transmit_message (struct Channel *chn);
 
 
@@ -1689,7 +1695,8 @@ transmit_notify (void *cls, size_t *data_size, void *data)
   memcpy (data, &tmit_msg[1], *data_size);
 
   int ret = (MSG_STATE_END < chn->tmit_state) ? GNUNET_NO : GNUNET_YES;
-  if (NULL != tmit_msg->client)
+
+  if (NULL != tmit_msg->client && GNUNET_NO == tmit_msg->ack_sent)
     send_message_ack (chn, tmit_msg->client);
 
   GNUNET_CONTAINER_DLL_remove (chn->tmit_head, chn->tmit_tail, tmit_msg);
@@ -1781,7 +1788,7 @@ slave_transmit_message (struct Slave *slv)
 }
 
 
-static inline void
+static void
 transmit_message (struct Channel *chn)
 {
   chn->is_master
@@ -1849,7 +1856,7 @@ slave_queue_message (struct Slave *slv, struct TransmitMessage *tmit_msg,
  * @param first_ptype  First message part type in @a data.
  * @param last_ptype   Last message part type in @a data.
  */
-static void
+static struct TransmitMessage *
 queue_message (struct Channel *chn,
                struct GNUNET_SERVER_Client *client,
                size_t data_size,
@@ -1872,6 +1879,7 @@ queue_message (struct Channel *chn,
                             first_ptype, last_ptype)
     : slave_queue_message ((struct Slave *) chn, tmit_msg,
                            first_ptype, last_ptype);
+  return tmit_msg;
 }
 
 
@@ -1951,6 +1959,7 @@ client_recv_psyc_message (void *cls, struct GNUNET_SERVER_Client *client,
   queue_message (chn, client, size - sizeof (*msg), &msg[1],
                  first_ptype, last_ptype);
   transmit_message (chn);
+  /* FIXME: send a few ACKs even before transmit_notify is called */
 
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
 };

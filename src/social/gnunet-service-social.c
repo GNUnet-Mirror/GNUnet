@@ -857,11 +857,6 @@ psyc_transmit_queue_next_part (struct Place *plc,
                                struct FragmentTransmitQueue *tmit_frag)
 {
   uint16_t psize = ntohs (tmit_frag->next_part->size);
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "%p psyc_transmit_queue_next_part: %x + %u - %x = %u < %u\n",
-              plc, tmit_frag->next_part, psize, &tmit_frag[1],
-              (char *) tmit_frag->next_part + psize - ((char *) &tmit_frag[1]),
-              tmit_frag->size);
   if ((char *) tmit_frag->next_part + psize - ((char *) &tmit_frag[1])
       < tmit_frag->size)
   {
@@ -952,9 +947,13 @@ psyc_transmit_notify_data (void *cls, uint16_t *data_size, void *data)
     break;
 
   case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_END:
-  case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_CANCEL:
     *data_size = 0;
     ret = GNUNET_YES;
+    break;
+
+  case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_CANCEL:
+    *data_size = 0;
+    ret = GNUNET_SYSERR;
     break;
 
   default:
@@ -964,7 +963,7 @@ psyc_transmit_notify_data (void *cls, uint16_t *data_size, void *data)
     ret = GNUNET_SYSERR;
   }
 
-  if (GNUNET_SYSERR == ret)
+  if (GNUNET_SYSERR == ret && GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_CANCEL != ptype)
   {
     *data_size = 0;
     tmit_msg = psyc_transmit_queue_next_msg (plc, tmit_msg);
@@ -975,7 +974,27 @@ psyc_transmit_notify_data (void *cls, uint16_t *data_size, void *data)
   }
   else
   {
-    psyc_transmit_queue_next_part (plc, tmit_msg, tmit_frag);
+    tmit_frag = psyc_transmit_queue_next_part (plc, tmit_msg, tmit_frag);
+    if (NULL != tmit_frag)
+    {
+      struct GNUNET_MessageHeader *pmsg = tmit_frag->next_part;
+      ptype = ntohs (pmsg->type);
+      switch (ptype)
+      {
+      case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_END:
+        ret = GNUNET_YES;
+        break;
+      case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_CANCEL:
+        ret = GNUNET_SYSERR;
+        break;
+      }
+      switch (ptype)
+      {
+      case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_END:
+      case GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_CANCEL:
+        tmit_frag = psyc_transmit_queue_next_part (plc, tmit_msg, tmit_frag);
+      }
+    }
 
     if (NULL == tmit_msg->frags_head
         && GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_END <= ptype)
@@ -1060,12 +1079,6 @@ psyc_transmit_notify_mod (void *cls, uint16_t *data_size, void *data,
     *data_size = mod_size;
     memcpy (data, &pmod[1], mod_size);
     ret = GNUNET_NO;
-#if REMOVE // FIXME
-    ret = (mod_size - strnlen ((char *) &pmod[1], mod_size) - 1
-           == *full_value_size)
-      ? GNUNET_YES
-      : GNUNET_NO;
-#endif
     break;
   }
 
@@ -1120,7 +1133,8 @@ psyc_transmit_notify_mod (void *cls, uint16_t *data_size, void *data,
   }
   else
   {
-    psyc_transmit_queue_next_part (plc, tmit_msg, tmit_frag);
+    if (GNUNET_YES != ret)
+      psyc_transmit_queue_next_part (plc, tmit_msg, tmit_frag);
 
     if (NULL == tmit_msg->frags_head
         && GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_END <= ptype)
@@ -1241,7 +1255,6 @@ psyc_transmit_queue_next_method (struct Place *plc,
 
   uint16_t psize = ntohs (pmsg->size);
   *pmeth = (struct GNUNET_PSYC_MessageMethod *) pmsg;
-
   if (psize < sizeof (**pmeth) + 1 || '\0' != *((char *) *pmeth + psize - 1))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -1253,6 +1266,7 @@ psyc_transmit_queue_next_method (struct Place *plc,
     GNUNET_break (0);
     return GNUNET_SYSERR;
   }
+
   psyc_transmit_queue_next_part (plc, tmit_msg, tmit_frag);
   return GNUNET_OK;
 }

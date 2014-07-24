@@ -38,7 +38,7 @@
 
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
-#define DEBUG_SERVICE 0
+#define DEBUG_SERVICE 1
 #define DATA2ARG(data) data, sizeof (data)
 
 /**
@@ -110,9 +110,8 @@ enum
   TEST_HOST_ANNOUNCE     = 5,
   TEST_HOST_ANNOUNCE_END = 6,
   TEST_GUEST_TALK        = 7,
-  TEST_GUEST_TALK_END    = 8,
-  TEST_GUEST_LEAVE       = 9,
-  TEST_HOST_LEAVE       = 10,
+  TEST_GUEST_LEAVE       = 8,
+  TEST_HOST_LEAVE        = 9,
 } test;
 
 
@@ -294,6 +293,8 @@ host_farewell (void *cls,
                size_t variable_count,
                struct GNUNET_ENV_Modifier *variables)
 {
+  // FIXME: this function is not called yet
+
   struct GNUNET_CRYPTO_EcdsaPublicKey *
     nym_key = GNUNET_SOCIAL_nym_get_key (nym);
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -319,7 +320,7 @@ guest_left (void *cls)
 
 
 void
-schedule_guest_leave (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+guest_leave()
 {
   test = TEST_GUEST_LEAVE;
   /* FIXME test keep_active */
@@ -394,14 +395,6 @@ guest_recv_eom (void *cls,
 
   case TEST_HOST_ANNOUNCE_END:
     guest_talk ();
-    break;
-
-  case TEST_GUEST_TALK:
-    test = TEST_GUEST_TALK_END;
-    break;
-
-  case TEST_GUEST_TALK_END:
-    GNUNET_SCHEDULER_add_now (&schedule_guest_leave, NULL);
     break;
 
   default:
@@ -480,11 +473,7 @@ host_recv_eom (void *cls,
     break;
 
   case TEST_GUEST_TALK:
-    test = TEST_GUEST_TALK_END;
-    break;
-
-  case TEST_GUEST_TALK_END:
-    GNUNET_SCHEDULER_add_now (&schedule_guest_leave, NULL);
+    guest_leave ();
     break;
 
   default:
@@ -509,10 +498,10 @@ guest_talk ()
   tmit.data[2] = "testing ten nine eight";
   tmit.data_count = 3;
 
-  tmit.host_ann
-    = GNUNET_SOCIAL_host_announce (hst, "_message_guest", tmit.env,
-                                   &notify_data, &tmit,
-                                   GNUNET_SOCIAL_TALK_NONE);
+  tmit.guest_talk
+    = GNUNET_SOCIAL_guest_talk (gst, "_message_guest", tmit.env,
+                                &notify_data, &tmit,
+                                GNUNET_SOCIAL_TALK_NONE);
 }
 
 void

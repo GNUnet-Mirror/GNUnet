@@ -1458,14 +1458,17 @@ GNUNET_SOCIAL_guest_enter_by_name (const struct GNUNET_CONFIGURATION_Handle *cfg
  *         otherwise handle to cancel the request.
  */
 struct GNUNET_SOCIAL_TalkRequest *
-GNUNET_SOCIAL_guest_talk (struct GNUNET_SOCIAL_Guest *guest,
+GNUNET_SOCIAL_guest_talk (struct GNUNET_SOCIAL_Guest *gst,
                           const char *method_name,
                           const struct GNUNET_ENV_Environment *env,
                           GNUNET_PSYC_TransmitNotifyData notify_data,
                           void *notify_data_cls,
                           enum GNUNET_SOCIAL_TalkFlags flags)
 {
-  return NULL;
+  if (GNUNET_OK ==
+      GNUNET_PSYC_transmit_message (gst->plc.tmit, method_name, env,
+                                    NULL, notify_data, notify_data_cls, flags));
+  return (struct GNUNET_SOCIAL_TalkRequest *) gst->plc.tmit;
 }
 
 
