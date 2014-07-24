@@ -35,8 +35,6 @@
 
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
-#define DEBUG_SERVICE 0
-
 /**
  * Return value from 'main'.
  */
@@ -116,7 +114,7 @@ end ()
  * @param peer handle to access more of the peer (not used)
  */
 static void
-#if DEBUG_SERVICE
+#if DEBUG_TEST_MULTICAST
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 #else
@@ -138,7 +136,7 @@ int
 main (int argc, char *argv[])
 {
   res = 1;
-#if DEBUG_SERVICE
+#if DEBUG_TEST_MULTICAST
   const struct GNUNET_GETOPT_CommandLineOption opts[] = {
     GNUNET_GETOPT_OPTION_END
   };

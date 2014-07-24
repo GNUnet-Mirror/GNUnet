@@ -38,7 +38,6 @@
 
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
-#define DEBUG_SERVICE 1
 #define DATA2ARG(data) data, sizeof (data)
 
 /**
@@ -763,7 +762,7 @@ core_connected (void *cls, const struct GNUNET_PeerIdentity *my_identity)
  * @param peer handle to access more of the peer (not used)
  */
 void
-#if DEBUG_SERVICE
+#if DEBUG_TEST_SOCIAL
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 #else
@@ -790,7 +789,7 @@ int
 main (int argc, char *argv[])
 {
   res = 1;
-#if DEBUG_SERVICE
+#if DEBUG_TEST_SOCIAL
   const struct GNUNET_GETOPT_CommandLineOption opts[] = {
     GNUNET_GETOPT_OPTION_END
   };

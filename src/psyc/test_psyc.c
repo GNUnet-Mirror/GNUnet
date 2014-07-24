@@ -38,9 +38,6 @@
 
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
-#define DEBUG_SERVICE 0
-
-
 /**
  * Return value from 'main'.
  */
@@ -570,7 +567,7 @@ master_start_cb (void *cls, uint64_t max_message_id)
  * @param peer handle to access more of the peer (not used)
  */
 static void
-#if DEBUG_SERVICE
+#if DEBUG_TEST_PSYC
 run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *c)
 #else
@@ -600,7 +597,7 @@ int
 main (int argc, char *argv[])
 {
   res = 1;
-#if DEBUG_SERVICE
+#if DEBUG_TEST_PSYC
   const struct GNUNET_GETOPT_CommandLineOption opts[] = {
     GNUNET_GETOPT_OPTION_END
   };
