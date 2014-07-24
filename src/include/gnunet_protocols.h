@@ -2428,6 +2428,16 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_SENSOR_READING 804
 
+/**
+ * Request for sensor list from update point
+ */
+#define GNUNET_MESSAGE_TYPE_SENSOR_LIST_REQ 805
+
+/**
+ * Sensor list sent from update point to requesting peer
+ */
+#define GNUNET_MESSAGE_TYPE_SENSOR_LIST 806
+
 
 /*******************************************************************************
  * PEERSTORE message types

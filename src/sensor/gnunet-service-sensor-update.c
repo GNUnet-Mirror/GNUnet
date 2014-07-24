@@ -74,6 +74,11 @@ struct UpdatePoint
    */
   struct GNUNET_CADET_TransmitHandle *sensor_list_req_th;
 
+  /**
+   * Are we waiting for a sensor list?
+   */
+  int expecting_sensor_list;
+
 };
 
 
@@ -132,6 +137,7 @@ SENSOR_update_stop ()
 {
   struct UpdatePoint *up;
 
+  up_default = NULL;
   up = up_head;
   while (NULL != up)
   {
@@ -178,10 +184,22 @@ fail ()
 static size_t
 do_send_sensor_list_req (void *cls, size_t size, void *buf)
 {
-  up_default->sensor_list_req_th = NULL;
-  //TODO
+  struct GNUNET_MessageHeader *msg;
+  size_t msg_size;
 
-  return 0; //FIXME
+  up_default->sensor_list_req_th = NULL;
+  if (NULL == buf)
+  {
+    fail ();
+    return 0;
+  }
+  msg = GNUNET_new (struct GNUNET_MessageHeader);
+  msg_size = sizeof (struct GNUNET_MessageHeader);
+  msg->size = htons (msg_size);
+  msg->type = htons (GNUNET_MESSAGE_TYPE_SENSOR_LIST_REQ);
+  memcpy (buf, msg, msg_size);
+  up_default->expecting_sensor_list = GNUNET_YES;
+  return msg_size;
 }
 
 
@@ -221,7 +239,6 @@ check_for_updates (void *cls,
                                           GNUNET_TIME_UNIT_FOREVER_REL,
                                           sizeof (struct GNUNET_MessageHeader),
                                           &do_send_sensor_list_req, NULL);
-  //TODO
 }
 
 
@@ -278,12 +295,37 @@ load_update_points ()
     up->peer_id.public_key = public_key;
     up->ch = NULL;
     up->sensor_list_req_th = NULL;
+    up->expecting_sensor_list = GNUNET_NO;
     GNUNET_CONTAINER_DLL_insert (up_head, up_tail, up);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Loaded update point `%s'.\n",
          GNUNET_i2s_full (&up->peer_id));
   }
   return (NULL == up_head) ? GNUNET_SYSERR : GNUNET_OK;
+}
+
+
+/**
+ * Handler of a sensor list message received from an update point.
+ *
+ * @param cls Closure (unused).
+ * @param channel Connection to the other end.
+ * @param channel_ctx Place to store local state associated with the channel.
+ * @param message The actual message.
+ * @return #GNUNET_OK to keep the channel open,
+ *         #GNUNET_SYSERR to close it (signal serious error).
+ */
+static int
+handle_sensor_list (void *cls,
+                    struct GNUNET_CADET_Channel *channel,
+                    void **channel_ctx,
+                    const struct GNUNET_MessageHeader *message)
+{
+  GNUNET_assert (*channel_ctx == up_default);
+  GNUNET_assert (GNUNET_YES == up_default->expecting_sensor_list);
+  up_default->expecting_sensor_list = GNUNET_NO;
+  //TODO
+  return GNUNET_OK;
 }
 
 
@@ -299,6 +341,7 @@ SENSOR_update_start (const struct GNUNET_CONFIGURATION_Handle *c,
                      struct GNUNET_CONTAINER_MultiHashMap *sensors)
 {
   static struct GNUNET_CADET_MessageHandler cadet_handlers[] = {
+      {&handle_sensor_list, GNUNET_MESSAGE_TYPE_SENSOR_LIST, 0},
       {NULL, 0, 0}
   };
 
