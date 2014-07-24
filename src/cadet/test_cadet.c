@@ -33,7 +33,7 @@
 /**
  * How namy messages to send
  */
-#define TOTAL_PACKETS 2000
+#define TOTAL_PACKETS 100
 
 /**
  * How long until we give up on connecting the peers?
@@ -107,19 +107,24 @@ unsigned int p_ids;
 static int initialized;
 
 /**
- * Number of payload packes sent
+ * Number of payload packes sent.
  */
 static int data_sent;
 
 /**
- * Number of payload packets received
+ * Number of payload packets received.
  */
 static int data_received;
 
 /**
- * Number of payload packed explicitly (app level) acknowledged
+ * Number of payload packed acknowledgements sent.
  */
-static int data_ack;
+static int ack_sent;
+
+/**
+ * Number of payload packed explicitly (app level) acknowledged.
+ */
+static int ack_received;
 
 /**
  * Total number of peers asked to run.
@@ -197,6 +202,22 @@ static unsigned int ka_sent;
  */
 static unsigned int ka_received;
 
+
+/**
+ * Get the client number considered as the "target" or "receiver", depending on
+ * the test type and size.
+ *
+ * @return Peer # of the target client, either 0 (for backward tests) or
+ *         the last peer in the line (for other tests).
+ */
+static unsigned int
+get_expected_target ()
+{
+  if (SPEED == test && GNUNET_YES == test_backwards)
+    return 0;
+  else
+    return peers_requested - 1;
+}
 
 /**
  * Show the results of the test (banwidth acheived) and log them to GAUGER
@@ -321,6 +342,7 @@ data_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_CADET_TransmitHandle *th;
   struct GNUNET_CADET_Channel *channel;
+  long src;
 
   if ((GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason) != 0)
     return;
@@ -329,15 +351,17 @@ data_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (GNUNET_YES == test_backwards)
   {
     channel = incoming_ch;
+    src = peers_requested - 1;
   }
   else
   {
     channel = ch;
+    src = 0;
   }
   th = GNUNET_CADET_notify_transmit_ready (channel, GNUNET_NO,
                                            GNUNET_TIME_UNIT_FOREVER_REL,
                                            size_payload + data_sent,
-                                           &tmt_rdy, (void *) 1L);
+                                           &tmt_rdy, (void *) src);
   if (NULL == th)
   {
     unsigned long i = (unsigned long) cls;
@@ -347,7 +371,7 @@ data_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "  in 1 ms\n");
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_MILLISECONDS,
-                                    &data_task, (void *)1UL);
+                                    &data_task, (void *) 1L);
     }
     else
     {
@@ -356,7 +380,7 @@ data_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
       GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(
                                       GNUNET_TIME_UNIT_MILLISECONDS,
                                       i),
-                                    &data_task, (void *)i);
+                                    &data_task, (void *) i);
     }
   }
 }
@@ -365,7 +389,7 @@ data_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 /**
  * Transmit ready callback
  *
- * @param cls Closure (unused).
+ * @param cls Closure (peer # which is sending the data).
  * @param size Size of the buffer we have.
  * @param buf Buffer to copy data to.
  */
@@ -375,37 +399,43 @@ tmt_rdy (void *cls, size_t size, void *buf)
   struct GNUNET_MessageHeader *msg = buf;
   size_t msg_size;
   uint32_t *data;
+  long id = (long) cls;
+  unsigned int counter;
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "tmt_rdy called, filling buffer\n");
-  msg_size = size_payload + data_sent;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "tmt_rdy on %ld, filling buffer\n", id);
+  counter = get_expected_target () == id ? ack_sent : data_sent;
+  msg_size = size_payload + counter;
   if (size < msg_size || NULL == buf)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-                "size %u, buf %p, data_sent %u, data_received %u\n",
-                size, buf, data_sent, data_received);
+                "size %u, buf %p, data_sent %u, ack_received %u\n",
+                size, buf, data_sent, ack_received);
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "ok %u, ok goal %u\n", ok, ok_goal);
     GNUNET_break (ok >= ok_goal - 2);
 
     return 0;
   }
   msg->size = htons (size);
-  msg->type = htons ((long) cls);
+  msg->type = htons (1);
   data = (uint32_t *) &msg[1];
-  *data = htonl (data_sent);
+  *data = htonl (counter);
   if (GNUNET_NO == initialized)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "sending initializer\n");
   }
-  else if (SPEED == test)
+  else if (SPEED == test || SPEED_ACK == test)
   {
-    data_sent++;
+    if (get_expected_target() == id)
+      ack_sent++;
+    else
+      data_sent++;
+    counter++;
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, " Sent message %d size %u\n",
-                data_sent, msg_size);
-    if (data_sent < TOTAL_PACKETS)
+                counter, msg_size);
+    if (data_sent < TOTAL_PACKETS && SPEED == test)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " Scheduling message %d\n",
-                  data_sent + 1);
+                  counter + 1);
       GNUNET_SCHEDULER_add_now (&data_task, NULL);
     }
   }
@@ -433,8 +463,10 @@ data_callback (void *cls, struct GNUNET_CADET_Channel *channel,
   long expected_target_client;
   uint32_t *data;
   uint32_t payload;
+  unsigned int counter;
 
   ok++;
+  counter = get_expected_target () == client ? data_received : ack_received;
 
   GNUNET_CADET_receive_done (channel);
 
@@ -469,16 +501,9 @@ data_callback (void *cls, struct GNUNET_CADET_Channel *channel,
   data = (uint32_t *) &message[1];
   payload = ntohl (*data);
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, " payload: %u, data_received: %u\n",
-              payload, data_received);
-  GNUNET_break (payload == data_received);
-  if (SPEED == test && GNUNET_YES == test_backwards)
-  {
-    expected_target_client = 0L;
-  }
-  else
-  {
-    expected_target_client = peers_requested - 1;
-  }
+              payload, counter);
+  GNUNET_break (payload == counter);
+  expected_target_client = get_expected_target ();
 
   if (GNUNET_NO == initialized)
   {
@@ -492,16 +517,18 @@ data_callback (void *cls, struct GNUNET_CADET_Channel *channel,
     }
   }
 
-  if (client == expected_target_client) // Normally 4
+  counter++;
+  if (client == expected_target_client) /* Normally 4 */
   {
     data_received++;
     GNUNET_log (GNUNET_ERROR_TYPE_INFO, " received data %u\n", data_received);
     if (SPEED != test || (ok_goal - 2) == ok)
     {
+      /* Send ACK */
       GNUNET_CADET_notify_transmit_ready (channel, GNUNET_NO,
                                           GNUNET_TIME_UNIT_FOREVER_REL,
-                                          size_payload + data_sent,
-                                          &tmt_rdy, (void *) 1L);
+                                          size_payload + ack_sent, &tmt_rdy,
+                                          (void *) client);
       return GNUNET_OK;
     }
     else
@@ -510,17 +537,17 @@ data_callback (void *cls, struct GNUNET_CADET_Channel *channel,
         return GNUNET_OK;
     }
   }
-  else // Normally 0
+  else /* Normally 0 */
   {
-    if (test == SPEED_ACK || test == SPEED)
+    if (SPEED_ACK == test || SPEED == test)
     {
-      data_ack++;
-      GNUNET_log (GNUNET_ERROR_TYPE_INFO, " received ack %u\n", data_ack);
+      ack_received++;
+      GNUNET_log (GNUNET_ERROR_TYPE_INFO, " received ack %u\n", ack_received);
       GNUNET_CADET_notify_transmit_ready (channel, GNUNET_NO,
                                           GNUNET_TIME_UNIT_FOREVER_REL,
-                                          size_payload + data_sent,
-                                          &tmt_rdy, (void *) 1L);
-      if (data_ack < TOTAL_PACKETS && SPEED != test)
+                                          size_payload + data_sent, &tmt_rdy,
+                                          (void *) client);
+      if (ack_received < TOTAL_PACKETS && SPEED != test)
         return GNUNET_OK;
       if (ok == 2 && SPEED == test)
         return GNUNET_OK;
@@ -775,14 +802,14 @@ do_test (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (KEEPALIVE == test)
     return; /* Don't send any data. */
 
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Sending data initializer...\n");
-  data_ack = 0;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "Sending data initializer...\n");
   data_received = 0;
   data_sent = 0;
+  ack_received = 0;
+  ack_sent = 0;
   GNUNET_CADET_notify_transmit_ready (ch, GNUNET_NO,
-                                     GNUNET_TIME_UNIT_FOREVER_REL,
-                                     size_payload, &tmt_rdy, (void *) 1L);
+                                      GNUNET_TIME_UNIT_FOREVER_REL,
+                                      size_payload, &tmt_rdy, (void *) 0L);
 }
 
 /**
