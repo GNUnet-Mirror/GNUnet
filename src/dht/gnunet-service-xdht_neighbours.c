@@ -860,12 +860,22 @@ static struct FingerInfo finger_table [MAX_FINGERS];
 static struct GNUNET_CORE_Handle *core_api;
 
 /**
+ * Handle for the statistics service.
+ */
+extern struct GNUNET_STATISTICS_Handle *GDS_stats;
+
+/**
  * The current finger index that we have want to find trail to. We start the
  * search with value = 0, i.e. successor  and then go to PREDCESSOR_FINGER_ID
  * and decrement it. For any index 63 <= index < 0, if finger is same as successor,
  * we reset this index to 0.
  */
 static unsigned int current_search_finger_index;
+
+/**
+ * Should we store our topology predecessor and successor IDs into statistics?
+ */
+unsigned int track_topology;
 
 
 /**
@@ -3385,6 +3395,22 @@ finger_table_add (struct GNUNET_PeerIdentity finger_identity,
           GDS_NEIGHBOURS_send_trail_teardown (finger_trail_id, 
                                               GDS_ROUTING_SRC_TO_DEST,
                                               finger_identity);
+      }
+      /* Store the successor for path tracking */
+      if (track_topology &&  (NULL != GDS_stats) && (0 == finger_table_index))
+      {
+        char *my_id_str;
+        char *succ_id_str;
+        char *key;
+
+        my_id_str = GNUNET_strdup (GNUNET_i2s (&my_identity));
+        succ_id_str = GNUNET_strdup (GNUNET_i2s
+                                     (&existing_finger->finger_identity));
+        GNUNET_asprintf (&key, "XDHT:0:%.4s:%.4s", my_id_str, succ_id_str);
+        GNUNET_free (my_id_str);
+        GNUNET_free (succ_id_str);
+        GNUNET_STATISTICS_update (GDS_stats, "key", 1, 0);
+        GNUNET_free (key);
       }
     }
   }

@@ -77,6 +77,11 @@ static struct GNUNET_TRANSPORT_GetHelloHandle *ghh;
  */
 struct GNUNET_TIME_Relative hello_expiration;
 
+/**
+ * Should we store our topology predecessor and successor IDs into statistics?
+ */
+extern unsigned int track_topology;
+
 #if ENABLE_MALICIOUS
 /**
  * Should this peer act malicious?
@@ -153,6 +158,7 @@ static void
 run (void *cls, struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
+  unsigned long long _track_topology;
   GDS_cfg = c;
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_time (c, "transport", "HELLO_EXPIRATION", &hello_expiration))
@@ -161,13 +167,17 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   }
   GDS_block_context = GNUNET_BLOCK_context_create (GDS_cfg);
   GDS_stats = GNUNET_STATISTICS_create ("dht", GDS_cfg);
-
   GDS_ROUTING_init ();
   GDS_NSE_init ();
   GDS_DATACACHE_init ();
   GDS_HELLO_init ();
   GDS_CLIENTS_init (server);
-
+  if (GNUNET_OK ==
+      GNUNET_CONFIGURATION_get_value_number (c, "xdht", "track_toplogy",
+                                             &_track_topology))
+  {
+    track_topology = (unsigned int) _track_topology;
+  }
   if (GNUNET_OK != GDS_NEIGHBOURS_init ())
   {
     shutdown_task (NULL, NULL);
