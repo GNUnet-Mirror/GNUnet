@@ -438,8 +438,8 @@ struct GNUNET_TRANSPORT_AddressToStringContext;
 /**
  * Function to call with a textual representation of an address.  This
  * function will be called several times with different possible
- * textual representations, and a last time with @address being NULL
- * to signal the end of the iteration.  Note that @address NULL
+ * textual representations, and a last time with @a address being NULL
+ * to signal the end of the iteration.  Note that @a address NULL
  * always is the last call, regardless of the value in @a res.
  *
  * @param cls closure
