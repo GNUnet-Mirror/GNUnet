@@ -78,13 +78,15 @@ test_social_SOURCES = \
 test_social_LDADD = \
   libgnunetsocial.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/env/libgnunetenv.la \
-  $(top_builddir)/src/util/libgnunetutil.la
+  $(top_builddir)/src/psyc/libgnunetpsycutil.la
 test_social_DEPENDENCIES = \
   libgnunetsocial.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/env/libgnunetenv.la \
-  $(top_builddir)/src/util/libgnunetutil.la
+  $(top_builddir)/src/psyc/libgnunetpsycutil.la
 
 EXTRA_DIST = \
   test_social.conf
