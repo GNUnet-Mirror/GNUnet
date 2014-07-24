@@ -207,26 +207,29 @@ handle_client_disconnect (void *cls,
  * Function called by for each matching record.
  *
  * @param cls closure
- * @param peer peer identity
- * @param sub_system name of the GNUnet sub system responsible
- * @param value stored value
- * @param size size of stored value
+ * @param record peerstore record found
+ * @param emsg error message or NULL if no errors
+ * @return #GNUNET_YES to continue iteration
  */
-static int record_iterator(void *cls,
-    struct GNUNET_PEERSTORE_Record *record,
-    char *emsg)
+static int
+record_iterator (void *cls,
+                 struct GNUNET_PEERSTORE_Record *record,
+                 char *emsg)
 {
   struct GNUNET_SERVER_Client *client = cls;
   struct StoreRecordMessage *srm;
 
-  srm = PEERSTORE_create_record_message(record->sub_system,
-      record->peer,
-      record->key,
-      record->value,
-      record->value_size,
-      record->expiry,
-      GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE_RECORD);
-  GNUNET_SERVER_notification_context_unicast(nc, client, (struct GNUNET_MessageHeader *)srm, GNUNET_NO);
+  srm =
+      PEERSTORE_create_record_message(record->sub_system,
+                                      record->peer,
+                                      record->key,
+                                      record->value,
+                                      record->value_size,
+                                      record->expiry,
+                                      GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE_RECORD);
+  GNUNET_SERVER_notification_context_unicast (nc, client,
+                                              (struct GNUNET_MessageHeader *)srm,
+                                              GNUNET_NO);
   GNUNET_free(srm);
   return GNUNET_YES;
 }
@@ -348,17 +351,18 @@ static void handle_iterate (void *cls,
     GNUNET_SERVER_receive_done(client, GNUNET_SYSERR);
     return;
   }
-  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG, "Iterate request: ss `%s', peer `%s', key `%s'\n",
-      record->sub_system,
-      (NULL == record->peer) ? "NULL" : GNUNET_i2s(record->peer),
-      (NULL == record->key) ? "NULL" : record->key);
+  GNUNET_log(GNUNET_ERROR_TYPE_DEBUG,
+             "Iterate request: ss `%s', peer `%s', key `%s'\n",
+             record->sub_system,
+             (NULL == record->peer) ? "NULL" : GNUNET_i2s(record->peer),
+             (NULL == record->key) ? "NULL" : record->key);
   GNUNET_SERVER_notification_context_add(nc, client);
   if(GNUNET_OK == db->iterate_records(db->cls,
-      record->sub_system,
-      record->peer,
-      record->key,
-      &record_iterator,
-      client))
+                                      record->sub_system,
+                                      record->peer,
+                                      record->key,
+                                      &record_iterator,
+                                      client))
   {
     endmsg = GNUNET_new(struct GNUNET_MessageHeader);
     endmsg->size = htons(sizeof(struct GNUNET_MessageHeader));

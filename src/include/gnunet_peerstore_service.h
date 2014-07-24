@@ -134,7 +134,8 @@ GNUNET_PEERSTORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg);
 
 /**
  * Disconnect from the PEERSTORE service. Any pending ITERATE and WATCH requests
- * will be canceled. Any pending STORE requests will depend on @snyc_first flag.
+ * will be canceled.
+ * Any pending STORE requests will depend on @e snyc_first flag.
  *
  * @param h handle to disconnect
  * @param sync_first send any pending STORE requests before disconnecting
@@ -143,30 +144,32 @@ void
 GNUNET_PEERSTORE_disconnect (struct GNUNET_PEERSTORE_Handle *h, int sync_first);
 
 /**
- * Store a new entry in the PEERSTORE
+ * Store a new entry in the PEERSTORE.
+ * Note that stored entries can be lost in some cases
+ * such as power failure.
  *
  * @param h Handle to the PEERSTORE service
  * @param sub_system name of the sub system
  * @param peer Peer Identity
  * @param key entry key
  * @param value entry value BLOB
- * @param size size of 'value'
+ * @param size size of @e value
  * @param expiry absolute time after which the entry is (possibly) deleted
- * @param options store operation option
- * @param cont Continuation function after the store request is processed
+ * @param options options specific to the storage operation
+ * @param cont Continuation function after the store request is sent
  * @param cont_cls Closure for 'cont'
  */
 struct GNUNET_PEERSTORE_StoreContext *
 GNUNET_PEERSTORE_store (struct GNUNET_PEERSTORE_Handle *h,
-    const char *sub_system,
-    const struct GNUNET_PeerIdentity *peer,
-    const char *key,
-    const void *value,
-    size_t size,
-    struct GNUNET_TIME_Absolute expiry,
-    enum GNUNET_PEERSTORE_StoreOption options,
-    GNUNET_PEERSTORE_Continuation cont,
-    void *cont_cls);
+                        const char *sub_system,
+                        const struct GNUNET_PeerIdentity *peer,
+                        const char *key,
+                        const void *value,
+                        size_t size,
+                        struct GNUNET_TIME_Absolute expiry,
+                        enum GNUNET_PEERSTORE_StoreOption options,
+                        GNUNET_PEERSTORE_Continuation cont,
+                        void *cont_cls);
 
 /**
  * Cancel a store request
@@ -226,7 +229,7 @@ GNUNET_PEERSTORE_watch (struct GNUNET_PEERSTORE_Handle *h,
 /**
  * Cancel a watch request
  *
- * @wc handle to the watch request
+ * @param wc handle to the watch request
  */
 void
 GNUNET_PEERSTORE_watch_cancel(struct GNUNET_PEERSTORE_WatchContext *wc);

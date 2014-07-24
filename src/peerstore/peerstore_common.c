@@ -127,18 +127,19 @@ PEERSTORE_create_record_message(const char *sub_system,
  * @param value record value BLOB (can be NULL)
  * @param value_size record value size in bytes (set to 0 if value is NULL)
  * @param expiry time after which the record expires
+ * @param options options specific to the storage operation
  * @param msg_type message type to be set in header
  * @return pointer to record message struct
  */
 struct GNUNET_MQ_Envelope *
 PEERSTORE_create_record_mq_envelope(const char *sub_system,
-    const struct GNUNET_PeerIdentity *peer,
-    const char *key,
-    const void *value,
-    size_t value_size,
-    struct GNUNET_TIME_Absolute *expiry,
-    enum GNUNET_PEERSTORE_StoreOption options,
-    uint16_t msg_type)
+                                    const struct GNUNET_PeerIdentity *peer,
+                                    const char *key,
+                                    const void *value,
+                                    size_t value_size,
+                                    struct GNUNET_TIME_Absolute *expiry,
+                                    enum GNUNET_PEERSTORE_StoreOption options,
+                                    uint16_t msg_type)
 {
   struct StoreRecordMessage *srm;
   struct GNUNET_MQ_Envelope *ev;

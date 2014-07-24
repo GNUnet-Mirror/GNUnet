@@ -284,21 +284,24 @@ peerstore_sqlite_iterate_records (void *cls,
  * One key can store multiple values.
  *
  * @param cls closure (internal context for the plugin)
- * @param peer peer identity
  * @param sub_system name of the GNUnet sub system responsible
+ * @param peer peer identity
+ * @param key record key string
  * @param value value to be stored
  * @param size size of value to be stored
+ * @param expiry absolute time after which the record is (possibly) deleted
+ * @param options options related to the store operation
  * @return #GNUNET_OK on success, else #GNUNET_SYSERR
  */
 static int
-peerstore_sqlite_store_record(void *cls,
-    const char *sub_system,
-    const struct GNUNET_PeerIdentity *peer,
-    const char *key,
-    const void *value,
-    size_t size,
-    struct GNUNET_TIME_Absolute expiry,
-    enum GNUNET_PEERSTORE_StoreOption options)
+peerstore_sqlite_store_record (void *cls,
+                               const char *sub_system,
+                               const struct GNUNET_PeerIdentity *peer,
+                               const char *key,
+                               const void *value,
+                               size_t size,
+                               struct GNUNET_TIME_Absolute expiry,
+                               enum GNUNET_PEERSTORE_StoreOption options)
 {
   struct Plugin *plugin = cls;
   sqlite3_stmt *stmt = plugin->insert_peerstoredata;
