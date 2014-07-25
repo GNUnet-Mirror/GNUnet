@@ -44,6 +44,29 @@
 
 
 /**
+ * Message queued to be sent to an update point stored in a DLL
+ */
+struct PendingMessage
+{
+
+  /**
+   * DLL
+   */
+  struct PendingMessage *prev;
+
+  /**
+   * DLL
+   */
+  struct PendingMessage *next;
+
+  /**
+   * Actual queued message
+   */
+  struct GNUNET_MessageHeader *msg;
+
+};
+
+/**
  * Sensors update point
  */
 struct UpdatePoint
@@ -70,14 +93,29 @@ struct UpdatePoint
   struct GNUNET_CADET_Channel *ch;
 
   /**
-   * CADET transmit handle for a sensor list request.
+   * CADET transmit handle for a message to be sent to update point.
    */
-  struct GNUNET_CADET_TransmitHandle *sensor_list_req_th;
+  struct GNUNET_CADET_TransmitHandle *th;
+
+  /**
+   * Head of DLL of pending requests to be sent to update point.
+   */
+  struct PendingMessage *pm_head;
+
+  /**
+   * Tail of DLL of pending requests to be sent to update point.
+   */
+  struct PendingMessage *pm_tail;
 
   /**
    * Are we waiting for a sensor list?
    */
   int expecting_sensor_list;
+
+  /**
+   * How many sensor updates did we request and are waiting for.
+   */
+  int expected_sensor_updates;
 
   /**
    * Did a failure occur while dealing with this update point before?
@@ -91,6 +129,11 @@ struct UpdatePoint
  * Our configuration.
  */
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
+
+/**
+ * Hashmap of known sensors
+ */
+static struct GNUNET_CONTAINER_MultiHashMap *sensors;
 
 /**
  * Head of update points DLL.
@@ -115,7 +158,7 @@ static struct GNUNET_CADET_Handle *cadet;
 /**
  * Are we in the process of checking and updating sensors?
  */
-static int updating; //TODO: when done, set to #GNUNET_NO and destroy channel
+static int updating;
 
 
 /**
@@ -128,6 +171,13 @@ static void
 check_for_updates (void *cls,
                    const struct GNUNET_SCHEDULER_TaskContext *tc);
 
+/**
+ * Trigger sending next pending message to the default update point if any.
+ *
+ */
+static void
+trigger_send_next_msg ();
+
 
 /**
  * Cleanup update point context. This does not destroy the struct itself.
@@ -137,10 +187,22 @@ check_for_updates (void *cls,
 static void
 cleanup_updatepoint (struct UpdatePoint *up)
 {
-  if (NULL != up->sensor_list_req_th)
+  struct PendingMessage *pm;
+
+  up->expecting_sensor_list = GNUNET_NO;
+  up->expected_sensor_updates = 0;
+  if (NULL != up->th)
   {
-    GNUNET_CADET_notify_transmit_ready_cancel (up->sensor_list_req_th);
-    up->sensor_list_req_th = NULL;
+    GNUNET_CADET_notify_transmit_ready_cancel (up->th);
+    up->th = NULL;
+  }
+  pm = up->pm_head;
+  while (NULL != pm)
+  {
+    GNUNET_CONTAINER_DLL_remove (up->pm_head, up->pm_tail, pm);
+    GNUNET_free (pm->msg);
+    GNUNET_free (pm);
+    pm = up->pm_head;
   }
   if (NULL != up->ch)
   {
@@ -217,7 +279,7 @@ fail ()
  * to queue more data.  @a buf will be NULL and @a size zero if the
  * connection was closed for writing in the meantime.
  *
- * Writes the sensor list request to be sent to the update point.
+ * Perform the actual sending of the message to update point.
  *
  * @param cls closure (unused)
  * @param size number of bytes available in @a buf
@@ -225,26 +287,71 @@ fail ()
  * @return number of bytes written to @a buf
  */
 static size_t
-do_send_sensor_list_req (void *cls, size_t size, void *buf)
+do_send_msg (void *cls, size_t size, void *buf)
 {
-  struct GNUNET_MessageHeader *msg;
+  struct PendingMessage *pm;
   size_t msg_size;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Sending sensor list request now.\n");
-  up_default->sensor_list_req_th = NULL;
-  if (NULL == buf)
+  up_default->th = NULL;
+  pm = up_default->pm_head;
+  msg_size = ntohs (pm->msg->size);
+  GNUNET_CONTAINER_DLL_remove (up_default->pm_head, up_default->pm_tail, pm);
+  if (NULL == buf || size < msg_size)
   {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Error trying to send a message to update point `%s'.\n"),
+                GNUNET_i2s (&up_default->peer_id));
     fail ();
     return 0;
   }
-  msg = GNUNET_new (struct GNUNET_MessageHeader);
-  msg_size = sizeof (struct GNUNET_MessageHeader);
-  msg->size = htons (msg_size);
-  msg->type = htons (GNUNET_MESSAGE_TYPE_SENSOR_LIST_REQ);
-  memcpy (buf, msg, msg_size);
-  up_default->expecting_sensor_list = GNUNET_YES;
+  memcpy (buf, pm->msg, msg_size);
+  GNUNET_free (pm->msg);
+  GNUNET_free (pm);
+  trigger_send_next_msg ();
   return msg_size;
+}
+
+
+/**
+ * Trigger sending next pending message to the default update point if any.
+ *
+ */
+static void
+trigger_send_next_msg ()
+{
+  struct PendingMessage *pm;
+
+  if (NULL == up_default->pm_head)
+    return;
+  if (NULL != up_default->th)
+    return;
+  pm = up_default->pm_head;
+  up_default->th =
+      GNUNET_CADET_notify_transmit_ready (up_default->ch,
+                                          GNUNET_YES,
+                                          GNUNET_TIME_UNIT_FOREVER_REL,
+                                          ntohs (pm->msg->size),
+                                          &do_send_msg,
+                                          NULL);
+}
+
+
+/**
+ * Add a message to the queue to be sent to the current default update point.
+ *
+ * @param msg Message to be queued
+ */
+static void
+queue_msg (struct GNUNET_MessageHeader *msg)
+{
+  struct PendingMessage *pm;
+
+  pm = GNUNET_new (struct PendingMessage);
+  pm->msg = msg;
+  GNUNET_CONTAINER_DLL_insert_tail (up_default->pm_head,
+                                    up_default->pm_tail,
+                                    pm);
+  trigger_send_next_msg ();
 }
 
 
@@ -258,6 +365,9 @@ static void
 check_for_updates (void *cls,
                    const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
+  struct GNUNET_MessageHeader *msg;
+  size_t msg_size;
+
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   if (GNUNET_YES == updating)
@@ -290,12 +400,12 @@ check_for_updates (void *cls,
     return;
   }
   /* Start by requesting list of sensors available from update point */
-  up_default->sensor_list_req_th =
-      GNUNET_CADET_notify_transmit_ready (up_default->ch,
-                                          GNUNET_YES,
-                                          GNUNET_TIME_UNIT_FOREVER_REL,
-                                          sizeof (struct GNUNET_MessageHeader),
-                                          &do_send_sensor_list_req, NULL);
+  up_default->expecting_sensor_list = GNUNET_YES;
+  msg = GNUNET_new (struct GNUNET_MessageHeader);
+  msg_size = sizeof (struct GNUNET_MessageHeader);
+  msg->size = htons (msg_size);
+  msg->type = htons (GNUNET_MESSAGE_TYPE_SENSOR_LIST_REQ);
+  queue_msg (msg);
   GNUNET_SCHEDULER_add_delayed (SENSOR_UPDATE_CHECK_INTERVAL,
                                 &check_for_updates, NULL);
 }
@@ -353,8 +463,9 @@ load_update_points ()
     up = GNUNET_new (struct UpdatePoint);
     up->peer_id.public_key = public_key;
     up->ch = NULL;
-    up->sensor_list_req_th = NULL;
+    up->th = NULL;
     up->expecting_sensor_list = GNUNET_NO;
+    up->expected_sensor_updates = 0;
     up->failed = GNUNET_NO;
     GNUNET_CONTAINER_DLL_insert (up_head, up_tail, up);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -362,6 +473,38 @@ load_update_points ()
          GNUNET_i2s_full (&up->peer_id));
   }
   return (NULL == up_head) ? GNUNET_SYSERR : GNUNET_OK;
+}
+
+
+/**
+ * Checks if the given sensor name and version (retrieved from an update point)
+ * is new for us and we would like to install it. This is the case if we don't
+ * have this sensor or we have an old version of it.
+ *
+ * @param sensorname Sensor name
+ * @param sensorversion_major First part of version number
+ * @param sensorversion_minor Second part of version number
+ * @return #GNUNET_YES if we don't have this sensor
+ *         #GNUNET_NO if we have it
+ */
+static int
+update_required (char *sensorname,
+                 uint16_t sensorversion_major,
+                 uint16_t sensorversion_minor)
+{
+  struct GNUNET_HashCode key;
+  struct GNUNET_SENSOR_SensorInfo *local_sensor;
+
+  GNUNET_CRYPTO_hash (sensorname, strlen (sensorname) + 1, &key);
+  local_sensor = GNUNET_CONTAINER_multihashmap_get (sensors, &key);
+  if (NULL == local_sensor)
+    return GNUNET_YES;
+  if (GNUNET_SENSOR_version_compare (local_sensor->version_major,
+                                     local_sensor->version_minor,
+                                     sensorversion_major,
+                                     sensorversion_minor) < 0)
+    return GNUNET_YES;
+  return GNUNET_NO;
 }
 
 
@@ -382,26 +525,103 @@ handle_sensor_brief (void *cls,
                      const struct GNUNET_MessageHeader *message)
 {
   struct GNUNET_SENSOR_SensorBriefMessage *sbm;
+  struct GNUNET_MessageHeader *pull_req;
+  uint16_t version_major;
+  uint16_t version_minor;
+  uint16_t msg_size;
 
   GNUNET_assert (*channel_ctx == up_default);
-  GNUNET_assert (GNUNET_YES == up_default->expecting_sensor_list);
+  if (GNUNET_YES != up_default->expecting_sensor_list)
+  {
+    GNUNET_break_op (0);
+    fail ();
+    return GNUNET_OK;
+  }
   if (GNUNET_MESSAGE_TYPE_SENSOR_END == ntohs (message->type))
   {
     up_default->expecting_sensor_list = GNUNET_NO;
-    //TODO: cleanup
-    updating = GNUNET_NO; //FIXME: should not be here, only for testing
+    if (0 == up_default->expected_sensor_updates)
+    {
+      updating = GNUNET_NO;
+      cleanup_updatepoint (up_default);
+      return GNUNET_OK;
+    }
   }
   else
   {
     sbm = (struct GNUNET_SENSOR_SensorBriefMessage *)message;
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Sensor brief: %.*s %d.%d\n",
-         ntohs (sbm->name_size),
-         &sbm[1],
-         ntohs (sbm->version_major),
-         ntohs (sbm->version_minor));
+    version_major = ntohs (sbm->version_major);
+    version_minor = ntohs (sbm->version_minor);
+    if (GNUNET_YES == update_required ((char *)&sbm[1],
+                                       version_major,
+                                       version_minor))
+    {
+      LOG (GNUNET_ERROR_TYPE_INFO,
+           "Requesting sensor %s %d.%d from update point.\n",
+           &sbm[1], version_major, version_minor);
+      /* We duplicate the same msg received but change the type and send it
+       * back to update point to ask for full sensor information. */
+      msg_size = ntohs (message->size);
+      pull_req = GNUNET_malloc (msg_size);
+      memcpy (pull_req, message, msg_size);
+      pull_req->type = htons (GNUNET_MESSAGE_TYPE_SENSOR_FULL_REQ);
+      queue_msg (pull_req);
+      up_default->expected_sensor_updates ++;
+    }
   }
   GNUNET_CADET_receive_done (channel);
+  return GNUNET_OK;
+}
+
+
+/**
+ * Handler of a sensor list message received from an update point.
+ *
+ * @param cls Closure (unused).
+ * @param channel Connection to the other end.
+ * @param channel_ctx Place to store local state associated with the channel.
+ * @param message The actual message.
+ * @return #GNUNET_OK to keep the channel open,
+ *         #GNUNET_SYSERR to close it (signal serious error).
+ */
+static int
+handle_sensor_full (void *cls,
+                     struct GNUNET_CADET_Channel *channel,
+                     void **channel_ctx,
+                     const struct GNUNET_MessageHeader *message)
+{
+  struct GNUNET_SENSOR_SensorFullMessage *sfm;
+  uint16_t msg_size;
+
+  /* error check */
+  GNUNET_assert (*channel_ctx == up_default);
+  msg_size = ntohs (message->size);
+  if (up_default->expected_sensor_updates <= 0 ||
+      msg_size < sizeof (struct GNUNET_SENSOR_SensorFullMessage))
+  {
+    GNUNET_break_op (0);
+    fail ();
+    return GNUNET_OK;
+  }
+  /* parse received msg */
+  sfm = (struct GNUNET_SENSOR_SensorFullMessage *)message;
+  LOG (GNUNET_ERROR_TYPE_INFO,
+       "Received full sensor info:\n"
+       "File size: %d\n"
+       "Script name size: %d\n"
+       "Script size: %d.\n",
+       ntohs (sfm->cfg_size),
+       ntohs (sfm->scriptname_size),
+       ntohs (sfm->script_size));
+  //TODO: do the actual update
+  up_default->expected_sensor_updates --;
+  if (0 == up_default->expected_sensor_updates)
+  {
+    updating = GNUNET_NO;
+    cleanup_updatepoint (up_default);
+  }
+  else
+    GNUNET_CADET_receive_done (channel);
   return GNUNET_OK;
 }
 
@@ -424,8 +644,6 @@ cadet_channel_destroyed (void *cls,
 {
   struct UpdatePoint *up = channel_ctx;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "CADET Channel destroyed callback triggered.\n");
   up->ch = NULL;
   if (GNUNET_YES == updating)
   {
@@ -445,16 +663,18 @@ cadet_channel_destroyed (void *cls,
  */
 int
 SENSOR_update_start (const struct GNUNET_CONFIGURATION_Handle *c,
-                     struct GNUNET_CONTAINER_MultiHashMap *sensors)
+                     struct GNUNET_CONTAINER_MultiHashMap *s)
 {
   static struct GNUNET_CADET_MessageHandler cadet_handlers[] = {
       {&handle_sensor_brief, GNUNET_MESSAGE_TYPE_SENSOR_BRIEF, 0},
       {&handle_sensor_brief, GNUNET_MESSAGE_TYPE_SENSOR_END, 0},
+      {&handle_sensor_full, GNUNET_MESSAGE_TYPE_SENSOR_FULL, 0},
       {NULL, 0, 0}
   };
 
-  GNUNET_assert(NULL != sensors);
+  GNUNET_assert(NULL != s);
   cfg = c;
+  sensors = s;
   cadet = GNUNET_CADET_connect(cfg,
                                NULL,
                                NULL,

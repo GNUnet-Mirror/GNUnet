@@ -558,7 +558,7 @@ handle_sensor_reading (void *cls,
   if (NULL == reading)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-                "Received an invalid sensor reading from peer `%s'\n",
+                "Received an invalid sensor reading from peer `%s'.\n",
                 GNUNET_i2s (&cp->peerid));
     return GNUNET_SYSERR;
   }
@@ -577,6 +577,142 @@ handle_sensor_reading (void *cls,
                           GNUNET_PEERSTORE_STOREOPTION_MULTIPLE, NULL, NULL);
   GNUNET_free (reading->value);
   GNUNET_free (reading);
+  GNUNET_CADET_receive_done (channel);
+  return GNUNET_OK;
+}
+
+
+/**
+ * Create a message with full information about sensor
+ *
+ * @param sensorname Name of sensor requested
+ * @return Message ready to be sent to client or NULL on error
+ */
+static struct GNUNET_SENSOR_SensorFullMessage *
+create_full_sensor_msg (char *sensorname)
+{
+  struct GNUNET_HashCode key;
+  struct GNUNET_SENSOR_SensorInfo *sensor;
+  struct GNUNET_SENSOR_SensorFullMessage *msg;
+  char *sensor_dir;
+  char *sensor_path;
+  char *sensorscript_path;
+  uint64_t sensorfile_size;
+  uint64_t sensorscriptname_size;
+  uint64_t sensorscript_size;
+  uint64_t total_size;
+  void *dummy;
+
+  GNUNET_CRYPTO_hash (sensorname, strlen (sensorname) + 1, &key);
+  sensor = GNUNET_CONTAINER_multihashmap_get (sensors, &key);
+  if (NULL == sensor)
+    return NULL;
+  sensor_dir = GNUNET_SENSOR_get_sensor_dir ();
+  GNUNET_asprintf (&sensor_path, "%s%s",
+                   sensor_dir, sensorname);
+  if (GNUNET_OK != GNUNET_DISK_file_size (sensor_path,
+                                          &sensorfile_size,
+                                          GNUNET_NO,
+                                          GNUNET_YES))
+  {
+    GNUNET_free (sensor_dir);
+    GNUNET_free (sensor_path);
+    return NULL;
+  }
+  sensorscript_size = 0;
+  sensorscriptname_size = 0;
+  /* Test if there is an associated script */
+  if (NULL != sensor->ext_process)
+  {
+    GNUNET_asprintf (&sensorscript_path, "%s%s-files%s%s",
+                     sensor_dir,
+                     sensor->name,
+                     DIR_SEPARATOR_STR,
+                     sensor->ext_process);
+    if (GNUNET_OK == GNUNET_DISK_file_size (sensorscript_path,
+                                            &sensorscript_size,
+                                            GNUNET_NO,
+                                            GNUNET_YES))
+      sensorscriptname_size = strlen (sensor->ext_process) + 1;
+  }
+  /* Construct the msg */
+  total_size = sizeof (struct GNUNET_SENSOR_SensorFullMessage) +
+               sensorfile_size + sensorscriptname_size + sensorscript_size;
+  msg = GNUNET_malloc (total_size);
+  msg->header.size = htons (total_size);
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_SENSOR_FULL);
+  msg->cfg_size = htons (sensorfile_size);
+  msg->scriptname_size = htons (sensorscriptname_size);
+  msg->script_size = htons (sensorscript_size);
+  dummy = &msg[1];
+  GNUNET_DISK_fn_read (sensor_path, dummy, sensorfile_size);
+  dummy += sensorfile_size;
+  if (sensorscriptname_size > 0)
+  {
+    memcpy (dummy, sensor->ext_process, sensorscriptname_size);
+    dummy += sensorscriptname_size;
+    GNUNET_DISK_fn_read (sensorscript_path, dummy, sensorscript_size);
+  }
+  GNUNET_free (sensor_dir);
+  GNUNET_free (sensor_path);
+  GNUNET_free (sensorscript_path);
+  return msg;
+}
+
+
+/**
+ * Called with any request for full sensor information.
+ *
+ * Each time the function must call #GNUNET_CADET_receive_done on the channel
+ * in order to receive the next message. This doesn't need to be immediate:
+ * can be delayed if some processing is done on the message.
+ *
+ * @param cls Closure (set from #GNUNET_CADET_connect).
+ * @param channel Connection to the other end.
+ * @param channel_ctx Place to store local state associated with the channel.
+ * @param message The actual message.
+ * @return #GNUNET_OK to keep the channel open,
+ *         #GNUNET_SYSERR to close it (signal serious error).
+ */
+static int
+handle_sensor_full_req (void *cls,
+                        struct GNUNET_CADET_Channel *channel,
+                        void **channel_ctx,
+                        const struct GNUNET_MessageHeader *message)
+{
+  struct ClientPeerContext *cp = *channel_ctx;
+  struct GNUNET_SENSOR_SensorBriefMessage *sbm = NULL;
+  struct GNUNET_SENSOR_SensorFullMessage *sfm;
+  uint16_t msg_size;
+  uint16_t sensorname_size;
+
+  msg_size = ntohs (message->size);
+  /* parse & error check */
+  if (msg_size > sizeof (struct GNUNET_SENSOR_SensorBriefMessage))
+  {
+    sbm = (struct GNUNET_SENSOR_SensorBriefMessage *)message;
+    sensorname_size = ntohs (sbm->name_size);
+    if (msg_size != sizeof (struct GNUNET_SENSOR_SensorBriefMessage) +
+                    sensorname_size)
+      sbm = NULL;
+  }
+  if (NULL == sbm)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Received an invalid full sensor request from peer `%s'.\n",
+                GNUNET_i2s (&cp->peerid));
+    return GNUNET_SYSERR;
+  }
+  /* Create and send msg with full sensor info */
+  sfm = create_full_sensor_msg ((char *)&sbm[1]);
+  if (NULL == sfm)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "Error creating full sensor info msg for sensor `%s'.\n",
+                (char *)&sbm[1]);
+    return GNUNET_SYSERR;
+  }
+  queue_msg ((struct GNUNET_MessageHeader *)sfm, cp);
   GNUNET_CADET_receive_done (channel);
   return GNUNET_OK;
 }
@@ -602,6 +738,9 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
       {&handle_sensor_list_req,
        GNUNET_MESSAGE_TYPE_SENSOR_LIST_REQ,
        sizeof (struct GNUNET_MessageHeader)},
+      {&handle_sensor_full_req,
+      GNUNET_MESSAGE_TYPE_SENSOR_FULL_REQ,
+      sizeof (struct GNUNET_MessageHeader)},
       {NULL, 0, 0}
   };
   static uint32_t cadet_ports[] = {

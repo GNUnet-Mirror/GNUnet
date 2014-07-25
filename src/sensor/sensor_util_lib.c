@@ -295,22 +295,25 @@ load_sensor_from_file(const char *filename)
   return sensor;
 }
 
+
 /**
- * Compares version numbers of two sensors
+ * Given two version numbers as major and minor, compare them.
  *
- * @param s1 first sensor
- * @param s2 second sensor
- * @return 1: s1 > s2, 0: s1 == s2, -1: s1 < s2
+ * @param v1_major First part of first version number
+ * @param v1_minor Second part of first version number
+ * @param v2_major First part of second version number
+ * @param v2_minor Second part of second version number
  */
-static int
-sensor_version_compare (struct GNUNET_SENSOR_SensorInfo *s1,
-                        struct GNUNET_SENSOR_SensorInfo *s2)
+int
+GNUNET_SENSOR_version_compare (uint16_t v1_major, uint16_t v1_minor,
+                               uint16_t v2_major, uint16_t v2_minor)
 {
-  if (s1->version_major == s2->version_major)
-    return (s1->version_minor < s2->version_minor) ? -1 : (s1->version_minor > s2->version_minor);
+  if (v1_major == v2_major)
+    return (v1_minor < v2_minor) ? -1 : (v1_minor > v2_minor);
   else
-    return (s1->version_major < s2->version_major) ? -1 : (s1->version_major > s2->version_major);
+    return (v1_major < v2_major) ? -1 : (v1_major > v2_major);
 }
+
 
 /**
  * Adds a new sensor to given hashmap.
@@ -332,7 +335,10 @@ add_sensor_to_hashmap (struct GNUNET_SENSOR_SensorInfo *sensor,
   existing = GNUNET_CONTAINER_multihashmap_get(map, &key);
   if(NULL != existing) //sensor with same name already exists
   {
-    if(sensor_version_compare(existing, sensor) >= 0) //same or newer version already exist
+    if(GNUNET_SENSOR_version_compare (existing->version_major,
+                                      existing->version_minor,
+                                      sensor->version_major,
+                                      sensor->version_minor) >= 0)
     {
       LOG (GNUNET_ERROR_TYPE_INFO,
            _("Sensor `%s' already exists with same or newer version\n"),
@@ -389,9 +395,10 @@ reload_sensors_dir_cb(void *cls, const char *filename)
 }
 
 /*
- * Get path to the directory containing the sensor definition files
+ * Get path to the directory containing the sensor definition files with a
+ * trailing directory separator.
  *
- * @return sensor files directory
+ * @return sensor files directory full path
  */
 char *
 GNUNET_SENSOR_get_sensor_dir ()
@@ -400,8 +407,10 @@ GNUNET_SENSOR_get_sensor_dir ()
   char* sensordir;
 
   datadir = GNUNET_OS_installation_get_path(GNUNET_OS_IPK_DATADIR);
-  GNUNET_asprintf(&sensordir, "%ssensors%s",
-      datadir, DIR_SEPARATOR_STR);
+  GNUNET_asprintf (&sensordir,
+                   "%ssensors%s",
+                   datadir,
+                   DIR_SEPARATOR_STR);
   GNUNET_free(datadir);
 
   return sensordir;

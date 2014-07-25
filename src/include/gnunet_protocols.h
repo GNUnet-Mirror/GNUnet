@@ -2438,6 +2438,16 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_SENSOR_BRIEF 806
 
+/**
+ * Request for full sensor information
+ */
+#define GNUNET_MESSAGE_TYPE_SENSOR_FULL_REQ 807
+
+/**
+ * Full sensor information
+ */
+#define GNUNET_MESSAGE_TYPE_SENSOR_FULL 808
+
 
 /*******************************************************************************
  * PEERSTORE message types

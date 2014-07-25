@@ -258,7 +258,53 @@ struct GNUNET_SENSOR_SensorBriefMessage
 
 };
 
+/**
+ * Used to communicate full information about a sensor.
+ */
+struct GNUNET_SENSOR_SensorFullMessage
+{
+
+  /**
+   * GNUNET general message header.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Size of the config file carrying full sensor information.
+   * Allocated at position 0 after this struct.
+   */
+  uint16_t cfg_size;
+
+  /**
+   * Name of the file (usually script) associated with this sensor.
+   * At the moment we only support having one file since that's all our sensors
+   * need at the moment.
+   * The file name is allocated at position 1 after this struct.
+   */
+  uint16_t scriptname_size;
+
+  /**
+   * Size of the file (usually script) associated with this sensor.
+   * The file binary is allocated at position 2 after this struct.
+   */
+  uint16_t script_size;
+
+};
+
 GNUNET_NETWORK_STRUCT_END
+
+
+/**
+ * Given two version numbers as major and minor, compare them.
+ *
+ * @param v1_major First part of first version number
+ * @param v1_minor Second part of first version number
+ * @param v2_major First part of second version number
+ * @param v2_minor Second part of second version number
+ */
+int
+GNUNET_SENSOR_version_compare (uint16_t v1_major, uint16_t v1_minor,
+                               uint16_t v2_major, uint16_t v2_minor);
 
 
 /**

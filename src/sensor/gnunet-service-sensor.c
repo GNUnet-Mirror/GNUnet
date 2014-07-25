@@ -212,9 +212,10 @@ handle_get_sensor (void *cls,
  * @param key hash of sensor name, key to hashmap
  * @param value a `struct GNUNET_SENSOR_SensorInfo *`
  */
-int add_sensor_to_tc (void *cls,
-                      const struct GNUNET_HashCode *key,
-                      void *value)
+static int
+add_sensor_to_tc (void *cls,
+                  const struct GNUNET_HashCode *key,
+                  void *value)
 {
   struct GNUNET_SERVER_TransmitContext *tc = cls;
   struct GNUNET_SENSOR_SensorInfo *sensorinfo = value;
@@ -291,11 +292,12 @@ should_run_sensor(struct GNUNET_SENSOR_SensorInfo *sensorinfo)
  * @param is_persistent #GNUNET_YES if the value is persistent, #GNUNET_NO if not
  * @return #GNUNET_OK to continue, #GNUNET_SYSERR to abort iteration
  */
-int sensor_statistics_iterator (void *cls,
-    const char *ss,
-    const char *name,
-    uint64_t value,
-    int is_persistent)
+static int
+sensor_statistics_iterator (void *cls,
+                            const char *ss,
+                            const char *name,
+                            uint64_t value,
+                            int is_persistent)
 {
   struct GNUNET_SENSOR_SensorInfo *sensorinfo = cls;
   double dvalue = (double)value;
@@ -323,7 +325,8 @@ int sensor_statistics_iterator (void *cls,
  * @param success #GNUNET_OK if statistics were
  *        successfully obtained, #GNUNET_SYSERR if not.
  */
-void end_sensor_run_stat (void *cls, int success)
+static void
+end_sensor_run_stat (void *cls, int success)
 {
   struct GNUNET_SENSOR_SensorInfo *sensorinfo = cls;
 
@@ -376,7 +379,8 @@ parse_sensor_value (const char *value,
  * @param cls `struct GNUNET_SENSOR_SensorInfo *`
  * @param line line of output from a command, NULL for the end
  */
-void sensor_process_callback (void *cls, const char *line)
+static void
+sensor_process_callback (void *cls, const char *line)
 {
   struct GNUNET_SENSOR_SensorInfo *sensorinfo = cls;
   void *value;
@@ -445,9 +449,9 @@ is_path(char *filename)
  * @param cls 'struct SensorInfo'
  * @param tc unsed
  */
-void
+static void
 sensor_run (void *cls,
-    const struct GNUNET_SCHEDULER_TaskContext * tc)
+            const struct GNUNET_SCHEDULER_TaskContext * tc)
 {
   struct GNUNET_SENSOR_SensorInfo *sensorinfo = cls;
   int check_result;
@@ -493,11 +497,12 @@ sensor_run (void *cls,
       //search in sensor directory
       sensors_dir = GNUNET_SENSOR_get_sensor_dir ();
       GNUNET_free(process_path);
-      GNUNET_asprintf(&process_path, "%s%s-files%s%s",
-          sensors_dir,
-          sensorinfo->name,
-          DIR_SEPARATOR_STR,
-          sensorinfo->ext_process);
+      GNUNET_asprintf(&process_path,
+                      "%s%s-files%s%s",
+                      sensors_dir,
+                      sensorinfo->name,
+                      DIR_SEPARATOR_STR,
+                      sensorinfo->ext_process);
       GNUNET_free(sensors_dir);
       check_result =
         GNUNET_OS_check_helper_binary(process_path, GNUNET_NO, NULL);
@@ -541,8 +546,8 @@ sensor_run (void *cls,
  *         iterate,
  *         #GNUNET_NO if not.
  */
-int schedule_sensor(void *cls,
-    const struct GNUNET_HashCode *key, void *value)
+static int
+schedule_sensor (void *cls, const struct GNUNET_HashCode *key, void *value)
 {
   struct GNUNET_SENSOR_SensorInfo *sensorinfo = value;
 
