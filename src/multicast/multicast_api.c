@@ -159,7 +159,7 @@ struct GNUNET_MULTICAST_JoinHandle
   /**
    * Peer identity of the member requesting join.
    */
-  struct GNUNET_PeerIdentity member_peer;
+  struct GNUNET_PeerIdentity peer;
 };
 
 
@@ -232,7 +232,7 @@ group_recv_join_request (void *cls,
   struct GNUNET_MULTICAST_JoinHandle *jh = GNUNET_malloc (sizeof (*jh));
   jh->group = grp;
   jh->member_key = jreq->member_key;
-  jh->member_peer = jreq->member_peer;
+  jh->peer = jreq->peer;
 
   const struct GNUNET_MessageHeader *jmsg = NULL;
   if (sizeof (*jreq) + sizeof (*jmsg) <= ntohs (jreq->header.size))
@@ -461,7 +461,7 @@ GNUNET_MULTICAST_join_decision (struct GNUNET_MULTICAST_JoinHandle *join,
                               + relay_size + join_resp_size);
   hdcsn->header.type = htons (GNUNET_MESSAGE_TYPE_MULTICAST_JOIN_DECISION);
   hdcsn->member_key = join->member_key;
-  hdcsn->peer = join->member_peer;
+  hdcsn->peer = join->peer;
 
   dcsn = (struct MulticastJoinDecisionMessage *) &hdcsn[1];
   dcsn->header.type = htons (GNUNET_MESSAGE_TYPE_MULTICAST_JOIN_DECISION);

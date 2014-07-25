@@ -70,7 +70,7 @@ struct MulticastJoinRequestMessage
   /**
    * Peer identity of the joining member.
    */
-  struct GNUNET_PeerIdentity member_peer;
+  struct GNUNET_PeerIdentity peer;
 
   /* Followed by struct GNUNET_MessageHeader join_message */
 };
