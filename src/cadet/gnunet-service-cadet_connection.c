@@ -1860,6 +1860,7 @@ GCC_handle_broken (void* cls,
     if (GNUNET_YES != destroyed)
     {
       GNUNET_break (0);
+      GCC_debug (c, GNUNET_ERROR_TYPE_ERROR);
       GCC_destroy (c);
     }
   }
