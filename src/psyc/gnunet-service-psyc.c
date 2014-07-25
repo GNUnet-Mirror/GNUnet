@@ -676,10 +676,10 @@ mcast_recv_join_request (void *cls,
  */
 static void
 mcast_recv_join_decision (void *cls, int is_admitted,
-                        const struct GNUNET_PeerIdentity *peer,
-                        uint16_t relay_count,
-                        const struct GNUNET_PeerIdentity *relays,
-                        const struct GNUNET_MessageHeader *join_resp)
+                          const struct GNUNET_PeerIdentity *peer,
+                          uint16_t relay_count,
+                          const struct GNUNET_PeerIdentity *relays,
+                          const struct GNUNET_MessageHeader *join_resp)
 {
   struct Slave *slv = cls;
   struct Channel *chn = &slv->chn;
@@ -1526,7 +1526,7 @@ client_recv_slave_join (void *cls, struct GNUNET_SERVER_Client *client,
     {
       chn_slv = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_YES);
       GNUNET_CONTAINER_multihashmap_put (channel_slaves, &chn->pub_key_hash, chn_slv,
-                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
     }
     GNUNET_CONTAINER_multihashmap_put (chn_slv, &slv->pub_key_hash, chn,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);

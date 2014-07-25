@@ -310,6 +310,10 @@ member_recv_join_decision (void *cls,
   uint16_t dcsn_size = ntohs (dcsn->header.size);
   int is_admitted = ntohl (dcsn->is_admitted);
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "%p Member got join decision from multicast: %d\n",
+       mem, is_admitted);
+
   const struct GNUNET_MessageHeader *join_resp = NULL;
   uint16_t join_resp_size = 0;
 

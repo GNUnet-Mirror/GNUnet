@@ -72,7 +72,7 @@ struct MulticastJoinRequestMessage
    */
   struct GNUNET_PeerIdentity member_peer;
 
-  /* Followed by struct GNUNET_MessageHeader join_request */
+  /* Followed by struct GNUNET_MessageHeader join_message */
 };
 
 
@@ -253,7 +253,7 @@ struct MulticastMemberJoinMessage
   /* Followed by struct GNUNET_MessageHeader join_msg */
 };
 
-
+#if NOT_USED
 /**
  * Message sent from the client to the service to broadcast to all group
  * members.
@@ -414,7 +414,7 @@ struct MulticastUnicastToOriginCancelMessage
   uint64_t message_id;
 
 };
-
+#endif // NOT_USED
 
 GNUNET_NETWORK_STRUCT_END
 

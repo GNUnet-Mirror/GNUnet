@@ -149,7 +149,7 @@ extern "C"
 /**
  * Key exchange in CADET
  */
-#define GNUNET_SIGNATURE_PURPOSE_CADET_KX                21
+#define GNUNET_SIGNATURE_PURPOSE_CADET_KX 21
 
 /**
  * Signature for the first round of distributed key generation.

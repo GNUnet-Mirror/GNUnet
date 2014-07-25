@@ -708,7 +708,7 @@ client_recv_guest_enter (void *cls, struct GNUNET_SERVER_Client *client,
     {
       plc_gst = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_YES);
       GNUNET_CONTAINER_multihashmap_put (place_guests, &plc->pub_key_hash, plc_gst,
-                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_MULTIPLE);
+                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
     }
     GNUNET_CONTAINER_multihashmap_put (plc_gst, &gst->pub_key_hash, plc,
                                        GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);

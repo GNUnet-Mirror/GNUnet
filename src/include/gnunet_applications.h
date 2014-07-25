@@ -111,6 +111,11 @@ extern "C"
  */
 #define GNUNET_APPLICATION_TYPE_SENSORUPDATE 25
 
+/**
+ * Multicast data.
+ */
+#define GNUNET_APPLICATION_TYPE_MULTICAST 26
+
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
