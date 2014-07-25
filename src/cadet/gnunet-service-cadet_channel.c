@@ -2377,8 +2377,6 @@ GCCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
           GNUNET_free (chq->rel->uniq);
         }
       }
-      else
-        GNUNET_break (0);
 
       chq->tq = GCT_send_prebuilt_message (message, ch->t, NULL, GNUNET_YES,
                                            &ch_message_sent, chq);
