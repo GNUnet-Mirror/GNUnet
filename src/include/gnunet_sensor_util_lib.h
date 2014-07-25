@@ -187,34 +187,6 @@ struct GNUNET_SENSOR_SensorInfo
 
 };
 
-/**
- * Carries a single reading from a sensor
- */
-struct GNUNET_SENSOR_Reading
-{
-
-  /**
-   * Sensor this reading is related to
-   */
-  struct GNUNET_SENSOR_SensorInfo *sensor;
-
-  /**
-   * Timestamp of taking the reading
-   */
-  uint64_t timestamp;
-
-  /**
-   * Reading value
-   */
-  void *value;
-
-  /**
-   * Size of @e value
-   */
-  uint16_t value_size;
-
-};
-
 GNUNET_NETWORK_STRUCT_BEGIN
 
 /**
@@ -258,6 +230,34 @@ struct GNUNET_SENSOR_ReadingMessage
 
 };
 
+/**
+ * Used to communicate brief information about a sensor.
+ */
+struct GNUNET_SENSOR_SensorBriefMessage
+{
+
+  /**
+   * GNUNET general message header.
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Size of sensor name string, allocated at position 0 after this struct.
+   */
+  uint16_t name_size;
+
+  /**
+   * First part of sensor version number
+   */
+  uint16_t version_major;
+
+  /**
+   * Second part of sensor version number
+   */
+  uint16_t version_minor;
+
+};
+
 GNUNET_NETWORK_STRUCT_END
 
 
@@ -273,7 +273,7 @@ GNUNET_SENSOR_load_all_sensors ();
 /*
  * Get path to the directory containing the sensor definition files
  *
- * @return sensor files directory
+ * @return sensor files directory string
  */
 char *
 GNUNET_SENSOR_get_sensor_dir ();

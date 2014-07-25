@@ -2434,9 +2434,9 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_SENSOR_LIST_REQ 805
 
 /**
- * Sensor list sent from update point to requesting peer
+ * Messsage carrying brief sensor information (name, version)
  */
-#define GNUNET_MESSAGE_TYPE_SENSOR_LIST 806
+#define GNUNET_MESSAGE_TYPE_SENSOR_BRIEF 806
 
 
 /*******************************************************************************

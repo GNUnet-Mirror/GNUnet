@@ -60,22 +60,88 @@ struct ClientPeerContext
   struct GNUNET_CADET_Channel *ch;
 
   /**
+   * CADET transmit handle if we requested a transmission
+   */
+  struct GNUNET_CADET_TransmitHandle *th;
+
+  /**
+   * Head of DLL of pending messages to be sent to client
+   */
+  struct PendingMessage *pm_head;
+
+  /**
+   * Tail of DLL of pending messages to be sent to client
+   */
+  struct PendingMessage *pm_tail;
+
+  /**
    * Are we in the process of destroying this context?
    */
   int destroying;
 
 };
 
+/**
+ * Message queued to be sent to a client stored in a DLL
+ */
+struct PendingMessage
+{
+
+  /**
+   * DLL
+   */
+  struct PendingMessage *prev;
+
+  /**
+   * DLL
+   */
+  struct PendingMessage *next;
+
+  /**
+   * Actual queued message
+   */
+  struct GNUNET_MessageHeader *msg;
+
+};
 
 /**
- * Handle to CADET service
+ * Carries a single reading from a sensor
  */
-static struct GNUNET_CADET_Handle *cadet;
+struct ClientSensorReading
+{
+
+  /**
+   * Sensor this reading is related to
+   */
+  struct GNUNET_SENSOR_SensorInfo *sensor;
+
+  /**
+   * Timestamp of taking the reading
+   */
+  uint64_t timestamp;
+
+  /**
+   * Reading value
+   */
+  void *value;
+
+  /**
+   * Size of @e value
+   */
+  uint16_t value_size;
+
+};
+
 
 /**
  * Global hashmap of defined sensors
  */
 static struct GNUNET_CONTAINER_MultiHashMap *sensors;
+
+/**
+ * Handle to CADET service
+ */
+static struct GNUNET_CADET_Handle *cadet;
 
 /**
  * Handle to the peerstore service connection
@@ -99,6 +165,15 @@ static struct ClientPeerContext *cp_tail;
 
 
 /**
+ * Trigger sending next pending message to the given client peer if any.
+ *
+ * @param cp client peer context struct
+ */
+static void
+trigger_send_next_msg (struct ClientPeerContext *cp);
+
+
+/**
  * Destroy a given client peer context
  *
  * @param cp client peer context
@@ -106,7 +181,22 @@ static struct ClientPeerContext *cp_tail;
 static void
 destroy_clientpeer (struct ClientPeerContext *cp)
 {
+  struct PendingMessage *pm;
+
   cp->destroying = GNUNET_YES;
+  if (NULL != cp->th)
+  {
+    GNUNET_CADET_notify_transmit_ready_cancel (cp->th);
+    cp->th = NULL;
+  }
+  pm = cp->pm_head;
+  while (NULL != pm)
+  {
+    GNUNET_CONTAINER_DLL_remove (cp->pm_head, cp->pm_tail, pm);
+    GNUNET_free (pm->msg);
+    GNUNET_free (pm);
+    pm = cp->pm_head;
+  }
   if (NULL != cp->ch)
   {
     GNUNET_CADET_channel_destroy (cp->ch);
@@ -201,6 +291,9 @@ cadet_channel_created (void *cls,
 {
   struct ClientPeerContext *cp;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received a channel connection from peer `%s'.\n",
+              GNUNET_i2s (initiator));
   cp = GNUNET_new (struct ClientPeerContext);
   cp->peerid = *initiator;
   cp->ch = channel;
@@ -211,13 +304,168 @@ cadet_channel_created (void *cls,
 
 
 /**
+ * Function called to notify a client about the connection begin ready
+ * to queue more data.  @a buf will be NULL and @a size zero if the
+ * connection was closed for writing in the meantime.
+ *
+ * Perform the actual sending of the message to client peer.
+ *
+ * @param cls closure, a `struct ClientPeerContext *`
+ * @param size number of bytes available in @a buf
+ * @param buf where the callee should write the message
+ * @return number of bytes written to @a buf
+ */
+static size_t
+do_send_msg (void *cls, size_t size, void *buf)
+{
+  struct ClientPeerContext *cp = cls;
+  struct PendingMessage *pm;
+  size_t msg_size;
+
+  cp->th = NULL;
+  pm = cp->pm_head;
+  msg_size = ntohs (pm->msg->size);
+  GNUNET_CONTAINER_DLL_remove (cp->pm_head, cp->pm_tail, pm);
+  if (NULL == buf || size < msg_size)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                _("Error trying to send a message to peer `%s'.\n"),
+                GNUNET_i2s (&cp->peerid));
+    return 0;
+  }
+  memcpy (buf, pm->msg, msg_size);
+  GNUNET_free (pm->msg);
+  GNUNET_free (pm);
+  trigger_send_next_msg (cp);
+  return msg_size;
+}
+
+
+/**
+ * Trigger sending next pending message to the given client peer if any.
+ *
+ * @param cp client peer context struct
+ */
+static void
+trigger_send_next_msg (struct ClientPeerContext *cp)
+{
+  struct PendingMessage *pm;
+
+  if (NULL == cp->pm_head)
+    return;
+  if (NULL != cp->th)
+    return;
+  pm = cp->pm_head;
+  cp->th = GNUNET_CADET_notify_transmit_ready (cp->ch,
+                                               GNUNET_YES,
+                                               GNUNET_TIME_UNIT_FOREVER_REL,
+                                               ntohs (pm->msg->size),
+                                               &do_send_msg,
+                                               cp);
+}
+
+
+/**
+ * Add a new message to the queue to be sent to the given client peer.
+ *
+ * @param msg Message to be queued
+ * @param cp Client peer context
+ */
+static void
+queue_msg (struct GNUNET_MessageHeader *msg, struct ClientPeerContext *cp)
+{
+  struct PendingMessage *pm;
+
+  pm = GNUNET_new (struct PendingMessage);
+  pm->msg = msg;
+  GNUNET_CONTAINER_DLL_insert_tail (cp->pm_head, cp->pm_tail, pm);
+  trigger_send_next_msg (cp);
+}
+
+
+/**
+ * Iterate over defined sensors, creates and sends brief sensor information to
+ * given client peer over CADET.
+ *
+ * @param cls closure, the client peer
+ * @param key sensor key
+ * @param value sensor value
+ * @return #GNUNET_YES to continue iteration
+ */
+static int
+send_sensor_brief (void *cls,
+                   const struct GNUNET_HashCode *key,
+                   void *value)
+{
+  struct ClientPeerContext *cp = cls;
+  struct GNUNET_SENSOR_SensorInfo *sensor = value;
+  struct GNUNET_SENSOR_SensorBriefMessage *msg;
+  uint16_t sensorname_size;
+  uint16_t total_size;
+
+  /* Create message struct */
+  sensorname_size = strlen (sensor->name) + 1;
+  total_size = sizeof (struct GNUNET_SENSOR_SensorBriefMessage) +
+               sensorname_size;
+  msg = GNUNET_malloc (total_size);
+  msg->header.size = htons (total_size);
+  msg->header.type = htons (GNUNET_MESSAGE_TYPE_SENSOR_BRIEF);
+  msg->name_size = htons (sensorname_size);
+  msg->version_major = htons (sensor->version_major);
+  msg->version_minor = htons (sensor->version_minor);
+  memcpy (&msg[1], sensor->name, sensorname_size);
+  /* Queue the msg */
+  queue_msg ((struct GNUNET_MessageHeader *)msg, cp);
+  return GNUNET_YES;
+}
+
+
+/**
+ * Called with any sensor list request received.
+ *
+ * Each time the function must call #GNUNET_CADET_receive_done on the channel
+ * in order to receive the next message. This doesn't need to be immediate:
+ * can be delayed if some processing is done on the message.
+ *
+ * @param cls Closure (set from #GNUNET_CADET_connect).
+ * @param channel Connection to the other end.
+ * @param channel_ctx Place to store local state associated with the channel.
+ * @param message The actual message.
+ * @return #GNUNET_OK to keep the channel open,
+ *         #GNUNET_SYSERR to close it (signal serious error).
+ */
+static int
+handle_sensor_list_req (void *cls,
+                        struct GNUNET_CADET_Channel *channel,
+                        void **channel_ctx,
+                        const struct GNUNET_MessageHeader *message)
+{
+  struct ClientPeerContext *cp = *channel_ctx;
+  struct GNUNET_MessageHeader *end_msg;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received a sensor list request from peer `%s'.\n",
+              GNUNET_i2s (&cp->peerid));
+  GNUNET_CONTAINER_multihashmap_iterate (sensors,
+                                         &send_sensor_brief,
+                                         cp);
+  end_msg = GNUNET_new (struct GNUNET_MessageHeader);
+  end_msg->size = htons (sizeof (struct GNUNET_MessageHeader));
+  end_msg->type = htons (GNUNET_MESSAGE_TYPE_SENSOR_END);
+  queue_msg (end_msg, cp);
+  GNUNET_CADET_receive_done (channel);
+  return GNUNET_OK;
+}
+
+
+/**
  * Parses a sensor reading message struct
  *
  * @param msg message header received
  * @param sensors multihashmap of loaded sensors
  * @return sensor reading struct or NULL if error
  */
-static struct GNUNET_SENSOR_Reading *
+static struct ClientSensorReading *
 parse_reading_message (const struct GNUNET_MessageHeader *msg,
                        struct GNUNET_CONTAINER_MultiHashMap *sensors)
 {
@@ -229,7 +477,7 @@ parse_reading_message (const struct GNUNET_MessageHeader *msg,
   char *sensorname;
   struct GNUNET_HashCode key;
   struct GNUNET_SENSOR_SensorInfo *sensor;
-  struct GNUNET_SENSOR_Reading *reading;
+  struct ClientSensorReading *reading;
 
   msg_size = ntohs (msg->size);
   if (msg_size < sizeof (struct GNUNET_SENSOR_ReadingMessage))
@@ -272,7 +520,7 @@ parse_reading_message (const struct GNUNET_MessageHeader *msg,
                 "Invalid value size for a numerical sensor.\n");
     return NULL;
   }
-  reading = GNUNET_new (struct GNUNET_SENSOR_Reading);
+  reading = GNUNET_new (struct ClientSensorReading);
   reading->sensor = sensor;
   reading->timestamp = GNUNET_be64toh (rm->timestamp);
   reading->value_size = value_size;
@@ -304,7 +552,7 @@ handle_sensor_reading (void *cls,
                        const struct GNUNET_MessageHeader *message)
 {
   struct ClientPeerContext *cp = *channel_ctx;
-  struct GNUNET_SENSOR_Reading *reading;
+  struct ClientSensorReading *reading;
 
   reading = parse_reading_message (message, sensors);
   if (NULL == reading)
@@ -329,32 +577,6 @@ handle_sensor_reading (void *cls,
                           GNUNET_PEERSTORE_STOREOPTION_MULTIPLE, NULL, NULL);
   GNUNET_free (reading->value);
   GNUNET_free (reading);
-  GNUNET_CADET_receive_done (channel);
-  return GNUNET_OK;
-}
-
-
-/**
- * Called with any sensor list request received.
- *
- * Each time the function must call #GNUNET_CADET_receive_done on the channel
- * in order to receive the next message. This doesn't need to be immediate:
- * can be delayed if some processing is done on the message.
- *
- * @param cls Closure (set from #GNUNET_CADET_connect).
- * @param channel Connection to the other end.
- * @param channel_ctx Place to store local state associated with the channel.
- * @param message The actual message.
- * @return #GNUNET_OK to keep the channel open,
- *         #GNUNET_SYSERR to close it (signal serious error).
- */
-static int
-handle_sensor_list_req (void *cls,
-                        struct GNUNET_CADET_Channel *channel,
-                        void **channel_ctx,
-                        const struct GNUNET_MessageHeader *message)
-{
-  //TODO
   GNUNET_CADET_receive_done (channel);
   return GNUNET_OK;
 }

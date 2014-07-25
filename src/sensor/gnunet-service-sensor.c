@@ -92,7 +92,7 @@ static void
 shutdown_task (void *cls,
                const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  //SENSOR_update_stop ();
+  SENSOR_update_stop ();
   SENSOR_reporting_stop ();
   SENSOR_analysis_stop ();
   GNUNET_SENSOR_destroy_sensors (sensors);
@@ -595,7 +595,7 @@ run (void *cls,
   schedule_all_sensors();
   SENSOR_analysis_start(c, sensors);
   SENSOR_reporting_start(c, sensors);
-  //SENSOR_update_start (c, sensors);
+  SENSOR_update_start (c, sensors);
   statistics = GNUNET_STATISTICS_create("sensor", cfg);
   GNUNET_CRYPTO_get_peer_identity(cfg, &peerid);
   peerstore = GNUNET_PEERSTORE_connect(cfg);

@@ -35,12 +35,12 @@
 /**
  * Interval at which to contact update points for new sensor updates.
  */
-//#define SENSOR_UPDATE_CHECK_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_DAYS, 1)
+#define SENSOR_UPDATE_CHECK_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_DAYS, 1)
 
 /**
- * When connecting to update points fail, retry after...
+ * Interval at which to retry contacting update point if we were busy.
  */
-//#define SENSOR_UPDATE_RETRY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5)
+#define SENSOR_UPDATE_CHECK_RETRY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_HOURS, 1)
 
 
 /**
@@ -79,6 +79,11 @@ struct UpdatePoint
    */
   int expecting_sensor_list;
 
+  /**
+   * Did a failure occur while dealing with this update point before?
+   */
+  int failed;
+
 };
 
 
@@ -106,6 +111,22 @@ static struct UpdatePoint *up_default;
  * Handle to CADET service
  */
 static struct GNUNET_CADET_Handle *cadet;
+
+/**
+ * Are we in the process of checking and updating sensors?
+ */
+static int updating; //TODO: when done, set to #GNUNET_NO and destroy channel
+
+
+/**
+ * Contact update points to check for new updates
+ *
+ * @param cls unused
+ * @param tc GNUnet scheduler task context
+ */
+static void
+check_for_updates (void *cls,
+                   const struct GNUNET_SCHEDULER_TaskContext *tc);
 
 
 /**
@@ -164,8 +185,30 @@ SENSOR_update_stop ()
 static void
 fail ()
 {
+  struct UpdatePoint *up;
+
   cleanup_updatepoint (up_default);
-  //TODO:
+  if (up_default == up_tail)
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "All defined update points failed. Will retry again in %s.\n",
+         GNUNET_STRINGS_relative_time_to_string (SENSOR_UPDATE_CHECK_INTERVAL,
+                                                 GNUNET_NO));
+    up = up_head;
+    while (NULL != up)
+    {
+      up->failed = GNUNET_NO;
+      up = up->next;
+    }
+    GNUNET_SCHEDULER_add_delayed (SENSOR_UPDATE_CHECK_INTERVAL,
+                                  &check_for_updates, NULL);
+    return;
+  }
+  LOG (GNUNET_ERROR_TYPE_WARNING,
+       "Update point `%s' failed, trying next one now.\n",
+       GNUNET_i2s (&up_default->peer_id));
+  up_default = up_default->next;
+  GNUNET_SCHEDULER_add_now (&check_for_updates, NULL);
 }
 
 
@@ -187,6 +230,8 @@ do_send_sensor_list_req (void *cls, size_t size, void *buf)
   struct GNUNET_MessageHeader *msg;
   size_t msg_size;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Sending sensor list request now.\n");
   up_default->sensor_list_req_th = NULL;
   if (NULL == buf)
   {
@@ -215,6 +260,18 @@ check_for_updates (void *cls,
 {
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
+  if (GNUNET_YES == updating)
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "Update process still running and update interval already exhausted."
+         "Retrying in %s.\n",
+         GNUNET_STRINGS_relative_time_to_string (SENSOR_UPDATE_CHECK_RETRY,
+                                                 GNUNET_NO));
+    GNUNET_SCHEDULER_add_delayed (SENSOR_UPDATE_CHECK_RETRY,
+                                  &check_for_updates, NULL);
+    return;
+  }
+  updating = GNUNET_YES;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Checking for sensor updates.\n");
   GNUNET_assert (NULL != up_default);
@@ -239,6 +296,8 @@ check_for_updates (void *cls,
                                           GNUNET_TIME_UNIT_FOREVER_REL,
                                           sizeof (struct GNUNET_MessageHeader),
                                           &do_send_sensor_list_req, NULL);
+  GNUNET_SCHEDULER_add_delayed (SENSOR_UPDATE_CHECK_INTERVAL,
+                                &check_for_updates, NULL);
 }
 
 
@@ -296,6 +355,7 @@ load_update_points ()
     up->ch = NULL;
     up->sensor_list_req_th = NULL;
     up->expecting_sensor_list = GNUNET_NO;
+    up->failed = GNUNET_NO;
     GNUNET_CONTAINER_DLL_insert (up_head, up_tail, up);
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Loaded update point `%s'.\n",
@@ -316,16 +376,63 @@ load_update_points ()
  *         #GNUNET_SYSERR to close it (signal serious error).
  */
 static int
-handle_sensor_list (void *cls,
-                    struct GNUNET_CADET_Channel *channel,
-                    void **channel_ctx,
-                    const struct GNUNET_MessageHeader *message)
+handle_sensor_brief (void *cls,
+                     struct GNUNET_CADET_Channel *channel,
+                     void **channel_ctx,
+                     const struct GNUNET_MessageHeader *message)
 {
+  struct GNUNET_SENSOR_SensorBriefMessage *sbm;
+
   GNUNET_assert (*channel_ctx == up_default);
   GNUNET_assert (GNUNET_YES == up_default->expecting_sensor_list);
-  up_default->expecting_sensor_list = GNUNET_NO;
-  //TODO
+  if (GNUNET_MESSAGE_TYPE_SENSOR_END == ntohs (message->type))
+  {
+    up_default->expecting_sensor_list = GNUNET_NO;
+    //TODO: cleanup
+    updating = GNUNET_NO; //FIXME: should not be here, only for testing
+  }
+  else
+  {
+    sbm = (struct GNUNET_SENSOR_SensorBriefMessage *)message;
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Sensor brief: %.*s %d.%d\n",
+         ntohs (sbm->name_size),
+         &sbm[1],
+         ntohs (sbm->version_major),
+         ntohs (sbm->version_minor));
+  }
+  GNUNET_CADET_receive_done (channel);
   return GNUNET_OK;
+}
+
+
+/**
+ * Function called whenever a channel is destroyed.  Should clean up
+ * any associated state.
+ *
+ * It must NOT call #GNUNET_CADET_channel_destroy on the channel.
+ *
+ * @param cls closure (set from #GNUNET_CADET_connect)
+ * @param channel connection to the other end (henceforth invalid)
+ * @param channel_ctx place where local state associated
+ *                   with the channel is stored
+ */
+static void
+cadet_channel_destroyed (void *cls,
+                         const struct GNUNET_CADET_Channel *channel,
+                         void *channel_ctx)
+{
+  struct UpdatePoint *up = channel_ctx;
+
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "CADET Channel destroyed callback triggered.\n");
+  up->ch = NULL;
+  if (GNUNET_YES == updating)
+  {
+    fail ();
+    return;
+  }
+  cleanup_updatepoint (up);
 }
 
 
@@ -341,7 +448,8 @@ SENSOR_update_start (const struct GNUNET_CONFIGURATION_Handle *c,
                      struct GNUNET_CONTAINER_MultiHashMap *sensors)
 {
   static struct GNUNET_CADET_MessageHandler cadet_handlers[] = {
-      {&handle_sensor_list, GNUNET_MESSAGE_TYPE_SENSOR_LIST, 0},
+      {&handle_sensor_brief, GNUNET_MESSAGE_TYPE_SENSOR_BRIEF, 0},
+      {&handle_sensor_brief, GNUNET_MESSAGE_TYPE_SENSOR_END, 0},
       {NULL, 0, 0}
   };
 
@@ -350,7 +458,7 @@ SENSOR_update_start (const struct GNUNET_CONFIGURATION_Handle *c,
   cadet = GNUNET_CADET_connect(cfg,
                                NULL,
                                NULL,
-                               NULL,
+                               &cadet_channel_destroyed,
                                cadet_handlers,
                                NULL);
   if (NULL == cadet)
@@ -367,6 +475,7 @@ SENSOR_update_start (const struct GNUNET_CONFIGURATION_Handle *c,
     return GNUNET_SYSERR;
   }
   up_default = up_head;
+  updating = GNUNET_NO;
   GNUNET_SCHEDULER_add_now (&check_for_updates, NULL);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Sensor update module started.\n");
