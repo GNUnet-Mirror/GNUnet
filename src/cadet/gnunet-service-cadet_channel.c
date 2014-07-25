@@ -336,10 +336,9 @@ send_create (struct CadetChannel *ch);
  *
  * @param ch The channel to confirm.
  * @param fwd Should we send a FWD ACK? (going dest->root)
- * @param reaction This ACK is a reaction to a duplicate CREATE, don't save.
  */
 static void
-send_ack (struct CadetChannel *ch, int fwd, int reaction);
+send_ack (struct CadetChannel *ch, int fwd);
 
 
 
@@ -777,7 +776,7 @@ channel_recreate (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   }
   else if (rel == rel->ch->dest_rel)
   {
-    send_ack (rel->ch, GNUNET_YES, GNUNET_NO);
+    send_ack (rel->ch, GNUNET_YES);
   }
   else
   {
@@ -903,10 +902,9 @@ send_create (struct CadetChannel *ch)
  *
  * @param ch The channel to confirm.
  * @param fwd Should we send a FWD ACK? (going dest->root)
- * @param reaction This ACK is a reaction to a duplicate CREATE, don't save.
  */
 static void
-send_ack (struct CadetChannel *ch, int fwd, int reaction)
+send_ack (struct CadetChannel *ch, int fwd)
 {
   struct GNUNET_CADET_ChannelManage msg;
 
@@ -916,7 +914,7 @@ send_ack (struct CadetChannel *ch, int fwd, int reaction)
        GC_f2s (fwd), GCCH_2s (ch));
 
   msg.chid = htonl (ch->gid);
-  GCCH_send_prebuilt_message (&msg.header, ch, !fwd, reaction ? &msg : NULL);
+  GCCH_send_prebuilt_message (&msg.header, ch, !fwd, NULL);
 }
 
 
@@ -1186,19 +1184,16 @@ channel_confirm (struct CadetChannel *ch, int fwd)
       GCT_cancel (rel->uniq->tq);
       /* ch_message_sent will free and NULL uniq */
     }
-    else
+    else if (GNUNET_NO == is_loopback (ch))
     {
-      if (GNUNET_NO == is_loopback (ch))
-      {
-        /* We SHOULD have been trying to retransmit this! */
-        GNUNET_break (0);
-      }
+      /* We SHOULD have been trying to retransmit this! */
+      GNUNET_break (0);
     }
   }
 
   /* In case of a FWD ACK (SYNACK) send a BCK ACK (ACK). */
   if (GNUNET_YES == fwd)
-    send_ack (ch, GNUNET_NO, GNUNET_NO);
+    send_ack (ch, GNUNET_NO);
 }
 
 
@@ -2106,9 +2101,7 @@ GCCH_handle_create (struct CadetTunnel *t,
   struct CadetChannel *ch;
   struct CadetClient *c;
   int new_channel;
-  int reaction;
 
-  reaction = GNUNET_NO;
   chid = ntohl (msg->chid);
   ch = GCT_get_channel (t, chid);
   if (NULL == ch)
@@ -2163,7 +2156,6 @@ GCCH_handle_create (struct CadetTunnel *t,
   else
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  duplicate create channel\n");
-    reaction = GNUNET_YES;
     if (GNUNET_SCHEDULER_NO_TASK != ch->dest_rel->retry_task)
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG, "  clearing retry task\n");
@@ -2171,8 +2163,13 @@ GCCH_handle_create (struct CadetTunnel *t,
       GNUNET_SCHEDULER_cancel (ch->dest_rel->retry_task);
       ch->dest_rel->retry_task = GNUNET_SCHEDULER_NO_TASK;
     }
+    else if (NULL != ch->dest_rel->uniq)
+    {
+      /* we are waiting to for our 'SYNACK' to leave the queue, all done! */
+      return ch;
+    }
   }
-  send_ack (ch, GNUNET_YES, reaction);
+  send_ack (ch, GNUNET_YES);
 
   return ch;
 }
@@ -2360,16 +2357,9 @@ GCCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
       break;
 
 
-    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_ACK:
-      if (GNUNET_YES == fwd || NULL != existing_copy)
-      {
-        /* BCK ACK (going FWD) is just a response for a SYNACK, don't keep*/
-        fire_and_forget (message, ch, GNUNET_YES);
-        return;
-      }
-      /* fall-trough */
     case GNUNET_MESSAGE_TYPE_CADET_DATA_ACK:
     case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_CREATE:
+    case GNUNET_MESSAGE_TYPE_CADET_CHANNEL_ACK:
       chq = GNUNET_new (struct CadetChannelQueue);
       chq->type = type;
       chq->rel = fwd ? ch->root_rel : ch->dest_rel;
@@ -2379,6 +2369,7 @@ GCCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
         {
           GCT_cancel (chq->rel->uniq->tq);
           /* ch_message_sent is called, freeing and NULLing uniq */
+          GNUNET_break (NULL == chq->rel->uniq);
         }
         else
         {
@@ -2386,6 +2377,9 @@ GCCH_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
           GNUNET_free (chq->rel->uniq);
         }
       }
+      else
+        GNUNET_break (0);
+
       chq->tq = GCT_send_prebuilt_message (message, ch->t, NULL, GNUNET_YES,
                                            &ch_message_sent, chq);
       if (NULL == chq->tq)
