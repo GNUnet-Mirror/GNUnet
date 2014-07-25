@@ -411,6 +411,28 @@ is_ready (struct CadetTunnel *t)
 
 
 /**
+ * Check if a key is invalid (NULL pointer or all 0)
+ *
+ * @param key Key to check.
+ *
+ * @return #GNUNET_YES if key is null, #GNUNET_NO if exists and is not 0.
+ */
+static int
+is_key_null (struct GNUNET_CRYPTO_SymmetricSessionKey *key)
+{
+  struct GNUNET_CRYPTO_SymmetricSessionKey null_key;
+
+  if (NULL == key)
+    return GNUNET_YES;
+
+  memset (&null_key, 0, sizeof (null_key));
+  if (0 == memcmp (key, &null_key, sizeof (null_key)))
+    return GNUNET_YES;
+  return GNUNET_NO;
+}
+
+
+/**
  * Ephemeral key message purpose size.
  *
  * @return Size of the part of the ephemeral key message that must be signed.
@@ -899,6 +921,12 @@ destroy_kx_ctx (struct CadetTunnel *t)
 
   if (NULL == t->kx_ctx || GNUNET_SCHEDULER_NO_TASK != t->kx_ctx->finish_task)
     return;
+
+  if (is_key_null (&t->kx_ctx->e_key_old))
+  {
+    t->kx_ctx->finish_task = GNUNET_SCHEDULER_add_now (finish_kx, t);
+    return;
+  }
 
   delay = GNUNET_TIME_relative_divide (rekey_period, 4);
   delay = GNUNET_TIME_relative_min (delay, GNUNET_TIME_UNIT_MINUTES);
