@@ -177,10 +177,10 @@ struct MembershipStoreRequest
    */
   struct GNUNET_CRYPTO_EcdsaPublicKey slave_key;
 
-  uint64_t announced_at GNUNET_PACKED;
-  uint64_t effective_since GNUNET_PACKED;
-  uint64_t group_generation GNUNET_PACKED;
-  int did_join GNUNET_PACKED;
+  uint64_t announced_at;
+  uint64_t effective_since;
+  uint64_t group_generation;
+  uint8_t did_join;
 };
 
 

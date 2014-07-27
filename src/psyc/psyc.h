@@ -105,35 +105,22 @@ struct SlaveJoinRequest
 };
 
 
-struct ChannelSlaveAddRequest
+struct ChannelMembershipStoreRequest
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_PSYC_CHANNEL_SLAVE_ADD
+   * Type: GNUNET_MESSAGE_TYPE_PSYC_CHANNEL_MEMBERSHIP_STORE
    */
   struct GNUNET_MessageHeader header;
 
   uint32_t reserved;
 
-  struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key;
+  struct GNUNET_CRYPTO_EcdsaPublicKey slave_key;
 
   uint64_t announced_at;
 
   uint64_t effective_since;
-};
 
-
-struct ChannelSlaveRemoveRequest
-{
-  /**
-   * Type: GNUNET_MESSAGE_TYPE_PSYC_CHANNEL_SLAVE_RM
-   */
-  struct GNUNET_MessageHeader header;
-
-  uint32_t reserved;
-
-  struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key;
-
-  uint64_t announced_at;
+  uint8_t did_join;
 };
 
 

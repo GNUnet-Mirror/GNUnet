@@ -121,18 +121,27 @@ typedef void
  * Store join/leave events for a PSYC channel in order to be able to answer
  * membership test queries later.
  *
- * @param h Handle for the PSYCstore.
- * @param channel_key The channel where the event happened.
- * @param slave_key Public key of joining/leaving slave.
- * @param did_join #GNUNET_YES on join, #GNUNET_NO on part.
- * @param announced_at ID of the message that announced the membership change.
- * @param effective_since Message ID this membership change is in effect since.
+ * @param h
+ *        Handle for the PSYCstore.
+ * @param channel_key
+ *        The channel where the event happened.
+ * @param slave_key
+ *        Public key of joining/leaving slave.
+ * @param did_join
+ *        #GNUNET_YES on join, #GNUNET_NO on part.
+ * @param announced_at
+ *        ID of the message that announced the membership change.
+ * @param effective_since
+ *        Message ID this membership change is in effect since.
  *        For joins it is <= announced_at, for parts it is always 0.
- * @param group_generation In case of a part, the last group generation the
- *        slave has access to.  It has relevance when a larger message have
- *        fragments with different group generations.
- * @param rcb Callback to call with the result of the storage operation.
- * @param rcb_cls Closure for the callback.
+ * @param group_generation
+ *        In case of a part, the last group generation the slave has access to.
+ *        It has relevance when a larger message have fragments with different
+ *        group generations.
+ * @param rcb
+ *        Callback to call with the result of the storage operation.
+ * @param rcb_cls
+ *        Closure for the callback.
  *
  * @return Operation handle that can be used to cancel the operation.
  */
@@ -156,16 +165,22 @@ GNUNET_PSYCSTORE_membership_store (struct GNUNET_PSYCSTORE_Handle *h,
  * is also used when handling join requests to determine whether the slave is
  * currently admitted to the channel.
  *
- * @param h Handle for the PSYCstore.
- * @param channel_key The channel we are interested in.
- * @param slave_key Public key of slave whose membership to check.
- * @param message_id Message ID for which to do the membership test.
- * @param group_generation Group generation of the fragment of the message to
- *        test.  It has relevance if the message consists of multiple fragments
- *        with different group generations.
- *        FIXME: not needed if there are no overlapping messages.
- * @param rcb Callback to call with the test result.
- * @param rcb_cls Closure for the callback.
+ * @param h
+ *        Handle for the PSYCstore.
+ * @param channel_key
+ *        The channel we are interested in.
+ * @param slave_key
+ *        Public key of slave whose membership to check.
+ * @param message_id
+ *        Message ID for which to do the membership test.
+ * @param group_generation
+ *        Group generation of the fragment of the message to test.
+ *        It has relevance if the message consists of multiple fragments with
+ *        different group generations.
+ * @param rcb
+ *        Callback to call with the test result.
+ * @param rcb_cls
+ *        Closure for the callback.
  *
  * @return Operation handle that can be used to cancel the operation.
  */

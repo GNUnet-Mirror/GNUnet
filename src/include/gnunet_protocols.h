@@ -2152,11 +2152,10 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_PSYC_JOIN_DECISION 688
 
 
-/** C->S: request to remove channel slave from the membership database. */
-#define GNUNET_MESSAGE_TYPE_PSYC_CHANNEL_SLAVE_ADD 689
+/** C->S: request to add/remove channel slave in the membership database. */
+#define GNUNET_MESSAGE_TYPE_PSYC_CHANNEL_MEMBERSHIP_STORE 689
 
-/** C->S: request to add channel slave to the membership database */
-#define GNUNET_MESSAGE_TYPE_PSYC_CHANNEL_SLAVE_RM 690
+/* 690 */
 
 /** S<--C: PSYC message which contains one or more message parts. */
 #define GNUNET_MESSAGE_TYPE_PSYC_MESSAGE 691

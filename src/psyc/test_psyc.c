@@ -413,20 +413,8 @@ slave_join ();
 
 
 void
-join_decision_cb (void *cls,
-                  const struct GNUNET_PSYC_JoinDecisionMessage *dcsn,
-                  int is_admitted,
-                  const struct GNUNET_PSYC_Message *join_msg)
+slave_transmit ()
 {
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "Slave got join decision: %d\n", is_admitted);
-
-  if (GNUNET_YES != is_admitted)
-  { /* First join request is refused, retry. */
-    GNUNET_assert (1 == join_req_count);
-    slave_join ();
-    return;
-  }
 
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Slave sending request to master.\n");
 
@@ -450,6 +438,26 @@ join_decision_cb (void *cls,
 
 
 void
+join_decision_cb (void *cls,
+                  const struct GNUNET_PSYC_JoinDecisionMessage *dcsn,
+                  int is_admitted,
+                  const struct GNUNET_PSYC_Message *join_msg)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "Slave got join decision: %d\n", is_admitted);
+
+  if (GNUNET_YES != is_admitted)
+  { /* First join request is refused, retry. */
+    GNUNET_assert (1 == join_req_count);
+    slave_join ();
+    return;
+  }
+
+  slave_transmit ();
+}
+
+
+void
 join_request_cb (void *cls,
                  const struct GNUNET_PSYC_JoinRequestMessage *req,
                  const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
@@ -465,6 +473,11 @@ join_request_cb (void *cls,
   /* Reject first request */
   int is_admitted = (0 < join_req_count++) ? GNUNET_YES : GNUNET_NO;
   GNUNET_PSYC_join_decision (jh, is_admitted, 0, NULL, NULL);
+
+  /* Membership store */
+  struct GNUNET_PSYC_Channel *chn = GNUNET_PSYC_master_get_channel (mst);
+  GNUNET_PSYC_channel_slave_add (chn, slave_key, 2, 2);
+  GNUNET_PSYC_channel_slave_remove (chn, &slave_pub_key, 2);
 }
 
 

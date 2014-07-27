@@ -2048,24 +2048,46 @@ client_recv_psyc_message (void *cls, struct GNUNET_SERVER_Client *client,
 
 
 /**
- * Client requests to add a slave to the membership database.
+ * Received result of GNUNET_PSYCSTORE_membership_store()
  */
 static void
-client_recv_slave_add (void *cls, struct GNUNET_SERVER_Client *client,
-                       const struct GNUNET_MessageHeader *msg)
+store_recv_membership_store_result (void *cls, int64_t result, const char *err_msg)
 {
-
+  struct GNUNET_MULTICAST_MembershipTestHandle *mth = cls;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "%p GNUNET_PSYCSTORE_membership_store() returned %" PRId64 " (%s)\n",
+              mth, result, err_msg);
+  /* FIXME: send result to client */
 }
 
 
 /**
- * Client requests to remove a slave from the membership database.
+ * Client requests to add/remove a slave in the membership database.
  */
 static void
-client_recv_slave_remove (void *cls, struct GNUNET_SERVER_Client *client,
-                          const struct GNUNET_MessageHeader *msg)
+client_recv_membership_store (void *cls, struct GNUNET_SERVER_Client *client,
+                              const struct GNUNET_MessageHeader *msg)
 {
+  struct Channel *
+    chn = GNUNET_SERVER_client_get_user_context (client, struct Channel);
+  GNUNET_assert (NULL != chn);
 
+  const struct ChannelMembershipStoreRequest *
+    req = (const struct ChannelMembershipStoreRequest *) msg;
+
+  uint64_t announced_at = GNUNET_ntohll (req->announced_at);
+  uint64_t effective_since = GNUNET_ntohll (req->effective_since);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "%p Received membership store request from client.\n", chn);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "%p did_join: %u, announced_at: %" PRIu64 ", effective_since: %" PRIu64 "\n",
+              chn, req->did_join, announced_at, effective_since);
+
+  GNUNET_PSYCSTORE_membership_store (store, &chn->pub_key, &req->slave_key,
+                                     req->did_join, announced_at, effective_since,
+                                     0, /* FIXME: group_generation */
+                                     &store_recv_membership_store_result, chn);
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
 
@@ -2115,11 +2137,8 @@ static const struct GNUNET_SERVER_MessageHandler server_handlers[] = {
   { &client_recv_psyc_message, NULL,
     GNUNET_MESSAGE_TYPE_PSYC_MESSAGE, 0 },
 
-  { &client_recv_slave_add, NULL,
-    GNUNET_MESSAGE_TYPE_PSYC_CHANNEL_SLAVE_ADD, 0 },
-
-  { &client_recv_slave_remove, NULL,
-    GNUNET_MESSAGE_TYPE_PSYC_CHANNEL_SLAVE_RM, 0 },
+  { &client_recv_membership_store, NULL,
+    GNUNET_MESSAGE_TYPE_PSYC_CHANNEL_MEMBERSHIP_STORE, 0 },
 
   { &client_recv_story_request, NULL,
     GNUNET_MESSAGE_TYPE_PSYC_STORY_REQUEST, 0 },

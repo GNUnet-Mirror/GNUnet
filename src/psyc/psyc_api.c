@@ -810,12 +810,14 @@ GNUNET_PSYC_channel_slave_add (struct GNUNET_PSYC_Channel *chn,
                                uint64_t announced_at,
                                uint64_t effective_since)
 {
-  struct ChannelSlaveAddRequest *add = GNUNET_malloc (sizeof (*add));
-  add->header.type = htons (GNUNET_MESSAGE_TYPE_PSYC_CHANNEL_SLAVE_ADD);
-  add->header.size = htons (sizeof (*add));
-  add->announced_at = GNUNET_htonll (announced_at);
-  add->effective_since = GNUNET_htonll (effective_since);
-  GNUNET_CLIENT_MANAGER_transmit (chn->client, &add->header);
+  struct ChannelMembershipStoreRequest *req = GNUNET_malloc (sizeof (*req));
+  req->header.type = htons (GNUNET_MESSAGE_TYPE_PSYC_CHANNEL_MEMBERSHIP_STORE);
+  req->header.size = htons (sizeof (*req));
+  req->slave_key = *slave_key;
+  req->announced_at = GNUNET_htonll (announced_at);
+  req->effective_since = GNUNET_htonll (effective_since);
+  req->did_join = GNUNET_YES;
+  GNUNET_CLIENT_MANAGER_transmit (chn->client, &req->header);
 }
 
 
@@ -845,11 +847,13 @@ GNUNET_PSYC_channel_slave_remove (struct GNUNET_PSYC_Channel *chn,
                                   const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
                                   uint64_t announced_at)
 {
-  struct ChannelSlaveRemoveRequest *rm = GNUNET_malloc (sizeof (*rm));
-  rm->header.type = htons (GNUNET_MESSAGE_TYPE_PSYC_CHANNEL_SLAVE_RM);
-  rm->header.size = htons (sizeof (*rm));
-  rm->announced_at = GNUNET_htonll (announced_at);
-  GNUNET_CLIENT_MANAGER_transmit (chn->client, &rm->header);
+  struct ChannelMembershipStoreRequest *req = GNUNET_malloc (sizeof (*req));
+  req->header.type = htons (GNUNET_MESSAGE_TYPE_PSYC_CHANNEL_MEMBERSHIP_STORE);
+  req->header.size = htons (sizeof (*req));
+  req->slave_key = *slave_key;
+  req->announced_at = GNUNET_htonll (announced_at);
+  req->did_join = GNUNET_NO;
+  GNUNET_CLIENT_MANAGER_transmit (chn->client, &req->header);
 }
 
 

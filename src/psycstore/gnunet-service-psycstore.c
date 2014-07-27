@@ -240,7 +240,7 @@ handle_membership_store (void *cls,
     (const struct MembershipStoreRequest *) msg;
 
   int ret = db->membership_store (db->cls, &req->channel_key, &req->slave_key,
-                                  ntohl (req->did_join),
+                                  req->did_join,
                                   GNUNET_ntohll (req->announced_at),
                                   GNUNET_ntohll (req->effective_since),
                                   GNUNET_ntohll (req->group_generation));
