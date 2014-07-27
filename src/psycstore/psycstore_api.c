@@ -804,18 +804,29 @@ GNUNET_PSYCSTORE_fragment_store (struct GNUNET_PSYCSTORE_Handle *h,
 /**
  * Retrieve a message fragment by fragment ID.
  *
- * @param h Handle for the PSYCstore.
- * @param channel_key The channel we are interested in.
- * @param fragment_id Fragment ID to check.  Use 0 to get the latest message fragment.
- * @param fcb Callback to call with the retrieved fragments.
- * @param rcb Callback to call with the result of the operation.
- * @param cls Closure for the callbacks.
+ * @param h
+ *        Handle for the PSYCstore.
+ * @param channel_key
+ *        The channel we are interested in.
+ * @param slave_key
+ *        The slave requesting the fragment.  If not NULL, a membership test is
+ *        performed first and the fragment is only returned if the slave has
+ *        access to it.
+ * @param fragment_id
+ *        Fragment ID to retrieve.  Use 0 to get the latest message fragment.
+ * @param fcb
+ *        Callback to call with the retrieved fragments.
+ * @param rcb
+ *        Callback to call with the result of the operation.
+ * @param cls
+ *        Closure for the callbacks.
  *
  * @return Handle that can be used to cancel the operation.
  */
 struct GNUNET_PSYCSTORE_OperationHandle *
 GNUNET_PSYCSTORE_fragment_get (struct GNUNET_PSYCSTORE_Handle *h,
                                const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
+                               const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
                                uint64_t fragment_id,
                                GNUNET_PSYCSTORE_FragmentCallback fcb,
                                GNUNET_PSYCSTORE_ResultCallback rcb,
@@ -835,6 +846,11 @@ GNUNET_PSYCSTORE_fragment_get (struct GNUNET_PSYCSTORE_Handle *h,
   req->header.size = htons (sizeof (*req));
   req->channel_key = *channel_key;
   req->fragment_id = GNUNET_htonll (fragment_id);
+  if (NULL != slave_key)
+  {
+    req->slave_key = *slave_key;
+    req->do_membership_test = GNUNET_YES;
+  }
 
   op->op_id = get_next_op_id (h);
   req->op_id = htonl (op->op_id);
@@ -849,18 +865,29 @@ GNUNET_PSYCSTORE_fragment_get (struct GNUNET_PSYCSTORE_Handle *h,
 /**
  * Retrieve all fragments of a message.
  *
- * @param h Handle for the PSYCstore.
- * @param channel_key The channel we are interested in.
- * @param message_id Message ID to check.  Use 0 to get the latest message.
- * @param fcb Callback to call with the retrieved fragments.
- * @param rcb Callback to call with the result of the operation.
- * @param cls Closure for the callbacks.
+ * @param h
+ *        Handle for the PSYCstore.
+ * @param channel_key
+ *        The channel we are interested in.
+ * @param slave_key
+ *        The slave requesting the message.  If not NULL, a membership test is
+ *        performed first and the message is only returned if the slave has
+ *        access to it.
+ * @param message_id
+ *        Message ID to retrieve.  Use 0 to get the latest message.
+ * @param fcb
+ *        Callback to call with the retrieved fragments.
+ * @param rcb
+ *        Callback to call with the result of the operation.
+ * @param cls
+ *        Closure for the callbacks.
  *
  * @return Handle that can be used to cancel the operation.
  */
 struct GNUNET_PSYCSTORE_OperationHandle *
 GNUNET_PSYCSTORE_message_get (struct GNUNET_PSYCSTORE_Handle *h,
                               const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
+                              const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
                               uint64_t message_id,
                               GNUNET_PSYCSTORE_FragmentCallback fcb,
                               GNUNET_PSYCSTORE_ResultCallback rcb,
@@ -880,6 +907,11 @@ GNUNET_PSYCSTORE_message_get (struct GNUNET_PSYCSTORE_Handle *h,
   req->header.size = htons (sizeof (*req));
   req->channel_key = *channel_key;
   req->message_id = GNUNET_htonll (message_id);
+  if (NULL != slave_key)
+  {
+    req->slave_key = *slave_key;
+    req->do_membership_test = GNUNET_YES;
+  }
 
   op->op_id = get_next_op_id (h);
   req->op_id = htonl (op->op_id);
@@ -895,19 +927,31 @@ GNUNET_PSYCSTORE_message_get (struct GNUNET_PSYCSTORE_Handle *h,
  * Retrieve a fragment of message specified by its message ID and fragment
  * offset.
  *
- * @param h Handle for the PSYCstore.
- * @param channel_key The channel we are interested in.
- * @param message_id Message ID to check.  Use 0 to get the latest message.
- * @param fragment_offset Offset of the fragment to retrieve.
- * @param fcb Callback to call with the retrieved fragments.
- * @param rcb Callback to call with the result of the operation.
- * @param cls Closure for the callbacks.
+ * @param h
+ *        Handle for the PSYCstore.
+ * @param channel_key
+ *        The channel we are interested in.
+ * @param slave_key
+ *        The slave requesting the message fragment.  If not NULL, a membership
+ *        test is performed first and the message fragment is only returned
+ *        if the slave has access to it.
+ * @param message_id
+ *        Message ID to retrieve.  Use 0 to get the latest message.
+ * @param fragment_offset
+ *        Offset of the fragment to retrieve.
+ * @param fcb
+ *        Callback to call with the retrieved fragments.
+ * @param rcb
+ *        Callback to call with the result of the operation.
+ * @param cls
+ *        Closure for the callbacks.
  *
  * @return Handle that can be used to cancel the operation.
  */
 struct GNUNET_PSYCSTORE_OperationHandle *
 GNUNET_PSYCSTORE_message_get_fragment (struct GNUNET_PSYCSTORE_Handle *h,
                                        const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
+                                       const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
                                        uint64_t message_id,
                                        uint64_t fragment_offset,
                                        GNUNET_PSYCSTORE_FragmentCallback fcb,
@@ -929,6 +973,11 @@ GNUNET_PSYCSTORE_message_get_fragment (struct GNUNET_PSYCSTORE_Handle *h,
   req->channel_key = *channel_key;
   req->message_id = GNUNET_htonll (message_id);
   req->fragment_offset = GNUNET_htonll (fragment_offset);
+  if (NULL != slave_key)
+  {
+    req->slave_key = *slave_key;
+    req->do_membership_test = GNUNET_YES;
+  }
 
   op->op_id = get_next_op_id (h);
   req->op_id = htonl (op->op_id);

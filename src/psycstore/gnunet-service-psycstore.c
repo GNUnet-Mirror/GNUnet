@@ -122,11 +122,43 @@ send_result_code (struct GNUNET_SERVER_Client *client, uint32_t result_code,
   GNUNET_free (res);
 }
 
+enum
+{
+  MEMBERSHIP_TEST_NOT_NEEDED = 0,
+  MEMBERSHIP_TEST_NEEDED = 1,
+  MEMBERSHIP_TEST_DONE = 2,
+} MessageMembershipTest;
 
 struct SendClosure
 {
   struct GNUNET_SERVER_Client *client;
+
+  /**
+   * Channel's public key.
+   */
+  struct GNUNET_CRYPTO_EddsaPublicKey channel_key;
+
+  /**
+   * Slave's public key.
+   */
+  struct GNUNET_CRYPTO_EcdsaPublicKey slave_key;
+
+  /**
+   * Operation ID.
+   */
   uint64_t op_id;
+
+  /**
+   * Membership test result.
+   */
+  int membership_test_result;
+
+  /**
+   * Do membership test with @a slave_key before returning fragment?
+   * @see enum MessageMembershipTest
+   */
+  uint8_t membership_test;
+
 };
 
 
@@ -136,6 +168,24 @@ send_fragment (void *cls, struct GNUNET_MULTICAST_MessageHeader *msg,
 {
   struct SendClosure *sc = cls;
   struct FragmentResult *res;
+
+  if (MEMBERSHIP_TEST_NEEDED == sc->membership_test)
+  {
+    sc->membership_test = MEMBERSHIP_TEST_DONE;
+    sc->membership_test_result
+      = db->membership_test (db->cls, &sc->channel_key, &sc->slave_key,
+                             GNUNET_ntohll (msg->message_id));
+    switch (sc->membership_test_result)
+    {
+    case GNUNET_YES:
+      break;
+
+    case GNUNET_NO:
+    case GNUNET_SYSERR:
+      return GNUNET_NO;
+    }
+  }
+
   size_t msg_size = ntohs (msg->header.size);
 
   res = GNUNET_malloc (sizeof (struct FragmentResult) + msg_size);
@@ -152,7 +202,7 @@ send_fragment (void *cls, struct GNUNET_MULTICAST_MessageHeader *msg,
   GNUNET_SERVER_notification_context_unicast (nc, sc->client, &res->header,
                                               GNUNET_NO);
   GNUNET_free (res);
-  return GNUNET_OK;
+  return GNUNET_YES;
 }
 
 
@@ -255,9 +305,12 @@ handle_fragment_get (void *cls,
                      struct GNUNET_SERVER_Client *client,
                      const struct GNUNET_MessageHeader *msg)
 {
-  const struct FragmentGetRequest *req
-    = (const struct FragmentGetRequest *) msg;
-  struct SendClosure sc = { .op_id = req->op_id, .client = client };
+  const struct FragmentGetRequest *
+    req = (const struct FragmentGetRequest *) msg;
+  struct SendClosure
+    sc = { .op_id = req->op_id, .client = client,
+           .channel_key = req->channel_key, .slave_key = req->slave_key,
+           .membership_test = req->do_membership_test };
 
   int ret = db->fragment_get (db->cls, &req->channel_key,
                               GNUNET_ntohll (req->fragment_id),
@@ -266,6 +319,22 @@ handle_fragment_get (void *cls,
   {
   case GNUNET_YES:
   case GNUNET_NO:
+    if (MEMBERSHIP_TEST_DONE == sc.membership_test)
+    {
+      switch (sc.membership_test_result)
+      {
+      case GNUNET_YES:
+        break;
+
+      case GNUNET_NO:
+        ret = GNUNET_PSYCSTORE_MEMBERSHIP_TEST_FAILED;
+        break;
+
+      case GNUNET_SYSERR:
+        ret = GNUNET_SYSERR;
+        break;
+      }
+    }
     break;
   default:
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -282,8 +351,13 @@ handle_message_get (void *cls,
                     struct GNUNET_SERVER_Client *client,
                     const struct GNUNET_MessageHeader *msg)
 {
-  const struct MessageGetRequest *req = (const struct MessageGetRequest *) msg;
-  struct SendClosure sc = { .op_id = req->op_id, .client = client };
+  const struct MessageGetRequest *
+    req = (const struct MessageGetRequest *) msg;
+  struct SendClosure
+    sc = { .op_id = req->op_id, .client = client,
+           .channel_key = req->channel_key, .slave_key = req->slave_key,
+           .membership_test = req->do_membership_test };
+
   uint64_t ret_frags = 0;
   int64_t ret = db->message_get (db->cls, &req->channel_key,
                                  GNUNET_ntohll (req->message_id),
@@ -309,10 +383,12 @@ handle_message_get_fragment (void *cls,
                              struct GNUNET_SERVER_Client *client,
                              const struct GNUNET_MessageHeader *msg)
 {
-  const struct MessageGetFragmentRequest *req =
-    (const struct MessageGetFragmentRequest *) msg;
-
-  struct SendClosure sc = { .op_id = req->op_id, .client = client };
+  const struct MessageGetFragmentRequest *
+    req = (const struct MessageGetFragmentRequest *) msg;
+  struct SendClosure
+    sc = { .op_id = req->op_id, .client = client,
+           .channel_key = req->channel_key, .slave_key = req->slave_key,
+           .membership_test = req->do_membership_test };
 
   int ret = db->message_get_fragment (db->cls, &req->channel_key,
                                       GNUNET_ntohll (req->message_id),

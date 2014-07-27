@@ -331,7 +331,6 @@ message_get_result (void *cls, int64_t result, const char *err_msg)
   GNUNET_assert (result > 0 && fcls->n && fcls->n_expected);
 
 
-
   modifiers[0] = (struct GNUNET_ENV_Modifier) {
     .oper = '=',
     .name = "_sync_foo",
@@ -361,7 +360,7 @@ message_get_fragment_result (void *cls, int64_t result, const char *err_msg)
 
   fcls->n = 0;
   fcls->n_expected = 3;
-  op = GNUNET_PSYCSTORE_message_get (h, &channel_pub_key,
+  op = GNUNET_PSYCSTORE_message_get (h, &channel_pub_key, &slave_pub_key,
                                      GNUNET_ntohll (fcls->msg[0]->message_id),
                                      &fragment_result,
                                      &message_get_result, fcls);
@@ -378,7 +377,7 @@ fragment_get_result (void *cls, int64_t result, const char *err_msg)
 
   fcls->n = 1;
   fcls->n_expected = 2;
-  op = GNUNET_PSYCSTORE_message_get_fragment (h, &channel_pub_key,
+  op = GNUNET_PSYCSTORE_message_get_fragment (h, &channel_pub_key, &slave_pub_key,
                                               GNUNET_ntohll (fcls->msg[1]->message_id),
                                               GNUNET_ntohll (fcls->msg[1]->fragment_offset),
                                               &fragment_result,
@@ -396,10 +395,10 @@ fragment_store_result (void *cls, int64_t result, const char *err_msg)
   GNUNET_assert (GNUNET_OK == result);
 
   if ((intptr_t) cls == GNUNET_YES)
-  {
+  { /* last fragment */
     fcls.n = 0;
     fcls.n_expected = 1;
-    op = GNUNET_PSYCSTORE_fragment_get (h, &channel_pub_key,
+    op = GNUNET_PSYCSTORE_fragment_get (h, &channel_pub_key, &slave_pub_key,
                                         GNUNET_ntohll (fcls.msg[0]->fragment_id),
                                         &fragment_result,
                                         &fragment_get_result, &fcls);
@@ -408,12 +407,8 @@ fragment_store_result (void *cls, int64_t result, const char *err_msg)
 
 
 void
-membership_test_result (void *cls, int64_t result, const char *err_msg)
+fragment_store ()
 {
-  op = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "membership_test:\t%d\n", result);
-  GNUNET_assert (GNUNET_OK == result);
-
   struct GNUNET_MULTICAST_MessageHeader *msg;
   fcls.flags[0] = GNUNET_PSYCSTORE_MESSAGE_STATE;
   fcls.msg[0] = msg = GNUNET_malloc (sizeof (*msg) + sizeof (channel_pub_key));
@@ -461,6 +456,18 @@ membership_test_result (void *cls, int64_t result, const char *err_msg)
                                         &fragment_store_result, (void *) GNUNET_YES);
 }
 
+
+void
+membership_test_result (void *cls, int64_t result, const char *err_msg)
+{
+  op = NULL;
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "membership_test:\t%d\n", result);
+  GNUNET_assert (GNUNET_OK == result);
+
+  fragment_store ();
+}
+
+
 void
 membership_store_result (void *cls, int64_t result, const char *err_msg)
 {
@@ -469,7 +476,7 @@ membership_store_result (void *cls, int64_t result, const char *err_msg)
   GNUNET_assert (GNUNET_OK == result);
 
   op = GNUNET_PSYCSTORE_membership_test (h, &channel_pub_key, &slave_pub_key,
-                                         4, 1,
+                                         INT64_MAX - 10, 2,
                                          &membership_test_result, NULL);
 }
 
@@ -502,7 +509,8 @@ run (void *cls,
   GNUNET_CRYPTO_ecdsa_key_get_public (slave_key, &slave_pub_key);
 
   op = GNUNET_PSYCSTORE_membership_store (h, &channel_pub_key, &slave_pub_key,
-                                          GNUNET_YES, 4, 2, 1,
+                                          GNUNET_YES, INT64_MAX - 5,
+                                          INT64_MAX - 10, 2,
                                           &membership_store_result, NULL);
 }
 

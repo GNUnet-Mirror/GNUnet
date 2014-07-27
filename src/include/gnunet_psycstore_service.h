@@ -46,6 +46,11 @@ extern "C"
 #define GNUNET_PSYCSTORE_VERSION 0x00000000
 
 /**
+ * Membership test failed.
+ */
+#define GNUNET_PSYCSTORE_MEMBERSHIP_TEST_FAILED -2
+
+/**
  * Flags for stored messages.
  */
 enum GNUNET_PSYCSTORE_MessageFlags
@@ -217,18 +222,29 @@ typedef int
 /**
  * Retrieve a message fragment by fragment ID.
  *
- * @param h Handle for the PSYCstore.
- * @param channel_key The channel we are interested in.
- * @param fragment_id Fragment ID to check.  Use 0 to get the latest message fragment.
- * @param fcb Callback to call with the retrieved fragment.
- * @param rcb Callback to call with the result of the operation.
- * @param cls Closure for the callbacks.
+ * @param h
+ *        Handle for the PSYCstore.
+ * @param channel_key
+ *        The channel we are interested in.
+ * @param slave_key
+ *        The slave requesting the fragment.  If not NULL, a membership test is
+ *        performed first and the fragment is only returned if the slave has
+ *        access to it.
+ * @param fragment_id
+ *        Fragment ID to retrieve.  Use 0 to get the latest message fragment.
+ * @param fcb
+ *        Callback to call with the retrieved fragments.
+ * @param rcb
+ *        Callback to call with the result of the operation.
+ * @param cls
+ *        Closure for the callbacks.
  *
  * @return Handle that can be used to cancel the operation.
  */
 struct GNUNET_PSYCSTORE_OperationHandle *
 GNUNET_PSYCSTORE_fragment_get (struct GNUNET_PSYCSTORE_Handle *h,
                                const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
+                               const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
                                uint64_t fragment_id,
                                GNUNET_PSYCSTORE_FragmentCallback fcb,
                                GNUNET_PSYCSTORE_ResultCallback rcb,
@@ -238,18 +254,29 @@ GNUNET_PSYCSTORE_fragment_get (struct GNUNET_PSYCSTORE_Handle *h,
 /**
  * Retrieve all fragments of a message.
  *
- * @param h Handle for the PSYCstore.
- * @param channel_key The channel we are interested in.
- * @param message_id Message ID to check.  Use 0 to get the latest message.
- * @param fcb Callback to call with the retrieved fragments.
- * @param rcb Callback to call with the result of the operation.
- * @param cls Closure for the callbacks.
+ * @param h
+ *        Handle for the PSYCstore.
+ * @param channel_key
+ *        The channel we are interested in.
+ * @param slave_key
+ *        The slave requesting the message.  If not NULL, a membership test is
+ *        performed first and the message is only returned if the slave has
+ *        access to it.
+ * @param message_id
+ *        Message ID to retrieve.  Use 0 to get the latest message.
+ * @param fcb
+ *        Callback to call with the retrieved fragments.
+ * @param rcb
+ *        Callback to call with the result of the operation.
+ * @param cls
+ *        Closure for the callbacks.
  *
  * @return Handle that can be used to cancel the operation.
  */
 struct GNUNET_PSYCSTORE_OperationHandle *
 GNUNET_PSYCSTORE_message_get (struct GNUNET_PSYCSTORE_Handle *h,
                               const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
+                              const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
                               uint64_t message_id,
                               GNUNET_PSYCSTORE_FragmentCallback fcb,
                               GNUNET_PSYCSTORE_ResultCallback rcb,
@@ -273,6 +300,7 @@ GNUNET_PSYCSTORE_message_get (struct GNUNET_PSYCSTORE_Handle *h,
 struct GNUNET_PSYCSTORE_OperationHandle *
 GNUNET_PSYCSTORE_message_get_fragment (struct GNUNET_PSYCSTORE_Handle *h,
                                        const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
+                                       const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
                                        uint64_t message_id,
                                        uint64_t fragment_offset,
                                        GNUNET_PSYCSTORE_FragmentCallback fcb,

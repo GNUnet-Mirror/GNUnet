@@ -264,7 +264,21 @@ struct FragmentGetRequest
    */
   struct GNUNET_CRYPTO_EddsaPublicKey channel_key;
 
+  /**
+   * Slave's public key.
+   */
+  struct GNUNET_CRYPTO_EcdsaPublicKey slave_key;
+
+  /**
+   * Fragment ID to request.
+   */
   uint64_t fragment_id GNUNET_PACKED;
+
+  /**
+   * Do membership test with @a slave_key before returning fragment?
+   * #GNUNET_YES or #GNUNET_NO
+   */
+  uint8_t do_membership_test;
 };
 
 
@@ -288,7 +302,21 @@ struct MessageGetRequest
    */
   struct GNUNET_CRYPTO_EddsaPublicKey channel_key;
 
+  /**
+   * Slave's public key.
+   */
+  struct GNUNET_CRYPTO_EcdsaPublicKey slave_key;
+
+  /**
+   * Message ID to request.
+   */
   uint64_t message_id GNUNET_PACKED;
+
+  /**
+   * Do membership test with @a slave_key before returning fragment?
+   * #GNUNET_YES or #GNUNET_NO
+   */
+  uint8_t do_membership_test;
 };
 
 
@@ -312,9 +340,26 @@ struct MessageGetFragmentRequest
    */
   struct GNUNET_CRYPTO_EddsaPublicKey channel_key;
 
+  /**
+   * Slave's public key.
+   */
+  struct GNUNET_CRYPTO_EcdsaPublicKey slave_key;
+
+  /**
+   * Requested message ID.
+   */
   uint64_t message_id GNUNET_PACKED;
 
+  /**
+   * Requested fragment offset.
+   */
   uint64_t fragment_offset GNUNET_PACKED;
+
+  /**
+   * Do membership test with @a slave_key before returning fragment?
+   * #GNUNET_YES or #GNUNET_NO
+   */
+  uint8_t do_membership_test;
 };
 
 
