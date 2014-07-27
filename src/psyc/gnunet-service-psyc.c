@@ -708,16 +708,89 @@ mcast_recv_join_decision (void *cls, int is_admitted,
 }
 
 
+/**
+ * Received result of GNUNET_PSYCSTORE_membership_test()
+ */
+static void
+store_recv_membership_test_result (void *cls, int64_t result, const char *err_msg)
+{
+  struct GNUNET_MULTICAST_MembershipTestHandle *mth = cls;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "%p GNUNET_PSYCSTORE_membership_test() returned %" PRId64 " (%s)\n",
+              mth, result, err_msg);
+
+  GNUNET_MULTICAST_membership_test_result (mth, result);
+}
+
+
+/**
+ * Incoming membership test request from multicast.
+ */
 static void
 mcast_recv_membership_test (void *cls,
                             const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
                             uint64_t message_id, uint64_t group_generation,
                             struct GNUNET_MULTICAST_MembershipTestHandle *mth)
 {
-
+  struct Channel *chn = cls;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "%p Received membership test request from multicast.\n",
+              mth);
+  GNUNET_PSYCSTORE_membership_test (store, &chn->pub_key, slave_key,
+                                    message_id, group_generation,
+                                    &store_recv_membership_test_result, mth);
 }
 
 
+static int
+store_recv_fragment_replay (void *cls,
+                            struct GNUNET_MULTICAST_MessageHeader *msg,
+                            enum GNUNET_PSYCSTORE_MessageFlags flags)
+{
+  struct GNUNET_MULTICAST_ReplayHandle *rh = cls;
+
+  GNUNET_MULTICAST_replay_response (rh, &msg->header, GNUNET_MULTICAST_REC_OK);
+  return GNUNET_YES;
+}
+
+
+/**
+ * Received result of GNUNET_PSYCSTORE_fragment_get() for multicast replay.
+ */
+static void
+store_recv_fragment_replay_result (void *cls, int64_t result, const char *err_msg)
+{
+  struct GNUNET_MULTICAST_ReplayHandle *rh = cls;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "%p Fragment replay: PSYCSTORE returned %" PRId64 " (%s)\n",
+              rh, result, err_msg);
+
+  switch (result)
+  {
+  case GNUNET_YES:
+    break;
+
+  case GNUNET_NO:
+    GNUNET_MULTICAST_replay_response (rh, NULL,
+                                      GNUNET_MULTICAST_REC_NOT_FOUND);
+    break;
+
+  case GNUNET_PSYCSTORE_MEMBERSHIP_TEST_FAILED:
+    GNUNET_MULTICAST_replay_response (rh, NULL,
+                                      GNUNET_MULTICAST_REC_ACCESS_DENIED);
+
+  case GNUNET_SYSERR:
+    GNUNET_MULTICAST_replay_response (rh, NULL,
+                                      GNUNET_MULTICAST_REC_INTERNAL_ERROR);
+    break;
+  }
+  GNUNET_MULTICAST_replay_response_end (rh);
+}
+
+
+/**
+ * Incoming fragment replay request from multicast.
+ */
 static void
 mcast_recv_replay_fragment (void *cls,
                             const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
@@ -725,10 +798,16 @@ mcast_recv_replay_fragment (void *cls,
                             struct GNUNET_MULTICAST_ReplayHandle *rh)
 
 {
-
+  struct Channel *chn = cls;
+  GNUNET_PSYCSTORE_fragment_get (store, &chn->pub_key, slave_key, fragment_id,
+                                 &store_recv_fragment_replay,
+                                 &store_recv_fragment_replay_result, rh);
 }
 
 
+/**
+ * Incoming message replay request from multicast.
+ */
 static void
 mcast_recv_replay_message (void *cls,
                            const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
@@ -737,7 +816,10 @@ mcast_recv_replay_message (void *cls,
                            uint64_t flags,
                            struct GNUNET_MULTICAST_ReplayHandle *rh)
 {
-
+  struct Channel *chn = cls;
+  GNUNET_PSYCSTORE_message_get (store, &chn->pub_key, slave_key, message_id,
+                                &store_recv_fragment_replay,
+                                &store_recv_fragment_replay_result, rh);
 }
 
 
@@ -1190,7 +1272,7 @@ message_queue_drop (struct Channel *chn)
 
 
 /**
- * Handle the result of a GNUNET_PSYCSTORE_fragment_store() operation.
+ * Received result of GNUNET_PSYCSTORE_fragment_store().
  */
 static void
 store_recv_fragment_store_result (void *cls, int64_t result, const char *err_msg)
@@ -2020,6 +2102,38 @@ client_recv_state_get_prefix (void *cls, struct GNUNET_SERVER_Client *client,
 }
 
 
+static const struct GNUNET_SERVER_MessageHandler server_handlers[] = {
+  { &client_recv_master_start, NULL,
+    GNUNET_MESSAGE_TYPE_PSYC_MASTER_START, 0 },
+
+  { &client_recv_slave_join, NULL,
+    GNUNET_MESSAGE_TYPE_PSYC_SLAVE_JOIN, 0 },
+
+  { &client_recv_join_decision, NULL,
+    GNUNET_MESSAGE_TYPE_PSYC_JOIN_DECISION, 0 },
+
+  { &client_recv_psyc_message, NULL,
+    GNUNET_MESSAGE_TYPE_PSYC_MESSAGE, 0 },
+
+  { &client_recv_slave_add, NULL,
+    GNUNET_MESSAGE_TYPE_PSYC_CHANNEL_SLAVE_ADD, 0 },
+
+  { &client_recv_slave_remove, NULL,
+    GNUNET_MESSAGE_TYPE_PSYC_CHANNEL_SLAVE_RM, 0 },
+
+  { &client_recv_story_request, NULL,
+    GNUNET_MESSAGE_TYPE_PSYC_STORY_REQUEST, 0 },
+
+  { &client_recv_state_get, NULL,
+    GNUNET_MESSAGE_TYPE_PSYC_STATE_GET, 0 },
+
+  { &client_recv_state_get_prefix, NULL,
+    GNUNET_MESSAGE_TYPE_PSYC_STATE_GET_PREFIX, 0 },
+
+  { NULL, NULL, 0, 0 }
+};
+
+
 /**
  * Initialize the PSYC service.
  *
@@ -2031,37 +2145,6 @@ static void
 run (void *cls, struct GNUNET_SERVER_Handle *server,
      const struct GNUNET_CONFIGURATION_Handle *c)
 {
-  static const struct GNUNET_SERVER_MessageHandler handlers[] = {
-    { &client_recv_master_start, NULL,
-      GNUNET_MESSAGE_TYPE_PSYC_MASTER_START, 0 },
-
-    { &client_recv_slave_join, NULL,
-      GNUNET_MESSAGE_TYPE_PSYC_SLAVE_JOIN, 0 },
-
-    { &client_recv_join_decision, NULL,
-      GNUNET_MESSAGE_TYPE_PSYC_JOIN_DECISION, 0 },
-
-    { &client_recv_psyc_message, NULL,
-      GNUNET_MESSAGE_TYPE_PSYC_MESSAGE, 0 },
-
-    { &client_recv_slave_add, NULL,
-      GNUNET_MESSAGE_TYPE_PSYC_CHANNEL_SLAVE_ADD, 0 },
-
-    { &client_recv_slave_remove, NULL,
-      GNUNET_MESSAGE_TYPE_PSYC_CHANNEL_SLAVE_RM, 0 },
-
-    { &client_recv_story_request, NULL,
-      GNUNET_MESSAGE_TYPE_PSYC_STORY_REQUEST, 0 },
-
-    { &client_recv_state_get, NULL,
-      GNUNET_MESSAGE_TYPE_PSYC_STATE_GET, 0 },
-
-    { &client_recv_state_get_prefix, NULL,
-      GNUNET_MESSAGE_TYPE_PSYC_STATE_GET_PREFIX, 0 },
-
-    { NULL, NULL, 0, 0 }
-  };
-
   cfg = c;
   store = GNUNET_PSYCSTORE_connect (cfg);
   stats = GNUNET_STATISTICS_create ("psyc", cfg);
@@ -2070,7 +2153,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   channel_slaves = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_NO);
   recv_cache = GNUNET_CONTAINER_multihashmap_create (1, GNUNET_YES);
   nc = GNUNET_SERVER_notification_context_create (server, 1);
-  GNUNET_SERVER_add_handlers (server, handlers);
+  GNUNET_SERVER_add_handlers (server, server_handlers);
   GNUNET_SERVER_disconnect_notify (server, &client_disconnect, NULL);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
                                 &shutdown_task, NULL);
