@@ -270,24 +270,29 @@ struct GNUNET_SENSOR_SensorFullMessage
   struct GNUNET_MessageHeader header;
 
   /**
-   * Size of the config file carrying full sensor information.
-   * Allocated at position 0 after this struct.
+   * Size of sensor name.
+   * Name allocated at position 0 after this struct.
    */
-  uint16_t cfg_size;
+  uint16_t sensorname_size;
+
+  /**
+   * Size of the sensor definition file carrying full sensor information.
+   * The file content allocated at position 1 after this struct.
+   */
+  uint16_t sensorfile_size;
 
   /**
    * Name of the file (usually script) associated with this sensor.
-   * At the moment we only support having one file since that's all our sensors
-   * need at the moment.
-   * The file name is allocated at position 1 after this struct.
+   * At the moment we only support having one file per sensor.
+   * The file name is allocated at position 2 after this struct.
    */
   uint16_t scriptname_size;
 
   /**
    * Size of the file (usually script) associated with this sensor.
-   * The file binary is allocated at position 2 after this struct.
+   * The file content is allocated at position 3 after this struct.
    */
-  uint16_t script_size;
+  uint16_t scriptfile_size;
 
 };
 

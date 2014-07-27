@@ -106,9 +106,11 @@ SENSOR_update_stop ();
  *
  * @param c our service configuration
  * @param sensors multihashmap of loaded sensors
+ * @param reset_cb callback to reset service components when we have new updates
  * @return #GNUNET_OK if started successfully, #GNUNET_SYSERR otherwise
  */
 int
 SENSOR_update_start (const struct GNUNET_CONFIGURATION_Handle *c,
-                     struct GNUNET_CONTAINER_MultiHashMap *sensors);
+                     struct GNUNET_CONTAINER_MultiHashMap *s,
+                     void (*reset_cb)());
 

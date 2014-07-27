@@ -160,6 +160,16 @@ static struct GNUNET_CADET_Handle *cadet;
  */
 static int updating;
 
+/**
+ * GNUnet scheduler task that starts the update check process.
+ */
+GNUNET_SCHEDULER_TaskIdentifier update_task;
+
+/**
+ * Pointer to service reset function called when we have new sensor updates.
+ */
+void (*reset_cb)();
+
 
 /**
  * Contact update points to check for new updates
@@ -222,6 +232,11 @@ SENSOR_update_stop ()
 
   up_default = NULL;
   up = up_head;
+  if (GNUNET_SCHEDULER_NO_TASK != update_task)
+  {
+    GNUNET_SCHEDULER_cancel (update_task);
+    update_task = GNUNET_SCHEDULER_NO_TASK;
+  }
   while (NULL != up)
   {
     GNUNET_CONTAINER_DLL_remove (up_head, up_tail, up);
@@ -262,15 +277,15 @@ fail ()
       up->failed = GNUNET_NO;
       up = up->next;
     }
-    GNUNET_SCHEDULER_add_delayed (SENSOR_UPDATE_CHECK_INTERVAL,
-                                  &check_for_updates, NULL);
+    update_task = GNUNET_SCHEDULER_add_delayed (SENSOR_UPDATE_CHECK_INTERVAL,
+                                                &check_for_updates, NULL);
     return;
   }
   LOG (GNUNET_ERROR_TYPE_WARNING,
        "Update point `%s' failed, trying next one now.\n",
        GNUNET_i2s (&up_default->peer_id));
   up_default = up_default->next;
-  GNUNET_SCHEDULER_add_now (&check_for_updates, NULL);
+  update_task = GNUNET_SCHEDULER_add_now (&check_for_updates, NULL);
 }
 
 
@@ -368,6 +383,7 @@ check_for_updates (void *cls,
   struct GNUNET_MessageHeader *msg;
   size_t msg_size;
 
+  update_task = GNUNET_SCHEDULER_NO_TASK;
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
   if (GNUNET_YES == updating)
@@ -377,8 +393,8 @@ check_for_updates (void *cls,
          "Retrying in %s.\n",
          GNUNET_STRINGS_relative_time_to_string (SENSOR_UPDATE_CHECK_RETRY,
                                                  GNUNET_NO));
-    GNUNET_SCHEDULER_add_delayed (SENSOR_UPDATE_CHECK_RETRY,
-                                  &check_for_updates, NULL);
+    update_task = GNUNET_SCHEDULER_add_delayed (SENSOR_UPDATE_CHECK_RETRY,
+                                                &check_for_updates, NULL);
     return;
   }
   updating = GNUNET_YES;
@@ -406,8 +422,8 @@ check_for_updates (void *cls,
   msg->size = htons (msg_size);
   msg->type = htons (GNUNET_MESSAGE_TYPE_SENSOR_LIST_REQ);
   queue_msg (msg);
-  GNUNET_SCHEDULER_add_delayed (SENSOR_UPDATE_CHECK_INTERVAL,
-                                &check_for_updates, NULL);
+  update_task = GNUNET_SCHEDULER_add_delayed (SENSOR_UPDATE_CHECK_INTERVAL,
+                                              &check_for_updates, NULL);
 }
 
 
@@ -539,6 +555,9 @@ handle_sensor_brief (void *cls,
   }
   if (GNUNET_MESSAGE_TYPE_SENSOR_END == ntohs (message->type))
   {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Received end of sensor list msg. We already requested %d updates.\n",
+         up_default->expected_sensor_updates);
     up_default->expecting_sensor_list = GNUNET_NO;
     if (0 == up_default->expected_sensor_updates)
     {
@@ -575,6 +594,64 @@ handle_sensor_brief (void *cls,
 
 
 /**
+ * Update local sensor definitions with a sensor retrieved from an update point.
+ *
+ * @param sensorname Sensor name
+ * @param sensorfile Buffer containing the sensor definition file
+ * @param sensorfile_size Size of @e sensorfile
+ * @param scriptname Name of associated script file, NULL if no script
+ * @param scriptfile Buffer containing the script file, NULL if no script
+ * @param scriptfile_size Size of @e scriptfile, 0 if no script
+ * @return #GNUNET_OK on success, #GNUNET_SYSERR on error
+ */
+static int
+update_sensor (char *sensorname,
+               void *sensorfile, uint16_t sensorfile_size,
+               char *scriptname,
+               void *scriptfile, uint16_t scriptfile_size)
+{
+  char *sensors_dir;
+  char *sensor_path;
+  char *script_path;
+
+  LOG (GNUNET_ERROR_TYPE_INFO,
+       "Received new sensor information:\n"
+       "Name: %s\n"
+       "Sensor file size: %d\n"
+       "Script name: %s\n"
+       "Script file size: %d.\n",
+       sensorname,
+       sensorfile_size,
+       (NULL == scriptname) ? "None" : scriptname,
+       scriptfile_size);
+  sensors_dir = GNUNET_SENSOR_get_sensor_dir ();
+  GNUNET_asprintf (&sensor_path, "%s%s", sensors_dir, sensorname);
+  GNUNET_DISK_fn_write (sensor_path, sensorfile, sensorfile_size,
+                        GNUNET_DISK_PERM_USER_READ |
+                        GNUNET_DISK_PERM_GROUP_READ |
+                        GNUNET_DISK_PERM_OTHER_READ |
+                        GNUNET_DISK_PERM_USER_WRITE);
+  if (NULL != scriptname)
+  {
+    GNUNET_asprintf (&script_path,
+                     "%s-files%s%s",
+                     sensor_path,
+                     DIR_SEPARATOR_STR,
+                     scriptname);
+    GNUNET_DISK_fn_write (script_path, scriptfile, scriptfile_size,
+                          GNUNET_DISK_PERM_USER_READ |
+                          GNUNET_DISK_PERM_GROUP_READ |
+                          GNUNET_DISK_PERM_OTHER_READ |
+                          GNUNET_DISK_PERM_USER_WRITE |
+                          GNUNET_DISK_PERM_GROUP_WRITE |
+                          GNUNET_DISK_PERM_USER_EXEC |
+                          GNUNET_DISK_PERM_GROUP_EXEC);
+  }
+  return GNUNET_OK;
+}
+
+
+/**
  * Handler of a sensor list message received from an update point.
  *
  * @param cls Closure (unused).
@@ -592,6 +669,12 @@ handle_sensor_full (void *cls,
 {
   struct GNUNET_SENSOR_SensorFullMessage *sfm;
   uint16_t msg_size;
+  uint16_t sensorfile_size;
+  uint16_t scriptfile_size;
+  char *sensorname_ptr;
+  void *sensorfile_ptr;
+  char *scriptname_ptr;
+  void *scriptfile_ptr;
 
   /* error check */
   GNUNET_assert (*channel_ctx == up_default);
@@ -605,20 +688,32 @@ handle_sensor_full (void *cls,
   }
   /* parse received msg */
   sfm = (struct GNUNET_SENSOR_SensorFullMessage *)message;
-  LOG (GNUNET_ERROR_TYPE_INFO,
-       "Received full sensor info:\n"
-       "File size: %d\n"
-       "Script name size: %d\n"
-       "Script size: %d.\n",
-       ntohs (sfm->cfg_size),
-       ntohs (sfm->scriptname_size),
-       ntohs (sfm->script_size));
-  //TODO: do the actual update
+  sensorname_ptr = (char *)&sfm[1];
+  sensorfile_ptr = sensorname_ptr + ntohs (sfm->sensorname_size);
+  sensorfile_size = ntohs (sfm->sensorfile_size);
+  scriptfile_size = ntohs (sfm->scriptfile_size);
+  if (scriptfile_size > 0)
+  {
+    scriptname_ptr = sensorfile_ptr + sensorfile_size;
+    scriptfile_ptr = scriptname_ptr + ntohs (sfm->scriptname_size);
+  }
+  else
+  {
+    scriptname_ptr = NULL;
+    scriptfile_ptr = NULL;
+  }
+  update_sensor ((char *)&sfm[1],
+                 sensorfile_ptr,
+                 sensorfile_size,
+                 scriptname_ptr,
+                 scriptfile_ptr,
+                 scriptfile_size);
   up_default->expected_sensor_updates --;
   if (0 == up_default->expected_sensor_updates)
   {
     updating = GNUNET_NO;
     cleanup_updatepoint (up_default);
+    reset_cb ();
   }
   else
     GNUNET_CADET_receive_done (channel);
@@ -659,11 +754,13 @@ cadet_channel_destroyed (void *cls,
  *
  * @param c our service configuration
  * @param sensors multihashmap of loaded sensors
+ * @param cb callback to reset service components when we have new updates
  * @return #GNUNET_OK if started successfully, #GNUNET_SYSERR otherwise
  */
 int
 SENSOR_update_start (const struct GNUNET_CONFIGURATION_Handle *c,
-                     struct GNUNET_CONTAINER_MultiHashMap *s)
+                     struct GNUNET_CONTAINER_MultiHashMap *s,
+                     void (*cb)())
 {
   static struct GNUNET_CADET_MessageHandler cadet_handlers[] = {
       {&handle_sensor_brief, GNUNET_MESSAGE_TYPE_SENSOR_BRIEF, 0},
@@ -675,6 +772,7 @@ SENSOR_update_start (const struct GNUNET_CONFIGURATION_Handle *c,
   GNUNET_assert(NULL != s);
   cfg = c;
   sensors = s;
+  reset_cb = cb;
   cadet = GNUNET_CADET_connect(cfg,
                                NULL,
                                NULL,
@@ -696,7 +794,8 @@ SENSOR_update_start (const struct GNUNET_CONFIGURATION_Handle *c,
   }
   up_default = up_head;
   updating = GNUNET_NO;
-  GNUNET_SCHEDULER_add_now (&check_for_updates, NULL);
+  update_task = GNUNET_SCHEDULER_add_delayed (SENSOR_UPDATE_CHECK_INTERVAL,
+                                              &check_for_updates, NULL);
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Sensor update module started.\n");
   return GNUNET_OK;

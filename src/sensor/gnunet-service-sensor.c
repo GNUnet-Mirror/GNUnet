@@ -60,6 +60,15 @@ char *subsystem = "sensor";
  */
 struct GNUNET_PeerIdentity peerid;
 
+
+/**
+ * Resets the service by stopping components, reloading sensors and starting
+ * components. This is needed when we receive new sensor updates.
+ */
+static void
+reset ();
+
+
 /**
  * Change the state of the sensor.
  * Write the change to file to make it persistent.
@@ -82,6 +91,20 @@ set_sensor_enabled (struct GNUNET_SENSOR_SensorInfo *sensor, int state)
   GNUNET_CONFIGURATION_write (sensor->cfg, sensor->def_file);
 }
 
+
+/**
+ * Stops components and destroys sensors
+ */
+static void
+stop ()
+{
+  SENSOR_update_stop ();
+  SENSOR_reporting_stop ();
+  SENSOR_analysis_stop ();
+  GNUNET_SENSOR_destroy_sensors (sensors);
+}
+
+
 /**
  * Task run during shutdown.
  *
@@ -92,10 +115,7 @@ static void
 shutdown_task (void *cls,
                const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  SENSOR_update_stop ();
-  SENSOR_reporting_stop ();
-  SENSOR_analysis_stop ();
-  GNUNET_SENSOR_destroy_sensors (sensors);
+  stop ();
   if (NULL != statistics)
   {
     GNUNET_STATISTICS_destroy (statistics, GNUNET_YES);
@@ -575,6 +595,21 @@ schedule_all_sensors()
   GNUNET_CONTAINER_multihashmap_iterate(sensors, &schedule_sensor, NULL);
 }
 
+
+/**
+ * Loads sensors and starts different service components
+ */
+static void
+start ()
+{
+  sensors = GNUNET_SENSOR_load_all_sensors ();
+  schedule_all_sensors();
+  SENSOR_analysis_start(cfg, sensors);
+  SENSOR_reporting_start(cfg, sensors);
+  SENSOR_update_start (cfg, sensors, &reset);
+}
+
+
 /**
  * Process statistics requests.
  *
@@ -596,11 +631,6 @@ run (void *cls,
   };
 
   cfg = c;
-  sensors = GNUNET_SENSOR_load_all_sensors ();
-  schedule_all_sensors();
-  SENSOR_analysis_start(c, sensors);
-  SENSOR_reporting_start(c, sensors);
-  SENSOR_update_start (c, sensors);
   statistics = GNUNET_STATISTICS_create("sensor", cfg);
   GNUNET_CRYPTO_get_peer_identity(cfg, &peerid);
   peerstore = GNUNET_PEERSTORE_connect(cfg);
@@ -611,6 +641,19 @@ run (void *cls,
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
         &shutdown_task,
         NULL);
+  start ();
+}
+
+
+/**
+ * Resets the service by stopping components, reloading sensors and starting
+ * components. This is needed when we receive new sensor updates.
+ */
+static void
+reset ()
+{
+  stop ();
+  start ();
 }
 
 
