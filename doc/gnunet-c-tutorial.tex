@@ -978,7 +978,6 @@ in the {\tt gnunet\_server\_lib.h} header.
 \exercise{Change the service respond to the request from your
 client.  Make sure you handle malformed messages in both directions.}
 
-
 \section{Interacting directly with other Peers using the CORE Service}
 
 One of the most important services in GNUnet is the \texttt{CORE} service
@@ -1112,6 +1111,128 @@ disconnects (void *cls,
 \end{lstlisting}
 
 \exercise{Fix your service to handle peer disconnects.}
+
+\section{Storing peer-specific data using the PEERSTORE service}
+
+GNUnet's PEERSTORE service offers persistent peer-specific arbitrary data storage.
+Other GNUnet services can use the PEERSTORE API to store, retrieve and monitor data records.
+Each data record stored with PEERSTORE contains the following fields:
+
+\begin{itemize}
+\itemsep0em
+  \item subsystem: Name of the subsystem responsible for the record. 
+  \item peerid: Identity of the peer this record is related to.
+  \item key: a key string identifying the record.
+  \item value: binary record value.
+  \item expiry: record expiry date.
+\end{itemize}
+
+The first step is to start a connection to the PEERSTORE service:
+\begin{lstlisting}
+#include "gnunet_peerstore_service.h"
+
+peerstore_handle = GNUNET_PEERSTORE_connect (cfg);
+\end{lstlisting}
+The service handle \lstinline|peerstore_handle| will be needed for all subsequent
+PEERSTORE operations.
+
+\subsection{Storing records}
+
+To store a new record, use the following function:
+\begin{lstlisting}
+struct GNUNET_PEERSTORE_StoreContext *
+GNUNET_PEERSTORE_store (struct GNUNET_PEERSTORE_Handle *h,
+                        const char *sub_system,
+                        const struct GNUNET_PeerIdentity *peer,
+                        const char *key,
+                        const void *value,
+                        size_t size,
+                        struct GNUNET_TIME_Absolute expiry,
+                        enum GNUNET_PEERSTORE_StoreOption options,
+                        GNUNET_PEERSTORE_Continuation cont,
+                        void *cont_cls);
+\end{lstlisting}
+
+The \lstinline|options| parameter can either be \lstinline|GNUNET_PEERSTORE_STOREOPTION_MULTIPLE|
+which means that multiple values can be stored under the same key combination (subsystem, peerid, key),
+or \lstinline|GNUNET_PEERSTORE_STOREOPTION_REPLACE| which means that PEERSTORE will replace any
+existing values under the given key combination (subsystem, peerid, key) with the new given value.
+
+The continuation function \lstinline|cont| will be called after the store request is successfully
+sent to the PEERSTORE service. This does not guarantee that the record is successfully stored, only
+that it was received by the service.
+
+The \lstinline|GNUNET_PEERSTORE_store| function returns a handle to the store operation. This handle
+can be used to cancel the store operation only before the continuation function is called:
+\begin{lstlisting}
+void
+GNUNET_PEERSTORE_store_cancel (struct GNUNET_PEERSTORE_StoreContext *sc);
+\end{lstlisting}
+
+\subsection{Retrieving records}
+
+To retrieve stored records, use the following function:
+\begin{lstlisting}
+struct GNUNET_PEERSTORE_IterateContext *
+GNUNET_PEERSTORE_iterate (struct GNUNET_PEERSTORE_Handle *h,
+                          const char *sub_system,
+                          const struct GNUNET_PeerIdentity *peer,
+                          const char *key,
+                          struct GNUNET_TIME_Relative timeout,
+                          GNUNET_PEERSTORE_Processor callback,
+                          void *callback_cls);
+\end{lstlisting}
+The values of \lstinline|peer| and \lstinline|key| can be \lstinline|NULL|. This allows the
+iteration over values stored under any of the following key combinations:
+\begin{itemize}
+\itemsep0em
+  \item (subsystem)
+  \item (subsystem, peerid)
+  \item (subsystem, key)
+  \item (subsystem, peerid, key)
+\end{itemize}
+
+The \lstinline|callback| function will be called once with each retrieved record and once
+more with a \lstinline|NULL| record to signify end of list.
+
+The \lstinline|GNUNET_PEERSTORE_iterate| function returns a handle to the iterate operation. This
+handle can be used to cancel the iterate operation only before the callback function is called with
+a \lstinline|NULL| record.
+
+\subsection{Monitoring records}
+
+PEERSTORE offers the functionality of monitoring for new records stored under a specific key
+combination (subsystem, peerid, key). To start the monitoring, use the following function:
+\begin{lstlisting}
+struct GNUNET_PEERSTORE_WatchContext *
+GNUNET_PEERSTORE_watch (struct GNUNET_PEERSTORE_Handle *h,
+                        const char *sub_system,
+                        const struct GNUNET_PeerIdentity *peer,
+                        const char *key,
+                        GNUNET_PEERSTORE_Processor callback,
+                        void *callback_cls);
+\end{lstlisting}
+
+Whenever a new record is stored under the given key combination, the \lstinline|callback| function
+will be called with this new record. This will continue until the connection to the PEERSTORE service
+is broken or the watch operation is cancelled:
+\begin{lstlisting}
+void
+GNUNET_PEERSTORE_watch_cancel (struct GNUNET_PEERSTORE_WatchContext *wc);
+\end{lstlisting}
+
+\subsection{Disconnecting from PEERSTORE}
+
+When the connection to the PEERSTORE service is no longer needed, disconnect using the following
+function:
+\begin{lstlisting}
+void
+GNUNET_PEERSTORE_disconnect (struct GNUNET_PEERSTORE_Handle *h, int sync_first);
+\end{lstlisting}
+
+If the \lstinline|sync_first| flag is set to \lstinline|GNUNET_YES|, the API will delay the
+disconnection until all store requests are received by the PEERSTORE service. Otherwise,
+it will disconnect immediately.
 
 \section{Using the DHT}
 The DHT allows to store data so other peers in the P2P network can
