@@ -488,6 +488,7 @@ load_update_points ()
          "Loaded update point `%s'.\n",
          GNUNET_i2s_full (&up->peer_id));
   }
+  GNUNET_free (points_list);
   return (NULL == up_head) ? GNUNET_SYSERR : GNUNET_OK;
 }
 
@@ -646,8 +647,23 @@ update_sensor (char *sensorname,
                           GNUNET_DISK_PERM_GROUP_WRITE |
                           GNUNET_DISK_PERM_USER_EXEC |
                           GNUNET_DISK_PERM_GROUP_EXEC);
+    GNUNET_free (script_path);
   }
+  GNUNET_free (sensors_dir);
+  GNUNET_free (sensor_path);
   return GNUNET_OK;
+}
+
+
+/**
+ * Resets the service after we are done with an update.
+ *
+ * @param cls unused
+ * @param tc unused
+ */
+void reset (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  reset_cb ();
 }
 
 
@@ -713,7 +729,7 @@ handle_sensor_full (void *cls,
   {
     updating = GNUNET_NO;
     cleanup_updatepoint (up_default);
-    reset_cb ();
+    GNUNET_SCHEDULER_add_continuation (&reset, NULL, 0);
   }
   else
     GNUNET_CADET_receive_done (channel);
