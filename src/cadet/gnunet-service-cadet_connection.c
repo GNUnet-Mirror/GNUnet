@@ -1282,6 +1282,34 @@ connection_fwd_timeout (void *cls,
     return;
   }
 
+  if (GCC_is_origin (c, GNUNET_NO)) /* If dest, salvage queued traffic. */
+  {
+    struct GNUNET_MessageHeader *out_msg;
+    struct CadetPeer *neighbor;
+    struct CadetTunnel *t;
+    int destroyed;
+
+    t = c->t;
+    destroyed = GNUNET_NO;
+    neighbor = get_hop (c, GNUNET_NO);
+
+    /* GCP_connection_pop could destroy the connection! */
+    while (NULL != (out_msg = GCP_connection_pop (neighbor, c, &destroyed)))
+    {
+      GCT_resend_message (out_msg, t);
+    }
+    /* All pending messages should have been popped,
+     * and the connection destroyed by the continuation.
+     */
+    if (GNUNET_YES != destroyed)
+    {
+      GNUNET_break (0);
+      GCC_debug (c, GNUNET_ERROR_TYPE_ERROR);
+      GCC_destroy (c);
+    }
+    return;
+  }
+
   GCC_destroy (c);
 }
 
@@ -1289,6 +1317,8 @@ connection_fwd_timeout (void *cls,
 /**
  * Timeout function due to lack of keepalive/traffic from the destination.
  * Destroys connection if called.
+ *
+ * FIXME refactor and merge with connection_fwd_timeout.
  *
  * @param cls Closure (connection to destroy).
  * @param tc TaskContext
@@ -1309,6 +1339,34 @@ connection_bck_timeout (void *cls,
   if (GCC_is_origin (c, GNUNET_NO)) /* If local, leave. */
   {
     GNUNET_break (0);
+    return;
+  }
+
+  if (GCC_is_origin (c, GNUNET_YES)) /* If dest, salvage queued traffic. */
+  {
+    struct GNUNET_MessageHeader *out_msg;
+    struct CadetPeer *neighbor;
+    struct CadetTunnel *t;
+    int destroyed;
+
+    t = c->t;
+    destroyed = GNUNET_NO;
+    neighbor = get_hop (c, GNUNET_YES);
+
+    /* GCP_connection_pop could destroy the connection! */
+    while (NULL != (out_msg = GCP_connection_pop (neighbor, c, &destroyed)))
+    {
+      GCT_resend_message (out_msg, t);
+    }
+    /* All pending messages should have been popped,
+     * and the connection destroyed by the continuation.
+     */
+    if (GNUNET_YES != destroyed)
+    {
+      GNUNET_break (0);
+      GCC_debug (c, GNUNET_ERROR_TYPE_ERROR);
+      GCC_destroy (c);
+    }
     return;
   }
 
