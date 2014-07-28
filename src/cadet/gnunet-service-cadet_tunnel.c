@@ -2398,7 +2398,10 @@ GCT_remove_connection (struct CadetTunnel *t,
   }
 
   conns = GCT_count_connections (t);
-  if (0 == conns)
+  if (0 == conns
+      && GNUNET_SCHEDULER_NO_TASK == t->destroy_task
+      && CADET_TUNNEL_SHUTDOWN != t->cstate
+      && GNUNET_NO == shutting_down)
   {
     if (0 == GCT_count_any_connections (t))
       GCT_change_cstate (t, CADET_TUNNEL_SEARCHING);
