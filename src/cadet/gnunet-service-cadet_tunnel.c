@@ -351,7 +351,8 @@ cstate2s (enum CadetTunnelCState cs)
       return "CADET_TUNNEL_WAITING";
     case CADET_TUNNEL_READY:
       return "CADET_TUNNEL_READY";
-
+    case CADET_TUNNEL_SHUTDOWN:
+      return "CADET_TUNNEL_SHUTDOWN";
     default:
       sprintf (buf, "%u (UNKNOWN STATE)", cs);
       return buf;
