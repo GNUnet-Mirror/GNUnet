@@ -2371,6 +2371,7 @@ GCT_remove_connection (struct CadetTunnel *t,
 {
   struct CadetTConnection *aux;
   struct CadetTConnection *next;
+  unsigned int conns;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Removing connection %s from tunnel %s\n",
        GCC_2s (c), GCT_2s (t));
@@ -2384,14 +2385,18 @@ GCT_remove_connection (struct CadetTunnel *t,
     }
   }
 
+  conns = GCT_count_connections (t);
+  if (0 == conns)
+    GCT_change_cstate (t, CADET_TUNNEL_SEARCHING);
+
   /* Start new connections if needed */
-  if (CONNECTIONS_PER_TUNNEL > GCT_count_connections (t)
+  if (CONNECTIONS_PER_TUNNEL > conns
       && GNUNET_SCHEDULER_NO_TASK == t->destroy_task
       && CADET_TUNNEL_SHUTDOWN != t->cstate
       && GNUNET_NO == shutting_down)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "  too few connections, getting new ones\n");
-    GCP_connect (t->peer);
+    GCP_connect (t->peer); /* Will change cstate to WAITING when possible */
     return;
   }
 
@@ -2403,8 +2408,6 @@ GCT_remove_connection (struct CadetTunnel *t,
   for (aux = t->connection_head; aux != NULL; aux = aux->next)
     if (CADET_CONNECTION_READY == GCC_get_state (aux->c))
       return;
-
-  GCT_change_cstate (t, CADET_TUNNEL_WAITING);
 }
 
 
