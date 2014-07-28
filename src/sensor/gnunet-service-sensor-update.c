@@ -806,6 +806,7 @@ SENSOR_update_start (const struct GNUNET_CONFIGURATION_Handle *c,
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
          "Failed to load update points.\n");
+    SENSOR_update_stop ();
     return GNUNET_SYSERR;
   }
   up_default = up_head;
