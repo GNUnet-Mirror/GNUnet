@@ -200,6 +200,11 @@ struct CadetTunnel
    */
   struct CadetTunnelDelayed *tq_head;
   struct CadetTunnelDelayed *tq_tail;
+
+  /**
+   * Task to trim connections if too many are present.
+   */
+  GNUNET_SCHEDULER_TaskIdentifier trim_connections_task;
 };
 
 
@@ -2288,6 +2293,8 @@ trim_connections (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct CadetTunnel *t = cls;
 
+  t->trim_connections_task = GNUNET_SCHEDULER_NO_TASK;
+
   if (0 != (tc->reason & GNUNET_SCHEDULER_REASON_SHUTDOWN))
     return;
 
@@ -2345,7 +2352,8 @@ GCT_add_connection (struct CadetTunnel *t, struct CadetConnection *c)
 
   GNUNET_CONTAINER_DLL_insert (t->connection_head, t->connection_tail, aux);
 
-  GNUNET_SCHEDULER_add_now (&trim_connections, t);
+  if (GNUNET_SCHEDULER_NO_TASK != t->trim_connections_task)
+    t->trim_connections_task = GNUNET_SCHEDULER_add_now (&trim_connections, t);
 }
 
 
@@ -2637,9 +2645,17 @@ GCT_destroy (struct CadetTunnel *t)
 
   if (GNUNET_SCHEDULER_NO_TASK != t->destroy_task)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "cancelling %llX\n", t->destroy_task);
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "cancelling dest: %llX\n", t->destroy_task);
     GNUNET_SCHEDULER_cancel (t->destroy_task);
     t->destroy_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+
+  if (GNUNET_SCHEDULER_NO_TASK != t->trim_connections_task)
+  {
+    LOG (GNUNET_ERROR_TYPE_DEBUG, "cancelling trim: %llX\n",
+         t->trim_connections_task);
+    GNUNET_SCHEDULER_cancel (t->trim_connections_task);
+    t->trim_connections_task = GNUNET_SCHEDULER_NO_TASK;
   }
 
   GNUNET_STATISTICS_update (stats, "# tunnels", -1, GNUNET_NO);
