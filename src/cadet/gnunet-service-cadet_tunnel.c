@@ -1294,15 +1294,18 @@ send_kx (struct CadetTunnel *t,
    * who is trying to create a new channel!
    */
 
-  /* Must have a connection. */
-  if (NULL == t->connection_head && CADET_TUNNEL_SEARCHING != t->cstate)
+  /* Must have a connection, or be looking for one. */
+  if (NULL == t->connection_head)
   {
-    LOG (GNUNET_ERROR_TYPE_ERROR, "\n\n\n");
-    GNUNET_break (0);
-    LOG (GNUNET_ERROR_TYPE_ERROR, "no connection, sending %s\n", GC_m2s (type));
-    GCT_debug (t, GNUNET_ERROR_TYPE_ERROR);
-    GCP_debug (t->peer, GNUNET_ERROR_TYPE_ERROR);
-    LOG (GNUNET_ERROR_TYPE_ERROR, "\n\n\n");
+    if (CADET_TUNNEL_SEARCHING != t->cstate)
+    {
+      LOG (GNUNET_ERROR_TYPE_ERROR, "\n\n\n");
+      GNUNET_break (0);
+      LOG (GNUNET_ERROR_TYPE_ERROR, "no connection, sending %s\n", GC_m2s (type));
+      GCT_debug (t, GNUNET_ERROR_TYPE_ERROR);
+      GCP_debug (t->peer, GNUNET_ERROR_TYPE_ERROR);
+      LOG (GNUNET_ERROR_TYPE_ERROR, "\n\n\n");
+    }
     return;
   }
 
