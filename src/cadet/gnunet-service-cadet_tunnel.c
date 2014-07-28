@@ -2387,7 +2387,12 @@ GCT_remove_connection (struct CadetTunnel *t,
 
   conns = GCT_count_connections (t);
   if (0 == conns)
-    GCT_change_cstate (t, CADET_TUNNEL_SEARCHING);
+  {
+    if (0 == GCT_count_any_connections (t))
+      GCT_change_cstate (t, CADET_TUNNEL_SEARCHING);
+    else
+      GCT_change_cstate (t, CADET_TUNNEL_WAITING);
+  }
 
   /* Start new connections if needed */
   if (CONNECTIONS_PER_TUNNEL > conns
