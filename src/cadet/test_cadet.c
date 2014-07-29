@@ -502,9 +502,15 @@ data_callback (void *cls, struct GNUNET_CADET_Channel *channel,
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, " ok: (%d/%d)\n", ok, ok_goal);
   data = (uint32_t *) &message[1];
   payload = ntohl (*data);
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, " payload: %u, data_received: %u\n",
-              payload, counter);
-  GNUNET_break (payload == counter);
+  if (payload == counter)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_INFO, " payload as expected: %u\n", payload);
+  }
+  else
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, " payload %u, expected: %u\n",
+                payload, counter);
+  }
   expected_target_client = get_expected_target ();
 
   if (GNUNET_NO == initialized)
