@@ -3275,6 +3275,16 @@ GCT_debug (const struct CadetTunnel *t, enum GNUNET_ErrorType level)
   LOG2 (level, "TTT  cstate %s, estate %s\n",
        cstate2s (t->cstate), estate2s (t->estate));
   LOG2 (level, "TTT  kx_ctx %p, rekey_task %u\n", t->kx_ctx, t->rekey_task);
+#if DUMP_KEYS_TO_STDERR
+  LOG2 (level, "TTT  my EPHM\t %s\n",
+        GNUNET_h2s ((struct GNUNET_HashCode *) &kx_msg.ephemeral_key));
+  LOG2 (level, "TTT  peers EPHM:\t %s\n",
+        GNUNET_h2s ((struct GNUNET_HashCode *) &t->peers_ephemeral_key));
+  LOG (level, "TTT ENC key:\t %s\n",
+       GNUNET_h2s ((struct GNUNET_HashCode *) &t->e_key));
+  LOG (level, "TTT DEC key:\t %s\n",
+       GNUNET_h2s ((struct GNUNET_HashCode *) &t->d_key));
+#endif
   LOG2 (level, "TTT  tq_head %p, tq_tail %p\n", t->tq_head, t->tq_tail);
   LOG2 (level, "TTT  destroy %u\n", t->destroy_task);
 
