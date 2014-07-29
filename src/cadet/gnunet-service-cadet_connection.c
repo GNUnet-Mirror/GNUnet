@@ -1290,6 +1290,7 @@ connection_fwd_timeout (void *cls,
     int destroyed;
 
     t = c->t;
+    c->destroy = GNUNET_YES;
     destroyed = GNUNET_NO;
     neighbor = get_hop (c, GNUNET_NO);
 
@@ -1350,6 +1351,7 @@ connection_bck_timeout (void *cls,
     int destroyed;
 
     t = c->t;
+    c->destroy = GNUNET_YES;
     destroyed = GNUNET_NO;
     neighbor = get_hop (c, GNUNET_YES);
 
@@ -1885,6 +1887,7 @@ GCC_handle_broken (void* cls,
 
   t = c->t;
   fwd = is_fwd (c, id);
+  c->destroy = GNUNET_YES;
   if (GCC_is_terminal (c, fwd))
   {
     struct GNUNET_MessageHeader *out_msg;
@@ -1926,7 +1929,6 @@ GCC_handle_broken (void* cls,
   {
     GNUNET_assert (NULL == GCC_send_prebuilt_message (message, 0, 0, c, fwd,
                                                       GNUNET_YES, NULL, NULL));
-    c->destroy = GNUNET_YES;
     connection_cancel_queues (c, !fwd);
   }
 
