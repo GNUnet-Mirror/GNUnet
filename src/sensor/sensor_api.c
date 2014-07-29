@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 
+     (C)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -42,7 +42,7 @@ struct GNUNET_SENSOR_Handle
   /**
    * Our configuration.
    */
-    const struct GNUNET_CONFIGURATION_Handle *cfg;
+  const struct GNUNET_CONFIGURATION_Handle *cfg;
 
   /**
    * Connection to the service.
@@ -190,6 +190,7 @@ struct GNUNET_SENSOR_SensorIteratorContext
 static void
 reconnect (struct GNUNET_SENSOR_Handle *h);
 
+
 /**
  * Check if we have a request pending in the transmission queue and are
  * able to transmit it right now.  If so, schedule transmission.
@@ -215,7 +216,7 @@ GNUNET_SENSOR_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
   struct GNUNET_SENSOR_Handle *h;
 
   client = GNUNET_CLIENT_connect ("sensor", cfg);
-  if(NULL == client)
+  if (NULL == client)
     return NULL;
   h = GNUNET_new (struct GNUNET_SENSOR_Handle);
   h->client = client;
@@ -223,13 +224,14 @@ GNUNET_SENSOR_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
   return h;
 }
 
+
 /**
  * Disconnect from the sensor service
  *
  * @param h handle to disconnect
  */
 void
-GNUNET_SENSOR_disconnect(struct GNUNET_SENSOR_Handle *h)
+GNUNET_SENSOR_disconnect (struct GNUNET_SENSOR_Handle *h)
 {
   if (NULL != h->client)
   {
@@ -238,6 +240,7 @@ GNUNET_SENSOR_disconnect(struct GNUNET_SENSOR_Handle *h)
   }
   GNUNET_free (h);
 }
+
 
 /**
  * Task scheduled to re-try connecting to the sensor service.
@@ -253,6 +256,7 @@ reconnect_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   h->r_task = GNUNET_SCHEDULER_NO_TASK;
   reconnect (h);
 }
+
 
 /**
  * Close the existing connection to SENSOR and reconnect.
@@ -299,7 +303,8 @@ reconnect (struct GNUNET_SENSOR_Handle *h)
  * @param ic context of the iterator to cancel
  */
 void
-GNUNET_SENSOR_iterate_sensor_cancel (struct GNUNET_SENSOR_SensorIteratorContext *ic)
+GNUNET_SENSOR_iterate_sensor_cancel (struct GNUNET_SENSOR_SensorIteratorContext
+                                     *ic)
 {
   struct GNUNET_SENSOR_Handle *h;
 
@@ -312,9 +317,7 @@ GNUNET_SENSOR_iterate_sensor_cancel (struct GNUNET_SENSOR_SensorIteratorContext 
   ic->callback = NULL;
   if (GNUNET_YES == ic->request_transmitted)
     return;                     /* need to finish processing */
-  GNUNET_CONTAINER_DLL_remove (h->ic_head,
-             h->ic_tail,
-             ic);
+  GNUNET_CONTAINER_DLL_remove (h->ic_head, h->ic_tail, ic);
   if (NULL != ic->rc)
   {
     GNUNET_CONTAINER_DLL_remove (h->rc_head, h->rc_tail, ic->rc);
@@ -323,6 +326,7 @@ GNUNET_SENSOR_iterate_sensor_cancel (struct GNUNET_SENSOR_SensorIteratorContext 
   GNUNET_free (ic);
 }
 
+
 /**
  * Iteration request has timed out.
  *
@@ -330,7 +334,8 @@ GNUNET_SENSOR_iterate_sensor_cancel (struct GNUNET_SENSOR_SensorIteratorContext 
  * @param tc scheduler context
  */
 static void
-signal_sensor_iteration_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+signal_sensor_iteration_timeout (void *cls,
+                                 const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_SENSOR_SensorIteratorContext *ic = cls;
   GNUNET_SENSOR_SensorIteratorCB cb;
@@ -342,8 +347,9 @@ signal_sensor_iteration_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskCo
   GNUNET_SENSOR_iterate_sensor_cancel (ic);
   if (NULL != cb)
     cb (cb_cls, NULL,
-  _("Timeout transmitting iteration request to `SENSOR' service."));
+        _("Timeout transmitting iteration request to `SENSOR' service."));
 }
+
 
 /**
  * Type of a function to call when we receive a message from the
@@ -355,7 +361,7 @@ signal_sensor_iteration_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskCo
  * @param msg message received, NULL on timeout or fatal error
  */
 static void
-sensor_handler(void *cls, const struct GNUNET_MessageHeader *msg)
+sensor_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 {
   struct GNUNET_SENSOR_Handle *h = cls;
   struct GNUNET_SENSOR_SensorIteratorContext *ic = h->ic_head;
@@ -376,7 +382,7 @@ sensor_handler(void *cls, const struct GNUNET_MessageHeader *msg)
     {
       cb = ic->callback;
       cb_cls = ic->callback_cls;
-      GNUNET_SENSOR_iterate_sensor_cancel(ic);
+      GNUNET_SENSOR_iterate_sensor_cancel (ic);
     }
     else
     {
@@ -384,8 +390,7 @@ sensor_handler(void *cls, const struct GNUNET_MessageHeader *msg)
     }
     reconnect (h);
     if (NULL != cb)
-      cb (cb_cls, NULL,
-    _("Failed to receive response from `SENSOR' service."));
+      cb (cb_cls, NULL, _("Failed to receive response from `SENSOR' service."));
     return;
   }
   if (NULL == ic)
@@ -402,14 +407,14 @@ sensor_handler(void *cls, const struct GNUNET_MessageHeader *msg)
     /* normal end of list of sensors, signal end, process next pending request */
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Received end of list of sensors from `%s' service\n", "SENSOR");
-    GNUNET_SENSOR_iterate_sensor_cancel(ic);
+    GNUNET_SENSOR_iterate_sensor_cancel (ic);
     trigger_transmit (h);
-    if ( (GNUNET_NO == h->in_receive) &&
-   (NULL != h->ic_head) )
+    if ((GNUNET_NO == h->in_receive) && (NULL != h->ic_head))
     {
       h->in_receive = GNUNET_YES;
       GNUNET_CLIENT_receive (h->client, &sensor_handler, h,
-           GNUNET_TIME_absolute_get_remaining (h->ic_head->timeout));
+                             GNUNET_TIME_absolute_get_remaining (h->
+                                                                 ic_head->timeout));
     }
     if (NULL != cb)
       cb (cb_cls, NULL, NULL);
@@ -417,40 +422,40 @@ sensor_handler(void *cls, const struct GNUNET_MessageHeader *msg)
   }
   ms = ntohs (msg->size);
   im = (const struct SensorInfoMessage *) msg;
-  name_len = ntohs(im->name_len);
-  desc_len = ntohs(im->description_len);
+  name_len = ntohs (im->name_len);
+  desc_len = ntohs (im->description_len);
   if ((ms != sizeof (struct SensorInfoMessage) + name_len + desc_len) ||
       (ntohs (msg->type) != GNUNET_MESSAGE_TYPE_SENSOR_INFO))
   {
     /* malformed message */
     GNUNET_break (0);
-    GNUNET_SENSOR_iterate_sensor_cancel(ic);
+    GNUNET_SENSOR_iterate_sensor_cancel (ic);
     reconnect (h);
     if (NULL != cb)
-      cb (cb_cls, NULL,
-    _("Received invalid message from `SENSOR' service."));
+      cb (cb_cls, NULL, _("Received invalid message from `SENSOR' service."));
     return;
   }
-  sensor = GNUNET_new(struct SensorInfoShort);
-  str_ptr = (char *)&im[1];
-  sensor->name = GNUNET_strndup(str_ptr, name_len);
-  LOG (GNUNET_ERROR_TYPE_DEBUG, "Received sensor name (%d): %.*s\n",
-               name_len, name_len, str_ptr);
+  sensor = GNUNET_new (struct SensorInfoShort);
+  str_ptr = (char *) &im[1];
+  sensor->name = GNUNET_strndup (str_ptr, name_len);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Received sensor name (%d): %.*s\n", name_len,
+       name_len, str_ptr);
   str_ptr += name_len;
-  if(desc_len > 0)
+  if (desc_len > 0)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Received sensor description (%d): %.*s\n",
-                 desc_len, desc_len, str_ptr);
-    sensor->description = GNUNET_strndup(str_ptr, desc_len);
+         desc_len, desc_len, str_ptr);
+    sensor->description = GNUNET_strndup (str_ptr, desc_len);
   }
-  sensor->version_major = ntohs(im->version_major);
-  sensor->version_minor = ntohs(im->version_minor);
+  sensor->version_major = ntohs (im->version_major);
+  sensor->version_minor = ntohs (im->version_minor);
   h->in_receive = GNUNET_YES;
   GNUNET_CLIENT_receive (h->client, &sensor_handler, h,
                          GNUNET_TIME_absolute_get_remaining (ic->timeout));
   if (NULL != cb)
     cb (cb_cls, sensor, NULL);
 }
+
 
 /**
  * We've transmitted the iteration request.  Now get ready to process
@@ -485,9 +490,10 @@ sensor_iterator_start_receive (void *cls, const char *emsg)
   {
     h->in_receive = GNUNET_YES;
     GNUNET_CLIENT_receive (h->client, &sensor_handler, h,
-         GNUNET_TIME_absolute_get_remaining (ic->timeout));
+                           GNUNET_TIME_absolute_get_remaining (ic->timeout));
   }
 }
+
 
 /**
  * Transmit the request at the head of the transmission queue
@@ -507,7 +513,7 @@ do_transmit (void *cls, size_t size, void *buf)
 
   h->th = NULL;
   if (NULL == rc)
-    return 0; /* request was cancelled in the meantime */
+    return 0;                   /* request was cancelled in the meantime */
   if (NULL == buf)
   {
     /* sensor service died */
@@ -538,6 +544,7 @@ do_transmit (void *cls, size_t size, void *buf)
   return ret;
 }
 
+
 /**
  * Check if we have a request pending in the transmission queue and are
  * able to transmit it right now.  If so, schedule transmission.
@@ -550,9 +557,9 @@ trigger_transmit (struct GNUNET_SENSOR_Handle *h)
   struct GNUNET_SENSOR_RequestContext *rc;
 
   if (NULL == (rc = h->rc_head))
-    return; /* no requests queued */
+    return;                     /* no requests queued */
   if (NULL != h->th)
-    return; /* request already pending */
+    return;                     /* request already pending */
   if (NULL == h->client)
   {
     /* disconnected, try to reconnect */
@@ -560,11 +567,11 @@ trigger_transmit (struct GNUNET_SENSOR_Handle *h)
     return;
   }
   h->th =
-    GNUNET_CLIENT_notify_transmit_ready (h->client, rc->size,
-           GNUNET_TIME_UNIT_FOREVER_REL,
-           GNUNET_YES,
-           &do_transmit, h);
+      GNUNET_CLIENT_notify_transmit_ready (h->client, rc->size,
+                                           GNUNET_TIME_UNIT_FOREVER_REL,
+                                           GNUNET_YES, &do_transmit, h);
 }
+
 
 /**
  * Client asking to iterate all available sensors
@@ -579,41 +586,40 @@ trigger_transmit (struct GNUNET_SENSOR_Handle *h)
  */
 struct GNUNET_SENSOR_SensorIteratorContext *
 GNUNET_SENSOR_iterate_sensors (struct GNUNET_SENSOR_Handle *h,
-    struct GNUNET_TIME_Relative timeout,
-    const char* sensorname, size_t sensorname_len,
-    GNUNET_SENSOR_SensorIteratorCB callback, void *callback_cls)
+                               struct GNUNET_TIME_Relative timeout,
+                               const char *sensorname, size_t sensorname_len,
+                               GNUNET_SENSOR_SensorIteratorCB callback,
+                               void *callback_cls)
 {
   struct GNUNET_SENSOR_SensorIteratorContext *ic;
   struct GNUNET_SENSOR_RequestContext *rc;
   struct GNUNET_MessageHeader *mh;
 
   ic = GNUNET_new (struct GNUNET_SENSOR_SensorIteratorContext);
+
   if (NULL == sensorname)
   {
     LOG (GNUNET_ERROR_TYPE_INFO,
          "Requesting list of sensors from SENSOR service\n");
-    rc =
-        GNUNET_malloc (sizeof (struct GNUNET_SENSOR_RequestContext) +
-                       sizeof (struct GNUNET_MessageHeader));
+    rc = GNUNET_malloc (sizeof (struct GNUNET_SENSOR_RequestContext) +
+                        sizeof (struct GNUNET_MessageHeader));
     rc->size = sizeof (struct GNUNET_MessageHeader);
     mh = (struct GNUNET_MessageHeader *) &rc[1];
-    mh->size = htons(sizeof (struct GNUNET_MessageHeader));
-    mh->type = htons(GNUNET_MESSAGE_TYPE_SENSOR_GETALL);
+    mh->size = htons (sizeof (struct GNUNET_MessageHeader));
+    mh->type = htons (GNUNET_MESSAGE_TYPE_SENSOR_GETALL);
   }
   else
   {
     LOG (GNUNET_ERROR_TYPE_INFO,
          "Requesting information on sensor `%s' from SENSOR service\n",
          sensorname);
-    rc =
-        GNUNET_malloc (sizeof (struct GNUNET_SENSOR_RequestContext) +
-                       sizeof (struct GNUNET_MessageHeader) +
-                       sensorname_len);
+    rc = GNUNET_malloc (sizeof (struct GNUNET_SENSOR_RequestContext) +
+                        sizeof (struct GNUNET_MessageHeader) + sensorname_len);
     rc->size = sizeof (struct GNUNET_MessageHeader) + sensorname_len;
     mh = (struct GNUNET_MessageHeader *) &rc[1];
-    mh->size = htons(rc->size);
-    mh->type = htons(GNUNET_MESSAGE_TYPE_SENSOR_GET);
-    memcpy(&mh[1], sensorname, sensorname_len);
+    mh->size = htons (rc->size);
+    mh->type = htons (GNUNET_MESSAGE_TYPE_SENSOR_GET);
+    memcpy (&mh[1], sensorname, sensorname_len);
   }
   ic->h = h;
   ic->rc = rc;
@@ -621,13 +627,12 @@ GNUNET_SENSOR_iterate_sensors (struct GNUNET_SENSOR_Handle *h,
   ic->callback_cls = callback_cls;
   ic->timeout = GNUNET_TIME_relative_to_absolute (timeout);
   ic->timeout_task =
-      GNUNET_SCHEDULER_add_delayed (timeout, &signal_sensor_iteration_timeout, ic);
+      GNUNET_SCHEDULER_add_delayed (timeout, &signal_sensor_iteration_timeout,
+                                    ic);
   rc->cont = &sensor_iterator_start_receive;
   rc->cont_cls = ic;
   GNUNET_CONTAINER_DLL_insert_tail (h->rc_head, h->rc_tail, rc);
-  GNUNET_CONTAINER_DLL_insert_tail (h->ic_head,
-            h->ic_tail,
-            ic);
+  GNUNET_CONTAINER_DLL_insert_tail (h->ic_head, h->ic_tail, ic);
   trigger_transmit (h);
   return ic;
 }

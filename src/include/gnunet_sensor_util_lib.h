@@ -188,12 +188,11 @@ struct GNUNET_SENSOR_SensorInfo
 };
 
 GNUNET_NETWORK_STRUCT_BEGIN
-
 /**
  * Used to communicate sensor readings to
  * collection points (SENSORDASHBAORD service)
  */
-struct GNUNET_SENSOR_ReadingMessage
+    struct GNUNET_SENSOR_ReadingMessage
 {
 
   /**
@@ -297,8 +296,6 @@ struct GNUNET_SENSOR_SensorFullMessage
 };
 
 GNUNET_NETWORK_STRUCT_END
-
-
 /**
  * Given two version numbers as major and minor, compare them.
  *
@@ -307,7 +304,7 @@ GNUNET_NETWORK_STRUCT_END
  * @param v2_major First part of second version number
  * @param v2_minor Second part of second version number
  */
-int
+    int
 GNUNET_SENSOR_version_compare (uint16_t v1_major, uint16_t v1_minor,
                                uint16_t v2_major, uint16_t v2_minor);
 

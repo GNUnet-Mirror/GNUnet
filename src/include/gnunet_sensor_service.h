@@ -79,8 +79,9 @@ struct SensorInfoShort
  * @param error message
  */
 typedef void (*GNUNET_SENSOR_SensorIteratorCB) (void *cls,
-                                             const struct SensorInfoShort *sensor,
-                                             const char *err_msg);
+                                                const struct SensorInfoShort *
+                                                sensor, const char *err_msg);
+
 
 /**
  * Continuation called with a status result.
@@ -88,8 +89,8 @@ typedef void (*GNUNET_SENSOR_SensorIteratorCB) (void *cls,
  * @param cls closure
  * @param emsg error message, NULL on success
  */
-typedef void (*GNUNET_SENSOR_Continuation)(void *cls,
-               const char *emsg);
+typedef void (*GNUNET_SENSOR_Continuation) (void *cls, const char *emsg);
+
 
 /**
  * Connect to the sensor service.
@@ -99,13 +100,15 @@ typedef void (*GNUNET_SENSOR_Continuation)(void *cls,
 struct GNUNET_SENSOR_Handle *
 GNUNET_SENSOR_connect (const struct GNUNET_CONFIGURATION_Handle *cfg);
 
+
 /**
  * Disconnect from the sensor service
  *
  * @param h handle to disconnect
  */
 void
-GNUNET_SENSOR_disconnect(struct GNUNET_SENSOR_Handle *h);
+GNUNET_SENSOR_disconnect (struct GNUNET_SENSOR_Handle *h);
+
 
 /**
  * Client asking to iterate all available sensors
@@ -120,9 +123,10 @@ GNUNET_SENSOR_disconnect(struct GNUNET_SENSOR_Handle *h);
  */
 struct GNUNET_SENSOR_SensorIteratorContext *
 GNUNET_SENSOR_iterate_sensors (struct GNUNET_SENSOR_Handle *h,
-    struct GNUNET_TIME_Relative timeout,
-    const char* sensorname, size_t sensorname_len,
-    GNUNET_SENSOR_SensorIteratorCB callback, void *callback_cls);
+                               struct GNUNET_TIME_Relative timeout,
+                               const char *sensorname, size_t sensorname_len,
+                               GNUNET_SENSOR_SensorIteratorCB callback,
+                               void *callback_cls);
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

@@ -51,15 +51,15 @@ static struct GNUNET_SENSOR_Handle *sensor_handle;
  * @param tc scheduler context
  */
 static void
-shutdown_task (void *cls,
-         const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  if(NULL != sensor_handle)
+  if (NULL != sensor_handle)
   {
-    GNUNET_SENSOR_disconnect(sensor_handle);
+    GNUNET_SENSOR_disconnect (sensor_handle);
     sensor_handle = NULL;
   }
 }
+
 
 /**
  * Callback for getting sensor info from service
@@ -68,26 +68,25 @@ shutdown_task (void *cls,
  * @param sensor brief information about sensor (NULL means end of transmission)
  * @param err_msg contains error string if any
  */
-void print_sensor_info(void *cls,
-    const struct SensorInfoShort *sensor,
-    const char *err_msg)
+void
+print_sensor_info (void *cls, const struct SensorInfoShort *sensor,
+                   const char *err_msg)
 {
-  if(NULL != err_msg)
+  if (NULL != err_msg)
   {
-    printf("Error: %s\n", err_msg);
-    GNUNET_SCHEDULER_shutdown();
+    printf ("Error: %s\n", err_msg);
+    GNUNET_SCHEDULER_shutdown ();
     return;
   }
-  if(NULL == sensor) /* no more sensors from service */
+  if (NULL == sensor)           /* no more sensors from service */
     return;
-  printf("Name: %s\nVersion: %d.%d\n",
-      sensor->name,
-      sensor->version_major,
-      sensor->version_minor);
-  if(NULL != sensor->description)
-    printf("Description: %s\n", sensor->description);
-  printf("\n");
+  printf ("Name: %s\nVersion: %d.%d\n", sensor->name, sensor->version_major,
+          sensor->version_minor);
+  if (NULL != sensor->description)
+    printf ("Description: %s\n", sensor->description);
+  printf ("\n");
 }
+
 
 /**
  * Main function that will be run by the scheduler.
@@ -98,40 +97,30 @@ void print_sensor_info(void *cls,
  * @param cfg configuration
  */
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile,
+run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
-
   sensor_handle = NULL;
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                  &shutdown_task,
-                                  NULL);
-  sensor_handle = GNUNET_SENSOR_connect(cfg);
-  GNUNET_assert(NULL != sensor_handle);
-  if(GNUNET_YES == get_all)
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
+                                NULL);
+  sensor_handle = GNUNET_SENSOR_connect (cfg);
+  GNUNET_assert (NULL != sensor_handle);
+  if (GNUNET_YES == get_all)
   {
-    GNUNET_SENSOR_iterate_sensors(sensor_handle,
-        GNUNET_TIME_UNIT_FOREVER_REL,
-        NULL,
-        0,
-        &print_sensor_info,
-        NULL);
+    GNUNET_SENSOR_iterate_sensors (sensor_handle, GNUNET_TIME_UNIT_FOREVER_REL,
+                                   NULL, 0, &print_sensor_info, NULL);
   }
-  else if(NULL != get_sensor)
+  else if (NULL != get_sensor)
   {
-    GNUNET_SENSOR_iterate_sensors(sensor_handle,
-        GNUNET_TIME_UNIT_FOREVER_REL,
-        get_sensor,
-        strlen(get_sensor),
-        &print_sensor_info,
-        NULL);
+    GNUNET_SENSOR_iterate_sensors (sensor_handle, GNUNET_TIME_UNIT_FOREVER_REL,
+                                   get_sensor, strlen (get_sensor),
+                                   &print_sensor_info, NULL);
   }
 
-  GNUNET_SCHEDULER_shutdown();
+  GNUNET_SCHEDULER_shutdown ();
   ret = 0;
 }
+
 
 /**
  * The main function to sensor.
@@ -144,21 +133,19 @@ int
 main (int argc, char *const *argv)
 {
   static const struct GNUNET_GETOPT_CommandLineOption options[] = {
-      {'a', "all", NULL,
-          gettext_noop("Retrieve information about all defined sensors"),
-      0, &GNUNET_GETOPT_set_one, &get_all},
-      {'g', "get-sensor", NULL,
-          gettext_noop("Retrieve information about a single sensor"),
-      1, &GNUNET_GETOPT_set_string, &get_sensor},
+    {'a', "all", NULL,
+     gettext_noop ("Retrieve information about all defined sensors"),
+     0, &GNUNET_GETOPT_set_one, &get_all},
+    {'g', "get-sensor", NULL,
+     gettext_noop ("Retrieve information about a single sensor"),
+     1, &GNUNET_GETOPT_set_string, &get_sensor},
     GNUNET_GETOPT_OPTION_END
   };
+
   return (GNUNET_OK ==
-          GNUNET_PROGRAM_run (argc,
-                              argv,
-                              "gnunet-sensor [options [value]]",
-                              gettext_noop
-                              ("sensor"),
-                              options, &run, NULL)) ? ret : 1;
+          GNUNET_PROGRAM_run (argc, argv, "gnunet-sensor [options [value]]",
+                              gettext_noop ("sensor"), options, &run,
+                              NULL)) ? ret : 1;
 }
 
 /* end of gnunet-sensor.c */

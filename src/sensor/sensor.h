@@ -28,12 +28,11 @@
 
 
 GNUNET_NETWORK_STRUCT_BEGIN
-
 /**
  * Carries a summary of a sensor
  *
  */
-struct SensorInfoMessage
+    struct SensorInfoMessage
 {
   /**
    * Message header
@@ -63,26 +62,31 @@ struct SensorInfoMessage
 
 GNUNET_NETWORK_STRUCT_END
 
-/*
+/**
  * Stop the sensor analysis module
  */
-void SENSOR_analysis_stop();
+    void
+SENSOR_analysis_stop ();
 
-/*
+
+/**
  * Start the sensor analysis module
  *
  * @param c our service configuration
- * @param sensors_mhm multihashmap of loaded sensors
+ * @param sensors multihashmap of loaded sensors
  * @return #GNUNET_OK if started successfully, #GNUNET_SYSERR otherwise
  */
 int
-SENSOR_analysis_start(const struct GNUNET_CONFIGURATION_Handle *c,
-    struct GNUNET_CONTAINER_MultiHashMap *sensors_mhm);
+SENSOR_analysis_start (const struct GNUNET_CONFIGURATION_Handle *c,
+                       struct GNUNET_CONTAINER_MultiHashMap *sensors);
+
 
 /**
  * Stop sensor reporting module
  */
-void SENSOR_reporting_stop();
+void
+SENSOR_reporting_stop ();
+
 
 /**
  * Start the sensor reporting module
@@ -92,8 +96,9 @@ void SENSOR_reporting_stop();
  * @return #GNUNET_OK if started successfully, #GNUNET_SYSERR otherwise
  */
 int
-SENSOR_reporting_start(const struct GNUNET_CONFIGURATION_Handle *c,
-    struct GNUNET_CONTAINER_MultiHashMap *sensors);
+SENSOR_reporting_start (const struct GNUNET_CONFIGURATION_Handle *c,
+                        struct GNUNET_CONTAINER_MultiHashMap *sensors);
+
 
 /**
  * Stop the sensor update module
@@ -101,16 +106,16 @@ SENSOR_reporting_start(const struct GNUNET_CONFIGURATION_Handle *c,
 void
 SENSOR_update_stop ();
 
+
 /**
  * Start the sensor update module
  *
  * @param c our service configuration
- * @param sensors multihashmap of loaded sensors
- * @param reset_cb callback to reset service components when we have new updates
+ * @param s multihashmap of loaded sensors
+ * @param cb callback to reset service components when we have new updates
  * @return #GNUNET_OK if started successfully, #GNUNET_SYSERR otherwise
  */
 int
 SENSOR_update_start (const struct GNUNET_CONFIGURATION_Handle *c,
                      struct GNUNET_CONTAINER_MultiHashMap *s,
-                     void (*reset_cb)());
-
+                     void (*cb) ());

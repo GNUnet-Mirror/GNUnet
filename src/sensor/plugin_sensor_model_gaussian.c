@@ -82,15 +82,22 @@ struct Model
 
 };
 
+/**
+ * Update local sums of model with a new value.
+ *
+ * @param model Targe model
+ * @param val New value
+ */
 static void
 update_sums (struct Model *model, double val)
 {
   model->sum += val;
   model->sumsq += val * val;
-  model->n ++;
+  model->n++;
 }
 
-/*
+
+/**
  * Feed a new value to a model
  *
  * @param cls closure (model state)
@@ -108,23 +115,21 @@ sensor_gaussian_model_feed (void *cls, double val)
 
   if (model->n < plugin->training_window)
   {
-    update_sums(model, val);
+    update_sums (model, val);
     return GNUNET_NO;
   }
   mean = model->sum / model->n;
-  stddev = sqrt(
-      (model->sumsq - 2 * mean * model->sum + model->n * mean * mean)
-      /
-      (model->n - 1)
-    );
+  stddev =
+      sqrt ((model->sumsq - 2 * mean * model->sum +
+             model->n * mean * mean) / (model->n - 1));
   allowed_variance = (plugin->confidence_interval * stddev);
-  if ((val < (mean - allowed_variance)) ||
-      (val > (mean + allowed_variance)))
+  if ((val < (mean - allowed_variance)) || (val > (mean + allowed_variance)))
     return GNUNET_YES;
   return GNUNET_NO;
 }
 
-/*
+
+/**
  * Destroy a model instance
  *
  * @param cls closure (model state)
@@ -134,10 +139,11 @@ sensor_gaussian_model_destroy_model (void *cls)
 {
   struct Model *model = cls;
 
-  GNUNET_free(model);
+  GNUNET_free (model);
 }
 
-/*
+
+/**
  * Create a model instance
  *
  * @param cls closure (plugin state)
@@ -149,12 +155,14 @@ sensor_gaussian_model_create_model (void *cls)
   struct Plugin *plugin = cls;
   struct Model *model;
 
-  model = GNUNET_new(struct Model);
+  model = GNUNET_new (struct Model);
+
   model->plugin = plugin;
   return model;
 }
 
-/*
+
+/**
  * Entry point for the plugin.
  *
  * @param cls The struct GNUNET_CONFIGURATION_Handle.
@@ -172,32 +180,36 @@ libgnunet_plugin_sensor_model_gaussian_init (void *cls)
     return NULL;                /* can only initialize once! */
   memset (&plugin, 0, sizeof (struct Plugin));
   plugin.cfg = cfg;
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_number(cfg,
-      "sensor-model-gaussian", "TRAINING_WINDOW", &num))
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_number (cfg, "sensor-model-gaussian",
+                                             "TRAINING_WINDOW", &num))
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
-        _("Missing `TRAINING_WINDOW' value in configuration.\n"));
+         _("Missing `TRAINING_WINDOW' value in configuration.\n"));
     return NULL;
   }
   plugin.training_window = (int) num;
-  if (GNUNET_OK != GNUNET_CONFIGURATION_get_value_number(cfg,
-        "sensor-model-gaussian", "CONFIDENCE_INTERVAL", &num))
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_number (cfg, "sensor-model-gaussian",
+                                             "CONFIDENCE_INTERVAL", &num))
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
-        _("Missing `CONFIDENCE_INTERVAL' value in configuration.\n"));
+         _("Missing `CONFIDENCE_INTERVAL' value in configuration.\n"));
     return NULL;
   }
   plugin.confidence_interval = (int) num;
   api = GNUNET_new (struct GNUNET_SENSOR_ModelFunctions);
+
   api->cls = &plugin;
   api->create_model = &sensor_gaussian_model_create_model;
   api->destroy_model = &sensor_gaussian_model_destroy_model;
   api->feed_model = &sensor_gaussian_model_feed;
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "Gaussian model plugin is running.\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Gaussian model plugin is running.\n");
   return api;
 }
 
-/*
+
+/**
  * Exit point from the plugin.
  *
  * @param cls The plugin context (as returned by "init")

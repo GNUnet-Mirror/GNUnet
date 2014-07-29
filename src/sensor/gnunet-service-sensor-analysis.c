@@ -100,19 +100,18 @@ static struct SensorModel *models_tail;
  */
 struct GNUNET_PeerIdentity peerid;
 
-/*
+/**
  * Destroy a created model
  */
 static void
 destroy_sensor_model (struct SensorModel *sensor_model)
 {
   GNUNET_assert (NULL != sensor_model);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-        "Destroying sensor model for `%s'.\n",
-        sensor_model->sensor->name);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Destroying sensor model for `%s'.\n",
+       sensor_model->sensor->name);
   if (NULL != sensor_model->wc)
   {
-    GNUNET_PEERSTORE_watch_cancel(sensor_model->wc);
+    GNUNET_PEERSTORE_watch_cancel (sensor_model->wc);
     sensor_model->wc = NULL;
   }
   if (NULL != sensor_model->cls)
@@ -120,14 +119,16 @@ destroy_sensor_model (struct SensorModel *sensor_model)
     model_api->destroy_model (sensor_model->cls);
     sensor_model->cls = NULL;
   }
-  GNUNET_free(sensor_model);
+  GNUNET_free (sensor_model);
   sensor_model = NULL;
 }
 
-/*
+
+/**
  * Stop the sensor analysis module
  */
-void SENSOR_analysis_stop()
+void
+SENSOR_analysis_stop ()
 {
   struct SensorModel *sm;
 
@@ -135,12 +136,12 @@ void SENSOR_analysis_stop()
   while (NULL != models_head)
   {
     sm = models_head;
-    GNUNET_CONTAINER_DLL_remove(models_head, models_tail, sm);
-    destroy_sensor_model(sm);
+    GNUNET_CONTAINER_DLL_remove (models_head, models_tail, sm);
+    destroy_sensor_model (sm);
   }
   if (NULL != peerstore)
   {
-    GNUNET_PEERSTORE_disconnect(peerstore, GNUNET_YES);
+    GNUNET_PEERSTORE_disconnect (peerstore, GNUNET_YES);
     peerstore = NULL;
   }
   if (NULL != model_api)
@@ -151,40 +152,39 @@ void SENSOR_analysis_stop()
   }
 }
 
-/*
+
+/**
  * Sensor value watch callback
  */
 static int
-sensor_watcher (void *cls,
-    struct GNUNET_PEERSTORE_Record *record,
-    char *emsg)
+sensor_watcher (void *cls, struct GNUNET_PEERSTORE_Record *record, char *emsg)
 {
   struct SensorModel *sensor_model = cls;
   double *val;
   int anomalous;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-      "Received a sensor value, will feed to sensor model.\n");
-  if (sizeof(double) != record->value_size)
+       "Received a sensor value, will feed to sensor model.\n");
+  if (sizeof (double) != record->value_size)
   {
-    LOG (GNUNET_ERROR_TYPE_ERROR,
-        _("Received an invalid sensor value."));
+    LOG (GNUNET_ERROR_TYPE_ERROR, _("Received an invalid sensor value."));
     return GNUNET_YES;
   }
-  val = (double *)(record->value);
+  val = (double *) (record->value);
   anomalous = model_api->feed_model (sensor_model->cls, *val);
   if (GNUNET_YES == anomalous)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
-        "Anomaly detected in sensor `%s', value: %f.\n",
-        sensor_model->sensor->name, *val);
+         "Anomaly detected in sensor `%s', value: %f.\n",
+         sensor_model->sensor->name, *val);
   }
   else
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Value non-anomalous.\n");
   return GNUNET_YES;
 }
 
-/*
+
+/**
  * Iterator for defined sensors
  * Creates sensor model for numeric sensors
  *
@@ -194,28 +194,27 @@ sensor_watcher (void *cls,
  * @return #GNUNET_YES to continue iterations
  */
 static int
-init_sensor_model (void *cls,
-    const struct GNUNET_HashCode *key,
-    void *value)
+init_sensor_model (void *cls, const struct GNUNET_HashCode *key, void *value)
 {
   struct GNUNET_SENSOR_SensorInfo *sensor = value;
   struct SensorModel *sensor_model;
 
-  if (0 != strcmp("numeric", sensor->expected_datatype))
+  if (0 != strcmp ("numeric", sensor->expected_datatype))
     return GNUNET_YES;
-  sensor_model = GNUNET_new(struct SensorModel);
+  sensor_model = GNUNET_new (struct SensorModel);
   sensor_model->sensor = sensor;
-  sensor_model->wc = GNUNET_PEERSTORE_watch(peerstore,
-          "sensor", &peerid, sensor->name,
-          &sensor_watcher, sensor_model);
-  sensor_model->cls = model_api->create_model(model_api->cls);
-  GNUNET_CONTAINER_DLL_insert(models_head, models_tail, sensor_model);
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-      "Created sensor model for `%s'.\n", sensor->name);
+  sensor_model->wc =
+      GNUNET_PEERSTORE_watch (peerstore, "sensor", &peerid, sensor->name,
+                              &sensor_watcher, sensor_model);
+  sensor_model->cls = model_api->create_model (model_api->cls);
+  GNUNET_CONTAINER_DLL_insert (models_head, models_tail, sensor_model);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Created sensor model for `%s'.\n",
+       sensor->name);
   return GNUNET_YES;
 }
 
-/*
+
+/**
  * Start the sensor analysis module
  *
  * @param c our service configuration
@@ -223,38 +222,41 @@ init_sensor_model (void *cls,
  * @return #GNUNET_OK if started successfully, #GNUNET_SYSERR otherwise
  */
 int
-SENSOR_analysis_start(const struct GNUNET_CONFIGURATION_Handle *c,
-    struct GNUNET_CONTAINER_MultiHashMap *sensors)
+SENSOR_analysis_start (const struct GNUNET_CONFIGURATION_Handle *c,
+                       struct GNUNET_CONTAINER_MultiHashMap *sensors)
 {
   char *model_name;
 
-  GNUNET_assert(NULL != sensors);
+  GNUNET_assert (NULL != sensors);
   cfg = c;
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (cfg, "sensor-analysis", "MODEL",
-                                                 &model_name))
+                                             &model_name))
   {
-    LOG (GNUNET_ERROR_TYPE_ERROR, _("Analysis model not defined in configuration.\n"));
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         _("Analysis model not defined in configuration.\n"));
     return GNUNET_SYSERR;
   }
-  GNUNET_asprintf (&model_lib_name, "libgnunet_plugin_sensor_model_%s", model_name);
-  model_api = GNUNET_PLUGIN_load(model_lib_name, (void *) cfg);
-  GNUNET_free(model_name);
-  if(NULL == model_api)
+  GNUNET_asprintf (&model_lib_name, "libgnunet_plugin_sensor_model_%s",
+                   model_name);
+  model_api = GNUNET_PLUGIN_load (model_lib_name, (void *) cfg);
+  GNUNET_free (model_name);
+  if (NULL == model_api)
   {
-    LOG (GNUNET_ERROR_TYPE_ERROR, _("Could not load analysis model `%s'.\n"), model_lib_name);
+    LOG (GNUNET_ERROR_TYPE_ERROR, _("Could not load analysis model `%s'.\n"),
+         model_lib_name);
     return GNUNET_SYSERR;
   }
-  peerstore = GNUNET_PEERSTORE_connect(cfg);
+  peerstore = GNUNET_PEERSTORE_connect (cfg);
   if (NULL == peerstore)
   {
-    LOG (GNUNET_ERROR_TYPE_ERROR, _("Could not connect to peerstore service.\n"));
-    SENSOR_analysis_stop();
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         _("Could not connect to peerstore service.\n"));
+    SENSOR_analysis_stop ();
     return GNUNET_SYSERR;
   }
-  GNUNET_CRYPTO_get_peer_identity(cfg, &peerid);
-  GNUNET_CONTAINER_multihashmap_iterate(sensors, &init_sensor_model, NULL);
-
+  GNUNET_CRYPTO_get_peer_identity (cfg, &peerid);
+  GNUNET_CONTAINER_multihashmap_iterate (sensors, &init_sensor_model, NULL);
   return GNUNET_OK;
 }
 

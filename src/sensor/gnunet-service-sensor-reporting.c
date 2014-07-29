@@ -182,7 +182,6 @@ struct CadetChannelContext *cc_head;
  */
 struct CadetChannelContext *cc_tail;
 
-
 /**
  * Destroy a reporting context structure
  */
@@ -196,7 +195,7 @@ destroy_reporting_context (struct ReportingContext *rc)
   }
   if (GNUNET_SCHEDULER_NO_TASK != rc->cp_task)
   {
-    GNUNET_SCHEDULER_cancel(rc->cp_task);
+    GNUNET_SCHEDULER_cancel (rc->cp_task);
     rc->cp_task = GNUNET_SCHEDULER_NO_TASK;
   }
   if (NULL != rc->last_value)
@@ -204,8 +203,9 @@ destroy_reporting_context (struct ReportingContext *rc)
     GNUNET_free (rc->last_value);
     rc->last_value_size = 0;
   }
-  GNUNET_free(rc);
+  GNUNET_free (rc);
 }
+
 
 /**
  * Destroy a CADET channel context struct
@@ -242,8 +242,7 @@ SENSOR_reporting_stop ()
   struct ReportingContext *rc;
   struct CadetChannelContext *cc;
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Stopping sensor reporting module.\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Stopping sensor reporting module.\n");
   while (NULL != cc_head)
   {
     cc = cc_head;
@@ -289,11 +288,10 @@ get_cadet_channel (struct GNUNET_PeerIdentity pid)
     cc = cc->next;
   }
   cc = GNUNET_new (struct CadetChannelContext);
-  cc->c = GNUNET_CADET_channel_create(cadet,
-      cc,
-      &pid,
-      GNUNET_APPLICATION_TYPE_SENSORDASHBOARD,
-      GNUNET_CADET_OPTION_DEFAULT);
+  cc->c =
+      GNUNET_CADET_channel_create (cadet, cc, &pid,
+                                   GNUNET_APPLICATION_TYPE_SENSORDASHBOARD,
+                                   GNUNET_CADET_OPTION_DEFAULT);
   cc->pid = pid;
   cc->sending = GNUNET_NO;
   cc->destroying = GNUNET_NO;
@@ -319,8 +317,8 @@ construct_reading_message (struct ReportingContext *rc,
   void *dummy;
 
   sensorname_size = strlen (rc->sensor->name) + 1;
-  total_size = sizeof(struct GNUNET_SENSOR_ReadingMessage) +
-      sensorname_size +
+  total_size =
+      sizeof (struct GNUNET_SENSOR_ReadingMessage) + sensorname_size +
       rc->last_value_size;
   ret = GNUNET_malloc (total_size);
   ret->header.size = htons (total_size);
@@ -357,18 +355,17 @@ do_report_collection_point (void *cls, size_t size, void *buf)
 
   cc->th = NULL;
   cc->sending = GNUNET_NO;
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Copying to CADET transmit buffer.\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Copying to CADET transmit buffer.\n");
   if (NULL == buf)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
-        "CADET failed to transmit message (NULL buf), discarding.\n");
+         "CADET failed to transmit message (NULL buf), discarding.\n");
   }
   else if (size < cc->pending_msg_size)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
-        "CADET failed to transmit message (small size, expected: %u, got: %u)"
-        ", discarding.\n", cc->pending_msg_size, size);
+         "CADET failed to transmit message (small size, expected: %u, got: %u)"
+         ", discarding.\n", cc->pending_msg_size, size);
   }
   else
   {
@@ -390,7 +387,7 @@ do_report_collection_point (void *cls, size_t size, void *buf)
  */
 static void
 report_collection_point (void *cls,
-                         const struct GNUNET_SCHEDULER_TaskContext* tc)
+                         const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct ReportingContext *rc = cls;
   struct GNUNET_SENSOR_SensorInfo *sensor = rc->sensor;
@@ -404,13 +401,13 @@ report_collection_point (void *cls,
     LOG (GNUNET_ERROR_TYPE_WARNING,
          "Did not receive a value from `%s' to report yet.\n",
          rc->sensor->name);
-    rc->cp_task = GNUNET_SCHEDULER_add_delayed (sensor->collection_interval,
-            &report_collection_point, rc);
+    rc->cp_task =
+        GNUNET_SCHEDULER_add_delayed (sensor->collection_interval,
+                                      &report_collection_point, rc);
     return;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Now trying to report last seen value of `%s' "
-       "to collection point.\n",
+       "Now trying to report last seen value of `%s' " "to collection point.\n",
        rc->sensor->name);
   GNUNET_assert (NULL != sensor->collection_point);
   cc = get_cadet_channel (*sensor->collection_point);
@@ -418,26 +415,26 @@ report_collection_point (void *cls,
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Cadet channel to collection point busy, "
-         "trying again for sensor `%s' after %d seconds.\n",
-         rc->sensor->name,
+         "trying again for sensor `%s' after %d seconds.\n", rc->sensor->name,
          COLLECTION_RETRY);
-    rc->cp_task = GNUNET_SCHEDULER_add_delayed (
-      GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, COLLECTION_RETRY),
-      &report_collection_point, rc);
+    rc->cp_task =
+        GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
+                                      (GNUNET_TIME_UNIT_SECONDS,
+                                       COLLECTION_RETRY),
+                                      &report_collection_point, rc);
     return;
   }
   msg_size = construct_reading_message (rc, &msg);
   cc->sending = GNUNET_YES;
   cc->pending_msg = msg;
   cc->pending_msg_size = msg_size;
-  cc->th = GNUNET_CADET_notify_transmit_ready (cc->c,
-      GNUNET_YES,
-      sensor->collection_interval,
-      msg_size,
-      &do_report_collection_point,
-      cc);
-  rc->cp_task = GNUNET_SCHEDULER_add_delayed (sensor->collection_interval,
-      &report_collection_point, rc);
+  cc->th =
+      GNUNET_CADET_notify_transmit_ready (cc->c, GNUNET_YES,
+                                          sensor->collection_interval, msg_size,
+                                          &do_report_collection_point, cc);
+  rc->cp_task =
+      GNUNET_SCHEDULER_add_delayed (sensor->collection_interval,
+                                    &report_collection_point, rc);
 }
 
 
@@ -445,9 +442,7 @@ report_collection_point (void *cls,
  * Sensor value watch callback
  */
 static int
-sensor_watch_cb (void *cls,
-                 struct GNUNET_PEERSTORE_Record *record,
-                 char *emsg)
+sensor_watch_cb (void *cls, struct GNUNET_PEERSTORE_Record *record, char *emsg)
 {
   struct ReportingContext *rc = cls;
 
@@ -458,14 +453,13 @@ sensor_watch_cb (void *cls,
     GNUNET_free (rc->last_value);
     rc->last_value_size = 0;
   }
-  rc->last_value = GNUNET_malloc(record->value_size);
+  rc->last_value = GNUNET_malloc (record->value_size);
   memcpy (rc->last_value, record->value, record->value_size);
   rc->last_value_size = record->value_size;
-  rc->timestamp = GNUNET_TIME_absolute_get().abs_value_us;
+  rc->timestamp = GNUNET_TIME_absolute_get ().abs_value_us;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Received a sensor `%s' watch value at "
-       "timestamp %" PRIu64 ", updating notification last_value.\n",
-       rc->sensor->name,
+       "Received a sensor `%s' watch value at " "timestamp %" PRIu64
+       ", updating notification last_value.\n", rc->sensor->name,
        rc->timestamp);
   return GNUNET_YES;
 }
@@ -481,46 +475,40 @@ sensor_watch_cb (void *cls,
  * @return #GNUNET_YES to continue iterations
  */
 static int
-init_sensor_reporting (void *cls,
-                       const struct GNUNET_HashCode *key,
+init_sensor_reporting (void *cls, const struct GNUNET_HashCode *key,
                        void *value)
 {
   struct GNUNET_SENSOR_SensorInfo *sensor = value;
   struct ReportingContext *rc;
 
-  if (NULL == sensor->collection_point &&
-      GNUNET_NO == sensor->p2p_report)
+  if (NULL == sensor->collection_point && GNUNET_NO == sensor->p2p_report)
     return GNUNET_YES;
   rc = GNUNET_new (struct ReportingContext);
   rc->sensor = sensor;
   rc->last_value = NULL;
   rc->last_value_size = 0;
-  rc->wc = GNUNET_PEERSTORE_watch(peerstore,
-      "sensor",
-      &mypeerid,
-      sensor->name,
-      &sensor_watch_cb,
-      rc);
+  rc->wc =
+      GNUNET_PEERSTORE_watch (peerstore, "sensor", &mypeerid, sensor->name,
+                              &sensor_watch_cb, rc);
   if (NULL != sensor->collection_point)
   {
     LOG (GNUNET_ERROR_TYPE_INFO,
-        "Will start reporting sensor `%s' values to "
-        "collection point `%s' every %s.\n",
-        sensor->name, GNUNET_i2s_full(sensor->collection_point),
-        GNUNET_STRINGS_relative_time_to_string(sensor->collection_interval,
-            GNUNET_YES));
+         "Will start reporting sensor `%s' values to "
+         "collection point `%s' every %s.\n", sensor->name,
+         GNUNET_i2s_full (sensor->collection_point),
+         GNUNET_STRINGS_relative_time_to_string (sensor->collection_interval,
+                                                 GNUNET_YES));
     rc->cp_task =
         GNUNET_SCHEDULER_add_delayed (sensor->collection_interval,
-            &report_collection_point,
-            rc);
+                                      &report_collection_point, rc);
   }
   if (GNUNET_YES == sensor->p2p_report)
   {
     LOG (GNUNET_ERROR_TYPE_INFO,
-        "Will start reporting sensor `%s' values to p2p network every %s.\n",
-        sensor->name,
-        GNUNET_STRINGS_relative_time_to_string(sensor->p2p_interval,
-            GNUNET_YES));
+         "Will start reporting sensor `%s' values to p2p network every %s.\n",
+         sensor->name,
+         GNUNET_STRINGS_relative_time_to_string (sensor->p2p_interval,
+                                                 GNUNET_YES));
   }
   GNUNET_CONTAINER_DLL_insert (rc_head, rc_tail, rc);
   return GNUNET_YES;
@@ -539,8 +527,7 @@ init_sensor_reporting (void *cls,
  *                   with the channel is stored
  */
 static void
-cadet_channel_destroyed (void *cls,
-                         const struct GNUNET_CADET_Channel *channel,
+cadet_channel_destroyed (void *cls, const struct GNUNET_CADET_Channel *channel,
                          void *channel_ctx)
 {
   struct CadetChannelContext *cc = channel_ctx;
@@ -567,38 +554,31 @@ SENSOR_reporting_start (const struct GNUNET_CONFIGURATION_Handle *c,
                         struct GNUNET_CONTAINER_MultiHashMap *sensors)
 {
   static struct GNUNET_CADET_MessageHandler cadet_handlers[] = {
-      {NULL, 0, 0}
+    {NULL, 0, 0}
   };
 
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Starting sensor reporting module.\n");
-  GNUNET_assert(NULL != sensors);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Starting sensor reporting module.\n");
+  GNUNET_assert (NULL != sensors);
   cfg = c;
-  peerstore = GNUNET_PEERSTORE_connect(cfg);
+  peerstore = GNUNET_PEERSTORE_connect (cfg);
   if (NULL == peerstore)
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
-        _("Failed to connect to peerstore service.\n"));
+         _("Failed to connect to peerstore service.\n"));
     SENSOR_reporting_stop ();
     return GNUNET_SYSERR;
   }
-  cadet = GNUNET_CADET_connect(cfg,
-      NULL,
-      NULL,
-      &cadet_channel_destroyed,
-      cadet_handlers,
-      NULL);
+  cadet =
+      GNUNET_CADET_connect (cfg, NULL, NULL, &cadet_channel_destroyed,
+                            cadet_handlers, NULL);
   if (NULL == cadet)
   {
-    LOG (GNUNET_ERROR_TYPE_ERROR,
-         _("Failed to connect to CADET service.\n"));
+    LOG (GNUNET_ERROR_TYPE_ERROR, _("Failed to connect to CADET service.\n"));
     SENSOR_reporting_stop ();
     return GNUNET_SYSERR;
   }
-  GNUNET_CRYPTO_get_peer_identity (cfg,
-                                   &mypeerid);
-  GNUNET_CONTAINER_multihashmap_iterate(sensors,
-                                        &init_sensor_reporting, NULL);
+  GNUNET_CRYPTO_get_peer_identity (cfg, &mypeerid);
+  GNUNET_CONTAINER_multihashmap_iterate (sensors, &init_sensor_reporting, NULL);
   return GNUNET_OK;
 }
 
