@@ -1114,8 +1114,8 @@ disconnects (void *cls,
 
 \section{Storing peer-specific data using the PEERSTORE service}
 
-GNUnet's PEERSTORE service offers persistent peer-specific arbitrary data storage.
-Other GNUnet services can use the PEERSTORE API to store, retrieve and monitor data records.
+GNUnet's PEERSTORE service offers a persistorage for arbitrary peer-specific data.
+Other GNUnet services can use the PEERSTORE to store, retrieve and monitor data records.
 Each data record stored with PEERSTORE contains the following fields:
 
 \begin{itemize}
@@ -1193,7 +1193,7 @@ iteration over values stored under any of the following key combinations:
 \end{itemize}
 
 The \lstinline|callback| function will be called once with each retrieved record and once
-more with a \lstinline|NULL| record to signify end of list.
+more with a \lstinline|NULL| record to signal the end of results.
 
 The \lstinline|GNUNET_PEERSTORE_iterate| function returns a handle to the iterate operation. This
 handle can be used to cancel the iterate operation only before the callback function is called with
@@ -1215,7 +1215,7 @@ GNUNET_PEERSTORE_watch (struct GNUNET_PEERSTORE_Handle *h,
 
 Whenever a new record is stored under the given key combination, the \lstinline|callback| function
 will be called with this new record. This will continue until the connection to the PEERSTORE service
-is broken or the watch operation is cancelled:
+is broken or the watch operation is canceled:
 \begin{lstlisting}
 void
 GNUNET_PEERSTORE_watch_cancel (struct GNUNET_PEERSTORE_WatchContext *wc);
