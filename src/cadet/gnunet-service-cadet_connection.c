@@ -1282,7 +1282,8 @@ connection_fwd_timeout (void *cls,
     return;
   }
 
-  if (GCC_is_origin (c, GNUNET_NO)) /* If dest, salvage queued traffic. */
+  /* If dest, salvage queued traffic. */
+  if (GCC_is_origin (c, GNUNET_NO) && 0 < c->bck_fc.queue_n)
   {
     struct GNUNET_MessageHeader *out_msg;
     struct CadetPeer *neighbor;
@@ -1343,7 +1344,8 @@ connection_bck_timeout (void *cls,
     return;
   }
 
-  if (GCC_is_origin (c, GNUNET_YES)) /* If dest, salvage queued traffic. */
+  /* If dest, salvage queued traffic. */
+  if (GCC_is_origin (c, GNUNET_YES) && 0 < c->fwd_fc.queue_n)
   {
     struct GNUNET_MessageHeader *out_msg;
     struct CadetPeer *neighbor;
