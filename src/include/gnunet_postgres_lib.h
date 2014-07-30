@@ -53,8 +53,8 @@ extern "C"
  */
 int
 GNUNET_POSTGRES_check_result_ (PGconn *dbh, PGresult * ret, int expected_status,
-			       const char *command, const char *args,
-			       const char *filename, int line);
+                               const char *command, const char *args,
+                               const char *filename, int line);
 
 
 /**
@@ -108,8 +108,8 @@ GNUNET_POSTGRES_exec_ (PGconn *dbh, const char *sql, const char *filename, int l
  */
 int
 GNUNET_POSTGRES_prepare_ (PGconn *dbh, const char *name, const char *sql,
-			  int nparams,
-			  const char *filename, int line);
+                          int nparams,
+                          const char *filename, int line);
 
 
 /**
@@ -133,7 +133,7 @@ GNUNET_POSTGRES_prepare_ (PGconn *dbh, const char *name, const char *sql,
  */
 PGconn *
 GNUNET_POSTGRES_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
-			 const char *section);
+                         const char *section);
 
 
 /**
@@ -147,8 +147,8 @@ GNUNET_POSTGRES_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
  */
 int
 GNUNET_POSTGRES_delete_by_rowid (PGconn *dbh,
-				 const char *stmt,
-				 uint32_t rowid);
+                                 const char *stmt,
+                                 uint32_t rowid);
 
 
 
