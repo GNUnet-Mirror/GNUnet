@@ -99,11 +99,12 @@ struct GNUNET_CLIENT_MANAGER_MessageHandler
 /**
  * Connect to a service.
  *
- * @param cfg                 Configuration to use.
- * @param service_name        Service name to connect to.
- * @param connect_msg         FIXME
- * @param connection_lost_cb  x
- * @param cls
+ * @param cfg
+ *        Configuration to use.
+ * @param service_name
+ *        Service name to connect to.
+ * @param handlers
+ *        Message handlers.
  *
  * @return Client manager connection handle.
  */
@@ -117,22 +118,27 @@ GNUNET_CLIENT_MANAGER_connect (const struct GNUNET_CONFIGURATION_Handle *cfg,
 /**
  * Disconnect from the service.
  *
- * @param mgr             Client manager connection.
- * @param transmit_queue  Transmit pending messages in queue before disconnecting.
- * @param disconnect_cb   Function called after disconnected from the service.
- * @param disconnect_cls  Closure for @a disconnect_cb.
+ * @param mgr
+ *        Client manager connection.
+ * @param transmit_queue
+ *        Transmit pending messages in queue before disconnecting.
+ * @param disconnect_cb
+ *        Function called after disconnected from the service.
+ * @param cls
+ *        Closure for @a disconnect_cb.
  */
 void
 GNUNET_CLIENT_MANAGER_disconnect (struct GNUNET_CLIENT_MANAGER_Connection *mgr,
                                   int transmit_queue,
                                   GNUNET_ContinuationCallback disconnect_cb,
-                                  void *disconnect_cls);
+                                  void *cls);
 
 
 /**
  * Reschedule connect to the service using exponential back-off.
  *
- * @param mgr  Client manager connection.
+ * @param mgr
+ *        Client manager connection.
  */
 void
 GNUNET_CLIENT_MANAGER_reconnect (struct GNUNET_CLIENT_MANAGER_Connection *mgr);
@@ -141,8 +147,11 @@ GNUNET_CLIENT_MANAGER_reconnect (struct GNUNET_CLIENT_MANAGER_Connection *mgr);
 /**
  * Add a message to the end of the transmission queue.
  *
- * @param mgr  Client manager connection.
- * @param msg  Message to transmit.  It is free()'d after transmission.
+ * @param mgr
+ *        Client manager connection.
+ * @param msg
+ *        Message to transmit, should be allocated with GNUNET_malloc() or
+ *        GNUNET_new(), as it is freed with GNUNET_free() after transmission.
  */
 void
 GNUNET_CLIENT_MANAGER_transmit (struct GNUNET_CLIENT_MANAGER_Connection *mgr,
@@ -152,8 +161,11 @@ GNUNET_CLIENT_MANAGER_transmit (struct GNUNET_CLIENT_MANAGER_Connection *mgr,
 /**
  * Add a message to the beginning of the transmission queue.
  *
- * @param mgr  Client manager connection.
- * @param msg  Message to transmit.  It is free()'d after transmission.
+ * @param mgr
+ *        Client manager connection.
+ * @param msg
+ *        Message to transmit, should be allocated with GNUNET_malloc() or
+ *        GNUNET_new(), as it is freed with GNUNET_free() after transmission.
  */
 void
 GNUNET_CLIENT_MANAGER_transmit_now (struct GNUNET_CLIENT_MANAGER_Connection *mgr,
@@ -163,7 +175,8 @@ GNUNET_CLIENT_MANAGER_transmit_now (struct GNUNET_CLIENT_MANAGER_Connection *mgr
 /**
  * Drop all queued messages.
  *
- * @param mgr  Client manager connection.
+ * @param mgr
+ *        Client manager connection.
  */
 void
 GNUNET_CLIENT_MANAGER_drop_queue (struct GNUNET_CLIENT_MANAGER_Connection *mgr);
@@ -172,7 +185,8 @@ GNUNET_CLIENT_MANAGER_drop_queue (struct GNUNET_CLIENT_MANAGER_Connection *mgr);
 /**
  * Obtain client connection handle.
  *
- * @param mgr  Client manager connection handle.
+ * @param mgr
+ *        Client manager connection.
  *
  * @return Client connection handle.
  */
@@ -184,9 +198,10 @@ GNUNET_CLIENT_MANAGER_get_client (struct GNUNET_CLIENT_MANAGER_Connection *mgr);
  * Return user context associated with the given client manager.
  * Note: you should probably use the macro (call without the underscore).
  *
- * @param mgr  Client manager connection.
- * @param size Number of bytes in user context struct (for verification only).
- * @return User context.
+ * @param mgr
+ *        Client manager connection.
+ * @param size
+ *        Number of bytes in user context struct (for verification only).
  */
 void *
 GNUNET_CLIENT_MANAGER_get_user_context_ (struct GNUNET_CLIENT_MANAGER_Connection *mgr,
@@ -197,9 +212,10 @@ GNUNET_CLIENT_MANAGER_get_user_context_ (struct GNUNET_CLIENT_MANAGER_Connection
  * Set user context to be associated with the given client manager.
  * Note: you should probably use the macro (call without the underscore).
  *
- * @param mgr  Client manager connection.
- * @param ctx  User context.
- * @param size Number of bytes in user context struct (for verification only).
+ * @param mgr
+ *        Client manager connection.
+ * @param size
+ *        Number of bytes in user context struct (for verification only).
  */
 void
 GNUNET_CLIENT_MANAGER_set_user_context_ (struct GNUNET_CLIENT_MANAGER_Connection *mgr,
@@ -210,9 +226,12 @@ GNUNET_CLIENT_MANAGER_set_user_context_ (struct GNUNET_CLIENT_MANAGER_Connection
 /**
  * Return user context associated with the given client manager.
  *
- * @param mgr  Client manager connection.
- * @param type Expected return type (i.e. 'struct Foo')
- * @return Pointer to user context of type 'type *'.
+ * @param mgr
+ *        Client manager connection.
+ * @param ctx
+ *        User context.
+ * @param size
+ *        Number of bytes in user context struct (for verification only).
  */
 #define GNUNET_CLIENT_MANAGER_get_user_context(mgr, type)               \
   (type *) GNUNET_CLIENT_MANAGER_get_user_context_ (mgr, sizeof (type))
@@ -221,8 +240,10 @@ GNUNET_CLIENT_MANAGER_set_user_context_ (struct GNUNET_CLIENT_MANAGER_Connection
 /**
  * Set user context to be associated with the given client manager.
  *
- * @param mgr  Client manager connection.
- * @param ctx  Pointer to user context.
+ * @param mgr
+ *        Client manager connection.
+ * @param ctx
+ *        Pointer to user context.
  */
 #define GNUNET_CLIENT_MANAGER_set_user_context(mgr, ctx)                 \
   GNUNET_CLIENT_MANAGER_set_user_context_ (mgr, ctx, sizeof (*ctx))
