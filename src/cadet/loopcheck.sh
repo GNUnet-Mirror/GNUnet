@@ -11,6 +11,7 @@ while true; do
 	    break;
 	fi
     fi
-    grep -B 10 Assert *log && break
+    grep -B 10 ERROR test*log && break
+    grep -B 10 Assert test*log && break
     ls core* &> /dev/null && break
 done
