@@ -1321,9 +1321,12 @@ send_kx (struct CadetTunnel *t,
   c = tunnel_get_connection (t);
   if (NULL == c)
   {
-    GNUNET_break (GNUNET_SCHEDULER_NO_TASK != t->destroy_task
-                  || CADET_TUNNEL_READY != t->cstate);
-    GCT_debug (t, GNUNET_ERROR_TYPE_ERROR);
+    if (GNUNET_SCHEDULER_NO_TASK == t->destroy_task
+        && CADET_TUNNEL_READY == t->cstate)
+    {
+      GNUNET_break (0);
+      GCT_debug (t, GNUNET_ERROR_TYPE_ERROR);
+    }
     return;
   }
   switch (type)
