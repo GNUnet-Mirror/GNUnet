@@ -1424,6 +1424,9 @@ GCP_connection_pop (struct CadetPeer *peer,
     next = q->next;
     if (q->c != c)
       continue;
+    LOG (GNUNET_ERROR_TYPE_DEBUG, " - queued: %s (%s %u), callback: %p\n",
+         GC_m2s (q->type), GC_m2s (q->payload_type), q->payload_id,
+         q->callback);
     switch (q->type)
     {
       case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE:
