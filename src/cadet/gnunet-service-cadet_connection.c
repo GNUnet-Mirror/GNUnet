@@ -3054,9 +3054,6 @@ GCC_send_prebuilt_message (const struct GNUNET_MessageHeader *message,
       bmsg->cid = c->id;
       break;
 
-    case GNUNET_MESSAGE_TYPE_CADET_KEEPALIVE:
-      GNUNET_break (0);
-      /* falltrough */
     case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_CREATE:
     case GNUNET_MESSAGE_TYPE_CADET_CONNECTION_ACK:
       break;
