@@ -402,6 +402,14 @@ struct Slave
 };
 
 
+struct OperationClosure
+{
+  struct GNUNET_SERVER_Client *client;
+  struct Channel *chn;
+  uint64_t op_id;
+};
+
+
 static void
 transmit_message (struct Channel *chn);
 
@@ -581,6 +589,46 @@ client_send_msg (const struct Channel *chn,
     GNUNET_SERVER_notification_context_unicast (nc, cli->client, msg, GNUNET_NO);
     cli = cli->next;
   }
+}
+
+
+/**
+ * Send a result code back to the client.
+ *
+ * @param client
+ *        Client that should receive the result code.
+ * @param result_code
+ *        Code to transmit.
+ * @param op_id
+ *        Operation ID in network byte order.
+ * @param err_msg
+ *        Error message to include (or NULL for none).
+ */
+static void
+client_send_result (struct GNUNET_SERVER_Client *client, uint64_t op_id,
+                    int64_t result_code, const char *err_msg)
+{
+  struct OperationResult *res;
+  size_t err_len = 0; // FIXME: maximum length
+
+  if (NULL != err_msg)
+    err_len = strlen (err_msg) + 1;
+  res = GNUNET_malloc (sizeof (struct OperationResult) + err_len);
+  res->header.type = htons (GNUNET_MESSAGE_TYPE_PSYC_RESULT_CODE);
+  res->header.size = htons (sizeof (struct OperationResult) + err_len);
+  res->result_code = GNUNET_htonll (result_code + INT64_MAX + 1);
+  res->op_id = op_id;
+  if (0 < err_len)
+    memcpy (&res[1], err_msg, err_len);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+	      "%p Sending result to client for operation #%" PRIu64 ": "
+              "%" PRId64 " (%s)\n",
+	      client, GNUNET_ntohll (op_id), result_code, err_msg);
+
+  GNUNET_SERVER_notification_context_add (nc, client);
+  GNUNET_SERVER_notification_context_unicast (nc, client, &res->header,
+                                              GNUNET_NO);
+  GNUNET_free (res);
 }
 
 
@@ -799,7 +847,8 @@ mcast_recv_replay_fragment (void *cls,
 
 {
   struct Channel *chn = cls;
-  GNUNET_PSYCSTORE_fragment_get (store, &chn->pub_key, slave_key, fragment_id,
+  GNUNET_PSYCSTORE_fragment_get (store, &chn->pub_key, slave_key,
+                                 fragment_id, fragment_id,
                                  &store_recv_fragment_replay,
                                  &store_recv_fragment_replay_result, rh);
 }
@@ -817,7 +866,8 @@ mcast_recv_replay_message (void *cls,
                            struct GNUNET_MULTICAST_ReplayHandle *rh)
 {
   struct Channel *chn = cls;
-  GNUNET_PSYCSTORE_message_get (store, &chn->pub_key, slave_key, message_id,
+  GNUNET_PSYCSTORE_message_get (store, &chn->pub_key, slave_key,
+                                message_id, message_id,
                                 &store_recv_fragment_replay,
                                 &store_recv_fragment_replay_result, rh);
 }
@@ -865,7 +915,8 @@ hash_key_from_hll (struct GNUNET_HashCode *key, uint64_t n)
  */
 static void
 client_send_mcast_msg (struct Channel *chn,
-                       const struct GNUNET_MULTICAST_MessageHeader *mmsg)
+                       const struct GNUNET_MULTICAST_MessageHeader *mmsg,
+                       uint32_t flags)
 {
   struct GNUNET_PSYC_MessageHeader *pmsg;
   uint16_t size = ntohs (mmsg->header.size);
@@ -882,6 +933,7 @@ client_send_mcast_msg (struct Channel *chn,
   pmsg->header.type = htons (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE);
   pmsg->message_id = mmsg->message_id;
   pmsg->fragment_offset = mmsg->fragment_offset;
+  pmsg->flags = htonl (flags);
 
   memcpy (&pmsg[1], &mmsg[1], size - sizeof (*mmsg));
   client_send_msg (chn, &pmsg->header);
@@ -1111,7 +1163,7 @@ fragment_queue_run (struct Channel *chn, uint64_t msg_id,
     {
       if (GNUNET_NO == drop)
       {
-        client_send_mcast_msg (chn, cache_entry->mmsg);
+        client_send_mcast_msg (chn, cache_entry->mmsg, 0);
       }
       if (cache_entry->ref_count <= 1)
       {
@@ -1375,10 +1427,10 @@ store_recv_master_counters (void *cls, int result, uint64_t max_fragment_id,
   struct Channel *chn = &mst->chn;
   chn->store_op = NULL;
 
-  struct CountersResult res;
+  struct GNUNET_PSYC_CountersResultMessage res;
   res.header.type = htons (GNUNET_MESSAGE_TYPE_PSYC_MASTER_START_ACK);
   res.header.size = htons (sizeof (res));
-  res.result_code = htonl (result);
+  res.result_code = htonl (result - INT32_MIN);
   res.max_message_id = GNUNET_htonll (max_message_id);
 
   if (GNUNET_OK == result || GNUNET_NO == result)
@@ -1421,10 +1473,10 @@ store_recv_slave_counters (void *cls, int result, uint64_t max_fragment_id,
   struct Channel *chn = &slv->chn;
   chn->store_op = NULL;
 
-  struct CountersResult res;
+  struct GNUNET_PSYC_CountersResultMessage res;
   res.header.type = htons (GNUNET_MESSAGE_TYPE_PSYC_SLAVE_JOIN_ACK);
   res.header.size = htons (sizeof (res));
-  res.result_code = htonl (result);
+  res.result_code = htonl (result - INT32_MIN);
   res.max_message_id = GNUNET_htonll (max_message_id);
 
   if (GNUNET_OK == result || GNUNET_NO == result)
@@ -1511,10 +1563,10 @@ client_recv_master_start (void *cls, struct GNUNET_SERVER_Client *client,
   {
     chn = &mst->chn;
 
-    struct CountersResult res;
+    struct GNUNET_PSYC_CountersResultMessage res;
     res.header.type = htons (GNUNET_MESSAGE_TYPE_PSYC_MASTER_START_ACK);
     res.header.size = htons (sizeof (res));
-    res.result_code = htonl (GNUNET_OK);
+    res.result_code = htonl ((uint32_t) GNUNET_OK + INT32_MIN);
     res.max_message_id = GNUNET_htonll (mst->max_message_id);
 
     GNUNET_SERVER_notification_context_add (nc, client);
@@ -1621,10 +1673,10 @@ client_recv_slave_join (void *cls, struct GNUNET_SERVER_Client *client,
   {
     chn = &slv->chn;
 
-    struct CountersResult res;
+    struct GNUNET_PSYC_CountersResultMessage res;
     res.header.type = htons (GNUNET_MESSAGE_TYPE_PSYC_SLAVE_JOIN_ACK);
     res.header.size = htons (sizeof (res));
-    res.result_code = htonl (GNUNET_OK);
+    res.result_code = htonl ((uint32_t) GNUNET_OK - INT32_MIN);
     res.max_message_id = GNUNET_htonll (chn->max_message_id);
 
     GNUNET_SERVER_notification_context_add (nc, client);
@@ -2047,17 +2099,26 @@ client_recv_psyc_message (void *cls, struct GNUNET_SERVER_Client *client,
 };
 
 
+struct MembershipStoreClosure
+{
+  struct GNUNET_SERVER_Client *client;
+  struct Channel *chn;
+  uint64_t op_id;
+};
+
+
 /**
  * Received result of GNUNET_PSYCSTORE_membership_store()
  */
 static void
 store_recv_membership_store_result (void *cls, int64_t result, const char *err_msg)
 {
-  struct GNUNET_MULTICAST_MembershipTestHandle *mth = cls;
+  struct MembershipStoreClosure *mcls = cls;
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
               "%p GNUNET_PSYCSTORE_membership_store() returned %" PRId64 " (%s)\n",
-              mth, result, err_msg);
-  /* FIXME: send result to client */
+              mcls->chn, result, err_msg);
+
+  client_send_result (mcls->client, mcls->op_id, result, err_msg);
 }
 
 
@@ -2075,6 +2136,11 @@ client_recv_membership_store (void *cls, struct GNUNET_SERVER_Client *client,
   const struct ChannelMembershipStoreRequest *
     req = (const struct ChannelMembershipStoreRequest *) msg;
 
+  struct MembershipStoreClosure *mcls = GNUNET_malloc (sizeof (*mcls));
+  mcls->client = client;
+  mcls->chn = chn;
+  mcls->op_id = req->op_id;
+
   uint64_t announced_at = GNUNET_ntohll (req->announced_at);
   uint64_t effective_since = GNUNET_ntohll (req->effective_since);
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
@@ -2086,8 +2152,36 @@ client_recv_membership_store (void *cls, struct GNUNET_SERVER_Client *client,
   GNUNET_PSYCSTORE_membership_store (store, &chn->pub_key, &req->slave_key,
                                      req->did_join, announced_at, effective_since,
                                      0, /* FIXME: group_generation */
-                                     &store_recv_membership_store_result, chn);
+                                     &store_recv_membership_store_result, mcls);
   GNUNET_SERVER_receive_done (client, GNUNET_OK);
+}
+
+
+static int
+store_recv_fragment_history (void *cls,
+                             struct GNUNET_MULTICAST_MessageHeader *msg,
+                             enum GNUNET_PSYCSTORE_MessageFlags flags)
+{
+  struct OperationClosure *opcls = cls;
+  struct Channel *chn = opcls->chn;
+  client_send_mcast_msg (chn, msg, GNUNET_PSYC_MESSAGE_HISTORIC);
+  return GNUNET_YES;
+}
+
+
+/**
+ * Received result of GNUNET_PSYCSTORE_fragment_get() for multicast replay.
+ */
+static void
+store_recv_fragment_history_result (void *cls, int64_t result, const char *err_msg)
+{
+  struct OperationClosure *opcls = cls;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "%p History replay #%" PRIu64 ": "
+              "PSYCSTORE returned %" PRId64 " (%s)\n",
+              opcls->chn, opcls->op_id, result, err_msg);
+
+  client_send_result (opcls->client, opcls->op_id, result, err_msg);
 }
 
 
@@ -2095,10 +2189,101 @@ client_recv_membership_store (void *cls, struct GNUNET_SERVER_Client *client,
  * Client requests channel history from PSYCstore.
  */
 static void
-client_recv_story_request (void *cls, struct GNUNET_SERVER_Client *client,
-                           const struct GNUNET_MessageHeader *msg)
+client_recv_history_replay (void *cls, struct GNUNET_SERVER_Client *client,
+                            const struct GNUNET_MessageHeader *msg)
 {
+  struct Channel *
+    chn = GNUNET_SERVER_client_get_user_context (client, struct Channel);
+  GNUNET_assert (NULL != chn);
 
+  const struct HistoryRequest *
+    req = (const struct HistoryRequest *) msg;
+
+  struct OperationClosure *opcls = GNUNET_malloc (sizeof (*opcls));
+  opcls->client = client;
+  opcls->chn = chn;
+  opcls->op_id = req->op_id;
+
+  if (0 == req->message_limit)
+    GNUNET_PSYCSTORE_message_get (store, &chn->pub_key, NULL,
+                                  GNUNET_ntohll (req->start_message_id),
+                                  GNUNET_ntohll (req->end_message_id),
+                                  &store_recv_fragment_history,
+                                  &store_recv_fragment_history_result, opcls);
+  else
+    GNUNET_PSYCSTORE_message_get_latest (store, &chn->pub_key, NULL,
+                                         GNUNET_ntohll (req->message_limit),
+                                         &store_recv_fragment_history,
+                                         &store_recv_fragment_history_result,
+                                         opcls);
+
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
+}
+
+
+/**
+ * Received state var from PSYCstore, send it to client.
+ */
+static int
+store_recv_state_var (void *cls, const char *name,
+                      const void *value, size_t value_size)
+{
+  struct OperationClosure *opcls = cls;
+  struct OperationResult *op;
+
+  if (NULL != name)
+  {
+    uint16_t name_size = strnlen (name, GNUNET_PSYC_MODIFIER_MAX_PAYLOAD) + 1;
+    struct GNUNET_PSYC_MessageModifier *mod;
+    op = GNUNET_malloc (sizeof (*op) + sizeof (*mod) + name_size + value_size);
+    op->header.size = htons (sizeof (*op) + sizeof (*mod) + name_size + value_size);
+    op->header.type = htons (GNUNET_MESSAGE_TYPE_PSYC_STATE_RESULT);
+    op->op_id = opcls->op_id;
+
+    mod = (struct GNUNET_PSYC_MessageModifier *) &op[1];
+    mod->header.size = htons (sizeof (*mod) + name_size + value_size);
+    mod->header.type = htons (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MODIFIER);
+    mod->name_size = htons (name_size);
+    mod->value_size = htonl (value_size);
+    mod->oper = htons (GNUNET_ENV_OP_ASSIGN);
+    memcpy (&mod[1], name, name_size);
+    memcpy (((char *) &mod[1]) + name_size, value, value_size);
+  }
+  else
+  {
+    struct GNUNET_MessageHeader *mod;
+    op = GNUNET_malloc (sizeof (*op) + sizeof (*mod) + value_size);
+    op->header.size = htons (sizeof (*op) + sizeof (*mod) + value_size);
+    op->header.type = htons (GNUNET_MESSAGE_TYPE_PSYC_STATE_RESULT);
+    op->op_id = opcls->op_id;
+
+    mod = (struct GNUNET_MessageHeader *) &op[1];
+    mod->size = htons (sizeof (*mod) + value_size);
+    mod->type = htons (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MOD_CONT);
+    memcpy (&mod[1], value, value_size);
+  }
+
+  GNUNET_SERVER_notification_context_add (nc, opcls->client);
+  GNUNET_SERVER_notification_context_unicast (nc, opcls->client, &op->header,
+                                              GNUNET_NO);
+  return GNUNET_YES;
+}
+
+
+/**
+ * Received result of GNUNET_PSYCSTORE_state_get()
+ * or GNUNET_PSYCSTORE_state_get_prefix()
+ */
+static void
+store_recv_state_result (void *cls, int64_t result, const char *err_msg)
+{
+  struct OperationClosure *opcls = cls;
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "%p History replay #%" PRIu64 ": "
+              "PSYCSTORE returned %" PRId64 " (%s)\n",
+              opcls->chn, opcls->op_id, result, err_msg);
+
+  client_send_result (opcls->client, opcls->op_id, result, err_msg);
 }
 
 
@@ -2109,7 +2294,30 @@ static void
 client_recv_state_get (void *cls, struct GNUNET_SERVER_Client *client,
                        const struct GNUNET_MessageHeader *msg)
 {
+  struct Channel *
+    chn = GNUNET_SERVER_client_get_user_context (client, struct Channel);
+  GNUNET_assert (NULL != chn);
 
+  const struct StateRequest *
+    req = (const struct StateRequest *) msg;
+
+  uint16_t name_size = ntohs (req->header.size) - sizeof (*req);
+  const char *name = (const char *) &req[1];
+  if (0 == name_size || '\0' != name[name_size - 1])
+  {
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+
+  struct OperationClosure *opcls = GNUNET_malloc (sizeof (*opcls));
+  opcls->client = client;
+  opcls->chn = chn;
+  opcls->op_id = req->op_id;
+
+  GNUNET_PSYCSTORE_state_get (store, &chn->pub_key, name,
+                              &store_recv_state_var,
+                              &store_recv_state_result, opcls);
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 }
 
 
@@ -2120,6 +2328,30 @@ static void
 client_recv_state_get_prefix (void *cls, struct GNUNET_SERVER_Client *client,
                               const struct GNUNET_MessageHeader *msg)
 {
+  struct Channel *
+    chn = GNUNET_SERVER_client_get_user_context (client, struct Channel);
+  GNUNET_assert (NULL != chn);
+
+  const struct StateRequest *
+    req = (const struct StateRequest *) msg;
+
+  uint16_t name_size = ntohs (req->header.size) - sizeof (*req);
+  const char *name = (const char *) &req[1];
+  if (0 == name_size || '\0' != name[name_size - 1])
+  {
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
+    return;
+  }
+
+  struct OperationClosure *opcls = GNUNET_malloc (sizeof (*opcls));
+  opcls->client = client;
+  opcls->chn = chn;
+  opcls->op_id = req->op_id;
+
+  GNUNET_PSYCSTORE_state_get_prefix (store, &chn->pub_key, name,
+                                     &store_recv_state_var,
+                                     &store_recv_state_result, opcls);
+  GNUNET_SERVER_receive_done (client, GNUNET_OK);
 
 }
 
@@ -2140,8 +2372,8 @@ static const struct GNUNET_SERVER_MessageHandler server_handlers[] = {
   { &client_recv_membership_store, NULL,
     GNUNET_MESSAGE_TYPE_PSYC_CHANNEL_MEMBERSHIP_STORE, 0 },
 
-  { &client_recv_story_request, NULL,
-    GNUNET_MESSAGE_TYPE_PSYC_STORY_REQUEST, 0 },
+  { &client_recv_history_replay, NULL,
+    GNUNET_MESSAGE_TYPE_PSYC_HISTORY_REPLAY, 0 },
 
   { &client_recv_state_get, NULL,
     GNUNET_MESSAGE_TYPE_PSYC_STATE_GET, 0 },

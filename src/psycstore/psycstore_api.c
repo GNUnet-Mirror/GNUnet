@@ -25,6 +25,8 @@
  * @author Christian Grothoff
  */
 
+#include <inttypes.h>
+
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_constants.h"
@@ -76,7 +78,7 @@ struct GNUNET_PSYCSTORE_OperationHandle
   /**
    * Operation ID.
    */
-  uint32_t op_id;
+  uint64_t op_id;
 
   /**
    * Message to send to the PSYCstore service.
@@ -137,15 +139,14 @@ struct GNUNET_PSYCSTORE_Handle
   struct GNUNET_TIME_Relative reconnect_delay;
 
   /**
-   * Are we polling for incoming messages right now?
+   * Last operation ID used.
    */
-  int in_receive;
+  uint64_t last_op_id;
 
   /**
-   * The last operation id used for a PSYCstore operation.
+   * Are we polling for incoming messages right now?
    */
-  uint32_t last_op_id_used;
-
+  uint8_t in_receive;
 };
 
 
@@ -155,10 +156,10 @@ struct GNUNET_PSYCSTORE_Handle
  * @param h Handle to the PSYCstore service.
  * @return next operation id to use
  */
-static uint32_t
+static uint64_t
 get_next_op_id (struct GNUNET_PSYCSTORE_Handle *h)
 {
-  return h->last_op_id_used++;
+  return h->last_op_id++;
 }
 
 
@@ -168,7 +169,7 @@ get_next_op_id (struct GNUNET_PSYCSTORE_Handle *h)
  * @return OperationHandle if found, or NULL otherwise.
  */
 static struct GNUNET_PSYCSTORE_OperationHandle *
-find_op_by_id (struct GNUNET_PSYCSTORE_Handle *h, uint32_t op_id)
+find_op_by_id (struct GNUNET_PSYCSTORE_Handle *h, uint64_t op_id)
 {
   struct GNUNET_PSYCSTORE_OperationHandle *op = h->op_head;
   while (NULL != op)
@@ -284,19 +285,20 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
     if (size == sizeof (struct OperationResult))
       str = NULL;
 
-    op = find_op_by_id (h, ntohl (opres->op_id));
+    op = find_op_by_id (h, GNUNET_ntohll (opres->op_id));
     if (NULL == op)
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG,
-           "No callback registered for operation with ID %ld.\n",
-           type, ntohl (opres->op_id));
+           "No callback registered for operation with ID %" PRIu64 ".\n",
+           type, GNUNET_ntohll (opres->op_id));
     }
     else
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG,
-           "Received result message (type %d) with operation ID: %ld\n",
+           "Received result message (type %d) with operation ID: %" PRIu64 "\n",
            type, op->op_id);
 
+      int64_t result_code = GNUNET_ntohll (opres->result_code) + INT64_MIN;
       GNUNET_CONTAINER_DLL_remove (h->op_head, h->op_tail, op);
       if (NULL != op->res_cb)
       {
@@ -307,19 +309,19 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
         case GNUNET_MESSAGE_TYPE_PSYCSTORE_STATE_MODIFY:
           smreq = (const struct StateModifyRequest *) op->msg;
           if (!(smreq->flags & STATE_OP_LAST
-                || GNUNET_OK != ntohl (opres->result_code)))
+                || GNUNET_OK != result_code))
             op->res_cb = NULL;
           break;
         case GNUNET_MESSAGE_TYPE_PSYCSTORE_STATE_SYNC:
           ssreq = (const struct StateSyncRequest *) op->msg;
           if (!(ssreq->flags & STATE_OP_LAST
-                || GNUNET_OK != ntohl (opres->result_code)))
+                || GNUNET_OK != result_code))
             op->res_cb = NULL;
           break;
         }
       }
       if (NULL != op->res_cb)
-        op->res_cb (op->cls, ntohl (opres->result_code), str);
+        op->res_cb (op->cls, result_code, str);
       GNUNET_free (op);
     }
     break;
@@ -338,19 +340,20 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
 
     cres = (const struct CountersResult *) msg;
 
-    op = find_op_by_id (h, ntohl (cres->op_id));
+    op = find_op_by_id (h, GNUNET_ntohll (cres->op_id));
     if (NULL == op)
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG,
-           "No callback registered for operation with ID %ld.\n",
-           type, ntohl (cres->op_id));
+           "No callback registered for operation with ID %" PRIu64 ".\n",
+           type, GNUNET_ntohll (cres->op_id));
     }
     else
     {
       GNUNET_CONTAINER_DLL_remove (h->op_head, h->op_tail, op);
       if (NULL != op->data_cb)
         ((GNUNET_PSYCSTORE_CountersCallback)
-         op->data_cb) (op->cls, ntohl (cres->result_code),
+         op->data_cb) (op->cls,
+                       ntohl (cres->result_code) + INT32_MIN,
                        GNUNET_ntohll (cres->max_fragment_id),
                        GNUNET_ntohll (cres->max_message_id),
                        GNUNET_ntohll (cres->max_group_generation),
@@ -386,12 +389,12 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
       return;
     }
 
-    op = find_op_by_id (h, ntohl (fres->op_id));
+    op = find_op_by_id (h, GNUNET_ntohll (fres->op_id));
     if (NULL == op)
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG,
-           "No callback registered for operation with ID %ld.\n",
-           type, ntohl (fres->op_id));
+           "No callback registered for operation with ID %" PRIu64 ".\n",
+           type, GNUNET_ntohll (fres->op_id));
     }
     else
     {
@@ -427,12 +430,12 @@ message_handler (void *cls, const struct GNUNET_MessageHeader *msg)
       return;
     }
 
-    op = find_op_by_id (h, ntohl (sres->op_id));
+    op = find_op_by_id (h, GNUNET_ntohll (sres->op_id));
     if (NULL == op)
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG,
-           "No callback registered for operation with ID %ld.\n",
-           type, ntohl (sres->op_id));
+           "No callback registered for operation with ID %" PRIu64 ".\n",
+           type, GNUNET_ntohll (sres->op_id));
     }
     else
     {
@@ -479,7 +482,7 @@ send_next_message (void *cls, size_t size, void *buf)
     return 0;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-       "Sending message of type %d to PSYCstore service. ID: %u\n",
+       "Sending message of type %d to PSYCstore service. ID: %" PRIu64 "\n",
        ntohs (op->msg->type), op->op_id);
   memcpy (buf, op->msg, ret);
 
@@ -682,8 +685,8 @@ GNUNET_PSYCSTORE_membership_store (struct GNUNET_PSYCSTORE_Handle *h,
                  : effective_since == 0);
 
   struct MembershipStoreRequest *req;
-  struct GNUNET_PSYCSTORE_OperationHandle *op
-    = GNUNET_malloc (sizeof (*op) + sizeof (*req));
+  struct GNUNET_PSYCSTORE_OperationHandle *
+    op = GNUNET_malloc (sizeof (*op) + sizeof (*req));
   op->h = h;
   op->res_cb = rcb;
   op->cls = rcb_cls;
@@ -700,7 +703,7 @@ GNUNET_PSYCSTORE_membership_store (struct GNUNET_PSYCSTORE_Handle *h,
   req->group_generation = GNUNET_htonll (group_generation);
 
   op->op_id = get_next_op_id (h);
-  req->op_id = htonl (op->op_id);
+  req->op_id = GNUNET_htonll (op->op_id);
 
   GNUNET_CONTAINER_DLL_insert_tail (h->transmit_head, h->transmit_tail, op);
   transmit_next (h);
@@ -746,8 +749,8 @@ GNUNET_PSYCSTORE_membership_test (struct GNUNET_PSYCSTORE_Handle *h,
                                   void *rcb_cls)
 {
   struct MembershipTestRequest *req;
-  struct GNUNET_PSYCSTORE_OperationHandle *op
-    = GNUNET_malloc (sizeof (*op) + sizeof (*req));
+  struct GNUNET_PSYCSTORE_OperationHandle *
+    op = GNUNET_malloc (sizeof (*op) + sizeof (*req));
   op->h = h;
   op->res_cb = rcb;
   op->cls = rcb_cls;
@@ -762,7 +765,7 @@ GNUNET_PSYCSTORE_membership_test (struct GNUNET_PSYCSTORE_Handle *h,
   req->group_generation = GNUNET_htonll (group_generation);
 
   op->op_id = get_next_op_id (h);
-  req->op_id = htonl (op->op_id);
+  req->op_id = GNUNET_htonll (op->op_id);
 
   GNUNET_CONTAINER_DLL_insert_tail (h->transmit_head, h->transmit_tail, op);
   transmit_next (h);
@@ -794,8 +797,8 @@ GNUNET_PSYCSTORE_fragment_store (struct GNUNET_PSYCSTORE_Handle *h,
 {
   uint16_t size = ntohs (msg->header.size);
   struct FragmentStoreRequest *req;
-  struct GNUNET_PSYCSTORE_OperationHandle *op
-    = GNUNET_malloc (sizeof (*op) + sizeof (*req) + size);
+  struct GNUNET_PSYCSTORE_OperationHandle *
+    op = GNUNET_malloc (sizeof (*op) + sizeof (*req) + size);
   op->h = h;
   op->res_cb = rcb;
   op->cls = rcb_cls;
@@ -809,7 +812,7 @@ GNUNET_PSYCSTORE_fragment_store (struct GNUNET_PSYCSTORE_Handle *h,
   memcpy (&req[1], msg, size);
 
   op->op_id = get_next_op_id (h);
-  req->op_id = htonl (op->op_id);
+  req->op_id = GNUNET_htonll (op->op_id);
 
   GNUNET_CONTAINER_DLL_insert_tail (h->transmit_head, h->transmit_tail, op);
   transmit_next (h);
@@ -819,7 +822,7 @@ GNUNET_PSYCSTORE_fragment_store (struct GNUNET_PSYCSTORE_Handle *h,
 
 
 /**
- * Retrieve a message fragment by fragment ID.
+ * Retrieve message fragments by fragment ID range.
  *
  * @param h
  *        Handle for the PSYCstore.
@@ -829,9 +832,15 @@ GNUNET_PSYCSTORE_fragment_store (struct GNUNET_PSYCSTORE_Handle *h,
  *        The slave requesting the fragment.  If not NULL, a membership test is
  *        performed first and the fragment is only returned if the slave has
  *        access to it.
- * @param fragment_id
- *        Fragment ID to retrieve.  Use 0 to get the latest message fragment.
- * @param fcb
+ * @param first_fragment_id
+ *        First fragment ID to retrieve.
+ *        Use 0 to get the latest message fragment.
+ * @param last_fragment_id
+ *        Last consecutive fragment ID to retrieve.
+ *        Use 0 to get the latest message fragment.
+ * @param fragment_limit
+ *        Maximum number of fragments to retrieve.
+ * @param fragment_cb
  *        Callback to call with the retrieved fragments.
  * @param rcb
  *        Callback to call with the result of the operation.
@@ -844,16 +853,17 @@ struct GNUNET_PSYCSTORE_OperationHandle *
 GNUNET_PSYCSTORE_fragment_get (struct GNUNET_PSYCSTORE_Handle *h,
                                const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
                                const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
-                               uint64_t fragment_id,
-                               GNUNET_PSYCSTORE_FragmentCallback fcb,
+                               uint64_t first_fragment_id,
+                               uint64_t last_fragment_id,
+                               GNUNET_PSYCSTORE_FragmentCallback fragment_cb,
                                GNUNET_PSYCSTORE_ResultCallback rcb,
                                void *cls)
 {
   struct FragmentGetRequest *req;
-  struct GNUNET_PSYCSTORE_OperationHandle *op
-    = GNUNET_malloc (sizeof (*op) + sizeof (*req));
+  struct GNUNET_PSYCSTORE_OperationHandle *
+    op = GNUNET_malloc (sizeof (*op) + sizeof (*req));
   op->h = h;
-  op->data_cb = (DataCallback) fcb;
+  op->data_cb = (DataCallback) fragment_cb;
   op->res_cb = rcb;
   op->cls = cls;
 
@@ -862,7 +872,8 @@ GNUNET_PSYCSTORE_fragment_get (struct GNUNET_PSYCSTORE_Handle *h,
   req->header.type = htons (GNUNET_MESSAGE_TYPE_PSYCSTORE_FRAGMENT_GET);
   req->header.size = htons (sizeof (*req));
   req->channel_key = *channel_key;
-  req->fragment_id = GNUNET_htonll (fragment_id);
+  req->first_fragment_id = GNUNET_htonll (first_fragment_id);
+  req->last_fragment_id = GNUNET_htonll (last_fragment_id);
   if (NULL != slave_key)
   {
     req->slave_key = *slave_key;
@@ -870,7 +881,7 @@ GNUNET_PSYCSTORE_fragment_get (struct GNUNET_PSYCSTORE_Handle *h,
   }
 
   op->op_id = get_next_op_id (h);
-  req->op_id = htonl (op->op_id);
+  req->op_id = GNUNET_htonll (op->op_id);
 
   GNUNET_CONTAINER_DLL_insert_tail (h->transmit_head, h->transmit_tail, op);
   transmit_next (h);
@@ -880,7 +891,74 @@ GNUNET_PSYCSTORE_fragment_get (struct GNUNET_PSYCSTORE_Handle *h,
 
 
 /**
- * Retrieve all fragments of a message.
+ * Retrieve latest message fragments.
+ *
+ * @param h
+ *        Handle for the PSYCstore.
+ * @param channel_key
+ *        The channel we are interested in.
+ * @param slave_key
+ *        The slave requesting the fragment.  If not NULL, a membership test is
+ *        performed first and the fragment is only returned if the slave has
+ *        access to it.
+ * @param first_fragment_id
+ *        First fragment ID to retrieve.
+ *        Use 0 to get the latest message fragment.
+ * @param last_fragment_id
+ *        Last consecutive fragment ID to retrieve.
+ *        Use 0 to get the latest message fragment.
+ * @param fragment_limit
+ *        Maximum number of fragments to retrieve.
+ * @param fragment_cb
+ *        Callback to call with the retrieved fragments.
+ * @param rcb
+ *        Callback to call with the result of the operation.
+ * @param cls
+ *        Closure for the callbacks.
+ *
+ * @return Handle that can be used to cancel the operation.
+ */
+struct GNUNET_PSYCSTORE_OperationHandle *
+GNUNET_PSYCSTORE_fragment_get_latest (struct GNUNET_PSYCSTORE_Handle *h,
+                                      const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
+                                      const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
+                                      uint64_t fragment_limit,
+                                      GNUNET_PSYCSTORE_FragmentCallback fragment_cb,
+                                      GNUNET_PSYCSTORE_ResultCallback rcb,
+                                      void *cls)
+{
+  struct FragmentGetRequest *req;
+  struct GNUNET_PSYCSTORE_OperationHandle *
+    op = GNUNET_malloc (sizeof (*op) + sizeof (*req));
+  op->h = h;
+  op->data_cb = (DataCallback) fragment_cb;
+  op->res_cb = rcb;
+  op->cls = cls;
+
+  req = (struct FragmentGetRequest *) &op[1];
+  op->msg = (struct GNUNET_MessageHeader *) req;
+  req->header.type = htons (GNUNET_MESSAGE_TYPE_PSYCSTORE_FRAGMENT_GET);
+  req->header.size = htons (sizeof (*req));
+  req->channel_key = *channel_key;
+  req->fragment_limit = GNUNET_ntohll (fragment_limit);
+  if (NULL != slave_key)
+  {
+    req->slave_key = *slave_key;
+    req->do_membership_test = GNUNET_YES;
+  }
+
+  op->op_id = get_next_op_id (h);
+  req->op_id = GNUNET_htonll (op->op_id);
+
+  GNUNET_CONTAINER_DLL_insert_tail (h->transmit_head, h->transmit_tail, op);
+  transmit_next (h);
+
+  return op;
+}
+
+
+/**
+ * Retrieve all fragments of messages in a message ID range.
  *
  * @param h
  *        Handle for the PSYCstore.
@@ -890,9 +968,13 @@ GNUNET_PSYCSTORE_fragment_get (struct GNUNET_PSYCSTORE_Handle *h,
  *        The slave requesting the message.  If not NULL, a membership test is
  *        performed first and the message is only returned if the slave has
  *        access to it.
- * @param message_id
- *        Message ID to retrieve.  Use 0 to get the latest message.
- * @param fcb
+ * @param first_message_id
+ *        First message ID to retrieve.
+ *        Use 0 to get the latest message.
+ * @param last_message_id
+ *        Last consecutive message ID to retrieve.
+ *        Use 0 to get the latest message.
+ * @param fragment_cb
  *        Callback to call with the retrieved fragments.
  * @param rcb
  *        Callback to call with the result of the operation.
@@ -905,16 +987,17 @@ struct GNUNET_PSYCSTORE_OperationHandle *
 GNUNET_PSYCSTORE_message_get (struct GNUNET_PSYCSTORE_Handle *h,
                               const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
                               const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
-                              uint64_t message_id,
-                              GNUNET_PSYCSTORE_FragmentCallback fcb,
+                              uint64_t first_message_id,
+                              uint64_t last_message_id,
+                              GNUNET_PSYCSTORE_FragmentCallback fragment_cb,
                               GNUNET_PSYCSTORE_ResultCallback rcb,
                               void *cls)
 {
   struct MessageGetRequest *req;
-  struct GNUNET_PSYCSTORE_OperationHandle *op
-    = GNUNET_malloc (sizeof (*op) + sizeof (*req));
+  struct GNUNET_PSYCSTORE_OperationHandle *
+    op = GNUNET_malloc (sizeof (*op) + sizeof (*req));
   op->h = h;
-  op->data_cb = (DataCallback) fcb;
+  op->data_cb = (DataCallback) fragment_cb;
   op->res_cb = rcb;
   op->cls = cls;
 
@@ -923,7 +1006,8 @@ GNUNET_PSYCSTORE_message_get (struct GNUNET_PSYCSTORE_Handle *h,
   req->header.type = htons (GNUNET_MESSAGE_TYPE_PSYCSTORE_MESSAGE_GET);
   req->header.size = htons (sizeof (*req));
   req->channel_key = *channel_key;
-  req->message_id = GNUNET_htonll (message_id);
+  req->first_message_id = GNUNET_htonll (first_message_id);
+  req->last_message_id = GNUNET_htonll (last_message_id);
   if (NULL != slave_key)
   {
     req->slave_key = *slave_key;
@@ -931,7 +1015,68 @@ GNUNET_PSYCSTORE_message_get (struct GNUNET_PSYCSTORE_Handle *h,
   }
 
   op->op_id = get_next_op_id (h);
-  req->op_id = htonl (op->op_id);
+  req->op_id = GNUNET_htonll (op->op_id);
+
+  GNUNET_CONTAINER_DLL_insert_tail (h->transmit_head, h->transmit_tail, op);
+  transmit_next (h);
+
+  return op;
+}
+
+
+/**
+ * Retrieve all fragments of the latest messages.
+ *
+ * @param h
+ *        Handle for the PSYCstore.
+ * @param channel_key
+ *        The channel we are interested in.
+ * @param slave_key
+ *        The slave requesting the message.  If not NULL, a membership test is
+ *        performed first and the message is only returned if the slave has
+ *        access to it.
+ * @param message_limit
+ *        Maximum number of messages to retrieve.
+ * @param fragment_cb
+ *        Callback to call with the retrieved fragments.
+ * @param rcb
+ *        Callback to call with the result of the operation.
+ * @param cls
+ *        Closure for the callbacks.
+ *
+ * @return Handle that can be used to cancel the operation.
+ */
+struct GNUNET_PSYCSTORE_OperationHandle *
+GNUNET_PSYCSTORE_message_get_latest (struct GNUNET_PSYCSTORE_Handle *h,
+                                     const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
+                                     const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
+                                     uint64_t message_limit,
+                                     GNUNET_PSYCSTORE_FragmentCallback fragment_cb,
+                                     GNUNET_PSYCSTORE_ResultCallback rcb,
+                                     void *cls)
+{
+  struct MessageGetRequest *req;
+  struct GNUNET_PSYCSTORE_OperationHandle *
+    op = GNUNET_malloc (sizeof (*op) + sizeof (*req));
+  op->h = h;
+  op->data_cb = (DataCallback) fragment_cb;
+  op->res_cb = rcb;
+  op->cls = cls;
+
+  req = (struct MessageGetRequest *) &op[1];
+  op->msg = (struct GNUNET_MessageHeader *) req;
+  req->header.type = htons (GNUNET_MESSAGE_TYPE_PSYCSTORE_MESSAGE_GET);
+  req->header.size = htons (sizeof (*req));
+  req->channel_key = *channel_key;
+  req->message_limit = GNUNET_ntohll (message_limit);
+  if (NULL != slave_key)
+  {
+    req->slave_key = *slave_key;
+    req->do_membership_test = GNUNET_YES;
+  }
+
+  op->op_id = get_next_op_id (h);
+  req->op_id = GNUNET_htonll (op->op_id);
 
   GNUNET_CONTAINER_DLL_insert_tail (h->transmit_head, h->transmit_tail, op);
   transmit_next (h);
@@ -956,9 +1101,9 @@ GNUNET_PSYCSTORE_message_get (struct GNUNET_PSYCSTORE_Handle *h,
  *        Message ID to retrieve.  Use 0 to get the latest message.
  * @param fragment_offset
  *        Offset of the fragment to retrieve.
- * @param fcb
+ * @param fragment_cb
  *        Callback to call with the retrieved fragments.
- * @param rcb
+ * @param result_cb
  *        Callback to call with the result of the operation.
  * @param cls
  *        Closure for the callbacks.
@@ -971,15 +1116,15 @@ GNUNET_PSYCSTORE_message_get_fragment (struct GNUNET_PSYCSTORE_Handle *h,
                                        const struct GNUNET_CRYPTO_EcdsaPublicKey *slave_key,
                                        uint64_t message_id,
                                        uint64_t fragment_offset,
-                                       GNUNET_PSYCSTORE_FragmentCallback fcb,
+                                       GNUNET_PSYCSTORE_FragmentCallback fragment_cb,
                                        GNUNET_PSYCSTORE_ResultCallback rcb,
                                        void *cls)
 {
   struct MessageGetFragmentRequest *req;
-  struct GNUNET_PSYCSTORE_OperationHandle *op
-    = GNUNET_malloc (sizeof (*op) + sizeof (*req));
+  struct GNUNET_PSYCSTORE_OperationHandle *
+    op = GNUNET_malloc (sizeof (*op) + sizeof (*req));
   op->h = h;
-  op->data_cb = (DataCallback) fcb;
+  op->data_cb = (DataCallback) fragment_cb;
   op->res_cb = rcb;
   op->cls = cls;
 
@@ -997,7 +1142,7 @@ GNUNET_PSYCSTORE_message_get_fragment (struct GNUNET_PSYCSTORE_Handle *h,
   }
 
   op->op_id = get_next_op_id (h);
-  req->op_id = htonl (op->op_id);
+  req->op_id = GNUNET_htonll (op->op_id);
 
   GNUNET_CONTAINER_DLL_insert_tail (h->transmit_head, h->transmit_tail, op);
   transmit_next (h);
@@ -1026,8 +1171,8 @@ GNUNET_PSYCSTORE_counters_get (struct GNUNET_PSYCSTORE_Handle *h,
                                void *ccb_cls)
 {
   struct OperationRequest *req;
-  struct GNUNET_PSYCSTORE_OperationHandle *op
-    = GNUNET_malloc (sizeof (*op) + sizeof (*req));
+  struct GNUNET_PSYCSTORE_OperationHandle *
+    op = GNUNET_malloc (sizeof (*op) + sizeof (*req));
   op->h = h;
   op->data_cb = ccb;
   op->cls = ccb_cls;
@@ -1039,7 +1184,7 @@ GNUNET_PSYCSTORE_counters_get (struct GNUNET_PSYCSTORE_Handle *h,
   req->channel_key = *channel_key;
 
   op->op_id = get_next_op_id (h);
-  req->op_id = htonl (op->op_id);
+  req->op_id = GNUNET_htonll (op->op_id);
 
   GNUNET_CONTAINER_DLL_insert_tail (h->transmit_head, h->transmit_tail, op);
   transmit_next (h);
@@ -1109,7 +1254,7 @@ GNUNET_PSYCSTORE_state_modify (struct GNUNET_PSYCSTORE_Handle *h,
     memcpy ((char *) &req[1] + name_size, modifiers[i].value, modifiers[i].value_size);
 
     op->op_id = get_next_op_id (h);
-    req->op_id = htonl (op->op_id);
+    req->op_id = GNUNET_htonll (op->op_id);
 
     GNUNET_CONTAINER_DLL_insert_tail (h->transmit_head, h->transmit_tail, op);
     transmit_next (h);
@@ -1175,7 +1320,7 @@ GNUNET_PSYCSTORE_state_sync (struct GNUNET_PSYCSTORE_Handle *h,
     memcpy ((char *) &req[1] + name_size, modifiers[i].value, modifiers[i].value_size);
 
     op->op_id = get_next_op_id (h);
-    req->op_id = htonl (op->op_id);
+    req->op_id = GNUNET_htonll (op->op_id);
 
     GNUNET_CONTAINER_DLL_insert_tail (h->transmit_head, h->transmit_tail, op);
     transmit_next (h);
@@ -1204,8 +1349,8 @@ GNUNET_PSYCSTORE_state_reset (struct GNUNET_PSYCSTORE_Handle *h,
                               void *rcb_cls)
 {
   struct OperationRequest *req;
-  struct GNUNET_PSYCSTORE_OperationHandle *op
-    = GNUNET_malloc (sizeof (*op) + sizeof (*req));
+  struct GNUNET_PSYCSTORE_OperationHandle *
+    op = GNUNET_malloc (sizeof (*op) + sizeof (*req));
   op->h = h;
   op->res_cb = rcb;
   op->cls = rcb_cls;
@@ -1217,7 +1362,7 @@ GNUNET_PSYCSTORE_state_reset (struct GNUNET_PSYCSTORE_Handle *h,
   req->channel_key = *channel_key;
 
   op->op_id = get_next_op_id (h);
-  req->op_id = htonl (op->op_id);
+  req->op_id = GNUNET_htonll (op->op_id);
 
   GNUNET_CONTAINER_DLL_insert_tail (h->transmit_head, h->transmit_tail, op);
   transmit_next (h);
@@ -1247,8 +1392,8 @@ GNUNET_PSYCSTORE_state_hash_update (struct GNUNET_PSYCSTORE_Handle *h,
                                     void *rcb_cls)
 {
   struct StateHashUpdateRequest *req;
-  struct GNUNET_PSYCSTORE_OperationHandle *op
-    = GNUNET_malloc (sizeof (*op) + sizeof (*req));
+  struct GNUNET_PSYCSTORE_OperationHandle *
+    op = GNUNET_malloc (sizeof (*op) + sizeof (*req));
   op->h = h;
   op->res_cb = rcb;
   op->cls = rcb_cls;
@@ -1261,7 +1406,7 @@ GNUNET_PSYCSTORE_state_hash_update (struct GNUNET_PSYCSTORE_Handle *h,
   req->hash = *hash;
 
   op->op_id = get_next_op_id (h);
-  req->op_id = htonl (op->op_id);
+  req->op_id = GNUNET_htonll (op->op_id);
 
   GNUNET_CONTAINER_DLL_insert_tail (h->transmit_head, h->transmit_tail, op);
   transmit_next (h);
@@ -1292,8 +1437,8 @@ GNUNET_PSYCSTORE_state_get (struct GNUNET_PSYCSTORE_Handle *h,
 {
   size_t name_size = strlen (name) + 1;
   struct OperationRequest *req;
-  struct GNUNET_PSYCSTORE_OperationHandle *op
-    = GNUNET_malloc (sizeof (*op) + sizeof (*req) + name_size);
+  struct GNUNET_PSYCSTORE_OperationHandle *
+    op = GNUNET_malloc (sizeof (*op) + sizeof (*req) + name_size);
   op->h = h;
   op->data_cb = (DataCallback) scb;
   op->res_cb = rcb;
@@ -1307,7 +1452,7 @@ GNUNET_PSYCSTORE_state_get (struct GNUNET_PSYCSTORE_Handle *h,
   memcpy (&req[1], name, name_size);
 
   op->op_id = get_next_op_id (h);
-  req->op_id = htonl (op->op_id);
+  req->op_id = GNUNET_htonll (op->op_id);
 
   GNUNET_CONTAINER_DLL_insert_tail (h->transmit_head, h->transmit_tail, op);
   transmit_next (h);
@@ -1339,8 +1484,8 @@ GNUNET_PSYCSTORE_state_get_prefix (struct GNUNET_PSYCSTORE_Handle *h,
 {
   size_t name_size = strlen (name_prefix) + 1;
   struct OperationRequest *req;
-  struct GNUNET_PSYCSTORE_OperationHandle *op
-    = GNUNET_malloc (sizeof (*op) + sizeof (*req) + name_size);
+  struct GNUNET_PSYCSTORE_OperationHandle *
+    op = GNUNET_malloc (sizeof (*op) + sizeof (*req) + name_size);
   op->h = h;
   op->data_cb = (DataCallback) scb;
   op->res_cb = rcb;
@@ -1354,7 +1499,7 @@ GNUNET_PSYCSTORE_state_get_prefix (struct GNUNET_PSYCSTORE_Handle *h,
   memcpy (&req[1], name_prefix, name_size);
 
   op->op_id = get_next_op_id (h);
-  req->op_id = htonl (op->op_id);
+  req->op_id = GNUNET_htonll (op->op_id);
 
   GNUNET_CONTAINER_DLL_insert_tail (h->transmit_head, h->transmit_tail, op);
   transmit_next (h);

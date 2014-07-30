@@ -204,11 +204,17 @@ run (void *cls, char *const *args, const char *cfgfile,
   msg->header.type = htons (GNUNET_MESSAGE_TYPE_MULTICAST_MESSAGE);
   msg->header.size = htons (sizeof (*msg) + sizeof (channel_pub_key));
 
+  uint64_t fragment_id = INT64_MAX - 1;
+  msg->fragment_id = GNUNET_htonll (fragment_id);
+
+  uint64_t message_id = INT64_MAX - 10;
+  msg->message_id = GNUNET_htonll (message_id);
+
+  uint64_t group_generation = INT64_MAX - 3;
+  msg->group_generation = GNUNET_htonll (group_generation);
+
   msg->hop_counter = htonl (9);
-  msg->fragment_id = GNUNET_htonll (INT64_MAX - 1);
   msg->fragment_offset = GNUNET_htonll (0);
-  msg->message_id = GNUNET_htonll (INT64_MAX - 10);
-  msg->group_generation = GNUNET_htonll (INT64_MAX - 3);
   msg->flags = htonl (GNUNET_MULTICAST_MESSAGE_LAST_FRAGMENT);
 
   memcpy (&msg[1], &channel_pub_key, sizeof (channel_pub_key));
@@ -225,13 +231,18 @@ run (void *cls, char *const *args, const char *cfgfile,
   fcls.msg[0] = msg;
   fcls.flags[0] = GNUNET_PSYCSTORE_MESSAGE_STATE;
 
-  GNUNET_assert (GNUNET_OK == db->fragment_store (db->cls, &channel_pub_key, msg,
-                                           fcls.flags[0]));
+  GNUNET_assert (
+    GNUNET_OK == db->fragment_store (db->cls, &channel_pub_key, msg,
+                                     fcls.flags[0]));
 
-  GNUNET_assert (GNUNET_OK == db->fragment_get (db->cls, &channel_pub_key,
-                                         GNUNET_ntohll (msg->fragment_id),
-                                         fragment_cb, &fcls));
+  uint64_t ret_frags = 0;
+  GNUNET_assert (
+    GNUNET_OK == db->fragment_get (db->cls, &channel_pub_key,
+                                   fragment_id, fragment_id,
+                                   &ret_frags, fragment_cb, &fcls));
   GNUNET_assert (fcls.n == 1);
+
+  // FIXME: test fragment_get_latest and message_get_latest
 
   fcls.n = 0;
 
@@ -250,9 +261,10 @@ run (void *cls, char *const *args, const char *cfgfile,
   fcls.n = 0;
   fcls.flags[0] |= GNUNET_PSYCSTORE_MESSAGE_STATE_APPLIED;
 
-  GNUNET_assert (GNUNET_OK == db->fragment_get (db->cls, &channel_pub_key,
-                                                GNUNET_ntohll (msg->fragment_id),
-                                                fragment_cb, &fcls));
+  GNUNET_assert (
+    GNUNET_OK == db->fragment_get (db->cls, &channel_pub_key,
+                                   fragment_id, fragment_id,
+                                   &ret_frags, fragment_cb, &fcls));
   GNUNET_assert (fcls.n == 1);
 
   struct GNUNET_MULTICAST_MessageHeader *msg1
@@ -270,15 +282,17 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_assert (GNUNET_OK == db->fragment_store (db->cls, &channel_pub_key, msg1,
                                                   fcls.flags[1]));
 
-  uint64_t retfrags = 0;
-  GNUNET_assert (GNUNET_OK == db->message_get (db->cls, &channel_pub_key,
-                                               GNUNET_ntohll (msg->message_id),
-                                               &retfrags, fragment_cb, &fcls));
-  GNUNET_assert (fcls.n == 2 && retfrags == 2);
+  GNUNET_assert (
+    GNUNET_OK == db->message_get (db->cls, &channel_pub_key,
+                                  message_id, message_id,
+                                  &ret_frags, fragment_cb, &fcls));
+  GNUNET_assert (fcls.n == 2 && ret_frags == 2);
 
   /* Message counters */
 
-  uint64_t fragment_id = 0, message_id = 0, group_generation = 0;
+  fragment_id = 0;
+  message_id = 0;
+  group_generation = 0;
   GNUNET_assert (
     GNUNET_OK == db->counters_message_get (db->cls, &channel_pub_key,
                                            &fragment_id, &message_id,

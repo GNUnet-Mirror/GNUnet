@@ -25,6 +25,8 @@
  * @author Christian Grothoff
  */
 
+#include <inttypes.h>
+
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_common.h"
@@ -302,19 +304,22 @@ fragment_result (void *cls,
                  enum GNUNET_PSYCSTORE_MessageFlags flags)
 {
   struct FragmentClosure *fcls = cls;
+  GNUNET_assert (fcls->n < fcls->n_expected);
   struct GNUNET_MULTICAST_MessageHeader *msg0 = fcls->msg[fcls->n];
   uint64_t flags0 = fcls->flags[fcls->n++];
 
   if (flags == flags0 && msg->header.size == msg0->header.size
       && 0 == memcmp (msg, msg0, ntohs (msg->header.size)))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  fragment %llu matches\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, "  fragment %" PRIu64 " matches\n",
                 GNUNET_ntohll (msg->fragment_id));
     return GNUNET_YES;
   }
   else
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "  fragment %llu differs\n",
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                "  fragment differs: expected %" PRIu64 ", got %" PRIu64 "\n",
+                GNUNET_ntohll (msg0->fragment_id),
                 GNUNET_ntohll (msg->fragment_id));
     GNUNET_assert (0);
     return GNUNET_SYSERR;
@@ -323,13 +328,12 @@ fragment_result (void *cls,
 
 
 void
-message_get_result (void *cls, int64_t result, const char *err_msg)
+message_get_latest_result (void *cls, int64_t result, const char *err_msg)
 {
   struct FragmentClosure *fcls = cls;
   op = NULL;
-  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "message_get:\t%d\n", result);
-  GNUNET_assert (result > 0 && fcls->n && fcls->n_expected);
-
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "message_get_latest:\t%d\n", result);
+  GNUNET_assert (0 < result && fcls->n == fcls->n_expected);
 
   modifiers[0] = (struct GNUNET_ENV_Modifier) {
     .oper = '=',
@@ -351,19 +355,54 @@ message_get_result (void *cls, int64_t result, const char *err_msg)
 
 
 void
+message_get_result (void *cls, int64_t result, const char *err_msg)
+{
+  struct FragmentClosure *fcls = cls;
+  op = NULL;
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "message_get:\t%d\n", result);
+  GNUNET_assert (0 < result && fcls->n == fcls->n_expected);
+
+  fcls->n = 0;
+  fcls->n_expected = 3;
+  op = GNUNET_PSYCSTORE_message_get_latest (h, &channel_pub_key, &slave_pub_key,
+                                            1, &fragment_result,
+                                            &message_get_latest_result, fcls);
+}
+
+
+void
 message_get_fragment_result (void *cls, int64_t result, const char *err_msg)
 {
   struct FragmentClosure *fcls = cls;
   op = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "message_get_fragment:\t%d\n", result);
-  GNUNET_assert (result > 0 && fcls->n && fcls->n_expected);
+  GNUNET_assert (0 < result && fcls->n == fcls->n_expected);
 
   fcls->n = 0;
   fcls->n_expected = 3;
+  uint64_t message_id = GNUNET_ntohll (fcls->msg[0]->message_id);
   op = GNUNET_PSYCSTORE_message_get (h, &channel_pub_key, &slave_pub_key,
-                                     GNUNET_ntohll (fcls->msg[0]->message_id),
+                                     message_id, message_id,
                                      &fragment_result,
                                      &message_get_result, fcls);
+}
+
+
+void
+fragment_get_latest_result (void *cls, int64_t result, const char *err_msg)
+{
+  struct FragmentClosure *fcls = cls;
+  op = NULL;
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "fragment_get_latest:\t%d\n", result);
+  GNUNET_assert (0 < result && fcls->n == fcls->n_expected);
+
+  fcls->n = 1;
+  fcls->n_expected = 2;
+  op = GNUNET_PSYCSTORE_message_get_fragment (h, &channel_pub_key, &slave_pub_key,
+                                              GNUNET_ntohll (fcls->msg[1]->message_id),
+                                              GNUNET_ntohll (fcls->msg[1]->fragment_offset),
+                                              &fragment_result,
+                                              &message_get_fragment_result, fcls);
 }
 
 
@@ -373,17 +412,14 @@ fragment_get_result (void *cls, int64_t result, const char *err_msg)
   struct FragmentClosure *fcls = cls;
   op = NULL;
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "fragment_get:\t%d\n", result);
-  GNUNET_assert (result > 0 && fcls->n && fcls->n_expected);
+  GNUNET_assert (0 < result && fcls->n == fcls->n_expected);
 
-  fcls->n = 1;
-  fcls->n_expected = 2;
-  op = GNUNET_PSYCSTORE_message_get_fragment (h, &channel_pub_key, &slave_pub_key,
-                                              GNUNET_ntohll (fcls->msg[1]->message_id),
-                                              GNUNET_ntohll (fcls->msg[1]->fragment_offset),
-                                              &fragment_result,
-                                              &message_get_fragment_result,
-                                              fcls);
-
+  fcls->n = 0;
+  fcls->n_expected = 3;
+  op = GNUNET_PSYCSTORE_fragment_get_latest (h, &channel_pub_key,
+                                             &slave_pub_key, fcls->n_expected,
+                                             &fragment_result,
+                                             &fragment_get_latest_result, fcls);
 }
 
 
@@ -398,8 +434,9 @@ fragment_store_result (void *cls, int64_t result, const char *err_msg)
   { /* last fragment */
     fcls.n = 0;
     fcls.n_expected = 1;
+    uint64_t fragment_id = GNUNET_ntohll (fcls.msg[0]->fragment_id);
     op = GNUNET_PSYCSTORE_fragment_get (h, &channel_pub_key, &slave_pub_key,
-                                        GNUNET_ntohll (fcls.msg[0]->fragment_id),
+                                        fragment_id, fragment_id,
                                         &fragment_result,
                                         &fragment_get_result, &fcls);
   }

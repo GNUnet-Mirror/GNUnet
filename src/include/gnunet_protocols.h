@@ -2187,10 +2187,10 @@ extern "C"
 /* 700 */
 
 /** C->S: client requests channel history from PSYCstore. */
-#define GNUNET_MESSAGE_TYPE_PSYC_STORY_REQUEST 701
+#define GNUNET_MESSAGE_TYPE_PSYC_HISTORY_REPLAY 701
 
 /** S->C: result for a channel history request */
-#define GNUNET_MESSAGE_TYPE_PSYC_STORY_RESULT 702
+#define GNUNET_MESSAGE_TYPE_PSYC_HISTORY_RESULT 702
 
 
 /** C->S: request best matching state variable from PSYCstore. */

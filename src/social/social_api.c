@@ -640,8 +640,9 @@ host_recv_enter_ack (void *cls,
 
   struct GNUNET_PSYC_CountersResultMessage *
     cres = (struct GNUNET_PSYC_CountersResultMessage *) msg;
+  int32_t result = ntohl (cres->result_code) + INT32_MIN;
   if (NULL != hst->enter_cb)
-    hst->enter_cb (hst->cb_cls, GNUNET_ntohll (cres->max_message_id));
+    hst->enter_cb (hst->cb_cls, result, GNUNET_ntohll (cres->max_message_id));
 }
 
 
@@ -704,9 +705,9 @@ guest_recv_enter_ack (void *cls,
 
   struct GNUNET_PSYC_CountersResultMessage *
     cres = (struct GNUNET_PSYC_CountersResultMessage *) msg;
+  int32_t result = ntohl (cres->result_code) + INT32_MIN;
   if (NULL != gst->enter_cb)
-    gst->enter_cb (gst->cb_cls, ntohl (cres->result_code),
-                   GNUNET_ntohll (cres->max_message_id));
+    gst->enter_cb (gst->cb_cls, result, GNUNET_ntohll (cres->max_message_id));
 }
 
 
@@ -734,7 +735,7 @@ static struct GNUNET_CLIENT_MANAGER_MessageHandler host_handlers[] =
 {
   { &host_recv_enter_ack, NULL,
     GNUNET_MESSAGE_TYPE_SOCIAL_HOST_ENTER_ACK,
-    sizeof (struct CountersResult), GNUNET_NO },
+    sizeof (struct GNUNET_PSYC_CountersResultMessage), GNUNET_NO },
 
   { &host_recv_enter_request, NULL,
     GNUNET_MESSAGE_TYPE_PSYC_JOIN_REQUEST,
@@ -758,7 +759,7 @@ static struct GNUNET_CLIENT_MANAGER_MessageHandler guest_handlers[] =
 {
   { &guest_recv_enter_ack, NULL,
     GNUNET_MESSAGE_TYPE_SOCIAL_GUEST_ENTER_ACK,
-    sizeof (struct CountersResult), GNUNET_NO },
+    sizeof (struct GNUNET_PSYC_CountersResultMessage), GNUNET_NO },
 
   { &host_recv_enter_request, NULL,
     GNUNET_MESSAGE_TYPE_PSYC_JOIN_REQUEST,
@@ -1598,18 +1599,22 @@ struct GNUNET_SOCIAL_WatchHandle;
 /**
  * Watch a place for changed objects.
  *
- * @param place Place to watch.
- * @param object_filter Object prefix to match.
- * @param state_cb Function to call when an object/state changes.
- * @param state_cb_cls Closure for callback.
+ * @param place
+ *        Place to watch.
+ * @param object_filter
+ *        Object prefix to match.
+ * @param state_var_cb
+ *        Function to call when an object/state var changes.
+ * @param cls
+ *        Closure for callback.
  *
  * @return Handle that can be used to cancel watching.
  */
 struct GNUNET_SOCIAL_WatchHandle *
 GNUNET_SOCIAL_place_watch (struct GNUNET_SOCIAL_Place *place,
                            const char *object_filter,
-                           GNUNET_PSYC_StateCallback state_cb,
-                           void *state_cb_cls)
+                           GNUNET_PSYC_StateVarCallback state_var_cb,
+                           void *cls)
 {
   return NULL;
 }
@@ -1633,18 +1638,22 @@ struct GNUNET_SOCIAL_LookHandle;
 /**
  * Look at objects in the place with a matching name prefix.
  *
- * @param place The place to look its objects at.
- * @param name_prefix Look at objects with names beginning with this value.
- * @param state_cb Function to call for each object found.
- * @param state_cb_cls Closure for callback function.
+ * @param place
+ *        The place to look its objects at.
+ * @param name_prefix
+ *        Look at objects with names beginning with this value.
+ * @param state_var_cb
+ *        Function to call for each object found.
+ * @param cls
+ *        Closure for callback function.
  *
  * @return Handle that can be used to stop looking at objects.
  */
 struct GNUNET_SOCIAL_LookHandle *
 GNUNET_SOCIAL_place_look (struct GNUNET_SOCIAL_Place *place,
                           const char *name_prefix,
-                          GNUNET_PSYC_StateCallback state_cb,
-                          void *state_cb_cls)
+                          GNUNET_PSYC_StateVarCallback state_var_cb,
+                          void *cls)
 {
   return NULL;
 }

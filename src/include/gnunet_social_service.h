@@ -287,12 +287,18 @@ typedef void
 /**
  * Function called after the host entered the place.
  *
- * @param cls             Closure.
- * @param max_message_id  Last message ID sent to the channel.
- *   Or 0 if no messages have been sent to the place yet.
+ * @param cls
+ *        Closure.
+ * @param result
+ *        #GNUNET_OK on success, or
+ *        #GNUNET_SYSERR on error.
+ * @param max_message_id
+ *        Last message ID sent to the channel.
+ *        Or 0 if no messages have been sent to the place yet.
  */
 typedef void
-(*GNUNET_SOCIAL_HostEnterCallback) (void *cls, uint64_t max_message_id);
+(*GNUNET_SOCIAL_HostEnterCallback) (void *cls, int result,
+                                    uint64_t max_message_id);
 
 
 /**
@@ -793,18 +799,22 @@ struct GNUNET_SOCIAL_WatchHandle;
 /**
  * Watch a place for changed objects.
  *
- * @param place Place to watch.
- * @param object_filter Object prefix to match.
- * @param state_cb Function to call when an object/state changes.
- * @param state_cb_cls Closure for callback.
+ * @param place
+ *        Place to watch.
+ * @param object_filter
+ *        Object prefix to match.
+ * @param state_var_cb
+ *        Function to call when an object/state var changes.
+ * @param cls
+ *        Closure for callback.
  *
  * @return Handle that can be used to cancel watching.
  */
 struct GNUNET_SOCIAL_WatchHandle *
 GNUNET_SOCIAL_place_watch (struct GNUNET_SOCIAL_Place *place,
                            const char *object_filter,
-                           GNUNET_PSYC_StateCallback state_cb,
-                           void *state_cb_cls);
+                           GNUNET_PSYC_StateVarCallback state_var_cb,
+                           void *cls);
 
 
 /**
@@ -822,18 +832,22 @@ struct GNUNET_SOCIAL_LookHandle;
 /**
  * Look at objects in the place with a matching name prefix.
  *
- * @param place The place to look its objects at.
- * @param name_prefix Look at objects with names beginning with this value.
- * @param state_cb Function to call for each object found.
- * @param state_cb_cls Closure for callback function.
+ * @param place
+ *        The place to look its objects at.
+ * @param name_prefix
+ *        Look at objects with names beginning with this value.
+ * @param state_var_cb
+ *        Function to call for each object found.
+ * @param cls
+ *        Closure for callback function.
  *
  * @return Handle that can be used to stop looking at objects.
  */
 struct GNUNET_SOCIAL_LookHandle *
 GNUNET_SOCIAL_place_look (struct GNUNET_SOCIAL_Place *place,
                           const char *name_prefix,
-                          GNUNET_PSYC_StateCallback state_cb,
-                          void *state_cb_cls);
+                          GNUNET_PSYC_StateVarCallback state_var_cb,
+                          void *cls);
 
 
 /**

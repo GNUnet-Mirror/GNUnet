@@ -88,25 +88,6 @@ struct GuestEnterRequest
 /**** service -> library ****/
 
 
-struct CountersResult
-{
-  /**
-   * Type: GNUNET_MESSAGE_TYPE_PSYC_RESULT_COUNTERS
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Status code for the operation.
-   */
-  int32_t result_code GNUNET_PACKED;
-
-  /**
-   * Last message ID sent to the channel.
-   */
-  uint64_t max_message_id;
-};
-
-
 #if REMOVE
 struct NymEnterRequest
 {

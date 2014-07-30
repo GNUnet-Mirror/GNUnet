@@ -42,15 +42,17 @@ struct OperationResult
    */
   struct GNUNET_MessageHeader header;
 
+  uint32_t reserved GNUNET_PACKED;
+
   /**
    * Operation ID.
    */
-  uint32_t op_id GNUNET_PACKED;
+  uint64_t op_id GNUNET_PACKED;
 
   /**
    * Status code for the operation.
    */
-  int64_t result_code GNUNET_PACKED;
+  uint64_t result_code GNUNET_PACKED;
 
   /* followed by 0-terminated error message (on error) */
 
@@ -70,9 +72,17 @@ struct CountersResult
   struct GNUNET_MessageHeader header;
 
   /**
+   * Status code for the operation:
+   * #GNUNET_OK: success, counter values are returned.
+   * #GNUNET_NO: no message has been sent to the channel yet.
+   * #GNUNET_SYSERR: an error occurred.
+   */
+  uint32_t result_code GNUNET_PACKED;
+
+  /**
    * Operation ID.
    */
-  uint32_t op_id GNUNET_PACKED;
+  uint64_t op_id GNUNET_PACKED;
 
   uint64_t max_fragment_id GNUNET_PACKED;
 
@@ -81,14 +91,6 @@ struct CountersResult
   uint64_t max_group_generation GNUNET_PACKED;
 
   uint64_t max_state_message_id GNUNET_PACKED;
-
-  /**
-   * Status code for the operation:
-   * #GNUNET_OK: success, counter values are returned.
-   * #GNUNET_NO: no message has been sent to the channel yet.
-   * #GNUNET_SYSERR: an error occurred.
-   */
-  int32_t result_code GNUNET_PACKED;
 };
 
 
@@ -102,15 +104,14 @@ struct FragmentResult
    */
   struct GNUNET_MessageHeader header;
 
+  uint32_t psycstore_flags GNUNET_PACKED;
+
   /**
    * Operation ID.
    */
-  uint32_t op_id GNUNET_PACKED;
+  uint64_t op_id GNUNET_PACKED;
 
-  uint32_t psycstore_flags GNUNET_PACKED;
-
-  /* followed by GNUNET_MULTICAST_MessageHeader */
-
+  /* Followed by GNUNET_MULTICAST_MessageHeader */
 };
 
 
@@ -124,14 +125,16 @@ struct StateResult
    */
   struct GNUNET_MessageHeader header;
 
+  uint16_t name_size GNUNET_PACKED;
+
+  uint16_t reserved GNUNET_PACKED;
+
   /**
    * Operation ID.
    */
-  uint32_t op_id GNUNET_PACKED;
+  uint64_t op_id GNUNET_PACKED;
 
-  uint16_t name_size  GNUNET_PACKED;
-
-  /* followed by name and value */
+  /* Followed by name and value */
 };
 
 
@@ -142,13 +145,14 @@ struct OperationRequest
 {
   struct GNUNET_MessageHeader header;
 
+  uint32_t reserved GNUNET_PACKED;
+
   /**
    * Operation ID.
    */
-  uint32_t op_id GNUNET_PACKED;
+  uint64_t op_id GNUNET_PACKED;
 
   struct GNUNET_CRYPTO_EddsaPublicKey channel_key;
-
 };
 
 
@@ -162,10 +166,12 @@ struct MembershipStoreRequest
    */
   struct GNUNET_MessageHeader header;
 
+  uint32_t reserved GNUNET_PACKED;
+
   /**
    * Operation ID.
    */
-  uint32_t op_id GNUNET_PACKED;
+  uint64_t op_id GNUNET_PACKED;
 
   /**
    * Channel's public key.
@@ -177,9 +183,9 @@ struct MembershipStoreRequest
    */
   struct GNUNET_CRYPTO_EcdsaPublicKey slave_key;
 
-  uint64_t announced_at;
-  uint64_t effective_since;
-  uint64_t group_generation;
+  uint64_t announced_at GNUNET_PACKED;
+  uint64_t effective_since GNUNET_PACKED;
+  uint64_t group_generation GNUNET_PACKED;
   uint8_t did_join;
 };
 
@@ -194,10 +200,12 @@ struct MembershipTestRequest
    */
   struct GNUNET_MessageHeader header;
 
+  uint32_t reserved GNUNET_PACKED;
+
   /**
    * Operation ID.
    */
-  uint32_t op_id GNUNET_PACKED;
+  uint64_t op_id GNUNET_PACKED;
 
   /**
    * Channel's public key.
@@ -226,9 +234,9 @@ struct FragmentStoreRequest
   struct GNUNET_MessageHeader header;
 
   /**
-   * Operation ID.
+   * enum GNUNET_PSYCSTORE_MessageFlags
    */
-  uint32_t op_id GNUNET_PACKED;
+  uint32_t psycstore_flags GNUNET_PACKED;
 
   /**
    * Channel's public key.
@@ -236,9 +244,9 @@ struct FragmentStoreRequest
   struct GNUNET_CRYPTO_EddsaPublicKey channel_key;
 
   /**
-   * enum GNUNET_PSYCSTORE_MessageFlags
+   * Operation ID.
    */
-  uint32_t psycstore_flags GNUNET_PACKED;
+  uint64_t op_id;
 
   /* Followed by fragment */
 };
@@ -254,10 +262,12 @@ struct FragmentGetRequest
    */
   struct GNUNET_MessageHeader header;
 
+  uint32_t reserved GNUNET_PACKED;
+
   /**
    * Operation ID.
    */
-  uint32_t op_id GNUNET_PACKED;
+  uint64_t op_id GNUNET_PACKED;
 
   /**
    * Channel's public key.
@@ -270,9 +280,19 @@ struct FragmentGetRequest
   struct GNUNET_CRYPTO_EcdsaPublicKey slave_key;
 
   /**
-   * Fragment ID to request.
+   * First fragment ID to request.
    */
-  uint64_t fragment_id GNUNET_PACKED;
+  uint64_t first_fragment_id GNUNET_PACKED;
+
+  /**
+   * Last fragment ID to request.
+   */
+  uint64_t last_fragment_id GNUNET_PACKED;
+
+  /**
+   * Maximum number of fragments to retrieve.
+   */
+  uint64_t fragment_limit GNUNET_PACKED;
 
   /**
    * Do membership test with @a slave_key before returning fragment?
@@ -292,10 +312,12 @@ struct MessageGetRequest
    */
   struct GNUNET_MessageHeader header;
 
+  uint32_t reserved GNUNET_PACKED;
+
   /**
    * Operation ID.
    */
-  uint32_t op_id GNUNET_PACKED;
+  uint64_t op_id GNUNET_PACKED;
 
   /**
    * Channel's public key.
@@ -308,9 +330,19 @@ struct MessageGetRequest
   struct GNUNET_CRYPTO_EcdsaPublicKey slave_key;
 
   /**
-   * Message ID to request.
+   * First message ID to request.
    */
-  uint64_t message_id GNUNET_PACKED;
+  uint64_t first_message_id GNUNET_PACKED;
+
+  /**
+   * Last message ID to request.
+   */
+  uint64_t last_message_id GNUNET_PACKED;
+
+  /**
+   * Maximum number of messages to retrieve.
+   */
+  uint64_t message_limit GNUNET_PACKED;
 
   /**
    * Do membership test with @a slave_key before returning fragment?
@@ -330,10 +362,12 @@ struct MessageGetFragmentRequest
    */
   struct GNUNET_MessageHeader header;
 
+  uint32_t reserved GNUNET_PACKED;
+
   /**
    * Operation ID.
    */
-  uint32_t op_id GNUNET_PACKED;
+  uint64_t op_id GNUNET_PACKED;
 
   /**
    * Channel's public key.
@@ -373,10 +407,12 @@ struct StateHashUpdateRequest
    */
   struct GNUNET_MessageHeader header;
 
+  uint32_t reserved GNUNET_PACKED;
+
   /**
    * Operation ID.
    */
-  uint32_t op_id GNUNET_PACKED;
+  uint64_t op_id GNUNET_PACKED;
 
   /**
    * Channel's public key.
@@ -405,20 +441,6 @@ struct StateModifyRequest
   struct GNUNET_MessageHeader header;
 
   /**
-   * Operation ID.
-   */
-  uint32_t op_id GNUNET_PACKED;
-
-  /**
-   * Channel's public key.
-   */
-  struct GNUNET_CRYPTO_EddsaPublicKey channel_key;
-
-  uint64_t message_id GNUNET_PACKED;
-
-  uint64_t state_delta GNUNET_PACKED;
-
-  /**
    * Size of name, including NUL terminator.
    */
   uint16_t name_size GNUNET_PACKED;
@@ -432,6 +454,20 @@ struct StateModifyRequest
    * enum GNUNET_ENV_Operator
    */
   uint8_t oper;
+
+  /**
+   * Operation ID.
+   */
+  uint64_t op_id GNUNET_PACKED;
+
+  /**
+   * Channel's public key.
+   */
+  struct GNUNET_CRYPTO_EddsaPublicKey channel_key;
+
+  uint64_t message_id GNUNET_PACKED;
+
+  uint64_t state_delta GNUNET_PACKED;
 
   /* Followed by NUL-terminated name, then the value. */
 };
@@ -448,18 +484,6 @@ struct StateSyncRequest
   struct GNUNET_MessageHeader header;
 
   /**
-   * Operation ID.
-   */
-  uint32_t op_id GNUNET_PACKED;
-
-  /**
-   * Channel's public key.
-   */
-  struct GNUNET_CRYPTO_EddsaPublicKey channel_key;
-
-  uint64_t message_id GNUNET_PACKED;
-
-  /**
    * Size of name, including NUL terminator.
    */
   uint16_t name_size GNUNET_PACKED;
@@ -468,6 +492,20 @@ struct StateSyncRequest
    * OR'd StateOpFlags
    */
   uint8_t flags;
+
+  uint8_t reserved;
+
+  uint64_t message_id GNUNET_PACKED;
+
+  /**
+   * Operation ID.
+   */
+  uint64_t op_id GNUNET_PACKED;
+
+  /**
+   * Channel's public key.
+   */
+  struct GNUNET_CRYPTO_EddsaPublicKey channel_key;
 
   /* Followed by NUL-terminated name, then the value. */
 };

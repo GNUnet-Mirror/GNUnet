@@ -467,17 +467,17 @@ client_send_msg (const struct Place *plc,
  * Called after a PSYC master is started.
  */
 static void
-psyc_master_started (void *cls, uint64_t max_message_id)
+psyc_master_started (void *cls, int result, uint64_t max_message_id)
 {
   struct Host *hst = cls;
   struct Place *plc = &hst->plc;
   plc->max_message_id = max_message_id;
   plc->is_ready = GNUNET_YES;
 
-  struct CountersResult res;
+  struct GNUNET_PSYC_CountersResultMessage res;
   res.header.type = htons (GNUNET_MESSAGE_TYPE_SOCIAL_HOST_ENTER_ACK);
   res.header.size = htons (sizeof (res));
-  res.result_code = htonl (GNUNET_OK);
+  res.result_code = htonl (result - INT32_MIN);
   res.max_message_id = GNUNET_htonll (plc->max_message_id);
 
   client_send_msg (plc, &res.header);
@@ -507,17 +507,17 @@ psyc_recv_join_request (void *cls,
  * Called after a PSYC slave is connected.
  */
 static void
-psyc_slave_connected (void *cls, uint64_t max_message_id)
+psyc_slave_connected (void *cls, int result, uint64_t max_message_id)
 {
   struct Guest *gst = cls;
   struct Place *plc = &gst->plc;
   plc->max_message_id = max_message_id;
   plc->is_ready = GNUNET_YES;
 
-  struct CountersResult res;
+  struct GNUNET_PSYC_CountersResultMessage res;
   res.header.type = htons (GNUNET_MESSAGE_TYPE_SOCIAL_GUEST_ENTER_ACK);
   res.header.size = htons (sizeof (res));
-  res.result_code = htonl (GNUNET_OK);
+  res.result_code = htonl (result - INT32_MIN);
   res.max_message_id = GNUNET_htonll (plc->max_message_id);
 
   client_send_msg (plc, &res.header);
@@ -608,7 +608,7 @@ client_recv_host_enter (void *cls, struct GNUNET_SERVER_Client *client,
   {
     plc = &hst->plc;
 
-    struct CountersResult res;
+    struct GNUNET_PSYC_CountersResultMessage res;
     res.header.type = htons (GNUNET_MESSAGE_TYPE_SOCIAL_HOST_ENTER_ACK);
     res.header.size = htons (sizeof (res));
     res.result_code = htonl (GNUNET_OK);
@@ -724,7 +724,7 @@ client_recv_guest_enter (void *cls, struct GNUNET_SERVER_Client *client,
   {
     plc = &gst->plc;
 
-    struct CountersResult res;
+    struct GNUNET_PSYC_CountersResultMessage res;
     res.header.type = htons (GNUNET_MESSAGE_TYPE_SOCIAL_GUEST_ENTER_ACK);
     res.header.size = htons (sizeof (res));
     res.result_code = htonl (GNUNET_OK);

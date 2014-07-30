@@ -130,12 +130,22 @@ struct Plugin
   /**
    * Precompiled SQL for fragment_get()
    */
-  sqlite3_stmt *select_fragment;
+  sqlite3_stmt *select_fragments;
+
+  /**
+   * Precompiled SQL for fragment_get()
+   */
+  sqlite3_stmt *select_latest_fragments;
 
   /**
    * Precompiled SQL for message_get()
    */
-  sqlite3_stmt *select_message;
+  sqlite3_stmt *select_messages;
+
+  /**
+   * Precompiled SQL for message_get()
+   */
+  sqlite3_stmt *select_latest_messages;
 
   /**
    * Precompiled SQL for message_get_fragment()
@@ -456,8 +466,44 @@ database_setup (struct Plugin *plugin)
                "       multicast_flags, psycstore_flags, data\n"
                "FROM messages\n"
                "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?)\n"
-               "      AND fragment_id = ?;",
-               &plugin->select_fragment);
+               "      AND ? <= fragment_id AND fragment_id <= ?;",
+               &plugin->select_fragments);
+
+  sql_prepare (plugin->dbh,
+               "SELECT hop_counter, signature, purpose, fragment_id,\n"
+               "       fragment_offset, message_id, group_generation,\n"
+               "       multicast_flags, psycstore_flags, data\n"
+               "FROM messages\n"
+               "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?)\n"
+               "      AND ? <= message_id AND message_id <= ?;",
+               &plugin->select_messages);
+
+  sql_prepare (plugin->dbh,
+               "SELECT * FROM\n"
+               "(SELECT hop_counter, signature, purpose, fragment_id,\n"
+               "        fragment_offset, message_id, group_generation,\n"
+               "        multicast_flags, psycstore_flags, data\n"
+               " FROM messages\n"
+               " WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?)\n"
+               " ORDER BY fragment_id DESC\n"
+               " LIMIT ?)\n"
+               "ORDER BY fragment_id;",
+               &plugin->select_latest_fragments);
+
+  sql_prepare (plugin->dbh,
+               "SELECT hop_counter, signature, purpose, fragment_id,\n"
+               "       fragment_offset, message_id, group_generation,\n"
+               "        multicast_flags, psycstore_flags, data\n"
+               "FROM messages\n"
+               "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?)\n"
+               "      AND message_id IN\n"
+               "      (SELECT message_id\n"
+               "       FROM messages\n"
+               "       WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?)\n"
+               "       ORDER BY message_id\n"
+               "       DESC LIMIT ?)\n"
+               "ORDER BY fragment_id;",
+               &plugin->select_latest_messages);
 
   sql_prepare (plugin->dbh,
                "SELECT hop_counter, signature, purpose, fragment_id,\n"
@@ -467,15 +513,6 @@ database_setup (struct Plugin *plugin)
                "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?)\n"
                "      AND message_id = ? AND fragment_offset = ?;",
                &plugin->select_message_fragment);
-
-  sql_prepare (plugin->dbh,
-               "SELECT hop_counter, signature, purpose, fragment_id,\n"
-               "       fragment_offset, message_id, group_generation,\n"
-               "       multicast_flags, psycstore_flags, data\n"
-               "FROM messages\n"
-               "WHERE channel_id = (SELECT id FROM channels WHERE pub_key = ?)\n"
-               "      AND message_id = ?;",
-               &plugin->select_message);
 
   sql_prepare (plugin->dbh,
                "SELECT fragment_id, message_id, group_generation\n"
@@ -1036,8 +1073,42 @@ fragment_row (sqlite3_stmt *stmt, GNUNET_PSYCSTORE_FragmentCallback cb,
   return cb (cb_cls, (void *) msg, sqlite3_column_int64 (stmt, 8));
 }
 
+
+static int
+fragment_select (struct Plugin *plugin, sqlite3_stmt *stmt,
+                 uint64_t *returned_fragments,
+                 GNUNET_PSYCSTORE_FragmentCallback cb, void *cb_cls)
+{
+  int ret = GNUNET_SYSERR;
+  int sql_ret;
+
+  do
+  {
+    sql_ret = sqlite3_step (stmt);
+    switch (sql_ret)
+    {
+    case SQLITE_DONE:
+      if (ret != GNUNET_OK)
+        ret = GNUNET_NO;
+      break;
+    case SQLITE_ROW:
+      ret = fragment_row (stmt, cb, cb_cls);
+      (*returned_fragments)++;
+      if (ret != GNUNET_YES)
+        sql_ret = SQLITE_DONE;
+      break;
+    default:
+      LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                  "sqlite3_step");
+    }
+  }
+  while (sql_ret == SQLITE_ROW);
+
+  return ret;
+}
+
 /**
- * Retrieve a message fragment by fragment ID.
+ * Retrieve a message fragment range by fragment ID.
  *
  * @see GNUNET_PSYCSTORE_fragment_get()
  *
@@ -1046,36 +1117,29 @@ fragment_row (sqlite3_stmt *stmt, GNUNET_PSYCSTORE_FragmentCallback cb,
 static int
 fragment_get (void *cls,
               const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
-              uint64_t fragment_id,
+              uint64_t first_fragment_id,
+              uint64_t last_fragment_id,
+              uint64_t *returned_fragments,
               GNUNET_PSYCSTORE_FragmentCallback cb,
               void *cb_cls)
 {
   struct Plugin *plugin = cls;
-  sqlite3_stmt *stmt = plugin->select_fragment;
+  sqlite3_stmt *stmt = plugin->select_fragments;
   int ret = GNUNET_SYSERR;
+  *returned_fragments = 0;
 
   if (SQLITE_OK != sqlite3_bind_blob (stmt, 1, channel_key,
                                       sizeof (*channel_key),
                                       SQLITE_STATIC)
-      || SQLITE_OK != sqlite3_bind_int64 (stmt, 2, fragment_id))
+      || SQLITE_OK != sqlite3_bind_int64 (stmt, 2, first_fragment_id)
+      || SQLITE_OK != sqlite3_bind_int64 (stmt, 3, last_fragment_id))
   {
     LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 "sqlite3_bind");
   }
   else
   {
-    switch (sqlite3_step (stmt))
-    {
-    case SQLITE_DONE:
-      ret = GNUNET_NO;
-      break;
-    case SQLITE_ROW:
-      ret = fragment_row (stmt, cb, cb_cls);
-      break;
-    default:
-      LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-                  "sqlite3_step");
-    }
+    ret = fragment_select (plugin, stmt, returned_fragments, cb, cb_cls);
   }
 
   if (SQLITE_OK != sqlite3_reset (stmt))
@@ -1087,8 +1151,52 @@ fragment_get (void *cls,
   return ret;
 }
 
+
 /**
- * Retrieve all fragments of a message.
+ * Retrieve a message fragment range by fragment ID.
+ *
+ * @see GNUNET_PSYCSTORE_fragment_get_latest()
+ *
+ * @return #GNUNET_OK on success, else #GNUNET_SYSERR
+ */
+static int
+fragment_get_latest (void *cls,
+                     const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
+                     uint64_t fragment_limit,
+                     uint64_t *returned_fragments,
+                     GNUNET_PSYCSTORE_FragmentCallback cb,
+                     void *cb_cls)
+{
+  struct Plugin *plugin = cls;
+  sqlite3_stmt *stmt = plugin->select_latest_fragments;
+  int ret = GNUNET_SYSERR;
+  *returned_fragments = 0;
+
+  if (SQLITE_OK != sqlite3_bind_blob (stmt, 1, channel_key,
+                                      sizeof (*channel_key),
+                                      SQLITE_STATIC)
+      || SQLITE_OK != sqlite3_bind_int64 (stmt, 2, fragment_limit))
+  {
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                "sqlite3_bind");
+  }
+  else
+  {
+    ret = fragment_select (plugin, stmt, returned_fragments, cb, cb_cls);
+  }
+
+  if (SQLITE_OK != sqlite3_reset (stmt))
+  {
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                "sqlite3_reset");
+  }
+
+  return ret;
+}
+
+
+/**
+ * Retrieve all fragments of a message ID range.
  *
  * @see GNUNET_PSYCSTORE_message_get()
  *
@@ -1097,48 +1205,29 @@ fragment_get (void *cls,
 static int
 message_get (void *cls,
              const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
-             uint64_t message_id,
+             uint64_t first_message_id,
+             uint64_t last_message_id,
              uint64_t *returned_fragments,
              GNUNET_PSYCSTORE_FragmentCallback cb,
              void *cb_cls)
 {
   struct Plugin *plugin = cls;
-  sqlite3_stmt *stmt = plugin->select_message;
+  sqlite3_stmt *stmt = plugin->select_messages;
   int ret = GNUNET_SYSERR;
   *returned_fragments = 0;
 
   if (SQLITE_OK != sqlite3_bind_blob (stmt, 1, channel_key,
                                       sizeof (*channel_key),
                                       SQLITE_STATIC)
-      || SQLITE_OK != sqlite3_bind_int64 (stmt, 2, message_id))
+      || SQLITE_OK != sqlite3_bind_int64 (stmt, 2, first_message_id)
+      || SQLITE_OK != sqlite3_bind_int64 (stmt, 3, last_message_id))
   {
     LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
                 "sqlite3_bind");
   }
   else
   {
-    int sql_ret;
-    do
-    {
-      sql_ret = sqlite3_step (stmt);
-      switch (sql_ret)
-      {
-      case SQLITE_DONE:
-        if (ret != GNUNET_OK)
-          ret = GNUNET_NO;
-        break;
-      case SQLITE_ROW:
-        ret = fragment_row (stmt, cb, cb_cls);
-        (*returned_fragments)++;
-        if (ret != GNUNET_YES)
-          sql_ret = SQLITE_DONE;
-        break;
-      default:
-        LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
-                    "sqlite3_step");
-      }
-    }
-    while (sql_ret == SQLITE_ROW);
+    ret = fragment_select (plugin, stmt, returned_fragments, cb, cb_cls);
   }
 
   if (SQLITE_OK != sqlite3_reset (stmt))
@@ -1149,6 +1238,53 @@ message_get (void *cls,
 
   return ret;
 }
+
+
+/**
+ * Retrieve all fragments of the latest messages.
+ *
+ * @see GNUNET_PSYCSTORE_message_get_latest()
+ *
+ * @return #GNUNET_OK on success, else #GNUNET_SYSERR
+ */
+static int
+message_get_latest (void *cls,
+                    const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
+                    uint64_t message_limit,
+                    uint64_t *returned_fragments,
+                    GNUNET_PSYCSTORE_FragmentCallback cb,
+                    void *cb_cls)
+{
+  struct Plugin *plugin = cls;
+  sqlite3_stmt *stmt = plugin->select_latest_messages;
+  int ret = GNUNET_SYSERR;
+  *returned_fragments = 0;
+
+  if (SQLITE_OK != sqlite3_bind_blob (stmt, 1, channel_key,
+                                      sizeof (*channel_key),
+                                      SQLITE_STATIC)
+      || SQLITE_OK != sqlite3_bind_blob (stmt, 2, channel_key,
+                                         sizeof (*channel_key),
+                                         SQLITE_STATIC)
+      || SQLITE_OK != sqlite3_bind_int64 (stmt, 3, message_limit))
+  {
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                "sqlite3_bind");
+  }
+  else
+  {
+    ret = fragment_select (plugin, stmt, returned_fragments, cb, cb_cls);
+  }
+
+  if (SQLITE_OK != sqlite3_reset (stmt))
+  {
+    LOG_SQLITE (plugin, GNUNET_ERROR_TYPE_ERROR | GNUNET_ERROR_TYPE_BULK,
+                "sqlite3_reset");
+  }
+
+  return ret;
+}
+
 
 /**
  * Retrieve a fragment of message specified by its message ID and fragment
@@ -1777,7 +1913,9 @@ libgnunet_plugin_psycstore_sqlite_init (void *cls)
   api->fragment_store = &fragment_store;
   api->message_add_flags = &message_add_flags;
   api->fragment_get = &fragment_get;
+  api->fragment_get_latest = &fragment_get_latest;
   api->message_get = &message_get;
+  api->message_get_latest = &message_get_latest;
   api->message_get_fragment = &message_get_fragment;
   api->counters_message_get = &counters_message_get;
   api->counters_state_get = &counters_state_get;

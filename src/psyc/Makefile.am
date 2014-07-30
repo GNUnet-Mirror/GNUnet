@@ -86,12 +86,14 @@ test_psyc_LDADD = \
   libgnunetpsyc.la \
   libgnunetpsycutil.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
+  $(top_builddir)/src/core/libgnunetcore.la \
   $(top_builddir)/src/env/libgnunetenv.la \
   $(top_builddir)/src/util/libgnunetutil.la
 test_psyc_DEPENDENCIES = \
   libgnunetpsyc.la \
   libgnunetpsycutil.la \
   $(top_builddir)/src/testing/libgnunettesting.la \
+  $(top_builddir)/src/core/libgnunetcore.la \
   $(top_builddir)/src/env/libgnunetenv.la \
   $(top_builddir)/src/util/libgnunetutil.la
 

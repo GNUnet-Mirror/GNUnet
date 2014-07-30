@@ -35,6 +35,7 @@
 #include "gnunet_env_lib.h"
 #include "gnunet_psyc_util_lib.h"
 #include "gnunet_psyc_service.h"
+#include "gnunet_core_service.h"
 
 #define TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30)
 
@@ -45,6 +46,9 @@ int res;
 
 const struct GNUNET_CONFIGURATION_Handle *cfg;
 
+struct GNUNET_CORE_Handle *core;
+struct GNUNET_PeerIdentity this_peer;
+
 /**
  * Handle for task for timeout termination.
  */
@@ -52,6 +56,8 @@ GNUNET_SCHEDULER_TaskIdentifier end_badly_task;
 
 struct GNUNET_PSYC_Master *mst;
 struct GNUNET_PSYC_Slave *slv;
+
+struct GNUNET_PSYC_Channel *mst_chn, *slv_chn;
 
 struct GNUNET_CRYPTO_EddsaPrivateKey *channel_key;
 struct GNUNET_CRYPTO_EcdsaPrivateKey *slave_key;
@@ -80,9 +86,19 @@ uint8_t join_req_count;
 
 enum
 {
-  TEST_NONE,
-  TEST_SLAVE_TRANSMIT,
-  TEST_MASTER_TRANSMIT,
+  TEST_NONE = 0,
+  TEST_MASTER_START = 1,
+  TEST_SLAVE_JOIN = 2,
+  TEST_SLAVE_TRANSMIT = 3,
+  TEST_MASTER_TRANSMIT = 4,
+  TEST_MASTER_HISTORY_REPLAY_LATEST = 5,
+  TEST_SLAVE_HISTORY_REPLAY_LATEST = 6,
+  TEST_MASTER_HISTORY_REPLAY = 7,
+  TEST_SLAVE_HISTORY_REPLAY = 8,
+  TEST_MASTER_STATE_GET = 9,
+  TEST_SLAVE_STATE_GET = 10,
+  TEST_MASTER_STATE_GET_PREFIX = 11,
+  TEST_SLAVE_STATE_GET_PREFIX = 12,
 } test;
 
 
@@ -118,6 +134,11 @@ void slave_parted (void *cls)
 void
 cleanup ()
 {
+  if (NULL != core)
+  {
+    GNUNET_CORE_disconnect (core);
+    core = NULL;
+  }
   if (NULL != slv)
   {
     GNUNET_PSYC_slave_part (slv, GNUNET_NO, &slave_parted, NULL);
@@ -177,13 +198,203 @@ end ()
 
 
 void
+state_get_var (void *cls, const char *name, const void *value, size_t value_size)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Got state var: %s\n%.*s\n", name, value_size, value);  
+}
+
+
+/*** Slave state_get_prefix() ***/
+
+void
+slave_state_get_prefix_result (void *cls, int64_t result, const char *err_msg)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "slave_state_get_prefix:\t%" PRId64 " (%s)\n", result, err_msg);
+  // FIXME: GNUNET_assert (2 == result);
+  end ();
+}
+
+
+void
+slave_state_get_prefix ()
+{
+  test = TEST_SLAVE_STATE_GET_PREFIX;
+  GNUNET_PSYC_channel_state_get_prefix (slv_chn, "_foo", &state_get_var,
+                                        &slave_state_get_prefix_result, NULL);
+}
+
+
+/*** Master state_get_prefix() ***/
+
+
+void
+master_state_get_prefix_result (void *cls, int64_t result, const char *err_msg)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "master_state_get_prefix:\t%" PRId64 " (%s)\n", result, err_msg);
+  // FIXME: GNUNET_assert (2 == result);
+  slave_state_get_prefix ();
+}
+
+
+void
+master_state_get_prefix ()
+{
+  test = TEST_MASTER_STATE_GET_PREFIX;
+  GNUNET_PSYC_channel_state_get_prefix (mst_chn, "_foo", &state_get_var,
+                                        &master_state_get_prefix_result, NULL);
+}
+
+
+/*** Slave state_get() ***/
+
+
+void
+slave_state_get_result (void *cls, int64_t result, const char *err_msg)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "slave_state_get:\t%" PRId64 " (%s)\n", result, err_msg);
+  // FIXME: GNUNET_assert (2 == result);
+  master_state_get_prefix ();
+}
+
+
+void
+slave_state_get ()
+{
+  test = TEST_SLAVE_STATE_GET;
+  GNUNET_PSYC_channel_state_get (slv_chn, "_foo_bar_baz", &state_get_var,
+                                 &slave_state_get_result, NULL);
+}
+
+
+/*** Master state_get() ***/
+
+
+void
+master_state_get_result (void *cls, int64_t result, const char *err_msg)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "master_state_get:\t%" PRId64 " (%s)\n", result, err_msg);
+  // FIXME: GNUNET_assert (1 == result);
+  slave_state_get ();
+}
+
+
+void
+master_state_get ()
+{
+  test = TEST_MASTER_STATE_GET;
+  GNUNET_PSYC_channel_state_get (mst_chn, "_foo_bar_baz", &state_get_var,
+                                 &master_state_get_result, NULL);
+}
+
+
+/*** Slave history_replay() ***/
+
+void
+slave_history_replay_result (void *cls, int64_t result, const char *err_msg)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "slave_history_replay:\t%" PRId64 " (%s)\n", result, err_msg);
+  GNUNET_assert (9 == result);
+
+  master_state_get ();
+}
+
+
+void
+slave_history_replay ()
+{
+  test = TEST_SLAVE_HISTORY_REPLAY;
+  GNUNET_PSYC_channel_history_replay (slv_chn, 1, 1,
+                                      &slave_history_replay_result,
+                                      NULL);
+}
+
+
+/*** Master history_replay() ***/
+
+
+void
+master_history_replay_result (void *cls, int64_t result, const char *err_msg)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "master_history_replay:\t%" PRId64 " (%s)\n", result, err_msg);
+  GNUNET_assert (9 == result);
+
+  slave_history_replay ();
+}
+
+
+void
+master_history_replay ()
+{
+  test = TEST_MASTER_HISTORY_REPLAY;
+  GNUNET_PSYC_channel_history_replay (mst_chn, 1, 1,
+                                      &master_history_replay_result,
+                                      NULL);
+}
+
+
+/*** Slave history_replay_latest() ***/
+
+
+void
+slave_history_replay_latest_result (void *cls, int64_t result, const char *err_msg)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "slave_history_replay_latest:\t%" PRId64 " (%s)\n", result, err_msg);
+  GNUNET_assert (9 == result);
+
+  master_history_replay ();
+}
+
+
+void
+slave_history_replay_latest ()
+{
+  test = TEST_SLAVE_HISTORY_REPLAY_LATEST;
+  GNUNET_PSYC_channel_history_replay_latest (slv_chn, 1,
+                                             &slave_history_replay_latest_result,
+                                             NULL);
+}
+
+
+/*** Master history_replay_latest() ***/
+
+
+void
+master_history_replay_latest_result (void *cls, int64_t result, const char *err_msg)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "master_history_replay_latest:\t%" PRId64 " (%s)\n", result, err_msg);
+  GNUNET_assert (9 == result);
+
+  slave_history_replay_latest ();
+}
+
+
+void
+master_history_replay_latest ()
+{
+  test = TEST_MASTER_HISTORY_REPLAY_LATEST;
+  GNUNET_PSYC_channel_history_replay_latest (mst_chn, 1,
+                                             &master_history_replay_latest_result,
+                                             NULL);
+}
+
+
+void
 master_message_cb (void *cls, uint64_t message_id, uint32_t flags,
                    const struct GNUNET_PSYC_MessageHeader *msg)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "Master got PSYC message fragment of size %u "
-              "belonging to message ID %llu with flags %x\n",
-              ntohs (msg->header.size), message_id, flags);
+              "Test #%d: Master got PSYC message fragment of size %u "
+              "belonging to message ID %" PRIu64 " with flags %x\n",
+              test, ntohs (msg->header.size), message_id, flags);
   // FIXME
 }
 
@@ -196,7 +407,7 @@ master_message_part_cb (void *cls, uint64_t message_id,
   if (NULL == msg)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Error while receiving message %llu\n", message_id);
+                "Error while receiving message %" PRIu64 "\n", message_id);
     return;
   }
 
@@ -204,9 +415,9 @@ master_message_part_cb (void *cls, uint64_t message_id,
   uint16_t size = ntohs (msg->size);
 
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "Master got message part of type %u and size %u "
-              "belonging to message ID %llu with flags %x\n",
-              type, size, message_id, flags);
+              "Test #%d: Master got message part of type %u and size %u "
+              "belonging to message ID %" PRIu64 " with flags %x\n",
+              test, type, size, message_id, flags);
 
   switch (test)
   {
@@ -227,6 +438,18 @@ master_message_part_cb (void *cls, uint64_t message_id,
   case TEST_MASTER_TRANSMIT:
     break;
 
+  case TEST_MASTER_HISTORY_REPLAY:
+  case TEST_MASTER_HISTORY_REPLAY_LATEST:
+    if (GNUNET_PSYC_MESSAGE_HISTORIC != flags)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Test #%d: Unexpected flags for historic message: %x" PRIu32 "\n",
+                  flags);
+      GNUNET_assert (0);
+      return;
+    }
+    break;
+
   default:
     GNUNET_assert (0);
   }
@@ -238,9 +461,9 @@ slave_message_cb (void *cls, uint64_t message_id, uint32_t flags,
                   const struct GNUNET_PSYC_MessageHeader *msg)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "Slave got PSYC message fragment of size %u "
-              "belonging to message ID %llu with flags %x\n",
-              ntohs (msg->header.size), message_id, flags);
+              "Test #%d: Slave got PSYC message fragment of size %u "
+              "belonging to message ID %" PRIu64 " with flags %x\n",
+              test, ntohs (msg->header.size), message_id, flags);
   // FIXME
 }
 
@@ -253,7 +476,7 @@ slave_message_part_cb (void *cls, uint64_t message_id,
   if (NULL == msg)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                "Error while receiving message %llu\n", message_id);
+                "Error while receiving message " PRIu64 "\n", message_id);
     return;
   }
 
@@ -261,15 +484,27 @@ slave_message_part_cb (void *cls, uint64_t message_id,
   uint16_t size = ntohs (msg->size);
 
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "Slave got message part of type %u and size %u "
-              "belonging to message ID %llu with flags %x\n",
-              type, size, message_id, flags);
+              "Test #%d: Slave got message part of type %u and size %u "
+              "belonging to message ID %" PRIu64 " with flags %x\n",
+              test, type, size, message_id, flags);
 
   switch (test)
   {
   case TEST_MASTER_TRANSMIT:
     if (GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_END == type)
-      end ();
+      master_history_replay_latest ();
+    break;
+
+  case TEST_SLAVE_HISTORY_REPLAY:
+  case TEST_SLAVE_HISTORY_REPLAY_LATEST:
+    if (GNUNET_PSYC_MESSAGE_HISTORIC != flags)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Test #%d: Unexpected flags for historic message: %x" PRIu32 "\n",
+                  flags);
+      GNUNET_assert (0);
+      return;
+    }
     break;
 
   default:
@@ -417,7 +652,6 @@ slave_transmit ()
 {
 
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Slave sending request to master.\n");
-
   test = TEST_SLAVE_TRANSMIT;
 
   tmit = GNUNET_new (struct TransmitClosure);
@@ -438,6 +672,29 @@ slave_transmit ()
 
 
 void
+slave_remove_cb (void *cls, int64_t result, const char *err_msg)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "slave_remove:\t%" PRId64 " (%s)\n", result, err_msg);
+
+  slave_transmit ();
+}
+
+
+void
+slave_add_cb (void *cls, int64_t result, const char *err_msg)
+{
+  GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+              "slave_add:\t%" PRId64 " (%s)\n", result, err_msg);
+
+  struct GNUNET_PSYC_Channel *chn = cls;
+  GNUNET_PSYC_channel_slave_remove (chn, &slave_pub_key, 2,
+                                    &slave_remove_cb, chn);
+
+}
+
+
+void
 join_decision_cb (void *cls,
                   const struct GNUNET_PSYC_JoinDecisionMessage *dcsn,
                   int is_admitted,
@@ -453,7 +710,8 @@ join_decision_cb (void *cls,
     return;
   }
 
-  slave_transmit ();
+  struct GNUNET_PSYC_Channel *chn = GNUNET_PSYC_master_get_channel (mst);
+  GNUNET_PSYC_channel_slave_add (chn, &slave_pub_key, 2, 2, &slave_add_cb, chn);
 }
 
 
@@ -473,19 +731,17 @@ join_request_cb (void *cls,
   /* Reject first request */
   int is_admitted = (0 < join_req_count++) ? GNUNET_YES : GNUNET_NO;
   GNUNET_PSYC_join_decision (jh, is_admitted, 0, NULL, NULL);
-
-  /* Membership store */
-  struct GNUNET_PSYC_Channel *chn = GNUNET_PSYC_master_get_channel (mst);
-  GNUNET_PSYC_channel_slave_add (chn, slave_key, 2, 2);
-  GNUNET_PSYC_channel_slave_remove (chn, &slave_pub_key, 2);
 }
 
 
 void
-slave_connect_cb (void *cls, uint64_t max_message_id)
+slave_connect_cb (void *cls, int result, uint64_t max_message_id)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
-              "Slave connected: %lu\n", max_message_id);
+              "Slave connected: %d, max_message_id: %" PRIu64 "\n",
+              result, max_message_id);
+  GNUNET_assert (TEST_SLAVE_JOIN == test);
+  GNUNET_assert (GNUNET_OK == result || GNUNET_NO == result);
 }
 
 
@@ -493,8 +749,9 @@ void
 slave_join ()
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Joining slave.\n");
+  test = TEST_SLAVE_JOIN;
 
-  struct GNUNET_PeerIdentity origin = {}; // FIXME: this peer
+  struct GNUNET_PeerIdentity origin = this_peer;
   struct GNUNET_ENV_Environment *env = GNUNET_ENV_environment_create ();
   GNUNET_ENV_environment_add (env, GNUNET_ENV_OP_ASSIGN,
                               "_foo", "bar baz", 7);
@@ -507,6 +764,7 @@ slave_join ()
                                 &slave_message_cb, &slave_message_part_cb,
                                 &slave_connect_cb, &join_decision_cb, NULL,
                                 join_msg);
+  slv_chn = GNUNET_PSYC_slave_get_channel (slv);
   GNUNET_ENV_environment_destroy (env);
 }
 
@@ -564,10 +822,13 @@ master_transmit ()
 
 
 void
-master_start_cb (void *cls, uint64_t max_message_id)
+master_start_cb (void *cls, int result, uint64_t max_message_id)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
-              "Master started: %" PRIu64 "\n", max_message_id);
+              "Master started: %d, max_message_id: %" PRIu64 "\n",
+              result, max_message_id);
+  GNUNET_assert (TEST_MASTER_START == test);
+  GNUNET_assert (GNUNET_OK == result || GNUNET_NO == result);
   slave_join ();
 }
 
@@ -576,10 +837,12 @@ void
 master_start ()
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Starting master.\n");
+  test = TEST_MASTER_START;
   mst = GNUNET_PSYC_master_start (cfg, channel_key, GNUNET_PSYC_CHANNEL_PRIVATE,
                                   &master_start_cb, &join_request_cb,
                                   &master_message_cb, &master_message_part_cb,
                                   NULL);
+  mst_chn = GNUNET_PSYC_master_get_channel (mst);
 }
 
 void
@@ -588,6 +851,21 @@ schedule_master_start (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   master_start ();
 }
 
+
+void
+core_connected (void *cls, const struct GNUNET_PeerIdentity *my_identity)
+{
+  this_peer = *my_identity;
+
+#if DEBUG_TEST_PSYC
+  master_start ();
+#else
+  /* Allow some time for the services to initialize. */
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
+                                &schedule_master_start, NULL);
+#endif
+
+}
 
 /**
  * Main function of the test, run from scheduler.
@@ -615,14 +893,8 @@ run (void *cls,
   GNUNET_CRYPTO_eddsa_key_get_public (channel_key, &channel_pub_key);
   GNUNET_CRYPTO_ecdsa_key_get_public (slave_key, &slave_pub_key);
 
-#if DEBUG_TEST_PSYC
-  master_start ();
-#else
-  /* Allow some time for the services to initialize. */
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_SECONDS,
-                                &schedule_master_start, NULL);
-#endif
-  return;
+  core = GNUNET_CORE_connect (cfg, NULL, &core_connected, NULL, NULL,
+                              NULL, GNUNET_NO, NULL, GNUNET_NO, NULL);
 }
 
 

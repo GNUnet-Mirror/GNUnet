@@ -112,30 +112,39 @@ struct ChannelMembershipStoreRequest
    */
   struct GNUNET_MessageHeader header;
 
-  uint32_t reserved;
+  uint32_t reserved GNUNET_PACKED;
+
+  uint64_t op_id GNUNET_PACKED;
 
   struct GNUNET_CRYPTO_EcdsaPublicKey slave_key;
 
-  uint64_t announced_at;
+  uint64_t announced_at GNUNET_PACKED;
 
-  uint64_t effective_since;
+  uint64_t effective_since GNUNET_PACKED;
 
   uint8_t did_join;
 };
 
 
-struct StoryRequest
+struct HistoryRequest
 {
   /**
-   * Type: GNUNET_MESSAGE_TYPE_PSYC_CHANNEL_STORY_REQUEST
+   * Type: GNUNET_MESSAGE_TYPE_PSYC_CHANNEL_HISTORY_REQUEST
    */
   struct GNUNET_MessageHeader header;
 
-  uint64_t op_id;
+  uint32_t reserved GNUNET_PACKED;
 
-  uint64_t start_message_id;
+  /**
+   * ID for this operation.
+   */
+  uint64_t op_id GNUNET_PACKED;
 
-  uint64_t end_message_id;
+  uint64_t start_message_id GNUNET_PACKED;
+
+  uint64_t end_message_id GNUNET_PACKED;
+
+  uint64_t message_limit GNUNET_PACKED;
 };
 
 
@@ -148,35 +157,18 @@ struct StateRequest
    */
   struct GNUNET_MessageHeader header;
 
+  uint32_t reserved GNUNET_PACKED;
+
   /**
    * ID for this operation.
    */
-  uint64_t op_id;
+  uint64_t op_id GNUNET_PACKED;
 
   /* Followed by NUL-terminated name. */
 };
 
 
 /**** service -> library ****/
-
-
-struct CountersResult
-{
-  /**
-   * Type: GNUNET_MESSAGE_TYPE_PSYC_RESULT_COUNTERS
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Status code for the operation.
-   */
-  int32_t result_code GNUNET_PACKED;
-
-  /**
-   * Last message ID sent to the channel.
-   */
-  uint64_t max_message_id;
-};
 
 
 /**
@@ -192,22 +184,21 @@ struct OperationResult
    */
   struct GNUNET_MessageHeader header;
 
+  uint32_t reserved GNUNET_PACKED;
+
   /**
    * Operation ID.
    */
-  uint32_t op_id GNUNET_PACKED;
+  uint64_t op_id GNUNET_PACKED;
 
   /**
    * Status code for the operation.
    */
-  int64_t result_code GNUNET_PACKED;
+  uint64_t result_code GNUNET_PACKED;
 
   /* Followed by:
    * - on error: NUL-terminated error message
    * - on success: one of the following message types
-   *
-   *   For a STORY_RESULT:
-   *   - GNUNET_MESSAGE_TYPE_PSYC_MESSAGE
    *
    *   For a STATE_RESULT, one of:
    *   - GNUNET_MESSAGE_TYPE_PSYC_MESSAGE_MODIFIER

@@ -112,7 +112,7 @@ struct GNUNET_PSYCSTORE_PluginFunctions
                         uint64_t psycstore_flags);
 
   /**
-   * Retrieve a message fragment by fragment ID.
+   * Retrieve a message fragment range by fragment ID.
    *
    * @see GNUNET_PSYCSTORE_fragment_get()
    *
@@ -121,12 +121,29 @@ struct GNUNET_PSYCSTORE_PluginFunctions
   int
   (*fragment_get) (void *cls,
                    const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
-                   uint64_t fragment_id,
+                   uint64_t first_fragment_id,
+                   uint64_t last_fragment_id,
+                   uint64_t *returned_fragments,
                    GNUNET_PSYCSTORE_FragmentCallback cb,
                    void *cb_cls);
 
   /**
-   * Retrieve all fragments of a message.
+   * Retrieve latest message fragments.
+   *
+   * @see GNUNET_PSYCSTORE_fragment_get()
+   *
+   * @return #GNUNET_OK on success, else #GNUNET_SYSERR
+   */
+  int
+  (*fragment_get_latest) (void *cls,
+                          const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
+                          uint64_t fragment_limit,
+                          uint64_t *returned_fragments,
+                          GNUNET_PSYCSTORE_FragmentCallback cb,
+                          void *cb_cls);
+
+  /**
+   * Retrieve all fragments of a message ID range.
    *
    * @see GNUNET_PSYCSTORE_message_get()
    *
@@ -135,10 +152,26 @@ struct GNUNET_PSYCSTORE_PluginFunctions
   int
   (*message_get) (void *cls,
                   const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
-                  uint64_t message_id,
+                  uint64_t first_fragment_id,
+                  uint64_t last_fragment_id,
                   uint64_t *returned_fragments,
                   GNUNET_PSYCSTORE_FragmentCallback cb,
                   void *cb_cls);
+
+  /**
+   * Retrieve all fragments of the latest messages.
+   *
+   * @see GNUNET_PSYCSTORE_message_get()
+   *
+   * @return #GNUNET_OK on success, else #GNUNET_SYSERR
+   */
+  int
+  (*message_get_latest) (void *cls,
+                         const struct GNUNET_CRYPTO_EddsaPublicKey *channel_key,
+                         uint64_t fragment_limit,
+                         uint64_t *returned_fragments,
+                         GNUNET_PSYCSTORE_FragmentCallback cb,
+                         void *cb_cls);
 
   /**
    * Retrieve a fragment of message specified by its message ID and fragment
