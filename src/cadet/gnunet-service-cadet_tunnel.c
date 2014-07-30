@@ -3283,9 +3283,9 @@ GCT_debug (const struct CadetTunnel *t, enum GNUNET_ErrorType level)
         GNUNET_h2s ((struct GNUNET_HashCode *) &kx_msg.ephemeral_key));
   LOG2 (level, "TTT  peers EPHM:\t %s\n",
         GNUNET_h2s ((struct GNUNET_HashCode *) &t->peers_ephemeral_key));
-  LOG (level, "TTT ENC key:\t %s\n",
+  LOG (level, "TTT  ENC key:\t %s\n",
        GNUNET_h2s ((struct GNUNET_HashCode *) &t->e_key));
-  LOG (level, "TTT DEC key:\t %s\n",
+  LOG (level, "TTT  DEC key:\t %s\n",
        GNUNET_h2s ((struct GNUNET_HashCode *) &t->d_key));
 #endif
   LOG2 (level, "TTT  tq_head %p, tq_tail %p\n", t->tq_head, t->tq_tail);
