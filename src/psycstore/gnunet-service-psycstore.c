@@ -105,17 +105,21 @@ send_result_code (struct GNUNET_SERVER_Client *client, uint64_t op_id,
                   int64_t result_code, const char *err_msg)
 {
   struct OperationResult *res;
-  size_t err_len = 0; // FIXME: maximum length
+  size_t err_size = 0;
 
   if (NULL != err_msg)
-    err_len = strlen (err_msg) + 1;
-  res = GNUNET_malloc (sizeof (struct OperationResult) + err_len);
+    err_size = strnlen (err_msg,
+                        GNUNET_SERVER_MAX_MESSAGE_SIZE - sizeof (*res)) + 1;
+  res = GNUNET_malloc (sizeof (struct OperationResult) + err_size);
   res->header.type = htons (GNUNET_MESSAGE_TYPE_PSYCSTORE_RESULT_CODE);
-  res->header.size = htons (sizeof (struct OperationResult) + err_len);
+  res->header.size = htons (sizeof (struct OperationResult) + err_size);
   res->result_code = GNUNET_htonll (result_code - INT64_MIN);
   res->op_id = op_id;
-  if (0 < err_len)
-    memcpy (&res[1], err_msg, err_len);
+  if (0 < err_size)
+  {
+    memcpy (&res[1], err_msg, err_size);
+    ((char *) &res[1])[err_size - 1] = '\0';
+  }
   GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
 	      "Sending result to client: %" PRId64 " (%s)\n",
 	      result_code, err_msg);
