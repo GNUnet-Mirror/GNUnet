@@ -38,7 +38,7 @@
 /**
  * Number of peers which should perform a PUT out of 100 peers
  */
-#define PUT_PROBABILITY 50
+#define PUT_PROBABILITY 100
 
 /**
  * Configuration

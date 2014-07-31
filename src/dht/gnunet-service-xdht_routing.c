@@ -45,7 +45,7 @@
 /**
  * Maximum number of entries in routing table.
  */
-#define ROUTING_TABLE_THRESHOLD 64
+#define ROUTING_TABLE_THRESHOLD 1000
 
 /**
  * FIXME: Store friend pointer instead of peer identifier. 
@@ -237,7 +237,7 @@ static int remove_matching_trails (void *cls,
   return GNUNET_YES;
 }
 
-
+#if 0
 /**
  * TEST FUNCTION
  * Remove after using. 
@@ -270,7 +270,7 @@ GDS_ROUTING_test_print (void)
     }
   }
 }
-
+#endif
 
 /**
  * Remove every trail where peer is either next_hop or prev_hop. Also send a 
@@ -309,15 +309,19 @@ GDS_ROUTING_add (struct GNUNET_HashCode new_trail_id,
                  struct GNUNET_PeerIdentity next_hop)
 {
   struct RoutingTrail *new_entry;
-
+  int ret;
+  
   new_entry = GNUNET_new (struct RoutingTrail);
   new_entry->trail_id = new_trail_id;
   new_entry->next_hop = next_hop;
   new_entry->prev_hop = prev_hop;
- 
-  return GNUNET_CONTAINER_multihashmap_put (routing_table,
+  
+  
+  ret = GNUNET_CONTAINER_multihashmap_put (routing_table,
                                             &new_trail_id, new_entry,
                                             GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+  //GNUNET_assert(ret == GNUNET_OK);
+  return ret;
 }
 
 
