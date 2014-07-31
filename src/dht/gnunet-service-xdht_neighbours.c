@@ -3083,7 +3083,7 @@ scan_and_compress_trail (struct GNUNET_PeerIdentity finger_identity,
   return new_trail;
 }
 
-#if 0
+
 /**
  * Periodic task to verify current successor. There can be multiple trails to reach
  * to successor, choose the shortest one and send verify successor message
@@ -3091,45 +3091,6 @@ scan_and_compress_trail (struct GNUNET_PeerIdentity finger_identity,
  * @param cls closure for this task
  * @param tc the context under which the task is running
  */
-static void
-send_verify_successor_message (void *cls,
-                                const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  struct FingerInfo *current_successor;
-  struct GNUNET_TIME_Relative next_send_time;
-  struct GNUNET_PeerIdentity *trail;
-  struct GNUNET_HashCode trail_id;
-  unsigned int trail_length;
-  
-  /* Schedule another send_verify_successor_message. */
-  next_send_time.rel_value_us =
-      DHT_SEND_VERIFY_SUCCESSOR_INTERVAL.rel_value_us +
-      GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
-                                DHT_SEND_VERIFY_SUCCESSOR_INTERVAL.rel_value_us);
-  send_verify_successor_task =
-      GNUNET_SCHEDULER_add_delayed (next_send_time, &send_verify_successor_message,
-                                    NULL);
-  
-  /* We should never be our own successor. */
-  GNUNET_assert(0 !=
-                GNUNET_CRYTPO_cmp_peer_identity (&my_identity, 
-                                                 &current_successor->finger_identity));
-  
-  
-  trail = get_shortest_trail (successor, &trail_length, &trail_id);
-  
-  if(trail_length > 0)
-  {
-    
-  }
-  else
-  {
-    
-  }
-}
-#endif
-
-
 static void
 send_verify_successor_message (void *cls,
                                 const struct GNUNET_SCHEDULER_TaskContext *tc)
@@ -3143,7 +3104,7 @@ send_verify_successor_message (void *cls,
   unsigned int trail_length;
   unsigned int j = 0;
   struct FingerInfo *successor;
-  
+   
   /* Schedule another send_find_finger_trail_message task. */
   next_send_time.rel_value_us =
       DHT_FIND_FINGER_TRAIL_INTERVAL.rel_value_us +
@@ -3157,9 +3118,25 @@ send_verify_successor_message (void *cls,
   i = 0;
   trail = &successor->trail_list[i];
   
-  if(0 == GNUNET_CRYPTO_cmp_peer_identity (&my_identity, 
-                                           &successor->finger_identity))
-    return;
+  /* Store the successor for path tracking */
+  if (track_topology &&  (NULL != GDS_stats))
+  {
+    char *my_id_str;
+    char *succ_id_str;
+    char *key;
+
+    my_id_str = GNUNET_strdup (GNUNET_i2s (&my_identity));
+    succ_id_str = GNUNET_strdup (GNUNET_i2s
+                                 (&successor->finger_identity));
+    GNUNET_asprintf (&key, "XDHT:0:%.4s:%.4s", my_id_str, succ_id_str);
+    GNUNET_free (my_id_str);
+    GNUNET_free (succ_id_str);
+    GNUNET_STATISTICS_update (GDS_stats, "key", 1, 0);
+    GNUNET_free (key);
+  }
+  
+  GNUNET_assert(0 != GNUNET_CRYPTO_cmp_peer_identity (&my_identity, 
+                                                      &successor->finger_identity));
   
   /* Trail stored at this index. */
   GNUNET_assert (GNUNET_YES == trail->is_present);
@@ -3458,23 +3435,6 @@ finger_table_add (struct GNUNET_PeerIdentity finger_identity,
           GDS_NEIGHBOURS_send_trail_teardown (finger_trail_id, 
                                               GDS_ROUTING_SRC_TO_DEST,
                                               finger_identity);
-      }
-
-      /* Store the successor for path tracking */
-      if (track_topology &&  (NULL != GDS_stats) && (0 == finger_table_index))
-      {
-        char *my_id_str;
-        char *succ_id_str;
-        char *key;
-
-        my_id_str = GNUNET_strdup (GNUNET_i2s (&my_identity));
-        succ_id_str = GNUNET_strdup (GNUNET_i2s
-                                     (&existing_finger->finger_identity));
-        GNUNET_asprintf (&key, "XDHT:0:%.4s:%.4s", my_id_str, succ_id_str);
-        GNUNET_free (my_id_str);
-        GNUNET_free (succ_id_str);
-        GNUNET_STATISTICS_update (GDS_stats, "key", 1, 0);
-        GNUNET_free (key);
       }
     }
   }
@@ -4384,7 +4344,7 @@ get_trail_src_to_curr_pred (struct GNUNET_PeerIdentity source_peer,
   current_predecessor = &finger_table[PREDECESSOR_FINGER_ID];
   trail_me_to_curr_pred = get_shortest_trail (current_predecessor,
                                               &trail_me_to_curr_pred_length);
-  
+    
   /* Check if trail_me_to_curr_pred contains source. */
   if (trail_me_to_curr_pred_length > 0)
   {
@@ -4393,8 +4353,8 @@ get_trail_src_to_curr_pred (struct GNUNET_PeerIdentity source_peer,
       if(0 != GNUNET_CRYPTO_cmp_peer_identity (&source_peer,
                                                &trail_me_to_curr_pred[i]))
         continue;
-      
-      i = i+1;
+       
+       i = i+1;
       
       /* Source is the last element in the trail to reach to my pred. 
          Source is direct friend of the pred. */
@@ -4407,10 +4367,11 @@ get_trail_src_to_curr_pred (struct GNUNET_PeerIdentity source_peer,
       *trail_src_to_curr_pred_length = trail_me_to_curr_pred_length - i;
       trail_src_to_curr_pred = GNUNET_malloc (sizeof (struct GNUNET_PeerIdentity)*
                                               *trail_src_to_curr_pred_length);
-      for(j = 0; i < *trail_src_to_curr_pred_length; i++,j++)
+      for(j = 0; j < *trail_src_to_curr_pred_length; i++,j++)
       {
         trail_src_to_curr_pred[j] = trail_me_to_curr_pred[i];
       }
+      
       return trail_src_to_curr_pred;
     }
   }
@@ -4587,7 +4548,7 @@ handle_dht_p2p_verify_successor(void *cls,
     GNUNET_break_op (0);
     return GNUNET_YES;
   }
-
+  
   vsm = (const struct PeerVerifySuccessorMessage *) message;
   trail_length = (msize - sizeof (struct PeerVerifySuccessorMessage))/
                   sizeof (struct GNUNET_PeerIdentity);
@@ -4638,14 +4599,18 @@ handle_dht_p2p_verify_successor(void *cls,
     trail_src_to_curr_pred = get_trail_src_to_curr_pred (source_peer,
                                                          trail,
                                                          trail_length,
-                                                         &trail_src_to_curr_pred_len);
-    
+                                                         &trail_src_to_curr_pred_len);    
   }
   else
   {
-    trail_src_to_curr_pred = GNUNET_new(struct GNUNET_PeerIdentity);
-    trail_src_to_curr_pred = NULL;
-    trail_src_to_curr_pred_len = 0;
+    trail_src_to_curr_pred_len = trail_length;
+    int i;
+    trail_src_to_curr_pred = GNUNET_malloc(sizeof(struct GNUNET_PeerIdentity)*trail_length);
+    for(i = 0; i < trail_src_to_curr_pred_len; i++)
+    {
+      trail_src_to_curr_pred[i] = trail[i];
+    }
+
   }
   
   GNUNET_assert (NULL != 
@@ -4682,7 +4647,7 @@ check_trail_me_to_probable_succ (struct GNUNET_PeerIdentity probable_successor,
   unsigned int i;
   unsigned int j;
   struct GNUNET_PeerIdentity *trail_to_new_successor;
-  
+    
   /* Probable successor is  a friend */
   if (NULL != GNUNET_CONTAINER_multipeermap_get (friend_peermap, 
                                                  &probable_successor))
@@ -4693,30 +4658,32 @@ check_trail_me_to_probable_succ (struct GNUNET_PeerIdentity probable_successor,
   }
   
   /* Is there any friend of yours in this trail. */
-  for (i = trail_me_to_probable_successor_len - 1; i > 0; i--)
+  if(trail_me_to_probable_successor_len > 1)
   {
-    if (NULL == GNUNET_CONTAINER_multipeermap_get (friend_peermap, 
-                                                   &trail_me_to_probable_successor[i]))
-      continue;
+    for (i = trail_me_to_probable_successor_len - 1; i > 0; i--)
+    {
+      if (NULL == GNUNET_CONTAINER_multipeermap_get (friend_peermap, 
+                                                     &trail_me_to_probable_successor[i]))
+        continue;
     
-    j = 0;
-    *trail_to_new_successor_length = (trail_me_to_probable_successor_len - i);
-    trail_to_new_successor = GNUNET_malloc (sizeof(struct GNUNET_PeerIdentity)*
+      j = 0;
+      *trail_to_new_successor_length = (trail_me_to_probable_successor_len - i);
+      trail_to_new_successor = GNUNET_malloc (sizeof(struct GNUNET_PeerIdentity)*
                                                 *trail_to_new_successor_length);
     
-    for(j = 0;i < trail_me_to_probable_successor_len;i++,j++)    
-    {
-      trail_to_new_successor[j] = trail_me_to_probable_successor[i];
+      for(j = 0;i < trail_me_to_probable_successor_len;i++,j++)    
+      {
+        trail_to_new_successor[j] = trail_me_to_probable_successor[i];
+      }
+      return trail_to_new_successor;
     }
-  
-    return trail_to_new_successor;
   }
   
-  
+  *trail_to_new_successor_length = trail_me_to_probable_successor_len;
   trail_to_new_successor = GNUNET_malloc (sizeof (struct GNUNET_PeerIdentity)*
-                                          trail_me_to_probable_successor_len);
+                                          *trail_to_new_successor_length);
   
-  for(i = 0; i < trail_me_to_probable_successor_len; i++)
+  for(i = 0; i < *trail_to_new_successor_length; i++)
     trail_to_new_successor[i] = trail_me_to_probable_successor[i];
   
   return trail_to_new_successor;
@@ -4724,7 +4691,11 @@ check_trail_me_to_probable_succ (struct GNUNET_PeerIdentity probable_successor,
 
 
 /**
- * 
+ * Check if the peer which sent us verify successor result message is still ours
+ * successor or not. If not, then compare existing successor and probable successor.
+ * In case probable successor is the correct successor, remove the existing
+ * successor. Add probable successor as new successor. Send notify new successor
+ * message to new successor. 
  * @param curr_succ
  * @param probable_successor
  * @param trail
@@ -4774,16 +4745,20 @@ compare_and_update_successor (struct GNUNET_PeerIdentity curr_succ,
     return;
   
   /* Probable successor is the closest peer.*/
+  if(trail_length > 0)
+    GNUNET_assert(NULL != GNUNET_CONTAINER_multipeermap_get(friend_peermap,
+                                                            &trail[0]));
+  else
+    GNUNET_assert(NULL != GNUNET_CONTAINER_multipeermap_get(friend_peermap,
+                                                            &probable_successor));
   
-  GNUNET_assert(NULL != GNUNET_CONTAINER_multipeermap_get (friend_peermap, 
-                                                           &trail[0]));
-  
+  trail_me_to_probable_succ_len = 0;
   /* TODO: Check if the path to reach to probable successor contains a friend. */
   trail_me_to_probable_succ = 
           check_trail_me_to_probable_succ (probable_successor,
                                            trail, trail_length,
                                            &trail_me_to_probable_succ_len);
-  
+
   /* Remove the existing successor. */
   remove_existing_finger (current_successor, 0);
   
@@ -4804,7 +4779,7 @@ compare_and_update_successor (struct GNUNET_PeerIdentity curr_succ,
     GDS_ROUTING_add (trail_id, my_identity, probable_successor);
     GNUNET_assert (NULL != 
                   (target_friend = 
-                    GNUNET_CONTAINER_multipeermap_get (friend_peermap, 
+                   GNUNET_CONTAINER_multipeermap_get (friend_peermap, 
                                                        &probable_successor)));
   }
   
@@ -4871,7 +4846,6 @@ handle_dht_p2p_verify_successor_result(void *cls,
   probable_successor = vsrm->probable_successor;
   current_successor = vsrm->current_successor;
 
- 
   /* I am the querying_peer. */
   if(0 == (GNUNET_CRYPTO_cmp_peer_identity (&querying_peer, &my_identity)))
   {
