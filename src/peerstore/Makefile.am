@@ -47,7 +47,7 @@ libgnunetpeerstore_la_SOURCES = \
 libgnunetpeerstore_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la
 libgnunetpeerstore_la_LDFLAGS = \
-  $(GNUNET_LDFLAGS)
+  $(GN_LIB_LDFLAGS)
 
 plugin_LTLIBRARIES = \
   libgnunet_plugin_peerstore_sqlite.la

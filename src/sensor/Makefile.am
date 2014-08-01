@@ -52,7 +52,7 @@ libgnunetsensor_la_SOURCES = \
 libgnunetsensor_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la
 libgnunetsensor_la_LDFLAGS = \
-  $(GNUNET_LDFLAGS)
+  $(GN_LIB_LDFLAGS)
 
 libgnunetsensorutil_la_SOURCES = \
   sensor_util_lib.c
