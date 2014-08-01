@@ -453,7 +453,7 @@ struct Plugin
   /**
    * The interface of the wlan card given to us by the user.
    */
-  char *interface;
+  char *wlan_interface;
 
   /**
    * Tokenizer for demultiplexing of data packets resulting from
@@ -1953,7 +1953,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_DONE (void *cls)
     GNUNET_SERVER_mst_destroy (plugin->helper_payload_tokenizer);
     plugin->helper_payload_tokenizer = NULL;
   }
-  GNUNET_free_non_null (plugin->interface);
+  GNUNET_free_non_null (plugin->wlan_interface);
   GNUNET_free (plugin);
   GNUNET_free (api);
   return NULL;
@@ -2107,7 +2107,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
   struct GNUNET_TRANSPORT_PluginEnvironment *env = cls;
   struct GNUNET_TRANSPORT_PluginFunctions *api;
   struct Plugin *plugin;
-  char *interface;
+  char *wlan_interface;
   unsigned long long testmode;
   char *binary;
 
@@ -2160,7 +2160,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
       GNUNET_CONFIGURATION_get_value_string (env->cfg,
                                              CONFIG_NAME,
                                              "INTERFACE",
-                                             &interface))
+                                             &wlan_interface))
   {
     GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR,
 			       CONFIG_NAME,
@@ -2169,7 +2169,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
   }
 
   plugin = GNUNET_new (struct Plugin);
-  plugin->interface = interface;
+  plugin->wlan_interface = wlan_interface;
   plugin->env = env;
   GNUNET_STATISTICS_set (plugin->env->stats,
                          _("# sessions allocated"),
@@ -2194,7 +2194,7 @@ LIBGNUNET_PLUGIN_TRANSPORT_INIT (void *cls)
   {
   case 0: /* normal */
     plugin->helper_argv[0] = (char *) HELPER_NAME;
-    plugin->helper_argv[1] = interface;
+    plugin->helper_argv[1] = wlan_interface;
     plugin->helper_argv[2] = NULL;
     plugin->suid_helper = GNUNET_HELPER_start (GNUNET_NO,
 					       HELPER_NAME,
