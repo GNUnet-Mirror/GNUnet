@@ -62,7 +62,7 @@ GDS_DATACACHE_handle_put (struct GNUNET_TIME_Absolute expiration,
                           const void *data)
 {
   int r;
-
+  
   if (NULL == datacache)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
@@ -74,6 +74,7 @@ GDS_DATACACHE_handle_put (struct GNUNET_TIME_Absolute expiration,
     GNUNET_break (0);
     return;
   }
+  
   /* Put size is actual data size plus struct overhead plus path length (if any) */
   GNUNET_STATISTICS_update (GDS_stats,
                             gettext_noop ("# ITEMS stored in datacache"), 1,

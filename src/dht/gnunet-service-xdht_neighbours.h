@@ -161,5 +161,4 @@ GDS_NEIGHBOURS_done (void);
 struct GNUNET_PeerIdentity 
 GDS_NEIGHBOURS_get_my_id (void);
 
-
 #endif

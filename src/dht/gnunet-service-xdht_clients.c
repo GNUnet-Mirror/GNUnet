@@ -501,6 +501,7 @@ forward_reply (void *cls, const struct GNUNET_HashCode * key, void *value)
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Record type missmatch, not passing request for key %s to local client\n",
          GNUNET_h2s (key));
+
     GNUNET_STATISTICS_update (GDS_stats,
                               gettext_noop
                               ("# Key match, type mismatches in REPLY to CLIENT"),
@@ -955,10 +956,10 @@ handle_dht_local_put (void *cls, struct GNUNET_SERVER_Client *client,
                             size - sizeof (struct GNUNET_DHT_ClientPutMessage),
                             &put_msg[1]);
   /* FIXME: Should we store locally? */
-  GDS_DATACACHE_handle_put (GNUNET_TIME_absolute_ntoh (put_msg->expiration),
+/* GDS_DATACACHE_handle_put (GNUNET_TIME_absolute_ntoh (put_msg->expiration),
                             &put_msg->key, 0, NULL, ntohl (put_msg->type),
                             size - sizeof (struct GNUNET_DHT_ClientPutMessage),
-                            &put_msg[1]);
+                            &put_msg[1]);*/
  
   struct GNUNET_PeerIdentity my_identity =  GDS_NEIGHBOURS_get_my_id();
   struct GNUNET_PeerIdentity best_known_destination;
@@ -1338,7 +1339,7 @@ handle_dht_local_monitor_stop (void *cls, struct GNUNET_SERVER_Client *client,
 
 #if ENABLE_MALICIOUS
 /**
- * Handler for monitor stop messages
+ * Handler for act malicous message.
  *
  * @param cls closure for the service
  * @param client the client we received this message from
@@ -1350,7 +1351,12 @@ handle_dht_act_malicious (void *cls, struct GNUNET_SERVER_Client *client,
                           const struct GNUNET_MessageHeader *message)
 {
   /* FIXME: parse message and set malicious */
-  malicious = 1;
+  const struct GNUNET_DHT_ActMaliciousMessage *msg;
+  unsigned int malicious;
+  
+  msg = (const struct GNUNET_DHT_ActMaliciousMessage *)message;
+  malicious = msg->action;
+  GDS_NEIGHBOURS_act_malicious(malicious);
 }
 #endif
 
