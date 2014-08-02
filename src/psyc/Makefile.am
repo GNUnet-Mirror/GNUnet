@@ -59,7 +59,7 @@ gnunet_service_psyc_LDADD = \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/multicast/libgnunetmulticast.la \
   $(top_builddir)/src/psycstore/libgnunetpsycstore.la \
-  libgnunetpsycutil.la
+  libgnunetpsycutil.la \
   $(GN_LIBINTL)
 gnunet_service_psyc_DEPENDENCIES = \
   $(top_builddir)/src/util/libgnunetutil.la \
