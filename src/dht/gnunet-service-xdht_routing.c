@@ -251,7 +251,9 @@ GDS_ROUTING_test_print (void)
   struct GNUNET_HashCode key_ret;
   int i;
   
-   FPRINTF (stderr,_("\nSUPU ***PRINTING ROUTING TABLE *****"));
+  struct GNUNET_PeerIdentity my_identity = GDS_NEIGHBOURS_get_my_id();
+  print_peer = my_identity;
+   FPRINTF (stderr,_("\nSUPU ***PRINTING ROUTING TABLE ***** of =%s"),GNUNET_i2s(&print_peer));
   iter =GNUNET_CONTAINER_multihashmap_iterator_create (routing_table);
   for (i = 0; i < GNUNET_CONTAINER_multihashmap_size(routing_table); i++)
   {
