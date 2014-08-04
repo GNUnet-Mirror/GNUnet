@@ -967,6 +967,7 @@ handle_dht_local_put (void *cls, struct GNUNET_SERVER_Client *client,
   
   memset(&best_known_destination, 0 , sizeof (struct GNUNET_PeerIdentity));
   memset(&intermediate_trail_id, 0, sizeof (struct GNUNET_HashCode));
+
   GDS_NEIGHBOURS_send_put (&put_msg->key, 
                            ntohl (put_msg->type), ntohl (put_msg->options),
                            ntohl (put_msg->desired_replication_level), 

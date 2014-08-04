@@ -228,7 +228,6 @@ datacache_get_iterator (void *cls,
       i++;
       iterator = iterator->next;
     }
-    
     GDS_NEIGHBOURS_send_get_result (key,type, &(ctx->next_hop),&(ctx->source_peer),
                                     put_path_length, put_path, ctx->get_path_length,
                                     get_path, exp, data, size );

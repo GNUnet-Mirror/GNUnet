@@ -71,7 +71,7 @@
 /**
  * How long to wait before sending another verify successor message.
  */
-#define DHT_SEND_VERIFY_SUCCESSOR_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1)
+#define DHT_SEND_VERIFY_SUCCESSOR_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 1)
 
 /**
  * How long at most to wait for transmission of a request to a friend ?
@@ -93,7 +93,7 @@
 /**
  * Maximum number of trails stored per finger.
  */
-#define MAXIMUM_TRAILS_PER_FINGER 1
+#define MAXIMUM_TRAILS_PER_FINGER 4
 
 /**
  * Finger map index for predecessor entry in finger table.
@@ -971,10 +971,13 @@ process_friend_queue (struct FriendInfo *peer)
   struct P2PPendingMessage *pending;
 
   if (NULL == (pending = peer->head))
+  {
     return;
+  }
   if (NULL != peer->th)
+  {
     return;
-
+  }
   GNUNET_STATISTICS_update (GDS_stats,
                             gettext_noop
                             ("# Bytes of bandwidth requested from core"),
@@ -1762,6 +1765,8 @@ test_friend_peermap_print ()
   }
 }
 
+
+
 /**
  * This is a test function, to print all the entries of finger table.
  */
@@ -2152,7 +2157,7 @@ GDS_NEIGHBOURS_send_put (const struct GNUNET_HashCode *key,
     {
       /* I am the destination. */
       GDS_DATACACHE_handle_put (expiration_time, key, 0, NULL,
-                                ntohl (block_type),data_size,data);
+                                block_type,data_size,data);
       return;
     }
     else
@@ -2189,7 +2194,6 @@ GDS_NEIGHBOURS_send_put (const struct GNUNET_HashCode *key,
             sizeof (struct GNUNET_PeerIdentity) * put_path_length);
   }
   memcpy (&pp[put_path_length], data, data_size);
-
   GNUNET_CONTAINER_DLL_insert_tail (target_friend->head, target_friend->tail, pending);
   target_friend->pending_count++;
   process_friend_queue (target_friend);
@@ -3270,7 +3274,6 @@ get_finger_table_index (uint64_t ultimate_destination_finger_value,
     diff = ultimate_destination_finger_value - my_id64;
     finger_table_index = find_set_bit (diff);
   }
-
   return finger_table_index;
 }
 
@@ -3366,6 +3369,14 @@ finger_table_add (struct GNUNET_PeerIdentity finger_identity,
     {
       current_search_finger_index = 0;
       return;
+    }
+    struct FingerInfo *prev_finger;
+    prev_finger = &finger_table[finger_table_index - 1];
+    if (0 == GNUNET_CRYPTO_cmp_peer_identity (&finger_identity,
+                                              &prev_finger->finger_identity))
+    {
+       current_search_finger_index--;
+       return;
     }
   }
 
@@ -4000,7 +4011,7 @@ handle_dht_p2p_trail_setup (void *cls, const struct GNUNET_PeerIdentity *peer,
       target_friend = GNUNET_CONTAINER_multipeermap_get (friend_peermap, peer);
     else
       target_friend = GNUNET_CONTAINER_multipeermap_get (friend_peermap, &source);
-    if (NULL != target_friend)
+    if (NULL == target_friend)
     {
       GNUNET_break_op (0);
       return GNUNET_SYSERR;
