@@ -1,6 +1,6 @@
 /*
      This file is part of GNUnet.
-     (C) 
+     (C)
 
      GNUnet is free software; you can redistribute it and/or modify
      it under the terms of the GNU General Public License as published
@@ -256,30 +256,34 @@ reconnect (struct GNUNET_PEERSTORE_Handle *h);
  *
  * @param cls a 'struct GNUNET_PEERSTORE_WatchContext *'
  */
-static void watch_request_sent (void *cls);
+static void
+watch_request_sent (void *cls);
 
 /**
  * Callback after MQ envelope is sent
  *
  * @param cls a 'struct GNUNET_PEERSTORE_IterateContext *'
  */
-static void iterate_request_sent (void *cls);
+static void
+iterate_request_sent (void *cls);
 
 /**
  * Callback after MQ envelope is sent
  *
  * @param cls a 'struct GNUNET_PEERSTORE_StoreContext *'
  */
-static void store_request_sent (void *cls);
+static void
+store_request_sent (void *cls);
 
 /**
  * MQ message handlers
  */
 static const struct GNUNET_MQ_MessageHandler mq_handlers[] = {
-    {&handle_iterate_result, GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE_RECORD, 0},
-    {&handle_iterate_result, GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE_END, sizeof(struct GNUNET_MessageHeader)},
-    {&handle_watch_result, GNUNET_MESSAGE_TYPE_PEERSTORE_WATCH_RECORD, 0},
-    GNUNET_MQ_HANDLERS_END
+  {&handle_iterate_result, GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE_RECORD, 0},
+  {&handle_iterate_result, GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE_END,
+   sizeof (struct GNUNET_MessageHeader)},
+  {&handle_watch_result, GNUNET_MESSAGE_TYPE_PEERSTORE_WATCH_RECORD, 0},
+  GNUNET_MQ_HANDLERS_END
 };
 
 /******************************************************************************/
@@ -291,31 +295,33 @@ handle_client_error (void *cls, enum GNUNET_MQ_Error error)
 {
   struct GNUNET_PEERSTORE_Handle *h = cls;
 
-  LOG(GNUNET_ERROR_TYPE_ERROR, _("Received an error notification from MQ of type: %d\n"), error);
-  reconnect(h);
+  LOG (GNUNET_ERROR_TYPE_ERROR,
+       _("Received an error notification from MQ of type: %d\n"), error);
+  reconnect (h);
 }
+
 
 /**
  * Iterator over previous watches to resend them
  */
-static int rewatch_it(void *cls,
-    const struct GNUNET_HashCode *key,
-    void *value)
+static int
+rewatch_it (void *cls, const struct GNUNET_HashCode *key, void *value)
 {
   struct GNUNET_PEERSTORE_Handle *h = cls;
   struct GNUNET_PEERSTORE_WatchContext *wc = value;
   struct StoreKeyHashMessage *hm;
 
-  if(GNUNET_YES == wc->request_sent)
-  { /* Envelope gone, create new one. */
-    wc->ev = GNUNET_MQ_msg(hm, GNUNET_MESSAGE_TYPE_PEERSTORE_WATCH);
+  if (GNUNET_YES == wc->request_sent)
+  {                             /* Envelope gone, create new one. */
+    wc->ev = GNUNET_MQ_msg (hm, GNUNET_MESSAGE_TYPE_PEERSTORE_WATCH);
     hm->keyhash = wc->keyhash;
     wc->request_sent = GNUNET_NO;
   }
-  GNUNET_MQ_notify_sent(wc->ev, &watch_request_sent, wc);
-  GNUNET_MQ_send(h->mq, wc->ev);
+  GNUNET_MQ_notify_sent (wc->ev, &watch_request_sent, wc);
+  GNUNET_MQ_send (h->mq, wc->ev);
   return GNUNET_YES;
 }
+
 
 /**
  * Close the existing connection to PEERSTORE and reconnect.
@@ -330,10 +336,10 @@ reconnect (struct GNUNET_PEERSTORE_Handle *h)
   void *icb_cls;
   struct GNUNET_PEERSTORE_StoreContext *sc;
 
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "Reconnecting...\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Reconnecting...\n");
   if (NULL != h->mq)
   {
-    GNUNET_MQ_destroy(h->mq);
+    GNUNET_MQ_destroy (h->mq);
     h->mq = NULL;
   }
   if (NULL != h->client)
@@ -342,17 +348,15 @@ reconnect (struct GNUNET_PEERSTORE_Handle *h)
     h->client = NULL;
   }
   h->client = GNUNET_CLIENT_connect ("peerstore", h->cfg);
-  GNUNET_assert(NULL != h->client);
-  h->mq = GNUNET_MQ_queue_for_connection_client(h->client,
-      mq_handlers,
-      &handle_client_error,
-      h);
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "Resending pending requests after reconnect.\n");
+  GNUNET_assert (NULL != h->client);
+  h->mq =
+      GNUNET_MQ_queue_for_connection_client (h->client, mq_handlers,
+                                             &handle_client_error, h);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Resending pending requests after reconnect.\n");
   if (NULL != h->watches)
   {
-    GNUNET_CONTAINER_multihashmap_iterate(h->watches,
-        &rewatch_it, h);
+    GNUNET_CONTAINER_multihashmap_iterate (h->watches, &rewatch_it, h);
   }
   ic = h->iterate_head;
   while (NULL != ic)
@@ -361,25 +365,26 @@ reconnect (struct GNUNET_PEERSTORE_Handle *h)
     {
       icb = ic->callback;
       icb_cls = ic->callback_cls;
-      GNUNET_PEERSTORE_iterate_cancel(ic);
-      if(NULL != icb)
-        icb(icb_cls, NULL,_("Iteration canceled due to reconnection."));
+      GNUNET_PEERSTORE_iterate_cancel (ic);
+      if (NULL != icb)
+        icb (icb_cls, NULL, _("Iteration canceled due to reconnection."));
     }
     else
     {
-      GNUNET_MQ_notify_sent(ic->ev, &iterate_request_sent, ic);
-      GNUNET_MQ_send(h->mq, ic->ev);
+      GNUNET_MQ_notify_sent (ic->ev, &iterate_request_sent, ic);
+      GNUNET_MQ_send (h->mq, ic->ev);
     }
     ic = ic->next;
   }
   sc = h->store_head;
   while (NULL != sc)
   {
-    GNUNET_MQ_notify_sent(sc->ev, &store_request_sent, sc);
-    GNUNET_MQ_send(h->mq, sc->ev);
+    GNUNET_MQ_notify_sent (sc->ev, &store_request_sent, sc);
+    GNUNET_MQ_send (h->mq, sc->ev);
     sc = sc->next;
   }
 }
+
 
 /**
  * Iterator over watch requests to cancel them.
@@ -398,6 +403,7 @@ destroy_watch (void *cls, const struct GNUNET_HashCode *key, void *value)
   return GNUNET_YES;
 }
 
+
 /**
  * Kill the connection to the service. This can be delayed in case of pending
  * STORE requests and the user explicitly asked to sync first. Otherwise it is
@@ -405,11 +411,12 @@ destroy_watch (void *cls, const struct GNUNET_HashCode *key, void *value)
  *
  * @param h Handle to the service.
  */
-static void do_disconnect (struct GNUNET_PEERSTORE_Handle *h)
+static void
+do_disconnect (struct GNUNET_PEERSTORE_Handle *h)
 {
-  if(NULL != h->mq)
+  if (NULL != h->mq)
   {
-    GNUNET_MQ_destroy(h->mq);
+    GNUNET_MQ_destroy (h->mq);
     h->mq = NULL;
   }
   if (NULL != h->client)
@@ -417,8 +424,9 @@ static void do_disconnect (struct GNUNET_PEERSTORE_Handle *h)
     GNUNET_CLIENT_disconnect (h->client);
     h->client = NULL;
   }
-  GNUNET_free(h);
+  GNUNET_free (h);
 }
+
 
 /**
  * Connect to the PEERSTORE service.
@@ -431,26 +439,27 @@ GNUNET_PEERSTORE_connect (const struct GNUNET_CONFIGURATION_Handle *cfg)
   struct GNUNET_PEERSTORE_Handle *h;
 
   h = GNUNET_new (struct GNUNET_PEERSTORE_Handle);
+
   h->client = GNUNET_CLIENT_connect ("peerstore", cfg);
-  if(NULL == h->client)
+  if (NULL == h->client)
   {
-    GNUNET_free(h);
+    GNUNET_free (h);
     return NULL;
   }
   h->cfg = cfg;
   h->disconnecting = GNUNET_NO;
-  h->mq = GNUNET_MQ_queue_for_connection_client(h->client,
-      mq_handlers,
-      &handle_client_error,
-      h);
-  if(NULL == h->mq)
+  h->mq =
+      GNUNET_MQ_queue_for_connection_client (h->client, mq_handlers,
+                                             &handle_client_error, h);
+  if (NULL == h->mq)
   {
-    GNUNET_free(h);
+    GNUNET_free (h);
     return NULL;
   }
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "New connection created\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "New connection created\n");
   return h;
 }
+
 
 /**
  * Disconnect from the PEERSTORE service. Any pending ITERATE and WATCH requests
@@ -468,11 +477,11 @@ GNUNET_PEERSTORE_disconnect (struct GNUNET_PEERSTORE_Handle *h, int sync_first)
   struct GNUNET_PEERSTORE_StoreContext *sc;
   struct GNUNET_PEERSTORE_StoreContext *sc_iter;
 
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "Disconnecting.\n");
-  if(NULL != h->watches)
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Disconnecting.\n");
+  if (NULL != h->watches)
   {
     GNUNET_CONTAINER_multihashmap_iterate (h->watches, &destroy_watch, NULL);
-    GNUNET_CONTAINER_multihashmap_destroy(h->watches);
+    GNUNET_CONTAINER_multihashmap_destroy (h->watches);
     h->watches = NULL;
   }
   ic_iter = h->iterate_head;
@@ -487,7 +496,7 @@ GNUNET_PEERSTORE_disconnect (struct GNUNET_PEERSTORE_Handle *h, int sync_first)
     if (GNUNET_YES == sync_first)
     {
       LOG (GNUNET_ERROR_TYPE_DEBUG,
-          "Delaying disconnection due to pending store requests.\n");
+           "Delaying disconnection due to pending store requests.\n");
       h->disconnecting = GNUNET_YES;
       return;
     }
@@ -512,7 +521,8 @@ GNUNET_PEERSTORE_disconnect (struct GNUNET_PEERSTORE_Handle *h, int sync_first)
  *
  * @param cls a 'struct GNUNET_PEERSTORE_StoreContext *'
  */
-static void store_request_sent (void *cls)
+static void
+store_request_sent (void *cls)
 {
   struct GNUNET_PEERSTORE_StoreContext *sc = cls;
   GNUNET_PEERSTORE_Continuation cont;
@@ -521,10 +531,11 @@ static void store_request_sent (void *cls)
   sc->ev = NULL;
   cont = sc->cont;
   cont_cls = sc->cont_cls;
-  GNUNET_PEERSTORE_store_cancel(sc);
-  if(NULL != cont)
-    cont(cont_cls, GNUNET_OK);
+  GNUNET_PEERSTORE_store_cancel (sc);
+  if (NULL != cont)
+    cont (cont_cls, GNUNET_OK);
 }
+
 
 /**
  * Cancel a store request
@@ -536,16 +547,17 @@ GNUNET_PEERSTORE_store_cancel (struct GNUNET_PEERSTORE_StoreContext *sc)
 {
   struct GNUNET_PEERSTORE_Handle *h = sc->h;
 
-  if(NULL != sc->ev)
+  if (NULL != sc->ev)
   {
-    GNUNET_MQ_send_cancel(sc->ev);
+    GNUNET_MQ_send_cancel (sc->ev);
     sc->ev = NULL;
   }
-  GNUNET_CONTAINER_DLL_remove(sc->h->store_head, sc->h->store_tail, sc);
-  GNUNET_free(sc);
+  GNUNET_CONTAINER_DLL_remove (sc->h->store_head, sc->h->store_tail, sc);
+  GNUNET_free (sc);
   if (GNUNET_YES == h->disconnecting && NULL == h->store_head)
     do_disconnect (h);
 }
+
 
 /**
  * Store a new entry in the PEERSTORE.
@@ -566,40 +578,34 @@ GNUNET_PEERSTORE_store_cancel (struct GNUNET_PEERSTORE_StoreContext *sc)
 struct GNUNET_PEERSTORE_StoreContext *
 GNUNET_PEERSTORE_store (struct GNUNET_PEERSTORE_Handle *h,
                         const char *sub_system,
-                        const struct GNUNET_PeerIdentity *peer,
-                        const char *key,
-                        const void *value,
-                        size_t size,
+                        const struct GNUNET_PeerIdentity *peer, const char *key,
+                        const void *value, size_t size,
                         struct GNUNET_TIME_Absolute expiry,
                         enum GNUNET_PEERSTORE_StoreOption options,
-                        GNUNET_PEERSTORE_Continuation cont,
-                        void *cont_cls)
+                        GNUNET_PEERSTORE_Continuation cont, void *cont_cls)
 {
   struct GNUNET_MQ_Envelope *ev;
   struct GNUNET_PEERSTORE_StoreContext *sc;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-      "Storing value (size: %lu) for subsytem `%s', peer `%s', key `%s'\n",
-      size, sub_system, GNUNET_i2s (peer), key);
-  ev = PEERSTORE_create_record_mq_envelope(sub_system,
-                                           peer,
-                                           key,
-                                           value,
-                                           size,
-                                           &expiry,
-                                           options,
-                                           GNUNET_MESSAGE_TYPE_PEERSTORE_STORE);
-  sc = GNUNET_new(struct GNUNET_PEERSTORE_StoreContext);
+       "Storing value (size: %lu) for subsytem `%s', peer `%s', key `%s'\n",
+       size, sub_system, GNUNET_i2s (peer), key);
+  ev = PEERSTORE_create_record_mq_envelope (sub_system, peer, key, value, size,
+                                            &expiry, options,
+                                            GNUNET_MESSAGE_TYPE_PEERSTORE_STORE);
+  sc = GNUNET_new (struct GNUNET_PEERSTORE_StoreContext);
+
   sc->ev = ev;
   sc->cont = cont;
   sc->cont_cls = cont_cls;
   sc->h = h;
-  GNUNET_CONTAINER_DLL_insert_tail(h->store_head, h->store_tail, sc);
-  GNUNET_MQ_notify_sent(ev, &store_request_sent, sc);
-  GNUNET_MQ_send(h->mq, ev);
+  GNUNET_CONTAINER_DLL_insert_tail (h->store_head, h->store_tail, sc);
+  GNUNET_MQ_notify_sent (ev, &store_request_sent, sc);
+  GNUNET_MQ_send (h->mq, ev);
   return sc;
 
 }
+
 
 /******************************************************************************/
 /*******************           ITERATE FUNCTIONS          *********************/
@@ -623,61 +629,66 @@ handle_iterate_result (void *cls, const struct GNUNET_MessageHeader *msg)
   int continue_iter;
 
   ic = h->iterate_head;
-  if(NULL == ic)
+  if (NULL == ic)
   {
-    LOG(GNUNET_ERROR_TYPE_ERROR, _("Unexpected iteration response, this should not happen.\n"));
-    reconnect(h);
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         _("Unexpected iteration response, this should not happen.\n"));
+    reconnect (h);
     return;
   }
   callback = ic->callback;
   callback_cls = ic->callback_cls;
-  if(NULL == msg) /* Connection error */
+  if (NULL == msg)              /* Connection error */
   {
 
-    if(NULL != callback)
-      callback(callback_cls, NULL,
-          _("Error communicating with `PEERSTORE' service."));
-    reconnect(h);
+    if (NULL != callback)
+      callback (callback_cls, NULL,
+                _("Error communicating with `PEERSTORE' service."));
+    reconnect (h);
     return;
   }
-  msg_type = ntohs(msg->type);
-  if(GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE_END == msg_type)
+  msg_type = ntohs (msg->type);
+  if (GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE_END == msg_type)
   {
     ic->request_sent = GNUNET_NO;
-    GNUNET_PEERSTORE_iterate_cancel(ic);
-    if(NULL != callback)
-      callback(callback_cls, NULL, NULL);
+    GNUNET_PEERSTORE_iterate_cancel (ic);
+    if (NULL != callback)
+      callback (callback_cls, NULL, NULL);
     return;
   }
-  if(NULL != callback)
+  if (NULL != callback)
   {
-    record = PEERSTORE_parse_record_message(msg);
-    if(NULL == record)
-      continue_iter = callback(callback_cls, NULL, _("Received a malformed response from service."));
+    record = PEERSTORE_parse_record_message (msg);
+    if (NULL == record)
+      continue_iter =
+          callback (callback_cls, NULL,
+                    _("Received a malformed response from service."));
     else
     {
-      continue_iter = callback(callback_cls, record, NULL);
-      PEERSTORE_destroy_record(record);
+      continue_iter = callback (callback_cls, record, NULL);
+      PEERSTORE_destroy_record (record);
     }
-    if(GNUNET_NO == continue_iter)
+    if (GNUNET_NO == continue_iter)
       ic->callback = NULL;
   }
-
 }
+
 
 /**
  * Callback after MQ envelope is sent
  *
  * @param cls a 'struct GNUNET_PEERSTORE_IterateContext *'
  */
-static void iterate_request_sent (void *cls)
+static void
+iterate_request_sent (void *cls)
 {
   struct GNUNET_PEERSTORE_IterateContext *ic = cls;
 
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "Iterate request sent to service.\n");
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Iterate request sent to service.\n");
   ic->request_sent = GNUNET_YES;
   ic->ev = NULL;
 }
+
 
 /**
  * Called when the iterate request is timedout
@@ -691,8 +702,9 @@ iterate_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   struct GNUNET_PEERSTORE_IterateContext *ic = cls;
 
   ic->timeout_task = GNUNET_SCHEDULER_NO_TASK;
-  GNUNET_PEERSTORE_iterate_cancel(ic);
+  GNUNET_PEERSTORE_iterate_cancel (ic);
 }
+
 
 /**
  * Cancel an iterate request
@@ -703,24 +715,25 @@ iterate_timeout (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 void
 GNUNET_PEERSTORE_iterate_cancel (struct GNUNET_PEERSTORE_IterateContext *ic)
 {
-  if(GNUNET_SCHEDULER_NO_TASK != ic->timeout_task)
+  if (GNUNET_SCHEDULER_NO_TASK != ic->timeout_task)
   {
-    GNUNET_SCHEDULER_cancel(ic->timeout_task);
+    GNUNET_SCHEDULER_cancel (ic->timeout_task);
     ic->timeout_task = GNUNET_SCHEDULER_NO_TASK;
   }
-  if(GNUNET_NO == ic->request_sent)
+  if (GNUNET_NO == ic->request_sent)
   {
-    if(NULL != ic->ev)
+    if (NULL != ic->ev)
     {
-      GNUNET_MQ_send_cancel(ic->ev);
+      GNUNET_MQ_send_cancel (ic->ev);
       ic->ev = NULL;
     }
-    GNUNET_CONTAINER_DLL_remove(ic->h->iterate_head, ic->h->iterate_tail, ic);
-    GNUNET_free(ic);
+    GNUNET_CONTAINER_DLL_remove (ic->h->iterate_head, ic->h->iterate_tail, ic);
+    GNUNET_free (ic);
   }
   else
     ic->callback = NULL;
 }
+
 
 /**
  * Iterate over records matching supplied key information
@@ -736,37 +749,35 @@ GNUNET_PEERSTORE_iterate_cancel (struct GNUNET_PEERSTORE_IterateContext *ic)
  */
 struct GNUNET_PEERSTORE_IterateContext *
 GNUNET_PEERSTORE_iterate (struct GNUNET_PEERSTORE_Handle *h,
-    const char *sub_system,
-    const struct GNUNET_PeerIdentity *peer,
-    const char *key,
-    struct GNUNET_TIME_Relative timeout,
-    GNUNET_PEERSTORE_Processor callback, void *callback_cls)
+                          const char *sub_system,
+                          const struct GNUNET_PeerIdentity *peer,
+                          const char *key, struct GNUNET_TIME_Relative timeout,
+                          GNUNET_PEERSTORE_Processor callback,
+                          void *callback_cls)
 {
   struct GNUNET_MQ_Envelope *ev;
   struct GNUNET_PEERSTORE_IterateContext *ic;
 
-  ev = PEERSTORE_create_record_mq_envelope(sub_system,
-      peer,
-      key,
-      NULL,
-      0,
-      NULL,
-      0,
-      GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE);
-  ic = GNUNET_new(struct GNUNET_PEERSTORE_IterateContext);
+  ev = PEERSTORE_create_record_mq_envelope (sub_system, peer, key, NULL, 0,
+                                            NULL, 0,
+                                            GNUNET_MESSAGE_TYPE_PEERSTORE_ITERATE);
+  ic = GNUNET_new (struct GNUNET_PEERSTORE_IterateContext);
+
   ic->callback = callback;
   ic->callback_cls = callback_cls;
   ic->ev = ev;
   ic->h = h;
   ic->request_sent = GNUNET_NO;
-  GNUNET_CONTAINER_DLL_insert_tail(h->iterate_head, h->iterate_tail, ic);
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-        "Sending an iterate request for sub system `%s'\n", sub_system);
-  GNUNET_MQ_notify_sent(ev, &iterate_request_sent, ic);
-  GNUNET_MQ_send(h->mq, ev);
-  ic->timeout_task = GNUNET_SCHEDULER_add_delayed(timeout, &iterate_timeout, ic);
+  GNUNET_CONTAINER_DLL_insert_tail (h->iterate_head, h->iterate_tail, ic);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Sending an iterate request for sub system `%s'\n", sub_system);
+  GNUNET_MQ_notify_sent (ev, &iterate_request_sent, ic);
+  GNUNET_MQ_send (h->mq, ev);
+  ic->timeout_task =
+      GNUNET_SCHEDULER_add_delayed (timeout, &iterate_timeout, ic);
   return ic;
 }
+
 
 /******************************************************************************/
 /*******************            WATCH FUNCTIONS           *********************/
@@ -786,36 +797,38 @@ handle_watch_result (void *cls, const struct GNUNET_MessageHeader *msg)
   struct GNUNET_HashCode keyhash;
   struct GNUNET_PEERSTORE_WatchContext *wc;
 
-  if(NULL == msg)
+  if (NULL == msg)
   {
-    LOG(GNUNET_ERROR_TYPE_ERROR,
-        _("Problem receiving a watch response, no way to determine which request.\n"));
-    reconnect(h);
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         _
+         ("Problem receiving a watch response, no way to determine which request.\n"));
+    reconnect (h);
     return;
   }
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "Received a watch record from service.\n");
-  record = PEERSTORE_parse_record_message(msg);
-  PEERSTORE_hash_key(record->sub_system,
-      record->peer, record->key, &keyhash);
-  wc = GNUNET_CONTAINER_multihashmap_get(h->watches, &keyhash);
-  if(NULL == wc)
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Received a watch record from service.\n");
+  record = PEERSTORE_parse_record_message (msg);
+  PEERSTORE_hash_key (record->sub_system, record->peer, record->key, &keyhash);
+  wc = GNUNET_CONTAINER_multihashmap_get (h->watches, &keyhash);
+  if (NULL == wc)
   {
-    LOG(GNUNET_ERROR_TYPE_ERROR,
-        _("Received a watch result for a non existing watch.\n"));
-    reconnect(h);
+    LOG (GNUNET_ERROR_TYPE_ERROR,
+         _("Received a watch result for a non existing watch.\n"));
+    reconnect (h);
     return;
   }
-  if(NULL != wc->callback)
-    wc->callback(wc->callback_cls, record, NULL);
-  PEERSTORE_destroy_record(record);
+  if (NULL != wc->callback)
+    wc->callback (wc->callback_cls, record, NULL);
+  PEERSTORE_destroy_record (record);
 }
+
 
 /**
  * Callback after MQ envelope is sent
  *
  * @param cls a 'struct GNUNET_PEERSTORE_WatchContext *'
  */
-static void watch_request_sent (void *cls)
+static void
+watch_request_sent (void *cls)
 {
   struct GNUNET_PEERSTORE_WatchContext *wc = cls;
 
@@ -823,36 +836,38 @@ static void watch_request_sent (void *cls)
   wc->ev = NULL;
 }
 
+
 /**
  * Cancel a watch request
  *
  * @param wc handle to the watch request
  */
 void
-GNUNET_PEERSTORE_watch_cancel(struct GNUNET_PEERSTORE_WatchContext *wc)
+GNUNET_PEERSTORE_watch_cancel (struct GNUNET_PEERSTORE_WatchContext *wc)
 {
   struct GNUNET_PEERSTORE_Handle *h = wc->h;
   struct GNUNET_MQ_Envelope *ev;
   struct StoreKeyHashMessage *hm;
 
-  LOG(GNUNET_ERROR_TYPE_DEBUG, "Canceling watch.\n");
-  if(GNUNET_YES == wc->request_sent) /* If request already sent to service, send a cancel request. */
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Canceling watch.\n");
+  if (GNUNET_YES == wc->request_sent)   /* If request already sent to service, send a cancel request. */
   {
-    ev = GNUNET_MQ_msg(hm, GNUNET_MESSAGE_TYPE_PEERSTORE_WATCH_CANCEL);
+    ev = GNUNET_MQ_msg (hm, GNUNET_MESSAGE_TYPE_PEERSTORE_WATCH_CANCEL);
     hm->keyhash = wc->keyhash;
-    GNUNET_MQ_send(h->mq, ev);
+    GNUNET_MQ_send (h->mq, ev);
     wc->callback = NULL;
     wc->callback_cls = NULL;
   }
-  if(NULL != wc->ev)
+  if (NULL != wc->ev)
   {
-    GNUNET_MQ_send_cancel(wc->ev);
+    GNUNET_MQ_send_cancel (wc->ev);
     wc->ev = NULL;
   }
-  GNUNET_CONTAINER_multihashmap_remove(h->watches, &wc->keyhash, wc);
-  GNUNET_free(wc);
+  GNUNET_CONTAINER_multihashmap_remove (h->watches, &wc->keyhash, wc);
+  GNUNET_free (wc);
 
 }
+
 
 /**
  * Request watching a given key
@@ -868,36 +883,36 @@ GNUNET_PEERSTORE_watch_cancel(struct GNUNET_PEERSTORE_WatchContext *wc)
  */
 struct GNUNET_PEERSTORE_WatchContext *
 GNUNET_PEERSTORE_watch (struct GNUNET_PEERSTORE_Handle *h,
-    const char *sub_system,
-    const struct GNUNET_PeerIdentity *peer,
-    const char *key,
-    GNUNET_PEERSTORE_Processor callback, void *callback_cls)
+                        const char *sub_system,
+                        const struct GNUNET_PeerIdentity *peer, const char *key,
+                        GNUNET_PEERSTORE_Processor callback, void *callback_cls)
 {
   struct GNUNET_MQ_Envelope *ev;
   struct StoreKeyHashMessage *hm;
   struct GNUNET_PEERSTORE_WatchContext *wc;
 
-  GNUNET_assert(NULL != sub_system);
-  GNUNET_assert(NULL != peer);
-  GNUNET_assert(NULL != key);
-  ev = GNUNET_MQ_msg(hm, GNUNET_MESSAGE_TYPE_PEERSTORE_WATCH);
-  PEERSTORE_hash_key(sub_system, peer, key, &hm->keyhash);
-  wc = GNUNET_new(struct GNUNET_PEERSTORE_WatchContext);
+  GNUNET_assert (NULL != sub_system);
+  GNUNET_assert (NULL != peer);
+  GNUNET_assert (NULL != key);
+  ev = GNUNET_MQ_msg (hm, GNUNET_MESSAGE_TYPE_PEERSTORE_WATCH);
+  PEERSTORE_hash_key (sub_system, peer, key, &hm->keyhash);
+  wc = GNUNET_new (struct GNUNET_PEERSTORE_WatchContext);
+
   wc->callback = callback;
   wc->callback_cls = callback_cls;
   wc->ev = ev;
   wc->h = h;
   wc->request_sent = GNUNET_NO;
   wc->keyhash = hm->keyhash;
-  if(NULL == h->watches)
-    h->watches = GNUNET_CONTAINER_multihashmap_create(5, GNUNET_NO);
-  GNUNET_CONTAINER_multihashmap_put(h->watches, &wc->keyhash,
-      wc, GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
-  LOG(GNUNET_ERROR_TYPE_DEBUG,
-      "Sending a watch request for ss `%s', peer `%s', key `%s'.\n",
-      sub_system, GNUNET_i2s(peer), key);
-  GNUNET_MQ_notify_sent(ev, &watch_request_sent, wc);
-  GNUNET_MQ_send(h->mq, ev);
+  if (NULL == h->watches)
+    h->watches = GNUNET_CONTAINER_multihashmap_create (5, GNUNET_NO);
+  GNUNET_CONTAINER_multihashmap_put (h->watches, &wc->keyhash, wc,
+                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Sending a watch request for ss `%s', peer `%s', key `%s'.\n",
+       sub_system, GNUNET_i2s (peer), key);
+  GNUNET_MQ_notify_sent (ev, &watch_request_sent, wc);
+  GNUNET_MQ_send (h->mq, ev);
   return wc;
 }
 

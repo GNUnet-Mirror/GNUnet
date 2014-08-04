@@ -30,11 +30,10 @@
 
 
 GNUNET_NETWORK_STRUCT_BEGIN
-
 /**
  * Message carrying a PEERSTORE record message
  */
-struct StoreRecordMessage
+    struct StoreRecordMessage
 {
 
   /**
@@ -102,5 +101,4 @@ struct StoreKeyHashMessage
 };
 
 GNUNET_NETWORK_STRUCT_END
-
 #endif

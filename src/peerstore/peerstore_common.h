@@ -31,10 +31,9 @@
  *
  */
 void
-PEERSTORE_hash_key(const char *sub_system,
-    const struct GNUNET_PeerIdentity *peer,
-    const char *key,
-    struct GNUNET_HashCode *ret);
+PEERSTORE_hash_key (const char *sub_system,
+                    const struct GNUNET_PeerIdentity *peer, const char *key,
+                    struct GNUNET_HashCode *ret);
 
 /**
  * Creates a record message ready to be sent
@@ -49,13 +48,12 @@ PEERSTORE_hash_key(const char *sub_system,
  * @return pointer to record message struct
  */
 struct StoreRecordMessage *
-PEERSTORE_create_record_message(const char *sub_system,
-    const struct GNUNET_PeerIdentity *peer,
-    const char *key,
-    const void *value,
-    size_t value_size,
-    struct GNUNET_TIME_Absolute *expiry,
-    uint16_t msg_type);
+PEERSTORE_create_record_message (const char *sub_system,
+                                 const struct GNUNET_PeerIdentity *peer,
+                                 const char *key, const void *value,
+                                 size_t value_size,
+                                 struct GNUNET_TIME_Absolute *expiry,
+                                 uint16_t msg_type);
 
 /**
  * Creates a MQ envelope for a single record
@@ -71,14 +69,13 @@ PEERSTORE_create_record_message(const char *sub_system,
  * @return pointer to record message struct
  */
 struct GNUNET_MQ_Envelope *
-PEERSTORE_create_record_mq_envelope(const char *sub_system,
-                                    const struct GNUNET_PeerIdentity *peer,
-                                    const char *key,
-                                    const void *value,
-                                    size_t value_size,
-                                    struct GNUNET_TIME_Absolute *expiry,
-                                    enum GNUNET_PEERSTORE_StoreOption options,
-                                    uint16_t msg_type);
+PEERSTORE_create_record_mq_envelope (const char *sub_system,
+                                     const struct GNUNET_PeerIdentity *peer,
+                                     const char *key, const void *value,
+                                     size_t value_size,
+                                     struct GNUNET_TIME_Absolute *expiry,
+                                     enum GNUNET_PEERSTORE_StoreOption options,
+                                     uint16_t msg_type);
 
 /**
  * Parses a message carrying a record
@@ -87,11 +84,12 @@ PEERSTORE_create_record_mq_envelope(const char *sub_system,
  * @return Pointer to record or NULL if error
  */
 struct GNUNET_PEERSTORE_Record *
-PEERSTORE_parse_record_message(const struct GNUNET_MessageHeader *message);
+PEERSTORE_parse_record_message (const struct GNUNET_MessageHeader *message);
 
 /**
  * Free any memory allocated for this record
  *
  * @param record
  */
-void PEERSTORE_destroy_record(struct GNUNET_PEERSTORE_Record *record);
+void
+PEERSTORE_destroy_record (struct GNUNET_PEERSTORE_Record *record);

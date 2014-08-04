@@ -41,15 +41,15 @@ struct GNUNET_PEERSTORE_Handle *peerstore_handle;
  * @param tc scheduler context
  */
 static void
-shutdown_task (void *cls,
-         const struct GNUNET_SCHEDULER_TaskContext *tc)
+shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  if(NULL != peerstore_handle)
+  if (NULL != peerstore_handle)
   {
-    GNUNET_PEERSTORE_disconnect(peerstore_handle, GNUNET_YES);
+    GNUNET_PEERSTORE_disconnect (peerstore_handle, GNUNET_YES);
     peerstore_handle = NULL;
   }
 }
+
 
 /**
  * Main function that will be run by the scheduler.
@@ -60,21 +60,19 @@ shutdown_task (void *cls,
  * @param cfg configuration
  */
 static void
-run (void *cls,
-     char *const *args,
-     const char *cfgfile,
+run (void *cls, char *const *args, const char *cfgfile,
      const struct GNUNET_CONFIGURATION_Handle *cfg)
 {
 
   peerstore_handle = NULL;
-  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL,
-                                  &shutdown_task,
-                                  NULL);
-  peerstore_handle = GNUNET_PEERSTORE_connect(cfg);
-  GNUNET_assert(NULL != peerstore_handle);
+  GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,
+                                NULL);
+  peerstore_handle = GNUNET_PEERSTORE_connect (cfg);
+  GNUNET_assert (NULL != peerstore_handle);
 
   ret = 0;
 }
+
 
 /**
  * The main function to peerstore.
@@ -90,12 +88,9 @@ main (int argc, char *const *argv)
     GNUNET_GETOPT_OPTION_END
   };
   return (GNUNET_OK ==
-          GNUNET_PROGRAM_run (argc,
-                              argv,
-                              "gnunet-peerstore [options [value]]",
-                              gettext_noop
-                              ("peerstore"),
-                              options, &run, NULL)) ? ret : 1;
+          GNUNET_PROGRAM_run (argc, argv, "gnunet-peerstore [options [value]]",
+                              gettext_noop ("peerstore"), options, &run,
+                              NULL)) ? ret : 1;
 }
 
 /* end of gnunet-peerstore.c */

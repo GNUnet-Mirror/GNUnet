@@ -37,7 +37,8 @@ static struct GNUNET_PeerIdentity pid;
 static char *key = "test_peerstore_api_store_key";
 static char *val = "test_peerstore_api_store_val";
 
-int iterate_cb (void *cls, struct GNUNET_PEERSTORE_Record *record, char *emsg)
+int
+iterate_cb (void *cls, struct GNUNET_PEERSTORE_Record *record, char *emsg)
 {
   const char *rec_val;
 
@@ -45,46 +46,47 @@ int iterate_cb (void *cls, struct GNUNET_PEERSTORE_Record *record, char *emsg)
   if (NULL == record)
   {
     GNUNET_PEERSTORE_disconnect (h, GNUNET_NO);
-    GNUNET_SCHEDULER_shutdown();
+    GNUNET_SCHEDULER_shutdown ();
     return GNUNET_YES;
   }
   rec_val = record->value;
-  GNUNET_break (0 == strcmp(rec_val, val));
+  GNUNET_break (0 == strcmp (rec_val, val));
   ok = 0;
   return GNUNET_YES;
 }
 
+
 static void
-test1()
+test1 ()
 {
-  GNUNET_PEERSTORE_store (h, subsystem, &pid, key, val, strlen(val) + 1,
-      GNUNET_TIME_UNIT_FOREVER_ABS, GNUNET_PEERSTORE_STOREOPTION_REPLACE,
-      NULL, NULL);
+  GNUNET_PEERSTORE_store (h, subsystem, &pid, key, val, strlen (val) + 1,
+                          GNUNET_TIME_UNIT_FOREVER_ABS,
+                          GNUNET_PEERSTORE_STOREOPTION_REPLACE, NULL, NULL);
   GNUNET_PEERSTORE_disconnect (h, GNUNET_YES);
   h = GNUNET_PEERSTORE_connect (cfg);
   GNUNET_PEERSTORE_iterate (h, subsystem, &pid, key,
-      GNUNET_TIME_UNIT_FOREVER_REL, &iterate_cb, NULL);
+                            GNUNET_TIME_UNIT_FOREVER_REL, &iterate_cb, NULL);
 }
 
+
 static void
-run (void *cls,
-    const struct GNUNET_CONFIGURATION_Handle *c,
-    struct GNUNET_TESTING_Peer *peer)
+run (void *cls, const struct GNUNET_CONFIGURATION_Handle *c,
+     struct GNUNET_TESTING_Peer *peer)
 {
   cfg = c;
-  h = GNUNET_PEERSTORE_connect(cfg);
-  GNUNET_assert(NULL != h);
+  h = GNUNET_PEERSTORE_connect (cfg);
+  GNUNET_assert (NULL != h);
   memset (&pid, 1, sizeof (pid));
-  test1();
+  test1 ();
 }
+
 
 int
 main (int argc, char *argv[])
 {
-  if (0 != GNUNET_TESTING_service_run ("test-gnunet-peerstore",
-                 "peerstore",
-                 "test_peerstore_api_data.conf",
-                 &run, NULL))
+  if (0 !=
+      GNUNET_TESTING_service_run ("test-gnunet-peerstore", "peerstore",
+                                  "test_peerstore_api_data.conf", &run, NULL))
     return 1;
   return ok;
 }
