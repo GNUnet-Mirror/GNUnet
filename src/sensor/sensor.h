@@ -61,7 +61,6 @@ GNUNET_NETWORK_STRUCT_BEGIN
 };
 
 GNUNET_NETWORK_STRUCT_END
-
 /**
  * Stop the sensor analysis module
  */
@@ -117,5 +116,4 @@ SENSOR_update_stop ();
  */
 int
 SENSOR_update_start (const struct GNUNET_CONFIGURATION_Handle *c,
-                     struct GNUNET_CONTAINER_MultiHashMap *s,
-                     void (*cb) ());
+                     struct GNUNET_CONTAINER_MultiHashMap *s, void (*cb) ());

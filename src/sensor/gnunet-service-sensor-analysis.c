@@ -31,35 +31,51 @@
 
 #define LOG(kind,...) GNUNET_log_from (kind, "sensor-analysis",__VA_ARGS__)
 
-/*
+/**
  * Carries information about the analysis model
  * corresponding to one sensor
  */
 struct SensorModel
 {
 
-  /*
+  /**
    * DLL
    */
   struct SensorModel *prev;
 
-  /*
+  /**
    * DLL
    */
   struct SensorModel *next;
 
-  /*
+  /**
    * Pointer to sensor info structure
    */
   struct GNUNET_SENSOR_SensorInfo *sensor;
 
-  /*
+  /**
    * Watcher of sensor values
    */
   struct GNUNET_PEERSTORE_WatchContext *wc;
 
-  /*
-   * Closure for model plugin
+  /**
+   * State of sensor. #GNUNET_YES if anomalous, #GNUNET_NO otherwise.
+   */
+  int anomalous;
+
+  /**
+   * Number of anomalous readings (positive) received in a row.
+   */
+  int positive_count;
+
+  /**
+   * Number of non-anomalous (negative) readings received in a row.
+   */
+  int negative_count;
+
+  /**
+   * Closure for model plugin.
+   * Usually, the instance of the model created for this sensor.
    */
   void *cls;
 
@@ -75,22 +91,22 @@ static const struct GNUNET_CONFIGURATION_Handle *cfg;
  */
 static char *model_lib_name;
 
-/*
+/**
  * Model handle
  */
 static struct GNUNET_SENSOR_ModelFunctions *model_api;
 
-/*
+/**
  * Handle to peerstore service
  */
 static struct GNUNET_PEERSTORE_Handle *peerstore;
 
-/*
+/**
  * Head of DLL of created models
  */
 static struct SensorModel *models_head;
 
-/*
+/**
  * Tail of DLL of created models
  */
 static struct SensorModel *models_tail;
@@ -99,6 +115,12 @@ static struct SensorModel *models_tail;
  * My peer id
  */
 struct GNUNET_PeerIdentity peerid;
+
+/**
+ * How many subsequent values required to flip anomaly label.
+ * E.g. After 3 subsequent anomaly reports, status change to anomalous.
+ */
+unsigned long long confirmation_count;
 
 /**
  * Destroy a created model
@@ -155,11 +177,16 @@ SENSOR_analysis_stop ()
 
 /**
  * Sensor value watch callback
+ *
+ * @param cls Sensor model struct
+ * @param record Received record from peerstore, should contain new sensor value
+ * @param emsg Error message from peerstore if any, NULL if no errors
+ * @return #GNUNET_YES
  */
 static int
 sensor_watcher (void *cls, struct GNUNET_PEERSTORE_Record *record, char *emsg)
 {
-  struct SensorModel *sensor_model = cls;
+  struct SensorModel *model = cls;
   double *val;
   int anomalous;
 
@@ -171,15 +198,41 @@ sensor_watcher (void *cls, struct GNUNET_PEERSTORE_Record *record, char *emsg)
     return GNUNET_YES;
   }
   val = (double *) (record->value);
-  anomalous = model_api->feed_model (sensor_model->cls, *val);
+  anomalous = model_api->feed_model (model->cls, *val);
   if (GNUNET_YES == anomalous)
   {
-    LOG (GNUNET_ERROR_TYPE_WARNING,
-         "Anomaly detected in sensor `%s', value: %f.\n",
-         sensor_model->sensor->name, *val);
+    model->positive_count++;
+    model->negative_count = 0;
+    if (GNUNET_NO == model->anomalous &&
+        model->positive_count >= confirmation_count)
+    {
+      model->anomalous = GNUNET_YES;
+      LOG (GNUNET_ERROR_TYPE_WARNING,
+           "Anomaly state started for sensor `%s'.\n", model->sensor->name);
+      GNUNET_PEERSTORE_store (peerstore, "senosr-analysis", &peerid,
+                              model->sensor->name, &model->anomalous,
+                              sizeof (model->anomalous),
+                              GNUNET_TIME_UNIT_FOREVER_ABS,
+                              GNUNET_PEERSTORE_STOREOPTION_REPLACE, NULL, NULL);
+    }
   }
   else
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Value non-anomalous.\n");
+  {
+    model->negative_count++;
+    model->positive_count = 0;
+    if (GNUNET_YES == model->anomalous &&
+        model->negative_count >= confirmation_count)
+    {
+      model->anomalous = GNUNET_NO;
+      LOG (GNUNET_ERROR_TYPE_INFO, "Anomaly state stopped for sensor `%s'.\n",
+           model->sensor->name);
+      GNUNET_PEERSTORE_store (peerstore, "senosr-analysis", &peerid,
+                              model->sensor->name, &model->anomalous,
+                              sizeof (model->anomalous),
+                              GNUNET_TIME_UNIT_FOREVER_ABS,
+                              GNUNET_PEERSTORE_STOREOPTION_REPLACE, NULL, NULL);
+    }
+  }
   return GNUNET_YES;
 }
 
@@ -206,6 +259,9 @@ init_sensor_model (void *cls, const struct GNUNET_HashCode *key, void *value)
   sensor_model->wc =
       GNUNET_PEERSTORE_watch (peerstore, "sensor", &peerid, sensor->name,
                               &sensor_watcher, sensor_model);
+  sensor_model->anomalous = GNUNET_NO;
+  sensor_model->positive_count = 0;
+  sensor_model->negative_count = 0;
   sensor_model->cls = model_api->create_model (model_api->cls);
   GNUNET_CONTAINER_DLL_insert (models_head, models_tail, sensor_model);
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Created sensor model for `%s'.\n",
@@ -255,6 +311,11 @@ SENSOR_analysis_start (const struct GNUNET_CONFIGURATION_Handle *c,
     SENSOR_analysis_stop ();
     return GNUNET_SYSERR;
   }
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_number (cfg, "sensor-analysis",
+                                             "CONFIRMATION_COUNT",
+                                             &confirmation_count))
+    confirmation_count = 1;
   GNUNET_CRYPTO_get_peer_identity (cfg, &peerid);
   GNUNET_CONTAINER_multihashmap_iterate (sensors, &init_sensor_model, NULL);
   return GNUNET_OK;

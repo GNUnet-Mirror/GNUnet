@@ -41,18 +41,18 @@
 /**
  * Context of reporting operations
  */
-struct ReportingContext
+struct ValueReportingContext
 {
 
   /**
    * DLL
    */
-  struct ReportingContext *prev;
+  struct ValueReportingContext *prev;
 
   /**
    * DLL
    */
-  struct ReportingContext *next;
+  struct ValueReportingContext *next;
 
   /**
    * Sensor information
@@ -165,12 +165,12 @@ static struct GNUNET_CADET_Handle *cadet;
 /**
  * Head of DLL of all reporting contexts
  */
-struct ReportingContext *rc_head;
+struct ValueReportingContext *vrc_head;
 
 /**
  * Tail of DLL of all reporting contexts
  */
-struct ReportingContext *rc_tail;
+struct ValueReportingContext *vrc_tail;
 
 /**
  * Head of DLL of all cadet channels
@@ -186,24 +186,24 @@ struct CadetChannelContext *cc_tail;
  * Destroy a reporting context structure
  */
 static void
-destroy_reporting_context (struct ReportingContext *rc)
+destroy_reporting_context (struct ValueReportingContext *vrc)
 {
-  if (NULL != rc->wc)
+  if (NULL != vrc->wc)
   {
-    GNUNET_PEERSTORE_watch_cancel (rc->wc);
-    rc->wc = NULL;
+    GNUNET_PEERSTORE_watch_cancel (vrc->wc);
+    vrc->wc = NULL;
   }
-  if (GNUNET_SCHEDULER_NO_TASK != rc->cp_task)
+  if (GNUNET_SCHEDULER_NO_TASK != vrc->cp_task)
   {
-    GNUNET_SCHEDULER_cancel (rc->cp_task);
-    rc->cp_task = GNUNET_SCHEDULER_NO_TASK;
+    GNUNET_SCHEDULER_cancel (vrc->cp_task);
+    vrc->cp_task = GNUNET_SCHEDULER_NO_TASK;
   }
-  if (NULL != rc->last_value)
+  if (NULL != vrc->last_value)
   {
-    GNUNET_free (rc->last_value);
-    rc->last_value_size = 0;
+    GNUNET_free (vrc->last_value);
+    vrc->last_value_size = 0;
   }
-  GNUNET_free (rc);
+  GNUNET_free (vrc);
 }
 
 
@@ -239,7 +239,7 @@ destroy_cadet_channel_context (struct CadetChannelContext *cc)
 void
 SENSOR_reporting_stop ()
 {
-  struct ReportingContext *rc;
+  struct ValueReportingContext *vrc;
   struct CadetChannelContext *cc;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Stopping sensor reporting module.\n");
@@ -249,11 +249,11 @@ SENSOR_reporting_stop ()
     GNUNET_CONTAINER_DLL_remove (cc_head, cc_tail, cc);
     destroy_cadet_channel_context (cc);
   }
-  while (NULL != rc_head)
+  while (NULL != vrc_head)
   {
-    rc = rc_head;
-    GNUNET_CONTAINER_DLL_remove (rc_head, rc_tail, rc);
-    destroy_reporting_context (rc);
+    vrc = vrc_head;
+    GNUNET_CONTAINER_DLL_remove (vrc_head, vrc_tail, vrc);
+    destroy_reporting_context (vrc);
   }
   if (NULL != peerstore)
   {
@@ -308,7 +308,7 @@ get_cadet_channel (struct GNUNET_PeerIdentity pid)
  * @return size of created message
  */
 static size_t
-construct_reading_message (struct ReportingContext *rc,
+construct_reading_message (struct ValueReportingContext *vrc,
                            struct GNUNET_SENSOR_ReadingMessage **msg)
 {
   struct GNUNET_SENSOR_ReadingMessage *ret;
@@ -316,22 +316,22 @@ construct_reading_message (struct ReportingContext *rc,
   uint16_t total_size;
   void *dummy;
 
-  sensorname_size = strlen (rc->sensor->name) + 1;
+  sensorname_size = strlen (vrc->sensor->name) + 1;
   total_size =
       sizeof (struct GNUNET_SENSOR_ReadingMessage) + sensorname_size +
-      rc->last_value_size;
+      vrc->last_value_size;
   ret = GNUNET_malloc (total_size);
   ret->header.size = htons (total_size);
   ret->header.type = htons (GNUNET_MESSAGE_TYPE_SENSOR_READING);
   ret->sensorname_size = htons (sensorname_size);
-  ret->sensorversion_major = htons (rc->sensor->version_major);
-  ret->sensorversion_minor = htons (rc->sensor->version_minor);
-  ret->timestamp = GNUNET_htobe64 (rc->timestamp);
-  ret->value_size = htons (rc->last_value_size);
+  ret->sensorversion_major = htons (vrc->sensor->version_major);
+  ret->sensorversion_minor = htons (vrc->sensor->version_minor);
+  ret->timestamp = GNUNET_htobe64 (vrc->timestamp);
+  ret->value_size = htons (vrc->last_value_size);
   dummy = &ret[1];
-  memcpy (dummy, rc->sensor->name, sensorname_size);
+  memcpy (dummy, vrc->sensor->name, sensorname_size);
   dummy += sensorname_size;
-  memcpy (dummy, rc->last_value, rc->last_value_size);
+  memcpy (dummy, vrc->last_value, vrc->last_value_size);
   *msg = ret;
   return total_size;
 }
@@ -382,59 +382,59 @@ do_report_collection_point (void *cls, size_t size, void *buf)
 /**
  * Task scheduled to send values to collection point
  *
- * @param cls closure, a `struct CollectionReportingContext *`
+ * @param cls closure, a `struct ValueReportingContext *`
  * @param tc unused
  */
 static void
 report_collection_point (void *cls,
                          const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  struct ReportingContext *rc = cls;
-  struct GNUNET_SENSOR_SensorInfo *sensor = rc->sensor;
+  struct ValueReportingContext *vrc = cls;
+  struct GNUNET_SENSOR_SensorInfo *sensor = vrc->sensor;
   struct CadetChannelContext *cc;
   struct GNUNET_SENSOR_ReadingMessage *msg;
   size_t msg_size;
 
-  rc->cp_task = GNUNET_SCHEDULER_NO_TASK;
-  if (0 == rc->last_value_size) /* Did not receive a sensor value yet */
+  vrc->cp_task = GNUNET_SCHEDULER_NO_TASK;
+  if (0 == vrc->last_value_size) /* Did not receive a sensor value yet */
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
          "Did not receive a value from `%s' to report yet.\n",
-         rc->sensor->name);
-    rc->cp_task =
-        GNUNET_SCHEDULER_add_delayed (sensor->collection_interval,
-                                      &report_collection_point, rc);
+         vrc->sensor->name);
+    vrc->cp_task =
+        GNUNET_SCHEDULER_add_delayed (sensor->value_reporting_interval,
+                                      &report_collection_point, vrc);
     return;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Now trying to report last seen value of `%s' " "to collection point.\n",
-       rc->sensor->name);
+       vrc->sensor->name);
   GNUNET_assert (NULL != sensor->collection_point);
   cc = get_cadet_channel (*sensor->collection_point);
   if (GNUNET_YES == cc->sending)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
          "Cadet channel to collection point busy, "
-         "trying again for sensor `%s' after %d seconds.\n", rc->sensor->name,
+         "trying again for sensor `%s' after %d seconds.\n", vrc->sensor->name,
          COLLECTION_RETRY);
-    rc->cp_task =
+    vrc->cp_task =
         GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply
                                       (GNUNET_TIME_UNIT_SECONDS,
                                        COLLECTION_RETRY),
-                                      &report_collection_point, rc);
+                                      &report_collection_point, vrc);
     return;
   }
-  msg_size = construct_reading_message (rc, &msg);
+  msg_size = construct_reading_message (vrc, &msg);
   cc->sending = GNUNET_YES;
   cc->pending_msg = msg;
   cc->pending_msg_size = msg_size;
   cc->th =
       GNUNET_CADET_notify_transmit_ready (cc->c, GNUNET_YES,
-                                          sensor->collection_interval, msg_size,
+                                          sensor->value_reporting_interval, msg_size,
                                           &do_report_collection_point, cc);
-  rc->cp_task =
-      GNUNET_SCHEDULER_add_delayed (sensor->collection_interval,
-                                    &report_collection_point, rc);
+  vrc->cp_task =
+      GNUNET_SCHEDULER_add_delayed (sensor->value_reporting_interval,
+                                    &report_collection_point, vrc);
 }
 
 
@@ -444,23 +444,23 @@ report_collection_point (void *cls,
 static int
 sensor_watch_cb (void *cls, struct GNUNET_PEERSTORE_Record *record, char *emsg)
 {
-  struct ReportingContext *rc = cls;
+  struct ValueReportingContext *vrc = cls;
 
   if (NULL != emsg)
     return GNUNET_YES;
-  if (NULL != rc->last_value)
+  if (NULL != vrc->last_value)
   {
-    GNUNET_free (rc->last_value);
-    rc->last_value_size = 0;
+    GNUNET_free (vrc->last_value);
+    vrc->last_value_size = 0;
   }
-  rc->last_value = GNUNET_malloc (record->value_size);
-  memcpy (rc->last_value, record->value, record->value_size);
-  rc->last_value_size = record->value_size;
-  rc->timestamp = GNUNET_TIME_absolute_get ().abs_value_us;
+  vrc->last_value = GNUNET_malloc (record->value_size);
+  memcpy (vrc->last_value, record->value, record->value_size);
+  vrc->last_value_size = record->value_size;
+  vrc->timestamp = GNUNET_TIME_absolute_get ().abs_value_us;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
        "Received a sensor `%s' watch value at " "timestamp %" PRIu64
-       ", updating notification last_value.\n", rc->sensor->name,
-       rc->timestamp);
+       ", updating notification last_value.\n", vrc->sensor->name,
+       vrc->timestamp);
   return GNUNET_YES;
 }
 
@@ -479,38 +479,31 @@ init_sensor_reporting (void *cls, const struct GNUNET_HashCode *key,
                        void *value)
 {
   struct GNUNET_SENSOR_SensorInfo *sensor = value;
-  struct ReportingContext *rc;
+  struct ValueReportingContext *vrc;
 
-  if (NULL == sensor->collection_point && GNUNET_NO == sensor->p2p_report)
+  if (NULL == sensor->collection_point ||
+      (GNUNET_NO == sensor->report_values && GNUNET_NO == sensor->report_anomalies))
     return GNUNET_YES;
-  rc = GNUNET_new (struct ReportingContext);
-  rc->sensor = sensor;
-  rc->last_value = NULL;
-  rc->last_value_size = 0;
-  rc->wc =
+  vrc = GNUNET_new (struct ValueReportingContext);
+  vrc->sensor = sensor;
+  vrc->last_value = NULL;
+  vrc->last_value_size = 0;
+  vrc->wc =
       GNUNET_PEERSTORE_watch (peerstore, "sensor", &mypeerid, sensor->name,
-                              &sensor_watch_cb, rc);
+                              &sensor_watch_cb, vrc);
   if (NULL != sensor->collection_point)
   {
     LOG (GNUNET_ERROR_TYPE_INFO,
          "Will start reporting sensor `%s' values to "
          "collection point `%s' every %s.\n", sensor->name,
          GNUNET_i2s_full (sensor->collection_point),
-         GNUNET_STRINGS_relative_time_to_string (sensor->collection_interval,
+         GNUNET_STRINGS_relative_time_to_string (sensor->value_reporting_interval,
                                                  GNUNET_YES));
-    rc->cp_task =
-        GNUNET_SCHEDULER_add_delayed (sensor->collection_interval,
-                                      &report_collection_point, rc);
+    vrc->cp_task =
+        GNUNET_SCHEDULER_add_delayed (sensor->value_reporting_interval,
+                                      &report_collection_point, vrc);
   }
-  if (GNUNET_YES == sensor->p2p_report)
-  {
-    LOG (GNUNET_ERROR_TYPE_INFO,
-         "Will start reporting sensor `%s' values to p2p network every %s.\n",
-         sensor->name,
-         GNUNET_STRINGS_relative_time_to_string (sensor->p2p_interval,
-                                                 GNUNET_YES));
-  }
-  GNUNET_CONTAINER_DLL_insert (rc_head, rc_tail, rc);
+  GNUNET_CONTAINER_DLL_insert (vrc_head, vrc_tail, vrc);
   return GNUNET_YES;
 }
 

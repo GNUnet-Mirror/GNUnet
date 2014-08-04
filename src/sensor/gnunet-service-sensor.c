@@ -554,7 +554,7 @@ sensor_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   else
   {
     sensorinfo->running = GNUNET_NO;
-    GNUNET_break (0);           //shouldn't happen
+    GNUNET_break (0);           /* shouldn't happen */
   }
 }
 
@@ -596,7 +596,6 @@ schedule_sensor (void *cls, const struct GNUNET_HashCode *key, void *value)
 
 /**
  * Starts the execution of all enabled sensors
- *
  */
 static void
 schedule_all_sensors ()

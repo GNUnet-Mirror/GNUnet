@@ -150,8 +150,6 @@ load_sensor_from_cfg (struct GNUNET_CONFIGURATION_Handle *cfg,
                                              &starttime_str))
   {
     GNUNET_STRINGS_fancy_time_to_absolute (starttime_str, sensor->start_time);
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "Start time loaded: `%s'. Parsed: %d\n",
-         starttime_str, (NULL != sensor->start_time));
     GNUNET_free (starttime_str);
   }
   //end time
@@ -161,8 +159,6 @@ load_sensor_from_cfg (struct GNUNET_CONFIGURATION_Handle *cfg,
                                              &endtime_str))
   {
     GNUNET_STRINGS_fancy_time_to_absolute (endtime_str, sensor->end_time);
-    LOG (GNUNET_ERROR_TYPE_DEBUG, "End time loaded: `%s'. Parsed: %d\n",
-         endtime_str, (NULL != sensor->end_time));
     GNUNET_free (endtime_str);
   }
   //interval
@@ -259,52 +255,36 @@ load_sensor_from_cfg (struct GNUNET_CONFIGURATION_Handle *cfg,
     GNUNET_free (sensor);
     return NULL;
   }
-  //reporting mechanism
+  //reporting
   sensor->collection_point = NULL;
+  sensor->report_values = GNUNET_NO;
+  sensor->report_anomalies = GNUNET_NO;
   if (GNUNET_OK ==
       GNUNET_CONFIGURATION_get_value_string (cfg, sectionname,
                                              "COLLECTION_POINT", &dummy))
   {
-    if (GNUNET_OK !=
-        GNUNET_CONFIGURATION_get_value_number (cfg, sectionname,
-                                               "COLLECTION_INTERVAL",
-                                               &time_sec))
+    if (GNUNET_OK ==
+        GNUNET_CRYPTO_eddsa_public_key_from_string (dummy, strlen (dummy),
+                                                    &public_key))
     {
-      LOG (GNUNET_ERROR_TYPE_ERROR,
-           _("Error reading sensor collection interval\n"));
-    }
-    else
-    {
-      sensor->collection_interval =
-          GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, time_sec);
-      if (GNUNET_OK ==
-          GNUNET_CRYPTO_eddsa_public_key_from_string (dummy, strlen (dummy),
-                                                      &public_key))
-      {
-        sensor->collection_point = GNUNET_new (struct GNUNET_PeerIdentity);
+      sensor->collection_point = GNUNET_new (struct GNUNET_PeerIdentity);
 
-        sensor->collection_point->public_key = public_key;
+      sensor->collection_point->public_key = public_key;
+      if (GNUNET_OK ==
+          GNUNET_CONFIGURATION_get_value_number (cfg, sectionname,
+                                                 "VALUE_COLLECTION_INTERVAL",
+                                                 &time_sec))
+      {
+        sensor->report_values = GNUNET_YES;
+        sensor->value_reporting_interval =
+            GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, time_sec);
       }
+      if (GNUNET_YES ==
+          GNUNET_CONFIGURATION_get_value_yesno (cfg, sectionname,
+                                                "REPORT_ANOMALIES"))
+        sensor->report_anomalies = GNUNET_YES;
     }
     GNUNET_free (dummy);
-  }
-  sensor->p2p_report = GNUNET_NO;
-  if (GNUNET_YES ==
-      GNUNET_CONFIGURATION_get_value_yesno (cfg, sectionname, "P2P_REPORT"))
-  {
-    if (GNUNET_OK !=
-        GNUNET_CONFIGURATION_get_value_number (cfg, sectionname, "P2P_INTERVAL",
-                                               &time_sec))
-    {
-      LOG (GNUNET_ERROR_TYPE_ERROR,
-           _("Error reading sensor p2p reporting interval\n"));
-    }
-    else
-    {
-      sensor->p2p_interval =
-          GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, time_sec);
-      sensor->p2p_report = GNUNET_YES;
-    }
   }
   //execution task
   sensor->execution_task = GNUNET_SCHEDULER_NO_TASK;
@@ -490,8 +470,7 @@ GNUNET_SENSOR_load_all_sensors ()
        "Loading sensor definitions from directory `%s'\n", sensordir);
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_DISK_directory_test (sensordir, GNUNET_YES));
-
-  //read all files in sensors directory
+  /* read all files in sensors directory */
   GNUNET_DISK_directory_scan (sensordir, &reload_sensors_dir_cb, sensors);
   LOG (GNUNET_ERROR_TYPE_INFO, "Loaded %d sensors from directory `%s'\n",
        GNUNET_CONTAINER_multihashmap_size (sensors), sensordir);

@@ -47,78 +47,78 @@ struct GNUNET_SENSOR_SensorInfo
    */
   struct GNUNET_CONFIGURATION_Handle *cfg;
 
-  /*
+  /**
    * Sensor name
    */
   char *name;
 
-  /*
+  /**
    * Path to definition file
    */
   char *def_file;
 
-  /*
+  /**
    * First part of version number
    */
   uint16_t version_major;
 
-  /*
+  /**
    * Second part of version number
    */
   uint16_t version_minor;
 
-  /*
+  /**
    * Sensor description
    */
   char *description;
 
-  /*
+  /**
    * Sensor currently enabled
    */
   int enabled;
 
-  /*
+  /**
    * Category under which the sensor falls (e.g. tcp, datastore)
    */
   char *category;
 
-  /*
+  /**
    * When does the sensor become active
    */
   struct GNUNET_TIME_Absolute *start_time;
 
-  /*
+  /**
    * When does the sensor expire
    */
   struct GNUNET_TIME_Absolute *end_time;
 
-  /*
+  /**
    * Time interval to collect sensor information (e.g. every 1 min)
    */
   struct GNUNET_TIME_Relative interval;
 
-  /*
+  /**
    * Lifetime of an information sample after which it is deleted from storage
    * If not supplied, will default to the interval value
    */
   struct GNUNET_TIME_Relative lifetime;
 
-  /*
+  /**
    * A set of required peer capabilities for the sensor to collect meaningful information (e.g. ipv6)
    */
   char *capabilities;
 
-  /*
+  /**
    * Either "gnunet-statistics" or external "process"
    */
   char *source;
 
-  /*
+  /**
    * Name of the GNUnet service that is the source for the gnunet-statistics entry
    */
   char *gnunet_stat_service;
 
-  /*
+  /**
    * Name of the gnunet-statistics entry
    */
   char *gnunet_stat_name;
@@ -128,59 +128,61 @@ struct GNUNET_SENSOR_SensorInfo
    */
   struct GNUNET_STATISTICS_GetHandle *gnunet_stat_get_handle;
 
-  /*
+  /**
    * Name of the external process to be executed
    */
   char *ext_process;
 
-  /*
+  /**
    * Arguments to be passed to the external process
    */
   char *ext_args;
 
-  /*
+  /**
    * Handle to the external process
    */
   struct GNUNET_OS_CommandHandle *ext_cmd;
 
-  /*
+  /**
    * Did we already receive a value
    * from the currently running external
    * proccess ? #GNUNET_YES / #GNUNET_NO
    */
   int ext_cmd_value_received;
 
-  /*
+  /**
    * The output datatype to be expected
    */
   char *expected_datatype;
 
-  /*
+  /**
    * Peer-identity of peer running collection point
    */
   struct GNUNET_PeerIdentity *collection_point;
 
-  /*
-   * Time interval to send sensor information to collection point (e.g. every 30 mins)
+  /**
+   * Do we report received sensor values to collection point?
+   * #GNUNET_YES / #GNUNET_NO
    */
-  struct GNUNET_TIME_Relative collection_interval;
+  int report_values;
 
-  /*
-   * Flag specifying if value is to be communicated to the p2p network
+  /**
+   * Time interval to send sensor values to collection point (e.g. every 30 mins)
    */
-  int p2p_report;
+  struct GNUNET_TIME_Relative value_reporting_interval;
 
-  /*
-   * Time interval to communicate value to the p2p network
+  /**
+   * Do we report anomalies to collection point?
+   * #GNUNET_YES / #GNUNET_NO
    */
-  struct GNUNET_TIME_Relative p2p_interval;
+  int report_anomalies;
 
-  /*
+  /**
    * Execution task (OR GNUNET_SCHEDULER_NO_TASK)
    */
   GNUNET_SCHEDULER_TaskIdentifier execution_task;
 
-  /*
+  /**
    * Is the sensor being executed
    */
   int running;
@@ -296,6 +298,7 @@ struct GNUNET_SENSOR_SensorFullMessage
 };
 
 GNUNET_NETWORK_STRUCT_END
+
 /**
  * Given two version numbers as major and minor, compare them.
  *
