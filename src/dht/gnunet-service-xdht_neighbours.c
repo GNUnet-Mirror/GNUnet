@@ -1514,12 +1514,9 @@ GDS_NEIGHBOURS_send_add_trail (struct GNUNET_PeerIdentity source_peer,
   adm->source_peer = source_peer;
   adm->destination_peer = destination_peer;
   adm->trail_id = trail_id;
-
-  if (trail_length > 0)
-  {
-    peer_list = (struct GNUNET_PeerIdentity *)&adm[1];
-    memcpy (peer_list, trail, sizeof (struct GNUNET_PeerIdentity) * trail_length);
-  }
+  peer_list = (struct GNUNET_PeerIdentity *)&adm[1];
+  memcpy (peer_list, trail, sizeof (struct GNUNET_PeerIdentity) * trail_length);
+  
   /* Send the message to chosen friend. */
   GNUNET_CONTAINER_DLL_insert_tail (target_friend->head, target_friend->tail, pending);
   target_friend->pending_count++;
@@ -1590,16 +1587,14 @@ search_my_index (const struct GNUNET_PeerIdentity *trail,
                  int trail_length)
 {
   int i;
-  int lowest_index = -1;
 
   for (i = 0; i < trail_length; i++)
   {
     if (0 == GNUNET_CRYPTO_cmp_peer_identity (&my_identity, &trail[i]))
-      //lowest_index = i;
       return i;
   }
 
-  return lowest_index;
+  return -1;
 }
 
 
@@ -2491,6 +2486,7 @@ compute_finger_identity_value (unsigned int finger_index)
   }
 }
 
+static struct GNUNET_TIME_Relative next_send_time;
 
 /*
  * Choose a random friend. Calculate the next finger identity to search,from
@@ -2505,19 +2501,16 @@ send_find_finger_trail_message (void *cls,
                                 const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct FriendInfo *target_friend;
-  struct GNUNET_TIME_Relative next_send_time;
+  //struct GNUNET_TIME_Relative next_send_time;
   struct GNUNET_HashCode trail_id;
   struct GNUNET_HashCode intermediate_trail_id;
   unsigned int is_predecessor;
   uint64_t finger_id_value;
-
+  
   /* Schedule another send_find_finger_trail_message task. */
-  next_send_time.rel_value_us =
-      DHT_FIND_FINGER_TRAIL_INTERVAL.rel_value_us +
-      GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
-                                DHT_FIND_FINGER_TRAIL_INTERVAL.rel_value_us);
   find_finger_trail_task =
-      GNUNET_SCHEDULER_add_delayed (next_send_time, &send_find_finger_trail_message,
+      GNUNET_SCHEDULER_add_delayed (next_send_time,
+                                    &send_find_finger_trail_message,
                                     NULL);
 
    /* No space in my routing table. (Source and destination peers also store entries
@@ -3066,7 +3059,6 @@ scan_and_compress_trail (struct GNUNET_PeerIdentity finger_identity,
         i++;
       }
       *new_trail_length = j+1;
-      GNUNET_assert((j+1) == (trail_length - 1)); //FIXME: remove it afterwards.
       return new_trail;
     }
   }
@@ -3375,12 +3367,16 @@ finger_table_add (struct GNUNET_PeerIdentity finger_identity,
                                               &successor->finger_identity))
     {
       current_search_finger_index = 0;
+      /* We slow down the find_finger_trail_task as we have completed the circle. */
+      next_send_time = GNUNET_TIME_STD_BACKOFF(next_send_time);
+     
       return;
     }
-    struct FingerInfo *prev_finger;
-    prev_finger = &finger_table[finger_table_index - 1];
+    
+    struct FingerInfo prev_finger;
+    prev_finger = finger_table[finger_table_index - 1];
     if (0 == GNUNET_CRYPTO_cmp_peer_identity (&finger_identity,
-                                              &prev_finger->finger_identity))
+                                              &prev_finger.finger_identity))
     {
        current_search_finger_index--;
        return;
@@ -3904,6 +3900,41 @@ get_local_best_known_next_hop (uint64_t final_dest_finger_val,
   return peer;
 }
 
+#if 0
+/**
+ * Check if peer is already present in the trail. 
+ * @param peer
+ * @param trail
+ * @param trail_length
+ * @return 
+ */
+static struct GNUNET_PeerIdentity *
+check_for_duplicate_entries (const struct GNUNET_PeerIdentity *trail, 
+                             unsigned int trail_length,
+                             unsigned int *updated_trail_length)
+{
+  struct GNUNET_PeerIdentity *updated_trail;
+  unsigned int i;
+  unsigned int j;
+  
+  /* It may happen that there are more than one peer present twice. 
+   but we don't want to*/
+  for(i = 0;i < trail_length; i++)
+  {
+    for(j = i+1; j < trail_length; j++)
+    {
+      if(0 != GNUNET_CRYPTO_cmp_peer_identity (&trail[i],&trail[j]))
+        continue;
+      
+      /* If you found a duplicate entry in the trail, then you should
+       * have the entry at i should point to next of entry stored at j*/
+      
+      /* In case j = (trail_length - 1), then it should NULL. */
+      
+    }
+  }
+}
+#endif
 
 /*
  * Core handle for PeerTrailSetupMessage.
@@ -3926,6 +3957,7 @@ handle_dht_p2p_trail_setup (void *cls, const struct GNUNET_PeerIdentity *peer,
   struct GNUNET_HashCode trail_id;
   unsigned int is_predecessor;
   uint32_t trail_length;
+  unsigned int i;
   size_t msize;
 
   msize = ntohs (message->size);
@@ -3954,6 +3986,14 @@ handle_dht_p2p_trail_setup (void *cls, const struct GNUNET_PeerIdentity *peer,
   is_predecessor = ntohl (trail_setup->is_predecessor);
   intermediate_trail_id = trail_setup->intermediate_trail_id;
 
+  /* Did the friend insert its ID in the trail list? */
+  if (trail_length > 0 &&
+      0 != memcmp (&trail_peer_list[trail_length-1], peer, sizeof (*peer)))
+  {
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
+  
    /* If I was the source and got the message back, then set trail length to 0.*/
   if (0 == GNUNET_CRYPTO_cmp_peer_identity(&my_identity, &source))
   {
@@ -3971,14 +4011,21 @@ handle_dht_p2p_trail_setup (void *cls, const struct GNUNET_PeerIdentity *peer,
     trail_length = 0;
   }
 
-  /* Did the friend insert its ID in the trail list? */
-  if (trail_length > 0 &&
-      0 != memcmp (&trail_peer_list[trail_length-1], peer, sizeof (*peer)))
+  /* Check if you are present in the trail seen so far? */
+  if(trail_length > 0)
   {
-    GNUNET_break_op (0);
-    return GNUNET_SYSERR;
+    for (i = 0; i < trail_length ; i++)
+    {
+      if(0 == GNUNET_CRYPTO_cmp_peer_identity(&trail_peer_list[i],&my_identity))
+      {
+        //Here if you already were present in the trail. then you
+        // shoudl trail length to i + 1
+        trail_length = i+1;
+        break;
+      }
+    }
   }
-
+  
   /* Is my routing table full?  */
   if (GNUNET_YES == GDS_ROUTING_threshold_reached())
   {
@@ -4207,6 +4254,9 @@ handle_dht_p2p_trail_setup_result(void *cls, const struct GNUNET_PeerIdentity *p
     return GNUNET_SYSERR;
   }
 #endif
+
+  /*TODO:URGENT Check if I am already present in the trail. If yes then its an error,
+   as in trail setup we ensure that it should never happen. */
 
   /* Am I the one who initiated the query? */
   if (0 == (GNUNET_CRYPTO_cmp_peer_identity (&querying_peer, &my_identity)))
@@ -4646,9 +4696,9 @@ handle_dht_p2p_verify_successor(void *cls,
                                              &source_peer)))
   {
     trail_src_to_curr_pred = get_trail_src_to_curr_pred (source_peer,
-                                                         trail,
-                                                         trail_length,
-                                                         &trail_src_to_curr_pred_len);
+                                            trail,
+                                            trail_length,
+                                            &trail_src_to_curr_pred_len);
   }
   else
   {
@@ -4819,6 +4869,8 @@ compare_and_update_successor (struct GNUNET_PeerIdentity curr_succ,
   /* Remove the existing successor. */
   remove_existing_finger (current_successor, 0);
 
+  /* TODO URGENT: Check if any peer is present more than once, if yes then shorten
+   the trail. before sending it across the network. */
    /* Generate a new trail id to reach to your new successor. */
   GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_STRONG,
                               &trail_id, sizeof (trail_id));
@@ -5319,6 +5371,7 @@ handle_dht_p2p_add_trail (void *cls, const struct GNUNET_PeerIdentity *peer,
   msize = ntohs (message->size);
   /* In this message we pass the whole trail from source to destination as we
    * are adding that trail.*/
+  //FIXME: failed when run with 1000 pears. check why.
   if (msize < sizeof (struct PeerAddTrailMessage))
   {
     GNUNET_break_op (0);
@@ -5627,7 +5680,13 @@ handle_core_connect (void *cls, const struct GNUNET_PeerIdentity *peer_identity)
 
   /* got a first connection, good time to start with FIND FINGER TRAIL requests...*/
   if (GNUNET_SCHEDULER_NO_TASK == find_finger_trail_task)
+  {
+    next_send_time.rel_value_us =
+      DHT_FIND_FINGER_TRAIL_INTERVAL.rel_value_us +
+      GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                DHT_FIND_FINGER_TRAIL_INTERVAL.rel_value_us);
     find_finger_trail_task = GNUNET_SCHEDULER_add_now (&send_find_finger_trail_message, NULL);
+  }
 }
 
 

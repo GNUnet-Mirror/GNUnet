@@ -320,8 +320,8 @@ GDS_ROUTING_add (struct GNUNET_HashCode new_trail_id,
   
   
   ret = GNUNET_CONTAINER_multihashmap_put (routing_table,
-                                            &new_trail_id, new_entry,
-                                            GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+                                           &new_trail_id, new_entry,
+                                           GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
   //GNUNET_assert(ret == GNUNET_OK);
   return ret;
 }
