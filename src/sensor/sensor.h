@@ -105,17 +105,28 @@ SENSOR_reporting_value_start (const struct GNUNET_CONFIGURATION_Handle *c,
 void
 SENSOR_reporting_anomaly_stop ();
 
+/**
+ * Used by the analysis module to tell the reporting module about a change in
+ * the anomaly status of a sensor.
+ *
+ * @param sensor Related sensor
+ * @param anomalous The new sensor anomalous status
+ */
+void
+SENSOR_reporting_anomaly_update (struct GNUNET_SENSOR_SensorInfo *sensor,
+                                 int anomalous);
+
 
 /**
  * Start the sensor anomaly reporting module
  *
  * @param c our service configuration
- * @param sensors multihashmap of loaded sensors
+ * @param s multihashmap of loaded sensors
  * @return #GNUNET_OK if started successfully, #GNUNET_SYSERR otherwise
  */
 int
 SENSOR_reporting_anomaly_start (const struct GNUNET_CONFIGURATION_Handle *c,
-                                struct GNUNET_CONTAINER_MultiHashMap *sensors);
+                                struct GNUNET_CONTAINER_MultiHashMap *s);
 
 
 /**

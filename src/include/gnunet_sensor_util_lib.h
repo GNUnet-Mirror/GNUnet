@@ -297,6 +297,44 @@ struct GNUNET_SENSOR_SensorFullMessage
 
 };
 
+/**
+ * Message carrying an anomaly status change report
+ */
+struct AnomalyReportMessage
+{
+
+  /**
+   * Message header
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Hash of sensor name
+   */
+  struct GNUNET_HashCode sensorname_hash;
+
+  /**
+   * First part of sensor version number
+   */
+  uint16_t sensorversion_major;
+
+  /**
+   * Second part of sensor version name
+   */
+  uint16_t sensorversion_minor;
+
+  /**
+   * New anomaly status
+   */
+  uint8_t anomalous;
+
+  /**
+   * Percentage of neighbors reported the same anomaly
+   */
+  float anomalous_neighbors;
+
+};
+
 GNUNET_NETWORK_STRUCT_END
 
 /**

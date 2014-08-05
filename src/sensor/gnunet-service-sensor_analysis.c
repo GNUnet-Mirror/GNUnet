@@ -209,11 +209,7 @@ sensor_watcher (void *cls, struct GNUNET_PEERSTORE_Record *record, char *emsg)
       model->anomalous = GNUNET_YES;
       LOG (GNUNET_ERROR_TYPE_WARNING,
            "Anomaly state started for sensor `%s'.\n", model->sensor->name);
-      GNUNET_PEERSTORE_store (peerstore, "senosr-analysis", &peerid,
-                              model->sensor->name, &model->anomalous,
-                              sizeof (model->anomalous),
-                              GNUNET_TIME_absolute_get (),
-                              GNUNET_PEERSTORE_STOREOPTION_REPLACE, NULL, NULL);
+      SENSOR_reporting_anomaly_update (model->sensor, model->anomalous);
     }
   }
   else
@@ -226,11 +222,7 @@ sensor_watcher (void *cls, struct GNUNET_PEERSTORE_Record *record, char *emsg)
       model->anomalous = GNUNET_NO;
       LOG (GNUNET_ERROR_TYPE_INFO, "Anomaly state stopped for sensor `%s'.\n",
            model->sensor->name);
-      GNUNET_PEERSTORE_store (peerstore, "senosr-analysis", &peerid,
-                              model->sensor->name, &model->anomalous,
-                              sizeof (model->anomalous),
-                              GNUNET_TIME_absolute_get (),
-                              GNUNET_PEERSTORE_STOREOPTION_REPLACE, NULL, NULL);
+      SENSOR_reporting_anomaly_update (model->sensor, model->anomalous);
     }
   }
   return GNUNET_YES;

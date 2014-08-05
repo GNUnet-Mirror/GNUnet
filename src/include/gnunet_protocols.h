@@ -2447,6 +2447,11 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_SENSOR_FULL 808
 
+/**
+ * Sensor anomaly report
+ */
+#define GNUNET_MESSAGE_TYPE_SENSOR_ANOMALY_REPORT 809
+
 
 /*******************************************************************************
  * PEERSTORE message types

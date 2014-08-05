@@ -31,46 +31,63 @@
 
 #define LOG(kind,...) GNUNET_log_from (kind, "sensor-reporting-anomaly",__VA_ARGS__)
 
-struct AnomalyReportingContext
+struct AnomalyInfo
 {
 
   /**
    * DLL
    */
-  struct AnomalyReportingContext *prev;
+  struct AnomalyInfo *prev;
 
   /**
    * DLL
    */
-  struct AnomalyReportingContext *next;
+  struct AnomalyInfo *next;
 
   /**
    * Sensor information
    */
   struct GNUNET_SENSOR_SensorInfo *sensor;
 
+  /**
+   * Current anomalous status of sensor
+   */
+  int anomalous;
+
+  /**
+   * List of peers that reported an anomaly for this sensor
+   */
+  struct GNUNET_CONTAINER_MultiPeerMap *anomalous_neighbors;
+
 };
 
 /**
- * Context of a connection to a peer through CORE
+ * Information about a connected CORE peer.
+ * Note that we only know about a connected peer if it is running the same
+ * application (sensor anomaly reporting) as us.
  */
-struct CorePeerContext
+struct CorePeer
 {
 
   /**
    * DLL
    */
-  struct CorePeerContext *prev;
+  struct CorePeer *prev;
 
   /**
    * DLL
    */
-  struct CorePeerContext *next;
+  struct CorePeer *next;
 
   /**
    * Peer identity of connected peer
    */
   struct GNUNET_PeerIdentity *peerid;
+
+  /**
+   * Message queue for messages to be sent to this peer
+   */
+  struct GNUNET_MQ_Handle *mq;
 
 };
 
@@ -79,6 +96,11 @@ struct CorePeerContext
  * Our configuration.
  */
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
+
+/**
+ * Multihashmap of loaded sensors
+ */
+static struct GNUNET_CONTAINER_MultiHashMap *sensors;
 
 /**
  * Handle to core service
@@ -91,35 +113,74 @@ static struct GNUNET_CORE_Handle *core;
 static struct GNUNET_PeerIdentity mypeerid;
 
 /**
- * Head of DLL of anomaly reporting contexts
+ * Head of DLL of anomaly info structs
  */
-static struct AnomalyReportingContext *arc_head;
+static struct AnomalyInfo *ai_head;
 
 /**
- * Tail of DLL of anomaly reporting contexts
+ * Tail of DLL of anomaly info structs
  */
-static struct AnomalyReportingContext *arc_tail;
+static struct AnomalyInfo *ai_tail;
 
 /**
- * Head of DLL of CORE peer contexts
+ * Head of DLL of CORE peers
  */
-static struct CorePeerContext *cp_head;
+static struct CorePeer *cp_head;
 
 /**
- * Tail of DLL of CORE peer contexts
+ * Tail of DLL of CORE peers
  */
-static struct CorePeerContext *cp_tail;
+static struct CorePeer *cp_tail;
+
+/**
+ * Is the module started?
+ */
+static int module_running = GNUNET_NO;
+
+/**
+ * Number of known neighborhood peers
+ */
+static int neighborhood;
 
 
 /**
- * Destroy anomaly reporting context struct
+ * Destroy anomaly info struct
  *
- * @param arc struct to destroy
+ * @param ai struct to destroy
  */
 static void
-destroy_anomaly_reporting_context (struct AnomalyReportingContext *arc)
+destroy_anomaly_info (struct AnomalyInfo *ai)
 {
-  GNUNET_free (arc);
+  if (NULL != ai->anomalous_neighbors)
+    GNUNET_CONTAINER_multipeermap_destroy (ai->anomalous_neighbors);
+  GNUNET_free (ai);
+}
+
+
+/**
+ * Destroy core peer struct
+ *
+ * @param cp struct to destroy
+ */
+static void
+destroy_core_peer (struct CorePeer *cp)
+{
+  struct AnomalyInfo *ai;
+
+  if (NULL != cp->mq)
+  {
+    GNUNET_MQ_destroy (cp->mq);
+    cp->mq = NULL;
+  }
+  ai = ai_head;
+  while (NULL != ai)
+  {
+    GNUNET_assert (NULL != ai->anomalous_neighbors);
+    GNUNET_CONTAINER_multipeermap_remove_all (ai->anomalous_neighbors,
+                                              cp->peerid);
+    ai = ai->next;
+  }
+  GNUNET_free (cp);
 }
 
 
@@ -129,47 +190,211 @@ destroy_anomaly_reporting_context (struct AnomalyReportingContext *arc)
 void
 SENSOR_reporting_anomaly_stop ()
 {
-  struct AnomalyReportingContext *arc;
+  struct AnomalyInfo *ai;
+  struct CorePeer *cp;
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Stopping sensor anomaly reporting module.\n");
-  //TODO: destroy core peer contexts
-  //TODO: destroy core connection
-  arc = arc_head;
-  while (NULL != arc)
+  module_running = GNUNET_NO;
+  ai = ai_head;
+  while (NULL != ai)
   {
-    GNUNET_CONTAINER_DLL_remove (arc_head, arc_tail, arc);
-    destroy_anomaly_reporting_context (arc);
-    arc = arc_head;
+    GNUNET_CONTAINER_DLL_remove (ai_head, ai_tail, ai);
+    destroy_anomaly_info (ai);
+    ai = ai_head;
+  }
+  cp = cp_head;
+  while (NULL != cp)
+  {
+    GNUNET_CONTAINER_DLL_remove (cp_head, cp_tail, cp);
+    destroy_core_peer (cp);
+    cp = cp_head;
+  }
+  neighborhood = 0;
+  if (NULL != core)
+  {
+    GNUNET_CORE_disconnect (core);
+    core = NULL;
   }
 }
 
 
 /**
- * Iterator for defined sensors
- * Watches sensors for anomaly status change to report
+ * Gets the anomaly info struct related to the given sensor
  *
- * @param cls unused
- * @param key unused
- * @param value a `struct GNUNET_SENSOR_SensorInfo *` with sensor information
- * @return #GNUNET_YES to continue iterations
+ * @param sensor Sensor to search by
+ */
+static struct AnomalyInfo *
+get_anomaly_info_by_sensor (struct GNUNET_SENSOR_SensorInfo *sensor)
+{
+  struct AnomalyInfo *ai;
+
+  ai = ai_head;
+  while (NULL != ai)
+  {
+    if (ai->sensor == sensor)
+    {
+      return ai;
+    }
+    ai = ai->next;
+  }
+  return NULL;
+}
+
+
+/**
+ * Create an anomaly report message from a given anomaly info structb inside an
+ * MQ envelope.
+ *
+ * @param ai Anomaly info struct to use
+ * @return
+ */
+static struct GNUNET_MQ_Envelope *
+create_anomaly_report_message (struct AnomalyInfo *ai)
+{
+  struct AnomalyReportMessage *arm;
+  struct GNUNET_MQ_Envelope *ev;
+
+  ev = GNUNET_MQ_msg (arm, GNUNET_MESSAGE_TYPE_SENSOR_ANOMALY_REPORT);
+  GNUNET_CRYPTO_hash (ai->sensor->name, strlen (ai->sensor->name) + 1,
+                      &arm->sensorname_hash);
+  arm->sensorversion_major = ai->sensor->version_major;
+  arm->sensorversion_minor = ai->sensor->version_minor;
+  arm->anomalous = ai->anomalous;
+  arm->anomalous_neighbors =
+      ((float) GNUNET_CONTAINER_multipeermap_size (ai->anomalous_neighbors)) /
+      neighborhood;
+  return ev;
+}
+
+
+/**
+ * Send given anomaly info report to given core peer.
+ *
+ * @param cp Core peer to send the report to
+ * @param ai Anomaly info to report
+ */
+static void
+send_anomaly_report (struct CorePeer *cp, struct AnomalyInfo *ai)
+{
+  struct GNUNET_MQ_Envelope *ev;
+
+  GNUNET_assert (NULL != cp->mq);
+  ev = create_anomaly_report_message (ai);
+  GNUNET_MQ_send (cp->mq, ev);
+}
+
+
+/**
+ * An inbound anomaly report is received from a peer through CORE.
+ *
+ * @param cls closure (unused)
+ * @param peer the other peer involved
+ * @param message the actual message
+ * @return #GNUNET_OK to keep the connection open,
+ *         #GNUNET_SYSERR to close connection to the peer (signal serious error)
  */
 static int
-init_sensor_reporting (void *cls, const struct GNUNET_HashCode *key,
-                       void *value)
+handle_anomaly_report (void *cls, const struct GNUNET_PeerIdentity *other,
+                       const struct GNUNET_MessageHeader *message)
 {
-  struct GNUNET_SENSOR_SensorInfo *sensor = value;
-  struct AnomalyReportingContext *arc;
+  struct AnomalyReportMessage *arm;
+  struct GNUNET_SENSOR_SensorInfo *sensor;
+  struct AnomalyInfo *ai;
+  int peer_in_list;
 
-  if (NULL == sensor->collection_point)
-    return GNUNET_YES;
-  LOG (GNUNET_ERROR_TYPE_INFO,
-       "Reporting sensor `%s' anomalies to collection point `%s'.\n",
-       sensor->name, GNUNET_i2s_full (sensor->collection_point));
-  arc = GNUNET_new (struct AnomalyReportingContext);
-  arc->sensor = sensor;
-  GNUNET_CONTAINER_DLL_insert (arc_head, arc_tail, arc);
-  //TODO
-  return GNUNET_YES;
+  arm = (struct AnomalyReportMessage *) message;
+  sensor = GNUNET_CONTAINER_multihashmap_get (sensors, &arm->sensorname_hash);
+  if (NULL == sensor || sensor->version_major != arm->sensorversion_major ||
+      sensor->version_minor != arm->sensorversion_minor)
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING,
+         "I don't have the sensor reported by the peer `%s'.\n",
+         GNUNET_i2s (other));
+    return GNUNET_OK;
+  }
+  ai = get_anomaly_info_by_sensor (sensor);
+  GNUNET_assert (NULL != ai);
+  peer_in_list =
+      GNUNET_CONTAINER_multipeermap_contains (ai->anomalous_neighbors, other);
+  if (GNUNET_YES == ai->anomalous)
+  {
+    if (GNUNET_YES == peer_in_list)
+      GNUNET_break_op (0);
+    else
+      GNUNET_CONTAINER_multipeermap_put (ai->anomalous_neighbors, other, NULL,
+                                         GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
+  }
+  else
+  {
+    if (GNUNET_NO == peer_in_list)
+      GNUNET_break_op (0);
+    else
+      GNUNET_CONTAINER_multipeermap_remove_all (ai->anomalous_neighbors, other);
+  }
+  //TODO: report to collection point if anomalous neigbors jump up or down
+  // by a configurable percentage or is now 0% or 100%
+  return GNUNET_OK;
+}
+
+
+/**
+ * Method called whenever a CORE peer disconnects.
+ *
+ * @param cls closure (unused)
+ * @param peer peer identity this notification is about
+ */
+static void
+core_disconnect_cb (void *cls, const struct GNUNET_PeerIdentity *peer)
+{
+  struct CorePeer *cp;
+
+  if (0 == GNUNET_CRYPTO_cmp_peer_identity (&mypeerid, peer))
+    return;
+  neighborhood--;
+  cp = cp_head;
+  while (NULL != cp)
+  {
+    if (peer == cp->peerid)
+    {
+      GNUNET_CONTAINER_DLL_remove (cp_head, cp_tail, cp);
+      destroy_core_peer (cp);
+      return;
+    }
+    cp = cp->next;
+  }
+  LOG (GNUNET_ERROR_TYPE_ERROR,
+       _("Received disconnect notification from CORE"
+         " for a peer we didn't know about.\n"));
+}
+
+
+/**
+ * Method called whenever a given peer connects through CORE.
+ *
+ * @param cls closure (unused)
+ * @param peer peer identity this notification is about
+ */
+static void
+core_connect_cb (void *cls, const struct GNUNET_PeerIdentity *peer)
+{
+  struct CorePeer *cp;
+  struct AnomalyInfo *ai;
+
+  if (0 == GNUNET_CRYPTO_cmp_peer_identity (&mypeerid, peer))
+    return;
+  neighborhood++;
+  cp = GNUNET_new (struct CorePeer);
+  cp->peerid = (struct GNUNET_PeerIdentity *) peer;
+  cp->mq = GNUNET_CORE_mq_create (core, peer);
+  GNUNET_CONTAINER_DLL_insert (cp_head, cp_tail, cp);
+  /* Send any locally anomalous sensors to the new peer */
+  ai = ai_head;
+  while (NULL != ai)
+  {
+    if (GNUNET_YES == ai->anomalous)
+      send_anomaly_report (cp, ai);
+    ai = ai->next;
+  }
 }
 
 
@@ -197,7 +422,7 @@ core_startup_cb (void *cls, const struct GNUNET_PeerIdentity *my_identity)
   if (0 != GNUNET_CRYPTO_cmp_peer_identity (&mypeerid, my_identity))
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
-         _("Peer identity received from CORE doesn't match ours.\n"));
+         _("Peer identity received from CORE init doesn't match ours.\n"));
     SENSOR_reporting_anomaly_stop ();
     return;
   }
@@ -205,70 +430,58 @@ core_startup_cb (void *cls, const struct GNUNET_PeerIdentity *my_identity)
 
 
 /**
- * Method called whenever a given peer connects through CORE.
+ * Used by the analysis module to tell the reporting module about a change in
+ * the anomaly status of a sensor.
  *
- * @param cls closure (unused)
- * @param peer peer identity this notification is about
+ * @param sensor Related sensor
+ * @param anomalous The new sensor anomalous status
  */
-static void
-core_connect_cb (void *cls, const struct GNUNET_PeerIdentity *peer)
+void
+SENSOR_reporting_anomaly_update (struct GNUNET_SENSOR_SensorInfo *sensor,
+                                 int anomalous)
 {
-  struct CorePeerContext *cp;
+  struct AnomalyInfo *ai;
+  struct CorePeer *cp;
 
-  if (0 == GNUNET_CRYPTO_cmp_peer_identity (&mypeerid, peer))
+  if (GNUNET_NO == module_running)
     return;
-  cp = GNUNET_new (struct CorePeerContext);
-  cp->peerid = (struct GNUNET_PeerIdentity *)peer;
-  GNUNET_CONTAINER_DLL_insert (cp_head, cp_tail, cp);
-  //TODO: report to peer your anomaly status
-}
-
-
-/**
- * Method called whenever a CORE peer disconnects.
- *
- * @param cls closure (unused)
- * @param peer peer identity this notification is about
- */
-static void
-core_disconnect_cb (void *cls, const struct GNUNET_PeerIdentity *peer)
-{
-  struct CorePeerContext *cp;
-
-  if (0 == GNUNET_CRYPTO_cmp_peer_identity (&mypeerid, peer))
-    return;
+  ai = get_anomaly_info_by_sensor (sensor);
+  GNUNET_assert (NULL != ai);
+  ai->anomalous = anomalous;
+  /* Report change to all neighbors */
   cp = cp_head;
   while (NULL != cp)
   {
-    if (peer == cp->peerid)
-    {
-      GNUNET_CONTAINER_DLL_remove (cp_head, cp_tail, cp);
-      //TODO: call peer context destroy function
-      return;
-    }
+    send_anomaly_report (cp, ai);
+    cp = cp->next;
   }
-  LOG (GNUNET_ERROR_TYPE_ERROR,
-       _("Received disconnect notification from CORE"
-         " for a peer we didn't know about.\n"));
+  //TODO: report change to collection point if report_anomalies
 }
 
 
 /**
- * An inbound message is received from a peer through CORE.
+ * Iterator for defined sensors and creates anomaly info context
  *
- * @param cls closure (unused)
- * @param peer the other peer involved
- * @param message the actual message
- * @return #GNUNET_OK to keep the connection open,
- *         #GNUNET_SYSERR to close connection to the peer (signal serious error)
+ * @param cls unused
+ * @param key unused
+ * @param value a `struct GNUNET_SENSOR_SensorInfo *` with sensor information
+ * @return #GNUNET_YES to continue iterations
  */
 static int
-core_inbound_cb (void *cls,
-    const struct GNUNET_PeerIdentity *other,
-    const struct GNUNET_MessageHeader *message)
+init_sensor_reporting (void *cls, const struct GNUNET_HashCode *key,
+                       void *value)
 {
-  //TODO
-  return GNUNET_OK;
+  struct GNUNET_SENSOR_SensorInfo *sensor = value;
+  struct AnomalyInfo *ai;
+
+  ai = GNUNET_new (struct AnomalyInfo);
+
+  ai->sensor = sensor;
+  ai->anomalous = GNUNET_NO;
+  ai->anomalous_neighbors =
+      GNUNET_CONTAINER_multipeermap_create (10, GNUNET_NO);
+  GNUNET_CONTAINER_DLL_insert (ai_head, ai_tail, ai);
+  return GNUNET_YES;
 }
 
 
@@ -276,26 +489,37 @@ core_inbound_cb (void *cls,
  * Start the sensor anomaly reporting module
  *
  * @param c our service configuration
- * @param sensors multihashmap of loaded sensors
+ * @param s multihashmap of loaded sensors
  * @return #GNUNET_OK if started successfully, #GNUNET_SYSERR otherwise
  */
 int
 SENSOR_reporting_anomaly_start (const struct GNUNET_CONFIGURATION_Handle *c,
-                                struct GNUNET_CONTAINER_MultiHashMap *sensors)
+                                struct GNUNET_CONTAINER_MultiHashMap *s)
 {
   static struct GNUNET_CORE_MessageHandler core_handlers[] = {
-    {NULL, 0, 0}                //TODO
+    {&handle_anomaly_report, GNUNET_MESSAGE_TYPE_SENSOR_ANOMALY_REPORT,
+     sizeof (struct AnomalyReportMessage)},
+    {NULL, 0, 0}
   };
 
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Starting sensor anomaly reporting module.\n");
-  GNUNET_assert (NULL != sensors);
+  GNUNET_assert (NULL != s);
+  sensors = s;
   cfg = c;
   core =
       GNUNET_CORE_connect (cfg, NULL, &core_startup_cb, core_connect_cb,
-                           &core_disconnect_cb, core_inbound_cb, GNUNET_NO,
-                           NULL, GNUNET_YES, core_handlers);
+                           &core_disconnect_cb, NULL, GNUNET_YES, NULL,
+                           GNUNET_YES, core_handlers);
+  if (NULL == core)
+  {
+    LOG (GNUNET_ERROR_TYPE_ERROR, _("Failed to connect to CORE service.\n"));
+    SENSOR_reporting_anomaly_stop ();
+    return GNUNET_SYSERR;
+  }
   GNUNET_CRYPTO_get_peer_identity (cfg, &mypeerid);
   GNUNET_CONTAINER_multihashmap_iterate (sensors, &init_sensor_reporting, NULL);
+  neighborhood = 0;
+  module_running = GNUNET_YES;
   return GNUNET_OK;
 }
 
