@@ -3900,42 +3900,6 @@ get_local_best_known_next_hop (uint64_t final_dest_finger_val,
   return peer;
 }
 
-#if 0
-/**
- * Check if peer is already present in the trail. 
- * @param peer
- * @param trail
- * @param trail_length
- * @return 
- */
-static struct GNUNET_PeerIdentity *
-check_for_duplicate_entries (const struct GNUNET_PeerIdentity *trail, 
-                             unsigned int trail_length,
-                             unsigned int *updated_trail_length)
-{
-  struct GNUNET_PeerIdentity *updated_trail;
-  unsigned int i;
-  unsigned int j;
-  
-  /* It may happen that there are more than one peer present twice. 
-   but we don't want to*/
-  for(i = 0;i < trail_length; i++)
-  {
-    for(j = i+1; j < trail_length; j++)
-    {
-      if(0 != GNUNET_CRYPTO_cmp_peer_identity (&trail[i],&trail[j]))
-        continue;
-      
-      /* If you found a duplicate entry in the trail, then you should
-       * have the entry at i should point to next of entry stored at j*/
-      
-      /* In case j = (trail_length - 1), then it should NULL. */
-      
-    }
-  }
-}
-#endif
-
 /*
  * Core handle for PeerTrailSetupMessage.
  * @param cls closure
@@ -4387,6 +4351,7 @@ get_shortest_trail (struct FingerInfo *finger,
   /* Copy the shortest trail and return. */
   trail = &finger->trail_list[shortest_trail_index];
   trail_element = trail->trail_head;
+
   trail_list = GNUNET_malloc (sizeof(struct GNUNET_PeerIdentity)*
                               shortest_trail_length);
 
@@ -4399,6 +4364,80 @@ get_shortest_trail (struct FingerInfo *finger,
 
   *trail_length = shortest_trail_length;
   return trail_list;
+}
+
+/**
+ * Check if trail_1 and trail_2 have any common element. If yes then join 
+ * them at common element. trail_1 always preceeds trail_2 in joined trail. 
+ * @param trail_1
+ * @param trail_1_len
+ * @param trail_2
+ * @param trail_2_len
+ * @param joined_trail_len
+ * @return 
+ */
+static struct GNUNET_PeerIdentity *
+check_for_duplicate_entries (const struct GNUNET_PeerIdentity *trail_1,
+                             unsigned int trail_1_len,
+                             struct GNUNET_PeerIdentity *trail_2,
+                             unsigned int trail_2_len,
+                             unsigned int *joined_trail_len)
+{
+  struct GNUNET_PeerIdentity *joined_trail;
+  unsigned int i;
+  unsigned int j;
+  unsigned int k;
+  
+  for (i = 0; i < trail_1_len; i++)
+  {
+    for (j = 0; j < trail_2_len; j++)
+    {
+      if(0 != GNUNET_CRYPTO_cmp_peer_identity (&trail_1[i],&trail_2[j]))
+        continue;
+      
+      *joined_trail_len = i + (trail_2_len - j);
+      joined_trail = GNUNET_malloc (*joined_trail_len * 
+                                    sizeof(struct GNUNET_PeerIdentity));
+      
+      
+      /* Copy all the elements from 0 to i into joined_trail. */
+      for(k = 0; k <  trail_1_len; k++)
+      {
+        joined_trail[k] = trail_1[k];
+      }
+      
+      /* Increment j as entry stored is same as entry stored at i*/
+      j = j+1;
+      
+      /* Copy all the elements from j+1 to trail_2_len-1 to joined trail.*/
+      while(k < *joined_trail_len)
+      {
+        joined_trail[k] = trail_2[j];
+        k++;
+      }
+      
+      return joined_trail;
+    }
+  }
+ 
+  /* Here you should join the  trails. */
+  *joined_trail_len = trail_1_len + trail_2_len + 1;
+  joined_trail = GNUNET_malloc (*joined_trail_len * 
+                                sizeof(struct GNUNET_PeerIdentity));
+  i = 0;
+  while( i < trail_1_len)
+  {
+    joined_trail[i] = trail_1[i];
+    i++;
+  }
+  joined_trail[i] = my_identity;
+  i++;
+  
+  for (j = 0; i < *joined_trail_len; i++,j++)
+  {
+    joined_trail[i] = trail_2[j];
+  }
+  return joined_trail;
 }
 
 
@@ -4467,23 +4506,14 @@ get_trail_src_to_curr_pred (struct GNUNET_PeerIdentity source_peer,
       return trail_src_to_curr_pred;
     }
   }
-
-  /* Append trail from source to me to my current_predecessor. */
-  *trail_src_to_curr_pred_length = trail_src_to_me_len +
-                                   trail_me_to_curr_pred_length + 1;
-
-  trail_src_to_curr_pred = GNUNET_malloc (sizeof(struct GNUNET_PeerIdentity)*
-                                          *trail_src_to_curr_pred_length);
-
-  for (i = 0; i < trail_src_to_me_len; i++)
-    trail_src_to_curr_pred[i] = trail_src_to_me[i];
-
-  trail_src_to_curr_pred[i] = my_identity;
-  i++;
-
-  for (j = 0; i < *trail_src_to_curr_pred_length; i++,j++)
-    trail_src_to_curr_pred[i] = trail_me_to_curr_pred[j];
-
+  
+  unsigned int len;
+  trail_src_to_curr_pred = check_for_duplicate_entries (trail_src_to_me, 
+                                                        trail_src_to_me_len,
+                                                        trail_me_to_curr_pred,
+                                                        trail_me_to_curr_pred_length,
+                                                        &len);
+  *trail_src_to_curr_pred_length = len;
   return trail_src_to_curr_pred;
 }
 
@@ -4525,7 +4555,7 @@ update_predecessor (struct GNUNET_PeerIdentity finger,
     /* Invert the trail to get the trail from me to finger, NOT including the
        endpoints.*/
     trail_to_new_predecessor = invert_trail (trail, trail_length);
-
+    
     /* Add an entry in your routing table. */
     GDS_ROUTING_add (trail_to_new_predecessor_id,
                      my_identity,
@@ -4696,14 +4726,15 @@ handle_dht_p2p_verify_successor(void *cls,
                                              &source_peer)))
   {
     trail_src_to_curr_pred = get_trail_src_to_curr_pred (source_peer,
-                                            trail,
-                                            trail_length,
-                                            &trail_src_to_curr_pred_len);
+                                                         trail,
+                                                         trail_length,
+                                                         &trail_src_to_curr_pred_len);
   }
   else
   {
     trail_src_to_curr_pred_len = trail_length;
     int i;
+
     trail_src_to_curr_pred = GNUNET_malloc(sizeof(struct GNUNET_PeerIdentity)*trail_length);
     for(i = 0; i < trail_src_to_curr_pred_len; i++)
     {
@@ -5406,11 +5437,9 @@ handle_dht_p2p_add_trail (void *cls, const struct GNUNET_PeerIdentity *peer,
     my_index = search_my_index (trail, trail_length);
     if (-1 == my_index)
     {
-
       GNUNET_break_op (0);
       return GNUNET_SYSERR;
     }
-
 
     if ((trail_length - 1) == my_index)
     {
