@@ -19,7 +19,7 @@
 */
 
 /**
- * @file sensor/gnunet-service-sensor-update.c
+ * @file sensor/gnunet-service-sensor_update.c
  * @brief sensor service update functionality
  * @author Omar Tarabai
  */
@@ -785,4 +785,4 @@ SENSOR_update_start (const struct GNUNET_CONFIGURATION_Handle *c,
   return GNUNET_OK;
 }
 
-/* end of gnunet-service-sensor-update.c */
+/* end of gnunet-service-sensor_update.c */

@@ -19,7 +19,7 @@
 */
 
 /**
- * @file sensor/gnunet-service-sensor-analysis.c
+ * @file sensor/gnunet-service-sensor_analysis.c
  * @brief sensor service analysis functionality
  * @author Omar Tarabai
  */
@@ -212,7 +212,7 @@ sensor_watcher (void *cls, struct GNUNET_PEERSTORE_Record *record, char *emsg)
       GNUNET_PEERSTORE_store (peerstore, "senosr-analysis", &peerid,
                               model->sensor->name, &model->anomalous,
                               sizeof (model->anomalous),
-                              GNUNET_TIME_UNIT_FOREVER_ABS,
+                              GNUNET_TIME_absolute_get (),
                               GNUNET_PEERSTORE_STOREOPTION_REPLACE, NULL, NULL);
     }
   }
@@ -229,7 +229,7 @@ sensor_watcher (void *cls, struct GNUNET_PEERSTORE_Record *record, char *emsg)
       GNUNET_PEERSTORE_store (peerstore, "senosr-analysis", &peerid,
                               model->sensor->name, &model->anomalous,
                               sizeof (model->anomalous),
-                              GNUNET_TIME_UNIT_FOREVER_ABS,
+                              GNUNET_TIME_absolute_get (),
                               GNUNET_PEERSTORE_STOREOPTION_REPLACE, NULL, NULL);
     }
   }
@@ -321,4 +321,4 @@ SENSOR_analysis_start (const struct GNUNET_CONFIGURATION_Handle *c,
   return GNUNET_OK;
 }
 
-/* end of gnunet-service-sensor-analysis.c */
+/* end of gnunet-service-sensor_analysis.c */

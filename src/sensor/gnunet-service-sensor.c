@@ -43,22 +43,22 @@ static struct GNUNET_CONTAINER_MultiHashMap *sensors;
 /**
  * Handle to statistics service
  */
-struct GNUNET_STATISTICS_Handle *statistics;
+static struct GNUNET_STATISTICS_Handle *statistics;
 
 /**
  * Handle to peerstore service
  */
-struct GNUNET_PEERSTORE_Handle *peerstore;
+static struct GNUNET_PEERSTORE_Handle *peerstore;
 
 /**
  * Service name
  */
-char *subsystem = "sensor";
+static char *subsystem = "sensor";
 
 /**
  * My peer id
  */
-struct GNUNET_PeerIdentity peerid;
+static struct GNUNET_PeerIdentity peerid;
 
 
 /**
@@ -96,8 +96,9 @@ static void
 stop ()
 {
   SENSOR_update_stop ();
-  SENSOR_reporting_stop ();
   SENSOR_analysis_stop ();
+  SENSOR_reporting_value_stop ();
+  SENSOR_reporting_anomaly_stop ();
   GNUNET_SENSOR_destroy_sensors (sensors);
 }
 
@@ -612,8 +613,9 @@ start ()
 {
   sensors = GNUNET_SENSOR_load_all_sensors ();
   schedule_all_sensors ();
+  SENSOR_reporting_value_start (cfg, sensors);
+  SENSOR_reporting_anomaly_start (cfg, sensors);
   SENSOR_analysis_start (cfg, sensors);
-  SENSOR_reporting_start (cfg, sensors);
   SENSOR_update_start (cfg, sensors, &reset);
 }
 

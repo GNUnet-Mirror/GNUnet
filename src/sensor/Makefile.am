@@ -36,15 +36,17 @@ gnunet_sensor_LDADD = \
 
 gnunet_service_sensor_SOURCES = \
  gnunet-service-sensor.c \
- gnunet-service-sensor-analysis.c \
- gnunet-service-sensor-reporting.c \
- gnunet-service-sensor-update.c
+ gnunet-service-sensor_analysis.c \
+ gnunet-service-sensor_reporting_value.c \
+ gnunet-service-sensor_reporting_anomaly.c \
+ gnunet-service-sensor_update.c
 gnunet_service_sensor_LDADD = \
   libgnunetsensorutil.la \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/peerstore/libgnunetpeerstore.la \
   $(top_builddir)/src/cadet/libgnunetcadet.la \
+  $(top_builddir)/src/core/libgnunetcore.la \
   $(GN_LIBINTL)
 
 libgnunetsensor_la_SOURCES = \
