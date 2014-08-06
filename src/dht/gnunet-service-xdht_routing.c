@@ -220,6 +220,7 @@ static int remove_matching_trails (void *cls,
                                             disconnected_peer))
   {
     my_identity = GDS_NEIGHBOURS_get_my_id ();
+
     if (0 != GNUNET_CRYPTO_cmp_peer_identity (&my_identity, 
                                               &remove_trail->next_hop))
     {
