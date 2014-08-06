@@ -311,7 +311,6 @@ GDS_ROUTING_add (struct GNUNET_HashCode new_trail_id,
                  struct GNUNET_PeerIdentity next_hop)
 {
   struct RoutingTrail *new_entry;
-  int ret;
   
   new_entry = GNUNET_new (struct RoutingTrail);
   new_entry->trail_id = new_trail_id;
@@ -319,11 +318,10 @@ GDS_ROUTING_add (struct GNUNET_HashCode new_trail_id,
   new_entry->prev_hop = prev_hop;
   
   
-  ret = GNUNET_CONTAINER_multihashmap_put (routing_table,
-                                           &new_trail_id, new_entry,
-                                           GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
-  //GNUNET_assert(ret == GNUNET_OK);
-  return ret;
+  return GNUNET_CONTAINER_multihashmap_put (routing_table,
+                                            &new_trail_id, new_entry,
+                                            GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY);
+
 }
 
 
