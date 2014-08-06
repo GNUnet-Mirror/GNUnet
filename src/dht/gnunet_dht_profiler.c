@@ -205,6 +205,7 @@ static unsigned int n_gets_fail;
  */
 static unsigned int replication;
 
+#if 0
 /**
  * Testbed Operation (to get stats).
  */
@@ -214,7 +215,7 @@ static struct GNUNET_TESTBED_Operation *stats_op;
  * Testbed peer handles.
  */
 static struct GNUNET_TESTBED_Peer **testbed_handles;
-
+#endif
 /**
  * Shutdown task.  Cleanup all resources and operations.
  *
@@ -253,7 +254,7 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   GNUNET_free_non_null (a_ac);
 }
 
-
+#if 0
 /**
  * Stats callback. Finish the stats testbed operation and when all stats have
  * been iterated, shutdown the test.
@@ -310,7 +311,7 @@ collect_bandwidth_stats (void *cls, const struct GNUNET_SCHEDULER_TaskContext *t
                                             bandwidth_stats_iterator, 
                                             bandwidth_stats_cont, NULL);
 }
-
+#endif
 
 static void
 summarize ()
@@ -322,7 +323,7 @@ summarize ()
   INFO ("# GETS succeeded: %u\n", n_gets_ok);
   INFO ("# GETS failed: %u\n", n_gets_fail);
   //FIXME: is this the right place to call b/w stats?
-  GNUNET_SCHEDULER_add_now (&collect_bandwidth_stats, NULL);
+  //GNUNET_SCHEDULER_add_now (&collect_bandwidth_stats, NULL);
   GNUNET_SCHEDULER_shutdown (); 
 }
 
@@ -467,6 +468,7 @@ put_cont (void *cls, int success)
   ac->delay_task = GNUNET_SCHEDULER_add_delayed (delay, &delayed_get, ac);
 }
 
+#if 0
 /**
  * Stats callback. Finish the stats testbed operation and when all stats have
  * been iterated, shutdown the test.
@@ -530,7 +532,7 @@ collect_finger_stats (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                             finger_stats_iterator, 
                                             finger_stats_cont, NULL);
 }
-
+#endif
 
 /**
  * Task to do DHT PUTS
@@ -547,7 +549,7 @@ delayed_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
    DHT and check if circle is formed. If yes then go ahead with more puts,
    else wait for 'delay' time. This function does not return anything, so we
    should have some way to notify that circle is done or we need to wait.*/
-  GNUNET_SCHEDULER_add_now(collect_finger_stats,NULL);
+  //GNUNET_SCHEDULER_add_now(collect_finger_stats,NULL);
   
   ac->delay_task = GNUNET_SCHEDULER_NO_TASK;
   /* Generate and DHT PUT some random data */
@@ -800,7 +802,7 @@ main (int argc, char *const *argv)
 
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
-  delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 1); /* default delay */
+  delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5); /* default delay */
   timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30); /* default timeout */
   replication = 1;      /* default replication */
   rc = 0;
