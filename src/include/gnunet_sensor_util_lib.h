@@ -190,46 +190,6 @@ struct GNUNET_SENSOR_SensorInfo
 };
 
 GNUNET_NETWORK_STRUCT_BEGIN
-/**
- * Used to communicate sensor readings to
- * collection points (SENSORDASHBAORD service)
- */
-    struct GNUNET_SENSOR_ReadingMessage
-{
-
-  /**
-   * GNUNET general message header
-   */
-  struct GNUNET_MessageHeader header;
-
-  /**
-   * Size of the sensor name value, allocated
-   * at position 0 after this struct
-   */
-  uint16_t sensorname_size;
-
-  /**
-   * First part of sensor version number
-   */
-  uint16_t sensorversion_major;
-
-  /**
-   * Second part of sensor version number
-   */
-  uint16_t sensorversion_minor;
-
-  /**
-   * Timestamp of recorded reading
-   */
-  uint64_t timestamp;
-
-  /**
-   * Size of reading value, allocation
-   * at poistion 1 after this struct
-   */
-  uint16_t value_size;
-
-};
 
 /**
  * Used to communicate brief information about a sensor.
@@ -298,9 +258,48 @@ struct GNUNET_SENSOR_SensorFullMessage
 };
 
 /**
+ * Used to communicate sensor values to
+ * collection points (SENSORDASHBAORD service)
+ */
+    struct GNUNET_SENSOR_ValueMessage
+{
+
+  /**
+   * GNUNET general message header
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Hash of sensor name
+   */
+  struct GNUNET_HashCode sensorname_hash;
+
+  /**
+   * First part of sensor version number
+   */
+  uint16_t sensorversion_major;
+
+  /**
+   * Second part of sensor version number
+   */
+  uint16_t sensorversion_minor;
+
+  /**
+   * Timestamp of recorded reading
+   */
+  struct GNUNET_TIME_Absolute timestamp;
+
+  /**
+   * Size of sensor value, allocated at poistion 0 after this struct
+   */
+  uint16_t value_size;
+
+};
+
+/**
  * Message carrying an anomaly status change report
  */
-struct AnomalyReportMessage
+struct GNUNET_SENSOR_AnomalyReportMessage
 {
 
   /**

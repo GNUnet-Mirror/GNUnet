@@ -102,8 +102,7 @@ stop ()
 {
   SENSOR_update_stop ();
   SENSOR_analysis_stop ();
-  SENSOR_reporting_value_stop ();
-  SENSOR_reporting_anomaly_stop ();
+  SENSOR_reporting_stop ();
   GNUNET_SENSOR_destroy_sensors (sensors);
 }
 
@@ -621,8 +620,7 @@ start ()
 {
   sensors = GNUNET_SENSOR_load_all_sensors (sensor_dir);
   schedule_all_sensors ();
-  SENSOR_reporting_value_start (cfg, sensors);
-  SENSOR_reporting_anomaly_start (cfg, sensors);
+  SENSOR_reporting_start (cfg, sensors);
   SENSOR_analysis_start (cfg, sensors);
   SENSOR_update_start (cfg, sensors, &reset);
 }

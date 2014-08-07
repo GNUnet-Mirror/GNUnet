@@ -37,8 +37,7 @@ gnunet_sensor_LDADD = \
 gnunet_service_sensor_SOURCES = \
  gnunet-service-sensor.c \
  gnunet-service-sensor_analysis.c \
- gnunet-service-sensor_reporting_value.c \
- gnunet-service-sensor_reporting_anomaly.c \
+ gnunet-service-sensor_reporting.c \
  gnunet-service-sensor_update.c
 gnunet_service_sensor_LDADD = \
   libgnunetsensorutil.la \
@@ -91,9 +90,9 @@ TESTS = $(check_PROGRAMS)
 endif
 
 test_sensor_api_SOURCES = \
- test_sensor_api.c
+  test_sensor_api.c
 test_sensor_api_LDADD = \
-  $(top_builddir)/src/util/libgnunetutil.la  
+  $(top_builddir)/src/util/libgnunetutil.la
 
 pkgsensordir = sensors
 

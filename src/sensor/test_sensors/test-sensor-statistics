@@ -1,0 +1,31 @@
+[test-sensor-statistics]
+
+VERSION = 1.0
+DESCRIPTION = Test sensor for collecting data from gnunet-statistics
+CATEGORY = GNUnet
+ENABLED = YES
+
+# Start and end time format: %Y-%m-%d %H:%M:%S
+#START_TIME = 
+#END_TIME = 
+#Interval in seconds
+INTERVAL = 60
+#LIFETIME = 
+
+#CAPABILITIES = 
+
+SOURCE = gnunet-statistics
+
+GNUNET_STAT_SERVICE = test-sensor
+GNUNET_STAT_NAME = test-statistic
+
+#EXT_PROCESS = 
+#EXT_ARGS = 
+
+EXPECTED_DATATYPE = numeric
+
+# Reporting:
+#COLLECTION_POINT = NCEKA096482PC84GFTG61EHAVXY3BQDTPB5FANATQD5CDADJ2HP0
+# Comment or remove next line to disable reporting sensor values to collection point
+#VALUE_COLLECTION_INTERVAL = 120
+REPORT_ANOMALIES = YES

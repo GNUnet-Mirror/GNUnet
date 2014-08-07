@@ -118,7 +118,7 @@ struct ClientSensorReading
   /**
    * Timestamp of taking the reading
    */
-  uint64_t timestamp;
+  struct GNUNET_TIME_Absolute timestamp;
 
   /**
    * Reading value
@@ -475,44 +475,33 @@ parse_reading_message (const struct GNUNET_MessageHeader *msg,
                        struct GNUNET_CONTAINER_MultiHashMap *sensors)
 {
   uint16_t msg_size;
-  struct GNUNET_SENSOR_ReadingMessage *rm;
-  uint16_t sensorname_size;
   uint16_t value_size;
-  void *dummy;
-  char *sensorname;
-  struct GNUNET_HashCode key;
+  struct GNUNET_SENSOR_ValueMessage *vm;
   struct GNUNET_SENSOR_SensorInfo *sensor;
   struct ClientSensorReading *reading;
 
   msg_size = ntohs (msg->size);
-  if (msg_size < sizeof (struct GNUNET_SENSOR_ReadingMessage))
+  if (msg_size < sizeof (struct GNUNET_SENSOR_ValueMessage))
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Invalid reading message size.\n");
+    GNUNET_break_op (0);
     return NULL;
   }
-  rm = (struct GNUNET_SENSOR_ReadingMessage *) msg;
-  sensorname_size = ntohs (rm->sensorname_size);
-  value_size = ntohs (rm->value_size);
-  if ((sizeof (struct GNUNET_SENSOR_ReadingMessage) + sensorname_size +
-       value_size) != msg_size)
+  vm = (struct GNUNET_SENSOR_ValueMessage *) msg;
+  value_size = ntohs (vm->value_size);
+  if ((sizeof (struct GNUNET_SENSOR_ValueMessage) + value_size) != msg_size)
   {
-    GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Invalid reading message size.\n");
+    GNUNET_break_op (0);
     return NULL;
   }
-  dummy = &rm[1];
-  sensorname = GNUNET_malloc (sensorname_size);
-  memcpy (sensorname, dummy, sensorname_size);
-  GNUNET_CRYPTO_hash (sensorname, sensorname_size, &key);
-  GNUNET_free (sensorname);
-  sensor = GNUNET_CONTAINER_multihashmap_get (sensors, &key);
+  sensor = GNUNET_CONTAINER_multihashmap_get (sensors, &vm->sensorname_hash);
   if (NULL == sensor)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "Unknown sensor name in reading message.\n");
     return NULL;
   }
-  if ((sensor->version_minor != ntohs (rm->sensorversion_minor)) ||
-      (sensor->version_major != ntohs (rm->sensorversion_major)))
+  if ((sensor->version_minor != ntohs (vm->sensorversion_minor)) ||
+        (sensor->version_major != ntohs (vm->sensorversion_major)))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "Sensor version mismatch in reading message.\n");
@@ -527,11 +516,9 @@ parse_reading_message (const struct GNUNET_MessageHeader *msg,
   }
   reading = GNUNET_new (struct ClientSensorReading);
   reading->sensor = sensor;
-  reading->timestamp = GNUNET_be64toh (rm->timestamp);
+  reading->timestamp = vm->timestamp;
   reading->value_size = value_size;
-  reading->value = GNUNET_malloc (value_size);
-  dummy += sensorname_size;
-  memcpy (reading->value, dummy, value_size);
+  reading->value = GNUNET_memdup (&vm[1], value_size);
   return reading;
 }
 
