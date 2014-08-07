@@ -205,7 +205,6 @@ static unsigned int n_gets_fail;
  */
 static unsigned int replication;
 
-#if 0
 /**
  * Testbed Operation (to get stats).
  */
@@ -215,7 +214,30 @@ static struct GNUNET_TESTBED_Operation *stats_op;
  * Testbed peer handles.
  */
 static struct GNUNET_TESTBED_Peer **testbed_handles;
-#endif
+
+/**
+ * Total number of messages sent by peer. 
+ */
+static uint64_t outgoing_bandwidth;
+
+/**
+ * Total number of messages received by peer.
+ */
+static uint64_t incoming_bandwidth;
+
+/**
+ * Average number of hops taken to do put.
+ */
+static unsigned int average_put_path_length;
+
+/**
+ * Average number of hops taken to do get. 
+ */
+static unsigned int average_get_path_length;
+
+static unsigned int total_put_path_length;
+
+static unsigned int total_get_path_length;
 /**
  * Shutdown task.  Cleanup all resources and operations.
  *
@@ -251,10 +273,13 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_free (a_ctx);
     a_ctx = NULL;
   }
+  if(NULL != stats_op)
+    GNUNET_TESTBED_operation_done (stats_op);
+  stats_op = NULL;
   GNUNET_free_non_null (a_ac);
 }
 
-#if 0
+
 /**
  * Stats callback. Finish the stats testbed operation and when all stats have
  * been iterated, shutdown the test.
@@ -266,9 +291,12 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  */
 static void
 bandwidth_stats_cont (void *cls, 
-                      struct GNUNET_TESTBED_Operation *op, const char *emsg)
+                      struct GNUNET_TESTBED_Operation *op, 
+                      const char *emsg)
 {
-  
+  INFO ("# Outgoing bandwidth: %u\n", outgoing_bandwidth);
+  INFO ("# Incoming bandwidth: %u\n", incoming_bandwidth);
+  GNUNET_SCHEDULER_shutdown (); 
 }
 
 
@@ -284,34 +312,28 @@ bandwidth_stats_cont (void *cls,
  * @return GNUNET_OK to continue, GNUNET_SYSERR to abort iteration
  */
 static int
-bandwidth_stats_iterator (void *cls, const struct GNUNET_TESTBED_Peer *peer,
-                          const char *subsystem, const char *name,
-                          uint64_t value, int is_persistent)
+bandwidth_stats_iterator (void *cls, 
+                          const struct GNUNET_TESTBED_Peer *peer,
+                          const char *subsystem, 
+                          const char *name,
+                          uint64_t value, 
+                          int is_persistent)
 {
-  return GNUNET_OK;
+   static const char *s_sent = "# Bytes transmitted to other peers";
+   static const char *s_recv = "# Bytes received from other peers";
+
+   if (0 == strncmp (s_sent, name, strlen (s_sent)))
+     outgoing_bandwidth = outgoing_bandwidth + value;
+   else if (0 == strncmp(s_recv, name, strlen (s_recv)))
+     incoming_bandwidth = incoming_bandwidth + value;
+   else
+     return GNUNET_OK;
+   DEBUG ("Bandwith - Out: %lu; In: %lu\n",
+          (unsigned long) outgoing_bandwidth,
+          (unsigned long) incoming_bandwidth);
+   return GNUNET_OK;
 }
 
-
-/**
- * Task that collects bandwidth used by all the peers.
- *
- * @param cls Closure (NULL).
- * @param tc Task Context.
- */
-static void
-collect_bandwidth_stats (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  if ((GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason) != 0)
-    return;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Start collecting bandwidth statistics...\n");
-  //FIXME: what is the name of transport subsystem?
-  stats_op = GNUNET_TESTBED_get_statistics (n_active, testbed_handles,
-                                            NULL, NULL,
-                                            bandwidth_stats_iterator, 
-                                            bandwidth_stats_cont, NULL);
-}
-#endif
 
 static void
 summarize ()
@@ -322,9 +344,19 @@ summarize ()
   INFO ("# GETS made: %u\n", n_gets);
   INFO ("# GETS succeeded: %u\n", n_gets_ok);
   INFO ("# GETS failed: %u\n", n_gets_fail);
-  //FIXME: is this the right place to call b/w stats?
-  //GNUNET_SCHEDULER_add_now (&collect_bandwidth_stats, NULL);
-  GNUNET_SCHEDULER_shutdown (); 
+  INFO ("# average_put_path_length: %u\n", average_put_path_length);
+  INFO ("# average_get_path_length: %u\n", average_get_path_length);
+  
+  if (NULL == testbed_handles)
+  {
+    INFO ("No peers found\n");
+    return;
+  }
+  /* Collect Stats*/
+  stats_op = GNUNET_TESTBED_get_statistics (n_active, testbed_handles,
+                                            "dht", NULL,
+                                            bandwidth_stats_iterator, 
+                                            bandwidth_stats_cont, NULL);
 }
 
 
@@ -338,19 +370,17 @@ static void
 cancel_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct ActiveContext *ac = cls;
-  struct Context *ctx = ac->ctx;
 
   ac->delay_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_assert (NULL != ac->dht_get);
   GNUNET_DHT_get_stop (ac->dht_get);
   ac->dht_get = NULL;
-  GNUNET_TESTBED_operation_done (ctx->op);
-  ctx->op = NULL;
   n_gets_fail++;
 
   /* If profiling is complete, summarize */
   if (n_active == n_gets_fail + n_gets_ok)
     summarize ();
+
 }
 
 
@@ -384,7 +414,6 @@ get_iter (void *cls,
 {
   struct ActiveContext *ac = cls;
   struct ActiveContext *get_ac = ac->get_ac;
-  struct Context *ctx = ac->ctx;
 
   /* Check the keys of put and get match or not. */
   GNUNET_assert (0 == memcmp (key, &get_ac->hash, sizeof (struct GNUNET_HashCode)));
@@ -396,12 +425,17 @@ get_iter (void *cls,
   ac->dht_get = NULL;
   GNUNET_SCHEDULER_cancel (ac->delay_task);
   ac->delay_task = GNUNET_SCHEDULER_NO_TASK;
-  GNUNET_TESTBED_operation_done (ctx->op);
-  ctx->op = NULL;
+  
+  total_put_path_length = total_put_path_length + put_path_length;
+  total_get_path_length = total_get_path_length + get_path_length;
   
   /* Summarize if profiling is complete */
   if (n_active == n_gets_fail + n_gets_ok)
+  {
+    average_put_path_length = total_put_path_length/n_active;
+    average_get_path_length = total_get_path_length/n_active;
     summarize ();
+  }
 }
 
 
@@ -468,71 +502,6 @@ put_cont (void *cls, int success)
   ac->delay_task = GNUNET_SCHEDULER_add_delayed (delay, &delayed_get, ac);
 }
 
-#if 0
-/**
- * Stats callback. Finish the stats testbed operation and when all stats have
- * been iterated, shutdown the test.
- *
- * @param cls closure
- * @param op the operation that has been finished
- * @param emsg error message in case the operation has failed; will be NULL if
- *          operation has executed successfully.
- */
-static void
-finger_stats_cont (void *cls, 
-                   struct GNUNET_TESTBED_Operation *op, 
-                   const char *emsg)
-{
-  
-}
-
-
-/**
- * Process statistic values.
- *
- * @param cls closure
- * @param peer the peer the statistic belong to
- * @param subsystem name of subsystem that created the statistic
- * @param name the name of the datum
- * @param value the current value
- * @param is_persistent GNUNET_YES if the value is persistent, GNUNET_NO if not
- * @return GNUNET_OK to continue, GNUNET_SYSERR to abort iteration
- */
-static int
-finger_stats_iterator (void *cls, const struct GNUNET_TESTBED_Peer *peer,
-                       const char *subsystem, const char *name,
-                       uint64_t value, int is_persistent)
-{
-  uint32_t i;
-
-  i = GNUNET_TESTBED_get_index (peer);
-  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, " STATS %u - %s [%s]: %llu\n",
-              i, subsystem, name, value);
-
-  return GNUNET_OK;
-}
-
-
-/**
- * Task check that keepalives were sent and received.
- *
- * @param cls Closure (NULL).
- * @param tc Task Context.
- */
-static void
-collect_finger_stats (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
-{
-  if ((GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason) != 0)
-    return;
-
-  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Start collecting statistics...\n");
-  /* FIXME: Write subsystem name. */
-  stats_op = GNUNET_TESTBED_get_statistics (n_active, testbed_handles,
-                                            "dht", NULL,
-                                            finger_stats_iterator, 
-                                            finger_stats_cont, NULL);
-}
-#endif
 
 /**
  * Task to do DHT PUTS
@@ -545,12 +514,6 @@ delayed_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct ActiveContext *ac = cls;
 
-  /*FIXME: Before doing anything else, first collect statistics from each peer
-   DHT and check if circle is formed. If yes then go ahead with more puts,
-   else wait for 'delay' time. This function does not return anything, so we
-   should have some way to notify that circle is done or we need to wait.*/
-  //GNUNET_SCHEDULER_add_now(collect_finger_stats,NULL);
-  
   ac->delay_task = GNUNET_SCHEDULER_NO_TASK;
   /* Generate and DHT PUT some random data */
   ac->put_data_size = 16;       /* minimum */
@@ -696,7 +659,8 @@ test_run (void *cls,
 {
   unsigned int cnt;
   unsigned int ac_cnt;
-    
+  
+  testbed_handles = peers;  
   if (NULL == peers)
   {
     /* exit */
@@ -802,8 +766,8 @@ main (int argc, char *const *argv)
 
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
-  delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 5); /* default delay */
-  timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30); /* default timeout */
+  delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 30); /* default delay */
+  timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1); /* default timeout */
   replication = 1;      /* default replication */
   rc = 0;
   if (GNUNET_OK !=

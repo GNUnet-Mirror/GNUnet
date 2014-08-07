@@ -168,7 +168,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   GDS_block_context = GNUNET_BLOCK_context_create (GDS_cfg);
   GDS_stats = GNUNET_STATISTICS_create ("dht", GDS_cfg);
   GDS_ROUTING_init ();
-  GDS_NSE_init (); //FIXME:not used in x0vine, remove
+  GDS_NSE_init (); 
   GDS_DATACACHE_init ();
   GDS_HELLO_init ();
   GDS_CLIENTS_init (server);
