@@ -131,6 +131,11 @@ struct UpdatePoint
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 /**
+ * Path to sensor definition directory
+ */
+static char *sensor_dir;
+
+/**
  * Hashmap of known sensors
  */
 static struct GNUNET_CONTAINER_MultiHashMap *sensors;
@@ -248,6 +253,11 @@ SENSOR_update_stop ()
   {
     GNUNET_CADET_disconnect (cadet);
     cadet = NULL;
+  }
+  if (NULL != sensor_dir)
+  {
+    GNUNET_free (sensor_dir);
+    sensor_dir = NULL;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Sensor update module stopped.\n");
 }
@@ -427,7 +437,7 @@ check_for_updates (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Function that reads and validates (correctness not connectivity) of available
  * sensor update points.
  *
- * @return #GNUNET_OK on success, #GNUNET_SYSERR on failure
+ * @return number of update points loaded successfully
  */
 static int
 load_update_points ()
@@ -439,14 +449,13 @@ load_update_points ()
   int len;
   struct GNUNET_CRYPTO_EddsaPublicKey public_key;
   struct UpdatePoint *up;
+  int count = 0;
 
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (cfg, "sensor", "UPDATE_POINTS",
                                              &points_list))
   {
-    GNUNET_log_config_missing (GNUNET_ERROR_TYPE_ERROR, "sensor",
-                               "UPDATE_POINTS");
-    return GNUNET_SYSERR;
+    return 0;
   }
   points_list_len = strlen (points_list) + 1;
   for (i = 0; i < points_list_len; i++)
@@ -478,11 +487,12 @@ load_update_points ()
     up->expected_sensor_updates = 0;
     up->failed = GNUNET_NO;
     GNUNET_CONTAINER_DLL_insert (up_head, up_tail, up);
+    count++;
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Loaded update point `%s'.\n",
          GNUNET_i2s_full (&up->peer_id));
   }
   GNUNET_free (points_list);
-  return (NULL == up_head) ? GNUNET_SYSERR : GNUNET_OK;
+  return count;
 }
 
 
@@ -598,7 +608,6 @@ static int
 update_sensor (char *sensorname, void *sensorfile, uint16_t sensorfile_size,
                char *scriptname, void *scriptfile, uint16_t scriptfile_size)
 {
-  char *sensors_dir;
   char *sensor_path;
   char *script_path;
 
@@ -607,8 +616,7 @@ update_sensor (char *sensorname, void *sensorfile, uint16_t sensorfile_size,
        "Sensor file size: %d\n" "Script name: %s\n" "Script file size: %d.\n",
        sensorname, sensorfile_size, (NULL == scriptname) ? "None" : scriptname,
        scriptfile_size);
-  sensors_dir = GNUNET_SENSOR_get_sensor_dir ();
-  GNUNET_asprintf (&sensor_path, "%s%s", sensors_dir, sensorname);
+  GNUNET_asprintf (&sensor_path, "%s%s", sensor_dir, sensorname);
   GNUNET_DISK_fn_write (sensor_path, sensorfile, sensorfile_size,
                         GNUNET_DISK_PERM_USER_READ | GNUNET_DISK_PERM_GROUP_READ
                         | GNUNET_DISK_PERM_OTHER_READ |
@@ -627,7 +635,6 @@ update_sensor (char *sensorname, void *sensorfile, uint16_t sensorfile_size,
                           GNUNET_DISK_PERM_GROUP_EXEC);
     GNUNET_free (script_path);
   }
-  GNUNET_free (sensors_dir);
   GNUNET_free (sensor_path);
   return GNUNET_OK;
 }
@@ -756,11 +763,16 @@ SENSOR_update_start (const struct GNUNET_CONFIGURATION_Handle *c,
     {&handle_sensor_full, GNUNET_MESSAGE_TYPE_SENSOR_FULL, 0},
     {NULL, 0, 0}
   };
+  int up_count;
 
   GNUNET_assert (NULL != s);
   cfg = c;
   sensors = s;
   reset_cb = cb;
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_filename (cfg, "SENSOR", "SENSOR_DIR",
+                                               &sensor_dir))
+    sensor_dir = GNUNET_SENSOR_get_default_sensor_dir ();
   cadet =
       GNUNET_CADET_connect (cfg, NULL, NULL, &cadet_channel_destroyed,
                             cadet_handlers, NULL);
@@ -770,9 +782,10 @@ SENSOR_update_start (const struct GNUNET_CONFIGURATION_Handle *c,
     SENSOR_update_stop ();
     return GNUNET_SYSERR;
   }
-  if (GNUNET_OK != load_update_points ())
+  up_count = load_update_points ();
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Loaded %d update points.\n", up_count);
+  if (0 == up_count)
   {
-    LOG (GNUNET_ERROR_TYPE_ERROR, "Failed to load update points.\n");
     SENSOR_update_stop ();
     return GNUNET_SYSERR;
   }

@@ -290,7 +290,6 @@ load_sensor_from_cfg (struct GNUNET_CONFIGURATION_Handle *cfg,
   sensor->execution_task = GNUNET_SCHEDULER_NO_TASK;
   //running
   sensor->running = GNUNET_NO;
-
   return sensor;
 }
 
@@ -434,14 +433,14 @@ reload_sensors_dir_cb (void *cls, const char *filename)
 }
 
 
-/*
- * Get path to the directory containing the sensor definition files with a
- * trailing directory separator.
+/**
+ * Get path to the default directory containing the sensor definition files with
+ * a trailing directory separator.
  *
- * @return sensor files directory full path
+ * @return Default sensor files directory full path
  */
 char *
-GNUNET_SENSOR_get_sensor_dir ()
+GNUNET_SENSOR_get_default_sensor_dir ()
 {
   char *datadir;
   char *sensordir;
@@ -454,27 +453,26 @@ GNUNET_SENSOR_get_sensor_dir ()
 
 
 /**
- * Reads sensor definitions from local data files
+ * Reads sensor definitions from given sensor directory.
  *
+ * @param sensordir Path to sensor directory.
  * @return a multihashmap of loaded sensors
  */
 struct GNUNET_CONTAINER_MultiHashMap *
-GNUNET_SENSOR_load_all_sensors ()
+GNUNET_SENSOR_load_all_sensors (char *sensor_dir)
 {
-  char *sensordir;
   struct GNUNET_CONTAINER_MultiHashMap *sensors;
 
+  GNUNET_assert (NULL != sensor_dir);
   sensors = GNUNET_CONTAINER_multihashmap_create (10, GNUNET_NO);
-  sensordir = GNUNET_SENSOR_get_sensor_dir ();
   LOG (GNUNET_ERROR_TYPE_INFO,
-       "Loading sensor definitions from directory `%s'\n", sensordir);
+       "Loading sensor definitions from directory `%s'\n", sensor_dir);
   GNUNET_assert (GNUNET_YES ==
-                 GNUNET_DISK_directory_test (sensordir, GNUNET_YES));
+                 GNUNET_DISK_directory_test (sensor_dir, GNUNET_YES));
   /* read all files in sensors directory */
-  GNUNET_DISK_directory_scan (sensordir, &reload_sensors_dir_cb, sensors);
+  GNUNET_DISK_directory_scan (sensor_dir, &reload_sensors_dir_cb, sensors);
   LOG (GNUNET_ERROR_TYPE_INFO, "Loaded %d sensors from directory `%s'\n",
-       GNUNET_CONTAINER_multihashmap_size (sensors), sensordir);
-  GNUNET_free (sensordir);
+       GNUNET_CONTAINER_multihashmap_size (sensors), sensor_dir);
   return sensors;
 }
 

@@ -36,6 +36,11 @@
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
 /**
+ * Path to sensor definitions directory
+ */
+static char *sensor_dir;
+
+/**
  * Hashmap of loaded sensor definitions
  */
 static struct GNUNET_CONTAINER_MultiHashMap *sensors;
@@ -122,6 +127,11 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   {
     GNUNET_PEERSTORE_disconnect (peerstore, GNUNET_YES);
     peerstore = NULL;
+  }
+  if (NULL != sensor_dir)
+  {
+    GNUNET_free (sensor_dir);
+    sensor_dir = NULL;
   }
   GNUNET_SCHEDULER_shutdown ();
 }
@@ -479,7 +489,6 @@ sensor_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct GNUNET_SENSOR_SensorInfo *sensorinfo = cls;
   int check_result;
-  char *sensors_dir;
   char *process_path;
 
   sensorinfo->execution_task =
@@ -522,12 +531,11 @@ sensor_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     if (GNUNET_SYSERR == check_result)
     {
       //search in sensor directory
-      sensors_dir = GNUNET_SENSOR_get_sensor_dir ();
       GNUNET_free (process_path);
-      GNUNET_asprintf (&process_path, "%s%s-files%s%s", sensors_dir,
+      GNUNET_asprintf (&process_path, "%s%s-files%s%s", sensor_dir,
                        sensorinfo->name, DIR_SEPARATOR_STR,
                        sensorinfo->ext_process);
-      GNUNET_free (sensors_dir);
+      GNUNET_free (sensor_dir);
       check_result =
           GNUNET_OS_check_helper_binary (process_path, GNUNET_NO, NULL);
     }
@@ -611,7 +619,7 @@ schedule_all_sensors ()
 static void
 start ()
 {
-  sensors = GNUNET_SENSOR_load_all_sensors ();
+  sensors = GNUNET_SENSOR_load_all_sensors (sensor_dir);
   schedule_all_sensors ();
   SENSOR_reporting_value_start (cfg, sensors);
   SENSOR_reporting_anomaly_start (cfg, sensors);
@@ -640,6 +648,10 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   };
 
   cfg = c;
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_filename (cfg, "SENSOR", "SENSOR_DIR",
+                                               &sensor_dir))
+    sensor_dir = GNUNET_SENSOR_get_default_sensor_dir ();
   statistics = GNUNET_STATISTICS_create ("sensor", cfg);
   GNUNET_CRYPTO_get_peer_identity (cfg, &peerid);
   peerstore = GNUNET_PEERSTORE_connect (cfg);

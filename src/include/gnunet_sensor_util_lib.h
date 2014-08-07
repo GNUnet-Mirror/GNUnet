@@ -351,21 +351,23 @@ GNUNET_SENSOR_version_compare (uint16_t v1_major, uint16_t v1_minor,
 
 
 /**
- * Reads sensor definitions from local data files
+ * Reads sensor definitions from given sensor directory.
  *
+ * @param sensordir Path to sensor directory.
  * @return a multihashmap of loaded sensors
  */
 struct GNUNET_CONTAINER_MultiHashMap *
-GNUNET_SENSOR_load_all_sensors ();
+GNUNET_SENSOR_load_all_sensors (char *sensor_dir);
 
 
-/*
- * Get path to the directory containing the sensor definition files
+/**
+ * Get path to the default directory containing the sensor definition files with
+ * a trailing directory separator.
  *
- * @return sensor files directory string
+ * @return Default sensor files directory full path
  */
 char *
-GNUNET_SENSOR_get_sensor_dir ();
+GNUNET_SENSOR_get_default_sensor_dir ();
 
 
 /**

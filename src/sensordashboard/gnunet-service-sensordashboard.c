@@ -134,6 +134,11 @@ struct ClientSensorReading
 
 
 /**
+ * Path to sensor definition directory
+ */
+static char *sensor_dir;
+
+/**
  * Global hashmap of defined sensors
  */
 static struct GNUNET_CONTAINER_MultiHashMap *sensors;
@@ -235,6 +240,11 @@ cleanup_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     peerstore = NULL;
   }
   GNUNET_SENSOR_destroy_sensors (sensors);
+  if (NULL != sensor_dir)
+  {
+    GNUNET_free (sensor_dir);
+    sensor_dir = NULL;
+  }
   GNUNET_SCHEDULER_shutdown ();
 }
 
@@ -584,7 +594,6 @@ create_full_sensor_msg (char *sensorname)
   struct GNUNET_HashCode key;
   struct GNUNET_SENSOR_SensorInfo *sensor;
   struct GNUNET_SENSOR_SensorFullMessage *msg;
-  char *sensor_dir;
   char *sensor_path;
   char *sensorscript_path;
   uint64_t sensorname_size;
@@ -598,7 +607,6 @@ create_full_sensor_msg (char *sensorname)
   sensor = GNUNET_CONTAINER_multihashmap_get (sensors, &key);
   if (NULL == sensor)
     return NULL;
-  sensor_dir = GNUNET_SENSOR_get_sensor_dir ();
   GNUNET_asprintf (&sensor_path, "%s%s", sensor_dir, sensorname);
   if (GNUNET_OK !=
       GNUNET_DISK_file_size (sensor_path, &sensorfile_size, GNUNET_NO,
@@ -646,7 +654,6 @@ create_full_sensor_msg (char *sensorname)
     GNUNET_DISK_fn_read (sensorscript_path, dummy, sensorscript_size);
     GNUNET_free (sensorscript_path);
   }
-  GNUNET_free (sensor_dir);
   GNUNET_free (sensor_path);
   return msg;
 }
@@ -739,7 +746,12 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
     GNUNET_APPLICATION_TYPE_SENSORUPDATE,
     GNUNET_APPLICATION_TYPE_END
   };
-  sensors = GNUNET_SENSOR_load_all_sensors ();
+
+  if (GNUNET_OK !=
+      GNUNET_CONFIGURATION_get_value_filename (cfg, "SENSOR", "SENSOR_DIR",
+                                               &sensor_dir))
+    sensor_dir = GNUNET_SENSOR_get_default_sensor_dir ();
+  sensors = GNUNET_SENSOR_load_all_sensors (sensor_dir);
   GNUNET_assert (NULL != sensors);
   cadet =
       GNUNET_CADET_connect (cfg, NULL, &cadet_channel_created,

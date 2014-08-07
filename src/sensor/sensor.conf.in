@@ -5,8 +5,12 @@ UNIXPATH = $GNUNET_RUNTIME_DIR/gnunet-service-sensor.sock
 UNIX_MATCH_UID = NO
 UNIX_MATCH_GID = YES
 
+# Path to directory containing sensor definitions.
+# If not set, will load from default location.
+#SENSOR_DIR = 
+
 # Space separated list of trusted peers running update points
-#UPDATE_POINTS = NCEKA096482PC84GFTG61EHAVXY3BQDTPB5FANATQD5CDADJ2HP0
+UPDATE_POINTS = 
 
 [sensor-analysis]
 MODEL = gaussian
