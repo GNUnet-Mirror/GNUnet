@@ -54,8 +54,9 @@ extern "C"
  * 9.0.0: CPS-style integrated API
  * 9.1.1: asynchronous directory scanning
  * 9.2.0: unified K-Block and S-block format (#2564)
+ * 9.3.0: base32crockford encoded URLs
  */
-#define GNUNET_FS_VERSION 0x00090200
+#define GNUNET_FS_VERSION 0x00090300
 
 
 /* ******************** URI API *********************** */
