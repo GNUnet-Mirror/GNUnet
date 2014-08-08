@@ -206,6 +206,11 @@ static unsigned int n_gets_fail;
 static unsigned int replication;
 
 /**
+ * Number of times we try to find the successor circle formation
+ */
+static unsigned int max_searches;
+
+/**
  * Testbed Operation (to get stats).
  */
 static struct GNUNET_TESTBED_Operation *bandwidth_stats_op;
@@ -566,10 +571,24 @@ successor_stats_cont (void *cls,
   if (start_val == val)
   {
     DEBUG("Circle complete\n");
+    /* FIXME: Schedule the delayed PUT task */
   }
   else
   {
+    static unsigned int tries;
+
     DEBUG("Circle not complete\n");
+    if (max_searches == ++tries)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Maximum tries %u exceeded while checking successor"
+                  " cirle formation.  Exiting\n",
+                  max_searches);
+      GNUNET_SCHEDULER_shutdown ();
+      return;
+    }
+    /* FIXME: Re-schedule the successor stats gathering task to run after some
+       delay */
   }
 }
 
@@ -708,6 +727,8 @@ dht_connected (void *cls,
   
   DEBUG (" Call stats \n");
  
+  /* FIXME: move this to happen after the successor circle formation is
+     complete */
   ac->delay_task = GNUNET_SCHEDULER_add_delayed (delay, &delayed_put, ac);
 }
 
@@ -764,6 +785,7 @@ service_started (void *cls,
                  const char *emsg)
 {
   struct Context *ctx = cls;
+  static unsigned int nstarted;
 
   GNUNET_assert (NULL != ctx);
   GNUNET_assert (NULL != ctx->op);
@@ -771,13 +793,17 @@ service_started (void *cls,
   ctx->op = NULL;
   if (NULL == ctx->ac)
     return;
-  /* FIXME: connect to the DHT service and wait before starting a PUT */
   ctx->op = GNUNET_TESTBED_service_connect (ctx, ctx->peer,
                                             "dht",
                                             &dht_connected, ctx->ac,
                                             &dht_connect,
                                             &dht_disconnect,
                                             ctx->ac);
+  if (num_peers == ++nstarted)
+  {
+    /* FIXME: schedule a delayed task to scan the successors from statistics of
+       all peers */
+  }
 }
 
 
@@ -892,6 +918,9 @@ main (int argc, char *const *argv)
     {'n', "peers", "COUNT",
      gettext_noop ("number of peers to start"),
      1, &GNUNET_GETOPT_set_uint, &num_peers},
+    {'s', "searches", "COUNT",
+     gettext_noop ("maximum number of times we try to search for successor circle formation (default is 1)"),
+     1, &GNUNET_GETOPT_set_uint, &max_searches},
     {'H', "hosts", "FILENAME",
      gettext_noop ("name of the file with the login information for the testbed"),
      1, &GNUNET_GETOPT_set_string, &hosts_file},
@@ -907,6 +936,7 @@ main (int argc, char *const *argv)
     GNUNET_GETOPT_OPTION_END
   };
 
+  max_searches = 1;
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
   delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 1); /* default delay */
