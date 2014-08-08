@@ -666,35 +666,11 @@ AC_SUBST(SQLITE_LDFLAGS)
 
 # test for postgres
 postgres=false
-AC_MSG_CHECKING(for postgres)
-AC_ARG_WITH(postgres,
-  [  --with-postgres=PFX       base of postgres installation],
-  [AC_MSG_RESULT("$with_postgres")
-   case $with_postgres in
-   no)
-     ;;
-   yes)
-    AC_CHECK_HEADERS(postgresql/libpq-fe.h,
-     postgres=true)
-     ;;
-   *)
-    LDFLAGS="-L$with_postgres/lib $LDFLAGS"
-    CPPFLAGS="-I$with_postgres/include $CPPFLAGS"
-    AC_CHECK_HEADERS(postgresql/libpq-fe.h,
-     EXT_LIB_PATH="-L$with_postgres/lib $EXT_LIB_PATH"
-     POSTGRES_LDFLAGS="-L$with_postgres/lib"
-     POSTGRES_CPPFLAGS="-I$with_postgres/include"
-     postgres=true)
-    LDFLAGS=$SAVE_LDFLAGS
-    CPPFLAGS=$SAVE_CPPFLAGS
-    ;;
-   esac
-  ],
-  [AC_MSG_RESULT([--with-postgres not specified])
-    AC_CHECK_HEADERS(postgresql/libpq-fe.h, postgres=true)])
-AM_CONDITIONAL(HAVE_POSTGRES, test x$postgres = xtrue)
-AC_SUBST(POSTGRES_CPPFLAGS)
-AC_SUBST(POSTGRES_LDFLAGS)
+AX_LIB_POSTGRESQL([])
+if test "$found_postgresql" = "yes"; then
+  postgres=true
+fi
+AM_CONDITIONAL(HAVE_POSTGRESQL, test x$postgres = xtrue)
 
 # test for zlib
 SAVE_LDFLAGS=$LDFLAGS

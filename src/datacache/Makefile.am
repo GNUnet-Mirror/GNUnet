@@ -19,7 +19,7 @@ endif
 if HAVE_SQLITE
   SQLITE_PLUGIN = libgnunet_plugin_datacache_sqlite.la
 endif
-if HAVE_POSTGRES
+if HAVE_POSTGRESQL
   POSTGRES_PLUGIN = libgnunet_plugin_datacache_postgres.la
 endif
 
@@ -68,11 +68,11 @@ libgnunet_plugin_datacache_postgres_la_LIBADD = \
   $(top_builddir)/src/postgres/libgnunetpostgres.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
   $(top_builddir)/src/util/libgnunetutil.la \
-  $(GN_PLUGIN_LDFLAGS) $(POSTGRES_LDFLAGS) -lpq
+  $(GN_PLUGIN_LDFLAGS) -lpq
 libgnunet_plugin_datacache_postgres_la_CPPFLAGS = \
- $(POSTGRES_CPPFLAGS) $(AM_CPPFLAGS)
+ $(POSTGRESQL_CPPFLAGS) $(AM_CPPFLAGS)
 libgnunet_plugin_datacache_postgres_la_LDFLAGS = \
- $(GN_PLUGIN_LDFLAGS) $(POSTGRES_LDFLAGS) -lpq
+ $(GN_PLUGIN_LDFLAGS) $(POSTGRESQL_LDFLAGS)
 
 libgnunet_plugin_datacache_template_la_SOURCES = \
   plugin_datacache_template.c
@@ -104,7 +104,7 @@ HEAP_TESTS = \
  test_datacache_quota_heap \
  $(HEAP_BENCHMARKS)
 
-if HAVE_POSTGRES
+if HAVE_POSTGRESQL
 if HAVE_BENCHMARKS
  POSTGRES_BENCHMARKS = \
   perf_datacache_postgres

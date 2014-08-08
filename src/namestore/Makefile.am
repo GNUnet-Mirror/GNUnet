@@ -26,7 +26,7 @@ SQLITE_TESTS = test_plugin_namestore_sqlite
 endif
 endif
 
-if HAVE_POSTGRES
+if HAVE_POSTGRESQL
 # postgres doesn't even build yet; thus: experimental!
 POSTGRES_PLUGIN = libgnunet_plugin_namestore_postgres.la
 if HAVE_TESTING

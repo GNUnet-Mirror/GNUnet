@@ -85,7 +85,7 @@ endif
   $(SQLITE_BENCHMARKS)
 endif
 endif
-if HAVE_POSTGRES
+if HAVE_POSTGRESQL
  POSTGRES_PLUGIN = libgnunet_plugin_datastore_postgres.la
 if HAVE_TESTING
 if HAVE_BENCHMARKS
@@ -146,9 +146,9 @@ libgnunet_plugin_datastore_postgres_la_LIBADD = \
   $(top_builddir)/src/postgres/libgnunetpostgres.la \
   $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) -lpq
 libgnunet_plugin_datastore_postgres_la_LDFLAGS = \
- $(GN_PLUGIN_LDFLAGS) $(POSTGRES_LDFLAGS) -lpq
+ $(GN_PLUGIN_LDFLAGS) $(POSTGRESQL_LDFLAGS)
 libgnunet_plugin_datastore_postgres_la_CPPFLAGS = \
- $(POSTGRES_CPPFLAGS) $(AM_CPPFLAGS)
+ $(POSTGRESQL_CPPFLAGS) $(AM_CPPFLAGS)
 
 
 libgnunet_plugin_datastore_template_la_SOURCES = \

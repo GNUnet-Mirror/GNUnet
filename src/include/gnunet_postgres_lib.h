@@ -26,7 +26,7 @@
 #define GNUNET_POSTGRES_LIB_H
 
 #include "gnunet_util_lib.h"
-#include <postgresql/libpq-fe.h>
+#include <libpq-fe.h>
 
 #ifdef __cplusplus
 extern "C"

@@ -8,7 +8,7 @@ if USE_COVERAGE
   AM_CFLAGS = --coverage
 endif
 
-if HAVE_POSTGRES
+if HAVE_POSTGRESQL
 lib_LTLIBRARIES = libgnunetpostgres.la
 endif
 

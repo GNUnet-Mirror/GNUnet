@@ -27,7 +27,6 @@
 #include "gnunet_util_lib.h"
 #include "gnunet_postgres_lib.h"
 #include "gnunet_datacache_plugin.h"
-#include <postgresql/libpq-fe.h>
 
 #define LOG(kind,...) GNUNET_log_from (kind, "datacache-postgres", __VA_ARGS__)
 

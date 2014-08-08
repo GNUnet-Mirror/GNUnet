@@ -42,7 +42,7 @@ if HAVE_MYSQL
  MYSQL_DIR = mysql
 endif
 
-if HAVE_POSTGRES
+if HAVE_POSTGRESQL
  POSTGRES_DIR = postgres
 endif
 

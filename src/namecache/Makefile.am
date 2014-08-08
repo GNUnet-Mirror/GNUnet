@@ -26,7 +26,7 @@ SQLITE_TESTS = test_plugin_namecache_sqlite
 endif
 endif
 
-if HAVE_POSTGRES
+if HAVE_POSTGRESQL
 POSTGRES_PLUGIN = libgnunet_plugin_namecache_postgres.la
 if HAVE_TESTING
 POSTGRES_TESTS = test_plugin_namecache_postgres
