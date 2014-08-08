@@ -11,7 +11,7 @@ OPERATION_TIMEOUT = 30 s
 # helper binary is searched in @prefix@/lib/gnunet/libexec/
 # HELPER_BINARY_PATH = @prefix@/lib/gnunet/libexec/gnunet-helper-testbed
 
-# Add your local network address here. For example, if you want to running
+# Add your local network address here. For example, if you want to run
 # testbed on a group of hosts connected to network 192.168.1.0/24, then set
 #   ACCEPT_FROM = 127.0.0.1; 192.168.1.0/24;
 # Multiple network addresses can be given.  They should be separated by `;'
@@ -23,8 +23,8 @@ UNIX_MATCH_UID = YES
 UNIX_MATCH_GID = YES
 
 # How many maximum number of operations can be run in parallel.  This number
-# should be decreased if the system is getting overloaded and to keep reduce the
-# load of testbed.
+# should be decreased if the system is getting overloaded and to reduce the load
+# exerted by the emulation.
 MAX_PARALLEL_OPERATIONS = 1000
 MAX_PARALLEL_TOPOLOGY_CONFIG_OPERATIONS = 1
 
@@ -39,10 +39,10 @@ OVERLAY_TOPOLOGY = NONE
 # requiring this option are RANDOM, SMALL_WORLD and SMALL_WORLD ring.
 # OVERLAY_RANDOM_LINKS =
 
-# If the OVERLAY_TOPOLOGY is set to FROM_FILE.  This option is ignored for all
-# other topology values.  This option should contain the path to the file
-# containing the topology information.  The format of the file is presented at:
-# https://gnunet.org/content/topology-file-format
+# This option is required if the OVERLAY_TOPOLOGY is set to FROM_FILE.  It is
+# ignored for all other topologies.  This option should contain the path to
+# the file containing the topology information.  The format of the file is
+# presented at: https://gnunet.org/content/topology-file-format
 # OVERLAY_TOPOLOGY_FILE = /path/to/topology-file
 
 # How many maximum number of handles to peers' services should be kept open at
