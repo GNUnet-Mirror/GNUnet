@@ -52,6 +52,8 @@
  * hashing.
  */
 
+#define DEBUG(...)                                           \
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__)
 
 /**
  * Maximum possible fingers (including predecessor) of a peer
@@ -2220,7 +2222,10 @@ GDS_NEIGHBOURS_send_get (const struct GNUNET_HashCode *key,
 
   msize = sizeof (struct PeerGetMessage) +
           (get_path_length * sizeof (struct GNUNET_PeerIdentity));
-
+  
+  //GNUNET_SERVER_MAX_MESSAGE_SIZE
+  /* FIXME:TODO:URGENTHere you can try to optimize it a bit. In case the get path contains you
+   or your friend then shorten the path. */
   /* In this case we don't make get_path_length = 0, as we need get path to
    * return the message back to querying client. */
   if (msize >= GNUNET_CONSTANTS_MAX_ENCRYPTED_MESSAGE_SIZE)
@@ -3054,24 +3059,6 @@ scan_and_compress_trail (struct GNUNET_PeerIdentity finger_identity,
   return new_trail;
 }
 
-#if 0
-/* Store the successor for path tracking */
-  if (track_topology &&  (NULL != GDS_stats))
-  {
-    char *my_id_str;
-    char *succ_id_str;
-    char *key;
-
-    my_id_str = GNUNET_strdup (GNUNET_i2s (&my_identity));
-    succ_id_str = GNUNET_strdup (GNUNET_i2s
-                                 (&successor->finger_identity));
-    GNUNET_asprintf (&key, "XDHT:0:%.4s:%.4s", my_id_str, succ_id_str);
-    GNUNET_free (my_id_str);
-    GNUNET_free (succ_id_str);
-    GNUNET_STATISTICS_update (GDS_stats, "key", 1, 0);
-    GNUNET_free (key);
-  }
-#endif
 
 /**
  * Periodic task to verify current successor. There can be multiple trails to reach
@@ -3119,10 +3106,27 @@ send_verify_successor_message (void *cls,
 
   /* Trail stored at this index. */
   GNUNET_assert (GNUNET_YES == trail->is_present);
-
+  
+  /* Code for testing ONLY: Store the successor for path tracking */
+  if (track_topology &&  (NULL != GDS_stats))
+  {
+    char *my_id_str;
+    char *succ_id_str;
+    char *key;
+    
+    my_id_str = GNUNET_strdup (GNUNET_i2s (&my_identity));
+    succ_id_str = GNUNET_strdup (GNUNET_i2s
+                                 (&successor->finger_identity));
+    GNUNET_asprintf (&key, "XDHT:%s:%s", my_id_str, succ_id_str);
+    GNUNET_free (my_id_str);
+    GNUNET_free (succ_id_str);
+    GNUNET_STATISTICS_update (GDS_stats, key, 1, 0);
+    GNUNET_free (key);
+  }
+  
   trail_id = trail->trail_id;
   trail_length = trail->trail_length;
-
+  
   if (trail_length > 0)
   {
      /* Copy the trail into peer list. */
