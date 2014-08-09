@@ -88,7 +88,12 @@ extern "C"
 #include "gnunet_util_lib.h"
 #include "gnunet_env_lib.h"
 #include "gnunet_multicast_service.h"
-
+//Mingw work around
+#ifdef MINGW
+    # ifndef  UINT64_MAX
+    # define  UINT64_MAX 0xffffffffffffffffULL
+    # endif
+#endif
 
 /**
  * Version number of GNUnet-PSYC API.
