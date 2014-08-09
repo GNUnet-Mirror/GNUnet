@@ -696,7 +696,7 @@ void id_guest_created (void *cls, const char *emsg)
 }
 
 
-void host_entered (void *cls, uint64_t max_message_id)
+void host_entered (void *cls, int result, uint64_t max_message_id)
 {
   GNUNET_log (GNUNET_ERROR_TYPE_WARNING, "Host entered to place.\n");
 
