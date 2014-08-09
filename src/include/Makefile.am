@@ -88,6 +88,7 @@ gnunetinclude_HEADERS = \
   gnunet_set_service.h \
   gnunet_signal_lib.h \
   gnunet_signatures.h \
+  gnunet_social_service.h \
   gnunet_speaker_lib.h \
   gnunet_statistics_service.h \
   gnunet_strings_lib.h \
