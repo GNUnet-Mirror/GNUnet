@@ -34,6 +34,8 @@
 
 #define LOG(kind,...) GNUNET_log_from (kind, "dht-dtcache",__VA_ARGS__)
 
+#define DEBUG(...)                                           \
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__)
 
 /**
  * Handle to the datacache service (for inserting/retrieving data)
@@ -79,7 +81,7 @@ GDS_DATACACHE_handle_put (struct GNUNET_TIME_Absolute expiration,
   GNUNET_STATISTICS_update (GDS_stats,
                             gettext_noop ("# ITEMS stored in datacache"), 1,
                             GNUNET_NO);
-
+   DEBUG("PUT doing put key = %s\n",GNUNET_h2s((key)));
   r = GNUNET_DATACACHE_put (datacache, key, data_size, data, type, expiration,
                             put_path_length, put_path);
   LOG (GNUNET_ERROR_TYPE_DEBUG,

@@ -2117,8 +2117,10 @@ GDS_NEIGHBOURS_send_put (const struct GNUNET_HashCode *key,
     msize = data_size + sizeof (struct PeerPutMessage);
   }
 
+  /* Should it be GNUNET_SERVER_MAX_MESSAGE_SIZE? */
   if (msize >= GNUNET_CONSTANTS_MAX_ENCRYPTED_MESSAGE_SIZE)
   {
+    DEBUG("msize = %lu\n",msize);
     GNUNET_break (0);
     return;
   }
@@ -2141,6 +2143,7 @@ GDS_NEIGHBOURS_send_put (const struct GNUNET_HashCode *key,
     if (0 == GNUNET_CRYPTO_cmp_peer_identity (&best_known_dest, &my_identity))
     {
       /* I am the destination. */
+      DEBUG("PUT destination is me = %s,key =%s\n",GNUNET_i2s(&my_identity),GNUNET_h2s(key));
       GDS_DATACACHE_handle_put (expiration_time, key, 0, NULL,
                                 block_type,data_size,data);
       return;
@@ -2233,7 +2236,9 @@ GDS_NEIGHBOURS_send_get (const struct GNUNET_HashCode *key,
     GNUNET_break (0);
     return;
   }
-
+  
+  DEBUG("GET FOR DATA_SIZE = %lu\n",msize);
+  
   /* This is the first time we got request from our own client file. */
   if (NULL == target_peer)
   {
@@ -2251,6 +2256,7 @@ GDS_NEIGHBOURS_send_get (const struct GNUNET_HashCode *key,
     if (0 == GNUNET_CRYPTO_cmp_peer_identity (&my_identity,
                                               &best_known_dest))
     {
+      DEBUG("GET destination is me = %s,KEY = %s\n",GNUNET_i2s(&my_identity),GNUNET_h2s(key));
       GDS_DATACACHE_handle_get (key,block_type, NULL, 0,
                                 NULL, 0, 1, &my_identity, NULL,&my_identity);
 
@@ -2346,7 +2352,7 @@ GDS_NEIGHBOURS_send_get_result (const struct GNUNET_HashCode *key,
     GNUNET_break(0);
     return;
   }
-  
+  DEBUG("GET RESULT  FOR DATA_SIZE = %lu\n",msize);
   current_path_index = 0;
   if(get_path_length > 0)
   {
@@ -3107,23 +3113,6 @@ send_verify_successor_message (void *cls,
   /* Trail stored at this index. */
   GNUNET_assert (GNUNET_YES == trail->is_present);
   
-  /* Code for testing ONLY: Store the successor for path tracking */
-  if (track_topology &&  (NULL != GDS_stats))
-  {
-    char *my_id_str;
-    char *succ_id_str;
-    char *key;
-    
-    my_id_str = GNUNET_strdup (GNUNET_i2s (&my_identity));
-    succ_id_str = GNUNET_strdup (GNUNET_i2s
-                                 (&successor->finger_identity));
-    GNUNET_asprintf (&key, "XDHT:%s:%s", my_id_str, succ_id_str);
-    GNUNET_free (my_id_str);
-    GNUNET_free (succ_id_str);
-    GNUNET_STATISTICS_update (GDS_stats, key, 1, 0);
-    GNUNET_free (key);
-  }
-  
   trail_id = trail->trail_id;
   trail_length = trail->trail_length;
   
@@ -3524,7 +3513,7 @@ handle_dht_p2p_put (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_break_op (0);
     return GNUNET_OK;
   }
-
+  DEBUG("GET FOR DATA_SIZE = %lu\n",msize);
   GNUNET_STATISTICS_update (GDS_stats,
                             gettext_noop
                             ("# Bytes received from other peers"), (int64_t) msize,
@@ -3636,6 +3625,7 @@ handle_dht_p2p_put (void *cls, const struct GNUNET_PeerIdentity *peer,
   /* I am the final destination */
   if (0 == GNUNET_CRYPTO_cmp_peer_identity (&my_identity, &best_known_dest))
   {
+    DEBUG("PUT destination is me = %s,KEY = %s\n",GNUNET_i2s(&my_identity),GNUNET_h2s(&(put->key)));
     GDS_DATACACHE_handle_put (GNUNET_TIME_absolute_ntoh (put->expiration_time),
                               &(put->key),putlen, pp, ntohl (put->block_type),
                               payload_size, payload);
@@ -3698,7 +3688,7 @@ handle_dht_p2p_get (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_break_op (0);
     return GNUNET_YES;
   }
-
+  DEBUG("PUT FOR DATA_SIZE = %lu\n",msize);
   GNUNET_STATISTICS_update (GDS_stats,
                             gettext_noop
                             ("# Bytes received from other peers"), msize,
@@ -3745,6 +3735,7 @@ handle_dht_p2p_get (void *cls, const struct GNUNET_PeerIdentity *peer,
   /* I am the final destination. */
   if (0 == GNUNET_CRYPTO_cmp_peer_identity(&my_identity, &best_known_dest))
   {
+    DEBUG("GET destination is me = %s,KEY = %s\n",GNUNET_i2s(&my_identity),GNUNET_h2s(&(get->key)));
     struct GNUNET_PeerIdentity final_get_path[get_length+1];
 
     memcpy (final_get_path, gp, get_length * sizeof (struct GNUNET_PeerIdentity));
@@ -3811,7 +3802,7 @@ handle_dht_p2p_get_result (void *cls, const struct GNUNET_PeerIdentity *peer,
     GNUNET_break_op (0);
     return GNUNET_YES;
   }
-
+  DEBUG("GET_RESULT  FOR DATA_SIZE = %lu\n",msize);
   GNUNET_STATISTICS_update (GDS_stats,
                             gettext_noop
                             ("# Bytes received from other peers"), msize,
@@ -4956,8 +4947,24 @@ compare_and_update_successor (struct GNUNET_PeerIdentity curr_succ,
 
   /* If the current_successor in the finger table is closest, then do nothing. */
   if (closest_peer == &current_successor->finger_identity)
+  {
+    /* Code for testing ONLY: Store the successor for path tracking */
+    track_topology = 1;
+    if (track_topology &&  (NULL != GDS_stats))
+    {
+      char *my_id_str;
+      uint64_t succ;
+      char *key;
+    
+      my_id_str = GNUNET_strdup (GNUNET_i2s_full (&my_identity));
+      memcpy(&succ, &current_successor->finger_identity, sizeof(uint64_t));
+      GNUNET_asprintf (&key, "XDHT:%s:", my_id_str);
+      GNUNET_free (my_id_str);
+      GNUNET_STATISTICS_set (GDS_stats, key, succ, 0);
+      GNUNET_free (key);
+    }
     return;
-
+  }
   /* Probable successor is the closest peer.*/
   if(trail_length > 0)
   {
@@ -5603,7 +5610,7 @@ remove_matching_trails (const struct GNUNET_PeerIdentity *disconnected_friend,
   matching_trails_count = 0;
 
   /* Iterate over all the trails of finger. */
-  for (i = 0; i < remove_finger->trails_count; i++)
+  for (i = 0; i < MAXIMUM_TRAILS_PER_FINGER; i++)
   {
     struct Trail *trail;
     trail = &remove_finger->trail_list[i];

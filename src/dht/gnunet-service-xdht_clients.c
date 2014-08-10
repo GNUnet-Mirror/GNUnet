@@ -43,6 +43,9 @@
 
 #define LOG(kind,...) GNUNET_log_from (kind, "dht-clients",__VA_ARGS__)
 
+#define DEBUG(...)                                           \
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG, __VA_ARGS__)
+
 #if ENABLE_MALICIOUS
 /**
  * Should this peer act malicious?
@@ -645,6 +648,7 @@ GDS_CLIENTS_handle_reply (struct GNUNET_TIME_Absolute expiration,
                 _("Could not pass reply to client, message too big!\n"));
     return;
   }
+  DEBUG("reply FOR DATA_SIZE = %lu\n",msize);
   pm = GNUNET_malloc (msize + sizeof (struct PendingMessage));
   reply = (struct GNUNET_DHT_ClientResultMessage *) &pm[1];
   pm->msg = &reply->header;
@@ -949,7 +953,7 @@ handle_dht_local_put (void *cls, struct GNUNET_SERVER_Client *client,
        "Handling local PUT of %u-bytes for query %s\n",
        size - sizeof (struct GNUNET_DHT_ClientPutMessage),
        GNUNET_h2s (&put_msg->key));
-  
+  DEBUG("PUT doing put i = %s\n",GNUNET_h2s(&(put_msg->key)));
   GDS_CLIENTS_handle_reply (GNUNET_TIME_absolute_ntoh (put_msg->expiration),
                             &put_msg->key, 0, NULL, 0, NULL,
                             ntohl (put_msg->type),

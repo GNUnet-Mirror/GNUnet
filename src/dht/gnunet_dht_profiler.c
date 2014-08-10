@@ -38,7 +38,7 @@
 /**
  * Number of peers which should perform a PUT out of 100 peers
  */
-#define PUT_PROBABILITY 100
+#define PUT_PROBABILITY 50
 
 /**
  * Configuration
@@ -246,29 +246,69 @@ static unsigned int average_put_path_length;
 static unsigned int average_get_path_length;
 
 /**
- * 
+ * Total put path length across all peers. 
  */
 static unsigned int total_put_path_length;
 
 /**
- *
+ * Total get path length across all peers. 
  */
 static unsigned int total_get_path_length;
 
 /**
- *
+ * Hashmap to store pair of peer and its corresponding successor. 
  */
 static struct GNUNET_CONTAINER_MultiHashMap *successor_peer_hashmap;
 
 /**
- *
+ * Key to start the lookup on successor_peer_hashmap. 
  */
 static struct GNUNET_HashCode *start_key;
 
 /**
- *
+ * Flag used to get the start_key.
  */
 static int flag = 0;
+
+/**
+ * Task to collect peer and its current successor statistics.
+ */
+static GNUNET_SCHEDULER_TaskIdentifier successor_stats_task;
+
+/**
+ * Closure for successor_stats_task.
+ */
+struct Collect_Stat_Context
+{
+  /**
+   * Current Peer Context. 
+   */
+  struct Context *service_connect_ctx;
+  
+  /**
+   * Testbed operation acting on this peer
+   */
+  struct GNUNET_TESTBED_Operation *op;
+};
+
+/**
+ * List of all the peers contexts.
+ */
+struct Context **peer_contexts = NULL;
+
+/**
+ * Counter to keep track of peers added to peer_context lists. 
+ */
+static int peers_started = 0;
+
+/**
+ * Task that collects successor statistics from all the peers. 
+ * @param cls
+ * @param tc
+ */
+static void
+collect_stats (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc);
+
 
 /**
  * Shutdown task.  Cleanup all resources and operations.
@@ -536,121 +576,6 @@ put_cont (void *cls, int success)
 
 
 /**
- * Stats callback. Finish the stats testbed operation and when all stats have
- * been iterated, shutdown the test.
- *
- * @param cls closure
- * @param op the operation that has been finished
- * @param emsg error message in case the operation has failed; will be NULL if
- *          operation has executed successfully.
- */
-static void
-successor_stats_cont (void *cls, 
-                      struct GNUNET_TESTBED_Operation *op, 
-                      const char *emsg)
-{
-  /* Check if ring is formed. If yes then schedule put. */
-  struct GNUNET_HashCode *val;
-  struct GNUNET_HashCode *start_val;
-  int count = 0;
-  struct GNUNET_HashCode *key;
-  
-  start_val = GNUNET_CONTAINER_multihashmap_get(successor_peer_hashmap,
-                                                start_key);
-  
-  val = GNUNET_new(struct GNUNET_HashCode);
-  val = start_val;
-  while (count < n_active)
-  {
-    key = val;
-    val = GNUNET_CONTAINER_multihashmap_get (successor_peer_hashmap,
-                                             key);
-    count++;
-  }
-  
-  if (start_val == val)
-  {
-    DEBUG("Circle complete\n");
-    /* FIXME: Schedule the delayed PUT task */
-  }
-  else
-  {
-    static unsigned int tries;
-
-    DEBUG("Circle not complete\n");
-    if (max_searches == ++tries)
-    {
-      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
-                  "Maximum tries %u exceeded while checking successor"
-                  " cirle formation.  Exiting\n",
-                  max_searches);
-      GNUNET_SCHEDULER_shutdown ();
-      return;
-    }
-    /* FIXME: Re-schedule the successor stats gathering task to run after some
-       delay */
-  }
-}
-
-
-/**
- * Process successor statistic values.
- *
- * @param cls closure
- * @param peer the peer the statistic belong to
- * @param subsystem name of subsystem that created the statistic
- * @param name the name of the datum
- * @param value the current value
- * @param is_persistent GNUNET_YES if the value is persistent, GNUNET_NO if not
- * @return GNUNET_OK to continue, GNUNET_SYSERR to abort iteration
- */
-static int
-successor_stats_iterator (void *cls, 
-                          const struct GNUNET_TESTBED_Peer *peer,
-                          const char *subsystem, 
-                          const char *name,
-                          uint64_t value, 
-                          int is_persistent)
-{
-  static const char *key_string = "XDHT";
-  
-  DEBUG (" Inside successor stats,name = %s\n",name);
-  if (0 == strncmp (key_string, name, strlen (key_string)))
-  {
-    char *my_id_str;
-    char *successor_id_str;
-    struct GNUNET_HashCode *my_id;
-    struct GNUNET_HashCode *successor_id;
-    
-    /* Parse the string to get the peer and its successor. */
-    strtok((char *)name,":");
-    my_id_str = strtok(NULL,":");
-    successor_id_str = strtok(NULL,":");
-    
-    /* Get Hash of my_id_str and successor_id_str */
-    my_id = GNUNET_new(struct GNUNET_HashCode);
-    successor_id = GNUNET_new(struct GNUNET_HashCode);
-    GNUNET_CRYPTO_hash (my_id_str, sizeof(my_id_str),my_id);
-    GNUNET_CRYPTO_hash (successor_id_str, sizeof(successor_id_str),successor_id);
-    
-    if (0 == flag)
-    {
-      start_key = my_id;
-      flag = 1;
-    }
-    
-    GNUNET_CONTAINER_multihashmap_put (successor_peer_hashmap,
-                                       my_id, (void *)successor_id,
-                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
-   
-
-  }
-  
-  return GNUNET_OK;
-}
-
-
-/**
  * Task to do DHT PUTS
  *
  * @param cls the active context
@@ -660,17 +585,7 @@ static void
 delayed_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct ActiveContext *ac = cls;
-  
-  successor_peer_hashmap = GNUNET_CONTAINER_multihashmap_create (n_active, 
-                                                                 GNUNET_NO);
-  /* Check for successor pointer, don't start put till the virtual ring topology
-   is not created. */
-  successor_stats_op = 
-          GNUNET_TESTBED_get_statistics (n_active, testbed_handles,
-                                         "dht", NULL,
-                                          successor_stats_iterator, 
-                                          successor_stats_cont, NULL);
-  
+  DEBUG("PUT SUPU \n");
   ac->delay_task = GNUNET_SCHEDULER_NO_TASK;
   /* Generate and DHT PUT some random data */
   ac->put_data_size = 16;       /* minimum */
@@ -692,7 +607,6 @@ delayed_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                 put_cont, ac);                /* continuation and its closure */
   n_puts++;
 }
-
 
 
 /**
@@ -724,11 +638,7 @@ dht_connected (void *cls,
     ctx->op = NULL;
     return;
   }
-  
-  DEBUG (" Call stats \n");
- 
-  /* FIXME: move this to happen after the successor circle formation is
-     complete */
+   
   ac->delay_task = GNUNET_SCHEDULER_add_delayed (delay, &delayed_put, ac);
 }
 
@@ -772,6 +682,197 @@ dht_disconnect (void *cls, void *op_result)
 
 
 /**
+ * FIXME:Verify where is n_active used. Should this service be started only
+ * for n_active peers?
+ * Start testbed service for all the peers. 
+ */
+static void
+start_testbed_service_on_all_peers()
+{
+  unsigned int i;
+  for(i = 0; i < peers_started; i++)
+  {
+      struct Context *ctx = peer_contexts[i];
+      DEBUG("GNUNET_TESTBED_service_connect \n");
+      ctx->op = 
+              GNUNET_TESTBED_service_connect (ctx, 
+                                              ctx->peer,
+                                              "dht",
+                                              &dht_connected, ctx->ac,
+                                              &dht_connect,
+                                              &dht_disconnect,
+                                              ctx->ac);
+     
+  }
+}
+
+
+/**
+ * Stats callback. Iterate over the hashmap and check if all th peers form
+ * a virtual ring topology.
+ *
+ * @param cls closure
+ * @param op the operation that has been finished
+ * @param emsg error message in case the operation has failed; will be NULL if
+ *          operation has executed successfully.
+ */
+static void
+successor_stats_cont (void *cls, 
+                      struct GNUNET_TESTBED_Operation *op, 
+                      const char *emsg)
+{
+  struct GNUNET_HashCode *val;
+  struct GNUNET_HashCode *start_val;
+  int count = 0;
+  struct GNUNET_HashCode *key;
+  
+  start_val =(struct GNUNET_HashCode *) GNUNET_CONTAINER_multihashmap_get(successor_peer_hashmap,
+                                                start_key);
+
+  val = GNUNET_new(struct GNUNET_HashCode);
+  val = start_val;
+  while (count < num_peers)
+  {
+    key = GNUNET_new(struct GNUNET_HashCode);
+    key = val;
+    val = GNUNET_CONTAINER_multihashmap_get (successor_peer_hashmap,
+                                             key);
+    GNUNET_assert(NULL != val);
+    count++;
+  }
+  
+  if (start_val == val)
+  {
+    DEBUG("Circle completed\n");
+    if (GNUNET_SCHEDULER_NO_TASK != successor_stats_task)
+    {
+      successor_stats_task = GNUNET_SCHEDULER_NO_TASK;
+      //FIXME: free hashmap. 
+    }
+    successor_stats_op = NULL;
+    
+    if(GNUNET_SCHEDULER_NO_TASK == successor_stats_task)
+    {
+      start_testbed_service_on_all_peers();
+    }
+    
+    return;
+  }
+  else
+  {
+    static unsigned int tries;
+
+    DEBUG("Circle not complete\n");
+    if (max_searches == ++tries)
+    {
+      GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
+                  "Maximum tries %u exceeded while checking successor TOTAL TRIES %u"
+                  " cirle formation.  Exiting\n",
+                  max_searches,tries);
+      if (GNUNET_SCHEDULER_NO_TASK != successor_stats_task)
+      {
+        successor_stats_task = GNUNET_SCHEDULER_NO_TASK;
+        //FIXME: free hashmap
+      }
+      successor_stats_op = NULL;
+      
+      if(GNUNET_SCHEDULER_NO_TASK == successor_stats_task)
+      {
+        start_testbed_service_on_all_peers();
+      }
+      
+      return;
+    }
+    
+    //FIXME: change delay use exponential back off. 
+    successor_stats_task = GNUNET_SCHEDULER_add_delayed (delay, &collect_stats, cls);
+  }
+}
+
+
+/**
+ * Process successor statistic values.
+ *
+ * @param cls closure
+ * @param peer the peer the statistic belong to
+ * @param subsystem name of subsystem that created the statistic
+ * @param name the name of the datum
+ * @param value the current value
+ * @param is_persistent GNUNET_YES if the value is persistent, GNUNET_NO if not
+ * @return GNUNET_OK to continue, GNUNET_SYSERR to abort iteration
+ */
+static int
+successor_stats_iterator (void *cls, 
+                          const struct GNUNET_TESTBED_Peer *peer,
+                          const char *subsystem, 
+                          const char *name,
+                          uint64_t value, 
+                          int is_persistent)
+{
+  static const char *key_string = "XDHT";
+  
+  if (0 == strncmp (key_string, name, strlen (key_string)))
+  {
+    char *my_id_str;
+    char successor_str[13];
+    char truncated_my_id_str[13];
+    char truncated_successor_str[13];
+    struct GNUNET_HashCode *my_id_key;
+    struct GNUNET_HashCode *succ_key;
+    
+    strtok((char *)name,":");
+    my_id_str = strtok(NULL,":");
+    
+    strncpy(truncated_my_id_str, my_id_str, 12);
+    truncated_my_id_str[12] = '\0';
+    
+    my_id_key = GNUNET_new(struct GNUNET_HashCode);
+    GNUNET_CRYPTO_hash (truncated_my_id_str, sizeof(truncated_my_id_str),my_id_key);
+    
+    GNUNET_STRINGS_data_to_string(&value, sizeof(uint64_t), successor_str, 13);
+    strncpy(truncated_successor_str, successor_str, 12);
+    truncated_successor_str[12] ='\0';
+   
+    succ_key = GNUNET_new(struct GNUNET_HashCode);
+    GNUNET_CRYPTO_hash (truncated_successor_str, sizeof(truncated_successor_str),succ_key);
+    
+    if (0 == flag)
+    {
+      start_key = my_id_key;
+      flag = 1;
+    }
+    GNUNET_CONTAINER_multihashmap_put (successor_peer_hashmap,
+                                       my_id_key, (void *)succ_key,
+                                       GNUNET_CONTAINER_MULTIHASHMAPOPTION_REPLACE);
+  }
+  return GNUNET_OK;
+}
+
+
+/* 
+ * Task that collects peer and its corresponding successors. 
+ * 
+ * @param cls Closure (NULL).
+ * @param tc Task Context.
+ */
+static void
+collect_stats (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  if ((GNUNET_SCHEDULER_REASON_SHUTDOWN & tc->reason) != 0)
+    return;
+
+  GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Start collecting statistics...\n");
+  
+ /* Check for successor pointer, don't start put till the virtual ring topology
+   is not created. */
+  successor_stats_op = 
+          GNUNET_TESTBED_get_statistics (num_peers, testbed_handles,
+                                         "dht", NULL,
+                                          successor_stats_iterator, 
+                                          successor_stats_cont, cls);
+}
+
+/**
  * Callback called when DHT service on the peer is started
  *
  * @param cls the context
@@ -785,24 +886,35 @@ service_started (void *cls,
                  const char *emsg)
 {
   struct Context *ctx = cls;
-  static unsigned int nstarted;
-
+  
   GNUNET_assert (NULL != ctx);
   GNUNET_assert (NULL != ctx->op);
   GNUNET_TESTBED_operation_done (ctx->op);
   ctx->op = NULL;
   if (NULL == ctx->ac)
     return;
-  ctx->op = GNUNET_TESTBED_service_connect (ctx, ctx->peer,
-                                            "dht",
-                                            &dht_connected, ctx->ac,
-                                            &dht_connect,
-                                            &dht_disconnect,
-                                            ctx->ac);
-  if (num_peers == ++nstarted)
+  
+  if (NULL == peer_contexts)
   {
-    /* FIXME: schedule a delayed task to scan the successors from statistics of
-       all peers */
+    peer_contexts = GNUNET_malloc(num_peers * sizeof(struct Context *));
+  }
+  
+  peer_contexts[peers_started] = ctx;
+  peers_started++;
+  DEBUG("Peers Started = %d \n", peers_started);
+    
+  if (GNUNET_SCHEDULER_NO_TASK == successor_stats_task)
+  {
+     DEBUG("successor_stats_task \n");
+     struct Collect_Stat_Context *collect_stat_cls = GNUNET_new(struct Collect_Stat_Context);
+     collect_stat_cls->service_connect_ctx = cls;
+     collect_stat_cls->op = op;
+     
+     successor_peer_hashmap = GNUNET_CONTAINER_multihashmap_create (num_peers, 
+                                                                    GNUNET_NO);
+     successor_stats_task = GNUNET_SCHEDULER_add_delayed (delay, 
+                                                          &collect_stats, 
+                                                          collect_stat_cls);
   }
 }
 
@@ -936,11 +1048,11 @@ main (int argc, char *const *argv)
     GNUNET_GETOPT_OPTION_END
   };
 
-  max_searches = 1;
+  max_searches = 10;
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
-  delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 1); /* default delay */
-  timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 1); /* default timeout */
+  delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 2); /* default delay */
+  timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 1); /* default timeout */
   replication = 1;      /* default replication */
   rc = 0;
   if (GNUNET_OK !=
