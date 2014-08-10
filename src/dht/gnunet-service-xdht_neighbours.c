@@ -4010,9 +4010,7 @@ handle_dht_p2p_trail_setup (void *cls, const struct GNUNET_PeerIdentity *peer,
   {
     if(0 == GNUNET_CRYPTO_cmp_peer_identity(&trail_peer_list[i],&my_identity))
     {
-        //Here if you already were present in the trail. then you
-        // should trail length to i + 1
-      trail_length = i+1;
+      trail_length = i;
       break;
     }
   }
@@ -4059,7 +4057,7 @@ handle_dht_p2p_trail_setup (void *cls, const struct GNUNET_PeerIdentity *peer,
     }
 
     if (trail_length > 0)
-      target_friend = GNUNET_CONTAINER_multipeermap_get (friend_peermap, peer);
+      target_friend = GNUNET_CONTAINER_multipeermap_get (friend_peermap, &trail_peer_list[trail_length-1]);
     else
       target_friend = GNUNET_CONTAINER_multipeermap_get (friend_peermap, &source);
     if (NULL == target_friend)
@@ -4084,16 +4082,6 @@ handle_dht_p2p_trail_setup (void *cls, const struct GNUNET_PeerIdentity *peer,
 
     if (0 != GNUNET_CRYPTO_cmp_peer_identity(&my_identity, &source))
     {
-      if(0 == GNUNET_CRYPTO_cmp_peer_identity(&my_identity, &trail_peer_list[trail_length -1 ]))
-      {
-        GDS_NEIGHBOURS_send_trail_setup (source,
-                                        final_dest_finger_val,
-                                        next_peer.best_known_destination,
-                                        target_friend, trail_length, trail_peer_list,
-                                        is_predecessor, trail_id,
-                                        next_peer.trail_id);
-      } 
-      else{
       /* Add yourself to list of peers. */
       struct GNUNET_PeerIdentity peer_list[trail_length + 1];
 
@@ -4107,7 +4095,6 @@ handle_dht_p2p_trail_setup (void *cls, const struct GNUNET_PeerIdentity *peer,
                                        target_friend, trail_length + 1, peer_list,
                                        is_predecessor, trail_id,
                                        next_peer.trail_id);
-      }
     }
     else
         GDS_NEIGHBOURS_send_trail_setup (source,
@@ -4764,8 +4751,11 @@ handle_dht_p2p_verify_successor(void *cls,
     next_hop = GDS_ROUTING_get_next_hop (trail_id, GDS_ROUTING_SRC_TO_DEST);    
     if (NULL == next_hop)
     {
-      GNUNET_break_op (0);
-      return GNUNET_SYSERR;
+//      GNUNET_break_op (0);
+//      return GNUNET_SYSERR;
+      //FIXME: Here it may happen that trail has not yet been added 
+      //in notify successor.
+      return GNUNET_OK;
     }
 
     target_friend = GNUNET_CONTAINER_multipeermap_get (friend_peermap, next_hop);
