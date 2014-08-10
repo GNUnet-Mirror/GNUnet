@@ -4006,19 +4006,17 @@ handle_dht_p2p_trail_setup (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
 
   /* Check if you are present in the trail seen so far? */
-  if(trail_length > 0)
+  for (i = 0; i < trail_length ; i++)
   {
-    for (i = 0; i < trail_length ; i++)
+    if(0 == GNUNET_CRYPTO_cmp_peer_identity(&trail_peer_list[i],&my_identity))
     {
-      if(0 == GNUNET_CRYPTO_cmp_peer_identity(&trail_peer_list[i],&my_identity))
-      {
         //Here if you already were present in the trail. then you
-        // shoudl trail length to i + 1
-        trail_length = i+1;
-        break;
-      }
+        // should trail length to i + 1
+      trail_length = i+1;
+      break;
     }
   }
+
   
   /* Is my routing table full?  */
   if (GNUNET_YES == GDS_ROUTING_threshold_reached())
@@ -4086,6 +4084,16 @@ handle_dht_p2p_trail_setup (void *cls, const struct GNUNET_PeerIdentity *peer,
 
     if (0 != GNUNET_CRYPTO_cmp_peer_identity(&my_identity, &source))
     {
+      if(0 == GNUNET_CRYPTO_cmp_peer_identity(&my_identity, &trail_peer_list[trail_length -1 ]))
+      {
+        GDS_NEIGHBOURS_send_trail_setup (source,
+                                        final_dest_finger_val,
+                                        next_peer.best_known_destination,
+                                        target_friend, trail_length, trail_peer_list,
+                                        is_predecessor, trail_id,
+                                        next_peer.trail_id);
+      } 
+      else{
       /* Add yourself to list of peers. */
       struct GNUNET_PeerIdentity peer_list[trail_length + 1];
 
@@ -4099,6 +4107,7 @@ handle_dht_p2p_trail_setup (void *cls, const struct GNUNET_PeerIdentity *peer,
                                        target_friend, trail_length + 1, peer_list,
                                        is_predecessor, trail_id,
                                        next_peer.trail_id);
+      }
     }
     else
         GDS_NEIGHBOURS_send_trail_setup (source,
@@ -4476,11 +4485,6 @@ check_for_duplicate_entries (const struct GNUNET_PeerIdentity *trail_1,
     joined_trail[i] = trail_2[j];
   }
   
-  /* THIS CODE IS ONLY FOR TESTNG. FIXME*/
-  for(i = 0; i < *joined_trail_len; i++)
-  {
-    GNUNET_assert(0 != GNUNET_CRYPTO_cmp_peer_identity(&my_identity, &joined_trail[i]));
-  }
   return joined_trail;
 }
 
