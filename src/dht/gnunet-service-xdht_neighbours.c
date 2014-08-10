@@ -1719,6 +1719,29 @@ select_closest_predecessor (const struct GNUNET_PeerIdentity *peer1,
 
 #if 0
 /**
+ * 
+ *
+ */
+void
+test_print_trail (struct GNUNET_PeerIdentity *trail,
+                  unsigned int trail_length)
+{
+  struct GNUNET_PeerIdentity print_peer;
+  int i;
+  
+  FPRINTF (stderr,_("\nSUPU %s, %s, %d,trail_length = %d"),
+  __FILE__, __func__,__LINE__,trail_length);
+  for (i =0 ; i< trail_length; i++)
+  {
+    print_peer = trail[i];
+    FPRINTF (stderr,_("\nSUPU %s, %s, %d,trail[%d]=%s"),
+            __FILE__, __func__,__LINE__,i,GNUNET_i2s(&print_peer));
+  }
+}
+#endif
+
+#if 0
+/**
  * This is a test function to print all the entries of friend table.
  */
 static void
@@ -4408,7 +4431,7 @@ check_for_duplicate_entries (const struct GNUNET_PeerIdentity *trail_1,
       if(0 != GNUNET_CRYPTO_cmp_peer_identity (&trail_1[i],&trail_2[j]))
         continue;
       
-      *joined_trail_len = i + (trail_2_len - j) + 1;
+      *joined_trail_len = i + (trail_2_len - j);
       joined_trail = GNUNET_malloc (*joined_trail_len * 
                                     sizeof(struct GNUNET_PeerIdentity));
       
@@ -4422,7 +4445,7 @@ check_for_duplicate_entries (const struct GNUNET_PeerIdentity *trail_1,
       /* Increment j as entry stored is same as entry stored at i*/
       j = j+1;
       
-      /* Copy all the elements from j+1 to trail_2_len-1 to joined trail.*/
+      /* Copy all the elements from j to trail_2_len-1 to joined trail.*/
       while((k < *joined_trail_len) && (j < trail_2_len));
       {
         joined_trail[k] = trail_2[j];
@@ -4438,18 +4461,25 @@ check_for_duplicate_entries (const struct GNUNET_PeerIdentity *trail_1,
   *joined_trail_len = trail_1_len + trail_2_len + 1;
   joined_trail = GNUNET_malloc (*joined_trail_len * 
                                 sizeof(struct GNUNET_PeerIdentity));
-  i = 0;
-  while( i < trail_1_len)
+  
+  
+  for(i = 0; i < trail_1_len;i++)
   {
     joined_trail[i] = trail_1[i];
-    i++;
   }
+  
   joined_trail[i] = my_identity;
   i++;
   
   for (j = 0; i < *joined_trail_len; i++,j++)
   {
     joined_trail[i] = trail_2[j];
+  }
+  
+  /* THIS CODE IS ONLY FOR TESTNG. FIXME*/
+  for(i = 0; i < *joined_trail_len; i++)
+  {
+    GNUNET_assert(0 != GNUNET_CRYPTO_cmp_peer_identity(&my_identity, &joined_trail[i]));
   }
   return joined_trail;
 }
@@ -4475,68 +4505,63 @@ get_trail_src_to_curr_pred (struct GNUNET_PeerIdentity source_peer,
   struct GNUNET_PeerIdentity *trail_src_to_curr_pred;
   unsigned int trail_me_to_curr_pred_length;
   struct FingerInfo *current_predecessor;
-  unsigned int i;
+  int i;
   unsigned int j;
 
   current_predecessor = &finger_table[PREDECESSOR_FINGER_ID];
+  
+  /* Check if trail_src_to_me contains current_predecessor. */
+  for (i = 0; i < trail_src_to_me_len; i++)
+  {
+    if(0 != GNUNET_CRYPTO_cmp_peer_identity(&trail_src_to_me[i],
+                                            &current_predecessor->finger_identity))
+        continue;
+      
+      
+    *trail_src_to_curr_pred_length = i;
+    
+    if(0 == i)
+      return NULL;
+    
+     trail_src_to_curr_pred = GNUNET_malloc (*trail_src_to_curr_pred_length *
+                                              sizeof(struct GNUNET_PeerIdentity));
+     for(j = 0; j < i;j++)
+       trail_src_to_curr_pred[j] = trail_src_to_me[j];
+     return trail_src_to_curr_pred;
+  }
+
+ 
   trail_me_to_curr_pred = get_shortest_trail (current_predecessor,
                                               &trail_me_to_curr_pred_length);
-
-  /* If there is only on element in the trail, and that element is source.*/
-  if ((trail_me_to_curr_pred_length == 1) && 
-     (0 == GNUNET_CRYPTO_cmp_peer_identity (&source_peer,
-                                            &trail_me_to_curr_pred[0])))
-  {
-    *trail_src_to_curr_pred_length = 0;
-    GNUNET_free_non_null(trail_me_to_curr_pred);
-    return NULL;
-  }
   
-  /* Check if trail_me_to_curr_pred contains source. */
-  if (trail_me_to_curr_pred_length > 1)
+  /* Check if trail contains the source_peer. */
+  for(i = trail_me_to_curr_pred_length - 1; i >= 0; i--)
   {
-    for(i = trail_me_to_curr_pred_length - 1; i > 0; i--)
-    {
-      if(0 != GNUNET_CRYPTO_cmp_peer_identity (&source_peer,
-                                               &trail_me_to_curr_pred[i]))
-        continue;
+    if(0 != GNUNET_CRYPTO_cmp_peer_identity (&source_peer,
+                                             &trail_me_to_curr_pred[i]))
+      continue; 
+    
+     /* Source is NOT part of trail. */
+     i = i+1;
 
-       /* Source is NOT part of trail. */
-       i = i+1;
-
-      /* Source is the last element in the trail to reach to my pred.
+     /* Source is the last element in the trail to reach to my pred.
          Source is direct friend of the pred. */
-      if (trail_me_to_curr_pred_length == i)
-      {
+     if (trail_me_to_curr_pred_length == i)
+     {
         *trail_src_to_curr_pred_length = 0;
         return NULL;
-      }
-      
-      *trail_src_to_curr_pred_length = trail_me_to_curr_pred_length - i;
-      trail_src_to_curr_pred = GNUNET_malloc (sizeof (struct GNUNET_PeerIdentity)*
+     }
+     
+     *trail_src_to_curr_pred_length = trail_me_to_curr_pred_length - i;
+     trail_src_to_curr_pred = GNUNET_malloc (sizeof (struct GNUNET_PeerIdentity)*
                                               *trail_src_to_curr_pred_length);
-      for(j = 0; j < *trail_src_to_curr_pred_length; i++,j++)
-      {
-        trail_src_to_curr_pred[j] = trail_me_to_curr_pred[i];
-      }
-      GNUNET_free_non_null(trail_me_to_curr_pred);
-      return trail_src_to_curr_pred;
-    }
-    /* Is first element source? Then exclude first element and copy rest of the
-     trail. */
-    if(0 == GNUNET_CRYPTO_cmp_peer_identity (&source_peer,
-                                             &trail_me_to_curr_pred[0]))
-    {
-      *trail_src_to_curr_pred_length = trail_me_to_curr_pred_length - 1;
-      trail_src_to_curr_pred = GNUNET_malloc(sizeof(struct GNUNET_PeerIdentity)*
-                                             *trail_src_to_curr_pred_length);
-      unsigned int j;
-      for(j=0; j < *trail_src_to_curr_pred_length;j++)
-      {
-        trail_src_to_curr_pred[j] = trail_me_to_curr_pred[j+1];
-      }
-      return trail_src_to_curr_pred;
-    }
+     
+     for(j = 0; j < *trail_src_to_curr_pred_length; i++,j++)
+     {
+       trail_src_to_curr_pred[j] = trail_me_to_curr_pred[i];
+     }
+     GNUNET_free_non_null(trail_me_to_curr_pred);
+     return trail_src_to_curr_pred;
   }
   
   unsigned int len;
@@ -4758,42 +4783,16 @@ handle_dht_p2p_verify_successor(void *cls,
    * it.  */
   compare_and_update_predecessor (source_peer, trail, trail_length);
   current_predecessor = finger_table[PREDECESSOR_FINGER_ID];
-  unsigned int flag = 0;
   
   /* Is source of this message NOT my predecessor. */
   if (0 != (GNUNET_CRYPTO_cmp_peer_identity (&current_predecessor.finger_identity,
                                              &source_peer)))
   {
-    /* Check if trail contains current_predecessor. */
-    unsigned int i;
-    for (i = 0; i < trail_length; i++)
-    {
-      if(0 != GNUNET_CRYPTO_cmp_peer_identity(&trail[i],
-                                              &current_predecessor.finger_identity))
-        continue;
-      
-      flag = 1;
-      trail_src_to_curr_pred_len = i;
-      trail_src_to_curr_pred = GNUNET_malloc (trail_src_to_curr_pred_len *
-                                              sizeof(struct GNUNET_PeerIdentity));
-      unsigned int k = 0;
-      
-      while(k < i)
-      {
-        trail_src_to_curr_pred[k] = trail[k];
-        k++;
-      }
-      break;
-    }
- 
-    if(0 == flag)
-    {
-      trail_src_to_curr_pred = 
+    trail_src_to_curr_pred = 
               get_trail_src_to_curr_pred (source_peer,
                                           trail,
                                           trail_length,
                                           &trail_src_to_curr_pred_len);
-    }
   }
   else
   {
@@ -4862,7 +4861,6 @@ check_trail_me_to_probable_succ (struct GNUNET_PeerIdentity probable_successor,
                                                      &trail_me_to_probable_successor[i]))
         continue;
 
-      j = 0;
       *trail_to_new_successor_length = (trail_me_to_probable_successor_len - i);
       trail_to_new_successor = GNUNET_malloc (sizeof(struct GNUNET_PeerIdentity)*
                                                 *trail_to_new_successor_length);
@@ -4879,15 +4877,6 @@ check_trail_me_to_probable_succ (struct GNUNET_PeerIdentity probable_successor,
 
   *trail_to_new_successor_length = trail_me_to_probable_successor_len;
   return (struct GNUNET_PeerIdentity*)trail_me_to_probable_successor;
-#if 0
-  trail_to_new_successor = GNUNET_malloc (sizeof (struct GNUNET_PeerIdentity)*
-                                          *trail_to_new_successor_length);
-
-  for(i = 0; i < *trail_to_new_successor_length; i++)
-    trail_to_new_successor[i] = trail_me_to_probable_successor[i];
-
-  return trail_to_new_successor;
-#endif
 }
 
 
@@ -4919,27 +4908,6 @@ compare_and_update_successor (struct GNUNET_PeerIdentity curr_succ,
 
   current_successor = &finger_table[0];
   successor_value = compute_finger_identity_value(0);
-
-  /* Have we found some other successor, while waiting for verify successor result
-   *
-   * FIXME closest_peer is being overwritten just after the if
-   */
-#if 0
-  if(0 != GNUNET_CRYPTO_cmp_peer_identity(&curr_succ, &current_successor->finger_identity))
-  {
-    /* We could have added this new successor, only if it was closer the old one. */
-    closest_peer = select_closest_peer (&curr_succ,
-                                        &current_successor->finger_identity,
-                                        successor_value, is_predecessor);
-
-    /* FIXME: it may fail in case we have done more number of iterations of
-     find _finger_trail_task. */
-    /*GNUNET_assert (0 ==
-                   GNUNET_CRYPTO_cmp_peer_identity (closest_peer,
-                                                    &current_successor->finger_identity));*/
-
-  }
-#endif
 
   closest_peer = select_closest_peer (&probable_successor,
                                       &current_successor->finger_identity,
@@ -4978,7 +4946,6 @@ compare_and_update_successor (struct GNUNET_PeerIdentity curr_succ,
   }
   
   trail_me_to_probable_succ_len = 0;
-  /* TODO: Check if the path to reach to probable successor contains a friend. */
   trail_me_to_probable_succ =
           check_trail_me_to_probable_succ (probable_successor,
                                            trail, trail_length,
