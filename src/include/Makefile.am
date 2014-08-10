@@ -75,6 +75,7 @@ gnunetinclude_HEADERS = \
   gnunet_psycstore_plugin.h \
   gnunet_psycstore_service.h \
   gnunet_psyc_service.h \
+  gnunet_psyc_util_lib.h \
   gnunet_program_lib.h \
   gnunet_protocols.h \
   gnunet_resolver_service.h \
