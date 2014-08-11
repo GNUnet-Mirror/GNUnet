@@ -79,7 +79,10 @@ print_sensor_info (void *cls, const struct SensorInfoShort *sensor,
     return;
   }
   if (NULL == sensor)           /* no more sensors from service */
+  {
+    GNUNET_SCHEDULER_shutdown ();
     return;
+  }
   printf ("Name: %s\nVersion: %d.%d\n", sensor->name, sensor->version_major,
           sensor->version_minor);
   if (NULL != sensor->description)
@@ -107,17 +110,14 @@ run (void *cls, char *const *args, const char *cfgfile,
   GNUNET_assert (NULL != sensor_handle);
   if (GNUNET_YES == get_all)
   {
-    GNUNET_SENSOR_iterate_sensors (sensor_handle, GNUNET_TIME_UNIT_FOREVER_REL,
-                                   NULL, 0, &print_sensor_info, NULL);
+    GNUNET_SENSOR_iterate (sensor_handle, GNUNET_TIME_UNIT_FOREVER_REL, NULL,
+                           &print_sensor_info, NULL);
   }
   else if (NULL != get_sensor)
   {
-    GNUNET_SENSOR_iterate_sensors (sensor_handle, GNUNET_TIME_UNIT_FOREVER_REL,
-                                   get_sensor, strlen (get_sensor),
-                                   &print_sensor_info, NULL);
+    GNUNET_SENSOR_iterate (sensor_handle, GNUNET_TIME_UNIT_FOREVER_REL,
+                           get_sensor, &print_sensor_info, NULL);
   }
-
-  GNUNET_SCHEDULER_shutdown ();
   ret = 0;
 }
 

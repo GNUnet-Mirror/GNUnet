@@ -2452,6 +2452,12 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_SENSOR_ANOMALY_REPORT 809
 
+/**
+ * Message sent from API to service to force a new sensor anomaly status
+ * (For testing purposes only)
+ */
+#define GNUNET_MESSAGE_TYPE_SENSOR_ANOMALY_FORCE 810
+
 
 /*******************************************************************************
  * PEERSTORE message types

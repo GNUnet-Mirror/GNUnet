@@ -9,7 +9,7 @@ UNIX_MATCH_GID = YES
 START_MONITORING = YES
 START_REPORTING = YES
 START_ANALYSIS = YES
-STARTING_UPDATE = YES
+START_UPDATE = YES
 
 # Path to directory containing sensor definitions.
 # If not set, will load from default location.

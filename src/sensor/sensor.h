@@ -40,9 +40,9 @@ GNUNET_NETWORK_STRUCT_BEGIN
   struct GNUNET_MessageHeader header;
 
   /**
-   * Length of sensor name (name follows the struct)
+   * Length of sensor name. Allocated at position 0 after this struct.
    */
-  size_t name_len;
+  uint16_t name_len;
 
   /**
    * First part of version number
@@ -55,9 +55,32 @@ GNUNET_NETWORK_STRUCT_BEGIN
   uint16_t version_minor;
 
   /**
-   * Length of sensor description (description itself follows)
+   * Length of sensor description. Allocated at position 1 after this struct.
    */
-  size_t description_len;
+  uint16_t description_len;
+};
+
+/**
+ * A message sent to the sensor service to force an anomaly status on a sensor.
+ */
+struct ForceAnomalyMessage
+{
+
+  /**
+   * Message header
+   */
+  struct GNUNET_MessageHeader header;
+
+  /**
+   * Hash of the sensor name
+   */
+  struct GNUNET_HashCode sensor_name_hash;
+
+  /**
+   * New status
+   */
+  uint16_t anomalous;
+
 };
 
 GNUNET_NETWORK_STRUCT_END

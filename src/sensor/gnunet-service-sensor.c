@@ -286,7 +286,7 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
 
   cfg = c;
   if (GNUNET_OK !=
-      GNUNET_CONFIGURATION_get_value_filename (cfg, "SENSOR", "SENSOR_DIR",
+      GNUNET_CONFIGURATION_get_value_filename (cfg, "sensor", "SENSOR_DIR",
                                                &sensor_dir))
   {
     sensor_dir = GNUNET_SENSOR_get_default_sensor_dir ();
@@ -296,22 +296,22 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
   start_reporting = GNUNET_YES;
   start_update = GNUNET_YES;
   if (GNUNET_NO ==
-      GNUNET_CONFIGURATION_get_value_yesno (cfg, "SENSOR", "START_MONITORING"))
+      GNUNET_CONFIGURATION_get_value_yesno (cfg, "sensor", "START_MONITORING"))
   {
     start_monitoring = GNUNET_NO;
   }
   if (GNUNET_NO ==
-      GNUNET_CONFIGURATION_get_value_yesno (cfg, "SENSOR", "START_REPORTING"))
+      GNUNET_CONFIGURATION_get_value_yesno (cfg, "sensor", "START_REPORTING"))
   {
     start_reporting = GNUNET_NO;
   }
   if (GNUNET_NO ==
-      GNUNET_CONFIGURATION_get_value_yesno (cfg, "SENSOR", "START_ANALYSIS"))
+      GNUNET_CONFIGURATION_get_value_yesno (cfg, "sensor", "START_ANALYSIS"))
   {
     start_analysis = GNUNET_NO;
   }
   if (GNUNET_NO ==
-      GNUNET_CONFIGURATION_get_value_yesno (cfg, "SENSOR", "START_UPDATE"))
+      GNUNET_CONFIGURATION_get_value_yesno (cfg, "sensor", "START_UPDATE"))
   {
     start_update = GNUNET_NO;
   }
