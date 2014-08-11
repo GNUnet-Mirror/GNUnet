@@ -168,12 +168,12 @@ static int updating;
 /**
  * GNUnet scheduler task that starts the update check process.
  */
-GNUNET_SCHEDULER_TaskIdentifier update_task;
+static GNUNET_SCHEDULER_TaskIdentifier update_task;
 
 /**
  * Pointer to service reset function called when we have new sensor updates.
  */
-void (*reset_cb) ();
+static void (*reset_cb) ();
 
 
 /**
@@ -646,7 +646,7 @@ update_sensor (char *sensorname, void *sensorfile, uint16_t sensorfile_size,
  * @param cls unused
  * @param tc unused
  */
-void
+static void
 reset (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   reset_cb ();

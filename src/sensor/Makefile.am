@@ -36,6 +36,7 @@ gnunet_sensor_LDADD = \
 
 gnunet_service_sensor_SOURCES = \
  gnunet-service-sensor.c \
+ gnunet-service-sensor_monitoring.c \
  gnunet-service-sensor_analysis.c \
  gnunet-service-sensor_reporting.c \
  gnunet-service-sensor_update.c

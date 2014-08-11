@@ -86,6 +86,11 @@ struct SensorModel
  */
 static const struct GNUNET_CONFIGURATION_Handle *cfg;
 
+/**
+ * Hashmap of loaded sensors
+ */
+struct GNUNET_CONTAINER_MultiHashMap *sensors;
+
 /*
  * Model library name
  */
@@ -271,12 +276,13 @@ init_sensor_model (void *cls, const struct GNUNET_HashCode *key, void *value)
  */
 int
 SENSOR_analysis_start (const struct GNUNET_CONFIGURATION_Handle *c,
-                       struct GNUNET_CONTAINER_MultiHashMap *sensors)
+                       struct GNUNET_CONTAINER_MultiHashMap *s)
 {
   char *model_name;
 
-  GNUNET_assert (NULL != sensors);
+  GNUNET_assert (NULL != s);
   cfg = c;
+  sensors = s;
   if (GNUNET_OK !=
       GNUNET_CONFIGURATION_get_value_string (cfg, "sensor-analysis", "MODEL",
                                              &model_name))
