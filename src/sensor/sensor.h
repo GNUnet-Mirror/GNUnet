@@ -107,7 +107,7 @@ SENSOR_reporting_anomaly_update (struct GNUNET_SENSOR_SensorInfo *sensor,
  */
 int
 SENSOR_reporting_start (const struct GNUNET_CONFIGURATION_Handle *c,
-                                struct GNUNET_CONTAINER_MultiHashMap *s);
+                        struct GNUNET_CONTAINER_MultiHashMap *s);
 
 
 /**
@@ -146,4 +146,4 @@ SENSOR_monitoring_stop ();
  */
 int
 SENSOR_monitoring_start (const struct GNUNET_CONFIGURATION_Handle *c,
-                       struct GNUNET_CONTAINER_MultiHashMap *s);
+                         struct GNUNET_CONTAINER_MultiHashMap *s);

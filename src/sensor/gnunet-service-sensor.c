@@ -42,6 +42,26 @@ static char *sensor_dir;
  */
 static struct GNUNET_CONTAINER_MultiHashMap *sensors;
 
+/**
+ * Start the monitoring module ?
+ */
+static int start_monitoring;
+
+/**
+ * Start the analysis module ?
+ */
+static int start_analysis;
+
+/**
+ * Start the reporting module ?
+ */
+static int start_reporting;
+
+/**
+ * Start the update module ?
+ */
+static int start_update;
+
 
 /**
  * Resets the service by stopping components, reloading sensors and starting
@@ -57,10 +77,14 @@ reset ();
 static void
 stop ()
 {
-  SENSOR_update_stop ();
-  SENSOR_analysis_stop ();
-  SENSOR_reporting_stop ();
-  SENSOR_monitoring_stop ();
+  if (GNUNET_YES == start_update)
+    SENSOR_update_stop ();
+  if (GNUNET_YES == start_analysis)
+    SENSOR_analysis_stop ();
+  if (GNUNET_YES == start_reporting)
+    SENSOR_reporting_stop ();
+  if (GNUNET_YES == start_monitoring)
+    SENSOR_monitoring_stop ();
   GNUNET_SENSOR_destroy_sensors (sensors);
 }
 
@@ -230,10 +254,14 @@ static void
 start ()
 {
   sensors = GNUNET_SENSOR_load_all_sensors (sensor_dir);
-  SENSOR_monitoring_start (cfg, sensors);
-  SENSOR_reporting_start (cfg, sensors);
-  SENSOR_analysis_start (cfg, sensors);
-  SENSOR_update_start (cfg, sensors, &reset);
+  if (GNUNET_YES == start_monitoring)
+    SENSOR_monitoring_start (cfg, sensors);
+  if (GNUNET_YES == start_reporting)
+    SENSOR_reporting_start (cfg, sensors);
+  if (GNUNET_YES == start_analysis)
+    SENSOR_analysis_start (cfg, sensors);
+  if (GNUNET_YES == start_update)
+    SENSOR_update_start (cfg, sensors, &reset);
 }
 
 
@@ -262,6 +290,30 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
                                                &sensor_dir))
   {
     sensor_dir = GNUNET_SENSOR_get_default_sensor_dir ();
+  }
+  start_monitoring = GNUNET_YES;
+  start_analysis = GNUNET_YES;
+  start_reporting = GNUNET_YES;
+  start_update = GNUNET_YES;
+  if (GNUNET_NO ==
+      GNUNET_CONFIGURATION_get_value_yesno (cfg, "SENSOR", "START_MONITORING"))
+  {
+    start_monitoring = GNUNET_NO;
+  }
+  if (GNUNET_NO ==
+      GNUNET_CONFIGURATION_get_value_yesno (cfg, "SENSOR", "START_REPORTING"))
+  {
+    start_reporting = GNUNET_NO;
+  }
+  if (GNUNET_NO ==
+      GNUNET_CONFIGURATION_get_value_yesno (cfg, "SENSOR", "START_ANALYSIS"))
+  {
+    start_analysis = GNUNET_NO;
+  }
+  if (GNUNET_NO ==
+      GNUNET_CONFIGURATION_get_value_yesno (cfg, "SENSOR", "START_UPDATE"))
+  {
+    start_update = GNUNET_NO;
   }
   GNUNET_SERVER_add_handlers (server, handlers);
   GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_UNIT_FOREVER_REL, &shutdown_task,

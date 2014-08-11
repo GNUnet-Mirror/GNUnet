@@ -98,7 +98,7 @@ static void
 set_sensor_enabled (struct GNUNET_SENSOR_SensorInfo *sensor, int state)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Sensor `%s': Setting enabled to %d.\n",
-              sensor->name, state);
+       sensor->name, state);
   sensor->enabled = GNUNET_NO;
   GNUNET_assert (NULL != sensor->cfg);
   GNUNET_CONFIGURATION_set_value_string (sensor->cfg, sensor->name, "ENABLED",
@@ -119,8 +119,8 @@ should_run_sensor (struct GNUNET_SENSOR_SensorInfo *sensorinfo)
 
   if (GNUNET_NO == sensorinfo->enabled)
   {
-    LOG (GNUNET_ERROR_TYPE_INFO,
-                "Sensor `%s' is disabled, will not run\n", sensorinfo->name);
+    LOG (GNUNET_ERROR_TYPE_INFO, "Sensor `%s' is disabled, will not run\n",
+         sensorinfo->name);
     return GNUNET_NO;
   }
   now = GNUNET_TIME_absolute_get ();
@@ -128,15 +128,15 @@ should_run_sensor (struct GNUNET_SENSOR_SensorInfo *sensorinfo)
       now.abs_value_us < sensorinfo->start_time->abs_value_us)
   {
     LOG (GNUNET_ERROR_TYPE_INFO,
-                "Start time for sensor `%s' not reached yet, will not run\n",
-                sensorinfo->name);
+         "Start time for sensor `%s' not reached yet, will not run\n",
+         sensorinfo->name);
     return GNUNET_NO;
   }
   if (NULL != sensorinfo->end_time &&
       now.abs_value_us >= sensorinfo->end_time->abs_value_us)
   {
     LOG (GNUNET_ERROR_TYPE_INFO, "Sensor `%s' expired, disabling.\n",
-                sensorinfo->name);
+         sensorinfo->name);
     set_sensor_enabled (sensorinfo, GNUNET_NO);
     return GNUNET_NO;
   }
@@ -163,8 +163,8 @@ sensor_statistics_iterator (void *cls, const char *ss, const char *name,
   struct GNUNET_TIME_Absolute expiry;
 
   LOG (GNUNET_ERROR_TYPE_INFO,
-              "Received a value for sensor `%s': %" PRIu64 "\n",
-              sensorinfo->name, value);
+       "Received a value for sensor `%s': %" PRIu64 "\n", sensorinfo->name,
+       value);
   expiry = GNUNET_TIME_relative_to_absolute (sensorinfo->lifetime);
   GNUNET_PEERSTORE_store (peerstore, "sensor", &peerid, sensorinfo->name,
                           &dvalue, sizeof (dvalue), expiry,
@@ -225,8 +225,7 @@ parse_sensor_value (const char *value, struct GNUNET_SENSOR_SensorInfo *sensor,
     return strlen (value) + 1;
   }
   LOG (GNUNET_ERROR_TYPE_ERROR,
-              _
-              ("Unknown value type expected by sensor, this should not happen.\n"));
+       _("Unknown value type expected by sensor, this should not happen.\n"));
   return 0;
 }
 
@@ -256,13 +255,13 @@ sensor_process_callback (void *cls, const char *line)
   if (GNUNET_YES == sensorinfo->ext_cmd_value_received)
     return;                     /* We only want one *valid* value */
   LOG (GNUNET_ERROR_TYPE_INFO, "Received a value for sensor `%s': %s\n",
-              sensorinfo->name, line);
+       sensorinfo->name, line);
   valsize = parse_sensor_value (line, sensorinfo, &value);
   if (valsize == 0)             /* invalid value, FIXME: should we disable the sensor now? */
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
-                _("Received an invalid value for sensor `%s': %s\n"),
-                sensorinfo->name, line);
+         _("Received an invalid value for sensor `%s': %s\n"), sensorinfo->name,
+         line);
   }
   else
   {
@@ -316,15 +315,15 @@ sensor_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   if (GNUNET_YES == sensorinfo->running)        //FIXME: should we try to kill?
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
-                "Sensor `%s' running for too long, will try again next interval\n",
-                sensorinfo->name);
+         "Sensor `%s' running for too long, will try again next interval\n",
+         sensorinfo->name);
     return;
   }
   if (GNUNET_NO == should_run_sensor (sensorinfo))
     return;
   sensorinfo->running = GNUNET_YES;
-  LOG (GNUNET_ERROR_TYPE_DEBUG,
-              "Starting the execution of sensor `%s'\n", sensorinfo->name);
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Starting the execution of sensor `%s'\n",
+       sensorinfo->name);
   if (0 == strcmp ("gnunet-statistics", sensorinfo->source))
   {
     sensorinfo->gnunet_stat_get_handle = GNUNET_STATISTICS_get (statistics, sensorinfo->gnunet_stat_service, sensorinfo->gnunet_stat_name, sensorinfo->interval,        //try to get values only for the interval of the sensor
@@ -337,9 +336,9 @@ sensor_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     if (GNUNET_YES == is_path (sensorinfo->ext_process))
     {
       LOG (GNUNET_ERROR_TYPE_ERROR,
-                  _
-                  ("Sensor `%s': External process should not be a path, disabling sensor.\n"),
-                  sensorinfo->name);
+           _
+           ("Sensor `%s': External process should not be a path, disabling sensor.\n"),
+           sensorinfo->name);
       set_sensor_enabled (sensorinfo, GNUNET_NO);
       return;
     }
@@ -361,9 +360,9 @@ sensor_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     if (GNUNET_SYSERR == check_result)
     {
       LOG (GNUNET_ERROR_TYPE_ERROR,
-                  _
-                  ("Sensor `%s' process `%s' problem: binary doesn't exist or not executable\n"),
-                  sensorinfo->name, sensorinfo->ext_process);
+           _
+           ("Sensor `%s' process `%s' problem: binary doesn't exist or not executable\n"),
+           sensorinfo->name, sensorinfo->ext_process);
       set_sensor_enabled (sensorinfo, GNUNET_NO);
       sensorinfo->running = GNUNET_NO;
       GNUNET_free (process_path);
@@ -376,7 +375,7 @@ sensor_run (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                sensorinfo->ext_process, sensorinfo->ext_args,
                                NULL);
     LOG (GNUNET_ERROR_TYPE_DEBUG, "Process started for sensor `%s'\n",
-                sensorinfo->name);
+         sensorinfo->name);
     GNUNET_free (process_path);
   }
   else
@@ -405,14 +404,13 @@ schedule_sensor (void *cls, const struct GNUNET_HashCode *key, void *value)
   if (GNUNET_NO == should_run_sensor (sensorinfo))
     return GNUNET_YES;
   LOG (GNUNET_ERROR_TYPE_DEBUG,
-              "Scheduling sensor `%s' to run after %" PRIu64 " microseconds\n",
-              sensorinfo->name, sensorinfo->interval.rel_value_us);
+       "Scheduling sensor `%s' to run after %" PRIu64 " microseconds\n",
+       sensorinfo->name, sensorinfo->interval.rel_value_us);
   if (GNUNET_SCHEDULER_NO_TASK != sensorinfo->execution_task)
   {
     LOG (GNUNET_ERROR_TYPE_ERROR,
-                _
-                ("Sensor `%s' execution task already set, this should not happen\n"),
-                sensorinfo->name);
+         _("Sensor `%s' execution task already set, this should not happen\n"),
+         sensorinfo->name);
     return GNUNET_NO;
   }
   sensorinfo->execution_task =
@@ -441,7 +439,7 @@ schedule_all_sensors ()
  */
 int
 SENSOR_monitoring_start (const struct GNUNET_CONFIGURATION_Handle *c,
-                       struct GNUNET_CONTAINER_MultiHashMap *s)
+                         struct GNUNET_CONTAINER_MultiHashMap *s)
 {
   LOG (GNUNET_ERROR_TYPE_DEBUG, "Starting sensor reporting module.\n");
   GNUNET_assert (NULL != s);
@@ -449,8 +447,8 @@ SENSOR_monitoring_start (const struct GNUNET_CONFIGURATION_Handle *c,
   cfg = c;
   statistics = GNUNET_STATISTICS_create ("sensor", cfg);
   if (GNUNET_OK !=
-        GNUNET_CONFIGURATION_get_value_filename (cfg, "SENSOR", "SENSOR_DIR",
-                                                 &sensor_dir))
+      GNUNET_CONFIGURATION_get_value_filename (cfg, "SENSOR", "SENSOR_DIR",
+                                               &sensor_dir))
   {
     sensor_dir = GNUNET_SENSOR_get_default_sensor_dir ();
   }

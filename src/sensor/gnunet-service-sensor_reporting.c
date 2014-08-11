@@ -524,7 +524,8 @@ create_value_message (struct ValueInfo *vi)
   struct GNUNET_SENSOR_ValueMessage *vm;
   struct GNUNET_MQ_Envelope *ev;
 
-  ev = GNUNET_MQ_msg_extra (vm, vi->last_value_size, GNUNET_MESSAGE_TYPE_SENSOR_READING);
+  ev = GNUNET_MQ_msg_extra (vm, vi->last_value_size,
+                            GNUNET_MESSAGE_TYPE_SENSOR_READING);
   GNUNET_CRYPTO_hash (vi->sensor->name, strlen (vi->sensor->name) + 1,
                       &vm->sensorname_hash);
   vm->sensorversion_major = htons (vi->sensor->version_major);
@@ -607,7 +608,7 @@ handle_anomaly_report (void *cls, const struct GNUNET_PeerIdentity *other,
   }
   /* Send anomaly update to collection point */
   if (NULL != ai->sensor->collection_point &&
-        GNUNET_YES == ai->sensor->report_anomalies)
+      GNUNET_YES == ai->sensor->report_anomalies)
   {
     cadetp = get_cadet_peer (*ai->sensor->collection_point);
     send_anomaly_report (cadetp->mq, ai);
@@ -636,8 +637,7 @@ value_watch_cb (void *cls, struct GNUNET_PEERSTORE_Record *record, char *emsg)
 
   if (NULL != emsg)
   {
-    LOG (GNUNET_ERROR_TYPE_ERROR,
-        _("PEERSTORE error: %s.\n"), emsg);
+    LOG (GNUNET_ERROR_TYPE_ERROR, _("PEERSTORE error: %s.\n"), emsg);
     return GNUNET_YES;
   }
   if (NULL != vi->last_value)
@@ -647,7 +647,7 @@ value_watch_cb (void *cls, struct GNUNET_PEERSTORE_Record *record, char *emsg)
   }
   vi->last_value = GNUNET_memdup (record->value, record->value_size);
   vi->last_value_size = record->value_size;
-  vi->last_value_timestamp = GNUNET_TIME_absolute_get();
+  vi->last_value_timestamp = GNUNET_TIME_absolute_get ();
   vi->last_value_reported = GNUNET_NO;
   return GNUNET_YES;
 }
@@ -772,7 +772,7 @@ cadet_channel_destroyed (void *cls, const struct GNUNET_CADET_Channel *channel,
   struct CadetPeer *cadetp = channel_ctx;
 
   if (GNUNET_YES == cadetp->destroying)
-      return;
+    return;
   GNUNET_CONTAINER_DLL_remove (cadetp_head, cadetp_tail, cadetp);
   cadetp->channel = NULL;
   destroy_cadet_peer (cadetp);
@@ -842,12 +842,10 @@ report_value (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   vi->reporting_task =
       GNUNET_SCHEDULER_add_delayed (sensor->value_reporting_interval,
                                     &report_value, vi);
-  if (0 == vi->last_value_size ||
-      GNUNET_YES == vi->last_value_reported)
+  if (0 == vi->last_value_size || GNUNET_YES == vi->last_value_reported)
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
-         "Did not receive a fresh value from `%s' to report.\n",
-         sensor->name);
+         "Did not receive a fresh value from `%s' to report.\n", sensor->name);
     return;
   }
   LOG (GNUNET_ERROR_TYPE_DEBUG,
@@ -883,6 +881,7 @@ init_sensor_reporting (void *cls, const struct GNUNET_HashCode *key,
 
   /* Create sensor anomaly info context */
   ai = GNUNET_new (struct AnomalyInfo);
+
   ai->sensor = sensor;
   ai->anomalous = GNUNET_NO;
   ai->anomalous_neighbors =
@@ -902,11 +901,11 @@ init_sensor_reporting (void *cls, const struct GNUNET_HashCode *key,
   vi->last_value_size = 0;
   vi->last_value_reported = GNUNET_NO;
   vi->wc =
-    GNUNET_PEERSTORE_watch (peerstore, "sensor", &mypeerid, sensor->name,
-                            &value_watch_cb, vi);
+      GNUNET_PEERSTORE_watch (peerstore, "sensor", &mypeerid, sensor->name,
+                              &value_watch_cb, vi);
   vi->reporting_task =
-    GNUNET_SCHEDULER_add_delayed (sensor->value_reporting_interval,
-                                  &report_value, vi);
+      GNUNET_SCHEDULER_add_delayed (sensor->value_reporting_interval,
+                                    &report_value, vi);
   GNUNET_CONTAINER_DLL_insert (vi_head, vi_tail, vi);
   return GNUNET_YES;
 }
@@ -921,7 +920,7 @@ init_sensor_reporting (void *cls, const struct GNUNET_HashCode *key,
  */
 int
 SENSOR_reporting_start (const struct GNUNET_CONFIGURATION_Handle *c,
-                                struct GNUNET_CONTAINER_MultiHashMap *s)
+                        struct GNUNET_CONTAINER_MultiHashMap *s)
 {
   static struct GNUNET_CORE_MessageHandler core_handlers[] = {
     {&handle_anomaly_report, GNUNET_MESSAGE_TYPE_SENSOR_ANOMALY_REPORT,

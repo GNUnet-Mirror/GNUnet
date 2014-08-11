@@ -5,6 +5,12 @@ UNIXPATH = $GNUNET_RUNTIME_DIR/gnunet-service-sensor.sock
 UNIX_MATCH_UID = NO
 UNIX_MATCH_GID = YES
 
+# Which modules to run (default: YES)
+START_MONITORING = YES
+START_REPORTING = YES
+START_ANALYSIS = YES
+STARTING_UPDATE = YES
+
 # Path to directory containing sensor definitions.
 # If not set, will load from default location.
 #SENSOR_DIR = 
