@@ -325,7 +325,7 @@ struct GNUNET_SENSOR_AnomalyReportMessage
   /**
    * New anomaly status
    */
-  uint8_t anomalous;
+  uint16_t anomalous;
 
   /**
    * Percentage of neighbors reported the same anomaly
