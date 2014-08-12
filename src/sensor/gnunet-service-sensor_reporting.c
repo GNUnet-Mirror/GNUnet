@@ -811,6 +811,7 @@ SENSOR_reporting_anomaly_update (struct GNUNET_SENSOR_SensorInfo *sensor,
     send_anomaly_report (corep->mq, ai);
     corep = corep->next;
   }
+  /* Report change to collection point if need */
   if (NULL != ai->sensor->collection_point &&
       GNUNET_YES == ai->sensor->report_anomalies)
   {

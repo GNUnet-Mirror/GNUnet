@@ -145,6 +145,23 @@ GNUNET_SENSOR_iterate (struct GNUNET_SENSOR_Handle *h,
                                GNUNET_SENSOR_SensorIterateCB callback,
                                void *callback_cls);
 
+
+/**
+ * Force an anomaly status change on a given sensor. If the sensor reporting
+ * module is running, this will trigger the usual reporting logic, therefore,
+ * please only use this in a test environment.
+ *
+ * Also, if the sensor analysis module is running, it might conflict and cause
+ * undefined behaviour if it detects a real anomaly.
+ *
+ * @param h Service handle
+ * @param sensor_name Sensor name to set the anomaly status
+ * @param anomalous The desired status: #GNUNET_YES / #GNUNET_NO
+ */
+void
+GNUNET_SENSOR_force_anomaly (struct GNUNET_SENSOR_Handle *h, char *sensor_name,
+                             int anomalous);
+
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
 #endif

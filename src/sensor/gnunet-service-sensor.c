@@ -109,6 +109,34 @@ shutdown_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
+ * Handle a force anomaly request from client.
+ *
+ * @param cls closure
+ * @param client identification of the client
+ * @param message the actual message
+ */
+static void
+handle_anomaly_force (void *cls, struct GNUNET_SERVER_Client *client,
+                      const struct GNUNET_MessageHeader *message)
+{
+  struct ForceAnomalyMessage *anomaly_msg;
+  struct GNUNET_SENSOR_SensorInfo *sensor;
+
+  anomaly_msg = (struct ForceAnomalyMessage *) message;
+  sensor =
+      GNUNET_CONTAINER_multihashmap_get (sensors,
+                                         &anomaly_msg->sensor_name_hash);
+  if (NULL == sensor)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
+                "Force anomaly message received for a sensor we don't have.\n");
+    return;
+  }
+  SENSOR_reporting_anomaly_update (sensor, ntohs (anomaly_msg->anomalous));
+}
+
+
+/**
  * Creates a structure with basic sensor info to be sent to a client.
  *
  * @param sensor sensor information
@@ -281,6 +309,9 @@ run (void *cls, struct GNUNET_SERVER_Handle *server,
      0},
     {&handle_get_all_sensors, NULL, GNUNET_MESSAGE_TYPE_SENSOR_GETALL,
      sizeof (struct GNUNET_MessageHeader)},
+    {
+     &handle_anomaly_force, NULL, GNUNET_MESSAGE_TYPE_SENSOR_ANOMALY_FORCE,
+     sizeof (struct ForceAnomalyMessage)},
     {NULL, NULL, 0, 0}
   };
 

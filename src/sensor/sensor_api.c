@@ -426,13 +426,16 @@ GNUNET_SENSOR_iterate (struct GNUNET_SENSOR_Handle *h,
  * @param anomalous The desired status: #GNUNET_YES / #GNUNET_NO
  */
 void
-GNUNET_SENSOR_force_anomaly (struct GNUNET_SENSOR_Handle *h,
-    char *sensor_name, int anomalous)
+GNUNET_SENSOR_force_anomaly (struct GNUNET_SENSOR_Handle *h, char *sensor_name,
+                             int anomalous)
 {
   struct ForceAnomalyMessage *msg;
   struct GNUNET_MQ_Envelope *ev;
 
-  ev = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_SENSOR_ANOMALY_REPORT);
+  ev = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_SENSOR_ANOMALY_FORCE);
+  GNUNET_CRYPTO_hash (sensor_name, strlen (sensor_name) + 1,
+                      &msg->sensor_name_hash);
+  msg->anomalous = htons (anomalous);
   GNUNET_MQ_send (h->mq, ev);
 }
 
