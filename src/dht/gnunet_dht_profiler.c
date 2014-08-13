@@ -85,6 +85,30 @@ struct Context
 };
 
 
+#if ENABLE_MALICIOUS
+/**
+ * Context for a peer which should act maliciously.
+ */
+struct MaliciousContext
+{
+  /**
+   * The linked peer context
+   */
+  struct Context *ctx;
+
+  /**
+   * Handler to the DHT service
+   */
+  struct GNUNET_DHT_Handle *dht;
+};
+
+/**
+ * List of all the malicious peers contexts.
+ */
+struct Context **malicious_peer_contexts = NULL;
+
+#endif
+
 /**
  * Context for a peer which actively does DHT PUT/GET
  */

@@ -1585,6 +1585,7 @@ GDS_NEIGHBOURS_send_trail_compression (struct GNUNET_PeerIdentity source_peer,
  * trail (can happen during trail setup), then return my lowest index.
  * @param trail List of peers
  * @return my_index if found
+ *         trail_length + 1 if an entry is present twice, It is an error.
  *         -1 if no entry found.
  */
 static int
@@ -1592,14 +1593,28 @@ search_my_index (const struct GNUNET_PeerIdentity *trail,
                  int trail_length)
 {
   int i;
-
+  int index_seen = trail_length + 1;
+  int flag = 0;
+  
   for (i = 0; i < trail_length; i++)
   {
     if (0 == GNUNET_CRYPTO_cmp_peer_identity (&my_identity, &trail[i]))
-      return i;
+    {
+      flag = 1;
+      if(index_seen == (trail_length + 1))
+        index_seen = i;
+      else
+      {
+        DEBUG("Entry is present twice in trail. Its not allowed\n");
+      }
+      break;
+    }
   }
 
-  return -1;
+  if (1 == flag)
+    return index_seen;
+  else
+    return -1;
 }
 
 
@@ -2422,6 +2437,12 @@ GDS_NEIGHBOURS_send_get_result (const struct GNUNET_HashCode *key,
     current_path_index = search_my_index(get_path, get_path_length);
     if (-1 == current_path_index)
     {
+      GNUNET_break (0);
+      return;
+    }
+    if ((get_path_length + 1) == current_path_index)
+    {
+      DEBUG ("Peer found twice in get path. Not allowed \n");
       GNUNET_break (0);
       return;
     }
@@ -3909,6 +3930,13 @@ handle_dht_p2p_get_result (void *cls, const struct GNUNET_PeerIdentity *peer,
     current_path_index = search_my_index (get_path, getlen);
     if (-1 == current_path_index )
     {
+      DEBUG ("No entry found in get path.\n");
+      GNUNET_break (0);
+      return GNUNET_SYSERR;
+    }
+    if((getlen + 1) == current_path_index)
+    {
+      DEBUG("Present twice in get path. Not allowed. \n");
       GNUNET_break (0);
       return GNUNET_SYSERR;
     }
@@ -3985,6 +4013,7 @@ get_local_best_known_next_hop (uint64_t final_dest_finger_val,
   return peer;
 }
 
+
 /*
  * Core handle for PeerTrailSetupMessage.
  * @param cls closure
@@ -4050,18 +4079,7 @@ handle_dht_p2p_trail_setup (void *cls, const struct GNUNET_PeerIdentity *peer,
   
    /* If I was the source and got the message back, then set trail length to 0.*/
   if (0 == GNUNET_CRYPTO_cmp_peer_identity(&my_identity, &source))
-  {
-    /* IF (!) the peers know the destinations of the trails in their routing
-     * table, then:
-     *
-     * This shoud only happen after 1 hop, since the first message is sent
-     * to random friend, and we can happen to be on the best trail to the dest.
-     * If the first friend selects someone else, the request should never come
-     * back to us.
-     *
-     * (TODO)
-     */
-    // GNUNET_break_op (1 == trail_length);
+  {   
     trail_length = 0;
   }
 
@@ -4070,12 +4088,11 @@ handle_dht_p2p_trail_setup (void *cls, const struct GNUNET_PeerIdentity *peer,
   {
     if(0 == GNUNET_CRYPTO_cmp_peer_identity(&trail_peer_list[i],&my_identity))
     {
-      trail_length = i;
+      trail_length = i; /* Check that you add yourself again */
       break;
     }
   }
 
-  
   /* Is my routing table full?  */
   if (GNUNET_YES == GDS_ROUTING_threshold_reached())
   {
@@ -4117,9 +4134,13 @@ handle_dht_p2p_trail_setup (void *cls, const struct GNUNET_PeerIdentity *peer,
     }
 
     if (trail_length > 0)
-      target_friend = GNUNET_CONTAINER_multipeermap_get (friend_peermap, &trail_peer_list[trail_length-1]);
+      target_friend = 
+              GNUNET_CONTAINER_multipeermap_get (friend_peermap, 
+                                                 &trail_peer_list[trail_length-1]);
     else
-      target_friend = GNUNET_CONTAINER_multipeermap_get (friend_peermap, &source);
+      target_friend = 
+              GNUNET_CONTAINER_multipeermap_get (friend_peermap, &source);
+    
     if (NULL == target_friend)
     {
       GNUNET_break_op (0);
@@ -4136,9 +4157,9 @@ handle_dht_p2p_trail_setup (void *cls, const struct GNUNET_PeerIdentity *peer,
   else /* I'm not the final destination. */
   {
     GNUNET_assert (NULL !=
-                    (target_friend =
+                   (target_friend =
                       GNUNET_CONTAINER_multipeermap_get (friend_peermap,
-                                                          &next_peer.next_hop)));
+                                                         &next_peer.next_hop)));
 
     if (0 != GNUNET_CRYPTO_cmp_peer_identity(&my_identity, &source))
     {
@@ -4167,83 +4188,8 @@ handle_dht_p2p_trail_setup (void *cls, const struct GNUNET_PeerIdentity *peer,
   return GNUNET_OK;
 }
 
-#if 0
-/* FIXME: here we are calculating my_index and comparing also in this function.
-   And we are doing it again here in this function. Re factor the code. */
-/**
- * FIXME: Should we call this function everywhere in all the handle functions
- * where we have a trail to verify from or a trail id. something like
- * if prev hop is not same then drop the message.
- * Check if sender_peer and peer from which we should receive the message are
- * same or different.
- * @param trail_peer_list List of peers in trail
- * @param trail_length Total number of peers in @a trail_peer_list
- * @param sender_peer Peer from which we got the message.
- * @param finger_identity Finger to which trail is setup. It is not part of trail.
- * @return #GNUNET_YES if sender_peer and peer from which we should receive the
- *                    message are different.
- *         #GNUNET_NO if sender_peer and peer from which we should receive the
- *                    message are different.
- */
-static int
-is_sender_peer_correct (const struct GNUNET_PeerIdentity *trail_peer_list,
-                        unsigned int trail_length,
-                        const struct GNUNET_PeerIdentity *sender_peer,
-                        struct GNUNET_PeerIdentity finger_identity,
-                        struct GNUNET_PeerIdentity source_peer)
-{
-  int my_index;
-
-  /* I am the source peer. */
-  if (0 == (GNUNET_CRYPTO_cmp_peer_identity (&source_peer,
-                                             &my_identity)))
-  {
-    /* Is the first element of the trail is sender_peer.*/
-    if (trail_length > 0)
-    {
-      if (0 != GNUNET_CRYPTO_cmp_peer_identity (&trail_peer_list[0],
-                                                sender_peer))
-        return GNUNET_NO;
-    }
-    else
-    {
-      /* Is finger the sender peer? */
-      if (0 != GNUNET_CRYPTO_cmp_peer_identity (sender_peer,
-                                                &finger_identity))
-        return GNUNET_NO;
-    }
-  }
-  else
-  {
-    /* Get my current location in the trail. */
-    my_index = search_my_index (trail_peer_list, trail_length);
-    if (-1 == my_index)
-      return GNUNET_NO;
-
-    /* I am the last element in the trail. */
-    if ((trail_length - 1) == my_index)
-    {
-      /* Is finger the sender_peer? */
-      if (0 != GNUNET_CRYPTO_cmp_peer_identity (sender_peer,
-                                                &finger_identity))
-        return GNUNET_NO;
-    }
-    else
-    {
-      /* Is peer after me in trail the sender peer? */
-      if (0 != GNUNET_CRYPTO_cmp_peer_identity (sender_peer,
-                                                &trail_peer_list[my_index + 1]))
-        return GNUNET_NO;
-    }
-  }
-  return GNUNET_YES;
-}
-#endif
-
 
 /**
- * FIXME: we should also add a case where we search if we are present in the trail
- * twice.
  * Core handle for p2p trail setup result messages.
  * @param closure
  * @param message message
@@ -4297,28 +4243,28 @@ handle_dht_p2p_trail_setup_result(void *cls, const struct GNUNET_PeerIdentity *p
   ulitmate_destination_finger_value =
           GNUNET_ntohll (trail_result->ulitmate_destination_finger_value);
 
-  /* Ensure that sender peer is the peer from which we were expecting the message. */
-#if 0
-  if (GNUNET_NO == is_sender_peer_correct (trail_peer_list,
-                                           trail_length,
-                                           peer, finger_identity, querying_peer))
-  {
-    GNUNET_break_op (0);
-    return GNUNET_SYSERR;
-  }
-#endif
-
-  /*TODO:URGENT Check if I am already present in the trail. If yes then its an error,
-   as in trail setup we ensure that it should never happen. */
   /* Am I the one who initiated the query? */
   if (0 == (GNUNET_CRYPTO_cmp_peer_identity (&querying_peer, &my_identity)))
   {
+    /* Check that you got the message from the correct peer. */
+    if (trail_length > 0)
+    {
+      GNUNET_assert(0 == GNUNET_CRYPTO_cmp_peer_identity (&trail_peer_list[0],
+                                                          peer));
+    }
+    else
+    {
+      GNUNET_assert(0 == GNUNET_CRYPTO_cmp_peer_identity (&finger_identity,
+                                                          peer));
+    }
+    
     /* If I am my own finger identity, error. */
     if (0 == GNUNET_CRYPTO_cmp_peer_identity (&my_identity, &finger_identity))
     {
       GNUNET_break_op (0);
       return GNUNET_SYSERR;
     }
+    
     GDS_ROUTING_add (trail_id, my_identity, *peer);
     finger_table_add (finger_identity, trail_peer_list, trail_length,
                       is_predecessor, ulitmate_destination_finger_value, trail_id);
@@ -4329,31 +4275,56 @@ handle_dht_p2p_trail_setup_result(void *cls, const struct GNUNET_PeerIdentity *p
   my_index = search_my_index (trail_peer_list, trail_length);
   if (-1 == my_index)
   {
+    DEBUG ("Not found in trail\n");
     GNUNET_break_op(0);
     return GNUNET_SYSERR;
   }
-
+  
+  if ((trail_length + 1) == my_index)
+  {
+    DEBUG ("Found twice in trail.\n");
+    GNUNET_break_op(0);
+    return GNUNET_SYSERR;
+  }
+  
   if (my_index == 0)
+  {
+    if(trail_length > 1)
+      GNUNET_assert(0 == GNUNET_CRYPTO_cmp_peer_identity (&trail_peer_list[1],
+                                                          peer));
+    else
+      GNUNET_assert(0 == GNUNET_CRYPTO_cmp_peer_identity (&finger_identity,
+                                                          peer));
     next_hop = trail_result->querying_peer;
+  }
   else
+  {
+    if(my_index == trail_length - 1)
+    {
+      GNUNET_assert(0 == 
+                    GNUNET_CRYPTO_cmp_peer_identity (&finger_identity,
+                                                     peer));  
+    }
+    else
+      GNUNET_assert(0 == 
+                    GNUNET_CRYPTO_cmp_peer_identity (&trail_peer_list[my_index + 1],
+                                                      peer));
     next_hop = trail_peer_list[my_index - 1];
-
+  }
+  
   target_friend = GNUNET_CONTAINER_multipeermap_get (friend_peermap, &next_hop);
   if (NULL == target_friend)
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
-
   if (0 == (GNUNET_CRYPTO_cmp_peer_identity (&(trail_result->querying_peer),
                                              &(trail_result->finger_identity))))
   {
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
-
   GDS_ROUTING_add (trail_id, next_hop, *peer);
-
   GDS_NEIGHBOURS_send_trail_setup_result (querying_peer, finger_identity,
                                           target_friend, trail_length, trail_peer_list,
                                           is_predecessor,
@@ -5197,10 +5168,16 @@ handle_dht_p2p_notify_new_successor(void *cls,
   my_index = search_my_index (trail, trail_length);
   if (-1 == my_index)
   {
+    DEBUG ("No entry found in trail\n");
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
-
+  if((trail_length + 1) == my_index)
+  {
+    DEBUG ("Found twice in trail.\n");
+    GNUNET_break_op (0);
+    return GNUNET_SYSERR;
+  }
   if ((trail_length-1) == my_index)
     next_hop = new_successor;
   else
@@ -5582,7 +5559,12 @@ handle_dht_p2p_add_trail (void *cls, const struct GNUNET_PeerIdentity *peer,
       GNUNET_break_op (0);
       return GNUNET_SYSERR;
     }
-
+    if((trail_length + 1) == my_index)
+    {
+      DEBUG ("Found twice in trail.\n");
+      GNUNET_break_op (0);
+      return GNUNET_SYSERR;
+    }
     if ((trail_length - 1) == my_index)
     {
       next_hop = destination_peer;
