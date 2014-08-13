@@ -1496,4 +1496,44 @@ GNUNET_DHT_monitor_stop (struct GNUNET_DHT_MonitorHandle *handle)
   GNUNET_free (handle);
 }
 
+
+#if ENABLE_MALICIOUS
+/**
+ * Turn the DHT service to act malicious depending on @a flag
+ *
+ * @param handle the DHT handle
+ * @param action 1 to make the service malicious; 0 to make it benign
+          FIXME: perhaps make this an enum of known malicious behaviors?
+ */
+void
+GNUNET_DHT_malicious (struct GNUNET_DHT_Handle *handle, unsigned int action)
+{
+  struct GNUNET_DHT_ActMaliciousMessage *amm;
+  struct PendingMessage *pending;
+  size_t msize;
+  
+  msize = sizeof(struct GNUNET_DHT_ActMaliciousMessage);
+  if (msize >= GNUNET_SERVER_MAX_MESSAGE_SIZE)
+  {
+    GNUNET_break(0);
+    return;
+  }
+  
+  pending = GNUNET_malloc (sizeof (struct PendingMessage) + msize);
+  amm = (struct GNUNET_DHT_ActMaliciousMessage *)&pending[1];
+  pending->msg = &amm->header;
+  pending->handle = handle;
+  pending->free_on_send = GNUNET_YES;
+  amm->header.size = htons (msize);
+  amm->header.type = htons (GNUNET_MESSAGE_TYPE_DHT_ACT_MALICIOUS);
+  amm->action = action;
+  
+  GNUNET_CONTAINER_DLL_insert (handle->pending_head, handle->pending_tail,
+                               pending);
+  pending->in_pending_queue = GNUNET_YES;
+  process_pending_messages (handle);
+}
+#endif
+
+
 /* end of dht_api.c */

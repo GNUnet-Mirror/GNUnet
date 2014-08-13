@@ -38,7 +38,14 @@
 /**
  * Number of peers which should perform a PUT out of 100 peers
  */
-#define PUT_PROBABILITY 50
+#define PUT_PROBABILITY 100
+
+/**
+ * Percentage of peers that should act maliciously.
+ * These peers will never start PUT/GET request.
+ * n_active and n_malicious should not intersect.
+ */
+#define MALICIOUS_PEERS 0
 
 /**
  * Configuration
@@ -159,6 +166,13 @@ static struct GNUNET_TIME_Relative timeout;
  * Number of peers
  */
 static unsigned int num_peers;
+
+#if ENABLE_MALICIOUS
+/**
+ * Number or malicious peers.
+ */
+static unsigned int n_malicious;
+#endif
 
 /**
  * Number of active peers
@@ -585,7 +599,7 @@ static void
 delayed_put (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct ActiveContext *ac = cls;
-  DEBUG("PUT SUPU \n");
+
   ac->delay_task = GNUNET_SCHEDULER_NO_TASK;
   /* Generate and DHT PUT some random data */
   ac->put_data_size = 16;       /* minimum */
@@ -638,7 +652,7 @@ dht_connected (void *cls,
     ctx->op = NULL;
     return;
   }
-   
+  
   ac->delay_task = GNUNET_SCHEDULER_add_delayed (delay, &delayed_put, ac);
 }
 
@@ -706,6 +720,7 @@ start_testbed_service_on_all_peers()
   }
 }
 
+static unsigned int tries;
 
 /**
  * Stats callback. Iterate over the hashmap and check if all th peers form
@@ -743,7 +758,7 @@ successor_stats_cont (void *cls,
   
   if (start_val == val)
   {
-    DEBUG("Circle completed\n");
+    DEBUG("CIRCLE COMPLETED after %u tries", tries);
     if (GNUNET_SCHEDULER_NO_TASK != successor_stats_task)
     {
       successor_stats_task = GNUNET_SCHEDULER_NO_TASK;
@@ -760,9 +775,6 @@ successor_stats_cont (void *cls,
   }
   else
   {
-    static unsigned int tries;
-
-    DEBUG("Circle not complete\n");
     if (max_searches == ++tries)
     {
       GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -810,7 +822,6 @@ successor_stats_iterator (void *cls,
                           int is_persistent)
 {
   static const char *key_string = "XDHT";
-  
   if (0 == strncmp (key_string, name, strlen (key_string)))
   {
     char *my_id_str;
@@ -825,10 +836,8 @@ successor_stats_iterator (void *cls,
     
     strncpy(truncated_my_id_str, my_id_str, 12);
     truncated_my_id_str[12] = '\0';
-    
     my_id_key = GNUNET_new(struct GNUNET_HashCode);
     GNUNET_CRYPTO_hash (truncated_my_id_str, sizeof(truncated_my_id_str),my_id_key);
-    
     GNUNET_STRINGS_data_to_string(&value, sizeof(uint64_t), successor_str, 13);
     strncpy(truncated_successor_str, successor_str, 12);
     truncated_successor_str[12] ='\0';
@@ -862,6 +871,9 @@ collect_stats (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     return;
 
   GNUNET_log (GNUNET_ERROR_TYPE_INFO, "Start collecting statistics...\n");
+  DEBUG("num_peers = %d", num_peers);
+  GNUNET_assert(NULL != testbed_handles);
+         
   
  /* Check for successor pointer, don't start put till the virtual ring topology
    is not created. */
@@ -870,6 +882,8 @@ collect_stats (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                          "dht", NULL,
                                           successor_stats_iterator, 
                                           successor_stats_cont, cls);
+  
+  GNUNET_assert(successor_stats_op);
 }
 
 /**
@@ -901,9 +915,9 @@ service_started (void *cls,
   
   peer_contexts[peers_started] = ctx;
   peers_started++;
-  DEBUG("Peers Started = %d \n", peers_started);
+  DEBUG("Peers Started = %d; num_peers = %d \n", peers_started, num_peers);
     
-  if (GNUNET_SCHEDULER_NO_TASK == successor_stats_task)
+  if (GNUNET_SCHEDULER_NO_TASK == successor_stats_task && peers_started == num_peers)
   {
      DEBUG("successor_stats_task \n");
      struct Collect_Stat_Context *collect_stat_cls = GNUNET_new(struct Collect_Stat_Context);
@@ -957,6 +971,25 @@ test_run (void *cls,
     GNUNET_free (a_ctx);
     return;
   }
+  
+#if ENABLE_MALICIOUS
+
+  if(PUT_PROBABILITY + MALICIOUS_PEERS > 100)
+  {
+    DEBUG ("Reduce either number of malicious peer or active peers. ");
+    GNUNET_SCHEDULER_shutdown ();
+    GNUNET_free (a_ctx);
+    return;
+  }
+  
+  /* Select the peers which should act maliciously. */
+  n_malicious = num_peers * MALICIOUS_PEERS / 100;
+  
+  /* Select n_malicious peers and ensure that those are not active peers. 
+     keep all malicious peer at one place, and call act malicious for all
+     those peers. */
+  
+#endif
   
   a_ac = GNUNET_malloc (n_active * sizeof (struct ActiveContext));
   ac_cnt = 0;
@@ -1051,7 +1084,7 @@ main (int argc, char *const *argv)
   max_searches = 10;
   if (GNUNET_OK != GNUNET_STRINGS_get_utf8_args (argc, argv, &argc, &argv))
     return 2;
-  delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 2); /* default delay */
+  delay = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 20); /* default delay */
   timeout = GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 1); /* default timeout */
   replication = 1;      /* default replication */
   rc = 0;

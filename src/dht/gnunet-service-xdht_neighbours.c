@@ -876,7 +876,7 @@ static struct GNUNET_CORE_Handle *core_api;
 /**
  * Handle for the statistics service.
  */
-extern struct GNUNET_STATISTICS_Handle *GDS_stats;
+//extern struct GNUNET_STATISTICS_Handle *GDS_stats;
 
 /**
  * The current finger index that we have want to find trail to. We start the
@@ -890,6 +890,12 @@ static unsigned int current_search_finger_index;
  * Should we store our topology predecessor and successor IDs into statistics?
  */
 unsigned int track_topology;
+
+/**
+ * Should I be a malicious peer and drop the PUT/GET packets? 
+ * if 0 then NOT malicious.
+ */
+unsigned int act_malicious;
 
 /**
  * Called when core is ready to send a message we asked for
@@ -991,6 +997,18 @@ process_friend_queue (struct FriendInfo *peer)
   GNUNET_break (NULL != peer->th);
 }
 
+
+#if ENABLE_MALICIOUS
+/**
+ * Set the ENABLE_MALICIOUS value to malicious.
+ * @param malicious
+ */
+void 
+GDS_NEIGHBOURS_act_malicious (unsigned int malicious)
+{
+  act_malicious = malicious;
+}
+#endif
 
 /**
  * Construct a trail setup message and forward it to target_friend
@@ -2093,6 +2111,8 @@ find_successor (uint64_t destination_finger_value,
 
 
 /**
+ * FIXME; Send put message across all the trail to reach to next hop to handle
+ * malicious peers.
  * Construct a Put message and send it to target_peer.
  * @param key Key for the content
  * @param block_type Type of the block
@@ -2134,6 +2154,18 @@ GDS_NEIGHBOURS_send_put (const struct GNUNET_HashCode *key,
   msize = put_path_length * sizeof (struct GNUNET_PeerIdentity) + data_size +
           sizeof (struct PeerPutMessage);
 
+#if ENABLE_MALICIOUS
+  /*Call is made to this function from
+   1. First peer.
+   2. Every peer to construct a pending message and send it to next peer.
+   In case of 2nd, this case should have been handled in handle_dht_p2p_put/get
+   No need to check here. First peer can never be malicious. IDEALLY we DONOT
+   need the condition here. REMOVE IT AFTERWARDS once verified.*/
+  if(1 == act_malicious)
+  {
+    return;
+  }
+#endif
   if (msize >= GNUNET_CONSTANTS_MAX_ENCRYPTED_MESSAGE_SIZE)
   {
     put_path_length = 0;
@@ -2212,6 +2244,8 @@ GDS_NEIGHBOURS_send_put (const struct GNUNET_HashCode *key,
 
 
 /**
+ * FIXME; Send get message across all the trail to reach to next hop to handle
+ * malicious peers.
  * Construct a Get message and send it to target_peer.
  * @param key Key for the content
  * @param block_type Type of the block
@@ -2249,6 +2283,12 @@ GDS_NEIGHBOURS_send_get (const struct GNUNET_HashCode *key,
   msize = sizeof (struct PeerGetMessage) +
           (get_path_length * sizeof (struct GNUNET_PeerIdentity));
   
+#if ENABLE_MALICIOUS
+  if(1 == act_malicious)
+  {
+    return;
+  }
+#endif
   //GNUNET_SERVER_MAX_MESSAGE_SIZE
   /* FIXME:TODO:URGENTHere you can try to optimize it a bit. In case the get path contains you
    or your friend then shorten the path. */
@@ -2298,7 +2338,7 @@ GDS_NEIGHBOURS_send_get (const struct GNUNET_HashCode *key,
   {
     GNUNET_assert (NULL !=
                   (target_friend =
-                   GNUNET_CONTAINER_multipeermap_get (friend_peermap, target_peer))); //FIXME: assertion fails.
+                   GNUNET_CONTAINER_multipeermap_get (friend_peermap, target_peer))); 
   }
 
   pending = GNUNET_malloc (sizeof (struct P2PPendingMessage) + msize);
@@ -3404,7 +3444,6 @@ finger_table_add (struct GNUNET_PeerIdentity finger_identity,
                                              finger_trail_length,
                                              finger_trail_id,
                                              &updated_finger_trail_length);
-
     add_new_finger (finger_identity, updated_trail,
                     updated_finger_trail_length,
                     finger_trail_id, finger_table_index);
@@ -3491,7 +3530,10 @@ finger_table_add (struct GNUNET_PeerIdentity finger_identity,
   return;
 }
 
+
 /**
+ * FIXME: Check for loop in the request. If you already are part of put path,
+ * then you need to reset the put path length.
  * Core handler for P2P put messages.
  * @param cls closure
  * @param peer sender of the request
@@ -3516,6 +3558,14 @@ handle_dht_p2p_put (void *cls, const struct GNUNET_PeerIdentity *peer,
   size_t payload_size;
   uint64_t key_value;
 
+#if ENABLE_MALICIOUS
+  if(1 == act_malicious)
+  {
+    DEBUG("I am malicious,dropping put request. \n");
+    return GNUNET_OK;
+  }
+#endif
+  
   msize = ntohs (message->size);
   if (msize < sizeof (struct PeerPutMessage))
   {
@@ -3668,6 +3718,8 @@ handle_dht_p2p_put (void *cls, const struct GNUNET_PeerIdentity *peer,
 
 
 /**
+ * FIXME: Check for loop in the request. If you already are part of get path,
+ * then you need to reset the get path length.
  * Core handler for p2p get requests.
  *
  * @param cls closure
@@ -3689,6 +3741,14 @@ handle_dht_p2p_get (void *cls, const struct GNUNET_PeerIdentity *peer,
   uint64_t key_value;
   size_t msize;
 
+#if ENABLE_MALICIOUS
+  if(1 == act_malicious)
+  {
+    DEBUG("I am malicious,dropping get request. \n");
+    return GNUNET_OK;
+  }
+#endif
+  
   msize = ntohs (message->size);
   if (msize < sizeof (struct PeerGetMessage))
   {
@@ -4237,8 +4297,6 @@ handle_dht_p2p_trail_setup_result(void *cls, const struct GNUNET_PeerIdentity *p
   ulitmate_destination_finger_value =
           GNUNET_ntohll (trail_result->ulitmate_destination_finger_value);
 
-  /* FIXME: here we are calculating my_index and comparing also in this function.
-   And we are doing it again here in this function. Re factor the code. */
   /* Ensure that sender peer is the peer from which we were expecting the message. */
 #if 0
   if (GNUNET_NO == is_sender_peer_correct (trail_peer_list,
@@ -4433,7 +4491,7 @@ check_for_duplicate_entries (const struct GNUNET_PeerIdentity *trail_1,
       
       
       /* Copy all the elements from 0 to i into joined_trail. */
-      for(k = 0; k < (i+1); k++)
+      for(k = 0; k < ( i+1); k++)
       {
         joined_trail[k] = trail_1[k];
       }
@@ -4442,7 +4500,7 @@ check_for_duplicate_entries (const struct GNUNET_PeerIdentity *trail_1,
       j = j+1;
       
       /* Copy all the elements from j to trail_2_len-1 to joined trail.*/
-      while((k < *joined_trail_len) && (j < trail_2_len));
+      while(k <= (*joined_trail_len - 1))
       {
         joined_trail[k] = trail_2[j];
         j++;
@@ -4911,8 +4969,8 @@ compare_and_update_successor (struct GNUNET_PeerIdentity curr_succ,
   if (closest_peer == &current_successor->finger_identity)
   {
     /* Code for testing ONLY: Store the successor for path tracking */
-    track_topology = 1;
-    if (track_topology &&  (NULL != GDS_stats))
+//    track_topology = 1;
+    if ((NULL != GDS_stats))
     {
       char *my_id_str;
       uint64_t succ;
@@ -5571,7 +5629,7 @@ remove_matching_trails (const struct GNUNET_PeerIdentity *disconnected_friend,
   matching_trails_count = 0;
 
   /* Iterate over all the trails of finger. */
-  for (i = 0; i < MAXIMUM_TRAILS_PER_FINGER; i++)
+  for (i = 0; i < remove_finger->trails_count; i++)
   {
     struct Trail *trail;
     trail = &remove_finger->trail_list[i];
@@ -5787,7 +5845,6 @@ handle_core_connect (void *cls, const struct GNUNET_PeerIdentity *peer_identity)
                                                     peer_identity, friend,
                                                     GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_ONLY));
 
-
   /* got a first connection, good time to start with FIND FINGER TRAIL requests...*/
   if (GNUNET_SCHEDULER_NO_TASK == find_finger_trail_task)
   {
@@ -5855,11 +5912,16 @@ GDS_NEIGHBOURS_init (void)
     {&handle_dht_p2p_add_trail, GNUNET_MESSAGE_TYPE_XDHT_P2P_ADD_TRAIL, 0},
     {NULL, 0, 0}
   };
-
+  
+#if ENABLE_MALICIOUS
+  act_malicious = 0;
+#endif
+  
   core_api =
     GNUNET_CORE_connect (GDS_cfg, NULL, &core_init, &handle_core_connect,
                          &handle_core_disconnect, NULL, GNUNET_NO, NULL,
                          GNUNET_NO, core_handlers);
+  
   if (NULL == core_api)
     return GNUNET_SYSERR;
 
@@ -5869,6 +5931,26 @@ GDS_NEIGHBOURS_init (void)
   return GNUNET_OK;
 }
 
+/**
+ * Free the memory held up by trails of a finger. 
+ */
+static void
+delete_finger_table_entries()
+{
+  unsigned int i;
+  unsigned int j;
+  
+  for(i = 0; i < MAX_FINGERS; i++)
+  {
+    if(GNUNET_NO == finger_table[i].is_present)
+      continue;
+    
+    for(j = 0; j < finger_table[i].trails_count; j++)
+    {
+      free_trail(&finger_table[i].trail_list[i]);
+    }
+  }
+}
 
 /**
  * Shutdown neighbours subsystem.
@@ -5882,6 +5964,8 @@ GDS_NEIGHBOURS_done (void)
   GNUNET_CORE_disconnect (core_api);
   core_api = NULL;
 
+  delete_finger_table_entries();
+  
   GNUNET_assert (0 == GNUNET_CONTAINER_multipeermap_size (friend_peermap));
   GNUNET_CONTAINER_multipeermap_destroy (friend_peermap);
   friend_peermap = NULL;

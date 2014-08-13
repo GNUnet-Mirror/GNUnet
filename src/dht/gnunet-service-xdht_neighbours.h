@@ -32,6 +32,15 @@
 #include "gnunet_dht_service.h"
 
 
+#if ENABLE_MALICIOUS
+/**
+ * Set the ENABLE_MALICIOUS value to malicious.
+ * @param malicious
+ */
+void 
+GDS_NEIGHBOURS_act_malicious (unsigned int malicious);
+#endif
+
 /**
  * Construct a Put message and send it to target_peer.
  * @param key Key for the content

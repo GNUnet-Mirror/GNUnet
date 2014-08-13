@@ -1355,7 +1355,6 @@ static void
 handle_dht_act_malicious (void *cls, struct GNUNET_SERVER_Client *client,
                           const struct GNUNET_MessageHeader *message)
 {
-  /* FIXME: parse message and set malicious */
   const struct GNUNET_DHT_ActMaliciousMessage *msg;
   unsigned int malicious;
   
