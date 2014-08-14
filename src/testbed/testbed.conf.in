@@ -45,6 +45,13 @@ OVERLAY_TOPOLOGY = NONE
 # presented at: https://gnunet.org/content/topology-file-format
 # OVERLAY_TOPOLOGY_FILE = /path/to/topology-file
 
+# The following options are required if the OVERLAY_TOPOLOGY is set to
+# SCALE_FREE.  They are ignored in all other cases.
+# The number of maximum peers which can connect to a peer
+SCALE_FREE_TOPOLOGY_CAP = 70
+# The minimum number of peers which a peer has to connect
+SCALE_FREE_TOPOLOGY_M = 5
+
 # How many maximum number of handles to peers' services should be kept open at
 # any time.  This number also keeps a check on the number of open descriptors as
 # opening a service connection results in opening a file descriptor.
