@@ -1,4 +1,4 @@
-AM_CPPFLAGS = -I$(top_srcdir)/src/include
+AM_CPPFLAGS = -I$(top_srcdir)/src/include $(POSTGRESQL_CPPFLAGS)
 
 plugindir = $(libdir)/gnunet
 
@@ -169,7 +169,7 @@ libgnunet_plugin_namestore_postgres_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la $(XLIBS) -lpq \
   $(LTLIBINTL)
 libgnunet_plugin_namestore_postgres_la_LDFLAGS = \
- $(GN_PLUGIN_LDFLAGS)
+ $(GN_PLUGIN_LDFLAGS) $(POSTGRESQL_LDFLAGS)
 libgnunet_plugin_namestore_postgres_la_DEPENDENCIES = \
   $(top_builddir)/src/postgres/libgnunetpostgres.la  \
   $(top_builddir)/src/statistics/libgnunetstatistics.la \
