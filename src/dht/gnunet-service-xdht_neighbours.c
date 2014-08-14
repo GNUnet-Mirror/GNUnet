@@ -1865,6 +1865,9 @@ select_closest_peer (const struct GNUNET_PeerIdentity *peer1,
                      uint64_t value,
                      unsigned int is_predecessor)
 {
+  /* This check is here to ensure that calling function never sends
+      same peer value in peer1 and peer2. Remove it later. */
+  GNUNET_assert(0 != GNUNET_CRYPTO_cmp_peer_identity (peer1, peer2));
   if (1 == is_predecessor)
     return select_closest_predecessor (peer1, peer2, value);
 
@@ -2746,29 +2749,28 @@ is_new_trail_unique (struct FingerInfo *existing_finger,
   /* Iterate over list of trails. */
   for (i = 0; i < existing_finger->trails_count; i++)
   {
-    trail_list_iterator = &existing_finger->trail_list[i];
+    trail_list_iterator = &(existing_finger->trail_list[i]);
     GNUNET_assert (GNUNET_YES == trail_list_iterator->is_present);
 
     /* New trail and existing trail length are not same. */
     if (trail_list_iterator->trail_length != trail_length)
     {
       trail_unique = GNUNET_YES;
-      continue;
+      break;
     }
 
     trail_element = trail_list_iterator->trail_head;
+    GNUNET_assert (trail_element != NULL);
     for (j = 0; j < trail_list_iterator->trail_length; j++)
     {
       if (0 != GNUNET_CRYPTO_cmp_peer_identity (&new_trail[j],
                                                 &trail_element->peer))
       {
         trail_unique = GNUNET_YES;
-        continue;
+        break;
       }
       trail_element = trail_element->next;
     }
-
-    trail_unique = GNUNET_NO;
   }
 
   return trail_unique;
@@ -4786,7 +4788,7 @@ handle_dht_p2p_verify_successor(void *cls,
       //in notify successor.
       return GNUNET_OK;
     }
-
+ 
     target_friend = GNUNET_CONTAINER_multipeermap_get (friend_peermap, next_hop);
     
     if(NULL == target_friend)
@@ -4909,10 +4911,14 @@ check_trail_me_to_probable_succ (struct GNUNET_PeerIdentity probable_successor,
  * In case probable successor is the correct successor, remove the existing
  * successor. Add probable successor as new successor. Send notify new successor
  * message to new successor.
- * @param curr_succ
- * @param probable_successor
- * @param trail
- * @param trail_length
+ * @param curr_succ Peer to which we sent the verify successor message. It may
+ * or may not be our real current successor, as we may have few iterations of
+ * find finger trail task.
+ * @param probable_successor Peer which should be our successor accroding to @a 
+ *                           curr_succ
+ * @param trail List of peers to reach from me to @a probable successor, NOT including
+ *              endpoints.
+ * @param trail_length Total number of peers in @a trail.
  */
 static void
 compare_and_update_successor (struct GNUNET_PeerIdentity curr_succ,
@@ -4932,6 +4938,11 @@ compare_and_update_successor (struct GNUNET_PeerIdentity curr_succ,
   current_successor = &finger_table[0];
   successor_value = compute_finger_identity_value(0);
 
+  /* If probable successor is same as current_successor, do nothing. */
+  if(0 == GNUNET_CRYPTO_cmp_peer_identity (&probable_successor,
+                                          &current_successor->finger_identity))
+    return;
+  
   closest_peer = select_closest_peer (&probable_successor,
                                       &current_successor->finger_identity,
                                       successor_value, is_predecessor);
@@ -4956,6 +4967,7 @@ compare_and_update_successor (struct GNUNET_PeerIdentity curr_succ,
     }
     return;
   }
+  
   /* Probable successor is the closest peer.*/
   if(trail_length > 0)
   {
@@ -5080,11 +5092,18 @@ handle_dht_p2p_verify_successor_result(void *cls,
   }
   
   /*If you are not the querying peer then pass on the message */
-  GNUNET_assert (NULL != (next_hop =
-                         GDS_ROUTING_get_next_hop (trail_id, trail_direction)));
-  GNUNET_assert (NULL !=
-                (target_friend =
-                 GNUNET_CONTAINER_multipeermap_get (friend_peermap, next_hop)));
+  if(NULL == (next_hop =
+              GDS_ROUTING_get_next_hop (trail_id, trail_direction)))
+  {
+    GNUNET_break_op(0);
+    return GNUNET_OK;
+  }
+  if (NULL == (target_friend =
+                 GNUNET_CONTAINER_multipeermap_get (friend_peermap, next_hop)))
+  {
+    GNUNET_break_op(0);
+    return GNUNET_OK;
+  }
   GDS_NEIGHBOURS_send_verify_successor_result (querying_peer,
                                                vsrm->current_successor,
                                                probable_successor, trail_id,
@@ -5385,14 +5404,22 @@ handle_dht_p2p_trail_compression (void *cls, const struct GNUNET_PeerIdentity *p
   if (0 == (GNUNET_CRYPTO_cmp_peer_identity (&trail_compression->new_first_friend,
                                              &my_identity)))
   {
-    GNUNET_assert (NULL !=
-                  (GNUNET_CONTAINER_multipeermap_get (friend_peermap,
-                                                      &trail_compression->source_peer)));
+    if (NULL ==
+         (GNUNET_CONTAINER_multipeermap_get (friend_peermap,
+                                             &trail_compression->source_peer)))
+    {
+      GNUNET_break_op(0);
+      return GNUNET_OK;
+    }
 
     /* Update your prev hop to source of this message. */
-    GNUNET_assert (GNUNET_SYSERR !=
+    if(GNUNET_SYSERR ==
                   (GDS_ROUTING_update_trail_prev_hop (trail_id,
-                                                      trail_compression->source_peer)));
+                                                      trail_compression->source_peer)))
+    {
+      GNUNET_break(0);
+      return GNUNET_OK;
+    }
     return GNUNET_OK;
   }
 
@@ -5405,9 +5432,12 @@ handle_dht_p2p_trail_compression (void *cls, const struct GNUNET_PeerIdentity *p
     return GNUNET_OK;
   }
 
-  GNUNET_assert (NULL !=
-                (target_friend =
-                 GNUNET_CONTAINER_multipeermap_get (friend_peermap, next_hop)));
+  if( NULL == (target_friend =
+                 GNUNET_CONTAINER_multipeermap_get (friend_peermap, next_hop)))
+  {
+    GNUNET_break_op(0);
+    return GNUNET_OK;
+  }
 
   GDS_ROUTING_remove_trail (trail_id);
 
