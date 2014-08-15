@@ -472,6 +472,8 @@ get_cadet_peer (struct GNUNET_PeerIdentity pid)
       return cadetp;
     cadetp = cadetp->next;
   }
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Creating a CADET connection to peer `%s'.\n",
+       GNUNET_i2s (&pid));
   /* Not found, create struct and channel */
   cadetp = GNUNET_new (struct CadetPeer);
   cadetp->peer_id = pid;
@@ -490,23 +492,26 @@ get_cadet_peer (struct GNUNET_PeerIdentity pid)
  * MQ envelope.
  *
  * @param ai Anomaly info struct to use
+ * @param type Message type
  * @return Envelope with message
  */
 static struct GNUNET_MQ_Envelope *
-create_anomaly_report_message (struct AnomalyInfo *ai)
+create_anomaly_report_message (struct AnomalyInfo *ai, int type)
 {
   struct GNUNET_SENSOR_AnomalyReportMessage *arm;
   struct GNUNET_MQ_Envelope *ev;
 
-  ev = GNUNET_MQ_msg (arm, GNUNET_MESSAGE_TYPE_SENSOR_ANOMALY_REPORT);
+  ev = GNUNET_MQ_msg (arm, type);
   GNUNET_CRYPTO_hash (ai->sensor->name, strlen (ai->sensor->name) + 1,
                       &arm->sensorname_hash);
   arm->sensorversion_major = htons (ai->sensor->version_major);
   arm->sensorversion_minor = htons (ai->sensor->version_minor);
   arm->anomalous = htons (ai->anomalous);
   arm->anomalous_neighbors =
-      ((float) GNUNET_CONTAINER_multipeermap_size (ai->anomalous_neighbors)) /
-      neighborhood;
+      (0 ==
+       neighborhood) ? 0 : ((float)
+                            GNUNET_CONTAINER_multipeermap_size
+                            (ai->anomalous_neighbors)) / neighborhood;
   return ev;
 }
 
@@ -542,13 +547,20 @@ create_value_message (struct ValueInfo *vi)
  *
  * @param mq Message queue to put the message in
  * @param ai Anomaly info to report
+ * @param p2p Is the report sent to a neighboring peer
  */
 static void
-send_anomaly_report (struct GNUNET_MQ_Handle *mq, struct AnomalyInfo *ai)
+send_anomaly_report (struct GNUNET_MQ_Handle *mq, struct AnomalyInfo *ai,
+                     int p2p)
 {
   struct GNUNET_MQ_Envelope *ev;
+  int type;
 
-  ev = create_anomaly_report_message (ai);
+  type =
+      (GNUNET_YES ==
+       p2p) ? GNUNET_MESSAGE_TYPE_SENSOR_ANOMALY_REPORT_P2P :
+      GNUNET_MESSAGE_TYPE_SENSOR_ANOMALY_REPORT;
+  ev = create_anomaly_report_message (ai, type);
   GNUNET_MQ_send (mq, ev);
 }
 
@@ -579,8 +591,9 @@ handle_anomaly_report (void *cls, const struct GNUNET_PeerIdentity *other,
 
   arm = (struct GNUNET_SENSOR_AnomalyReportMessage *) message;
   sensor = GNUNET_CONTAINER_multihashmap_get (sensors, &arm->sensorname_hash);
-  if (NULL == sensor || sensor->version_major != arm->sensorversion_major ||
-      sensor->version_minor != arm->sensorversion_minor)
+  if (NULL == sensor ||
+      sensor->version_major != ntohs (arm->sensorversion_major) ||
+      sensor->version_minor != ntohs (arm->sensorversion_minor))
   {
     LOG (GNUNET_ERROR_TYPE_WARNING,
          "I don't have the sensor reported by the peer `%s'.\n",
@@ -610,8 +623,11 @@ handle_anomaly_report (void *cls, const struct GNUNET_PeerIdentity *other,
   if (NULL != ai->sensor->collection_point &&
       GNUNET_YES == ai->sensor->report_anomalies)
   {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Sending anomaly report to collection point `%s'.\n",
+         GNUNET_i2s (ai->sensor->collection_point));
     cadetp = get_cadet_peer (*ai->sensor->collection_point);
-    send_anomaly_report (cadetp->mq, ai);
+    send_anomaly_report (cadetp->mq, ai, GNUNET_NO);
   }
   return GNUNET_OK;
 }
@@ -675,7 +691,7 @@ core_disconnect_cb (void *cls, const struct GNUNET_PeerIdentity *peer)
   corep = corep_head;
   while (NULL != corep)
   {
-    if (peer == corep->peer_id)
+    if (0 == GNUNET_CRYPTO_cmp_peer_identity (peer, corep->peer_id))
     {
       GNUNET_CONTAINER_DLL_remove (corep_head, corep_tail, corep);
       destroy_core_peer (corep);
@@ -683,9 +699,6 @@ core_disconnect_cb (void *cls, const struct GNUNET_PeerIdentity *peer)
     }
     corep = corep->next;
   }
-  LOG (GNUNET_ERROR_TYPE_ERROR,
-       _("Received disconnect notification from CORE"
-         " for a peer we didn't know about.\n"));
 }
 
 
@@ -712,8 +725,11 @@ core_connect_cb (void *cls, const struct GNUNET_PeerIdentity *peer)
   ai = ai_head;
   while (NULL != ai)
   {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Updating newly connected neighbor `%s' with anomalous sensor.\n",
+         GNUNET_i2s (peer));
     if (GNUNET_YES == ai->anomalous)
-      send_anomaly_report (corep->mq, ai);
+      send_anomaly_report (corep->mq, ai, GNUNET_YES);
     ai = ai->next;
   }
 }
@@ -773,6 +789,9 @@ cadet_channel_destroyed (void *cls, const struct GNUNET_CADET_Channel *channel,
 
   if (GNUNET_YES == cadetp->destroying)
     return;
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "CADET channel was destroyed by remote peer `%s' or failed to start.\n",
+       GNUNET_i2s (&cadetp->peer_id));
   GNUNET_CONTAINER_DLL_remove (cadetp_head, cadetp_tail, cadetp);
   cadetp->channel = NULL;
   destroy_cadet_peer (cadetp);
@@ -801,6 +820,7 @@ SENSOR_reporting_anomaly_update (struct GNUNET_SENSOR_SensorInfo *sensor,
 
   if (GNUNET_NO == module_running)
     return;
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Received an external anomaly update.\n");
   ai = get_anomaly_info_by_sensor (sensor);
   GNUNET_assert (NULL != ai);
   ai->anomalous = anomalous;
@@ -808,15 +828,21 @@ SENSOR_reporting_anomaly_update (struct GNUNET_SENSOR_SensorInfo *sensor,
   corep = corep_head;
   while (NULL != corep)
   {
-    send_anomaly_report (corep->mq, ai);
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Sending an anomaly report to neighbor `%s'.\n",
+         GNUNET_i2s (corep->peer_id));
+    send_anomaly_report (corep->mq, ai, GNUNET_YES);
     corep = corep->next;
   }
   /* Report change to collection point if need */
   if (NULL != ai->sensor->collection_point &&
       GNUNET_YES == ai->sensor->report_anomalies)
   {
+    LOG (GNUNET_ERROR_TYPE_DEBUG,
+         "Sending anomaly report to collection point `%s'.\n",
+         GNUNET_i2s (ai->sensor->collection_point));
     cadetp = get_cadet_peer (*ai->sensor->collection_point);
-    send_anomaly_report (cadetp->mq, ai);
+    send_anomaly_report (cadetp->mq, ai, GNUNET_NO);
   }
 }
 
@@ -924,7 +950,7 @@ SENSOR_reporting_start (const struct GNUNET_CONFIGURATION_Handle *c,
                         struct GNUNET_CONTAINER_MultiHashMap *s)
 {
   static struct GNUNET_CORE_MessageHandler core_handlers[] = {
-    {&handle_anomaly_report, GNUNET_MESSAGE_TYPE_SENSOR_ANOMALY_REPORT,
+    {&handle_anomaly_report, GNUNET_MESSAGE_TYPE_SENSOR_ANOMALY_REPORT_P2P,
      sizeof (struct GNUNET_SENSOR_AnomalyReportMessage)},
     {NULL, 0, 0}
   };

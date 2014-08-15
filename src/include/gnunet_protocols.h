@@ -2458,6 +2458,11 @@ extern "C"
  */
 #define GNUNET_MESSAGE_TYPE_SENSOR_ANOMALY_FORCE 810
 
+/**
+ * Sensor anomaly report exchanged between peers
+ */
+#define GNUNET_MESSAGE_TYPE_SENSOR_ANOMALY_REPORT_P2P 811
+
 
 /*******************************************************************************
  * PEERSTORE message types

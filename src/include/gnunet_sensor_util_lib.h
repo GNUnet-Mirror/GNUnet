@@ -189,6 +189,26 @@ struct GNUNET_SENSOR_SensorInfo
 
 };
 
+/**
+ * Anomaly report received and stored by sensor dashboard.
+ * Sensor name and peer id are not included because they are part of the
+ * peerstore key.
+ */
+struct GNUNET_SENSOR_DashboardAnomalyEntry
+{
+
+  /**
+   * New anomaly status
+   */
+  uint16_t anomalous;
+
+  /**
+   * Percentage of neighbors reported the same anomaly
+   */
+  float anomalous_neighbors;
+
+};
+
 GNUNET_NETWORK_STRUCT_BEGIN
 
 /**

@@ -130,9 +130,11 @@ handle_anomaly_force (void *cls, struct GNUNET_SERVER_Client *client,
   {
     GNUNET_log (GNUNET_ERROR_TYPE_WARNING,
                 "Force anomaly message received for a sensor we don't have.\n");
+    GNUNET_SERVER_receive_done (client, GNUNET_SYSERR);
     return;
   }
   SENSOR_reporting_anomaly_update (sensor, ntohs (anomaly_msg->anomalous));
+  GNUNET_SERVER_receive_done (client, GNUNET_YES);
 }
 
 

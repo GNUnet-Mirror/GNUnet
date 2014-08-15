@@ -46,14 +46,24 @@ struct GNUNET_SENSOR_Handle
   struct GNUNET_CLIENT_Connection *client;
 
   /**
-   * Head of iterator DLL.
+   * Head of iteration requests DLL.
    */
   struct GNUNET_SENSOR_IterateContext *ic_head;
 
   /**
-   * Tail of iterator DLL.
+   * Tail of iteration requests DLL.
    */
   struct GNUNET_SENSOR_IterateContext *ic_tail;
+
+  /**
+   * Head of force anomaly requests
+   */
+  struct GNUNET_SENSOR_ForceAnomalyContext *fa_head;
+
+  /**
+   * Tail of force anomaly requests
+   */
+  struct GNUNET_SENSOR_ForceAnomalyContext *fa_tail;
 
   /**
    * Message queue used to send data to service
@@ -112,6 +122,44 @@ struct GNUNET_SENSOR_IterateContext
    * Task responsible for timeout.
    */
   GNUNET_SCHEDULER_TaskIdentifier timeout_task;
+
+};
+
+/**
+ * Context of a force anomaly request
+ */
+struct GNUNET_SENSOR_ForceAnomalyContext
+{
+
+  /**
+   * DLL
+   */
+  struct GNUNET_SENSOR_ForceAnomalyContext *next;
+
+  /**
+   * DLL
+   */
+  struct GNUNET_SENSOR_ForceAnomalyContext *prev;
+
+  /**
+   * Handle to the SENSOR service.
+   */
+  struct GNUNET_SENSOR_Handle *h;
+
+  /**
+   * Envelope containing iterate request.
+   */
+  struct GNUNET_MQ_Envelope *ev;
+
+  /**
+   * User continuation function
+   */
+  GNUNET_SENSOR_Continuation cont;
+
+  /**
+   * Closure for cont
+   */
+  void *cont_cls;
 
 };
 
@@ -222,7 +270,8 @@ handle_sensor_info (void *cls, const struct GNUNET_MessageHeader *msg)
 
 
 /**
- * Disconnect from the sensor service
+ * Disconnect from the sensor service.
+ * Please disconnect only when all requests sent are complete or canceled.
  *
  * @param h handle to disconnect
  */
@@ -230,15 +279,33 @@ void
 GNUNET_SENSOR_disconnect (struct GNUNET_SENSOR_Handle *h)
 {
   struct GNUNET_SENSOR_IterateContext *ic;
+  GNUNET_SENSOR_SensorIterateCB ic_callback;
+  void *ic_callback_cls;
+  struct GNUNET_SENSOR_ForceAnomalyContext *fa;
+  GNUNET_SENSOR_Continuation fa_cont;
+  void *fa_cont_cls;
 
   ic = h->ic_head;
   while (NULL != ic)
   {
-    if (NULL != ic->callback)
-      ic->callback (ic->callback_cls, NULL,
-                    _("Iterate request canceled due to disconnection.\n"));
+    ic_callback = ic->callback;
+    ic_callback_cls = ic->callback_cls;
     GNUNET_SENSOR_iterate_cancel (ic);
+    if (NULL != ic_callback)
+      ic_callback (ic_callback_cls, NULL,
+                   _("Iterate request canceled due to disconnection.\n"));
     ic = h->ic_head;
+  }
+  fa = h->fa_head;
+  while (NULL != fa)
+  {
+    fa_cont = fa->cont;
+    fa_cont_cls = fa->cont_cls;
+    GNUNET_SENSOR_force_anomaly_cancel (fa);
+    if (NULL != fa_cont)
+      fa_cont (fa_cont_cls,
+               _("Force anomaly request canceled due to disconnection.\n"));
+    fa = h->fa_head;
   }
   if (NULL != h->mq)
   {
@@ -414,6 +481,49 @@ GNUNET_SENSOR_iterate (struct GNUNET_SENSOR_Handle *h,
 
 
 /**
+ * Callback from MQ when the request has already been sent to the service.
+ * Now it can not be canelled.
+ *
+ * @param cls closure
+ */
+static void
+force_anomaly_sent (void *cls)
+{
+  struct GNUNET_SENSOR_ForceAnomalyContext *fa = cls;
+  GNUNET_SENSOR_Continuation cont;
+  void *cont_cls;
+
+  fa->ev = NULL;
+  cont = fa->cont;
+  cont_cls = fa->cont_cls;
+  GNUNET_SENSOR_force_anomaly_cancel (fa);
+  if (NULL != cont)
+    cont (cont_cls, NULL);
+}
+
+
+/**
+ * Cancel a force anomaly request.
+ *
+ * @param fa Force anomaly context returned by GNUNET_SENSOR_force_anomaly()
+ */
+void
+GNUNET_SENSOR_force_anomaly_cancel (struct GNUNET_SENSOR_ForceAnomalyContext
+                                    *fa)
+{
+  struct GNUNET_SENSOR_Handle *h = fa->h;
+
+  if (NULL != fa->ev)
+  {
+    GNUNET_MQ_send_cancel (fa->ev);
+    fa->ev = NULL;
+  }
+  GNUNET_CONTAINER_DLL_remove (h->fa_head, h->fa_tail, fa);
+  GNUNET_free (fa);
+}
+
+
+/**
  * Force an anomaly status change on a given sensor. If the sensor reporting
  * module is running, this will trigger the usual reporting logic, therefore,
  * please only use this in a test environment.
@@ -424,19 +534,32 @@ GNUNET_SENSOR_iterate (struct GNUNET_SENSOR_Handle *h,
  * @param h Service handle
  * @param sensor_name Sensor name to set the anomaly status
  * @param anomalous The desired status: #GNUNET_YES / #GNUNET_NO
+ * @param cont Continuation function to be called after the request is sent
+ * @param cont_cls Closure for cont
  */
-void
+struct GNUNET_SENSOR_ForceAnomalyContext *
 GNUNET_SENSOR_force_anomaly (struct GNUNET_SENSOR_Handle *h, char *sensor_name,
-                             int anomalous)
+                             int anomalous, GNUNET_SENSOR_Continuation cont,
+                             void *cont_cls)
 {
   struct ForceAnomalyMessage *msg;
   struct GNUNET_MQ_Envelope *ev;
+  struct GNUNET_SENSOR_ForceAnomalyContext *fa;
 
   ev = GNUNET_MQ_msg (msg, GNUNET_MESSAGE_TYPE_SENSOR_ANOMALY_FORCE);
   GNUNET_CRYPTO_hash (sensor_name, strlen (sensor_name) + 1,
                       &msg->sensor_name_hash);
   msg->anomalous = htons (anomalous);
   GNUNET_MQ_send (h->mq, ev);
+  fa = GNUNET_new (struct GNUNET_SENSOR_ForceAnomalyContext);
+
+  fa->h = h;
+  fa->cont = cont;
+  fa->cont_cls = cont_cls;
+  fa->ev = ev;
+  GNUNET_CONTAINER_DLL_insert_tail (h->fa_head, h->fa_tail, fa);
+  GNUNET_MQ_notify_sent (ev, &force_anomaly_sent, fa);
+  return fa;
 }
 
 

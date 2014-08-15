@@ -421,9 +421,12 @@ handle_anomaly_report (void *cls, struct GNUNET_CADET_Channel *channel,
   struct ClientPeerContext *cp = *channel_ctx;
   struct GNUNET_SENSOR_AnomalyReportMessage *anomaly_msg;
   struct GNUNET_SENSOR_SensorInfo *sensor;
-  uint16_t anomalous;
+  struct GNUNET_SENSOR_DashboardAnomalyEntry *anomaly_entry;
   struct GNUNET_TIME_Absolute expiry;
 
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received an anomaly report message from peer `%s'.\n",
+              GNUNET_i2s (&cp->peerid));
   anomaly_msg = (struct GNUNET_SENSOR_AnomalyReportMessage *) message;
   sensor =
       GNUNET_CONTAINER_multihashmap_get (sensors,
@@ -433,13 +436,20 @@ handle_anomaly_report (void *cls, struct GNUNET_CADET_Channel *channel,
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
-  anomalous = ntohs (anomaly_msg->anomalous);
+  anomaly_entry = GNUNET_new (struct GNUNET_SENSOR_DashboardAnomalyEntry);
+  anomaly_entry->anomalous = ntohs (anomaly_msg->anomalous);
+  anomaly_entry->anomalous_neighbors = anomaly_msg->anomalous_neighbors;
   expiry =
       (GNUNET_YES ==
-       anomalous) ? GNUNET_TIME_UNIT_FOREVER_ABS : GNUNET_TIME_absolute_get ();
+       anomaly_entry->anomalous) ? GNUNET_TIME_UNIT_FOREVER_ABS :
+      GNUNET_TIME_absolute_get ();
   GNUNET_PEERSTORE_store (peerstore, anomalies_subsystem, &cp->peerid,
-                          sensor->name, &anomalous, sizeof (anomalous), expiry,
-                          GNUNET_PEERSTORE_STOREOPTION_REPLACE, NULL, NULL);
+                          sensor->name, anomaly_entry,
+                          sizeof (struct GNUNET_SENSOR_DashboardAnomalyEntry),
+                          expiry, GNUNET_PEERSTORE_STOREOPTION_REPLACE, NULL,
+                          NULL);
+  GNUNET_free (anomaly_entry);
+  GNUNET_CADET_receive_done (channel);
   return GNUNET_OK;
 }
 

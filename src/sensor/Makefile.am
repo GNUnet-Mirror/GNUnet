@@ -95,6 +95,15 @@ test_sensor_api_SOURCES = \
 test_sensor_api_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la
 
+test_gnunet_service_sensor_reporting_SOURCES = \
+  test_gnunet-service-sensor_reporting.c
+test_gnunet_service_sensor_reporting_LDADD = \
+  libgnunetsensor.la \
+  libgnunetsensorutil.la \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/testbed/libgnunettestbed.la \
+  $(top_builddir)/src/peerstore/libgnunetpeerstore.la
+
 pkgsensordir = sensors
 
 install-data-local:

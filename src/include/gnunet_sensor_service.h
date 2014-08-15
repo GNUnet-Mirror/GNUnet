@@ -49,6 +49,11 @@ struct GNUNET_SENSOR_Handle;
 struct GNUNET_SENSOR_IterateContext;
 
 /**
+ * Context of a force anomaly request
+ */
+struct GNUNET_SENSOR_ForceAnomalyContext;
+
+/**
  * Structure containing brief info about sensor
  */
 struct SensorInfoShort
@@ -147,6 +152,16 @@ GNUNET_SENSOR_iterate (struct GNUNET_SENSOR_Handle *h,
 
 
 /**
+ * Cancel a force anomaly request.
+ *
+ * @param fa Force anomaly context returned by GNUNET_SENSOR_force_anomaly()
+ */
+void
+GNUNET_SENSOR_force_anomaly_cancel (struct GNUNET_SENSOR_ForceAnomalyContext
+                                    *fa);
+
+
+/**
  * Force an anomaly status change on a given sensor. If the sensor reporting
  * module is running, this will trigger the usual reporting logic, therefore,
  * please only use this in a test environment.
@@ -157,10 +172,13 @@ GNUNET_SENSOR_iterate (struct GNUNET_SENSOR_Handle *h,
  * @param h Service handle
  * @param sensor_name Sensor name to set the anomaly status
  * @param anomalous The desired status: #GNUNET_YES / #GNUNET_NO
+ * @param cont Continuation function to be called after the request is sent
+ * @param cont_cls Closure for cont
  */
-void
+struct GNUNET_SENSOR_ForceAnomalyContext *
 GNUNET_SENSOR_force_anomaly (struct GNUNET_SENSOR_Handle *h, char *sensor_name,
-                             int anomalous);
+                             int anomalous, GNUNET_SENSOR_Continuation cont,
+                             void *cont_cls);
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

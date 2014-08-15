@@ -39,6 +39,11 @@ static int get_all;
  */
 static char *get_sensor;
 
+/**
+ * option '-f'
+ */
+static char *force_anomaly;
+
 /*
  * Handle to sensor service
  */
@@ -92,6 +97,21 @@ print_sensor_info (void *cls, const struct SensorInfoShort *sensor,
 
 
 /**
+ * Continuation called after a force anomaly request is sent.
+ *
+ * @param cls Closure (unused)
+ * @param emsg Error message, NULL of no error
+ */
+void
+force_anomaly_cont (void *cls, const char *emsg)
+{
+  if (NULL != emsg)
+    printf ("Error: %s\n", emsg);
+  GNUNET_SCHEDULER_shutdown ();
+}
+
+
+/**
  * Main function that will be run by the scheduler.
  *
  * @param cls closure
@@ -118,6 +138,11 @@ run (void *cls, char *const *args, const char *cfgfile,
     GNUNET_SENSOR_iterate (sensor_handle, GNUNET_TIME_UNIT_FOREVER_REL,
                            get_sensor, &print_sensor_info, NULL);
   }
+  else if (NULL != force_anomaly)
+  {
+    GNUNET_SENSOR_force_anomaly (sensor_handle, "nse", GNUNET_YES,
+                                 &force_anomaly_cont, NULL);
+  }
   ret = 0;
 }
 
@@ -139,6 +164,9 @@ main (int argc, char *const *argv)
     {'g', "get-sensor", NULL,
      gettext_noop ("Retrieve information about a single sensor"),
      1, &GNUNET_GETOPT_set_string, &get_sensor},
+    {'f', "force anomaly", NULL,
+     gettext_noop ("Force an anomaly on a sensor, use only for testing"),
+     1, &GNUNET_GETOPT_set_string, &force_anomaly},
     GNUNET_GETOPT_OPTION_END
   };
 
