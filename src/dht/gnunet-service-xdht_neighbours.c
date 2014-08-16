@@ -3296,6 +3296,7 @@ send_verify_successor_message (void *cls,
 
 
 /**
+ * FIXME: should this be a periodic task, incrementing the search finger index?
  * Update the current search finger index.
  *
  * FIXME document parameters!
@@ -3734,6 +3735,19 @@ handle_dht_p2p_put (void *cls, const struct GNUNET_PeerIdentity *peer,
     }
   }
 
+#if 0
+  /* Check if you are present in the trail already. */
+  unsigned int i;
+  for (i = 0; i < putlen; i++)
+  {
+    if(0 == GNUNET_CRYPTO_cmp_peer_identity (&my_identity, &put_path[i]))
+    {
+      putlen = i;
+      break;
+    }
+  }
+#endif
+  //FIXME: always add yourself to the peer list not the sender. 
   /* extend 'put path' by sender */
   struct GNUNET_PeerIdentity pp[putlen + 1];
   if (0 != (options & GNUNET_DHT_RO_RECORD_ROUTE))
@@ -5768,7 +5782,7 @@ remove_matching_fingers (const struct GNUNET_PeerIdentity *disconnected_peer)
   for (i = 0; i < MAX_FINGERS; i++)
   {
     remove_finger = &finger_table[i];
-
+    
     /* No finger stored at this trail index. */
     if (GNUNET_NO == remove_finger->is_present)
       continue;
@@ -5784,11 +5798,12 @@ remove_matching_fingers (const struct GNUNET_PeerIdentity *disconnected_peer)
     {
       struct GNUNET_PeerIdentity *next_hop;
       struct GNUNET_HashCode trail_id;
-
-
+      /* FIXME: Just for check, remove it afterwards. Here finger is a friend.
+       hence trail length should be 0.*/
+      GNUNET_assert (0 == remove_finger->trail_list[0].trail_length);
       GNUNET_assert (GNUNET_YES == (remove_finger->trail_list[0].is_present));
       trail_id = remove_finger->trail_list[0].trail_id;
-
+ 
       if(NULL !=
               (next_hop =
                GDS_ROUTING_get_next_hop (trail_id, GDS_ROUTING_SRC_TO_DEST)))
@@ -5833,8 +5848,6 @@ remove_matching_fingers (const struct GNUNET_PeerIdentity *disconnected_peer)
 }
 
 
-//FIXME: Free the messages of peer from pending qeue. Refere to 
-//neighbours file.
 /**
  * Method called whenever a peer disconnects.
  *
@@ -5853,8 +5866,11 @@ handle_core_disconnect (void *cls,
   if (0 == memcmp (&my_identity, peer, sizeof (struct GNUNET_PeerIdentity)))
     return;
 
-  GNUNET_assert (NULL != (remove_friend =
-                          GNUNET_CONTAINER_multipeermap_get (friend_peermap, peer)));
+  if(NULL == (remove_friend =
+                 GNUNET_CONTAINER_multipeermap_get (friend_peermap, peer)))
+  {
+    DEBUG("\n friend already disconnected.");
+  }
 
   /* Remove fingers with peer as first friend or if peer is a finger. */
   remove_matching_fingers (peer);
@@ -5864,25 +5880,12 @@ handle_core_disconnect (void *cls,
    * disconnected peer is not part of. */
   GNUNET_assert (GNUNET_SYSERR != GDS_ROUTING_remove_trail_by_peer (peer));
 
-  //GNUNET_assert (0 == remove_friend->trails_count); //FIXME; why should this fai.
-
   /* Remove peer from friend_peermap. */
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multipeermap_remove (friend_peermap,
                                                        peer,
                                                        remove_friend));
-
-  if (0 != GNUNET_CONTAINER_multipeermap_size (friend_peermap))
-    return;
-
-  if (GNUNET_SCHEDULER_NO_TASK != find_finger_trail_task)
-  {
-      GNUNET_SCHEDULER_cancel (find_finger_trail_task);
-      find_finger_trail_task = GNUNET_SCHEDULER_NO_TASK;
-  }
-  else
-    GNUNET_break (0);
-
+  
   /* Remove all the messages queued in pending list of this peer is discarded.*/
   if (remove_friend->th != NULL)
   {
@@ -5903,6 +5906,17 @@ handle_core_disconnect (void *cls,
                             ("# Queued messages discarded (peer disconnected)"),
                             discarded, GNUNET_NO);
   GNUNET_free (remove_friend);
+  
+  if (0 != GNUNET_CONTAINER_multipeermap_size (friend_peermap))
+    return;
+
+  if (GNUNET_SCHEDULER_NO_TASK != find_finger_trail_task)
+  {
+      GNUNET_SCHEDULER_cancel (find_finger_trail_task);
+      find_finger_trail_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  else
+    GNUNET_break (0);
 }
 
 
