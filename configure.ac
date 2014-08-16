@@ -216,12 +216,11 @@ AC_CHECK_DECLS([_stati64])
 # will be more selective!
 SAVE_LIBS=$LIBS
 
-# libgnurx (regex library for W32)
-gnurx=0
-AC_CHECK_LIB(gnurx, regexec, gnurx=1)
-if test "x$gnurx" = "x0" -a "x$build_target" = "xmingw"
+# tests only run on Windows
+if test "x$build_target" = "xmingw"
 then
-  AC_MSG_ERROR([on W32 GNUnet needs libgnurx])
+  AC_CHECK_LIB(plibc, plibc_init, [], [AC_MSG_ERROR([GNUnet requires PlibC on Windows])])
+  AC_CHECK_LIB(gnurx, regexec, [], [AC_MSG_ERROR([GNUnet requires libgnurx on Windows])])
 fi
 
 # libgcrypt
