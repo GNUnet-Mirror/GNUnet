@@ -177,6 +177,7 @@ GDS_ROUTING_remove_trail (const struct GNUNET_HashCode remove_trail_id)
     GNUNET_free (remove_entry);
     return GNUNET_YES;
   }
+ 
   return GNUNET_NO;
 }
 

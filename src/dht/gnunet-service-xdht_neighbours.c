@@ -1133,7 +1133,7 @@ GDS_NEIGHBOURS_send_trail_setup_result (struct GNUNET_PeerIdentity querying_peer
 
   pending = GNUNET_malloc (sizeof (struct P2PPendingMessage) + msize);
   pending->importance = 0;
-  pending->timeout = GNUNET_TIME_relative_to_absolute (GET_TIMEOUT);
+  pending->timeout = GNUNET_TIME_relative_to_absolute (GET_TIMEOUT); //TODO: Change it 
   tsrm = (struct PeerTrailSetupResultMessage *) &pending[1];
   pending->msg = &tsrm->header;
   tsrm->header.size = htons (msize);
@@ -1145,9 +1145,8 @@ GDS_NEIGHBOURS_send_trail_setup_result (struct GNUNET_PeerIdentity querying_peer
   tsrm->ulitmate_destination_finger_value =
           GNUNET_htonll (ultimate_destination_finger_value);
   peer_list = (struct GNUNET_PeerIdentity *) &tsrm[1];
-
   memcpy (peer_list, trail_peer_list, trail_length * sizeof (struct GNUNET_PeerIdentity));
-
+  
   /* Send the message to chosen friend. */
   GNUNET_CONTAINER_DLL_insert_tail (target_friend->head, target_friend->tail, pending);
   target_friend->pending_count++;
@@ -4133,7 +4132,6 @@ handle_dht_p2p_trail_setup (void *cls, const struct GNUNET_PeerIdentity *peer,
   trail_length = (msize - sizeof (struct PeerTrailSetupMessage))/
                   sizeof (struct GNUNET_PeerIdentity);
  
-
   GNUNET_STATISTICS_update (GDS_stats,
                             gettext_noop
                             ("# Bytes received from other peers"), msize,
@@ -4206,7 +4204,6 @@ handle_dht_p2p_trail_setup (void *cls, const struct GNUNET_PeerIdentity *peer,
       return GNUNET_OK;
     }
     
-    GDS_ROUTING_add (trail_id, *peer, my_identity);
     if (trail_length > 0)
       target_friend = 
               GNUNET_CONTAINER_multipeermap_get (friend_peermap, 
@@ -4220,13 +4217,15 @@ handle_dht_p2p_trail_setup (void *cls, const struct GNUNET_PeerIdentity *peer,
       GNUNET_break_op (0);
       return GNUNET_SYSERR;
     }
-
+    
+    GDS_ROUTING_add (trail_id, target_friend->id, my_identity);
     GDS_NEIGHBOURS_send_trail_setup_result (source,
                                             my_identity,
                                             target_friend, trail_length,
                                             trail_peer_list,
                                             is_predecessor,
                                             final_dest_finger_val,trail_id);
+    
   }
   else /* I'm not the final destination. */
   {
@@ -4243,13 +4242,14 @@ handle_dht_p2p_trail_setup (void *cls, const struct GNUNET_PeerIdentity *peer,
       memcpy (peer_list, trail_peer_list,
               trail_length * sizeof (struct GNUNET_PeerIdentity));
       peer_list[trail_length] = my_identity;
-
+      
       GDS_NEIGHBOURS_send_trail_setup (source,
                                        final_dest_finger_val,
                                        next_peer.best_known_destination,
                                        target_friend, trail_length + 1, peer_list,
                                        is_predecessor, trail_id,
                                        next_peer.trail_id);
+      GNUNET_free_non_null (peer_list);
     }
     else
         GDS_NEIGHBOURS_send_trail_setup (source,
@@ -4295,15 +4295,15 @@ handle_dht_p2p_trail_setup_result(void *cls, const struct GNUNET_PeerIdentity *p
   }
 
   trail_result = (const struct PeerTrailSetupResultMessage *) message;
-  trail_length = (msize - sizeof (struct PeerTrailSetupResultMessage))/
-                  sizeof (struct GNUNET_PeerIdentity);
   if ((msize - sizeof (struct PeerTrailSetupResultMessage)) %
       sizeof (struct GNUNET_PeerIdentity) != 0)
   {
     GNUNET_break_op (0);
     return GNUNET_OK;
   }
-
+  trail_length = (msize - sizeof (struct PeerTrailSetupResultMessage))/
+                  sizeof (struct GNUNET_PeerIdentity);
+  
   GNUNET_STATISTICS_update (GDS_stats,
                             gettext_noop
                             ("# Bytes received from other peers"), msize,
@@ -4332,13 +4332,6 @@ handle_dht_p2p_trail_setup_result(void *cls, const struct GNUNET_PeerIdentity *p
                                                           peer));
     }
     
-    /* If I am my own finger identity, error. */
-    if (0 == GNUNET_CRYPTO_cmp_peer_identity (&my_identity, &finger_identity))
-    {
-      GNUNET_break_op (0);
-      return GNUNET_SYSERR;
-    }
-    
     GDS_ROUTING_add (trail_id, my_identity, *peer);
     finger_table_add (finger_identity, trail_peer_list, trail_length,
                       is_predecessor, ulitmate_destination_finger_value, trail_id);
@@ -4353,7 +4346,7 @@ handle_dht_p2p_trail_setup_result(void *cls, const struct GNUNET_PeerIdentity *p
     GNUNET_break_op(0);
     return GNUNET_SYSERR;
   }
-  
+  //TODO; return -2.
   if ((trail_length + 1) == my_index)
   {
     DEBUG ("Found twice in trail.\n");
@@ -4361,6 +4354,7 @@ handle_dht_p2p_trail_setup_result(void *cls, const struct GNUNET_PeerIdentity *p
     return GNUNET_SYSERR;
   }
   
+  //TODO; Refactor code here and above to check if sender peer is correct
   if (my_index == 0)
   {
     if(trail_length > 1)
@@ -4392,12 +4386,7 @@ handle_dht_p2p_trail_setup_result(void *cls, const struct GNUNET_PeerIdentity *p
     GNUNET_break_op (0);
     return GNUNET_SYSERR;
   }
-  if (0 == (GNUNET_CRYPTO_cmp_peer_identity (&(trail_result->querying_peer),
-                                             &(trail_result->finger_identity))))
-  {
-    GNUNET_break_op (0);
-    return GNUNET_SYSERR;
-  }
+ 
   GDS_ROUTING_add (trail_id, next_hop, *peer);
   GDS_NEIGHBOURS_send_trail_setup_result (querying_peer, finger_identity,
                                           target_friend, trail_length, trail_peer_list,
@@ -5799,7 +5788,7 @@ remove_matching_fingers (const struct GNUNET_PeerIdentity *disconnected_peer)
       struct GNUNET_PeerIdentity *next_hop;
       struct GNUNET_HashCode trail_id;
       /* FIXME: Just for check, remove it afterwards. Here finger is a friend.
-       hence trail length should be 0.*/
+       hence trail length should be 0*/
       GNUNET_assert (0 == remove_finger->trail_list[0].trail_length);
       GNUNET_assert (GNUNET_YES == (remove_finger->trail_list[0].is_present));
       trail_id = remove_finger->trail_list[0].trail_id;
