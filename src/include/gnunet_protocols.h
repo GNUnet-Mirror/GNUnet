@@ -2584,11 +2584,6 @@ extern "C"
 #define GNUNET_MESSAGE_TYPE_XDHT_P2P_ADD_TRAIL 888
 
 /**
- * Trail compression message.
- */
-#define GNUNET_MESSAGE_TYPE_XDHT_P2P_TRAIL_COMPRESSION 889
-
-/**
  * Peer is storing the data in DHT.
  */
 #define GNUNET_MESSAGE_TYPE_XDHT_P2P_PUT 890
