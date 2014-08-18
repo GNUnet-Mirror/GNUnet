@@ -80,7 +80,7 @@
 /**
  * How long to wait before sending another verify successor message.
  */
-#define DHT_SEND_VERIFY_SUCCESSOR_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 1)
+#define DHT_SEND_VERIFY_SUCCESSOR_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 5)
 
 /**
  * How long at most to wait for transmission of a request to a friend ?
@@ -1242,7 +1242,8 @@ GDS_NEIGHBOURS_send_verify_successor_message (struct GNUNET_PeerIdentity source_
   size_t msize;
 
   msize = sizeof (struct PeerVerifySuccessorMessage) +
-         (trail_length * sizeof (struct GNUNET_PeerIdentity));;
+         (trail_length * sizeof (struct GNUNET_PeerIdentity));
+  
   if (msize >= GNUNET_CONSTANTS_MAX_ENCRYPTED_MESSAGE_SIZE)
   {
     GNUNET_break (0);
@@ -1448,7 +1449,6 @@ GDS_NEIGHBOURS_send_notify_new_successor (struct GNUNET_PeerIdentity source_peer
   nsm->new_successor = successor;
   nsm->source_peer = source_peer;
   nsm->trail_id = succesor_trail_id;
-
   peer_list = (struct GNUNET_PeerIdentity *) &nsm[1];
   memcpy (peer_list, successor_trail,
           successor_trail_length * sizeof (struct GNUNET_PeerIdentity));
@@ -2102,6 +2102,17 @@ find_successor (uint64_t destination_finger_value,
    * with finger if its closest. */
   compare_finger_and_current_closest_peer (&current_closest_peer);
 
+  if(0 == GNUNET_CRYPTO_cmp_peer_identity (&current_closest_peer.next_hop,
+                                           &current_closest_peer.best_known_destination))
+  {
+    FPRINTF (stderr,_("\nSUPU MUST BE 0 trailid = %s,%s, %s, %d,"),
+            GNUNET_h2s(&current_closest_peer.trail_id),__FILE__, __func__,__LINE__);
+  }
+  else
+  {
+    FPRINTF (stderr,_("\nSUPU MUST NOT BE 0 trailid = %s,%s, %s, %d,"),
+            GNUNET_h2s(&current_closest_peer.trail_id),__FILE__, __func__,__LINE__);
+  }
   return current_closest_peer;
 }
 
@@ -2577,6 +2588,10 @@ send_find_finger_trail_message (void *cls,
   /* Schedule another send_find_finger_trail_message task. */
   find_finger_trail_task_next_send_time = 
               GNUNET_TIME_STD_BACKOFF(find_finger_trail_task_next_send_time);
+  find_finger_trail_task_next_send_time.rel_value_us =
+      find_finger_trail_task_next_send_time.rel_value_us +
+      GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                DHT_FIND_FINGER_TRAIL_INTERVAL.rel_value_us);
   find_finger_trail_task =
       GNUNET_SCHEDULER_add_delayed (find_finger_trail_task_next_send_time,
                                     &send_find_finger_trail_message,
@@ -2700,7 +2715,7 @@ select_and_replace_trail (struct FingerInfo *finger,
                                       replace_trail->trail_tail,
                                       element);
   }
-  /* FIXME: Are we adding the trail back to the list. */
+  /* FIXME: URGENT Are we adding the trail back to the list. */
 }
 
 
@@ -3064,11 +3079,12 @@ send_verify_successor_message (void *cls,
 
   verify_successor_next_send_time =
                 GNUNET_TIME_STD_BACKOFF(verify_successor_next_send_time);
-  /* Schedule another send_find_finger_trail_message task. */
+  
+  /* Schedule another send_find_finger_trail_message task. 
   verify_successor_next_send_time.rel_value_us =
-      DHT_SEND_VERIFY_SUCCESSOR_INTERVAL.rel_value_us +
+      verify_successor_next_send_time.rel_value_us +
       GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
-                                DHT_SEND_VERIFY_SUCCESSOR_INTERVAL.rel_value_us);
+                                DHT_SEND_VERIFY_SUCCESSOR_INTERVAL.rel_value_us);*/
   send_verify_successor_task =
       GNUNET_SCHEDULER_add_delayed (verify_successor_next_send_time,
                                     &send_verify_successor_message,
@@ -3108,11 +3124,10 @@ send_verify_successor_message (void *cls,
     struct GNUNET_PeerIdentity peer_list[trail_length];
 
     element = trail->trail_head;
-    while (j < trail_length)
+    for(j = 0; j < trail_length; j++)
     {
       peer_list[j] = element->peer;
       element = element->next;
-      j++;
     }
 
     GNUNET_assert (NULL != (target_friend =
@@ -4578,7 +4593,6 @@ compare_and_update_predecessor (struct GNUNET_PeerIdentity finger,
   unsigned int is_predecessor = 1;
 
   current_predecessor = &finger_table[PREDECESSOR_FINGER_ID];
-
   GNUNET_assert (0 != GNUNET_CRYPTO_cmp_peer_identity (&finger, &my_identity));
 
   /* No predecessor. Add finger as your predecessor. */
@@ -4664,7 +4678,6 @@ handle_dht_p2p_verify_successor(void *cls,
   successor = vsm->successor;
   trail = (struct GNUNET_PeerIdentity *)&vsm[1];
  
-
   /* I am NOT the successor of source_peer. Pass the message to next_hop on
    * the trail. */
   if(0 != (GNUNET_CRYPTO_cmp_peer_identity (&successor, &my_identity)))
@@ -4821,7 +4834,7 @@ compare_and_update_successor (struct GNUNET_PeerIdentity curr_succ,
   struct GNUNET_PeerIdentity *trail_me_to_probable_succ;
   struct FriendInfo *target_friend;
   unsigned int trail_me_to_probable_succ_len;
-  unsigned int is_predecessor = GNUNET_NO;
+  unsigned int is_predecessor = 0;
   uint64_t successor_value;
 
   current_successor = &finger_table[0];
@@ -4829,7 +4842,7 @@ compare_and_update_successor (struct GNUNET_PeerIdentity curr_succ,
 
   /* If probable successor is same as current_successor, do nothing. */
   if(0 == GNUNET_CRYPTO_cmp_peer_identity (&probable_successor,
-                                          &current_successor->finger_identity))
+                                           &current_successor->finger_identity))
     return;
   
   closest_peer = select_closest_peer (&probable_successor,
@@ -4840,8 +4853,6 @@ compare_and_update_successor (struct GNUNET_PeerIdentity curr_succ,
   if (0 == GNUNET_CRYPTO_cmp_peer_identity (&closest_peer ,
                                             &current_successor->finger_identity))
   {
-    /* Code for testing ONLY: Store the successor for path tracking */
-//    track_topology = 1;
     if ((NULL != GDS_stats))
     {
       char *my_id_str;
@@ -4878,9 +4889,6 @@ compare_and_update_successor (struct GNUNET_PeerIdentity curr_succ,
 
   /* Remove the existing successor. */
   remove_existing_finger (current_successor, 0);
-
-  /* TODO URGENT: Check if any peer is present more than once, if yes then shorten
-   the trail. before sending it across the network. */
    /* Generate a new trail id to reach to your new successor. */
   GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_STRONG,
                               &trail_id, sizeof (trail_id));
@@ -4972,7 +4980,6 @@ handle_dht_p2p_verify_successor_result(void *cls,
   probable_successor = vsrm->probable_successor;
   current_successor = vsrm->current_successor;
  
-
   /* I am the querying_peer. */
   if(0 == (GNUNET_CRYPTO_cmp_peer_identity (&querying_peer, &my_identity)))
   {
@@ -5057,10 +5064,7 @@ handle_dht_p2p_notify_new_successor(void *cls,
   source  = nsm->source_peer;
   new_successor = nsm->new_successor;
   trail_id = nsm->trail_id;
-  
-
-  //FIXME: add a check to make sure peer is correct.
-
+ 
   /* I am the new_successor to source_peer. */
   if ( 0 == GNUNET_CRYPTO_cmp_peer_identity (&my_identity, &new_successor))
   {
@@ -5442,27 +5446,20 @@ handle_dht_p2p_add_trail (void *cls, const struct GNUNET_PeerIdentity *peer,
  */
 static int
 remove_matching_trails (const struct GNUNET_PeerIdentity *disconnected_friend,
-                        struct FingerInfo *remove_finger)
+                        struct FingerInfo *finger)
 {
-  unsigned int matching_trails_count;
+  unsigned int matching_trails_count = 0;
   int i;
 
-  /* Number of trails with disconnected_friend as the first hop in the trail
-   * to reach from me to remove_finger, NOT including endpoints. */
-  matching_trails_count = 0;
-
   /* Iterate over all the trails of finger. */
-  for (i = 0; i < remove_finger->trails_count; i++)
+  for (i = 0; i < finger->trails_count; i++)
   {
-    struct Trail *trail;
-    trail = &remove_finger->trail_list[i];
-
-    /* This assertion is ensure that there are no gaps in the trail list.
-     REMOVE IT AFTERWARDS. */
-    GNUNET_assert (GNUNET_YES == trail->is_present);
-
+    struct Trail *current_trail;
+    current_trail = &finger->trail_list[i];
+    //FIXME: This assertion fails if we have gap in trail list from o to trails count.
+    GNUNET_assert (GNUNET_YES == current_trail->is_present);
     /* First friend to reach to finger is disconnected_peer. */
-    if (0 == GNUNET_CRYPTO_cmp_peer_identity (&trail->trail_head->peer,
+    if (0 == GNUNET_CRYPTO_cmp_peer_identity (&current_trail->trail_head->peer,
                                               disconnected_friend))
     {
       struct GNUNET_PeerIdentity *next_hop;
@@ -5472,27 +5469,22 @@ remove_matching_trails (const struct GNUNET_PeerIdentity *disconnected_friend,
                     (remove_friend =
                      GNUNET_CONTAINER_multipeermap_get (friend_peermap,
                                                         disconnected_friend)));
-      /* FIXME: removing no but check it. */
-      //remove_friend->trails_count--;
-      next_hop = GDS_ROUTING_get_next_hop (trail->trail_id,
+      next_hop = GDS_ROUTING_get_next_hop (current_trail->trail_id,
                                            GDS_ROUTING_SRC_TO_DEST);
 
       /* Here it may happen that as all the peers got disconnected, the entry in
        routing table for that particular trail has been removed, because the
        previously disconnected peer was either a next hop or prev hop of that
        peer. */
-      if (NULL == next_hop)
+      if (NULL != next_hop)
       {
-        //TODO UNDERSTAND why do you continue here?
-        continue;
-      }
-      GNUNET_assert (0 == (GNUNET_CRYPTO_cmp_peer_identity (disconnected_friend,
+        GNUNET_assert (0 == (GNUNET_CRYPTO_cmp_peer_identity (disconnected_friend,
                                                             next_hop)));
+        GNUNET_assert (GNUNET_YES == GDS_ROUTING_remove_trail (current_trail->trail_id));
+      }
       matching_trails_count++;
-      GNUNET_assert (GNUNET_YES == GDS_ROUTING_remove_trail (trail->trail_id));
-
-      free_trail (trail);
-      trail->is_present = GNUNET_NO;
+      free_trail (current_trail);
+      current_trail->is_present = GNUNET_NO;
     }
   }
   return matching_trails_count;
@@ -5514,7 +5506,7 @@ remove_matching_trails (const struct GNUNET_PeerIdentity *disconnected_friend,
 static void
 remove_matching_fingers (const struct GNUNET_PeerIdentity *disconnected_peer)
 {
-  struct FingerInfo *remove_finger;
+  struct FingerInfo *current_finger;
   struct FriendInfo *remove_friend;
   int removed_trails_count;
   int i;
@@ -5522,28 +5514,27 @@ remove_matching_fingers (const struct GNUNET_PeerIdentity *disconnected_peer)
   /* Iterate over finger table entries. */
   for (i = 0; i < MAX_FINGERS; i++)
   {
-    remove_finger = &finger_table[i];
+    current_finger = &finger_table[i];
     
     /* No finger stored at this trail index. */
-    if (GNUNET_NO == remove_finger->is_present)
+    if (GNUNET_NO == current_finger->is_present)
       continue;
 
     /* I am my own finger, then ignore this finger. */
-    if (0 == GNUNET_CRYPTO_cmp_peer_identity (&remove_finger->finger_identity,
+    if (0 == GNUNET_CRYPTO_cmp_peer_identity (&current_finger->finger_identity,
                                               &my_identity))
       continue;
 
     /* Is disconnected_peer a finger? */
     if (0 == GNUNET_CRYPTO_cmp_peer_identity (disconnected_peer,
-                                              &remove_finger->finger_identity))
+                                              &current_finger->finger_identity))
     {
       struct GNUNET_PeerIdentity *next_hop;
       struct GNUNET_HashCode trail_id;
-      /* FIXME: Just for check, remove it afterwards. Here finger is a friend.
-       hence trail length should be 0*/
-      GNUNET_assert (0 == remove_finger->trail_list[0].trail_length);
-      GNUNET_assert (GNUNET_YES == (remove_finger->trail_list[0].is_present));
-      trail_id = remove_finger->trail_list[0].trail_id;
+      
+      GNUNET_assert (0 == current_finger->trail_list[0].trail_length);
+      GNUNET_assert (GNUNET_YES == (current_finger->trail_list[0].is_present));
+      trail_id = current_finger->trail_list[0].trail_id;
  
       if(NULL !=
               (next_hop =
@@ -5551,40 +5542,33 @@ remove_matching_fingers (const struct GNUNET_PeerIdentity *disconnected_peer)
       {
         GNUNET_assert (0 ==
                       (GNUNET_CRYPTO_cmp_peer_identity (next_hop,
-                                                        &remove_finger->finger_identity)));
+                                                        &current_finger->finger_identity)));
         GNUNET_assert (GNUNET_YES == GDS_ROUTING_remove_trail (trail_id));
         GNUNET_assert (NULL !=
                        (remove_friend =
                         GNUNET_CONTAINER_multipeermap_get (friend_peermap,
                                                            disconnected_peer)));
       }
-      //TODO should we handle the else case.
-      
-
-      remove_finger->trail_list[0].is_present = GNUNET_NO;
-      //GNUNET_assert (0 != remove_friend->trails_count);
-      //remove_friend->trails_count--; //FIXME; CHECK WHY IT FAILS AND THEN UNCOMMENT.
-      remove_finger->is_present = GNUNET_NO;
+      current_finger->trail_list[0].is_present = GNUNET_NO;
+      current_finger->is_present = GNUNET_NO;
       memset ((void *)&finger_table[i], 0, sizeof (finger_table[i]));
       continue;
     }
 
     /* If finger is a friend but not disconnected_friend, then continue. */
     if (NULL != GNUNET_CONTAINER_multipeermap_get (friend_peermap,
-                                                   &remove_finger->finger_identity))
+                                                   &current_finger->finger_identity))
       continue;
 
     /* Iterate over the list of trails to reach remove_finger. Check if
      * disconnected_friend is the first friend in any of the trail. */
     removed_trails_count = remove_matching_trails (disconnected_peer,
-                                                   remove_finger);
-    remove_finger->trails_count =
-            remove_finger->trails_count - removed_trails_count;
-    /* All the finger trails had disconnected_friend as the first friend,
-     * so free the finger. */
-    if (remove_finger->trails_count == 0)
+                                                   current_finger);
+    current_finger->trails_count =
+            current_finger->trails_count - removed_trails_count;
+    if (0 == current_finger->trails_count)
     {
-      remove_finger->is_present = GNUNET_NO;
+      current_finger->is_present = GNUNET_NO;
       memset ((void *)&finger_table[i], 0, sizeof (finger_table[i]));
     }
   }
@@ -5614,16 +5598,8 @@ handle_core_disconnect (void *cls,
   {
     DEBUG("\n friend already disconnected.");
   }
-
-  /* Remove fingers with peer as first friend or if peer is a finger. */
   remove_matching_fingers (peer);
-
-  /* Remove any trail from routing table of which peer is a part of. This function
-   * internally sends a trail teardown message in the direction of which
-   * disconnected peer is not part of. */
   GNUNET_assert (GNUNET_SYSERR != GDS_ROUTING_remove_trail_by_peer (peer));
-
-  /* Remove peer from friend_peermap. */
   GNUNET_assert (GNUNET_YES ==
                  GNUNET_CONTAINER_multipeermap_remove (friend_peermap,
                                                        peer,
@@ -5700,10 +5676,6 @@ handle_core_connect (void *cls, const struct GNUNET_PeerIdentity *peer_identity)
   if (GNUNET_SCHEDULER_NO_TASK == find_finger_trail_task)
   {
     DEBUG ("sCHEDULING FINGER TASK");
-    find_finger_trail_task_next_send_time.rel_value_us =
-      DHT_FIND_FINGER_TRAIL_INTERVAL.rel_value_us +
-      GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
-                                DHT_FIND_FINGER_TRAIL_INTERVAL.rel_value_us);
     find_finger_trail_task = GNUNET_SCHEDULER_add_now (&send_find_finger_trail_message, NULL);
   }
 }
@@ -5778,7 +5750,17 @@ GDS_NEIGHBOURS_init (void)
   //TODO: check size of this peer map? 
   friend_peermap = GNUNET_CONTAINER_multipeermap_create (256, GNUNET_NO);
   finger_table_init ();
-
+  
+  find_finger_trail_task_next_send_time.rel_value_us =
+      DHT_FIND_FINGER_TRAIL_INTERVAL.rel_value_us +
+      GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                DHT_FIND_FINGER_TRAIL_INTERVAL.rel_value_us);
+  
+  verify_successor_next_send_time.rel_value_us = 
+      DHT_SEND_VERIFY_SUCCESSOR_INTERVAL.rel_value_us +
+      GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
+                                DHT_FIND_FINGER_TRAIL_INTERVAL.rel_value_us);
+  
   return GNUNET_OK;
 }
 
