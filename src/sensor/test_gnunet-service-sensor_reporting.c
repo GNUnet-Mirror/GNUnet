@@ -40,6 +40,12 @@
 #define TEST_TIMEOUT GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MINUTES, 1)
 
 /**
+ * How long to wait between starting everything and forcing anomalies to give
+ * the peer enough time to stabilize.
+ */
+#define ANOMALY_DELAY GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 3)
+
+/**
  * Information about a test peer
  */
 struct TestPeer
@@ -74,6 +80,16 @@ struct TestPeer
    * TESTBED operation connecting us to sensor service
    */
   struct GNUNET_TESTBED_Operation *sensor_op;
+
+  /**
+   * Sensor service handle
+   */
+  struct GNUNET_SENSOR_Handle *sensor;
+
+  /**
+   * GNUNET scheduler task that forces the anomaly after a stabilization delay
+   */
+  GNUNET_SCHEDULER_TaskIdentifier delay_task;
 
 };
 
@@ -119,14 +135,19 @@ static struct TestPeer *peer_tail;
 static int started_peers = 0;
 
 /**
+ * Number of peers reported anomalies with full list of anomalous neighbors
+ */
+static int reported_peers = 0;
+
+/**
  * TESTBED operation connecting us to peerstore service
  */
-struct GNUNET_TESTBED_Operation *peerstore_op;
+static struct GNUNET_TESTBED_Operation *peerstore_op;
 
 /**
  * Handle to the peerstore service
  */
-struct GNUNET_PEERSTORE_Handle *peerstore;
+static struct GNUNET_PEERSTORE_Handle *peerstore;
 
 /**
  * Task used to shutdown / expire the test
@@ -139,6 +160,28 @@ static GNUNET_SCHEDULER_TaskIdentifier shutdown_task;
 static int ok = 1;
 
 
+static void
+destroy_peer (struct TestPeer *peer)
+{
+  if (GNUNET_SCHEDULER_NO_TASK != peer->delay_task)
+  {
+    GNUNET_SCHEDULER_cancel (peer->delay_task);
+    peer->delay_task = GNUNET_SCHEDULER_NO_TASK;
+  }
+  if (NULL != peer->sensor_op)
+  {
+    GNUNET_TESTBED_operation_done (peer->sensor_op);
+    peer->sensor_op = NULL;
+  }
+  if (NULL != peer->wc)
+  {
+    GNUNET_PEERSTORE_watch_cancel (peer->wc);
+    peer->wc = NULL;
+  }
+  GNUNET_free (peer);
+}
+
+
 /**
  * Shutdown task
  *
@@ -148,7 +191,15 @@ static int ok = 1;
 static void
 do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
-  //TODO: destroy list of peers
+  struct TestPeer *peer;
+
+  peer = peer_head;
+  while (NULL != peer)
+  {
+    GNUNET_CONTAINER_DLL_remove (peer_head, peer_tail, peer);
+    destroy_peer (peer);
+    peer = peer_head;
+  }
   if (NULL != peerstore_op)
   {
     GNUNET_TESTBED_operation_done (peerstore_op);
@@ -162,7 +213,7 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
  * Write new temp sensor directory with a sensor updated with collection point
  * peer id
  */
-void
+static void
 write_new_sensor_dir (struct TestPeer *cp_peer)
 {
   struct GNUNET_CONFIGURATION_Handle *sensorcfg;
@@ -208,8 +259,29 @@ peerstore_watch_cb (void *cls, struct GNUNET_PEERSTORE_Record *record,
               "Anomalous: %d\n" "Anomalous neigbors: %f.\n",
               GNUNET_i2s (&peer->peer_id), anomaly->anomalous,
               anomaly->anomalous_neighbors);
-  //TODO
+  if (1 == anomaly->anomalous_neighbors)
+    reported_peers++;
+  if (reported_peers == NUM_PEERS)
+  {
+    ok = 0;
+    GNUNET_SCHEDULER_cancel (shutdown_task);
+    shutdown_task = GNUNET_SCHEDULER_add_now (&do_shutdown, NULL);
+  }
   return GNUNET_YES;
+}
+
+
+/**
+ * Task that pushes fake anomalies to running peers
+ */
+static void
+force_anomaly_task (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
+{
+  struct TestPeer *peer = cls;
+
+  peer->delay_task = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_SENSOR_force_anomaly (peer->sensor, (char *) sensor_name, GNUNET_YES,
+                               NULL, NULL);
 }
 
 
@@ -229,8 +301,9 @@ sensor_connect_cb (void *cls, struct GNUNET_TESTBED_Operation *op,
   struct TestPeer *peer = cls;
   struct GNUNET_SENSOR_Handle *sensor = ca_result;
 
-  GNUNET_SENSOR_force_anomaly (sensor, (char *) sensor_name, GNUNET_YES, NULL,
-                               NULL);
+  peer->sensor = sensor;
+  peer->delay_task =
+      GNUNET_SCHEDULER_add_delayed (ANOMALY_DELAY, &force_anomaly_task, peer);
 }
 
 
@@ -399,6 +472,7 @@ peer_info_cb (void *cb_cls, struct GNUNET_TESTBED_Operation *op,
   peer = GNUNET_new (struct TestPeer);
 
   peer->testbed_peer = testbed_peer;
+  peer->delay_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_CRYPTO_get_peer_identity (pinfo->result.cfg, &peer->peer_id);
   if (NULL == peer_head)        /* First peer (collection point) */
   {

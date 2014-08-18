@@ -83,7 +83,8 @@ libgnunet_plugin_sensor_model_gaussian_la_DEPENDENCIES = \
   libgnunetsensor.la
 
 check_PROGRAMS = \
- test_sensor_api
+ test_sensor_api \
+ test_gnunet-service-sensor_reporting
 
 if ENABLE_TEST_RUN
 AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PATH=$${GNUNET_PREFIX:-@prefix@}/bin:$$PATH;

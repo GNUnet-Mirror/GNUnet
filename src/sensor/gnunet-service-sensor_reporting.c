@@ -480,7 +480,7 @@ get_cadet_peer (struct GNUNET_PeerIdentity pid)
   cadetp->channel =
       GNUNET_CADET_channel_create (cadet, cadetp, &pid,
                                    GNUNET_APPLICATION_TYPE_SENSORDASHBOARD,
-                                   GNUNET_CADET_OPTION_DEFAULT);
+                                   GNUNET_CADET_OPTION_RELIABLE);
   cadetp->mq = GNUNET_CADET_mq_create (cadetp->channel);
   GNUNET_CONTAINER_DLL_insert (cadetp_head, cadetp_tail, cadetp);
   return cadetp;
@@ -585,9 +585,10 @@ handle_anomaly_report (void *cls, const struct GNUNET_PeerIdentity *other,
 {
   struct GNUNET_SENSOR_AnomalyReportMessage *arm;
   struct GNUNET_SENSOR_SensorInfo *sensor;
-  struct AnomalyInfo *ai;
+  struct AnomalyInfo *my_anomaly_info;
   struct CadetPeer *cadetp;
-  int peer_in_list;
+  int peer_anomalous;
+  int peer_in_anomalous_list;
 
   arm = (struct GNUNET_SENSOR_AnomalyReportMessage *) message;
   sensor = GNUNET_CONTAINER_multihashmap_get (sensors, &arm->sensorname_hash);
@@ -600,34 +601,39 @@ handle_anomaly_report (void *cls, const struct GNUNET_PeerIdentity *other,
          GNUNET_i2s (other));
     return GNUNET_OK;
   }
-  ai = get_anomaly_info_by_sensor (sensor);
-  GNUNET_assert (NULL != ai);
-  peer_in_list =
-      GNUNET_CONTAINER_multipeermap_contains (ai->anomalous_neighbors, other);
-  if (GNUNET_YES == ai->anomalous)
+  my_anomaly_info = get_anomaly_info_by_sensor (sensor);
+  GNUNET_assert (NULL != my_anomaly_info);
+  peer_in_anomalous_list =
+      GNUNET_CONTAINER_multipeermap_contains
+      (my_anomaly_info->anomalous_neighbors, other);
+  peer_anomalous = ntohs (arm->anomalous);
+  if (GNUNET_YES == peer_anomalous)
   {
-    if (GNUNET_YES == peer_in_list)
+    if (GNUNET_YES == peer_in_anomalous_list)   /* repeated positive report */
       GNUNET_break_op (0);
     else
-      GNUNET_CONTAINER_multipeermap_put (ai->anomalous_neighbors, other, NULL,
+      GNUNET_CONTAINER_multipeermap_put (my_anomaly_info->anomalous_neighbors,
+                                         other, NULL,
                                          GNUNET_CONTAINER_MULTIHASHMAPOPTION_UNIQUE_FAST);
   }
   else
   {
-    if (GNUNET_NO == peer_in_list)
+    if (GNUNET_NO == peer_in_anomalous_list)    /* repeated negative report */
       GNUNET_break_op (0);
     else
-      GNUNET_CONTAINER_multipeermap_remove_all (ai->anomalous_neighbors, other);
+      GNUNET_CONTAINER_multipeermap_remove_all
+          (my_anomaly_info->anomalous_neighbors, other);
   }
-  /* Send anomaly update to collection point */
-  if (NULL != ai->sensor->collection_point &&
-      GNUNET_YES == ai->sensor->report_anomalies)
+  /* Send anomaly update to collection point only if I have the same anomaly */
+  if (GNUNET_YES == my_anomaly_info->anomalous &&
+      NULL != sensor->collection_point &&
+      GNUNET_YES == sensor->report_anomalies)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Sending anomaly report to collection point `%s'.\n",
-         GNUNET_i2s (ai->sensor->collection_point));
-    cadetp = get_cadet_peer (*ai->sensor->collection_point);
-    send_anomaly_report (cadetp->mq, ai, GNUNET_NO);
+         "Neighbor update triggered sending anomaly report to collection point `%s'.\n",
+         GNUNET_i2s (sensor->collection_point));
+    cadetp = get_cadet_peer (*sensor->collection_point);
+    send_anomaly_report (cadetp->mq, my_anomaly_info, GNUNET_NO);
   }
   return GNUNET_OK;
 }
@@ -687,6 +693,8 @@ core_disconnect_cb (void *cls, const struct GNUNET_PeerIdentity *peer)
 
   if (0 == GNUNET_CRYPTO_cmp_peer_identity (&mypeerid, peer))
     return;
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Core peer `%s' disconnected.\n",
+       GNUNET_i2s (peer));
   neighborhood--;
   corep = corep_head;
   while (NULL != corep)
@@ -716,6 +724,8 @@ core_connect_cb (void *cls, const struct GNUNET_PeerIdentity *peer)
 
   if (0 == GNUNET_CRYPTO_cmp_peer_identity (&mypeerid, peer))
     return;
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Connected to core peer `%s'.\n",
+       GNUNET_i2s (peer));
   neighborhood++;
   corep = GNUNET_new (struct CorePeer);
   corep->peer_id = (struct GNUNET_PeerIdentity *) peer;
@@ -725,11 +735,13 @@ core_connect_cb (void *cls, const struct GNUNET_PeerIdentity *peer)
   ai = ai_head;
   while (NULL != ai)
   {
-    LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Updating newly connected neighbor `%s' with anomalous sensor.\n",
-         GNUNET_i2s (peer));
     if (GNUNET_YES == ai->anomalous)
+    {
+      LOG (GNUNET_ERROR_TYPE_DEBUG,
+           "Updating newly connected neighbor `%s' with anomalous sensor.\n",
+           GNUNET_i2s (peer));
       send_anomaly_report (corep->mq, ai, GNUNET_YES);
+    }
     ai = ai->next;
   }
 }
@@ -839,7 +851,7 @@ SENSOR_reporting_anomaly_update (struct GNUNET_SENSOR_SensorInfo *sensor,
       GNUNET_YES == ai->sensor->report_anomalies)
   {
     LOG (GNUNET_ERROR_TYPE_DEBUG,
-         "Sending anomaly report to collection point `%s'.\n",
+         "Local anomaly update triggered sending anomaly report to collection point `%s'.\n",
          GNUNET_i2s (ai->sensor->collection_point));
     cadetp = get_cadet_peer (*ai->sensor->collection_point);
     send_anomaly_report (cadetp->mq, ai, GNUNET_NO);
