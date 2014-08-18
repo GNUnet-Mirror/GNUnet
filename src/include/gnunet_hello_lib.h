@@ -48,6 +48,11 @@ extern "C"
  */
 #define GNUNET_FRIEND_HELLO_URI_PREFIX "gnunet://friend-hello/"
 
+/**
+ * Separator used in HELLO URI
+ */
+#define GNUNET_HELLO_URI_SEP '+'
+
 
 /**
  * Additional local information about an address

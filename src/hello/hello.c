@@ -732,7 +732,7 @@ GNUNET_HELLO_get_last_expiration (const struct GNUNET_HELLO_Message *msg)
  *
  * The concrete URI format is:
  *
- * "gnunet://hello/PEER[!YYYYMMDDHHMMSS!<TYPE>!<ADDRESS>]...".
+ * "gnunet://hello/PEER[+YYYYMMDDHHMMSS+<TYPE>+<ADDRESS>]...".
  * These URIs can be used to add a peer record to peerinfo service.
  * PEER is the string representation of peer's public key.
  * YYYYMMDDHHMMSS is the expiration date.
@@ -744,8 +744,8 @@ GNUNET_HELLO_get_last_expiration (const struct GNUNET_HELLO_Message *msg)
  *
  * <TCP|UDP>!IPADDRESS
  * IPVDDRESS is either IPV4 .-delimited address in form of XXX.XXX.XXX.XXX:PPPPP
- * or IPV6 :-delimited address, but with '(' and ')' instead of '[' and ']' (RFC2396 advises against using square brackets in URIs):
- * (XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX):PPPPP
+ * or IPV6 :-delimited address  with '[' and ']' (according to RFC2732):
+ * [XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX:XXXX]:PPPPP
  * PPPPP is the port number. May be 0.
  *
  * </li><li>
@@ -759,8 +759,8 @@ GNUNET_HELLO_get_last_expiration (const struct GNUNET_HELLO_Message *msg)
  *
  * Examples:
  *
- * gnunet://hello/0430205UC7D56PTQK8NV05776671CNN44FK4TL6D0GQ35OMF8MEN4RNMKA5UF6AL3DQO8B1SC5AQF50SQ2MABIRU4HC8H2HAJKJ59JL1JVRJAK308F9GASRFLMGUBB5TQ5AKR94AS5T3MDG8B9O1EMPRKB0HVCG7T6QPP4CDJ913LAEHVJ2DI1TOBB15Q1JIT5ARBOD12U4SIGRFDV3Q7T66G4TBVSJJ90UQF1BG29TGJJKLGEIMSPHHKO544D6EALQ4F2K0416311JC22GVAD48R616I7VK03K7MP7N0RS2MBV1TE9JV8CK1LSQMR7KCDRTLDA6917UGA67DHTGHERIACCGQ54TGSR48RMSGS9BA5HLMOKASFC1I6V4TT09TUGCU8GNDHQF0JF3H7LPV59UL5I38QID040G000!20120302010059!TCP!192.168.0.1:2086!TCP!64.23.8.174:0
- * gnunet://hello/0430205UC7D56PTQK8NV05776671CNN44FK4TL6D0GQ35OMF8MEN4RNMKA5UF6AL3DQO8B1SC5AQF50SQ2MABIRU4HC8H2HAJKJ59JL1JVRJAK308F9GASRFLMGUBB5TQ5AKR94AS5T3MDG8B9O1EMPRKB0HVCG7T6QPP4CDJ913LAEHVJ2DI1TOBB15Q1JIT5ARBOD12U4SIGRFDV3Q7T66G4TBVSJJ90UQF1BG29TGJJKLGEIMSPHHKO544D6EALQ4F2K0416311JC22GVAD48R616I7VK03K7MP7N0RS2MBV1TE9JV8CK1LSQMR7KCDRTLDA6917UGA67DHTGHERIACCGQ54TGSR48RMSGS9BA5HLMOKASFC1I6V4TT09TUGCU8GNDHQF0JF3H7LPV59UL5I38QID040G000!20120302010059!TCP!(2001:db8:85a3:8d3:1319:8a2e:370:7348):2086
+ * gnunet://hello/V8XXK9GAN5ZJFRFQP8MQX3D83BZTSBQVHKWWD0JPE63Z821906EG+20120302010059+TCP+192.168.0.1:2086+TCP+64.23.8.174:0
+ * gnunet://hello/V8XXK9GAN5ZJFRFQP8MQX3D83BZTSBQVHKWWD0JPE63Z821906EG+20120302010059+TCP+[2001:db8:85a3:8d3:1319:8a2e:370:7348]:2086
  *
  * <p>
  */
@@ -768,7 +768,7 @@ GNUNET_HELLO_get_last_expiration (const struct GNUNET_HELLO_Message *msg)
 
 /* ************************* Compose HELLO URI ************************** */
 
-
+#if 0
 /**
  * Replace all characters in the input 'in' according
  * to the mapping.  The mapping says to map each character
@@ -801,6 +801,7 @@ map_characters (const char *in,
   }
   return ret;
 }
+#endif
 
 
 /**
@@ -819,7 +820,6 @@ add_address_to_uri (void *cls, const struct GNUNET_HELLO_Address *address,
   struct GNUNET_HELLO_ComposeUriContext *ctx = cls;
   struct GNUNET_TRANSPORT_PluginFunctions *papi;
   const char *addr;
-  char *uri_addr;
   char *ret;
   char *addr_dup;
   char *pos;
@@ -850,20 +850,19 @@ add_address_to_uri (void *cls, const struct GNUNET_HELLO_Address *address,
   if (NULL != (pos = strstr (addr_dup, "_server")))
   	memcpy (pos, client_str, strlen(client_str)); /* Replace all server addresses with client addresses */
 
-   /* For URIs we use '(' and ')' instead of '[' and ']' as brackets are reserved
-      characters in URIs */
-  uri_addr = map_characters (addr_dup, "[]", "()");
-  GNUNET_free (addr_dup);
   seconds = expiration.abs_value_us / 1000LL / 1000LL;
   t = gmtime (&seconds);
 
   GNUNET_asprintf (&ret,
-		   "%s!%s!%s!%s",
+		   "%s%c%s%c%s%c%s",
 		   ctx->uri,
+		   GNUNET_HELLO_URI_SEP,
 		   strftime (tbuf, sizeof (tbuf), "%Y%m%d%H%M%S", t) ? tbuf : "0",
+                   GNUNET_HELLO_URI_SEP,
 		   address->transport_name,
-		   uri_addr);
-  GNUNET_free (uri_addr);
+		   GNUNET_HELLO_URI_SEP,
+		   addr_dup);
+  GNUNET_free (addr_dup);
   GNUNET_free (ctx->uri);
   ctx->uri = ret;
   return GNUNET_OK;
@@ -916,7 +915,6 @@ add_address_to_hello (void *cls, size_t max, void *buffer)
   const char *tname;
   const char *address;
   char *uri_address;
-  char *plugin_address;
   const char *end;
   char *plugin_name;
   struct tm expiration_time;
@@ -931,7 +929,7 @@ add_address_to_hello (void *cls, size_t max, void *buffer)
 
   if (NULL == ctx->pos)
     return GNUNET_SYSERR;
-  if ('!' != ctx->pos[0])
+  if (GNUNET_HELLO_URI_SEP != ctx->pos[0])
   {
     ctx->ret = GNUNET_SYSERR;
     GNUNET_break (0);
@@ -939,7 +937,7 @@ add_address_to_hello (void *cls, size_t max, void *buffer)
   }
   ctx->pos++;
 
-  if ('0' == ctx->pos[0] && '!' == ctx->pos[1])
+  if ('0' == ctx->pos[0] && GNUNET_HELLO_URI_SEP == ctx->pos[1])
   {
     expire = GNUNET_TIME_UNIT_FOREVER_ABS;
     tname = ctx->pos + 1;
@@ -970,7 +968,7 @@ add_address_to_hello (void *cls, size_t max, void *buffer)
     }
     expire.abs_value_us = expiration_seconds * 1000LL * 1000LL;
   }
-  if ('!' != tname[0])
+  if (GNUNET_HELLO_URI_SEP != tname[0])
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Failed to parse HELLO message: malformed\n"));
@@ -979,7 +977,7 @@ add_address_to_hello (void *cls, size_t max, void *buffer)
     return GNUNET_SYSERR;
   }
   tname++;
-  address = strchr (tname, (int) '!');
+  address = strchr (tname, (int) GNUNET_HELLO_URI_SEP);
   if (NULL == address)
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
@@ -989,7 +987,7 @@ add_address_to_hello (void *cls, size_t max, void *buffer)
     return GNUNET_SYSERR;
   }
   address++;
-  end = strchr (address, (int) '!');
+  end = strchr (address, (int) GNUNET_HELLO_URI_SEP);
   ctx->pos = end;
   ctx->counter_total ++;
   plugin_name = GNUNET_strndup (tname, address - (tname+1));
@@ -1016,26 +1014,22 @@ add_address_to_hello (void *cls, size_t max, void *buffer)
     return 0;
   }
   uri_address = GNUNET_strndup (address, end - address);
-  /* For URIs we use '(' and ')' instead of '[' and ']' as brackets are reserved
-     characters in URIs; need to convert back to '[]' for the plugin */
-   plugin_address = map_characters (uri_address, "()", "[]");
-  GNUNET_free (uri_address);
   if (GNUNET_OK !=
       papi->string_to_address (papi->cls,
-			       plugin_address,
-			       strlen (plugin_address) + 1,
+                               uri_address,
+			       strlen (uri_address) + 1,
 			       &addr,
 			       &addr_len))
   {
     GNUNET_log (GNUNET_ERROR_TYPE_ERROR,
                 _("Failed to parse `%s' as an address for plugin `%s'\n"),
-		plugin_address,
+                uri_address,
 		plugin_name);
     GNUNET_free (plugin_name);
-    GNUNET_free (plugin_address);
+    GNUNET_free (uri_address);
     return 0;
   }
-  GNUNET_free (plugin_address);
+  GNUNET_free (uri_address);
   /* address.peer is unset - not used by add_address() */
   haddr.address_length = addr_len;
   haddr.address = addr;
@@ -1084,7 +1078,7 @@ GNUNET_HELLO_parse_uri (const char *uri,
   }
   else
   	return GNUNET_SYSERR;
-  exc = strstr (pks, "!");
+  exc = strchr (pks, GNUNET_HELLO_URI_SEP);
 
   if (GNUNET_OK !=
       GNUNET_STRINGS_string_to_data (pks,
