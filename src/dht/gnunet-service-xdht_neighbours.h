@@ -75,6 +75,32 @@ GDS_NEIGHBOURS_handle_get(const struct GNUNET_HashCode *key,
                           uint32_t desired_replication_level);
 
 /**
+ * Send the get result to requesting client.
+ * @param key Key of the requested data.
+ * @param type Block type
+ * @param target_peer Next peer to forward the message to.
+ * @param source_peer Peer which has the data for the key.
+ * @param put_path_length Number of peers in @a put_path
+ * @param put_path Path taken to put the data at its stored location.
+ * @param get_path_length Number of peers in @a get_path
+ * @param get_path Path taken to reach to the location of the key.
+ * @param expiration When will this result expire?
+ * @param data Payload to store
+ * @param data_size Size of the @a data
+ */
+void
+GDS_NEIGHBOURS_send_get_result (const struct GNUNET_HashCode *key,
+                                enum GNUNET_BLOCK_Type type,
+                                const struct GNUNET_PeerIdentity *target_peer,
+                                const struct GNUNET_PeerIdentity *source_peer,
+                                unsigned int put_path_length,
+                                const struct GNUNET_PeerIdentity *put_path,
+                                unsigned int get_path_length,
+                                const struct GNUNET_PeerIdentity *get_path,
+                                struct GNUNET_TIME_Absolute expiration,
+                                const void *data, size_t data_size);
+
+/**
  * Construct a trail teardown message and forward it to target friend. 
  * @param trail_id Unique identifier of the trail.
  * @param trail_direction Direction of trail.

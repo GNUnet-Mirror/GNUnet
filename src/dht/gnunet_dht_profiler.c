@@ -543,7 +543,7 @@ get_iter (void *cls,
   if (n_active == n_gets_fail + n_gets_ok)
   {
     average_put_path_length = (double)total_put_path_length/(double)n_active;
-    average_get_path_length = (double)total_get_path_length/(double)n_active;
+    average_get_path_length = (double)total_get_path_length/(double )n_active;
     summarize ();
   }
 }
