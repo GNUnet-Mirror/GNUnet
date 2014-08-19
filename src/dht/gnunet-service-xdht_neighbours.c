@@ -75,7 +75,7 @@
 /**
  * How long to wait before sending another find finger trail request
  */
-#define DHT_FIND_FINGER_TRAIL_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_SECONDS, 2)
+#define DHT_FIND_FINGER_TRAIL_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 50)
 
 /**
  * How long to wait before sending another verify successor message.
@@ -2524,8 +2524,6 @@ send_find_finger_trail_message (void *cls,
   uint64_t finger_id_value;
   
   /* Schedule another send_find_finger_trail_message task. */
-  find_finger_trail_task_next_send_time = 
-              GNUNET_TIME_STD_BACKOFF(find_finger_trail_task_next_send_time);
   find_finger_trail_task_next_send_time.rel_value_us =
       find_finger_trail_task_next_send_time.rel_value_us +
       GNUNET_CRYPTO_random_u64 (GNUNET_CRYPTO_QUALITY_WEAK,
@@ -2539,7 +2537,6 @@ send_find_finger_trail_message (void *cls,
    * in their routing table).  */
   if (GNUNET_YES == GDS_ROUTING_threshold_reached())
     return;
-
 
   target_friend = select_random_friend ();
   if (NULL == target_friend)
@@ -3025,9 +3022,6 @@ send_verify_successor_message (void *cls,
   unsigned int j = 0;
   struct FingerInfo *successor;
 
-  verify_successor_next_send_time =
-                GNUNET_TIME_STD_BACKOFF(verify_successor_next_send_time);
-  
   /* Schedule another send_find_finger_trail_message task. 
   verify_successor_next_send_time.rel_value_us =
       verify_successor_next_send_time.rel_value_us +
@@ -3301,6 +3295,8 @@ finger_table_add (struct GNUNET_PeerIdentity finger_identity,
     if (0 == GNUNET_CRYPTO_cmp_peer_identity (&finger_identity,
                                               &successor->finger_identity))
     {
+      find_finger_trail_task_next_send_time = 
+              GNUNET_TIME_STD_BACKOFF(find_finger_trail_task_next_send_time);
       current_search_finger_index = 0;
       return;
     }
@@ -4935,6 +4931,8 @@ handle_dht_p2p_verify_successor_result(void *cls,
   probable_successor = vsrm->probable_successor;
   current_successor = vsrm->current_successor;
  
+   verify_successor_next_send_time =
+                GNUNET_TIME_STD_BACKOFF(verify_successor_next_send_time);
   /* I am the querying_peer. */
   if(0 == (GNUNET_CRYPTO_cmp_peer_identity (&querying_peer, &my_identity)))
   {
@@ -5617,7 +5615,7 @@ handle_core_connect (void *cls, const struct GNUNET_PeerIdentity *peer_identity)
 
   friend = GNUNET_new (struct FriendInfo);
   friend->id = *peer_identity;
-  friend->congestion_timestamp = GNUNET_TIME_relative_to_absolute(GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_SECONDS, 1));
+  friend->congestion_timestamp = GNUNET_TIME_relative_to_absolute(GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 50));
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONTAINER_multipeermap_put (friend_peermap,
                                                     peer_identity, friend,
@@ -5626,7 +5624,9 @@ handle_core_connect (void *cls, const struct GNUNET_PeerIdentity *peer_identity)
   /* got a first connection, good time to start with FIND FINGER TRAIL requests...*/
   if (GNUNET_SCHEDULER_NO_TASK == find_finger_trail_task)
   {
-    find_finger_trail_task = GNUNET_SCHEDULER_add_now (&send_find_finger_trail_message, NULL);
+    // find_finger_trail_task = GNUNET_SCHEDULER_add_now (&send_find_finger_trail_message, NULL);
+    find_finger_trail_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 60),
+            &send_find_finger_trail_message, NULL);
   }
 }
 
