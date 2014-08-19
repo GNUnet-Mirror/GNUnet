@@ -23,7 +23,7 @@
  * @brief senor utilities - crpyto related functions
  * @author Omar Tarabai
  */
-
+#include <inttypes.h>
 #include "platform.h"
 #include "gnunet_util_lib.h"
 #include "gnunet_sensor_util_lib.h"
@@ -38,17 +38,7 @@ struct GNUNET_SENSOR_crypto_pow_context
 {
 
   /**
-   * Buffer of the complete message to calculate the pow for
-   */
-  void *buf;
-
-  /**
-   * Size of buf
-   */
-  size_t buf_size;
-
-  /**
-   * Proof-of-work number
+   * Proof-of-work value
    */
   uint64_t pow;
 
@@ -76,6 +66,21 @@ struct GNUNET_SENSOR_crypto_pow_context
    * Task that calculates the proof-of-work
    */
   GNUNET_SCHEDULER_TaskIdentifier calculate_pow_task;
+
+  /**
+   * Size of msg (allocated after this struct)
+   */
+  size_t msg_size;
+
+  /**
+   * Timestamp of the message
+   */
+  struct GNUNET_TIME_Absolute timestamp;
+
+  /**
+   * Public key of the peer sending this message
+   */
+  struct GNUNET_CRYPTO_EddsaPublicKey public_key;
 
 };
 
@@ -123,6 +128,7 @@ check_pow (void *msg, size_t msg_size, uint64_t pow, int matching_bits)
   char buf[msg_size + sizeof (pow)] GNUNET_ALIGN;
   struct GNUNET_HashCode result;
 
+  LOG (GNUNET_ERROR_TYPE_DEBUG, "Msg size: %" PRIu64 ".\n", msg_size);
   memcpy (buf, &pow, sizeof (pow));
   memcpy (&buf[sizeof (pow)], msg, msg_size);
   pow_hash (buf, sizeof (buf), &result);
@@ -144,17 +150,26 @@ calculate_pow (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
   int sign_result;
 
   if (GNUNET_YES ==
-      check_pow (cx->buf, cx->buf_size, cx->pow, cx->matching_bits))
+      check_pow (&cx->timestamp,
+                 sizeof (struct GNUNET_CRYPTO_EddsaPublicKey) +
+                 sizeof (struct GNUNET_TIME_Absolute) + cx->msg_size, cx->pow,
+                 cx->matching_bits))
   {
     cx->calculate_pow_task = GNUNET_SCHEDULER_NO_TASK;
     result_block =
         GNUNET_malloc (sizeof (struct GNUNET_SENSOR_crypto_pow_block) +
-                       cx->buf_size);
+                       cx->msg_size);
+    result_block->msg_size = cx->msg_size;
+    result_block->pow = cx->pow;
+    result_block->timestamp = cx->timestamp;
+    result_block->public_key = cx->public_key;
     result_block->purpose.purpose =
-        GNUNET_SIGNATURE_PURPOSE_SENSOR_ANOMALY_REPORT;
+        htonl (GNUNET_SIGNATURE_PURPOSE_SENSOR_ANOMALY_REPORT);
     result_block->purpose.size =
-        sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) + cx->buf_size;
-    memcpy (&result_block[1], cx->buf, cx->buf_size);
+        htonl (sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
+        sizeof (struct GNUNET_TIME_Absolute) +
+        sizeof (struct GNUNET_CRYPTO_EddsaPublicKey) + cx->msg_size);
+    memcpy (&result_block[1], &cx[1], cx->msg_size);
     sign_result =
         GNUNET_CRYPTO_eddsa_sign (&cx->private_key, &result_block->purpose,
                                   &result_block->signature);
@@ -178,11 +193,6 @@ void
 GNUNET_SENSOR_crypto_pow_sign_cancel (struct GNUNET_SENSOR_crypto_pow_context
                                       *cx)
 {
-  if (NULL != cx->buf)
-  {
-    GNUNET_free (cx->buf);
-    cx->buf = NULL;
-  }
   GNUNET_free (cx);
 }
 
@@ -212,15 +222,14 @@ GNUNET_SENSOR_crypto_pow_sign (void *msg, size_t msg_size,
                                void *callback_cls)
 {
   struct GNUNET_SENSOR_crypto_pow_context *cx;
-  void *buf;
-  size_t buf_size;
 
-  buf_size = msg_size + sizeof (*timestamp) + sizeof (*public_key);
-  buf = GNUNET_malloc (buf_size);
-  cx = GNUNET_new (struct GNUNET_SENSOR_crypto_pow_context);
+  cx = GNUNET_malloc (sizeof (struct GNUNET_SENSOR_crypto_pow_context) +
+                      msg_size);
 
-  cx->buf = buf;
-  cx->buf_size = buf_size;
+  cx->timestamp = *timestamp;
+  cx->public_key = *public_key;
+  cx->msg_size = msg_size;
+  memcpy (&cx[1], msg, msg_size);
   cx->pow = 0;
   cx->private_key = *private_key;
   cx->matching_bits = matching_bits;
@@ -236,9 +245,12 @@ GNUNET_SENSOR_crypto_pow_sign (void *msg, size_t msg_size,
  * If all valid, a pointer to the payload within the block is set and the size
  * of the payload is returned.
  *
+ * **VERY IMPORTANT** : You will still need to verify the timestamp yourself.
+ *
  * @param block The block received and needs to be verified
  * @param matching_bits Number of leading zeros in the hash used to verify pow
  * @param public_key Public key of the peer that sent this block
+ * @param purpose Expected signing purpose
  * @param payload Where to store the pointer to the payload
  * @return Size of the payload
  */
@@ -246,28 +258,31 @@ size_t
 GNUNET_SENSOR_crypto_verify_pow_sign (struct GNUNET_SENSOR_crypto_pow_block *
                                       block, int matching_bits,
                                       struct GNUNET_CRYPTO_EddsaPublicKey *
-                                      public_key, void **payload)
+                                      public_key, uint32_t purpose,
+                                      void **payload)
 {
-  void *msg;
-  size_t msg_size;
-
+  /* Check public key */
+  if (0 != memcmp (public_key, &block->public_key, sizeof (struct GNUNET_CRYPTO_EddsaPublicKey)))
+  {
+    LOG (GNUNET_ERROR_TYPE_WARNING, "Public key mismatch.\n");
+    return 0;
+  }
   /* Check signature */
   if (GNUNET_OK !=
-      GNUNET_CRYPTO_eddsa_verify (block->purpose.purpose, &block->purpose,
+      GNUNET_CRYPTO_eddsa_verify (purpose, &block->purpose,
                                   &block->signature, public_key))
   {
     LOG (GNUNET_ERROR_TYPE_WARNING, "Invalid signature.\n");
     return 0;
   }
   /* Check pow */
-  msg = &block[1];
-  msg_size =
-      block->purpose.size - sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose);
-  if (GNUNET_NO == check_pow (msg, msg_size, block->pow, matching_bits))
+  if (GNUNET_NO == check_pow (&block->timestamp,
+      sizeof (struct GNUNET_TIME_Absolute) +
+              sizeof (struct GNUNET_CRYPTO_EddsaPublicKey) + block->msg_size, block->pow, matching_bits))
   {
     LOG (GNUNET_ERROR_TYPE_WARNING, "Invalid proof-of-work.\n");
     return 0;
   }
-  *payload = msg;
-  return msg_size;
+  *payload = &block[1];
+  return block->msg_size;
 }

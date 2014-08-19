@@ -415,9 +415,25 @@ struct GNUNET_SENSOR_crypto_pow_block
   struct GNUNET_CRYPTO_EddsaSignature signature;
 
   /**
-   * Purpose of signing, data is allocated after this.
+   * Size of the msg component (allocated after this struct)
+   */
+  size_t msg_size;
+
+  /**
+   * Purpose of signing.
+   * Data is allocated after this (timestamp, public_key, msg).
    */
   struct GNUNET_CRYPTO_EccSignaturePurpose purpose;
+
+  /**
+   * First part of data - timestamp
+   */
+  struct GNUNET_TIME_Absolute timestamp;
+
+  /**
+   * Second part of data - Public key
+   */
+  struct GNUNET_CRYPTO_EddsaPublicKey public_key;
 
 };
 
@@ -467,6 +483,29 @@ GNUNET_SENSOR_crypto_pow_sign (void *msg, size_t msg_size,
                                *private_key, int matching_bits,
                                GNUNET_SENSOR_UTIL_pow_callback callback,
                                void *callback_cls);
+
+
+/**
+ * Verify that proof-of-work and signature in the given block are valid.
+ * If all valid, a pointer to the payload within the block is set and the size
+ * of the payload is returned.
+ *
+ * **VERY IMPORTANT** : You will still need to verify the timestamp yourself.
+ *
+ * @param block The block received and needs to be verified
+ * @param matching_bits Number of leading zeros in the hash used to verify pow
+ * @param public_key Public key of the peer that sent this block
+ * @param purpose Expected signing purpose
+ * @param payload Where to store the pointer to the payload
+ * @return Size of the payload
+ */
+size_t
+GNUNET_SENSOR_crypto_verify_pow_sign (struct GNUNET_SENSOR_crypto_pow_block *
+                                      block, int matching_bits,
+                                      struct GNUNET_CRYPTO_EddsaPublicKey *
+                                      public_key, uint32_t purpose,
+                                      void **payload);
+
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

@@ -85,7 +85,8 @@ libgnunet_plugin_sensor_model_gaussian_la_DEPENDENCIES = \
 
 check_PROGRAMS = \
  test_sensor_api \
- test_gnunet-service-sensor_reporting
+ test_gnunet-service-sensor_reporting \
+ test_pow_sign
 
 if ENABLE_TEST_RUN
 AM_TESTS_ENVIRONMENT=export GNUNET_PREFIX=$${GNUNET_PREFIX:-@libdir@};export PATH=$${GNUNET_PREFIX:-@prefix@}/bin:$$PATH;
@@ -105,6 +106,13 @@ test_gnunet_service_sensor_reporting_LDADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/testbed/libgnunettestbed.la \
   $(top_builddir)/src/peerstore/libgnunetpeerstore.la
+
+test_pow_sign_SOURCES = \
+  test_pow_sign.c
+test_pow_sign_LDADD = \
+  $(top_builddir)/src/util/libgnunetutil.la \
+  $(top_builddir)/src/testbed/libgnunettestbed.la \
+  libgnunetsensorutil.la
 
 pkgsensordir = sensors
 

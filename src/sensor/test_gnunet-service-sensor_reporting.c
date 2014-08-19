@@ -96,27 +96,27 @@ struct TestPeer
 /**
  * Test name
  */
-const static char *testname = "test_gnunet-service-sensor_reporting";
+static const char *testname = "test_gnunet-service-sensor_reporting";
 
 /**
  * Name of GNUNET config file used in this test
  */
-const static char *cfg_filename = "test_gnunet-service-sensor_reporting.conf";
+static const char *cfg_filename = "test_gnunet-service-sensor_reporting.conf";
 
 /**
  * Test sensor name
  */
-const static char *sensor_name = "test-sensor-statistics";
+static const char *sensor_name = "test-sensor-statistics";
 
 /**
  * Path to read test sensor from
  */
-const static char *sensor_path_src = "test_sensors/test-sensor-statistics";
+static const char *sensor_path_src = "test_sensors/test-sensor-statistics";
 
 /**
  * Path to write new test sensor to
  */
-const static char *sensor_path_dest =
+static const char *sensor_path_dest =
     "/tmp/test-gnunet-service-sensor-reporting/test-sensor-statistics";
 
 /**

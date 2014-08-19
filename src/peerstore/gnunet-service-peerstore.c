@@ -93,12 +93,12 @@ static struct ClientEntry *client_tail;
 /**
  * Are we in the process of shutting down the service? #GNUNET_YES / #GNUNET_NO
  */
-int in_shutdown;
+static int in_shutdown;
 
 /**
  * Perform the actual shutdown operations
  */
-void
+static void
 do_shutdown ()
 {
   if (NULL != db_lib_name)
