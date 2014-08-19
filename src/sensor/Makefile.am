@@ -57,7 +57,8 @@ libgnunetsensor_la_LDFLAGS = \
   $(GN_LIB_LDFLAGS)
 
 libgnunetsensorutil_la_SOURCES = \
-  sensor_util_lib.c
+  sensor_util_lib.c \
+  sensor_util_lib_crypto.c
 libgnunetsensorutil_la_LIBADD = \
   $(top_builddir)/src/util/libgnunetutil.la \
   $(top_builddir)/src/statistics/libgnunetstatistics.la

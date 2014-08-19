@@ -171,6 +171,11 @@ extern "C"
  */
 #define GNUNET_SIGNATURE_PURPOSE_MULTICAST_REQUEST 24
 
+/**
+ * Signature for a sensor anomaly report message.
+ */
+#define GNUNET_SIGNATURE_PURPOSE_SENSOR_ANOMALY_REPORT 25
+
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {

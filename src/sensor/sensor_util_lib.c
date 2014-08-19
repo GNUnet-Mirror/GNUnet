@@ -20,7 +20,7 @@
 
 /**
  * @file sensor/sensor_util_lib.c
- * @brief senor utilities
+ * @brief sensor utilities
  * @author Omar Tarabai
  */
 #include <inttypes.h>

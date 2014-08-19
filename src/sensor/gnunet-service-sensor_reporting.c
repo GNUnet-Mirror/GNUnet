@@ -607,6 +607,9 @@ handle_anomaly_report (void *cls, const struct GNUNET_PeerIdentity *other,
       GNUNET_CONTAINER_multipeermap_contains
       (my_anomaly_info->anomalous_neighbors, other);
   peer_anomalous = ntohs (arm->anomalous);
+  LOG (GNUNET_ERROR_TYPE_DEBUG,
+       "Received an anomaly update from neighbour `%s' (%d).\n",
+       GNUNET_i2s (other), peer_anomalous);
   if (GNUNET_YES == peer_anomalous)
   {
     if (GNUNET_YES == peer_in_anomalous_list)   /* repeated positive report */

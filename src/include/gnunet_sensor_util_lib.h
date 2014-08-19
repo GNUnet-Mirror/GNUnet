@@ -20,7 +20,7 @@
 
 /**
  * @file sensor/sensor_util_lib.c
- * @brief senor utilities
+ * @brief sensor utilities
  * @author Omar Tarabai
  */
 
@@ -210,11 +210,10 @@ struct GNUNET_SENSOR_DashboardAnomalyEntry
 };
 
 GNUNET_NETWORK_STRUCT_BEGIN
-
 /**
  * Used to communicate brief information about a sensor.
  */
-struct GNUNET_SENSOR_SensorBriefMessage
+    struct GNUNET_SENSOR_SensorBriefMessage
 {
 
   /**
@@ -281,7 +280,7 @@ struct GNUNET_SENSOR_SensorFullMessage
  * Used to communicate sensor values to
  * collection points (SENSORDASHBAORD service)
  */
-    struct GNUNET_SENSOR_ValueMessage
+struct GNUNET_SENSOR_ValueMessage
 {
 
   /**
@@ -355,7 +354,6 @@ struct GNUNET_SENSOR_AnomalyReportMessage
 };
 
 GNUNET_NETWORK_STRUCT_END
-
 /**
  * Given two version numbers as major and minor, compare them.
  *
@@ -396,6 +394,79 @@ GNUNET_SENSOR_get_default_sensor_dir ();
  */
 void
 GNUNET_SENSOR_destroy_sensors (struct GNUNET_CONTAINER_MultiHashMap *sensors);
+
+
+struct GNUNET_SENSOR_crypto_pow_context;
+
+/**
+ * Block carrying arbitrary data + its proof-of-work + signature
+ */
+struct GNUNET_SENSOR_crypto_pow_block
+{
+
+  /**
+   * Proof-of-work value
+   */
+  uint64_t pow;
+
+  /**
+   * Data signature
+   */
+  struct GNUNET_CRYPTO_EddsaSignature signature;
+
+  /**
+   * Purpose of signing, data is allocated after this.
+   */
+  struct GNUNET_CRYPTO_EccSignaturePurpose purpose;
+
+};
+
+
+/**
+ * Continuation called with a status result.
+ *
+ * @param cls closure
+ * @param pow Proof-of-work value
+ * @param purpose Signed block (size, purpose, data)
+ * @param signature Signature, NULL on error
+ */
+typedef void (*GNUNET_SENSOR_UTIL_pow_callback) (void *cls,
+                                                 struct
+                                                 GNUNET_SENSOR_crypto_pow_block
+                                                 * block);
+
+
+/**
+ * Cancel an operation started by #GNUNET_SENSOR_crypto_pow_sign().
+ * Call only before callback function passed to #GNUNET_SENSOR_crypto_pow_sign()
+ * is called with the result.
+ */
+void
+GNUNET_SENSOR_crypto_pow_sign_cancel (struct GNUNET_SENSOR_crypto_pow_context
+                                      *cx);
+
+
+/**
+ * Calculate proof-of-work and sign a message.
+ *
+ * @param msg Message to calculate pow and sign
+ * @param msg_size size of msg
+ * @param timestamp Timestamp to add to the message to protect against replay attacks
+ * @param public_key Public key of the origin peer, to protect against redirect attacks
+ * @param private_key Private key of the origin peer to sign the result
+ * @param matching_bits Number of leading zeros required in the result hash
+ * @param callback Callback function to call with the result
+ * @param callback_cls Closure for callback
+ * @return Operation context
+ */
+struct GNUNET_SENSOR_crypto_pow_context *
+GNUNET_SENSOR_crypto_pow_sign (void *msg, size_t msg_size,
+                               struct GNUNET_TIME_Absolute *timestamp,
+                               struct GNUNET_CRYPTO_EddsaPublicKey *public_key,
+                               struct GNUNET_CRYPTO_EddsaPrivateKey
+                               *private_key, int matching_bits,
+                               GNUNET_SENSOR_UTIL_pow_callback callback,
+                               void *callback_cls);
 
 #if 0                           /* keep Emacsens' auto-indent happy */
 {
