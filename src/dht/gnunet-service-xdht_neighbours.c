@@ -2950,7 +2950,6 @@ add_new_finger (struct GNUNET_PeerIdentity finger_identity,
   if (NULL != GNUNET_CONTAINER_multipeermap_get (friend_peermap,
                                                  &finger_identity))
   {
-    GNUNET_assert (finger_trail_length == 0);
     new_entry->trail_list[0].trail_id = trail_id;
     new_entry->trails_count = 1;
     new_entry->trail_list[0].is_present = GNUNET_YES;
@@ -5083,7 +5082,6 @@ handle_dht_p2p_trail_setup_rejection (void *cls,
   struct GNUNET_HashCode trail_id;
   struct GNUNET_PeerIdentity next_peer;
   struct GNUNET_PeerIdentity source;
-  struct GNUNET_PeerIdentity *next_hop;
   uint64_t ultimate_destination_finger_value;
   unsigned int is_predecessor;
   size_t msize;
@@ -5135,36 +5133,19 @@ handle_dht_p2p_trail_setup_rejection (void *cls,
   /* If I am congested then pass this message to peer before me in trail. */
   if(GNUNET_YES == GDS_ROUTING_threshold_reached())
   {
-    struct GNUNET_PeerIdentity *new_trail;
-    unsigned int new_trail_length;
-
-    /* Remove yourself from the trail setup so far. */
-    if (trail_length == 1)
-    {
-      new_trail = NULL;
-      new_trail_length = 0;
-      next_hop = &source;
-    }
+    if (0 == trail_length)
+      next_peer = source;
     else
-    {
-      memcpy (&next_hop , &trail_peer_list[trail_length - 2],
-              sizeof (struct GNUNET_PeerIdentity));
-
-      /* Remove myself from the trail. */
-      new_trail_length = trail_length -1;
-      new_trail = GNUNET_malloc (new_trail_length * sizeof (struct GNUNET_PeerIdentity));
-      memcpy (new_trail, trail_peer_list, new_trail_length * sizeof (struct GNUNET_PeerIdentity));
-    }
-
+      next_peer = trail_peer_list[trail_length-1];
+   
     GNUNET_assert (NULL !=
                   (target_friend =
-                    GNUNET_CONTAINER_multipeermap_get (friend_peermap, next_hop)));
+                   GNUNET_CONTAINER_multipeermap_get (friend_peermap, &next_peer)));
     GDS_NEIGHBOURS_send_trail_rejection (source,
                                          ultimate_destination_finger_value,
                                          my_identity, is_predecessor,
-                                         new_trail,new_trail_length,trail_id,
+                                         trail_peer_list,trail_length,trail_id,
                                          target_friend, CONGESTION_TIMEOUT);
-    GNUNET_free (new_trail);
     return GNUNET_OK;
   }
 
@@ -5201,7 +5182,8 @@ handle_dht_p2p_trail_setup_rejection (void *cls,
 
     GNUNET_assert (NULL !=
                   (target_friend =
-                   GNUNET_CONTAINER_multipeermap_get (friend_peermap, next_hop)));
+                   GNUNET_CONTAINER_multipeermap_get (friend_peermap, 
+                                                      &successor.next_hop)));
     GDS_NEIGHBOURS_send_trail_setup (source,
                                      ultimate_destination_finger_value,
                                      successor.best_known_destination,
@@ -5440,7 +5422,6 @@ remove_matching_trails (const struct GNUNET_PeerIdentity *disconnected_friend,
 }
 
 
-
 /**
  * Iterate over finger_table entries.
  * 0. Ignore finger which is my_identity or if no valid entry present at
@@ -5487,9 +5468,6 @@ remove_matching_fingers (const struct GNUNET_PeerIdentity *disconnected_peer)
               (next_hop =
                GDS_ROUTING_get_next_hop (trail_id, GDS_ROUTING_SRC_TO_DEST)))
       {
-        GNUNET_assert (0 ==
-                      (GNUNET_CRYPTO_cmp_peer_identity (next_hop,
-                                                        &current_finger->finger_identity)));
         GNUNET_assert (GNUNET_YES == GDS_ROUTING_remove_trail (trail_id));
         GNUNET_assert (NULL !=
                        (remove_friend =
@@ -5615,7 +5593,7 @@ handle_core_connect (void *cls, const struct GNUNET_PeerIdentity *peer_identity)
 
   friend = GNUNET_new (struct FriendInfo);
   friend->id = *peer_identity;
-  friend->congestion_timestamp = GNUNET_TIME_relative_to_absolute(GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 50));
+
   GNUNET_assert (GNUNET_OK ==
                  GNUNET_CONTAINER_multipeermap_put (friend_peermap,
                                                     peer_identity, friend,
@@ -5624,9 +5602,7 @@ handle_core_connect (void *cls, const struct GNUNET_PeerIdentity *peer_identity)
   /* got a first connection, good time to start with FIND FINGER TRAIL requests...*/
   if (GNUNET_SCHEDULER_NO_TASK == find_finger_trail_task)
   {
-    // find_finger_trail_task = GNUNET_SCHEDULER_add_now (&send_find_finger_trail_message, NULL);
-    find_finger_trail_task = GNUNET_SCHEDULER_add_delayed (GNUNET_TIME_relative_multiply(GNUNET_TIME_UNIT_MILLISECONDS, 60),
-            &send_find_finger_trail_message, NULL);
+    find_finger_trail_task = GNUNET_SCHEDULER_add_now (&send_find_finger_trail_message, NULL);
   }
 }
 
