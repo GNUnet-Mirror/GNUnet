@@ -276,12 +276,12 @@ static uint64_t incoming_bandwidth;
 /**
  * Average number of hops taken to do put.
  */
-static unsigned int average_put_path_length;
+static double average_put_path_length;
 
 /**
  * Average number of hops taken to do get. 
  */
-static unsigned int average_get_path_length;
+static double average_get_path_length;
 
 /**
  * Total put path length across all peers. 
@@ -454,8 +454,8 @@ summarize ()
   INFO ("# GETS made: %u\n", n_gets);
   INFO ("# GETS succeeded: %u\n", n_gets_ok);
   INFO ("# GETS failed: %u\n", n_gets_fail);
-  INFO ("# average_put_path_length: %u\n", average_put_path_length);
-  INFO ("# average_get_path_length: %u\n", average_get_path_length);
+  INFO ("# average_put_path_length: %f\n", average_put_path_length);
+  INFO ("# average_get_path_length: %f\n", average_get_path_length);
   
   if (NULL == testbed_handles)
   {
@@ -542,8 +542,8 @@ get_iter (void *cls,
   /* Summarize if profiling is complete */
   if (n_active == n_gets_fail + n_gets_ok)
   {
-    average_put_path_length = total_put_path_length/n_active;
-    average_get_path_length = total_get_path_length/n_active;
+    average_put_path_length = (double)total_put_path_length/(double)n_active;
+    average_get_path_length = (double)total_get_path_length/(double)n_active;
     summarize ();
   }
 }
