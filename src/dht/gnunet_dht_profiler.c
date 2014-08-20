@@ -630,6 +630,7 @@ put_cont (void *cls, int success)
 {
   struct ActiveContext *ac = cls;
   struct Context *ctx = ac->ctx;
+  struct GNUNET_TESTBED_Operation *op;
 
   ac->dht_put = NULL;
   if (success)
@@ -637,8 +638,9 @@ put_cont (void *cls, int success)
   else
     n_puts_fail++;
   GNUNET_assert (NULL != ctx);
-  GNUNET_TESTBED_operation_done (ctx->op);
+  op = ctx->op;
   ctx->op = NULL;
+  GNUNET_TESTBED_operation_done (op);
 }
 
 
@@ -749,6 +751,7 @@ dht_disconnect (void *cls, void *op_result)
   GNUNET_assert (NULL != ac->dht);
   GNUNET_assert (ac->dht == op_result);
   GNUNET_DHT_disconnect (ac->dht);
+  ac->dht = NULL;
   n_dht--;
   if (0 != n_dht)
     return;
