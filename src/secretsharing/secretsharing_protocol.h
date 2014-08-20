@@ -128,6 +128,17 @@ struct GNUNET_SECRETSHARING_DecryptData
   struct GNUNET_SECRETSHARING_FieldElement nizk_response;
 };
 
+
+struct GNUNET_SECRETSHARING_FairEncryption
+{
+  struct GNUNET_CRYPTO_PaillierCiphertext c;
+  char t1[GNUNET_SECRETSHARING_ELGAMAL_BITS / 8];
+  char t2[GNUNET_CRYPTO_PAILLIER_BITS * 2 / 8];
+  char e[GNUNET_SECRETSHARING_ELGAMAL_BITS / 8];
+  char z[GNUNET_SECRETSHARING_ELGAMAL_BITS / 8];
+  char w[GNUNET_CRYPTO_PAILLIER_BITS / 8];
+};
+
 GNUNET_NETWORK_STRUCT_END
 
 #endif
