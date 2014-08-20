@@ -923,34 +923,22 @@ service_started (void *cls,
                  const char *emsg)
 {
   struct Context *ctx = cls;
-  
+
   GNUNET_assert (NULL != ctx);
   GNUNET_assert (NULL != ctx->op);
   GNUNET_TESTBED_operation_done (ctx->op);
-  ctx->op = NULL;
-  if (NULL == ctx->ac)
-    return;
-  
-  if (NULL == peer_contexts)
-  {
-    peer_contexts = GNUNET_malloc(num_peers * sizeof(struct Context *));
-  }
-  
-  peer_contexts[peers_started] = ctx;
   peers_started++;
   DEBUG("Peers Started = %d; num_peers = %d \n", peers_started, num_peers);
-    
   if (GNUNET_SCHEDULER_NO_TASK == successor_stats_task && peers_started == num_peers)
   {
      DEBUG("successor_stats_task \n");
      struct Collect_Stat_Context *collect_stat_cls = GNUNET_new(struct Collect_Stat_Context);
      collect_stat_cls->service_connect_ctx = cls;
      collect_stat_cls->op = op;
-     
      successor_peer_hashmap = GNUNET_CONTAINER_multihashmap_create (num_peers, 
                                                                     GNUNET_NO);
-     successor_stats_task = GNUNET_SCHEDULER_add_delayed (delay, 
-                                                          &collect_stats, 
+     successor_stats_task = GNUNET_SCHEDULER_add_delayed (delay,
+                                                          &collect_stats,
                                                           collect_stat_cls);
   }
 }
