@@ -480,12 +480,16 @@ static void
 cancel_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 {
   struct ActiveContext *ac = cls;
+  struct Context *ctx = ac->ctx;
 
   ac->delay_task = GNUNET_SCHEDULER_NO_TASK;
   GNUNET_assert (NULL != ac->dht_get);
   GNUNET_DHT_get_stop (ac->dht_get);
   ac->dht_get = NULL;
   n_gets_fail++;
+  GNUNET_assert (NULL != ctx->op);
+  GNUNET_TESTBED_operation_done (ctx->op);
+  ctx->op = NULL;
 
   /* If profiling is complete, summarize */
   if (n_active == n_gets_fail + n_gets_ok)
@@ -524,6 +528,7 @@ get_iter (void *cls,
 {
   struct ActiveContext *ac = cls;
   struct ActiveContext *get_ac = ac->get_ac;
+  struct Context *ctx = ac->ctx;
 
   /* Check the keys of put and get match or not. */
   GNUNET_assert (0 == memcmp (key, &get_ac->hash, sizeof (struct GNUNET_HashCode)));
@@ -535,6 +540,9 @@ get_iter (void *cls,
   ac->dht_get = NULL;
   GNUNET_SCHEDULER_cancel (ac->delay_task);
   ac->delay_task = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_assert (NULL != ctx->op);
+  GNUNET_TESTBED_operation_done (ctx->op);
+  ctx->op = NULL;
   
   total_put_path_length = total_put_path_length + put_path_length;
   total_get_path_length = total_get_path_length + get_path_length;
@@ -763,7 +771,10 @@ successor_stats_cont (void *cls,
   struct GNUNET_HashCode *start_val;
   int count = 0;
   struct GNUNET_HashCode *key;
-  
+
+  successor_stats_task = GNUNET_SCHEDULER_NO_TASK;
+  GNUNET_TESTBED_operation_done (successor_stats_op);
+  successor_stats_op = NULL;
   start_val =(struct GNUNET_HashCode *) GNUNET_CONTAINER_multihashmap_get(successor_peer_hashmap,
                                                 start_key);
 
@@ -782,12 +793,6 @@ successor_stats_cont (void *cls,
   if (start_val == val)
   {
     DEBUG("CIRCLE COMPLETED after %u tries", tries);
-    if (GNUNET_SCHEDULER_NO_TASK != successor_stats_task)
-    {
-      successor_stats_task = GNUNET_SCHEDULER_NO_TASK;
-      //FIXME: free hashmap. 
-    }
-    successor_stats_op = NULL;
     
     if(GNUNET_SCHEDULER_NO_TASK == successor_stats_task)
     {
@@ -809,7 +814,6 @@ successor_stats_cont (void *cls,
         successor_stats_task = GNUNET_SCHEDULER_NO_TASK;
         //FIXME: free hashmap
       }
-      successor_stats_op = NULL;
       
       if(GNUNET_SCHEDULER_NO_TASK == successor_stats_task)
       {
@@ -906,7 +910,7 @@ collect_stats (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
                                           successor_stats_iterator, 
                                           successor_stats_cont, cls);
   
-  GNUNET_assert(successor_stats_op);
+  GNUNET_assert(NULL != successor_stats_op);
 }
 
 /**
