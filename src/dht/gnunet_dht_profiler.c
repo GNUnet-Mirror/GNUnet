@@ -728,19 +728,18 @@ static void
 start_testbed_service_on_all_peers()
 {
   unsigned int i;
-  for(i = 0; i < peers_started; i++)
+  DEBUG("GNUNET_TESTBED_service_connect \n");
+  for(i = 0; i < n_active; i++)
   {
-      struct Context *ctx = peer_contexts[i];
-      DEBUG("GNUNET_TESTBED_service_connect \n");
-      ctx->op = 
-              GNUNET_TESTBED_service_connect (ctx, 
-                                              ctx->peer,
-                                              "dht",
-                                              &dht_connected, ctx->ac,
-                                              &dht_connect,
-                                              &dht_disconnect,
-                                              ctx->ac);
-     
+    struct ActiveContext *ac = &a_ac[i];
+    ac->ctx->op =
+        GNUNET_TESTBED_service_connect (ac->ctx,
+                                        ac->ctx->peer,
+                                        "dht",
+                                        &dht_connected, ac,
+                                        &dht_connect,
+                                        &dht_disconnect,
+                                        ac);
   }
 }
 
