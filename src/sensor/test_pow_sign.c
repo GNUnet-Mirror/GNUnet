@@ -107,18 +107,29 @@ do_shutdown (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 }
 
 
-static void pow_cb (void *cls, struct GNUNET_SENSOR_crypto_pow_block *block)
+static void
+pow_cb (void *cls, struct GNUNET_SENSOR_crypto_pow_block *block)
 {
   void *response;
 
-  printf ("Received block:\n"
-      "pow: %" PRIu64 ".\n", block->pow);
+  GNUNET_log (GNUNET_ERROR_TYPE_DEBUG,
+              "Received block:\n" "pow: %" PRIu64 ".\n", block->pow);
+  /* Test that the block is valid */
   GNUNET_assert (MSG_SIZE ==
-  GNUNET_SENSOR_crypto_verify_pow_sign (block, MATCHING_BITS,
-      public_key, GNUNET_SIGNATURE_PURPOSE_SENSOR_ANOMALY_REPORT, &response));
-  GNUNET_assert (0 == memcmp(msg, response, MSG_SIZE));
+                 GNUNET_SENSOR_crypto_verify_pow_sign (block, MATCHING_BITS,
+                                                       public_key,
+                                                       GNUNET_SIGNATURE_PURPOSE_SENSOR_ANOMALY_REPORT,
+                                                       &response));
+  GNUNET_assert (0 == memcmp (msg, response, MSG_SIZE));
+  /* Modify the payload and test that verification returns invalid */
+  block->pow++;
+  GNUNET_assert (0 ==
+                 GNUNET_SENSOR_crypto_verify_pow_sign (block, MATCHING_BITS,
+                                                       public_key,
+                                                       GNUNET_SIGNATURE_PURPOSE_SENSOR_ANOMALY_REPORT,
+                                                       &response));
   ok = 0;
-  GNUNET_SCHEDULER_cancel(shutdown_task);
+  GNUNET_SCHEDULER_cancel (shutdown_task);
   GNUNET_SCHEDULER_add_now (do_shutdown, NULL);
 }
 
@@ -140,17 +151,19 @@ peer_info_cb (void *cb_cls, struct GNUNET_TESTBED_Operation *op,
   struct GNUNET_TIME_Absolute timestamp;
 
   /* generate random data block */
-  GNUNET_CRYPTO_random_block(GNUNET_CRYPTO_QUALITY_WEAK, msg, MSG_SIZE);
+  GNUNET_CRYPTO_random_block (GNUNET_CRYPTO_QUALITY_WEAK, msg, MSG_SIZE);
   /* get private and public keys */
   private_key =
       GNUNET_CRYPTO_eddsa_key_create_from_configuration (pinfo->result.cfg);
   GNUNET_assert (NULL != private_key);
   public_key = GNUNET_new (struct GNUNET_CRYPTO_EddsaPublicKey);
+
   GNUNET_CRYPTO_eddsa_key_get_public (private_key, public_key);
   /* create pow and sign */
-  timestamp = GNUNET_TIME_absolute_get();
-  GNUNET_SENSOR_crypto_pow_sign (msg, MSG_SIZE, &timestamp,
-      public_key, private_key, MATCHING_BITS, &pow_cb, NULL);
+  timestamp = GNUNET_TIME_absolute_get ();
+  GNUNET_SENSOR_crypto_pow_sign (msg, MSG_SIZE, &timestamp, public_key,
+                                 private_key, MATCHING_BITS, &pow_cb, NULL);
+  GNUNET_TESTBED_operation_done (op);
 }
 
 

@@ -356,7 +356,11 @@ sensor_service_started (void *cls, struct GNUNET_TESTBED_Operation *op,
 {
   struct TestPeer *peer = cls;
 
-  GNUNET_assert (NULL == emsg);
+  if (NULL != emsg)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ERROR: %s.\n", emsg);
+    GNUNET_assert (0);
+  }
   peer->sensor_op =
       GNUNET_TESTBED_service_connect (NULL, peer->testbed_peer, "sensor",
                                       &sensor_connect_cb, peer,
@@ -441,7 +445,11 @@ static void
 dashboard_started (void *cls, struct GNUNET_TESTBED_Operation *op,
                    const char *emsg)
 {
-  GNUNET_assert (NULL == emsg);
+  if (NULL != emsg)
+  {
+    GNUNET_log (GNUNET_ERROR_TYPE_ERROR, "ERROR: %s.\n", emsg);
+    GNUNET_assert (0);
+  }
   GNUNET_TESTBED_operation_done (op);
   /* Connect to peerstore service on first peer */
   peerstore_op =

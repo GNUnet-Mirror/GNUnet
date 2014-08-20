@@ -167,8 +167,8 @@ calculate_pow (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
         htonl (GNUNET_SIGNATURE_PURPOSE_SENSOR_ANOMALY_REPORT);
     result_block->purpose.size =
         htonl (sizeof (struct GNUNET_CRYPTO_EccSignaturePurpose) +
-        sizeof (struct GNUNET_TIME_Absolute) +
-        sizeof (struct GNUNET_CRYPTO_EddsaPublicKey) + cx->msg_size);
+               sizeof (struct GNUNET_TIME_Absolute) +
+               sizeof (struct GNUNET_CRYPTO_EddsaPublicKey) + cx->msg_size);
     memcpy (&result_block[1], &cx[1], cx->msg_size);
     sign_result =
         GNUNET_CRYPTO_eddsa_sign (&cx->private_key, &result_block->purpose,
@@ -178,6 +178,7 @@ calculate_pow (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
     GNUNET_SENSOR_crypto_pow_sign_cancel (cx);
     if (NULL != callback)
       callback (callback_cls, (GNUNET_OK == sign_result) ? result_block : NULL);
+    return;
   }
   cx->pow++;
   cx->calculate_pow_task = GNUNET_SCHEDULER_add_now (&calculate_pow, cx);
@@ -193,7 +194,13 @@ void
 GNUNET_SENSOR_crypto_pow_sign_cancel (struct GNUNET_SENSOR_crypto_pow_context
                                       *cx)
 {
+  if (GNUNET_SCHEDULER_NO_TASK != cx->calculate_pow_task)
+  {
+    GNUNET_SCHEDULER_cancel (cx->calculate_pow_task);
+    cx->calculate_pow_task = GNUNET_SCHEDULER_NO_TASK;
+  }
   GNUNET_free (cx);
+  cx = NULL;
 }
 
 
@@ -262,23 +269,27 @@ GNUNET_SENSOR_crypto_verify_pow_sign (struct GNUNET_SENSOR_crypto_pow_block *
                                       void **payload)
 {
   /* Check public key */
-  if (0 != memcmp (public_key, &block->public_key, sizeof (struct GNUNET_CRYPTO_EddsaPublicKey)))
+  if (0 !=
+      memcmp (public_key, &block->public_key,
+              sizeof (struct GNUNET_CRYPTO_EddsaPublicKey)))
   {
     LOG (GNUNET_ERROR_TYPE_WARNING, "Public key mismatch.\n");
     return 0;
   }
   /* Check signature */
   if (GNUNET_OK !=
-      GNUNET_CRYPTO_eddsa_verify (purpose, &block->purpose,
-                                  &block->signature, public_key))
+      GNUNET_CRYPTO_eddsa_verify (purpose, &block->purpose, &block->signature,
+                                  public_key))
   {
     LOG (GNUNET_ERROR_TYPE_WARNING, "Invalid signature.\n");
     return 0;
   }
   /* Check pow */
-  if (GNUNET_NO == check_pow (&block->timestamp,
-      sizeof (struct GNUNET_TIME_Absolute) +
-              sizeof (struct GNUNET_CRYPTO_EddsaPublicKey) + block->msg_size, block->pow, matching_bits))
+  if (GNUNET_NO ==
+      check_pow (&block->timestamp,
+                 sizeof (struct GNUNET_TIME_Absolute) +
+                 sizeof (struct GNUNET_CRYPTO_EddsaPublicKey) + block->msg_size,
+                 block->pow, matching_bits))
   {
     LOG (GNUNET_ERROR_TYPE_WARNING, "Invalid proof-of-work.\n");
     return 0;
