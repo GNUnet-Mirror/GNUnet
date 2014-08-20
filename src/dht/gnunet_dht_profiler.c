@@ -339,6 +339,17 @@ struct Context **peer_contexts = NULL;
  */
 static int peers_started = 0;
 
+
+/**
+ * Should we do a PUT (mode = 0) or GET (mode = 1);
+ */
+static enum
+{
+  MODE_PUT = 0,
+
+  MODE_GET = 1
+} mode;
+
 /**
  * Task that collects successor statistics from all the peers. 
  * @param cls
@@ -598,6 +609,13 @@ delayed_get (void *cls, const struct GNUNET_SCHEDULER_TaskContext *tc)
 
 
 /**
+ * Connect to DHT services of active peers
+ */
+static void
+start_profiling();
+
+
+/**
  * Queue up a delayed task for doing DHT GET
  *
  * @param cls the active context
@@ -611,13 +629,21 @@ static void
 put_cont (void *cls, int success)
 {
   struct ActiveContext *ac = cls;
+  struct Context *ctx = ac->ctx;
 
   ac->dht_put = NULL;
   if (success)
     n_puts_ok++;
   else
     n_puts_fail++;
-  ac->delay_task = GNUNET_SCHEDULER_add_delayed (delay, &delayed_get, ac);
+  GNUNET_assert (NULL != ctx);
+  GNUNET_TESTBED_operation_done (ctx->op);
+  /* Start GETs if all PUTs have been made */
+  if (n_active == n_puts_ok + n_puts_fail)
+  {
+    mode = MODE_GET;
+    start_profiling ();
+  }
 }
 
 
@@ -684,8 +710,15 @@ dht_connected (void *cls,
     ctx->op = NULL;
     return;
   }
-  
-  ac->delay_task = GNUNET_SCHEDULER_add_delayed (delay, &delayed_put, ac);
+  switch (mode)
+  {
+  case MODE_PUT:
+    ac->delay_task = GNUNET_SCHEDULER_add_delayed (delay, &delayed_put, ac);
+    break;
+  case MODE_GET:
+    ac->delay_task = GNUNET_SCHEDULER_add_delayed (delay, &delayed_get, ac);
+    break;
+  }
 }
 
 
@@ -728,12 +761,10 @@ dht_disconnect (void *cls, void *op_result)
 
 
 /**
- * FIXME:Verify where is n_active used. Should this service be started only
- * for n_active peers?
- * Start testbed service for all the peers. 
+ * Connect to DHT services of active peers
  */
 static void
-start_testbed_service_on_all_peers()
+start_profiling()
 {
   unsigned int i;
   DEBUG("GNUNET_TESTBED_service_connect \n");
@@ -796,7 +827,7 @@ successor_stats_cont (void *cls,
     
     if(GNUNET_SCHEDULER_NO_TASK == successor_stats_task)
     {
-      start_testbed_service_on_all_peers();
+      start_profiling();
     }
     
     return;
@@ -817,7 +848,7 @@ successor_stats_cont (void *cls,
       
       if(GNUNET_SCHEDULER_NO_TASK == successor_stats_task)
       {
-        start_testbed_service_on_all_peers();
+        start_profiling();
       }
       
       return;
