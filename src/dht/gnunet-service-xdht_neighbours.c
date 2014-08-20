@@ -75,12 +75,12 @@
 /**
  * How long to wait before sending another find finger trail request
  */
-#define DHT_FIND_FINGER_TRAIL_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 50)
+#define DHT_FIND_FINGER_TRAIL_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 500)
 
 /**
  * How long to wait before sending another verify successor message.
  */
-#define DHT_SEND_VERIFY_SUCCESSOR_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 5)
+#define DHT_SEND_VERIFY_SUCCESSOR_INTERVAL GNUNET_TIME_relative_multiply (GNUNET_TIME_UNIT_MILLISECONDS, 60)
 
 /**
  * How long at most to wait for transmission of a request to a friend ?
@@ -3499,34 +3499,6 @@ handle_dht_p2p_put (void *cls, const struct GNUNET_PeerIdentity *peer,
       return GNUNET_OK;
     }
   }
-
-  memcpy (&key_value, &(put->key), sizeof (uint64_t));
-  if (0 != (GNUNET_CRYPTO_cmp_peer_identity (&best_known_dest, &my_identity)))
-  {
-    next_hop = GDS_ROUTING_get_next_hop (intermediate_trail_id,
-                                         GDS_ROUTING_SRC_TO_DEST);
-    if (NULL == next_hop)
-    {
-      DEBUG(" NO ENTRY FOUND IN %s ROUTING TABLE for trail id %s, line",
-            GNUNET_i2s(&my_identity), GNUNET_h2s(&intermediate_trail_id), __LINE__);
-      GNUNET_STATISTICS_update (GDS_stats,
-                                gettext_noop ("# Next hop to forward the packet not found "
-                                "trail setup request, packet dropped."),
-                                1, GNUNET_NO);
-      GNUNET_break_op (0);
-      return GNUNET_OK;
-    }
-  }
-  else
-  {
-    struct Closest_Peer successor;
-    key_value = GNUNET_ntohll (key_value);
-    successor = find_successor (key_value, GDS_FINGER_TYPE_NON_PREDECESSOR);
-    next_hop = GNUNET_new (struct GNUNET_PeerIdentity);
-    *next_hop = successor.next_hop;
-    intermediate_trail_id = successor.trail_id;
-    best_known_dest = successor.best_known_destination;
-  }
   
   /* Check if you are already a part of put path. */
   unsigned int i;
@@ -3549,6 +3521,47 @@ handle_dht_p2p_put (void *cls, const struct GNUNET_PeerIdentity *peer,
   }
   else
     putlen = 0;
+  
+  memcpy (&key_value, &(put->key), sizeof (uint64_t));
+  if (0 != (GNUNET_CRYPTO_cmp_peer_identity (&best_known_dest, &my_identity)))
+  {
+    next_hop = GDS_ROUTING_get_next_hop (intermediate_trail_id,
+                                         GDS_ROUTING_SRC_TO_DEST);
+    if (NULL == next_hop)
+    {
+      DEBUG(" NO ENTRY FOUND IN %s ROUTING TABLE for trail id %s, line",
+            GNUNET_i2s(&my_identity), GNUNET_h2s(&intermediate_trail_id), __LINE__);
+      GNUNET_STATISTICS_update (GDS_stats,
+                                gettext_noop ("# Next hop to forward the packet not found "
+                                "trail setup request, packet dropped."),
+                                1, GNUNET_NO);
+      
+      GNUNET_break_op (0);
+      //FIXME: Adding put here,only to ensure that process does not hang. but
+      // should not be here. fix the logic. 
+      GDS_DATACACHE_handle_put (GNUNET_TIME_absolute_ntoh (put->expiration_time),
+                                &(put->key),putlen, pp, ntohl (put->block_type),
+                                 payload_size, payload);
+      return GNUNET_OK;
+    }
+    else
+    {
+      GNUNET_assert (0 != GNUNET_CRYPTO_cmp_peer_identity (&my_identity, 
+                                                            next_hop));
+    }
+  }
+  else
+  {
+    struct Closest_Peer successor;
+    key_value = GNUNET_ntohll (key_value);
+    successor = find_successor (key_value, GDS_FINGER_TYPE_NON_PREDECESSOR);
+    next_hop = GNUNET_new (struct GNUNET_PeerIdentity);
+    *next_hop = successor.next_hop;
+    intermediate_trail_id = successor.trail_id;
+    best_known_dest = successor.best_known_destination;
+  }
+  
+
 
   GDS_CLIENTS_process_put (options,
                            ntohl (put->block_type),
